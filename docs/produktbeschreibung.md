@@ -143,7 +143,7 @@ jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV u
 | DSFinV-K-Export       | Vollständiger Export als ZIP (CSV + index.xml) nach DSFinV-K v2.4             |
 | Seriennummer / ELSTER | UUID beim ersten Start; ELSTER-Meldeanleitung _(in Entwicklung)_              |
 
-**Architekturprinzip:** Die Smartphones der Servicekräfte sind reine Eingabegeräte: TSE-Anbindung, Protokollierung und DSFinV-K-Persistenz laufen zentral im Backend; bei Verbindungsverlust blockiert die Webapp sofort (kein Offline-Kassieren). Da jotti self-hosted läuft, schließen Betreiber den Cloud-TSE-Vertrag selbst ab und hinterlegen die API-Schlüssel (Bring Your Own TSE); ohne TSE-Konfiguration bleiben Buchungen unsigniert, was nur für Test und Entwicklung gedacht und für echte Verkäufe nicht konform ist (§ 379 AO). Rechtliche Grundlagen und Betreiberpflichten (ELSTER-Meldung, Datensicherung, 10-jährige GoBD-konforme Aufbewahrung): [compliance.md](compliance.md).
+**Architekturprinzip:** Die Smartphones der Servicekräfte sind reine Eingabegeräte: TSE-Anbindung, Protokollierung und DSFinV-K-Persistenz laufen zentral im Backend; jeder Vorgang ist ein synchroner Backend-Request, ohne Verbindung ist kein Kassieren möglich (keine Offline-Erfassung). Da jotti self-hosted läuft, schließen Betreiber den Cloud-TSE-Vertrag selbst ab und hinterlegen die API-Schlüssel (Bring Your Own TSE); ohne TSE-Konfiguration bleiben Buchungen unsigniert, was nur für Test und Entwicklung gedacht und für echte Verkäufe nicht konform ist (§ 379 AO). Rechtliche Grundlagen und Betreiberpflichten (ELSTER-Meldung, Datensicherung, 10-jährige GoBD-konforme Aufbewahrung): [compliance.md](compliance.md).
 
 ### 6.4 Einsatzprofil
 

@@ -26,7 +26,7 @@ Die KassenSichV konkretisiert § 146a AO; § 1 KassenSichV definiert als Aufzeic
 Für mobile Geräte gilt: Kann ein Gerät Zahlungsvorgänge eigenständig und offline erfassen, braucht es eine eigene TSE-Anbindung. Fungiert es nur als Eingabeterminal mit sofortiger Weiterleitung an ein TSE-gesichertes Backend, genügt die Backend-TSE. In jottis BYOD-Modell sind die Smartphones der Servicekräfte reine Eingabegeräte, rechtlich nicht mehr als eine Tastatur. Konsequenzen:
 
 1. Die Smartphones benötigen keine eigene TSE; TSE-Absicherung, Protokollierung und DSFinV-K-Speicherung erfolgen zentral im Backend.
-2. **Architektonische Pflicht:** Die Webapp muss bei Verbindungsverlust sofort blockieren, jede Offline-Erfassung von Barzahlungen muss technisch verhindert sein. Nur so ist die Einordnung als reines Eingabegerät rechtlich haltbar. [2, 11, 15]
+2. **Architektonische Eigenschaft:** Jeder Vorgang ist ein synchroner Backend-Request; das Frontend hat keinen Service Worker, keine optimistischen Updates und keinen Offline-Speicher für Vorgangsdaten (verifiziert über `frontend/src/`). Ohne Verbindung schlägt jede Erfassung fehl, eine Offline-Erfassung von Barzahlungen ist damit technisch ausgeschlossen und die Einordnung als reines Eingabegerät rechtlich haltbar. [2, 11, 15]
 
 ### 2.3 GoBD
 
@@ -288,7 +288,7 @@ Bei Kassen-Nachschau oder Betriebsprüfung verlangt die Finanzverwaltung einen g
 ### 6.2 Dateiformat und Grundregeln
 
 - **Gesamtstruktur:** ZIP-Archiv mit CSV-Dateien, einer `index.xml` (Metadaten für das Prüftool) und der zugehörigen `gdpdu-01-09-2004.dtd` (Beschreibungsstandard nach GoBD-Anlage „Ergänzende Informationen zur Datenträgerüberlassung") [20]. Die `index.xml` deklariert die vorhandenen Tabellen samt Spalten, Feldtypen und Trennzeichen; sie ist zwingend, ebenso die DTD.
-- **CSV-Regeln:** Header-Zeile zwingend; Semikolon-Trennung; CRLF; Punkt als Dezimaltrennzeichen, keine Tausendertrennzeichen, mindestens eine Stelle vor dem Punkt, keine führenden Nullen; Spaltenreihenfolge exakt nach Spezifikation
+- **CSV-Regeln:** Header-Zeile zwingend; Semikolon-Trennung; CRLF; Komma als Dezimaltrennzeichen (in der amtlichen `index.xml` als `DecimalSymbol` deklariert), keine Tausendertrennzeichen, mindestens eine Stelle vor dem Komma, keine führenden Nullen; Spaltenreihenfolge exakt nach Spezifikation
 - **Dateinamen:** englisch und kleingeschrieben (`transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, …), nicht abänderbar. Die deutschen Begriffe der Spezifikation („Bonkopf", „Bonpos") sind logische Bezeichnungen, keine Dateinamen: Wer `Bonkopf.csv` exportiert, erzeugt eine nicht konforme Datei.
 - **Custom-Felder:** Zusätzliche Spalten am Ende erlaubt, müssen in `index.xml` definiert sein
 
@@ -349,8 +349,9 @@ Das Feld `ABRECHNUNGSKREIS` (in `allocation_groups.csv`, je `BON_ID`) verknüpft
 
 Stornierungen erzeugen immer neue Datensätze (GoBD-Radierverbot), nie Änderungen am Ursprungsbon:
 
-- **Positions-Storno (vor Zahlung):** neuer Bon mit negativer Menge, `BON_STORNO = 1` in `transactions.csv`, `REF_BON_ID` in `references.csv` auf den Ursprungsbon, eigene TSE-Signatur, gleicher `ABRECHNUNGSKREIS`.
-- **Bon-Storno (nach Zahlung):** neuer Bon mit negativem Gesamtbetrag, `BON_STORNO = 1`, `REF_BON_ID` auf den Original-Zahlungsbeleg, eigene `Kassenbeleg-V1`-Transaktion.
+- **Positions-Storno (vor Zahlung):** neuer Bon mit negativer Menge, `REF_BON_ID` in `references.csv` auf den Ursprungsbon, eigene TSE-Signatur, gleicher `ABRECHNUNGSKREIS`.
+- **Bon-Storno (nach Zahlung):** neuer Bon mit negativem Gesamtbetrag, `REF_BON_ID` auf den Original-Zahlungsbeleg, eigene `Kassenbeleg-V1`-Transaktion.
+- **`BON_STORNO`:** bleibt in allen Fällen `0`. jotti nutzt die zulässige Negativ-Darstellung, das Vorzeichen des neuen Bons trägt die Korrektur. `BON_STORNO = 1` kennzeichnet die vollständige Aufhebung eines ganzen Belegs; diesen Vorgang gibt es in jotti nicht.
 - **Direktverkauf:** `direktverkauf-getaetigt:v1` (positiver Geschäftsvorfall) und `direktverkauf-storniert:v1` (negativer Geschäftsvorfall) sind je eigene Belegvorgänge; Zielbild ist ein 1:1-Mapping je Event mit `REF_BON_ID`-Referenz.
 
 ### 6.7 Architektonische Anforderungen an jotti
@@ -431,7 +432,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 
 **Vor dem ersten Einsatz:**
 
-1. **Cloud-TSE-Vertrag:** Vertrag mit der Cloud-TSE von fiskaly abschließen; API-Key und Secret über den geführten Einrichtungs-Assistenten im Admin-Bereich hinterlegen (verschlüsselt in der Datenbank gespeichert). jotti legt TSS und Client selbst an, das Anbieter-Dashboard kann das nicht (→ [TSE einrichten](leitfaden/tse-einrichten.md)).
+1. **Cloud-TSE-Vertrag:** Vertrag mit der Cloud-TSE von fiskaly abschließen; API-Key und Secret über den geführten Einrichtungs-Assistenten im Admin-Bereich hinterlegen. Beide liegen danach in der Datenbank und sind über die API nicht auslesbar; ihr Schutz hängt am Zugriffsschutz für Server und Backups (Betreiberpflicht, siehe unten). jotti legt TSS und Client selbst an, das Anbieter-Dashboard kann das nicht (→ [TSE einrichten](leitfaden/tse-einrichten.md)).
 2. **ELSTER-Meldung:** Innerhalb von einem Monat nach Inbetriebnahme die Instanz über [ELSTER](https://www.elster.de) anmelden. Benötigt: Kassen-Seriennummer (Admin-Dashboard), Softwarename „jotti", Inbetriebnahmedatum (→ §7.3).
 3. **Seriennummer sichern:** Die Kassen-UUID ist die rechtliche Identität der Kasse (→ §3.7), das Datenbank-Backup muss sie enthalten. Bei Verlust: alte Nummer abmelden, neue Instanz anmelden.
 4. **Verfahrensdokumentation anpassen:** Die Muster-Verfahrensdokumentation ([verfahrensdokumentation.md](verfahrensdokumentation.md)) an die eigene Instanz anpassen (Vereinsname, TSE-Anbieter, Betriebsumgebung, Verantwortliche) und für die Betriebsprüfung bereithalten.

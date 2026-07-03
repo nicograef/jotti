@@ -41,7 +41,7 @@ Rechtliche Grundlagen im Detail: [compliance.md](compliance.md). Technische Arch
 
 jotti ist ein self-hosted Kassensystem (mobile Point of Sale) für Vereinsfeste. Das Backend ist in Go geschrieben, das Frontend in React, als Datenbank dient PostgreSQL, der Betrieb erfolgt über Docker Compose. Die Servicekräfte bedienen jotti im Browser auf ihren eigenen Smartphones (BYOD); ein gedrucktes Kassensystem oder eine installierte App gibt es nicht.
 
-**Rolle der Smartphones:** Die Geräte der Servicekräfte sind reine Eingabegeräte mit sofortiger Weiterleitung an das Backend. Sie erfassen keine Zahlungen eigenständig und offline; bei Verbindungsverlust blockiert die Webapp. TSE-Absicherung, Protokollierung und DSFinV-K-Speicherung erfolgen ausschließlich zentral im Backend. Die Smartphones sind deshalb nicht meldepflichtig ([compliance.md §7.5](compliance.md#75-byod-smartphones-keine-meldepflicht)).
+**Rolle der Smartphones:** Die Geräte der Servicekräfte sind reine Eingabegeräte mit sofortiger Weiterleitung an das Backend. Sie erfassen keine Zahlungen eigenständig und offline; jeder Vorgang ist ein synchroner Backend-Request, ohne Verbindung ist keine Erfassung möglich (kein Service Worker, kein Offline-Speicher). TSE-Absicherung, Protokollierung und DSFinV-K-Speicherung erfolgen ausschließlich zentral im Backend. Die Smartphones sind deshalb nicht meldepflichtig ([compliance.md §7.5](compliance.md#75-byod-smartphones-keine-meldepflicht)).
 
 **Bounded Contexts:** Das System ist in drei fachliche Bereiche gegliedert.
 

@@ -407,11 +407,11 @@ Leitfaden) werden per Suche über alle Docs mitgezogen.
 
 ### Acceptance criteria
 
-- [ ] Verifikation dokumentiert: kein Service-Worker-Register, keine
+- [x] Verifikation dokumentiert: kein Service-Worker-Register, keine
       optimistischen Mutationen, kein Offline-Cache im Frontend (Suche
       über `frontend/src/`).
-- [ ] Q-05 kommt in `docs/anforderungen.md` nicht mehr vor.
-- [ ] Kein Dokument behauptet mehr Verschlüsselung der TSE-Keys,
+- [x] Q-05 kommt in `docs/anforderungen.md` nicht mehr vor.
+- [x] Kein Dokument behauptet mehr Verschlüsselung der TSE-Keys,
       UI-Blockade, Dezimalpunkt im Export, `BON_STORNO = 1` oder
       sechsstellige Einmalpasswörter (Wortstrom-Suche über `docs/`).
-- [ ] Formulierungen bleiben im nüchternen Doku-Stil des Repos.
+- [x] Formulierungen bleiben im nüchternen Doku-Stil des Repos.

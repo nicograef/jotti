@@ -19,8 +19,9 @@ Die TSE (Technische Sicherheitseinrichtung) signiert jeden Kassenvorgang fälsch
 Mehr ist im Dashboard nicht nötig. Die TSS anlegen, initialisieren und den Client registrieren übernimmt jottis Assistent.
 
 > 🔒 **API-Key und Secret sind geheim.** Sie gehören nicht in Chats, E-Mails oder
-> öffentliche Dokumente. jotti speichert sie verschlüsselt in der Datenbank, ihr
-> tragt sie nur einmal im Assistenten ein.
+> öffentliche Dokumente. Ihr tragt sie nur einmal im Assistenten ein; jotti
+> speichert sie in seiner Datenbank und zeigt sie nie wieder an. Schützt deshalb
+> den Server und die Backups vor fremdem Zugriff.
 
 ## Schritt 2: Geführter Assistent in jotti
 

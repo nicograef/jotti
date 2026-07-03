@@ -158,7 +158,7 @@ Alle Beträge in Cent (Integer); der Saldo ist die Summe der noch offenen (beste
 | Invariante                | Regel                                                                                                     |
 | ------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Einzigkeits-Invariante    | Maximal eine Kassensitzung darf `offen` sein.                                                             |
-| Nummern-Invariante        | `z_nr` ist fortlaufend und lückenlos (`max(z_nr) + 1`). Wird beim INSERT in `kassensitzungen` berechnet.  |
+| Nummern-Invariante        | `z_nr` ist fortlaufend und strikt aufsteigend (Identity-Sequenz beim INSERT in `kassensitzungen`); fehlgeschlagene Eröffnungen können technische Lücken hinterlassen. |
 | Anfangsbestand-Invariante | Anfangsbestand ist `betragCents` in `kassensitzung-eroeffnet:v1`, kein eigenes Event.                     |
 | Kassensturz-Reihenfolge   | `KassensturzDurchgefuehrt` ist Voraussetzung für `TagesabschlussErstellt`.                                |
 | Tisch-Saldo-Sperre        | `TagesabschlussErstellt` ist nur möglich, wenn alle Tisch-Sessions der Kassensitzung Saldo = 0 haben.    |
@@ -202,7 +202,7 @@ Rechtliche Grundlagen und Betreiberpflichten (Zählprotokoll, Differenzbuchung, 
 
 Der Z-Bon ist das Ergebnis des `tagesabschluss-erstellt:v1`-Events, er aggregiert alle Geschäftsvorfälle einer Kassensitzung und erhält eine fortlaufende, nie zurücksetzbare `z_nr`.
 
-**Invarianten:** `z_nr` strikt aufsteigend und lückenlos. Voraussetzung: Kassensturz durchgeführt + alle Tisch-Sessions Saldo = 0 (→ [3.7](#37-invarianten)). Das Event schließt die KS (→ Status `abgeschlossen`).
+**Invarianten:** `z_nr` fortlaufend und strikt aufsteigend, technische Lücken durch Fehlversuche möglich. Voraussetzung: Kassensturz durchgeführt + alle Tisch-Sessions Saldo = 0 (→ [3.7](#37-invarianten)). Das Event schließt die KS (→ Status `abgeschlossen`).
 
 **Stammdaten-Snapshot:** Zu jedem Abschluss müssen die aktuell gültigen Stammdaten (Steuersätze, TSE-Zertifikate, Kassen-IDs) eingefroren werden, vor jeder Stammdaten-Änderung zunächst Kassenabschluss durchführen.
 
@@ -250,7 +250,7 @@ Tisch-Stammdaten sind Name + Status. Nur aktive Tische (`active`) erscheinen in 
 
 Das Benutzer-Aggregat verwaltet Zugangsdaten und Rollen (`admin`, `serviceleitung`, `service`) der Helfer und Admins.
 
-**Invarianten:** Benutzername systemweit eindeutig; Rolle gültig; Passwörter nur als Argon2id-Hash persistiert, Klartext nie. Deaktivierte (`inactive`) und entfernte (`deleted`) Benutzer können sich nicht anmelden. Neue Benutzer starten mit Status `inactive` und 6-stelligem Einmalpasswort (→ [5.2](#52-onboarding-ablauf)).
+**Invarianten:** Benutzername systemweit eindeutig; Rolle gültig; Passwörter nur als Argon2id-Hash persistiert, Klartext nie. Deaktivierte (`inactive`) und entfernte (`deleted`) Benutzer können sich nicht anmelden. Neue Benutzer starten mit Status `inactive` und einem Einmalpasswort aus 8 Zeichen (→ [5.2](#52-onboarding-ablauf)).
 
 ### 4.4 Tisch-Favoriten
 
@@ -330,7 +330,7 @@ Die Rollenhierarchie ist inklusiv: Admin kann alles, was Serviceleitung kann. Se
 
 Neue Benutzer durchlaufen einen zweistufigen Onboarding-Prozess, der sicherstellt, dass nur der Benutzer sein eigenes Passwort kennt:
 
-1. **Benutzer anlegen:** Admin erstellt Benutzer (Name, Benutzername, Rolle, Status `inactive`). System generiert 6-stelliges Einmalpasswort, das der Admin dem Benutzer mitteilt.
+1. **Benutzer anlegen:** Admin erstellt Benutzer (Name, Benutzername, Rolle, Status `inactive`). System generiert ein Einmalpasswort aus 8 Zeichen (Kleinbuchstaben und Ziffern ohne verwechselbare Zeichen), das der Admin dem Benutzer mitteilt.
 2. **Erstanmeldung + Passwort setzen:** Benutzer meldet sich mit Einmalpasswort an. System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL` den Onboarding-Status und leitet zur Passwort-Vergabe weiter (min. 6 Zeichen, Argon2id-Hash). Danach reguläre Anmeldung.
 
 **Passwort-Reset:** Admin-Reset generiert neues Einmalpasswort, leert `passwort_hash` → Benutzer durchläuft Onboarding erneut.

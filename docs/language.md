@@ -72,7 +72,7 @@ Die vollständige Berechtigungsmatrix steht in [handbuch.md §5.1](handbuch.md#5
 
 #### Einmalpasswort
 
-Vom Admin generiertes 6-stelliges numerisches Passwort für die Erstanmeldung oder das Zurücksetzen eines Passworts.
+Vom Admin generiertes Passwort aus 8 Zeichen (Kleinbuchstaben und Ziffern ohne verwechselbare Zeichen) für die Erstanmeldung oder das Zurücksetzen eines Passworts.
 
 Go-Feld: `OnetimePasswordHash` · DB-Spalte: `onetime_password_hash` · TS-Schema: `OnetimePasswordSchema`
 

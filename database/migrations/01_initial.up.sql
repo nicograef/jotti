@@ -135,7 +135,7 @@ CREATE TABLE kassensitzungen (
 CREATE UNIQUE INDEX idx_kassensitzungen_eine_aktiv
     ON kassensitzungen ((status <> 'abgeschlossen')) WHERE status <> 'abgeschlossen';
 
-COMMENT ON TABLE kassensitzungen IS 'CRUD entity for Kassensitzung lifecycle. Each row represents one Kassensitzung (one Betriebstag). The z_nr is the DSFinV-K-compliant sequential number.';
+COMMENT ON TABLE kassensitzungen IS 'CRUD entity for Kassensitzung lifecycle. Each row represents one Kassensitzung (one Betriebstag). The z_nr is the DSFinV-K Z_NR: strictly ascending via identity sequence; failed inserts may leave gaps.';
 COMMENT ON COLUMN kassensitzungen.z_nr IS 'Fortlaufende Kassensitzungsnummer (Z_NR), DSFinV-K-Pflichtfeld';
 COMMENT ON COLUMN kassensitzungen.datum IS 'Betriebstag der Kassensitzung';
 COMMENT ON COLUMN kassensitzungen.bezeichnung IS 'Bezeichnung (z.B. "Sommerfest Tag 1")';

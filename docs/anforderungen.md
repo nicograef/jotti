@@ -19,7 +19,6 @@ Rollen: `admin` (Stammdaten und Kasse), `serviceleitung` (Kasse inkl. Storno), `
 | K-13 | Küchendisplay (KDS)      | Passive Echtzeit-Anzeige offener Bestellungen je Ausgabestation.              | Kasse       | Should |
 | K-15 | Zubereitungsstatus       | Positionen als „in Zubereitung" / „fertig" markieren (baut auf K-13).         | Kasse       | Nice   |
 | K-23 | Manuelle Tischfreigabe   | Neue Tisch-Session mit Suffix bei Saldo 0.                                    | Kasse       | Nice   |
-| Q-05 | Offline-Fähigkeit        | Bestellaufnahme offline, lokale Zwischenspeicherung und Auto-Sync.            | Querschnitt | Nice   |
 | R-02 | Datenexport CSV          | Umsätze, Bestellungen und Artikel als CSV je Kassensitzung.                   | Reporting   | Nice   |
 | R-05 | Produktumsatz-Reporting  | Mengen, Ranking und Einnahmen pro Produkt und Variante.                       | Reporting   | Nice   |
 | F-08 | GoBD-Integritätsnachweis | Read-only Selbsttest (Versionsfolge und Signaturpflicht) ohne Schemaänderung. | Fiskal      | Nice   |
