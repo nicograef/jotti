@@ -14,6 +14,15 @@ import (
 //go:embed gdpdu-01-09-2004.dtd
 var gdpduDTD []byte
 
+// amtlicheIndexXML ist die amtliche, UNVERÄNDERTE index.xml der DSFinV-K v2.4
+// (Quelle: docs/rechtsquellen/technik-spezifikationen/DSFinV-K-2.4). Sie
+// deklariert alle 20 Tabellen samt Spalten und Formaten (u. a. Dezimal-KOMMA);
+// Prüfsoftware validiert gegen genau diese Datei. Die erzeugten CSVs müssen
+// ihr exakt entsprechen — Spaltenabgleich per Test in index_test.go.
+//
+//go:embed index.xml
+var amtlicheIndexXML []byte
+
 const (
 	// DTDFilename ist der unveränderliche Dateiname der GDPdU-DTD im Archiv.
 	DTDFilename = "gdpdu-01-09-2004.dtd"
@@ -32,16 +41,10 @@ func BuildArchive(snapshot Snapshot, events []event.Event, signaturNachladen Sig
 		return nil, err
 	}
 
-	supplier := dataSupplier{
-		name:     snapshot.Betreiber.Vereinsname,
-		location: snapshot.Betreiber.Ort,
-		comment:  "jotti DSFinV-K-Export",
-	}
-
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
 
-	if err := writeZipFile(zw, indexFilename, buildIndexXML(supplier, archive.Tables())); err != nil {
+	if err := writeZipFile(zw, indexFilename, amtlicheIndexXML); err != nil {
 		return nil, err
 	}
 	if err := writeZipFile(zw, DTDFilename, gdpduDTD); err != nil {

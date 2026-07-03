@@ -42,9 +42,9 @@ const (
 	land                  = "DEU"              // ISO 3166 ALPHA-3
 	basiswaehrung         = "EUR"              // ISO 4217
 	tsePDEncoding         = "UTF-8"            // Encoding der ProcessData
-	tseZeitformat         = "utcTime"          // TSE_ZEITFORMAT: TSE_TA_START/ENDE sind RFC3339-UTC, nicht unixTime
-	zertifikatChunk       = 1000               // max. Zeichen je TSE_ZERTIFIKAT-Feld
-	zertifikatSpalten     = 5                  // TSE_ZERTIFIKAT_I…_V: fünf Felder à 1000 Zeichen (Stamm_TSE)
+	zertifikatChunk       = 1000               // max. Zeichen je TSE_ZERTIFIKAT-Feld (amtlich: zwei Felder)
+	zertifikatSpalten     = 2                  // TSE_ZERTIFIKAT_I/_II — amtliches Schema der DSFinV-K
+	defaultTSEZeitformat  = "unixTime"         // fiskaly liefert unixTime; Fallback ohne Stammdaten
 	kasseBrand            = "jotti"
 	kasseModell           = "jotti mPOS"
 	kasseSoftware         = "jotti"
@@ -156,23 +156,29 @@ func Map(snapshot Snapshot, events []event.Event, signaturNachladen SignaturNach
 		return Archive{}, err
 	}
 
+	// Alle 20 amtlich deklarierten Dateien in der Reihenfolge der amtlichen
+	// index.xml — nicht befüllte als Header-only-CSV.
 	tables := []Table{
 		buildCashpointclosing(snapshot, erstellung, belege),
 		buildLocation(snapshot, erstellung),
 		buildCashregister(snapshot, erstellung),
-		buildVat(snapshot, erstellung, belege),
+		headerOnlyTable("slaves.csv", "Stamm_Terminals", "Terminal-Kassen (in jotti nicht vorhanden)", slavesColumns),
+		headerOnlyTable("pa.csv", "Stamm_Agenturen", "Agenturgeschäft (in jotti nicht vorhanden)", paColumns),
 		buildTSE(snapshot, erstellung, belege),
-		buildTransactions(snapshot, erstellung, belege),
-		buildAllocationGroups(snapshot, erstellung, belege),
-		buildTransactionsVat(snapshot, erstellung, belege),
-		buildDatapayment(snapshot, erstellung, belege),
-		buildReferences(snapshot, erstellung, belege),
-		buildLines(snapshot, erstellung, belege),
-		buildLinesVat(snapshot, erstellung, belege),
-		buildTransactionsTSE(snapshot, erstellung, belege),
+		buildVat(snapshot, erstellung, belege),
 		buildBusinesscases(snapshot, erstellung, belege),
 		buildPayment(snapshot, erstellung, belege),
 		buildCashPerCurrency(snapshot, erstellung, belege),
+		buildTransactions(snapshot, erstellung, belege),
+		buildDatapayment(snapshot, erstellung, belege),
+		buildLines(snapshot, erstellung, belege),
+		headerOnlyTable("itemamounts.csv", "Bonpos_Preisfindung", "Preisfindung je Position (in jotti nicht vorhanden)", itemamountsColumns),
+		headerOnlyTable("subitems.csv", "Bonpos_Zusatzinfo", "Zusatzinformationen je Position (in jotti nicht vorhanden)", subitemsColumns),
+		buildTransactionsTSE(snapshot, erstellung, belege),
+		buildTransactionsVat(snapshot, erstellung, belege),
+		buildLinesVat(snapshot, erstellung, belege),
+		buildAllocationGroups(snapshot, erstellung, belege),
+		buildReferences(snapshot, erstellung, belege),
 	}
 
 	return Archive{tables: tables}, nil
@@ -622,30 +628,26 @@ var vatColumns = []column{
 // buildVat deklariert die in der Sitzung tatsächlich verwendeten Steuersätze,
 // aufsteigend nach Umsatzsteuerschlüssel. Nicht-steuerbare Bargeldbewegungen
 // führen den Schlüssel 5 (0 %).
-func buildVat(s Snapshot, erstellung string, belege []beleg) Table {
-	prozentJeSchluessel := map[int]int{}
-	for bi := range belege {
-		b := &belege[bi]
-		if b.nichtSteuerbar {
-			prozentJeSchluessel[ustNichtSteuerbar] = 0
-			continue
-		}
-		for _, aufteilung := range steuer.Steuermatrix(steuermatrixPositionen(b.positionen)) {
-			prozentJeSchluessel[ustSchluessel(aufteilung.Satz)] = aufteilung.Satz.Prozent()
-		}
+func buildVat(s Snapshot, erstellung string, _ []beleg) Table {
+	// Die DSFinV-K-Anlage 2 definiert die USt-Schlüssel 1-7 fest; die vat.csv
+	// führt alle vordefinierten Schlüssel auf (nicht nur die in der Sitzung
+	// verwendeten), wie es Prüfsoftware erwartet. UST_SATZ je Schlüssel ist
+	// amtlich vorgegeben.
+	amtlicheSchluessel := [][2]string{
+		{"19,00", "Allgemeiner Steuersatz"},
+		{"7,00", "Ermäßigter Steuersatz"},
+		{"10,70", "Durchschnittsatz (§ 24 Abs. 1 Nr. 3 UStG)"},
+		{"5,50", "Durchschnittsatz (§ 24 Abs. 1 Nr. 1 UStG)"},
+		{"0,00", "Nicht Steuerbar"},
+		{"0,00", "Umsatzsteuerfrei"},
+		{"0,00", "UmsatzsteuerNichtErmittelbar"},
 	}
 
-	schluessel := make([]int, 0, len(prozentJeSchluessel))
-	for k := range prozentJeSchluessel {
-		schluessel = append(schluessel, k)
-	}
-	sort.Ints(schluessel)
-
-	records := make([][]string, 0, len(schluessel))
-	for _, k := range schluessel {
+	records := make([][]string, 0, len(amtlicheSchluessel))
+	for i, eintrag := range amtlicheSchluessel {
 		records = append(records, []string{
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-			itoa(k), formatPercent(prozentJeSchluessel[k]), ustBeschreibung(k),
+			itoa(i + 1), eintrag[0], eintrag[1],
 		})
 	}
 
@@ -662,15 +664,22 @@ var tseColumns = []column{
 	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
 	num("TSE_ID", 0), alpha("TSE_SERIAL"), alpha("TSE_SIG_ALGO"),
 	alpha("TSE_ZEITFORMAT"), alpha("TSE_PD_ENCODING"), alpha("TSE_PUBLIC_KEY"),
-	alpha("TSE_ZERTIFIKAT_I"), alpha("TSE_ZERTIFIKAT_II"), alpha("TSE_ZERTIFIKAT_III"),
-	alpha("TSE_ZERTIFIKAT_IV"), alpha("TSE_ZERTIFIKAT_V"),
+	alpha("TSE_ZERTIFIKAT_I"), alpha("TSE_ZERTIFIKAT_II"),
 }
 
 func buildTSE(s Snapshot, erstellung string, belege []beleg) Table {
+	// TSE_ZEITFORMAT deklariert das Log-Time-Format der TSE selbst (fiskaly:
+	// unixTime) und stammt aus den beim Setup gespeicherten TSE-Stammdaten.
+	// TSE_TA_START/ENDE sind davon unabhängig amtlich als ISO 8601 vorgegeben.
+	zeitformat := s.TSEStammdaten.LogTimeFormat
+	if zeitformat == "" {
+		zeitformat = defaultTSEZeitformat
+	}
+
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 		tseReferenzID, tseSerial(belege), s.TSEStammdaten.SignaturAlgorithmus,
-		tseZeitformat, tsePDEncoding, s.TSEStammdaten.PublicKey,
+		zeitformat, tsePDEncoding, s.TSEStammdaten.PublicKey,
 	}
 	for i := 0; i < zertifikatSpalten; i++ {
 		record = append(record, certChunk(s.TSEStammdaten.Zertifikat, i))
@@ -882,11 +891,18 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 			})
 			continue
 		}
+		// Geldneutrale AVBestellungen tragen keinen Geschäftsvorfall-Typ: Ein
+		// GV_TYP "Umsatz" auf ihren Positionen würde bei einer Aggregation der
+		// Bonpos je GV_TYP mehr Umsatz ausweisen, als der Kassenabschluss kennt.
+		posGvTyp := b.gvTyp
+		if b.geldneutral {
+			posGvTyp = ""
+		}
 		for i, p := range b.positionen {
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, itoa(i + 1), "", positionText(p),
-				"", b.gvTyp, "", "",
+				"", posGvTyp, "", "",
 				storno(false), "0", itoa(p.VarianteID), "",
 				p.Kategorie, p.Kategorie, formatQuantity(b.sign() * p.Menge), "",
 				"", formatAmount(p.Einzelpreis),
@@ -943,6 +959,43 @@ func buildLinesVat(s Snapshot, erstellung string, belege []beleg) Table {
 		Columns:     linesVatColumns,
 		Records:     records,
 	}
+}
+
+// Amtlich deklarierte, in jotti nicht befüllte Tabellen: Sie werden als
+// Header-only-CSV mitgeliefert, weil die amtliche index.xml alle 20 Dateien
+// deklariert und Prüfsoftware deren Existenz erwartet. jotti hat keine
+// Terminal-Kassen (slaves), kein Agenturgeschäft (pa), keine Preisfindung
+// (itemamounts) und keine Positions-Zusatzinfos wie Pfand (subitems).
+var slavesColumns = []column{
+	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
+	alpha("TERMINAL_ID"), alpha("TERMINAL_BRAND"), alpha("TERMINAL_MODELL"),
+	alpha("TERMINAL_SERIENNR"), alpha("TERMINAL_SW_BRAND"), alpha("TERMINAL_SW_VERSION"),
+}
+
+var paColumns = []column{
+	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
+	num("AGENTUR_ID", 0), alpha("AGENTUR_NAME"), alpha("AGENTUR_STRASSE"),
+	alpha("AGENTUR_PLZ"), alpha("AGENTUR_ORT"), alpha("AGENTUR_LAND"),
+	alpha("AGENTUR_STNR"), alpha("AGENTUR_USTID"),
+}
+
+var itemamountsColumns = []column{
+	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
+	alpha("BON_ID"), num("POS_ZEILE", 0), alpha("TYP"),
+	num("UST_SCHLUESSEL", 0), num("PF_BRUTTO", 5), num("PF_NETTO", 5), num("PF_UST", 5),
+}
+
+var subitemsColumns = []column{
+	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
+	alpha("BON_ID"), num("POS_ZEILE", 0), alpha("ZI_ART_NR"),
+	alpha("ZI_GTIN"), alpha("ZI_NAME"), alpha("ZI_WARENGR_ID"),
+	alpha("ZI_WARENGR"), num("ZI_MENGE", 3), num("ZI_FAKTOR", 3),
+	alpha("ZI_EINHEIT"), num("ZI_UST_SCHLUESSEL", 0),
+	num("ZI_BASISPREIS_BRUTTO", 5), num("ZI_BASISPREIS_NETTO", 5), num("ZI_BASISPREIS_UST", 5),
+}
+
+func headerOnlyTable(file, logicalName, description string, columns []column) Table {
+	return Table{File: file, LogicalName: logicalName, Description: description, Columns: columns, Records: nil}
 }
 
 var transactionsTSEColumns = []column{
@@ -1198,8 +1251,16 @@ func tseSerial(belege []beleg) string {
 }
 
 // certChunk liefert den index-ten 1000-Zeichen-Block des base64-Zertifikats
-// (für TSE_ZERTIFIKAT_I, _II …). Base64 ist ASCII, daher ist Byte-Slicing sicher.
+// (für TSE_ZERTIFIKAT_I und _II). Base64 ist ASCII, daher ist Byte-Slicing sicher.
+//
+// Passt das Zertifikat nicht in die zwei amtlichen Felder (> 2000 Zeichen, z. B.
+// eine ganze Kette), bleiben beide Felder leer statt ein abgeschnittenes — und
+// damit wertloses — Zertifikat zu exportieren: Das vollständige Zertifikat liegt
+// in den TSE-Stammdaten (DB-Backup) und im TSE-Export des Anbieters vor.
 func certChunk(cert string, index int) string {
+	if len(cert) > zertifikatSpalten*zertifikatChunk {
+		return ""
+	}
 	start := index * zertifikatChunk
 	if start >= len(cert) {
 		return ""

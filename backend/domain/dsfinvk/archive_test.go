@@ -31,17 +31,31 @@ func TestBuildArchiveContents(t *testing.T) {
 	want := []string{
 		"allocation_groups.csv", "businesscases.csv", "cash_per_currency.csv", "cashpointclosing.csv",
 		"cashregister.csv", "datapayment.csv", "gdpdu-01-09-2004.dtd", "index.xml",
-		"lines.csv", "lines_vat.csv", "location.csv", "payment.csv",
-		"references.csv", "transactions.csv", "transactions_tse.csv", "transactions_vat.csv",
+		"itemamounts.csv", "lines.csv", "lines_vat.csv", "location.csv",
+		"pa.csv", "payment.csv", "references.csv", "slaves.csv",
+		"subitems.csv", "transactions.csv", "transactions_tse.csv", "transactions_vat.csv",
 		"tse.csv", "vat.csv",
 	}
 	if !equalStrings(got, want) {
 		t.Errorf("archive files = %v\nwant %v", got, want)
 	}
 
-	for _, absent := range []string{"slaves.csv", "pa.csv"} {
-		if contains(got, absent) {
-			t.Errorf("archive must not contain %s", absent)
+	// Die index.xml im Archiv ist byte-identisch mit der amtlichen Vorlage.
+	for _, f := range reader.File {
+		if f.Name != "index.xml" {
+			continue
+		}
+		rc, err := f.Open()
+		if err != nil {
+			t.Fatalf("open index.xml: %v", err)
+		}
+		var buf bytes.Buffer
+		if _, err := buf.ReadFrom(rc); err != nil {
+			t.Fatalf("read index.xml: %v", err)
+		}
+		rc.Close()
+		if !bytes.Equal(buf.Bytes(), amtlicheIndexXML) {
+			t.Error("index.xml im Archiv weicht von der amtlichen Vorlage ab")
 		}
 	}
 }
@@ -63,13 +77,4 @@ func equalStrings(a, b []string) bool {
 		}
 	}
 	return true
-}
-
-func contains(haystack []string, needle string) bool {
-	for _, s := range haystack {
-		if s == needle {
-			return true
-		}
-	}
-	return false
 }
