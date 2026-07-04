@@ -8,22 +8,22 @@
 > Architektur-Dokumentation. Reiner Strukturumbau: keine API-Pfad-, Schema-
 > oder UI-Änderungen.
 >
-> **Voraussetzung:** Die PRD „TSE-Signatur über Outbox und Signatur-Worker"
-> (prd-tse-signatur-outbox.md) ist zuerst umgesetzt. Diese PRD baut auf deren
-> Ergebnis auf (TSE-freier Kassen-Kern, Signaturauftrags-Outbox, Signatur-
-> Worker, Signaturstatus, Störungsprotokoll) und ordnet es in den
-> Fiskal-Kontext ein.
+> **Voraussetzung (erfüllt):** Die PRD „TSE-Signatur über Outbox und
+> Signatur-Worker" (prd-tse-signatur-outbox.md) ist umgesetzt, inklusive der
+> nachgelagerten Vereinfachung der Admin-Oberfläche auf reines Monitoring
+> (prd-tse-admin-vereinfachung.md). Diese PRD baut auf dem Ergebnis auf
+> (TSE-freier Kassen-Kern, Signaturauftrags-Outbox, Signatur-Worker,
+> Signaturstatus, Störungsprotokoll) und ordnet es in den Fiskal-Kontext ein.
 
 ## Problem Statement
 
 Die Architektur-Dokumentation nennt drei Bounded Contexts (Kasse, Stammdaten,
 Auth), der Code lebt aber faktisch mit sechs Subdomänen: Kasse (Core),
 Fiskalisierung, Druck/Ausgabe, Stammdaten, Reporting (Supporting) und Auth
-(Generic). Diese Diskrepanz erzeugt konkrete Strukturprobleme (die Zahlen-
-und Dependency-Angaben beschreiben den Ist-Stand vor der Outbox-PRD; deren
-Umbau verkleinert einzelne Dependency-Sätze — etwa entfallen TSESignierer
-und SettingsRepo aus den Kassen-Commands —, ändert aber nichts an der
-Diagnose):
+(Generic). Diese Diskrepanz erzeugt konkrete Strukturprobleme (Ist-Stand
+nach umgesetzter Outbox-PRD; deren Umbau hat den synchronen TSESignierer
+durch schlanke Repo-Reads ersetzt — Signaturstatus für den Beleg, Gate für
+den Kassenabschluss —, die Dependency-Sätze aber nicht verkleinert):
 
 1. **`api/table` ist ein God-Modul.** Ein einziger Command-Struct mit neun
    Dependencies vereint vier Kontexte: Tisch-Stammdaten-CRUD, das
@@ -44,7 +44,7 @@ Diagnose):
    Domänenkern.
 4. **Das settings-Modul ist ein Sammelbecken.** Betreiber-Stammdaten,
    TSE-Konfiguration/-Setup/-Status und Kassenidentität teilen sich ein
-   Domain-Paket, ein Repository und im Frontend eine 14-Methoden-Klasse über
+   Domain-Paket, ein Repository und im Frontend eine 13-Methoden-Klasse über
    drei Kontexte hinweg.
 5. **Kleinere Inkonsistenzen:** Fachmodule mit englischen Namen (product,
    table) neben deutschen (kasse, direktverkauf), obwohl die Ubiquitous
@@ -143,7 +143,7 @@ Entwickler die Landkarte, die bisher fehlte.
     Bereich liegt.
 15. Als Frontend-Entwickler möchte ich getrennte Backend-Klassen für TSE und
     Betreiber, damit nicht jede Einstellungs-Änderung durch eine
-    14-Methoden-Sammelklasse führt.
+    13-Methoden-Sammelklasse führt.
 16. Als Frontend-Entwickler möchte ich die Kassensitzungs-Seite in
     Sektions-Dateien vorfinden, damit Eröffnung, Geldtransit und Abschluss
     unabhängig les- und änderbar sind.
@@ -167,9 +167,12 @@ Backend: Kontext-Ordner
     Tischübersicht, Tisch-State, Historie, Meine Tische),
     `direktverkauf` (Umzug unverändert), `kassenfuehrung` (Kassensitzung
     eröffnen, Geldtransit, Kassenabschluss, Kassenbestand; heute api/kasse).
-  - **fiskal/** (Supporting): `signatur` (Signaturauftrags-Verwaltung,
-    Signaturstatus, Störungsprotokoll — die Bausteine aus der Outbox-PRD),
-    `setup` (TSE-Einrichtung, -Übernahme, -Status, Verbindungstest; heute in
+  - **fiskal/** (Supporting): `signatur` (Signatur-Monitoring: Queue-Zustand
+    und Störungsprotokoll; heute api/tse. Signatur-Worker und
+    Rückstand-Watchdog ziehen aus app/ in dieses Modul — sie tragen
+    Fiskal-Logik wie Fehlertaxonomie und Störungsprotokoll-Führung; app/
+    konstruiert und startet sie nur noch als Lifecycle), `setup`
+    (TSE-Einrichtung, -Übernahme, -Status, Verbindungstest; heute in
     api/settings), `export` (DSFinV-K-Orchestrierung), `dsfinvk`
     (Mapper und Archiv-Builder; Umzug aus der Domain-Schicht, denn er ist
     Downstream-Mapper gegen das Event-Schema, keine Domänenlogik).
@@ -244,8 +247,9 @@ Frontend
   Arbeitsmodus. Die admin-exklusiven Klassen ziehen in ihre Slices:
   Druckstation-Backend zu den Druck-Einstellungen; die
   Einstellungen-Sammelklasse wird aufgeteilt in eine TSE-Backend-Klasse
-  (Konfiguration, Setup, Status, Signaturaufträge) im TSE-Slice und eine
-  Betreiber-Backend-Klasse (Betreiber, Kassenidentität) im Finanzamt-Slice.
+  (Konfiguration, Setup, Status, Signatur-Queue, Störungsprotokoll) im
+  TSE-Slice und eine Betreiber-Backend-Klasse (Betreiber, Kassenidentität)
+  im Finanzamt-Slice.
 - Die Kassensitzungs-Seite wird in ihre drei Sektionen (Eröffnung,
   Geldtransit, Abschluss) als eigene Dateien zerlegt; Verhalten und
   Erscheinungsbild bleiben identisch.
@@ -318,7 +322,7 @@ Architektur-/Import-Grenzen-Test — Entscheidung aus der Klärungsrunde).
 - Umbenennung der DB-Tabelle `tisch_sessions`: geprüft und bewusst
   belassen — der Name entspricht dem UL-Begriff Tisch-Session
   (language.md), abgegrenzt von der Kassensitzung.
-- Die TSE-Signatur-Outbox selbst (eigene PRD, Voraussetzung dieser PRD).
+- Die TSE-Signatur-Outbox selbst (eigene PRD, bereits umgesetzt).
 - Umbenennung von `user`/Auth-Infrastruktur ins Deutsche (dokumentierte
   Ausnahme der Ubiquitous Language).
 - Ein automatisierter Architektur-Test für Modulgrenzen (bewusst verworfen;
@@ -330,17 +334,17 @@ Architektur-/Import-Grenzen-Test — Entscheidung aus der Klärungsrunde).
 
 ## Further Notes
 
-- **Reihenfolge:** Diese PRD setzt die Outbox-PRD voraus, weil deren Umbau
-  die TSE-Verflechtung des Kerns auflöst (Events ohne TSE-Felder, ein
-  Schreibprimitiv mit Outbox-Anhängen, zentrale fiskalische Projektion).
-  Erst dadurch werden die Modul-Umzüge dieser PRD zu reinen Verschiebungen
-  ohne Logikänderung.
+- **Reihenfolge:** Die Outbox-PRD ist umgesetzt und hat die TSE-Verflechtung
+  des Kerns aufgelöst (Events ohne TSE-Felder, ein Schreibprimitiv mit
+  Outbox-Anhängen, zentrale fiskalische Projektion). Dadurch sind die
+  Modul-Umzüge dieser PRD reine Verschiebungen ohne Logikänderung.
 - **Leitprinzip des Schnitts:** Modulgrenze = Kontextgrenze = Begriff der
   Ubiquitous Language. Der Kasse-Kern entscheidet über Geschäftsvorfälle;
   Fiskalisierung und Druck reagieren auf committete Events über ihre
   Outboxen (Signaturauftrag, Druckauftrag) — zwei Outboxen, ein Muster,
-  bewusst ohne gemeinsame Abstraktion, aber mit parallelen Namen, Status
-  und Admin-Aktionen.
+  bewusst ohne gemeinsame Abstraktion. Die Verwaltung unterscheidet sich
+  gewollt: Druckaufträge behalten Admin-Aktionen und den Status verworfen,
+  die Signatur-Seite ist reines Monitoring (prd-tse-admin-vereinfachung.md).
 - **Klassifikation:** Kasse ist Core Domain (Differenzierung: lückenlose
   Transparenz für Vereine); Fiskalisierung ist Supporting (gesetzlich
   zwingend, nicht differenzierend); Druck, Stammdaten, Reporting sind
@@ -357,10 +361,11 @@ Architektur-/Import-Grenzen-Test — Entscheidung aus der Klärungsrunde).
   favorit_repo wird damit aus beiden Kontexten gelesen. Für Read Models
   legitim, aber eine bewusste Entscheidung, keine versehentliche.
 - **Finanzamt-Seite mit zwei Backend-Klassen:** Die FinanzamtPage bündelt
-  Betreiber-, Kassenidentitäts- und TSE-Sektionen und nutzt nach der
-  Aufspaltung beide neuen Backend-Klassen — für die TSE-Sektionen als
-  Cross-Slice-Import aus dem tse-Slice. Gewollt, da die UI unverändert
-  bleibt.
+  sechs Sektionen (Betreiber, Kassenidentität, Signaturaufträge-Queue,
+  Ausfalldokumentation, TSE-Anbindung, Dokumente und Pflichten) und nutzt
+  nach der Aufspaltung beide neuen Backend-Klassen — für die drei
+  TSE-Sektionen als Cross-Slice-Import aus dem tse-Slice. Gewollt, da die
+  UI unverändert bleibt.
 - **Tagesabschluss und Same-Command-Events:** Der Abschluss-Command erzeugt
   Kassensturz- und ggf. Differenz-Event im selben Vorgang vor dem
   Tagesabschluss. Die reine Domänenfunktion muss diese noch nicht
