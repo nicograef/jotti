@@ -225,5 +225,5 @@ alle Zustände.
       Landing gesamt 1165 auf 880)
 - [x] Keine unerklärten Fachbegriffe im Nutzen-Teil der Seite (Sichtprüfung)
 - [x] Kein neuer Inhalt, kein Werte-Text (Wortstrom-Diff geprüft)
-- [ ] Finale Gesamtabnahme durch Nico: Light/Dark, Mobil/Desktop
+- [x] Finale Gesamtabnahme durch Nico: Light/Dark, Mobil/Desktop
 - [x] `pnpm check` läuft fehlerfrei
