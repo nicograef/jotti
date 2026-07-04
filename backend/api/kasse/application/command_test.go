@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
+	e "github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -58,15 +58,6 @@ func (m settingsMock) GetTSEKonfiguration(_ context.Context) (settings.TSEKonfig
 	return m.tse, nil
 }
 
-type reportingMock struct {
-	data reporting.ReportingData
-	err  error
-}
-
-func (m reportingMock) GetReporting(_ context.Context, _ int) (reporting.ReportingData, error) {
-	return m.data, m.err
-}
-
 // tseGateMock speist das Kassenabschluss-Gate: die noch nicht erledigten
 // Signatur-Stände der Sitzung und der aktive Störungszeitraum. Der Nullwert
 // (keine Stände, keine Störung) lässt das Gate durch.
@@ -91,7 +82,6 @@ func newTestCommand(ks *kasse.Kassensitzung) Command {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
 		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
-		ReportingRepo:       reportingMock{},
 		TSERepo:             tseGateMock{},
 	}
 }
@@ -164,8 +154,8 @@ func TestKasseAbschliessen_OhneDifferenz(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		ReportingRepo:       reportingMock{},
-		TSERepo:             tseGateMock{},
+
+		TSERepo: tseGateMock{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
@@ -195,8 +185,8 @@ func TestKasseAbschliessen_MitDifferenz(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		ReportingRepo:       reportingMock{},
-		TSERepo:             tseGateMock{},
+
+		TSERepo: tseGateMock{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500) // Ist = 495 EUR, Differenz = 500
@@ -222,21 +212,49 @@ func TestKasseAbschliessen_MitDifferenz(t *testing.T) {
 	}
 }
 
+// TestKasseAbschliessen_TagesabschlussMitEchtenSummen prüft, dass die drei Summen
+// im tagesabschluss-erstellt-Event aus den Journal-Events der Kassensitzung berechnet
+// werden (und nicht mehr aus einem separaten Reporting-Repository).
+// Der Journal-Mock liefert dabei auch die im selben Vorgang geschriebenen
+// Kassensturz-Events, da sie zum Lesezeitpunkt committed sind.
 func TestKasseAbschliessen_TagesabschlussMitEchtenSummen(t *testing.T) {
 	ctx := context.Background()
 	journalMock := kassenjournal_repo.NewMock(nil, nil)
 	journalMock.SetKassenbestand(50000)
+
+	// Pre-load events that BerechneAbschlussSummen should aggregate.
+	// zahlung: umsatz +12345
+	zahlungRaw, _ := json.Marshal(map[string]int{"gesamtZahlungCents": 12345})
+	journalMock.AddEvent(e.Event{
+		UserID:   1,
+		UserName: "Test",
+		Type:     string(kasse.EventTypeZahlungKassiertV1),
+		Subject:  kasse.TischSessionSubject(testOpenKS.ZNr, 99),
+		Data:     zahlungRaw,
+	})
+	// korrektur (geldneutral): stornierungen +200, umsatz unverändert
+	korrekturRaw, _ := json.Marshal(map[string]int{"gesamtCents": 200})
+	journalMock.AddEvent(e.Event{
+		UserID:   1,
+		UserName: "Test",
+		Type:     string(kasse.EventTypeBestellungKorrigiertV1),
+		Subject:  kasse.TischSessionSubject(testOpenKS.ZNr, 99),
+		Data:     korrekturRaw,
+	})
+	// geldtransit einlage: geldtransit +400
+	transitRaw, _ := json.Marshal(map[string]interface{}{"richtung": "einlage", "betragCents": 400})
+	journalMock.AddEvent(e.Event{
+		UserID:   1,
+		UserName: "Test",
+		Type:     string(kasse.EventTypeGeldtransitGebuchtV1),
+		Subject:  kasse.KassensitzungSubject(testOpenKS.ZNr),
+		Data:     transitRaw,
+	})
+
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		ReportingRepo: reportingMock{data: reporting.ReportingData{
-			Summary: reporting.Summary{
-				GesamtUmsatzCents:        12345,
-				GesamtStornierungenCents: 200,
-				GeldtransitCents:         400,
-			},
-		}},
-		TSERepo: tseGateMock{},
+		TSERepo:             tseGateMock{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
@@ -244,11 +262,11 @@ func TestKasseAbschliessen_TagesabschlussMitEchtenSummen(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
+	allEvents, err := journalMock.ReadKassensitzungEvents(ctx, testOpenKS.ZNr)
 	if err != nil {
 		t.Fatalf("expected no read error, got %v", err)
 	}
-	tagesabschluss := events[len(events)-1]
+	tagesabschluss := allEvents[len(allEvents)-1]
 
 	var data kasse.TagesabschlussErstelltV1Data
 	if err := json.Unmarshal(tagesabschluss.Data, &data); err != nil {
@@ -281,8 +299,8 @@ func TestKasseAbschliessen_TischSaldoSperre(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		ReportingRepo:       reportingMock{},
-		TSERepo:             tseGateMock{},
+
+		TSERepo: tseGateMock{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
@@ -319,8 +337,8 @@ func TestKasseAbschliessen_SetztBarriere(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
-		ReportingRepo:       reportingMock{},
-		TSERepo:             tseGateMock{},
+
+		TSERepo: tseGateMock{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {
@@ -340,11 +358,12 @@ func TestKasseAbschliessen_FehlerSetztStatusZurueck(t *testing.T) {
 	ctx := context.Background()
 	journalMock := kassenjournal_repo.NewMock(nil, nil)
 	journalMock.SetKassenbestand(50000)
+	// ReadKassensitzungEvents scheitert nach der Barriere und den Kassensturz-Writes.
+	journalMock.SetReadKassensitzungEventsErr(db.ErrDatabase)
 	sitzungMock := kassensitzungen_repo.NewMock(testOpenKS, nil)
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
-		ReportingRepo:       reportingMock{err: db.ErrDatabase}, // Reporting scheitert nach der Barriere
 		TSERepo:             tseGateMock{},
 	}
 
@@ -369,8 +388,8 @@ func TestKasseAbschliessen_KonfliktSetztStatusNichtZurueck(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
-		ReportingRepo:       reportingMock{},
-		TSERepo:             tseGateMock{},
+
+		TSERepo: tseGateMock{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrKonflikt {
@@ -391,8 +410,8 @@ func TestKasseAbschliessen_DeadlockMapsToKonflikt(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
-		ReportingRepo:       reportingMock{},
-		TSERepo:             tseGateMock{},
+
+		TSERepo: tseGateMock{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrKonflikt {
@@ -410,8 +429,8 @@ func TestKasseAbschliessen_WiederanlaufImZwischenstatus(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(imAbschluss, nil),
-		ReportingRepo:       reportingMock{},
-		TSERepo:             tseGateMock{},
+
+		TSERepo: tseGateMock{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {

@@ -5,6 +5,7 @@ package kassenjournal_repo
 import (
 	"context"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
@@ -40,14 +41,15 @@ func NewMockWithWriteErr(events []event.Event, writeErr error) *MockRepo {
 }
 
 type MockRepo struct {
-	NextZNr         int // z_nr, die EroeffneKassensitzung vergibt (0 → 1)
-	events          map[int]event.Event
-	err             error
-	writeErr        error // separate error for WriteEvent
-	tischSessions   map[string]kasse.TischSession
-	tischSessionErr error
-	kassenbestand   int                                   // configurable return value for GetKassenbestand
-	druckauftraege  []druckauftrag_repo.NeuerDruckauftrag // captured via WriteEventWithDruckauftraege
+	NextZNr                int // z_nr, die EroeffneKassensitzung vergibt (0 → 1)
+	events                 map[int]event.Event
+	err                    error
+	writeErr               error // separate error for WriteEvent
+	kassensitzungEventsErr error // returned only by ReadKassensitzungEvents
+	tischSessions          map[string]kasse.TischSession
+	tischSessionErr        error
+	kassenbestand          int                                   // configurable return value for GetKassenbestand
+	druckauftraege         []druckauftrag_repo.NeuerDruckauftrag // captured via WriteEventWithDruckauftraege
 }
 
 // versionConflict mirrors the UNIQUE(subject, version) constraint of the kassenjournal.
@@ -214,4 +216,32 @@ func (m *MockRepo) GetTischSessionsByKassensitzungNr(_ context.Context, kassensi
 		}
 	}
 	return sessions, nil
+}
+
+// SetReadKassensitzungEventsErr configures an error returned only by ReadKassensitzungEvents.
+// Use to trigger a post-barrier failure without affecting other journal operations.
+func (m *MockRepo) SetReadKassensitzungEventsErr(err error) {
+	m.kassensitzungEventsErr = err
+}
+
+// ReadKassensitzungEvents returns all events whose subject belongs to the given
+// Kassensitzung (exact match or prefix "kassensitzung-N/"), ordered by ID ascending.
+func (m *MockRepo) ReadKassensitzungEvents(_ context.Context, kassensitzungNr int) ([]event.Event, error) {
+	if m.kassensitzungEventsErr != nil {
+		return nil, m.kassensitzungEventsErr
+	}
+	if m.err != nil {
+		return nil, m.err
+	}
+	prefix := kasse.KassensitzungSubject(kassensitzungNr)
+	var events []event.Event
+	for _, e := range m.events {
+		if e.Subject == prefix || strings.HasPrefix(e.Subject, prefix+"/") {
+			events = append(events, e)
+		}
+	}
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].ID < events[j].ID
+	})
+	return events, nil
 }

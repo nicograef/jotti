@@ -105,7 +105,7 @@ func TestKasseAbschliessen_GateBlocktBeiAusstehend(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
-		ReportingRepo:       reportingMock{},
+
 		TSERepo: tseGateMock{staende: []tse.SignaturauftragStand{
 			{Status: tse.StatusOffen, ErstelltAm: erstellt},
 		}},
@@ -143,7 +143,7 @@ func TestKasseAbschliessen_GateLaesstAusfallResteDurch(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		ReportingRepo:       reportingMock{},
+
 		TSERepo: tseGateMock{
 			staende: []tse.SignaturauftragStand{
 				{Status: tse.StatusFehlgeschlagen, ErstelltAm: now},
@@ -180,7 +180,7 @@ func TestKasseAbschliessen_GateTagOhneTSE(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		ReportingRepo:       reportingMock{},
+
 		TSERepo: tseGateMock{staende: []tse.SignaturauftragStand{
 			{Status: tse.StatusTSENichtKonfiguriert, ErstelltAm: now},
 			{Status: tse.StatusTSENichtKonfiguriert, ErstelltAm: now},

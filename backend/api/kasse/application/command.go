@@ -8,7 +8,6 @@ import (
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -21,6 +20,7 @@ type kassenjournalRepo interface {
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error)
 	GetTischSessionsByKassensitzungNr(ctx context.Context, kassensitzungNr int) ([]kasse.TischSession, error)
+	ReadKassensitzungEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error)
 }
 
 type kassensitzungenRepo interface {
@@ -35,10 +35,6 @@ type settingsRepo interface {
 	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
 
-type reportingRepo interface {
-	GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error)
-}
-
 // tseGateRepo liefert dem Kassenabschluss-Gate die Signatur-Staende der
 // Kassensitzung und den aktiven Stoerungszeitraum. Beide fuettern
 // tse.BestimmeSignaturstatus — dieselbe Zurechnung wie beim Beleg-Abruf.
@@ -51,7 +47,6 @@ type Command struct {
 	KassenjournalRepo   kassenjournalRepo
 	KassensitzungenRepo kassensitzungenRepo
 	SettingsRepo        settingsRepo
-	ReportingRepo       reportingRepo
 	TSERepo             tseGateRepo
 }
 
@@ -359,21 +354,23 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		expectedVersion++
 	}
 
-	// 3. Tagesabschluss mit echten Tagessummen aus dem Reporting
-	reportingData, err := c.ReportingRepo.GetReporting(ctx, ks.ZNr)
+	// 3. Tagesabschluss: Kassensitzungs-Events lesen und Summen per Domänenfunktion berechnen.
+	// Kassensturz- und Differenz-Events sind zu diesem Zeitpunkt bereits committed (kein
+	// In-Memory-Anhängen nötig; Differenzbuchung ist summen-neutral, siehe Resolved decisions).
+	sitzungEvents, err := c.KassenjournalRepo.ReadKassensitzungEvents(ctx, ks.ZNr)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get reporting for Tagesabschluss")
+		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to read events for Tagesabschluss")
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
-	summary := reportingData.Summary
+	summen := kasse.BerechneAbschlussSummen(sitzungEvents)
 
 	now := time.Now().UTC()
 	tagesabschlussEvt, err := kasse.NewTagesabschlussErstelltEvent(
 		subject, userID, userName,
 		ks.ZNr,
 		ks.CreatedAt, now,
-		summary.GesamtUmsatzCents, summary.GesamtStornierungenCents,
-		summary.GeldtransitCents,
+		summen.UmsatzCents, summen.StornierungCents,
+		summen.GeldtransitCents,
 	)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create tagesabschluss-erstellt event")

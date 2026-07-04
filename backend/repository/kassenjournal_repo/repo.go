@@ -541,6 +541,15 @@ func (r Repository) ReadEventsByKassensitzung(ctx context.Context, kassensitzung
 	return events, signaturen, nil
 }
 
+// ReadKassensitzungEvents retrieves all events of the given Kassensitzung across
+// all streams (Kassensitzungs-, Tisch-Session- and Direktverkauf-Streams),
+// ordered by ID ascending. This is the events-only read path for the
+// Tagesabschluss-Aggregation — no Signaturauftrag JOIN.
+func (r Repository) ReadKassensitzungEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error) {
+	events, _, err := r.ReadEventsByKassensitzung(ctx, kassensitzungNr)
+	return events, err
+}
+
 // GetMaxVersion returns the highest event version for the given subject.
 // Returns 0 if no events exist for the subject.
 func (r Repository) GetMaxVersion(ctx context.Context, subject string) (int, error) {
