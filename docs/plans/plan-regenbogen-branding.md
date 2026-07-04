@@ -138,7 +138,7 @@ dieselbe Marke zeigen. Light- und Dark-Zustände werden per Screenshot geprüft 
 
 - [x] Alle Website-Kopien byte-identisch zu den neuen Mastern (md5-Vergleich)
 - [x] Doku-Seiten liefern ein konfiguriertes Favicon ohne 404
-- [ ] Screenshots Header/Footer/CTA und Browser-Tab in Light und Dark von Nico freigegeben
+- [x] Screenshots Header/Footer/CTA und Browser-Tab in Light und Dark von Nico freigegeben
 - [x] `pnpm check` läuft fehlerfrei
 
 ---
@@ -164,7 +164,7 @@ Selection und alle Doku-Akzente bleiben unverändert grün.
 ### Acceptance criteria
 
 - [x] Spektrum-Token existieren in Light- und Dark-Ausprägung; kein semantisches UI-Token geändert
-- [ ] Hero-Verlauf und Haarlinie in Light und Dark subtil (visuelle Abnahme durch Nico, Mobil und
+- [x] Hero-Verlauf und Haarlinie in Light und Dark subtil (visuelle Abnahme durch Nico, Mobil und
       Desktop)
 - [x] Stichprobe bestätigt: CTAs, Buttons, Tags und Doku-Akzente unverändert grün
 - [x] `pnpm check` läuft fehlerfrei
@@ -196,7 +196,7 @@ und Mobilmenü wird nachgezogen.
 - [x] Zielstruktur mit 8 Sektionen umgesetzt; alle Nav-Links und die Anker `versprechen`, `features`,
       `compliance`, `technik` funktionieren
 - [x] Kein inhaltlicher Verlust außer bewusst entfernten Redundanzen (Wortstrom-Diff geprüft)
-- [ ] Visuelle Abnahme der neuen Reihenfolge durch Nico (Mobil und Desktop)
+- [x] Visuelle Abnahme der neuen Reihenfolge durch Nico (Mobil und Desktop)
 - [x] `pnpm check` läuft fehlerfrei
 
 ---
@@ -220,9 +220,10 @@ alle Zustände.
 
 ### Acceptance criteria
 
-- [ ] Features-Sektion mindestens auf die Hälfte des Textumfangs reduziert; Landing gesamt messbar
-      kürzer (Wortzählung vorher/nachher im Ergebnis dokumentiert)
-- [ ] Keine unerklärten Fachbegriffe im Nutzen-Teil der Seite (Sichtprüfung)
-- [ ] Kein neuer Inhalt, kein Werte-Text (Wortstrom-Diff geprüft)
+- [x] Features-Sektion mindestens auf die Hälfte des Textumfangs reduziert; Landing gesamt messbar
+      kürzer (Wortzählung vorher/nachher im Ergebnis dokumentiert: Features 283 auf 141 Wörter,
+      Landing gesamt 1165 auf 880)
+- [x] Keine unerklärten Fachbegriffe im Nutzen-Teil der Seite (Sichtprüfung)
+- [x] Kein neuer Inhalt, kein Werte-Text (Wortstrom-Diff geprüft)
 - [ ] Finale Gesamtabnahme durch Nico: Light/Dark, Mobil/Desktop
-- [ ] `pnpm check` läuft fehlerfrei
+- [x] `pnpm check` läuft fehlerfrei
