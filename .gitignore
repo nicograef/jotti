@@ -36,6 +36,9 @@ build/
 # ── Backups (pg_dump output of make prod-backup) ─────────────────────────────
 /backups/
 
+# ── Spektral-Staging (Output von scripts/generate-spektral-logos.py) ─────────
+/spektral-staging/
+
 # ── Logs ─────────────────────────────────────────────────────────────────────
 logs
 *.log
