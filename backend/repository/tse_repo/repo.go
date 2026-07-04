@@ -34,10 +34,13 @@ type OffenerSignaturauftrag struct {
 // fuer das Admin-Monitoring: Rueckstand (offene Auftraege, Alter des aeltesten)
 // und Leistung ueber ein gleitendes 15-Minuten-Fenster (Signaturen pro Minute,
 // Signierdauer p95). So laesst sich ein wachsender von einem schrumpfenden
-// Rueckstand unterscheiden.
+// Rueckstand unterscheiden. FehlgeschlageneAuftraege und LetzterFehler sind
+// sitzungsbezogen (nur die aktive Kassensitzung); mit dem Kassenabschluss
+// verschwindet die Warnung.
 type SignaturQueueZustand struct {
 	OffeneAuftraege          int
 	FehlgeschlageneAuftraege int
+	LetzterFehler            string
 	RueckstandSekunden       int
 	SignaturenProMinute      float64
 	SignierdauerP95Sekunden  float64
@@ -134,6 +137,7 @@ func (r Repository) GetTSESignaturQueueZustand(ctx context.Context) (SignaturQue
 	return SignaturQueueZustand{
 		OffeneAuftraege:          row.OffeneAuftraege,
 		FehlgeschlageneAuftraege: row.FehlgeschlageneAuftraege,
+		LetzterFehler:            row.LetzterFehler,
 		RueckstandSekunden:       row.RueckstandSekunden,
 		SignaturenProMinute:      row.SignaturenProMinute,
 		SignierdauerP95Sekunden:  row.SignierdauerP95Sekunden,

@@ -23,6 +23,7 @@ type QueryHandler struct {
 type signaturQueueResponse struct {
 	OffeneAuftraege          int     `json:"offeneAuftraege"`
 	FehlgeschlageneAuftraege int     `json:"fehlgeschlageneAuftraege"`
+	LetzterFehler            string  `json:"letzterFehler"`
 	RueckstandSekunden       int     `json:"rueckstandSekunden"`
 	SignaturenProMinute      float64 `json:"signaturenProMinute"`
 	SignierdauerP95Sekunden  float64 `json:"signierdauerP95Sekunden"`
@@ -40,6 +41,7 @@ func (h *QueryHandler) GetTSESignaturQueueHandler() http.HandlerFunc {
 		helper.SendResponse(w, signaturQueueResponse{
 			OffeneAuftraege:          zustand.OffeneAuftraege,
 			FehlgeschlageneAuftraege: zustand.FehlgeschlageneAuftraege,
+			LetzterFehler:            zustand.LetzterFehler,
 			RueckstandSekunden:       zustand.RueckstandSekunden,
 			SignaturenProMinute:      zustand.SignaturenProMinute,
 			SignierdauerP95Sekunden:  zustand.SignierdauerP95Sekunden,

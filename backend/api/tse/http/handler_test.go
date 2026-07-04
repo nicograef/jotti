@@ -41,6 +41,7 @@ func TestGetTSESignaturQueueHandler_Success(t *testing.T) {
 	query := &mockSignaturauftragQuery{queue: tse_repo.SignaturQueueZustand{
 		OffeneAuftraege:          4,
 		FehlgeschlageneAuftraege: 1,
+		LetzterFehler:            "fiskaly api error 400",
 		RueckstandSekunden:       125,
 		SignaturenProMinute:      2.5,
 		SignierdauerP95Sekunden:  3.2,
@@ -55,6 +56,7 @@ func TestGetTSESignaturQueueHandler_Success(t *testing.T) {
 	var body struct {
 		OffeneAuftraege          int     `json:"offeneAuftraege"`
 		FehlgeschlageneAuftraege int     `json:"fehlgeschlageneAuftraege"`
+		LetzterFehler            string  `json:"letzterFehler"`
 		RueckstandSekunden       int     `json:"rueckstandSekunden"`
 		SignaturenProMinute      float64 `json:"signaturenProMinute"`
 		SignierdauerP95Sekunden  float64 `json:"signierdauerP95Sekunden"`
@@ -64,6 +66,9 @@ func TestGetTSESignaturQueueHandler_Success(t *testing.T) {
 	}
 	if body.OffeneAuftraege != 4 || body.FehlgeschlageneAuftraege != 1 || body.RueckstandSekunden != 125 {
 		t.Fatalf("unexpected queue counts: %+v", body)
+	}
+	if body.LetzterFehler != "fiskaly api error 400" {
+		t.Fatalf("unexpected letzter fehler: %q", body.LetzterFehler)
 	}
 	if body.SignaturenProMinute != 2.5 || body.SignierdauerP95Sekunden != 3.2 {
 		t.Fatalf("unexpected queue metrics: %+v", body)

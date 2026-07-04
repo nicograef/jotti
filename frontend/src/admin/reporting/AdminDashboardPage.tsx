@@ -54,7 +54,8 @@ export function AdminDashboardPage() {
             {fehlgeschlagen && (
               <span>
                 {queue?.fehlgeschlageneAuftraege} Vorgänge konnten nicht
-                signiert werden.{' '}
+                signiert werden
+                {queue?.letzterFehler ? ` (${queue.letzterFehler})` : ''}.{' '}
               </span>
             )}
             Mehr dazu unter{' '}

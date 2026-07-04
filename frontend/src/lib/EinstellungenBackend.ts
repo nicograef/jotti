@@ -144,10 +144,13 @@ export type TSEStatus = z.infer<typeof TSEStatusSchema>
 
 // Zustand der Signatur-Queue für das Admin-Monitoring: Rückstand (offene
 // Aufträge, Alter des ältesten) und Leistung über ein gleitendes
-// 15-Minuten-Fenster (Signaturen/Minute, Signierdauer p95).
+// 15-Minuten-Fenster (Signaturen/Minute, Signierdauer p95). Fehlgeschlagene
+// Aufträge und letzterFehler sind sitzungsbezogen (nur die aktive
+// Kassensitzung); mit dem Kassenabschluss verschwindet die Warnung.
 export const TSESignaturQueueSchema = z.object({
   offeneAuftraege: z.number().int(),
   fehlgeschlageneAuftraege: z.number().int(),
+  letzterFehler: z.string(),
   rueckstandSekunden: z.number().int(),
   signaturenProMinute: z.number(),
   signierdauerP95Sekunden: z.number(),

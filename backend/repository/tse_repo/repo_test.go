@@ -66,15 +66,22 @@ func setupRepository(t *testing.T) (Repository, *testUmgebung, func(t *testing.T
 	}
 }
 
-// insertAuftrag legt ein Kassenjournal-Event samt offenem Signaturauftrag an
-// und liefert (auftragID, eventID).
+// insertAuftrag legt ein Kassenjournal-Event der Standard-Sitzung samt offenem
+// Signaturauftrag an und liefert (auftragID, eventID).
 func (u *testUmgebung) insertAuftrag(t *testing.T, txID string) (int, int) {
+	t.Helper()
+	return u.insertAuftragFuerSitzung(t, txID, u.ksNr)
+}
+
+// insertAuftragFuerSitzung legt Event und offenen Signaturauftrag fuer eine
+// bestimmte Kassensitzung an — Grundlage der sitzungsbezogenen Queue-Sicht.
+func (u *testUmgebung) insertAuftragFuerSitzung(t *testing.T, txID string, ksNr int) (int, int) {
 	t.Helper()
 	u.version++
 	var eventID int
 	if err := u.db.QueryRow(
 		"INSERT INTO kassenjournal (user_id, user_name, type, subject, version, data, timestamp, kassensitzung_nr) VALUES ($1, 'Test', 'zahlung-kassiert:v1', $2, $3, '{}', NOW(), $4) RETURNING id",
-		u.userID, fmt.Sprintf("kassensitzung-%d/tisch-1", u.ksNr), u.version, u.ksNr,
+		u.userID, fmt.Sprintf("kassensitzung-%d/tisch-1", ksNr), u.version, ksNr,
 	).Scan(&eventID); err != nil {
 		t.Fatalf("insert event: %v", err)
 	}
@@ -88,6 +95,43 @@ func (u *testUmgebung) insertAuftrag(t *testing.T, txID string) (int, int) {
 		t.Fatalf("insert auftrag: %v", err)
 	}
 	return auftragID, eventID
+}
+
+// insertKassensitzung legt eine weitere offene Kassensitzung an und liefert ihre
+// z_nr. Wegen idx_kassensitzungen_eine_aktiv darf hoechstens eine Sitzung aktiv
+// sein — die vorige muss vorher abgeschlossen werden.
+func (u *testUmgebung) insertKassensitzung(t *testing.T) int {
+	t.Helper()
+	var nr int
+	if err := u.db.QueryRow(
+		"INSERT INTO kassensitzungen (datum, bezeichnung, status, created_at, updated_at) VALUES ((NOW() AT TIME ZONE 'Europe/Berlin')::date, 'Test-Sitzung', 'offen', NOW(), NOW()) RETURNING z_nr",
+	).Scan(&nr); err != nil {
+		t.Fatalf("insert kassensitzung: %v", err)
+	}
+	return nr
+}
+
+// schliesseKassensitzung setzt die Sitzung auf abgeschlossen — derselbe
+// Statuswechsel, den der Kassenabschluss ueber das Tagesabschluss-Event bewirkt.
+func (u *testUmgebung) schliesseKassensitzung(t *testing.T, ksNr int) {
+	t.Helper()
+	if _, err := u.db.Exec(
+		"UPDATE kassensitzungen SET status = 'abgeschlossen', updated_at = NOW() WHERE z_nr = $1", ksNr,
+	); err != nil {
+		t.Fatalf("close kassensitzung: %v", err)
+	}
+}
+
+// markiereFehlgeschlagen laesst einen Auftrag ueber MaxSignaturVersuche
+// Fehlversuche endgueltig fehlschlagen (Status fehlgeschlagen, letzter_fehler
+// gesetzt).
+func markiereFehlgeschlagen(t *testing.T, store Repository, ctx context.Context, auftragID int, fehler string) {
+	t.Helper()
+	for i := 0; i < MaxSignaturVersuche; i++ {
+		if err := store.TSESignaturauftragFehlversuch(ctx, auftragID, fehler); err != nil {
+			t.Fatalf("Fehlversuch %d: %v", i, err)
+		}
+	}
 }
 
 func testSignatur(txNr int) tse.Signatur {
@@ -385,11 +429,7 @@ func TestGetTSESignaturQueueZustand(t *testing.T) {
 	// Ein offener und ein fehlgeschlagener Auftrag; ein erledigter im Fenster.
 	umgebung.insertAuftrag(t, "tx-offen")
 	fehlID, _ := umgebung.insertAuftrag(t, "tx-fehl")
-	for i := 0; i < MaxSignaturVersuche; i++ {
-		if err := store.TSESignaturauftragFehlversuch(ctx, fehlID, "fiskaly down"); err != nil {
-			t.Fatalf("Expected no fehlversuch error, got %v", err)
-		}
-	}
+	markiereFehlgeschlagen(t, store, ctx, fehlID, "fiskaly down")
 	erledigtID, _ := umgebung.insertAuftrag(t, "tx-erledigt")
 	if err := store.QuittiereTSESignaturauftrag(ctx, erledigtID, testSignatur(60)); err != nil {
 		t.Fatalf("Expected no quittierung error, got %v", err)
@@ -405,8 +445,59 @@ func TestGetTSESignaturQueueZustand(t *testing.T) {
 	if zustand.FehlgeschlageneAuftraege != 1 {
 		t.Fatalf("Expected 1 fehlgeschlagenen auftrag, got %d", zustand.FehlgeschlageneAuftraege)
 	}
+	if zustand.LetzterFehler != "fiskaly down" {
+		t.Fatalf("Expected letzter fehler of active session, got %q", zustand.LetzterFehler)
+	}
 	if zustand.SignaturenProMinute <= 0 {
 		t.Fatalf("Expected positive signaturen pro minute, got %v", zustand.SignaturenProMinute)
+	}
+}
+
+// Die fehlgeschlagen-Zahl und der letzte Fehlertext sind sitzungsbezogen: Sie
+// zaehlen nur Auftraege der aktiven Kassensitzung. Mit dem Kassenabschluss
+// (Sitzung -> abgeschlossen) verschwindet die Warnung ohne weiteres Zutun, und
+// ein Vorfall aus einer bereits abgeschlossenen Sitzung zaehlt nicht mehr — die
+// neue aktive Sitzung weist nur ihren eigenen juengsten Fehler aus.
+func TestGetTSESignaturQueueZustand_FehlgeschlagenSitzungsbezogen(t *testing.T) {
+	store, umgebung, teardown := setupRepository(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	// Mit aktiver Sitzung: der fehlgeschlagene Auftrag zaehlt und traegt seinen Fehlertext.
+	fehlID, _ := umgebung.insertAuftrag(t, "tx-fehl-aktiv")
+	markiereFehlgeschlagen(t, store, ctx, fehlID, "fiskaly 503")
+
+	zustand, err := store.GetTSESignaturQueueZustand(ctx)
+	if err != nil {
+		t.Fatalf("Expected no queue error, got %v", err)
+	}
+	if zustand.FehlgeschlageneAuftraege != 1 || zustand.LetzterFehler != "fiskaly 503" {
+		t.Fatalf("Expected 1 fehlgeschlagenen auftrag der aktiven Sitzung mit Fehlertext, got %+v", zustand)
+	}
+
+	// Nach dem Kassenabschluss (Sitzung abgeschlossen) verschwindet die Warnung.
+	umgebung.schliesseKassensitzung(t, umgebung.ksNr)
+
+	zustand, err = store.GetTSESignaturQueueZustand(ctx)
+	if err != nil {
+		t.Fatalf("Expected no queue error, got %v", err)
+	}
+	if zustand.FehlgeschlageneAuftraege != 0 || zustand.LetzterFehler != "" {
+		t.Fatalf("Expected no fehlgeschlagen-Warnung ohne aktive Sitzung, got %+v", zustand)
+	}
+
+	// Eine neue aktive Sitzung mit eigenem Fehler weist nur ihren eigenen Fehler
+	// aus; der Vorfall der abgeschlossenen Sitzung zaehlt nicht mehr.
+	neueNr := umgebung.insertKassensitzung(t)
+	neuFehlID, _ := umgebung.insertAuftragFuerSitzung(t, "tx-fehl-neu", neueNr)
+	markiereFehlgeschlagen(t, store, ctx, neuFehlID, "fiskaly timeout")
+
+	zustand, err = store.GetTSESignaturQueueZustand(ctx)
+	if err != nil {
+		t.Fatalf("Expected no queue error, got %v", err)
+	}
+	if zustand.FehlgeschlageneAuftraege != 1 || zustand.LetzterFehler != "fiskaly timeout" {
+		t.Fatalf("Expected only the new session's failure, got %+v", zustand)
 	}
 }
 

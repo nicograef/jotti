@@ -57,15 +57,28 @@ SET status = 'tse_nicht_konfiguriert'
 WHERE status = 'offen';
 
 -- GetTSESignaturQueueZustand berechnet den Zustand der Signatur-Queue in einem
--- Durchlauf: offene und fehlgeschlagene Auftraege, das Alter des aeltesten
--- offenen Auftrags (Rueckstand) sowie Durchsatz (Signaturen pro Minute) und
--- Latenz (Signierdauer p95, erstellt_am -> TSE-logTime) ueber ein gleitendes
--- 15-Minuten-Fenster. On demand aus den Auftrags- und Signaturzeiten, kein
--- Metrik-Subsystem und kein In-Memory-Zustand.
+-- Durchlauf: offene Auftraege, das Alter des aeltesten offenen Auftrags
+-- (Rueckstand) sowie Durchsatz (Signaturen pro Minute) und Latenz (Signierdauer
+-- p95, erstellt_am -> TSE-logTime) ueber ein gleitendes 15-Minuten-Fenster —
+-- diese Kennzahlen global. Die fehlgeschlagenen Auftraege dagegen zaehlen nur
+-- die der aktiven Kassensitzung (Status offen oder wird_abgeschlossen), und
+-- letzter_fehler traegt den Fehlertext des juengsten davon. Ohne aktive Sitzung
+-- ist beides leer — der Kassenabschluss weist die Ausfall-Reste aus und
+-- quittiert damit die Warnung. On demand aus den Auftrags- und Signaturzeiten,
+-- kein Metrik-Subsystem und kein In-Memory-Zustand.
 -- name: GetTSESignaturQueueZustand :one
+WITH aktive_fehlgeschlagene AS (
+    SELECT a.id, a.letzter_fehler
+    FROM tse_signaturauftraege a
+    JOIN kassenjournal k ON k.id = a.event_id
+    JOIN kassensitzungen s ON s.z_nr = k.kassensitzung_nr
+    WHERE a.status = 'fehlgeschlagen'
+      AND s.status IN ('offen', 'wird_abgeschlossen')
+)
 SELECT
     COUNT(*) FILTER (WHERE status = 'offen')::int AS offene_auftraege,
-    COUNT(*) FILTER (WHERE status = 'fehlgeschlagen')::int AS fehlgeschlagene_auftraege,
+    (SELECT COUNT(*) FROM aktive_fehlgeschlagene)::int AS fehlgeschlagene_auftraege,
+    COALESCE((SELECT letzter_fehler FROM aktive_fehlgeschlagene ORDER BY id DESC LIMIT 1), '')::text AS letzter_fehler,
     COALESCE(EXTRACT(EPOCH FROM (NOW() - MIN(erstellt_am) FILTER (WHERE status = 'offen'))), 0)::int AS rueckstand_sekunden,
     (COUNT(*) FILTER (WHERE status = 'erledigt' AND erledigt_am >= NOW() - interval '15 minutes')::float8 / 15.0)::float8 AS signaturen_pro_minute,
     COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (log_time_end - erstellt_am))) FILTER (WHERE status = 'erledigt' AND erledigt_am >= NOW() - interval '15 minutes'), 0)::float8 AS signierdauer_p95_sekunden

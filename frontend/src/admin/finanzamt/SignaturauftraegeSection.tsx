@@ -1,3 +1,6 @@
+import { TriangleAlert } from 'lucide-react'
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Card,
   CardContent,
@@ -64,7 +67,23 @@ export function SignaturauftraegeSection() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {queue && <QueueZustand queue={queue} />}
+        {queue && (
+          <>
+            <QueueZustand queue={queue} />
+            {queue.fehlgeschlageneAuftraege > 0 && (
+              <Alert variant="destructive">
+                <TriangleAlert className="size-4" />
+                <AlertTitle>
+                  {queue.fehlgeschlageneAuftraege} Vorgänge konnten nicht
+                  signiert werden
+                </AlertTitle>
+                {queue.letzterFehler && (
+                  <AlertDescription>{queue.letzterFehler}</AlertDescription>
+                )}
+              </Alert>
+            )}
+          </>
+        )}
       </CardContent>
     </Card>
   )

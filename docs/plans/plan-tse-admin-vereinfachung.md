@@ -177,13 +177,13 @@ die Warnung von selbst. Alle übrigen Kennzahlen bleiben unverändert global.
 
 ### Acceptance criteria
 
-- [ ] Queue-Query zählt `fehlgeschlagen` sitzungsbezogen und liefert `letzter_fehler` des jüngsten
+- [x] Queue-Query zählt `fehlgeschlagen` sitzungsbezogen und liefert `letzter_fehler` des jüngsten
       fehlgeschlagenen Auftrags der aktiven Sitzung (Repo-Test: mit aktiver Sitzung, ohne aktive Sitzung,
       Vorfall aus alter Sitzung zählt nicht).
-- [ ] Nach dem Kassenabschluss verschwindet die fehlgeschlagen-Warnung ohne weitere Aktion (Test).
-- [ ] Antwort-DTO und Zod-Schema um `letzterFehler` erweitert; Dashboard-Warntext und Monitoring-Karte zeigen
+- [x] Nach dem Kassenabschluss verschwindet die fehlgeschlagen-Warnung ohne weitere Aktion (Test).
+- [x] Antwort-DTO und Zod-Schema um `letzterFehler` erweitert; Dashboard-Warntext und Monitoring-Karte zeigen
       Anzahl und Fehlertext.
-- [ ] Rückstands- und Konfigurationswarnung unverändert; `make verify` grün.
+- [x] Rückstands- und Konfigurationswarnung unverändert; `make verify` grün.
 
 ---
 
