@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	z "github.com/Oudwins/zog"
-	"github.com/nicograef/jotti/backend/api/direktverkauf/application"
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"

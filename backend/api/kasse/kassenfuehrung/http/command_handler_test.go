@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nicograef/jotti/backend/api/kasse/application"
+	"github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 )
 

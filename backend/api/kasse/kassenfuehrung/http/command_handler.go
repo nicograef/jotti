@@ -8,7 +8,7 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
-	kasseApp "github.com/nicograef/jotti/backend/api/kasse/application"
+	kasseApp "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 )
 

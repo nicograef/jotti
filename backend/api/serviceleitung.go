@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"net/http"
 
-	direktverkaufApp "github.com/nicograef/jotti/backend/api/direktverkauf/application"
-	direktverkaufHTTP "github.com/nicograef/jotti/backend/api/direktverkauf/http"
+	direktverkaufApp "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
+	direktverkaufHTTP "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/http"
 	tableApp "github.com/nicograef/jotti/backend/api/table/application"
 	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
 	"github.com/nicograef/jotti/backend/config"

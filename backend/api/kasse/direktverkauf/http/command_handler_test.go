@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nicograef/jotti/backend/api/direktverkauf/application"
+	"github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
