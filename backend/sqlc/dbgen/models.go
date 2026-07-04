@@ -479,6 +479,19 @@ type TseStammdaten struct {
 	UpdatedAt time.Time
 }
 
+// Stoerungsprotokoll der TSE-Signierung: je Stoerung ein Zeitraum (ende NULL solange aktiv). Beleg-Abruf und Kassenabschluss rechnen offene Auftraege ueber den aktiven Zeitraum dem Ausfall zu. Aufbewahrungspflichtig, kein DELETE (GoBD).
+type TseStoerungen struct {
+	ID int
+	// Beginn des Stoerungszeitraums (UTC).
+	Beginn time.Time
+	// Ende des Stoerungszeitraums (UTC); NULL solange die Stoerung aktiv ist.
+	Ende sql.NullTime
+	// Grund-Art der Stoerung: tse_fehler (TSE-weiter Fehler), rueckstand (Signatur-Rueckstand ueber der Schwelle), keine_konfiguration (TSE nicht konfiguriert). Jeder Schreiber schliesst nur Zeitraeume seiner Grund-Art.
+	GrundArt string
+	// Fehlertext bzw. Beschreibung der Stoerung.
+	Fehlertext string
+}
+
 // System users who perform actions in jotti
 type User struct {
 	ID int

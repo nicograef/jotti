@@ -50,6 +50,16 @@ SELECT COUNT(*)::int
 FROM tse_signaturauftraege
 WHERE status IN ('offen', 'fehlgeschlagen');
 
+-- GetAeltesterOffenerTSESignaturauftrag liefert den Erstellungszeitpunkt des
+-- aeltesten offenen Auftrags — der Rueckstands-Watchdog bemisst daran den
+-- Signatur-Rueckstand.
+-- name: GetAeltesterOffenerTSESignaturauftrag :one
+SELECT erstellt_am
+FROM tse_signaturauftraege
+WHERE status = 'offen'
+ORDER BY erstellt_am ASC
+LIMIT 1;
+
 -- Admin-Ansicht aller Signaturauftraege; dient zugleich als
 -- TSE-Ausfalldokumentation (erstellt_am = Beginn, erledigt_am = Ende).
 -- name: GetTSESignaturauftraege :many

@@ -124,7 +124,7 @@ func TestBaueSignaturauftraege_MonotonieUndFormat(t *testing.T) {
 	vergeben := map[int]bool{}
 	vorherTx, vorherSig := 0, 0
 	for _, a := range auftraege {
-		if (a.Status == tse_repo.StatusErledigt) != (a.Signatur != nil) {
+		if (a.Status == tse.StatusErledigt) != (a.Signatur != nil) {
 			t.Errorf("Auftrag %s: Status %q und Signatur %v widersprechen sich", a.TxID, a.Status, a.Signatur != nil)
 		}
 		if a.Signatur == nil {
@@ -184,7 +184,7 @@ func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
 		f := fensterFuer(fenster, a.ErstelltAm)
 
 		if f == nil {
-			if a.Status != tse_repo.StatusErledigt {
+			if a.Status != tse.StatusErledigt {
 				t.Errorf("Auftrag %s außerhalb der Fenster hat Status %q, erwartet erledigt", a.TxID, a.Status)
 				continue
 			}
@@ -198,14 +198,14 @@ func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
 		}
 
 		switch a.Status {
-		case tse_repo.StatusOffen:
+		case tse.StatusOffen:
 			if f.aufgeloest {
 				t.Errorf("offener Auftrag %s in aufgelöstem Fenster", a.TxID)
 			}
 			if a.Versuche != 0 || a.LetzterFehler != nil || a.ErledigtAm != nil || a.Signatur != nil {
 				t.Errorf("offener Auftrag %s: erwartet 0 Versuche, kein Fehler, keine Erledigung, keine Signatur", a.TxID)
 			}
-		case tse_repo.StatusErledigt:
+		case tse.StatusErledigt:
 			if !f.aufgeloest {
 				t.Errorf("erledigter Auftrag %s in offenem Fenster", a.TxID)
 			}
@@ -215,7 +215,7 @@ func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
 			if a.Versuche > 0 && (a.LetzterFehler == nil || *a.LetzterFehler != f.grund) {
 				t.Errorf("Auftrag %s: Fehlversuche ohne Fenster-Grund als letzten Fehler", a.TxID)
 			}
-		case tse_repo.StatusFehlgeschlagen, tse_repo.StatusVerworfen:
+		case tse.StatusFehlgeschlagen, tse.StatusVerworfen:
 			if !f.aufgeloest {
 				t.Errorf("%s Auftrag %s in offenem Fenster", a.Status, a.TxID)
 			}
@@ -236,22 +236,22 @@ func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
 	// Jedes fiskalische Event in einem offenen Fenster muss als offener Auftrag erscheinen.
 	for eventID, a := range auftragProEvent {
 		f := fensterFuer(fenster, eventZeit[eventID])
-		if f != nil && !f.aufgeloest && a.Status != tse_repo.StatusOffen {
+		if f != nil && !f.aufgeloest && a.Status != tse.StatusOffen {
 			t.Errorf("Auftrag %s im offenen Fenster hat Status %q", a.TxID, a.Status)
 		}
 	}
 
-	if statusZahl[tse_repo.StatusOffen] < 1 {
+	if statusZahl[tse.StatusOffen] < 1 {
 		t.Error("kein offener Signaturauftrag (Sonntags-Aussetzer fehlt)")
 	}
-	if statusZahl[tse_repo.StatusFehlgeschlagen] < 2 {
-		t.Errorf("nur %d fehlgeschlagene Aufträge, erwartet einzelne (≥ 2)", statusZahl[tse_repo.StatusFehlgeschlagen])
+	if statusZahl[tse.StatusFehlgeschlagen] < 2 {
+		t.Errorf("nur %d fehlgeschlagene Aufträge, erwartet einzelne (≥ 2)", statusZahl[tse.StatusFehlgeschlagen])
 	}
-	if statusZahl[tse_repo.StatusVerworfen] != 1 {
-		t.Errorf("%d verworfene Aufträge, erwartet genau 1", statusZahl[tse_repo.StatusVerworfen])
+	if statusZahl[tse.StatusVerworfen] != 1 {
+		t.Errorf("%d verworfene Aufträge, erwartet genau 1", statusZahl[tse.StatusVerworfen])
 	}
-	rest := statusZahl[tse_repo.StatusOffen] + statusZahl[tse_repo.StatusFehlgeschlagen] + statusZahl[tse_repo.StatusVerworfen]
-	if statusZahl[tse_repo.StatusErledigt] <= rest {
-		t.Errorf("erledigte Aufträge (%d) nicht in der Überzahl gegenüber den übrigen (%d)", statusZahl[tse_repo.StatusErledigt], rest)
+	rest := statusZahl[tse.StatusOffen] + statusZahl[tse.StatusFehlgeschlagen] + statusZahl[tse.StatusVerworfen]
+	if statusZahl[tse.StatusErledigt] <= rest {
+		t.Errorf("erledigte Aufträge (%d) nicht in der Überzahl gegenüber den übrigen (%d)", statusZahl[tse.StatusErledigt], rest)
 	}
 }

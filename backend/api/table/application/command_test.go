@@ -26,7 +26,6 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
 	"github.com/nicograef/jotti/backend/repository/table_repo"
-	"github.com/nicograef/jotti/backend/repository/tse_repo"
 )
 
 const testKassensitzungNr = 1
@@ -203,17 +202,23 @@ func (m *mockSettingsRepo) GetTSEKonfiguration(_ context.Context) (settings.TSEK
 	return m.tse, nil
 }
 
-// mockTSEAuftragRepo liefert den Signaturauftrags-Stand je Event-ID; Events
-// ohne Eintrag gelten als nicht signaturpflichtig (db.ErrNotFound).
+// mockTSEAuftragRepo liefert den Signaturauftrags-Stand je Event-ID und den
+// aktiven Stoerungszeitraum; Events ohne Eintrag gelten als nicht
+// signaturpflichtig (db.ErrNotFound).
 type mockTSEAuftragRepo struct {
-	staende map[int]tse_repo.SignaturauftragStand
+	staende  map[int]tse.SignaturauftragStand
+	stoerung *tse.Stoerung
 }
 
-func (m *mockTSEAuftragRepo) GetSignaturauftragZuEvent(_ context.Context, eventID int) (tse_repo.SignaturauftragStand, error) {
+func (m *mockTSEAuftragRepo) GetSignaturauftragZuEvent(_ context.Context, eventID int) (tse.SignaturauftragStand, error) {
 	if stand, ok := m.staende[eventID]; ok {
 		return stand, nil
 	}
-	return tse_repo.SignaturauftragStand{}, db.ErrNotFound
+	return tse.SignaturauftragStand{}, db.ErrNotFound
+}
+
+func (m *mockTSEAuftragRepo) GetAktiveTSEStoerung(_ context.Context) (*tse.Stoerung, error) {
+	return m.stoerung, nil
 }
 
 func TestTischErstellen(t *testing.T) {
@@ -1328,8 +1333,8 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 	eventMock.AddEvent(zahlungEvent) // Event-ID 1
 
 	// Die Signatur liegt am quittierten Auftrag — die einzige Signaturquelle.
-	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse_repo.SignaturauftragStand{
-		1: {Status: tse_repo.StatusErledigt, Signatur: &tse.Signatur{
+	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse.SignaturauftragStand{
+		1: {Status: tse.StatusErledigt, ErstelltAm: time.Date(2026, 6, 10, 18, 0, 0, 0, time.UTC), Signatur: &tse.Signatur{
 			TransaktionNummer: 3001,
 			SignaturZaehler:   77,
 			TSESeriennummer:   "SW-TSE-SN-0042",
@@ -1396,6 +1401,11 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 		if !strings.Contains(got, check) {
 			t.Fatalf("kassenbeleg payload enthaelt %q nicht; got:\n%q", check, got)
 		}
+	}
+
+	// Prompte Signatur: kein Nachsigniert-Vermerk (Kriterium: verspätet).
+	if strings.Contains(got, "Nachsigniert") {
+		t.Fatalf("expected no Nachsigniert-Vermerk on promptly signed beleg, got:\n%q", got)
 	}
 }
 
@@ -1508,8 +1518,8 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 	eventMock.AddEvent(zahlungEvent) // Event-ID 1
 
 	// Auftrag existiert, aber der Worker hat noch nicht quittiert.
-	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse_repo.SignaturauftragStand{
-		1: {Status: tse_repo.StatusOffen, ErstelltAm: time.Now().UTC()},
+	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse.SignaturauftragStand{
+		1: {Status: tse.StatusOffen, ErstelltAm: time.Now().UTC()},
 	}}
 
 	auftragMock := &mockDruckauftragRepo{}
@@ -1534,7 +1544,7 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 	}
 
 	// Der Worker quittiert — der nächste Abruf liefert den Beleg mit Signatur.
-	tseRepo.staende[1] = tse_repo.SignaturauftragStand{Status: tse_repo.StatusErledigt, Signatur: &tse.Signatur{
+	tseRepo.staende[1] = tse.SignaturauftragStand{Status: tse.StatusErledigt, ErstelltAm: time.Date(2026, 6, 10, 18, 10, 0, 0, time.UTC), Signatur: &tse.Signatur{
 		TransaktionNummer: 3002,
 		SignaturZaehler:   78,
 		TSESeriennummer:   "SW-TSE-SN-0043",
@@ -1566,6 +1576,173 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 	}
 	if !strings.Contains(got, "SIG-NACHGEHOLT") {
 		t.Fatalf("expected auftrag signature in payload, got:\n%q", got)
+	}
+}
+
+// belegZahlungFixture liefert einen Event-Mock mit einer kassierten Zahlung
+// (Event-ID 1) und deren zahlungId — Fixture der Signaturstatus-Belegtests.
+func belegZahlungFixture(t *testing.T) (*kassenjournal_repo.MockRepo, string) {
+	t.Helper()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
+		PositionID:   "11111111-1111-4111-8111-111111111111",
+		VarianteID:   1,
+		ProduktName:  "Cola",
+		VarianteName: "0,5l",
+		Kategorie:    "getraenk",
+		Steuersatz:   "regel",
+		Einzelpreis:  350,
+		Menge:        1,
+	}}, 350, "")
+	if err != nil {
+		t.Fatalf("expected no event error, got %v", err)
+	}
+
+	var eventData struct {
+		ZahlungID string `json:"zahlungId"`
+	}
+	if err := json.Unmarshal(zahlungEvent.Data, &eventData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
+
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock.AddEvent(zahlungEvent) // Event-ID 1
+	return eventMock, eventData.ZahlungID
+}
+
+func belegTestCommand(eventMock *kassenjournal_repo.MockRepo, tseRepo *mockTSEAuftragRepo, auftragMock *mockDruckauftragRepo) Command {
+	return Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
+		SettingsRepo:        belegTestSettingsMock(),
+		DruckauftragRepo:    auftragMock,
+		TSERepo:             tseRepo,
+	}
+}
+
+// Verspätete Signatur (später als rund eine Minute nach Auftragserstellung):
+// Der Beleg trägt das Nachsigniert-Kennzeichen — auch beim Nachdruck, der über
+// denselben Weg läuft.
+func TestKassenbelegDrucken_VerspaeteteSignatur_TraegtNachsigniertVermerk(t *testing.T) {
+	ctx := context.Background()
+	eventMock, zahlungID := belegZahlungFixture(t)
+
+	// Auftrag um 18:00:00 erstellt, Signatur erst gegen 18:07 quittiert.
+	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse.SignaturauftragStand{
+		1: {Status: tse.StatusErledigt, ErstelltAm: time.Date(2026, 6, 10, 18, 0, 0, 0, time.UTC), Signatur: &tse.Signatur{
+			TransaktionNummer: 3005,
+			SignaturZaehler:   80,
+			TSESeriennummer:   "SW-TSE-SN-0043",
+			LogTimeStart:      time.Date(2026, 6, 10, 18, 7, 1, 0, time.UTC),
+			LogTimeEnd:        time.Date(2026, 6, 10, 18, 7, 3, 0, time.UTC),
+			Signatur:          "SIG-VERSPAETET",
+			QRCodeData:        "V0;VERSPAETET",
+		}},
+	}}
+
+	auftragMock := &mockDruckauftragRepo{}
+	command := belegTestCommand(eventMock, tseRepo, auftragMock)
+
+	status, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, zahlungID, "", "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if status != BelegStatusEingereiht {
+		t.Fatalf("expected status eingereiht, got %q", status)
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+
+	got := string(payload)
+	if !strings.Contains(got, "TSE-Daten:") {
+		t.Fatalf("expected TSE block on nachsignierter beleg, got:\n%q", got)
+	}
+	if !strings.Contains(got, "Nachsigniert am 10.06.2026 18:07:03") {
+		t.Fatalf("expected Nachsigniert-Vermerk, got:\n%q", got)
+	}
+}
+
+// Endstatus des Auftrags (hier: fehlgeschlagen) ist dokumentierter Ausfall:
+// Der Beleg entsteht ohne TSE-Daten, weist den Ausfall aber aus.
+func TestKassenbelegDrucken_AusfallEndstatus_BelegMitAusfallvermerk(t *testing.T) {
+	ctx := context.Background()
+	eventMock, zahlungID := belegZahlungFixture(t)
+
+	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse.SignaturauftragStand{
+		1: {Status: tse.StatusFehlgeschlagen, ErstelltAm: time.Now().UTC().Add(-2 * time.Minute)},
+	}}
+
+	auftragMock := &mockDruckauftragRepo{}
+	command := belegTestCommand(eventMock, tseRepo, auftragMock)
+
+	status, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, zahlungID, "", "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if status != BelegStatusEingereiht {
+		t.Fatalf("expected status eingereiht, got %q", status)
+	}
+	if len(auftragMock.enqueued) != 1 {
+		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+
+	got := string(payload)
+	if strings.Contains(got, "TSE-Daten:") {
+		t.Fatalf("expected no TSE block on ausfall beleg, got:\n%q", got)
+	}
+	if !strings.Contains(got, "TSE-Hinweis:") {
+		t.Fatalf("expected Ausfallvermerk on beleg, got:\n%q", got)
+	}
+}
+
+// Ein offener Auftrag während eines aktiven Störungszeitraums ist Ausfall
+// (nicht ausstehend): Der Beleg entsteht sofort und weist den Ausfall aus —
+// auch in der Aufholphase, solange der Rückstands-Zeitraum aktiv ist.
+func TestKassenbelegDrucken_OffenBeiAktiverStoerung_BelegMitAusfallvermerk(t *testing.T) {
+	ctx := context.Background()
+	eventMock, zahlungID := belegZahlungFixture(t)
+
+	tseRepo := &mockTSEAuftragRepo{
+		staende: map[int]tse.SignaturauftragStand{
+			1: {Status: tse.StatusOffen, ErstelltAm: time.Now().UTC().Add(-3 * time.Minute)},
+		},
+		stoerung: &tse.Stoerung{
+			Beginn:     time.Now().UTC().Add(-time.Minute),
+			GrundArt:   tse.StoerungGrundRueckstand,
+			Fehlertext: "Signaturaufträge im Rückstand",
+		},
+	}
+
+	auftragMock := &mockDruckauftragRepo{}
+	command := belegTestCommand(eventMock, tseRepo, auftragMock)
+
+	status, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, zahlungID, "", "")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if status != BelegStatusEingereiht {
+		t.Fatalf("expected status eingereiht, got %q", status)
+	}
+	if len(auftragMock.enqueued) != 1 {
+		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("expected base64 payload, got decode error: %v", err)
+	}
+	if !strings.Contains(string(payload), "TSE-Hinweis:") {
+		t.Fatalf("expected Ausfallvermerk on beleg, got:\n%q", string(payload))
 	}
 }
 
@@ -1787,8 +1964,8 @@ func TestKassenbelegDrucken_Direktverkauf_MitSignaturAmAuftrag(t *testing.T) {
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	eventMock.AddEvent(verkaufEvent) // Event-ID 1
 
-	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse_repo.SignaturauftragStand{
-		1: {Status: tse_repo.StatusErledigt, Signatur: &tse.Signatur{
+	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse.SignaturauftragStand{
+		1: {Status: tse.StatusErledigt, ErstelltAm: time.Date(2026, 6, 10, 19, 0, 0, 0, time.UTC), Signatur: &tse.Signatur{
 			TransaktionNummer: 4001,
 			SignaturZaehler:   99,
 			TSESeriennummer:   "SW-TSE-SN-0044",
@@ -1848,8 +2025,8 @@ func TestKassenbelegDrucken_Direktverkauf_SignaturAusstehend_KeinDruckauftrag(t 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	eventMock.AddEvent(verkaufEvent) // Event-ID 1
 
-	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse_repo.SignaturauftragStand{
-		1: {Status: tse_repo.StatusOffen, ErstelltAm: time.Now().UTC()},
+	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse.SignaturauftragStand{
+		1: {Status: tse.StatusOffen, ErstelltAm: time.Now().UTC()},
 	}}
 
 	auftragMock := &mockDruckauftragRepo{}
@@ -1914,8 +2091,8 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 	eventMock.AddEvent(stornoEvent)  // Event-ID 2
 
 	// Die Signatur des Storno-Vorgangs liegt am quittierten Auftrag.
-	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse_repo.SignaturauftragStand{
-		2: {Status: tse_repo.StatusErledigt, Signatur: &tse.Signatur{
+	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse.SignaturauftragStand{
+		2: {Status: tse.StatusErledigt, ErstelltAm: time.Date(2026, 6, 10, 19, 20, 0, 0, time.UTC), Signatur: &tse.Signatur{
 			TransaktionNummer: 4003,
 			SignaturZaehler:   101,
 			TSESeriennummer:   "SW-TSE-SN-0044",
@@ -1998,8 +2175,8 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 	eventMock.AddEvent(stornoEvent)  // ID 3
 
 	// Die Signatur des Storno-Vorgangs liegt am quittierten Auftrag.
-	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse_repo.SignaturauftragStand{
-		3: {Status: tse_repo.StatusErledigt, Signatur: &tse.Signatur{
+	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse.SignaturauftragStand{
+		3: {Status: tse.StatusErledigt, ErstelltAm: time.Date(2026, 6, 10, 19, 20, 0, 0, time.UTC), Signatur: &tse.Signatur{
 			TransaktionNummer: 4003,
 			SignaturZaehler:   101,
 			TSESeriennummer:   "SW-TSE-SN-0044",

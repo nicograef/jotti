@@ -154,14 +154,14 @@ Zwischenstand: Die einfache Fehlversuchs-Kurve aus Phase 1 (zehn Versuche, Minut
 
 ### Acceptance criteria
 
-- [ ] `tse_stoerungen`-Zeiträume mit Beginn, Ende und Grund; kein Löschpfad.
-- [ ] Watchdog öffnet und schließt den Rückstands-Zeitraum an der Zwei-Minuten-Schwelle, auch bei hängendem Worker (Test).
-- [ ] Höchstens ein aktiver Störungszeitraum: Öffnen bei aktivem Zeitraum ist ein No-Op; jeder Schreiber schließt nur Zeiträume seiner Grund-Art (Test).
-- [ ] Signaturstatus-Funktion mit den vier Ergebnisarten, getestet: vorhanden; Endstatus → Ausfall mit Grund; offener Auftrag bei aktivem Zeitraum → Ausfall; offene Fehlversuche unter der Maximalzahl ohne Zeitraum → ausstehend; Rückstau ohne Störung → ausstehend; Schwellen-Überschreitung kippt Ausstehend am nächsten Watchdog-Tick in Ausfall; Aufholphase; verspätete Signatur → Nachsigniert-Kennzeichen; keine falschen Ausfallvermerke bei bloßer Latenz.
-- [ ] Beleg ohne TSE-Daten entsteht nur bei dokumentiertem Ausfall oder in der Aufholphase; er weist den Ausfall aus.
-- [ ] Nachsigniert-Vermerk erscheint nur in echten Ausfall- und Aufholszenarien (Kriterium: verspätet).
-- [ ] Kassenbeleg-Erzeugung für alle vier Ergebnisarten getestet.
-- [ ] Zeitschwellen und Watchdog-Tick-Intervall als benannte Konstanten an einer Stelle.
+- [x] `tse_stoerungen`-Zeiträume mit Beginn, Ende und Grund; kein Löschpfad.
+- [x] Watchdog öffnet und schließt den Rückstands-Zeitraum an der Zwei-Minuten-Schwelle, auch bei hängendem Worker (Test).
+- [x] Höchstens ein aktiver Störungszeitraum: Öffnen bei aktivem Zeitraum ist ein No-Op; jeder Schreiber schließt nur Zeiträume seiner Grund-Art (Test).
+- [x] Signaturstatus-Funktion mit den vier Ergebnisarten, getestet: vorhanden; Endstatus → Ausfall mit Grund; offener Auftrag bei aktivem Zeitraum → Ausfall; offene Fehlversuche unter der Maximalzahl ohne Zeitraum → ausstehend; Rückstau ohne Störung → ausstehend; Schwellen-Überschreitung kippt Ausstehend am nächsten Watchdog-Tick in Ausfall; Aufholphase; verspätete Signatur → Nachsigniert-Kennzeichen; keine falschen Ausfallvermerke bei bloßer Latenz.
+- [x] Beleg ohne TSE-Daten entsteht nur bei dokumentiertem Ausfall oder in der Aufholphase; er weist den Ausfall aus.
+- [x] Nachsigniert-Vermerk erscheint nur in echten Ausfall- und Aufholszenarien (Kriterium: verspätet).
+- [x] Kassenbeleg-Erzeugung für alle vier Ergebnisarten getestet.
+- [x] Zeitschwellen und Watchdog-Tick-Intervall als benannte Konstanten an einer Stelle.
 
 ---
 

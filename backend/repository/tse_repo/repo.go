@@ -20,15 +20,6 @@ import (
 // Phase 3 ersetzt sie.)
 const MaxSignaturVersuche = 10
 
-// Status eines Signaturauftrags (CHECK-Constraint der Tabelle).
-const (
-	StatusOffen                = "offen"
-	StatusErledigt             = "erledigt"
-	StatusFehlgeschlagen       = "fehlgeschlagen"
-	StatusVerworfen            = "verworfen"
-	StatusTSENichtKonfiguriert = "tse_nicht_konfiguriert"
-)
-
 // OffenerSignaturauftrag ist die Worker-Sicht eines faelligen Auftrags.
 type OffenerSignaturauftrag struct {
 	ID          int
@@ -49,14 +40,6 @@ type Signaturauftrag struct {
 	LetzterFehler string
 	ErstelltAm    time.Time
 	ErledigtAm    *time.Time
-}
-
-// SignaturauftragStand ist der Signatur-Stand eines Events fuer den
-// Beleg-Abruf: Status des Auftrags plus Signatur, sobald quittiert.
-type SignaturauftragStand struct {
-	Status     string
-	ErstelltAm time.Time
-	Signatur   *tse.Signatur
 }
 
 type Repository struct {
@@ -171,17 +154,17 @@ func (r Repository) CountOffeneTSESignaturauftraege(ctx context.Context) (int, e
 // GetSignaturauftragZuEvent liefert den Signatur-Stand eines Events fuer den
 // Beleg-Abruf. db.ErrNotFound heisst: kein Auftrag, das Event ist nicht
 // signaturpflichtig.
-func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) (SignaturauftragStand, error) {
+func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) (tse.SignaturauftragStand, error) {
 	row, err := r.q.GetTSESignaturauftragZuEvent(ctx, eventID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return SignaturauftragStand{}, db.ErrNotFound
+			return tse.SignaturauftragStand{}, db.ErrNotFound
 		}
-		return SignaturauftragStand{}, db.Error(err)
+		return tse.SignaturauftragStand{}, db.Error(err)
 	}
 
-	stand := SignaturauftragStand{Status: row.Status, ErstelltAm: row.ErstelltAm}
-	if row.Status == StatusErledigt {
+	stand := tse.SignaturauftragStand{Status: row.Status, ErstelltAm: row.ErstelltAm}
+	if row.Status == tse.StatusErledigt {
 		stand.Signatur = &tse.Signatur{
 			TransaktionNummer: int(row.TransaktionNummer.Int32),
 			SignaturZaehler:   int(row.SignaturZaehler.Int32),
@@ -193,4 +176,48 @@ func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) 
 		}
 	}
 	return stand, nil
+}
+
+// GetAeltesterOffenerTSESignaturauftrag liefert den Erstellungszeitpunkt des
+// aeltesten offenen Signaturauftrags; nil, wenn kein Auftrag offen ist. Der
+// Rueckstands-Watchdog bemisst daran den Signatur-Rueckstand.
+func (r Repository) GetAeltesterOffenerTSESignaturauftrag(ctx context.Context) (*time.Time, error) {
+	erstelltAm, err := r.q.GetAeltesterOffenerTSESignaturauftrag(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, db.Error(err)
+	}
+	return &erstelltAm, nil
+}
+
+// OeffneTSEStoerung oeffnet einen Stoerungszeitraum im Stoerungsprotokoll.
+// Idempotent: Solange irgendein Zeitraum aktiv ist, ist das Oeffnen ein No-Op
+// (hoechstens ein aktiver Zeitraum, DB-seitig per partiellem Unique-Index).
+func (r Repository) OeffneTSEStoerung(ctx context.Context, grundArt string, fehlertext string) error {
+	return db.Error(r.q.OeffneTSEStoerung(ctx, dbgen.OeffneTSEStoerungParams{
+		GrundArt:   grundArt,
+		Fehlertext: fehlertext,
+	}))
+}
+
+// SchliesseTSEStoerung beendet den aktiven Stoerungszeitraum der Grund-Art;
+// jeder Schreiber schliesst nur Zeitraeume seiner Grund-Art. Idempotent: Ohne
+// aktiven Zeitraum der Art ein No-Op.
+func (r Repository) SchliesseTSEStoerung(ctx context.Context, grundArt string) error {
+	return db.Error(r.q.SchliesseTSEStoerung(ctx, grundArt))
+}
+
+// GetAktiveTSEStoerung liefert den aktiven Stoerungszeitraum; nil, wenn keine
+// Stoerung aktiv ist.
+func (r Repository) GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error) {
+	row, err := r.q.GetAktiveTSEStoerung(ctx)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, db.Error(err)
+	}
+	return &tse.Stoerung{Beginn: row.Beginn, GrundArt: row.GrundArt, Fehlertext: row.Fehlertext}, nil
 }

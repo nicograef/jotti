@@ -11,9 +11,9 @@ import (
 	"github.com/nicograef/jotti/backend/domain/product"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/nicograef/jotti/backend/repository/tse_repo"
 	"github.com/rs/zerolog"
 )
 
@@ -63,9 +63,12 @@ type druckauftragRepo interface {
 }
 
 // tseAuftragRepo liefert den Signatur-Stand eines Events aus der
-// Signaturauftrags-Tabelle (Beleg-Abruf liest genau eine Signaturquelle).
+// Signaturauftrags-Tabelle und den aktiven Stoerungszeitraum aus dem
+// Stoerungsprotokoll — die beiden Eingaben der Signaturstatus-Funktion
+// (Beleg-Abruf liest genau eine Signaturquelle).
 type tseAuftragRepo interface {
-	GetSignaturauftragZuEvent(ctx context.Context, eventID int) (tse_repo.SignaturauftragStand, error)
+	GetSignaturauftragZuEvent(ctx context.Context, eventID int) (tse.SignaturauftragStand, error)
+	GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error)
 }
 
 type settingsRepo interface {

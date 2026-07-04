@@ -32,6 +32,7 @@ func setupRepository(t *testing.T) (Repository, *testUmgebung, func(t *testing.T
 	reset := func(t *testing.T) {
 		t.Helper()
 		stmts := []string{
+			"DELETE FROM tse_stoerungen",
 			"DELETE FROM tse_signaturauftraege",
 			"ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete",
 			"DELETE FROM kassenjournal",
@@ -119,7 +120,7 @@ func TestQuittiereTSESignaturauftrag_EinzelUpdateMitStatusGuard(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
-	if stand.Status != StatusErledigt {
+	if stand.Status != tse.StatusErledigt {
 		t.Fatalf("Expected status erledigt, got %q", stand.Status)
 	}
 	if stand.Signatur == nil || stand.Signatur.TransaktionNummer != 41 || stand.Signatur.Signatur != "SIG-1" {
@@ -165,7 +166,7 @@ func TestGetSignaturauftragZuEvent_Faelle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
-	if stand.Status != StatusOffen || stand.Signatur != nil {
+	if stand.Status != tse.StatusOffen || stand.Signatur != nil {
 		t.Fatalf("Expected offenen stand ohne signatur, got %+v", stand)
 	}
 	if stand.ErstelltAm.IsZero() {
@@ -289,5 +290,144 @@ func TestTSESignaturauftrag_StatusGuards(t *testing.T) {
 	}
 	if len(auftraege) != 1 || auftraege[0].Status != "offen" {
 		t.Fatalf("Expected offenen auftrag to stay offen, got %+v", auftraege)
+	}
+}
+
+// Hoechstens ein Stoerungszeitraum ist aktiv: Oeffnen bei aktivem Zeitraum ist
+// ein No-Op — auch fuer eine andere Grund-Art. Nach dem Schliessen kann ein
+// neuer Zeitraum entstehen.
+func TestTSEStoerung_OeffnenIdempotentHoechstensEineAktiv(t *testing.T) {
+	store, _, teardown := setupRepository(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	// Ohne Stoerung: kein aktiver Zeitraum.
+	aktive, err := store.GetAktiveTSEStoerung(ctx)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if aktive != nil {
+		t.Fatalf("Expected no active stoerung, got %+v", aktive)
+	}
+
+	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundRueckstand, "Rueckstand ueber der Schwelle"); err != nil {
+		t.Fatalf("Expected no oeffnen error, got %v", err)
+	}
+
+	// Erneutes Oeffnen (auch anderer Grund-Art) ist ein No-Op.
+	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
+		t.Fatalf("Expected no-op oeffnen without error, got %v", err)
+	}
+
+	aktive, err = store.GetAktiveTSEStoerung(ctx)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if aktive == nil || aktive.GrundArt != tse.StoerungGrundRueckstand {
+		t.Fatalf("Expected single active rueckstand stoerung, got %+v", aktive)
+	}
+	if aktive.Fehlertext != "Rueckstand ueber der Schwelle" || aktive.Beginn.IsZero() {
+		t.Fatalf("Expected fehlertext and beginn of first oeffnen, got %+v", aktive)
+	}
+
+	var anzahl int
+	if err := store.db.QueryRow("SELECT COUNT(*) FROM tse_stoerungen").Scan(&anzahl); err != nil {
+		t.Fatalf("count stoerungen: %v", err)
+	}
+	if anzahl != 1 {
+		t.Fatalf("Expected exactly 1 stoerung row, got %d", anzahl)
+	}
+}
+
+// Jeder Schreiber schliesst nur Zeitraeume seiner Grund-Art: Das Schliessen
+// einer fremden Grund-Art ist ein No-Op, das eigene beendet den Zeitraum und
+// macht Platz fuer einen neuen.
+func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
+	store, _, teardown := setupRepository(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundRueckstand, "Rueckstand"); err != nil {
+		t.Fatalf("Expected no oeffnen error, got %v", err)
+	}
+
+	// Fremde Grund-Art schliesst nicht.
+	if err := store.SchliesseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
+		t.Fatalf("Expected no-op schliessen without error, got %v", err)
+	}
+	aktive, err := store.GetAktiveTSEStoerung(ctx)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if aktive == nil {
+		t.Fatal("Expected stoerung to stay active after foreign schliessen")
+	}
+
+	// Eigene Grund-Art schliesst; erneutes Schliessen ist ein No-Op.
+	if err := store.SchliesseTSEStoerung(ctx, tse.StoerungGrundRueckstand); err != nil {
+		t.Fatalf("Expected no schliessen error, got %v", err)
+	}
+	if err := store.SchliesseTSEStoerung(ctx, tse.StoerungGrundRueckstand); err != nil {
+		t.Fatalf("Expected idempotent schliessen without error, got %v", err)
+	}
+	aktive, err = store.GetAktiveTSEStoerung(ctx)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if aktive != nil {
+		t.Fatalf("Expected no active stoerung after schliessen, got %+v", aktive)
+	}
+
+	// Der geschlossene Zeitraum bleibt erhalten (kein Loeschpfad); ein neuer
+	// Zeitraum kann jetzt entstehen.
+	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
+		t.Fatalf("Expected no oeffnen error after schliessen, got %v", err)
+	}
+	var anzahl int
+	if err := store.db.QueryRow("SELECT COUNT(*) FROM tse_stoerungen").Scan(&anzahl); err != nil {
+		t.Fatalf("count stoerungen: %v", err)
+	}
+	if anzahl != 2 {
+		t.Fatalf("Expected 2 stoerung rows (geschlossen + aktiv), got %d", anzahl)
+	}
+}
+
+// GetAeltesterOffenerTSESignaturauftrag liefert den Erstellungszeitpunkt des
+// aeltesten offenen Auftrags; erledigte Auftraege zaehlen nicht, ohne offene
+// Auftraege kommt nil.
+func TestGetAeltesterOffenerTSESignaturauftrag(t *testing.T) {
+	store, umgebung, teardown := setupRepository(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	aeltester, err := store.GetAeltesterOffenerTSESignaturauftrag(ctx)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if aeltester != nil {
+		t.Fatalf("Expected nil without open auftraege, got %v", aeltester)
+	}
+
+	ersterID, _ := umgebung.insertAuftrag(t, "tx-aelter")
+	umgebung.insertAuftrag(t, "tx-juenger")
+
+	aeltester, err = store.GetAeltesterOffenerTSESignaturauftrag(ctx)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if aeltester == nil {
+		t.Fatal("Expected erstellungszeitpunkt of oldest open auftrag, got nil")
+	}
+
+	// Der aelteste Auftrag wird quittiert — der juengere bestimmt jetzt das Alter.
+	if err := store.QuittiereTSESignaturauftrag(ctx, ersterID, testSignatur(41)); err != nil {
+		t.Fatalf("Expected no quittierung error, got %v", err)
+	}
+	juengster, err := store.GetAeltesterOffenerTSESignaturauftrag(ctx)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if juengster == nil || juengster.Before(*aeltester) {
+		t.Fatalf("Expected timestamp of remaining open auftrag, got %v", juengster)
 	}
 }

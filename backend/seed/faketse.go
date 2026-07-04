@@ -117,7 +117,7 @@ func baueSignaturauftraege(events []seedEvent, fenster []ausfallFenster) ([]sign
 			TxID:               txID,
 			ProcessType:        vorgang.ProcessType,
 			ProcessData:        vorgang.ProcessData,
-			Status:             tse_repo.StatusErledigt,
+			Status:             tse.StatusErledigt,
 			NaechsterVersuchAm: evt.Time,
 			ErstelltAm:         evt.Time,
 			ErledigtAm:         &erledigt,
@@ -209,7 +209,7 @@ func (s *fakeSignierer) vermerkeAusfall(fensterIdx, eventID int, txID string, vo
 		TxID:               txID,
 		ProcessType:        vorgang.ProcessType,
 		ProcessData:        vorgang.ProcessData,
-		Status:             tse_repo.StatusOffen,
+		Status:             tse.StatusOffen,
 		NaechsterVersuchAm: zeit,
 		ErstelltAm:         zeit,
 	})
@@ -258,7 +258,7 @@ func (s *fakeSignierer) nachsigniereFenster(fensterIdx int) {
 			TxID:               p.txID,
 			ProcessType:        p.processType,
 			ProcessData:        p.processData,
-			Status:             tse_repo.StatusErledigt,
+			Status:             tse.StatusErledigt,
 			Versuche:           versuche,
 			LetzterFehler:      fehler,
 			NaechsterVersuchAm: quittiert,
@@ -272,9 +272,9 @@ func (s *fakeSignierer) nachsigniereFenster(fensterIdx int) {
 
 // dauerhaftGescheitert baut den fehlgeschlagenen bzw. (genau einmal) verworfenen Auftrag.
 func (s *fakeSignierer) dauerhaftGescheitert(p offeneNachsignierung) signaturauftragZeile {
-	status := tse_repo.StatusFehlgeschlagen
+	status := tse.StatusFehlgeschlagen
 	if !s.verworfenVergeben {
-		status = tse_repo.StatusVerworfen
+		status = tse.StatusVerworfen
 		s.verworfenVergeben = true
 	}
 	fehler := signierungAbgelehntFehler

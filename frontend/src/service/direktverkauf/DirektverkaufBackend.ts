@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
 
-import { BelegDruckenResponseSchema,type BelegStatus } from '../beleg'
+import { BelegDruckenResponseSchema, type BelegStatus } from '../beleg'
 import {
   type DirektverkaufHistorieEintrag,
   DirektverkaufHistorieEintragSchema,

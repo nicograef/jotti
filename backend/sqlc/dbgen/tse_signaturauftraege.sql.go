@@ -26,6 +26,24 @@ func (q *Queries) CountOffeneTSESignaturauftraege(ctx context.Context) (int, err
 	return column_1, err
 }
 
+const getAeltesterOffenerTSESignaturauftrag = `-- name: GetAeltesterOffenerTSESignaturauftrag :one
+SELECT erstellt_am
+FROM tse_signaturauftraege
+WHERE status = 'offen'
+ORDER BY erstellt_am ASC
+LIMIT 1
+`
+
+// GetAeltesterOffenerTSESignaturauftrag liefert den Erstellungszeitpunkt des
+// aeltesten offenen Auftrags — der Rueckstands-Watchdog bemisst daran den
+// Signatur-Rueckstand.
+func (q *Queries) GetAeltesterOffenerTSESignaturauftrag(ctx context.Context) (time.Time, error) {
+	row := q.db.QueryRowContext(ctx, getAeltesterOffenerTSESignaturauftrag)
+	var erstellt_am time.Time
+	err := row.Scan(&erstellt_am)
+	return erstellt_am, err
+}
+
 const getOffeneTSESignaturauftraege = `-- name: GetOffeneTSESignaturauftraege :many
 SELECT id, tx_id, process_type, process_data
 FROM tse_signaturauftraege

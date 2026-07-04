@@ -86,6 +86,9 @@ func (app *App) Run(ctx context.Context) error {
 	worker := newTSESignaturWorker(app.Config, app.DB)
 	go worker.run(ctx)
 
+	watchdog := newTSERueckstandWatchdog(app.DB)
+	go watchdog.run(ctx)
+
 	errChan := make(chan error, 1)
 	go func() {
 		log.Info().Int("port", app.Config.Port).Msg("Starting server")
