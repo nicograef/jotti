@@ -3,10 +3,11 @@
 > Umbau der TSE-Integration vom synchronen Signieren im Kassier-Pfad auf ein
 > Outbox-Modell: Jeder signaturpflichtige Vorgang erzeugt im selben Commit
 > einen Signaturauftrag, ein Worker ist der einzige Sprecher für
-> Signaturtransaktionen zur TSE, alle Signaturen liegen in einer
-> Seitentabelle. Der heutige Nachsignier-Pfad
+> Signaturtransaktionen zur TSE, alle Signaturen liegen direkt am
+> Signaturauftrag. Der heutige Nachsignier-Pfad
 > (Auftragstabelle, Worker mit Healing und Backoff, Signatur-Seitentabelle)
-> wird damit vom Ausnahme- zum Normalfall befördert.
+> wird damit vom Ausnahme- zum Normalfall befördert; die Seitentabelle
+> geht in der Auftragstabelle auf.
 > Rechtliche Prüfung: siehe Further Notes; die Konformitätsbedingungen sind
 > als Anforderungen eingearbeitet.
 
@@ -49,7 +50,7 @@ Die Signierung wird vollständig vom Kassier-Pfad entkoppelt:
 2. Ein Signatur-Worker ist der einzige Sprecher für Signaturtransaktionen
    zur TSE. Er wird nach jedem Commit sofort angestoßen (Polling nur als
    Fallback), arbeitet die Aufträge in Reihenfolge ab und legt das Ergebnis
-   in der Signatur-Seitentabelle ab.
+   direkt am Auftrag ab.
    Healing (Ist-Abfrage vor erneutem Signieren), Backoff und die
    Admin-Aktionen des heutigen Nachsignier-Workers bleiben erhalten.
 3. Der Beleg-Abruf antwortet sofort aus dem Signaturstatus, ohne Warten im
@@ -199,10 +200,13 @@ Architektur
   die volle Aufarbeitung beginnt. So markiert ein mehrstündiger Ausfall
   keine Aufträge als fehlgeschlagen, die Erholung wird binnen Minuten
   erkannt, und fiskaly wird während der Störung nicht mit dem ganzen
-  Rückstand bombardiert. Beide Backoffs tragen Jitter; jeder Durchlauf hat
-  eine Deadline; Ist-Abfrage-Healing vor erneutem Signieren und atomare
-  Quittierung (Signatur ablegen + Auftrag erledigen) werden vom
-  Nachsignier-Worker übernommen; der TSE-Client samt Auth-Token wird über
+  Rückstand bombardiert. Beide Backoffs kommen bewusst ohne Jitter aus:
+  Ein einzelner serieller Worker hat nichts zu desynchronisieren, und die
+  Backoff-Tests bleiben deterministisch. Jeder Durchlauf hat eine
+  Deadline; das Ist-Abfrage-Healing vor erneutem Signieren wird vom
+  Nachsignier-Worker übernommen; die Quittierung (Signaturdaten ablegen
+  und Auftrag erledigen) ist ein einzelnes Update am Auftrag; der
+  TSE-Client samt Auth-Token wird über
   Aufträge hinweg wiederverwendet. Der In-Process-Trigger setzt das
   Single-Prozess-Deployment von jotti voraus; ein Advisory Lock beim
   Worker-Start sichert diese Annahme gegen eine versehentlich doppelt
@@ -212,11 +216,16 @@ Architektur
   Störung ein Zeitraum mit Beginn, Ende und Grund, gespeist aus drei
   Quellen: Worker-Störungszustand nach TSE-weitem Fehler, Rückstands-Ausfall
   ab der Zwei-Minuten-Schwelle und der Dauerzustand ohne TSE-Konfiguration.
+  Den Rückstands-Zeitraum öffnet und schließt ein Watchdog-Ticker neben dem
+  Worker, der periodisch das Alter des ältesten offenen Auftrags prüft;
+  die Dokumentation hängt damit weder am Worker (der hängen kann) noch am
+  Zufall des Leser-Traffics, und die Lesepfade bleiben rein lesend.
   Ein Zeitraum endet mit der ersten erfolgreichen Signatur, dem
   Unterschreiten der Schwelle beziehungsweise der Einrichtung der
   Konfiguration. Alle Leser (Beleg-Ausfallvermerk, Kassenabschluss-Gate,
   Admin-Ansicht) prüfen dasselbe Kriterium, den aktiven oder zuzurechnenden
-  Störungszeitraum, statt Zeiträume zur Lesezeit aus Auftragszeilen zu
+  Störungszeitraum, über dieselbe Signaturstatus-Funktion (siehe Beleg und
+  Signaturstatus), statt Zeiträume zur Lesezeit aus Auftragszeilen zu
   rekonstruieren. Das Störungsprotokoll ist wie die Auftragstabelle
   aufbewahrungspflichtig.
 - Signaturaufträge entstehen auch ohne TSE-Konfiguration (Erst-Setup,
@@ -243,11 +252,18 @@ Architektur
   Kassenabschluss nicht. Damit eine Kassensitzung stets vollständig mit oder
   ohne TSE läuft, sind Änderungen der TSE-Konfiguration nur ohne offene
   Kassensitzung möglich.
-- Die Signatur-Seitentabelle wird der einzige Signatur-Store. Event-Payloads
-  verlieren sämtliche TSE-Felder (Signaturdaten, Transaktions-ID,
-  Ausfall-Flag); der Ausfall ist künftig ein Queue-Zustand zur Lesezeit, kein
-  eingefrorener Event-Fakt. Beleg und DSFinV-K-Export lesen ausschließlich
-  die Seitentabelle. Keine Datenmigration: Pre-Release, Breaking Changes
+- Die Auftragstabelle wird der einzige Signatur-Store: Die Signaturdaten
+  (Transaktionsnummer, Signaturzähler, Seriennummer, logTimes, Signatur,
+  QR-Code-Daten) liegen als Spalten direkt am Auftrag, NULL bis zur
+  Quittierung und danach genau einmal beschrieben. Die heutige
+  Signatur-Seitentabelle entfällt: Auftrag und Signatur sind über die
+  Event-Referenz und die Transaktions-ID ohnehin strikt 1:1; eine eigene
+  Tabelle brächte nur einen zweiten Join und eine zweite Schreibstelle.
+  Event-Payloads verlieren sämtliche TSE-Felder (Signaturdaten,
+  Transaktions-ID, Ausfall-Flag); der Ausfall ist künftig ein Queue-Zustand
+  zur Lesezeit, kein eingefrorener Event-Fakt. Beleg und DSFinV-K-Export
+  lesen ausschließlich die Auftragstabelle. Keine Datenmigration:
+  Pre-Release, Breaking Changes
   sind laut Repo-Regeln ausdrücklich erlaubt, alte Events werden nicht
   migriert; Schemaänderungen erfolgen direkt in der Initial-Migration, der
   Seed wird angepasst.
@@ -261,7 +277,9 @@ Beleg und Signaturstatus
 
 - Der Beleg-Abruf antwortet sofort und wartet nie (Entscheidung:
   Sofortantwort statt Warte-Modul; es gibt keinen Backend-Wartepunkt). Eine
-  Signaturstatus-Funktion ohne Zeitverhalten kapselt die Logik und liefert
+  Signaturstatus-Funktion ohne Zeitverhalten kapselt die Logik als einzige
+  Implementierung des Ausfallbegriffs (auch das Kassenabschluss-Gate
+  urteilt über sie, siehe Kassenabschluss) und liefert
   genau eines von vier Ergebnissen: Signatur vorhanden (regulärer
   TSE-Abschnitt), Signatur vorhanden mit Nachsigniert-Kennzeichen, Ausfall
   mit belegbarem Grund (Ausfallvermerk), oder Signatur ausstehend (kein
@@ -292,12 +310,13 @@ Beleg und Signaturstatus
   Rückstands-Schwelle nur Ausstehend-Antworten; dieses Fenster von maximal
   zwei Minuten ist die bewusst in Kauf genommene Kehrseite der
   Sofortantwort.
-- Nachsigniert-Vermerk (Entscheidung: beibehalten, Kriterium Fehlversuch
-  oder verspätet): Der Vermerk erscheint, wenn am Auftrag mindestens ein
-  Fehlversuch protokolliert wurde oder die Signatur später als rund eine
-  Minute nach Auftragserstellung entstand. Er ist keine Rechtspflicht, aber
-  er erklärt TSE-Zeitpunkte, die vom Belegdatum abweichen, und erscheint mit
-  diesem Kriterium nur in echten Ausfall- und Aufholszenarien.
+- Nachsigniert-Vermerk (Entscheidung: beibehalten, Kriterium rein
+  zeitbasiert): Der Vermerk erscheint, wenn die Signatur später als rund
+  eine Minute nach Auftragserstellung entstand. Er ist keine Rechtspflicht,
+  aber er erklärt TSE-Zeitpunkte, die vom Belegdatum abweichen; ein schnell
+  überwundener Fehlversuch erzeugt keine erklärungsbedürftige Abweichung
+  und deshalb keinen Vermerk. Mit diesem Kriterium erscheint der Vermerk
+  nur in echten Ausfall- und Aufholszenarien.
 
 Kassenabschluss
 
@@ -307,7 +326,11 @@ Kassenabschluss
   erste Handlung, noch vor der wird-abgeschlossen-Barriere. Es prüft
   sofort und wartet nicht; sind noch Aufträge offen, meldet es sie mit
   Anzahl und Alter, und die UI kann erneut anfordern (dasselbe Muster wie
-  der Beleg-Abruf). Ausfall-Reste sind endgültig fehlgeschlagene und
+  der Beleg-Abruf). Das Gate klassifiziert offene Aufträge über dieselbe
+  Signaturstatus-Funktion wie der Beleg-Abruf und blockiert genau dann,
+  wenn mindestens ein Auftrag das Ergebnis Signatur ausstehend hat; die
+  Zurechnung existiert nur einmal, Beleg und Gate können einander nicht
+  widersprechen. Ausfall-Reste sind endgültig fehlgeschlagene und
   verworfene Aufträge (stets) sowie offene Aufträge, die einem
   dokumentierten, auch noch laufenden Störungszeitraum zuzurechnen sind
   oder auftragsspezifische Fehlversuche tragen; sie lassen den Abschluss
@@ -320,7 +343,7 @@ Kassenabschluss
 - Reste nach dem Abschluss (Entscheidung: nachsignieren): Kehrt die TSE nach
   einem Abschluss mit Ausfall-Resten zurück, arbeitet der Worker offene
   Reste regulär nach; endgültig fehlgeschlagene kann der Admin zurücksetzen.
-  Die Signatur landet in der Seitentabelle, der Export zeigt sie
+  Die Signatur landet am Auftrag, der Export zeigt sie
   vollständig, Nachsigniert-Vermerk und Ausfalldokumentation erklären den
   Zeitversatz gegenüber dem Kassenabschluss. Lieber eine späte Signatur als
   dauerhaft keine (AEAO Nr. 1.14.4: schnellstmögliche Wiederherstellung des
@@ -333,7 +356,10 @@ Admin und Monitoring
   und um den Queue-Zustand ergänzt: Anzahl offener Aufträge, Alter des
   ältesten offenen Auftrags und Abarbeitungsrate (Signaturen pro Minute,
   Signierdauer p95), damit wachsender von schrumpfendem Rückstand
-  unterscheidbar ist, gerade in der Aufholphase. Das Admin-Dashboard warnt
+  unterscheidbar ist, gerade in der Aufholphase; die Raten werden on demand
+  per SQL aus den gespeicherten Auftrags- und Signaturzeiten über ein
+  gleitendes 15-Minuten-Fenster berechnet, ein eigenes Metrik-Subsystem
+  gibt es nicht. Das Admin-Dashboard warnt
   ab rund einer Minute Rückstand oder bei endgültig fehlgeschlagenen
   Aufträgen; ab zwei Minuten Rückstand eröffnet automatisch ein
   Störungszeitraum. Ohne TSE-Konfiguration zeigt das Dashboard eine
@@ -364,8 +390,9 @@ Konformitätsbedingungen (als Anforderungen verbindlich)
   zugleich die Herstellerdokumentations-Pflicht aus BSI TR-03153-1
   Kap. 3.9.3.
 - Auftragstabelle und Störungsprotokoll sind Teil der
-  aufbewahrungspflichtigen Unterlagen: kein Löschen, Verwerfen nur als
-  protokollierter Statuswechsel mit Grund, Benutzer und Zeitpunkt
+  aufbewahrungspflichtigen Unterlagen: kein Löschen, die Signaturspalten
+  werden genau einmal beschrieben, Verwerfen nur als protokollierter
+  Statuswechsel mit Grund, Benutzer und Zeitpunkt
   (GoBD-Nachvollziehbarkeit).
 
 Benennung und Dokumentation
@@ -404,7 +431,8 @@ Getestet werden alle Kernmodule:
   Half-Open-Probe beendet ihn bei Erfolg und startet die volle
   Aufarbeitung, Healing-Fälle (Transaktion bei der TSE bereits
   abgeschlossen, noch aktiv, unbekannt), FIFO-Reihenfolge im Regelbetrieb,
-  Quittierung atomar, Trigger-Verhalten, Crash-Recovery (Auftrag committet,
+  Quittierung als einzelnes Update am Auftrag, Trigger-Verhalten,
+  Crash-Recovery (Auftrag committet,
   Trigger verloren, der Polling-Fallback signiert nach).
 - Signaturstatus-Funktion: Signatur vorhanden; dokumentierter Ausfall führt
   zum Ausfallergebnis mit Grund; Rückstau ohne Störung führt zum Ergebnis
@@ -413,13 +441,15 @@ Getestet werden alle Kernmodule:
   Signatur führt zum Nachsigniert-Kennzeichen; keine falschen
   Ausfallvermerke bei bloßer Latenz.
 - Störungsprotokoll: TSE-weiter Fehler eröffnet einen Zeitraum, die erste
-  erfolgreiche Signatur schließt ihn; der Rückstands-Zeitraum öffnet und
-  schließt an der Schwelle; der Zeitraum ohne TSE-Konfiguration endet mit
-  der Einrichtung.
+  erfolgreiche Signatur schließt ihn; der Watchdog öffnet und schließt den
+  Rückstands-Zeitraum an der Schwelle, auch bei hängendem Worker; der
+  Zeitraum ohne TSE-Konfiguration endet mit der Einrichtung.
 - Kassenabschluss-Gate: Sofortantwort statt Warten; leere Queue, frischer
   offener Auftrag blockiert mit Meldung, Ausfall-Reste (auch offene
   Aufträge im laufenden Störungszeitraum) lassen den Abschluss zu, Aufträge
-  im Status TSE nicht konfiguriert blockieren nicht.
+  im Status TSE nicht konfiguriert blockieren nicht; die Klassifikation
+  läuft über die Signaturstatus-Funktion, nicht über einen zweiten
+  Zurechnungspfad.
 - TSE-nicht-konfiguriert-Fluss: Aufträge entstehen als offen und werden vom
   Worker endgültig markiert; der Übergang zu konfiguriert markiert auch
   noch unmarkierte offene Aufträge, ein reiner Zugangsdaten-Wechsel nicht;
@@ -428,7 +458,7 @@ Getestet werden alle Kernmodule:
   signiert sie nach.
 - Angepasste Beleg- und Export-Pfade: Kassenbeleg-Erzeugung mit den vier
   Ergebnisarten der Signaturstatus-Funktion; DSFinV-K-Mapper liest nur noch
-  die Seitentabelle und füllt das Fehlerfeld für unsignierte Vorgänge.
+  die Auftragstabelle und füllt das Fehlerfeld für unsignierte Vorgänge.
 - Der bestehende Seed-Integrationstest wird auf das neue Schema und den
   Worker-Fluss umgestellt.
 
