@@ -103,3 +103,15 @@ WHERE id = $1 AND status = 'fehlgeschlagen';
 SELECT status, erstellt_am, transaktion_nummer, signatur_zaehler, tse_seriennummer, log_time_start, log_time_end, signatur, qr_code_data
 FROM tse_signaturauftraege
 WHERE event_id = $1;
+
+-- GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Stände
+-- aller noch nicht erledigten Signaturauftraege einer Kassensitzung — die
+-- Grundlage des Kassenabschluss-Gates. Erledigte Auftraege sind irrelevant
+-- (bereits signiert); die vier nicht-erledigten Status ordnet
+-- BestimmeSignaturstatus in ausstehend (blockiert) bzw. Ausfall (Rest) ein.
+-- name: GetOffeneSignaturauftragStaendeFuerKassensitzung :many
+SELECT a.status, a.erstellt_am
+FROM tse_signaturauftraege a
+JOIN kassenjournal k ON k.id = a.event_id
+WHERE k.kassensitzung_nr = $1 AND a.status <> 'erledigt'
+ORDER BY a.erstellt_am ASC;

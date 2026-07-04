@@ -44,6 +44,47 @@ func (q *Queries) GetAeltesterOffenerTSESignaturauftrag(ctx context.Context) (ti
 	return erstellt_am, err
 }
 
+const getOffeneSignaturauftragStaendeFuerKassensitzung = `-- name: GetOffeneSignaturauftragStaendeFuerKassensitzung :many
+SELECT a.status, a.erstellt_am
+FROM tse_signaturauftraege a
+JOIN kassenjournal k ON k.id = a.event_id
+WHERE k.kassensitzung_nr = $1 AND a.status <> 'erledigt'
+ORDER BY a.erstellt_am ASC
+`
+
+type GetOffeneSignaturauftragStaendeFuerKassensitzungRow struct {
+	Status     string
+	ErstelltAm time.Time
+}
+
+// GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Stände
+// aller noch nicht erledigten Signaturauftraege einer Kassensitzung — die
+// Grundlage des Kassenabschluss-Gates. Erledigte Auftraege sind irrelevant
+// (bereits signiert); die vier nicht-erledigten Status ordnet
+// BestimmeSignaturstatus in ausstehend (blockiert) bzw. Ausfall (Rest) ein.
+func (q *Queries) GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]GetOffeneSignaturauftragStaendeFuerKassensitzungRow, error) {
+	rows, err := q.db.QueryContext(ctx, getOffeneSignaturauftragStaendeFuerKassensitzung, kassensitzungNr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetOffeneSignaturauftragStaendeFuerKassensitzungRow{}
+	for rows.Next() {
+		var i GetOffeneSignaturauftragStaendeFuerKassensitzungRow
+		if err := rows.Scan(&i.Status, &i.ErstelltAm); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOffeneTSESignaturauftraege = `-- name: GetOffeneTSESignaturauftraege :many
 SELECT id, tx_id, process_type, process_data
 FROM tse_signaturauftraege

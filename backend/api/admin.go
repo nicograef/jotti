@@ -120,6 +120,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 		KassensitzungenRepo: kassensitzungenRepo,
 		SettingsRepo:        settingsRepo,
 		ReportingRepo:       reportingRepo,
+		TSERepo:             tseStore,
 	}
 	r.HandleFunc("/kassensitzung-eroeffnen", kc.KassensitzungEroeffnenHandler())
 	r.HandleFunc("/geldtransit-buchen", kc.GeldtransitBuchenHandler())

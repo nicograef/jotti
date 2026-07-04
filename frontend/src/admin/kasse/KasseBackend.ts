@@ -36,6 +36,24 @@ export const KasseAbschliessenSchema = z.object({
   istBestandCents: BetragCentsSchema,
 })
 
+// KassenabschlussErgebnis weist die beim Abschluss verbliebenen Ausfall-Reste
+// aus: Vorgänge, die die TSE noch nachsigniert, und Vorgänge ohne Signatur
+// mangels TSE-Konfiguration.
+export const KassenabschlussErgebnisSchema = z.object({
+  ausfallResteAnzahl: z.number().int(),
+  ohneKonfigurationAnzahl: z.number().int(),
+})
+export type KassenabschlussErgebnis = z.infer<
+  typeof KassenabschlussErgebnisSchema
+>
+
+// SignaturenAusstehendDetails sind die 409-Details des Kassenabschluss-Gates:
+// wie viele Signaturen noch ausstehen und wie alt der älteste offene Auftrag ist.
+export const SignaturenAusstehendDetailsSchema = z.object({
+  anzahl: z.number().int(),
+  alterSekunden: z.number().int(),
+})
+
 export class KasseBackend {
   private readonly backend: BackendClient
 
@@ -72,9 +90,15 @@ export class KasseBackend {
     await this.backend.post('admin/geldtransit-buchen', body)
   }
 
-  async kasseAbschliessen(istBestandCents: number): Promise<void> {
+  async kasseAbschliessen(
+    istBestandCents: number,
+  ): Promise<KassenabschlussErgebnis> {
     const body = KasseAbschliessenSchema.parse({ istBestandCents })
-    await this.backend.post('admin/kasse-abschliessen', body)
+    return this.backend.post(
+      'admin/kasse-abschliessen',
+      body,
+      KassenabschlussErgebnisSchema,
+    )
   }
 
   async getOffeneKassensitzung(): Promise<Kassensitzung | null> {

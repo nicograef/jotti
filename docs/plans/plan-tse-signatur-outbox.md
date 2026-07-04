@@ -235,12 +235,12 @@ Das Gate schützt die gesamte Ein-Klick-Abschluss-Operation und prüft sofort, n
 
 ### Acceptance criteria
 
-- [ ] Gate prüft sofort und wartet nie; leere Queue lässt durch (Test).
-- [ ] Frischer offener Auftrag blockiert mit 409 samt Anzahl und Alter; UI zeigt Meldung mit erneutem Anfordern (Test).
-- [ ] Ausfall-Reste (inkl. offener Aufträge im laufenden Störungszeitraum) lassen den Abschluss zu; die Abschlussmeldung weist sie aus (Test).
-- [ ] Gate und Beleg-Abruf urteilen über dieselbe Signaturstatus-Funktion; kein zweiter Zurechnungspfad (Test).
-- [ ] `tse_nicht_konfiguriert` blockiert nicht; Tag ohne TSE wird deutlich ausgewiesen (Test).
-- [ ] Differenzbuchung und Tagesabschluss werden über die Queue signiert; Reste nach dem Abschluss werden nach TSE-Rückkehr nachsigniert.
+- [x] Gate prüft sofort und wartet nie; leere Queue lässt durch (Test).
+- [x] Frischer offener Auftrag blockiert mit 409 samt Anzahl und Alter; UI zeigt Meldung mit erneutem Anfordern (Test).
+- [x] Ausfall-Reste (inkl. offener Aufträge im laufenden Störungszeitraum) lassen den Abschluss zu; die Abschlussmeldung weist sie aus (Test).
+- [x] Gate und Beleg-Abruf urteilen über dieselbe Signaturstatus-Funktion; kein zweiter Zurechnungspfad (Test).
+- [x] `tse_nicht_konfiguriert` blockiert nicht; Tag ohne TSE wird deutlich ausgewiesen (Test).
+- [x] Differenzbuchung und Tagesabschluss werden über die Queue signiert; Reste nach dem Abschluss werden nach TSE-Rückkehr nachsigniert.
 
 ---
 

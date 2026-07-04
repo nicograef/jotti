@@ -33,11 +33,16 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
+import { BackendError } from '@/lib/Backend'
+import { getActionErrorMessage } from '@/lib/errorMessages'
 import { formatCents } from '@/lib/utils'
 
 import { kasseBackend, useKassenbestand, useOffeneKassensitzung } from './hooks'
+import {
+  type KassenabschlussErgebnis,
+  SignaturenAusstehendDetailsSchema,
+} from './KasseBackend'
 import {
   BetragCentsSchema,
   BezeichnungSchema,
@@ -371,6 +376,42 @@ function GeldtransitSection({ onSuccess }: { onSuccess: () => void }) {
   )
 }
 
+// abschlussErfolgMeldung ergänzt die Erfolgsmeldung um die verbliebenen
+// Ausfall-Reste: Vorgänge, die die TSE noch nachsigniert, und Vorgänge ohne
+// Signatur mangels TSE-Konfiguration (Tag ohne TSE deutlich ausgewiesen).
+function abschlussErfolgMeldung(ergebnis: KassenabschlussErgebnis): string {
+  const hinweise: string[] = []
+  if (ergebnis.ausfallResteAnzahl > 0) {
+    hinweise.push(
+      ergebnis.ausfallResteAnzahl === 1
+        ? '1 Vorgang wird nach Rückkehr der TSE nachsigniert.'
+        : `${String(ergebnis.ausfallResteAnzahl)} Vorgänge werden nach Rückkehr der TSE nachsigniert.`,
+    )
+  }
+  if (ergebnis.ohneKonfigurationAnzahl > 0) {
+    hinweise.push(
+      ergebnis.ohneKonfigurationAnzahl === 1
+        ? '1 Vorgang ohne TSE-Signatur (keine TSE konfiguriert).'
+        : `${String(ergebnis.ohneKonfigurationAnzahl)} Vorgänge ohne TSE-Signatur (keine TSE konfiguriert).`,
+    )
+  }
+  return hinweise.length > 0
+    ? `Kasse abgeschlossen. ${hinweise.join(' ')}`
+    : 'Kasse abgeschlossen.'
+}
+
+// signaturenAusstehendMeldung erklärt den Gate-Block: Signaturen stehen noch
+// aus, die TSE holt auf, der Abschluss wird gleich erneut angefordert.
+function signaturenAusstehendMeldung(anzahl: number): string {
+  const kern =
+    anzahl <= 0
+      ? 'Es sind noch Vorgänge nicht signiert'
+      : anzahl === 1
+        ? 'Ein Vorgang ist noch nicht signiert'
+        : `${String(anzahl)} Vorgänge sind noch nicht signiert`
+  return `Der Abschluss wartet: ${kern}. Die TSE holt gerade auf – bitte gleich erneut abschließen.`
+}
+
 export function KasseAbschliessenSection({
   kassensitzungNr,
   onSuccess,
@@ -382,6 +423,7 @@ export function KasseAbschliessenSection({
   const { liveData } = useLiveReporting()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [istBestandCents, setIstBestandCents] = useState<number | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const FormDataSchema = z.object({
     istBestandCents: BetragCentsSchema,
@@ -392,10 +434,6 @@ export function KasseAbschliessenSection({
     defaultValues: { istBestandCents: 0 },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
-  })
-
-  const { loading, run } = useActionSubmit({
-    actionLabel: 'Kasse abschließen',
   })
 
   const sollBestandCents = kassenbestand?.sollBestandCents ?? null
@@ -412,14 +450,38 @@ export function KasseAbschliessenSection({
 
   const handleAbschliessen = async () => {
     if (istBestandCents === null) return
-    await run(async () => {
-      await kasseBackend.kasseAbschliessen(istBestandCents)
-      toast.success('Kasse abgeschlossen.')
+    setLoading(true)
+    try {
+      const ergebnis = await kasseBackend.kasseAbschliessen(istBestandCents)
+      toast.success(abschlussErfolgMeldung(ergebnis))
       setDialogOpen(false)
       form.reset()
       setIstBestandCents(null)
       onSuccess()
-    })
+    } catch (error: unknown) {
+      // Das Gate blockiert bei noch ausstehenden Signaturen (409). Der Dialog
+      // bleibt offen; derselbe Button fordert den Abschluss erneut an.
+      if (
+        error instanceof BackendError &&
+        error.code === 'signaturen_ausstehend'
+      ) {
+        const details = SignaturenAusstehendDetailsSchema.safeParse(
+          error.details,
+        )
+        toast.warning(
+          signaturenAusstehendMeldung(
+            details.success ? details.data.anzahl : 0,
+          ),
+        )
+        return
+      }
+      console.error(error)
+      toast.error(
+        getActionErrorMessage({ actionLabel: 'Kasse abschließen', error }),
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

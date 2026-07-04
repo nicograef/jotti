@@ -10,6 +10,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/rs/zerolog"
 )
@@ -38,11 +39,20 @@ type reportingRepo interface {
 	GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error)
 }
 
+// tseGateRepo liefert dem Kassenabschluss-Gate die Signatur-Staende der
+// Kassensitzung und den aktiven Stoerungszeitraum. Beide fuettern
+// tse.BestimmeSignaturstatus — dieselbe Zurechnung wie beim Beleg-Abruf.
+type tseGateRepo interface {
+	GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]tse.SignaturauftragStand, error)
+	GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error)
+}
+
 type Command struct {
 	KassenjournalRepo   kassenjournalRepo
 	KassensitzungenRepo kassensitzungenRepo
 	SettingsRepo        settingsRepo
 	ReportingRepo       reportingRepo
+	TSERepo             tseGateRepo
 }
 
 // getOffeneKassensitzungOderFehler returns the open Kassensitzung for a booking. It returns
@@ -230,17 +240,43 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 //
 // Teilfehler: Schlägt ein Schreibvorgang nach dem ersten Event fehl, kann der Abschluss
 // wiederholt werden. Es gibt bewusst keine umschließende Transaktion über alle Events.
-func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName string, istBestandCents int) (err error) {
+//
+// Gate: Als allererste Handlung — noch vor der Barriere — klassifiziert das
+// Signatur-Gate jeden noch nicht erledigten Signaturauftrag der Sitzung über die
+// Signaturstatus-Funktion. Ein frischer offener Auftrag ohne Störung (Ergebnis
+// ausstehend) blockiert mit *SignaturenAusstehendError; Ausfall-Reste lassen den
+// Abschluss zu und werden über KassenabschlussErgebnis in der Abschlussmeldung
+// ausgewiesen. Die signaturpflichtigen Abschluss-Events entstehen danach und
+// laufen regulär über die Queue.
+func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName string, istBestandCents int) (ergebnis KassenabschlussErgebnis, err error) {
 	log := zerolog.Ctx(ctx)
 
 	// Aktive Sitzung akzeptiert 'offen' und 'wird_abgeschlossen' (Wiederanlauf im Zwischenstatus).
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load Kassensitzung for Kassenabschluss")
-		return ErrDatabase
+		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 	if ks == nil {
-		return ErrKasseNichtGeoeffnet
+		return KassenabschlussErgebnis{}, ErrKasseNichtGeoeffnet
+	}
+
+	// Signatur-Gate vor der Barriere: prüft sofort, wartet nie. Ein ausstehender
+	// Auftrag blockiert; nichts wurde bis hier verändert, kein Reset nötig.
+	gate, err := c.pruefeSignaturGate(ctx, ks.ZNr)
+	if err != nil {
+		return KassenabschlussErgebnis{}, err
+	}
+	if gate.ausstehendAnzahl > 0 {
+		log.Warn().Int("z_nr", ks.ZNr).Int("ausstehend", gate.ausstehendAnzahl).Msg("Kassenabschluss blockiert: Signaturen ausstehend")
+		return KassenabschlussErgebnis{}, &SignaturenAusstehendError{
+			Anzahl:              gate.ausstehendAnzahl,
+			AeltesterErstelltAm: gate.aeltesterAusstehend,
+		}
+	}
+	ergebnis = KassenabschlussErgebnis{
+		AusfallResteAnzahl:      gate.ausfallResteAnzahl,
+		OhneKonfigurationAnzahl: gate.ohneKonfigurationAnzahl,
 	}
 
 	// Phase 1: Barriere setzen. Der UPDATE wartet auf noch laufende Buchungen (FOR SHARE);
@@ -249,10 +285,10 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	rows, err := c.KassensitzungenRepo.SetKassensitzungWirdAbgeschlossen(ctx, ks.ZNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to set Kassensitzung status wird_abgeschlossen")
-		return ErrDatabase
+		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 	if rows == 0 {
-		return ErrKasseNichtGeoeffnet
+		return KassenabschlussErgebnis{}, ErrKasseNichtGeoeffnet
 	}
 
 	// Fehler nach dem Statuswechsel setzen die Sitzung best effort zurück auf 'offen', damit sie
@@ -275,13 +311,13 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	expectedVersion, err := c.KassenjournalRepo.GetMaxVersion(ctx, subject)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to load max version for Kassenabschluss")
-		return ErrDatabase
+		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 
 	sollBestandCents, err := c.KassenjournalRepo.GetKassenbestand(ctx, ks.ZNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get Kassenbestand for Kassenabschluss")
-		return ErrDatabase
+		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 	differenzCents := sollBestandCents - istBestandCents
 
@@ -289,13 +325,13 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	sessions, err := c.KassenjournalRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get tisch sessions for Kassenabschluss")
-		return ErrDatabase
+		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 	for _, s := range sessions {
 		if s.SaldoCents != 0 {
 			log.Warn().Int("z_nr", ks.ZNr).Int("tisch_id", s.TischID).Int("saldo_cents", s.SaldoCents).
 				Msg("Kassenabschluss rejected: Tisch has non-zero saldo")
-			return ErrTischeSaldoOffen
+			return KassenabschlussErgebnis{}, ErrTischeSaldoOffen
 		}
 	}
 
@@ -303,10 +339,10 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	kassensturzEvt, err := kasse.NewKassensturzDurchgefuehrtEvent(subject, userID, userName, sollBestandCents, istBestandCents, differenzCents)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create kassensturz-durchgefuehrt event")
-		return err
+		return KassenabschlussErgebnis{}, err
 	}
 	if err := c.writeKassensitzungEvent(ctx, kassensturzEvt, ks.ZNr, expectedVersion); err != nil {
-		return err
+		return KassenabschlussErgebnis{}, err
 	}
 	expectedVersion++
 
@@ -315,10 +351,10 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		diffEvt, err := kasse.NewDifferenzSollIstGebuchtEvent(subject, userID, userName, differenzCents)
 		if err != nil {
 			log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create differenz-soll-ist-gebucht event")
-			return err
+			return KassenabschlussErgebnis{}, err
 		}
 		if err := c.writeKassensitzungEvent(ctx, diffEvt, ks.ZNr, expectedVersion); err != nil {
-			return err
+			return KassenabschlussErgebnis{}, err
 		}
 		expectedVersion++
 	}
@@ -327,7 +363,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	reportingData, err := c.ReportingRepo.GetReporting(ctx, ks.ZNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get reporting for Tagesabschluss")
-		return ErrDatabase
+		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 	summary := reportingData.Summary
 
@@ -341,16 +377,18 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create tagesabschluss-erstellt event")
-		return err
+		return KassenabschlussErgebnis{}, err
 	}
 	if err := c.writeKassensitzungEvent(ctx, tagesabschlussEvt, ks.ZNr, expectedVersion); err != nil {
-		return err
+		return KassenabschlussErgebnis{}, err
 	}
 
 	log.Info().Int("z_nr", ks.ZNr).
 		Int("soll_cents", sollBestandCents).
 		Int("ist_cents", istBestandCents).
 		Int("differenz_cents", differenzCents).
+		Int("ausfall_reste", ergebnis.AusfallResteAnzahl).
+		Int("ohne_konfiguration", ergebnis.OhneKonfigurationAnzahl).
 		Msg("Kasse abgeschlossen")
-	return nil
+	return ergebnis, nil
 }

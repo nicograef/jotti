@@ -196,6 +196,24 @@ func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) 
 	return stand, nil
 }
 
+// GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Staende
+// aller noch nicht erledigten Signaturauftraege der Kassensitzung — die
+// Grundlage des Kassenabschluss-Gates. Erledigte Auftraege bleiben aussen vor
+// (bereits signiert); das Gate ordnet die Staende ueber BestimmeSignaturstatus
+// in ausstehend bzw. Ausfall ein.
+func (r Repository) GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]tse.SignaturauftragStand, error) {
+	rows, err := r.q.GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx, kassensitzungNr)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	result := make([]tse.SignaturauftragStand, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, tse.SignaturauftragStand{Status: row.Status, ErstelltAm: row.ErstelltAm})
+	}
+	return result, nil
+}
+
 // GetAeltesterOffenerTSESignaturauftrag liefert den Erstellungszeitpunkt des
 // aeltesten offenen Signaturauftrags; nil, wenn kein Auftrag offen ist. Der
 // Rueckstands-Watchdog bemisst daran den Signatur-Rueckstand.

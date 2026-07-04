@@ -55,6 +55,13 @@ func SendConflict(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusConflict)
 }
 
+// SendConflictDetails sends a 409 Conflict response with an error code and
+// structured details (e.g. the Kassenabschluss-Gate reports the number of
+// pending signatures and the age of the oldest).
+func SendConflictDetails(w http.ResponseWriter, code string, details any) {
+	SendJSONResponse(w, errorResponse{Code: code, Details: details}, http.StatusConflict)
+}
+
 func SendServerError(w http.ResponseWriter) {
 	SendJSONResponse(w, errorResponse{Code: "internal_server_error"}, http.StatusInternalServerError)
 }

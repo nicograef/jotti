@@ -1,17 +1,25 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { BackendError } from '@/lib/Backend'
 
 import { EroeffnenSection, KasseAbschliessenSection } from './KassensitzungPage'
 
 vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
 }))
 
 const { kasseAbschliessen, kassensitzungEroeffnen } = vi.hoisted(() => ({
   kasseAbschliessen: vi
-    .fn<(cents: number) => Promise<void>>()
-    .mockResolvedValue(undefined),
+    .fn<
+      (cents: number) => Promise<{
+        ausfallResteAnzahl: number
+        ohneKonfigurationAnzahl: number
+      }>
+    >()
+    .mockResolvedValue({ ausfallResteAnzahl: 0, ohneKonfigurationAnzahl: 0 }),
   kassensitzungEroeffnen: vi
     .fn<(bezeichnung: string, betragCents: number) => Promise<number>>()
     .mockResolvedValue(1),
@@ -123,5 +131,48 @@ describe('KasseAbschliessenSection', () => {
     await user.click(buttons[buttons.length - 1])
 
     expect(kasseAbschliessen).toHaveBeenCalledWith(34250)
+  })
+
+  it('weist Ausfall-Reste in der Erfolgsmeldung aus', async () => {
+    kasseAbschliessen.mockResolvedValueOnce({
+      ausfallResteAnzahl: 2,
+      ohneKonfigurationAnzahl: 1,
+    })
+    const user = userEvent.setup()
+    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
+    await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
+    const buttons = screen.getAllByRole('button', { name: 'Kasse abschließen' })
+    await user.click(buttons[buttons.length - 1])
+
+    expect(toast.success).toHaveBeenCalledWith(
+      expect.stringContaining('nachsigniert'),
+    )
+    expect(toast.success).toHaveBeenCalledWith(
+      expect.stringContaining('keine TSE konfiguriert'),
+    )
+  })
+
+  it('zeigt bei ausstehenden Signaturen eine Meldung und lässt den Abschluss erneut anfordern', async () => {
+    kasseAbschliessen.mockRejectedValueOnce(
+      new BackendError(409, 'signaturen_ausstehend', {
+        anzahl: 2,
+        alterSekunden: 25,
+      }),
+    )
+    const user = userEvent.setup()
+    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
+    await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
+    const buttons = screen.getAllByRole('button', { name: 'Kasse abschließen' })
+    await user.click(buttons[buttons.length - 1])
+
+    expect(toast.warning).toHaveBeenCalledWith(
+      expect.stringContaining('2 Vorgänge sind noch nicht signiert'),
+    )
+    // Dialog bleibt offen: der Abschluss kann erneut angefordert werden.
+    expect(screen.getByText('Kasse abschließen?')).toBeInTheDocument()
   })
 })

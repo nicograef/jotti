@@ -8,14 +8,16 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/nicograef/jotti/backend/api/kasse/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 )
 
 type mockCommand struct {
-	zNr int
-	err error
+	zNr      int
+	err      error
+	ergebnis application.KassenabschlussErgebnis
 }
 
 func (m *mockCommand) KassensitzungEroeffnen(_ context.Context, _ int, _ string, _ string, _ int) (int, error) {
@@ -26,8 +28,8 @@ func (m *mockCommand) GeldtransitBuchen(_ context.Context, _ int, _ string, _ st
 	return m.err
 }
 
-func (m *mockCommand) KasseAbschliessen(_ context.Context, _ int, _ string, _ int) error {
-	return m.err
+func (m *mockCommand) KasseAbschliessen(_ context.Context, _ int, _ string, _ int) (application.KassenabschlussErgebnis, error) {
+	return m.ergebnis, m.err
 }
 
 func requestWithUser(body string) *http.Request {
@@ -251,6 +253,55 @@ func TestKasseAbschliessenHandler_KasseNichtGeoeffnet(t *testing.T) {
 
 	if rec.Code != http.StatusConflict {
 		t.Errorf("expected 409, got %d", rec.Code)
+	}
+}
+
+func TestKasseAbschliessenHandler_SignaturenAusstehend(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: &application.SignaturenAusstehendError{
+		Anzahl:              2,
+		AeltesterErstelltAm: time.Now().Add(-30 * time.Second),
+	}}}
+
+	req := requestWithUser(`{"istBestandCents":10000}`)
+	rec := httptest.NewRecorder()
+
+	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected 409, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "signaturen_ausstehend") {
+		t.Errorf("expected code signaturen_ausstehend in body, got %s", body)
+	}
+	if !strings.Contains(body, `"anzahl":2`) {
+		t.Errorf("expected anzahl detail in body, got %s", body)
+	}
+	if !strings.Contains(body, `"alterSekunden"`) {
+		t.Errorf("expected alterSekunden detail in body, got %s", body)
+	}
+}
+
+func TestKasseAbschliessenHandler_AusfallResteImBody(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{ergebnis: application.KassenabschlussErgebnis{
+		AusfallResteAnzahl:      3,
+		OhneKonfigurationAnzahl: 1,
+	}}}
+
+	req := requestWithUser(`{"istBestandCents":10000}`)
+	rec := httptest.NewRecorder()
+
+	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `"ausfallResteAnzahl":3`) {
+		t.Errorf("expected ausfallResteAnzahl in body, got %s", body)
+	}
+	if !strings.Contains(body, `"ohneKonfigurationAnzahl":1`) {
+		t.Errorf("expected ohneKonfigurationAnzahl in body, got %s", body)
 	}
 }
 

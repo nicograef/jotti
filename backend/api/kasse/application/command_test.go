@@ -15,6 +15,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/rs/zerolog"
@@ -66,6 +67,23 @@ func (m reportingMock) GetReporting(_ context.Context, _ int) (reporting.Reporti
 	return m.data, m.err
 }
 
+// tseGateMock speist das Kassenabschluss-Gate: die noch nicht erledigten
+// Signatur-Stände der Sitzung und der aktive Störungszeitraum. Der Nullwert
+// (keine Stände, keine Störung) lässt das Gate durch.
+type tseGateMock struct {
+	staende  []tse.SignaturauftragStand
+	stoerung *tse.Stoerung
+	err      error
+}
+
+func (m tseGateMock) GetOffeneSignaturauftragStaendeFuerKassensitzung(_ context.Context, _ int) ([]tse.SignaturauftragStand, error) {
+	return m.staende, m.err
+}
+
+func (m tseGateMock) GetAktiveTSEStoerung(_ context.Context) (*tse.Stoerung, error) {
+	return m.stoerung, nil
+}
+
 func newTestCommand(ks *kasse.Kassensitzung) Command {
 	journalMock := kassenjournal_repo.NewMock(nil, nil)
 	sitzungMock := kassensitzungen_repo.NewMock(ks, nil)
@@ -74,6 +92,7 @@ func newTestCommand(ks *kasse.Kassensitzung) Command {
 		KassensitzungenRepo: sitzungMock,
 		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
 		ReportingRepo:       reportingMock{},
+		TSERepo:             tseGateMock{},
 	}
 }
 
@@ -146,9 +165,10 @@ func TestKasseAbschliessen_OhneDifferenz(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		ReportingRepo:       reportingMock{},
+		TSERepo:             tseGateMock{},
 	}
 
-	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
+	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -176,9 +196,10 @@ func TestKasseAbschliessen_MitDifferenz(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		ReportingRepo:       reportingMock{},
+		TSERepo:             tseGateMock{},
 	}
 
-	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500) // Ist = 495 EUR, Differenz = 500
+	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500) // Ist = 495 EUR, Differenz = 500
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -215,9 +236,10 @@ func TestKasseAbschliessen_TagesabschlussMitEchtenSummen(t *testing.T) {
 				GeldtransitCents:         400,
 			},
 		}},
+		TSERepo: tseGateMock{},
 	}
 
-	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
+	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -260,9 +282,10 @@ func TestKasseAbschliessen_TischSaldoSperre(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		ReportingRepo:       reportingMock{},
+		TSERepo:             tseGateMock{},
 	}
 
-	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
+	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if err != ErrTischeSaldoOffen {
 		t.Fatalf("expected ErrTischeSaldoOffen, got %v", err)
 	}
@@ -280,7 +303,7 @@ func TestKasseAbschliessen_KasseNichtGeoeffnet(t *testing.T) {
 	ctx := context.Background()
 	cmd := newTestCommand(nil)
 
-	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
+	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if err != ErrKasseNichtGeoeffnet {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
@@ -297,9 +320,10 @@ func TestKasseAbschliessen_SetztBarriere(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
 		ReportingRepo:       reportingMock{},
+		TSERepo:             tseGateMock{},
 	}
 
-	if err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if sitzungMock.WirdAbgeschlossenCalls != 1 {
@@ -321,9 +345,10 @@ func TestKasseAbschliessen_FehlerSetztStatusZurueck(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
 		ReportingRepo:       reportingMock{err: db.ErrDatabase}, // Reporting scheitert nach der Barriere
+		TSERepo:             tseGateMock{},
 	}
 
-	if err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err == nil {
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err == nil {
 		t.Fatal("expected an error, got nil")
 	}
 	if sitzungMock.WirdAbgeschlossenCalls != 1 {
@@ -345,9 +370,10 @@ func TestKasseAbschliessen_KonfliktSetztStatusNichtZurueck(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
 		ReportingRepo:       reportingMock{},
+		TSERepo:             tseGateMock{},
 	}
 
-	if err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrKonflikt {
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrKonflikt {
 		t.Fatalf("expected ErrKonflikt, got %v", err)
 	}
 	if sitzungMock.OffenCalls != 0 {
@@ -366,9 +392,10 @@ func TestKasseAbschliessen_DeadlockMapsToKonflikt(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
 		ReportingRepo:       reportingMock{},
+		TSERepo:             tseGateMock{},
 	}
 
-	if err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrKonflikt {
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrKonflikt {
 		t.Fatalf("expected ErrKonflikt, got %v", err)
 	}
 }
@@ -384,9 +411,10 @@ func TestKasseAbschliessen_WiederanlaufImZwischenstatus(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(imAbschluss, nil),
 		ReportingRepo:       reportingMock{},
+		TSERepo:             tseGateMock{},
 	}
 
-	if err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {
 		t.Fatalf("expected resume to succeed, got %v", err)
 	}
 

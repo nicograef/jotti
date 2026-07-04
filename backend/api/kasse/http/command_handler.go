@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
@@ -14,7 +15,7 @@ import (
 type command interface {
 	KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error)
 	GeldtransitBuchen(ctx context.Context, userID int, userName string, richtung string, betragCents int, kommentar string) error
-	KasseAbschliessen(ctx context.Context, userID int, userName string, istBestandCents int) error
+	KasseAbschliessen(ctx context.Context, userID int, userName string, istBestandCents int) (kasseApp.KassenabschlussErgebnis, error)
 }
 
 type CommandHandler struct {
@@ -59,6 +60,21 @@ type kasseAbschliessenRequest struct {
 var kasseAbschliessenSchema = z.Struct(z.Shape{
 	"IstBestandCents": z.Ptr(z.Int().GTE(0, z.Message("Ist-Bestand darf nicht negativ sein"))).NotNil(z.Message("Ist-Bestand ist erforderlich")),
 })
+
+// kasseAbschliessenResponse weist die beim Abschluss verbliebenen Ausfall-Reste
+// aus: Vorgänge, die die TSE noch nachsigniert (AusfallResteAnzahl) und
+// Vorgänge ohne Signatur mangels TSE-Konfiguration (OhneKonfigurationAnzahl).
+type kasseAbschliessenResponse struct {
+	AusfallResteAnzahl      int `json:"ausfallResteAnzahl"`
+	OhneKonfigurationAnzahl int `json:"ohneKonfigurationAnzahl"`
+}
+
+// signaturenAusstehendDetails sind die strukturierten 409-Details des Gates:
+// wie viele Signaturen noch ausstehen und wie alt der älteste offene Auftrag ist.
+type signaturenAusstehendDetails struct {
+	Anzahl        int `json:"anzahl"`
+	AlterSekunden int `json:"alterSekunden"`
+}
 
 // --- Handlers ---
 
@@ -133,9 +149,15 @@ func (h *CommandHandler) KasseAbschliessenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.KasseAbschliessen(r.Context(), userID, userName, *body.IstBestandCents)
+		ergebnis, err := h.Command.KasseAbschliessen(r.Context(), userID, userName, *body.IstBestandCents)
 		if err != nil {
+			var ausstehend *kasseApp.SignaturenAusstehendError
 			switch {
+			case errors.As(err, &ausstehend):
+				helper.SendConflictDetails(w, "signaturen_ausstehend", signaturenAusstehendDetails{
+					Anzahl:        ausstehend.Anzahl,
+					AlterSekunden: int(time.Since(ausstehend.AeltesterErstelltAm).Seconds()),
+				})
 			case errors.Is(err, kasseApp.ErrKonflikt):
 				helper.SendConflictError(w)
 			case errors.Is(err, kasseApp.ErrKasseNichtGeoeffnet):
@@ -148,6 +170,9 @@ func (h *CommandHandler) KasseAbschliessenHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendEmptyResponse(w)
+		helper.SendResponse(w, kasseAbschliessenResponse{
+			AusfallResteAnzahl:      ergebnis.AusfallResteAnzahl,
+			OhneKonfigurationAnzahl: ergebnis.OhneKonfigurationAnzahl,
+		})
 	}
 }
