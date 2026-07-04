@@ -139,6 +139,10 @@ func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
 		}
 
 		if err := h.Command.UpdateTSEKonfiguration(r.Context(), conf); err != nil {
+			if errors.Is(err, application.ErrTSEKonfigurationKassensitzungOffen) {
+				helper.SendClientError(w, "tse_konfiguration_kassensitzung_offen", nil)
+				return
+			}
 			helper.SendServerError(w)
 			return
 		}
@@ -166,6 +170,8 @@ func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 				helper.SendClientError(w, "tse_setup_zugangsdaten_ungueltig", nil)
 			case errors.Is(err, application.ErrTSESetupUmgebungAbweichung):
 				helper.SendClientError(w, "tse_setup_umgebung_abweichung", nil)
+			case errors.Is(err, application.ErrTSEKonfigurationKassensitzungOffen):
+				helper.SendClientError(w, "tse_konfiguration_kassensitzung_offen", nil)
 			case errors.Is(err, application.ErrTSEBereitsEingerichtet):
 				helper.SendClientError(w, "tse_bereits_eingerichtet", nil)
 			case errors.Is(err, application.ErrTSESetupTSSLimitErreicht):
@@ -210,6 +216,8 @@ func (h *CommandHandler) UebernimmTSEHandler() http.HandlerFunc {
 				helper.SendClientError(w, "tse_setup_zugangsdaten_ungueltig", nil)
 			case errors.Is(err, application.ErrTSESetupUmgebungAbweichung):
 				helper.SendClientError(w, "tse_setup_umgebung_abweichung", nil)
+			case errors.Is(err, application.ErrTSEKonfigurationKassensitzungOffen):
+				helper.SendClientError(w, "tse_konfiguration_kassensitzung_offen", nil)
 			case errors.Is(err, application.ErrTSESetupTSSNichtGefunden):
 				helper.SendClientError(w, "tse_setup_tss_nicht_gefunden", nil)
 			case errors.Is(err, application.ErrTSESetupPINErforderlich):

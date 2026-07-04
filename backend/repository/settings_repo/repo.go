@@ -3,9 +3,11 @@ package settings_repo
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
@@ -59,16 +61,71 @@ func (r Repository) GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfig
 }
 
 func (r Repository) UpsertTSEKonfiguration(ctx context.Context, c settings.TSEKonfiguration) error {
-	err := r.q.UpsertTSEKonfiguration(ctx, dbgen.UpsertTSEKonfigurationParams{
-		ApiKey:    c.ApiKey,
-		ApiSecret: c.ApiSecret,
-		TssID:     c.TssID,
-		ClientID:  c.ClientID,
-	})
+	err := r.q.UpsertTSEKonfiguration(ctx, upsertTSEKonfigurationParams(c))
 	if err != nil {
 		return db.Error(err)
 	}
 	return nil
+}
+
+// SpeichereEinrichtung speichert die TSE-Konfiguration und fuehrt beim Uebergang
+// von nicht konfiguriert zu konfiguriert in derselben Transaktion den
+// Einrichtungs-Sweep aus: alle noch offenen Auftraege aus der
+// konfigurationslosen Zeit werden endgueltig als tse_nicht_konfiguriert
+// markiert und der keine_konfiguration-Stoerungszeitraum wird geschlossen. War
+// die TSE schon vorher konfiguriert (reiner Zugangsdaten-Wechsel ueber die
+// Einrichtungspfade), bleibt es beim reinen Speichern — laufende Auftraege
+// werden nie versehentlich als nicht konfiguriert markiert.
+func (r Repository) SpeichereEinrichtung(ctx context.Context, c settings.TSEKonfiguration) error {
+	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		warKonfiguriert := false
+		if vorher, err := qtx.GetTSEKonfiguration(ctx); err == nil {
+			warKonfiguriert = toTSEKonfiguration(vorher).IstKonfiguriert()
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return db.Error(err)
+		}
+
+		if err := qtx.UpsertTSEKonfiguration(ctx, upsertTSEKonfigurationParams(c)); err != nil {
+			return db.Error(err)
+		}
+
+		if warKonfiguriert {
+			return nil
+		}
+		if _, err := qtx.MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert(ctx); err != nil {
+			return db.Error(err)
+		}
+		if err := qtx.SchliesseTSEStoerung(ctx, tse.StoerungGrundKeineKonfiguration); err != nil {
+			return db.Error(err)
+		}
+		return nil
+	})
+}
+
+func upsertTSEKonfigurationParams(c settings.TSEKonfiguration) dbgen.UpsertTSEKonfigurationParams {
+	return dbgen.UpsertTSEKonfigurationParams{
+		ApiKey:    c.ApiKey,
+		ApiSecret: c.ApiSecret,
+		TssID:     c.TssID,
+		ClientID:  c.ClientID,
+	}
+}
+
+// withTx runs fn within a single transaction: begin, rollback on any error
+// (a rollback after commit is a no-op), commit otherwise. fn owns its own error
+// wrapping; only begin/commit are normalized via db.Error.
+func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return db.Error(err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
+	if err := fn(r.q.WithTx(tx)); err != nil {
+		return err
+	}
+
+	return db.Error(tx.Commit())
 }
 
 // GetTSEStammdaten liest die fiskalischen TSS-Stammdaten fuer den

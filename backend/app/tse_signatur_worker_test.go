@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
@@ -37,14 +38,16 @@ type quittierung struct {
 }
 
 type mockTSESignaturStore struct {
-	mu            sync.Mutex
-	offene        []tse_repo.OffenerSignaturauftrag
-	quittierungen []quittierung
-	fehlversuche  []fehlversuch
-	geoeffnet     []string // Grund-Arten der geoeffneten Stoerungszeitraeume
-	geschlossen   []string // Grund-Arten der geschlossenen Stoerungszeitraeume
-	getErr        error
-	quittiereErr  error
+	mu             sync.Mutex
+	offene         []tse_repo.OffenerSignaturauftrag
+	quittierungen  []quittierung
+	fehlversuche   []fehlversuch
+	geoeffnet      []string // Grund-Arten der geoeffneten Stoerungszeitraeume
+	geschlossen    []string // Grund-Arten der geschlossenen Stoerungszeitraeume
+	markiertCalls  int      // Aufrufe von MarkiereOffeneAlsNichtKonfiguriert
+	markiertAnzahl int64    // Rueckgabe (Anzahl markierter Auftraege)
+	getErr         error
+	quittiereErr   error
 	// verarbeitet signalisiert jede Quittierung (fuer Run-Loop-Tests ohne Sleeps).
 	verarbeitet chan struct{}
 }
@@ -79,6 +82,13 @@ func (m *mockTSESignaturStore) TSESignaturauftragFehlversuch(_ context.Context, 
 	defer m.mu.Unlock()
 	m.fehlversuche = append(m.fehlversuche, fehlversuch{AuftragID: auftragID, Fehler: fehler})
 	return nil
+}
+
+func (m *mockTSESignaturStore) MarkiereOffeneAlsNichtKonfiguriert(_ context.Context) (int64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.markiertCalls++
+	return m.markiertAnzahl, nil
 }
 
 func (m *mockTSESignaturStore) OeffneTSEStoerung(_ context.Context, grundArt string, _ string) error {
@@ -597,6 +607,89 @@ func TestTSESignaturWorker_ClientWiederverwendung(t *testing.T) {
 	}
 	if factoryCalls != 2 {
 		t.Fatalf("expected client rebuild after credential change, got %d factory calls", factoryCalls)
+	}
+}
+
+// Ohne vorhandene TSE-Konfiguration markiert der Worker offene Auftraege
+// endgueltig als tse_nicht_konfiguriert und oeffnet den keine_konfiguration-
+// Stoerungszeitraum. Getestet fuer beide Faelle fehlender Konfiguration:
+// gar keine Zeile (db.ErrNotFound) und vorhandene, aber leere Konfiguration.
+func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationMarkiertEndgueltig(t *testing.T) {
+	tests := []struct {
+		name         string
+		settingsRepo *mockTSESettingsReader
+	}{
+		{name: "keine Zeile", settingsRepo: &mockTSESettingsReader{err: db.ErrNotFound}},
+		{name: "leere Konfiguration", settingsRepo: &mockTSESettingsReader{conf: settings.TSEKonfiguration{}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &mockTSESignaturStore{markiertAnzahl: 2}
+			worker := &tseSignaturWorker{
+				settingsRepo: tt.settingsRepo,
+				store:        store,
+				newTSEClient: neuerWorkerClient(tse.FakeClient{}),
+				now:          time.Now,
+			}
+
+			if err := worker.processOnce(context.Background()); err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if store.markiertCalls != 1 {
+				t.Fatalf("expected one Markierung, got %d", store.markiertCalls)
+			}
+			if len(store.geoeffnet) != 1 || store.geoeffnet[0] != tse.StoerungGrundKeineKonfiguration {
+				t.Fatalf("expected geoeffneten keine_konfiguration-Zeitraum, got %v", store.geoeffnet)
+			}
+			if len(store.quittierungen) != 0 {
+				t.Fatalf("expected no quittierungen without configuration, got %d", len(store.quittierungen))
+			}
+		})
+	}
+}
+
+// Ohne markierbare Auftraege (kein offener Auftrag) oeffnet der Worker keinen
+// Stoerungszeitraum — der keine_konfiguration-Ausfall belegt reale Vorgaenge,
+// nicht einen frisch installierten, noch unbenutzten Kassenstand.
+func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationOhneAuftraegeKeineStoerung(t *testing.T) {
+	store := &mockTSESignaturStore{markiertAnzahl: 0}
+	worker := &tseSignaturWorker{
+		settingsRepo: &mockTSESettingsReader{err: db.ErrNotFound},
+		store:        store,
+		newTSEClient: neuerWorkerClient(tse.FakeClient{}),
+		now:          time.Now,
+	}
+
+	if err := worker.processOnce(context.Background()); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if store.markiertCalls != 1 {
+		t.Fatalf("expected one Markierung attempt, got %d", store.markiertCalls)
+	}
+	if len(store.geoeffnet) != 0 {
+		t.Fatalf("expected keinen Stoerungszeitraum ohne markierte Auftraege, got %v", store.geoeffnet)
+	}
+}
+
+// Nicht lesbare Konfiguration (echter DB-Fehler, nicht db.ErrNotFound) ist kein
+// Dauerzustand: Der Worker markiert nichts und gibt den Fehler zurueck.
+func TestTSESignaturWorker_ProcessOnce_NichtLesbareKonfigurationMarkiertNichts(t *testing.T) {
+	store := &mockTSESignaturStore{markiertAnzahl: 3}
+	worker := &tseSignaturWorker{
+		settingsRepo: &mockTSESettingsReader{err: errors.New("connection reset")},
+		store:        store,
+		newTSEClient: neuerWorkerClient(tse.FakeClient{}),
+		now:          time.Now,
+	}
+
+	if err := worker.processOnce(context.Background()); err == nil {
+		t.Fatal("expected error for unreadable configuration")
+	}
+	if store.markiertCalls != 0 {
+		t.Fatalf("expected no Markierung on unreadable configuration, got %d", store.markiertCalls)
+	}
+	if len(store.geoeffnet) != 0 {
+		t.Fatalf("expected keinen Stoerungszeitraum, got %v", store.geoeffnet)
 	}
 }
 

@@ -211,11 +211,11 @@ Der Worker markiert offene Aufträge ohne vorhandene TSE-Konfiguration endgülti
 
 ### Acceptance criteria
 
-- [ ] Aufträge entstehen ohne Konfiguration als offen und werden vom Worker endgültig markiert; nicht lesbare Konfiguration markiert nichts (Test).
-- [ ] Einrichtungs-Sweep: Übergang zu konfiguriert markiert auch noch unmarkierte offene Aufträge in derselben Transaktion; reiner Zugangsdaten-Wechsel nicht (Test).
-- [ ] Spätere Einrichtung fasst endgültig markierte Aufträge nicht an; Admin-Zurücksetzen reiht sie ein und der Worker signiert sie nach (Test).
-- [ ] TSE-Konfigurationsänderungen werden bei offener Kassensitzung abgelehnt (klare Fehlermeldung).
-- [ ] Beleg-Vermerk „keine TSE konfiguriert"; Störungszeitraum `keine_konfiguration` endet mit der Einrichtung.
+- [x] Aufträge entstehen ohne Konfiguration als offen und werden vom Worker endgültig markiert; nicht lesbare Konfiguration markiert nichts (Test).
+- [x] Einrichtungs-Sweep: Übergang zu konfiguriert markiert auch noch unmarkierte offene Aufträge in derselben Transaktion; reiner Zugangsdaten-Wechsel nicht (Test).
+- [x] Spätere Einrichtung fasst endgültig markierte Aufträge nicht an; Admin-Zurücksetzen reiht sie ein und der Worker signiert sie nach (Test).
+- [x] TSE-Konfigurationsänderungen werden bei offener Kassensitzung abgelehnt (klare Fehlermeldung).
+- [x] Beleg-Vermerk „keine TSE konfiguriert"; Störungszeitraum `keine_konfiguration` endet mit der Einrichtung.
 
 ---
 

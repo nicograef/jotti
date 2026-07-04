@@ -51,10 +51,16 @@ function TSEKonfigurationForm({
     byCode: {
       validation_error:
         'Bitte alle vier Felder ausfüllen und auf gültige Länge prüfen.',
+      tse_konfiguration_kassensitzung_offen:
+        'Die TSE-Konfiguration kann nicht geändert werden, solange eine Kassensitzung offen ist. Bitte zuerst den Kassenabschluss durchführen.',
     },
   })
   const { loading: clearing, run: runClear } = useActionSubmit({
     actionLabel: 'TSE-Konfiguration leeren',
+    byCode: {
+      tse_konfiguration_kassensitzung_offen:
+        'Die TSE-Konfiguration kann nicht geleert werden, solange eine Kassensitzung offen ist. Bitte zuerst den Kassenabschluss durchführen.',
+    },
   })
   const { loading: testing, run: runTestConnection } = useActionSubmit({
     actionLabel: 'TSE-Verbindung testen',

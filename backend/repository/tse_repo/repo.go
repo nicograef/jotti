@@ -102,6 +102,19 @@ func (r Repository) TSESignaturauftragFehlversuch(ctx context.Context, auftragID
 	}))
 }
 
+// MarkiereOffeneAlsNichtKonfiguriert markiert alle offenen Auftraege endgueltig
+// als tse_nicht_konfiguriert und liefert die Anzahl markierter Auftraege. Ohne
+// vorhandene TSE-Konfiguration gibt es keine Signatur; ein Nachsignieren ist
+// ausgeschlossen (keine Fehlversuche, keine automatische Wiederaufnahme).
+// Bereits endgueltig markierte Auftraege bleiben unberuehrt.
+func (r Repository) MarkiereOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, error) {
+	n, err := r.q.MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert(ctx)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	return n, nil
+}
+
 // GetTSESignaturauftraege liefert die Signaturauftraege fuer die
 // Admin-Verwaltung und die Ausfalldokumentation, neueste zuerst.
 func (r Repository) GetTSESignaturauftraege(ctx context.Context) ([]Signaturauftrag, error) {
@@ -132,9 +145,11 @@ func (r Repository) GetTSESignaturauftraege(ctx context.Context) ([]Signaturauft
 	return result, nil
 }
 
-// TSESignaturauftragZuruecksetzen reiht einen fehlgeschlagenen Auftrag wieder
-// ein (fehlgeschlagen -> offen, Zaehler und Fehler zurueckgesetzt). Der
-// Status-Guard wirkt nur auf fehlgeschlagene Auftraege.
+// TSESignaturauftragZuruecksetzen reiht einen endgueltig markierten Auftrag
+// wieder ein (fehlgeschlagen oder tse_nicht_konfiguriert -> offen, Zaehler und
+// Fehler zurueckgesetzt). Der Status-Guard wirkt nur auf diese beiden Status;
+// so signiert der Worker nach einer spaeten Einrichtung zurueckgesetzte
+// Auftraege nach.
 func (r Repository) TSESignaturauftragZuruecksetzen(ctx context.Context, auftragID int) error {
 	return db.Error(r.q.TSESignaturauftragZuruecksetzen(ctx, auftragID))
 }

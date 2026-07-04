@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
@@ -39,6 +40,14 @@ func (s *stubCommandRepo) UpsertTSEKonfiguration(_ context.Context, c settings.T
 	return nil
 }
 
+func (s *stubCommandRepo) SpeichereEinrichtung(_ context.Context, c settings.TSEKonfiguration) error {
+	if s.upsertErr != nil {
+		return s.upsertErr
+	}
+	s.gespeichert = &c
+	return nil
+}
+
 func (s *stubCommandRepo) UpsertTSEStammdaten(_ context.Context, st settings.TSEStammdaten) error {
 	if s.stammdatenUpsertErr != nil {
 		return s.stammdatenUpsertErr
@@ -47,9 +56,21 @@ func (s *stubCommandRepo) UpsertTSEStammdaten(_ context.Context, st settings.TSE
 	return nil
 }
 
+// stubKassensitzungReader liefert die offene Kassensitzung fuer den
+// Konfigurations-Guard; nil (Default) heisst: keine offen.
+type stubKassensitzungReader struct {
+	offene *kasse.Kassensitzung
+	err    error
+}
+
+func (s stubKassensitzungReader) GetOffeneKassensitzung(context.Context) (*kasse.Kassensitzung, error) {
+	return s.offene, s.err
+}
+
 func commandMit(repo *stubCommandRepo, client *tse.FakeSetupClient) Command {
 	return Command{
-		SettingsRepo: repo,
+		SettingsRepo:        repo,
+		KassensitzungenRepo: stubKassensitzungReader{},
 		NewTSESetupClient: func(tse.SetupCredentials) (tse.SetupClient, error) {
 			return client, nil
 		},
@@ -806,5 +827,62 @@ func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetupNicht(t *testing.T) {
 	}
 	if repo.gespeicherteStammdaten != nil {
 		t.Fatal("expected no stammdaten to be saved when the fetch fails")
+	}
+}
+
+// commandMitOffenerKassensitzung baut ein Command, dessen Konfigurations-Guard
+// eine offene Kassensitzung sieht. Der Setup-Client wuerde beim Aufruf failen —
+// so belegt der Test, dass der Guard vor jeder fiskaly-Arbeit greift.
+func commandMitOffenerKassensitzung(repo *stubCommandRepo) Command {
+	return Command{
+		SettingsRepo:        repo,
+		KassensitzungenRepo: stubKassensitzungReader{offene: &kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}},
+		NewTSESetupClient: func(tse.SetupCredentials) (tse.SetupClient, error) {
+			return nil, errors.New("setup client must not be created while a Kassensitzung is open")
+		},
+	}
+}
+
+// TSE-Konfigurationsaenderungen sind bei offener Kassensitzung nicht erlaubt:
+// Das Signaturgeraet darf nicht mitten in einem laufenden Kassentag wechseln.
+// Alle drei Aenderungspfade lehnen mit ErrTSEKonfigurationKassensitzungOffen ab
+// und schreiben nichts.
+func TestUpdateTSEKonfiguration_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
+	repo := &stubCommandRepo{}
+	conf, err := settings.NewTSEKonfiguration("api-key", "api-secret", "tss-1", "client-1")
+	if err != nil {
+		t.Fatalf("unexpected error building konfiguration: %v", err)
+	}
+
+	err = commandMitOffenerKassensitzung(repo).UpdateTSEKonfiguration(context.Background(), conf)
+	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
+		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
+	}
+	if repo.gespeichert != nil {
+		t.Fatalf("expected no configuration to be saved, got %+v", repo.gespeichert)
+	}
+}
+
+func TestRichteTSEEin_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+
+	_, err := commandMitOffenerKassensitzung(repo).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
+	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
+		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
+	}
+	if repo.gespeichert != nil {
+		t.Fatalf("expected no configuration to be saved, got %+v", repo.gespeichert)
+	}
+}
+
+func TestUebernimmTSE_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
+	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+
+	_, err := commandMitOffenerKassensitzung(repo).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-1", "", "")
+	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
+		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
+	}
+	if repo.gespeichert != nil {
+		t.Fatalf("expected no configuration to be saved, got %+v", repo.gespeichert)
 	}
 }

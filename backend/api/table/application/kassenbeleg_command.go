@@ -139,34 +139,45 @@ const (
 // aber mit Ausfallvermerk) oder ausstehend (kein Druckauftrag, die UI fasst
 // nach). Kein Auftrag heisst: nicht signaturpflichtig, Beleg ohne
 // TSE-Abschnitt und ohne Vermerk.
-func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventID int) (abschnitt *escpos.TSEAbschnitt, ausfallvermerk bool, ausstehend bool, err error) {
+func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventID int) (abschnitt *escpos.TSEAbschnitt, vermerk escpos.TSEBelegvermerk, ausstehend bool, err error) {
 	stand, err := c.TSERepo.GetSignaturauftragZuEvent(ctx, eventID)
 	if errors.Is(err, db.ErrNotFound) {
-		return nil, false, false, nil
+		return nil, escpos.KeinTSEVermerk, false, nil
 	}
 	if err != nil {
-		return nil, false, false, err
+		return nil, escpos.KeinTSEVermerk, false, err
 	}
 
 	aktiveStoerung, err := c.TSERepo.GetAktiveTSEStoerung(ctx)
 	if err != nil {
-		return nil, false, false, err
+		return nil, escpos.KeinTSEVermerk, false, err
 	}
 
 	ergebnis := tse.BestimmeSignaturstatus(stand, aktiveStoerung)
 	switch ergebnis.Status {
 	case tse.SignaturstatusVorhanden:
-		return tseAbschnittAusSignatur(ergebnis.Signatur), false, false, nil
+		return tseAbschnittAusSignatur(ergebnis.Signatur), escpos.KeinTSEVermerk, false, nil
 	case tse.SignaturstatusNachsigniert:
 		abschnitt := tseAbschnittAusSignatur(ergebnis.Signatur)
 		abschnitt.Nachsigniert = true
-		return abschnitt, false, false, nil
+		return abschnitt, escpos.KeinTSEVermerk, false, nil
 	case tse.SignaturstatusAusfall:
 		zerolog.Ctx(ctx).Warn().Int("event_id", eventID).Str("ausfall_grund", ergebnis.AusfallGrund).Msg("Kassenbeleg ohne TSE-Signatur: dokumentierter Ausfall")
-		return nil, true, false, nil
+		return nil, vermerkFuerAusfall(ergebnis.AusfallGrund), false, nil
 	default: // ausstehend
-		return nil, false, true, nil
+		return nil, escpos.KeinTSEVermerk, true, nil
 	}
+}
+
+// vermerkFuerAusfall waehlt den Beleg-Hinweis nach dem Ausfallgrund: fehlende
+// TSE-Konfiguration (endgueltiger Auftragsstatus oder keine_konfiguration-
+// Stoerung) traegt „keine TSE konfiguriert" und wird nicht nachsigniert; jeder
+// andere Ausfall (voruebergehende Nichterreichbarkeit) wird nachsigniert.
+func vermerkFuerAusfall(ausfallGrund string) escpos.TSEBelegvermerk {
+	if ausfallGrund == tse.StatusTSENichtKonfiguriert || ausfallGrund == tse.StoerungGrundKeineKonfiguration {
+		return escpos.TSEVermerkKeineKonfiguration
+	}
+	return escpos.TSEVermerkVoruebergehend
 }
 
 // negierePositionen flips the Einzelpreis sign so a Stornobeleg shows negative amounts.
@@ -346,7 +357,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 	// die UI fasst über denselben Endpunkt nach, bis der Signatur-Worker
 	// quittiert hat. Bei dokumentiertem Ausfall entsteht der Beleg ohne
 	// TSE-Daten, weist den Ausfall aber aus.
-	tseAbschnitt, tseAusfallvermerk, ausstehend, err := c.tseAbschnittFuerBeleg(ctx, quelleEvent.ID)
+	tseAbschnitt, tseVermerk, ausstehend, err := c.tseAbschnittFuerBeleg(ctx, quelleEvent.ID)
 	if err != nil {
 		log.Error().Err(err).Int("event_id", quelleEvent.ID).Msg("Failed to resolve TSE section for kassenbeleg")
 		return "", ErrDatabase
@@ -396,7 +407,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		Positionen:               positionen,
 		Steuermatrix:             steuermatrix,
 		TSE:                      tseAbschnitt,
-		TSEAusfallvermerk:        tseAusfallvermerk,
+		TSEVermerk:               tseVermerk,
 		GesamtbetragCents:        gesamtbetragCents,
 		Zahlungsart:              "bar",
 		Stornobeleg:              stornobeleg,

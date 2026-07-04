@@ -49,6 +49,7 @@ type tseSignaturStore interface {
 	GetOffeneTSESignaturauftraege(ctx context.Context, limit int) ([]tse_repo.OffenerSignaturauftrag, error)
 	QuittiereTSESignaturauftrag(ctx context.Context, auftragID int, signatur tse.Signatur) error
 	TSESignaturauftragFehlversuch(ctx context.Context, auftragID int, fehler string) error
+	MarkiereOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, error)
 	OeffneTSEStoerung(ctx context.Context, grundArt string, fehlertext string) error
 	SchliesseTSEStoerung(ctx context.Context, grundArt string) error
 }
@@ -212,12 +213,16 @@ func (w *tseSignaturWorker) processOnce(ctx context.Context) error {
 	conf, err := w.settingsRepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			return nil
+			// Fehlende Konfiguration: offene Auftraege endgueltig markieren.
+			return w.markiereNichtKonfiguriert(ctx)
 		}
+		// Nicht lesbare Konfiguration (echter DB-Fehler): nichts markieren, es
+		// koennte gleich wieder gehen — ein Lesefehler ist kein Dauerzustand.
 		return err
 	}
 	if !conf.IstKonfiguriert() {
-		return nil
+		// Vorhandene, aber leere Konfiguration = keine TSE eingerichtet.
+		return w.markiereNichtKonfiguriert(ctx)
 	}
 
 	client, err := w.clientFuer(conf.Credentials())
@@ -271,6 +276,28 @@ func (w *tseSignaturWorker) processOnce(ctx context.Context) error {
 			auftrag.ID, w.stoerungSerie, w.stoerungNaechsterVersuch.Format(time.RFC3339), err)
 	}
 
+	return nil
+}
+
+// markiereNichtKonfiguriert markiert alle offenen Auftraege endgueltig als
+// tse_nicht_konfiguriert, solange keine TSE konfiguriert ist. Der Dauerzustand
+// ohne Konfiguration ist die dritte Stoerungsquelle: Sind Auftraege betroffen,
+// oeffnet der Worker den keine_konfiguration-Zeitraum (No-Op, solange bereits
+// ein Zeitraum aktiv ist), damit auch das kurze Fenster zwischen Einreihen und
+// Markieren als Ausfall belegt ist. Der Zeitraum endet erst mit der Einrichtung.
+func (w *tseSignaturWorker) markiereNichtKonfiguriert(ctx context.Context) error {
+	markiert, err := w.store.MarkiereOffeneAlsNichtKonfiguriert(ctx)
+	if err != nil {
+		return err
+	}
+	if markiert == 0 {
+		return nil
+	}
+
+	log.Warn().Int64("anzahl", markiert).Msg("TSE-Signatur-Worker: offene Auftraege ohne TSE-Konfiguration endgueltig markiert")
+	if err := w.store.OeffneTSEStoerung(ctx, tse.StoerungGrundKeineKonfiguration, "keine TSE-Konfiguration"); err != nil {
+		log.Error().Err(err).Msg("TSE-Stoerungszeitraum keine_konfiguration nicht geoeffnet")
+	}
 	return nil
 }
 

@@ -175,7 +175,8 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 
 	sc := settingsHTTP.CommandHandler{}
 	sc.Command = settingsApp.Command{
-		SettingsRepo: settingsRepo,
+		SettingsRepo:        settingsRepo,
+		KassensitzungenRepo: kassensitzungenRepo,
 		NewTSESetupClient: func(credentials tse.SetupCredentials) (tse.SetupClient, error) {
 			return tse_repo.NewFiskalyTSESetupClient(cfg.FiskalyBaseURL, credentials, nil)
 		},

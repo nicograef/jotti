@@ -205,6 +205,27 @@ func (q *Queries) InsertTSESignaturauftrag(ctx context.Context, arg InsertTSESig
 	return err
 }
 
+const markiereOffeneTSESignaturauftraegeNichtKonfiguriert = `-- name: MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert :execrows
+UPDATE tse_signaturauftraege
+SET status = 'tse_nicht_konfiguriert'
+WHERE status = 'offen'
+`
+
+// MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert markiert alle offenen
+// Auftraege endgueltig als tse_nicht_konfiguriert: ohne vorhandene
+// TSE-Konfiguration gibt es keine Signatur, ein Nachsignieren ist ausgeschlossen
+// (keine Fehlversuche, keine automatische Wiederaufnahme). Der Status-Guard
+// laesst bereits endgueltig markierte Auftraege unberuehrt. Zwei Schreiber: der
+// Signatur-Worker (Dauerzustand ohne Konfiguration) und der Einrichtungs-Sweep
+// (Uebergang zu konfiguriert, in derselben Transaktion wie das Speichern).
+func (q *Queries) MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert(ctx context.Context) (int64, error) {
+	result, err := q.db.ExecContext(ctx, markiereOffeneTSESignaturauftraegeNichtKonfiguriert)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const quittiereTSESignaturauftrag = `-- name: QuittiereTSESignaturauftrag :exec
 UPDATE tse_signaturauftraege
 SET status = 'erledigt',
@@ -286,9 +307,14 @@ func (q *Queries) TSESignaturauftragVerwerfen(ctx context.Context, id int) error
 const tSESignaturauftragZuruecksetzen = `-- name: TSESignaturauftragZuruecksetzen :exec
 UPDATE tse_signaturauftraege
 SET status = 'offen', versuche = 0, letzter_fehler = NULL, naechster_versuch_am = NOW()
-WHERE id = $1 AND status = 'fehlgeschlagen'
+WHERE id = $1 AND status IN ('fehlgeschlagen', 'tse_nicht_konfiguriert')
 `
 
+// TSESignaturauftragZuruecksetzen reiht einen endgueltig markierten Auftrag
+// wieder ein: fehlgeschlagen oder tse_nicht_konfiguriert -> offen. Der
+// Einrichtungs-Sweep markiert vor-konfigurationelle Auftraege tse_nicht_
+// konfiguriert; das Admin-Zuruecksetzen holt sie bewusst zurueck, damit der
+// Worker sie nach der Einrichtung nachsigniert.
 func (q *Queries) TSESignaturauftragZuruecksetzen(ctx context.Context, id int) error {
 	_, err := q.db.ExecContext(ctx, tSESignaturauftragZuruecksetzen, id)
 	return err

@@ -44,6 +44,18 @@ SET versuche = versuche + 1,
     status = CASE WHEN versuche + 1 >= @max_versuche THEN 'fehlgeschlagen' ELSE status END
 WHERE id = @id AND status = 'offen';
 
+-- MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert markiert alle offenen
+-- Auftraege endgueltig als tse_nicht_konfiguriert: ohne vorhandene
+-- TSE-Konfiguration gibt es keine Signatur, ein Nachsignieren ist ausgeschlossen
+-- (keine Fehlversuche, keine automatische Wiederaufnahme). Der Status-Guard
+-- laesst bereits endgueltig markierte Auftraege unberuehrt. Zwei Schreiber: der
+-- Signatur-Worker (Dauerzustand ohne Konfiguration) und der Einrichtungs-Sweep
+-- (Uebergang zu konfiguriert, in derselben Transaktion wie das Speichern).
+-- name: MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert :execrows
+UPDATE tse_signaturauftraege
+SET status = 'tse_nicht_konfiguriert'
+WHERE status = 'offen';
+
 -- Zaehlt noch nicht erledigte Signaturauftraege (offen und fehlgeschlagen):
 -- beide Status bedeuten unsignierte Vorgaenge.
 -- name: CountOffeneTSESignaturauftraege :one
@@ -69,10 +81,15 @@ FROM tse_signaturauftraege
 ORDER BY id DESC
 LIMIT 200;
 
+-- TSESignaturauftragZuruecksetzen reiht einen endgueltig markierten Auftrag
+-- wieder ein: fehlgeschlagen oder tse_nicht_konfiguriert -> offen. Der
+-- Einrichtungs-Sweep markiert vor-konfigurationelle Auftraege tse_nicht_
+-- konfiguriert; das Admin-Zuruecksetzen holt sie bewusst zurueck, damit der
+-- Worker sie nach der Einrichtung nachsigniert.
 -- name: TSESignaturauftragZuruecksetzen :exec
 UPDATE tse_signaturauftraege
 SET status = 'offen', versuche = 0, letzter_fehler = NULL, naechster_versuch_am = NOW()
-WHERE id = $1 AND status = 'fehlgeschlagen';
+WHERE id = $1 AND status IN ('fehlgeschlagen', 'tse_nicht_konfiguriert');
 
 -- name: TSESignaturauftragVerwerfen :exec
 UPDATE tse_signaturauftraege

@@ -27,13 +27,27 @@ type KassenbelegData struct {
 	Positionen               []kasse.Position
 	Steuermatrix             []steuer.Aufteilung
 	TSE                      *TSEAbschnitt
-	TSEAusfallvermerk        bool
+	TSEVermerk               TSEBelegvermerk
 	GesamtbetragCents        int
 	Zahlungsart              string
 	// Stornobeleg switches the title to STORNOBELEG; amounts are expected pre-negated.
 	Stornobeleg         bool
 	StornoZuBelegnummer string
 }
+
+// TSEBelegvermerk ist der TSE-Hinweis auf einem Beleg ohne Signaturdaten.
+type TSEBelegvermerk int
+
+const (
+	// KeinTSEVermerk: der Vorgang ist signiert oder nicht signaturpflichtig.
+	KeinTSEVermerk TSEBelegvermerk = iota
+	// TSEVermerkVoruebergehend: die TSE war bei der Erfassung nicht erreichbar;
+	// der Vorgang wird automatisch nachsigniert.
+	TSEVermerkVoruebergehend
+	// TSEVermerkKeineKonfiguration: fuer den Vorgang war keine TSE konfiguriert;
+	// er wird nicht nachsigniert.
+	TSEVermerkKeineKonfiguration
+)
 
 type TSEAbschnitt struct {
 	TransaktionNr   int
@@ -262,11 +276,18 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		}
 
 		appendNativeQRCode(&buf, data.TSE.QRCodeData)
-	} else if data.TSEAusfallvermerk {
-		buf.WriteByte('\n')
-		buf.WriteString("TSE-Hinweis:\n")
-		buf.WriteString(toWPC1252("  TSE voruebergehend nicht erreichbar.\n"))
-		buf.WriteString(toWPC1252("  Dieser Vorgang wird automatisch nachsigniert.\n"))
+	} else {
+		switch data.TSEVermerk {
+		case TSEVermerkVoruebergehend:
+			buf.WriteByte('\n')
+			buf.WriteString("TSE-Hinweis:\n")
+			buf.WriteString(toWPC1252("  TSE voruebergehend nicht erreichbar.\n"))
+			buf.WriteString(toWPC1252("  Dieser Vorgang wird automatisch nachsigniert.\n"))
+		case TSEVermerkKeineKonfiguration:
+			buf.WriteByte('\n')
+			buf.WriteString("TSE-Hinweis:\n")
+			buf.WriteString(toWPC1252("  Fuer diesen Vorgang war keine TSE konfiguriert.\n"))
+		}
 	}
 
 	buf.WriteString("\n")

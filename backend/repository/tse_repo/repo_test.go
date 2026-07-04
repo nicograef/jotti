@@ -348,6 +348,76 @@ func TestTSESignaturauftrag_FehlgeschlagenZuruecksetzenVerwerfen(t *testing.T) {
 	}
 }
 
+// Ohne TSE-Konfiguration markiert der Worker offene Auftraege endgueltig als
+// tse_nicht_konfiguriert; erledigte bleiben unberuehrt. Das Admin-Zuruecksetzen
+// reiht einen so markierten Auftrag wieder ein, damit der Worker ihn nach einer
+// spaeten Einrichtung nachsigniert.
+func TestMarkiereOffeneAlsNichtKonfiguriert_MarkiertOffeneUndBleibtZuruecksetzbar(t *testing.T) {
+	store, umgebung, teardown := setupRepository(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	offenID, _ := umgebung.insertAuftrag(t, "tx-ohne-konfig-1")
+	zweiterID, _ := umgebung.insertAuftrag(t, "tx-ohne-konfig-2")
+	erledigtID, _ := umgebung.insertAuftrag(t, "tx-erledigt")
+	if err := store.QuittiereTSESignaturauftrag(ctx, erledigtID, testSignatur(41)); err != nil {
+		t.Fatalf("Expected no quittierung error, got %v", err)
+	}
+
+	markiert, err := store.MarkiereOffeneAlsNichtKonfiguriert(ctx)
+	if err != nil {
+		t.Fatalf("Expected no mark error, got %v", err)
+	}
+	if markiert != 2 {
+		t.Fatalf("Expected 2 marked auftraege (die beiden offenen), got %d", markiert)
+	}
+
+	auftraege, err := store.GetTSESignaturauftraege(ctx)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	status := map[int]string{}
+	for _, a := range auftraege {
+		status[a.ID] = a.Status
+	}
+	if status[offenID] != tse.StatusTSENichtKonfiguriert || status[zweiterID] != tse.StatusTSENichtKonfiguriert {
+		t.Fatalf("Expected offene auftraege marked tse_nicht_konfiguriert, got %+v", status)
+	}
+	if status[erledigtID] != tse.StatusErledigt {
+		t.Fatalf("Expected erledigten auftrag untouched, got %q", status[erledigtID])
+	}
+
+	// Markierte Auftraege sind nicht mehr faellig.
+	offene, err := store.GetOffeneTSESignaturauftraege(ctx, 20)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != 0 {
+		t.Fatalf("Expected no due auftraege after marking, got %+v", offene)
+	}
+
+	// Eine zweite Markierung ohne offene Auftraege markiert nichts.
+	markiert, err = store.MarkiereOffeneAlsNichtKonfiguriert(ctx)
+	if err != nil {
+		t.Fatalf("Expected no mark error, got %v", err)
+	}
+	if markiert != 0 {
+		t.Fatalf("Expected 0 marked on second run, got %d", markiert)
+	}
+
+	// Admin-Zuruecksetzen reiht den markierten Auftrag wieder ein.
+	if err := store.TSESignaturauftragZuruecksetzen(ctx, offenID); err != nil {
+		t.Fatalf("Expected no zuruecksetzen error, got %v", err)
+	}
+	offene, err = store.GetOffeneTSESignaturauftraege(ctx, 20)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != 1 || offene[0].ID != offenID {
+		t.Fatalf("Expected reset auftrag to be due again, got %+v", offene)
+	}
+}
+
 // Zuruecksetzen und Verwerfen wirken nur auf fehlgeschlagene Auftraege.
 func TestTSESignaturauftrag_StatusGuards(t *testing.T) {
 	store, umgebung, teardown := setupRepository(t)

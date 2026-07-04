@@ -369,7 +369,7 @@ func TestFormatKassenbeleg_WithTSEAusfallvermerk_ContainsAusfallhinweis(t *testi
 		Steuermatrix: []steuer.Aufteilung{
 			{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
 		},
-		TSEAusfallvermerk: true,
+		TSEVermerk:        escpos.TSEVermerkVoruebergehend,
 		GesamtbetragCents: 700,
 		Zahlungsart:       "bar",
 	})
@@ -380,6 +380,36 @@ func TestFormatKassenbeleg_WithTSEAusfallvermerk_ContainsAusfallhinweis(t *testi
 	}
 	if !strings.Contains(got, "wird automatisch nachsigniert") {
 		t.Fatalf("Kassenbeleg mit TSE-Ausfall muss Nachsignierhinweis enthalten; got:\n%q", got)
+	}
+}
+
+func TestFormatKassenbeleg_WithKeineKonfiguration_ContainsHinweis(t *testing.T) {
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "43",
+		Zeitpunkt:          testTime,
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		Steuermatrix: []steuer.Aufteilung{
+			{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
+		},
+		TSEVermerk:        escpos.TSEVermerkKeineKonfiguration,
+		GesamtbetragCents: 700,
+		Zahlungsart:       "bar",
+	})
+	got := string(payload)
+
+	if !strings.Contains(got, "TSE-Hinweis:") {
+		t.Fatalf("Kassenbeleg ohne TSE-Konfiguration muss Hinweis enthalten; got:\n%q", got)
+	}
+	if !strings.Contains(got, "keine TSE konfiguriert") {
+		t.Fatalf("Kassenbeleg ohne TSE-Konfiguration muss den Konfigurationshinweis enthalten; got:\n%q", got)
+	}
+	if strings.Contains(got, "nachsigniert") {
+		t.Fatalf("Kassenbeleg ohne TSE-Konfiguration darf keinen Nachsignierhinweis enthalten; got:\n%q", got)
 	}
 }
 

@@ -55,6 +55,9 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	if bestaetigteUmgebung != tse.UmgebungTest && bestaetigteUmgebung != tse.UmgebungLive {
 		return TSESetupErgebnis{}, ErrTSESetupUmgebungAbweichung
 	}
+	if err := c.pruefeKeineOffeneKassensitzung(ctx); err != nil {
+		return TSESetupErgebnis{}, err
+	}
 
 	client, err := c.NewTSESetupClient(credentials)
 	if err != nil {
@@ -183,6 +186,9 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
 		return TSESetupErgebnis{}, ErrTSESetupTSSNichtGefunden
+	}
+	if err := c.pruefeKeineOffeneKassensitzung(ctx); err != nil {
+		return TSESetupErgebnis{}, err
 	}
 
 	client, err := c.NewTSESetupClient(credentials)
@@ -320,7 +326,11 @@ func (c Command) speichereEinrichtung(ctx context.Context, log *zerolog.Logger, 
 		log.Error().Err(err).Msg("Failed to build tse_konfiguration after setup")
 		return ErrTSEEinrichtung
 	}
-	if err := c.SettingsRepo.UpsertTSEKonfiguration(ctx, konfiguration); err != nil {
+	// SpeichereEinrichtung speichert die Konfiguration und markiert beim Uebergang
+	// von nicht konfiguriert zu konfiguriert in derselben Transaktion die noch
+	// offenen, vor-konfigurationellen Auftraege endgueltig (Einrichtungs-Sweep)
+	// und schliesst den keine_konfiguration-Stoerungszeitraum.
+	if err := c.SettingsRepo.SpeichereEinrichtung(ctx, konfiguration); err != nil {
 		log.Error().Err(err).Str("tss_id", tssID).Str("client_id", clientID).
 			Msg("Failed to save tse_konfiguration after setup; TSS exists at fiskaly, recoverable via takeover")
 		return ErrDatabase
