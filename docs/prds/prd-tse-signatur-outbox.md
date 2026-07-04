@@ -159,6 +159,9 @@ Architektur
   Fehlern: Backoff im Sekundenbereich (etwa 5, 15, 45 Sekunden) und wenige
   Maximalversuche (etwa drei), denn solche Fehler sind fast immer
   deterministisch; langes Retrying verzögert nur die Dashboard-Warnung.
+  Die Kurve endet nach rund einer Minute und damit bewusst unter der
+  Rückstands-Schwelle: Ein Gift-Auftrag schlägt endgültig fehl, bevor der
+  Watchdog ihn als Rückstand dokumentiert.
   TSE-weite Fehler zählen nicht auf den Auftrag, sondern schalten den
   Worker in einen Störungszustand (siehe Worker); die heutige Minuten-Kurve
   mit zehn Versuchen stammt aus dem Nachsignier-Sonderfall und entfällt.
@@ -174,10 +177,13 @@ Architektur
   heute auf drei Module verteilten Signierhelfer. Der Kassen-Kern
   entscheidet damit weiterhin, was
   fiskalisch abzusichern ist (Domänenwissen), aber nicht mehr wie, wann oder
-  womit signiert wird. Beim Einreihen plausibilisiert die Projektion die
-  erzeugten processData (Schema, Vorzeichen, Summen) und protokolliert
-  Verstöße, ohne den Kassiervorgang zu blockieren; Gift-Aufträge werden so
-  zu Testfehlern statt Laufzeitfällen.
+  womit signiert wird. Auf eine Plausibilisierung der processData zur
+  Laufzeit wird verzichtet: Sie wäre eine zweite Implementierung derselben
+  Regeln, deren einziger Effekt eine Log-Zeile wenige Sekunden vor der
+  Ablehnung durch fiskaly wäre. Die tabellengetriebenen Tests der
+  Projektion machen Gift-Aufträge zu Testfehlern; den Restfall behandelt
+  die Fehlertaxonomie des Workers (400/422 als auftragsspezifischer
+  Fehler).
 - Der Signatur-Worker ist der einzige Sprecher für Signaturtransaktionen
   (Start, Finish, Ist-Abfrage); TSE-Setup-Flow und TSE-Status-Abfrage der
   Admin-Einstellungen sprechen weiterhin eigenständig mit fiskaly,
@@ -197,7 +203,10 @@ Architektur
   Störungszustand mit eigenem Backoff (Sekunden bis zum Deckel von wenigen
   Minuten) und Half-Open-Wiedereinstieg: Nach Ablauf versucht der Worker
   einen einzelnen Probe-Auftrag, bei Erfolg endet der Störungszeitraum und
-  die volle Aufarbeitung beginnt. So markiert ein mehrstündiger Ausfall
+  die volle Aufarbeitung beginnt. Der Störungszustand ist kein
+  Zustandsautomat, sondern zwei Werte am Worker (Zeitpunkt des nächsten
+  Versuchs, Länge der Fehlerserie); die Probe ist schlicht der erste
+  Auftrag des nächsten Durchlaufs. So markiert ein mehrstündiger Ausfall
   keine Aufträge als fehlgeschlagen, die Erholung wird binnen Minuten
   erkannt, und fiskaly wird während der Störung nicht mit dem ganzen
   Rückstand bombardiert. Beide Backoffs kommen bewusst ohne Jitter aus:
@@ -217,16 +226,21 @@ Architektur
   Quellen: Worker-Störungszustand nach TSE-weitem Fehler, Rückstands-Ausfall
   ab der Zwei-Minuten-Schwelle und der Dauerzustand ohne TSE-Konfiguration.
   Den Rückstands-Zeitraum öffnet und schließt ein Watchdog-Ticker neben dem
-  Worker, der periodisch das Alter des ältesten offenen Auftrags prüft;
-  die Dokumentation hängt damit weder am Worker (der hängen kann) noch am
+  Worker, der das Alter des ältesten offenen Auftrags prüft; das
+  Tick-Intervall (Größenordnung zehn Sekunden) ist eine benannte Konstante
+  neben den Zeitschwellen, denn die Schwelle materialisiert nur am Tick.
+  Die Dokumentation hängt damit weder am Worker (der hängen kann) noch am
   Zufall des Leser-Traffics, und die Lesepfade bleiben rein lesend.
-  Ein Zeitraum endet mit der ersten erfolgreichen Signatur, dem
+  Höchstens ein Zeitraum ist aktiv: Öffnen ist ein No-Op, solange ein
+  Zeitraum aktiv ist, und jeder Schreiber schließt nur Zeiträume seiner
+  Grund-Art; ein Vorfall erscheint dem Prüfer so als ein Zeitraum, in der
+  Aufholphase gefolgt von einem Rückstands-Zeitraum, nie als überlappendes
+  Paar. Ein Zeitraum endet mit der ersten erfolgreichen Signatur, dem
   Unterschreiten der Schwelle beziehungsweise der Einrichtung der
   Konfiguration. Alle Leser (Beleg-Ausfallvermerk, Kassenabschluss-Gate,
-  Admin-Ansicht) prüfen dasselbe Kriterium, den aktiven oder zuzurechnenden
-  Störungszeitraum, über dieselbe Signaturstatus-Funktion (siehe Beleg und
-  Signaturstatus), statt Zeiträume zur Lesezeit aus Auftragszeilen zu
-  rekonstruieren. Das Störungsprotokoll ist wie die Auftragstabelle
+  Admin-Ansicht) prüfen dasselbe Kriterium, den aktiven Störungszeitraum,
+  über dieselbe Signaturstatus-Funktion (siehe Beleg und Signaturstatus),
+  statt Zeiträume zur Lesezeit aus Auftragszeilen zu rekonstruieren. Das Störungsprotokoll ist wie die Auftragstabelle
   aufbewahrungspflichtig.
 - Signaturaufträge entstehen auch ohne TSE-Konfiguration (Erst-Setup,
   Testbetrieb), immer als offen; der Kassen-Kern bleibt frei von
@@ -290,19 +304,29 @@ Beleg und Signaturstatus
   Ausstehend ist. Im
   Rückstau-Fall wartet der Auftrag noch hinter anderen, ohne dass Signatur
   oder Störung vorliegt.
-- Ausfallbegriff (Entscheidung: ursachenunabhängig, Basis ist das
-  Störungsprotokoll): Ein dokumentierter Ausfall liegt vor, wenn ein
-  Störungszeitraum aktiv ist (TSE-weiter Fehler, Rückstands-Ausfall ab zwei
-  Minuten Alter des ältesten offenen Auftrags, fehlende TSE-Konfiguration)
-  oder wenn am konkreten Auftrag auftragsspezifische Fehlversuche
-  protokolliert sind (der Gift-Fall: die TSE funktioniert, nur dieser
-  Vorgang lässt sich nicht signieren). Der Rückstands-Ausfall deckt auch
-  hängenden Worker und App-Fehler ab, bei denen nie ein Fehlversuch
-  entsteht; die Schwelle liegt deutlich über normalen Lastspitzen, damit
-  Stoßbetrieb die Ausfalldokumentation nicht verwässert.
+- Ausfallbegriff (Entscheidung: ursachenunabhängig und rein status- und
+  zeitraumbasiert, Basis ist das Störungsprotokoll): Ein dokumentierter
+  Ausfall liegt vor, wenn der Auftrag einen Endstatus trägt
+  (fehlgeschlagen, verworfen, TSE nicht konfiguriert) oder offen ist,
+  während ein Störungszeitraum aktiv ist (TSE-weiter Fehler,
+  Rückstands-Ausfall ab zwei Minuten Alter des ältesten offenen Auftrags,
+  fehlende TSE-Konfiguration). Fehlversuche unterhalb der Maximalzahl und
+  geschlossene Zeiträume zählen nicht: Ein Gift-Auftrag (die TSE
+  funktioniert, nur dieser Vorgang lässt sich nicht signieren) ist bis zum
+  endgültigen Fehlschlag nach rund einer Minute ausstehend, nicht Ausfall;
+  so entsteht kein Beleg mit Ausfallvermerk zu einem Vorgang, der beim
+  zweiten Versuch signiert wird. Eine retroaktive Zurechnung geschlossener
+  Zeiträume braucht es nicht: Ist der Rückstands-Zeitraum geschlossen, ist
+  der älteste offene Auftrag per Definition jünger als die Schwelle. Der
+  Rückstands-Ausfall deckt auch hängenden Worker und App-Fehler ab, bei
+  denen nie ein Fehlversuch entsteht; die Schwelle liegt deutlich über
+  normalen Lastspitzen, damit Stoßbetrieb die Ausfalldokumentation nicht
+  verwässert.
 - Ausfallvermerk-Politik (Entscheidung: nur bei dokumentiertem Ausfall):
   Ein Beleg ohne TSE-Daten entsteht nur bei dokumentiertem Ausfall im
-  obigen Sinn oder während einer Aufholphase nach dokumentiertem Ausfall.
+  obigen Sinn oder während einer Aufholphase nach dokumentiertem Ausfall
+  (abgedeckt über den bis zum Abbau des Rückstands aktiven
+  Rückstands-Zeitraum).
   Bloße Queue-Latenz unterhalb der Schwelle erzeugt nie einen
   Ausfallvermerk, sondern das Ergebnis Signatur ausstehend, denn der
   Vermerk ist rechtlich nur für echte Ausfälle gedeckt. Der Rest-Fall
@@ -331,10 +355,9 @@ Kassenabschluss
   wenn mindestens ein Auftrag das Ergebnis Signatur ausstehend hat; die
   Zurechnung existiert nur einmal, Beleg und Gate können einander nicht
   widersprechen. Ausfall-Reste sind endgültig fehlgeschlagene und
-  verworfene Aufträge (stets) sowie offene Aufträge, die einem
-  dokumentierten, auch noch laufenden Störungszeitraum zuzurechnen sind
-  oder auftragsspezifische Fehlversuche tragen; sie lassen den Abschluss
-  zu, die Abschlussmeldung weist sie aus. Nur frische offene Aufträge ohne
+  verworfene Aufträge sowie offene Aufträge während eines aktiven
+  Störungszeitraums; sie lassen den Abschluss zu, die Abschlussmeldung
+  weist sie aus. Nur frische offene Aufträge ohne
   Ausfallbezug blockieren mit einer Meldung, die sie benennt. Aufträge im
   endgültigen Status TSE nicht konfiguriert blockieren nicht; schließt ein
   Tag vollständig ohne TSE, weist die Abschlussmeldung das deutlich aus.
@@ -434,15 +457,21 @@ Getestet werden alle Kernmodule:
   Quittierung als einzelnes Update am Auftrag, Trigger-Verhalten,
   Crash-Recovery (Auftrag committet,
   Trigger verloren, der Polling-Fallback signiert nach).
-- Signaturstatus-Funktion: Signatur vorhanden; dokumentierter Ausfall führt
-  zum Ausfallergebnis mit Grund; Rückstau ohne Störung führt zum Ergebnis
-  Signatur ausstehend; Überschreiten der Rückstands-Schwelle eröffnet den
-  Störungszeitraum und kippt Ausstehend in Ausfall; Aufholphase; verspätete
-  Signatur führt zum Nachsigniert-Kennzeichen; keine falschen
-  Ausfallvermerke bei bloßer Latenz.
+- Signaturstatus-Funktion: Signatur vorhanden; Endstatus (fehlgeschlagen,
+  verworfen, TSE nicht konfiguriert) führt zum Ausfallergebnis mit Grund;
+  offener Auftrag bei aktivem Störungszeitraum führt zum Ausfallergebnis;
+  offene Fehlversuche unterhalb der Maximalzahl ohne Störungszeitraum
+  führen zu Signatur ausstehend; Rückstau ohne Störung führt zu Signatur
+  ausstehend; Überschreiten der Rückstands-Schwelle kippt Ausstehend am
+  nächsten Watchdog-Tick in Ausfall; Aufholphase; verspätete Signatur führt
+  zum Nachsigniert-Kennzeichen; keine falschen Ausfallvermerke bei bloßer
+  Latenz.
 - Störungsprotokoll: TSE-weiter Fehler eröffnet einen Zeitraum, die erste
   erfolgreiche Signatur schließt ihn; der Watchdog öffnet und schließt den
-  Rückstands-Zeitraum an der Schwelle, auch bei hängendem Worker; der
+  Rückstands-Zeitraum an der Schwelle, auch bei hängendem Worker; Öffnen
+  bei aktivem Zeitraum ist ein No-Op, und jeder Schreiber schließt nur
+  Zeiträume seiner Grund-Art; ein Gift-Auftrag schlägt endgültig fehl,
+  bevor die Rückstands-Schwelle greift, und öffnet keinen Zeitraum; der
   Zeitraum ohne TSE-Konfiguration endet mit der Einrichtung.
 - Kassenabschluss-Gate: Sofortantwort statt Warten; leere Queue, frischer
   offener Auftrag blockiert mit Meldung, Ausfall-Reste (auch offene
