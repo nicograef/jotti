@@ -391,6 +391,53 @@ func TestFiskalyClient_RetrieveTransaction_NotFound(t *testing.T) {
 	}
 }
 
+// Ein 404 mit E_TSS_NOT_FOUND (falsche TSS-ID) ist keine unbekannte
+// Transaktion, sondern ein TSE-weiter Fehler — er darf nicht auf
+// ErrTransactionNichtGefunden gemappt werden.
+func TestFiskalyClient_RetrieveTransaction_TSSNichtGefundenBleibtFehler(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"access_token":            "token-1",
+				"access_token_expires_at": time.Now().Add(1 * time.Hour).Unix(),
+				"access_token_claims": map[string]any{
+					"env": "TEST",
+				},
+			})
+		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/api/v2/tss/tss-1/tx/"):
+			w.WriteHeader(http.StatusNotFound)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code":        "E_TSS_NOT_FOUND",
+				"message":     "tss not found",
+				"status_code": 404,
+			})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewFiskalyTSEClient(server.URL, tse.Credentials{
+		ApiKey:    "api-key",
+		ApiSecret: "api-secret",
+		TssID:     "tss-1",
+		ClientID:  "client-1",
+	}, nil)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	_, err = client.RetrieveTransaction(context.Background(), testTxID)
+	if errors.Is(err, tse.ErrTransactionNichtGefunden) {
+		t.Fatal("expected TSE-weiten Fehler, got ErrTransactionNichtGefunden")
+	}
+	var apiErr apiError
+	if !errors.As(err, &apiErr) || apiErr.Code != "E_TSS_NOT_FOUND" {
+		t.Fatalf("expected apiError E_TSS_NOT_FOUND, got %v", err)
+	}
+}
+
 // TestKlassifiziereSignierFehler bildet die Fehlertaxonomie ab:
 // auftragsspezifische Ablehnungen (400/409/422) werden als tse.AuftragsFehler
 // gekennzeichnet, TSS-Zustandscodes und alle uebrigen Fehler bleiben TSE-weit.
@@ -407,6 +454,7 @@ func TestKlassifiziereSignierFehler(t *testing.T) {
 		{"400 TSS nicht initialisiert", apiError{StatusCode: 400, Code: "E_TSS_NOT_INITIALIZED"}, false},
 		{"400 TSS deaktiviert", apiError{StatusCode: 400, Code: "E_TSS_DISABLED"}, false},
 		{"400 Client deregistriert", apiError{StatusCode: 400, Code: "E_CLIENT_DEREGISTERED"}, false},
+		{"400 Client nicht gefunden", apiError{StatusCode: 400, Code: "E_CLIENT_NOT_FOUND"}, false},
 		{"400 Transaktionslimit", apiError{StatusCode: 400, Code: "E_TX_LIMIT_REACHED"}, false},
 		{"401 Unauthorized", apiError{StatusCode: 401}, false},
 		{"403 Forbidden", apiError{StatusCode: 403}, false},

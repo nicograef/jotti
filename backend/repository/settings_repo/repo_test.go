@@ -162,7 +162,7 @@ func TestSpeichereEinrichtung_DurchgehendKonfiguriertSweeptNicht(t *testing.T) {
 	ctx := context.Background()
 
 	// TSE ist bereits konfiguriert.
-	if err := repo.UpsertTSEKonfiguration(ctx, gueltigeKonfiguration(t, "tss-alt")); err != nil {
+	if err := repo.SpeichereEinrichtung(ctx, gueltigeKonfiguration(t, "tss-alt")); err != nil {
 		t.Fatalf("initial konfiguration: %v", err)
 	}
 	offenID := umgebung.insertOffenerAuftrag(t, "tx-laufend")
@@ -182,5 +182,43 @@ func TestSpeichereEinrichtung_DurchgehendKonfiguriertSweeptNicht(t *testing.T) {
 	}
 	if conf.TssID != "tss-neu" {
 		t.Fatalf("expected updated configuration, got %+v", conf)
+	}
+}
+
+// Das Speichern einer leeren Konfiguration (Leeren ueber den
+// Zugangsdaten-Endpunkt) ist kein Uebergang zu konfiguriert: Es sweept nichts
+// und schliesst keinen keine_konfiguration-Stoerungszeitraum — der
+// Dauerzustand ohne Konfiguration gehoert dem Signatur-Worker.
+func TestSpeichereEinrichtung_LeereKonfigurationSweeptNicht(t *testing.T) {
+	repo, umgebung, teardown := setupEinrichtung(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	offenID := umgebung.insertOffenerAuftrag(t, "tx-leer")
+	if _, err := umgebung.db.Exec(
+		"INSERT INTO tse_stoerungen (beginn, grund_art, fehlertext) VALUES (NOW(), 'keine_konfiguration', 'keine TSE-Konfiguration')",
+	); err != nil {
+		t.Fatalf("open stoerung: %v", err)
+	}
+
+	leer, err := settings.NewTSEKonfiguration("", "", "", "")
+	if err != nil {
+		t.Fatalf("build leere konfiguration: %v", err)
+	}
+	if err := repo.SpeichereEinrichtung(ctx, leer); err != nil {
+		t.Fatalf("SpeichereEinrichtung: %v", err)
+	}
+
+	if s := umgebung.status(t, offenID); s != tse.StatusOffen {
+		t.Fatalf("expected auftrag to stay offen, got %q", s)
+	}
+	var offeneStoerungen int
+	if err := umgebung.db.QueryRow(
+		"SELECT COUNT(*) FROM tse_stoerungen WHERE ende IS NULL AND grund_art = 'keine_konfiguration'",
+	).Scan(&offeneStoerungen); err != nil {
+		t.Fatalf("count stoerungen: %v", err)
+	}
+	if offeneStoerungen != 1 {
+		t.Fatalf("expected keine_konfiguration stoerung to stay open, got %d open", offeneStoerungen)
 	}
 }

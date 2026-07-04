@@ -60,22 +60,17 @@ func (r Repository) GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfig
 	return toTSEKonfiguration(row), nil
 }
 
-func (r Repository) UpsertTSEKonfiguration(ctx context.Context, c settings.TSEKonfiguration) error {
-	err := r.q.UpsertTSEKonfiguration(ctx, upsertTSEKonfigurationParams(c))
-	if err != nil {
-		return db.Error(err)
-	}
-	return nil
-}
-
-// SpeichereEinrichtung speichert die TSE-Konfiguration und fuehrt beim Uebergang
-// von nicht konfiguriert zu konfiguriert in derselben Transaktion den
+// SpeichereEinrichtung speichert die TSE-Konfiguration (alle Schreibpfade:
+// Einrichtung, Uebernahme, Zugangsdaten-Wechsel, Leeren) und fuehrt beim
+// Uebergang von nicht konfiguriert zu konfiguriert in derselben Transaktion den
 // Einrichtungs-Sweep aus: alle noch offenen Auftraege aus der
 // konfigurationslosen Zeit werden endgueltig als tse_nicht_konfiguriert
 // markiert und der keine_konfiguration-Stoerungszeitraum wird geschlossen. War
-// die TSE schon vorher konfiguriert (reiner Zugangsdaten-Wechsel ueber die
-// Einrichtungspfade), bleibt es beim reinen Speichern — laufende Auftraege
-// werden nie versehentlich als nicht konfiguriert markiert.
+// die TSE schon vorher konfiguriert (reiner Zugangsdaten-Wechsel), bleibt es
+// beim reinen Speichern — laufende Auftraege werden nie versehentlich als nicht
+// konfiguriert markiert. Auch das Speichern einer unvollstaendigen
+// Konfiguration (Leeren) sweept nichts: Der Dauerzustand ohne Konfiguration
+// gehoert dem Signatur-Worker, der Stoerungszeitraum bleibt offen.
 func (r Repository) SpeichereEinrichtung(ctx context.Context, c settings.TSEKonfiguration) error {
 	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
 		warKonfiguriert := false
@@ -89,7 +84,7 @@ func (r Repository) SpeichereEinrichtung(ctx context.Context, c settings.TSEKonf
 			return db.Error(err)
 		}
 
-		if warKonfiguriert {
+		if warKonfiguriert || !c.IstKonfiguriert() {
 			return nil
 		}
 		if _, err := qtx.MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert(ctx); err != nil {

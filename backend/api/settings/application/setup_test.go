@@ -32,14 +32,6 @@ func (s *stubCommandRepo) GetKassenidentitaet(context.Context) (settings.Kasseni
 	return s.identitaet, nil
 }
 
-func (s *stubCommandRepo) UpsertTSEKonfiguration(_ context.Context, c settings.TSEKonfiguration) error {
-	if s.upsertErr != nil {
-		return s.upsertErr
-	}
-	s.gespeichert = &c
-	return nil
-}
-
 func (s *stubCommandRepo) SpeichereEinrichtung(_ context.Context, c settings.TSEKonfiguration) error {
 	if s.upsertErr != nil {
 		return s.upsertErr

@@ -10,7 +10,6 @@ import (
 
 type settingsCommandRepo interface {
 	UpsertBetreiber(ctx context.Context, b settings.Betreiber) error
-	UpsertTSEKonfiguration(ctx context.Context, b settings.TSEKonfiguration) error
 	SpeichereEinrichtung(ctx context.Context, c settings.TSEKonfiguration) error
 	UpsertTSEStammdaten(ctx context.Context, s settings.TSEStammdaten) error
 	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
@@ -64,7 +63,11 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf settings.TSEKo
 		return err
 	}
 
-	if err := c.SettingsRepo.UpsertTSEKonfiguration(ctx, conf); err != nil {
+	// Auch der direkte Zugangsdaten-Pfad speichert ueber SpeichereEinrichtung:
+	// Fuehrt er den Uebergang zu konfiguriert aus, laufen Einrichtungs-Sweep und
+	// das Schliessen des keine_konfiguration-Stoerungszeitraums in derselben
+	// Transaktion — sonst bliebe der Zeitraum fuer immer offen.
+	if err := c.SettingsRepo.SpeichereEinrichtung(ctx, conf); err != nil {
 		log.Error().Err(err).Msg("Failed to save tse_konfiguration")
 		return ErrDatabase
 	}

@@ -128,7 +128,7 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 			{testSerial, erstellung, "3", testBonID, "2", "2", "1,50", "1,40", "0,10"},
 		},
 		"transactions_tse.csv": {
-			{testSerial, erstellung, "3", testBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "SIGBASE64==", "", ""},
+			{testSerial, erstellung, "3", testBonID, "1", "4711", "2026-06-16T12:00:00.000Z", "2026-06-16T12:00:01.000Z", "Kassenbeleg-V1", "12", "SIGBASE64==", "", ""},
 		},
 		"vat.csv": {
 			{testSerial, erstellung, "3", "1", "19,00", "Allgemeiner Steuersatz"},
@@ -322,8 +322,8 @@ func TestMapTischablaufTrennt(t *testing.T) {
 			{testSerial, erstellung, "3", zahlungBonID, "Tisch 42"},
 		},
 		"transactions_tse.csv": {
-			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "Bestellung-V1", "11", "BESTELLSIG==", "", ""},
-			{testSerial, erstellung, "3", zahlungBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "ZAHLSIG==", "", ""},
+			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00.000Z", "2026-06-16T11:00:01.000Z", "Bestellung-V1", "11", "BESTELLSIG==", "", ""},
+			{testSerial, erstellung, "3", zahlungBonID, "1", "4711", "2026-06-16T12:00:00.000Z", "2026-06-16T12:00:01.000Z", "Kassenbeleg-V1", "12", "ZAHLSIG==", "", ""},
 		},
 		// Nur die Zahlung ist geldwirksam: die AVBestellung trägt keine Zahlart bei.
 		"datapayment.csv": {
@@ -509,8 +509,8 @@ func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 		},
 		// Eigene TSE-Signatur der Korrektur.
 		"transactions_tse.csv": {
-			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "Bestellung-V1", "11", "BESTELLSIG==", "", ""},
-			{testSerial, erstellung, "3", korrekturBonID, "1", "4712", "2026-06-16T13:00:00Z", "2026-06-16T13:00:01Z", "Bestellung-V1", "13", "KORREKTURSIG==", "", ""},
+			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00.000Z", "2026-06-16T11:00:01.000Z", "Bestellung-V1", "11", "BESTELLSIG==", "", ""},
+			{testSerial, erstellung, "3", korrekturBonID, "1", "4712", "2026-06-16T13:00:00.000Z", "2026-06-16T13:00:01.000Z", "Bestellung-V1", "13", "KORREKTURSIG==", "", ""},
 		},
 	}
 
@@ -1340,8 +1340,8 @@ func TestMapNachsigniertVorgang(t *testing.T) {
 
 	const erstellung = "2026-06-16T14:30:00Z"
 	want := [][]string{
-		{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", ""},
-		{testSerial, erstellung, "3", nachsigniertOutageBonID, "1", "9100", "2026-06-16T13:00:05Z", "2026-06-16T13:00:06Z", "Kassenbeleg-V1", "99", "BACKFILLSIG==", "", ""},
+		{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00.000Z", "2026-06-16T12:00:01.000Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", ""},
+		{testSerial, erstellung, "3", nachsigniertOutageBonID, "1", "9100", "2026-06-16T13:00:05.000Z", "2026-06-16T13:00:06.000Z", "Kassenbeleg-V1", "99", "BACKFILLSIG==", "", ""},
 	}
 	tse := tableByFile(t, archive, "transactions_tse.csv")
 	if !reflect.DeepEqual(tse.Records, want) {
@@ -1370,7 +1370,7 @@ func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
 
 	const erstellung = "2026-06-16T14:30:00Z"
 	want := [][]string{
-		{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", ""},
+		{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00.000Z", "2026-06-16T12:00:01.000Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", ""},
 		{testSerial, erstellung, "3", nachsigniertOutageBonID, "1", "", "", "", "", "", "", tseFehlerAusfall, ""},
 	}
 	tse := tableByFile(t, archive, "transactions_tse.csv")

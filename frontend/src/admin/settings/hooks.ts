@@ -98,12 +98,15 @@ export function useTSEKonfiguration() {
 
   const saveTSEKonfiguration = async (config: TSEKonfigurationSpeichern) => {
     await einstellungenBackend.saveTSEKonfiguration(config)
+    // Speichern/Leeren ändern auch istKonfiguriert — beide Ansichten neu laden.
     await queryClient.invalidateQueries({ queryKey: ['tse-konfiguration'] })
+    await queryClient.invalidateQueries({ queryKey: ['tse-status'] })
   }
 
   const clearTSEKonfiguration = async () => {
     await einstellungenBackend.clearTSEKonfiguration()
     await queryClient.invalidateQueries({ queryKey: ['tse-konfiguration'] })
+    await queryClient.invalidateQueries({ queryKey: ['tse-status'] })
   }
 
   const testTSEVerbindung = async (): Promise<TSEVerbindungStatus> => {

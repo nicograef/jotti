@@ -64,7 +64,7 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := BuildKassenbelegProcessData(tc.positionen, tc.zahlbetrag)
+			got, err := BuildKassenbelegProcessDataWithFaktor(tc.positionen, tc.zahlbetrag, 1)
 			if tc.expectError {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -98,10 +98,10 @@ func TestBuildKassenbelegProcessDataWithFaktor_NegativBeiStorno(t *testing.T) {
 }
 
 func TestBuildBestellungProcessData_CSVFormat(t *testing.T) {
-	got, err := BuildBestellungProcessData([]Position{
+	got, err := BuildBestellungProcessDataWithFaktor([]Position{
 		{ProduktName: "Maß Bier", VarianteName: "", Menge: 4, Einzelpreis: 950},
 		{ProduktName: "Weißwurst", VarianteName: "normal", Menge: 2, Einzelpreis: 250},
-	})
+	}, 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -138,15 +138,15 @@ func TestBuildBestellungProcessData_LehntNichtPositiveMengenAb(t *testing.T) {
 	positionen := []Position{
 		{ProduktName: "Bier", Einzelpreis: 450, Menge: 0},
 	}
-	if _, err := BuildBestellungProcessData(positionen); err == nil {
+	if _, err := BuildBestellungProcessDataWithFaktor(positionen, 1); err == nil {
 		t.Fatal("expected error for non-positive quantity")
 	}
 }
 
 func TestBuildBestellungProcessData_VerdoppeltAnfuehrungszeichen(t *testing.T) {
-	got, err := BuildBestellungProcessData([]Position{
+	got, err := BuildBestellungProcessDataWithFaktor([]Position{
 		{ProduktName: `Eisbecher "Himbeere"`, Menge: 2, Einzelpreis: 399},
-	})
+	}, 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

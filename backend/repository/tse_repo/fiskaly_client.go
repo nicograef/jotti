@@ -175,12 +175,14 @@ func NewFiskalyTSEClient(baseURL string, credentials tse.Credentials, httpClient
 
 // tssZustandsCodes400 sind die fiskaly-Fehlercodes, die trotz HTTP 400 einen
 // TSS-weiten Zustand melden (TSS nicht initialisiert oder deaktiviert, Client
-// deregistriert, Limit offener Transaktionen erreicht). Sie betreffen jede
-// Signierung, nicht den einzelnen Auftrag, und bleiben deshalb TSE-weit.
+// deregistriert oder unbekannt, Limit offener Transaktionen erreicht). Sie
+// betreffen jede Signierung, nicht den einzelnen Auftrag, und bleiben deshalb
+// TSE-weit.
 var tssZustandsCodes400 = map[string]bool{
 	"E_TSS_NOT_INITIALIZED": true,
 	"E_TSS_DISABLED":        true,
 	"E_CLIENT_DEREGISTERED": true,
+	"E_CLIENT_NOT_FOUND":    true,
 	"E_TX_LIMIT_REACHED":    true,
 }
 
@@ -289,8 +291,11 @@ func (c *FiskalyTSEClient) RetrieveTransaction(ctx context.Context, txID string)
 		&resp,
 	)
 	if err != nil {
+		// 404 heisst nur bei E_TX_NOT_FOUND "Transaktion existiert (noch) nicht";
+		// E_TSS_NOT_FOUND (falsche TSS-ID) bleibt ein TSE-weiter Fehler. Ein 404
+		// ohne Fehlercode wird defensiv als unbekannte Transaktion gewertet.
 		var apiErr apiError
-		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound && apiErr.Code != "E_TSS_NOT_FOUND" {
 			return tse.RetrieveResult{}, tse.ErrTransactionNichtGefunden
 		}
 		return tse.RetrieveResult{}, err
