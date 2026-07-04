@@ -45,9 +45,10 @@ Ziel-Landkarte `api/` (Module behalten den Schnitt `{application,http}`):
   definieren `GetKonfigurierteDruckstationen` mit `map[string]druckstation.Druckstation`
   (Domain-Typ); `druckstation_repo` erfüllt das direkt. Der Typ
   `bondruck/application.Druckstation` entfällt, die Arbeitsbon-Policy nimmt den Domain-Typ.
-- **Tagesabschluss-Aggregation**: Eingabe alle Events der Kassensitzung (Journal-Events plus
-  die im selben Command erzeugten, noch nicht gelesenen Kassensturz-/Differenz-Events in-memory
-  angehängt), Ausgabe die drei Summen des `tagesabschluss-erstellt:v1`-Events. Der Soll-Bestand
+- **Tagesabschluss-Aggregation**: Eingabe alle Events der Kassensitzung, Ausgabe die drei
+  Summen des `tagesabschluss-erstellt:v1`-Events. Gelesen wird das Journal an der heutigen
+  GetReporting-Position; Kassensturz-/Differenz-Event sind dort bereits committed, ein
+  In-Memory-Anhängen entfällt (siehe Resolved decisions). Der Soll-Bestand
   kommt weiterhin aus `kassenjournal_repo.GetKassenbestand` (SQL, kein Reporting-Baustein).
 - **Worker als Lifecycle**: Signatur-Worker und Rückstand-Watchdog leben in `fiskal/signatur`;
   `app/` konstruiert und startet sie nur noch (exportierte Konstruktoren, konfigurationsfreie
@@ -57,12 +58,18 @@ Ziel-Landkarte `api/` (Module behalten den Schnitt `{application,http}`):
 
 ## Inventory
 
+Zeilen- und Pfadangaben sind der Stand bei Planerstellung; spätere Phasen lesen Referenzen auf
+bereits umgezogene Module sinngemäß (z. B. liegt `api/direktverkauf` ab Phase 2 unter
+`api/kasse/direktverkauf`).
+
 God-Modul und Wiring:
 
 - `backend/api/table/application/command.go:87-97` — Command-Struct mit neun Dependencies;
   `:20-77` Consumer-Interfaces; `:253-353` Favoriten und Tisch-CRUD; `:355-767` Tischgeschäft
   (Bestellen, Umbuchen, Kassieren, Storno, Ausgabe) samt geteilter Helfer
-  (`writeEventOCC:123`, `loadTischState:197`, `validatePositionRefs:229`, `resolvePositions:460`).
+  (`writeEventOCC:123`, `loadTischState:197`, `validatePositionRefs:229`, `resolvePositions:460`);
+  `getOffeneKassensitzungOderFehler:102` nutzt auch der Kassenbeleg
+  (`kassenbeleg_command.go:217`).
 - `backend/api/table/application/query.go` — Tisch-Queries; `kassenbeleg_command.go` (433 Zeilen)
   — Kassenbeleg-Command inkl. Signaturstatus-Auflösung (`tseAbschnittFuerBeleg:144`).
 - `backend/api/table_bondruck_adapters.go` — der Adapter-Shim (entfällt).
@@ -96,8 +103,8 @@ Kassenabschluss und Reporting:
 settings und Fiskal:
 
 - `backend/domain/settings/` — `betreiber.go`, `kassenidentitaet.go`, `tse_konfiguration.go`
-  (+ Test), `tse_stammdaten.go`. Importiert von 12 Nicht-Test-Dateien (api/export, api/kasse,
-  api/settings, api/table, app/Worker, domain/dsfinvk, settings_repo, seed).
+  (+ Test), `tse_stammdaten.go`. Importiert von 14 Nicht-Test-Dateien (api/export, api/kasse,
+  api/settings ×5, api/table, app/Worker, domain/dsfinvk, settings_repo ×2, seed ×2).
 - `backend/repository/settings_repo/repo.go:15-42` — Betreiber-Zugriffe (→ betreiber_repo);
   `:44-160` — Kassenidentität, TSE-Konfiguration, Einrichtung, TSE-Stammdaten (→ tse_repo).
 - `backend/api/settings/application/` — `query.go` (255 Z.), `command.go` (80 Z.),
@@ -150,10 +157,16 @@ Dokumentation:
   jotti ist heute spec-konform: Kassenbestand rechnet die Differenz ein
   (`kassensitzungen.sql:49-68`, handbuch 3.9), der Export führt sie als eigenen GV_TYP
   (`mapper.go:31,407-415`), die drei Z-Bon-Summen schließen sie aus (`reporting.sql:34-43`).
-  Die neue Domänenfunktion behandelt sie deshalb summen-neutral (wie Korrektur und Umbuchung);
-  die PRD-Notiz zum In-Memory-Anhängen wird als Input-Vollständigkeit umgesetzt (Vertrag „alle
-  Events der Sitzung"; deckt zugleich den Wiederanlauf ab, bei dem Kassensturz/Differenz eines
-  gescheiterten Vorversuchs bereits im Journal stehen).
+  Die neue Domänenfunktion behandelt sie deshalb summen-neutral (wie Korrektur und Umbuchung).
+- **Kein In-Memory-Anhängen der Same-Command-Events** (Plan-Review, ersetzt die PRD-Notiz):
+  Die PRD-Begründung („sonst fehlt die Differenzbuchung in den Summen") ist doppelt hinfällig:
+  Die Differenzbuchung ist summen-neutral (siehe oben), und der Abschluss schreibt bewusst ohne
+  umschließende Transaktion (`command.go:240-242`) — an der heutigen GetReporting-Position
+  (`:363`) sind Kassensturz-/Differenz-Event bereits committed und stehen im Journal. Die
+  Aggregation liest genau dort; ein zusätzliches Anhängen würde die Events im Input duplizieren
+  (heute folgenlos, aber eine Falle, sobald je ein Kassensitzungs-Event summen-wirksam wird).
+  Der Vertrag „alle Events der Sitzung" ist über das Journal erfüllt und deckt den Wiederanlauf
+  (Kassensturz/Differenz eines gescheiterten Vorversuchs) trivial ab.
 - **Kassenidentität-Endpunkt** (`get-kassenidentitaet`) liegt in `fiskal/setup`: Die PRD ordnet
   die Kassenidentität explizit dem Fiskal-Kontext zu; das Frontend gruppiert sie in der
   Betreiber-Backend-Klasse (Finanzamt-Slice), was nur den Aufrufer betrifft, nicht den Pfad.
@@ -191,7 +204,8 @@ Dokumentation:
 ### Context
 
 - `backend/api/kasse/application/command.go:38-40,50-56` — reportingRepo-Interface und
-  Command-Deps; `:251-394` Abschluss-Ablauf; `:362-377` GetReporting-Aufruf und Event-Bau.
+  Command-Deps; `:240-242` bewusst keine umschließende Transaktion über die Abschluss-Events;
+  `:251-394` Abschluss-Ablauf; `:362-377` GetReporting-Aufruf und Event-Bau.
 - `backend/sqlc/queries/reporting.sql:10-43` — Referenzsemantik der drei Summen:
   Umsatz = Zahlungen + Direktverkäufe − Direktverkauf-Storni − Warenrücknahmen;
   Stornierungen = Warenrücknahmen + Korrekturen + Direktverkauf-Storni;
@@ -210,9 +224,10 @@ Direktverkauf und Direktverkauf-Storno sowie Geldtransit; alle übrigen Event-Ty
 Umbuchung, Eröffnung, Kassensturz, Differenzbuchung, …) sind summen-neutral (siehe Resolved
 decisions). Der Abschluss-Command verliert Interface und Feld des Reporting-Repositorys: Er liest
 die Events der Sitzung über das Kassenjournal-Repository (events-only-Leseweg; die bestehende
-Kassensitzungs-Query kann dafür einen Signatur-freien Zweig erhalten), hängt die im selben
-Vorgang erzeugten Kassensturz- und Differenz-Events in-memory an und übergibt alles der
-Domänenfunktion. Der Soll-Bestand kommt unverändert aus `GetKassenbestand`. Das Admin-Wiring
+Kassensitzungs-Query kann dafür einen Signatur-freien Zweig erhalten) an der Stelle, an der heute
+`GetReporting` aufgerufen wird — nach den Kassensturz-/Differenz-Writes, die dort bereits
+committed sind — und übergibt alles der Domänenfunktion (kein In-Memory-Anhängen, siehe
+Resolved decisions). Der Soll-Bestand kommt unverändert aus `GetKassenbestand`. Das Admin-Wiring
 verdrahtet den Kasse-Command ohne `reporting_repo`; das Reporting-Modul selbst bleibt unberührt.
 
 ### Acceptance criteria
@@ -222,13 +237,15 @@ verdrahtet den Kasse-Command ohne `reporting_repo`; das Reporting-Modul selbst b
 - [ ] Tabellengetriebene Unit-Tests decken die PRD-Fälle ab: leere Kassensitzung, Bestellungen
       ohne Zahlung, Zahlungen über mehrere Steuersätze, Warenrücknahme, geldneutrale Korrektur
       und Umbuchung (Summen unverändert), Direktverkauf samt Storno, Geldtransit in beide
-      Richtungen, Differenzbuchung (summen-neutral).
+      Richtungen, Differenzbuchung (summen-neutral), Wiederanlauf-Input mit doppeltem
+      Kassensturz-/Differenz-Event (summen-neutral).
 - [ ] Ein Äquivalenztest belegt für dieselbe Kassensitzung Deckungsgleichheit der drei Summen mit
       dem Reporting-Ergebnis (Integrationstest über das Seed-Szenario oder gleichwertig gegen die
       echte SQL-Schicht).
 - [ ] `api/kasse/application.Command` hat keine Reporting-Abhängigkeit mehr; der Command-Test
       verliert das Reporting-Mock und prüft, dass die Tagesabschluss-Event-Daten aus den
-      Journal-Events (inkl. Same-Command-Events) berechnet werden.
+      Journal-Events berechnet werden (der Journal-Mock liefert dabei auch die im selben Vorgang
+      geschriebenen Kassensturz-/Differenz-Events, denn sie sind zum Lesezeitpunkt committed).
 - [ ] Kein Verhalten geändert: Endpunkt-Pfade, Antwortformate und Event-Daten identisch;
       `make verify` grün.
 
@@ -250,7 +267,9 @@ verdrahtet den Kasse-Command ohne `reporting_repo`; das Reporting-Modul selbst b
 Der Kontext-Ordner `api/kasse/` entsteht; das heutige Modul `api/kasse` zieht als
 `kasse/kassenfuehrung` hinein, `api/direktverkauf` als `kasse/direktverkauf`. Reine
 `git mv`-Umzüge plus Import-Pfad-/Alias-Anpassung in den Wiring-Dateien; Paketnamen
-(`application`, `http`) und alle Dateiinhalte bleiben sonst unverändert.
+(`application`, `http`) und alle Dateiinhalte bleiben sonst unverändert. Der Umzug in das
+eigene Unterverzeichnis braucht einen Zweischritt über einen temporären Namen (git kann ein
+Verzeichnis nicht in sich selbst verschieben).
 
 ### Acceptance criteria
 
@@ -269,10 +288,18 @@ Der Kontext-Ordner `api/kasse/` entsteht; das heutige Modul `api/kasse` zieht al
 
 - `backend/api/table/application/command.go` — Aufteilung: `:355-767` Tischgeschäft,
   `:253-285` Favoriten, `:287-353` Tisch-CRUD; geteilte Helfer (`:99-251`) gehen zum
-  Tischgeschäft.
+  Tischgeschäft. `getOffeneKassensitzungOderFehler` (`:102`) braucht auch der Kassenbeleg:
+  eigene Kopie samt kassensitzungenRepo-Interface in `druck/beleg` — dasselbe Muster wie in
+  api/kasse und api/direktverkauf.
 - `backend/api/table/application/query.go` — `GetAllTische:34` → stammdaten; übrige Queries
   (aktive Tische, State, Historie, Meine Tische, mit Favoriten) → Tischgeschäft.
-- `backend/api/table/application/kassenbeleg_command.go` + `errors.go`-Anteile → `druck/beleg`.
+- `backend/api/table/application/kassenbeleg_command.go` → `druck/beleg`. `errors.go` teilt
+  sich dreifach: Tisch-CRUD-Fehler samt `fromRepositoryError` → `stammdaten/tisch`;
+  Positions-/Kasse-Fehler samt `fromRepositoryError`-Kopie → Tischgeschäft;
+  Zahlung-/Verkauf-/Stornierung-/Drucker-Fehler plus `ErrKasseNichtGeoeffnet`/
+  `ErrKasseWirdAbgeschlossen` → `druck/beleg`. Die Duplikation der Error-Werte ist unkritisch:
+  kein `errors.Is` über Modulgrenzen, jedes Modul mappt seine Fehler im eigenen Handler
+  (Vorbild direktverkauf).
 - `backend/api/table/http/{command_handler,query_handler}.go` (+ Tests) — Handler analog
   aufteilen.
 - `backend/api/table_bondruck_adapters.go` — entfällt;
@@ -299,7 +326,9 @@ Der Adapter-Shim entfällt: Die Consumer-Interfaces aller drei Nutzer (tischgesc
 direktverkauf, beleg) verlangen `map[string]druckstation.Druckstation`; das Repository erfüllt
 sie direkt. Die Arbeitsbon-Policy und der Kassenbeleg lesen `DruckerIP`/`Bonmodus` vom
 Domain-Typ; der Typ `bondruck/application.Druckstation` wird gelöscht. Die Wiring-Dateien
-registrieren dieselben Pfade auf die neuen Handler; jedes Command-Struct hat an jedem
+registrieren dieselben Pfade auf die neuen Handler — `stammdaten/tisch` dabei aus zwei
+Dateien: Tisch-CRUD und `get-all-tische` in admin, die Favoriten-Commands in service
+(`service.go:63-64`), die Pfade bleiben unter ihren Prefixen; jedes Command-Struct hat an jedem
 Einsatzort einen vollständigen, konstanten Dependency-Satz (keine partielle Injektion mehr,
 keine nil-Toleranzen wie `konfigurierteDruckstationen`/`KassenbelegDrucken`-Guard nötig).
 
@@ -406,9 +435,12 @@ HTTP-Handler und Tests ziehen entsprechend aufgeteilt mit.
   `fiskal/signatur`; `backend/app/app.go:86-90` — Startstellen; Konstruktor-Signatur
   `tse_signatur_worker.go:104-110` (nutzt `cfg.FiskalyBaseURL`).
 - `backend/api/export/` → `api/fiskal/export/`.
-- `backend/domain/dsfinvk/` → `api/fiskal/dsfinvk/`; vorab `EventSignatur`
-  (`signaturen.go:10-13`) → `domain/tse`; Nutzer: `kassenjournal_repo/repo.go:473,526`,
-  `api/fiskal/export` (Interface `:32`), Mapper.
+- `backend/domain/dsfinvk/` → `api/fiskal/dsfinvk/` als ganzes Verzeichnis (`archive.go:14,23`
+  bettet DTD und index.xml per `go:embed` ein — die Begleitdateien ziehen mit); vorab
+  `EventSignatur` (`signaturen.go:10-13`) → `domain/tse`; Nutzer:
+  `kassenjournal_repo/repo.go:473,526`, `api/fiskal/export` (Interface `:32`), Mapper; dazu der
+  Reporting-Konsistenztest (`api/reporting/application/query_export_konsistenz_test.go`) als
+  Test-only-Importer von dsfinvk (Import-Anpassung, mechanisch).
 
 ### What to build
 
