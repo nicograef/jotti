@@ -7,7 +7,7 @@ import type { DirektverkaufHistorieEintrag } from '../../direktverkauf/Direktver
 import { DirektverkaufHistorie } from './DirektverkaufHistorie'
 
 vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }))
 
 vi.mock('@/lib/Auth', () => ({
@@ -78,7 +78,7 @@ describe('DirektverkaufHistorie', () => {
   it('cancels selected positions with exactly one backend call', async () => {
     const user = userEvent.setup()
     const direktverkaufStornieren = vi.fn().mockResolvedValue(undefined)
-    const kassenbelegDrucken = vi.fn().mockResolvedValue(undefined)
+    const kassenbelegDrucken = vi.fn().mockResolvedValue('eingereiht')
     const onStorniert = vi.fn()
     render(
       <DirektverkaufHistorie
@@ -114,7 +114,7 @@ describe('DirektverkaufHistorie', () => {
 
   it('triggers kassenbeleg print for a sale with exactly one backend call', async () => {
     const user = userEvent.setup()
-    const kassenbelegDrucken = vi.fn().mockResolvedValue(undefined)
+    const kassenbelegDrucken = vi.fn().mockResolvedValue('eingereiht')
     render(
       <DirektverkaufHistorie
         historie={[verkauf]}
@@ -141,7 +141,7 @@ describe('DirektverkaufHistorie', () => {
 
   it('triggers stornobeleg print with the stornierungId of the cancellation', async () => {
     const user = userEvent.setup()
-    const kassenbelegDrucken = vi.fn().mockResolvedValue(undefined)
+    const kassenbelegDrucken = vi.fn().mockResolvedValue('eingereiht')
     const stornierterVerkauf: DirektverkaufHistorieEintrag = {
       ...verkauf,
       offenePositionen: [],

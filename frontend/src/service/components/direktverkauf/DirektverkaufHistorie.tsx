@@ -17,7 +17,11 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
-import type { DirektverkaufHistorieEintrag } from '../../direktverkauf/Direktverkauf'
+import { belegDruckenMitNachfassen } from '../../beleg'
+import type {
+  DirektverkaufHistorieEintrag,
+  DirektverkaufKassenbelegDrucken,
+} from '../../direktverkauf/Direktverkauf'
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
 import { DirektverkaufStornoDrawer } from './DirektverkaufStornoDrawer'
 
@@ -48,10 +52,22 @@ export function DirektverkaufHistorie({
         verkauf_not_found: 'Der Verkauf wurde nicht gefunden.',
         stornierung_not_found: 'Die Stornierung wurde nicht gefunden.',
       },
-      onSuccess: () => {
-        toast.success('Kassenbeleg in die Druckwarteschlange eingereiht.')
-      },
     })
+
+  const belegAnfordern = (cmd: DirektverkaufKassenbelegDrucken) => {
+    void runBelegDrucken(async () => {
+      const status = await belegDruckenMitNachfassen(() =>
+        backend.kassenbelegDrucken(cmd),
+      )
+      if (status === 'eingereiht') {
+        toast.success('Kassenbeleg in die Druckwarteschlange eingereiht.')
+      } else {
+        toast.info(
+          'Die TSE-Signatur steht noch aus. Bitte den Beleg gleich erneut anfordern.',
+        )
+      }
+    })
+  }
 
   if (historieLoading) {
     return (
@@ -119,11 +135,9 @@ export function DirektverkaufHistorie({
                           aria-label="Stornobeleg drucken"
                           disabled={belegDruckenLoading}
                           onClick={() => {
-                            void runBelegDrucken(async () => {
-                              await backend.kassenbelegDrucken({
-                                verkaufId: verkauf.verkaufId,
-                                stornierungId: storno.stornierungId,
-                              })
+                            belegAnfordern({
+                              verkaufId: verkauf.verkaufId,
+                              stornierungId: storno.stornierungId,
                             })
                           }}
                         >
@@ -142,11 +156,7 @@ export function DirektverkaufHistorie({
                   aria-label="Kassenbeleg drucken"
                   disabled={belegDruckenLoading}
                   onClick={() => {
-                    void runBelegDrucken(async () => {
-                      await backend.kassenbelegDrucken({
-                        verkaufId: verkauf.verkaufId,
-                      })
-                    })
+                    belegAnfordern({ verkaufId: verkauf.verkaufId })
                   }}
                 >
                   <Printer />

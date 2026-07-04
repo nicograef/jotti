@@ -82,14 +82,21 @@ func validBestellungData(positionID string, einzelpreis, menge int) map[string]a
 	}
 }
 
-// validZahlungData returns valid zahlung-kassiert:v1 event data for testing.
+// validZahlungData returns valid zahlung-kassiert:v1 event data for testing
+// (fat positions — die fiskalische Projektion braucht Steuersatz und Preis).
 func validZahlungData(positionID string, menge, gesamtCents int) map[string]any {
 	return map[string]any{
 		"zahlungId": "z0000000-0000-0000-0000-000000000001",
 		"positionen": []map[string]any{
 			{
-				"positionId": positionID,
-				"menge":      menge,
+				"positionId":   positionID,
+				"varianteId":   1,
+				"produktName":  "Bier",
+				"varianteName": "0.5L",
+				"kategorie":    "getraenk",
+				"steuersatz":   "regel",
+				"einzelpreis":  gesamtCents / menge,
+				"menge":        menge,
 			},
 		},
 		"gesamtZahlungCents": gesamtCents,
@@ -106,8 +113,14 @@ func validStornierungData(betragCents int) map[string]any {
 		"kommentar":              "Rueckgabe",
 		"positionen": []map[string]any{
 			{
-				"positionId": "p0000000-0000-0000-0000-000000000001",
-				"menge":      1,
+				"positionId":   "p0000000-0000-0000-0000-000000000001",
+				"varianteId":   1,
+				"produktName":  "Bier",
+				"varianteName": "0.5L",
+				"kategorie":    "getraenk",
+				"steuersatz":   "regel",
+				"einzelpreis":  betragCents,
+				"menge":        1,
 			},
 		},
 	}
@@ -121,8 +134,14 @@ func validKorrekturData(betragCents int) map[string]any {
 		"kommentar":   "",
 		"positionen": []map[string]any{
 			{
-				"positionId": "p0000000-0000-0000-0000-000000000002",
-				"menge":      1,
+				"positionId":   "p0000000-0000-0000-0000-000000000002",
+				"varianteId":   1,
+				"produktName":  "Bier",
+				"varianteName": "0.5L",
+				"kategorie":    "getraenk",
+				"steuersatz":   "regel",
+				"einzelpreis":  betragCents,
+				"menge":        1,
 			},
 		},
 	}
@@ -139,6 +158,7 @@ func validDirektverkaufData(verkaufID string, gesamtbetragCents int) map[string]
 				"produktName":  "Bier",
 				"varianteName": "0.5L",
 				"kategorie":    "getraenk",
+				"steuersatz":   "regel",
 				"einzelpreis":  gesamtbetragCents,
 				"menge":        1,
 			},
@@ -159,6 +179,7 @@ func validDirektverkaufStornoData(verkaufID string, gesamtStornierungCents int) 
 				"produktName":  "Bier",
 				"varianteName": "0.5L",
 				"kategorie":    "getraenk",
+				"steuersatz":   "regel",
 				"einzelpreis":  gesamtStornierungCents,
 				"menge":        1,
 			},
@@ -168,13 +189,9 @@ func validDirektverkaufStornoData(verkaufID string, gesamtStornierungCents int) 
 }
 
 func cleanDB(t *testing.T, db *sql.DB) {
-	_, err := db.Exec("DELETE FROM tse_signaturen")
+	_, err := db.Exec("DELETE FROM tse_signaturauftraege")
 	if err != nil {
-		t.Fatalf("Failed to clean tse_signaturen: %v", err)
-	}
-	_, err = db.Exec("DELETE FROM tse_nachsignier_auftraege")
-	if err != nil {
-		t.Fatalf("Failed to clean tse_nachsignier_auftraege: %v", err)
+		t.Fatalf("Failed to clean tse_signaturauftraege: %v", err)
 	}
 	_, err = db.Exec("DELETE FROM druckauftraege")
 	if err != nil {
@@ -348,7 +365,11 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 	}
 }
 
-func TestWriteEventWithNachsignierAuftrag_CommitsEventAndOutbox(t *testing.T) {
+// Jeder signaturpflichtige Vorgang erzeugt im selben Commit genau einen offenen
+// Signaturauftrag mit processType-/processData-Snapshot aus der fiskalischen
+// Projektion — auch ohne TSE-Konfiguration (die Test-DB hat keine). Nicht
+// signaturpflichtige Vorgänge erhalten keinen Auftrag.
+func TestWriteEvent_SignaturpflichtigErzeugtOffenenAuftrag(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -359,43 +380,72 @@ func TestWriteEventWithNachsignierAuftrag_CommitsEventAndOutbox(t *testing.T) {
 
 	subject := kasse.TischSessionSubject(ksNr, tischID)
 
-	// Die Projektion prüft Zahlungen strikt gegen die unbezahlten Positionen —
-	// der Stream braucht eine vorausgehende Bestellung.
 	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, validBestellungData("10000000-0000-4000-8000-000000000001", 350, 1))
-	if _, err := repo.WriteEvent(context.Background(), bestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
+	bestellungID, err := repo.WriteEvent(context.Background(), bestellung, kasse.StreamTypeTischSession, ksNr)
+	if err != nil {
 		t.Fatalf("Failed to write bestellung event: %v", err)
 	}
 
-	data := validZahlungData("10000000-0000-4000-8000-000000000001", 1, 350)
-	e := newTestEvent(userID, "zahlung-kassiert:v1", subject, 2, data)
-
-	txID := "tx-zahlung-1"
-	processType := "Kassenbeleg-V1"
-	processData := "Beleg^3.50_0.00_0.00_0.00_0.00^3.50:Bar"
-
-	eventID, err := repo.WriteEventWithNachsignierAuftrag(context.Background(), e, kasse.StreamTypeTischSession, ksNr, txID, processType, processData)
+	zahlung := newTestEvent(userID, "zahlung-kassiert:v1", subject, 2, validZahlungData("10000000-0000-4000-8000-000000000001", 1, 350))
+	zahlungID, err := repo.WriteEvent(context.Background(), zahlung, kasse.StreamTypeTischSession, ksNr)
 	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if eventID == 0 {
-		t.Fatalf("Expected valid event ID, got %d", eventID)
+		t.Fatalf("Failed to write zahlung event: %v", err)
 	}
 
-	events, err := repo.ReadEventsBySubject(context.Background(), subject)
+	// Ausgabe ist nicht signaturpflichtig — kein Auftrag.
+	ausgabe := newTestEvent(userID, "ausgabe-bestaetigt:v1", subject, 3, map[string]any{
+		"ausgabeId": "a0000000-0000-4000-8000-000000000001",
+		"positionen": []map[string]any{
+			{"positionId": "10000000-0000-4000-8000-000000000001", "menge": 1},
+		},
+		"kommentar": "",
+	})
+	ausgabeID, err := repo.WriteEvent(context.Background(), ausgabe, kasse.StreamTypeTischSession, ksNr)
 	if err != nil {
-		t.Fatalf("Expected no read error, got %v", err)
-	}
-	if len(events) != 2 {
-		t.Fatalf("Expected 2 persisted events, got %d", len(events))
+		t.Fatalf("Failed to write ausgabe event: %v", err)
 	}
 
-	var count int
-	err = repo.db.QueryRow("SELECT COUNT(*) FROM tse_nachsignier_auftraege WHERE tx_id = $1 AND status = 'offen'", txID).Scan(&count)
-	if err != nil {
-		t.Fatalf("Expected outbox row to exist, got error %v", err)
+	assertOffenerAuftrag := func(eventID int, wantProcessType, wantProcessData string) {
+		t.Helper()
+		var status, processType, processData, txID string
+		err := repo.db.QueryRow(
+			"SELECT status, process_type, process_data, tx_id FROM tse_signaturauftraege WHERE event_id = $1",
+			eventID,
+		).Scan(&status, &processType, &processData, &txID)
+		if err != nil {
+			t.Fatalf("Expected auftrag for event %d, got error %v", eventID, err)
+		}
+		if status != "offen" {
+			t.Fatalf("Expected status offen for event %d, got %q", eventID, status)
+		}
+		if processType != wantProcessType {
+			t.Fatalf("Expected process_type %q for event %d, got %q", wantProcessType, eventID, processType)
+		}
+		if processData != wantProcessData {
+			t.Fatalf("Expected process_data %q for event %d, got %q", wantProcessData, eventID, processData)
+		}
+		if txID == "" {
+			t.Fatalf("Expected tx_id for event %d", eventID)
+		}
 	}
-	if count != 1 {
-		t.Fatalf("Expected 1 open outbox row for tx_id %q, got %d", txID, count)
+
+	assertOffenerAuftrag(bestellungID, "Bestellung-V1", `1;"Bier 0.5L";3.50`)
+	assertOffenerAuftrag(zahlungID, "Kassenbeleg-V1", "Beleg^3.50_0.00_0.00_0.00_0.00^3.50:Bar")
+
+	var ausgabeAuftraege int
+	if err := repo.db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege WHERE event_id = $1", ausgabeID).Scan(&ausgabeAuftraege); err != nil {
+		t.Fatalf("Failed to count auftraege for ausgabe: %v", err)
+	}
+	if ausgabeAuftraege != 0 {
+		t.Fatalf("Expected no auftrag for nicht signaturpflichtige ausgabe, got %d", ausgabeAuftraege)
+	}
+
+	var gesamt int
+	if err := repo.db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege").Scan(&gesamt); err != nil {
+		t.Fatalf("Failed to count auftraege: %v", err)
+	}
+	if gesamt != 2 {
+		t.Fatalf("Expected exactly 2 auftraege (bestellung + zahlung), got %d", gesamt)
 	}
 }
 
@@ -439,7 +489,7 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	quellEvent.Version = 2
 	zielEvent.Version = 1
 
-	if err := repo.WriteUmbuchung(context.Background(), quellEvent, zielEvent, nil, ksNr); err != nil {
+	if err := repo.WriteUmbuchung(context.Background(), quellEvent, zielEvent, ksNr); err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
@@ -541,7 +591,7 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 
 	ungueltigesZielEvent := newTestEvent(userID, "unknown-event:v1", zielSubject, 1, map[string]any{"any": "value"})
 
-	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, ungueltigesZielEvent, nil, ksNr)
+	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, ungueltigesZielEvent, ksNr)
 	if err == nil {
 		t.Fatal("Expected error, got nil")
 	}
@@ -632,7 +682,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 	}
 	bestellungEvent.Version = 1 // conflicts with existing target event version 1
 
-	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, nil, ksNr)
+	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, ksNr)
 	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
 		t.Fatalf("Expected ErrAlreadyExists conflict, got %v", err)
 	}
@@ -830,8 +880,8 @@ func TestEroeffneKassensitzung_RollbackBeiEventFehler(t *testing.T) {
 		t.Fatalf("count kassensitzungen: %v", err)
 	}
 
-	_, err := repo.EroeffneKassensitzung(context.Background(), time.Now().UTC(), "Testsitzung", func(zNr int) (event.Event, *TSENachsignierung, error) {
-		return event.Event{}, nil, errors.New("signierung fehlgeschlagen")
+	_, err := repo.EroeffneKassensitzung(context.Background(), time.Now().UTC(), "Testsitzung", func(zNr int) (event.Event, error) {
+		return event.Event{}, errors.New("event bauen fehlgeschlagen")
 	})
 	if err == nil {
 		t.Fatal("expected error from build callback")
@@ -857,9 +907,9 @@ func TestEroeffneKassensitzung_SchreibtEntitaetUndEventAtomar(t *testing.T) {
 		t.Fatalf("close previous kassensitzung: %v", err)
 	}
 
-	zNr, err := repo.EroeffneKassensitzung(context.Background(), time.Now().UTC(), "Testsitzung", func(zNr int) (event.Event, *TSENachsignierung, error) {
+	zNr, err := repo.EroeffneKassensitzung(context.Background(), time.Now().UTC(), "Testsitzung", func(zNr int) (event.Event, error) {
 		evt := newTestEvent(userID, "kassensitzung-eroeffnet:v1", kasse.KassensitzungSubject(zNr), 1, validEroeffnungData(userID, 10000))
-		return evt, &TSENachsignierung{TxID: "tx-eroeffnet-atomar", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^..."}, nil
+		return evt, nil
 	})
 	if err != nil {
 		t.Fatalf("EroeffneKassensitzung: %v", err)
@@ -881,12 +931,17 @@ func TestEroeffneKassensitzung_SchreibtEntitaetUndEventAtomar(t *testing.T) {
 		t.Fatalf("expected exactly the eroeffnet event, got %v", events)
 	}
 
+	// Der Signaturauftrag der Eröffnung (Anfangsbestand > 0) entsteht im selben
+	// Commit aus der fiskalischen Projektion.
 	var auftraege int
-	if err := repo.db.QueryRow("SELECT COUNT(*) FROM tse_nachsignier_auftraege WHERE tx_id = 'tx-eroeffnet-atomar'").Scan(&auftraege); err != nil {
-		t.Fatalf("count nachsignier auftraege: %v", err)
+	if err := repo.db.QueryRow(
+		"SELECT COUNT(*) FROM tse_signaturauftraege a JOIN kassenjournal e ON e.id = a.event_id WHERE e.subject = $1",
+		kasse.KassensitzungSubject(zNr),
+	).Scan(&auftraege); err != nil {
+		t.Fatalf("count signaturauftraege: %v", err)
 	}
 	if auftraege != 1 {
-		t.Fatalf("expected 1 nachsignier auftrag, got %d", auftraege)
+		t.Fatalf("expected 1 signaturauftrag, got %d", auftraege)
 	}
 }
 

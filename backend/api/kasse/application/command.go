@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -16,9 +15,8 @@ import (
 )
 
 type kassenjournalRepo interface {
-	EroeffneKassensitzung(ctx context.Context, datum time.Time, bezeichnung string, build func(zNr int) (event.Event, *kassenjournal_repo.TSENachsignierung, error)) (int, error)
+	EroeffneKassensitzung(ctx context.Context, datum time.Time, bezeichnung string, build func(zNr int) (event.Event, error)) (int, error)
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
-	WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error)
 	GetTischSessionsByKassensitzungNr(ctx context.Context, kassensitzungNr int) ([]kasse.TischSession, error)
@@ -45,7 +43,6 @@ type Command struct {
 	KassensitzungenRepo kassensitzungenRepo
 	SettingsRepo        settingsRepo
 	ReportingRepo       reportingRepo
-	TSESignierer        tseApp.Signierer
 }
 
 // getOffeneKassensitzungOderFehler returns the open Kassensitzung for a booking. It returns
@@ -92,42 +89,6 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 	}
 
 	return nil
-}
-
-func (c Command) writeKassensitzungEventWithNachsignierAuftrag(ctx context.Context, e event.Event, kassensitzungNr int, expectedVersion int, txID string, processType string, processData string) error {
-	log := zerolog.Ctx(ctx)
-
-	subject := kasse.KassensitzungSubject(kassensitzungNr)
-	e.Version = expectedVersion + 1
-
-	_, err := c.KassenjournalRepo.WriteEventWithNachsignierAuftrag(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr, txID, processType, processData)
-	if err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC Kassensitzung conflict")
-			return ErrKonflikt
-		}
-		if errors.Is(err, db.ErrConflict) {
-			log.Warn().Str("subject", subject).Msg("Deadlock on event write")
-			return ErrKonflikt
-		}
-		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			log.Warn().Str("subject", subject).Msg("Kassensitzung nicht mehr offen")
-			return ErrKasseNichtGeoeffnet
-		}
-		return ErrDatabase
-	}
-
-	return nil
-}
-
-// writeSignedKassensitzungEvent writes a signed Kassensitzung event, attaching the TSE retry job
-// when the signing produced a Nachsignier-Auftrag and writing the event on its own otherwise.
-func (c Command) writeSignedKassensitzungEvent(ctx context.Context, signierung tseApp.Signierung, kassensitzungNr int, expectedVersion int) error {
-	if signierung.NachsignierAuftrag != nil {
-		na := signierung.NachsignierAuftrag
-		return c.writeKassensitzungEventWithNachsignierAuftrag(ctx, signierung.Event, kassensitzungNr, expectedVersion, na.TxID, na.ProcessType, na.ProcessData)
-	}
-	return c.writeKassensitzungEvent(ctx, signierung.Event, kassensitzungNr, expectedVersion)
 }
 
 // betriebstag liefert das Wandkalenderdatum des Zeitpunkts in der übergebenen
@@ -192,33 +153,17 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 
 	// Entität und Eröffnungs-Event entstehen atomar in einer Transaktion: Schlägt der
 	// Event-Write fehl, bleibt keine offene Sitzung ohne Eröffnungs-Event zurück.
-	var nachsigniert bool
-	zNr, err := c.KassenjournalRepo.EroeffneKassensitzung(ctx, datum, bezeichnung, func(zNr int) (event.Event, *kassenjournal_repo.TSENachsignierung, error) {
+	// Der Signaturauftrag (bei Anfangsbestand > 0) entsteht im selben Commit über
+	// die fiskalische Projektion; Buchen blockiert nie auf die TSE.
+	zNr, err := c.KassenjournalRepo.EroeffneKassensitzung(ctx, datum, bezeichnung, func(zNr int) (event.Event, error) {
 		evt, err := kasse.NewKassensitzungEroeffnetEvent(kasse.KassensitzungSubject(zNr), userID, userName, datum.Format("2006-01-02"), bezeichnung, betragCents)
 		if err != nil {
 			log.Error().Err(err).Int("z_nr", zNr).Msg("Failed to create kassensitzung-eroeffnet event")
-			return event.Event{}, nil, err
+			return event.Event{}, err
 		}
 		// Frischer Stream (neue z_nr): das Eröffnungs-Event ist version = 1.
 		evt.Version = 1
-
-		// Anfangsbestand > 0 ist ein Geschäftsvorfall (Bareinlage) und wird wie Geldtransit
-		// und Kassendifferenz TSE-signiert; ohne Bargeld zu Sitzungsbeginn gibt es nichts
-		// abzusichern (der Export lässt den Anfangsbestand dann ebenfalls weg).
-		signierung := tseApp.Signierung{Event: evt}
-		if betragCents > 0 {
-			signierung, err = c.signKassensitzungEroeffnetEvent(ctx, evt, betragCents)
-			if err != nil {
-				return event.Event{}, nil, err
-			}
-		}
-
-		var nachsignierung *kassenjournal_repo.TSENachsignierung
-		if na := signierung.NachsignierAuftrag; na != nil {
-			nachsigniert = true
-			nachsignierung = &kassenjournal_repo.TSENachsignierung{TxID: na.TxID, ProcessType: na.ProcessType, ProcessData: na.ProcessData}
-		}
-		return signierung.Event, nachsignierung, nil
+		return evt, nil
 	})
 	if err != nil {
 		if errors.Is(err, ErrDatabase) || errors.Is(err, db.ErrDatabase) {
@@ -228,11 +173,7 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		return 0, err
 	}
 
-	msg := "Kassensitzung eroeffnet"
-	if nachsigniert {
-		msg += " (unsigniert, Nachsignierung vorgemerkt)"
-	}
-	log.Info().Int("z_nr", zNr).Msg(msg)
+	log.Info().Int("z_nr", zNr).Msg("Kassensitzung eroeffnet")
 	if ohneTSE {
 		log.Warn().Int("z_nr", zNr).Msg("Kassensitzung ohne TSE-Konfiguration eroeffnet; Vorgaenge werden nicht signiert")
 	}
@@ -254,11 +195,6 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 		return err
 	}
 
-	signierung, err := c.signGeldtransitGebuchtEvent(ctx, evt, richtung, betragCents)
-	if err != nil {
-		return err
-	}
-
 	// Geldtransit validiert keinen Stream-Zustand (reines Anhängen); die Version wird
 	// erst unmittelbar vor dem Schreiben bestimmt.
 	maxVersion, err := c.KassenjournalRepo.GetMaxVersion(ctx, kasse.KassensitzungSubject(ks.ZNr))
@@ -267,15 +203,11 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 		return ErrDatabase
 	}
 
-	if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr, maxVersion); err != nil {
+	if err := c.writeKassensitzungEvent(ctx, evt, ks.ZNr, maxVersion); err != nil {
 		return err
 	}
 
-	msg := "Geldtransit gebucht"
-	if signierung.NachsignierAuftrag != nil {
-		msg += " (unsigniert, Nachsignierung vorgemerkt)"
-	}
-	log.Info().Int("z_nr", ks.ZNr).Str("richtung", richtung).Int("betrag_cents", betragCents).Msg(msg)
+	log.Info().Int("z_nr", ks.ZNr).Str("richtung", richtung).Int("betrag_cents", betragCents).Msg("Geldtransit gebucht")
 	return nil
 }
 
@@ -385,11 +317,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 			log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create differenz-soll-ist-gebucht event")
 			return err
 		}
-		signierung, err := c.signDifferenzSollIstGebuchtEvent(ctx, diffEvt, differenzCents)
-		if err != nil {
-			return err
-		}
-		if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr, expectedVersion); err != nil {
+		if err := c.writeKassensitzungEvent(ctx, diffEvt, ks.ZNr, expectedVersion); err != nil {
 			return err
 		}
 		expectedVersion++
@@ -415,22 +343,14 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create tagesabschluss-erstellt event")
 		return err
 	}
-	signierung, err := c.signTagesabschlussErstelltEvent(ctx, tagesabschlussEvt, ks.ZNr, ks.CreatedAt, now)
-	if err != nil {
-		return err
-	}
-	if err := c.writeSignedKassensitzungEvent(ctx, signierung, ks.ZNr, expectedVersion); err != nil {
+	if err := c.writeKassensitzungEvent(ctx, tagesabschlussEvt, ks.ZNr, expectedVersion); err != nil {
 		return err
 	}
 
-	msg := "Kasse abgeschlossen"
-	if signierung.NachsignierAuftrag != nil {
-		msg += " (Tagesabschluss unsigniert, Nachsignierung vorgemerkt)"
-	}
 	log.Info().Int("z_nr", ks.ZNr).
 		Int("soll_cents", sollBestandCents).
 		Int("ist_cents", istBestandCents).
 		Int("differenz_cents", differenzCents).
-		Msg(msg)
+		Msg("Kasse abgeschlossen")
 	return nil
 }

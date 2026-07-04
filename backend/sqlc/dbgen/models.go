@@ -310,7 +310,7 @@ type Kassenjournal struct {
 	KassensitzungNr int
 }
 
-// CRUD entity for Kassensitzung lifecycle. Each row represents one Kassensitzung (one Betriebstag). The z_nr is the DSFinV-K-compliant sequential number.
+// CRUD entity for Kassensitzung lifecycle. Each row represents one Kassensitzung (one Betriebstag). The z_nr is the DSFinV-K Z_NR: strictly ascending via identity sequence; failed inserts may leave gaps.
 type Kassensitzungen struct {
 	// Fortlaufende Kassensitzungsnummer (Z_NR), DSFinV-K-Pflichtfeld
 	ZNr int
@@ -420,49 +420,48 @@ type TseKonfiguration struct {
 	UpdatedAt time.Time
 }
 
-// Technische Outbox fuer Nachsignierung bei TSE-Ausfall. Dient zugleich als TSE-Ausfalldokumentation (AEAO zu § 146a, 1.14.1): erstellt_am = Beginn, erledigt_am = Ende, letzter_fehler = Grund.
-type TseNachsignierAuftraege struct {
+// Transaktionale Outbox der TSE-Signierung: Jeder signaturpflichtige Vorgang schreibt im selben Commit genau einen Auftrag; der Signatur-Worker quittiert die Signatur direkt am Auftrag. Dient zugleich als TSE-Ausfalldokumentation (AEAO zu § 146a, 1.14.1). Aufbewahrungspflichtig, kein DELETE (GoBD).
+type TseSignaturauftraege struct {
 	ID int
-	// Deterministische TSE-Transaktions-ID pro Vorgang.
+	// Kassenjournal-Event des Vorgangs (genau ein Auftrag je Event; kein Auftrag = nicht signaturpflichtig).
+	EventID int
+	// Zufaellige TSE-Transaktions-ID (UUIDv4), beim Einreihen vergeben.
 	TxID string
-	// fiskaly process_type, z. B. Kassenbeleg-V1.
+	// fiskaly process_type, z. B. Kassenbeleg-V1 (Snapshot beim Einreihen).
 	ProcessType string
-	// fiskaly process_data fuer die Nachsignierung.
+	// fiskaly process_data (Snapshot beim Einreihen).
 	ProcessData string
-	// Nachsignierstatus: offen -> erledigt | fehlgeschlagen (nach max. Versuchen) -> verworfen oder zurueck auf offen.
+	// Auftragsstatus: offen -> erledigt | fehlgeschlagen (nach max. Versuchen) | tse_nicht_konfiguriert (endgueltig markiert) | verworfen; Admin setzt fehlgeschlagen/tse_nicht_konfiguriert auf offen zurueck.
 	Status string
-	// Anzahl fehlgeschlagener Nachsignier-Versuche; ab dem Maximum wird der Auftrag fehlgeschlagen.
+	// Anzahl fehlgeschlagener Signierversuche; ab dem Maximum wird der Auftrag fehlgeschlagen.
 	Versuche int
 	// Fehlertext des letzten Fehlversuchs (NULL solange kein Fehler auftrat).
 	LetzterFehler sql.NullString
-	// Fruehester Zeitpunkt des naechsten Versuchs (exponentielles Backoff).
+	// Fruehester Zeitpunkt des naechsten Versuchs (Backoff).
 	NaechsterVersuchAm time.Time
 	ErstelltAm         time.Time
-	ErledigtAm         sql.NullTime
-}
-
-// Signatur-Seitentabelle fuer nachsignierte Vorgaenge (Happy Path bleibt im Event).
-type TseSignaturen struct {
-	// Technischer Primaerschluessel.
-	ID int
-	// Deterministische TSE-Transaktions-ID (1:1 zu einem fiskalischen Vorgang).
-	TxID string
+	// Zeitpunkt der Quittierung (UTC).
+	ErledigtAm sql.NullTime
+	// Begruendung des Verwerfens (protokollierter Statuswechsel).
+	VerworfenGrund sql.NullString
+	// Benutzer, der den Auftrag verworfen hat.
+	VerworfenVon sql.NullString
+	// Zeitpunkt des Verwerfens (UTC).
+	VerworfenAm sql.NullTime
 	// TSE-Transaktionsnummer aus der TSE-Antwort.
-	TransaktionNummer int
+	TransaktionNummer sql.NullInt32
 	// Signaturzaehler der TSE aus der TSE-Antwort.
-	SignaturZaehler int
+	SignaturZaehler sql.NullInt32
 	// Seriennummer der TSE, die den Vorgang signiert hat.
-	TseSeriennummer string
+	TseSeriennummer sql.NullString
 	// TSE-logTime des Vorgangsbeginns (UTC).
-	LogTimeStart time.Time
+	LogTimeStart sql.NullTime
 	// TSE-logTime des Vorgangsendes (UTC).
-	LogTimeEnd time.Time
+	LogTimeEnd sql.NullTime
 	// TSE-Signatur aus der TSE-Antwort.
-	Signatur string
+	Signatur sql.NullString
 	// DSFinV-K QR-Code-Daten aus der TSE-Antwort.
-	QrCodeData string
-	// Zeitpunkt der Nachsignierung (UTC).
-	ErstelltAm time.Time
+	QrCodeData sql.NullString
 }
 
 // TSE-Stammdaten (Singleton). Fiskalische Stammdaten der TSS fuer den DSFinV-K-Export (tse.csv); bei der Einrichtung von fiskaly gelesen.

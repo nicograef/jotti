@@ -11,26 +11,29 @@ import (
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	e "github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
-// buildDruckDaten baut das volle Szenario, signiert es mit der Fake-TSE und erzeugt die
+// buildDruckDaten baut das volle Szenario, spielt die Fake-TSE nach und erzeugt die
 // Druckauftrags-Historie.
-func buildDruckDaten(t *testing.T) (szenario, seedDaten, []druckauftragZeile) {
+func buildDruckDaten(t *testing.T) (szenario, seedDaten, map[int]*tse.Signatur, []druckauftragZeile) {
 	t.Helper()
 	s := demoSzenario()
 	daten, err := buildSeedDaten(s, testJetzt)
 	if err != nil {
 		t.Fatalf("buildSeedDaten: %v", err)
 	}
-	if _, err := signiereEvents(daten.Events, ausfallFensterAus(s, testJetzt)); err != nil {
-		t.Fatalf("signiereEvents: %v", err)
+	signaturauftraege, err := baueSignaturauftraege(daten.Events, ausfallFensterAus(s, testJetzt))
+	if err != nil {
+		t.Fatalf("baueSignaturauftraege: %v", err)
 	}
-	auftraege, err := baueDruckauftraege(s, daten.Events, testJetzt)
+	signaturen := signaturenNachEventID(signaturauftraege)
+	auftraege, err := baueDruckauftraege(s, daten.Events, signaturen, testJetzt)
 	if err != nil {
 		t.Fatalf("baueDruckauftraege: %v", err)
 	}
-	return s, daten, auftraege
+	return s, daten, signaturen, auftraege
 }
 
 // TestDemoSzenario_Druckstationen prüft die Drehbuch-Konfiguration: alle fünf Stationen mit
@@ -66,7 +69,7 @@ func TestDemoSzenario_Druckstationen(t *testing.T) {
 // offene nur im Relay-Abholfenster, fehlgeschlagene mit ausgeschöpften Versuchen und
 // Fehlertext in einem Drucker-Ausfallfenster, genau einer verworfen.
 func TestBaueDruckauftraege_StatusVerteilung(t *testing.T) {
-	s, _, auftraege := buildDruckDaten(t)
+	s, _, _, auftraege := buildDruckDaten(t)
 	fenster := druckerFensterAus(s, testJetzt)
 
 	statusZahl := map[string]int{}
@@ -141,9 +144,10 @@ func TestBaueDruckauftraege_StatusVerteilung(t *testing.T) {
 // TestBaueDruckauftraege_ReferenzenUndPayloads prüft die fachliche Konsistenz: Jede Referenz
 // verweist auf das Event mit passendem Typ und passender ID, jede Bestellung und jeder
 // Direktverkauf hat Arbeits- bzw. Abholbons, und die Payloads sind echte ESC/POS-Bytes —
-// Kassenbelege inklusive Betreiber, Gesamtsumme und TSE-QR-Daten aus den signierten Events.
+// Kassenbelege inklusive Betreiber, Gesamtsumme und TSE-QR-Daten aus den Signaturspalten
+// des Auftrags. Vorgänge ohne quittierte Signatur erhalten keinen Kassenbeleg-Druckauftrag.
 func TestBaueDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
-	s, daten, auftraege := buildDruckDaten(t)
+	s, daten, signaturen, auftraege := buildDruckDaten(t)
 
 	abholbonIP := ""
 	for _, st := range s.Druckstationen {
@@ -185,8 +189,8 @@ func TestBaueDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 	}
 
 	belege := 0
-	belegeMitTSE := 0
-	belegeMitVermerk := 0
+	belegeNachsigniert := 0
+	fenster := ausfallFensterAus(s, testJetzt)
 	for _, ev := range daten.Events {
 		evt := ev.event
 		switch kasse.EventType(evt.Type) {
@@ -206,6 +210,18 @@ func TestBaueDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 		}
 		belege++
 
+		signatur := signaturen[evt.ID]
+		if signatur == nil {
+			t.Errorf("Kassenbeleg %s zu einem Vorgang ohne quittierte Signatur", beleg.Referenz)
+			continue
+		}
+		if fensterFuer(fenster, evt.Time) != nil {
+			belegeNachsigniert++
+			if beleg.ErstelltAm.Before(signatur.LogTimeEnd) {
+				t.Errorf("Kassenbeleg %s: erstellt_am %v vor der nachgetragenen Signatur %v", beleg.Referenz, beleg.ErstelltAm, signatur.LogTimeEnd)
+			}
+		}
+
 		payload, err := base64.StdEncoding.DecodeString(beleg.Payload)
 		if err != nil {
 			t.Fatalf("Kassenbeleg %s: Payload kein gültiges Base64", beleg.Referenz)
@@ -216,29 +232,43 @@ func TestBaueDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 				t.Errorf("Kassenbeleg %s: Payload ohne %q", beleg.Referenz, erwartet)
 			}
 		}
-
-		felder := parseData[tseFelder](t, evt)
-		if felder.Data != nil {
-			belegeMitTSE++
-			if !strings.Contains(text, felder.Data.QRCodeData) {
-				t.Errorf("Kassenbeleg %s: Payload ohne TSE-QR-Daten des Events", beleg.Referenz)
-			}
-		} else {
-			belegeMitVermerk++
-			if !strings.Contains(text, "TSE-Hinweis") {
-				t.Errorf("Kassenbeleg %s: unsignierter Vorgang ohne TSE-Ausfallvermerk", beleg.Referenz)
-			}
+		if !strings.Contains(text, signatur.QRCodeData) {
+			t.Errorf("Kassenbeleg %s: Payload ohne TSE-QR-Daten des Auftrags", beleg.Referenz)
 		}
 	}
 
 	if belege == 0 {
 		t.Fatal("kein Kassenbeleg-Druckauftrag im Szenario")
 	}
-	if belegeMitTSE == 0 {
-		t.Error("kein Kassenbeleg mit TSE-Abschnitt")
+	if belegeNachsigniert == 0 {
+		t.Error("kein Kassenbeleg mit nachgetragener Signatur (Beleg zum aufgelösten TSE-Ausfallfenster fehlt)")
 	}
-	if belegeMitVermerk == 0 {
-		t.Error("kein Kassenbeleg mit TSE-Ausfallvermerk (Beleg im TSE-Ausfallfenster fehlt)")
+}
+
+// TestKassenbeleg_OhneSignaturKeinDruckauftrag prüft den Ausstehend-Fall: Zu einem Vorgang
+// ohne quittierte Signatur entsteht kein Kassenbeleg-Druckauftrag — der Beleg-Abruf hätte
+// „ausstehend" geantwortet.
+func TestKassenbeleg_OhneSignaturKeinDruckauftrag(t *testing.T) {
+	_, daten, signaturen, _ := buildDruckDaten(t)
+
+	var unsigniert *e.Event
+	for i := range daten.Events {
+		evt := daten.Events[i].event
+		typ := kasse.EventType(evt.Type)
+		if (typ == kasse.EventTypeZahlungKassiertV1 || typ == kasse.EventTypeDirektverkaufGetaetigtV1) && signaturen[evt.ID] == nil {
+			unsigniert = &evt
+			break
+		}
+	}
+	if unsigniert == nil {
+		t.Fatal("kein unsignierter Zahlungs- oder Direktverkaufs-Vorgang im Szenario")
+	}
+
+	b := &bondruckBauer{signaturen: signaturen}
+	if _, ok, err := b.kassenbeleg(*unsigniert); err != nil {
+		t.Fatalf("kassenbeleg: %v", err)
+	} else if ok {
+		t.Error("kassenbeleg lieferte einen Druckauftrag trotz fehlender Signatur")
 	}
 }
 

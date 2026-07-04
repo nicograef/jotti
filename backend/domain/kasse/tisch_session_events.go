@@ -27,8 +27,6 @@ type BestellungAufgenommenV1Data struct {
 	Positionen       []PositionEventData `json:"positionen"`
 	GesamtPreisCents int                 `json:"gesamtPreisCents"`
 	Kommentar        string              `json:"kommentar"`
-	TSETxID          string              `json:"tseTxId,omitempty"`
-	TSEData          *TSEData            `json:"tseData,omitempty"`
 }
 
 var bestellungAufgenommenV1DataSchema = z.Struct(z.Shape{
@@ -43,9 +41,6 @@ type ZahlungKassiertV1Data struct {
 	Positionen         []PositionEventData `json:"positionen"`
 	GesamtZahlungCents int                 `json:"gesamtZahlungCents"`
 	Kommentar          string              `json:"kommentar"`
-	TSETxID            string              `json:"tseTxId,omitempty"`
-	TSEData            *TSEData            `json:"tseData,omitempty"`
-	TSEAusfall         bool                `json:"tseAusfall,omitempty"`
 }
 
 var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
@@ -66,8 +61,6 @@ type StornierungErteiltV1Data struct {
 	Positionen             []PositionEventData `json:"positionen"`
 	GesamtStornierungCents int                 `json:"gesamtStornierungCents"`
 	Kommentar              string              `json:"kommentar"`
-	TSETxID                string              `json:"tseTxId,omitempty"`
-	TSEData                *TSEData            `json:"tseData,omitempty"`
 }
 
 var stornierungErteiltV1DataSchema = z.Struct(z.Shape{
@@ -87,8 +80,6 @@ type BestellungKorrigiertV1Data struct {
 	Positionen  []PositionEventData `json:"positionen"`
 	GesamtCents int                 `json:"gesamtCents"`
 	Kommentar   string              `json:"kommentar"`
-	TSETxID     string              `json:"tseTxId,omitempty"`
-	TSEData     *TSEData            `json:"tseData,omitempty"`
 }
 
 var bestellungKorrigiertV1DataSchema = z.Struct(z.Shape{
@@ -110,8 +101,6 @@ type BestellungUmgebuchtV1Data struct {
 	Positionen   []PositionEventData `json:"positionen"`
 	GesamtCents  int                 `json:"gesamtCents"`
 	Kommentar    string              `json:"kommentar"`
-	TSETxID      string              `json:"tseTxId,omitempty"`
-	TSEData      *TSEData            `json:"tseData,omitempty"`
 }
 
 var bestellungUmgebuchtV1DataSchema = z.Struct(z.Shape{

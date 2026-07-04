@@ -3,7 +3,6 @@ package kasse
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	e "github.com/nicograef/jotti/backend/domain/event"
@@ -37,9 +36,7 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, neuePositionen)
 		state.AusstehendePositionen = accumulatePositionen(state.AusstehendePositionen, neuePositionen)
 
-		if err := setErsteBestellungLogTime(&state, data.TSEData, evt.Time); err != nil {
-			return state, err
-		}
+		setErsteBestellungLogTime(&state, evt.Time)
 
 	case string(EventTypeZahlungKassiertV1):
 		var data ZahlungKassiertV1Data
@@ -109,9 +106,7 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 			state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, neuePositionen)
 			state.AusstehendePositionen = accumulatePositionen(state.AusstehendePositionen, neuePositionen)
 
-			if err := setErsteBestellungLogTime(&state, data.TSEData, evt.Time); err != nil {
-				return state, err
-			}
+			setErsteBestellungLogTime(&state, evt.Time)
 		}
 
 	case string(EventTypeAusgabeBestaetigtV1):
@@ -136,25 +131,16 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 }
 
 // setErsteBestellungLogTime stempelt den Zeitpunkt der ersten Bestellung auf den
-// Tisch, sofern noch nicht gesetzt. AEAO 1.14.3: Liegt keine TSE-logTime vor (z. B.
-// TSE-Ausfall bei der ersten Bestellung), stellt das Aufzeichnungssystem den
-// Zeitpunkt — Fallback auf die Event-Zeit. Eine Umbuchung auf einen leeren Zieltisch
-// zählt dabei wie eine erste Bestellung.
-func setErsteBestellungLogTime(state *TischSession, tseData *TSEData, eventTime time.Time) error {
+// Tisch, sofern noch nicht gesetzt. AEAO 1.14.3: Das Aufzeichnungssystem stellt
+// den Zeitpunkt (die TSE-Signatur entsteht asynchron ueber den Signaturauftrag).
+// Eine Umbuchung auf einen leeren Zieltisch zaehlt wie eine erste Bestellung.
+func setErsteBestellungLogTime(state *TischSession, eventTime time.Time) {
 	if state.ErsteBestellungLogTime != nil {
-		return nil
+		return
 	}
 
 	logTime := eventTime.UTC()
-	if tseData != nil && strings.TrimSpace(tseData.LogTimeStart) != "" {
-		parsed, err := time.Parse(time.RFC3339, strings.TrimSpace(tseData.LogTimeStart))
-		if err != nil {
-			return fmt.Errorf("parse erste bestellung log time: %w", err)
-		}
-		logTime = parsed.UTC()
-	}
 	state.ErsteBestellungLogTime = &logTime
-	return nil
 }
 
 // ComputeNichtStorniertePositionen replays events to compute all positions that were ordered

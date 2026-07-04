@@ -48,14 +48,6 @@ type MockRepo struct {
 	tischSessionErr error
 	kassenbestand   int                                   // configurable return value for GetKassenbestand
 	druckauftraege  []druckauftrag_repo.NeuerDruckauftrag // captured via WriteEventWithDruckauftraege
-	nachsignier     []NachsignierAuftrag                  // captured via WriteEventWithNachsignierAuftrag
-	signaturen      map[string]kasse.TSEData              // lookup map for GetTSESignaturByTxID
-}
-
-type NachsignierAuftrag struct {
-	TxID        string
-	ProcessType string
-	ProcessData string
 }
 
 // versionConflict mirrors the UNIQUE(subject, version) constraint of the kassenjournal.
@@ -70,7 +62,7 @@ func (m *MockRepo) versionConflict(e event.Event) bool {
 
 // EroeffneKassensitzung mirrors the atomic open: assigns the next z_nr, runs build,
 // and stores the event. NextZNr configures the assigned number (default 1).
-func (m *MockRepo) EroeffneKassensitzung(ctx context.Context, _ time.Time, _ string, build func(zNr int) (event.Event, *TSENachsignierung, error)) (int, error) {
+func (m *MockRepo) EroeffneKassensitzung(ctx context.Context, _ time.Time, _ string, build func(zNr int) (event.Event, error)) (int, error) {
 	if m.err != nil {
 		return 0, m.err
 	}
@@ -78,15 +70,12 @@ func (m *MockRepo) EroeffneKassensitzung(ctx context.Context, _ time.Time, _ str
 	if zNr == 0 {
 		zNr = 1
 	}
-	evt, nachsignierung, err := build(zNr)
+	evt, err := build(zNr)
 	if err != nil {
 		return 0, err
 	}
 	if _, err := m.WriteEvent(ctx, evt, kasse.StreamTypeKassensitzung, zNr); err != nil {
 		return 0, err
-	}
-	if nachsignierung != nil {
-		m.nachsignier = append(m.nachsignier, NachsignierAuftrag(*nachsignierung))
 	}
 	return zNr, nil
 }
@@ -117,39 +106,7 @@ func (m *MockRepo) WriteEventWithDruckauftraege(ctx context.Context, e event.Eve
 	return id, nil
 }
 
-func (m *MockRepo) WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error) {
-	id, err := m.WriteEvent(ctx, e, streamType, kassensitzungNr)
-	if err != nil {
-		return 0, err
-	}
-
-	m.nachsignier = append(m.nachsignier, NachsignierAuftrag{
-		TxID:        txID,
-		ProcessType: processType,
-		ProcessData: processData,
-	})
-
-	return id, nil
-}
-
-func (m *MockRepo) WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error) {
-	id, err := m.WriteEvent(ctx, e, streamType, kassensitzungNr)
-	if err != nil {
-		return 0, err
-	}
-
-	e.ID = id
-	m.druckauftraege = append(m.druckauftraege, buildAuftraege(e)...)
-	m.nachsignier = append(m.nachsignier, NachsignierAuftrag{
-		TxID:        txID,
-		ProcessType: processType,
-		ProcessData: processData,
-	})
-
-	return id, nil
-}
-
-func (m *MockRepo) WriteTischSessionEventsAtomic(_ context.Context, events []event.Event, nachsignierungen []TSENachsignierung, _ int) error {
+func (m *MockRepo) WriteTischSessionEventsAtomic(_ context.Context, events []event.Event, _ int) error {
 	if m.writeErr != nil {
 		return m.writeErr
 	}
@@ -166,40 +123,16 @@ func (m *MockRepo) WriteTischSessionEventsAtomic(_ context.Context, events []eve
 		m.events[newID] = evt
 	}
 
-	for _, ns := range nachsignierungen {
-		m.nachsignier = append(m.nachsignier, NachsignierAuftrag(ns))
-	}
-
 	return nil
 }
 
-func (m *MockRepo) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, nachsignierungen []TSENachsignierung, kassensitzungNr int) error {
-	return m.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, nachsignierungen, kassensitzungNr)
+func (m *MockRepo) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
+	return m.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
 }
 
 // CapturedDruckauftraege returns the print jobs produced via WriteEventWithDruckauftraege.
 func (m *MockRepo) CapturedDruckauftraege() []druckauftrag_repo.NeuerDruckauftrag {
 	return m.druckauftraege
-}
-
-func (m *MockRepo) CapturedNachsignierAuftraege() []NachsignierAuftrag {
-	return m.nachsignier
-}
-
-func (m *MockRepo) SetTSESignatur(txID string, data kasse.TSEData) {
-	if m.signaturen == nil {
-		m.signaturen = make(map[string]kasse.TSEData)
-	}
-	m.signaturen[txID] = data
-}
-
-func (m *MockRepo) GetTSESignaturByTxID(_ context.Context, txID string) (kasse.TSEData, error) {
-	if m.signaturen != nil {
-		if data, ok := m.signaturen[txID]; ok {
-			return data, nil
-		}
-	}
-	return kasse.TSEData{}, db.ErrNotFound
 }
 
 func (m *MockRepo) GetMaxVersion(_ context.Context, subject string) (int, error) {

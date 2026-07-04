@@ -18,14 +18,6 @@ import (
 // verständlich, statt ein defektes Archiv zu liefern.
 var ErrKeineVorgaenge = errors.New("kassensitzung enthält keine vorgänge")
 
-// SignaturNachladen liefert die nachsignierte TSE-Signatur eines Vorgangs über
-// seine tx_id aus der Seitentabelle. Der reine Mapper kennt kein I/O; der
-// Orchestrator reicht diese Lesefunktion herein. Ein nil-Ergebnis ohne Fehler
-// bedeutet: noch nicht nachsigniert (der Vorgang erscheint dann nicht in
-// transactions_tse.csv). Eine nil-Funktion bedeutet: keine Seitentabelle zur
-// Hand, ein unsignierter Vorgang bleibt ohne Signatur.
-type SignaturNachladen func(txID string) (*kasse.TSEData, error)
-
 // Feste DSFinV-K-Ausprägungen und jotti-Kassenidentität.
 const (
 	bonTypBeleg      = "Beleg"        // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
@@ -85,9 +77,9 @@ type beleg struct {
 	bedienerName     string
 	positionen       []kasse.PositionEventData
 	bruttoCents      int
-	tse              *kasse.TSEData
-	tseTxID          string // tx_id zum Nachladen der Signatur aus der Seitentabelle (TSE-Ausfall, später nachsigniert)
-	processType      string // TSE_TA_VORGANGSART, aus dem Event-Typ abgeleitet (gilt auch für nachsignierte Vorgänge)
+	tsePflichtig     bool          // signaturpflichtig (es existiert ein Signaturauftrag zum Event)
+	tse              *tse.Signatur // Signatur vom Auftrag; nil solange unsigniert
+	processType      string        // TSE_TA_VORGANGSART, der process_type-Snapshot des Auftrags
 	notiz            string
 }
 
@@ -143,20 +135,17 @@ func (b *beleg) ustAufteilung() []ustBetrag {
 // Bargeldbewegungen (Anfangsbestand, Geldtransit, Kassendifferenz).
 // Das Kassenabschlussmodul (businesscases, payment, cash_per_currency) aggregiert
 // dieselben Belege je GV-Typ und Zahlart.
-// signaturNachladen vereinigt während eines TSE-Ausfalls unsigniert persistierte
-// Vorgänge mit ihrer später nachsignierten Signatur (Seitentabelle).
-func Map(snapshot Snapshot, events []event.Event, signaturNachladen SignaturNachladen) (Archive, error) {
+// signaturen ist der Signatur-Stand je Event-ID aus der Signaturauftrags-Tabelle
+// (die einzige Signaturquelle); Events ohne Eintrag sind nicht signaturpflichtig.
+func Map(snapshot Snapshot, events []event.Event, signaturen map[int]EventSignatur) (Archive, error) {
 	erstellung := snapshot.Erstellung.UTC().Format(time.RFC3339)
 
-	belege, err := belegeFromEvents(events, snapshot.Tischnamen)
+	belege, err := belegeFromEvents(events, snapshot.Tischnamen, signaturen)
 	if err != nil {
 		return Archive{}, err
 	}
 	if len(belege) == 0 {
 		return Archive{}, ErrKeineVorgaenge
-	}
-	if err := nachsigniereBelege(belege, signaturNachladen); err != nil {
-		return Archive{}, err
 	}
 
 	// Alle 20 amtlich deklarierten Dateien in der Reihenfolge der amtlichen
@@ -198,7 +187,8 @@ func Map(snapshot Snapshot, events []event.Event, signaturNachladen SignaturNach
 // Negativ-Beleg mit Referenz auf den Ursprungsverkauf. Der `tagesabschluss-erstellt`
 // wird ein geldneutraler `AVSonstige`-Bon, der allein seine TSE-Signatur in den Export
 // trägt. BON_NR wird fortlaufend vergeben; BON_ID ist die jeweilige Vorgangs-ID.
-func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg, error) {
+// Jeder Beleg erhält den TSE-Stand seines Events aus signaturen (Signaturauftrag).
+func belegeFromEvents(events []event.Event, tischnamen map[int]string, signaturen map[int]EventSignatur) ([]beleg, error) {
 	var belege []beleg
 	bonNr := 0
 	// herkunft bildet jede PositionID auf die BON_ID ihrer Bestellung ab.
@@ -231,8 +221,6 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtPreisCents,
-				tse:              data.TSEData,
-				tseTxID:          data.TSETxID,
 				notiz:            data.Kommentar,
 			})
 
@@ -255,8 +243,6 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtZahlungCents,
-				tse:              data.TSEData,
-				tseTxID:          data.TSETxID,
 				notiz:            data.Kommentar,
 			})
 
@@ -285,8 +271,6 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtStornierungCents,
-				tse:              data.TSEData,
-				tseTxID:          data.TSETxID,
 				notiz:            data.Kommentar,
 			})
 
@@ -313,8 +297,6 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtCents,
-				tse:              data.TSEData,
-				tseTxID:          data.TSETxID,
 				notiz:            data.Kommentar,
 			})
 
@@ -342,8 +324,6 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtCents,
-				tse:              data.TSEData,
-				tseTxID:          data.TSETxID,
 				notiz:            data.Kommentar,
 			}
 			if tischID == data.QuellTischID {
@@ -377,8 +357,6 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bedienerName: ev.UserName,
 				positionen:   data.Positionen,
 				bruttoCents:  data.GesamtbetragCents,
-				tse:          data.TSEData,
-				tseTxID:      data.TSETxID,
 				notiz:        data.Kommentar,
 			})
 
@@ -402,8 +380,6 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				bedienerName: ev.UserName,
 				positionen:   data.Positionen,
 				bruttoCents:  data.GesamtStornierungCents,
-				tse:          data.TSEData,
-				tseTxID:      data.TSETxID,
 				notiz:        data.Kommentar,
 			})
 
@@ -418,7 +394,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				continue
 			}
 			bonNr++
-			belege = append(belege, geldbewegung(ev, fmt.Sprintf("anfangsbestand-%d", ev.ID), bonNr, gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung, data.TSETxID, data.TSEData))
+			belege = append(belege, geldbewegung(ev, fmt.Sprintf("anfangsbestand-%d", ev.ID), bonNr, gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung))
 
 		case string(kasse.EventTypeGeldtransitGebuchtV1):
 			var data kasse.GeldtransitGebuchtV1Data
@@ -426,7 +402,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				return nil, fmt.Errorf("unmarshal geldtransit-gebucht (event %d): %w", ev.ID, err)
 			}
 			bonNr++
-			belege = append(belege, geldbewegung(ev, data.BewegungID, bonNr, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar, data.TSETxID, data.TSEData))
+			belege = append(belege, geldbewegung(ev, data.BewegungID, bonNr, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar))
 
 		case string(kasse.EventTypeDifferenzSollIstGebuchtV1):
 			var data kasse.DifferenzSollIstGebuchtV1Data
@@ -436,7 +412,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 			// BetragCents = Soll − Ist: ein positiver Wert ist ein Fehlbetrag
 			// (Bargeld fehlt, Bestand mindern), ein negativer ein Überschuss.
 			bonNr++
-			belege = append(belege, geldbewegung(ev, fmt.Sprintf("differenz-soll-ist-%d", ev.ID), bonNr, gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, "", data.TSETxID, data.TSEData))
+			belege = append(belege, geldbewegung(ev, fmt.Sprintf("differenz-soll-ist-%d", ev.ID), bonNr, gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, ""))
 
 		case string(kasse.EventTypeTagesabschlussErstelltV1):
 			var data kasse.TagesabschlussErstelltV1Data
@@ -457,72 +433,20 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string) ([]beleg,
 				ende:         zeit(ev),
 				bedienerID:   ev.UserID,
 				bedienerName: ev.UserName,
-				tse:          data.TSEData,
-				tseTxID:      data.TSETxID,
 			})
 		}
-		// Jeder in dieser Iteration erzeugte Beleg trägt die Vorgangsart seines
-		// Events. So exportieren auch nachsignierte Vorgänge, deren Seitentabelle
-		// keinen processType kennt, die korrekte TSE_TA_VORGANGSART (B1).
-		vorgangsart := tseVorgangsart(ev.Type)
+		// Jeder in dieser Iteration erzeugte Beleg trägt den TSE-Stand seines
+		// Events aus der Signaturauftrags-Tabelle: Signaturpflicht, Signatur und
+		// TSE_TA_VORGANGSART (process_type-Snapshot) kommen aus genau einer Quelle.
+		sig, pflichtig := signaturen[ev.ID]
 		for i := vorher; i < len(belege); i++ {
-			belege[i].processType = vorgangsart
+			belege[i].tsePflichtig = pflichtig
+			belege[i].tse = sig.Signatur
+			belege[i].processType = sig.ProcessType
 		}
 	}
 
 	return belege, nil
-}
-
-// tseVorgangsart spiegelt für den Export das Event-Typ→processType-Mapping des
-// Signierpfads (die tse_signing.go der Anwendungsschichten). Sie liefert die
-// TSE_TA_VORGANGSART damit unabhängig davon, ob die Signatur im Event-Payload
-// steckt oder aus der Seitentabelle nachgeladen wurde (die keinen processType
-// führt). Nicht TSE-pflichtige Event-Typen liefern "".
-func tseVorgangsart(eventTyp string) string {
-	switch eventTyp {
-	case string(kasse.EventTypeBestellungAufgenommenV1),
-		string(kasse.EventTypeBestellungKorrigiertV1),
-		string(kasse.EventTypeBestellungUmgebuchtV1):
-		return tse.ProcessTypeBestellungV1
-	case string(kasse.EventTypeTagesabschlussErstelltV1):
-		return tse.ProcessTypeSonstigerVorgang
-	case string(kasse.EventTypeZahlungKassiertV1),
-		string(kasse.EventTypeStornierungErteiltV1),
-		string(kasse.EventTypeDirektverkaufGetaetigtV1),
-		string(kasse.EventTypeDirektverkaufStorniertV1),
-		string(kasse.EventTypeKassensitzungEroeffnetV1),
-		string(kasse.EventTypeGeldtransitGebuchtV1),
-		string(kasse.EventTypeDifferenzSollIstGebuchtV1):
-		return tse.ProcessTypeKassenbelegV1
-	default:
-		return ""
-	}
-}
-
-// nachsigniereBelege vereinigt die TSE-Signaturen je Beleg (Vorgang): liegt im
-// Event-Payload keine Signatur vor (während eines TSE-Ausfalls unsigniert
-// persistiert), wird sie über die tx_id aus der Seitentabelle nachgeladen. So
-// erscheinen auch nachsignierte Vorgänge vollständig in transactions_tse.csv.
-// Belege mit Signatur im Event-Payload bleiben unberührt — die Seitentabelle ist
-// reiner Fallback und wird für sie nicht gelesen. Ein Vorgang, der weder im Event
-// noch in der Seitentabelle signiert ist (noch nicht nachsigniert), bleibt ohne
-// Signatur.
-func nachsigniereBelege(belege []beleg, signaturNachladen SignaturNachladen) error {
-	if signaturNachladen == nil {
-		return nil
-	}
-	for bi := range belege {
-		b := &belege[bi]
-		if b.tse != nil || b.tseTxID == "" {
-			continue
-		}
-		nachgeladen, err := signaturNachladen(b.tseTxID)
-		if err != nil {
-			return fmt.Errorf("tse-signatur nachladen (tx %s): %w", b.tseTxID, err)
-		}
-		b.tse = nachgeladen
-	}
-	return nil
 }
 
 // geldbewegung baut einen Beleg für eine nicht-steuerbare Bargeldbewegung
@@ -531,7 +455,7 @@ func nachsigniereBelege(belege []beleg, signaturNachladen SignaturNachladen) err
 // (ARTIKELTEXT = GV-Typ, UST_SCHLUESSEL 5). betragCents ist die positive
 // Magnitude; das Vorzeichen ergibt sich aus barabfluss. Sie liegen alle auf
 // Kassensitzungsebene (kein Tischbezug), daher bleibt der Abrechnungskreis leer.
-func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragCents int, barabfluss bool, notiz string, tseTxID string, tse *kasse.TSEData) beleg {
+func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragCents int, barabfluss bool, notiz string) beleg {
 	return beleg{
 		bonID:          bonID,
 		bonNr:          bonNr,
@@ -546,8 +470,6 @@ func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragC
 		bedienerID:     ev.UserID,
 		bedienerName:   ev.UserName,
 		bruttoCents:    betragCents,
-		tse:            tse,
-		tseTxID:        tseTxID,
 		notiz:          notiz,
 	}
 }
@@ -572,6 +494,9 @@ func ursprungsbons(positionen []kasse.PositionEventData, herkunft map[string]str
 
 // zeit formatiert den Event-Zeitstempel als ISO-8601-UTC für BON_START/BON_ENDE.
 func zeit(ev event.Event) string { return ev.Time.UTC().Format(time.RFC3339) }
+
+// isoZeit formatiert eine TSE-logTime als ISO-8601-UTC (TSE_TA_START/ENDE).
+func isoZeit(t time.Time) string { return t.UTC().Format(time.RFC3339) }
 
 // Erstellungszeitpunkt liefert den Z_ERSTELLUNG-Zeitpunkt der Sitzung: bei einer
 // abgeschlossenen Sitzung die Zeit des `tagesabschluss-erstellt`-Events, sonst
@@ -1076,24 +1001,22 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 		switch {
 		case b.tse != nil:
 			// TSE_VORGANGSDATEN bleibt leer: Das Feld ist amtlich optional und die
-			// signierte processData wird nicht persistiert, also hier nicht
-			// rekonstruiert (B2). TSE_TA_VORGANGSART stammt aus dem Event-Typ (B1),
-			// nicht aus b.tse.ProcessType, damit auch nachsignierte Vorgänge greifen.
+			// signierte processData wird hier nicht rekonstruiert (B2).
+			// TSE_TA_START/ENDE sind amtlich als ISO 8601 vorgegeben.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-				b.bonID, tseReferenzID, itoa(b.tse.TransactionNumber),
-				b.tse.LogTimeStart, b.tse.LogTimeEnd, b.processType,
-				itoa(b.tse.SignatureCounter), b.tse.Signature, "",
+				b.bonID, tseReferenzID, itoa(b.tse.TransaktionNummer),
+				isoZeit(b.tse.LogTimeStart), isoZeit(b.tse.LogTimeEnd), b.processType,
+				itoa(b.tse.SignaturZaehler), b.tse.Signatur, "",
 				"",
 			})
-		case b.tseTxID != "":
-			// TSE-Ausfall ohne Nachsignierung — für jede Vorgangsart: Ein Beleg
-			// mit tx-ID, aber ohne Signatur (weder im Event noch nachsigniert)
-			// ist ein (noch) unsignierter, TSE-pflichtiger Vorgang. Statt zu
-			// fehlen trägt er eine Fehlerzeile — TSE_TA_FEHLER gesetzt, alle
-			// Transaktionsfelder leer (es gab keine abgeschlossene
-			// TSE-Transaktion) —, damit jeder Bonkopf eine TSE-Zeile hat.
-			// Ohne tx-ID wurde nie signiert (keine TSE konfiguriert): keine Zeile.
+		case b.tsePflichtig:
+			// Unsignierter, signaturpflichtiger Vorgang (Auftrag noch offen,
+			// fehlgeschlagen oder verworfen): Statt zu fehlen trägt er eine
+			// Fehlerzeile — TSE_TA_FEHLER gesetzt, alle Transaktionsfelder leer
+			// (es gab keine abgeschlossene TSE-Transaktion) —, damit jeder
+			// Bonkopf eine TSE-Zeile hat. Nicht signaturpflichtige Vorgänge
+			// (kein Auftrag) erhalten keine Zeile.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, tseReferenzID, "",
@@ -1311,7 +1234,7 @@ func tseSerial(belege []beleg) string {
 	for bi := range belege {
 		b := &belege[bi]
 		if b.tse != nil {
-			return b.tse.SerialNumberTSE
+			return b.tse.TSESeriennummer
 		}
 	}
 	return ""

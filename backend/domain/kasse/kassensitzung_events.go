@@ -32,12 +32,10 @@ func IsAbschlussEventType(eventType string) bool {
 // --- Event-Data-Structs ---
 
 type KassensitzungEroeffnetV1Data struct {
-	Datum        string   `json:"datum"`
-	Bezeichnung  string   `json:"bezeichnung"`
-	BetragCents  int      `json:"betragCents"`
-	EroeffnetVon int      `json:"eroeffnetVon"`
-	TSETxID      string   `json:"tseTxId,omitempty"`
-	TSEData      *TSEData `json:"tseData,omitempty"`
+	Datum        string `json:"datum"`
+	Bezeichnung  string `json:"bezeichnung"`
+	BetragCents  int    `json:"betragCents"`
+	EroeffnetVon int    `json:"eroeffnetVon"`
 }
 
 var kassensitzungEroeffnetV1DataSchema = z.Struct(z.Shape{
@@ -48,13 +46,11 @@ var kassensitzungEroeffnetV1DataSchema = z.Struct(z.Shape{
 })
 
 type GeldtransitGebuchtV1Data struct {
-	BewegungID  string   `json:"bewegungId"`
-	Richtung    string   `json:"richtung"` // "einlage" | "entnahme"
-	BetragCents int      `json:"betragCents"`
-	Kommentar   string   `json:"kommentar"`
-	GebuchtVon  int      `json:"gebuchtVon"`
-	TSETxID     string   `json:"tseTxId,omitempty"`
-	TSEData     *TSEData `json:"tseData,omitempty"`
+	BewegungID  string `json:"bewegungId"`
+	Richtung    string `json:"richtung"` // "einlage" | "entnahme"
+	BetragCents int    `json:"betragCents"`
+	Kommentar   string `json:"kommentar"`
+	GebuchtVon  int    `json:"gebuchtVon"`
 }
 
 var geldtransitGebuchtV1DataSchema = z.Struct(z.Shape{
@@ -80,10 +76,8 @@ var kassensturzDurchgefuehrtV1DataSchema = z.Struct(z.Shape{
 })
 
 type DifferenzSollIstGebuchtV1Data struct {
-	BetragCents int      `json:"betragCents"`
-	GebuchtVon  int      `json:"gebuchtVon"`
-	TSETxID     string   `json:"tseTxId,omitempty"`
-	TSEData     *TSEData `json:"tseData,omitempty"`
+	BetragCents int `json:"betragCents"`
+	GebuchtVon  int `json:"gebuchtVon"`
 }
 
 var differenzSollIstGebuchtV1DataSchema = z.Struct(z.Shape{
@@ -99,8 +93,6 @@ type TagesabschlussErstelltV1Data struct {
 	StornierungCents  int       `json:"stornierungCents"`
 	GeldtransitCents  int       `json:"geldtransitCents"`
 	ErstelltVon       int       `json:"erstelltVon"`
-	TSETxID           string    `json:"tseTxId,omitempty"`
-	TSEData           *TSEData  `json:"tseData,omitempty"`
 }
 
 var tagesabschlussErstelltV1DataSchema = z.Struct(z.Shape{

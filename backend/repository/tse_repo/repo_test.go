@@ -5,63 +5,190 @@ package tse_repo
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-func setupRepository(t *testing.T) (Repository, *sql.DB, func(t *testing.T)) {
+// testUmgebung haelt die Test-DB samt Kassensitzung und Benutzer: Jeder
+// Signaturauftrag referenziert ein Kassenjournal-Event (event_id NOT NULL
+// UNIQUE), daher braucht jeder Auftrag ein eigenes Event.
+type testUmgebung struct {
+	db      *sql.DB
+	userID  int
+	ksNr    int
+	version int
+}
+
+func setupRepository(t *testing.T) (Repository, *testUmgebung, func(t *testing.T)) {
 	t.Helper()
 	database := dbpkg.OpenTestDatabase()
 
 	reset := func(t *testing.T) {
 		t.Helper()
-		if _, err := database.Exec("DELETE FROM tse_signaturen"); err != nil {
-			t.Fatalf("Failed to reset tse_signaturen: %v", err)
+		stmts := []string{
+			"DELETE FROM tse_signaturauftraege",
+			"ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete",
+			"DELETE FROM kassenjournal",
+			"ALTER TABLE kassenjournal ENABLE TRIGGER kassenjournal_no_delete",
+			"DELETE FROM kassensitzungen",
+			"DELETE FROM users",
 		}
-		if _, err := database.Exec("DELETE FROM tse_nachsignier_auftraege"); err != nil {
-			t.Fatalf("Failed to reset tse_nachsignier_auftraege: %v", err)
+		for _, stmt := range stmts {
+			if _, err := database.Exec(stmt); err != nil {
+				t.Fatalf("reset %q: %v", stmt, err)
+			}
 		}
 	}
 	reset(t)
 
-	return NewRepository(database), database, func(t *testing.T) {
+	umgebung := &testUmgebung{db: database}
+	if err := database.QueryRow(
+		"INSERT INTO users (name, username, role, status, created_at, updated_at) VALUES ('Test', 'tse-repo-test', 'admin', 'active', NOW(), NOW()) RETURNING id",
+	).Scan(&umgebung.userID); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	if err := database.QueryRow(
+		"INSERT INTO kassensitzungen (datum, bezeichnung, status, created_at, updated_at) VALUES ((NOW() AT TIME ZONE 'Europe/Berlin')::date, 'Test-Sitzung', 'offen', NOW(), NOW()) RETURNING z_nr",
+	).Scan(&umgebung.ksNr); err != nil {
+		t.Fatalf("insert kassensitzung: %v", err)
+	}
+
+	return NewRepository(database), umgebung, func(t *testing.T) {
 		reset(t)
 		database.Close()
 	}
 }
 
-func insertAuftrag(t *testing.T, database *sql.DB, txID string) int {
+// insertAuftrag legt ein Kassenjournal-Event samt offenem Signaturauftrag an
+// und liefert (auftragID, eventID).
+func (u *testUmgebung) insertAuftrag(t *testing.T, txID string) (int, int) {
 	t.Helper()
-	var id int
-	err := database.QueryRow(`
-		INSERT INTO tse_nachsignier_auftraege (tx_id, process_type, process_data, status, naechster_versuch_am, erstellt_am)
-		VALUES ($1, 'Kassenbeleg-V1', 'Beleg^0.00_2.55_0.00_0.00_0.00^2.55:Bar', 'offen', NOW(), NOW())
-		RETURNING id
-	`, txID).Scan(&id)
-	if err != nil {
-		t.Fatalf("Failed to insert auftrag: %v", err)
+	u.version++
+	var eventID int
+	if err := u.db.QueryRow(
+		"INSERT INTO kassenjournal (user_id, user_name, type, subject, version, data, timestamp, kassensitzung_nr) VALUES ($1, 'Test', 'zahlung-kassiert:v1', $2, $3, '{}', NOW(), $4) RETURNING id",
+		u.userID, fmt.Sprintf("kassensitzung-%d/tisch-1", u.ksNr), u.version, u.ksNr,
+	).Scan(&eventID); err != nil {
+		t.Fatalf("insert event: %v", err)
 	}
-	return id
+
+	var auftragID int
+	if err := u.db.QueryRow(`
+		INSERT INTO tse_signaturauftraege (event_id, tx_id, process_type, process_data, status, naechster_versuch_am, erstellt_am)
+		VALUES ($1, $2, 'Kassenbeleg-V1', 'Beleg^0.00_2.55_0.00_0.00_0.00^2.55:Bar', 'offen', NOW(), NOW())
+		RETURNING id
+	`, eventID, txID).Scan(&auftragID); err != nil {
+		t.Fatalf("insert auftrag: %v", err)
+	}
+	return auftragID, eventID
+}
+
+func testSignatur(txNr int) tse.Signatur {
+	return tse.Signatur{
+		TransaktionNummer: txNr,
+		SignaturZaehler:   txNr + 1,
+		TSESeriennummer:   "TSE-SN-1",
+		LogTimeStart:      time.Date(2026, 6, 11, 12, 0, 0, 0, time.UTC),
+		LogTimeEnd:        time.Date(2026, 6, 11, 12, 0, 1, 0, time.UTC),
+		Signatur:          "SIG-1",
+		QRCodeData:        "V0;QR",
+	}
+}
+
+// Die Quittierung fuellt die Signaturspalten genau einmal (Status-Guard offen):
+// Der Auftrag wird erledigt, der Beleg-Abruf liest die Signatur vom Auftrag,
+// und eine zweite Quittierung aendert nichts mehr.
+func TestQuittiereTSESignaturauftrag_EinzelUpdateMitStatusGuard(t *testing.T) {
+	store, umgebung, teardown := setupRepository(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	auftragID, eventID := umgebung.insertAuftrag(t, "tx-quittierung")
+
+	if err := store.QuittiereTSESignaturauftrag(ctx, auftragID, testSignatur(41)); err != nil {
+		t.Fatalf("Expected no quittierung error, got %v", err)
+	}
+
+	stand, err := store.GetSignaturauftragZuEvent(ctx, eventID)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if stand.Status != StatusErledigt {
+		t.Fatalf("Expected status erledigt, got %q", stand.Status)
+	}
+	if stand.Signatur == nil || stand.Signatur.TransaktionNummer != 41 || stand.Signatur.Signatur != "SIG-1" {
+		t.Fatalf("Expected quittierte signatur at auftrag, got %+v", stand.Signatur)
+	}
+
+	// Erledigte Auftraege sind nicht mehr faellig.
+	offene, err := store.GetOffeneTSESignaturauftraege(ctx, 20)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != 0 {
+		t.Fatalf("Expected no due auftraege after quittierung, got %+v", offene)
+	}
+
+	// Zweite Quittierung ist ein No-Op (Signaturspalten genau einmal beschrieben).
+	if err := store.QuittiereTSESignaturauftrag(ctx, auftragID, testSignatur(99)); err != nil {
+		t.Fatalf("Expected no error from repeated quittierung, got %v", err)
+	}
+	stand, err = store.GetSignaturauftragZuEvent(ctx, eventID)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if stand.Signatur.TransaktionNummer != 41 {
+		t.Fatalf("Expected signature to stay at 41, got %d", stand.Signatur.TransaktionNummer)
+	}
+}
+
+// Der Beleg-Abruf unterscheidet ueber GetSignaturauftragZuEvent: kein Auftrag
+// (nicht signaturpflichtig) -> db.ErrNotFound; offener Auftrag -> Stand ohne
+// Signatur.
+func TestGetSignaturauftragZuEvent_Faelle(t *testing.T) {
+	store, umgebung, teardown := setupRepository(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	if _, err := store.GetSignaturauftragZuEvent(ctx, 999999); !errors.Is(err, dbpkg.ErrNotFound) {
+		t.Fatalf("Expected db.ErrNotFound for event without auftrag, got %v", err)
+	}
+
+	_, eventID := umgebung.insertAuftrag(t, "tx-offen-stand")
+	stand, err := store.GetSignaturauftragZuEvent(ctx, eventID)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if stand.Status != StatusOffen || stand.Signatur != nil {
+		t.Fatalf("Expected offenen stand ohne signatur, got %+v", stand)
+	}
+	if stand.ErstelltAm.IsZero() {
+		t.Fatal("Expected erstellt_am to be set")
+	}
 }
 
 // Ein Fehlversuch verschiebt den naechsten Versuch in die Zukunft (Backoff):
 // Der fehlschlagende Auftrag verschwindet aus dem Worker-Batch, ein neuerer
 // Auftrag bleibt abholbar — kein Head-of-Line-Blocking mehr.
-func TestTSENachsignierFehlversuch_BackoffBlockiertNeuereNicht(t *testing.T) {
-	store, database, teardown := setupRepository(t)
+func TestTSESignaturauftragFehlversuch_BackoffBlockiertNeuereNicht(t *testing.T) {
+	store, umgebung, teardown := setupRepository(t)
 	defer teardown(t)
 	ctx := context.Background()
 
-	fehlschlagendID := insertAuftrag(t, database, "tx-fehlschlagend")
-	neuererID := insertAuftrag(t, database, "tx-neuer")
+	fehlschlagendID, _ := umgebung.insertAuftrag(t, "tx-fehlschlagend")
+	neuererID, _ := umgebung.insertAuftrag(t, "tx-neuer")
 
-	if err := store.TSENachsignierAuftragFehlversuch(ctx, fehlschlagendID, "fiskaly timeout"); err != nil {
+	if err := store.TSESignaturauftragFehlversuch(ctx, fehlschlagendID, "fiskaly timeout"); err != nil {
 		t.Fatalf("Expected no fehlversuch error, got %v", err)
 	}
 
-	offene, err := store.GetOffeneTSENachsignierAuftraege(ctx, 20)
+	offene, err := store.GetOffeneTSESignaturauftraege(ctx, 20)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
@@ -69,7 +196,7 @@ func TestTSENachsignierFehlversuch_BackoffBlockiertNeuereNicht(t *testing.T) {
 		t.Fatalf("Expected only the newer auftrag to be due, got %+v", offene)
 	}
 
-	auftraege, err := store.GetTSENachsignierAuftraege(ctx)
+	auftraege, err := store.GetTSESignaturauftraege(ctx)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
@@ -82,43 +209,43 @@ func TestTSENachsignierFehlversuch_BackoffBlockiertNeuereNicht(t *testing.T) {
 	}
 }
 
-// Nach MaxNachsignierVersuche Fehlversuchen wechselt der Auftrag auf
+// Nach MaxSignaturVersuche Fehlversuchen wechselt der Auftrag auf
 // fehlgeschlagen; Zuruecksetzen reiht ihn wieder ein, Verwerfen beendet ihn.
-func TestTSENachsignierAuftrag_FehlgeschlagenZuruecksetzenVerwerfen(t *testing.T) {
-	store, database, teardown := setupRepository(t)
+func TestTSESignaturauftrag_FehlgeschlagenZuruecksetzenVerwerfen(t *testing.T) {
+	store, umgebung, teardown := setupRepository(t)
 	defer teardown(t)
 	ctx := context.Background()
 
-	id := insertAuftrag(t, database, "tx-dauerhaft")
+	id, _ := umgebung.insertAuftrag(t, "tx-dauerhaft")
 
-	for i := 0; i < MaxNachsignierVersuche; i++ {
-		if err := store.TSENachsignierAuftragFehlversuch(ctx, id, "fiskaly down"); err != nil {
+	for i := 0; i < MaxSignaturVersuche; i++ {
+		if err := store.TSESignaturauftragFehlversuch(ctx, id, "fiskaly down"); err != nil {
 			t.Fatalf("Expected no fehlversuch error, got %v", err)
 		}
 	}
 
-	auftraege, err := store.GetTSENachsignierAuftraege(ctx)
+	auftraege, err := store.GetTSESignaturauftraege(ctx)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
-	if len(auftraege) != 1 || auftraege[0].Status != "fehlgeschlagen" || auftraege[0].Versuche != MaxNachsignierVersuche {
+	if len(auftraege) != 1 || auftraege[0].Status != "fehlgeschlagen" || auftraege[0].Versuche != MaxSignaturVersuche {
 		t.Fatalf("Expected fehlgeschlagenen auftrag after max versuche, got %+v", auftraege)
 	}
 
 	// Ein weiterer Fehlversuch aendert nichts mehr (Status-Guard offen).
-	if err := store.TSENachsignierAuftragFehlversuch(ctx, id, "noch ein fehler"); err != nil {
+	if err := store.TSESignaturauftragFehlversuch(ctx, id, "noch ein fehler"); err != nil {
 		t.Fatalf("Expected no fehlversuch error, got %v", err)
 	}
-	auftraege, _ = store.GetTSENachsignierAuftraege(ctx)
-	if auftraege[0].Versuche != MaxNachsignierVersuche {
-		t.Fatalf("Expected versuche to stay at %d, got %d", MaxNachsignierVersuche, auftraege[0].Versuche)
+	auftraege, _ = store.GetTSESignaturauftraege(ctx)
+	if auftraege[0].Versuche != MaxSignaturVersuche {
+		t.Fatalf("Expected versuche to stay at %d, got %d", MaxSignaturVersuche, auftraege[0].Versuche)
 	}
 
 	// Zuruecksetzen: fehlgeschlagen -> offen, sofort wieder faellig.
-	if err := store.TSENachsignierAuftragZuruecksetzen(ctx, id); err != nil {
+	if err := store.TSESignaturauftragZuruecksetzen(ctx, id); err != nil {
 		t.Fatalf("Expected no zuruecksetzen error, got %v", err)
 	}
-	offene, err := store.GetOffeneTSENachsignierAuftraege(ctx, 20)
+	offene, err := store.GetOffeneTSESignaturauftraege(ctx, 20)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
@@ -127,36 +254,36 @@ func TestTSENachsignierAuftrag_FehlgeschlagenZuruecksetzenVerwerfen(t *testing.T
 	}
 
 	// Erneut fehlschlagen lassen und verwerfen.
-	for i := 0; i < MaxNachsignierVersuche; i++ {
-		if err := store.TSENachsignierAuftragFehlversuch(ctx, id, "fiskaly down"); err != nil {
+	for i := 0; i < MaxSignaturVersuche; i++ {
+		if err := store.TSESignaturauftragFehlversuch(ctx, id, "fiskaly down"); err != nil {
 			t.Fatalf("Expected no fehlversuch error, got %v", err)
 		}
 	}
-	if err := store.TSENachsignierAuftragVerwerfen(ctx, id); err != nil {
+	if err := store.TSESignaturauftragVerwerfen(ctx, id); err != nil {
 		t.Fatalf("Expected no verwerfen error, got %v", err)
 	}
-	auftraege, _ = store.GetTSENachsignierAuftraege(ctx)
+	auftraege, _ = store.GetTSESignaturauftraege(ctx)
 	if len(auftraege) != 1 || auftraege[0].Status != "verworfen" {
 		t.Fatalf("Expected verworfenen auftrag, got %+v", auftraege)
 	}
 }
 
 // Zuruecksetzen und Verwerfen wirken nur auf fehlgeschlagene Auftraege.
-func TestTSENachsignierAuftrag_StatusGuards(t *testing.T) {
-	store, database, teardown := setupRepository(t)
+func TestTSESignaturauftrag_StatusGuards(t *testing.T) {
+	store, umgebung, teardown := setupRepository(t)
 	defer teardown(t)
 	ctx := context.Background()
 
-	id := insertAuftrag(t, database, "tx-offen")
+	id, _ := umgebung.insertAuftrag(t, "tx-offen")
 
-	if err := store.TSENachsignierAuftragVerwerfen(ctx, id); err != nil {
+	if err := store.TSESignaturauftragVerwerfen(ctx, id); err != nil {
 		t.Fatalf("Expected no verwerfen error, got %v", err)
 	}
-	if err := store.TSENachsignierAuftragZuruecksetzen(ctx, id); err != nil {
+	if err := store.TSESignaturauftragZuruecksetzen(ctx, id); err != nil {
 		t.Fatalf("Expected no zuruecksetzen error, got %v", err)
 	}
 
-	auftraege, err := store.GetTSENachsignierAuftraege(ctx)
+	auftraege, err := store.GetTSESignaturauftraege(ctx)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}

@@ -9,9 +9,12 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/repository/tse_repo"
 )
 
-// fiskalischeTypen sind die zu signierenden Event-Typen mit ihrem erwarteten processType.
+// fiskalischeTypen sind die signaturpflichtigen Event-Typen mit ihrem erwarteten processType.
+// Die Sitzungseröffnung ist datenabhängig signaturpflichtig (Anfangsbestand > 0) — im
+// Demo-Szenario eröffnen alle Sitzungen mit Anfangsbestand, sie zählt daher dazu.
 var fiskalischeTypen = map[string]string{
 	string(kasse.EventTypeBestellungAufgenommenV1):   tse.ProcessTypeBestellungV1,
 	string(kasse.EventTypeZahlungKassiertV1):         tse.ProcessTypeKassenbelegV1,
@@ -23,18 +26,11 @@ var fiskalischeTypen = map[string]string{
 	string(kasse.EventTypeGeldtransitGebuchtV1):      tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeDifferenzSollIstGebuchtV1): tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeTagesabschlussErstelltV1):  tse.ProcessTypeSonstigerVorgang,
+	string(kasse.EventTypeKassensitzungEroeffnetV1):  tse.ProcessTypeKassenbelegV1,
 }
 
-// tseFelder liest die TSE-Felder aus beliebigen Event-Daten (alle Event-Typen nutzen
-// dieselben JSON-Keys).
-type tseFelder struct {
-	TxID    string         `json:"tseTxId"`
-	Data    *kasse.TSEData `json:"tseData"`
-	Ausfall bool           `json:"tseAusfall"`
-}
-
-// buildSignierteDaten baut das volle Szenario und signiert es mit der Fake-TSE.
-func buildSignierteDaten(t *testing.T) (seedDaten, []ausfallFenster, tseSeitentabellen) {
+// buildSignierteDaten baut das volle Szenario und spielt Outbox und Signatur-Worker nach.
+func buildSignierteDaten(t *testing.T) (seedDaten, []ausfallFenster, []signaturauftragZeile) {
 	t.Helper()
 	s := demoSzenario()
 	daten, err := buildSeedDaten(s, testJetzt)
@@ -42,11 +38,11 @@ func buildSignierteDaten(t *testing.T) (seedDaten, []ausfallFenster, tseSeitenta
 		t.Fatalf("buildSeedDaten: %v", err)
 	}
 	fenster := ausfallFensterAus(s, testJetzt)
-	seiten, err := signiereEvents(daten.Events, fenster)
+	auftraege, err := baueSignaturauftraege(daten.Events, fenster)
 	if err != nil {
-		t.Fatalf("signiereEvents: %v", err)
+		t.Fatalf("baueSignaturauftraege: %v", err)
 	}
-	return daten, fenster, seiten
+	return daten, fenster, auftraege
 }
 
 func fensterFuer(fenster []ausfallFenster, zeit time.Time) *ausfallFenster {
@@ -58,115 +54,107 @@ func fensterFuer(fenster []ausfallFenster, zeit time.Time) *ausfallFenster {
 	return nil
 }
 
-// TestSigniereEvents_TypAbdeckung prüft, dass genau die fiskalischen Event-Typen TSE-Felder
-// tragen — außerhalb der Ausfallfenster mit vollständigen TSE-Daten samt korrektem
-// processType, innerhalb nur mit der txID. Jeder fiskalische Typ kommt signiert vor.
-func TestSigniereEvents_TypAbdeckung(t *testing.T) {
-	daten, fenster, _ := buildSignierteDaten(t)
+// auftragProEventID indiziert die Aufträge nach Event-ID und prüft dabei die
+// Genau-einmal-Eigenschaft (event_id UNIQUE).
+func auftragProEventID(t *testing.T, auftraege []signaturauftragZeile) map[int]signaturauftragZeile {
+	t.Helper()
+	auftragProEvent := map[int]signaturauftragZeile{}
+	for _, a := range auftraege {
+		if _, doppelt := auftragProEvent[a.EventID]; doppelt {
+			t.Errorf("Event %d hat mehr als einen Signaturauftrag", a.EventID)
+		}
+		auftragProEvent[a.EventID] = a
+	}
+	return auftragProEvent
+}
 
-	signiertProTyp := map[string]int{}
+// TestBaueSignaturauftraege_TypAbdeckung prüft die Paarigkeit von Events und Aufträgen:
+// Genau die fiskalischen Event-Typen erhalten genau einen Auftrag mit korrektem processType
+// und Beginn = Event-Zeitstempel; nicht-fiskalische Typen erhalten keinen. Jeder fiskalische
+// Typ kommt im Szenario vor.
+func TestBaueSignaturauftraege_TypAbdeckung(t *testing.T) {
+	daten, _, auftraege := buildSignierteDaten(t)
+	auftragProEvent := auftragProEventID(t, auftraege)
+
+	auftraegeProTyp := map[string]int{}
 	for _, ev := range daten.Events {
-		felder := parseData[tseFelder](t, ev.event)
+		auftrag, hatAuftrag := auftragProEvent[ev.event.ID]
 		erwarteterProcessType, fiskalisch := fiskalischeTypen[ev.event.Type]
 
 		if !fiskalisch {
-			if felder.TxID != "" || felder.Data != nil {
-				t.Errorf("%s (%s v%d): nicht-fiskalischer Typ trägt TSE-Felder", ev.event.Type, ev.event.Subject, ev.event.Version)
+			if hatAuftrag {
+				t.Errorf("%s (%s v%d): nicht-fiskalischer Typ hat einen Signaturauftrag", ev.event.Type, ev.event.Subject, ev.event.Version)
 			}
 			continue
 		}
 
-		if felder.TxID == "" {
-			t.Errorf("%s (%s v%d): fiskalisches Event ohne txID", ev.event.Type, ev.event.Subject, ev.event.Version)
+		if !hatAuftrag {
+			t.Errorf("%s (%s v%d): fiskalisches Event ohne Signaturauftrag", ev.event.Type, ev.event.Subject, ev.event.Version)
 			continue
 		}
-		if fensterFuer(fenster, ev.event.Time) != nil {
-			if felder.Data != nil {
-				t.Errorf("%s (%s v%d): im Ausfallfenster signiert", ev.event.Type, ev.event.Subject, ev.event.Version)
-			}
-			continue
+		if auftrag.ProcessType != erwarteterProcessType {
+			t.Errorf("%s: processType = %q, erwartet %q", ev.event.Type, auftrag.ProcessType, erwarteterProcessType)
 		}
-		if felder.Data == nil {
-			t.Errorf("%s (%s v%d): fiskalisches Event außerhalb des Fensters ohne TSE-Daten", ev.event.Type, ev.event.Subject, ev.event.Version)
-			continue
+		if auftrag.ProcessData == "" {
+			t.Errorf("%s: Auftrag ohne processData-Snapshot", ev.event.Type)
 		}
-		if felder.Data.ProcessType != erwarteterProcessType {
-			t.Errorf("%s: processType = %q, erwartet %q", ev.event.Type, felder.Data.ProcessType, erwarteterProcessType)
+		if !auftrag.ErstelltAm.Equal(ev.event.Time) {
+			t.Errorf("%s: erstellt_am %v ≠ Event-Zeitstempel %v", ev.event.Type, auftrag.ErstelltAm, ev.event.Time)
 		}
-		signiertProTyp[ev.event.Type]++
+		auftraegeProTyp[ev.event.Type]++
 	}
 
+	if len(auftraege) != len(auftragProEvent) {
+		t.Errorf("%d Aufträge, aber %d Event-IDs — Aufträge ohne Event?", len(auftraege), len(auftragProEvent))
+	}
 	for typ := range fiskalischeTypen {
-		if signiertProTyp[typ] == 0 {
-			t.Errorf("Event-Typ %s: kein signiertes Vorkommen im Szenario", typ)
+		if auftraegeProTyp[typ] == 0 {
+			t.Errorf("Event-Typ %s: kein Signaturauftrag im Szenario", typ)
 		}
 	}
 }
 
-// TestSigniereEvents_MonotonieUndValidierung prüft die globalen TSE-Zähler: streng monotone
-// Transaktionsnummern und Signaturzähler (Events in Event-Reihenfolge, nachgetragene
-// Signaturen in Quittier-Reihenfolge), lückenlose Nummern über beide Quellen, die feste
-// Seriennummer, logTime-Paare aus den Event-Zeitstempeln und kasse.TSEData.Validate.
-func TestSigniereEvents_MonotonieUndValidierung(t *testing.T) {
-	daten, _, seiten := buildSignierteDaten(t)
+// TestBaueSignaturauftraege_MonotonieUndFormat prüft die Signaturen: global streng monotone,
+// lückenlose Transaktionsnummern und streng monotone Signaturzähler in Quittier-Reihenfolge,
+// die feste Seriennummer, das V0-QR-Format und plausible logTime-Paare. Erledigt und
+// Signatur bedingen einander.
+func TestBaueSignaturauftraege_MonotonieUndFormat(t *testing.T) {
+	_, _, auftraege := buildSignierteDaten(t)
 
 	vergeben := map[int]bool{}
-	pruefe := func(quelle string, d kasse.TSEData, vorherTx, vorherSig int) (int, int) {
-		t.Helper()
-		if err := d.Validate(); err != nil {
-			t.Errorf("%s: TSEData ungültig: %v", quelle, err)
-		}
-		if d.SerialNumberTSE != fakeTSESeriennummer {
-			t.Errorf("%s: Seriennummer %q, erwartet %q", quelle, d.SerialNumberTSE, fakeTSESeriennummer)
-		}
-		if !strings.HasPrefix(d.QRCodeData, "V0;") {
-			t.Errorf("%s: QR-Code-Daten ohne V0-Präfix: %q", quelle, d.QRCodeData)
-		}
-		if d.TransactionNumber <= vorherTx {
-			t.Errorf("%s: Transaktionsnummer %d nicht streng monoton nach %d", quelle, d.TransactionNumber, vorherTx)
-		}
-		if d.SignatureCounter <= vorherSig {
-			t.Errorf("%s: Signaturzähler %d nicht streng monoton nach %d", quelle, d.SignatureCounter, vorherSig)
-		}
-		if vergeben[d.TransactionNumber] {
-			t.Errorf("%s: Transaktionsnummer %d doppelt vergeben", quelle, d.TransactionNumber)
-		}
-		vergeben[d.TransactionNumber] = true
-		return d.TransactionNumber, d.SignatureCounter
-	}
-
 	vorherTx, vorherSig := 0, 0
-	for _, ev := range daten.Events {
-		felder := parseData[tseFelder](t, ev.event)
-		if felder.Data == nil {
+	for _, a := range auftraege {
+		if (a.Status == tse_repo.StatusErledigt) != (a.Signatur != nil) {
+			t.Errorf("Auftrag %s: Status %q und Signatur %v widersprechen sich", a.TxID, a.Status, a.Signatur != nil)
+		}
+		if a.Signatur == nil {
 			continue
 		}
-		quelle := ev.event.Subject + " v" + ev.event.Type
-		if felder.Data.LogTimeStart != ev.event.Time.UTC().Format(time.RFC3339) {
-			t.Errorf("%s: logTimeStart %q entspricht nicht dem Event-Zeitstempel %v", quelle, felder.Data.LogTimeStart, ev.event.Time)
-		}
-		vorherTx, vorherSig = pruefe(quelle, *felder.Data, vorherTx, vorherSig)
-	}
 
-	// processType der nachgetragenen Signaturen liefert der zugehörige Auftrag.
-	processTypeProTxID := map[string]string{}
-	for _, a := range seiten.Auftraege {
-		processTypeProTxID[a.TxID] = a.ProcessType
-	}
-
-	vorherTx, vorherSig = 0, 0
-	for _, sig := range seiten.Signaturen {
-		d := kasse.TSEData{
-			TransactionNumber: sig.TransaktionNummer,
-			SignatureCounter:  sig.SignaturZaehler,
-			SerialNumberTSE:   sig.TSESeriennummer,
-			LogTimeStart:      sig.LogTimeStart.UTC().Format(time.RFC3339),
-			LogTimeEnd:        sig.LogTimeEnd.UTC().Format(time.RFC3339),
-			Signature:         sig.Signatur,
-			ProcessType:       processTypeProTxID[sig.TxID],
-			QRCodeData:        sig.QRCodeData,
+		sig := a.Signatur
+		if sig.TSESeriennummer != fakeTSESeriennummer {
+			t.Errorf("Auftrag %s: Seriennummer %q, erwartet %q", a.TxID, sig.TSESeriennummer, fakeTSESeriennummer)
 		}
-		vorherTx, vorherSig = pruefe("signatur "+sig.TxID, d, vorherTx, vorherSig)
+		if !strings.HasPrefix(sig.QRCodeData, "V0;") {
+			t.Errorf("Auftrag %s: QR-Code-Daten ohne V0-Präfix: %q", a.TxID, sig.QRCodeData)
+		}
+		if !sig.LogTimeEnd.After(sig.LogTimeStart) {
+			t.Errorf("Auftrag %s: logTimeEnd %v nicht nach logTimeStart %v", a.TxID, sig.LogTimeEnd, sig.LogTimeStart)
+		}
+		if a.ErledigtAm == nil || a.ErledigtAm.Before(sig.LogTimeEnd) {
+			t.Errorf("Auftrag %s: erledigt_am fehlt oder liegt vor logTimeEnd", a.TxID)
+		}
+		if sig.TransaktionNummer <= vorherTx {
+			t.Errorf("Auftrag %s: Transaktionsnummer %d nicht streng monoton nach %d", a.TxID, sig.TransaktionNummer, vorherTx)
+		}
+		if sig.SignaturZaehler <= vorherSig {
+			t.Errorf("Auftrag %s: Signaturzähler %d nicht streng monoton nach %d", a.TxID, sig.SignaturZaehler, vorherSig)
+		}
+		if vergeben[sig.TransaktionNummer] {
+			t.Errorf("Auftrag %s: Transaktionsnummer %d doppelt vergeben", a.TxID, sig.TransaktionNummer)
+		}
+		vergeben[sig.TransaktionNummer] = true
+		vorherTx, vorherSig = sig.TransaktionNummer, sig.SignaturZaehler
 	}
 
 	for nr := 1; nr <= len(vergeben); nr++ {
@@ -176,116 +164,94 @@ func TestSigniereEvents_MonotonieUndValidierung(t *testing.T) {
 	}
 }
 
-// TestSigniereEvents_Ausfallfenster prüft die Paarigkeit: Jedes fiskalische Event im
-// Ausfallfenster hat genau einen Nachsignier-Auftrag (Beginn = Event-Zeitstempel) und das
-// TSEAusfall-Flag, wo der Event-Typ es vorsieht. Erledigte Aufträge tragen eine nachgetragene
-// Signatur-Zeile, dauerhafte Fehlschläge einen Fehlertext; die Statusverteilung stimmt
-// (überwiegend erledigt, einzelne fehlgeschlagen, genau einer verworfen, offene am Sonntag).
-func TestSigniereEvents_Ausfallfenster(t *testing.T) {
-	daten, fenster, seiten := buildSignierteDaten(t)
+// TestBaueSignaturauftraege_Ausfallfenster prüft die Dramaturgie der Ausfallfenster: Events
+// außerhalb der Fenster werden prompt quittiert (logTime = Event-Zeit), Events in aufgelösten
+// Fenstern verspätet nach Fensterende (mit Fehlversuchen samt Fenster-Grund), einzelne
+// scheitern dauerhaft (genau einer verworfen), Events im offenen Fenster bleiben offen ohne
+// Signatur. Die Statusverteilung stimmt (überwiegend erledigt).
+func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
+	daten, fenster, auftraege := buildSignierteDaten(t)
+	auftragProEvent := auftragProEventID(t, auftraege)
 
-	auftragProTxID := map[string]nachsignierAuftragZeile{}
-	for _, a := range seiten.Auftraege {
-		if _, doppelt := auftragProTxID[a.TxID]; doppelt {
-			t.Errorf("Nachsignier-Auftrag %s doppelt", a.TxID)
-		}
-		auftragProTxID[a.TxID] = a
-	}
-	signaturProTxID := map[string]tseSignaturZeile{}
-	for _, sig := range seiten.Signaturen {
-		signaturProTxID[sig.TxID] = sig
-	}
-
-	ausfallEvents := 0
+	eventZeit := map[int]time.Time{}
 	for _, ev := range daten.Events {
-		felder := parseData[tseFelder](t, ev.event)
-		if felder.TxID == "" {
-			continue // nicht fiskalisch
-		}
-		if fensterFuer(fenster, ev.event.Time) == nil {
-			if _, hat := auftragProTxID[felder.TxID]; hat {
-				t.Errorf("Event %s außerhalb des Fensters hat einen Nachsignier-Auftrag", felder.TxID)
-			}
-			continue
-		}
-
-		ausfallEvents++
-		auftrag, ok := auftragProTxID[felder.TxID]
-		if !ok {
-			t.Errorf("Ausfall-Event %s (%s) ohne Nachsignier-Auftrag", felder.TxID, ev.event.Type)
-			continue
-		}
-		if !auftrag.ErstelltAm.Equal(ev.event.Time) {
-			t.Errorf("Auftrag %s: erstellt_am %v ≠ Event-Zeitstempel %v", felder.TxID, auftrag.ErstelltAm, ev.event.Time)
-		}
-		typ := ev.event.Type
-		if typ == string(kasse.EventTypeZahlungKassiertV1) || typ == string(kasse.EventTypeDirektverkaufGetaetigtV1) {
-			if !felder.Ausfall {
-				t.Errorf("Event %s (%s) im Ausfallfenster ohne TSEAusfall-Flag", felder.TxID, typ)
-			}
-		}
-	}
-	if ausfallEvents != len(seiten.Auftraege) {
-		t.Errorf("%d Ausfall-Events, aber %d Nachsignier-Aufträge", ausfallEvents, len(seiten.Auftraege))
+		eventZeit[ev.event.ID] = ev.event.Time
 	}
 
 	statusZahl := map[string]int{}
-	for _, a := range seiten.Auftraege {
+	for _, a := range auftraege {
 		statusZahl[a.Status]++
 		f := fensterFuer(fenster, a.ErstelltAm)
+
 		if f == nil {
-			t.Errorf("Auftrag %s: erstellt_am %v liegt in keinem Ausfallfenster", a.TxID, a.ErstelltAm)
+			if a.Status != tse_repo.StatusErledigt {
+				t.Errorf("Auftrag %s außerhalb der Fenster hat Status %q, erwartet erledigt", a.TxID, a.Status)
+				continue
+			}
+			if a.Versuche != 0 || a.LetzterFehler != nil {
+				t.Errorf("Auftrag %s außerhalb der Fenster: erwartet 0 Versuche und keinen Fehler", a.TxID)
+			}
+			if !a.Signatur.LogTimeStart.Equal(a.ErstelltAm) {
+				t.Errorf("Auftrag %s: prompte Signatur mit logTimeStart %v ≠ Event-Zeit %v", a.TxID, a.Signatur.LogTimeStart, a.ErstelltAm)
+			}
 			continue
 		}
-		_, hatSignatur := signaturProTxID[a.TxID]
 
 		switch a.Status {
-		case "offen":
+		case tse_repo.StatusOffen:
 			if f.aufgeloest {
 				t.Errorf("offener Auftrag %s in aufgelöstem Fenster", a.TxID)
 			}
-			if a.Versuche != 0 || a.LetzterFehler != nil || a.ErledigtAm != nil || hatSignatur {
+			if a.Versuche != 0 || a.LetzterFehler != nil || a.ErledigtAm != nil || a.Signatur != nil {
 				t.Errorf("offener Auftrag %s: erwartet 0 Versuche, kein Fehler, keine Erledigung, keine Signatur", a.TxID)
 			}
-		case "erledigt":
+		case tse_repo.StatusErledigt:
 			if !f.aufgeloest {
 				t.Errorf("erledigter Auftrag %s in offenem Fenster", a.TxID)
 			}
-			if !hatSignatur {
-				t.Errorf("erledigter Auftrag %s ohne nachgetragene Signatur-Zeile", a.TxID)
+			if a.Signatur.LogTimeStart.Before(f.bis) {
+				t.Errorf("Auftrag %s: nachsignierte Signatur mit logTimeStart %v vor dem Fensterende %v", a.TxID, a.Signatur.LogTimeStart, f.bis)
 			}
-			if a.ErledigtAm == nil || a.ErledigtAm.Before(f.bis) {
-				t.Errorf("erledigter Auftrag %s: erledigt_am fehlt oder liegt vor dem Fensterende", a.TxID)
+			if a.Versuche > 0 && (a.LetzterFehler == nil || *a.LetzterFehler != f.grund) {
+				t.Errorf("Auftrag %s: Fehlversuche ohne Fenster-Grund als letzten Fehler", a.TxID)
 			}
-		case "fehlgeschlagen", "verworfen":
+		case tse_repo.StatusFehlgeschlagen, tse_repo.StatusVerworfen:
 			if !f.aufgeloest {
 				t.Errorf("%s Auftrag %s in offenem Fenster", a.Status, a.TxID)
+			}
+			if a.Versuche != tse_repo.MaxSignaturVersuche {
+				t.Errorf("%s Auftrag %s: %d Versuche, erwartet das Maximum %d", a.Status, a.TxID, a.Versuche, tse_repo.MaxSignaturVersuche)
 			}
 			if a.LetzterFehler == nil || *a.LetzterFehler == "" {
 				t.Errorf("%s Auftrag %s ohne Fehlertext", a.Status, a.TxID)
 			}
-			if a.ErledigtAm != nil || hatSignatur {
+			if a.ErledigtAm != nil || a.Signatur != nil {
 				t.Errorf("%s Auftrag %s: erwartet keine Erledigung und keine Signatur", a.Status, a.TxID)
 			}
 		default:
-			t.Errorf("Auftrag %s: unbekannter Status %q", a.TxID, a.Status)
+			t.Errorf("Auftrag %s: unerwarteter Status %q", a.TxID, a.Status)
 		}
 	}
 
-	if statusZahl["offen"] < 1 {
-		t.Error("kein offener Nachsignier-Auftrag (Sonntags-Aussetzer fehlt)")
+	// Jedes fiskalische Event in einem offenen Fenster muss als offener Auftrag erscheinen.
+	for eventID, a := range auftragProEvent {
+		f := fensterFuer(fenster, eventZeit[eventID])
+		if f != nil && !f.aufgeloest && a.Status != tse_repo.StatusOffen {
+			t.Errorf("Auftrag %s im offenen Fenster hat Status %q", a.TxID, a.Status)
+		}
 	}
-	if statusZahl["fehlgeschlagen"] < 2 {
-		t.Errorf("nur %d fehlgeschlagene Aufträge, erwartet einzelne (≥ 2)", statusZahl["fehlgeschlagen"])
+
+	if statusZahl[tse_repo.StatusOffen] < 1 {
+		t.Error("kein offener Signaturauftrag (Sonntags-Aussetzer fehlt)")
 	}
-	if statusZahl["verworfen"] != 1 {
-		t.Errorf("%d verworfene Aufträge, erwartet genau 1", statusZahl["verworfen"])
+	if statusZahl[tse_repo.StatusFehlgeschlagen] < 2 {
+		t.Errorf("nur %d fehlgeschlagene Aufträge, erwartet einzelne (≥ 2)", statusZahl[tse_repo.StatusFehlgeschlagen])
 	}
-	rest := statusZahl["offen"] + statusZahl["fehlgeschlagen"] + statusZahl["verworfen"]
-	if statusZahl["erledigt"] <= rest {
-		t.Errorf("erledigte Aufträge (%d) nicht in der Überzahl gegenüber den übrigen (%d)", statusZahl["erledigt"], rest)
+	if statusZahl[tse_repo.StatusVerworfen] != 1 {
+		t.Errorf("%d verworfene Aufträge, erwartet genau 1", statusZahl[tse_repo.StatusVerworfen])
 	}
-	if len(seiten.Signaturen) != statusZahl["erledigt"] {
-		t.Errorf("%d Signatur-Zeilen, aber %d erledigte Aufträge", len(seiten.Signaturen), statusZahl["erledigt"])
+	rest := statusZahl[tse_repo.StatusOffen] + statusZahl[tse_repo.StatusFehlgeschlagen] + statusZahl[tse_repo.StatusVerworfen]
+	if statusZahl[tse_repo.StatusErledigt] <= rest {
+		t.Errorf("erledigte Aufträge (%d) nicht in der Überzahl gegenüber den übrigen (%d)", statusZahl[tse_repo.StatusErledigt], rest)
 	}
 }

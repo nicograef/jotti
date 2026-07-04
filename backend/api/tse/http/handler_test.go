@@ -15,11 +15,11 @@ import (
 )
 
 type mockNachsignierQuery struct {
-	result []tse_repo.NachsignierAuftrag
+	result []tse_repo.Signaturauftrag
 	err    error
 }
 
-func (m *mockNachsignierQuery) GetTSENachsignierAuftraege(context.Context) ([]tse_repo.NachsignierAuftrag, error) {
+func (m *mockNachsignierQuery) GetTSESignaturauftraege(context.Context) ([]tse_repo.Signaturauftrag, error) {
 	return m.result, m.err
 }
 
@@ -29,12 +29,12 @@ type mockNachsignierCommand struct {
 	err            error
 }
 
-func (m *mockNachsignierCommand) TSENachsignierAuftragZuruecksetzen(_ context.Context, id int) error {
+func (m *mockNachsignierCommand) TSESignaturauftragZuruecksetzen(_ context.Context, id int) error {
 	m.zurueckgesetzt = id
 	return m.err
 }
 
-func (m *mockNachsignierCommand) TSENachsignierAuftragVerwerfen(_ context.Context, id int) error {
+func (m *mockNachsignierCommand) TSESignaturauftragVerwerfen(_ context.Context, id int) error {
 	m.verworfen = id
 	return m.err
 }
@@ -50,7 +50,7 @@ func postJSON(t *testing.T, handler http.HandlerFunc, path, body string) *httpte
 
 func TestGetTSENachsignierAuftraegeHandler_Success(t *testing.T) {
 	erledigtAm := time.Date(2026, 6, 11, 12, 30, 0, 0, time.UTC)
-	query := &mockNachsignierQuery{result: []tse_repo.NachsignierAuftrag{
+	query := &mockNachsignierQuery{result: []tse_repo.Signaturauftrag{
 		{
 			ID:            3,
 			TxID:          "8c0f9c4e-3a52-4f5d-9e6b-2d1c7a8b4f01",

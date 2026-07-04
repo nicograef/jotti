@@ -13,11 +13,12 @@ import (
 
 // Run spielt das Demo-Szenario „3-Tage-Sommerfest TSV Musterstadt e.V." in die Datenbank ein:
 // Stammdaten mit Favoriten und Druckstations-Konfiguration, drei Kassensitzungen
-// (Freitag/Samstag abgeschlossen, Sonntag offen) und die zugehörigen Events — die fiskalischen
-// davon mit Fake-TSE-Daten samt Ausfallfenster und Nachsignier-Aufträgen — plus die
-// Druckauftrags-Historie zu Bestellungen, Direktverkäufen und Kassenbelegen. Alles wird in
-// einer Transaktion geschrieben; anschließend wird die Tisch-Session-Projektion neu aufgebaut.
-// Ein Guard verhindert das Überschreiben einer Datenbank, die bereits Kassenjournal-Events enthält.
+// (Freitag/Samstag abgeschlossen, Sonntag offen) und die zugehörigen Events — jedes
+// fiskalische davon mit genau einem Signaturauftrag (quittiert, nachsigniert oder offen,
+// je nach Ausfallfenster) — plus die Druckauftrags-Historie zu Bestellungen,
+// Direktverkäufen und Kassenbelegen. Alles wird in einer Transaktion geschrieben;
+// anschließend wird die Tisch-Session-Projektion neu aufgebaut. Ein Guard verhindert das
+// Überschreiben einer Datenbank, die bereits Kassenjournal-Events enthält.
 func Run(ctx context.Context, database *sql.DB) error {
 	jetzt := time.Now().UTC()
 	s := demoSzenario()
@@ -27,17 +28,17 @@ func Run(ctx context.Context, database *sql.DB) error {
 		return fmt.Errorf("seed-daten aufbauen: %w", err)
 	}
 
-	tseDaten, err := signiereEvents(daten.Events, ausfallFensterAus(s, jetzt))
+	auftraege, err := baueSignaturauftraege(daten.Events, ausfallFensterAus(s, jetzt))
 	if err != nil {
 		return fmt.Errorf("fake-tse signieren: %w", err)
 	}
 
-	druckauftraege, err := baueDruckauftraege(s, daten.Events, jetzt)
+	druckauftraege, err := baueDruckauftraege(s, daten.Events, signaturenNachEventID(auftraege), jetzt)
 	if err != nil {
 		return fmt.Errorf("druckaufträge aufbauen: %w", err)
 	}
 
-	if err := schreibeSeed(ctx, database, s, daten, tseDaten, druckauftraege, jetzt); err != nil {
+	if err := schreibeSeed(ctx, database, s, daten, auftraege, druckauftraege, jetzt); err != nil {
 		return err
 	}
 
@@ -49,7 +50,7 @@ func Run(ctx context.Context, database *sql.DB) error {
 	return nil
 }
 
-func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDaten, tseDaten tseSeitentabellen, druckauftraege []druckauftragZeile, jetzt time.Time) error {
+func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDaten, auftraege []signaturauftragZeile, druckauftraege []druckauftragZeile, jetzt time.Time) error {
 	q := dbgen.New(database)
 
 	// Guard: niemals eine Datenbank überschreiben, die bereits Kassenjournal-Events enthält.
@@ -79,7 +80,7 @@ func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedD
 	if err := schreibeEvents(ctx, qtx, daten.Events); err != nil {
 		return err
 	}
-	if err := schreibeTSESeitentabellen(ctx, qtx, tseDaten); err != nil {
+	if err := schreibeSignaturauftraege(ctx, qtx, auftraege); err != nil {
 		return err
 	}
 	if err := schreibeDruckauftraege(ctx, qtx, druckauftraege); err != nil {
@@ -257,10 +258,13 @@ func schreibeDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege [
 	return nil
 }
 
-func schreibeTSESeitentabellen(ctx context.Context, qtx *dbgen.Queries, daten tseSeitentabellen) error {
-	for i := range daten.Auftraege {
-		a := &daten.Auftraege[i]
-		err := qtx.SeedInsertTSENachsignierAuftrag(ctx, dbgen.SeedInsertTSENachsignierAuftragParams{
+// schreibeSignaturauftraege persistiert die Signaturaufträge; die Signaturspalten sind nur
+// bei quittierten (erledigten) Aufträgen gefüllt.
+func schreibeSignaturauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []signaturauftragZeile) error {
+	for i := range auftraege {
+		a := &auftraege[i]
+		params := dbgen.SeedInsertTSESignaturauftragParams{
+			EventID:            a.EventID,
 			TxID:               a.TxID,
 			ProcessType:        a.ProcessType,
 			ProcessData:        a.ProcessData,
@@ -270,27 +274,18 @@ func schreibeTSESeitentabellen(ctx context.Context, qtx *dbgen.Queries, daten ts
 			NaechsterVersuchAm: a.NaechsterVersuchAm,
 			ErstelltAm:         a.ErstelltAm,
 			ErledigtAm:         nullTime(a.ErledigtAm),
-		})
-		if err != nil {
-			return fmt.Errorf("nachsignier-auftrag %s einfügen: %w", a.TxID, err)
 		}
-	}
-
-	for i := range daten.Signaturen {
-		sig := &daten.Signaturen[i]
-		err := qtx.SeedInsertTSESignatur(ctx, dbgen.SeedInsertTSESignaturParams{
-			TxID:              sig.TxID,
-			TransaktionNummer: sig.TransaktionNummer,
-			SignaturZaehler:   sig.SignaturZaehler,
-			TseSeriennummer:   sig.TSESeriennummer,
-			LogTimeStart:      sig.LogTimeStart,
-			LogTimeEnd:        sig.LogTimeEnd,
-			Signatur:          sig.Signatur,
-			QrCodeData:        sig.QRCodeData,
-			ErstelltAm:        sig.ErstelltAm,
-		})
-		if err != nil {
-			return fmt.Errorf("tse-signatur %s einfügen: %w", sig.TxID, err)
+		if sig := a.Signatur; sig != nil {
+			params.TransaktionNummer = sql.NullInt32{Int32: int32(sig.TransaktionNummer), Valid: true}
+			params.SignaturZaehler = sql.NullInt32{Int32: int32(sig.SignaturZaehler), Valid: true}
+			params.TseSeriennummer = sql.NullString{String: sig.TSESeriennummer, Valid: true}
+			params.LogTimeStart = sql.NullTime{Time: sig.LogTimeStart, Valid: true}
+			params.LogTimeEnd = sql.NullTime{Time: sig.LogTimeEnd, Valid: true}
+			params.Signatur = sql.NullString{String: sig.Signatur, Valid: true}
+			params.QrCodeData = sql.NullString{String: sig.QRCodeData, Valid: true}
+		}
+		if err := qtx.SeedInsertTSESignaturauftrag(ctx, params); err != nil {
+			return fmt.Errorf("signaturauftrag %s einfügen: %w", a.TxID, err)
 		}
 	}
 

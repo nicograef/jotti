@@ -21,6 +21,7 @@ const NACHSIGNIER_STATUS_LABEL: Record<
   erledigt: 'Erledigt',
   fehlgeschlagen: 'Fehlgeschlagen',
   verworfen: 'Verworfen',
+  tse_nicht_konfiguriert: 'TSE nicht konfiguriert',
 }
 
 function NachsignierAuftragRow({

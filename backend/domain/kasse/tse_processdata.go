@@ -1,11 +1,10 @@
-package application
+package kasse
 
 import (
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
@@ -13,13 +12,13 @@ const zahlungsartBar = "Bar"
 
 // BuildKassenbelegProcessData erzeugt Kassenbeleg-V1-processData nach
 // DSFinV-K Anhang I: Bruttobetraege je Steuersatz plus Zahlungsteil.
-func BuildKassenbelegProcessData(positionen []kasse.Position, zahlbetragCents int) (string, error) {
+func BuildKassenbelegProcessData(positionen []Position, zahlbetragCents int) (string, error) {
 	return BuildKassenbelegProcessDataWithFaktor(positionen, zahlbetragCents, 1)
 }
 
 // BuildKassenbelegProcessDataWithFaktor erlaubt zusaetzlich faktor -1 fuer
 // Stornierungen: alle Steuerbetraege werden negiert.
-func BuildKassenbelegProcessDataWithFaktor(positionen []kasse.Position, zahlbetragCents int, faktor int) (string, error) {
+func BuildKassenbelegProcessDataWithFaktor(positionen []Position, zahlbetragCents int, faktor int) (string, error) {
 	if faktor != 1 && faktor != -1 {
 		return "", fmt.Errorf("invalid faktor %d", faktor)
 	}
@@ -69,7 +68,7 @@ func BuildKassenbelegProcessDataWithFaktor(positionen []kasse.Position, zahlbetr
 // BuildBestellungProcessData erzeugt die CSV-Darstellung nach DSFinV-K Anhang I:
 // pro Position `<Menge>;"<Bezeichnung>";<Brutto-Einzelpreis>`, Zeilentrenner \r,
 // Anführungszeichen in der Bezeichnung werden verdoppelt.
-func BuildBestellungProcessData(positionen []kasse.Position) (string, error) {
+func BuildBestellungProcessData(positionen []Position) (string, error) {
 	return BuildBestellungProcessDataWithFaktor(positionen, 1)
 }
 
@@ -78,7 +77,7 @@ func BuildBestellungProcessData(positionen []kasse.Position) (string, error) {
 // einer Umbuchung) — DSFinV-K Anhang I sieht für Bestell-Storni negative Mengen
 // vor. Ohne Vorzeichen wäre eine Rücknahme TSE-seitig von einer zusätzlichen
 // Neubestellung nicht unterscheidbar.
-func BuildBestellungProcessDataWithFaktor(positionen []kasse.Position, faktor int) (string, error) {
+func BuildBestellungProcessDataWithFaktor(positionen []Position, faktor int) (string, error) {
 	if len(positionen) == 0 {
 		return "", fmt.Errorf("bestellung processData requires at least one position")
 	}

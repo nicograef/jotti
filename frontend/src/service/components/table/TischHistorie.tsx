@@ -25,6 +25,7 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
+import { belegDruckenMitNachfassen } from '../../beleg'
 import type { Ausgabe } from '../../table/Ausgabe'
 import type { Bestellung } from '../../table/Bestellung'
 import type { Stornierung } from '../../table/Stornierung'
@@ -74,9 +75,6 @@ export function TischHistorie({
         kassenbeleg_drucker_nicht_konfiguriert:
           'Kein Kassenbeleg-Drucker konfiguriert. Bitte in den Admin-Einstellungen hinterlegen.',
         zahlung_not_found: 'Die ausgewählte Zahlung wurde nicht gefunden.',
-      },
-      onSuccess: () => {
-        toast.success('Beleg in die Druckwarteschlange eingereiht.')
       },
     })
 
@@ -208,7 +206,18 @@ export function TischHistorie({
                   loading: belegDruckenLoading,
                   onAction: () => {
                     void runBelegDrucken(async () => {
-                      await backend.belegDrucken(tisch.id, detail.id)
+                      const status = await belegDruckenMitNachfassen(() =>
+                        backend.belegDrucken(tisch.id, detail.id),
+                      )
+                      if (status === 'eingereiht') {
+                        toast.success(
+                          'Beleg in die Druckwarteschlange eingereiht.',
+                        )
+                      } else {
+                        toast.info(
+                          'Die TSE-Signatur steht noch aus. Bitte den Beleg gleich erneut anfordern.',
+                        )
+                      }
                     })
                   },
                 }

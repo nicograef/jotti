@@ -2,6 +2,7 @@ package seed
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/steuer"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
@@ -73,11 +75,13 @@ func druckerFensterAus(s szenario, jetzt time.Time) []druckerFenster {
 
 // baueDruckauftraege baut die Druckauftrags-Historie zum Szenario: Arbeits- und Abholbons
 // entstehen über die produktive Bondruck-Policy aus jeder Bestellung und jedem Direktverkauf,
-// Kassenbelege (inklusive TSE-Abschnitt aus den signierten Events) für jede n-te Zahlung über
-// den produktiven ESC/POS-Formatter. Der Status ergibt sich aus den Drucker-Ausfallfenstern
-// des Drehbuchs (fehlgeschlagen, der erste Fehlschlag verworfen), dem Relay-Abholfenster vor
-// „jetzt" (offen) und sonst der Gedruckt-Quittung kurz nach der Erstellung.
-func baueDruckauftraege(s szenario, events []seedEvent, jetzt time.Time) ([]druckauftragZeile, error) {
+// Kassenbelege (inklusive TSE-Abschnitt aus den Signaturspalten des Auftrags) für jede n-te
+// Zahlung über den produktiven ESC/POS-Formatter — nur für Vorgänge mit quittierter
+// Signatur, denn bei ausstehender Signatur entsteht im neuen Modell kein Druckauftrag.
+// Der Status ergibt sich aus den Drucker-Ausfallfenstern des Drehbuchs (fehlgeschlagen, der
+// erste Fehlschlag verworfen), dem Relay-Abholfenster vor „jetzt" (offen) und sonst der
+// Gedruckt-Quittung kurz nach der Erstellung.
+func baueDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse.Signatur, jetzt time.Time) ([]druckauftragZeile, error) {
 	stationen := make(map[string]bondruckApp.Druckstation, len(s.Druckstationen))
 	for _, st := range s.Druckstationen {
 		stationen[string(st.Kategorie)] = bondruckApp.Druckstation{IP: st.DruckerIP, Bonmodus: string(st.Bonmodus)}
@@ -87,6 +91,7 @@ func baueDruckauftraege(s szenario, events []seedEvent, jetzt time.Time) ([]druc
 		betreiber:       s.Betreiber,
 		stationen:       stationen,
 		fenster:         druckerFensterAus(s, jetzt),
+		signaturen:      signaturen,
 		jetzt:           jetzt,
 		ersteBestellung: map[string]time.Time{},
 	}
@@ -109,9 +114,12 @@ func baueDruckauftraege(s szenario, events []seedEvent, jetzt time.Time) ([]druc
 			if b.belegZaehler%kassenbelegJederNte != 0 {
 				continue
 			}
-			zeile, err := b.kassenbeleg(evt)
+			zeile, ok, err := b.kassenbeleg(evt)
 			if err != nil {
 				return nil, fmt.Errorf("event %s v%d: kassenbeleg: %w", evt.Subject, evt.Version, err)
+			}
+			if !ok {
+				continue
 			}
 			zeilen = append(zeilen, zeile)
 		}
@@ -120,12 +128,14 @@ func baueDruckauftraege(s szenario, events []seedEvent, jetzt time.Time) ([]druc
 	return zeilen, nil
 }
 
-// bondruckBauer hält die Drucker-Ausfallfenster, den Beleg-Zähler und die erste Bestellzeit
-// je Subject (für die „Erste Bestellung"-Zeile auf dem Kassenbeleg).
+// bondruckBauer hält die Drucker-Ausfallfenster, die quittierten Signaturen je Event-ID,
+// den Beleg-Zähler und die erste Bestellzeit je Subject (für die „Erste Bestellung"-Zeile
+// auf dem Kassenbeleg).
 type bondruckBauer struct {
 	betreiber       settings.Betreiber
 	stationen       map[string]bondruckApp.Druckstation
 	fenster         []druckerFenster
+	signaturen      map[int]*tse.Signatur
 	jetzt           time.Time
 	ersteBestellung map[string]time.Time
 
@@ -176,14 +186,20 @@ func (b *bondruckBauer) setzeStatus(z *druckauftragZeile) {
 }
 
 // kassenbeleg baut den Kassenbeleg-Druckauftrag zu einer Zahlung oder einem Direktverkauf —
-// wie KassenbelegDrucken im Produktivbetrieb, mit dem TSE-Abschnitt aus den signierten
-// Event-Daten. Vorgänge im TSE-Ausfallfenster tragen den Ausfallvermerk, denn zum
-// Druckzeitpunkt existierte die nachgetragene Signatur noch nicht. Als Kassen-ID steht die
+// wie KassenbelegDrucken im Produktivbetrieb, mit dem TSE-Abschnitt aus den Signaturspalten
+// des Auftrags. Vorgänge ohne quittierte Signatur (offen, fehlgeschlagen, verworfen) liefern
+// keinen Beleg: Der Beleg-Abruf hätte „ausstehend" geantwortet und keinen Druckauftrag
+// angelegt. Der Beleg entsteht kurz nach der Quittierung (bei nachsignierten Vorgängen also
+// erst nach der Störung, auf erneute Anforderung des Gastes). Als Kassen-ID steht die
 // Fake-Seriennummer auf dem Beleg — dieselbe wie in den QR-Code-Daten der Fake-TSE.
-func (b *bondruckBauer) kassenbeleg(evt e.Event) (druckauftragZeile, error) {
+func (b *bondruckBauer) kassenbeleg(evt e.Event) (druckauftragZeile, bool, error) {
+	signatur := b.signaturen[evt.ID]
+	if signatur == nil {
+		return druckauftragZeile{}, false, nil
+	}
+
 	var positionen []kasse.Position
 	var gesamtbetragCents int
-	var tseData *kasse.TSEData
 	var referenz string
 	var ersteBestellung *time.Time
 
@@ -191,11 +207,10 @@ func (b *bondruckBauer) kassenbeleg(evt e.Event) (druckauftragZeile, error) {
 	case kasse.EventTypeZahlungKassiertV1:
 		data, err := parseEventData[kasse.ZahlungKassiertV1Data](evt)
 		if err != nil {
-			return druckauftragZeile{}, err
+			return druckauftragZeile{}, false, err
 		}
 		positionen = zuPositionen(data.Positionen)
 		gesamtbetragCents = data.GesamtZahlungCents
-		tseData = data.TSEData
 		referenz = fmt.Sprintf("zahlung-kassiert:%d", evt.ID)
 		if t, ok := b.ersteBestellung[evt.Subject]; ok {
 			ersteBestellung = &t
@@ -204,20 +219,14 @@ func (b *bondruckBauer) kassenbeleg(evt e.Event) (druckauftragZeile, error) {
 	case kasse.EventTypeDirektverkaufGetaetigtV1:
 		data, err := parseEventData[kasse.DirektverkaufGetaetigtV1Data](evt)
 		if err != nil {
-			return druckauftragZeile{}, err
+			return druckauftragZeile{}, false, err
 		}
 		positionen = zuPositionen(data.Positionen)
 		gesamtbetragCents = data.GesamtbetragCents
-		tseData = data.TSEData
 		referenz = fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
 
 	default:
-		return druckauftragZeile{}, fmt.Errorf("kein belegfähiger Event-Typ %q", evt.Type)
-	}
-
-	tseAbschnitt, err := zuTSEAbschnitt(tseData)
-	if err != nil {
-		return druckauftragZeile{}, err
+		return druckauftragZeile{}, false, fmt.Errorf("kein belegfähiger Event-Typ %q", evt.Type)
 	}
 
 	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
@@ -231,8 +240,7 @@ func (b *bondruckBauer) kassenbeleg(evt e.Event) (druckauftragZeile, error) {
 		ErsteBestellungZeitpunkt: ersteBestellung,
 		Positionen:               positionen,
 		Steuermatrix:             steuer.Steuermatrix(zuSteuermatrixPositionen(positionen)),
-		TSE:                      tseAbschnitt,
-		TSEAusfallvermerk:        tseAbschnitt == nil,
+		TSE:                      zuTSEAbschnitt(signatur),
 		GesamtbetragCents:        gesamtbetragCents,
 		Zahlungsart:              "bar",
 	})
@@ -242,35 +250,41 @@ func (b *bondruckBauer) kassenbeleg(evt e.Event) (druckauftragZeile, error) {
 		Payload:    base64.StdEncoding.EncodeToString(payload),
 		BonArt:     "kassenbeleg",
 		Referenz:   referenz,
-		ErstelltAm: evt.Time.Add(belegVerlangtNach),
+		ErstelltAm: signatur.LogTimeEnd.Add(belegVerlangtNach),
 	}
 	b.setzeStatus(&z)
-	return z, nil
+	return z, true, nil
 }
 
-// zuTSEAbschnitt wandelt die TSE-Daten des Events in den Beleg-Abschnitt, wie der Belegdruck
-// im Produktivbetrieb; nil bleibt nil (TSE-Ausfallvermerk).
-func zuTSEAbschnitt(data *kasse.TSEData) (*escpos.TSEAbschnitt, error) {
-	if data == nil {
-		return nil, nil
-	}
-	start, err := time.Parse(time.RFC3339, data.LogTimeStart)
-	if err != nil {
-		return nil, fmt.Errorf("logTimeStart parsen: %w", err)
-	}
-	end, err := time.Parse(time.RFC3339, data.LogTimeEnd)
-	if err != nil {
-		return nil, fmt.Errorf("logTimeEnd parsen: %w", err)
-	}
+// zuTSEAbschnitt wandelt die quittierte Signatur des Auftrags in den Beleg-Abschnitt, wie
+// der Belegdruck im Produktivbetrieb.
+func zuTSEAbschnitt(s *tse.Signatur) *escpos.TSEAbschnitt {
 	return &escpos.TSEAbschnitt{
-		TransaktionNr:   data.TransactionNumber,
-		Signaturzaehler: data.SignatureCounter,
-		TSESeriennummer: data.SerialNumberTSE,
-		ZeitpunktBeginn: start,
-		ZeitpunktEnde:   end,
-		Signatur:        data.Signature,
-		QRCodeData:      data.QRCodeData,
-	}, nil
+		TransaktionNr:   s.TransaktionNummer,
+		Signaturzaehler: s.SignaturZaehler,
+		TSESeriennummer: s.TSESeriennummer,
+		ZeitpunktBeginn: s.LogTimeStart,
+		ZeitpunktEnde:   s.LogTimeEnd,
+		Signatur:        s.Signatur,
+		QRCodeData:      s.QRCodeData,
+	}
+}
+
+func parseEventData[T any](evt e.Event) (T, error) {
+	var data T
+	if err := json.Unmarshal(evt.Data, &data); err != nil {
+		return data, fmt.Errorf("event-daten parsen: %w", err)
+	}
+	return data, nil
+}
+
+// zuPositionen wandelt die persistierte Positions-Darstellung zurück in Domain-Positionen.
+func zuPositionen(eventPositionen []kasse.PositionEventData) []kasse.Position {
+	positionen := make([]kasse.Position, len(eventPositionen))
+	for i, p := range eventPositionen {
+		positionen[i] = kasse.PositionFromEventData(p)
+	}
+	return positionen
 }
 
 func zuSteuermatrixPositionen(positionen []kasse.Position) []steuer.SteuermatrixPosition {

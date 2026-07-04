@@ -83,7 +83,7 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 
 // Run starts the application with graceful shutdown
 func (app *App) Run(ctx context.Context) error {
-	worker := newTSENachsignierWorker(app.Config, app.DB)
+	worker := newTSESignaturWorker(app.Config, app.DB)
 	go worker.run(ctx)
 
 	errChan := make(chan error, 1)

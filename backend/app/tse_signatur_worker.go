@@ -1,0 +1,294 @@
+package app
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/nicograef/jotti/backend/config"
+	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/repository/settings_repo"
+	"github.com/nicograef/jotti/backend/repository/tse_repo"
+	"github.com/rs/zerolog/log"
+)
+
+const (
+	// tseSignaturPollInterval ist der Polling-Fallback des Signatur-Workers:
+	// Der Sofort-Trigger nach jedem Commit ist der Regelweg, der Tick faengt
+	// verlorene Trigger (z. B. nach einem Crash zwischen Commit und Trigger).
+	tseSignaturPollInterval = 5 * time.Second
+	tseSignaturBatchSize    = 20
+	// tseSignaturWorkerLockKey ist der frei gewaehlte Schluessel des Postgres
+	// Advisory Locks, der die Single-Prozess-Annahme absichert: Nur der
+	// Lock-Halter spricht mit der TSE.
+	tseSignaturWorkerLockKey = 823914502
+)
+
+type tseSettingsReader interface {
+	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
+}
+
+type tseSignaturStore interface {
+	GetOffeneTSESignaturauftraege(ctx context.Context, limit int) ([]tse_repo.OffenerSignaturauftrag, error)
+	QuittiereTSESignaturauftrag(ctx context.Context, auftragID int, signatur tse.Signatur) error
+	TSESignaturauftragFehlversuch(ctx context.Context, auftragID int, fehler string) error
+}
+
+// tseWorkerClient beschreibt, was der Signatur-Worker von der TSE braucht:
+// signieren und den Ist-Zustand einer Transaktion abfragen.
+type tseWorkerClient interface {
+	tse.TSEClient
+	tse.TransactionRetriever
+}
+
+type tseClientFactory func(credentials tse.Credentials) (tseWorkerClient, error)
+
+// tseSignaturWorker ist der einzige Sprecher fuer TSE-Signaturtransaktionen:
+// Er arbeitet die Signaturauftraege FIFO ab, heilt per Ist-Abfrage und
+// quittiert die Signatur mit einem einzelnen Update am Auftrag.
+type tseSignaturWorker struct {
+	// lockDB liefert die dedizierte, fuer die Worker-Lebenszeit gepinnte
+	// Connection des Advisory Locks; nil (Unit-Tests) ueberspringt den Lock.
+	lockDB       *sql.DB
+	settingsRepo tseSettingsReader
+	store        tseSignaturStore
+	newTSEClient tseClientFactory
+	trigger      <-chan struct{}
+	// pollInterval ist der Polling-Fallback-Takt; 0 (Zero Value in Tests)
+	// faellt auf tseSignaturPollInterval zurueck.
+	pollInterval time.Duration
+	now          func() time.Time
+
+	lockConn *sql.Conn
+	lockHeld bool
+
+	// client wird ueber Durchlaeufe hinweg wiederverwendet (samt Auth-Token)
+	// und nur bei geaenderten Zugangsdaten neu gebaut.
+	client      tseWorkerClient
+	clientCreds tse.Credentials
+}
+
+func newTSESignaturWorker(cfg config.Config, database *sql.DB) *tseSignaturWorker {
+	return &tseSignaturWorker{
+		lockDB:       database,
+		settingsRepo: settings_repo.NewRepository(database),
+		store:        tse_repo.NewRepository(database),
+		newTSEClient: func(credentials tse.Credentials) (tseWorkerClient, error) {
+			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
+		},
+		trigger: tse_repo.SignaturWorkerTrigger(),
+		now:     time.Now,
+	}
+}
+
+func (w *tseSignaturWorker) run(ctx context.Context) {
+	defer w.releaseLock()
+
+	interval := w.pollInterval
+	if interval <= 0 {
+		interval = tseSignaturPollInterval
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-w.trigger:
+			// Sofort-Trigger nach einem Commit mit neuem Signaturauftrag.
+		case <-ticker.C:
+			// Polling-Fallback fuer verlorene Trigger und Backoff-Wiedervorlagen.
+		}
+
+		if !w.ensureLock(ctx) {
+			continue
+		}
+		if err := w.processOnce(ctx); err != nil {
+			log.Error().Err(err).Msg("TSE-Signatur-Worker Durchlauf fehlgeschlagen")
+		}
+	}
+}
+
+// ensureLock haelt den session-gebundenen Advisory Lock auf einer dedizierten,
+// fuer die Worker-Lebenszeit gepinnten Connection (nicht auf dem Pool). Ein
+// Verbindungsabriss gibt den Lock still frei; danach wird er auf einer
+// frischen Connection neu erworben. Bekommt eine zweite Instanz den Lock
+// nicht, laeuft die App weiter und der Worker versucht es am naechsten Tick
+// erneut — mit deutlicher Error-Log-Warnung, kein Fail-Fast.
+func (w *tseSignaturWorker) ensureLock(ctx context.Context) bool {
+	if w.lockDB == nil {
+		return true
+	}
+
+	if w.lockConn != nil {
+		if err := w.lockConn.PingContext(ctx); err == nil {
+			if w.lockHeld {
+				return true
+			}
+		} else {
+			w.lockConn.Close() //nolint:errcheck,gosec // Connection ist bereits abgerissen
+			w.lockConn = nil
+			w.lockHeld = false
+		}
+	}
+
+	if w.lockConn == nil {
+		conn, err := w.lockDB.Conn(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("TSE-Signatur-Worker: keine Connection fuer den Advisory Lock")
+			return false
+		}
+		w.lockConn = conn
+	}
+
+	if err := w.lockConn.QueryRowContext(ctx, "SELECT pg_try_advisory_lock($1)", tseSignaturWorkerLockKey).Scan(&w.lockHeld); err != nil {
+		log.Error().Err(err).Msg("TSE-Signatur-Worker: Advisory Lock nicht pruefbar")
+		w.lockConn.Close() //nolint:errcheck,gosec // Connection wird verworfen
+		w.lockConn = nil
+		w.lockHeld = false
+		return false
+	}
+	if !w.lockHeld {
+		log.Error().Msg("TSE-Signatur-Worker: Advisory Lock nicht erhalten — laeuft eine zweite Instanz? Neuer Versuch am naechsten Tick")
+	}
+	return w.lockHeld
+}
+
+// releaseLock schliesst die gepinnte Lock-Connection; der session-gebundene
+// Advisory Lock wird damit freigegeben.
+func (w *tseSignaturWorker) releaseLock() {
+	if w.lockConn != nil {
+		w.lockConn.Close() //nolint:errcheck,gosec // Shutdown
+		w.lockConn = nil
+		w.lockHeld = false
+	}
+}
+
+func (w *tseSignaturWorker) processOnce(ctx context.Context) error {
+	if w.settingsRepo == nil || w.store == nil || w.newTSEClient == nil {
+		return nil
+	}
+
+	conf, err := w.settingsRepo.GetTSEKonfiguration(ctx)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			return nil
+		}
+		return err
+	}
+	if !conf.IstKonfiguriert() {
+		return nil
+	}
+
+	client, err := w.clientFuer(conf.Credentials())
+	if err != nil {
+		log.Warn().Err(err).Msg("TSE-Signatur-Worker could not create TSE client")
+		return nil
+	}
+
+	auftraege, err := w.store.GetOffeneTSESignaturauftraege(ctx, tseSignaturBatchSize)
+	if err != nil {
+		return err
+	}
+
+	for _, auftrag := range auftraege {
+		if err := w.processAuftrag(ctx, client, auftrag); err != nil {
+			log.Warn().Err(err).Str("tx_id", auftrag.TxID).Int("auftrag_id", auftrag.ID).Msg("TSE-Signierung fehlgeschlagen")
+			if err := w.store.TSESignaturauftragFehlversuch(ctx, auftrag.ID, err.Error()); err != nil {
+				log.Error().Err(err).Int("auftrag_id", auftrag.ID).Msg("Failed to record TSE-Signatur-Fehlversuch")
+			}
+		}
+	}
+
+	return nil
+}
+
+// clientFuer liefert den ueber Durchlaeufe hinweg wiederverwendeten TSE-Client
+// (samt Auth-Token); neu gebaut wird nur bei geaenderten Zugangsdaten.
+func (w *tseSignaturWorker) clientFuer(creds tse.Credentials) (tseWorkerClient, error) {
+	if w.client != nil && w.clientCreds == creds {
+		return w.client, nil
+	}
+
+	client, err := w.newTSEClient(creds)
+	if err != nil {
+		return nil, err
+	}
+	w.client = client
+	w.clientCreds = creds
+	return client, nil
+}
+
+func (w *tseSignaturWorker) processAuftrag(ctx context.Context, client tseWorkerClient, auftrag tse_repo.OffenerSignaturauftrag) error {
+	finishResult, startLogTime, err := w.beschaffeSignatur(ctx, client, auftrag)
+	if err != nil {
+		return err
+	}
+
+	logTimeStart := nonZeroWorkerTime(startLogTime, finishResult.LogTimeStart)
+	if logTimeStart.IsZero() {
+		logTimeStart = w.now().UTC()
+	}
+	logTimeEnd := nonZeroWorkerTime(finishResult.LogTime, finishResult.LogTimeEnd)
+	if logTimeEnd.IsZero() {
+		logTimeEnd = logTimeStart
+	}
+
+	return w.store.QuittiereTSESignaturauftrag(ctx, auftrag.ID, tse.Signatur{
+		TransaktionNummer: finishResult.TransactionNumber,
+		SignaturZaehler:   finishResult.SignatureCounter,
+		TSESeriennummer:   finishResult.SerialNumberTSE,
+		LogTimeStart:      logTimeStart,
+		LogTimeEnd:        logTimeEnd,
+		Signatur:          finishResult.Signature,
+		QRCodeData:        finishResult.QRCodeData,
+	})
+}
+
+// beschaffeSignatur liefert die Signaturdaten fuer den Auftrag. Vor einem
+// neuen Signierversuch wird der Ist-Zustand bei fiskaly abgefragt: Eine dort
+// bereits abgeschlossene Transaktion wird direkt uebernommen statt erneut
+// signiert (heilt das 409-Szenario nach Abbruch zwischen Signierung und
+// Quittierung), eine noch aktive Transaktion wird nur noch abgeschlossen.
+func (w *tseSignaturWorker) beschaffeSignatur(ctx context.Context, client tseWorkerClient, auftrag tse_repo.OffenerSignaturauftrag) (tse.FinishResult, time.Time, error) {
+	vorhanden, err := client.RetrieveTransaction(ctx, auftrag.TxID)
+	if errors.Is(err, tse.ErrTransactionNichtGefunden) {
+		startResult, err := client.StartTransaction(ctx, auftrag.TxID)
+		if err != nil {
+			return tse.FinishResult{}, time.Time{}, err
+		}
+		finishResult, err := client.FinishTransaction(ctx, auftrag.TxID, auftrag.ProcessType, auftrag.ProcessData)
+		if err != nil {
+			return tse.FinishResult{}, time.Time{}, err
+		}
+		return finishResult, startResult.LogTime, nil
+	}
+	if err != nil {
+		return tse.FinishResult{}, time.Time{}, err
+	}
+
+	switch vorhanden.State {
+	case tse.TransactionStateFinished:
+		return vorhanden.FinishResult, vorhanden.LogTimeStart, nil
+	case tse.TransactionStateActive:
+		finishResult, err := client.FinishTransaction(ctx, auftrag.TxID, auftrag.ProcessType, auftrag.ProcessData)
+		if err != nil {
+			return tse.FinishResult{}, time.Time{}, err
+		}
+		return finishResult, vorhanden.LogTimeStart, nil
+	default:
+		return tse.FinishResult{}, time.Time{}, fmt.Errorf("transaktion %s hat unerwarteten Zustand %q bei fiskaly", auftrag.TxID, vorhanden.State)
+	}
+}
+
+func nonZeroWorkerTime(primary time.Time, fallback time.Time) time.Time {
+	if !primary.IsZero() {
+		return primary
+	}
+	return fallback
+}

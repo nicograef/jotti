@@ -12,9 +12,7 @@ import (
 	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
 	tableApp "github.com/nicograef/jotti/backend/api/table/application"
 	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
-	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/config"
-	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/favorit_repo"
@@ -43,12 +41,7 @@ func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 	druckauftragRepo := druckauftrag_repo.NewRepository(db)
 	settingsRepo := settings_repo.NewRepository(db)
 
-	tseSignierer := tseApp.Signierer{
-		SettingsRepo: settingsRepo,
-		NewTSEClient: func(credentials tse.Credentials) (tse.TSEClient, error) {
-			return tse_repo.NewFiskalyTSEClientSingleAttempt(cfg.FiskalyBaseURL, credentials, nil)
-		},
-	}
+	tseRepo := tse_repo.NewRepository(db)
 
 	tc := tableHTTP.CommandHandler{}
 	tc.Command = tableApp.Command{
@@ -60,7 +53,7 @@ func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 		DruckstationRepo:    druckstationRepoTableAdapter{repo: druckstationRepo},
 		DruckauftragRepo:    druckauftragRepo,
 		SettingsRepo:        settingsRepo,
-		TSESignierer:        tseSignierer,
+		TSERepo:             tseRepo,
 	}
 	r.HandleFunc("/bestellung-aufnehmen", tc.BestellungAufnehmenHandler())
 	r.HandleFunc("/bestellung-umbuchen", tc.BestellungUmbuchenHandler())
@@ -76,7 +69,6 @@ func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 		ProductRepo:         productRepo,
 		KassensitzungenRepo: kassensitzungenRepo,
 		DruckstationRepo:    druckstationRepoTableAdapter{repo: druckstationRepo},
-		TSESignierer:        tseSignierer,
 	}
 	r.HandleFunc("/direktverkauf-taetigen", dc.DirektverkaufTaetigenHandler())
 

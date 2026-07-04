@@ -5,6 +5,7 @@ package app
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,7 +19,7 @@ type mockTSESettingsReader struct {
 	err  error
 }
 
-func (m mockTSESettingsReader) GetTSEKonfiguration(_ context.Context) (settings.TSEKonfiguration, error) {
+func (m *mockTSESettingsReader) GetTSEKonfiguration(_ context.Context) (settings.TSEKonfiguration, error) {
 	if m.err != nil {
 		return settings.TSEKonfiguration{}, m.err
 	}
@@ -30,37 +31,50 @@ type fehlversuch struct {
 	Fehler    string
 }
 
-type mockTSENachsignierStore struct {
-	offene            []tse_repo.OffenerNachsignierAuftrag
-	quittierungen     []tse_repo.Signatur
-	distinctByTxID    map[string]tse_repo.Signatur
-	fehlversuche      []fehlversuch
-	getErr            error
-	quittiereErr      error
-	quittierteAuftrag []int
+type quittierung struct {
+	AuftragID int
+	Signatur  tse.Signatur
 }
 
-func (m *mockTSENachsignierStore) GetOffeneTSENachsignierAuftraege(_ context.Context, _ int) ([]tse_repo.OffenerNachsignierAuftrag, error) {
+type mockTSESignaturStore struct {
+	mu            sync.Mutex
+	offene        []tse_repo.OffenerSignaturauftrag
+	quittierungen []quittierung
+	fehlversuche  []fehlversuch
+	getErr        error
+	quittiereErr  error
+	// verarbeitet signalisiert jede Quittierung (fuer Run-Loop-Tests ohne Sleeps).
+	verarbeitet chan struct{}
+}
+
+func (m *mockTSESignaturStore) GetOffeneTSESignaturauftraege(_ context.Context, _ int) ([]tse_repo.OffenerSignaturauftrag, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.getErr != nil {
 		return nil, m.getErr
 	}
 	return m.offene, nil
 }
 
-func (m *mockTSENachsignierStore) QuittiereTSENachsignierAuftrag(_ context.Context, auftragID int, signatur tse_repo.Signatur) error {
+func (m *mockTSESignaturStore) QuittiereTSESignaturauftrag(_ context.Context, auftragID int, signatur tse.Signatur) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.quittiereErr != nil {
 		return m.quittiereErr
 	}
-	if m.distinctByTxID == nil {
-		m.distinctByTxID = make(map[string]tse_repo.Signatur)
+	m.quittierungen = append(m.quittierungen, quittierung{AuftragID: auftragID, Signatur: signatur})
+	if m.verarbeitet != nil {
+		select {
+		case m.verarbeitet <- struct{}{}:
+		default:
+		}
 	}
-	m.quittierteAuftrag = append(m.quittierteAuftrag, auftragID)
-	m.quittierungen = append(m.quittierungen, signatur)
-	m.distinctByTxID[signatur.TxID] = signatur
 	return nil
 }
 
-func (m *mockTSENachsignierStore) TSENachsignierAuftragFehlversuch(_ context.Context, auftragID int, fehler string) error {
+func (m *mockTSESignaturStore) TSESignaturauftragFehlversuch(_ context.Context, auftragID int, fehler string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.fehlversuche = append(m.fehlversuche, fehlversuch{AuftragID: auftragID, Fehler: fehler})
 	return nil
 }
@@ -81,16 +95,16 @@ func neuerWorkerClient(fake tse.FakeClient) tseClientFactory {
 	}
 }
 
-func TestTSENachsignierWorker_ProcessOnce_Success(t *testing.T) {
-	store := &mockTSENachsignierStore{offene: []tse_repo.OffenerNachsignierAuftrag{{
+func TestTSESignaturWorker_ProcessOnce_Success(t *testing.T) {
+	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{
 		ID:          1,
 		TxID:        "tx-1",
 		ProcessType: "Kassenbeleg-V1",
 		ProcessData: "Beleg^3.50",
 	}}}
 
-	worker := tseNachsignierWorker{
-		settingsRepo: mockTSESettingsReader{conf: configuredTSE()},
+	worker := &tseSignaturWorker{
+		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
 		newTSEClient: neuerWorkerClient(tse.FakeClient{
 			RetrieveErr:   tse.ErrTransactionNichtGefunden,
@@ -114,27 +128,30 @@ func TestTSENachsignierWorker_ProcessOnce_Success(t *testing.T) {
 	if len(store.quittierungen) != 1 {
 		t.Fatalf("expected one quittierung, got %d", len(store.quittierungen))
 	}
-	if store.quittierungen[0].TxID != "tx-1" {
-		t.Fatalf("expected tx-1, got %q", store.quittierungen[0].TxID)
+	if store.quittierungen[0].AuftragID != 1 {
+		t.Fatalf("expected auftrag 1, got %d", store.quittierungen[0].AuftragID)
 	}
-	if store.quittierungen[0].Signatur != "SIG-1" {
-		t.Fatalf("expected SIG-1, got %q", store.quittierungen[0].Signatur)
+	if store.quittierungen[0].Signatur.Signatur != "SIG-1" {
+		t.Fatalf("expected SIG-1, got %q", store.quittierungen[0].Signatur.Signatur)
+	}
+	if !store.quittierungen[0].Signatur.LogTimeStart.Equal(time.Date(2026, 6, 10, 18, 0, 1, 0, time.UTC)) {
+		t.Fatalf("expected log_time_start from start result, got %v", store.quittierungen[0].Signatur.LogTimeStart)
 	}
 	if len(store.fehlversuche) != 0 {
 		t.Fatalf("expected no fehlversuche on success, got %d", len(store.fehlversuche))
 	}
 }
 
-func TestTSENachsignierWorker_ProcessOnce_TSEErrorVerbuchtFehlversuch(t *testing.T) {
-	store := &mockTSENachsignierStore{offene: []tse_repo.OffenerNachsignierAuftrag{{
+func TestTSESignaturWorker_ProcessOnce_TSEErrorVerbuchtFehlversuch(t *testing.T) {
+	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{
 		ID:          2,
 		TxID:        "tx-2",
 		ProcessType: "Kassenbeleg-V1",
 		ProcessData: "Beleg^5.00",
 	}}}
 
-	worker := tseNachsignierWorker{
-		settingsRepo: mockTSESettingsReader{conf: configuredTSE()},
+	worker := &tseSignaturWorker{
+		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
 		newTSEClient: neuerWorkerClient(tse.FakeClient{
 			RetrieveErr: tse.ErrTransactionNichtGefunden,
@@ -165,16 +182,16 @@ func TestTSENachsignierWorker_ProcessOnce_TSEErrorVerbuchtFehlversuch(t *testing
 // abgeschlossen (z. B. Abbruch zwischen Signierung und Quittierung). Der
 // Worker uebernimmt die vorhandene Signatur, ohne neu zu signieren —
 // Start/Finish wuerden in diesem Test fehlschlagen.
-func TestTSENachsignierWorker_ProcessOnce_BereitsFinishedWirdQuittiert(t *testing.T) {
-	store := &mockTSENachsignierStore{offene: []tse_repo.OffenerNachsignierAuftrag{{
+func TestTSESignaturWorker_ProcessOnce_BereitsFinishedWirdQuittiert(t *testing.T) {
+	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{
 		ID:          3,
 		TxID:        "tx-3",
 		ProcessType: "Kassenbeleg-V1",
 		ProcessData: "Beleg^7.00",
 	}}}
 
-	worker := tseNachsignierWorker{
-		settingsRepo: mockTSESettingsReader{conf: configuredTSE()},
+	worker := &tseSignaturWorker{
+		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
 		newTSEClient: neuerWorkerClient(tse.FakeClient{
 			StartErr:  errors.New("409 E_TX_NO_TYPE_DEFINED"),
@@ -205,7 +222,7 @@ func TestTSENachsignierWorker_ProcessOnce_BereitsFinishedWirdQuittiert(t *testin
 	if len(store.quittierungen) != 1 {
 		t.Fatalf("expected one quittierung, got %d", len(store.quittierungen))
 	}
-	signatur := store.quittierungen[0]
+	signatur := store.quittierungen[0].Signatur
 	if signatur.Signatur != "SIG-3" || signatur.TransaktionNummer != 43 || signatur.SignaturZaehler != 702 {
 		t.Fatalf("expected retrieved signature data, got %+v", signatur)
 	}
@@ -216,16 +233,16 @@ func TestTSENachsignierWorker_ProcessOnce_BereitsFinishedWirdQuittiert(t *testin
 
 // Eine bei fiskaly noch aktive Transaktion (Start kam durch, Finish nicht)
 // wird nur noch abgeschlossen — ein erneuter Start wuerde fehlschlagen.
-func TestTSENachsignierWorker_ProcessOnce_AktiveTransaktionWirdAbgeschlossen(t *testing.T) {
-	store := &mockTSENachsignierStore{offene: []tse_repo.OffenerNachsignierAuftrag{{
+func TestTSESignaturWorker_ProcessOnce_AktiveTransaktionWirdAbgeschlossen(t *testing.T) {
+	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{
 		ID:          4,
 		TxID:        "tx-4",
 		ProcessType: "Kassenbeleg-V1",
 		ProcessData: "Beleg^9.00",
 	}}}
 
-	worker := tseNachsignierWorker{
-		settingsRepo: mockTSESettingsReader{conf: configuredTSE()},
+	worker := &tseSignaturWorker{
+		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
 		newTSEClient: neuerWorkerClient(tse.FakeClient{
 			StartErr: errors.New("409 transaction already started"),
@@ -258,7 +275,7 @@ func TestTSENachsignierWorker_ProcessOnce_AktiveTransaktionWirdAbgeschlossen(t *
 	if len(store.quittierungen) != 1 {
 		t.Fatalf("expected one quittierung, got %d", len(store.quittierungen))
 	}
-	signatur := store.quittierungen[0]
+	signatur := store.quittierungen[0].Signatur
 	if signatur.Signatur != "SIG-4" || signatur.TransaktionNummer != 44 {
 		t.Fatalf("expected finish signature data, got %+v", signatur)
 	}
@@ -267,28 +284,18 @@ func TestTSENachsignierWorker_ProcessOnce_AktiveTransaktionWirdAbgeschlossen(t *
 	}
 }
 
-func TestTSENachsignierWorker_ProcessOnce_IdempotentByTxID(t *testing.T) {
-	store := &mockTSENachsignierStore{offene: []tse_repo.OffenerNachsignierAuftrag{{
-		ID:          5,
-		TxID:        "tx-5",
-		ProcessType: "Kassenbeleg-V1",
-		ProcessData: "Beleg^7.00",
-	}}}
-
-	worker := tseNachsignierWorker{
-		settingsRepo: mockTSESettingsReader{conf: configuredTSE()},
-		store:        store,
-		newTSEClient: neuerWorkerClient(tse.FakeClient{
-			RetrieveErr:   tse.ErrTransactionNichtGefunden,
-			StartResponse: tse.StartResult{TransactionNumber: 45, LogTime: time.Date(2026, 6, 10, 18, 5, 1, 0, time.UTC)},
-			FinishResponse: tse.FinishResult{
-				TransactionNumber: 45,
-				SignatureCounter:  702,
-				SerialNumberTSE:   "TSE-SN-5",
-				LogTimeEnd:        time.Date(2026, 6, 10, 18, 5, 2, 0, time.UTC),
-				Signature:         "SIG-5",
-			},
-		}),
+// Der TSE-Client wird ueber Durchlaeufe hinweg wiederverwendet (samt
+// Auth-Token) und nur bei geaenderten Zugangsdaten neu gebaut.
+func TestTSESignaturWorker_ClientWiederverwendung(t *testing.T) {
+	settingsRepo := &mockTSESettingsReader{conf: configuredTSE()}
+	factoryCalls := 0
+	worker := &tseSignaturWorker{
+		settingsRepo: settingsRepo,
+		store:        &mockTSESignaturStore{},
+		newTSEClient: func(_ tse.Credentials) (tseWorkerClient, error) {
+			factoryCalls++
+			return tse.FakeClient{}, nil
+		},
 		now: time.Now,
 	}
 
@@ -298,8 +305,90 @@ func TestTSENachsignierWorker_ProcessOnce_IdempotentByTxID(t *testing.T) {
 	if err := worker.processOnce(context.Background()); err != nil {
 		t.Fatalf("second run failed: %v", err)
 	}
+	if factoryCalls != 1 {
+		t.Fatalf("expected client to be reused (1 factory call), got %d", factoryCalls)
+	}
 
-	if len(store.distinctByTxID) != 1 {
-		t.Fatalf("expected one distinct tx_id signature, got %d", len(store.distinctByTxID))
+	settingsRepo.conf.ApiSecret = "rotated-secret"
+	if err := worker.processOnce(context.Background()); err != nil {
+		t.Fatalf("third run failed: %v", err)
+	}
+	if factoryCalls != 2 {
+		t.Fatalf("expected client rebuild after credential change, got %d factory calls", factoryCalls)
+	}
+}
+
+// runWorker startet den Run-Loop und liefert cancel + done fuer den Abbau.
+func runWorker(t *testing.T, worker *tseSignaturWorker) (context.CancelFunc, <-chan struct{}) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		worker.run(ctx)
+		close(done)
+	}()
+	return cancel, done
+}
+
+func signierenderFakeClient() tseClientFactory {
+	return neuerWorkerClient(tse.FakeClient{
+		RetrieveErr:    tse.ErrTransactionNichtGefunden,
+		StartResponse:  tse.StartResult{TransactionNumber: 50, LogTime: time.Date(2026, 6, 10, 19, 0, 1, 0, time.UTC)},
+		FinishResponse: tse.FinishResult{TransactionNumber: 50, SignatureCounter: 800, SerialNumberTSE: "TSE-SN", Signature: "SIG"},
+	})
+}
+
+// Der Sofort-Trigger nach einem Commit stoesst den Durchlauf ohne Warten auf
+// den Polling-Tick an (Tick steht auf einer Stunde).
+func TestTSESignaturWorker_Run_SofortTrigger(t *testing.T) {
+	store := &mockTSESignaturStore{
+		offene:      []tse_repo.OffenerSignaturauftrag{{ID: 6, TxID: "tx-6", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^1.00"}},
+		verarbeitet: make(chan struct{}, 1),
+	}
+	trigger := make(chan struct{}, 1)
+	worker := &tseSignaturWorker{
+		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
+		store:        store,
+		newTSEClient: signierenderFakeClient(),
+		trigger:      trigger,
+		pollInterval: time.Hour,
+		now:          time.Now,
+	}
+
+	cancel, done := runWorker(t, worker)
+	defer func() { cancel(); <-done }()
+
+	trigger <- struct{}{}
+
+	select {
+	case <-store.verarbeitet:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Sofort-Trigger hat keinen Durchlauf angestossen")
+	}
+}
+
+// Der Polling-Tick faengt verlorene Trigger (Crash zwischen Commit und
+// Trigger): Ohne jeden Trigger wird der offene Auftrag am Tick verarbeitet.
+func TestTSESignaturWorker_Run_PollingFallbackFaengtVerloreneTrigger(t *testing.T) {
+	store := &mockTSESignaturStore{
+		offene:      []tse_repo.OffenerSignaturauftrag{{ID: 7, TxID: "tx-7", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^2.00"}},
+		verarbeitet: make(chan struct{}, 1),
+	}
+	worker := &tseSignaturWorker{
+		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
+		store:        store,
+		newTSEClient: signierenderFakeClient(),
+		trigger:      make(chan struct{}), // nie ausgeloest
+		pollInterval: 10 * time.Millisecond,
+		now:          time.Now,
+	}
+
+	cancel, done := runWorker(t, worker)
+	defer func() { cancel(); <-done }()
+
+	select {
+	case <-store.verarbeitet:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Polling-Fallback hat den offenen Auftrag nicht verarbeitet")
 	}
 }

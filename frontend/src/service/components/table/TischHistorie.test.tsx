@@ -10,7 +10,7 @@ import { TischHistorie } from './TischHistorie'
 type HistorieEintrag = Bestellung | Zahlung
 
 vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }))
 
 vi.mock('@/lib/Auth', () => ({
@@ -106,7 +106,7 @@ function renderHistorie(historie: HistorieEintrag[]) {
       backend={{
         stornierungErteilen: vi.fn().mockResolvedValue(undefined),
         bestellungUmbuchen: vi.fn().mockResolvedValue(undefined),
-        belegDrucken: vi.fn().mockResolvedValue(undefined),
+        belegDrucken: vi.fn().mockResolvedValue('eingereiht'),
       }}
       onStornierungErteilt={vi.fn()}
       onBestellungUmgebucht={vi.fn()}

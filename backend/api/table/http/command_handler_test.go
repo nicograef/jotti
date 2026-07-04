@@ -16,6 +16,7 @@ import (
 
 type mockCommand struct {
 	err             error
+	belegStatus     string
 	lastTischID     int
 	lastZahlung     string
 	lastVerkauf     string
@@ -62,12 +63,18 @@ func (m *mockCommand) AusgabeBestaetigen(ctx context.Context, userID int, userNa
 	return m.err
 }
 
-func (m *mockCommand) KassenbelegDrucken(_ context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) error {
+func (m *mockCommand) KassenbelegDrucken(_ context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (string, error) {
 	m.lastTischID = tischID
 	m.lastZahlung = zahlungID
 	m.lastVerkauf = verkaufID
 	m.lastStornierung = stornierungID
-	return m.err
+	if m.err != nil {
+		return "", m.err
+	}
+	if m.belegStatus != "" {
+		return m.belegStatus, nil
+	}
+	return application.BelegStatusEingereiht, nil
 }
 
 func (m *mockCommand) FavoritHinzufuegen(_ context.Context, _, _ int) error {
@@ -378,6 +385,9 @@ func TestKassenbelegDruckenHandler_Success(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
+	if got := rec.Body.String(); !strings.Contains(got, `"status":"eingereiht"`) {
+		t.Errorf("expected status eingereiht in response, got %s", got)
+	}
 	if mock.lastTischID != 1 {
 		t.Errorf("expected tischId 1, got %d", mock.lastTischID)
 	}
@@ -386,6 +396,27 @@ func TestKassenbelegDruckenHandler_Success(t *testing.T) {
 	}
 	if mock.lastVerkauf != "" {
 		t.Errorf("expected verkaufId empty for zahlung path, got %q", mock.lastVerkauf)
+	}
+}
+
+// Bei ausstehender TSE-Signatur antwortet der Endpunkt mit Status "ausstehend"
+// (HTTP 200) — die UI fasst über denselben Endpunkt nach.
+func TestKassenbelegDruckenHandler_Ausstehend(t *testing.T) {
+	mock := &mockCommand{belegStatus: application.BelegStatusAusstehend}
+	handler := &CommandHandler{Command: mock}
+
+	body := `{"tischId":1,"zahlungId":"11111111-1111-1111-1111-111111111111"}`
+	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+	if got := rec.Body.String(); !strings.Contains(got, `"status":"ausstehend"`) {
+		t.Errorf("expected status ausstehend in response, got %s", got)
 	}
 }
 

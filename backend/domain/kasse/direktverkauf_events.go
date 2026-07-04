@@ -19,9 +19,6 @@ type DirektverkaufGetaetigtV1Data struct {
 	Positionen        []PositionEventData `json:"positionen"`
 	GesamtbetragCents int                 `json:"gesamtbetragCents"`
 	Kommentar         string              `json:"kommentar"`
-	TSETxID           string              `json:"tseTxId,omitempty"`
-	TSEData           *TSEData            `json:"tseData,omitempty"`
-	TSEAusfall        bool                `json:"tseAusfall,omitempty"`
 }
 
 var direktverkaufGetaetigtV1DataSchema = z.Struct(z.Shape{
@@ -40,8 +37,6 @@ type DirektverkaufStorniertV1Data struct {
 	Positionen             []PositionEventData `json:"positionen"`
 	GesamtStornierungCents int                 `json:"gesamtStornierungCents"`
 	Kommentar              string              `json:"kommentar"`
-	TSETxID                string              `json:"tseTxId,omitempty"`
-	TSEData                *TSEData            `json:"tseData,omitempty"`
 }
 
 var direktverkaufStorniertV1DataSchema = z.Struct(z.Shape{

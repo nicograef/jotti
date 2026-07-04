@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
-	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -14,6 +13,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
+	"github.com/nicograef/jotti/backend/repository/tse_repo"
 	"github.com/rs/zerolog"
 )
 
@@ -29,14 +29,11 @@ type tableRepo interface {
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
-	WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error)
-	WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error)
-	WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, nachsignierungen []kassenjournal_repo.TSENachsignierung, kassensitzungNr int) error
-	WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, nachsignierungen []kassenjournal_repo.TSENachsignierung, kassensitzungNr int) error
+	WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error
+	WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, kassensitzungNr int) error
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
-	GetTSESignaturByTxID(ctx context.Context, txID string) (kasse.TSEData, error)
 }
 
 type kassensitzungenRepo interface {
@@ -65,6 +62,12 @@ type druckauftragRepo interface {
 	EnqueueDruckauftraege(ctx context.Context, auftraege []druckauftrag_repo.NeuerDruckauftrag) error
 }
 
+// tseAuftragRepo liefert den Signatur-Stand eines Events aus der
+// Signaturauftrags-Tabelle (Beleg-Abruf liest genau eine Signaturquelle).
+type tseAuftragRepo interface {
+	GetSignaturauftragZuEvent(ctx context.Context, eventID int) (tse_repo.SignaturauftragStand, error)
+}
+
 type settingsRepo interface {
 	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
 	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
@@ -87,7 +90,7 @@ type Command struct {
 	DruckstationRepo    druckstationRepo
 	DruckauftragRepo    druckauftragRepo
 	SettingsRepo        settingsRepo
-	TSESignierer        tseApp.Signierer
+	TSERepo             tseAuftragRepo
 }
 
 // getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung for a booking.
@@ -113,8 +116,7 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 // expectedVersion muss die Version des Zustands sein, gegen den der Command validiert
 // hat (Projektion bzw. Replay) — nicht ein frisches GetMaxVersion zum Schreibzeitpunkt.
 // Nur so erkennt der UNIQUE(subject, version)-Constraint, dass sich der Stream seit dem
-// Lesen geändert hat (z. B. während der TSE-Signierung), und verhindert Doppel-Writes
-// auf Basis veralteter Validierung.
+// Lesen geändert hat, und verhindert Doppel-Writes auf Basis veralteter Validierung.
 func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) (int, error) {
 	e.Version = expectedVersion + 1
 
@@ -158,42 +160,14 @@ func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.E
 	})
 }
 
-func writeEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error) {
-	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
-		return repo.WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx, versioned, streamType, kassensitzungNr, buildAuftraege, txID, processType, processData)
-	})
-}
-
-// writeEventWithNachsignierAuftrag writes an event plus a TSE retry job in one
-// transaction. Returns ErrConflict on a version conflict.
-func writeEventWithNachsignierAuftrag(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error) {
-	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
-		return repo.WriteEventWithNachsignierAuftrag(ctx, versioned, streamType, kassensitzungNr, txID, processType, processData)
-	})
-}
-
-// persistSignedTischEvent writes a signed tisch-session event: when the signing produced a
-// Nachsignier-Auftrag the event is written together with that TSE retry job, otherwise on its own.
-// expectedVersion ist die Version des gelesenen Zustands, gegen den validiert wurde.
-// An OCC conflict maps to ErrConflict, any other write error to ErrDatabase. aktion is the success
-// log message; on the deferred-signing path it is suffixed accordingly.
-func (c Command) persistSignedTischEvent(ctx context.Context, signierung tseApp.Signierung, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
+// persistTischEvent writes a tisch-session event with OCC against expectedVersion
+// (die Version des gelesenen Zustands, gegen den validiert wurde). An OCC conflict
+// maps to ErrConflict, any other write error to ErrDatabase. aktion is the success
+// log message.
+func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
 	log := zerolog.Ctx(ctx)
 
-	if signierung.NachsignierAuftrag != nil {
-		na := signierung.NachsignierAuftrag
-		if _, err := writeEventWithNachsignierAuftrag(ctx, c.EventRepo, signierung.Event, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr, na.TxID, na.ProcessType, na.ProcessData); err != nil {
-			if errors.Is(err, ErrConflict) {
-				return ErrConflict
-			}
-			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write event with TSE-nachsignierung")
-			return ErrDatabase
-		}
-		log.Info().Int("tisch_id", tischID).Msg(aktion + " (unsigniert, Nachsignierung vorgemerkt)")
-		return nil
-	}
-
-	if _, err := writeEvent(ctx, c.EventRepo, signierung.Event, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -443,12 +417,6 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return err
 	}
 
-	signierung, err := c.signBestellungAufgenommenEvent(ctx, evt, positionen)
-	if err != nil {
-		return err
-	}
-	evt = signierung.Event
-
 	druckstationen, err := c.konfigurierteDruckstationen(ctx)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to load druckstationen for arbeitsbon")
@@ -462,39 +430,13 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	}
 
 	// Bestellungen validieren keinen Stream-Zustand (reines Anhängen); die Version wird
-	// deshalb erst unmittelbar vor dem Schreiben bestimmt, damit parallele Bestellungen
-	// am selben Tisch nicht über die gesamte Signier-Dauer hinweg kollidieren. Bumpt eine
-	// Bestellung die Version zwischen Lesen und Schreiben eines validierenden Commands
-	// (Zahlung, Storno, …), läuft dieser korrekt in den OCC-Konflikt.
+	// deshalb erst unmittelbar vor dem Schreiben bestimmt. Bumpt eine Bestellung die
+	// Version zwischen Lesen und Schreiben eines validierenden Commands (Zahlung,
+	// Storno, …), läuft dieser korrekt in den OCC-Konflikt.
 	expectedVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to load max version for bestellung")
 		return ErrDatabase
-	}
-
-	if signierung.NachsignierAuftrag != nil {
-		if _, err = writeEventWithDruckauftraegeUndNachsignierAuftrag(
-			ctx,
-			c.EventRepo,
-			evt,
-			subject,
-			expectedVersion,
-			kasse.StreamTypeTischSession,
-			kassensitzungNr,
-			buildAuftraege,
-			signierung.NachsignierAuftrag.TxID,
-			signierung.NachsignierAuftrag.ProcessType,
-			signierung.NachsignierAuftrag.ProcessData,
-		); err != nil {
-			if errors.Is(err, ErrConflict) {
-				return ErrConflict
-			}
-			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung event with TSE-nachsignierung")
-			return ErrDatabase
-		}
-
-		log.Info().Int("tisch_id", tischID).Msg("Bestellung aufgenommen (unsigniert, Nachsignierung vorgemerkt)")
-		return nil
 	}
 
 	_, err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
@@ -617,35 +559,20 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return err
 	}
 
-	// Beide Seiten sind geldneutrale Bestellungen und werden je mit eigener
-	// TSE-Transaktion als Bestellung-V1 signiert: der Abgang mit negativen,
-	// der Zugang mit positiven Mengen (Anhang I).
-	quellSignierung, err := c.signBestellungUmgebuchtEvent(ctx, quellEvent, resolvedPositionen, -1)
-	if err != nil {
-		return err
-	}
-	zielSignierung, err := c.signBestellungUmgebuchtEvent(ctx, zielEvent, resolvedPositionen, +1)
-	if err != nil {
-		return err
-	}
-
 	// Quelle: OCC gegen den validierten Zustand (die Umbuchbarkeit wurde gegen die
 	// Quell-Projektion geprüft). Ziel: dort wird kein Zustand validiert (reines
-	// Anhängen), die Version kommt erst unmittelbar vor dem Schreiben.
+	// Anhängen), die Version kommt erst unmittelbar vor dem Schreiben. Beide Seiten
+	// erhalten ihren Signaturauftrag im selben Commit (fiskalische Projektion).
 	zielMaxVersion, err := c.EventRepo.GetMaxVersion(ctx, zielSubject)
 	if err != nil {
 		log.Error().Err(err).Int("ziel_tisch_id", zielTischID).Msg("Failed to load max version for target subject")
 		return ErrDatabase
 	}
 
-	quellSigniert := quellSignierung.Event
-	zielSigniert := zielSignierung.Event
-	quellSigniert.Version = quellState.LastEventVersion + 1
-	zielSigniert.Version = zielMaxVersion + 1
+	quellEvent.Version = quellState.LastEventVersion + 1
+	zielEvent.Version = zielMaxVersion + 1
 
-	nachsignierungen := nachsignierungenAusSignierungen(quellSignierung, zielSignierung)
-
-	err = c.EventRepo.WriteUmbuchung(ctx, quellSigniert, zielSigniert, nachsignierungen, ks.ZNr)
+	err = c.EventRepo.WriteUmbuchung(ctx, quellEvent, zielEvent, ks.ZNr)
 	if err != nil {
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
 			log.Warn().Int("quell_tisch_id", quellTischID).Msg("Kassensitzung nicht mehr offen")
@@ -653,8 +580,8 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		}
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().
-				Int("quell_version", quellSigniert.Version).
-				Int("ziel_version", zielSigniert.Version).
+				Int("quell_version", quellEvent.Version).
+				Int("ziel_version", zielEvent.Version).
 				Str("quell_subject", quellSubject).
 				Str("ziel_subject", zielSubject).
 				Msg("OCC conflict bei Bestellung umbuchen")
@@ -667,24 +594,6 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 
 	log.Info().Int("quell_tisch_id", quellTischID).Int("ziel_tisch_id", zielTischID).Msg("Bestellung umgebucht")
 	return nil
-}
-
-// nachsignierungenAusSignierungen sammelt die Nachsignier-Aufträge der Seiten, deren
-// Signierung bei der Erfassung fehlschlug (TSE-Ausfall), damit der Worker sie atomar
-// mit den Events nachholt.
-func nachsignierungenAusSignierungen(signierungen ...tseApp.Signierung) []kassenjournal_repo.TSENachsignierung {
-	var nachsignierungen []kassenjournal_repo.TSENachsignierung
-	for _, s := range signierungen {
-		if s.NachsignierAuftrag == nil {
-			continue
-		}
-		nachsignierungen = append(nachsignierungen, kassenjournal_repo.TSENachsignierung{
-			TxID:        s.NachsignierAuftrag.TxID,
-			ProcessType: s.NachsignierAuftrag.ProcessType,
-			ProcessData: s.NachsignierAuftrag.ProcessData,
-		})
-	}
-	return nachsignierungen
 }
 
 func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
@@ -710,14 +619,9 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		return err
 	}
 
-	signierung, err := c.signZahlungKassiertEvent(ctx, evt, resolvedPositionen, gesamtZahlungCents)
-	if err != nil {
-		return err
-	}
-
 	// OCC gegen den validierten Zustand: Hat sich der Stream seit dem Lesen geändert
-	// (z. B. parallele Zahlung während der TSE-Signierung), schlägt der Write mit 409 fehl.
-	return c.persistSignedTischEvent(ctx, signierung, subject, state.LastEventVersion, kassensitzungNr, tischID, "Zahlung kassiert")
+	// (z. B. eine parallele Zahlung), schlägt der Write mit 409 fehl.
+	return c.persistTischEvent(ctx, evt, subject, state.LastEventVersion, kassensitzungNr, tischID, "Zahlung kassiert")
 }
 
 // StornierungErteilen führt eine „Stornieren"-Aktion aus und teilt sie serverseitig
@@ -749,7 +653,7 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		return ErrPositionNichtStornierbar
 	}
 
-	signierungen, err := c.signStornoAufteilung(ctx, subject, userID, userName, aufteilung, kommentar)
+	stornoEvents, err := baueStornoEvents(ctx, subject, userID, userName, aufteilung, kommentar)
 	if err != nil {
 		return err
 	}
@@ -761,17 +665,17 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		expectedVersion = events[len(events)-1].Version
 	}
 
-	return c.persistStornoEvents(ctx, signierungen, subject, expectedVersion, kassensitzungNr, tischID)
+	return c.persistStornoEvents(ctx, stornoEvents, subject, expectedVersion, kassensitzungNr, tischID)
 }
 
-// signStornoAufteilung erzeugt und signiert die Events einer aufgeteilten Storno-
-// Aktion: zuerst die geldneutrale Korrektur (falls unbezahlte Mengen vorliegen), dann
-// je betroffener Zahlung eine kassenwirksame Warenrücknahme. Die Signierungen werden in
-// Schreibreihenfolge zurückgegeben (jede mit eigener TSE-Transaktion).
-func (c Command) signStornoAufteilung(ctx context.Context, subject string, userID int, userName string, aufteilung kasse.StornoAufteilung, kommentar string) ([]tseApp.Signierung, error) {
+// baueStornoEvents erzeugt die Events einer aufgeteilten Storno-Aktion in
+// Schreibreihenfolge: zuerst die geldneutrale Korrektur (falls unbezahlte Mengen
+// vorliegen), dann je betroffener Zahlung eine kassenwirksame Warenrücknahme.
+// Jedes Event erhält beim Schreiben seinen eigenen Signaturauftrag.
+func baueStornoEvents(ctx context.Context, subject string, userID int, userName string, aufteilung kasse.StornoAufteilung, kommentar string) ([]event.Event, error) {
 	log := zerolog.Ctx(ctx)
 
-	var signierungen []tseApp.Signierung
+	var events []event.Event
 
 	if len(aufteilung.Korrektur) > 0 {
 		evt, err := kasse.NewBestellungKorrigiertEvent(subject, userID, userName, aufteilung.Korrektur, aufteilung.KorrekturCents, kommentar)
@@ -779,11 +683,7 @@ func (c Command) signStornoAufteilung(ctx context.Context, subject string, userI
 			log.Error().Err(err).Str("subject", subject).Msg("Failed to create bestellung korrigiert event")
 			return nil, err
 		}
-		signierung, err := c.signBestellungKorrigiertEvent(ctx, evt, aufteilung.Korrektur)
-		if err != nil {
-			return nil, err
-		}
-		signierungen = append(signierungen, signierung)
+		events = append(events, evt)
 	}
 
 	for _, wr := range aufteilung.Warenruecknahmen {
@@ -792,32 +692,25 @@ func (c Command) signStornoAufteilung(ctx context.Context, subject string, userI
 			log.Error().Err(err).Str("subject", subject).Msg("Failed to create stornierung erteilt event")
 			return nil, err
 		}
-		signierung, err := c.signStornierungErteiltEvent(ctx, evt, wr.Positionen, wr.GesamtCents)
-		if err != nil {
-			return nil, err
-		}
-		signierungen = append(signierungen, signierung)
+		events = append(events, evt)
 	}
 
-	return signierungen, nil
+	return events, nil
 }
 
-// persistStornoEvents weist den signierten Storno-Events fortlaufende Versionen ab der
-// erwarteten Version (Stand des validierten Replays) zu und schreibt sie atomar (mit
-// etwaigen Nachsignier-Aufträgen). Ein OCC-Konflikt wird zu ErrConflict.
-func (c Command) persistStornoEvents(ctx context.Context, signierungen []tseApp.Signierung, subject string, expectedVersion int, kassensitzungNr int, tischID int) error {
+// persistStornoEvents weist den Storno-Events fortlaufende Versionen ab der
+// erwarteten Version (Stand des validierten Replays) zu und schreibt sie atomar
+// (je Event mit seinem Signaturauftrag). Ein OCC-Konflikt wird zu ErrConflict.
+func (c Command) persistStornoEvents(ctx context.Context, stornoEvents []event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int) error {
 	log := zerolog.Ctx(ctx)
 
-	events := make([]event.Event, 0, len(signierungen))
-	for i, signierung := range signierungen {
-		evt := signierung.Event
+	events := make([]event.Event, 0, len(stornoEvents))
+	for i, evt := range stornoEvents {
 		evt.Version = expectedVersion + 1 + i
 		events = append(events, evt)
 	}
 
-	nachsignierungen := nachsignierungenAusSignierungen(signierungen...)
-
-	if err := c.EventRepo.WriteTischSessionEventsAtomic(ctx, events, nachsignierungen, kassensitzungNr); err != nil {
+	if err := c.EventRepo.WriteTischSessionEventsAtomic(ctx, events, kassensitzungNr); err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Int("tisch_id", tischID).Str("subject", subject).Msg("OCC conflict bei Stornierung")
 			return ErrConflict

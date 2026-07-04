@@ -17,7 +17,7 @@ type settingsQueryRepo interface {
 }
 
 type tseStatusRepo interface {
-	CountOffeneTSENachsignierAuftraege(ctx context.Context) (int, error)
+	CountOffeneTSESignaturauftraege(ctx context.Context) (int, error)
 }
 
 type NewTSEConnectionTester func(credentials tse.Credentials) (tse.ConnectionTester, error)
@@ -223,7 +223,7 @@ func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
 		return TSEStatus{}, ErrDatabase
 	}
 
-	offeneNachsignierungen, err := q.TSEStatusRepo.CountOffeneTSENachsignierAuftraege(ctx)
+	offeneNachsignierungen, err := q.TSEStatusRepo.CountOffeneTSESignaturauftraege(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to count open TSE retry jobs")
 		return TSEStatus{}, ErrDatabase

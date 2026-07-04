@@ -145,12 +145,14 @@ func (q *Queries) SeedInsertProdukt(ctx context.Context, arg SeedInsertProduktPa
 	return err
 }
 
-const seedInsertTSENachsignierAuftrag = `-- name: SeedInsertTSENachsignierAuftrag :exec
-INSERT INTO tse_nachsignier_auftraege (tx_id, process_type, process_data, status, versuche, letzter_fehler, naechster_versuch_am, erstellt_am, erledigt_am)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+const seedInsertTSESignaturauftrag = `-- name: SeedInsertTSESignaturauftrag :exec
+INSERT INTO tse_signaturauftraege (event_id, tx_id, process_type, process_data, status, versuche, letzter_fehler, naechster_versuch_am, erstellt_am, erledigt_am,
+    transaktion_nummer, signatur_zaehler, tse_seriennummer, log_time_start, log_time_end, signatur, qr_code_data)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 `
 
-type SeedInsertTSENachsignierAuftragParams struct {
+type SeedInsertTSESignaturauftragParams struct {
+	EventID            int
 	TxID               string
 	ProcessType        string
 	ProcessData        string
@@ -160,10 +162,18 @@ type SeedInsertTSENachsignierAuftragParams struct {
 	NaechsterVersuchAm time.Time
 	ErstelltAm         time.Time
 	ErledigtAm         sql.NullTime
+	TransaktionNummer  sql.NullInt32
+	SignaturZaehler    sql.NullInt32
+	TseSeriennummer    sql.NullString
+	LogTimeStart       sql.NullTime
+	LogTimeEnd         sql.NullTime
+	Signatur           sql.NullString
+	QrCodeData         sql.NullString
 }
 
-func (q *Queries) SeedInsertTSENachsignierAuftrag(ctx context.Context, arg SeedInsertTSENachsignierAuftragParams) error {
-	_, err := q.db.ExecContext(ctx, seedInsertTSENachsignierAuftrag,
+func (q *Queries) SeedInsertTSESignaturauftrag(ctx context.Context, arg SeedInsertTSESignaturauftragParams) error {
+	_, err := q.db.ExecContext(ctx, seedInsertTSESignaturauftrag,
+		arg.EventID,
 		arg.TxID,
 		arg.ProcessType,
 		arg.ProcessData,
@@ -173,30 +183,6 @@ func (q *Queries) SeedInsertTSENachsignierAuftrag(ctx context.Context, arg SeedI
 		arg.NaechsterVersuchAm,
 		arg.ErstelltAm,
 		arg.ErledigtAm,
-	)
-	return err
-}
-
-const seedInsertTSESignatur = `-- name: SeedInsertTSESignatur :exec
-INSERT INTO tse_signaturen (tx_id, transaktion_nummer, signatur_zaehler, tse_seriennummer, log_time_start, log_time_end, signatur, qr_code_data, erstellt_am)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-`
-
-type SeedInsertTSESignaturParams struct {
-	TxID              string
-	TransaktionNummer int
-	SignaturZaehler   int
-	TseSeriennummer   string
-	LogTimeStart      time.Time
-	LogTimeEnd        time.Time
-	Signatur          string
-	QrCodeData        string
-	ErstelltAm        time.Time
-}
-
-func (q *Queries) SeedInsertTSESignatur(ctx context.Context, arg SeedInsertTSESignaturParams) error {
-	_, err := q.db.ExecContext(ctx, seedInsertTSESignatur,
-		arg.TxID,
 		arg.TransaktionNummer,
 		arg.SignaturZaehler,
 		arg.TseSeriennummer,
@@ -204,7 +190,6 @@ func (q *Queries) SeedInsertTSESignatur(ctx context.Context, arg SeedInsertTSESi
 		arg.LogTimeEnd,
 		arg.Signatur,
 		arg.QrCodeData,
-		arg.ErstelltAm,
 	)
 	return err
 }

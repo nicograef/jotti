@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
 
+import { BelegDruckenResponseSchema,type BelegStatus } from '../beleg'
 import {
   type Ausgabe,
   AusgabeBestaetigenSchema,
@@ -65,11 +66,19 @@ export class TischBackend {
     await this.backend.post('service/zahlung-kassieren', body)
   }
 
-  public async belegDrucken(tischId: number, zahlungId: string): Promise<void> {
+  public async belegDrucken(
+    tischId: number,
+    zahlungId: string,
+  ): Promise<BelegStatus> {
     const body = z
       .object({ tischId: TischIdSchema, zahlungId: z.uuid() })
       .parse({ tischId, zahlungId })
-    await this.backend.post('service/beleg-drucken', body)
+    const { status } = await this.backend.post(
+      'service/beleg-drucken',
+      body,
+      BelegDruckenResponseSchema,
+    )
+    return status
   }
 
   public async stornierungErteilen(

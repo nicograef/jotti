@@ -13,12 +13,12 @@ import (
 
 // --- Query Handler ---
 
-type tseNachsignierQuery interface {
-	GetTSENachsignierAuftraege(ctx context.Context) ([]tse_repo.NachsignierAuftrag, error)
+type tseSignaturauftragQuery interface {
+	GetTSESignaturauftraege(ctx context.Context) ([]tse_repo.Signaturauftrag, error)
 }
 
 type QueryHandler struct {
-	Query tseNachsignierQuery
+	Query tseSignaturauftragQuery
 }
 
 type nachsignierAuftragDTO struct {
@@ -36,10 +36,11 @@ type getNachsignierAuftraegeResponse struct {
 	Auftraege []nachsignierAuftragDTO `json:"auftraege"`
 }
 
-// POST /admin/get-tse-nachsignier-auftraege
+// POST /admin/get-tse-nachsignier-auftraege (Signaturauftraege; Endpunkt-Name
+// bleibt bis zur Umbenennung der Endpunktfamilie in Phase 6 bestehen)
 func (h *QueryHandler) GetTSENachsignierAuftraegeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		auftraege, err := h.Query.GetTSENachsignierAuftraege(r.Context())
+		auftraege, err := h.Query.GetTSESignaturauftraege(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -65,13 +66,13 @@ func (h *QueryHandler) GetTSENachsignierAuftraegeHandler() http.HandlerFunc {
 
 // --- Command Handler ---
 
-type tseNachsignierCommand interface {
-	TSENachsignierAuftragZuruecksetzen(ctx context.Context, id int) error
-	TSENachsignierAuftragVerwerfen(ctx context.Context, id int) error
+type tseSignaturauftragCommand interface {
+	TSESignaturauftragZuruecksetzen(ctx context.Context, id int) error
+	TSESignaturauftragVerwerfen(ctx context.Context, id int) error
 }
 
 type CommandHandler struct {
-	Command tseNachsignierCommand
+	Command tseSignaturauftragCommand
 }
 
 type nachsignierAuftragRequest struct {
@@ -90,7 +91,7 @@ func (h *CommandHandler) TSENachsignierAuftragZuruecksetzenHandler() http.Handle
 			return
 		}
 
-		if err := h.Command.TSENachsignierAuftragZuruecksetzen(r.Context(), body.ID); err != nil {
+		if err := h.Command.TSESignaturauftragZuruecksetzen(r.Context(), body.ID); err != nil {
 			helper.SendServerError(w)
 			return
 		}
@@ -107,7 +108,7 @@ func (h *CommandHandler) TSENachsignierAuftragVerwerfenHandler() http.HandlerFun
 			return
 		}
 
-		if err := h.Command.TSENachsignierAuftragVerwerfen(r.Context(), body.ID); err != nil {
+		if err := h.Command.TSESignaturauftragVerwerfen(r.Context(), body.ID); err != nil {
 			helper.SendServerError(w)
 			return
 		}

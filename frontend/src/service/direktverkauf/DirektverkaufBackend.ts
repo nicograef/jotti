@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
 
+import { BelegDruckenResponseSchema,type BelegStatus } from '../beleg'
 import {
   type DirektverkaufHistorieEintrag,
   DirektverkaufHistorieEintragSchema,
@@ -47,8 +48,13 @@ export class DirektverkaufBackend {
 
   public async kassenbelegDrucken(
     cmd: DirektverkaufKassenbelegDrucken,
-  ): Promise<void> {
+  ): Promise<BelegStatus> {
     const body = DirektverkaufKassenbelegDruckenSchema.parse(cmd)
-    await this.backend.post('service/beleg-drucken', body)
+    const { status } = await this.backend.post(
+      'service/beleg-drucken',
+      body,
+      BelegDruckenResponseSchema,
+    )
+    return status
   }
 }

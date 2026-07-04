@@ -19,7 +19,11 @@
 Die Architektur-Dokumentation nennt drei Bounded Contexts (Kasse, Stammdaten,
 Auth), der Code lebt aber faktisch mit sechs Subdomänen: Kasse (Core),
 Fiskalisierung, Druck/Ausgabe, Stammdaten, Reporting (Supporting) und Auth
-(Generic). Diese Diskrepanz erzeugt konkrete Strukturprobleme:
+(Generic). Diese Diskrepanz erzeugt konkrete Strukturprobleme (die Zahlen-
+und Dependency-Angaben beschreiben den Ist-Stand vor der Outbox-PRD; deren
+Umbau verkleinert einzelne Dependency-Sätze — etwa entfallen TSESignierer
+und SettingsRepo aus den Kassen-Commands —, ändert aber nichts an der
+Diagnose):
 
 1. **`api/table` ist ein God-Modul.** Ein einziger Command-Struct mit neun
    Dependencies vereint vier Kontexte: Tisch-Stammdaten-CRUD, das
@@ -53,8 +57,10 @@ Fiskalisierung, Druck/Ausgabe, Stammdaten, Reporting (Supporting) und Auth
 Für Entwickler heißt das: Die Architektur ist im Dateibaum nicht ablesbar,
 Kontextgrenzen werden nur durch Disziplin gehalten, und die Dokumentation
 widerspricht dem Code (etwa die Aussage, Bondruck sei „kein eigenständiger
-Bounded Context, sondern eine Policy" — bei zwei eigenen Tabellen, drei
-API-Modulen, eigener Admin-UI und einem externen Relay-Prozess).
+Bounded Context, sondern eine Policy" — bei zwei eigenen Tabellen, vier
+API-Modulen (bondruck, druckauftrag, druckstation, relay) plus dem
+Kassenbeleg-Command in api/table, eigener Admin-UI und einem externen
+Relay-Prozess).
 
 ## Solution
 
@@ -197,6 +203,14 @@ Backend: Domain-Schicht
   Tagesabschluss-Event braucht. Der Kassenabschluss-Command verliert damit
   die Reporting-Abhängigkeit; das Kassenjournal-Repository liefert die
   Events der Kassensitzung.
+- **Bewusste Logik-Duplikation zur SQL-Schicht:** Die Reporting-Queries
+  behalten ihre `kj_extract_*`-SQL-Funktionen (mengeneffiziente Reads über
+  viele Kassensitzungen); die neue Domänenfunktion repliziert dieselbe
+  Betrags-Extraktion in Go für den Schreibpfad einer einzelnen Sitzung.
+  Der Äquivalenztest (siehe Testing Decisions) koppelt beide
+  Implementierungen dauerhaft; jeder neue geldrelevante Event-Typ muss
+  beide Stellen nachziehen — das ist der Preis dafür, dass das Reporting
+  reiner Lesekontext bleibt.
 - `domain/table` → `domain/tisch` (Tisch-Entität und
   AktiverTisch-Read-Models), `domain/product` → `domain/produkt`.
 - `domain/settings` entfällt: Betreiber → neues `domain/betreiber`;
@@ -216,6 +230,9 @@ Backend: Repository-Schicht
   tisch_repo. settings_repo wird aufgeteilt: Betreiber-Zugriffe in ein
   neues betreiber_repo, TSE-Konfiguration/-Stammdaten/Kassenidentität in
   das bestehende tse_repo.
+- Die sqlc-Query-Datei `tables.sql` wird zu `tische.sql` umbenannt (letzter
+  englischer Ausreißer; die Query-Namen darin sind bereits deutsch). Danach
+  `make sqlc`; der generierte Dateiname in `sqlc/dbgen/` folgt automatisch.
 - Keine Schema-Änderungen: Die Tabellen (betreiber, tse_konfiguration,
   tse_stammdaten, kassenidentitaet, produkte, tische, users, …) sind
   bereits korrekt geschnitten und benannt.
@@ -223,12 +240,12 @@ Backend: Repository-Schicht
 Frontend
 
 - lib enthält nur noch Generisches: HTTP-Client (BackendClient), Auth,
-  Download, Utils, Fehlermeldungen, Arbeitsmodus. Die admin-exklusiven
-  Klassen ziehen in ihre Slices: Druckstation-Backend zu den
-  Druck-Einstellungen; die Einstellungen-Sammelklasse wird aufgeteilt in
-  eine TSE-Backend-Klasse (Konfiguration, Setup, Status, Signaturaufträge)
-  im TSE-Slice und eine Betreiber-Backend-Klasse (Betreiber,
-  Kassenidentität) im Finanzamt-Slice.
+  Credential-Schemas (identity), Download, Utils, Fehlermeldungen,
+  Arbeitsmodus. Die admin-exklusiven Klassen ziehen in ihre Slices:
+  Druckstation-Backend zu den Druck-Einstellungen; die
+  Einstellungen-Sammelklasse wird aufgeteilt in eine TSE-Backend-Klasse
+  (Konfiguration, Setup, Status, Signaturaufträge) im TSE-Slice und eine
+  Betreiber-Backend-Klasse (Betreiber, Kassenidentität) im Finanzamt-Slice.
 - Die Kassensitzungs-Seite wird in ihre drei Sektionen (Eröffnung,
   Geldtransit, Abschluss) als eigene Dateien zerlegt; Verhalten und
   Erscheinungsbild bleiben identisch.
@@ -260,7 +277,9 @@ Dokumentation
   Paket-Hinweise (etwa zu domain/table) aktualisiert.
 - .github/instructions: applyTo-Muster auf die neuen Pfade angepasst
   (insbesondere Event-Sourcing-Instructions, die auf domain/table und
-  domain/kasse zeigen).
+  domain/kasse zeigen); zusätzlich die Codebeispiele in
+  backend.instructions.md, die alte Paketnamen tragen (`product.Produkt`,
+  `product.Kategorie`), auf die neuen Paketnamen aktualisiert.
 - AGENTS.md-Bereichsbeschreibung: Pfad-Referenzen prüfen und auf die
   Kontext-Ordner anpassen.
 
@@ -296,6 +315,9 @@ Architektur-/Import-Grenzen-Test — Entscheidung aus der Klärungsrunde).
 - Jegliche Verhaltensänderung: keine neuen Features, keine geänderten
   API-Pfade, JSON-Formate, Fehlercodes, UI-Texte oder Abläufe.
 - Datenbank-Schema- oder Event-Format-Änderungen; Datenmigrationen.
+- Umbenennung der DB-Tabelle `tisch_sessions`: geprüft und bewusst
+  belassen — der Name entspricht dem UL-Begriff Tisch-Session
+  (language.md), abgegrenzt von der Kassensitzung.
 - Die TSE-Signatur-Outbox selbst (eigene PRD, Voraussetzung dieser PRD).
 - Umbenennung von `user`/Auth-Infrastruktur ins Deutsche (dokumentierte
   Ausnahme der Ubiquitous Language).
@@ -329,6 +351,22 @@ Architektur-/Import-Grenzen-Test — Entscheidung aus der Klärungsrunde).
   gleichzeitigen Nutzern und Single-Prozess-Deployment ist der modulare
   Monolith das Optimum; die Arbeit liegt im Schnitt der Module, nicht in
   ihrer Verteilung.
+- **Favoriten über Kontextgrenzen:** Die Favoriten-Commands ziehen zu
+  stammdaten/tisch, aber die Tischgeschäft-Queries („Meine Tische",
+  AktiverTischMitFavorit) lesen den Favoriten-Status weiterhin mit — das
+  favorit_repo wird damit aus beiden Kontexten gelesen. Für Read Models
+  legitim, aber eine bewusste Entscheidung, keine versehentliche.
+- **Finanzamt-Seite mit zwei Backend-Klassen:** Die FinanzamtPage bündelt
+  Betreiber-, Kassenidentitäts- und TSE-Sektionen und nutzt nach der
+  Aufspaltung beide neuen Backend-Klassen — für die TSE-Sektionen als
+  Cross-Slice-Import aus dem tse-Slice. Gewollt, da die UI unverändert
+  bleibt.
+- **Tagesabschluss und Same-Command-Events:** Der Abschluss-Command erzeugt
+  Kassensturz- und ggf. Differenz-Event im selben Vorgang vor dem
+  Tagesabschluss. Die reine Domänenfunktion muss diese noch nicht
+  persistierten Events zusätzlich zu den Journal-Events als Eingabe
+  erhalten (in-memory anhängen), sonst fehlt die Differenzbuchung in den
+  Summen.
 - **Risiko und Gegenmittel:** Das Hauptrisiko sind versehentliche
   Logikänderungen während der Umzüge. Gegenmittel: strikt mechanische
   Verschiebungen (Move + Import-Anpassung) getrennt von den wenigen echten

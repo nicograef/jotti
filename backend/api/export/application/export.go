@@ -27,10 +27,9 @@ var (
 )
 
 type kassenjournalRepo interface {
-	ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, error)
-	// GetTSESignaturByTxID liefert die nachsignierte Signatur eines Vorgangs aus
-	// der Seitentabelle (db.ErrNotFound, solange noch nicht nachsigniert).
-	GetTSESignaturByTxID(ctx context.Context, txID string) (kasse.TSEData, error)
+	// ReadEventsByKassensitzung liefert die Events samt Signatur-Stand je Event
+	// (LEFT JOIN auf die Signaturauftraege: kein Eintrag = nicht signaturpflichtig).
+	ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, map[int]dsfinvk.EventSignatur, error)
 }
 
 type kassensitzungenRepo interface {
@@ -73,7 +72,7 @@ func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 		return Archiv{}, err
 	}
 
-	events, err := e.KassenjournalRepo.ReadEventsByKassensitzung(ctx, ks.ZNr)
+	events, signaturen, err := e.KassenjournalRepo.ReadEventsByKassensitzung(ctx, ks.ZNr)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to read events for dsfinvk export")
 		return Archiv{}, ErrDatabase
@@ -93,7 +92,7 @@ func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 			Msg("TSE certificate exceeds two DSFinV-K fields; TSE_ZERTIFIKAT left empty in export")
 	}
 
-	inhalt, err := dsfinvk.BuildArchive(snapshot, events, e.signaturNachladen(ctx))
+	inhalt, err := dsfinvk.BuildArchive(snapshot, events, signaturen)
 	if err != nil {
 		if errors.Is(err, dsfinvk.ErrKeineVorgaenge) {
 			return Archiv{}, ErrLeereKassensitzung
@@ -147,23 +146,6 @@ func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassens
 	}
 	// GetAllKassensitzungen ist nach datum DESC sortiert — alle[0] ist die jüngste.
 	return alle[0], nil
-}
-
-// signaturNachladen baut die Lesefunktion, mit der der reine Mapper während eines
-// TSE-Ausfalls unsigniert persistierte Vorgänge mit ihrer nachsignierten Signatur
-// vereinigt. Solange ein Vorgang noch nicht nachsigniert ist (db.ErrNotFound),
-// liefert sie nil — der Vorgang erscheint dann (noch) nicht in transactions_tse.csv.
-func (e Export) signaturNachladen(ctx context.Context) dsfinvk.SignaturNachladen {
-	return func(txID string) (*kasse.TSEData, error) {
-		sig, err := e.KassenjournalRepo.GetTSESignaturByTxID(ctx, txID)
-		if err != nil {
-			if errors.Is(err, db.ErrNotFound) {
-				return nil, nil
-			}
-			return nil, err
-		}
-		return &sig, nil
-	}
 }
 
 // snapshot lädt die Stammdaten für den Export. erstellung ist Z_ERSTELLUNG: bei

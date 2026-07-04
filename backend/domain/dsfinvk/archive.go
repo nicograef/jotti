@@ -33,10 +33,10 @@ const (
 // BuildArchive transformiert Snapshot und Events einer Kassensitzung in ein
 // vollständiges DSFinV-K-ZIP: die CSV-Dateien, die beschreibende index.xml und
 // die gdpdu-01-09-2004.dtd. Seiteneffektfrei — komponiert Mapper, CSV-Serializer,
-// index.xml-Generator und ZIP-Packer. signaturNachladen reicht der Orchestrator
-// für die Vereinigung nachsignierter Vorgänge an den Mapper durch.
-func BuildArchive(snapshot Snapshot, events []event.Event, signaturNachladen SignaturNachladen) ([]byte, error) {
-	archive, err := Map(snapshot, events, signaturNachladen)
+// index.xml-Generator und ZIP-Packer. signaturen ist der Signatur-Stand je
+// Event-ID aus der Signaturauftrags-Tabelle (die einzige Signaturquelle).
+func BuildArchive(snapshot Snapshot, events []event.Event, signaturen map[int]EventSignatur) ([]byte, error) {
+	archive, err := Map(snapshot, events, signaturen)
 	if err != nil {
 		return nil, err
 	}

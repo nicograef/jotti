@@ -32,7 +32,7 @@ func (s stubSettingsRepo) GetTSEKonfiguration(context.Context) (settings.TSEKonf
 
 type stubTSEStatusRepo struct{ offen int }
 
-func (s stubTSEStatusRepo) CountOffeneTSENachsignierAuftraege(context.Context) (int, error) {
+func (s stubTSEStatusRepo) CountOffeneTSESignaturauftraege(context.Context) (int, error) {
 	return s.offen, nil
 }
 

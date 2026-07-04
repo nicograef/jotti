@@ -578,25 +578,13 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 func TestApplyEvent_SetsErsteBestellungLogTimeOnlyOnce(t *testing.T) {
 	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}
 
-	firstTSE := &TSEData{
-		TransactionNumber: 1001,
-		SignatureCounter:  1,
-		SerialNumberTSE:   "TSE-1",
-		LogTimeStart:      "2026-05-01T18:01:00Z",
-		LogTimeEnd:        "2026-05-01T18:01:01Z",
-		Signature:         "SIG-1",
-		ProcessType:       "Bestellung-V1",
-	}
 	firstOrder, err := NewBestellungAufgenommenEvent(testSubject, 1, "TestUser", products, "")
 	if err != nil {
 		t.Fatalf("failed to create first order event: %v", err)
 	}
-	firstOrder, err = EmbedTSEInBestellungAufgenommen(firstOrder, "tx-erste-bestellung", firstTSE)
-	if err != nil {
-		t.Fatalf("failed to embed TSE into first order event: %v", err)
-	}
 	firstOrder.ID = 1
 	firstOrder.Version = 1
+	firstOrder.Time = time.Date(2026, 5, 1, 18, 1, 0, 0, time.UTC)
 
 	state, err := ApplyEvent(TischSession{}, firstOrder)
 	if err != nil {
@@ -606,30 +594,18 @@ func TestApplyEvent_SetsErsteBestellungLogTimeOnlyOnce(t *testing.T) {
 		t.Fatal("expected ersteBestellungLogTime to be set")
 	}
 
-	wantFirst, _ := time.Parse(time.RFC3339, "2026-05-01T18:01:00Z")
+	wantFirst := firstOrder.Time
 	if !state.ErsteBestellungLogTime.Equal(wantFirst) {
-		t.Fatalf("expected first log time %s, got %s", wantFirst.Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
+		t.Fatalf("expected first event time %s, got %s", wantFirst.Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
 	}
 
-	secondTSE := &TSEData{
-		TransactionNumber: 1002,
-		SignatureCounter:  2,
-		SerialNumberTSE:   "TSE-1",
-		LogTimeStart:      "2026-05-01T18:05:00Z",
-		LogTimeEnd:        "2026-05-01T18:05:01Z",
-		Signature:         "SIG-2",
-		ProcessType:       "Bestellung-V1",
-	}
 	secondOrder, err := NewBestellungAufgenommenEvent(testSubject, 1, "TestUser", products, "")
 	if err != nil {
 		t.Fatalf("failed to create second order event: %v", err)
 	}
-	secondOrder, err = EmbedTSEInBestellungAufgenommen(secondOrder, "tx-zweite-bestellung", secondTSE)
-	if err != nil {
-		t.Fatalf("failed to embed TSE into second order event: %v", err)
-	}
 	secondOrder.ID = 2
 	secondOrder.Version = 2
+	secondOrder.Time = time.Date(2026, 5, 1, 18, 5, 0, 0, time.UTC)
 
 	state, err = ApplyEvent(state, secondOrder)
 	if err != nil {
@@ -640,56 +616,5 @@ func TestApplyEvent_SetsErsteBestellungLogTimeOnlyOnce(t *testing.T) {
 	}
 	if !state.ErsteBestellungLogTime.Equal(wantFirst) {
 		t.Fatalf("expected log time to stay on first order %s, got %s", wantFirst.Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
-	}
-}
-
-func TestApplyEvent_ErsteBestellungLogTime_FallbackAufEventZeit(t *testing.T) {
-	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}
-
-	// Bestellung ohne TSE-Daten (z. B. waehrend eines TSE-Ausfalls erfasst).
-	order, err := NewBestellungAufgenommenEvent(testSubject, 1, "TestUser", products, "")
-	if err != nil {
-		t.Fatalf("failed to create order event: %v", err)
-	}
-	order.ID = 1
-	order.Version = 1
-
-	state, err := ApplyEvent(TischSession{}, order)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if state.ErsteBestellungLogTime == nil {
-		t.Fatal("expected ersteBestellungLogTime fallback to event time")
-	}
-	if !state.ErsteBestellungLogTime.Equal(order.Time.UTC()) {
-		t.Fatalf("expected event time %s, got %s", order.Time.UTC().Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
-	}
-}
-
-func TestApplyEvent_BestellungWithInvalidLogTime_ReturnsError(t *testing.T) {
-	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}
-
-	tseData := &TSEData{
-		TransactionNumber: 1001,
-		SignatureCounter:  1,
-		SerialNumberTSE:   "TSE-1",
-		LogTimeStart:      "invalid",
-		LogTimeEnd:        "2026-05-01T18:01:01Z",
-		Signature:         "SIG-1",
-		ProcessType:       "Bestellung-V1",
-	}
-
-	order, err := NewBestellungAufgenommenEvent(testSubject, 1, "TestUser", products, "")
-	if err != nil {
-		t.Fatalf("failed to create order event: %v", err)
-	}
-	evt, err := EmbedTSEInBestellungAufgenommen(order, "tx-invalid-logtime", tseData)
-	if err != nil {
-		t.Fatalf("failed to embed TSE into order event: %v", err)
-	}
-
-	_, err = ApplyEvent(TischSession{}, evt)
-	if err == nil {
-		t.Fatal("expected parse error for invalid log time, got nil")
 	}
 }

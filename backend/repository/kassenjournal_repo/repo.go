@@ -6,13 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/dsfinvk"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
+	"github.com/nicograef/jotti/backend/repository/tse_repo"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
@@ -56,18 +59,21 @@ func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) e
 //   - "direktverkauf" → kassenjournal only (no projection)
 func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
 	var id int
+	eingereiht := false
 	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
-		stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+		stored, auftrag, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
 		if err != nil {
 			return err
 		}
 		id = stored.ID
+		eingereiht = auftrag
 		return nil
 	})
 	if err != nil {
 		return 0, err
 	}
 
+	notifySignaturWorker(eingereiht)
 	return id, nil
 }
 
@@ -84,8 +90,9 @@ func (r Repository) WriteEventWithDruckauftraege(
 	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
 ) (int, error) {
 	var id int
+	eingereiht := false
 	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
-		stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+		stored, auftrag, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
 		if err != nil {
 			return err
 		}
@@ -95,139 +102,51 @@ func (r Repository) WriteEventWithDruckauftraege(
 		}
 
 		id = stored.ID
+		eingereiht = auftrag
 		return nil
 	})
 	if err != nil {
 		return 0, err
 	}
 
+	notifySignaturWorker(eingereiht)
 	return id, nil
-}
-
-// WriteEventWithNachsignierAuftrag writes an event and enqueues a TSE retry
-// job in one transaction. This is used for the DON'T BLOCK THE TILL fallback:
-// the sale is persisted immediately and signing can be retried asynchronously.
-func (r Repository) WriteEventWithNachsignierAuftrag(
-	ctx context.Context,
-	e event.Event,
-	streamType kasse.StreamType,
-	kassensitzungNr int,
-	txID string,
-	processType string,
-	processData string,
-) (int, error) {
-	var id int
-	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
-		stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
-		if err != nil {
-			return err
-		}
-
-		err = qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
-			TxID:        txID,
-			ProcessType: processType,
-			ProcessData: processData,
-		})
-		if err != nil {
-			return db.Error(err)
-		}
-
-		id = stored.ID
-		return nil
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
-}
-
-// WriteEventWithDruckauftraegeUndNachsignierAuftrag writes an event, derived
-// print jobs, and a TSE retry job in one transaction.
-func (r Repository) WriteEventWithDruckauftraegeUndNachsignierAuftrag(
-	ctx context.Context,
-	e event.Event,
-	streamType kasse.StreamType,
-	kassensitzungNr int,
-	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
-	txID string,
-	processType string,
-	processData string,
-) (int, error) {
-	var id int
-	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
-		stored, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
-		if err != nil {
-			return err
-		}
-
-		if err := druckauftrag_repo.InsertDruckauftraege(ctx, qtx, buildAuftraege(stored)); err != nil {
-			return err
-		}
-
-		err = qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
-			TxID:        txID,
-			ProcessType: processType,
-			ProcessData: processData,
-		})
-		if err != nil {
-			return db.Error(err)
-		}
-
-		id = stored.ID
-		return nil
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
-}
-
-// TSENachsignierung beschreibt einen TSE-Nachsignier-Auftrag, der atomar mit einem
-// während eines TSE-Ausfalls unsigniert persistierten Vorgang geschrieben wird.
-type TSENachsignierung struct {
-	TxID        string
-	ProcessType string
-	ProcessData string
 }
 
 // WriteTischSessionEventsAtomic writes the given tisch-session events atomically
-// (all-or-nothing), together with any TSE-Nachsignier-Aufträge for events that could
-// not be signed at capture time. Each event must already carry its final subject and
-// version. Backs UI actions that map to multiple typed events with one TSE-transaction
-// each — the Umbuchung (two linked tables) and the Storno (one geldneutrale Korrektur
-// plus one Warenrücknahme per betroffener Zahlung).
-func (r Repository) WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, nachsignierungen []TSENachsignierung, kassensitzungNr int) error {
-	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
+// (all-or-nothing); each event takes its Signaturauftrag from the fiskalische
+// Projektion within the same transaction. Each event must already carry its final
+// subject and version. Backs UI actions that map to multiple typed events — the
+// Umbuchung (two linked tables) and the Storno (one geldneutrale Korrektur plus
+// one Warenrücknahme per betroffener Zahlung).
+func (r Repository) WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, kassensitzungNr int) error {
+	eingereiht := false
+	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
 		for _, evt := range events {
-			if _, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+			_, auftrag, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeTischSession, kassensitzungNr)
+			if err != nil {
 				return err
 			}
-		}
-
-		for _, ns := range nachsignierungen {
-			err := qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
-				TxID:        ns.TxID,
-				ProcessType: ns.ProcessType,
-				ProcessData: ns.ProcessData,
-			})
-			if err != nil {
-				return db.Error(err)
-			}
+			eingereiht = eingereiht || auftrag
 		}
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	notifySignaturWorker(eingereiht)
+	return nil
 }
 
 // EroeffneKassensitzung legt die Kassensitzungs-Entität an und schreibt das
 // Eröffnungs-Event in EINER Transaktion: Schlägt der Event-Write fehl, bleibt
 // keine offene Sitzung ohne Eröffnungs-Event (und damit ohne Anfangsbestand)
-// zurück. build erhält die vergebene z_nr, erzeugt und signiert das Event und
-// liefert optional den Nachsignier-Auftrag eines TSE-Ausfalls.
-func (r Repository) EroeffneKassensitzung(ctx context.Context, datum time.Time, bezeichnung string, build func(zNr int) (event.Event, *TSENachsignierung, error)) (int, error) {
+// zurück. build erhält die vergebene z_nr und erzeugt das Eröffnungs-Event.
+func (r Repository) EroeffneKassensitzung(ctx context.Context, datum time.Time, bezeichnung string, build func(zNr int) (event.Event, error)) (int, error) {
 	var zNr int
+	eingereiht := false
 	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
 		n, err := qtx.InsertKassensitzung(ctx, dbgen.InsertKassensitzungParams{
 			Datum:       datum,
@@ -238,47 +157,49 @@ func (r Repository) EroeffneKassensitzung(ctx context.Context, datum time.Time, 
 			return db.Error(err)
 		}
 
-		evt, nachsignierung, err := build(n)
+		evt, err := build(n)
 		if err != nil {
 			return err
 		}
 
-		if _, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeKassensitzung, n); err != nil {
+		_, auftrag, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeKassensitzung, n)
+		if err != nil {
 			return err
 		}
 
-		if nachsignierung != nil {
-			err := qtx.InsertTSENachsignierAuftrag(ctx, dbgen.InsertTSENachsignierAuftragParams{
-				TxID:        nachsignierung.TxID,
-				ProcessType: nachsignierung.ProcessType,
-				ProcessData: nachsignierung.ProcessData,
-			})
-			if err != nil {
-				return db.Error(err)
-			}
-		}
-
 		zNr = n
+		eingereiht = auftrag
 		return nil
 	})
 	if err != nil {
 		return 0, err
 	}
 
+	notifySignaturWorker(eingereiht)
 	return zNr, nil
 }
 
-// WriteUmbuchung writes the linked source and target umbuchung events atomically,
-// together with any TSE-Nachsignier-Aufträge for sides that could not be signed at
-// capture time. Both events must already carry their final subject/version.
-func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, nachsignierungen []TSENachsignierung, kassensitzungNr int) error {
-	return r.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, nachsignierungen, kassensitzungNr)
+// WriteUmbuchung writes the linked source and target umbuchung events atomically;
+// both sides take their Signaturauftrag from the fiskalische Projektion. Both
+// events must already carry their final subject/version.
+func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
+	return r.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
 }
 
-// writeEventInTx inserts the event into the kassenjournal and updates the matching
-// projection within the given transaction, returning the event with its generated
-// ID. The caller owns the transaction (commit/rollback).
-func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (event.Event, error) {
+// notifySignaturWorker stößt den Signatur-Worker nach einem Commit mit neuem
+// Signaturauftrag sofort an (non-blocking; der Polling-Tick bleibt Fallback).
+func notifySignaturWorker(auftragEingereiht bool) {
+	if auftragEingereiht {
+		tse_repo.NotifySignaturWorker()
+	}
+}
+
+// writeEventInTx inserts the event into the kassenjournal, enqueues its
+// Signaturauftrag (transactional outbox) and updates the matching projection
+// within the given transaction, returning the event with its generated ID and
+// whether a Signaturauftrag was enqueued. The caller owns the transaction
+// (commit/rollback) and triggers the Signatur-Worker after a successful commit.
+func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (event.Event, bool, error) {
 	// 0. Status-Guard mit Zeilensperre: Buchungs-Events dürfen nur in eine offene Kassensitzung.
 	// FOR SHARE serialisiert gegen den Statuswechsel auf 'wird_abgeschlossen', den KasseAbschliessen
 	// als erste Handlung committet (UPDATE = FOR UPDATE): Entweder committet dieser Write vor der
@@ -287,17 +208,17 @@ func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e ev
 	// Tagesabschluss schreibt in diesem Status und setzt in derselben Transaktion 'abgeschlossen'.
 	status, err := qtx.GetKassensitzungStatusForShare(ctx, kassensitzungNr)
 	if err != nil {
-		return event.Event{}, db.Error(err)
+		return event.Event{}, false, db.Error(err)
 	}
 	switch kasse.KassensitzungStatus(status) {
 	case kasse.KassensitzungOffen:
 		// Alle Events erlaubt.
 	case kasse.KassensitzungWirdAbgeschlossen:
 		if !kasse.IsAbschlussEventType(e.Type) {
-			return event.Event{}, ErrKassensitzungNichtOffen
+			return event.Event{}, false, ErrKassensitzungNichtOffen
 		}
 	default: // abgeschlossen
-		return event.Event{}, ErrKassensitzungNichtOffen
+		return event.Event{}, false, ErrKassensitzungNichtOffen
 	}
 
 	// 1. Insert event into kassenjournal
@@ -312,31 +233,51 @@ func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e ev
 		KassensitzungNr: kassensitzungNr,
 	})
 	if err != nil {
-		return event.Event{}, db.Error(err)
+		return event.Event{}, false, db.Error(err)
 	}
 
 	e.ID = id
 
-	// 2. Route to the appropriate projection/entity
+	// 2. Transaktionale Outbox: Jeder signaturpflichtige Vorgang erhält im selben
+	// Commit genau einen offenen Signaturauftrag (auch ohne TSE-Konfiguration).
+	// Die fiskalische Projektion ist die einzige Stelle, die über Signaturpflicht
+	// entscheidet; die tx-ID ist eine zufällige UUID.
+	vorgang, signaturpflichtig, err := kasse.FiskalischeProjektion(e)
+	if err != nil {
+		return event.Event{}, false, err
+	}
+	if signaturpflichtig {
+		err = qtx.InsertTSESignaturauftrag(ctx, dbgen.InsertTSESignaturauftragParams{
+			EventID:     id,
+			TxID:        uuid.New().String(),
+			ProcessType: vorgang.ProcessType,
+			ProcessData: vorgang.ProcessData,
+		})
+		if err != nil {
+			return event.Event{}, false, db.Error(err)
+		}
+	}
+
+	// 3. Route to the appropriate projection/entity
 	switch streamType {
 	case kasse.StreamTypeKassensitzung:
 		if err := r.handleKassensitzungEvent(ctx, qtx, e, kassensitzungNr); err != nil {
-			return event.Event{}, err
+			return event.Event{}, false, err
 		}
 
 	case kasse.StreamTypeTischSession:
 		if err := r.handleTischSessionEvent(ctx, qtx, e, kassensitzungNr); err != nil {
-			return event.Event{}, err
+			return event.Event{}, false, err
 		}
 
 	case kasse.StreamTypeDirektverkauf:
 		// Direktverkauf lives entirely in the kassenjournal — no projection to update.
 
 	default:
-		return event.Event{}, fmt.Errorf("unknown stream type: %s", streamType)
+		return event.Event{}, false, fmt.Errorf("unknown stream type: %s", streamType)
 	}
 
-	return e, nil
+	return e, signaturpflichtig, nil
 }
 
 // handleKassensitzungEvent handles kassensitzung events by updating the kassensitzungen CRUD entity.
@@ -513,8 +454,6 @@ func eventFromDirektverkaufRow(row dbgen.ReadDirektverkaufEventsRow) event.Event
 }
 
 // eventFromKassensitzungRow maps a Kassensitzung-wide read row to a domain event.
-// ReadEventsByKassensitzung selects the same columns as ReadEventsBySubject but
-// sqlc emits a distinct row type, so it needs its own mapping.
 func eventFromKassensitzungRow(row dbgen.ReadEventsByKassensitzungRow) event.Event {
 	return event.Event{
 		ID:       row.ID,
@@ -526,6 +465,25 @@ func eventFromKassensitzungRow(row dbgen.ReadEventsByKassensitzungRow) event.Eve
 		Data:     row.Data,
 		Time:     row.Timestamp,
 	}
+}
+
+// eventSignaturFromKassensitzungRow maps the LEFT-JOIN columns of a read row to
+// the export view of the event's Signaturauftrag: processType always, the
+// Signaturspalten only once quittiert.
+func eventSignaturFromKassensitzungRow(row dbgen.ReadEventsByKassensitzungRow) dsfinvk.EventSignatur {
+	signatur := dsfinvk.EventSignatur{ProcessType: row.ProcessType.String}
+	if row.Signatur.Valid {
+		signatur.Signatur = &tse.Signatur{
+			TransaktionNummer: int(row.TransaktionNummer.Int32),
+			SignaturZaehler:   int(row.SignaturZaehler.Int32),
+			TSESeriennummer:   row.TseSeriennummer.String,
+			LogTimeStart:      row.LogTimeStart.Time,
+			LogTimeEnd:        row.LogTimeEnd.Time,
+			Signatur:          row.Signatur.String,
+			QRCodeData:        row.QrCodeData.String,
+		}
+	}
+	return signatur
 }
 
 // ReadEventsBySubject retrieves all events of the given subject.
@@ -562,42 +520,25 @@ func (r Repository) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr
 
 // ReadEventsByKassensitzung retrieves all events of the given Kassensitzung
 // (Kassensitzungs-, Tisch-Session- and Direktverkauf-Streams) ordered by ID
-// ascending. It is the read side of the DSFinV-K export.
-func (r Repository) ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, error) {
+// ascending, together with each event's Signaturauftrag-Stand (LEFT JOIN:
+// kein Auftrag = nicht signaturpflichtig). It is the read side of the
+// DSFinV-K export.
+func (r Repository) ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, map[int]dsfinvk.EventSignatur, error) {
 	rows, err := r.q.ReadEventsByKassensitzung(ctx, kassensitzungNr)
 	if err != nil {
-		return nil, db.Error(err)
+		return nil, nil, db.Error(err)
 	}
 
 	events := make([]event.Event, 0, len(rows))
+	signaturen := make(map[int]dsfinvk.EventSignatur)
 	for i := range rows {
 		events = append(events, eventFromKassensitzungRow(rows[i]))
-	}
-
-	return events, nil
-}
-
-// GetTSESignaturByTxID returns the backfilled signature data for a TSE tx_id.
-// It is used when the event was persisted unsigned during a temporary TSE
-// outage and later signed by the retry worker.
-func (r Repository) GetTSESignaturByTxID(ctx context.Context, txID string) (kasse.TSEData, error) {
-	row, err := r.q.GetTSESignaturByTxID(ctx, strings.TrimSpace(txID))
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return kasse.TSEData{}, db.ErrNotFound
+		if rows[i].ProcessType.Valid {
+			signaturen[rows[i].ID] = eventSignaturFromKassensitzungRow(rows[i])
 		}
-		return kasse.TSEData{}, db.Error(err)
 	}
 
-	return kasse.TSEData{
-		TransactionNumber: row.TransaktionNummer,
-		SignatureCounter:  row.SignaturZaehler,
-		SerialNumberTSE:   row.TseSeriennummer,
-		LogTimeStart:      row.LogTimeStart.UTC().Format(time.RFC3339),
-		LogTimeEnd:        row.LogTimeEnd.UTC().Format(time.RFC3339),
-		Signature:         row.Signatur,
-		QRCodeData:        row.QrCodeData,
-	}, nil
+	return events, signaturen, nil
 }
 
 // GetMaxVersion returns the highest event version for the given subject.

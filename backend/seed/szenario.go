@@ -162,10 +162,10 @@ type profilPunkt struct {
 	ZeitAnteil  float64
 }
 
-// tseAusfall ist ein TSE-Ausfallfenster relativ zum Sitzungsstart: Fiskalische Events in
-// diesem Fenster bleiben unsigniert und erhalten je einen Nachsignier-Auftrag. In
-// abgeschlossenen Sitzungen gelten die Aufträge als vom Worker abgearbeitet, in der offenen
-// Sitzung bleiben sie offen (der Worker ist ohne TSE-Konfiguration inaktiv).
+// tseAusfall ist ein TSE-Ausfallfenster relativ zum Sitzungsstart: Die Signaturaufträge
+// fiskalischer Events in diesem Fenster werden nicht prompt quittiert. In abgeschlossenen
+// Sitzungen signiert der Worker sie nach Fensterende nach, in der offenen Sitzung bleiben
+// sie offen.
 type tseAusfall struct {
 	NachStart time.Duration
 	Dauer     time.Duration
@@ -495,7 +495,7 @@ func demoSzenario() szenario {
 					{EventAnteil: 0.55, ZeitAnteil: 0.60},
 					{EventAnteil: 0.85, ZeitAnteil: 0.80},
 				},
-				// Cloud-TSE-Störung in der Abendstoßzeit; der Nachsignier-Worker arbeitet
+				// Cloud-TSE-Störung in der Abendstoßzeit; der Signatur-Worker arbeitet
 				// die Aufträge nach dem Fensterende ab.
 				TSEAusfaelle: []tseAusfall{{
 					NachStart: 8*time.Hour + 30*time.Minute,
@@ -519,9 +519,9 @@ func demoSzenario() szenario {
 				StartVorJetzt:       5 * time.Hour,
 				Dauer:               5 * time.Hour,
 				Abgeschlossen:       false,
-				// Kurzer TSE-Aussetzer am laufenden Tag: Die Aufträge bleiben offen und
-				// ohne Fehlertext, weil der Worker ohne TSE-Konfiguration nie einen
-				// Signierversuch startet.
+				// Kurzer TSE-Aussetzer am laufenden Tag: Die Aufträge des Fensters bleiben
+				// offen und ohne Fehlertext, weil der Worker ohne TSE-Konfiguration nie
+				// einen Signierversuch startet.
 				TSEAusfaelle: []tseAusfall{{NachStart: 4 * time.Hour, Dauer: 10 * time.Minute}},
 				// Abdeckung des Kassenbeleg-Druckers stand offen — fehlgeschlagene
 				// Kassenbelege für die Fehlerliste des laufenden Tags.

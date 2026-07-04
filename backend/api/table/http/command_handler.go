@@ -25,7 +25,7 @@ type command interface {
 	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
-	KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) error
+	KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (string, error)
 	FavoritHinzufuegen(ctx context.Context, userID, tischID int) error
 	FavoritEntfernen(ctx context.Context, userID, tischID int) error
 }
@@ -428,6 +428,13 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 	}
 }
 
+// belegDruckenResponse meldet den Beleg-Status: "eingereiht" (Druckauftrag
+// angelegt) oder "ausstehend" (TSE-Signatur liegt noch nicht vor; die UI ruft
+// denselben Endpunkt erneut auf).
+type belegDruckenResponse struct {
+	Status string `json:"status"`
+}
+
 func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := belegDruckenRequest{}
@@ -460,7 +467,7 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 				}
 			}
 
-			err := h.Command.KassenbelegDrucken(r.Context(), 0, "", verkaufID, stornierungID)
+			status, err := h.Command.KassenbelegDrucken(r.Context(), 0, "", verkaufID, stornierungID)
 			if err != nil {
 				switch {
 				case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
@@ -477,7 +484,7 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 				return
 			}
 
-			helper.SendEmptyResponse(w)
+			helper.SendResponse(w, belegDruckenResponse{Status: status})
 
 		case hasTisch && hasStornierung && !hasZahlung && !hasVerkauf:
 			cmd := belegDruckenTischStornoRequest{TischID: *body.TischID, StornierungID: *body.StornierungID}
@@ -486,7 +493,7 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 				return
 			}
 
-			err := h.Command.KassenbelegDrucken(r.Context(), cmd.TischID, "", "", cmd.StornierungID)
+			status, err := h.Command.KassenbelegDrucken(r.Context(), cmd.TischID, "", "", cmd.StornierungID)
 			if err != nil {
 				switch {
 				case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
@@ -503,7 +510,7 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 				return
 			}
 
-			helper.SendEmptyResponse(w)
+			helper.SendResponse(w, belegDruckenResponse{Status: status})
 
 		case hasTisch && hasZahlung && !hasStornierung && !hasVerkauf:
 			cmd := belegDruckenZahlungRequest{TischID: *body.TischID, ZahlungID: *body.ZahlungID}
@@ -512,7 +519,7 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 				return
 			}
 
-			err := h.Command.KassenbelegDrucken(r.Context(), cmd.TischID, cmd.ZahlungID, "", "")
+			status, err := h.Command.KassenbelegDrucken(r.Context(), cmd.TischID, cmd.ZahlungID, "", "")
 			if err != nil {
 				switch {
 				case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
@@ -528,7 +535,7 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 				return
 			}
 
-			helper.SendEmptyResponse(w)
+			helper.SendResponse(w, belegDruckenResponse{Status: status})
 
 		default:
 			helper.SendClientError(w, "validation_error", map[string][]string{

@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
-	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -19,8 +18,6 @@ import (
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
-	WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag, txID string, processType string, processData string) (int, error)
-	WriteEventWithNachsignierAuftrag(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, txID string, processType string, processData string) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 }
@@ -52,7 +49,6 @@ type Command struct {
 	ProductRepo         productRepo
 	KassensitzungenRepo kassensitzungenRepo
 	DruckstationRepo    druckstationRepo
-	TSESignierer        tseApp.Signierer
 }
 
 // getOffeneKassensitzungOderFehler retrieves the open Kassensitzung for a Direktverkauf. It returns
@@ -97,11 +93,6 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return err
 	}
 
-	tseSignierung, err := c.signDirektverkaufGetaetigtEvent(ctx, evt, positionen)
-	if err != nil {
-		return err
-	}
-
 	druckstationen, err := c.konfigurierteDruckstationen(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load druckstationen for direktverkauf")
@@ -113,7 +104,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	}
 
 	// Frischer Stream (neue UUID): erwartete Version 0, das Event ist immer version = 1.
-	if err := c.persistSignedVerkaufEvent(ctx, tseSignierung, subject, 0, ks.ZNr, buildAuftraege); err != nil {
+	if err := c.persistVerkaufEvent(ctx, evt, subject, 0, ks.ZNr, buildAuftraege); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -121,11 +112,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return ErrDatabase
 	}
 
-	msg := "Direktverkauf getaetigt"
-	if tseSignierung.NachsignierAuftrag != nil {
-		msg += " (unsigniert, Nachsignierung vorgemerkt)"
-	}
-	log.Info().Str("verkauf_id", verkaufID).Msg(msg)
+	log.Info().Str("verkauf_id", verkaufID).Msg("Direktverkauf getaetigt")
 	return nil
 }
 
@@ -183,14 +170,9 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return err
 	}
 
-	tseSignierung, err := c.signDirektverkaufStorniertEvent(ctx, evt, resolvedPositionen, gesamtStornierungCents)
-	if err != nil {
-		return err
-	}
-
 	// OCC gegen den validierten Zustand: Basis ist die höchste Version des Replays,
 	// gegen den die Storno-Invariante geprüft wurde.
-	if err := c.persistSignedVerkaufEvent(ctx, tseSignierung, subject, events[len(events)-1].Version, ks.ZNr, nil); err != nil {
+	if err := c.persistVerkaufEvent(ctx, evt, subject, events[len(events)-1].Version, ks.ZNr, nil); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -198,11 +180,7 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return ErrDatabase
 	}
 
-	msg := "Direktverkauf storniert"
-	if tseSignierung.NachsignierAuftrag != nil {
-		msg += " (unsigniert, Nachsignierung vorgemerkt)"
-	}
-	log.Info().Str("verkauf_id", verkaufID).Int("gesamt_stornierung_cents", gesamtStornierungCents).Msg(msg)
+	log.Info().Str("verkauf_id", verkaufID).Int("gesamt_stornierung_cents", gesamtStornierungCents).Msg("Direktverkauf storniert")
 	return nil
 }
 
@@ -345,23 +323,11 @@ func writeVersionedEvent(ctx context.Context, e event.Event, subject string, exp
 	return nil
 }
 
-// persistSignedVerkaufEvent writes a signed Direktverkauf event with OCC against expectedVersion.
-// When buildAuftraege is non-nil the derived print jobs are written in the same transaction; when
-// the signing produced a Nachsignier-Auftrag the TSE retry job is written alongside. Returns
-// ErrConflict on a version conflict.
-func (c Command) persistSignedVerkaufEvent(ctx context.Context, signierung tseApp.Signierung, subject string, expectedVersion int, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
-	evt := signierung.Event
-	if signierung.NachsignierAuftrag != nil {
-		na := signierung.NachsignierAuftrag
-		if buildAuftraege != nil {
-			return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
-				return c.EventRepo.WriteEventWithDruckauftraegeUndNachsignierAuftrag(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege, na.TxID, na.ProcessType, na.ProcessData)
-			})
-		}
-		return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
-			return c.EventRepo.WriteEventWithNachsignierAuftrag(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr, na.TxID, na.ProcessType, na.ProcessData)
-		})
-	}
+// persistVerkaufEvent writes a Direktverkauf event with OCC against expectedVersion.
+// When buildAuftraege is non-nil the derived print jobs are written in the same
+// transaction; der Signaturauftrag des Events entsteht in jedem Fall im selben
+// Commit (fiskalische Projektion). Returns ErrConflict on a version conflict.
+func (c Command) persistVerkaufEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
 	if buildAuftraege != nil {
 		return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
 			return c.EventRepo.WriteEventWithDruckauftraege(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege)

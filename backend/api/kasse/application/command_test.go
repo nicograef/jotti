@@ -11,12 +11,10 @@ import (
 	"testing"
 	"time"
 
-	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/settings"
-	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/rs/zerolog"
@@ -413,124 +411,6 @@ func TestGeldtransitBuchen_WirdAbgeschlossen(t *testing.T) {
 	}
 }
 
-func TestGeldtransitBuchen_MitTSE_DatenImEvent(t *testing.T) {
-	ctx := context.Background()
-	journalMock := kassenjournal_repo.NewMock(nil, nil)
-	start := time.Date(2026, 6, 10, 21, 10, 1, 0, time.UTC)
-	end := time.Date(2026, 6, 10, 21, 10, 2, 0, time.UTC)
-
-	cmd := Command{
-		KassenjournalRepo:   journalMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
-		TSESignierer: tseApp.Signierer{
-			SettingsRepo: settingsMock{tse: settings.TSEKonfiguration{
-				ApiKey:    "api-key",
-				ApiSecret: "api-secret",
-				TssID:     "tss-1",
-				ClientID:  "client-1",
-				UpdatedAt: time.Now(),
-			}},
-			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-				return tse.FakeClient{
-					StartResponse:  tse.StartResult{TransactionNumber: 41, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 40},
-					FinishResponse: tse.FinishResult{TransactionNumber: 41, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 41, SerialNumberTSE: "TSE-SN-1", Signature: "SIG-GELDTRANSIT"},
-				}, nil
-			},
-		},
-	}
-
-	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "einlage", 1000, "Wechselgeld")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
-	if err != nil {
-		t.Fatalf("expected no read error, got %v", err)
-	}
-	if len(events) != 1 {
-		t.Fatalf("expected one event, got %d", len(events))
-	}
-
-	var data kasse.GeldtransitGebuchtV1Data
-	if err := json.Unmarshal(events[0].Data, &data); err != nil {
-		t.Fatalf("expected no unmarshal error, got %v", err)
-	}
-	if data.TSEData == nil {
-		t.Fatal("expected TSE data in geldtransit event")
-	}
-	if data.TSEData.ProcessType != "Kassenbeleg-V1" {
-		t.Fatalf("expected process type Kassenbeleg-V1, got %q", data.TSEData.ProcessType)
-	}
-}
-
-func TestKasseAbschliessen_MitTSE_SigniertDifferenzUndTagesabschluss(t *testing.T) {
-	ctx := context.Background()
-	journalMock := kassenjournal_repo.NewMock(nil, nil)
-	journalMock.SetKassenbestand(50000)
-	start := time.Date(2026, 6, 10, 21, 20, 1, 0, time.UTC)
-	end := time.Date(2026, 6, 10, 21, 20, 2, 0, time.UTC)
-
-	cmd := Command{
-		KassenjournalRepo:   journalMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
-		ReportingRepo:       reportingMock{},
-		TSESignierer: tseApp.Signierer{
-			SettingsRepo: settingsMock{tse: settings.TSEKonfiguration{
-				ApiKey:    "api-key",
-				ApiSecret: "api-secret",
-				TssID:     "tss-1",
-				ClientID:  "client-1",
-				UpdatedAt: time.Now(),
-			}},
-			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-				return tse.FakeClient{
-					StartResponse:  tse.StartResult{TransactionNumber: 51, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 50},
-					FinishResponse: tse.FinishResult{TransactionNumber: 51, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 51, SerialNumberTSE: "TSE-SN-1", Signature: "SIG"},
-				}, nil
-			},
-		},
-	}
-
-	// Ist != Soll erzwingt die Differenzbuchung, sodass beide signierungspflichtigen Events entstehen.
-	err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
-	if err != nil {
-		t.Fatalf("expected no read error, got %v", err)
-	}
-	if len(events) != 3 {
-		t.Fatalf("expected three events (kassensturz + differenz + tagesabschluss), got %d", len(events))
-	}
-
-	var diff kasse.DifferenzSollIstGebuchtV1Data
-	if err := json.Unmarshal(events[1].Data, &diff); err != nil {
-		t.Fatalf("expected no unmarshal error, got %v", err)
-	}
-	if diff.TSEData == nil {
-		t.Fatal("expected TSE data in differenz event")
-	}
-	if diff.TSEData.ProcessType != "Kassenbeleg-V1" {
-		t.Fatalf("expected process type Kassenbeleg-V1, got %q", diff.TSEData.ProcessType)
-	}
-
-	var tagesabschluss kasse.TagesabschlussErstelltV1Data
-	if err := json.Unmarshal(events[2].Data, &tagesabschluss); err != nil {
-		t.Fatalf("expected no unmarshal error, got %v", err)
-	}
-	if tagesabschluss.TSEData == nil {
-		t.Fatal("expected TSE data in tagesabschluss event")
-	}
-	if tagesabschluss.TSEData.ProcessType != "SonstigerVorgang" {
-		t.Fatalf("expected process type SonstigerVorgang, got %q", tagesabschluss.TSEData.ProcessType)
-	}
-}
-
 // Der Betriebstag ist das Wandkalenderdatum in Europe/Berlin — auch kurz nach
 // Mitternacht (Sommer- wie Winterzeit), wo UTC noch der Vortag ist.
 func TestBetriebstag_NachMitternachtOrtszeit(t *testing.T) {
@@ -554,95 +434,6 @@ func TestBetriebstag_NachMitternachtOrtszeit(t *testing.T) {
 				t.Errorf("betriebstag = %s, want %s", got, tc.want)
 			}
 		})
-	}
-}
-
-// Der Anfangsbestand (> 0) ist eine Bareinlage und wird wie Geldtransit als
-// Kassenbeleg-V1-Eigenbeleg signiert.
-func TestKassensitzungEroeffnen_MitTSE_SigniertAnfangsbestand(t *testing.T) {
-	ctx := context.Background()
-	journalMock := kassenjournal_repo.NewMock(nil, nil)
-	start := time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC)
-	end := time.Date(2026, 6, 10, 9, 0, 1, 0, time.UTC)
-
-	cmd := Command{
-		KassenjournalRepo:   journalMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
-		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
-		TSESignierer: tseApp.Signierer{
-			SettingsRepo: settingsMock{tse: settings.TSEKonfiguration{
-				ApiKey:    "api-key",
-				ApiSecret: "api-secret",
-				TssID:     "tss-1",
-				ClientID:  "client-1",
-				UpdatedAt: time.Now(),
-			}},
-			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-				return tse.FakeClient{
-					StartResponse:  tse.StartResult{TransactionNumber: 60, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 59},
-					FinishResponse: tse.FinishResult{TransactionNumber: 60, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 60, SerialNumberTSE: "TSE-SN-1", Signature: "SIG"},
-				}, nil
-			},
-		},
-	}
-
-	zNr, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest", 10000)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(zNr))
-	if err != nil {
-		t.Fatalf("expected no read error, got %v", err)
-	}
-	if len(events) != 1 {
-		t.Fatalf("expected one event, got %d", len(events))
-	}
-
-	var data kasse.KassensitzungEroeffnetV1Data
-	if err := json.Unmarshal(events[0].Data, &data); err != nil {
-		t.Fatalf("expected no unmarshal error, got %v", err)
-	}
-	if data.TSEData == nil {
-		t.Fatal("expected TSE data in eroeffnet event (Anfangsbestand ist eine Bareinlage)")
-	}
-	if data.TSEData.ProcessType != "Kassenbeleg-V1" {
-		t.Fatalf("expected process type Kassenbeleg-V1, got %q", data.TSEData.ProcessType)
-	}
-}
-
-// Ohne Anfangsbestand gibt es keinen Geschäftsvorfall — keine TSE-Transaktion.
-// (Das Event-Schema lehnt betragCents = 0 derzeit ohnehin ab; der Test dokumentiert,
-// dass der Signierpfad in diesem Fall nie erreicht wird.)
-func TestKassensitzungEroeffnen_OhneAnfangsbestand_WirdNichtSigniert(t *testing.T) {
-	ctx := context.Background()
-	tseClientCalled := false
-
-	cmd := Command{
-		KassenjournalRepo:   kassenjournal_repo.NewMock(nil, nil),
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
-		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
-		TSESignierer: tseApp.Signierer{
-			SettingsRepo: settingsMock{tse: settings.TSEKonfiguration{
-				ApiKey:    "api-key",
-				ApiSecret: "api-secret",
-				TssID:     "tss-1",
-				ClientID:  "client-1",
-				UpdatedAt: time.Now(),
-			}},
-			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-				tseClientCalled = true
-				return tse.FakeClient{}, nil
-			},
-		},
-	}
-
-	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest", 0)
-	if err == nil {
-		t.Fatal("expected validation error for betragCents = 0 (Schema verlangt Anfangsbestand)")
-	}
-	if tseClientCalled {
-		t.Fatal("expected TSE client to not be created for kassensitzung-eroeffnet without Anfangsbestand")
 	}
 }
 
@@ -675,8 +466,6 @@ func TestKassensitzungEroeffnen_OhneTSE_LoggtWarnung(t *testing.T) {
 func TestKassensitzungEroeffnen_MitTSE_KeineWarnung(t *testing.T) {
 	var logbuf bytes.Buffer
 	ctx := zerolog.New(&logbuf).WithContext(context.Background())
-	start := time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC)
-	end := time.Date(2026, 6, 10, 9, 0, 1, 0, time.UTC)
 
 	tseSettings := settingsMock{vereinsname: "TestVerein", tse: settings.TSEKonfiguration{
 		ApiKey:    "api-key",
@@ -689,15 +478,6 @@ func TestKassensitzungEroeffnen_MitTSE_KeineWarnung(t *testing.T) {
 		KassenjournalRepo:   kassenjournal_repo.NewMock(nil, nil),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
 		SettingsRepo:        tseSettings,
-		TSESignierer: tseApp.Signierer{
-			SettingsRepo: tseSettings,
-			NewTSEClient: func(_ tse.Credentials) (tse.TSEClient, error) {
-				return tse.FakeClient{
-					StartResponse:  tse.StartResult{TransactionNumber: 60, LogTime: start, SerialNumberTSE: "TSE-SN-1", SignatureCounter: 59},
-					FinishResponse: tse.FinishResult{TransactionNumber: 60, LogTimeStart: start, LogTimeEnd: end, LogTime: end, SignatureCounter: 60, SerialNumberTSE: "TSE-SN-1", Signature: "SIG"},
-				}, nil
-			},
-		},
 	}
 
 	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)

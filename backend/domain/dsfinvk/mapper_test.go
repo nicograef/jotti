@@ -13,12 +13,36 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 const (
 	testSerial = "11111111-2222-3333-4444-555555555555"
 	testBonID  = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 )
+
+// testSignatur baut die quittierte Signatur eines Signaturauftrags, wie sie der
+// Export je Event-ID erhaelt.
+func testSignatur(t *testing.T, txNr, sigZaehler int, start, ende, signatur string) *tse.Signatur {
+	t.Helper()
+	logStart, err := time.Parse(time.RFC3339, start)
+	if err != nil {
+		t.Fatalf("logTimeStart parsen: %v", err)
+	}
+	logEnd, err := time.Parse(time.RFC3339, ende)
+	if err != nil {
+		t.Fatalf("logTimeEnd parsen: %v", err)
+	}
+	return &tse.Signatur{
+		TransaktionNummer: txNr,
+		SignaturZaehler:   sigZaehler,
+		TSESeriennummer:   "abc123serial",
+		LogTimeStart:      logStart,
+		LogTimeEnd:        logEnd,
+		Signatur:          signatur,
+		QRCodeData:        "V0;qr",
+	}
+}
 
 func testSnapshot() Snapshot {
 	steuernummer := "12345/67890"
@@ -43,7 +67,7 @@ func testSnapshot() Snapshot {
 }
 
 // barverkaufEvent baut die einfachste fiskalische Zahlung: ein Bier (19 %) und
-// eine Brezel (7 %), bar kassiert und TSE-signiert.
+// eine Brezel (7 %), bar kassiert.
 func barverkaufEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -53,16 +77,6 @@ func barverkaufEvent(t *testing.T) event.Event {
 		Positionen: []kasse.PositionEventData{
 			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 2},
 			{PositionID: "p2", VarianteID: 202, ProduktName: "Brezel", VarianteName: "", Kategorie: "essen", Steuersatz: "ermaessigt", Einzelpreis: 150, Menge: 1},
-		},
-		TSEData: &kasse.TSEData{
-			TransactionNumber: 4711,
-			SignatureCounter:  12,
-			SerialNumberTSE:   "abc123serial",
-			LogTimeStart:      "2026-06-16T12:00:00Z",
-			LogTimeEnd:        "2026-06-16T12:00:01Z",
-			Signature:         "SIGBASE64==",
-			ProcessType:       "Kassenbeleg-V1",
-			QRCodeData:        "V0;keydata",
 		},
 	}
 
@@ -83,8 +97,17 @@ func barverkaufEvent(t *testing.T) event.Event {
 	}
 }
 
+// barverkaufSignaturen ist der Signaturauftrags-Stand zum barverkaufEvent:
+// quittierte Kassenbeleg-V1-Signatur.
+func barverkaufSignaturen(t *testing.T) map[int]EventSignatur {
+	t.Helper()
+	return map[int]EventSignatur{
+		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "SIGBASE64==")},
+	}
+}
+
 func TestMapBarverkaufGoldenRows(t *testing.T) {
-	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)}, nil)
+	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -172,7 +195,7 @@ func TestMapZertifikatChunking(t *testing.T) {
 	snap := testSnapshot()
 	snap.TSEStammdaten.Zertifikat = passt
 
-	archive, err := Map(snap, []event.Event{barverkaufEvent(t)}, nil)
+	archive, err := Map(snap, []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -191,7 +214,7 @@ func TestMapZertifikatChunking(t *testing.T) {
 	if !ZertifikatZuLang(zuLang) {
 		t.Error("Zertifikat > 2000 Zeichen muss als zu lang gelten (Log-Warnung im Export)")
 	}
-	archive, err = Map(snap, []event.Event{barverkaufEvent(t)}, nil)
+	archive, err = Map(snap, []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -207,7 +230,7 @@ const (
 )
 
 // bestellungEvent baut eine offene Bestellung (geldneutrale AVBestellung): ein
-// Bier, TSE-signiert als Bestellung-V1, am Tisch 42 aufgenommen.
+// Bier, am Tisch 42 aufgenommen.
 func bestellungEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -216,16 +239,6 @@ func bestellungEvent(t *testing.T) event.Event {
 		GesamtPreisCents: 450,
 		Positionen: []kasse.PositionEventData{
 			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
-		},
-		TSEData: &kasse.TSEData{
-			TransactionNumber: 4710,
-			SignatureCounter:  11,
-			SerialNumberTSE:   "abc123serial",
-			LogTimeStart:      "2026-06-16T11:00:00Z",
-			LogTimeEnd:        "2026-06-16T11:00:01Z",
-			Signature:         "BESTELLSIG==",
-			ProcessType:       "Bestellung-V1",
-			QRCodeData:        "V0;bestell",
 		},
 	}
 
@@ -247,7 +260,7 @@ func bestellungEvent(t *testing.T) event.Event {
 }
 
 // zahlungEvent baut die spätere Barzahlung desselben Tisches: der einzige
-// umsatzwirksame Beleg (Revenue-at-payment), TSE-signiert als Kassenbeleg-V1.
+// umsatzwirksame Beleg (Revenue-at-payment).
 func zahlungEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -256,16 +269,6 @@ func zahlungEvent(t *testing.T) event.Event {
 		GesamtZahlungCents: 450,
 		Positionen: []kasse.PositionEventData{
 			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
-		},
-		TSEData: &kasse.TSEData{
-			TransactionNumber: 4711,
-			SignatureCounter:  12,
-			SerialNumberTSE:   "abc123serial",
-			LogTimeStart:      "2026-06-16T12:00:00Z",
-			LogTimeEnd:        "2026-06-16T12:00:01Z",
-			Signature:         "ZAHLSIG==",
-			ProcessType:       "Kassenbeleg-V1",
-			QRCodeData:        "V0;zahl",
 		},
 	}
 
@@ -286,6 +289,16 @@ func zahlungEvent(t *testing.T) event.Event {
 	}
 }
 
+// tischablaufSignaturen ist der Signaturauftrags-Stand zu bestellungEvent (ID 1)
+// und zahlungEvent (ID 2): je eine eigene quittierte TSE-Transaktion.
+func tischablaufSignaturen(t *testing.T) map[int]EventSignatur {
+	t.Helper()
+	return map[int]EventSignatur{
+		1: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4710, 11, "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "BESTELLSIG==")},
+		2: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "ZAHLSIG==")},
+	}
+}
+
 // TestMapTischablaufTrennt belegt Revenue-at-payment für den gastronomischen
 // Tisch-Ablauf: die Bestellung ist eine geldneutrale AVBestellung (TSE-gesichert,
 // informative Positionen, aber UMS_BRUTTO=0.00 und kein Beitrag zu USt, Zahlart
@@ -295,7 +308,7 @@ func TestMapTischablaufTrennt(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
 
-	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), zahlungEvent(t)}, nil)
+	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), zahlungEvent(t)}, tischablaufSignaturen(t))
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -384,7 +397,7 @@ func TestAbrechnungskreisFallback(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = nil // kein Tischname bekannt
 
-	archive, err := Map(snapshot, []event.Event{barverkaufEvent(t)}, nil)
+	archive, err := Map(snapshot, []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -406,8 +419,8 @@ const (
 )
 
 // warenruecknahmeEvent nimmt die zuvor bezahlte Bier-Position (zahlungEvent, ZahlungID
-// zahlungBonID) kassenwirksam zurück: negativer Umsatz mit Bar-Rückgabe, TSE-signiert
-// als Kassenbeleg-V1, am selben Tisch 42.
+// zahlungBonID) kassenwirksam zurück: negativer Umsatz mit Bar-Rückgabe, am selben
+// Tisch 42.
 func warenruecknahmeEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -418,16 +431,6 @@ func warenruecknahmeEvent(t *testing.T) event.Event {
 		Kommentar:              "Reklamation",
 		Positionen: []kasse.PositionEventData{
 			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
-		},
-		TSEData: &kasse.TSEData{
-			TransactionNumber: 4713,
-			SignatureCounter:  14,
-			SerialNumberTSE:   "abc123serial",
-			LogTimeStart:      "2026-06-16T13:00:00Z",
-			LogTimeEnd:        "2026-06-16T13:00:01Z",
-			Signature:         "STORNOSIG==",
-			ProcessType:       "Kassenbeleg-V1",
-			QRCodeData:        "V0;storno",
 		},
 	}
 
@@ -449,7 +452,7 @@ func warenruecknahmeEvent(t *testing.T) event.Event {
 }
 
 // korrekturEvent storniert die noch unbezahlte Bier-Position der bestellungEvent-
-// Bestellung (gleiche PositionID "p1") geldneutral, TSE-signiert als Bestellung-V1.
+// Bestellung (gleiche PositionID "p1") geldneutral.
 func korrekturEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -459,16 +462,6 @@ func korrekturEvent(t *testing.T) event.Event {
 		Kommentar:   "Versehentlich bestellt",
 		Positionen: []kasse.PositionEventData{
 			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
-		},
-		TSEData: &kasse.TSEData{
-			TransactionNumber: 4712,
-			SignatureCounter:  13,
-			SerialNumberTSE:   "abc123serial",
-			LogTimeStart:      "2026-06-16T13:00:00Z",
-			LogTimeEnd:        "2026-06-16T13:00:01Z",
-			Signature:         "KORREKTURSIG==",
-			ProcessType:       "Bestellung-V1",
-			QRCodeData:        "V0;korrektur",
 		},
 	}
 
@@ -498,7 +491,11 @@ func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
 
-	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), korrekturEvent(t)}, nil)
+	signaturen := map[int]EventSignatur{
+		1: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4710, 11, "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "BESTELLSIG==")},
+		2: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4712, 13, "2026-06-16T13:00:00Z", "2026-06-16T13:00:01Z", "KORREKTURSIG==")},
+	}
+	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), korrekturEvent(t)}, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -567,7 +564,9 @@ func TestMapWarenruecknahmeNegativeWithZahlungReference(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
 
-	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), zahlungEvent(t), warenruecknahmeEvent(t)}, nil)
+	signaturen := tischablaufSignaturen(t)
+	signaturen[3] = EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4713, 14, "2026-06-16T13:00:00Z", "2026-06-16T13:00:01Z", "STORNOSIG==")}
+	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), zahlungEvent(t), warenruecknahmeEvent(t)}, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -622,12 +621,12 @@ func TestMapWarenruecknahmeNegativeWithZahlungReference(t *testing.T) {
 const umbuchungBonID = "99999999-9999-4999-8999-999999999999"
 
 // umbuchungEventPaar baut das verknüpfte, geldneutrale Umbuchungs-Paar: Abgang auf
-// Tisch 42 (BON_ID = UmbuchungID) und Zugang auf Tisch 7, beide als Bestellung-V1
-// signiert. Beide tragen dieselbe UmbuchungID.
+// Tisch 42 (BON_ID = UmbuchungID) und Zugang auf Tisch 7. Beide tragen dieselbe
+// UmbuchungID.
 func umbuchungEventPaar(t *testing.T) (event.Event, event.Event) {
 	t.Helper()
 
-	bauen := func(id int, tischID int, posID string, kommentar string, sig string) event.Event {
+	bauen := func(id int, tischID int, posID string, kommentar string) event.Event {
 		data := kasse.BestellungUmgebuchtV1Data{
 			UmbuchungID:  umbuchungBonID,
 			QuellTischID: 42,
@@ -636,16 +635,6 @@ func umbuchungEventPaar(t *testing.T) (event.Event, event.Event) {
 			Kommentar:    kommentar,
 			Positionen: []kasse.PositionEventData{
 				{PositionID: posID, VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
-			},
-			TSEData: &kasse.TSEData{
-				TransactionNumber: 4720 + id,
-				SignatureCounter:  20 + id,
-				SerialNumberTSE:   "abc123serial",
-				LogTimeStart:      "2026-06-16T13:30:00Z",
-				LogTimeEnd:        "2026-06-16T13:30:01Z",
-				Signature:         sig,
-				ProcessType:       "Bestellung-V1",
-				QRCodeData:        "V0;umbuch",
 			},
 		}
 		raw, err := json.Marshal(data)
@@ -664,8 +653,8 @@ func umbuchungEventPaar(t *testing.T) (event.Event, event.Event) {
 		}
 	}
 
-	abgang := bauen(2, 42, "p1", "Umbuchung auf Tisch Tisch 7", "UMBUCHABSIG==")
-	zugang := bauen(3, 7, "p1z", "Umbuchung von Tisch Tisch 42", "UMBUCHZUSIG==")
+	abgang := bauen(2, 42, "p1", "Umbuchung auf Tisch Tisch 7")
+	zugang := bauen(3, 7, "p1z", "Umbuchung von Tisch Tisch 42")
 	return abgang, zugang
 }
 
@@ -678,7 +667,11 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42", 7: "Tisch 7"}
 
 	abgang, zugang := umbuchungEventPaar(t)
-	archive, err := Map(snapshot, []event.Event{abgang, zugang}, nil)
+	signaturen := map[int]EventSignatur{
+		2: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4722, 22, "2026-06-16T13:30:00Z", "2026-06-16T13:30:01Z", "UMBUCHABSIG==")},
+		3: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4723, 23, "2026-06-16T13:30:00Z", "2026-06-16T13:30:01Z", "UMBUCHZUSIG==")},
+	}
+	archive, err := Map(snapshot, []event.Event{abgang, zugang}, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -738,16 +731,6 @@ func kombiZahlungEvent(t *testing.T) event.Event {
 		Positionen: []kasse.PositionEventData{
 			{PositionID: "p1", VarianteID: 303, ProduktName: "Menü", VarianteName: "", Kategorie: "essen", Steuersatz: "kombi", Einzelpreis: 501, Menge: 1},
 		},
-		TSEData: &kasse.TSEData{
-			TransactionNumber: 4800,
-			SignatureCounter:  20,
-			SerialNumberTSE:   "abc123serial",
-			LogTimeStart:      "2026-06-16T12:30:00Z",
-			LogTimeEnd:        "2026-06-16T12:30:01Z",
-			Signature:         "KOMBISIG==",
-			ProcessType:       "Kassenbeleg-V1",
-			QRCodeData:        "V0;kombi",
-		},
 	}
 
 	raw, err := json.Marshal(data)
@@ -771,7 +754,10 @@ func kombiZahlungEvent(t *testing.T) event.Event {
 // 7 % und 30 % zu 19 %. lines_vat folgt der Aufteilen-Reihenfolge (ermäßigt,
 // regel), transactions_vat der Steuermatrix-Reihenfolge (regel, ermäßigt).
 func TestMapKombiSteuerSplit(t *testing.T) {
-	archive, err := Map(testSnapshot(), []event.Event{kombiZahlungEvent(t)}, nil)
+	signaturen := map[int]EventSignatur{
+		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4800, 20, "2026-06-16T12:30:00Z", "2026-06-16T12:30:01Z", "KOMBISIG==")},
+	}
+	archive, err := Map(testSnapshot(), []event.Event{kombiZahlungEvent(t)}, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -816,16 +802,6 @@ func direktverkaufEvent(t *testing.T) event.Event {
 		Positionen: []kasse.PositionEventData{
 			{PositionID: "d1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
 		},
-		TSEData: &kasse.TSEData{
-			TransactionNumber: 5000,
-			SignatureCounter:  30,
-			SerialNumberTSE:   "abc123serial",
-			LogTimeStart:      "2026-06-16T14:00:00Z",
-			LogTimeEnd:        "2026-06-16T14:00:01Z",
-			Signature:         "DVSIG==",
-			ProcessType:       "Kassenbeleg-V1",
-			QRCodeData:        "V0;dv",
-		},
 	}
 
 	raw, err := json.Marshal(data)
@@ -857,16 +833,6 @@ func direktverkaufStornoEvent(t *testing.T) event.Event {
 		Positionen: []kasse.PositionEventData{
 			{PositionID: "d1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
 		},
-		TSEData: &kasse.TSEData{
-			TransactionNumber: 5001,
-			SignatureCounter:  31,
-			SerialNumberTSE:   "abc123serial",
-			LogTimeStart:      "2026-06-16T14:05:00Z",
-			LogTimeEnd:        "2026-06-16T14:05:01Z",
-			Signature:         "DVSTORNOSIG==",
-			ProcessType:       "Kassenbeleg-V1",
-			QRCodeData:        "V0;dvstorno",
-		},
 	}
 
 	raw, err := json.Marshal(data)
@@ -890,7 +856,11 @@ func direktverkaufStornoEvent(t *testing.T) event.Event {
 // Barbelege ohne Abrechnungskreis; der Storno verweist per REF_BON_ID auf den
 // Ursprungsverkauf und kehrt die Vorzeichen um.
 func TestMapDirektverkaufUndStorno(t *testing.T) {
-	archive, err := Map(testSnapshot(), []event.Event{direktverkaufEvent(t), direktverkaufStornoEvent(t)}, nil)
+	signaturen := map[int]EventSignatur{
+		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 5000, 30, "2026-06-16T14:00:00Z", "2026-06-16T14:00:01Z", "DVSIG==")},
+		2: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 5001, 31, "2026-06-16T14:05:00Z", "2026-06-16T14:05:01Z", "DVSTORNOSIG==")},
+	}
+	archive, err := Map(testSnapshot(), []event.Event{direktverkaufEvent(t), direktverkaufStornoEvent(t)}, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -957,7 +927,7 @@ func eroeffnetEvent(t *testing.T, betragCents int) event.Event {
 	}
 }
 
-// geldtransitEvent entnimmt 50,00 € aus der Kasse (z. B. zum Tresor), TSE-signiert.
+// geldtransitEvent entnimmt 50,00 € aus der Kasse (z. B. zum Tresor).
 func geldtransitEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -967,11 +937,6 @@ func geldtransitEvent(t *testing.T) event.Event {
 		BetragCents: 5000,
 		Kommentar:   "Abschöpfung Tresor",
 		GebuchtVon:  7,
-		TSEData: &kasse.TSEData{
-			TransactionNumber: 6000, SignatureCounter: 40, SerialNumberTSE: "abc123serial",
-			LogTimeStart: "2026-06-16T15:00:00Z", LogTimeEnd: "2026-06-16T15:00:01Z",
-			Signature: "GTSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;gt",
-		},
 	}
 	raw, err := json.Marshal(data)
 	if err != nil {
@@ -986,19 +951,13 @@ func geldtransitEvent(t *testing.T) event.Event {
 	}
 }
 
-// differenzEvent bucht einen Kassenfehlbetrag von 1,00 € (Soll − Ist = +100),
-// TSE-signiert.
+// differenzEvent bucht einen Kassenfehlbetrag von 1,00 € (Soll − Ist = +100).
 func differenzEvent(t *testing.T) event.Event {
 	t.Helper()
 
 	data := kasse.DifferenzSollIstGebuchtV1Data{
 		BetragCents: 100,
 		GebuchtVon:  7,
-		TSEData: &kasse.TSEData{
-			TransactionNumber: 6002, SignatureCounter: 42, SerialNumberTSE: "abc123serial",
-			LogTimeStart: "2026-06-16T16:00:00Z", LogTimeEnd: "2026-06-16T16:00:01Z",
-			Signature: "DIFFSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;diff",
-		},
 	}
 	raw, err := json.Marshal(data)
 	if err != nil {
@@ -1013,11 +972,9 @@ func differenzEvent(t *testing.T) event.Event {
 	}
 }
 
-// tagesabschlussEvent schließt die Sitzung ab (Z-Bon). tse == nil mit gesetzter
-// txID markiert einen während eines TSE-Ausfalls unsigniert persistierten
-// Abschluss. Als letztes Event trägt er die höchste Event-ID und wird damit der
-// letzte Beleg der Sitzung.
-func tagesabschlussEvent(t *testing.T, tse *kasse.TSEData, txID string) event.Event {
+// tagesabschlussEvent schließt die Sitzung ab (Z-Bon). Als letztes Event trägt
+// er die höchste Event-ID und wird damit der letzte Beleg der Sitzung.
+func tagesabschlussEvent(t *testing.T) event.Event {
 	t.Helper()
 
 	data := kasse.TagesabschlussErstelltV1Data{
@@ -1027,8 +984,6 @@ func tagesabschlussEvent(t *testing.T, tse *kasse.TSEData, txID string) event.Ev
 		UmsatzGesamtCents: 450,
 		GeldtransitCents:  -5000,
 		ErstelltVon:       7,
-		TSETxID:           txID,
-		TSEData:           tse,
 	}
 	raw, err := json.Marshal(data)
 	if err != nil {
@@ -1053,16 +1008,27 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
 
+	// Der Direktverkauf erhält eine eigene Event-ID (Fixture-Standard kollidiert
+	// mit der Bestellung), damit die Signaturen-Map eindeutig bleibt.
+	direktverkauf := direktverkaufEvent(t)
+	direktverkauf.ID = 4
+
 	events := []event.Event{
-		eroeffnetEvent(t, 10000), // Anfangsbestand 100,00 €
-		bestellungEvent(t),       // AVBestellung 4,50 € (Bier, 19 %, geldneutral)
-		zahlungEvent(t),          // Umsatz 4,50 € (Bier, 19 %)
-		direktverkaufEvent(t),    // Umsatz 4,50 € (Bier, 19 %)
-		geldtransitEvent(t),      // Entnahme −50,00 €
-		differenzEvent(t),        // Fehlbetrag −1,00 €
+		eroeffnetEvent(t, 10000), // Anfangsbestand 100,00 € (ID 10)
+		bestellungEvent(t),       // AVBestellung 4,50 € (Bier, 19 %, geldneutral, ID 1)
+		zahlungEvent(t),          // Umsatz 4,50 € (Bier, 19 %, ID 2)
+		direktverkauf,            // Umsatz 4,50 € (Bier, 19 %, ID 4)
+		geldtransitEvent(t),      // Entnahme −50,00 € (ID 11)
+		differenzEvent(t),        // Fehlbetrag −1,00 € (ID 13)
 	}
 
-	archive, err := Map(snapshot, events, nil)
+	signaturen := tischablaufSignaturen(t)
+	signaturen[10] = EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6100, 44, "2026-06-16T10:00:00Z", "2026-06-16T10:00:01Z", "EROEFFNUNGSIG==")}
+	signaturen[4] = EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 5000, 30, "2026-06-16T14:00:00Z", "2026-06-16T14:00:01Z", "DVSIG==")}
+	signaturen[11] = EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6000, 40, "2026-06-16T15:00:00Z", "2026-06-16T15:00:01Z", "GTSIG==")}
+	signaturen[13] = EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6002, 42, "2026-06-16T16:00:00Z", "2026-06-16T16:00:01Z", "DIFFSIG==")}
+
+	archive, err := Map(snapshot, events, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -1108,13 +1074,31 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 		t.Errorf("Summe Bonkopf (%d) ≠ Summe payment (%d)", bonkopfSumme, zahlartSumme)
 	}
 
-	// Anfangsbestand trägt mangels TSE-Signatur keine transactions_tse-Zeile, die
-	// beiden signierten Bargeldbewegungen dagegen schon.
+	// Alle drei signierten Bargeldbewegungen tragen ihre transactions_tse-Zeile —
+	// auch der Anfangsbestand, dessen Eröffnungs-Event im Outbox-Modell
+	// signaturpflichtig ist (Bareinlage).
 	tse := tableByFile(t, archive, "transactions_tse.csv")
-	for _, sig := range []string{"GTSIG==", "DIFFSIG=="} {
+	for _, sig := range []string{"EROEFFNUNGSIG==", "GTSIG==", "DIFFSIG=="} {
 		if !hatSignatur(tse, sig) {
 			t.Errorf("transactions_tse fehlt Signatur %q", sig)
 		}
+	}
+
+	// Verprobung ohne Waisen: Jede transactions_tse-Zeile gehört zu einem
+	// Bonkopf, und jeder Bonkopf hat genau eine TSE-Zeile (alle Vorgänge der
+	// Sitzung sind signaturpflichtig).
+	transactions := tableByFile(t, archive, "transactions.csv")
+	bonIDs := map[string]bool{}
+	for row := range transactions.Records {
+		bonIDs[field(t, transactions, row, "BON_ID")] = true
+	}
+	for row := range tse.Records {
+		if bonID := field(t, tse, row, "BON_ID"); !bonIDs[bonID] {
+			t.Errorf("transactions_tse-Zeile ohne Bonkopf: BON_ID %q", bonID)
+		}
+	}
+	if len(tse.Records) != len(transactions.Records) {
+		t.Errorf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tse.Records), len(transactions.Records))
 	}
 }
 
@@ -1127,26 +1111,28 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 	const tagesabschlussBonID = "tagesabschluss-20"
 
-	tse := &kasse.TSEData{
-		TransactionNumber: 7777, SignatureCounter: 88, SerialNumberTSE: "abc123serial",
-		LogTimeStart: "2026-06-16T18:00:00Z", LogTimeEnd: "2026-06-16T18:00:02Z",
-		Signature: "TAGSIG==", ProcessType: "SonstigerVorgang", QRCodeData: "V0;tag",
-	}
-
 	// Dieselbe Sitzung mit und ohne Abschluss: die Aggregate müssen identisch sein.
 	ohneAbschluss := []event.Event{
-		eroeffnetEvent(t, 10000), // Anfangsbestand 100,00 € (ohne TSE)
-		zahlungEvent(t),          // Umsatz 4,50 € (Bier 19 %)
-		geldtransitEvent(t),      // Entnahme −50,00 €
-		differenzEvent(t),        // Fehlbetrag −1,00 €
+		eroeffnetEvent(t, 10000), // Anfangsbestand 100,00 € (ID 10)
+		zahlungEvent(t),          // Umsatz 4,50 € (Bier 19 %, ID 2)
+		geldtransitEvent(t),      // Entnahme −50,00 € (ID 11)
+		differenzEvent(t),        // Fehlbetrag −1,00 € (ID 13)
 	}
-	mitAbschluss := append(append([]event.Event{}, ohneAbschluss...), tagesabschlussEvent(t, tse, ""))
+	mitAbschluss := append(append([]event.Event{}, ohneAbschluss...), tagesabschlussEvent(t))
 
-	archivOhne, err := Map(testSnapshot(), ohneAbschluss, nil)
+	signaturen := map[int]EventSignatur{
+		10: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6100, 44, "2026-06-16T10:00:00Z", "2026-06-16T10:00:01Z", "EROEFFNUNGSIG==")},
+		2:  {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "ZAHLSIG==")},
+		11: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6000, 40, "2026-06-16T15:00:00Z", "2026-06-16T15:00:01Z", "GTSIG==")},
+		13: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6002, 42, "2026-06-16T16:00:00Z", "2026-06-16T16:00:01Z", "DIFFSIG==")},
+		20: {ProcessType: "SonstigerVorgang", Signatur: testSignatur(t, 7777, 88, "2026-06-16T18:00:00Z", "2026-06-16T18:00:02Z", "TAGSIG==")},
+	}
+
+	archivOhne, err := Map(testSnapshot(), ohneAbschluss, signaturen)
 	if err != nil {
 		t.Fatalf("Map(ohne) error = %v", err)
 	}
-	archivMit, err := Map(testSnapshot(), mitAbschluss, nil)
+	archivMit, err := Map(testSnapshot(), mitAbschluss, signaturen)
 	if err != nil {
 		t.Fatalf("Map(mit) error = %v", err)
 	}
@@ -1221,20 +1207,25 @@ func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 	}
 }
 
-// TestMapTagesabschlussAusfallTraegtFehlerzeile belegt: ein während eines
-// TSE-Ausfalls unsigniert persistierter, nicht nachsignierter Tagesabschluss fehlt
-// nicht im Export, sondern trägt — wie jeder andere Vorgang — eine TSE_TA_FEHLER-
-// Zeile. So gilt die Invariante „jeder Bonkopf hat genau eine TSE-Zeile“ auch für
-// den neuen AVSonstige-Bon.
+// TestMapTagesabschlussAusfallTraegtFehlerzeile belegt: ein signaturpflichtiger,
+// (noch) unsignierter Tagesabschluss (Auftrag offen, fehlgeschlagen oder
+// verworfen) fehlt nicht im Export, sondern trägt — wie jeder andere Vorgang —
+// eine TSE_TA_FEHLER-Zeile. So gilt die Invariante „jeder Bonkopf hat genau eine
+// TSE-Zeile“ auch für den AVSonstige-Bon.
 func TestMapTagesabschlussAusfallTraegtFehlerzeile(t *testing.T) {
 	const tagesabschlussBonID = "tagesabschluss-20"
 
 	events := []event.Event{
-		zahlungEvent(t),                       // signierte Zahlung
-		tagesabschlussEvent(t, nil, "tx-tag"), // Abschluss ohne Signatur (Ausfall)
+		zahlungEvent(t),        // signierte Zahlung (ID 2)
+		tagesabschlussEvent(t), // Abschluss ohne Signatur (Auftrag unerledigt, ID 20)
 	}
 
-	archive, err := Map(testSnapshot(), events, nil)
+	signaturen := map[int]EventSignatur{
+		2:  {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "ZAHLSIG==")},
+		20: {ProcessType: "SonstigerVorgang"}, // signaturpflichtig, aber unsigniert
+	}
+
+	archive, err := Map(testSnapshot(), events, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -1303,10 +1294,8 @@ func hatSignatur(table Table, sig string) bool {
 	return false
 }
 
-// zahlungMitTxEvent baut eine Barzahlung mit gesetzter TSE-tx-id. tseData == nil
-// markiert eine während eines TSE-Ausfalls unsigniert persistierte Zahlung, die
-// erst später (über die Seitentabelle) nachsigniert wird.
-func zahlungMitTxEvent(t *testing.T, id int, bonID, txID string, tseData *kasse.TSEData, ts time.Time) event.Event {
+// zahlungAm baut eine Barzahlung mit gegebener Event-ID und BON_ID.
+func zahlungAm(t *testing.T, id int, bonID string, ts time.Time) event.Event {
 	t.Helper()
 
 	data := kasse.ZahlungKassiertV1Data{
@@ -1315,9 +1304,6 @@ func zahlungMitTxEvent(t *testing.T, id int, bonID, txID string, tseData *kasse.
 		Positionen: []kasse.PositionEventData{
 			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
 		},
-		TSETxID:    txID,
-		TSEData:    tseData,
-		TSEAusfall: tseData == nil,
 	}
 
 	raw, err := json.Marshal(data)
@@ -1333,39 +1319,21 @@ func zahlungMitTxEvent(t *testing.T, id int, bonID, txID string, tseData *kasse.
 	}
 }
 
-// TestMapNachsigniertVorgang belegt die Vereinigung der TSE-Signaturen: ein
-// während eines TSE-Ausfalls unsigniert persistierter, später nachsignierter
-// Vorgang erscheint vollständig in transactions_tse.csv — seine Signatur wird
-// über die tx_id aus der Seitentabelle nachgeladen. Ein im Event-Payload
-// signierter Vorgang bleibt unverändert; die Seitentabelle wird für ihn nicht
-// gelesen (reiner Fallback).
+// TestMapNachsigniertVorgang belegt den einen Leseweg: Auch ein erst nach einer
+// Störung (verspätet) quittierter Auftrag erscheint vollständig in
+// transactions_tse.csv — die Signaturspalten des Auftrags sind die einzige
+// Quelle, TSE_TA_VORGANGSART kommt aus dem process_type-Snapshot des Auftrags.
 func TestMapNachsigniertVorgang(t *testing.T) {
-	eventSig := &kasse.TSEData{
-		TransactionNumber: 4711, SignatureCounter: 12, SerialNumberTSE: "abc123serial",
-		LogTimeStart: "2026-06-16T12:00:00Z", LogTimeEnd: "2026-06-16T12:00:01Z",
-		Signature: "EVENTSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;event",
-	}
-	signed := zahlungMitTxEvent(t, 1, nachsigniertSignedBonID, "tx-signed", eventSig, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
-	outage := zahlungMitTxEvent(t, 2, nachsigniertOutageBonID, "tx-outage", nil, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
+	prompt := zahlungAm(t, 1, nachsigniertSignedBonID, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
+	nachsigniert := zahlungAm(t, 2, nachsigniertOutageBonID, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
 
-	// Die nachsignierte Signatur stammt aus der Seitentabelle; sie kennt keinen
-	// ProcessType (TSE_TA_VORGANGSART bleibt leer).
-	backfill := &kasse.TSEData{
-		TransactionNumber: 9100, SignatureCounter: 99, SerialNumberTSE: "abc123serial",
-		LogTimeStart: "2026-06-16T13:00:05Z", LogTimeEnd: "2026-06-16T13:00:06Z",
-		Signature: "BACKFILLSIG==", QRCodeData: "V0;backfill",
+	signaturen := map[int]EventSignatur{
+		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "EVENTSIG==")},
+		// Verspätete Quittierung: logTime deutlich nach der Event-Zeit.
+		2: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 9100, 99, "2026-06-16T13:00:05Z", "2026-06-16T13:00:06Z", "BACKFILLSIG==")},
 	}
 
-	var nachgeschlagen []string
-	lookup := func(txID string) (*kasse.TSEData, error) {
-		nachgeschlagen = append(nachgeschlagen, txID)
-		if txID == "tx-outage" {
-			return backfill, nil
-		}
-		return nil, nil
-	}
-
-	archive, err := Map(testSnapshot(), []event.Event{signed, outage}, lookup)
+	archive, err := Map(testSnapshot(), []event.Event{prompt, nachsigniert}, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -1379,30 +1347,23 @@ func TestMapNachsigniertVorgang(t *testing.T) {
 	if !reflect.DeepEqual(tse.Records, want) {
 		t.Errorf("transactions_tse.csv records =\n%#v\nwant\n%#v", tse.Records, want)
 	}
-
-	// Die Seitentabelle wird nur als Fallback gelesen: ausschließlich der
-	// unsigniert persistierte Vorgang wird nachgeschlagen, nicht der signierte.
-	if !reflect.DeepEqual(nachgeschlagen, []string{"tx-outage"}) {
-		t.Errorf("nachgeschlagene tx-ids = %v, want [tx-outage]", nachgeschlagen)
-	}
 }
 
-// TestMapAusfallOhneNachsignierungFehlerzeile belegt Finding 4: ein während eines
-// TSE-Ausfalls unsigniert persistierter, (noch) nicht nachsignierter Vorgang
-// fehlt nicht länger in transactions_tse.csv, sondern trägt eine Fehlerzeile mit
-// gesetztem TSE_TA_FEHLER und leerer Signatur. So hat jeder Bonkopf-Vorgang
-// genau eine TSE-Zeile.
+// TestMapAusfallOhneNachsignierungFehlerzeile belegt: ein signaturpflichtiger
+// Vorgang, dessen Auftrag (noch) keine Signatur trägt (offen, fehlgeschlagen
+// oder verworfen), fehlt nicht in transactions_tse.csv, sondern trägt eine
+// Fehlerzeile mit gesetztem TSE_TA_FEHLER und leerer Signatur. So hat jeder
+// Bonkopf-Vorgang genau eine TSE-Zeile.
 func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
-	eventSig := &kasse.TSEData{
-		TransactionNumber: 4711, SignatureCounter: 12, SerialNumberTSE: "abc123serial",
-		LogTimeStart: "2026-06-16T12:00:00Z", LogTimeEnd: "2026-06-16T12:00:01Z",
-		Signature: "EVENTSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;event",
-	}
-	signed := zahlungMitTxEvent(t, 1, nachsigniertSignedBonID, "tx-signed", eventSig, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
-	outage := zahlungMitTxEvent(t, 2, nachsigniertOutageBonID, "tx-outage", nil, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
+	signiert := zahlungAm(t, 1, nachsigniertSignedBonID, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
+	unsigniert := zahlungAm(t, 2, nachsigniertOutageBonID, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
 
-	// Kein Backfill: ohne Seitentabelle bleibt der Ausfall-Vorgang unsigniert.
-	archive, err := Map(testSnapshot(), []event.Event{signed, outage}, nil)
+	signaturen := map[int]EventSignatur{
+		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "EVENTSIG==")},
+		2: {ProcessType: "Kassenbeleg-V1"}, // Auftrag existiert, Signatur steht aus
+	}
+
+	archive, err := Map(testSnapshot(), []event.Event{signiert, unsigniert}, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -1432,40 +1393,38 @@ func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
 	}
 }
 
-// stripSignatur simuliert einen TSE-Ausfall bei der Erfassung für ein beliebiges
-// Fixture-Event: tx-ID gesetzt (Signierversuch fand statt), aber keine Signatur.
-func stripSignatur(t *testing.T, evt event.Event, txID string) event.Event {
-	t.Helper()
-
-	var data map[string]any
-	if err := json.Unmarshal(evt.Data, &data); err != nil {
-		t.Fatalf("unmarshal event data: %v", err)
-	}
-	delete(data, "tseData")
-	data["tseTxId"] = txID
-	raw, err := json.Marshal(data)
-	if err != nil {
-		t.Fatalf("marshal event data: %v", err)
-	}
-	evt.Data = raw
-	return evt
-}
-
 // Unsignierte Vorgänge ALLER Vorgangsarten — nicht nur Zahlung und Direktverkauf —
-// müssen im Export eine TSE_TA_FEHLER-Zeile tragen: Der Ausfall wird generisch aus
-// tx-ID-ohne-Signatur abgeleitet (Dokumentationspflicht des Ausfalls, AEAO 1.14).
+// müssen im Export eine TSE_TA_FEHLER-Zeile tragen: Der Ausfall ergibt sich
+// generisch aus einem Signaturauftrag ohne Signatur (Dokumentationspflicht des
+// Ausfalls, AEAO 1.14).
 func TestUnsignierteVorgaengeAllerArtenTragenAusfallzeile(t *testing.T) {
+	// Die Korrektur erhält eine eigene Event-ID (Fixture-Standard kollidiert mit
+	// der Zahlung), damit die Signaturen-Map eindeutig bleibt.
+	korrektur := korrekturEvent(t)
+	korrektur.ID = 4
+
 	events := []event.Event{
-		stripSignatur(t, eroeffnetEvent(t, 10000), "tx-eroeffnet"),
-		stripSignatur(t, bestellungEvent(t), "tx-bestellung"),
-		stripSignatur(t, zahlungEvent(t), "tx-zahlung"),
-		stripSignatur(t, warenruecknahmeEvent(t), "tx-storno"),
-		stripSignatur(t, korrekturEvent(t), "tx-korrektur"),
-		stripSignatur(t, geldtransitEvent(t), "tx-geldtransit"),
-		stripSignatur(t, differenzEvent(t), "tx-differenz"),
+		eroeffnetEvent(t, 10000), // ID 10
+		bestellungEvent(t),       // ID 1
+		zahlungEvent(t),          // ID 2
+		warenruecknahmeEvent(t),  // ID 3
+		korrektur,                // ID 4
+		geldtransitEvent(t),      // ID 11
+		differenzEvent(t),        // ID 13
 	}
 
-	archive, err := Map(testSnapshot(), events, nil)
+	// Alle Aufträge existieren (signaturpflichtig), keiner ist quittiert.
+	signaturen := map[int]EventSignatur{
+		10: {ProcessType: "Kassenbeleg-V1"},
+		1:  {ProcessType: "Bestellung-V1"},
+		2:  {ProcessType: "Kassenbeleg-V1"},
+		3:  {ProcessType: "Kassenbeleg-V1"},
+		4:  {ProcessType: "Bestellung-V1"},
+		11: {ProcessType: "Kassenbeleg-V1"},
+		13: {ProcessType: "Kassenbeleg-V1"},
+	}
+
+	archive, err := Map(testSnapshot(), events, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -1492,23 +1451,11 @@ func TestUnsignierteVorgaengeAllerArtenTragenAusfallzeile(t *testing.T) {
 func TestAnfangsbestandTraegtTSESignatur(t *testing.T) {
 	evt := eroeffnetEvent(t, 10000)
 
-	var data kasse.KassensitzungEroeffnetV1Data
-	if err := json.Unmarshal(evt.Data, &data); err != nil {
-		t.Fatalf("unmarshal eroeffnet data: %v", err)
+	signaturen := map[int]EventSignatur{
+		10: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 7000, 50, "2026-06-16T10:00:00Z", "2026-06-16T10:00:01Z", "EROEFFNUNGSIG==")},
 	}
-	data.TSETxID = "tx-eroeffnet"
-	data.TSEData = &kasse.TSEData{
-		TransactionNumber: 7000, SignatureCounter: 50, SerialNumberTSE: "abc123serial",
-		LogTimeStart: "2026-06-16T10:00:00Z", LogTimeEnd: "2026-06-16T10:00:01Z",
-		Signature: "EROEFFNUNGSIG==", ProcessType: "Kassenbeleg-V1", QRCodeData: "V0;eroeffnet",
-	}
-	raw, err := json.Marshal(data)
-	if err != nil {
-		t.Fatalf("marshal eroeffnet data: %v", err)
-	}
-	evt.Data = raw
 
-	archive, err := Map(testSnapshot(), []event.Event{evt}, nil)
+	archive, err := Map(testSnapshot(), []event.Event{evt}, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
@@ -1547,7 +1494,7 @@ func TestErstellungszeitpunkt(t *testing.T) {
 }
 
 func TestMapErzeugtAlle20AmtlichenTabellen(t *testing.T) {
-	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)}, nil)
+	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}

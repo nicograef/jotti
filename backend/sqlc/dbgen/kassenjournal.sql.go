@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"time"
 )
@@ -102,23 +103,37 @@ func (q *Queries) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr i
 }
 
 const readEventsByKassensitzung = `-- name: ReadEventsByKassensitzung :many
-SELECT id, user_id, user_name, version, type, subject, data, timestamp
-FROM kassenjournal WHERE kassensitzung_nr = $1 ORDER BY id ASC
+SELECT k.id, k.user_id, k.user_name, k.version, k.type, k.subject, k.data, k.timestamp,
+       a.process_type, a.transaktion_nummer, a.signatur_zaehler, a.tse_seriennummer,
+       a.log_time_start, a.log_time_end, a.signatur, a.qr_code_data
+FROM kassenjournal k
+LEFT JOIN tse_signaturauftraege a ON a.event_id = k.id
+WHERE k.kassensitzung_nr = $1 ORDER BY k.id ASC
 `
 
 type ReadEventsByKassensitzungRow struct {
-	ID        int
-	UserID    int
-	UserName  string
-	Version   int
-	Type      string
-	Subject   string
-	Data      json.RawMessage
-	Timestamp time.Time
+	ID                int
+	UserID            int
+	UserName          string
+	Version           int
+	Type              string
+	Subject           string
+	Data              json.RawMessage
+	Timestamp         time.Time
+	ProcessType       sql.NullString
+	TransaktionNummer sql.NullInt32
+	SignaturZaehler   sql.NullInt32
+	TseSeriennummer   sql.NullString
+	LogTimeStart      sql.NullTime
+	LogTimeEnd        sql.NullTime
+	Signatur          sql.NullString
+	QrCodeData        sql.NullString
 }
 
 // Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session- und
 // Direktverkauf-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.
+// Der LEFT JOIN auf die Signaturauftraege liefert je Event den Signatur-Stand:
+// kein Auftrag = nicht signaturpflichtig (keine Projektion zur Lesezeit).
 func (q *Queries) ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]ReadEventsByKassensitzungRow, error) {
 	rows, err := q.db.QueryContext(ctx, readEventsByKassensitzung, kassensitzungNr)
 	if err != nil {
@@ -137,6 +152,14 @@ func (q *Queries) ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr
 			&i.Subject,
 			&i.Data,
 			&i.Timestamp,
+			&i.ProcessType,
+			&i.TransaktionNummer,
+			&i.SignaturZaehler,
+			&i.TseSeriennummer,
+			&i.LogTimeStart,
+			&i.LogTimeEnd,
+			&i.Signatur,
+			&i.QrCodeData,
 		); err != nil {
 			return nil, err
 		}
