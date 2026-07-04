@@ -30,18 +30,44 @@ type OffenerSignaturauftrag struct {
 	ProcessData string
 }
 
-// Signaturauftrag ist die Admin-Sicht eines Signaturauftrags. Sie dient
-// zugleich als TSE-Ausfalldokumentation (AEAO zu § 146a, 1.14.1):
-// ErstelltAm = Beginn, ErledigtAm = Ende, LetzterFehler = Grund.
+// Signaturauftrag ist die Admin-Sicht eines Signaturauftrags fuer die
+// Signaturauftrags-Verwaltung: Status, Versuche, letzter Fehler und das
+// Verwerfen-Protokoll (Grund, Benutzer, Zeitpunkt).
 type Signaturauftrag struct {
-	ID            int
-	TxID          string
-	ProcessType   string
-	Status        string
-	Versuche      int
-	LetzterFehler string
-	ErstelltAm    time.Time
-	ErledigtAm    *time.Time
+	ID             int
+	TxID           string
+	ProcessType    string
+	Status         string
+	Versuche       int
+	LetzterFehler  string
+	ErstelltAm     time.Time
+	ErledigtAm     *time.Time
+	VerworfenGrund string
+	VerworfenVon   string
+	VerworfenAm    *time.Time
+}
+
+// SignaturQueueZustand ist der on demand berechnete Zustand der Signatur-Queue
+// fuer das Admin-Monitoring: Rueckstand (offene Auftraege, Alter des aeltesten)
+// und Leistung ueber ein gleitendes 15-Minuten-Fenster (Signaturen pro Minute,
+// Signierdauer p95). So laesst sich ein wachsender von einem schrumpfenden
+// Rueckstand unterscheiden.
+type SignaturQueueZustand struct {
+	OffeneAuftraege          int
+	FehlgeschlageneAuftraege int
+	RueckstandSekunden       int
+	SignaturenProMinute      float64
+	SignierdauerP95Sekunden  float64
+}
+
+// Stoerungszeitraum ist ein Eintrag des Stoerungsprotokolls (Ausfalldokumentation):
+// ein Zeitraum mit Beginn, Ende (nil solange aktiv) und Grund-Art.
+type Stoerungszeitraum struct {
+	ID         int
+	Beginn     time.Time
+	Ende       *time.Time
+	GrundArt   string
+	Fehlertext string
 }
 
 type Repository struct {
@@ -127,17 +153,23 @@ func (r Repository) GetTSESignaturauftraege(ctx context.Context) ([]Signaturauft
 	for i := range rows {
 		row := &rows[i]
 		auftrag := Signaturauftrag{
-			ID:            row.ID,
-			TxID:          row.TxID,
-			ProcessType:   row.ProcessType,
-			Status:        row.Status,
-			Versuche:      row.Versuche,
-			LetzterFehler: row.LetzterFehler.String,
-			ErstelltAm:    row.ErstelltAm,
+			ID:             row.ID,
+			TxID:           row.TxID,
+			ProcessType:    row.ProcessType,
+			Status:         row.Status,
+			Versuche:       row.Versuche,
+			LetzterFehler:  row.LetzterFehler.String,
+			ErstelltAm:     row.ErstelltAm,
+			VerworfenGrund: row.VerworfenGrund.String,
+			VerworfenVon:   row.VerworfenVon.String,
 		}
 		if row.ErledigtAm.Valid {
 			erledigtAm := row.ErledigtAm.Time
 			auftrag.ErledigtAm = &erledigtAm
+		}
+		if row.VerworfenAm.Valid {
+			verworfenAm := row.VerworfenAm.Time
+			auftrag.VerworfenAm = &verworfenAm
 		}
 		result = append(result, auftrag)
 	}
@@ -154,19 +186,69 @@ func (r Repository) TSESignaturauftragZuruecksetzen(ctx context.Context, auftrag
 	return db.Error(r.q.TSESignaturauftragZuruecksetzen(ctx, auftragID))
 }
 
-// TSESignaturauftragVerwerfen markiert einen fehlgeschlagenen Auftrag als
-// verworfen. Der Eintrag bleibt fuer die Ausfalldokumentation erhalten; der
-// Status-Guard wirkt nur auf fehlgeschlagene Auftraege.
-func (r Repository) TSESignaturauftragVerwerfen(ctx context.Context, auftragID int) error {
-	return db.Error(r.q.TSESignaturauftragVerwerfen(ctx, auftragID))
-}
-
-func (r Repository) CountOffeneTSESignaturauftraege(ctx context.Context) (int, error) {
-	count, err := r.q.CountOffeneTSESignaturauftraege(ctx)
+// TSESignaturauftraegeZuruecksetzenGesamt reiht alle endgueltig markierten
+// Auftraege wieder ein (Admin-Zuruecksetzen gesamt) und liefert die Anzahl.
+func (r Repository) TSESignaturauftraegeZuruecksetzenGesamt(ctx context.Context) (int64, error) {
+	n, err := r.q.TSESignaturauftraegeZuruecksetzenGesamt(ctx)
 	if err != nil {
 		return 0, db.Error(err)
 	}
-	return count, nil
+	return n, nil
+}
+
+// TSESignaturauftragVerwerfen markiert einen offenen oder fehlgeschlagenen
+// Auftrag als verworfen und protokolliert den Statuswechsel (Grund, Benutzer,
+// Zeitpunkt). Der Eintrag bleibt fuer die Ausfalldokumentation erhalten; der
+// Status-Guard wirkt nur auf offene und fehlgeschlagene Auftraege.
+func (r Repository) TSESignaturauftragVerwerfen(ctx context.Context, auftragID int, grund string, benutzer string) error {
+	return db.Error(r.q.TSESignaturauftragVerwerfen(ctx, dbgen.TSESignaturauftragVerwerfenParams{
+		ID:             auftragID,
+		VerworfenGrund: sql.NullString{String: grund, Valid: true},
+		VerworfenVon:   sql.NullString{String: benutzer, Valid: true},
+	}))
+}
+
+// GetTSESignaturQueueZustand liefert den on demand berechneten Zustand der
+// Signatur-Queue fuer das Admin-Monitoring.
+func (r Repository) GetTSESignaturQueueZustand(ctx context.Context) (SignaturQueueZustand, error) {
+	row, err := r.q.GetTSESignaturQueueZustand(ctx)
+	if err != nil {
+		return SignaturQueueZustand{}, db.Error(err)
+	}
+	return SignaturQueueZustand{
+		OffeneAuftraege:          row.OffeneAuftraege,
+		FehlgeschlageneAuftraege: row.FehlgeschlageneAuftraege,
+		RueckstandSekunden:       row.RueckstandSekunden,
+		SignaturenProMinute:      row.SignaturenProMinute,
+		SignierdauerP95Sekunden:  row.SignierdauerP95Sekunden,
+	}, nil
+}
+
+// GetAlleTSEStoerungen liefert das Stoerungsprotokoll (Ausfalldokumentation):
+// alle Stoerungszeitraeme, neueste zuerst.
+func (r Repository) GetAlleTSEStoerungen(ctx context.Context) ([]Stoerungszeitraum, error) {
+	rows, err := r.q.GetAlleTSEStoerungen(ctx)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	result := make([]Stoerungszeitraum, 0, len(rows))
+	for i := range rows {
+		row := &rows[i]
+		zeitraum := Stoerungszeitraum{
+			ID:         row.ID,
+			Beginn:     row.Beginn,
+			GrundArt:   row.GrundArt,
+			Fehlertext: row.Fehlertext,
+		}
+		if row.Ende.Valid {
+			ende := row.Ende.Time
+			zeitraum.Ende = &ende
+		}
+		result = append(result, zeitraum)
+	}
+
+	return result, nil
 }
 
 // GetSignaturauftragZuEvent liefert den Signatur-Stand eines Events fuer den

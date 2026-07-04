@@ -45,3 +45,5 @@ logs
 *.tmp
 *.swp
 temp/
+# Claude Code personal settings
+.claude/settings.local.json

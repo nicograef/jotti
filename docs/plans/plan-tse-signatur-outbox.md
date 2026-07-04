@@ -260,12 +260,12 @@ Die Nachsignier-Verwaltung wird zur Signaturauftrags-Verwaltung, und die `nachsi
 
 ### Acceptance criteria
 
-- [ ] Endpunktfamilie zu `signaturauftrag` umbenannt, Frontend-Clients umgestellt; keine `nachsignier`-Namen mehr in Routen und UI.
-- [ ] Signaturauftrags-Verwaltung: Liste, Zurücksetzen einzeln/gesamt, Verwerfen mit Pflicht-Begründung; Statuswechsel protokolliert Benutzer und Zeitpunkt.
-- [ ] Queue-Zustand sichtbar: offene Aufträge, Alter des ältesten, Signaturen/Minute, Signierdauer p95 (on demand per SQL, 15-Minuten-Fenster) — wachsender von schrumpfendem Rückstand unterscheidbar.
-- [ ] Dashboard warnt ab ~1 Minute Rückstand und bei endgültig fehlgeschlagenen Aufträgen; ab 2 Minuten existiert der Störungszeitraum (Phase 2).
-- [ ] Ohne TSE-Konfiguration permanenter Konfigurationsalarm statt Queue-Alarm.
-- [ ] Ausfalldokumentations-Ansicht zeigt Störungszeiträume aus dem Störungsprotokoll (Zeitraum mit Grund, nicht Einzelaufträge).
+- [x] Endpunktfamilie zu `signaturauftrag` umbenannt, Frontend-Clients umgestellt; keine `nachsignier`-Namen mehr in Routen und UI.
+- [x] Signaturauftrags-Verwaltung: Liste, Zurücksetzen einzeln/gesamt, Verwerfen mit Pflicht-Begründung; Statuswechsel protokolliert Benutzer und Zeitpunkt.
+- [x] Queue-Zustand sichtbar: offene Aufträge, Alter des ältesten, Signaturen/Minute, Signierdauer p95 (on demand per SQL, 15-Minuten-Fenster) — wachsender von schrumpfendem Rückstand unterscheidbar.
+- [x] Dashboard warnt ab ~1 Minute Rückstand und bei endgültig fehlgeschlagenen Aufträgen; ab 2 Minuten existiert der Störungszeitraum (Phase 2).
+- [x] Ohne TSE-Konfiguration permanenter Konfigurationsalarm statt Queue-Alarm.
+- [x] Ausfalldokumentations-Ansicht zeigt Störungszeiträume aus dem Störungsprotokoll (Zeitraum mit Grund, nicht Einzelaufträge).
 
 ---
 

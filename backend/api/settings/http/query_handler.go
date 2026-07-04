@@ -58,9 +58,8 @@ type tseVerbindungResponse struct {
 }
 
 type tseStatusResponse struct {
-	Umgebung               string `json:"umgebung"`
-	OffeneNachsignierungen int    `json:"offeneNachsignierungen"`
-	IstKonfiguriert        bool   `json:"istKonfiguriert"`
+	Umgebung        string `json:"umgebung"`
+	IstKonfiguriert bool   `json:"istKonfiguriert"`
 }
 
 type pruefeTSESetupRequest struct {
@@ -229,9 +228,8 @@ func (h *QueryHandler) GetTSEStatusHandler() http.HandlerFunc {
 		}
 
 		helper.SendResponse(w, tseStatusResponse{
-			Umgebung:               status.Umgebung,
-			OffeneNachsignierungen: status.OffeneNachsignierungen,
-			IstKonfiguriert:        status.IstKonfiguriert,
+			Umgebung:        status.Umgebung,
+			IstKonfiguriert: status.IstKonfiguriert,
 		})
 	}
 }

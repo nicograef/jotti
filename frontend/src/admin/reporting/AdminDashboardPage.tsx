@@ -2,7 +2,7 @@ import { TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink } from 'react-router'
 
-import { useTSEStatus } from '@/admin/settings/hooks'
+import { useTSESignaturQueue, useTSEStatus } from '@/admin/settings/hooks'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 import { DsfinvkExportButton } from './DsfinvkExportButton'
@@ -11,18 +11,32 @@ import { LiveReportingSection } from './LiveReportingSection'
 import { ReportingFilter } from './ReportingFilter'
 import { ReportingResults } from './ReportingResults'
 
+// Ab rund einer Minute Rückstand warnt das Dashboard (deckt sich mit der
+// Nachsigniert-Schwelle im Backend); der Störungszeitraum entsteht erst ab
+// zwei Minuten.
+const RUECKSTAND_WARN_SEKUNDEN = 60
+
 export function AdminDashboardPage() {
   const { liveData, isPending: liveLoading } = useLiveReporting()
   const { kassensitzungen, isPending: listLoading } = useKassensitzungen()
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
+  const { queue } = useTSESignaturQueue()
   const [selectedNr, setSelectedNr] = useState<number | null>(null)
 
   const effectiveNr = selectedNr ?? kassensitzungen.at(0)?.zNr ?? null
   const { result, isPending: reportLoading } = useReport(effectiveNr)
-  const showTSEWarning = !tseLoading && !tseStatus?.istKonfiguriert
-  const offeneNachsignierungen = tseStatus?.offeneNachsignierungen ?? 0
-  const showNachsignierWarning = !tseLoading && offeneNachsignierungen > 0
-  const showTSEBanner = showTSEWarning || showNachsignierWarning
+
+  // Ohne TSE-Konfiguration steht der permanente Konfigurationsalarm; ein
+  // Queue-Alarm (Rückstand oder endgültig fehlgeschlagene Aufträge) erscheint
+  // nur, solange die TSE konfiguriert ist.
+  const showKonfigWarnung = !tseLoading && !tseStatus?.istKonfiguriert
+  const rueckstand =
+    !showKonfigWarnung &&
+    (queue?.rueckstandSekunden ?? 0) >= RUECKSTAND_WARN_SEKUNDEN
+  const fehlgeschlagen =
+    !showKonfigWarnung && (queue?.fehlgeschlageneAuftraege ?? 0) > 0
+  const showQueueWarnung = rueckstand || fehlgeschlagen
+  const showTSEBanner = showKonfigWarnung || showQueueWarnung
 
   return (
     <>
@@ -31,11 +45,16 @@ export function AdminDashboardPage() {
           <TriangleAlert className="size-4" />
           <AlertTitle>TSE prüfen</AlertTitle>
           <AlertDescription>
-            {showTSEWarning && <span>Die TSE ist nicht konfiguriert. </span>}
-            {showNachsignierWarning && (
+            {showKonfigWarnung && <span>Die TSE ist nicht konfiguriert. </span>}
+            {rueckstand && (
               <span>
-                {offeneNachsignierungen} Vorgänge warten auf
-                Nachsignierung.{' '}
+                {queue?.offeneAuftraege} Vorgänge warten auf Signatur.{' '}
+              </span>
+            )}
+            {fehlgeschlagen && (
+              <span>
+                {queue?.fehlgeschlageneAuftraege} Vorgänge konnten nicht
+                signiert werden.{' '}
               </span>
             )}
             Mehr dazu unter{' '}

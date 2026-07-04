@@ -20,3 +20,11 @@ WHERE ende IS NULL AND grund_art = $1;
 SELECT beginn, grund_art, fehlertext
 FROM tse_stoerungen
 WHERE ende IS NULL;
+
+-- GetAlleTSEStoerungen liefert das Stoerungsprotokoll (Ausfalldokumentation):
+-- alle Stoerungszeitraeme mit Beginn, Ende und Grund, neueste zuerst.
+-- name: GetAlleTSEStoerungen :many
+SELECT id, beginn, ende, grund_art, fehlertext
+FROM tse_stoerungen
+ORDER BY beginn DESC
+LIMIT 200;

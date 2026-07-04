@@ -30,12 +30,6 @@ func (s stubSettingsRepo) GetTSEKonfiguration(context.Context) (settings.TSEKonf
 	return s.konfiguration, nil
 }
 
-type stubTSEStatusRepo struct{ offen int }
-
-func (s stubTSEStatusRepo) CountOffeneTSESignaturauftraege(context.Context) (int, error) {
-	return s.offen, nil
-}
-
 func konfiguriert() settings.TSEKonfiguration {
 	return settings.TSEKonfiguration{
 		ApiKey:    "api-key",
@@ -151,11 +145,10 @@ func TestPruefeTSESetup_LeeresKonto(t *testing.T) {
 // Umgebung ueber den leichten Pfad (tester.Umgebung) bezieht und nicht den
 // vollen Verbindungstest (TSS-/Client-Abruf) ausloest: Der Fake laesst
 // TestConnection bewusst fehlschlagen, der Status muss trotzdem die Umgebung
-// und die offenen Nachsignierungen liefern.
+// liefern.
 func TestGetTSEStatus_NutztLeichtenUmgebungsPfad(t *testing.T) {
 	q := Query{
-		SettingsRepo:  stubSettingsRepo{konfiguration: konfiguriert()},
-		TSEStatusRepo: stubTSEStatusRepo{offen: 3},
+		SettingsRepo: stubSettingsRepo{konfiguration: konfiguriert()},
 		NewTSEConnectionTester: func(tse.Credentials) (tse.ConnectionTester, error) {
 			return tse.FakeClient{
 				UmgebungResponse: tse.UmgebungLive,
@@ -173,9 +166,6 @@ func TestGetTSEStatus_NutztLeichtenUmgebungsPfad(t *testing.T) {
 	}
 	if status.Umgebung != "LIVE" {
 		t.Fatalf("expected LIVE environment, got %q", status.Umgebung)
-	}
-	if status.OffeneNachsignierungen != 3 {
-		t.Fatalf("expected 3 open retry jobs, got %d", status.OffeneNachsignierungen)
 	}
 }
 

@@ -148,18 +148,20 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/druckauftrag-erneut-versuchen", druckauftragCommandHandler.DruckauftragErneutVersuchenHandler())
 	r.HandleFunc("/druckauftrag-verwerfen", druckauftragCommandHandler.DruckauftragVerwerfenHandler())
 
-	tseNachsignierQueryHandler := tseHTTP.QueryHandler{}
-	tseNachsignierQueryHandler.Query = tseApp.Query{TSERepo: tseStore}
-	tseNachsignierCommandHandler := tseHTTP.CommandHandler{}
-	tseNachsignierCommandHandler.Command = tseApp.Command{TSERepo: tseStore}
-	r.HandleFunc("/get-tse-nachsignier-auftraege", tseNachsignierQueryHandler.GetTSENachsignierAuftraegeHandler())
-	r.HandleFunc("/tse-nachsignier-auftrag-zuruecksetzen", tseNachsignierCommandHandler.TSENachsignierAuftragZuruecksetzenHandler())
-	r.HandleFunc("/tse-nachsignier-auftrag-verwerfen", tseNachsignierCommandHandler.TSENachsignierAuftragVerwerfenHandler())
+	tseQueryHandler := tseHTTP.QueryHandler{}
+	tseQueryHandler.Query = tseApp.Query{TSERepo: tseStore}
+	tseCommandHandler := tseHTTP.CommandHandler{}
+	tseCommandHandler.Command = tseApp.Command{TSERepo: tseStore}
+	r.HandleFunc("/get-tse-signaturauftraege", tseQueryHandler.GetTSESignaturauftraegeHandler())
+	r.HandleFunc("/get-tse-signatur-queue", tseQueryHandler.GetTSESignaturQueueHandler())
+	r.HandleFunc("/get-tse-stoerungen", tseQueryHandler.GetTSEStoerungenHandler())
+	r.HandleFunc("/tse-signaturauftrag-zuruecksetzen", tseCommandHandler.TSESignaturauftragZuruecksetzenHandler())
+	r.HandleFunc("/tse-signaturauftraege-zuruecksetzen", tseCommandHandler.TSESignaturauftraegeZuruecksetzenHandler())
+	r.HandleFunc("/tse-signaturauftrag-verwerfen", tseCommandHandler.TSESignaturauftragVerwerfenHandler())
 
 	sq := settingsHTTP.QueryHandler{}
 	sq.Query = settingsApp.Query{
-		SettingsRepo:  settingsRepo,
-		TSEStatusRepo: tseStore,
+		SettingsRepo: settingsRepo,
 		NewTSEConnectionTester: func(credentials tse.Credentials) (tse.ConnectionTester, error) {
 			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
 		},

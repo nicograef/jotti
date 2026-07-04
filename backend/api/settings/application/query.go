@@ -16,25 +16,19 @@ type settingsQueryRepo interface {
 	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
 }
 
-type tseStatusRepo interface {
-	CountOffeneTSESignaturauftraege(ctx context.Context) (int, error)
-}
-
 type NewTSEConnectionTester func(credentials tse.Credentials) (tse.ConnectionTester, error)
 
 type NewTSESetupClient func(credentials tse.SetupCredentials) (tse.SetupClient, error)
 
 type Query struct {
 	SettingsRepo           settingsQueryRepo
-	TSEStatusRepo          tseStatusRepo
 	NewTSEConnectionTester NewTSEConnectionTester
 	NewTSESetupClient      NewTSESetupClient
 }
 
 type TSEStatus struct {
-	Umgebung               string
-	OffeneNachsignierungen int
-	IstKonfiguriert        bool
+	Umgebung        string
+	IstKonfiguriert bool
 }
 
 // TSESetupBefund ist das seiteneffektfreie Ergebnis des Prüf-Schritts: die
@@ -218,29 +212,17 @@ func passenderClient(clients []tse.ClientInfo, seriennummer string) *ClientBefun
 func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
 	log := zerolog.Ctx(ctx)
 
-	if q.TSEStatusRepo == nil {
-		log.Error().Msg("Missing TSE status repository")
-		return TSEStatus{}, ErrDatabase
-	}
-
-	offeneNachsignierungen, err := q.TSEStatusRepo.CountOffeneTSESignaturauftraege(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to count open TSE retry jobs")
-		return TSEStatus{}, ErrDatabase
-	}
-
 	conf, err := q.SettingsRepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			return TSEStatus{OffeneNachsignierungen: offeneNachsignierungen}, nil
+			return TSEStatus{}, nil
 		}
 		log.Error().Err(err).Msg("Failed to retrieve tse_konfiguration for status")
 		return TSEStatus{}, ErrDatabase
 	}
 
 	status := TSEStatus{
-		OffeneNachsignierungen: offeneNachsignierungen,
-		IstKonfiguriert:        conf.IstKonfiguriert(),
+		IstKonfiguriert: conf.IstKonfiguriert(),
 	}
 	if !status.IstKonfiguriert {
 		return status, nil

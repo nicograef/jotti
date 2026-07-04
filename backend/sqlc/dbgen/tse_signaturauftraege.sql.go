@@ -11,21 +11,6 @@ import (
 	"time"
 )
 
-const countOffeneTSESignaturauftraege = `-- name: CountOffeneTSESignaturauftraege :one
-SELECT COUNT(*)::int
-FROM tse_signaturauftraege
-WHERE status IN ('offen', 'fehlgeschlagen')
-`
-
-// Zaehlt noch nicht erledigte Signaturauftraege (offen und fehlgeschlagen):
-// beide Status bedeuten unsignierte Vorgaenge.
-func (q *Queries) CountOffeneTSESignaturauftraege(ctx context.Context) (int, error) {
-	row := q.db.QueryRowContext(ctx, countOffeneTSESignaturauftraege)
-	var column_1 int
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const getAeltesterOffenerTSESignaturauftrag = `-- name: GetAeltesterOffenerTSESignaturauftrag :one
 SELECT erstellt_am
 FROM tse_signaturauftraege
@@ -131,26 +116,68 @@ func (q *Queries) GetOffeneTSESignaturauftraege(ctx context.Context, limit int32
 	return items, nil
 }
 
+const getTSESignaturQueueZustand = `-- name: GetTSESignaturQueueZustand :one
+SELECT
+    COUNT(*) FILTER (WHERE status = 'offen')::int AS offene_auftraege,
+    COUNT(*) FILTER (WHERE status = 'fehlgeschlagen')::int AS fehlgeschlagene_auftraege,
+    COALESCE(EXTRACT(EPOCH FROM (NOW() - MIN(erstellt_am) FILTER (WHERE status = 'offen'))), 0)::int AS rueckstand_sekunden,
+    (COUNT(*) FILTER (WHERE status = 'erledigt' AND erledigt_am >= NOW() - interval '15 minutes')::float8 / 15.0)::float8 AS signaturen_pro_minute,
+    COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (log_time_end - erstellt_am))) FILTER (WHERE status = 'erledigt' AND erledigt_am >= NOW() - interval '15 minutes'), 0)::float8 AS signierdauer_p95_sekunden
+FROM tse_signaturauftraege
+`
+
+type GetTSESignaturQueueZustandRow struct {
+	OffeneAuftraege          int
+	FehlgeschlageneAuftraege int
+	RueckstandSekunden       int
+	SignaturenProMinute      float64
+	SignierdauerP95Sekunden  float64
+}
+
+// GetTSESignaturQueueZustand berechnet den Zustand der Signatur-Queue in einem
+// Durchlauf: offene und fehlgeschlagene Auftraege, das Alter des aeltesten
+// offenen Auftrags (Rueckstand) sowie Durchsatz (Signaturen pro Minute) und
+// Latenz (Signierdauer p95, erstellt_am -> TSE-logTime) ueber ein gleitendes
+// 15-Minuten-Fenster. On demand aus den Auftrags- und Signaturzeiten, kein
+// Metrik-Subsystem und kein In-Memory-Zustand.
+func (q *Queries) GetTSESignaturQueueZustand(ctx context.Context) (GetTSESignaturQueueZustandRow, error) {
+	row := q.db.QueryRowContext(ctx, getTSESignaturQueueZustand)
+	var i GetTSESignaturQueueZustandRow
+	err := row.Scan(
+		&i.OffeneAuftraege,
+		&i.FehlgeschlageneAuftraege,
+		&i.RueckstandSekunden,
+		&i.SignaturenProMinute,
+		&i.SignierdauerP95Sekunden,
+	)
+	return i, err
+}
+
 const getTSESignaturauftraege = `-- name: GetTSESignaturauftraege :many
-SELECT id, tx_id, process_type, status, versuche, letzter_fehler, erstellt_am, erledigt_am
+SELECT id, tx_id, process_type, status, versuche, letzter_fehler, erstellt_am, erledigt_am,
+       verworfen_grund, verworfen_von, verworfen_am
 FROM tse_signaturauftraege
 ORDER BY id DESC
 LIMIT 200
 `
 
 type GetTSESignaturauftraegeRow struct {
-	ID            int
-	TxID          string
-	ProcessType   string
-	Status        string
-	Versuche      int
-	LetzterFehler sql.NullString
-	ErstelltAm    time.Time
-	ErledigtAm    sql.NullTime
+	ID             int
+	TxID           string
+	ProcessType    string
+	Status         string
+	Versuche       int
+	LetzterFehler  sql.NullString
+	ErstelltAm     time.Time
+	ErledigtAm     sql.NullTime
+	VerworfenGrund sql.NullString
+	VerworfenVon   sql.NullString
+	VerworfenAm    sql.NullTime
 }
 
-// Admin-Ansicht aller Signaturauftraege; dient zugleich als
-// TSE-Ausfalldokumentation (erstellt_am = Beginn, erledigt_am = Ende).
+// Admin-Ansicht aller Signaturauftraege (Signaturauftrags-Verwaltung); zeigt
+// Status, Versuche, letzten Fehler und das Verwerfen-Protokoll (Grund, Benutzer,
+// Zeitpunkt).
 func (q *Queries) GetTSESignaturauftraege(ctx context.Context) ([]GetTSESignaturauftraegeRow, error) {
 	rows, err := q.db.QueryContext(ctx, getTSESignaturauftraege)
 	if err != nil {
@@ -169,6 +196,9 @@ func (q *Queries) GetTSESignaturauftraege(ctx context.Context) ([]GetTSESignatur
 			&i.LetzterFehler,
 			&i.ErstelltAm,
 			&i.ErledigtAm,
+			&i.VerworfenGrund,
+			&i.VerworfenVon,
+			&i.VerworfenAm,
 		); err != nil {
 			return nil, err
 		}
@@ -309,6 +339,22 @@ func (q *Queries) QuittiereTSESignaturauftrag(ctx context.Context, arg Quittiere
 	return err
 }
 
+const tSESignaturauftraegeZuruecksetzenGesamt = `-- name: TSESignaturauftraegeZuruecksetzenGesamt :execrows
+UPDATE tse_signaturauftraege
+SET status = 'offen', versuche = 0, letzter_fehler = NULL, naechster_versuch_am = NOW()
+WHERE status IN ('fehlgeschlagen', 'tse_nicht_konfiguriert')
+`
+
+// TSESignaturauftraegeZuruecksetzenGesamt reiht alle endgueltig markierten
+// Auftraege wieder ein (Admin-Zuruecksetzen gesamt) und liefert die Anzahl.
+func (q *Queries) TSESignaturauftraegeZuruecksetzenGesamt(ctx context.Context) (int64, error) {
+	result, err := q.db.ExecContext(ctx, tSESignaturauftraegeZuruecksetzenGesamt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const tSESignaturauftragFehlversuch = `-- name: TSESignaturauftragFehlversuch :exec
 UPDATE tse_signaturauftraege
 SET versuche = versuche + 1,
@@ -336,12 +382,24 @@ func (q *Queries) TSESignaturauftragFehlversuch(ctx context.Context, arg TSESign
 
 const tSESignaturauftragVerwerfen = `-- name: TSESignaturauftragVerwerfen :exec
 UPDATE tse_signaturauftraege
-SET status = 'verworfen'
-WHERE id = $1 AND status = 'fehlgeschlagen'
+SET status = 'verworfen',
+    verworfen_grund = $1,
+    verworfen_von = $2,
+    verworfen_am = NOW()
+WHERE id = $3 AND status IN ('offen', 'fehlgeschlagen')
 `
 
-func (q *Queries) TSESignaturauftragVerwerfen(ctx context.Context, id int) error {
-	_, err := q.db.ExecContext(ctx, tSESignaturauftragVerwerfen, id)
+type TSESignaturauftragVerwerfenParams struct {
+	VerworfenGrund sql.NullString
+	VerworfenVon   sql.NullString
+	ID             int
+}
+
+// TSESignaturauftragVerwerfen markiert einen offenen oder fehlgeschlagenen
+// Auftrag als verworfen und protokolliert den Statuswechsel (Grund, Benutzer,
+// Zeitpunkt). Der Eintrag bleibt fuer die Ausfalldokumentation erhalten.
+func (q *Queries) TSESignaturauftragVerwerfen(ctx context.Context, arg TSESignaturauftragVerwerfenParams) error {
+	_, err := q.db.ExecContext(ctx, tSESignaturauftragVerwerfen, arg.VerworfenGrund, arg.VerworfenVon, arg.ID)
 	return err
 }
 

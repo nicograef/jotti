@@ -56,12 +56,20 @@ UPDATE tse_signaturauftraege
 SET status = 'tse_nicht_konfiguriert'
 WHERE status = 'offen';
 
--- Zaehlt noch nicht erledigte Signaturauftraege (offen und fehlgeschlagen):
--- beide Status bedeuten unsignierte Vorgaenge.
--- name: CountOffeneTSESignaturauftraege :one
-SELECT COUNT(*)::int
-FROM tse_signaturauftraege
-WHERE status IN ('offen', 'fehlgeschlagen');
+-- GetTSESignaturQueueZustand berechnet den Zustand der Signatur-Queue in einem
+-- Durchlauf: offene und fehlgeschlagene Auftraege, das Alter des aeltesten
+-- offenen Auftrags (Rueckstand) sowie Durchsatz (Signaturen pro Minute) und
+-- Latenz (Signierdauer p95, erstellt_am -> TSE-logTime) ueber ein gleitendes
+-- 15-Minuten-Fenster. On demand aus den Auftrags- und Signaturzeiten, kein
+-- Metrik-Subsystem und kein In-Memory-Zustand.
+-- name: GetTSESignaturQueueZustand :one
+SELECT
+    COUNT(*) FILTER (WHERE status = 'offen')::int AS offene_auftraege,
+    COUNT(*) FILTER (WHERE status = 'fehlgeschlagen')::int AS fehlgeschlagene_auftraege,
+    COALESCE(EXTRACT(EPOCH FROM (NOW() - MIN(erstellt_am) FILTER (WHERE status = 'offen'))), 0)::int AS rueckstand_sekunden,
+    (COUNT(*) FILTER (WHERE status = 'erledigt' AND erledigt_am >= NOW() - interval '15 minutes')::float8 / 15.0)::float8 AS signaturen_pro_minute,
+    COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (log_time_end - erstellt_am))) FILTER (WHERE status = 'erledigt' AND erledigt_am >= NOW() - interval '15 minutes'), 0)::float8 AS signierdauer_p95_sekunden
+FROM tse_signaturauftraege;
 
 -- GetAeltesterOffenerTSESignaturauftrag liefert den Erstellungszeitpunkt des
 -- aeltesten offenen Auftrags — der Rueckstands-Watchdog bemisst daran den
@@ -73,10 +81,12 @@ WHERE status = 'offen'
 ORDER BY erstellt_am ASC
 LIMIT 1;
 
--- Admin-Ansicht aller Signaturauftraege; dient zugleich als
--- TSE-Ausfalldokumentation (erstellt_am = Beginn, erledigt_am = Ende).
+-- Admin-Ansicht aller Signaturauftraege (Signaturauftrags-Verwaltung); zeigt
+-- Status, Versuche, letzten Fehler und das Verwerfen-Protokoll (Grund, Benutzer,
+-- Zeitpunkt).
 -- name: GetTSESignaturauftraege :many
-SELECT id, tx_id, process_type, status, versuche, letzter_fehler, erstellt_am, erledigt_am
+SELECT id, tx_id, process_type, status, versuche, letzter_fehler, erstellt_am, erledigt_am,
+       verworfen_grund, verworfen_von, verworfen_am
 FROM tse_signaturauftraege
 ORDER BY id DESC
 LIMIT 200;
@@ -91,10 +101,23 @@ UPDATE tse_signaturauftraege
 SET status = 'offen', versuche = 0, letzter_fehler = NULL, naechster_versuch_am = NOW()
 WHERE id = $1 AND status IN ('fehlgeschlagen', 'tse_nicht_konfiguriert');
 
+-- TSESignaturauftraegeZuruecksetzenGesamt reiht alle endgueltig markierten
+-- Auftraege wieder ein (Admin-Zuruecksetzen gesamt) und liefert die Anzahl.
+-- name: TSESignaturauftraegeZuruecksetzenGesamt :execrows
+UPDATE tse_signaturauftraege
+SET status = 'offen', versuche = 0, letzter_fehler = NULL, naechster_versuch_am = NOW()
+WHERE status IN ('fehlgeschlagen', 'tse_nicht_konfiguriert');
+
+-- TSESignaturauftragVerwerfen markiert einen offenen oder fehlgeschlagenen
+-- Auftrag als verworfen und protokolliert den Statuswechsel (Grund, Benutzer,
+-- Zeitpunkt). Der Eintrag bleibt fuer die Ausfalldokumentation erhalten.
 -- name: TSESignaturauftragVerwerfen :exec
 UPDATE tse_signaturauftraege
-SET status = 'verworfen'
-WHERE id = $1 AND status = 'fehlgeschlagen';
+SET status = 'verworfen',
+    verworfen_grund = @verworfen_grund,
+    verworfen_von = @verworfen_von,
+    verworfen_am = NOW()
+WHERE id = @id AND status IN ('offen', 'fehlgeschlagen');
 
 -- GetTSESignaturauftragZuEvent liefert den Signatur-Stand eines Events fuer den
 -- Beleg-Abruf: Status plus Signaturspalten (gefuellt sobald quittiert).

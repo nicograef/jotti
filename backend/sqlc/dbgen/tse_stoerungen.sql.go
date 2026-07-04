@@ -31,6 +31,44 @@ func (q *Queries) GetAktiveTSEStoerung(ctx context.Context) (GetAktiveTSEStoerun
 	return i, err
 }
 
+const getAlleTSEStoerungen = `-- name: GetAlleTSEStoerungen :many
+SELECT id, beginn, ende, grund_art, fehlertext
+FROM tse_stoerungen
+ORDER BY beginn DESC
+LIMIT 200
+`
+
+// GetAlleTSEStoerungen liefert das Stoerungsprotokoll (Ausfalldokumentation):
+// alle Stoerungszeitraeme mit Beginn, Ende und Grund, neueste zuerst.
+func (q *Queries) GetAlleTSEStoerungen(ctx context.Context) ([]TseStoerungen, error) {
+	rows, err := q.db.QueryContext(ctx, getAlleTSEStoerungen)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TseStoerungen{}
+	for rows.Next() {
+		var i TseStoerungen
+		if err := rows.Scan(
+			&i.ID,
+			&i.Beginn,
+			&i.Ende,
+			&i.GrundArt,
+			&i.Fehlertext,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const oeffneTSEStoerung = `-- name: OeffneTSEStoerung :exec
 INSERT INTO tse_stoerungen (beginn, grund_art, fehlertext)
 VALUES (NOW(), $1, $2)

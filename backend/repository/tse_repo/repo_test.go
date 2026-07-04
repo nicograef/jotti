@@ -333,18 +333,21 @@ func TestTSESignaturauftrag_FehlgeschlagenZuruecksetzenVerwerfen(t *testing.T) {
 		t.Fatalf("Expected reset auftrag to be due again, got %+v", offene)
 	}
 
-	// Erneut fehlschlagen lassen und verwerfen.
+	// Erneut fehlschlagen lassen und verwerfen (mit protokolliertem Grund/Benutzer).
 	for i := 0; i < MaxSignaturVersuche; i++ {
 		if err := store.TSESignaturauftragFehlversuch(ctx, id, "fiskaly down"); err != nil {
 			t.Fatalf("Expected no fehlversuch error, got %v", err)
 		}
 	}
-	if err := store.TSESignaturauftragVerwerfen(ctx, id); err != nil {
+	if err := store.TSESignaturauftragVerwerfen(ctx, id, "TSE endgültig defekt", "admin"); err != nil {
 		t.Fatalf("Expected no verwerfen error, got %v", err)
 	}
 	auftraege, _ = store.GetTSESignaturauftraege(ctx)
 	if len(auftraege) != 1 || auftraege[0].Status != "verworfen" {
 		t.Fatalf("Expected verworfenen auftrag, got %+v", auftraege)
+	}
+	if auftraege[0].VerworfenGrund != "TSE endgültig defekt" || auftraege[0].VerworfenVon != "admin" || auftraege[0].VerworfenAm == nil {
+		t.Fatalf("Expected verwerfen protocol persisted, got %+v", auftraege[0])
 	}
 }
 
@@ -418,27 +421,181 @@ func TestMarkiereOffeneAlsNichtKonfiguriert_MarkiertOffeneUndBleibtZuruecksetzba
 	}
 }
 
-// Zuruecksetzen und Verwerfen wirken nur auf fehlgeschlagene Auftraege.
+// Zuruecksetzen wirkt nur auf endgueltig markierte Auftraege (fehlgeschlagen,
+// tse_nicht_konfiguriert): Ein offener Auftrag bleibt unberuehrt. Verwerfen
+// dagegen wirkt auch auf offene Auftraege.
 func TestTSESignaturauftrag_StatusGuards(t *testing.T) {
 	store, umgebung, teardown := setupRepository(t)
 	defer teardown(t)
 	ctx := context.Background()
 
-	id, _ := umgebung.insertAuftrag(t, "tx-offen")
-
-	if err := store.TSESignaturauftragVerwerfen(ctx, id); err != nil {
-		t.Fatalf("Expected no verwerfen error, got %v", err)
+	offenID, _ := umgebung.insertAuftrag(t, "tx-offen")
+	erledigtID, _ := umgebung.insertAuftrag(t, "tx-erledigt")
+	if err := store.QuittiereTSESignaturauftrag(ctx, erledigtID, testSignatur(50)); err != nil {
+		t.Fatalf("Expected no quittierung error, got %v", err)
 	}
-	if err := store.TSESignaturauftragZuruecksetzen(ctx, id); err != nil {
+
+	// Zuruecksetzen eines offenen Auftrags ist ein No-Op (Status-Guard).
+	if err := store.TSESignaturauftragZuruecksetzen(ctx, offenID); err != nil {
 		t.Fatalf("Expected no zuruecksetzen error, got %v", err)
 	}
+	// Verwerfen eines erledigten Auftrags ist ein No-Op (Status-Guard).
+	if err := store.TSESignaturauftragVerwerfen(ctx, erledigtID, "sollte nicht wirken", "admin"); err != nil {
+		t.Fatalf("Expected no verwerfen error, got %v", err)
+	}
 
+	status := statusMap(t, store, ctx)
+	if status[offenID] != "offen" {
+		t.Fatalf("Expected offenen auftrag to stay offen after zuruecksetzen, got %q", status[offenID])
+	}
+	if status[erledigtID] != "erledigt" {
+		t.Fatalf("Expected erledigten auftrag untouched by verwerfen, got %q", status[erledigtID])
+	}
+
+	// Verwerfen eines offenen Auftrags wirkt (offen -> verworfen).
+	if err := store.TSESignaturauftragVerwerfen(ctx, offenID, "manuell verworfen", "admin"); err != nil {
+		t.Fatalf("Expected no verwerfen error, got %v", err)
+	}
+	if statusMap(t, store, ctx)[offenID] != "verworfen" {
+		t.Fatalf("Expected offenen auftrag to become verworfen")
+	}
+}
+
+// Das Admin-Zuruecksetzen gesamt reiht alle endgueltig markierten Auftraege
+// (fehlgeschlagen, tse_nicht_konfiguriert) wieder ein; offene und verworfene
+// bleiben unberuehrt.
+func TestTSESignaturauftraegeZuruecksetzenGesamt(t *testing.T) {
+	store, umgebung, teardown := setupRepository(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	fehlID, _ := umgebung.insertAuftrag(t, "tx-fehl")
+	for i := 0; i < MaxSignaturVersuche; i++ {
+		if err := store.TSESignaturauftragFehlversuch(ctx, fehlID, "fiskaly down"); err != nil {
+			t.Fatalf("Expected no fehlversuch error, got %v", err)
+		}
+	}
+	nichtKonfigID, _ := umgebung.insertAuftrag(t, "tx-nichtkonfig")
+	offenID, _ := umgebung.insertAuftrag(t, "tx-offen")
+	verworfenID, _ := umgebung.insertAuftrag(t, "tx-verworfen")
+	if err := store.TSESignaturauftragVerwerfen(ctx, verworfenID, "manuell", "admin"); err != nil {
+		t.Fatalf("Expected no verwerfen error, got %v", err)
+	}
+	// Markiere den einen offenen Auftrag als tse_nicht_konfiguriert; danach ist
+	// nur noch der urspruenglich offene (offenID) tatsaechlich offen.
+	if _, err := store.MarkiereOffeneAlsNichtKonfiguriert(ctx); err != nil {
+		t.Fatalf("Expected no mark error, got %v", err)
+	}
+	_ = nichtKonfigID
+
+	n, err := store.TSESignaturauftraegeZuruecksetzenGesamt(ctx)
+	if err != nil {
+		t.Fatalf("Expected no gesamt-reset error, got %v", err)
+	}
+	// fehlID (fehlgeschlagen) + nichtKonfigID + offenID (beide nach dem Sweep
+	// tse_nicht_konfiguriert) = 3; verworfenID bleibt aussen vor.
+	if n != 3 {
+		t.Fatalf("Expected 3 reset auftraege, got %d", n)
+	}
+
+	status := statusMap(t, store, ctx)
+	if status[fehlID] != "offen" || status[offenID] != "offen" || status[nichtKonfigID] != "offen" {
+		t.Fatalf("Expected marked auftraege reset to offen, got %+v", status)
+	}
+	if status[verworfenID] != "verworfen" {
+		t.Fatalf("Expected verworfenen auftrag untouched, got %q", status[verworfenID])
+	}
+}
+
+// statusMap liest die Signaturauftraege und liefert eine ID->Status-Abbildung.
+func statusMap(t *testing.T, store Repository, ctx context.Context) map[int]string {
+	t.Helper()
 	auftraege, err := store.GetTSESignaturauftraege(ctx)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
-	if len(auftraege) != 1 || auftraege[0].Status != "offen" {
-		t.Fatalf("Expected offenen auftrag to stay offen, got %+v", auftraege)
+	status := map[int]string{}
+	for _, a := range auftraege {
+		status[a.ID] = a.Status
+	}
+	return status
+}
+
+// Der Queue-Zustand zaehlt offene und fehlgeschlagene Auftraege, misst den
+// Rueckstand (Alter des aeltesten offenen) und die Leistung ueber das
+// 15-Minuten-Fenster (Signaturen pro Minute, Signierdauer p95). Ohne Auftraege
+// sind alle Werte 0.
+func TestGetTSESignaturQueueZustand(t *testing.T) {
+	store, umgebung, teardown := setupRepository(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	leer, err := store.GetTSESignaturQueueZustand(ctx)
+	if err != nil {
+		t.Fatalf("Expected no queue error, got %v", err)
+	}
+	if leer.OffeneAuftraege != 0 || leer.RueckstandSekunden != 0 || leer.SignaturenProMinute != 0 || leer.SignierdauerP95Sekunden != 0 {
+		t.Fatalf("Expected empty queue zustand, got %+v", leer)
+	}
+
+	// Ein offener und ein fehlgeschlagener Auftrag; ein erledigter im Fenster.
+	umgebung.insertAuftrag(t, "tx-offen")
+	fehlID, _ := umgebung.insertAuftrag(t, "tx-fehl")
+	for i := 0; i < MaxSignaturVersuche; i++ {
+		if err := store.TSESignaturauftragFehlversuch(ctx, fehlID, "fiskaly down"); err != nil {
+			t.Fatalf("Expected no fehlversuch error, got %v", err)
+		}
+	}
+	erledigtID, _ := umgebung.insertAuftrag(t, "tx-erledigt")
+	if err := store.QuittiereTSESignaturauftrag(ctx, erledigtID, testSignatur(60)); err != nil {
+		t.Fatalf("Expected no quittierung error, got %v", err)
+	}
+
+	zustand, err := store.GetTSESignaturQueueZustand(ctx)
+	if err != nil {
+		t.Fatalf("Expected no queue error, got %v", err)
+	}
+	if zustand.OffeneAuftraege != 1 {
+		t.Fatalf("Expected 1 offenen auftrag, got %d", zustand.OffeneAuftraege)
+	}
+	if zustand.FehlgeschlageneAuftraege != 1 {
+		t.Fatalf("Expected 1 fehlgeschlagenen auftrag, got %d", zustand.FehlgeschlageneAuftraege)
+	}
+	if zustand.SignaturenProMinute <= 0 {
+		t.Fatalf("Expected positive signaturen pro minute, got %v", zustand.SignaturenProMinute)
+	}
+}
+
+// GetAlleTSEStoerungen liefert das Stoerungsprotokoll neueste zuerst; der aktive
+// Zeitraum traegt kein Ende, der geschlossene eines.
+func TestGetAlleTSEStoerungen(t *testing.T) {
+	store, _, teardown := setupRepository(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
+		t.Fatalf("Expected no oeffnen error, got %v", err)
+	}
+	if err := store.SchliesseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
+		t.Fatalf("Expected no schliessen error, got %v", err)
+	}
+	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundRueckstand, "Rueckstand"); err != nil {
+		t.Fatalf("Expected no oeffnen error, got %v", err)
+	}
+
+	stoerungen, err := store.GetAlleTSEStoerungen(ctx)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(stoerungen) != 2 {
+		t.Fatalf("Expected 2 stoerungen, got %d", len(stoerungen))
+	}
+	// Neueste zuerst: der aktive Rueckstands-Zeitraum ohne Ende.
+	if stoerungen[0].GrundArt != tse.StoerungGrundRueckstand || stoerungen[0].Ende != nil {
+		t.Fatalf("Expected active rueckstand first, got %+v", stoerungen[0])
+	}
+	if stoerungen[1].GrundArt != tse.StoerungGrundTSEFehler || stoerungen[1].Ende == nil {
+		t.Fatalf("Expected closed tse_fehler second, got %+v", stoerungen[1])
 	}
 }
 

@@ -138,18 +138,14 @@ export type TSEEinrichtenErgebnis = z.infer<typeof TSEEinrichtenErgebnisSchema>
 
 export const TSEStatusSchema = z.object({
   umgebung: z.string(),
-  offeneNachsignierungen: z
-    .number()
-    .int()
-    .min(0, 'Offene Nachsignierungen müssen >= 0 sein'),
   istKonfiguriert: z.boolean(),
 })
 export type TSEStatus = z.infer<typeof TSEStatusSchema>
 
-// Nachsignier-Auftrag: bei TSE-Ausfall vorgemerkter Vorgang. Die Liste dient
-// zugleich als TSE-Ausfalldokumentation (AEAO zu § 146a, 1.14.1):
-// erstelltAm = Beginn, erledigtAm = Ende, letzterFehler = Grund.
-export const TSENachsignierAuftragSchema = z.object({
+// Signaturauftrag: ein signaturpflichtiger Vorgang samt Signaturstand und
+// Verwerfen-Protokoll (Grund, Benutzer, Zeitpunkt) für die
+// Signaturauftrags-Verwaltung.
+export const TSESignaturauftragSchema = z.object({
   id: z.number().int(),
   txId: z.string(),
   processType: z.string(),
@@ -164,8 +160,34 @@ export const TSENachsignierAuftragSchema = z.object({
   letzterFehler: z.string(),
   erstelltAm: DateStringSchema,
   erledigtAm: DateStringSchema.nullable(),
+  verworfenGrund: z.string(),
+  verworfenVon: z.string(),
+  verworfenAm: DateStringSchema.nullable(),
 })
-export type TSENachsignierAuftrag = z.infer<typeof TSENachsignierAuftragSchema>
+export type TSESignaturauftrag = z.infer<typeof TSESignaturauftragSchema>
+
+// Zustand der Signatur-Queue für das Admin-Monitoring: Rückstand (offene
+// Aufträge, Alter des ältesten) und Leistung über ein gleitendes
+// 15-Minuten-Fenster (Signaturen/Minute, Signierdauer p95).
+export const TSESignaturQueueSchema = z.object({
+  offeneAuftraege: z.number().int(),
+  fehlgeschlageneAuftraege: z.number().int(),
+  rueckstandSekunden: z.number().int(),
+  signaturenProMinute: z.number(),
+  signierdauerP95Sekunden: z.number(),
+})
+export type TSESignaturQueue = z.infer<typeof TSESignaturQueueSchema>
+
+// Störungszeitraum aus dem Störungsprotokoll (TSE-Ausfalldokumentation):
+// ein Zeitraum mit Beginn, Ende (null solange aktiv) und Grund-Art.
+export const TSEStoerungSchema = z.object({
+  id: z.number().int(),
+  beginn: DateStringSchema,
+  ende: DateStringSchema.nullable(),
+  grundArt: z.enum(['tse_fehler', 'rueckstand', 'keine_konfiguration']),
+  fehlertext: z.string(),
+})
+export type TSEStoerung = z.infer<typeof TSEStoerungSchema>
 
 export const TSEKonfigurationSpeichernSchema = z.object({
   apiKey: apiKeyField,
@@ -274,24 +296,51 @@ export class EinstellungenBackend {
     return this.backend.post('admin/get-tse-status', {}, TSEStatusSchema)
   }
 
-  public async getTSENachsignierAuftraege(): Promise<TSENachsignierAuftrag[]> {
+  public async getTSESignaturauftraege(): Promise<TSESignaturauftrag[]> {
     const { auftraege } = await this.backend.post(
-      'admin/get-tse-nachsignier-auftraege',
+      'admin/get-tse-signaturauftraege',
       {},
       z.object({
-        auftraege: z.array(TSENachsignierAuftragSchema),
+        auftraege: z.array(TSESignaturauftragSchema),
       }),
     )
     return auftraege
   }
 
-  public async tseNachsignierAuftragZuruecksetzen(id: number): Promise<void> {
-    await this.backend.post('admin/tse-nachsignier-auftrag-zuruecksetzen', {
-      id,
-    })
+  public async getTSESignaturQueue(): Promise<TSESignaturQueue> {
+    return this.backend.post(
+      'admin/get-tse-signatur-queue',
+      {},
+      TSESignaturQueueSchema,
+    )
   }
 
-  public async tseNachsignierAuftragVerwerfen(id: number): Promise<void> {
-    await this.backend.post('admin/tse-nachsignier-auftrag-verwerfen', { id })
+  public async getTSEStoerungen(): Promise<TSEStoerung[]> {
+    const { stoerungen } = await this.backend.post(
+      'admin/get-tse-stoerungen',
+      {},
+      z.object({
+        stoerungen: z.array(TSEStoerungSchema),
+      }),
+    )
+    return stoerungen
+  }
+
+  public async tseSignaturauftragZuruecksetzen(id: number): Promise<void> {
+    await this.backend.post('admin/tse-signaturauftrag-zuruecksetzen', { id })
+  }
+
+  public async tseSignaturauftraegeZuruecksetzen(): Promise<void> {
+    await this.backend.post('admin/tse-signaturauftraege-zuruecksetzen', {})
+  }
+
+  public async tseSignaturauftragVerwerfen(
+    id: number,
+    grund: string,
+  ): Promise<void> {
+    await this.backend.post('admin/tse-signaturauftrag-verwerfen', {
+      id,
+      grund,
+    })
   }
 }
