@@ -258,9 +258,15 @@ Bargeld-Bewegung außerhalb des Tisch-Verkehrs: Einlage (z. B. Wechselgeld nachf
 | ------------------------ | ----------------------- | --------------------------- |
 | `geldtransit-gebucht:v1` | `einlage` \| `entnahme` | `/admin/geldtransit-buchen` |
 
+#### Kassenabschluss
+
+Ein-Klick-Operation, die die offene Kassensitzung beendet: Kassensturz, Differenzbuchung (bei Differenz ≠ 0) und Tagesabschluss in fester Schreibreihenfolge. Als erste Handlung setzt sie die Sitzung auf `wird_abgeschlossen` (Barriere: ab diesem Commit werden Buchungs-Events abgelehnt); eine umschließende Transaktion über die Abschluss-Events gibt es bewusst nicht (→ [handbuch.md §3.10](handbuch.md#310-kassensturz), [§3.11](handbuch.md#311-tagesabschluss-z-bon)).
+
+Go: `KasseAbschliessen` · API-Pfad: `/admin/kasse-abschliessen`
+
 #### Kassensturz
 
-Vergleich des errechneten Soll-Bestands mit dem physisch gezählten Ist-Bestand; Voraussetzung für den Tagesabschluss. Zwei-Event-Muster → [handbuch.md §3.10](handbuch.md#310-kassensturz).
+Vergleich des errechneten Soll-Bestands mit dem physisch gezählten Ist-Bestand; erster Schritt des Kassenabschlusses → [handbuch.md §3.10](handbuch.md#310-kassensturz).
 
 | Event-Typen                                                                          | JSON-Keys                                               |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------- |
@@ -272,7 +278,7 @@ Automatisch erzeugtes Event (`differenz-soll-ist-gebucht:v1`) beim Kassensturz, 
 
 #### Z-Bon (Tagesabschluss)
 
-Formeller Tagesabschluss: aggregiert die Kassensitzung und schließt sie ab (Status → `abgeschlossen`). Kein Report, sondern eine transaktionale Operation des Kasse-Kontexts (→ [handbuch.md §3.11](handbuch.md#311-tagesabschluss-z-bon)).
+Formeller Tagesabschluss: aggregiert die Kassensitzung und schließt sie ab (Status → `abgeschlossen`). Kein Report, sondern das abschließende Event des Kassenabschlusses (→ [handbuch.md §3.11](handbuch.md#311-tagesabschluss-z-bon)).
 
 | Event-Typ                    | DB-Feld                | JSON-Keys (Auszug)                                                                                                    |
 | ---------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -408,6 +414,7 @@ Je ein Satz, Pflichten und Details: [compliance.md §2](compliance.md#2-rechtlic
 
 - **TSE (Technische Sicherheitseinrichtung):** Zwingend vorgeschriebenes, BSI-zertifiziertes Sicherheitsmodul, das jeden Kassiervorgang kryptografisch signiert. In jotti als Cloud-TSE über das `TSEClient`-Interface umgesetzt.
 - **TSEClient:** Anbieter-agnostisches Go-Interface (`domain/tse/client.go`) mit `StartTransaction` und `FinishTransaction` (atomares Muster). Implementierung: `FiskalyTSEClient` (`repository/tse_repo/`).
+- **TSESetupClient:** Zweiter fiskaly-Sprecher neben dem Signierpfad: Go-Interface `SetupClient` (`domain/tse/setup.go`) für geführte Einrichtung und Statusabfrage (TSS anlegen oder übernehmen, Admin-PIN, Client registrieren, Stammdaten, Verbindungstest), zwangsläufig auch ohne fertige Konfiguration nutzbar. Implementierung: `FiskalyTSESetupClient` (`repository/tse_repo/fiskaly_setup.go`); Endpunkte u. a. `/admin/tse-einrichten`, `/admin/tse-uebernehmen`, `/admin/get-tse-status`.
 - **TSEData:** Signaturdaten in den Event-Payloads. Go-Struct `TSEData` (`domain/kasse/tse_data.go`) · JSON-Keys: `tseTransactionNumber`, `tseSignatureCounter`, `tseSerialNumber`, `tseLogTimeStart`, `tseLogTimeEnd`, `tseSignature`, `tseProcessType`, `tseQrCodeData`.
 - **Nachsignierung:** Schlägt die TSE-Signatur beim Buchen fehl, wird der Vorgang in der Outbox `tse_nachsignier_auftraege` vermerkt und von einem Worker nachsigniert.
 - **Transaktionsnummer (TSE_TANR):** Eindeutige, fortlaufende TSE-Nummer pro Kassiervorgang. Dient der Lückenerkennung.

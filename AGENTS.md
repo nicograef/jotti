@@ -26,6 +26,7 @@ Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht autom
 | `docs/produktbeschreibung.md` | Produktidentität, Positionierung, Personas, Abgrenzung                                                                                                       | Zielgruppe verstehen, Positionierung                        |
 | `docs/steuerrecht.md`         | Umsatzsteuerrecht Gastronomie ab 2026: Steuersätze, Ausnahmen, Kombi-Splitting, Gutscheine, Belegpflichtangaben                                              | Steuerregeln verstehen, Steuersatz-Zuordnung, F-07-Arbeit   |
 | `docs/compliance.md`          | KassenSichV, GoBD, DSFinV-K, ELSTER; Betreiberpflichten, TSE-Adapter-Interface                                                                               | Compliance-Features implementieren, Betreiberdokumentation  |
+| `docs/verfahrensdokumentation.md` | Muster-Verfahrensdokumentation (GoBD) zum Anpassen durch den Betreiber: Architektur, Datenmodell, TSE-Anbindung, Export, Archivierung; zugleich Herstellerdokumentation nach BSI TR-03153-1 Kap. 3.9.3 | Verfahrens-/Herstellerdoku pflegen (z. B. TSE-Anbindung geändert) |
 | `docs/rechtsquellen/`         | Autoritative lokale Originaltexte der Normen und Spezifikationen (AO, UStG, KassenSichV, DSGVO, GoBD, AEAO, UStAE, DSFinV-K, BSI TR-03153, fiskaly OpenAPI). Index + Schnellzugriff nach Aufgabe: `docs/rechtsquellen/README.md` | Compliance-/Steuer-Fakten am Gesetzes-/Spec-Text prüfen: processType/processData, DSFinV-K-Felder, fiskaly-API, Steuersätze |
 
 ## Tech-Stack

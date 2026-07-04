@@ -2,8 +2,9 @@
 
 > Umbau der TSE-Integration vom synchronen Signieren im Kassier-Pfad auf ein
 > Outbox-Modell: Jeder signaturpflichtige Vorgang erzeugt im selben Commit
-> einen Signaturauftrag, ein Worker ist der einzige Sprecher zur TSE, alle
-> Signaturen liegen in einer Seitentabelle. Der heutige Nachsignier-Pfad
+> einen Signaturauftrag, ein Worker ist der einzige Sprecher für
+> Signaturtransaktionen zur TSE, alle Signaturen liegen in einer
+> Seitentabelle. Der heutige Nachsignier-Pfad
 > (Auftragstabelle, Worker mit Healing und Backoff, Signatur-Seitentabelle)
 > wird damit vom Ausnahme- zum Normalfall befördert.
 > Rechtliche Prüfung: siehe Further Notes; die Konformitätsbedingungen sind
@@ -45,9 +46,10 @@ Die Signierung wird vollständig vom Kassier-Pfad entkoppelt:
 1. Ein Kassen-Command validiert, baut das Event (ohne TSE-Felder) und schreibt
    es zusammen mit genau einem Signaturauftrag in einer Datenbank-Transaktion.
    Die Antwort an die Servicekraft kommt sofort nach dem Commit.
-2. Ein Signatur-Worker ist der einzige Sprecher zur TSE. Er wird nach jedem
-   Commit sofort angestoßen (Polling nur als Fallback), arbeitet die Aufträge
-   in Reihenfolge ab und legt das Ergebnis in der Signatur-Seitentabelle ab.
+2. Ein Signatur-Worker ist der einzige Sprecher für Signaturtransaktionen
+   zur TSE. Er wird nach jedem Commit sofort angestoßen (Polling nur als
+   Fallback), arbeitet die Aufträge in Reihenfolge ab und legt das Ergebnis
+   in der Signatur-Seitentabelle ab.
    Healing (Ist-Abfrage vor erneutem Signieren), Backoff und die
    Admin-Aktionen des heutigen Nachsignier-Workers bleiben erhalten.
 3. Der Beleg-Abruf antwortet sofort aus dem Signaturstatus, ohne Warten im
@@ -99,11 +101,11 @@ Merge-Logik, ein TSE-freier Kassen-Kern.
 9. Als Vereins-Admin möchte ich fehlgeschlagene Signaturaufträge erneut
    einreihen oder begründet verwerfen können, damit ich nach längeren
    Ausfällen aufräumen kann.
-10. Als Vereins-Admin möchte ich den Tagesabschluss nur dann durchführen,
+10. Als Vereins-Admin möchte ich den Kassenabschluss nur dann durchführen,
     wenn alle Vorgänge signiert sind oder nur dokumentierte Ausfall-Reste
     verbleiben, und im Blockadefall eine klare Meldung sehen, was noch offen
     ist.
-11. Als Vereins-Admin möchte ich, dass der Tagesabschluss bei einem
+11. Als Vereins-Admin möchte ich, dass der Kassenabschluss bei einem
     mehrstündigen TSE-Ausfall trotzdem möglich ist, damit der Ausfall nicht
     den ganzen Veranstaltungstag blockiert.
 12. Als Vereins-Admin möchte ich im Dashboard gewarnt werden, wenn die
@@ -143,7 +145,8 @@ Architektur
   signaturpflichtigem Event, angelegt in derselben Datenbank-Transaktion wie
   das Event (zwangsläufige Auslösung, kein Ermessen, kein Batching). Ein
   Auftrag referenziert sein Event eindeutig und trägt die selbst erzeugte
-  TSE-Transaktions-ID.
+  TSE-Transaktions-ID (eine zufällige UUID; der veraltete Schema-Kommentar,
+  der sie deterministisch nennt, wird dabei korrigiert).
 - Die Statusmaschine des Auftrags: offen, erledigt, fehlgeschlagen (nach
   Maximalversuchen), verworfen, TSE nicht konfiguriert (endgültig, siehe
   unten). Übergänge: Der Worker quittiert offen zu erledigt, zählt
@@ -165,17 +168,23 @@ Architektur
   gespeichert (friert ein, was zu signieren war; der Worker bleibt frei von
   Event-Schema-Wissen).
 - Eine zentrale fiskalische Projektion bildet Event auf Signaturpflicht,
-  processType und processData ab und ersetzt die heute auf drei Module
-  verteilten Signierhelfer. Der Kassen-Kern entscheidet damit weiterhin, was
+  processType und processData ab, auch datenabhängig (die Sitzungseröffnung
+  ist nur bei Anfangsbestand über null signaturpflichtig), und ersetzt die
+  heute auf drei Module verteilten Signierhelfer. Der Kassen-Kern
+  entscheidet damit weiterhin, was
   fiskalisch abzusichern ist (Domänenwissen), aber nicht mehr wie, wann oder
   womit signiert wird. Beim Einreihen plausibilisiert die Projektion die
   erzeugten processData (Schema, Vorzeichen, Summen) und protokolliert
   Verstöße, ohne den Kassiervorgang zu blockieren; Gift-Aufträge werden so
   zu Testfehlern statt Laufzeitfällen.
-- Der Signatur-Worker ist der einzige Sprecher zur TSE: Sofort-Trigger nach
-  jedem Commit über eine In-Process-Benachrichtigung, der bestehende
-  Polling-Tick bleibt nur als Fallback und fängt nach einem Absturz
-  verlorene Trigger auf; Abarbeitung in Auftragsreihenfolge (FIFO als
+- Der Signatur-Worker ist der einzige Sprecher für Signaturtransaktionen
+  (Start, Finish, Ist-Abfrage); TSE-Setup-Flow und TSE-Status-Abfrage der
+  Admin-Einstellungen sprechen weiterhin eigenständig mit fiskaly,
+  zwangsläufig auch ohne fertige Konfiguration. Arbeitsweise des Workers:
+  Sofort-Trigger nach jedem Commit über eine In-Process-Benachrichtigung,
+  der bestehende Polling-Tick bleibt nur als Fallback und fängt nach
+  einem Absturz verlorene Trigger auf; Abarbeitung in Auftragsreihenfolge
+  (FIFO als
   Soll-Eigenschaft: im Regelbetrieb bleibt das TSE-Log chronologisch);
   differenzierte Fehlerbehandlung nach expliziter Fehlertaxonomie: Ein
   auftragsspezifischer Fehler (etwa 400/422, von fiskaly abgelehnte
@@ -205,7 +214,7 @@ Architektur
   ab der Zwei-Minuten-Schwelle und der Dauerzustand ohne TSE-Konfiguration.
   Ein Zeitraum endet mit der ersten erfolgreichen Signatur, dem
   Unterschreiten der Schwelle beziehungsweise der Einrichtung der
-  Konfiguration. Alle Leser (Beleg-Ausfallvermerk, Tagesabschluss-Gate,
+  Konfiguration. Alle Leser (Beleg-Ausfallvermerk, Kassenabschluss-Gate,
   Admin-Ansicht) prüfen dasselbe Kriterium, den aktiven oder zuzurechnenden
   Störungszeitraum, statt Zeiträume zur Lesezeit aus Auftragszeilen zu
   rekonstruieren. Das Störungsprotokoll ist wie die Auftragstabelle
@@ -215,7 +224,14 @@ Architektur
   Konfigurationswissen. Der Worker markiert sie ohne vorhandene
   Konfiguration mit dem endgültigen Status TSE nicht konfiguriert: keine
   Fehlversuchszählung, keine Rückstands-Warnung, keine automatische
-  Wiederaufnahme, auch nicht nach späterer Einrichtung. Eine
+  Wiederaufnahme, auch nicht nach späterer Einrichtung. Diese Endgültigkeit
+  hängt nicht am Worker-Timing: Der Übergang von nicht konfiguriert zu
+  konfiguriert markiert in derselben Transaktion alle noch offenen Aufträge
+  endgültig; sonst würde ein beim Einrichten noch unmarkierter Auftrag
+  (etwa nach Absturz oder hängendem Worker) vom Worker automatisch
+  nachsigniert. Ein bloßer Wechsel der Zugangsdaten bei durchgehend
+  vorhandener Konfiguration markiert nichts; offener Ausfall-Rückstand wird
+  dann regulär nachsigniert. Eine
   Nachsignierungspflicht existiert nicht, und die nachträgliche Signatur
   heilt den Zeitraum ohne TSE rechtlich nicht; sie wäre reine
   Bestandshärtung. Wer den Bestand doch absichern will, setzt die Aufträge
@@ -224,7 +240,7 @@ Architektur
   Worker unterscheidet dabei fehlende Konfiguration (markieren) von nicht
   lesbarer Konfiguration (Fehler, nichts tun). Belege tragen den Vermerk,
   dass keine TSE konfiguriert ist; solche Aufträge blockieren den
-  Tagesabschluss nicht. Damit eine Kassensitzung stets vollständig mit oder
+  Kassenabschluss nicht. Damit eine Kassensitzung stets vollständig mit oder
   ohne TSE läuft, sind Änderungen der TSE-Konfiguration nur ohne offene
   Kassensitzung möglich.
 - Die Signatur-Seitentabelle wird der einzige Signatur-Store. Event-Payloads
@@ -251,8 +267,9 @@ Beleg und Signaturstatus
   mit belegbarem Grund (Ausfallvermerk), oder Signatur ausstehend (kein
   Beleg). Bei Ausstehend fasst die UI selbsttätig nach (etwa alle ein bis
   zwei Sekunden für rund zehn Sekunden, danach auf Anforderung); das trägt
-  auch den Direktverkauf, wo Buchung und Beleg-Abruf unter einer Sekunde
-  auseinanderliegen und die erste Antwort regelmäßig Ausstehend ist. Im
+  auch den Direktverkauf, wo die Servicekraft den Beleg unmittelbar nach
+  der Buchung anfordern kann und die erste Antwort dann regelmäßig
+  Ausstehend ist. Im
   Rückstau-Fall wartet der Auftrag noch hinter anderen, ohne dass Signatur
   oder Störung vorliegt.
 - Ausfallbegriff (Entscheidung: ursachenunabhängig, Basis ist das
@@ -282,20 +299,24 @@ Beleg und Signaturstatus
   er erklärt TSE-Zeitpunkte, die vom Belegdatum abweichen, und erscheint mit
   diesem Kriterium nur in echten Ausfall- und Aufholszenarien.
 
-Tagesabschluss
+Kassenabschluss
 
-- Tagesabschluss-Gate (Entscheidung: Sofortantwort, Ausfall-Reste
-  zulässig): Das Gate prüft sofort und wartet nicht; sind noch Aufträge
-  offen, meldet es sie mit Anzahl und Alter, und die UI kann erneut
-  anfordern (dasselbe Muster wie der Beleg-Abruf). Ausfall-Reste sind
-  endgültig fehlgeschlagene, verworfene und offene Aufträge, die einem
+- Kassenabschluss-Gate (Entscheidung: Sofortantwort, Ausfall-Reste
+  zulässig): Das Gate schützt die gesamte Ein-Klick-Abschluss-Operation
+  (Kassensturz, Differenzbuchung, Tagesabschluss) und prüft als deren
+  erste Handlung, noch vor der wird-abgeschlossen-Barriere. Es prüft
+  sofort und wartet nicht; sind noch Aufträge offen, meldet es sie mit
+  Anzahl und Alter, und die UI kann erneut anfordern (dasselbe Muster wie
+  der Beleg-Abruf). Ausfall-Reste sind endgültig fehlgeschlagene und
+  verworfene Aufträge (stets) sowie offene Aufträge, die einem
   dokumentierten, auch noch laufenden Störungszeitraum zuzurechnen sind
   oder auftragsspezifische Fehlversuche tragen; sie lassen den Abschluss
   zu, die Abschlussmeldung weist sie aus. Nur frische offene Aufträge ohne
   Ausfallbezug blockieren mit einer Meldung, die sie benennt. Aufträge im
   endgültigen Status TSE nicht konfiguriert blockieren nicht; schließt ein
   Tag vollständig ohne TSE, weist die Abschlussmeldung das deutlich aus.
-  Das Abschluss-Event selbst wird regulär über die Queue signiert.
+  Die signaturpflichtigen Abschluss-Events (Differenzbuchung bei Differenz
+  ungleich Null, Tagesabschluss) werden regulär über die Queue signiert.
 - Reste nach dem Abschluss (Entscheidung: nachsignieren): Kehrt die TSE nach
   einem Abschluss mit Ausfall-Resten zurück, arbeitet der Worker offene
   Reste regulär nach; endgültig fehlgeschlagene kann der Admin zurücksetzen.
@@ -333,12 +354,12 @@ Konformitätsbedingungen (als Anforderungen verbindlich)
 - Beleg ohne TSE-Daten nur bei dokumentiertem Ausfall im Sinne des
   ursachenunabhängigen Ausfallbegriffs (AEAO Nr. 1.14.2/1.14.3), nie bei
   bloßer Queue-Latenz unterhalb der Schwelle.
-- Tagesabschluss nur bei leerer Queue oder ausschließlich dokumentierten
+- Kassenabschluss nur bei leerer Queue oder ausschließlich dokumentierten
   Ausfall-Resten (AEAO Nr. 2.2.3.3).
 - Ausfalldokumentation automatisch über das Störungsprotokoll (AEAO
   Nr. 1.14.1), ursachenunabhängig einschließlich Rückstands-Ausfall und
-  fehlender TSE-Konfiguration; die Verfahrensbeschreibung in der
-  Compliance-Dokumentation erläutert
+  fehlender TSE-Konfiguration; die Muster-Verfahrensdokumentation
+  (verfahrensdokumentation.md, Abschnitt TSE-Anbindung) erläutert
   Mechanismus, typische Latenz und mögliche Verzögerungen und erfüllt damit
   zugleich die Herstellerdokumentations-Pflicht aus BSI TR-03153-1
   Kap. 3.9.3.
@@ -353,9 +374,14 @@ Benennung und Dokumentation
   Störungsprotokoll, Störungszeitraum, Aufholphase, Rückstands-Ausfall,
   Signatur ausstehend, TSE nicht konfiguriert) werden in der Ubiquitous
   Language ergänzt; Endpunkte und UI-Texte folgen der bestehenden deutschen
-  Fachsprache.
-- Handbuch (TSE-Architektur) und Compliance-Dokumentation (TSE-Integration,
-  Verfahrensbeschreibung) werden auf das Outbox-Modell aktualisiert.
+  Fachsprache. Die Abschluss-Operation heißt durchgängig Kassenabschluss
+  (der Ein-Klick-Ablauf), Tagesabschluss bezeichnet nur noch das Event und
+  den Z-Bon; die veralteten Einträge zu Kassensturz und Z-Bon in der
+  Ubiquitous Language (Zwei-Schritt-Modell) werden dabei auf die
+  zusammengelegte Operation aktualisiert.
+- Handbuch (TSE-Architektur), Compliance-Dokumentation (TSE-Integration)
+  und Muster-Verfahrensdokumentation (TSE-Anbindung) werden auf das
+  Outbox-Modell aktualisiert.
 
 ## Testing Decisions
 
@@ -368,7 +394,9 @@ Kassen-Module und der Seed-Integrationstest.
 Getestet werden alle Kernmodule:
 
 - Fiskalische Projektion: tabellengetrieben je Event-Typ (signaturpflichtig
-  ja/nein, processType, processData inklusive Vorzeichen-/Faktor-Fällen).
+  ja/nein, processType, processData inklusive Vorzeichen-/Faktor-Fällen)
+  samt datenabhängiger Signaturpflicht (Sitzungseröffnung mit und ohne
+  Anfangsbestand).
 - Signatur-Worker: Erfolgsfall, auftragsspezifischer Fehlversuch mit
   Sekunden-Backoff und schnellem endgültigem Fehlschlagen (Gift-Auftrag
   staut nie die Queue), TSE-weiter Fehler bricht den Durchlauf ab, zählt
@@ -388,12 +416,14 @@ Getestet werden alle Kernmodule:
   erfolgreiche Signatur schließt ihn; der Rückstands-Zeitraum öffnet und
   schließt an der Schwelle; der Zeitraum ohne TSE-Konfiguration endet mit
   der Einrichtung.
-- Tagesabschluss-Gate: Sofortantwort statt Warten; leere Queue, frischer
+- Kassenabschluss-Gate: Sofortantwort statt Warten; leere Queue, frischer
   offener Auftrag blockiert mit Meldung, Ausfall-Reste (auch offene
   Aufträge im laufenden Störungszeitraum) lassen den Abschluss zu, Aufträge
   im Status TSE nicht konfiguriert blockieren nicht.
 - TSE-nicht-konfiguriert-Fluss: Aufträge entstehen als offen und werden vom
-  Worker endgültig markiert; eine spätere Einrichtung fasst sie nicht an;
+  Worker endgültig markiert; der Übergang zu konfiguriert markiert auch
+  noch unmarkierte offene Aufträge, ein reiner Zugangsdaten-Wechsel nicht;
+  eine spätere Einrichtung fasst endgültig markierte Aufträge nicht an;
   das Admin-Zurücksetzen reiht sie bewusst wieder ein und der Worker
   signiert sie nach.
 - Angepasste Beleg- und Export-Pfade: Kassenbeleg-Erzeugung mit den vier
@@ -440,10 +470,12 @@ zeitlichem Zusammenhang), AEAO zu § 146a Nr. 2.2.2 (unmittelbar mit
 Vorgangsbeginn starten; 45-Sekunden-Anker für Updates), Nr. 2.2.3.3 (vor
 Belegausgabe und Kassenabschluss zwingend beenden), Nr. 2.5.7
 (Belegausgabe unmittelbar nach Vorgangsende) und Nr. 1.14 (Ausfallregime).
-BSI TR-03153-1 Kap. 3.9.3 erkennt Durchführungszeiten und Verzögerungen der
-Signaturerstellung ausdrücklich an und verpflichtet den Hersteller (MUSS),
-in einer Herstellerdokumentation darüber zu informieren; jotti ist hier
-Hersteller, die Verfahrensbeschreibung erfüllt diese Pflicht. Die daraus
+BSI TR-03153-1 Kap. 3.9.3 verpflichtet den Hersteller (MUSS), in einer
+Herstellerdokumentation über Durchführungszeiten und mögliche Verzögerungen
+der Absicherung aufzuklären; der Wortlaut zielt auf gleichzeitig zu
+bearbeitende Absicherungen, was den Queue-Rückstand des Outbox-Modells
+einschließt. jotti ist hier Hersteller, die Muster-Verfahrensdokumentation
+erfüllt diese Pflicht. Die daraus
 abgeleiteten Konformitätsbedingungen sind oben als Anforderungen
 festgeschrieben. Das verbleibende Auslegungsrisiko liegt im nicht
 quantifizierten Begriff unmittelbar (KassenSichV § 2 Satz 1, AEAO
@@ -462,8 +494,8 @@ signiert wird.
 Betriebshinweis: Die Queue-Latenz ist die zentrale Betriebsgröße des neuen
 Modells. Sie fällt als Differenz zwischen Auftragserstellung und TSE-logTime
 ohnehin an und soll im Admin-Dashboard sichtbar sein; die
-Verfahrensbeschreibung dokumentiert den Mechanismus und die erwartete
-Größenordnung. Durchsatzannahme: Eine Signatur besteht aus zwei
+Muster-Verfahrensdokumentation dokumentiert den Mechanismus und die
+erwartete Größenordnung. Durchsatzannahme: Eine Signatur besteht aus zwei
 sequenziellen fiskaly-Roundtrips (Start und Finish); bei 300 bis 500
 Millisekunden je Roundtrip schafft der serielle Worker grob ein bis
 anderthalb Signaturen pro Sekunde; der Spitzenbedarf eines Vereinsfests
