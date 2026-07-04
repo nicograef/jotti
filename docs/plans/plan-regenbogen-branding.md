@@ -193,11 +193,11 @@ und Mobilmenü wird nachgezogen.
 
 ### Acceptance criteria
 
-- [ ] Zielstruktur mit 8 Sektionen umgesetzt; alle Nav-Links und die Anker `versprechen`, `features`,
+- [x] Zielstruktur mit 8 Sektionen umgesetzt; alle Nav-Links und die Anker `versprechen`, `features`,
       `compliance`, `technik` funktionieren
-- [ ] Kein inhaltlicher Verlust außer bewusst entfernten Redundanzen (Wortstrom-Diff geprüft)
+- [x] Kein inhaltlicher Verlust außer bewusst entfernten Redundanzen (Wortstrom-Diff geprüft)
 - [ ] Visuelle Abnahme der neuen Reihenfolge durch Nico (Mobil und Desktop)
-- [ ] `pnpm check` läuft fehlerfrei
+- [x] `pnpm check` läuft fehlerfrei
 
 ---
 

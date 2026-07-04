@@ -201,10 +201,102 @@ const description =
     </div>
   </section>
 
-  {/* ============ VERSPRECHEN (Value Prop) ============ */}
-  <section class="py-16 sm:py-24" id="versprechen">
+  {/* ============ FÜR WEN ============ */}
+  <section class="py-16 sm:py-24" id="fuer-wen">
     <div class="mx-auto max-w-6xl px-6">
-      <p class="eyebrow mb-3 text-center">Das Versprechen</p>
+      <p class="eyebrow mb-3 text-center">Zielgruppe</p>
+      <h2
+        class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
+      >
+        Für wen ist jotti gedacht?
+      </h2>
+      <p
+        class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted"
+      >
+        jotti ist für alle gemeinnützigen Organisationen, die temporäre
+        Gastronomie-Veranstaltungen durchführen, mit integrierter TSE-Anbindung
+        und unabhängig von der Rechtsform.
+      </p>
+      <div class="grid gap-x-10 gap-y-7 md:grid-cols-2">
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Vereine (e.V.)</h3>
+          <p class="card-text">
+            Sport-, Musik-, Schützen-, Karnevals- und Fördervereine: jeder
+            eingetragene Verein, der Feste veranstaltet.
+          </p>
+        </div>
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
+              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
+              <path d="M10 6h4"></path>
+              <path d="M10 10h4"></path>
+              <path d="M10 14h4"></path>
+              <path d="M10 18h4"></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Gemeinnützige Organisationen</h3>
+          <p class="card-text">
+            gGmbH, gUG, Stiftungen, kirchliche Träger, NGOs: alle, die unter das
+            Gemeinnützigkeitsrecht fallen.
+          </p>
+        </div>
+      </div>
+
+      <h3 class="mt-12 mb-5 text-center text-lg font-bold">
+        Typische Veranstaltungen
+      </h3>
+      <div class="flex flex-wrap justify-center gap-2.5">
+        <span class="tag">Vereinsfeste</span>
+        <span class="tag">Sommerfeste</span>
+        <span class="tag">Weihnachtsmärkte</span>
+        <span class="tag">Maihocks</span>
+        <span class="tag">Straßenfeste</span>
+        <span class="tag">Konzerte</span>
+        <span class="tag">Sportevents</span>
+        <span class="tag">Fasching</span>
+        <span class="tag">Jubiläen</span>
+        <span class="tag">Kulturveranstaltungen</span>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ NUTZEN (Versprechen + Warum) ============ */}
+  <section class="bg-surface-alt py-16 sm:py-24" id="versprechen">
+    <div class="mx-auto max-w-6xl px-6">
+      <p class="eyebrow mb-3 text-center">Der Nutzen</p>
       <h2
         class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
       >
@@ -326,18 +418,12 @@ const description =
           </p>
         </div>
       </div>
-    </div>
-  </section>
 
-  {/* ============ WARUM JOTTI (Problem + Vergleich) ============ */}
-  <section class="bg-surface-alt py-16 sm:py-24" id="warum">
-    <div class="mx-auto max-w-6xl px-6">
-      <p class="eyebrow mb-3 text-center">Das Problem</p>
-      <h2
-        class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
+      <h3
+        class="mt-14 mb-3 text-center text-xl font-bold tracking-tight sm:text-2xl"
       >
         Warum jotti?
-      </h2>
+      </h3>
       <p
         class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted"
       >
@@ -366,7 +452,7 @@ const description =
               ></path>
             </svg>
           </span>
-          <h3 class="mb-1.5 text-lg font-bold">Stift &amp; Papier</h3>
+          <h4 class="mb-1.5 text-lg font-bold">Stift &amp; Papier</h4>
           <p class="card-text">
             Unleserliche Handschrift, verlorene Bonblöcke, keine
             Echtzeit-Übersicht. Am Ende sitzt ihr stundenlang an der Abrechnung.
@@ -393,7 +479,7 @@ const description =
               <path d="M12 3v18"></path>
             </svg>
           </span>
-          <h3 class="mb-1.5 text-lg font-bold">Excel-Tabelle</h3>
+          <h4 class="mb-1.5 text-lg font-bold">Excel-Tabelle</h4>
           <p class="card-text">
             Nicht echtzeitfähig, kein Mehrbenutzerbetrieb, keine
             Tisch-Zuordnung. Einer tippt, alle anderen warten. Keine
@@ -418,7 +504,7 @@ const description =
               <line x1="2" x2="22" y1="10" y2="10"></line>
             </svg>
           </span>
-          <h3 class="mb-1.5 text-lg font-bold">Kommerzielles POS</h3>
+          <h4 class="mb-1.5 text-lg font-bold">Kommerzielles POS</h4>
           <p class="card-text">
             Fiskalkonform und leistungsfähig, aber auf den täglichen
             Gastronomiebetrieb ausgelegt. Bei zwei bis drei Festen im Jahr
@@ -428,9 +514,9 @@ const description =
         </div>
       </div>
 
-      <h3 class="mt-12 mb-5 text-center text-lg font-bold">
+      <h4 class="mt-12 mb-5 text-center text-lg font-bold">
         jotti löst genau diese Probleme.
-      </h3>
+      </h4>
       <div class="-mx-6 overflow-x-auto px-6">
         <table
           class="w-full overflow-hidden rounded-lg border border-card-border bg-card text-sm"
@@ -1144,10 +1230,245 @@ const description =
     </div>
   </section>
 
-  {/* ============ Compliance ============ */}
+  {/* ============ SO FUNKTIONIERT'S ============ */}
+  <section class="py-16 sm:py-24" id="so-funktionierts">
+    <div class="mx-auto max-w-6xl px-6">
+      <p class="eyebrow mb-3 text-center">Schnellstart</p>
+      <h2
+        class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
+      >
+        In drei Schritten startklar.
+      </h2>
+      <p
+        class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted"
+      >
+        Keine wochenlange Einrichtung, kein Schulungsbedarf. Einfach loslegen.
+      </p>
+      <ol
+        class="mx-auto grid max-w-88 gap-8 lg:max-w-none lg:grid-cols-3 lg:gap-10"
+      >
+        <li
+          class="rounded-2xl border border-card-border bg-card p-8 text-center"
+        >
+          <span
+            class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-solid text-xl font-bold text-white"
+            >1</span
+          >
+          <h3 class="mb-2 text-lg font-bold">Admin richtet ein</h3>
+          <p class="card-text">
+            Produkte mit Varianten, Preisen und Steuersätzen anlegen, Tische
+            erstellen, Benutzer einladen, Betreiber-Stammdaten pflegen.
+          </p>
+          <Image
+            src={produkteVerwalten}
+            alt="Produktverwaltung mit aufklappbaren Produkt-Karten, aktiven Varianten samt Preisen und dem Button „+ Neues Produkt“."
+            class="phone-shot mx-auto mt-6 w-full max-w-[150px]"
+            widths={[150, 300]}
+            sizes="150px"
+            loading="lazy"
+          />
+        </li>
+        <li
+          class="rounded-2xl border border-card-border bg-card p-8 text-center"
+        >
+          <span
+            class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-solid text-xl font-bold text-white"
+            >2</span
+          >
+          <h3 class="mb-2 text-lg font-bold">Team meldet sich an</h3>
+          <p class="card-text">
+            Jeder Helfer öffnet den Browser auf dem eigenen Smartphone, gibt das
+            Einmalpasswort ein und setzt ein eigenes Passwort.
+          </p>
+          <Image
+            src={benutzerVerwalten}
+            alt="Benutzerverwaltung als Liste mit Aktiv-Schalter, Rollen-Stern, Erstellungsdatum und dem Button „+ Neuer Benutzer“."
+            class="phone-shot mx-auto mt-6 w-full max-w-[150px]"
+            widths={[150, 300]}
+            sizes="150px"
+            loading="lazy"
+          />
+        </li>
+        <li
+          class="rounded-2xl border border-card-border bg-card p-8 text-center"
+        >
+          <span
+            class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-solid text-xl font-bold text-white"
+            >3</span
+          >
+          <h3 class="mb-2 text-lg font-bold">Loslegen</h3>
+          <p class="card-text">
+            Bestellungen aufnehmen, Ausgabe bestätigen, kassieren. Am Ende des
+            Abends Tagesabschluss und Z-Bon.
+          </p>
+          <Image
+            src={tischBestellen}
+            alt="Bestell-Ansicht eines Tisches mit aufgeklappter Kategorie, Mengen-Steppern und grüner Aktionsleiste zum Aufnehmen der Bestellung."
+            class="phone-shot mx-auto mt-6 w-full max-w-[150px]"
+            widths={[150, 300]}
+            sizes="150px"
+            loading="lazy"
+          />
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  {/* ============ SERVICE (optional, auf Anfrage) ============ */}
+  <section class="bg-surface-alt py-16 sm:py-24" id="service">
+    <div class="mx-auto max-w-6xl px-6">
+      <p class="eyebrow mb-3 text-center">Optionale Unterstützung</p>
+      <h2
+        class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
+      >
+        Wenn ihr Hilfe möchtet.
+      </h2>
+      <p
+        class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted"
+      >
+        jotti bleibt für Vereine kostenlos. Wer sich Einrichtung oder Betrieb
+        nicht allein zutraut, kann mich für einzelne Leistungen anfragen. Die
+        Konditionen besprechen wir individuell.
+      </p>
+      <div class="grid gap-x-10 gap-y-7 md:grid-cols-2 lg:grid-cols-4">
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+              ></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Einrichtung</h3>
+          <p class="card-text">
+            Gemeinsam Produkte, Tische und Benutzer anlegen und bei der
+            TSE-Anbindung helfen, damit ihr fürs erste Fest startklar seid.
+          </p>
+        </div>
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect width="20" height="8" x="2" y="2" rx="2" ry="2"></rect>
+              <rect width="20" height="8" x="2" y="14" rx="2" ry="2"></rect>
+              <line x1="6" x2="6.01" y1="6" y2="6"></line>
+              <line x1="6" x2="6.01" y1="18" y2="18"></line>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Hosting-Hilfe</h3>
+          <p class="card-text">
+            Beim Aufsetzen auf einem Server oder im Vereinsheim helfen, von
+            Docker bis TLS-Zertifikat.
+          </p>
+        </div>
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="m4.93 4.93 4.24 4.24"></path>
+              <path d="m14.83 9.17 4.24-4.24"></path>
+              <path d="m14.83 14.83 4.24 4.24"></path>
+              <path d="m9.17 14.83-4.24 4.24"></path>
+              <circle cx="12" cy="12" r="4"></circle>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Tech-Support</h3>
+          <p class="card-text">
+            Ansprechpartner bei Fragen und Problemen, auch während eurer
+            Veranstaltung.
+          </p>
+        </div>
+        <div class="card">
+          <span class="icon-box">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"
+              ></path>
+              <path d="M22 10v6"></path>
+              <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path>
+            </svg>
+          </span>
+          <h3 class="mb-1.5 text-lg font-bold">Schulung</h3>
+          <p class="card-text">
+            Eure Helfer im Umgang mit jotti schulen, damit am Festtag jeder
+            Handgriff sitzt.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-8 p-8 text-center">
+        <p class="mx-auto mb-6 max-w-160 card-text">
+          Es gibt keine Preisliste und keinen Zwang. Schreibt mir kurz, was ihr
+          braucht, und wir finden eine Lösung, die zu eurem Verein passt. Diese
+          Leistungen sind eine freiwillige Unterstützung nach gesonderter
+          Absprache, unabhängig von der kostenlosen Software; die Verantwortung
+          für den fiskalisch korrekten Betrieb bleibt bei eurem Verein.
+        </p>
+        <div class="flex flex-col justify-center gap-4 sm:flex-row">
+          <a href="mailto:graef.nico@gmail.com" class="btn btn-primary"
+            >Per E-Mail anfragen</a
+          >
+          <a
+            href="https://nicograef.de"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-ghost"
+          >
+            Mehr über den Entwickler
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ============ TECHNIK & COMPLIANCE ============ */}
   <section class="py-16 sm:py-24" id="compliance">
     <div class="mx-auto max-w-6xl px-6">
-      <p class="eyebrow mb-3 text-center">Compliance</p>
+      <p class="eyebrow mb-3 text-center">Technik &amp; Compliance</p>
       <h2
         class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
       >
@@ -1346,194 +1667,13 @@ const description =
           loading="lazy"
         />
       </div>
-    </div>
-  </section>
 
-  {/* ============ SO FUNKTIONIERT'S ============ */}
-  <section class="bg-surface-alt py-16 sm:py-24" id="so-funktionierts">
-    <div class="mx-auto max-w-6xl px-6">
-      <p class="eyebrow mb-3 text-center">Schnellstart</p>
-      <h2
-        class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
-      >
-        In drei Schritten startklar.
-      </h2>
-      <p
-        class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted"
-      >
-        Keine wochenlange Einrichtung, kein Schulungsbedarf. Einfach loslegen.
-      </p>
-      <ol
-        class="mx-auto grid max-w-88 gap-8 lg:max-w-none lg:grid-cols-3 lg:gap-10"
-      >
-        <li
-          class="rounded-2xl border border-card-border bg-card p-8 text-center"
-        >
-          <span
-            class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-solid text-xl font-bold text-white"
-            >1</span
-          >
-          <h3 class="mb-2 text-lg font-bold">Admin richtet ein</h3>
-          <p class="card-text">
-            Produkte mit Varianten, Preisen und Steuersätzen anlegen, Tische
-            erstellen, Benutzer einladen, Betreiber-Stammdaten pflegen.
-          </p>
-          <Image
-            src={produkteVerwalten}
-            alt="Produktverwaltung mit aufklappbaren Produkt-Karten, aktiven Varianten samt Preisen und dem Button „+ Neues Produkt“."
-            class="phone-shot mx-auto mt-6 w-full max-w-[150px]"
-            widths={[150, 300]}
-            sizes="150px"
-            loading="lazy"
-          />
-        </li>
-        <li
-          class="rounded-2xl border border-card-border bg-card p-8 text-center"
-        >
-          <span
-            class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-solid text-xl font-bold text-white"
-            >2</span
-          >
-          <h3 class="mb-2 text-lg font-bold">Team meldet sich an</h3>
-          <p class="card-text">
-            Jeder Helfer öffnet den Browser auf dem eigenen Smartphone, gibt das
-            Einmalpasswort ein und setzt ein eigenes Passwort.
-          </p>
-          <Image
-            src={benutzerVerwalten}
-            alt="Benutzerverwaltung als Liste mit Aktiv-Schalter, Rollen-Stern, Erstellungsdatum und dem Button „+ Neuer Benutzer“."
-            class="phone-shot mx-auto mt-6 w-full max-w-[150px]"
-            widths={[150, 300]}
-            sizes="150px"
-            loading="lazy"
-          />
-        </li>
-        <li
-          class="rounded-2xl border border-card-border bg-card p-8 text-center"
-        >
-          <span
-            class="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-solid text-xl font-bold text-white"
-            >3</span
-          >
-          <h3 class="mb-2 text-lg font-bold">Loslegen</h3>
-          <p class="card-text">
-            Bestellungen aufnehmen, Ausgabe bestätigen, kassieren. Am Ende des
-            Abends Tagesabschluss und Z-Bon.
-          </p>
-          <Image
-            src={tischBestellen}
-            alt="Bestell-Ansicht eines Tisches mit aufgeklappter Kategorie, Mengen-Steppern und grüner Aktionsleiste zum Aufnehmen der Bestellung."
-            class="phone-shot mx-auto mt-6 w-full max-w-[150px]"
-            widths={[150, 300]}
-            sizes="150px"
-            loading="lazy"
-          />
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  {/* ============ FÜR WEN ============ */}
-  <section class="py-16 sm:py-24">
-    <div class="mx-auto max-w-6xl px-6">
-      <p class="eyebrow mb-3 text-center">Zielgruppe</p>
-      <h2
-        class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
-      >
-        Für wen ist jotti gedacht?
-      </h2>
-      <p
-        class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted"
-      >
-        jotti ist für alle gemeinnützigen Organisationen, die temporäre
-        Gastronomie-Veranstaltungen durchführen, mit integrierter TSE-Anbindung
-        und unabhängig von der Rechtsform.
-      </p>
-      <div class="grid gap-x-10 gap-y-7 md:grid-cols-2">
-        <div class="card">
-          <span class="icon-box">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-          </span>
-          <h3 class="mb-1.5 text-lg font-bold">Vereine (e.V.)</h3>
-          <p class="card-text">
-            Sport-, Musik-, Schützen-, Karnevals- und Fördervereine: jeder
-            eingetragene Verein, der Feste veranstaltet.
-          </p>
-        </div>
-        <div class="card">
-          <span class="icon-box">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path>
-              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
-              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path>
-              <path d="M10 6h4"></path>
-              <path d="M10 10h4"></path>
-              <path d="M10 14h4"></path>
-              <path d="M10 18h4"></path>
-            </svg>
-          </span>
-          <h3 class="mb-1.5 text-lg font-bold">Gemeinnützige Organisationen</h3>
-          <p class="card-text">
-            gGmbH, gUG, Stiftungen, kirchliche Träger, NGOs: alle, die unter das
-            Gemeinnützigkeitsrecht fallen.
-          </p>
-        </div>
-      </div>
-
-      <h3 class="mt-12 mb-5 text-center text-lg font-bold">
-        Typische Veranstaltungen
-      </h3>
-      <div class="flex flex-wrap justify-center gap-2.5">
-        <span class="tag">Vereinsfeste</span>
-        <span class="tag">Sommerfeste</span>
-        <span class="tag">Weihnachtsmärkte</span>
-        <span class="tag">Maihocks</span>
-        <span class="tag">Straßenfeste</span>
-        <span class="tag">Konzerte</span>
-        <span class="tag">Sportevents</span>
-        <span class="tag">Fasching</span>
-        <span class="tag">Jubiläen</span>
-        <span class="tag">Kulturveranstaltungen</span>
-      </div>
-    </div>
-  </section>
-
-  {/* ============ SELBST BETREIBEN & KOSTEN ============ */}
-  <section class="bg-surface-alt py-16 sm:py-24" id="technik">
-    <div class="mx-auto max-w-6xl px-6">
-      <div class="grid items-center gap-12 lg:grid-cols-2">
+      <div class="mt-16 grid items-center gap-12 lg:grid-cols-2" id="technik">
         <div>
           <p class="eyebrow mb-3">Betrieb &amp; Kosten</p>
-          <h2 class="mb-3 text-2xl font-bold tracking-tight sm:text-4xl">
+          <h3 class="mb-3 text-2xl font-bold tracking-tight sm:text-3xl">
             Selbst betreiben. Kostenlos.
-          </h2>
+          </h3>
           <p class="mb-6 text-[1.0625rem] text-muted">
             jotti ist self-hosted per Docker und für gemeinnützige
             Organisationen dauerhaft kostenlos. Wer Docker starten kann, kann
@@ -1588,157 +1728,6 @@ const description =
             Der Standardweg im Vereinsheim kommt ohne Servermiete aus, der
             Computer vor Ort genügt.
           </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  {/* ============ SERVICE (optional, auf Anfrage) ============ */}
-  <section class="py-16 sm:py-24" id="service">
-    <div class="mx-auto max-w-6xl px-6">
-      <p class="eyebrow mb-3 text-center">Optionale Unterstützung</p>
-      <h2
-        class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
-      >
-        Wenn ihr Hilfe möchtet.
-      </h2>
-      <p
-        class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted"
-      >
-        jotti bleibt für Vereine kostenlos. Wer sich Einrichtung oder Betrieb
-        nicht allein zutraut, kann mich für einzelne Leistungen anfragen. Die
-        Konditionen besprechen wir individuell.
-      </p>
-      <div class="grid gap-x-10 gap-y-7 md:grid-cols-2 lg:grid-cols-4">
-        <div class="card">
-          <span class="icon-box">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path
-                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
-              ></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-          </span>
-          <h3 class="mb-1.5 text-lg font-bold">Einrichtung</h3>
-          <p class="card-text">
-            Gemeinsam Produkte, Tische und Benutzer anlegen und bei der
-            TSE-Anbindung helfen, damit ihr fürs erste Fest startklar seid.
-          </p>
-        </div>
-        <div class="card">
-          <span class="icon-box">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <rect width="20" height="8" x="2" y="2" rx="2" ry="2"></rect>
-              <rect width="20" height="8" x="2" y="14" rx="2" ry="2"></rect>
-              <line x1="6" x2="6.01" y1="6" y2="6"></line>
-              <line x1="6" x2="6.01" y1="18" y2="18"></line>
-            </svg>
-          </span>
-          <h3 class="mb-1.5 text-lg font-bold">Hosting-Hilfe</h3>
-          <p class="card-text">
-            Beim Aufsetzen auf einem Server oder im Vereinsheim helfen, von
-            Docker bis TLS-Zertifikat.
-          </p>
-        </div>
-        <div class="card">
-          <span class="icon-box">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="m4.93 4.93 4.24 4.24"></path>
-              <path d="m14.83 9.17 4.24-4.24"></path>
-              <path d="m14.83 14.83 4.24 4.24"></path>
-              <path d="m9.17 14.83-4.24 4.24"></path>
-              <circle cx="12" cy="12" r="4"></circle>
-            </svg>
-          </span>
-          <h3 class="mb-1.5 text-lg font-bold">Tech-Support</h3>
-          <p class="card-text">
-            Ansprechpartner bei Fragen und Problemen, auch während eurer
-            Veranstaltung.
-          </p>
-        </div>
-        <div class="card">
-          <span class="icon-box">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path
-                d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"
-              ></path>
-              <path d="M22 10v6"></path>
-              <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path>
-            </svg>
-          </span>
-          <h3 class="mb-1.5 text-lg font-bold">Schulung</h3>
-          <p class="card-text">
-            Eure Helfer im Umgang mit jotti schulen, damit am Festtag jeder
-            Handgriff sitzt.
-          </p>
-        </div>
-      </div>
-
-      <div class="mt-8 p-8 text-center">
-        <p class="mx-auto mb-6 max-w-160 card-text">
-          Es gibt keine Preisliste und keinen Zwang. Schreibt mir kurz, was ihr
-          braucht, und wir finden eine Lösung, die zu eurem Verein passt. Diese
-          Leistungen sind eine freiwillige Unterstützung nach gesonderter
-          Absprache, unabhängig von der kostenlosen Software; die Verantwortung
-          für den fiskalisch korrekten Betrieb bleibt bei eurem Verein.
-        </p>
-        <div class="flex flex-col justify-center gap-4 sm:flex-row">
-          <a href="mailto:graef.nico@gmail.com" class="btn btn-primary"
-            >Per E-Mail anfragen</a
-          >
-          <a
-            href="https://nicograef.de"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn btn-ghost"
-          >
-            Mehr über den Entwickler
-          </a>
         </div>
       </div>
     </div>
