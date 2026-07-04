@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	z "github.com/Oudwins/zog"
-	"github.com/nicograef/jotti/backend/api/druckstation/application"
+	"github.com/nicograef/jotti/backend/api/druck/station/application"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 )

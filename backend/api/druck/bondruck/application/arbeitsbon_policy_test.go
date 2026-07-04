@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
+	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"

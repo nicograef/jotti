@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
-	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
+	bondruckApp "github.com/nicograef/jotti/backend/api/druck/bondruck/application"
+	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	e "github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"

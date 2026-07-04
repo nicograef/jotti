@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
+	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"

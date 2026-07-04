@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"net/http"
 
-	relayHTTP "github.com/nicograef/jotti/backend/api/relay/http"
+	relayHTTP "github.com/nicograef/jotti/backend/api/druck/relay/http"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
