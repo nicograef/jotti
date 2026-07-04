@@ -141,7 +141,7 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 }
 
 func bestellungVorgang(positionen []Position, faktor int) (FiskalischerVorgang, bool, error) {
-	processData, err := BuildBestellungProcessDataWithFaktor(positionen, faktor)
+	processData, err := BuildBestellungProcessData(positionen, faktor)
 	if err != nil {
 		return FiskalischerVorgang{}, false, fmt.Errorf("fiskalische projektion bestellung: %w", err)
 	}
@@ -149,7 +149,7 @@ func bestellungVorgang(positionen []Position, faktor int) (FiskalischerVorgang, 
 }
 
 func kassenbelegVorgang(positionen []Position, zahlbetragCents int, faktor int) (FiskalischerVorgang, bool, error) {
-	processData, err := BuildKassenbelegProcessDataWithFaktor(positionen, zahlbetragCents, faktor)
+	processData, err := BuildKassenbelegProcessData(positionen, zahlbetragCents, faktor)
 	if err != nil {
 		return FiskalischerVorgang{}, false, fmt.Errorf("fiskalische projektion kassenbeleg: %w", err)
 	}

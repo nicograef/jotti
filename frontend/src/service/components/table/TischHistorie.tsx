@@ -1,6 +1,5 @@
 import { ArrowRightLeft, Eye, X } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -25,7 +24,7 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
-import { belegDruckenMitNachfassen } from '../../beleg'
+import { belegDruckenMitNachfassen, meldeBelegStatus } from '../../beleg'
 import type { Ausgabe } from '../../table/Ausgabe'
 import type { Bestellung } from '../../table/Bestellung'
 import type { Stornierung } from '../../table/Stornierung'
@@ -209,15 +208,10 @@ export function TischHistorie({
                       const status = await belegDruckenMitNachfassen(() =>
                         backend.belegDrucken(tisch.id, detail.id),
                       )
-                      if (status === 'eingereiht') {
-                        toast.success(
-                          'Beleg in die Druckwarteschlange eingereiht.',
-                        )
-                      } else {
-                        toast.info(
-                          'Die TSE-Signatur steht noch aus. Bitte den Beleg gleich erneut anfordern.',
-                        )
-                      }
+                      meldeBelegStatus(
+                        status,
+                        'Beleg in die Druckwarteschlange eingereiht.',
+                      )
                     })
                   },
                 }

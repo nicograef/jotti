@@ -42,7 +42,7 @@ type GetOffeneSignaturauftragStaendeFuerKassensitzungRow struct {
 	ErstelltAm time.Time
 }
 
-// GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Stände
+// GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Staende
 // aller noch nicht erledigten Signaturauftraege einer Kassensitzung — die
 // Grundlage des Kassenabschluss-Gates. Erledigte Auftraege sind irrelevant
 // (bereits signiert); die vier nicht-erledigten Status ordnet

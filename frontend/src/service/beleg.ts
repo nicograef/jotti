@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 // Antwort des Beleg-Abrufs (service/beleg-drucken): eingereiht = Druckauftrag
@@ -35,4 +36,16 @@ export async function belegDruckenMitNachfassen(
     status = await anfordern()
   }
   return status
+}
+
+// meldeBelegStatus meldet das Nachfass-Ergebnis: Erfolg bei eingereiht, sonst
+// der Hinweis, den Beleg gleich erneut anzufordern.
+export function meldeBelegStatus(status: BelegStatus, erfolgMeldung: string) {
+  if (status === 'eingereiht') {
+    toast.success(erfolgMeldung)
+  } else {
+    toast.info(
+      'Die TSE-Signatur steht noch aus. Bitte den Beleg gleich erneut anfordern.',
+    )
+  }
 }

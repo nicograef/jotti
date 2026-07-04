@@ -25,7 +25,7 @@ type command interface {
 	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
-	KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (string, error)
+	KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (application.BelegStatus, error)
 	FavoritHinzufuegen(ctx context.Context, userID, tischID int) error
 	FavoritEntfernen(ctx context.Context, userID, tischID int) error
 }
@@ -432,7 +432,7 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 // angelegt) oder "ausstehend" (TSE-Signatur liegt noch nicht vor; die UI ruft
 // denselben Endpunkt erneut auf).
 type belegDruckenResponse struct {
-	Status string `json:"status"`
+	Status application.BelegStatus `json:"status"`
 }
 
 func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {

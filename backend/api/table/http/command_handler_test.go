@@ -16,7 +16,7 @@ import (
 
 type mockCommand struct {
 	err             error
-	belegStatus     string
+	belegStatus     application.BelegStatus
 	lastTischID     int
 	lastZahlung     string
 	lastVerkauf     string
@@ -63,7 +63,7 @@ func (m *mockCommand) AusgabeBestaetigen(ctx context.Context, userID int, userNa
 	return m.err
 }
 
-func (m *mockCommand) KassenbelegDrucken(_ context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (string, error) {
+func (m *mockCommand) KassenbelegDrucken(_ context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (application.BelegStatus, error) {
 	m.lastTischID = tischID
 	m.lastZahlung = zahlungID
 	m.lastVerkauf = verkaufID

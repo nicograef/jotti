@@ -39,7 +39,7 @@ LIMIT 200
 `
 
 // GetAlleTSEStoerungen liefert das Stoerungsprotokoll (Ausfalldokumentation):
-// alle Stoerungszeitraeme mit Beginn, Ende und Grund, neueste zuerst.
+// alle Stoerungszeitraeume mit Beginn, Ende und Grund, neueste zuerst.
 func (q *Queries) GetAlleTSEStoerungen(ctx context.Context) ([]TseStoerungen, error) {
 	rows, err := q.db.QueryContext(ctx, getAlleTSEStoerungen)
 	if err != nil {

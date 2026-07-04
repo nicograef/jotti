@@ -199,10 +199,6 @@ func (w *tseSignaturWorker) releaseLock() {
 }
 
 func (w *tseSignaturWorker) processOnce(ctx context.Context) error {
-	if w.settingsRepo == nil || w.store == nil || w.newTSEClient == nil {
-		return nil
-	}
-
 	// Stoerungszustand: Bis zum naechsten Versuch laesst der Worker fiskaly
 	// in Ruhe, statt es mit dem Rueckstand zu bombardieren. Trigger und Ticks
 	// laufen weiter; der erste Durchlauf nach Ablauf ist die Half-Open-Probe.
@@ -357,11 +353,11 @@ func (w *tseSignaturWorker) processAuftrag(ctx context.Context, client tseWorker
 		return err
 	}
 
-	logTimeStart := nonZeroWorkerTime(startLogTime, finishResult.LogTimeStart)
+	logTimeStart := nonZeroTime(startLogTime, finishResult.LogTimeStart)
 	if logTimeStart.IsZero() {
 		logTimeStart = w.now().UTC()
 	}
-	logTimeEnd := nonZeroWorkerTime(finishResult.LogTime, finishResult.LogTimeEnd)
+	logTimeEnd := nonZeroTime(finishResult.LogTime, finishResult.LogTimeEnd)
 	if logTimeEnd.IsZero() {
 		logTimeEnd = logTimeStart
 	}
@@ -416,7 +412,7 @@ func (w *tseSignaturWorker) beschaffeSignatur(ctx context.Context, client tseWor
 	}
 }
 
-func nonZeroWorkerTime(primary time.Time, fallback time.Time) time.Time {
+func nonZeroTime(primary time.Time, fallback time.Time) time.Time {
 	if !primary.IsZero() {
 		return primary
 	}

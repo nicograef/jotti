@@ -102,7 +102,7 @@ SELECT status, erstellt_am, transaktion_nummer, signatur_zaehler, tse_seriennumm
 FROM tse_signaturauftraege
 WHERE event_id = $1;
 
--- GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Stände
+-- GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Staende
 -- aller noch nicht erledigten Signaturauftraege einer Kassensitzung — die
 -- Grundlage des Kassenabschluss-Gates. Erledigte Auftraege sind irrelevant
 -- (bereits signiert); die vier nicht-erledigten Status ordnet

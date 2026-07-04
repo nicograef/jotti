@@ -1014,7 +1014,7 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 			})
 		case b.tsePflichtig:
 			// Unsignierter, signaturpflichtiger Vorgang (Auftrag noch offen,
-			// fehlgeschlagen oder verworfen): Statt zu fehlen trägt er eine
+			// fehlgeschlagen oder tse_nicht_konfiguriert): Statt zu fehlen trägt er eine
 			// Fehlerzeile — TSE_TA_FEHLER gesetzt, alle Transaktionsfelder leer
 			// (es gab keine abgeschlossene TSE-Transaktion) —, damit jeder
 			// Bonkopf eine TSE-Zeile hat. Nicht signaturpflichtige Vorgänge

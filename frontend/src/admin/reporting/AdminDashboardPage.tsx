@@ -48,13 +48,16 @@ export function AdminDashboardPage() {
             {showKonfigWarnung && <span>Die TSE ist nicht konfiguriert. </span>}
             {rueckstand && (
               <span>
-                {queue?.offeneAuftraege} Vorgänge warten auf Signatur.{' '}
+                {queue?.offeneAuftraege === 1
+                  ? '1 Vorgang wartet auf Signatur.'
+                  : `${String(queue?.offeneAuftraege ?? 0)} Vorgänge warten auf Signatur.`}{' '}
               </span>
             )}
             {fehlgeschlagen && (
               <span>
-                {queue?.fehlgeschlageneAuftraege} Vorgänge konnten nicht
-                signiert werden
+                {queue?.fehlgeschlageneAuftraege === 1
+                  ? '1 Vorgang konnte nicht signiert werden'
+                  : `${String(queue?.fehlgeschlageneAuftraege ?? 0)} Vorgänge konnten nicht signiert werden`}
                 {queue?.letzterFehler ? ` (${queue.letzterFehler})` : ''}.{' '}
               </span>
             )}

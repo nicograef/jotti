@@ -1209,7 +1209,7 @@ func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 
 // TestMapTagesabschlussAusfallTraegtFehlerzeile belegt: ein signaturpflichtiger,
 // (noch) unsignierter Tagesabschluss (Auftrag offen, fehlgeschlagen oder
-// verworfen) fehlt nicht im Export, sondern trägt — wie jeder andere Vorgang —
+// tse_nicht_konfiguriert) fehlt nicht im Export, sondern trägt — wie jeder andere Vorgang —
 // eine TSE_TA_FEHLER-Zeile. So gilt die Invariante „jeder Bonkopf hat genau eine
 // TSE-Zeile“ auch für den AVSonstige-Bon.
 func TestMapTagesabschlussAusfallTraegtFehlerzeile(t *testing.T) {
@@ -1351,7 +1351,7 @@ func TestMapNachsigniertVorgang(t *testing.T) {
 
 // TestMapAusfallOhneNachsignierungFehlerzeile belegt: ein signaturpflichtiger
 // Vorgang, dessen Auftrag (noch) keine Signatur trägt (offen, fehlgeschlagen
-// oder verworfen), fehlt nicht in transactions_tse.csv, sondern trägt eine
+// oder tse_nicht_konfiguriert), fehlt nicht in transactions_tse.csv, sondern trägt eine
 // Fehlerzeile mit gesetztem TSE_TA_FEHLER und leerer Signatur. So hat jeder
 // Bonkopf-Vorgang genau eine TSE-Zeile.
 func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {

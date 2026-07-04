@@ -1,6 +1,5 @@
 import { Printer, X } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,7 +16,7 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
-import { belegDruckenMitNachfassen } from '../../beleg'
+import { belegDruckenMitNachfassen, meldeBelegStatus } from '../../beleg'
 import type {
   DirektverkaufHistorieEintrag,
   DirektverkaufKassenbelegDrucken,
@@ -59,13 +58,10 @@ export function DirektverkaufHistorie({
       const status = await belegDruckenMitNachfassen(() =>
         backend.kassenbelegDrucken(cmd),
       )
-      if (status === 'eingereiht') {
-        toast.success('Kassenbeleg in die Druckwarteschlange eingereiht.')
-      } else {
-        toast.info(
-          'Die TSE-Signatur steht noch aus. Bitte den Beleg gleich erneut anfordern.',
-        )
-      }
+      meldeBelegStatus(
+        status,
+        'Kassenbeleg in die Druckwarteschlange eingereiht.',
+      )
     })
   }
 

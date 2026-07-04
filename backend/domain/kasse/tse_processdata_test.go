@@ -64,7 +64,7 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := BuildKassenbelegProcessDataWithFaktor(tc.positionen, tc.zahlbetrag, 1)
+			got, err := BuildKassenbelegProcessData(tc.positionen, tc.zahlbetrag, 1)
 			if tc.expectError {
 				if err == nil {
 					t.Fatal("expected error, got nil")
@@ -81,8 +81,8 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 	}
 }
 
-func TestBuildKassenbelegProcessDataWithFaktor_NegativBeiStorno(t *testing.T) {
-	got, err := BuildKassenbelegProcessDataWithFaktor(
+func TestBuildKassenbelegProcessData_NegativBeiStorno(t *testing.T) {
+	got, err := BuildKassenbelegProcessData(
 		[]Position{{Einzelpreis: 350, Menge: 2, Steuersatz: "regel"}},
 		-700,
 		-1,
@@ -98,7 +98,7 @@ func TestBuildKassenbelegProcessDataWithFaktor_NegativBeiStorno(t *testing.T) {
 }
 
 func TestBuildBestellungProcessData_CSVFormat(t *testing.T) {
-	got, err := BuildBestellungProcessDataWithFaktor([]Position{
+	got, err := BuildBestellungProcessData([]Position{
 		{ProduktName: "Maß Bier", VarianteName: "", Menge: 4, Einzelpreis: 950},
 		{ProduktName: "Weißwurst", VarianteName: "normal", Menge: 2, Einzelpreis: 250},
 	}, 1)
@@ -115,13 +115,13 @@ func TestBuildBestellungProcessData_CSVFormat(t *testing.T) {
 // Rücknahmen (geldneutrale Korrektur, Umbuchungs-Abgang) tragen negative Mengen
 // (DSFinV-K Anhang I) — sonst wäre die Rücknahme TSE-seitig von einer
 // Neubestellung nicht unterscheidbar.
-func TestBuildBestellungProcessDataWithFaktor_NegativeMengen(t *testing.T) {
+func TestBuildBestellungProcessData_NegativeMengen(t *testing.T) {
 	positionen := []Position{
 		{ProduktName: "Bier", VarianteName: "0,5l", Einzelpreis: 450, Menge: 2},
 		{ProduktName: "Brezel", Einzelpreis: 150, Menge: 1},
 	}
 
-	got, err := BuildBestellungProcessDataWithFaktor(positionen, -1)
+	got, err := BuildBestellungProcessData(positionen, -1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -138,13 +138,13 @@ func TestBuildBestellungProcessData_LehntNichtPositiveMengenAb(t *testing.T) {
 	positionen := []Position{
 		{ProduktName: "Bier", Einzelpreis: 450, Menge: 0},
 	}
-	if _, err := BuildBestellungProcessDataWithFaktor(positionen, 1); err == nil {
+	if _, err := BuildBestellungProcessData(positionen, 1); err == nil {
 		t.Fatal("expected error for non-positive quantity")
 	}
 }
 
 func TestBuildBestellungProcessData_VerdoppeltAnfuehrungszeichen(t *testing.T) {
-	got, err := BuildBestellungProcessDataWithFaktor([]Position{
+	got, err := BuildBestellungProcessData([]Position{
 		{ProduktName: `Eisbecher "Himbeere"`, Menge: 2, Einzelpreis: 399},
 	}, 1)
 	if err != nil {

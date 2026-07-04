@@ -187,7 +187,7 @@ func (b *bondruckBauer) setzeStatus(z *druckauftragZeile) {
 
 // kassenbeleg baut den Kassenbeleg-Druckauftrag zu einer Zahlung oder einem Direktverkauf —
 // wie KassenbelegDrucken im Produktivbetrieb, mit dem TSE-Abschnitt aus den Signaturspalten
-// des Auftrags. Vorgänge ohne quittierte Signatur (offen, fehlgeschlagen, verworfen) liefern
+// des Auftrags. Vorgänge ohne quittierte Signatur (offen, fehlgeschlagen, tse_nicht_konfiguriert) liefern
 // keinen Beleg: Der Beleg-Abruf hätte „ausstehend" geantwortet und keinen Druckauftrag
 // angelegt. Der Beleg entsteht kurz nach der Quittierung (bei nachsignierten Vorgängen also
 // erst nach der Störung, auf erneute Anforderung des Gastes). Als Kassen-ID steht die

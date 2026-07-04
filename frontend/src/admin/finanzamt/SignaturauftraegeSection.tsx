@@ -74,8 +74,9 @@ export function SignaturauftraegeSection() {
               <Alert variant="destructive">
                 <TriangleAlert className="size-4" />
                 <AlertTitle>
-                  {queue.fehlgeschlageneAuftraege} Vorgänge konnten nicht
-                  signiert werden
+                  {queue.fehlgeschlageneAuftraege === 1
+                    ? '1 Vorgang konnte nicht signiert werden'
+                    : `${String(queue.fehlgeschlageneAuftraege)} Vorgänge konnten nicht signiert werden`}
                 </AlertTitle>
                 {queue.letzterFehler && (
                   <AlertDescription>{queue.letzterFehler}</AlertDescription>

@@ -61,12 +61,12 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType ka
 	var id int
 	eingereiht := false
 	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
-		stored, auftrag, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+		stored, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
 		if err != nil {
 			return err
 		}
 		id = stored.ID
-		eingereiht = auftrag
+		eingereiht = auftragEingereiht
 		return nil
 	})
 	if err != nil {
@@ -92,7 +92,7 @@ func (r Repository) WriteEventWithDruckauftraege(
 	var id int
 	eingereiht := false
 	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
-		stored, auftrag, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
+		stored, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
 		if err != nil {
 			return err
 		}
@@ -102,7 +102,7 @@ func (r Repository) WriteEventWithDruckauftraege(
 		}
 
 		id = stored.ID
-		eingereiht = auftrag
+		eingereiht = auftragEingereiht
 		return nil
 	})
 	if err != nil {
@@ -123,11 +123,11 @@ func (r Repository) WriteTischSessionEventsAtomic(ctx context.Context, events []
 	eingereiht := false
 	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
 		for _, evt := range events {
-			_, auftrag, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeTischSession, kassensitzungNr)
+			_, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeTischSession, kassensitzungNr)
 			if err != nil {
 				return err
 			}
-			eingereiht = eingereiht || auftrag
+			eingereiht = eingereiht || auftragEingereiht
 		}
 
 		return nil
@@ -162,13 +162,13 @@ func (r Repository) EroeffneKassensitzung(ctx context.Context, datum time.Time, 
 			return err
 		}
 
-		_, auftrag, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeKassensitzung, n)
+		_, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeKassensitzung, n)
 		if err != nil {
 			return err
 		}
 
 		zNr = n
-		eingereiht = auftrag
+		eingereiht = auftragEingereiht
 		return nil
 	})
 	if err != nil {

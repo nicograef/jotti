@@ -22,7 +22,7 @@ FROM tse_stoerungen
 WHERE ende IS NULL;
 
 -- GetAlleTSEStoerungen liefert das Stoerungsprotokoll (Ausfalldokumentation):
--- alle Stoerungszeitraeme mit Beginn, Ende und Grund, neueste zuerst.
+-- alle Stoerungszeitraeume mit Beginn, Ende und Grund, neueste zuerst.
 -- name: GetAlleTSEStoerungen :many
 SELECT id, beginn, ende, grund_art, fehlertext
 FROM tse_stoerungen

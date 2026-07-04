@@ -123,12 +123,14 @@ func findDirektverkaufStorniertEvent(events []event.Event, stornierungID string)
 	return event.Event{}, kasse.DirektverkaufStorniertV1Data{}, ErrStornierungNichtGefunden
 }
 
-// Belegstatus der Beleg-Abruf-Antwort: eingereiht (Druckauftrag angelegt) oder
-// ausstehend (TSE-Signatur liegt noch nicht vor, kein Druckauftrag — die UI
-// ruft denselben Endpunkt erneut auf).
+// BelegStatus ist die Beleg-Abruf-Antwort: eingereiht (Druckauftrag angelegt)
+// oder ausstehend (TSE-Signatur liegt noch nicht vor, kein Druckauftrag — die
+// UI ruft denselben Endpunkt erneut auf).
+type BelegStatus string
+
 const (
-	BelegStatusEingereiht = "eingereiht"
-	BelegStatusAusstehend = "ausstehend"
+	BelegStatusEingereiht BelegStatus = "eingereiht"
+	BelegStatusAusstehend BelegStatus = "ausstehend"
 )
 
 // tseAbschnittFuerBeleg loest den TSE-Abschnitt eines Belegs ueber die
@@ -204,7 +206,7 @@ func negiereAufteilungen(aufteilungen []steuer.Aufteilung) []steuer.Aufteilung {
 	return out
 }
 
-func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (string, error) {
+func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (BelegStatus, error) {
 	log := zerolog.Ctx(ctx)
 
 	if c.DruckstationRepo == nil || c.SettingsRepo == nil || c.DruckauftragRepo == nil || c.TSERepo == nil {
