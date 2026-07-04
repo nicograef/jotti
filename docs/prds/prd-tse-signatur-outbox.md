@@ -93,6 +93,8 @@ Merge-Logik, ein TSE-freier Kassen-Kern.
 6. Als Vereins-Admin möchte ich alle Signaturaufträge mit Status, Versuchen
    und letztem Fehler einsehen, damit ich den Zustand der TSE-Anbindung
    jederzeit beurteilen kann.
+   _Revidiert durch [prd-tse-admin-vereinfachung.md](prd-tse-admin-vereinfachung.md): keine
+   Einzelauftrags-Liste, stattdessen Minimal-Diagnose (Queue-Zustand plus letzter Fehlertext)._
 7. Als Vereins-Admin möchte ich sehen, wie aktuell die Signatur-Queue ist
    (Anzahl offener Aufträge, Alter des ältesten), damit ich Störungen erkenne,
    bevor Belege betroffen sind.
@@ -102,6 +104,9 @@ Merge-Logik, ein TSE-freier Kassen-Kern.
 9. Als Vereins-Admin möchte ich fehlgeschlagene Signaturaufträge erneut
    einreihen oder begründet verwerfen können, damit ich nach längeren
    Ausfällen aufräumen kann.
+   _Entfällt mit [prd-tse-admin-vereinfachung.md](prd-tse-admin-vereinfachung.md): kein
+   Zurücksetzen und kein Verwerfen; die Reparatur nach einem Bugfix ist ein dokumentiertes
+   SQL-Runbook, das Quittieren übernimmt der Kassenabschluss._
 10. Als Vereins-Admin möchte ich den Kassenabschluss nur dann durchführen,
     wenn alle Vorgänge signiert sind oder nur dokumentierte Ausfall-Reste
     verbleiben, und im Blockadefall eine klare Meldung sehen, was noch offen
@@ -112,11 +117,17 @@ Merge-Logik, ein TSE-freier Kassen-Kern.
 12. Als Vereins-Admin möchte ich im Dashboard gewarnt werden, wenn die
     Signatur-Queue wächst oder Aufträge endgültig fehlschlagen, damit ich
     reagieren kann.
+    _Revidiert durch [prd-tse-admin-vereinfachung.md](prd-tse-admin-vereinfachung.md): die
+    fehlgeschlagen-Warnung zählt sitzungsbezogen und endet mit dem Kassenabschluss, der die
+    Ausfall-Reste ausweist._
 13. Als Vereins-Admin möchte ich, dass Vorgänge aus der Zeit ohne
     TSE-Konfiguration einen endgültigen, dokumentierten Status erhalten und
     nicht automatisch nachsigniert werden; will ich den Bestand nach der
     Einrichtung doch absichern, möchte ich ihn bewusst zur Nachsignierung
     zurücksetzen können.
+    _Revidiert durch [prd-tse-admin-vereinfachung.md](prd-tse-admin-vereinfachung.md): der zweite
+    Halbsatz entfällt; `tse_nicht_konfiguriert` ist endgültig (keine TSE konfiguriert heißt keine
+    TSE für diesen Zeitraum), es gibt kein bewusstes Wiedereinreihen._
 14. Als Betriebsprüfer möchte ich im DSFinV-K-Export jede TSE-Transaktion
     einem Kassenvorgang zuordnen können und umgekehrt, damit die Verprobung
     ohne Waisen und Lücken aufgeht.

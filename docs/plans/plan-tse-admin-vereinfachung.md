@@ -209,10 +209,10 @@ geprüft.
 
 ### Acceptance criteria
 
-- [ ] `docs/language.md`: Statusliste ohne `verworfen`; keine Verwaltungs-Begriffe (Zurücksetzen/Verwerfen)
+- [x] `docs/language.md`: Statusliste ohne `verworfen`; keine Verwaltungs-Begriffe (Zurücksetzen/Verwerfen)
       mehr in den TSE-Einträgen.
-- [ ] `docs/handbuch.md` §3.13: Monitoring statt Verwaltung beschrieben; Runbook-Absatz mit SQL vorhanden.
-- [ ] `docs/prds/prd-tse-signatur-outbox.md`: Revisionsvermerk bei US 6, 9, 12, 13 mit Verweis auf
+- [x] `docs/handbuch.md` §3.13: Monitoring statt Verwaltung beschrieben; Runbook-Absatz mit SQL vorhanden.
+- [x] `docs/prds/prd-tse-signatur-outbox.md`: Revisionsvermerk bei US 6, 9, 12, 13 mit Verweis auf
       [prd-tse-admin-vereinfachung.md](../prds/prd-tse-admin-vereinfachung.md).
-- [ ] Keine `verworfen`-/Verwaltungs-Reste in UI-Texten und Endpunkt-Namen (Grep-Sweep, Druckaufträge
+- [x] Keine `verworfen`-/Verwaltungs-Reste in UI-Texten und Endpunkt-Namen (Grep-Sweep, Druckaufträge
       ausgenommen).
