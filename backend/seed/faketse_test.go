@@ -167,9 +167,9 @@ func TestBaueSignaturauftraege_MonotonieUndFormat(t *testing.T) {
 // TestBaueSignaturauftraege_Ausfallfenster prüft die Dramaturgie der Ausfallfenster: Events
 // außerhalb der Fenster werden prompt quittiert (logTime = Event-Zeit), Events in aufgelösten
 // Fenstern verspätet nach Fensterende (ohne Auftrags-Fehlversuche — TSE-weite Fehler zählen
-// nie auf den Auftrag), einzelne scheitern in der Aufholphase dauerhaft (genau einer
-// verworfen), Events im offenen Fenster bleiben offen ohne Signatur. Die Statusverteilung
-// stimmt (überwiegend erledigt).
+// nie auf den Auftrag), einzelne scheitern in der Aufholphase dauerhaft (fehlgeschlagen),
+// Events im offenen Fenster bleiben offen ohne Signatur. Die Statusverteilung stimmt
+// (überwiegend erledigt).
 func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
 	daten, fenster, auftraege := buildSignierteDaten(t)
 	auftragProEvent := auftragProEventID(t, auftraege)
@@ -216,7 +216,7 @@ func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
 			if a.Versuche != 0 || a.LetzterFehler != nil {
 				t.Errorf("Auftrag %s: nachsigniert mit Fehlversuchen — TSE-weite Fehler zählen nie auf den Auftrag", a.TxID)
 			}
-		case tse.StatusFehlgeschlagen, tse.StatusVerworfen:
+		case tse.StatusFehlgeschlagen:
 			if !f.aufgeloest {
 				t.Errorf("%s Auftrag %s in offenem Fenster", a.Status, a.TxID)
 			}
@@ -248,10 +248,7 @@ func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
 	if statusZahl[tse.StatusFehlgeschlagen] < 2 {
 		t.Errorf("nur %d fehlgeschlagene Aufträge, erwartet einzelne (≥ 2)", statusZahl[tse.StatusFehlgeschlagen])
 	}
-	if statusZahl[tse.StatusVerworfen] != 1 {
-		t.Errorf("%d verworfene Aufträge, erwartet genau 1", statusZahl[tse.StatusVerworfen])
-	}
-	rest := statusZahl[tse.StatusOffen] + statusZahl[tse.StatusFehlgeschlagen] + statusZahl[tse.StatusVerworfen]
+	rest := statusZahl[tse.StatusOffen] + statusZahl[tse.StatusFehlgeschlagen]
 	if statusZahl[tse.StatusErledigt] <= rest {
 		t.Errorf("erledigte Aufträge (%d) nicht in der Überzahl gegenüber den übrigen (%d)", statusZahl[tse.StatusErledigt], rest)
 	}

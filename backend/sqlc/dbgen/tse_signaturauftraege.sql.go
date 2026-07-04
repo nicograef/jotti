@@ -153,66 +153,6 @@ func (q *Queries) GetTSESignaturQueueZustand(ctx context.Context) (GetTSESignatu
 	return i, err
 }
 
-const getTSESignaturauftraege = `-- name: GetTSESignaturauftraege :many
-SELECT id, tx_id, process_type, status, versuche, letzter_fehler, erstellt_am, erledigt_am,
-       verworfen_grund, verworfen_von, verworfen_am
-FROM tse_signaturauftraege
-ORDER BY id DESC
-LIMIT 200
-`
-
-type GetTSESignaturauftraegeRow struct {
-	ID             int
-	TxID           string
-	ProcessType    string
-	Status         string
-	Versuche       int
-	LetzterFehler  sql.NullString
-	ErstelltAm     time.Time
-	ErledigtAm     sql.NullTime
-	VerworfenGrund sql.NullString
-	VerworfenVon   sql.NullString
-	VerworfenAm    sql.NullTime
-}
-
-// Admin-Ansicht aller Signaturauftraege (Signaturauftrags-Verwaltung); zeigt
-// Status, Versuche, letzten Fehler und das Verwerfen-Protokoll (Grund, Benutzer,
-// Zeitpunkt).
-func (q *Queries) GetTSESignaturauftraege(ctx context.Context) ([]GetTSESignaturauftraegeRow, error) {
-	rows, err := q.db.QueryContext(ctx, getTSESignaturauftraege)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GetTSESignaturauftraegeRow{}
-	for rows.Next() {
-		var i GetTSESignaturauftraegeRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.TxID,
-			&i.ProcessType,
-			&i.Status,
-			&i.Versuche,
-			&i.LetzterFehler,
-			&i.ErstelltAm,
-			&i.ErledigtAm,
-			&i.VerworfenGrund,
-			&i.VerworfenVon,
-			&i.VerworfenAm,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getTSESignaturauftragZuEvent = `-- name: GetTSESignaturauftragZuEvent :one
 SELECT status, erstellt_am, transaktion_nummer, signatur_zaehler, tse_seriennummer, log_time_start, log_time_end, signatur, qr_code_data
 FROM tse_signaturauftraege
@@ -339,22 +279,6 @@ func (q *Queries) QuittiereTSESignaturauftrag(ctx context.Context, arg Quittiere
 	return err
 }
 
-const tSESignaturauftraegeZuruecksetzenGesamt = `-- name: TSESignaturauftraegeZuruecksetzenGesamt :execrows
-UPDATE tse_signaturauftraege
-SET status = 'offen', versuche = 0, letzter_fehler = NULL, naechster_versuch_am = NOW()
-WHERE status IN ('fehlgeschlagen', 'tse_nicht_konfiguriert')
-`
-
-// TSESignaturauftraegeZuruecksetzenGesamt reiht alle endgueltig markierten
-// Auftraege wieder ein (Admin-Zuruecksetzen gesamt) und liefert die Anzahl.
-func (q *Queries) TSESignaturauftraegeZuruecksetzenGesamt(ctx context.Context) (int64, error) {
-	result, err := q.db.ExecContext(ctx, tSESignaturauftraegeZuruecksetzenGesamt)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
 const tSESignaturauftragFehlversuch = `-- name: TSESignaturauftragFehlversuch :exec
 UPDATE tse_signaturauftraege
 SET versuche = versuche + 1,
@@ -377,44 +301,5 @@ type TSESignaturauftragFehlversuchParams struct {
 // Rueckstands-Schwelle, TSE-weite Fehler zaehlen nie auf den Auftrag.
 func (q *Queries) TSESignaturauftragFehlversuch(ctx context.Context, arg TSESignaturauftragFehlversuchParams) error {
 	_, err := q.db.ExecContext(ctx, tSESignaturauftragFehlversuch, arg.LetzterFehler, arg.MaxVersuche, arg.ID)
-	return err
-}
-
-const tSESignaturauftragVerwerfen = `-- name: TSESignaturauftragVerwerfen :exec
-UPDATE tse_signaturauftraege
-SET status = 'verworfen',
-    verworfen_grund = $1,
-    verworfen_von = $2,
-    verworfen_am = NOW()
-WHERE id = $3 AND status IN ('offen', 'fehlgeschlagen')
-`
-
-type TSESignaturauftragVerwerfenParams struct {
-	VerworfenGrund sql.NullString
-	VerworfenVon   sql.NullString
-	ID             int
-}
-
-// TSESignaturauftragVerwerfen markiert einen offenen oder fehlgeschlagenen
-// Auftrag als verworfen und protokolliert den Statuswechsel (Grund, Benutzer,
-// Zeitpunkt). Der Eintrag bleibt fuer die Ausfalldokumentation erhalten.
-func (q *Queries) TSESignaturauftragVerwerfen(ctx context.Context, arg TSESignaturauftragVerwerfenParams) error {
-	_, err := q.db.ExecContext(ctx, tSESignaturauftragVerwerfen, arg.VerworfenGrund, arg.VerworfenVon, arg.ID)
-	return err
-}
-
-const tSESignaturauftragZuruecksetzen = `-- name: TSESignaturauftragZuruecksetzen :exec
-UPDATE tse_signaturauftraege
-SET status = 'offen', versuche = 0, letzter_fehler = NULL, naechster_versuch_am = NOW()
-WHERE id = $1 AND status IN ('fehlgeschlagen', 'tse_nicht_konfiguriert')
-`
-
-// TSESignaturauftragZuruecksetzen reiht einen endgueltig markierten Auftrag
-// wieder ein: fehlgeschlagen oder tse_nicht_konfiguriert -> offen. Der
-// Einrichtungs-Sweep markiert vor-konfigurationelle Auftraege tse_nicht_
-// konfiguriert; das Admin-Zuruecksetzen holt sie bewusst zurueck, damit der
-// Worker sie nach der Einrichtung nachsigniert.
-func (q *Queries) TSESignaturauftragZuruecksetzen(ctx context.Context, id int) error {
-	_, err := q.db.ExecContext(ctx, tSESignaturauftragZuruecksetzen, id)
 	return err
 }

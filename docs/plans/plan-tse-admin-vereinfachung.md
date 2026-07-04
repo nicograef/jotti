@@ -137,19 +137,19 @@ Status. Beleg-, Gate- und Worker-Logik bleiben unverändert (nur der Gate-Kommen
 
 ### Acceptance criteria
 
-- [ ] Schema: CHECK ohne `verworfen`, Spalten `verworfen_grund/von/am` entfernt, Kommentare angepasst;
+- [x] Schema: CHECK ohne `verworfen`, Spalten `verworfen_grund/von/am` entfernt, Kommentare angepasst;
       `make sqlc` regeneriert; Druckauftrags-Status unberührt.
-- [ ] `StatusVerworfen` existiert nicht mehr; `BestimmeSignaturstatus` liefert Ausfall genau für
+- [x] `StatusVerworfen` existiert nicht mehr; `BestimmeSignaturstatus` liefert Ausfall genau für
       `fehlgeschlagen`, `tse_nicht_konfiguriert` und offen bei aktiver Störung (Tests angepasst).
-- [ ] Die Endpunkte `get-tse-signaturauftraege`, `tse-signaturauftrag-zuruecksetzen`,
+- [x] Die Endpunkte `get-tse-signaturauftraege`, `tse-signaturauftrag-zuruecksetzen`,
       `tse-signaturauftraege-zuruecksetzen`, `tse-signaturauftrag-verwerfen` sind samt Application-Command,
       Handler, Repo-Methoden, Queries und Tests entfernt; `admin.go` registriert nur noch
       `get-tse-signatur-queue` und `get-tse-stoerungen`.
-- [ ] Finanzamt-Seite zeigt eine reine Monitoring-Karte (Kennzahlen wie bisher); Liste, Aktionen, Dialog,
+- [x] Finanzamt-Seite zeigt eine reine Monitoring-Karte (Kennzahlen wie bisher); Liste, Aktionen, Dialog,
       `useTSESignaturauftraege`, Backend-Methoden und `TSESignaturauftragSchema` sind entfernt.
-- [ ] Seed erzeugt keine verworfenen Aufträge mehr; Seed-Integrationstest prüft die drei verbleibenden
+- [x] Seed erzeugt keine verworfenen Aufträge mehr; Seed-Integrationstest prüft die drei verbleibenden
       Problemlos-/Problem-Status.
-- [ ] `make verify` grün.
+- [x] `make verify` grün.
 
 ---
 

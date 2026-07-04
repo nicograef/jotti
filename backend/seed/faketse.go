@@ -26,12 +26,11 @@ const (
 
 // signierungAbgelehntFehler ist der Fehlertext der dauerhaft gescheiterten Aufträge:
 // Anders als beim vorübergehenden Ausfall (Fenster-Grund) lehnt die TSE diese Transaktionen
-// auch nach der Störung ab — nur solche Aufträge bleiben fehlgeschlagen bzw. werden verworfen.
+// auch nach der Störung ab — nur solche Aufträge bleiben fehlgeschlagen.
 const signierungAbgelehntFehler = "Cloud-TSE lehnt die Transaktion dauerhaft ab (HTTP 400: ungültige process_data)"
 
 // fehlschlagJederNte steuert die Dramaturgie aufgelöster Ausfallfenster: Jeder 16. Auftrag
-// (ab dem vierten) scheitert dauerhaft; der erste dieser Fehlschläge wurde vom Admin
-// verworfen, die übrigen bleiben fehlgeschlagen.
+// (ab dem vierten) scheitert dauerhaft und bleibt fehlgeschlagen.
 const fehlschlagJederNte = 16
 
 // nachsignierVerzoegerung ist der Abstand zwischen Fensterende und der ersten erfolgreichen
@@ -121,9 +120,9 @@ type signaturauftragZeile struct {
 // aufgelösten Ausfallfenstern werden beim ersten fiskalischen Event nach Fensterende
 // nachsigniert — verspätete Signatur ohne Auftrags-Fehlversuche, denn TSE-weite Fehler
 // zählen nie auf den Auftrag; einzelne scheitern in der Aufholphase auftragsspezifisch
-// und dauerhaft, genau einer ist verworfen. Events im offenen Fenster der laufenden
-// Sitzung bleiben offen. Transaktionsnummern und Signaturzähler sind global streng
-// monoton in Quittier-Reihenfolge.
+// und dauerhaft. Events im offenen Fenster der laufenden Sitzung bleiben offen.
+// Transaktionsnummern und Signaturzähler sind global streng monoton in
+// Quittier-Reihenfolge.
 func baueSignaturauftraege(events []seedEvent, fenster []ausfallFenster) ([]signaturauftragZeile, error) {
 	s := &fakeSignierer{fenster: fenster, pending: make([][]offeneNachsignierung, len(fenster))}
 
@@ -192,10 +191,9 @@ type fakeSignierer struct {
 	fenster []ausfallFenster
 	pending [][]offeneNachsignierung
 
-	txSeq             int // laufende Nummer für die txID-Vergabe (alle fiskalischen Events)
-	txNummer          int // TSE-Transaktionsnummer (nur tatsächlich signierte Vorgänge)
-	sigZaehler        int
-	verworfenVergeben bool
+	txSeq      int // laufende Nummer für die txID-Vergabe (alle fiskalischen Events)
+	txNummer   int // TSE-Transaktionsnummer (nur tatsächlich signierte Vorgänge)
+	sigZaehler int
 
 	zeilen []signaturauftragZeile
 }
@@ -299,23 +297,17 @@ func (s *fakeSignierer) nachsigniereFenster(fensterIdx int) {
 	s.pending[fensterIdx] = nil
 }
 
-// dauerhaftGescheitert baut den fehlgeschlagenen bzw. (genau einmal) verworfenen Auftrag:
-// Die TSE lehnt die Transaktion in der Aufholphase auftragsspezifisch ab, der Auftrag
-// durchläuft die Sekunden-Kurve (5, 15 s Backoff) und schlägt mit dem dritten Fehlversuch
-// endgültig fehl.
+// dauerhaftGescheitert baut den fehlgeschlagenen Auftrag: Die TSE lehnt die Transaktion
+// in der Aufholphase auftragsspezifisch ab, der Auftrag durchläuft die Sekunden-Kurve
+// (5, 15 s Backoff) und schlägt mit dem dritten Fehlversuch endgültig fehl.
 func (s *fakeSignierer) dauerhaftGescheitert(p offeneNachsignierung, fensterEnde time.Time) signaturauftragZeile {
-	status := tse.StatusFehlgeschlagen
-	if !s.verworfenVergeben {
-		status = tse.StatusVerworfen
-		s.verworfenVergeben = true
-	}
 	fehler := signierungAbgelehntFehler
 	return signaturauftragZeile{
 		EventID:       p.eventID,
 		TxID:          p.txID,
 		ProcessType:   p.processType,
 		ProcessData:   p.processData,
-		Status:        status,
+		Status:        tse.StatusFehlgeschlagen,
 		Versuche:      tse_repo.MaxSignaturVersuche,
 		LetzterFehler: &fehler,
 		// Der letzte Fehlversuch fällt rund 20 s nach das Fensterende (5 + 15 s

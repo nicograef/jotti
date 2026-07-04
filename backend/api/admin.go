@@ -150,14 +150,8 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 
 	tseQueryHandler := tseHTTP.QueryHandler{}
 	tseQueryHandler.Query = tseApp.Query{TSERepo: tseStore}
-	tseCommandHandler := tseHTTP.CommandHandler{}
-	tseCommandHandler.Command = tseApp.Command{TSERepo: tseStore}
-	r.HandleFunc("/get-tse-signaturauftraege", tseQueryHandler.GetTSESignaturauftraegeHandler())
 	r.HandleFunc("/get-tse-signatur-queue", tseQueryHandler.GetTSESignaturQueueHandler())
 	r.HandleFunc("/get-tse-stoerungen", tseQueryHandler.GetTSEStoerungenHandler())
-	r.HandleFunc("/tse-signaturauftrag-zuruecksetzen", tseCommandHandler.TSESignaturauftragZuruecksetzenHandler())
-	r.HandleFunc("/tse-signaturauftraege-zuruecksetzen", tseCommandHandler.TSESignaturauftraegeZuruecksetzenHandler())
-	r.HandleFunc("/tse-signaturauftrag-verwerfen", tseCommandHandler.TSESignaturauftragVerwerfenHandler())
 
 	sq := settingsHTTP.QueryHandler{}
 	sq.Query = settingsApp.Query{

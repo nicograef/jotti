@@ -8,7 +8,6 @@ const (
 	StatusOffen                = "offen"
 	StatusErledigt             = "erledigt"
 	StatusFehlgeschlagen       = "fehlgeschlagen"
-	StatusVerworfen            = "verworfen"
 	StatusTSENichtKonfiguriert = "tse_nicht_konfiguriert"
 )
 

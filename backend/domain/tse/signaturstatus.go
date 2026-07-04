@@ -43,18 +43,18 @@ type SignaturstatusErgebnis struct {
 	// Signatur ist bei Vorhanden und Nachsigniert gesetzt.
 	Signatur *Signatur
 	// AusfallGrund ist bei Ausfall gesetzt: der Endstatus des Auftrags
-	// (fehlgeschlagen, verworfen, tse_nicht_konfiguriert) oder die Grund-Art
-	// des aktiven Stoerungszeitraums.
+	// (fehlgeschlagen, tse_nicht_konfiguriert) oder die Grund-Art des aktiven
+	// Stoerungszeitraums.
 	AusfallGrund string
 }
 
 // BestimmeSignaturstatus ist die einzige Implementierung des Ausfallbegriffs:
 // Beleg-Abruf und Kassenabschluss-Gate urteilen ueber diese Funktion. Der
 // Ausfallbegriff ist rein status- und zeitraumbasiert: Endstatus des Auftrags
-// (fehlgeschlagen, verworfen, tse_nicht_konfiguriert) oder offener Auftrag
-// bei aktivem Stoerungszeitraum. Fehlversuche unterhalb der Maximalzahl und
-// geschlossene Zeitraeume zaehlen nicht — ein offener Auftrag ohne aktive
-// Stoerung ist ausstehend, nie Ausfall.
+// (fehlgeschlagen, tse_nicht_konfiguriert) oder offener Auftrag bei aktivem
+// Stoerungszeitraum. Fehlversuche unterhalb der Maximalzahl und geschlossene
+// Zeitraeume zaehlen nicht — ein offener Auftrag ohne aktive Stoerung ist
+// ausstehend, nie Ausfall.
 func BestimmeSignaturstatus(auftrag SignaturauftragStand, aktiveStoerung *Stoerung) SignaturstatusErgebnis {
 	switch auftrag.Status {
 	case StatusErledigt:
@@ -62,7 +62,7 @@ func BestimmeSignaturstatus(auftrag SignaturauftragStand, aktiveStoerung *Stoeru
 			return SignaturstatusErgebnis{Status: SignaturstatusNachsigniert, Signatur: auftrag.Signatur}
 		}
 		return SignaturstatusErgebnis{Status: SignaturstatusVorhanden, Signatur: auftrag.Signatur}
-	case StatusFehlgeschlagen, StatusVerworfen, StatusTSENichtKonfiguriert:
+	case StatusFehlgeschlagen, StatusTSENichtKonfiguriert:
 		return SignaturstatusErgebnis{Status: SignaturstatusAusfall, AusfallGrund: auftrag.Status}
 	default: // offen
 		if aktiveStoerung != nil {

@@ -174,17 +174,15 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 		t.Errorf("%d nicht-fiskalische Events tragen einen Signaturauftrag", nichtFiskalischMitAuftrag)
 	}
 
-	// Signaturaufträge existieren in allen vier Status; genau einer ist verworfen.
-	for status, mindestens := range map[string]int{"offen": 1, "erledigt": 2, "fehlgeschlagen": 1, "verworfen": 1} {
+	// Signaturaufträge existieren in den drei verbleibenden Status (offen, erledigt,
+	// fehlgeschlagen); den Status verworfen gibt es nicht mehr.
+	for status, mindestens := range map[string]int{"offen": 1, "erledigt": 2, "fehlgeschlagen": 1} {
 		var anzahl int
 		if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege WHERE status = $1", status).Scan(&anzahl); err != nil {
 			t.Fatalf("Signaturaufträge (%s) zählen: %v", status, err)
 		}
 		if anzahl < mindestens {
 			t.Errorf("Signaturaufträge mit Status %s: %d, erwartet mindestens %d", status, anzahl, mindestens)
-		}
-		if status == "verworfen" && anzahl != 1 {
-			t.Errorf("%d verworfene Signaturaufträge, erwartet genau 1", anzahl)
 		}
 	}
 

@@ -154,48 +154,6 @@ export function useTSEEinrichtung() {
   return { richteTSEEin, uebernimmTSE }
 }
 
-export function useTSESignaturauftraege() {
-  const queryClient = useQueryClient()
-  const {
-    isPending,
-    data = [],
-    error,
-  } = useQuery({
-    queryKey: ['tse-signaturauftraege'],
-    queryFn: () => einstellungenBackend.getTSESignaturauftraege(),
-  })
-
-  const invalidate = async () => {
-    // Nach jedem Statuswechsel auch den Queue-Zustand neu laden.
-    await queryClient.invalidateQueries({ queryKey: ['tse-signaturauftraege'] })
-    await queryClient.invalidateQueries({ queryKey: ['tse-signatur-queue'] })
-  }
-
-  const zuruecksetzen = async (id: number) => {
-    await einstellungenBackend.tseSignaturauftragZuruecksetzen(id)
-    await invalidate()
-  }
-
-  const zuruecksetzenGesamt = async () => {
-    await einstellungenBackend.tseSignaturauftraegeZuruecksetzen()
-    await invalidate()
-  }
-
-  const verwerfen = async (id: number, grund: string) => {
-    await einstellungenBackend.tseSignaturauftragVerwerfen(id, grund)
-    await invalidate()
-  }
-
-  return {
-    auftraege: data,
-    isPending,
-    error,
-    zuruecksetzen,
-    zuruecksetzenGesamt,
-    verwerfen,
-  }
-}
-
 export function useTSESignaturQueue() {
   const { data, isPending, error } = useQuery({
     queryKey: ['tse-signatur-queue'],

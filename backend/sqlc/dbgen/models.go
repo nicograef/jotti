@@ -431,7 +431,7 @@ type TseSignaturauftraege struct {
 	ProcessType string
 	// fiskaly process_data (Snapshot beim Einreihen).
 	ProcessData string
-	// Auftragsstatus: offen -> erledigt | fehlgeschlagen (nach max. Versuchen) | tse_nicht_konfiguriert (endgueltig markiert) | verworfen; Admin setzt fehlgeschlagen/tse_nicht_konfiguriert auf offen zurueck.
+	// Auftragsstatus: offen -> erledigt | fehlgeschlagen (nach max. Versuchen) | tse_nicht_konfiguriert (endgueltig markiert).
 	Status string
 	// Anzahl fehlgeschlagener Signierversuche; ab dem Maximum wird der Auftrag fehlgeschlagen.
 	Versuche int
@@ -442,12 +442,6 @@ type TseSignaturauftraege struct {
 	ErstelltAm         time.Time
 	// Zeitpunkt der Quittierung (UTC).
 	ErledigtAm sql.NullTime
-	// Begruendung des Verwerfens (protokollierter Statuswechsel).
-	VerworfenGrund sql.NullString
-	// Benutzer, der den Auftrag verworfen hat.
-	VerworfenVon sql.NullString
-	// Zeitpunkt des Verwerfens (UTC).
-	VerworfenAm sql.NullTime
 	// TSE-Transaktionsnummer aus der TSE-Antwort.
 	TransaktionNummer sql.NullInt32
 	// Signaturzaehler der TSE aus der TSE-Antwort.

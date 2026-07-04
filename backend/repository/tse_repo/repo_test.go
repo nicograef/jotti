@@ -197,16 +197,10 @@ func TestTSESignaturauftragFehlversuch_BackoffBlockiertNeuereNicht(t *testing.T)
 		t.Fatalf("Expected only the newer auftrag to be due, got %+v", offene)
 	}
 
-	auftraege, err := store.GetTSESignaturauftraege(ctx)
-	if err != nil {
-		t.Fatalf("Expected no read error, got %v", err)
-	}
-	// Neueste zuerst: tx-neuer vor tx-fehlschlagend.
-	if len(auftraege) != 2 || auftraege[1].ID != fehlschlagendID {
-		t.Fatalf("Expected both auftraege newest first, got %+v", auftraege)
-	}
-	if auftraege[1].Status != "offen" || auftraege[1].Versuche != 1 || auftraege[1].LetzterFehler != "fiskaly timeout" {
-		t.Fatalf("Expected recorded fehlversuch, got %+v", auftraege[1])
+	// Der fehlschlagende Auftrag hat den Fehlversuch verbucht und bleibt offen.
+	status, versuche, letzterFehler := auftragStatus(t, umgebung.db, fehlschlagendID)
+	if status != "offen" || versuche != 1 || letzterFehler != "fiskaly timeout" {
+		t.Fatalf("Expected recorded fehlversuch, got status=%q versuche=%d fehler=%q", status, versuche, letzterFehler)
 	}
 }
 
@@ -251,12 +245,8 @@ func TestTSESignaturauftragFehlversuch_SekundenKurveEndetVorRueckstandsSchwelle(
 	if err := store.TSESignaturauftragFehlversuch(ctx, id, "fiskaly api error 400 (E_FAILED_SCHEMA_VALIDATION)"); err != nil {
 		t.Fatalf("letzter Fehlversuch: %v", err)
 	}
-	auftraege, err := store.GetTSESignaturauftraege(ctx)
-	if err != nil {
-		t.Fatalf("Auftraege lesen: %v", err)
-	}
-	if len(auftraege) != 1 || auftraege[0].Status != tse.StatusFehlgeschlagen {
-		t.Fatalf("Expected endgueltig fehlgeschlagenen Auftrag, got %+v", auftraege)
+	if status, _, _ := auftragStatus(t, umgebung.db, id); status != tse.StatusFehlgeschlagen {
+		t.Fatalf("Expected endgueltig fehlgeschlagenen Auftrag, got %q", status)
 	}
 
 	// Die gesamte Wartezeit der Kurve bleibt weit unter der
@@ -289,73 +279,9 @@ func backoffBis(t *testing.T, db *sql.DB, auftragID int) time.Duration {
 	return time.Duration(sekunden * float64(time.Second))
 }
 
-// Nach MaxSignaturVersuche Fehlversuchen wechselt der Auftrag auf
-// fehlgeschlagen; Zuruecksetzen reiht ihn wieder ein, Verwerfen beendet ihn.
-func TestTSESignaturauftrag_FehlgeschlagenZuruecksetzenVerwerfen(t *testing.T) {
-	store, umgebung, teardown := setupRepository(t)
-	defer teardown(t)
-	ctx := context.Background()
-
-	id, _ := umgebung.insertAuftrag(t, "tx-dauerhaft")
-
-	for i := 0; i < MaxSignaturVersuche; i++ {
-		if err := store.TSESignaturauftragFehlversuch(ctx, id, "fiskaly down"); err != nil {
-			t.Fatalf("Expected no fehlversuch error, got %v", err)
-		}
-	}
-
-	auftraege, err := store.GetTSESignaturauftraege(ctx)
-	if err != nil {
-		t.Fatalf("Expected no read error, got %v", err)
-	}
-	if len(auftraege) != 1 || auftraege[0].Status != "fehlgeschlagen" || auftraege[0].Versuche != MaxSignaturVersuche {
-		t.Fatalf("Expected fehlgeschlagenen auftrag after max versuche, got %+v", auftraege)
-	}
-
-	// Ein weiterer Fehlversuch aendert nichts mehr (Status-Guard offen).
-	if err := store.TSESignaturauftragFehlversuch(ctx, id, "noch ein fehler"); err != nil {
-		t.Fatalf("Expected no fehlversuch error, got %v", err)
-	}
-	auftraege, _ = store.GetTSESignaturauftraege(ctx)
-	if auftraege[0].Versuche != MaxSignaturVersuche {
-		t.Fatalf("Expected versuche to stay at %d, got %d", MaxSignaturVersuche, auftraege[0].Versuche)
-	}
-
-	// Zuruecksetzen: fehlgeschlagen -> offen, sofort wieder faellig.
-	if err := store.TSESignaturauftragZuruecksetzen(ctx, id); err != nil {
-		t.Fatalf("Expected no zuruecksetzen error, got %v", err)
-	}
-	offene, err := store.GetOffeneTSESignaturauftraege(ctx, 20)
-	if err != nil {
-		t.Fatalf("Expected no read error, got %v", err)
-	}
-	if len(offene) != 1 || offene[0].ID != id {
-		t.Fatalf("Expected reset auftrag to be due again, got %+v", offene)
-	}
-
-	// Erneut fehlschlagen lassen und verwerfen (mit protokolliertem Grund/Benutzer).
-	for i := 0; i < MaxSignaturVersuche; i++ {
-		if err := store.TSESignaturauftragFehlversuch(ctx, id, "fiskaly down"); err != nil {
-			t.Fatalf("Expected no fehlversuch error, got %v", err)
-		}
-	}
-	if err := store.TSESignaturauftragVerwerfen(ctx, id, "TSE endgültig defekt", "admin"); err != nil {
-		t.Fatalf("Expected no verwerfen error, got %v", err)
-	}
-	auftraege, _ = store.GetTSESignaturauftraege(ctx)
-	if len(auftraege) != 1 || auftraege[0].Status != "verworfen" {
-		t.Fatalf("Expected verworfenen auftrag, got %+v", auftraege)
-	}
-	if auftraege[0].VerworfenGrund != "TSE endgültig defekt" || auftraege[0].VerworfenVon != "admin" || auftraege[0].VerworfenAm == nil {
-		t.Fatalf("Expected verwerfen protocol persisted, got %+v", auftraege[0])
-	}
-}
-
 // Ohne TSE-Konfiguration markiert der Worker offene Auftraege endgueltig als
-// tse_nicht_konfiguriert; erledigte bleiben unberuehrt. Das Admin-Zuruecksetzen
-// reiht einen so markierten Auftrag wieder ein, damit der Worker ihn nach einer
-// spaeten Einrichtung nachsigniert.
-func TestMarkiereOffeneAlsNichtKonfiguriert_MarkiertOffeneUndBleibtZuruecksetzbar(t *testing.T) {
+// tse_nicht_konfiguriert; erledigte bleiben unberuehrt.
+func TestMarkiereOffeneAlsNichtKonfiguriert_MarkiertNurOffene(t *testing.T) {
 	store, umgebung, teardown := setupRepository(t)
 	defer teardown(t)
 	ctx := context.Background()
@@ -375,14 +301,7 @@ func TestMarkiereOffeneAlsNichtKonfiguriert_MarkiertOffeneUndBleibtZuruecksetzba
 		t.Fatalf("Expected 2 marked auftraege (die beiden offenen), got %d", markiert)
 	}
 
-	auftraege, err := store.GetTSESignaturauftraege(ctx)
-	if err != nil {
-		t.Fatalf("Expected no read error, got %v", err)
-	}
-	status := map[int]string{}
-	for _, a := range auftraege {
-		status[a.ID] = a.Status
-	}
+	status := statusMap(t, umgebung.db)
 	if status[offenID] != tse.StatusTSENichtKonfiguriert || status[zweiterID] != tse.StatusTSENichtKonfiguriert {
 		t.Fatalf("Expected offene auftraege marked tse_nicht_konfiguriert, got %+v", status)
 	}
@@ -407,116 +326,41 @@ func TestMarkiereOffeneAlsNichtKonfiguriert_MarkiertOffeneUndBleibtZuruecksetzba
 	if markiert != 0 {
 		t.Fatalf("Expected 0 marked on second run, got %d", markiert)
 	}
-
-	// Admin-Zuruecksetzen reiht den markierten Auftrag wieder ein.
-	if err := store.TSESignaturauftragZuruecksetzen(ctx, offenID); err != nil {
-		t.Fatalf("Expected no zuruecksetzen error, got %v", err)
-	}
-	offene, err = store.GetOffeneTSESignaturauftraege(ctx, 20)
-	if err != nil {
-		t.Fatalf("Expected no read error, got %v", err)
-	}
-	if len(offene) != 1 || offene[0].ID != offenID {
-		t.Fatalf("Expected reset auftrag to be due again, got %+v", offene)
-	}
 }
 
-// Zuruecksetzen wirkt nur auf endgueltig markierte Auftraege (fehlgeschlagen,
-// tse_nicht_konfiguriert): Ein offener Auftrag bleibt unberuehrt. Verwerfen
-// dagegen wirkt auch auf offene Auftraege.
-func TestTSESignaturauftrag_StatusGuards(t *testing.T) {
-	store, umgebung, teardown := setupRepository(t)
-	defer teardown(t)
-	ctx := context.Background()
-
-	offenID, _ := umgebung.insertAuftrag(t, "tx-offen")
-	erledigtID, _ := umgebung.insertAuftrag(t, "tx-erledigt")
-	if err := store.QuittiereTSESignaturauftrag(ctx, erledigtID, testSignatur(50)); err != nil {
-		t.Fatalf("Expected no quittierung error, got %v", err)
-	}
-
-	// Zuruecksetzen eines offenen Auftrags ist ein No-Op (Status-Guard).
-	if err := store.TSESignaturauftragZuruecksetzen(ctx, offenID); err != nil {
-		t.Fatalf("Expected no zuruecksetzen error, got %v", err)
-	}
-	// Verwerfen eines erledigten Auftrags ist ein No-Op (Status-Guard).
-	if err := store.TSESignaturauftragVerwerfen(ctx, erledigtID, "sollte nicht wirken", "admin"); err != nil {
-		t.Fatalf("Expected no verwerfen error, got %v", err)
-	}
-
-	status := statusMap(t, store, ctx)
-	if status[offenID] != "offen" {
-		t.Fatalf("Expected offenen auftrag to stay offen after zuruecksetzen, got %q", status[offenID])
-	}
-	if status[erledigtID] != "erledigt" {
-		t.Fatalf("Expected erledigten auftrag untouched by verwerfen, got %q", status[erledigtID])
-	}
-
-	// Verwerfen eines offenen Auftrags wirkt (offen -> verworfen).
-	if err := store.TSESignaturauftragVerwerfen(ctx, offenID, "manuell verworfen", "admin"); err != nil {
-		t.Fatalf("Expected no verwerfen error, got %v", err)
-	}
-	if statusMap(t, store, ctx)[offenID] != "verworfen" {
-		t.Fatalf("Expected offenen auftrag to become verworfen")
-	}
-}
-
-// Das Admin-Zuruecksetzen gesamt reiht alle endgueltig markierten Auftraege
-// (fehlgeschlagen, tse_nicht_konfiguriert) wieder ein; offene und verworfene
-// bleiben unberuehrt.
-func TestTSESignaturauftraegeZuruecksetzenGesamt(t *testing.T) {
-	store, umgebung, teardown := setupRepository(t)
-	defer teardown(t)
-	ctx := context.Background()
-
-	fehlID, _ := umgebung.insertAuftrag(t, "tx-fehl")
-	for i := 0; i < MaxSignaturVersuche; i++ {
-		if err := store.TSESignaturauftragFehlversuch(ctx, fehlID, "fiskaly down"); err != nil {
-			t.Fatalf("Expected no fehlversuch error, got %v", err)
-		}
-	}
-	nichtKonfigID, _ := umgebung.insertAuftrag(t, "tx-nichtkonfig")
-	offenID, _ := umgebung.insertAuftrag(t, "tx-offen")
-	verworfenID, _ := umgebung.insertAuftrag(t, "tx-verworfen")
-	if err := store.TSESignaturauftragVerwerfen(ctx, verworfenID, "manuell", "admin"); err != nil {
-		t.Fatalf("Expected no verwerfen error, got %v", err)
-	}
-	// Markiere den einen offenen Auftrag als tse_nicht_konfiguriert; danach ist
-	// nur noch der urspruenglich offene (offenID) tatsaechlich offen.
-	if _, err := store.MarkiereOffeneAlsNichtKonfiguriert(ctx); err != nil {
-		t.Fatalf("Expected no mark error, got %v", err)
-	}
-	_ = nichtKonfigID
-
-	n, err := store.TSESignaturauftraegeZuruecksetzenGesamt(ctx)
-	if err != nil {
-		t.Fatalf("Expected no gesamt-reset error, got %v", err)
-	}
-	// fehlID (fehlgeschlagen) + nichtKonfigID + offenID (beide nach dem Sweep
-	// tse_nicht_konfiguriert) = 3; verworfenID bleibt aussen vor.
-	if n != 3 {
-		t.Fatalf("Expected 3 reset auftraege, got %d", n)
-	}
-
-	status := statusMap(t, store, ctx)
-	if status[fehlID] != "offen" || status[offenID] != "offen" || status[nichtKonfigID] != "offen" {
-		t.Fatalf("Expected marked auftraege reset to offen, got %+v", status)
-	}
-	if status[verworfenID] != "verworfen" {
-		t.Fatalf("Expected verworfenen auftrag untouched, got %q", status[verworfenID])
-	}
-}
-
-// statusMap liest die Signaturauftraege und liefert eine ID->Status-Abbildung.
-func statusMap(t *testing.T, store Repository, ctx context.Context) map[int]string {
+// auftragStatus liest Status, Versuche und letzten Fehler eines Auftrags direkt
+// aus der Tabelle — die Admin-Lese-Query gibt es nicht mehr, die Tests pruefen
+// den Auftragszustand per SQL.
+func auftragStatus(t *testing.T, db *sql.DB, id int) (status string, versuche int, letzterFehler string) {
 	t.Helper()
-	auftraege, err := store.GetTSESignaturauftraege(ctx)
-	if err != nil {
-		t.Fatalf("Expected no read error, got %v", err)
+	var fehler sql.NullString
+	if err := db.QueryRow(
+		"SELECT status, versuche, letzter_fehler FROM tse_signaturauftraege WHERE id = $1", id,
+	).Scan(&status, &versuche, &fehler); err != nil {
+		t.Fatalf("Auftrag %d lesen: %v", id, err)
 	}
+	return status, versuche, fehler.String
+}
+
+// statusMap liest Status je Auftrag-ID direkt aus der Tabelle.
+func statusMap(t *testing.T, db *sql.DB) map[int]string {
+	t.Helper()
+	rows, err := db.Query("SELECT id, status FROM tse_signaturauftraege")
+	if err != nil {
+		t.Fatalf("statusMap query: %v", err)
+	}
+	defer rows.Close()
 	status := map[int]string{}
-	for _, a := range auftraege {
-		status[a.ID] = a.Status
+	for rows.Next() {
+		var id int
+		var s string
+		if err := rows.Scan(&id, &s); err != nil {
+			t.Fatalf("statusMap scan: %v", err)
+		}
+		status[id] = s
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("statusMap rows: %v", err)
 	}
 	return status
 }

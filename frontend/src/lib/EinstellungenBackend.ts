@@ -142,30 +142,6 @@ export const TSEStatusSchema = z.object({
 })
 export type TSEStatus = z.infer<typeof TSEStatusSchema>
 
-// Signaturauftrag: ein signaturpflichtiger Vorgang samt Signaturstand und
-// Verwerfen-Protokoll (Grund, Benutzer, Zeitpunkt) für die
-// Signaturauftrags-Verwaltung.
-export const TSESignaturauftragSchema = z.object({
-  id: z.number().int(),
-  txId: z.string(),
-  processType: z.string(),
-  status: z.enum([
-    'offen',
-    'erledigt',
-    'fehlgeschlagen',
-    'verworfen',
-    'tse_nicht_konfiguriert',
-  ]),
-  versuche: z.number().int(),
-  letzterFehler: z.string(),
-  erstelltAm: DateStringSchema,
-  erledigtAm: DateStringSchema.nullable(),
-  verworfenGrund: z.string(),
-  verworfenVon: z.string(),
-  verworfenAm: DateStringSchema.nullable(),
-})
-export type TSESignaturauftrag = z.infer<typeof TSESignaturauftragSchema>
-
 // Zustand der Signatur-Queue für das Admin-Monitoring: Rückstand (offene
 // Aufträge, Alter des ältesten) und Leistung über ein gleitendes
 // 15-Minuten-Fenster (Signaturen/Minute, Signierdauer p95).
@@ -296,17 +272,6 @@ export class EinstellungenBackend {
     return this.backend.post('admin/get-tse-status', {}, TSEStatusSchema)
   }
 
-  public async getTSESignaturauftraege(): Promise<TSESignaturauftrag[]> {
-    const { auftraege } = await this.backend.post(
-      'admin/get-tse-signaturauftraege',
-      {},
-      z.object({
-        auftraege: z.array(TSESignaturauftragSchema),
-      }),
-    )
-    return auftraege
-  }
-
   public async getTSESignaturQueue(): Promise<TSESignaturQueue> {
     return this.backend.post(
       'admin/get-tse-signatur-queue',
@@ -324,23 +289,5 @@ export class EinstellungenBackend {
       }),
     )
     return stoerungen
-  }
-
-  public async tseSignaturauftragZuruecksetzen(id: number): Promise<void> {
-    await this.backend.post('admin/tse-signaturauftrag-zuruecksetzen', { id })
-  }
-
-  public async tseSignaturauftraegeZuruecksetzen(): Promise<void> {
-    await this.backend.post('admin/tse-signaturauftraege-zuruecksetzen', {})
-  }
-
-  public async tseSignaturauftragVerwerfen(
-    id: number,
-    grund: string,
-  ): Promise<void> {
-    await this.backend.post('admin/tse-signaturauftrag-verwerfen', {
-      id,
-      grund,
-    })
   }
 }

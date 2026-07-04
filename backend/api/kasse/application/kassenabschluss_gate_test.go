@@ -38,7 +38,6 @@ func TestPruefeSignaturGate(t *testing.T) {
 		{"offen bei TSE-Störung → Ausfall-Rest", []tse.SignaturauftragStand{offen}, tseFehler, 0, 1, 0},
 		{"offen bei keine_konfiguration-Störung → ohne Konfiguration", []tse.SignaturauftragStand{offen}, keineKonfig, 0, 0, 1},
 		{"fehlgeschlagen → Ausfall-Rest", []tse.SignaturauftragStand{{Status: tse.StatusFehlgeschlagen, ErstelltAm: now}}, nil, 0, 1, 0},
-		{"verworfen → Ausfall-Rest", []tse.SignaturauftragStand{{Status: tse.StatusVerworfen, ErstelltAm: now}}, nil, 0, 1, 0},
 		{"tse_nicht_konfiguriert → ohne Konfiguration", []tse.SignaturauftragStand{{Status: tse.StatusTSENichtKonfiguriert, ErstelltAm: now}}, nil, 0, 0, 1},
 		{
 			"gemischt: ausstehend, Ausfall-Rest und ohne Konfiguration",
@@ -132,7 +131,7 @@ func TestKasseAbschliessen_GateBlocktBeiAusstehend(t *testing.T) {
 	}
 }
 
-// Ausfall-Reste (endgültig fehlgeschlagen/verworfen sowie offen bei aktivem
+// Ausfall-Reste (endgültig fehlgeschlagen sowie offen bei aktivem
 // Störungszeitraum) lassen den Abschluss zu und werden in der Abschlussmeldung
 // ausgewiesen; tse_nicht_konfiguriert blockiert nie und wird deutlich als „Tag
 // ohne TSE" ausgewiesen.
@@ -148,7 +147,6 @@ func TestKasseAbschliessen_GateLaesstAusfallResteDurch(t *testing.T) {
 		TSERepo: tseGateMock{
 			staende: []tse.SignaturauftragStand{
 				{Status: tse.StatusFehlgeschlagen, ErstelltAm: now},
-				{Status: tse.StatusVerworfen, ErstelltAm: now},
 				{Status: tse.StatusOffen, ErstelltAm: now}, // offen bei aktivem Störungszeitraum → Ausfall
 				{Status: tse.StatusTSENichtKonfiguriert, ErstelltAm: now},
 			},
@@ -160,8 +158,8 @@ func TestKasseAbschliessen_GateLaesstAusfallResteDurch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected Abschluss to pass with Ausfall-Reste, got %v", err)
 	}
-	if ergebnis.AusfallResteAnzahl != 3 {
-		t.Errorf("expected AusfallResteAnzahl 3 (fehlgeschlagen + verworfen + offen-bei-Störung), got %d", ergebnis.AusfallResteAnzahl)
+	if ergebnis.AusfallResteAnzahl != 2 {
+		t.Errorf("expected AusfallResteAnzahl 2 (fehlgeschlagen + offen-bei-Störung), got %d", ergebnis.AusfallResteAnzahl)
 	}
 	if ergebnis.OhneKonfigurationAnzahl != 1 {
 		t.Errorf("expected OhneKonfigurationAnzahl 1, got %d", ergebnis.OhneKonfigurationAnzahl)

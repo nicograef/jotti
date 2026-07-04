@@ -9,28 +9,12 @@ import (
 )
 
 type tseSignaturauftragQueryRepo interface {
-	GetTSESignaturauftraege(ctx context.Context) ([]tse_repo.Signaturauftrag, error)
 	GetTSESignaturQueueZustand(ctx context.Context) (tse_repo.SignaturQueueZustand, error)
 	GetAlleTSEStoerungen(ctx context.Context) ([]tse_repo.Stoerungszeitraum, error)
 }
 
 type Query struct {
 	TSERepo tseSignaturauftragQueryRepo
-}
-
-// GetTSESignaturauftraege liefert die Signaturauftraege fuer die
-// Signaturauftrags-Verwaltung.
-func (q Query) GetTSESignaturauftraege(ctx context.Context) ([]tse_repo.Signaturauftrag, error) {
-	log := zerolog.Ctx(ctx)
-
-	auftraege, err := q.TSERepo.GetTSESignaturauftraege(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve tse signaturauftraege")
-		return nil, ErrDatabase
-	}
-
-	log.Info().Int("count", len(auftraege)).Msg("Retrieved tse signaturauftraege")
-	return auftraege, nil
 }
 
 // GetTSESignaturQueueZustand liefert den Zustand der Signatur-Queue fuer das

@@ -69,12 +69,6 @@ func TestBestimmeSignaturstatus(t *testing.T) {
 			wantAusfallGrund: StatusFehlgeschlagen,
 		},
 		{
-			name:             "verworfen -> Ausfall",
-			auftrag:          SignaturauftragStand{Status: StatusVerworfen, ErstelltAm: statusTestErstellt},
-			wantStatus:       SignaturstatusAusfall,
-			wantAusfallGrund: StatusVerworfen,
-		},
-		{
 			name:             "tse_nicht_konfiguriert -> Ausfall",
 			auftrag:          SignaturauftragStand{Status: StatusTSENichtKonfiguriert, ErstelltAm: statusTestErstellt},
 			wantStatus:       SignaturstatusAusfall,

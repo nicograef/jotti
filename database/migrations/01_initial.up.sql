@@ -482,15 +482,12 @@ CREATE TABLE tse_signaturauftraege (
     tx_id                TEXT NOT NULL UNIQUE,
     process_type         TEXT NOT NULL,
     process_data         TEXT NOT NULL,
-    status               TEXT NOT NULL CHECK (status IN ('offen', 'erledigt', 'fehlgeschlagen', 'verworfen', 'tse_nicht_konfiguriert')),
+    status               TEXT NOT NULL CHECK (status IN ('offen', 'erledigt', 'fehlgeschlagen', 'tse_nicht_konfiguriert')),
     versuche             INT NOT NULL DEFAULT 0,
     letzter_fehler       TEXT NULL,
     naechster_versuch_am TIMESTAMPTZ NOT NULL,
     erstellt_am          TIMESTAMPTZ NOT NULL,
     erledigt_am          TIMESTAMPTZ NULL,
-    verworfen_grund      TEXT NULL,
-    verworfen_von        TEXT NULL,
-    verworfen_am         TIMESTAMPTZ NULL,
     -- Signaturspalten: NULL bis zur Quittierung durch den Signatur-Worker,
     -- danach genau einmal beschrieben. Der Auftrag ist der einzige Signatur-Store.
     transaktion_nummer   INT NULL,
@@ -509,14 +506,11 @@ COMMENT ON COLUMN tse_signaturauftraege.event_id IS 'Kassenjournal-Event des Vor
 COMMENT ON COLUMN tse_signaturauftraege.tx_id IS 'Zufaellige TSE-Transaktions-ID (UUIDv4), beim Einreihen vergeben.';
 COMMENT ON COLUMN tse_signaturauftraege.process_type IS 'fiskaly process_type, z. B. Kassenbeleg-V1 (Snapshot beim Einreihen).';
 COMMENT ON COLUMN tse_signaturauftraege.process_data IS 'fiskaly process_data (Snapshot beim Einreihen).';
-COMMENT ON COLUMN tse_signaturauftraege.status IS 'Auftragsstatus: offen -> erledigt | fehlgeschlagen (nach max. Versuchen) | tse_nicht_konfiguriert (endgueltig markiert) | verworfen; Admin setzt fehlgeschlagen/tse_nicht_konfiguriert auf offen zurueck.';
+COMMENT ON COLUMN tse_signaturauftraege.status IS 'Auftragsstatus: offen -> erledigt | fehlgeschlagen (nach max. Versuchen) | tse_nicht_konfiguriert (endgueltig markiert).';
 COMMENT ON COLUMN tse_signaturauftraege.versuche IS 'Anzahl fehlgeschlagener Signierversuche; ab dem Maximum wird der Auftrag fehlgeschlagen.';
 COMMENT ON COLUMN tse_signaturauftraege.letzter_fehler IS 'Fehlertext des letzten Fehlversuchs (NULL solange kein Fehler auftrat).';
 COMMENT ON COLUMN tse_signaturauftraege.naechster_versuch_am IS 'Fruehester Zeitpunkt des naechsten Versuchs (Backoff).';
 COMMENT ON COLUMN tse_signaturauftraege.erledigt_am IS 'Zeitpunkt der Quittierung (UTC).';
-COMMENT ON COLUMN tse_signaturauftraege.verworfen_grund IS 'Begruendung des Verwerfens (protokollierter Statuswechsel).';
-COMMENT ON COLUMN tse_signaturauftraege.verworfen_von IS 'Benutzer, der den Auftrag verworfen hat.';
-COMMENT ON COLUMN tse_signaturauftraege.verworfen_am IS 'Zeitpunkt des Verwerfens (UTC).';
 COMMENT ON COLUMN tse_signaturauftraege.transaktion_nummer IS 'TSE-Transaktionsnummer aus der TSE-Antwort.';
 COMMENT ON COLUMN tse_signaturauftraege.signatur_zaehler IS 'Signaturzaehler der TSE aus der TSE-Antwort.';
 COMMENT ON COLUMN tse_signaturauftraege.tse_seriennummer IS 'Seriennummer der TSE, die den Vorgang signiert hat.';

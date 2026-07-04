@@ -30,23 +30,6 @@ type OffenerSignaturauftrag struct {
 	ProcessData string
 }
 
-// Signaturauftrag ist die Admin-Sicht eines Signaturauftrags fuer die
-// Signaturauftrags-Verwaltung: Status, Versuche, letzter Fehler und das
-// Verwerfen-Protokoll (Grund, Benutzer, Zeitpunkt).
-type Signaturauftrag struct {
-	ID             int
-	TxID           string
-	ProcessType    string
-	Status         string
-	Versuche       int
-	LetzterFehler  string
-	ErstelltAm     time.Time
-	ErledigtAm     *time.Time
-	VerworfenGrund string
-	VerworfenVon   string
-	VerworfenAm    *time.Time
-}
-
 // SignaturQueueZustand ist der on demand berechnete Zustand der Signatur-Queue
 // fuer das Admin-Monitoring: Rueckstand (offene Auftraege, Alter des aeltesten)
 // und Leistung ueber ein gleitendes 15-Minuten-Fenster (Signaturen pro Minute,
@@ -139,73 +122,6 @@ func (r Repository) MarkiereOffeneAlsNichtKonfiguriert(ctx context.Context) (int
 		return 0, db.Error(err)
 	}
 	return n, nil
-}
-
-// GetTSESignaturauftraege liefert die Signaturauftraege fuer die
-// Admin-Verwaltung und die Ausfalldokumentation, neueste zuerst.
-func (r Repository) GetTSESignaturauftraege(ctx context.Context) ([]Signaturauftrag, error) {
-	rows, err := r.q.GetTSESignaturauftraege(ctx)
-	if err != nil {
-		return nil, db.Error(err)
-	}
-
-	result := make([]Signaturauftrag, 0, len(rows))
-	for i := range rows {
-		row := &rows[i]
-		auftrag := Signaturauftrag{
-			ID:             row.ID,
-			TxID:           row.TxID,
-			ProcessType:    row.ProcessType,
-			Status:         row.Status,
-			Versuche:       row.Versuche,
-			LetzterFehler:  row.LetzterFehler.String,
-			ErstelltAm:     row.ErstelltAm,
-			VerworfenGrund: row.VerworfenGrund.String,
-			VerworfenVon:   row.VerworfenVon.String,
-		}
-		if row.ErledigtAm.Valid {
-			erledigtAm := row.ErledigtAm.Time
-			auftrag.ErledigtAm = &erledigtAm
-		}
-		if row.VerworfenAm.Valid {
-			verworfenAm := row.VerworfenAm.Time
-			auftrag.VerworfenAm = &verworfenAm
-		}
-		result = append(result, auftrag)
-	}
-
-	return result, nil
-}
-
-// TSESignaturauftragZuruecksetzen reiht einen endgueltig markierten Auftrag
-// wieder ein (fehlgeschlagen oder tse_nicht_konfiguriert -> offen, Zaehler und
-// Fehler zurueckgesetzt). Der Status-Guard wirkt nur auf diese beiden Status;
-// so signiert der Worker nach einer spaeten Einrichtung zurueckgesetzte
-// Auftraege nach.
-func (r Repository) TSESignaturauftragZuruecksetzen(ctx context.Context, auftragID int) error {
-	return db.Error(r.q.TSESignaturauftragZuruecksetzen(ctx, auftragID))
-}
-
-// TSESignaturauftraegeZuruecksetzenGesamt reiht alle endgueltig markierten
-// Auftraege wieder ein (Admin-Zuruecksetzen gesamt) und liefert die Anzahl.
-func (r Repository) TSESignaturauftraegeZuruecksetzenGesamt(ctx context.Context) (int64, error) {
-	n, err := r.q.TSESignaturauftraegeZuruecksetzenGesamt(ctx)
-	if err != nil {
-		return 0, db.Error(err)
-	}
-	return n, nil
-}
-
-// TSESignaturauftragVerwerfen markiert einen offenen oder fehlgeschlagenen
-// Auftrag als verworfen und protokolliert den Statuswechsel (Grund, Benutzer,
-// Zeitpunkt). Der Eintrag bleibt fuer die Ausfalldokumentation erhalten; der
-// Status-Guard wirkt nur auf offene und fehlgeschlagene Auftraege.
-func (r Repository) TSESignaturauftragVerwerfen(ctx context.Context, auftragID int, grund string, benutzer string) error {
-	return db.Error(r.q.TSESignaturauftragVerwerfen(ctx, dbgen.TSESignaturauftragVerwerfenParams{
-		ID:             auftragID,
-		VerworfenGrund: sql.NullString{String: grund, Valid: true},
-		VerworfenVon:   sql.NullString{String: benutzer, Valid: true},
-	}))
 }
 
 // GetTSESignaturQueueZustand liefert den on demand berechneten Zustand der
