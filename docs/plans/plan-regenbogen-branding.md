@@ -163,11 +163,11 @@ Selection und alle Doku-Akzente bleiben unverändert grün.
 
 ### Acceptance criteria
 
-- [ ] Spektrum-Token existieren in Light- und Dark-Ausprägung; kein semantisches UI-Token geändert
+- [x] Spektrum-Token existieren in Light- und Dark-Ausprägung; kein semantisches UI-Token geändert
 - [ ] Hero-Verlauf und Haarlinie in Light und Dark subtil (visuelle Abnahme durch Nico, Mobil und
       Desktop)
-- [ ] Stichprobe bestätigt: CTAs, Buttons, Tags und Doku-Akzente unverändert grün
-- [ ] `pnpm check` läuft fehlerfrei
+- [x] Stichprobe bestätigt: CTAs, Buttons, Tags und Doku-Akzente unverändert grün
+- [x] `pnpm check` läuft fehlerfrei
 
 ---
 

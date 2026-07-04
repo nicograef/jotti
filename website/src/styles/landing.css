@@ -136,7 +136,8 @@
       align-middle text-[0.65rem] font-semibold tracking-[0.02em] text-brand;
   }
 
-  /* Hero: dezenter Markenfarben-Verlauf hinter dem Einstieg. */
+  /* Hero: grüner Anker bleibt vorn, darunter ein leiser Spektral-Schimmer.
+     Der Verlauf ist rein dekorativ; Text und CTAs bleiben grün. */
   .hero-gradient {
     background:
       radial-gradient(
@@ -144,7 +145,21 @@
         var(--c-brand-tint),
         transparent 55%
       ),
-      var(--c-background);
+      var(--brand-spectrum-wash), var(--c-background);
+  }
+
+  /* Feine Spektral-Haarlinie: ersetzt an genau zwei wiederkehrenden Kanten
+     (Header-Unterkante, Footer-Oberkante) die neutrale Trennlinie durch den
+     dekorativen Logo-Verlauf. Umgesetzt als 2px-Rand mit Verlaufs-border-image;
+     die übrigen Kanten bleiben ohne Rahmen. */
+  .spectrum-edge-b {
+    border-bottom: 2px solid transparent;
+    border-image: var(--brand-spectrum) 1;
+  }
+
+  .spectrum-edge-t {
+    border-top: 2px solid transparent;
+    border-image: var(--brand-spectrum) 1;
   }
 
   /* Einheitlicher Phone-Mockup-Look für alle Oberflächen-Screenshots

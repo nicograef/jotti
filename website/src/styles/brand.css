@@ -42,4 +42,52 @@
   --brand-green-deep: oklch(0.3 0.07 165.612);
 
   --brand-font: Montserrat, system-ui, -apple-system, sans-serif;
+
+  /* Dekorativer Logo-Spektrum-Verlauf (Rot → Violett, Markengrün in der Mitte).
+     Ausschließlich dekorativ: feine Haarlinie an Header/Footer und ein leiser
+     Schimmer im Hero. Keine UI-Fläche, kein CTA und kein Doku-Akzent nutzt ihn.
+     Die Bedienoberfläche bleibt durchgehend grün. Chroma bewusst gedeckt. */
+  --brand-spectrum: linear-gradient(
+    90deg,
+    oklch(0.62 0.13 25),
+    oklch(0.75 0.12 70),
+    oklch(0.8 0.13 120),
+    oklch(0.55 0.12 165.612),
+    oklch(0.58 0.12 245),
+    oklch(0.5 0.13 300)
+  );
+  /* Sehr leiser Schimmer derselben Farben für großflächige Hintergründe
+     (Hero). Mitte transparent, damit der grüne Anker durchatmet. */
+  --brand-spectrum-wash: linear-gradient(
+    105deg,
+    oklch(0.62 0.13 25 / 0.1),
+    oklch(0.75 0.12 70 / 0.07),
+    transparent 45%,
+    oklch(0.58 0.12 245 / 0.07),
+    oklch(0.5 0.13 300 / 0.1)
+  );
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dunkelmodus: gleiche Hues, etwas heller und leiser, damit der Verlauf
+       auf dunklem Grund nicht grell wirkt. */
+    --brand-spectrum: linear-gradient(
+      90deg,
+      oklch(0.66 0.12 25),
+      oklch(0.78 0.11 70),
+      oklch(0.83 0.12 120),
+      oklch(0.66 0.12 165.612),
+      oklch(0.66 0.12 245),
+      oklch(0.58 0.13 300)
+    );
+    --brand-spectrum-wash: linear-gradient(
+      105deg,
+      oklch(0.66 0.12 25 / 0.12),
+      oklch(0.78 0.11 70 / 0.08),
+      transparent 45%,
+      oklch(0.66 0.12 245 / 0.08),
+      oklch(0.58 0.13 300 / 0.12)
+    );
+  }
 }
