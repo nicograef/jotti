@@ -286,7 +286,7 @@ Die Ubiquitous Language erhält die neuen Begriffe (Signaturauftrag, Signatur-Wo
 
 ### Acceptance criteria
 
-- [ ] Alle neuen Begriffe in `docs/language.md`, konsistent mit Endpunkt- und UI-Benennung; veraltete Einträge aktualisiert.
-- [ ] `docs/handbuch.md` §3.13 beschreibt das Outbox-Modell (Auftrag mit Signaturspalten, Worker, Störungsprotokoll, Gate).
-- [ ] `docs/compliance.md` §3 auf den asynchronen Pfad und die Konformitätsbedingungen aktualisiert.
-- [ ] `docs/verfahrensdokumentation.md` §4 erfüllt die Herstellerdoku-Pflicht (Mechanismus, typische Latenz, Verzögerungen).
+- [x] Alle neuen Begriffe in `docs/language.md`, konsistent mit Endpunkt- und UI-Benennung; veraltete Einträge aktualisiert.
+- [x] `docs/handbuch.md` §3.13 beschreibt das Outbox-Modell (Auftrag mit Signaturspalten, Worker, Störungsprotokoll, Gate).
+- [x] `docs/compliance.md` §3 auf den asynchronen Pfad und die Konformitätsbedingungen aktualisiert.
+- [x] `docs/verfahrensdokumentation.md` §4 erfüllt die Herstellerdoku-Pflicht (Mechanismus, typische Latenz, Verzögerungen).

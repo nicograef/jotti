@@ -151,6 +151,18 @@ Ohne physische Kassenhardware gibt es kein Typenschild, die gesetzlich gefordert
 | Kassenbon (Pflichtfeld nach § 6 KassenSichV) | Angedruckter String, z. B. `Kassen-ID: 7f3a9d12-...`       |
 | TSE-Kommunikation                            | `serial_number` des fiskaly-Clients (Client-Registrierung) |
 
+### 3.8 Asynchrone Signierung (Outbox und Signatur-Worker)
+
+Die TSE-Signierung ist vom Kassier-Pfad entkoppelt, das Buchen wartet nie auf die TSE. Jeder signaturpflichtige Vorgang schreibt im selben Commit wie das Kassenjournal-Event genau einen Signaturauftrag (transaktionale Outbox `tse_signaturauftraege`); ein Signatur-Worker ist der einzige Sprecher zur TSE und quittiert die Signatur (Start/Finish, §3.2) direkt am Auftrag. Der Auftrag ist der einzige Signatur-Store, Beleg und DSFinV-K-Export lesen genau diese eine Quelle. Architekturdetails → [handbuch.md §3.13](handbuch.md#313-tse-architektur).
+
+Konformitätsbedingungen dieses Pfades:
+
+- **Keine still unsignierten Vorgänge:** Der Auftrag entsteht atomar mit dem Event, auch ohne TSE-Konfiguration. Ein Vorgang ohne Signatur ist immer ein offener oder endgültig markierter Auftrag, nie ein verlorener.
+- **Typische Latenz gering, Verzögerung möglich:** Im Regelbetrieb signiert der Worker binnen Sekunden (Ziel: p95 unter fünf Sekunden). Bei TSE-Ausfall, Signatur-Rückstand oder fehlender Konfiguration verzögert sich die Signatur; der Vorgang bleibt gebucht.
+- **Ausfalldokumentation:** Das Störungsprotokoll (`tse_stoerungen`) dokumentiert jede TSE-weite Störung als Zeitraum mit Grund (AEAO zu § 146a, 1.14.1); die Auftragstabelle hält den Status jedes einzelnen Vorgangs.
+- **Belegausweisung:** Ein nach dem Ausfall nachsignierter Beleg trägt den Vermerk „Nachsigniert am …" (die TSE-Zeitpunkte weichen dann vom Belegdatum ab), ein Vorgang ohne konfigurierte TSE den Vermerk „keine TSE konfiguriert". Im DSFinV-K-Export erhalten noch unsignierte Vorgänge eine `TSE_TA_FEHLER`-Zeile.
+- **Kassenabschluss:** Der Abschluss blockiert nur bei frisch ausstehenden Signaturen (409 mit Anzahl und Alter); dokumentierte Ausfälle und fehlende Konfiguration lassen ihn zu und werden in der Abschlussmeldung ausgewiesen.
+
 ---
 
 ## 4. GoBD-Konformität
@@ -166,7 +178,7 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 | Vollständigkeit            | ✅ Erfüllt          | Jeder Geschäftsvorfall wird als Event erfasst                                                                                 |
 | Zeitgerechte Buchung       | ✅ Erfüllt          | Events mit Echtzeit-Zeitstempel                                                                                               |
 | Ordnungsmäßigkeit          | ✅ Erfüllt          | Strukturiertes Datenmodell, typisierte Events                                                                                 |
-| Kryptografische Verkettung | ✅ Erfüllt          | TSE-Signatur (fiskaly Cloud-TSE) für alle Geschäftsvorfälle; Signaturdaten im Event persistiert, Ausfälle werden nachsigniert |
+| Kryptografische Verkettung | ✅ Erfüllt          | TSE-Signatur (fiskaly Cloud-TSE) für alle Geschäftsvorfälle; Signaturdaten am Signaturauftrag (Outbox `tse_signaturauftraege`), Ausfälle dokumentiert und nachsigniert (§3.8) |
 | 10-Jahres-Aufbewahrung     | ✅ Erfüllt (F-10)   | DSFinV-K-Export (F-04) und DB-Backup decken die Daten ab; Aufbewahrungsstrategie in §4.4 dokumentiert. Die Aufbewahrung selbst ist Betreiberpflicht (§8) |
 
 ### 4.2 Anforderungen gemäß §§ 146, 147 AO und GoBD
