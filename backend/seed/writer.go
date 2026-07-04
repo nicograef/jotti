@@ -28,17 +28,19 @@ func Run(ctx context.Context, database *sql.DB) error {
 		return fmt.Errorf("seed-daten aufbauen: %w", err)
 	}
 
-	auftraege, err := baueSignaturauftraege(daten.Events, ausfallFensterAus(s, jetzt))
+	fenster := ausfallFensterAus(s, jetzt)
+	auftraege, err := baueSignaturauftraege(daten.Events, fenster)
 	if err != nil {
 		return fmt.Errorf("fake-tse signieren: %w", err)
 	}
+	stoerungen := stoerungszeitraeumeAus(fenster)
 
 	druckauftraege, err := baueDruckauftraege(s, daten.Events, signaturenNachEventID(auftraege), jetzt)
 	if err != nil {
 		return fmt.Errorf("druckaufträge aufbauen: %w", err)
 	}
 
-	if err := schreibeSeed(ctx, database, s, daten, auftraege, druckauftraege, jetzt); err != nil {
+	if err := schreibeSeed(ctx, database, s, daten, auftraege, stoerungen, druckauftraege, jetzt); err != nil {
 		return err
 	}
 
@@ -50,7 +52,7 @@ func Run(ctx context.Context, database *sql.DB) error {
 	return nil
 }
 
-func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDaten, auftraege []signaturauftragZeile, druckauftraege []druckauftragZeile, jetzt time.Time) error {
+func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDaten, auftraege []signaturauftragZeile, stoerungen []stoerungZeile, druckauftraege []druckauftragZeile, jetzt time.Time) error {
 	q := dbgen.New(database)
 
 	// Guard: niemals eine Datenbank überschreiben, die bereits Kassenjournal-Events enthält.
@@ -81,6 +83,9 @@ func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedD
 		return err
 	}
 	if err := schreibeSignaturauftraege(ctx, qtx, auftraege); err != nil {
+		return err
+	}
+	if err := schreibeStoerungen(ctx, qtx, stoerungen); err != nil {
 		return err
 	}
 	if err := schreibeDruckauftraege(ctx, qtx, druckauftraege); err != nil {
@@ -286,6 +291,24 @@ func schreibeSignaturauftraege(ctx context.Context, qtx *dbgen.Queries, auftraeg
 		}
 		if err := qtx.SeedInsertTSESignaturauftrag(ctx, params); err != nil {
 			return fmt.Errorf("signaturauftrag %s einfügen: %w", a.TxID, err)
+		}
+	}
+
+	return nil
+}
+
+// schreibeStoerungen persistiert die geschlossenen Störungszeiträume der aufgelösten
+// Ausfallfenster (Störungsprotokoll / Ausfalldokumentation).
+func schreibeStoerungen(ctx context.Context, qtx *dbgen.Queries, stoerungen []stoerungZeile) error {
+	for _, st := range stoerungen {
+		err := qtx.SeedInsertTSEStoerung(ctx, dbgen.SeedInsertTSEStoerungParams{
+			Beginn:     st.Beginn,
+			Ende:       sql.NullTime{Time: st.Ende, Valid: true},
+			GrundArt:   st.GrundArt,
+			Fehlertext: st.Fehlertext,
+		})
+		if err != nil {
+			return fmt.Errorf("störungszeitraum ab %s einfügen: %w", st.Beginn, err)
 		}
 	}
 

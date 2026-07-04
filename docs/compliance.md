@@ -163,6 +163,8 @@ Konformitätsbedingungen dieses Pfades:
 - **Belegausweisung:** Ein nach dem Ausfall nachsignierter Beleg trägt den Vermerk „Nachsigniert am …" (die TSE-Zeitpunkte weichen dann vom Belegdatum ab), ein Vorgang ohne konfigurierte TSE den Vermerk „keine TSE konfiguriert". Im DSFinV-K-Export erhalten noch unsignierte Vorgänge eine `TSE_TA_FEHLER`-Zeile.
 - **Kassenabschluss:** Der Abschluss blockiert nur bei frisch ausstehenden Signaturen (409 mit Anzahl und Alter); dokumentierte Ausfälle und fehlende Konfiguration lassen ihn zu und werden in der Abschlussmeldung ausgewiesen.
 
+Einordnung zur Protokollierungspflicht (AEAO zu § 146a, Nr. 2.2.2): Die Norm verlangt, die Protokollierung „unmittelbar mit Beginn des aufzuzeichnenden Vorgangs" in der TSE zu starten. jotti startet die TSE-Transaktion nicht im Kassier-Request, sondern wenige Sekunden später über den Signatur-Worker (Start und Finish unmittelbar nacheinander, §3.2). Diese Entkopplung ist eine bewusste Architekturentscheidung: Der Vorgang selbst ist ab dem Commit unveränderlich erfasst (Kassenjournal und Signaturauftrag in einer Datenbanktransaktion), das Buchen hängt nicht an der Verfügbarkeit der Cloud-TSE, und jede Verzögerung ist nachweisbar statt verdeckt: Störungszeiträume im Störungsprotokoll, verspätete Signaturen mit Nachsigniert-Vermerk auf dem Beleg, unsignierte Vorgänge mit `TSE_TA_FEHLER`-Zeile im Export. Die typische Latenz liegt im Sekundenbereich (Ziel: p95 unter fünf Sekunden) und wird in der [Verfahrensdokumentation §4](verfahrensdokumentation.md) als Teil der Herstellerdokumentation ausgewiesen.
+
 ---
 
 ## 4. GoBD-Konformität

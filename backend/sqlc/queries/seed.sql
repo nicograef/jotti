@@ -55,3 +55,9 @@ SELECT setval(pg_get_serial_sequence('kassenjournal', 'id'), COALESCE((SELECT MA
 INSERT INTO tse_signaturauftraege (event_id, tx_id, process_type, process_data, status, versuche, letzter_fehler, naechster_versuch_am, erstellt_am, erledigt_am,
     transaktion_nummer, signatur_zaehler, tse_seriennummer, log_time_start, log_time_end, signatur, qr_code_data)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17);
+
+-- SeedInsertTSEStoerung schreibt einen abgeschlossenen Stoerungszeitraum des
+-- Demo-Szenarios (aufgeloestes Ausfallfenster) ins Stoerungsprotokoll.
+-- name: SeedInsertTSEStoerung :exec
+INSERT INTO tse_stoerungen (beginn, ende, grund_art, fehlertext)
+VALUES ($1, $2, $3, $4);

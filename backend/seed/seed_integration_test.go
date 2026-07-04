@@ -50,6 +50,7 @@ func cleanSeedDB(t *testing.T, db *sql.DB) {
 	t.Helper()
 	stmts := []string{
 		"DELETE FROM tse_signaturauftraege",
+		"DELETE FROM tse_stoerungen",
 		"DELETE FROM druckauftraege",
 		"UPDATE druckstationen SET drucker_ip = '', bonmodus = 'pro_position' WHERE kategorie IN ('essen', 'getraenk', 'sonstiges')",
 		"UPDATE druckstationen SET drucker_ip = '', bonmodus = 'pro_bestellung' WHERE kategorie = 'abholbon'",
@@ -206,6 +207,21 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 	}
 	if signaturOhneErledigt != 0 {
 		t.Errorf("%d nicht erledigte Signaturaufträge mit gefüllten Signaturspalten", signaturOhneErledigt)
+	}
+
+	// Störungsprotokoll: das aufgelöste Ausfallfenster (Samstag) liegt als geschlossener
+	// tse_fehler-Zeitraum vor; kein Zeitraum ist aktiv — das offene Fenster der laufenden
+	// Sitzung materialisiert erst zur Laufzeit über Worker und Watchdog.
+	var geschlosseneStoerungen, aktiveStoerungen int
+	if err := db.QueryRow(`SELECT COUNT(*) FILTER (WHERE ende IS NOT NULL AND grund_art = 'tse_fehler'),
+		COUNT(*) FILTER (WHERE ende IS NULL) FROM tse_stoerungen`).Scan(&geschlosseneStoerungen, &aktiveStoerungen); err != nil {
+		t.Fatalf("Störungszeiträume zählen: %v", err)
+	}
+	if geschlosseneStoerungen != 1 {
+		t.Errorf("%d geschlossene tse_fehler-Störungszeiträume, erwartet genau 1", geschlosseneStoerungen)
+	}
+	if aktiveStoerungen != 0 {
+		t.Errorf("%d aktive Störungszeiträume, erwartet 0", aktiveStoerungen)
 	}
 
 	// Druckstationen: alle fünf Stationen sind mit einer Drucker-IP konfiguriert.

@@ -34,6 +34,14 @@ const signierungAbgelehntFehler = "Cloud-TSE lehnt die Transaktion dauerhaft ab 
 // verworfen, die übrigen bleiben fehlgeschlagen.
 const fehlschlagJederNte = 16
 
+// nachsignierVerzoegerung ist der Abstand zwischen Fensterende und der ersten erfolgreichen
+// Nachsignierung — zugleich das Ende des geseedeten Störungszeitraums, denn im echten
+// Betrieb schließt die erste erfolgreiche Signatur die Störung.
+const nachsignierVerzoegerung = 5 * time.Second
+
+// stoerungFehlertext ist der Fehlertext der geseedeten tse_fehler-Störungszeiträume.
+const stoerungFehlertext = "Cloud-TSE nicht erreichbar (HTTP 503)"
+
 // ausfallFenster ist ein TSE-Ausfallfenster mit absoluten Zeiten. aufgeloest steuert, ob die
 // Signaturaufträge als vom Worker nachsigniert gelten (abgeschlossene Sitzung) oder offen
 // bleiben (offene Sitzung).
@@ -57,6 +65,36 @@ func ausfallFensterAus(s szenario, jetzt time.Time) []ausfallFenster {
 		}
 	}
 	return fenster
+}
+
+// stoerungZeile ist die zu persistierende Zeile der tse_stoerungen-Tabelle
+// (Störungsprotokoll).
+type stoerungZeile struct {
+	Beginn     time.Time
+	Ende       time.Time
+	GrundArt   string
+	Fehlertext string
+}
+
+// stoerungszeitraeumeAus übersetzt die aufgelösten Ausfallfenster in geschlossene
+// tse_fehler-Störungszeiträume — was Worker und Störungsprotokoll im echten Betrieb
+// dokumentiert hätten; so passt die Ausfalldokumentations-Ansicht zur Demo mit ihren
+// nachsignierten Belegen. Das offene Fenster der laufenden Sitzung bleibt außen vor:
+// Es materialisiert nach dem App-Start live über Worker und Watchdog.
+func stoerungszeitraeumeAus(fenster []ausfallFenster) []stoerungZeile {
+	var zeilen []stoerungZeile
+	for _, f := range fenster {
+		if !f.aufgeloest {
+			continue
+		}
+		zeilen = append(zeilen, stoerungZeile{
+			Beginn:     f.von,
+			Ende:       f.bis.Add(nachsignierVerzoegerung),
+			GrundArt:   tse.StoerungGrundTSEFehler,
+			Fehlertext: stoerungFehlertext,
+		})
+	}
+	return zeilen
 }
 
 // signaturauftragZeile ist die zu persistierende Zeile der tse_signaturauftraege-Tabelle:
@@ -242,7 +280,7 @@ func (s *fakeSignierer) nachsigniereFenster(fensterIdx int) {
 			continue
 		}
 
-		quittiert := f.bis.Add(5*time.Second + time.Duration(i)*250*time.Millisecond)
+		quittiert := f.bis.Add(nachsignierVerzoegerung + time.Duration(i)*250*time.Millisecond)
 
 		signatur := s.signiere(p.processType, p.processData, quittiert, quittiert.Add(time.Second), p.txID)
 		erledigt := quittiert.Add(2 * time.Second)

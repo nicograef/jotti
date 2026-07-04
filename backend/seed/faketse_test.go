@@ -256,3 +256,34 @@ func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
 		t.Errorf("erledigte Aufträge (%d) nicht in der Überzahl gegenüber den übrigen (%d)", statusZahl[tse.StatusErledigt], rest)
 	}
 }
+
+// Aufgelöste Ausfallfenster werden als geschlossene tse_fehler-Störungszeiträume
+// geseedet (Ende = erste erfolgreiche Nachsignierung); das offene Fenster der
+// laufenden Sitzung bleibt außen vor und materialisiert erst zur Laufzeit.
+func TestStoerungszeitraeumeAus_NurAufgeloesteFenster(t *testing.T) {
+	von := time.Date(2026, 6, 13, 18, 30, 0, 0, time.UTC)
+	bis := von.Add(time.Hour)
+	fenster := []ausfallFenster{
+		{von: von, bis: bis, aufgeloest: true},
+		{von: bis.Add(24 * time.Hour), bis: bis.Add(25 * time.Hour), aufgeloest: false},
+	}
+
+	zeilen := stoerungszeitraeumeAus(fenster)
+
+	if len(zeilen) != 1 {
+		t.Fatalf("%d Störungszeiträume, erwartet genau 1 (nur das aufgelöste Fenster)", len(zeilen))
+	}
+	z := zeilen[0]
+	if z.GrundArt != tse.StoerungGrundTSEFehler {
+		t.Errorf("GrundArt = %q, erwartet %q", z.GrundArt, tse.StoerungGrundTSEFehler)
+	}
+	if !z.Beginn.Equal(von) {
+		t.Errorf("Beginn = %s, erwartet %s", z.Beginn, von)
+	}
+	if !z.Ende.Equal(bis.Add(nachsignierVerzoegerung)) {
+		t.Errorf("Ende = %s, erwartet %s", z.Ende, bis.Add(nachsignierVerzoegerung))
+	}
+	if z.Fehlertext == "" {
+		t.Error("Fehlertext ist leer")
+	}
+}

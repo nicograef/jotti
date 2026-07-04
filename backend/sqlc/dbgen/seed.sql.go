@@ -194,6 +194,30 @@ func (q *Queries) SeedInsertTSESignaturauftrag(ctx context.Context, arg SeedInse
 	return err
 }
 
+const seedInsertTSEStoerung = `-- name: SeedInsertTSEStoerung :exec
+INSERT INTO tse_stoerungen (beginn, ende, grund_art, fehlertext)
+VALUES ($1, $2, $3, $4)
+`
+
+type SeedInsertTSEStoerungParams struct {
+	Beginn     time.Time
+	Ende       sql.NullTime
+	GrundArt   string
+	Fehlertext string
+}
+
+// SeedInsertTSEStoerung schreibt einen abgeschlossenen Stoerungszeitraum des
+// Demo-Szenarios (aufgeloestes Ausfallfenster) ins Stoerungsprotokoll.
+func (q *Queries) SeedInsertTSEStoerung(ctx context.Context, arg SeedInsertTSEStoerungParams) error {
+	_, err := q.db.ExecContext(ctx, seedInsertTSEStoerung,
+		arg.Beginn,
+		arg.Ende,
+		arg.GrundArt,
+		arg.Fehlertext,
+	)
+	return err
+}
+
 const seedInsertTisch = `-- name: SeedInsertTisch :exec
 INSERT INTO tische (id, name, status, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5)
