@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
@@ -51,8 +52,8 @@ func TestCreateArbeitsbonAuftraege_ProPosition(t *testing.T) {
 		{ProduktName: "Bratwurst", VarianteName: "mit Brot", Kategorie: "essen", Menge: 1},
 	}
 	evt := makeBestellungEvent(1, "kassensitzung-1/tisch-7", positionen, "ohne Ketchup")
-	konfig := map[string]Druckstation{
-		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
+	konfig := map[string]druckstation.Druckstation{
+		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
 	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
@@ -79,8 +80,8 @@ func TestCreateArbeitsbonAuftraege_ProBestellung(t *testing.T) {
 		{ProduktName: "Schnitzel", VarianteName: "mit Salat", Kategorie: "essen", Menge: 1},
 	}
 	evt := makeBestellungEvent(2, "kassensitzung-1/tisch-5", positionen, "")
-	konfig := map[string]Druckstation{
-		"essen": {IP: "192.168.1.51", Bonmodus: "pro_bestellung"},
+	konfig := map[string]druckstation.Druckstation{
+		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_bestellung"},
 	}
 
 	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
@@ -98,8 +99,8 @@ func TestCreateArbeitsbonAuftraege_NoDruckerFuerKategorie(t *testing.T) {
 		{ProduktName: "Kaffee", VarianteName: "klein", Kategorie: "sonstiges", Menge: 1},
 	}
 	evt := makeBestellungEvent(3, "kassensitzung-1/tisch-2", positionen, "")
-	konfig := map[string]Druckstation{
-		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
+	konfig := map[string]druckstation.Druckstation{
+		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
 	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
@@ -115,8 +116,8 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 		{ProduktName: "Bratwurst", VarianteName: "mit Brot", Kategorie: "essen", Menge: 1},
 	}
 	evt := makeBestellungEvent(10, "kassensitzung-1/tisch-7", positionen, "ohne Ketchup")
-	konfig := map[string]Druckstation{
-		"essen": {IP: "192.168.1.51", Bonmodus: "pro_position"},
+	konfig := map[string]druckstation.Druckstation{
+		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
 	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig)
@@ -157,9 +158,9 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAnProduktstationen(t *testing.T)
 		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 2},
 	}
 	evt := makeDirektverkaufEvent(20, positionen, "schnell")
-	stationen := map[string]Druckstation{
-		"essen":    {IP: "192.168.1.51", Bonmodus: "pro_bestellung"},
-		"getraenk": {IP: "192.168.1.52", Bonmodus: "pro_bestellung"},
+	stationen := map[string]druckstation.Druckstation{
+		"essen":    {DruckerIP: "192.168.1.51", Bonmodus: "pro_bestellung"},
+		"getraenk": {DruckerIP: "192.168.1.52", Bonmodus: "pro_bestellung"},
 	}
 
 	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen)
@@ -184,9 +185,9 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProBestellung(t *testin
 		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
 	}
 	evt := makeDirektverkaufEvent(21, positionen, "ohne Senf")
-	stationen := map[string]Druckstation{
-		"essen":    {IP: "192.168.1.51", Bonmodus: "pro_position"},
-		"abholbon": {IP: "192.168.1.77", Bonmodus: "pro_bestellung"},
+	stationen := map[string]druckstation.Druckstation{
+		"essen":    {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
+		"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_bestellung"},
 	}
 
 	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen)
@@ -217,8 +218,8 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProPosition(t *testing.
 		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
 	}
 	evt := makeDirektverkaufEvent(22, positionen, "")
-	stationen := map[string]Druckstation{
-		"abholbon": {IP: "192.168.1.77", Bonmodus: "pro_position"},
+	stationen := map[string]druckstation.Druckstation{
+		"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_position"},
 	}
 
 	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen)
@@ -241,7 +242,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProPosition(t *testing.
 func TestCreateArbeitsbonAuftraege_DirektverkaufOhneStationen(t *testing.T) {
 	evt := makeDirektverkaufEvent(23, []kasse.Position{{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1}}, "")
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]Druckstation{})
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]druckstation.Druckstation{})
 
 	if len(auftraege) != 0 {
 		t.Fatalf("expected 0 auftraege without configured stations, got %d", len(auftraege))

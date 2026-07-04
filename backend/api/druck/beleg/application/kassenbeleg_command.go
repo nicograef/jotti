@@ -209,11 +209,6 @@ func negiereAufteilungen(aufteilungen []steuer.Aufteilung) []steuer.Aufteilung {
 func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (BelegStatus, error) {
 	log := zerolog.Ctx(ctx)
 
-	if c.DruckstationRepo == nil || c.SettingsRepo == nil || c.DruckauftragRepo == nil || c.TSERepo == nil {
-		log.Error().Msg("KassenbelegDrucken called without required dependencies")
-		return "", ErrDatabase
-	}
-
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
 		return "", err
@@ -375,7 +370,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		return "", ErrDatabase
 	}
 	kassenbelegStation, ok := stationen[string(druckstation.KategorieKassenbeleg)]
-	if !ok || kassenbelegStation.IP == "" {
+	if !ok || kassenbelegStation.DruckerIP == "" {
 		return "", ErrKassenbelegDruckerNichtKonfiguriert
 	}
 
@@ -417,7 +412,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 	})
 
 	auftrag := druckauftrag_repo.NeuerDruckauftrag{
-		ZielIP:   kassenbelegStation.IP,
+		ZielIP:   kassenbelegStation.DruckerIP,
 		Payload:  base64.StdEncoding.EncodeToString(payload),
 		BonArt:   "kassenbeleg",
 		Referenz: referenz,

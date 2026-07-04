@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
@@ -33,7 +34,7 @@ type productRepo interface {
 }
 
 type druckstationRepo interface {
-	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]bondruckApp.Druckstation, error)
+	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
 }
 
 // VerkaufPositionInput represents a single position of a Direktverkauf.
@@ -119,7 +120,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 // konfigurierteDruckstationen returns the configured print stations, or an empty
 // map when no DruckstationRepo is wired (e.g. in tests). Without configured stations
 // the policy derives no print jobs.
-func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]bondruckApp.Druckstation, error) {
+func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error) {
 	if c.DruckstationRepo == nil {
 		return nil, nil
 	}

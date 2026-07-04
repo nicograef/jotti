@@ -7,15 +7,11 @@ import (
 	"strings"
 
 	"github.com/nicograef/jotti/backend/api/bondruck/application/escpos"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
-
-type Druckstation struct {
-	IP       string // z. B. "192.168.1.51", leer = kein Drucker
-	Bonmodus string // "pro_position" (Standard) oder "pro_bestellung"
-}
 
 // positionenMitKommentarData spiegelt die benoetigten Felder von
 // bestellung-aufgenommen:v1 und direktverkauf-getaetigt:v1.
@@ -36,7 +32,7 @@ type positionenMitKommentarData struct {
 // Sammelbon je Kategorie bzw. einen Sammel-Abholbon.
 func CreateArbeitsbonAuftraegeFromEvent(
 	evt event.Event,
-	druckstationen map[string]Druckstation,
+	druckstationen map[string]druckstation.Druckstation,
 ) []druckauftrag_repo.NeuerDruckauftrag {
 	switch evt.Type {
 	case string(kasse.EventTypeBestellungAufgenommenV1):
@@ -50,7 +46,7 @@ func CreateArbeitsbonAuftraegeFromEvent(
 
 func createDirektverkaufAuftraege(
 	evt event.Event,
-	druckstationen map[string]Druckstation,
+	druckstationen map[string]druckstation.Druckstation,
 ) []druckauftrag_repo.NeuerDruckauftrag {
 	data, ok := unmarshalPositionenMitKommentar(evt)
 	if !ok {
@@ -60,7 +56,7 @@ func createDirektverkaufAuftraege(
 	referenz := fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
 
 	// Ableitungsregel: Abholbon-Station konfiguriert -> Abholbon(s), sonst Produktstationen.
-	if abholbon, ok := druckstationen["abholbon"]; ok && abholbon.IP != "" {
+	if abholbon, ok := druckstationen["abholbon"]; ok && abholbon.DruckerIP != "" {
 		return createAbholbonAuftraege(evt, data, abholbon, referenz)
 	}
 
@@ -72,13 +68,13 @@ func createDirektverkaufAuftraege(
 func createAbholbonAuftraege(
 	evt event.Event,
 	data positionenMitKommentarData,
-	station Druckstation,
+	station druckstation.Druckstation,
 	referenz string,
 ) []druckauftrag_repo.NeuerDruckauftrag {
 	if station.Bonmodus == "pro_bestellung" {
 		payload := escpos.FormatDirektverkaufAbholbon(data.Positionen, evt.UserName, evt.Time, data.Kommentar)
 		return []druckauftrag_repo.NeuerDruckauftrag{{
-			ZielIP:   station.IP,
+			ZielIP:   station.DruckerIP,
 			Payload:  base64.StdEncoding.EncodeToString(payload),
 			BonArt:   "arbeitsbon",
 			Referenz: referenz,
@@ -89,7 +85,7 @@ func createAbholbonAuftraege(
 	for _, pos := range data.Positionen {
 		payload := escpos.FormatDirektverkaufAbholbon([]kasse.Position{pos}, evt.UserName, evt.Time, data.Kommentar)
 		auftraege = append(auftraege, druckauftrag_repo.NeuerDruckauftrag{
-			ZielIP:   station.IP,
+			ZielIP:   station.DruckerIP,
 			Payload:  base64.StdEncoding.EncodeToString(payload),
 			BonArt:   "arbeitsbon",
 			Referenz: referenz,
@@ -100,7 +96,7 @@ func createAbholbonAuftraege(
 
 func createStationsAuftraege(
 	evt event.Event,
-	druckstationen map[string]Druckstation,
+	druckstationen map[string]druckstation.Druckstation,
 	kontextName string,
 	referenz string,
 ) []druckauftrag_repo.NeuerDruckauftrag {
@@ -115,7 +111,7 @@ func createStationsAuftraege(
 func createStationsAuftraegeFromData(
 	evt event.Event,
 	data positionenMitKommentarData,
-	druckstationen map[string]Druckstation,
+	druckstationen map[string]druckstation.Druckstation,
 	kontextName string,
 	referenz string,
 ) []druckauftrag_repo.NeuerDruckauftrag {
@@ -128,7 +124,7 @@ func createStationsAuftraegeFromData(
 	var auftraege []druckauftrag_repo.NeuerDruckauftrag
 	for kategorie, positionen := range byKategorie {
 		konfig, ok := druckstationen[kategorie]
-		if !ok || konfig.IP == "" {
+		if !ok || konfig.DruckerIP == "" {
 			continue
 		}
 
@@ -144,7 +140,7 @@ func createStationsAuftraegeFromData(
 				withBeep,
 			)
 			auftraege = append(auftraege, druckauftrag_repo.NeuerDruckauftrag{
-				ZielIP:   konfig.IP,
+				ZielIP:   konfig.DruckerIP,
 				Payload:  base64.StdEncoding.EncodeToString(payload),
 				BonArt:   "arbeitsbon",
 				Referenz: referenz,
@@ -162,7 +158,7 @@ func createStationsAuftraegeFromData(
 				withBeep,
 			)
 			auftraege = append(auftraege, druckauftrag_repo.NeuerDruckauftrag{
-				ZielIP:   konfig.IP,
+				ZielIP:   konfig.DruckerIP,
 				Payload:  base64.StdEncoding.EncodeToString(payload),
 				BonArt:   "arbeitsbon",
 				Referenz: referenz,

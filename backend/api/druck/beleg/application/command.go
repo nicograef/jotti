@@ -1,0 +1,70 @@
+package application
+
+import (
+	"context"
+
+	"github.com/nicograef/jotti/backend/domain/druckstation"
+	"github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
+)
+
+type eventRepo interface {
+	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
+	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
+}
+
+type kassensitzungenRepo interface {
+	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+}
+
+type druckstationRepo interface {
+	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
+}
+
+type druckauftragRepo interface {
+	EnqueueDruckauftraege(ctx context.Context, auftraege []druckauftrag_repo.NeuerDruckauftrag) error
+}
+
+// tseAuftragRepo liefert den Signatur-Stand eines Events aus der
+// Signaturauftrags-Tabelle und den aktiven Stoerungszeitraum aus dem
+// Stoerungsprotokoll — die beiden Eingaben der Signaturstatus-Funktion
+// (Beleg-Abruf liest genau eine Signaturquelle).
+type tseAuftragRepo interface {
+	GetSignaturauftragZuEvent(ctx context.Context, eventID int) (tse.SignaturauftragStand, error)
+	GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error)
+}
+
+type settingsRepo interface {
+	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
+	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
+}
+
+type Command struct {
+	EventRepo           eventRepo
+	KassensitzungenRepo kassensitzungenRepo
+	DruckstationRepo    druckstationRepo
+	DruckauftragRepo    druckauftragRepo
+	SettingsRepo        settingsRepo
+	TSERepo             tseAuftragRepo
+}
+
+// getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung for the Beleg-Abruf.
+// Returns ErrKasseNichtGeoeffnet (HTTP 409) when none is active and ErrKasseWirdAbgeschlossen while
+// the Kassensitzung is being closed (barrier active). Eigene Kopie samt kassensitzungenRepo-Interface
+// (dasselbe Muster wie in kassenfuehrung und direktverkauf).
+func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
+	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
+	if err != nil {
+		return nil, ErrDatabase
+	}
+	if ks == nil {
+		return nil, ErrKasseNichtGeoeffnet
+	}
+	if ks.Status == kasse.KassensitzungWirdAbgeschlossen {
+		return nil, ErrKasseWirdAbgeschlossen
+	}
+	return ks, nil
+}

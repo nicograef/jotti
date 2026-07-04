@@ -18,8 +18,8 @@ import (
 	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
 	settingsApp "github.com/nicograef/jotti/backend/api/settings/application"
 	settingsHTTP "github.com/nicograef/jotti/backend/api/settings/http"
-	tableApp "github.com/nicograef/jotti/backend/api/table/application"
-	tableHTTP "github.com/nicograef/jotti/backend/api/table/http"
+	tischApp "github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
+	tischHTTP "github.com/nicograef/jotti/backend/api/stammdaten/tisch/http"
 	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
 	tseHTTP "github.com/nicograef/jotti/backend/api/tse/http"
 	userApp "github.com/nicograef/jotti/backend/api/user/application"
@@ -28,6 +28,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
+	"github.com/nicograef/jotti/backend/repository/favorit_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
@@ -76,12 +77,11 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
 	settingsRepo := settings_repo.NewRepository(db)
 	tseStore := tse_repo.NewRepository(db)
-	tc := tableHTTP.CommandHandler{}
-	tc.Command = tableApp.Command{
-		TableRepo:           tableRepo,
-		EventRepo:           kassenjournalRepo,
-		ProductRepo:         productRepo,
-		KassensitzungenRepo: kassensitzungenRepo,
+	favoritRepo := favorit_repo.NewRepository(db)
+	tc := tischHTTP.CommandHandler{}
+	tc.Command = tischApp.Command{
+		TableRepo:   tableRepo,
+		FavoritRepo: favoritRepo,
 	}
 	r.HandleFunc("/update-tisch", tc.TischAktualisierenHandler())
 	r.HandleFunc("/create-tisch", tc.TischErstellenHandler())
@@ -89,8 +89,8 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/deactivate-tisch", tc.TischDeaktivierenHandler())
 	r.HandleFunc("/delete-tisch", tc.TischLoeschenHandler())
 
-	tq := tableHTTP.QueryHandler{}
-	tq.Query = tableApp.Query{TableRepo: tableRepo, EventRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}
+	tq := tischHTTP.QueryHandler{}
+	tq.Query = tischApp.Query{TableRepo: tableRepo}
 	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())
 
 	reportingRepo := reporting_repo.NewRepository(db)

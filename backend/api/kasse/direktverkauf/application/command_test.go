@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
@@ -86,11 +86,11 @@ func (s *spyEventRepo) WriteEventWithDruckauftraege(_ context.Context, e event.E
 }
 
 type mockDruckstationRepo struct {
-	konfig map[string]bondruckApp.Druckstation
+	konfig map[string]druckstation.Druckstation
 	err    error
 }
 
-func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context) (map[string]bondruckApp.Druckstation, error) {
+func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context) (map[string]druckstation.Druckstation, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -111,7 +111,7 @@ func newCommand(eventRepo eventRepo, ks *kasse.Kassensitzung) Command {
 	}
 }
 
-func newCommandWithDruckstationen(eventRepo eventRepo, ks *kasse.Kassensitzung, stationen map[string]bondruckApp.Druckstation) Command {
+func newCommandWithDruckstationen(eventRepo eventRepo, ks *kasse.Kassensitzung, stationen map[string]druckstation.Druckstation) Command {
 	return Command{
 		EventRepo:           eventRepo,
 		ProductRepo:         newProductMock(),
@@ -218,8 +218,8 @@ func TestDirektverkaufTaetigen_AbholbonModeQueuesExactlyOneAuftrag(t *testing.T)
 	command := newCommandWithDruckstationen(
 		spy,
 		testOpenKS,
-		map[string]bondruckApp.Druckstation{
-			"abholbon": {IP: "192.168.1.77", Bonmodus: "pro_bestellung"},
+		map[string]druckstation.Druckstation{
+			"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_bestellung"},
 		},
 	)
 

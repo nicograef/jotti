@@ -6,12 +6,11 @@ import (
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/bondruck/application"
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/product"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/table"
-	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/rs/zerolog"
@@ -19,9 +18,6 @@ import (
 
 type tableRepo interface {
 	GetTable(ctx context.Context, id int) (table.Tisch, error)
-	CreateTable(ctx context.Context, t table.Tisch) (int, error)
-	UpdateTable(ctx context.Context, t table.Tisch) error
-	GetAllTables(ctx context.Context) ([]table.Tisch, error)
 	GetActiveTables(ctx context.Context, kassensitzungNr int) ([]table.AktiverTisch, error)
 	GetActiveTablesWithFavorites(ctx context.Context, userID int, kassensitzungNr int) ([]table.AktiverTischMitFavorit, error)
 }
@@ -42,38 +38,16 @@ type kassensitzungenRepo interface {
 }
 
 type productRepo interface {
-	GetProduct(ctx context.Context, productID int) (product.Produkt, error)
-	GetVariant(ctx context.Context, variantID int) (product.Variante, error)
 	GetVariantsByIDs(ctx context.Context, ids []int) (map[int]product.Variante, error)
 	GetProductsByIDs(ctx context.Context, ids []int) (map[int]product.Produkt, error)
 }
 
 type favoritRepo interface {
-	Add(ctx context.Context, userID, tischID int) error
-	Remove(ctx context.Context, userID, tischID int) error
 	GetByUser(ctx context.Context, userID int) ([]int, error)
 }
 
 type druckstationRepo interface {
-	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]bondruckApp.Druckstation, error)
-}
-
-type druckauftragRepo interface {
-	EnqueueDruckauftraege(ctx context.Context, auftraege []druckauftrag_repo.NeuerDruckauftrag) error
-}
-
-// tseAuftragRepo liefert den Signatur-Stand eines Events aus der
-// Signaturauftrags-Tabelle und den aktiven Stoerungszeitraum aus dem
-// Stoerungsprotokoll — die beiden Eingaben der Signaturstatus-Funktion
-// (Beleg-Abruf liest genau eine Signaturquelle).
-type tseAuftragRepo interface {
-	GetSignaturauftragZuEvent(ctx context.Context, eventID int) (tse.SignaturauftragStand, error)
-	GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error)
-}
-
-type settingsRepo interface {
-	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
-	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
+	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
 }
 
 // BestellPositionInput represents the input for a single position in an order.
@@ -91,9 +65,6 @@ type Command struct {
 	FavoritRepo         favoritRepo
 	KassensitzungenRepo kassensitzungenRepo
 	DruckstationRepo    druckstationRepo
-	DruckauftragRepo    druckauftragRepo
-	SettingsRepo        settingsRepo
-	TSERepo             tseAuftragRepo
 }
 
 // getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung for a booking.
@@ -181,15 +152,6 @@ func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject
 	return nil
 }
 
-// konfigurierteDruckstationen returns the configured work-ticket printers, or an
-// empty map when no DruckstationRepo is wired (e.g. in tests).
-func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]bondruckApp.Druckstation, error) {
-	if c.DruckstationRepo == nil {
-		return nil, nil
-	}
-	return c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
-}
-
 // loadTischState loads and validates the tisch, then reads its projected tisch session.
 // Returns the subject, kassensitzungNr, and TischSession state.
 // Returns ErrKasseNichtGeoeffnet if no open Kassensitzung exists.
@@ -248,108 +210,6 @@ func validatePositionRefs(available []kasse.Position, requested []kasse.Position
 		}
 	}
 	return true
-}
-
-func (c Command) FavoritHinzufuegen(ctx context.Context, userID, tischID int) error {
-	log := zerolog.Ctx(ctx)
-
-	tisch, err := c.TableRepo.GetTable(ctx, tischID)
-	if err != nil {
-		return fromRepositoryError(err, log, tischID)
-	}
-
-	if tisch.Status != table.ActiveStatus {
-		log.Warn().Int("tisch_id", tischID).Str("status", string(tisch.Status)).Msg("Tisch is not active")
-		return ErrTischNotActive
-	}
-
-	if err := c.FavoritRepo.Add(ctx, userID, tischID); err != nil {
-		log.Error().Err(err).Int("user_id", userID).Int("tisch_id", tischID).Msg("Failed to add favorit")
-		return ErrDatabase
-	}
-
-	log.Info().Int("user_id", userID).Int("tisch_id", tischID).Msg("Favorit added")
-	return nil
-}
-
-func (c Command) FavoritEntfernen(ctx context.Context, userID, tischID int) error {
-	log := zerolog.Ctx(ctx)
-
-	if err := c.FavoritRepo.Remove(ctx, userID, tischID); err != nil {
-		log.Error().Err(err).Int("user_id", userID).Int("tisch_id", tischID).Msg("Failed to remove favorit")
-		return ErrDatabase
-	}
-
-	log.Info().Int("user_id", userID).Int("tisch_id", tischID).Msg("Favorit removed")
-	return nil
-}
-
-func (c Command) TischErstellen(ctx context.Context, name string) (int, error) {
-	log := zerolog.Ctx(ctx)
-
-	tisch, err := table.NewTisch(name)
-	if err != nil {
-		log.Warn().Err(err).Str("tisch_name", name).Msg("Invalid tisch data")
-		return 0, ErrInvalidTischData
-	}
-
-	id, err := c.TableRepo.CreateTable(ctx, tisch)
-	if err != nil {
-		return 0, fromRepositoryError(err, log, 0)
-	}
-
-	log.Info().Int("tisch_id", id).Msg("Tisch created")
-	return id, nil
-}
-
-func (c Command) TischAktualisieren(ctx context.Context, id int, name string) error {
-	log := zerolog.Ctx(ctx)
-
-	tisch, err := c.TableRepo.GetTable(ctx, id)
-	if err != nil {
-		return fromRepositoryError(err, log, id)
-	}
-
-	err = tisch.Rename(name)
-	if err != nil {
-		log.Warn().Err(err).Int("tisch_id", id).Msg("Invalid tisch data for update")
-		return ErrInvalidTischData
-	}
-
-	err = c.TableRepo.UpdateTable(ctx, tisch)
-	if err != nil {
-		return fromRepositoryError(err, log, id)
-	}
-
-	log.Info().Int("tisch_id", id).Msg("Tisch updated")
-	return nil
-}
-
-func (c Command) TischAktivieren(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(ctx, id, "Tisch activated", func(t *table.Tisch) { t.Activate() })
-}
-
-func (c Command) TischDeaktivieren(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(ctx, id, "Tisch deactivated", func(t *table.Tisch) { t.Deactivate() })
-}
-
-func (c Command) TischLoeschen(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(ctx, id, "Tisch deleted", func(t *table.Tisch) { t.Delete() })
-}
-
-func (c Command) applyTischStatusChange(ctx context.Context, id int, successMsg string, action func(*table.Tisch)) error {
-	log := zerolog.Ctx(ctx)
-
-	tisch, err := c.TableRepo.GetTable(ctx, id)
-	if err != nil {
-		return fromRepositoryError(err, log, id)
-	}
-	action(&tisch)
-	if err := c.TableRepo.UpdateTable(ctx, tisch); err != nil {
-		return fromRepositoryError(err, log, id)
-	}
-	log.Info().Int("tisch_id", id).Msg(successMsg)
-	return nil
 }
 
 func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string, tischID int, inputs []BestellPositionInput, kommentar string) error {
@@ -420,7 +280,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return err
 	}
 
-	druckstationen, err := c.konfigurierteDruckstationen(ctx)
+	druckstationen, err := c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to load druckstationen for arbeitsbon")
 		return ErrDatabase

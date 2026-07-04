@@ -82,9 +82,9 @@ func druckerFensterAus(s szenario, jetzt time.Time) []druckerFenster {
 // erste Fehlschlag verworfen), dem Relay-Abholfenster vor „jetzt" (offen) und sonst der
 // Gedruckt-Quittung kurz nach der Erstellung.
 func baueDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse.Signatur, jetzt time.Time) ([]druckauftragZeile, error) {
-	stationen := make(map[string]bondruckApp.Druckstation, len(s.Druckstationen))
+	stationen := make(map[string]druckstation.Druckstation, len(s.Druckstationen))
 	for _, st := range s.Druckstationen {
-		stationen[string(st.Kategorie)] = bondruckApp.Druckstation{IP: st.DruckerIP, Bonmodus: string(st.Bonmodus)}
+		stationen[string(st.Kategorie)] = druckstation.Druckstation{Kategorie: st.Kategorie, DruckerIP: st.DruckerIP, Bonmodus: st.Bonmodus}
 	}
 
 	b := &bondruckBauer{
@@ -133,7 +133,7 @@ func baueDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse.
 // auf dem Kassenbeleg).
 type bondruckBauer struct {
 	betreiber       settings.Betreiber
-	stationen       map[string]bondruckApp.Druckstation
+	stationen       map[string]druckstation.Druckstation
 	fenster         []druckerFenster
 	signaturen      map[int]*tse.Signatur
 	jetzt           time.Time
@@ -246,7 +246,7 @@ func (b *bondruckBauer) kassenbeleg(evt e.Event) (druckauftragZeile, bool, error
 	})
 
 	z := druckauftragZeile{
-		ZielIP:     b.stationen[string(druckstation.KategorieKassenbeleg)].IP,
+		ZielIP:     b.stationen[string(druckstation.KategorieKassenbeleg)].DruckerIP,
 		Payload:    base64.StdEncoding.EncodeToString(payload),
 		BonArt:     "kassenbeleg",
 		Referenz:   referenz,

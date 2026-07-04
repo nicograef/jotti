@@ -31,19 +31,6 @@ type Query struct {
 	KassensitzungenRepo kassensitzungenRepo
 }
 
-func (q Query) GetAllTische(ctx context.Context) ([]t.Tisch, error) {
-	log := zerolog.Ctx(ctx)
-
-	tische, err := q.TableRepo.GetAllTables(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve all tische")
-		return nil, ErrDatabase
-	}
-
-	log.Debug().Int("count", len(tische)).Msg("Retrieved all tische")
-	return tische, nil
-}
-
 func (q Query) GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error) {
 	log := zerolog.Ctx(ctx)
 
