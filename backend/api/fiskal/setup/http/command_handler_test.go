@@ -10,13 +10,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nicograef/jotti/backend/api/settings/application"
-	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/api/fiskal/setup/application"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 type mockSettingsCommand struct {
-	tse          settings.TSEKonfiguration
+	tse          tse.Konfiguration
 	err          error
 	einrichten   application.TSESetupErgebnis
 	einrichtErr  error
@@ -24,11 +23,7 @@ type mockSettingsCommand struct {
 	uebernehmErr error
 }
 
-func (m *mockSettingsCommand) UpdateBetreiber(_ context.Context, _ settings.Betreiber) error {
-	return m.err
-}
-
-func (m *mockSettingsCommand) UpdateTSEKonfiguration(_ context.Context, b settings.TSEKonfiguration) error {
+func (m *mockSettingsCommand) UpdateTSEKonfiguration(_ context.Context, b tse.Konfiguration) error {
 	if m.err != nil {
 		return m.err
 	}

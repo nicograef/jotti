@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	e "github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
@@ -31,15 +31,13 @@ var testOpenKS = &kasse.Kassensitzung{
 type settingsMock struct {
 	vereinsname  string
 	betreiberErr error
-	tse          settings.TSEKonfiguration
-	tseErr       error
 }
 
-func (m settingsMock) GetBetreiber(_ context.Context) (settings.Betreiber, error) {
+func (m settingsMock) GetBetreiber(_ context.Context) (betreiber.Betreiber, error) {
 	if m.betreiberErr != nil {
-		return settings.Betreiber{}, m.betreiberErr
+		return betreiber.Betreiber{}, m.betreiberErr
 	}
-	return settings.Betreiber{
+	return betreiber.Betreiber{
 		Vereinsname: m.vereinsname,
 		Strasse:     "Teststraße 1",
 		Plz:         "12345",
@@ -48,23 +46,15 @@ func (m settingsMock) GetBetreiber(_ context.Context) (settings.Betreiber, error
 	}, nil
 }
 
-func (m settingsMock) GetTSEKonfiguration(_ context.Context) (settings.TSEKonfiguration, error) {
-	if m.tseErr != nil {
-		return settings.TSEKonfiguration{}, m.tseErr
-	}
-	if !m.tse.IstKonfiguriert() {
-		return settings.TSEKonfiguration{}, db.ErrNotFound
-	}
-	return m.tse, nil
-}
-
 // tseGateMock speist das Kassenabschluss-Gate: die noch nicht erledigten
-// Signatur-Stände der Sitzung und der aktive Störungszeitraum. Der Nullwert
-// (keine Stände, keine Störung) lässt das Gate durch.
+// Signatur-Stände der Sitzung und der aktive Störungszeitraum (Nullwert lässt
+// das Gate durch) sowie die TSE-Konfiguration für die Eröffnungs-Warnung.
 type tseGateMock struct {
 	staende  []tse.SignaturauftragStand
 	stoerung *tse.Stoerung
 	err      error
+	tse      tse.Konfiguration
+	tseErr   error
 }
 
 func (m tseGateMock) GetOffeneSignaturauftragStaendeFuerKassensitzung(_ context.Context, _ int) ([]tse.SignaturauftragStand, error) {
@@ -75,13 +65,23 @@ func (m tseGateMock) GetAktiveTSEStoerung(_ context.Context) (*tse.Stoerung, err
 	return m.stoerung, nil
 }
 
+func (m tseGateMock) GetTSEKonfiguration(_ context.Context) (tse.Konfiguration, error) {
+	if m.tseErr != nil {
+		return tse.Konfiguration{}, m.tseErr
+	}
+	if !m.tse.IstKonfiguriert() {
+		return tse.Konfiguration{}, db.ErrNotFound
+	}
+	return m.tse, nil
+}
+
 func newTestCommand(ks *kasse.Kassensitzung) Command {
 	journalMock := kassenjournal_repo.NewMock(nil, nil)
 	sitzungMock := kassensitzungen_repo.NewMock(ks, nil)
 	return Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
-		SettingsRepo:        settingsMock{vereinsname: "TestVerein"},
+		BetreiberRepo:       settingsMock{vereinsname: "TestVerein"},
 		TSERepo:             tseGateMock{},
 	}
 }
@@ -104,7 +104,7 @@ func TestKassensitzungEroeffnen_BetreiberNichtKonfiguriert(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   kassenjournal_repo.NewMock(nil, nil),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
-		SettingsRepo:        settingsMock{betreiberErr: db.ErrNotFound},
+		BetreiberRepo:       settingsMock{betreiberErr: db.ErrNotFound},
 	}
 
 	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
@@ -118,7 +118,7 @@ func TestKassensitzungEroeffnen_BetreiberDatabaseError(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   kassenjournal_repo.NewMock(nil, nil),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
-		SettingsRepo:        settingsMock{betreiberErr: db.ErrDatabase},
+		BetreiberRepo:       settingsMock{betreiberErr: db.ErrDatabase},
 	}
 
 	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
@@ -514,17 +514,18 @@ func TestKassensitzungEroeffnen_MitTSE_KeineWarnung(t *testing.T) {
 	var logbuf bytes.Buffer
 	ctx := zerolog.New(&logbuf).WithContext(context.Background())
 
-	tseSettings := settingsMock{vereinsname: "TestVerein", tse: settings.TSEKonfiguration{
+	tseKonfiguration := tse.Konfiguration{
 		ApiKey:    "api-key",
 		ApiSecret: "api-secret",
 		TssID:     "tss-1",
 		ClientID:  "client-1",
 		UpdatedAt: time.Now(),
-	}}
+	}
 	cmd := Command{
 		KassenjournalRepo:   kassenjournal_repo.NewMock(nil, nil),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
-		SettingsRepo:        tseSettings,
+		BetreiberRepo:       settingsMock{vereinsname: "TestVerein"},
+		TSERepo:             tseGateMock{tse: tseKonfiguration},
 	}
 
 	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)

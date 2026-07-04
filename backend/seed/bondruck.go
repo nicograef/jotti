@@ -8,10 +8,10 @@ import (
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/druck/bondruck/application"
 	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	e "github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
@@ -132,7 +132,7 @@ func baueDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse.
 // den Beleg-Zähler und die erste Bestellzeit je Subject (für die „Erste Bestellung"-Zeile
 // auf dem Kassenbeleg).
 type bondruckBauer struct {
-	betreiber       settings.Betreiber
+	betreiber       betreiber.Betreiber
 	stationen       map[string]druckstation.Druckstation
 	fenster         []druckerFenster
 	signaturen      map[int]*tse.Signatur

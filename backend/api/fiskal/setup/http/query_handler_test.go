@@ -12,13 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nicograef/jotti/backend/api/settings/application"
-	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/api/fiskal/setup/application"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 type mockSettingsQuery struct {
-	tse              settings.TSEKonfiguration
+	tse              tse.Konfiguration
 	err              error
 	verbindungStatus tse.VerbindungStatus
 	verbindungErr    error
@@ -28,17 +27,13 @@ type mockSettingsQuery struct {
 	tseStatusErr     error
 }
 
-func (m *mockSettingsQuery) GetKassenidentitaet(_ context.Context) (settings.Kassenidentitaet, error) {
-	return settings.Kassenidentitaet{}, errors.New("not implemented")
+func (m *mockSettingsQuery) GetKassenidentitaet(_ context.Context) (tse.Kassenidentitaet, error) {
+	return tse.Kassenidentitaet{}, errors.New("not implemented")
 }
 
-func (m *mockSettingsQuery) GetBetreiber(_ context.Context) (settings.Betreiber, error) {
-	return settings.Betreiber{}, errors.New("not implemented")
-}
-
-func (m *mockSettingsQuery) GetTSEKonfiguration(_ context.Context) (settings.TSEKonfiguration, error) {
+func (m *mockSettingsQuery) GetTSEKonfiguration(_ context.Context) (tse.Konfiguration, error) {
 	if m.err != nil {
-		return settings.TSEKonfiguration{}, m.err
+		return tse.Konfiguration{}, m.err
 	}
 	return m.tse, nil
 }
@@ -65,7 +60,7 @@ func (m *mockSettingsQuery) GetTSEStatus(_ context.Context) (application.TSEStat
 }
 
 func TestGetTSEKonfigurationHandler_MaskedResponse(t *testing.T) {
-	h := &QueryHandler{Query: &mockSettingsQuery{tse: settings.TSEKonfiguration{
+	h := &QueryHandler{Query: &mockSettingsQuery{tse: tse.Konfiguration{
 		ApiKey:    "my-api-key",
 		ApiSecret: "my-api-secret",
 		TssID:     "tss-123",

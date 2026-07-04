@@ -8,16 +8,14 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
+	"github.com/nicograef/jotti/backend/api/fiskal/setup/application"
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/api/settings/application"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 type settingsQuery interface {
-	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
-	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
-	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
+	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
+	GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error)
 	TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, error)
 	PruefeTSESetup(ctx context.Context, credentials tse.SetupCredentials) (application.TSESetupBefund, error)
 	GetTSEStatus(ctx context.Context) (application.TSEStatus, error)
@@ -30,15 +28,6 @@ type QueryHandler struct {
 type kassenidentitaetResponse struct {
 	Seriennummer string    `json:"seriennummer"`
 	AngelegtAm   time.Time `json:"angelegtAm"`
-}
-
-type betreiberResponse struct {
-	Vereinsname  string  `json:"vereinsname"`
-	Strasse      string  `json:"strasse"`
-	Plz          string  `json:"plz"`
-	Ort          string  `json:"ort"`
-	Steuernummer *string `json:"steuernummer"`
-	UstID        *string `json:"ustId"`
 }
 
 type tseKonfigurationResponse struct {
@@ -99,28 +88,6 @@ func (h *QueryHandler) GetKassenidentitaetHandler() http.HandlerFunc {
 		helper.SendResponse(w, kassenidentitaetResponse{
 			Seriennummer: identitaet.Seriennummer.String(),
 			AngelegtAm:   identitaet.AngelegtAm,
-		})
-	}
-}
-
-func (h *QueryHandler) GetBetreiberHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		b, err := h.Query.GetBetreiber(r.Context())
-		if err != nil {
-			if errors.Is(err, application.ErrNotFound) {
-				helper.SendResponse(w, betreiberResponse{})
-				return
-			}
-			helper.SendServerError(w)
-			return
-		}
-		helper.SendResponse(w, betreiberResponse{
-			Vereinsname:  b.Vereinsname,
-			Strasse:      b.Strasse,
-			Plz:          b.Plz,
-			Ort:          b.Ort,
-			Steuernummer: b.Steuernummer,
-			UstID:        b.UstID,
 		})
 	}
 }

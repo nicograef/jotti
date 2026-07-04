@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/rs/zerolog"
 )
@@ -321,7 +320,7 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 // die Einrichtung nicht abgeschlossen: die TSS existiert bei fiskaly (per
 // Uebernahme einsammelbar), tss_id/client_id werden geloggt (PUK/PIN niemals).
 func (c Command) speichereEinrichtung(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, credentials tse.SetupCredentials, tssID, clientID string) error {
-	konfiguration, err := settings.NewTSEKonfiguration(credentials.ApiKey, credentials.ApiSecret, tssID, clientID)
+	konfiguration, err := tse.NewKonfiguration(credentials.ApiKey, credentials.ApiSecret, tssID, clientID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to build tse_konfiguration after setup")
 		return ErrTSEEinrichtung
@@ -350,7 +349,7 @@ func (c Command) zieheTSEStammdaten(ctx context.Context, log *zerolog.Logger, cl
 		log.Warn().Err(err).Str("tss_id", tssID).Msg("Failed to fetch TSE Stammdaten after setup; recoverable on next connect")
 		return
 	}
-	stammdaten := settings.NewTSEStammdaten(gelesen.SignaturAlgorithmus, gelesen.PublicKey, gelesen.Zertifikat, gelesen.LogTimeFormat)
+	stammdaten := tse.NewStammdaten(gelesen.SignaturAlgorithmus, gelesen.PublicKey, gelesen.Zertifikat, gelesen.LogTimeFormat)
 	if err := c.SettingsRepo.UpsertTSEStammdaten(ctx, stammdaten); err != nil {
 		log.Warn().Err(err).Str("tss_id", tssID).Msg("Failed to save TSE Stammdaten after setup; recoverable on next connect")
 	}

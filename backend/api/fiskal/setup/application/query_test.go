@@ -9,29 +9,24 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 type stubSettingsRepo struct {
-	konfiguration settings.TSEKonfiguration
-	identitaet    settings.Kassenidentitaet
+	konfiguration tse.Konfiguration
+	identitaet    tse.Kassenidentitaet
 }
 
-func (s stubSettingsRepo) GetKassenidentitaet(context.Context) (settings.Kassenidentitaet, error) {
+func (s stubSettingsRepo) GetKassenidentitaet(context.Context) (tse.Kassenidentitaet, error) {
 	return s.identitaet, nil
 }
 
-func (s stubSettingsRepo) GetBetreiber(context.Context) (settings.Betreiber, error) {
-	return settings.Betreiber{}, errors.New("not implemented")
-}
-
-func (s stubSettingsRepo) GetTSEKonfiguration(context.Context) (settings.TSEKonfiguration, error) {
+func (s stubSettingsRepo) GetTSEKonfiguration(context.Context) (tse.Konfiguration, error) {
 	return s.konfiguration, nil
 }
 
-func konfiguriert() settings.TSEKonfiguration {
-	return settings.TSEKonfiguration{
+func konfiguriert() tse.Konfiguration {
+	return tse.Konfiguration{
 		ApiKey:    "api-key",
 		ApiSecret: "api-secret",
 		TssID:     "tss-1",
@@ -63,7 +58,7 @@ func TestPruefeTSESetup_ErkenntPassendenClient(t *testing.T) {
 	seriennummer := uuid.New()
 	q := Query{
 		SettingsRepo: stubSettingsRepo{
-			identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer},
+			identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer},
 		},
 		NewTSESetupClient: setupClientLiefert(&tse.FakeSetupClient{
 			UmgebungResponse: tse.UmgebungTest,
@@ -123,7 +118,7 @@ func TestPruefeTSESetup_FalscheZugangsdaten(t *testing.T) {
 // Befund ohne TSS liefert (keine nil-Slice, kein Fehler).
 func TestPruefeTSESetup_LeeresKonto(t *testing.T) {
 	q := Query{
-		SettingsRepo: stubSettingsRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}},
+		SettingsRepo: stubSettingsRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}},
 		NewTSESetupClient: setupClientLiefert(&tse.FakeSetupClient{
 			UmgebungResponse: tse.UmgebungLive,
 		}),
@@ -177,7 +172,7 @@ func TestTestTSEVerbindung_SeriennummerAbweichung(t *testing.T) {
 	q := Query{
 		SettingsRepo: stubSettingsRepo{
 			konfiguration: konfiguriert(),
-			identitaet:    settings.Kassenidentitaet{Seriennummer: seriennummer},
+			identitaet:    tse.Kassenidentitaet{Seriennummer: seriennummer},
 		},
 		NewTSEConnectionTester: testerLiefert(tse.VerbindungStatus{
 			Umgebung:           tse.UmgebungTest,
@@ -204,7 +199,7 @@ func TestTestTSEVerbindung_SeriennummerStimmtUeberein(t *testing.T) {
 	q := Query{
 		SettingsRepo: stubSettingsRepo{
 			konfiguration: konfiguriert(),
-			identitaet:    settings.Kassenidentitaet{Seriennummer: seriennummer},
+			identitaet:    tse.Kassenidentitaet{Seriennummer: seriennummer},
 		},
 		NewTSEConnectionTester: testerLiefert(tse.VerbindungStatus{
 			Umgebung:           tse.UmgebungTest,

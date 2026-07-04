@@ -6,15 +6,13 @@ import (
 	"net/http"
 
 	z "github.com/Oudwins/zog"
+	"github.com/nicograef/jotti/backend/api/fiskal/setup/application"
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/api/settings/application"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 type settingsCommand interface {
-	UpdateBetreiber(ctx context.Context, b settings.Betreiber) error
-	UpdateTSEKonfiguration(ctx context.Context, b settings.TSEKonfiguration) error
+	UpdateTSEKonfiguration(ctx context.Context, b tse.Konfiguration) error
 	RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, neuAnlegenTrotzVorhandener bool) (application.TSESetupErgebnis, error)
 	UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, tssID, pin, puk string) (application.TSESetupErgebnis, error)
 }
@@ -22,24 +20,6 @@ type settingsCommand interface {
 type CommandHandler struct {
 	Command settingsCommand
 }
-
-type updateBetreiberRequest struct {
-	Vereinsname  string  `json:"vereinsname"`
-	Strasse      string  `json:"strasse"`
-	Plz          string  `json:"plz"`
-	Ort          string  `json:"ort"`
-	Steuernummer *string `json:"steuernummer"`
-	UstID        *string `json:"ustId"`
-}
-
-var updateBetreiberSchema = z.Struct(z.Shape{
-	"Vereinsname":  z.String().Min(1, z.Message("Vereinsname ist erforderlich")).Required(),
-	"Strasse":      z.String().Min(1, z.Message("Straße ist erforderlich")).Required(),
-	"Plz":          z.String().Min(1, z.Message("PLZ ist erforderlich")).Required(),
-	"Ort":          z.String().Min(1, z.Message("Ort ist erforderlich")).Required(),
-	"Steuernummer": z.Ptr(z.String()),
-	"UstID":        z.Ptr(z.String()),
-})
 
 type updateTSEKonfigurationRequest struct {
 	ApiKey    string `json:"apiKey"`
@@ -104,27 +84,6 @@ type tseEinrichtenResponse struct {
 	Umgebung string `json:"umgebung"`
 }
 
-func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var body updateBetreiberRequest
-		if !helper.ReadAndValidateBody(w, r, &body, updateBetreiberSchema) {
-			return
-		}
-
-		b, err := settings.NewBetreiber(body.Vereinsname, body.Strasse, body.Plz, body.Ort, body.Steuernummer, body.UstID)
-		if err != nil {
-			helper.SendServerError(w)
-			return
-		}
-
-		if err := h.Command.UpdateBetreiber(r.Context(), b); err != nil {
-			helper.SendServerError(w)
-			return
-		}
-		helper.SendEmptyResponse(w)
-	}
-}
-
 func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body updateTSEKonfigurationRequest
@@ -132,7 +91,7 @@ func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
 			return
 		}
 
-		conf, err := settings.NewTSEKonfiguration(body.ApiKey, body.ApiSecret, body.TssID, body.ClientID)
+		conf, err := tse.NewKonfiguration(body.ApiKey, body.ApiSecret, body.TssID, body.ClientID)
 		if err != nil {
 			helper.SendClientError(w, "validation_error", nil)
 			return

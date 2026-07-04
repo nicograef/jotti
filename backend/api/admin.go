@@ -10,14 +10,16 @@ import (
 	druckstationHTTP "github.com/nicograef/jotti/backend/api/druck/station/http"
 	exportApp "github.com/nicograef/jotti/backend/api/export/application"
 	exportHTTP "github.com/nicograef/jotti/backend/api/export/http"
+	fiskalSetupApp "github.com/nicograef/jotti/backend/api/fiskal/setup/application"
+	fiskalSetupHTTP "github.com/nicograef/jotti/backend/api/fiskal/setup/http"
 	kasseApp "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
 	kasseHTTP "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/http"
 	productApp "github.com/nicograef/jotti/backend/api/product/application"
 	productHTTP "github.com/nicograef/jotti/backend/api/product/http"
 	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
 	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
-	settingsApp "github.com/nicograef/jotti/backend/api/settings/application"
-	settingsHTTP "github.com/nicograef/jotti/backend/api/settings/http"
+	betreiberApp "github.com/nicograef/jotti/backend/api/stammdaten/betreiber/application"
+	betreiberHTTP "github.com/nicograef/jotti/backend/api/stammdaten/betreiber/http"
 	tischApp "github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
 	tischHTTP "github.com/nicograef/jotti/backend/api/stammdaten/tisch/http"
 	tseApp "github.com/nicograef/jotti/backend/api/tse/application"
@@ -26,6 +28,7 @@ import (
 	userHTTP "github.com/nicograef/jotti/backend/api/user/http"
 	"github.com/nicograef/jotti/backend/config"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/repository/betreiber_repo"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/favorit_repo"
@@ -33,7 +36,6 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
-	"github.com/nicograef/jotti/backend/repository/settings_repo"
 	"github.com/nicograef/jotti/backend/repository/table_repo"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 	"github.com/nicograef/jotti/backend/repository/user_repo"
@@ -75,7 +77,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	tableRepo := table_repo.NewRepository(db)
 	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
 	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
-	settingsRepo := settings_repo.NewRepository(db)
+	betreiberRepo := betreiber_repo.NewRepository(db)
 	tseStore := tse_repo.NewRepository(db)
 	favoritRepo := favorit_repo.NewRepository(db)
 	tc := tischHTTP.CommandHandler{}
@@ -109,7 +111,8 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	exportHandler.Service = exportApp.Export{
 		KassenjournalRepo:   kassenjournalRepo,
 		KassensitzungenRepo: kassensitzungenRepo,
-		SettingsRepo:        settingsRepo,
+		BetreiberRepo:       betreiberRepo,
+		TSERepo:             tseStore,
 		TableRepo:           tableRepo,
 	}
 	r.HandleFunc("/export/dsfinvk", exportHandler.ExportHandler())
@@ -118,7 +121,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	kc.Command = kasseApp.Command{
 		KassenjournalRepo:   kassenjournalRepo,
 		KassensitzungenRepo: kassensitzungenRepo,
-		SettingsRepo:        settingsRepo,
+		BetreiberRepo:       betreiberRepo,
 		TSERepo:             tseStore,
 	}
 	r.HandleFunc("/kassensitzung-eroeffnen", kc.KassensitzungEroeffnenHandler())
@@ -152,9 +155,9 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/get-tse-signatur-queue", tseQueryHandler.GetTSESignaturQueueHandler())
 	r.HandleFunc("/get-tse-stoerungen", tseQueryHandler.GetTSEStoerungenHandler())
 
-	sq := settingsHTTP.QueryHandler{}
-	sq.Query = settingsApp.Query{
-		SettingsRepo: settingsRepo,
+	sq := fiskalSetupHTTP.QueryHandler{}
+	sq.Query = fiskalSetupApp.Query{
+		SettingsRepo: tseStore,
 		NewTSEConnectionTester: func(credentials tse.Credentials) (tse.ConnectionTester, error) {
 			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
 		},
@@ -163,24 +166,30 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 		},
 	}
 	r.HandleFunc("/get-kassenidentitaet", sq.GetKassenidentitaetHandler())
-	r.HandleFunc("/get-betreiber", sq.GetBetreiberHandler())
 	r.HandleFunc("/get-tse-konfiguration", sq.GetTSEKonfigurationHandler())
 	r.HandleFunc("/test-tse-verbindung", sq.TestTSEVerbindungHandler())
 	r.HandleFunc("/tse-setup-pruefen", sq.PruefeTSESetupHandler())
 	r.HandleFunc("/get-tse-status", sq.GetTSEStatusHandler())
 
-	sc := settingsHTTP.CommandHandler{}
-	sc.Command = settingsApp.Command{
-		SettingsRepo:        settingsRepo,
+	sc := fiskalSetupHTTP.CommandHandler{}
+	sc.Command = fiskalSetupApp.Command{
+		SettingsRepo:        tseStore,
 		KassensitzungenRepo: kassensitzungenRepo,
 		NewTSESetupClient: func(credentials tse.SetupCredentials) (tse.SetupClient, error) {
 			return tse_repo.NewFiskalyTSESetupClient(cfg.FiskalyBaseURL, credentials, nil)
 		},
 	}
-	r.HandleFunc("/update-betreiber", sc.UpdateBetreiberHandler())
 	r.HandleFunc("/update-tse-konfiguration", sc.UpdateTSEKonfigurationHandler())
 	r.HandleFunc("/tse-einrichten", sc.RichteTSEEinHandler())
 	r.HandleFunc("/tse-uebernehmen", sc.UebernimmTSEHandler())
+
+	bq := betreiberHTTP.QueryHandler{}
+	bq.Query = betreiberApp.Query{BetreiberRepo: betreiberRepo}
+	r.HandleFunc("/get-betreiber", bq.GetBetreiberHandler())
+
+	bc := betreiberHTTP.CommandHandler{}
+	bc.Command = betreiberApp.Command{BetreiberRepo: betreiberRepo}
+	r.HandleFunc("/update-betreiber", bc.UpdateBetreiberHandler())
 
 	return r
 }

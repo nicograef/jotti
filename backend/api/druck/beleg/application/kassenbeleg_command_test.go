@@ -12,9 +12,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
@@ -69,41 +69,24 @@ func (m *mockDruckauftragRepo) EnqueueDruckauftraege(_ context.Context, auftraeg
 }
 
 type mockSettingsRepo struct {
-	betreiber      settings.Betreiber
-	kassenident    settings.Kassenidentitaet
-	tse            settings.TSEKonfiguration
-	betreiberErr   error
-	kassenidentErr error
-	tseErr         error
+	betreiber    betreiber.Betreiber
+	betreiberErr error
 }
 
-func (m *mockSettingsRepo) GetBetreiber(_ context.Context) (settings.Betreiber, error) {
+func (m *mockSettingsRepo) GetBetreiber(_ context.Context) (betreiber.Betreiber, error) {
 	if m.betreiberErr != nil {
-		return settings.Betreiber{}, m.betreiberErr
+		return betreiber.Betreiber{}, m.betreiberErr
 	}
 	return m.betreiber, nil
 }
 
-func (m *mockSettingsRepo) GetKassenidentitaet(_ context.Context) (settings.Kassenidentitaet, error) {
-	if m.kassenidentErr != nil {
-		return settings.Kassenidentitaet{}, m.kassenidentErr
-	}
-	return m.kassenident, nil
-}
-
-func (m *mockSettingsRepo) GetTSEKonfiguration(_ context.Context) (settings.TSEKonfiguration, error) {
-	if m.tseErr != nil {
-		return settings.TSEKonfiguration{}, m.tseErr
-	}
-	return m.tse, nil
-}
-
-// mockTSEAuftragRepo liefert den Signaturauftrags-Stand je Event-ID und den
-// aktiven Stoerungszeitraum; Events ohne Eintrag gelten als nicht
-// signaturpflichtig (db.ErrNotFound).
+// mockTSEAuftragRepo liefert den Signaturauftrags-Stand je Event-ID, den
+// aktiven Stoerungszeitraum und die Kassenidentitaet; Events ohne Eintrag gelten
+// als nicht signaturpflichtig (db.ErrNotFound).
 type mockTSEAuftragRepo struct {
-	staende  map[int]tse.SignaturauftragStand
-	stoerung *tse.Stoerung
+	staende     map[int]tse.SignaturauftragStand
+	stoerung    *tse.Stoerung
+	kassenident tse.Kassenidentitaet
 }
 
 func (m *mockTSEAuftragRepo) GetSignaturauftragZuEvent(_ context.Context, eventID int) (tse.SignaturauftragStand, error) {
@@ -115,6 +98,10 @@ func (m *mockTSEAuftragRepo) GetSignaturauftragZuEvent(_ context.Context, eventI
 
 func (m *mockTSEAuftragRepo) GetAktiveTSEStoerung(_ context.Context) (*tse.Stoerung, error) {
 	return m.stoerung, nil
+}
+
+func (m *mockTSEAuftragRepo) GetKassenidentitaet(_ context.Context) (tse.Kassenidentitaet, error) {
+	return m.kassenident, nil
 }
 
 func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
@@ -148,16 +135,12 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 
 	auftragMock := &mockDruckauftragRepo{}
 	settingsMock := &mockSettingsRepo{
-		betreiber: settings.Betreiber{
+		betreiber: betreiber.Betreiber{
 			Vereinsname: "SV Musterstadt",
 			Strasse:     "Musterstrasse 1",
 			Plz:         "12345",
 			Ort:         "Musterstadt",
 			UpdatedAt:   time.Now(),
-		},
-		kassenident: settings.Kassenidentitaet{
-			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
-			AngelegtAm:   time.Now(),
 		},
 	}
 
@@ -165,7 +148,7 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		SettingsRepo:        settingsMock,
+		BetreiberRepo:       settingsMock,
 		DruckauftragRepo:    auftragMock,
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
@@ -239,16 +222,12 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 
 	auftragMock := &mockDruckauftragRepo{}
 	settingsMock := &mockSettingsRepo{
-		betreiber: settings.Betreiber{
+		betreiber: betreiber.Betreiber{
 			Vereinsname: "SV Musterstadt",
 			Strasse:     "Musterstrasse 1",
 			Plz:         "12345",
 			Ort:         "Musterstadt",
 			UpdatedAt:   time.Now(),
-		},
-		kassenident: settings.Kassenidentitaet{
-			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
-			AngelegtAm:   time.Now(),
 		},
 	}
 
@@ -256,7 +235,7 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		SettingsRepo:        settingsMock,
+		BetreiberRepo:       settingsMock,
 		DruckauftragRepo:    auftragMock,
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
@@ -335,16 +314,12 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 
 	auftragMock := &mockDruckauftragRepo{}
 	settingsMock := &mockSettingsRepo{
-		betreiber: settings.Betreiber{
+		betreiber: betreiber.Betreiber{
 			Vereinsname: "SV Musterstadt",
 			Strasse:     "Musterstrasse 1",
 			Plz:         "12345",
 			Ort:         "Musterstadt",
 			UpdatedAt:   time.Now(),
-		},
-		kassenident: settings.Kassenidentitaet{
-			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
-			AngelegtAm:   time.Now(),
 		},
 	}
 
@@ -352,7 +327,7 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		SettingsRepo:        settingsMock,
+		BetreiberRepo:       settingsMock,
 		DruckauftragRepo:    auftragMock,
 		TSERepo:             tseRepo,
 	}
@@ -436,16 +411,12 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 
 	auftragMock := &mockDruckauftragRepo{}
 	settingsMock := &mockSettingsRepo{
-		betreiber: settings.Betreiber{
+		betreiber: betreiber.Betreiber{
 			Vereinsname: "SV Musterstadt",
 			Strasse:     "Musterstrasse 1",
 			Plz:         "12345",
 			Ort:         "Musterstadt",
 			UpdatedAt:   time.Now(),
-		},
-		kassenident: settings.Kassenidentitaet{
-			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
-			AngelegtAm:   time.Now(),
 		},
 	}
 
@@ -453,7 +424,7 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		SettingsRepo:        settingsMock,
+		BetreiberRepo:       settingsMock,
 		DruckauftragRepo:    auftragMock,
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
@@ -515,7 +486,7 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		SettingsRepo:        belegTestSettingsMock(),
+		BetreiberRepo:       belegTestSettingsMock(),
 		DruckauftragRepo:    auftragMock,
 		TSERepo:             tseRepo,
 	}
@@ -604,7 +575,7 @@ func belegTestCommand(eventMock *kassenjournal_repo.MockRepo, tseRepo *mockTSEAu
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		SettingsRepo:        belegTestSettingsMock(),
+		BetreiberRepo:       belegTestSettingsMock(),
 		DruckauftragRepo:    auftragMock,
 		TSERepo:             tseRepo,
 	}
@@ -739,7 +710,7 @@ func TestKassenbelegDrucken_ZahlungNichtGefunden(t *testing.T) {
 	command := Command{
 		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo:        &mockSettingsRepo{},
+		BetreiberRepo:       &mockSettingsRepo{},
 		DruckstationRepo:    &mockDruckstationRepo{},
 		DruckauftragRepo:    &mockDruckauftragRepo{},
 		TSERepo:             &mockTSEAuftragRepo{},
@@ -783,7 +754,7 @@ func TestKassenbelegDrucken_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
 	command := Command{
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo:        &mockSettingsRepo{},
+		BetreiberRepo:       &mockSettingsRepo{},
 		DruckstationRepo:    &mockDruckstationRepo{},
 		DruckauftragRepo:    &mockDruckauftragRepo{},
 		TSERepo:             &mockTSEAuftragRepo{},
@@ -818,16 +789,12 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 
 	auftragMock := &mockDruckauftragRepo{}
 	settingsMock := &mockSettingsRepo{
-		betreiber: settings.Betreiber{
+		betreiber: betreiber.Betreiber{
 			Vereinsname: "SV Musterstadt",
 			Strasse:     "Musterstrasse 1",
 			Plz:         "12345",
 			Ort:         "Musterstadt",
 			UpdatedAt:   time.Now(),
-		},
-		kassenident: settings.Kassenidentitaet{
-			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
-			AngelegtAm:   time.Now(),
 		},
 	}
 
@@ -835,7 +802,7 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		SettingsRepo:        settingsMock,
+		BetreiberRepo:       settingsMock,
 		DruckauftragRepo:    auftragMock,
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
@@ -868,7 +835,7 @@ func TestKassenbelegDrucken_Direktverkauf_NichtGefunden(t *testing.T) {
 	command := Command{
 		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo:        &mockSettingsRepo{},
+		BetreiberRepo:       &mockSettingsRepo{},
 		DruckstationRepo:    &mockDruckstationRepo{},
 		DruckauftragRepo:    &mockDruckauftragRepo{},
 		TSERepo:             &mockTSEAuftragRepo{},
@@ -905,7 +872,7 @@ func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t 
 	command := Command{
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo:        &mockSettingsRepo{},
+		BetreiberRepo:       &mockSettingsRepo{},
 		DruckstationRepo:    &mockDruckstationRepo{},
 		DruckauftragRepo:    &mockDruckauftragRepo{},
 		TSERepo:             &mockTSEAuftragRepo{},
@@ -918,16 +885,12 @@ func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t 
 
 func belegTestSettingsMock() *mockSettingsRepo {
 	return &mockSettingsRepo{
-		betreiber: settings.Betreiber{
+		betreiber: betreiber.Betreiber{
 			Vereinsname: "SV Musterstadt",
 			Strasse:     "Musterstrasse 1",
 			Plz:         "12345",
 			Ort:         "Musterstadt",
 			UpdatedAt:   time.Now(),
-		},
-		kassenident: settings.Kassenidentitaet{
-			Seriennummer: uuid.MustParse("2e00c5d4-7adb-4f63-84d6-a34235f2b0f4"),
-			AngelegtAm:   time.Now(),
 		},
 	}
 }
@@ -969,7 +932,7 @@ func TestKassenbelegDrucken_Direktverkauf_MitSignaturAmAuftrag(t *testing.T) {
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		SettingsRepo:        belegTestSettingsMock(),
+		BetreiberRepo:       belegTestSettingsMock(),
 		DruckauftragRepo:    auftragMock,
 		TSERepo:             tseRepo,
 	}
@@ -1022,7 +985,7 @@ func TestKassenbelegDrucken_Direktverkauf_SignaturAusstehend_KeinDruckauftrag(t 
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		SettingsRepo:        belegTestSettingsMock(),
+		BetreiberRepo:       belegTestSettingsMock(),
 		DruckauftragRepo:    auftragMock,
 		TSERepo:             tseRepo,
 	}
@@ -1096,7 +1059,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		SettingsRepo:        belegTestSettingsMock(),
+		BetreiberRepo:       belegTestSettingsMock(),
 		DruckauftragRepo:    auftragMock,
 		TSERepo:             tseRepo,
 	}
@@ -1180,7 +1143,7 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		SettingsRepo:        belegTestSettingsMock(),
+		BetreiberRepo:       belegTestSettingsMock(),
 		DruckauftragRepo:    auftragMock,
 		TSERepo:             tseRepo,
 	}
@@ -1233,7 +1196,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_NichtGefunden(t *testing.T) {
 	command := Command{
 		EventRepo:           eventMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		SettingsRepo:        belegTestSettingsMock(),
+		BetreiberRepo:       belegTestSettingsMock(),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		DruckauftragRepo:    &mockDruckauftragRepo{},
 		TSERepo:             &mockTSEAuftragRepo{},

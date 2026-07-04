@@ -4,15 +4,14 @@ import (
 	"context"
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/rs/zerolog"
 )
 
 type settingsCommandRepo interface {
-	UpsertBetreiber(ctx context.Context, b settings.Betreiber) error
-	SpeichereEinrichtung(ctx context.Context, c settings.TSEKonfiguration) error
-	UpsertTSEStammdaten(ctx context.Context, s settings.TSEStammdaten) error
-	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
+	SpeichereEinrichtung(ctx context.Context, c tse.Konfiguration) error
+	UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error
+	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
 }
 
 // kassensitzungReader meldet, ob gerade eine Kassensitzung offen ist. Aenderungen
@@ -45,18 +44,7 @@ func (c Command) pruefeKeineOffeneKassensitzung(ctx context.Context) error {
 	return nil
 }
 
-func (c Command) UpdateBetreiber(ctx context.Context, b settings.Betreiber) error {
-	log := zerolog.Ctx(ctx)
-
-	if err := c.SettingsRepo.UpsertBetreiber(ctx, b); err != nil {
-		log.Error().Err(err).Msg("Failed to save betreiber")
-		return ErrDatabase
-	}
-	log.Info().Str("vereinsname", b.Vereinsname).Msg("Betreiber saved")
-	return nil
-}
-
-func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf settings.TSEKonfiguration) error {
+func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfiguration) error {
 	log := zerolog.Ctx(ctx)
 
 	if err := c.pruefeKeineOffeneKassensitzung(ctx); err != nil {

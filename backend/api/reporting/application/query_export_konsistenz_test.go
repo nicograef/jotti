@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/dsfinvk"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
@@ -158,7 +158,7 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 		KasseSeriennummer: "11111111-2222-3333-4444-555555555555",
 		Erstellung:        time.Date(2026, 6, 16, 20, 0, 0, 0, time.UTC),
 		KassensitzungNr:   konsistenzZNr,
-		Betreiber:         settings.Betreiber{Vereinsname: "TSV Beispiel", Strasse: "Hauptstr. 1", Plz: "12345", Ort: "Musterdorf"},
+		Betreiber:         betreiber.Betreiber{Vereinsname: "TSV Beispiel", Strasse: "Hauptstr. 1", Plz: "12345", Ort: "Musterdorf"},
 		Tischnamen:        map[int]string{42: "Tisch 42"},
 	}
 	archive, err := dsfinvk.Map(snapshot, events, nil)

@@ -10,19 +10,18 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 )
 
 type mockTSESettingsReader struct {
-	conf settings.TSEKonfiguration
+	conf tse.Konfiguration
 	err  error
 }
 
-func (m *mockTSESettingsReader) GetTSEKonfiguration(_ context.Context) (settings.TSEKonfiguration, error) {
+func (m *mockTSESettingsReader) GetTSEKonfiguration(_ context.Context) (tse.Konfiguration, error) {
 	if m.err != nil {
-		return settings.TSEKonfiguration{}, m.err
+		return tse.Konfiguration{}, m.err
 	}
 	return m.conf, nil
 }
@@ -105,8 +104,8 @@ func (m *mockTSESignaturStore) SchliesseTSEStoerung(_ context.Context, grundArt 
 	return nil
 }
 
-func configuredTSE() settings.TSEKonfiguration {
-	return settings.TSEKonfiguration{
+func configuredTSE() tse.Konfiguration {
+	return tse.Konfiguration{
 		ApiKey:    "api-key",
 		ApiSecret: "api-secret",
 		TssID:     "tss-1",
@@ -620,7 +619,7 @@ func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationMarkiertEndgueltig(t *te
 		settingsRepo *mockTSESettingsReader
 	}{
 		{name: "keine Zeile", settingsRepo: &mockTSESettingsReader{err: db.ErrNotFound}},
-		{name: "leere Konfiguration", settingsRepo: &mockTSESettingsReader{conf: settings.TSEKonfiguration{}}},
+		{name: "leere Konfiguration", settingsRepo: &mockTSESettingsReader{conf: tse.Konfiguration{}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

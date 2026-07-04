@@ -1,6 +1,6 @@
 //go:build integration
 
-package settings_repo
+package tse_repo
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
@@ -97,9 +96,9 @@ func (u *einrichtungsUmgebung) status(t *testing.T, auftragID int) string {
 	return status
 }
 
-func gueltigeKonfiguration(t *testing.T, tssID string) settings.TSEKonfiguration {
+func gueltigeKonfiguration(t *testing.T, tssID string) tse.Konfiguration {
 	t.Helper()
-	conf, err := settings.NewTSEKonfiguration("api-key", "api-secret", tssID, "client-1")
+	conf, err := tse.NewKonfiguration("api-key", "api-secret", tssID, "client-1")
 	if err != nil {
 		t.Fatalf("build konfiguration: %v", err)
 	}
@@ -201,7 +200,7 @@ func TestSpeichereEinrichtung_LeereKonfigurationSweeptNicht(t *testing.T) {
 		t.Fatalf("open stoerung: %v", err)
 	}
 
-	leer, err := settings.NewTSEKonfiguration("", "", "", "")
+	leer, err := tse.NewKonfiguration("", "", "", "")
 	if err != nil {
 		t.Fatalf("build leere konfiguration: %v", err)
 	}

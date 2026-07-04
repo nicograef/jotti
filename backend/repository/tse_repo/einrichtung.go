@@ -1,4 +1,4 @@
-package settings_repo
+package tse_repo
 
 import (
 	"context"
@@ -6,56 +6,26 @@ import (
 	"errors"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-// GetBetreiber returns the betreiber data, or db.ErrNotFound if not yet set.
-func (r Repository) GetBetreiber(ctx context.Context) (settings.Betreiber, error) {
-	row, err := r.q.GetBetreiber(ctx)
-	if err != nil {
-		return settings.Betreiber{}, db.Error(err)
-	}
-	return toDomain(row), nil
-}
-
-// UpsertBetreiber creates or updates the betreiber data.
-func (r Repository) UpsertBetreiber(ctx context.Context, b settings.Betreiber) error {
-	params := dbgen.UpsertBetreiberParams{
-		Vereinsname: b.Vereinsname,
-		Strasse:     b.Strasse,
-		Plz:         b.Plz,
-		Ort:         b.Ort,
-	}
-	if b.Steuernummer != nil {
-		params.Steuernummer = sql.NullString{String: *b.Steuernummer, Valid: true}
-	}
-	if b.UstID != nil {
-		params.UstID = sql.NullString{String: *b.UstID, Valid: true}
-	}
-	if err := r.q.UpsertBetreiber(ctx, params); err != nil {
-		return db.Error(err)
-	}
-	return nil
-}
-
 // GetKassenidentitaet returns the kasse identity, or db.ErrNotFound if not yet initialized.
-func (r Repository) GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error) {
+func (r Repository) GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error) {
 	row, err := r.q.GetKassenidentitaet(ctx)
 	if err != nil {
-		return settings.Kassenidentitaet{}, db.Error(err)
+		return tse.Kassenidentitaet{}, db.Error(err)
 	}
-	return settings.Kassenidentitaet{
+	return tse.Kassenidentitaet{
 		Seriennummer: row.Seriennummer,
 		AngelegtAm:   row.AngelegtAm,
 	}, nil
 }
 
-func (r Repository) GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error) {
+func (r Repository) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error) {
 	row, err := r.q.GetTSEKonfiguration(ctx)
 	if err != nil {
-		return settings.TSEKonfiguration{}, db.Error(err)
+		return tse.Konfiguration{}, db.Error(err)
 	}
 	return toTSEKonfiguration(row), nil
 }
@@ -71,7 +41,7 @@ func (r Repository) GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfig
 // konfiguriert markiert. Auch das Speichern einer unvollstaendigen
 // Konfiguration (Leeren) sweept nichts: Der Dauerzustand ohne Konfiguration
 // gehoert dem Signatur-Worker, der Stoerungszeitraum bleibt offen.
-func (r Repository) SpeichereEinrichtung(ctx context.Context, c settings.TSEKonfiguration) error {
+func (r Repository) SpeichereEinrichtung(ctx context.Context, c tse.Konfiguration) error {
 	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
 		warKonfiguriert := false
 		if vorher, err := qtx.GetTSEKonfiguration(ctx); err == nil {
@@ -97,7 +67,7 @@ func (r Repository) SpeichereEinrichtung(ctx context.Context, c settings.TSEKonf
 	})
 }
 
-func upsertTSEKonfigurationParams(c settings.TSEKonfiguration) dbgen.UpsertTSEKonfigurationParams {
+func upsertTSEKonfigurationParams(c tse.Konfiguration) dbgen.UpsertTSEKonfigurationParams {
 	return dbgen.UpsertTSEKonfigurationParams{
 		ApiKey:    c.ApiKey,
 		ApiSecret: c.ApiSecret,
@@ -125,12 +95,12 @@ func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) e
 
 // GetTSEStammdaten liest die fiskalischen TSS-Stammdaten fuer den
 // DSFinV-K-Export (Singleton). Vor der TSE-Einrichtung sind die Felder leer.
-func (r Repository) GetTSEStammdaten(ctx context.Context) (settings.TSEStammdaten, error) {
+func (r Repository) GetTSEStammdaten(ctx context.Context) (tse.Stammdaten, error) {
 	row, err := r.q.GetTSEStammdaten(ctx)
 	if err != nil {
-		return settings.TSEStammdaten{}, db.Error(err)
+		return tse.Stammdaten{}, db.Error(err)
 	}
-	return settings.TSEStammdaten{
+	return tse.Stammdaten{
 		SignaturAlgorithmus: row.SignaturAlgorithmus,
 		PublicKey:           row.PublicKey,
 		Zertifikat:          row.Zertifikat,
@@ -141,7 +111,7 @@ func (r Repository) GetTSEStammdaten(ctx context.Context) (settings.TSEStammdate
 
 // UpsertTSEStammdaten speichert die fiskalischen TSS-Stammdaten fuer den
 // DSFinV-K-Export (Singleton).
-func (r Repository) UpsertTSEStammdaten(ctx context.Context, s settings.TSEStammdaten) error {
+func (r Repository) UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error {
 	err := r.q.UpsertTSEStammdaten(ctx, dbgen.UpsertTSEStammdatenParams{
 		SignaturAlgorithmus: s.SignaturAlgorithmus,
 		PublicKey:           s.PublicKey,
@@ -152,4 +122,14 @@ func (r Repository) UpsertTSEStammdaten(ctx context.Context, s settings.TSEStamm
 		return db.Error(err)
 	}
 	return nil
+}
+
+func toTSEKonfiguration(row dbgen.GetTSEKonfigurationRow) tse.Konfiguration {
+	return tse.Konfiguration{
+		ApiKey:    row.ApiKey,
+		ApiSecret: row.ApiSecret,
+		TssID:     row.TssID,
+		ClientID:  row.ClientID,
+		UpdatedAt: row.UpdatedAt,
+	}
 }

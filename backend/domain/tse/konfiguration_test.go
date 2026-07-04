@@ -1,11 +1,11 @@
 //go:build unit
 
-package settings
+package tse
 
 import "testing"
 
-func TestNewTSEKonfiguration(t *testing.T) {
-	conf, err := NewTSEKonfiguration(" api-key ", " api-secret ", " tss-1 ", " client-1 ")
+func TestNewKonfiguration(t *testing.T) {
+	conf, err := NewKonfiguration(" api-key ", " api-secret ", " tss-1 ", " client-1 ")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -27,25 +27,25 @@ func TestNewTSEKonfiguration(t *testing.T) {
 	}
 }
 
-func TestTSEKonfigurationIstKonfiguriert(t *testing.T) {
+func TestKonfigurationIstKonfiguriert(t *testing.T) {
 	tests := []struct {
 		name string
-		conf TSEKonfiguration
+		conf Konfiguration
 		want bool
 	}{
 		{
 			name: "all fields set",
-			conf: TSEKonfiguration{ApiKey: "a", ApiSecret: "b", TssID: "c", ClientID: "d"},
+			conf: Konfiguration{ApiKey: "a", ApiSecret: "b", TssID: "c", ClientID: "d"},
 			want: true,
 		},
 		{
 			name: "api key missing",
-			conf: TSEKonfiguration{ApiSecret: "b", TssID: "c", ClientID: "d"},
+			conf: Konfiguration{ApiSecret: "b", TssID: "c", ClientID: "d"},
 			want: false,
 		},
 		{
 			name: "whitespace is treated as missing",
-			conf: TSEKonfiguration{ApiKey: " ", ApiSecret: "b", TssID: "c", ClientID: "d"},
+			conf: Konfiguration{ApiKey: " ", ApiSecret: "b", TssID: "c", ClientID: "d"},
 			want: false,
 		},
 	}
@@ -60,8 +60,8 @@ func TestTSEKonfigurationIstKonfiguriert(t *testing.T) {
 	}
 }
 
-func TestNewTSEKonfiguration_PartialValuesRejected(t *testing.T) {
-	_, err := NewTSEKonfiguration("api-key", "", "tss-1", "client-1")
+func TestNewKonfiguration_PartialValuesRejected(t *testing.T) {
+	_, err := NewKonfiguration("api-key", "", "tss-1", "client-1")
 	if err == nil {
 		t.Fatal("expected error for partial config, got nil")
 	}

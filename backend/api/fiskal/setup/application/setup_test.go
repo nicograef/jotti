@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
@@ -17,22 +16,18 @@ import (
 // Kassenidentitaet, damit die Orchestrator-Tests Seriennummer und Speicherung
 // pruefen koennen.
 type stubCommandRepo struct {
-	identitaet             settings.Kassenidentitaet
-	gespeichert            *settings.TSEKonfiguration
-	gespeicherteStammdaten *settings.TSEStammdaten
+	identitaet             tse.Kassenidentitaet
+	gespeichert            *tse.Konfiguration
+	gespeicherteStammdaten *tse.Stammdaten
 	upsertErr              error
 	stammdatenUpsertErr    error
 }
 
-func (s *stubCommandRepo) UpsertBetreiber(context.Context, settings.Betreiber) error {
-	return errors.New("not implemented")
-}
-
-func (s *stubCommandRepo) GetKassenidentitaet(context.Context) (settings.Kassenidentitaet, error) {
+func (s *stubCommandRepo) GetKassenidentitaet(context.Context) (tse.Kassenidentitaet, error) {
 	return s.identitaet, nil
 }
 
-func (s *stubCommandRepo) SpeichereEinrichtung(_ context.Context, c settings.TSEKonfiguration) error {
+func (s *stubCommandRepo) SpeichereEinrichtung(_ context.Context, c tse.Konfiguration) error {
 	if s.upsertErr != nil {
 		return s.upsertErr
 	}
@@ -40,7 +35,7 @@ func (s *stubCommandRepo) SpeichereEinrichtung(_ context.Context, c settings.TSE
 	return nil
 }
 
-func (s *stubCommandRepo) UpsertTSEStammdaten(_ context.Context, st settings.TSEStammdaten) error {
+func (s *stubCommandRepo) UpsertTSEStammdaten(_ context.Context, st tse.Stammdaten) error {
 	if s.stammdatenUpsertErr != nil {
 		return s.stammdatenUpsertErr
 	}
@@ -79,7 +74,7 @@ func zugangsdaten() tse.SetupCredentials {
 // und die vollstaendige Konfiguration gespeichert.
 func TestRichteTSEEin_LeeresKonto(t *testing.T) {
 	seriennummer := uuid.New()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse:  tse.UmgebungTest,
 		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk-123", State: "CREATED"},
@@ -134,7 +129,7 @@ func TestRichteTSEEin_LeeresKonto(t *testing.T) {
 // Admin TEST, zeigen die Zugangsdaten aber auf LIVE, bricht die Einrichtung ab,
 // bevor irgendeine TSS angelegt wird.
 func TestRichteTSEEin_UmgebungAbweichung(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{UmgebungResponse: tse.UmgebungLive}
 
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
@@ -152,7 +147,7 @@ func TestRichteTSEEin_UmgebungAbweichung(t *testing.T) {
 // TestRichteTSEEin_BestaetigteUmgebungUngueltig sichert ab, dass eine nicht
 // bestaetigte Umgebung (weder TEST noch LIVE) abgewiesen wird.
 func TestRichteTSEEin_BestaetigteUmgebungUngueltig(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{UmgebungResponse: tse.UmgebungTest}
 
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.Umgebung(""), false)
@@ -167,7 +162,7 @@ func TestRichteTSEEin_BestaetigteUmgebungUngueltig(t *testing.T) {
 // TestRichteTSEEin_VorhandeneAktiveTSS sichert: existiert bereits eine aktive
 // TSS, wird keine neue angelegt.
 func TestRichteTSEEin_VorhandeneAktiveTSS(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-alt", State: "INITIALIZED"}},
@@ -189,7 +184,7 @@ func TestRichteTSEEin_VorhandeneAktiveTSS(t *testing.T) {
 // deaktivierte (DISABLED) TSS die Neuanlage nicht blockiert.
 func TestRichteTSEEin_DeaktivierteTSSBlocktNicht(t *testing.T) {
 	seriennummer := uuid.New()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse:  tse.UmgebungTest,
 		TSSResponse:       []tse.TSSInfo{{ID: "tss-tot", State: "DISABLED"}},
@@ -208,7 +203,7 @@ func TestRichteTSEEin_DeaktivierteTSSBlocktNicht(t *testing.T) {
 // TestRichteTSEEin_AbbruchSpeichertNicht sichert die Atomaritaet: bricht ein
 // Lebenszyklus-Schritt ab, bleibt keine halbe Konfiguration in der DB.
 func TestRichteTSEEin_AbbruchSpeichertNicht(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse:  tse.UmgebungTest,
 		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk", State: "CREATED"},
@@ -227,7 +222,7 @@ func TestRichteTSEEin_AbbruchSpeichertNicht(t *testing.T) {
 // TestRichteTSEEin_FalscheZugangsdaten sichert, dass ein Auth-Fehler in eine
 // verstaendliche Zugangsdaten-Meldung uebersetzt wird.
 func TestRichteTSEEin_FalscheZugangsdaten(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{TSSErr: tse.ErrSetupAuthFehlgeschlagen}
 
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
@@ -243,7 +238,7 @@ func TestRichteTSEEin_FalscheZugangsdaten(t *testing.T) {
 // Admin trotz vorhandener (hier INITIALIZED) TSS bewusst eine zweite, frische
 // TSE anlegen, wenn er die Sperre per Flag uebergeht.
 func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInTest(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse:  tse.UmgebungTest,
 		TSSResponse:       []tse.TSSInfo{{ID: "tss-alt", State: "INITIALIZED"}},
@@ -265,7 +260,7 @@ func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInTest(t *testing.T) {
 // TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInLiveVerweigert sichert, dass das
 // Flag in LIVE wirkungslos bleibt: die Sperre gegen eine zweite TSS greift hart.
 func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInLiveVerweigert(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungLive,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-live", State: "INITIALIZED"}},
@@ -287,7 +282,7 @@ func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInLiveVerweigert(t *testing.T) {
 // fuenf aktive TSS) als verstaendliche Meldung statt als technischer Fehler
 // durchgereicht wird.
 func TestRichteTSEEin_TSSLimitErreicht(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-alt", State: "INITIALIZED"}},
@@ -309,7 +304,7 @@ func TestRichteTSEEin_TSSLimitErreicht(t *testing.T) {
 // Nutzereingabe.
 func TestUebernimmTSE_WiederaufnahmeCreated(t *testing.T) {
 	seriennummer := uuid.New()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse:     tse.UmgebungTest,
 		TSSResponse:          []tse.TSSInfo{{ID: "tss-halb", State: "CREATED"}},
@@ -345,7 +340,7 @@ func TestUebernimmTSE_WiederaufnahmeCreated(t *testing.T) {
 // Client registriert; es entstehen keine neuen Geheimnisse.
 func TestUebernimmTSE_WiederaufnahmeUninitialized(t *testing.T) {
 	seriennummer := uuid.New()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-uninit", State: "UNINITIALIZED"}},
@@ -377,7 +372,7 @@ func TestUebernimmTSE_WiederaufnahmeUninitialized(t *testing.T) {
 // Client registriert.
 func TestUebernimmTSE_InitialisiertOhneClient(t *testing.T) {
 	seriennummer := uuid.New()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
@@ -400,7 +395,7 @@ func TestUebernimmTSE_InitialisiertOhneClient(t *testing.T) {
 func TestUebernimmTSE_VorhandenerPassenderClient(t *testing.T) {
 	seriennummer := uuid.New()
 	vorhandenerClient := uuid.NewString()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
@@ -428,7 +423,7 @@ func TestUebernimmTSE_VorhandenerPassenderClient(t *testing.T) {
 func TestUebernimmTSE_EinsatzbereitOhnePIN(t *testing.T) {
 	seriennummer := uuid.New()
 	vorhandenerClient := uuid.NewString()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
@@ -464,7 +459,7 @@ func TestUebernimmTSE_EinsatzbereitOhnePIN(t *testing.T) {
 func TestUebernimmTSE_DeregistrierterClientReaktiviert(t *testing.T) {
 	seriennummer := uuid.New()
 	vorhandenerClient := uuid.NewString()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
@@ -496,7 +491,7 @@ func TestUebernimmTSE_DeregistrierterClientReaktiviert(t *testing.T) {
 // abgewiesen, bevor irgendetwas geschrieben wird.
 func TestUebernimmTSE_DeregistrierterClientBrauchtPIN(t *testing.T) {
 	seriennummer := uuid.New()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
@@ -518,7 +513,7 @@ func TestUebernimmTSE_DeregistrierterClientBrauchtPIN(t *testing.T) {
 // INITIALIZED TSS ohne passenden Client weiterhin die PIN verlangt (Registrierung
 // ist privilegiert) — die F8-Lockerung greift nur bei fertigem Client.
 func TestUebernimmTSE_InitialisiertOhneClientBrauchtPIN(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
@@ -536,7 +531,7 @@ func TestUebernimmTSE_InitialisiertOhneClientBrauchtPIN(t *testing.T) {
 // TestUebernimmTSE_PINErforderlich sichert, dass die Uebernahme ab UNINITIALIZED
 // ohne PIN klar als fehlende PIN gemeldet wird — vor jeder Schreiboperation.
 func TestUebernimmTSE_PINErforderlich(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-uninit", State: "UNINITIALIZED"}},
@@ -555,7 +550,7 @@ func TestUebernimmTSE_PINErforderlich(t *testing.T) {
 // eine verstaendliche Sackgassen-Meldung uebersetzt wird, nicht in einen
 // technischen Fehler.
 func TestUebernimmTSE_UnbekanntePIN(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
@@ -577,7 +572,7 @@ func TestUebernimmTSE_UnbekanntePIN(t *testing.T) {
 // aber unveraendert und wird nicht erneut zurueckgegeben.
 func TestUebernimmTSE_PINResetPerPUK(t *testing.T) {
 	seriennummer := uuid.New()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
@@ -614,7 +609,7 @@ func TestUebernimmTSE_PINResetPerPUK(t *testing.T) {
 // zusaetzlich initialisiert wird.
 func TestUebernimmTSE_PINResetPerPUKInLive(t *testing.T) {
 	seriennummer := uuid.New()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungLive,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-uninit", State: "UNINITIALIZED"}},
@@ -639,7 +634,7 @@ func TestUebernimmTSE_PINResetPerPUKInLive(t *testing.T) {
 // PUK als ErrTSESetupPUKUnbekannt endet — vor jeder weiteren Operation und ohne
 // Speicherung, nicht als technischer Fehler.
 func TestUebernimmTSE_PINResetFalscherPUK(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
@@ -659,7 +654,7 @@ func TestUebernimmTSE_PINResetFalscherPUK(t *testing.T) {
 // Uebernahme greift: weicht die tatsaechliche Umgebung von der bestaetigten ab,
 // bricht der Flow vor jeder Operation ab.
 func TestUebernimmTSE_UmgebungAbweichung(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungLive,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-x", State: "CREATED"}},
@@ -677,7 +672,7 @@ func TestUebernimmTSE_UmgebungAbweichung(t *testing.T) {
 // TestUebernimmTSE_TSSNichtGefunden sichert, dass eine im Konto fehlende TSS klar
 // gemeldet wird.
 func TestUebernimmTSE_TSSNichtGefunden(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{UmgebungResponse: tse.UmgebungTest}
 
 	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-fehlt", "", "")
@@ -689,7 +684,7 @@ func TestUebernimmTSE_TSSNichtGefunden(t *testing.T) {
 // TestUebernimmTSE_DeaktivierteTSS sichert, dass eine deaktivierte TSS nicht
 // uebernommen werden kann.
 func TestUebernimmTSE_DeaktivierteTSS(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-tot", State: "DISABLED"}},
@@ -717,7 +712,7 @@ func stammdatenAntwort() tse.TSSStammdaten {
 
 // pruefeStammdaten vergleicht die gespeicherten Stammdaten mit der erwarteten
 // fiskaly-Antwort (ohne den serverseitig gesetzten Zeitstempel).
-func pruefeStammdaten(t *testing.T, gespeichert *settings.TSEStammdaten, erwartet tse.TSSStammdaten) {
+func pruefeStammdaten(t *testing.T, gespeichert *tse.Stammdaten, erwartet tse.TSSStammdaten) {
 	t.Helper()
 	if gespeichert == nil {
 		t.Fatal("expected the tse stammdaten to be persisted")
@@ -734,7 +729,7 @@ func pruefeStammdaten(t *testing.T, gespeichert *settings.TSEStammdaten, erwarte
 // Neuanlage die fiskalischen TSS-Stammdaten (Algorithmus, Public Key, Zertifikat,
 // Log-Time-Format) fuer den DSFinV-K-Export gespeichert werden.
 func TestRichteTSEEin_PersistiertStammdaten(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse:   tse.UmgebungTest,
 		CreateTSSResponse:  tse.TSSErstellt{ID: "tss-neu", PUK: "puk", State: "CREATED"},
@@ -758,7 +753,7 @@ func TestRichteTSEEin_PersistiertStammdaten(t *testing.T) {
 func TestUebernimmTSE_EinsatzbereitPersistiertStammdaten(t *testing.T) {
 	seriennummer := uuid.New()
 	vorhandenerClient := uuid.NewString()
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: seriennummer}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
@@ -784,7 +779,7 @@ func TestUebernimmTSE_EinsatzbereitPersistiertStammdaten(t *testing.T) {
 // TestUebernimmTSE_PINResetPersistiertStammdaten sichert, dass auch der
 // PUK-Reset-Pfad die Stammdaten nachzieht.
 func TestUebernimmTSE_PINResetPersistiertStammdaten(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse:   tse.UmgebungTest,
 		TSSResponse:        []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
@@ -803,7 +798,7 @@ func TestUebernimmTSE_PINResetPersistiertStammdaten(t *testing.T) {
 // Einrichtung erfolgreich und die Konfiguration gespeichert — nur die Stammdaten
 // fehlen (beim naechsten Verbinden nachziehbar).
 func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetupNicht(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse:  tse.UmgebungTest,
 		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk", State: "CREATED"},
@@ -841,7 +836,7 @@ func commandMitOffenerKassensitzung(repo *stubCommandRepo) Command {
 // und schreiben nichts.
 func TestUpdateTSEKonfiguration_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 	repo := &stubCommandRepo{}
-	conf, err := settings.NewTSEKonfiguration("api-key", "api-secret", "tss-1", "client-1")
+	conf, err := tse.NewKonfiguration("api-key", "api-secret", "tss-1", "client-1")
 	if err != nil {
 		t.Fatalf("unexpected error building konfiguration: %v", err)
 	}
@@ -856,7 +851,7 @@ func TestUpdateTSEKonfiguration_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 }
 
 func TestRichteTSEEin_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 
 	_, err := commandMitOffenerKassensitzung(repo).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
@@ -868,7 +863,7 @@ func TestRichteTSEEin_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 }
 
 func TestUebernimmTSE_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: settings.Kassenidentitaet{Seriennummer: uuid.New()}}
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 
 	_, err := commandMitOffenerKassensitzung(repo).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-1", "", "")
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {

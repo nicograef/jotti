@@ -11,8 +11,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/nicograef/jotti/backend/domain/settings"
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/steuer"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 // Version ist der deklarierte DSFinV-K-Versionsstring. Konfigurierbar gehalten,
@@ -32,8 +33,8 @@ type Snapshot struct {
 	Erstellung time.Time
 	// KassensitzungNr ist die Z_NR des Abschlusses.
 	KassensitzungNr int
-	Betreiber       settings.Betreiber
-	TSEStammdaten   settings.TSEStammdaten
+	Betreiber       betreiber.Betreiber
+	TSEStammdaten   tse.Stammdaten
 	// Tischnamen bildet Tisch-IDs auf ihren Namen ab (Quelle des
 	// ABRECHNUNGSKREIS). Fehlt ein Tisch (gelöscht), synthetisiert der Mapper
 	// "Tisch N".

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/rs/zerolog"
@@ -30,23 +30,24 @@ type kassensitzungenRepo interface {
 	SetKassensitzungOffen(ctx context.Context, zNr int) (int64, error)
 }
 
-type settingsRepo interface {
-	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
-	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
+type betreiberRepo interface {
+	GetBetreiber(ctx context.Context) (betreiber.Betreiber, error)
 }
 
 // tseGateRepo liefert dem Kassenabschluss-Gate die Signatur-Staende der
-// Kassensitzung und den aktiven Stoerungszeitraum. Beide fuettern
-// tse.BestimmeSignaturstatus — dieselbe Zurechnung wie beim Beleg-Abruf.
+// Kassensitzung und den aktiven Stoerungszeitraum (beide fuettern
+// tse.BestimmeSignaturstatus — dieselbe Zurechnung wie beim Beleg-Abruf) sowie
+// die TSE-Konfiguration fuer die Eroeffnungs-Warnung ohne konfigurierte TSE.
 type tseGateRepo interface {
 	GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]tse.SignaturauftragStand, error)
 	GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error)
+	GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error)
 }
 
 type Command struct {
 	KassenjournalRepo   kassenjournalRepo
 	KassensitzungenRepo kassensitzungenRepo
-	SettingsRepo        settingsRepo
+	BetreiberRepo       betreiberRepo
 	TSERepo             tseGateRepo
 }
 
@@ -109,7 +110,7 @@ func betriebstag(now time.Time, ort *time.Location) time.Time {
 func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	betreiber, err := c.SettingsRepo.GetBetreiber(ctx)
+	betreiber, err := c.BetreiberRepo.GetBetreiber(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Msg("Kassensitzung blocked: betreiber not configured")
@@ -127,7 +128,7 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 	// aber der unsignierte Betrieb soll im Log nachvollziehbar sein. Der Check ist best
 	// effort: Ein Lesefehler verhindert die Eröffnung nicht und unterdrückt nur die Warnung.
 	ohneTSE := false
-	if conf, err := c.SettingsRepo.GetTSEKonfiguration(ctx); err != nil {
+	if conf, err := c.TSERepo.GetTSEKonfiguration(ctx); err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			ohneTSE = true
 		} else {

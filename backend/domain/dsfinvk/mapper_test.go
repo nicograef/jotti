@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
@@ -50,14 +50,14 @@ func testSnapshot() Snapshot {
 		KasseSeriennummer: testSerial,
 		Erstellung:        time.Date(2026, 6, 16, 14, 30, 0, 0, time.UTC),
 		KassensitzungNr:   3,
-		Betreiber: settings.Betreiber{
+		Betreiber: betreiber.Betreiber{
 			Vereinsname:  "TSV Beispiel",
 			Strasse:      "Hauptstr. 1",
 			Plz:          "12345",
 			Ort:          "Musterdorf",
 			Steuernummer: &steuernummer,
 		},
-		TSEStammdaten: settings.TSEStammdaten{
+		TSEStammdaten: tse.Stammdaten{
 			SignaturAlgorithmus: "ecdsa-plain-SHA256",
 			PublicKey:           "PUBKEY==",
 			Zertifikat:          "CERTBASE64",

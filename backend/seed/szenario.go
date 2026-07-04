@@ -5,9 +5,9 @@ import (
 	"sort"
 	"time"
 
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/product"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/domain/table"
 	"github.com/nicograef/jotti/backend/domain/user"
@@ -210,7 +210,7 @@ type szenario struct {
 	Tische         []tisch
 	Produkte       []produkt
 	Favoriten      []favorit
-	Betreiber      settings.Betreiber
+	Betreiber      betreiber.Betreiber
 	Druckstationen []druckstationKonfig
 	Sitzungen      []kassensitzungDrehbuch
 }
@@ -444,7 +444,7 @@ func demoSzenario() szenario {
 			{UserID: anna, TischID: 18}, {UserID: anna, TischID: 19}, {UserID: anna, TischID: 20},
 			{UserID: felix, TischID: 5},
 		},
-		Betreiber: settings.Betreiber{
+		Betreiber: betreiber.Betreiber{
 			Vereinsname:  "TSV Musterstadt e.V.",
 			Strasse:      "Sportplatzweg 7",
 			Plz:          "63776",

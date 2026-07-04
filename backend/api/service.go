@@ -17,6 +17,7 @@ import (
 	tischApp "github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
 	tischHTTP "github.com/nicograef/jotti/backend/api/stammdaten/tisch/http"
 	"github.com/nicograef/jotti/backend/config"
+	"github.com/nicograef/jotti/backend/repository/betreiber_repo"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/favorit_repo"
@@ -24,7 +25,6 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/product_repo"
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
-	"github.com/nicograef/jotti/backend/repository/settings_repo"
 	"github.com/nicograef/jotti/backend/repository/table_repo"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 )
@@ -43,7 +43,7 @@ func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 	favoritRepo := favorit_repo.NewRepository(db)
 	druckstationRepo := druckstation_repo.NewRepository(db)
 	druckauftragRepo := druckauftrag_repo.NewRepository(db)
-	settingsRepo := settings_repo.NewRepository(db)
+	betreiberRepo := betreiber_repo.NewRepository(db)
 
 	tseRepo := tse_repo.NewRepository(db)
 
@@ -67,7 +67,7 @@ func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 		KassensitzungenRepo: kassensitzungenRepo,
 		DruckstationRepo:    druckstationRepo,
 		DruckauftragRepo:    druckauftragRepo,
-		SettingsRepo:        settingsRepo,
+		BetreiberRepo:       betreiberRepo,
 		TSERepo:             tseRepo,
 	}
 	r.HandleFunc("/beleg-drucken", bc.KassenbelegDruckenHandler())

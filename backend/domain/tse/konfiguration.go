@@ -1,14 +1,12 @@
-package settings
+package tse
 
 import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-type TSEKonfiguration struct {
+type Konfiguration struct {
 	ApiKey    string
 	ApiSecret string
 	TssID     string
@@ -17,10 +15,10 @@ type TSEKonfiguration struct {
 }
 
 // Credentials bildet die TSE-Konfiguration auf die kanonische
-// tse.Credentials-Form ab — die einzige Stelle, an der die vier Felder
+// Credentials-Form ab — die einzige Stelle, an der die vier Felder
 // gemappt werden.
-func (t TSEKonfiguration) Credentials() tse.Credentials {
-	return tse.Credentials{
+func (t Konfiguration) Credentials() Credentials {
+	return Credentials{
 		ApiKey:    t.ApiKey,
 		ApiSecret: t.ApiSecret,
 		TssID:     t.TssID,
@@ -28,10 +26,10 @@ func (t TSEKonfiguration) Credentials() tse.Credentials {
 	}
 }
 
-func (t TSEKonfiguration) Validate() error {
+func (t Konfiguration) Validate() error {
 	// Sonderfall: komplett leer ist gueltig (TSE schlicht nicht konfiguriert).
 	// Sind Felder gesetzt, gilt die kanonische Vier-Felder-Regel aus
-	// tse.Credentials (alle oder keines).
+	// Credentials (alle oder keines).
 	if !t.leer() {
 		if err := t.Credentials().Validate(); err != nil {
 			return err
@@ -56,19 +54,19 @@ func (t TSEKonfiguration) Validate() error {
 	return nil
 }
 
-func (t TSEKonfiguration) IstKonfiguriert() bool {
+func (t Konfiguration) IstKonfiguriert() bool {
 	return t.Credentials().Validate() == nil
 }
 
-func (t TSEKonfiguration) leer() bool {
+func (t Konfiguration) leer() bool {
 	return strings.TrimSpace(t.ApiKey) == "" &&
 		strings.TrimSpace(t.ApiSecret) == "" &&
 		strings.TrimSpace(t.TssID) == "" &&
 		strings.TrimSpace(t.ClientID) == ""
 }
 
-func NewTSEKonfiguration(apiKey, apiSecret, tssID, clientID string) (TSEKonfiguration, error) {
-	t := TSEKonfiguration{
+func NewKonfiguration(apiKey, apiSecret, tssID, clientID string) (Konfiguration, error) {
+	t := Konfiguration{
 		ApiKey:    strings.TrimSpace(apiKey),
 		ApiSecret: strings.TrimSpace(apiSecret),
 		TssID:     strings.TrimSpace(tssID),
@@ -77,7 +75,7 @@ func NewTSEKonfiguration(apiKey, apiSecret, tssID, clientID string) (TSEKonfigur
 	}
 
 	if err := t.Validate(); err != nil {
-		return TSEKonfiguration{}, err
+		return Konfiguration{}, err
 	}
 
 	return t, nil

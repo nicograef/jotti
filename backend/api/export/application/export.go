@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/dsfinvk"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/rs/zerolog"
 )
 
@@ -37,10 +38,13 @@ type kassensitzungenRepo interface {
 	GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
 }
 
-type settingsRepo interface {
-	GetKassenidentitaet(ctx context.Context) (settings.Kassenidentitaet, error)
-	GetBetreiber(ctx context.Context) (settings.Betreiber, error)
-	GetTSEStammdaten(ctx context.Context) (settings.TSEStammdaten, error)
+type betreiberRepo interface {
+	GetBetreiber(ctx context.Context) (betreiber.Betreiber, error)
+}
+
+type tseRepo interface {
+	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
+	GetTSEStammdaten(ctx context.Context) (tse.Stammdaten, error)
 }
 
 type tableRepo interface {
@@ -52,7 +56,8 @@ type tableRepo interface {
 type Export struct {
 	KassenjournalRepo   kassenjournalRepo
 	KassensitzungenRepo kassensitzungenRepo
-	SettingsRepo        settingsRepo
+	BetreiberRepo       betreiberRepo
+	TSERepo             tseRepo
 	TableRepo           tableRepo
 }
 
@@ -154,17 +159,17 @@ func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassens
 func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung time.Time) (dsfinvk.Snapshot, error) {
 	log := zerolog.Ctx(ctx)
 
-	ident, err := e.SettingsRepo.GetKassenidentitaet(ctx)
+	ident, err := e.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get kassenidentitaet")
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
-	betreiber, err := e.SettingsRepo.GetBetreiber(ctx)
+	betreiber, err := e.BetreiberRepo.GetBetreiber(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get betreiber")
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
-	stammdaten, err := e.SettingsRepo.GetTSEStammdaten(ctx)
+	stammdaten, err := e.TSERepo.GetTSEStammdaten(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get tse stammdaten")
 		return dsfinvk.Snapshot{}, ErrDatabase

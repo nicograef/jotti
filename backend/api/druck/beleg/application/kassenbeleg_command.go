@@ -374,13 +374,13 @@ func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID 
 		return "", ErrKassenbelegDruckerNichtKonfiguriert
 	}
 
-	betreiber, err := c.SettingsRepo.GetBetreiber(ctx)
+	betreiber, err := c.BetreiberRepo.GetBetreiber(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load betreiber for kassenbeleg")
 		return "", ErrDatabase
 	}
 
-	kassenidentitaet, err := c.SettingsRepo.GetKassenidentitaet(ctx)
+	kassenidentitaet, err := c.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load kassenidentitaet for kassenbeleg")
 		return "", ErrDatabase

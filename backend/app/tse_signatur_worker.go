@@ -9,9 +9,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/config"
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/settings"
 	"github.com/nicograef/jotti/backend/domain/tse"
-	"github.com/nicograef/jotti/backend/repository/settings_repo"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 	"github.com/rs/zerolog/log"
 )
@@ -42,7 +40,7 @@ const (
 )
 
 type tseSettingsReader interface {
-	GetTSEKonfiguration(ctx context.Context) (settings.TSEKonfiguration, error)
+	GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error)
 }
 
 type tseSignaturStore interface {
@@ -104,7 +102,7 @@ type tseSignaturWorker struct {
 func newTSESignaturWorker(cfg config.Config, database *sql.DB) *tseSignaturWorker {
 	return &tseSignaturWorker{
 		lockDB:       database,
-		settingsRepo: settings_repo.NewRepository(database),
+		settingsRepo: tse_repo.NewRepository(database),
 		store:        tse_repo.NewRepository(database),
 		newTSEClient: func(credentials tse.Credentials) (tseWorkerClient, error) {
 			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
