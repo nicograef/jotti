@@ -39,7 +39,6 @@ const fehlschlagJederNte = 16
 // bleiben (offene Sitzung).
 type ausfallFenster struct {
 	von, bis   time.Time
-	grund      string
 	aufgeloest bool
 }
 
@@ -53,7 +52,6 @@ func ausfallFensterAus(s szenario, jetzt time.Time) []ausfallFenster {
 			fenster = append(fenster, ausfallFenster{
 				von:        start.Add(a.NachStart),
 				bis:        start.Add(a.NachStart + a.Dauer),
-				grund:      a.Grund,
 				aufgeloest: sitzung.Abgeschlossen,
 			})
 		}
@@ -83,10 +81,11 @@ type signaturauftragZeile struct {
 // eine Auftragszeile mit seiner Event-ID. Im Normalfall gilt der Auftrag als prompt
 // quittiert (logTime-Paar aus dem Event-Zeitstempel, erledigt kurz danach). Events in
 // aufgelösten Ausfallfenstern werden beim ersten fiskalischen Event nach Fensterende
-// nachsigniert (verspätete Signatur inkl. Fehlversuchen; einzelne scheitern dauerhaft,
-// genau einer ist verworfen), Events im offenen Fenster der laufenden Sitzung bleiben
-// offen. Transaktionsnummern und Signaturzähler sind global streng monoton in
-// Quittier-Reihenfolge.
+// nachsigniert — verspätete Signatur ohne Auftrags-Fehlversuche, denn TSE-weite Fehler
+// zählen nie auf den Auftrag; einzelne scheitern in der Aufholphase auftragsspezifisch
+// und dauerhaft, genau einer ist verworfen. Events im offenen Fenster der laufenden
+// Sitzung bleiben offen. Transaktionsnummern und Signaturzähler sind global streng
+// monoton in Quittier-Reihenfolge.
 func baueSignaturauftraege(events []seedEvent, fenster []ausfallFenster) ([]signaturauftragZeile, error) {
 	s := &fakeSignierer{fenster: fenster, pending: make([][]offeneNachsignierung, len(fenster))}
 
@@ -233,23 +232,17 @@ func (s *fakeSignierer) nachsigniereAlleFenster() {
 
 // nachsigniereFenster spielt den Signatur-Worker nach dem Fensterende nach: Die Aufträge
 // werden in Batches im Sekundenabstand quittiert; die verspätete Signatur steht direkt am
-// Auftrag. Versuche und letzter Fehler ergeben sich aus den Fehlversuchen, die mit dem
-// Worker-Backoff noch ins Ausfallfenster fielen.
+// Auftrag. Fehlversuche tragen die Aufträge nicht — während der Störung bricht der Worker
+// jeden Durchlauf TSE-weit ab, ohne auf die Aufträge zu zählen.
 func (s *fakeSignierer) nachsigniereFenster(fensterIdx int) {
 	f := s.fenster[fensterIdx]
 	for i, p := range s.pending[fensterIdx] {
 		if i%fehlschlagJederNte == 3 {
-			s.zeilen = append(s.zeilen, s.dauerhaftGescheitert(p))
+			s.zeilen = append(s.zeilen, s.dauerhaftGescheitert(p, f.bis))
 			continue
 		}
 
 		quittiert := f.bis.Add(5*time.Second + time.Duration(i)*250*time.Millisecond)
-		versuche := fehlversucheBis(p.erstellt, f.bis)
-		var fehler *string
-		if versuche > 0 {
-			grund := f.grund
-			fehler = &grund
-		}
 
 		signatur := s.signiere(p.processType, p.processData, quittiert, quittiert.Add(time.Second), p.txID)
 		erledigt := quittiert.Add(2 * time.Second)
@@ -259,8 +252,6 @@ func (s *fakeSignierer) nachsigniereFenster(fensterIdx int) {
 			ProcessType:        p.processType,
 			ProcessData:        p.processData,
 			Status:             tse.StatusErledigt,
-			Versuche:           versuche,
-			LetzterFehler:      fehler,
 			NaechsterVersuchAm: quittiert,
 			ErstelltAm:         p.erstellt,
 			ErledigtAm:         &erledigt,
@@ -270,8 +261,11 @@ func (s *fakeSignierer) nachsigniereFenster(fensterIdx int) {
 	s.pending[fensterIdx] = nil
 }
 
-// dauerhaftGescheitert baut den fehlgeschlagenen bzw. (genau einmal) verworfenen Auftrag.
-func (s *fakeSignierer) dauerhaftGescheitert(p offeneNachsignierung) signaturauftragZeile {
+// dauerhaftGescheitert baut den fehlgeschlagenen bzw. (genau einmal) verworfenen Auftrag:
+// Die TSE lehnt die Transaktion in der Aufholphase auftragsspezifisch ab, der Auftrag
+// durchläuft die Sekunden-Kurve (5, 15 s Backoff) und schlägt mit dem dritten Fehlversuch
+// endgültig fehl.
+func (s *fakeSignierer) dauerhaftGescheitert(p offeneNachsignierung, fensterEnde time.Time) signaturauftragZeile {
 	status := tse.StatusFehlgeschlagen
 	if !s.verworfenVergeben {
 		status = tse.StatusVerworfen
@@ -286,28 +280,11 @@ func (s *fakeSignierer) dauerhaftGescheitert(p offeneNachsignierung) signaturauf
 		Status:        status,
 		Versuche:      tse_repo.MaxSignaturVersuche,
 		LetzterFehler: &fehler,
-		// Nach den maximalen Fehlversuchen mit gedeckeltem Backoff läge der (nie mehr
-		// genutzte) nächste Versuch gut drei Stunden nach dem Auftrag.
-		NaechsterVersuchAm: p.erstellt.Add(3*time.Hour + 30*time.Minute),
+		// Der letzte Fehlversuch fällt rund 20 s nach das Fensterende (5 + 15 s
+		// Backoff); die Query schreibt dabei den (nie mehr genutzten) nächsten
+		// Versuch weitere 45 s später.
+		NaechsterVersuchAm: fensterEnde.Add(65 * time.Second),
 		ErstelltAm:         p.erstellt,
-	}
-}
-
-// fehlversucheBis zählt, wie viele Signierversuche mit dem Worker-Backoff (1, 2, 4, …
-// Minuten, gedeckelt auf 30) noch vor dem Fensterende lagen — sie scheiterten alle; der
-// erste Versuch nach der Störung gelang. Gedeckelt unter dem Produktiv-Maximum, sonst wäre
-// der Auftrag fehlgeschlagen statt erledigt.
-func fehlversucheBis(erstellt, fensterEnde time.Time) int {
-	versuche := 0
-	naechster := erstellt
-	backoff := time.Minute
-	for {
-		naechster = naechster.Add(backoff)
-		if !naechster.Before(fensterEnde) || versuche >= tse_repo.MaxSignaturVersuche-1 {
-			return versuche
-		}
-		versuche++
-		backoff = min(backoff*2, 30*time.Minute)
 	}
 }
 

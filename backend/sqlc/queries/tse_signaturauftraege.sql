@@ -31,15 +31,16 @@ SET status = 'erledigt',
     qr_code_data = @qr_code_data
 WHERE id = @id AND status = 'offen';
 
--- TSESignaturauftragFehlversuch verbucht einen Fehlversuch mit exponentiellem
--- Backoff (1, 2, 4, ... Minuten, gedeckelt auf 30). Beim max_versuche-ten
--- Fehlversuch wechselt der Auftrag auf fehlgeschlagen und wird nicht mehr
--- automatisch versucht.
+-- TSESignaturauftragFehlversuch verbucht einen auftragsspezifischen
+-- Fehlversuch mit Sekunden-Backoff (5 * 3^versuche: 5, 15, 45 s). Beim
+-- max_versuche-ten Fehlversuch wechselt der Auftrag auf fehlgeschlagen und
+-- wird nicht mehr automatisch versucht — die Kurve endet bewusst unter der
+-- Rueckstands-Schwelle, TSE-weite Fehler zaehlen nie auf den Auftrag.
 -- name: TSESignaturauftragFehlversuch :exec
 UPDATE tse_signaturauftraege
 SET versuche = versuche + 1,
     letzter_fehler = @letzter_fehler,
-    naechster_versuch_am = NOW() + LEAST(POWER(2, versuche), 30) * interval '1 minute',
+    naechster_versuch_am = NOW() + (5 * POWER(3, versuche)) * interval '1 second',
     status = CASE WHEN versuche + 1 >= @max_versuche THEN 'fehlgeschlagen' ELSE status END
 WHERE id = @id AND status = 'offen';
 

@@ -210,6 +210,85 @@ func TestTSESignaturauftragFehlversuch_BackoffBlockiertNeuereNicht(t *testing.T)
 	}
 }
 
+// Die auftragsspezifische Fehlversuchs-Kurve ist eine Sekunden-Kurve (5, 15 s
+// Backoff, dritter Fehlversuch endgueltig fehlgeschlagen): Sie endet deutlich
+// unter der Rueckstands-Schwelle, und der fehlgeschlagene Auftrag verschwindet
+// aus der Rueckstands-Messung — ein Gift-Auftrag oeffnet nie einen
+// Rueckstands-Zeitraum und liefert bis zum endgueltigen Fehlschlag das
+// Signaturstatus-Ergebnis ausstehend.
+func TestTSESignaturauftragFehlversuch_SekundenKurveEndetVorRueckstandsSchwelle(t *testing.T) {
+	store, umgebung, teardown := setupRepository(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	id, eventID := umgebung.insertAuftrag(t, "tx-gift")
+	erwarteteBackoffs := []time.Duration{5 * time.Second, 15 * time.Second}
+
+	var gesamtBackoff time.Duration
+	for versuch := 1; versuch < MaxSignaturVersuche; versuch++ {
+		if err := store.TSESignaturauftragFehlversuch(ctx, id, "fiskaly api error 400 (E_FAILED_SCHEMA_VALIDATION)"); err != nil {
+			t.Fatalf("Fehlversuch %d: %v", versuch, err)
+		}
+
+		// Der Gift-Auftrag ist waehrend der Kurve ausstehend, nie Ausfall.
+		stand, err := store.GetSignaturauftragZuEvent(ctx, eventID)
+		if err != nil {
+			t.Fatalf("Stand nach Fehlversuch %d lesen: %v", versuch, err)
+		}
+		if ergebnis := tse.BestimmeSignaturstatus(stand, nil); ergebnis.Status != tse.SignaturstatusAusstehend {
+			t.Fatalf("Fehlversuch %d: erwartet ausstehend, got %q", versuch, ergebnis.Status)
+		}
+
+		backoff := backoffBis(t, umgebung.db, id)
+		erwartet := erwarteteBackoffs[versuch-1]
+		if backoff < erwartet-2*time.Second || backoff > erwartet+2*time.Second {
+			t.Fatalf("Fehlversuch %d: Backoff %v, erwartet ~%v", versuch, backoff, erwartet)
+		}
+		gesamtBackoff += backoff
+	}
+
+	// Der MaxSignaturVersuche-te Fehlversuch macht den Auftrag endgueltig.
+	if err := store.TSESignaturauftragFehlversuch(ctx, id, "fiskaly api error 400 (E_FAILED_SCHEMA_VALIDATION)"); err != nil {
+		t.Fatalf("letzter Fehlversuch: %v", err)
+	}
+	auftraege, err := store.GetTSESignaturauftraege(ctx)
+	if err != nil {
+		t.Fatalf("Auftraege lesen: %v", err)
+	}
+	if len(auftraege) != 1 || auftraege[0].Status != tse.StatusFehlgeschlagen {
+		t.Fatalf("Expected endgueltig fehlgeschlagenen Auftrag, got %+v", auftraege)
+	}
+
+	// Die gesamte Wartezeit der Kurve bleibt weit unter der
+	// Rueckstands-Schwelle — Platz fuer Tick- und Verarbeitungs-Schlupf.
+	if gesamtBackoff >= tse.RueckstandSchwelle/2 {
+		t.Fatalf("Backoff-Kurve %v zu nah an der Rueckstands-Schwelle %v", gesamtBackoff, tse.RueckstandSchwelle)
+	}
+
+	// Fehlgeschlagene Auftraege zaehlen nicht als Rueckstand: Der Watchdog
+	// misst nur offene Auftraege.
+	aeltester, err := store.GetAeltesterOffenerTSESignaturauftrag(ctx)
+	if err != nil {
+		t.Fatalf("Rueckstand messen: %v", err)
+	}
+	if aeltester != nil {
+		t.Fatalf("Expected fehlgeschlagenen Auftrag nicht in der Rueckstands-Messung, got %v", aeltester)
+	}
+}
+
+// backoffBis misst den von der Fehlversuchs-Query gesetzten Backoff
+// (naechster_versuch_am − NOW()).
+func backoffBis(t *testing.T, db *sql.DB, auftragID int) time.Duration {
+	t.Helper()
+	var sekunden float64
+	if err := db.QueryRow(
+		"SELECT EXTRACT(EPOCH FROM (naechster_versuch_am - NOW())) FROM tse_signaturauftraege WHERE id = $1", auftragID,
+	).Scan(&sekunden); err != nil {
+		t.Fatalf("Backoff lesen: %v", err)
+	}
+	return time.Duration(sekunden * float64(time.Second))
+}
+
 // Nach MaxSignaturVersuche Fehlversuchen wechselt der Auftrag auf
 // fehlgeschlagen; Zuruecksetzen reiht ihn wieder ein, Verwerfen beendet ihn.
 func TestTSESignaturauftrag_FehlgeschlagenZuruecksetzenVerwerfen(t *testing.T) {

@@ -185,12 +185,12 @@ Der Worker-Störungszustand wird zweite Quelle des Störungsprotokolls: Ein TSE-
 
 ### Acceptance criteria
 
-- [ ] Fehlertaxonomie als explizite Typen im TSE-Client/Worker, kein String-Matching.
-- [ ] Gift-Auftrag: drei Versuche mit Sekunden-Backoff, dann endgültig fehlgeschlagen; nachfolgende Aufträge werden im selben Durchlauf weiter signiert (Test).
-- [ ] Gift-Auftrag schlägt endgültig fehl, bevor die Rückstands-Schwelle greift; er öffnet keinen Rückstands-Zeitraum und liefert bis dahin das Ergebnis ausstehend (Test).
-- [ ] TSE-weiter Fehler bricht den Durchlauf ab, zählt keine Auftrags-Fehlversuche und öffnet einen Störungszeitraum (Test).
-- [ ] Half-Open-Probe beendet den Störungszeitraum bei Erfolg und startet die volle Aufarbeitung; während der Störung wird fiskaly nicht mit dem Rückstand bombardiert (Test).
-- [ ] Beide Backoffs ohne Jitter; jeder Durchlauf hat eine Deadline.
+- [x] Fehlertaxonomie als explizite Typen im TSE-Client/Worker, kein String-Matching.
+- [x] Gift-Auftrag: drei Versuche mit Sekunden-Backoff, dann endgültig fehlgeschlagen; nachfolgende Aufträge werden im selben Durchlauf weiter signiert (Test).
+- [x] Gift-Auftrag schlägt endgültig fehl, bevor die Rückstands-Schwelle greift; er öffnet keinen Rückstands-Zeitraum und liefert bis dahin das Ergebnis ausstehend (Test).
+- [x] TSE-weiter Fehler bricht den Durchlauf ab, zählt keine Auftrags-Fehlversuche und öffnet einen Störungszeitraum (Test).
+- [x] Half-Open-Probe beendet den Störungszeitraum bei Erfolg und startet die volle Aufarbeitung; während der Störung wird fiskaly nicht mit dem Rückstand bombardiert (Test).
+- [x] Beide Backoffs ohne Jitter; jeder Durchlauf hat eine Deadline.
 
 ---
 

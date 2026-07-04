@@ -165,11 +165,11 @@ type profilPunkt struct {
 // tseAusfall ist ein TSE-Ausfallfenster relativ zum Sitzungsstart: Die Signaturaufträge
 // fiskalischer Events in diesem Fenster werden nicht prompt quittiert. In abgeschlossenen
 // Sitzungen signiert der Worker sie nach Fensterende nach, in der offenen Sitzung bleiben
-// sie offen.
+// sie offen. TSE-weite Fehler zählen nie auf den Auftrag — die Aufträge des Fensters
+// tragen weder Fehlversuche noch Fehlertext.
 type tseAusfall struct {
 	NachStart time.Duration
 	Dauer     time.Duration
-	Grund     string // Fehlertext der Signierversuche während der Störung (leer, wenn nie versucht)
 }
 
 // druckerAusfall ist ein Drucker-Ausfallfenster relativ zum Sitzungsstart: Druckaufträge an
@@ -500,7 +500,6 @@ func demoSzenario() szenario {
 				TSEAusfaelle: []tseAusfall{{
 					NachStart: 8*time.Hour + 30*time.Minute,
 					Dauer:     time.Hour,
-					Grund:     "Cloud-TSE nicht erreichbar: Zeitüberschreitung nach 10 Sekunden",
 				}},
 				// Getränke-Drucker in der Mittagsstoßzeit vom LAN getrennt.
 				DruckerAusfaelle: []druckerAusfall{{

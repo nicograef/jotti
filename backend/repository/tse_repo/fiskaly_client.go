@@ -173,17 +173,38 @@ func NewFiskalyTSEClient(baseURL string, credentials tse.Credentials, httpClient
 	}, nil
 }
 
-// NewFiskalyTSEClientSingleAttempt creates a client that tries each request
-// exactly once (no retries). Used in the synchronous Kassier path, where the
-// caller imposes a total deadline (tse.SignierDeadline) and failed signing
-// falls back to the Nachsignier worker, which owns the full retry strategy.
-func NewFiskalyTSEClientSingleAttempt(baseURL string, credentials tse.Credentials, httpClient *http.Client) (*FiskalyTSEClient, error) {
-	client, err := NewFiskalyTSEClient(baseURL, credentials, httpClient)
-	if err != nil {
-		return nil, err
+// tssZustandsCodes400 sind die fiskaly-Fehlercodes, die trotz HTTP 400 einen
+// TSS-weiten Zustand melden (TSS nicht initialisiert oder deaktiviert, Client
+// deregistriert, Limit offener Transaktionen erreicht). Sie betreffen jede
+// Signierung, nicht den einzelnen Auftrag, und bleiben deshalb TSE-weit.
+var tssZustandsCodes400 = map[string]bool{
+	"E_TSS_NOT_INITIALIZED": true,
+	"E_TSS_DISABLED":        true,
+	"E_CLIENT_DEREGISTERED": true,
+	"E_TX_LIMIT_REACHED":    true,
+}
+
+// klassifiziereSignierFehler kennzeichnet auftragsspezifische Signierfehler
+// als tse.AuftragsFehler: HTTP 400/409/422 lehnen den konkreten Vorgang ab
+// (processData, Schema, Transaktionszustand) — ausgenommen die dokumentierten
+// TSS-Zustandscodes. Alle uebrigen Fehler (Verbindung, 401/403, 404, 423,
+// 429, 5xx) bleiben ungekennzeichnet und gelten dem Worker als TSE-weit.
+func klassifiziereSignierFehler(err error) error {
+	var apiErr apiError
+	if !errors.As(err, &apiErr) {
+		return err
 	}
-	client.maxRetries = 0
-	return client, nil
+	switch apiErr.StatusCode {
+	case http.StatusBadRequest:
+		if tssZustandsCodes400[apiErr.Code] {
+			return err
+		}
+		return tse.AuftragsFehler{Err: err}
+	case http.StatusConflict, http.StatusUnprocessableEntity:
+		return tse.AuftragsFehler{Err: err}
+	default:
+		return err
+	}
 }
 
 // StartTransaction sendet bewusst kein Schema: processType/processData muessen
@@ -208,7 +229,7 @@ func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string) (t
 		&resp,
 	)
 	if err != nil {
-		return tse.StartResult{}, err
+		return tse.StartResult{}, klassifiziereSignierFehler(err)
 	}
 
 	return mapStartResult(resp)
@@ -242,7 +263,7 @@ func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, p
 		&resp,
 	)
 	if err != nil {
-		return tse.FinishResult{}, err
+		return tse.FinishResult{}, klassifiziereSignierFehler(err)
 	}
 
 	return mapFinishResult(resp)

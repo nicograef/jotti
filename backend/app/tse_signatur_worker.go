@@ -19,9 +19,22 @@ import (
 const (
 	// tseSignaturPollInterval ist der Polling-Fallback des Signatur-Workers:
 	// Der Sofort-Trigger nach jedem Commit ist der Regelweg, der Tick faengt
-	// verlorene Trigger (z. B. nach einem Crash zwischen Commit und Trigger).
+	// verlorene Trigger (z. B. nach einem Crash zwischen Commit und Trigger)
+	// und stellt Backoff-Wiedervorlagen zu.
 	tseSignaturPollInterval = 5 * time.Second
 	tseSignaturBatchSize    = 20
+	// tseSignaturDurchlaufDeadline begrenzt jeden Durchlauf: Ein haengender
+	// Durchlauf wuerde den seriellen Worker sonst unbegrenzt blockieren. Ein
+	// Deadline-Abbruch gilt als TSE-weiter Fehler.
+	tseSignaturDurchlaufDeadline = 2 * time.Minute
+	// tseStoerungBackoffBasis/-Deckel spannen den Backoff des Worker-
+	// Stoerungszustands nach TSE-weiten Fehlern auf: 5 s, verdoppelt je
+	// Fehlerserie bis zum Deckel von 2 Minuten — die Erholung wird binnen
+	// Minuten erkannt, fiskaly waehrend der Stoerung nicht mit dem Rueckstand
+	// bombardiert. Bewusst ohne Jitter: Ein einzelner serieller Worker hat
+	// nichts zu desynchronisieren, die Tests bleiben deterministisch.
+	tseStoerungBackoffBasis  = 5 * time.Second
+	tseStoerungBackoffDeckel = 2 * time.Minute
 	// tseSignaturWorkerLockKey ist der frei gewaehlte Schluessel des Postgres
 	// Advisory Locks, der die Single-Prozess-Annahme absichert: Nur der
 	// Lock-Halter spricht mit der TSE.
@@ -36,6 +49,8 @@ type tseSignaturStore interface {
 	GetOffeneTSESignaturauftraege(ctx context.Context, limit int) ([]tse_repo.OffenerSignaturauftrag, error)
 	QuittiereTSESignaturauftrag(ctx context.Context, auftragID int, signatur tse.Signatur) error
 	TSESignaturauftragFehlversuch(ctx context.Context, auftragID int, fehler string) error
+	OeffneTSEStoerung(ctx context.Context, grundArt string, fehlertext string) error
+	SchliesseTSEStoerung(ctx context.Context, grundArt string) error
 }
 
 // tseWorkerClient beschreibt, was der Signatur-Worker von der TSE braucht:
@@ -61,10 +76,23 @@ type tseSignaturWorker struct {
 	// pollInterval ist der Polling-Fallback-Takt; 0 (Zero Value in Tests)
 	// faellt auf tseSignaturPollInterval zurueck.
 	pollInterval time.Duration
-	now          func() time.Time
+	// durchlaufDeadline begrenzt einen Durchlauf; 0 (Zero Value in Tests)
+	// faellt auf tseSignaturDurchlaufDeadline zurueck.
+	durchlaufDeadline time.Duration
+	now               func() time.Time
 
 	lockConn *sql.Conn
 	lockHeld bool
+
+	// Stoerungszustand nach einem TSE-weiten Fehler — kein Zustandsautomat,
+	// nur zwei Werte: Bis stoerungNaechsterVersuch laesst der Worker fiskaly
+	// in Ruhe, stoerungSerie zaehlt die Fehlerserie fuer den wachsenden
+	// Backoff. Die Half-Open-Probe ist schlicht der erste Auftrag des
+	// naechsten Durchlaufs: Scheitert er TSE-weit, bricht der Durchlauf
+	// erneut ab und der Backoff waechst; gelingt er, laeuft die volle
+	// Aufarbeitung und die erste erfolgreiche Signatur beendet die Stoerung.
+	stoerungNaechsterVersuch time.Time
+	stoerungSerie            int
 
 	// client wird ueber Durchlaeufe hinweg wiederverwendet (samt Auth-Token)
 	// und nur bei geaenderten Zugangsdaten neu gebaut.
@@ -174,6 +202,13 @@ func (w *tseSignaturWorker) processOnce(ctx context.Context) error {
 		return nil
 	}
 
+	// Stoerungszustand: Bis zum naechsten Versuch laesst der Worker fiskaly
+	// in Ruhe, statt es mit dem Rueckstand zu bombardieren. Trigger und Ticks
+	// laufen weiter; der erste Durchlauf nach Ablauf ist die Half-Open-Probe.
+	if w.now().Before(w.stoerungNaechsterVersuch) {
+		return nil
+	}
+
 	conf, err := w.settingsRepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
@@ -191,21 +226,86 @@ func (w *tseSignaturWorker) processOnce(ctx context.Context) error {
 		return nil
 	}
 
-	auftraege, err := w.store.GetOffeneTSESignaturauftraege(ctx, tseSignaturBatchSize)
+	// Jeder Durchlauf hat eine Deadline; die Buchhaltung (Fehlversuch,
+	// Stoerungsprotokoll) laeuft auf dem Eltern-Kontext, damit sie auch nach
+	// aufgebrauchtem Budget noch schreiben kann.
+	deadline := w.durchlaufDeadline
+	if deadline <= 0 {
+		deadline = tseSignaturDurchlaufDeadline
+	}
+	durchlaufCtx, cancel := context.WithTimeout(ctx, deadline)
+	defer cancel()
+
+	auftraege, err := w.store.GetOffeneTSESignaturauftraege(durchlaufCtx, tseSignaturBatchSize)
 	if err != nil {
 		return err
 	}
 
+	erfolgVermerkt := false
 	for _, auftrag := range auftraege {
-		if err := w.processAuftrag(ctx, client, auftrag); err != nil {
-			log.Warn().Err(err).Str("tx_id", auftrag.TxID).Int("auftrag_id", auftrag.ID).Msg("TSE-Signierung fehlgeschlagen")
+		err := w.processAuftrag(durchlaufCtx, client, auftrag)
+		if err == nil {
+			if !erfolgVermerkt {
+				erfolgVermerkt = true
+				w.beendeStoerung(ctx)
+			}
+			continue
+		}
+
+		if tse.IstAuftragsFehler(err) {
+			// Auftragsspezifischer Fehler: Fehlversuch am Auftrag verbuchen
+			// und den Auftrag ueberspringen — ein Gift-Auftrag staut nie die
+			// Queue und schlaegt nach MaxSignaturVersuche endgueltig fehl.
+			log.Warn().Err(err).Str("tx_id", auftrag.TxID).Int("auftrag_id", auftrag.ID).Msg("TSE-Signierung fuer Auftrag abgelehnt")
 			if err := w.store.TSESignaturauftragFehlversuch(ctx, auftrag.ID, err.Error()); err != nil {
 				log.Error().Err(err).Int("auftrag_id", auftrag.ID).Msg("Failed to record TSE-Signatur-Fehlversuch")
 			}
+			continue
 		}
+
+		// TSE-weiter Fehler: Durchlauf abbrechen, ohne Fehlversuche an den
+		// Auftraegen — ein mehrstuendiger Ausfall laesst keine Auftraege
+		// endgueltig fehlschlagen.
+		w.beginneStoerung(ctx, err)
+		return fmt.Errorf("TSE-weiter Fehler bei Auftrag %d (Fehlerserie %d, naechster Versuch %s): %w",
+			auftrag.ID, w.stoerungSerie, w.stoerungNaechsterVersuch.Format(time.RFC3339), err)
 	}
 
 	return nil
+}
+
+// beginneStoerung betritt den Stoerungszustand nach einem TSE-weiten Fehler:
+// Backoff fuer den naechsten Versuch setzen und den Stoerungszeitraum im
+// Stoerungsprotokoll oeffnen (No-Op, solange bereits ein Zeitraum aktiv ist).
+func (w *tseSignaturWorker) beginneStoerung(ctx context.Context, cause error) {
+	w.stoerungSerie++
+	w.stoerungNaechsterVersuch = w.now().Add(tseStoerungBackoff(w.stoerungSerie))
+	if err := w.store.OeffneTSEStoerung(ctx, tse.StoerungGrundTSEFehler, cause.Error()); err != nil {
+		log.Error().Err(err).Msg("TSE-Stoerungszeitraum nicht geoeffnet")
+	}
+}
+
+// beendeStoerung verlaesst den Stoerungszustand: Die erste erfolgreiche
+// Signatur eines Durchlaufs schliesst den TSE-Fehler-Stoerungszeitraum
+// (idempotent, auch nach einem Worker-Neustart mit offenem Zeitraum) und
+// setzt die Fehlerserie zurueck.
+func (w *tseSignaturWorker) beendeStoerung(ctx context.Context) {
+	w.stoerungSerie = 0
+	w.stoerungNaechsterVersuch = time.Time{}
+	if err := w.store.SchliesseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
+		log.Error().Err(err).Msg("TSE-Stoerungszeitraum nicht geschlossen")
+	}
+}
+
+// tseStoerungBackoff liefert die Wartezeit des Stoerungszustands fuer die
+// n-te TSE-weite Fehlerserie: Basis verdoppelt je Serie, gedeckelt —
+// deterministisch, ohne Jitter.
+func tseStoerungBackoff(serie int) time.Duration {
+	backoff := tseStoerungBackoffBasis
+	for i := 1; i < serie && backoff < tseStoerungBackoffDeckel; i++ {
+		backoff *= 2
+	}
+	return min(backoff, tseStoerungBackoffDeckel)
 }
 
 // clientFuer liefert den ueber Durchlaeufe hinweg wiederverwendeten TSE-Client
@@ -282,7 +382,10 @@ func (w *tseSignaturWorker) beschaffeSignatur(ctx context.Context, client tseWor
 		}
 		return finishResult, vorhanden.LogTimeStart, nil
 	default:
-		return tse.FinishResult{}, time.Time{}, fmt.Errorf("transaktion %s hat unerwarteten Zustand %q bei fiskaly", auftrag.TxID, vorhanden.State)
+		// Ein unerwarteter Zustand (etwa CANCELLED) haengt an dieser einen
+		// Transaktion — auftragsspezifisch, kein Grund fuer einen
+		// Durchlauf-Abbruch.
+		return tse.FinishResult{}, time.Time{}, tse.AuftragsFehler{Err: fmt.Errorf("transaktion %s hat unerwarteten Zustand %q bei fiskaly", auftrag.TxID, vorhanden.State)}
 	}
 }
 

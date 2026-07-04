@@ -166,9 +166,10 @@ func TestBaueSignaturauftraege_MonotonieUndFormat(t *testing.T) {
 
 // TestBaueSignaturauftraege_Ausfallfenster prüft die Dramaturgie der Ausfallfenster: Events
 // außerhalb der Fenster werden prompt quittiert (logTime = Event-Zeit), Events in aufgelösten
-// Fenstern verspätet nach Fensterende (mit Fehlversuchen samt Fenster-Grund), einzelne
-// scheitern dauerhaft (genau einer verworfen), Events im offenen Fenster bleiben offen ohne
-// Signatur. Die Statusverteilung stimmt (überwiegend erledigt).
+// Fenstern verspätet nach Fensterende (ohne Auftrags-Fehlversuche — TSE-weite Fehler zählen
+// nie auf den Auftrag), einzelne scheitern in der Aufholphase dauerhaft (genau einer
+// verworfen), Events im offenen Fenster bleiben offen ohne Signatur. Die Statusverteilung
+// stimmt (überwiegend erledigt).
 func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
 	daten, fenster, auftraege := buildSignierteDaten(t)
 	auftragProEvent := auftragProEventID(t, auftraege)
@@ -212,8 +213,8 @@ func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
 			if a.Signatur.LogTimeStart.Before(f.bis) {
 				t.Errorf("Auftrag %s: nachsignierte Signatur mit logTimeStart %v vor dem Fensterende %v", a.TxID, a.Signatur.LogTimeStart, f.bis)
 			}
-			if a.Versuche > 0 && (a.LetzterFehler == nil || *a.LetzterFehler != f.grund) {
-				t.Errorf("Auftrag %s: Fehlversuche ohne Fenster-Grund als letzten Fehler", a.TxID)
+			if a.Versuche != 0 || a.LetzterFehler != nil {
+				t.Errorf("Auftrag %s: nachsigniert mit Fehlversuchen — TSE-weite Fehler zählen nie auf den Auftrag", a.TxID)
 			}
 		case tse.StatusFehlgeschlagen, tse.StatusVerworfen:
 			if !f.aufgeloest {

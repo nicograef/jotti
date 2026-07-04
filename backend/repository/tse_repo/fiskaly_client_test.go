@@ -391,11 +391,51 @@ func TestFiskalyClient_RetrieveTransaction_NotFound(t *testing.T) {
 	}
 }
 
-// TestFiskalyClient_SingleAttempt_DoesNotRetry sichert das Verhalten des
-// synchronen Kassier-Pfads: genau ein Versuch, auch bei retry-faehigen Fehlern.
-func TestFiskalyClient_SingleAttempt_DoesNotRetry(t *testing.T) {
-	var txCalls int32
+// TestKlassifiziereSignierFehler bildet die Fehlertaxonomie ab:
+// auftragsspezifische Ablehnungen (400/409/422) werden als tse.AuftragsFehler
+// gekennzeichnet, TSS-Zustandscodes und alle uebrigen Fehler bleiben TSE-weit.
+func TestKlassifiziereSignierFehler(t *testing.T) {
+	tests := []struct {
+		name           string
+		err            error
+		auftragsFehler bool
+	}{
+		{"400 abgelehnte processData", apiError{StatusCode: 400, Code: "E_FAILED_SCHEMA_VALIDATION"}, true},
+		{"400 ohne Code", apiError{StatusCode: 400}, true},
+		{"409 Transaktionszustand", apiError{StatusCode: 409, Code: "E_TX_NO_TYPE_DEFINED"}, true},
+		{"422 Unprocessable", apiError{StatusCode: 422}, true},
+		{"400 TSS nicht initialisiert", apiError{StatusCode: 400, Code: "E_TSS_NOT_INITIALIZED"}, false},
+		{"400 TSS deaktiviert", apiError{StatusCode: 400, Code: "E_TSS_DISABLED"}, false},
+		{"400 Client deregistriert", apiError{StatusCode: 400, Code: "E_CLIENT_DEREGISTERED"}, false},
+		{"400 Transaktionslimit", apiError{StatusCode: 400, Code: "E_TX_LIMIT_REACHED"}, false},
+		{"401 Unauthorized", apiError{StatusCode: 401}, false},
+		{"403 Forbidden", apiError{StatusCode: 403}, false},
+		{"404 TSS nicht gefunden", apiError{StatusCode: 404, Code: "E_TSS_NOT_FOUND"}, false},
+		{"423 TSS defekt", apiError{StatusCode: 423, Code: "E_TSS_DEFECTIVE"}, false},
+		{"429 Rate-Limit", apiError{StatusCode: 429}, false},
+		{"503 Service Unavailable", apiError{StatusCode: 503}, false},
+		{"Verbindungsfehler", errors.New("connection refused"), false},
+		{"Context-Deadline", context.DeadlineExceeded, false},
+	}
 
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			klassifiziert := klassifiziereSignierFehler(tt.err)
+			if got := tse.IstAuftragsFehler(klassifiziert); got != tt.auftragsFehler {
+				t.Fatalf("expected IstAuftragsFehler=%v, got %v", tt.auftragsFehler, got)
+			}
+			// Der Original-Fehler bleibt per errors.As/Is erreichbar.
+			var apiErr apiError
+			if errors.As(tt.err, &apiErr) && !errors.As(klassifiziert, &apiErr) {
+				t.Fatal("expected wrapped apiError to stay reachable via errors.As")
+			}
+		})
+	}
+}
+
+// Die Klassifizierung ist in Start/Finish verdrahtet: Eine 400-Ablehnung durch
+// fiskaly kommt als tse.AuftragsFehler beim Aufrufer an.
+func TestFiskalyClient_FinishTransaction_AblehnungAlsAuftragsFehler(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth":
@@ -407,16 +447,19 @@ func TestFiskalyClient_SingleAttempt_DoesNotRetry(t *testing.T) {
 				},
 			})
 		case r.Method == http.MethodPut && strings.Contains(r.URL.Path, "/api/v2/tss/tss-1/tx/"):
-			atomic.AddInt32(&txCalls, 1)
-			w.Header().Set("Retry-After", "0")
-			w.WriteHeader(http.StatusServiceUnavailable)
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code":        "E_FAILED_SCHEMA_VALIDATION",
+				"message":     "process_data does not match the schema",
+				"status_code": 400,
+			})
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
 	defer server.Close()
 
-	client, err := NewFiskalyTSEClientSingleAttempt(server.URL, tse.Credentials{
+	client, err := NewFiskalyTSEClient(server.URL, tse.Credentials{
 		ApiKey:    "api-key",
 		ApiSecret: "api-secret",
 		TssID:     "tss-1",
@@ -426,12 +469,12 @@ func TestFiskalyClient_SingleAttempt_DoesNotRetry(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	_, err = client.StartTransaction(context.Background(), testTxID)
+	_, err = client.FinishTransaction(context.Background(), testTxID, "Kassenbeleg-V1", specProcessData)
 	if err == nil {
-		t.Fatal("expected error from single attempt against failing server")
+		t.Fatal("expected error from rejected finish")
 	}
-	if atomic.LoadInt32(&txCalls) != 1 {
-		t.Fatalf("expected exactly one transaction call, got %d", txCalls)
+	if !tse.IstAuftragsFehler(err) {
+		t.Fatalf("expected auftragsspezifischen Fehler, got %v", err)
 	}
 }
 

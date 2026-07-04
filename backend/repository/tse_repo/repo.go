@@ -12,13 +12,15 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-// MaxSignaturVersuche ist die Anzahl Fehlversuche, nach der ein Signaturauftrag
-// als fehlgeschlagen markiert und nicht mehr automatisch versucht wird. Mit dem
-// exponentiellen Backoff (1, 2, 4, ... Minuten, gedeckelt auf 30) ueberbrueckt
-// der Worker damit Ausfaelle von rund drei Stunden, bevor ein Admin eingreifen
-// muss. (Uebergangsweise einfache Fehlversuchs-Kurve; die Fehlertaxonomie in
-// Phase 3 ersetzt sie.)
-const MaxSignaturVersuche = 10
+// MaxSignaturVersuche ist die Anzahl auftragsspezifischer Fehlversuche, nach
+// der ein Signaturauftrag endgueltig fehlgeschlagen ist. Solche Fehler (von
+// fiskaly abgelehnte processData, tse.AuftragsFehler) sind fast immer
+// deterministisch — mit dem Sekunden-Backoff (5, 15, 45 s) endet die Kurve
+// nach unter einer Minute und damit bewusst unter tse.RueckstandSchwelle:
+// Ein Gift-Auftrag schlaegt endgueltig fehl, bevor der Watchdog ihn als
+// Rueckstand dokumentiert. TSE-weite Fehler zaehlen nie auf den Auftrag,
+// sondern schalten den Signatur-Worker in den Stoerungszustand.
+const MaxSignaturVersuche = 3
 
 // OffenerSignaturauftrag ist die Worker-Sicht eines faelligen Auftrags.
 type OffenerSignaturauftrag struct {
@@ -87,10 +89,11 @@ func (r Repository) QuittiereTSESignaturauftrag(ctx context.Context, auftragID i
 	}))
 }
 
-// TSESignaturauftragFehlversuch verbucht einen Fehlversuch: Zaehler hoch,
-// Fehlertext speichern, naechster Versuch mit exponentiellem Backoff. Beim
-// MaxSignaturVersuche-ten Fehlversuch wechselt der Auftrag auf fehlgeschlagen
-// (Backoff-Logik liegt in der SQL-Query).
+// TSESignaturauftragFehlversuch verbucht einen auftragsspezifischen
+// Fehlversuch: Zaehler hoch, Fehlertext speichern, naechster Versuch mit
+// Sekunden-Backoff (5, 15, 45 s). Beim MaxSignaturVersuche-ten Fehlversuch
+// wechselt der Auftrag auf fehlgeschlagen (Backoff-Logik liegt in der
+// SQL-Query).
 func (r Repository) TSESignaturauftragFehlversuch(ctx context.Context, auftragID int, fehler string) error {
 	return db.Error(r.q.TSESignaturauftragFehlversuch(ctx, dbgen.TSESignaturauftragFehlversuchParams{
 		ID:            auftragID,

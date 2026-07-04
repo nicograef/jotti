@@ -18,14 +18,29 @@ const (
 var ErrUnvollstaendigeCredentials = errors.New("tse credentials are incomplete")
 
 // ErrTransactionNichtGefunden zeigt an, dass eine Transaktion bei der TSE
-// (noch) nicht existiert — der Nachsignier-Worker startet sie dann neu.
+// (noch) nicht existiert — der Signatur-Worker startet sie dann neu.
 var ErrTransactionNichtGefunden = errors.New("tse transaction not found")
 
-// SignierDeadline ist die Gesamt-Deadline fuer den synchronen Signierversuch
-// im Kassier-Pfad (Auth + Start + Finish, max. 1 Versuch pro Request).
-// Laeuft sie ab, greift der Ausfallpfad (Nachsignier-Auftrag); die volle
-// Retry-Strategie lebt nur im Nachsignier-Worker.
-const SignierDeadline = 5 * time.Second
+// AuftragsFehler kennzeichnet einen auftragsspezifischen Signierfehler: Die
+// TSE arbeitet, nur dieser eine Vorgang wird abgelehnt (etwa von fiskaly
+// zurueckgewiesene processData). Der Signatur-Worker verbucht dafuer einen
+// Fehlversuch am Auftrag und ueberspringt ihn — ein Gift-Auftrag staut nie
+// die Queue. Jeder nicht so gekennzeichnete Fehler gilt als TSE-weit: Er
+// bricht den Durchlauf ab und schaltet den Worker in den Stoerungszustand.
+type AuftragsFehler struct {
+	Err error
+}
+
+func (e AuftragsFehler) Error() string { return e.Err.Error() }
+
+func (e AuftragsFehler) Unwrap() error { return e.Err }
+
+// IstAuftragsFehler meldet, ob err als auftragsspezifischer Signierfehler
+// gekennzeichnet ist.
+func IstAuftragsFehler(err error) bool {
+	var auftragsFehler AuftragsFehler
+	return errors.As(err, &auftragsFehler)
+}
 
 type Credentials struct {
 	ApiKey    string
