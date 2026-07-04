@@ -21,6 +21,9 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'jotti',
+      // Explizites Favicon: schließt die /favicon.svg-Lücke des Starlight-Defaults
+      // und zeigt in der Doku dieselbe Marke wie die Landing (Kopie in public/).
+      favicon: '/icons/jotti-icon-light-32.png',
       // Einsprachig deutsch: ein Locale `de` als Root, keine i18n-Routen.
       // Dadurch sind auch die Framework-Texte (Suche, „Auf dieser Seite") deutsch.
       defaultLocale: 'root',
