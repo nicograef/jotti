@@ -26,7 +26,7 @@ var testProduct = produkt.Produkt{
 
 func TestCreateProduct(t *testing.T) {
 	repo := produkt_repo.NewMock(nil, nil)
-	cmd := Command{ProductRepo: repo}
+	cmd := Command{ProduktRepo: repo}
 
 	id, err := cmd.CreateProduct(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
 	if err != nil {
@@ -39,7 +39,7 @@ func TestCreateProduct(t *testing.T) {
 
 func TestCreateProduct_AlreadyExists(t *testing.T) {
 	repo := produkt_repo.NewMock(nil, db.ErrAlreadyExists)
-	cmd := Command{ProductRepo: repo}
+	cmd := Command{ProduktRepo: repo}
 
 	_, err := cmd.CreateProduct(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
 	if err != ErrProduktAlreadyExists {
@@ -49,7 +49,7 @@ func TestCreateProduct_AlreadyExists(t *testing.T) {
 
 func TestUpdateProduct(t *testing.T) {
 	repo := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
-	cmd := Command{ProductRepo: repo}
+	cmd := Command{ProduktRepo: repo}
 
 	err := cmd.UpdateProduct(context.Background(), 1, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
 	if err != nil {
@@ -67,7 +67,7 @@ func TestUpdateProduct(t *testing.T) {
 
 func TestUpdateProduct_NotFound(t *testing.T) {
 	repo := produkt_repo.NewMock(nil, db.ErrNotFound)
-	cmd := Command{ProductRepo: repo}
+	cmd := Command{ProduktRepo: repo}
 
 	err := cmd.UpdateProduct(context.Background(), 999, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
 	if err != ErrProduktNotFound {

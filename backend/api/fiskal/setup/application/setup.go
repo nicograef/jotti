@@ -89,7 +89,7 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, ErrTSEBereitsEingerichtet
 	}
 
-	identitaet, err := c.SettingsRepo.GetKassenidentitaet(ctx)
+	identitaet, err := c.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve kassenidentitaet for setup")
 		return TSESetupErgebnis{}, ErrDatabase
@@ -218,7 +218,7 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	}
 	state := strings.ToUpper(strings.TrimSpace(ziel.State))
 
-	identitaet, err := c.SettingsRepo.GetKassenidentitaet(ctx)
+	identitaet, err := c.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve kassenidentitaet for takeover")
 		return TSESetupErgebnis{}, ErrDatabase
@@ -329,7 +329,7 @@ func (c Command) speichereEinrichtung(ctx context.Context, log *zerolog.Logger, 
 	// von nicht konfiguriert zu konfiguriert in derselben Transaktion die noch
 	// offenen, vor-konfigurationellen Auftraege endgueltig (Einrichtungs-Sweep)
 	// und schliesst den keine_konfiguration-Stoerungszeitraum.
-	if err := c.SettingsRepo.SpeichereEinrichtung(ctx, konfiguration); err != nil {
+	if err := c.TSERepo.SpeichereEinrichtung(ctx, konfiguration); err != nil {
 		log.Error().Err(err).Str("tss_id", tssID).Str("client_id", clientID).
 			Msg("Failed to save tse_konfiguration after setup; TSS exists at fiskaly, recoverable via takeover")
 		return ErrDatabase
@@ -350,7 +350,7 @@ func (c Command) zieheTSEStammdaten(ctx context.Context, log *zerolog.Logger, cl
 		return
 	}
 	stammdaten := tse.NewStammdaten(gelesen.SignaturAlgorithmus, gelesen.PublicKey, gelesen.Zertifikat, gelesen.LogTimeFormat)
-	if err := c.SettingsRepo.UpsertTSEStammdaten(ctx, stammdaten); err != nil {
+	if err := c.TSERepo.UpsertTSEStammdaten(ctx, stammdaten); err != nil {
 		log.Warn().Err(err).Str("tss_id", tssID).Msg("Failed to save TSE Stammdaten after setup; recoverable on next connect")
 	}
 }

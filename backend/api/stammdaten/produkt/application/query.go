@@ -7,19 +7,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type productQueryRepo interface {
+type produktQueryRepo interface {
 	GetAllProducts(ctx context.Context) ([]produkt.Produkt, error)
 	GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error)
 }
 
 type Query struct {
-	ProductRepo productQueryRepo
+	ProduktRepo produktQueryRepo
 }
 
 func (q Query) GetAllProducts(ctx context.Context) ([]produkt.Produkt, error) {
 	log := zerolog.Ctx(ctx)
 
-	products, err := q.ProductRepo.GetAllProducts(ctx)
+	products, err := q.ProduktRepo.GetAllProducts(ctx)
 	if err != nil {
 		log.Error().Msg("Failed to retrieve all products")
 		return nil, ErrDatabase
@@ -32,7 +32,7 @@ func (q Query) GetAllProducts(ctx context.Context) ([]produkt.Produkt, error) {
 func (q Query) GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error) {
 	log := zerolog.Ctx(ctx)
 
-	products, err := q.ProductRepo.GetActiveProducts(ctx)
+	products, err := q.ProduktRepo.GetActiveProducts(ctx)
 	if err != nil {
 		log.Error().Msg("Failed to retrieve active products")
 		return nil, ErrDatabase

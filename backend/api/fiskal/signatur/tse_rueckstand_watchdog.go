@@ -35,7 +35,7 @@ type tseRueckstandWatchdog struct {
 }
 
 // NewTSERueckstandWatchdog erstellt den Rueckstands-Watchdog.
-func NewTSERueckstandWatchdog(database *sql.DB) *tseRueckstandWatchdog {
+func NewTSERueckstandWatchdog(database *sql.DB) Runner {
 	return &tseRueckstandWatchdog{
 		store: tse_repo.NewRepository(database),
 		now:   time.Now,

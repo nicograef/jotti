@@ -51,9 +51,6 @@ type Command struct {
 	TSERepo             tseGateRepo
 }
 
-// getOffeneKassensitzungOderFehler returns the open Kassensitzung for a booking. It returns
-// ErrKasseNichtGeoeffnet when none is active and ErrKasseWirdAbgeschlossen while the Kassensitzung
-// is being closed (barrier active), so bookings are rejected before any TSE roundtrip.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
@@ -68,7 +65,6 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
-// writeKassensitzungEvent writes a Kassensitzung event with OCC against expectedVersion.
 // expectedVersion ist die Version des Zustands, gegen den der Command validiert hat
 // (frischer Stream: 0). Ein UNIQUE(subject, version)-Konflikt wird zu ErrKonflikt.
 func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kassensitzungNr int, expectedVersion int) error {
@@ -106,7 +102,6 @@ func betriebstag(now time.Time, ort *time.Location) time.Time {
 	return time.Date(jahr, monat, tag, 0, 0, 0, 0, time.UTC)
 }
 
-// KassensitzungEroeffnen opens a new Kassensitzung. Returns ErrKasseAlreadyOpen if one is already open.
 func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -186,7 +181,6 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 	return zNr, nil
 }
 
-// GeldtransitBuchen books a Geldtransit (einlage or entnahme).
 func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName string, richtung string, betragCents int, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -317,7 +311,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	}
 	differenzCents := sollBestandCents - istBestandCents
 
-	// Invariant: Tisch-Saldo-Sperre — all tisch sessions must have saldo_cents = 0
+	// Tisch-Saldo-Sperre: Alle Tisch-Sessions muessen saldo_cents = 0 haben.
 	sessions, err := c.KassenjournalRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get tisch sessions for Kassenabschluss")

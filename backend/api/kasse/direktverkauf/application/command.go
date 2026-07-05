@@ -28,7 +28,7 @@ type kassensitzungenRepo interface {
 	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
-type productRepo interface {
+type produktRepo interface {
 	GetVariantsByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error)
 	GetProductsByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
 }
@@ -37,8 +37,6 @@ type druckstationRepo interface {
 	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
 }
 
-// VerkaufPositionInput represents a single position of a Direktverkauf.
-// The application layer enriches it with product/variant details (fat events).
 type VerkaufPositionInput struct {
 	ProduktID  int
 	VarianteID int
@@ -47,14 +45,11 @@ type VerkaufPositionInput struct {
 
 type Command struct {
 	EventRepo           eventRepo
-	ProductRepo         productRepo
+	ProduktRepo         produktRepo
 	KassensitzungenRepo kassensitzungenRepo
 	DruckstationRepo    druckstationRepo
 }
 
-// getOffeneKassensitzungOderFehler retrieves the open Kassensitzung for a Direktverkauf. It returns
-// ErrKasseNichtGeoeffnet when none is active and ErrKasseWirdAbgeschlossen while the Kassensitzung is
-// being closed (barrier active), rejecting the Direktverkauf before any TSE roundtrip.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
@@ -69,9 +64,6 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
-// DirektverkaufTaetigen records a Direktverkauf as a single immutable event in its own stream
-// (kassensitzung-{nr}/direktverkauf-{uuid}). It requires an open Kassensitzung and writes nothing
-// to any projection. Returns ErrKasseNichtGeoeffnet (HTTP 409) when no Kassensitzung is open.
 func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, inputs []VerkaufPositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -117,9 +109,6 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	return nil
 }
 
-// konfigurierteDruckstationen returns the configured print stations, or an empty
-// map when no DruckstationRepo is wired (e.g. in tests). Without configured stations
-// the policy derives no print jobs.
 func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error) {
 	if c.DruckstationRepo == nil {
 		return nil, nil
@@ -127,12 +116,6 @@ func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]dr
 	return c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
 }
 
-// DirektverkaufStornieren records a position-precise cancellation of a Direktverkauf as an immutable
-// event appended to that verkauf's own stream (version = maxVersion + 1, OCC). The returned cash
-// reduces the Soll-Kassenbestand directly — there is no separate Auszahlung, because a Direktverkauf
-// has no open Saldo. Requires an open Kassensitzung (ErrKasseNichtGeoeffnet otherwise). Returns
-// ErrVerkaufNichtGefunden when the verkauf does not exist and ErrPositionNichtStornierbar when a
-// requested position is not (or no longer) cancellable.
 func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -259,12 +242,12 @@ func (c Command) enrichPositionen(ctx context.Context, inputs []VerkaufPositionI
 		}
 	}
 
-	variantenByID, err := c.ProductRepo.GetVariantsByIDs(ctx, varianteIDs)
+	variantenByID, err := c.ProduktRepo.GetVariantsByIDs(ctx, varianteIDs)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to batch-fetch variants for position enrichment")
 		return nil, ErrProduktNotFound
 	}
-	produkteByID, err := c.ProductRepo.GetProductsByIDs(ctx, produktIDs)
+	produkteByID, err := c.ProduktRepo.GetProductsByIDs(ctx, produktIDs)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to batch-fetch products for position enrichment")
 		return nil, ErrProduktNotFound

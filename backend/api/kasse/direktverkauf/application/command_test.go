@@ -97,7 +97,7 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 	return m.konfig, nil
 }
 
-func newProductMock() productRepo {
+func newProductMock() produktRepo {
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariant(testProduct.ID, testVariant)
 	return productMock
@@ -106,7 +106,7 @@ func newProductMock() productRepo {
 func newCommand(eventRepo eventRepo, ks *kasse.Kassensitzung) Command {
 	return Command{
 		EventRepo:           eventRepo,
-		ProductRepo:         newProductMock(),
+		ProduktRepo:         newProductMock(),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(ks, nil),
 	}
 }
@@ -114,7 +114,7 @@ func newCommand(eventRepo eventRepo, ks *kasse.Kassensitzung) Command {
 func newCommandWithDruckstationen(eventRepo eventRepo, ks *kasse.Kassensitzung, stationen map[string]druckstation.Druckstation) Command {
 	return Command{
 		EventRepo:           eventRepo,
-		ProductRepo:         newProductMock(),
+		ProduktRepo:         newProductMock(),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(ks, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: stationen},
 	}
@@ -180,7 +180,7 @@ func TestDirektverkaufTaetigen_ProduktNotFound(t *testing.T) {
 	spy := &spyEventRepo{}
 	command := Command{
 		EventRepo:           spy,
-		ProductRepo:         produkt_repo.NewMock([]produkt.Produkt{}, nil),
+		ProduktRepo:         produkt_repo.NewMock([]produkt.Produkt{}, nil),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 

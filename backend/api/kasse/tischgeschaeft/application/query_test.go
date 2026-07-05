@@ -27,7 +27,7 @@ func TestGetTischState(t *testing.T) {
 		GesamtZahlungenCents:  0,
 	})
 	query := Query{
-		TableRepo:           tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus}}, nil),
+		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus}}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: sitzungMock,
 	}
@@ -70,7 +70,7 @@ func TestGetTischState_NoState(t *testing.T) {
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	query := Query{
-		TableRepo:           tisch_repo.NewMock([]tisch.Tisch{{ID: 999, Name: "Tisch 999", Status: tisch.ActiveStatus}}, nil),
+		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{{ID: 999, Name: "Tisch 999", Status: tisch.ActiveStatus}}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: sitzungMock,
 	}
@@ -94,7 +94,7 @@ func TestGetTischHistorie_ReturnsEmptyForTischWithNoEvents(t *testing.T) {
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	query := Query{
-		TableRepo:           tisch_repo.NewMock(nil, nil),
+		TischRepo:           tisch_repo.NewMock(nil, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: sitzungMock,
 	}

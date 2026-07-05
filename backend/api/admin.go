@@ -44,7 +44,7 @@ func NewAdminApi(deps Deps) http.Handler {
 	r.HandleFunc("/get-all-users", uq.GetAllUsersHandler())
 
 	pc := productHTTP.CommandHandler{}
-	pc.Command = productApp.Command{ProductRepo: deps.ProduktRepo}
+	pc.Command = productApp.Command{ProduktRepo: deps.ProduktRepo}
 	r.HandleFunc("/create-produkt", pc.CreateProductHandler())
 	r.HandleFunc("/update-produkt", pc.UpdateProductHandler())
 	r.HandleFunc("/create-variante", pc.CreateVariantHandler())
@@ -55,12 +55,12 @@ func NewAdminApi(deps Deps) http.Handler {
 	r.HandleFunc("/delete-variante", pc.DeleteVarianteHandler())
 
 	pq := productHTTP.QueryHandler{}
-	pq.Query = productApp.Query{ProductRepo: deps.ProduktRepo}
+	pq.Query = productApp.Query{ProduktRepo: deps.ProduktRepo}
 	r.HandleFunc("/get-all-produkte", pq.GetAllProductsHandler())
 
 	tc := tischHTTP.CommandHandler{}
 	tc.Command = tischApp.Command{
-		TableRepo:   deps.TischRepo,
+		TischRepo:   deps.TischRepo,
 		FavoritRepo: deps.FavoritRepo,
 	}
 	r.HandleFunc("/update-tisch", tc.TischAktualisierenHandler())
@@ -70,7 +70,7 @@ func NewAdminApi(deps Deps) http.Handler {
 	r.HandleFunc("/delete-tisch", tc.TischLoeschenHandler())
 
 	tq := tischHTTP.QueryHandler{}
-	tq.Query = tischApp.Query{TableRepo: deps.TischRepo}
+	tq.Query = tischApp.Query{TischRepo: deps.TischRepo}
 	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())
 
 	rq := reportingHTTP.QueryHandler{}
@@ -90,7 +90,7 @@ func NewAdminApi(deps Deps) http.Handler {
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		BetreiberRepo:       deps.BetreiberRepo,
 		TSERepo:             deps.TSERepo,
-		TableRepo:           deps.TischRepo,
+		TischRepo:           deps.TischRepo,
 	}
 	r.HandleFunc("/export/dsfinvk", exportHandler.ExportHandler())
 
@@ -132,7 +132,7 @@ func NewAdminApi(deps Deps) http.Handler {
 
 	sq := fiskalSetupHTTP.QueryHandler{}
 	sq.Query = fiskalSetupApp.Query{
-		SettingsRepo:           deps.TSERepo,
+		TSERepo:                deps.TSERepo,
 		NewTSEConnectionTester: deps.NewTSEConnectionTester,
 		NewTSESetupClient:      deps.NewTSESetupClient,
 	}
@@ -144,7 +144,7 @@ func NewAdminApi(deps Deps) http.Handler {
 
 	sc := fiskalSetupHTTP.CommandHandler{}
 	sc.Command = fiskalSetupApp.Command{
-		SettingsRepo:        deps.TSERepo,
+		TSERepo:             deps.TSERepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		NewTSESetupClient:   deps.NewTSESetupClient,
 	}

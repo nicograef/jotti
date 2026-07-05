@@ -98,10 +98,16 @@ type tseSignaturWorker struct {
 	clientCreds tse.Credentials
 }
 
+// Runner ist das einzige Interface, das Aufrufer (app.go) von den Workers
+// benoetigen: einmal starten und auf ctx.Done() warten.
+type Runner interface {
+	Run(ctx context.Context)
+}
+
 // NewTSESignaturWorker erstellt den Signatur-Worker. fiskalyBaseURL ist die
 // Basis-URL der Fiskaly-API; sie wird als Parameter gereicht, damit dieses
 // Paket config nicht importiert.
-func NewTSESignaturWorker(fiskalyBaseURL string, database *sql.DB) *tseSignaturWorker {
+func NewTSESignaturWorker(fiskalyBaseURL string, database *sql.DB) Runner {
 	return &tseSignaturWorker{
 		lockDB:       database,
 		settingsRepo: tse_repo.NewRepository(database),

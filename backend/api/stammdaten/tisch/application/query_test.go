@@ -12,7 +12,7 @@ import (
 
 func TestGetAllTische(t *testing.T) {
 	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus}}, nil)
-	query := Query{TableRepo: repo}
+	query := Query{TischRepo: repo}
 
 	tische, err := query.GetAllTische(context.Background())
 

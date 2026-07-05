@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type tableRepo interface {
+type tischRepo interface {
 	GetTable(ctx context.Context, id int) (tisch.Tisch, error)
 	CreateTable(ctx context.Context, t tisch.Tisch) (int, error)
 	UpdateTable(ctx context.Context, t tisch.Tisch) error
@@ -20,14 +20,14 @@ type favoritRepo interface {
 }
 
 type Command struct {
-	TableRepo   tableRepo
+	TischRepo   tischRepo
 	FavoritRepo favoritRepo
 }
 
 func (c Command) FavoritHinzufuegen(ctx context.Context, userID, tischID int) error {
 	log := zerolog.Ctx(ctx)
 
-	t, err := c.TableRepo.GetTable(ctx, tischID)
+	t, err := c.TischRepo.GetTable(ctx, tischID)
 	if err != nil {
 		return fromRepositoryError(err, log, tischID)
 	}
@@ -67,7 +67,7 @@ func (c Command) TischErstellen(ctx context.Context, name string) (int, error) {
 		return 0, ErrInvalidTischData
 	}
 
-	id, err := c.TableRepo.CreateTable(ctx, tisch)
+	id, err := c.TischRepo.CreateTable(ctx, tisch)
 	if err != nil {
 		return 0, fromRepositoryError(err, log, 0)
 	}
@@ -79,7 +79,7 @@ func (c Command) TischErstellen(ctx context.Context, name string) (int, error) {
 func (c Command) TischAktualisieren(ctx context.Context, id int, name string) error {
 	log := zerolog.Ctx(ctx)
 
-	tisch, err := c.TableRepo.GetTable(ctx, id)
+	tisch, err := c.TischRepo.GetTable(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
@@ -90,7 +90,7 @@ func (c Command) TischAktualisieren(ctx context.Context, id int, name string) er
 		return ErrInvalidTischData
 	}
 
-	err = c.TableRepo.UpdateTable(ctx, tisch)
+	err = c.TischRepo.UpdateTable(ctx, tisch)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
@@ -114,12 +114,12 @@ func (c Command) TischLoeschen(ctx context.Context, id int) error {
 func (c Command) applyTischStatusChange(ctx context.Context, id int, successMsg string, action func(*tisch.Tisch)) error {
 	log := zerolog.Ctx(ctx)
 
-	tisch, err := c.TableRepo.GetTable(ctx, id)
+	tisch, err := c.TischRepo.GetTable(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
 	action(&tisch)
-	if err := c.TableRepo.UpdateTable(ctx, tisch); err != nil {
+	if err := c.TischRepo.UpdateTable(ctx, tisch); err != nil {
 		return fromRepositoryError(err, log, id)
 	}
 	log.Info().Int("tisch_id", id).Msg(successMsg)

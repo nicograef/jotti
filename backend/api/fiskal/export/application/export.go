@@ -47,7 +47,7 @@ type tseRepo interface {
 	GetTSEStammdaten(ctx context.Context) (tse.Stammdaten, error)
 }
 
-type tableRepo interface {
+type tischRepo interface {
 	GetAllTables(ctx context.Context) ([]tisch.Tisch, error)
 }
 
@@ -58,7 +58,7 @@ type Export struct {
 	KassensitzungenRepo kassensitzungenRepo
 	BetreiberRepo       betreiberRepo
 	TSERepo             tseRepo
-	TableRepo           tableRepo
+	TischRepo           tischRepo
 }
 
 // Archiv ist das fertige DSFinV-K-ZIP samt sprechendem Dateinamen.
@@ -174,7 +174,7 @@ func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung
 		log.Error().Err(err).Msg("Failed to get tse stammdaten")
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
-	tische, err := e.TableRepo.GetAllTables(ctx)
+	tische, err := e.TischRepo.GetAllTables(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get tische")
 		return dsfinvk.Snapshot{}, ErrDatabase

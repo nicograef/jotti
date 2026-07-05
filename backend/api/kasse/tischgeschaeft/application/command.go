@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type tableRepo interface {
+type tischRepo interface {
 	GetTable(ctx context.Context, id int) (tisch.Tisch, error)
 	GetActiveTables(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error)
 	GetActiveTablesWithFavorites(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error)
@@ -37,7 +37,7 @@ type kassensitzungenRepo interface {
 	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
-type productRepo interface {
+type produktRepo interface {
 	GetVariantsByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error)
 	GetProductsByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
 }
@@ -50,8 +50,6 @@ type druckstationRepo interface {
 	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
 }
 
-// BestellPositionInput represents the input for a single position in an order.
-// The application layer enriches this with product/variant details (fat events).
 type BestellPositionInput struct {
 	ProduktID  int
 	VarianteID int
@@ -59,17 +57,14 @@ type BestellPositionInput struct {
 }
 
 type Command struct {
-	TableRepo           tableRepo
+	TischRepo           tischRepo
 	EventRepo           eventRepo
-	ProductRepo         productRepo
+	ProduktRepo         produktRepo
 	FavoritRepo         favoritRepo
 	KassensitzungenRepo kassensitzungenRepo
 	DruckstationRepo    druckstationRepo
 }
 
-// getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung for a booking.
-// Returns ErrKasseNichtGeoeffnet (HTTP 409) when none is active and ErrKasseWirdAbgeschlossen while
-// the Kassensitzung is being closed (barrier active), rejecting the booking before any TSE roundtrip.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
@@ -84,9 +79,6 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
-// writeEventOCC writes the event with version expectedVersion+1, mapping a version
-// conflict (UNIQUE violation) to ErrConflict.
-//
 // expectedVersion muss die Version des Zustands sein, gegen den der Command validiert
 // hat (Projektion bzw. Replay) — nicht ein frisches GetMaxVersion zum Schreibzeitpunkt.
 // Nur so erkennt der UNIQUE(subject, version)-Constraint, dass sich der Stream seit dem
@@ -117,27 +109,18 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 	return eventID, nil
 }
 
-// writeEvent writes an event with optimistic concurrency control against expectedVersion.
-// Returns ErrConflict on a version conflict.
 func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
 	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEvent(ctx, versioned, streamType, kassensitzungNr)
 	})
 }
 
-// writeEventWithDruckauftraege writes an event and the print jobs derived from it
-// (built from the stored event including its generated ID) in a single transaction.
-// Returns ErrConflict on a version conflict.
 func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
 	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
 	})
 }
 
-// persistTischEvent writes a tisch-session event with OCC against expectedVersion
-// (die Version des gelesenen Zustands, gegen den validiert wurde). An OCC conflict
-// maps to ErrConflict, any other write error to ErrDatabase. aktion is the success
-// log message.
 func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -152,10 +135,6 @@ func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject
 	return nil
 }
 
-// loadTischState loads and validates the tisch, then reads its projected tisch session.
-// Returns the subject, kassensitzungNr, and TischSession state.
-// Returns ErrKasseNichtGeoeffnet if no open Kassensitzung exists.
-// Returns ErrTischNotFound if the tisch doesn't exist, ErrTischNotActive if not active.
 func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, kasse.TischSession, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -164,7 +143,7 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 		return "", 0, kasse.TischSession{}, err
 	}
 
-	t, err := c.TableRepo.GetTable(ctx, tischID)
+	t, err := c.TischRepo.GetTable(ctx, tischID)
 	if err != nil {
 		return "", 0, kasse.TischSession{}, fromRepositoryError(err, log, tischID)
 	}
@@ -185,9 +164,6 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 	return subject, ks.ZNr, state, nil
 }
 
-// validatePositionRefs checks that every requested PositionRef exists in the available positions,
-// that no PositionID is referenced more than once (duplicates would add up unnoticed), and that
-// the requested Menge does not exceed the available Menge.
 func validatePositionRefs(available []kasse.Position, requested []kasse.PositionRef) bool {
 	seen := make(map[string]bool, len(requested))
 	for _, ref := range requested {
@@ -221,7 +197,6 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return err
 	}
 
-	// Collect unique variant and product IDs for batch enrichment
 	varianteIDs := make([]int, 0, len(inputs))
 	produktIDs := make([]int, 0, len(inputs))
 	seenVarianten := make(map[int]bool, len(inputs))
@@ -237,19 +212,17 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		}
 	}
 
-	// Batch-fetch all required variants and products in one query each
-	variantenByID, err := c.ProductRepo.GetVariantsByIDs(ctx, varianteIDs)
+	variantenByID, err := c.ProduktRepo.GetVariantsByIDs(ctx, varianteIDs)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to batch-fetch variants for position enrichment")
 		return ErrProduktNotFound
 	}
-	produkteByID, err := c.ProductRepo.GetProductsByIDs(ctx, produktIDs)
+	produkteByID, err := c.ProduktRepo.GetProductsByIDs(ctx, produktIDs)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to batch-fetch products for position enrichment")
 		return ErrProduktNotFound
 	}
 
-	// Enrich positions with product/variant data (fat events)
 	positionen := make([]kasse.Position, 0, len(inputs))
 	for _, input := range inputs {
 		variant, ok := variantenByID[input.VarianteID]
@@ -286,8 +259,6 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return ErrDatabase
 	}
 
-	// Build the work tickets from the stored event (with its generated ID) so the
-	// event and its print jobs are written in one transaction (transactional outbox).
 	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
 		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen)
 	}
@@ -315,8 +286,6 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	return nil
 }
 
-// resolvePositions resolves PositionRefs to full Positions using available positions.
-// Returns resolved positions and total amount in cents.
 func resolvePositions(available []kasse.Position, refs []kasse.PositionRef) ([]kasse.Position, int) {
 	resolved := make([]kasse.Position, 0, len(refs))
 	totalCents := 0
@@ -379,7 +348,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return err
 	}
 
-	quellTisch, err := c.TableRepo.GetTable(ctx, quellTischID)
+	quellTisch, err := c.TischRepo.GetTable(ctx, quellTischID)
 	if err != nil {
 		return fromRepositoryError(err, log, quellTischID)
 	}
@@ -388,7 +357,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return ErrTischNotActive
 	}
 
-	zielTisch, err := c.TableRepo.GetTable(ctx, zielTischID)
+	zielTisch, err := c.TischRepo.GetTable(ctx, zielTischID)
 	if err != nil {
 		return fromRepositoryError(err, log, zielTischID)
 	}

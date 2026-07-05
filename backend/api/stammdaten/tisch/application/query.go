@@ -8,13 +8,13 @@ import (
 )
 
 type Query struct {
-	TableRepo tableRepo
+	TischRepo tischRepo
 }
 
 func (q Query) GetAllTische(ctx context.Context) ([]t.Tisch, error) {
 	log := zerolog.Ctx(ctx)
 
-	tische, err := q.TableRepo.GetAllTables(ctx)
+	tische, err := q.TischRepo.GetAllTables(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve all tische")
 		return nil, ErrDatabase

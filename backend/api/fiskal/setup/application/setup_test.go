@@ -56,7 +56,7 @@ func (s stubKassensitzungReader) GetOffeneKassensitzung(context.Context) (*kasse
 
 func commandMit(repo *stubCommandRepo, client *tse.FakeSetupClient) Command {
 	return Command{
-		SettingsRepo:        repo,
+		TSERepo:             repo,
 		KassensitzungenRepo: stubKassensitzungReader{},
 		NewTSESetupClient: func(tse.SetupCredentials) (tse.SetupClient, error) {
 			return client, nil
@@ -822,7 +822,7 @@ func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetupNicht(t *testing.T) {
 // so belegt der Test, dass der Guard vor jeder fiskaly-Arbeit greift.
 func commandMitOffenerKassensitzung(repo *stubCommandRepo) Command {
 	return Command{
-		SettingsRepo:        repo,
+		TSERepo:             repo,
 		KassensitzungenRepo: stubKassensitzungReader{offene: &kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}},
 		NewTSESetupClient: func(tse.SetupCredentials) (tse.SetupClient, error) {
 			return nil, errors.New("setup client must not be created while a Kassensitzung is open")

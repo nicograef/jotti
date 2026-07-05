@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type settingsQueryRepo interface {
+type tseQueryRepo interface {
 	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
 	GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error)
 }
@@ -19,7 +19,7 @@ type NewTSEConnectionTester func(credentials tse.Credentials) (tse.ConnectionTes
 type NewTSESetupClient func(credentials tse.SetupCredentials) (tse.SetupClient, error)
 
 type Query struct {
-	SettingsRepo           settingsQueryRepo
+	TSERepo                tseQueryRepo
 	NewTSEConnectionTester NewTSEConnectionTester
 	NewTSESetupClient      NewTSESetupClient
 }
@@ -52,7 +52,7 @@ type ClientBefund struct {
 func (q Query) GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error) {
 	log := zerolog.Ctx(ctx)
 
-	identitaet, err := q.SettingsRepo.GetKassenidentitaet(ctx)
+	identitaet, err := q.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve kassenidentitaet")
 		return tse.Kassenidentitaet{}, ErrDatabase
@@ -63,7 +63,7 @@ func (q Query) GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, e
 func (q Query) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error) {
 	log := zerolog.Ctx(ctx)
 
-	c, err := q.SettingsRepo.GetTSEKonfiguration(ctx)
+	c, err := q.TSERepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			return tse.Konfiguration{}, ErrNotFound
@@ -83,7 +83,7 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 		return tse.VerbindungStatus{}, ErrDatabase
 	}
 
-	conf, err := q.SettingsRepo.GetTSEKonfiguration(ctx)
+	conf, err := q.TSERepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			return tse.VerbindungStatus{}, ErrTSENichtKonfiguriert
@@ -114,7 +114,7 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 		return tse.VerbindungStatus{}, ErrTSEVerbindungFehlgeschlagen
 	}
 
-	identitaet, err := q.SettingsRepo.GetKassenidentitaet(ctx)
+	identitaet, err := q.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve kassenidentitaet for connection test")
 		return tse.VerbindungStatus{}, ErrDatabase
@@ -154,7 +154,7 @@ func (q Query) PruefeTSESetup(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupBefund{}, ErrTSEVerbindungFehlgeschlagen
 	}
 
-	identitaet, err := q.SettingsRepo.GetKassenidentitaet(ctx)
+	identitaet, err := q.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve kassenidentitaet for setup check")
 		return TSESetupBefund{}, ErrDatabase
@@ -196,7 +196,7 @@ func passenderClient(clients []tse.ClientInfo, seriennummer string) *ClientBefun
 func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
 	log := zerolog.Ctx(ctx)
 
-	conf, err := q.SettingsRepo.GetTSEKonfiguration(ctx)
+	conf, err := q.TSERepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			return TSEStatus{}, nil

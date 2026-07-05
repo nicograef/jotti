@@ -25,7 +25,7 @@ type TischStateView struct {
 }
 
 type Query struct {
-	TableRepo           tableRepo
+	TischRepo           tischRepo
 	EventRepo           eventRepo
 	FavoritRepo         favoritRepo
 	KassensitzungenRepo kassensitzungenRepo
@@ -44,7 +44,7 @@ func (q Query) GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error) {
 		kassensitzungNr = ks.ZNr
 	}
 
-	tische, err := q.TableRepo.GetActiveTables(ctx, kassensitzungNr)
+	tische, err := q.TischRepo.GetActiveTables(ctx, kassensitzungNr)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve active tische")
 		return nil, ErrDatabase
@@ -57,7 +57,7 @@ func (q Query) GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error) {
 func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (TischStateView, error) {
 	log := zerolog.Ctx(ctx)
 
-	tisch, err := q.TableRepo.GetTable(ctx, tischID)
+	tisch, err := q.TischRepo.GetTable(ctx, tischID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Int("tisch_id", tischID).Msg("Tisch not found")
@@ -111,7 +111,7 @@ func (q Query) GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]t
 		kassensitzungNr = ks.ZNr
 	}
 
-	tische, err := q.TableRepo.GetActiveTablesWithFavorites(ctx, userID, kassensitzungNr)
+	tische, err := q.TischRepo.GetActiveTablesWithFavorites(ctx, userID, kassensitzungNr)
 	if err != nil {
 		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve active tische mit favoriten")
 		return nil, ErrDatabase
@@ -147,7 +147,7 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 
 	views := make([]TischStateView, 0, len(favoritIDs))
 	for _, tischID := range favoritIDs {
-		tisch, err := q.TableRepo.GetTable(ctx, tischID)
+		tisch, err := q.TischRepo.GetTable(ctx, tischID)
 		if err != nil {
 			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to resolve tisch")
 			return nil, ErrDatabase

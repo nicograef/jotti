@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type settingsCommandRepo interface {
+type tseCommandRepo interface {
 	SpeichereEinrichtung(ctx context.Context, c tse.Konfiguration) error
 	UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error
 	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
@@ -22,7 +22,7 @@ type kassensitzungReader interface {
 }
 
 type Command struct {
-	SettingsRepo        settingsCommandRepo
+	TSERepo             tseCommandRepo
 	KassensitzungenRepo kassensitzungReader
 	NewTSESetupClient   NewTSESetupClient
 }
@@ -55,7 +55,7 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfigurat
 	// Fuehrt er den Uebergang zu konfiguriert aus, laufen Einrichtungs-Sweep und
 	// das Schliessen des keine_konfiguration-Stoerungszeitraums in derselben
 	// Transaktion — sonst bliebe der Zeitraum fuer immer offen.
-	if err := c.SettingsRepo.SpeichereEinrichtung(ctx, conf); err != nil {
+	if err := c.TSERepo.SpeichereEinrichtung(ctx, conf); err != nil {
 		log.Error().Err(err).Msg("Failed to save tse_konfiguration")
 		return ErrDatabase
 	}
