@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Eye, Printer, X } from 'lucide-react'
+import { ArrowRightLeft, Eye, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -187,16 +187,6 @@ export function TischHistorie({
                       onClick={() => {
                         setDetail(item)
                       }}
-                      onBelegDrucken={
-                        // Nur die kassenwirksame Warenrücknahme (Bargeld zurück)
-                        // erzeugt einen Stornobeleg; die geldneutrale Korrektur nicht.
-                        item.barRueckgabe
-                          ? () => {
-                              stornobelegAnfordern(item.id)
-                            }
-                          : undefined
-                      }
-                      belegDruckenLoading={belegDruckenLoading}
                     />
                   )
                 case 'ausgabe':
@@ -241,7 +231,17 @@ export function TischHistorie({
                     })
                   },
                 }
-              : undefined
+              : // Nur die kassenwirksame Warenrücknahme (Bargeld zurück)
+                // erzeugt einen Stornobeleg; die geldneutrale Korrektur nicht.
+                detail.art === 'stornierung' && detail.barRueckgabe
+                ? {
+                    label: 'Stornobeleg drucken',
+                    loading: belegDruckenLoading,
+                    onAction: () => {
+                      stornobelegAnfordern(detail.id)
+                    },
+                  }
+                : undefined
           }
         />
       )}
@@ -287,8 +287,6 @@ function HistoryItem({
   onClick,
   onStornieren,
   onUmbuchen,
-  onBelegDrucken,
-  belegDruckenLoading,
 }: {
   title: string
   date: string
@@ -297,8 +295,6 @@ function HistoryItem({
   onClick: () => void
   onStornieren?: () => void
   onUmbuchen?: () => void
-  onBelegDrucken?: () => void
-  belegDruckenLoading?: boolean
 }) {
   return (
     <Item variant="outline">
@@ -316,18 +312,6 @@ function HistoryItem({
         </ItemDescription>
       </ItemContent>
       <ItemActions>
-        {onBelegDrucken && (
-          <Button
-            size="icon-sm"
-            variant="outline"
-            className="rounded-full cursor-pointer"
-            aria-label="Stornobeleg drucken"
-            disabled={belegDruckenLoading}
-            onClick={onBelegDrucken}
-          >
-            <Printer />
-          </Button>
-        )}
         {onStornieren && (
           <Button
             size="icon-sm"

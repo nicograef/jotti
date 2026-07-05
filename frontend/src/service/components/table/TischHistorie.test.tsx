@@ -24,14 +24,15 @@ vi.mock('@/lib/Auth', () => ({
   AuthSingleton: { canCancel: true },
 }))
 
-// vaul's Drawer braucht Browser-APIs, die jsdom nicht bereitstellt. Hier wird
-// nur die flache Historien-Liste geprüft, kein Drawer geöffnet.
+// vaul's Drawer braucht Browser-APIs, die jsdom nicht bereitstellt.
+// DrawerContent wird als Passthrough gemockt, damit Drawer-Inhalte
+// (inkl. Beleg-Buttons) im Test sichtbar sind.
 vi.mock('@/components/ui/drawer', () => {
   const Passthrough = ({ children }: { children?: ReactNode }) => children
   return {
     Drawer: Passthrough,
     DrawerTrigger: Passthrough,
-    DrawerContent: () => null,
+    DrawerContent: Passthrough,
     DrawerHeader: Passthrough,
     DrawerTitle: Passthrough,
     DrawerDescription: Passthrough,
@@ -202,7 +203,7 @@ describe('TischHistorie', () => {
     expect(screen.getByText(/Korrektur -/)).toBeInTheDocument()
   })
 
-  it('zeigt den Stornobeleg-Button nur bei der Warenrücknahme und löst ihn aus', async () => {
+  it('zeigt den Stornobeleg-Button nur bei der Warenrücknahme im Drawer und löst ihn aus', async () => {
     const stornobelegDrucken = vi.fn().mockResolvedValue('eingereiht')
     renderHistorie(
       [
@@ -219,12 +220,22 @@ describe('TischHistorie', () => {
       { stornobelegDrucken },
     )
 
-    const belegButtons = screen.getAllByRole('button', {
+    // Stornobeleg-Button ist vor dem Öffnen des Drawers nicht sichtbar
+    expect(
+      screen.queryByRole('button', { name: 'Stornobeleg drucken' }),
+    ).not.toBeInTheDocument()
+
+    // Drawer der Warenrücknahme (erster Eintrag) öffnen
+    const detailButtons = screen.getAllByRole('button', {
+      name: 'Details anzeigen',
+    })
+    fireEvent.click(detailButtons[0])
+
+    // Stornobeleg-Button im Drawer sichtbar und auslösbar
+    const belegButton = screen.getByRole('button', {
       name: 'Stornobeleg drucken',
     })
-    expect(belegButtons).toHaveLength(1)
-
-    fireEvent.click(belegButtons[0])
+    fireEvent.click(belegButton)
 
     await waitFor(() => {
       expect(stornobelegDrucken).toHaveBeenCalledWith(
@@ -244,6 +255,9 @@ describe('TischHistorie', () => {
     ])
 
     expect(screen.getByText(/Korrektur -/)).toBeInTheDocument()
+
+    // Drawer öffnen: auch dort kein Stornobeleg-Button für eine Korrektur
+    fireEvent.click(screen.getByRole('button', { name: 'Details anzeigen' }))
     expect(
       screen.queryByRole('button', { name: 'Stornobeleg drucken' }),
     ).not.toBeInTheDocument()
