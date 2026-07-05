@@ -43,9 +43,7 @@ export function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
 
   const FormDataSchema = z.object({
     bezeichnung: BezeichnungSchema,
-    betragCents: BetragCentsSchema.gte(1, {
-      message: 'Bitte einen Anfangsbestand eingeben.',
-    }),
+    betragCents: BetragCentsSchema,
   })
   type FormData = z.infer<typeof FormDataSchema>
 
