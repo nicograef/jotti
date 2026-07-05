@@ -6,9 +6,10 @@
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now jotti-backup.timer
 #
-# Adjust WorkingDirectory to your jotti checkout. The script reads .env there and
-# writes dumps to BACKUP_DIR (default ./backups). Override the defaults below if
-# you keep backups elsewhere or want a different retention.
+# Adjust WorkingDirectory and the ExecStart path to your jotti checkout. The
+# script reads .env there and writes dumps to BACKUP_DIR (default ./backups).
+# The Environment= lines below are optional: with the .env fix in place a missing
+# key falls back to the built-in default, so set them only to override.
 
 [Unit]
 Description=jotti database backup (pg_dump, rotated)

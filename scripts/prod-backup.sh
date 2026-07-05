@@ -41,7 +41,7 @@ fatal() { error "$1"; exit 1; }
 # trimmed of surrounding whitespace.
 read_env() {
   local key="$1"
-  grep -E "^${key}=" .env 2>/dev/null | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+  { grep -E "^${key}=" .env 2>/dev/null || true; } | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
 # ---------------------------------------------------------------------------

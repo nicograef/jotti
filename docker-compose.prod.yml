@@ -115,8 +115,8 @@ services:
     environment:
       # JOTTI_DOMAIN switches the image into public mode: one site for this
       # domain with an automatic Let's Encrypt certificate.
-      JOTTI_DOMAIN: ${JOTTI_DOMAIN}
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+      JOTTI_DOMAIN: ${JOTTI_DOMAIN:-}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-}
       # Optional: redirect www.<domain> to <domain> (needs www DNS to point here).
       JOTTI_WWW_REDIRECT: ${JOTTI_WWW_REDIRECT:-}
       # Set to 1 to issue via the Let's Encrypt staging CA while testing.
