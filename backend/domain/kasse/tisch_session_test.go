@@ -522,17 +522,19 @@ func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 	}
 
 	// Menge und Länge vor dem zweiten ApplyEvent einfrieren.
-	wantMenge := state.UnbezahltePositionen[0].Menge // = 3
-	wantLen := len(state.UnbezahltePositionen)       // = 1
-	wantAusstLen := len(state.AusstehendePositionen) // = 1
+	wantMenge := state.UnbezahltePositionen[0].Menge       // = 3
+	wantLen := len(state.UnbezahltePositionen)             // = 1
+	wantAusstLen := len(state.AusstehendePositionen)       // = 1
+	wantAusstMenge := state.AusstehendePositionen[0].Menge // = 3
 
-	// Zahlung über 1 Einheit: reduceByPositionStrict macht list[i].Menge -= 1
-	// direkt auf dem Backing-Array. Ohne Klon mutiert das state.UnbezahltePositionen.
-	payPositions := positionsFromOrder(t, orderEvent, 1)
-	payEvent := mustCreatePaymentEvent(t, testSubject, 1, payPositions, 500)
-	payEvent.ID, payEvent.Version = 2, 2
+	// Korrektur über 1 Einheit: ruft reduceByPositionStrict (UnbezahltePositionen) UND
+	// reduceByPosition (AusstehendePositionen) auf — beide Klon-Pfade werden geprüft.
+	// Ohne den make+copy-Klon würden beide Helfer das Backing-Array des Input-State mutieren.
+	korrekturPositionen := positionsFromOrder(t, orderEvent, 1)
+	korrekturEvent := mustCreateKorrekturEvent(t, testSubject, 1, korrekturPositionen, 500)
+	korrekturEvent.ID, korrekturEvent.Version = 2, 2
 
-	state2, err := ApplyEvent(state, payEvent)
+	state2, err := ApplyEvent(state, korrekturEvent)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -550,10 +552,19 @@ func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 		t.Errorf("original state AusstehendePositionen length mutated: was %d, now %d",
 			wantAusstLen, len(state.AusstehendePositionen))
 	}
+	// Feld-Level-Alias: reduceByPosition schreibt list[i].Menge -= 1 in das Backing-Array.
+	// Ohne den make+copy-Klon wäre state.AusstehendePositionen[0].Menge nach dem ApplyEvent 2.
+	if state.AusstehendePositionen[0].Menge != wantAusstMenge {
+		t.Errorf("original state AusstehendePositionen[0].Menge mutated: was %d, now %d",
+			wantAusstMenge, state.AusstehendePositionen[0].Menge)
+	}
 
 	// Zur Sicherheit: state2 muss korrekte Werte haben.
 	if state2.UnbezahltePositionen[0].Menge != 2 {
 		t.Errorf("new state UnbezahltePositionen[0].Menge = %d, want 2", state2.UnbezahltePositionen[0].Menge)
+	}
+	if state2.AusstehendePositionen[0].Menge != 2 {
+		t.Errorf("new state AusstehendePositionen[0].Menge = %d, want 2", state2.AusstehendePositionen[0].Menge)
 	}
 }
 

@@ -116,10 +116,10 @@ describe('EroeffnenSection', () => {
     expect(kassensitzungEroeffnen).toHaveBeenCalledWith('Sommerfest', 0)
   })
 
-  it('zeigt bei negativem Betrag einen Validierungsfehler', async () => {
-    // EuroInput verhindert Minus-Eingabe, Negativwerte sind nur per Schema abzusichern.
-    // Direktes Parse-Ergebnis über den Schema-Test in KasseBackend.test.ts abgedeckt.
-    // Dieser Test verifiziert, dass das Formular keinen Fehler für 0 € zeigt.
+  it('akzeptiert Standardwert 0 € (leeres Betrag-Feld) ohne Validierungsfehler', async () => {
+    // 0 € Anfangsbestand ist gültig — leeres EuroInput-Feld ergibt den Standardwert 0.
+    // Negativwerte kann EuroInput strukturell nicht erzeugen; deren Schema-Absicherung
+    // wird direkt in KasseBackend.test.ts geprüft.
     tseState.istKonfiguriert = true
     const user = userEvent.setup()
     render(<EroeffnenSection onSuccess={vi.fn()} />)
