@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"net/http"
 
 	belegApp "github.com/nicograef/jotti/backend/api/druck/beleg/application"
@@ -16,45 +15,23 @@ import (
 	productHTTP "github.com/nicograef/jotti/backend/api/stammdaten/produkt/http"
 	tischApp "github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
 	tischHTTP "github.com/nicograef/jotti/backend/api/stammdaten/tisch/http"
-	"github.com/nicograef/jotti/backend/config"
-	"github.com/nicograef/jotti/backend/repository/betreiber_repo"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
-	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
-	"github.com/nicograef/jotti/backend/repository/favorit_repo"
-	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
-	"github.com/nicograef/jotti/backend/repository/produkt_repo"
-	"github.com/nicograef/jotti/backend/repository/reporting_repo"
-	"github.com/nicograef/jotti/backend/repository/tisch_repo"
-	"github.com/nicograef/jotti/backend/repository/tse_repo"
 )
 
-func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
+func NewServiceApi(deps Deps) http.Handler {
 	r := http.NewServeMux()
 
-	productRepo := produkt_repo.NewRepository(db)
 	pq := productHTTP.QueryHandler{}
-	pq.Query = productApp.Query{ProductRepo: productRepo}
+	pq.Query = productApp.Query{ProductRepo: deps.ProduktRepo}
 	r.HandleFunc("/get-aktive-produkte", pq.GetActiveProductsHandler())
-
-	tableRepo := tisch_repo.NewRepository(db)
-	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
-	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
-	favoritRepo := favorit_repo.NewRepository(db)
-	druckstationRepo := druckstation_repo.NewRepository(db)
-	druckauftragRepo := druckauftrag_repo.NewRepository(db)
-	betreiberRepo := betreiber_repo.NewRepository(db)
-
-	tseRepo := tse_repo.NewRepository(db)
 
 	tc := tischgeschaeftHTTP.CommandHandler{}
 	tc.Command = tischgeschaeftApp.Command{
-		TableRepo:           tableRepo,
-		EventRepo:           kassenjournalRepo,
-		ProductRepo:         productRepo,
-		FavoritRepo:         favoritRepo,
-		KassensitzungenRepo: kassensitzungenRepo,
-		DruckstationRepo:    druckstationRepo,
+		TableRepo:           deps.TischRepo,
+		EventRepo:           deps.KassenjournalRepo,
+		ProductRepo:         deps.ProduktRepo,
+		FavoritRepo:         deps.FavoritRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		DruckstationRepo:    deps.DruckstationRepo,
 	}
 	r.HandleFunc("/bestellung-aufnehmen", tc.BestellungAufnehmenHandler())
 	r.HandleFunc("/bestellung-umbuchen", tc.BestellungUmbuchenHandler())
@@ -63,54 +40,53 @@ func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 
 	bc := belegHTTP.CommandHandler{}
 	bc.Command = belegApp.Command{
-		EventRepo:           kassenjournalRepo,
-		KassensitzungenRepo: kassensitzungenRepo,
-		DruckstationRepo:    druckstationRepo,
-		DruckauftragRepo:    druckauftragRepo,
-		BetreiberRepo:       betreiberRepo,
-		TSERepo:             tseRepo,
+		EventRepo:           deps.KassenjournalRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		DruckstationRepo:    deps.DruckstationRepo,
+		DruckauftragRepo:    deps.DruckauftragRepo,
+		BetreiberRepo:       deps.BetreiberRepo,
+		TSERepo:             deps.TSERepo,
 	}
 	r.HandleFunc("/beleg-drucken", bc.KassenbelegDruckenHandler())
 
 	stc := tischHTTP.CommandHandler{}
 	stc.Command = tischApp.Command{
-		TableRepo:   tableRepo,
-		FavoritRepo: favoritRepo,
+		TableRepo:   deps.TischRepo,
+		FavoritRepo: deps.FavoritRepo,
 	}
 	r.HandleFunc("/favorit-hinzufuegen", stc.FavoritHinzufuegenHandler())
 	r.HandleFunc("/favorit-entfernen", stc.FavoritEntfernenHandler())
 
 	dc := direktverkaufHTTP.CommandHandler{}
 	dc.Command = direktverkaufApp.Command{
-		EventRepo:           kassenjournalRepo,
-		ProductRepo:         productRepo,
-		KassensitzungenRepo: kassensitzungenRepo,
-		DruckstationRepo:    druckstationRepo,
+		EventRepo:           deps.KassenjournalRepo,
+		ProductRepo:         deps.ProduktRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		DruckstationRepo:    deps.DruckstationRepo,
 	}
 	r.HandleFunc("/direktverkauf-taetigen", dc.DirektverkaufTaetigenHandler())
 
 	dq := direktverkaufHTTP.QueryHandler{}
 	dq.Query = direktverkaufApp.Query{
-		EventRepo:           kassenjournalRepo,
-		KassensitzungenRepo: kassensitzungenRepo,
+		EventRepo:           deps.KassenjournalRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
 	}
 	r.HandleFunc("/get-direktverkauf-historie", dq.GetDirektverkaufHistorieHandler())
 
 	tq := tischgeschaeftHTTP.QueryHandler{}
-	tq.Query = tischgeschaeftApp.Query{TableRepo: tableRepo, EventRepo: kassenjournalRepo, FavoritRepo: favoritRepo, KassensitzungenRepo: kassensitzungenRepo}
+	tq.Query = tischgeschaeftApp.Query{TableRepo: deps.TischRepo, EventRepo: deps.KassenjournalRepo, FavoritRepo: deps.FavoritRepo, KassensitzungenRepo: deps.KassensitzungenRepo}
 	r.HandleFunc("/get-aktive-tische", tq.GetAktiveTischeHandler())
 	r.HandleFunc("/get-tisch-historie", tq.GetTischHistorieHandler())
 	r.HandleFunc("/get-tisch-state", tq.GetTischStateHandler())
 	r.HandleFunc("/get-aktive-tische-mit-favoriten", tq.GetAktiveTischeMitFavoritenHandler())
 	r.HandleFunc("/get-meine-tische-state", tq.GetMeineTischeStateHandler())
 
-	reportingRepo := reporting_repo.NewRepository(db)
 	rq := reportingHTTP.QueryHandler{}
 	rq.Query = reportingApp.Query{
-		ReportingRepo:       reportingRepo,
-		KassensitzungenRepo: kassensitzungenRepo,
-		TischSessionRepo:    kassenjournalRepo,
-		TischRepo:           tableRepo,
+		ReportingRepo:       deps.ReportingRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		TischSessionRepo:    deps.KassenjournalRepo,
+		TischRepo:           deps.TischRepo,
 	}
 	r.HandleFunc("/get-eigene-uebersicht", rq.GetEigeneUebersichtHandler())
 

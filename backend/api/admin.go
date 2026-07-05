@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"net/http"
 
 	druckauftragApp "github.com/nicograef/jotti/backend/api/druck/auftrag/application"
@@ -26,27 +25,13 @@ import (
 	tischHTTP "github.com/nicograef/jotti/backend/api/stammdaten/tisch/http"
 	userApp "github.com/nicograef/jotti/backend/api/stammdaten/user/application"
 	userHTTP "github.com/nicograef/jotti/backend/api/stammdaten/user/http"
-	"github.com/nicograef/jotti/backend/config"
-	"github.com/nicograef/jotti/backend/domain/tse"
-	"github.com/nicograef/jotti/backend/repository/betreiber_repo"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
-	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
-	"github.com/nicograef/jotti/backend/repository/favorit_repo"
-	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
-	"github.com/nicograef/jotti/backend/repository/produkt_repo"
-	"github.com/nicograef/jotti/backend/repository/reporting_repo"
-	"github.com/nicograef/jotti/backend/repository/tisch_repo"
-	"github.com/nicograef/jotti/backend/repository/tse_repo"
-	"github.com/nicograef/jotti/backend/repository/user_repo"
 )
 
-func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
+func NewAdminApi(deps Deps) http.Handler {
 	r := http.NewServeMux()
 
-	userRepo := user_repo.NewRepository(db)
 	uc := userHTTP.CommandHandler{}
-	uc.Command = userApp.Command{UserRepo: userRepo}
+	uc.Command = userApp.Command{UserRepo: deps.UserRepo}
 	r.HandleFunc("/create-user", uc.CreateUserHandler())
 	r.HandleFunc("/update-user", uc.UpdateUserHandler())
 	r.HandleFunc("/activate-user", uc.ActivateUserHandler())
@@ -55,12 +40,11 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/reset-password", uc.ResetPasswordHandler())
 
 	uq := userHTTP.QueryHandler{}
-	uq.Query = userApp.Query{UserRepo: userRepo}
+	uq.Query = userApp.Query{UserRepo: deps.UserRepo}
 	r.HandleFunc("/get-all-users", uq.GetAllUsersHandler())
 
-	productRepo := produkt_repo.NewRepository(db)
 	pc := productHTTP.CommandHandler{}
-	pc.Command = productApp.Command{ProductRepo: productRepo}
+	pc.Command = productApp.Command{ProductRepo: deps.ProduktRepo}
 	r.HandleFunc("/create-produkt", pc.CreateProductHandler())
 	r.HandleFunc("/update-produkt", pc.UpdateProductHandler())
 	r.HandleFunc("/create-variante", pc.CreateVariantHandler())
@@ -71,19 +55,13 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/delete-variante", pc.DeleteVarianteHandler())
 
 	pq := productHTTP.QueryHandler{}
-	pq.Query = productApp.Query{ProductRepo: productRepo}
+	pq.Query = productApp.Query{ProductRepo: deps.ProduktRepo}
 	r.HandleFunc("/get-all-produkte", pq.GetAllProductsHandler())
 
-	tableRepo := tisch_repo.NewRepository(db)
-	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
-	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
-	betreiberRepo := betreiber_repo.NewRepository(db)
-	tseStore := tse_repo.NewRepository(db)
-	favoritRepo := favorit_repo.NewRepository(db)
 	tc := tischHTTP.CommandHandler{}
 	tc.Command = tischApp.Command{
-		TableRepo:   tableRepo,
-		FavoritRepo: favoritRepo,
+		TableRepo:   deps.TischRepo,
+		FavoritRepo: deps.FavoritRepo,
 	}
 	r.HandleFunc("/update-tisch", tc.TischAktualisierenHandler())
 	r.HandleFunc("/create-tisch", tc.TischErstellenHandler())
@@ -92,16 +70,15 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	r.HandleFunc("/delete-tisch", tc.TischLoeschenHandler())
 
 	tq := tischHTTP.QueryHandler{}
-	tq.Query = tischApp.Query{TableRepo: tableRepo}
+	tq.Query = tischApp.Query{TableRepo: deps.TischRepo}
 	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())
 
-	reportingRepo := reporting_repo.NewRepository(db)
 	rq := reportingHTTP.QueryHandler{}
 	rq.Query = reportingApp.Query{
-		ReportingRepo:       reportingRepo,
-		KassensitzungenRepo: kassensitzungenRepo,
-		TischSessionRepo:    kassenjournalRepo,
-		TischRepo:           tableRepo,
+		ReportingRepo:       deps.ReportingRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		TischSessionRepo:    deps.KassenjournalRepo,
+		TischRepo:           deps.TischRepo,
 	}
 	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
 	r.HandleFunc("/get-all-kassensitzungen", rq.GetAllKassensitzungenHandler())
@@ -109,61 +86,55 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 
 	exportHandler := exportHTTP.Handler{}
 	exportHandler.Service = exportApp.Export{
-		KassenjournalRepo:   kassenjournalRepo,
-		KassensitzungenRepo: kassensitzungenRepo,
-		BetreiberRepo:       betreiberRepo,
-		TSERepo:             tseStore,
-		TableRepo:           tableRepo,
+		KassenjournalRepo:   deps.KassenjournalRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		BetreiberRepo:       deps.BetreiberRepo,
+		TSERepo:             deps.TSERepo,
+		TableRepo:           deps.TischRepo,
 	}
 	r.HandleFunc("/export/dsfinvk", exportHandler.ExportHandler())
 
 	kc := kasseHTTP.CommandHandler{}
 	kc.Command = kasseApp.Command{
-		KassenjournalRepo:   kassenjournalRepo,
-		KassensitzungenRepo: kassensitzungenRepo,
-		BetreiberRepo:       betreiberRepo,
-		TSERepo:             tseStore,
+		KassenjournalRepo:   deps.KassenjournalRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		BetreiberRepo:       deps.BetreiberRepo,
+		TSERepo:             deps.TSERepo,
 	}
 	r.HandleFunc("/kassensitzung-eroeffnen", kc.KassensitzungEroeffnenHandler())
 	r.HandleFunc("/geldtransit-buchen", kc.GeldtransitBuchenHandler())
 	r.HandleFunc("/kasse-abschliessen", kc.KasseAbschliessenHandler())
 
 	kq := kasseHTTP.QueryHandler{}
-	kq.Query = kasseApp.Query{KassenjournalRepo: kassenjournalRepo, KassensitzungenRepo: kassensitzungenRepo}
+	kq.Query = kasseApp.Query{KassenjournalRepo: deps.KassenjournalRepo, KassensitzungenRepo: deps.KassensitzungenRepo}
 	r.HandleFunc("/get-offene-kassensitzung", kq.GetOffeneKassensitzungHandler())
 	r.HandleFunc("/get-kassenbestand", kq.GetKassenbestandHandler())
 
-	druckstationRepo := druckstation_repo.NewRepository(db)
 	druckstationCommandHandler := druckstationHTTP.CommandHandler{}
-	druckstationCommandHandler.Command = druckstationApp.Command{DruckstationRepo: druckstationRepo}
+	druckstationCommandHandler.Command = druckstationApp.Command{DruckstationRepo: deps.DruckstationRepo}
 	druckstationQueryHandler := druckstationHTTP.QueryHandler{}
-	druckstationQueryHandler.Query = druckstationApp.Query{DruckstationRepo: druckstationRepo}
+	druckstationQueryHandler.Query = druckstationApp.Query{DruckstationRepo: deps.DruckstationRepo}
 	r.HandleFunc("/get-druckstationen", druckstationQueryHandler.GetDruckstationenHandler())
 	r.HandleFunc("/update-druckstationen", druckstationCommandHandler.UpdateDruckstationenHandler())
 
-	druckauftragRepo := druckauftrag_repo.NewRepository(db)
 	druckauftragCommandHandler := druckauftragHTTP.CommandHandler{}
-	druckauftragCommandHandler.Command = druckauftragApp.Command{DruckauftragRepo: druckauftragRepo}
+	druckauftragCommandHandler.Command = druckauftragApp.Command{DruckauftragRepo: deps.DruckauftragRepo}
 	druckauftragQueryHandler := druckauftragHTTP.QueryHandler{}
-	druckauftragQueryHandler.Query = druckauftragApp.Query{DruckauftragRepo: druckauftragRepo}
+	druckauftragQueryHandler.Query = druckauftragApp.Query{DruckauftragRepo: deps.DruckauftragRepo}
 	r.HandleFunc("/get-fehlgeschlagene-druckauftraege", druckauftragQueryHandler.GetFehlgeschlageneDruckauftraegeHandler())
 	r.HandleFunc("/druckauftrag-erneut-versuchen", druckauftragCommandHandler.DruckauftragErneutVersuchenHandler())
 	r.HandleFunc("/druckauftrag-verwerfen", druckauftragCommandHandler.DruckauftragVerwerfenHandler())
 
 	tseQueryHandler := tseHTTP.QueryHandler{}
-	tseQueryHandler.Query = tseApp.Query{TSERepo: tseStore}
+	tseQueryHandler.Query = tseApp.Query{TSERepo: deps.TSERepo}
 	r.HandleFunc("/get-tse-signatur-queue", tseQueryHandler.GetTSESignaturQueueHandler())
 	r.HandleFunc("/get-tse-stoerungen", tseQueryHandler.GetTSEStoerungenHandler())
 
 	sq := fiskalSetupHTTP.QueryHandler{}
 	sq.Query = fiskalSetupApp.Query{
-		SettingsRepo: tseStore,
-		NewTSEConnectionTester: func(credentials tse.Credentials) (tse.ConnectionTester, error) {
-			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
-		},
-		NewTSESetupClient: func(credentials tse.SetupCredentials) (tse.SetupClient, error) {
-			return tse_repo.NewFiskalyTSESetupClient(cfg.FiskalyBaseURL, credentials, nil)
-		},
+		SettingsRepo:           deps.TSERepo,
+		NewTSEConnectionTester: deps.NewTSEConnectionTester,
+		NewTSESetupClient:      deps.NewTSESetupClient,
 	}
 	r.HandleFunc("/get-kassenidentitaet", sq.GetKassenidentitaetHandler())
 	r.HandleFunc("/get-tse-konfiguration", sq.GetTSEKonfigurationHandler())
@@ -173,22 +144,20 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 
 	sc := fiskalSetupHTTP.CommandHandler{}
 	sc.Command = fiskalSetupApp.Command{
-		SettingsRepo:        tseStore,
-		KassensitzungenRepo: kassensitzungenRepo,
-		NewTSESetupClient: func(credentials tse.SetupCredentials) (tse.SetupClient, error) {
-			return tse_repo.NewFiskalyTSESetupClient(cfg.FiskalyBaseURL, credentials, nil)
-		},
+		SettingsRepo:        deps.TSERepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		NewTSESetupClient:   deps.NewTSESetupClient,
 	}
 	r.HandleFunc("/update-tse-konfiguration", sc.UpdateTSEKonfigurationHandler())
 	r.HandleFunc("/tse-einrichten", sc.RichteTSEEinHandler())
 	r.HandleFunc("/tse-uebernehmen", sc.UebernimmTSEHandler())
 
 	bq := betreiberHTTP.QueryHandler{}
-	bq.Query = betreiberApp.Query{BetreiberRepo: betreiberRepo}
+	bq.Query = betreiberApp.Query{BetreiberRepo: deps.BetreiberRepo}
 	r.HandleFunc("/get-betreiber", bq.GetBetreiberHandler())
 
 	bc := betreiberHTTP.CommandHandler{}
-	bc.Command = betreiberApp.Command{BetreiberRepo: betreiberRepo}
+	bc.Command = betreiberApp.Command{BetreiberRepo: deps.BetreiberRepo}
 	r.HandleFunc("/update-betreiber", bc.UpdateBetreiberHandler())
 
 	return r

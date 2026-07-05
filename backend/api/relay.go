@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 
 	relayHTTP "github.com/nicograef/jotti/backend/api/druck/relay/http"
@@ -42,11 +41,11 @@ func (a druckauftragRepoRelayAdapter) MeldeDruckergebnis(ctx context.Context, ge
 	return a.repo.MeldeDruckergebnis(ctx, gedruckteIDs, repoFehlversuche)
 }
 
-func NewRelayApi(db *sql.DB, relayToken string) http.Handler {
+func NewRelayApi(deps Deps, relayToken string) http.Handler {
 	r := http.NewServeMux()
 
 	handler := relayHTTP.Handler{
-		Repo:       druckauftragRepoRelayAdapter{repo: druckauftrag_repo.NewRepository(db)},
+		Repo:       druckauftragRepoRelayAdapter{repo: deps.DruckauftragRepo},
 		RelayToken: relayToken,
 	}
 

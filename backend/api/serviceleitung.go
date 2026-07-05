@@ -1,47 +1,33 @@
 package api
 
 import (
-	"database/sql"
 	"net/http"
 
 	direktverkaufApp "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
 	direktverkaufHTTP "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/http"
 	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	tischgeschaeftHTTP "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/http"
-	"github.com/nicograef/jotti/backend/config"
-	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
-	"github.com/nicograef/jotti/backend/repository/favorit_repo"
-	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
-	"github.com/nicograef/jotti/backend/repository/produkt_repo"
-	"github.com/nicograef/jotti/backend/repository/tisch_repo"
 )
 
-func NewServiceleitungApi(cfg config.Config, db *sql.DB) http.Handler {
+func NewServiceleitungApi(deps Deps) http.Handler {
 	r := http.NewServeMux()
 
-	tableRepo := tisch_repo.NewRepository(db)
-	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
-	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
-	productRepo := produkt_repo.NewRepository(db)
-	favoritRepo := favorit_repo.NewRepository(db)
-	druckstationRepo := druckstation_repo.NewRepository(db)
 	tc := tischgeschaeftHTTP.CommandHandler{}
 	tc.Command = tischgeschaeftApp.Command{
-		TableRepo:           tableRepo,
-		EventRepo:           kassenjournalRepo,
-		ProductRepo:         productRepo,
-		FavoritRepo:         favoritRepo,
-		KassensitzungenRepo: kassensitzungenRepo,
-		DruckstationRepo:    druckstationRepo,
+		TableRepo:           deps.TischRepo,
+		EventRepo:           deps.KassenjournalRepo,
+		ProductRepo:         deps.ProduktRepo,
+		FavoritRepo:         deps.FavoritRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		DruckstationRepo:    deps.DruckstationRepo,
 	}
 	r.HandleFunc("/stornierung-erteilen", tc.StornierungErteilenHandler())
 
 	dc := direktverkaufHTTP.CommandHandler{}
 	dc.Command = direktverkaufApp.Command{
-		EventRepo:           kassenjournalRepo,
-		ProductRepo:         productRepo,
-		KassensitzungenRepo: kassensitzungenRepo,
+		EventRepo:           deps.KassenjournalRepo,
+		ProductRepo:         deps.ProduktRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
 	}
 	r.HandleFunc("/direktverkauf-stornieren", dc.DirektverkaufStornierenHandler())
 
