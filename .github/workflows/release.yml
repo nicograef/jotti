@@ -114,6 +114,22 @@ jobs:
           echo "Smoke-Test fehlgeschlagen: /api/health wurde nicht healthy."
           exit 1
 
+      # Backup- und Verify-Pfad Ende-zu-Ende gegen den laufenden Release-Stack.
+      # Schlägt einer fehl, ist das Release rot (der Restore-Pfad bleibt bewusst
+      # unautomatisiert — sein psql-Kern ist mit dem Verify identisch).
+      # Der Verify bekommt den soeben erzeugten Dump explizit übergeben statt
+      # sich auf „neuester im Verzeichnis" zu verlassen.
+      - name: Smoke-Test — Backup ziehen
+        id: backup
+        run: |
+          COMPOSE_FILE=docker-compose.release.yml ./scripts/prod-backup.sh
+          dump="$(find backups -maxdepth 1 -type f -name 'jotti-*.sql.gz' -printf '%f\n' | sort | tail -n1)"
+          [ -n "$dump" ] || { echo "Kein Dump erzeugt."; exit 1; }
+          echo "dump=backups/$dump" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke-Test — Backup verifizieren
+        run: COMPOSE_FILE=docker-compose.release.yml ./scripts/prod-backup-verify.sh "${{ steps.backup.outputs.dump }}"
+
       - name: Smoke-Test — Logs bei Fehler
         if: failure()
         run: docker compose -f docker-compose.release.yml logs
