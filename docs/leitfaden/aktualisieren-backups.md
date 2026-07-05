@@ -27,6 +27,11 @@ wegen der gesetzlichen 10-Jahre-Aufbewahrung.
   Datenbank. Die Bestätigung nennt Dump und Compose-Datei; standardmäßig
   `docker-compose.prod.yml`, über `COMPOSE_FILE` auf einen anderen Stack
   umstellbar (gilt ebenso für `make prod-backup`).
+- **Prüfen (gelegentlich):** `make prod-backup-verify` spielt das neueste Backup
+  in einen Wegwerf-Postgres ein und meldet die Tabellenzahl. So wisst ihr, dass
+  ein Backup wirklich wiederherstellbar ist, ohne den laufenden Betrieb
+  anzufassen. Einen bestimmten Dump prüft ihr per Argument:
+  `./scripts/prod-backup-verify.sh <datei>`.
 - **Täglich automatisch:** Für einen täglichen Dump liegen Vorlagen im Repository
   (systemd-Timer unter `packaging/systemd/` oder cron unter `packaging/cron/`); die
   Installationsschritte stehen als Kommentar in den Dateien.
@@ -36,6 +41,13 @@ wegen der gesetzlichen 10-Jahre-Aufbewahrung.
   (Dead-Man-Switch). So merkt ihr, wenn ein automatischer Lauf still ausfällt.
   Welchen Dienst ihr nutzt, ist frei wählbar; ein Fehlschlag des Aufrufs gefährdet
   das Backup nicht.
+- **Extern kopieren:** Holt die Dumps auf einen anderen Rechner, damit sie einen
+  Serverausfall überstehen. Ein Einzeiler dafür, vom Zielrechner aus (Pfad und
+  Zugang anpassen):
 
-> 💾 Kopiert die Backups regelmäßig vom Server weg. Ein Backup, das nur auf
-> demselben Server liegt, hilft bei dessen Ausfall nicht.
+  ```sh
+  rsync -avz admin@SERVER:/pfad/zu/jotti/backups/ ./jotti-backups/
+  ```
+
+> 💾 Ein Backup, das nur auf demselben Server liegt, hilft bei dessen Ausfall
+> nicht. Kopiert die Dumps regelmäßig weg.
