@@ -14,13 +14,14 @@ set -euo pipefail
 #   3. Rotate to the newest BACKUP_KEEP dumps
 #
 # Configuration (environment overrides .env, which overrides the defaults):
-#   BACKUP_DIR   target directory on the host (default: ./backups)
-#   BACKUP_KEEP  number of dumps to retain (default: 14; <=0 keeps all)
+#   BACKUP_DIR    target directory on the host (default: ./backups)
+#   BACKUP_KEEP   number of dumps to retain (default: 14; <=0 keeps all)
+#   COMPOSE_FILE  compose file to dump from (default: docker-compose.prod.yml)
 #
 # Usage: ./scripts/prod-backup.sh  (or `make prod-backup`)
 # =============================================================================
 
-COMPOSE_PROD="docker-compose.prod.yml"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 PG_SERVICE="postgres"
 
 # ---------------------------------------------------------------------------
@@ -60,8 +61,8 @@ fi
 if ! docker compose version &>/dev/null; then
   fatal "docker compose (v2) is not available."
 fi
-if [[ ! -f "$COMPOSE_PROD" ]]; then
-  fatal "Missing compose file: $COMPOSE_PROD"
+if [[ ! -f "$COMPOSE_FILE" ]]; then
+  fatal "Missing compose file: $COMPOSE_FILE"
 fi
 if [[ ! -f .env ]]; then
   fatal ".env file not found. Run 'make init' first."
@@ -93,7 +94,7 @@ cleanup() { rm -f "$TMPFILE"; }
 trap cleanup EXIT
 
 info "Dumping database to $OUTFILE ..."
-if ! docker compose -f "$COMPOSE_PROD" exec -T "$PG_SERVICE" \
+if ! docker compose -f "$COMPOSE_FILE" exec -T "$PG_SERVICE" \
        sh -c 'pg_dump --clean --if-exists -U "$POSTGRES_USER" -d jotti' \
      | gzip -c > "$TMPFILE"; then
   fatal "pg_dump failed. Is the stack running? Start it with: make prod-up"

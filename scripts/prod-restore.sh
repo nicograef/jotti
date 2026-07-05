@@ -14,13 +14,14 @@ set -euo pipefail
 #   3. Stop app services, restore via psql, restart the stack
 #
 # Configuration:
-#   BACKUP_DIR   directory to read dumps from (default: ./backups)
+#   BACKUP_DIR    directory to read dumps from (default: ./backups)
+#   COMPOSE_FILE  compose file to restore into (default: docker-compose.prod.yml)
 #
 # Usage: ./scripts/prod-restore.sh [DUMP_FILE]  (or `make prod-restore`)
 #   DUMP_FILE  optional path or filename in BACKUP_DIR; defaults to the newest.
 # =============================================================================
 
-COMPOSE_PROD="docker-compose.prod.yml"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 PG_SERVICE="postgres"
 
 # ---------------------------------------------------------------------------
@@ -60,8 +61,8 @@ fi
 if ! docker compose version &>/dev/null; then
   fatal "docker compose (v2) is not available."
 fi
-if [[ ! -f "$COMPOSE_PROD" ]]; then
-  fatal "Missing compose file: $COMPOSE_PROD"
+if [[ ! -f "$COMPOSE_FILE" ]]; then
+  fatal "Missing compose file: $COMPOSE_FILE"
 fi
 if [[ ! -f .env ]]; then
   fatal ".env file not found. Run 'make init' first."
@@ -99,7 +100,8 @@ fi
 # ---------------------------------------------------------------------------
 echo ""
 warn "This will OVERWRITE the current jotti database with:"
-warn "  $SELECTED"
+warn "  Dump:    $SELECTED"
+warn "  Stack:   $COMPOSE_FILE"
 warn "All data created since that backup will be lost."
 read -r -p "Continue? Type 'yes' to proceed: " answer
 [[ "$answer" == "yes" ]] || fatal "Aborted by user. Nothing was changed."
@@ -108,10 +110,10 @@ read -r -p "Continue? Type 'yes' to proceed: " answer
 # Step 3 — Stop app services, restore, restart
 # ---------------------------------------------------------------------------
 info "Starting the database ..."
-docker compose -f "$COMPOSE_PROD" up -d --wait "$PG_SERVICE"
+docker compose -f "$COMPOSE_FILE" up -d --wait "$PG_SERVICE"
 
 info "Stopping application services during the restore ..."
-docker compose -f "$COMPOSE_PROD" stop backend frontend reverse-proxy
+docker compose -f "$COMPOSE_FILE" stop backend frontend reverse-proxy
 
 # Stream the dump (decompressing on the fly when gzip-compressed) into psql. The
 # postgres role comes from the container's own POSTGRES_USER env; ON_ERROR_STOP
@@ -125,7 +127,7 @@ decompress() {
 }
 
 info "Restoring $SELECTED ..."
-if ! decompress | docker compose -f "$COMPOSE_PROD" exec -T "$PG_SERVICE" \
+if ! decompress | docker compose -f "$COMPOSE_FILE" exec -T "$PG_SERVICE" \
        sh -c 'psql -U "$POSTGRES_USER" -d jotti -v ON_ERROR_STOP=1'; then
   error "Restore failed — the database may be in an inconsistent state."
   error "Application services are stopped. Inspect, fix, then restart: make prod-up"
@@ -133,7 +135,13 @@ if ! decompress | docker compose -f "$COMPOSE_PROD" exec -T "$PG_SERVICE" \
 fi
 
 info "Restarting the full stack ..."
-docker compose -f "$COMPOSE_PROD" up -d
+docker compose -f "$COMPOSE_FILE" up -d
+
+# Force-recreate the reverse-proxy so it re-resolves the freshly restarted
+# backend/frontend upstreams. On the rocks stack this clears nginx's cached
+# upstream IPs (the 502-after-restore trap); on Caddy stacks it is a no-op.
+info "Recreating the reverse-proxy ..."
+docker compose -f "$COMPOSE_FILE" up -d --no-deps --force-recreate reverse-proxy
 
 echo ""
 info "Restore complete. jotti is running again."
