@@ -11,8 +11,8 @@ import (
 	tischgeschaeftHTTP "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/http"
 	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
 	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
-	productApp "github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
-	productHTTP "github.com/nicograef/jotti/backend/api/stammdaten/produkt/http"
+	produktApp "github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
+	produktHTTP "github.com/nicograef/jotti/backend/api/stammdaten/produkt/http"
 	tischApp "github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
 	tischHTTP "github.com/nicograef/jotti/backend/api/stammdaten/tisch/http"
 )
@@ -20,8 +20,8 @@ import (
 func NewServiceApi(deps Deps) http.Handler {
 	r := http.NewServeMux()
 
-	pq := productHTTP.QueryHandler{}
-	pq.Query = productApp.Query{ProduktRepo: deps.ProduktRepo}
+	pq := produktHTTP.QueryHandler{}
+	pq.Query = produktApp.Query{ProduktRepo: deps.ProduktRepo}
 	r.HandleFunc("/get-aktive-produkte", pq.GetActiveProductsHandler())
 
 	tc := tischgeschaeftHTTP.CommandHandler{}

@@ -19,8 +19,8 @@ import (
 	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
 	betreiberApp "github.com/nicograef/jotti/backend/api/stammdaten/betreiber/application"
 	betreiberHTTP "github.com/nicograef/jotti/backend/api/stammdaten/betreiber/http"
-	productApp "github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
-	productHTTP "github.com/nicograef/jotti/backend/api/stammdaten/produkt/http"
+	produktApp "github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
+	produktHTTP "github.com/nicograef/jotti/backend/api/stammdaten/produkt/http"
 	tischApp "github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
 	tischHTTP "github.com/nicograef/jotti/backend/api/stammdaten/tisch/http"
 	userApp "github.com/nicograef/jotti/backend/api/stammdaten/user/application"
@@ -43,8 +43,8 @@ func NewAdminApi(deps Deps) http.Handler {
 	uq.Query = userApp.Query{UserRepo: deps.UserRepo}
 	r.HandleFunc("/get-all-users", uq.GetAllUsersHandler())
 
-	pc := productHTTP.CommandHandler{}
-	pc.Command = productApp.Command{ProduktRepo: deps.ProduktRepo}
+	pc := produktHTTP.CommandHandler{}
+	pc.Command = produktApp.Command{ProduktRepo: deps.ProduktRepo}
 	r.HandleFunc("/create-produkt", pc.CreateProductHandler())
 	r.HandleFunc("/update-produkt", pc.UpdateProductHandler())
 	r.HandleFunc("/create-variante", pc.CreateVariantHandler())
@@ -54,8 +54,8 @@ func NewAdminApi(deps Deps) http.Handler {
 	r.HandleFunc("/delete-produkt", pc.DeleteProduktHandler())
 	r.HandleFunc("/delete-variante", pc.DeleteVarianteHandler())
 
-	pq := productHTTP.QueryHandler{}
-	pq.Query = productApp.Query{ProduktRepo: deps.ProduktRepo}
+	pq := produktHTTP.QueryHandler{}
+	pq.Query = produktApp.Query{ProduktRepo: deps.ProduktRepo}
 	r.HandleFunc("/get-all-produkte", pq.GetAllProductsHandler())
 
 	tc := tischHTTP.CommandHandler{}
