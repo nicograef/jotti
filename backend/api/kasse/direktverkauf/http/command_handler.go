@@ -10,7 +10,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 )
 
 type command interface {
@@ -34,8 +34,8 @@ type direktverkaufTaetigenRequest struct {
 }
 
 var verkaufPositionInputSchema = z.Struct(z.Shape{
-	"ProduktID":  product.IDSchema.Required(),
-	"VarianteID": product.IDSchema.Required(),
+	"ProduktID":  produkt.IDSchema.Required(),
+	"VarianteID": produkt.IDSchema.Required(),
 	"Menge":      z.Int().GTE(1).Required(),
 })
 

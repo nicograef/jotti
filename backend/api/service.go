@@ -10,10 +10,10 @@ import (
 	direktverkaufHTTP "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/http"
 	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	tischgeschaeftHTTP "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/http"
-	productApp "github.com/nicograef/jotti/backend/api/product/application"
-	productHTTP "github.com/nicograef/jotti/backend/api/product/http"
 	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
 	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
+	productApp "github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
+	productHTTP "github.com/nicograef/jotti/backend/api/stammdaten/produkt/http"
 	tischApp "github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
 	tischHTTP "github.com/nicograef/jotti/backend/api/stammdaten/tisch/http"
 	"github.com/nicograef/jotti/backend/config"
@@ -23,21 +23,21 @@ import (
 	"github.com/nicograef/jotti/backend/repository/favorit_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
-	"github.com/nicograef/jotti/backend/repository/product_repo"
+	"github.com/nicograef/jotti/backend/repository/produkt_repo"
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
-	"github.com/nicograef/jotti/backend/repository/table_repo"
+	"github.com/nicograef/jotti/backend/repository/tisch_repo"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 )
 
 func NewServiceApi(cfg config.Config, db *sql.DB) http.Handler {
 	r := http.NewServeMux()
 
-	productRepo := product_repo.NewRepository(db)
+	productRepo := produkt_repo.NewRepository(db)
 	pq := productHTTP.QueryHandler{}
 	pq.Query = productApp.Query{ProductRepo: productRepo}
 	r.HandleFunc("/get-aktive-produkte", pq.GetActiveProductsHandler())
 
-	tableRepo := table_repo.NewRepository(db)
+	tableRepo := tisch_repo.NewRepository(db)
 	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
 	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
 	favoritRepo := favorit_repo.NewRepository(db)

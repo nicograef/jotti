@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nicograef/jotti/backend/api/product/application"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
+	dom "github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
@@ -18,11 +18,11 @@ type mockCommand struct {
 	err error
 }
 
-func (m *mockCommand) CreateProduct(ctx context.Context, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
+func (m *mockCommand) CreateProduct(ctx context.Context, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
 	return 1, m.err
 }
 
-func (m *mockCommand) UpdateProduct(ctx context.Context, id int, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) error {
+func (m *mockCommand) UpdateProduct(ctx context.Context, id int, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) error {
 	return m.err
 }
 

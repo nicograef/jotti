@@ -7,7 +7,7 @@ import (
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/middleware"
-	"github.com/nicograef/jotti/backend/api/user/application"
+	"github.com/nicograef/jotti/backend/api/stammdaten/user/application"
 	"github.com/nicograef/jotti/backend/domain/user"
 )
 

@@ -3,15 +3,15 @@ package application
 import (
 	"context"
 
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/rs/zerolog"
 )
 
 type tableRepo interface {
-	GetTable(ctx context.Context, id int) (table.Tisch, error)
-	CreateTable(ctx context.Context, t table.Tisch) (int, error)
-	UpdateTable(ctx context.Context, t table.Tisch) error
-	GetAllTables(ctx context.Context) ([]table.Tisch, error)
+	GetTable(ctx context.Context, id int) (tisch.Tisch, error)
+	CreateTable(ctx context.Context, t tisch.Tisch) (int, error)
+	UpdateTable(ctx context.Context, t tisch.Tisch) error
+	GetAllTables(ctx context.Context) ([]tisch.Tisch, error)
 }
 
 type favoritRepo interface {
@@ -27,13 +27,13 @@ type Command struct {
 func (c Command) FavoritHinzufuegen(ctx context.Context, userID, tischID int) error {
 	log := zerolog.Ctx(ctx)
 
-	tisch, err := c.TableRepo.GetTable(ctx, tischID)
+	t, err := c.TableRepo.GetTable(ctx, tischID)
 	if err != nil {
 		return fromRepositoryError(err, log, tischID)
 	}
 
-	if tisch.Status != table.ActiveStatus {
-		log.Warn().Int("tisch_id", tischID).Str("status", string(tisch.Status)).Msg("Tisch is not active")
+	if t.Status != tisch.ActiveStatus {
+		log.Warn().Int("tisch_id", tischID).Str("status", string(t.Status)).Msg("Tisch is not active")
 		return ErrTischNotActive
 	}
 
@@ -61,7 +61,7 @@ func (c Command) FavoritEntfernen(ctx context.Context, userID, tischID int) erro
 func (c Command) TischErstellen(ctx context.Context, name string) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	tisch, err := table.NewTisch(name)
+	tisch, err := tisch.NewTisch(name)
 	if err != nil {
 		log.Warn().Err(err).Str("tisch_name", name).Msg("Invalid tisch data")
 		return 0, ErrInvalidTischData
@@ -100,18 +100,18 @@ func (c Command) TischAktualisieren(ctx context.Context, id int, name string) er
 }
 
 func (c Command) TischAktivieren(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(ctx, id, "Tisch activated", func(t *table.Tisch) { t.Activate() })
+	return c.applyTischStatusChange(ctx, id, "Tisch activated", func(t *tisch.Tisch) { t.Activate() })
 }
 
 func (c Command) TischDeaktivieren(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(ctx, id, "Tisch deactivated", func(t *table.Tisch) { t.Deactivate() })
+	return c.applyTischStatusChange(ctx, id, "Tisch deactivated", func(t *tisch.Tisch) { t.Deactivate() })
 }
 
 func (c Command) TischLoeschen(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(ctx, id, "Tisch deleted", func(t *table.Tisch) { t.Delete() })
+	return c.applyTischStatusChange(ctx, id, "Tisch deleted", func(t *tisch.Tisch) { t.Delete() })
 }
 
-func (c Command) applyTischStatusChange(ctx context.Context, id int, successMsg string, action func(*table.Tisch)) error {
+func (c Command) applyTischStatusChange(ctx context.Context, id int, successMsg string, action func(*tisch.Tisch)) error {
 	log := zerolog.Ctx(ctx)
 
 	tisch, err := c.TableRepo.GetTable(ctx, id)

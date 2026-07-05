@@ -8,7 +8,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
-	"github.com/nicograef/jotti/backend/domain/table"
+	t "github.com/nicograef/jotti/backend/domain/tisch"
 )
 
 type command interface {
@@ -30,7 +30,7 @@ type createTischRequest struct {
 }
 
 var createTischSchema = z.Struct(z.Shape{
-	"Name": table.TischNameSchema.Required(),
+	"Name": t.TischNameSchema.Required(),
 })
 
 type createTischResponse struct {
@@ -63,8 +63,8 @@ type updateTischRequest struct {
 }
 
 var updateTischSchema = z.Struct(z.Shape{
-	"ID":   table.TischIDSchema.Required(),
-	"Name": table.TischNameSchema.Required(),
+	"ID":   t.TischIDSchema.Required(),
+	"Name": t.TischNameSchema.Required(),
 })
 
 func (h *CommandHandler) TischAktualisierenHandler() http.HandlerFunc {
@@ -92,7 +92,7 @@ type favoritRequest struct {
 }
 
 var favoritSchema = z.Struct(z.Shape{
-	"TischID": table.TischIDSchema.Required(),
+	"TischID": t.TischIDSchema.Required(),
 })
 
 func (h *CommandHandler) FavoritHinzufuegenHandler() http.HandlerFunc {
@@ -149,7 +149,7 @@ type activateTischRequest struct {
 }
 
 var activateTischSchema = z.Struct(z.Shape{
-	"ID": table.TischIDSchema.Required(),
+	"ID": t.TischIDSchema.Required(),
 })
 
 func (h *CommandHandler) TischAktivierenHandler() http.HandlerFunc {
@@ -176,7 +176,7 @@ type deactivateTischRequest struct {
 }
 
 var deactivateTischSchema = z.Struct(z.Shape{
-	"ID": table.TischIDSchema.Required(),
+	"ID": t.TischIDSchema.Required(),
 })
 
 func (h *CommandHandler) TischDeaktivierenHandler() http.HandlerFunc {
@@ -203,7 +203,7 @@ type deleteTischRequest struct {
 }
 
 var deleteTischSchema = z.Struct(z.Shape{
-	"ID": table.TischIDSchema.Required(),
+	"ID": t.TischIDSchema.Required(),
 })
 
 func (h *CommandHandler) TischLoeschenHandler() http.HandlerFunc {

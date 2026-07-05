@@ -8,33 +8,33 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/nicograef/jotti/backend/api/product/application"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
+	dom "github.com/nicograef/jotti/backend/domain/produkt"
 )
 
 type mockQuery struct {
 	err error
 }
 
-func (m *mockQuery) GetAllProducts(ctx context.Context) ([]product.Produkt, error) {
-	return []product.Produkt{{
+func (m *mockQuery) GetAllProducts(ctx context.Context) ([]dom.Produkt, error) {
+	return []dom.Produkt{{
 		ID:        1,
 		Name:      "French Fries",
-		Kategorie: product.EssenKategorie,
-		Varianten: []product.Variante{
-			{ID: 1, Name: "Regular", PreisCents: 499, Status: product.ActiveStatus},
-			{ID: 2, Name: "Large", PreisCents: 699, Status: product.ActiveStatus},
+		Kategorie: dom.EssenKategorie,
+		Varianten: []dom.Variante{
+			{ID: 1, Name: "Regular", PreisCents: 499, Status: dom.ActiveStatus},
+			{ID: 2, Name: "Large", PreisCents: 699, Status: dom.ActiveStatus},
 		},
 	}}, m.err
 }
 
-func (m *mockQuery) GetActiveProducts(ctx context.Context) ([]product.Produkt, error) {
-	return []product.Produkt{{
+func (m *mockQuery) GetActiveProducts(ctx context.Context) ([]dom.Produkt, error) {
+	return []dom.Produkt{{
 		ID:        1,
 		Name:      "French Fries",
-		Kategorie: product.EssenKategorie,
-		Varianten: []product.Variante{
-			{ID: 1, Name: "Regular", PreisCents: 499, Status: product.ActiveStatus},
+		Kategorie: dom.EssenKategorie,
+		Varianten: []dom.Variante{
+			{ID: 1, Name: "Regular", PreisCents: 499, Status: dom.ActiveStatus},
 		},
 	}}, m.err
 }

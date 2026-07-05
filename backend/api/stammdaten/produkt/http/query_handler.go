@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/domain/product"
+	dom "github.com/nicograef/jotti/backend/domain/produkt"
 )
 
 type query interface {
-	GetAllProducts(ctx context.Context) ([]product.Produkt, error)
-	GetActiveProducts(ctx context.Context) ([]product.Produkt, error)
+	GetAllProducts(ctx context.Context) ([]dom.Produkt, error)
+	GetActiveProducts(ctx context.Context) ([]dom.Produkt, error)
 }
 
 type QueryHandler struct {
@@ -42,7 +42,7 @@ type getAllProductsResponse struct {
 	Produkte []produkt `json:"produkte"`
 }
 
-func toVariante(v product.Variante) variante {
+func toVariante(v dom.Variante) variante {
 	return variante{
 		ID:         v.ID,
 		Name:       v.Name,
@@ -53,7 +53,7 @@ func toVariante(v product.Variante) variante {
 	}
 }
 
-func toProdukt(p product.Produkt) produkt {
+func toProdukt(p dom.Produkt) produkt {
 	varianten := make([]variante, 0, len(p.Varianten))
 	for _, variante := range p.Varianten {
 		varianten = append(varianten, toVariante(variante))
@@ -71,7 +71,7 @@ func toProdukt(p product.Produkt) produkt {
 	}
 }
 
-func toProdukte(produkte []product.Produkt) []produkt {
+func toProdukte(produkte []dom.Produkt) []produkt {
 	produkteResponse := make([]produkt, 0, len(produkte))
 	for i := range produkte {
 		produkteResponse = append(produkteResponse, toProdukt(produkte[i]))

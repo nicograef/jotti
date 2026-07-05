@@ -5,20 +5,20 @@ import (
 	"errors"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/rs/zerolog"
 )
 
 type productRepo interface {
-	GetProduct(ctx context.Context, productID int) (product.Produkt, error)
-	CreateProduct(ctx context.Context, product product.Produkt) (int, error)
-	UpdateProduct(ctx context.Context, product product.Produkt) error
-	GetVariant(ctx context.Context, variantID int) (product.Variante, error)
-	CreateVariant(ctx context.Context, productID int, variant product.Variante) (int, error)
-	UpdateVariant(ctx context.Context, variant product.Variante) error
-	GetAllProducts(ctx context.Context) ([]product.Produkt, error)
-	GetActiveProducts(ctx context.Context) ([]product.Produkt, error)
+	GetProduct(ctx context.Context, productID int) (produkt.Produkt, error)
+	CreateProduct(ctx context.Context, product produkt.Produkt) (int, error)
+	UpdateProduct(ctx context.Context, product produkt.Produkt) error
+	GetVariant(ctx context.Context, variantID int) (produkt.Variante, error)
+	CreateVariant(ctx context.Context, productID int, variant produkt.Variante) (int, error)
+	UpdateVariant(ctx context.Context, variant produkt.Variante) error
+	GetAllProducts(ctx context.Context) ([]produkt.Produkt, error)
+	GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error)
 }
 
 type Command struct {
@@ -27,10 +27,10 @@ type Command struct {
 
 // Product commands
 
-func (c Command) CreateProduct(ctx context.Context, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
+func (c Command) CreateProduct(ctx context.Context, name string, kategorie produkt.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	produkt, err := product.NewProdukt(name, kategorie, steuersatz)
+	produkt, err := produkt.NewProdukt(name, kategorie, steuersatz)
 	if err != nil {
 		log.Warn().Err(err).Str("product_name", name).Msg("Invalid product data")
 		return 0, ErrInvalidProduktData
@@ -50,7 +50,7 @@ func (c Command) CreateProduct(ctx context.Context, name string, kategorie produ
 	return productID, nil
 }
 
-func (c Command) UpdateProduct(ctx context.Context, productID int, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) error {
+func (c Command) UpdateProduct(ctx context.Context, productID int, name string, kategorie produkt.Kategorie, steuersatz steuer.Steuersatz) error {
 	log := zerolog.Ctx(ctx)
 
 	produkt, err := c.ProductRepo.GetProduct(ctx, productID)
@@ -95,7 +95,7 @@ func (c Command) CreateVariant(ctx context.Context, productID int, name string, 
 		return 0, ErrDatabase
 	}
 
-	variante, err := product.NewVariante(name, preisCents)
+	variante, err := produkt.NewVariante(name, preisCents)
 	if err != nil {
 		log.Warn().Err(err).Str("variant_name", name).Msg("Invalid variant data")
 		return 0, ErrInvalidVarianteData
@@ -141,14 +141,14 @@ func (c Command) UpdateVariant(ctx context.Context, variantID int, name string, 
 }
 
 func (c Command) ActivateVariant(ctx context.Context, variantID int) error {
-	return c.applyVarianteStatusChange(ctx, variantID, "Variant activated", func(v *product.Variante) { v.Activate() })
+	return c.applyVarianteStatusChange(ctx, variantID, "Variant activated", func(v *produkt.Variante) { v.Activate() })
 }
 
 func (c Command) DeactivateVariant(ctx context.Context, variantID int) error {
-	return c.applyVarianteStatusChange(ctx, variantID, "Variant deactivated", func(v *product.Variante) { v.Deactivate() })
+	return c.applyVarianteStatusChange(ctx, variantID, "Variant deactivated", func(v *produkt.Variante) { v.Deactivate() })
 }
 
-func (c Command) applyVarianteStatusChange(ctx context.Context, variantID int, successMsg string, action func(*product.Variante)) error {
+func (c Command) applyVarianteStatusChange(ctx context.Context, variantID int, successMsg string, action func(*produkt.Variante)) error {
 	log := zerolog.Ctx(ctx)
 
 	variante, err := c.ProductRepo.GetVariant(ctx, variantID)

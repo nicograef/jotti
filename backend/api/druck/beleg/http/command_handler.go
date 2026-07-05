@@ -8,7 +8,7 @@ import (
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/druck/beleg/application"
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 )
 
 type command interface {
@@ -46,12 +46,12 @@ type belegDruckenStornoRequest struct {
 }
 
 var belegDruckenZahlungSchema = z.Struct(z.Shape{
-	"TischID":   table.TischIDSchema.Required(),
+	"TischID":   tisch.TischIDSchema.Required(),
 	"ZahlungID": z.String().UUID().Required(),
 })
 
 var belegDruckenTischStornoSchema = z.Struct(z.Shape{
-	"TischID":       table.TischIDSchema.Required(),
+	"TischID":       tisch.TischIDSchema.Required(),
 	"StornierungID": z.String().UUID().Required(),
 })
 

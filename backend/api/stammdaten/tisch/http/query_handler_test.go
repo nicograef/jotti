@@ -9,16 +9,16 @@ import (
 	"testing"
 
 	"github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
-	"github.com/nicograef/jotti/backend/domain/table"
+	t "github.com/nicograef/jotti/backend/domain/tisch"
 )
 
 type mockQuery struct {
-	tisch table.Tisch
+	tisch t.Tisch
 	err   error
 }
 
-func (m mockQuery) GetAllTische(ctx context.Context) ([]table.Tisch, error) {
-	return []table.Tisch{m.tisch}, m.err
+func (m mockQuery) GetAllTische(ctx context.Context) ([]t.Tisch, error) {
+	return []t.Tisch{m.tisch}, m.err
 }
 
 func TestGetAllTischeHandler_Success(t *testing.T) {

@@ -6,14 +6,14 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/api/product/application"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
+	dom "github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
 type command interface {
-	CreateProduct(ctx context.Context, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) (int, error)
-	UpdateProduct(ctx context.Context, id int, name string, kategorie product.Kategorie, steuersatz steuer.Steuersatz) error
+	CreateProduct(ctx context.Context, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) (int, error)
+	UpdateProduct(ctx context.Context, id int, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) error
 	DeleteProdukt(ctx context.Context, productID int) error
 	CreateVariant(ctx context.Context, productID int, name string, preisCents int) (int, error)
 	UpdateVariant(ctx context.Context, variantID int, name string, preisCents int) error
@@ -30,13 +30,13 @@ type CommandHandler struct {
 
 type createProductRequest struct {
 	Name       string            `json:"name"`
-	Kategorie  product.Kategorie `json:"kategorie"`
+	Kategorie  dom.Kategorie     `json:"kategorie"`
 	Steuersatz steuer.Steuersatz `json:"steuersatz"`
 }
 
 var createProductSchema = z.Struct(z.Shape{
-	"Name":       product.NameSchema.Required(),
-	"Kategorie":  product.KategorieSchema.Required(),
+	"Name":       dom.NameSchema.Required(),
+	"Kategorie":  dom.KategorieSchema.Required(),
 	"Steuersatz": steuer.SteuersatzSchema.Required(),
 })
 
@@ -67,14 +67,14 @@ func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 type updateProductRequest struct {
 	ID         int               `json:"id"`
 	Name       string            `json:"name"`
-	Kategorie  product.Kategorie `json:"kategorie"`
+	Kategorie  dom.Kategorie     `json:"kategorie"`
 	Steuersatz steuer.Steuersatz `json:"steuersatz"`
 }
 
 var updateProductSchema = z.Struct(z.Shape{
-	"ID":         product.IDSchema.Required(),
-	"Name":       product.NameSchema.Required(),
-	"Kategorie":  product.KategorieSchema.Required(),
+	"ID":         dom.IDSchema.Required(),
+	"Name":       dom.NameSchema.Required(),
+	"Kategorie":  dom.KategorieSchema.Required(),
 	"Steuersatz": steuer.SteuersatzSchema.Required(),
 })
 
@@ -107,9 +107,9 @@ type createVariantRequest struct {
 }
 
 var createVariantSchema = z.Struct(z.Shape{
-	"ProductID":  product.IDSchema.Required(),
-	"Name":       product.NameSchema.Required(),
-	"PreisCents": product.PreisCentsSchema.Required(),
+	"ProductID":  dom.IDSchema.Required(),
+	"Name":       dom.NameSchema.Required(),
+	"PreisCents": dom.PreisCentsSchema.Required(),
 })
 
 type createVariantResponse struct {
@@ -143,9 +143,9 @@ type updateVariantRequest struct {
 }
 
 var updateVariantSchema = z.Struct(z.Shape{
-	"ID":         product.IDSchema.Required(),
-	"Name":       product.NameSchema.Required(),
-	"PreisCents": product.PreisCentsSchema.Required(),
+	"ID":         dom.IDSchema.Required(),
+	"Name":       dom.NameSchema.Required(),
+	"PreisCents": dom.PreisCentsSchema.Required(),
 })
 
 func (h *CommandHandler) UpdateVariantHandler() http.HandlerFunc {
@@ -173,7 +173,7 @@ type activateVariantRequest struct {
 }
 
 var activateVariantSchema = z.Struct(z.Shape{
-	"ID": product.IDSchema.Required(),
+	"ID": dom.IDSchema.Required(),
 })
 
 func (h *CommandHandler) ActivateVariantHandler() http.HandlerFunc {
@@ -200,7 +200,7 @@ type deactivateVariantRequest struct {
 }
 
 var deactivateVariantSchema = z.Struct(z.Shape{
-	"ID": product.IDSchema.Required(),
+	"ID": dom.IDSchema.Required(),
 })
 
 func (h *CommandHandler) DeactivateVariantHandler() http.HandlerFunc {
@@ -227,7 +227,7 @@ type deleteProduktRequest struct {
 }
 
 var deleteProduktSchema = z.Struct(z.Shape{
-	"ID": product.IDSchema.Required(),
+	"ID": dom.IDSchema.Required(),
 })
 
 func (h *CommandHandler) DeleteProduktHandler() http.HandlerFunc {
@@ -255,8 +255,8 @@ type deleteVarianteRequest struct {
 }
 
 var deleteVarianteSchema = z.Struct(z.Shape{
-	"ProduktID": product.IDSchema.Required(),
-	"ID":        product.IDSchema.Required(),
+	"ProduktID": dom.IDSchema.Required(),
+	"ID":        dom.IDSchema.Required(),
 })
 
 func (h *CommandHandler) DeleteVarianteHandler() http.HandlerFunc {

@@ -9,17 +9,17 @@ import (
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/product"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/produkt"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/rs/zerolog"
 )
 
 type tableRepo interface {
-	GetTable(ctx context.Context, id int) (table.Tisch, error)
-	GetActiveTables(ctx context.Context, kassensitzungNr int) ([]table.AktiverTisch, error)
-	GetActiveTablesWithFavorites(ctx context.Context, userID int, kassensitzungNr int) ([]table.AktiverTischMitFavorit, error)
+	GetTable(ctx context.Context, id int) (tisch.Tisch, error)
+	GetActiveTables(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error)
+	GetActiveTablesWithFavorites(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error)
 }
 
 type eventRepo interface {
@@ -38,8 +38,8 @@ type kassensitzungenRepo interface {
 }
 
 type productRepo interface {
-	GetVariantsByIDs(ctx context.Context, ids []int) (map[int]product.Variante, error)
-	GetProductsByIDs(ctx context.Context, ids []int) (map[int]product.Produkt, error)
+	GetVariantsByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error)
+	GetProductsByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
 }
 
 type favoritRepo interface {
@@ -164,13 +164,13 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 		return "", 0, kasse.TischSession{}, err
 	}
 
-	tisch, err := c.TableRepo.GetTable(ctx, tischID)
+	t, err := c.TableRepo.GetTable(ctx, tischID)
 	if err != nil {
 		return "", 0, kasse.TischSession{}, fromRepositoryError(err, log, tischID)
 	}
 
-	if tisch.Status != table.ActiveStatus {
-		log.Warn().Int("tisch_id", tischID).Str("status", string(tisch.Status)).Msg("Tisch is not active")
+	if t.Status != tisch.ActiveStatus {
+		log.Warn().Int("tisch_id", tischID).Str("status", string(t.Status)).Msg("Tisch is not active")
 		return "", 0, kasse.TischSession{}, ErrTischNotActive
 	}
 
@@ -383,7 +383,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	if err != nil {
 		return fromRepositoryError(err, log, quellTischID)
 	}
-	if quellTisch.Status != table.ActiveStatus {
+	if quellTisch.Status != tisch.ActiveStatus {
 		log.Warn().Int("tisch_id", quellTischID).Str("status", string(quellTisch.Status)).Msg("Quell-Tisch ist nicht aktiv")
 		return ErrTischNotActive
 	}
@@ -392,7 +392,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	if err != nil {
 		return fromRepositoryError(err, log, zielTischID)
 	}
-	if zielTisch.Status != table.ActiveStatus {
+	if zielTisch.Status != tisch.ActiveStatus {
 		log.Warn().Int("tisch_id", zielTischID).Str("status", string(zielTisch.Status)).Msg("Ziel-Tisch ist nicht aktiv")
 		return ErrTischNotActive
 	}

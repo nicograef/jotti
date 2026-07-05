@@ -14,7 +14,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/rs/zerolog"
 )
@@ -48,7 +48,7 @@ type tseRepo interface {
 }
 
 type tableRepo interface {
-	GetAllTables(ctx context.Context) ([]table.Tisch, error)
+	GetAllTables(ctx context.Context) ([]tisch.Tisch, error)
 }
 
 // Export ist der App-Service, der das DSFinV-K-Archiv einer Kassensitzung

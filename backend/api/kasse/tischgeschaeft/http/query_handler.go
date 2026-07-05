@@ -9,7 +9,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	k "github.com/nicograef/jotti/backend/domain/kasse"
-	t "github.com/nicograef/jotti/backend/domain/table"
+	t "github.com/nicograef/jotti/backend/domain/tisch"
 )
 
 type query interface {

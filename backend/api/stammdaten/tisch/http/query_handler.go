@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
-	t "github.com/nicograef/jotti/backend/domain/table"
+	t "github.com/nicograef/jotti/backend/domain/tisch"
 )
 
 type query interface {

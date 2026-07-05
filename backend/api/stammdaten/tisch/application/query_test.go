@@ -6,12 +6,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/nicograef/jotti/backend/domain/table"
-	"github.com/nicograef/jotti/backend/repository/table_repo"
+	"github.com/nicograef/jotti/backend/domain/tisch"
+	"github.com/nicograef/jotti/backend/repository/tisch_repo"
 )
 
 func TestGetAllTische(t *testing.T) {
-	repo := table_repo.NewMock([]table.Tisch{{ID: 1, Name: "Tisch 1", Status: table.ActiveStatus}}, nil)
+	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus}}, nil)
 	query := Query{TableRepo: repo}
 
 	tische, err := query.GetAllTische(context.Background())

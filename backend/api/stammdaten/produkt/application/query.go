@@ -3,20 +3,20 @@ package application
 import (
 	"context"
 
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/rs/zerolog"
 )
 
 type productQueryRepo interface {
-	GetAllProducts(ctx context.Context) ([]product.Produkt, error)
-	GetActiveProducts(ctx context.Context) ([]product.Produkt, error)
+	GetAllProducts(ctx context.Context) ([]produkt.Produkt, error)
+	GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error)
 }
 
 type Query struct {
 	ProductRepo productQueryRepo
 }
 
-func (q Query) GetAllProducts(ctx context.Context) ([]product.Produkt, error) {
+func (q Query) GetAllProducts(ctx context.Context) ([]produkt.Produkt, error) {
 	log := zerolog.Ctx(ctx)
 
 	products, err := q.ProductRepo.GetAllProducts(ctx)
@@ -29,7 +29,7 @@ func (q Query) GetAllProducts(ctx context.Context) ([]product.Produkt, error) {
 	return products, nil
 }
 
-func (q Query) GetActiveProducts(ctx context.Context) ([]product.Produkt, error) {
+func (q Query) GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error) {
 	log := zerolog.Ctx(ctx)
 
 	products, err := q.ProductRepo.GetActiveProducts(ctx)

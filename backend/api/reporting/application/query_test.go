@@ -11,7 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/steuer"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 )
 
 type mockReportingRepo struct {
@@ -43,11 +43,11 @@ func (m mockTischSessionRepo) GetTischSessionsByKassensitzungNr(_ context.Contex
 }
 
 type mockTischRepo struct {
-	tische []table.Tisch
+	tische []tisch.Tisch
 	err    error
 }
 
-func (m mockTischRepo) GetAllTables(_ context.Context) ([]table.Tisch, error) {
+func (m mockTischRepo) GetAllTables(_ context.Context) ([]tisch.Tisch, error) {
 	return m.tische, m.err
 }
 
@@ -225,7 +225,7 @@ func TestGetEigeneUebersicht_MitOffenerArbeit(t *testing.T) {
 		ReportingRepo:       mockReportingRepo{eigeneUebersicht: base},
 		KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr},
 		TischSessionRepo:    mockTischSessionRepo{sessions: sessions},
-		TischRepo:           mockTischRepo{tische: []table.Tisch{{ID: 3, Name: "Tisch 3"}, {ID: 1, Name: "Tisch 1"}}},
+		TischRepo:           mockTischRepo{tische: []tisch.Tisch{{ID: 3, Name: "Tisch 3"}, {ID: 1, Name: "Tisch 1"}}},
 	}
 
 	result, err := q.GetEigeneUebersicht(context.Background(), 7)
@@ -260,7 +260,7 @@ func TestGetEigeneUebersicht_AllesErledigt(t *testing.T) {
 		ReportingRepo:       mockReportingRepo{},
 		KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr},
 		TischSessionRepo:    mockTischSessionRepo{sessions: sessions},
-		TischRepo:           mockTischRepo{tische: []table.Tisch{{ID: 1, Name: "Tisch 1"}}},
+		TischRepo:           mockTischRepo{tische: []tisch.Tisch{{ID: 1, Name: "Tisch 1"}}},
 	}
 
 	result, err := q.GetEigeneUebersicht(context.Background(), 7)
@@ -387,7 +387,7 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 		ReportingRepo:       mockReportingRepo{liveData: liveData},
 		KassensitzungenRepo: mockKasseRepo{kassensitzung: ks},
 		TischSessionRepo:    mockTischSessionRepo{sessions: sessions},
-		TischRepo:           mockTischRepo{tische: []table.Tisch{{ID: 3, Name: "Tisch 3"}, {ID: 1, Name: "Tisch 1"}}},
+		TischRepo:           mockTischRepo{tische: []tisch.Tisch{{ID: 3, Name: "Tisch 3"}, {ID: 1, Name: "Tisch 1"}}},
 	}
 
 	result, err := q.GetLiveReporting(context.Background())

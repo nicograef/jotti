@@ -1,29 +1,29 @@
-package table_repo
+package tisch_repo
 
 import (
 	"context"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-func (r Repository) GetTable(ctx context.Context, id int) (table.Tisch, error) {
+func (r Repository) GetTable(ctx context.Context, id int) (tisch.Tisch, error) {
 	row, err := r.q.GetTisch(ctx, id)
 	if err != nil {
-		return table.Tisch{}, db.Error(err)
+		return tisch.Tisch{}, db.Error(err)
 	}
 
 	return tischRowToDomain(row), nil
 }
 
-func (r Repository) GetAllTables(ctx context.Context) ([]table.Tisch, error) {
+func (r Repository) GetAllTables(ctx context.Context) ([]tisch.Tisch, error) {
 	rows, err := r.q.GetAlleTische(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	tables := make([]table.Tisch, 0, len(rows))
+	tables := make([]tisch.Tisch, 0, len(rows))
 	for _, row := range rows {
 		tables = append(tables, tischRowToDomain(row))
 	}
@@ -31,15 +31,15 @@ func (r Repository) GetAllTables(ctx context.Context) ([]table.Tisch, error) {
 	return tables, nil
 }
 
-func (r Repository) GetActiveTables(ctx context.Context, kassensitzungNr int) ([]table.AktiverTisch, error) {
+func (r Repository) GetActiveTables(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error) {
 	rows, err := r.q.GetAktiveTische(ctx, kassensitzungNr)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	tables := make([]table.AktiverTisch, 0, len(rows))
+	tables := make([]tisch.AktiverTisch, 0, len(rows))
 	for _, row := range rows {
-		tables = append(tables, table.AktiverTisch{
+		tables = append(tables, tisch.AktiverTisch{
 			ID:         row.ID,
 			Name:       row.Name,
 			SaldoCents: row.SaldoCents,
@@ -49,7 +49,7 @@ func (r Repository) GetActiveTables(ctx context.Context, kassensitzungNr int) ([
 	return tables, nil
 }
 
-func (r Repository) GetActiveTablesWithFavorites(ctx context.Context, userID int, kassensitzungNr int) ([]table.AktiverTischMitFavorit, error) {
+func (r Repository) GetActiveTablesWithFavorites(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error) {
 	rows, err := r.q.GetAktiveTischeMitFavoriten(ctx, dbgen.GetAktiveTischeMitFavoritenParams{
 		UserID:          userID,
 		KassensitzungNr: kassensitzungNr,
@@ -58,9 +58,9 @@ func (r Repository) GetActiveTablesWithFavorites(ctx context.Context, userID int
 		return nil, db.Error(err)
 	}
 
-	tables := make([]table.AktiverTischMitFavorit, 0, len(rows))
+	tables := make([]tisch.AktiverTischMitFavorit, 0, len(rows))
 	for _, row := range rows {
-		tables = append(tables, table.AktiverTischMitFavorit{
+		tables = append(tables, tisch.AktiverTischMitFavorit{
 			ID:         row.ID,
 			Name:       row.Name,
 			SaldoCents: row.SaldoCents,
@@ -71,7 +71,7 @@ func (r Repository) GetActiveTablesWithFavorites(ctx context.Context, userID int
 	return tables, nil
 }
 
-func (r Repository) CreateTable(ctx context.Context, t table.Tisch) (int, error) {
+func (r Repository) CreateTable(ctx context.Context, t tisch.Tisch) (int, error) {
 	id, err := r.q.CreateTisch(ctx, dbgen.CreateTischParams{
 		Name:      t.Name,
 		Status:    dbgen.Entitystatus(t.Status),
@@ -85,7 +85,7 @@ func (r Repository) CreateTable(ctx context.Context, t table.Tisch) (int, error)
 	return id, nil
 }
 
-func (r Repository) UpdateTable(ctx context.Context, t table.Tisch) error {
+func (r Repository) UpdateTable(ctx context.Context, t tisch.Tisch) error {
 	result, err := r.q.UpdateTisch(ctx, dbgen.UpdateTischParams{
 		Name:      t.Name,
 		Status:    dbgen.Entitystatus(t.Status),

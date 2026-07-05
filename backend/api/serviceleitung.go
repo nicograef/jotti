@@ -13,17 +13,17 @@ import (
 	"github.com/nicograef/jotti/backend/repository/favorit_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
-	"github.com/nicograef/jotti/backend/repository/product_repo"
-	"github.com/nicograef/jotti/backend/repository/table_repo"
+	"github.com/nicograef/jotti/backend/repository/produkt_repo"
+	"github.com/nicograef/jotti/backend/repository/tisch_repo"
 )
 
 func NewServiceleitungApi(cfg config.Config, db *sql.DB) http.Handler {
 	r := http.NewServeMux()
 
-	tableRepo := table_repo.NewRepository(db)
+	tableRepo := tisch_repo.NewRepository(db)
 	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
 	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
-	productRepo := product_repo.NewRepository(db)
+	productRepo := produkt_repo.NewRepository(db)
 	favoritRepo := favorit_repo.NewRepository(db)
 	druckstationRepo := druckstation_repo.NewRepository(db)
 	tc := tischgeschaeftHTTP.CommandHandler{}

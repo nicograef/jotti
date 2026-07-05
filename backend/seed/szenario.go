@@ -7,9 +7,9 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
-	"github.com/nicograef/jotti/backend/domain/product"
+	produktDomain "github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
-	"github.com/nicograef/jotti/backend/domain/table"
+	tischDomain "github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/domain/user"
 )
 
@@ -31,22 +31,22 @@ type benutzer struct {
 type tisch struct {
 	ID     int
 	Name   string
-	Status table.Status
+	Status tischDomain.Status
 }
 
 type variante struct {
 	ID         int
 	Name       string
 	PreisCents int
-	Status     product.Status
+	Status     produktDomain.Status
 }
 
 type produkt struct {
 	ID         int
 	Name       string
-	Kategorie  product.Kategorie
+	Kategorie  produktDomain.Kategorie
 	Steuersatz steuer.Steuersatz
-	Status     product.Status
+	Status     produktDomain.Status
 	Varianten  []variante
 }
 
@@ -311,127 +311,127 @@ func demoSzenario() szenario {
 			{ID: 11, Name: "Sabine Wolf", Username: "sabine", Rolle: user.ServiceRole, Status: user.DeletedStatus},
 		},
 		Tische: []tisch{
-			{ID: 1, Name: "Tisch 1", Status: table.ActiveStatus},
-			{ID: 2, Name: "Tisch 2", Status: table.ActiveStatus},
-			{ID: 3, Name: "Tisch 3", Status: table.ActiveStatus},
-			{ID: 4, Name: "Tisch 4", Status: table.ActiveStatus},
-			{ID: 5, Name: "Tisch 5", Status: table.ActiveStatus},
-			{ID: 6, Name: "Tisch 6", Status: table.ActiveStatus},
-			{ID: 7, Name: "Tisch 7", Status: table.ActiveStatus},
-			{ID: 8, Name: "Tisch 8", Status: table.ActiveStatus},
-			{ID: 9, Name: "Tisch 9", Status: table.ActiveStatus},
-			{ID: 10, Name: "Tisch 10", Status: table.ActiveStatus},
-			{ID: 11, Name: "Tisch 11", Status: table.ActiveStatus},
-			{ID: 12, Name: "Tisch 12", Status: table.ActiveStatus},
-			{ID: 13, Name: "Tisch 13", Status: table.ActiveStatus},
-			{ID: 14, Name: "Tisch 14", Status: table.ActiveStatus},
-			{ID: 15, Name: "Tisch 15", Status: table.ActiveStatus},
-			{ID: 16, Name: "Zelt A1", Status: table.ActiveStatus},
-			{ID: 17, Name: "Zelt A2", Status: table.ActiveStatus},
-			{ID: 18, Name: "Stehtisch Bar", Status: table.ActiveStatus},
-			{ID: 19, Name: "Stehtisch Eingang", Status: table.ActiveStatus},
-			{ID: 20, Name: "Stehtisch Terrasse", Status: table.ActiveStatus},
-			{ID: 21, Name: "Reserviert", Status: table.InactiveStatus},
-			{ID: 22, Name: "Alter Tisch", Status: table.DeletedStatus},
+			{ID: 1, Name: "Tisch 1", Status: tischDomain.ActiveStatus},
+			{ID: 2, Name: "Tisch 2", Status: tischDomain.ActiveStatus},
+			{ID: 3, Name: "Tisch 3", Status: tischDomain.ActiveStatus},
+			{ID: 4, Name: "Tisch 4", Status: tischDomain.ActiveStatus},
+			{ID: 5, Name: "Tisch 5", Status: tischDomain.ActiveStatus},
+			{ID: 6, Name: "Tisch 6", Status: tischDomain.ActiveStatus},
+			{ID: 7, Name: "Tisch 7", Status: tischDomain.ActiveStatus},
+			{ID: 8, Name: "Tisch 8", Status: tischDomain.ActiveStatus},
+			{ID: 9, Name: "Tisch 9", Status: tischDomain.ActiveStatus},
+			{ID: 10, Name: "Tisch 10", Status: tischDomain.ActiveStatus},
+			{ID: 11, Name: "Tisch 11", Status: tischDomain.ActiveStatus},
+			{ID: 12, Name: "Tisch 12", Status: tischDomain.ActiveStatus},
+			{ID: 13, Name: "Tisch 13", Status: tischDomain.ActiveStatus},
+			{ID: 14, Name: "Tisch 14", Status: tischDomain.ActiveStatus},
+			{ID: 15, Name: "Tisch 15", Status: tischDomain.ActiveStatus},
+			{ID: 16, Name: "Zelt A1", Status: tischDomain.ActiveStatus},
+			{ID: 17, Name: "Zelt A2", Status: tischDomain.ActiveStatus},
+			{ID: 18, Name: "Stehtisch Bar", Status: tischDomain.ActiveStatus},
+			{ID: 19, Name: "Stehtisch Eingang", Status: tischDomain.ActiveStatus},
+			{ID: 20, Name: "Stehtisch Terrasse", Status: tischDomain.ActiveStatus},
+			{ID: 21, Name: "Reserviert", Status: tischDomain.InactiveStatus},
+			{ID: 22, Name: "Alter Tisch", Status: tischDomain.DeletedStatus},
 		},
 		Produkte: []produkt{
-			{ID: 1, Name: "Bratwurst", Kategorie: product.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 1, Name: "Normal", PreisCents: 350, Status: product.ActiveStatus},
-				{ID: 2, Name: "XXL", PreisCents: 500, Status: product.ActiveStatus},
-				{ID: 3, Name: "Currywurst", PreisCents: 450, Status: product.ActiveStatus},
+			{ID: 1, Name: "Bratwurst", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 1, Name: "Normal", PreisCents: 350, Status: produktDomain.ActiveStatus},
+				{ID: 2, Name: "XXL", PreisCents: 500, Status: produktDomain.ActiveStatus},
+				{ID: 3, Name: "Currywurst", PreisCents: 450, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 2, Name: "Pommes", Kategorie: product.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 4, Name: "Klein", PreisCents: 250, Status: product.ActiveStatus},
-				{ID: 5, Name: "Groß", PreisCents: 350, Status: product.ActiveStatus},
+			{ID: 2, Name: "Pommes", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 4, Name: "Klein", PreisCents: 250, Status: produktDomain.ActiveStatus},
+				{ID: 5, Name: "Groß", PreisCents: 350, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 3, Name: "Flammkuchen", Kategorie: product.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 6, Name: "Classic", PreisCents: 600, Status: product.ActiveStatus},
-				{ID: 7, Name: "Speck & Zwiebel", PreisCents: 700, Status: product.ActiveStatus},
-				{ID: 8, Name: "Mediterran", PreisCents: 750, Status: product.ActiveStatus},
+			{ID: 3, Name: "Flammkuchen", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 6, Name: "Classic", PreisCents: 600, Status: produktDomain.ActiveStatus},
+				{ID: 7, Name: "Speck & Zwiebel", PreisCents: 700, Status: produktDomain.ActiveStatus},
+				{ID: 8, Name: "Mediterran", PreisCents: 750, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 4, Name: "Tagesgericht", Kategorie: product.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 9, Name: "Fr: Schnitzel mit Pommes", PreisCents: 1250, Status: product.ActiveStatus},
-				{ID: 10, Name: "Sa: Gulasch mit Spätzle", PreisCents: 1150, Status: product.ActiveStatus},
-				{ID: 11, Name: "So: Hähnchen mit Reis", PreisCents: 1050, Status: product.ActiveStatus},
+			{ID: 4, Name: "Tagesgericht", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 9, Name: "Fr: Schnitzel mit Pommes", PreisCents: 1250, Status: produktDomain.ActiveStatus},
+				{ID: 10, Name: "Sa: Gulasch mit Spätzle", PreisCents: 1150, Status: produktDomain.ActiveStatus},
+				{ID: 11, Name: "So: Hähnchen mit Reis", PreisCents: 1050, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 5, Name: "Grillplatte", Kategorie: product.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 12, Name: "Klein", PreisCents: 800, Status: product.ActiveStatus},
-				{ID: 13, Name: "Groß", PreisCents: 1400, Status: product.ActiveStatus},
+			{ID: 5, Name: "Grillplatte", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 12, Name: "Klein", PreisCents: 800, Status: produktDomain.ActiveStatus},
+				{ID: 13, Name: "Groß", PreisCents: 1400, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 6, Name: "Salat", Kategorie: product.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 14, Name: "Gemischter Salat", PreisCents: 550, Status: product.ActiveStatus},
-				{ID: 15, Name: "Caesar Salat", PreisCents: 650, Status: product.ActiveStatus},
+			{ID: 6, Name: "Salat", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 14, Name: "Gemischter Salat", PreisCents: 550, Status: produktDomain.ActiveStatus},
+				{ID: 15, Name: "Caesar Salat", PreisCents: 650, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 7, Name: "Kuchen", Kategorie: product.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 16, Name: "Stück", PreisCents: 250, Status: product.ActiveStatus},
+			{ID: 7, Name: "Kuchen", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 16, Name: "Stück", PreisCents: 250, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 8, Name: "Waffeln", Kategorie: product.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 17, Name: "mit Puderzucker", PreisCents: 300, Status: product.ActiveStatus},
-				{ID: 18, Name: "mit Sahne", PreisCents: 350, Status: product.ActiveStatus},
-				{ID: 19, Name: "mit Nutella", PreisCents: 400, Status: product.ActiveStatus},
+			{ID: 8, Name: "Waffeln", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 17, Name: "mit Puderzucker", PreisCents: 300, Status: produktDomain.ActiveStatus},
+				{ID: 18, Name: "mit Sahne", PreisCents: 350, Status: produktDomain.ActiveStatus},
+				{ID: 19, Name: "mit Nutella", PreisCents: 400, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 9, Name: "Brezel", Kategorie: product.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 20, Name: "Normal", PreisCents: 200, Status: product.ActiveStatus},
-				{ID: 21, Name: "mit Butter", PreisCents: 300, Status: product.ActiveStatus},
+			{ID: 9, Name: "Brezel", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 20, Name: "Normal", PreisCents: 200, Status: produktDomain.ActiveStatus},
+				{ID: 21, Name: "mit Butter", PreisCents: 300, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 10, Name: "Suppe", Kategorie: product.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: product.InactiveStatus, Varianten: []variante{
-				{ID: 22, Name: "Tagessuppe", PreisCents: 400, Status: product.ActiveStatus},
+			{ID: 10, Name: "Suppe", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.InactiveStatus, Varianten: []variante{
+				{ID: 22, Name: "Tagessuppe", PreisCents: 400, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 11, Name: "Bier", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 23, Name: "0,3l", PreisCents: 300, Status: product.ActiveStatus},
-				{ID: 24, Name: "0,5l", PreisCents: 450, Status: product.ActiveStatus},
-				{ID: 25, Name: "Maß 1,0l", PreisCents: 850, Status: product.ActiveStatus},
+			{ID: 11, Name: "Bier", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 23, Name: "0,3l", PreisCents: 300, Status: produktDomain.ActiveStatus},
+				{ID: 24, Name: "0,5l", PreisCents: 450, Status: produktDomain.ActiveStatus},
+				{ID: 25, Name: "Maß 1,0l", PreisCents: 850, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 12, Name: "Weizen", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 26, Name: "Klein 0,3l", PreisCents: 300, Status: product.ActiveStatus},
-				{ID: 27, Name: "Groß 0,5l", PreisCents: 400, Status: product.ActiveStatus},
-				{ID: 28, Name: "Colaweizen Klein", PreisCents: 300, Status: product.ActiveStatus},
-				{ID: 29, Name: "Colaweizen Groß", PreisCents: 400, Status: product.ActiveStatus},
-				{ID: 30, Name: "Russ", PreisCents: 300, Status: product.ActiveStatus},
+			{ID: 12, Name: "Weizen", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 26, Name: "Klein 0,3l", PreisCents: 300, Status: produktDomain.ActiveStatus},
+				{ID: 27, Name: "Groß 0,5l", PreisCents: 400, Status: produktDomain.ActiveStatus},
+				{ID: 28, Name: "Colaweizen Klein", PreisCents: 300, Status: produktDomain.ActiveStatus},
+				{ID: 29, Name: "Colaweizen Groß", PreisCents: 400, Status: produktDomain.ActiveStatus},
+				{ID: 30, Name: "Russ", PreisCents: 300, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 13, Name: "Softdrinks", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 31, Name: "Cola", PreisCents: 280, Status: product.ActiveStatus},
-				{ID: 32, Name: "Fanta", PreisCents: 280, Status: product.ActiveStatus},
-				{ID: 33, Name: "Spezi", PreisCents: 280, Status: product.ActiveStatus},
-				{ID: 34, Name: "Sprite", PreisCents: 280, Status: product.ActiveStatus},
-				{ID: 35, Name: "Mezzo Mix", PreisCents: 280, Status: product.ActiveStatus},
+			{ID: 13, Name: "Softdrinks", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 31, Name: "Cola", PreisCents: 280, Status: produktDomain.ActiveStatus},
+				{ID: 32, Name: "Fanta", PreisCents: 280, Status: produktDomain.ActiveStatus},
+				{ID: 33, Name: "Spezi", PreisCents: 280, Status: produktDomain.ActiveStatus},
+				{ID: 34, Name: "Sprite", PreisCents: 280, Status: produktDomain.ActiveStatus},
+				{ID: 35, Name: "Mezzo Mix", PreisCents: 280, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 14, Name: "Wasser", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 36, Name: "Still 0,5l", PreisCents: 200, Status: product.ActiveStatus},
-				{ID: 37, Name: "Medium 0,5l", PreisCents: 200, Status: product.ActiveStatus},
-				{ID: 38, Name: "Sprudel 0,5l", PreisCents: 200, Status: product.ActiveStatus},
+			{ID: 14, Name: "Wasser", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 36, Name: "Still 0,5l", PreisCents: 200, Status: produktDomain.ActiveStatus},
+				{ID: 37, Name: "Medium 0,5l", PreisCents: 200, Status: produktDomain.ActiveStatus},
+				{ID: 38, Name: "Sprudel 0,5l", PreisCents: 200, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 15, Name: "Saftschorle", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 39, Name: "Apfelschorle 0,5l", PreisCents: 300, Status: product.ActiveStatus},
-				{ID: 40, Name: "Johannisbeerschorle 0,5l", PreisCents: 300, Status: product.ActiveStatus},
-				{ID: 41, Name: "Rhabarberschorle 0,5l", PreisCents: 350, Status: product.ActiveStatus},
+			{ID: 15, Name: "Saftschorle", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 39, Name: "Apfelschorle 0,5l", PreisCents: 300, Status: produktDomain.ActiveStatus},
+				{ID: 40, Name: "Johannisbeerschorle 0,5l", PreisCents: 300, Status: produktDomain.ActiveStatus},
+				{ID: 41, Name: "Rhabarberschorle 0,5l", PreisCents: 350, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 16, Name: "Wein", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 42, Name: "Weißwein 0,2l", PreisCents: 400, Status: product.ActiveStatus},
-				{ID: 43, Name: "Rotwein 0,2l", PreisCents: 400, Status: product.ActiveStatus},
-				{ID: 44, Name: "Rosé 0,2l", PreisCents: 400, Status: product.ActiveStatus},
+			{ID: 16, Name: "Wein", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 42, Name: "Weißwein 0,2l", PreisCents: 400, Status: produktDomain.ActiveStatus},
+				{ID: 43, Name: "Rotwein 0,2l", PreisCents: 400, Status: produktDomain.ActiveStatus},
+				{ID: 44, Name: "Rosé 0,2l", PreisCents: 400, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 17, Name: "Kaffee", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 45, Name: "Tasse", PreisCents: 200, Status: product.ActiveStatus},
-				{ID: 46, Name: "Espresso", PreisCents: 180, Status: product.ActiveStatus},
+			{ID: 17, Name: "Kaffee", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 45, Name: "Tasse", PreisCents: 200, Status: produktDomain.ActiveStatus},
+				{ID: 46, Name: "Espresso", PreisCents: 180, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 18, Name: "Tee", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 47, Name: "Verschiedene Sorten", PreisCents: 200, Status: product.ActiveStatus},
+			{ID: 18, Name: "Tee", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 47, Name: "Verschiedene Sorten", PreisCents: 200, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 19, Name: "Hugo/Aperol", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 48, Name: "Hugo", PreisCents: 550, Status: product.ActiveStatus},
-				{ID: 49, Name: "Aperol Spritz", PreisCents: 550, Status: product.ActiveStatus},
+			{ID: 19, Name: "Hugo/Aperol", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 48, Name: "Hugo", PreisCents: 550, Status: produktDomain.ActiveStatus},
+				{ID: 49, Name: "Aperol Spritz", PreisCents: 550, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 20, Name: "Glühwein", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.InactiveStatus, Varianten: []variante{
-				{ID: 50, Name: "Tasse", PreisCents: 350, Status: product.ActiveStatus},
+			{ID: 20, Name: "Glühwein", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.InactiveStatus, Varianten: []variante{
+				{ID: 50, Name: "Tasse", PreisCents: 350, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 21, Name: "Festbändchen", Kategorie: product.SonstigesKategorie, Steuersatz: steuer.BefreitSteuersatz, Status: product.ActiveStatus, Varianten: []variante{
-				{ID: 51, Name: "Erwachsene", PreisCents: 500, Status: product.ActiveStatus},
-				{ID: 52, Name: "Kinder", PreisCents: 300, Status: product.ActiveStatus},
+			{ID: 21, Name: "Festbändchen", Kategorie: produktDomain.SonstigesKategorie, Steuersatz: steuer.BefreitSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 51, Name: "Erwachsene", PreisCents: 500, Status: produktDomain.ActiveStatus},
+				{ID: 52, Name: "Kinder", PreisCents: 300, Status: produktDomain.ActiveStatus},
 			}},
-			{ID: 22, Name: "Langos", Kategorie: product.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: product.DeletedStatus, Varianten: []variante{
-				{ID: 53, Name: "mit Knoblauch", PreisCents: 400, Status: product.DeletedStatus},
-				{ID: 54, Name: "mit Käse", PreisCents: 500, Status: product.DeletedStatus},
+			{ID: 22, Name: "Langos", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.DeletedStatus, Varianten: []variante{
+				{ID: 53, Name: "mit Knoblauch", PreisCents: 400, Status: produktDomain.DeletedStatus},
+				{ID: 54, Name: "mit Käse", PreisCents: 500, Status: produktDomain.DeletedStatus},
 			}},
 		},
 		Favoriten: []favorit{

@@ -16,16 +16,16 @@ import (
 	tseHTTP "github.com/nicograef/jotti/backend/api/fiskal/signatur/http"
 	kasseApp "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
 	kasseHTTP "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/http"
-	productApp "github.com/nicograef/jotti/backend/api/product/application"
-	productHTTP "github.com/nicograef/jotti/backend/api/product/http"
 	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
 	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
 	betreiberApp "github.com/nicograef/jotti/backend/api/stammdaten/betreiber/application"
 	betreiberHTTP "github.com/nicograef/jotti/backend/api/stammdaten/betreiber/http"
+	productApp "github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
+	productHTTP "github.com/nicograef/jotti/backend/api/stammdaten/produkt/http"
 	tischApp "github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
 	tischHTTP "github.com/nicograef/jotti/backend/api/stammdaten/tisch/http"
-	userApp "github.com/nicograef/jotti/backend/api/user/application"
-	userHTTP "github.com/nicograef/jotti/backend/api/user/http"
+	userApp "github.com/nicograef/jotti/backend/api/stammdaten/user/application"
+	userHTTP "github.com/nicograef/jotti/backend/api/stammdaten/user/http"
 	"github.com/nicograef/jotti/backend/config"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/betreiber_repo"
@@ -34,9 +34,9 @@ import (
 	"github.com/nicograef/jotti/backend/repository/favorit_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
-	"github.com/nicograef/jotti/backend/repository/product_repo"
+	"github.com/nicograef/jotti/backend/repository/produkt_repo"
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
-	"github.com/nicograef/jotti/backend/repository/table_repo"
+	"github.com/nicograef/jotti/backend/repository/tisch_repo"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 	"github.com/nicograef/jotti/backend/repository/user_repo"
 )
@@ -58,7 +58,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	uq.Query = userApp.Query{UserRepo: userRepo}
 	r.HandleFunc("/get-all-users", uq.GetAllUsersHandler())
 
-	productRepo := product_repo.NewRepository(db)
+	productRepo := produkt_repo.NewRepository(db)
 	pc := productHTTP.CommandHandler{}
 	pc.Command = productApp.Command{ProductRepo: productRepo}
 	r.HandleFunc("/create-produkt", pc.CreateProductHandler())
@@ -74,7 +74,7 @@ func NewAdminApi(cfg config.Config, db *sql.DB) http.Handler {
 	pq.Query = productApp.Query{ProductRepo: productRepo}
 	r.HandleFunc("/get-all-produkte", pq.GetAllProductsHandler())
 
-	tableRepo := table_repo.NewRepository(db)
+	tableRepo := tisch_repo.NewRepository(db)
 	kassenjournalRepo := kassenjournal_repo.NewRepository(db)
 	kassensitzungenRepo := kassensitzungen_repo.NewRepository(db)
 	betreiberRepo := betreiber_repo.NewRepository(db)

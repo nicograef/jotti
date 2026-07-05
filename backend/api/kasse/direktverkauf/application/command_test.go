@@ -12,11 +12,11 @@ import (
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
-	"github.com/nicograef/jotti/backend/repository/product_repo"
+	"github.com/nicograef/jotti/backend/repository/produkt_repo"
 )
 
 const testKassensitzungNr = 1
@@ -26,19 +26,19 @@ var testOpenKS = &kasse.Kassensitzung{
 	Status: kasse.KassensitzungOffen,
 }
 
-var testProduct = product.Produkt{
+var testProduct = produkt.Produkt{
 	ID:         1,
 	Name:       "Cola",
-	Kategorie:  product.GetraenkKategorie,
+	Kategorie:  produkt.GetraenkKategorie,
 	Steuersatz: steuer.RegelSteuersatz,
-	Status:     product.ActiveStatus,
+	Status:     produkt.ActiveStatus,
 }
 
-var testVariant = product.Variante{
+var testVariant = produkt.Variante{
 	ID:         1,
 	Name:       "Cola 0,5l",
 	PreisCents: 350,
-	Status:     product.ActiveStatus,
+	Status:     produkt.ActiveStatus,
 }
 
 // spyEventRepo records WriteEvent calls so tests can assert the exact write contract
@@ -98,7 +98,7 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 }
 
 func newProductMock() productRepo {
-	productMock := product_repo.NewMock([]product.Produkt{testProduct}, nil)
+	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariant(testProduct.ID, testVariant)
 	return productMock
 }
@@ -180,7 +180,7 @@ func TestDirektverkaufTaetigen_ProduktNotFound(t *testing.T) {
 	spy := &spyEventRepo{}
 	command := Command{
 		EventRepo:           spy,
-		ProductRepo:         product_repo.NewMock([]product.Produkt{}, nil),
+		ProductRepo:         produkt_repo.NewMock([]produkt.Produkt{}, nil),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 

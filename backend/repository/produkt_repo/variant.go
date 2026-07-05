@@ -1,23 +1,23 @@
-package product_repo
+package produkt_repo
 
 import (
 	"context"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-func (r Repository) GetVariant(ctx context.Context, id int) (product.Variante, error) {
+func (r Repository) GetVariant(ctx context.Context, id int) (produkt.Variante, error) {
 	row, err := r.q.GetVariante(ctx, id)
 	if err != nil {
-		return product.Variante{}, db.Error(err)
+		return produkt.Variante{}, db.Error(err)
 	}
 
 	return variantRowToDomain(row), nil
 }
 
-func (r Repository) CreateVariant(ctx context.Context, productID int, v product.Variante) (int, error) {
+func (r Repository) CreateVariant(ctx context.Context, productID int, v produkt.Variante) (int, error) {
 	id, err := r.q.CreateVariante(ctx, dbgen.CreateVarianteParams{
 		ProduktID:  productID,
 		Name:       v.Name,
@@ -33,7 +33,7 @@ func (r Repository) CreateVariant(ctx context.Context, productID int, v product.
 	return id, nil
 }
 
-func (r Repository) UpdateVariant(ctx context.Context, v product.Variante) error {
+func (r Repository) UpdateVariant(ctx context.Context, v produkt.Variante) error {
 	result, err := r.q.UpdateVariante(ctx, dbgen.UpdateVarianteParams{
 		Name:       v.Name,
 		PreisCents: v.PreisCents,

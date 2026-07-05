@@ -13,19 +13,19 @@ import (
 	"github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 )
 
 type mockQuery struct {
-	tisch    table.Tisch
+	tisch    tisch.Tisch
 	order    kasse.Bestellung
 	position kasse.Position
 	balance  int
 	err      error
 }
 
-func (m mockQuery) GetAktiveTische(ctx context.Context) ([]table.AktiverTisch, error) {
-	return []table.AktiverTisch{{ID: m.tisch.ID, Name: m.tisch.Name, SaldoCents: 0}}, m.err
+func (m mockQuery) GetAktiveTische(ctx context.Context) ([]tisch.AktiverTisch, error) {
+	return []tisch.AktiverTisch{{ID: m.tisch.ID, Name: m.tisch.Name, SaldoCents: 0}}, m.err
 }
 
 func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]kasse.HistorieEintrag, error) {
@@ -40,7 +40,7 @@ func (m mockQuery) GetTischState(ctx context.Context, tischID int, userID int) (
 	}, m.err
 }
 
-func (m mockQuery) GetAktiveTischeMitFavoriten(_ context.Context, _ int) ([]table.AktiverTischMitFavorit, error) {
+func (m mockQuery) GetAktiveTischeMitFavoriten(_ context.Context, _ int) ([]tisch.AktiverTischMitFavorit, error) {
 	return nil, m.err
 }
 
@@ -69,7 +69,7 @@ func TestPositionResponsesIncludeSteuersatz(t *testing.T) {
 	}
 
 	handler := &QueryHandler{Query: mockQuery{
-		tisch:    table.Tisch{ID: 1, Name: "Tisch 1"},
+		tisch:    tisch.Tisch{ID: 1, Name: "Tisch 1"},
 		order:    kasse.Bestellung{Positionen: []kasse.Position{testPosition}},
 		position: testPosition,
 		balance:  700,

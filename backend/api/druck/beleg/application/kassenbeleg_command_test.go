@@ -15,7 +15,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -29,10 +29,10 @@ var testOpenKS = &kasse.Kassensitzung{
 	Status: kasse.KassensitzungOffen,
 }
 
-var testActiveTisch = table.Tisch{
+var testActiveTisch = tisch.Tisch{
 	ID:        1,
 	Name:      "Tisch 1",
-	Status:    table.ActiveStatus,
+	Status:    tisch.ActiveStatus,
 	CreatedAt: time.Now().UTC(),
 	UpdatedAt: time.Now().UTC(),
 }

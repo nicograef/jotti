@@ -1,6 +1,6 @@
 //go:build integration
 
-package table_repo
+package tisch_repo
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 )
 
 func setup(t *testing.T) (Repository, func(t *testing.T)) {
@@ -36,8 +36,8 @@ func TestGetAllTablesDB(t *testing.T) {
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	_, _ = repo.CreateTable(ctx, table.Tisch{Name: "GetAll Test 1", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
-	_, _ = repo.CreateTable(ctx, table.Tisch{Name: "GetAll Test 2", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	_, _ = repo.CreateTable(ctx, tisch.Tisch{Name: "GetAll Test 1", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	_, _ = repo.CreateTable(ctx, tisch.Tisch{Name: "GetAll Test 2", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
 	tables, err := repo.GetAllTables(ctx)
 	if err != nil {
@@ -54,8 +54,8 @@ func TestGetActiveTablesDB(t *testing.T) {
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	_, _ = repo.CreateTable(ctx, table.Tisch{Name: "GetAll Test 1", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
-	_, _ = repo.CreateTable(ctx, table.Tisch{Name: "GetAll Test 2", Status: table.InactiveStatus, CreatedAt: now, UpdatedAt: now})
+	_, _ = repo.CreateTable(ctx, tisch.Tisch{Name: "GetAll Test 1", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	_, _ = repo.CreateTable(ctx, tisch.Tisch{Name: "GetAll Test 2", Status: tisch.InactiveStatus, CreatedAt: now, UpdatedAt: now})
 
 	tables, err := repo.GetActiveTables(ctx, 0)
 	if err != nil {
@@ -72,7 +72,7 @@ func TestCreateTableInDB(t *testing.T) {
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	tableID, err := repo.CreateTable(ctx, table.Tisch{Name: "Integration Test Table", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	tableID, err := repo.CreateTable(ctx, tisch.Tisch{Name: "Integration Test Table", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -87,9 +87,9 @@ func TestUpdateTableDB(t *testing.T) {
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	tableID, _ := repo.CreateTable(ctx, table.Tisch{Name: "Update Test Table", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	tableID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Update Test Table", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
-	err := repo.UpdateTable(ctx, table.Tisch{ID: tableID, Name: "Updated Table Name", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	err := repo.UpdateTable(ctx, tisch.Tisch{ID: tableID, Name: "Updated Table Name", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -109,7 +109,7 @@ func TestUpdateTableDB_NotFound(t *testing.T) {
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	err := repo.UpdateTable(ctx, table.Tisch{ID: 999999, Name: "New Name", Status: table.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	err := repo.UpdateTable(ctx, tisch.Tisch{ID: 999999, Name: "New Name", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
 	if err != dbpkg.ErrNotFound {
 		t.Fatalf("expected table not found error, got %v", err)

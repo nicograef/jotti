@@ -6,7 +6,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	t "github.com/nicograef/jotti/backend/domain/table"
+	t "github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/rs/zerolog"
 )
 

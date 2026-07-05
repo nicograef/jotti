@@ -10,7 +10,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/rs/zerolog"
@@ -29,8 +29,8 @@ type kassensitzungenRepo interface {
 }
 
 type productRepo interface {
-	GetVariantsByIDs(ctx context.Context, ids []int) (map[int]product.Variante, error)
-	GetProductsByIDs(ctx context.Context, ids []int) (map[int]product.Produkt, error)
+	GetVariantsByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error)
+	GetProductsByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
 }
 
 type druckstationRepo interface {

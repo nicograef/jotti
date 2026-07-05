@@ -1,11 +1,11 @@
-package product_repo
+package produkt_repo
 
 import (
 	"context"
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
@@ -13,9 +13,9 @@ import (
 // Returns a map keyed by variant ID for O(1) lookup during Bestellung enrichment.
 // Uses ANY($1) with a []int32 parameter; pgx v5 encodes Go slices as PostgreSQL arrays
 // natively, so no dynamic SQL building is required.
-func (r Repository) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]product.Variante, error) {
+func (r Repository) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error) {
 	if len(ids) == 0 {
-		return make(map[int]product.Variante), nil
+		return make(map[int]produkt.Variante), nil
 	}
 
 	ids32 := toInt32Slice(ids)
@@ -30,7 +30,7 @@ func (r Repository) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]pr
 	}
 	defer rows.Close() //nolint:errcheck // explicit Close with error check below
 
-	result := make(map[int]product.Variante, len(ids))
+	result := make(map[int]produkt.Variante, len(ids))
 	for rows.Next() {
 		var (
 			id         int
@@ -43,11 +43,11 @@ func (r Repository) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]pr
 		if err := rows.Scan(&id, &name, &preisCents, &status, &createdAt, &updatedAt); err != nil {
 			return nil, db.Error(err)
 		}
-		result[id] = product.Variante{
+		result[id] = produkt.Variante{
 			ID:         id,
 			Name:       name,
 			PreisCents: preisCents,
-			Status:     product.Status(status),
+			Status:     produkt.Status(status),
 			CreatedAt:  createdAt,
 			UpdatedAt:  updatedAt,
 		}
@@ -66,9 +66,9 @@ func (r Repository) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]pr
 // Returns a map keyed by product ID for O(1) lookup during Bestellung enrichment.
 // Only retrieves fields needed for fat-event enrichment (Name, Kategorie, Steuersatz).
 // Uses ANY($1) with a []int32 parameter; see GetVariantsByIDs for rationale.
-func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]product.Produkt, error) {
+func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error) {
 	if len(ids) == 0 {
-		return make(map[int]product.Produkt), nil
+		return make(map[int]produkt.Produkt), nil
 	}
 
 	ids32 := toInt32Slice(ids)
@@ -83,7 +83,7 @@ func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]pr
 	}
 	defer rows.Close() //nolint:errcheck // explicit Close with error check below
 
-	result := make(map[int]product.Produkt, len(ids))
+	result := make(map[int]produkt.Produkt, len(ids))
 	for rows.Next() {
 		var (
 			id         int
@@ -94,10 +94,10 @@ func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]pr
 		if err := rows.Scan(&id, &name, &kategorie, &steuersatz); err != nil {
 			return nil, db.Error(err)
 		}
-		result[id] = product.Produkt{
+		result[id] = produkt.Produkt{
 			ID:         id,
 			Name:       name,
-			Kategorie:  product.Kategorie(kategorie),
+			Kategorie:  produkt.Kategorie(kategorie),
 			Steuersatz: steuer.Steuersatz(steuersatz),
 		}
 	}

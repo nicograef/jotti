@@ -8,27 +8,27 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
-	"github.com/nicograef/jotti/backend/repository/product_repo"
+	"github.com/nicograef/jotti/backend/repository/produkt_repo"
 )
 
-var testProduct = product.Produkt{
+var testProduct = produkt.Produkt{
 	ID:         1,
 	Name:       "Cola",
-	Kategorie:  product.GetraenkKategorie,
+	Kategorie:  produkt.GetraenkKategorie,
 	Steuersatz: steuer.RegelSteuersatz,
-	Status:     product.ActiveStatus,
-	Varianten:  []product.Variante{},
+	Status:     produkt.ActiveStatus,
+	Varianten:  []produkt.Variante{},
 	CreatedAt:  time.Now().UTC(),
 	UpdatedAt:  time.Now().UTC(),
 }
 
 func TestCreateProduct(t *testing.T) {
-	repo := product_repo.NewMock(nil, nil)
+	repo := produkt_repo.NewMock(nil, nil)
 	cmd := Command{ProductRepo: repo}
 
-	id, err := cmd.CreateProduct(context.Background(), "Bier", product.GetraenkKategorie, steuer.RegelSteuersatz)
+	id, err := cmd.CreateProduct(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -38,20 +38,20 @@ func TestCreateProduct(t *testing.T) {
 }
 
 func TestCreateProduct_AlreadyExists(t *testing.T) {
-	repo := product_repo.NewMock(nil, db.ErrAlreadyExists)
+	repo := produkt_repo.NewMock(nil, db.ErrAlreadyExists)
 	cmd := Command{ProductRepo: repo}
 
-	_, err := cmd.CreateProduct(context.Background(), "Bier", product.GetraenkKategorie, steuer.RegelSteuersatz)
+	_, err := cmd.CreateProduct(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
 	if err != ErrProduktAlreadyExists {
 		t.Fatalf("expected ErrProduktAlreadyExists, got %v", err)
 	}
 }
 
 func TestUpdateProduct(t *testing.T) {
-	repo := product_repo.NewMock([]product.Produkt{testProduct}, nil)
+	repo := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
 	cmd := Command{ProductRepo: repo}
 
-	err := cmd.UpdateProduct(context.Background(), 1, "Fanta", product.GetraenkKategorie, steuer.RegelSteuersatz)
+	err := cmd.UpdateProduct(context.Background(), 1, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -66,10 +66,10 @@ func TestUpdateProduct(t *testing.T) {
 }
 
 func TestUpdateProduct_NotFound(t *testing.T) {
-	repo := product_repo.NewMock(nil, db.ErrNotFound)
+	repo := produkt_repo.NewMock(nil, db.ErrNotFound)
 	cmd := Command{ProductRepo: repo}
 
-	err := cmd.UpdateProduct(context.Background(), 999, "Fanta", product.GetraenkKategorie, steuer.RegelSteuersatz)
+	err := cmd.UpdateProduct(context.Background(), 999, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
 	if err != ErrProduktNotFound {
 		t.Fatalf("expected ErrProduktNotFound, got %v", err)
 	}

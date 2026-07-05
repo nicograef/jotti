@@ -1,6 +1,6 @@
 //go:build integration
 
-package product_repo
+package produkt_repo
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
@@ -40,30 +40,30 @@ func setup(t *testing.T) (Repository, func(t *testing.T)) {
 	}
 }
 
-func newProduct(name string, kategorie product.Kategorie) product.Produkt {
+func newProduct(name string, kategorie produkt.Kategorie) produkt.Produkt {
 	now := time.Now().UTC()
 	steuersatz := steuer.RegelSteuersatz
-	if kategorie == product.EssenKategorie {
+	if kategorie == produkt.EssenKategorie {
 		steuersatz = steuer.ErmaessigtSteuersatz
 	}
-	if kategorie == product.SonstigesKategorie {
+	if kategorie == produkt.SonstigesKategorie {
 		steuersatz = steuer.BefreitSteuersatz
 	}
 
-	return product.Produkt{
+	return produkt.Produkt{
 		Name:       name,
 		Kategorie:  kategorie,
 		Steuersatz: steuersatz,
-		Status:     product.ActiveStatus,
-		Varianten:  []product.Variante{},
+		Status:     produkt.ActiveStatus,
+		Varianten:  []produkt.Variante{},
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}
 }
 
-func newVariant(name string, preisCents int, status product.Status) product.Variante {
+func newVariant(name string, preisCents int, status produkt.Status) produkt.Variante {
 	now := time.Now().UTC()
-	return product.Variante{
+	return produkt.Variante{
 		Name:       name,
 		PreisCents: preisCents,
 		Status:     status,
@@ -77,8 +77,8 @@ func TestGetAllProducts(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	_, _ = repo.CreateProduct(ctx, newProduct("Product 1", product.EssenKategorie))
-	_, _ = repo.CreateProduct(ctx, newProduct("Product 2", product.GetraenkKategorie))
+	_, _ = repo.CreateProduct(ctx, newProduct("Product 1", produkt.EssenKategorie))
+	_, _ = repo.CreateProduct(ctx, newProduct("Product 2", produkt.GetraenkKategorie))
 
 	products, err := repo.GetAllProducts(ctx)
 	if err != nil {
@@ -94,9 +94,9 @@ func TestGetAllProducts_WithVariants(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, _ := repo.CreateProduct(ctx, newProduct("Pizza", product.EssenKategorie))
-	_, _ = repo.CreateVariant(ctx, productID, newVariant("Small", 899, product.ActiveStatus))
-	_, _ = repo.CreateVariant(ctx, productID, newVariant("Large", 1299, product.ActiveStatus))
+	productID, _ := repo.CreateProduct(ctx, newProduct("Pizza", produkt.EssenKategorie))
+	_, _ = repo.CreateVariant(ctx, productID, newVariant("Small", 899, produkt.ActiveStatus))
+	_, _ = repo.CreateVariant(ctx, productID, newVariant("Large", 1299, produkt.ActiveStatus))
 
 	products, err := repo.GetAllProducts(ctx)
 	if err != nil {
@@ -117,15 +117,15 @@ func TestGetActiveProducts(t *testing.T) {
 	ctx := context.Background()
 
 	// Product with active variant
-	product1ID, _ := repo.CreateProduct(ctx, newProduct("Product 1", product.EssenKategorie))
-	_, _ = repo.CreateVariant(ctx, product1ID, newVariant("Regular", 999, product.ActiveStatus))
+	product1ID, _ := repo.CreateProduct(ctx, newProduct("Product 1", produkt.EssenKategorie))
+	_, _ = repo.CreateVariant(ctx, product1ID, newVariant("Regular", 999, produkt.ActiveStatus))
 
 	// Product with only inactive variant
-	product2ID, _ := repo.CreateProduct(ctx, newProduct("Product 2", product.EssenKategorie))
-	_, _ = repo.CreateVariant(ctx, product2ID, newVariant("Regular", 999, product.InactiveStatus))
+	product2ID, _ := repo.CreateProduct(ctx, newProduct("Product 2", produkt.EssenKategorie))
+	_, _ = repo.CreateVariant(ctx, product2ID, newVariant("Regular", 999, produkt.InactiveStatus))
 
 	// Product with no variants
-	_, _ = repo.CreateProduct(ctx, newProduct("Product 3", product.EssenKategorie))
+	_, _ = repo.CreateProduct(ctx, newProduct("Product 3", produkt.EssenKategorie))
 
 	products, err := repo.GetActiveProducts(ctx)
 	if err != nil {
@@ -144,9 +144,9 @@ func TestGetProduct(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, _ := repo.CreateProduct(ctx, newProduct("Burger", product.EssenKategorie))
-	_, _ = repo.CreateVariant(ctx, productID, newVariant("Single", 599, product.ActiveStatus))
-	_, _ = repo.CreateVariant(ctx, productID, newVariant("Double", 899, product.ActiveStatus))
+	productID, _ := repo.CreateProduct(ctx, newProduct("Burger", produkt.EssenKategorie))
+	_, _ = repo.CreateVariant(ctx, productID, newVariant("Single", 599, produkt.ActiveStatus))
+	_, _ = repo.CreateVariant(ctx, productID, newVariant("Double", 899, produkt.ActiveStatus))
 
 	p, err := repo.GetProduct(ctx, productID)
 	if err != nil {
@@ -177,7 +177,7 @@ func TestCreateProduct(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, err := repo.CreateProduct(ctx, newProduct("French Fries", product.EssenKategorie))
+	productID, err := repo.CreateProduct(ctx, newProduct("French Fries", produkt.EssenKategorie))
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -191,12 +191,12 @@ func TestUpdateProduct(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	p := newProduct("Original Product", product.EssenKategorie)
+	p := newProduct("Original Product", produkt.EssenKategorie)
 	productID, _ := repo.CreateProduct(ctx, p)
 
 	p.ID = productID
 	p.Name = "Updated Name"
-	p.Kategorie = product.GetraenkKategorie
+	p.Kategorie = produkt.GetraenkKategorie
 	err := repo.UpdateProduct(ctx, p)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -209,7 +209,7 @@ func TestUpdateProduct(t *testing.T) {
 	if updated.Name != "Updated Name" {
 		t.Fatalf("Expected product name 'Updated Name', got %s", updated.Name)
 	}
-	if updated.Kategorie != product.GetraenkKategorie {
+	if updated.Kategorie != produkt.GetraenkKategorie {
 		t.Fatalf("Expected product category 'getraenk', got %s", updated.Kategorie)
 	}
 }
@@ -219,7 +219,7 @@ func TestUpdateProduct_NotFound(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	err := repo.UpdateProduct(ctx, product.Produkt{ID: 999999, Name: "Updated Name", Kategorie: product.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: product.ActiveStatus, UpdatedAt: time.Now().UTC()})
+	err := repo.UpdateProduct(ctx, produkt.Produkt{ID: 999999, Name: "Updated Name", Kategorie: produkt.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produkt.ActiveStatus, UpdatedAt: time.Now().UTC()})
 
 	if err != dbpkg.ErrNotFound {
 		t.Fatalf("Expected ErrNotFound, got %v", err)
@@ -233,9 +233,9 @@ func TestCreateVariant(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, _ := repo.CreateProduct(ctx, newProduct("Cola", product.GetraenkKategorie))
+	productID, _ := repo.CreateProduct(ctx, newProduct("Cola", produkt.GetraenkKategorie))
 
-	variantID, err := repo.CreateVariant(ctx, productID, newVariant("0.5L", 299, product.ActiveStatus))
+	variantID, err := repo.CreateVariant(ctx, productID, newVariant("0.5L", 299, produkt.ActiveStatus))
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -249,8 +249,8 @@ func TestGetVariant(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, _ := repo.CreateProduct(ctx, newProduct("Cola", product.GetraenkKategorie))
-	variantID, _ := repo.CreateVariant(ctx, productID, newVariant("0.5L", 299, product.ActiveStatus))
+	productID, _ := repo.CreateProduct(ctx, newProduct("Cola", produkt.GetraenkKategorie))
+	variantID, _ := repo.CreateVariant(ctx, productID, newVariant("0.5L", 299, produkt.ActiveStatus))
 
 	v, err := repo.GetVariant(ctx, variantID)
 	if err != nil {
@@ -262,7 +262,7 @@ func TestGetVariant(t *testing.T) {
 	if v.PreisCents != 299 {
 		t.Fatalf("Expected price 299, got %d", v.PreisCents)
 	}
-	if v.Status != product.ActiveStatus {
+	if v.Status != produkt.ActiveStatus {
 		t.Fatalf("Expected status 'active', got %s", v.Status)
 	}
 }
@@ -284,14 +284,14 @@ func TestUpdateVariant(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, _ := repo.CreateProduct(ctx, newProduct("Cola", product.GetraenkKategorie))
-	variantID, _ := repo.CreateVariant(ctx, productID, newVariant("0.5L", 299, product.ActiveStatus))
+	productID, _ := repo.CreateProduct(ctx, newProduct("Cola", produkt.GetraenkKategorie))
+	variantID, _ := repo.CreateVariant(ctx, productID, newVariant("0.5L", 299, produkt.ActiveStatus))
 
-	v := product.Variante{
+	v := produkt.Variante{
 		ID:         variantID,
 		Name:       "1.0L",
 		PreisCents: 499,
-		Status:     product.InactiveStatus,
+		Status:     produkt.InactiveStatus,
 	}
 	err := repo.UpdateVariant(ctx, v)
 	if err != nil {
@@ -305,7 +305,7 @@ func TestUpdateVariant(t *testing.T) {
 	if updated.PreisCents != 499 {
 		t.Fatalf("Expected price 499, got %d", updated.PreisCents)
 	}
-	if updated.Status != product.InactiveStatus {
+	if updated.Status != produkt.InactiveStatus {
 		t.Fatalf("Expected status 'inactive', got %s", updated.Status)
 	}
 }
@@ -315,7 +315,7 @@ func TestUpdateVariant_NotFound(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	err := repo.UpdateVariant(ctx, product.Variante{ID: 999999, Name: "Test", PreisCents: 100, Status: product.ActiveStatus})
+	err := repo.UpdateVariant(ctx, produkt.Variante{ID: 999999, Name: "Test", PreisCents: 100, Status: produkt.ActiveStatus})
 
 	if err != dbpkg.ErrNotFound {
 		t.Fatalf("Expected ErrNotFound, got %v", err)
@@ -327,9 +327,9 @@ func TestDeletedVariantsNotReturned(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, _ := repo.CreateProduct(ctx, newProduct("Pizza", product.EssenKategorie))
-	_, _ = repo.CreateVariant(ctx, productID, newVariant("Small", 899, product.ActiveStatus))
-	deletedVariantID, _ := repo.CreateVariant(ctx, productID, newVariant("Large", 1299, product.ActiveStatus))
+	productID, _ := repo.CreateProduct(ctx, newProduct("Pizza", produkt.EssenKategorie))
+	_, _ = repo.CreateVariant(ctx, productID, newVariant("Small", 899, produkt.ActiveStatus))
+	deletedVariantID, _ := repo.CreateVariant(ctx, productID, newVariant("Large", 1299, produkt.ActiveStatus))
 
 	// Simulate soft delete by updating status to 'deleted'
 	_, _ = repo.db.ExecContext(ctx, "UPDATE produkt_varianten SET status = 'deleted' WHERE id = $1", deletedVariantID)
@@ -351,19 +351,19 @@ func TestVariantOrderStableAfterUpdate(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, _ := repo.CreateProduct(ctx, newProduct("Pizza", product.EssenKategorie))
+	productID, _ := repo.CreateProduct(ctx, newProduct("Pizza", produkt.EssenKategorie))
 
-	firstID, _ := repo.CreateVariant(ctx, productID, newVariant("Klein", 899, product.ActiveStatus))
-	middleID, _ := repo.CreateVariant(ctx, productID, newVariant("Mittel", 1099, product.ActiveStatus))
-	lastID, _ := repo.CreateVariant(ctx, productID, newVariant("Groß", 1299, product.ActiveStatus))
+	firstID, _ := repo.CreateVariant(ctx, productID, newVariant("Klein", 899, produkt.ActiveStatus))
+	middleID, _ := repo.CreateVariant(ctx, productID, newVariant("Mittel", 1099, produkt.ActiveStatus))
+	lastID, _ := repo.CreateVariant(ctx, productID, newVariant("Groß", 1299, produkt.ActiveStatus))
 
 	// Updating the middle variant must not change its position in the aggregated
 	// variant list — without ORDER BY in the json_agg, Postgres may reorder rows.
-	err := repo.UpdateVariant(ctx, product.Variante{
+	err := repo.UpdateVariant(ctx, produkt.Variante{
 		ID:         middleID,
 		Name:       "Mittel neu",
 		PreisCents: 1150,
-		Status:     product.ActiveStatus,
+		Status:     produkt.ActiveStatus,
 	})
 	if err != nil {
 		t.Fatalf("Expected no error updating variant, got %v", err)
@@ -390,7 +390,7 @@ func TestVariantOrderStableAfterUpdate(t *testing.T) {
 	assertVariantOrder(t, "GetActiveProducts", active[0].Varianten, wantOrder)
 }
 
-func assertVariantOrder(t *testing.T, query string, varianten []product.Variante, wantIDs []int) {
+func assertVariantOrder(t *testing.T, query string, varianten []produkt.Variante, wantIDs []int) {
 	t.Helper()
 	if len(varianten) != len(wantIDs) {
 		t.Fatalf("%s: expected %d variants, got %d", query, len(wantIDs), len(varianten))

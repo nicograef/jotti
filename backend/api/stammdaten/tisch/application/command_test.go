@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/product"
-	"github.com/nicograef/jotti/backend/domain/table"
-	"github.com/nicograef/jotti/backend/repository/table_repo"
+	"github.com/nicograef/jotti/backend/domain/produkt"
+	"github.com/nicograef/jotti/backend/domain/tisch"
+	"github.com/nicograef/jotti/backend/repository/tisch_repo"
 )
 
-func newTestCommand(tables []table.Tisch, _ []product.Produkt) Command {
+func newTestCommand(tables []tisch.Tisch, _ []produkt.Produkt) Command {
 	return Command{
-		TableRepo: table_repo.NewMock(tables, nil),
+		TableRepo: tisch_repo.NewMock(tables, nil),
 	}
 }
 
@@ -41,7 +41,7 @@ func TestTischErstellen(t *testing.T) {
 }
 
 func TestTischErstellen_Error(t *testing.T) {
-	repo := table_repo.NewMock([]table.Tisch{}, db.ErrAlreadyExists)
+	repo := tisch_repo.NewMock([]tisch.Tisch{}, db.ErrAlreadyExists)
 	command := Command{TableRepo: repo}
 
 	_, err := command.TischErstellen(context.Background(), "Tisch 1")
@@ -51,7 +51,7 @@ func TestTischErstellen_Error(t *testing.T) {
 }
 
 func TestTischAktualisieren(t *testing.T) {
-	repo := table_repo.NewMock([]table.Tisch{{ID: 1, Name: "Old Name", Status: table.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Old Name", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	command := Command{TableRepo: repo}
 
 	err := command.TischAktualisieren(context.Background(), 1, "New Name")
@@ -69,7 +69,7 @@ func TestTischAktualisieren(t *testing.T) {
 }
 
 func TestTischAktualisieren_NotFound(t *testing.T) {
-	repo := table_repo.NewMock([]table.Tisch{}, db.ErrNotFound)
+	repo := tisch_repo.NewMock([]tisch.Tisch{}, db.ErrNotFound)
 	command := Command{TableRepo: repo}
 
 	err := command.TischAktualisieren(context.Background(), 999, "New Name")
@@ -79,7 +79,7 @@ func TestTischAktualisieren_NotFound(t *testing.T) {
 }
 
 func TestTischAktivieren(t *testing.T) {
-	repo := table_repo.NewMock([]table.Tisch{{ID: 1, Name: "Tisch 1", Status: table.InactiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.InactiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	command := Command{TableRepo: repo}
 
 	err := command.TischAktivieren(context.Background(), 1)
@@ -91,13 +91,13 @@ func TestTischAktivieren(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
-	if tbl.Status != table.ActiveStatus {
+	if tbl.Status != tisch.ActiveStatus {
 		t.Errorf("expected tisch status to be Active, got %v", tbl.Status)
 	}
 }
 
 func TestTischAktivieren_NotFound(t *testing.T) {
-	repo := table_repo.NewMock([]table.Tisch{}, db.ErrNotFound)
+	repo := tisch_repo.NewMock([]tisch.Tisch{}, db.ErrNotFound)
 	command := Command{TableRepo: repo}
 
 	err := command.TischAktivieren(context.Background(), 999)
@@ -107,7 +107,7 @@ func TestTischAktivieren_NotFound(t *testing.T) {
 }
 
 func TestTischDeaktivieren(t *testing.T) {
-	repo := table_repo.NewMock([]table.Tisch{{ID: 1, Name: "Tisch 1", Status: table.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	command := Command{TableRepo: repo}
 
 	err := command.TischDeaktivieren(context.Background(), 1)
@@ -119,13 +119,13 @@ func TestTischDeaktivieren(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
-	if tbl.Status != table.InactiveStatus {
+	if tbl.Status != tisch.InactiveStatus {
 		t.Errorf("expected tisch status to be Inactive, got %v", tbl.Status)
 	}
 }
 
 func TestTischDeaktivieren_NotFound(t *testing.T) {
-	repo := table_repo.NewMock([]table.Tisch{}, db.ErrNotFound)
+	repo := tisch_repo.NewMock([]tisch.Tisch{}, db.ErrNotFound)
 	command := Command{TableRepo: repo}
 
 	err := command.TischDeaktivieren(context.Background(), 999)

@@ -1,57 +1,57 @@
-package product_repo
+package produkt_repo
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/product"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-func (r Repository) GetProduct(ctx context.Context, id int) (product.Produkt, error) {
+func (r Repository) GetProduct(ctx context.Context, id int) (produkt.Produkt, error) {
 	row, err := r.q.GetProdukt(ctx, id)
 	if err != nil {
-		return product.Produkt{}, db.Error(err)
+		return produkt.Produkt{}, db.Error(err)
 	}
 
 	varianten, err := parseVariantsJSON(row.Varianten)
 	if err != nil {
-		return product.Produkt{}, fmt.Errorf("unmarshal variants: %w", err)
+		return produkt.Produkt{}, fmt.Errorf("unmarshal variants: %w", err)
 	}
 
-	return product.Produkt{
+	return produkt.Produkt{
 		ID:         row.ID,
 		Name:       row.Name,
-		Kategorie:  product.Kategorie(row.Kategorie),
+		Kategorie:  produkt.Kategorie(row.Kategorie),
 		Steuersatz: steuer.Steuersatz(row.Steuersatz),
-		Status:     product.Status(row.Status),
+		Status:     produkt.Status(row.Status),
 		Varianten:  varianten,
 		CreatedAt:  row.CreatedAt,
 		UpdatedAt:  row.UpdatedAt,
 	}, nil
 }
 
-func (r Repository) GetAllProducts(ctx context.Context) ([]product.Produkt, error) {
+func (r Repository) GetAllProducts(ctx context.Context) ([]produkt.Produkt, error) {
 	rows, err := r.q.GetAlleProdukte(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	products := make([]product.Produkt, 0, len(rows))
+	products := make([]produkt.Produkt, 0, len(rows))
 	for i := range rows {
 		varianten, err := parseVariantsJSON(rows[i].Varianten)
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal variants: %w", err)
 		}
 
-		products = append(products, product.Produkt{
+		products = append(products, produkt.Produkt{
 			ID:         rows[i].ID,
 			Name:       rows[i].Name,
-			Kategorie:  product.Kategorie(rows[i].Kategorie),
+			Kategorie:  produkt.Kategorie(rows[i].Kategorie),
 			Steuersatz: steuer.Steuersatz(rows[i].Steuersatz),
-			Status:     product.Status(rows[i].Status),
+			Status:     produkt.Status(rows[i].Status),
 			Varianten:  varianten,
 			CreatedAt:  rows[i].CreatedAt,
 			UpdatedAt:  rows[i].UpdatedAt,
@@ -61,25 +61,25 @@ func (r Repository) GetAllProducts(ctx context.Context) ([]product.Produkt, erro
 	return products, nil
 }
 
-func (r Repository) GetActiveProducts(ctx context.Context) ([]product.Produkt, error) {
+func (r Repository) GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error) {
 	rows, err := r.q.GetAktiveProdukte(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	products := make([]product.Produkt, 0, len(rows))
+	products := make([]produkt.Produkt, 0, len(rows))
 	for i := range rows {
 		varianten, err := parseVariantsJSON(rows[i].Varianten)
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal variants: %w", err)
 		}
 
-		products = append(products, product.Produkt{
+		products = append(products, produkt.Produkt{
 			ID:         rows[i].ID,
 			Name:       rows[i].Name,
-			Kategorie:  product.Kategorie(rows[i].Kategorie),
+			Kategorie:  produkt.Kategorie(rows[i].Kategorie),
 			Steuersatz: steuer.Steuersatz(rows[i].Steuersatz),
-			Status:     product.Status(rows[i].Status),
+			Status:     produkt.Status(rows[i].Status),
 			Varianten:  varianten,
 			CreatedAt:  rows[i].CreatedAt,
 			UpdatedAt:  rows[i].UpdatedAt,
@@ -89,7 +89,7 @@ func (r Repository) GetActiveProducts(ctx context.Context) ([]product.Produkt, e
 	return products, nil
 }
 
-func (r Repository) CreateProduct(ctx context.Context, p product.Produkt) (int, error) {
+func (r Repository) CreateProduct(ctx context.Context, p produkt.Produkt) (int, error) {
 	id, err := r.q.CreateProdukt(ctx, dbgen.CreateProduktParams{
 		Name:       p.Name,
 		Kategorie:  dbgen.Produktkategorie(p.Kategorie),
@@ -105,7 +105,7 @@ func (r Repository) CreateProduct(ctx context.Context, p product.Produkt) (int, 
 	return id, nil
 }
 
-func (r Repository) UpdateProduct(ctx context.Context, p product.Produkt) error {
+func (r Repository) UpdateProduct(ctx context.Context, p produkt.Produkt) error {
 	result, err := r.q.UpdateProdukt(ctx, dbgen.UpdateProduktParams{
 		Name:       p.Name,
 		Kategorie:  dbgen.Produktkategorie(p.Kategorie),

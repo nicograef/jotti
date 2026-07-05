@@ -1,4 +1,4 @@
-package table
+package tisch
 
 import (
 	"errors"

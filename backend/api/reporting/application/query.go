@@ -8,7 +8,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/steuer"
-	"github.com/nicograef/jotti/backend/domain/table"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/rs/zerolog"
 )
 
@@ -31,7 +31,7 @@ type tischSessionRepo interface {
 }
 
 type tischRepo interface {
-	GetAllTables(ctx context.Context) ([]table.Tisch, error)
+	GetAllTables(ctx context.Context) ([]tisch.Tisch, error)
 }
 
 type Query struct {
