@@ -155,7 +155,7 @@ func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventID int) (abschn
 		return nil, escpos.KeinTSEVermerk, false, err
 	}
 
-	ergebnis := tse.BestimmeSignaturstatus(stand, aktiveStoerung)
+	ergebnis := tse.DetermineSignaturstatus(stand, aktiveStoerung)
 	switch ergebnis.Status {
 	case tse.SignaturstatusVorhanden:
 		return tseAbschnittAusSignatur(ergebnis.Signatur), escpos.KeinTSEVermerk, false, nil

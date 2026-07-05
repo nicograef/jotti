@@ -27,12 +27,12 @@ FROM druckauftraege
 WHERE status = 'fehlgeschlagen'
 ORDER BY id ASC;
 
--- name: DruckauftragErneutVersuchen :exec
+-- name: RetryDruckauftrag :exec
 UPDATE druckauftraege
 SET status = 'offen', versuche = 0, letzter_fehler = NULL
 WHERE id = $1 AND status = 'fehlgeschlagen';
 
--- name: DruckauftragVerwerfen :exec
+-- name: DiscardDruckauftrag :exec
 UPDATE druckauftraege
 SET status = 'verworfen'
 WHERE id = $1 AND status = 'fehlgeschlagen';

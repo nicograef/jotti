@@ -67,15 +67,15 @@ func TestEnqueueAndGetOffeneDruckauftraege(t *testing.T) {
 	}
 }
 
-func TestMeldeDruckergebnis_QuittiertErfolge(t *testing.T) {
+func TestReportDruckergebnis_QuittiertErfolge(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	id := enqueueOne(t, repo, "192.168.1.51")
 
-	err := repo.MeldeDruckergebnis(context.Background(), []int{id}, nil)
+	err := repo.ReportDruckergebnis(context.Background(), []int{id}, nil)
 	if err != nil {
-		t.Fatalf("Expected no MeldeDruckergebnis error, got %v", err)
+		t.Fatalf("Expected no ReportDruckergebnis error, got %v", err)
 	}
 
 	offene, err := repo.GetOffeneDruckauftraege(context.Background())
@@ -87,15 +87,15 @@ func TestMeldeDruckergebnis_QuittiertErfolge(t *testing.T) {
 	}
 }
 
-func TestMeldeDruckergebnis_QuittierenIstIdempotent(t *testing.T) {
+func TestReportDruckergebnis_QuittierenIstIdempotent(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	id := enqueueOne(t, repo, "192.168.1.51")
 
 	for i := 0; i < 2; i++ {
-		if err := repo.MeldeDruckergebnis(context.Background(), []int{id}, nil); err != nil {
-			t.Fatalf("Expected no MeldeDruckergebnis error on call %d, got %v", i+1, err)
+		if err := repo.ReportDruckergebnis(context.Background(), []int{id}, nil); err != nil {
+			t.Fatalf("Expected no ReportDruckergebnis error on call %d, got %v", i+1, err)
 		}
 	}
 
@@ -108,7 +108,7 @@ func TestMeldeDruckergebnis_QuittierenIstIdempotent(t *testing.T) {
 	}
 }
 
-func TestMeldeDruckergebnis_FehlversuchZaehlung(t *testing.T) {
+func TestReportDruckergebnis_FehlversuchZaehlung(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -117,7 +117,7 @@ func TestMeldeDruckergebnis_FehlversuchZaehlung(t *testing.T) {
 	// Erste beiden Fehlversuche: Auftrag bleibt offen, versuche/letzter_fehler werden aktualisiert.
 	for versuch := 1; versuch <= 2; versuch++ {
 		fehler := "drucker nicht erreichbar #" + strconv.Itoa(versuch)
-		if err := repo.MeldeDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: fehler}}); err != nil {
+		if err := repo.ReportDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: fehler}}); err != nil {
 			t.Fatalf("Expected no error on fehlversuch %d, got %v", versuch, err)
 		}
 
@@ -142,7 +142,7 @@ func TestMeldeDruckergebnis_FehlversuchZaehlung(t *testing.T) {
 	}
 
 	// Dritter Fehlversuch: Auftrag wird fehlgeschlagen und verschwindet aus dem Poll.
-	if err := repo.MeldeDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: "endgueltig"}}); err != nil {
+	if err := repo.ReportDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: "endgueltig"}}); err != nil {
 		t.Fatalf("Expected no error on dritter fehlversuch, got %v", err)
 	}
 
@@ -218,14 +218,14 @@ func TestGetFehlgeschlageneDruckauftraege_NurFehlgeschlagene(t *testing.T) {
 	}
 }
 
-func TestDruckauftragErneutVersuchen_SetztOffenUndVersucheNull(t *testing.T) {
+func TestRetryDruckauftrag_SetztOffenUndVersucheNull(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	id := enqueueOne(t, repo, "192.168.1.51")
 	makeFehlgeschlagen(t, repo, id, "endgueltig")
 
-	if err := repo.DruckauftragErneutVersuchen(context.Background(), id); err != nil {
+	if err := repo.RetryDruckauftrag(context.Background(), id); err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
@@ -249,14 +249,14 @@ func TestDruckauftragErneutVersuchen_SetztOffenUndVersucheNull(t *testing.T) {
 	}
 }
 
-func TestDruckauftragVerwerfen_SetztVerworfenUndBleibtErhalten(t *testing.T) {
+func TestDiscardDruckauftrag_SetztVerworfenUndBleibtErhalten(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	id := enqueueOne(t, repo, "192.168.1.51")
 	makeFehlgeschlagen(t, repo, id, "endgueltig")
 
-	if err := repo.DruckauftragVerwerfen(context.Background(), id); err != nil {
+	if err := repo.DiscardDruckauftrag(context.Background(), id); err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
@@ -289,10 +289,10 @@ func TestDruckauftragTransitionen_NurAusFehlgeschlagen(t *testing.T) {
 	// Auftrag bleibt offen (nicht fehlgeschlagen): beide Übergänge sind No-Ops.
 	id := enqueueOne(t, repo, "192.168.1.51")
 
-	if err := repo.DruckauftragErneutVersuchen(context.Background(), id); err != nil {
+	if err := repo.RetryDruckauftrag(context.Background(), id); err != nil {
 		t.Fatalf("Expected no error on erneut versuchen, got %v", err)
 	}
-	if err := repo.DruckauftragVerwerfen(context.Background(), id); err != nil {
+	if err := repo.DiscardDruckauftrag(context.Background(), id); err != nil {
 		t.Fatalf("Expected no error on verwerfen, got %v", err)
 	}
 
@@ -310,7 +310,7 @@ func TestDruckauftragTransitionen_NurAusFehlgeschlagen(t *testing.T) {
 func makeFehlgeschlagen(t *testing.T, repo Repository, id int, letzterFehler string) {
 	t.Helper()
 	for i := 0; i < MaxDruckversuche; i++ {
-		if err := repo.MeldeDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: letzterFehler}}); err != nil {
+		if err := repo.ReportDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: letzterFehler}}); err != nil {
 			t.Fatalf("Failed to drive auftrag %d into fehlgeschlagen: %v", id, err)
 		}
 	}

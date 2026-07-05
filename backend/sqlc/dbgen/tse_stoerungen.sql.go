@@ -10,6 +10,20 @@ import (
 	"time"
 )
 
+const closeTSEStoerung = `-- name: CloseTSEStoerung :exec
+UPDATE tse_stoerungen
+SET ende = NOW()
+WHERE ende IS NULL AND grund_art = $1
+`
+
+// CloseTSEStoerung beendet den aktiven Stoerungszeitraum, falls er die
+// Grund-Art des Schreibers traegt (jeder Schreiber schliesst nur Zeitraeume
+// seiner Grund-Art); sonst ein No-Op.
+func (q *Queries) CloseTSEStoerung(ctx context.Context, grundArt string) error {
+	_, err := q.db.ExecContext(ctx, closeTSEStoerung, grundArt)
+	return err
+}
+
 const getAktiveTSEStoerung = `-- name: GetAktiveTSEStoerung :one
 SELECT beginn, grund_art, fehlertext
 FROM tse_stoerungen
@@ -69,35 +83,21 @@ func (q *Queries) GetAlleTSEStoerungen(ctx context.Context) ([]TseStoerungen, er
 	return items, nil
 }
 
-const oeffneTSEStoerung = `-- name: OeffneTSEStoerung :exec
+const openTSEStoerung = `-- name: OpenTSEStoerung :exec
 INSERT INTO tse_stoerungen (beginn, grund_art, fehlertext)
 VALUES (NOW(), $1, $2)
 ON CONFLICT DO NOTHING
 `
 
-type OeffneTSEStoerungParams struct {
+type OpenTSEStoerungParams struct {
 	GrundArt   string
 	Fehlertext string
 }
 
-// OeffneTSEStoerung oeffnet einen Stoerungszeitraum im Stoerungsprotokoll.
+// OpenTSEStoerung oeffnet einen Stoerungszeitraum im Stoerungsprotokoll.
 // Der partielle Unique-Index (hoechstens eine Zeile mit ende IS NULL) macht
 // das Oeffnen idempotent: Bei aktivem Zeitraum ist es ein No-Op.
-func (q *Queries) OeffneTSEStoerung(ctx context.Context, arg OeffneTSEStoerungParams) error {
-	_, err := q.db.ExecContext(ctx, oeffneTSEStoerung, arg.GrundArt, arg.Fehlertext)
-	return err
-}
-
-const schliesseTSEStoerung = `-- name: SchliesseTSEStoerung :exec
-UPDATE tse_stoerungen
-SET ende = NOW()
-WHERE ende IS NULL AND grund_art = $1
-`
-
-// SchliesseTSEStoerung beendet den aktiven Stoerungszeitraum, falls er die
-// Grund-Art des Schreibers traegt (jeder Schreiber schliesst nur Zeitraeume
-// seiner Grund-Art); sonst ein No-Op.
-func (q *Queries) SchliesseTSEStoerung(ctx context.Context, grundArt string) error {
-	_, err := q.db.ExecContext(ctx, schliesseTSEStoerung, grundArt)
+func (q *Queries) OpenTSEStoerung(ctx context.Context, arg OpenTSEStoerungParams) error {
+	_, err := q.db.ExecContext(ctx, openTSEStoerung, arg.GrundArt, arg.Fehlertext)
 	return err
 }

@@ -76,7 +76,7 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 		}
 		vorherigesEnde = ende
 
-		bauer := &sitzungsBauer{
+		bauer := &sitzungsBuilder{
 			sitzung:       *sitzung,
 			varianten:     variantenIdx,
 			benutzer:      benutzerIdx,
@@ -85,7 +85,7 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 			tischEvents:   map[int][]e.Event{},
 			verkaufEvents: map[string][]e.Event{},
 		}
-		events, err := bauer.baueEvents(start, ende)
+		events, err := bauer.buildEvents(start, ende)
 		if err != nil {
 			return seedDaten{}, fmt.Errorf("sitzung %d: %w", sitzung.ZNr, err)
 		}
@@ -123,10 +123,10 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 	return daten, nil
 }
 
-// sitzungsBauer baut die Event-Folge einer Kassensitzung auf. Er hält dafür den laufenden
+// sitzungsBuilder baut die Event-Folge einer Kassensitzung auf. Er hält dafür den laufenden
 // Kassenbestand, die Tagessummen und die bisherigen Events je Tisch bzw. Direktverkauf,
 // um Folge-Aktionen (Ausgabe, Zahlung, Storno) gegen den tatsächlichen Zustand aufzulösen.
-type sitzungsBauer struct {
+type sitzungsBuilder struct {
 	sitzung   kassensitzungDrehbuch
 	varianten map[int]kasse.Position
 	benutzer  map[int]string
@@ -141,7 +141,7 @@ type sitzungsBauer struct {
 	kassensturzDone bool
 }
 
-func (b *sitzungsBauer) baueEvents(start, ende time.Time) ([]e.Event, error) {
+func (b *sitzungsBuilder) buildEvents(start, ende time.Time) ([]e.Event, error) {
 	name, err := b.benutzerName(b.sitzung.EroeffnetVon)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ func (b *sitzungsBauer) baueEvents(start, ende time.Time) ([]e.Event, error) {
 	b.bestandCents += b.sitzung.AnfangsbestandCents
 
 	for i, a := range b.sitzung.Aktionen {
-		if err := b.verarbeite(a); err != nil {
+		if err := b.process(a); err != nil {
 			return nil, fmt.Errorf("aktion %d (%T): %w", i, a, err)
 		}
 	}
@@ -170,7 +170,7 @@ func (b *sitzungsBauer) baueEvents(start, ende time.Time) ([]e.Event, error) {
 	return b.events, nil
 }
 
-func (b *sitzungsBauer) verarbeite(a aktion) error {
+func (b *sitzungsBuilder) process(a aktion) error {
 	switch a := a.(type) {
 	case bestellen:
 		return b.bestellen(a)
@@ -195,7 +195,7 @@ func (b *sitzungsBauer) verarbeite(a aktion) error {
 	}
 }
 
-func (b *sitzungsBauer) bestellen(a bestellen) error {
+func (b *sitzungsBuilder) bestellen(a bestellen) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {
 		return err
@@ -212,7 +212,7 @@ func (b *sitzungsBauer) bestellen(a bestellen) error {
 	return nil
 }
 
-func (b *sitzungsBauer) ausgeben(a ausgeben) error {
+func (b *sitzungsBuilder) ausgeben(a ausgeben) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {
 		return err
@@ -221,7 +221,7 @@ func (b *sitzungsBauer) ausgeben(a ausgeben) error {
 	if err != nil {
 		return err
 	}
-	auswahl, err := waehlePositionen(state.AusstehendePositionen, a.Posten)
+	auswahl, err := selectPositionen(state.AusstehendePositionen, a.Posten)
 	if err != nil {
 		return fmt.Errorf("ausstehende Positionen: %w", err)
 	}
@@ -233,7 +233,7 @@ func (b *sitzungsBauer) ausgeben(a ausgeben) error {
 	return nil
 }
 
-func (b *sitzungsBauer) kassieren(a kassieren) error {
+func (b *sitzungsBuilder) kassieren(a kassieren) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {
 		return err
@@ -242,7 +242,7 @@ func (b *sitzungsBauer) kassieren(a kassieren) error {
 	if err != nil {
 		return err
 	}
-	auswahl, err := waehlePositionen(state.UnbezahltePositionen, a.Posten)
+	auswahl, err := selectPositionen(state.UnbezahltePositionen, a.Posten)
 	if err != nil {
 		return fmt.Errorf("unbezahlte Positionen: %w", err)
 	}
@@ -262,7 +262,7 @@ func (b *sitzungsBauer) kassieren(a kassieren) error {
 // geldneutral korrigiert (bestellung-korrigiert), bezahlte Mengen je begleichender
 // Zahlung als kassenwirksame Warenrücknahme zurückgenommen (stornierung-erteilt). Nur
 // die Warenrücknahme mindert den Bargeldbestand; die Korrektur ist geldneutral.
-func (b *sitzungsBauer) stornieren(a stornieren) error {
+func (b *sitzungsBuilder) stornieren(a stornieren) error {
 	if len(a.Posten) == 0 {
 		return fmt.Errorf("stornieren ohne Posten")
 	}
@@ -277,7 +277,7 @@ func (b *sitzungsBauer) stornieren(a stornieren) error {
 	}
 	// Jüngste Positionen zuerst, damit die Varianten-Auswahl die letzte Bestellung trifft.
 	slices.Reverse(kandidaten)
-	auswahl, err := waehlePositionen(kandidaten, a.Posten)
+	auswahl, err := selectPositionen(kandidaten, a.Posten)
 	if err != nil {
 		return fmt.Errorf("nicht stornierte Positionen: %w", err)
 	}
@@ -317,7 +317,7 @@ func (b *sitzungsBauer) stornieren(a stornieren) error {
 // dem Quelltisch, Zugang auf dem Zieltisch) mit den Standard-Kommentaren — wie
 // BestellungUmbuchen im Produktivbetrieb. Eine Umbuchung ist kein Storno und fließt
 // daher nicht in die Storno-Summe ein.
-func (b *sitzungsBauer) umbuchen(a umbuchen) error {
+func (b *sitzungsBuilder) umbuchen(a umbuchen) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {
 		return err
@@ -334,7 +334,7 @@ func (b *sitzungsBauer) umbuchen(a umbuchen) error {
 	if err != nil {
 		return err
 	}
-	auswahl, err := waehlePositionen(state.UnbezahltePositionen, a.Posten)
+	auswahl, err := selectPositionen(state.UnbezahltePositionen, a.Posten)
 	if err != nil {
 		return fmt.Errorf("unbezahlte Positionen: %w", err)
 	}
@@ -350,7 +350,7 @@ func (b *sitzungsBauer) umbuchen(a umbuchen) error {
 	return nil
 }
 
-func (b *sitzungsBauer) direktverkauf(a direktverkauf) error {
+func (b *sitzungsBuilder) direktverkauf(a direktverkauf) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {
 		return err
@@ -371,7 +371,7 @@ func (b *sitzungsBauer) direktverkauf(a direktverkauf) error {
 	return nil
 }
 
-func (b *sitzungsBauer) direktverkaufStorno(a direktverkaufStorno) error {
+func (b *sitzungsBuilder) direktverkaufStorno(a direktverkaufStorno) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {
 		return err
@@ -383,7 +383,7 @@ func (b *sitzungsBauer) direktverkaufStorno(a direktverkaufStorno) error {
 	if err != nil {
 		return err
 	}
-	auswahl, err := waehlePositionen(kandidaten, a.Posten)
+	auswahl, err := selectPositionen(kandidaten, a.Posten)
 	if err != nil {
 		return fmt.Errorf("nicht stornierte Positionen: %w", err)
 	}
@@ -399,7 +399,7 @@ func (b *sitzungsBauer) direktverkaufStorno(a direktverkaufStorno) error {
 	return nil
 }
 
-func (b *sitzungsBauer) geldtransit(a geldtransit) error {
+func (b *sitzungsBuilder) geldtransit(a geldtransit) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {
 		return err
@@ -422,7 +422,7 @@ func (b *sitzungsBauer) geldtransit(a geldtransit) error {
 
 // kassensturz schreibt den Soll/Ist-Vergleich und bei Differenz ≠ 0 die Differenz-Buchung —
 // das Zwei-Event-Muster aus KasseAbschliessen im Produktivbetrieb.
-func (b *sitzungsBauer) kassensturz(a kassensturz) error {
+func (b *sitzungsBuilder) kassensturz(a kassensturz) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {
 		return err
@@ -452,7 +452,7 @@ func (b *sitzungsBauer) kassensturz(a kassensturz) error {
 
 // schliesseTagAb prüft die Produktiv-Invarianten (Kassensturz erfolgt, alle Tische
 // ausgeglichen) und hängt den Tagesabschluss mit den berechneten Summen ans Fensterende.
-func (b *sitzungsBauer) schliesseTagAb(start, ende time.Time) error {
+func (b *sitzungsBuilder) schliesseTagAb(start, ende time.Time) error {
 	if !b.kassensturzDone {
 		return fmt.Errorf("tagesabschluss ohne vorherigen Kassensturz")
 	}
@@ -484,23 +484,23 @@ func (b *sitzungsBauer) schliesseTagAb(start, ende time.Time) error {
 // add weist dem Event die nächste Version seines Subjects zu, hängt es an die Sitzung an
 // und gibt das versionierte Event zurück. Der Zeitstempel wird später über
 // verteileZeitstempel vergeben.
-func (b *sitzungsBauer) add(evt e.Event) e.Event {
+func (b *sitzungsBuilder) add(evt e.Event) e.Event {
 	b.versionen[evt.Subject]++
 	evt.Version = b.versionen[evt.Subject]
 	b.events = append(b.events, evt)
 	return evt
 }
 
-func (b *sitzungsBauer) addTisch(tischID int, evt e.Event) {
+func (b *sitzungsBuilder) addTisch(tischID int, evt e.Event) {
 	b.tischEvents[tischID] = append(b.tischEvents[tischID], b.add(evt))
 }
 
-func (b *sitzungsBauer) addVerkauf(verkaufID string, evt e.Event) {
+func (b *sitzungsBuilder) addVerkauf(verkaufID string, evt e.Event) {
 	b.verkaufEvents[verkaufID] = append(b.verkaufEvents[verkaufID], b.add(evt))
 }
 
 // tischState spielt die bisherigen Events des Tischs in den Projektions-Zustand ein.
-func (b *sitzungsBauer) tischState(tischID int) (kasse.TischSession, error) {
+func (b *sitzungsBuilder) tischState(tischID int) (kasse.TischSession, error) {
 	state := kasse.TischSession{}
 	for _, evt := range b.tischEvents[tischID] {
 		var err error
@@ -512,11 +512,11 @@ func (b *sitzungsBauer) tischState(tischID int) (kasse.TischSession, error) {
 	return state, nil
 }
 
-func (b *sitzungsBauer) tischSubject(tischID int) string {
+func (b *sitzungsBuilder) tischSubject(tischID int) string {
 	return kasse.TischSessionSubject(b.sitzung.ZNr, tischID)
 }
 
-func (b *sitzungsBauer) benutzerName(userID int) (string, error) {
+func (b *sitzungsBuilder) benutzerName(userID int) (string, error) {
 	name, ok := b.benutzer[userID]
 	if !ok {
 		return "", fmt.Errorf("benutzer %d nicht im Szenario", userID)
@@ -524,7 +524,7 @@ func (b *sitzungsBauer) benutzerName(userID int) (string, error) {
 	return name, nil
 }
 
-func (b *sitzungsBauer) tischName(tischID int) (string, error) {
+func (b *sitzungsBuilder) tischName(tischID int) (string, error) {
 	t, ok := b.tische[tischID]
 	if !ok {
 		return "", fmt.Errorf("tisch %d nicht im Szenario", tischID)
@@ -536,7 +536,7 @@ func (b *sitzungsBauer) tischName(tischID int) (string, error) {
 // Das optionale Tagesprofil staucht die Verteilung zu Stoßzeiten; abgeschlossene Sitzungen
 // enden exakt am Fensterende (Tagesabschluss), offene lassen das Fensterende frei.
 func verteileZeitstempel(events []e.Event, start, ende time.Time, abgeschlossen bool, profil []profilPunkt) error {
-	if err := validiereProfil(profil); err != nil {
+	if err := validateProfil(profil); err != nil {
 		return err
 	}
 	n := len(events)
@@ -570,7 +570,7 @@ func warp(u float64, profil []profilPunkt) float64 {
 	return vorher.ZeitAnteil + f*(1-vorher.ZeitAnteil)
 }
 
-func validiereProfil(profil []profilPunkt) error {
+func validateProfil(profil []profilPunkt) error {
 	vorher := profilPunkt{EventAnteil: 0, ZeitAnteil: 0}
 	for _, p := range profil {
 		if p.EventAnteil <= vorher.EventAnteil || p.ZeitAnteil <= vorher.ZeitAnteil || p.EventAnteil >= 1 || p.ZeitAnteil >= 1 {
@@ -581,10 +581,10 @@ func validiereProfil(profil []profilPunkt) error {
 	return nil
 }
 
-// waehlePositionen wählt aus den verfügbaren Positionen die angeforderten Mengen je Variante
+// selectPositionen wählt aus den verfügbaren Positionen die angeforderten Mengen je Variante
 // aus (Mengen werden über mehrere Positionen derselben Variante hinweg aufgefüllt).
 // Leere posten = alle verfügbaren Positionen vollständig.
-func waehlePositionen(verfuegbar []kasse.Position, posten []bestellposten) ([]kasse.Position, error) {
+func selectPositionen(verfuegbar []kasse.Position, posten []bestellposten) ([]kasse.Position, error) {
 	if len(posten) == 0 {
 		if len(verfuegbar) == 0 {
 			return nil, fmt.Errorf("keine Positionen verfügbar")

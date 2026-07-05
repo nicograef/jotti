@@ -14,7 +14,7 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 )
 
-// Das Gate urteilt über dieselbe tse.BestimmeSignaturstatus-Funktion wie der
+// Das Gate urteilt über dieselbe tse.DetermineSignaturstatus-Funktion wie der
 // Beleg-Abruf (kein zweiter Zurechnungspfad): offen ohne Störung ist ausstehend
 // (blockt), offen bei aktivem Störungszeitraum ist Ausfall (lässt durch),
 // Endstatus ist Ausfall bzw. — bei fehlender Konfiguration — deutlich ausgewiesen.

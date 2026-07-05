@@ -54,7 +54,7 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	if bestaetigteUmgebung != tse.UmgebungTest && bestaetigteUmgebung != tse.UmgebungLive {
 		return TSESetupErgebnis{}, ErrTSESetupUmgebungAbweichung
 	}
-	if err := c.pruefeKeineOffeneKassensitzung(ctx); err != nil {
+	if err := c.ensureKeineOffeneKassensitzung(ctx); err != nil {
 		return TSESetupErgebnis{}, err
 	}
 
@@ -104,7 +104,7 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	// bei der die vorgefundene Client-_id uebernommen wird.
 	clientID := uuid.NewString()
 
-	pin, err := erzeugeAdminPIN()
+	pin, err := generateAdminPIN()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to generate admin pin")
 		return TSESetupErgebnis{}, ErrTSEEinrichtung
@@ -128,7 +128,7 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 
 	// Erst nach erfolgreichem Lebenszyklus wird die vollstaendige Konfiguration
 	// atomar gespeichert (gemeinsamer Speicher-Schritt aller Einrichtungspfade).
-	if err := c.speichereEinrichtung(ctx, log, client, credentials, erstellt.ID, clientID); err != nil {
+	if err := c.saveEinrichtung(ctx, log, client, credentials, erstellt.ID, clientID); err != nil {
 		return TSESetupErgebnis{}, err
 	}
 
@@ -186,7 +186,7 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	if tssID == "" {
 		return TSESetupErgebnis{}, ErrTSESetupTSSNichtGefunden
 	}
-	if err := c.pruefeKeineOffeneKassensitzung(ctx); err != nil {
+	if err := c.ensureKeineOffeneKassensitzung(ctx); err != nil {
 		return TSESetupErgebnis{}, err
 	}
 
@@ -212,7 +212,7 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, ErrTSESetupUmgebungAbweichung
 	}
 
-	ziel, gefunden := findeTSS(tssListe, tssID)
+	ziel, gefunden := findTSS(tssListe, tssID)
 	if !gefunden {
 		return TSESetupErgebnis{}, ErrTSESetupTSSNichtGefunden
 	}
@@ -259,11 +259,11 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	pinReset := strings.TrimSpace(puk) != ""
 	switch state {
 	case "CREATED":
-		lebenszyklusPUK, err = client.HoleAdminPUK(ctx, tssID)
+		lebenszyklusPUK, err = client.GetAdminPUK(ctx, tssID)
 		if err != nil {
 			return TSESetupErgebnis{}, einrichtungsFehler(log, err, "puk beziehen", tssID)
 		}
-		pin, err = erzeugeAdminPIN()
+		pin, err = generateAdminPIN()
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to generate admin pin")
 			return TSESetupErgebnis{}, ErrTSEEinrichtung
@@ -276,12 +276,12 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 			// Zufalls-PIN mit dem PUK setzen und damit fortfahren. Die Zugangsdaten
 			// sind durch ListTSS bereits bestaetigt, daher ist ein Fehler hier
 			// praktisch immer ein falscher PUK.
-			pin, err = erzeugeAdminPIN()
+			pin, err = generateAdminPIN()
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to generate admin pin")
 				return TSESetupErgebnis{}, ErrTSEEinrichtung
 			}
-			if err := client.SetzeAdminPIN(ctx, tssID, puk, pin); err != nil {
+			if err := client.SetAdminPIN(ctx, tssID, puk, pin); err != nil {
 				log.Warn().Err(err).Str("tss_id", tssID).Msg("Admin PIN reset via PUK failed")
 				return TSESetupErgebnis{}, ErrTSESetupPUKUnbekannt
 			}
@@ -297,7 +297,7 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, err
 	}
 
-	if err := c.speichereEinrichtung(ctx, log, client, credentials, tssID, clientID); err != nil {
+	if err := c.saveEinrichtung(ctx, log, client, credentials, tssID, clientID); err != nil {
 		return TSESetupErgebnis{}, err
 	}
 
@@ -312,38 +312,38 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	}, nil
 }
 
-// speichereEinrichtung ist der gemeinsame Speicher-Schritt aller
+// saveEinrichtung ist der gemeinsame Speicher-Schritt aller
 // Einrichtungspfade (Neuanlage, Uebernahme, F8-Uebernahme und PUK-Reset): nach
 // erfolgreichem fiskaly-Lebenszyklus wird die TSE-Konfiguration atomar
 // gespeichert und — best effort — die fiskalischen TSS-Stammdaten fuer den
 // DSFinV-K-Export nachgezogen. Schlaegt das Speichern der Konfiguration fehl, ist
 // die Einrichtung nicht abgeschlossen: die TSS existiert bei fiskaly (per
 // Uebernahme einsammelbar), tss_id/client_id werden geloggt (PUK/PIN niemals).
-func (c Command) speichereEinrichtung(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, credentials tse.SetupCredentials, tssID, clientID string) error {
+func (c Command) saveEinrichtung(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, credentials tse.SetupCredentials, tssID, clientID string) error {
 	konfiguration, err := tse.NewKonfiguration(credentials.ApiKey, credentials.ApiSecret, tssID, clientID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to build tse_konfiguration after setup")
 		return ErrTSEEinrichtung
 	}
-	// SpeichereEinrichtung speichert die Konfiguration und markiert beim Uebergang
+	// SaveEinrichtung speichert die Konfiguration und markiert beim Uebergang
 	// von nicht konfiguriert zu konfiguriert in derselben Transaktion die noch
 	// offenen, vor-konfigurationellen Auftraege endgueltig (Einrichtungs-Sweep)
 	// und schliesst den keine_konfiguration-Stoerungszeitraum.
-	if err := c.TSERepo.SpeichereEinrichtung(ctx, konfiguration); err != nil {
+	if err := c.TSERepo.SaveEinrichtung(ctx, konfiguration); err != nil {
 		log.Error().Err(err).Str("tss_id", tssID).Str("client_id", clientID).
 			Msg("Failed to save tse_konfiguration after setup; TSS exists at fiskaly, recoverable via takeover")
 		return ErrDatabase
 	}
 
-	c.zieheTSEStammdaten(ctx, log, client, tssID)
+	c.fetchTSEStammdaten(ctx, log, client, tssID)
 	return nil
 }
 
-// zieheTSEStammdaten liest die fiskalischen TSS-Stammdaten von fiskaly und
+// fetchTSEStammdaten liest die fiskalischen TSS-Stammdaten von fiskaly und
 // speichert sie fuer den DSFinV-K-Export. Best effort: jeder Fehler beim Abruf
 // oder Speichern wird nur protokolliert, der Setup-Erfolg bleibt bestehen — die
 // Stammdaten lassen sich beim naechsten Verbinden nachziehen.
-func (c Command) zieheTSEStammdaten(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, tssID string) {
+func (c Command) fetchTSEStammdaten(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, tssID string) {
 	gelesen, err := client.RetrieveTSSStammdaten(ctx, tssID)
 	if err != nil {
 		log.Warn().Err(err).Str("tss_id", tssID).Msg("Failed to fetch TSE Stammdaten after setup; recoverable on next connect")
@@ -390,7 +390,7 @@ func vollendeLebenszyklus(ctx context.Context, log *zerolog.Logger, client tse.S
 		if err := client.PersonalisiereTSS(ctx, tssID); err != nil {
 			return einrichtungsFehler(log, err, "personalisieren", tssID)
 		}
-		if err := client.SetzeAdminPIN(ctx, tssID, puk, pin); err != nil {
+		if err := client.SetAdminPIN(ctx, tssID, puk, pin); err != nil {
 			return einrichtungsFehler(log, err, "admin-pin setzen", tssID)
 		}
 		fallthrough
@@ -430,8 +430,8 @@ func vollendeLebenszyklus(ctx context.Context, log *zerolog.Logger, client tse.S
 	return nil
 }
 
-// findeTSS sucht eine TSS nach ihrer ID in der Konto-Liste.
-func findeTSS(tssListe []tse.TSSInfo, tssID string) (tse.TSSInfo, bool) {
+// findTSS sucht eine TSS nach ihrer ID in der Konto-Liste.
+func findTSS(tssListe []tse.TSSInfo, tssID string) (tse.TSSInfo, bool) {
 	for _, t := range tssListe {
 		if t.ID == tssID {
 			return t, true
@@ -458,8 +458,8 @@ func hatAktiveTSS(tssListe []tse.TSSInfo) bool {
 	return false
 }
 
-// erzeugeAdminPIN erzeugt eine kryptografisch zufaellige numerische Admin-PIN.
-func erzeugeAdminPIN() (string, error) {
+// generateAdminPIN erzeugt eine kryptografisch zufaellige numerische Admin-PIN.
+func generateAdminPIN() (string, error) {
 	var sb strings.Builder
 	for i := 0; i < adminPINStellen; i++ {
 		ziffer, err := rand.Int(rand.Reader, big.NewInt(10))

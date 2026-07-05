@@ -279,7 +279,7 @@ func pollRelay(t *testing.T, serverURL string, relayToken string) *http.Response
 	return postJSON(t, serverURL+"/relay/poll", pollRequest{Token: relayToken}, "")
 }
 
-func meldeErgebnis(t *testing.T, serverURL string, relayToken string, ids []int) *http.Response {
+func reportErgebnis(t *testing.T, serverURL string, relayToken string, ids []int) *http.Response {
 	t.Helper()
 	return postJSON(t, serverURL+"/relay/ergebnis", ergebnisRequest{
 		Token:        relayToken,
@@ -319,7 +319,7 @@ func TestRelayPollErgebnisFlow(t *testing.T) {
 		ids = append(ids, auftrag.ID)
 	}
 
-	resp = meldeErgebnis(t, env.server.URL, testRelayToken, ids)
+	resp = reportErgebnis(t, env.server.URL, testRelayToken, ids)
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Expected ergebnis status 200, got %d", resp.StatusCode)

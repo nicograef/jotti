@@ -13,7 +13,7 @@ import (
 // Durchreich-Schicht; die Verdrahtung erfolgt im Composition Root (api/relay.go).
 type druckauftragRepo interface {
 	GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruckauftrag, error)
-	MeldeDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error
+	ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error
 }
 
 // OffenerDruckauftrag ist ein offener Druckauftrag, wie ihn das Relay pollt.
@@ -126,7 +126,7 @@ func (h *Handler) ErgebnisHandler() http.HandlerFunc {
 			fehlversuche = append(fehlversuche, Fehlversuch(f))
 		}
 
-		if err := h.Repo.MeldeDruckergebnis(r.Context(), body.GedruckteIDs, fehlversuche); err != nil {
+		if err := h.Repo.ReportDruckergebnis(r.Context(), body.GedruckteIDs, fehlversuche); err != nil {
 			helper.SendServerError(w)
 			return
 		}

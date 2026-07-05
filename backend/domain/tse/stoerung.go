@@ -13,7 +13,7 @@ const (
 
 // Stoerung ist ein Zeitraum im Stoerungsprotokoll der TSE-Signierung.
 // Hoechstens ein Zeitraum ist aktiv; offene Signaturauftraege werden waehrend
-// eines aktiven Zeitraums dem Ausfall zugerechnet (BestimmeSignaturstatus).
+// eines aktiven Zeitraums dem Ausfall zugerechnet (DetermineSignaturstatus).
 type Stoerung struct {
 	Beginn     time.Time
 	GrundArt   string

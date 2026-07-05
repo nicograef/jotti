@@ -157,9 +157,9 @@ func (c *FiskalyTSESetupClient) CreateTSS(ctx context.Context) (tse.TSSErstellt,
 	}, nil
 }
 
-// HoleAdminPUK liest den Admin-PUK einer TSS erneut aus der TSS-Ressource.
+// GetAdminPUK liest den Admin-PUK einer TSS erneut aus der TSS-Ressource.
 // fiskaly liefert ihn dort nur, solange die TSS im Zustand CREATED ist.
-func (c *FiskalyTSESetupClient) HoleAdminPUK(ctx context.Context, tssID string) (string, error) {
+func (c *FiskalyTSESetupClient) GetAdminPUK(ctx context.Context, tssID string) (string, error) {
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
 		return "", fmt.Errorf("tss id is required")
@@ -175,7 +175,7 @@ func (c *FiskalyTSESetupClient) HoleAdminPUK(ctx context.Context, tssID string) 
 // RetrieveTSSStammdaten liest die fiskalischen Stammdaten der TSS-Ressource
 // (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format) fuer den
 // DSFinV-K-Export. Reine Leseoperation auf derselben TSS-Ressource wie
-// HoleAdminPUK.
+// GetAdminPUK.
 func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID string) (tse.TSSStammdaten, error) {
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
@@ -217,11 +217,11 @@ func (c *FiskalyTSESetupClient) patchTSSState(ctx context.Context, tssID, state 
 	return nil
 }
 
-// SetzeAdminPIN setzt mit dem Admin-PUK die Admin-PIN der TSS. Derselbe Endpunkt
+// SetAdminPIN setzt mit dem Admin-PUK die Admin-PIN der TSS. Derselbe Endpunkt
 // (PATCH /tss/{id}/admin) setzt eine verlorene PIN neu bzw. entsperrt eine nach
 // fuenf Fehlversuchen gesperrte PIN und funktioniert auch auf einer bereits
 // personalisierten TSS (UNINITIALIZED/INITIALIZED).
-func (c *FiskalyTSESetupClient) SetzeAdminPIN(ctx context.Context, tssID, puk, pin string) error {
+func (c *FiskalyTSESetupClient) SetAdminPIN(ctx context.Context, tssID, puk, pin string) error {
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
 		return fmt.Errorf("tss id is required")

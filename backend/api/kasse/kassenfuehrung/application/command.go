@@ -36,7 +36,7 @@ type betreiberRepo interface {
 
 // tseGateRepo liefert dem Kassenabschluss-Gate die Signatur-Staende der
 // Kassensitzung und den aktiven Stoerungszeitraum (beide fuettern
-// tse.BestimmeSignaturstatus — dieselbe Zurechnung wie beim Beleg-Abruf) sowie
+// tse.DetermineSignaturstatus — dieselbe Zurechnung wie beim Beleg-Abruf) sowie
 // die TSE-Konfiguration fuer die Eroeffnungs-Warnung ohne konfigurierte TSE.
 type tseGateRepo interface {
 	GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]tse.SignaturauftragStand, error)
@@ -363,7 +363,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to read events for Tagesabschluss")
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
-	summen, err := kasse.BerechneAbschlussSummen(sitzungEvents)
+	summen, err := kasse.ComputeAbschlussSummen(sitzungEvents)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Unparsebares Event verhindert Tagesabschluss")
 		return KassenabschlussErgebnis{}, err

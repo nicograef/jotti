@@ -11,25 +11,14 @@ import (
 	"time"
 )
 
-const druckauftragErneutVersuchen = `-- name: DruckauftragErneutVersuchen :exec
-UPDATE druckauftraege
-SET status = 'offen', versuche = 0, letzter_fehler = NULL
-WHERE id = $1 AND status = 'fehlgeschlagen'
-`
-
-func (q *Queries) DruckauftragErneutVersuchen(ctx context.Context, id int) error {
-	_, err := q.db.ExecContext(ctx, druckauftragErneutVersuchen, id)
-	return err
-}
-
-const druckauftragVerwerfen = `-- name: DruckauftragVerwerfen :exec
+const discardDruckauftrag = `-- name: DiscardDruckauftrag :exec
 UPDATE druckauftraege
 SET status = 'verworfen'
 WHERE id = $1 AND status = 'fehlgeschlagen'
 `
 
-func (q *Queries) DruckauftragVerwerfen(ctx context.Context, id int) error {
-	_, err := q.db.ExecContext(ctx, druckauftragVerwerfen, id)
+func (q *Queries) DiscardDruckauftrag(ctx context.Context, id int) error {
+	_, err := q.db.ExecContext(ctx, discardDruckauftrag, id)
 	return err
 }
 
@@ -167,5 +156,16 @@ WHERE id = $1 AND status = 'offen'
 
 func (q *Queries) MarkDruckauftragGedruckt(ctx context.Context, id int) error {
 	_, err := q.db.ExecContext(ctx, markDruckauftragGedruckt, id)
+	return err
+}
+
+const retryDruckauftrag = `-- name: RetryDruckauftrag :exec
+UPDATE druckauftraege
+SET status = 'offen', versuche = 0, letzter_fehler = NULL
+WHERE id = $1 AND status = 'fehlgeschlagen'
+`
+
+func (q *Queries) RetryDruckauftrag(ctx context.Context, id int) error {
+	_, err := q.db.ExecContext(ctx, retryDruckauftrag, id)
 	return err
 }

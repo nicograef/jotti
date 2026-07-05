@@ -119,12 +119,12 @@ func (r Repository) GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruck
 	return result, nil
 }
 
-// MeldeDruckergebnis verarbeitet das Ergebnis eines Relay-Zyklus in einer
+// ReportDruckergebnis verarbeitet das Ergebnis eines Relay-Zyklus in einer
 // Transaktion: Erfolge werden quittiert (offen -> gedruckt), Fehlversuche
 // hochgezaehlt. Beim MaxDruckversuche-ten Fehlversuch wechselt der Auftrag auf
 // fehlgeschlagen und wird nicht mehr ausgeliefert. Das Quittieren bleibt
 // idempotent (Status-Guard 'offen'): eine doppelt gemeldete ID aendert nichts.
-func (r Repository) MeldeDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
+func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
 	if len(gedruckteIDs) == 0 && len(fehlversuche) == 0 {
 		return nil
 	}
@@ -174,16 +174,16 @@ func (r Repository) GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]Feh
 	return result, nil
 }
 
-// DruckauftragErneutVersuchen reiht einen fehlgeschlagenen Auftrag wieder ein
+// RetryDruckauftrag reiht einen fehlgeschlagenen Auftrag wieder ein
 // (fehlgeschlagen -> offen, versuche zurück auf 0). Der Status-Guard wirkt nur
 // auf fehlgeschlagene Aufträge; andere Status bleiben unberührt.
-func (r Repository) DruckauftragErneutVersuchen(ctx context.Context, id int) error {
-	return db.Error(r.q.DruckauftragErneutVersuchen(ctx, id))
+func (r Repository) RetryDruckauftrag(ctx context.Context, id int) error {
+	return db.Error(r.q.RetryDruckauftrag(ctx, id))
 }
 
-// DruckauftragVerwerfen markiert einen fehlgeschlagenen Auftrag als verworfen
+// DiscardDruckauftrag markiert einen fehlgeschlagenen Auftrag als verworfen
 // (fehlgeschlagen -> verworfen). Der Eintrag bleibt in der Datenbank erhalten;
 // der Status-Guard wirkt nur auf fehlgeschlagene Aufträge.
-func (r Repository) DruckauftragVerwerfen(ctx context.Context, id int) error {
-	return db.Error(r.q.DruckauftragVerwerfen(ctx, id))
+func (r Repository) DiscardDruckauftrag(ctx context.Context, id int) error {
+	return db.Error(r.q.DiscardDruckauftrag(ctx, id))
 }

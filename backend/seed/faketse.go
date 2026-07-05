@@ -113,7 +113,7 @@ type signaturauftragZeile struct {
 	Signatur           *tse.Signatur
 }
 
-// baueSignaturauftraege spielt Outbox und Signatur-Worker für das Drehbuch nach: Jedes
+// buildSignaturauftraege spielt Outbox und Signatur-Worker für das Drehbuch nach: Jedes
 // fiskalische Event (Entscheidung über die produktive fiskalische Projektion) erhält genau
 // eine Auftragszeile mit seiner Event-ID. Im Normalfall gilt der Auftrag als prompt
 // quittiert (logTime-Paar aus dem Event-Zeitstempel, erledigt kurz danach). Events in
@@ -123,7 +123,7 @@ type signaturauftragZeile struct {
 // und dauerhaft. Events im offenen Fenster der laufenden Sitzung bleiben offen.
 // Transaktionsnummern und Signaturzähler sind global streng monoton in
 // Quittier-Reihenfolge.
-func baueSignaturauftraege(events []seedEvent, fenster []ausfallFenster) ([]signaturauftragZeile, error) {
+func buildSignaturauftraege(events []seedEvent, fenster []ausfallFenster) ([]signaturauftragZeile, error) {
 	s := &fakeSignierer{fenster: fenster, pending: make([][]offeneNachsignierung, len(fenster))}
 
 	for i := range events {

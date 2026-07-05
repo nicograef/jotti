@@ -11,7 +11,7 @@ import (
 )
 
 // makeAbschlussEvent baut ein minimales Event mit dem angegebenen Typ und Data.
-// Bypasses die Konstruktor-Validatoren, da BerechneAbschlussSummen keine Schema-
+// Bypasses die Konstruktor-Validatoren, da ComputeAbschlussSummen keine Schema-
 // Validierung durchführt — nur die summen-relevanten JSON-Felder zählen.
 func makeAbschlussEvent(typ EventType, data any) e.Event {
 	raw, err := json.Marshal(data)
@@ -96,7 +96,7 @@ func sqlReferenzSummen(events []e.Event) AbschlussSummen {
 	return s
 }
 
-func TestBerechneAbschlussSummen(t *testing.T) {
+func TestComputeAbschlussSummen(t *testing.T) {
 	// Shorthands für die sum-relevanten Event-Typen als Inline-Daten.
 	zahlung := func(cents int) e.Event {
 		return makeAbschlussEvent(EventTypeZahlungKassiertV1, map[string]int{"gesamtZahlungCents": cents})
@@ -221,7 +221,7 @@ func TestBerechneAbschlussSummen(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := BerechneAbschlussSummen(tc.events)
+			got, err := ComputeAbschlussSummen(tc.events)
 			if err != nil {
 				t.Fatalf("expected no error, got %v", err)
 			}
@@ -238,12 +238,12 @@ func TestBerechneAbschlussSummen(t *testing.T) {
 	}
 }
 
-// TestBerechneAbschlussSummen_AequivalenzMitSQLReporting belegt, dass
-// BerechneAbschlussSummen für dieselbe Kassensitzung exakt dieselben drei
+// TestComputeAbschlussSummen_AequivalenzMitSQLReporting belegt, dass
+// ComputeAbschlussSummen für dieselbe Kassensitzung exakt dieselben drei
 // Summen liefert wie die kj_extract_*-Funktionen in reporting.sql:10-43.
 // sqlReferenzSummen liest die JSON-Felder direkt über die SQL-Feldnamen
 // (als raw JSON keys), unabhängig von den Go-Struct-Tags der Event-Data-Typen.
-func TestBerechneAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
+func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 	// Szenario mit allen sechs summen-wirksamen Typen und neutralen Events.
 	events := []e.Event{
 		// zahlung-kassiert: kj_extract_zahlung_cents → gesamtZahlungCents
@@ -266,14 +266,14 @@ func TestBerechneAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		makeAbschlussEvent(EventTypeDifferenzSollIstGebuchtV1, map[string]int{"betragCents": -42}),
 	}
 
-	got, err := BerechneAbschlussSummen(events)
+	got, err := ComputeAbschlussSummen(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	ref := sqlReferenzSummen(events)
 
 	if got != ref {
-		t.Errorf("BerechneAbschlussSummen %+v != sqlReferenzSummen %+v", got, ref)
+		t.Errorf("ComputeAbschlussSummen %+v != sqlReferenzSummen %+v", got, ref)
 	}
 
 	// Erwartete Werte aus der reporting.sql-Formel (manuell gerechnet):
@@ -293,11 +293,11 @@ func TestBerechneAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 	}
 }
 
-// TestBerechneAbschlussSummen_UnparsebaresEventGibtFehler prüft, dass ein
+// TestComputeAbschlussSummen_UnparsebaresEventGibtFehler prüft, dass ein
 // summen-wirksames Event mit korrupten JSON-Daten einen Fehler liefert statt
 // stillschweigend übersprungen zu werden. Jeder der sechs summen-wirksamen
 // Typen wird einzeln getestet.
-func TestBerechneAbschlussSummen_UnparsebaresEventGibtFehler(t *testing.T) {
+func TestComputeAbschlussSummen_UnparsebaresEventGibtFehler(t *testing.T) {
 	corruptData := json.RawMessage(`{"fehlerhaft": true`) // ungültiges JSON
 
 	summenWirksam := []EventType{
@@ -320,7 +320,7 @@ func TestBerechneAbschlussSummen_UnparsebaresEventGibtFehler(t *testing.T) {
 				Version: 1,
 				Data:    corruptData,
 			}
-			_, err := BerechneAbschlussSummen([]e.Event{evt})
+			_, err := ComputeAbschlussSummen([]e.Event{evt})
 			if err == nil {
 				t.Fatalf("expected error for unparseable %s event, got nil", typ)
 			}
@@ -338,7 +338,7 @@ func TestBerechneAbschlussSummen_UnparsebaresEventGibtFehler(t *testing.T) {
 			Version: 1,
 			Data:    corruptData,
 		}
-		got, err := BerechneAbschlussSummen([]e.Event{evt})
+		got, err := ComputeAbschlussSummen([]e.Event{evt})
 		if err != nil {
 			t.Fatalf("expected no error for neutral event, got %v", err)
 		}

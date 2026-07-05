@@ -46,9 +46,9 @@ type tseSignaturStore interface {
 	GetOffeneTSESignaturauftraege(ctx context.Context, limit int) ([]tse_repo.OffenerSignaturauftrag, error)
 	QuittiereTSESignaturauftrag(ctx context.Context, auftragID int, signatur tse.Signatur) error
 	TSESignaturauftragFehlversuch(ctx context.Context, auftragID int, fehler string) error
-	MarkiereOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, error)
-	OeffneTSEStoerung(ctx context.Context, grundArt string, fehlertext string) error
-	SchliesseTSEStoerung(ctx context.Context, grundArt string) error
+	MarkOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, error)
+	OpenTSEStoerung(ctx context.Context, grundArt string, fehlertext string) error
+	CloseTSEStoerung(ctx context.Context, grundArt string) error
 }
 
 // tseWorkerClient beschreibt, was der Signatur-Worker von der TSE braucht:
@@ -228,7 +228,7 @@ func (w *tseSignaturWorker) processOnce(ctx context.Context) error {
 		return w.markiereNichtKonfiguriert(ctx)
 	}
 
-	client, err := w.clientFuer(conf.Credentials())
+	client, err := w.clientFor(conf.Credentials())
 	if err != nil {
 		log.Warn().Err(err).Msg("TSE-Signatur-Worker could not create TSE client")
 		return nil
@@ -289,7 +289,7 @@ func (w *tseSignaturWorker) processOnce(ctx context.Context) error {
 // ein Zeitraum aktiv ist), damit auch das kurze Fenster zwischen Einreihen und
 // Markieren als Ausfall belegt ist. Der Zeitraum endet erst mit der Einrichtung.
 func (w *tseSignaturWorker) markiereNichtKonfiguriert(ctx context.Context) error {
-	markiert, err := w.store.MarkiereOffeneAlsNichtKonfiguriert(ctx)
+	markiert, err := w.store.MarkOffeneAlsNichtKonfiguriert(ctx)
 	if err != nil {
 		return err
 	}
@@ -298,7 +298,7 @@ func (w *tseSignaturWorker) markiereNichtKonfiguriert(ctx context.Context) error
 	}
 
 	log.Warn().Int64("anzahl", markiert).Msg("TSE-Signatur-Worker: offene Auftraege ohne TSE-Konfiguration endgueltig markiert")
-	if err := w.store.OeffneTSEStoerung(ctx, tse.StoerungGrundKeineKonfiguration, "keine TSE-Konfiguration"); err != nil {
+	if err := w.store.OpenTSEStoerung(ctx, tse.StoerungGrundKeineKonfiguration, "keine TSE-Konfiguration"); err != nil {
 		log.Error().Err(err).Msg("TSE-Stoerungszeitraum keine_konfiguration nicht geoeffnet")
 	}
 	return nil
@@ -310,7 +310,7 @@ func (w *tseSignaturWorker) markiereNichtKonfiguriert(ctx context.Context) error
 func (w *tseSignaturWorker) beginneStoerung(ctx context.Context, cause error) {
 	w.stoerungSerie++
 	w.stoerungNaechsterVersuch = w.now().Add(tseStoerungBackoff(w.stoerungSerie))
-	if err := w.store.OeffneTSEStoerung(ctx, tse.StoerungGrundTSEFehler, cause.Error()); err != nil {
+	if err := w.store.OpenTSEStoerung(ctx, tse.StoerungGrundTSEFehler, cause.Error()); err != nil {
 		log.Error().Err(err).Msg("TSE-Stoerungszeitraum nicht geoeffnet")
 	}
 }
@@ -322,7 +322,7 @@ func (w *tseSignaturWorker) beginneStoerung(ctx context.Context, cause error) {
 func (w *tseSignaturWorker) beendeStoerung(ctx context.Context) {
 	w.stoerungSerie = 0
 	w.stoerungNaechsterVersuch = time.Time{}
-	if err := w.store.SchliesseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
+	if err := w.store.CloseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
 		log.Error().Err(err).Msg("TSE-Stoerungszeitraum nicht geschlossen")
 	}
 }
@@ -338,9 +338,9 @@ func tseStoerungBackoff(serie int) time.Duration {
 	return min(backoff, tseStoerungBackoffDeckel)
 }
 
-// clientFuer liefert den ueber Durchlaeufe hinweg wiederverwendeten TSE-Client
+// clientFor liefert den ueber Durchlaeufe hinweg wiederverwendeten TSE-Client
 // (samt Auth-Token); neu gebaut wird nur bei geaenderten Zugangsdaten.
-func (w *tseSignaturWorker) clientFuer(creds tse.Credentials) (tseWorkerClient, error) {
+func (w *tseSignaturWorker) clientFor(creds tse.Credentials) (tseWorkerClient, error) {
 	if w.client != nil && w.clientCreds == creds {
 		return w.client, nil
 	}

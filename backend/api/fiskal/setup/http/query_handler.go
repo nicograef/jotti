@@ -17,7 +17,7 @@ type settingsQuery interface {
 	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
 	GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error)
 	TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, error)
-	PruefeTSESetup(ctx context.Context, credentials tse.SetupCredentials) (application.TSESetupBefund, error)
+	CheckTSESetup(ctx context.Context, credentials tse.SetupCredentials) (application.TSESetupBefund, error)
 	GetTSEStatus(ctx context.Context) (application.TSEStatus, error)
 }
 
@@ -51,12 +51,12 @@ type tseStatusResponse struct {
 	IstKonfiguriert bool   `json:"istKonfiguriert"`
 }
 
-type pruefeTSESetupRequest struct {
+type checkTSESetupRequest struct {
 	ApiKey    string `json:"apiKey"`
 	ApiSecret string `json:"apiSecret"`
 }
 
-var pruefeTSESetupSchema = z.Struct(z.Shape{
+var checkTSESetupSchema = z.Struct(z.Shape{
 	"ApiKey":    z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
 	"ApiSecret": z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
 })
@@ -139,14 +139,14 @@ func (h *QueryHandler) TestTSEVerbindungHandler() http.HandlerFunc {
 	}
 }
 
-func (h *QueryHandler) PruefeTSESetupHandler() http.HandlerFunc {
+func (h *QueryHandler) CheckTSESetupHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var body pruefeTSESetupRequest
-		if !helper.ReadAndValidateBody(w, r, &body, pruefeTSESetupSchema) {
+		var body checkTSESetupRequest
+		if !helper.ReadAndValidateBody(w, r, &body, checkTSESetupSchema) {
 			return
 		}
 
-		befund, err := h.Query.PruefeTSESetup(r.Context(), tse.SetupCredentials{
+		befund, err := h.Query.CheckTSESetup(r.Context(), tse.SetupCredentials{
 			ApiKey:    body.ApiKey,
 			ApiSecret: body.ApiSecret,
 		})

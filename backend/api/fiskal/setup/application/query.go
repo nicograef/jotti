@@ -124,11 +124,11 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 	return status, nil
 }
 
-// PruefeTSESetup führt den seiteneffektfreien Befund aus: Es authentifiziert
+// CheckTSESetup führt den seiteneffektfreien Befund aus: Es authentifiziert
 // sich mit den übergebenen Zugangsdaten, listet die vorhandenen TSS und prüft je
 // TSS, ob bereits ein Client mit der Kassen-Seriennummer registriert ist. Es
 // wird nichts gespeichert; nur Lese-Requests gehen an fiskaly.
-func (q Query) PruefeTSESetup(ctx context.Context, credentials tse.SetupCredentials) (TSESetupBefund, error) {
+func (q Query) CheckTSESetup(ctx context.Context, credentials tse.SetupCredentials) (TSESetupBefund, error) {
 	log := zerolog.Ctx(ctx)
 
 	if q.NewTSESetupClient == nil {

@@ -222,7 +222,7 @@ func TestKasseAbschliessen_TagesabschlussMitEchtenSummen(t *testing.T) {
 	journalMock := kassenjournal_repo.NewMock(nil, nil)
 	journalMock.SetKassenbestand(50000)
 
-	// Pre-load events that BerechneAbschlussSummen should aggregate.
+	// Pre-load events that ComputeAbschlussSummen should aggregate.
 	// zahlung: umsatz +12345
 	zahlungRaw, _ := json.Marshal(map[string]int{"gesamtZahlungCents": 12345})
 	journalMock.AddEvent(e.Event{

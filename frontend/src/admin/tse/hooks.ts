@@ -49,10 +49,10 @@ export function useTSEKonfiguration() {
   }
 }
 
-export function pruefeTSESetup(
+export function checkTSESetup(
   zugangsdaten: TSESetupZugangsdaten,
 ): Promise<TSESetupBefund> {
-  return tseBackend.pruefeTSESetup(zugangsdaten)
+  return tseBackend.checkTSESetup(zugangsdaten)
 }
 
 export function useTSEEinrichtung() {

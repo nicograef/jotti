@@ -51,10 +51,10 @@ func gueltigeZugangsdaten() tse.SetupCredentials {
 	return tse.SetupCredentials{ApiKey: "api-key", ApiSecret: "api-secret"}
 }
 
-// TestPruefeTSESetup_ErkenntPassendenClient sichert den Kern des Befunds: die
+// TestCheckTSESetup_ErkenntPassendenClient sichert den Kern des Befunds: die
 // Umgebung und die vorhandenen TSS werden gemeldet, und ein Client, dessen
 // serial_number der Kassen-Seriennummer entspricht, wird als passend erkannt.
-func TestPruefeTSESetup_ErkenntPassendenClient(t *testing.T) {
+func TestCheckTSESetup_ErkenntPassendenClient(t *testing.T) {
 	seriennummer := uuid.New()
 	q := Query{
 		TSERepo: stubTSERepo{
@@ -75,7 +75,7 @@ func TestPruefeTSESetup_ErkenntPassendenClient(t *testing.T) {
 		}),
 	}
 
-	befund, err := q.PruefeTSESetup(context.Background(), gueltigeZugangsdaten())
+	befund, err := q.CheckTSESetup(context.Background(), gueltigeZugangsdaten())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -97,10 +97,10 @@ func TestPruefeTSESetup_ErkenntPassendenClient(t *testing.T) {
 	}
 }
 
-// TestPruefeTSESetup_FalscheZugangsdaten sichert, dass ein Auth-Fehler des
+// TestCheckTSESetup_FalscheZugangsdaten sichert, dass ein Auth-Fehler des
 // Setup-Clients zu ErrTSESetupZugangsdaten wird — der Code für die
 // verständliche deutsche Fehlermeldung im Wizard.
-func TestPruefeTSESetup_FalscheZugangsdaten(t *testing.T) {
+func TestCheckTSESetup_FalscheZugangsdaten(t *testing.T) {
 	q := Query{
 		TSERepo: stubTSERepo{},
 		NewTSESetupClient: setupClientLiefert(&tse.FakeSetupClient{
@@ -108,15 +108,15 @@ func TestPruefeTSESetup_FalscheZugangsdaten(t *testing.T) {
 		}),
 	}
 
-	_, err := q.PruefeTSESetup(context.Background(), gueltigeZugangsdaten())
+	_, err := q.CheckTSESetup(context.Background(), gueltigeZugangsdaten())
 	if !errors.Is(err, ErrTSESetupZugangsdaten) {
 		t.Fatalf("expected ErrTSESetupZugangsdaten, got %v", err)
 	}
 }
 
-// TestPruefeTSESetup_LeeresKonto sichert, dass ein leeres Konto einen gültigen
+// TestCheckTSESetup_LeeresKonto sichert, dass ein leeres Konto einen gültigen
 // Befund ohne TSS liefert (keine nil-Slice, kein Fehler).
-func TestPruefeTSESetup_LeeresKonto(t *testing.T) {
+func TestCheckTSESetup_LeeresKonto(t *testing.T) {
 	q := Query{
 		TSERepo: stubTSERepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}},
 		NewTSESetupClient: setupClientLiefert(&tse.FakeSetupClient{
@@ -124,7 +124,7 @@ func TestPruefeTSESetup_LeeresKonto(t *testing.T) {
 		}),
 	}
 
-	befund, err := q.PruefeTSESetup(context.Background(), gueltigeZugangsdaten())
+	befund, err := q.CheckTSESetup(context.Background(), gueltigeZugangsdaten())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

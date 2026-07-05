@@ -18,7 +18,7 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
     void navigate(`/service/tische/${state.tischId.toString()}`)
   }
 
-  const { anzahlOffen, anzahlEigeneOffen } = zaehleOffenePositionen(state)
+  const { anzahlOffen, anzahlEigeneOffen } = countOffenePositionen(state)
   const alleErledigt = anzahlOffen === 0
 
   return (
@@ -51,10 +51,10 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
   )
 }
 
-// zaehleOffenePositionen bildet die Vereinigung aus ausstehenden und unbezahlten
+// countOffenePositionen bildet die Vereinigung aus ausstehenden und unbezahlten
 // Positionen (je Position einmal über die positionId) und zählt zusätzlich, wie
 // viele davon von der angemeldeten Servicekraft bestellt wurden.
-function zaehleOffenePositionen(state: TischSession) {
+function countOffenePositionen(state: TischSession) {
   const myUserId = AuthSingleton.userId
   const offeneIds = new Set<string>()
   const eigeneOffeneIds = new Set<string>()

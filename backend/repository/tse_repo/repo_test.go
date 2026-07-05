@@ -111,9 +111,9 @@ func (u *testUmgebung) insertKassensitzung(t *testing.T) int {
 	return nr
 }
 
-// schliesseKassensitzung setzt die Sitzung auf abgeschlossen — derselbe
+// closeKassensitzung setzt die Sitzung auf abgeschlossen — derselbe
 // Statuswechsel, den der Kassenabschluss ueber das Tagesabschluss-Event bewirkt.
-func (u *testUmgebung) schliesseKassensitzung(t *testing.T, ksNr int) {
+func (u *testUmgebung) closeKassensitzung(t *testing.T, ksNr int) {
 	t.Helper()
 	if _, err := u.db.Exec(
 		"UPDATE kassensitzungen SET status = 'abgeschlossen', updated_at = NOW() WHERE z_nr = $1", ksNr,
@@ -273,7 +273,7 @@ func TestTSESignaturauftragFehlversuch_SekundenKurveEndetVorRueckstandsSchwelle(
 		if err != nil {
 			t.Fatalf("Stand nach Fehlversuch %d lesen: %v", versuch, err)
 		}
-		if ergebnis := tse.BestimmeSignaturstatus(stand, nil); ergebnis.Status != tse.SignaturstatusAusstehend {
+		if ergebnis := tse.DetermineSignaturstatus(stand, nil); ergebnis.Status != tse.SignaturstatusAusstehend {
 			t.Fatalf("Fehlversuch %d: erwartet ausstehend, got %q", versuch, ergebnis.Status)
 		}
 
@@ -325,7 +325,7 @@ func backoffBis(t *testing.T, db *sql.DB, auftragID int) time.Duration {
 
 // Ohne TSE-Konfiguration markiert der Worker offene Auftraege endgueltig als
 // tse_nicht_konfiguriert; erledigte bleiben unberuehrt.
-func TestMarkiereOffeneAlsNichtKonfiguriert_MarkiertNurOffene(t *testing.T) {
+func TestMarkOffeneAlsNichtKonfiguriert_MarkiertNurOffene(t *testing.T) {
 	store, umgebung, teardown := setupRepository(t)
 	defer teardown(t)
 	ctx := context.Background()
@@ -337,7 +337,7 @@ func TestMarkiereOffeneAlsNichtKonfiguriert_MarkiertNurOffene(t *testing.T) {
 		t.Fatalf("Expected no quittierung error, got %v", err)
 	}
 
-	markiert, err := store.MarkiereOffeneAlsNichtKonfiguriert(ctx)
+	markiert, err := store.MarkOffeneAlsNichtKonfiguriert(ctx)
 	if err != nil {
 		t.Fatalf("Expected no mark error, got %v", err)
 	}
@@ -363,7 +363,7 @@ func TestMarkiereOffeneAlsNichtKonfiguriert_MarkiertNurOffene(t *testing.T) {
 	}
 
 	// Eine zweite Markierung ohne offene Auftraege markiert nichts.
-	markiert, err = store.MarkiereOffeneAlsNichtKonfiguriert(ctx)
+	markiert, err = store.MarkOffeneAlsNichtKonfiguriert(ctx)
 	if err != nil {
 		t.Fatalf("Expected no mark error, got %v", err)
 	}
@@ -476,7 +476,7 @@ func TestGetTSESignaturQueueZustand_FehlgeschlagenSitzungsbezogen(t *testing.T) 
 	}
 
 	// Nach dem Kassenabschluss (Sitzung abgeschlossen) verschwindet die Warnung.
-	umgebung.schliesseKassensitzung(t, umgebung.ksNr)
+	umgebung.closeKassensitzung(t, umgebung.ksNr)
 
 	zustand, err = store.GetTSESignaturQueueZustand(ctx)
 	if err != nil {
@@ -508,13 +508,13 @@ func TestGetAlleTSEStoerungen(t *testing.T) {
 	defer teardown(t)
 	ctx := context.Background()
 
-	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
+	if err := store.OpenTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
 		t.Fatalf("Expected no oeffnen error, got %v", err)
 	}
-	if err := store.SchliesseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
+	if err := store.CloseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
 		t.Fatalf("Expected no schliessen error, got %v", err)
 	}
-	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundRueckstand, "Rueckstand"); err != nil {
+	if err := store.OpenTSEStoerung(ctx, tse.StoerungGrundRueckstand, "Rueckstand"); err != nil {
 		t.Fatalf("Expected no oeffnen error, got %v", err)
 	}
 
@@ -551,12 +551,12 @@ func TestTSEStoerung_OeffnenIdempotentHoechstensEineAktiv(t *testing.T) {
 		t.Fatalf("Expected no active stoerung, got %+v", aktive)
 	}
 
-	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundRueckstand, "Rueckstand ueber der Schwelle"); err != nil {
+	if err := store.OpenTSEStoerung(ctx, tse.StoerungGrundRueckstand, "Rueckstand ueber der Schwelle"); err != nil {
 		t.Fatalf("Expected no oeffnen error, got %v", err)
 	}
 
 	// Erneutes Oeffnen (auch anderer Grund-Art) ist ein No-Op.
-	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
+	if err := store.OpenTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
 		t.Fatalf("Expected no-op oeffnen without error, got %v", err)
 	}
 
@@ -588,12 +588,12 @@ func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
 	defer teardown(t)
 	ctx := context.Background()
 
-	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundRueckstand, "Rueckstand"); err != nil {
+	if err := store.OpenTSEStoerung(ctx, tse.StoerungGrundRueckstand, "Rueckstand"); err != nil {
 		t.Fatalf("Expected no oeffnen error, got %v", err)
 	}
 
 	// Fremde Grund-Art schliesst nicht.
-	if err := store.SchliesseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
+	if err := store.CloseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
 		t.Fatalf("Expected no-op schliessen without error, got %v", err)
 	}
 	aktive, err := store.GetAktiveTSEStoerung(ctx)
@@ -605,10 +605,10 @@ func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
 	}
 
 	// Eigene Grund-Art schliesst; erneutes Schliessen ist ein No-Op.
-	if err := store.SchliesseTSEStoerung(ctx, tse.StoerungGrundRueckstand); err != nil {
+	if err := store.CloseTSEStoerung(ctx, tse.StoerungGrundRueckstand); err != nil {
 		t.Fatalf("Expected no schliessen error, got %v", err)
 	}
-	if err := store.SchliesseTSEStoerung(ctx, tse.StoerungGrundRueckstand); err != nil {
+	if err := store.CloseTSEStoerung(ctx, tse.StoerungGrundRueckstand); err != nil {
 		t.Fatalf("Expected idempotent schliessen without error, got %v", err)
 	}
 	aktive, err = store.GetAktiveTSEStoerung(ctx)
@@ -621,7 +621,7 @@ func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
 
 	// Der geschlossene Zeitraum bleibt erhalten (kein Loeschpfad); ein neuer
 	// Zeitraum kann jetzt entstehen.
-	if err := store.OeffneTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
+	if err := store.OpenTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
 		t.Fatalf("Expected no oeffnen error after schliessen, got %v", err)
 	}
 	var anzahl int

@@ -23,7 +23,7 @@ func signaturNach(delay time.Duration) *Signatur {
 	}
 }
 
-func TestBestimmeSignaturstatus(t *testing.T) {
+func TestDetermineSignaturstatus(t *testing.T) {
 	aktiveRueckstandStoerung := &Stoerung{Beginn: statusTestErstellt, GrundArt: StoerungGrundRueckstand, Fehlertext: "Rueckstand"}
 	aktiveTSEFehlerStoerung := &Stoerung{Beginn: statusTestErstellt, GrundArt: StoerungGrundTSEFehler, Fehlertext: "HTTP 503"}
 
@@ -109,7 +109,7 @@ func TestBestimmeSignaturstatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := BestimmeSignaturstatus(tt.auftrag, tt.aktiveStoerung)
+			got := DetermineSignaturstatus(tt.auftrag, tt.aktiveStoerung)
 
 			if got.Status != tt.wantStatus {
 				t.Errorf("Status = %q, erwartet %q", got.Status, tt.wantStatus)

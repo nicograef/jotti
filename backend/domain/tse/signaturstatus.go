@@ -37,7 +37,7 @@ const (
 	SignaturstatusAusstehend Signaturstatus = "ausstehend"
 )
 
-// SignaturstatusErgebnis ist das Ergebnis von BestimmeSignaturstatus.
+// SignaturstatusErgebnis ist das Ergebnis von DetermineSignaturstatus.
 type SignaturstatusErgebnis struct {
 	Status Signaturstatus
 	// Signatur ist bei Vorhanden und Nachsigniert gesetzt.
@@ -48,14 +48,14 @@ type SignaturstatusErgebnis struct {
 	AusfallGrund string
 }
 
-// BestimmeSignaturstatus ist die einzige Implementierung des Ausfallbegriffs:
+// DetermineSignaturstatus ist die einzige Implementierung des Ausfallbegriffs:
 // Beleg-Abruf und Kassenabschluss-Gate urteilen ueber diese Funktion. Der
 // Ausfallbegriff ist rein status- und zeitraumbasiert: Endstatus des Auftrags
 // (fehlgeschlagen, tse_nicht_konfiguriert) oder offener Auftrag bei aktivem
 // Stoerungszeitraum. Fehlversuche unterhalb der Maximalzahl und geschlossene
 // Zeitraeume zaehlen nicht — ein offener Auftrag ohne aktive Stoerung ist
 // ausstehend, nie Ausfall.
-func BestimmeSignaturstatus(auftrag SignaturauftragStand, aktiveStoerung *Stoerung) SignaturstatusErgebnis {
+func DetermineSignaturstatus(auftrag SignaturauftragStand, aktiveStoerung *Stoerung) SignaturstatusErgebnis {
 	switch auftrag.Status {
 	case StatusErledigt:
 		if auftrag.Signatur.LogTimeEnd.Sub(auftrag.ErstelltAm) > NachsigniertSchwelle {

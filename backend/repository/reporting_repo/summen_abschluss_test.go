@@ -12,14 +12,14 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
-// TestBerechneAbschlussSummen_AequivalenzMitSQLReporting ist ein Integrationstest
+// TestComputeAbschlussSummen_AequivalenzMitSQLReporting ist ein Integrationstest
 // gegen die echte SQL-Schicht (kj_extract_*-Funktionen in reporting.sql).
 // Er seedet eine Kassensitzung mit gemischten geldrelevanten Events, liest die
 // Events via ReadKassensitzungEvents aus der Datenbank, ruft
-// BerechneAbschlussSummen auf und vergleicht die drei Summen Feld für Feld
+// ComputeAbschlussSummen auf und vergleicht die drei Summen Feld für Feld
 // mit dem Ergebnis von GetReportingStats. Damit wird sichergestellt, dass
 // Go-Aggregation und SQL-Aggregation nicht auseinanderlaufen können.
-func TestBerechneAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
+func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 	db := dbpkg.OpenTestDatabase()
 	defer db.Close()
 	cleanDB(t, db)
@@ -127,9 +127,9 @@ func TestBerechneAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadKassensitzungEvents: %v", err)
 	}
-	got, err := kasse.BerechneAbschlussSummen(events)
+	got, err := kasse.ComputeAbschlussSummen(events)
 	if err != nil {
-		t.Fatalf("BerechneAbschlussSummen: %v", err)
+		t.Fatalf("ComputeAbschlussSummen: %v", err)
 	}
 
 	// SQL-Seite: GetReportingStats via kj_extract_*-Funktionen.

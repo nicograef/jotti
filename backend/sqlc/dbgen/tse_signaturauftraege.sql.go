@@ -46,7 +46,7 @@ type GetOffeneSignaturauftragStaendeFuerKassensitzungRow struct {
 // aller noch nicht erledigten Signaturauftraege einer Kassensitzung — die
 // Grundlage des Kassenabschluss-Gates. Erledigte Auftraege sind irrelevant
 // (bereits signiert); die vier nicht-erledigten Status ordnet
-// BestimmeSignaturstatus in ausstehend (blockiert) bzw. Ausfall (Rest) ein.
+// DetermineSignaturstatus in ausstehend (blockiert) bzw. Ausfall (Rest) ein.
 func (q *Queries) GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]GetOffeneSignaturauftragStaendeFuerKassensitzungRow, error) {
 	rows, err := q.db.QueryContext(ctx, getOffeneSignaturauftragStaendeFuerKassensitzung, kassensitzungNr)
 	if err != nil {
@@ -231,21 +231,21 @@ func (q *Queries) InsertTSESignaturauftrag(ctx context.Context, arg InsertTSESig
 	return err
 }
 
-const markiereOffeneTSESignaturauftraegeNichtKonfiguriert = `-- name: MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert :execrows
+const markOffeneTSESignaturauftraegeNichtKonfiguriert = `-- name: MarkOffeneTSESignaturauftraegeNichtKonfiguriert :execrows
 UPDATE tse_signaturauftraege
 SET status = 'tse_nicht_konfiguriert'
 WHERE status = 'offen'
 `
 
-// MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert markiert alle offenen
+// MarkOffeneTSESignaturauftraegeNichtKonfiguriert markiert alle offenen
 // Auftraege endgueltig als tse_nicht_konfiguriert: ohne vorhandene
 // TSE-Konfiguration gibt es keine Signatur, ein Nachsignieren ist ausgeschlossen
 // (keine Fehlversuche, keine automatische Wiederaufnahme). Der Status-Guard
 // laesst bereits endgueltig markierte Auftraege unberuehrt. Zwei Schreiber: der
 // Signatur-Worker (Dauerzustand ohne Konfiguration) und der Einrichtungs-Sweep
 // (Uebergang zu konfiguriert, in derselben Transaktion wie das Speichern).
-func (q *Queries) MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert(ctx context.Context) (int64, error) {
-	result, err := q.db.ExecContext(ctx, markiereOffeneTSESignaturauftraegeNichtKonfiguriert)
+func (q *Queries) MarkOffeneTSESignaturauftraegeNichtKonfiguriert(ctx context.Context) (int64, error) {
+	result, err := q.db.ExecContext(ctx, markOffeneTSESignaturauftraegeNichtKonfiguriert)
 	if err != nil {
 		return 0, err
 	}

@@ -122,8 +122,8 @@ func NewAdminApi(deps Deps) http.Handler {
 	druckauftragQueryHandler := druckauftragHTTP.QueryHandler{}
 	druckauftragQueryHandler.Query = druckauftragApp.Query{DruckauftragRepo: deps.DruckauftragRepo}
 	r.HandleFunc("/get-fehlgeschlagene-druckauftraege", druckauftragQueryHandler.GetFehlgeschlageneDruckauftraegeHandler())
-	r.HandleFunc("/druckauftrag-erneut-versuchen", druckauftragCommandHandler.DruckauftragErneutVersuchenHandler())
-	r.HandleFunc("/druckauftrag-verwerfen", druckauftragCommandHandler.DruckauftragVerwerfenHandler())
+	r.HandleFunc("/druckauftrag-erneut-versuchen", druckauftragCommandHandler.RetryDruckauftragHandler())
+	r.HandleFunc("/druckauftrag-verwerfen", druckauftragCommandHandler.DiscardDruckauftragHandler())
 
 	tseQueryHandler := tseHTTP.QueryHandler{}
 	tseQueryHandler.Query = tseApp.Query{TSERepo: deps.TSERepo}
@@ -139,7 +139,7 @@ func NewAdminApi(deps Deps) http.Handler {
 	r.HandleFunc("/get-kassenidentitaet", sq.GetKassenidentitaetHandler())
 	r.HandleFunc("/get-tse-konfiguration", sq.GetTSEKonfigurationHandler())
 	r.HandleFunc("/test-tse-verbindung", sq.TestTSEVerbindungHandler())
-	r.HandleFunc("/tse-setup-pruefen", sq.PruefeTSESetupHandler())
+	r.HandleFunc("/tse-setup-pruefen", sq.CheckTSESetupHandler())
 	r.HandleFunc("/get-tse-status", sq.GetTSEStatusHandler())
 
 	sc := fiskalSetupHTTP.CommandHandler{}

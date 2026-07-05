@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { BackendError } from '@/lib/Backend'
 
-import { pruefeTSESetup, useTSEEinrichtung, useTSEKonfiguration } from './hooks'
+import { checkTSESetup, useTSEEinrichtung, useTSEKonfiguration } from './hooks'
 import {
   type TSEEinrichtenErgebnis,
   type TSESetupBefund,
@@ -85,7 +85,7 @@ export function TSEEinrichtungWizard() {
 
   const handlePruefen = async () => {
     await run(async () => {
-      setBefund(await pruefeTSESetup({ apiKey, apiSecret }))
+      setBefund(await checkTSESetup({ apiKey, apiSecret }))
     })
   }
 

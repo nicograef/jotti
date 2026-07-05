@@ -44,14 +44,14 @@ SET versuche = versuche + 1,
     status = CASE WHEN versuche + 1 >= @max_versuche THEN 'fehlgeschlagen' ELSE status END
 WHERE id = @id AND status = 'offen';
 
--- MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert markiert alle offenen
+-- MarkOffeneTSESignaturauftraegeNichtKonfiguriert markiert alle offenen
 -- Auftraege endgueltig als tse_nicht_konfiguriert: ohne vorhandene
 -- TSE-Konfiguration gibt es keine Signatur, ein Nachsignieren ist ausgeschlossen
 -- (keine Fehlversuche, keine automatische Wiederaufnahme). Der Status-Guard
 -- laesst bereits endgueltig markierte Auftraege unberuehrt. Zwei Schreiber: der
 -- Signatur-Worker (Dauerzustand ohne Konfiguration) und der Einrichtungs-Sweep
 -- (Uebergang zu konfiguriert, in derselben Transaktion wie das Speichern).
--- name: MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert :execrows
+-- name: MarkOffeneTSESignaturauftraegeNichtKonfiguriert :execrows
 UPDATE tse_signaturauftraege
 SET status = 'tse_nicht_konfiguriert'
 WHERE status = 'offen';
@@ -106,7 +106,7 @@ WHERE event_id = $1;
 -- aller noch nicht erledigten Signaturauftraege einer Kassensitzung — die
 -- Grundlage des Kassenabschluss-Gates. Erledigte Auftraege sind irrelevant
 -- (bereits signiert); die vier nicht-erledigten Status ordnet
--- BestimmeSignaturstatus in ausstehend (blockiert) bzw. Ausfall (Rest) ein.
+-- DetermineSignaturstatus in ausstehend (blockiert) bzw. Ausfall (Rest) ein.
 -- name: GetOffeneSignaturauftragStaendeFuerKassensitzung :many
 SELECT a.status, a.erstellt_am
 FROM tse_signaturauftraege a

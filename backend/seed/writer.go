@@ -29,18 +29,18 @@ func Run(ctx context.Context, database *sql.DB) error {
 	}
 
 	fenster := ausfallFensterAus(s, jetzt)
-	auftraege, err := baueSignaturauftraege(daten.Events, fenster)
+	auftraege, err := buildSignaturauftraege(daten.Events, fenster)
 	if err != nil {
 		return fmt.Errorf("fake-tse signieren: %w", err)
 	}
 	stoerungen := stoerungszeitraeumeAus(fenster)
 
-	druckauftraege, err := baueDruckauftraege(s, daten.Events, signaturenNachEventID(auftraege), jetzt)
+	druckauftraege, err := buildDruckauftraege(s, daten.Events, signaturenNachEventID(auftraege), jetzt)
 	if err != nil {
 		return fmt.Errorf("druckaufträge aufbauen: %w", err)
 	}
 
-	if err := schreibeSeed(ctx, database, s, daten, auftraege, stoerungen, druckauftraege, jetzt); err != nil {
+	if err := writeSeed(ctx, database, s, daten, auftraege, stoerungen, druckauftraege, jetzt); err != nil {
 		return err
 	}
 
@@ -52,7 +52,7 @@ func Run(ctx context.Context, database *sql.DB) error {
 	return nil
 }
 
-func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDaten, auftraege []signaturauftragZeile, stoerungen []stoerungZeile, druckauftraege []druckauftragZeile, jetzt time.Time) error {
+func writeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDaten, auftraege []signaturauftragZeile, stoerungen []stoerungZeile, druckauftraege []druckauftragZeile, jetzt time.Time) error {
 	q := dbgen.New(database)
 
 	// Guard: niemals eine Datenbank überschreiben, die bereits Kassenjournal-Events enthält.
@@ -73,22 +73,22 @@ func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedD
 
 	qtx := q.WithTx(tx)
 
-	if err := schreibeStammdaten(ctx, qtx, s, jetzt); err != nil {
+	if err := writeStammdaten(ctx, qtx, s, jetzt); err != nil {
 		return err
 	}
-	if err := schreibeSitzungen(ctx, qtx, daten.Kassensitzungen); err != nil {
+	if err := writeSitzungen(ctx, qtx, daten.Kassensitzungen); err != nil {
 		return err
 	}
-	if err := schreibeEvents(ctx, qtx, daten.Events); err != nil {
+	if err := writeEvents(ctx, qtx, daten.Events); err != nil {
 		return err
 	}
-	if err := schreibeSignaturauftraege(ctx, qtx, auftraege); err != nil {
+	if err := writeSignaturauftraege(ctx, qtx, auftraege); err != nil {
 		return err
 	}
-	if err := schreibeStoerungen(ctx, qtx, stoerungen); err != nil {
+	if err := writeStoerungen(ctx, qtx, stoerungen); err != nil {
 		return err
 	}
-	if err := schreibeDruckauftraege(ctx, qtx, druckauftraege); err != nil {
+	if err := writeDruckauftraege(ctx, qtx, druckauftraege); err != nil {
 		return err
 	}
 	if err := korrigiereSequenzen(ctx, qtx); err != nil {
@@ -102,7 +102,7 @@ func schreibeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedD
 	return nil
 }
 
-func schreibeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt time.Time) error {
+func writeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt time.Time) error {
 	for _, b := range s.Benutzer {
 		err := qtx.SeedInsertUser(ctx, dbgen.SeedInsertUserParams{
 			ID:           b.ID,
@@ -198,7 +198,7 @@ func schreibeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jet
 	return nil
 }
 
-func schreibeSitzungen(ctx context.Context, qtx *dbgen.Queries, sitzungen []kassensitzungZeile) error {
+func writeSitzungen(ctx context.Context, qtx *dbgen.Queries, sitzungen []kassensitzungZeile) error {
 	for _, k := range sitzungen {
 		err := qtx.SeedInsertKassensitzung(ctx, dbgen.SeedInsertKassensitzungParams{
 			ZNr:         k.ZNr,
@@ -216,10 +216,10 @@ func schreibeSitzungen(ctx context.Context, qtx *dbgen.Queries, sitzungen []kass
 	return nil
 }
 
-// schreibeEvents persistiert die Events mit den von der Engine vergebenen IDs — Bondruck-
+// writeEvents persistiert die Events mit den von der Engine vergebenen IDs — Bondruck-
 // Referenzen und Belegnummern verweisen darauf, deshalb läuft der Insert nicht über die
 // Identity-Spalte (Sequenzkorrektur in korrigiereSequenzen).
-func schreibeEvents(ctx context.Context, qtx *dbgen.Queries, events []seedEvent) error {
+func writeEvents(ctx context.Context, qtx *dbgen.Queries, events []seedEvent) error {
 	for i := range events {
 		ev := &events[i]
 		err := qtx.SeedInsertEvent(ctx, dbgen.SeedInsertEventParams{
@@ -241,7 +241,7 @@ func schreibeEvents(ctx context.Context, qtx *dbgen.Queries, events []seedEvent)
 	return nil
 }
 
-func schreibeDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []druckauftragZeile) error {
+func writeDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []druckauftragZeile) error {
 	for i := range auftraege {
 		a := &auftraege[i]
 		err := qtx.SeedInsertDruckauftrag(ctx, dbgen.SeedInsertDruckauftragParams{
@@ -263,9 +263,9 @@ func schreibeDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege [
 	return nil
 }
 
-// schreibeSignaturauftraege persistiert die Signaturaufträge; die Signaturspalten sind nur
+// writeSignaturauftraege persistiert die Signaturaufträge; die Signaturspalten sind nur
 // bei quittierten (erledigten) Aufträgen gefüllt.
-func schreibeSignaturauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []signaturauftragZeile) error {
+func writeSignaturauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []signaturauftragZeile) error {
 	for i := range auftraege {
 		a := &auftraege[i]
 		params := dbgen.SeedInsertTSESignaturauftragParams{
@@ -297,9 +297,9 @@ func schreibeSignaturauftraege(ctx context.Context, qtx *dbgen.Queries, auftraeg
 	return nil
 }
 
-// schreibeStoerungen persistiert die geschlossenen Störungszeiträume der aufgelösten
+// writeStoerungen persistiert die geschlossenen Störungszeiträume der aufgelösten
 // Ausfallfenster (Störungsprotokoll / Ausfalldokumentation).
-func schreibeStoerungen(ctx context.Context, qtx *dbgen.Queries, stoerungen []stoerungZeile) error {
+func writeStoerungen(ctx context.Context, qtx *dbgen.Queries, stoerungen []stoerungZeile) error {
 	for _, st := range stoerungen {
 		err := qtx.SeedInsertTSEStoerung(ctx, dbgen.SeedInsertTSEStoerungParams{
 			Beginn:     st.Beginn,

@@ -45,7 +45,7 @@ func (m *mockSettingsQuery) TestTSEVerbindung(_ context.Context) (tse.Verbindung
 	return m.verbindungStatus, nil
 }
 
-func (m *mockSettingsQuery) PruefeTSESetup(_ context.Context, _ tse.SetupCredentials) (application.TSESetupBefund, error) {
+func (m *mockSettingsQuery) CheckTSESetup(_ context.Context, _ tse.SetupCredentials) (application.TSESetupBefund, error) {
 	if m.setupErr != nil {
 		return application.TSESetupBefund{}, m.setupErr
 	}
@@ -227,7 +227,7 @@ func TestTestTSEVerbindungHandler_VerbindungFehlgeschlagen(t *testing.T) {
 	}
 }
 
-func TestPruefeTSESetupHandler_Success(t *testing.T) {
+func TestCheckTSESetupHandler_Success(t *testing.T) {
 	h := &QueryHandler{Query: &mockSettingsQuery{setupBefund: application.TSESetupBefund{
 		Umgebung: "TEST",
 		VorhandeneTSS: []application.TSSBefund{
@@ -248,7 +248,7 @@ func TestPruefeTSESetupHandler_Success(t *testing.T) {
 		strings.NewReader(`{"apiKey":"api-key","apiSecret":"api-secret"}`))
 	rec := httptest.NewRecorder()
 
-	h.PruefeTSESetupHandler().ServeHTTP(rec, req)
+	h.CheckTSESetupHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", rec.Code)
@@ -283,14 +283,14 @@ func TestPruefeTSESetupHandler_Success(t *testing.T) {
 	}
 }
 
-func TestPruefeTSESetupHandler_FalscheZugangsdaten(t *testing.T) {
+func TestCheckTSESetupHandler_FalscheZugangsdaten(t *testing.T) {
 	h := &QueryHandler{Query: &mockSettingsQuery{setupErr: application.ErrTSESetupZugangsdaten}}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-setup-pruefen",
 		strings.NewReader(`{"apiKey":"wrong","apiSecret":"wrong"}`))
 	rec := httptest.NewRecorder()
 
-	h.PruefeTSESetupHandler().ServeHTTP(rec, req)
+	h.CheckTSESetupHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", rec.Code)
@@ -307,14 +307,14 @@ func TestPruefeTSESetupHandler_FalscheZugangsdaten(t *testing.T) {
 	}
 }
 
-func TestPruefeTSESetupHandler_ValidationError(t *testing.T) {
+func TestCheckTSESetupHandler_ValidationError(t *testing.T) {
 	h := &QueryHandler{Query: &mockSettingsQuery{}}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-setup-pruefen",
 		strings.NewReader(`{"apiKey":"","apiSecret":""}`))
 	rec := httptest.NewRecorder()
 
-	h.PruefeTSESetupHandler().ServeHTTP(rec, req)
+	h.CheckTSESetupHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", rec.Code)

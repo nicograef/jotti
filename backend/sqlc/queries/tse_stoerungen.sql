@@ -1,15 +1,15 @@
--- OeffneTSEStoerung oeffnet einen Stoerungszeitraum im Stoerungsprotokoll.
+-- OpenTSEStoerung oeffnet einen Stoerungszeitraum im Stoerungsprotokoll.
 -- Der partielle Unique-Index (hoechstens eine Zeile mit ende IS NULL) macht
 -- das Oeffnen idempotent: Bei aktivem Zeitraum ist es ein No-Op.
--- name: OeffneTSEStoerung :exec
+-- name: OpenTSEStoerung :exec
 INSERT INTO tse_stoerungen (beginn, grund_art, fehlertext)
 VALUES (NOW(), $1, $2)
 ON CONFLICT DO NOTHING;
 
--- SchliesseTSEStoerung beendet den aktiven Stoerungszeitraum, falls er die
+-- CloseTSEStoerung beendet den aktiven Stoerungszeitraum, falls er die
 -- Grund-Art des Schreibers traegt (jeder Schreiber schliesst nur Zeitraeume
 -- seiner Grund-Art); sonst ein No-Op.
--- name: SchliesseTSEStoerung :exec
+-- name: CloseTSEStoerung :exec
 UPDATE tse_stoerungen
 SET ende = NOW()
 WHERE ende IS NULL AND grund_art = $1;

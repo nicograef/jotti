@@ -32,13 +32,13 @@ func (a druckauftragRepoRelayAdapter) GetOffeneDruckauftraege(ctx context.Contex
 	return result, nil
 }
 
-func (a druckauftragRepoRelayAdapter) MeldeDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []relayHTTP.Fehlversuch) error {
+func (a druckauftragRepoRelayAdapter) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []relayHTTP.Fehlversuch) error {
 	repoFehlversuche := make([]druckauftrag_repo.Fehlversuch, 0, len(fehlversuche))
 	for _, f := range fehlversuche {
 		repoFehlversuche = append(repoFehlversuche, druckauftrag_repo.Fehlversuch{ID: f.ID, Fehler: f.Fehler})
 	}
 
-	return a.repo.MeldeDruckergebnis(ctx, gedruckteIDs, repoFehlversuche)
+	return a.repo.ReportDruckergebnis(ctx, gedruckteIDs, repoFehlversuche)
 }
 
 func NewRelayApi(deps Deps, relayToken string) http.Handler {

@@ -65,7 +65,7 @@ func (c Command) checkSignaturGate(ctx context.Context, kassensitzungNr int) (si
 
 	var gate signaturGate
 	for _, stand := range staende {
-		ergebnis := tse.BestimmeSignaturstatus(stand, aktiveStoerung)
+		ergebnis := tse.DetermineSignaturstatus(stand, aktiveStoerung)
 		switch ergebnis.Status {
 		case tse.SignaturstatusAusstehend:
 			if gate.ausstehendAnzahl == 0 || stand.ErstelltAm.Before(gate.aeltesterAusstehend) {

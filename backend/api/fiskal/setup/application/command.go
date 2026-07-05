@@ -9,7 +9,7 @@ import (
 )
 
 type tseCommandRepo interface {
-	SpeichereEinrichtung(ctx context.Context, c tse.Konfiguration) error
+	SaveEinrichtung(ctx context.Context, c tse.Konfiguration) error
 	UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error
 	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
 }
@@ -27,10 +27,10 @@ type Command struct {
 	NewTSESetupClient   NewTSESetupClient
 }
 
-// pruefeKeineOffeneKassensitzung lehnt eine TSE-Konfigurationsaenderung ab,
+// ensureKeineOffeneKassensitzung lehnt eine TSE-Konfigurationsaenderung ab,
 // solange eine Kassensitzung offen ist (gemeinsamer Guard aller drei
 // Aenderungspfade: Neuanlage, Uebernahme, Zugangsdaten-Wechsel).
-func (c Command) pruefeKeineOffeneKassensitzung(ctx context.Context) error {
+func (c Command) ensureKeineOffeneKassensitzung(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 
 	offene, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
@@ -47,15 +47,15 @@ func (c Command) pruefeKeineOffeneKassensitzung(ctx context.Context) error {
 func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfiguration) error {
 	log := zerolog.Ctx(ctx)
 
-	if err := c.pruefeKeineOffeneKassensitzung(ctx); err != nil {
+	if err := c.ensureKeineOffeneKassensitzung(ctx); err != nil {
 		return err
 	}
 
-	// Auch der direkte Zugangsdaten-Pfad speichert ueber SpeichereEinrichtung:
+	// Auch der direkte Zugangsdaten-Pfad speichert ueber SaveEinrichtung:
 	// Fuehrt er den Uebergang zu konfiguriert aus, laufen Einrichtungs-Sweep und
 	// das Schliessen des keine_konfiguration-Stoerungszeitraums in derselben
 	// Transaktion — sonst bliebe der Zeitraum fuer immer offen.
-	if err := c.TSERepo.SpeichereEinrichtung(ctx, conf); err != nil {
+	if err := c.TSERepo.SaveEinrichtung(ctx, conf); err != nil {
 		log.Error().Err(err).Msg("Failed to save tse_konfiguration")
 		return ErrDatabase
 	}

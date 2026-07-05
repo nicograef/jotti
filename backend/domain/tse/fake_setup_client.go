@@ -29,22 +29,22 @@ type FakeSetupClient struct {
 	ClientsByTSS     map[string][]ClientInfo
 	ClientsErr       error
 
-	CreateTSSResponse    TSSErstellt
-	CreateTSSErr         error
-	HoleAdminPUKResponse string
-	HoleAdminPUKErr      error
-	StammdatenResponse   TSSStammdaten
-	StammdatenErr        error
-	PersonalisiereErr    error
-	SetzeAdminPINErr     error
-	AuthAdminErr         error
-	InitialisiereErr     error
-	RegistriereErr       error
-	ReaktiviereErr       error
+	CreateTSSResponse   TSSErstellt
+	CreateTSSErr        error
+	GetAdminPUKResponse string
+	GetAdminPUKErr      error
+	StammdatenResponse  TSSStammdaten
+	StammdatenErr       error
+	PersonalisiereErr   error
+	SetAdminPINErr      error
+	AuthAdminErr        error
+	InitialisiereErr    error
+	RegistriereErr      error
+	ReaktiviereErr      error
 
 	// Aufzeichnung fuer Assertions.
 	CreateTSSCalls      int
-	HoleAdminPUKCalls   int
+	GetAdminPUKCalls    int
 	StammdatenCalls     int
 	StammdatenTssID     string
 	AuthAdminCalls      int
@@ -88,21 +88,21 @@ func (f *FakeSetupClient) CreateTSS(context.Context) (TSSErstellt, error) {
 	return f.CreateTSSResponse, nil
 }
 
-func (f *FakeSetupClient) HoleAdminPUK(context.Context, string) (string, error) {
-	f.HoleAdminPUKCalls++
-	if f.HoleAdminPUKErr != nil {
-		return "", f.HoleAdminPUKErr
+func (f *FakeSetupClient) GetAdminPUK(context.Context, string) (string, error) {
+	f.GetAdminPUKCalls++
+	if f.GetAdminPUKErr != nil {
+		return "", f.GetAdminPUKErr
 	}
-	return f.HoleAdminPUKResponse, nil
+	return f.GetAdminPUKResponse, nil
 }
 
 func (f *FakeSetupClient) PersonalisiereTSS(context.Context, string) error {
 	return f.PersonalisiereErr
 }
 
-func (f *FakeSetupClient) SetzeAdminPIN(_ context.Context, _, puk, pin string) error {
-	if f.SetzeAdminPINErr != nil {
-		return f.SetzeAdminPINErr
+func (f *FakeSetupClient) SetAdminPIN(_ context.Context, _, puk, pin string) error {
+	if f.SetAdminPINErr != nil {
+		return f.SetAdminPINErr
 	}
 	f.GesetzteAdminPIN = pin
 	f.GesetzterAdminPUK = puk

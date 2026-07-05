@@ -65,7 +65,7 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 	if err := setupClient.PersonalisiereTSS(ctx, erstellt.ID); err != nil {
 		t.Fatalf("personalize failed: %v", err)
 	}
-	if err := setupClient.SetzeAdminPIN(ctx, erstellt.ID, erstellt.PUK, pin); err != nil {
+	if err := setupClient.SetAdminPIN(ctx, erstellt.ID, erstellt.PUK, pin); err != nil {
 		t.Fatalf("set admin pin failed: %v", err)
 	}
 	if err := setupClient.AuthentifiziereAdmin(ctx, erstellt.ID, pin); err != nil {

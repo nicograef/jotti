@@ -16,8 +16,8 @@ const rueckstandFehlertext = "Signaturaufträge im Rückstand: der älteste offe
 
 type rueckstandStore interface {
 	GetAeltesterOffenerTSESignaturauftrag(ctx context.Context) (*time.Time, error)
-	OeffneTSEStoerung(ctx context.Context, grundArt string, fehlertext string) error
-	SchliesseTSEStoerung(ctx context.Context, grundArt string) error
+	OpenTSEStoerung(ctx context.Context, grundArt string, fehlertext string) error
+	CloseTSEStoerung(ctx context.Context, grundArt string) error
 }
 
 // tseRueckstandWatchdog dokumentiert Signatur-Rueckstaende im
@@ -58,24 +58,24 @@ func (w *tseRueckstandWatchdog) Run(ctx context.Context) {
 		case <-ticker.C:
 		}
 
-		if err := w.pruefeRueckstand(ctx); err != nil {
+		if err := w.checkRueckstand(ctx); err != nil {
 			log.Error().Err(err).Msg("TSE-Rückstands-Watchdog Durchlauf fehlgeschlagen")
 		}
 	}
 }
 
-// pruefeRueckstand oeffnet den Rueckstands-Zeitraum, sobald der aelteste
+// checkRueckstand oeffnet den Rueckstands-Zeitraum, sobald der aelteste
 // offene Auftrag die Rueckstands-Schwelle erreicht, und schliesst ihn, sobald
 // der Rueckstand abgebaut ist. Beide Schritte sind idempotent; der Watchdog
 // schliesst nur Zeitraeume seiner Grund-Art.
-func (w *tseRueckstandWatchdog) pruefeRueckstand(ctx context.Context) error {
+func (w *tseRueckstandWatchdog) checkRueckstand(ctx context.Context) error {
 	aeltester, err := w.store.GetAeltesterOffenerTSESignaturauftrag(ctx)
 	if err != nil {
 		return err
 	}
 
 	if aeltester != nil && w.now().Sub(*aeltester) >= tse.RueckstandSchwelle {
-		return w.store.OeffneTSEStoerung(ctx, tse.StoerungGrundRueckstand, rueckstandFehlertext)
+		return w.store.OpenTSEStoerung(ctx, tse.StoerungGrundRueckstand, rueckstandFehlertext)
 	}
-	return w.store.SchliesseTSEStoerung(ctx, tse.StoerungGrundRueckstand)
+	return w.store.CloseTSEStoerung(ctx, tse.StoerungGrundRueckstand)
 }

@@ -64,8 +64,8 @@ func (h *QueryHandler) GetFehlgeschlageneDruckauftraegeHandler() http.HandlerFun
 // --- Command Handler ---
 
 type druckauftragCommand interface {
-	DruckauftragErneutVersuchen(ctx context.Context, id int) error
-	DruckauftragVerwerfen(ctx context.Context, id int) error
+	RetryDruckauftrag(ctx context.Context, id int) error
+	DiscardDruckauftrag(ctx context.Context, id int) error
 }
 
 type CommandHandler struct {
@@ -81,14 +81,14 @@ var druckauftragSchema = z.Struct(z.Shape{
 })
 
 // POST /admin/druckauftrag-erneut-versuchen
-func (h *CommandHandler) DruckauftragErneutVersuchenHandler() http.HandlerFunc {
+func (h *CommandHandler) RetryDruckauftragHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body druckauftragRequest
 		if !helper.ReadAndValidateBody(w, r, &body, druckauftragSchema) {
 			return
 		}
 
-		if err := h.Command.DruckauftragErneutVersuchen(r.Context(), body.ID); err != nil {
+		if err := h.Command.RetryDruckauftrag(r.Context(), body.ID); err != nil {
 			helper.SendServerError(w)
 			return
 		}
@@ -98,14 +98,14 @@ func (h *CommandHandler) DruckauftragErneutVersuchenHandler() http.HandlerFunc {
 }
 
 // POST /admin/druckauftrag-verwerfen
-func (h *CommandHandler) DruckauftragVerwerfenHandler() http.HandlerFunc {
+func (h *CommandHandler) DiscardDruckauftragHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body druckauftragRequest
 		if !helper.ReadAndValidateBody(w, r, &body, druckauftragSchema) {
 			return
 		}
 
-		if err := h.Command.DruckauftragVerwerfen(r.Context(), body.ID); err != nil {
+		if err := h.Command.DiscardDruckauftrag(r.Context(), body.ID); err != nil {
 			helper.SendServerError(w)
 			return
 		}

@@ -38,9 +38,9 @@ func buildSignierteDaten(t *testing.T) (seedDaten, []ausfallFenster, []signatura
 		t.Fatalf("buildSeedDaten: %v", err)
 	}
 	fenster := ausfallFensterAus(s, testJetzt)
-	auftraege, err := baueSignaturauftraege(daten.Events, fenster)
+	auftraege, err := buildSignaturauftraege(daten.Events, fenster)
 	if err != nil {
-		t.Fatalf("baueSignaturauftraege: %v", err)
+		t.Fatalf("buildSignaturauftraege: %v", err)
 	}
 	return daten, fenster, auftraege
 }

@@ -114,13 +114,13 @@ func (r Repository) TSESignaturauftragFehlversuch(ctx context.Context, auftragID
 	}))
 }
 
-// MarkiereOffeneAlsNichtKonfiguriert markiert alle offenen Auftraege endgueltig
+// MarkOffeneAlsNichtKonfiguriert markiert alle offenen Auftraege endgueltig
 // als tse_nicht_konfiguriert und liefert die Anzahl markierter Auftraege. Ohne
 // vorhandene TSE-Konfiguration gibt es keine Signatur; ein Nachsignieren ist
 // ausgeschlossen (keine Fehlversuche, keine automatische Wiederaufnahme).
 // Bereits endgueltig markierte Auftraege bleiben unberuehrt.
-func (r Repository) MarkiereOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, error) {
-	n, err := r.q.MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert(ctx)
+func (r Repository) MarkOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, error) {
+	n, err := r.q.MarkOffeneTSESignaturauftraegeNichtKonfiguriert(ctx)
 	if err != nil {
 		return 0, db.Error(err)
 	}
@@ -201,7 +201,7 @@ func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) 
 // GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Staende
 // aller noch nicht erledigten Signaturauftraege der Kassensitzung — die
 // Grundlage des Kassenabschluss-Gates. Erledigte Auftraege bleiben aussen vor
-// (bereits signiert); das Gate ordnet die Staende ueber BestimmeSignaturstatus
+// (bereits signiert); das Gate ordnet die Staende ueber DetermineSignaturstatus
 // in ausstehend bzw. Ausfall ein.
 func (r Repository) GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]tse.SignaturauftragStand, error) {
 	rows, err := r.q.GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx, kassensitzungNr)
@@ -230,21 +230,21 @@ func (r Repository) GetAeltesterOffenerTSESignaturauftrag(ctx context.Context) (
 	return &erstelltAm, nil
 }
 
-// OeffneTSEStoerung oeffnet einen Stoerungszeitraum im Stoerungsprotokoll.
+// OpenTSEStoerung oeffnet einen Stoerungszeitraum im Stoerungsprotokoll.
 // Idempotent: Solange irgendein Zeitraum aktiv ist, ist das Oeffnen ein No-Op
 // (hoechstens ein aktiver Zeitraum, DB-seitig per partiellem Unique-Index).
-func (r Repository) OeffneTSEStoerung(ctx context.Context, grundArt string, fehlertext string) error {
-	return db.Error(r.q.OeffneTSEStoerung(ctx, dbgen.OeffneTSEStoerungParams{
+func (r Repository) OpenTSEStoerung(ctx context.Context, grundArt string, fehlertext string) error {
+	return db.Error(r.q.OpenTSEStoerung(ctx, dbgen.OpenTSEStoerungParams{
 		GrundArt:   grundArt,
 		Fehlertext: fehlertext,
 	}))
 }
 
-// SchliesseTSEStoerung beendet den aktiven Stoerungszeitraum der Grund-Art;
+// CloseTSEStoerung beendet den aktiven Stoerungszeitraum der Grund-Art;
 // jeder Schreiber schliesst nur Zeitraeume seiner Grund-Art. Idempotent: Ohne
 // aktiven Zeitraum der Art ein No-Op.
-func (r Repository) SchliesseTSEStoerung(ctx context.Context, grundArt string) error {
-	return db.Error(r.q.SchliesseTSEStoerung(ctx, grundArt))
+func (r Repository) CloseTSEStoerung(ctx context.Context, grundArt string) error {
+	return db.Error(r.q.CloseTSEStoerung(ctx, grundArt))
 }
 
 // GetAktiveTSEStoerung liefert den aktiven Stoerungszeitraum; nil, wenn keine

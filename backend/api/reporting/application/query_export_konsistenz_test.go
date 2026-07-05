@@ -73,7 +73,7 @@ func centsAusExportBetrag(t *testing.T, betrag string) int {
 }
 
 // Gemeinsamer Testfall für die B9-Invariante: Die USt-Aufschlüsselung des
-// Reportings (berechneUmsatzProSteuersatz auf den Brutto-Positionszeilen)
+// Reportings (computeUmsatzProSteuersatz auf den Brutto-Positionszeilen)
 // muss für dieselbe Sitzung exakt die Summen der businesscases.csv des
 // DSFinV-K-Exports ergeben — mit Kombi-Positionen, Warenrücknahme,
 // Teilzahlungen und Direktverkauf inkl. Storno. Die krummen Beträge sind
@@ -151,7 +151,7 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 	addZeilen(direktverkauf.Positionen, 1)
 	addZeilen(direktverkaufStorno.Positionen, -1)
 
-	aufschluesselung := berechneUmsatzProSteuersatz(zeilen)
+	aufschluesselung := computeUmsatzProSteuersatz(zeilen)
 
 	// Export-Seite: businesscases.csv derselben Events, summiert je UST_SCHLUESSEL.
 	snapshot := dsfinvk.Snapshot{

@@ -29,12 +29,12 @@ type mockDruckauftragCommand struct {
 	err       error
 }
 
-func (m *mockDruckauftragCommand) DruckauftragErneutVersuchen(_ context.Context, id int) error {
+func (m *mockDruckauftragCommand) RetryDruckauftrag(_ context.Context, id int) error {
 	m.erneutID = id
 	return m.err
 }
 
-func (m *mockDruckauftragCommand) DruckauftragVerwerfen(_ context.Context, id int) error {
+func (m *mockDruckauftragCommand) DiscardDruckauftrag(_ context.Context, id int) error {
 	m.verworfen = id
 	return m.err
 }
@@ -103,11 +103,11 @@ func TestGetFehlgeschlageneDruckauftraegeHandler_EmptyList(t *testing.T) {
 	}
 }
 
-func TestDruckauftragErneutVersuchenHandler_Success(t *testing.T) {
+func TestRetryDruckauftragHandler_Success(t *testing.T) {
 	cmd := &mockDruckauftragCommand{}
 	handler := &CommandHandler{Command: cmd}
 
-	rec := postJSON(t, handler.DruckauftragErneutVersuchenHandler(), "/admin/druckauftrag-erneut-versuchen", `{"id":42}`)
+	rec := postJSON(t, handler.RetryDruckauftragHandler(), "/admin/druckauftrag-erneut-versuchen", `{"id":42}`)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
@@ -117,11 +117,11 @@ func TestDruckauftragErneutVersuchenHandler_Success(t *testing.T) {
 	}
 }
 
-func TestDruckauftragVerwerfenHandler_Success(t *testing.T) {
+func TestDiscardDruckauftragHandler_Success(t *testing.T) {
 	cmd := &mockDruckauftragCommand{}
 	handler := &CommandHandler{Command: cmd}
 
-	rec := postJSON(t, handler.DruckauftragVerwerfenHandler(), "/admin/druckauftrag-verwerfen", `{"id":42}`)
+	rec := postJSON(t, handler.DiscardDruckauftragHandler(), "/admin/druckauftrag-verwerfen", `{"id":42}`)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
@@ -134,8 +134,8 @@ func TestDruckauftragVerwerfenHandler_Success(t *testing.T) {
 func TestDruckauftragCommandHandlers_RejectInvalidID(t *testing.T) {
 	cmd := &mockDruckauftragCommand{}
 	handlers := map[string]http.HandlerFunc{
-		"erneut-versuchen": (&CommandHandler{Command: cmd}).DruckauftragErneutVersuchenHandler(),
-		"verwerfen":        (&CommandHandler{Command: cmd}).DruckauftragVerwerfenHandler(),
+		"erneut-versuchen": (&CommandHandler{Command: cmd}).RetryDruckauftragHandler(),
+		"verwerfen":        (&CommandHandler{Command: cmd}).DiscardDruckauftragHandler(),
 	}
 
 	for name, handler := range handlers {

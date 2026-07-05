@@ -109,7 +109,7 @@ func gueltigeKonfiguration(t *testing.T, tssID string) tse.Konfiguration {
 // markiert in derselben Transaktion die noch offenen, vor-konfigurationellen
 // Auftraege endgueltig als tse_nicht_konfiguriert und schliesst den
 // keine_konfiguration-Stoerungszeitraum.
-func TestSpeichereEinrichtung_UebergangSweeptOffeneUndSchliesstStoerung(t *testing.T) {
+func TestSaveEinrichtung_UebergangSweeptOffeneUndSchliesstStoerung(t *testing.T) {
 	repo, umgebung, teardown := setupEinrichtung(t)
 	defer teardown(t)
 	ctx := context.Background()
@@ -122,8 +122,8 @@ func TestSpeichereEinrichtung_UebergangSweeptOffeneUndSchliesstStoerung(t *testi
 		t.Fatalf("open stoerung: %v", err)
 	}
 
-	if err := repo.SpeichereEinrichtung(ctx, gueltigeKonfiguration(t, "tss-neu")); err != nil {
-		t.Fatalf("SpeichereEinrichtung: %v", err)
+	if err := repo.SaveEinrichtung(ctx, gueltigeKonfiguration(t, "tss-neu")); err != nil {
+		t.Fatalf("SaveEinrichtung: %v", err)
 	}
 
 	conf, err := repo.GetTSEKonfiguration(ctx)
@@ -155,21 +155,21 @@ func TestSpeichereEinrichtung_UebergangSweeptOffeneUndSchliesstStoerung(t *testi
 // War die TSE schon vorher konfiguriert (durchgehend vorhandene Konfiguration),
 // bleibt es beim reinen Speichern: laufende offene Auftraege werden nie
 // versehentlich als nicht konfiguriert markiert.
-func TestSpeichereEinrichtung_DurchgehendKonfiguriertSweeptNicht(t *testing.T) {
+func TestSaveEinrichtung_DurchgehendKonfiguriertSweeptNicht(t *testing.T) {
 	repo, umgebung, teardown := setupEinrichtung(t)
 	defer teardown(t)
 	ctx := context.Background()
 
 	// TSE ist bereits konfiguriert.
-	if err := repo.SpeichereEinrichtung(ctx, gueltigeKonfiguration(t, "tss-alt")); err != nil {
+	if err := repo.SaveEinrichtung(ctx, gueltigeKonfiguration(t, "tss-alt")); err != nil {
 		t.Fatalf("initial konfiguration: %v", err)
 	}
 	offenID := umgebung.insertOffenerAuftrag(t, "tx-laufend")
 
 	// Erneutes Speichern (etwa Uebernahme bei bereits konfigurierter TSE) darf
 	// den laufenden Auftrag nicht antasten.
-	if err := repo.SpeichereEinrichtung(ctx, gueltigeKonfiguration(t, "tss-neu")); err != nil {
-		t.Fatalf("SpeichereEinrichtung: %v", err)
+	if err := repo.SaveEinrichtung(ctx, gueltigeKonfiguration(t, "tss-neu")); err != nil {
+		t.Fatalf("SaveEinrichtung: %v", err)
 	}
 
 	if s := umgebung.status(t, offenID); s != tse.StatusOffen {
@@ -188,7 +188,7 @@ func TestSpeichereEinrichtung_DurchgehendKonfiguriertSweeptNicht(t *testing.T) {
 // Zugangsdaten-Endpunkt) ist kein Uebergang zu konfiguriert: Es sweept nichts
 // und schliesst keinen keine_konfiguration-Stoerungszeitraum — der
 // Dauerzustand ohne Konfiguration gehoert dem Signatur-Worker.
-func TestSpeichereEinrichtung_LeereKonfigurationSweeptNicht(t *testing.T) {
+func TestSaveEinrichtung_LeereKonfigurationSweeptNicht(t *testing.T) {
 	repo, umgebung, teardown := setupEinrichtung(t)
 	defer teardown(t)
 	ctx := context.Background()
@@ -204,8 +204,8 @@ func TestSpeichereEinrichtung_LeereKonfigurationSweeptNicht(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build leere konfiguration: %v", err)
 	}
-	if err := repo.SpeichereEinrichtung(ctx, leer); err != nil {
-		t.Fatalf("SpeichereEinrichtung: %v", err)
+	if err := repo.SaveEinrichtung(ctx, leer); err != nil {
+		t.Fatalf("SaveEinrichtung: %v", err)
 	}
 
 	if s := umgebung.status(t, offenID); s != tse.StatusOffen {

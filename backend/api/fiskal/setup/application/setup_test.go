@@ -27,7 +27,7 @@ func (s *stubCommandRepo) GetKassenidentitaet(context.Context) (tse.Kassenidenti
 	return s.identitaet, nil
 }
 
-func (s *stubCommandRepo) SpeichereEinrichtung(_ context.Context, c tse.Konfiguration) error {
+func (s *stubCommandRepo) SaveEinrichtung(_ context.Context, c tse.Konfiguration) error {
 	if s.upsertErr != nil {
 		return s.upsertErr
 	}
@@ -306,9 +306,9 @@ func TestUebernimmTSE_WiederaufnahmeCreated(t *testing.T) {
 	seriennummer := uuid.New()
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
 	client := &tse.FakeSetupClient{
-		UmgebungResponse:     tse.UmgebungTest,
-		TSSResponse:          []tse.TSSInfo{{ID: "tss-halb", State: "CREATED"}},
-		HoleAdminPUKResponse: "puk-refetch",
+		UmgebungResponse:    tse.UmgebungTest,
+		TSSResponse:         []tse.TSSInfo{{ID: "tss-halb", State: "CREATED"}},
+		GetAdminPUKResponse: "puk-refetch",
 	}
 
 	ergebnis, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-halb", "", "")
@@ -318,8 +318,8 @@ func TestUebernimmTSE_WiederaufnahmeCreated(t *testing.T) {
 	if client.CreateTSSCalls != 0 {
 		t.Fatalf("expected no new TSS to be created on resume, got %d calls", client.CreateTSSCalls)
 	}
-	if client.HoleAdminPUKCalls != 1 {
-		t.Fatalf("expected the puk to be refetched once, got %d calls", client.HoleAdminPUKCalls)
+	if client.GetAdminPUKCalls != 1 {
+		t.Fatalf("expected the puk to be refetched once, got %d calls", client.GetAdminPUKCalls)
 	}
 	if ergebnis.PUK != "puk-refetch" || ergebnis.AdminPIN == "" {
 		t.Fatalf("expected refetched puk and a fresh pin, got %+v", ergebnis)
@@ -350,8 +350,8 @@ func TestUebernimmTSE_WiederaufnahmeUninitialized(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.HoleAdminPUKCalls != 0 {
-		t.Fatalf("expected no puk refetch from UNINITIALIZED, got %d calls", client.HoleAdminPUKCalls)
+	if client.GetAdminPUKCalls != 0 {
+		t.Fatalf("expected no puk refetch from UNINITIALIZED, got %d calls", client.GetAdminPUKCalls)
 	}
 	if client.AuthentifiziertePIN != "1234567890" {
 		t.Fatalf("expected the entered pin to be used for admin auth, got %q", client.AuthentifiziertePIN)
@@ -638,7 +638,7 @@ func TestUebernimmTSE_PINResetFalscherPUK(t *testing.T) {
 	client := &tse.FakeSetupClient{
 		UmgebungResponse: tse.UmgebungTest,
 		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
-		SetzeAdminPINErr: tse.ErrSetupAuthFehlgeschlagen,
+		SetAdminPINErr:   tse.ErrSetupAuthFehlgeschlagen,
 	}
 
 	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "puk-falsch")
@@ -664,7 +664,7 @@ func TestUebernimmTSE_UmgebungAbweichung(t *testing.T) {
 	if !errors.Is(err, ErrTSESetupUmgebungAbweichung) {
 		t.Fatalf("expected ErrTSESetupUmgebungAbweichung, got %v", err)
 	}
-	if client.HoleAdminPUKCalls != 0 || repo.gespeichert != nil {
+	if client.GetAdminPUKCalls != 0 || repo.gespeichert != nil {
 		t.Fatal("expected no operations on environment mismatch")
 	}
 }
@@ -710,9 +710,9 @@ func stammdatenAntwort() tse.TSSStammdaten {
 	}
 }
 
-// pruefeStammdaten vergleicht die gespeicherten Stammdaten mit der erwarteten
+// checkStammdaten vergleicht die gespeicherten Stammdaten mit der erwarteten
 // fiskaly-Antwort (ohne den serverseitig gesetzten Zeitstempel).
-func pruefeStammdaten(t *testing.T, gespeichert *tse.Stammdaten, erwartet tse.TSSStammdaten) {
+func checkStammdaten(t *testing.T, gespeichert *tse.Stammdaten, erwartet tse.TSSStammdaten) {
 	t.Helper()
 	if gespeichert == nil {
 		t.Fatal("expected the tse stammdaten to be persisted")
@@ -743,7 +743,7 @@ func TestRichteTSEEin_PersistiertStammdaten(t *testing.T) {
 	if client.StammdatenCalls != 1 || client.StammdatenTssID != "tss-neu" {
 		t.Fatalf("expected stammdaten to be fetched once for the new TSS, got %d calls for %q", client.StammdatenCalls, client.StammdatenTssID)
 	}
-	pruefeStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
+	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
 }
 
 // TestUebernimmTSE_EinsatzbereitPersistiertStammdaten sichert, dass die
@@ -773,7 +773,7 @@ func TestUebernimmTSE_EinsatzbereitPersistiertStammdaten(t *testing.T) {
 	if client.StammdatenCalls != 1 || client.StammdatenTssID != "tss-init" {
 		t.Fatalf("expected stammdaten to be fetched once for the adopted TSS, got %d calls for %q", client.StammdatenCalls, client.StammdatenTssID)
 	}
-	pruefeStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
+	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
 }
 
 // TestUebernimmTSE_PINResetPersistiertStammdaten sichert, dass auch der
@@ -790,7 +790,7 @@ func TestUebernimmTSE_PINResetPersistiertStammdaten(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	pruefeStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
+	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
 }
 
 // TestRichteTSEEin_StammdatenAbrufFehlerKipptSetupNicht sichert die

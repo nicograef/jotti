@@ -24,14 +24,14 @@ func buildDruckDaten(t *testing.T) (szenario, seedDaten, map[int]*tse.Signatur, 
 	if err != nil {
 		t.Fatalf("buildSeedDaten: %v", err)
 	}
-	signaturauftraege, err := baueSignaturauftraege(daten.Events, ausfallFensterAus(s, testJetzt))
+	signaturauftraege, err := buildSignaturauftraege(daten.Events, ausfallFensterAus(s, testJetzt))
 	if err != nil {
-		t.Fatalf("baueSignaturauftraege: %v", err)
+		t.Fatalf("buildSignaturauftraege: %v", err)
 	}
 	signaturen := signaturenNachEventID(signaturauftraege)
-	auftraege, err := baueDruckauftraege(s, daten.Events, signaturen, testJetzt)
+	auftraege, err := buildDruckauftraege(s, daten.Events, signaturen, testJetzt)
 	if err != nil {
-		t.Fatalf("baueDruckauftraege: %v", err)
+		t.Fatalf("buildDruckauftraege: %v", err)
 	}
 	return s, daten, signaturen, auftraege
 }
@@ -204,7 +204,7 @@ func TestBaueDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 			}
 		}
 
-		beleg, ok := findeKassenbeleg(auftraege, evt)
+		beleg, ok := findKassenbeleg(auftraege, evt)
 		if !ok {
 			continue
 		}
@@ -264,7 +264,7 @@ func TestKassenbeleg_OhneSignaturKeinDruckauftrag(t *testing.T) {
 		t.Fatal("kein unsignierter Zahlungs- oder Direktverkaufs-Vorgang im Szenario")
 	}
 
-	b := &bondruckBauer{signaturen: signaturen}
+	b := &bondruckBuilder{signaturen: signaturen}
 	if _, ok, err := b.kassenbeleg(*unsigniert); err != nil {
 		t.Fatalf("kassenbeleg: %v", err)
 	} else if ok {
@@ -272,8 +272,8 @@ func TestKassenbeleg_OhneSignaturKeinDruckauftrag(t *testing.T) {
 	}
 }
 
-// findeKassenbeleg sucht den Kassenbeleg-Druckauftrag zu einem Event.
-func findeKassenbeleg(auftraege []druckauftragZeile, evt e.Event) (druckauftragZeile, bool) {
+// findKassenbeleg sucht den Kassenbeleg-Druckauftrag zu einem Event.
+func findKassenbeleg(auftraege []druckauftragZeile, evt e.Event) (druckauftragZeile, bool) {
 	typ := strings.TrimSuffix(evt.Type, ":v1")
 	for _, a := range auftraege {
 		if a.BonArt == "kassenbeleg" && a.Referenz == typ+":"+strconv.Itoa(evt.ID) {

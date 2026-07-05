@@ -43,7 +43,7 @@ type mockTSESignaturStore struct {
 	fehlversuche   []fehlversuch
 	geoeffnet      []string // Grund-Arten der geoeffneten Stoerungszeitraeume
 	geschlossen    []string // Grund-Arten der geschlossenen Stoerungszeitraeume
-	markiertCalls  int      // Aufrufe von MarkiereOffeneAlsNichtKonfiguriert
+	markiertCalls  int      // Aufrufe von MarkOffeneAlsNichtKonfiguriert
 	markiertAnzahl int64    // Rueckgabe (Anzahl markierter Auftraege)
 	getErr         error
 	quittiereErr   error
@@ -83,21 +83,21 @@ func (m *mockTSESignaturStore) TSESignaturauftragFehlversuch(_ context.Context, 
 	return nil
 }
 
-func (m *mockTSESignaturStore) MarkiereOffeneAlsNichtKonfiguriert(_ context.Context) (int64, error) {
+func (m *mockTSESignaturStore) MarkOffeneAlsNichtKonfiguriert(_ context.Context) (int64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.markiertCalls++
 	return m.markiertAnzahl, nil
 }
 
-func (m *mockTSESignaturStore) OeffneTSEStoerung(_ context.Context, grundArt string, _ string) error {
+func (m *mockTSESignaturStore) OpenTSEStoerung(_ context.Context, grundArt string, _ string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.geoeffnet = append(m.geoeffnet, grundArt)
 	return nil
 }
 
-func (m *mockTSESignaturStore) SchliesseTSEStoerung(_ context.Context, grundArt string) error {
+func (m *mockTSESignaturStore) CloseTSEStoerung(_ context.Context, grundArt string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.geschlossen = append(m.geschlossen, grundArt)
@@ -114,7 +114,7 @@ func configuredTSE() tse.Konfiguration {
 	}
 }
 
-func neuerWorkerClient(fake tse.FakeClient) tseClientFactory {
+func newWorkerClient(fake tse.FakeClient) tseClientFactory {
 	return func(_ tse.Credentials) (tseWorkerClient, error) {
 		return fake, nil
 	}
@@ -190,7 +190,7 @@ func TestTSESignaturWorker_ProcessOnce_Success(t *testing.T) {
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
-		newTSEClient: neuerWorkerClient(tse.FakeClient{
+		newTSEClient: newWorkerClient(tse.FakeClient{
 			RetrieveErr:   tse.ErrTransactionNichtGefunden,
 			StartResponse: tse.StartResult{TransactionNumber: 41, LogTime: time.Date(2026, 6, 10, 18, 0, 1, 0, time.UTC)},
 			FinishResponse: tse.FinishResult{
@@ -320,7 +320,7 @@ func TestTSESignaturWorker_ProcessOnce_UnerwarteterZustandIstAuftragsFehler(t *t
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
-		newTSEClient: neuerWorkerClient(tse.FakeClient{
+		newTSEClient: newWorkerClient(tse.FakeClient{
 			RetrieveResponse: tse.RetrieveResult{State: tse.TransactionStateCancelled},
 		}),
 		now: time.Now,
@@ -450,7 +450,7 @@ func TestTSESignaturWorker_ProcessOnce_DurchlaufDeadlineBrichtAb(t *testing.T) {
 	worker := &tseSignaturWorker{
 		settingsRepo:      &mockTSESettingsReader{conf: configuredTSE()},
 		store:             store,
-		newTSEClient:      neuerWorkerClient(tse.FakeClient{ArtificialDelay: time.Minute}),
+		newTSEClient:      newWorkerClient(tse.FakeClient{ArtificialDelay: time.Minute}),
 		durchlaufDeadline: 30 * time.Millisecond,
 		now:               time.Now,
 	}
@@ -484,7 +484,7 @@ func TestTSESignaturWorker_ProcessOnce_BereitsFinishedWirdQuittiert(t *testing.T
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
-		newTSEClient: neuerWorkerClient(tse.FakeClient{
+		newTSEClient: newWorkerClient(tse.FakeClient{
 			StartErr:  errors.New("409 E_TX_NO_TYPE_DEFINED"),
 			FinishErr: errors.New("409 E_TX_NO_TYPE_DEFINED"),
 			RetrieveResponse: tse.RetrieveResult{
@@ -535,7 +535,7 @@ func TestTSESignaturWorker_ProcessOnce_AktiveTransaktionWirdAbgeschlossen(t *tes
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
-		newTSEClient: neuerWorkerClient(tse.FakeClient{
+		newTSEClient: newWorkerClient(tse.FakeClient{
 			StartErr: errors.New("409 transaction already started"),
 			RetrieveResponse: tse.RetrieveResult{
 				State: tse.TransactionStateActive,
@@ -627,7 +627,7 @@ func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationMarkiertEndgueltig(t *te
 			worker := &tseSignaturWorker{
 				settingsRepo: tt.settingsRepo,
 				store:        store,
-				newTSEClient: neuerWorkerClient(tse.FakeClient{}),
+				newTSEClient: newWorkerClient(tse.FakeClient{}),
 				now:          time.Now,
 			}
 
@@ -655,7 +655,7 @@ func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationOhneAuftraegeKeineStoeru
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{err: db.ErrNotFound},
 		store:        store,
-		newTSEClient: neuerWorkerClient(tse.FakeClient{}),
+		newTSEClient: newWorkerClient(tse.FakeClient{}),
 		now:          time.Now,
 	}
 
@@ -677,7 +677,7 @@ func TestTSESignaturWorker_ProcessOnce_NichtLesbareKonfigurationMarkiertNichts(t
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{err: errors.New("connection reset")},
 		store:        store,
-		newTSEClient: neuerWorkerClient(tse.FakeClient{}),
+		newTSEClient: newWorkerClient(tse.FakeClient{}),
 		now:          time.Now,
 	}
 
@@ -705,7 +705,7 @@ func runWorker(t *testing.T, worker *tseSignaturWorker) (context.CancelFunc, <-c
 }
 
 func signierenderFakeClient() tseClientFactory {
-	return neuerWorkerClient(tse.FakeClient{
+	return newWorkerClient(tse.FakeClient{
 		RetrieveErr:    tse.ErrTransactionNichtGefunden,
 		StartResponse:  tse.StartResult{TransactionNumber: 50, LogTime: time.Date(2026, 6, 10, 19, 0, 1, 0, time.UTC)},
 		FinishResponse: tse.FinishResult{TransactionNumber: 50, SignatureCounter: 800, SerialNumberTSE: "TSE-SN", Signature: "SIG"},

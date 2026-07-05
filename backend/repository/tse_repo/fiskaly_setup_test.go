@@ -92,7 +92,7 @@ func TestFiskalySetupClient_OnlyAuthAndReads(t *testing.T) {
 		t.Fatalf("unexpected client list: %+v", clients)
 	}
 
-	puk, err := client.HoleAdminPUK(context.Background(), "tss-2")
+	puk, err := client.GetAdminPUK(context.Background(), "tss-2")
 	if err != nil {
 		t.Fatalf("hole admin puk failed: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 	if err := client.PersonalisiereTSS(ctx, erstellt.ID); err != nil {
 		t.Fatalf("personalize failed: %v", err)
 	}
-	if err := client.SetzeAdminPIN(ctx, erstellt.ID, erstellt.PUK, "1234567890"); err != nil {
+	if err := client.SetAdminPIN(ctx, erstellt.ID, erstellt.PUK, "1234567890"); err != nil {
 		t.Fatalf("set admin pin failed: %v", err)
 	}
 	if err := client.AuthentifiziereAdmin(ctx, erstellt.ID, "1234567890"); err != nil {

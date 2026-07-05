@@ -73,7 +73,7 @@ func druckerFensterAus(s szenario, jetzt time.Time) []druckerFenster {
 	return fenster
 }
 
-// baueDruckauftraege baut die Druckauftrags-Historie zum Szenario: Arbeits- und Abholbons
+// buildDruckauftraege baut die Druckauftrags-Historie zum Szenario: Arbeits- und Abholbons
 // entstehen über die produktive Bondruck-Policy aus jeder Bestellung und jedem Direktverkauf,
 // Kassenbelege (inklusive TSE-Abschnitt aus den Signaturspalten des Auftrags) für jede n-te
 // Zahlung über den produktiven ESC/POS-Formatter — nur für Vorgänge mit quittierter
@@ -81,13 +81,13 @@ func druckerFensterAus(s szenario, jetzt time.Time) []druckerFenster {
 // Der Status ergibt sich aus den Drucker-Ausfallfenstern des Drehbuchs (fehlgeschlagen, der
 // erste Fehlschlag verworfen), dem Relay-Abholfenster vor „jetzt" (offen) und sonst der
 // Gedruckt-Quittung kurz nach der Erstellung.
-func baueDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse.Signatur, jetzt time.Time) ([]druckauftragZeile, error) {
+func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse.Signatur, jetzt time.Time) ([]druckauftragZeile, error) {
 	stationen := make(map[string]druckstation.Druckstation, len(s.Druckstationen))
 	for _, st := range s.Druckstationen {
 		stationen[string(st.Kategorie)] = druckstation.Druckstation{Kategorie: st.Kategorie, DruckerIP: st.DruckerIP, Bonmodus: st.Bonmodus}
 	}
 
-	b := &bondruckBauer{
+	b := &bondruckBuilder{
 		betreiber:       s.Betreiber,
 		stationen:       stationen,
 		fenster:         druckerFensterAus(s, jetzt),
@@ -128,10 +128,10 @@ func baueDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse.
 	return zeilen, nil
 }
 
-// bondruckBauer hält die Drucker-Ausfallfenster, die quittierten Signaturen je Event-ID,
+// bondruckBuilder hält die Drucker-Ausfallfenster, die quittierten Signaturen je Event-ID,
 // den Beleg-Zähler und die erste Bestellzeit je Subject (für die „Erste Bestellung"-Zeile
 // auf dem Kassenbeleg).
-type bondruckBauer struct {
+type bondruckBuilder struct {
 	betreiber       betreiber.Betreiber
 	stationen       map[string]druckstation.Druckstation
 	fenster         []druckerFenster
@@ -144,7 +144,7 @@ type bondruckBauer struct {
 }
 
 // zeile versieht einen Auftrag der produktiven Policy mit Status und historischen Zeitstempeln.
-func (b *bondruckBauer) zeile(auftrag druckauftrag_repo.NeuerDruckauftrag, erstellt time.Time) druckauftragZeile {
+func (b *bondruckBuilder) zeile(auftrag druckauftrag_repo.NeuerDruckauftrag, erstellt time.Time) druckauftragZeile {
 	z := druckauftragZeile{
 		ZielIP:     auftrag.ZielIP,
 		Payload:    auftrag.Payload,
@@ -152,14 +152,14 @@ func (b *bondruckBauer) zeile(auftrag druckauftrag_repo.NeuerDruckauftrag, erste
 		Referenz:   auftrag.Referenz,
 		ErstelltAm: erstellt,
 	}
-	b.setzeStatus(&z)
+	b.setStatus(&z)
 	return z
 }
 
-// setzeStatus bestimmt den Status: In einem Drucker-Ausfallfenster scheitert der Auftrag nach
+// setStatus bestimmt den Status: In einem Drucker-Ausfallfenster scheitert der Auftrag nach
 // den maximalen Zustellversuchen (den ersten Fehlschlag insgesamt hat der Admin verworfen),
 // die jüngsten Aufträge hat das Relay noch nicht abgeholt (offen), alle übrigen sind gedruckt.
-func (b *bondruckBauer) setzeStatus(z *druckauftragZeile) {
+func (b *bondruckBuilder) setStatus(z *druckauftragZeile) {
 	for _, f := range b.fenster {
 		if z.ZielIP != f.ip || z.ErstelltAm.Before(f.von) || !z.ErstelltAm.Before(f.bis) {
 			continue
@@ -192,7 +192,7 @@ func (b *bondruckBauer) setzeStatus(z *druckauftragZeile) {
 // angelegt. Der Beleg entsteht kurz nach der Quittierung (bei nachsignierten Vorgängen also
 // erst nach der Störung, auf erneute Anforderung des Gastes). Als Kassen-ID steht die
 // Fake-Seriennummer auf dem Beleg — dieselbe wie in den QR-Code-Daten der Fake-TSE.
-func (b *bondruckBauer) kassenbeleg(evt e.Event) (druckauftragZeile, bool, error) {
+func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, error) {
 	signatur := b.signaturen[evt.ID]
 	if signatur == nil {
 		return druckauftragZeile{}, false, nil
@@ -252,7 +252,7 @@ func (b *bondruckBauer) kassenbeleg(evt e.Event) (druckauftragZeile, bool, error
 		Referenz:   referenz,
 		ErstelltAm: signatur.LogTimeEnd.Add(belegVerlangtNach),
 	}
-	b.setzeStatus(&z)
+	b.setStatus(&z)
 	return z, true, nil
 }
 

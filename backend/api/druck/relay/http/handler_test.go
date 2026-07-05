@@ -26,7 +26,7 @@ func (m *mockRepo) GetOffeneDruckauftraege(_ context.Context) ([]OffenerDruckauf
 	return m.offene, nil
 }
 
-func (m *mockRepo) MeldeDruckergebnis(_ context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
+func (m *mockRepo) ReportDruckergebnis(_ context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
 	if m.err != nil {
 		return m.err
 	}

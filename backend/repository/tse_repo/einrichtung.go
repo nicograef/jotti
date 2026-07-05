@@ -30,7 +30,7 @@ func (r Repository) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration,
 	return toTSEKonfiguration(row), nil
 }
 
-// SpeichereEinrichtung speichert die TSE-Konfiguration (alle Schreibpfade:
+// SaveEinrichtung speichert die TSE-Konfiguration (alle Schreibpfade:
 // Einrichtung, Uebernahme, Zugangsdaten-Wechsel, Leeren) und fuehrt beim
 // Uebergang von nicht konfiguriert zu konfiguriert in derselben Transaktion den
 // Einrichtungs-Sweep aus: alle noch offenen Auftraege aus der
@@ -41,7 +41,7 @@ func (r Repository) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration,
 // konfiguriert markiert. Auch das Speichern einer unvollstaendigen
 // Konfiguration (Leeren) sweept nichts: Der Dauerzustand ohne Konfiguration
 // gehoert dem Signatur-Worker, der Stoerungszeitraum bleibt offen.
-func (r Repository) SpeichereEinrichtung(ctx context.Context, c tse.Konfiguration) error {
+func (r Repository) SaveEinrichtung(ctx context.Context, c tse.Konfiguration) error {
 	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
 		warKonfiguriert := false
 		if vorher, err := qtx.GetTSEKonfiguration(ctx); err == nil {
@@ -57,10 +57,10 @@ func (r Repository) SpeichereEinrichtung(ctx context.Context, c tse.Konfiguratio
 		if warKonfiguriert || !c.IstKonfiguriert() {
 			return nil
 		}
-		if _, err := qtx.MarkiereOffeneTSESignaturauftraegeNichtKonfiguriert(ctx); err != nil {
+		if _, err := qtx.MarkOffeneTSESignaturauftraegeNichtKonfiguriert(ctx); err != nil {
 			return db.Error(err)
 		}
-		if err := qtx.SchliesseTSEStoerung(ctx, tse.StoerungGrundKeineKonfiguration); err != nil {
+		if err := qtx.CloseTSEStoerung(ctx, tse.StoerungGrundKeineKonfiguration); err != nil {
 			return db.Error(err)
 		}
 		return nil

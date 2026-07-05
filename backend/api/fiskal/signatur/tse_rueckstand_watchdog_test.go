@@ -36,23 +36,23 @@ func (m *mockRueckstandStore) GetAeltesterOffenerTSESignaturauftrag(_ context.Co
 	return m.aeltester, nil
 }
 
-func (m *mockRueckstandStore) OeffneTSEStoerung(_ context.Context, grundArt string, fehlertext string) error {
+func (m *mockRueckstandStore) OpenTSEStoerung(_ context.Context, grundArt string, fehlertext string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.geoeffnet = append(m.geoeffnet, stoerungAufruf{GrundArt: grundArt, Fehlertext: fehlertext})
-	m.signalisierePruefung()
+	m.signalCheck()
 	return nil
 }
 
-func (m *mockRueckstandStore) SchliesseTSEStoerung(_ context.Context, grundArt string) error {
+func (m *mockRueckstandStore) CloseTSEStoerung(_ context.Context, grundArt string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.geschlossen = append(m.geschlossen, grundArt)
-	m.signalisierePruefung()
+	m.signalCheck()
 	return nil
 }
 
-func (m *mockRueckstandStore) signalisierePruefung() {
+func (m *mockRueckstandStore) signalCheck() {
 	if m.geprueft != nil {
 		select {
 		case m.geprueft <- struct{}{}:
@@ -63,7 +63,7 @@ func (m *mockRueckstandStore) signalisierePruefung() {
 
 var watchdogJetzt = time.Date(2026, 6, 10, 18, 0, 0, 0, time.UTC)
 
-func neuerTestWatchdog(store *mockRueckstandStore) *tseRueckstandWatchdog {
+func newTestWatchdog(store *mockRueckstandStore) *tseRueckstandWatchdog {
 	return &tseRueckstandWatchdog{store: store, now: func() time.Time { return watchdogJetzt }}
 }
 
@@ -74,7 +74,7 @@ func TestRueckstandWatchdog_OeffnetAbSchwelle_AuchOhneWorker(t *testing.T) {
 	alt := watchdogJetzt.Add(-tse.RueckstandSchwelle)
 	store := &mockRueckstandStore{aeltester: &alt}
 
-	if err := neuerTestWatchdog(store).pruefeRueckstand(context.Background()); err != nil {
+	if err := newTestWatchdog(store).checkRueckstand(context.Background()); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -96,7 +96,7 @@ func TestRueckstandWatchdog_SchliesstUnterSchwelle(t *testing.T) {
 	jung := watchdogJetzt.Add(-30 * time.Second)
 	store := &mockRueckstandStore{aeltester: &jung}
 
-	if err := neuerTestWatchdog(store).pruefeRueckstand(context.Background()); err != nil {
+	if err := newTestWatchdog(store).checkRueckstand(context.Background()); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -111,7 +111,7 @@ func TestRueckstandWatchdog_SchliesstUnterSchwelle(t *testing.T) {
 func TestRueckstandWatchdog_SchliesstOhneOffeneAuftraege(t *testing.T) {
 	store := &mockRueckstandStore{}
 
-	if err := neuerTestWatchdog(store).pruefeRueckstand(context.Background()); err != nil {
+	if err := newTestWatchdog(store).checkRueckstand(context.Background()); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -126,7 +126,7 @@ func TestRueckstandWatchdog_SchliesstOhneOffeneAuftraege(t *testing.T) {
 func TestRueckstandWatchdog_StoreFehlerWirdGemeldet(t *testing.T) {
 	store := &mockRueckstandStore{getErr: errors.New("db down")}
 
-	if err := neuerTestWatchdog(store).pruefeRueckstand(context.Background()); err == nil {
+	if err := newTestWatchdog(store).checkRueckstand(context.Background()); err == nil {
 		t.Fatal("expected error, got nil")
 	}
 	if len(store.geoeffnet) != 0 || len(store.geschlossen) != 0 {
@@ -141,7 +141,7 @@ func TestRueckstandWatchdog_Run_OeffnetAmTick(t *testing.T) {
 	alt := watchdogJetzt.Add(-tse.RueckstandSchwelle - time.Second)
 	store := &mockRueckstandStore{aeltester: &alt, geprueft: make(chan struct{}, 1)}
 
-	watchdog := neuerTestWatchdog(store)
+	watchdog := newTestWatchdog(store)
 	watchdog.tickInterval = time.Millisecond
 
 	ctx, cancel := context.WithCancel(context.Background())

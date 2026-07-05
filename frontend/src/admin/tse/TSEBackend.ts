@@ -205,7 +205,7 @@ export class TSEBackend {
     )
   }
 
-  public async pruefeTSESetup(
+  public async checkTSESetup(
     zugangsdaten: TSESetupZugangsdaten,
   ): Promise<TSESetupBefund> {
     const body = TSESetupZugangsdatenSchema.parse(zugangsdaten)
