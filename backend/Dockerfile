@@ -10,7 +10,10 @@ RUN go mod download && go mod verify
 
 COPY . .
 
-RUN go build -o /go/bin/jotti ./main.go
+# Version per ldflags einkompiliert (Default dev). Der Release-Workflow
+# uebergibt den Tag per --build-arg VERSION=<tag>.
+ARG VERSION=dev
+RUN go build -ldflags "-X main.version=${VERSION}" -o /go/bin/jotti ./main.go
 
 # --- Deploy Stage ---
 FROM alpine:3.22

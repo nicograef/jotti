@@ -17,9 +17,14 @@ import (
 
 	"github.com/nicograef/jotti/backend/app"
 	"github.com/nicograef/jotti/backend/config"
+	dbpkg "github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/seed"
 )
+
+// version wird per ldflags einkompiliert (-X main.version=<tag>); der
+// Release-Workflow befuellt sie ueber das Docker-Build-Argument VERSION.
+var version = "dev"
 
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
@@ -37,8 +42,9 @@ func main() {
 	db.SetMaxOpenConns(50)
 	db.SetMaxIdleConns(10)
 
-	err = db.Ping()
-	if err != nil {
+	// Beim Start begrenzt auf die Datenbank warten (Boot-Reihenfolge nach
+	// Stromausfall), statt sofort zu sterben. Ohne Datenbank kein Start.
+	if err := dbpkg.PingWithRetry(db.Ping, 30*time.Second, time.Second, time.Sleep); err != nil {
 		log.Fatal().Err(err).Msg("Failed to ping Postgres")
 	}
 
@@ -70,7 +76,7 @@ func run(cfg config.Config, db *sql.DB) error {
 		}
 	}()
 
-	a, err := app.NewApp(cfg, db)
+	a, err := app.NewApp(cfg, db, version)
 	if err != nil {
 		return fmt.Errorf("failed to create app: %w", err)
 	}

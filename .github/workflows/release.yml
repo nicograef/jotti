@@ -82,9 +82,15 @@ jobs:
           declare -A dockerfile=(
             [migrate]=./database/migrate/Dockerfile
           )
+          # Nur das Backend kompiliert die Version per ldflags ein; die anderen
+          # Images kennen kein VERSION-Build-Arg.
+          declare -A buildarg=(
+            [backend]="--build-arg VERSION=$VERSION"
+          )
           for svc in "${!ctx[@]}"; do
             docker buildx build --load \
               ${dockerfile[$svc]:+--file "${dockerfile[$svc]}"} \
+              ${buildarg[$svc]:-} \
               --tag "ghcr.io/nicograef/jotti-$svc:$VERSION" \
               --label "org.opencontainers.image.version=$VERSION" \
               "${ctx[$svc]}"
