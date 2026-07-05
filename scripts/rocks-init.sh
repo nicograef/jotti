@@ -133,6 +133,8 @@ sleep 3
 
 info "Requesting certificate from Let's Encrypt..."
 
+# CERTBOT_DOMAINS is a list of -d flags and must be word-split.
+# shellcheck disable=SC2086
 if ! docker compose -f "$COMPOSE_CERT" run --rm --entrypoint certbot certbot certonly \
   --webroot -w /var/www/certbot \
   $CERTBOT_DOMAINS \
@@ -205,7 +207,7 @@ fi
 # ---------------------------------------------------------------------------
 echo ""
 echo "=========================================="
-printf "${GREEN} jotti.rocks — Deployment Complete${NC}\n"
+printf "${GREEN} %s${NC}\n" "jotti.rocks — Deployment Complete"
 echo "=========================================="
 echo ""
 echo "  Landing page:  https://$DOMAIN"

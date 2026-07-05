@@ -1,0 +1,122 @@
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Go modules
+  - package-ecosystem: "gomod"
+    directory: "/backend"
+    schedule:
+      interval: "monthly"
+    groups:
+      backend-gomod:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/resolver"
+    schedule:
+      interval: "monthly"
+    groups:
+      resolver-gomod:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/reverse-proxy"
+    schedule:
+      interval: "monthly"
+    groups:
+      reverse-proxy-gomod:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/windows/relay"
+    schedule:
+      interval: "monthly"
+    groups:
+      relay-gomod:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/windows/starter"
+    schedule:
+      interval: "monthly"
+    groups:
+      starter-gomod:
+        patterns:
+          - "*"
+
+  # npm
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "monthly"
+    groups:
+      frontend-npm:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/website"
+    schedule:
+      interval: "monthly"
+    groups:
+      website-npm:
+        patterns:
+          - "*"
+
+  # Docker base images
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "monthly"
+    groups:
+      backend-docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/frontend"
+    schedule:
+      interval: "monthly"
+    groups:
+      frontend-docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/database/migrate"
+    schedule:
+      interval: "monthly"
+    groups:
+      migrate-docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/reverse-proxy"
+    schedule:
+      interval: "monthly"
+    groups:
+      reverse-proxy-docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/website"
+    schedule:
+      interval: "monthly"
+    groups:
+      website-docker:
+        patterns:
+          - "*"
