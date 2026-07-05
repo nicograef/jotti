@@ -43,12 +43,12 @@ type signaturGate struct {
 	ohneKonfigurationAnzahl int
 }
 
-// pruefeSignaturGate klassifiziert jeden noch nicht erledigten Signaturauftrag
+// checkSignaturGate klassifiziert jeden noch nicht erledigten Signaturauftrag
 // der Kassensitzung ueber die Signaturstatus-Funktion — dieselbe Zurechnung wie
 // beim Beleg-Abruf, kein zweiter Zurechnungspfad. Ergebnis ausstehend blockiert
 // (frischer offener Auftrag ohne Stoerung), Ausfall laesst durch und wird in der
 // Abschlussmeldung ausgewiesen (Ausfall-Rest bzw. fehlende TSE-Konfiguration).
-func (c Command) pruefeSignaturGate(ctx context.Context, kassensitzungNr int) (signaturGate, error) {
+func (c Command) checkSignaturGate(ctx context.Context, kassensitzungNr int) (signaturGate, error) {
 	log := zerolog.Ctx(ctx)
 
 	staende, err := c.TSERepo.GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx, kassensitzungNr)

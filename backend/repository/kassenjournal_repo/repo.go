@@ -540,13 +540,38 @@ func (r Repository) ReadEventsByKassensitzung(ctx context.Context, kassensitzung
 	return events, signaturen, nil
 }
 
+// eventFromKassensitzungEventsRow maps a signature-free Kassensitzung read row to
+// a domain event (the events-only read path, no Signaturauftrag JOIN).
+func eventFromKassensitzungEventsRow(row dbgen.ReadKassensitzungEventsRow) event.Event {
+	return event.Event{
+		ID:       row.ID,
+		UserID:   row.UserID,
+		UserName: row.UserName,
+		Version:  row.Version,
+		Type:     row.Type,
+		Subject:  row.Subject,
+		Data:     row.Data,
+		Time:     row.Timestamp,
+	}
+}
+
 // ReadKassensitzungEvents retrieves all events of the given Kassensitzung across
 // all streams (Kassensitzungs-, Tisch-Session- and Direktverkauf-Streams),
 // ordered by ID ascending. This is the events-only read path for the
-// Tagesabschluss-Aggregation — no Signaturauftrag JOIN.
+// Tagesabschluss-Aggregation and uses a signature-free query — only the DSFinV-K
+// export (ReadEventsByKassensitzung) needs the Signaturauftrag JOIN.
 func (r Repository) ReadKassensitzungEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error) {
-	events, _, err := r.ReadEventsByKassensitzung(ctx, kassensitzungNr)
-	return events, err
+	rows, err := r.q.ReadKassensitzungEvents(ctx, kassensitzungNr)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	events := make([]event.Event, 0, len(rows))
+	for i := range rows {
+		events = append(events, eventFromKassensitzungEventsRow(rows[i]))
+	}
+
+	return events, nil
 }
 
 // GetMaxVersion returns the highest event version for the given subject.

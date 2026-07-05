@@ -120,7 +120,7 @@ func (h *CommandHandler) GeldtransitBuchenHandler() http.HandlerFunc {
 		err := h.Command.GeldtransitBuchen(r.Context(), userID, userName, body.Richtung, body.BetragCents, body.Kommentar)
 		if err != nil {
 			switch {
-			case errors.Is(err, kasseApp.ErrKonflikt):
+			case errors.Is(err, kasseApp.ErrConflict):
 				helper.SendConflictError(w)
 			case errors.Is(err, kasseApp.ErrKasseWirdAbgeschlossen):
 				helper.SendConflict(w, "kasse_wird_abgeschlossen")
@@ -158,7 +158,7 @@ func (h *CommandHandler) KasseAbschliessenHandler() http.HandlerFunc {
 					Anzahl:        ausstehend.Anzahl,
 					AlterSekunden: int(time.Since(ausstehend.AeltesterErstelltAm).Seconds()),
 				})
-			case errors.Is(err, kasseApp.ErrKonflikt):
+			case errors.Is(err, kasseApp.ErrConflict):
 				helper.SendConflictError(w)
 			case errors.Is(err, kasseApp.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")

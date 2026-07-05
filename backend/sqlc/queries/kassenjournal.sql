@@ -25,6 +25,14 @@ FROM kassenjournal k
 LEFT JOIN tse_signaturauftraege a ON a.event_id = k.id
 WHERE k.kassensitzung_nr = $1 ORDER BY k.id ASC;
 
+-- name: ReadKassensitzungEvents :many
+-- Alle Events einer Kassensitzung ohne Signatur-JOIN: der events-only-Leseweg
+-- fuer die Tagesabschluss-Aggregation (Signaturen braucht nur der Export).
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal
+WHERE kassensitzung_nr = $1
+ORDER BY id ASC;
+
 -- name: GetMaxVersion :one
 SELECT COALESCE(MAX(version), 0)::int AS version FROM kassenjournal WHERE subject = $1;
 

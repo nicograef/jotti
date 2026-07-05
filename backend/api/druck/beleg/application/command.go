@@ -52,6 +52,10 @@ type Command struct {
 	TSERepo             tseAuftragRepo
 }
 
+// getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung for the Beleg-Abruf.
+// Returns ErrKasseNichtGeoeffnet (HTTP 409) when none is active and ErrKasseWirdAbgeschlossen while
+// the Kassensitzung is being closed (barrier active). Eigene Kopie samt kassensitzungenRepo-Interface
+// (dasselbe Muster wie in kassenfuehrung und direktverkauf).
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {

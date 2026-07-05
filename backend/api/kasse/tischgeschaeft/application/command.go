@@ -50,6 +50,8 @@ type druckstationRepo interface {
 	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
 }
 
+// BestellPositionInput is the input for a single Position of a Bestellung.
+// The application layer enriches it with Produkt/Variante details (fat events).
 type BestellPositionInput struct {
 	ProduktID  int
 	VarianteID int
@@ -65,6 +67,9 @@ type Command struct {
 	DruckstationRepo    druckstationRepo
 }
 
+// getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung for a booking.
+// Returns ErrKasseNichtGeoeffnet (HTTP 409) when none is active and ErrKasseWirdAbgeschlossen while
+// the Kassensitzung is being closed (barrier active), rejecting the booking before any TSE roundtrip.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
@@ -79,6 +84,9 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
+// writeEventOCC writes the event with version expectedVersion+1, mapping a version
+// conflict (UNIQUE violation) to ErrConflict.
+//
 // expectedVersion muss die Version des Zustands sein, gegen den der Command validiert
 // hat (Projektion bzw. Replay) — nicht ein frisches GetMaxVersion zum Schreibzeitpunkt.
 // Nur so erkennt der UNIQUE(subject, version)-Constraint, dass sich der Stream seit dem
@@ -109,18 +117,27 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 	return eventID, nil
 }
 
+// writeEvent writes an event with optimistic concurrency control against
+// expectedVersion. Returns ErrConflict on a version conflict.
 func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
 	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEvent(ctx, versioned, streamType, kassensitzungNr)
 	})
 }
 
+// writeEventWithDruckauftraege writes an event and the Druckaufträge derived from it
+// (built from the stored event including its generated ID) in a single transaction
+// (transactional outbox). Returns ErrConflict on a version conflict.
 func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
 	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
 	})
 }
 
+// persistTischEvent writes a tisch-session event with OCC against expectedVersion
+// (die Version des gelesenen Zustands, gegen den validiert wurde). An OCC conflict
+// maps to ErrConflict, any other write error to ErrDatabase. aktion is the success
+// log message.
 func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -135,6 +152,10 @@ func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject
 	return nil
 }
 
+// loadTischState loads and validates the Tisch, then reads its projected TischSession.
+// Returns the subject, kassensitzungNr, and TischSession state. Returns
+// ErrKasseNichtGeoeffnet if no open Kassensitzung exists, ErrTischNotFound if the
+// Tisch doesn't exist and ErrTischNotActive if it is not active.
 func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, kasse.TischSession, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -164,6 +185,9 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 	return subject, ks.ZNr, state, nil
 }
 
+// validatePositionRefs checks that every requested PositionRef exists in the available
+// positions, that no PositionID is referenced more than once (duplicates would add up
+// unnoticed), and that the requested Menge does not exceed the available Menge.
 func validatePositionRefs(available []kasse.Position, requested []kasse.PositionRef) bool {
 	seen := make(map[string]bool, len(requested))
 	for _, ref := range requested {
@@ -223,6 +247,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return ErrProduktNotFound
 	}
 
+	// Enrich positions with Produkt/Variante data (fat events)
 	positionen := make([]kasse.Position, 0, len(inputs))
 	for _, input := range inputs {
 		variant, ok := variantenByID[input.VarianteID]
@@ -259,6 +284,8 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return ErrDatabase
 	}
 
+	// Build the Druckaufträge from the stored event (with its generated ID) so the
+	// event and its print jobs are written in one transaction (transactional outbox).
 	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
 		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen)
 	}
@@ -286,6 +313,8 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	return nil
 }
 
+// resolvePositions resolves PositionRefs to full Positions using the available
+// positions. Returns the resolved positions and the total amount in cents.
 func resolvePositions(available []kasse.Position, refs []kasse.PositionRef) ([]kasse.Position, int) {
 	resolved := make([]kasse.Position, 0, len(refs))
 	totalCents := 0
@@ -485,7 +514,7 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		return ErrPositionNichtStornierbar
 	}
 
-	stornoEvents, err := baueStornoEvents(ctx, subject, userID, userName, aufteilung, kommentar)
+	stornoEvents, err := buildStornoEvents(ctx, subject, userID, userName, aufteilung, kommentar)
 	if err != nil {
 		return err
 	}
@@ -500,11 +529,11 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 	return c.persistStornoEvents(ctx, stornoEvents, subject, expectedVersion, kassensitzungNr, tischID)
 }
 
-// baueStornoEvents erzeugt die Events einer aufgeteilten Storno-Aktion in
+// buildStornoEvents erzeugt die Events einer aufgeteilten Storno-Aktion in
 // Schreibreihenfolge: zuerst die geldneutrale Korrektur (falls unbezahlte Mengen
 // vorliegen), dann je betroffener Zahlung eine kassenwirksame Warenrücknahme.
 // Jedes Event erhält beim Schreiben seinen eigenen Signaturauftrag.
-func baueStornoEvents(ctx context.Context, subject string, userID int, userName string, aufteilung kasse.StornoAufteilung, kommentar string) ([]event.Event, error) {
+func buildStornoEvents(ctx context.Context, subject string, userID int, userName string, aufteilung kasse.StornoAufteilung, kommentar string) ([]event.Event, error) {
 	log := zerolog.Ctx(ctx)
 
 	var events []event.Event

@@ -51,6 +51,9 @@ type Command struct {
 	TSERepo             tseGateRepo
 }
 
+// getOffeneKassensitzungOderFehler returns the open Kassensitzung for a booking. It returns
+// ErrKasseNichtGeoeffnet when none is active and ErrKasseWirdAbgeschlossen while the Kassensitzung
+// is being closed (barrier active), so bookings are rejected before any TSE roundtrip.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
@@ -65,8 +68,9 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
+// writeKassensitzungEvent writes a Kassensitzung event with OCC against expectedVersion.
 // expectedVersion ist die Version des Zustands, gegen den der Command validiert hat
-// (frischer Stream: 0). Ein UNIQUE(subject, version)-Konflikt wird zu ErrKonflikt.
+// (frischer Stream: 0). Ein UNIQUE(subject, version)-Konflikt wird zu ErrConflict.
 func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kassensitzungNr int, expectedVersion int) error {
 	log := zerolog.Ctx(ctx)
 
@@ -77,11 +81,11 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC Kassensitzung conflict")
-			return ErrKonflikt
+			return ErrConflict
 		}
 		if errors.Is(err, db.ErrConflict) {
 			log.Warn().Str("subject", subject).Msg("Deadlock on event write")
-			return ErrKonflikt
+			return ErrConflict
 		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
 			log.Warn().Str("subject", subject).Msg("Kassensitzung nicht mehr offen")
@@ -102,6 +106,7 @@ func betriebstag(now time.Time, ort *time.Location) time.Time {
 	return time.Date(jahr, monat, tag, 0, 0, 0, 0, time.UTC)
 }
 
+// KassensitzungEroeffnen opens a new Kassensitzung. Returns ErrKasseAlreadyOpen if one is already open.
 func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -181,6 +186,7 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 	return zNr, nil
 }
 
+// GeldtransitBuchen books a Geldtransit (einlage or entnahme).
 func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName string, richtung string, betragCents int, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -253,7 +259,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 
 	// Signatur-Gate vor der Barriere: prüft sofort, wartet nie. Ein ausstehender
 	// Auftrag blockiert; nichts wurde bis hier verändert, kein Reset nötig.
-	gate, err := c.pruefeSignaturGate(ctx, ks.ZNr)
+	gate, err := c.checkSignaturGate(ctx, ks.ZNr)
 	if err != nil {
 		return KassenabschlussErgebnis{}, err
 	}
@@ -287,7 +293,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	// die Barriere nicht unter dem gewinnenden Abschluss wegräumen (SetKassensitzungOffen greift
 	// ohnehin nur, solange noch nicht 'abgeschlossen').
 	defer func() {
-		if err != nil && !errors.Is(err, ErrKonflikt) {
+		if err != nil && !errors.Is(err, ErrConflict) {
 			if _, resetErr := c.KassensitzungenRepo.SetKassensitzungOffen(ctx, ks.ZNr); resetErr != nil {
 				log.Error().Err(resetErr).Int("z_nr", ks.ZNr).Msg("Failed to reset Kassensitzung status to offen after Abschluss error")
 			}
@@ -311,7 +317,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	}
 	differenzCents := sollBestandCents - istBestandCents
 
-	// Tisch-Saldo-Sperre: Alle Tisch-Sessions muessen saldo_cents = 0 haben.
+	// Invariant: Tisch-Saldo-Sperre — all tisch sessions must have saldo_cents = 0
 	sessions, err := c.KassenjournalRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get tisch sessions for Kassenabschluss")

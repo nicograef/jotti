@@ -392,8 +392,8 @@ func TestKasseAbschliessen_KonfliktSetztStatusNichtZurueck(t *testing.T) {
 		TSERepo: tseGateMock{},
 	}
 
-	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrKonflikt {
-		t.Fatalf("expected ErrKonflikt, got %v", err)
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrConflict {
+		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 	if sitzungMock.OffenCalls != 0 {
 		t.Fatalf("expected NO reset on conflict, got %d", sitzungMock.OffenCalls)
@@ -414,8 +414,8 @@ func TestKasseAbschliessen_DeadlockMapsToKonflikt(t *testing.T) {
 		TSERepo: tseGateMock{},
 	}
 
-	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrKonflikt {
-		t.Fatalf("expected ErrKonflikt, got %v", err)
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrConflict {
+		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
 

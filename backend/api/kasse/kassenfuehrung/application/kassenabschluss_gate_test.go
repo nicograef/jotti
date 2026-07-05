@@ -18,7 +18,7 @@ import (
 // Beleg-Abruf (kein zweiter Zurechnungspfad): offen ohne Störung ist ausstehend
 // (blockt), offen bei aktivem Störungszeitraum ist Ausfall (lässt durch),
 // Endstatus ist Ausfall bzw. — bei fehlender Konfiguration — deutlich ausgewiesen.
-func TestPruefeSignaturGate(t *testing.T) {
+func TestCheckSignaturGate(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC()
 	offen := tse.SignaturauftragStand{Status: tse.StatusOffen, ErstelltAm: now}
@@ -53,7 +53,7 @@ func TestPruefeSignaturGate(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			cmd := Command{TSERepo: tseGateMock{staende: tc.staende, stoerung: tc.stoerung}}
-			gate, err := cmd.pruefeSignaturGate(ctx, 1)
+			gate, err := cmd.checkSignaturGate(ctx, 1)
 			if err != nil {
 				t.Fatalf("expected no error, got %v", err)
 			}
@@ -70,9 +70,9 @@ func TestPruefeSignaturGate(t *testing.T) {
 	}
 }
 
-// pruefeSignaturGate meldet Anzahl und Alter des ältesten ausstehenden Auftrags
+// checkSignaturGate meldet Anzahl und Alter des ältesten ausstehenden Auftrags
 // für die 409-Antwort.
-func TestPruefeSignaturGate_AeltesterAusstehend(t *testing.T) {
+func TestCheckSignaturGate_AeltesterAusstehend(t *testing.T) {
 	ctx := context.Background()
 	alt := time.Now().Add(-45 * time.Second).UTC()
 	jung := time.Now().Add(-5 * time.Second).UTC()
@@ -81,7 +81,7 @@ func TestPruefeSignaturGate_AeltesterAusstehend(t *testing.T) {
 		{Status: tse.StatusOffen, ErstelltAm: alt},
 	}}}
 
-	gate, err := cmd.pruefeSignaturGate(ctx, 1)
+	gate, err := cmd.checkSignaturGate(ctx, 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

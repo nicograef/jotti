@@ -21,8 +21,8 @@ var ErrKasseWirdAbgeschlossen = errors.New("kasse wird gerade abgeschlossen")
 // ErrKasseAlreadyAbgeschlossen is returned when a Kassensitzung is already closed.
 var ErrKasseAlreadyAbgeschlossen = errors.New("kasse bereits abgeschlossen")
 
-// ErrKonflikt is returned on a concurrent write conflict.
-var ErrKonflikt = errors.New("konflikt")
+// ErrConflict is returned on a concurrent write conflict.
+var ErrConflict = errors.New("conflict")
 
 // ErrTischeSaldoOffen is returned when a Kassenabschluss is attempted but tisch sessions have non-zero saldi.
 var ErrTischeSaldoOffen = errors.New("tische mit offenem saldo")

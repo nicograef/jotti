@@ -222,6 +222,58 @@ func (q *Queries) ReadEventsBySubject(ctx context.Context, subject string) ([]Re
 	return items, nil
 }
 
+const readKassensitzungEvents = `-- name: ReadKassensitzungEvents :many
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal
+WHERE kassensitzung_nr = $1
+ORDER BY id ASC
+`
+
+type ReadKassensitzungEventsRow struct {
+	ID        int
+	UserID    int
+	UserName  string
+	Version   int
+	Type      string
+	Subject   string
+	Data      json.RawMessage
+	Timestamp time.Time
+}
+
+// Alle Events einer Kassensitzung ohne Signatur-JOIN: der events-only-Leseweg
+// fuer die Tagesabschluss-Aggregation (Signaturen braucht nur der Export).
+func (q *Queries) ReadKassensitzungEvents(ctx context.Context, kassensitzungNr int) ([]ReadKassensitzungEventsRow, error) {
+	rows, err := q.db.QueryContext(ctx, readKassensitzungEvents, kassensitzungNr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReadKassensitzungEventsRow{}
+	for rows.Next() {
+		var i ReadKassensitzungEventsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.UserName,
+			&i.Version,
+			&i.Type,
+			&i.Subject,
+			&i.Data,
+			&i.Timestamp,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const writeEvent = `-- name: WriteEvent :one
 INSERT INTO kassenjournal (user_id, user_name, type, subject, version, data, timestamp, kassensitzung_nr)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
