@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Eye, X } from 'lucide-react'
+import { ArrowRightLeft, Eye, Printer, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -50,7 +50,10 @@ interface TischHistorieProps {
   tisch: Tisch
   backend: Pick<
     TischBackend,
-    'stornierungErteilen' | 'bestellungUmbuchen' | 'belegDrucken'
+    | 'stornierungErteilen'
+    | 'bestellungUmbuchen'
+    | 'belegDrucken'
+    | 'stornobelegDrucken'
   >
   onStornierungErteilt: () => void
   onBestellungUmgebucht: () => void
@@ -74,8 +77,21 @@ export function TischHistorie({
         kassenbeleg_drucker_nicht_konfiguriert:
           'Kein Kassenbeleg-Drucker konfiguriert. Bitte in den Admin-Einstellungen hinterlegen.',
         zahlung_not_found: 'Die ausgewählte Zahlung wurde nicht gefunden.',
+        stornierung_not_found: 'Die Stornierung wurde nicht gefunden.',
       },
     })
+
+  const stornobelegAnfordern = (stornierungId: string) => {
+    void runBelegDrucken(async () => {
+      const status = await belegDruckenMitNachfassen(() =>
+        backend.stornobelegDrucken(tisch.id, stornierungId),
+      )
+      meldeBelegStatus(
+        status,
+        'Stornobeleg in die Druckwarteschlange eingereiht.',
+      )
+    })
+  }
 
   return (
     <>
@@ -164,13 +180,23 @@ export function TischHistorie({
                   return (
                     <HistoryItem
                       key={item.id}
-                      title={`Stornierung -${formatCents(item.gesamtStornierungCents)} €`}
+                      title={`${item.barRueckgabe ? 'Warenrücknahme' : 'Korrektur'} -${formatCents(item.gesamtStornierungCents)} €`}
                       date={item.storniertAm}
                       userName={item.userName}
                       kommentar={item.kommentar}
                       onClick={() => {
                         setDetail(item)
                       }}
+                      onBelegDrucken={
+                        // Nur die kassenwirksame Warenrücknahme (Bargeld zurück)
+                        // erzeugt einen Stornobeleg; die geldneutrale Korrektur nicht.
+                        item.barRueckgabe
+                          ? () => {
+                              stornobelegAnfordern(item.id)
+                            }
+                          : undefined
+                      }
+                      belegDruckenLoading={belegDruckenLoading}
                     />
                   )
                 case 'ausgabe':
@@ -261,6 +287,8 @@ function HistoryItem({
   onClick,
   onStornieren,
   onUmbuchen,
+  onBelegDrucken,
+  belegDruckenLoading,
 }: {
   title: string
   date: string
@@ -269,6 +297,8 @@ function HistoryItem({
   onClick: () => void
   onStornieren?: () => void
   onUmbuchen?: () => void
+  onBelegDrucken?: () => void
+  belegDruckenLoading?: boolean
 }) {
   return (
     <Item variant="outline">
@@ -286,6 +316,18 @@ function HistoryItem({
         </ItemDescription>
       </ItemContent>
       <ItemActions>
+        {onBelegDrucken && (
+          <Button
+            size="icon-sm"
+            variant="outline"
+            className="rounded-full cursor-pointer"
+            aria-label="Stornobeleg drucken"
+            disabled={belegDruckenLoading}
+            onClick={onBelegDrucken}
+          >
+            <Printer />
+          </Button>
+        )}
         {onStornieren && (
           <Button
             size="icon-sm"

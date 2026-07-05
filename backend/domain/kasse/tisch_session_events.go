@@ -360,6 +360,7 @@ func buildStornierungFromEvent(event e.Event) (Stornierung, error) {
 		GesamtStornierungCents: data.GesamtStornierungCents,
 		Kommentar:              data.Kommentar,
 		StorniertAm:            event.Time,
+		BarRueckgabe:           true,
 	}
 
 	if err := stornierungSchema.Validate(&stornierung); err != nil {
@@ -370,9 +371,10 @@ func buildStornierungFromEvent(event e.Event) (Stornierung, error) {
 	return stornierung, nil
 }
 
-// buildKorrekturFromEvent baut die geldneutrale Korrektur als Stornierung auf: in
+// buildKorrekturFromEvent baut die geldneutrale Korrektur als Stornierung auf. In
 // Historie und UI erscheinen beide Storno-Arten (kassenwirksame Warenrücknahme und
-// geldneutrale Korrektur) einheitlich als „Stornierung". Die Daten wurden bei der
+// geldneutrale Korrektur) als „Stornierung", werden aber über das abgeleitete Feld
+// BarRueckgabe (hier false) sichtbar unterschieden. Die Daten wurden bei der
 // Event-Erstellung validiert, daher keine erneute Schema-Prüfung (der Kommentar ist
 // hier optional, anders als bei der Warenrücknahme).
 func buildKorrekturFromEvent(event e.Event) (Stornierung, error) {
@@ -400,6 +402,7 @@ func buildKorrekturFromEvent(event e.Event) (Stornierung, error) {
 		GesamtStornierungCents: data.GesamtCents,
 		Kommentar:              data.Kommentar,
 		StorniertAm:            event.Time,
+		BarRueckgabe:           false,
 	}, nil
 }
 

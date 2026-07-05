@@ -191,6 +191,9 @@ type stornierung struct {
 	GesamtStornierungCents int        `json:"gesamtStornierungCents"`
 	Kommentar              string     `json:"kommentar"`
 	StorniertAm            time.Time  `json:"storniertAm"`
+	// BarRueckgabe unterscheidet die kassenwirksame Warenrücknahme (true) von der
+	// geldneutralen Korrektur (false); abgeleitet aus dem Event-Typ.
+	BarRueckgabe bool `json:"barRueckgabe"`
 }
 
 func toStornierung(s k.Stornierung) stornierung {
@@ -204,6 +207,7 @@ func toStornierung(s k.Stornierung) stornierung {
 		GesamtStornierungCents: s.GesamtStornierungCents,
 		Kommentar:              s.Kommentar,
 		StorniertAm:            s.StorniertAm,
+		BarRueckgabe:           s.BarRueckgabe,
 	}
 }
 

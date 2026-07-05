@@ -1,13 +1,20 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Bestellung } from '../../table/Bestellung'
+import type { Stornierung } from '../../table/Stornierung'
 import type { Tisch } from '../../table/Tisch'
 import type { Zahlung } from '../../table/Zahlung'
 import { TischHistorie } from './TischHistorie'
 
-type HistorieEintrag = Bestellung | Zahlung
+type HistorieEintrag = Bestellung | Zahlung | Stornierung
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
@@ -97,7 +104,39 @@ function zahlung(overrides: Partial<Zahlung> = {}): Zahlung {
   }
 }
 
-function renderHistorie(historie: HistorieEintrag[]) {
+function stornierung(overrides: Partial<Stornierung> = {}): Stornierung {
+  return {
+    art: 'stornierung',
+    id: '00000000-0000-0000-0000-0000000000c1',
+    userId: 3,
+    userName: 'Clara',
+    tischId: 1,
+    positionen: [
+      {
+        positionId: '00000000-0000-0000-0000-0000000000a1',
+        varianteId: 1,
+        produktName: 'Bratwurst',
+        varianteName: 'Normal',
+        kategorie: 'essen',
+        steuersatz: 'regel',
+        einzelpreis: 350,
+        menge: 1,
+        bestellerUserId: 1,
+        bestellerName: 'Anna',
+      },
+    ],
+    gesamtStornierungCents: 350,
+    kommentar: 'Falsch gebucht',
+    barRueckgabe: true,
+    storniertAm: '2026-06-18T12:10:00Z',
+    ...overrides,
+  }
+}
+
+function renderHistorie(
+  historie: HistorieEintrag[],
+  backend: Partial<Parameters<typeof TischHistorie>[0]['backend']> = {},
+) {
   render(
     <TischHistorie
       historie={historie}
@@ -107,6 +146,8 @@ function renderHistorie(historie: HistorieEintrag[]) {
         stornierungErteilen: vi.fn().mockResolvedValue(undefined),
         bestellungUmbuchen: vi.fn().mockResolvedValue(undefined),
         belegDrucken: vi.fn().mockResolvedValue('eingereiht'),
+        stornobelegDrucken: vi.fn().mockResolvedValue('eingereiht'),
+        ...backend,
       }}
       onStornierungErteilt={vi.fn()}
       onBestellungUmgebucht={vi.fn()}
@@ -141,6 +182,70 @@ describe('TischHistorie', () => {
     expect(screen.getAllByText(/Bestellung \+/)).toHaveLength(3)
     expect(
       screen.queryByRole('button', { name: /Alle anzeigen/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('unterscheidet Warenrücknahme und geldneutrale Korrektur sichtbar', () => {
+    renderHistorie([
+      stornierung({
+        id: '00000000-0000-0000-0000-0000000000c1',
+        barRueckgabe: true,
+      }),
+      stornierung({
+        id: '00000000-0000-0000-0000-0000000000c2',
+        barRueckgabe: false,
+        kommentar: '',
+      }),
+    ])
+
+    expect(screen.getByText(/Warenrücknahme -/)).toBeInTheDocument()
+    expect(screen.getByText(/Korrektur -/)).toBeInTheDocument()
+  })
+
+  it('zeigt den Stornobeleg-Button nur bei der Warenrücknahme und löst ihn aus', async () => {
+    const stornobelegDrucken = vi.fn().mockResolvedValue('eingereiht')
+    renderHistorie(
+      [
+        stornierung({
+          id: '00000000-0000-0000-0000-0000000000c1',
+          barRueckgabe: true,
+        }),
+        stornierung({
+          id: '00000000-0000-0000-0000-0000000000c2',
+          barRueckgabe: false,
+          kommentar: '',
+        }),
+      ],
+      { stornobelegDrucken },
+    )
+
+    const belegButtons = screen.getAllByRole('button', {
+      name: 'Stornobeleg drucken',
+    })
+    expect(belegButtons).toHaveLength(1)
+
+    fireEvent.click(belegButtons[0])
+
+    await waitFor(() => {
+      expect(stornobelegDrucken).toHaveBeenCalledWith(
+        1,
+        '00000000-0000-0000-0000-0000000000c1',
+      )
+    })
+  })
+
+  it('rendert eine geldneutrale Korrektur mit leerem Kommentar ohne Fehler', () => {
+    renderHistorie([
+      stornierung({
+        id: '00000000-0000-0000-0000-0000000000c2',
+        barRueckgabe: false,
+        kommentar: '',
+      }),
+    ])
+
+    expect(screen.getByText(/Korrektur -/)).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Stornobeleg drucken' }),
     ).not.toBeInTheDocument()
   })
 })

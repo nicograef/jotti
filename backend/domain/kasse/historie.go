@@ -61,8 +61,8 @@ func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 
 		case string(EventTypeBestellungKorrigiertV1):
 			// Die geldneutrale Korrektur erscheint in Historie und UI ebenfalls als
-			// „Stornierung" (durchgehend „Storno" für Helfer); die fiskalische
-			// Unterscheidung bleibt unsichtbar.
+			// „Stornierung", trägt aber BarRueckgabe = false und wird darüber sichtbar
+			// von der kassenwirksamen Warenrücknahme unterschieden.
 			korrektur, err := buildKorrekturFromEvent(event)
 			if err != nil {
 				return nil, err

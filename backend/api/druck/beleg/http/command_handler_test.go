@@ -173,6 +173,31 @@ func TestKassenbelegDruckenHandler_StornobelegSuccess(t *testing.T) {
 	}
 }
 
+func TestKassenbelegDruckenHandler_TischStornoSuccess(t *testing.T) {
+	mock := &mockCommand{}
+	handler := &CommandHandler{Command: mock}
+
+	body := `{"tischId":1,"stornierungId":"33333333-3333-3333-3333-333333333333"}`
+	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+	if mock.lastTischID != 1 {
+		t.Errorf("expected tischId 1, got %d", mock.lastTischID)
+	}
+	if mock.lastStornierung != "33333333-3333-3333-3333-333333333333" {
+		t.Errorf("expected stornierungId to be forwarded, got %q", mock.lastStornierung)
+	}
+	if mock.lastZahlung != "" || mock.lastVerkauf != "" {
+		t.Errorf("expected no zahlung/verkauf forwarded, got zahlung=%q verkauf=%q", mock.lastZahlung, mock.lastVerkauf)
+	}
+}
+
 func TestKassenbelegDruckenHandler_StornierungOhneVerkaufValidationError(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 

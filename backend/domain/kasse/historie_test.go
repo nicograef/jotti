@@ -122,6 +122,33 @@ func TestGetHistorieFromEvents_FullyConsumedBestellungHasNoRestmengen(t *testing
 	}
 }
 
+func TestBuildStornierung_BarRueckgabeLeitetStornoArtAusEventTypAb(t *testing.T) {
+	products := []Position{
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
+	}
+	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
+	positions := positionsFromOrder(t, orderEvent, 1)
+
+	warenruecknahme := mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, positions, 500)
+	korrektur := mustCreateKorrekturEvent(t, testSubject, 1, positions, 500)
+
+	storno, err := buildStornierungFromEvent(warenruecknahme)
+	if err != nil {
+		t.Fatalf("expected no error for warenruecknahme, got %v", err)
+	}
+	if !storno.BarRueckgabe {
+		t.Error("expected BarRueckgabe true for stornierung-erteilt:v1 (Warenrücknahme), got false")
+	}
+
+	kor, err := buildKorrekturFromEvent(korrektur)
+	if err != nil {
+		t.Fatalf("expected no error for korrektur, got %v", err)
+	}
+	if kor.BarRueckgabe {
+		t.Error("expected BarRueckgabe false for bestellung-korrigiert:v1 (geldneutrale Korrektur), got true")
+	}
+}
+
 func TestGetHistorieFromEvents_ReversesOrder(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),

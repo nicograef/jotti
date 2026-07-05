@@ -81,6 +81,21 @@ export class TischBackend {
     return status
   }
 
+  public async stornobelegDrucken(
+    tischId: number,
+    stornierungId: string,
+  ): Promise<BelegStatus> {
+    const body = z
+      .object({ tischId: TischIdSchema, stornierungId: z.uuid() })
+      .parse({ tischId, stornierungId })
+    const { status } = await this.backend.post(
+      'service/beleg-drucken',
+      body,
+      BelegDruckenResponseSchema,
+    )
+    return status
+  }
+
   public async stornierungErteilen(
     stornierung: z.infer<typeof StornierungErteilenSchema>,
   ): Promise<void> {

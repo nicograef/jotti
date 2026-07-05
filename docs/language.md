@@ -181,7 +181,9 @@ Nachträgliche Aufhebung bestellter Positionen, nur durch Serviceleitung oder Ad
 
 **Warenrücknahme (kassenwirksam):** Rückgabe bereits bezahlter Positionen als negativer Umsatz am Ursprungssteuersatz mit Bar-Rückgabe im selben Beleg. `ZahlungID` referenziert genau die begleichende Zahlung, deren Mengen zurückgenommen werden (eine Warenrücknahme je betroffener Zahlung, FIFO nach Zahlung, älteste zuerst). Der Rückgabebetrag folgt aus den Positionen, ist nicht frei wählbar. `Kommentar` ist Pflichtfeld. Signiert als `Kassenbeleg-V1` mit negativem Bruttoumsatz je Steuersatz und negativer Bar-Zahlung.
 
-**Korrektur (geldneutral):** Stornierung noch unbezahlter Positionen ohne Geld- und Umsatzwirkung. Reduziert den offenen Betrag und nimmt die Positionen aus den aktiven Listen. `Kommentar` ist optional. Signiert als `Bestellung-V1` (ohne Zahlungszeile). In der Historie erscheint die Korrektur als „Stornierung".
+**Korrektur (geldneutral):** Stornierung noch unbezahlter Positionen ohne Geld- und Umsatzwirkung. Reduziert den offenen Betrag und nimmt die Positionen aus den aktiven Listen. `Kommentar` ist optional. Signiert als `Bestellung-V1` (ohne Zahlungszeile).
+
+Beide Arten bleiben im Code die `Stornierung`, werden in der Tisch-Historie aber über das zur Lesezeit aus dem Event-Typ abgeleitete Feld `barRueckgabe` (JSON `barRueckgabe`) sichtbar unterschieden: als „Warenrücknahme" (`true`) bzw. „Korrektur" (`false`). Nur die Warenrücknahme bietet einen Stornobeleg-Druck an; die Korrektur nicht.
 
 | Vorgang        | Go-Struct     | TS-Typ        | Event-Typ                  |
 | -------------- | ------------- | ------------- | -------------------------- |

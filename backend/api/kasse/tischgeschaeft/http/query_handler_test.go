@@ -54,6 +54,28 @@ func (m mockQuery) GetMeineTischeState(_ context.Context, _ int) ([]application.
 	}}, m.err
 }
 
+func TestToStornierungExposesBarRueckgabe(t *testing.T) {
+	t.Parallel()
+
+	warenruecknahme := toStornierung(kasse.Stornierung{BarRueckgabe: true})
+	if !warenruecknahme.BarRueckgabe {
+		t.Error("expected barRueckgabe true to be exposed for Warenrücknahme")
+	}
+
+	korrektur := toStornierung(kasse.Stornierung{BarRueckgabe: false})
+	if korrektur.BarRueckgabe {
+		t.Error("expected barRueckgabe false for geldneutrale Korrektur")
+	}
+
+	raw, err := json.Marshal(warenruecknahme)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	if !bytes.Contains(raw, []byte(`"barRueckgabe":true`)) {
+		t.Errorf("expected barRueckgabe field in JSON, got %s", raw)
+	}
+}
+
 func TestPositionResponsesIncludeSteuersatz(t *testing.T) {
 	t.Parallel()
 

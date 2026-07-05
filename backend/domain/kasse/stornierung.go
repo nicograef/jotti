@@ -17,6 +17,12 @@ type Stornierung struct {
 	GesamtStornierungCents int
 	Kommentar              string
 	StorniertAm            time.Time
+	// BarRueckgabe unterscheidet die beiden Storno-Arten und wird zur Lesezeit aus
+	// dem Event-Typ abgeleitet (nie im Event gespeichert): true bei der
+	// kassenwirksamen Warenrücknahme (`stornierung-erteilt:v1`), false bei der
+	// geldneutralen Korrektur (`bestellung-korrigiert:v1`). Spiegelt Namen und
+	// Semantik des gleichnamigen Reporting-Felds.
+	BarRueckgabe bool
 }
 
 var stornierungSchema = z.Struct(z.Shape{
