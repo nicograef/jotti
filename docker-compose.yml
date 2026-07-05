@@ -1,10 +1,19 @@
 name: jotti-dev
 
+# Log rotation for every long-running service: json-file capped at a small size
+# and a few files, so it takes effect on any host without daemon configuration.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "5m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:17.8
     container_name: jotti-postgres-dev
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -42,6 +51,7 @@ services:
     image: golang:1.26.0-alpine
     container_name: jotti-backend-dev
     working_dir: /src
+    logging: *default-logging
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -65,6 +75,7 @@ services:
     image: node:24-alpine
     container_name: jotti-frontend-dev
     working_dir: /app
+    logging: *default-logging
     environment:
       NODE_ENV: development
       CI: "true"
@@ -81,6 +92,16 @@ services:
     depends_on:
       backend-dev:
         condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:5173/ >/dev/null 2>&1",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 40s
 
 networks:
   app-network:

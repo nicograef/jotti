@@ -14,11 +14,20 @@ name: jotti
 # Requires VPS_PUBLIC_IP in .env (public IPv4 of this server) and
 # Docker Compose >= 2.23.1 (inline configs with interpolation).
 
+# Log rotation for every long-running service: json-file capped at a small size
+# and a few files, so it takes effect on any host without daemon configuration.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "5m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:17.8
     container_name: jotti-postgres
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -61,6 +70,7 @@ services:
       dockerfile: Dockerfile
     container_name: jotti-backend
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -100,11 +110,22 @@ services:
       dockerfile: Dockerfile
     container_name: jotti-frontend
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - app-network
     depends_on:
       backend:
         condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     deploy:
       resources:
         limits:
@@ -120,8 +141,19 @@ services:
       dockerfile: website/Dockerfile
     container_name: jotti-website
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - app-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     deploy:
       resources:
         limits:
@@ -133,6 +165,14 @@ services:
     image: nginx:1.27-alpine
     container_name: jotti-reverse-proxy
     restart: unless-stopped
+    logging: *default-logging
+    # nginx runs in the foreground as PID 1 and receives stop signals directly;
+    # a background loop reloads every 12 hours so renewed certificates and
+    # re-resolved upstream addresses are picked up without a restart.
+    command:
+      - sh
+      - -c
+      - "while true; do sleep 12h; nginx -s reload; done & exec nginx -g 'daemon off;'"
     ports:
       - "80:80"
       - "443:443"
@@ -151,6 +191,16 @@ services:
         condition: service_healthy
       acme-dns:
         condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -S -O /dev/null http://127.0.0.1:80/ 2>&1 | grep -qE 'HTTP/1.[01] (2|3)[0-9][0-9]'",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -161,6 +211,7 @@ services:
     image: certbot/certbot:v2.11.0
     container_name: jotti-certbot
     restart: unless-stopped
+    logging: *default-logging
     volumes:
       - certbot-challenges:/var/www/certbot
       - letsencrypt:/etc/letsencrypt
@@ -186,6 +237,7 @@ services:
       dockerfile: Dockerfile
     container_name: jotti-resolver
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "53:53/udp"
       - "53:53/tcp"
@@ -211,6 +263,7 @@ services:
     image: joohoi/acme-dns:v2.0.2
     container_name: jotti-acme-dns
     restart: unless-stopped
+    logging: *default-logging
     configs:
       - source: acme-dns-config
         target: /etc/acme-dns/config.cfg
