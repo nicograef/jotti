@@ -24,7 +24,9 @@ wegen der gesetzlichen 10-Jahre-Aufbewahrung.
   `BACKUP_DIR` (Standard `./backups`) und behält die neuesten `BACKUP_KEEP` Stück.
 - **Wiederherstellen:** `make prod-restore` listet die Backups, fragt eine
   Bestätigung ab und spielt das gewählte zurück. Das überschreibt die aktuelle
-  Datenbank.
+  Datenbank. Die Bestätigung nennt Dump und Compose-Datei; standardmäßig
+  `docker-compose.prod.yml`, über `COMPOSE_FILE` auf einen anderen Stack
+  umstellbar (gilt ebenso für `make prod-backup`).
 - **Täglich automatisch:** Für einen täglichen Dump liegen Vorlagen im Repository
   (systemd-Timer unter `packaging/systemd/` oder cron unter `packaging/cron/`); die
   Installationsschritte stehen als Kommentar in den Dateien.
