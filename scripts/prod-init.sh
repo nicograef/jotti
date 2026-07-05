@@ -7,7 +7,7 @@ set -euo pipefail
 # Reads the domain and email from .env (no hardcoding), validates the host, then
 # starts the pinned production stack. Caddy obtains the Let's Encrypt certificate
 # automatically (HTTP-01/TLS-ALPN) — no certbot step. Steps:
-#   1. Validate prerequisites (Docker, Compose, .env, JOTTI_DOMAIN/LETSENCRYPT_EMAIL)
+#   1. Validate prerequisites (Docker, Compose, .env, JOTTI_DOMAIN/LETSENCRYPT_EMAIL/JOTTI_VERSION)
 #   2. Check that the domain resolves (and ideally points to this server)
 #   3. Pull the pinned images and start the stack
 #   4. Wait for the backend to be healthy and verify HTTPS
@@ -36,6 +36,17 @@ fatal() { error "$1"; exit 1; }
 read_env() {
   local key="$1"
   { grep -E "^${key}=" .env 2>/dev/null || true; } | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+}
+
+# parse_semver "v1.2.3" — echoes "1 2 3" and returns 0, or returns 1 when the
+# value is not a plain vMAJOR.MINOR.PATCH (e.g. "latest", "dev"). A pre-release
+# or build suffix ("1.2.3-rc1", "1.2.3+meta") is trimmed before parsing. Mirrors
+# core.parseSemver (windows/starter/core/update.go); kept as a standalone copy.
+parse_semver() {
+  local s="${1#v}"
+  s="${s%%[-+]*}"
+  [[ "$s" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] || return 1
+  printf '%s %s %s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
 }
 
 # ---------------------------------------------------------------------------
@@ -74,6 +85,7 @@ fi
 
 DOMAIN="$(read_env JOTTI_DOMAIN)"
 EMAIL="$(read_env LETSENCRYPT_EMAIL)"
+VERSION="$(read_env JOTTI_VERSION)"
 
 if [[ -z "$DOMAIN" ]]; then
   fatal "JOTTI_DOMAIN is not set in .env. Set it to your public domain (e.g. jotti.meinverein.de)."
@@ -81,8 +93,16 @@ fi
 if [[ -z "$EMAIL" ]]; then
   fatal "LETSENCRYPT_EMAIL is not set in .env. Set it to a contact email for the Let's Encrypt account."
 fi
+# Only a pinned release tag (vMAJOR.MINOR.PATCH) is accepted; "latest" or an
+# empty value would silently pull a moving image. The compose default
+# ${JOTTI_VERSION:-latest} stays as a fallback but is never reached here.
+if ! parse_semver "$VERSION" >/dev/null; then
+  error "JOTTI_VERSION in .env is not a pinned release tag (found: '${VERSION:-<empty>}')."
+  error "Set it to a release tag like v0.3.1 from https://github.com/nicograef/jotti/releases."
+  fatal "Refusing to deploy an unpinned version ('latest' and empty are not allowed)."
+fi
 
-info "Prerequisites OK (domain: $DOMAIN, email: $EMAIL)."
+info "Prerequisites OK (domain: $DOMAIN, email: $EMAIL, version: $VERSION)."
 
 # ---------------------------------------------------------------------------
 # Step 2 — Check DNS resolution and that it points to this server

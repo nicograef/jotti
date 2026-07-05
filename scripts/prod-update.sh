@@ -98,10 +98,16 @@ fi
 # ---------------------------------------------------------------------------
 # Step 2 — Determine running vs. target version and guard against downgrades
 # ---------------------------------------------------------------------------
-# Target comes from .env (the version the operator bumped to); empty means
-# "latest", matching docker-compose.prod.yml's ${JOTTI_VERSION:-latest}.
+# Target comes from .env (the version the operator bumped to). Only a pinned
+# release tag (vMAJOR.MINOR.PATCH) is accepted; "latest" or an empty value would
+# silently track a moving image and defeat the downgrade guard. The compose
+# default ${JOTTI_VERSION:-latest} stays as a fallback but is never reached here.
 TARGET_VERSION="$(read_env JOTTI_VERSION)"
-[[ -n "$TARGET_VERSION" ]] || TARGET_VERSION="latest"
+if ! parse_semver "$TARGET_VERSION" >/dev/null; then
+  error "JOTTI_VERSION in .env is not a pinned release tag (found: '${TARGET_VERSION:-<empty>}')."
+  error "Set it to a release tag like v0.3.1 from https://github.com/nicograef/jotti/releases."
+  fatal "Refusing to update against an unpinned version ('latest' and empty are not allowed)."
+fi
 
 # Running version is the tag the backend container was created from. Absence of
 # the container means there is nothing to update yet.
