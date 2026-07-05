@@ -35,7 +35,7 @@ fatal() { error "$1"; exit 1; }
 # trimmed of surrounding whitespace.
 read_env() {
   local key="$1"
-  grep -E "^${key}=" .env 2>/dev/null | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+  { grep -E "^${key}=" .env 2>/dev/null || true; } | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
 # ---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ HTTP_STATUS="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://$DOM
 # ---------------------------------------------------------------------------
 echo ""
 echo "=========================================="
-printf "${GREEN} jotti — Deployment Complete${NC}\n"
+printf "${GREEN} %s${NC}\n" "jotti — Deployment Complete"
 echo "=========================================="
 echo ""
 echo "  Domain:  https://$DOMAIN"

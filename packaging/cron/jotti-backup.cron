@@ -3,9 +3,11 @@
 # Install (idempotent — copies into the system cron.d drop-in directory):
 #   sudo cp packaging/cron/jotti-backup.cron /etc/cron.d/jotti-backup
 #
-# Adjust the path to your jotti checkout. The script reads .env there and writes
-# dumps to BACKUP_DIR (default ./backups). Set BACKUP_DIR/BACKUP_KEEP inline to
-# override. Keep the trailing newline — cron.d files require it.
+# Adjust the cd path in the cron line below to your jotti checkout. The script
+# reads .env there and writes dumps to BACKUP_DIR (default ./backups). With the
+# .env fix in place a missing key falls back to the built-in default, so setting
+# BACKUP_DIR/BACKUP_KEEP inline is optional. Keep the trailing newline — cron.d
+# files require it.
 #
 # Reminder: copy the dumps off this server regularly (10-year retention).
 

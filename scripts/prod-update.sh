@@ -42,7 +42,7 @@ fatal() { error "$1"; exit 1; }
 # trimmed of surrounding whitespace.
 read_env() {
   local key="$1"
-  grep -E "^${key}=" .env 2>/dev/null | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+  { grep -E "^${key}=" .env 2>/dev/null || true; } | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
 }
 
 # parse_semver "v1.2.3" — echoes "1 2 3" and returns 0, or returns 1 when the
@@ -210,7 +210,7 @@ fi
 # ---------------------------------------------------------------------------
 echo ""
 echo "=========================================="
-printf "${GREEN} jotti — Update Complete${NC}\n"
+printf "${GREEN} %s${NC}\n" "jotti — Update Complete"
 echo "=========================================="
 echo ""
 echo "  Version: $RUNNING_VERSION -> $TARGET_VERSION"
