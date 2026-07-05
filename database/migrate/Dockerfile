@@ -7,10 +7,16 @@ RUN apk add --no-cache curl \
     | tar -xz -C /usr/local/bin \
     && apk del curl
 
+# Unprivilegierter Benutzer: migrate liest nur /migrations und spricht die
+# Datenbank an, schreibt also nichts ins Dateisystem.
+RUN addgroup -S jotti && adduser -S -G jotti jotti
+
 # Migrationen ins Image backen, damit der Stack selbst-enthalten ist (kein
 # Bind-Mount vom Host noetig). Der Build-Context ist deshalb ./database statt
 # ./database/migrate — siehe die compose-Dateien und .github/workflows/release.yml.
 COPY migrations /migrations
+
+USER jotti
 
 CMD /usr/local/bin/migrate -path /migrations -database "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/jotti?sslmode=disable" up
 
