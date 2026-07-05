@@ -5,6 +5,7 @@ import { EroeffnenSection } from './EroeffnenSection'
 import { GeldtransitSection } from './GeldtransitSection'
 import { useOffeneKassensitzung } from './hooks'
 import { KasseAbschliessenSection } from './KasseAbschliessenSection'
+import { kassensitzungStatusLabel } from './Kassensitzung'
 
 export { EroeffnenSection } from './EroeffnenSection'
 export { KasseAbschliessenSection } from './KasseAbschliessenSection'
@@ -31,7 +32,10 @@ export function KassensitzungPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 Kassensitzung #{String(kassensitzung.zNr)}
-                <Badge variant="secondary">{kassensitzung.status}</Badge>
+                <Badge variant="secondary">
+                  {kassensitzungStatusLabel(kassensitzung.status).symbol}{' '}
+                  {kassensitzungStatusLabel(kassensitzung.status).text}
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 text-sm">

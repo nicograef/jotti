@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-import type { Kassensitzung } from './types'
+import { type Kassensitzung, kassensitzungStatusLabel } from './types'
 import { formatDatum } from './utils'
 
 export function ReportingFilter({
@@ -51,8 +51,8 @@ export function ReportingFilter({
       <SelectContent>
         {kassensitzungen.map((k) => (
           <SelectItem key={k.zNr} value={k.zNr.toString()}>
-            {k.status === 'offen' ? '🟢 ' : '🔴 '}
-            {formatDatum(k.datum)} ({k.bezeichnung})
+            {kassensitzungStatusLabel(k.status).symbol} {formatDatum(k.datum)} (
+            {k.bezeichnung})
           </SelectItem>
         ))}
       </SelectContent>

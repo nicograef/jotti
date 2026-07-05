@@ -61,6 +61,7 @@ export type UmsatzSteuersatz = z.infer<typeof UmsatzSteuersatzSchema>
 export {
   type Kassensitzung,
   KassensitzungSchema,
+  kassensitzungStatusLabel,
 } from '@/admin/kasse/Kassensitzung'
 
 export const OffenerTischSchema = z.object({

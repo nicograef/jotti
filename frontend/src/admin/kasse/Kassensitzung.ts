@@ -14,10 +14,29 @@ export const GeldtransitRichtungSchema = z.enum([
 
 export const KassensitzungStatus = {
   OFFEN: 'offen',
+  // Transienter Barrierestatus, den KasseAbschliessen hält (Saldo-Prüfung,
+  // Reporting, TSE-Signierung). Erstwertig, nicht dasselbe wie abgeschlossen.
+  WIRD_ABGESCHLOSSEN: 'wird_abgeschlossen',
   ABGESCHLOSSEN: 'abgeschlossen',
 } as const
 export type KassensitzungStatus =
   (typeof KassensitzungStatus)[keyof typeof KassensitzungStatus]
+
+// Anzeige-Label je Status. Der transiente Zwischenstatus wird_abgeschlossen
+// bekommt ein eigenes Symbol (🟡) und darf nie wie abgeschlossen (🔴) aussehen.
+export function kassensitzungStatusLabel(status: KassensitzungStatus): {
+  symbol: string
+  text: string
+} {
+  switch (status) {
+    case KassensitzungStatus.OFFEN:
+      return { symbol: '🟢', text: 'offen' }
+    case KassensitzungStatus.WIRD_ABGESCHLOSSEN:
+      return { symbol: '🟡', text: 'wird abgeschlossen…' }
+    case KassensitzungStatus.ABGESCHLOSSEN:
+      return { symbol: '🔴', text: 'abgeschlossen' }
+  }
+}
 
 export const BezeichnungSchema = z
   .string()
@@ -35,7 +54,11 @@ export const KassensitzungSchema = z.object({
   zNr: z.number().int(),
   datum: z.string(),
   bezeichnung: z.string(),
-  status: z.enum(['offen', 'abgeschlossen']),
+  status: z.enum([
+    KassensitzungStatus.OFFEN,
+    KassensitzungStatus.WIRD_ABGESCHLOSSEN,
+    KassensitzungStatus.ABGESCHLOSSEN,
+  ]),
 })
 export type Kassensitzung = z.infer<typeof KassensitzungSchema>
 
