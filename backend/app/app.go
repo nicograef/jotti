@@ -24,8 +24,8 @@ type App struct {
 }
 
 // NewApp creates a new application instance
-func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
-	router := SetupRoutes(cfg, db)
+func NewApp(cfg config.Config, db *sql.DB, version string) (*App, error) {
+	router := SetupRoutes(cfg, db, version)
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		ReadTimeout:  5 * time.Second,
@@ -42,10 +42,10 @@ func NewApp(cfg config.Config, db *sql.DB) (*App, error) {
 }
 
 // SetupRoutes configures HTTP routes
-func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
+func SetupRoutes(cfg config.Config, db *sql.DB, version string) http.Handler {
 	r := http.NewServeMux()
 
-	healthCheck := health.HealthCheck{DB: db}
+	healthCheck := health.HealthCheck{DB: db, Version: version}
 	r.HandleFunc("/health", healthCheck.Handler())
 
 	deps := api.NewDeps(cfg, db)

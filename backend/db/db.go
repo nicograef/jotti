@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"io"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rs/zerolog/log"
@@ -74,4 +75,34 @@ func Close(c io.Closer, name string) {
 	if err := c.Close(); err != nil {
 		log.Error().Err(err).Str("resource", name).Msg("Error while closing resource")
 	}
+}
+
+// PingWithRetry calls ping repeatedly until it succeeds or the time budget is
+// exhausted (budget/interval attempts, at least one). Every failed attempt is
+// logged so a delayed database is visible in the boot log; the caller decides
+// what a returned error means (the backend still refuses to start without a
+// database). ping and sleep are injected so the retry decision can be
+// unit-tested without a real database or real waiting.
+func PingWithRetry(ping func() error, budget, interval time.Duration, sleep func(time.Duration)) error {
+	attempts := int(budget / interval)
+	if attempts < 1 {
+		attempts = 1
+	}
+
+	var err error
+	for attempt := 1; attempt <= attempts; attempt++ {
+		if err = ping(); err == nil {
+			if attempt > 1 {
+				log.Info().Int("attempts", attempt).Msg("Connected to database after retry")
+			}
+			return nil
+		}
+
+		log.Warn().Err(err).Int("attempt", attempt).Int("maxAttempts", attempts).Msg("Waiting for database")
+		if attempt < attempts {
+			sleep(interval)
+		}
+	}
+
+	return err
 }

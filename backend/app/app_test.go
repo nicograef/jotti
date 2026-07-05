@@ -24,7 +24,7 @@ func setRequiredConfigEnv(t *testing.T) {
 func TestNewApp(t *testing.T) {
 	setRequiredConfigEnv(t)
 	cfg := config.Load()
-	app, err := NewApp(cfg, &sql.DB{})
+	app, err := NewApp(cfg, &sql.DB{}, "dev")
 	if err != nil {
 		t.Fatalf("NewApp() failed: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestSetupRoutes(t *testing.T) {
 	setRequiredConfigEnv(t)
 	cfg := config.Load()
 
-	handler := SetupRoutes(cfg, &sql.DB{})
+	handler := SetupRoutes(cfg, &sql.DB{}, "dev")
 
 	if handler == nil {
 		t.Error("Handler should not be nil")
@@ -58,7 +58,7 @@ func TestSetupRoutes_HealthAllowsGet(t *testing.T) {
 	}
 	defer db.Close()
 
-	handler := SetupRoutes(cfg, db)
+	handler := SetupRoutes(cfg, db, "v9.9.9")
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
@@ -77,6 +77,10 @@ func TestSetupRoutes_HealthAllowsGet(t *testing.T) {
 	if code, ok := body["code"].(string); ok && code == "method_not_allowed" {
 		t.Fatalf("GET /health must not be blocked by method middleware")
 	}
+
+	if v, ok := body["version"].(string); !ok || v != "v9.9.9" {
+		t.Fatalf("expected version %q in /health response, got %v", "v9.9.9", body["version"])
+	}
 }
 
 func TestSetupRoutes_NonHealthRejectsGet(t *testing.T) {
@@ -88,7 +92,7 @@ func TestSetupRoutes_NonHealthRejectsGet(t *testing.T) {
 	}
 	defer db.Close()
 
-	handler := SetupRoutes(cfg, db)
+	handler := SetupRoutes(cfg, db, "dev")
 
 	req := httptest.NewRequest(http.MethodGet, "/auth/login", nil)
 	w := httptest.NewRecorder()
@@ -116,7 +120,7 @@ func TestSetupRoutes_NonHealthRejectsGet(t *testing.T) {
 func TestShutdown(t *testing.T) {
 	setRequiredConfigEnv(t)
 	cfg := config.Load()
-	app, err := NewApp(cfg, &sql.DB{})
+	app, err := NewApp(cfg, &sql.DB{}, "dev")
 	if err != nil {
 		t.Fatalf("NewApp() failed: %v", err)
 	}
@@ -131,7 +135,7 @@ func TestShutdown(t *testing.T) {
 func TestRun_ContextCancellation(t *testing.T) {
 	setRequiredConfigEnv(t)
 	cfg := config.Load()
-	app, err := NewApp(cfg, &sql.DB{})
+	app, err := NewApp(cfg, &sql.DB{}, "dev")
 	if err != nil {
 		t.Fatalf("NewApp() failed: %v", err)
 	}

@@ -163,7 +163,7 @@ func setupTestEnv(t *testing.T) testEnv {
 	adminUserID, serviceUserID, produktID, varianteID, tischID := seedTestData(t, db)
 
 	cfg := config.Load()
-	handler := app.SetupRoutes(cfg, db)
+	handler := app.SetupRoutes(cfg, db, "dev")
 	ts := httptest.NewServer(handler)
 	t.Cleanup(func() { ts.Close() })
 
