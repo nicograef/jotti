@@ -46,7 +46,7 @@ vi.mock('@/admin/reporting/hooks', () => ({
 
 const tseState = vi.hoisted(() => ({ istKonfiguriert: false }))
 
-vi.mock('@/admin/settings/hooks', () => ({
+vi.mock('@/admin/tse/hooks', () => ({
   useTSEKonfiguration: () => ({
     tseKonfiguration: { istKonfiguriert: tseState.istKonfiguriert },
   }),

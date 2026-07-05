@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 
-import { useKassenidentitaet } from '../settings/hooks'
+import { useKassenidentitaet } from './hooks'
 
 const LEITFADEN_URL = 'https://jotti.rocks/docs/leitfaden/finanzamt-anmelden/'
 

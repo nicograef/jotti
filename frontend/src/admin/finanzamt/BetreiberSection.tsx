@@ -12,9 +12,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { type Betreiber } from '@/lib/EinstellungenBackend'
 
-import { useBetreiber } from '../settings/hooks'
+import { type Betreiber } from './BetreiberBackend'
+import { useBetreiber } from './hooks'
 
 function BetreiberForm({
   initial,

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import type { BackendClient } from './Backend'
-import { DateStringSchema } from './utils'
+import type { BackendClient } from '@/lib/Backend'
+import { DateStringSchema } from '@/lib/utils'
 
 const KategorieSchema = z.enum([
   'essen',

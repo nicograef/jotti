@@ -8,9 +8,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { type TSESignaturQueue } from '@/lib/EinstellungenBackend'
 
-import { useTSESignaturQueue } from '../settings/hooks'
+import { useTSESignaturQueue } from '../tse/hooks'
+import { type TSESignaturQueue } from '../tse/TSEBackend'
 
 function formatDauer(sekunden: number): string {
   if (sekunden < 60) return `${String(sekunden)} s`

@@ -20,19 +20,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { BackendError } from '@/lib/Backend'
+
+import { pruefeTSESetup, useTSEEinrichtung, useTSEKonfiguration } from './hooks'
 import {
   type TSEEinrichtenErgebnis,
   type TSESetupBefund,
   type TSEVerbindungStatus,
   type TSSBefund,
   verbindungIstSigniertfaehig,
-} from '@/lib/EinstellungenBackend'
-
-import {
-  pruefeTSESetup,
-  useTSEEinrichtung,
-  useTSEKonfiguration,
-} from '../settings/hooks'
+} from './TSEBackend'
 
 type Umgebung = 'TEST' | 'LIVE'
 

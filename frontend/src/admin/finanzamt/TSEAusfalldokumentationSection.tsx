@@ -5,9 +5,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { type TSEStoerung } from '@/lib/EinstellungenBackend'
 
-import { useTSEStoerungen } from '../settings/hooks'
+import { useTSEStoerungen } from '../tse/hooks'
+import { type TSEStoerung } from '../tse/TSEBackend'
 
 const STOERUNG_GRUND_LABEL: Record<TSEStoerung['grundArt'], string> = {
   tse_fehler: 'TSE-Fehler',

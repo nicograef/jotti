@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+
 import {
   type Bonmodus,
   type DruckstationConfig,
@@ -19,8 +20,7 @@ import {
   hatBonmodus,
   type Kategorie,
   validateDruckerIp,
-} from '@/lib/DruckstationBackend'
-
+} from './DruckstationBackend'
 import { useDruckstationen, useFehlgeschlageneDruckauftraege } from './hooks'
 
 const BON_ART_LABEL: Record<string, string> = {

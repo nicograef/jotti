@@ -12,13 +12,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+
+import { useTSEKonfiguration } from './hooks'
 import {
   type TSEKonfigurationSpeichern,
   type TSEVerbindungStatus,
   verbindungIstSigniertfaehig,
-} from '@/lib/EinstellungenBackend'
-
-import { useTSEKonfiguration } from '../settings/hooks'
+} from './TSEBackend'
 
 const emptyTSEKonfiguration: TSEKonfigurationSpeichern = {
   apiKey: '',

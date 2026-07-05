@@ -2,7 +2,7 @@ import { TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink } from 'react-router'
 
-import { useTSESignaturQueue, useTSEStatus } from '@/admin/settings/hooks'
+import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 import { DsfinvkExportButton } from './DsfinvkExportButton'

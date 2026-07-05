@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-import { useTSEStatus } from '../settings/hooks'
+import { useTSEStatus } from '../tse/hooks'
 
 export function TSEAnbindungSection() {
   const { tseStatus, isPending, error } = useTSEStatus()
