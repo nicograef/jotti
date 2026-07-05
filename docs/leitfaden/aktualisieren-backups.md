@@ -30,6 +30,12 @@ wegen der gesetzlichen 10-Jahre-Aufbewahrung.
 - **Täglich automatisch:** Für einen täglichen Dump liegen Vorlagen im Repository
   (systemd-Timer unter `packaging/systemd/` oder cron unter `packaging/cron/`); die
   Installationsschritte stehen als Kommentar in den Dateien.
+- **Überwachung (optional):** Tragt unter `BACKUP_PING_URL` die URL eines
+  Überwachungsdienstes ein (z. B. healthchecks.io). Nach jedem erfolgreichen Backup
+  ruft das Skript sie einmal auf. Bleibt der Aufruf aus, schlägt der Dienst Alarm
+  (Dead-Man-Switch). So merkt ihr, wenn ein automatischer Lauf still ausfällt.
+  Welchen Dienst ihr nutzt, ist frei wählbar; ein Fehlschlag des Aufrufs gefährdet
+  das Backup nicht.
 
 > 💾 Kopiert die Backups regelmäßig vom Server weg. Ein Backup, das nur auf
 > demselben Server liegt, hilft bei dessen Ausfall nicht.
