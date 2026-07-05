@@ -29,6 +29,12 @@ const backupDir = "/jotti-backups"
 // nach jedem neuen Dump rotiert, damit das Volume nicht unbegrenzt waechst.
 const keptBackups = 5
 
+// hostBackupDirName ist der Unterordner im Zustandsverzeichnis, in den jeder
+// Pre-Update-Dump zusaetzlich gespiegelt wird (unter Windows
+// %PROGRAMDATA%\jotti\backups). Anders als das Docker-Volume ueberlebt dieser
+// Ordner ein `docker compose down -v` — er ist die zweite, unabhaengige Kopie.
+const hostBackupDirName = "backups"
+
 // dumpPrefix und dumpSuffix umrahmen die zeitgestempelten Backup-Dateinamen
 // (jotti-YYYYMMDD-HHMMSS.sql). Erzeugung und Rotations-Filter teilen sie sich,
 // damit der Filter nicht still aufhoert zu greifen, sollte sich das Namensschema
@@ -74,6 +80,17 @@ func maybeBackupBeforeUpdate(composePath, envPath, stateDir string) error {
 	if err := rotateBackups(keptBackups); err != nil {
 		// Rotation ist Hygiene, kein Grund den Start abzubrechen.
 		fmt.Printf("Hinweis: alte Backups konnten nicht rotiert werden (%v).\n", err)
+	}
+
+	// Den Dump zusaetzlich auf den Host spiegeln. Der Dump im Volume existiert
+	// bereits, daher ist ein Fehlschlag hier nur ein Hinweis, kein Startabbruch:
+	// so vernichtet ein spaeteres `docker compose down -v` nicht Daten und
+	// Backups zugleich.
+	hostDir := filepath.Join(stateDir, hostBackupDirName)
+	if err := mirrorBackupToHost(name, hostDir); err != nil {
+		fmt.Printf("Hinweis: Backup konnte nicht nach %s gespiegelt werden (%v).\n", hostDir, err)
+	} else {
+		fmt.Printf("Backup zusaetzlich gesichert in: %s\n", hostDir)
 	}
 	return nil
 }
@@ -140,4 +157,55 @@ func rotateBackups(keep int) error {
 		}
 	}
 	return nil
+}
+
+// mirrorBackupToHost kopiert den frisch erstellten Dump per `docker cp` aus dem
+// postgres-Container in hostDir und rotiert dort auf die neuesten keptBackups
+// Dateien. core.PlanBackupMirror entscheidet rein, was zu kopieren und zu
+// loeschen ist; diese Funktion fuehrt nur die Seiteneffekte aus. Der Aufrufer
+// behandelt einen Fehler hier als Hinweis, nicht als Startabbruch.
+func mirrorBackupToHost(name, hostDir string) error {
+	if err := os.MkdirAll(hostDir, 0o755); err != nil {
+		return fmt.Errorf("Backup-Ordner %s anlegen fehlgeschlagen: %w", hostDir, err)
+	}
+	existing, err := listHostBackups(hostDir)
+	if err != nil {
+		return err
+	}
+	plan := core.PlanBackupMirror(name, existing, keptBackups)
+
+	if plan.Copy != "" {
+		out, err := exec.Command("docker", "cp",
+			postgresContainer+":"+backupDir+"/"+plan.Copy, filepath.Join(hostDir, plan.Copy)).CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("docker cp des Backups auf den Host fehlgeschlagen: %v: %s", err, strings.TrimSpace(string(out)))
+		}
+	}
+	for _, del := range plan.Delete {
+		if err := os.Remove(filepath.Join(hostDir, del)); err != nil {
+			return fmt.Errorf("altes Host-Backup %s loeschen fehlgeschlagen: %w", del, err)
+		}
+	}
+	return nil
+}
+
+// listHostBackups liefert die zeitgestempelten jotti-*.sql-Dumps in dir. Ein noch
+// fehlender Ordner gilt als leer (kein Fehler); alles ausserhalb des
+// Namensschemas bleibt unangetastet.
+func listHostBackups(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Host-Backups auflisten fehlgeschlagen: %w", err)
+	}
+	var names []string
+	for _, e := range entries {
+		name := e.Name()
+		if strings.HasPrefix(name, dumpPrefix) && strings.HasSuffix(name, dumpSuffix) {
+			names = append(names, name)
+		}
+	}
+	return names, nil
 }

@@ -73,6 +73,20 @@ Wieder dieselben zwei Doppelklicks (`jotti-start.exe`, bei Bedarf
 Netzwerk-Adresse, **zeigt die Status-Seite sie erneut** — es gilt dasselbe
 Zertifikat, also **keine neue Warnung**.
 
+## Daten nach dem Fest sichern (optional)
+
+Wollt ihr die Kassendaten zusätzlich extern sichern (z. B. auf einen
+**USB-Stick**), erstellt mit einem Befehl eine Sicherungsdatei. Dazu die
+**Eingabeaufforderung** (cmd) öffnen und diese Zeile hineinkopieren:
+
+```
+docker exec jotti-postgres-local pg_dump --clean --if-exists -U admin -d jotti > "%PROGRAMDATA%\jotti\backups\manuell.sql"
+```
+
+Die Datei liegt danach im Ordner `%PROGRAMDATA%\jotti\backups`. In denselben
+Ordner spiegelt jotti auch die **automatischen Backups vor jedem Update**. Diesen
+Ordner könnt ihr komplett auf einen USB-Stick oder in eine Cloud kopieren.
+
 ## jotti aktualisieren
 
 > ⚠️ **Updates zuhause mit Internet machen, nicht auf dem Fest.** Wie beim

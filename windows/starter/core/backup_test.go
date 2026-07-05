@@ -63,3 +63,53 @@ func TestDumpsToDeleteGuardsAgainstZeroKeep(t *testing.T) {
 		t.Fatalf("keep <= 0 darf nie alle Backups loeschen: got %v", got)
 	}
 }
+
+func TestPlanBackupMirrorCopiesAndRotates(t *testing.T) {
+	// Host hat schon zwei aeltere Dumps; der neue kommt hinzu. Bei keep 2
+	// bleiben die neuesten zwei erhalten, der aelteste faellt weg.
+	host := []string{"jotti-20260610-080000.sql", "jotti-20260611-060000.sql"}
+	got := PlanBackupMirror("jotti-20260612-070000.sql", host, 2)
+	want := MirrorPlan{
+		Copy:   "jotti-20260612-070000.sql",
+		Delete: []string{"jotti-20260610-080000.sql"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("PlanBackupMirror: got %+v, want %+v", got, want)
+	}
+}
+
+func TestPlanBackupMirrorSkipsCopyWhenAlreadyOnHost(t *testing.T) {
+	// Liegt der Dump schon auf dem Host (Wiederholung im selben Sekundentakt),
+	// wird nicht erneut kopiert; die Gesamtmenge aendert sich nicht.
+	host := []string{"jotti-20260611-060000.sql", "jotti-20260612-070000.sql"}
+	got := PlanBackupMirror("jotti-20260612-070000.sql", host, 5)
+	if got.Copy != "" {
+		t.Fatalf("bereits gespiegelter Dump darf nicht erneut kopiert werden: got Copy %q", got.Copy)
+	}
+	if got.Delete != nil {
+		t.Fatalf("unter dem Limit darf nichts geloescht werden: got %v", got.Delete)
+	}
+}
+
+func TestPlanBackupMirrorKeepsWhenWithinLimit(t *testing.T) {
+	// Leerer Host, erster Spiegel: kopieren, nichts loeschen.
+	got := PlanBackupMirror("jotti-20260612-070000.sql", nil, 5)
+	if got.Copy != "jotti-20260612-070000.sql" {
+		t.Fatalf("erster Spiegel muss kopieren: got Copy %q", got.Copy)
+	}
+	if got.Delete != nil {
+		t.Fatalf("unter dem Limit darf nichts geloescht werden: got %v", got.Delete)
+	}
+}
+
+func TestPlanBackupMirrorGuardsAgainstZeroKeep(t *testing.T) {
+	// keep <= 0 ist eine Fehlkonfiguration: kopieren ja, aber nie alles loeschen.
+	host := []string{"jotti-20260610-080000.sql", "jotti-20260611-060000.sql"}
+	got := PlanBackupMirror("jotti-20260612-070000.sql", host, 0)
+	if got.Copy != "jotti-20260612-070000.sql" {
+		t.Fatalf("Kopie muss auch bei keep <= 0 erfolgen: got Copy %q", got.Copy)
+	}
+	if got.Delete != nil {
+		t.Fatalf("keep <= 0 darf nie Host-Backups loeschen: got %v", got.Delete)
+	}
+}
