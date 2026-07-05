@@ -204,67 +204,79 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 // tagBesteller stamps the ordering Servicekraft (from the event envelope) onto
 // each freshly ordered position. Payment/cancellation/delivery keep the tag via
 // the position ID in reduceByPosition.
+// Returns a copy — the caller's slice is not modified.
 func tagBesteller(positionen []Position, userID int, userName string) []Position {
-	for i := range positionen {
-		positionen[i].BestellerUserID = userID
-		positionen[i].BestellerName = userName
+	out := make([]Position, len(positionen))
+	copy(out, positionen)
+	for i := range out {
+		out[i].BestellerUserID = userID
+		out[i].BestellerName = userName
 	}
-	return positionen
+	return out
 }
 
-// accumulatePositionen adds positions to a list, merging quantities for matching positions (by PositionID)
+// accumulatePositionen adds positions to a list, merging quantities for matching positions (by PositionID).
+// Works on a clone of list so the caller's backing array is never modified.
 func accumulatePositionen(list []Position, positionen []Position) []Position {
+	out := make([]Position, len(list))
+	copy(out, list)
 	for _, pos := range positionen {
 		found := false
-		for i, existing := range list {
+		for i, existing := range out {
 			if existing.PositionID == pos.PositionID {
-				list[i].Menge += pos.Menge
+				out[i].Menge += pos.Menge
 				found = true
 				break
 			}
 		}
 		if !found {
-			list = append(list, pos)
+			out = append(out, pos)
 		}
 	}
-	return list
+	return out
 }
 
 // reduceByPosition subtracts positions from a list, removing entries when quantity reaches zero.
 // Fehlende Positionen und Überreduktionen werden toleriert — nur für Listen verwenden, in denen
 // das fachlich vorkommt (Ausstehend: Positionen können bereits ausgegeben worden sein).
+// Works on a clone of list so the caller's backing array is never modified.
 func reduceByPosition(list []Position, reductions []Position) []Position {
+	out := make([]Position, len(list))
+	copy(out, list)
 	for _, red := range reductions {
-		for i := 0; i < len(list); i++ {
-			if list[i].PositionID == red.PositionID {
-				if list[i].Menge > red.Menge {
-					list[i].Menge -= red.Menge
+		for i := 0; i < len(out); i++ {
+			if out[i].PositionID == red.PositionID {
+				if out[i].Menge > red.Menge {
+					out[i].Menge -= red.Menge
 				} else {
-					list = append(list[:i], list[i+1:]...)
+					out = append(out[:i], out[i+1:]...)
 				}
 				break
 			}
 		}
 	}
-	return list
+	return out
 }
 
 // reduceByPositionStrict subtracts positions from a list and fails on inconsistencies:
 // Eine Reduktion, die keine Position trifft oder die verfügbare Menge übersteigt, meldet
 // einen Fehler statt still zu kappen — sie wäre das Symptom eines durchgerutschten
 // Doppel-Writes (OCC-Verletzung) und darf die Projektion nicht unbemerkt verfälschen.
+// Works on a clone of list so the caller's backing array is never modified.
 func reduceByPositionStrict(list []Position, reductions []Position) ([]Position, error) {
+	out := make([]Position, len(list))
+	copy(out, list)
 	for _, red := range reductions {
 		found := false
-		for i := 0; i < len(list); i++ {
-			if list[i].PositionID == red.PositionID {
-				if red.Menge > list[i].Menge {
-					return nil, fmt.Errorf("überreduktion für position %s: %d > %d", red.PositionID, red.Menge, list[i].Menge)
+		for i := 0; i < len(out); i++ {
+			if out[i].PositionID == red.PositionID {
+				if red.Menge > out[i].Menge {
+					return nil, fmt.Errorf("überreduktion für position %s: %d > %d", red.PositionID, red.Menge, out[i].Menge)
 				}
-				if list[i].Menge > red.Menge {
-					list[i].Menge -= red.Menge
+				if out[i].Menge > red.Menge {
+					out[i].Menge -= red.Menge
 				} else {
-					list = append(list[:i], list[i+1:]...)
+					out = append(out[:i], out[i+1:]...)
 				}
 				found = true
 				break
@@ -274,5 +286,5 @@ func reduceByPositionStrict(list []Position, reductions []Position) ([]Position,
 			return nil, fmt.Errorf("position %s nicht in der liste", red.PositionID)
 		}
 	}
-	return list, nil
+	return out, nil
 }

@@ -536,3 +536,45 @@ func TestKassensitzungEroeffnen_MitTSE_KeineWarnung(t *testing.T) {
 		t.Errorf("expected no TSE warning, got logs: %s", logbuf.String())
 	}
 }
+
+// TestKasseAbschliessen_KorruptesEventBrichtAbschlussAb belegt, dass ein nicht
+// parsebares summen-wirksames Event den Tagesabschluss abbricht und kein
+// tagesabschluss-erstellt-Event schreibt. Inkorrekte Summen im Z-Bon sind
+// schlimmer als ein blockierter Abschluss; praktisch nur bei einem korrupten
+// Store erreichbar.
+func TestKasseAbschliessen_KorruptesEventBrichtAbschlussAb(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock.SetKassenbestand(50000)
+
+	// Korruptes zahlung-kassiert-Event mit ungültigem JSON.
+	journalMock.AddEvent(e.Event{
+		UserID:   1,
+		UserName: "Test",
+		Type:     string(kasse.EventTypeZahlungKassiertV1),
+		Subject:  kasse.TischSessionSubject(testOpenKS.ZNr, 99),
+		Data:     json.RawMessage(`{"fehlerhaft": true`), // ungültiges JSON
+	})
+
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		TSERepo:             tseGateMock{},
+	}
+
+	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
+	if err == nil {
+		t.Fatal("expected error for corrupt event, got nil")
+	}
+
+	// Kein tagesabschluss-Event darf trotz des Fehlers geschrieben worden sein.
+	allEvents, readErr := journalMock.ReadKassensitzungEvents(ctx, testOpenKS.ZNr)
+	if readErr != nil {
+		t.Fatalf("expected no read error, got %v", readErr)
+	}
+	for _, evt := range allEvents {
+		if evt.Type == string(kasse.EventTypeTagesabschlussErstelltV1) {
+			t.Errorf("tagesabschluss-Event wurde trotz korruptem Event geschrieben")
+		}
+	}
+}

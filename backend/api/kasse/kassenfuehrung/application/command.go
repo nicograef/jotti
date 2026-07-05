@@ -363,7 +363,11 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to read events for Tagesabschluss")
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
-	summen := kasse.BerechneAbschlussSummen(sitzungEvents)
+	summen, err := kasse.BerechneAbschlussSummen(sitzungEvents)
+	if err != nil {
+		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Unparsebares Event verhindert Tagesabschluss")
+		return KassenabschlussErgebnis{}, err
+	}
 
 	now := time.Now().UTC()
 	tagesabschlussEvt, err := kasse.NewTagesabschlussErstelltEvent(

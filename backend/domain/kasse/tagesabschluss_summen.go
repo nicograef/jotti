@@ -2,6 +2,7 @@ package kasse
 
 import (
 	"encoding/json"
+	"fmt"
 
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
@@ -24,50 +25,58 @@ type AbschlussSummen struct {
 // Summen-wirksam: zahlung-kassiert, stornierung-erteilt, bestellung-korrigiert,
 // direktverkauf-getaetigt, direktverkauf-storniert, geldtransit-gebucht.
 // Alle übrigen Typen (Bestellung, Umbuchung, Kassensturz, Differenzbuchung,
-// Eröffnung, …) sind summen-neutral. Events mit nicht parsebaren Daten werden
-// stillschweigend übersprungen.
+// Eröffnung, …) sind summen-neutral.
+// Ein nicht parsebares Event eines summen-wirksamen Typs wird als Fehler gemeldet
+// und bricht die Berechnung ab — ein stiller falscher Z-Bon wäre schlimmer als
+// ein blockierter Abschluss (praktisch nur bei einem korrupten Store erreichbar).
 // Die Funktion hat keine Repository- oder Kontext-Abhängigkeiten.
-func BerechneAbschlussSummen(events []e.Event) AbschlussSummen {
+func BerechneAbschlussSummen(events []e.Event) (AbschlussSummen, error) {
 	var s AbschlussSummen
 	for _, evt := range events {
 		switch EventType(evt.Type) {
 		case EventTypeZahlungKassiertV1:
 			var data ZahlungKassiertV1Data
-			if err := json.Unmarshal(evt.Data, &data); err == nil {
-				s.UmsatzCents += data.GesamtZahlungCents
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
 			}
+			s.UmsatzCents += data.GesamtZahlungCents
 		case EventTypeStornierungErteiltV1:
 			var data StornierungErteiltV1Data
-			if err := json.Unmarshal(evt.Data, &data); err == nil {
-				s.UmsatzCents -= data.GesamtStornierungCents
-				s.StornierungCents += data.GesamtStornierungCents
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
 			}
+			s.UmsatzCents -= data.GesamtStornierungCents
+			s.StornierungCents += data.GesamtStornierungCents
 		case EventTypeBestellungKorrigiertV1:
 			var data BestellungKorrigiertV1Data
-			if err := json.Unmarshal(evt.Data, &data); err == nil {
-				s.StornierungCents += data.GesamtCents
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
 			}
+			s.StornierungCents += data.GesamtCents
 		case EventTypeDirektverkaufGetaetigtV1:
 			var data DirektverkaufGetaetigtV1Data
-			if err := json.Unmarshal(evt.Data, &data); err == nil {
-				s.UmsatzCents += data.GesamtbetragCents
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
 			}
+			s.UmsatzCents += data.GesamtbetragCents
 		case EventTypeDirektverkaufStorniertV1:
 			var data DirektverkaufStorniertV1Data
-			if err := json.Unmarshal(evt.Data, &data); err == nil {
-				s.UmsatzCents -= data.GesamtStornierungCents
-				s.StornierungCents += data.GesamtStornierungCents
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
 			}
+			s.UmsatzCents -= data.GesamtStornierungCents
+			s.StornierungCents += data.GesamtStornierungCents
 		case EventTypeGeldtransitGebuchtV1:
 			var data GeldtransitGebuchtV1Data
-			if err := json.Unmarshal(evt.Data, &data); err == nil {
-				if data.Richtung == "einlage" {
-					s.GeldtransitCents += data.BetragCents
-				} else {
-					s.GeldtransitCents -= data.BetragCents
-				}
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			}
+			if data.Richtung == "einlage" {
+				s.GeldtransitCents += data.BetragCents
+			} else {
+				s.GeldtransitCents -= data.BetragCents
 			}
 		}
 	}
-	return s
+	return s, nil
 }

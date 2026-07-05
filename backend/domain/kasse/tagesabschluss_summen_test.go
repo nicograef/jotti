@@ -221,7 +221,10 @@ func TestBerechneAbschlussSummen(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := BerechneAbschlussSummen(tc.events)
+			got, err := BerechneAbschlussSummen(tc.events)
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
 			if got.UmsatzCents != tc.wantUmsatz {
 				t.Errorf("UmsatzCents = %d, want %d", got.UmsatzCents, tc.wantUmsatz)
 			}
@@ -263,7 +266,10 @@ func TestBerechneAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		makeAbschlussEvent(EventTypeDifferenzSollIstGebuchtV1, map[string]int{"betragCents": -42}),
 	}
 
-	got := BerechneAbschlussSummen(events)
+	got, err := BerechneAbschlussSummen(events)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	ref := sqlReferenzSummen(events)
 
 	if got != ref {
@@ -285,4 +291,59 @@ func TestBerechneAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 	if got.GeldtransitCents != wantTransit {
 		t.Errorf("GeldtransitCents = %d, want %d", got.GeldtransitCents, wantTransit)
 	}
+}
+
+// TestBerechneAbschlussSummen_UnparsebaresEventGibtFehler prüft, dass ein
+// summen-wirksames Event mit korrupten JSON-Daten einen Fehler liefert statt
+// stillschweigend übersprungen zu werden. Jeder der sechs summen-wirksamen
+// Typen wird einzeln getestet.
+func TestBerechneAbschlussSummen_UnparsebaresEventGibtFehler(t *testing.T) {
+	corruptData := json.RawMessage(`{"fehlerhaft": true`) // ungültiges JSON
+
+	summenWirksam := []EventType{
+		EventTypeZahlungKassiertV1,
+		EventTypeStornierungErteiltV1,
+		EventTypeBestellungKorrigiertV1,
+		EventTypeDirektverkaufGetaetigtV1,
+		EventTypeDirektverkaufStorniertV1,
+		EventTypeGeldtransitGebuchtV1,
+	}
+
+	for _, typ := range summenWirksam {
+		t.Run(string(typ), func(t *testing.T) {
+			evt := e.Event{
+				ID:      1,
+				UserID:  1,
+				Type:    string(typ),
+				Time:    time.Now().UTC(),
+				Subject: testSubject,
+				Version: 1,
+				Data:    corruptData,
+			}
+			_, err := BerechneAbschlussSummen([]e.Event{evt})
+			if err == nil {
+				t.Fatalf("expected error for unparseable %s event, got nil", typ)
+			}
+		})
+	}
+
+	// Summen-neutrale Events mit korrupten Daten werden weiterhin übersprungen.
+	t.Run("summen-neutrale Events werden übersprungen", func(t *testing.T) {
+		evt := e.Event{
+			ID:      1,
+			UserID:  1,
+			Type:    string(EventTypeBestellungAufgenommenV1),
+			Time:    time.Now().UTC(),
+			Subject: testSubject,
+			Version: 1,
+			Data:    corruptData,
+		}
+		got, err := BerechneAbschlussSummen([]e.Event{evt})
+		if err != nil {
+			t.Fatalf("expected no error for neutral event, got %v", err)
+		}
+		if got != (AbschlussSummen{}) {
+			t.Errorf("expected zero summen for neutral event, got %+v", got)
+		}
+	})
 }

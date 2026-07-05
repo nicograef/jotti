@@ -127,7 +127,10 @@ func TestBerechneAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadKassensitzungEvents: %v", err)
 	}
-	got := kasse.BerechneAbschlussSummen(events)
+	got, err := kasse.BerechneAbschlussSummen(events)
+	if err != nil {
+		t.Fatalf("BerechneAbschlussSummen: %v", err)
+	}
 
 	// SQL-Seite: GetReportingStats via kj_extract_*-Funktionen.
 	reportingData, err := NewRepository(db).GetReporting(ctx, ksNr)

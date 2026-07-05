@@ -503,6 +503,60 @@ func TestApplyEvent_PaymentCancelDeliveryKeepBestellerTag(t *testing.T) {
 	}
 }
 
+// TestApplyEvent_DoesNotMutateInputState belegt, dass ApplyEvent den übergebenen
+// State (inkl. seiner Position-Slices) nicht mutiert — kein Backing-Array-Alias.
+// Dieser Test schlägt ohne die Klon-Fixes in accumulatePositionen/
+// reduceByPosition*/tagBesteller fehl, weil die Helfer das Backing-Array der
+// Eingabe direkt modifizieren.
+func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
+	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)}
+	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
+	orderEvent.ID, orderEvent.Version = 1, 1
+
+	state, err := ApplyEvent(TischSession{}, orderEvent)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(state.UnbezahltePositionen) != 1 {
+		t.Fatalf("expected 1 unbezahlte position, got %d", len(state.UnbezahltePositionen))
+	}
+
+	// Menge und Länge vor dem zweiten ApplyEvent einfrieren.
+	wantMenge := state.UnbezahltePositionen[0].Menge // = 3
+	wantLen := len(state.UnbezahltePositionen)       // = 1
+	wantAusstLen := len(state.AusstehendePositionen) // = 1
+
+	// Zahlung über 1 Einheit: reduceByPositionStrict macht list[i].Menge -= 1
+	// direkt auf dem Backing-Array. Ohne Klon mutiert das state.UnbezahltePositionen.
+	payPositions := positionsFromOrder(t, orderEvent, 1)
+	payEvent := mustCreatePaymentEvent(t, testSubject, 1, payPositions, 500)
+	payEvent.ID, payEvent.Version = 2, 2
+
+	state2, err := ApplyEvent(state, payEvent)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Der ursprüngliche state darf nicht verändert worden sein.
+	if len(state.UnbezahltePositionen) != wantLen {
+		t.Errorf("original state UnbezahltePositionen length mutated: was %d, now %d",
+			wantLen, len(state.UnbezahltePositionen))
+	}
+	if state.UnbezahltePositionen[0].Menge != wantMenge {
+		t.Errorf("ApplyEvent mutierte den Input-State: UnbezahltePositionen[0].Menge = %d, want %d",
+			state.UnbezahltePositionen[0].Menge, wantMenge)
+	}
+	if len(state.AusstehendePositionen) != wantAusstLen {
+		t.Errorf("original state AusstehendePositionen length mutated: was %d, now %d",
+			wantAusstLen, len(state.AusstehendePositionen))
+	}
+
+	// Zur Sicherheit: state2 muss korrekte Werte haben.
+	if state2.UnbezahltePositionen[0].Menge != 2 {
+		t.Errorf("new state UnbezahltePositionen[0].Menge = %d, want 2", state2.UnbezahltePositionen[0].Menge)
+	}
+}
+
 func TestApplyEvent_UnknownEventType_ReturnsError(t *testing.T) {
 	evt := e.Event{
 		ID:      1,
