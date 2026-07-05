@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"slices"
 	"strings"
@@ -139,6 +140,13 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 func clientIP(r *http.Request) string {
 	xff := r.Header.Get("X-Forwarded-For")
 	if xff == "" {
+		// RemoteAddr ist "IP:Port". Der ephemere Port wechselt je Verbindung und
+		// gehört NICHT in den Limiter-Key: sonst bekäme jede Verbindung desselben
+		// Clients einen frischen Limiter (das Limit greift nie, die Map wächst
+		// unbegrenzt). Nur die reine IP ist stabil.
+		if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+			return host
+		}
 		return r.RemoteAddr
 	}
 	parts := strings.Split(xff, ",")

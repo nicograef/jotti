@@ -5,6 +5,7 @@ package user_repo
 import (
 	"context"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/user"
 )
 
@@ -60,4 +61,21 @@ func (m mockRepo) CreateUser(ctx context.Context, t user.User) (int, error) {
 func (m mockRepo) UpdateUser(ctx context.Context, t user.User) error {
 	m.user[t.ID] = t
 	return m.err
+}
+
+// SetPasswordTx spiegelt den transaktionalen Repo-Pfad in-memory: Benutzer laden,
+// apply ausführen, Ergebnis persistieren. Der Fachfehler aus apply wird nach der
+// (simulierten) Persistenz zurückgegeben.
+func (m mockRepo) SetPasswordTx(ctx context.Context, username string, apply func(*user.User) error) error {
+	if m.err != nil {
+		return m.err
+	}
+	for id, u := range m.user { //nolint:gocritic // iterating small map for lookup
+		if u.Username == username {
+			applyErr := apply(&u)
+			m.user[id] = u
+			return applyErr
+		}
+	}
+	return db.ErrNotFound
 }

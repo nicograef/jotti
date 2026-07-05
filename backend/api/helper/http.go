@@ -55,6 +55,13 @@ func SendConflict(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusConflict)
 }
 
+// SendTooManyRequests sends a 429 Too Many Requests response with the given error
+// code — used e.g. by the per-account login throttle so the client sees a clear
+// "throttled" signal instead of "invalid credentials".
+func SendTooManyRequests(w http.ResponseWriter, code string) {
+	SendJSONResponse(w, errorResponse{Code: code}, http.StatusTooManyRequests)
+}
+
 // SendConflictDetails sends a 409 Conflict response with an error code and
 // structured details (e.g. the Kassenabschluss-Gate reports the number of
 // pending signatures and the age of the oldest).

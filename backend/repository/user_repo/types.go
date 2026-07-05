@@ -8,14 +8,30 @@ import (
 )
 
 type Repository struct {
-	q *dbgen.Queries
+	db *sql.DB
+	q  *dbgen.Queries
 }
 
 func NewRepository(db *sql.DB) Repository {
-	return Repository{q: dbgen.New(db)}
+	return Repository{db: db, q: dbgen.New(db)}
 }
 
 func userRowToDomain(row dbgen.GetUserRow) user.User {
+	return user.User{
+		ID:                      row.ID,
+		Name:                    row.Name,
+		Username:                row.Username,
+		Role:                    user.Role(row.Role),
+		Status:                  user.Status(row.Status),
+		PasswordHash:            row.PasswordHash.String,
+		OnetimePasswordHash:     row.OnetimePasswordHash.String,
+		OnetimePasswordAttempts: int(row.OnetimePasswordAttempts),
+		CreatedAt:               row.CreatedAt,
+		UpdatedAt:               row.UpdatedAt,
+	}
+}
+
+func userByUsernameForUpdateRowToDomain(row dbgen.GetUserByUsernameForUpdateRow) user.User {
 	return user.User{
 		ID:                      row.ID,
 		Name:                    row.Name,

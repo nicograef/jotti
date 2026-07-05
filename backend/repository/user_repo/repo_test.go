@@ -5,6 +5,7 @@ package user_repo
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -212,6 +213,45 @@ func TestCreateUser_UsernameNotRecycledAfterSoftDelete(t *testing.T) {
 	_, err = repo.CreateUser(context.Background(), reused)
 	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
 		t.Fatalf("expected ErrAlreadyExists; a soft-deleted user's username must not be recycled, got %v", err)
+	}
+}
+
+// Nebenläufige Set-Password-Versuche für denselben Benutzer dürfen den
+// Fehlversuchszähler nicht unterzählen: die Zeilensperre (FOR UPDATE) in
+// SetPasswordTx serialisiert sie, sodass jeder Fehlversuch genau einmal zählt.
+// Ohne die Sperre lesen mehrere Transaktionen denselben Ausgangszähler und
+// überschreiben sich gegenseitig (Lost Update) → der Zähler unterzählt.
+func TestSetPasswordTx_ConcurrentFailuresCountedExactly(t *testing.T) {
+	seeded, repo, teardown := setup(t)
+	defer teardown(t)
+
+	// Weniger als MaxOnetimePasswordAttempts (5), damit die Sperre den Zähler
+	// nicht zwischendurch zurücksetzt.
+	const attempts = 4
+
+	var wg sync.WaitGroup
+	for i := 0; i < attempts; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Falsches Einmalpasswort: SetPassword erhöht den Zähler und liefert
+			// ErrInvalidPassword. SetPasswordTx persistiert den erhöhten Zähler.
+			err := repo.SetPasswordTx(context.Background(), seeded.Username, func(u *user.User) error {
+				return u.SetPassword("wrongotp", "ValidPass123")
+			})
+			if err != nil && !errors.Is(err, user.ErrInvalidPassword) {
+				t.Errorf("expected ErrInvalidPassword, got %v", err)
+			}
+		}()
+	}
+	wg.Wait()
+
+	after, err := repo.GetUser(context.Background(), seeded.ID)
+	if err != nil {
+		t.Fatalf("expected no error reloading user, got %v", err)
+	}
+	if after.OnetimePasswordAttempts != attempts {
+		t.Fatalf("expected exactly %d counted failures (no under-count), got %d", attempts, after.OnetimePasswordAttempts)
 	}
 }
 

@@ -135,18 +135,23 @@ func TestRateLimitMiddleware_XForwardedForSpoofingUmgehtLimitNicht(t *testing.T)
 
 func TestClientIP(t *testing.T) {
 	cases := []struct {
-		name string
-		xff  string
-		want string
+		name       string
+		remoteAddr string
+		xff        string
+		want       string
 	}{
-		{"ohne Header: RemoteAddr", "", "192.0.2.1:1234"},
-		{"ein Eintrag", "203.0.113.7", "203.0.113.7"},
-		{"Client-Spoofing: letzter Eintrag zählt", "1.2.3.4, 5.6.7.8, 203.0.113.7", "203.0.113.7"},
+		// Ohne Proxy zählt RemoteAddr — aber OHNE den ephemeren Port, sonst
+		// bekäme jede Verbindung desselben Clients einen frischen Limiter-Key.
+		{"ohne Header: RemoteAddr ohne Port", "192.0.2.1:1234", "", "192.0.2.1"},
+		{"ohne Header: anderer Port derselben IP", "192.0.2.1:56789", "", "192.0.2.1"},
+		{"ohne Header: IPv6 RemoteAddr ohne Port", "[2001:db8::1]:1234", "", "2001:db8::1"},
+		{"ein Eintrag", "192.0.2.1:1234", "203.0.113.7", "203.0.113.7"},
+		{"Client-Spoofing: letzter Eintrag zählt", "192.0.2.1:1234", "1.2.3.4, 5.6.7.8, 203.0.113.7", "203.0.113.7"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/test", nil)
-			req.RemoteAddr = "192.0.2.1:1234"
+			req.RemoteAddr = tc.remoteAddr
 			if tc.xff != "" {
 				req.Header.Set("X-Forwarded-For", tc.xff)
 			}
@@ -154,6 +159,32 @@ func TestClientIP(t *testing.T) {
 				t.Errorf("clientIP() = %q, want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+// Ohne vertrauenswürdigen Proxy (kein X-Forwarded-For) müssen zwei Requests
+// desselben Clients mit WECHSELNDEM ephemerem Port denselben Limiter treffen —
+// sonst greift das Limit nie und die Limiter-Map wächst je Verbindung.
+func TestRateLimitMiddleware_GleicheIPWechselndePortsTeilenLimiter(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	mw := RateLimitMiddleware(1)(handler)
+
+	blocked := false
+	for port := 40000; port < 40010; port++ {
+		req := httptest.NewRequest(http.MethodPost, "/test", nil)
+		req.RemoteAddr = fmt.Sprintf("192.0.2.1:%d", port)
+		rec := httptest.NewRecorder()
+		mw.ServeHTTP(rec, req)
+		if rec.Code == http.StatusTooManyRequests {
+			blocked = true
+		}
+	}
+
+	if !blocked {
+		t.Error("expected rate limit to trigger for the same IP despite changing ephemeral ports")
 	}
 }
 

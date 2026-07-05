@@ -46,6 +46,8 @@ func (h *CommandHandler) LoginHandler() http.HandlerFunc {
 		token, err := h.Command.GenerateJWTToken(ctx, body.Username, body.Password)
 		if err != nil {
 			switch {
+			case errors.Is(err, application.ErrLoginThrottled):
+				helper.SendTooManyRequests(w, "login_throttled")
 			case errors.Is(err, application.ErrNotActive):
 				helper.SendClientError(w, "user_inactive", nil)
 			case errors.Is(err, application.ErrUserNotFound) || errors.Is(err, application.ErrInvalidPassword):

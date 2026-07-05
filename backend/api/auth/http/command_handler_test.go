@@ -57,6 +57,25 @@ func TestLoginHandler_InvalidCredentials(t *testing.T) {
 	}
 }
 
+func TestLoginHandler_Throttled(t *testing.T) {
+	command := mockAuthCommand{token: "", err: application.ErrLoginThrottled}
+	handler := CommandHandler{Command: command}
+
+	body := `{"username":"testuser","password":"Test123!"}`
+	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.LoginHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusTooManyRequests {
+		t.Errorf("expected status 429 for throttled login, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "login_throttled") {
+		t.Errorf("expected body to carry the login_throttled code, got %s", rec.Body.String())
+	}
+}
+
 func TestLoginHandler_InactiveUser(t *testing.T) {
 	command := mockAuthCommand{token: "", err: application.ErrNotActive}
 	handler := CommandHandler{Command: command}

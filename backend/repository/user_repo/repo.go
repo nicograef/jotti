@@ -60,7 +60,16 @@ func (r Repository) CreateUser(ctx context.Context, u user.User) (int, error) {
 }
 
 func (r Repository) UpdateUser(ctx context.Context, u user.User) error {
-	result, err := r.q.UpdateUser(ctx, dbgen.UpdateUserParams{
+	result, err := r.q.UpdateUser(ctx, updateUserParams(u))
+	if err != nil {
+		return db.Error(err)
+	}
+
+	return db.ResultError(result)
+}
+
+func updateUserParams(u user.User) dbgen.UpdateUserParams {
+	return dbgen.UpdateUserParams{
 		Name:                    u.Name,
 		Username:                u.Username,
 		Role:                    dbgen.Userrole(u.Role),
@@ -70,10 +79,56 @@ func (r Repository) UpdateUser(ctx context.Context, u user.User) error {
 		OnetimePasswordAttempts: u.OnetimePasswordAttempts,
 		UpdatedAt:               u.UpdatedAt,
 		ID:                      u.ID,
+	}
+}
+
+// SetPasswordTx lädt den Benutzer mit Zeilensperre (FOR UPDATE), führt apply aus
+// und persistiert das Ergebnis in EINER Transaktion — nach dem Callback-in-TX-
+// Muster von kassenjournal_repo.EroeffneKassensitzung. Damit werden konkurrierende
+// Set-Password-Versuche für denselben Benutzer serialisiert: der zweite Versuch
+// wartet auf der Zeilensperre, bis der erste committet hat, und liest dann den
+// bereits erhöhten Fehlversuchszähler — der Zähler kann nicht unterzählen.
+//
+// apply mutiert den Benutzer (SetPassword zählt den Fehlversuchszähler hoch bzw.
+// setzt das neue Passwort). Der von apply gelieferte Fachfehler (falsches
+// Einmalpasswort, Sperre, ...) wird NICHT als Transaktionsabbruch gewertet: der
+// mutierte Zustand wird trotzdem im selben Commit persistiert und der Fehler
+// danach an den Aufrufer zurückgegeben. Nur echte DB-Fehler brechen ab (Rollback).
+func (r Repository) SetPasswordTx(ctx context.Context, username string, apply func(*user.User) error) error {
+	var applyErr error
+	txErr := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+		row, err := qtx.GetUserByUsernameForUpdate(ctx, username)
+		if err != nil {
+			return db.Error(err)
+		}
+
+		u := userByUsernameForUpdateRowToDomain(row)
+		applyErr = apply(&u)
+
+		if _, err := qtx.UpdateUser(ctx, updateUserParams(u)); err != nil {
+			return db.Error(err)
+		}
+		return nil
 	})
+	if txErr != nil {
+		return txErr
+	}
+	return applyErr
+}
+
+// withTx runs fn within a single transaction: it begins the tx, rolls back on any
+// error (a rollback after commit is a no-op), and commits otherwise. fn receives
+// the transaction-bound queries; only begin/commit failures are normalized here.
+func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) error {
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return db.Error(err)
 	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
 
-	return db.ResultError(result)
+	if err := fn(r.q.WithTx(tx)); err != nil {
+		return err
+	}
+
+	return db.Error(tx.Commit())
 }
