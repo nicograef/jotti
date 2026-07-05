@@ -6,6 +6,7 @@ import (
 	_ "embed"
 
 	"github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 // gdpduDTD ist die statische, zwingend mitzuliefernde GoBD/GDPdU-Beschreibungs-
@@ -35,7 +36,7 @@ const (
 // die gdpdu-01-09-2004.dtd. Seiteneffektfrei — komponiert Mapper, CSV-Serializer,
 // index.xml-Generator und ZIP-Packer. signaturen ist der Signatur-Stand je
 // Event-ID aus der Signaturauftrags-Tabelle (die einzige Signaturquelle).
-func BuildArchive(snapshot Snapshot, events []event.Event, signaturen map[int]EventSignatur) ([]byte, error) {
+func BuildArchive(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSignatur) ([]byte, error) {
 	archive, err := Map(snapshot, events, signaturen)
 	if err != nil {
 		return nil, err

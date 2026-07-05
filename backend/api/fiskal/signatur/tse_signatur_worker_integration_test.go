@@ -1,6 +1,6 @@
 //go:build integration
 
-package app
+package signatur
 
 import (
 	"context"

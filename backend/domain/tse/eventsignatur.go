@@ -1,6 +1,4 @@
-package dsfinvk
-
-import "github.com/nicograef/jotti/backend/domain/tse"
+package tse
 
 // EventSignatur ist der TSE-Stand eines Events aus der Signaturauftrags-
 // Tabelle: der processType-Snapshot des Auftrags plus die Signatur, sobald der
@@ -9,5 +7,5 @@ import "github.com/nicograef/jotti/backend/domain/tse"
 // und keine Projektion zur Lesezeit.
 type EventSignatur struct {
 	ProcessType string
-	Signatur    *tse.Signatur
+	Signatur    *Signatur
 }

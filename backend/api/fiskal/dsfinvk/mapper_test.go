@@ -99,9 +99,9 @@ func barverkaufEvent(t *testing.T) event.Event {
 
 // barverkaufSignaturen ist der Signaturauftrags-Stand zum barverkaufEvent:
 // quittierte Kassenbeleg-V1-Signatur.
-func barverkaufSignaturen(t *testing.T) map[int]EventSignatur {
+func barverkaufSignaturen(t *testing.T) map[int]tse.EventSignatur {
 	t.Helper()
-	return map[int]EventSignatur{
+	return map[int]tse.EventSignatur{
 		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "SIGBASE64==")},
 	}
 }
@@ -291,9 +291,9 @@ func zahlungEvent(t *testing.T) event.Event {
 
 // tischablaufSignaturen ist der Signaturauftrags-Stand zu bestellungEvent (ID 1)
 // und zahlungEvent (ID 2): je eine eigene quittierte TSE-Transaktion.
-func tischablaufSignaturen(t *testing.T) map[int]EventSignatur {
+func tischablaufSignaturen(t *testing.T) map[int]tse.EventSignatur {
 	t.Helper()
-	return map[int]EventSignatur{
+	return map[int]tse.EventSignatur{
 		1: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4710, 11, "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "BESTELLSIG==")},
 		2: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "ZAHLSIG==")},
 	}
@@ -491,7 +491,7 @@ func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
 
-	signaturen := map[int]EventSignatur{
+	signaturen := map[int]tse.EventSignatur{
 		1: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4710, 11, "2026-06-16T11:00:00Z", "2026-06-16T11:00:01Z", "BESTELLSIG==")},
 		2: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4712, 13, "2026-06-16T13:00:00Z", "2026-06-16T13:00:01Z", "KORREKTURSIG==")},
 	}
@@ -565,7 +565,7 @@ func TestMapWarenruecknahmeNegativeWithZahlungReference(t *testing.T) {
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
 
 	signaturen := tischablaufSignaturen(t)
-	signaturen[3] = EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4713, 14, "2026-06-16T13:00:00Z", "2026-06-16T13:00:01Z", "STORNOSIG==")}
+	signaturen[3] = tse.EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4713, 14, "2026-06-16T13:00:00Z", "2026-06-16T13:00:01Z", "STORNOSIG==")}
 	archive, err := Map(snapshot, []event.Event{bestellungEvent(t), zahlungEvent(t), warenruecknahmeEvent(t)}, signaturen)
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
@@ -667,7 +667,7 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42", 7: "Tisch 7"}
 
 	abgang, zugang := umbuchungEventPaar(t)
-	signaturen := map[int]EventSignatur{
+	signaturen := map[int]tse.EventSignatur{
 		2: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4722, 22, "2026-06-16T13:30:00Z", "2026-06-16T13:30:01Z", "UMBUCHABSIG==")},
 		3: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4723, 23, "2026-06-16T13:30:00Z", "2026-06-16T13:30:01Z", "UMBUCHZUSIG==")},
 	}
@@ -754,7 +754,7 @@ func kombiZahlungEvent(t *testing.T) event.Event {
 // 7 % und 30 % zu 19 %. lines_vat folgt der Aufteilen-Reihenfolge (ermäßigt,
 // regel), transactions_vat der Steuermatrix-Reihenfolge (regel, ermäßigt).
 func TestMapKombiSteuerSplit(t *testing.T) {
-	signaturen := map[int]EventSignatur{
+	signaturen := map[int]tse.EventSignatur{
 		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4800, 20, "2026-06-16T12:30:00Z", "2026-06-16T12:30:01Z", "KOMBISIG==")},
 	}
 	archive, err := Map(testSnapshot(), []event.Event{kombiZahlungEvent(t)}, signaturen)
@@ -856,7 +856,7 @@ func direktverkaufStornoEvent(t *testing.T) event.Event {
 // Barbelege ohne Abrechnungskreis; der Storno verweist per REF_BON_ID auf den
 // Ursprungsverkauf und kehrt die Vorzeichen um.
 func TestMapDirektverkaufUndStorno(t *testing.T) {
-	signaturen := map[int]EventSignatur{
+	signaturen := map[int]tse.EventSignatur{
 		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 5000, 30, "2026-06-16T14:00:00Z", "2026-06-16T14:00:01Z", "DVSIG==")},
 		2: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 5001, 31, "2026-06-16T14:05:00Z", "2026-06-16T14:05:01Z", "DVSTORNOSIG==")},
 	}
@@ -1023,10 +1023,10 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 	}
 
 	signaturen := tischablaufSignaturen(t)
-	signaturen[10] = EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6100, 44, "2026-06-16T10:00:00Z", "2026-06-16T10:00:01Z", "EROEFFNUNGSIG==")}
-	signaturen[4] = EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 5000, 30, "2026-06-16T14:00:00Z", "2026-06-16T14:00:01Z", "DVSIG==")}
-	signaturen[11] = EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6000, 40, "2026-06-16T15:00:00Z", "2026-06-16T15:00:01Z", "GTSIG==")}
-	signaturen[13] = EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6002, 42, "2026-06-16T16:00:00Z", "2026-06-16T16:00:01Z", "DIFFSIG==")}
+	signaturen[10] = tse.EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6100, 44, "2026-06-16T10:00:00Z", "2026-06-16T10:00:01Z", "EROEFFNUNGSIG==")}
+	signaturen[4] = tse.EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 5000, 30, "2026-06-16T14:00:00Z", "2026-06-16T14:00:01Z", "DVSIG==")}
+	signaturen[11] = tse.EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6000, 40, "2026-06-16T15:00:00Z", "2026-06-16T15:00:01Z", "GTSIG==")}
+	signaturen[13] = tse.EventSignatur{ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6002, 42, "2026-06-16T16:00:00Z", "2026-06-16T16:00:01Z", "DIFFSIG==")}
 
 	archive, err := Map(snapshot, events, signaturen)
 	if err != nil {
@@ -1120,7 +1120,7 @@ func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 	}
 	mitAbschluss := append(append([]event.Event{}, ohneAbschluss...), tagesabschlussEvent(t))
 
-	signaturen := map[int]EventSignatur{
+	signaturen := map[int]tse.EventSignatur{
 		10: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6100, 44, "2026-06-16T10:00:00Z", "2026-06-16T10:00:01Z", "EROEFFNUNGSIG==")},
 		2:  {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "ZAHLSIG==")},
 		11: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 6000, 40, "2026-06-16T15:00:00Z", "2026-06-16T15:00:01Z", "GTSIG==")},
@@ -1220,7 +1220,7 @@ func TestMapTagesabschlussAusfallTraegtFehlerzeile(t *testing.T) {
 		tagesabschlussEvent(t), // Abschluss ohne Signatur (Auftrag unerledigt, ID 20)
 	}
 
-	signaturen := map[int]EventSignatur{
+	signaturen := map[int]tse.EventSignatur{
 		2:  {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "ZAHLSIG==")},
 		20: {ProcessType: "SonstigerVorgang"}, // signaturpflichtig, aber unsigniert
 	}
@@ -1327,7 +1327,7 @@ func TestMapNachsigniertVorgang(t *testing.T) {
 	prompt := zahlungAm(t, 1, nachsigniertSignedBonID, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
 	nachsigniert := zahlungAm(t, 2, nachsigniertOutageBonID, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
 
-	signaturen := map[int]EventSignatur{
+	signaturen := map[int]tse.EventSignatur{
 		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "EVENTSIG==")},
 		// Verspätete Quittierung: logTime deutlich nach der Event-Zeit.
 		2: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 9100, 99, "2026-06-16T13:00:05Z", "2026-06-16T13:00:06Z", "BACKFILLSIG==")},
@@ -1358,7 +1358,7 @@ func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
 	signiert := zahlungAm(t, 1, nachsigniertSignedBonID, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
 	unsigniert := zahlungAm(t, 2, nachsigniertOutageBonID, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
 
-	signaturen := map[int]EventSignatur{
+	signaturen := map[int]tse.EventSignatur{
 		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "EVENTSIG==")},
 		2: {ProcessType: "Kassenbeleg-V1"}, // Auftrag existiert, Signatur steht aus
 	}
@@ -1414,7 +1414,7 @@ func TestUnsignierteVorgaengeAllerArtenTragenAusfallzeile(t *testing.T) {
 	}
 
 	// Alle Aufträge existieren (signaturpflichtig), keiner ist quittiert.
-	signaturen := map[int]EventSignatur{
+	signaturen := map[int]tse.EventSignatur{
 		10: {ProcessType: "Kassenbeleg-V1"},
 		1:  {ProcessType: "Bestellung-V1"},
 		2:  {ProcessType: "Kassenbeleg-V1"},
@@ -1451,7 +1451,7 @@ func TestUnsignierteVorgaengeAllerArtenTragenAusfallzeile(t *testing.T) {
 func TestAnfangsbestandTraegtTSESignatur(t *testing.T) {
 	evt := eroeffnetEvent(t, 10000)
 
-	signaturen := map[int]EventSignatur{
+	signaturen := map[int]tse.EventSignatur{
 		10: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 7000, 50, "2026-06-16T10:00:00Z", "2026-06-16T10:00:01Z", "EROEFFNUNGSIG==")},
 	}
 

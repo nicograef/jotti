@@ -1,4 +1,4 @@
-package app
+package signatur
 
 import (
 	"context"
@@ -34,14 +34,16 @@ type tseRueckstandWatchdog struct {
 	now          func() time.Time
 }
 
-func newTSERueckstandWatchdog(database *sql.DB) *tseRueckstandWatchdog {
+// NewTSERueckstandWatchdog erstellt den Rueckstands-Watchdog.
+func NewTSERueckstandWatchdog(database *sql.DB) *tseRueckstandWatchdog {
 	return &tseRueckstandWatchdog{
 		store: tse_repo.NewRepository(database),
 		now:   time.Now,
 	}
 }
 
-func (w *tseRueckstandWatchdog) run(ctx context.Context) {
+// Run startet den Watchdog und blockiert bis ctx abgebrochen wird.
+func (w *tseRueckstandWatchdog) Run(ctx context.Context) {
 	interval := w.tickInterval
 	if interval <= 0 {
 		interval = tse.WatchdogTickIntervall

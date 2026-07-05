@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nicograef/jotti/backend/api/fiskal/dsfinvk"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/betreiber"
-	"github.com/nicograef/jotti/backend/domain/dsfinvk"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/table"
@@ -30,7 +30,7 @@ var (
 type kassenjournalRepo interface {
 	// ReadEventsByKassensitzung liefert die Events samt Signatur-Stand je Event
 	// (LEFT JOIN auf die Signaturauftraege: kein Eintrag = nicht signaturpflichtig).
-	ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, map[int]dsfinvk.EventSignatur, error)
+	ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, map[int]tse.EventSignatur, error)
 }
 
 type kassensitzungenRepo interface {

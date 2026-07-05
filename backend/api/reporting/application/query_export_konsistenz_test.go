@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nicograef/jotti/backend/api/fiskal/dsfinvk"
 	"github.com/nicograef/jotti/backend/domain/betreiber"
-	"github.com/nicograef/jotti/backend/domain/dsfinvk"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"

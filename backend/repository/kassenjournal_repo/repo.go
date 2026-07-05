@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/dsfinvk"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
@@ -470,8 +469,8 @@ func eventFromKassensitzungRow(row dbgen.ReadEventsByKassensitzungRow) event.Eve
 // eventSignaturFromKassensitzungRow maps the LEFT-JOIN columns of a read row to
 // the export view of the event's Signaturauftrag: processType always, the
 // Signaturspalten only once quittiert.
-func eventSignaturFromKassensitzungRow(row dbgen.ReadEventsByKassensitzungRow) dsfinvk.EventSignatur {
-	signatur := dsfinvk.EventSignatur{ProcessType: row.ProcessType.String}
+func eventSignaturFromKassensitzungRow(row dbgen.ReadEventsByKassensitzungRow) tse.EventSignatur {
+	signatur := tse.EventSignatur{ProcessType: row.ProcessType.String}
 	if row.Signatur.Valid {
 		signatur.Signatur = &tse.Signatur{
 			TransaktionNummer: int(row.TransaktionNummer.Int32),
@@ -523,14 +522,14 @@ func (r Repository) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr
 // ascending, together with each event's Signaturauftrag-Stand (LEFT JOIN:
 // kein Auftrag = nicht signaturpflichtig). It is the read side of the
 // DSFinV-K export.
-func (r Repository) ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, map[int]dsfinvk.EventSignatur, error) {
+func (r Repository) ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, map[int]tse.EventSignatur, error) {
 	rows, err := r.q.ReadEventsByKassensitzung(ctx, kassensitzungNr)
 	if err != nil {
 		return nil, nil, db.Error(err)
 	}
 
 	events := make([]event.Event, 0, len(rows))
-	signaturen := make(map[int]dsfinvk.EventSignatur)
+	signaturen := make(map[int]tse.EventSignatur)
 	for i := range rows {
 		events = append(events, eventFromKassensitzungRow(rows[i]))
 		if rows[i].ProcessType.Valid {

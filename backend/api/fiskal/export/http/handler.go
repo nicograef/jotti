@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/nicograef/jotti/backend/api/export/application"
+	"github.com/nicograef/jotti/backend/api/fiskal/export/application"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/rs/zerolog"
 )

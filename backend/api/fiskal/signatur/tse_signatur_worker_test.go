@@ -1,6 +1,6 @@
 //go:build unit
 
-package app
+package signatur
 
 import (
 	"context"
@@ -698,7 +698,7 @@ func runWorker(t *testing.T, worker *tseSignaturWorker) (context.CancelFunc, <-c
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() {
-		worker.run(ctx)
+		worker.Run(ctx)
 		close(done)
 	}()
 	return cancel, done

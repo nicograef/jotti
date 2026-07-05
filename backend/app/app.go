@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/nicograef/jotti/backend/api"
+	"github.com/nicograef/jotti/backend/api/fiskal/signatur"
 	"github.com/nicograef/jotti/backend/api/health"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/config"
@@ -83,11 +84,11 @@ func SetupRoutes(cfg config.Config, db *sql.DB) http.Handler {
 
 // Run starts the application with graceful shutdown
 func (app *App) Run(ctx context.Context) error {
-	worker := newTSESignaturWorker(app.Config, app.DB)
-	go worker.run(ctx)
+	worker := signatur.NewTSESignaturWorker(app.Config.FiskalyBaseURL, app.DB)
+	go worker.Run(ctx)
 
-	watchdog := newTSERueckstandWatchdog(app.DB)
-	go watchdog.run(ctx)
+	watchdog := signatur.NewTSERueckstandWatchdog(app.DB)
+	go watchdog.Run(ctx)
 
 	errChan := make(chan error, 1)
 	go func() {

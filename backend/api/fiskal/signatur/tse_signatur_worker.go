@@ -1,4 +1,4 @@
-package app
+package signatur
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nicograef/jotti/backend/config"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
@@ -99,20 +98,24 @@ type tseSignaturWorker struct {
 	clientCreds tse.Credentials
 }
 
-func newTSESignaturWorker(cfg config.Config, database *sql.DB) *tseSignaturWorker {
+// NewTSESignaturWorker erstellt den Signatur-Worker. fiskalyBaseURL ist die
+// Basis-URL der Fiskaly-API; sie wird als Parameter gereicht, damit dieses
+// Paket config nicht importiert.
+func NewTSESignaturWorker(fiskalyBaseURL string, database *sql.DB) *tseSignaturWorker {
 	return &tseSignaturWorker{
 		lockDB:       database,
 		settingsRepo: tse_repo.NewRepository(database),
 		store:        tse_repo.NewRepository(database),
 		newTSEClient: func(credentials tse.Credentials) (tseWorkerClient, error) {
-			return tse_repo.NewFiskalyTSEClient(cfg.FiskalyBaseURL, credentials, nil)
+			return tse_repo.NewFiskalyTSEClient(fiskalyBaseURL, credentials, nil)
 		},
 		trigger: tse_repo.SignaturWorkerTrigger(),
 		now:     time.Now,
 	}
 }
 
-func (w *tseSignaturWorker) run(ctx context.Context) {
+// Run startet den Signatur-Worker und blockiert bis ctx abgebrochen wird.
+func (w *tseSignaturWorker) Run(ctx context.Context) {
 	defer w.releaseLock()
 
 	interval := w.pollInterval

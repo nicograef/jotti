@@ -137,7 +137,7 @@ func (b *beleg) ustAufteilung() []ustBetrag {
 // dieselben Belege je GV-Typ und Zahlart.
 // signaturen ist der Signatur-Stand je Event-ID aus der Signaturauftrags-Tabelle
 // (die einzige Signaturquelle); Events ohne Eintrag sind nicht signaturpflichtig.
-func Map(snapshot Snapshot, events []event.Event, signaturen map[int]EventSignatur) (Archive, error) {
+func Map(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSignatur) (Archive, error) {
 	erstellung := snapshot.Erstellung.UTC().Format(time.RFC3339)
 
 	belege, err := belegeFromEvents(events, snapshot.Tischnamen, signaturen)
@@ -188,7 +188,7 @@ func Map(snapshot Snapshot, events []event.Event, signaturen map[int]EventSignat
 // wird ein geldneutraler `AVSonstige`-Bon, der allein seine TSE-Signatur in den Export
 // trägt. BON_NR wird fortlaufend vergeben; BON_ID ist die jeweilige Vorgangs-ID.
 // Jeder Beleg erhält den TSE-Stand seines Events aus signaturen (Signaturauftrag).
-func belegeFromEvents(events []event.Event, tischnamen map[int]string, signaturen map[int]EventSignatur) ([]beleg, error) {
+func belegeFromEvents(events []event.Event, tischnamen map[int]string, signaturen map[int]tse.EventSignatur) ([]beleg, error) {
 	var belege []beleg
 	bonNr := 0
 	// herkunft bildet jede PositionID auf die BON_ID ihrer Bestellung ab.

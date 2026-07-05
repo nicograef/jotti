@@ -1,6 +1,6 @@
 //go:build unit
 
-package app
+package signatur
 
 import (
 	"context"
@@ -148,7 +148,7 @@ func TestRueckstandWatchdog_Run_OeffnetAmTick(t *testing.T) {
 	defer cancel()
 	done := make(chan struct{})
 	go func() {
-		watchdog.run(ctx)
+		watchdog.Run(ctx)
 		close(done)
 	}()
 
