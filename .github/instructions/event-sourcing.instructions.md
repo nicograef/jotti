@@ -1,6 +1,6 @@
 ---
 description: "Use when working on event sourcing, domain events, kasse operations, tisch-session state, kassensitzung state, or kassenjournal."
-applyTo: "backend/domain/kasse/**,backend/domain/table/**,backend/repository/kassenjournal_repo/**"
+applyTo: "backend/domain/kasse/**,backend/domain/tisch/**,backend/repository/kassenjournal_repo/**"
 ---
 
 Repo-weite Regeln und Guardrails stehen kanonisch in `AGENTS.md`. Diese Datei ergänzt nur event-sourcing-spezifische Details für Kasse-Streams und Projektionen.

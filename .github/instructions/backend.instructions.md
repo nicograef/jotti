@@ -76,7 +76,7 @@ type produktDTO struct {
 	UpdatedAt time.Time     `json:"updatedAt"`
 }
 
-func toProduktDTO(p product.Produkt) produktDTO {
+func toProduktDTO(p produkt.Produkt) produktDTO {
 	varianten := make([]varianteDTO, 0, len(p.Varianten))
 	for _, v := range p.Varianten {
 		varianten = append(varianten, varianteDTO{
@@ -121,7 +121,7 @@ Hinweis: Query-Handler senden keine Domain-Modelle direkt, sondern mappen immer 
 ```go
 type createProdukt struct {
 	Name      string           `json:"name"`
-	Kategorie product.Kategorie `json:"kategorie"`
+	Kategorie produkt.Kategorie `json:"kategorie"`
 }
 
 type createProduktResponse struct {
@@ -159,10 +159,10 @@ func (h *CommandHandler) CreateProduktHandler() http.HandlerFunc {
 Pattern: Logging → Domain-Modell aufbauen/validieren → Repository aufrufen → Fehler mappen.
 
 ```go
-func (c Command) CreateProdukt(ctx context.Context, name string, kategorie product.Kategorie) (int, error) {
+func (c Command) CreateProdukt(ctx context.Context, name string, kategorie produkt.Kategorie) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	produkt, err := product.NewProdukt(name, kategorie)
+	produkt, err := produkt.NewProdukt(name, kategorie)
 	if err != nil {
 		log.Warn().Err(err).Str("name", name).Msg("Invalid produkt data")
 		return 0, ErrInvalidProduktData

@@ -102,9 +102,9 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 
 ## Bereiche
 
-- **Admin** (`admin`): Routen `/admin/*` (`api/admin.go`), Frontend `src/admin/`, `AdminGuard`. Produkte, Tische, Benutzer verwalten. Kassensitzung eröffnen/verwalten, Kassenbestand, Kassensturz, Tagesabschluss. Reporting.
-- **Service** (`admin` + `serviceleitung` + `service`): Routen `/service/*` (`api/service.go`), Stornierung über `api/serviceleitung.go`. Frontend `src/service/`, `ServiceGuard`. Bestellen, Ausgabe bestätigen, Kassieren, Stornieren.
-- **Auth**: Routen `/auth/*` (`api/auth.go`). Login, Passwort setzen. JWT-Token (Benutzer-ID + Rolle).
+- **Admin** (`admin`): Routen `/admin/*` (`api/admin.go`), Frontend `src/admin/`, `AdminGuard`. Kontext-Handler: `api/stammdaten/` (Produkte, Tische, Benutzer, Betreiber), `api/fiskal/` (TSE-Signatur-Monitoring, Setup, DSFinV-K-Export), `api/druck/` (Druckstationen, Druckaufträge), `api/reporting/` (Live-Reporting, Abrechnung), `api/kasse/kassenfuehrung/` (Kassensitzung, Kassensturz, Tagesabschluss).
+- **Service** (`admin` + `serviceleitung` + `service`): Routen `/service/*` (`api/service.go`), Stornierung über `api/serviceleitung.go`. Frontend `src/service/`, `ServiceGuard`. Kontext-Handler: `api/kasse/tischgeschaeft/` (Bestellen, Ausgabe, Kassieren, Umbuchen), `api/kasse/direktverkauf/`, `api/druck/beleg/` (Kassenbeleg drucken).
+- **Auth**: Routen `/auth/*` (`api/auth.go`). Kontext-Handler: `api/auth/`. Login, Passwort setzen. JWT-Token (Benutzer-ID + Rolle).
 
 ## Git-Workflow
 

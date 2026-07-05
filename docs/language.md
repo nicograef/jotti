@@ -32,6 +32,8 @@ Die Ubiquitous Language ist ein Living Document: Sie wird fortlaufend aktualisie
 
 > **Pfadkonvention:** Dateipfade sind relativ angegeben, `domain/…` und `api/…` liegen unter `backend/`, `src/…` unter `frontend/`, `migrations/…` unter `database/`.
 
+> **Go-Paketnamens-Konvention:** Fachmodule tragen deutsche Namen (`kasse`, `tisch`, `produkt`, `betreiber`, `druckstation`, `steuer`). Infrastruktur-Pakete bleiben englisch (`event`, `jwt`, `db`, `config`, `middleware`, `helper`). `user` ist eine dokumentierte Ausnahme: der Begriff ist im Deutschen mehrdeutig, das Paket deckt Auth-nahe Infrastruktur ab und bleibt englisch. Die API-Kontext-Ordner folgen demselben Muster: `kasse`, `fiskal`, `druck`, `stammdaten`, `reporting` (Fach), `auth`, `health`, `helper`, `middleware` (Infra).
+
 ## Begriffsdefinitionen
 
 ### Vereinswesen & Steuerliche Sphären
@@ -86,6 +88,14 @@ JWT (JSON Web Token) mit Benutzer-ID und Rolle. 12 Stunden gültig. Reiner Infra
 
 Die Event-Feldschemata (Felder, Typen, Constraints) aller Kasse-Events stehen kanonisch im Code: `backend/domain/kasse/*_events.go`. Eine kompakte Event-Übersicht (Typ, Subject, Semantik) gibt [handbuch.md §3.6](handbuch.md#36-domain-events). Die folgenden Einträge geben die Begriff↔Code-Mappings.
 
+#### Tischgeschäft
+
+Sammelbezeichnung für alle tischbezogenen Kasse-Operationen: Bestellung aufnehmen, Ausgabe bestätigen, Zahlung kassieren, Stornierung erteilen, Umbuchung, Direktverkauf. Im Code: `api/kasse/tischgeschaeft/` (Tisch-Sessions) und `api/kasse/direktverkauf/`.
+
+#### Kassenführung
+
+Sammelbezeichnung für alle kassenführungsbezogenen Operationen: Kassensitzung eröffnen, Anfangsbestand setzen, Geldtransit buchen, Kassensturz durchführen, Tagesabschluss (Z-Bon). Im Code: `api/kasse/kassenfuehrung/`.
+
 #### Tisch (Stammdaten)
 
 Reine Stammdaten-Entität: ein physischer Ort, an dem Gäste sitzen. Hat einen Namen, Status (active/inactive/deleted) und wird vom Admin verwaltet. Im Kasse-Kontext wird der Tisch nur über seine ID referenziert, die `tisch_id` fließt in das Subject der Tisch-Session ein.
@@ -100,7 +110,7 @@ Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Be
 | -------------- | -------------- | ---------------- | ------------------------------------ |
 | `TischSession` | `TischSession` | `tisch_sessions` | `kassensitzung-{nr}/tisch-{tischId}` |
 
-> **Hinweis `domain/table/`:** Das Paket existiert weiterhin für Tisch-Stammdaten (`tisch.go`). Die Kasse-Logik (Event-Sourcing, Tisch-Sessions, Kassensitzung) liegt in `domain/kasse/`; `domain/table/` enthält die Tisch-Stammdaten-Entität `Tisch` sowie die Read-Model-Structs `AktiverTisch`/`AktiverTischMitFavorit`.
+> **Paketname:** Tisch-Stammdaten liegen in `domain/tisch/` (enthält die Entität `Tisch` sowie die Read-Model-Structs `AktiverTisch`/`AktiverTischMitFavorit`). Die Kasse-Logik (Event-Sourcing, Tisch-Sessions, Kassensitzung) liegt in `domain/kasse/`.
 
 #### Direktverkauf
 
@@ -322,7 +332,7 @@ Geldbeträge werden ausnahmslos als ganzzahlige Cent-Werte gespeichert, niemals 
 
 Logisches Löschen: Datensätze werden nicht physisch entfernt, sondern durch den Status `deleted` markiert. Ermöglicht Referenzintegrität und historische Auswertung.
 
-DB-Enum: `EntityStatus` (`'active'`, `'inactive'`, `'deleted'`) · Go-Konstanten: `ActiveStatus`, `InactiveStatus`, `DeletedStatus` (in `domain/table`, `domain/product`, `domain/user`)
+DB-Enum: `EntityStatus` (`'active'`, `'inactive'`, `'deleted'`) · Go-Konstanten: `ActiveStatus`, `InactiveStatus`, `DeletedStatus` (in `domain/tisch`, `domain/produkt`, `domain/user`)
 
 #### Favorit
 
@@ -417,7 +427,7 @@ Je ein Satz, Pflichten und Details: [compliance.md §2](compliance.md#2-rechtlic
 - **TSESetupClient:** Zweiter fiskaly-Sprecher neben dem Signierpfad: Go-Interface `SetupClient` (`domain/tse/setup.go`) für geführte Einrichtung und Statusabfrage (TSS anlegen oder übernehmen, Admin-PIN, Client registrieren, Stammdaten, Verbindungstest), zwangsläufig auch ohne fertige Konfiguration nutzbar. Implementierung: `FiskalyTSESetupClient` (`repository/tse_repo/fiskaly_setup.go`); Endpunkte u. a. `/admin/tse-einrichten`, `/admin/tse-uebernehmen`, `/admin/get-tse-status`.
 - **Signaturauftrag:** Transaktionale Outbox-Zeile der Signierung (Tabelle `tse_signaturauftraege`, genau ein Auftrag je Event). Jeder signaturpflichtige Vorgang schreibt seinen Auftrag im selben Commit wie das Event; der Signatur-Worker quittiert die Signatur direkt am Auftrag. Die Signaturspalten (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, logTime Start/Ende, Signatur, QR-Code-Daten) liegen am Auftrag, nicht mehr in der Event-Payload. Status: `offen`, `erledigt`, `fehlgeschlagen`, `tse_nicht_konfiguriert`.
 - **Fiskalische Projektion:** Zentrale Funktion Event → (signaturpflichtig, processType, processData) (`domain/kasse/fiskalische_projektion.go`); sie entscheidet beim Einreihen, ob ein Vorgang einen Signaturauftrag erhält, und liefert dessen processData-Snapshot.
-- **Signatur-Worker:** Einziger Sprecher für TSE-Signaturtransaktionen (`backend/app/tse_signatur_worker.go`). Arbeitet die offenen Aufträge FIFO ab, wird nach jedem Commit sofort angestoßen (Polling-Tick als Fallback), heilt per Ist-Abfrage und quittiert mit einem einzelnen Update am Auftrag. Ein session-gebundener Advisory Lock sichert die Single-Prozess-Annahme.
+- **Signatur-Worker:** Einziger Sprecher für TSE-Signaturtransaktionen (`backend/api/fiskal/signatur/tse_signatur_worker.go`). Arbeitet die offenen Aufträge FIFO ab, wird nach jedem Commit sofort angestoßen (Polling-Tick als Fallback), heilt per Ist-Abfrage und quittiert mit einem einzelnen Update am Auftrag. Ein session-gebundener Advisory Lock sichert die Single-Prozess-Annahme.
 - **Signaturstatus:** Zustandslose Funktion (`domain/tse/signaturstatus.go`, `BestimmeSignaturstatus`) mit genau vier Ergebnissen: Signatur vorhanden, vorhanden mit Nachsigniert-Kennzeichen, Ausfall mit Grund, Signatur ausstehend. Einzige Implementierung des Ausfallbegriffs; Beleg-Abruf und Kassenabschluss-Gate urteilen über sie.
 - **Signatur ausstehend:** Der Auftrag ist offen und keine Störung dokumentiert; die Signatur wird in Kürze erwartet. Der Beleg-Abruf antwortet mit Status `ausstehend` (kein Druckauftrag, die UI fasst nach), der Kassenabschluss blockiert.
 - **Nachsigniert:** Kennzeichen einer verspäteten Signatur (Signatur später als rund eine Minute nach Auftragserstellung, Konstante `NachsigniertSchwelle`). Der Kassenbeleg druckt „Nachsigniert am …", weil die TSE-Zeitpunkte dann sichtbar vom Belegdatum abweichen. Ersetzt den früheren Begriff „Nachsignierung".
