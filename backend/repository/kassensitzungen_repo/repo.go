@@ -4,11 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
 func (r Repository) GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error) {
@@ -94,18 +92,4 @@ func (r Repository) GetOffeneKassensitzungNr(ctx context.Context) (int, error) {
 		return 0, nil
 	}
 	return ks.ZNr, nil
-}
-
-// InsertKassensitzung creates a new Kassensitzung CRUD entity with status 'offen'.
-// Returns the generated z_nr.
-func (r Repository) InsertKassensitzung(ctx context.Context, datum time.Time, bezeichnung string) (int, error) {
-	zNr, err := r.q.InsertKassensitzung(ctx, dbgen.InsertKassensitzungParams{
-		Datum:       datum,
-		Bezeichnung: bezeichnung,
-		Status:      string(kasse.KassensitzungOffen),
-	})
-	if err != nil {
-		return 0, db.Error(err)
-	}
-	return zNr, nil
 }

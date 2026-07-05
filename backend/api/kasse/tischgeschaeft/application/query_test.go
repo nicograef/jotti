@@ -90,6 +90,87 @@ func TestGetTischState_NoState(t *testing.T) {
 	}
 }
 
+type favoritMock struct {
+	ids []int
+	err error
+}
+
+func (m favoritMock) GetByUser(_ context.Context, _ int) ([]int, error) {
+	return m.ids, m.err
+}
+
+// GetMeineTischeState liest Name + Session der Favoriten über einen Batch (kein N+1)
+// und liefert die Views in Favoriten-Reihenfolge; ein Favorit ohne Session erhält
+// eine Null-Session.
+func TestGetMeineTischeState_BatchInFavoriteOrder(t *testing.T) {
+	positions := []kasse.Position{
+		{PositionID: "p1", ProduktName: "Cola", VarianteName: "0,5l", Einzelpreis: 350, Menge: 2, BestellerUserID: 5, BestellerName: "Anna"},
+	}
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
+	eventMock.SetTischName(7, "Tisch 7")
+	eventMock.SetTischName(3, "Tisch 3")
+	// Nur Tisch 7 hat eine Session; Tisch 3 bleibt session-los.
+	eventMock.SetTischSession(kasse.TischSessionSubject(1, 7), kasse.TischSession{
+		SaldoCents:            700,
+		UnbezahltePositionen:  positions,
+		AusstehendePositionen: positions,
+	})
+
+	query := Query{
+		TischRepo:           tisch_repo.NewMock(nil, nil),
+		EventRepo:           eventMock,
+		FavoritRepo:         favoritMock{ids: []int{7, 3}},
+		KassensitzungenRepo: sitzungMock,
+	}
+
+	views, err := query.GetMeineTischeState(context.Background(), 99)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(views) != 2 {
+		t.Fatalf("expected 2 views, got %d", len(views))
+	}
+
+	// Reihenfolge folgt der Favoritenliste [7, 3].
+	if views[0].TischID != 7 || views[0].TischName != "Tisch 7" {
+		t.Errorf("expected first view tisch 7 'Tisch 7', got %d %q", views[0].TischID, views[0].TischName)
+	}
+	if views[0].Subject != kasse.TischSessionSubject(1, 7) {
+		t.Errorf("unexpected subject %q", views[0].Subject)
+	}
+	if views[0].SaldoCents != 700 || len(views[0].UnbezahltePositionen) != 1 {
+		t.Errorf("expected session data for tisch 7, got saldo %d / %d positionen", views[0].SaldoCents, len(views[0].UnbezahltePositionen))
+	}
+
+	// Session-loser Favorit -> Null-Session.
+	if views[1].TischID != 3 || views[1].TischName != "Tisch 3" {
+		t.Errorf("expected second view tisch 3 'Tisch 3', got %d %q", views[1].TischID, views[1].TischName)
+	}
+	if views[1].SaldoCents != 0 || views[1].UnbezahltePositionen != nil {
+		t.Errorf("expected zero-value session for tisch 3, got saldo %d / %v", views[1].SaldoCents, views[1].UnbezahltePositionen)
+	}
+}
+
+// Ein Favorit, dessen Tisch nicht (mehr) existiert, führt zu ErrDatabase — wie
+// zuvor der GetTable-NotFound je Favorit.
+func TestGetMeineTischeState_UnknownTischErrors(t *testing.T) {
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
+	// Kein SetTischName -> Tisch 42 ist der Batch unbekannt.
+
+	query := Query{
+		TischRepo:           tisch_repo.NewMock(nil, nil),
+		EventRepo:           eventMock,
+		FavoritRepo:         favoritMock{ids: []int{42}},
+		KassensitzungenRepo: sitzungMock,
+	}
+
+	if _, err := query.GetMeineTischeState(context.Background(), 1); err != ErrDatabase {
+		t.Fatalf("expected ErrDatabase for unknown tisch, got %v", err)
+	}
+}
+
 func TestGetTischHistorie_ReturnsEmptyForTischWithNoEvents(t *testing.T) {
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)

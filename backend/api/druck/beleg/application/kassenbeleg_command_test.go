@@ -153,14 +153,14 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	status, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
+	status, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if status != BelegStatusEingereiht {
 		t.Fatalf("expected status eingereiht, got %q", status)
 	}
-	status, err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
+	status, err = command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID})
 	if err != nil {
 		t.Fatalf("expected no reprint error, got %v", err)
 	}
@@ -240,7 +240,7 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", ""); err != nil {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID}); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -332,7 +332,7 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 		TSERepo:             tseRepo,
 	}
 
-	status, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
+	status, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -429,7 +429,7 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", ""); err != nil {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID}); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -491,7 +491,7 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 		TSERepo:             tseRepo,
 	}
 
-	status, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
+	status, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -513,7 +513,7 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 		QRCodeData:        "V0;NACHGEHOLT",
 	}}
 
-	status, err = command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", "")
+	status, err = command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -604,7 +604,7 @@ func TestKassenbelegDrucken_VerspaeteteSignatur_TraegtNachsigniertVermerk(t *tes
 	auftragMock := &mockDruckauftragRepo{}
 	command := belegTestCommand(eventMock, tseRepo, auftragMock)
 
-	status, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, zahlungID, "", "")
+	status, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: zahlungID})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -639,7 +639,7 @@ func TestKassenbelegDrucken_AusfallEndstatus_BelegMitAusfallvermerk(t *testing.T
 	auftragMock := &mockDruckauftragRepo{}
 	command := belegTestCommand(eventMock, tseRepo, auftragMock)
 
-	status, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, zahlungID, "", "")
+	status, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: zahlungID})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -685,7 +685,7 @@ func TestKassenbelegDrucken_OffenBeiAktiverStoerung_BelegMitAusfallvermerk(t *te
 	auftragMock := &mockDruckauftragRepo{}
 	command := belegTestCommand(eventMock, tseRepo, auftragMock)
 
-	status, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, zahlungID, "", "")
+	status, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: zahlungID})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -716,7 +716,7 @@ func TestKassenbelegDrucken_ZahlungNichtGefunden(t *testing.T) {
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	_, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, "11111111-1111-1111-1111-111111111111", "", "")
+	_, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: "11111111-1111-1111-1111-111111111111"})
 	if err != ErrZahlungNichtGefunden {
 		t.Fatalf("expected ErrZahlungNichtGefunden, got %v", err)
 	}
@@ -760,7 +760,7 @@ func TestKassenbelegDrucken_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, eventData.ZahlungID, "", ""); err != ErrKassenbelegDruckerNichtKonfiguriert {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID}); err != ErrKassenbelegDruckerNichtKonfiguriert {
 		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
 	}
 }
@@ -807,7 +807,7 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, 0, "", verkaufID, ""); err != nil {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID}); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -841,7 +841,7 @@ func TestKassenbelegDrucken_Direktverkauf_NichtGefunden(t *testing.T) {
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	_, err := command.KassenbelegDrucken(ctx, 0, "", uuid.New().String(), "")
+	_, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: uuid.New().String()})
 	if err != ErrVerkaufNichtGefunden {
 		t.Fatalf("expected ErrVerkaufNichtGefunden, got %v", err)
 	}
@@ -878,7 +878,7 @@ func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t 
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, 0, "", verkaufID, ""); err != ErrKassenbelegDruckerNichtKonfiguriert {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID}); err != ErrKassenbelegDruckerNichtKonfiguriert {
 		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
 	}
 }
@@ -937,7 +937,7 @@ func TestKassenbelegDrucken_Direktverkauf_MitSignaturAmAuftrag(t *testing.T) {
 		TSERepo:             tseRepo,
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, 0, "", verkaufID, ""); err != nil {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID}); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -990,7 +990,7 @@ func TestKassenbelegDrucken_Direktverkauf_SignaturAusstehend_KeinDruckauftrag(t 
 		TSERepo:             tseRepo,
 	}
 
-	status, err := command.KassenbelegDrucken(ctx, 0, "", verkaufID, "")
+	status, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -1064,7 +1064,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 		TSERepo:             tseRepo,
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, 0, "", verkaufID, stornoData.StornierungID); err != nil {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID, StornierungID: stornoData.StornierungID}); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -1148,7 +1148,7 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 		TSERepo:             tseRepo,
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, testActiveTisch.ID, "", "", stornoData.StornierungID); err != nil {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, StornierungID: stornoData.StornierungID}); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -1202,7 +1202,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_NichtGefunden(t *testing.T) {
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	_, err = command.KassenbelegDrucken(ctx, 0, "", verkaufID, uuid.New().String())
+	_, err = command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID, StornierungID: uuid.New().String()})
 	if err != ErrStornierungNichtGefunden {
 		t.Fatalf("expected ErrStornierungNichtGefunden, got %v", err)
 	}

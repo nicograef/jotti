@@ -4,7 +4,6 @@ package kassensitzungen_repo
 
 import (
 	"context"
-	"time"
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
@@ -75,13 +74,6 @@ func (m *MockRepo) GetOffeneKassensitzungNr(_ context.Context) (int, error) {
 		return 0, nil
 	}
 	return m.offeneKS.ZNr, nil
-}
-
-func (m *MockRepo) InsertKassensitzung(_ context.Context, _ time.Time, _ string) (int, error) {
-	if m.err != nil {
-		return 0, m.err
-	}
-	return 1, nil
 }
 
 func (m *MockRepo) GetAllKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {

@@ -370,6 +370,98 @@ func (r Repository) ReadTischSession(ctx context.Context, subject string) (kasse
 	return toTischSession(row)
 }
 
+// TischNameUndSession bündelt den Tischnamen (aus tische) mit der projizierten
+// TischSession (aus tisch_sessions) — die Rückgabeform des Favoriten-Batches.
+type TischNameUndSession struct {
+	Name    string
+	Session kasse.TischSession
+}
+
+// ReadFavoritenTischStates liest Name und projizierte Session für die gegebenen Tisch-IDs
+// einer Kassensitzung in einer einzigen Query (JOIN tische × tisch_sessions), keyed nach
+// Tisch-ID. Das ersetzt das N+1 aus GetTable + ReadTischSession je Favorit.
+//
+// Ein Favorit ohne Session (noch keine Events) erhält eine Null-TischSession (LEFT JOIN);
+// eine Tisch-ID ohne (nicht gelöschte) tische-Zeile fehlt in der Map — genau wie GetTable,
+// das für einen gelöschten/unbekannten Tisch ErrNotFound liefert. Uses ANY($1) mit einem
+// []int32-Parameter (siehe produkt_repo.GetVariantsByIDs).
+func (r Repository) ReadFavoritenTischStates(ctx context.Context, tischIDs []int, kassensitzungNr int) (map[int]TischNameUndSession, error) {
+	if len(tischIDs) == 0 {
+		return make(map[int]TischNameUndSession), nil
+	}
+
+	ids32 := make([]int32, len(tischIDs))
+	for i, id := range tischIDs {
+		ids32[i] = int32(id) //nolint:gosec // Tisch-IDs sind positive Entity-IDs
+	}
+
+	const query = `SELECT t.id, t.name,
+			ts.subject, ts.kassensitzung_nr, ts.saldo_cents,
+			ts.unbezahlte_positionen, ts.ausstehende_positionen, ts.gesamt_zahlungen_cents,
+			ts.erste_bestellung_logtime, ts.last_event_id, ts.last_event_version
+		FROM tische t
+		LEFT JOIN tisch_sessions ts ON ts.tisch_id = t.id AND ts.kassensitzung_nr = $2
+		WHERE t.id = ANY($1) AND t.status != 'deleted'`
+
+	rows, err := r.db.QueryContext(ctx, query, ids32, kassensitzungNr)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+	defer rows.Close() //nolint:errcheck // expliziter Close mit Fehlerprüfung unten
+
+	result := make(map[int]TischNameUndSession, len(tischIDs))
+	for rows.Next() {
+		var (
+			id               int
+			name             string
+			subject          sql.NullString
+			sessionKsNr      sql.NullInt64
+			saldoCents       sql.NullInt64
+			unbezahlt        []byte
+			ausstehend       []byte
+			gesamtZahlungen  sql.NullInt64
+			ersteBestellung  sql.NullTime
+			lastEventID      sql.NullInt64
+			lastEventVersion sql.NullInt64
+		)
+		if err := rows.Scan(&id, &name, &subject, &sessionKsNr, &saldoCents, &unbezahlt, &ausstehend, &gesamtZahlungen, &ersteBestellung, &lastEventID, &lastEventVersion); err != nil {
+			return nil, db.Error(err)
+		}
+
+		// LEFT-JOIN-Treffer (subject NOT NULL): dieselbe Abbildung wie ReadTischSession
+		// über toTischSession, damit das Ergebnis byte-identisch bleibt. Kein Treffer:
+		// Null-TischSession — genau wie ReadTischSession ohne projizierte Zeile.
+		var session kasse.TischSession
+		if subject.Valid {
+			session, err = toTischSession(dbgen.TischSession{
+				Subject:                subject.String,
+				TischID:                id,
+				KassensitzungNr:        int(sessionKsNr.Int64),
+				SaldoCents:             int(saldoCents.Int64),
+				UnbezahltePositionen:   unbezahlt,
+				AusstehendePositionen:  ausstehend,
+				GesamtZahlungenCents:   int(gesamtZahlungen.Int64),
+				ErsteBestellungLogtime: ersteBestellung,
+				LastEventID:            int(lastEventID.Int64),
+				LastEventVersion:       int(lastEventVersion.Int64),
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		result[id] = TischNameUndSession{Name: name, Session: session}
+	}
+	if err := rows.Close(); err != nil {
+		return nil, db.Error(err)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, db.Error(err)
+	}
+
+	return result, nil
+}
+
 // getTischSessionInTx reads the current TischSession within a transaction.
 // Returns zero-value TischSession if no entry exists.
 func getTischSessionInTx(ctx context.Context, qtx *dbgen.Queries, subject string) (kasse.TischSession, error) {

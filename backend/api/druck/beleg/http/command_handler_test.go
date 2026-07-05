@@ -13,19 +13,13 @@ import (
 )
 
 type mockCommand struct {
-	err             error
-	belegStatus     application.BelegStatus
-	lastTischID     int
-	lastZahlung     string
-	lastVerkauf     string
-	lastStornierung string
+	err         error
+	belegStatus application.BelegStatus
+	last        application.KassenbelegDruckenCommand
 }
 
-func (m *mockCommand) KassenbelegDrucken(_ context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (application.BelegStatus, error) {
-	m.lastTischID = tischID
-	m.lastZahlung = zahlungID
-	m.lastVerkauf = verkaufID
-	m.lastStornierung = stornierungID
+func (m *mockCommand) KassenbelegDrucken(_ context.Context, cmd application.KassenbelegDruckenCommand) (application.BelegStatus, error) {
+	m.last = cmd
 	if m.err != nil {
 		return "", m.err
 	}
@@ -52,14 +46,14 @@ func TestKassenbelegDruckenHandler_Success(t *testing.T) {
 	if got := rec.Body.String(); !strings.Contains(got, `"status":"eingereiht"`) {
 		t.Errorf("expected status eingereiht in response, got %s", got)
 	}
-	if mock.lastTischID != 1 {
-		t.Errorf("expected tischId 1, got %d", mock.lastTischID)
+	if mock.last.TischID != 1 {
+		t.Errorf("expected tischId 1, got %d", mock.last.TischID)
 	}
-	if mock.lastZahlung != "11111111-1111-1111-1111-111111111111" {
+	if mock.last.ZahlungID != "11111111-1111-1111-1111-111111111111" {
 		t.Errorf("expected zahlungId to be forwarded")
 	}
-	if mock.lastVerkauf != "" {
-		t.Errorf("expected verkaufId empty for zahlung path, got %q", mock.lastVerkauf)
+	if mock.last.VerkaufID != "" {
+		t.Errorf("expected verkaufId empty for zahlung path, got %q", mock.last.VerkaufID)
 	}
 }
 
@@ -98,10 +92,10 @@ func TestKassenbelegDruckenHandler_DirektverkaufSuccess(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
-	if mock.lastVerkauf != "11111111-1111-1111-1111-111111111111" {
+	if mock.last.VerkaufID != "11111111-1111-1111-1111-111111111111" {
 		t.Errorf("expected verkaufId to be forwarded")
 	}
-	if mock.lastTischID != 0 || mock.lastZahlung != "" {
+	if mock.last.TischID != 0 || mock.last.ZahlungID != "" {
 		t.Errorf("expected zahlung reference to be empty for direktverkauf path")
 	}
 }
@@ -165,11 +159,11 @@ func TestKassenbelegDruckenHandler_StornobelegSuccess(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
-	if mock.lastVerkauf != "11111111-1111-1111-1111-111111111111" {
+	if mock.last.VerkaufID != "11111111-1111-1111-1111-111111111111" {
 		t.Errorf("expected verkaufId to be forwarded")
 	}
-	if mock.lastStornierung != "33333333-3333-3333-3333-333333333333" {
-		t.Errorf("expected stornierungId to be forwarded, got %q", mock.lastStornierung)
+	if mock.last.StornierungID != "33333333-3333-3333-3333-333333333333" {
+		t.Errorf("expected stornierungId to be forwarded, got %q", mock.last.StornierungID)
 	}
 }
 
@@ -187,14 +181,14 @@ func TestKassenbelegDruckenHandler_TischStornoSuccess(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
-	if mock.lastTischID != 1 {
-		t.Errorf("expected tischId 1, got %d", mock.lastTischID)
+	if mock.last.TischID != 1 {
+		t.Errorf("expected tischId 1, got %d", mock.last.TischID)
 	}
-	if mock.lastStornierung != "33333333-3333-3333-3333-333333333333" {
-		t.Errorf("expected stornierungId to be forwarded, got %q", mock.lastStornierung)
+	if mock.last.StornierungID != "33333333-3333-3333-3333-333333333333" {
+		t.Errorf("expected stornierungId to be forwarded, got %q", mock.last.StornierungID)
 	}
-	if mock.lastZahlung != "" || mock.lastVerkauf != "" {
-		t.Errorf("expected no zahlung/verkauf forwarded, got zahlung=%q verkauf=%q", mock.lastZahlung, mock.lastVerkauf)
+	if mock.last.ZahlungID != "" || mock.last.VerkaufID != "" {
+		t.Errorf("expected no zahlung/verkauf forwarded, got zahlung=%q verkauf=%q", mock.last.ZahlungID, mock.last.VerkaufID)
 	}
 }
 

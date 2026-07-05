@@ -145,25 +145,27 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 		kassensitzungNr = ks.ZNr
 	}
 
+	// Ein Batch statt N+1: Name + projizierte Session aller Favoriten in einer Query.
+	states, err := q.EventRepo.ReadFavoritenTischStates(ctx, favoritIDs, kassensitzungNr)
+	if err != nil {
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to batch-read favoriten tisch states")
+		return nil, ErrDatabase
+	}
+
 	views := make([]TischStateView, 0, len(favoritIDs))
 	for _, tischID := range favoritIDs {
-		tisch, err := q.TischRepo.GetTable(ctx, tischID)
-		if err != nil {
-			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to resolve tisch")
+		entry, ok := states[tischID]
+		if !ok {
+			// Kein Tisch (gelöscht/unbekannt) — wie zuvor GetTable mit ErrNotFound.
+			log.Error().Int("tisch_id", tischID).Msg("Failed to resolve tisch")
 			return nil, ErrDatabase
 		}
 
-		subject := kasse.TischSessionSubject(kassensitzungNr, tischID)
-		state, err := q.EventRepo.ReadTischSession(ctx, subject)
-		if err != nil {
-			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read tisch session")
-			return nil, ErrDatabase
-		}
-
+		state := entry.Session
 		views = append(views, TischStateView{
 			TischID:               tischID,
-			TischName:             tisch.Name,
-			Subject:               subject,
+			TischName:             entry.Name,
+			Subject:               kasse.TischSessionSubject(kassensitzungNr, tischID),
 			SaldoCents:            state.SaldoCents,
 			UnbezahltePositionen:  state.UnbezahltePositionen,
 			AusstehendePositionen: state.AusstehendePositionen,

@@ -12,7 +12,7 @@ import (
 )
 
 type command interface {
-	KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (application.BelegStatus, error)
+	KassenbelegDrucken(ctx context.Context, cmd application.KassenbelegDruckenCommand) (application.BelegStatus, error)
 }
 
 type CommandHandler struct {
@@ -75,110 +75,90 @@ type belegDruckenResponse struct {
 
 func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := belegDruckenRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		cmd, ok := readKassenbelegCommand(w, r)
+		if !ok {
 			return
 		}
 
-		hasTisch := body.TischID != nil
-		hasZahlung := body.ZahlungID != nil
-		hasVerkauf := body.VerkaufID != nil
-		hasStornierung := body.StornierungID != nil
-
-		switch {
-		case hasVerkauf && !hasTisch && !hasZahlung:
-			verkaufID := *body.VerkaufID
-			stornierungID := ""
-
-			if hasStornierung {
-				cmd := belegDruckenStornoRequest{VerkaufID: verkaufID, StornierungID: *body.StornierungID}
-				if issues := belegDruckenStornoSchema.Validate(&cmd); issues != nil {
-					helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
-					return
-				}
-				stornierungID = cmd.StornierungID
-			} else {
-				cmd := belegDruckenVerkaufRequest{VerkaufID: verkaufID}
-				if issues := belegDruckenVerkaufSchema.Validate(&cmd); issues != nil {
-					helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
-					return
-				}
+		status, err := h.Command.KassenbelegDrucken(r.Context(), cmd)
+		if err != nil {
+			switch {
+			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
+				helper.SendConflict(w, "kasse_wird_abgeschlossen")
+			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
+				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			default:
+				// Ein gemeinsames Mapping für alle vier Formen: jede Form kann nur ihre
+				// Teilmenge dieser Fehler liefern, und die Codes sind formunabhängig gleich.
+				helper.MapError(w, err, map[error]string{
+					application.ErrVerkaufNichtGefunden:                "verkauf_not_found",
+					application.ErrStornierungNichtGefunden:            "stornierung_not_found",
+					application.ErrZahlungNichtGefunden:                "zahlung_not_found",
+					application.ErrKassenbelegDruckerNichtKonfiguriert: "kassenbeleg_drucker_nicht_konfiguriert",
+				})
 			}
-
-			status, err := h.Command.KassenbelegDrucken(r.Context(), 0, "", verkaufID, stornierungID)
-			if err != nil {
-				switch {
-				case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-					helper.SendConflict(w, "kasse_wird_abgeschlossen")
-				case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-					helper.SendConflict(w, "kasse_nicht_geoeffnet")
-				default:
-					helper.MapError(w, err, map[error]string{
-						application.ErrVerkaufNichtGefunden:                "verkauf_not_found",
-						application.ErrStornierungNichtGefunden:            "stornierung_not_found",
-						application.ErrKassenbelegDruckerNichtKonfiguriert: "kassenbeleg_drucker_nicht_konfiguriert",
-					})
-				}
-				return
-			}
-
-			helper.SendResponse(w, belegDruckenResponse{Status: status})
-
-		case hasTisch && hasStornierung && !hasZahlung && !hasVerkauf:
-			cmd := belegDruckenTischStornoRequest{TischID: *body.TischID, StornierungID: *body.StornierungID}
-			if issues := belegDruckenTischStornoSchema.Validate(&cmd); issues != nil {
-				helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
-				return
-			}
-
-			status, err := h.Command.KassenbelegDrucken(r.Context(), cmd.TischID, "", "", cmd.StornierungID)
-			if err != nil {
-				switch {
-				case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-					helper.SendConflict(w, "kasse_wird_abgeschlossen")
-				case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-					helper.SendConflict(w, "kasse_nicht_geoeffnet")
-				default:
-					helper.MapError(w, err, map[error]string{
-						application.ErrStornierungNichtGefunden:            "stornierung_not_found",
-						application.ErrZahlungNichtGefunden:                "zahlung_not_found",
-						application.ErrKassenbelegDruckerNichtKonfiguriert: "kassenbeleg_drucker_nicht_konfiguriert",
-					})
-				}
-				return
-			}
-
-			helper.SendResponse(w, belegDruckenResponse{Status: status})
-
-		case hasTisch && hasZahlung && !hasStornierung && !hasVerkauf:
-			cmd := belegDruckenZahlungRequest{TischID: *body.TischID, ZahlungID: *body.ZahlungID}
-			if issues := belegDruckenZahlungSchema.Validate(&cmd); issues != nil {
-				helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
-				return
-			}
-
-			status, err := h.Command.KassenbelegDrucken(r.Context(), cmd.TischID, cmd.ZahlungID, "", "")
-			if err != nil {
-				switch {
-				case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-					helper.SendConflict(w, "kasse_wird_abgeschlossen")
-				case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-					helper.SendConflict(w, "kasse_nicht_geoeffnet")
-				default:
-					helper.MapError(w, err, map[error]string{
-						application.ErrZahlungNichtGefunden:                "zahlung_not_found",
-						application.ErrKassenbelegDruckerNichtKonfiguriert: "kassenbeleg_drucker_nicht_konfiguriert",
-					})
-				}
-				return
-			}
-
-			helper.SendResponse(w, belegDruckenResponse{Status: status})
-
-		default:
-			helper.SendClientError(w, "validation_error", map[string][]string{
-				"body": {belegDruckenValidationMessage},
-			})
+			return
 		}
+
+		helper.SendResponse(w, belegDruckenResponse{Status: status})
+	}
+}
+
+// readKassenbelegCommand liest die Beleg-Anfrage, bestimmt anhand der gesetzten
+// Felder eine der vier gültigen Body-Formen und validiert deren Pflichtfelder.
+// Die eigentliche Auswahl, welcher Beleg daraus entsteht, liegt in der
+// Application-Schicht (KassenbelegDrucken). Bei ungültiger Kombination oder
+// ungültigen Feldern sendet die Funktion die Client-Fehlerantwort und liefert
+// ok=false.
+func readKassenbelegCommand(w http.ResponseWriter, r *http.Request) (application.KassenbelegDruckenCommand, bool) {
+	body := belegDruckenRequest{}
+	if !helper.ReadBody(w, r, &body) {
+		return application.KassenbelegDruckenCommand{}, false
+	}
+
+	hasTisch := body.TischID != nil
+	hasZahlung := body.ZahlungID != nil
+	hasVerkauf := body.VerkaufID != nil
+	hasStornierung := body.StornierungID != nil
+
+	switch {
+	case hasVerkauf && !hasTisch && !hasZahlung:
+		if hasStornierung {
+			req := belegDruckenStornoRequest{VerkaufID: *body.VerkaufID, StornierungID: *body.StornierungID}
+			if issues := belegDruckenStornoSchema.Validate(&req); issues != nil {
+				helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+				return application.KassenbelegDruckenCommand{}, false
+			}
+			return application.KassenbelegDruckenCommand{VerkaufID: req.VerkaufID, StornierungID: req.StornierungID}, true
+		}
+
+		req := belegDruckenVerkaufRequest{VerkaufID: *body.VerkaufID}
+		if issues := belegDruckenVerkaufSchema.Validate(&req); issues != nil {
+			helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+			return application.KassenbelegDruckenCommand{}, false
+		}
+		return application.KassenbelegDruckenCommand{VerkaufID: req.VerkaufID}, true
+
+	case hasTisch && hasStornierung && !hasZahlung && !hasVerkauf:
+		req := belegDruckenTischStornoRequest{TischID: *body.TischID, StornierungID: *body.StornierungID}
+		if issues := belegDruckenTischStornoSchema.Validate(&req); issues != nil {
+			helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+			return application.KassenbelegDruckenCommand{}, false
+		}
+		return application.KassenbelegDruckenCommand{TischID: req.TischID, StornierungID: req.StornierungID}, true
+
+	case hasTisch && hasZahlung && !hasStornierung && !hasVerkauf:
+		req := belegDruckenZahlungRequest{TischID: *body.TischID, ZahlungID: *body.ZahlungID}
+		if issues := belegDruckenZahlungSchema.Validate(&req); issues != nil {
+			helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+			return application.KassenbelegDruckenCommand{}, false
+		}
+		return application.KassenbelegDruckenCommand{TischID: req.TischID, ZahlungID: req.ZahlungID}, true
+
+	default:
+		helper.SendClientError(w, "validation_error", map[string][]string{
+			"body": {belegDruckenValidationMessage},
+		})
+		return application.KassenbelegDruckenCommand{}, false
 	}
 }

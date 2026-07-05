@@ -206,8 +206,25 @@ func negiereAufteilungen(aufteilungen []steuer.Aufteilung) []steuer.Aufteilung {
 	return out
 }
 
-func (c Command) KassenbelegDrucken(ctx context.Context, tischID int, zahlungID string, verkaufID string, stornierungID string) (BelegStatus, error) {
+// KassenbelegDruckenCommand ist die typisierte Beleg-Anforderung. Aus den
+// gesetzten Feldern leitet KassenbelegDrucken die vier Beleg-Body-Formen ab
+// (Tisch-Zahlung, Tisch-Warenrücknahme, Direktverkauf, Direktverkauf-Storno) —
+// diese Auswahl liegt damit allein in der Application-Schicht; der HTTP-Handler
+// liest und validiert die Anfrage nur noch und delegiert.
+type KassenbelegDruckenCommand struct {
+	TischID       int
+	ZahlungID     string
+	VerkaufID     string
+	StornierungID string
+}
+
+func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenCommand) (BelegStatus, error) {
 	log := zerolog.Ctx(ctx)
+
+	tischID := cmd.TischID
+	zahlungID := cmd.ZahlungID
+	verkaufID := cmd.VerkaufID
+	stornierungID := cmd.StornierungID
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {

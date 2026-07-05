@@ -47,6 +47,7 @@ type MockRepo struct {
 	writeErr               error // separate error for WriteEvent
 	kassensitzungEventsErr error // returned only by ReadKassensitzungEvents
 	tischSessions          map[string]kasse.TischSession
+	tischNames             map[int]string // Tischnamen für ReadFavoritenTischStates
 	tischSessionErr        error
 	kassenbestand          int                                   // configurable return value for GetKassenbestand
 	druckauftraege         []druckauftrag_repo.NeuerDruckauftrag // captured via WriteEventWithDruckauftraege
@@ -184,6 +185,39 @@ func (m *MockRepo) SetTischSession(subject string, state kasse.TischSession) {
 		m.tischSessions = make(map[string]kasse.TischSession)
 	}
 	m.tischSessions[subject] = state
+}
+
+// SetTischName registers a tisch name so ReadFavoritenTischStates returns the tisch.
+// A tisch id without a registered name is treated as missing (deleted/unknown).
+func (m *MockRepo) SetTischName(tischID int, name string) {
+	if m.tischNames == nil {
+		m.tischNames = make(map[int]string)
+	}
+	m.tischNames[tischID] = name
+}
+
+// ReadFavoritenTischStates mirrors the batch join: a tisch id with a registered
+// name maps to its name plus the projected session (zero-value when none exists);
+// an id without a name is absent from the map (like a deleted/unknown tisch).
+func (m *MockRepo) ReadFavoritenTischStates(_ context.Context, tischIDs []int, kassensitzungNr int) (map[int]TischNameUndSession, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	result := make(map[int]TischNameUndSession, len(tischIDs))
+	for _, tischID := range tischIDs {
+		name, ok := m.tischNames[tischID]
+		if !ok {
+			continue
+		}
+		var session kasse.TischSession
+		if m.tischSessions != nil {
+			if s, ok := m.tischSessions[kasse.TischSessionSubject(kassensitzungNr, tischID)]; ok {
+				session = s
+			}
+		}
+		result[tischID] = TischNameUndSession{Name: name, Session: session}
+	}
+	return result, nil
 }
 
 func (m *MockRepo) GetKassenbestand(_ context.Context, _ int) (int, error) {

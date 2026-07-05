@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -268,6 +269,87 @@ func TestWriteEvent_TischSession(t *testing.T) {
 	}
 	if eventID == 0 {
 		t.Fatalf("Expected valid event ID, got %d", eventID)
+	}
+}
+
+// ReadFavoritenTischStates liefert Name + Session je Favorit in einer Query:
+// byte-identisch zu ReadTischSession für einen Tisch mit Projektion, eine
+// Null-Session für einen Tisch ohne Events und keine Zeile für gelöschte/
+// unbekannte Tische.
+func TestReadFavoritenTischStates(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischA, err := createTisch(repo.db, "Tisch A")
+	if err != nil {
+		t.Fatalf("Failed to create tisch A: %v", err)
+	}
+	tischB, err := createTisch(repo.db, "Tisch B")
+	if err != nil {
+		t.Fatalf("Failed to create tisch B: %v", err)
+	}
+
+	// Tisch A bekommt eine Bestellung -> Session-Projektion entsteht; Tisch B bleibt leer.
+	subjectA := kasse.TischSessionSubject(ksNr, tischA)
+	data := validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 2)
+	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subjectA, 1, data)
+	if _, err := repo.WriteEvent(context.Background(), e, kasse.StreamTypeTischSession, ksNr); err != nil {
+		t.Fatalf("Failed to write bestellung: %v", err)
+	}
+
+	// Gelöschter Tisch darf nicht auftauchen (WHERE status != 'deleted').
+	tischDeleted, err := createTisch(repo.db, "Tisch Deleted")
+	if err != nil {
+		t.Fatalf("Failed to create tisch deleted: %v", err)
+	}
+	if _, err := repo.db.Exec("UPDATE tische SET status = 'deleted' WHERE id = $1", tischDeleted); err != nil {
+		t.Fatalf("Failed to soft-delete tisch: %v", err)
+	}
+
+	states, err := repo.ReadFavoritenTischStates(context.Background(), []int{tischA, tischB, tischDeleted, 999999}, ksNr)
+	if err != nil {
+		t.Fatalf("ReadFavoritenTischStates: %v", err)
+	}
+	if len(states) != 2 {
+		t.Fatalf("expected 2 states (A, B), got %d", len(states))
+	}
+
+	// Tisch A: Name + Session byte-identisch zu ReadTischSession.
+	wantSessionA, err := repo.ReadTischSession(context.Background(), subjectA)
+	if err != nil {
+		t.Fatalf("ReadTischSession A: %v", err)
+	}
+	gotA, ok := states[tischA]
+	if !ok {
+		t.Fatalf("expected tisch A in states")
+	}
+	if gotA.Name != "Tisch A" {
+		t.Errorf("expected name 'Tisch A', got %q", gotA.Name)
+	}
+	if !reflect.DeepEqual(gotA.Session, wantSessionA) {
+		t.Errorf("session A mismatch:\n batch  = %+v\n single = %+v", gotA.Session, wantSessionA)
+	}
+	if gotA.Session.SaldoCents != 700 {
+		t.Errorf("expected saldo 700 for tisch A, got %d", gotA.Session.SaldoCents)
+	}
+
+	// Tisch B: Name + Null-Session (wie ReadTischSession ohne Projektion).
+	gotB, ok := states[tischB]
+	if !ok {
+		t.Fatalf("expected tisch B in states")
+	}
+	if gotB.Name != "Tisch B" {
+		t.Errorf("expected name 'Tisch B', got %q", gotB.Name)
+	}
+	if !reflect.DeepEqual(gotB.Session, kasse.TischSession{}) {
+		t.Errorf("expected zero-value session for tisch B, got %+v", gotB.Session)
+	}
+
+	if _, ok := states[tischDeleted]; ok {
+		t.Errorf("deleted tisch must not appear in states")
+	}
+	if _, ok := states[999999]; ok {
+		t.Errorf("unknown tisch must not appear in states")
 	}
 }
 

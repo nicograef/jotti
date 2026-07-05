@@ -28,6 +28,7 @@ type eventRepo interface {
 	WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error
 	WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, kassensitzungNr int) error
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
+	ReadFavoritenTischStates(ctx context.Context, tischIDs []int, kassensitzungNr int) (map[int]kassenjournal_repo.TischNameUndSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 }
@@ -612,14 +613,5 @@ func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName st
 	}
 
 	// OCC gegen den validierten Zustand (siehe ZahlungKassieren).
-	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, state.LastEventVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
-		if errors.Is(err, ErrConflict) {
-			return ErrConflict
-		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write ausgabe bestaetigt event to database")
-		return ErrDatabase
-	}
-
-	log.Info().Int("tisch_id", tischID).Msg("Ausgabe bestätigt")
-	return nil
+	return c.persistTischEvent(ctx, evt, subject, state.LastEventVersion, kassensitzungNr, tischID, "Ausgabe bestätigt")
 }
