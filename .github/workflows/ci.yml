@@ -15,8 +15,9 @@ jobs:
       database: ${{ steps.changes.outputs.database }}
       resolver: ${{ steps.changes.outputs.resolver }}
       proxy: ${{ steps.changes.outputs.proxy }}
-      cmd: ${{ steps.changes.outputs.cmd }}
+      windows: ${{ steps.changes.outputs.windows }}
       website: ${{ steps.changes.outputs.website }}
+      scripts: ${{ steps.changes.outputs.scripts }}
     steps:
       - uses: actions/checkout@v6
       - name: Check for changes
@@ -34,11 +35,12 @@ jobs:
               - 'resolver/**'
             proxy:
               - 'reverse-proxy/**'
-            cmd:
-              - 'cmd/**'
+            windows:
+              - 'windows/**'
             website:
               - 'website/**'
-              - 'scripts/check-website.sh'
+            scripts:
+              - 'scripts/**'
 
   backend-ci:
     needs: changes
@@ -180,9 +182,9 @@ jobs:
       - name: Test
         run: go test -v -race ./...
 
-  cmd-ci:
+  windows-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.cmd == 'true' }}
+    if: ${{ needs.changes.outputs.windows == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -195,15 +197,15 @@ jobs:
           cache: false
 
       - name: Download dependencies
-        working-directory: ./cmd/${{ matrix.module }}
+        working-directory: ./windows/${{ matrix.module }}
         run: go mod download
 
       - name: Verify dependencies
-        working-directory: ./cmd/${{ matrix.module }}
+        working-directory: ./windows/${{ matrix.module }}
         run: go mod verify
 
       - name: Check format
-        working-directory: ./cmd/${{ matrix.module }}
+        working-directory: ./windows/${{ matrix.module }}
         run: |
           go install golang.org/x/tools/cmd/goimports@v0.40.0
           if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
@@ -213,15 +215,15 @@ jobs:
           fi
 
       - name: Vet
-        working-directory: ./cmd/${{ matrix.module }}
+        working-directory: ./windows/${{ matrix.module }}
         run: go vet ./...
 
       - name: Build
-        working-directory: ./cmd/${{ matrix.module }}
+        working-directory: ./windows/${{ matrix.module }}
         run: go build -v ./...
 
       - name: Test
-        working-directory: ./cmd/${{ matrix.module }}
+        working-directory: ./windows/${{ matrix.module }}
         run: go test -v -race ./...
 
   frontend-ci:
@@ -276,14 +278,24 @@ jobs:
         with:
           node-version: 24
           cache: "pnpm"
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: website/pnpm-lock.yaml
 
       - name: Install dependencies
-        working-directory: ./frontend
+        working-directory: ./website
         run: pnpm install --frozen-lockfile
 
       - name: Website checks
         run: make website-check
+
+  shellcheck-ci:
+    needs: changes
+    if: ${{ needs.changes.outputs.scripts == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run shellcheck
+        run: shellcheck scripts/*.sh
 
   backend-integration-tests:
     needs: changes

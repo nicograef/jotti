@@ -150,7 +150,7 @@ echo "    sudo dpkg-reconfigure -plow unattended-upgrades"
 # ---------------------------------------------------------------------------
 echo ""
 echo "=========================================="
-printf "${GREEN} jotti — Server Hardening Complete${NC}\n"
+printf "${GREEN} %s${NC}\n" "jotti — Server Hardening Complete"
 echo "=========================================="
 echo ""
 echo "  Firewall (ufw): SSH ($SSH_PORT/tcp), 80/tcp, 443/tcp, 443/udp allowed;"
