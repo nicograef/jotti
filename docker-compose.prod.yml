@@ -16,11 +16,20 @@ name: jotti
 #
 # The jotti.rocks demo uses docker-compose.rocks.yml instead (nginx + certbot).
 
+# Log rotation for every long-running service: json-file capped at a small size
+# and a few files, so it takes effect on any host without daemon configuration.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "5m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:17.8
     container_name: jotti-postgres
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -59,6 +68,7 @@ services:
     image: ghcr.io/nicograef/jotti-backend:${JOTTI_VERSION:-latest}
     container_name: jotti-backend
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -96,11 +106,22 @@ services:
     image: ghcr.io/nicograef/jotti-frontend:${JOTTI_VERSION:-latest}
     container_name: jotti-frontend
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - app-network
     depends_on:
       backend:
         condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     deploy:
       resources:
         limits:
@@ -112,6 +133,7 @@ services:
     image: ghcr.io/nicograef/jotti-reverse-proxy:${JOTTI_VERSION:-latest}
     container_name: jotti-reverse-proxy
     restart: unless-stopped
+    logging: *default-logging
     environment:
       # JOTTI_DOMAIN switches the image into public mode: one site for this
       # domain with an automatic Let's Encrypt certificate.
@@ -134,6 +156,16 @@ services:
         condition: service_started
       backend:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -S -O /dev/null http://127.0.0.1:80/ 2>&1 | grep -qE 'HTTP/1.[01] (2|3)[0-9][0-9]'",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     deploy:
       resources:
         limits:
