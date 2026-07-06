@@ -1,0 +1,26 @@
+# Datenbank-Migrationen
+
+golang-migrate (v4), angewendet über das `jotti-migrate`-Image (`../migrate/Dockerfile`). Die Migrationen werden ins Image gebacken; beim Deploy läuft ausschließlich `migrate ... up`.
+
+## Forward-only (ab v1.0.0)
+
+jotti fährt **forward-only: keine Down-Migrationen.** Neue Änderungen kommen als `NN_<name>.up.sql`, fortlaufend nummeriert, additiv und vorwärtskompatibel. Es gibt bewusst **keine** `.down.sql`.
+
+**Warum kein down:**
+
+- Das Kassenjournal ist fiskalisch append-only (Radierverbot, 10 Jahre Aufbewahrung). Ein `down`, das Spalten oder Tabellen mit Belegdaten droppt, zerstört aufbewahrungspflichtige Daten — auf Produktion ein Footgun.
+- Das echte Rollback ist der Backup-Restore. `make prod-update` zieht vor jeder Migration ein Backup; schlägt die Migration oder der Health-Check fehl, wird das Backup eingespielt. `migrate down` wird auf Produktion nie ausgeführt.
+- `down`-Migrationen, die Daten verwandeln, sind ohnehin nicht ehrlich umkehrbar (die verworfenen Daten kommen nicht zurück). Forward-only gibt vor, was zutrifft.
+
+## Regeln für neue Migrationen
+
+1. Dateiname `NN_<kurzname>.up.sql`, `NN` = nächste freie Nummer (aktuell zuletzt `01_initial`).
+2. Additiv und vorwärtskompatibel. Bestehende Migrationen (insb. `01_initial.up.sql`) werden ab v1.0.0 **nicht** mehr editiert.
+3. In eine Transaktion klammern (`BEGIN; … COMMIT;`) — Postgres-DDL ist transaktional, so rollt ein Fehlschlag sauber zurück und hinterlässt keinen `dirty`-Zustand in `schema_migrations`.
+4. Event-JSON-Contracts sind eingefroren (Guard: `backend/domain/kasse/event_json_contract_test.go`); Event-Änderungen additiv als neue Version (`:vN`), nie in-place.
+5. Nach jeder Migration muss `make rebuild-projections` fehlerfrei durchlaufen (Projektionen werden aus Events neu gebaut).
+
+## Testen
+
+- **Frischinstallation:** `migrate ... up` auf leerer DB (deckt der Integrationstest `scripts/test-integration.sh` ab).
+- **Upgrade-Pfad:** `up` auf einer mit Vorversions-Daten befüllten DB, danach Boot + `make rebuild-projections`. Das ist der Pfad, der auf echten Instanzen läuft, und der wichtigste Migrations-Test.
