@@ -73,7 +73,7 @@ type setPasswordRequest struct {
 var setPasswordSchema = z.Struct(z.Shape{
 	"Username":        user.UsernameSchema.Required(),
 	"Password":        user.PasswordSchema.Required(),
-	"OnetimePassword": z.String().Trim().Min(1, z.Message("Einmalpasswort ist erforderlich")).Required(),
+	"OnetimePassword": user.OnetimePasswordSchema.Required(),
 })
 
 func (h *CommandHandler) SetPasswordHandler() http.HandlerFunc {

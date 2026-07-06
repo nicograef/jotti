@@ -4,7 +4,6 @@ package user
 
 import (
 	"errors"
-	"strings"
 	"testing"
 	"time"
 )
@@ -118,16 +117,16 @@ func TestSetPassword_SetsUpdatedAt(t *testing.T) {
 	}
 }
 
-func TestSetPassword_NormalisiertEingabe(t *testing.T) {
+func TestSetPassword_TrimmtEingabe(t *testing.T) {
 	u, onetimePassword, err := NewUser("Test User", "testuser", ServiceRole)
 	if err != nil {
 		t.Fatalf("NewUser: %v", err)
 	}
 
-	// Großschreibung und umgebende Leerzeichen werden toleriert.
-	err = u.SetPassword("  "+strings.ToUpper(onetimePassword)+" ", "newSecurePass123")
+	// Umgebende Leerzeichen werden getrimmt; sonst keine Normalisierung.
+	err = u.SetPassword("  "+onetimePassword+" ", "newSecurePass123")
 	if err != nil {
-		t.Fatalf("SetPassword mit normalisierbarer Eingabe: %v", err)
+		t.Fatalf("SetPassword mit getrimmter Eingabe: %v", err)
 	}
 }
 

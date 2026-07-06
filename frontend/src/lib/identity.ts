@@ -19,7 +19,6 @@ export const PasswordSchema = z
   .min(6, { message: 'Passwort muss mindestens 6 Zeichen lang sein.' })
   .max(72, { message: 'Passwort darf maximal 72 Zeichen lang sein.' })
 
-export const OnetimePasswordSchema = z.string().regex(/^[a-z0-9]{8}$/i, {
-  message:
-    'Das Einmalpasswort besteht aus genau 8 Zeichen (Buchstaben und Ziffern).',
+export const OnetimePasswordSchema = z.string().regex(/^\d{6}$/, {
+  message: 'Das Einmalpasswort besteht aus genau 6 Ziffern.',
 })

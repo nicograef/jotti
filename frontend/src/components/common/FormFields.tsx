@@ -1,4 +1,4 @@
-import { REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp'
+import { REGEXP_ONLY_DIGITS } from 'input-otp'
 import { EyeClosedIcon, EyeIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -192,9 +192,11 @@ export function OTPField<AllFormFields extends FieldValues>({
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
           <InputOTP
-            maxLength={8}
+            maxLength={6}
             aria-invalid={fieldState.invalid}
-            pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+            pattern={REGEXP_ONLY_DIGITS}
+            inputMode="numeric"
+            autoComplete="one-time-code"
             {...field}
           >
             <InputOTPGroup className="mx-auto">
@@ -204,8 +206,6 @@ export function OTPField<AllFormFields extends FieldValues>({
               <InputOTPSlot index={3} />
               <InputOTPSlot index={4} />
               <InputOTPSlot index={5} />
-              <InputOTPSlot index={6} />
-              <InputOTPSlot index={7} />
             </InputOTPGroup>
           </InputOTP>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

@@ -279,7 +279,7 @@ Tisch-Stammdaten sind Name + Status. Nur aktive Tische (`active`) erscheinen in 
 
 Das Benutzer-Aggregat verwaltet Zugangsdaten und Rollen (`admin`, `serviceleitung`, `service`) der Helfer und Admins.
 
-**Invarianten:** Benutzername systemweit eindeutig; Rolle gültig; Passwörter nur als Argon2id-Hash persistiert, Klartext nie. Deaktivierte (`inactive`) und entfernte (`deleted`) Benutzer können sich nicht anmelden. Neue Benutzer starten mit Status `inactive` und einem Einmalpasswort aus 8 Zeichen (→ [5.2](#52-onboarding-ablauf)).
+**Invarianten:** Benutzername systemweit eindeutig; Rolle gültig; Passwörter nur als Argon2id-Hash persistiert, Klartext nie. Deaktivierte (`inactive`) und entfernte (`deleted`) Benutzer können sich nicht anmelden. Neue Benutzer starten mit Status `inactive` und einem Einmalpasswort aus 6 Ziffern (→ [5.2](#52-onboarding-ablauf)).
 
 ### 4.4 Tisch-Favoriten
 
@@ -359,7 +359,7 @@ Die Rollenhierarchie ist inklusiv: Admin kann alles, was Serviceleitung kann. Se
 
 Neue Benutzer durchlaufen einen zweistufigen Onboarding-Prozess, der sicherstellt, dass nur der Benutzer sein eigenes Passwort kennt:
 
-1. **Benutzer anlegen:** Admin erstellt Benutzer (Name, Benutzername, Rolle, Status `inactive`). System generiert ein Einmalpasswort aus 8 Zeichen (Kleinbuchstaben und Ziffern ohne verwechselbare Zeichen), das der Admin dem Benutzer mitteilt.
+1. **Benutzer anlegen:** Admin erstellt Benutzer (Name, Benutzername, Rolle, Status `inactive`). System generiert ein Einmalpasswort aus genau 6 Ziffern, das der Admin dem Benutzer mitteilt.
 2. **Erstanmeldung + Passwort setzen:** Benutzer meldet sich mit Einmalpasswort an. System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL` den Onboarding-Status und leitet zur Passwort-Vergabe weiter (min. 6 Zeichen, Argon2id-Hash). Danach reguläre Anmeldung.
 
 **Passwort-Reset:** Admin-Reset generiert neues Einmalpasswort, leert `passwort_hash` → Benutzer durchläuft Onboarding erneut.

@@ -184,9 +184,9 @@ func (u *User) SetPassword(onetimePassword, newPassword string) error {
 		return ErrNoPassword
 	}
 
-	// Das Einmalpasswort besteht aus Kleinbuchstaben und Ziffern; Eingaben werden
-	// tolerant normalisiert (Großschreibung, umgebende Leerzeichen).
-	onetimePassword = strings.ToLower(strings.TrimSpace(onetimePassword))
+	// Das Einmalpasswort besteht aus reinen Ziffern; nur umgebende Leerzeichen
+	// werden getrimmt (keine Groß-/Kleinschreibungs-Toleranz nötig).
+	onetimePassword = strings.TrimSpace(onetimePassword)
 
 	if err := verifyPassword(u.OnetimePasswordHash, onetimePassword); err != nil {
 		u.OnetimePasswordAttempts++

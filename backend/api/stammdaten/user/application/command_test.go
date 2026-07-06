@@ -24,11 +24,8 @@ func TestCreateUser(t *testing.T) {
 	if userId != 1 {
 		t.Errorf("expected user ID 1, got %d", userId)
 	}
-	if len(onetimePassword) != 8 {
-		t.Fatalf("Expected password length 8, got %d", len(onetimePassword))
-	}
-	if !regexp.MustCompile(`^[a-z0-9]{8}$`).MatchString(onetimePassword) {
-		t.Fatalf("Expected alphanumeric password, got %s", onetimePassword)
+	if !regexp.MustCompile(`^\d{6}$`).MatchString(onetimePassword) {
+		t.Fatalf("Expected exactly 6 digits, got %s", onetimePassword)
 	}
 }
 

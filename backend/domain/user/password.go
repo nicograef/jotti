@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math/big"
+	"regexp"
 	"strings"
 
 	z "github.com/Oudwins/zog"
@@ -13,6 +15,14 @@ import (
 )
 
 var PasswordSchema = z.String().Trim().Min(6, z.Message("Passwort zu kurz")).Max(72, z.Message("Passwort zu lang"))
+
+// OnetimePasswordSchema ist die kanonische Formatregel des Einmalpassworts: genau
+// 6 Ziffern. Einzige Backend-Quelle dieser Regel (verwendet vom Passwort-Setzen-
+// Handler); umgebende Leerzeichen werden zuvor getrimmt.
+var OnetimePasswordSchema = z.String().Trim().Match(
+	regexp.MustCompile(`^\d{6}$`),
+	z.Message("Das Einmalpasswort besteht aus genau 6 Ziffern"),
+)
 
 var ErrPasswordTooWeak = errors.New("password too weak")
 
@@ -141,24 +151,21 @@ func verifyPassword(correctPasswordHash, userProvidedPassword string) error {
 }
 
 func generateOnetimePassword() (string, error) {
-	const passwordLength = 8
-	// Exakt 32 eindeutige Zeichen (Kleinbuchstaben + Ziffern, ohne die verwechselbaren
-	// o, i, l und 1; die 0 ist eindeutig, weil das o fehlt): 32^8 ≈ 1,1 · 10^12
-	// Kombinationen statt 10^6 bei 6 Ziffern. Da 256 % 32 == 0, ist charset[b % 32]
-	// exakt gleichverteilt (kein Modulo-Bias).
-	const charset = "abcdefghjkmnpqrstuvwxyz023456789"
-
-	bytePassword := make([]byte, passwordLength)
-	_, err := rand.Read(bytePassword)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate random bytes for onetime password: %w", err)
-	}
-
+	const passwordLength = 6
+	// Genau 6 gleichverteilte Ziffern (0–9), also 10^6 Kombinationen. Der kleine
+	// Coderaum ist unkritisch, weil das Einmalpasswort nur einmal gilt und nach
+	// MaxOnetimePasswordAttempts Fehlversuchen gesperrt wird (Brute-Force-Schutz).
+	// crypto/rand.Int zieht jede Ziffer gleichverteilt aus [0,10) — kein Modulo-Bias.
+	password := make([]byte, passwordLength)
 	for i := range passwordLength {
-		bytePassword[i] = charset[int(bytePassword[i])%len(charset)]
+		n, err := rand.Int(rand.Reader, big.NewInt(10))
+		if err != nil {
+			return "", fmt.Errorf("failed to generate random digit for onetime password: %w", err)
+		}
+		password[i] = byte('0' + n.Int64())
 	}
 
-	return string(bytePassword), nil
+	return string(password), nil
 }
 
 func generateOnetimePasswordHash() (string, string, error) {
