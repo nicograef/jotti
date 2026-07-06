@@ -41,6 +41,18 @@ func (r Repository) GetAllUsers(ctx context.Context) ([]user.User, error) {
 	return users, nil
 }
 
+// CountUsers zählt ALLE Benutzerzeilen inklusive soft-gelöschter (status = 'deleted'):
+// Benutzernamen werden nie recycelt, deshalb blockiert ein soft-gelöschter "admin"
+// die Neuanlage. Der Bootstrap-Entscheider verlässt sich auf diese Vollzählung.
+func (r Repository) CountUsers(ctx context.Context) (int, error) {
+	count, err := r.q.CountUsers(ctx)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+
+	return int(count), nil
+}
+
 func (r Repository) CreateUser(ctx context.Context, u user.User) (int, error) {
 	userID, err := r.q.CreateUser(ctx, dbgen.CreateUserParams{
 		Name:                u.Name,

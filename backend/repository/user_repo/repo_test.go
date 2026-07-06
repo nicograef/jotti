@@ -255,6 +255,51 @@ func TestSetPasswordTx_ConcurrentFailuresCountedExactly(t *testing.T) {
 	}
 }
 
+// CountUsers zählt ALLE Zeilen inklusive soft-gelöschter: setup seeded 1 Benutzer,
+// ein zweiter erhöht auf 2, und ein Soft-Delete lässt die Zahl bei 2 (Benutzernamen
+// werden nie recycelt, der Bootstrap muss die Vollzählung sehen).
+func TestCountUsers(t *testing.T) {
+	seeded, repo, teardown := setup(t)
+	defer teardown(t)
+
+	count, err := repo.CountUsers(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected 1 user after setup, got %d", count)
+	}
+
+	second, _, err := user.NewUser("nico3", "nicousername3", user.ServiceRole)
+	if err != nil {
+		t.Fatalf("failed to build user object: %v", err)
+	}
+	if _, err := repo.CreateUser(context.Background(), second); err != nil {
+		t.Fatalf("failed to create second user: %v", err)
+	}
+
+	count, err = repo.CountUsers(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if count != 2 {
+		t.Fatalf("expected 2 users, got %d", count)
+	}
+
+	seeded.Delete()
+	if err := repo.UpdateUser(context.Background(), seeded); err != nil {
+		t.Fatalf("expected no error soft-deleting user, got %v", err)
+	}
+
+	count, err = repo.CountUsers(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if count != 2 {
+		t.Fatalf("expected 2 users including soft-deleted, got %d", count)
+	}
+}
+
 func TestGetAllUsers_ExcludesDeletedUsers(t *testing.T) {
 	u, repo, teardown := setup(t)
 	defer teardown(t)

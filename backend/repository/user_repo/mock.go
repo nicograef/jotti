@@ -51,6 +51,10 @@ func (m mockRepo) GetAllUsers(ctx context.Context) ([]user.User, error) {
 	return users, m.err
 }
 
+func (m mockRepo) CountUsers(ctx context.Context) (int, error) {
+	return len(m.user), m.err
+}
+
 func (m mockRepo) CreateUser(ctx context.Context, t user.User) (int, error) {
 	newID := len(m.user) + 1
 	t.ID = newID

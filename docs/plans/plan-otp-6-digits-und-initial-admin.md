@@ -217,25 +217,25 @@ Bootstrap-Fehler bricht den Start fatal ab.
 
 ### Acceptance criteria
 
-- [ ] `01_initial.up.sql` enthält keinen Admin-`INSERT` mehr; Migration bleibt reines,
+- [x] `01_initial.up.sql` enthält keinen Admin-`INSERT` mehr; Migration bleibt reines,
       deterministisches Schema-SQL.
-- [ ] `CountUsers` in `users.sql`, generiert, in Repo + Mock verfügbar.
-- [ ] Bootstrap-Entscheidungstest (tabellengetrieben, Fake-Repo, ohne DB) deckt ab:
-  - [ ] leeres Repo → `create`: aktiver `admin`, kein Passwort, OTP-Hash gesetzt,
+- [x] `CountUsers` in `users.sql`, generiert, in Repo + Mock verfügbar.
+- [x] Bootstrap-Entscheidungstest (tabellengetrieben, Fake-Repo, ohne DB) deckt ab:
+  - [x] leeres Repo → `create`: aktiver `admin`, kein Passwort, OTP-Hash gesetzt,
         Rückgabe-OTP genau 6 Ziffern.
-  - [ ] einziger `admin` ohne Passwort → `rotate`: neuer OTP-Hash, Zähler 0,
+  - [x] einziger `admin` ohne Passwort → `rotate`: neuer OTP-Hash, Zähler 0,
         Status/Passwort unverändert leer.
-  - [ ] einziger `admin` ohne Passwort, OTP nach Fehlversuchen gesperrt (Hash leer)
+  - [x] einziger `admin` ohne Passwort, OTP nach Fehlversuchen gesperrt (Hash leer)
         → `rotate`: frischer OTP-Hash, Zähler 0.
-  - [ ] `admin` mit Passwort → `skip`: keine Änderung.
-  - [ ] mehrere Benutzer inkl. Service-Benutzer mit offenem OTP → `skip`: Service-OTP
+  - [x] `admin` mit Passwort → `skip`: keine Änderung.
+  - [x] mehrere Benutzer inkl. Service-Benutzer mit offenem OTP → `skip`: Service-OTP
         unangetastet.
-- [ ] Bootstrap wird in `main.go` `run()` nach dem Ping aufgerufen; Fehler → `log.Fatal`.
-- [ ] Bei `create`/`rotate` erscheinen Markerzeile (fester Präfix + Klartext-Code) und
+- [x] Bootstrap wird in `main.go` `run()` nach dem Ping aufgerufen; Fehler → `log.Fatal`.
+- [x] Bei `create`/`rotate` erscheinen Markerzeile (fester Präfix + Klartext-Code) und
       Bannerzeile im Log; der Präfix ist als stabiles Literal grep-bar (Round-Trip geprüft).
-- [ ] Frische DB: Backend-Start erzeugt aktiven `admin`, loggt Code; Neustart bei
+- [x] Frische DB: Backend-Start erzeugt aktiven `admin`, loggt Code; Neustart bei
       offener Einrichtung loggt neuen Code; nach gesetztem Passwort `skip` (kein neuer Code).
-- [ ] `make verify` grün (inkl. Integrationstests, die auf den Seed-Admin bauten —
+- [x] `make verify` grün (inkl. Integrationstests, die auf den Seed-Admin bauten —
       auf den Bootstrap-Pfad bzw. explizites Anlegen umgestellt, falls betroffen).
 
 ---

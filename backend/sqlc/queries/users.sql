@@ -24,3 +24,6 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;
 -- name: UpdateUser :execresult
 UPDATE users SET name = $1, username = $2, role = $3, status = $4, password_hash = $5, onetime_password_hash = $6, onetime_password_attempts = $7, updated_at = $8
 WHERE id = $9;
+
+-- name: CountUsers :one
+SELECT count(*) FROM users;

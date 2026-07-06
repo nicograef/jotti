@@ -16,9 +16,11 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/nicograef/jotti/backend/app"
+	"github.com/nicograef/jotti/backend/bootstrap"
 	"github.com/nicograef/jotti/backend/config"
 	dbpkg "github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
+	"github.com/nicograef/jotti/backend/repository/user_repo"
 	"github.com/nicograef/jotti/backend/seed"
 )
 
@@ -75,6 +77,16 @@ func run(cfg config.Config, db *sql.DB) error {
 			log.Error().Err(err).Msg("Failed to close database connection")
 		}
 	}()
+
+	// Initial-Admin anlegen bzw. dessen Einmalpasswort rotieren, solange die
+	// Ersteinrichtung offen ist; der Klartext-Code landet im Log-Strom. Ein Fehler
+	// hier ist fatal (run() → main() → log.Fatal), der Container-Restart wiederholt.
+	repo := user_repo.NewRepository(db)
+	res, err := bootstrap.EnsureInitialAdmin(context.Background(), repo)
+	if err != nil {
+		return fmt.Errorf("bootstrap initial admin: %w", err)
+	}
+	res.Log(log.Logger)
 
 	a, err := app.NewApp(cfg, db, version)
 	if err != nil {
