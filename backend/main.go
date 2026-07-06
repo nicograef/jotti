@@ -60,6 +60,9 @@ func main() {
 	}
 
 	if len(os.Args) > 1 && os.Args[1] == "seed" {
+		if !seed.AllowedByEnv(os.Getenv) {
+			log.Fatal().Msgf("seed refused: set %s=1 to allow demo seeding (never do this in production)", seed.AllowSeedEnv)
+		}
 		if err := seedDemodaten(db); err != nil {
 			log.Fatal().Err(err).Msg("Failed to seed demo data")
 		}

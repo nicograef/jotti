@@ -19,6 +19,7 @@ func setRequiredConfigEnv(t *testing.T) {
 	t.Helper()
 	t.Setenv("JWT_SECRET", "test-secret-for-app-tests")
 	t.Setenv("RELAY_AUTH_TOKEN", "test-relay-token-for-app-tests")
+	t.Setenv("POSTGRES_PASSWORD", "test-postgres-password-1234")
 }
 
 func TestNewApp(t *testing.T) {

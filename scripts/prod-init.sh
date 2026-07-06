@@ -49,6 +49,28 @@ parse_semver() {
   printf '%s %s %s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
 }
 
+# Minimum length for secrets; mirrors backend/config.MinSecretLength.
+MIN_SECRET_LENGTH=16
+
+# validate_secret KEY — read KEY from .env and fatal unless it is set, not a known
+# .env.example placeholder, and at least MIN_SECRET_LENGTH chars. Mirrors
+# backend/config.ValidateSecrets so a weak secret fails before the stack starts.
+validate_secret() {
+  local key="$1"
+  local value
+  value="$(read_env "$key")"
+  if [[ -z "$value" ]]; then
+    fatal "$key is not set in .env. Run 'make init' to generate secure secrets."
+  fi
+  case "$value" in
+    your-256-bit-secret-replace-this-in-production|your-relay-auth-token-replace-this-in-production|your-secure-password-here|admin)
+      fatal "$key still uses the .env.example placeholder value. Run 'make init' to generate a real secret." ;;
+  esac
+  if (( ${#value} < MIN_SECRET_LENGTH )); then
+    fatal "$key is too short (${#value} chars); it needs at least $MIN_SECRET_LENGTH characters."
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # Step 0 — Change to project root (script may be called from anywhere)
 # ---------------------------------------------------------------------------
@@ -101,6 +123,12 @@ if ! parse_semver "$VERSION" >/dev/null; then
   error "Set it to a release tag like v0.3.1 from https://github.com/nicograef/jotti/releases."
   fatal "Refusing to deploy an unpinned version ('latest' and empty are not allowed)."
 fi
+
+# Reject weak or placeholder secrets before starting the stack (mirrors the
+# backend startup validation; a known secret means a full auth bypass).
+validate_secret JWT_SECRET
+validate_secret RELAY_AUTH_TOKEN
+validate_secret POSTGRES_PASSWORD
 
 info "Prerequisites OK (domain: $DOMAIN, email: $EMAIL, version: $VERSION)."
 
@@ -200,8 +228,20 @@ echo "    make prod-up     — Pull & restart"
 echo "    make prod-down   — Stop all services"
 echo "    make prod-logs   — Follow logs"
 echo ""
-echo "  First-time setup — show the admin one-time login code:"
-echo "    docker compose -f $COMPOSE_PROD logs backend | grep ADMIN-EINMALPASSWORT"
+# First-time setup: grep the admin one-time login code straight from the backend
+# logs (analogous to the Windows starter). ANSI-tolerant: match the marker
+# substring and extract the 6-digit code; the newest match wins.
+otp_code="$(docker compose -f "$COMPOSE_PROD" logs backend 2>/dev/null \
+  | grep -a "ADMIN-EINMALPASSWORT" \
+  | grep -aoE 'code=[0-9]{6}' \
+  | tail -n1 | cut -d= -f2 || true)"
+if [[ -n "$otp_code" ]]; then
+  info "First-time setup — admin one-time login code (user 'admin'): $otp_code"
+  echo "    Log in as 'admin' with this code, then set your own password."
+else
+  warn "No admin one-time login code found in the logs yet (setup may be complete, or the backend just started)."
+  echo "    Re-check with: docker compose -f $COMPOSE_PROD logs backend | grep ADMIN-EINMALPASSWORT"
+fi
 echo ""
 echo "  Caddy renews the certificate automatically."
 echo "=========================================="

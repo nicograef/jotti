@@ -88,6 +88,8 @@ services:
       POSTGRES_DBNAME: jotti
       JWT_SECRET: ${JWT_SECRET}
       RELAY_AUTH_TOKEN: ${RELAY_AUTH_TOKEN}
+      # Demo/Staging: schaltet den Seed-Befehl frei (reset-and-seed.sh). In Prod/Release nie gesetzt.
+      JOTTI_ALLOW_SEED: "1"
     networks:
       - app-network
       - db-network

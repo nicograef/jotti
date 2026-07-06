@@ -106,11 +106,11 @@ Startup-Validierung: JWT_SECRET und RELAY_AUTH_TOKEN brauchen eine Mindestlänge
 
 ### Akzeptanzkriterien
 
-- [ ] Backend startet nicht mit Platzhalter- oder Kurz-Secrets; Fehlermeldung nennt die betroffene Variable
-- [ ] Backend startet nicht ohne explizites POSTGRES_PASSWORD
-- [ ] `prod-init.sh` bricht bei schwachen Secrets ab und gibt am Ende den OTP-Code aus
-- [ ] `jotti seed` ohne `JOTTI_ALLOW_SEED=1` verweigert; `make seed` im Dev-Flow funktioniert weiter
-- [ ] Tests für die Validierungsregeln; `make verify` grün
+- [x] Backend startet nicht mit Platzhalter- oder Kurz-Secrets; Fehlermeldung nennt die betroffene Variable
+- [x] Backend startet nicht ohne explizites POSTGRES_PASSWORD
+- [x] `prod-init.sh` bricht bei schwachen Secrets ab und gibt am Ende den OTP-Code aus
+- [x] `jotti seed` ohne `JOTTI_ALLOW_SEED=1` verweigert; `make seed` im Dev-Flow funktioniert weiter
+- [x] Tests für die Validierungsregeln; `make verify` grün
 
 ---
 

@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	testJWTSecret  = "test-secret"
+	testJWTSecret  = "test-jwt-secret-abc123456789"
 	testRelayToken = "test-relay-token-abc123"
+	testDBPassword = "test-postgres-password-1234"
 )
 
 type pollRequest struct {
@@ -162,7 +163,14 @@ func setupTestEnv(t *testing.T) testEnv {
 
 	adminUserID, serviceUserID, produktID, varianteID, tischID := seedTestData(t, db)
 
+	// The throwaway DB uses password "admin", which config.Load now rejects as a
+	// known placeholder. The DB handle is already open (and passed to SetupRoutes),
+	// so override the env with a valid value purely to satisfy config validation,
+	// then restore it so later tests' OpenTestDatabase still reaches the DB.
+	origPW := os.Getenv("POSTGRES_PASSWORD")
+	os.Setenv("POSTGRES_PASSWORD", testDBPassword)
 	cfg := config.Load()
+	os.Setenv("POSTGRES_PASSWORD", origPW)
 	handler := app.SetupRoutes(cfg, db, "dev")
 	ts := httptest.NewServer(handler)
 	t.Cleanup(func() { ts.Close() })
