@@ -28,7 +28,8 @@ export function Receipt({
                   {position.menge} x {position.name}
                 </div>
                 <div>
-                  {formatCents(position.einzelpreisCents * position.menge)}&nbsp;€
+                  {formatCents(position.einzelpreisCents * position.menge)}
+                  &nbsp;€
                 </div>
               </div>
             )
