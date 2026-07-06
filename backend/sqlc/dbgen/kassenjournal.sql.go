@@ -121,8 +121,8 @@ type ReadEventsByKassensitzungRow struct {
 	Data              json.RawMessage
 	Timestamp         time.Time
 	ProcessType       sql.NullString
-	TransaktionNummer sql.NullInt32
-	SignaturZaehler   sql.NullInt32
+	TransaktionNummer sql.NullInt64
+	SignaturZaehler   sql.NullInt64
 	TseSeriennummer   sql.NullString
 	LogTimeStart      sql.NullTime
 	LogTimeEnd        sql.NullTime

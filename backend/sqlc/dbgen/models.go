@@ -442,10 +442,10 @@ type TseSignaturauftraege struct {
 	ErstelltAm         time.Time
 	// Zeitpunkt der Quittierung (UTC).
 	ErledigtAm sql.NullTime
-	// TSE-Transaktionsnummer aus der TSE-Antwort.
-	TransaktionNummer sql.NullInt32
-	// Signaturzaehler der TSE aus der TSE-Antwort.
-	SignaturZaehler sql.NullInt32
+	// TSE-Transaktionsnummer aus der TSE-Antwort (BIGINT: TSE-Zaehler wachsen monoton ohne Obergrenze).
+	TransaktionNummer sql.NullInt64
+	// Signaturzaehler der TSE aus der TSE-Antwort (BIGINT: monoton wachsend, langlebige TSS-Instanz kann INT-Bereich ueberschreiten).
+	SignaturZaehler sql.NullInt64
 	// Seriennummer der TSE, die den Vorgang signiert hat.
 	TseSeriennummer sql.NullString
 	// TSE-logTime des Vorgangsbeginns (UTC).

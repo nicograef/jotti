@@ -20,6 +20,15 @@ jotti fährt **forward-only: keine Down-Migrationen.** Neue Änderungen kommen a
 4. Event-JSON-Contracts sind eingefroren (Guard: `backend/domain/kasse/event_json_contract_test.go`); Event-Änderungen additiv als neue Version (`:vN`), nie in-place.
 5. Nach jeder Migration muss `make rebuild-projections` fehlerfrei durchlaufen (Projektionen werden aus Events neu gebaut).
 
+## ENUM vs. TEXT+CHECK
+
+jotti verwendet für Status- und Kategorie-Spalten TEXT+CHECK statt PostgreSQL-ENUMs. Begründung:
+
+- **ENUMs sind DDL-Objekte.** Eine neue Ausprägung erfordert `ALTER TYPE ... ADD VALUE`, das in PostgreSQL nur außerhalb einer Transaktion oder mit bestimmten Einschränkungen läuft. Damit ist eine rein transaktionale Migration nicht möglich (verstößt gegen Regel 3).
+- **Zwei-Migrations-Muster für ENUM-Erweiterungen** wäre nötig: (1) eine nicht-transaktionale Migration fügt den neuen Wert zum Typ hinzu, (2) eine zweite transaktionale Migration nutzt ihn. Das erhöht die Migrations-Komplexität und die Fehleranfälligkeit erheblich.
+- **TEXT+CHECK ist einfacher erweiterbar:** Neuer Wert = `ALTER TABLE ... DROP CONSTRAINT ..., ADD CONSTRAINT ... CHECK (... IN (..., 'neu'))` — vollständig transaktional in einer Migration.
+- **Ausnahmen** (`UserRole`, `EntityStatus`, `ProduktKategorie`, `Steuersatz`, `DruckstationKategorie`): Diese ENUMs existieren, weil sie bei Schema-Erstellung eingeführt wurden oder weil sqlc für ENUMs typsichere Go-Typen erzeugt (Compile-Zeit-Prüfung statt Laufzeit-String). Neue Status-/Kategorie-Spalten werden als TEXT+CHECK angelegt.
+
 ## Testen
 
 - **Frischinstallation:** `migrate ... up` auf leerer DB (deckt der Integrationstest `scripts/test-integration.sh` ab).

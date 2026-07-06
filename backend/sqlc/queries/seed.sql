@@ -23,10 +23,12 @@ VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: SeedInsertKassensitzung :exec
 INSERT INTO kassensitzungen (z_nr, datum, bezeichnung, status, created_at, updated_at)
+OVERRIDING SYSTEM VALUE
 VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: SeedInsertEvent :exec
 INSERT INTO kassenjournal (id, user_id, user_name, type, subject, version, data, timestamp, kassensitzung_nr)
+OVERRIDING SYSTEM VALUE
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 
 -- name: SeedInsertDruckauftrag :exec

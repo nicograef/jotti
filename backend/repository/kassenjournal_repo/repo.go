@@ -565,8 +565,8 @@ func eventSignaturFromKassensitzungRow(row dbgen.ReadEventsByKassensitzungRow) t
 	signatur := tse.EventSignatur{ProcessType: row.ProcessType.String}
 	if row.Signatur.Valid {
 		signatur.Signatur = &tse.Signatur{
-			TransaktionNummer: int(row.TransaktionNummer.Int32),
-			SignaturZaehler:   int(row.SignaturZaehler.Int32),
+			TransaktionNummer: int(row.TransaktionNummer.Int64),
+			SignaturZaehler:   int(row.SignaturZaehler.Int64),
 			TSESeriennummer:   row.TseSeriennummer.String,
 			LogTimeStart:      row.LogTimeStart.Time,
 			LogTimeEnd:        row.LogTimeEnd.Time,

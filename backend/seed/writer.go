@@ -281,8 +281,8 @@ func writeSignaturauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege [
 			ErledigtAm:         nullTime(a.ErledigtAm),
 		}
 		if sig := a.Signatur; sig != nil {
-			params.TransaktionNummer = sql.NullInt32{Int32: int32(sig.TransaktionNummer), Valid: true}
-			params.SignaturZaehler = sql.NullInt32{Int32: int32(sig.SignaturZaehler), Valid: true}
+			params.TransaktionNummer = sql.NullInt64{Int64: int64(sig.TransaktionNummer), Valid: true}
+			params.SignaturZaehler = sql.NullInt64{Int64: int64(sig.SignaturZaehler), Valid: true}
 			params.TseSeriennummer = sql.NullString{String: sig.TSESeriennummer, Valid: true}
 			params.LogTimeStart = sql.NullTime{Time: sig.LogTimeStart, Valid: true}
 			params.LogTimeEnd = sql.NullTime{Time: sig.LogTimeEnd, Valid: true}

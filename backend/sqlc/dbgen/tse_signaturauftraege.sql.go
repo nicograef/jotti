@@ -177,8 +177,8 @@ WHERE event_id = $1
 type GetTSESignaturauftragZuEventRow struct {
 	Status            string
 	ErstelltAm        time.Time
-	TransaktionNummer sql.NullInt32
-	SignaturZaehler   sql.NullInt32
+	TransaktionNummer sql.NullInt64
+	SignaturZaehler   sql.NullInt64
 	TseSeriennummer   sql.NullString
 	LogTimeStart      sql.NullTime
 	LogTimeEnd        sql.NullTime
@@ -267,8 +267,8 @@ WHERE id = $8 AND status = 'offen'
 `
 
 type QuittiereTSESignaturauftragParams struct {
-	TransaktionNummer sql.NullInt32
-	SignaturZaehler   sql.NullInt32
+	TransaktionNummer sql.NullInt64
+	SignaturZaehler   sql.NullInt64
 	TseSeriennummer   sql.NullString
 	LogTimeStart      sql.NullTime
 	LogTimeEnd        sql.NullTime

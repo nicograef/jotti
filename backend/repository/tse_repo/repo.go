@@ -91,8 +91,8 @@ func (r Repository) GetOffeneTSESignaturauftraege(ctx context.Context, limit int
 func (r Repository) QuittiereTSESignaturauftrag(ctx context.Context, auftragID int, signatur tse.Signatur) error {
 	return db.Error(r.q.QuittiereTSESignaturauftrag(ctx, dbgen.QuittiereTSESignaturauftragParams{
 		ID:                auftragID,
-		TransaktionNummer: sql.NullInt32{Int32: int32(signatur.TransaktionNummer), Valid: true},
-		SignaturZaehler:   sql.NullInt32{Int32: int32(signatur.SignaturZaehler), Valid: true},
+		TransaktionNummer: sql.NullInt64{Int64: int64(signatur.TransaktionNummer), Valid: true},
+		SignaturZaehler:   sql.NullInt64{Int64: int64(signatur.SignaturZaehler), Valid: true},
 		TseSeriennummer:   sql.NullString{String: strings.TrimSpace(signatur.TSESeriennummer), Valid: true},
 		LogTimeStart:      sql.NullTime{Time: signatur.LogTimeStart.UTC(), Valid: true},
 		LogTimeEnd:        sql.NullTime{Time: signatur.LogTimeEnd.UTC(), Valid: true},
@@ -186,8 +186,8 @@ func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) 
 	stand := tse.SignaturauftragStand{Status: row.Status, ErstelltAm: row.ErstelltAm}
 	if row.Status == tse.StatusErledigt {
 		stand.Signatur = &tse.Signatur{
-			TransaktionNummer: int(row.TransaktionNummer.Int32),
-			SignaturZaehler:   int(row.SignaturZaehler.Int32),
+			TransaktionNummer: int(row.TransaktionNummer.Int64),
+			SignaturZaehler:   int(row.SignaturZaehler.Int64),
 			TSESeriennummer:   row.TseSeriennummer.String,
 			LogTimeStart:      row.LogTimeStart.Time,
 			LogTimeEnd:        row.LogTimeEnd.Time,

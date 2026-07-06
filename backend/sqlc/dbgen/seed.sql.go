@@ -61,6 +61,7 @@ func (q *Queries) SeedInsertDruckauftrag(ctx context.Context, arg SeedInsertDruc
 
 const seedInsertEvent = `-- name: SeedInsertEvent :exec
 INSERT INTO kassenjournal (id, user_id, user_name, type, subject, version, data, timestamp, kassensitzung_nr)
+OVERRIDING SYSTEM VALUE
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
@@ -93,6 +94,7 @@ func (q *Queries) SeedInsertEvent(ctx context.Context, arg SeedInsertEventParams
 
 const seedInsertKassensitzung = `-- name: SeedInsertKassensitzung :exec
 INSERT INTO kassensitzungen (z_nr, datum, bezeichnung, status, created_at, updated_at)
+OVERRIDING SYSTEM VALUE
 VALUES ($1, $2, $3, $4, $5, $6)
 `
 
@@ -162,8 +164,8 @@ type SeedInsertTSESignaturauftragParams struct {
 	NaechsterVersuchAm time.Time
 	ErstelltAm         time.Time
 	ErledigtAm         sql.NullTime
-	TransaktionNummer  sql.NullInt32
-	SignaturZaehler    sql.NullInt32
+	TransaktionNummer  sql.NullInt64
+	SignaturZaehler    sql.NullInt64
 	TseSeriennummer    sql.NullString
 	LogTimeStart       sql.NullTime
 	LogTimeEnd         sql.NullTime
