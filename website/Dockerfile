@@ -20,7 +20,7 @@ COPY docs/ /docs/
 RUN pnpm build
 
 # Runtime stage: serve the static build with nginx
-FROM nginx:1.27-alpine AS runner
+FROM nginx:1.31-alpine AS runner
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY website/nginx.conf /etc/nginx/conf.d/default.conf
