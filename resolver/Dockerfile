@@ -1,5 +1,5 @@
 # --- Build Stage ---
-FROM golang:1.26.0-alpine AS builder
+FROM golang:1.26.4-alpine AS builder
 
 WORKDIR /src
 
@@ -11,7 +11,7 @@ COPY . .
 RUN go build -o /go/bin/jotti-resolver .
 
 # --- Deploy Stage ---
-FROM alpine:3.22
+FROM alpine:3.24
 
 COPY --from=builder /go/bin/jotti-resolver /usr/local/bin/jotti-resolver
 
