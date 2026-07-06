@@ -38,7 +38,7 @@
     "react-dom": "^19.2.7",
     "react-hook-form": "^7.81.0",
     "react-resizable-panels": "^4.12.1",
-    "react-router": "^7.16.0",
+    "react-router": "^7.18.1",
     "recharts": "3.9.2",
     "shadcn": "^4.13.0",
     "sonner": "^2.0.7",
@@ -59,10 +59,10 @@
     "@vitest/eslint-plugin": "^1.6.21",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-react-dom": "^5.8.8",
+    "eslint-plugin-react-dom": "^5.11.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
-    "eslint-plugin-react-x": "^5.8.8",
+    "eslint-plugin-react-x": "^5.11.2",
     "eslint-plugin-simple-import-sort": "^13.0.0",
     "globals": "^17.7.0",
     "jsdom": "^29.1.1",
@@ -71,7 +71,7 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.62.1",
     "vite": "^8.1.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   },
   "packageManager": "pnpm@11.6.0+sha512.9a36518224080c6fe5165afdcfe79bfa118c29be703f3f462b1e32efe1e98e47e8750b148e08286250aad4113cc7993ca413c4e2cd447752708c2ee5751bc95f"
 }
