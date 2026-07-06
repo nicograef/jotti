@@ -65,6 +65,11 @@ updates:
       frontend-npm:
         patterns:
           - "*"
+    # react-router 8 ist ein Major mit Breaking Changes in der Data-Router-API;
+    # bewusst zurueckgestellt, bis separat verifiziert. Minor/Patch bleiben erlaubt.
+    ignore:
+      - dependency-name: "react-router"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/website"
