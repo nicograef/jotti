@@ -1,4 +1,4 @@
-FROM alpine:3.22
+FROM alpine:3.24
 
 ARG MIGRATE_VERSION=v4.19.1
 
