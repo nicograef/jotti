@@ -91,6 +91,7 @@ func NewAdminApi(deps Deps) http.Handler {
 		BetreiberRepo:       deps.BetreiberRepo,
 		TSERepo:             deps.TSERepo,
 		TischRepo:           deps.TischRepo,
+		Version:             deps.Version,
 	}
 	r.HandleFunc("/export/dsfinvk", exportHandler.ExportHandler())
 

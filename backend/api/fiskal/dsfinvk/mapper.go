@@ -42,7 +42,6 @@ const (
 	kasseBrand            = "jotti"
 	kasseModell           = "jotti mPOS"
 	kasseSoftware         = "jotti"
-	kasseSWVersion        = "1.0"
 )
 
 // Archive hält die typisierten Zeilen-Kollektionen eines DSFinV-K-Exports, eine
@@ -597,7 +596,7 @@ func buildCashregister(s Snapshot, erstellung string) Table {
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 		kasseBrand, kasseModell, s.KasseSeriennummer,
-		kasseSoftware, kasseSWVersion,
+		kasseSoftware, s.SoftwareVersion,
 		basiswaehrung, "",
 	}
 
@@ -668,7 +667,7 @@ func buildTSE(s Snapshot, erstellung string, belege []beleg) Table {
 
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-		tseReferenzID, tseSerial(belege), s.TSEStammdaten.SignaturAlgorithmus,
+		tseReferenzID, s.TSEStammdaten.Seriennummer, s.TSEStammdaten.SignaturAlgorithmus,
 		zeitformat, tsePDEncoding, s.TSEStammdaten.PublicKey,
 	}
 	for i := 0; i < zertifikatSpalten; i++ {
@@ -712,7 +711,7 @@ func buildTransactions(s Snapshot, erstellung string, belege []beleg) Table {
 		// BON_STORNO stets 0 (das negative Vorzeichen trägt b.sign()).
 		records = append(records, []string{
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-			b.bonID, itoa(b.bonNr), b.bonTyp, "",
+			b.bonID, itoa(b.bonNr), b.bonTyp, bonName(b),
 			"", storno(false), b.start, b.ende,
 			itoa(b.bedienerID), b.bedienerName, formatAmount(umsBrutto),
 			"", "", "", "",
@@ -763,7 +762,7 @@ func buildAllocationGroups(s Snapshot, erstellung string, belege []beleg) Table 
 var transactionsVatColumns = []column{
 	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
 	alpha("BON_ID"), num("UST_SCHLUESSEL", 0),
-	num("BON_BRUTTO", 2), num("BON_NETTO", 2), num("BON_UST", 2),
+	num("BON_BRUTTO", 5), num("BON_NETTO", 5), num("BON_UST", 5),
 }
 
 func buildTransactionsVat(s Snapshot, erstellung string, belege []beleg) Table {
@@ -861,7 +860,7 @@ var linesColumns = []column{
 	alpha("POS_TERMINAL_ID"), alpha("GV_TYP"), alpha("GV_NAME"), alpha("INHAUS"),
 	alpha("P_STORNO"), num("AGENTUR_ID", 0), alpha("ART_NR"), alpha("GTIN"),
 	alpha("WARENGR_ID"), alpha("WARENGR"), num("MENGE", 3), num("FAKTOR", 3),
-	alpha("EINHEIT"), num("STK_BR", 2),
+	alpha("EINHEIT"), num("STK_BR", 5),
 }
 
 func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
@@ -912,7 +911,7 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 var linesVatColumns = []column{
 	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
 	alpha("BON_ID"), alpha("POS_ZEILE"), num("UST_SCHLUESSEL", 0),
-	num("POS_BRUTTO", 2), num("POS_NETTO", 2), num("POS_UST", 2),
+	num("POS_BRUTTO", 5), num("POS_NETTO", 5), num("POS_UST", 5),
 }
 
 func buildLinesVat(s Snapshot, erstellung string, belege []beleg) Table {
@@ -1043,7 +1042,7 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 var businesscasesColumns = []column{
 	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
 	alpha("GV_TYP"), alpha("GV_NAME"), num("AGENTUR_ID", 0), num("UST_SCHLUESSEL", 0),
-	num("Z_UMS_BRUTTO", 2), num("Z_UMS_NETTO", 2), num("Z_UST", 2),
+	num("Z_UMS_BRUTTO", 5), num("Z_UMS_NETTO", 5), num("Z_UST", 5),
 }
 
 // gvTypReihenfolge ordnet die Geschäftsvorfalltypen für eine stabile Ausgabe der
@@ -1230,18 +1229,6 @@ func steuermatrixPositionen(positionen []kasse.PositionEventData) []steuer.Steue
 	return out
 }
 
-// tseSerial liefert die TSS-Seriennummer aus dem ersten signierten Beleg; alle
-// Belege einer Sitzung nutzen dieselbe TSS.
-func tseSerial(belege []beleg) string {
-	for bi := range belege {
-		b := &belege[bi]
-		if b.tse != nil {
-			return b.tse.TSESeriennummer
-		}
-	}
-	return ""
-}
-
 // ZertifikatZuLang meldet, ob das TSE-Zertifikat die zwei amtlichen
 // TSE_ZERTIFIKAT-Felder übersteigt und daher leer exportiert wird (siehe
 // certChunk). Der Aufrufer nutzt das für eine Log-Warnung; das Archiv bleibt
@@ -1271,6 +1258,16 @@ func certChunk(cert string, index int) string {
 		end = len(cert)
 	}
 	return cert[start:end]
+}
+
+// bonName liefert den BON_NAME fuer den Bonkopf. Bei einem Tagesabschluss-Bon
+// (AVSonstige) ist er amtlich verpflichtend und traegt den festen Text
+// "Tagesabschluss". Bei allen anderen Bontypen bleibt das Feld leer.
+func bonName(b *beleg) string {
+	if b.bonTyp == bonTypSonstige {
+		return "Tagesabschluss"
+	}
+	return ""
 }
 
 // positionText ist die kanonische Artikelbezeichnung: Produkt- und Variantenname

@@ -44,6 +44,9 @@ func testSignatur(t *testing.T, txNr, sigZaehler int, start, ende, signatur stri
 	}
 }
 
+const testSWVersion = "dev"
+const testTSESerial = "TSE-STAMMDATEN-SERIAL"
+
 func testSnapshot() Snapshot {
 	steuernummer := "12345/67890"
 	return Snapshot{
@@ -58,11 +61,13 @@ func testSnapshot() Snapshot {
 			Steuernummer: &steuernummer,
 		},
 		TSEStammdaten: tse.Stammdaten{
+			Seriennummer:        testTSESerial,
 			SignaturAlgorithmus: "ecdsa-plain-SHA256",
 			PublicKey:           "PUBKEY==",
 			Zertifikat:          "CERTBASE64",
 			LogTimeFormat:       "unixTime",
 		},
+		SoftwareVersion: testSWVersion,
 	}
 }
 
@@ -140,13 +145,13 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 			{testSerial, erstellung, "3", "7", "0,00", "UmsatzsteuerNichtErmittelbar"},
 		},
 		"tse.csv": {
-			{testSerial, erstellung, "3", "1", "abc123serial", "ecdsa-plain-SHA256", "unixTime", "UTF-8", "PUBKEY==", "CERTBASE64", ""},
+			{testSerial, erstellung, "3", "1", testTSESerial, "ecdsa-plain-SHA256", "unixTime", "UTF-8", "PUBKEY==", "CERTBASE64", ""},
 		},
 		"location.csv": {
 			{testSerial, erstellung, "3", "TSV Beispiel", "Hauptstr. 1", "12345", "Musterdorf", "DEU", ""},
 		},
 		"cashregister.csv": {
-			{testSerial, erstellung, "3", "jotti", "jotti mPOS", testSerial, "jotti", "1.0", "EUR", ""},
+			{testSerial, erstellung, "3", "jotti", "jotti mPOS", testSerial, "jotti", testSWVersion, "EUR", ""},
 		},
 		"cashpointclosing.csv": {
 			{testSerial, erstellung, "3", "", "2.4", testBonID, testBonID, "TSV Beispiel", "Hauptstr. 1", "12345", "Musterdorf", "DEU", "12345/67890", "", "10,50", "10,50"},
@@ -1176,6 +1181,7 @@ func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 		"BON_ID":     tagesabschlussBonID,
 		"BON_NR":     "5",
 		"BON_TYP":    "AVSonstige",
+		"BON_NAME":   "Tagesabschluss",
 		"BON_STORNO": "0",
 		"UMS_BRUTTO": "0,00",
 		"BON_START":  "2026-06-16T18:00:00Z",
@@ -1532,6 +1538,24 @@ func TestMapEmptySessionIsError(t *testing.T) {
 	_, err := Map(testSnapshot(), []event.Event{eroeffnet}, nil)
 	if err != ErrKeineVorgaenge {
 		t.Fatalf("Map() error = %v, want ErrKeineVorgaenge", err)
+	}
+}
+
+// TestBuildCashregisterVersionAusSnapshot belegt, dass KASSE_SW_VERSION aus dem
+// Snapshot kommt und nicht aus einer hardcodierten Konstante. Der Test schlaegt
+// fehl, wenn die Version hartcodiert wird oder der Snapshot-Wert ignoriert wird.
+func TestBuildCashregisterVersionAusSnapshot(t *testing.T) {
+	const wantVersion = "1.2.3-test"
+	snap := testSnapshot()
+	snap.SoftwareVersion = wantVersion
+
+	archive, err := Map(snap, []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+	cr := tableByFile(t, archive, "cashregister.csv")
+	if got := field(t, cr, 0, "KASSE_SW_VERSION"); got != wantVersion {
+		t.Errorf("KASSE_SW_VERSION = %q, want %q", got, wantVersion)
 	}
 }
 

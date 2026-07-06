@@ -58,10 +58,13 @@ type TSSErstellt struct {
 }
 
 // TSSStammdaten sind die fiskalischen Stammdaten der TSS-Ressource, die der
-// DSFinV-K-Export braucht: Signaturalgorithmus, Public Key, Zertifikat und
-// Log-Time-Format (fiskaly: signature_timestamp_format). Sie aendern sich ueber
-// die Lebensdauer der TSS nicht.
+// DSFinV-K-Export braucht: Seriennummer, Signaturalgorithmus, Public Key,
+// Zertifikat und Log-Time-Format (fiskaly: signature_timestamp_format). Sie
+// aendern sich ueber die Lebensdauer der TSS nicht.
 type TSSStammdaten struct {
+	// Seriennummer ist die TSS-Seriennummer (fiskaly: tss_serial_number;
+	// SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld TSE_SERIAL.
+	Seriennummer        string
 	SignaturAlgorithmus string
 	PublicKey           string
 	Zertifikat          string

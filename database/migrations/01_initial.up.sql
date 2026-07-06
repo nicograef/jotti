@@ -447,6 +447,7 @@ VALUES (1, '', '', '', '', now());
 -- ============================================================
 CREATE TABLE tse_stammdaten (
     id                   INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    seriennummer         TEXT NOT NULL DEFAULT '',
     signatur_algorithmus TEXT NOT NULL,
     public_key           TEXT NOT NULL,
     zertifikat           TEXT NOT NULL,
@@ -455,14 +456,15 @@ CREATE TABLE tse_stammdaten (
 );
 
 COMMENT ON TABLE tse_stammdaten IS 'TSE-Stammdaten (Singleton). Fiskalische Stammdaten der TSS fuer den DSFinV-K-Export (tse.csv); bei der Einrichtung von fiskaly gelesen.';
+COMMENT ON COLUMN tse_stammdaten.seriennummer IS 'Seriennummer der TSS (tss_serial_number aus fiskaly; SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld TSE_SERIAL.';
 COMMENT ON COLUMN tse_stammdaten.signatur_algorithmus IS 'Signaturalgorithmus der TSS (z. B. ecdsa-plain-SHA256).';
 COMMENT ON COLUMN tse_stammdaten.public_key IS 'Public Key der TSS, base64-kodiert.';
 COMMENT ON COLUMN tse_stammdaten.zertifikat IS 'TSS-Zertifikat, base64-kodiert.';
 COMMENT ON COLUMN tse_stammdaten.log_time_format IS 'Format der TSE-Log-Zeitstempel (z. B. unixTime).';
 COMMENT ON COLUMN tse_stammdaten.updated_at IS 'Letzte Aenderung (UTC)';
 
-INSERT INTO tse_stammdaten (id, signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at)
-VALUES (1, '', '', '', '', now());
+INSERT INTO tse_stammdaten (id, seriennummer, signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at)
+VALUES (1, '', '', '', '', '', now());
 
 -- ============================================================
 -- Table: tse_signaturauftraege (transactional outbox for TSE signing)

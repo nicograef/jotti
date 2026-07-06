@@ -21,6 +21,10 @@ import (
 // Deps bundles all repositories and shared builders for the API wiring layer.
 // It is constructed exactly once in app.SetupRoutes and passed to each area constructor.
 type Deps struct {
+	// Version ist die Build-Version der jotti-Software (gesetzt per ldflags,
+	// "dev" im Entwicklungsmodus). Sie wird als KASSE_SW_VERSION in den
+	// DSFinV-K-Export geschrieben.
+	Version             string
 	UserRepo            user_repo.Repository
 	ProduktRepo         produkt_repo.Repository
 	TischRepo           tisch_repo.Repository

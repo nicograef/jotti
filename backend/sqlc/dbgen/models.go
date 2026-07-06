@@ -461,6 +461,8 @@ type TseSignaturauftraege struct {
 // TSE-Stammdaten (Singleton). Fiskalische Stammdaten der TSS fuer den DSFinV-K-Export (tse.csv); bei der Einrichtung von fiskaly gelesen.
 type TseStammdaten struct {
 	ID int
+	// Seriennummer der TSS (tss_serial_number aus fiskaly; SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld TSE_SERIAL.
+	Seriennummer string
 	// Signaturalgorithmus der TSS (z. B. ecdsa-plain-SHA256).
 	SignaturAlgorithmus string
 	// Public Key der TSS, base64-kodiert.

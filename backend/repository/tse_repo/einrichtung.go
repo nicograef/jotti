@@ -101,6 +101,7 @@ func (r Repository) GetTSEStammdaten(ctx context.Context) (tse.Stammdaten, error
 		return tse.Stammdaten{}, db.Error(err)
 	}
 	return tse.Stammdaten{
+		Seriennummer:        row.Seriennummer,
 		SignaturAlgorithmus: row.SignaturAlgorithmus,
 		PublicKey:           row.PublicKey,
 		Zertifikat:          row.Zertifikat,
@@ -113,6 +114,7 @@ func (r Repository) GetTSEStammdaten(ctx context.Context) (tse.Stammdaten, error
 // DSFinV-K-Export (Singleton).
 func (r Repository) UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error {
 	err := r.q.UpsertTSEStammdaten(ctx, dbgen.UpsertTSEStammdatenParams{
+		Seriennummer:        s.Seriennummer,
 		SignaturAlgorithmus: s.SignaturAlgorithmus,
 		PublicKey:           s.PublicKey,
 		Zertifikat:          s.Zertifikat,

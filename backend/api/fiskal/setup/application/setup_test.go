@@ -703,6 +703,7 @@ func TestUebernimmTSE_DeaktivierteTSS(t *testing.T) {
 // Persistenz-Tests des DSFinV-K-Exports.
 func stammdatenAntwort() tse.TSSStammdaten {
 	return tse.TSSStammdaten{
+		Seriennummer:        "abcdef1234567890abcdef1234567890",
 		SignaturAlgorithmus: "ecdsa-plain-SHA256",
 		PublicKey:           "public-key-b64",
 		Zertifikat:          "certificate-b64",
@@ -717,7 +718,8 @@ func checkStammdaten(t *testing.T, gespeichert *tse.Stammdaten, erwartet tse.TSS
 	if gespeichert == nil {
 		t.Fatal("expected the tse stammdaten to be persisted")
 	}
-	if gespeichert.SignaturAlgorithmus != erwartet.SignaturAlgorithmus ||
+	if gespeichert.Seriennummer != erwartet.Seriennummer ||
+		gespeichert.SignaturAlgorithmus != erwartet.SignaturAlgorithmus ||
 		gespeichert.PublicKey != erwartet.PublicKey ||
 		gespeichert.Zertifikat != erwartet.Zertifikat ||
 		gespeichert.LogTimeFormat != erwartet.LogTimeFormat {
@@ -793,11 +795,11 @@ func TestUebernimmTSE_PINResetPersistiertStammdaten(t *testing.T) {
 	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
 }
 
-// TestRichteTSEEin_StammdatenAbrufFehlerKipptSetupNicht sichert die
-// Best-Effort-Semantik: schlaegt der Stammdaten-Abruf fehl, bleibt die
-// Einrichtung erfolgreich und die Konfiguration gespeichert — nur die Stammdaten
-// fehlen (beim naechsten Verbinden nachziehbar).
-func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetupNicht(t *testing.T) {
+// TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup sichert, dass ein
+// Stammdaten-Abruffehler die Einrichtung fehlschlagen laesst. Die
+// TSS-Seriennummer (TSE_SERIAL im DSFinV-K-Export) ist aus den Signaturen nicht
+// rekonstruierbar; daher ist ein Fehler beim Stammdaten-Abruf hart.
+func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
 		UmgebungResponse:  tse.UmgebungTest,
@@ -805,15 +807,9 @@ func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetupNicht(t *testing.T) {
 		StammdatenErr:     errors.New("fiskaly stammdaten read failed"),
 	}
 
-	ergebnis, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
-	if err != nil {
-		t.Fatalf("expected setup to succeed despite a stammdaten fetch failure, got %v", err)
-	}
-	if ergebnis.TssID != "tss-neu" || repo.gespeichert == nil {
-		t.Fatalf("expected the configuration to be saved, got result %q saved %+v", ergebnis.TssID, repo.gespeichert)
-	}
-	if repo.gespeicherteStammdaten != nil {
-		t.Fatal("expected no stammdaten to be saved when the fetch fails")
+	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
+	if !errors.Is(err, ErrTSEEinrichtung) {
+		t.Fatalf("expected ErrTSEEinrichtung when stammdaten fetch fails, got %v", err)
 	}
 }
 

@@ -11,11 +11,12 @@ import (
 )
 
 const getTSEStammdaten = `-- name: GetTSEStammdaten :one
-SELECT signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at
+SELECT seriennummer, signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at
 FROM tse_stammdaten WHERE id = 1
 `
 
 type GetTSEStammdatenRow struct {
+	Seriennummer        string
 	SignaturAlgorithmus string
 	PublicKey           string
 	Zertifikat          string
@@ -27,6 +28,7 @@ func (q *Queries) GetTSEStammdaten(ctx context.Context) (GetTSEStammdatenRow, er
 	row := q.db.QueryRowContext(ctx, getTSEStammdaten)
 	var i GetTSEStammdatenRow
 	err := row.Scan(
+		&i.Seriennummer,
 		&i.SignaturAlgorithmus,
 		&i.PublicKey,
 		&i.Zertifikat,
@@ -37,9 +39,10 @@ func (q *Queries) GetTSEStammdaten(ctx context.Context) (GetTSEStammdatenRow, er
 }
 
 const upsertTSEStammdaten = `-- name: UpsertTSEStammdaten :exec
-INSERT INTO tse_stammdaten (id, signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at)
-VALUES (1, $1, $2, $3, $4, NOW())
+INSERT INTO tse_stammdaten (id, seriennummer, signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at)
+VALUES (1, $1, $2, $3, $4, $5, NOW())
 ON CONFLICT (id) DO UPDATE SET
+    seriennummer = EXCLUDED.seriennummer,
     signatur_algorithmus = EXCLUDED.signatur_algorithmus,
     public_key = EXCLUDED.public_key,
     zertifikat = EXCLUDED.zertifikat,
@@ -48,6 +51,7 @@ ON CONFLICT (id) DO UPDATE SET
 `
 
 type UpsertTSEStammdatenParams struct {
+	Seriennummer        string
 	SignaturAlgorithmus string
 	PublicKey           string
 	Zertifikat          string
@@ -56,6 +60,7 @@ type UpsertTSEStammdatenParams struct {
 
 func (q *Queries) UpsertTSEStammdaten(ctx context.Context, arg UpsertTSEStammdatenParams) error {
 	_, err := q.db.ExecContext(ctx, upsertTSEStammdaten,
+		arg.Seriennummer,
 		arg.SignaturAlgorithmus,
 		arg.PublicKey,
 		arg.Zertifikat,

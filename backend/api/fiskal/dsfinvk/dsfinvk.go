@@ -35,6 +35,9 @@ type Snapshot struct {
 	KassensitzungNr int
 	Betreiber       betreiber.Betreiber
 	TSEStammdaten   tse.Stammdaten
+	// SoftwareVersion ist die Build-Version der jotti-Software (KASSE_SW_VERSION).
+	// Sie wird per ldflags zur Build-Zeit gesetzt ("dev" im Entwicklungsmodus).
+	SoftwareVersion string
 	// Tischnamen bildet Tisch-IDs auf ihren Namen ab (Quelle des
 	// ABRECHNUNGSKREIS). Fehlt ein Tisch (gelöscht), synthetisiert der Mapper
 	// "Tisch N".

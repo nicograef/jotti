@@ -335,24 +335,27 @@ func (c Command) saveEinrichtung(ctx context.Context, log *zerolog.Logger, clien
 		return ErrDatabase
 	}
 
-	c.fetchTSEStammdaten(ctx, log, client, tssID)
+	if err := c.fetchTSEStammdaten(ctx, log, client, tssID); err != nil {
+		return err
+	}
 	return nil
 }
 
 // fetchTSEStammdaten liest die fiskalischen TSS-Stammdaten von fiskaly und
-// speichert sie fuer den DSFinV-K-Export. Best effort: jeder Fehler beim Abruf
-// oder Speichern wird nur protokolliert, der Setup-Erfolg bleibt bestehen — die
-// Stammdaten lassen sich beim naechsten Verbinden nachziehen.
-func (c Command) fetchTSEStammdaten(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, tssID string) {
+// speichert sie fuer den DSFinV-K-Export. Die Stammdaten enthalten die
+// TSS-Seriennummer (TSE_SERIAL in der DSFinV-K), die nicht aus den Signaturen
+// rekonstruierbar ist; daher ist ein Fehler hier ein harter Einrichtungsfehler.
+func (c Command) fetchTSEStammdaten(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, tssID string) error {
 	gelesen, err := client.RetrieveTSSStammdaten(ctx, tssID)
 	if err != nil {
-		log.Warn().Err(err).Str("tss_id", tssID).Msg("Failed to fetch TSE Stammdaten after setup; recoverable on next connect")
-		return
+		return einrichtungsFehler(log, err, "stammdaten abrufen", tssID)
 	}
-	stammdaten := tse.NewStammdaten(gelesen.SignaturAlgorithmus, gelesen.PublicKey, gelesen.Zertifikat, gelesen.LogTimeFormat)
+	stammdaten := tse.NewStammdaten(gelesen.Seriennummer, gelesen.SignaturAlgorithmus, gelesen.PublicKey, gelesen.Zertifikat, gelesen.LogTimeFormat)
 	if err := c.TSERepo.UpsertTSEStammdaten(ctx, stammdaten); err != nil {
-		log.Warn().Err(err).Str("tss_id", tssID).Msg("Failed to save TSE Stammdaten after setup; recoverable on next connect")
+		log.Error().Err(err).Str("tss_id", tssID).Msg("Failed to save TSE Stammdaten after setup")
+		return ErrDatabase
 	}
+	return nil
 }
 
 // clientAktion beschreibt, was im Client-Schritt einer INITIALIZED TSS zu tun

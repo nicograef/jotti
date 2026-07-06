@@ -131,11 +131,11 @@ Startup-Validierung: JWT_SECRET und RELAY_AUTH_TOKEN brauchen eine Mindestlänge
 
 ### Akzeptanzkriterien
 
-- [ ] Jede AVSonstige-Zeile trägt einen BON_NAME (Golden Rows angepasst)
-- [ ] Fehlgeschlagener Stammdaten-Abruf lässt das TSE-Setup nicht stillschweigend unvollständig; `tse.csv`-Pflichtfelder kommen aus persistierten Stammdaten
-- [ ] `cashregister.csv` enthält die Build-Version; Guard-Test schlägt bei Drift fehl
-- [ ] D15 entschieden und umgesetzt (angleichen oder entfernen)
-- [ ] `make verify` grün
+- [x] Jede AVSonstige-Zeile trägt einen BON_NAME (Golden Rows angepasst)
+- [x] Fehlgeschlagener Stammdaten-Abruf lässt das TSE-Setup nicht stillschweigend unvollständig; `tse.csv`-Pflichtfelder kommen aus persistierten Stammdaten
+- [x] `cashregister.csv` enthält die Build-Version; Guard-Test schlägt bei Drift fehl
+- [x] D15 entschieden und umgesetzt (angleichen oder entfernen)
+- [x] `make verify` grün
 
 ---
 

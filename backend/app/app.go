@@ -49,6 +49,7 @@ func SetupRoutes(cfg config.Config, db *sql.DB, version string) http.Handler {
 	r.HandleFunc("/health", healthCheck.Handler())
 
 	deps := api.NewDeps(cfg, db)
+	deps.Version = version
 
 	authApi := api.NewAuthApi(cfg, deps)
 	r.Handle("/auth/", middleware.RateLimitMiddleware(5)(http.StripPrefix("/auth", authApi)))

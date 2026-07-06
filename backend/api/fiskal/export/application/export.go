@@ -59,6 +59,10 @@ type Export struct {
 	BetreiberRepo       betreiberRepo
 	TSERepo             tseRepo
 	TischRepo           tischRepo
+	// Version ist die Build-Version der jotti-Software, gesetzt per ldflags.
+	// Sie wird als KASSE_SW_VERSION in die cashregister.csv des DSFinV-K-Archivs
+	// geschrieben.
+	Version string
 }
 
 // Archiv ist das fertige DSFinV-K-ZIP samt sprechendem Dateinamen.
@@ -191,6 +195,7 @@ func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung
 		KassensitzungNr:   ks.ZNr,
 		Betreiber:         betreiber,
 		TSEStammdaten:     stammdaten,
+		SoftwareVersion:   e.Version,
 		Tischnamen:        tischnamen,
 	}, nil
 }
