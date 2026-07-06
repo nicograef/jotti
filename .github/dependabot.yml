@@ -93,6 +93,11 @@ updates:
       frontend-docker:
         patterns:
           - "*"
+    # Node ist im Image nur Build-Tool; auf dem Active LTS (24) bleiben, bis die
+    # naechste LTS-Linie steht. Minor/Patch bleiben erlaubt.
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
     directory: "/database/migrate"
@@ -120,3 +125,8 @@ updates:
       website-docker:
         patterns:
           - "*"
+    # Node ist im Image nur Build-Tool; auf dem Active LTS (24) bleiben, bis die
+    # naechste LTS-Linie steht. Minor/Patch bleiben erlaubt.
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
