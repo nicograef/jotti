@@ -263,13 +263,13 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		}
 
 		positionen = append(positionen, kasse.Position{
-			VarianteID:   input.VarianteID,
-			ProduktName:  prod.Name,
-			VarianteName: variant.Name,
-			Kategorie:    string(prod.Kategorie),
-			Steuersatz:   string(prod.Steuersatz),
-			Einzelpreis:  variant.PreisCents,
-			Menge:        input.Menge,
+			VarianteID:       input.VarianteID,
+			ProduktName:      prod.Name,
+			VarianteName:     variant.Name,
+			Kategorie:        string(prod.Kategorie),
+			Steuersatz:       string(prod.Steuersatz),
+			EinzelpreisCents: variant.PreisCents,
+			Menge:            input.Menge,
 		})
 	}
 
@@ -323,16 +323,16 @@ func resolvePositions(available []kasse.Position, refs []kasse.PositionRef) ([]k
 		for _, pos := range available {
 			if pos.PositionID == ref.PositionID {
 				resolved = append(resolved, kasse.Position{
-					PositionID:   pos.PositionID,
-					VarianteID:   pos.VarianteID,
-					ProduktName:  pos.ProduktName,
-					VarianteName: pos.VarianteName,
-					Kategorie:    pos.Kategorie,
-					Steuersatz:   pos.Steuersatz,
-					Einzelpreis:  pos.Einzelpreis,
-					Menge:        ref.Menge,
+					PositionID:       pos.PositionID,
+					VarianteID:       pos.VarianteID,
+					ProduktName:      pos.ProduktName,
+					VarianteName:     pos.VarianteName,
+					Kategorie:        pos.Kategorie,
+					Steuersatz:       pos.Steuersatz,
+					EinzelpreisCents: pos.EinzelpreisCents,
+					Menge:            ref.Menge,
 				})
-				totalCents += pos.Einzelpreis * ref.Menge
+				totalCents += pos.EinzelpreisCents * ref.Menge
 				break
 			}
 		}

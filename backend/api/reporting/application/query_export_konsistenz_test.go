@@ -21,13 +21,13 @@ const konsistenzZNr = 3
 
 func konsistenzPosition(satz string, einzelpreis, menge int) kasse.PositionEventData {
 	return kasse.PositionEventData{
-		PositionID:  "p-" + satz + "-" + strconv.Itoa(einzelpreis),
-		VarianteID:  101,
-		ProduktName: "Produkt",
-		Kategorie:   "essen",
-		Steuersatz:  satz,
-		Einzelpreis: einzelpreis,
-		Menge:       menge,
+		PositionID:       "p-" + satz + "-" + strconv.Itoa(einzelpreis),
+		VarianteID:       101,
+		ProduktName:      "Produkt",
+		Kategorie:        "essen",
+		Steuersatz:       satz,
+		EinzelpreisCents: einzelpreis,
+		Menge:            menge,
 	}
 }
 
@@ -141,7 +141,7 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 		for _, p := range positionen {
 			zeilen = append(zeilen, reporting.UmsatzSteuersatz{
 				Satz:        steuer.Steuersatz(p.Steuersatz),
-				BruttoCents: vorzeichen * p.Einzelpreis * p.Menge,
+				BruttoCents: vorzeichen * p.EinzelpreisCents * p.Menge,
 			})
 		}
 	}

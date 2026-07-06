@@ -35,13 +35,13 @@ var optionalKommentarTests = []struct {
 var kommentarTestSubject = "kassensitzung-1/tisch-1"
 var kommentarTestPositionen = []Position{
 	{
-		VarianteID:   1,
-		ProduktName:  "Cola",
-		VarianteName: "0,5l",
-		Kategorie:    "getraenk",
-		Steuersatz:   "regel",
-		Einzelpreis:  350,
-		Menge:        1,
+		VarianteID:       1,
+		ProduktName:      "Cola",
+		VarianteName:     "0,5l",
+		Kategorie:        "getraenk",
+		Steuersatz:       "regel",
+		EinzelpreisCents: 350,
+		Menge:            1,
 	},
 }
 
@@ -49,14 +49,14 @@ var kommentarTestPositionen = []Position{
 // (Zahlung, Stornierung, Ausgabe) — unlike Bestellung, which generates the IDs itself.
 var kommentarTestPositionenMitID = []Position{
 	{
-		PositionID:   "a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",
-		VarianteID:   1,
-		ProduktName:  "Cola",
-		VarianteName: "0,5l",
-		Kategorie:    "getraenk",
-		Steuersatz:   "regel",
-		Einzelpreis:  350,
-		Menge:        1,
+		PositionID:       "a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",
+		VarianteID:       1,
+		ProduktName:      "Cola",
+		VarianteName:     "0,5l",
+		Kategorie:        "getraenk",
+		Steuersatz:       "regel",
+		EinzelpreisCents: 350,
+		Menge:            1,
 	},
 }
 

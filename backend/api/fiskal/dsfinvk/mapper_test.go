@@ -80,8 +80,8 @@ func barverkaufEvent(t *testing.T) event.Event {
 		ZahlungID:          testBonID,
 		GesamtZahlungCents: 1050,
 		Positionen: []kasse.PositionEventData{
-			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 2},
-			{PositionID: "p2", VarianteID: 202, ProduktName: "Brezel", VarianteName: "", Kategorie: "essen", Steuersatz: "ermaessigt", Einzelpreis: 150, Menge: 1},
+			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 2},
+			{PositionID: "p2", VarianteID: 202, ProduktName: "Brezel", VarianteName: "", Kategorie: "essen", Steuersatz: "ermaessigt", EinzelpreisCents: 150, Menge: 1},
 		},
 	}
 
@@ -243,7 +243,7 @@ func bestellungEvent(t *testing.T) event.Event {
 		BestellungID:     bestellungBonID,
 		GesamtPreisCents: 450,
 		Positionen: []kasse.PositionEventData{
-			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1},
 		},
 	}
 
@@ -273,7 +273,7 @@ func zahlungEvent(t *testing.T) event.Event {
 		ZahlungID:          zahlungBonID,
 		GesamtZahlungCents: 450,
 		Positionen: []kasse.PositionEventData{
-			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1},
 		},
 	}
 
@@ -435,7 +435,7 @@ func warenruecknahmeEvent(t *testing.T) event.Event {
 		GesamtStornierungCents: 450,
 		Kommentar:              "Reklamation",
 		Positionen: []kasse.PositionEventData{
-			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1},
 		},
 	}
 
@@ -466,7 +466,7 @@ func korrekturEvent(t *testing.T) event.Event {
 		GesamtCents: 450,
 		Kommentar:   "Versehentlich bestellt",
 		Positionen: []kasse.PositionEventData{
-			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1},
 		},
 	}
 
@@ -639,7 +639,7 @@ func umbuchungEventPaar(t *testing.T) (event.Event, event.Event) {
 			GesamtCents:  450,
 			Kommentar:    kommentar,
 			Positionen: []kasse.PositionEventData{
-				{PositionID: posID, VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+				{PositionID: posID, VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1},
 			},
 		}
 		raw, err := json.Marshal(data)
@@ -734,7 +734,7 @@ func kombiZahlungEvent(t *testing.T) event.Event {
 		ZahlungID:          kombiBonID,
 		GesamtZahlungCents: 501,
 		Positionen: []kasse.PositionEventData{
-			{PositionID: "p1", VarianteID: 303, ProduktName: "Menü", VarianteName: "", Kategorie: "essen", Steuersatz: "kombi", Einzelpreis: 501, Menge: 1},
+			{PositionID: "p1", VarianteID: 303, ProduktName: "Menü", VarianteName: "", Kategorie: "essen", Steuersatz: "kombi", EinzelpreisCents: 501, Menge: 1},
 		},
 	}
 
@@ -805,7 +805,7 @@ func direktverkaufEvent(t *testing.T) event.Event {
 		VerkaufID:         direktverkaufBonID,
 		GesamtbetragCents: 450,
 		Positionen: []kasse.PositionEventData{
-			{PositionID: "d1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+			{PositionID: "d1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1},
 		},
 	}
 
@@ -836,7 +836,7 @@ func direktverkaufStornoEvent(t *testing.T) event.Event {
 		GesamtStornierungCents: 450,
 		Kommentar:              "Falsch eingegeben",
 		Positionen: []kasse.PositionEventData{
-			{PositionID: "d1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+			{PositionID: "d1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1},
 		},
 	}
 
@@ -1308,7 +1308,7 @@ func zahlungAm(t *testing.T, id int, bonID string, ts time.Time) event.Event {
 		ZahlungID:          bonID,
 		GesamtZahlungCents: 450,
 		Positionen: []kasse.PositionEventData{
-			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 450, Menge: 1},
+			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1},
 		},
 	}
 

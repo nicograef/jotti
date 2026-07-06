@@ -58,7 +58,7 @@ func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 
 	gesamtbetragCents := 0
 	for _, pos := range positionen {
-		gesamtbetragCents += pos.Einzelpreis * pos.Menge
+		gesamtbetragCents += pos.EinzelpreisCents * pos.Menge
 	}
 
 	data := DirektverkaufGetaetigtV1Data{

@@ -29,7 +29,7 @@ interface DirektverkaufProps {
 interface SelectedItem {
   produktId: number
   varianteId: number
-  einzelpreis: number
+  einzelpreisCents: number
   menge: number
 }
 
@@ -43,7 +43,7 @@ function selectItems(
       .map((variant) => ({
         produktId: product.id,
         varianteId: variant.id,
-        einzelpreis: variant.preisCents,
+        einzelpreisCents: variant.preisCents,
         menge: mengen[variant.id],
       })),
   )

@@ -69,13 +69,13 @@ func validBestellungData(positionID string, einzelpreis, menge int) map[string]a
 		"bestellungId": "b0000000-0000-0000-0000-000000000001",
 		"positionen": []map[string]any{
 			{
-				"positionId":   positionID,
-				"varianteId":   1,
-				"produktName":  "Bier",
-				"varianteName": "0.5L",
-				"kategorie":    "getraenk",
-				"einzelpreis":  einzelpreis,
-				"menge":        menge,
+				"positionId":       positionID,
+				"varianteId":       1,
+				"produktName":      "Bier",
+				"varianteName":     "0.5L",
+				"kategorie":        "getraenk",
+				"einzelpreisCents": einzelpreis,
+				"menge":            menge,
 			},
 		},
 		"gesamtPreisCents": einzelpreis * menge,
@@ -90,14 +90,14 @@ func validZahlungData(positionID string, menge, gesamtCents int) map[string]any 
 		"zahlungId": "z0000000-0000-0000-0000-000000000001",
 		"positionen": []map[string]any{
 			{
-				"positionId":   positionID,
-				"varianteId":   1,
-				"produktName":  "Bier",
-				"varianteName": "0.5L",
-				"kategorie":    "getraenk",
-				"steuersatz":   "regel",
-				"einzelpreis":  gesamtCents / menge,
-				"menge":        menge,
+				"positionId":       positionID,
+				"varianteId":       1,
+				"produktName":      "Bier",
+				"varianteName":     "0.5L",
+				"kategorie":        "getraenk",
+				"steuersatz":       "regel",
+				"einzelpreisCents": gesamtCents / menge,
+				"menge":            menge,
 			},
 		},
 		"gesamtZahlungCents": gesamtCents,
@@ -114,14 +114,14 @@ func validStornierungData(betragCents int) map[string]any {
 		"kommentar":              "Rueckgabe",
 		"positionen": []map[string]any{
 			{
-				"positionId":   "p0000000-0000-0000-0000-000000000001",
-				"varianteId":   1,
-				"produktName":  "Bier",
-				"varianteName": "0.5L",
-				"kategorie":    "getraenk",
-				"steuersatz":   "regel",
-				"einzelpreis":  betragCents,
-				"menge":        1,
+				"positionId":       "p0000000-0000-0000-0000-000000000001",
+				"varianteId":       1,
+				"produktName":      "Bier",
+				"varianteName":     "0.5L",
+				"kategorie":        "getraenk",
+				"steuersatz":       "regel",
+				"einzelpreisCents": betragCents,
+				"menge":            1,
 			},
 		},
 	}
@@ -135,14 +135,14 @@ func validKorrekturData(betragCents int) map[string]any {
 		"kommentar":   "",
 		"positionen": []map[string]any{
 			{
-				"positionId":   "p0000000-0000-0000-0000-000000000002",
-				"varianteId":   1,
-				"produktName":  "Bier",
-				"varianteName": "0.5L",
-				"kategorie":    "getraenk",
-				"steuersatz":   "regel",
-				"einzelpreis":  betragCents,
-				"menge":        1,
+				"positionId":       "p0000000-0000-0000-0000-000000000002",
+				"varianteId":       1,
+				"produktName":      "Bier",
+				"varianteName":     "0.5L",
+				"kategorie":        "getraenk",
+				"steuersatz":       "regel",
+				"einzelpreisCents": betragCents,
+				"menge":            1,
 			},
 		},
 	}
@@ -154,14 +154,14 @@ func validDirektverkaufData(verkaufID string, gesamtbetragCents int) map[string]
 		"gesamtbetragCents": gesamtbetragCents,
 		"positionen": []map[string]any{
 			{
-				"positionId":   "d0000000-0000-0000-0000-000000000001",
-				"varianteId":   1,
-				"produktName":  "Bier",
-				"varianteName": "0.5L",
-				"kategorie":    "getraenk",
-				"steuersatz":   "regel",
-				"einzelpreis":  gesamtbetragCents,
-				"menge":        1,
+				"positionId":       "d0000000-0000-0000-0000-000000000001",
+				"varianteId":       1,
+				"produktName":      "Bier",
+				"varianteName":     "0.5L",
+				"kategorie":        "getraenk",
+				"steuersatz":       "regel",
+				"einzelpreisCents": gesamtbetragCents,
+				"menge":            1,
 			},
 		},
 		"kommentar": "",
@@ -175,14 +175,14 @@ func validDirektverkaufStornoData(verkaufID string, gesamtStornierungCents int) 
 		"gesamtStornierungCents": gesamtStornierungCents,
 		"positionen": []map[string]any{
 			{
-				"positionId":   "d0000000-0000-0000-0000-000000000001",
-				"varianteId":   1,
-				"produktName":  "Bier",
-				"varianteName": "0.5L",
-				"kategorie":    "getraenk",
-				"steuersatz":   "regel",
-				"einzelpreis":  gesamtStornierungCents,
-				"menge":        1,
+				"positionId":       "d0000000-0000-0000-0000-000000000001",
+				"varianteId":       1,
+				"produktName":      "Bier",
+				"varianteName":     "0.5L",
+				"kategorie":        "getraenk",
+				"steuersatz":       "regel",
+				"einzelpreisCents": gesamtStornierungCents,
+				"menge":            1,
 			},
 		},
 		"kommentar": "Rueckgabe",
@@ -554,14 +554,14 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	}
 
 	umbuchPosition := kasse.Position{
-		PositionID:   quellPositionID,
-		VarianteID:   1,
-		ProduktName:  "Bier",
-		VarianteName: "0.5L",
-		Kategorie:    "getraenk",
-		Steuersatz:   "regel",
-		Einzelpreis:  350,
-		Menge:        2,
+		PositionID:       quellPositionID,
+		VarianteID:       1,
+		ProduktName:      "Bier",
+		VarianteName:     "0.5L",
+		Kategorie:        "getraenk",
+		Steuersatz:       "regel",
+		EinzelpreisCents: 350,
+		Menge:            2,
 	}
 
 	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ksNr, quellTischID, zielTischID, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle")
@@ -624,8 +624,8 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	if len(zielState.AusstehendePositionen) != 1 {
 		t.Fatalf("Expected 1 target ausstehende position, got %d", len(zielState.AusstehendePositionen))
 	}
-	if zielState.UnbezahltePositionen[0].Einzelpreis != 350 {
-		t.Fatalf("Expected target einzelpreis 350, got %d", zielState.UnbezahltePositionen[0].Einzelpreis)
+	if zielState.UnbezahltePositionen[0].EinzelpreisCents != 350 {
+		t.Fatalf("Expected target einzelpreis 350, got %d", zielState.UnbezahltePositionen[0].EinzelpreisCents)
 	}
 	if zielState.UnbezahltePositionen[0].Menge != 2 {
 		t.Fatalf("Expected target menge 2, got %d", zielState.UnbezahltePositionen[0].Menge)
@@ -655,14 +655,14 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 	}
 
 	umbuchPosition := kasse.Position{
-		PositionID:   quellPositionID,
-		VarianteID:   1,
-		ProduktName:  "Bier",
-		VarianteName: "0.5L",
-		Kategorie:    "getraenk",
-		Steuersatz:   "regel",
-		Einzelpreis:  350,
-		Menge:        2,
+		PositionID:       quellPositionID,
+		VarianteID:       1,
+		ProduktName:      "Bier",
+		VarianteName:     "0.5L",
+		Kategorie:        "getraenk",
+		Steuersatz:       "regel",
+		EinzelpreisCents: 350,
+		Menge:            2,
 	}
 
 	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", "11111111-1111-1111-1111-111111111111", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
@@ -742,14 +742,14 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 	}
 
 	umbuchPosition := kasse.Position{
-		PositionID:   quellPositionID,
-		VarianteID:   1,
-		ProduktName:  "Bier",
-		VarianteName: "0.5L",
-		Kategorie:    "getraenk",
-		Steuersatz:   "regel",
-		Einzelpreis:  350,
-		Menge:        2,
+		PositionID:       quellPositionID,
+		VarianteID:       1,
+		ProduktName:      "Bier",
+		VarianteName:     "0.5L",
+		Kategorie:        "getraenk",
+		Steuersatz:       "regel",
+		EinzelpreisCents: 350,
+		Menge:            2,
 	}
 
 	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", "11111111-1111-1111-1111-111111111111", []kasse.Position{umbuchPosition}, 700, "Umbuchung")

@@ -82,12 +82,12 @@ func zahlungData(gesamtCents int) map[string]any {
 	return map[string]any{
 		"zahlungId": "z0000000-0000-0000-0000-000000000001",
 		"positionen": []map[string]any{{
-			"positionId":   "p0000000-0000-0000-0000-000000000001",
-			"produktName":  "Bier",
-			"varianteName": "0.5L",
-			"steuersatz":   "regel",
-			"einzelpreis":  gesamtCents,
-			"menge":        1,
+			"positionId":       "p0000000-0000-0000-0000-000000000001",
+			"produktName":      "Bier",
+			"varianteName":     "0.5L",
+			"steuersatz":       "regel",
+			"einzelpreisCents": gesamtCents,
+			"menge":            1,
 		}},
 		"gesamtZahlungCents": gesamtCents,
 		"kommentar":          "",
@@ -101,11 +101,11 @@ func stornierungData(betragCents int, kommentar string) map[string]any {
 		"gesamtStornierungCents": betragCents,
 		"kommentar":              kommentar,
 		"positionen": []map[string]any{{
-			"produktName":  "Bier",
-			"varianteName": "0.5L",
-			"steuersatz":   "regel",
-			"menge":        1,
-			"einzelpreis":  betragCents,
+			"produktName":      "Bier",
+			"varianteName":     "0.5L",
+			"steuersatz":       "regel",
+			"menge":            1,
+			"einzelpreisCents": betragCents,
 		}},
 	}
 }
@@ -116,10 +116,10 @@ func korrekturData(betragCents int, kommentar string) map[string]any {
 		"gesamtCents": betragCents,
 		"kommentar":   kommentar,
 		"positionen": []map[string]any{{
-			"produktName":  "Limo",
-			"varianteName": "0.3L",
-			"menge":        1,
-			"einzelpreis":  betragCents,
+			"produktName":      "Limo",
+			"varianteName":     "0.3L",
+			"menge":            1,
+			"einzelpreisCents": betragCents,
 		}},
 	}
 }

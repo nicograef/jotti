@@ -29,10 +29,10 @@ type UmsatzSteuersatz struct {
 }
 
 type StornierungPosition struct {
-	ProduktName  string
-	VarianteName string
-	Menge        int
-	Einzelpreis  int
+	ProduktName      string
+	VarianteName     string
+	Menge            int
+	EinzelpreisCents int
 }
 
 type StornierungDetail struct {

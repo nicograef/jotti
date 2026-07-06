@@ -19,7 +19,7 @@ describe('selectPositionen', () => {
       varianteName: 'Normal',
       kategorie: 'essen',
       steuersatz: 'ermaessigt',
-      einzelpreis: 350,
+      einzelpreisCents: 350,
       menge: 5,
       bestellerUserId: 1,
       bestellerName: 'Anna',
@@ -31,7 +31,7 @@ describe('selectPositionen', () => {
       varianteName: 'Klein',
       kategorie: 'essen',
       steuersatz: 'ermaessigt',
-      einzelpreis: 250,
+      einzelpreisCents: 250,
       menge: 3,
       bestellerUserId: 1,
       bestellerName: 'Anna',
@@ -43,7 +43,7 @@ describe('selectPositionen', () => {
       varianteName: 'Cola',
       kategorie: 'getraenk',
       steuersatz: 'regel',
-      einzelpreis: 200,
+      einzelpreisCents: 200,
       menge: 2,
       bestellerUserId: 1,
       bestellerName: 'Anna',
@@ -95,8 +95,8 @@ describe('selectPositionen', () => {
 describe('calculateTotalPrice', () => {
   it('calculates total for multiple items', () => {
     const items = [
-      { einzelpreis: 350, menge: 2 },
-      { einzelpreis: 250, menge: 1 },
+      { einzelpreisCents: 350, menge: 2 },
+      { einzelpreisCents: 250, menge: 1 },
     ]
 
     expect(calculateTotalPrice(items)).toBe(950)
@@ -107,14 +107,14 @@ describe('calculateTotalPrice', () => {
   })
 
   it('handles single item', () => {
-    expect(calculateTotalPrice([{ einzelpreis: 200, menge: 3 }])).toBe(600)
-    expect(calculateTotalPrice([{ einzelpreis: 300, menge: 1 }])).toBe(300)
+    expect(calculateTotalPrice([{ einzelpreisCents: 200, menge: 3 }])).toBe(600)
+    expect(calculateTotalPrice([{ einzelpreisCents: 300, menge: 1 }])).toBe(300)
   })
 
   it('handles zero-cent positionen', () => {
     const items = [
-      { einzelpreis: 0, menge: 5 },
-      { einzelpreis: 200, menge: 1 },
+      { einzelpreisCents: 0, menge: 5 },
+      { einzelpreisCents: 200, menge: 1 },
     ]
 
     expect(calculateTotalPrice(items)).toBe(200)
@@ -207,7 +207,7 @@ describe('toBestellungData', () => {
     const { receiptItems } = toBestellungData([pommes], { 7: 2 })
 
     expect(receiptItems).toEqual([
-      { name: 'Pommes mit Ketchup', einzelpreis: 300, menge: 2 },
+      { name: 'Pommes mit Ketchup', einzelpreisCents: 300, menge: 2 },
     ])
   })
 

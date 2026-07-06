@@ -115,8 +115,8 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
 			Kategorie:    "getraenk", Steuersatz: "regel",
-			Einzelpreis: 350,
-			Menge:       2,
+			EinzelpreisCents: 350,
+			Menge:            2,
 		},
 	}, 700, "")
 	if err != nil {
@@ -193,8 +193,8 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
 			Kategorie:    "getraenk", Steuersatz: "regel",
-			Einzelpreis: 350,
-			Menge:       2,
+			EinzelpreisCents: 350,
+			Menge:            2,
 		},
 		{
 			PositionID:   "22222222-2222-2222-2222-222222222222",
@@ -202,8 +202,8 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 			ProduktName:  "Brezel",
 			VarianteName: "normal",
 			Kategorie:    "essen", Steuersatz: "ermaessigt",
-			Einzelpreis: 300,
-			Menge:       1,
+			EinzelpreisCents: 300,
+			Menge:            1,
 		},
 	}, 1000, "")
 	if err != nil {
@@ -281,8 +281,8 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
 			Kategorie:    "getraenk", Steuersatz: "regel",
-			Einzelpreis: 350,
-			Menge:       1,
+			EinzelpreisCents: 350,
+			Menge:            1,
 		},
 	}, 350, "")
 	if err != nil {
@@ -383,8 +383,8 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
 			Kategorie:    "getraenk", Steuersatz: "regel",
-			Einzelpreis: 350,
-			Menge:       1,
+			EinzelpreisCents: 350,
+			Menge:            1,
 		},
 	}, 350, "")
 	if err != nil {
@@ -453,14 +453,14 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
 	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
-		PositionID:   "11111111-1111-4111-8111-111111111111",
-		VarianteID:   1,
-		ProduktName:  "Cola",
-		VarianteName: "0,5l",
-		Kategorie:    "getraenk",
-		Steuersatz:   "regel",
-		Einzelpreis:  350,
-		Menge:        1,
+		PositionID:       "11111111-1111-4111-8111-111111111111",
+		VarianteID:       1,
+		ProduktName:      "Cola",
+		VarianteName:     "0,5l",
+		Kategorie:        "getraenk",
+		Steuersatz:       "regel",
+		EinzelpreisCents: 350,
+		Menge:            1,
 	}}, 350, "")
 	if err != nil {
 		t.Fatalf("expected no event error, got %v", err)
@@ -545,14 +545,14 @@ func belegZahlungFixture(t *testing.T) (*kassenjournal_repo.MockRepo, string) {
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
 	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
-		PositionID:   "11111111-1111-4111-8111-111111111111",
-		VarianteID:   1,
-		ProduktName:  "Cola",
-		VarianteName: "0,5l",
-		Kategorie:    "getraenk",
-		Steuersatz:   "regel",
-		Einzelpreis:  350,
-		Menge:        1,
+		PositionID:       "11111111-1111-4111-8111-111111111111",
+		VarianteID:       1,
+		ProduktName:      "Cola",
+		VarianteName:     "0,5l",
+		Kategorie:        "getraenk",
+		Steuersatz:       "regel",
+		EinzelpreisCents: 350,
+		Menge:            1,
 	}}, 350, "")
 	if err != nil {
 		t.Fatalf("expected no event error, got %v", err)
@@ -733,8 +733,8 @@ func TestKassenbelegDrucken_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
 			Kategorie:    "getraenk", Steuersatz: "regel",
-			Einzelpreis: 350,
-			Menge:       1,
+			EinzelpreisCents: 350,
+			Menge:            1,
 		},
 	}, 350, "")
 	if err != nil {
@@ -776,8 +776,8 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
 			Kategorie:    "getraenk", Steuersatz: "regel",
-			Einzelpreis: 350,
-			Menge:       2,
+			EinzelpreisCents: 350,
+			Menge:            2,
 		},
 	}, "")
 	if err != nil {
@@ -858,8 +858,8 @@ func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t 
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
 			Kategorie:    "getraenk", Steuersatz: "regel",
-			Einzelpreis: 350,
-			Menge:       1,
+			EinzelpreisCents: 350,
+			Menge:            1,
 		},
 	}, "")
 	if err != nil {
@@ -905,8 +905,8 @@ func TestKassenbelegDrucken_Direktverkauf_MitSignaturAmAuftrag(t *testing.T) {
 		ProduktName:  "Cola",
 		VarianteName: "0,5l",
 		Kategorie:    "getraenk", Steuersatz: "regel",
-		Einzelpreis: 350,
-		Menge:       2,
+		EinzelpreisCents: 350,
+		Menge:            2,
 	}}, "")
 	if err != nil {
 		t.Fatalf("expected no event error, got %v", err)
@@ -966,8 +966,8 @@ func TestKassenbelegDrucken_Direktverkauf_SignaturAusstehend_KeinDruckauftrag(t 
 		ProduktName:  "Cola",
 		VarianteName: "0,5l",
 		Kategorie:    "getraenk", Steuersatz: "regel",
-		Einzelpreis: 350,
-		Menge:       1,
+		EinzelpreisCents: 350,
+		Menge:            1,
 	}}, "")
 	if err != nil {
 		t.Fatalf("expected no event error, got %v", err)
@@ -1012,8 +1012,8 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 		ProduktName:  "Cola",
 		VarianteName: "0,5l",
 		Kategorie:    "getraenk", Steuersatz: "regel",
-		Einzelpreis: 350,
-		Menge:       2,
+		EinzelpreisCents: 350,
+		Menge:            2,
 	}}, "")
 	if err != nil {
 		t.Fatalf("expected no event error, got %v", err)
@@ -1025,8 +1025,8 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 		ProduktName:  "Cola",
 		VarianteName: "0,5l",
 		Kategorie:    "getraenk", Steuersatz: "regel",
-		Einzelpreis: 350,
-		Menge:       2,
+		EinzelpreisCents: 350,
+		Menge:            2,
 	}}, 700, "Rückgabe")
 	if err != nil {
 		t.Fatalf("expected no storno event error, got %v", err)
@@ -1093,7 +1093,7 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
 	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", []kasse.Position{{
-		VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 2,
+		VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 2,
 	}}, "")
 	var orderData kasse.BestellungAufgenommenV1Data
 	if err := json.Unmarshal(orderEvent.Data, &orderData); err != nil {
@@ -1102,7 +1102,7 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 	posID := orderData.Positionen[0].PositionID
 
 	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
-		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 2,
+		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 2,
 	}}, 700, "")
 	var paymentData kasse.ZahlungKassiertV1Data
 	if err := json.Unmarshal(paymentEvent.Data, &paymentData); err != nil {
@@ -1110,7 +1110,7 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 	}
 
 	stornoEvent, err := kasse.NewStornierungErteiltEvent(subject, 2, "Leitung", paymentData.ZahlungID, []kasse.Position{{
-		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 2,
+		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 2,
 	}}, 700, "Rückgabe")
 	if err != nil {
 		t.Fatalf("expected no storno event error, got %v", err)
@@ -1183,8 +1183,8 @@ func TestKassenbelegDrucken_DirektverkaufStorno_NichtGefunden(t *testing.T) {
 		ProduktName:  "Cola",
 		VarianteName: "0,5l",
 		Kategorie:    "getraenk", Steuersatz: "regel",
-		Einzelpreis: 350,
-		Menge:       1,
+		EinzelpreisCents: 350,
+		Menge:            1,
 	}}, "")
 	if err != nil {
 		t.Fatalf("expected no event error, got %v", err)

@@ -614,7 +614,7 @@ func selectPositionen(verfuegbar []kasse.Position, posten []bestellposten) ([]ka
 func summeCents(positionen []kasse.Position) int {
 	summe := 0
 	for _, p := range positionen {
-		summe += p.Einzelpreis * p.Menge
+		summe += p.EinzelpreisCents * p.Menge
 	}
 	return summe
 }
@@ -625,12 +625,12 @@ func variantenIndex(produkte []produkt) map[int]kasse.Position {
 	for _, p := range produkte {
 		for _, v := range p.Varianten {
 			idx[v.ID] = kasse.Position{
-				VarianteID:   v.ID,
-				ProduktName:  p.Name,
-				VarianteName: v.Name,
-				Kategorie:    string(p.Kategorie),
-				Steuersatz:   string(p.Steuersatz),
-				Einzelpreis:  v.PreisCents,
+				VarianteID:       v.ID,
+				ProduktName:      p.Name,
+				VarianteName:     v.Name,
+				Kategorie:        string(p.Kategorie),
+				Steuersatz:       string(p.Steuersatz),
+				EinzelpreisCents: v.PreisCents,
 			}
 		}
 	}

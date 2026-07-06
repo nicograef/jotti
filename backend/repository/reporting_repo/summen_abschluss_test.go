@@ -38,12 +38,12 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		"zahlungId":          "z1",
 		"gesamtZahlungCents": 2238,
 		"positionen": []map[string]any{{
-			"positionId":   "p1",
-			"produktName":  "Bier",
-			"varianteName": "0.5L",
-			"steuersatz":   "regel",
-			"einzelpreis":  2238,
-			"menge":        1,
+			"positionId":       "p1",
+			"produktName":      "Bier",
+			"varianteName":     "0.5L",
+			"steuersatz":       "regel",
+			"einzelpreisCents": 2238,
+			"menge":            1,
 		}},
 		"kommentar": "",
 	}, ksNr)
@@ -54,11 +54,11 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		"zahlungId":              "z1",
 		"gesamtStornierungCents": 1455,
 		"positionen": []map[string]any{{
-			"produktName":  "Bier",
-			"varianteName": "0.5L",
-			"steuersatz":   "regel",
-			"menge":        1,
-			"einzelpreis":  1455,
+			"produktName":      "Bier",
+			"varianteName":     "0.5L",
+			"steuersatz":       "regel",
+			"menge":            1,
+			"einzelpreisCents": 1455,
 		}},
 		"kommentar": "Warenruecknahme",
 	}, ksNr)
@@ -69,10 +69,10 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		"gesamtCents": 200,
 		"kommentar":   "Korrektur",
 		"positionen": []map[string]any{{
-			"produktName":  "Limo",
-			"varianteName": "0.3L",
-			"menge":        1,
-			"einzelpreis":  200,
+			"produktName":      "Limo",
+			"varianteName":     "0.3L",
+			"menge":            1,
+			"einzelpreisCents": 200,
 		}},
 	}, ksNr)
 
@@ -81,10 +81,10 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		"verkaufId":         "d1",
 		"gesamtbetragCents": 880,
 		"positionen": []map[string]any{{
-			"produktName": "T-Shirt",
-			"steuersatz":  "regel",
-			"einzelpreis": 880,
-			"menge":       1,
+			"produktName":      "T-Shirt",
+			"steuersatz":       "regel",
+			"einzelpreisCents": 880,
+			"menge":            1,
 		}},
 	}, ksNr)
 
@@ -94,10 +94,10 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		"verkaufId":              "d1",
 		"gesamtStornierungCents": 335,
 		"positionen": []map[string]any{{
-			"produktName": "T-Shirt",
-			"steuersatz":  "regel",
-			"einzelpreis": 335,
-			"menge":       1,
+			"produktName":      "T-Shirt",
+			"steuersatz":       "regel",
+			"einzelpreisCents": 335,
+			"menge":            1,
 		}},
 		"kommentar": "Fehlbuchung",
 	}, ksNr)

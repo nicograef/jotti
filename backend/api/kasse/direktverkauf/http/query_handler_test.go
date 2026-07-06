@@ -30,9 +30,9 @@ func TestGetDirektverkaufHistorieHandler_ReturnsHistorie(t *testing.T) {
 			VerkaufID:            "11111111-1111-1111-1111-111111111111",
 			UserName:             "Leitung",
 			GetaetigtAm:          time.Now(),
-			Positionen:           []kasse.Position{{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 500, Menge: 2}},
+			Positionen:           []kasse.Position{{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 500, Menge: 2}},
 			GesamtbetragCents:    1000,
-			OffenePositionen:     []kasse.Position{{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 500, Menge: 1}},
+			OffenePositionen:     []kasse.Position{{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 500, Menge: 1}},
 			GesamtStorniertCents: 500,
 		},
 	}}}

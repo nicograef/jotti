@@ -153,7 +153,7 @@ Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einze
 
 | Go-Struct  | TS-Typ     | JSON-Keys (Schlüsselfelder)                                                                                  |
 | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| `Position` | `Position` | `positionId`, `varianteId`, `produktName`, `varianteName`, `kategorie`, `steuersatz`, `einzelpreis`, `menge` |
+| `Position` | `Position` | `positionId`, `varianteId`, `produktName`, `varianteName`, `kategorie`, `steuersatz`, `einzelpreisCents`, `menge` |
 
 #### Besteller (bestellende Servicekraft)
 

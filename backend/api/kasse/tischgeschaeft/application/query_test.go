@@ -15,7 +15,7 @@ import (
 
 func TestGetTischState(t *testing.T) {
 	positions := []kasse.Position{
-		{PositionID: "p1", ProduktName: "Cola", VarianteName: "0,5l", Einzelpreis: 350, Menge: 2, BestellerUserID: 5, BestellerName: "Anna"},
+		{PositionID: "p1", ProduktName: "Cola", VarianteName: "0,5l", EinzelpreisCents: 350, Menge: 2, BestellerUserID: 5, BestellerName: "Anna"},
 	}
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
@@ -104,7 +104,7 @@ func (m favoritMock) GetByUser(_ context.Context, _ int) ([]int, error) {
 // eine Null-Session.
 func TestGetMeineTischeState_BatchInFavoriteOrder(t *testing.T) {
 	positions := []kasse.Position{
-		{PositionID: "p1", ProduktName: "Cola", VarianteName: "0,5l", Einzelpreis: 350, Menge: 2, BestellerUserID: 5, BestellerName: "Anna"},
+		{PositionID: "p1", ProduktName: "Cola", VarianteName: "0,5l", EinzelpreisCents: 350, Menge: 2, BestellerUserID: 5, BestellerName: "Anna"},
 	}
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)

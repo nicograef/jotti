@@ -135,7 +135,7 @@ func NewBestellungAufgenommenEvent(subject string, userID int, userName string, 
 
 	gesamtPreisCents := 0
 	for _, pos := range positionen {
-		gesamtPreisCents += pos.Einzelpreis * pos.Menge
+		gesamtPreisCents += pos.EinzelpreisCents * pos.Menge
 	}
 
 	data := BestellungAufgenommenV1Data{

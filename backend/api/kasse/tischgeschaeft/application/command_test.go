@@ -101,13 +101,13 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 }
 
 type umbuchungPositionData struct {
-	PositionID   string `json:"positionId"`
-	VarianteID   int    `json:"varianteId"`
-	ProduktName  string `json:"produktName"`
-	VarianteName string `json:"varianteName"`
-	Kategorie    string `json:"kategorie"`
-	Einzelpreis  int    `json:"einzelpreis"`
-	Menge        int    `json:"menge"`
+	PositionID       string `json:"positionId"`
+	VarianteID       int    `json:"varianteId"`
+	ProduktName      string `json:"produktName"`
+	VarianteName     string `json:"varianteName"`
+	Kategorie        string `json:"kategorie"`
+	EinzelpreisCents int    `json:"einzelpreisCents"`
+	Menge            int    `json:"menge"`
 }
 
 type bestellungUmgebuchtData struct {
@@ -336,7 +336,7 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
 	konkurrierendesEvent, err := kasse.NewZahlungKassiertEvent(subject, 2, "Andere Servicekraft",
-		[]kasse.Position{{PositionID: "22222222-2222-4222-8222-222222222222", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1}},
+		[]kasse.Position{{PositionID: "22222222-2222-4222-8222-222222222222", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1}},
 		350, "")
 	if err != nil {
 		t.Fatalf("failed to create concurrent event: %v", err)
@@ -349,14 +349,14 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents: 350,
 		UnbezahltePositionen: []kasse.Position{{
-			PositionID:   "22222222-2222-4222-8222-222222222222",
-			VarianteID:   1,
-			ProduktName:  "Cola",
-			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Steuersatz:   "regel",
-			Einzelpreis:  350,
-			Menge:        1,
+			PositionID:       "22222222-2222-4222-8222-222222222222",
+			VarianteID:       1,
+			ProduktName:      "Cola",
+			VarianteName:     "0,5l",
+			Kategorie:        "getraenk",
+			Steuersatz:       "regel",
+			EinzelpreisCents: 350,
+			Menge:            1,
 		}},
 		LastEventVersion: 1,
 	})
@@ -383,14 +383,14 @@ func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents: 350,
 		UnbezahltePositionen: []kasse.Position{{
-			PositionID:   "22222222-2222-4222-8222-222222222222",
-			VarianteID:   1,
-			ProduktName:  "Cola",
-			VarianteName: "0,5l",
-			Kategorie:    "getraenk",
-			Steuersatz:   "regel",
-			Einzelpreis:  350,
-			Menge:        1,
+			PositionID:       "22222222-2222-4222-8222-222222222222",
+			VarianteID:       1,
+			ProduktName:      "Cola",
+			VarianteName:     "0,5l",
+			Kategorie:        "getraenk",
+			Steuersatz:       "regel",
+			EinzelpreisCents: 350,
+			Menge:            1,
 		}},
 		LastEventVersion: 3,
 	})
@@ -440,7 +440,7 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 
 	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User",
 		[]kasse.Position{
-			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
+			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		}, "")
 
 	var orderData struct {
@@ -455,7 +455,7 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 
 	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, 1, "Test User",
 		[]kasse.Position{
-			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
+			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		}, 350, "")
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
@@ -490,7 +490,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 
 	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User",
 		[]kasse.Position{
-			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
+			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		}, "")
 
 	var orderData struct {
@@ -507,7 +507,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 	// Storno darf nicht mehr greifen.
 	cancelEvent, _ := kasse.NewBestellungKorrigiertEvent(subject, 1, "Test User",
 		[]kasse.Position{
-			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
+			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		}, 350, "Test")
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
@@ -544,10 +544,10 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents: 350,
 		UnbezahltePositionen: []kasse.Position{
-			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
+			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		},
 		AusstehendePositionen: []kasse.Position{
-			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
+			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		},
 	})
 	command := Command{
@@ -570,7 +570,7 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 // duplikatTestSession liefert eine Tisch-Session mit einer Position (Menge 3),
 // unbezahlt und ausstehend, für die Duplikat-Ablehnungstests.
 func duplikatTestSession() kasse.TischSession {
-	pos := kasse.Position{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 3}
+	pos := kasse.Position{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 3}
 	return kasse.TischSession{
 		SaldoCents:            1050,
 		UnbezahltePositionen:  []kasse.Position{pos},
@@ -623,7 +623,7 @@ func TestStornierungErteilen_DuplikatPositionRefs(t *testing.T) {
 
 	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User",
 		[]kasse.Position{
-			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 3},
+			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 3},
 		}, "")
 
 	var orderData struct {
@@ -677,8 +677,8 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 				ProduktName:  "Cola",
 				VarianteName: "0,5l",
 				Kategorie:    "getraenk", Steuersatz: "regel",
-				Einzelpreis: 350,
-				Menge:       2,
+				EinzelpreisCents: 350,
+				Menge:            2,
 			},
 		},
 	})
@@ -736,8 +736,8 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	if quellData.Positionen[0].PositionID != quellPositionID {
 		t.Fatalf("expected source position ID %q, got %q", quellPositionID, quellData.Positionen[0].PositionID)
 	}
-	if quellData.Positionen[0].Einzelpreis != 350 {
-		t.Fatalf("expected source einzelpreis 350, got %d", quellData.Positionen[0].Einzelpreis)
+	if quellData.Positionen[0].EinzelpreisCents != 350 {
+		t.Fatalf("expected source einzelpreis 350, got %d", quellData.Positionen[0].EinzelpreisCents)
 	}
 
 	var zielData bestellungUmgebuchtData
@@ -761,8 +761,8 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	if zielData.Positionen[0].PositionID == quellPositionID {
 		t.Fatalf("expected target position ID to be regenerated, but remained %q", zielData.Positionen[0].PositionID)
 	}
-	if zielData.Positionen[0].Einzelpreis != 350 {
-		t.Fatalf("expected target einzelpreis 350, got %d", zielData.Positionen[0].Einzelpreis)
+	if zielData.Positionen[0].EinzelpreisCents != 350 {
+		t.Fatalf("expected target einzelpreis 350, got %d", zielData.Positionen[0].EinzelpreisCents)
 	}
 }
 
@@ -783,8 +783,8 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
 			Kategorie:    "getraenk", Steuersatz: "regel",
-			Einzelpreis: 350,
-			Menge:       1,
+			EinzelpreisCents: 350,
+			Menge:            1,
 		}},
 	})
 
@@ -839,8 +839,8 @@ func TestBestellungUmbuchen_PositionNichtUmbuchbar(t *testing.T) {
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
 			Kategorie:    "getraenk", Steuersatz: "regel",
-			Einzelpreis: 350,
-			Menge:       1,
+			EinzelpreisCents: 350,
+			Menge:            1,
 		}},
 	})
 
@@ -927,8 +927,8 @@ func TestBestellungUmbuchen_Conflict(t *testing.T) {
 			ProduktName:  "Cola",
 			VarianteName: "0,5l",
 			Kategorie:    "getraenk", Steuersatz: "regel",
-			Einzelpreis: 350,
-			Menge:       1,
+			EinzelpreisCents: 350,
+			Menge:            1,
 		}},
 	})
 
@@ -951,7 +951,7 @@ func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahm
 	// Bestellt 3 Bier, davon 1 bezahlt → ein Storno von 3 spaltet in 2 Korrektur
 	// (unbezahlt) und 1 Warenrücknahme (bezahlt).
 	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", []kasse.Position{{
-		VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 3,
+		VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 3,
 	}}, "")
 	var orderData kasse.BestellungAufgenommenV1Data
 	if err := json.Unmarshal(orderEvent.Data, &orderData); err != nil {
@@ -960,7 +960,7 @@ func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahm
 	posID := orderData.Positionen[0].PositionID
 
 	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
-		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1,
+		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1,
 	}}, 350, "")
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)

@@ -80,14 +80,14 @@ func TestPositionResponsesIncludeSteuersatz(t *testing.T) {
 	t.Parallel()
 
 	testPosition := kasse.Position{
-		PositionID:   "123e4567-e89b-42d3-a456-426614174000",
-		VarianteID:   10,
-		ProduktName:  "Apfelschorle",
-		VarianteName: "0,5l",
-		Kategorie:    "getraenk",
-		Steuersatz:   "regel",
-		Einzelpreis:  350,
-		Menge:        2,
+		PositionID:       "123e4567-e89b-42d3-a456-426614174000",
+		VarianteID:       10,
+		ProduktName:      "Apfelschorle",
+		VarianteName:     "0,5l",
+		Kategorie:        "getraenk",
+		Steuersatz:       "regel",
+		EinzelpreisCents: 350,
+		Menge:            2,
 	}
 
 	handler := &QueryHandler{Query: mockQuery{

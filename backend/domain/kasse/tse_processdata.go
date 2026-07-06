@@ -23,7 +23,7 @@ func BuildKassenbelegProcessData(positionen []Position, zahlbetragCents int, fak
 	var betragBefreitCents int
 
 	for _, pos := range positionen {
-		basisBrutto := pos.Einzelpreis * pos.Menge
+		basisBrutto := pos.EinzelpreisCents * pos.Menge
 		aufteilungen := steuer.Aufteilen(basisBrutto, steuer.Steuersatz(pos.Steuersatz))
 		if len(aufteilungen) == 0 {
 			return "", fmt.Errorf("unsupported steuersatz %q", pos.Steuersatz)
@@ -89,7 +89,7 @@ func BuildBestellungProcessData(positionen []Position, faktor int) (string, erro
 		}
 
 		bezeichnung := `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
-		zeilen = append(zeilen, fmt.Sprintf("%d;%s;%s", faktor*pos.Menge, bezeichnung, betragString(pos.Einzelpreis)))
+		zeilen = append(zeilen, fmt.Sprintf("%d;%s;%s", faktor*pos.Menge, bezeichnung, betragString(pos.EinzelpreisCents)))
 	}
 
 	return strings.Join(zeilen, "\r"), nil

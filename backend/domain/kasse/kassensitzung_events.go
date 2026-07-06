@@ -17,6 +17,14 @@ const (
 	EventTypeTagesabschlussErstelltV1   EventType = "tagesabschluss-erstellt:v1"
 )
 
+// GeldtransitRichtungEinlage und GeldtransitRichtungEntnahme sind die einzigen
+// erlaubten Werte für GeldtransitGebuchtV1Data.Richtung. Sie müssen mit den
+// SQL-Literalen in kj_extract_geldtransit_cents (01_initial.up.sql) übereinstimmen.
+const (
+	GeldtransitRichtungEinlage  = "einlage"
+	GeldtransitRichtungEntnahme = "entnahme"
+)
+
 // IsAbschlussEventType meldet, ob der Event-Typ eines der drei Abschluss-Events ist
 // (Kassensturz, Differenzbuchung, Tagesabschluss). Nur diese dürfen im Zwischenstatus
 // KassensitzungWirdAbgeschlossen noch in eine Kassensitzung geschrieben werden.
@@ -55,7 +63,7 @@ type GeldtransitGebuchtV1Data struct {
 
 var geldtransitGebuchtV1DataSchema = z.Struct(z.Shape{
 	"BewegungID":  z.String().UUID().Required(),
-	"Richtung":    z.String().OneOf([]string{"einlage", "entnahme"}, z.Message("Ungültige Richtung")).Required(),
+	"Richtung":    z.String().OneOf([]string{GeldtransitRichtungEinlage, GeldtransitRichtungEntnahme}, z.Message("Ungültige Richtung")).Required(),
 	"BetragCents": z.Int().GTE(1).Required(),
 	"Kommentar":   z.String().Min(3).Max(200).Required(),
 	"GebuchtVon":  z.Int().GTE(1).Required(),

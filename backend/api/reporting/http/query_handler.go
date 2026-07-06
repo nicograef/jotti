@@ -95,10 +95,10 @@ type umsatzSteuersatzResponse struct {
 }
 
 type stornierungPosition struct {
-	ProduktName  string `json:"produktName"`
-	VarianteName string `json:"varianteName"`
-	Menge        int    `json:"menge"`
-	Einzelpreis  int    `json:"einzelpreis"`
+	ProduktName      string `json:"produktName"`
+	VarianteName     string `json:"varianteName"`
+	Menge            int    `json:"menge"`
+	EinzelpreisCents int    `json:"einzelpreisCents"`
 }
 
 type stornierungDetail struct {
@@ -173,10 +173,10 @@ func toUmsatzSteuersatzList(werte []reporting.UmsatzSteuersatz) []umsatzSteuersa
 
 func toStornierungPosition(p reporting.StornierungPosition) stornierungPosition {
 	return stornierungPosition{
-		ProduktName:  p.ProduktName,
-		VarianteName: p.VarianteName,
-		Menge:        p.Menge,
-		Einzelpreis:  p.Einzelpreis,
+		ProduktName:      p.ProduktName,
+		VarianteName:     p.VarianteName,
+		Menge:            p.Menge,
+		EinzelpreisCents: p.EinzelpreisCents,
 	}
 }
 

@@ -46,7 +46,7 @@ export const VerkaufPositionSchema = z.object({
   varianteName: z.string().min(1).max(100),
   kategorie: KategorieSchema,
   steuersatz: SteuersatzSchema,
-  einzelpreis: z.number().int().min(0),
+  einzelpreisCents: z.number().int().min(0),
   menge: z.number().int().min(1),
 })
 export type VerkaufPosition = z.infer<typeof VerkaufPositionSchema>

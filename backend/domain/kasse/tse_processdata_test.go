@@ -17,28 +17,28 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 	}{
 		{
 			name:       "regelsteuersatz",
-			positionen: []Position{{Einzelpreis: 1000, Menge: 1, Steuersatz: "regel"}},
+			positionen: []Position{{EinzelpreisCents: 1000, Menge: 1, Steuersatz: "regel"}},
 			zahlbetrag: 1000,
 			expected:   "Beleg^10.00_0.00_0.00_0.00_0.00^10.00:Bar",
 		},
 		{
 			name: "ermaessigt und befreit",
 			positionen: []Position{
-				{Einzelpreis: 300, Menge: 1, Steuersatz: "ermaessigt"},
-				{Einzelpreis: 200, Menge: 1, Steuersatz: "befreit"},
+				{EinzelpreisCents: 300, Menge: 1, Steuersatz: "ermaessigt"},
+				{EinzelpreisCents: 200, Menge: 1, Steuersatz: "befreit"},
 			},
 			zahlbetrag: 500,
 			expected:   "Beleg^0.00_3.00_0.00_0.00_2.00^5.00:Bar",
 		},
 		{
 			name:       "kombi wird 70 30 aufgeteilt",
-			positionen: []Position{{Einzelpreis: 1000, Menge: 1, Steuersatz: "kombi"}},
+			positionen: []Position{{EinzelpreisCents: 1000, Menge: 1, Steuersatz: "kombi"}},
 			zahlbetrag: 1000,
 			expected:   "Beleg^3.00_7.00_0.00_0.00_0.00^10.00:Bar",
 		},
 		{
 			name:       "ohne tausendertrennzeichen",
-			positionen: []Position{{Einzelpreis: 123456, Menge: 1, Steuersatz: "regel"}},
+			positionen: []Position{{EinzelpreisCents: 123456, Menge: 1, Steuersatz: "regel"}},
 			zahlbetrag: 123456,
 			expected:   "Beleg^1234.56_0.00_0.00_0.00_0.00^1234.56:Bar",
 		},
@@ -50,13 +50,13 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 		},
 		{
 			name:       "zahlung 0.00 entfaellt",
-			positionen: []Position{{Einzelpreis: 1000, Menge: 1, Steuersatz: "regel"}},
+			positionen: []Position{{EinzelpreisCents: 1000, Menge: 1, Steuersatz: "regel"}},
 			zahlbetrag: 0,
 			expected:   "Beleg^10.00_0.00_0.00_0.00_0.00^",
 		},
 		{
 			name:        "ungueltiger steuersatz",
-			positionen:  []Position{{Einzelpreis: 100, Menge: 1, Steuersatz: "foo"}},
+			positionen:  []Position{{EinzelpreisCents: 100, Menge: 1, Steuersatz: "foo"}},
 			zahlbetrag:  100,
 			expectError: true,
 		},
@@ -83,7 +83,7 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 
 func TestBuildKassenbelegProcessData_NegativBeiStorno(t *testing.T) {
 	got, err := BuildKassenbelegProcessData(
-		[]Position{{Einzelpreis: 350, Menge: 2, Steuersatz: "regel"}},
+		[]Position{{EinzelpreisCents: 350, Menge: 2, Steuersatz: "regel"}},
 		-700,
 		-1,
 	)
@@ -99,8 +99,8 @@ func TestBuildKassenbelegProcessData_NegativBeiStorno(t *testing.T) {
 
 func TestBuildBestellungProcessData_CSVFormat(t *testing.T) {
 	got, err := BuildBestellungProcessData([]Position{
-		{ProduktName: "Maß Bier", VarianteName: "", Menge: 4, Einzelpreis: 950},
-		{ProduktName: "Weißwurst", VarianteName: "normal", Menge: 2, Einzelpreis: 250},
+		{ProduktName: "Maß Bier", VarianteName: "", Menge: 4, EinzelpreisCents: 950},
+		{ProduktName: "Weißwurst", VarianteName: "normal", Menge: 2, EinzelpreisCents: 250},
 	}, 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -117,8 +117,8 @@ func TestBuildBestellungProcessData_CSVFormat(t *testing.T) {
 // Neubestellung nicht unterscheidbar.
 func TestBuildBestellungProcessData_NegativeMengen(t *testing.T) {
 	positionen := []Position{
-		{ProduktName: "Bier", VarianteName: "0,5l", Einzelpreis: 450, Menge: 2},
-		{ProduktName: "Brezel", Einzelpreis: 150, Menge: 1},
+		{ProduktName: "Bier", VarianteName: "0,5l", EinzelpreisCents: 450, Menge: 2},
+		{ProduktName: "Brezel", EinzelpreisCents: 150, Menge: 1},
 	}
 
 	got, err := BuildBestellungProcessData(positionen, -1)
@@ -136,7 +136,7 @@ func TestBuildBestellungProcessData_NegativeMengen(t *testing.T) {
 // still verschluckt (Vollständigkeit der TSE-Absicherung).
 func TestBuildBestellungProcessData_LehntNichtPositiveMengenAb(t *testing.T) {
 	positionen := []Position{
-		{ProduktName: "Bier", Einzelpreis: 450, Menge: 0},
+		{ProduktName: "Bier", EinzelpreisCents: 450, Menge: 0},
 	}
 	if _, err := BuildBestellungProcessData(positionen, 1); err == nil {
 		t.Fatal("expected error for non-positive quantity")
@@ -145,7 +145,7 @@ func TestBuildBestellungProcessData_LehntNichtPositiveMengenAb(t *testing.T) {
 
 func TestBuildBestellungProcessData_VerdoppeltAnfuehrungszeichen(t *testing.T) {
 	got, err := BuildBestellungProcessData([]Position{
-		{ProduktName: `Eisbecher "Himbeere"`, Menge: 2, Einzelpreis: 399},
+		{ProduktName: `Eisbecher "Himbeere"`, Menge: 2, EinzelpreisCents: 399},
 	}, 1)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)

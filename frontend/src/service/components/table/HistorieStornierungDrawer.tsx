@@ -112,7 +112,7 @@ export function HistorieStornierungDrawer({
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {formatCents(position.einzelpreis)}&nbsp;€ ·{' '}
+                        {formatCents(position.einzelpreisCents)}&nbsp;€ ·{' '}
                         {position.menge}
                         &nbsp;Stück
                       </div>

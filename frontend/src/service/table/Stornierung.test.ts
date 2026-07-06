@@ -16,7 +16,7 @@ const stornierungResponse = {
       varianteName: 'Normal',
       kategorie: 'essen',
       steuersatz: 'regel',
-      einzelpreis: 350,
+      einzelpreisCents: 350,
       menge: 1,
       bestellerUserId: 1,
       bestellerName: 'Anna',

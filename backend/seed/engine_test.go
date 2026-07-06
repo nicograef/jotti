@@ -311,10 +311,10 @@ func TestBuildSeedDaten_Umbuchungspaar(t *testing.T) {
 		type posKey struct{ variante, menge, preis int }
 		abgangPositionen := map[posKey]int{}
 		for _, p := range abgang.Positionen {
-			abgangPositionen[posKey{p.VarianteID, p.Menge, p.Einzelpreis}]++
+			abgangPositionen[posKey{p.VarianteID, p.Menge, p.EinzelpreisCents}]++
 		}
 		for _, p := range zugang.Positionen {
-			key := posKey{p.VarianteID, p.Menge, p.Einzelpreis}
+			key := posKey{p.VarianteID, p.Menge, p.EinzelpreisCents}
 			if abgangPositionen[key] == 0 {
 				t.Errorf("Umbuchung: Position %+v des Zugangs fehlt im Abgang", key)
 			}

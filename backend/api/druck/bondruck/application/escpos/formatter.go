@@ -234,7 +234,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		artikel := fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung())
 		buf.WriteString(toWPC1252(wrapLine(artikel, lineWidth)))
 		buf.WriteByte('\n')
-		fmt.Fprintf(&buf, "  %s x %d = %s EUR (%s)\n", formatCents(pos.Einzelpreis), pos.Menge, formatCents(pos.Einzelpreis*pos.Menge), steuerKennzeichenAusPosition(pos.Steuersatz))
+		fmt.Fprintf(&buf, "  %s x %d = %s EUR (%s)\n", formatCents(pos.EinzelpreisCents), pos.Menge, formatCents(pos.EinzelpreisCents*pos.Menge), steuerKennzeichenAusPosition(pos.Steuersatz))
 	}
 
 	buf.WriteString(strings.Repeat("-", lineWidth))

@@ -10,14 +10,14 @@ import (
 )
 
 type Position struct {
-	PositionID   string
-	VarianteID   int
-	ProduktName  string
-	VarianteName string
-	Kategorie    string
-	Steuersatz   string
-	Einzelpreis  int
-	Menge        int
+	PositionID       string
+	VarianteID       int
+	ProduktName      string
+	VarianteName     string
+	Kategorie        string
+	Steuersatz       string
+	EinzelpreisCents int
+	Menge            int
 	// BestellerUserID und BestellerName sind reine Projektions-/Anzeigefelder:
 	// die Servicekraft, die die Bestellung aufgenommen hat. Sie werden beim
 	// Anwenden des bestellung-aufgenommen-Events aus dem Event-Umschlag getagt
@@ -36,14 +36,14 @@ func (p Position) Bezeichnung() string {
 // PositionEventData is the serialization-friendly representation of Position for the event store.
 // The json-keys are stable and must not be changed (immutable events).
 type PositionEventData struct {
-	PositionID   string `json:"positionId"`
-	VarianteID   int    `json:"varianteId"`
-	ProduktName  string `json:"produktName"`
-	VarianteName string `json:"varianteName"`
-	Kategorie    string `json:"kategorie"`
-	Steuersatz   string `json:"steuersatz"`
-	Einzelpreis  int    `json:"einzelpreis"`
-	Menge        int    `json:"menge"`
+	PositionID       string `json:"positionId"`
+	VarianteID       int    `json:"varianteId"`
+	ProduktName      string `json:"produktName"`
+	VarianteName     string `json:"varianteName"`
+	Kategorie        string `json:"kategorie"`
+	Steuersatz       string `json:"steuersatz"`
+	EinzelpreisCents int    `json:"einzelpreisCents"`
+	Menge            int    `json:"menge"`
 }
 
 // toPositionenEventData maps projection positions to their event form. The
@@ -53,14 +53,14 @@ func toPositionenEventData(positionen []Position) []PositionEventData {
 	out := make([]PositionEventData, len(positionen))
 	for i, p := range positionen {
 		out[i] = PositionEventData{
-			PositionID:   p.PositionID,
-			VarianteID:   p.VarianteID,
-			ProduktName:  p.ProduktName,
-			VarianteName: p.VarianteName,
-			Kategorie:    p.Kategorie,
-			Steuersatz:   p.Steuersatz,
-			Einzelpreis:  p.Einzelpreis,
-			Menge:        p.Menge,
+			PositionID:       p.PositionID,
+			VarianteID:       p.VarianteID,
+			ProduktName:      p.ProduktName,
+			VarianteName:     p.VarianteName,
+			Kategorie:        p.Kategorie,
+			Steuersatz:       p.Steuersatz,
+			EinzelpreisCents: p.EinzelpreisCents,
+			Menge:            p.Menge,
 		}
 	}
 	return out
@@ -83,26 +83,26 @@ func fromPositionenEventData(positionen []PositionEventData) []Position {
 // inside the projection and by callers that read raw event positions.
 func PositionFromEventData(p PositionEventData) Position {
 	return Position{
-		PositionID:   p.PositionID,
-		VarianteID:   p.VarianteID,
-		ProduktName:  p.ProduktName,
-		VarianteName: p.VarianteName,
-		Kategorie:    p.Kategorie,
-		Steuersatz:   p.Steuersatz,
-		Einzelpreis:  p.Einzelpreis,
-		Menge:        p.Menge,
+		PositionID:       p.PositionID,
+		VarianteID:       p.VarianteID,
+		ProduktName:      p.ProduktName,
+		VarianteName:     p.VarianteName,
+		Kategorie:        p.Kategorie,
+		Steuersatz:       p.Steuersatz,
+		EinzelpreisCents: p.EinzelpreisCents,
+		Menge:            p.Menge,
 	}
 }
 
 var positionSchema = z.Struct(z.Shape{
-	"PositionID":   z.String().UUID().Required(),
-	"VarianteID":   produkt.IDSchema.Required(),
-	"ProduktName":  produkt.NameSchema.Required(),
-	"VarianteName": produkt.NameSchema.Required(),
-	"Kategorie":    z.String().OneOf([]string{string(produkt.EssenKategorie), string(produkt.GetraenkKategorie), string(produkt.SonstigesKategorie)}, z.Message("Ungültige Kategorie")).Required(),
-	"Steuersatz":   z.String().OneOf([]string{string(steuer.RegelSteuersatz), string(steuer.ErmaessigtSteuersatz), string(steuer.BefreitSteuersatz), string(steuer.KombiSteuersatz)}, z.Message("Ungültiger Steuersatz")).Required(),
-	"Einzelpreis":  produkt.PreisCentsSchema.Required(),
-	"Menge":        z.Int().GTE(1, z.Message("Menge muss mindestens 1 betragen")).Required(),
+	"PositionID":       z.String().UUID().Required(),
+	"VarianteID":       produkt.IDSchema.Required(),
+	"ProduktName":      produkt.NameSchema.Required(),
+	"VarianteName":     produkt.NameSchema.Required(),
+	"Kategorie":        z.String().OneOf([]string{string(produkt.EssenKategorie), string(produkt.GetraenkKategorie), string(produkt.SonstigesKategorie)}, z.Message("Ungültige Kategorie")).Required(),
+	"Steuersatz":       z.String().OneOf([]string{string(steuer.RegelSteuersatz), string(steuer.ErmaessigtSteuersatz), string(steuer.BefreitSteuersatz), string(steuer.KombiSteuersatz)}, z.Message("Ungültiger Steuersatz")).Required(),
+	"EinzelpreisCents": produkt.PreisCentsSchema.Required(),
+	"Menge":            z.Int().GTE(1, z.Message("Menge muss mindestens 1 betragen")).Required(),
 })
 
 // PositionRef is a lightweight reference used in API request commands for payment/delivery/cancellation.

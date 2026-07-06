@@ -21,10 +21,10 @@ export function selectPositionen(
 }
 
 export function calculateTotalPrice(
-  positionen: { einzelpreis: number; menge: number }[],
+  positionen: { einzelpreisCents: number; menge: number }[],
 ): number {
   return positionen.reduce(
-    (total, position) => total + position.einzelpreis * position.menge,
+    (total, position) => total + position.einzelpreisCents * position.menge,
     0,
   )
 }
@@ -72,7 +72,7 @@ export function toBestellungData(
         produktId: p.id,
         varianteId: v.id,
         name: formatPositionName(p.name, v.name),
-        einzelpreis: v.preisCents,
+        einzelpreisCents: v.preisCents,
         menge: ausgewaehlteMengen[v.id],
       })),
   )
@@ -80,7 +80,7 @@ export function toBestellungData(
   return {
     receiptItems: items.map((i) => ({
       name: i.name,
-      einzelpreis: i.einzelpreis,
+      einzelpreisCents: i.einzelpreisCents,
       menge: i.menge,
     })),
     inputItems: items.map((i) => ({
@@ -94,7 +94,7 @@ export function toBestellungData(
 export function toReceiptItems(positionen: Position[]): ReceiptPosition[] {
   return positionen.map((p) => ({
     name: formatPositionName(p.produktName, p.varianteName),
-    einzelpreis: p.einzelpreis,
+    einzelpreisCents: p.einzelpreisCents,
     menge: p.menge,
   }))
 }

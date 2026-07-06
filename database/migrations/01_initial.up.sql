@@ -349,7 +349,7 @@ CREATE FUNCTION kj_extract_umsatz_pro_steuersatz(type TEXT, data JSONB)
 RETURNS TABLE(steuersatz Steuersatz, brutto_cents int) AS $$
     SELECT
         (position->>'steuersatz')::Steuersatz AS steuersatz,
-        ((position->>'einzelpreis')::int * (position->>'menge')::int)
+        ((position->>'einzelpreisCents')::int * (position->>'menge')::int)
             * CASE WHEN type IN ('direktverkauf-storniert:v1', 'stornierung-erteilt:v1') THEN -1 ELSE 1 END AS brutto_cents
     FROM jsonb_array_elements(data->'positionen') AS position
     WHERE type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1', 'stornierung-erteilt:v1')

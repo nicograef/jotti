@@ -319,7 +319,7 @@ export function LiveReportingSection({
                                 pos.varianteName,
                               )}
                             </span>
-                            <span>{formatCents(pos.einzelpreis)} €</span>
+                            <span>{formatCents(pos.einzelpreisCents)} €</span>
                           </li>
                         ))}
                       </ul>

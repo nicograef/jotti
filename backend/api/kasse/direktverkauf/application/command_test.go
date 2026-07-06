@@ -254,7 +254,7 @@ func getaetigtEvent(t *testing.T, einzelpreis, menge int) (event.Event, string, 
 	verkaufID := uuid.New().String()
 	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
 	evt, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "User", []kasse.Position{
-		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: einzelpreis, Menge: menge},
+		{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: einzelpreis, Menge: menge},
 	}, "")
 	if err != nil {
 		t.Fatalf("failed to create getaetigt event: %v", err)

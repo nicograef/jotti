@@ -64,30 +64,30 @@ type getTischHistorieResponse struct {
 }
 
 type position struct {
-	PositionID      string `json:"positionId"`
-	VarianteID      int    `json:"varianteId"`
-	ProduktName     string `json:"produktName"`
-	VarianteName    string `json:"varianteName"`
-	Kategorie       string `json:"kategorie"`
-	Steuersatz      string `json:"steuersatz"`
-	Einzelpreis     int    `json:"einzelpreis"`
-	Menge           int    `json:"menge"`
-	BestellerUserID int    `json:"bestellerUserId"`
-	BestellerName   string `json:"bestellerName"`
+	PositionID       string `json:"positionId"`
+	VarianteID       int    `json:"varianteId"`
+	ProduktName      string `json:"produktName"`
+	VarianteName     string `json:"varianteName"`
+	Kategorie        string `json:"kategorie"`
+	Steuersatz       string `json:"steuersatz"`
+	EinzelpreisCents int    `json:"einzelpreisCents"`
+	Menge            int    `json:"menge"`
+	BestellerUserID  int    `json:"bestellerUserId"`
+	BestellerName    string `json:"bestellerName"`
 }
 
 func toPosition(p k.Position) position {
 	return position{
-		PositionID:      p.PositionID,
-		VarianteID:      p.VarianteID,
-		ProduktName:     p.ProduktName,
-		VarianteName:    p.VarianteName,
-		Kategorie:       p.Kategorie,
-		Steuersatz:      p.Steuersatz,
-		Einzelpreis:     p.Einzelpreis,
-		Menge:           p.Menge,
-		BestellerUserID: p.BestellerUserID,
-		BestellerName:   p.BestellerName,
+		PositionID:       p.PositionID,
+		VarianteID:       p.VarianteID,
+		ProduktName:      p.ProduktName,
+		VarianteName:     p.VarianteName,
+		Kategorie:        p.Kategorie,
+		Steuersatz:       p.Steuersatz,
+		EinzelpreisCents: p.EinzelpreisCents,
+		Menge:            p.Menge,
+		BestellerUserID:  p.BestellerUserID,
+		BestellerName:    p.BestellerName,
 	}
 }
 

@@ -25,11 +25,11 @@ func projektionsEvent(t *testing.T, typ EventType, subject string, data any) e.E
 // 2 × 5,00 € zum Regelsteuersatz — Brutto 10,00 €.
 func testPositionen() []PositionEventData {
 	return []PositionEventData{{
-		PositionID:  "0f0e0d0c-0b0a-4908-8706-050403020100",
-		ProduktName: "Bratwurst",
-		Steuersatz:  "regel",
-		Einzelpreis: 500,
-		Menge:       2,
+		PositionID:       "0f0e0d0c-0b0a-4908-8706-050403020100",
+		ProduktName:      "Bratwurst",
+		Steuersatz:       "regel",
+		EinzelpreisCents: 500,
+		Menge:            2,
 	}}
 }
 

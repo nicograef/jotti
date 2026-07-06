@@ -24,7 +24,7 @@ export const StornierungPositionSchema = z.object({
   produktName: z.string(),
   varianteName: z.string(),
   menge: z.number().int(),
-  einzelpreis: z.number().int(),
+  einzelpreisCents: z.number().int(),
 })
 
 export const StornierungDetailSchema = z.object({

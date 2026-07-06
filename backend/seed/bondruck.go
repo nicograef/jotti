@@ -291,7 +291,7 @@ func zuSteuermatrixPositionen(positionen []kasse.Position) []steuer.Steuermatrix
 	matrixPositionen := make([]steuer.SteuermatrixPosition, 0, len(positionen))
 	for _, p := range positionen {
 		matrixPositionen = append(matrixPositionen, steuer.SteuermatrixPosition{
-			Brutto:     p.Einzelpreis * p.Menge,
+			Brutto:     p.EinzelpreisCents * p.Menge,
 			Steuersatz: steuer.Steuersatz(p.Steuersatz),
 		})
 	}

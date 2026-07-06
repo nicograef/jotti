@@ -894,7 +894,7 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 				"", posGvTyp, "", "",
 				storno(false), "0", itoa(p.VarianteID), "",
 				p.Kategorie, p.Kategorie, formatQuantity(b.sign() * p.Menge), "",
-				"", formatAmount(p.Einzelpreis),
+				"", formatAmount(p.EinzelpreisCents),
 			})
 		}
 	}
@@ -930,7 +930,7 @@ func buildLinesVat(s Snapshot, erstellung string, belege []beleg) Table {
 			continue
 		}
 		for i, p := range b.positionen {
-			brutto := p.Einzelpreis * p.Menge
+			brutto := p.EinzelpreisCents * p.Menge
 			for _, aufteilung := range steuer.Aufteilen(brutto, steuer.Steuersatz(p.Steuersatz)) {
 				records = append(records, []string{
 					s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
@@ -1222,7 +1222,7 @@ func steuermatrixPositionen(positionen []kasse.PositionEventData) []steuer.Steue
 	out := make([]steuer.SteuermatrixPosition, len(positionen))
 	for i, p := range positionen {
 		out[i] = steuer.SteuermatrixPosition{
-			Brutto:     p.Einzelpreis * p.Menge,
+			Brutto:     p.EinzelpreisCents * p.Menge,
 			Steuersatz: steuer.Steuersatz(p.Steuersatz),
 		}
 	}

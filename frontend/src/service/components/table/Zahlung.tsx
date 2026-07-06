@@ -151,7 +151,7 @@ function PositionItem({
         </ItemTitle>
         <ItemDescription>
           <span className="font-bold">
-            {formatCents(position.einzelpreis)}&nbsp;€
+            {formatCents(position.einzelpreisCents)}&nbsp;€
           </span>
           &nbsp; &ndash; &nbsp;noch {unbezahlteMenge - menge} unbezahlt
           {showBesteller && (

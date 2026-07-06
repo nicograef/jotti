@@ -31,7 +31,7 @@ func toSteuermatrixPositionen(positionen []kasse.Position) []steuer.Steuermatrix
 	matrixPositionen := make([]steuer.SteuermatrixPosition, 0, len(positionen))
 	for _, position := range positionen {
 		matrixPositionen = append(matrixPositionen, steuer.SteuermatrixPosition{
-			Brutto:     position.Einzelpreis * position.Menge,
+			Brutto:     position.EinzelpreisCents * position.Menge,
 			Steuersatz: steuer.Steuersatz(position.Steuersatz),
 		})
 	}
@@ -182,11 +182,11 @@ func vermerkFuerAusfall(ausfallGrund string) escpos.TSEBelegvermerk {
 	return escpos.TSEVermerkVoruebergehend
 }
 
-// negierePositionen flips the Einzelpreis sign so a Stornobeleg shows negative amounts.
+// negierePositionen flips the EinzelpreisCents sign so a Stornobeleg shows negative amounts.
 func negierePositionen(positionen []kasse.Position) []kasse.Position {
 	out := make([]kasse.Position, 0, len(positionen))
 	for _, pos := range positionen {
-		pos.Einzelpreis = -pos.Einzelpreis
+		pos.EinzelpreisCents = -pos.EinzelpreisCents
 		out = append(out, pos)
 	}
 	return out

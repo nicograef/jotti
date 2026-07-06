@@ -13,13 +13,13 @@ import (
 
 var (
 	testPos = kasse.Position{
-		PositionID:   "pos-1",
-		VarianteID:   1,
-		ProduktName:  "Pommes",
-		VarianteName: "gross",
-		Kategorie:    "essen",
-		Einzelpreis:  300,
-		Menge:        3,
+		PositionID:       "pos-1",
+		VarianteID:       1,
+		ProduktName:      "Pommes",
+		VarianteName:     "gross",
+		Kategorie:        "essen",
+		EinzelpreisCents: 300,
+		Menge:            3,
 	}
 	testTime = time.Date(2024, 6, 15, 19, 34, 0, 0, time.UTC)
 )
@@ -106,13 +106,13 @@ func TestFormatPositionBon_HasFiveNewlinesBeforeCut(t *testing.T) {
 
 func TestFormatSammelBon_ContainsAllPositionen(t *testing.T) {
 	pos2 := kasse.Position{
-		PositionID:   "pos-2",
-		VarianteID:   2,
-		ProduktName:  "Bratwurst",
-		VarianteName: "mit Brot",
-		Kategorie:    "essen",
-		Einzelpreis:  250,
-		Menge:        1,
+		PositionID:       "pos-2",
+		VarianteID:       2,
+		ProduktName:      "Bratwurst",
+		VarianteName:     "mit Brot",
+		Kategorie:        "essen",
+		EinzelpreisCents: 250,
+		Menge:            1,
 	}
 	payload := escpos.FormatSammelBon([]kasse.Position{testPos, pos2}, "Tisch 7", "Maria", testTime, "", false)
 	got := string(payload)
@@ -149,13 +149,13 @@ func TestFormatSammelBon_WithKommentar(t *testing.T) {
 
 func TestFormatDirektverkaufAbholbon_HasFixedLabelAndNoPrices(t *testing.T) {
 	pos2 := kasse.Position{
-		PositionID:   "pos-2",
-		VarianteID:   2,
-		ProduktName:  "Bier",
-		VarianteName: "0,5l",
-		Kategorie:    "getraenk",
-		Einzelpreis:  400,
-		Menge:        2,
+		PositionID:       "pos-2",
+		VarianteID:       2,
+		ProduktName:      "Bier",
+		VarianteName:     "0,5l",
+		Kategorie:        "getraenk",
+		EinzelpreisCents: 400,
+		Menge:            2,
 	}
 
 	payload := escpos.FormatDirektverkaufAbholbon([]kasse.Position{testPos, pos2}, "Maria", testTime, "abholen")
@@ -217,8 +217,8 @@ func TestFormatKassenbeleg_Stornobeleg_ContainsStornoFelder(t *testing.T) {
 		Belegnummer:        "43",
 		Zeitpunkt:          testTime,
 		Positionen: []kasse.Position{
-			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: -300, Menge: 3},
-			{PositionID: "pos-2", VarianteID: 2, ProduktName: "Pfand", VarianteName: "Becher", Kategorie: "sonstiges", Steuersatz: "regel", Einzelpreis: -50, Menge: 1},
+			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: -300, Menge: 3},
+			{PositionID: "pos-2", VarianteID: 2, ProduktName: "Pfand", VarianteName: "Becher", Kategorie: "sonstiges", Steuersatz: "regel", EinzelpreisCents: -50, Menge: 1},
 		},
 		GesamtbetragCents:   -950,
 		Zahlungsart:         "bar",
@@ -267,10 +267,10 @@ func TestFormatKassenbeleg_EndsWithCutPaper(t *testing.T) {
 
 func TestFormatKassenbeleg_ContainsSteuerkennzeichenProPosition(t *testing.T) {
 	positionen := []kasse.Position{
-		{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 350, Menge: 1},
-		{PositionID: "pos-2", VarianteID: 2, ProduktName: "Wasser", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "ermaessigt", Einzelpreis: 300, Menge: 1},
-		{PositionID: "pos-3", VarianteID: 3, ProduktName: "Spende", VarianteName: "frei", Kategorie: "sonstiges", Steuersatz: "befreit", Einzelpreis: 200, Menge: 1},
-		{PositionID: "pos-4", VarianteID: 4, ProduktName: "Kombi-Menue", VarianteName: "Standard", Kategorie: "essen", Steuersatz: "kombi", Einzelpreis: 500, Menge: 1},
+		{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
+		{PositionID: "pos-2", VarianteID: 2, ProduktName: "Wasser", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "ermaessigt", EinzelpreisCents: 300, Menge: 1},
+		{PositionID: "pos-3", VarianteID: 3, ProduktName: "Spende", VarianteName: "frei", Kategorie: "sonstiges", Steuersatz: "befreit", EinzelpreisCents: 200, Menge: 1},
+		{PositionID: "pos-4", VarianteID: 4, ProduktName: "Kombi-Menue", VarianteName: "Standard", Kategorie: "essen", Steuersatz: "kombi", EinzelpreisCents: 500, Menge: 1},
 	}
 
 	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
@@ -310,7 +310,7 @@ func TestFormatKassenbeleg_ContainsSteuermatrix(t *testing.T) {
 		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
 		Belegnummer:        "42",
 		Zeitpunkt:          testTime,
-		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 700, Menge: 1}},
 		Steuermatrix: []steuer.Aufteilung{
 			{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
 			{Satz: steuer.ErmaessigtSteuersatz, Brutto: 300, Netto: 280, Steuer: 20},
@@ -342,7 +342,7 @@ func TestFormatKassenbeleg_WithoutTSE_DoesNotContainTSEBlock(t *testing.T) {
 		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
 		Belegnummer:        "42",
 		Zeitpunkt:          testTime,
-		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 700, Menge: 1}},
 		Steuermatrix: []steuer.Aufteilung{
 			{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
 		},
@@ -365,7 +365,7 @@ func TestFormatKassenbeleg_WithTSEAusfallvermerk_ContainsAusfallhinweis(t *testi
 		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
 		Belegnummer:        "42",
 		Zeitpunkt:          testTime,
-		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 700, Menge: 1}},
 		Steuermatrix: []steuer.Aufteilung{
 			{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
 		},
@@ -392,7 +392,7 @@ func TestFormatKassenbeleg_WithKeineKonfiguration_ContainsHinweis(t *testing.T) 
 		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
 		Belegnummer:        "43",
 		Zeitpunkt:          testTime,
-		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 700, Menge: 1}},
 		Steuermatrix: []steuer.Aufteilung{
 			{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
 		},
@@ -425,7 +425,7 @@ func TestFormatKassenbeleg_WithTSE_ContainsTSEPflichtfelder(t *testing.T) {
 		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
 		Belegnummer:        "1003",
 		Zeitpunkt:          testTime,
-		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 700, Menge: 1}},
 		GesamtbetragCents:  700,
 		Zahlungsart:        "bar",
 		TSE: &escpos.TSEAbschnitt{
@@ -466,7 +466,7 @@ func TestFormatKassenbeleg_WithTSEQRCode_ContainsNativeESCPosQR(t *testing.T) {
 		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
 		Belegnummer:        "1003",
 		Zeitpunkt:          testTime,
-		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 700, Menge: 1}},
 		GesamtbetragCents:  700,
 		Zahlungsart:        "bar",
 		TSE: &escpos.TSEAbschnitt{
@@ -500,7 +500,7 @@ func TestFormatKassenbeleg_WithoutTSEQRCode_DoesNotContainNativeESCPosQR(t *test
 		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
 		Belegnummer:        "1003",
 		Zeitpunkt:          testTime,
-		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 700, Menge: 1}},
+		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 700, Menge: 1}},
 		GesamtbetragCents:  700,
 		Zahlungsart:        "bar",
 		TSE: &escpos.TSEAbschnitt{
@@ -587,7 +587,7 @@ func TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis(t *tes
 		Belegnummer:        "42",
 		Zeitpunkt:          testTime,
 		Positionen: []kasse.Position{
-			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Spende", VarianteName: "", Kategorie: "sonstiges", Steuersatz: "befreit", Einzelpreis: 500, Menge: 1},
+			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Spende", VarianteName: "", Kategorie: "sonstiges", Steuersatz: "befreit", EinzelpreisCents: 500, Menge: 1},
 		},
 		Steuermatrix: []steuer.Aufteilung{
 			{Satz: steuer.BefreitSteuersatz, Brutto: 500, Netto: 500, Steuer: 0},

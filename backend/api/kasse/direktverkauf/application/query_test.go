@@ -39,7 +39,7 @@ func TestGetDirektverkaufHistorie_GroupsByVerkaufMostRecentFirst(t *testing.T) {
 	getaetigtA, verkaufA, _ := getaetigtEvent(t, 500, 2)    // 1000 cents
 	getaetigtB, verkaufB, posB := getaetigtEvent(t, 400, 3) // 1200 cents
 	subjectB := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufB)
-	stornoPosB := kasse.Position{PositionID: posB, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", Einzelpreis: 400, Menge: 1}
+	stornoPosB := kasse.Position{PositionID: posB, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 400, Menge: 1}
 	stornoB, err := kasse.NewDirektverkaufStorniertEvent(subjectB, verkaufB, 2, "Leitung", []kasse.Position{stornoPosB}, 400, "Rückgabe")
 	if err != nil {
 		t.Fatalf("failed to create storno event: %v", err)

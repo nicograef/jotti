@@ -22,10 +22,10 @@ func NewRepository(db *sql.DB) Repository {
 
 // stornierungPositionJSON is used for deserializing position data from the stornierung event JSONB.
 type stornierungPositionJSON struct {
-	ProduktName  string `json:"produktName"`
-	VarianteName string `json:"varianteName"`
-	Menge        int    `json:"menge"`
-	Einzelpreis  int    `json:"einzelpreis"`
+	ProduktName      string `json:"produktName"`
+	VarianteName     string `json:"varianteName"`
+	Menge            int    `json:"menge"`
+	EinzelpreisCents int    `json:"einzelpreisCents"`
 }
 
 // stornierungEventData represents the shared JSONB fields of the storno events.
@@ -180,10 +180,10 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 
 func toStornierungPosition(p stornierungPositionJSON) reporting.StornierungPosition {
 	return reporting.StornierungPosition{
-		ProduktName:  p.ProduktName,
-		VarianteName: p.VarianteName,
-		Menge:        p.Menge,
-		Einzelpreis:  p.Einzelpreis,
+		ProduktName:      p.ProduktName,
+		VarianteName:     p.VarianteName,
+		Menge:            p.Menge,
+		EinzelpreisCents: p.EinzelpreisCents,
 	}
 }
 

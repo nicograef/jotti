@@ -3,7 +3,7 @@ import { formatCents } from '@/lib/utils'
 
 export interface ReceiptPosition {
   name: string
-  einzelpreis: number
+  einzelpreisCents: number
   menge: number
 }
 
@@ -21,14 +21,14 @@ export function Receipt({
           {positionen.map((position) => {
             return (
               <div
-                key={`${position.name}-${position.einzelpreis.toString()}`}
+                key={`${position.name}-${position.einzelpreisCents.toString()}`}
                 className="flex justify-between border-b pb-2 last:border-0"
               >
                 <div>
                   {position.menge} x {position.name}
                 </div>
                 <div>
-                  {formatCents(position.einzelpreis * position.menge)}&nbsp;€
+                  {formatCents(position.einzelpreisCents * position.menge)}&nbsp;€
                 </div>
               </div>
             )

@@ -144,7 +144,7 @@ func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAuftei
 			unbezahlt[ref.PositionID] -= take
 			offen -= take
 			aufteilung.Korrektur = append(aufteilung.Korrektur, mitMenge(det, take))
-			aufteilung.KorrekturCents += det.Einzelpreis * take
+			aufteilung.KorrekturCents += det.EinzelpreisCents * take
 		}
 
 		// 2. Bezahlte Menge FIFO je Zahlung als Warenrücknahme zurücknehmen.
@@ -160,7 +160,7 @@ func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAuftei
 			z.rest[ref.PositionID] -= take
 			offen -= take
 			z.genommen = append(z.genommen, mitMenge(det, take))
-			z.cents += det.Einzelpreis * take
+			z.cents += det.EinzelpreisCents * take
 		}
 
 		if offen > 0 {
