@@ -1,6 +1,8 @@
 # Audit-Bericht v1.0.0 (Stand 2026-07-06)
 
-Multi-Experten-Audit vor dem v1.0.0-Release, komplementär zum [Release-Guide](plan-v1.0.0-release.md). Methode: 16 Experten-Reviews plus 4 Nachreviews über alle Gates und Qualitätsachsen (Steuer, TSE/Signatur, DSFinV-K, Beleg, Events, Schema, Security, Robustheit, Performance, API, Ops, Frontend, UX, Tests, Release-Mechanik, Leitfäden, Bootstrap/Seed, LAN-TLS-Infra, Website-Konsistenz). Jeder High-Befund wurde von einem unabhängigen Skeptiker-Agenten am Code gegen­geprüft, Mediums im Batch; Rechtsaussagen sind an `docs/rechtsquellen/` belegt. Arbeitsdokument mit Abhak-Listen; nach Abarbeitung aus `docs/plans/` entfernen.
+Multi-Experten-Audit vor dem v1.0.0-Release, komplementär zum [Release-Guide](plan-v1.0.0-release.md). Methode: 16 Experten-Reviews plus 4 Nachreviews über alle Gates und Qualitätsachsen (Steuer, TSE/Signatur, DSFinV-K, Beleg, Events, Schema, Security, Robustheit, Performance, API, Ops, Frontend, UX, Tests, Release-Mechanik, Leitfäden, Bootstrap/Seed, LAN-TLS-Infra, Website-Konsistenz). Jeder High-Befund wurde von einem unabhängigen Skeptiker-Agenten am Code gegen­geprüft, Mediums im Batch; Rechtsaussagen sind an `docs/rechtsquellen/` belegt.
+
+Seit der Plan-Umstrukturierung (2026-07-06) ist dieses Dokument nur noch Befundregister: der Umsetzungsstatus wird in [plan-v0.14.0-breaking.md](plan-v0.14.0-breaking.md) und [plan-v1.0.0-nacharbeit.md](plan-v1.0.0-nacharbeit.md) geführt, manuelle Prüfungen im [QA-Guide](guide-manuelle-qa-v1.0.0.md). Die Abhak-Stände hier sind auf dem Stand nach den Phasen 1–3 des alten Vorab-Plans eingefroren (Commits 51e4ef5, d84f563, 4eee745). Nach dem v1.0.0-Release aus `docs/plans/` entfernen.
 
 Ground Truth: `make verify` grün (inkl. Integrationstests gegen echte DB), `golangci-lint` 0 Befunde.
 
@@ -94,16 +96,6 @@ Doku und Leitfäden (Gate 5):
 - Tests überdurchschnittlich verhaltensgetrieben (fiskalische Projektion über alle Event-Typen, processData gegen Anhang-I-Beispiele, 20 DSFinV-K-Tabellen mit Golden Rows); Frontend TS-strict ohne any, kein direktes fetch, Doppel-Submit-Schutz, Geld string-basiert in Cent.
 - Leitfäden: alle geprüften Klickwege, Menünamen und make-Targets stimmen mit Code und Release-ZIP überein; Verfahrensdoku deckt sich bis auf C12 mit dem Code; Release-Pfad (Tag zu ldflags zu Images zu Compose-Pinning) ist single-source bis auf C11.
 
-## F. Nur manuell prüfbar (aus dem Release-Plan, nicht automatisierbar)
+## F. Nur manuell prüfbar (nicht automatisierbar)
 
-- [ ] fiskaly-TEST-Konto: Setup-Wizard real durchlaufen (TSS und Client aus jotti), TEST-zu-LIVE, PUK/PIN-Verwahrung (Gate 2.1)
-- [ ] Je ein realer Fall pro signaturpflichtigem Vorgangstyp; p95-Latenz unter Burst messen (Gate 2.2, siehe C7)
-- [ ] TSE stören, Störungsprotokoll und Nachsignierung mit Beleg-Vermerk beobachten (Gate 2.3)
-- [ ] Beleg inkl. ESC/POS-QR auf echtem 80-mm-Drucker, QR-Lesbarkeit prüfen (Gate 2.4, siehe A5)
-- [ ] Export-ZIP mit IDEA oder fiskaly-Prüftooling gegenlesen (Gate 2.5, prüft auch A4)
-- [ ] prod-update/-backup/-backup-verify/-restore-Roundtrip auf Test-Server (Gate 3)
-- [ ] TLS/Let's Encrypt live grün (Regressionscheck, Gate 3)
-- [ ] make release-windows auf echtem Windows-Rechner smoke-testen (Gate 3/6)
-- [ ] prod-init auf leerem Server bis zum ersten Admin-Login (Gate 3, prüft auch C22)
-- [ ] Parallelzugriffstest mit zwei Geräten am selben Tisch (Gate 3)
-- [ ] Smoke-Test der gepinnten 1.0.0-Images auf frischem Server (Gate 6)
+Konsolidiert im [QA-Guide](guide-manuelle-qa-v1.0.0.md) (8 Blöcke: Installation, TSE-Setup, Signaturbetrieb inkl. C7-Latenzmessung, Ausfall/Nachsignierung, Beleg und QR auf Hardware inkl. A5-Rest, DSFinV-K-Export inkl. A4-Prüfung, Ops-Roundtrips, Release-Smoke); Checkboxen werden nur dort geführt.
