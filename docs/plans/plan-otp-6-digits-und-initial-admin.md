@@ -277,17 +277,17 @@ statt des festen `123456`.
 
 ### Acceptance criteria
 
-- [ ] Windows-Starter liest die jüngste Markerzeile seit dem aktuellen Container-Start
+- [x] Windows-Starter liest die jüngste Markerzeile seit dem aktuellen Container-Start
       und zeigt Benutzername `admin`, 6-stelligen Code und Eingabeort in der Konsole.
-- [ ] Fehlt der Marker im aktuellen Boot oder scheitert das Parsen, zeigt der Starter
+- [x] Fehlt der Marker im aktuellen Boot oder scheitert das Parsen, zeigt der Starter
       non-fatal die Neustart-Meldung — kein Verweis auf Logs, Start läuft normal weiter.
-- [ ] `scripts/prod-init.sh` gibt im Summary den fertigen `logs … | grep <Präfix>`-Befehl
+- [x] `scripts/prod-init.sh` gibt im Summary den fertigen `logs … | grep <Präfix>`-Befehl
       aus (kein Log-Parser im Skript).
-- [ ] Status-Seite zeigt die statische Ersteinrichtungs-Hinweiskarte; kein DB-/Backend-Zugriff,
+- [x] Status-Seite zeigt die statische Ersteinrichtungs-Hinweiskarte; kein DB-/Backend-Zugriff,
       kein Klartext-Code auf der Seite; `statuspage_test.go` weiterhin grün.
-- [ ] `docs/leitfaden/installation.md` „Erster Login" ohne festen `123456`, mit
+- [x] `docs/leitfaden/installation.md` „Erster Login" ohne festen `123456`, mit
       generiertem Code + Neustart-Weg; Handbuch-Onboarding spiegelt den rotierenden Code.
-- [ ] `make verify` grün; Release-Smoke deckt den Pfad „Einrichtung abgeschlossen,
+- [x] `make verify` grün; Release-Smoke deckt den Pfad „Einrichtung abgeschlossen,
       kein Marker im aktuellen Boot, kein Code in der Ausgabe" ab (manuell dokumentiert).
 
 ---

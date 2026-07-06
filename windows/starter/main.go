@@ -124,6 +124,11 @@ func run() int {
 
 	printSuccess()
 
+	// Direkt nach dem Erfolg den Ersteinrichtungs-Code aus den Backend-Logs seit dem
+	// aktuellen Container-Start anzeigen. Non-fatal: fehlt der Marker (Einrichtung
+	// abgeschlossen) oder scheitert das Lesen, erscheint nur die Neustart-Meldung.
+	printAdminCode(composePath)
+
 	// Nach gesundem Start kurz online pruefen, ob eine neuere Version vorliegt, und
 	// nur darauf hinweisen. Non-fatal: offline/Timeout/Fehler ueberspringen still.
 	notifyIfUpdateAvailable()

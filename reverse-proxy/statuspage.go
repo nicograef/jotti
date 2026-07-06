@@ -237,6 +237,13 @@ const statusHTML = `<!doctype html>
        auf das Kassengerät).</p>
   </section>
 
+  <section class="card">
+    <p class="label">Ersteinrichtung</p>
+    <p class="muted">Falls Sie jotti gerade zum ersten Mal einrichten: Der Anmelde-Code steht
+       in der Startkonsole. Konsole schon geschlossen? jotti neu starten, dann wird ein neuer
+       Code angezeigt.</p>
+  </section>
+
   {{if .LEStaging}}
   <section class="card staging">
     <p class="muted"><strong>Testmodus:</strong> Zertifikate stammen aus der

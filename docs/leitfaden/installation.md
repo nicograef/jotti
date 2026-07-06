@@ -29,10 +29,12 @@ Für den Bondruck zusätzlich `jotti-relay.exe` doppelklicken. Den vollständige
 
 ## Erster Login
 
-Beim ersten Start ist noch kein Admin-Passwort gesetzt. Öffne die jotti-Oberfläche und melde dich **nicht** normal an, sondern wähle „Neues Passwort festlegen":
+Beim ersten Start legt das Backend automatisch den Admin-Benutzer an und erzeugt einen einmaligen Anmelde-Code aus 6 Ziffern. Der Code steht in der Startkonsole (dem Fenster von `jotti-start.exe`); beim Serverbetrieb per `make prod-init` erscheint er in der Ausgabe des Befehls. Ist die Konsole schon geschlossen, jotti einfach neu starten, dann wird ein neuer Code erzeugt und angezeigt.
+
+Öffne die jotti-Oberfläche und melde dich **nicht** normal an, sondern wähle „Neues Passwort festlegen":
 
 - **Benutzername:** `admin`
-- **Einmalpasswort:** `123456`
+- **Einmalpasswort:** der 6-stellige Code aus der Startkonsole
 - **Neues Passwort:** ein eigenes, sicheres Passwort wählen
 
 Nach dem Speichern ist das Einmalpasswort ungültig und der Login mit dem neuen Passwort möglich. Dieser Schritt ist einmalig; alle weiteren Admin-Konten legt ihr danach selbst im Admin-Bereich an.

@@ -134,6 +134,62 @@ func reverseProxyRunning(composePath string) bool {
 	return strings.TrimSpace(string(out)) != ""
 }
 
+// backendContainerID liefert die Container-ID des backend-Service aus dem
+// Compose-Projekt (Service heisst in Release- wie Local-Compose "backend"). Leerer
+// String, wenn kein Container existiert/laeuft oder docker nicht verfuegbar ist.
+func backendContainerID(composePath string) string {
+	out, err := exec.Command("docker", "compose", "-f", composePath, "ps", "-q", "backend").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// containerStartedAt liefert den Startzeitpunkt (RFC3339) des Containers. Leerer
+// String bei Fehler.
+func containerStartedAt(cid string) string {
+	out, err := exec.Command("docker", "inspect", "--format", "{{.State.StartedAt}}", cid).Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// containerLogsSince liest die Container-Logs ab startedAt. Die Markerzeile steht
+// auf stdout; CombinedOutput fasst stdout und stderr zusammen, damit der Grep
+// unabhaengig vom Stream greift. Ein Fehler ergibt (moeglicherweise leere) Ausgabe,
+// die die Suche dann als "kein Code" wertet.
+func containerLogsSince(cid, startedAt string) string {
+	out, _ := exec.Command("docker", "logs", "--since", startedAt, cid).CombinedOutput()
+	return string(out)
+}
+
+// readAdminOTP verkettet die Docker-Abfragen und liefert den Klartext-Code des
+// Initial-Admins aus den Backend-Logs SEIT dem aktuellen Container-Start. Jeder
+// Fehler (kein Docker, kein Container, leere Ausgabe) ergibt ("", false) und ist nie
+// fatal. Die Beschraenkung auf StartedAt sorgt dafuer, dass ein veralteter Marker aus
+// einem frueheren Boot nach abgeschlossener Einrichtung (Container neu erstellt) nicht
+// mehr erscheint.
+func readAdminOTP(composePath string) (string, bool) {
+	cid := backendContainerID(composePath)
+	if cid == "" {
+		return "", false
+	}
+	startedAt := containerStartedAt(cid)
+	if startedAt == "" {
+		return "", false
+	}
+	return core.ParseAdminOTP(containerLogsSince(cid, startedAt))
+}
+
+// printAdminCode zeigt die Ersteinrichtungs-Anleitung mit dem aktuellen
+// Initial-Admin-Code (bzw. die Neustart-Meldung, wenn im aktuellen Boot kein Code
+// vorliegt). Non-fatal — der Start laeuft unabhaengig davon weiter.
+func printAdminCode(composePath string) {
+	fmt.Println()
+	fmt.Println(core.AdminCodeHinweis(readAdminOTP(composePath)))
+}
+
 // portAvailable prueft per net.Listen, ob der TCP-Port frei ist.
 func portAvailable(port int) bool {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))

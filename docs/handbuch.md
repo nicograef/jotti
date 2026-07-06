@@ -364,6 +364,8 @@ Neue Benutzer durchlaufen einen zweistufigen Onboarding-Prozess, der sicherstell
 
 **Passwort-Reset:** Admin-Reset generiert neues Einmalpasswort, leert `passwort_hash` → Benutzer durchläuft Onboarding erneut.
 
+**Initial-Admin:** Der erste Admin ist nicht fest in der Migration hinterlegt. Beim Backend-Start legt das System den Benutzer `admin` an (aktiv, ohne Passwort) und erzeugt ein Einmalpasswort aus 6 Ziffern, das es in den Startlog schreibt, sichtbar in der Startkonsole des Windows-Starters bzw. in der `make prod-init`-Ausgabe. Solange kein Passwort gesetzt ist, rotiert das Einmalpasswort bei jedem Neustart; nach dem Setzen unterbleibt der Eingriff. Es gibt kein festes Vorgabepasswort.
+
 ---
 
 ## 6. Architekturprinzipien

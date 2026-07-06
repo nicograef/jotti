@@ -50,6 +50,18 @@ func TestStatusPageGreen(t *testing.T) {
 	}
 }
 
+func TestStatusPageShowsSetupHint(t *testing.T) {
+	s := newTestStatusServer(t)
+	s.probeCert = func() certState { return certValid }
+	s.checkRebind = func() bool { return true }
+
+	body := render(t, s)
+
+	if !strings.Contains(body, "Startkonsole") {
+		t.Error("Ersteinrichtungs-Hinweis (Startkonsole) fehlt auf der Status-Seite")
+	}
+}
+
 func TestStatusPageFallbackWhileIssuing(t *testing.T) {
 	s := newTestStatusServer(t)
 	s.probeCert = func() certState { return certNone }
