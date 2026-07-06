@@ -3,7 +3,7 @@ title: Compliance-Anforderungen
 description: 'Fiskalische Grundlagen für jotti: KassenSichV, TSE, GoBD, DSFinV-K und ELSTER mit Rechtsnormen sowie Entwickler- und Betreiberpflichten.'
 ---
 
-> **Betrifft:** KassenSichV, TSE, GoBD, Belegausgabepflicht, DSFinV-K, ERiC/ELSTER
+> **Betrifft:** KassenSichV, TSE, GoBD, Belegausgabepflicht, DSFinV-K, ELSTER
 
 ## 1. Einleitung
 
@@ -115,7 +115,7 @@ Das vollständige Mapping aller jotti-Vorgänge (inkl. Geldtransit, Kassendiffer
 | Hardware-TSE | Physisches Gerät (USB-Stick, SD-Karte, Smartcard)  | Swissbit, Epson, Diebold Nixdorf |
 | Cloud-TSE    | TSE als Cloud-Service, Kommunikation via HTTPS-API | fiskaly, Deutsche Fiskal         |
 
-Für jotti als Self-hosted-System ist die Cloud-TSE gesetzt, eine Hardware-TSE scheidet für BYOD-Setups auf gemieteten Servern praktisch aus. Gewählter erster Zielanbieter: fiskaly (API-first, BSI-zertifiziert nach TR-03153, unterstützt alle drei processTypes, bietet optional eine Submission-API für die Kassenmeldung). Das Backend-Interface `TSEClient` bleibt anbieter-agnostisch (Adapter-Pattern), ein Anbieterwechsel erfordert keine Änderung am Domain-Code.
+Für jotti als Self-hosted-System ist die Cloud-TSE gesetzt, eine Hardware-TSE scheidet für BYOD-Setups auf gemieteten Servern praktisch aus. Gewählter erster Zielanbieter: fiskaly (API-first, BSI-zertifiziert nach TR-03153, unterstützt alle drei processTypes). Das Backend-Interface `TSEClient` bleibt anbieter-agnostisch (Adapter-Pattern), ein Anbieterwechsel erfordert keine Änderung am Domain-Code.
 
 ### 3.6 Das Festzelt-Muster: Atomare TSE-Transaktionen
 
@@ -381,7 +381,7 @@ Stornierungen erzeugen immer neue Datensätze (GoBD-Radierverbot), nie Änderung
 
 ---
 
-## 7. Elektronische Meldepflicht (ERiC / ELSTER)
+## 7. Elektronische Meldepflicht (ELSTER)
 
 ### 7.1 Gesetzliche Grundlage und Fristen
 
@@ -396,12 +396,11 @@ Nach § 146a Abs. 4 AO müssen elektronische Aufzeichnungssysteme beim zuständi
 
 ### 7.2 Übermittlungswege und gewählter Ansatz
 
-Drei Wege: Direkteingabe im ELSTER-Portal (manuell), XML-Dateiupload (semi-automatisch), programmatische Übermittlung über ERiC (ELSTER Rich Client, offizielle Komponente der Finanzverwaltung mit lokaler Vorab-Validierung und Bestätigungsprotokoll).
+Das Gesetz kennt drei Übermittlungswege: Direkteingabe im ELSTER-Portal (manuell), XML-Dateiupload (semi-automatisch) und programmatische Übermittlung über ERiC (ELSTER Rich Client, offizielle Komponente der Finanzverwaltung mit lokaler Vorab-Validierung und Bestätigungsprotokoll). [6]
 
-**Gewählter Ansatz für jotti** (Self-hosted, ehrenamtliche Betreiber):
+**Gewählter Ansatz für jotti** (Self-hosted, ehrenamtliche Betreiber): die manuelle Meldung über das ELSTER-Webportal (F-05). Der Admin-Bereich stellt dazu alle meldepflichtigen Daten strukturiert bereit; der Vorstand überträgt sie einmalig ins Portal.
 
-- **Phase 1 (manuell):** Der Admin-Bereich stellt alle meldepflichtigen Daten strukturiert bereit; der Vorstand meldet über das ELSTER-Webportal.
-- **Phase 2 (optional):** ERiC (native C-Library, aufwendig, kein Vendor-Lock-in) oder fiskaly-Submission-API (einfacher, aber Cloud-Abhängigkeit und keine staatliche Vorab-Validierung). Entscheidung bei Implementierungsbeginn nach Aufwands-/Kosten-Abwägung. [6]
+**Nicht-Ziel:** Eine programmatische Übermittlung (ERiC-C-Library oder fiskaly-Submission-API) ist bewusst nicht vorgesehen. Die Meldung fällt pro Instanz nur einmal an (Inbetriebnahme, Außerbetriebnahme); der Automatisierungsaufwand steht in keinem Verhältnis zu diesem einmaligen Vorgang (→ [anforderungen.md, Nicht-Ziele](anforderungen.md#nicht-ziele)).
 
 ### 7.3 Meldepflichtige Daten (Payload)
 
@@ -416,9 +415,8 @@ Drei Wege: Direkteingabe im ELSTER-Portal (manuell), XML-Dateiupload (semi-autom
 ### 7.4 Architektonische Anforderungen an jotti
 
 1. **Konfiguration:** Vereinsdaten, Betriebsstätte, Steuernummer als Stammdaten
-2. **Admin-Datenanzeige (Phase 1):** alle meldepflichtigen Felder strukturiert anzeigen, inkl. der generierten Kassen-Seriennummer (→ §3.7); kein API-Aufruf
-3. **Meldestatus (Phase 1):** manuell setzbarer Status („ausstehend / gemeldet am TT.MM.JJJJ"), persistiert in den Stammdaten
-4. **Automatisierte Übermittlung (Phase 2, optional):** ERiC oder fiskaly-Submission-API
+2. **Admin-Datenanzeige:** alle meldepflichtigen Felder strukturiert anzeigen, inkl. der generierten Kassen-Seriennummer (→ §3.7); kein API-Aufruf
+3. **Meldestatus:** manuell setzbarer Status („ausstehend / gemeldet am TT.MM.JJJJ"), persistiert in den Stammdaten
 
 ### 7.5 BYOD-Smartphones: keine Meldepflicht
 

@@ -23,7 +23,14 @@ Rollen: `admin` (Stammdaten und Kasse), `serviceleitung` (Kasse inkl. Storno), `
 | R-05 | Produktumsatz-Reporting  | Mengen, Ranking und Einnahmen pro Produkt und Variante.                       | Reporting   | Nice   |
 | F-08 | GoBD-Integritätsnachweis | Read-only Selbsttest (Versionsfolge und Signaturpflicht) ohne Schemaänderung. | Fiskal      | Nice   |
 | F-09 | eBeleg                   | Digitaler Beleg per QR-Code (PDF oder HTML).                                  | Fiskal      | Nice   |
-| F-12 | ELSTER-Meldung (API)     | Programmatische Meldung via ERiC oder fiskaly.                                | Fiskal      | Nice   |
+
+## Nicht-Ziele
+
+Bewusst nicht geplant. Zurückgezogene IDs werden nicht wiederverwendet (siehe Konventionen).
+
+| Ex-ID | Titel                                     | Begründung                                                                                                                                                                                                                                                                              |
+| ----- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-12  | Automatisierte ELSTER-Meldung (ERiC/API)  | Die Kassenmeldung nach § 146a Abs. 4 AO fällt pro Instanz nur einmal an (Inbetriebnahme, Außerbetriebnahme). Die manuelle Meldung über das ELSTER-Portal (F-05) deckt sie vollständig ab; eine native ERiC-C-Library oder die fiskaly-Submission-API lohnt für einen einmaligen Vorgang nicht. Siehe [compliance.md §7](compliance.md#7-elektronische-meldepflicht-elster). |
 
 ## Funktionsumfang
 
