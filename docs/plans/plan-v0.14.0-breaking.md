@@ -1,6 +1,6 @@
 # Plan: v0.14.0 — Breaking-Rest vor der Erstinstallation
 
-> Ersetzt die Phasen 4, 5, 6 und 10 aus `plan-v0.14.0-vorabversion.md` (dessen Phasen 1–2 sind committed, Phase 3 läuft in einer eigenen Session; die alte Datei wird nach deren Abschluss gelöscht). Befund-Details stehen im [Audit-Bericht](audit-v1.0.0.md); der Umsetzungsstatus wird nur noch hier geführt, nicht mehr doppelt im Audit abgehakt. Arbeitsdokument, nach Abarbeitung aus `docs/plans/` entfernen.
+> Ersetzt die Phasen 4, 5, 6 und 10 aus `plan-v0.14.0-vorabversion.md` (dessen Phasen 1–3 sind committed: 51e4ef5, d84f563, 4eee745; die alte Datei ist gelöscht, siehe Git-Historie). Befund-Details stehen im [Audit-Bericht](audit-v1.0.0.md); der Umsetzungsstatus wird nur noch hier geführt, nicht mehr doppelt im Audit abgehakt. Arbeitsdokument, nach Abarbeitung aus `docs/plans/` entfernen.
 
 ## Warum dieser Plan
 
