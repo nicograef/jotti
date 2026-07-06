@@ -322,8 +322,8 @@ func TestFormatKassenbeleg_ContainsSteuermatrix(t *testing.T) {
 
 	checks := []string{
 		"Steueraufteilung:",
-		"A: Netto 5,88 EUR, Steuer 1,12 EUR, Brutto 7,00 EUR",
-		"B: Netto 2,80 EUR, Steuer 0,20 EUR, Brutto 3,00 EUR",
+		"A (19 %): Netto 5,88 EUR, Steuer 1,12 EUR, Brutto 7,00 EUR",
+		"B (7 %): Netto 2,80 EUR, Steuer 0,20 EUR, Brutto 3,00 EUR",
 	}
 
 	for _, check := range checks {
@@ -570,5 +570,87 @@ func TestFormatPositionBon_TranscodesUmlautsAndEuroToWPC1252(t *testing.T) {
 	// Die UTF-8-Sequenz fuer ä (0xC3 0xA4) darf nach Transkodierung nicht mehr vorkommen.
 	if bytes.Contains(payload, []byte{0xC3, 0xA4}) {
 		t.Error("Bon enthaelt rohe UTF-8-Bytes statt WPC1252 (Transkodierung fehlt)")
+	}
+}
+
+// TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis prueft,
+// dass der Beleg fuer den 0%-Satz den Befreiungshinweis gemaess
+// KassenSichV § 6 Satz 1 Nr. 5 ("Hinweis darauf, dass eine Steuerbefreiung gilt")
+// traegt.
+func TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis(t *testing.T) {
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "42",
+		Zeitpunkt:          testTime,
+		Positionen: []kasse.Position{
+			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Spende", VarianteName: "", Kategorie: "sonstiges", Steuersatz: "befreit", Einzelpreis: 500, Menge: 1},
+		},
+		Steuermatrix: []steuer.Aufteilung{
+			{Satz: steuer.BefreitSteuersatz, Brutto: 500, Netto: 500, Steuer: 0},
+		},
+		GesamtbetragCents: 500,
+		Zahlungsart:       "bar",
+	})
+	got := string(payload)
+
+	if !strings.Contains(got, "C (umsatzsteuerfrei):") {
+		t.Errorf("Beleg mit 0%%-Satz muss Befreiungshinweis enthalten; got:\n%q", got)
+	}
+}
+
+// TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots prueft,
+// dass ein 500-Byte-QR-Payload (oberhalb des typischen fiskaly-Bereichs von 350-470 Byte)
+// mit Modulgroesse 6 innerhalb der druckbaren 576 Dots bleibt.
+// Rechnung: QR-Version 17 (ECL M: bis 507 Byte), Matrix 85 Module + 8 Ruhezone = 93 Module,
+// 93 * 6 = 558 Dots <= 576 Dots.
+func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *testing.T) {
+	// Realistischer fiskaly-Payload ist ~350-470 Byte; 500 Byte als obere Testgrenze.
+	qrPayload := strings.Repeat("V", 500)
+
+	bon := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:        "SV Musterstadt",
+		Strasse:            "Musterstrasse 1",
+		Plz:                "12345",
+		Ort:                "Musterstadt",
+		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:        "42",
+		Zeitpunkt:          testTime,
+		Positionen:         []kasse.Position{testPos},
+		GesamtbetragCents:  900,
+		Zahlungsart:        "bar",
+		TSE: &escpos.TSEAbschnitt{
+			TransaktionNr:   42,
+			Signaturzaehler: 1,
+			TSESeriennummer: "SW-TSE-0001",
+			ZeitpunktBeginn: testTime,
+			ZeitpunktEnde:   testTime,
+			Signatur:        "SIG",
+			QRCodeData:      qrPayload,
+		},
+	})
+
+	// Modulgroesse-Befehl: QRCodeModuleSizeCmdPrefix (7 Byte) + Groessenbyte.
+	// Fuer 500 Byte (V17, 93 Module): erwartete Groesse = 6 (558 Dots <= 576).
+	cmdPrefix := []byte(escpos.QRCodeModuleSizeCmdPrefix)
+	idx := bytes.Index(bon, cmdPrefix)
+	if idx < 0 || idx+len(cmdPrefix) >= len(bon) {
+		t.Fatal("Modulgroessen-Befehl nicht im Bon gefunden")
+	}
+	moduleSize := int(bon[idx+len(cmdPrefix)])
+
+	// QR-Version 17: Matrix = 4*17+17 = 85 Module; + 8 Ruhezone = 93 Module.
+	const (
+		qrVersion    = 17
+		totalModules = 4*qrVersion + 17 + 8 // 93
+		maxDots      = 576
+	)
+	dotsWide := totalModules * moduleSize
+	if dotsWide > maxDots {
+		t.Errorf("QR-Breite fuer 500-Byte-Payload: %d Module * %d = %d Dots > %d",
+			totalModules, moduleSize, dotsWide, maxDots)
 	}
 }

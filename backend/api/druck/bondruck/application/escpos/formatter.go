@@ -251,7 +251,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 			fmt.Fprintf(
 				&buf,
 				"  %s: Netto %s EUR, Steuer %s EUR, Brutto %s EUR\n",
-				steuerKennzeichenAusSatz(zeile.Satz),
+				steuerMatrixLabel(zeile.Satz),
 				formatCents(zeile.Netto),
 				formatCents(zeile.Steuer),
 				formatCents(zeile.Brutto),
@@ -301,6 +301,8 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 }
 
 // appendNativeQRCode writes a printer-rendered QR code using ESC/POS GS ( k.
+// The module size is chosen dynamically so that the QR symbol plus the 4-module
+// quiet zone on each side fits within the printable width of 576 dots (80 mm).
 func appendNativeQRCode(buf *bytes.Buffer, qrCodeData string) {
 	data := strings.TrimSpace(qrCodeData)
 	if data == "" {
@@ -310,7 +312,8 @@ func appendNativeQRCode(buf *bytes.Buffer, qrCodeData string) {
 	buf.WriteByte('\n')
 	buf.WriteString(AlignCenter)
 	buf.WriteString(QRCodeModel2)
-	buf.WriteString(QRCodeModuleSize6)
+	buf.WriteString(QRCodeModuleSizeCmdPrefix)
+	buf.WriteByte(qrModuleSizeByte(len(data)))
 	buf.WriteString(QRCodeErrorCorrectionM)
 
 	payload := []byte(data)
@@ -402,5 +405,63 @@ func steuerKennzeichenAusSatz(satz steuer.Steuersatz) string {
 		return "A/B"
 	default:
 		return "?"
+	}
+}
+
+// steuerMatrixLabel gibt die Bezeichnung fuer eine Steuermatrix-Zeile mit
+// Prozentsatz bzw. Befreiungshinweis gemaess KassenSichV § 6 Satz 1 Nr. 5
+// ("den anzuwendenden Steuersatz oder im Fall einer Steuerbefreiung einen
+// Hinweis darauf, dass fuer die Lieferung oder sonstige Leistung eine
+// Steuerbefreiung gilt").
+func steuerMatrixLabel(satz steuer.Steuersatz) string {
+	switch satz {
+	case steuer.RegelSteuersatz:
+		return "A (19 %)"
+	case steuer.ErmaessigtSteuersatz:
+		return "B (7 %)"
+	case steuer.BefreitSteuersatz:
+		return "C (umsatzsteuerfrei)"
+	case steuer.KombiSteuersatz:
+		return "A/B"
+	default:
+		return "?"
+	}
+}
+
+// qrVersionForLengthM returns the minimum QR version (1-40) required to encode
+// payloadLen bytes in byte mode at error correction level M.
+// Capacities from ISO/IEC 18004:2015 Table 7.
+func qrVersionForLengthM(payloadLen int) int {
+	// ECL M byte-mode capacities per version 1-40.
+	capacities := [40]int{
+		16, 28, 44, 64, 86, 108, 124, 154, 182, 216, // V1-V10
+		254, 290, 334, 365, 415, 453, 507, 563, 627, 669, // V11-V20
+		714, 782, 860, 914, 1000, 1062, 1128, 1193, 1267, 1373, // V21-V30
+		1455, 1541, 1631, 1725, 1812, 1914, 1992, 2102, 2216, 2334, // V31-V40
+	}
+	for i, cap := range capacities {
+		if cap >= payloadLen {
+			return i + 1
+		}
+	}
+	return 40
+}
+
+// qrModuleSizeByte returns the ESC/POS module-size byte (n in GS ( k 1 67 n)
+// that keeps the QR symbol plus its 4-module quiet zone within 576 printable
+// dots on an 80 mm thermal printer. Error correction level M is assumed.
+func qrModuleSizeByte(payloadLen int) byte {
+	v := qrVersionForLengthM(payloadLen)
+	// QR matrix: (4*v + 17) modules. Quiet zone: 4 modules on each side.
+	totalModules := 4*v + 17 + 8
+	switch {
+	case 6*totalModules <= 576:
+		return 6
+	case 5*totalModules <= 576:
+		return 5
+	case 4*totalModules <= 576:
+		return 4
+	default:
+		return 3
 	}
 }

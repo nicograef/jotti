@@ -47,3 +47,51 @@ func TestWrapLine_BreaksOnWordBoundary(t *testing.T) {
 		t.Errorf("erwartet Umbruch bei Breite 9; got %q", got)
 	}
 }
+
+func TestQRVersionForLengthM_KnownCapacities(t *testing.T) {
+	cases := []struct {
+		payloadLen  int
+		wantVersion int
+	}{
+		{1, 1},    // V1 haelt 16 Byte
+		{16, 1},   // V1 haelt genau 16 Byte
+		{17, 2},   // V2 ab 17 Byte
+		{507, 17}, // V17 haelt genau 507 Byte
+		{508, 18}, // V18 ab 508 Byte
+	}
+	for _, tc := range cases {
+		got := qrVersionForLengthM(tc.payloadLen)
+		if got != tc.wantVersion {
+			t.Errorf("qrVersionForLengthM(%d) = %d, want %d", tc.payloadLen, got, tc.wantVersion)
+		}
+	}
+}
+
+func TestQRModuleSizeByte_500BytePayload_UsesSize6(t *testing.T) {
+	// V17 (507-Byte-Kapazitaet): Matrix 85 Module + 8 Ruhezone = 93 Module.
+	// 93 * 6 = 558 Dots <= 576 Dots -> Modulgroesse 6.
+	if got := qrModuleSizeByte(500); got != 6 {
+		t.Errorf("qrModuleSizeByte(500) = %d, want 6 (93 Module * 6 = 558 <= 576 Dots)", got)
+	}
+}
+
+func TestQRModuleSizeByte_508BytePayload_UsesSize5(t *testing.T) {
+	// V18 (563-Byte-Kapazitaet): Matrix 89 Module + 8 Ruhezone = 97 Module.
+	// 97 * 6 = 582 Dots > 576 -> Modulgroesse 5: 97 * 5 = 485 <= 576 Dots.
+	if got := qrModuleSizeByte(508); got != 5 {
+		t.Errorf("qrModuleSizeByte(508) = %d, want 5 (97 Module * 6 = 582 > 576; * 5 = 485 <= 576)", got)
+	}
+}
+
+func TestQRModuleSizeByte_AllLengthsUpTo600_FitWithin576Dots(t *testing.T) {
+	for payloadLen := 1; payloadLen <= 600; payloadLen++ {
+		v := qrVersionForLengthM(payloadLen)
+		size := qrModuleSizeByte(payloadLen)
+		totalModules := 4*v + 17 + 8
+		dotsWide := totalModules * int(size)
+		if dotsWide > 576 {
+			t.Errorf("payload %d Byte: Version %d, Modulgroesse %d -> %d Dots > 576",
+				payloadLen, v, size, dotsWide)
+		}
+	}
+}

@@ -259,8 +259,8 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 		"= 7,00 EUR (A)",
 		"= 3,00 EUR (B)",
 		"Steueraufteilung:",
-		"A: Netto 5,88 EUR, Steuer 1,12 EUR, Brutto 7,00 EUR",
-		"B: Netto 2,80 EUR, Steuer 0,20 EUR, Brutto 3,00 EUR",
+		"A (19 %): Netto 5,88 EUR, Steuer 1,12 EUR, Brutto 7,00 EUR",
+		"B (7 %): Netto 2,80 EUR, Steuer 0,20 EUR, Brutto 3,00 EUR",
 	}
 
 	for _, check := range checks {

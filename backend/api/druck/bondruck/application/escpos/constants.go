@@ -28,6 +28,10 @@ const TextDoubleAll = "\x1D\x21\x11"  // Doppelte Hoehe und Breite (fuer Tischnu
 const QRCodeStorePrefix = "\x1D\x28\x6B" // GS ( k + pL pH
 const QRCodeModel2 = "\x1D\x28\x6B\x04\x00\x31\x41\x32\x00"
 const QRCodeModuleSize6 = "\x1D\x28\x6B\x03\x00\x31\x43\x06"
+
+// QRCodeModuleSizeCmdPrefix is the GS ( k command prefix for setting the QR
+// module size; the module-size byte n (1-16) must be appended immediately.
+const QRCodeModuleSizeCmdPrefix = "\x1D\x28\x6B\x03\x00\x31\x43"
 const QRCodeErrorCorrectionM = "\x1D\x28\x6B\x03\x00\x31\x45\x31"
 const QRCodePrint = "\x1D\x28\x6B\x03\x00\x31\x51\x30"
 
