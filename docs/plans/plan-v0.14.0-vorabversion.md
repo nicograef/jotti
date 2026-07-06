@@ -21,7 +21,7 @@ Bewusst nicht Teil dieses Plans (bleibt manuell, für v1.0.0): Abschnitt F des A
 Gelten über alle Phasen hinweg:
 
 - **Version:** `v0.14.0` (nächstes v0-Minor nach `v0.13.1`). Die v0-Semantik (Breaking Changes erlaubt) bleibt bis zum echten `v1.0.0`-Tag bestehen; Schema-Änderungen dieses Plans gehen noch direkt in `01_initial.up.sql`.
-- **Idempotenz (B2):** buchende Vorgänge tragen eine clientseitig erzeugte ID (`crypto.randomUUID()`), die im Event persistiert wird; Deduplizierung über partiellen UNIQUE-Index; ein Duplikat antwortet idempotent erfolgreich (kein Fehler für den Client). Direktverkauf verpflichtend, Bestellung/Geldtransit über optionalen Idempotenz-Schlüssel.
+- **Idempotenz (B2):** die drei buchenden Append-Endpunkte (Direktverkauf, Bestellung, Geldtransit) tragen eine clientseitig erzeugte Vorgangs-ID (`crypto.randomUUID()`) als Pflichtfeld im Event: `verkaufId` (existiert bereits), `bestellungId` und `geldtransitId` (neu). Deduplizierung über je einen type-gescopten partiellen UNIQUE-Index auf dem Event-JSON; ein Duplikat antwortet idempotent erfolgreich (kein Fehler für den Client). Die validierenden Commands (Zahlung, Storno, Ausgabe, Umbuchung) sind über Positions-Invarianten plus OCC strukturell gegen Duplikate geschützt und brauchen keinen Schlüssel.
 - **Auth-Statuscodes (B4):** 401 für `missing_authorization`, `invalid_authorization_format`, `invalid_jwt`, `user_inactive`; 403 für `insufficient_permissions`. Frontend-Auto-Logout bleibt an 401 gebunden.
 - **Seed-Schutz (A3):** `jotti seed` läuft nur mit explizitem Opt-in `JOTTI_ALLOW_SEED=1` (im Dev-Compose gesetzt, in Prod nie); der bestehende Kassenjournal-Guard bleibt als zweite Schicht.
 - **Version-Single-Source:** die per ldflags eingebrannte Build-Version ist die einzige Quelle; sie fließt in `cashregister.csv` (C11), den Admin-Footer (C12) und `/health`. `frontend/package.json` bleibt tot und wird aus dem Bump-Set gestrichen (C13).
@@ -56,6 +56,7 @@ Vom Planersteller nach Audit-Empfehlung aufgelöst (Veto vor Session-Start mögl
 - **A3:** Opt-in-Env-Flag statt Build-Tag-Ausschluss; hält den Dev-Flow (`make seed` nach Bootstrap) intakt, der ein reiner CountUsers==0-Guard brechen würde.
 - **C12:** Variante „Footer zeigt `jotti <version>` via `/health`, Beleg-Aussage in der Verfahrensdoku streichen" (statt nur den Satz zu korrigieren).
 - **C13:** `frontend/package.json` wird nicht verdrahtet, sondern als tot dokumentiert und aus dem Gate-6-Bump-Set gestrichen.
+- **B2-Mechanik (Review-Runde 2026-07-06):** abweichend von der Audit-Empfehlung („optionaler Schlüssel" für Bestellung/Geldtransit) bekommen alle drei Endpunkte eine Pflicht-Vorgangs-ID mit identischer Mechanik; das spart den zweiten Codepfad („ohne Schlüssel wie heute") samt Tests. Vertretbar, weil v0-Politik gilt und der einzige Client das eigene Frontend ist.
 - **D2:** Login-Fehlercodes `no_password_set`/`user_inactive` bleiben erhalten; die Abwägung (Verständlichkeit für nicht-technische Helfer im Vereins-LAN wiegt schwerer als das Enumerationsrisiko, Login-Throttling existiert) wird in `docs/compliance.md` bzw. der Verfahrensdoku festgehalten. Damit ist die vom Audit geforderte bewusste Entscheidung getroffen.
 - **Gate 1 `/code-audit`:** durch das Multi-Experten-Audit vom 2026-07-06 erfüllt; Phase 13 macht nur noch einen finalen Cleanup-/Review-Pass über die geänderten Bereiche.
 
@@ -186,20 +187,24 @@ CHECK-Constraints auf Geldspalten (`saldo_cents >= 0`, `gesamt_zahlungen_cents >
 
 ### Kontext
 
-- `backend/api/kasse/direktverkauf/application/command.go:88` — frische Server-UUID je Request
+- `backend/api/kasse/direktverkauf/application/command.go:88` — frische Server-UUID je Request; die `verkaufId` ist bereits Pflichtfeld im Event-JSON und Teil des Subjects (`kassensitzung-{nr}/direktverkauf-{uuid}`), `UNIQUE (subject, version)` dedupliziert also schon, sobald die ID vom Client kommt
+- `backend/api/kasse/tischgeschaeft/application/command.go:298` — Bestellung: reines Anhängen ohne Zustandsvalidierung, `GetMaxVersion` erst beim Write, kein natürlicher Schutz
+- `backend/api/kasse/kassenfuehrung/application/command.go:206` — Geldtransit: dito
 - `frontend/src/lib/Backend.ts:110` — zentrale Request-Schicht (Retry-/Doppel-Tap-Pfad)
-- `database/migrations/01_initial.up.sql` — Dedup-Index; Append-only-Trigger und REVOKE/GRANT unangetastet lassen
+- `database/migrations/01_initial.up.sql` — partielle UNIQUE-Indexe; Append-only-Trigger und REVOKE/GRANT unangetastet lassen
+- Scope-Begründung: Zahlung, Storno (inklusive Warenrücknahme, die kein eigener Event-Typ ist, sondern `stornierung-erteilt:v1` mit `zahlungId`), Ausgabe und Umbuchung sind validierende Commands (Replay + Positions-Invariante + OCC gegen die gelesene Version); ein Retry scheitert dort sichtbar an der Invariante statt doppelt zu buchen. Den Kassensturz-/Tagesabschluss-Wiederanlauf deckt Phase 8 (C8) ab.
 
 ### Was zu bauen ist
 
-Der Direktverkauf bekommt eine clientseitig erzeugte `verkaufId` (UUID) im Request, die validiert, ins Event geschrieben und über einen partiellen UNIQUE-Index dedupliziert wird; ein Duplikat liefert eine idempotente Erfolgs-Antwort. Bestellung und Geldtransit erhalten einen optionalen Idempotenz-Schlüssel mit derselben Mechanik. Frontend erzeugt die IDs pro logischem Vorgang (nicht pro Retry).
+Ein Mechanismus für alle drei Append-Endpunkte: clientseitig erzeugte Vorgangs-ID als Pflichtfeld im Request (UUID, validiert) und im Event — `verkaufId` beim Direktverkauf (Feld existiert, nur der Erzeuger wechselt vom Server zum Client), `bestellungId` und `geldtransitId` neu (Namen gegen `docs/language.md` prüfen). Deduplizierung je Event-Typ über einen partiellen UNIQUE-Index auf dem Event-JSON, zwingend type-gescoped (`(data->>'verkaufId') WHERE type = 'direktverkauf-getaetigt:v1'` usw.), weil `direktverkauf-storniert:v1` dieselbe `verkaufId` trägt; beim Direktverkauf greift daneben ohnehin `UNIQUE (subject, version)`, der explizite Index dokumentiert die Absicht und deckt zusätzlich den Retry über eine Kassensitzungsgrenze. Konfliktauflösung in allen drei Handlern gleich: bei einer Unique-Verletzung wird per Typ und Vorgangs-ID nachgeschlagen (Index-gedeckt); ein Treffer ergibt die idempotente Erfolgs-Antwort (gleiche ID gilt als derselbe Vorgang, der Payload wird nicht verglichen — als Vertrag im Handler dokumentieren), kein Treffer ist ein echter OCC-Konflikt und bleibt 409. Das Duplikat rollt die ganze Transaktion zurück, es entsteht also auch kein zweiter Signaturauftrag. Frontend erzeugt die IDs pro logischem Vorgang (nicht pro Retry); der Doppel-Submit-Schutz bleibt zusätzlich bestehen.
 
 ### Akzeptanzkriterien
 
-- [ ] Zwei identische Direktverkauf-Requests erzeugen genau ein Event; die zweite Antwort ist erfolgreich und referenziert den ersten Vorgang (Integrationstest)
-- [ ] Gleiche Semantik für Bestellung/Geldtransit mit gesetztem Schlüssel; ohne Schlüssel Verhalten wie heute
-- [ ] Frontend sendet die IDs; Doppel-Submit-Schutz bleibt zusätzlich bestehen
-- [ ] Event-Contract-Test aus Phase 4 um die neuen Felder ergänzt
+- [ ] Zwei identische Direktverkauf-Requests erzeugen genau ein Event und einen Signaturauftrag; die zweite Antwort ist erfolgreich (Integrationstest)
+- [ ] Gleiche Semantik für Bestellung und Geldtransit; ein echter OCC-Konflikt (andere Vorgangs-ID) antwortet weiterhin 409 (Integrationstests)
+- [ ] Requests ohne oder mit ungültiger Vorgangs-ID werden als Validierungsfehler abgelehnt
+- [ ] Frontend sendet die IDs pro logischem Vorgang; Doppel-Submit-Schutz bleibt zusätzlich bestehen
+- [ ] Event-Contract-Test aus Phase 4 um `bestellungId`/`geldtransitId` ergänzt (`verkaufId` ist dort bereits gepinnt)
 - [ ] `make verify` grün
 
 ---
