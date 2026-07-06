@@ -1,5 +1,5 @@
 # --- Build Stage ---
-FROM golang:1.26.0-alpine AS builder
+FROM golang:1.26.4-alpine AS builder
 
 RUN apk update
 
@@ -16,7 +16,7 @@ ARG VERSION=dev
 RUN go build -ldflags "-X main.version=${VERSION}" -o /go/bin/jotti ./main.go
 
 # --- Deploy Stage ---
-FROM alpine:3.22
+FROM alpine:3.24
 
 # Unprivilegierter Benutzer: das Backend schreibt nicht ins Dateisystem und
 # lauscht auf 3000 (>1024), braucht also keine root-Rechte.
