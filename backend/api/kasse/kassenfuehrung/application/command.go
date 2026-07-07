@@ -217,7 +217,7 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 	if err := c.writeKassensitzungEvent(ctx, evt, ks.ZNr, maxVersion); err != nil {
 		if errors.Is(err, ErrConflict) {
 			// Idempotenz-Check: Ist der Konflikt eine Duplikat-Einreichung (gleiche geldtransitId)
-			// oder ein echter OCC-Konflikt? Gleiche ID = derselbe Vorgang, Payload wird nicht verglichen.
+			// oder ein echter OCC-Konflikt?
 			exists, lookupErr := c.KassenjournalRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeGeldtransitGebuchtV1), geldtransitID, "geldtransitId")
 			if lookupErr != nil {
 				log.Error().Err(lookupErr).Str("geldtransit_id", geldtransitID).Msg("Failed to lookup geldtransit idempotency")
@@ -227,6 +227,7 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 				log.Info().Str("geldtransit_id", geldtransitID).Msg("Idempotenter Geldtransit: geldtransitId bereits vorhanden")
 				return nil
 			}
+			return ErrConflict
 		}
 		return err
 	}

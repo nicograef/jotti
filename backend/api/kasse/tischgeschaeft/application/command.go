@@ -311,7 +311,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	if err != nil {
 		if errors.Is(err, ErrConflict) {
 			// Idempotenz-Check: Ist der Konflikt eine Duplikat-Einreichung (gleiche bestellungId)
-			// oder ein echter OCC-Konflikt? Gleiche ID = derselbe Vorgang, Payload wird nicht verglichen.
+			// oder ein echter OCC-Konflikt?
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeBestellungAufgenommenV1), bestellungID, "bestellungId")
 			if lookupErr != nil {
 				log.Error().Err(lookupErr).Str("bestellung_id", bestellungID).Msg("Failed to lookup bestellung idempotency")

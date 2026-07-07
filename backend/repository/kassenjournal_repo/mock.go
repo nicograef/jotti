@@ -260,9 +260,7 @@ func (m *MockRepo) SetReadKassensitzungEventsErr(err error) {
 }
 
 // EventExistsByTypeAndVorgangsID prüft, ob im Mock ein gespeichertes Event des
-// gegebenen Typs existiert, bei dem data[jsonKey] == vorgangsID. Wird auf dem
-// Fehler-Pfad nach einem WriteEvent-Fehler aufgerufen, um Idempotenz-Einreichungen
-// von echten OCC-Konflikten zu unterscheiden.
+// gegebenen Typs existiert, bei dem data[jsonKey] == vorgangsID.
 func (m *MockRepo) EventExistsByTypeAndVorgangsID(_ context.Context, eventType, vorgangsID, jsonKey string) (bool, error) {
 	if m.err != nil {
 		return false, m.err

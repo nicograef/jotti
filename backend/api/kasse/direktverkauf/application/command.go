@@ -111,7 +111,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	if err := c.persistVerkaufEvent(ctx, evt, subject, 0, ks.ZNr, buildAuftraege); err != nil {
 		if errors.Is(err, ErrConflict) {
 			// Idempotenz-Check: Ist der Konflikt eine Duplikat-Einreichung (gleiche verkaufId)
-			// oder ein echter OCC-Konflikt? Gleiche ID = derselbe Vorgang, Payload wird nicht verglichen.
+			// oder ein echter OCC-Konflikt?
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufID, "verkaufId")
 			if lookupErr != nil {
 				log.Error().Err(lookupErr).Str("verkauf_id", verkaufID).Msg("Failed to lookup direktverkauf idempotency")

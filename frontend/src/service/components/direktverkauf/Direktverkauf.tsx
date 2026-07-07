@@ -58,8 +58,7 @@ export function Direktverkauf({
   const { mengen, add, remove, reset } = useMengen<number>()
   const [erhaltenEuro, setErhaltenEuro] = useState('')
   const [kommentar, setKommentar] = useState('')
-  // verkaufId pro logischem Vorgang erzeugen (nicht pro Retry). Erst bei
-  // erfolgreichem Abschluss wird eine neue ID generiert.
+  // verkaufId pro logischem Vorgang (nicht pro Retry). Neue ID nach Erfolg.
   const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
 
   const items = selectItems(products, mengen)
