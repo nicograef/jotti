@@ -11,6 +11,18 @@ Zwei Klassen:
 
 Die Blöcke sind unabhängig voneinander und einzeln ausführbar (eigener Implementierer, Review-Gate, `make verify`, Commit); eine feste Reihenfolge gibt es nicht. Block 6 (Release-Vorbereitung) kommt sinnvollerweise zuletzt.
 
+## Autonome Ausführung (entschieden 2026-07-07)
+
+Blöcke 1 bis 5 setzt ein Multi-Agent-Workflow in einem Lauf um. Block 6 ist ausdrücklich nicht Teil davon und folgt als eigene Session, sobald v0.14.0 getaggt ist und alle Änderungen vorliegen.
+
+Vorbedingung: Start nur auf sauberem main. Der Breaking-Plan (`plan-v0.14.0-breaking.md`) ist vollständig committed, `git status` leer, `make verify` grün. Solange die parallele Session noch WIP im Tree hat, nicht starten.
+
+Orchestrierung: Alle fünf Blöcke parallel implementieren und reviewen, jeder in einem eigenen isolierten git worktree (Implementierer plus Review-Gate mit Fix-Runden). Danach sequenzielle Integration auf main, ein Block nach dem anderen: rebase auf den aktuellen Stand, `make verify`, ein Commit pro Block (Conventional Commits, keine Co-Authored-By-Trailer). Im Integrations-Commit die Akzeptanz-Checkboxen des Blocks abhaken.
+
+Fehler-Politik: Wird ein Block nach drei Fix-Runden nicht grün, wird er ausgelassen (Worktree zur Inspektion liegen lassen) und die übrigen Blöcke werden normal integriert. Der Abschlussbericht nennt ausgelassene Blöcke mit Diagnose.
+
+Push: Nach der letzten Integration main nach origin pushen und das CI-Ergebnis abwarten; bei Rot nachbessern und erneut pushen. Das gilt insbesondere für das Block-4-Kriterium "neuer CI-Job läuft grün".
+
 ---
 
 ## Block 1: HTTP-API-Feinschliff (B4, B6, C3, D2) — vor dem v1.0.0-Tag
@@ -22,10 +34,11 @@ Die Blöcke sind unabhängig voneinander und einzeln ausführbar (eigener Implem
 - B6: `{"status":"ok"}`-Responses bei relay/beleg, gemischte Datumsformate, `details`-Freitexte
 - Entschieden: 401 für `missing_authorization`, `invalid_authorization_format`, `invalid_jwt`, `user_inactive`; 403 für `insufficient_permissions`. Frontend-Auto-Logout bleibt an 401 gebunden.
 - Entschieden (D2): Login-Fehlercodes `no_password_set`/`user_inactive` bleiben erhalten; die Abwägung (Verständlichkeit für nicht-technische Helfer wiegt schwerer als das Enumerationsrisiko, Login-Throttling existiert) wird in `docs/compliance.md` bzw. der Verfahrensdoku festgehalten.
+- Entschieden: `details` bleibt als optionales Diagnosefeld erhalten. Strukturiert bei `validation_error` (zog-Issues) und beim Kassenabschluss-Gate (das Frontend liest beide aus, z. B. `KasseAbschliessenSection.tsx`), sonst kurze englische Diagnose. Vertrag als Godoc-Kommentar in `backend/api/helper/http.go` dokumentieren, Freitexte auf einheitlichen Stil bringen.
 
 ### Was zu bauen ist
 
-Statuscodes gemäß Entscheidung (401/403); die Autorisierung prüft die Rolle aus dem bereits geladenen DB-User statt aus dem Token-Claim (C3), damit Rollenänderungen sofort wirken. API-Kosmetik: leere Erfolgs-Responses einheitlich `{}`; Kalendertage als YYYY-MM-DD, Zeitpunkte als RFC3339; `details` entweder streichen oder als englisches Diagnosefeld dokumentieren. Die D2-Abwägung dokumentieren.
+Statuscodes gemäß Entscheidung (401/403); die Autorisierung prüft die Rolle aus dem bereits geladenen DB-User statt aus dem Token-Claim (C3), damit Rollenänderungen sofort wirken. API-Kosmetik: leere Erfolgs-Responses einheitlich `{}` (der Relay-Client wertet den Response-Body nicht aus, die Umstellung bei relay/beleg ist gefahrlos); Kalendertage als YYYY-MM-DD, Zeitpunkte als RFC3339; `details` gemäß Entscheidung dokumentieren und vereinheitlichen. Die D2-Abwägung dokumentieren.
 
 ### Akzeptanzkriterien
 
@@ -58,24 +71,24 @@ Run-Loops bekommen defer/recover mit Log und Neustart (ein Panic stoppt die Sign
 
 ---
 
-## Block 3: Frontend-Robustheit und UX (C1, C14, C15)
+## Block 3: Frontend-Robustheit und UX (C1, C14)
 
 ### Kontext
 
 - `frontend/src/service/table/hooks.ts:34` — Daten-Hooks verwerfen `isError`
 - `frontend/src/main.tsx:12` — QueryClient ohne globales Error-Handling
 - `frontend/src/admin/settings/DruckstationConfigPage.tsx:204` — Druckfehler nur auf der Unterseite sichtbar
-- `frontend/src/service/components/table/ZahlungDrawer.tsx:66` — Beleg erst über 4 Interaktionen erreichbar
+- Der Backend-Endpunkt für das Dashboard-Banner existiert bereits (`POST /admin/get-fehlgeschlagene-druckauftraege`, `backend/api/druck/auftrag/http/handler.go`), das Banner ist reine Frontend-Arbeit.
+- Entschieden: C15 (Kassenbeleg in einer Interaktion nach der Zahlung) entfällt ersatzlos. Belegdruck ist der seltene Ausnahmefall, der bestehende Weg über die Tisch-Historie bleibt (YAGNI).
 
 ### Was zu bauen ist
 
-Globaler `QueryCache.onError`-Toast plus expliziter Fehlerzustand auf den kritischen Seiten (Tischseite, Kasse): bei 500/Netzabbruch erscheint ein Fehler statt der Leer-Defaults (Saldo 0,00, „Alles ausgegeben!"). Das Admin-Dashboard zeigt ein Banner bei fehlgeschlagenen Druckaufträgen (analog TSE-Warnung). Nach dem Kassieren ist der Kassenbeleg mit einer Interaktion erreichbar (Aktion im Erfolgs-Toast oder Drawer).
+Globaler `QueryCache.onError`-Toast plus expliziter Fehlerzustand auf den kritischen Seiten (Tischseite, Kasse): bei 500/Netzabbruch erscheint ein Fehler statt der Leer-Defaults (Saldo 0,00, „Alles ausgegeben!"). Das Admin-Dashboard zeigt ein Banner bei fehlgeschlagenen Druckaufträgen (analog TSE-Warnung).
 
 ### Akzeptanzkriterien
 
 - [ ] Fehlerzustand statt Leer-Default auf Tischseite/Kasse bei Query-Fehler (Tests)
 - [ ] Banner auf dem Admin-Dashboard bei fehlgeschlagenen Druckaufträgen
-- [ ] Beleg-Druck in einer Interaktion nach der Zahlung erreichbar
 - [ ] Frontend-Tests grün, Lint mit `--max-warnings=0`; `make verify` grün
 
 ---
@@ -128,9 +141,11 @@ Admin-Footer zeigt `jotti <version>` aus `/health`; der Beleg-Satz in der Verfah
 
 ---
 
-## Block 6: Release-Vorbereitung v1.0.0 (C13, C21; Gate-1-Rest)
+## Block 6: Release-Vorbereitung v1.0.0 (C13, C21; Gate-1-Rest) — nicht Teil des autonomen Laufs
 
 ### Kontext
+
+- Eigene Session nach dem v0.14.0-Tag (siehe Autonome Ausführung): Changelog-Basis und der finale Review-Pass brauchen den vollständigen Stand inklusive der Blöcke 1–5; TODO/FIXME-Entscheidungen bleiben Ermessenssache.
 
 - `cliff.toml` — Changelog-Generierung vorhanden, bisher nur flüchtige Release-Notes (C21)
 - `docs/leitfaden/self-hosting.md:39`, `.env.example:21`, `docker-compose.release.yml`, `docs/verfahrensdokumentation.md` — Beispiel-/Pin-Versionen (C13)

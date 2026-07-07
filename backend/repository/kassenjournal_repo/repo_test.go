@@ -741,6 +741,13 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 		t.Fatalf("Failed to write target bestellung: %v", err)
 	}
 
+	// Zahlung für Quelltisch (Version 2), damit die Stornierung im WriteUmbuchung
+	// nicht an gesamt_zahlungen_cents >= 0 scheitert (CHECK-Constraint v0.14.0).
+	quellZahlung := newTestEvent(userID, "zahlung-kassiert:v1", quellSubject, 2, validZahlungData(quellPositionID, 2, 700))
+	if _, err := repo.WriteEvent(context.Background(), quellZahlung, kasse.StreamTypeTischSession, ksNr); err != nil {
+		t.Fatalf("Failed to write source zahlung: %v", err)
+	}
+
 	umbuchPosition := kasse.Position{
 		PositionID:       quellPositionID,
 		VarianteID:       1,
@@ -756,7 +763,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to build stornierung event: %v", err)
 	}
-	stornierungEvent.Version = 2
+	stornierungEvent.Version = 3 // quell now has 2 events (bestellung v1 + zahlung v2)
 
 	bestellungEvent, err := kasse.NewBestellungAufgenommenEvent(zielSubject, userID, "nico", "b0000000-0000-0000-0000-000000000003", []kasse.Position{umbuchPosition}, "Umbuchung")
 	if err != nil {
@@ -773,8 +780,8 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no read error for source subject, got %v", err)
 	}
-	if len(quellEvents) != 1 {
-		t.Fatalf("Expected source rollback (1 event), got %d", len(quellEvents))
+	if len(quellEvents) != 2 {
+		t.Fatalf("Expected source rollback (2 events: bestellung+zahlung), got %d", len(quellEvents))
 	}
 
 	zielEvents, err := repo.ReadEventsBySubject(context.Background(), zielSubject)
@@ -789,8 +796,8 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no source state read error, got %v", err)
 	}
-	if quellState.SaldoCents != 700 {
-		t.Fatalf("Expected source saldo 700 after rollback, got %d", quellState.SaldoCents)
+	if quellState.SaldoCents != 0 {
+		t.Fatalf("Expected source saldo 0 after zahlung rollback, got %d", quellState.SaldoCents)
 	}
 
 	zielState, err := repo.ReadTischSession(context.Background(), zielSubject)
