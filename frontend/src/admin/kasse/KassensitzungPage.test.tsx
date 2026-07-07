@@ -5,7 +5,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BackendError } from '@/lib/Backend'
 
-import { EroeffnenSection, KasseAbschliessenSection } from './KassensitzungPage'
+import {
+  EroeffnenSection,
+  KasseAbschliessenSection,
+  KassensitzungPage,
+} from './KassensitzungPage'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
@@ -25,10 +29,17 @@ const { kasseAbschliessen, kassensitzungEroeffnen } = vi.hoisted(() => ({
     .mockResolvedValue(1),
 }))
 
+const offeneKassensitzungState = vi.hoisted(() => ({ isError: false }))
+
 vi.mock('./hooks', () => ({
   kasseBackend: { kasseAbschliessen, kassensitzungEroeffnen },
   useKassenbestand: () => ({ kassenbestand: { sollBestandCents: 34000 } }),
-  useOffeneKassensitzung: vi.fn(),
+  useOffeneKassensitzung: () => ({
+    kassensitzung: null,
+    isPending: false,
+    isError: offeneKassensitzungState.isError,
+    refetch: () => Promise.resolve(),
+  }),
 }))
 
 vi.mock('@/admin/reporting/hooks', () => ({
@@ -55,6 +66,34 @@ vi.mock('@/admin/tse/hooks', () => ({
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+})
+
+describe('KassensitzungPage', () => {
+  it('zeigt bei Query-Fehler einen Fehlerzustand statt des Leer-Defaults', () => {
+    offeneKassensitzungState.isError = true
+    render(<KassensitzungPage />)
+
+    expect(
+      screen.getByText('Kassendaten konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    // Der Leer-Default („Keine Kassensitzung geöffnet.") darf bei einem Fehler
+    // nicht erscheinen — die Kasse wirkt sonst fälschlich geschlossen.
+    expect(
+      screen.queryByText('Keine Kassensitzung geöffnet.'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Erneut versuchen' }),
+    ).toBeInTheDocument()
+  })
+
+  it('zeigt ohne Fehler und ohne offene Sitzung den Eröffnen-Bereich', () => {
+    offeneKassensitzungState.isError = false
+    render(<KassensitzungPage />)
+
+    expect(
+      screen.getByText('Keine Kassensitzung geöffnet.'),
+    ).toBeInTheDocument()
+  })
 })
 
 describe('EroeffnenSection', () => {

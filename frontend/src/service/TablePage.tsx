@@ -1,6 +1,9 @@
+import { TriangleAlert } from 'lucide-react'
 import { useParams } from 'react-router'
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
   Item,
@@ -29,11 +32,13 @@ export function TablePage() {
   const {
     state,
     isPending: stateLoading,
+    isError: stateError,
     refetch: reloadState,
   } = useTischState(Number(tischId))
   const { isPending, produkte } = useAktiveProdukte()
   const {
     isPending: historieLoading,
+    isError: historieError,
     historie,
     refetch: reloadHistorie,
   } = useTischHistorie(Number(tischId))
@@ -41,6 +46,23 @@ export function TablePage() {
   const reload = () => {
     void reloadState()
     void reloadHistorie()
+  }
+
+  // Expliziter Fehlerzustand statt der Leer-Defaults (Saldo 0,00 €,
+  // „Alles ausgegeben!") — sonst wirkt der Tisch bei Netzabbruch abgerechnet.
+  if (stateError || historieError) {
+    return (
+      <Alert variant="destructive">
+        <TriangleAlert className="size-4" />
+        <AlertTitle>Tischdaten konnten nicht geladen werden</AlertTitle>
+        <AlertDescription>
+          <p>Bitte die Verbindung prüfen und erneut versuchen.</p>
+          <Button variant="outline" size="sm" onClick={reload}>
+            Erneut versuchen
+          </Button>
+        </AlertDescription>
+      </Alert>
+    )
   }
 
   const tisch = {

@@ -1,4 +1,8 @@
+import { TriangleAlert } from 'lucide-react'
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 import { EroeffnenSection } from './EroeffnenSection'
@@ -11,13 +15,34 @@ export { EroeffnenSection } from './EroeffnenSection'
 export { KasseAbschliessenSection } from './KasseAbschliessenSection'
 
 export function KassensitzungPage() {
-  const { kassensitzung, isPending, refetch } = useOffeneKassensitzung()
+  const { kassensitzung, isPending, isError, refetch } =
+    useOffeneKassensitzung()
 
   if (isPending) {
     return (
       <>
         <h1 className="text-2xl font-bold">Kassensitzung</h1>
         <p className="mt-4 text-muted-foreground">Laden…</p>
+      </>
+    )
+  }
+
+  // Expliziter Fehlerzustand statt des Leer-Defaults („Keine Kassensitzung
+  // geöffnet.") — sonst wirkt die Kasse bei Netzabbruch fälschlich geschlossen.
+  if (isError) {
+    return (
+      <>
+        <h1 className="text-2xl font-bold">Kassensitzung</h1>
+        <Alert variant="destructive" className="mt-4">
+          <TriangleAlert className="size-4" />
+          <AlertTitle>Kassendaten konnten nicht geladen werden</AlertTitle>
+          <AlertDescription>
+            <p>Bitte die Verbindung prüfen und erneut versuchen.</p>
+            <Button variant="outline" size="sm" onClick={() => void refetch()}>
+              Erneut versuchen
+            </Button>
+          </AlertDescription>
+        </Alert>
       </>
     )
   }

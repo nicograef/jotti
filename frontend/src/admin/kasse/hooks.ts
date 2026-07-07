@@ -11,12 +11,13 @@ export function useOffeneKassensitzung() {
   const {
     data = null as Kassensitzung | null,
     isPending,
+    isError,
     refetch,
   } = useQuery({
     queryKey: ['offene-kassensitzung'],
     queryFn: () => kasseBackend.getOffeneKassensitzung(),
   })
-  return { kassensitzung: data, isPending, refetch }
+  return { kassensitzung: data, isPending, isError, refetch }
 }
 
 export function useKassenbestand(kassensitzungNr: number | null) {

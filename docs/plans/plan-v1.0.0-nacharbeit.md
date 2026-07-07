@@ -87,9 +87,9 @@ Globaler `QueryCache.onError`-Toast plus expliziter Fehlerzustand auf den kritis
 
 ### Akzeptanzkriterien
 
-- [ ] Fehlerzustand statt Leer-Default auf Tischseite/Kasse bei Query-Fehler (Tests)
-- [ ] Banner auf dem Admin-Dashboard bei fehlgeschlagenen Druckaufträgen
-- [ ] Frontend-Tests grün, Lint mit `--max-warnings=0`; `make verify` grün
+- [x] Fehlerzustand statt Leer-Default auf Tischseite/Kasse bei Query-Fehler (Tests)
+- [x] Banner auf dem Admin-Dashboard bei fehlgeschlagenen Druckaufträgen
+- [x] Frontend-Tests grün, Lint mit `--max-warnings=0`; `make verify` grün
 
 ---
 

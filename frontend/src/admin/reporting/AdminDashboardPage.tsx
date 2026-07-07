@@ -2,6 +2,7 @@ import { TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink } from 'react-router'
 
+import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
@@ -21,6 +22,7 @@ export function AdminDashboardPage() {
   const { kassensitzungen, isPending: listLoading } = useKassensitzungen()
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
   const { queue } = useTSESignaturQueue()
+  const { druckauftraege } = useFehlgeschlageneDruckauftraege()
   const [selectedNr, setSelectedNr] = useState<number | null>(null)
 
   const effectiveNr = selectedNr ?? kassensitzungen.at(0)?.zNr ?? null
@@ -38,8 +40,32 @@ export function AdminDashboardPage() {
   const showQueueWarnung = rueckstand || fehlgeschlagen
   const showTSEBanner = showKonfigWarnung || showQueueWarnung
 
+  // Drucker-Ausfälle proaktiv melden: fehlgeschlagene Druckaufträge sind sonst
+  // nur auf der Druckstationen-Unterseite sichtbar.
+  const showDruckBanner = druckauftraege.length > 0
+
   return (
     <>
+      {showDruckBanner && (
+        <Alert variant="destructive" className="mb-6">
+          <TriangleAlert className="size-4" />
+          <AlertTitle>Drucker prüfen</AlertTitle>
+          <AlertDescription>
+            {druckauftraege.length === 1
+              ? '1 Druckauftrag konnte nicht gedruckt werden.'
+              : `${String(druckauftraege.length)} Druckaufträge konnten nicht gedruckt werden.`}{' '}
+            Mehr dazu unter{' '}
+            <NavLink
+              to="/admin/druckstationen"
+              className="underline underline-offset-4"
+            >
+              Druckstationen
+            </NavLink>
+            .
+          </AlertDescription>
+        </Alert>
+      )}
+
       {showTSEBanner && (
         <Alert variant="destructive" className="mb-6">
           <TriangleAlert className="size-4" />
