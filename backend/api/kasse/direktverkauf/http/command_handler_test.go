@@ -148,3 +148,15 @@ func TestDirektverkaufStornierenHandler_ValidationError(t *testing.T) {
 		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
+
+func TestDirektverkaufTaetigenHandler_UngueltigeVerkaufId_ValidationError(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"verkaufId":"nicht-eine-uuid","positionen":[{"produktId":1,"varianteId":1,"menge":1}],"kommentar":""}`
+	rec := httptest.NewRecorder()
+	handler.DirektverkaufTaetigenHandler().ServeHTTP(rec, requestWithUser(body))
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400 for non-UUID verkaufId, got %d", rec.Code)
+	}
+}

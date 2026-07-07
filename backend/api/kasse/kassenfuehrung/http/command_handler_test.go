@@ -183,6 +183,19 @@ func TestGeldtransitBuchenHandler_NullBetrag(t *testing.T) {
 	}
 }
 
+func TestGeldtransitBuchenHandler_UngueltigeGeldtransitId_ValidationError(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	req := requestWithUser(`{"geldtransitId":"nicht-eine-uuid","richtung":"einlage","betragCents":500,"kommentar":"Test"}`)
+	rec := httptest.NewRecorder()
+
+	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for non-UUID geldtransitId, got %d", rec.Code)
+	}
+}
+
 // KasseAbschliessen
 
 func TestKasseAbschliessenHandler_Success(t *testing.T) {

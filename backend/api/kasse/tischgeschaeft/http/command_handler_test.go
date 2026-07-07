@@ -156,3 +156,20 @@ func TestBestellungUmbuchenHandler_UmbuchungGleicherTisch(t *testing.T) {
 		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
+
+func TestBestellungAufnehmenHandler_UngueltigeBestellungId_ValidationError(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"bestellungId":"nicht-eine-uuid","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":1}],"kommentar":""}`
+	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufnehmen", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+
+	handler.BestellungAufnehmenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400 for non-UUID bestellungId, got %d", rec.Code)
+	}
+}

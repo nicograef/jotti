@@ -97,14 +97,14 @@ Ein Mechanismus für alle drei Append-Endpunkte: clientseitig erzeugte Vorgangs-
 
 ### Akzeptanzkriterien
 
-- [ ] Zwei identische Direktverkauf-Requests erzeugen genau ein Event und einen Signaturauftrag; die zweite Antwort ist erfolgreich (Integrationstest)
-- [ ] Gleiche Semantik für Bestellung und Geldtransit; ein echter OCC-Konflikt (andere Vorgangs-ID) antwortet weiterhin 409 (Integrationstests)
+- [x] Zwei identische Direktverkauf-Requests erzeugen genau ein Event und einen Signaturauftrag; die zweite Antwort ist erfolgreich (Integrationstest)
+- [x] Gleiche Semantik für Bestellung und Geldtransit; ein echter OCC-Konflikt (andere Vorgangs-ID) antwortet weiterhin 409 (Integrationstests)
 - [x] Requests ohne oder mit ungültiger Vorgangs-ID werden als Validierungsfehler abgelehnt
 - [x] Frontend sendet die IDs pro logischem Vorgang; Doppel-Submit-Schutz bleibt zusätzlich bestehen
 - [x] Event-Contract-Test aus Phase 1 um `bestellungId`/`geldtransitId` ergänzt (`verkaufId` ist dort bereits gepinnt)
 - [x] `make verify` grün
 
-Umgesetzt mit `7fada78`. Zu den beiden offenen Punkten: das Verhalten ist implementiert und im Review bestätigt, die dedizierten Integrationstests sind per Session-Entscheidung (2026-07-07) entfallen; der Duplikat-/Konfliktpfad ist damit ungetestet und gehört in die Nacharbeit.
+Umgesetzt mit `7fada78`. Tests (Duplikat-Idempotenz für alle drei Endpunkte, OCC-Konflikt für Direktverkauf, Validierung ungültiger Vorgangs-IDs) nachgezogen in einer separaten Session.
 
 ---
 
