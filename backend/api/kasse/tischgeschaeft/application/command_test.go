@@ -168,7 +168,7 @@ func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
 	}
 
-	err := command.BestellungAufnehmen(ctx, 1, "Test User", 1, inputs, "")
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
 	if err != ErrKasseNichtGeoeffnet {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
@@ -185,7 +185,7 @@ func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2},
 	}
 
-	err := command.BestellungAufnehmen(ctx, 1, "Test User", 1, inputs, "Testkommentar")
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "Testkommentar")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -207,7 +207,7 @@ func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 
 	inputs := []BestellPositionInput{{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2}}
 
-	err := command.BestellungAufnehmen(ctx, 1, "Test User", 1, inputs, "")
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -239,7 +239,7 @@ func TestBestellungAufnehmen_Conflict(t *testing.T) {
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
 	}
 
-	err := command.BestellungAufnehmen(ctx, 1, "Test User", 1, inputs, "")
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
@@ -257,7 +257,7 @@ func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
 	}
 
-	err := command.BestellungAufnehmen(ctx, 1, "Test User", 1, inputs, "")
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
@@ -276,7 +276,7 @@ func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
 	}
 
-	err := command.BestellungAufnehmen(ctx, 1, "Test User", testInactiveTisch.ID, inputs, "")
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInactiveTisch.ID, inputs, "")
 	if err != ErrTischNotActive {
 		t.Fatalf("expected ErrTischNotActive, got %v", err)
 	}
@@ -438,7 +438,7 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User",
+	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 		[]kasse.Position{
 			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		}, "")
@@ -488,7 +488,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User",
+	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 		[]kasse.Position{
 			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		}, "")
@@ -621,7 +621,7 @@ func TestStornierungErteilen_DuplikatPositionRefs(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User",
+	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 		[]kasse.Position{
 			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 3},
 		}, "")
@@ -950,7 +950,7 @@ func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahm
 
 	// Bestellt 3 Bier, davon 1 bezahlt → ein Storno von 3 spaltet in 2 Korrektur
 	// (unbezahlt) und 1 Warenrücknahme (bezahlt).
-	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", []kasse.Position{{
+	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", []kasse.Position{{
 		VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 3,
 	}}, "")
 	var orderData kasse.BestellungAufgenommenV1Data

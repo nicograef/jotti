@@ -11,6 +11,7 @@ export const VerkaufPositionInputSchema = z.object({
 export type VerkaufPositionInput = z.infer<typeof VerkaufPositionInputSchema>
 
 export const DirektverkaufTaetigenSchema = z.object({
+  verkaufId: z.uuid(),
   positionen: VerkaufPositionInputSchema.array().min(1),
   kommentar: z.string().max(100),
 })

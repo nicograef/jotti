@@ -5,7 +5,6 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
-	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
@@ -54,19 +53,19 @@ var kassensitzungEroeffnetV1DataSchema = z.Struct(z.Shape{
 })
 
 type GeldtransitGebuchtV1Data struct {
-	BewegungID  string `json:"bewegungId"`
-	Richtung    string `json:"richtung"` // "einlage" | "entnahme"
-	BetragCents int    `json:"betragCents"`
-	Kommentar   string `json:"kommentar"`
-	GebuchtVon  int    `json:"gebuchtVon"`
+	GeldtransitID string `json:"geldtransitId"`
+	Richtung      string `json:"richtung"` // "einlage" | "entnahme"
+	BetragCents   int    `json:"betragCents"`
+	Kommentar     string `json:"kommentar"`
+	GebuchtVon    int    `json:"gebuchtVon"`
 }
 
 var geldtransitGebuchtV1DataSchema = z.Struct(z.Shape{
-	"BewegungID":  z.String().UUID().Required(),
-	"Richtung":    z.String().OneOf([]string{GeldtransitRichtungEinlage, GeldtransitRichtungEntnahme}, z.Message("Ungültige Richtung")).Required(),
-	"BetragCents": z.Int().GTE(1).Required(),
-	"Kommentar":   z.String().Min(3).Max(200).Required(),
-	"GebuchtVon":  z.Int().GTE(1).Required(),
+	"GeldtransitID": z.String().UUID().Required(),
+	"Richtung":      z.String().OneOf([]string{GeldtransitRichtungEinlage, GeldtransitRichtungEntnahme}, z.Message("Ungültige Richtung")).Required(),
+	"BetragCents":   z.Int().GTE(1).Required(),
+	"Kommentar":     z.String().Min(3).Max(200).Required(),
+	"GebuchtVon":    z.Int().GTE(1).Required(),
 })
 
 type KassensturzDurchgefuehrtV1Data struct {
@@ -131,13 +130,13 @@ func NewKassensitzungEroeffnetEvent(subject string, userID int, userName string,
 	return e.New(userID, userName, string(EventTypeKassensitzungEroeffnetV1), subject, data)
 }
 
-func NewGeldtransitGebuchtEvent(subject string, userID int, userName string, richtung string, betragCents int, kommentar string) (e.Event, error) {
+func NewGeldtransitGebuchtEvent(subject string, userID int, userName string, geldtransitID string, richtung string, betragCents int, kommentar string) (e.Event, error) {
 	data := GeldtransitGebuchtV1Data{
-		BewegungID:  uuid.New().String(),
-		Richtung:    richtung,
-		BetragCents: betragCents,
-		Kommentar:   kommentar,
-		GebuchtVon:  userID,
+		GeldtransitID: geldtransitID,
+		Richtung:      richtung,
+		BetragCents:   betragCents,
+		Kommentar:     kommentar,
+		GebuchtVon:    userID,
 	}
 
 	if err := geldtransitGebuchtV1DataSchema.Validate(&data); err != nil {

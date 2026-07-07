@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -29,6 +30,9 @@ import {
 } from './Kassensitzung'
 
 export function GeldtransitSection({ onSuccess }: { onSuccess: () => void }) {
+  // geldtransitId pro logischem Vorgang (nicht pro Retry). Neue ID nach Erfolg.
+  const [geldtransitId, setGeldtransitId] = useState(() => crypto.randomUUID())
+
   const FormDataSchema = z.object({
     richtung: GeldtransitRichtungSchema,
     betragCents: BetragCentsSchema.gte(1, {
@@ -59,11 +63,13 @@ export function GeldtransitSection({ onSuccess }: { onSuccess: () => void }) {
   const onSubmit = async (data: FormData) => {
     await run(async () => {
       await kasseBackend.geldtransitBuchen(
+        geldtransitId,
         data.richtung,
         data.betragCents,
         data.kommentar,
       )
       toast.success('Kassenbewegung gebucht.')
+      setGeldtransitId(crypto.randomUUID())
       form.reset()
       onSuccess()
     })

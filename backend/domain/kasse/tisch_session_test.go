@@ -12,7 +12,7 @@ import (
 
 func mustCreateOrderEvent(t *testing.T, subject string, userID int, products []Position) e.Event {
 	t.Helper()
-	event, err := NewBestellungAufgenommenEvent(subject, userID, "TestUser", products, "")
+	event, err := NewBestellungAufgenommenEvent(subject, userID, "TestUser", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", products, "")
 	if err != nil {
 		t.Fatalf("failed to create order event: %v", err)
 	}
@@ -409,7 +409,7 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 
 func TestApplyEvent_BestellungTagsBesteller(t *testing.T) {
 	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)}
-	orderEvent, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", products, "")
+	orderEvent, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", products, "")
 	if err != nil {
 		t.Fatalf("failed to create order event: %v", err)
 	}
@@ -432,13 +432,13 @@ func TestApplyEvent_BestellungTagsBesteller(t *testing.T) {
 }
 
 func TestApplyEvent_MultipleBestellerAtSameTable(t *testing.T) {
-	annaOrder, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}, "")
+	annaOrder, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}, "")
 	if err != nil {
 		t.Fatalf("failed to create anna order: %v", err)
 	}
 	annaOrder.ID, annaOrder.Version = 1, 1
 
-	bertOrder, err := NewBestellungAufgenommenEvent(testSubject, 8, "Bert", []Position{testPosition(2, "Wurst", "Bratwurst", "essen", 400, 1)}, "")
+	bertOrder, err := NewBestellungAufgenommenEvent(testSubject, 8, "Bert", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", []Position{testPosition(2, "Wurst", "Bratwurst", "essen", 400, 1)}, "")
 	if err != nil {
 		t.Fatalf("failed to create bert order: %v", err)
 	}
@@ -467,7 +467,7 @@ func TestApplyEvent_MultipleBestellerAtSameTable(t *testing.T) {
 
 func TestApplyEvent_PaymentCancelDeliveryKeepBestellerTag(t *testing.T) {
 	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)}
-	orderEvent, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", products, "")
+	orderEvent, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", products, "")
 	if err != nil {
 		t.Fatalf("failed to create order event: %v", err)
 	}
@@ -643,7 +643,7 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 func TestApplyEvent_SetsErsteBestellungLogTimeOnlyOnce(t *testing.T) {
 	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}
 
-	firstOrder, err := NewBestellungAufgenommenEvent(testSubject, 1, "TestUser", products, "")
+	firstOrder, err := NewBestellungAufgenommenEvent(testSubject, 1, "TestUser", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", products, "")
 	if err != nil {
 		t.Fatalf("failed to create first order event: %v", err)
 	}
@@ -664,7 +664,7 @@ func TestApplyEvent_SetsErsteBestellungLogTimeOnlyOnce(t *testing.T) {
 		t.Fatalf("expected first event time %s, got %s", wantFirst.Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
 	}
 
-	secondOrder, err := NewBestellungAufgenommenEvent(testSubject, 1, "TestUser", products, "")
+	secondOrder, err := NewBestellungAufgenommenEvent(testSubject, 1, "TestUser", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", products, "")
 	if err != nil {
 		t.Fatalf("failed to create second order event: %v", err)
 	}

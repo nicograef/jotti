@@ -58,6 +58,9 @@ export function Direktverkauf({
   const { mengen, add, remove, reset } = useMengen<number>()
   const [erhaltenEuro, setErhaltenEuro] = useState('')
   const [kommentar, setKommentar] = useState('')
+  // verkaufId pro logischem Vorgang erzeugen (nicht pro Retry). Erst bei
+  // erfolgreichem Abschluss wird eine neue ID generiert.
+  const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
 
   const items = selectItems(products, mengen)
   const total = calculateTotalPrice(items)
@@ -80,6 +83,7 @@ export function Direktverkauf({
       reset()
       setErhaltenEuro('')
       setKommentar('')
+      setVerkaufId(crypto.randomUUID())
       toast.success('Verkauf abgeschlossen.')
       onVerkauft?.()
     },
@@ -88,6 +92,7 @@ export function Direktverkauf({
   const onSubmit = async () => {
     await run(async () => {
       await backend.direktverkaufTaetigen({
+        verkaufId,
         positionen: items.map((item) => ({
           produktId: item.produktId,
           varianteId: item.varianteId,

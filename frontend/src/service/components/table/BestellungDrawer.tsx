@@ -33,6 +33,8 @@ interface BestellungDrawerProps {
 export function BestellungDrawer(props: BestellungDrawerProps) {
   const [open, setOpen] = useState(false)
   const [kommentar, setKommentar] = useState('')
+  // bestellungId pro logischem Vorgang (nicht pro Retry). Neue ID wenn Drawer öffnet.
+  const [bestellungId, setBestellungId] = useState(() => crypto.randomUUID())
   const { receiptItems, inputItems } = toBestellungData(
     props.products,
     props.mengen,
@@ -56,6 +58,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
   const onSubmit = async () => {
     await run(async () => {
       await props.backend.bestellungAufnehmen({
+        bestellungId,
         tischId: props.tisch.id,
         positionen: inputItems,
         kommentar,
@@ -67,6 +70,9 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
     if (noPositionenSelected) {
       setOpen(false)
     } else {
+      if (isOpen) {
+        setBestellungId(crypto.randomUUID())
+      }
       setOpen(isOpen)
     }
   }

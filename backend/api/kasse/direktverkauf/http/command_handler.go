@@ -14,7 +14,7 @@ import (
 )
 
 type command interface {
-	DirektverkaufTaetigen(ctx context.Context, userID int, userName string, positionen []application.VerkaufPositionInput, kommentar string) error
+	DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, positionen []application.VerkaufPositionInput, kommentar string) error
 	DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error
 }
 
@@ -29,6 +29,7 @@ type verkaufPositionInput struct {
 }
 
 type direktverkaufTaetigenRequest struct {
+	VerkaufID  string                 `json:"verkaufId"`
 	Positionen []verkaufPositionInput `json:"positionen"`
 	Kommentar  string                 `json:"kommentar"`
 }
@@ -40,6 +41,7 @@ var verkaufPositionInputSchema = z.Struct(z.Shape{
 })
 
 var direktverkaufTaetigenSchema = z.Struct(z.Shape{
+	"VerkaufID":  z.String().UUID().Required(),
 	"Positionen": z.Slice(verkaufPositionInputSchema).Min(1).Required(),
 	"Kommentar":  z.String().Max(100),
 })
@@ -69,7 +71,7 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.DirektverkaufTaetigen(r.Context(), userID, userName, toVerkaufPositionInputs(body.Positionen), body.Kommentar)
+		err := h.Command.DirektverkaufTaetigen(r.Context(), userID, userName, body.VerkaufID, toVerkaufPositionInputs(body.Positionen), body.Kommentar)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrConflict):

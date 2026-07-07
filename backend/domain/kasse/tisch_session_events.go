@@ -126,7 +126,7 @@ var ausgabeBestaetigtV1DataSchema = z.Struct(z.Shape{
 
 // --- Event-Erstellungsfunktionen ---
 
-func NewBestellungAufgenommenEvent(subject string, userID int, userName string, positionen []Position, kommentar string) (e.Event, error) {
+func NewBestellungAufgenommenEvent(subject string, userID int, userName string, bestellungID string, positionen []Position, kommentar string) (e.Event, error) {
 	// Generate PositionIDs for each position (on a copy, so the caller's slice stays untouched)
 	positionen = slices.Clone(positionen)
 	for i := range positionen {
@@ -139,7 +139,7 @@ func NewBestellungAufgenommenEvent(subject string, userID int, userName string, 
 	}
 
 	data := BestellungAufgenommenV1Data{
-		BestellungID:     uuid.New().String(),
+		BestellungID:     bestellungID,
 		Positionen:       toPositionenEventData(positionen),
 		GesamtPreisCents: gesamtPreisCents,
 		Kommentar:        kommentar,

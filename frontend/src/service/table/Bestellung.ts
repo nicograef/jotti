@@ -33,6 +33,7 @@ export const BestellPositionInputSchema = z.object({
 export type BestellPositionInput = z.infer<typeof BestellPositionInputSchema>
 
 export const BestellungAufnehmenSchema = z.object({
+  bestellungId: z.uuid(),
   tischId: z.number().int().min(1),
   positionen: BestellPositionInputSchema.array().min(1),
   kommentar: z.string().max(100),

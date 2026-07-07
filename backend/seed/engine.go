@@ -5,6 +5,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
@@ -204,7 +205,7 @@ func (b *sitzungsBuilder) bestellen(a bestellen) error {
 	if err != nil {
 		return err
 	}
-	evt, err := kasse.NewBestellungAufgenommenEvent(b.tischSubject(a.Tisch), a.User, name, positionen, a.Kommentar)
+	evt, err := kasse.NewBestellungAufgenommenEvent(b.tischSubject(a.Tisch), a.User, name, uuid.New().String(), positionen, a.Kommentar)
 	if err != nil {
 		return err
 	}
@@ -405,7 +406,7 @@ func (b *sitzungsBuilder) geldtransit(a geldtransit) error {
 		return err
 	}
 	evt, err := kasse.NewGeldtransitGebuchtEvent(kasse.KassensitzungSubject(b.sitzung.ZNr), a.User, name,
-		a.Richtung, a.BetragCents, a.Kommentar)
+		uuid.New().String(), a.Richtung, a.BetragCents, a.Kommentar)
 	if err != nil {
 		return err
 	}

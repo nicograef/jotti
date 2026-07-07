@@ -31,6 +31,7 @@ type eventRepo interface {
 	ReadFavoritenTischStates(ctx context.Context, tischIDs []int, kassensitzungNr int) (map[int]kassenjournal_repo.TischNameUndSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
+	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
 }
 
 type kassensitzungenRepo interface {
@@ -213,7 +214,12 @@ func validatePositionRefs(available []kasse.Position, requested []kasse.Position
 	return true
 }
 
-func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string, tischID int, inputs []BestellPositionInput, kommentar string) error {
+// BestellungAufnehmen nimmt eine Bestellung für einen Tisch auf.
+// bestellungID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel). Bei
+// UniqueViolation (Duplikat-Einreichung) wird per bestellungId nachgeschlagen:
+// Treffer = idempotente Erfolgsantwort; kein Treffer = echter OCC-Konflikt (409).
+// Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht verglichen.
+func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, inputs []BestellPositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz, Status prüfen und KS + Subject bestimmen
@@ -273,7 +279,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		})
 	}
 
-	evt, err := kasse.NewBestellungAufgenommenEvent(subject, userID, userName, positionen, kommentar)
+	evt, err := kasse.NewBestellungAufgenommenEvent(subject, userID, userName, bestellungID, positionen, kommentar)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create bestellung aufgenommen event")
 		return err
@@ -304,6 +310,17 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	_, err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
 	if err != nil {
 		if errors.Is(err, ErrConflict) {
+			// Idempotenz-Check: Ist der Konflikt eine Duplikat-Einreichung (gleiche bestellungId)
+			// oder ein echter OCC-Konflikt? Gleiche ID = derselbe Vorgang, Payload wird nicht verglichen.
+			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeBestellungAufgenommenV1), bestellungID, "bestellungId")
+			if lookupErr != nil {
+				log.Error().Err(lookupErr).Str("bestellung_id", bestellungID).Msg("Failed to lookup bestellung idempotency")
+				return ErrDatabase
+			}
+			if exists {
+				log.Info().Str("bestellung_id", bestellungID).Msg("Idempotente Bestellung: bestellungId bereits vorhanden")
+				return nil
+			}
 			return ErrConflict
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung aufgenommen event to database")

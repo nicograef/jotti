@@ -14,7 +14,7 @@ import (
 
 type command interface {
 	KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error)
-	GeldtransitBuchen(ctx context.Context, userID int, userName string, richtung string, betragCents int, kommentar string) error
+	GeldtransitBuchen(ctx context.Context, userID int, userName string, geldtransitID string, richtung string, betragCents int, kommentar string) error
 	KasseAbschliessen(ctx context.Context, userID int, userName string, istBestandCents int) (kasseApp.KassenabschlussErgebnis, error)
 }
 
@@ -39,12 +39,14 @@ type kassensitzungEroeffnenResponse struct {
 }
 
 type geldtransitBuchenRequest struct {
-	Richtung    string `json:"richtung"`
-	BetragCents int    `json:"betragCents"`
-	Kommentar   string `json:"kommentar"`
+	GeldtransitID string `json:"geldtransitId"`
+	Richtung      string `json:"richtung"`
+	BetragCents   int    `json:"betragCents"`
+	Kommentar     string `json:"kommentar"`
 }
 
 var geldtransitBuchenSchema = z.Struct(z.Shape{
+	"GeldtransitID": z.String().UUID().Required(),
 	"Richtung": z.String().OneOf(
 		[]string{"einlage", "entnahme"},
 		z.Message("Ungültige Richtung"),
@@ -117,7 +119,7 @@ func (h *CommandHandler) GeldtransitBuchenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.GeldtransitBuchen(r.Context(), userID, userName, body.Richtung, body.BetragCents, body.Kommentar)
+		err := h.Command.GeldtransitBuchen(r.Context(), userID, userName, body.GeldtransitID, body.Richtung, body.BetragCents, body.Kommentar)
 		if err != nil {
 			switch {
 			case errors.Is(err, kasseApp.ErrConflict):

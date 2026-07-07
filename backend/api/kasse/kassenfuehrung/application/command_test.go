@@ -141,7 +141,7 @@ func TestGeldtransitBuchen(t *testing.T) {
 	ctx := context.Background()
 	cmd := newTestCommand(testOpenKS)
 
-	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "einlage", 10000, "Wechselgeld nachgelegt")
+	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "einlage", 10000, "Wechselgeld nachgelegt")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -452,7 +452,7 @@ func TestGeldtransitBuchen_WirdAbgeschlossen(t *testing.T) {
 	imAbschluss := &kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungWirdAbgeschlossen, CreatedAt: time.Now().UTC()}
 	cmd := newTestCommand(imAbschluss)
 
-	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "einlage", 1000, "Wechselgeld")
+	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "einlage", 1000, "Wechselgeld")
 	if err != ErrKasseWirdAbgeschlossen {
 		t.Fatalf("expected ErrKasseWirdAbgeschlossen, got %v", err)
 	}

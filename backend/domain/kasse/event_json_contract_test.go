@@ -309,15 +309,15 @@ func TestEventContract_KassensitzungEroeffnetV1(t *testing.T) {
 
 func TestEventContract_GeldtransitGebuchtV1(t *testing.T) {
 	const lit = `{
-		"bewegungId":  "77777777-7777-4777-8777-777777777777",
-		"richtung":    "einlage",
-		"betragCents": 10000,
-		"kommentar":   "Wechselgeld nachgefüllt",
-		"gebuchtVon":  2
+		"geldtransitId": "77777777-7777-4777-8777-777777777777",
+		"richtung":      "einlage",
+		"betragCents":   10000,
+		"kommentar":     "Wechselgeld nachgefüllt",
+		"gebuchtVon":    2
 	}`
 	var data GeldtransitGebuchtV1Data
 	unmarshalJSON(t, lit, &data)
-	assertField(t, "bewegungId", data.BewegungID, "77777777-7777-4777-8777-777777777777")
+	assertField(t, "geldtransitId", data.GeldtransitID, "77777777-7777-4777-8777-777777777777")
 	assertField(t, "richtung", data.Richtung, "einlage")
 	assertField(t, "betragCents", data.BetragCents, 10000)
 	assertField(t, "gebuchtVon", data.GebuchtVon, 2)

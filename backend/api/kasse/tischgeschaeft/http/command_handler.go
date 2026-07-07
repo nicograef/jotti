@@ -15,7 +15,7 @@ import (
 )
 
 type command interface {
-	BestellungAufnehmen(ctx context.Context, userID int, userName string, tischID int, positionen []application.BestellPositionInput, kommentar string) error
+	BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, positionen []application.BestellPositionInput, kommentar string) error
 	BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef) error
 	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
@@ -49,9 +49,10 @@ func toBestellPositionInputs(positionen []bestellPositionInput) []application.Be
 }
 
 type bestellungAufnehmenRequest struct {
-	TischID    int                    `json:"tischId"`
-	Positionen []bestellPositionInput `json:"positionen"`
-	Kommentar  string                 `json:"kommentar"`
+	BestellungID string                 `json:"bestellungId"`
+	TischID      int                    `json:"tischId"`
+	Positionen   []bestellPositionInput `json:"positionen"`
+	Kommentar    string                 `json:"kommentar"`
 }
 
 type positionRefRequest struct {
@@ -86,9 +87,10 @@ var positionRefRequestSchema = z.Struct(z.Shape{
 })
 
 var bestellungAufnehmenSchema = z.Struct(z.Shape{
-	"TischID":    tisch.TischIDSchema.Required(),
-	"Positionen": z.Slice(bestellPositionInputSchema).Min(1).Required(),
-	"Kommentar":  z.String().Max(100),
+	"BestellungID": z.String().UUID().Required(),
+	"TischID":      tisch.TischIDSchema.Required(),
+	"Positionen":   z.Slice(bestellPositionInputSchema).Min(1).Required(),
+	"Kommentar":    z.String().Max(100),
 })
 
 func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
@@ -103,7 +105,7 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.TischID, toBestellPositionInputs(body.Positionen), body.Kommentar)
+		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.BestellungID, body.TischID, toBestellPositionInputs(body.Positionen), body.Kommentar)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrConflict):

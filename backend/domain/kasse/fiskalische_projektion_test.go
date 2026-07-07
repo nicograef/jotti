@@ -138,7 +138,7 @@ func TestFiskalischeProjektion(t *testing.T) {
 		{
 			name: "geldtransit einlage: Eigenbeleg mit positivem Betrag",
 			event: projektionsEvent(t, EventTypeGeldtransitGebuchtV1, "kassensitzung-1", GeldtransitGebuchtV1Data{
-				BewegungID: "g", Richtung: "einlage", BetragCents: 5000, GebuchtVon: 1,
+				GeldtransitID: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", Richtung: "einlage", BetragCents: 5000, GebuchtVon: 1,
 			}),
 			pflichtig:       true,
 			wantProcessType: tse.ProcessTypeKassenbelegV1,
@@ -147,7 +147,7 @@ func TestFiskalischeProjektion(t *testing.T) {
 		{
 			name: "geldtransit entnahme: Eigenbeleg mit negativem Betrag",
 			event: projektionsEvent(t, EventTypeGeldtransitGebuchtV1, "kassensitzung-1", GeldtransitGebuchtV1Data{
-				BewegungID: "g", Richtung: "entnahme", BetragCents: 5000, GebuchtVon: 1,
+				GeldtransitID: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", Richtung: "entnahme", BetragCents: 5000, GebuchtVon: 1,
 			}),
 			pflichtig:       true,
 			wantProcessType: tse.ProcessTypeKassenbelegV1,

@@ -85,6 +85,11 @@ func (s *spyEventRepo) WriteEventWithDruckauftraege(_ context.Context, e event.E
 	return id, nil
 }
 
+func (s *spyEventRepo) EventExistsByTypeAndVorgangsID(_ context.Context, _, _, _ string) (bool, error) {
+	// Spy returns false (no duplicate): the idempotency path is not exercised in these unit tests.
+	return false, nil
+}
+
 type mockDruckstationRepo struct {
 	konfig map[string]druckstation.Druckstation
 	err    error
@@ -127,7 +132,7 @@ var testInputs = []VerkaufPositionInput{
 func TestDirektverkaufTaetigen_KasseNichtGeoeffnet(t *testing.T) {
 	command := newCommand(&spyEventRepo{}, nil)
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
 	if err != ErrKasseNichtGeoeffnet {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
@@ -137,7 +142,7 @@ func TestDirektverkaufTaetigen_WritesSingleEvent(t *testing.T) {
 	spy := &spyEventRepo{}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "Direktverkauf")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "Direktverkauf")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -184,7 +189,7 @@ func TestDirektverkaufTaetigen_ProduktNotFound(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
 	if err != ErrProduktNotFound {
 		t.Fatalf("expected ErrProduktNotFound, got %v", err)
 	}
@@ -197,7 +202,7 @@ func TestDirektverkaufTaetigen_Conflict(t *testing.T) {
 	spy := &spyEventRepo{writeErr: db.ErrAlreadyExists}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
@@ -207,7 +212,7 @@ func TestDirektverkaufTaetigen_DeadlockMapsToConflict(t *testing.T) {
 	spy := &spyEventRepo{writeErr: db.ErrConflict}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
@@ -223,7 +228,7 @@ func TestDirektverkaufTaetigen_AbholbonModeQueuesExactlyOneAuftrag(t *testing.T)
 		},
 	)
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", testInputs, "Direktverkauf")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "Direktverkauf")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

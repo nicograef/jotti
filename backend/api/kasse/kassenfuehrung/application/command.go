@@ -21,6 +21,7 @@ type kassenjournalRepo interface {
 	GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error)
 	GetTischSessionsByKassensitzungNr(ctx context.Context, kassensitzungNr int) ([]kasse.TischSession, error)
 	ReadKassensitzungEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error)
+	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
 }
 
 type kassensitzungenRepo interface {
@@ -187,7 +188,11 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 }
 
 // GeldtransitBuchen books a Geldtransit (einlage or entnahme).
-func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName string, richtung string, betragCents int, kommentar string) error {
+// geldtransitID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel). Bei
+// UniqueViolation (Duplikat-Einreichung) wird per geldtransitId nachgeschlagen:
+// Treffer = idempotente Erfolgsantwort; kein Treffer = echter OCC-Konflikt (409).
+// Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht verglichen.
+func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName string, geldtransitID string, richtung string, betragCents int, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
@@ -195,7 +200,7 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 		return err
 	}
 
-	evt, err := kasse.NewGeldtransitGebuchtEvent(kasse.KassensitzungSubject(ks.ZNr), userID, userName, richtung, betragCents, kommentar)
+	evt, err := kasse.NewGeldtransitGebuchtEvent(kasse.KassensitzungSubject(ks.ZNr), userID, userName, geldtransitID, richtung, betragCents, kommentar)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create geldtransit-gebucht event")
 		return err
@@ -210,6 +215,19 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 	}
 
 	if err := c.writeKassensitzungEvent(ctx, evt, ks.ZNr, maxVersion); err != nil {
+		if errors.Is(err, ErrConflict) {
+			// Idempotenz-Check: Ist der Konflikt eine Duplikat-Einreichung (gleiche geldtransitId)
+			// oder ein echter OCC-Konflikt? Gleiche ID = derselbe Vorgang, Payload wird nicht verglichen.
+			exists, lookupErr := c.KassenjournalRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeGeldtransitGebuchtV1), geldtransitID, "geldtransitId")
+			if lookupErr != nil {
+				log.Error().Err(lookupErr).Str("geldtransit_id", geldtransitID).Msg("Failed to lookup geldtransit idempotency")
+				return ErrDatabase
+			}
+			if exists {
+				log.Info().Str("geldtransit_id", geldtransitID).Msg("Idempotenter Geldtransit: geldtransitId bereits vorhanden")
+				return nil
+			}
+		}
 		return err
 	}
 

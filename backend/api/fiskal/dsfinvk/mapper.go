@@ -401,7 +401,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				return nil, fmt.Errorf("unmarshal geldtransit-gebucht (event %d): %w", ev.ID, err)
 			}
 			bonNr++
-			belege = append(belege, geldbewegung(ev, data.BewegungID, bonNr, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar))
+			belege = append(belege, geldbewegung(ev, data.GeldtransitID, bonNr, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar))
 
 		case string(kasse.EventTypeDifferenzSollIstGebuchtV1):
 			var data kasse.DifferenzSollIstGebuchtV1Data

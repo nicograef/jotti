@@ -64,9 +64,9 @@ func newTestEvent(userID int, eventType, subject string, version int, data any) 
 }
 
 // validBestellungData returns valid bestellung-aufgenommen:v1 event data for testing.
-func validBestellungData(positionID string, einzelpreis, menge int) map[string]any {
+func validBestellungData(bestellungID, positionID string, einzelpreis, menge int) map[string]any {
 	return map[string]any{
-		"bestellungId": "b0000000-0000-0000-0000-000000000001",
+		"bestellungId": bestellungID,
 		"positionen": []map[string]any{
 			{
 				"positionId":       positionID,
@@ -259,7 +259,7 @@ func TestWriteEvent_TischSession(t *testing.T) {
 	}
 
 	subject := kasse.TischSessionSubject(ksNr, tischID)
-	data := validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 2)
+	data := validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 2)
 	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, data)
 
 	eventID, err := repo.WriteEvent(context.Background(), e, kasse.StreamTypeTischSession, ksNr)
@@ -291,7 +291,7 @@ func TestReadFavoritenTischStates(t *testing.T) {
 
 	// Tisch A bekommt eine Bestellung -> Session-Projektion entsteht; Tisch B bleibt leer.
 	subjectA := kasse.TischSessionSubject(ksNr, tischA)
-	data := validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 2)
+	data := validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 2)
 	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subjectA, 1, data)
 	if _, err := repo.WriteEvent(context.Background(), e, kasse.StreamTypeTischSession, ksNr); err != nil {
 		t.Fatalf("Failed to write bestellung: %v", err)
@@ -363,7 +363,7 @@ func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
 	}
 
 	subject := kasse.TischSessionSubject(ksNr, tischID)
-	data := validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 2)
+	data := validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 2)
 	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, data)
 
 	eventID, err := repo.WriteEventWithDruckauftraege(context.Background(), e, kasse.StreamTypeTischSession, ksNr,
@@ -411,7 +411,7 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 	}
 
 	subject := kasse.TischSessionSubject(ksNr, tischID)
-	data := validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 2)
+	data := validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 2)
 	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, data)
 
 	// "ungueltig" violates the bon_art CHECK constraint, so the auftrag INSERT fails.
@@ -462,7 +462,7 @@ func TestWriteEvent_SignaturpflichtigErzeugtOffenenAuftrag(t *testing.T) {
 
 	subject := kasse.TischSessionSubject(ksNr, tischID)
 
-	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, validBestellungData("10000000-0000-4000-8000-000000000001", 350, 1))
+	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, validBestellungData("b0000000-0000-0000-0000-000000000001", "10000000-0000-4000-8000-000000000001", 350, 1))
 	bestellungID, err := repo.WriteEvent(context.Background(), bestellung, kasse.StreamTypeTischSession, ksNr)
 	if err != nil {
 		t.Fatalf("Failed to write bestellung event: %v", err)
@@ -548,7 +548,7 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	zielSubject := kasse.TischSessionSubject(ksNr, zielTischID)
 	quellPositionID := "10000000-0000-0000-0000-000000000001"
 
-	quellBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", quellSubject, 1, validBestellungData(quellPositionID, 350, 2))
+	quellBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", quellSubject, 1, validBestellungData("b0000000-0000-0000-0000-000000000001", quellPositionID, 350, 2))
 	if _, err := repo.WriteEvent(context.Background(), quellBestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
 		t.Fatalf("Failed to write source bestellung: %v", err)
 	}
@@ -649,7 +649,7 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 	zielSubject := kasse.TischSessionSubject(ksNr, zielTischID)
 	quellPositionID := "10000000-0000-0000-0000-000000000002"
 
-	quellBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", quellSubject, 1, validBestellungData(quellPositionID, 350, 2))
+	quellBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", quellSubject, 1, validBestellungData("b0000000-0000-0000-0000-000000000001", quellPositionID, 350, 2))
 	if _, err := repo.WriteEvent(context.Background(), quellBestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
 		t.Fatalf("Failed to write source bestellung: %v", err)
 	}
@@ -732,11 +732,11 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 	quellPositionID := "10000000-0000-0000-0000-000000000003"
 	zielPositionID := "10000000-0000-0000-0000-000000000004"
 
-	quellBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", quellSubject, 1, validBestellungData(quellPositionID, 350, 2))
+	quellBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", quellSubject, 1, validBestellungData("b0000000-0000-0000-0000-000000000001", quellPositionID, 350, 2))
 	if _, err := repo.WriteEvent(context.Background(), quellBestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
 		t.Fatalf("Failed to write source bestellung: %v", err)
 	}
-	zielBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", zielSubject, 1, validBestellungData(zielPositionID, 100, 1))
+	zielBestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", zielSubject, 1, validBestellungData("b0000000-0000-0000-0000-000000000002", zielPositionID, 100, 1))
 	if _, err := repo.WriteEvent(context.Background(), zielBestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
 		t.Fatalf("Failed to write target bestellung: %v", err)
 	}
@@ -758,7 +758,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 	}
 	stornierungEvent.Version = 2
 
-	bestellungEvent, err := kasse.NewBestellungAufgenommenEvent(zielSubject, userID, "nico", []kasse.Position{umbuchPosition}, "Umbuchung")
+	bestellungEvent, err := kasse.NewBestellungAufgenommenEvent(zielSubject, userID, "nico", "b0000000-0000-0000-0000-000000000003", []kasse.Position{umbuchPosition}, "Umbuchung")
 	if err != nil {
 		t.Fatalf("Failed to build bestellung event: %v", err)
 	}
@@ -1043,7 +1043,7 @@ func TestWriteEvent_InGeschlosseneKassensitzungWirdAbgelehnt(t *testing.T) {
 	}
 
 	subject := kasse.TischSessionSubject(ksNr, tischID)
-	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 1))
+	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 1))
 
 	_, err = repo.WriteEvent(context.Background(), e, kasse.StreamTypeTischSession, ksNr)
 	if !errors.Is(err, ErrKassensitzungNichtOffen) {
@@ -1077,7 +1077,7 @@ func TestWriteEvent_ZwischenstatusWirdAbgeschlossen(t *testing.T) {
 
 	// Buchungs-Event wird abgelehnt.
 	tischSubject := kasse.TischSessionSubject(ksNr, tischID)
-	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", tischSubject, 1, validBestellungData("p0000000-0000-0000-0000-000000000001", 350, 1))
+	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", tischSubject, 1, validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 1))
 	if _, err := repo.WriteEvent(context.Background(), bestellung, kasse.StreamTypeTischSession, ksNr); !errors.Is(err, ErrKassensitzungNichtOffen) {
 		t.Fatalf("expected booking to be rejected in wird_abgeschlossen, got %v", err)
 	}
@@ -1246,7 +1246,7 @@ func TestWriteEvent_WithTischSessionProjection(t *testing.T) {
 
 	subject := kasse.TischSessionSubject(ksNr, tischID)
 	posID := "p0000000-0000-0000-0000-000000000001"
-	data := validBestellungData(posID, 350, 2)
+	data := validBestellungData("b0000000-0000-0000-0000-000000000001", posID, 350, 2)
 	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, data)
 
 	eventID, err := repo.WriteEvent(context.Background(), e, kasse.StreamTypeTischSession, ksNr)
@@ -1324,7 +1324,7 @@ func TestWriteEvent_MultipleEvents_ProjectionCorrect(t *testing.T) {
 	posID := "p0000000-0000-0000-0000-000000000002"
 
 	// Write a Bestellung (2x Bier @ 350 = 700 cents)
-	bestellungData := validBestellungData(posID, 350, 2)
+	bestellungData := validBestellungData("b0000000-0000-0000-0000-000000000001", posID, 350, 2)
 	e1 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, bestellungData)
 	_, err = repo.WriteEvent(context.Background(), e1, kasse.StreamTypeTischSession, ksNr)
 	if err != nil {
@@ -1518,7 +1518,7 @@ func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
 	posID := "p0000000-0000-0000-0000-000000000099"
 
 	// Write events through normal path (creates projection)
-	bestellungData := validBestellungData(posID, 500, 3) // 3x 500 = 1500
+	bestellungData := validBestellungData("b0000000-0000-0000-0000-000000000001", posID, 500, 3) // 3x 500 = 1500
 	e1 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, bestellungData)
 	_, err = repo.WriteEvent(context.Background(), e1, kasse.StreamTypeTischSession, ksNr)
 	if err != nil {
@@ -1607,14 +1607,14 @@ func TestRebuildAllProjections_MultipleSubjects(t *testing.T) {
 
 	// Write events via raw insert (bypassing projection, simulating events without a projection)
 	e1 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject1, 1,
-		validBestellungData("p1-1", 200, 2)) // 400
+		validBestellungData("b0000000-0000-0000-0000-000000000001", "p1-1", 200, 2)) // 400
 	_, err = insertEventRaw(repo.db, e1, ksNr)
 	if err != nil {
 		t.Fatalf("Failed to insert event: %v", err)
 	}
 
 	e2 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject2, 1,
-		validBestellungData("p2-1", 300, 1)) // 300
+		validBestellungData("b0000000-0000-0000-0000-000000000002", "p2-1", 300, 1)) // 300
 	_, err = insertEventRaw(repo.db, e2, ksNr)
 	if err != nil {
 		t.Fatalf("Failed to insert event: %v", err)
@@ -1672,7 +1672,7 @@ func TestRebuildAllProjections_SkipsKassensitzungSubjects(t *testing.T) {
 	// Insert a tisch-session event
 	tischSubject := kasse.TischSessionSubject(ksNr, tischID)
 	tischEvent := newTestEvent(userID, "bestellung-aufgenommen:v1", tischSubject, 1,
-		validBestellungData("p1-1", 200, 1))
+		validBestellungData("b0000000-0000-0000-0000-000000000001", "p1-1", 200, 1))
 	_, err = insertEventRaw(repo.db, tischEvent, ksNr)
 	if err != nil {
 		t.Fatalf("Failed to insert tisch event: %v", err)
@@ -1704,11 +1704,11 @@ func TestWriteEvent_KassensitzungOtherEvent_NoCRUDChange(t *testing.T) {
 
 	// Write a kassenbewegung event — should NOT change kassensitzungen CRUD entity status
 	data := map[string]any{
-		"bewegungId":  "00000000-0000-0000-0000-000000000001",
-		"richtung":    "einlage",
-		"betragCents": 10000,
-		"kommentar":   "Wechselgeld",
-		"gebuchtVon":  userID,
+		"geldtransitId": "00000000-0000-0000-0000-000000000001",
+		"richtung":      "einlage",
+		"betragCents":   10000,
+		"kommentar":     "Wechselgeld",
+		"gebuchtVon":    userID,
 	}
 	e := newTestEvent(userID, "geldtransit-gebucht:v1", subject, 1, data)
 

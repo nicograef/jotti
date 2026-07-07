@@ -24,7 +24,7 @@ func (m *mockCommand) KassensitzungEroeffnen(_ context.Context, _ int, _ string,
 	return m.zNr, m.err
 }
 
-func (m *mockCommand) GeldtransitBuchen(_ context.Context, _ int, _ string, _ string, _ int, _ string) error {
+func (m *mockCommand) GeldtransitBuchen(_ context.Context, _ int, _ string, _ string, _ string, _ int, _ string) error {
 	return m.err
 }
 
@@ -134,7 +134,7 @@ func TestKassensitzungEroeffnenHandler_NegativerBetrag(t *testing.T) {
 func TestGeldtransitBuchenHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
-	req := requestWithUser(`{"richtung":"einlage","betragCents":500,"kommentar":"Initialbestand"}`)
+	req := requestWithUser(`{"geldtransitId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","richtung":"einlage","betragCents":500,"kommentar":"Initialbestand"}`)
 	rec := httptest.NewRecorder()
 
 	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)

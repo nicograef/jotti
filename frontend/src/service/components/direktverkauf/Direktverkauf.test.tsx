@@ -75,10 +75,15 @@ describe('Direktverkauf', () => {
     await waitFor(() => {
       expect(direktverkaufTaetigen).toHaveBeenCalledTimes(1)
     })
-    expect(direktverkaufTaetigen).toHaveBeenCalledWith({
-      positionen: [{ produktId: 1, varianteId: 1, menge: 1 }],
-      kommentar: '',
-    })
+    expect(direktverkaufTaetigen).toHaveBeenCalledWith(
+      expect.objectContaining({
+        verkaufId: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+        ),
+        positionen: [{ produktId: 1, varianteId: 1, menge: 1 }],
+        kommentar: '',
+      }),
+    )
 
     // After success the selection resets, disabling the confirm button again.
     await waitFor(() => {

@@ -18,7 +18,7 @@ type mockCommand struct {
 	err error
 }
 
-func (m *mockCommand) DirektverkaufTaetigen(_ context.Context, _ int, _ string, _ []application.VerkaufPositionInput, _ string) error {
+func (m *mockCommand) DirektverkaufTaetigen(_ context.Context, _ int, _ string, _ string, _ []application.VerkaufPositionInput, _ string) error {
 	return m.err
 }
 
@@ -34,7 +34,7 @@ func requestWithUser(body string) *http.Request {
 	return req.WithContext(ctx)
 }
 
-const validBody = `{"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
+const validBody = `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
 
 func TestDirektverkaufTaetigenHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}

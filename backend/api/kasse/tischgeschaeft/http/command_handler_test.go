@@ -18,7 +18,7 @@ type mockCommand struct {
 	err error
 }
 
-func (m *mockCommand) BestellungAufnehmen(ctx context.Context, userID int, userName string, tischID int, positionen []application.BestellPositionInput, kommentar string) error {
+func (m *mockCommand) BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, positionen []application.BestellPositionInput, kommentar string) error {
 	return m.err
 }
 
@@ -41,7 +41,7 @@ func (m *mockCommand) AusgabeBestaetigen(ctx context.Context, userID int, userNa
 func TestBestellungAufnehmenHandler_Conflict(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
 
-	body := `{"tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
+	body := `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
 	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufnehmen", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
@@ -58,7 +58,7 @@ func TestBestellungAufnehmenHandler_Conflict(t *testing.T) {
 func TestBestellungAufnehmenHandler_ProduktNotFound(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrProduktNotFound}}
 
-	body := `{"tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
+	body := `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
 	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufnehmen", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)

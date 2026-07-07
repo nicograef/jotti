@@ -4,6 +4,7 @@ package kassenjournal_repo
 
 import (
 	"context"
+	"encoding/json"
 	"sort"
 	"strings"
 	"time"
@@ -256,6 +257,37 @@ func (m *MockRepo) GetTischSessionsByKassensitzungNr(_ context.Context, kassensi
 // Use to trigger a post-barrier failure without affecting other journal operations.
 func (m *MockRepo) SetReadKassensitzungEventsErr(err error) {
 	m.kassensitzungEventsErr = err
+}
+
+// EventExistsByTypeAndVorgangsID prüft, ob im Mock ein gespeichertes Event des
+// gegebenen Typs existiert, bei dem data[jsonKey] == vorgangsID. Wird auf dem
+// Fehler-Pfad nach einem WriteEvent-Fehler aufgerufen, um Idempotenz-Einreichungen
+// von echten OCC-Konflikten zu unterscheiden.
+func (m *MockRepo) EventExistsByTypeAndVorgangsID(_ context.Context, eventType, vorgangsID, jsonKey string) (bool, error) {
+	if m.err != nil {
+		return false, m.err
+	}
+	for _, e := range m.events {
+		if e.Type != eventType {
+			continue
+		}
+		var data map[string]json.RawMessage
+		if err := json.Unmarshal(e.Data, &data); err != nil {
+			continue
+		}
+		val, ok := data[jsonKey]
+		if !ok {
+			continue
+		}
+		var s string
+		if err := json.Unmarshal(val, &s); err != nil {
+			continue
+		}
+		if s == vorgangsID {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // ReadKassensitzungEvents returns all events whose subject belongs to the given

@@ -156,6 +156,20 @@ CREATE INDEX idx_kassenjournal_subject_type ON kassenjournal(subject, type);
 CREATE INDEX idx_kassenjournal_type_timestamp ON kassenjournal(type, timestamp);
 CREATE INDEX idx_kassenjournal_kassensitzung_nr ON kassenjournal(kassensitzung_nr);
 
+-- Partielle UNIQUE-Indexe für Idempotenz buchender Endpunkte (Phase 3, B2).
+-- Type-gescoped, damit z. B. direktverkauf-storniert:v1 dieselbe verkaufId tragen kann.
+CREATE UNIQUE INDEX idx_kassenjournal_verkauf_id
+    ON kassenjournal ((data->>'verkaufId'))
+    WHERE type = 'direktverkauf-getaetigt:v1';
+
+CREATE UNIQUE INDEX idx_kassenjournal_bestellung_id
+    ON kassenjournal ((data->>'bestellungId'))
+    WHERE type = 'bestellung-aufgenommen:v1';
+
+CREATE UNIQUE INDEX idx_kassenjournal_geldtransit_id
+    ON kassenjournal ((data->>'geldtransitId'))
+    WHERE type = 'geldtransit-gebucht:v1';
+
 -- Restrict public role to SELECT + INSERT only (defense-in-depth for non-owner roles)
 REVOKE ALL ON TABLE kassenjournal FROM PUBLIC;
 GRANT SELECT, INSERT ON TABLE kassenjournal TO PUBLIC;

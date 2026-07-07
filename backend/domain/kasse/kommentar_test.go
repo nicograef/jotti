@@ -81,7 +81,7 @@ func TestNewStornierungErteiltEvent_Kommentar(t *testing.T) {
 func TestNewBestellungAufgenommenEvent_Kommentar(t *testing.T) {
 	for _, tt := range optionalKommentarTests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewBestellungAufgenommenEvent(kommentarTestSubject, 1, "Servicekraft", kommentarTestPositionen, tt.kommentar)
+			_, err := NewBestellungAufgenommenEvent(kommentarTestSubject, 1, "Servicekraft", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", kommentarTestPositionen, tt.kommentar)
 			if tt.wantErr && err == nil {
 				t.Errorf("erwartete Fehler für Kommentar %q, aber kein Fehler", tt.kommentar)
 			}

@@ -19,6 +19,7 @@ export const KassensitzungEroeffnenSchema = z.object({
 })
 
 export const GeldtransitBuchenSchema = z.object({
+  geldtransitId: z.uuid(),
   richtung: GeldtransitRichtungSchema,
   betragCents: z
     .number()
@@ -76,11 +77,13 @@ export class KasseBackend {
   }
 
   async geldtransitBuchen(
+    geldtransitId: string,
     richtung: GeldtransitRichtung,
     betragCents: number,
     kommentar: string,
   ): Promise<void> {
     const body = GeldtransitBuchenSchema.parse({
+      geldtransitId,
       richtung,
       betragCents,
       kommentar,

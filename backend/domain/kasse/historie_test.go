@@ -45,7 +45,7 @@ func TestGetHistorieFromEvents_BestellungTraegtBestellerName(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
-	orderEvent, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", products, "")
+	orderEvent, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", products, "")
 	if err != nil {
 		t.Fatalf("failed to create order event: %v", err)
 	}

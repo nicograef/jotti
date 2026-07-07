@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/uuid"
 	bondruckApp "github.com/nicograef/jotti/backend/api/druck/bondruck/application"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
@@ -21,6 +20,7 @@ type eventRepo interface {
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
+	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
 }
 
 type kassensitzungenRepo interface {
@@ -72,7 +72,11 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 // DirektverkaufTaetigen records a Direktverkauf as a single immutable event in its own stream
 // (kassensitzung-{nr}/direktverkauf-{uuid}). It requires an open Kassensitzung and writes nothing
 // to any projection. Returns ErrKasseNichtGeoeffnet (HTTP 409) when no Kassensitzung is open.
-func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, inputs []VerkaufPositionInput, kommentar string) error {
+// verkaufID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel). Bei
+// UniqueViolation (Duplikat-Einreichung) wird per verkaufId nachgeschlagen:
+// Treffer = idempotente Erfolgsantwort; kein Treffer = echter OCC-Konflikt (409).
+// Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht verglichen.
+func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, inputs []VerkaufPositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
@@ -85,7 +89,6 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return err
 	}
 
-	verkaufID := uuid.New().String()
 	subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
 
 	evt, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, userID, userName, positionen, kommentar)
@@ -104,9 +107,20 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen)
 	}
 
-	// Frischer Stream (neue UUID): erwartete Version 0, das Event ist immer version = 1.
+	// Frischer Stream (client-UUID): erwartete Version 0, das Event ist immer version = 1.
 	if err := c.persistVerkaufEvent(ctx, evt, subject, 0, ks.ZNr, buildAuftraege); err != nil {
 		if errors.Is(err, ErrConflict) {
+			// Idempotenz-Check: Ist der Konflikt eine Duplikat-Einreichung (gleiche verkaufId)
+			// oder ein echter OCC-Konflikt? Gleiche ID = derselbe Vorgang, Payload wird nicht verglichen.
+			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufID, "verkaufId")
+			if lookupErr != nil {
+				log.Error().Err(lookupErr).Str("verkauf_id", verkaufID).Msg("Failed to lookup direktverkauf idempotency")
+				return ErrDatabase
+			}
+			if exists {
+				log.Info().Str("verkauf_id", verkaufID).Msg("Idempotenter Direktverkauf: verkaufId bereits vorhanden")
+				return nil
+			}
 			return ErrConflict
 		}
 		log.Error().Err(err).Msg("Failed to write direktverkauf getaetigt event")

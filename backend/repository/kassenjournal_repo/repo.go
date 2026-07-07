@@ -677,6 +677,25 @@ func (r Repository) GetMaxVersion(ctx context.Context, subject string) (int, err
 	return version, nil
 }
 
+// EventExistsByTypeAndVorgangsID prüft, ob im kassenjournal ein Event des gegebenen
+// Typs mit dem gegebenen vorgangsID-Wert im angegebenen JSON-Schlüssel existiert.
+// Wird ausschließlich auf dem Fehler-Pfad (nach UniqueViolation) aufgerufen, um
+// zwischen idempotenter Einreichung und echtem OCC-Konflikt zu unterscheiden.
+func (r Repository) EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error) {
+	var dummy int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT 1 FROM kassenjournal WHERE type = $1 AND data->>$2 = $3 LIMIT 1`,
+		eventType, jsonKey, vorgangsID,
+	).Scan(&dummy)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, db.Error(err)
+	}
+	return true, nil
+}
+
 // RebuildAllProjections replays all events and rebuilds the tisch_sessions projection from scratch.
 // Runs in a single transaction: deletes all existing tisch_sessions rows, then replays all events
 // per subject and upserts the resulting state.

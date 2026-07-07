@@ -937,11 +937,11 @@ func geldtransitEvent(t *testing.T) event.Event {
 	t.Helper()
 
 	data := kasse.GeldtransitGebuchtV1Data{
-		BewegungID:  "77777777-7777-7777-7777-777777777777",
-		Richtung:    "entnahme",
-		BetragCents: 5000,
-		Kommentar:   "Abschöpfung Tresor",
-		GebuchtVon:  7,
+		GeldtransitID: "77777777-7777-4777-8777-777777777777",
+		Richtung:      "entnahme",
+		BetragCents:   5000,
+		Kommentar:     "Abschöpfung Tresor",
+		GebuchtVon:    7,
 	}
 	raw, err := json.Marshal(data)
 	if err != nil {

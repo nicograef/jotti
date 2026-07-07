@@ -11,6 +11,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/app"
 	"github.com/nicograef/jotti/backend/config"
@@ -44,9 +45,10 @@ type ergebnisRequest struct {
 }
 
 type bestellungRequest struct {
-	TischID    int                    `json:"tischId"`
-	Positionen []bestellPositionInput `json:"positionen"`
-	Kommentar  string                 `json:"kommentar"`
+	BestellungID string                 `json:"bestellungId"`
+	TischID      int                    `json:"tischId"`
+	Positionen   []bestellPositionInput `json:"positionen"`
+	Kommentar    string                 `json:"kommentar"`
 }
 
 type bestellPositionInput struct {
@@ -268,7 +270,8 @@ func resetDruckstationen(t *testing.T, serverURL, token string) {
 func createBestellung(t *testing.T, env testEnv, kommentar string) {
 	t.Helper()
 	resp := postJSON(t, env.server.URL+"/service/bestellung-aufnehmen", bestellungRequest{
-		TischID: env.tischID,
+		BestellungID: uuid.NewString(),
+		TischID:      env.tischID,
 		Positionen: []bestellPositionInput{
 			{ProduktID: env.produktID, VarianteID: env.varianteID, Menge: 2},
 		},
