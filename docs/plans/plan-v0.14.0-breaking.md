@@ -46,11 +46,13 @@ Rename `einzelpreis` zu `einzelpreisCents` durchgängig: Event-Data-Structs, SQL
 
 ### Akzeptanzkriterien
 
-- [ ] Kein JSON-Key `"einzelpreis"` mehr im Repo (nur `einzelpreisCents`), inklusive SQL und Frontend
-- [ ] Contract-Test basiert auf fixen JSON-Literalen und würde einen Tag-Rename bemerken
-- [ ] Alle Kassenjournal-Event-Typen sind abgedeckt, inklusive `bestellung-korrigiert:v1`; Meta-Test schlägt bei neuem, ungepinntem Event-Typ fehl
-- [ ] `einlage`/`entnahme` als Wertkonstanten gepinnt
-- [ ] `make verify` grün (inklusive Replay/rebuild-projections in den Integrationstests)
+- [x] Kein JSON-Key `"einzelpreis"` mehr im Repo (nur `einzelpreisCents`), inklusive SQL und Frontend
+- [x] Contract-Test basiert auf fixen JSON-Literalen und würde einen Tag-Rename bemerken
+- [x] Alle Kassenjournal-Event-Typen sind abgedeckt, inklusive `bestellung-korrigiert:v1`; Meta-Test schlägt bei neuem, ungepinntem Event-Typ fehl
+- [x] `einlage`/`entnahme` als Wertkonstanten gepinnt
+- [x] `make verify` grün (inklusive Replay/rebuild-projections in den Integrationstests)
+
+Umgesetzt mit `9273f16`; verify lief zentral am Session-Ende (grün auf `47b7cea`).
 
 ---
 
@@ -69,10 +71,12 @@ CHECK-Constraints auf Geldspalten (`saldo_cents >= 0`, `gesamt_zahlungen_cents >
 
 ### Akzeptanzkriterien
 
-- [ ] Constraints, Typen und C9-Index wie oben in `01_initial.up.sql`; sqlc regeneriert, Go-Typen konsistent (int64 für BIGINT)
-- [ ] Integrationstests auf frischer DB grün; `make rebuild-projections` läuft fehlerfrei
-- [ ] ENUM-Entscheidung im Migrations-README dokumentiert
-- [ ] `make verify` grün
+- [x] Constraints, Typen und C9-Index wie oben in `01_initial.up.sql`; sqlc regeneriert, Go-Typen konsistent (int64 für BIGINT)
+- [x] Integrationstests auf frischer DB grün; `make rebuild-projections` läuft fehlerfrei
+- [x] ENUM-Entscheidung im Migrations-README dokumentiert
+- [x] `make verify` grün
+
+Umgesetzt mit `c2574bf`.
 
 ---
 
@@ -95,10 +99,12 @@ Ein Mechanismus für alle drei Append-Endpunkte: clientseitig erzeugte Vorgangs-
 
 - [ ] Zwei identische Direktverkauf-Requests erzeugen genau ein Event und einen Signaturauftrag; die zweite Antwort ist erfolgreich (Integrationstest)
 - [ ] Gleiche Semantik für Bestellung und Geldtransit; ein echter OCC-Konflikt (andere Vorgangs-ID) antwortet weiterhin 409 (Integrationstests)
-- [ ] Requests ohne oder mit ungültiger Vorgangs-ID werden als Validierungsfehler abgelehnt
-- [ ] Frontend sendet die IDs pro logischem Vorgang; Doppel-Submit-Schutz bleibt zusätzlich bestehen
-- [ ] Event-Contract-Test aus Phase 1 um `bestellungId`/`geldtransitId` ergänzt (`verkaufId` ist dort bereits gepinnt)
-- [ ] `make verify` grün
+- [x] Requests ohne oder mit ungültiger Vorgangs-ID werden als Validierungsfehler abgelehnt
+- [x] Frontend sendet die IDs pro logischem Vorgang; Doppel-Submit-Schutz bleibt zusätzlich bestehen
+- [x] Event-Contract-Test aus Phase 1 um `bestellungId`/`geldtransitId` ergänzt (`verkaufId` ist dort bereits gepinnt)
+- [x] `make verify` grün
+
+Umgesetzt mit `7fada78`. Zu den beiden offenen Punkten: das Verhalten ist implementiert und im Review bestätigt, die dedizierten Integrationstests sind per Session-Entscheidung (2026-07-07) entfallen; der Duplikat-/Konfliktpfad ist damit ungetestet und gehört in die Nacharbeit.
 
 ---
 
@@ -118,17 +124,21 @@ Ein Mechanismus für alle drei Append-Endpunkte: clientseitig erzeugte Vorgangs-
 
 ### Akzeptanzkriterien
 
-- [ ] `prod-up` ohne gepinnte Version schlägt mit klarer Meldung fehl; kein `:-latest` mehr im Prod-Compose
-- [ ] Doku/Help: `prod-update` ist der einzige beworbene Update-Weg
-- [ ] Starter-Downgrade-Test (ältere Version gegen neuere Datenversion wird verweigert)
-- [ ] `make verify` grün
+- [x] `prod-up` ohne gepinnte Version schlägt mit klarer Meldung fehl; kein `:-latest` mehr im Prod-Compose
+- [x] Doku/Help: `prod-update` ist der einzige beworbene Update-Weg
+- [x] Starter-Downgrade-Test (ältere Version gegen neuere Datenversion wird verweigert)
+- [x] `make verify` grün
+
+Umgesetzt mit `1c3a7c7`.
 
 ---
 
 ## Abschluss: Release-Schnitt v0.14.0
 
-- [ ] Voller `make verify` und `make lint-backend-full` auf dem Release-Commit
-- [ ] Checkboxen in diesem Plan abgeglichen (Audit bleibt unangetastet, es ist nur noch Register)
-- [ ] Tag-Befehl ausgeben (`git tag -a v0.14.0 …` plus Push-Hinweis), nicht ausführen — Tag und Veröffentlichung macht Nico
+- [x] Voller `make verify` und `make lint-backend-full` auf dem Release-Commit (grün auf `47b7cea`, inklusive Integrationstests; danach kam nur noch dieser Doku-Commit)
+- [x] Checkboxen in diesem Plan abgeglichen (Audit bleibt unangetastet, es ist nur noch Register)
+- [x] Tag-Befehl ausgeben (`git tag -a v0.14.0 …` plus Push-Hinweis), nicht ausführen — Tag und Veröffentlichung macht Nico
+
+Nach Verifikations-Fix `b96da02` und Cleanup-Pass `47b7cea` ist `main` release-fertig; Details zur Session in der Git-Historie zwischen `e2e3f76` und `47b7cea`.
 
 Bewusst nicht Teil dieses Schnitts (nachziehbar, siehe Nacharbeit-Plan): CHANGELOG (C21), Beispiel-Versionen/Version-Kosmetik (C13), Doku-Konsistenz (C12, C16–C20, C23), API-Feinschliff (B4, B6 — muss vor dem v1.0.0-Tag, nicht vor der Installation).
