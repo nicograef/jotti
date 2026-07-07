@@ -43,6 +43,25 @@ func IsNewerVersion(current, latest string) bool {
 	return false
 }
 
+// IsDowngrade meldet, ob exeVersion eine streng aeltere Version als dataVersion
+// ist. Schlaegt die Semver-Aufloesung einer Seite fehl (z. B. "dev", "latest",
+// leerer String beim Erststart), gilt die Downgrade-Sperre nicht — ohne
+// gepinntes Semver ist die Reihenfolge unbekannt. Spiegelt die
+// is_downgrade-Logik aus scripts/prod-update.sh.
+func IsDowngrade(exeVersion, dataVersion string) bool {
+	e, oke := parseSemver(exeVersion)
+	d, okd := parseSemver(dataVersion)
+	if !oke || !okd {
+		return false
+	}
+	for i := 0; i < 3; i++ {
+		if e[i] != d[i] {
+			return e[i] < d[i]
+		}
+	}
+	return false // gleich ist kein Downgrade
+}
+
 // parseSemver liest "v1.2.3" (oder "1.2.3") in [major, minor, patch]. Ein
 // Vorabversions- oder Build-Suffix ("1.2.3-rc1", "1.2.3+meta") wird vor dem Parsen
 // abgeschnitten. Fehlt eine der drei Komponenten oder ist sie nicht numerisch,

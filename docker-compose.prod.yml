@@ -8,7 +8,7 @@ name: jotti
 # (HTTP-01/TLS-ALPN). No certbot, no manual certificate choreography, no editing
 # of tracked files. See docs/leitfaden/self-hosting.md (Experten-Weg, eigener Server).
 #
-# Image versions are pinned via ${JOTTI_VERSION} (default: latest).
+# Image versions are pinned via ${JOTTI_VERSION} (required; set in .env — no default).
 #
 # First deploy:  make prod-init     (validates .env/DNS, pulls, starts, verifies)
 # Update:        make prod-update    (pre-update backup, pull, migrate, verify)
@@ -50,7 +50,7 @@ services:
           cpus: "2.0"
 
   migrate:
-    image: ghcr.io/nicograef/jotti-migrate:${JOTTI_VERSION:-latest}
+    image: ghcr.io/nicograef/jotti-migrate:${JOTTI_VERSION}
     container_name: jotti-migrate
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -65,7 +65,7 @@ services:
     restart: "no"
 
   backend:
-    image: ghcr.io/nicograef/jotti-backend:${JOTTI_VERSION:-latest}
+    image: ghcr.io/nicograef/jotti-backend:${JOTTI_VERSION}
     container_name: jotti-backend
     restart: unless-stopped
     logging: *default-logging
@@ -103,7 +103,7 @@ services:
     # No exposed ports; reachable only via reverse proxy
 
   frontend:
-    image: ghcr.io/nicograef/jotti-frontend:${JOTTI_VERSION:-latest}
+    image: ghcr.io/nicograef/jotti-frontend:${JOTTI_VERSION}
     container_name: jotti-frontend
     restart: unless-stopped
     logging: *default-logging
@@ -130,7 +130,7 @@ services:
     # No exposed ports; served via reverse proxy
 
   reverse-proxy:
-    image: ghcr.io/nicograef/jotti-reverse-proxy:${JOTTI_VERSION:-latest}
+    image: ghcr.io/nicograef/jotti-reverse-proxy:${JOTTI_VERSION}
     container_name: jotti-reverse-proxy
     restart: unless-stopped
     logging: *default-logging

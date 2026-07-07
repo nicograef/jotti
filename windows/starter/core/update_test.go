@@ -2,6 +2,32 @@ package core
 
 import "testing"
 
+func TestIsDowngrade(t *testing.T) {
+	cases := []struct {
+		name        string
+		exeVersion  string
+		dataVersion string
+		want        bool
+	}{
+		{"Downgrade Patch", "v1.2.3", "v1.2.4", true},
+		{"Downgrade Minor", "v1.2.0", "v1.3.0", true},
+		{"Downgrade Major", "v1.0.0", "v2.0.0", true},
+		{"gleiche Version erlaubt", "v1.2.3", "v1.2.3", false},
+		{"Upgrade erlaubt", "v1.2.4", "v1.2.3", false},
+		{"Dev-Build nie gesperrt", "dev", "v1.2.3", false},
+		{"leere Datenbankversion erlaubt (Erststart)", "v1.2.3", "", false},
+		{"kein Semver auf Exe-Seite erlaubt", "latest", "v1.2.3", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := IsDowngrade(tc.exeVersion, tc.dataVersion); got != tc.want {
+				t.Fatalf("IsDowngrade(%q, %q): got %v, want %v",
+					tc.exeVersion, tc.dataVersion, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestIsNewerVersion(t *testing.T) {
 	cases := []struct {
 		name    string

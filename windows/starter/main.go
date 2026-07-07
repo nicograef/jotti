@@ -97,6 +97,16 @@ func run() int {
 		}
 	}
 
+	// Downgrade verweigern: eine aeltere Exe darf nicht gegen neuere Daten starten.
+	// readLastVersion liefert "" beim Erststart — dann greift die Sperre nicht
+	// (IsDowngrade gibt false zurueck, wenn eine Seite kein Semver ist).
+	if lv := readLastVersion(stateDir); core.IsDowngrade(version, lv) {
+		fmt.Printf("Start verweigert: Diese Version (%s) ist aelter als die zuletzt gestartete (%s).\n", version, lv)
+		fmt.Println("  Neuere Daten lassen sich nicht auf aeltere Versionen zurueckrollen.")
+		fmt.Println("  Neue Version herunterladen: https://github.com/nicograef/jotti/releases/latest")
+		return 1
+	}
+
 	// Vor dem vollen `up` (das die Migrationen anstoesst) bei einem
 	// Versionswechsel automatisch die Daten sichern — der Sicherungspunkt
 	// entsteht so vor jeder schemaveraendernden Migration.
