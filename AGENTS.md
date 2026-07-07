@@ -6,7 +6,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellung
 
 **Bewusst NICHT enthalten:** Kartenzahlung, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM, Kiosk-Modus. Diese Reduktion ist gewollt — jedes zusätzliche Feature erhöht Komplexität für ehrenamtliche Teams.
 
-**Compliance-Roadmap (TSE/KassenSichV):** jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die TSE-Integration (fiskaly Cloud-TSE, DSFinV-K-Export, ELSTER-Meldepflicht) wird schrittweise implementiert — siehe `docs/anforderungen.md` und `docs/compliance.md`.
+**Compliance (TSE/KassenSichV):** jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. TSE-Integration (fiskaly Cloud-TSE) und DSFinV-K-Export sind umgesetzt; die Kassenmeldung nach § 146a Abs. 4 AO erfolgt manuell über das ELSTER-Portal (eine automatisierte Meldung ist dauerhaftes Nicht-Ziel) — siehe `docs/anforderungen.md` und `docs/compliance.md`.
 
 ## Instruktionshierarchie
 
@@ -54,14 +54,14 @@ Alle Befehle werden über das **Makefile** ausgeführt (`make help` für die vol
 | `make sqlc`   | sqlc Code generieren (nach Query-Änderungen) |
 | `make dev`    | Dev-Stack starten (Docker Compose)           |
 
-## Aktive Entwicklungsphase
+## Freeze-Disziplin (seit der produktiven Erstinstallation)
 
-jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sind ausdrücklich erwünscht** — es gibt keine produktiven Instanzen und keine Nutzer, auf die Rücksicht genommen werden muss.
+Seit der ersten produktiven Installation (2026-07-07, v0.14.0) gibt es echte Instanzen mit aufbewahrungspflichtigen Daten. **Persistierte Daten (DB-Schema-Bestand, Event-JSON) sind unantastbar.**
 
-- **DB-Schema:** Änderungen direkt in `database/migrations/01_initial.up.sql` vornehmen. Keine neuen Migrationsdateien anlegen. Die vorhandene `01_initial.down.sql` dient ausschließlich dem lokalen Dev-Reset und ist kein produktiver Migrations-Pfad. Dev-DB neu aufsetzen: `make down && make dev`.
-- **Backend-API:** Endpunkte, Request-/Response-Formate und JSON-Keys direkt ändern. Keine API-Versionierung, keine Migrations-Strategien.
-- **Event-Formate:** Event-Data-Strukturen und JSON-Keys direkt ändern. Kein Dual-Read, kein Custom `UnmarshalJSON` für alte Daten. Alte Events werden nicht migriert.
-- **Frontend:** Typen, Schemas und Komponenten direkt an geänderte Backend-Datenformate anpassen.
+- **DB-Schema:** Änderungen ausschließlich als neue, additive Migration `NN_<name>.up.sql` (fortlaufend nummeriert, forward-only, keine Down-Migrationen). `01_initial.up.sql` wird nicht mehr editiert. Regeln und Begründung: `database/migrations/README.md`.
+- **Event-Formate:** Event-JSON-Contracts sind eingefroren (Guard: `backend/domain/kasse/event_json_contract_test.go`). Änderungen additiv als neue Event-Version (`:vN`), nie in-place. Alte Events werden nicht migriert; bestehende Daten werden nie umgedeutet.
+- **Backend-API:** Endpunkte und Formate dürfen sich ändern, solange Frontend und Print-Relay im selben Release mitgezogen werden (sie werden bei jedem Update gemeinsam ausgetauscht). Keine API-Versionierung nötig.
+- **Frontend:** wird zusammen mit dem Backend ausgeliefert und direkt an geänderte Backend-Datenformate angepasst.
 
 ## Wichtige Regeln
 
@@ -87,7 +87,7 @@ jotti befindet sich in aktiver Entwicklung (Pre-Release). **Breaking Changes sin
 
 - **Bewertungsmetriken — der Maßstab für jede Änderung, in jedem Chat-Modus (Ask, Plan, Agent):**
   - **Maßgeblich, immer optimieren:** Korrektheit, Einfachheit, Codequalität, Konsistenz.
-  - **Bewusst nachrangig, nie ein Gegenargument:** Aufwand, Zeit, Arbeitsumfang, Kosten, Breaking Changes.
+  - **Bewusst nachrangig, nie ein Gegenargument:** Aufwand, Zeit, Arbeitsumfang, Kosten, Breaking Changes (im Rahmen der Freeze-Disziplin oben; persistierte Daten bleiben unantastbar).
   - Eine korrekte, einfache, saubere und konsistente Lösung wird nie zugunsten einer schnelleren, kleineren oder bequemeren Variante verworfen.
   - **„Arbeitsumfang“ ist nicht Feature-Scope.** Aufwandsscheu wird ignoriert; der Scope Guard bleibt unberührt: keine ungefragten Features, kein Gold-Plating (siehe „Scope Guard“ unten).
 - **Menschlich reviewbare Änderungen.** Jede Änderung muss sauber, lesbar und wartbar genug sein, damit ein Senior-Entwickler sie langfristig reviewen, verstehen und pflegen kann. Keinen cleveren Code, keine unnötigen Abstraktionen, keine Änderungen, die tiefen Kontext erfordern, um verstanden zu werden.

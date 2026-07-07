@@ -18,7 +18,6 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 🚚 **Ausgabe** bestätigen
 - 💰 **Zahlung** kassieren (Teilzahlungen und Rückgeldberechnung)
 - ↩️ **Stornierungen** mit Rollen-Kontrolle (Admin & Serviceleitung) — mit Pflichtkommentar
-- 💸 **Auszahlung** leisten — negativen Saldo ausgleichen (z. B. nach Stornierung bereits kassierter Positionen)
 - 🔄 **Umbuchung** — Bestellungen auf einen anderen Tisch verschieben
 - 📋 **Tisch-Übersicht** mit offenem Saldo, Positionen und Bestellhistorie
 - ⭐ **Meine Tische** — Favoriten als Rich Cards auf dem Dashboard, Schnellsuche per Name/Nummer
@@ -87,7 +86,7 @@ Optionale Umgebungsvariablen: `RELAY_POLL_SECONDS` (Abfrageintervall, Standard `
 | TSE           | Cloud-TSE via fiskaly (Adapter-Pattern)               |
 | Reverse Proxy | Caddy (HTTPS via Let's Encrypt)                       |
 
-Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Auszahlungen, Kassensitzungen) werden via **Event Sourcing** im Kassenjournal (append-only) persistiert. Eine synchrone Projektion (`tisch_sessions`) und eine CRUD-Entität (`kassensitzungen`) ermöglichen schnelle Reads. Stammdaten nutzen klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
+Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Umbuchungen, Kassensitzungen) werden via **Event Sourcing** im Kassenjournal (append-only) persistiert. Eine synchrone Projektion (`tisch_sessions`) und eine CRUD-Entität (`kassensitzungen`) ermöglichen schnelle Reads. Stammdaten nutzen klassisches CRUD. Alle API-Endpunkte sind ausschließlich `POST`.
 
 ## Für wen ist jotti?
 

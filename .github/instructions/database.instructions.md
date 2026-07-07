@@ -27,7 +27,7 @@ Aktuelles Schema: siehe SQL-Migrationen in `database/migrations/` (alle `*.up.sq
 
 ## Schema-Änderungen
 
-Die repo-weite Schema-Policy ist in `AGENTS.md` unter „Aktive Entwicklungsphase" kanonisch beschrieben. Diese Datei ergänzt nur die DB-spezifischen Arbeitsschritte: Dev-DB bei Bedarf mit `make down && make dev` neu aufsetzen und nach Query-Änderungen `make sqlc` ausführen.
+Die repo-weite Schema-Policy ist in `AGENTS.md` unter „Freeze-Disziplin" kanonisch beschrieben (neue Migrationen: `database/migrations/README.md`). Diese Datei ergänzt nur die DB-spezifischen Arbeitsschritte: Dev-DB bei Bedarf mit `make down && make dev` neu aufsetzen und nach Query-Änderungen `make sqlc` ausführen.
 
 ## sqlc
 

@@ -63,4 +63,4 @@ Habt ihr in TEST geübt, richtet ihr für den Echtbetrieb eine LIVE-TSS ein:
 > und kann nicht gelöscht, nur stillgelegt werden. Legt sie erst an, wenn ihr in
 > den Echtbetrieb geht.
 
-**Kosten:** Eine LIVE-TSS kostet ca. 8 € pro Monat; eine Gebühr pro Vorgang ist unüblich. Eine TSS genügt für eine jotti-Instanz. fiskaly veröffentlicht für SIGN DE keine feste Preisliste, holt für die Budgetplanung also ein aktuelles Angebot direkt bei fiskaly ein.
+**Kosten:** fiskaly veröffentlicht für SIGN DE keine feste Preisliste; holt für die Budgetplanung ein aktuelles Angebot direkt bei fiskaly ein. Eine TSS genügt für eine jotti-Instanz.

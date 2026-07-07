@@ -5,6 +5,12 @@ description: 'Kurze Antworten auf häufige Fragen zum jotti-Betrieb: Internet, T
 
 **Brauchen wir beim Fest Internet?** Ja, durch die TSE braucht jotti eine Internetverbindung.
 
+**Was, wenn das Internet oder die TSE ausfällt?** Weiterverkaufen ist erlaubt.
+jotti bucht ganz normal weiter und signiert die Vorgänge automatisch nach, sobald
+die Verbindung zurück ist; die Störung wird dabei automatisch dokumentiert.
+Nachsignierte Belege tragen den Vermerk „Nachsigniert am …". Ihr müsst nichts
+weiter tun.
+
 **Was, wenn die grüne Adresse nicht lädt?** Mit der Fallback-Adresse weiterarbeiten
 und die [Fehlersuche](fehlersuche.md) durchgehen. Der Verkauf muss nie warten.
 
@@ -21,5 +27,6 @@ ist in der Regel steuerfrei.
 TEST-Umgebung von fiskaly ein und wechselt erst für den Echtbetrieb auf LIVE.
 
 **Was kostet der Betrieb?** jotti ist für euch kostenlos. Kosten entstehen nur für
-die Cloud-TSE von fiskaly (ca. 8 €/Monat) und, beim Experten-Weg, für den VPS
-(ca. 5 €/Monat). Der Standardweg kommt ohne Servermiete aus.
+die Cloud-TSE von fiskaly (den aktuellen Preis bei fiskaly erfragen) und, beim
+Experten-Weg, für den VPS (ca. 5 €/Monat). Der Standardweg kommt ohne Servermiete
+aus.

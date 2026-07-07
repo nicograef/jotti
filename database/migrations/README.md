@@ -2,7 +2,7 @@
 
 golang-migrate (v4), angewendet über das `jotti-migrate`-Image (`../migrate/Dockerfile`). Die Migrationen werden ins Image gebacken; beim Deploy läuft ausschließlich `migrate ... up`.
 
-## Forward-only (ab v1.0.0)
+## Forward-only (seit v0.14.0, produktive Erstinstallation)
 
 jotti fährt **forward-only: keine Down-Migrationen.** Neue Änderungen kommen als `NN_<name>.up.sql`, fortlaufend nummeriert, additiv und vorwärtskompatibel. Es gibt bewusst **keine** `.down.sql`.
 
@@ -15,7 +15,7 @@ jotti fährt **forward-only: keine Down-Migrationen.** Neue Änderungen kommen a
 ## Regeln für neue Migrationen
 
 1. Dateiname `NN_<kurzname>.up.sql`, `NN` = nächste freie Nummer (aktuell zuletzt `01_initial`).
-2. Additiv und vorwärtskompatibel. Bestehende Migrationen (insb. `01_initial.up.sql`) werden ab v1.0.0 **nicht** mehr editiert.
+2. Additiv und vorwärtskompatibel. Bestehende Migrationen (insb. `01_initial.up.sql`) werden seit der produktiven Erstinstallation (v0.14.0) **nicht** mehr editiert.
 3. In eine Transaktion klammern (`BEGIN; … COMMIT;`) — Postgres-DDL ist transaktional, so rollt ein Fehlschlag sauber zurück und hinterlässt keinen `dirty`-Zustand in `schema_migrations`.
 4. Event-JSON-Contracts sind eingefroren (Guard: `backend/domain/kasse/event_json_contract_test.go`); Event-Änderungen additiv als neue Version (`:vN`), nie in-place.
 5. Nach jeder Migration muss `make rebuild-projections` fehlerfrei durchlaufen (Projektionen werden aus Events neu gebaut).

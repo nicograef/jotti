@@ -28,6 +28,8 @@ import {
 } from '@/components/ui/sidebar'
 import { AuthSingleton } from '@/lib/Auth'
 
+import { useVersion } from './hooks'
+
 const reportingItems = [
   {
     title: 'Dashboard',
@@ -112,6 +114,7 @@ function NavGroup({
 
 export function AdminSidebar() {
   const navigate = useNavigate()
+  const version = useVersion()
   const { isDark, setTheme } = useTheme()
   const toggleTheme = () => {
     setTheme(isDark ? 'light' : 'dark')
@@ -158,6 +161,11 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        {version !== undefined && (
+          <p className="text-center text-sm text-muted-foreground">
+            jotti {version}
+          </p>
+        )}
         <p className="text-center text-sm text-muted-foreground">
           Entwickelt von{' '}
           <a

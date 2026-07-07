@@ -166,7 +166,7 @@ Die Unveränderbarkeit und Nachvollziehbarkeit nach GoBD wird auf drei Ebenen si
 
 **Stammdaten:** Produkte, Tische und Benutzer werden nur per Soft-Delete entfernt (Status `deleted`), nie physisch gelöscht. Verkaufspreise und Steuersätze sind zum Zeitpunkt jeder Buchung in den Ereignissen eingefroren, sodass spätere Stammdaten-Änderungen historische Buchungen nicht verändern. Vor einer Stammdaten-Änderung mit fiskaler Wirkung (Preise, Steuersätze) ist der Tagesabschluss durchzuführen.
 
-**Software- und Konfigurationsstände:** Die eingesetzte jotti-Version ist im Admin-Bereich ersichtlich und auf dem Beleg sowie im DSFinV-K-Export hinterlegt. Updates verändern die Datenbank nur vorwärts (kein Downgrade); vor jedem Update zieht jotti automatisch ein Backup. Wesentliche betriebliche Änderungen (Versions-Updates, Wechsel des TSE-Anbieters, Änderung der Betriebsumgebung) trägt der Betreiber in die Änderungshistorie am Ende dieses Dokuments ein.
+**Software- und Konfigurationsstände:** Die eingesetzte jotti-Version ist im Admin-Bereich (Fußzeile der Seitenleiste) ersichtlich und im DSFinV-K-Export hinterlegt. Updates verändern die Datenbank nur vorwärts (kein Downgrade); vor jedem Update zieht jotti automatisch ein Backup. Wesentliche betriebliche Änderungen (Versions-Updates, Wechsel des TSE-Anbieters, Änderung der Betriebsumgebung) trägt der Betreiber in die Änderungshistorie am Ende dieses Dokuments ein.
 
 ---
 

@@ -5,6 +5,8 @@ description: 'Seit 2025 muss jede elektronische Kasse dem Finanzamt über ELSTER
 
 Seit dem 1. Januar 2025 muss jede elektronische Kasse dem Finanzamt online gemeldet werden. Das ist eine eigene Pflicht, unabhängig von der TSE.
 
+Die Frist: innerhalb eines Monats, nachdem ihr die Kasse angeschafft (bei jotti: in Betrieb genommen) habt (§ 146a Abs. 4 AO). Auch eine spätere Stilllegung müsst ihr innerhalb eines Monats melden.
+
 Was ihr braucht:
 
 - Die Seriennummer eurer jotti-Kasse. Da es keine Hardware mit aufgedruckter Nummer

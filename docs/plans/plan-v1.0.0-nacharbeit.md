@@ -134,11 +134,11 @@ Admin-Footer zeigt `jotti <version>` aus `/health`; der Beleg-Satz in der Verfah
 
 ### Akzeptanzkriterien
 
-- [ ] Version im Admin-Footer sichtbar; Verfahrensdoku-Aussage deckt sich mit dem Code
-- [ ] C16–C19, C23 umgesetzt; Rechtsaussagen mit Beleg aus `docs/rechtsquellen/`
-- [ ] AGENTS.md beschreibt die geltende Migrations-Disziplin
-- [ ] Kern-Dokumente konsistent mit dem Funktionsumfang (F-12 als Nicht-Ziel überall konsistent)
-- [ ] `make verify` grün
+- [x] Version im Admin-Footer sichtbar; Verfahrensdoku-Aussage deckt sich mit dem Code
+- [x] C16–C19, C23 umgesetzt; Rechtsaussagen mit Beleg aus `docs/rechtsquellen/`
+- [x] AGENTS.md beschreibt die geltende Migrations-Disziplin
+- [x] Kern-Dokumente konsistent mit dem Funktionsumfang (F-12 als Nicht-Ziel überall konsistent)
+- [x] `make verify` grün
 
 ---
 

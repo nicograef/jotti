@@ -1,6 +1,6 @@
 ---
 title: Fehlersuche
-description: 'Wenn die grüne Adresse der lokalen jotti-Kasse auf den Handys nicht lädt: DNS-Rebind-Schutz erkennen, Router-Ausnahme eintragen, Fallback nutzen.'
+description: 'Wenn die grüne Adresse der lokalen jotti-Kasse auf den Handys nicht lädt: DNS-Rebind-Schutz erkennen, Router-Ausnahme eintragen, Fallback nutzen. Und was bei Internet- oder TSE-Ausfall gilt.'
 ---
 
 > Dieser Abschnitt hilft, wenn die grüne Adresse der lokalen jotti-Kasse auf den
@@ -70,3 +70,12 @@ Die Fallback-Adresse `https://<LAN-IP>` funktioniert unabhängig vom
 DNS-Rebind-Schutz und auch ohne Internet. Sie zeigt beim ersten Zugriff pro Gerät
 eine einmalige Browserwarnung (selbstsigniertes Zertifikat), die bestätigt werden
 muss. Danach ist der Verkauf normal möglich.
+
+## Internet oder TSE fällt aus
+
+Weiterverkaufen ist erlaubt, ihr müsst den Verkauf nicht stoppen. jotti bucht
+ganz normal weiter und signiert alle in der Ausfallzeit gebuchten Vorgänge
+automatisch nach, sobald die Verbindung zur TSE zurück ist. Die Störung wird
+dabei automatisch dokumentiert; nachsignierte Belege tragen den Vermerk
+„Nachsigniert am …". Ihr müsst nichts weiter tun, nur die Internetverbindung
+wiederherstellen (Router prüfen, ggf. neu starten).
