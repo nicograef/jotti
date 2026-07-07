@@ -28,7 +28,7 @@ ensure_cmd() {
 # - Go: 1.26.0
 # - Node: 24
 # - pnpm: 10
-# - golangci-lint: latest (action)
+# - golangci-lint: pinned, see GOLANGCI_LINT_VERSION below
 
 info "Project root: $PROJECT_ROOT"
 cd "$PROJECT_ROOT"
@@ -51,14 +51,21 @@ if ! command -v goimports >/dev/null 2>&1; then
   fatal "goimports is still not on PATH. Add '$GO_BIN_PATH' to your PATH and rerun this script."
 fi
 
-info "Ensuring golangci-lint is available..."
+# Matches CI: .github/workflows/ci.yml pins the golangci-lint action to this
+# version so a green CI and a green `make verify` mean the same thing (D13).
+GOLANGCI_LINT_VERSION="v2.11.4"
+info "Ensuring golangci-lint ($GOLANGCI_LINT_VERSION) is available..."
 if command -v golangci-lint >/dev/null 2>&1; then
-  info "golangci-lint already installed: $(golangci-lint --version | head -n 1)"
+  INSTALLED_GOLANGCI="v$(golangci-lint version --short 2>/dev/null || echo 'unknown')"
+  info "golangci-lint already installed: $INSTALLED_GOLANGCI"
+  if [ "$INSTALLED_GOLANGCI" != "$GOLANGCI_LINT_VERSION" ]; then
+    warn "golangci-lint $INSTALLED_GOLANGCI differs from the CI version $GOLANGCI_LINT_VERSION; lint results may diverge from CI."
+  fi
 else
   ensure_cmd curl "Install curl to bootstrap golangci-lint."
-  info "Installing golangci-lint with official install script"
+  info "Installing golangci-lint $GOLANGCI_LINT_VERSION with official install script"
   curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh \
-    | sh -s -- -b "$GO_BIN_PATH" latest
+    | sh -s -- -b "$GO_BIN_PATH" "$GOLANGCI_LINT_VERSION"
 fi
 
 if ! command -v golangci-lint >/dev/null 2>&1; then

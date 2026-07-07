@@ -107,11 +107,11 @@ Neuer CI-Job als Upgrade-Harness: DB befüllen (Seed-Daten), App booten, `rebuil
 
 ### Akzeptanzkriterien
 
-- [ ] Neuer CI-Job läuft grün (Seed, Boot, rebuild-projections); Pinning-Plan im Job oder Migrations-README dokumentiert
-- [ ] golangci-lint-Version gepinnt
-- [ ] CI-Checks und `make verify` prüfen dieselben Dinge mit denselben Flags
-- [ ] `test-integration.sh` wartet auf eine echte DB-Verbindung statt nur `pg_isready` (Startup-Race behoben)
-- [ ] `make verify` grün
+- [x] Neuer CI-Job läuft grün (Seed, Boot, rebuild-projections); Pinning-Plan im Job oder Migrations-README dokumentiert
+- [x] golangci-lint-Version gepinnt
+- [x] CI-Checks und `make verify` prüfen dieselben Dinge mit denselben Flags
+- [x] `test-integration.sh` wartet auf eine echte DB-Verbindung statt nur `pg_isready` (Startup-Race behoben)
+- [x] `make verify` grün
 
 ---
 

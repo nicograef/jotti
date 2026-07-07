@@ -32,4 +32,10 @@ jotti verwendet für Status- und Kategorie-Spalten TEXT+CHECK statt PostgreSQL-E
 ## Testen
 
 - **Frischinstallation:** `migrate ... up` auf leerer DB (deckt der Integrationstest `scripts/test-integration.sh` ab).
-- **Upgrade-Pfad:** `up` auf einer mit Vorversions-Daten befüllten DB, danach Boot + `make rebuild-projections`. Das ist der Pfad, der auf echten Instanzen läuft, und der wichtigste Migrations-Test.
+- **Upgrade-Pfad:** `up` auf einer mit Vorversions-Daten befüllten DB, danach Boot + `make rebuild-projections`. Das ist der Pfad, der auf echten Instanzen läuft, und der wichtigste Migrations-Test. Automatisiert im CI-Job `upgrade-path` (`.github/workflows/ci.yml`): Migrationen und Seed-Daten werden mit den Release-Images der Vorversion eingespielt, danach laufen Migration, Boot und `rebuild-projections` mit dem aktuellen Checkout.
+
+## Vorversions-Pinning (CI-Job `upgrade-path`)
+
+- `PREVIOUS_VERSION` im Job pinnt die Vorversion auf das letzte veröffentlichte Release (aktuell `v0.14.0`); die Images kommen von `ghcr.io/nicograef` (`jotti-migrate`, `jotti-backend`).
+- Nach jedem Release wird `PREVIOUS_VERSION` auf das neue Tag angehoben (Teil der Release-Mechanik).
+- Ab der ersten `02_`-Migration ist der Job das Pflicht-Gate für Schema-Änderungen: Er beweist, dass eine befüllte Bestandsinstanz das Upgrade übersteht (Release-Guide Gate 4 (b)). Solange nur `01_initial` existiert, ist der `up`-Schritt auf der Vorversions-DB ein No-op und der Job prüft Seed-Kompatibilität, Boot und Projektions-Rebuild.

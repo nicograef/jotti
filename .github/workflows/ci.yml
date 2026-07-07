@@ -18,6 +18,7 @@ jobs:
       windows: ${{ steps.changes.outputs.windows }}
       website: ${{ steps.changes.outputs.website }}
       scripts: ${{ steps.changes.outputs.scripts }}
+      ci: ${{ steps.changes.outputs.ci }}
     steps:
       - uses: actions/checkout@v7
       - name: Check for changes
@@ -41,6 +42,8 @@ jobs:
               - 'website/**'
             scripts:
               - 'scripts/**'
+            ci:
+              - '.github/workflows/ci.yml'
 
   backend-ci:
     needs: changes
@@ -62,6 +65,9 @@ jobs:
       - name: Verify dependencies
         run: go mod verify
 
+      - name: Check go.mod tidiness
+        run: go mod tidy -diff
+
       - name: Check format
         run: |
           go install golang.org/x/tools/cmd/goimports@v0.40.0
@@ -78,7 +84,7 @@ jobs:
         run: go build -v ./...
 
       - name: Test
-        run: go test -tags=unit -v -race -coverprofile=coverage.out ./...
+        run: go test -tags=unit -count=1 -v -race -coverprofile=coverage.out ./...
 
       - name: Report test coverage
         run: |
@@ -100,10 +106,12 @@ jobs:
           go-version: 1.26.0
           cache-dependency-path: backend/go.sum
 
+      # Version pinned to the local toolchain (scripts/setup-dev-tools.sh) so a
+      # green CI and a green `make verify` mean the same thing (D13).
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.11.4
           working-directory: ./backend
 
   resolver-ci:
@@ -126,6 +134,9 @@ jobs:
       - name: Verify dependencies
         run: go mod verify
 
+      - name: Check go.mod tidiness
+        run: go mod tidy -diff
+
       - name: Check format
         run: |
           go install golang.org/x/tools/cmd/goimports@v0.40.0
@@ -135,6 +146,12 @@ jobs:
             exit 1
           fi
 
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11.4
+          working-directory: ./resolver
+
       - name: Vet
         run: go vet ./...
 
@@ -142,7 +159,7 @@ jobs:
         run: go build -v ./...
 
       - name: Test
-        run: go test -v -race ./...
+        run: go test -count=1 -v -race ./...
 
   local-proxy-ci:
     needs: changes
@@ -164,6 +181,9 @@ jobs:
       - name: Verify dependencies
         run: go mod verify
 
+      - name: Check go.mod tidiness
+        run: go mod tidy -diff
+
       - name: Check format
         run: |
           go install golang.org/x/tools/cmd/goimports@v0.40.0
@@ -173,6 +193,12 @@ jobs:
             exit 1
           fi
 
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11.4
+          working-directory: ./reverse-proxy
+
       - name: Vet
         run: go vet ./...
 
@@ -180,7 +206,7 @@ jobs:
         run: go build -v ./...
 
       - name: Test
-        run: go test -v -race ./...
+        run: go test -count=1 -v -race ./...
 
   windows-ci:
     needs: changes
@@ -204,6 +230,10 @@ jobs:
         working-directory: ./windows/${{ matrix.module }}
         run: go mod verify
 
+      - name: Check go.mod tidiness
+        working-directory: ./windows/${{ matrix.module }}
+        run: go mod tidy -diff
+
       - name: Check format
         working-directory: ./windows/${{ matrix.module }}
         run: |
@@ -213,6 +243,12 @@ jobs:
             goimports -l .
             exit 1
           fi
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11.4
+          working-directory: ./windows/${{ matrix.module }}
 
       - name: Vet
         working-directory: ./windows/${{ matrix.module }}
@@ -224,7 +260,7 @@ jobs:
 
       - name: Test
         working-directory: ./windows/${{ matrix.module }}
-        run: go test -v -race ./...
+        run: go test -count=1 -v -race ./...
 
   frontend-ci:
     needs: changes
@@ -310,8 +346,12 @@ jobs:
           POSTGRES_DB: jotti
         ports:
           - 5432:5432
+        # Health check over TCP instead of the unix socket: during initialization
+        # postgres:17 runs a temporary socket-only server that is restarted
+        # afterwards; only the final server accepts TCP connections. Matches the
+        # startup-race hardening in scripts/test-integration.sh.
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -h 127.0.0.1 -U admin -d jotti"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -345,7 +385,112 @@ jobs:
           POSTGRES_PASSWORD: admin
           POSTGRES_DBNAME: jotti
           JWT_SECRET: test-secret
+          RELAY_AUTH_TOKEN: test-relay-token
         # -p 1 serializes package test binaries: all integration tests share the single
         # Postgres service, so running packages in parallel pollutes each other's data
         # (e.g. user cleanup races kassenjournal inserts). Matches scripts/test-integration.sh.
-        run: go test -tags=integration -v -race -p 1 ./...
+        run: go test -tags=integration -count=1 -v -race -p 1 ./...
+
+  # Upgrade-path harness (release guide gate 4 (b), audit C10): a database
+  # migrated and filled with the PREVIOUS release's images must survive the
+  # upgrade to the current checkout: migrate up, boot, rebuild-projections.
+  # PREVIOUS_VERSION pins the previous version to the latest published release
+  # and is raised after every release; from the first 02_ migration on, this
+  # job is the mandatory gate for schema changes. Pinning plan:
+  # database/migrations/README.md.
+  upgrade-path:
+    needs: changes
+    # The job's whole harness lives in this workflow file, so changes to it
+    # must re-run the job as well.
+    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') || (needs.changes.outputs.ci == 'true') }}
+    runs-on: ubuntu-latest
+    env:
+      PREVIOUS_VERSION: v0.14.0
+      # Throwaway CI-only values (no secrets); long enough to pass the
+      # backend's secret validation (config.MinSecretLength).
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: upgrade-harness-postgres-password
+      POSTGRES_DBNAME: jotti
+      JWT_SECRET: upgrade-harness-jwt-secret
+      RELAY_AUTH_TOKEN: upgrade-harness-relay-token
+      DATABASE_URL: postgres://admin:upgrade-harness-postgres-password@localhost:5432/jotti?sslmode=disable
+    services:
+      postgres:
+        image: postgres:17.8
+        env:
+          POSTGRES_USER: admin
+          # Must match the job-level POSTGRES_PASSWORD (services cannot
+          # reference job env, hence the duplication).
+          POSTGRES_PASSWORD: upgrade-harness-postgres-password
+          POSTGRES_DB: jotti
+        ports:
+          - 5432:5432
+        # Health check over TCP instead of the unix socket, see the
+        # backend-integration-tests service above.
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U admin -d jotti"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.0
+          cache-dependency-path: backend/go.sum
+
+      - name: Apply previous version's migrations
+        run: |
+          docker run --rm --network host \
+            "ghcr.io/nicograef/jotti-migrate:${PREVIOUS_VERSION}" \
+            /usr/local/bin/migrate -path /migrations -database "$DATABASE_URL" up
+
+      # The seed guard (JOTTI_ALLOW_SEED) protects real instances; the harness
+      # sets it explicitly. The second guard (empty kassenjournal) holds on the
+      # freshly migrated database. Seeding fails hard otherwise, so the
+      # following steps are guaranteed to run against populated data.
+      - name: Seed previous version's demo data
+        run: |
+          docker run --rm --network host \
+            -e POSTGRES_HOST -e POSTGRES_PORT -e POSTGRES_USER \
+            -e POSTGRES_PASSWORD -e POSTGRES_DBNAME \
+            -e JWT_SECRET -e RELAY_AUTH_TOKEN \
+            -e JOTTI_ALLOW_SEED=1 \
+            "ghcr.io/nicograef/jotti-backend:${PREVIOUS_VERSION}" seed
+
+      - name: Install golang-migrate
+        run: |
+          curl -fsSL "https://github.com/golang-migrate/migrate/releases/download/v4.19.1/migrate.linux-amd64.tar.gz" \
+            | tar -xz -C /usr/local/bin
+
+      - name: Migrate to the current checkout's schema
+        run: migrate -path database/migrations -database "$DATABASE_URL" up
+
+      - name: Build current backend
+        working-directory: ./backend
+        run: go build -o /tmp/jotti .
+
+      - name: Boot current backend against previous version's data
+        run: |
+          /tmp/jotti &
+          APP_PID=$!
+          trap 'kill "$APP_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/health > /dev/null; then
+              echo "Backend is healthy on previous version's data."
+              exit 0
+            fi
+            if ! kill -0 "$APP_PID" 2>/dev/null; then
+              echo "Backend process died during boot."
+              exit 1
+            fi
+            echo "waiting for /health ($i/30) ..."
+            sleep 2
+          done
+          echo "Backend did not become healthy."
+          exit 1
+
+      - name: Rebuild projections on previous version's data
+        run: /tmp/jotti rebuild-projections

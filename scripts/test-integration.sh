@@ -33,8 +33,13 @@ docker run -d \
   --health-retries 10 \
   postgres:17
 
-echo "⏳ Waiting for PostgreSQL to be ready..."
-until docker exec "$CONTAINER_NAME" pg_isready -U admin -d jotti >/dev/null 2>&1; do
+echo "⏳ Waiting for PostgreSQL to accept real connections..."
+# pg_isready alone is not enough: during initialization postgres:17 runs a
+# temporary socket-only server that is restarted afterwards; pg_isready reports
+# that server as ready while migrate then fails with "connection reset by
+# peer". Only a real query over TCP proves the final server is up.
+until docker exec -e PGPASSWORD=admin "$CONTAINER_NAME" \
+  psql -h 127.0.0.1 -U admin -d jotti -c "SELECT 1" >/dev/null 2>&1; do
   sleep 2
 done
 
