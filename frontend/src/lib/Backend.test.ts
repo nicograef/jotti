@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
+import { AuthSingleton } from './Auth'
 import { Backend, BackendError, ResponseBodyError } from './Backend'
 
 const dummyTokenGetter = {
@@ -14,6 +15,31 @@ function createClient() {
 }
 
 describe('Backend.post', () => {
+  // Ein abgelaufenes Token beantwortet das Backend mit 401 (invalid_jwt):
+  // Der Client meldet den Benutzer ab und leitet zur Login-Seite um.
+  it('logs the user out on 401, e.g. for an expired token', async () => {
+    // jsdom kann die Redirect-Navigation nicht ausführen und loggt einen Fehler.
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const logoutSpy = vi.spyOn(AuthSingleton, 'logout')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ code: 'invalid_jwt' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+
+    const backend = createClient()
+
+    await expect(backend.post('service/foo', {})).rejects.toMatchObject({
+      status: 401,
+      code: 'unauthorized',
+    })
+    expect(logoutSpy).toHaveBeenCalled()
+  })
+
   it('throws BackendError with backend code/details from JSON error payload', async () => {
     vi.stubGlobal(
       'fetch',

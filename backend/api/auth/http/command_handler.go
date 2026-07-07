@@ -53,7 +53,7 @@ func (h *CommandHandler) LoginHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrUserNotFound) || errors.Is(err, application.ErrInvalidPassword):
 				helper.SendClientError(w, "invalid_credentials", nil)
 			case errors.Is(err, application.ErrNoPassword):
-				helper.SendClientError(w, "no_password_set", "No password set for user. Please set a password first.")
+				helper.SendClientError(w, "no_password_set", "user has no password yet, set one via one-time password first")
 			default:
 				helper.SendServerError(w)
 			}
@@ -91,11 +91,11 @@ func (h *CommandHandler) SetPasswordHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrUserNotFound), errors.Is(err, application.ErrInvalidPassword):
 				helper.SendClientError(w, "invalid_credentials", nil)
 			case errors.Is(err, application.ErrNoOnetimePassword):
-				helper.SendClientError(w, "already_has_password", "No one-time password set for user. User probably already has a password.")
+				helper.SendClientError(w, "already_has_password", "no one-time password set, user already has a password")
 			case errors.Is(err, application.ErrPasswordTooWeak):
 				helper.SendClientError(w, "password_too_weak", nil)
 			case errors.Is(err, application.ErrOnetimePasswordLocked):
-				helper.SendClientError(w, "onetime_password_locked", "One-time password locked after too many failed attempts. Ask an admin to generate a new one.")
+				helper.SendClientError(w, "onetime_password_locked", "one-time password locked after too many failed attempts, an admin must generate a new one")
 			default:
 				helper.SendServerError(w)
 			}

@@ -53,7 +53,7 @@ type druckAuftragDTO struct {
 
 // POST /relay/ergebnis
 // Request:  {"token": "...", "gedruckteIds": [1,2,3], "fehlversuche": [{"id": 4, "fehler": "..."}]}
-// Response: {"status": "ok"}
+// Response: {}
 type ergebnisRequest struct {
 	Token        string           `json:"token"`
 	GedruckteIDs []int            `json:"gedruckteIds"`
@@ -131,6 +131,6 @@ func (h *Handler) ErgebnisHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, map[string]string{"status": "ok"})
+		helper.SendEmptyResponse(w)
 	}
 }

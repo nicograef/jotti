@@ -192,9 +192,11 @@ type UserGetter interface {
 }
 
 // NewJwtMiddleware validates the JWT Token in the Authorization header.
-// If valid, it verifies the user is still active (deactivated users lose
-// access immediately, not at token expiry) and adds the user information
-// to the request context.
+// If valid, it loads the user from the database and verifies status and role
+// against that fresh record: deactivated users lose access immediately and
+// role changes take effect on the next request, not at token expiry.
+// Authentication failures yield 401 (the frontend auto-logs-out on 401),
+// a valid but insufficiently privileged user yields 403.
 func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter) func(http.Handler) http.HandlerFunc {
 	return func(h http.Handler) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -203,28 +205,21 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 			token := r.Header.Get("Authorization")
 			if token == "" {
 				logger.Error().Msg("Missing Authorization header")
-				helper.SendClientError(w, "missing_authorization", nil)
+				helper.SendUnauthorized(w, "missing_authorization")
 				return
 			}
 
 			const bearerPrefix = "Bearer "
 			if len(token) <= len(bearerPrefix) || token[:len(bearerPrefix)] != bearerPrefix {
 				logger.Error().Msg("Invalid Authorization header format")
-				helper.SendClientError(w, "invalid_authorization_format", nil)
+				helper.SendUnauthorized(w, "invalid_authorization_format")
 				return
 			}
 			token = token[len(bearerPrefix):]
-			userID, userName, userRole, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
+			userID, userName, _, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
 			if err != nil {
 				logger.Error().Err(err).Msg("Invalid JWT token")
-				helper.SendClientError(w, "invalid_jwt", nil)
-				return
-			}
-
-			roleAllowed := slices.Contains(allowedRoles, userRole)
-			if !roleAllowed {
-				logger.Warn().Str("role", userRole).Msg("Insufficient permissions")
-				helper.SendClientError(w, "insufficient_permissions", fmt.Sprintf("Insufficient permissions for role %s", userRole))
+				helper.SendUnauthorized(w, "invalid_jwt")
 				return
 			}
 
@@ -242,6 +237,14 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 			if u.Status != user.ActiveStatus {
 				logger.Warn().Int("user_id", userID).Str("status", string(u.Status)).Msg("User is not active")
 				helper.SendUnauthorized(w, "user_inactive")
+				return
+			}
+
+			// Authorization uses the role from the database record, not the token
+			// claim: a role change by an admin takes effect on the next request.
+			if !slices.Contains(allowedRoles, string(u.Role)) {
+				logger.Warn().Str("role", string(u.Role)).Msg("Insufficient permissions")
+				helper.SendForbidden(w, "insufficient_permissions", fmt.Sprintf("role %s is not allowed for this endpoint", u.Role))
 				return
 			}
 

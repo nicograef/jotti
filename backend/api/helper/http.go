@@ -10,6 +10,21 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// errorResponse is the uniform error body of the HTTP API.
+//
+// Code is a stable, machine-readable error code (snake_case); the frontend
+// maps it to a German user-facing message.
+//
+// Details is an optional diagnostic field. Its shape is part of the API
+// contract in exactly two cases, which the frontend parses:
+//   - code "validation_error": zog issues as map[field][]message
+//     (see ReadAndValidateBody)
+//   - code "signaturen_ausstehend" (Kassenabschluss-Gate): structured object
+//     with the number of pending signatures and the age of the oldest
+//     (see SendConflictDetails)
+//
+// Everywhere else, details is at most a short English diagnostic string for
+// operators and logs — never localized, never parsed by clients.
 type errorResponse struct {
 	Code    string `json:"code"`
 	Details any    `json:"details,omitempty"`
@@ -48,6 +63,14 @@ func SendNotFound(w http.ResponseWriter, code string) {
 // The frontend logs the user out and redirects to the login page on 401.
 func SendUnauthorized(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusUnauthorized)
+}
+
+// SendForbidden sends a 403 Forbidden response with the given error code and
+// an optional short English diagnostic. Used when the authenticated user's
+// role lacks permission; the frontend keeps the session (auto-logout is bound
+// to 401).
+func SendForbidden(w http.ResponseWriter, code string, details any) {
+	SendJSONResponse(w, errorResponse{Code: code, Details: details}, http.StatusForbidden)
 }
 
 // SendConflict sends a 409 Conflict response with the given error code.

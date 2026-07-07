@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/jwt"
 	"github.com/nicograef/jotti/backend/domain/user"
@@ -24,8 +26,11 @@ func (s stubUsers) GetUser(context.Context, int) (user.User, error) {
 	return s.user, s.err
 }
 
-// activeUsers reports every user ID as an active user.
-var activeUsers = stubUsers{user: user.User{ID: 1, Status: user.ActiveStatus}}
+// activeUser returns a UserGetter whose user is active and has the given role.
+// The middleware authorizes against this DB role, not the token claim.
+func activeUser(role user.Role) stubUsers {
+	return stubUsers{user: user.User{ID: 1, Role: role, Status: user.ActiveStatus}}
+}
 
 func TestCorrelationIDMiddleware_GeneratesID(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -199,7 +204,7 @@ func TestJwtMiddleware_ValidToken(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUsers)(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUser(user.AdminRole))(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -211,20 +216,79 @@ func TestJwtMiddleware_ValidToken(t *testing.T) {
 	}
 }
 
+// Fehlende Tokens sind ein Authentifizierungsfehler: 401, damit das Frontend
+// den Auto-Logout auslöst.
 func TestJwtMiddleware_NoToken(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware("test-secret", []string{"admin"}, activeUsers)(handler)
+	middleware := NewJwtMiddleware("test-secret", []string{"admin"}, activeUser(user.AdminRole))(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	rec := httptest.NewRecorder()
 
 	middleware.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401, got %d", rec.Code)
 	}
+}
+
+// Ungültige Tokens (falsches Secret, abgelaufen) sind ein
+// Authentifizierungsfehler: 401, damit das Frontend den Auto-Logout auslöst.
+func TestJwtMiddleware_InvalidToken(t *testing.T) {
+	cases := []struct {
+		name  string
+		token func(t *testing.T) string
+	}{
+		{"wrong secret", func(t *testing.T) string {
+			token, err := jwt.GenerateJWTTokenForUser(1, "admin", "admin", "other-secret")
+			if err != nil {
+				t.Fatalf("failed to generate token: %v", err)
+			}
+			return token
+		}},
+		{"expired token", func(t *testing.T) string {
+			return expiredToken(t, "test-secret")
+		}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				t.Error("handler must not be called")
+			})
+			middleware := NewJwtMiddleware("test-secret", []string{"admin"}, activeUser(user.AdminRole))(handler)
+			req := httptest.NewRequest(http.MethodPost, "/admin", nil)
+			req.Header.Set("Authorization", "Bearer "+tc.token(t))
+			rec := httptest.NewRecorder()
+
+			middleware.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusUnauthorized {
+				t.Errorf("expected status 401, got %d", rec.Code)
+			}
+		})
+	}
+}
+
+// expiredToken signiert ein bereits abgelaufenes jotti-Token mit dem gegebenen
+// Secret (GenerateJWTTokenForUser erzeugt nur gültige Tokens).
+func expiredToken(t *testing.T, secret string) string {
+	t.Helper()
+	claims := gojwt.MapClaims{
+		"iss":      "jotti",
+		"iat":      gojwt.NewNumericDate(time.Now().UTC().Add(-13 * time.Hour)),
+		"exp":      gojwt.NewNumericDate(time.Now().UTC().Add(-1 * time.Hour)),
+		"sub":      1,
+		"username": "admin",
+		"role":     "admin",
+	}
+	token, err := gojwt.NewWithClaims(gojwt.SigningMethodHS256, claims).SignedString([]byte(secret))
+	if err != nil {
+		t.Fatalf("failed to sign expired token: %v", err)
+	}
+	return token
 }
 
 func TestJwtMiddleware_InvalidBearerFormat(t *testing.T) {
@@ -244,20 +308,22 @@ func TestJwtMiddleware_InvalidBearerFormat(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			middleware := NewJwtMiddleware("test-secret", []string{"admin"}, activeUsers)(handler)
+			middleware := NewJwtMiddleware("test-secret", []string{"admin"}, activeUser(user.AdminRole))(handler)
 			req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 			req.Header.Set("Authorization", tc.value)
 			rec := httptest.NewRecorder()
 
 			middleware.ServeHTTP(rec, req)
 
-			if rec.Code != http.StatusBadRequest {
-				t.Errorf("expected status 400 for %q, got %d", tc.value, rec.Code)
+			if rec.Code != http.StatusUnauthorized {
+				t.Errorf("expected status 401 for %q, got %d", tc.value, rec.Code)
 			}
 		})
 	}
 }
 
+// Ein authentifizierter Benutzer ohne ausreichende Rolle bekommt 403 —
+// kein Auto-Logout, die Sitzung bleibt bestehen.
 func TestJwtMiddleware_ServiceRole(t *testing.T) {
 	secret := "test-secret"
 	token, err := jwt.GenerateJWTTokenForUser(2, "service", "service", secret)
@@ -269,15 +335,55 @@ func TestJwtMiddleware_ServiceRole(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUsers)(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUser(user.ServiceRole))(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 
 	middleware.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected status 403, got %d", rec.Code)
+	}
+}
+
+// Die Autorisierung prüft die Rolle aus der Datenbank, nicht aus dem
+// Token-Claim: Ein Rollenwechsel wirkt beim nächsten Request, nicht erst
+// nach Token-Ablauf.
+func TestJwtMiddleware_RollenwechselWirktSofort(t *testing.T) {
+	secret := "test-secret"
+
+	cases := []struct {
+		name      string
+		tokenRole string
+		dbRole    user.Role
+		wantCode  int
+	}{
+		{"Herabstufung: Token admin, DB service", "admin", user.ServiceRole, http.StatusForbidden},
+		{"Heraufstufung: Token service, DB admin", "service", user.AdminRole, http.StatusOK},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			token, err := jwt.GenerateJWTTokenForUser(1, "someone", tc.tokenRole, secret)
+			if err != nil {
+				t.Fatalf("failed to generate token: %v", err)
+			}
+
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
+			middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUser(tc.dbRole))(handler)
+			req := httptest.NewRequest(http.MethodPost, "/admin", nil)
+			req.Header.Set("Authorization", "Bearer "+token)
+			rec := httptest.NewRecorder()
+
+			middleware.ServeHTTP(rec, req)
+
+			if rec.Code != tc.wantCode {
+				t.Errorf("expected status %d, got %d", tc.wantCode, rec.Code)
+			}
+		})
 	}
 }
 
@@ -292,7 +398,7 @@ func TestServiceMiddleware_ValidToken(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"service"}, activeUsers)(handler)
+	middleware := NewJwtMiddleware(secret, []string{"service"}, activeUser(user.ServiceRole))(handler)
 	req := httptest.NewRequest(http.MethodGet, "/service", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -315,7 +421,7 @@ func TestServiceleitungRole_AllowedForServiceEndpoints(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung", "service"}, activeUsers)(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung", "service"}, activeUser(user.ServiceleitungRole))(handler)
 	req := httptest.NewRequest(http.MethodGet, "/service", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -338,7 +444,7 @@ func TestServiceleitungRole_AllowedForCancelEndpoint(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"}, activeUsers)(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"}, activeUser(user.ServiceleitungRole))(handler)
 	req := httptest.NewRequest(http.MethodGet, "/service/cancel", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -369,7 +475,7 @@ func TestJwtMiddleware_SetsUserNameInContext(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUsers)(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUser(user.AdminRole))(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -431,14 +537,14 @@ func TestServiceRole_DeniedForCancelEndpoint(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"}, activeUsers)(handler)
+	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"}, activeUser(user.ServiceRole))(handler)
 	req := httptest.NewRequest(http.MethodGet, "/service/cancel", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
 
 	middleware.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected status 403, got %d", rec.Code)
 	}
 }

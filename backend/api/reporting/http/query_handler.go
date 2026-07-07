@@ -42,7 +42,7 @@ func (h *QueryHandler) GetReportingHandler() http.HandlerFunc {
 		}
 
 		if body.KassensitzungNr < 1 {
-			helper.SendClientError(w, "invalid_kassensitzung_nr", "kassensitzung_nr_ist_erforderlich")
+			helper.SendClientError(w, "invalid_kassensitzung_nr", "kassensitzungNr must be at least 1")
 			return
 		}
 
@@ -359,7 +359,7 @@ type liveBreakdownsResponse struct {
 type liveReportingResponse struct {
 	KassensitzungNr  int                    `json:"kassensitzungNr"`
 	Bezeichnung      string                 `json:"bezeichnung"`
-	Datum            time.Time              `json:"datum"`
+	Datum            string                 `json:"datum"` // Kalendertag YYYY-MM-DD
 	OffeneTische     []offenerTischResponse `json:"offeneTische"`
 	OffeneSaldiCents int                    `json:"offeneSaldiCents"`
 	Summary          liveSummaryResponse    `json:"summary"`
@@ -409,7 +409,7 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 	return liveReportingResponse{
 		KassensitzungNr:  d.KassensitzungNr,
 		Bezeichnung:      d.Bezeichnung,
-		Datum:            d.Datum,
+		Datum:            d.Datum.Format("2006-01-02"),
 		OffeneTische:     offeneTische,
 		OffeneSaldiCents: d.OffeneSaldiCents,
 		Summary: liveSummaryResponse{

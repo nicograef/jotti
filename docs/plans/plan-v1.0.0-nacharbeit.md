@@ -42,11 +42,11 @@ Statuscodes gemäß Entscheidung (401/403); die Autorisierung prüft die Rolle a
 
 ### Akzeptanzkriterien
 
-- [ ] Middleware-Tests asserten 401 für fehlende/ungültige Tokens und inaktive User, 403 für fehlende Berechtigung
-- [ ] Abgelaufenes Token führt im Frontend zum Auto-Logout (Test)
-- [ ] Rollenwechsel wirkt beim nächsten Request, nicht erst nach Token-Ablauf (Test)
-- [ ] Erfolgs- und Datumsformate einheitlich; `details`-Entscheidung umgesetzt und dokumentiert
-- [ ] D2-Entscheidung dokumentiert; `make verify` grün
+- [x] Middleware-Tests asserten 401 für fehlende/ungültige Tokens und inaktive User, 403 für fehlende Berechtigung
+- [x] Abgelaufenes Token führt im Frontend zum Auto-Logout (Test)
+- [x] Rollenwechsel wirkt beim nächsten Request, nicht erst nach Token-Ablauf (Test)
+- [x] Erfolgs- und Datumsformate einheitlich; `details`-Entscheidung umgesetzt und dokumentiert
+- [x] D2-Entscheidung dokumentiert; `make verify` grün
 
 ---
 

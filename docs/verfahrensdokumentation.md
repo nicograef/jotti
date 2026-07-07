@@ -113,7 +113,9 @@ Format- und Felddetails: [compliance.md §6](compliance.md#6-dsfinv-k-export-sch
 
 ## 6. Rollen- und Zugriffskonzept
 
-**Authentifizierung:** Jeder Benutzer meldet sich mit Benutzername und Passwort an und erhält ein zeitlich begrenztes Token (JWT, 12 Stunden gültig). Passwörter werden ausschließlich als Argon2id-Hash gespeichert, niemals im Klartext. Die Rechteprüfung erfolgt serverseitig anhand des Tokens.
+**Authentifizierung:** Jeder Benutzer meldet sich mit Benutzername und Passwort an und erhält ein zeitlich begrenztes Token (JWT, 12 Stunden gültig). Passwörter werden ausschließlich als Argon2id-Hash gespeichert, niemals im Klartext. Die Rechteprüfung erfolgt serverseitig: Das Token weist den Benutzer aus, Rolle und Status werden bei jedem Request gegen die Benutzerdatenbank geprüft. Rollenänderungen und Deaktivierungen wirken damit sofort, nicht erst beim Ablauf des Tokens.
+
+**Login-Fehlermeldungen (bewusste Abwägung):** Der Login unterscheidet in seinen Fehlermeldungen die Fälle „kein Passwort gesetzt" und „Benutzer inaktiv" vom allgemeinen „Benutzername oder Passwort falsch". Ein Angreifer kann daraus im Einzelfall ablesen, dass ein Benutzerkonto existiert (Enumerationsrisiko). Diese Abwägung ist bewusst getroffen: Die Zielgruppe sind nicht-technische, ehrenamtliche Helfer, die mit einer klaren Fehlermeldung ihr Anmeldeproblem selbst lösen können; eine serverseitige Anmeldedrosselung begrenzt automatisiertes Durchprobieren.
 
 **Drei Rollen mit abgestuften Rechten:**
 

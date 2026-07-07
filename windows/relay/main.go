@@ -340,9 +340,9 @@ func meldeErgebnis(client *http.Client, ergebnis zyklusErgebnis, config RelayCon
 }
 
 // pruefeRelayStatus übersetzt den HTTP-Status einer Relay-Antwort in einen Fehler.
-// Einen falschen Token meldet das Backend als 400 mit {"code":"unauthorized"}
-// (projektweite Konvention für Auth-Fehler) — daraus wird ein klarer Hinweis, weil
-// das die häufigste Fehlkonfiguration vor Ort ist.
+// Einen falschen Token meldet das Backend als 400 mit {"code":"unauthorized"} —
+// daraus wird ein klarer Hinweis, weil das die häufigste Fehlkonfiguration vor
+// Ort ist.
 func pruefeRelayStatus(resp *http.Response) error {
 	if resp.StatusCode == http.StatusOK {
 		return nil
