@@ -98,18 +98,19 @@ Globaler `QueryCache.onError`-Toast plus expliziter Fehlerzustand auf den kritis
 ### Kontext
 
 - `.github/workflows/ci.yml` — golangci-lint auf `latest`, kein Upgrade-Pfad-Job
-- `scripts/test-integration.sh` — deckt `up` auf leerer DB bereits ab
+- `scripts/test-integration.sh` — deckt `up` auf leerer DB bereits ab; Startup-Race beobachtet (v0.14.0-Session, 2026-07-07): `pg_isready` meldet grün, aber `migrate` scheitert mit „connection reset by peer" — das initdb-Restart-Fenster von `postgres:17`; ein Wiederholungslauf war sauber
 - Release-Guide Gate 4 (b): Migration auf befüllter Vorversions-DB plus Boot plus `rebuild-projections`
 
 ### Was zu bauen ist
 
-Neuer CI-Job als Upgrade-Harness: DB befüllen (Seed-Daten), App booten, `rebuild-projections` laufen lassen. Die Vorversion ist parametrisiert; nach dem Freeze durch die Erstinstallation wird sie auf das letzte Release gepinnt (ab der ersten `02_`-Migration Pflicht-Gate). Dazu D13: golangci-lint auf feste Version pinnen; `go mod tidy -diff` und `-count=1` zwischen CI und `make verify` angleichen, damit beide deckungsgleich grün sind.
+Neuer CI-Job als Upgrade-Harness: DB befüllen (Seed-Daten), App booten, `rebuild-projections` laufen lassen. Die Vorversion ist parametrisiert; nach dem Freeze durch die Erstinstallation wird sie auf das letzte Release gepinnt (ab der ersten `02_`-Migration Pflicht-Gate). Dazu D13: golangci-lint auf feste Version pinnen; `go mod tidy -diff` und `-count=1` zwischen CI und `make verify` angleichen, damit beide deckungsgleich grün sind. Außerdem `scripts/test-integration.sh` gegen das Postgres-Startup-Race härten: nicht nur `pg_isready` abwarten, sondern eine echte Verbindung (z. B. `SELECT 1` in Schleife) vor dem `migrate`-Aufruf, damit das initdb-Restart-Fenster keine Flakes erzeugt.
 
 ### Akzeptanzkriterien
 
 - [ ] Neuer CI-Job läuft grün (Seed, Boot, rebuild-projections); Pinning-Plan im Job oder Migrations-README dokumentiert
 - [ ] golangci-lint-Version gepinnt
 - [ ] CI-Checks und `make verify` prüfen dieselben Dinge mit denselben Flags
+- [ ] `test-integration.sh` wartet auf eine echte DB-Verbindung statt nur `pg_isready` (Startup-Race behoben)
 - [ ] `make verify` grün
 
 ---
