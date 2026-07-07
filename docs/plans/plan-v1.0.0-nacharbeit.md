@@ -64,10 +64,10 @@ Run-Loops bekommen defer/recover mit Log und Neustart (ein Panic stoppt die Sign
 
 ### Akzeptanzkriterien
 
-- [ ] Provozierter Panic im Worker: Signierung läuft nach Neustart des Loops weiter (Test)
-- [ ] Panic in einem Handler ergibt 500, Prozess lebt (Test)
-- [ ] Abschluss-Retry nach Teilfehler erzeugt keinen zweiten Kassensturz (Test gegen das Journal)
-- [ ] `make verify` grün
+- [x] Provozierter Panic im Worker: Signierung läuft nach Neustart des Loops weiter (Test)
+- [x] Panic in einem Handler ergibt 500, Prozess lebt (Test)
+- [x] Abschluss-Retry nach Teilfehler erzeugt keinen zweiten Kassensturz (Test gegen das Journal)
+- [x] `make verify` grün
 
 ---
 

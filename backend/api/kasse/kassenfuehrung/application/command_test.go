@@ -446,6 +446,68 @@ func TestKasseAbschliessen_WiederanlaufImZwischenstatus(t *testing.T) {
 	}
 }
 
+// Wiederanlauf nach Teilfehler: Steht der Kassensturz eines abgebrochenen früheren
+// Versuchs bereits im Journal, wird Schritt 1 übersprungen — es entsteht kein zweites
+// kassensturz-Event, und die Differenz rechnet gegen den dort dokumentierten Ist-Bestand.
+func TestKasseAbschliessen_WiederanlaufSchreibtKeinenZweitenKassensturz(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	// Die Differenzbuchung des ersten Versuchs kam nicht durch: Soll steht noch auf 50000.
+	journalMock.SetKassenbestand(50000)
+
+	sturzRaw, err := json.Marshal(kasse.KassensturzDurchgefuehrtV1Data{
+		SollBestandCents: 50000,
+		IstBestandCents:  49500,
+		DifferenzCents:   500,
+		DurchgefuehrtVon: 1,
+	})
+	if err != nil {
+		t.Fatalf("marshal kassensturz data: %v", err)
+	}
+	journalMock.AddEvent(e.Event{
+		UserID:   1,
+		UserName: "Admin",
+		Type:     string(kasse.EventTypeKassensturzDurchgefuehrtV1),
+		Subject:  kasse.KassensitzungSubject(testOpenKS.ZNr),
+		Version:  1,
+		Data:     sturzRaw,
+	})
+
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		TSERepo:             tseGateMock{},
+	}
+
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500); err != nil {
+		t.Fatalf("expected retry to succeed, got %v", err)
+	}
+
+	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 3 {
+		t.Fatalf("expected three events (vorhandener kassensturz + differenz + tagesabschluss), got %d", len(events))
+	}
+	if events[0].Type != string(kasse.EventTypeKassensturzDurchgefuehrtV1) {
+		t.Fatalf("expected first event kassensturz, got %q", events[0].Type)
+	}
+	if events[1].Type != string(kasse.EventTypeDifferenzSollIstGebuchtV1) {
+		t.Fatalf("expected second event differenz, got %q", events[1].Type)
+	}
+	var differenzData kasse.DifferenzSollIstGebuchtV1Data
+	if err := json.Unmarshal(events[1].Data, &differenzData); err != nil {
+		t.Fatalf("unmarshal differenz data: %v", err)
+	}
+	if differenzData.BetragCents != 500 {
+		t.Errorf("expected differenz 500 gegen den dokumentierten Ist-Bestand, got %d", differenzData.BetragCents)
+	}
+	if events[2].Type != string(kasse.EventTypeTagesabschlussErstelltV1) {
+		t.Fatalf("expected third event tagesabschluss, got %q", events[2].Type)
+	}
+}
+
 // Eine Buchung in eine Sitzung im Zwischenstatus wird mit ErrKasseWirdAbgeschlossen abgelehnt.
 func TestGeldtransitBuchen_WirdAbgeschlossen(t *testing.T) {
 	ctx := context.Background()

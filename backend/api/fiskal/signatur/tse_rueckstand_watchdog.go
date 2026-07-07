@@ -58,9 +58,18 @@ func (w *tseRueckstandWatchdog) Run(ctx context.Context) {
 		case <-ticker.C:
 		}
 
-		if err := w.checkRueckstand(ctx); err != nil {
-			log.Error().Err(err).Msg("TSE-Rückstands-Watchdog Durchlauf fehlgeschlagen")
-		}
+		w.tick(ctx)
+	}
+}
+
+// tick fuehrt eine Loop-Iteration aus. Ein Panic wird abgefangen und geloggt
+// statt den Run-Loop zu beenden — die Ueberwachung laeuft am naechsten Tick
+// weiter.
+func (w *tseRueckstandWatchdog) tick(ctx context.Context) {
+	defer recoverPanic("TSE-Rückstands-Watchdog")
+
+	if err := w.checkRueckstand(ctx); err != nil {
+		log.Error().Err(err).Msg("TSE-Rückstands-Watchdog Durchlauf fehlgeschlagen")
 	}
 }
 

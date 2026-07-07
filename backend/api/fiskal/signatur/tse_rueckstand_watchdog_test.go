@@ -134,6 +134,51 @@ func TestRueckstandWatchdog_StoreFehlerWirdGemeldet(t *testing.T) {
 	}
 }
 
+// panicEinmalRueckstandStore panict beim ersten Abfragen des aeltesten offenen
+// Auftrags und funktioniert danach normal.
+type panicEinmalRueckstandStore struct {
+	*mockRueckstandStore
+	panicMu  sync.Mutex
+	gepanict bool
+}
+
+func (s *panicEinmalRueckstandStore) GetAeltesterOffenerTSESignaturauftrag(ctx context.Context) (*time.Time, error) {
+	s.panicMu.Lock()
+	erster := !s.gepanict
+	s.gepanict = true
+	s.panicMu.Unlock()
+	if erster {
+		panic("provozierter Panic im Durchlauf")
+	}
+	return s.mockRueckstandStore.GetAeltesterOffenerTSESignaturauftrag(ctx)
+}
+
+// Ein Panic im Durchlauf beendet den Watchdog nicht: Der Run-Loop faengt ihn
+// ab und prueft am naechsten Tick weiter.
+func TestRueckstandWatchdog_Run_PanicStopptUeberwachungNicht(t *testing.T) {
+	alt := watchdogJetzt.Add(-tse.RueckstandSchwelle - time.Second)
+	store := &panicEinmalRueckstandStore{mockRueckstandStore: &mockRueckstandStore{aeltester: &alt, geprueft: make(chan struct{}, 1)}}
+
+	watchdog := &tseRueckstandWatchdog{store: store, now: func() time.Time { return watchdogJetzt }}
+	watchdog.tickInterval = time.Millisecond
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go func() {
+		watchdog.Run(ctx)
+		close(done)
+	}()
+
+	select {
+	case <-store.geprueft:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Watchdog hat nach dem Panic nicht weiter geprueft")
+	}
+	cancel()
+	<-done
+}
+
 // Die Rueckstands-Schwelle materialisiert nur am Tick: Der Run-Loop prueft im
 // Tick-Intervall und oeffnet den Zeitraum am naechsten Tick nach der
 // Schwellen-Ueberschreitung.

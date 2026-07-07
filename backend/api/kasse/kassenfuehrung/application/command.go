@@ -2,7 +2,9 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
@@ -18,6 +20,7 @@ type kassenjournalRepo interface {
 	EroeffneKassensitzung(ctx context.Context, datum time.Time, bezeichnung string, build func(zNr int) (event.Event, error)) (int, error)
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
+	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error)
 	GetTischSessionsByKassensitzungNr(ctx context.Context, kassensitzungNr int) ([]kasse.TischSession, error)
 	ReadKassensitzungEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error)
@@ -240,7 +243,7 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 // Differenzbuchung (bei Differenz ungleich Null) und Tagesabschluss.
 //
 // Feste Schreibreihenfolge:
-//  1. kassensturz-durchgefuehrt:v1 (immer)
+//  1. kassensturz-durchgefuehrt:v1 (entfällt im Wiederanlauf, wenn bereits vorhanden)
 //  2. differenz-soll-ist-gebucht:v1 (nur bei Differenz ungleich Null, signiert)
 //  3. tagesabschluss-erstellt:v1 (signiert, schließt die Kassensitzung)
 //
@@ -255,6 +258,10 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 //
 // Teilfehler: Schlägt ein Schreibvorgang nach dem ersten Event fehl, kann der Abschluss
 // wiederholt werden. Es gibt bewusst keine umschließende Transaktion über alle Events.
+// Der Wiederanlauf erkennt einen bereits geschriebenen Kassensturz der Sitzung und
+// überspringt Schritt 1 idempotent; die Differenz rechnet dann gegen den dort
+// dokumentierten Ist-Bestand (eine bereits gebuchte Differenzbuchung hat den
+// Soll-Bestand schon angeglichen und ergibt null).
 //
 // Gate: Als allererste Handlung — noch vor der Barriere — klassifiziert das
 // Signatur-Gate jeden noch nicht erledigten Signaturauftrag der Sitzung über die
@@ -334,6 +341,19 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get Kassenbestand for Kassenabschluss")
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
+
+	// Wiederanlauf-Erkennung: Ein früherer Abschluss-Versuch kann den Kassensturz bereits
+	// geschrieben haben (Teilfehler nach Schritt 1). Der dokumentierte Kassensturz zählt —
+	// Schritt 1 wird übersprungen und der damals erfasste Ist-Bestand bleibt maßgeblich,
+	// damit die Differenzbuchung zum protokollierten Zählergebnis passt.
+	vorhandenerSturz, err := c.findeVorhandenenKassensturz(ctx, subject)
+	if err != nil {
+		return KassenabschlussErgebnis{}, err
+	}
+	if vorhandenerSturz != nil {
+		log.Info().Int("z_nr", ks.ZNr).Msg("Kassenabschluss-Wiederanlauf: Kassensturz bereits vorhanden, Schritt 1 wird uebersprungen")
+		istBestandCents = vorhandenerSturz.IstBestandCents
+	}
 	differenzCents := sollBestandCents - istBestandCents
 
 	// Invariant: Tisch-Saldo-Sperre — all tisch sessions must have saldo_cents = 0
@@ -350,16 +370,18 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		}
 	}
 
-	// 1. Kassensturz
-	kassensturzEvt, err := kasse.NewKassensturzDurchgefuehrtEvent(subject, userID, userName, sollBestandCents, istBestandCents, differenzCents)
-	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create kassensturz-durchgefuehrt event")
-		return KassenabschlussErgebnis{}, err
+	// 1. Kassensturz (entfällt im Wiederanlauf: bereits im Journal)
+	if vorhandenerSturz == nil {
+		kassensturzEvt, err := kasse.NewKassensturzDurchgefuehrtEvent(subject, userID, userName, sollBestandCents, istBestandCents, differenzCents)
+		if err != nil {
+			log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create kassensturz-durchgefuehrt event")
+			return KassenabschlussErgebnis{}, err
+		}
+		if err := c.writeKassensitzungEvent(ctx, kassensturzEvt, ks.ZNr, expectedVersion); err != nil {
+			return KassenabschlussErgebnis{}, err
+		}
+		expectedVersion++
 	}
-	if err := c.writeKassensitzungEvent(ctx, kassensturzEvt, ks.ZNr, expectedVersion); err != nil {
-		return KassenabschlussErgebnis{}, err
-	}
-	expectedVersion++
 
 	// 2. Differenzbuchung nur bei Differenz ungleich Null
 	if differenzCents != 0 {
@@ -412,4 +434,31 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		Int("ohne_konfiguration", ergebnis.OhneKonfigurationAnzahl).
 		Msg("Kasse abgeschlossen")
 	return ergebnis, nil
+}
+
+// findeVorhandenenKassensturz liefert die Daten eines bereits im Journal
+// stehenden kassensturz-durchgefuehrt-Events des Kassensitzungs-Streams, oder
+// nil wenn keiner existiert. Grundlage der Wiederanlauf-Erkennung des
+// Kassenabschlusses: Ein Kassensturz aus einem abgebrochenen früheren Versuch
+// darf nicht noch einmal geschrieben werden.
+func (c Command) findeVorhandenenKassensturz(ctx context.Context, subject string) (*kasse.KassensturzDurchgefuehrtV1Data, error) {
+	log := zerolog.Ctx(ctx)
+
+	events, err := c.KassenjournalRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		log.Error().Err(err).Str("subject", subject).Msg("Failed to read events for Kassensturz-Wiederanlauf check")
+		return nil, ErrDatabase
+	}
+	for _, evt := range events {
+		if kasse.EventType(evt.Type) != kasse.EventTypeKassensturzDurchgefuehrtV1 {
+			continue
+		}
+		var data kasse.KassensturzDurchgefuehrtV1Data
+		if err := json.Unmarshal(evt.Data, &data); err != nil {
+			log.Error().Err(err).Int("event_id", evt.ID).Msg("Unparsebares Kassensturz-Event verhindert Kassenabschluss")
+			return nil, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+		}
+		return &data, nil
+	}
+	return nil, nil
 }

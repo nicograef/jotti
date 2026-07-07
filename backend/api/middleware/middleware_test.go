@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -546,5 +547,36 @@ func TestServiceRole_DeniedForCancelEndpoint(t *testing.T) {
 
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("expected status 403, got %d", rec.Code)
+	}
+}
+
+// Ein Panic in einem Handler ergibt eine 500-Antwort im bestehenden
+// Fehler-Response-Format; der Prozess lebt weiter und bedient den naechsten
+// Request regulaer.
+func TestRecoveryMiddleware_PanicErgibt500UndNaechsterRequestFunktioniert(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/panic", func(http.ResponseWriter, *http.Request) {
+		panic("kaputter handler")
+	})
+	mux.HandleFunc("/ok", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := RecoveryMiddleware(mux)
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/panic", nil))
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", rec.Code)
+	}
+	if body := strings.TrimSpace(rec.Body.String()); body != `{"code":"internal_server_error"}` {
+		t.Fatalf("expected error response format, got %q", body)
+	}
+
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/ok", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected next request to succeed with 200, got %d", rec.Code)
 	}
 }

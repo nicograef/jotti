@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"sync"
@@ -76,6 +77,33 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// RecoveryMiddleware faengt Panics aus Handlern ab: Der Request endet mit 500
+// im bestehenden Fehler-Response-Format statt mit einer abgerissenen Verbindung
+// (net/http wuerde nur die Verbindung schliessen), der Stack landet im Log.
+// http.ErrAbortHandler wird durchgereicht — das ist das idiomatische Signal von
+// net/http, eine Response bewusst abzubrechen.
+func RecoveryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			rec := recover()
+			if rec == nil {
+				return
+			}
+			if err, ok := rec.(error); ok && errors.Is(err, http.ErrAbortHandler) {
+				panic(rec)
+			}
+			zerolog.Ctx(r.Context()).Error().
+				Interface("panic", rec).
+				Bytes("stack", debug.Stack()).
+				Str("path", r.URL.Path).
+				Msg("Panic in HTTP handler")
+			helper.SendServerError(w)
+		}()
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // limiterEntry wraps a rate limiter with a last-seen timestamp for cleanup.
 type limiterEntry struct {
 	limiter  *rate.Limiter
@@ -87,17 +115,27 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 	var mu sync.Mutex
 	limiters := make(map[string]*limiterEntry)
 
-	// Cleanup goroutine: remove entries not seen for 10+ minutes
+	// cleanup removes entries not seen for 10+ minutes. A panic is caught
+	// and logged instead of tearing down the process; the loop continues at
+	// the next interval.
+	cleanup := func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error().Interface("panic", r).Bytes("stack", debug.Stack()).Msg("Rate-Limiter-Cleanup: Panic abgefangen; Loop laeuft weiter")
+			}
+		}()
+		mu.Lock()
+		defer mu.Unlock()
+		for ip, entry := range limiters {
+			if time.Since(entry.lastSeen) > 10*time.Minute {
+				delete(limiters, ip)
+			}
+		}
+	}
 	go func() {
 		for {
 			time.Sleep(5 * time.Minute)
-			mu.Lock()
-			for ip, entry := range limiters {
-				if time.Since(entry.lastSeen) > 10*time.Minute {
-					delete(limiters, ip)
-				}
-			}
-			mu.Unlock()
+			cleanup()
 		}
 	}()
 

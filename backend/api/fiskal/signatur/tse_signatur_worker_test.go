@@ -741,6 +741,56 @@ func TestTSESignaturWorker_Run_SofortTrigger(t *testing.T) {
 	}
 }
 
+// panicEinmalStore panict beim ersten Laden der offenen Auftraege und
+// funktioniert danach normal — fuer den Beleg, dass ein Panic den Run-Loop
+// nicht beendet.
+type panicEinmalStore struct {
+	*mockTSESignaturStore
+	panicMu  sync.Mutex
+	gepanict bool
+}
+
+func (s *panicEinmalStore) GetOffeneTSESignaturauftraege(ctx context.Context, limit int) ([]tse_repo.OffenerSignaturauftrag, error) {
+	s.panicMu.Lock()
+	erster := !s.gepanict
+	s.gepanict = true
+	s.panicMu.Unlock()
+	if erster {
+		panic("provozierter Panic im Durchlauf")
+	}
+	return s.mockTSESignaturStore.GetOffeneTSESignaturauftraege(ctx, limit)
+}
+
+// Ein Panic im Durchlauf stoppt die Signierung nicht dauerhaft: Der Run-Loop
+// faengt ihn ab und der naechste Trigger verarbeitet den offenen Auftrag.
+func TestTSESignaturWorker_Run_PanicStopptSignierungNicht(t *testing.T) {
+	store := &panicEinmalStore{mockTSESignaturStore: &mockTSESignaturStore{
+		offene:      []tse_repo.OffenerSignaturauftrag{{ID: 8, TxID: "tx-8", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^3.00"}},
+		verarbeitet: make(chan struct{}, 1),
+	}}
+	trigger := make(chan struct{}, 2)
+	worker := &tseSignaturWorker{
+		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
+		store:        store,
+		newTSEClient: signierenderFakeClient(),
+		trigger:      trigger,
+		pollInterval: time.Hour,
+		now:          time.Now,
+	}
+
+	cancel, done := runWorker(t, worker)
+	defer func() { cancel(); <-done }()
+
+	trigger <- struct{}{} // erster Durchlauf panict
+	trigger <- struct{}{} // zweiter Durchlauf signiert
+
+	select {
+	case <-store.verarbeitet:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Signierung lief nach dem Panic nicht weiter")
+	}
+}
+
 // Der Polling-Tick faengt verlorene Trigger (Crash zwischen Commit und
 // Trigger): Ohne jeden Trigger wird der offene Auftrag am Tick verarbeitet.
 func TestTSESignaturWorker_Run_PollingFallbackFaengtVerloreneTrigger(t *testing.T) {

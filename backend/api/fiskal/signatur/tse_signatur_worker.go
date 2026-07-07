@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
@@ -104,6 +105,16 @@ type Runner interface {
 	Run(ctx context.Context)
 }
 
+// recoverPanic faengt einen Panic der Loop-Iteration ab und protokolliert ihn
+// mit Stack. Als defer in den tick-Funktionen der Run-Loops sorgt es dafuer,
+// dass ein Panic den Loop nicht beendet: Der naechste Trigger/Tick startet den
+// Durchlauf neu, die Signierung bzw. Ueberwachung stoppt nicht dauerhaft.
+func recoverPanic(worker string) {
+	if r := recover(); r != nil {
+		log.Error().Interface("panic", r).Bytes("stack", debug.Stack()).Msg(worker + ": Panic im Durchlauf abgefangen; Loop laeuft weiter")
+	}
+}
+
 // NewTSESignaturWorker erstellt den Signatur-Worker. fiskalyBaseURL ist die
 // Basis-URL der Fiskaly-API; sie wird als Parameter gereicht, damit dieses
 // Paket config nicht importiert.
@@ -141,12 +152,21 @@ func (w *tseSignaturWorker) Run(ctx context.Context) {
 			// Polling-Fallback fuer verlorene Trigger und Backoff-Wiedervorlagen.
 		}
 
-		if !w.ensureLock(ctx) {
-			continue
-		}
-		if err := w.processOnce(ctx); err != nil {
-			log.Error().Err(err).Msg("TSE-Signatur-Worker Durchlauf fehlgeschlagen")
-		}
+		w.tick(ctx)
+	}
+}
+
+// tick fuehrt eine Loop-Iteration aus. Ein Panic wird abgefangen und geloggt
+// statt den Run-Loop zu beenden — die Signierung laeuft am naechsten
+// Trigger/Tick weiter.
+func (w *tseSignaturWorker) tick(ctx context.Context) {
+	defer recoverPanic("TSE-Signatur-Worker")
+
+	if !w.ensureLock(ctx) {
+		return
+	}
+	if err := w.processOnce(ctx); err != nil {
+		log.Error().Err(err).Msg("TSE-Signatur-Worker Durchlauf fehlgeschlagen")
 	}
 }
 

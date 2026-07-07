@@ -14,10 +14,11 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 )
 
-func cleanGeldtransitDB(t *testing.T, db *sql.DB) {
+func cleanKassenfuehrungDB(t *testing.T, db *sql.DB) {
 	t.Helper()
 	stmts := []string{
 		"DELETE FROM tse_signaturauftraege",
+		"DELETE FROM tse_stoerungen",
 		"DELETE FROM druckauftraege",
 		"DELETE FROM tisch_sessions",
 		"ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete",
@@ -29,17 +30,17 @@ func cleanGeldtransitDB(t *testing.T, db *sql.DB) {
 	}
 	for _, stmt := range stmts {
 		if _, err := db.Exec(stmt); err != nil {
-			t.Fatalf("cleanGeldtransitDB %q: %v", stmt, err)
+			t.Fatalf("cleanKassenfuehrungDB %q: %v", stmt, err)
 		}
 	}
 }
 
-func setupGeldtransitIntegration(t *testing.T) (ctx context.Context, cmd Command, db *sql.DB, userID int) {
+func setupKassenfuehrungIntegration(t *testing.T) (ctx context.Context, cmd Command, db *sql.DB, userID int) {
 	t.Helper()
 	db = dbpkg.OpenTestDatabase()
-	cleanGeldtransitDB(t, db)
+	cleanKassenfuehrungDB(t, db)
 	t.Cleanup(func() {
-		cleanGeldtransitDB(t, db)
+		cleanKassenfuehrungDB(t, db)
 		db.Close()
 	})
 
@@ -69,7 +70,7 @@ func setupGeldtransitIntegration(t *testing.T) (ctx context.Context, cmd Command
 // derselben geldtransitId erzeugen genau ein kassenjournal-Event und einen Signaturauftrag; der
 // zweite Aufruf gibt nil zurück (idempotenter Erfolg).
 func TestGeldtransitBuchen_DuplikatGeldtransitId_IdempotenterErfolg(t *testing.T) {
-	ctx, cmd, db, userID := setupGeldtransitIntegration(t)
+	ctx, cmd, db, userID := setupKassenfuehrungIntegration(t)
 
 	geldtransitID := uuid.New().String()
 
