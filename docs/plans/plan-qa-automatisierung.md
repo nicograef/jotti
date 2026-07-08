@@ -181,11 +181,11 @@ folgen der Fachsprache aus language.md; keine festen Wartezeiten.
 
 ### Akzeptanzkriterien
 
-- [ ] `make test-e2e` läuft lokal gegen den laufenden Dev-Stack und ist grün
-- [ ] CI-Job baut die Prod-Images aus dem Checkout, startet den Stack und führt die Suite bei jedem PR aus; Trace/Screenshot als Artefakt bei Fehlschlag
-- [ ] Reset-Endpoint existiert nur bei `JOTTI_ALLOW_SEED=1`; ohne Flag ist die Route nicht registriert (Test), Seed-Guards bleiben intakt
-- [ ] Die erste Spec startet vom Seed-Zustand und läuft in beiden Viewport-Projekten
-- [ ] `make verify` unverändert grün
+- [x] `make test-e2e` läuft lokal gegen den laufenden Dev-Stack und ist grün
+- [x] CI-Job baut die Prod-Images aus dem Checkout, startet den Stack und führt die Suite bei jedem PR aus; Trace/Screenshot als Artefakt bei Fehlschlag
+- [x] Reset-Endpoint existiert nur bei `JOTTI_ALLOW_SEED=1`; ohne Flag ist die Route nicht registriert (Test), Seed-Guards bleiben intakt
+- [x] Die erste Spec startet vom Seed-Zustand und läuft in beiden Viewport-Projekten
+- [x] `make verify` unverändert grün
 
 ---
 
@@ -301,10 +301,10 @@ verify-Lauf und im CI-Integrationsjob.
 
 ### Akzeptanzkriterien
 
-- [ ] Validator-Paket mit Schnittstelle „ZIP rein, Befundliste raus" und eigenen Unit-Tests (gute + kaputte Fixtures)
-- [ ] Strukturregeln decken Dateinamen, CSV-Format, Spaltenreihenfolge und index.xml/DTD ab; jede Regel mit Fundstellen-Kommentar
-- [ ] Integrationstest Seed → Export → Validator ist befundfrei und läuft unter dem integration-Tag
-- [ ] `make verify` grün, CI-Integrationsjob grün
+- [x] Validator-Paket mit Schnittstelle „ZIP rein, Befundliste raus" und eigenen Unit-Tests (gute + kaputte Fixtures)
+- [x] Strukturregeln decken Dateinamen, CSV-Format, Spaltenreihenfolge und index.xml/DTD ab; jede Regel mit Fundstellen-Kommentar
+- [x] Integrationstest Seed → Export → Validator ist befundfrei und läuft unter dem integration-Tag
+- [x] `make verify` grün, CI-Integrationsjob grün
 
 ---
 
@@ -365,10 +365,10 @@ Caddyfile (CSP, HSTS, X-Frame-Options, X-Content-Type-Options).
 
 ### Akzeptanzkriterien
 
-- [ ] Routentabelle ist die einzige Registrierungsquelle; eine Route ohne Rollendeklaration ist nicht registrierbar bzw. lässt den Test fehlschlagen
-- [ ] Matrix-Test prüft jede Route × jede Rolle × 401/403 sowie die Objektbezug-Fälle
-- [ ] Login-Rate-Limit-Test (429) und Caddyfile-Header-Test vorhanden
-- [ ] Verhalten aller Routen unverändert (bestehende Tests grün); `make verify` grün
+- [x] Routentabelle ist die einzige Registrierungsquelle; eine Route ohne Rollendeklaration ist nicht registrierbar bzw. lässt den Test fehlschlagen
+- [x] Matrix-Test prüft jede Route × jede Rolle × 401/403 sowie die Objektbezug-Fälle
+- [x] Login-Rate-Limit-Test (429) und Caddyfile-Header-Test vorhanden
+- [x] Verhalten aller Routen unverändert (bestehende Tests grün); `make verify` grün
 
 ---
 
@@ -392,9 +392,9 @@ Advisories ohne Code-Änderung auffallen.
 
 ### Akzeptanzkriterien
 
-- [ ] govulncheck-Job über alle Go-Module, rot bei erreichbaren Befunden
-- [ ] pnpm-audit-Job, rot ab high; Ausnahmen nur dokumentiert im Workflow
-- [ ] Beide Jobs laufen bei PRs und wöchentlich; aktueller Stand ist grün (oder Befunde sind als Ausnahme dokumentiert)
+- [x] govulncheck-Job über alle Go-Module, rot bei erreichbaren Befunden
+- [x] pnpm-audit-Job, rot ab high; Ausnahmen nur dokumentiert im Workflow
+- [x] Beide Jobs laufen bei PRs und wöchentlich; aktueller Stand ist grün (oder Befunde sind als Ausnahme dokumentiert)
 
 ---
 
@@ -525,10 +525,10 @@ prod-restore und TLS-Abnahme bleiben ausdrücklich beim Menschen.
 
 ### Akzeptanzkriterien
 
-- [ ] Skript mit den drei Modi und maschinenlesbarem Protokoll
-- [ ] Header- und Rate-Limit-Prüfung am deployten Stack enthalten
-- [ ] shellcheck-frei (CI-Job grün)
-- [ ] Review bestätigt: keine destruktiven Schritte, Abbruch bei jedem Fehlschritt
+- [x] Skript mit den drei Modi und maschinenlesbarem Protokoll
+- [x] Header- und Rate-Limit-Prüfung am deployten Stack enthalten
+- [x] shellcheck-frei (CI-Job grün)
+- [x] Review bestätigt: keine destruktiven Schritte, Abbruch bei jedem Fehlschritt
 
 ---
 
