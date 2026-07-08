@@ -53,5 +53,19 @@ export function useFehlgeschlageneDruckauftraege() {
     })
   }
 
-  return { druckauftraege: data, isPending, error, erneutVersuchen, verwerfen }
+  const alleVerwerfen = async () => {
+    await druckstationBackend.druckauftraegeVerwerfen()
+    await queryClient.invalidateQueries({
+      queryKey: ['fehlgeschlagene-druckauftraege'],
+    })
+  }
+
+  return {
+    druckauftraege: data,
+    isPending,
+    error,
+    erneutVersuchen,
+    verwerfen,
+    alleVerwerfen,
+  }
 }

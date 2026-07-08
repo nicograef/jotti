@@ -1,6 +1,17 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -202,8 +213,16 @@ function FehlgeschlagenerDruckauftragRow({
 }
 
 function FehlgeschlageneDruckauftraege() {
-  const { druckauftraege, isPending, error, erneutVersuchen, verwerfen } =
-    useFehlgeschlageneDruckauftraege()
+  const {
+    druckauftraege,
+    isPending,
+    error,
+    erneutVersuchen,
+    verwerfen,
+    alleVerwerfen,
+  } = useFehlgeschlageneDruckauftraege()
+  const { loading: alleVerwerfenLoading, run: runAlleVerwerfen } =
+    useActionSubmit({ actionLabel: 'Druckaufträge verwerfen' })
 
   let inhalt
   if (isPending) {
@@ -241,9 +260,51 @@ function FehlgeschlageneDruckauftraege() {
 
   return (
     <div className="mt-10">
-      <h2 className="text-xl font-semibold mb-4">
-        Fehlgeschlagene Druckaufträge
-      </h2>
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <h2 className="text-xl font-semibold">Fehlgeschlagene Druckaufträge</h2>
+        {druckauftraege.length > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive"
+                disabled={alleVerwerfenLoading}
+              >
+                Alle verwerfen
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  Alle fehlgeschlagenen Druckaufträge verwerfen?
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {druckauftraege.length} fehlgeschlagene Aufträge werden aus
+                  der Warteschlange entfernt. Noch benötigte Bons vorher einzeln
+                  über „Erneut versuchen“ nachdrucken.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  onClick={() =>
+                    void runAlleVerwerfen(async () => {
+                      await alleVerwerfen()
+                      toast.success(
+                        'Alle fehlgeschlagenen Druckaufträge verworfen.',
+                      )
+                    })
+                  }
+                >
+                  Alle verwerfen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </div>
       <p className="text-muted-foreground text-sm mb-6">
         Aufträge, die auch nach mehreren Zustellversuchen über rund 5 Minuten
         nicht gedruckt werden konnten. „Erneut versuchen“ reiht den Auftrag

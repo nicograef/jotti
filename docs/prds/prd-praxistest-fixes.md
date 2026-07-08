@@ -81,9 +81,16 @@ Technische Root Causes (verifiziert):
    und Ausschank wertlos. Ein Rollenwechsel wird damit vollständig überbrückt; die
    Aufträge drucken automatisch nach, sobald der Drucker wieder
    erreichbar ist. Für den Fall "Rolle war lange leer, keiner hat es
-   gemerkt" bekommt die Druckstationen-Seite zusätzlich zum bestehenden
-   Einzel-Retry einen Sammel-Button, der alle fehlgeschlagenen Aufträge
-   erneut einreiht.
+   gemerkt" sammeln sich viele fehlgeschlagene Aufträge an, von denen die
+   meisten (vor allem Arbeitsbons) längst wertlos sind. Ein pauschaler
+   Sammel-Nachdruck würde hunderte veraltete Bons ausspucken; deshalb
+   bekommt die Druckstationen-Seite zusätzlich zum bestehenden
+   Einzel-Retry einen Sammel-Button "Alle verwerfen", der den Stapel in
+   einem Schritt aufräumt. Die wenigen noch relevanten Bons druckt der
+   Admin gezielt über den vorhandenen Einzel-Retry nach. Beim
+   Tagesabschluss (Schließung der Kassensitzung) werden verbliebene
+   fehlgeschlagene Aufträge automatisch verworfen, damit kein Alt-Ballast
+   in das nächste Fest übernommen wird.
 
 ## User Stories
 
@@ -136,9 +143,9 @@ Technische Root Causes (verifiziert):
     erfolgloser Versuche endgültig aufgibt, damit nicht irgendwann
     veraltete Bons drucken, die niemand mehr zuordnen kann.
 16. Als Admin möchte ich auf der Druckstationen-Seite alle
-    fehlgeschlagenen Aufträge mit einem Klick erneut einreihen können,
-    damit ich nach einer länger unbemerkten Störung nicht jeden Auftrag
-    einzeln anfassen muss.
+    fehlgeschlagenen Aufträge mit einem Klick verwerfen können, damit ich
+    nach einer länger unbemerkten Störung den Stapel aufräume, ohne
+    hunderte veraltete Bons nachzudrucken.
 17. Als Admin möchte ich weiterhin einzelne fehlgeschlagene Aufträge
     erneut einreihen oder verwerfen können, damit ich gezielt
     entscheiden kann, was noch gedruckt werden soll.
@@ -151,6 +158,10 @@ Technische Root Causes (verifiziert):
 20. Als Kassenbeleg-Empfänger möchte ich, dass auch Kassenbelege vom
     Backoff-Nachdruck profitieren, da sie über dieselbe Druckmechanik
     laufen.
+21. Als Admin möchte ich, dass verbliebene fehlgeschlagene Aufträge beim
+    Tagesabschluss automatisch verworfen werden, damit kein Alt-Ballast
+    aus einem Fest in das nächste übernommen wird und die Liste zu
+    Beginn eines Einsatzes leer ist.
 
 ## Implementation Decisions
 
@@ -183,9 +194,19 @@ Technische Root Causes (verifiziert):
   maximale Versuchszahl steigt auf 6 (Erstversuch plus fünf
   Wiederholungen); die bestehende Endzustands-Semantik
   (fehlgeschlagen, Einzel-Retry setzt Versuche zurück) bleibt.
-- **Sammel-Retry**: neuer Command und Endpoint "alle fehlgeschlagenen
-  Aufträge erneut einreihen" (Status-Guard wie beim Einzel-Retry),
-  dazu ein Button auf der Druckstationen-Seite mit Bestätigungsdialog.
+- **Sammel-Verwerfen statt Sammel-Nachdruck**: neuer Command und Endpoint
+  "alle fehlgeschlagenen Aufträge verwerfen" (Status-Guard fehlgeschlagen
+  nach verworfen, wie beim Einzel-Verwerfen), dazu ein Button "Alle
+  verwerfen" auf der Druckstationen-Seite mit Bestätigungsdialog, der die
+  Anzahl nennt. Bewusst kein pauschaler Nachdruck: fehlgeschlagene
+  Aufträge sammeln sich ohne Zeitgrenze an, ein "Alle erneut einreihen"
+  würde bei großen Stapeln hunderte veraltete Bons drucken. Der bestehende
+  Einzel-Retry bleibt für die wenigen noch relevanten Bons.
+- **Auto-Verwerfen beim Tagesabschluss**: Wird die Kassensitzung
+  geschlossen, werden verbliebene fehlgeschlagene Druckaufträge im selben
+  Zug verworfen, damit die Liste zum nächsten Fest leer startet. Das
+  Aufräumen ist eine additive, nicht-fiskalische Operation auf der
+  technischen Outbox und darf den Tagesabschluss nicht gefährden.
 - **Fehler-Referenz**: 500-Antworten enthalten die bereits existierende
   Correlation-ID der Anfrage. Der Frontend-Fehlerpfad reicht sie durch
   und hängt sie an die generische Serverfehler-Meldung an ("Referenz:
@@ -215,8 +236,9 @@ Technische Root Causes (verifiziert):
 - **Backoff-Logik**: Unit-Tests für die reine Backoff-Funktion
   (Versuchsnummer zu Wartezeit, Grenzen). Repository-/Integrationstests:
   nicht fällige Aufträge werden nicht ausgeliefert, Fehlversuch setzt
-  die nächste Fälligkeit, 5. Fehlversuch führt in den Endzustand,
-  Sammel-Retry reiht nur fehlgeschlagene Aufträge wieder ein. Prior
+  die nächste Fälligkeit, 6. Fehlversuch führt in den Endzustand,
+  Sammel-Verwerfen verwirft nur fehlgeschlagene Aufträge, und der
+  Tagesabschluss verwirft verbliebene fehlgeschlagene Aufträge. Prior
   Art: bestehende Journal- und Relay-Integrationstests sowie die
   vorhandenen Druckauftrags-Handler-Tests.
 - **PositionAuswahlListe**: Komponententests mit Vitest und Testing

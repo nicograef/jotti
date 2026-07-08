@@ -101,6 +101,7 @@ func NewAdminApi(deps Deps) http.Handler {
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		BetreiberRepo:       deps.BetreiberRepo,
 		TSERepo:             deps.TSERepo,
+		DruckauftragRepo:    deps.DruckauftragRepo,
 	}
 	r.HandleFunc("/kassensitzung-eroeffnen", kc.KassensitzungEroeffnenHandler())
 	r.HandleFunc("/geldtransit-buchen", kc.GeldtransitBuchenHandler())
@@ -125,6 +126,7 @@ func NewAdminApi(deps Deps) http.Handler {
 	r.HandleFunc("/get-fehlgeschlagene-druckauftraege", druckauftragQueryHandler.GetFehlgeschlageneDruckauftraegeHandler())
 	r.HandleFunc("/druckauftrag-erneut-versuchen", druckauftragCommandHandler.RetryDruckauftragHandler())
 	r.HandleFunc("/druckauftrag-verwerfen", druckauftragCommandHandler.DiscardDruckauftragHandler())
+	r.HandleFunc("/druckauftraege-verwerfen", druckauftragCommandHandler.DiscardAlleFehlgeschlagenenHandler())
 
 	tseQueryHandler := tseHTTP.QueryHandler{}
 	tseQueryHandler.Query = tseApp.Query{TSERepo: deps.TSERepo}

@@ -399,6 +399,76 @@ func TestDruckauftragTransitionen_NurAusFehlgeschlagen(t *testing.T) {
 	}
 }
 
+func TestDiscardAlleFehlgeschlagenen_NurFehlgeschlagene(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	err := repo.EnqueueDruckauftraege(context.Background(), []NeuerDruckauftrag{
+		{ZielIP: "192.168.1.51", Payload: "AAA=", BonArt: "arbeitsbon", Referenz: "fehl-ref-1"},
+		{ZielIP: "192.168.1.52", Payload: "BBB=", BonArt: "arbeitsbon", Referenz: "fehl-ref-2"},
+		{ZielIP: "192.168.1.53", Payload: "CCC=", BonArt: "arbeitsbon", Referenz: "offen-ref"},
+		{ZielIP: "192.168.1.54", Payload: "DDD=", BonArt: "arbeitsbon", Referenz: "gedruckt-ref"},
+	})
+	if err != nil {
+		t.Fatalf("Expected no enqueue error, got %v", err)
+	}
+	offene, err := repo.GetOffeneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != 4 {
+		t.Fatalf("Expected 4 offene auftraege, got %d", len(offene))
+	}
+	fehlID1 := offene[0].ID
+	fehlID2 := offene[1].ID
+	offenID := offene[2].ID
+	gedrucktID := offene[3].ID
+
+	makeFehlgeschlagen(t, repo, fehlID1, "endgueltig 1")
+	makeFehlgeschlagen(t, repo, fehlID2, "endgueltig 2")
+	if err := repo.ReportDruckergebnis(context.Background(), []int{gedrucktID}, nil); err != nil {
+		t.Fatalf("Expected no error quittieren, got %v", err)
+	}
+
+	verworfen, err := repo.DiscardAlleFehlgeschlagenen(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if verworfen != 2 {
+		t.Fatalf("Expected 2 verworfene auftraege, got %d", verworfen)
+	}
+
+	fehlgeschlagene, err := repo.GetFehlgeschlageneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(fehlgeschlagene) != 0 {
+		t.Fatalf("Expected no fehlgeschlagene auftraege after discard-alle, got %d", len(fehlgeschlagene))
+	}
+
+	status1, _, _ := readAuftrag(t, repo, fehlID1)
+	if status1 != "verworfen" {
+		t.Fatalf("Expected auftrag %d verworfen, got %q", fehlID1, status1)
+	}
+	status2, _, _ := readAuftrag(t, repo, fehlID2)
+	if status2 != "verworfen" {
+		t.Fatalf("Expected auftrag %d verworfen, got %q", fehlID2, status2)
+	}
+
+	offene, err = repo.GetOffeneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != 1 || offene[0].ID != offenID {
+		t.Fatalf("Expected offener auftrag %d to stay offen and unberuehrt, got %+v", offenID, offene)
+	}
+
+	statusGedruckt, _, _ := readAuftrag(t, repo, gedrucktID)
+	if statusGedruckt != "gedruckt" {
+		t.Fatalf("Expected gedruckter auftrag %d to stay gedruckt, got %q", gedrucktID, statusGedruckt)
+	}
+}
+
 // makeFehlgeschlagen treibt einen Auftrag über MaxDruckversuche Fehlversuche in
 // den Status fehlgeschlagen.
 func makeFehlgeschlagen(t *testing.T, repo Repository, id int, letzterFehler string) {

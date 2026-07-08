@@ -9,6 +9,7 @@ import (
 type druckauftragCommandRepo interface {
 	RetryDruckauftrag(ctx context.Context, id int) error
 	DiscardDruckauftrag(ctx context.Context, id int) error
+	DiscardAlleFehlgeschlagenen(ctx context.Context) (int64, error)
 }
 
 type Command struct {
@@ -42,4 +43,17 @@ func (c Command) DiscardDruckauftrag(ctx context.Context, id int) error {
 
 	log.Info().Int("id", id).Msg("Druckauftrag verworfen")
 	return nil
+}
+
+// DiscardAlleFehlgeschlagenen verwirft alle fehlgeschlagenen Auftraege in einem
+// Schritt und liefert die Anzahl.
+func (c Command) DiscardAlleFehlgeschlagenen(ctx context.Context) (int64, error) {
+	log := zerolog.Ctx(ctx)
+	n, err := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to discard all fehlgeschlagene druckauftraege")
+		return 0, ErrDatabase
+	}
+	log.Info().Int64("verworfen", n).Msg("Alle fehlgeschlagenen Druckauftraege verworfen")
+	return n, nil
 }

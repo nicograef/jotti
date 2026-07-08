@@ -102,4 +102,8 @@ export class DruckstationBackend {
   public async druckauftragVerwerfen(id: number): Promise<void> {
     await this.backend.post('admin/druckauftrag-verwerfen', { id })
   }
+
+  public async druckauftraegeVerwerfen(): Promise<void> {
+    await this.backend.post('admin/druckauftraege-verwerfen', {})
+  }
 }

@@ -212,6 +212,93 @@ func TestKasseAbschliessen_MitDifferenz(t *testing.T) {
 	}
 }
 
+// stubCleaner ist eine Test-Doublette fuer druckauftragCleaner: zaehlt die
+// Aufrufe und liefert einen konfigurierbaren Fehler, um die Best-effort-Semantik
+// des Aufraeumens beim Tagesabschluss zu belegen.
+type stubCleaner struct {
+	calls int
+	err   error
+}
+
+func (s *stubCleaner) DiscardAlleFehlgeschlagenen(context.Context) (int64, error) {
+	s.calls++
+	return 0, s.err
+}
+
+func TestKasseAbschliessen_RaeumtFehlgeschlageneDruckauftraegeAuf(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock.SetKassenbestand(50000) // Soll = Ist
+	cleaner := &stubCleaner{}
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    cleaner,
+	}
+
+	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cleaner.calls != 1 {
+		t.Fatalf("expected DiscardAlleFehlgeschlagenen called once, got %d", cleaner.calls)
+	}
+
+	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 2 {
+		t.Fatalf("expected two events (kassensturz + tagesabschluss), got %d", len(events))
+	}
+	if events[1].Type != string(kasse.EventTypeTagesabschlussErstelltV1) {
+		t.Fatalf("expected second event tagesabschluss, got %q", events[1].Type)
+	}
+}
+
+func TestKasseAbschliessen_CleanerFehlerBleibtBestEffort(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock.SetKassenbestand(50000) // Soll = Ist
+	cleaner := &stubCleaner{err: fmt.Errorf("cleanup kaputt")}
+	sitzungMock := kassensitzungen_repo.NewMock(testOpenKS, nil)
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: sitzungMock,
+		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    cleaner,
+	}
+
+	ergebnis, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
+	if err != nil {
+		t.Fatalf("expected Abschluss to stay successful despite cleaner error, got %v", err)
+	}
+	_ = ergebnis
+	if cleaner.calls != 1 {
+		t.Fatalf("expected DiscardAlleFehlgeschlagenen called once, got %d", cleaner.calls)
+	}
+
+	// Kern der Best-effort-Invariante: Der Cleaner-Fehler wird über eine lokale
+	// Variable geschluckt, nicht über den benannten Return err. Sonst würde der
+	// defer-Block die bereits geschlossene Sitzung fälschlich auf 'offen'
+	// zurücksetzen. Kein Reset ist der Beleg, dass der Abschluss endgültig bleibt.
+	if sitzungMock.OffenCalls != 0 {
+		t.Fatalf("expected NO reset to offen after cleaner error (Abschluss ist endgueltig), got %d", sitzungMock.OffenCalls)
+	}
+
+	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 2 {
+		t.Fatalf("expected two events (kassensturz + tagesabschluss) despite cleaner error, got %d", len(events))
+	}
+	if events[1].Type != string(kasse.EventTypeTagesabschlussErstelltV1) {
+		t.Fatalf("expected second event tagesabschluss, got %q", events[1].Type)
+	}
+}
+
 // TestKasseAbschliessen_TagesabschlussMitEchtenSummen prüft, dass die drei Summen
 // im tagesabschluss-erstellt-Event aus den Journal-Events der Kassensitzung berechnet
 // werden (und nicht mehr aus einem separaten Reporting-Repository).

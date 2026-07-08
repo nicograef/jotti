@@ -43,3 +43,8 @@ WHERE id = $1 AND status = 'fehlgeschlagen';
 UPDATE druckauftraege
 SET status = 'verworfen'
 WHERE id = $1 AND status = 'fehlgeschlagen';
+
+-- name: DiscardAlleFehlgeschlagenenDruckauftraege :execrows
+UPDATE druckauftraege
+SET status = 'verworfen'
+WHERE status = 'fehlgeschlagen';

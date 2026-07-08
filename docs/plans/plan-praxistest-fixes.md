@@ -24,9 +24,9 @@ Die vier verifizierten Praxistest-Befunde vom 07.07.2026 beheben:
 
 ## Architekturentscheidungen
 
-- **Routen:** Ein neuer Admin-Endpoint `admin/druckauftraege-erneut-versuchen`
-  (Sammel-Retry, Plural analog zum bestehenden Singular-Endpoint
-  `admin/druckauftrag-erneut-versuchen`). Alle übrigen Endpoints bleiben
+- **Routen:** Ein neuer Admin-Endpoint `admin/druckauftraege-verwerfen`
+  (Sammel-Verwerfen, Plural analog zum bestehenden Singular-Endpoint
+  `admin/druckauftrag-verwerfen`). Alle übrigen Endpoints bleiben
   unverändert; das Relay-Protokoll (`relay/poll`, `relay/ergebnis`) ändert
   sich nicht.
 - **Schema:** Migration `02_druckauftrag_backoff.up.sql` (erste echte
@@ -304,9 +304,9 @@ Kassenbelege laufen über dieselbe Tabelle und profitieren automatisch.
 
 ---
 
-## Phase 6: Sammel-Retry für fehlgeschlagene Druckaufträge
+## Phase 6: Sammel-Verwerfen + Auto-Verwerfen beim Tagesabschluss
 
-**User Stories:** 16, 17
+**User Stories:** 16, 17, 21
 
 ### Kontext
 
@@ -318,21 +318,31 @@ Kassenbelege laufen über dieselbe Tabelle und profitieren automatisch.
 
 ### Was zu bauen ist
 
-Neue Query "alle fehlgeschlagenen Aufträge erneut einreihen"
-(Status-Guard `fehlgeschlagen`, setzt Versuche, letzten Fehler und
-Fälligkeit zurück), dazu Command und Endpoint
-`admin/druckauftraege-erneut-versuchen`. Auf der Druckstationen-Seite
-ein Button "Alle erneut einreihen" oberhalb der Liste (nur sichtbar,
-wenn fehlgeschlagene Aufträge existieren) mit Bestätigungsdialog; der
-Einzel-Retry und das Verwerfen bleiben unverändert bestehen.
+Neue Query "alle fehlgeschlagenen Aufträge verwerfen" (Status-Guard
+`fehlgeschlagen` nach `verworfen`), dazu Command und Endpoint
+`admin/druckauftraege-verwerfen`. Auf der Druckstationen-Seite ein Button
+"Alle verwerfen" oberhalb der Liste (nur sichtbar, wenn fehlgeschlagene
+Aufträge existieren) mit Bestätigungsdialog, der die Anzahl nennt; der
+Einzel-Retry und das Einzel-Verwerfen bleiben unverändert. Bewusst kein
+Sammel-Nachdruck (siehe PRD): ein pauschales Nachdrucken großer Stapel
+würde veraltete, wertlose Bons ausspucken; der Einzel-Retry bleibt für die
+wenigen noch relevanten Bons.
+
+Zusätzlich verwirft der Tagesabschluss verbliebene fehlgeschlagene
+Druckaufträge automatisch (dieselbe Discard-Query ohne ID-Filter, im
+Abschluss-Pfad der Kassenführung), damit die Liste zum nächsten Fest leer
+startet. Die Aufräum-Operation ist additiv und nicht-fiskalisch und darf
+den Tagesabschluss nicht scheitern lassen.
 
 ### Akzeptanzkriterien
 
-- [ ] Repository-Test: Sammel-Retry reiht nur fehlgeschlagene Aufträge
-      wieder ein; gedruckte/verworfene/offene bleiben unberührt
-- [ ] Handler-Test für den neuen Endpoint (Vorbild Einzel-Retry)
+- [ ] Repository-Test: Sammel-Verwerfen verwirft nur fehlgeschlagene
+      Aufträge; gedruckte/verworfene/offene bleiben unberührt
+- [ ] Repository-/Integrationstest: der Tagesabschluss verwirft
+      verbliebene fehlgeschlagene Aufträge (offene bleiben unberührt)
+- [ ] Handler-Test für den neuen Endpoint (Vorbild Einzel-Verwerfen)
 - [ ] Frontend-Test: Button erscheint nur bei fehlgeschlagenen Aufträgen,
-      löst nach Bestätigung den Sammel-Retry aus, Liste aktualisiert sich
+      löst nach Bestätigung das Sammel-Verwerfen aus, Liste aktualisiert sich
 - [ ] `make verify` grün
 
 ---

@@ -48,11 +48,20 @@ type tseGateRepo interface {
 	GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error)
 }
 
+// druckauftragCleaner raeumt beim Tagesabschluss die technische Druck-Outbox auf:
+// verbliebene fehlgeschlagene Auftraege (z. B. veraltete Arbeitsbons einer
+// unbemerkten Drucker-Stoerung) werden verworfen, damit die Liste zum naechsten
+// Einsatz leer startet. Best effort, siehe KasseAbschliessen.
+type druckauftragCleaner interface {
+	DiscardAlleFehlgeschlagenen(ctx context.Context) (int64, error)
+}
+
 type Command struct {
 	KassenjournalRepo   kassenjournalRepo
 	KassensitzungenRepo kassensitzungenRepo
 	BetreiberRepo       betreiberRepo
 	TSERepo             tseGateRepo
+	DruckauftragRepo    druckauftragCleaner
 }
 
 // getOffeneKassensitzungOderFehler returns the open Kassensitzung for a booking. It returns
@@ -424,6 +433,21 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	}
 	if err := c.writeKassensitzungEvent(ctx, tagesabschlussEvt, ks.ZNr, expectedVersion); err != nil {
 		return KassenabschlussErgebnis{}, err
+	}
+
+	// Aufraeumen der technischen Druck-Outbox: Mit dem committeten Tagesabschluss ist
+	// die Sitzung fiskalisch geschlossen. Verbliebene fehlgeschlagene Druckauftraege
+	// werden verworfen, damit die Liste zum naechsten Fest leer startet. Best effort:
+	// ein Fehler hier darf den bereits gueltigen Abschluss nicht scheitern lassen — es
+	// wird NICHT der benannte Return err gesetzt (sonst wuerde der defer-Reset die
+	// geschlossene Sitzung faelschlich auf 'offen' zuruecksetzen). Die Cleaner-Abhaengigkeit
+	// ist optional (nil-guard), damit bestehende Command-Konstruktionen ohne sie weiter laufen.
+	if c.DruckauftragRepo != nil {
+		if verworfen, cleanupErr := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx); cleanupErr != nil {
+			log.Error().Err(cleanupErr).Int("z_nr", ks.ZNr).Msg("Failed to discard fehlgeschlagene Druckauftraege beim Tagesabschluss (Abschluss bleibt gueltig)")
+		} else if verworfen > 0 {
+			log.Info().Int("z_nr", ks.ZNr).Int64("verworfen", verworfen).Msg("Fehlgeschlagene Druckauftraege beim Tagesabschluss verworfen")
+		}
 	}
 
 	log.Info().Int("z_nr", ks.ZNr).

@@ -11,6 +11,20 @@ import (
 	"time"
 )
 
+const discardAlleFehlgeschlagenenDruckauftraege = `-- name: DiscardAlleFehlgeschlagenenDruckauftraege :execrows
+UPDATE druckauftraege
+SET status = 'verworfen'
+WHERE status = 'fehlgeschlagen'
+`
+
+func (q *Queries) DiscardAlleFehlgeschlagenenDruckauftraege(ctx context.Context) (int64, error) {
+	result, err := q.db.ExecContext(ctx, discardAlleFehlgeschlagenenDruckauftraege)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const discardDruckauftrag = `-- name: DiscardDruckauftrag :exec
 UPDATE druckauftraege
 SET status = 'verworfen'

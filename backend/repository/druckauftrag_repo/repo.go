@@ -226,3 +226,14 @@ func (r Repository) RetryDruckauftrag(ctx context.Context, id int) error {
 func (r Repository) DiscardDruckauftrag(ctx context.Context, id int) error {
 	return db.Error(r.q.DiscardDruckauftrag(ctx, id))
 }
+
+// DiscardAlleFehlgeschlagenen verwirft alle fehlgeschlagenen Auftraege
+// (fehlgeschlagen -> verworfen) und liefert die Anzahl. Der Status-Guard wirkt
+// nur auf fehlgeschlagene Auftraege; andere Status bleiben unberuehrt.
+func (r Repository) DiscardAlleFehlgeschlagenen(ctx context.Context) (int64, error) {
+	n, err := r.q.DiscardAlleFehlgeschlagenenDruckauftraege(ctx)
+	if err != nil {
+		return 0, db.Error(err)
+	}
+	return n, nil
+}

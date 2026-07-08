@@ -66,6 +66,7 @@ func (h *QueryHandler) GetFehlgeschlageneDruckauftraegeHandler() http.HandlerFun
 type druckauftragCommand interface {
 	RetryDruckauftrag(ctx context.Context, id int) error
 	DiscardDruckauftrag(ctx context.Context, id int) error
+	DiscardAlleFehlgeschlagenen(ctx context.Context) (int64, error)
 }
 
 type CommandHandler struct {
@@ -111,5 +112,21 @@ func (h *CommandHandler) DiscardDruckauftragHandler() http.HandlerFunc {
 		}
 
 		helper.SendEmptyResponse(w)
+	}
+}
+
+type discardAlleResponse struct {
+	Verworfen int64 `json:"verworfen"`
+}
+
+// POST /admin/druckauftraege-verwerfen — verwirft alle fehlgeschlagenen Auftraege.
+func (h *CommandHandler) DiscardAlleFehlgeschlagenenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		n, err := h.Command.DiscardAlleFehlgeschlagenen(r.Context())
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+		helper.SendResponse(w, discardAlleResponse{Verworfen: n})
 	}
 }
