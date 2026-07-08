@@ -245,9 +245,9 @@ function FehlgeschlageneDruckauftraege() {
         Fehlgeschlagene Druckaufträge
       </h2>
       <p className="text-muted-foreground text-sm mb-6">
-        Aufträge, die nach drei Versuchen nicht gedruckt werden konnten. „Erneut
-        versuchen“ reiht den Auftrag wieder ein; „Verwerfen“ entfernt ihn aus
-        der Warteschlange.
+        Aufträge, die auch nach mehreren Zustellversuchen über rund 5 Minuten
+        nicht gedruckt werden konnten. „Erneut versuchen“ reiht den Auftrag
+        wieder ein; „Verwerfen“ entfernt ihn aus der Warteschlange.
       </p>
       {inhalt}
     </div>

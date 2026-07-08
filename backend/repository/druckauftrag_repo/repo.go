@@ -3,6 +3,7 @@ package druckauftrag_repo
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
@@ -11,7 +12,28 @@ import (
 
 // MaxDruckversuche ist die Anzahl gemeldeter Fehlversuche, nach der ein
 // Druckauftrag als fehlgeschlagen markiert und nicht mehr ausgeliefert wird.
-const MaxDruckversuche = 3
+const MaxDruckversuche = 6
+
+// backoffDauer liefert die Wartezeit vor dem naechsten Zustellversuch nach dem
+// versuch-ten Fehlversuch (1-basiert): 5s, 15s, 30s, 60s, 180s. Fuer 0 oder
+// >= 6 ist die Wartezeit 0 — beim 6. Fehlversuch kippt der Auftrag ohnehin auf
+// fehlgeschlagen und wird nicht mehr ausgeliefert.
+func backoffDauer(versuch int) time.Duration {
+	switch versuch {
+	case 1:
+		return 5 * time.Second
+	case 2:
+		return 15 * time.Second
+	case 3:
+		return 30 * time.Second
+	case 4:
+		return 60 * time.Second
+	case 5:
+		return 180 * time.Second
+	default:
+		return 0
+	}
+}
 
 type NeuerDruckauftrag struct {
 	ZielIP   string
@@ -136,13 +158,30 @@ func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int,
 			}
 		}
 		for _, f := range fehlversuche {
-			err := qtx.IncrementDruckauftragFehlversuch(ctx, dbgen.IncrementDruckauftragFehlversuchParams{
+			row, err := qtx.IncrementDruckauftragFehlversuch(ctx, dbgen.IncrementDruckauftragFehlversuchParams{
 				ID:            f.ID,
 				LetzterFehler: sql.NullString{String: f.Fehler, Valid: true},
 				MaxVersuche:   MaxDruckversuche,
 			})
+			if errors.Is(err, sql.ErrNoRows) {
+				// Auftrag ist nicht (mehr) offen (z. B. bereits gedruckt oder doppelt
+				// gemeldet): idempotenter No-Op, konsistent mit dem bisherigen Status-Guard.
+				continue
+			}
 			if err != nil {
 				return db.Error(err)
+			}
+			// Solange der Auftrag offen bleibt, die Backoff-Faelligkeit fuer den
+			// naechsten Versuch setzen. Beim MaxDruckversuche-ten Fehlversuch ist er
+			// bereits fehlgeschlagen und wird nicht mehr ausgeliefert — kein Backoff.
+			if row.Status == "offen" {
+				wartezeit := backoffDauer(row.Versuche)
+				if err := qtx.SetDruckauftragFaelligkeit(ctx, dbgen.SetDruckauftragFaelligkeitParams{
+					ID:       f.ID,
+					Sekunden: int(wartezeit / time.Second),
+				}); err != nil {
+					return db.Error(err)
+				}
 			}
 		}
 

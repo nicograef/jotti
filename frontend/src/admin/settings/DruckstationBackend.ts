@@ -36,8 +36,9 @@ export function hatBonmodus(kategorie: Kategorie): boolean {
   return KATEGORIEN_MIT_BONMODUS.includes(kategorie)
 }
 
-// Fehlgeschlagener Druckauftrag: nach drei Fehlversuchen aufgegeben. Wird auf der
-// Druckstationen-Seite zur Verwaltung (erneut versuchen / verwerfen) angezeigt.
+// Fehlgeschlagener Druckauftrag: nach mehreren Fehlversuchen (rund 5 Minuten)
+// aufgegeben. Wird auf der Druckstationen-Seite zur Verwaltung (erneut
+// versuchen / verwerfen) angezeigt.
 export const FehlgeschlagenerDruckauftragSchema = z.object({
   id: z.number(),
   bonArt: z.string(),

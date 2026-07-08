@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"strconv"
 	"testing"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
@@ -114,8 +115,10 @@ func TestReportDruckergebnis_FehlversuchZaehlung(t *testing.T) {
 
 	id := enqueueOne(t, repo, "192.168.1.51")
 
-	// Erste beiden Fehlversuche: Auftrag bleibt offen, versuche/letzter_fehler werden aktualisiert.
-	for versuch := 1; versuch <= 2; versuch++ {
+	// Fehlversuche 1..5: Auftrag bleibt offen, versuche/letzter_fehler werden
+	// aktualisiert und die Backoff-Faelligkeit wird in die Zukunft gesetzt, sodass
+	// der Auftrag bis dahin nicht mehr im Poll erscheint.
+	for versuch := 1; versuch <= MaxDruckversuche-1; versuch++ {
 		fehler := "drucker nicht erreichbar #" + strconv.Itoa(versuch)
 		if err := repo.ReportDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: fehler}}); err != nil {
 			t.Fatalf("Expected no error on fehlversuch %d, got %v", versuch, err)
@@ -132,29 +135,37 @@ func TestReportDruckergebnis_FehlversuchZaehlung(t *testing.T) {
 			t.Fatalf("After fehlversuch %d expected letzter_fehler %q, got %q", versuch, fehler, letzterFehler)
 		}
 
+		naechsterVersuch := readNaechsterVersuch(t, repo, id)
+		if !naechsterVersuch.Valid {
+			t.Fatalf("After fehlversuch %d expected naechster_versuch_ab to be set", versuch)
+		}
+		if !naechsterVersuch.Time.After(time.Now()) {
+			t.Fatalf("After fehlversuch %d expected naechster_versuch_ab in the future, got %v", versuch, naechsterVersuch.Time)
+		}
+
 		offene, err := repo.GetOffeneDruckauftraege(context.Background())
 		if err != nil {
 			t.Fatalf("Expected no read error, got %v", err)
 		}
-		if len(offene) != 1 {
-			t.Fatalf("After fehlversuch %d expected auftrag still offen in poll, got %d", versuch, len(offene))
+		if len(offene) != 0 {
+			t.Fatalf("After fehlversuch %d expected auftrag not faellig in poll, got %d", versuch, len(offene))
 		}
 	}
 
-	// Dritter Fehlversuch: Auftrag wird fehlgeschlagen und verschwindet aus dem Poll.
+	// Sechster Fehlversuch: Auftrag wird fehlgeschlagen und verschwindet aus dem Poll.
 	if err := repo.ReportDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: "endgueltig"}}); err != nil {
-		t.Fatalf("Expected no error on dritter fehlversuch, got %v", err)
+		t.Fatalf("Expected no error on letzten fehlversuch, got %v", err)
 	}
 
 	status, versuche, letzterFehler := readAuftrag(t, repo, id)
 	if status != "fehlgeschlagen" {
-		t.Fatalf("After dritter fehlversuch expected status fehlgeschlagen, got %q", status)
+		t.Fatalf("After letztem fehlversuch expected status fehlgeschlagen, got %q", status)
 	}
 	if versuche != MaxDruckversuche {
-		t.Fatalf("After dritter fehlversuch expected versuche %d, got %d", MaxDruckversuche, versuche)
+		t.Fatalf("After letztem fehlversuch expected versuche %d, got %d", MaxDruckversuche, versuche)
 	}
 	if letzterFehler != "endgueltig" {
-		t.Fatalf("After dritter fehlversuch expected letzter_fehler %q, got %q", "endgueltig", letzterFehler)
+		t.Fatalf("After letztem fehlversuch expected letzter_fehler %q, got %q", "endgueltig", letzterFehler)
 	}
 
 	offene, err := repo.GetOffeneDruckauftraege(context.Background())
@@ -163,6 +174,84 @@ func TestReportDruckergebnis_FehlversuchZaehlung(t *testing.T) {
 	}
 	if len(offene) != 0 {
 		t.Fatalf("Expected fehlgeschlagener auftrag to disappear from poll, got %d offene", len(offene))
+	}
+}
+
+func TestReportDruckergebnis_StaleFehlversuchIstNoOp(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	// Ein Auftrag wird erst gedruckt; danach trifft (verspaetet oder doppelt) noch
+	// ein Fehlversuch fuer dieselbe ID ein — der Auftrag ist nicht mehr offen.
+	gedrucktID := enqueueOne(t, repo, "192.168.1.51")
+	if err := repo.ReportDruckergebnis(context.Background(), []int{gedrucktID}, nil); err != nil {
+		t.Fatalf("Expected no error quittieren, got %v", err)
+	}
+
+	// Ein zweiter, frisch offener Auftrag im selben Ergebnis-Batch beweist, dass der
+	// stale Fehlversuch den Zyklus nicht per Rollback abbricht (der Status-Guard
+	// liefert ErrNoRows, das als No-Op behandelt wird).
+	offenID := enqueueOne(t, repo, "192.168.1.52")
+
+	err := repo.ReportDruckergebnis(
+		context.Background(),
+		[]int{offenID},
+		[]Fehlversuch{{ID: gedrucktID, Fehler: "verspaetet gemeldet"}},
+	)
+	if err != nil {
+		t.Fatalf("Expected stale fehlversuch to be a no-op, got %v", err)
+	}
+
+	// Der bereits gedruckte Auftrag bleibt unveraendert (kein Fehlversuch angerechnet).
+	status, versuche, letzterFehler := readAuftrag(t, repo, gedrucktID)
+	if status != "gedruckt" || versuche != 0 || letzterFehler != "" {
+		t.Fatalf("Expected gedruckter auftrag unchanged, got status=%q versuche=%d letzterFehler=%q", status, versuche, letzterFehler)
+	}
+
+	// Der frische Auftrag desselben Batches wurde korrekt quittiert — der Zyklus
+	// wurde also nicht abgebrochen.
+	statusOffen, _, _ := readAuftrag(t, repo, offenID)
+	if statusOffen != "gedruckt" {
+		t.Fatalf("Expected zweiten auftrag im selben batch gedruckt, got %q", statusOffen)
+	}
+}
+
+func TestGetOffeneDruckauftraege_RespektiertFaelligkeit(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	id := enqueueOne(t, repo, "192.168.1.51")
+
+	offene, err := repo.GetOffeneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != 1 {
+		t.Fatalf("Expected 1 offener auftrag direkt nach enqueue, got %d", len(offene))
+	}
+
+	if _, err := repo.db.Exec("UPDATE druckauftraege SET naechster_versuch_ab = NOW() + INTERVAL '1 hour' WHERE id = $1", id); err != nil {
+		t.Fatalf("Failed to set naechster_versuch_ab into the future: %v", err)
+	}
+
+	offene, err = repo.GetOffeneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != 0 {
+		t.Fatalf("Expected auftrag not faellig while naechster_versuch_ab is in the future, got %d", len(offene))
+	}
+
+	if _, err := repo.db.Exec("UPDATE druckauftraege SET naechster_versuch_ab = NOW() - INTERVAL '1 second' WHERE id = $1", id); err != nil {
+		t.Fatalf("Failed to set naechster_versuch_ab into the past: %v", err)
+	}
+
+	offene, err = repo.GetOffeneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != 1 || offene[0].ID != id {
+		t.Fatalf("Expected auftrag faellig again once naechster_versuch_ab is in the past, got %+v", offene)
 	}
 }
 
@@ -246,6 +335,11 @@ func TestRetryDruckauftrag_SetztOffenUndVersucheNull(t *testing.T) {
 	}
 	if len(offene) != 1 || offene[0].ID != id {
 		t.Fatalf("Expected auftrag %d back in poll, got %+v", id, offene)
+	}
+
+	naechsterVersuch := readNaechsterVersuch(t, repo, id)
+	if naechsterVersuch.Valid {
+		t.Fatalf("Expected naechster_versuch_ab cleared after erneut versuchen, got %v", naechsterVersuch.Time)
 	}
 }
 
@@ -349,4 +443,16 @@ func readAuftrag(t *testing.T, repo Repository, id int) (status string, versuche
 		t.Fatalf("Failed to read auftrag %d: %v", id, err)
 	}
 	return status, versuche, fehler.String
+}
+
+func readNaechsterVersuch(t *testing.T, repo Repository, id int) sql.NullTime {
+	t.Helper()
+	var naechsterVersuch sql.NullTime
+	err := repo.db.QueryRow(
+		"SELECT naechster_versuch_ab FROM druckauftraege WHERE id = $1", id,
+	).Scan(&naechsterVersuch)
+	if err != nil {
+		t.Fatalf("Failed to read naechster_versuch_ab for auftrag %d: %v", id, err)
+	}
+	return naechsterVersuch
 }

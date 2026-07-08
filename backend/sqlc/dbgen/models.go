@@ -257,17 +257,19 @@ type Druckauftraege struct {
 	ZielIp string
 	// Base64-kodierter ESC/POS-Byte-String.
 	Payload string
-	// Druckstatus: offen -> gedruckt | fehlgeschlagen (nach 3 Fehlversuchen) -> verworfen oder zurueck auf offen.
+	// Druckstatus: offen -> gedruckt | fehlgeschlagen (nach 6 Fehlversuchen) -> verworfen oder zurueck auf offen.
 	Status string
 	BonArt string
 	// Fachliche Referenz (z. B. Event- oder Zahlung-ID) fuer Nachvollziehbarkeit.
 	Referenz string
-	// Anzahl gemeldeter Fehlversuche; ab 3 wird der Auftrag fehlgeschlagen.
+	// Anzahl gemeldeter Fehlversuche; ab 6 wird der Auftrag fehlgeschlagen.
 	Versuche int
 	// Fehlertext des letzten Fehlversuchs (NULL solange kein Fehler gemeldet wurde).
 	LetzterFehler sql.NullString
 	ErstelltAm    time.Time
 	GedrucktAm    sql.NullTime
+	// Fruehester Zeitpunkt des naechsten Zustellversuchs (Backoff-Nachdruck). NULL = sofort faellig; wird nach jedem Fehlversuch auf NOW() + Backoff-Wartezeit gesetzt.
+	NaechsterVersuchAb sql.NullTime
 }
 
 // Drucker-IP und (außer für Kassenbeleg) Bonmodus je Druckstation für den Bondruck.

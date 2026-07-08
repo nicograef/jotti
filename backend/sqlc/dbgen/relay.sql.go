@@ -74,6 +74,7 @@ const getOffeneDruckauftraege = `-- name: GetOffeneDruckauftraege :many
 SELECT id, ziel_ip, payload
 FROM druckauftraege
 WHERE status = 'offen'
+  AND (naechster_versuch_ab IS NULL OR naechster_versuch_ab <= NOW())
 ORDER BY id ASC
 LIMIT 200
 `
@@ -107,12 +108,13 @@ func (q *Queries) GetOffeneDruckauftraege(ctx context.Context) ([]GetOffeneDruck
 	return items, nil
 }
 
-const incrementDruckauftragFehlversuch = `-- name: IncrementDruckauftragFehlversuch :exec
+const incrementDruckauftragFehlversuch = `-- name: IncrementDruckauftragFehlversuch :one
 UPDATE druckauftraege
 SET versuche = versuche + 1,
     letzter_fehler = $1,
     status = CASE WHEN versuche + 1 >= $2 THEN 'fehlgeschlagen' ELSE status END
 WHERE id = $3 AND status = 'offen'
+RETURNING versuche, status
 `
 
 type IncrementDruckauftragFehlversuchParams struct {
@@ -121,9 +123,16 @@ type IncrementDruckauftragFehlversuchParams struct {
 	ID            int
 }
 
-func (q *Queries) IncrementDruckauftragFehlversuch(ctx context.Context, arg IncrementDruckauftragFehlversuchParams) error {
-	_, err := q.db.ExecContext(ctx, incrementDruckauftragFehlversuch, arg.LetzterFehler, arg.MaxVersuche, arg.ID)
-	return err
+type IncrementDruckauftragFehlversuchRow struct {
+	Versuche int
+	Status   string
+}
+
+func (q *Queries) IncrementDruckauftragFehlversuch(ctx context.Context, arg IncrementDruckauftragFehlversuchParams) (IncrementDruckauftragFehlversuchRow, error) {
+	row := q.db.QueryRowContext(ctx, incrementDruckauftragFehlversuch, arg.LetzterFehler, arg.MaxVersuche, arg.ID)
+	var i IncrementDruckauftragFehlversuchRow
+	err := row.Scan(&i.Versuche, &i.Status)
+	return i, err
 }
 
 const insertDruckauftrag = `-- name: InsertDruckauftrag :exec
@@ -161,11 +170,27 @@ func (q *Queries) MarkDruckauftragGedruckt(ctx context.Context, id int) error {
 
 const retryDruckauftrag = `-- name: RetryDruckauftrag :exec
 UPDATE druckauftraege
-SET status = 'offen', versuche = 0, letzter_fehler = NULL
+SET status = 'offen', versuche = 0, letzter_fehler = NULL, naechster_versuch_ab = NULL
 WHERE id = $1 AND status = 'fehlgeschlagen'
 `
 
 func (q *Queries) RetryDruckauftrag(ctx context.Context, id int) error {
 	_, err := q.db.ExecContext(ctx, retryDruckauftrag, id)
+	return err
+}
+
+const setDruckauftragFaelligkeit = `-- name: SetDruckauftragFaelligkeit :exec
+UPDATE druckauftraege
+SET naechster_versuch_ab = NOW() + ($1::int * INTERVAL '1 second')
+WHERE id = $2 AND status = 'offen'
+`
+
+type SetDruckauftragFaelligkeitParams struct {
+	Sekunden int
+	ID       int
+}
+
+func (q *Queries) SetDruckauftragFaelligkeit(ctx context.Context, arg SetDruckauftragFaelligkeitParams) error {
+	_, err := q.db.ExecContext(ctx, setDruckauftragFaelligkeit, arg.Sekunden, arg.ID)
 	return err
 }
