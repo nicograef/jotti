@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 
 .PHONY: init dev dev-up down restart logs status \
-       test test-frontend test-integration test-all \
+       test test-frontend test-integration test-all test-tse-live test-tse-live-setup \
        lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt \
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
@@ -52,6 +52,14 @@ test-frontend: ## Frontend Tests ausführen
 
 test-integration: ## Integrationstests ausführen
 	./scripts/test-integration.sh
+
+test-tse-live: ## TSE-Live-Tests gegen die fiskaly-TEST-TSS (liest .env.fiskaly-test, legt keine TSS an)
+	@test -f .env.fiskaly-test || { echo "FEHLER: .env.fiskaly-test fehlt. Vorlage: .env.fiskaly-test.example"; exit 1; }
+	cd backend && set -a && . ../.env.fiskaly-test && set +a && go test -tags=integration -count=1 -v -run 'LiveSigniert' ./repository/tse_repo/
+
+test-tse-live-setup: ## Voller TSE-Setup-Durchlauf gegen fiskaly-TEST (ACHTUNG: legt eine unlöschbare TSS im TEST-Konto an)
+	@test -f .env.fiskaly-test || { echo "FEHLER: .env.fiskaly-test fehlt. Vorlage: .env.fiskaly-test.example"; exit 1; }
+	cd backend && set -a && . ../.env.fiskaly-test && set +a && go test -tags=integration -count=1 -v -run 'LiveVollerDurchlauf' ./repository/tse_repo/
 
 test-all: test test-frontend ## Alle Unit-Tests (Backend + Frontend)
 
