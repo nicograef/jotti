@@ -171,6 +171,30 @@ func renderPublicCaddyfile(in publicInput) string {
 `, in.email, staging, proxySnippet(hstsPublic, true), in.domain, www)
 }
 
+// renderHTTPOnlyCaddyfile erzeugt einen Caddyfile, der ausschließlich Klartext-
+// HTTP auf :80 bedient — ohne TLS, ACME oder Zertifikate. Er proxyt über
+// dasselbe `(jotti_proxy)`-Snippet wie LAN- und Public-Mode, sodass API-Routing
+// (/api/*) und CSP identisch bleiben. Ausschließlich für die E2E-Testumgebung
+// (docker-compose.e2e.yml, PROXY_HTTP_ONLY=1) gedacht: dort ist der Stack nur
+// lokal erreichbar und Zertifikate wären reiner Ballast. Das /api/-Rate-Limit
+// bleibt aus, damit Test-Suiten nicht künstlich gedrosselt werden. Reine
+// Funktion ohne I/O.
+func renderHTTPOnlyCaddyfile() string {
+	return fmt.Sprintf(`# Generiert vom jotti-reverse-proxy beim Start — nicht von Hand bearbeiten.
+{
+	admin off
+	auto_https off
+}
+
+# Gemeinsame Proxy- und Security-Header-Konfiguration.
+%s
+
+http:// {
+	import jotti_proxy
+}
+`, proxySnippet(hstsLAN, false))
+}
+
 // wildcardSite rendert die vertrauenswürdige Site `*.<install-id>.<zone>` mit
 // DNS-01-Challenge über acme-dns. Caddy holt und erneuert das Zertifikat
 // automatisch im Hintergrund; bis dahin (oder offline) trägt die Fallback-Site.

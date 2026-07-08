@@ -18,6 +18,20 @@ import (
 // fixed constant is required to keep the seed deterministic.
 const demoArgon2idHash = "$argon2id$v=19$m=65536,t=2,p=2$OSImYG1ms0Phs26KwwMwkQ$rkoWKOIjsPz7y6ps/W2pVEhn5vTc0N95SyiveQCn404"
 
+// Deterministische Demo-Zugangsdaten: alle Seed-Benutzer teilen dasselbe
+// Klartext-Passwort (Hash oben). Der Test-Reset-Endpoint gibt sie in der
+// Response zurück, damit die E2E-Suite ohne hartkodierte Annahmen anmeldet.
+const (
+	// DemoPassword ist das Klartext-Passwort aller Seed-Benutzer (siehe demoArgon2idHash).
+	DemoPassword = "jotti123"
+	// DemoAdminUsername ist der Seed-Admin (Thomas Müller).
+	DemoAdminUsername = "thomas"
+	// DemoServiceUsername ist eine aktive Seed-Servicekraft (Maria Schmidt).
+	DemoServiceUsername = "maria"
+	// DemoServiceleitungUsername ist eine aktive Seed-Serviceleitung (Felix Weber).
+	DemoServiceleitungUsername = "felix"
+)
+
 // --- Stammdaten-Typen ---
 
 type benutzer struct {

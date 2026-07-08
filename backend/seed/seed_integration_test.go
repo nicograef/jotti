@@ -299,3 +299,83 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 		t.Errorf("Guard hat geschrieben: %d Events vorher, %d nachher", eventCount, eventCountNachher)
 	}
 }
+
+// TestResetAndSeed_LeertUndSeedetNeu prüft, dass ResetAndSeed die
+// append-only-geschützten Tabellen leert und den Demo-Zustand neu schreibt —
+// wiederholt und ohne am Kassenjournal-Guard zu scheitern (Grundlage des
+// Test-Reset-Endpoints POST /test/reset-and-seed).
+func TestResetAndSeed_LeertUndSeedetNeu(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	cleanSeedDB(t, db)
+	t.Cleanup(func() { cleanSeedDB(t, db) })
+
+	ctx := context.Background()
+
+	// Erstlauf über den regulären Run (Guard greift auf leerer DB nicht).
+	if err := Run(ctx, db); err != nil {
+		t.Fatalf("Erstlauf Run: %v", err)
+	}
+
+	var eventsNachRun int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&eventsNachRun); err != nil {
+		t.Fatalf("Kassenjournal zählen: %v", err)
+	}
+	if eventsNachRun == 0 {
+		t.Fatal("Kassenjournal nach Run leer")
+	}
+
+	// ResetAndSeed leert die (per Trigger geschützte) DB und schreibt neu — der
+	// Kassenjournal-Guard darf hier nicht greifen, obwohl schon Events existieren.
+	if err := ResetAndSeed(ctx, db); err != nil {
+		t.Fatalf("erster ResetAndSeed: %v", err)
+	}
+
+	// Kein Duplikat: die Event-Zahl entspricht wieder genau dem Seed-Zustand.
+	var eventsNachReset int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&eventsNachReset); err != nil {
+		t.Fatalf("Kassenjournal nach Reset zählen: %v", err)
+	}
+	if eventsNachReset != eventsNachRun {
+		t.Errorf("ResetAndSeed hat dupliziert: %d Events vorher, %d nachher", eventsNachRun, eventsNachReset)
+	}
+
+	// kassenidentitaet (einmalig bei der DB-Migration eingebrannte Install-Identität,
+	// insert-once) muss den Reset unangetastet überstehen: weder geleert noch dupliziert.
+	var kassenidentitaetCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenidentitaet").Scan(&kassenidentitaetCount); err != nil {
+		t.Fatalf("kassenidentitaet nach Reset zählen: %v", err)
+	}
+	if kassenidentitaetCount != 1 {
+		t.Errorf("kassenidentitaet nach ResetAndSeed: %d Zeile(n), erwartet genau 1", kassenidentitaetCount)
+	}
+
+	// Benutzer ebenfalls nicht dupliziert (Reset räumt vorher auf).
+	var mariaCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", "maria").Scan(&mariaCount); err != nil {
+		t.Fatalf("Benutzer maria zählen: %v", err)
+	}
+	if mariaCount != 1 {
+		t.Errorf("Benutzer maria kommt %d-mal vor, erwartet genau 1", mariaCount)
+	}
+
+	// Wiederholbar: ein zweiter Reset läuft ebenfalls ohne Guard-Fehler durch.
+	if err := ResetAndSeed(ctx, db); err != nil {
+		t.Fatalf("zweiter ResetAndSeed: %v", err)
+	}
+	var eventsNachZweitem int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&eventsNachZweitem); err != nil {
+		t.Fatalf("Kassenjournal nach zweitem Reset zählen: %v", err)
+	}
+	if eventsNachZweitem != eventsNachRun {
+		t.Errorf("zweiter ResetAndSeed inkonsistent: %d Events, erwartet %d", eventsNachZweitem, eventsNachRun)
+	}
+
+	// kassenidentitaet bleibt auch nach wiederholten Resets bei genau einer Zeile.
+	var kassenidentitaetCountZweitem int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenidentitaet").Scan(&kassenidentitaetCountZweitem); err != nil {
+		t.Fatalf("kassenidentitaet nach zweitem Reset zählen: %v", err)
+	}
+	if kassenidentitaetCountZweitem != 1 {
+		t.Errorf("kassenidentitaet nach zweitem ResetAndSeed: %d Zeile(n), erwartet genau 1", kassenidentitaetCountZweitem)
+	}
+}

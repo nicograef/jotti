@@ -18,6 +18,7 @@ jobs:
       windows: ${{ steps.changes.outputs.windows }}
       website: ${{ steps.changes.outputs.website }}
       scripts: ${{ steps.changes.outputs.scripts }}
+      e2e: ${{ steps.changes.outputs.e2e }}
       ci: ${{ steps.changes.outputs.ci }}
     steps:
       - uses: actions/checkout@v7
@@ -42,6 +43,13 @@ jobs:
               - 'website/**'
             scripts:
               - 'scripts/**'
+            e2e:
+              - 'e2e/**'
+              - 'backend/**'
+              - 'frontend/**'
+              - 'database/**'
+              - 'reverse-proxy/**'
+              - 'docker-compose.e2e.yml'
             ci:
               - '.github/workflows/ci.yml'
 
@@ -494,3 +502,79 @@ jobs:
 
       - name: Rebuild projections on previous version's data
         run: /tmp/jotti rebuild-projections
+
+  # End-to-End-Tests (Playwright) gegen den ECHTEN Stack: die Prod-Images werden
+  # aus dem Checkout via docker-compose.e2e.yml gebaut (HTTP-only, feste
+  # Test-Secrets, JOTTI_ALLOW_SEED=1). Der Job laeuft bei JEDEM Pull Request und
+  # bei jedem Push auf main; bei Rot werden Traces und Screenshots als Artefakt
+  # hochgeladen.
+  e2e:
+    needs: changes
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || needs.changes.outputs.e2e == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and start the E2E stack
+        env:
+          E2E_HTTP_PORT: "8080"
+        run: docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml up -d --build
+
+      - name: Wait for the stack to become healthy
+        run: |
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ || true)
+            if [ "$code" = "200" ]; then
+              echo "Reverse-Proxy is up (HTTP $code)."
+              exit 0
+            fi
+            echo "waiting for the stack ($i/60), last status: ${code:-none} ..."
+            sleep 2
+          done
+          echo "Stack did not become healthy; dumping container status and logs."
+          docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml ps
+          docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml logs
+          exit 1
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+          run_install: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "pnpm"
+          cache-dependency-path: e2e/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: ./e2e
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        working-directory: ./e2e
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E suite
+        working-directory: ./e2e
+        env:
+          E2E_BASE_URL: http://localhost:8080
+        run: pnpm test
+
+      - name: Upload Playwright artefacts on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
+
+      - name: Dump stack logs on failure
+        if: ${{ failure() }}
+        run: docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml logs
+
+      - name: Tear down the E2E stack
+        if: ${{ always() }}
+        run: docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml down -v

@@ -150,3 +150,30 @@ func TestRenderPublicCaddyfileStagingAddsStagingCA(t *testing.T) {
 		t.Errorf("globale Staging-CA-Direktive fehlt\n---\n%s", out)
 	}
 }
+
+func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
+	out := renderHTTPOnlyCaddyfile()
+
+	wants := []string{
+		"auto_https off",
+		"(jotti_proxy) {",
+		"http:// {",
+		"import jotti_proxy",
+		"handle_path /api/* {",
+		"reverse_proxy backend:3000",
+		"reverse_proxy frontend:80",
+		contentSecurityPolicy,
+	}
+	for _, want := range wants {
+		if !strings.Contains(out, want) {
+			t.Errorf("HTTP-Only-Caddyfile enthält %q nicht\n---\n%s", want, out)
+		}
+	}
+
+	// Kein TLS, kein ACME, kein Rate-Limit im HTTP-Only-Mode.
+	for _, unwanted := range []string{"acmedns", "on_demand", "https:// {", "tls {", "rate_limit {"} {
+		if strings.Contains(out, unwanted) {
+			t.Errorf("HTTP-Only-Caddyfile darf %q nicht enthalten\n---\n%s", unwanted, out)
+		}
+	}
+}

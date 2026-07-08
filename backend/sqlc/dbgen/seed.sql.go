@@ -355,3 +355,35 @@ func (q *Queries) SeedResetVariantenSeq(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, seedResetVariantenSeq)
 	return err
 }
+
+const seedTruncateAll = `-- name: SeedTruncateAll :exec
+TRUNCATE TABLE
+    kassenjournal,
+    tisch_sessions,
+    kassensitzungen,
+    tisch_favoriten,
+    produkt_varianten,
+    produkte,
+    tische,
+    users,
+    betreiber,
+    druckauftraege,
+    druckstationen,
+    tse_konfiguration,
+    tse_stammdaten,
+    tse_signaturauftraege,
+    tse_stoerungen
+RESTART IDENTITY CASCADE
+`
+
+// SeedTruncateAll leert alle Daten-Tabellen (Kassenjournal, Projektionen,
+// Stammdaten, TSE-Zustand) und setzt die IDENTITY-Sequenzen zurueck. Nur fuer
+// den Test-Reset-Endpoint (POST /test/reset-and-seed); danach schreibt der
+// Seeder den Demo-Zustand neu. CASCADE loest die Fremdschluessel-Reihenfolge auf.
+// kassenidentitaet bleibt bewusst aussen vor: sie ist die einmalig bei der
+// DB-Migration eingebrannte Install-Identitaet (kein Demo-Datum, insert-once)
+// und wird ausserhalb der Migration nie neu geschrieben.
+func (q *Queries) SeedTruncateAll(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, seedTruncateAll)
+	return err
+}

@@ -1,0 +1,141 @@
+name: jotti-e2e
+
+# Selbststaendiger E2E-Test-Stack: baut die ECHTEN Images aus dem Checkout
+# (Backend, Frontend-nginx, Migrate, Reverse-Proxy) — dieselben Dockerfiles wie
+# der prod-Stack, aber ohne .env-Datei. Alle Secrets stehen fest und inline
+# (nur Testwerte), JOTTI_ALLOW_SEED=1 schaltet den Reset-Endpoint frei, und der
+# Reverse-Proxy laeuft im Klartext-HTTP-Mode (PROXY_HTTP_ONLY=1) ohne TLS/ACME.
+#
+# Der oeffentliche HTTP-Port ist ueber E2E_HTTP_PORT parametrierbar (Default
+# 8080), damit parallele Laeufe sich nicht in die Quere kommen. Start:
+#
+#   E2E_HTTP_PORT=8081 docker compose -p jotti-e2e-p1 -f docker-compose.e2e.yml up -d --build
+#   E2E_BASE_URL=http://localhost:8081 pnpm --dir e2e test
+#   docker compose -p jotti-e2e-p1 -f docker-compose.e2e.yml down -v
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "5m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:17.8
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: jotti
+      POSTGRES_PASSWORD: e2e-postgres-password-1234
+      POSTGRES_DB: jotti
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jotti -d jotti"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: ./database
+      dockerfile: migrate/Dockerfile
+    environment:
+      POSTGRES_USER: jotti
+      POSTGRES_PASSWORD: e2e-postgres-password-1234
+    networks:
+      - app-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: jotti
+      POSTGRES_PASSWORD: e2e-postgres-password-1234
+      POSTGRES_DBNAME: jotti
+      JWT_SECRET: e2e-jwt-secret-do-not-use-in-production
+      RELAY_AUTH_TOKEN: e2e-relay-token-do-not-use-in-production
+      # Schaltet den Test-Reset-Endpoint (POST /test/reset-and-seed) frei.
+      JOTTI_ALLOW_SEED: "1"
+    networks:
+      - app-network
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:3000/health >/dev/null 2>&1",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      - app-network
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  reverse-proxy:
+    build:
+      context: ./reverse-proxy
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      # Klartext-HTTP-Mode: eine :80-Site ohne TLS/ACME, gleiches API-Routing
+      # und dieselbe CSP wie die anderen Modi (nur fuer die Testumgebung).
+      PROXY_HTTP_ONLY: "1"
+    ports:
+      - "${E2E_HTTP_PORT:-8080}:80"
+    networks:
+      - app-network
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -S -O /dev/null http://127.0.0.1:80/ 2>&1 | grep -qE 'HTTP/1.[01] (2|3)[0-9][0-9]'",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+networks:
+  app-network:
+    driver: bridge

@@ -118,6 +118,48 @@ func TestSetupRoutes_NonHealthRejectsGet(t *testing.T) {
 	}
 }
 
+// TestSetupRoutes_ResetSeedRouteGuardedByEnv stellt sicher, dass der
+// Test-Reset-Endpoint nur bei JOTTI_ALLOW_SEED=1 registriert wird: ohne das
+// Flag existiert die Route nicht (404), mit dem Flag ist sie erreichbar (kein
+// 404). So bleibt der Seed-Guard in Produktion intakt.
+func TestSetupRoutes_ResetSeedRouteGuardedByEnv(t *testing.T) {
+	setRequiredConfigEnv(t)
+
+	t.Run("ohne Flag keine Route (404)", func(t *testing.T) {
+		t.Setenv("JOTTI_ALLOW_SEED", "0")
+		cfg := config.Load()
+		handler := SetupRoutes(cfg, &sql.DB{}, "dev")
+
+		req := httptest.NewRequest(http.MethodPost, "/test/reset-and-seed", nil)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Fatalf("expected 404 for POST /test/reset-and-seed without JOTTI_ALLOW_SEED, got %d", w.Code)
+		}
+	})
+
+	t.Run("mit Flag Route registriert (nicht 404)", func(t *testing.T) {
+		t.Setenv("JOTTI_ALLOW_SEED", "1")
+		cfg := config.Load()
+		db, err := sql.Open("pgx", "invalid-connection-string")
+		if err != nil {
+			t.Fatalf("failed to create test db handle: %v", err)
+		}
+		defer db.Close()
+
+		handler := SetupRoutes(cfg, db, "dev")
+
+		req := httptest.NewRequest(http.MethodPost, "/test/reset-and-seed", nil)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		if w.Code == http.StatusNotFound {
+			t.Fatalf("expected registered route (not 404) with JOTTI_ALLOW_SEED=1, got 404")
+		}
+	})
+}
+
 func TestShutdown(t *testing.T) {
 	setRequiredConfigEnv(t)
 	cfg := config.Load()

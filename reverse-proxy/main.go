@@ -38,6 +38,7 @@ const registerTimeout = 30 * time.Second
 
 type config struct {
 	domain        string // JOTTI_DOMAIN gesetzt ⇒ Public-Mode statt LAN-Mode
+	httpOnly      bool   // PROXY_HTTP_ONLY gesetzt ⇒ Klartext-HTTP-Mode (nur E2E)
 	email         string // LETSENCRYPT_EMAIL (Public-Mode)
 	wwwRedirect   bool   // JOTTI_WWW_REDIRECT (Public-Mode)
 	lanIPEnv      string
@@ -52,6 +53,7 @@ type config struct {
 func loadConfig(getenv func(string) string) config {
 	return config{
 		domain:        strings.TrimSpace(getenv("JOTTI_DOMAIN")),
+		httpOnly:      parseBool(getenv("PROXY_HTTP_ONLY")),
 		email:         strings.TrimSpace(getenv("LETSENCRYPT_EMAIL")),
 		wwwRedirect:   parseBool(getenv("JOTTI_WWW_REDIRECT")),
 		lanIPEnv:      strings.TrimSpace(getenv("LAN_IP")),
@@ -66,6 +68,12 @@ func loadConfig(getenv func(string) string) config {
 
 func main() {
 	cfg := loadConfig(os.Getenv)
+
+	// PROXY_HTTP_ONLY gesetzt ⇒ Klartext-HTTP-Stack ohne TLS/ACME (nur E2E).
+	if cfg.httpOnly {
+		runHTTPOnlyMode(cfg)
+		return
+	}
 
 	// JOTTI_DOMAIN gesetzt ⇒ öffentlicher Self-Hoster-Stack (keine acme-dns-
 	// Registrierung, keine Status-Seite, Public-Caddyfile).
@@ -100,6 +108,20 @@ func runPublicMode(cfg config) {
 		wwwRedirect: cfg.wwwRedirect,
 		leStaging:   cfg.leStaging,
 	})
+	if err := os.WriteFile(cfg.caddyfilePath, []byte(caddyfile), 0o644); err != nil {
+		log.Fatalf("Caddyfile schreiben: %v", err)
+	}
+
+	runCaddyOrExit(cfg)
+}
+
+// runHTTPOnlyMode rendert und startet Caddy für die E2E-Testumgebung: eine
+// Klartext-HTTP-Site auf :80 ohne TLS, ACME oder Status-Seite. Das API-Routing
+// und die CSP teilen sich dasselbe Snippet wie die anderen Modi.
+func runHTTPOnlyMode(cfg config) {
+	log.Printf("HTTP-Only-Mode aktiv (nur E2E) | Zugangsadresse: http://<host>")
+
+	caddyfile := renderHTTPOnlyCaddyfile()
 	if err := os.WriteFile(cfg.caddyfilePath, []byte(caddyfile), 0o644); err != nil {
 		log.Fatalf("Caddyfile schreiben: %v", err)
 	}

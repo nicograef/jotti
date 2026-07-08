@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -13,7 +14,9 @@ import (
 	"github.com/nicograef/jotti/backend/api/fiskal/signatur"
 	"github.com/nicograef/jotti/backend/api/health"
 	"github.com/nicograef/jotti/backend/api/middleware"
+	testapi "github.com/nicograef/jotti/backend/api/test"
 	"github.com/nicograef/jotti/backend/config"
+	"github.com/nicograef/jotti/backend/seed"
 )
 
 // App represents the application with its configuration, router, server, and database connection.
@@ -71,6 +74,13 @@ func SetupRoutes(cfg config.Config, db *sql.DB, version string) http.Handler {
 	// Relay — kein JWT, Token-Prüfung im Handler; Rate-Limit gegen Token-Brute-Force
 	relayApi := api.NewRelayApi(deps, cfg.RelayToken)
 	r.Handle("/relay/", middleware.RateLimitMiddleware(5)(http.StripPrefix("/relay", relayApi)))
+
+	// Test-Reset — nur in Test-/Demo-Umgebungen (JOTTI_ALLOW_SEED=1), dieselbe
+	// Guard-Logik wie das seed-Subkommando. In Produktion existiert die Route nicht.
+	if seed.AllowedByEnv(os.Getenv) {
+		testHandler := testapi.NewHandler(db)
+		r.HandleFunc("/test/reset-and-seed", testHandler.ResetAndSeedHandler())
+	}
 
 	// Wrap the entire router with middleware chain
 	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by the reverse proxy (Caddy)

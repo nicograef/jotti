@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 
 .PHONY: init dev dev-up down restart logs status \
-       test test-frontend test-integration test-all test-tse-live test-tse-live-setup \
+       test test-frontend test-integration test-all test-e2e test-tse-live test-tse-live-setup \
        lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt \
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
@@ -62,6 +62,9 @@ test-tse-live-setup: ## Voller TSE-Setup-Durchlauf gegen fiskaly-TEST (ACHTUNG: 
 	cd backend && set -a && . ../.env.fiskaly-test && set +a && go test -tags=integration -count=1 -v -run 'LiveVollerDurchlauf' ./repository/tse_repo/
 
 test-all: test test-frontend ## Alle Unit-Tests (Backend + Frontend)
+
+test-e2e: ## E2E-Tests (Playwright) gegen E2E_BASE_URL (Default Dev-Stack http://localhost)
+	cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install chromium && pnpm test
 
 # ──────────────────────────────────────────────
 # Linting                                       

@@ -1,0 +1,22 @@
+{
+  "name": "jotti-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "End-to-End-Tests (Playwright) für jotti gegen einen echten Stack",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.6.0",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@types/node": "26.1.0",
+    "typescript": "6.0.3"
+  }
+}
