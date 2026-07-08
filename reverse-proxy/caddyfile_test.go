@@ -33,8 +33,13 @@ func TestRenderCaddyfileWithState(t *testing.T) {
 		"https:// {",
 		"on_demand",
 		"redir https://{host}{uri} permanent",
+		// Security-Header liegen beim Reverse-Proxy: alle vier müssen im
+		// generierten Caddyfile vorkommen (CSP, HSTS, X-Frame-Options,
+		// X-Content-Type-Options).
 		`Strict-Transport-Security "` + hstsLAN + `"`,
-		contentSecurityPolicy,
+		`X-Content-Type-Options "nosniff"`,
+		`X-Frame-Options "DENY"`,
+		`Content-Security-Policy "` + contentSecurityPolicy + `"`,
 	}
 	for _, want := range wants {
 		if !strings.Contains(out, want) {
@@ -103,12 +108,14 @@ func TestRenderPublicCaddyfile(t *testing.T) {
 		"reverse_proxy backend:3000",
 		"reverse_proxy frontend:80",
 		`Strict-Transport-Security "` + hstsPublic + `"`,
+		`X-Content-Type-Options "nosniff"`,
+		`X-Frame-Options "DENY"`,
+		`Content-Security-Policy "` + contentSecurityPolicy + `"`,
 		"rate_limit {",
 		"zone api {",
 		"key {remote_host}",
 		"events 30",
 		"window 1s",
-		contentSecurityPolicy,
 	}
 	for _, want := range wants {
 		if !strings.Contains(out, want) {

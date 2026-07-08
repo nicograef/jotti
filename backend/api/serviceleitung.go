@@ -9,8 +9,8 @@ import (
 	tischgeschaeftHTTP "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/http"
 )
 
-func NewServiceleitungApi(deps Deps) http.Handler {
-	r := http.NewServeMux()
+func NewServiceleitungApi(deps Deps) (http.Handler, []string) {
+	r := newRouteMux()
 
 	tc := tischgeschaeftHTTP.CommandHandler{}
 	tc.Command = tischgeschaeftApp.Command{
@@ -31,5 +31,5 @@ func NewServiceleitungApi(deps Deps) http.Handler {
 	}
 	r.HandleFunc("/direktverkauf-stornieren", dc.DirektverkaufStornierenHandler())
 
-	return r
+	return r.Handler(), r.Paths()
 }

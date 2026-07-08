@@ -41,8 +41,8 @@ func (a druckauftragRepoRelayAdapter) ReportDruckergebnis(ctx context.Context, g
 	return a.repo.ReportDruckergebnis(ctx, gedruckteIDs, repoFehlversuche)
 }
 
-func NewRelayApi(deps Deps, relayToken string) http.Handler {
-	r := http.NewServeMux()
+func NewRelayApi(deps Deps, relayToken string) (http.Handler, []string) {
+	r := newRouteMux()
 
 	handler := relayHTTP.Handler{
 		Repo:       druckauftragRepoRelayAdapter{repo: deps.DruckauftragRepo},
@@ -52,5 +52,5 @@ func NewRelayApi(deps Deps, relayToken string) http.Handler {
 	r.HandleFunc("/poll", handler.PollHandler())
 	r.HandleFunc("/ergebnis", handler.ErgebnisHandler())
 
-	return r
+	return r.Handler(), r.Paths()
 }

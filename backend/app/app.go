@@ -14,7 +14,6 @@ import (
 	"github.com/nicograef/jotti/backend/api/fiskal/signatur"
 	"github.com/nicograef/jotti/backend/api/health"
 	"github.com/nicograef/jotti/backend/api/middleware"
-	testapi "github.com/nicograef/jotti/backend/api/test"
 	"github.com/nicograef/jotti/backend/config"
 	"github.com/nicograef/jotti/backend/seed"
 )
@@ -44,7 +43,11 @@ func NewApp(cfg config.Config, db *sql.DB, version string) (*App, error) {
 	}, nil
 }
 
-// SetupRoutes configures HTTP routes
+// SetupRoutes configures HTTP routes. Alle bereichsgebundenen Routen werden aus
+// der deklarativen Routentabelle (Areas) registriert — sie ist die einzige
+// Registrierungsquelle und deklariert je Bereich die erlaubten Rollen bzw.
+// bewusst kein JWT (auth/relay). /health ist der einzige Sonderfall außerhalb
+// der Tabelle (GET-probebar, kein Präfix).
 func SetupRoutes(cfg config.Config, db *sql.DB, version string) http.Handler {
 	r := http.NewServeMux()
 
@@ -54,32 +57,18 @@ func SetupRoutes(cfg config.Config, db *sql.DB, version string) http.Handler {
 	deps := api.NewDeps(cfg, db)
 	deps.Version = version
 
-	authApi := api.NewAuthApi(cfg, deps)
-	r.Handle("/auth/", middleware.RateLimitMiddleware(5)(http.StripPrefix("/auth", authApi)))
-
-	// Der Benutzer-Lookup pro Request stellt sicher, dass deaktivierte Benutzer
-	// sofort ausgesperrt sind, nicht erst beim Token-Ablauf.
-	admin := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin"}, deps.UserRepo)
-	adminApi := api.NewAdminApi(deps)
-	r.Handle("/admin/", admin(http.StripPrefix("/admin", adminApi)))
-
-	servicesApi := api.NewServiceApi(deps)
-	service := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "serviceleitung", "service"}, deps.UserRepo)
-	r.Handle("/service/", service(http.StripPrefix("/service", servicesApi)))
-
-	serviceleitungApi := api.NewServiceleitungApi(deps)
-	serviceleitung := middleware.NewJwtMiddleware(cfg.JWTSecret, []string{"admin", "serviceleitung"}, deps.UserRepo)
-	r.Handle("/serviceleitung/", serviceleitung(http.StripPrefix("/serviceleitung", serviceleitungApi)))
-
-	// Relay — kein JWT, Token-Prüfung im Handler; Rate-Limit gegen Token-Brute-Force
-	relayApi := api.NewRelayApi(deps, cfg.RelayToken)
-	r.Handle("/relay/", middleware.RateLimitMiddleware(5)(http.StripPrefix("/relay", relayApi)))
+	areas := Areas()
 
 	// Test-Reset — nur in Test-/Demo-Umgebungen (JOTTI_ALLOW_SEED=1), dieselbe
-	// Guard-Logik wie das seed-Subkommando. In Produktion existiert die Route nicht.
+	// Guard-Logik wie das seed-Subkommando. Der Bereich wird über dieselbe
+	// deklarative Area-Struktur (mountArea) verdrahtet: bewusst ohne JWT wie
+	// auth/relay. In Produktion existiert die Route nicht.
 	if seed.AllowedByEnv(os.Getenv) {
-		testHandler := testapi.NewHandler(db)
-		r.HandleFunc("/test/reset-and-seed", testHandler.ResetAndSeedHandler())
+		areas = append(areas, testResetArea(db))
+	}
+
+	for _, area := range areas {
+		mountArea(r, area, cfg, deps)
 	}
 
 	// Wrap the entire router with middleware chain

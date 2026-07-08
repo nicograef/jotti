@@ -9,13 +9,13 @@ import (
 	"github.com/nicograef/jotti/backend/config"
 )
 
-func NewAuthApi(cfg config.Config, deps Deps) http.Handler {
-	r := http.NewServeMux()
+func NewAuthApi(cfg config.Config, deps Deps) (http.Handler, []string) {
+	r := newRouteMux()
 
 	ah := authHTTP.CommandHandler{}
 	ah.Command = authApp.Command{UserRepo: deps.UserRepo, JWTSecret: cfg.JWTSecret, Throttle: throttle.NewLoginThrottle()}
 	r.HandleFunc("/login", ah.LoginHandler())
 	r.HandleFunc("/set-password", ah.SetPasswordHandler())
 
-	return r
+	return r.Handler(), r.Paths()
 }

@@ -27,8 +27,8 @@ import (
 	userHTTP "github.com/nicograef/jotti/backend/api/stammdaten/user/http"
 )
 
-func NewAdminApi(deps Deps) http.Handler {
-	r := http.NewServeMux()
+func NewAdminApi(deps Deps) (http.Handler, []string) {
+	r := newRouteMux()
 
 	uc := userHTTP.CommandHandler{}
 	uc.Command = userApp.Command{UserRepo: deps.UserRepo}
@@ -163,5 +163,5 @@ func NewAdminApi(deps Deps) http.Handler {
 	bc.Command = betreiberApp.Command{BetreiberRepo: deps.BetreiberRepo}
 	r.HandleFunc("/update-betreiber", bc.UpdateBetreiberHandler())
 
-	return r
+	return r.Handler(), r.Paths()
 }

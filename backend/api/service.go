@@ -17,8 +17,8 @@ import (
 	tischHTTP "github.com/nicograef/jotti/backend/api/stammdaten/tisch/http"
 )
 
-func NewServiceApi(deps Deps) http.Handler {
-	r := http.NewServeMux()
+func NewServiceApi(deps Deps) (http.Handler, []string) {
+	r := newRouteMux()
 
 	pq := produktHTTP.QueryHandler{}
 	pq.Query = produktApp.Query{ProduktRepo: deps.ProduktRepo}
@@ -90,5 +90,5 @@ func NewServiceApi(deps Deps) http.Handler {
 	}
 	r.HandleFunc("/get-eigene-uebersicht", rq.GetEigeneUebersichtHandler())
 
-	return r
+	return r.Handler(), r.Paths()
 }
