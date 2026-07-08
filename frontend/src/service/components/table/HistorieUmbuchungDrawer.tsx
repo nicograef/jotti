@@ -1,4 +1,3 @@
-import { Minus, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -13,7 +12,6 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { formatCents, formatPositionName } from '@/lib/utils'
@@ -22,6 +20,7 @@ import type { Position } from '../../table/Bestellung'
 import { useAktiveTische } from '../../table/hooks'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import { PositionAuswahlListe } from '../PositionAuswahlListe'
 import {
   calculateTotalPrice,
   selectPositionen,
@@ -140,61 +139,20 @@ export function HistorieUmbuchungDrawer({
               Positionen auswählen und auf einen Ziel-Tisch umbuchen.
             </DrawerDescription>
           </DrawerHeader>
-          <ScrollArea className="max-h-72">
-            <div className="px-4 space-y-2">
-              {positionen.map((position) => {
-                const selected = mengen[position.positionId] || 0
-                return (
-                  <div
-                    key={position.positionId}
-                    className="flex items-center justify-between border-b pb-2 last:border-0"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">
-                        {formatPositionName(
-                          position.produktName,
-                          position.varianteName,
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatCents(position.einzelpreisCents)}&nbsp;€ ·{' '}
-                        {position.menge}
-                        &nbsp;Stück
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 ml-2">
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          onRemove(position.positionId)
-                        }}
-                      >
-                        <Minus
-                          className={selected > 0 ? '' : 'opacity-50'}
-                          size={16}
-                        />
-                      </Button>
-                      <span className="font-bold tabular-nums text-center w-6 text-sm">
-                        {selected}
-                      </span>
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          onAdd(position.positionId, position.menge)
-                        }}
-                      >
-                        <Plus size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </ScrollArea>
+          <PositionAuswahlListe
+            positionen={positionen.map((position: Position) => ({
+              id: position.positionId,
+              name: formatPositionName(
+                position.produktName,
+                position.varianteName,
+              ),
+              einzelpreisCents: position.einzelpreisCents,
+              maxMenge: position.menge,
+            }))}
+            mengen={mengen}
+            onAdd={onAdd}
+            onRemove={onRemove}
+          />
           {!noPositionenSelected && (
             <div className="flex justify-between font-bold px-4 pt-2 pb-2 border-t-2">
               <div>Umbuchung gesamt</div>

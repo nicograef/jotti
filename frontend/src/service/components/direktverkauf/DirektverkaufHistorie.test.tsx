@@ -14,8 +14,8 @@ vi.mock('@/lib/Auth', () => ({
   AuthSingleton: { canCancel: true },
 }))
 
-// vaul's Drawer and Radix' ScrollArea depend on browser APIs unavailable in jsdom.
-// Render their children inline so the storno form logic stays testable.
+// vaul's Drawer depends on browser APIs unavailable in jsdom.
+// Render its children inline so the storno form logic stays testable.
 vi.mock('@/components/ui/drawer', () => {
   const Passthrough = ({ children }: { children?: ReactNode }) => children
   return {
@@ -27,11 +27,6 @@ vi.mock('@/components/ui/drawer', () => {
     DrawerFooter: Passthrough,
     DrawerClose: Passthrough,
   }
-})
-
-vi.mock('@/components/ui/scroll-area', () => {
-  const Passthrough = ({ children }: { children?: ReactNode }) => children
-  return { ScrollArea: Passthrough }
 })
 
 afterEach(() => {
