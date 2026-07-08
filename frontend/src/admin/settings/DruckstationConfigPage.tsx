@@ -224,6 +224,12 @@ function FehlgeschlageneDruckauftraege() {
   const { loading: alleVerwerfenLoading, run: runAlleVerwerfen } =
     useActionSubmit({ actionLabel: 'Druckaufträge verwerfen' })
 
+  const anzahlFehlgeschlagen = druckauftraege.length
+  const verwerfenBeschreibung =
+    anzahlFehlgeschlagen === 1
+      ? '1 fehlgeschlagener Auftrag wird aus der Warteschlange entfernt.'
+      : `${String(anzahlFehlgeschlagen)} fehlgeschlagene Aufträge werden aus der Warteschlange entfernt.`
+
   let inhalt
   if (isPending) {
     inhalt = (
@@ -280,8 +286,7 @@ function FehlgeschlageneDruckauftraege() {
                   Alle fehlgeschlagenen Druckaufträge verwerfen?
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  {druckauftraege.length} fehlgeschlagene Aufträge werden aus
-                  der Warteschlange entfernt. Noch benötigte Bons vorher einzeln
+                  {verwerfenBeschreibung} Noch benötigte Bons vorher einzeln
                   über „Erneut versuchen“ nachdrucken.
                 </AlertDialogDescription>
               </AlertDialogHeader>
