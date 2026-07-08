@@ -90,6 +90,29 @@ describe('Backend.post', () => {
     await expect(request).rejects.toThrow('upstream error')
   })
 
+  it('exposes the X-Correlation-ID response header as referenz on BackendError', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ code: 'internal_server_error' }), {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Correlation-ID': 'abc12345',
+          },
+        }),
+      ),
+    )
+
+    const backend = createClient()
+
+    await expect(backend.post('service/foo', {})).rejects.toMatchObject({
+      status: 500,
+      code: 'internal_server_error',
+      referenz: 'abc12345',
+    })
+  })
+
   it('accepts non-string error details and exposes them on BackendError', async () => {
     vi.stubGlobal(
       'fetch',

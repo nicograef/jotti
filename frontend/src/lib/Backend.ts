@@ -11,8 +11,14 @@ export class BackendError extends Error {
   public readonly status: number
   public readonly code: string
   public readonly details?: unknown
+  public readonly referenz?: string
 
-  constructor(status: number, code: string, details?: unknown) {
+  constructor(
+    status: number,
+    code: string,
+    details?: unknown,
+    referenz?: string,
+  ) {
     let errorMessage = `BackendError: ${code}`
 
     if (details !== undefined) {
@@ -25,6 +31,7 @@ export class BackendError extends Error {
     this.status = status
     this.code = code
     this.details = details
+    this.referenz = referenz
     Object.setPrototypeOf(this, BackendError.prototype)
   }
 }
@@ -130,6 +137,7 @@ export class Backend implements BackendClient {
       throw new BackendError(401, 'unauthorized')
     }
 
+    const referenz = response.headers.get('X-Correlation-ID') ?? undefined
     const responseText = await response.text()
     const parsedError = ErrorResponseSchema.safeParse(
       parseJsonSafely(responseText),
@@ -140,6 +148,7 @@ export class Backend implements BackendClient {
         response.status,
         parsedError.data.code,
         parsedError.data.details,
+        referenz,
       )
     }
 
@@ -149,7 +158,7 @@ export class Backend implements BackendClient {
       'Response text:',
       responseText,
     )
-    throw new BackendError(response.status, 'unknown', responseText)
+    throw new BackendError(response.status, 'unknown', responseText, referenz)
   }
 
   public async post<TResponse>(

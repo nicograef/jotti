@@ -72,6 +72,28 @@ func TestCorrelationIDMiddleware_UsesExisting(t *testing.T) {
 	}
 }
 
+// Der reale 500-Fall aus dem PRD: Ein Panic im Handler muss trotzdem eine
+// X-Correlation-ID-Antwortheader tragen, damit der Verein die Fehler-Referenz
+// im Toast melden kann und der Betreiber sie im Server-Log wiederfindet.
+func TestCorrelationIDMiddleware_PanicResponseHatCorrelationIDHeader(t *testing.T) {
+	handler := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		panic("boom")
+	})
+
+	middleware := CorrelationIDMiddleware(RecoveryMiddleware(handler))
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rec := httptest.NewRecorder()
+
+	middleware.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected status 500, got %d", rec.Code)
+	}
+	if correlationID := rec.Header().Get("X-Correlation-ID"); correlationID == "" {
+		t.Error("expected X-Correlation-ID header to be set on 500 response")
+	}
+}
+
 func TestRateLimitMiddleware_AllowsWithinLimit(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

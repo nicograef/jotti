@@ -3,6 +3,10 @@ import { BackendError } from './Backend'
 const serverErrorMessage =
   'Es ist ein unerwarteter Serverfehler aufgetreten. Bitte Seite neu laden oder den Administrator kontaktieren.'
 
+function appendReferenz(message: string, referenz?: string): string {
+  return referenz ? `${message} Referenz: ${referenz}` : message
+}
+
 const commonErrorMessages: Record<string, string> = {
   onetime_password_locked:
     'Das Einmalpasswort wurde nach zu vielen Fehlversuchen gesperrt. Bitte einen Admin um ein neues Einmalpasswort.',
@@ -101,8 +105,12 @@ export function getActionErrorMessage({
       return byCode[error.code]
     }
 
-    if (error.status >= 500 || error.code === 'internal_server_error') {
-      return serverErrorMessage
+    if (
+      error.status >= 500 ||
+      error.code === 'internal_server_error' ||
+      error.code === 'unknown'
+    ) {
+      return appendReferenz(serverErrorMessage, error.referenz)
     }
 
     if (Object.prototype.hasOwnProperty.call(commonErrorMessages, error.code)) {

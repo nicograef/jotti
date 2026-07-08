@@ -216,4 +216,52 @@ describe('getActionErrorMessage', () => {
       }),
     ).toBe('Laden fehlgeschlagen. Bitte erneut versuchen.')
   })
+
+  it('appends the correlation ID reference for 5xx errors with a referenz', () => {
+    expect(
+      getActionErrorMessage({
+        actionLabel: 'Kassieren',
+        error: new BackendError(
+          500,
+          'internal_server_error',
+          undefined,
+          'a1b2c3d4',
+        ),
+      }),
+    ).toBe(`${serverErrorMessage} Referenz: a1b2c3d4`)
+  })
+
+  it('returns the plain server error message for 5xx errors without a referenz', () => {
+    expect(
+      getActionErrorMessage({
+        actionLabel: 'Kassieren',
+        error: new BackendError(500, 'internal_server_error'),
+      }),
+    ).toBe(serverErrorMessage)
+  })
+
+  it('appends the correlation ID reference for code unknown with a referenz', () => {
+    expect(
+      getActionErrorMessage({
+        actionLabel: 'Kassieren',
+        error: new BackendError(400, 'unknown', undefined, 'a1b2c3d4'),
+      }),
+    ).toBe(`${serverErrorMessage} Referenz: a1b2c3d4`)
+  })
+
+  it('does not append a referenz for non-server errors even if one is set', () => {
+    expect(
+      getActionErrorMessage({
+        actionLabel: 'Speichern',
+        error: new BackendError(
+          400,
+          'produkt_not_found',
+          undefined,
+          'a1b2c3d4',
+        ),
+      }),
+    ).toBe(
+      'Das Produkt wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
+    )
+  })
 })
