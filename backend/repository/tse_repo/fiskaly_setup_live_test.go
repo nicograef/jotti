@@ -21,8 +21,7 @@ import (
 // ACHTUNG: Jeder Lauf legt im TEST-Konto eine nicht löschbare TSS an. Bewusst
 // sparsam ausführen (siehe Plan, „TEST-Konto füllt sich").
 //
-//	FISKALY_TEST_API_KEY=... FISKALY_TEST_API_SECRET=... \
-//	go test -tags=integration -run LiveVollerDurchlauf ./repository/tse_repo/
+//	make test-tse-live-setup   # lädt .env.fiskaly-test (Vorlage: .env.fiskaly-test.example)
 func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 	apiKey := os.Getenv("FISKALY_TEST_API_KEY")
 	apiSecret := os.Getenv("FISKALY_TEST_API_SECRET")
@@ -91,6 +90,9 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 	}
 	if stammdaten.LogTimeFormat == "" {
 		t.Fatalf("expected a log time format, got %+v", stammdaten)
+	}
+	if stammdaten.Seriennummer == "" {
+		t.Fatalf("expected the tss serial_number, got %+v", stammdaten)
 	}
 
 	// Die frisch eingerichtete TSS muss signierfähig sein.

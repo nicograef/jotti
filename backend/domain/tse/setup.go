@@ -62,8 +62,9 @@ type TSSErstellt struct {
 // Zertifikat und Log-Time-Format (fiskaly: signature_timestamp_format). Sie
 // aendern sich ueber die Lebensdauer der TSS nicht.
 type TSSStammdaten struct {
-	// Seriennummer ist die TSS-Seriennummer (fiskaly: tss_serial_number;
-	// SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld TSE_SERIAL.
+	// Seriennummer ist die TSS-Seriennummer (fiskaly: serial_number der
+	// TSS-Ressource; SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld
+	// TSE_SERIAL.
 	Seriennummer        string
 	SignaturAlgorithmus string
 	PublicKey           string

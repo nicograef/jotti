@@ -274,9 +274,9 @@ func TestFiskalySetupClient_ReaktiviereClient(t *testing.T) {
 
 // TestFiskalySetupClient_RetrieveTSSStammdaten bildet den Kontrakt der
 // Stammdaten-Leseoperation fuer den DSFinV-K-Export ab: ein GET auf die
-// TSS-Ressource liest signature_algorithm, public_key, certificate und
-// signature_timestamp_format (Log-Time-Format) — und sendet ausschliesslich
-// Auth- und GET-Requests.
+// TSS-Ressource liest serial_number, signature_algorithm, public_key,
+// certificate und signature_timestamp_format (Log-Time-Format) — und sendet
+// ausschliesslich Auth- und GET-Requests.
 func TestFiskalySetupClient_RetrieveTSSStammdaten(t *testing.T) {
 	var (
 		mu    sync.Mutex
@@ -298,6 +298,7 @@ func TestFiskalySetupClient_RetrieveTSSStammdaten(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"_id":                        "tss-1",
 				"state":                      "INITIALIZED",
+				"serial_number":              "tss-serial-1",
 				"signature_algorithm":        "ecdsa-plain-SHA256",
 				"public_key":                 "public-key-b64",
 				"certificate":                "certificate-b64",
@@ -320,6 +321,7 @@ func TestFiskalySetupClient_RetrieveTSSStammdaten(t *testing.T) {
 		t.Fatalf("retrieve tss stammdaten failed: %v", err)
 	}
 	want := tse.TSSStammdaten{
+		Seriennummer:        "tss-serial-1",
 		SignaturAlgorithmus: "ecdsa-plain-SHA256",
 		PublicKey:           "public-key-b64",
 		Zertifikat:          "certificate-b64",

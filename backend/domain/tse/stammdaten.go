@@ -11,8 +11,9 @@ import (
 // TSS nicht und werden einmalig bei der Einrichtung von fiskaly gelesen und als
 // Singleton gespeichert.
 type Stammdaten struct {
-	// Seriennummer ist die TSS-Seriennummer (fiskaly: tss_serial_number;
-	// SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld TSE_SERIAL.
+	// Seriennummer ist die TSS-Seriennummer (fiskaly: serial_number der
+	// TSS-Ressource; SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld
+	// TSE_SERIAL.
 	Seriennummer        string
 	SignaturAlgorithmus string
 	PublicKey           string

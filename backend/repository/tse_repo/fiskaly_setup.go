@@ -65,8 +65,10 @@ type tssDetailResponse struct {
 	State    string `json:"state"`
 	// Fiskalische Stammdaten der TSS-Ressource fuer den DSFinV-K-Export. fiskaly
 	// nennt das Log-Time-Format signature_timestamp_format und die Seriennummer
-	// tss_serial_number (SHA-256 des Public Key, hex-kodiert).
-	TSSSerialNumber          string `json:"tss_serial_number"`
+	// serial_number (SHA-256 des Public Key, hex-kodiert). Nicht mit
+	// tss_serial_number verwechseln — so heisst das Feld nur auf
+	// Transaktions-Responses, auf der TSS-Ressource existiert es nicht.
+	TSSSerialNumber          string `json:"serial_number"`
 	SignatureAlgorithm       string `json:"signature_algorithm"`
 	PublicKey                string `json:"public_key"`
 	Certificate              string `json:"certificate"`

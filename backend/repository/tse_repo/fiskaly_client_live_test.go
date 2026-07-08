@@ -17,9 +17,7 @@ import (
 // gegen die fiskaly-TEST-Umgebung. Der Test läuft nur, wenn die
 // FISKALY_TEST_*-Umgebungsvariablen gesetzt sind, und wird sonst übersprungen.
 //
-//	FISKALY_TEST_API_KEY=...    FISKALY_TEST_API_SECRET=... \
-//	FISKALY_TEST_TSS_ID=...     FISKALY_TEST_CLIENT_ID=... \
-//	go test -tags=integration -run LiveSigniert ./repository/tse_repo/
+//	make test-tse-live   # lädt .env.fiskaly-test (Vorlage: .env.fiskaly-test.example)
 func TestFiskalyClient_LiveSigniertTransaktion(t *testing.T) {
 	credentials := tse.Credentials{
 		ApiKey:    os.Getenv("FISKALY_TEST_API_KEY"),
