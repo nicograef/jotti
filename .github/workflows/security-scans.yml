@@ -1,0 +1,118 @@
+name: Security Scans
+
+# Separate from ci.yml on purpose: vulnerability advisories change without any
+# code change, so this workflow also runs on a weekly schedule (not just on
+# push/pull_request) to surface new advisories against unchanged code.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "resolver/**"
+      - "reverse-proxy/**"
+      - "windows/**"
+      - "frontend/**"
+      - "go.work"
+      - "go.work.sum"
+      - ".github/workflows/security-scans.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "resolver/**"
+      - "reverse-proxy/**"
+      - "windows/**"
+      - "frontend/**"
+      - "go.work"
+      - "go.work.sum"
+      - ".github/workflows/security-scans.yml"
+  schedule:
+    # Mondays 04:00 UTC, so new advisories are caught even without code
+    # changes touching the modules above.
+    - cron: "0 4 * * 1"
+
+jobs:
+  vuln-scan-go:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module:
+          - backend
+          - resolver
+          - reverse-proxy
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.0
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+
+      - name: govulncheck
+        working-directory: ./${{ matrix.module }}
+        # Fails (non-zero exit) when govulncheck finds vulnerabilities that
+        # are actually reachable from this module's code, matching the
+        # required "red on reachable findings" behaviour. Version pinned for
+        # reproducibility (same discipline as goimports/golangci-lint in ci.yml).
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.5.0 ./...
+
+  # windows/relay and windows/starter have zero dependencies (no go.sum), so
+  # module caching (cache-dependency-path) would fail to resolve a glob and
+  # error the step. They get their own job without caching, mirroring
+  # windows-ci's "cache: false" in ci.yml.
+  vuln-scan-go-windows:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module:
+          - windows/relay
+          - windows/starter
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.0
+          cache: false
+
+      - name: govulncheck
+        working-directory: ./${{ matrix.module }}
+        # Fails (non-zero exit) when govulncheck finds vulnerabilities that
+        # are actually reachable from this module's code, matching the
+        # required "red on reachable findings" behaviour. Version pinned for
+        # reproducibility (same discipline as goimports/golangci-lint in ci.yml).
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.5.0 ./...
+
+  vuln-scan-npm:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+          run_install: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Red from "high" upward. Known findings as of 2026-07-08 (all
+      # transitive, no fix available yet upstream):
+      #   - hono (via shadcn > @modelcontextprotocol/sdk > @hono/node-server):
+      #     GHSA-88fw-hqm2-52qc, CORS reflection. shadcn is a dependency only
+      #     for its CLI (component scaffolding); it never ships in the
+      #     browser bundle.
+      #   - undici (via jsdom > vitest, test-only): GHSA-vmh5-mc38-953g,
+      #     GHSA-vxpw-j846-p89q, GHSA-hm92-r4w5-c3mj.
+      # No pnpm audit ignore-list is configured: these are tracked here as
+      # comments, not silenced, so the job stays red until upstream fixes
+      # land or the packages are upgraded.
+      - name: pnpm audit (high and above)
+        run: pnpm audit --audit-level high
