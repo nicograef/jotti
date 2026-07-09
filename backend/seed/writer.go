@@ -233,6 +233,20 @@ func writeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt 
 		}
 	}
 
+	// TSE-Stammdaten wie eine echte fiskaly-Einrichtung schreiben, damit die tse.csv
+	// des Demo-Exports vollständig ist (sonst bliebe die Singleton-Zeile beim
+	// Migrations-Default leer).
+	stammdaten := fakeTSEStammdaten()
+	if err := qtx.UpsertTSEStammdaten(ctx, dbgen.UpsertTSEStammdatenParams{
+		Seriennummer:        stammdaten.Seriennummer,
+		SignaturAlgorithmus: stammdaten.SignaturAlgorithmus,
+		PublicKey:           stammdaten.PublicKey,
+		Zertifikat:          stammdaten.Zertifikat,
+		LogTimeFormat:       stammdaten.LogTimeFormat,
+	}); err != nil {
+		return fmt.Errorf("tse-stammdaten schreiben: %w", err)
+	}
+
 	return nil
 }
 

@@ -22,7 +22,27 @@ const (
 	fakeSignaturAlgorithmus = "ecdsa-plain-SHA256"
 	fakeLogTimeFormat       = "unixTime"
 	fakePublicKey           = "BJottiDemoFakeTSEPublicKeySommerfestTSVMusterstadt2026AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+	// fakeZertifikat ist ein frei erfundenes, base64-kodiertes Pseudo-Zertifikat der
+	// Fake-TSE (unter 1000 Zeichen, passt daher in TSE_ZERTIFIKAT_I). Es füllt die
+	// tse.csv-Stammdaten des Demo-Exports, damit die DSFinV-K-Inhaltsprüfung die
+	// TSS-Stammdaten als vollständig sieht (Seriennummer, Algorithmus, Public Key,
+	// Zertifikat).
+	fakeZertifikat = "MIIBdummyJottiDemoFakeTSECertificateBase64AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 )
+
+// fakeTSEStammdaten liefert die TSS-Stammdaten der Fake-TSE für den DSFinV-K-Export
+// (tse.csv). Ohne diese Stammdaten bliebe die Singleton-Zeile tse_stammdaten leer
+// (Migrations-Default), und der exportierte tse.csv-Datensatz hätte leere
+// Pflichtfelder. Der Seeder schreibt sie deshalb wie eine echte TSE-Einrichtung.
+func fakeTSEStammdaten() tse.Stammdaten {
+	return tse.Stammdaten{
+		Seriennummer:        fakeTSESeriennummer,
+		SignaturAlgorithmus: fakeSignaturAlgorithmus,
+		PublicKey:           fakePublicKey,
+		Zertifikat:          fakeZertifikat,
+		LogTimeFormat:       fakeLogTimeFormat,
+	}
+}
 
 // signierungAbgelehntFehler ist der Fehlertext der dauerhaft gescheiterten Aufträge:
 // Anders als beim vorübergehenden Ausfall (Fenster-Grund) lehnt die TSE diese Transaktionen

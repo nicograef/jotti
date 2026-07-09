@@ -74,6 +74,12 @@ func pruefeArchiv(zr *zip.Reader) ([]Befund, error) {
 
 	befunde = append(befunde, pruefeTabellenGegenIndex(dateien, tabellen)...)
 
+	// Nach der Struktur folgt die fachliche Inhaltsprüfung (inhalt.go): sie setzt
+	// auf denselben index.xml-getriebenen Tabellenschnitt und prüft das
+	// Zusammenspiel der Tabellen (Storno-Referenzen, Steueraufteilung, Bediener-,
+	// TSE- und Abrechnungskreis-Felder).
+	befunde = append(befunde, pruefeInhalt(dateien, tabellen)...)
+
 	return befunde, nil
 }
 
