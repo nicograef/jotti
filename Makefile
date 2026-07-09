@@ -53,9 +53,8 @@ test-frontend: ## Frontend Tests ausführen
 test-integration: ## Integrationstests ausführen
 	./scripts/test-integration.sh
 
-test-tse-live: ## TSE-Live-Tests gegen die fiskaly-TEST-TSS (liest .env.fiskaly-test, legt keine TSS an)
-	@test -f .env.fiskaly-test || { echo "FEHLER: .env.fiskaly-test fehlt. Vorlage: .env.fiskaly-test.example"; exit 1; }
-	cd backend && set -a && . ../.env.fiskaly-test && set +a && go test -tags=integration -count=1 -v -run 'LiveSigniert' ./repository/tse_repo/
+test-tse-live: ## TSE-Live-Suite gegen die fiskaly-TEST-TSS (Wegwerf-Postgres + Migrationen + Live-Tests, legt keine TSS an)
+	./scripts/test-tse-live.sh
 
 test-tse-live-setup: ## Voller TSE-Setup-Durchlauf gegen fiskaly-TEST (ACHTUNG: legt eine unlöschbare TSS im TEST-Konto an)
 	@test -f .env.fiskaly-test || { echo "FEHLER: .env.fiskaly-test fehlt. Vorlage: .env.fiskaly-test.example"; exit 1; }
