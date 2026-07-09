@@ -82,7 +82,7 @@ Alle Go-Versionsangaben auf 1.26.5 vereinheitlichen: die 5 `go.mod`-Direktiven, 
 - [x] Kein `go-version: 1.26.0`-Pin und kein `golang:1.26.4`-Image mehr im Repo (`grep -rn "1.26.0\|1.26.4" .github backend/Dockerfile resolver/Dockerfile reverse-proxy/Dockerfile` ohne Treffer)
 - [x] `govulncheck` (v1.5.0) lokal in allen 5 Modulen ohne Stdlib-Findings
 - [x] `make verify` grün
-- [ ] Nach Push: Workflow „Security Scans" komplett grün (alle `vuln-scan-go`-Jobs, `vuln-scan-go-windows`, `vuln-scan-npm`), Workflow „CI" grün
+- [x] Nach Push: Workflow „Security Scans" komplett grün (alle `vuln-scan-go`-Jobs, `vuln-scan-go-windows`, `vuln-scan-npm`), Workflow „CI" grün
 
 ---
 
