@@ -14,5 +14,5 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true
   },
-  "include": ["*.ts", "tests/**/*.ts", "support/**/*.ts"]
+  "include": ["*.ts", "tests/**/*.ts", "support/**/*.ts", "helpers/**/*.ts"]
 }

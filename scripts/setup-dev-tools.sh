@@ -25,16 +25,16 @@ ensure_cmd() {
 }
 
 # CI reference (.github/workflows/ci.yml):
-# - Go: 1.26.0
+# - Go: 1.26.5
 # - Node: 24
-# - pnpm: 10
+# - pnpm: 11
 # - golangci-lint: pinned, see GOLANGCI_LINT_VERSION below
 
 info "Project root: $PROJECT_ROOT"
 cd "$PROJECT_ROOT"
 
 info "Checking base runtimes..."
-ensure_cmd go "Install Go >= 1.26.0 (CI uses 1.26.0)."
+ensure_cmd go "Install Go >= 1.26.5 (CI uses 1.26.5)."
 ensure_cmd node "Install Node >= 24 (CI uses 24)."
 
 info "Ensuring goimports is available..."
@@ -107,21 +107,21 @@ if ! command -v migrate >/dev/null 2>&1; then
   fatal "golang-migrate installation failed. Ensure '$GO_BIN_PATH' is on PATH and rerun."
 fi
 
-info "Ensuring pnpm (v10) is available..."
+info "Ensuring pnpm (v11) is available..."
 if command -v pnpm >/dev/null 2>&1; then
   info "pnpm already installed: $(pnpm --version)"
 else
   if command -v corepack >/dev/null 2>&1; then
-    info "Activating pnpm@10 via corepack"
+    info "Activating pnpm@11 via corepack"
     corepack enable
-    corepack prepare pnpm@10 --activate
+    corepack prepare pnpm@11 --activate
   else
-    fatal "pnpm not found and corepack is unavailable. Install pnpm v10 manually."
+    fatal "pnpm not found and corepack is unavailable. Install pnpm v11 manually."
   fi
 fi
 
 if ! command -v pnpm >/dev/null 2>&1; then
-  fatal "pnpm installation failed. Install pnpm v10 manually and rerun."
+  fatal "pnpm installation failed. Install pnpm v11 manually and rerun."
 fi
 
 info "Installing frontend dependencies..."
