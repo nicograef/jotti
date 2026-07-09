@@ -313,9 +313,9 @@ const (
 func demoSzenario() szenario {
 	return szenario{
 		Benutzer: []benutzer{
-			{ID: 2, Name: "Thomas Müller", Username: "thomas", Rolle: user.AdminRole, Status: user.ActiveStatus},
-			{ID: 3, Name: "Felix Weber", Username: "felix", Rolle: user.ServiceleitungRole, Status: user.ActiveStatus},
-			{ID: 4, Name: "Maria Schmidt", Username: "maria", Rolle: user.ServiceRole, Status: user.ActiveStatus},
+			{ID: 2, Name: "Thomas Müller", Username: DemoAdminUsername, Rolle: user.AdminRole, Status: user.ActiveStatus},
+			{ID: 3, Name: "Felix Weber", Username: DemoServiceleitungUsername, Rolle: user.ServiceleitungRole, Status: user.ActiveStatus},
+			{ID: 4, Name: "Maria Schmidt", Username: DemoServiceUsername, Rolle: user.ServiceRole, Status: user.ActiveStatus},
 			{ID: 5, Name: "Lisa Braun", Username: "lisa", Rolle: user.ServiceRole, Status: user.ActiveStatus},
 			{ID: 6, Name: "Jan Hoffmann", Username: "jan", Rolle: user.ServiceRole, Status: user.ActiveStatus},
 			{ID: 7, Name: "Sophie Becker", Username: "sophie", Rolle: user.ServiceleitungRole, Status: user.ActiveStatus},

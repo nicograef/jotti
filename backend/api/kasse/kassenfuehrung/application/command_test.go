@@ -270,11 +270,10 @@ func TestKasseAbschliessen_CleanerFehlerBleibtBestEffort(t *testing.T) {
 		DruckauftragRepo:    cleaner,
 	}
 
-	ergebnis, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
+	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if err != nil {
 		t.Fatalf("expected Abschluss to stay successful despite cleaner error, got %v", err)
 	}
-	_ = ergebnis
 	if cleaner.calls != 1 {
 		t.Fatalf("expected DiscardAlleFehlgeschlagenen called once, got %d", cleaner.calls)
 	}

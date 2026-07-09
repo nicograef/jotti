@@ -28,9 +28,8 @@ const (
 
 // indexSpalte ist eine geparste VariableColumn-Deklaration der index.xml.
 type indexSpalte struct {
-	Name         string
-	Numeric      bool // AlphaNumeric vs. Numeric (bestimmt das Dezimalformat der CSV)
-	DezimalKomma bool
+	Name    string
+	Numeric bool // AlphaNumeric vs. Numeric (bestimmt das Dezimalformat der CSV)
 }
 
 // indexTabelle ist eine geparste Table-Deklaration: die referenzierte CSV-Datei,

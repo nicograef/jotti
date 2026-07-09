@@ -1,16 +1,19 @@
 package dsfinvkpruefung
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Regel-Kennungen der Paket- und Dateinamensprüfung.
 const (
-	regelDateiname       = "dateiname"
-	regelPaketpflicht    = "paket-pflichtdatei"
-	indexDatei           = "index.xml"
-	dtdDatei             = "gdpdu-01-09-2004.dtd"
-	csvEndung            = ".csv"
-	regelDateinamePfad   = "dateiname-pfad"
-	regelDateinameGrafik = "dateiname-fremdformat"
+	regelDateiname            = "dateiname"
+	regelPaketpflicht         = "paket-pflichtdatei"
+	indexDatei                = "index.xml"
+	dtdDatei                  = "gdpdu-01-09-2004.dtd"
+	csvEndung                 = ".csv"
+	regelDateinamePfad        = "dateiname-pfad"
+	regelDateinameFremdformat = "dateiname-fremdformat"
 )
 
 // pruefePaketpflichtdateien stellt sicher, dass die beiden zwingenden
@@ -51,7 +54,7 @@ func pruefePaketpflichtdateien(dateien map[string][]byte) []Befund {
 func pruefeDateinamen(dateien map[string][]byte) []Befund {
 	var befunde []Befund
 	for _, name := range sortierteNamen(dateien) {
-		if istPfad(name) {
+		if strings.ContainsAny(name, `/\`) {
 			befunde = append(befunde, Befund{
 				Datei:   name,
 				Regel:   regelDateinamePfad,
@@ -62,7 +65,9 @@ func pruefeDateinamen(dateien map[string][]byte) []Befund {
 		switch {
 		case name == indexDatei, name == dtdDatei:
 			// Pflicht-Beschreibungsdateien: erlaubt.
-		case hatEndung(name, csvEndung):
+		case strings.HasSuffix(name, csvEndung):
+			// Groß-/Kleinschreibung wird bewusst nicht normalisiert: eine
+			// ".CSV"-Datei ist bereits ein Dateinamensverstoß.
 			if !istKleingeschrieben(name) {
 				befunde = append(befunde, Befund{
 					Datei:   name,
@@ -73,31 +78,12 @@ func pruefeDateinamen(dateien map[string][]byte) []Befund {
 		default:
 			befunde = append(befunde, Befund{
 				Datei:   name,
-				Regel:   regelDateinameGrafik,
+				Regel:   regelDateinameFremdformat,
 				Meldung: "unerwartete Datei im DSFinV-K-Archiv (erlaubt sind index.xml, die DTD und *.csv)",
 			})
 		}
 	}
 	return befunde
-}
-
-// istPfad meldet, ob der Name einen Verzeichnisanteil trägt.
-func istPfad(name string) bool {
-	for i := 0; i < len(name); i++ {
-		if name[i] == '/' || name[i] == '\\' {
-			return true
-		}
-	}
-	return false
-}
-
-// hatEndung meldet, ob name auf endung endet (Groß-/Kleinschreibung wird bewusst
-// nicht normalisiert: eine ".CSV"-Datei ist bereits ein Dateinamensverstoß).
-func hatEndung(name, endung string) bool {
-	if len(name) < len(endung) {
-		return false
-	}
-	return name[len(name)-len(endung):] == endung
 }
 
 // istKleingeschrieben meldet, ob der Name keine Großbuchstaben enthält (ASCII).

@@ -2,6 +2,7 @@ package dsfinvkpruefung
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -91,7 +92,7 @@ func ladeTabellendaten(dateien map[string][]byte, tabellen []indexTabelle) map[s
 		}
 		erwartet := spaltenNamen(tab)
 		header := splitFelder(zeilen[0])
-		if !gleicheReihenfolge(header, erwartet) {
+		if !slices.Equal(header, erwartet) {
 			continue
 		}
 		spalten := make(map[string]int, len(erwartet))
@@ -201,9 +202,7 @@ func umsatzBonsAusLines(lines tabellendaten) map[string]bool {
 }
 
 // hatTransaktionsReferenz meldet, ob unter den Referenzzeilen eine mit REF_TYP
-// "Transaktion" und nicht-leerem REF_BON_ID ist. Der Zugriff auf die Felder nutzt
-// die feste Spaltenordnung der references.csv (BON_ID, POS_ZEILE, REF_TYP,
-// REF_NAME, REF_DATUM, REF_Z_KASSE_ID, REF_Z_NR, REF_BON_ID).
+// "Transaktion" und nicht-leerem REF_BON_ID ist.
 func hatTransaktionsReferenz(refs tabellendaten, zeilen [][]string) bool {
 	for _, zeile := range zeilen {
 		if refs.wert(zeile, "REF_TYP") == refTypTransaktion && refs.wert(zeile, "REF_BON_ID") != "" {
@@ -306,7 +305,7 @@ func pruefeBedienerFelder(daten map[string]tabellendaten) []Befund {
 
 // pruefeTagesabschlussZeile prüft die Abschluss-Sonderzeile: Ein AVSonstige-Bon
 // (Tagesabschluss) muss den amtlich verpflichtenden BON_NAME "Tagesabschluss"
-// tragen. Umgekehrt darf nur ein AVSonstige-Bon diesen Namen führen.
+// tragen.
 //
 // Referenz: DSFinV-K 2.4 Tz. 4.1.1/4.1.2 (BON_TYP AVSonstige "zwingend zu erläutern
 // über BON_NAME") und Anhang B ("AVSonstige … Zusätzlich ist zwingend das Feld

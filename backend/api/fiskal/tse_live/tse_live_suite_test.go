@@ -225,9 +225,9 @@ func setupLiveUmgebung(t *testing.T, credentials tse.Credentials) *liveTestUmgeb
 	return u
 }
 
-// starteWorker startet den echten Signatur-Worker in einer Goroutine und liefert
-// eine Stop-Funktion. Der Worker liest die TSE-Konfiguration aus der DB, spricht
-// die echte TEST-TSS an und quittiert jede Signatur direkt am Auftrag.
+// starteWorker startet den echten Signatur-Worker in einer Goroutine und stoppt
+// ihn über t.Cleanup am Testende. Der Worker liest die TSE-Konfiguration aus der
+// DB, spricht die echte TEST-TSS an und quittiert jede Signatur direkt am Auftrag.
 func starteWorker(t *testing.T, db *sql.DB) {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -393,7 +393,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	ctx := context.Background()
 	db := u.db
 
-	// signiereUndPruefe wartet auf die Signatur des j=letzten Events dieses Typs
+	// signiereUndPruefe wartet auf die Signatur des letzten Events dieses Typs
 	// und prueft sie gegen den erwarteten processType.
 	signiereUndPruefe := func(vorfall, eventType, subject, erwarteterProcessType string) {
 		id := eventIDByType(t, db, eventType, subject)
@@ -535,7 +535,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	// tse.csv) müssen von der TSS-Ressource lesbar sein. serial_number liegt auf
 	// der TSS-Ressource selbst (nicht tss_serial_number) — Lektion aus einem
 	// früheren Bug. Wir lesen sie über den Setup-Client und persistieren sie.
-	pruefeStammdatenVollstaendigkeit(t, u)
+	pruefeStammdatenVollstaendigkeit(t, u, credentials)
 }
 
 // warteBisKeineOffenenAuftraege stellt sicher, dass der Worker die Queue leer
@@ -573,13 +573,13 @@ func aktuellerSollBestand(t *testing.T, db *sql.DB, ksNr int) int {
 // persistiert sie und prüft explizit, dass alle DSFinV-K-Felder gefüllt sind:
 // Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format und die
 // Seriennummer (serial_number der TSS-Ressource).
-func pruefeStammdatenVollstaendigkeit(t *testing.T, u *liveTestUmgebung) {
+func pruefeStammdatenVollstaendigkeit(t *testing.T, u *liveTestUmgebung, credentials tse.Credentials) {
 	t.Helper()
 	ctx := context.Background()
 
 	setupClient, err := tse_repo.NewFiskalyTSESetupClient(fiskalyBaseURL(), tse.SetupCredentials{
-		ApiKey:    os.Getenv("FISKALY_TEST_API_KEY"),
-		ApiSecret: os.Getenv("FISKALY_TEST_API_SECRET"),
+		ApiKey:    credentials.ApiKey,
+		ApiSecret: credentials.ApiSecret,
 	}, nil)
 	if err != nil {
 		t.Fatalf("Setup-Client bauen: %v", err)

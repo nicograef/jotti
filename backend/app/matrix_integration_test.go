@@ -26,16 +26,10 @@ const jwtSecret = "matrix-test-jwt-secret"
 // gegen jede davon (plus die Fälle "kein Token" und "ungültiger Token").
 var alleRollen = []user.Role{user.AdminRole, user.ServiceleitungRole, user.ServiceRole}
 
-// testUser bündelt eine angelegte Rolle mit ihrem gültigen Bearer-Token.
-type testUser struct {
-	role  user.Role
-	token string
-}
-
 // setupMatrix legt für jede Rolle einen aktiven Benutzer an und baut den echten
 // Router (SetupRoutes) mit einer festen JWT-Secret-Config auf. Rückgabe: Handler,
 // Rolle→Token-Map, Teardown.
-func setupMatrix(t *testing.T) (http.Handler, map[user.Role]testUser, func()) {
+func setupMatrix(t *testing.T) (http.Handler, map[user.Role]string, func()) {
 	t.Helper()
 	db := dbpkg.OpenTestDatabase()
 
@@ -44,7 +38,7 @@ func setupMatrix(t *testing.T) (http.Handler, map[user.Role]testUser, func()) {
 	}
 
 	repo := user_repo.NewRepository(db)
-	users := make(map[user.Role]testUser, len(alleRollen))
+	tokens := make(map[user.Role]string, len(alleRollen))
 	for _, role := range alleRollen {
 		u, _, err := user.NewUser("Matrix "+string(role), "matrix"+strings.ReplaceAll(string(role), "-", ""), role)
 		if err != nil {
@@ -59,12 +53,12 @@ func setupMatrix(t *testing.T) (http.Handler, map[user.Role]testUser, func()) {
 		if err != nil {
 			t.Fatalf("Token(%s): %v", role, err)
 		}
-		users[role] = testUser{role: role, token: token}
+		tokens[role] = token
 	}
 
 	handler := SetupRoutes(testConfig(), db, "test")
 
-	return handler, users, func() {
+	return handler, tokens, func() {
 		_, _ = db.Exec("DELETE FROM users")
 		_ = db.Close()
 	}
@@ -110,7 +104,7 @@ func doRequest(t *testing.T, handler http.Handler, path, token string) (int, str
 //   - kein Token      ⇒ 401 missing_authorization
 //   - ungültiger Token⇒ 401 invalid_jwt
 func TestBerechtigungsMatrix(t *testing.T) {
-	handler, users, teardown := setupMatrix(t)
+	handler, tokens, teardown := setupMatrix(t)
 	defer teardown()
 
 	for _, area := range Areas() {
@@ -138,7 +132,7 @@ func TestBerechtigungsMatrix(t *testing.T) {
 
 			// Jede Rolle.
 			for _, role := range alleRollen {
-				code, ec := doRequest(t, handler, fullPath, users[role].token)
+				code, ec := doRequest(t, handler, fullPath, tokens[role])
 				if allowed[role] {
 					if code == http.StatusUnauthorized || code == http.StatusForbidden {
 						t.Errorf("%s als %s (erlaubt): Status %d (%s), darf nicht 401/403 sein", fullPath, role, code, ec)
@@ -207,16 +201,16 @@ func TestBerechtigungsMatrix_TestResetOeffentlich(t *testing.T) {
 // benachbarten Service-Bereich privilegiert ist. Ein-Mandanten-System: es gibt
 // keine mandantenfremden Objekte, die fachliche Abgrenzung ist die Rolle.
 func TestBerechtigungsMatrix_Objektbezug(t *testing.T) {
-	handler, users, teardown := setupMatrix(t)
+	handler, tokens, teardown := setupMatrix(t)
 	defer teardown()
 
-	code, ec := doRequest(t, handler, "/serviceleitung/stornierung-erteilen", users[user.ServiceRole].token)
+	code, ec := doRequest(t, handler, "/serviceleitung/stornierung-erteilen", tokens[user.ServiceRole])
 	if code != http.StatusForbidden {
 		t.Fatalf("Service-Rolle auf Serviceleitungs-Storno: Status %d (%s), erwartet 403", code, ec)
 	}
 
 	// Serviceleitung darf; Autorisierung muss passieren (kein 401/403).
-	code, ec = doRequest(t, handler, "/serviceleitung/stornierung-erteilen", users[user.ServiceleitungRole].token)
+	code, ec = doRequest(t, handler, "/serviceleitung/stornierung-erteilen", tokens[user.ServiceleitungRole])
 	if code == http.StatusForbidden || code == http.StatusUnauthorized {
 		t.Fatalf("Serviceleitung auf Serviceleitungs-Storno: Status %d (%s), darf nicht 401/403 sein", code, ec)
 	}

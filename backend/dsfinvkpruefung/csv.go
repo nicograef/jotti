@@ -2,6 +2,7 @@ package dsfinvkpruefung
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -50,7 +51,7 @@ func pruefeTabellenGegenIndex(dateien map[string][]byte, tabellen []indexTabelle
 
 	// (b) Jede vorhandene CSV muss in der index.xml deklariert sein.
 	for _, name := range sortierteNamen(dateien) {
-		if !hatEndung(name, csvEndung) {
+		if !strings.HasSuffix(name, csvEndung) {
 			continue
 		}
 		if _, ok := deklariert[name]; !ok {
@@ -101,7 +102,7 @@ func pruefeCSV(name string, inhalt []byte, tab indexTabelle) []Befund {
 	// Kopfzeile: exakte Spaltennamen in exakter Reihenfolge.
 	header := splitFelder(zeilen[0])
 	erwartet := spaltenNamen(tab)
-	if !gleicheReihenfolge(header, erwartet) {
+	if !slices.Equal(header, erwartet) {
 		add(regelCsvKopfzeile, fmt.Sprintf(
 			"Kopfzeile weicht von der index.xml-Deklaration ab\n  erwartet: %s\n  gefunden: %s",
 			strings.Join(erwartet, ";"), strings.Join(header, ";")))
@@ -133,19 +134,6 @@ func spaltenNamen(tab indexTabelle) []string {
 		namen[i] = s.Name
 	}
 	return namen
-}
-
-// gleicheReihenfolge meldet, ob zwei String-Slices elementweise identisch sind.
-func gleicheReihenfolge(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 // verletztCRLF meldet, ob im Text ein LF ohne unmittelbar vorangehendes CR steht

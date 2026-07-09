@@ -97,7 +97,7 @@ func Areas() []Area {
 
 // mountArea registriert einen Bereich am Router gemäß seiner Deklaration:
 // JWT-Middleware (falls RequiresAuth), Rate-Limit (falls RateLimited),
-// Prefix-Strip. Gibt die absoluten Pfade des Bereichs zurück.
+// Prefix-Strip.
 func mountArea(r *http.ServeMux, area Area, cfg config.Config, deps api.Deps) {
 	handler, _ := area.build(cfg, deps)
 

@@ -310,7 +310,7 @@ func poll(client *http.Client, config RelayConfig) ([]DruckAuftrag, error) {
 
 // meldeErgebnis meldet Erfolge und Fehlversuche eines Zyklus gesammelt in einem
 // Request an das Backend. Das Backend besitzt die Fehlversuchs-Logik (zählt
-// hoch und markiert nach drei Versuchen als fehlgeschlagen).
+// hoch und markiert nach sechs Versuchen als fehlgeschlagen).
 func meldeErgebnis(client *http.Client, ergebnis zyklusErgebnis, config RelayConfig) error {
 	fehlversuche := make([]map[string]any, 0, len(ergebnis.fehlversuche))
 	for _, f := range ergebnis.fehlversuche {

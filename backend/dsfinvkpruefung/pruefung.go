@@ -1,15 +1,18 @@
 // Package dsfinvkpruefung prüft ein DSFinV-K-Export-ZIP eigenständig gegen die
-// Strukturregeln der DSFinV-K 2.4 und liefert eine Befundliste. Es ist der
-// Gegenspieler des Erzeugers (backend/api/fiskal/dsfinvk): der Erzeuger baut das
-// Archiv, diese Prüfung liest es zurück und stellt sicher, dass Paket, Dateinamen,
-// CSV-Format und index.xml/DTD-Struktur der Spezifikation entsprechen.
+// Struktur- und Inhaltsregeln der DSFinV-K 2.4 und liefert eine Befundliste. Es
+// ist der Gegenspieler des Erzeugers (backend/api/fiskal/dsfinvk): der Erzeuger
+// baut das Archiv, diese Prüfung liest es zurück und stellt sicher, dass Paket,
+// Dateinamen, CSV-Format und index.xml/DTD-Struktur der Spezifikation entsprechen
+// und dass die Tabellen inhaltlich konsistent zusammenspielen (inhalt.go:
+// Storno-Referenzen, Kombi-Steueraufteilung, Bediener-, TSE- und
+// Abrechnungskreis-Felder).
 //
 // Die Prüfung ist bewusst unabhängig vom Erzeuger implementiert (eigener CSV- und
 // index.xml-Parser, eigene DTD-Regeln), damit ein Formatfehler im Erzeuger auch
 // dann auffällt, wenn beide dieselbe Konstante teilten. Sie führt keine
-// fachliche/betragsmäßige Plausibilisierung durch — das leisten die Golden-File-
-// Tests des Erzeugers —, sondern ausschließlich die formale Paket- und
-// Strukturkonformität.
+// betragsmäßige Plausibilisierung durch — das leisten die Golden-File-Tests des
+// Erzeugers —, sondern die formale Paket- und Strukturkonformität sowie die
+// fachliche Konsistenz zwischen den Tabellen.
 //
 // Referenz: DSFinV-K 2.4 (docs/rechtsquellen/technik-spezifikationen/DSFinV-K-2.4).
 package dsfinvkpruefung
@@ -22,8 +25,8 @@ import (
 	"sort"
 )
 
-// Befund ist ein einzelner Strukturverstoß. Datei ist die betroffene Archivdatei
-// (leer für paketweite Befunde), Regel benennt die verletzte Strukturregel und
+// Befund ist ein einzelner Struktur- oder Inhaltsverstoß. Datei ist die betroffene
+// Archivdatei (leer für paketweite Befunde), Regel benennt die verletzte Regel und
 // Meldung beschreibt den konkreten Verstoß.
 type Befund struct {
 	Datei   string
@@ -39,9 +42,10 @@ func (b Befund) String() string {
 }
 
 // Pruefen liest das DSFinV-K-Export-ZIP (io.ReaderAt plus Größe) und prüft es
-// gegen die Strukturregeln der DSFinV-K 2.4. Rückgabe ist die Befundliste; ein
-// befundfreies (leeres) Ergebnis bedeutet: strukturell konform. Ein Fehler wird
-// nur zurückgegeben, wenn das ZIP selbst nicht lesbar ist (kein gültiges Archiv).
+// gegen die Struktur- und Inhaltsregeln der DSFinV-K 2.4. Rückgabe ist die
+// Befundliste; ein befundfreies (leeres) Ergebnis bedeutet: strukturell und
+// inhaltlich konform. Ein Fehler wird nur zurückgegeben, wenn das ZIP selbst
+// nicht lesbar ist (kein gültiges Archiv).
 func Pruefen(r io.ReaderAt, size int64) ([]Befund, error) {
 	zr, err := zip.NewReader(r, size)
 	if err != nil {
@@ -98,8 +102,14 @@ func dateiInhalte(zr *zip.Reader) map[string][]byte {
 			out[f.Name] = nil
 			continue
 		}
-		data, _ := io.ReadAll(rc)
+		data, err := io.ReadAll(rc)
 		_ = rc.Close()
+		if err != nil {
+			// Lesefehler (z. B. CRC-Fehler): keine partiell gelesenen Bytes
+			// führen, sondern wie ein fehlender Inhalt behandeln.
+			out[f.Name] = nil
+			continue
+		}
 		out[f.Name] = data
 	}
 	return out

@@ -169,7 +169,13 @@ func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
 		"handle_path /api/* {",
 		"reverse_proxy backend:3000",
 		"reverse_proxy frontend:80",
-		contentSecurityPolicy,
+		// Security-Header liegen beim Reverse-Proxy: alle vier müssen im
+		// generierten Caddyfile vorkommen (CSP, HSTS, X-Frame-Options,
+		// X-Content-Type-Options). Der HTTP-Only-Mode nutzt den LAN-HSTS-Wert.
+		`Strict-Transport-Security "` + hstsLAN + `"`,
+		`X-Content-Type-Options "nosniff"`,
+		`X-Frame-Options "DENY"`,
+		`Content-Security-Policy "` + contentSecurityPolicy + `"`,
 	}
 	for _, want := range wants {
 		if !strings.Contains(out, want) {

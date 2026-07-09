@@ -97,17 +97,23 @@ func writeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDate
 	// Beim Test-Reset in derselben Transaktion zuerst leeren, dann neu schreiben.
 	if reset {
 		// Das Kassenjournal ist per Trigger append-only und lässt sich sonst nicht
-		// leeren. SET LOCAL session_replication_role = replica deaktiviert die
-		// User-Trigger nur für DIESE Transaktion (pool-sicher, setzt sich beim
-		// Commit/Rollback selbst zurück). Der Endpoint existiert ohnehin nur bei
-		// JOTTI_ENABLE_TEST_API=1 (nur E2E-Umgebung), nie in Produktion.
-		// kassenidentitaet ist von SeedTruncateAll bewusst ausgenommen (Install-
-		// Identität, insert-once) und bleibt daher unangetastet.
+		// leeren (der einzige blockierende User-Trigger auf den geleerten Tabellen
+		// ist kassenjournal_no_truncate; INSERTs ins Kassenjournal sind erlaubt).
+		// SET LOCAL session_replication_role = replica deaktiviert die User-Trigger
+		// nur für DIESE Transaktion (pool-sicher). Direkt nach dem Truncate wird der
+		// Modus wieder auf den Default (origin) gesetzt, damit die nachfolgenden
+		// Seed-Inserts unter regulärer Trigger- und Fremdschlüsselprüfung laufen.
+		// Der Endpoint existiert ohnehin nur bei JOTTI_ENABLE_TEST_API=1 (nur
+		// E2E-Umgebung), nie in Produktion. kassenidentitaet ist von SeedTruncateAll
+		// bewusst ausgenommen (Install-Identität, insert-once) und bleibt unangetastet.
 		if _, err := tx.ExecContext(ctx, "SET LOCAL session_replication_role = replica"); err != nil {
 			return fmt.Errorf("append-only-schutz für den reset lösen: %w", db.Error(err))
 		}
 		if err := qtx.SeedTruncateAll(ctx); err != nil {
 			return fmt.Errorf("tabellen leeren: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, "SET LOCAL session_replication_role = DEFAULT"); err != nil {
+			return fmt.Errorf("append-only-schutz nach dem truncate wiederherstellen: %w", db.Error(err))
 		}
 		// Die leere tse_konfiguration-Singleton-Zeile wiederherstellen, die die
 		// Migration beim Erstlauf anlegt und das Truncate mitgelöscht hat. Ohne

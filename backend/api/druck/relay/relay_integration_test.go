@@ -247,6 +247,9 @@ func postJSON(t *testing.T, url string, body any, authToken string) *http.Respon
 
 func decodePollResponse(t *testing.T, resp *http.Response) pollResponse {
 	t.Helper()
+	// Direktes defer resp.Body.Close() (statt der Closure-Variante der übrigen
+	// Stellen), damit der bodyclose-Linter den Close des an den Helfer
+	// übergebenen Response an den Aufrufstellen erkennt.
 	defer resp.Body.Close() //nolint:errcheck // Testpfad: Body-Close-Fehler ohne Belang
 	var result pollResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {

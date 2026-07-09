@@ -5,6 +5,7 @@ package dsfinvkpruefung
 import (
 	"archive/zip"
 	"bytes"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -124,6 +125,18 @@ func hatBefund(befunde []Befund, regel string) bool {
 	return false
 }
 
+// muessePruefen prüft ein Archiv und schlägt fehl, wenn die Prüfung einen echten
+// Fehler zurückgibt (kein Befund, sondern ein unlesbares ZIP). Rückgabe sind die
+// Befunde — so entfällt der verworfene Fehler an jeder Aufrufstelle.
+func muessePruefen(t *testing.T, archiv []byte) []Befund {
+	t.Helper()
+	befunde, err := PruefenBytes(archiv)
+	if err != nil {
+		t.Fatalf("PruefenBytes: %v", err)
+	}
+	return befunde
+}
+
 func befundText(befunde []Befund) string {
 	var b strings.Builder
 	for _, x := range befunde {
@@ -136,10 +149,7 @@ func befundText(befunde []Befund) string {
 // --- Gute Fixture: befundfrei ---
 
 func TestPruefen_GutesArchivBefundfrei(t *testing.T) {
-	befunde, err := PruefenBytes(baueZip(t, gutesArchiv()))
-	if err != nil {
-		t.Fatalf("Pruefen: %v", err)
-	}
+	befunde := muessePruefen(t, baueZip(t, gutesArchiv()))
 	if len(befunde) != 0 {
 		t.Fatalf("erwartet befundfrei, erhielt:\n%s", befundText(befunde))
 	}
@@ -157,7 +167,7 @@ func TestPruefen_GrossgeschriebenerDateiname(t *testing.T) {
 	// CSV-Dateinamen müssen kleingeschrieben sein: payment.csv → Payment.csv.
 	d := entferne(gutesArchiv(), "payment.csv")
 	d = append(d, datei{name: "Payment.csv", inhalt: "ZAHLART_TYP;Z_ZAHLART_BETRAG\r\nBar;12,50\r\n"})
-	befunde, _ := PruefenBytes(baueZip(t, d))
+	befunde := muessePruefen(t, baueZip(t, d))
 	if !hatBefund(befunde, regelDateiname) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelDateiname, befundText(befunde))
 	}
@@ -165,7 +175,7 @@ func TestPruefen_GrossgeschriebenerDateiname(t *testing.T) {
 
 func TestPruefen_DateiInUnterverzeichnis(t *testing.T) {
 	d := append(gutesArchiv(), datei{name: "unterordner/extra.csv", inhalt: "A;B\r\n"})
-	befunde, _ := PruefenBytes(baueZip(t, d))
+	befunde := muessePruefen(t, baueZip(t, d))
 	if !hatBefund(befunde, regelDateinamePfad) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelDateinamePfad, befundText(befunde))
 	}
@@ -173,21 +183,21 @@ func TestPruefen_DateiInUnterverzeichnis(t *testing.T) {
 
 func TestPruefen_UnerwartetesFremdformat(t *testing.T) {
 	d := append(gutesArchiv(), datei{name: "readme.txt", inhalt: "hallo"})
-	befunde, _ := PruefenBytes(baueZip(t, d))
-	if !hatBefund(befunde, regelDateinameGrafik) {
-		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelDateinameGrafik, befundText(befunde))
+	befunde := muessePruefen(t, baueZip(t, d))
+	if !hatBefund(befunde, regelDateinameFremdformat) {
+		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelDateinameFremdformat, befundText(befunde))
 	}
 }
 
 func TestPruefen_FehlendeDTD(t *testing.T) {
-	befunde, _ := PruefenBytes(baueZip(t, entferne(gutesArchiv(), "gdpdu-01-09-2004.dtd")))
+	befunde := muessePruefen(t, baueZip(t, entferne(gutesArchiv(), "gdpdu-01-09-2004.dtd")))
 	if !hatBefund(befunde, regelPaketpflicht) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelPaketpflicht, befundText(befunde))
 	}
 }
 
 func TestPruefen_FehlendeIndexXML(t *testing.T) {
-	befunde, _ := PruefenBytes(baueZip(t, entferne(gutesArchiv(), "index.xml")))
+	befunde := muessePruefen(t, baueZip(t, entferne(gutesArchiv(), "index.xml")))
 	if !hatBefund(befunde, regelPaketpflicht) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelPaketpflicht, befundText(befunde))
 	}
@@ -196,7 +206,7 @@ func TestPruefen_FehlendeIndexXML(t *testing.T) {
 // --- Kaputte Fixtures: index.xml / DTD-Struktur ---
 
 func TestPruefen_IndexNichtWohlgeformt(t *testing.T) {
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "index.xml", "<DataSet><Version>1.0")))
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "index.xml", "<DataSet><Version>1.0")))
 	if !hatBefund(befunde, regelIndexParsbar) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelIndexParsbar, befundText(befunde))
 	}
@@ -205,7 +215,7 @@ func TestPruefen_IndexNichtWohlgeformt(t *testing.T) {
 func TestPruefen_IndexOhneDoctype(t *testing.T) {
 	ohneDoctype := strings.Replace(gutesIndexXML,
 		`<!DOCTYPE DataSet SYSTEM "gdpdu-01-09-2004.dtd">`, "", 1)
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "index.xml", ohneDoctype)))
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "index.xml", ohneDoctype)))
 	if !hatBefund(befunde, regelIndexDoctype) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelIndexDoctype, befundText(befunde))
 	}
@@ -215,7 +225,7 @@ func TestPruefen_IndexFalschesWurzelelement(t *testing.T) {
 	xml := `<?xml version="1.0"?>` + "\n" +
 		`<!DOCTYPE DataSet SYSTEM "gdpdu-01-09-2004.dtd">` + "\n" +
 		`<Falsch><Version>1.0</Version></Falsch>`
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "index.xml", xml)))
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "index.xml", xml)))
 	if !hatBefund(befunde, regelIndexWurzel) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelIndexWurzel, befundText(befunde))
 	}
@@ -223,7 +233,7 @@ func TestPruefen_IndexFalschesWurzelelement(t *testing.T) {
 
 func TestPruefen_IndexFehlendeVersion(t *testing.T) {
 	ohneVersion := strings.Replace(gutesIndexXML, "<Version>1.0</Version>", "", 1)
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "index.xml", ohneVersion)))
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "index.xml", ohneVersion)))
 	if !hatBefund(befunde, regelIndexVersion) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelIndexVersion, befundText(befunde))
 	}
@@ -232,7 +242,7 @@ func TestPruefen_IndexFehlendeVersion(t *testing.T) {
 func TestPruefen_IndexFalschesDezimalsymbol(t *testing.T) {
 	// DecimalSymbol Punkt statt Komma verletzt die DSFinV-K-Formatvorgabe.
 	kaputt := strings.Replace(gutesIndexXML, "<DecimalSymbol>,</DecimalSymbol>", "<DecimalSymbol>.</DecimalSymbol>", 1)
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "index.xml", kaputt)))
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "index.xml", kaputt)))
 	if !hatBefund(befunde, regelIndexFormat) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelIndexFormat, befundText(befunde))
 	}
@@ -240,7 +250,7 @@ func TestPruefen_IndexFalschesDezimalsymbol(t *testing.T) {
 
 func TestPruefen_IndexFalscheKopfzeilenRange(t *testing.T) {
 	kaputt := strings.Replace(gutesIndexXML, "<From>2</From>", "<From>1</From>", 1)
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "index.xml", kaputt)))
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "index.xml", kaputt)))
 	if !hatBefund(befunde, regelIndexKopfzeile) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelIndexKopfzeile, befundText(befunde))
 	}
@@ -250,7 +260,7 @@ func TestPruefen_IndexSpalteOhneDatentyp(t *testing.T) {
 	kaputt := strings.Replace(gutesIndexXML,
 		"<VariableColumn><Name>KASSE_BRAND</Name><AlphaNumeric /><MaxLength>50</MaxLength></VariableColumn>",
 		"<VariableColumn><Name>KASSE_BRAND</Name><MaxLength>50</MaxLength></VariableColumn>", 1)
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "index.xml", kaputt)))
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "index.xml", kaputt)))
 	if !hatBefund(befunde, regelIndexSpalte) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelIndexSpalte, befundText(befunde))
 	}
@@ -259,7 +269,7 @@ func TestPruefen_IndexSpalteOhneDatentyp(t *testing.T) {
 // --- Kaputte Fixtures: index.xml ↔ CSV Abgleich ---
 
 func TestPruefen_DeklarierteDateiFehlt(t *testing.T) {
-	befunde, _ := PruefenBytes(baueZip(t, entferne(gutesArchiv(), "payment.csv")))
+	befunde := muessePruefen(t, baueZip(t, entferne(gutesArchiv(), "payment.csv")))
 	if !hatBefund(befunde, regelIndexDatei) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelIndexDatei, befundText(befunde))
 	}
@@ -267,7 +277,7 @@ func TestPruefen_DeklarierteDateiFehlt(t *testing.T) {
 
 func TestPruefen_UndeklarierteCSV(t *testing.T) {
 	d := append(gutesArchiv(), datei{name: "extra.csv", inhalt: "A;B\r\nx;y\r\n"})
-	befunde, _ := PruefenBytes(baueZip(t, d))
+	befunde := muessePruefen(t, baueZip(t, d))
 	if !hatBefund(befunde, regelCsvUndeklar) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelCsvUndeklar, befundText(befunde))
 	}
@@ -277,7 +287,7 @@ func TestPruefen_UndeklarierteCSV(t *testing.T) {
 
 func TestPruefen_CSVFehlendeCRLF(t *testing.T) {
 	// Unix-Zeilenenden statt CRLF.
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "cashregister.csv",
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "cashregister.csv",
 		"Z_KASSE_ID;KASSE_BRAND\nKASSE-1;jotti\n")))
 	if !hatBefund(befunde, regelCsvCRLF) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelCsvCRLF, befundText(befunde))
@@ -286,7 +296,7 @@ func TestPruefen_CSVFehlendeCRLF(t *testing.T) {
 
 func TestPruefen_CSVFalscheSpaltenreihenfolge(t *testing.T) {
 	// Header mit vertauschten Spalten.
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "cashregister.csv",
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "cashregister.csv",
 		"KASSE_BRAND;Z_KASSE_ID\r\njotti;KASSE-1\r\n")))
 	if !hatBefund(befunde, regelCsvKopfzeile) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelCsvKopfzeile, befundText(befunde))
@@ -294,7 +304,7 @@ func TestPruefen_CSVFalscheSpaltenreihenfolge(t *testing.T) {
 }
 
 func TestPruefen_CSVFalscheHeaderNamen(t *testing.T) {
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "cashregister.csv",
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "cashregister.csv",
 		"Z_KASSE_ID;FALSCH\r\nKASSE-1;jotti\r\n")))
 	if !hatBefund(befunde, regelCsvKopfzeile) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelCsvKopfzeile, befundText(befunde))
@@ -302,7 +312,7 @@ func TestPruefen_CSVFalscheHeaderNamen(t *testing.T) {
 }
 
 func TestPruefen_CSVFalscheFeldanzahl(t *testing.T) {
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "cashregister.csv",
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "cashregister.csv",
 		"Z_KASSE_ID;KASSE_BRAND\r\nKASSE-1;jotti;ZUVIEL\r\n")))
 	if !hatBefund(befunde, regelCsvSpaltenzahl) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelCsvSpaltenzahl, befundText(befunde))
@@ -311,7 +321,7 @@ func TestPruefen_CSVFalscheFeldanzahl(t *testing.T) {
 
 func TestPruefen_CSVPunktStattKommaImNumerischenFeld(t *testing.T) {
 	// payment.csv hat eine numerische Spalte Z_ZAHLART_BETRAG.
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "payment.csv",
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "payment.csv",
 		"ZAHLART_TYP;Z_ZAHLART_BETRAG\r\nBar;12.50\r\n")))
 	if !hatBefund(befunde, regelCsvDezimal) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelCsvDezimal, befundText(befunde))
@@ -319,7 +329,7 @@ func TestPruefen_CSVPunktStattKommaImNumerischenFeld(t *testing.T) {
 }
 
 func TestPruefen_CSVLeer(t *testing.T) {
-	befunde, _ := PruefenBytes(baueZip(t, ersetze(gutesArchiv(), "cashregister.csv", "")))
+	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "cashregister.csv", "")))
 	if !hatBefund(befunde, regelCsvLeer) {
 		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelCsvLeer, befundText(befunde))
 	}
@@ -329,7 +339,7 @@ func TestPruefen_CSVLeer(t *testing.T) {
 func TestSplitFelder_QuotedSemicolon(t *testing.T) {
 	felder := splitFelder(`A;"B;mit;Semikolon";"C ""quote"""`)
 	erwartet := []string{"A", "B;mit;Semikolon", `C "quote"`}
-	if !gleicheReihenfolge(felder, erwartet) {
+	if !slices.Equal(felder, erwartet) {
 		t.Fatalf("splitFelder = %#v, erwartet %#v", felder, erwartet)
 	}
 }
