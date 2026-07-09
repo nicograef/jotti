@@ -1,6 +1,6 @@
 module github.com/nicograef/jotti/resolver
 
-go 1.26.0
+go 1.26.5
 
 require github.com/miekg/dns v1.1.72
 

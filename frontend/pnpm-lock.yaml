@@ -74,9 +74,6 @@ importers:
       recharts:
         specifier: 3.9.2
         version: 3.9.2(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-is@19.2.6)(react@19.2.7)(redux@5.0.1)
-      shadcn:
-        specifier: ^4.13.0
-        version: 4.13.0(typescript@6.0.3)
       sonner:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -150,6 +147,9 @@ importers:
       prettier:
         specifier: ^3.9.4
         version: 3.9.4
+      shadcn:
+        specifier: ^4.13.0
+        version: 4.13.0(typescript@6.0.3)
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
