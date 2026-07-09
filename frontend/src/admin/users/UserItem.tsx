@@ -27,6 +27,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
+import { adminItemActionButton } from '../adminListLayout'
 import { type User, UserRole, UserStatus } from './User'
 
 interface UserItemProps {
@@ -106,7 +107,7 @@ export function UserItem(props: UserItemProps) {
             <Button
               size="icon-sm"
               variant="outline"
-              className="rounded-full cursor-pointer"
+              className={`rounded-full cursor-pointer ${adminItemActionButton}`}
               aria-label="Benutzer bearbeiten"
               onClick={() => {
                 props.onEdit(props.user.id)
@@ -125,7 +126,8 @@ export function UserItem(props: UserItemProps) {
                   <Button
                     size="icon-sm"
                     variant="outline"
-                    className="rounded-full cursor-pointer text-destructive"
+                    className={`rounded-full cursor-pointer text-destructive ${adminItemActionButton}`}
+                    aria-label="Benutzer löschen"
                   >
                     <Trash2 />
                   </Button>

@@ -27,6 +27,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
+import { adminItemActionButton } from '../adminListLayout'
 import { type Tisch, TischStatus } from './Tisch'
 
 interface TischItemProps {
@@ -79,7 +80,7 @@ export function TischItem(props: TischItemProps) {
             <Button
               size="icon-sm"
               variant="outline"
-              className="rounded-full cursor-pointer"
+              className={`rounded-full cursor-pointer ${adminItemActionButton}`}
               aria-label="Tisch bearbeiten"
               onClick={() => {
                 props.onEdit(props.tisch.id)
@@ -97,7 +98,8 @@ export function TischItem(props: TischItemProps) {
                 <Button
                   size="icon-sm"
                   variant="outline"
-                  className="rounded-full cursor-pointer text-destructive"
+                  className={`rounded-full cursor-pointer text-destructive ${adminItemActionButton}`}
+                  aria-label="Tisch löschen"
                 >
                   <Trash2 />
                 </Button>

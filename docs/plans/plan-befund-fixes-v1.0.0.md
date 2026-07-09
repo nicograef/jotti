@@ -100,10 +100,10 @@ Die drei Admin-Listen erhalten unten so viel Freiraum (Padding in FAB-Höhe plus
 
 ### Acceptance criteria
 
-- [ ] Playwright (393x851 und 1280x800): auf allen drei Listen ans Ende gescrollt überschneiden sich die Bounding-Boxen von FAB und Edit-/Löschen-Icons der letzten Karte nicht
-- [ ] Playwright: Löschen-Icon der letzten Karte ist ohne `force: true` klickbar (der bestehende `AlertDialog` öffnet sich; Dialog abbrechen)
-- [ ] Edit-/Löschen-Buttons haben eine Hit-Area von mindestens 44x44px
-- [ ] `make verify` grün (inkl. Frontend-Tests und Lint)
+- [x] Playwright (393x851 und 1280x800): auf allen drei Listen ans Ende gescrollt überschneiden sich die Bounding-Boxen von FAB und Edit-/Löschen-Icons der letzten Karte nicht
+- [x] Playwright: Löschen-Icon der letzten Karte ist ohne `force: true` klickbar (der bestehende `AlertDialog` öffnet sich; Dialog abbrechen)
+- [x] Edit-/Löschen-Buttons haben eine Hit-Area von mindestens 44x44px
+- [x] `make verify` grün (inkl. Frontend-Tests und Lint)
 
 ---
 

@@ -5,6 +5,7 @@ import { ItemGroup } from '@/components/ui/item'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 
+import { adminListBottomClearance } from '../adminListLayout'
 import { type User, UserStatus } from './User'
 import type { UserBackend } from './UserBackend'
 import { UserItem } from './UserItem'
@@ -63,7 +64,9 @@ export function Users(props: UsersProps) {
   }
 
   return (
-    <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+    <ItemGroup
+      className={`grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4 ${adminListBottomClearance}`}
+    >
       {props.users.map((user) => (
         <UserItem
           key={user.id}

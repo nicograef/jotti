@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/tooltip'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
+import { adminItemActionButton } from '../adminListLayout'
 import { NewVariantDialog } from './NewVariantDialog'
 import {
   Kategorie,
@@ -142,7 +143,7 @@ export function ProductItem(props: ProductItemProps) {
               <Button
                 size="icon-sm"
                 variant="outline"
-                className="rounded-full cursor-pointer"
+                className={`rounded-full cursor-pointer ${adminItemActionButton}`}
                 aria-label="Produkt bearbeiten"
                 onClick={() => {
                   props.onEdit(props.product.id)
@@ -160,7 +161,8 @@ export function ProductItem(props: ProductItemProps) {
                   <Button
                     size="icon-sm"
                     variant="outline"
-                    className="rounded-full cursor-pointer text-destructive"
+                    className={`rounded-full cursor-pointer text-destructive ${adminItemActionButton}`}
+                    aria-label="Produkt löschen"
                   >
                     <Trash2 />
                   </Button>

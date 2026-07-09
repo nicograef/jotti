@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
+import { adminListBottomClearance } from '../adminListLayout'
 import { type Tisch, TischStatus } from './Tisch'
 import type { TischBackend } from './TischBackend'
 import { TischItem } from './TischItem'
@@ -65,7 +66,9 @@ export function Tische(props: TischeProps) {
   }
 
   return (
-    <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+    <ItemGroup
+      className={`grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4 ${adminListBottomClearance}`}
+    >
       {props.tische.map((tisch) => (
         <TischItem
           key={tisch.id}
