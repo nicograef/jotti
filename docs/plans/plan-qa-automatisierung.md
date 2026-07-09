@@ -461,11 +461,11 @@ Zertifikat, Seriennummer — die serial_number-Lektion vom 08.07.2026).
 
 ### Akzeptanzkriterien
 
-- [ ] `make test-tse-live` fährt DB + Suite; ohne `.env.fiskaly-test` bricht das Target ab, ohne Credentials skippen die Tests
-- [ ] Guard verhindert Läufe gegen Nicht-TEST-Umgebungen
-- [ ] Jeder Geschäftsvorfall aus User Story 12 real signiert, Signatur im Journal und processType-Mapping geprüft
-- [ ] Stammdaten-Vollständigkeit explizit assertet
-- [ ] Der Setup-Durchlauf bleibt ausschließlich im separaten Opt-in-Target
+- [x] `make test-tse-live` fährt DB + Suite; ohne `.env.fiskaly-test` bricht das Target ab, ohne Credentials skippen die Tests
+- [x] Guard verhindert Läufe gegen Nicht-TEST-Umgebungen
+- [x] Jeder Geschäftsvorfall aus User Story 12 real signiert, Signatur im Journal und processType-Mapping geprüft
+- [x] Stammdaten-Vollständigkeit explizit assertet
+- [x] Der Setup-Durchlauf bleibt ausschließlich im separaten Opt-in-Target
 
 ---
 
@@ -494,9 +494,9 @@ nachgeführt (Zusage bestätigen oder anpassen).
 
 ### Akzeptanzkriterien
 
-- [ ] Ausfalltest: buchbar während Störung, Störungsprotokoll mit Zeitraum, Nachsignierung nach Wiederherstellung, Abschluss-Gate-Verhalten in beiden Fällen
-- [ ] Latenzmessung gibt p50/p95 reproduzierbar aus
-- [ ] Verfahrensdokumentation trägt das Messergebnis (bestätigt oder angepasst)
+- [x] Ausfalltest: buchbar während Störung, Störungsprotokoll mit Zeitraum, Nachsignierung nach Wiederherstellung, Abschluss-Gate-Verhalten in beiden Fällen
+- [x] Latenzmessung gibt p50/p95 reproduzierbar aus
+- [x] Verfahrensdokumentation trägt das Messergebnis (bestätigt oder angepasst)
 
 ---
 
@@ -558,9 +558,9 @@ angepasst, seine Gate-Checkboxen bleiben führend.
 
 ### Akzeptanzkriterien
 
-- [ ] Guide enthält keinen Punkt mehr, den eine Suite abdeckt; jeder entfernte Punkt verweist auf seine Suite
-- [ ] Alle Kategorie-C-Punkte aus dem PRD sind enthalten
-- [ ] Release-Guide-Verweise stimmen weiterhin
+- [x] Guide enthält keinen Punkt mehr, den eine Suite abdeckt; jeder entfernte Punkt verweist auf seine Suite
+- [x] Alle Kategorie-C-Punkte aus dem PRD sind enthalten
+- [x] Release-Guide-Verweise stimmen weiterhin
 
 ---
 
