@@ -161,10 +161,10 @@ Eine gestaltete deutsche Fehlerseite im App-Branding: Überschrift und Erklärte
 
 ### Acceptance criteria
 
-- [ ] Playwright ausgeloggt auf `/gibtsnicht`: deutsche Fehlerseite mit Button „Zurück zur Startseite", Klick landet auf `/login` (via Redirect von `/`)
-- [ ] Kein „Unexpected Application Error!"-Rohbildschirm mehr erreichbar
-- [ ] Playwright-Konsole beim Erstladen ohne `HydrateFallback`-Warnung (mobil und Desktop)
-- [ ] `make verify` und E2E-Suite grün
+- [x] Playwright ausgeloggt auf `/gibtsnicht`: deutsche Fehlerseite mit Button „Zurück zur Startseite", Klick landet auf `/login` (via Redirect von `/`)
+- [x] Kein „Unexpected Application Error!"-Rohbildschirm mehr erreichbar
+- [x] Playwright-Konsole beim Erstladen ohne `HydrateFallback`-Warnung (mobil und Desktop)
+- [x] `make verify` und E2E-Suite grün
 
 ---
 

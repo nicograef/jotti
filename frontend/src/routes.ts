@@ -8,6 +8,8 @@ import { getArbeitsmodus, setArbeitsmodus } from '@/lib/arbeitsmodus'
 import { AuthSingleton } from '@/lib/Auth'
 
 import App from './App'
+import { ErrorPage, NotFoundPage } from './pages/ErrorPage'
+import { HydrateFallbackPage } from './pages/HydrateFallbackPage'
 import { LoginPage } from './pages/LoginPage'
 import { PasswordPage } from './pages/PasswordPage'
 
@@ -73,6 +75,8 @@ export const router = createBrowserRouter([
   {
     path: '/',
     Component: App,
+    ErrorBoundary: ErrorPage,
+    HydrateFallback: HydrateFallbackPage,
     children: [
       { index: true, loader: () => redirect('login') },
       { path: 'login', Component: LoginPage, loader: AuthRedirect },
@@ -177,6 +181,7 @@ export const router = createBrowserRouter([
           },
         ],
       },
+      { path: '*', Component: NotFoundPage },
     ],
   },
 ])
