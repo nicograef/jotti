@@ -201,10 +201,10 @@ Ein einmaliges Audit-Skript (Scratch, wird nicht committet) liest die Token aus 
 
 ### Acceptance criteria
 
-- [ ] Audit-Re-Run: alle geprüften Token-Paare erfüllen AA; die geprüften Paare mit Ratios stehen als Kurzliste in der Commit-Message der Phase
-- [ ] Primär-CTA („Anmelden") erreicht mindestens 4.5:1 gegen seinen Hintergrund und bleibt grün
-- [ ] Playwright (393x851, `/login`): Oberkante der Login-Karte liegt messbar höher als vorher (Bounding-Box-Vergleich)
-- [ ] `make verify` grün (Frontend-Snapshot-/Unit-Tests angepasst, falls Token-Änderungen sie berühren)
+- [x] Audit-Re-Run: alle geprüften Token-Paare erfüllen AA; die geprüften Paare mit Ratios stehen als Kurzliste in der Commit-Message der Phase
+- [x] Primär-CTA („Anmelden") erreicht mindestens 4.5:1 gegen seinen Hintergrund und bleibt grün
+- [x] Playwright (393x851, `/login`): Oberkante der Login-Karte liegt messbar höher als vorher (Bounding-Box-Vergleich)
+- [x] `make verify` grün (Frontend-Snapshot-/Unit-Tests angepasst, falls Token-Änderungen sie berühren)
 
 ---
 
