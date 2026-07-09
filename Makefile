@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 
 .PHONY: init dev dev-up down restart logs status \
-       test test-frontend test-integration test-all test-e2e test-tse-live test-tse-live-setup \
+       test test-frontend test-integration test-all test-e2e test-tse-live test-tse-live-setup fuzz \
        lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt \
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
@@ -65,6 +65,12 @@ test-all: test test-frontend ## Alle Unit-Tests (Backend + Frontend)
 
 test-e2e: ## E2E-Tests (Playwright) gegen E2E_BASE_URL (Default Dev-Stack http://localhost)
 	cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install chromium && pnpm test
+
+fuzz: ## Fuzz-Targets länger laufen lassen (je Target 90s; kein CI-Dauerlauf)
+	cd backend && go test -tags=unit -run='^$$' -fuzz='FuzzApplyEvent$$' -fuzztime=90s ./domain/kasse/
+	cd backend && go test -tags=unit -run='^$$' -fuzz='FuzzPositionEventDataRoundtrip$$' -fuzztime=90s ./domain/kasse/
+	cd backend && go test -tags=unit -run='^$$' -fuzz='FuzzSerializeCSV$$' -fuzztime=90s ./api/fiskal/dsfinvk/
+	cd backend && go test -tags=unit -run='^$$' -fuzz='FuzzFormatKassenbeleg$$' -fuzztime=90s ./api/druck/bondruck/application/escpos/
 
 # ──────────────────────────────────────────────
 # Linting                                       
