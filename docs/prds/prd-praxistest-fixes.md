@@ -218,7 +218,7 @@ Technische Root Causes (verifiziert):
   CI-Harness geprüft.
 - **Release-Weg**: vorgezogenes Patch-Release von main (Arbeitstitel
   v0.14.1, endgültige Nummer nach Release-Konvention beim Schnitt, da
-  Migration und Sammel-Retry eher ein Minor sind). Es enthält damit
+  Migration und Sammel-Verwerfen eher ein Minor sind). Es enthält damit
   automatisch die bereits gemergten Nacharbeit-Blöcke inklusive
   Panic-Recovery und idempotentem Wiederanlauf.
 
@@ -284,6 +284,3 @@ Technische Root Causes (verifiziert):
 - Die Bestellseite (Produkt-/Variantenliste) ist vom ScrollArea-Problem
   nicht betroffen: Sie scrollt nativ auf Seitenebene und hat
   Touch-taugliche Buttongrößen.
-- Beim Sammel-Retry drucken Aufträge in ID-Reihenfolge pro Drucker
-  (bestehende Gruppierung im Relay), damit Bon-Reihenfolgen erhalten
-  bleiben.

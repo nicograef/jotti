@@ -60,6 +60,6 @@ Die Checkboxen der Gates im [Release-Guide](plan-v1.0.0-release.md) bleiben füh
 
 ## Abnahme-Entscheidungen
 
-- [ ] Alle Suiten-Läufe (E2E, DSFinV-K-Validator, Berechtigungs-Matrix, Schwachstellen-Scans, Fuzz-Korpus, Parallelzugriffstest, TSE-Live-Suite, Ops-Smoke) grün; Befund-Report der einmaligen QA-Durchführung durchgesehen und offene Befunde priorisiert.
+- [ ] Alle Suiten-Läufe (E2E, DSFinV-K-Validator, Berechtigungs-Matrix, Schwachstellen-Scans, Fuzz-Korpus, Parallelzugriffstest, TSE-Live-Suite, Ops-Smoke) grün; die Befunde der einmaligen QA-Durchführung sind abgearbeitet (`docs/plans/plan-befund-fixes-v1.0.0.md`, gelöscht nach Merge).
 - [ ] Blöcke A–G dieses Guides durchgespielt und abgenommen.
 - [ ] Go/No-Go-Entscheidung für den v1.0.0-Tag getroffen.

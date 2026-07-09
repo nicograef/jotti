@@ -2,7 +2,7 @@
 
 Multi-Experten-Audit vor dem v1.0.0-Release, komplementär zum [Release-Guide](plan-v1.0.0-release.md). Methode: 16 Experten-Reviews plus 4 Nachreviews über alle Gates und Qualitätsachsen (Steuer, TSE/Signatur, DSFinV-K, Beleg, Events, Schema, Security, Robustheit, Performance, API, Ops, Frontend, UX, Tests, Release-Mechanik, Leitfäden, Bootstrap/Seed, LAN-TLS-Infra, Website-Konsistenz). Jeder High-Befund wurde von einem unabhängigen Skeptiker-Agenten am Code gegen­geprüft, Mediums im Batch; Rechtsaussagen sind an `docs/rechtsquellen/` belegt.
 
-Seit der Plan-Umstrukturierung (2026-07-06) ist dieses Dokument nur noch Befundregister: der Umsetzungsstatus wird in [plan-v0.14.0-breaking.md](plan-v0.14.0-breaking.md) und [plan-v1.0.0-nacharbeit.md](plan-v1.0.0-nacharbeit.md) geführt, manuelle Prüfungen im [QA-Guide](guide-manuelle-qa-v1.0.0.md). Die Abhak-Stände hier sind auf dem Stand nach den Phasen 1–3 des alten Vorab-Plans eingefroren (Commits 51e4ef5, d84f563, 4eee745). Nach dem v1.0.0-Release aus `docs/plans/` entfernen.
+Seit der Plan-Umstrukturierung (2026-07-06) ist dieses Dokument nur noch Befundregister: der Umsetzungsstatus wurde im inzwischen abgeschlossenen und gelöschten `plan-v0.14.0-breaking.md` sowie in [plan-v1.0.0-nacharbeit.md](plan-v1.0.0-nacharbeit.md) geführt, manuelle Prüfungen im [QA-Guide](guide-manuelle-qa-v1.0.0.md). Die Abhak-Stände hier sind auf dem Stand nach den Phasen 1–3 des alten Vorab-Plans eingefroren (Commits 51e4ef5, d84f563, 4eee745). Nach dem v1.0.0-Release aus `docs/plans/` entfernen.
 
 Ground Truth: `make verify` grün (inkl. Integrationstests gegen echte DB), `golangci-lint` 0 Befunde.
 

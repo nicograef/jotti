@@ -1,6 +1,6 @@
 # Release-Guide: jotti v1.0.0
 
-Übersicht, wann `v1.0.0` getaggt werden darf. Die Arbeit selbst liegt in drei Dokumenten: Breaking-Arbeit vor der Erstinstallation in [plan-v0.14.0-breaking.md](plan-v0.14.0-breaking.md), automatisierbare Nacharbeit in [plan-v1.0.0-nacharbeit.md](plan-v1.0.0-nacharbeit.md), verbleibende Handarbeit im [Rest-Guide](guide-manuelle-qa-v1.0.0.md) (der Großteil der ursprünglichen manuellen QA läuft inzwischen über automatisierte Suiten, siehe [PRD QA-Automatisierung](../prds/prd-qa-automatisierung.md)). Befund-Details im [Audit-Bericht](audit-v1.0.0.md) (Register, Status wird in den Plänen geführt). Arbeitsdokument; nach dem Release aus `docs/plans/` entfernen.
+Übersicht, wann `v1.0.0` getaggt werden darf. Die Breaking-Arbeit vor der Erstinstallation lag im inzwischen abgeschlossenen und gelöschten `plan-v0.14.0-breaking.md`; die Arbeit selbst liegt jetzt in zwei Dokumenten: automatisierbare Nacharbeit in [plan-v1.0.0-nacharbeit.md](plan-v1.0.0-nacharbeit.md), verbleibende Handarbeit im [Rest-Guide](guide-manuelle-qa-v1.0.0.md) (der Großteil der ursprünglichen manuellen QA läuft inzwischen über automatisierte Suiten, siehe [PRD QA-Automatisierung](../prds/prd-qa-automatisierung.md)). Befund-Details im [Audit-Bericht](audit-v1.0.0.md) (Register, Status wird in den Plänen geführt). Arbeitsdokument; nach dem Release aus `docs/plans/` entfernen.
 
 ---
 
@@ -48,7 +48,7 @@ Der „compliant"-Anspruch ruht nicht auf der Doku, sondern auf einem real durch
 Der Bruch mit der v0-Praxis. **Entschieden: forward-only, keine Down-Migrationen.** Prod-Rollback = Backup-Restore (bereits der `prod-update`-Weg), nie `migrate down`. Grund: fiskalisch append-only (Radierverbot, 10 Jahre) — ein destruktives `down` auf Prod wäre ein Footgun, und Backups sind der ehrliche Rollback-Pfad.
 
 - [x] **Forward-only umgesetzt:** `01_initial.down.sql` entfernt; die up→down→up-Roundtrip-Prüfung aus `scripts/test-integration.sh` und `.github/workflows/ci.yml` entfernt. golang-migrate läuft nur noch `up`.
-- [ ] **Freeze bestätigt:** `01_initial.up.sql` wird nicht mehr editiert; letzter Edit ist Phase 2 des [Breaking-Plans](plan-v0.14.0-breaking.md), vor der Erstinstallation.
+- [ ] **Freeze bestätigt:** `01_initial.up.sql` wird nicht mehr editiert; letzter Edit war Phase 2 des inzwischen abgeschlossenen und gelöschten Breaking-Plans, vor der Erstinstallation.
 - [ ] **Migrations-Konvention dokumentiert** (`database/migrations/README.md` + `AGENTS.md`): neue Änderungen nur als `02_<name>.up.sql`, fortlaufend nummeriert, additiv, vorwärtskompatibel, **kein** `.down.sql`. Jede Migration in einer Transaktion (Postgres-DDL ist transaktional), damit ein Fehlschlag sauber zurückrollt und keinen `dirty`-Zustand hinterlässt. golang-migrate `up` läuft beim Deploy über das `jotti-migrate`-Image. (AGENTS.md-Umschrieb: Nacharbeit Block 5, C20.)
 - [ ] **Migrations-CI-Tests:** (a) `up` auf leerer DB → Frischinstallation bootet (existiert im Integrationstest); (b) `up` auf befüllter Vorversions-DB → App bootet und `make rebuild-projections` läuft fehlerfrei (Nacharbeit Block 4, C10).
 - [ ] **Projektions-Rebuild** (`make rebuild-projections`) läuft nach dem eingefrorenen Schema fehlerfrei; bleibt nach jeder künftigen Migration Pflichtprüfung.

@@ -14,7 +14,7 @@ jotti fährt **forward-only: keine Down-Migrationen.** Neue Änderungen kommen a
 
 ## Regeln für neue Migrationen
 
-1. Dateiname `NN_<kurzname>.up.sql`, `NN` = nächste freie Nummer (aktuell zuletzt `01_initial`).
+1. Dateiname `NN_<kurzname>.up.sql`, `NN` = nächste freie Nummer (aktuell zuletzt `02_druckauftrag_backoff`).
 2. Additiv und vorwärtskompatibel. Bestehende Migrationen (insb. `01_initial.up.sql`) werden seit der produktiven Erstinstallation (v0.14.0) **nicht** mehr editiert.
 3. In eine Transaktion klammern (`BEGIN; … COMMIT;`) — Postgres-DDL ist transaktional, so rollt ein Fehlschlag sauber zurück und hinterlässt keinen `dirty`-Zustand in `schema_migrations`.
 4. Event-JSON-Contracts sind eingefroren (Guard: `backend/domain/kasse/event_json_contract_test.go`); Event-Änderungen additiv als neue Version (`:vN`), nie in-place.
@@ -38,4 +38,4 @@ jotti verwendet für Status- und Kategorie-Spalten TEXT+CHECK statt PostgreSQL-E
 
 - `PREVIOUS_VERSION` im Job pinnt die Vorversion auf das letzte veröffentlichte Release (aktuell `v0.14.0`); die Images kommen von `ghcr.io/nicograef` (`jotti-migrate`, `jotti-backend`).
 - Nach jedem Release wird `PREVIOUS_VERSION` auf das neue Tag angehoben (Teil der Release-Mechanik).
-- Ab der ersten `02_`-Migration ist der Job das Pflicht-Gate für Schema-Änderungen: Er beweist, dass eine befüllte Bestandsinstanz das Upgrade übersteht (Release-Guide Gate 4 (b)). Solange nur `01_initial` existiert, ist der `up`-Schritt auf der Vorversions-DB ein No-op und der Job prüft Seed-Kompatibilität, Boot und Projektions-Rebuild.
+- Seit der `02_druckauftrag_backoff`-Migration ist der Job das Pflicht-Gate für Schema-Änderungen: Er beweist, dass eine befüllte Bestandsinstanz das Upgrade übersteht (Release-Guide Gate 4 (b)).

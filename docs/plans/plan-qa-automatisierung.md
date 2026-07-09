@@ -25,7 +25,7 @@ Dauerhafte Entscheidungen, die für alle Phasen gelten:
   Reverse-Proxy) — jeder PR testet die Auslieferungs-Artefakte. Lokal
   läuft dieselbe Suite gegen den Dev-Stack.
 - **Seed-Reset**: neuer Endpoint `POST /test/reset-and-seed`, nur
-  registriert wenn `JOTTI_ALLOW_SEED=1` (in Prod/Release nie gesetzt,
+  registriert wenn `JOTTI_ENABLE_TEST_API=1` (in Prod/Release nie gesetzt,
   gleiche Guard-Logik wie das seed-Subkommando). Leert Kassenjournal,
   Projektionen und Stammdaten und seedet über die bestehende Seed-Engine
   neu. Jede Spec-Datei startet damit.
@@ -116,7 +116,7 @@ Aus der Klärungsrunde (2026-07-08):
 
 - E2E lokal gegen den Dev-Stack, in CI gegen die aus dem Checkout
   gebauten Prod-Images; die Suite selbst ist BASE_URL-agnostisch.
-- Seed-Reset per Test-Endpoint im Backend (`JOTTI_ALLOW_SEED`-gated),
+- Seed-Reset per Test-Endpoint im Backend (`JOTTI_ENABLE_TEST_API`-gated),
   nicht per docker exec aus Playwright.
 - E2E bleibt eigenes Target neben `make verify`; „grün" heißt künftig
   verify plus E2E-Job in CI.
@@ -171,7 +171,7 @@ Aus der Klärungsrunde (2026-07-08):
 
 Der komplette Durchstich mit genau einer Spec: `e2e/` als eigenes
 pnpm-Paket mit Playwright, zwei Viewport-Projekte, Reset über den neuen
-`POST /test/reset-and-seed`-Endpoint (nur bei `JOTTI_ALLOW_SEED=1`
+`POST /test/reset-and-seed`-Endpoint (nur bei `JOTTI_ENABLE_TEST_API=1`
 registriert, leert und seedet in einer Transaktion), `make test-e2e`
 gegen `E2E_BASE_URL`, `docker-compose.e2e.yml` mit den echten Images und
 ein CI-Job, der Stack baut, Suite fährt und bei Rot Trace + Screenshot
@@ -183,7 +183,7 @@ folgen der Fachsprache aus language.md; keine festen Wartezeiten.
 
 - [x] `make test-e2e` läuft lokal gegen den laufenden Dev-Stack und ist grün
 - [x] CI-Job baut die Prod-Images aus dem Checkout, startet den Stack und führt die Suite bei jedem PR aus; Trace/Screenshot als Artefakt bei Fehlschlag
-- [x] Reset-Endpoint existiert nur bei `JOTTI_ALLOW_SEED=1`; ohne Flag ist die Route nicht registriert (Test), Seed-Guards bleiben intakt
+- [x] Reset-Endpoint existiert nur bei `JOTTI_ENABLE_TEST_API=1`; ohne Flag ist die Route nicht registriert (Test), Seed-Guards bleiben intakt
 - [x] Die erste Spec startet vom Seed-Zustand und läuft in beiden Viewport-Projekten
 - [x] `make verify` unverändert grün
 
@@ -235,9 +235,9 @@ Variante anlegen/ändern/deaktivieren, Tisch anlegen/ändern, Benutzer
 anlegen (inkl. Einmalpasswort-Anzeige) und deaktivieren, Druckstation
 verwalten, Kassenführung (Kassensturz/Tagesabschluss aus Admin-Sicht),
 Live-Reporting zeigt die Umsätze der Seed-Daten. Dazu der
-Export-Download: Klick in der Finanzamt-Ansicht bis zur
-heruntergeladenen ZIP-Datei (Playwright-Download-Event, Datei nicht
-leer; die inhaltliche Prüfung übernimmt der Validator ab Phase 5).
+Export-Download: Klick in der Auswertung-Ansicht (`/admin/auswertung`)
+bis zur heruntergeladenen ZIP-Datei (Playwright-Download-Event, Datei
+nicht leer; die inhaltliche Prüfung übernimmt der Validator ab Phase 5).
 
 ### Akzeptanzkriterien
 
