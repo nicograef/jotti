@@ -14,6 +14,8 @@ const commonErrorMessages: Record<string, string> = {
     'Für diesen Benutzer wurde bereits ein Passwort gesetzt.',
   betreiber_nicht_konfiguriert:
     'Die Betreiberdaten sind unvollständig. Bitte im Bereich Finanzamt vervollständigen und erneut versuchen.',
+  buchungen_nach_kassensturz:
+    'Nach dem Kassensturz wurden noch Buchungen erfasst. Der Abschluss kann so nicht wiederholt werden. Bitte den Administrator kontaktieren.',
   cannot_delete_self:
     'Der aktuell angemeldete Benutzer kann nicht gelöscht werden. Bitte einen anderen Benutzer wählen.',
   conflict:

@@ -355,9 +355,18 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	// geschrieben haben (Teilfehler nach Schritt 1). Der dokumentierte Kassensturz zählt —
 	// Schritt 1 wird übersprungen und der damals erfasste Ist-Bestand bleibt maßgeblich,
 	// damit die Differenzbuchung zum protokollierten Zählergebnis passt.
-	vorhandenerSturz, err := c.findeVorhandenenKassensturz(ctx, subject)
+	//
+	// Zwischenbuchungen brechen den Wiederanlauf ab: Setzt der defer die Sitzung nach einem
+	// Teilfehler zurück auf 'offen', können danach neue Buchungen entstehen. Der alte Ist-Bestand
+	// wäre dann veraltet und würde legitime Umsätze als Soll-Ist-Differenz verbuchen. Liegt eine
+	// solche Buchung nach dem Kassensturz im Stream, bricht der Abschluss mit einem klaren Fehler ab.
+	vorhandenerSturz, buchungenNachSturz, err := c.findeVorhandenenKassensturz(ctx, subject)
 	if err != nil {
 		return KassenabschlussErgebnis{}, err
+	}
+	if buchungenNachSturz {
+		log.Warn().Int("z_nr", ks.ZNr).Msg("Kassenabschluss-Wiederanlauf abgebrochen: Buchungen nach dem protokollierten Kassensturz")
+		return KassenabschlussErgebnis{}, ErrBuchungenNachKassensturz
 	}
 	if vorhandenerSturz != nil {
 		log.Info().Int("z_nr", ks.ZNr).Msg("Kassenabschluss-Wiederanlauf: Kassensturz bereits vorhanden, Schritt 1 wird uebersprungen")
@@ -461,28 +470,44 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 }
 
 // findeVorhandenenKassensturz liefert die Daten eines bereits im Journal
-// stehenden kassensturz-durchgefuehrt-Events des Kassensitzungs-Streams, oder
-// nil wenn keiner existiert. Grundlage der Wiederanlauf-Erkennung des
+// stehenden kassensturz-durchgefuehrt-Events des Kassensitzungs-Streams (oder
+// nil, wenn keiner existiert) sowie die Information, ob nach diesem Kassensturz
+// eine Zwischenbuchung im Stream liegt. Grundlage der Wiederanlauf-Erkennung des
 // Kassenabschlusses: Ein Kassensturz aus einem abgebrochenen früheren Versuch
-// darf nicht noch einmal geschrieben werden.
-func (c Command) findeVorhandenenKassensturz(ctx context.Context, subject string) (*kasse.KassensturzDurchgefuehrtV1Data, error) {
+// darf nicht noch einmal geschrieben werden, und sein alter Ist-Bestand bleibt
+// nur maßgeblich, wenn seither keine neue Buchung erfolgt ist.
+//
+// buchungenNachSturz ist true, sobald nach dem Kassensturz ein Event liegt, das
+// nicht zum Abschluss selbst gehört (Kassensturz, Differenzbuchung,
+// Tagesabschluss sind über kasse.IsAbschlussEventType ausgenommen). Der
+// Kassensitzungs-Stream enthält als einzige solche Zwischenbuchung einen
+// geldtransit-gebucht:v1; Tisch-Buchungen laufen über eigene Sub-Streams.
+func (c Command) findeVorhandenenKassensturz(ctx context.Context, subject string) (sturz *kasse.KassensturzDurchgefuehrtV1Data, buchungenNachSturz bool, err error) {
 	log := zerolog.Ctx(ctx)
 
 	events, err := c.KassenjournalRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		log.Error().Err(err).Str("subject", subject).Msg("Failed to read events for Kassensturz-Wiederanlauf check")
-		return nil, ErrDatabase
+		return nil, false, ErrDatabase
 	}
 	for _, evt := range events {
+		if sturz != nil {
+			// Nach dem Kassensturz: alles außer den Abschluss-eigenen Folge-Events ist eine
+			// echte Zwischenbuchung, die den veralteten Ist-Bestand ungültig macht.
+			if !kasse.IsAbschlussEventType(evt.Type) {
+				return sturz, true, nil
+			}
+			continue
+		}
 		if kasse.EventType(evt.Type) != kasse.EventTypeKassensturzDurchgefuehrtV1 {
 			continue
 		}
 		var data kasse.KassensturzDurchgefuehrtV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			log.Error().Err(err).Int("event_id", evt.ID).Msg("Unparsebares Kassensturz-Event verhindert Kassenabschluss")
-			return nil, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			return nil, false, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
 		}
-		return &data, nil
+		sturz = &data
 	}
-	return nil, nil
+	return sturz, false, nil
 }

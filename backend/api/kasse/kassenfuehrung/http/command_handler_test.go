@@ -333,3 +333,19 @@ func TestKasseAbschliessenHandler_TischeSaldoOffen(t *testing.T) {
 		t.Errorf("expected code tische_saldo_offen in body, got %s", rec.Body.String())
 	}
 }
+
+func TestKasseAbschliessenHandler_BuchungenNachKassensturz(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrBuchungenNachKassensturz}}
+
+	req := requestWithUser(`{"istBestandCents":10000}`)
+	rec := httptest.NewRecorder()
+
+	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "buchungen_nach_kassensturz") {
+		t.Errorf("expected code buchungen_nach_kassensturz in body, got %s", rec.Body.String())
+	}
+}

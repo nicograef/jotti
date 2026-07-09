@@ -8,6 +8,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -107,5 +108,74 @@ func TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz(t *testing
 	}
 	if status != string(kasse.KassensitzungAbgeschlossen) {
 		t.Errorf("erwartet Status %q, gespeichert: %q", kasse.KassensitzungAbgeschlossen, status)
+	}
+}
+
+// TestKasseAbschliessen_RetryNachZwischenbuchung_BrichtAb: Der erste Abschluss-Versuch
+// schreibt den Kassensturz und scheitert an der Differenzbuchung (Teilfehler). Der defer
+// setzt die Sitzung zurueck auf 'offen'; danach entsteht eine echte Zwischenbuchung
+// (Geldtransit). Der Wiederanlauf erkennt die Buchung nach dem protokollierten Kassensturz
+// und bricht mit ErrBuchungenNachKassensturz ab, ohne ein Abschluss-Event zu schreiben —
+// der veraltete Ist-Bestand wird nicht wiederverwendet.
+func TestKasseAbschliessen_RetryNachZwischenbuchung_BrichtAb(t *testing.T) {
+	ctx, _, db, userID := setupKassenfuehrungIntegration(t)
+
+	failing := &teilfehlerJournalRepo{
+		kassenjournalRepo: kassenjournal_repo.NewRepository(db),
+		failType:          string(kasse.EventTypeDifferenzSollIstGebuchtV1),
+	}
+	cmd := Command{
+		KassenjournalRepo:   failing,
+		KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
+		TSERepo:             tse_repo.NewRepository(db),
+	}
+
+	// Soll-Bestand ist 0 (keine Buchungen); Ist-Bestand 500 erzwingt eine
+	// Differenzbuchung — genau dort schlaegt der erste Versuch fehl.
+	if _, err := cmd.KasseAbschliessen(ctx, userID, "test", 500); err == nil {
+		t.Fatal("erster Versuch: Teilfehler erwartet, bekam nil")
+	}
+
+	// Der defer hat die Sitzung nach dem Teilfehler wieder auf 'offen' gesetzt.
+	var status string
+	if err := db.QueryRow("SELECT status FROM kassensitzungen").Scan(&status); err != nil {
+		t.Fatalf("kassensitzung status lesen: %v", err)
+	}
+	if status != string(kasse.KassensitzungOffen) {
+		t.Fatalf("nach Teilfehler erwartet Status 'offen', gespeichert: %q", status)
+	}
+
+	// Zwischenbuchung: eine legitime Einlage nach dem protokollierten Kassensturz.
+	if err := cmd.GeldtransitBuchen(ctx, userID, "test", uuid.NewString(), "einlage", 1000, "Wechselgeld nachgelegt"); err != nil {
+		t.Fatalf("Zwischenbuchung fehlgeschlagen: %v", err)
+	}
+
+	// Die Einlage erzeugt einen offenen Signaturauftrag. In Produktion signiert ihn der
+	// Outbox-Worker vor dem naechsten Abschluss; hier wird er direkt auf 'erledigt' gesetzt,
+	// damit das Signatur-Gate durchlaesst und der Wiederanlauf die Zwischenbuchungs-Pruefung
+	// erreicht (sonst blockierte bereits das Gate mit 'signaturen ausstehend').
+	if _, err := db.Exec("UPDATE tse_signaturauftraege SET status = 'erledigt', erledigt_am = now() WHERE status = 'offen'"); err != nil {
+		t.Fatalf("Signaturauftrag als erledigt markieren: %v", err)
+	}
+
+	// Wiederanlauf muss abbrechen: Der alte Ist-Bestand ist durch die Buchung veraltet.
+	if _, err := cmd.KasseAbschliessen(ctx, userID, "test", 500); !errors.Is(err, ErrBuchungenNachKassensturz) {
+		t.Fatalf("Wiederanlauf erwartet ErrBuchungenNachKassensturz, bekam: %v", err)
+	}
+
+	// Kein Abschluss-Event darf geschrieben worden sein.
+	if count := countJournalEvents(t, db, string(kasse.EventTypeDifferenzSollIstGebuchtV1)); count != 0 {
+		t.Errorf("erwartet 0 differenz-Events nach Abbruch, gespeichert: %d", count)
+	}
+	if count := countJournalEvents(t, db, string(kasse.EventTypeTagesabschlussErstelltV1)); count != 0 {
+		t.Errorf("erwartet 0 tagesabschluss-Events nach Abbruch, gespeichert: %d", count)
+	}
+
+	// Die Sitzung bleibt nach dem Abbruch wieder 'offen' (defer-Reset greift auch hier).
+	if err := db.QueryRow("SELECT status FROM kassensitzungen").Scan(&status); err != nil {
+		t.Fatalf("kassensitzung status nach Abbruch lesen: %v", err)
+	}
+	if status != string(kasse.KassensitzungOffen) {
+		t.Errorf("nach Abbruch erwartet Status 'offen', gespeichert: %q", status)
 	}
 }

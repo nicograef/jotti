@@ -595,6 +595,66 @@ func TestKasseAbschliessen_WiederanlaufSchreibtKeinenZweitenKassensturz(t *testi
 	}
 }
 
+// Wiederanlauf mit Zwischenbuchung: Steht nach dem protokollierten Kassensturz eine echte
+// Buchung (geldtransit-gebucht:v1) im Stream, bricht der Abschluss mit ErrBuchungenNachKassensturz
+// ab, statt den veralteten Ist-Bestand zu übernehmen — es wird kein Abschluss-Event geschrieben.
+func TestKasseAbschliessen_WiederanlaufMitZwischenbuchungBrichtAb(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock.SetKassenbestand(50000)
+
+	sturzRaw, err := json.Marshal(kasse.KassensturzDurchgefuehrtV1Data{
+		SollBestandCents: 50000,
+		IstBestandCents:  49500,
+		DifferenzCents:   500,
+		DurchgefuehrtVon: 1,
+	})
+	if err != nil {
+		t.Fatalf("marshal kassensturz data: %v", err)
+	}
+	journalMock.AddEvent(e.Event{
+		UserID:   1,
+		UserName: "Admin",
+		Type:     string(kasse.EventTypeKassensturzDurchgefuehrtV1),
+		Subject:  kasse.KassensitzungSubject(testOpenKS.ZNr),
+		Version:  1,
+		Data:     sturzRaw,
+	})
+	// Zwischenbuchung nach dem Kassensturz: ein Geldtransit im Kassensitzungs-Stream.
+	transitRaw, err := json.Marshal(map[string]interface{}{"richtung": "einlage", "betragCents": 400})
+	if err != nil {
+		t.Fatalf("marshal geldtransit data: %v", err)
+	}
+	journalMock.AddEvent(e.Event{
+		UserID:   1,
+		UserName: "Admin",
+		Type:     string(kasse.EventTypeGeldtransitGebuchtV1),
+		Subject:  kasse.KassensitzungSubject(testOpenKS.ZNr),
+		Version:  2,
+		Data:     transitRaw,
+	})
+
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		TSERepo:             tseGateMock{},
+	}
+
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500); err != ErrBuchungenNachKassensturz {
+		t.Fatalf("expected ErrBuchungenNachKassensturz, got %v", err)
+	}
+
+	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	for _, evt := range events {
+		if evt.Type == string(kasse.EventTypeDifferenzSollIstGebuchtV1) || evt.Type == string(kasse.EventTypeTagesabschlussErstelltV1) {
+			t.Errorf("no closing event must be written on conflict, got %q", evt.Type)
+		}
+	}
+}
+
 // Eine Buchung in eine Sitzung im Zwischenstatus wird mit ErrKasseWirdAbgeschlossen abgelehnt.
 func TestGeldtransitBuchen_WirdAbgeschlossen(t *testing.T) {
 	ctx := context.Background()

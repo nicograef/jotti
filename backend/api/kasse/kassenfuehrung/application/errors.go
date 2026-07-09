@@ -29,3 +29,8 @@ var ErrTischeSaldoOffen = errors.New("tische mit offenem saldo")
 
 // ErrBetreiberNichtKonfiguriert is returned when a Kassensitzung is opened but betreiber data is incomplete.
 var ErrBetreiberNichtKonfiguriert = errors.New("betreiber nicht konfiguriert")
+
+// ErrBuchungenNachKassensturz is returned when a Kassenabschluss retry finds bookings that were
+// recorded after the already-persisted Kassensturz. Reusing the stale Ist-Bestand would book those
+// legitimate turnovers as a fake Soll-Ist-Differenz, so the retry aborts instead.
+var ErrBuchungenNachKassensturz = errors.New("buchungen nach kassensturz")

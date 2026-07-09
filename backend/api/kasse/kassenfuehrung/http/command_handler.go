@@ -166,7 +166,8 @@ func (h *CommandHandler) KasseAbschliessenHandler() http.HandlerFunc {
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
 				helper.MapError(w, err, map[error]string{
-					kasseApp.ErrTischeSaldoOffen: "tische_saldo_offen",
+					kasseApp.ErrTischeSaldoOffen:         "tische_saldo_offen",
+					kasseApp.ErrBuchungenNachKassensturz: "buchungen_nach_kassensturz",
 				})
 			}
 			return
