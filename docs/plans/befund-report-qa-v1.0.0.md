@@ -68,6 +68,7 @@ Das rote Löschen-Icon steht direkt neben Edit und ist unmittelbar antippbar; im
 Reproduktion: Admin-Listen (`/admin/produkte`, `/admin/tische`, `/admin/benutzer`), Löschen-Icon antippen.
 Quelle: UX-Review (mittel, ausdrücklich „zu verifizieren").
 Fix-Empfehlung: Zunächst prüfen, ob ein Bestätigungsdialog mit Objektname existiert. Falls nicht: ergänzen; Edit/Delete deutlicher trennen, Mindest-Touchgröße ~44px mit Abstand.
+Verifiziert (2026-07-09): `ProductItem.tsx`, `TischItem.tsx` und `UserItem.tsx` nutzen alle einen `AlertDialog` mit Objektname („Produkt löschen?"). Der Bestätigungsschritt existiert; von M4 bleibt nur der Touch-Abstand, der mit dem H1-Fix zusammenfällt.
 
 **M5 — Seed-Integrationstests kontaminieren die DB über Läufe**
 `TestResetAndSeed` leert `tse_konfiguration` ohne Default-Row; ein Re-Run von `TestSeedRun_Erstlauf` ist danach betroffen. Vorbestehend, nicht durch diese QA verursacht.
@@ -114,7 +115,18 @@ Fix-Empfehlung: QR-Längenprüfung robuster gegen Payload-Kollisionen, Fuzz-Ziel
 
 ## 4. Offene Punkte mit Human-Gate
 
-- **Sicherheits-Scans (protokolliert, nicht upgraded):** govulncheck ist in allen 5 Go-Modulen rot, ausschließlich wegen Go-Stdlib-CVEs (u. a. GO-2026-5856/5039/5037/4971/4918; reverse-proxy zusätzlich GO-2026-4982/4980 in html/template). Kein Modul hat einen projekteigenen Nicht-Stdlib-Fund mit Call-Pfad; Fix ist ein Toolchain-Bump auf go1.26.3+ (bzw. .4/.5 je CVE), kein Code-Fix. Frontend `pnpm audit` meldet 4 high (hono via shadcn-devDep, undici via jsdom/vitest), alle Dev-/Tooling-Deps, kein Produktionscode. Entscheidung Toolchain-Bump liegt bei Nico.
-- **TSE-Live-Burst:** Regelbetrieb bestätigt die Zusage (p95=326ms < 5s). Burst mit 24 gleichzeitigen Signaturen erreicht p95=7192ms durch serielles Worker-Queueing (in der Verfahrensdoku dokumentiert). Das Nachsigniert-Kennzeichen (>1min) wurde im Ausfalltest nicht erzwungen, weil der Worker-Backoff unter der Schwelle blieb. Bewertung/Abnahme durch Nico.
-- **Ops-Smoke:** `scripts/ops-smoke.sh` in allen drei Modi auf einem Wegwerf-Host; braucht einen von Nico gestellten Ubuntu-Host. Ebenso destruktives prod-restore, TLS-Abnahme sowie die Hardware-, Windows-, Zwei-Geräte- und Usability-Punkte laut Rest-Guide.
-- **CI-Jobs noch nie in GitHub Actions gelaufen:** Die Jobs `e2e` und `security-scans` sind implementiert, aber nur lokal auf `main` committet und noch nie remote ausgeführt. Erster Push validiert sie.
+- **Sicherheits-Scans (entschieden 2026-07-09):** govulncheck ist in allen 5 Go-Modulen rot, ausschließlich wegen Go-Stdlib-CVEs (u. a. GO-2026-5856/5039/5037/4971/4918; reverse-proxy zusätzlich GO-2026-4982/4980 in html/template). Kein Modul hat einen projekteigenen Nicht-Stdlib-Fund mit Call-Pfad; Fix ist ein Toolchain-Bump auf go1.26.3+ (bzw. .4/.5 je CVE), kein Code-Fix. Frontend `pnpm audit` meldet 4 high (hono via shadcn-devDep, undici via jsdom/vitest), alle Dev-/Tooling-Deps, kein Produktionscode. Entscheidung: Bump auf go1.26.5. Lokal ist go1.26.5 bereits installiert; noch offen sind die 5 `go.mod` (stehen auf 1.26.0), die Workflow-Pins (`go-version: 1.26.0` in ci/security-scans/release) und die Dockerfiles (`golang:1.26.4-alpine`). Geht als Phase „Toolchain-Konsistenz" in den Fix-Plan.
+- **TSE-Live-Burst (abgenommen 2026-07-09):** Regelbetrieb bestätigt die Zusage (p95=326ms < 5s). Burst mit 24 gleichzeitigen Signaturen erreicht p95=7192ms durch serielles Worker-Queueing (in der Verfahrensdoku dokumentiert). Das Nachsigniert-Kennzeichen (>1min) wurde im Ausfalltest nicht erzwungen, weil der Worker-Backoff unter der Schwelle blieb. Nico akzeptiert das Burst-Verhalten wie dokumentiert; kein Fix-Bedarf, keine Optimierung geplant.
+- **Ops-Smoke:** `scripts/ops-smoke.sh` in allen drei Modi auf einem Wegwerf-Host; braucht einen von Nico gestellten Ubuntu-Host. Ebenso destruktives prod-restore, TLS-Abnahme sowie die Hardware-, Windows-, Zwei-Geräte- und Usability-Punkte laut Rest-Guide. Entschieden: bleibt im Rest-Guide, kommt nicht in den Fix-Plan.
+- **CI-Erstlauf (erledigt 2026-07-09):** main ist gepusht, die neuen Jobs sind remote gelaufen. Workflow „CI" grün (6m14s, inkl. e2e), Workflow „Security Scans" rot: govulncheck meldet die o. g. Stdlib-CVEs, weil der Workflow `go-version: 1.26.0` pinnt. Wird mit der Phase „Toolchain-Konsistenz" grün.
+
+## 5. Entscheidungen aus der Klärung (2026-07-09)
+
+- Scope des Fix-Durchgangs: alle Befunde (H1–H2, M1–M5, N1–N7). M4 ist per Code-Check im Kern erledigt (siehe oben), N1 fällt mit M2 ab.
+- Vorgehen: nur Plan-Datei erstellen; Umsetzung in einer späteren Session.
+- M1: Tab-Leiste horizontal scrollbar mit sichtbarem Rand-Fade und Chevron.
+- N2: systematischer Token-Audit gegen WCAG AA (UI bleibt grün), Prüfung rein automatisiert (berechnete Kontrast-Ratios), einmalig im Fix-Durchgang, kein dauerhafter Regressions-Guard, keine manuelle Abnahme.
+- N5: Doku an den Ist-Ort angleichen (Export im Auswertungs-Dashboard), keine eigene Route `/admin/finanzamt`.
+- Toolchain: Bump auf go1.26.5 in go.mod, Workflows und Dockerfiles vervollständigen; Ziel ist ein grüner Security-Scans-Lauf.
+- TSE-Burst: abgenommen wie dokumentiert.
+- Human-Gate-Punkte (Ops-Smoke, prod-restore, TLS, Hardware/Windows/Zwei-Geräte): nicht Teil des Fix-Plans, bleiben im Rest-Guide.
