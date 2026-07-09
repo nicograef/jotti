@@ -15,7 +15,7 @@ Die Blöcke sind unabhängig voneinander und einzeln ausführbar (eigener Implem
 
 Blöcke 1 bis 5 setzt ein Multi-Agent-Workflow in einem Lauf um. Block 6 ist ausdrücklich nicht Teil davon und folgt als eigene Session, sobald v0.14.0 getaggt ist und alle Änderungen vorliegen.
 
-Vorbedingung: Start nur auf sauberem main. Der Breaking-Plan (`plan-v0.14.0-breaking.md`) ist vollständig committed, `git status` leer, `make verify` grün. Solange die parallele Session noch WIP im Tree hat, nicht starten.
+Vorbedingung: Start nur auf sauberem main. Der Breaking-Plan (v0.14.0, inzwischen nach dem Merge gelöscht, siehe Git-Historie) ist vollständig committed, `git status` leer, `make verify` grün. Solange die parallele Session noch WIP im Tree hat, nicht starten.
 
 Orchestrierung: Alle fünf Blöcke parallel implementieren und reviewen, jeder in einem eigenen isolierten git worktree (Implementierer plus Review-Gate mit Fix-Runden). Danach sequenzielle Integration auf main, ein Block nach dem anderen: rebase auf den aktuellen Stand, `make verify`, ein Commit pro Block (Conventional Commits, keine Co-Authored-By-Trailer). Im Integrations-Commit die Akzeptanz-Checkboxen des Blocks abhaken.
 

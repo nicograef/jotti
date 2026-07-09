@@ -105,7 +105,7 @@ Rechtliche und technische Details: [compliance.md §3](compliance.md#3-tse-integ
 
 **Inhalt:** Stammdatenmodul (Kassen-, Standort-, Steuersatz- und TSE-Daten), Einzelaufzeichnungsmodul (jeder einzelne Bon mit Positionen, Zahlarten, Referenzen und TSE-Signaturen) und Kassenabschlussmodul (aggregierter Z-Bon je Betriebstag). Bestellungen und Zahlungen eines Tisches sind über einen gemeinsamen `ABRECHNUNGSKREIS` verknüpft.
 
-**Auslösung:** Der Admin erzeugt den Export im Admin-Bereich unter „Auswertungen" für die gewählte (abgeschlossene) Kassensitzung. Er ist mit jeder Tabellenkalkulation und mit der Prüfsoftware IDEA lesbar.
+**Auslösung:** Der Admin erzeugt den Export im Admin-Bereich unter „Auswertungen" für die gewählte Kassensitzung (üblicherweise nach dem Tagesabschluss; auch offene Sitzungen sind exportierbar). Er ist mit jeder Tabellenkalkulation und mit der Prüfsoftware IDEA lesbar.
 
 Format- und Felddetails: [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 

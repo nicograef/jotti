@@ -37,6 +37,13 @@ vor, bietet jotti nur in TEST die Sekundäraktion „Stattdessen neue TSE anlege
 In LIVE gibt es diesen Ausweg nicht; dort helfen der PUK-Reset, die verwahrte PIN
 oder der fiskaly-Support.
 
+**TSE unter v0.14.0 eingerichtet?** jotti v0.14.0 hat beim Einrichten eine leere
+TSE-Seriennummer gespeichert; im DSFinV-K-Export bliebe dadurch das Pflichtfeld
+`TSE_SERIAL` leer (die Exportprüfung meldet das als Verstoß). Nach dem Update
+auf v0.15.0 lauft ihr vor dem ersten DSFinV-K-Export einmal den
+TSE-Assistenten erneut durch („TSE übernehmen", siehe oben) — dabei zieht jotti
+die Seriennummer nach; es entsteht keine zweite TSS.
+
 **Manuelle Konfiguration (Experten).** Habt ihr eine TSS samt Client bereits
 außerhalb von jotti angelegt, öffnet ihr im Admin-Bereich „Finanzamt", klickt im
 Kasten „TSE-Anbindung" auf „Einrichten oder ändern" und tragt im Kasten „Manuelle

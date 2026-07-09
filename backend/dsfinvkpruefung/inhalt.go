@@ -304,8 +304,9 @@ func pruefeBedienerFelder(daten map[string]tabellendaten) []Befund {
 }
 
 // pruefeTagesabschlussZeile prüft die Abschluss-Sonderzeile: Ein AVSonstige-Bon
-// (Tagesabschluss) muss den amtlich verpflichtenden BON_NAME "Tagesabschluss"
-// tragen.
+// (Tagesabschluss) muss einen amtlich verpflichtenden, nicht-leeren BON_NAME
+// tragen; der feste Text "Tagesabschluss" ist jottis Export-Konvention, gegen
+// die hier geprüft wird.
 //
 // Referenz: DSFinV-K 2.4 Tz. 4.1.1/4.1.2 (BON_TYP AVSonstige "zwingend zu erläutern
 // über BON_NAME") und Anhang B ("AVSonstige … Zusätzlich ist zwingend das Feld
@@ -338,8 +339,9 @@ func pruefeTagesabschlussZeile(daten map[string]tabellendaten) []Befund {
 // die Signaturprüfung des Exports nicht möglich.
 //
 // Referenz: DSFinV-K 2.4 Tz. 3.2.7 "Datei: Stamm_TSE" (Felder TSE_SERIAL,
-// TSE_SIG_ALGO, TSE_PUBLIC_KEY, TSE_ZERTIFIKAT_I/_II) — die Seriennummer entspricht
-// laut BSI TR-03153 der TSE-Seriennummer.
+// TSE_SIG_ALGO, TSE_PUBLIC_KEY, TSE_ZERTIFIKAT_I/_II) — TSE_SERIAL ist dort als
+// Hashwert des im Zertifikat enthaltenen Schlüssels (Octet-String, hex)
+// definiert.
 func pruefeTSEStammdaten(daten map[string]tabellendaten) []Befund {
 	tse, ok := daten["tse.csv"]
 	if !ok {

@@ -155,22 +155,22 @@ aus dem Internet (jotti.rocks) oder dem Vereins-WLAN (local).
 
 ### Acceptance criteria
 
-- [ ] `Config.EnableTestApi` existiert und wird in `Load()` aus
+- [x] `Config.EnableTestApi` existiert und wird in `Load()` aus
   `JOTTI_ENABLE_TEST_API == "1"` gesetzt.
-- [ ] `SetupRoutes` registriert die Test-Reset-Area anhand `cfg.EnableTestApi`;
+- [x] `SetupRoutes` registriert die Test-Reset-Area anhand `cfg.EnableTestApi`;
   kein direkter `os.Getenv`-Aufruf mehr für diese Entscheidung.
-- [ ] `testResetArea` ist mit `RateLimited: true` deklariert.
-- [ ] `docker-compose.e2e.yml` setzt `JOTTI_ENABLE_TEST_API: "1"`, nicht mehr
+- [x] `testResetArea` ist mit `RateLimited: true` deklariert.
+- [x] `docker-compose.e2e.yml` setzt `JOTTI_ENABLE_TEST_API: "1"`, nicht mehr
   `JOTTI_ALLOW_SEED`; das Reverse-Proxy-Port-Mapping bindet an `127.0.0.1`.
-- [ ] `docker-compose.rocks.yml`, `docker-compose.local.yml`,
+- [x] `docker-compose.rocks.yml`, `docker-compose.local.yml`,
   `docker-compose.yml` behalten `JOTTI_ALLOW_SEED` (CLI); die Kommentare nennen
   nur noch das Subkommando, nicht den HTTP-Endpoint.
-- [ ] `backend/app/app_test.go` prüft Registrierung/Nicht-Registrierung über
+- [x] `backend/app/app_test.go` prüft Registrierung/Nicht-Registrierung über
   `JOTTI_ENABLE_TEST_API`; der Kommentar in `matrix_integration_test.go` nennt
   das korrekte Flag.
-- [ ] `scripts/reset-and-seed.sh` funktioniert unverändert (CLI-Pfad, kein
+- [x] `scripts/reset-and-seed.sh` funktioniert unverändert (CLI-Pfad, kein
   Bezug auf das neue Flag).
-- [ ] `make verify` grün; E2E-Suite grün (Reset läuft weiter über den HTTP-
+- [x] `make verify` grün; E2E-Suite grün (Reset läuft weiter über den HTTP-
   Endpoint, jetzt hinter dem neuen Flag).
 
 ---
@@ -200,16 +200,16 @@ bewusst dokumentierte Verhalten (alter Ist zählt) erhalten.
 
 ### Acceptance criteria
 
-- [ ] Bei vorhandenem Kassensturz **und** mindestens einem Buchungs-Event danach
+- [x] Bei vorhandenem Kassensturz **und** mindestens einem Buchungs-Event danach
   liefert `KasseAbschliessen` einen klaren, benannten Fehler und schreibt kein
   Abschluss-Event.
-- [ ] Bei vorhandenem Kassensturz **ohne** Zwischenbuchung bleibt der Wiederanlauf
+- [x] Bei vorhandenem Kassensturz **ohne** Zwischenbuchung bleibt der Wiederanlauf
   wie bisher (Schritt 1 übersprungen, alter Ist maßgeblich, Abschluss erfolgreich).
-- [ ] Neuer Regressionstest: Teilfehler nach Schritt 1 → `defer` setzt auf
+- [x] Neuer Regressionstest: Teilfehler nach Schritt 1 → `defer` setzt auf
   `offen` → Zwischenbuchung → Retry schlägt mit dem neuen Fehler fehl.
-- [ ] Bestehende Wiederanlauf-Tests (sofortiger Retry, Teilfehler nach Schritt 2
+- [x] Bestehende Wiederanlauf-Tests (sofortiger Retry, Teilfehler nach Schritt 2
   ohne Zwischenbuchung) bleiben grün.
-- [ ] `make verify` grün.
+- [x] `make verify` grün.
 
 ---
 
@@ -262,19 +262,27 @@ ops-smoke (N29, N30) und E2E-Specs/Support (N39, N40, N41, N42, N43).
 
 ### Acceptance criteria
 
-- [ ] ops-smoke legt vor `kassensitzung-eroeffnen` einen Betreiber an; der
+- [x] ops-smoke legt vor `kassensitzung-eroeffnen` einen Betreiber an; der
   fachliche Ablauf erreicht Direktverkauf, Beleg und DSFinV-K-Export.
-- [ ] `http_post_status` erzeugt für jeden Aufruf syntaktisch gültiges JSON
+- [x] `http_post_status` erzeugt für jeden Aufruf syntaktisch gültiges JSON
   (empirisch: kein Trailing-`}` mehr); alle Aufrufer übergeben den Body explizit.
-- [ ] Die drei Saldo-Specs prüfen den Restsaldo/Ausgleich am Header-Saldo-Element;
+- [x] Die drei Saldo-Specs prüfen den Restsaldo/Ausgleich am Header-Saldo-Element;
   eine bewusst falsche Saldo-Zahl im Test würde jetzt fehlschlagen.
-- [ ] `settleAlleOffenenTische` verzweigt nicht mehr auf ungewartete
+- [x] `settleAlleOffenenTische` verzweigt nicht mehr auf ungewartete
   `isVisible()`/`count()`; die kassenabschluss-Spec ist gegen den Fetch-Race
   robust.
-- [ ] N29, N30, N39–N43 wie beschrieben umgesetzt.
-- [ ] E2E-Suite grün; ein Trockenlauf von `scripts/ops-smoke.sh` gegen einen
+- [x] N29, N30, N39–N43 wie beschrieben umgesetzt.
+- [x] E2E-Suite grün; ein Trockenlauf von `scripts/ops-smoke.sh` gegen einen
   frischen Stack erreicht mindestens `kassensitzung-eroeffnen` ohne
   `betreiber_nicht_konfiguriert`.
+  (Nachweis: die API-Sequenz des Skripts — OTP, set-password, login,
+  update-betreiber, kassensitzung-eroeffnen — wurde 1:1 gegen einen frischen,
+  ungeseedeten lokalen Stack abgespielt, alle Schritte 200. Der Lauf deckte
+  einen latenten 500er auf: die Event-Validierung lehnte `betragCents: 0` ab
+  (zog wertet den Zero-Value als fehlend), obwohl die HTTP-Schicht 0 erlaubt —
+  gefixt in `fix(kasse): accept zero-cent …` samt Kassensturz-Ist-Bestand und
+  Regressionstests. Der volle Skript-Lauf auf einem Wegwerf-Host bleibt das
+  bekannte offene Human-Gate.)
 
 ---
 
@@ -344,19 +352,23 @@ Body-Close-Muster angleichen.
 
 ### Acceptance criteria
 
-- [ ] Alle N1–N30 (soweit nicht in Phase 1/3), N32–N38, N44 wie oben umgesetzt.
-- [ ] N13: `druckauftraege-verwerfen` behält die Antwort; der Client zeigt die
+- [x] Alle N1–N30 (soweit nicht in Phase 1/3), N32–N38, N44 wie oben umgesetzt.
+  (Ausnahme N38: bewusst nicht angewendet — die Angleichung ans
+  `_ =`-Wrapper-Muster lässt den bodyclose-Linter am Aufrufer fehlschlagen;
+  stattdessen Kommentar an der Ausreißer-Stelle, warum das direkte `defer`
+  dort absichtlich steht.)
+- [x] N13: `druckauftraege-verwerfen` behält die Antwort; der Client zeigt die
   Anzahl im Toast.
-- [ ] N14: `tabs.tsx` enthält intern keine deutschen Bezeichner mehr; der
+- [x] N14: `tabs.tsx` enthält intern keine deutschen Bezeichner mehr; der
   öffentliche Export ist unverändert.
-- [ ] N23: `docs/plans/plan-befund-fixes-v1.0.0.md` ist gelöscht.
-- [ ] N26: Die e2e-Job-Bedingung ist nicht mehr tautologisch verschachtelt, der
+- [x] N23: `docs/plans/plan-befund-fixes-v1.0.0.md` ist gelöscht.
+- [x] N26: Die e2e-Job-Bedingung ist nicht mehr tautologisch verschachtelt, der
   Pfadfilter-Block ist entfernt, der Kommentar ist englisch.
-- [ ] N28/N44: Ein Typecheck-Gate prüft `e2e/`-TypeScript inkl. `helpers/`;
+- [x] N28/N44: Ein Typecheck-Gate prüft `e2e/`-TypeScript inkl. `helpers/`;
   `pnpm typecheck` im e2e-Verzeichnis ist grün.
-- [ ] „unverifiziert" markierte Befunde wurden vor dem Anwenden je Befund am
+- [x] „unverifiziert" markierte Befunde wurden vor dem Anwenden je Befund am
   Code bestätigt.
-- [ ] `make verify` und die Frontend-/E2E-Gates grün.
+- [x] `make verify` und die Frontend-/E2E-Gates grün.
 
 ---
 
@@ -401,10 +413,93 @@ G10 WCAG-AA-Kontrastwerte / Dark-Mode-Regressionen der Farb-Token.
 
 ### Acceptance criteria
 
-- [ ] Für jede Lücke G1–G10 liegt ein dokumentierter Befund (bestätigt/widerlegt
-  mit Belegstelle) vor.
-- [ ] G1 ist als durch Phase 1 erledigt verifiziert.
-- [ ] Bestätigte, klein umsetzbare Lücken sind gefixt; größere sind als
+- [x] Für jede Lücke G1–G10 liegt ein dokumentierter Befund (bestätigt/widerlegt
+  mit Belegstelle) vor (siehe Befunde unten).
+- [x] G1 ist als durch Phase 1 erledigt verifiziert.
+- [x] Bestätigte, klein umsetzbare Lücken sind gefixt; größere sind als
   Folgeplan mit Scope beschrieben (kein stiller Cap ohne Vermerk).
-- [ ] Die M2-Runbook-/Release-Notes-Zeile ist ergänzt.
-- [ ] `make verify` grün.
+  (Vermerk: der G3-Hook-Fix ist als konkreter Patch beschrieben, aber nicht
+  angewendet — der Agent darf seine eigene Hook-Konfiguration in
+  `.claude/settings.json` nicht ändern; Anwendung durch den Maintainer.)
+- [x] Die M2-Runbook-/Release-Notes-Zeile ist ergänzt
+  (`docs/leitfaden/tse-sonderfaelle.md`, Absatz „TSE unter v0.14.0
+  eingerichtet?").
+- [x] `make verify` grün.
+
+### Phase-5-Befunde (2026-07-09)
+
+- **G1 — erledigt (durch Phase 1).** `docker-compose.e2e.yml` setzt nur noch
+  `JOTTI_ENABLE_TEST_API: "1"` (Z. 69), bindet den Proxy an
+  `127.0.0.1:${E2E_HTTP_PORT}:80` (Z. 121); `testResetArea` ist rate-limited.
+  Zwei komplette E2E-Läufe (23/23) liefen über genau diesen Pfad.
+- **G2 — widerlegt.** `PROXY_HTTP_ONLY` wird strikt geparst (nur
+  `1/true/yes`, `main.go:212-219`), keine Prod-/Release-Compose-Datei und
+  keine `.env`-Vorlage deklariert die Variable; ohne Verkabelung erreicht auch
+  eine Host-Variable den Container nicht. Header-Parität gilt: alle drei Modi
+  rendern dasselbe `proxySnippet` (`caddyfile.go:96-137`); einziger
+  Unterschied ist der beabsichtigte HSTS-Wert.
+- **G3 — teilweise bestätigt, Patch offen.** Pfad-Übergabe im Prettier-Hook
+  ist injection-sicher (durchgängig gequotet, kein eval). Aber die
+  `node_modules`-Suche läuft bis `/` hoch statt an der Repo-Wurzel zu stoppen —
+  außerhalb liegende `node_modules/.bin/prettier` würden ausgeführt (aktuell
+  existiert dort keines, daher No-op). Vorgeschlagener Patch für
+  `.claude/settings.json` (vom Maintainer anzuwenden, Agent darf die eigene
+  Hook-Config nicht ändern): in der while-Schleife vor dem Binary-Test
+  `if [ -n "$CLAUDE_PROJECT_DIR" ]; then case "$d" in
+  "$CLAUDE_PROJECT_DIR"|"$CLAUDE_PROJECT_DIR"/*) ;; *) break;; esac; fi;`
+  einfügen.
+- **G4 — widerlegt.** `.gitignore` (Z. 15–17) ignoriert `.env.fiskaly-test`
+  inkl. Varianten, die Negation gilt nur der Example-Datei; das Example
+  enthält ausschließlich leere Keys; nichts Echtes getrackt, nichts in der
+  Historie v0.14.0..HEAD.
+- **G5 — teilweise bestätigt, gefixt.** Nur das CLI-Tool `shadcn` wanderte
+  nach devDependencies (kein Laufzeit-Impact, Vite bundelt build-time);
+  24h-Policy greift auch für e2e (pnpm-11-Default). Gefixt: Dev-Stack-Image
+  `docker-compose.yml` von `golang:1.26.0-alpine` auf `1.26.5-alpine`
+  (übersehener Rest des Toolchain-Bumps); `e2e/` in `dependabot.yml`
+  aufgenommen.
+- **G6 — teilweise bestätigt, gefixt.** Verfahrensdoku fachlich gegen Code
+  und Rechtsquellen geprüft (processType-Tabelle, Outbox, DSFinV-K-Struktur,
+  Append-only, Ausfallpfad: alles korrekt). Einzige Diskrepanz: §5 nannte den
+  Export nur für „(abgeschlossene)" Kassensitzungen, real sind auch offene
+  exportierbar — Formulierung korrigiert.
+- **G7 — Kern widerlegt, Follow-up-Empfehlung.** `jotti seed` (CLI) truncatet
+  nichts und bricht bei vorhandenen Kassenjournal-Events vor jedem
+  Schreibzugriff ab; der Truncate-Pfad hängt ausschließlich am
+  E2E-only-HTTP-Endpoint. Restrisiko außerhalb des Codes:
+  `scripts/reset-and-seed.sh --yes` (make local-reset-and-seed) löscht das
+  Postgres-Volume am Guard vorbei — Empfehlung als Produktentscheidung offen:
+  Bestands-Check (kassenjournal count) vor `docker volume rm` auch bei
+  `--yes`.
+- **G8 — Kern widerlegt (Validator korrekt), Kommentare präzisiert.** Kein
+  Regelverstoß, der einen nicht-konformen jotti-Export durchwinken würde;
+  Formatwerte, TSE-Pflichtfelder, Storno-Regel und Steuerschlüssel decken sich
+  mit DSFinV-K 2.4. Zwei Regeln sind strenger als die Spec (Pfadverbot,
+  Date-Spalten) — für jottis flachen Export folgenlos. Gefixt: zwei
+  unpräzise Referenz-Kommentare in `inhalt.go` (TSE_SERIAL-Definition,
+  BON_NAME-Konvention).
+- **G9 — bestätigt, gefixt.** Ein normaler Integrationslauf hätte mit in der
+  Shell exportierten `FISKALY_TEST_*`-Credentials die echte fiskaly-TEST-API
+  getroffen (`test-integration.sh` läuft `-tags=integration ./...`, Guard
+  prüfte nur Credential-Präsenz). Gefixt: explizites Opt-in
+  `JOTTI_TSE_LIVE=1` an allen drei Live-Guards; nur `test-tse-live.sh` und
+  `make test-tse-live-setup` setzen es. Ohne Opt-in skippen alle fünf
+  Live-Tests (empirisch verifiziert).
+- **G10 — teilweise bestätigt, Follow-up-Entscheidung.** Alle sechs geprüften
+  Kern-Token-Paare bestehen WCAG AA in Light und Dark (berechnet, z. B.
+  foreground/background 19,6:1 bzw. 18,9:1). Verstoß: solide
+  Löschen-Buttons (`bg-destructive text-white`, 5 Stellen) erreichen im
+  Dark-Mode nur 2,89:1 (`--destructive` = red-400). Fix braucht eine
+  Design-Entscheidung: dunkleres Dark-`--destructive` (einfach, senkt aber
+  `text-destructive`-Kontrast auf Flächen) oder eigenes
+  `--destructive-foreground`-Token (präziser, 5 Call-Sites) — als Folgearbeit
+  beschrieben, nicht still gefixt.
+
+Zusätzlicher Befund außerhalb der G-Liste (aus dem Phase-3-Trockenlauf): das
+zog-Muster `z.Int().GTE(0).Required()` lehnt den gültigen Wert 0 als „fehlend"
+ab. Im Kassenführungs-Fluss gefixt (Eröffnungs-Betrag, Kassensturz-Ist);
+dasselbe Muster steht noch auf Summenfeldern weiterer Event-Schemas
+(`bestellung.go`, `zahlung.go`, `stornierung.go`, `tisch_session_events.go`,
+`direktverkauf_events.go`, `umbuchung.go`) — dort ist 0 über die Domänenpfade
+mutmaßlich nicht erreichbar, eine kurze Prüfung pro Feld steht als Folgearbeit
+aus.
