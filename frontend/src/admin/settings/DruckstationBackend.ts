@@ -62,6 +62,33 @@ export function validateDruckerIp(druckerIp: string): string | null {
   return z.ipv4().safeParse(druckerIp).success ? null : 'Ungültige IPv4-Adresse'
 }
 
+// Referenz-Formate aus dem Backend (unverändert, siehe arbeitsbon_policy.go
+// und kassenbeleg_command.go): "<technischer-event-name>:<eventId>".
+const REFERENZ_PRAEFIX_LABEL: Record<string, string> = {
+  'bestellung-aufgenommen': 'Bestellung',
+  'zahlung-kassiert': 'Zahlung',
+  'direktverkauf-getaetigt': 'Direktverkauf',
+  'direktverkauf-storniert': 'Direktverkauf-Storno',
+  'stornierung-erteilt': 'Stornierung',
+}
+
+// formatDruckauftragReferenz übersetzt die rohe Referenz eines fehlgeschlagenen
+// Druckauftrags in einen fachlichen Text. Unbekannte Formate fallen auf den
+// Rohwert zurück (z. B. bei künftigen, hier noch nicht gepflegten Event-Typen).
+export function formatDruckauftragReferenz(referenz: string): string {
+  const trennerIndex = referenz.indexOf(':')
+  if (trennerIndex === -1) {
+    return referenz
+  }
+  const praefix = referenz.slice(0, trennerIndex)
+  const id = referenz.slice(trennerIndex + 1)
+  const label = REFERENZ_PRAEFIX_LABEL[praefix] ?? ''
+  if (label === '' || id.length === 0) {
+    return referenz
+  }
+  return `${label} Nr. ${id}`
+}
+
 export class DruckstationBackend {
   private readonly backend: BackendClient
 

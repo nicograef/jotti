@@ -84,4 +84,15 @@ describe('DruckstationConfigPage', () => {
       screen.queryByRole('button', { name: 'Alle verwerfen' }),
     ).not.toBeInTheDocument()
   })
+
+  it('zeigt die Referenz fachlich und den Rohwert im title-Attribut', () => {
+    fehlgeschlageneState.druckauftraege = [makeAuftrag(86)]
+    const { container } = render(<DruckstationConfigPage />)
+
+    expect(screen.getByText(/Bestellung Nr\. 86/)).toBeInTheDocument()
+    expect(screen.queryByText(/bestellung-aufgenommen:86/)).toBeNull()
+
+    const referenzZeile = container.querySelector('[title]')
+    expect(referenzZeile).toHaveAttribute('title', 'bestellung-aufgenommen:86')
+  })
 })

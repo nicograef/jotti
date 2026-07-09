@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DruckstationConfigSchema,
+  formatDruckauftragReferenz,
   hatBonmodus,
   validateDruckerIp,
 } from './DruckstationBackend'
@@ -34,6 +35,30 @@ describe('hatBonmodus', () => {
 
   it('is false for kassenbeleg', () => {
     expect(hatBonmodus('kassenbeleg')).toBe(false)
+  })
+})
+
+describe('formatDruckauftragReferenz', () => {
+  it.each([
+    ['bestellung-aufgenommen:86', 'Bestellung Nr. 86'],
+    ['zahlung-kassiert:12', 'Zahlung Nr. 12'],
+    ['direktverkauf-getaetigt:3', 'Direktverkauf Nr. 3'],
+    ['direktverkauf-storniert:7', 'Direktverkauf-Storno Nr. 7'],
+    ['stornierung-erteilt:41', 'Stornierung Nr. 41'],
+  ])('übersetzt %s zu "%s"', (referenz, erwartet) => {
+    expect(formatDruckauftragReferenz(referenz)).toBe(erwartet)
+  })
+
+  it('fällt bei unbekanntem Format auf den Rohwert zurück', () => {
+    expect(formatDruckauftragReferenz('unbekanntes-format:99')).toBe(
+      'unbekanntes-format:99',
+    )
+  })
+
+  it('fällt bei fehlendem Trenner auf den Rohwert zurück', () => {
+    expect(formatDruckauftragReferenz('ohne-doppelpunkt')).toBe(
+      'ohne-doppelpunkt',
+    )
   })
 })
 

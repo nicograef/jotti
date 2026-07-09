@@ -28,6 +28,7 @@ import {
   type Bonmodus,
   type DruckstationConfig,
   type FehlgeschlagenerDruckauftrag,
+  formatDruckauftragReferenz,
   hatBonmodus,
   type Kategorie,
   validateDruckerIp,
@@ -177,8 +178,9 @@ function FehlgeschlagenerDruckauftragRow({
           {new Date(auftrag.erstelltAm).toLocaleString('de-DE')}
         </div>
       </div>
-      <div className="text-sm text-muted-foreground">
-        Referenz: {auftrag.referenz} · {auftrag.versuche} Versuche
+      <div className="text-sm text-muted-foreground" title={auftrag.referenz}>
+        Referenz: {formatDruckauftragReferenz(auftrag.referenz)} ·{' '}
+        {auftrag.versuche} Versuche
       </div>
       <p className="text-sm text-destructive">{auftrag.letzterFehler}</p>
       <div className="flex gap-2">

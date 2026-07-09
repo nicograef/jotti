@@ -181,10 +181,10 @@ Eine kleine Frontend-Mapping-Funktion übersetzt die 5 bekannten Referenz-Format
 
 ### Acceptance criteria
 
-- [ ] Vitest-Test: alle 5 Formate werden korrekt übersetzt, unbekanntes Format fällt auf den Rohwert zurück
-- [ ] In „Fehlgeschlagene Druckaufträge" erscheint für bekannte Formate kein roher kebab-case-Bezeichner mehr
-- [ ] Rohwert per `title`-Attribut einsehbar
-- [ ] `make verify` grün
+- [x] Vitest-Test: alle 5 Formate werden korrekt übersetzt, unbekanntes Format fällt auf den Rohwert zurück
+- [x] In „Fehlgeschlagene Druckaufträge" erscheint für bekannte Formate kein roher kebab-case-Bezeichner mehr
+- [x] Rohwert per `title`-Attribut einsehbar
+- [x] `make verify` grün
 
 ---
 
