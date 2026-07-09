@@ -18,7 +18,12 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  ScrollableTabsList,
+  Tabs,
+  TabsContent,
+  TabsTrigger,
+} from '@/components/ui/tabs'
 import { formatCents, formatPositionName } from '@/lib/utils'
 
 import { SummaryCard } from './SummaryCard'
@@ -45,41 +50,39 @@ export function ReportingResults({
 
   return (
     <Tabs defaultValue="uebersicht">
-      <div className="overflow-x-auto -mx-4 px-4">
-        <TabsList variant="line">
-          <TabsTrigger value="uebersicht">
-            <ChartBar className="size-4" />
-            Übersicht
-          </TabsTrigger>
-          <TabsTrigger value="servicekraefte">
-            <Users className="size-4" />
-            Servicekräfte
-            {breakdowns.umsatzProServicekraft.length > 0 && (
-              <Badge variant="secondary" className="ml-1">
-                {breakdowns.umsatzProServicekraft.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="tische">
-            <TableIcon className="size-4" />
-            Tische
-            {breakdowns.umsatzProTisch.length > 0 && (
-              <Badge variant="secondary" className="ml-1">
-                {breakdowns.umsatzProTisch.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="stornierungen">
-            <Ban className="size-4" />
-            Stornierungen
-            {summary.anzahlStornierungen > 0 && (
-              <Badge variant="destructive" className="ml-1">
-                {summary.anzahlStornierungen}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-      </div>
+      <ScrollableTabsList variant="line">
+        <TabsTrigger value="uebersicht">
+          <ChartBar className="size-4" />
+          Übersicht
+        </TabsTrigger>
+        <TabsTrigger value="servicekraefte">
+          <Users className="size-4" />
+          Servicekräfte
+          {breakdowns.umsatzProServicekraft.length > 0 && (
+            <Badge variant="secondary" className="ml-1">
+              {breakdowns.umsatzProServicekraft.length}
+            </Badge>
+          )}
+        </TabsTrigger>
+        <TabsTrigger value="tische">
+          <TableIcon className="size-4" />
+          Tische
+          {breakdowns.umsatzProTisch.length > 0 && (
+            <Badge variant="secondary" className="ml-1">
+              {breakdowns.umsatzProTisch.length}
+            </Badge>
+          )}
+        </TabsTrigger>
+        <TabsTrigger value="stornierungen">
+          <Ban className="size-4" />
+          Stornierungen
+          {summary.anzahlStornierungen > 0 && (
+            <Badge variant="destructive" className="ml-1">
+              {summary.anzahlStornierungen}
+            </Badge>
+          )}
+        </TabsTrigger>
+      </ScrollableTabsList>
 
       {/* Übersicht */}
       <TabsContent value="uebersicht" className="mt-4">

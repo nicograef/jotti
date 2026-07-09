@@ -141,10 +141,10 @@ Die Tab-Leisten (Übersicht/Servicekräfte/Tische/Stornierungen) werden auf schm
 
 ### Acceptance criteria
 
-- [ ] Playwright (393x851, `/admin/auswertung`): Tab „Stornierungen" ist per horizontalem Scroll erreichbar und anklickbar, in beiden Tab-Leisten
-- [ ] Playwright (393x851): Fade/Chevron-Affordance ist im DOM vorhanden, solange rechts Tabs verborgen sind, und verschwindet am Scroll-Ende
-- [ ] Playwright (1280x800): alle 4 Tabs ohne Scroll sichtbar, keine Affordance
-- [ ] `make verify` grün
+- [x] Playwright (393x851, `/admin/auswertung`): Tab „Stornierungen" ist per horizontalem Scroll erreichbar und anklickbar, in beiden Tab-Leisten
+- [x] Playwright (393x851): Fade/Chevron-Affordance ist im DOM vorhanden, solange rechts Tabs verborgen sind, und verschwindet am Scroll-Ende
+- [x] Playwright (1280x800): alle 4 Tabs ohne Scroll sichtbar, keine Affordance
+- [x] `make verify` grün
 
 ---
 
