@@ -270,4 +270,4 @@ Doku-Sweep über `docs/` nach Aussagen, der DSFinV-K-Export liege in der Finanza
 - [x] `grep -rni "finanzamt" docs/` liefert keine Stelle mehr, die den DSFinV-K-Export in der Finanzamt-Ansicht verortet
 - [x] Doku-Änderungen folgen dem Doku-Stil (minimal, keine Slop-Syntax)
 - [x] `docs/plans/befund-report-qa-v1.0.0.md` ist gelöscht
-- [ ] Nach Push: Workflows „CI" und „Security Scans" grün
+- [x] Nach Push: Workflows „CI" und „Security Scans" grün
