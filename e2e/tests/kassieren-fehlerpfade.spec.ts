@@ -7,7 +7,7 @@ import {
 } from '../helpers/fehlerpfade'
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
-import { zeileMit } from '../support/servicekraft'
+import { bestellePosition, oeffneTisch, zeileMit } from '../support/servicekraft'
 
 // Kassieren-Drawer (ZahlungDrawer) meldet Fehler über useActionSubmit als
 // Toast (siehe frontend/src/hooks/use-action-submit.ts + lib/errorMessages.ts)
@@ -61,24 +61,8 @@ test.describe('Kassieren-Drawer bei Serverfehler und Netzabbruch', () => {
 // zumTischMitOffenerPosition navigiert zu Tisch 1 und nimmt eine Bratwurst
 // Normal auf, damit eine unbezahlte Position zum Kassieren bereitsteht.
 async function zumTischMitOffenerPosition(page: Page) {
-  await page.goto('/service/tische')
-  await page.getByRole('button', { name: 'Alle Tische' }).click()
-  await page.getByPlaceholder('Tisch suchen...').fill(TISCH)
-  await page
-    .getByRole('button', { name: new RegExp(`^${TISCH}\\b.*€`) })
-    .click()
-
-  await expect(page.getByRole('tab', { name: 'Bestellen' })).toBeVisible()
-
-  await page.getByText(PRODUKT, { exact: false }).first().click()
-  const variante = zeileMit(page, VARIANTE, 'Variante hinzufügen')
-  await variante.getByRole('button', { name: 'Variante hinzufügen' }).click()
-  await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()
-  const bestellDrawer = page.getByRole('dialog')
-  await bestellDrawer
-    .getByRole('button', { name: 'Bestellung aufnehmen' })
-    .click()
-  await expect(page.getByText('Bestellung wurde aufgenommen.')).toBeVisible()
+  await oeffneTisch(page, TISCH)
+  await bestellePosition(page, PRODUKT, VARIANTE)
 }
 
 // kassiereEinePosition wechselt auf den Kassieren-Tab, wählt die zuvor

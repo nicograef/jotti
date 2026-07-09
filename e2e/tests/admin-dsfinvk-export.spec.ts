@@ -1,3 +1,5 @@
+import { stat } from 'node:fs/promises'
+
 import { expect, test } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
@@ -33,9 +35,7 @@ test.describe('Admin lädt den DSFinV-K-Export herunter', () => {
 
     const downloadPath = await download.path()
     expect(downloadPath, 'Download muss eine lokale Datei erzeugen').toBeTruthy()
-    const stats = await import('node:fs/promises').then((fs) =>
-      fs.stat(downloadPath ?? ''),
-    )
+    const stats = await stat(downloadPath ?? '')
     expect(stats.size, 'ZIP-Datei darf nicht leer sein').toBeGreaterThan(0)
     expect(download.suggestedFilename()).toMatch(/\.zip$/)
   })

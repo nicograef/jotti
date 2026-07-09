@@ -38,16 +38,21 @@ test.describe('Servicekraft bestellt, gibt aus und kassiert', () => {
     await gebeAusstehendePositionAus(page, 'Bratwurst Normal')
     await gebeAusstehendePositionAus(page, 'Bratwurst XXL')
 
+    // Saldo-Element im Tisch-Header (die einzige item-description mit text-2xl,
+    // siehe TablePage): so prüft die Assertion den tatsächlichen Restsaldo statt
+    // eines beliebigen gleichlautenden Betrags irgendwo auf der Seite.
+    const tischSaldo = page.locator('[data-slot="item-description"].text-2xl')
+
     // Nur die Bratwurst Normal (3,50 €) kassieren — die Bratwurst XXL bleibt
     // unbezahlt, der Tisch zeigt den Restsaldo.
     await kassierePosition(page, NORMAL)
 
-    await expect(page.getByText('5,00 €').first()).toBeVisible()
+    await expect(tischSaldo).toHaveText('5,00 €')
 
     // Jetzt auch die Bratwurst XXL kassieren — der Tisch gleicht sich aus.
     await kassierePosition(page, XXL)
 
-    await expect(page.getByText('0,00 €').first()).toBeVisible()
+    await expect(tischSaldo).toHaveText('0,00 €')
     await expect(page.getByText('Alles ausgegeben!')).toBeVisible()
   })
 })

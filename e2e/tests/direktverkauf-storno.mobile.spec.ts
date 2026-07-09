@@ -36,7 +36,7 @@ test.describe('Servicekraft tätigt einen Direktverkauf und storniert ihn', () =
 
     // In der Historie erscheint der frische Verkauf mit dem Gesamtbetrag.
     await page.getByRole('tab', { name: 'Historie' }).click()
-    const verkaufsEintrag = zeileMit(page, '8,00', 'Stornieren').first()
+    const verkaufsEintrag = zeileMit(page, '8,00', 'Stornieren')
     await expect(verkaufsEintrag).toBeVisible()
 
     await verkaufsEintrag.getByRole('button', { name: 'Stornieren' }).click()

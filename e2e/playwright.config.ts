@@ -5,8 +5,10 @@ import { defineConfig, devices } from '@playwright/test'
 // Variable auf die jeweils gemappte Adresse (z. B. http://localhost:8081).
 const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost'
 
-// CI ist strenger: keine Retries verschleiern Flakiness, Trace/Screenshots nur
-// beim ersten Fehlversuch, damit die Artefakte klein bleiben.
+// isCI schaltet nur den Reporter (github statt list) und forbidOnly um. Die
+// Robustheits-Einstellungen (retries: 0, Trace/Screenshots nur bei Fehlversuch)
+// gelten dagegen global — auch lokal soll Flakiness sichtbar bleiben und sollen
+// die Artefakte klein bleiben.
 const isCI = !!process.env.CI
 
 export default defineConfig({

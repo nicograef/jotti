@@ -132,10 +132,11 @@ ok_step() {
   log_line "$step" ok "$duration" "$detail"
 }
 
-# http_status METHOD URL [DATA] — POST-only API (see AGENTS.md); returns the
-# HTTP status code, body written to $SMOKE_TMP/body.json.
+# http_post_status URL DATA — POST-only API (see AGENTS.md); returns the HTTP
+# status code, body written to $SMOKE_TMP/body.json. Every caller passes the
+# request body explicitly (empty payloads as '{}').
 http_post_status() {
-  local url="$1" data="${2:-{}}"
+  local url="$1" data="$2"
   curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
     -X POST -H 'Content-Type: application/json' -d "$data" "$url" 2>"$SMOKE_TMP/curl.log" || echo 000
 }
@@ -273,6 +274,21 @@ step_sale_receipt_export() {
   local token="$1"
   local auth_header="Authorization: Bearer $token"
   local start end duration status
+
+  # Betreiber-Stammdaten setzen (Voraussetzung für kassensitzung-eroeffnen):
+  # auf einem frischen Host ist die betreiber-Tabelle leer, und ohne konfigurierten
+  # Betreiber liefert kassensitzung-eroeffnen 400 betreiber_nicht_konfiguriert.
+  # Nur die Pflichtfelder (vereinsname, strasse, plz, ort); steuernummer/ustId
+  # bleiben optional.
+  start="$(date +%s)"
+  status="$(curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
+    -X POST -H 'Content-Type: application/json' -H "$auth_header" \
+    -d '{"vereinsname":"Ops-Smoke-Verein","strasse":"Teststraße 1","plz":"12345","ort":"Teststadt"}' "$BASE_URL/api/admin/update-betreiber" 2>"$SMOKE_TMP/curl.log" || echo 000)"
+  end="$(date +%s)"; duration=$((end - start))
+  if [[ "$status" != "200" ]]; then
+    fail_step "update-betreiber" "expected 200, got $status: $(redacted_body)"
+  fi
+  ok_step "update-betreiber" "$duration"
 
   start="$(date +%s)"
   status="$(curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
@@ -443,9 +459,11 @@ case "$MODE" in
     # side effect on the host's configuration.
     PREVIOUS_JOTTI_VERSION="$(read_env JOTTI_VERSION)"
     restore_jotti_version() {
-      if [[ -n "$PREVIOUS_JOTTI_VERSION" ]]; then
-        sed -i.bak "s/^JOTTI_VERSION=.*/JOTTI_VERSION=$PREVIOUS_JOTTI_VERSION/" .env && rm -f .env.bak
-      fi
+      # Always rewrite the line, even when the previous value was empty: an
+      # unconditional restore keeps no lasting release pin in .env. If there was
+      # no JOTTI_VERSION line to begin with, the pinning sed was a no-op too, so
+      # this substitution simply matches nothing.
+      sed -i.bak "s/^JOTTI_VERSION=.*/JOTTI_VERSION=$PREVIOUS_JOTTI_VERSION/" .env && rm -f .env.bak
       rm -rf "$SMOKE_TMP"
     }
     trap restore_jotti_version EXIT
