@@ -1,6 +1,6 @@
 # Release-Guide: jotti v1.0.0
 
-Übersicht, wann `v1.0.0` getaggt werden darf. Die Arbeit selbst liegt in drei Dokumenten: Breaking-Arbeit vor der Erstinstallation in [plan-v0.14.0-breaking.md](plan-v0.14.0-breaking.md), automatisierbare Nacharbeit in [plan-v1.0.0-nacharbeit.md](plan-v1.0.0-nacharbeit.md), manuelle Prüfungen in [guide-manuelle-qa-v1.0.0.md](guide-manuelle-qa-v1.0.0.md). Befund-Details im [Audit-Bericht](audit-v1.0.0.md) (Register, Status wird in den Plänen geführt). Arbeitsdokument; nach dem Release aus `docs/plans/` entfernen.
+Übersicht, wann `v1.0.0` getaggt werden darf. Die Arbeit selbst liegt in drei Dokumenten: Breaking-Arbeit vor der Erstinstallation in [plan-v0.14.0-breaking.md](plan-v0.14.0-breaking.md), automatisierbare Nacharbeit in [plan-v1.0.0-nacharbeit.md](plan-v1.0.0-nacharbeit.md), verbleibende Handarbeit im [Rest-Guide](guide-manuelle-qa-v1.0.0.md) (der Großteil der ursprünglichen manuellen QA läuft inzwischen über automatisierte Suiten, siehe [PRD QA-Automatisierung](../prds/prd-qa-automatisierung.md)). Befund-Details im [Audit-Bericht](audit-v1.0.0.md) (Register, Status wird in den Plänen geführt). Arbeitsdokument; nach dem Release aus `docs/plans/` entfernen.
 
 ---
 
@@ -30,14 +30,16 @@ Ab 1.0.0 gilt SemVer im vollen Sinn. Diese Zusagen müssen vor dem Tag bewusst g
 
 Der „compliant"-Anspruch ruht nicht auf der Doku, sondern auf einem real durchgespielten Durchlauf mit einer fiskaly-**TEST**-TSE. Erst danach optional gegen LIVE.
 
-- [ ] Komplett durchgespielt nach [QA-Guide](guide-manuelle-qa-v1.0.0.md), Blöcke 2–6 (TSE-Inbetriebnahme, Signaturbetrieb inkl. Latenzmessung, Ausfall und Nachsignierung, Beleg und QR auf echter Hardware, DSFinV-K-Export inkl. Steuersätze).
+- [ ] TSE-Live-Suite (`make test-tse-live`) grün: alle Geschäftsvorfälle, Ausfall und Nachsignierung, p95-Latenzmessung. DSFinV-K-Validator (`make verify`) grün: Struktur, Storno, Steuersätze, Bediener- und TSE-Felder.
+- [ ] Komplett durchgespielt nach [Rest-Guide](guide-manuelle-qa-v1.0.0.md), Blöcke A und C (QR-Scan/Druckbild auf echter Hardware, fiskaly-Konto samt TEST→LIVE-Umschaltung und PUK/PIN-Verwahrung) und Block D (DSFinV-K-Gegenlesen mit IDEA/fiskaly-Prüftooling).
 
 ---
 
 ## 3. Gate: Betrieb / Produktionsreife (Ops)
 
 - [ ] Ops-Härtung (PRD Runde 1 / PR #64) verifiziert: Version-Pinning-Hard-Fail, non-root-Container, Log-Rotation, Health-Check, Ping-URL.
-- [ ] Komplett durchgespielt nach [QA-Guide](guide-manuelle-qa-v1.0.0.md), Blöcke 1 und 7 (frische Installation Server + Windows, prod-update/-backup/-backup-verify/-restore, TLS, Rate Limiting, Security Headers, Parallelzugriff).
+- [ ] Ops-Smoke (`scripts/ops-smoke.sh install` und `ops`) grün: frische Installation, prod-backup/-backup-verify/-update, Security-Header, Rate-Limiting. Parallelzugriffstest (`make verify`) grün.
+- [ ] Komplett durchgespielt nach [Rest-Guide](guide-manuelle-qa-v1.0.0.md), Block B (Windows-Rechner), Block E (destruktives `prod-restore`, TLS-Abnahme auf echtem Domain-Namen) und Block F (Zwei-Geräte-Test in echt).
 
 ---
 
@@ -73,7 +75,7 @@ Die Arbeit liegt in Nacharbeit Block 5 und 6; hier nur die Abnahme:
 - [ ] **Version-Bump auf 1.0.0** an allen Quellen: Image-Tags/`JOTTI_VERSION`, `VERSION` für Windows-Build, die per ldflags eingebrannte Software-Version (fließt in `tse.csv`/`cashregister.csv`). `frontend/package.json` ist tot und gehört nicht zum Bump-Set (C13-Entscheidung).
 - [ ] Images bauen und pushen: `ghcr.io/nicograef/jotti-backend`, `jotti-frontend`, `jotti-migrate`, `jotti-reverse-proxy`, alle mit Tag `1.0.0` (Migrationen sind ins Migrate-Image gebacken — alle vier müssen zusammenpassen).
 - [ ] `make release-windows VERSION=1.0.0` → Release-ZIP.
-- [ ] **Smoke-Test der gepinnten 1.0.0-Images** nach [QA-Guide](guide-manuelle-qa-v1.0.0.md), Block 8.
+- [ ] **Smoke-Test der gepinnten 1.0.0-Images**: `scripts/ops-smoke.sh release VERSION=1.0.0` (`prod-init`, erster Login, ein Verkauf, ein Beleg, ein Export), Abnahme nach [Rest-Guide](guide-manuelle-qa-v1.0.0.md), Block H.
 - [ ] `git tag v1.0.0` (annotated) + GitHub Release mit Notes (Funktionsumfang, Betreiberpflichten-Hinweis, Upgrade-Hinweis ab v0.14.0).
 - [ ] Nach dem Release: Plan-Dateien und Audit aus `docs/plans/` entfernen.
 
@@ -82,8 +84,8 @@ Die Arbeit liegt in Nacharbeit Block 5 und 6; hier nur die Abnahme:
 ## 7. Go-Live-Checkliste (kompakt)
 
 - [ ] `make verify` grün, Lint sauber, Cleanup-Pass durch (Gate 1)
-- [ ] Fiskal-E2E mit fiskaly-TEST-TSE komplett durchgespielt (Gate 2 / QA-Guide Blöcke 2–6)
-- [ ] Ops-Roundtrips und frische Installation getestet (Gate 3 / QA-Guide Blöcke 1 und 7)
+- [ ] Fiskal-E2E mit fiskaly-TEST-TSE komplett durchgespielt (Gate 2: TSE-Live-Suite, DSFinV-K-Validator, Rest-Guide Blöcke A, C, D)
+- [ ] Ops-Roundtrips und frische Installation getestet (Gate 3: Ops-Smoke, Parallelzugriffstest, Rest-Guide Blöcke B, E, F)
 - [ ] Schema eingefroren, Migrations-Konvention dokumentiert (Gate 4)
 - [ ] Doku konsistent, Verfahrensdoku final, CHANGELOG angelegt, Version überall 1.0.0 (Gate 5)
 - [ ] Images gebaut/gepusht, Smoke-Test auf frischem Server, `v1.0.0` getaggt + Release veröffentlicht (Gate 6)
