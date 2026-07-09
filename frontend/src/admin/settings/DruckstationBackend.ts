@@ -130,7 +130,14 @@ export class DruckstationBackend {
     await this.backend.post('admin/druckauftrag-verwerfen', { id })
   }
 
-  public async druckauftraegeVerwerfen(): Promise<void> {
-    await this.backend.post('admin/druckauftraege-verwerfen', {})
+  // Verwirft alle fehlgeschlagenen Druckaufträge und gibt die Anzahl der
+  // verworfenen Aufträge zurück (für die Rückmeldung im Toast).
+  public async druckauftraegeVerwerfen(): Promise<number> {
+    const { verworfen } = await this.backend.post(
+      'admin/druckauftraege-verwerfen',
+      {},
+      z.object({ verworfen: z.number() }),
+    )
+    return verworfen
   }
 }

@@ -214,6 +214,67 @@ function FehlgeschlagenerDruckauftragRow({
   )
 }
 
+function AlleVerwerfenDialog({
+  anzahl,
+  alleVerwerfen,
+}: {
+  anzahl: number
+  alleVerwerfen: () => Promise<number>
+}) {
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Druckaufträge verwerfen',
+  })
+
+  const verwerfenBeschreibung =
+    anzahl === 1
+      ? '1 fehlgeschlagener Auftrag wird aus der Warteschlange entfernt.'
+      : `${String(anzahl)} fehlgeschlagene Aufträge werden aus der Warteschlange entfernt.`
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-destructive"
+          disabled={loading}
+        >
+          Alle verwerfen
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Alle fehlgeschlagenen Druckaufträge verwerfen?
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {verwerfenBeschreibung} Noch benötigte Bons vorher einzeln über
+            „Erneut versuchen“ nachdrucken.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-white hover:bg-destructive/90"
+            onClick={() =>
+              void run(async () => {
+                const verworfen = await alleVerwerfen()
+                toast.success(
+                  verworfen === 1
+                    ? '1 Auftrag verworfen.'
+                    : `${String(verworfen)} Aufträge verworfen.`,
+                )
+              })
+            }
+          >
+            Alle verwerfen
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 function FehlgeschlageneDruckauftraege() {
   const {
     druckauftraege,
@@ -223,14 +284,6 @@ function FehlgeschlageneDruckauftraege() {
     verwerfen,
     alleVerwerfen,
   } = useFehlgeschlageneDruckauftraege()
-  const { loading: alleVerwerfenLoading, run: runAlleVerwerfen } =
-    useActionSubmit({ actionLabel: 'Druckaufträge verwerfen' })
-
-  const anzahlFehlgeschlagen = druckauftraege.length
-  const verwerfenBeschreibung =
-    anzahlFehlgeschlagen === 1
-      ? '1 fehlgeschlagener Auftrag wird aus der Warteschlange entfernt.'
-      : `${String(anzahlFehlgeschlagen)} fehlgeschlagene Aufträge werden aus der Warteschlange entfernt.`
 
   let inhalt
   if (isPending) {
@@ -271,45 +324,10 @@ function FehlgeschlageneDruckauftraege() {
       <div className="flex items-center justify-between gap-4 mb-4">
         <h2 className="text-xl font-semibold">Fehlgeschlagene Druckaufträge</h2>
         {druckauftraege.length > 0 && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive"
-                disabled={alleVerwerfenLoading}
-              >
-                Alle verwerfen
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  Alle fehlgeschlagenen Druckaufträge verwerfen?
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  {verwerfenBeschreibung} Noch benötigte Bons vorher einzeln
-                  über „Erneut versuchen“ nachdrucken.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-white hover:bg-destructive/90"
-                  onClick={() =>
-                    void runAlleVerwerfen(async () => {
-                      await alleVerwerfen()
-                      toast.success(
-                        'Alle fehlgeschlagenen Druckaufträge verworfen.',
-                      )
-                    })
-                  }
-                >
-                  Alle verwerfen
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <AlleVerwerfenDialog
+            anzahl={druckauftraege.length}
+            alleVerwerfen={alleVerwerfen}
+          />
         )}
       </div>
       <p className="text-muted-foreground text-sm mb-6">

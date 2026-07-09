@@ -47,7 +47,7 @@ describe('PositionAuswahlListe', () => {
     expect(screen.getByText('0')).toBeInTheDocument()
   })
 
-  it('meldet Plus mit Position-ID und Maximalmenge an onAdd', async () => {
+  it('meldet Plus mit Position-ID an onAdd', async () => {
     const user = userEvent.setup()
     const onAdd = vi.fn()
     render(
@@ -64,7 +64,7 @@ describe('PositionAuswahlListe', () => {
     )
 
     expect(onAdd).toHaveBeenCalledTimes(1)
-    expect(onAdd).toHaveBeenCalledWith('a', 3)
+    expect(onAdd).toHaveBeenCalledWith('a')
   })
 
   it('meldet Minus mit Position-ID an onRemove', async () => {

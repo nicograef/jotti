@@ -54,10 +54,11 @@ export function useFehlgeschlageneDruckauftraege() {
   }
 
   const alleVerwerfen = async () => {
-    await druckstationBackend.druckauftraegeVerwerfen()
+    const verworfen = await druckstationBackend.druckauftraegeVerwerfen()
     await queryClient.invalidateQueries({
       queryKey: ['fehlgeschlagene-druckauftraege'],
     })
+    return verworfen
   }
 
   return {

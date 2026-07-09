@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { FehlgeschlagenerDruckauftrag } from './DruckstationBackend'
@@ -10,7 +11,7 @@ vi.mock('sonner', () => ({
 }))
 
 const { alleVerwerfen } = vi.hoisted(() => ({
-  alleVerwerfen: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  alleVerwerfen: vi.fn<() => Promise<number>>().mockResolvedValue(2),
 }))
 
 const fehlgeschlageneState = vi.hoisted(() => ({
@@ -74,6 +75,7 @@ describe('DruckstationConfigPage', () => {
     await user.click(confirmButtons[confirmButtons.length - 1])
 
     expect(alleVerwerfen).toHaveBeenCalled()
+    expect(toast.success).toHaveBeenCalledWith('2 Aufträge verworfen.')
   })
 
   it('zeigt ohne fehlgeschlagene Aufträge keinen "Alle verwerfen"-Button', () => {

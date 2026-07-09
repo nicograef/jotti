@@ -14,7 +14,7 @@ import {
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { formatCents, formatPositionName } from '@/lib/utils'
+import { formatCents } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
 import { useAktiveTische } from '../../table/hooks'
@@ -24,6 +24,7 @@ import { PositionAuswahlListe } from '../PositionAuswahlListe'
 import {
   calculateTotalPrice,
   selectPositionen,
+  toAuswahlPositionen,
   toPositionRefs,
 } from './drawerUtils'
 
@@ -80,7 +81,9 @@ export function HistorieUmbuchungDrawer({
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
 
-  const onAdd = (positionId: string, maxMenge: number) => {
+  const onAdd = (positionId: string) => {
+    const maxMenge =
+      positionen.find((p) => p.positionId === positionId)?.menge ?? 0
     setMengen((prev) => {
       const current = prev[positionId] || 0
       if (current >= maxMenge) return prev
@@ -140,15 +143,7 @@ export function HistorieUmbuchungDrawer({
             </DrawerDescription>
           </DrawerHeader>
           <PositionAuswahlListe
-            positionen={positionen.map((position: Position) => ({
-              id: position.positionId,
-              name: formatPositionName(
-                position.produktName,
-                position.varianteName,
-              ),
-              einzelpreisCents: position.einzelpreisCents,
-              maxMenge: position.menge,
-            }))}
+            positionen={toAuswahlPositionen(positionen)}
             mengen={mengen}
             onAdd={onAdd}
             onRemove={onRemove}

@@ -6,7 +6,31 @@ import type {
   Position,
   PositionRef,
 } from '../../table/Bestellung'
+import type { AuswahlPosition } from '../PositionAuswahlListe'
 import type { ReceiptPosition } from './Receipt'
+
+// Minimale Positionsform, die toAuswahlPositionen benötigt (Position und
+// VerkaufPosition erfüllen sie beide).
+interface AuswaehlbarePosition {
+  positionId: string
+  produktName: string
+  varianteName: string
+  einzelpreisCents: number
+  menge: number
+}
+
+// toAuswahlPositionen bringt fachliche Positionen in die von PositionAuswahlListe
+// erwartete Form: die vorhandene Menge wird zur auswählbaren Obergrenze.
+export function toAuswahlPositionen(
+  positionen: AuswaehlbarePosition[],
+): AuswahlPosition[] {
+  return positionen.map((position) => ({
+    id: position.positionId,
+    name: formatPositionName(position.produktName, position.varianteName),
+    einzelpreisCents: position.einzelpreisCents,
+    maxMenge: position.menge,
+  }))
+}
 
 export function selectPositionen(
   positionen: Position[],

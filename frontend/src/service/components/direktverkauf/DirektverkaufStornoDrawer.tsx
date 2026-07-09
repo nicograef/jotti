@@ -13,13 +13,13 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
-import { formatCents, formatPositionName } from '@/lib/utils'
+import { formatCents } from '@/lib/utils'
 
 import type { DirektverkaufHistorieEintrag } from '../../direktverkauf/Direktverkauf'
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
 import { PositionAuswahlListe } from '../PositionAuswahlListe'
 import { KommentarField } from '../table/CommentField'
-import { calculateTotalPrice } from '../table/drawerUtils'
+import { calculateTotalPrice, toAuswahlPositionen } from '../table/drawerUtils'
 
 interface DirektverkaufStornoDrawerProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufStornieren'>
@@ -94,15 +94,7 @@ export function DirektverkaufStornoDrawer({
             </DrawerDescription>
           </DrawerHeader>
           <PositionAuswahlListe
-            positionen={verkauf.offenePositionen.map((position) => ({
-              id: position.positionId,
-              name: formatPositionName(
-                position.produktName,
-                position.varianteName,
-              ),
-              einzelpreisCents: position.einzelpreisCents,
-              maxMenge: position.menge,
-            }))}
+            positionen={toAuswahlPositionen(verkauf.offenePositionen)}
             mengen={mengen}
             onAdd={(id) => {
               add(id)

@@ -1,9 +1,7 @@
-import { TriangleAlert } from 'lucide-react'
 import { useParams } from 'react-router'
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
   Item,
@@ -26,14 +24,14 @@ import { TischBackend } from './table/TischBackend'
 
 const tischBackend = new TischBackend(BackendSingleton)
 
-// Unterer Freiraum der Produktliste, damit die letzte Zeile über den beiden
+// Unterer Freiraum des Tab-Inhalts, damit die letzte Zeile über den beiden
 // fixierten Leisten (StickyActionBar + Tab-Leiste) endet und antippbar bleibt.
 // Die Leisten sitzen mobil bei 4rem, desktop bei 1rem über der Safe-Area und
 // sind 3.5rem hoch; ihre Oberkante liegt also 7.5rem (mobil) bzw. 4.5rem
 // (desktop) über der Safe-Area. Der Freiraum leitet sich davon plus 1rem
 // Sicherheitsabstand ab und wächst mit env(safe-area-inset-bottom) mit. Das
 // frühere statische pb-40 wuchs nicht mit und war auf Geräten mit Inset zu knapp.
-const produktlistenFreiraum =
+const tabInhaltFreiraum =
   'pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]'
 
 export function TablePage() {
@@ -62,16 +60,10 @@ export function TablePage() {
   // „Alles ausgegeben!") — sonst wirkt der Tisch bei Netzabbruch abgerechnet.
   if (stateError || historieError) {
     return (
-      <Alert variant="destructive">
-        <TriangleAlert className="size-4" />
-        <AlertTitle>Tischdaten konnten nicht geladen werden</AlertTitle>
-        <AlertDescription>
-          <p>Bitte die Verbindung prüfen und erneut versuchen.</p>
-          <Button variant="outline" size="sm" onClick={reload}>
-            Erneut versuchen
-          </Button>
-        </AlertDescription>
-      </Alert>
+      <LadefehlerAlert
+        titel="Tischdaten konnten nicht geladen werden"
+        onErneutVersuchen={reload}
+      />
     )
   }
 
@@ -145,7 +137,7 @@ export function TablePage() {
             </TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="order" className={produktlistenFreiraum}>
+        <TabsContent value="order" className={tabInhaltFreiraum}>
           {!stateLoading && (
             <>
               {offenePositionen > 0 && (
@@ -169,7 +161,7 @@ export function TablePage() {
             </>
           )}
         </TabsContent>
-        <TabsContent value="payment" className={produktlistenFreiraum}>
+        <TabsContent value="payment" className={tabInhaltFreiraum}>
           {!stateLoading && (
             <Zahlung
               backend={tischBackend}

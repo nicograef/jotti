@@ -13,7 +13,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
-import { formatCents, formatPositionName } from '@/lib/utils'
+import { formatCents } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -23,6 +23,7 @@ import { KommentarField } from './CommentField'
 import {
   calculateTotalPrice,
   selectPositionen,
+  toAuswahlPositionen,
   toPositionRefs,
 } from './drawerUtils'
 
@@ -95,15 +96,7 @@ export function HistorieStornierungDrawer({
             </DrawerDescription>
           </DrawerHeader>
           <PositionAuswahlListe
-            positionen={positionen.map((position: Position) => ({
-              id: position.positionId,
-              name: formatPositionName(
-                position.produktName,
-                position.varianteName,
-              ),
-              einzelpreisCents: position.einzelpreisCents,
-              maxMenge: position.menge,
-            }))}
+            positionen={toAuswahlPositionen(positionen)}
             mengen={mengen}
             onAdd={(id) => {
               add(id)

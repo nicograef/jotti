@@ -1,8 +1,5 @@
-import { TriangleAlert } from 'lucide-react'
-
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 import { EroeffnenSection } from './EroeffnenSection'
@@ -33,16 +30,11 @@ export function KassensitzungPage() {
     return (
       <>
         <h1 className="text-2xl font-bold">Kassensitzung</h1>
-        <Alert variant="destructive" className="mt-4">
-          <TriangleAlert className="size-4" />
-          <AlertTitle>Kassendaten konnten nicht geladen werden</AlertTitle>
-          <AlertDescription>
-            <p>Bitte die Verbindung prüfen und erneut versuchen.</p>
-            <Button variant="outline" size="sm" onClick={() => void refetch()}>
-              Erneut versuchen
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <LadefehlerAlert
+          titel="Kassendaten konnten nicht geladen werden"
+          onErneutVersuchen={() => void refetch()}
+          className="mt-4"
+        />
       </>
     )
   }

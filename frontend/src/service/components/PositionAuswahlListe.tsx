@@ -5,7 +5,7 @@ import { formatCents } from '@/lib/utils'
 
 // AuswahlPosition ist die minimale Form, die PositionAuswahlListe braucht: ein
 // bereits formatierter Name, der Einzelpreis und die Obergrenze der auswählbaren
-// Menge (für die Anzeige „N Stück“ und als Argument von onAdd).
+// Menge (für die Anzeige „N Stück“).
 export interface AuswahlPosition {
   id: string
   name: string
@@ -16,7 +16,7 @@ export interface AuswahlPosition {
 interface PositionAuswahlListeProps {
   positionen: AuswahlPosition[]
   mengen: Record<string, number>
-  onAdd: (id: string, maxMenge: number) => void
+  onAdd: (id: string) => void
   onRemove: (id: string) => void
 }
 
@@ -73,7 +73,7 @@ export function PositionAuswahlListe({
                 className="h-8 w-8"
                 aria-label={`${position.name} hinzufügen`}
                 onClick={() => {
-                  onAdd(position.id, position.maxMenge)
+                  onAdd(position.id)
                 }}
               >
                 <Plus size={16} />

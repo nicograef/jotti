@@ -74,7 +74,7 @@ function ScrollableTabsList({
   const [canScrollLeft, setCanScrollLeft] = React.useState(false)
   const [canScrollRight, setCanScrollRight] = React.useState(false)
 
-  const aktualisiereAffordance = React.useCallback(() => {
+  const updateAffordance = React.useCallback(() => {
     const el = scrollRef.current
     if (el === null) return
     const maxScroll = el.scrollWidth - el.clientWidth
@@ -85,29 +85,29 @@ function ScrollableTabsList({
   React.useEffect(() => {
     const el = scrollRef.current
     if (el === null) return
-    aktualisiereAffordance()
+    updateAffordance()
     // ResizeObserver fehlt in der jsdom-Testumgebung; ohne Layout-Engine gibt es
     // dort ohnehin keine messbaren Breiten, daher überspringen wir die Messung.
     if (typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(aktualisiereAffordance)
+    const observer = new ResizeObserver(updateAffordance)
     observer.observe(el)
-    for (const kind of el.children) observer.observe(kind)
+    for (const child of el.children) observer.observe(child)
     return () => {
       observer.disconnect()
     }
-  }, [aktualisiereAffordance])
+  }, [updateAffordance])
 
-  function scrolle(richtung: -1 | 1) {
+  function scroll(direction: -1 | 1) {
     const el = scrollRef.current
     if (el === null) return
-    el.scrollBy({ left: (richtung * el.clientWidth) / 2, behavior: 'smooth' })
+    el.scrollBy({ left: (direction * el.clientWidth) / 2, behavior: 'smooth' })
   }
 
   return (
     <div data-slot="scrollable-tabs" className="relative">
       <div
         ref={scrollRef}
-        onScroll={aktualisiereAffordance}
+        onScroll={updateAffordance}
         className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <TabsList className={cn('w-max', className)} {...props}>
@@ -123,7 +123,7 @@ function ScrollableTabsList({
           data-slot="tabs-scroll-hint"
           data-direction="left"
           onClick={() => {
-            scrolle(-1)
+            scroll(-1)
           }}
           className="absolute inset-y-0 left-0 flex items-center bg-gradient-to-r from-background from-40% to-transparent pr-6 pl-1"
         >
@@ -138,7 +138,7 @@ function ScrollableTabsList({
           data-slot="tabs-scroll-hint"
           data-direction="right"
           onClick={() => {
-            scrolle(1)
+            scroll(1)
           }}
           className="absolute inset-y-0 right-0 flex items-center bg-gradient-to-l from-background from-40% to-transparent pr-1 pl-6"
         >
