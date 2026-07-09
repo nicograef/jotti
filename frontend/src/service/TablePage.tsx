@@ -26,6 +26,16 @@ import { TischBackend } from './table/TischBackend'
 
 const tischBackend = new TischBackend(BackendSingleton)
 
+// Unterer Freiraum der Produktliste, damit die letzte Zeile über den beiden
+// fixierten Leisten (StickyActionBar + Tab-Leiste) endet und antippbar bleibt.
+// Die Leisten sitzen mobil bei 4rem, desktop bei 1rem über der Safe-Area und
+// sind 3.5rem hoch; ihre Oberkante liegt also 7.5rem (mobil) bzw. 4.5rem
+// (desktop) über der Safe-Area. Der Freiraum leitet sich davon plus 1rem
+// Sicherheitsabstand ab und wächst mit env(safe-area-inset-bottom) mit. Das
+// frühere statische pb-40 wuchs nicht mit und war auf Geräten mit Inset zu knapp.
+const produktlistenFreiraum =
+  'pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]'
+
 export function TablePage() {
   const { tischId } = useParams<{ tischId: string }>()
   const isMobile = useIsMobile()
@@ -135,7 +145,7 @@ export function TablePage() {
             </TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="order" className="pb-40 md:pb-28">
+        <TabsContent value="order" className={produktlistenFreiraum}>
           {!stateLoading && (
             <>
               {offenePositionen > 0 && (
@@ -159,7 +169,7 @@ export function TablePage() {
             </>
           )}
         </TabsContent>
-        <TabsContent value="payment" className="pb-40 md:pb-28">
+        <TabsContent value="payment" className={produktlistenFreiraum}>
           {!stateLoading && (
             <Zahlung
               backend={tischBackend}

@@ -120,10 +120,10 @@ Im Tisch-Detail (Tabs Bestellen und Kassieren) endet die Produktliste heute hint
 
 ### Acceptance criteria
 
-- [ ] Playwright (393x851, als Servicekraft im Tisch-Detail): ans Listenende gescrollt überschneiden sich die Bounding-Boxen der letzten Produktzeile und der Leisten nicht (Tabs Bestellen und Kassieren)
-- [ ] Playwright: die letzte Produktzeile ist ohne `force: true` antippbar (Position erhöht sich)
-- [ ] Bestehende E2E-Suite grün (`make test-e2e E2E_BASE_URL=http://localhost:8093`)
-- [ ] `make verify` grün
+- [x] Playwright (393x851, als Servicekraft im Tisch-Detail): ans Listenende gescrollt überschneiden sich die Bounding-Boxen der letzten Produktzeile und der Leisten nicht (Tabs Bestellen und Kassieren)
+- [x] Playwright: die letzte Produktzeile ist ohne `force: true` antippbar (Position erhöht sich)
+- [x] Bestehende E2E-Suite grün (`make test-e2e E2E_BASE_URL=http://localhost:8093`)
+- [x] `make verify` grün
 
 ---
 
