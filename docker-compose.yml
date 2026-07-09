@@ -48,7 +48,7 @@ services:
     restart: "no"
 
   backend-dev:
-    image: golang:1.26.0-alpine
+    image: golang:1.26.5-alpine
     container_name: jotti-backend-dev
     working_dir: /src
     logging: *default-logging

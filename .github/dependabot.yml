@@ -75,6 +75,15 @@ updates:
         patterns:
           - "*"
 
+  - package-ecosystem: "npm"
+    directory: "/e2e"
+    schedule:
+      interval: "monthly"
+    groups:
+      e2e-npm:
+        patterns:
+          - "*"
+
   # Docker base images
   - package-ecosystem: "docker"
     directory: "/backend"
