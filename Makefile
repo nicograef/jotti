@@ -58,7 +58,7 @@ test-tse-live: ## TSE-Live-Suite gegen die fiskaly-TEST-TSS (Wegwerf-Postgres + 
 
 test-tse-live-setup: ## Voller TSE-Setup-Durchlauf gegen fiskaly-TEST (ACHTUNG: legt eine unlöschbare TSS im TEST-Konto an)
 	@test -f .env.fiskaly-test || { echo "FEHLER: .env.fiskaly-test fehlt. Vorlage: .env.fiskaly-test.example"; exit 1; }
-	cd backend && set -a && . ../.env.fiskaly-test && set +a && go test -tags=integration -count=1 -v -run 'LiveVollerDurchlauf' ./repository/tse_repo/
+	cd backend && set -a && . ../.env.fiskaly-test && set +a && JOTTI_TSE_LIVE=1 go test -tags=integration -count=1 -v -run 'LiveVollerDurchlauf' ./repository/tse_repo/
 
 test-all: test test-frontend ## Alle Unit-Tests (Backend + Frontend)
 

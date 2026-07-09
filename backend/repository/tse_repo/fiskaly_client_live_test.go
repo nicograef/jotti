@@ -14,11 +14,15 @@ import (
 )
 
 // TestFiskalyClient_LiveSigniertTransaktion signiert eine echte Transaktion
-// gegen die fiskaly-TEST-Umgebung. Der Test läuft nur, wenn die
-// FISKALY_TEST_*-Umgebungsvariablen gesetzt sind, und wird sonst übersprungen.
+// gegen die fiskaly-TEST-Umgebung. Der Test läuft nur mit explizitem Opt-in
+// JOTTI_TSE_LIVE=1 und gesetzten FISKALY_TEST_*-Umgebungsvariablen; sonst wird
+// er übersprungen, damit normale Integrationsläufe hermetisch bleiben.
 //
 //	make test-tse-live   # lädt .env.fiskaly-test (Vorlage: .env.fiskaly-test.example)
 func TestFiskalyClient_LiveSigniertTransaktion(t *testing.T) {
+	if os.Getenv("JOTTI_TSE_LIVE") != "1" {
+		t.Skip("JOTTI_TSE_LIVE != 1 — Live-Test übersprungen (Opt-in via make test-tse-live)")
+	}
 	credentials := tse.Credentials{
 		ApiKey:    os.Getenv("FISKALY_TEST_API_KEY"),
 		ApiSecret: os.Getenv("FISKALY_TEST_API_SECRET"),

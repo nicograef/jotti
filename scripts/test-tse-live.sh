@@ -80,6 +80,10 @@ set +a
 # -run 'LiveSigniert|LiveSuite' schliesst den TSS-anlegenden Setup-Durchlauf
 # (TestFiskalySetup_LiveVollerDurchlauf) bewusst aus: Der bleibt allein im
 # separaten Target `make test-tse-live-setup`.
+# JOTTI_TSE_LIVE=1 ist das explizite Opt-in der Live-Guards: nur dieses Skript
+# (und test-tse-live-setup) setzt es; normale Integrationslaeufe skippen die
+# Live-Tests damit auch bei in der Shell exportierten Credentials.
+JOTTI_TSE_LIVE=1 \
 POSTGRES_HOST=localhost \
 POSTGRES_PORT=${PGPORT} \
 POSTGRES_USER=admin \

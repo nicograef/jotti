@@ -15,14 +15,17 @@ import (
 
 // TestFiskalySetup_LiveVollerDurchlauf richtet aus einem fiskaly-TEST-Konto eine
 // vollständige, signierfähige TSS samt Client ein und signiert anschließend eine
-// Transaktion über die frisch angelegte Konfiguration. Der Test läuft nur, wenn
-// FISKALY_TEST_API_KEY/SECRET gesetzt sind.
+// Transaktion über die frisch angelegte Konfiguration. Der Test läuft nur mit
+// explizitem Opt-in JOTTI_TSE_LIVE=1 und gesetzten FISKALY_TEST_API_KEY/SECRET.
 //
 // ACHTUNG: Jeder Lauf legt im TEST-Konto eine nicht löschbare TSS an. Bewusst
 // sparsam ausführen (siehe Plan, „TEST-Konto füllt sich").
 //
 //	make test-tse-live-setup   # lädt .env.fiskaly-test (Vorlage: .env.fiskaly-test.example)
 func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
+	if os.Getenv("JOTTI_TSE_LIVE") != "1" {
+		t.Skip("JOTTI_TSE_LIVE != 1 — Setup-Live-Test übersprungen (Opt-in via make test-tse-live-setup)")
+	}
 	apiKey := os.Getenv("FISKALY_TEST_API_KEY")
 	apiSecret := os.Getenv("FISKALY_TEST_API_SECRET")
 	if apiKey == "" || apiSecret == "" {

@@ -60,11 +60,17 @@ type liveTestUmgebung struct {
 	variante int
 }
 
-// credentialsOderSkip liest die fiskaly-TEST-Credentials aus der Umgebung und
-// skippt die Suite, wenn sie fehlen (gleiche Guard-Schwelle wie im
-// fiskaly_client_live_test.go).
+// credentialsOderSkip verlangt das explizite Opt-in JOTTI_TSE_LIVE=1 und liest
+// dann die fiskaly-TEST-Credentials aus der Umgebung; fehlt eines von beidem,
+// wird die Suite geskippt (gleiche Guard-Schwelle wie im
+// fiskaly_client_live_test.go). Das Opt-in hält normale Integrationsläufe
+// (scripts/test-integration.sh) hermetisch, auch wenn FISKALY_TEST_*-Variablen
+// in der Shell exportiert sind.
 func credentialsOderSkip(t *testing.T) tse.Credentials {
 	t.Helper()
+	if os.Getenv("JOTTI_TSE_LIVE") != "1" {
+		t.Skip("JOTTI_TSE_LIVE != 1 — TSE-Live-Suite übersprungen (Opt-in via make test-tse-live)")
+	}
 	credentials := tse.Credentials{
 		ApiKey:    os.Getenv("FISKALY_TEST_API_KEY"),
 		ApiSecret: os.Getenv("FISKALY_TEST_API_SECRET"),
