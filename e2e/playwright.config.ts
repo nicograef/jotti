@@ -15,7 +15,12 @@ export default defineConfig({
   // Playwrights Auto-Waiting den Vortritt lassen.
   timeout: 60_000,
   expect: { timeout: 15_000 },
-  fullyParallel: true,
+  // POST /api/test/reset-and-seed setzt globalen DB-Zustand zurück — Spec-Dateien
+  // dürfen sich deshalb nicht überlappen. fullyParallel bliebe nur unschädlich,
+  // solange jede Datei exklusiv auf ihrem eigenen Zustand arbeitet; da der Reset
+  // aber die gesamte DB betrifft, laufen Dateien seriell (ein Worker).
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: isCI,
   retries: 0,
   reporter: isCI
