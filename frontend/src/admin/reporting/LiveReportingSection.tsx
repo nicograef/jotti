@@ -79,7 +79,7 @@ export function LiveReportingSection({
   const breakdowns = liveData.breakdowns
 
   return (
-    <div className="space-y-4">
+    <div data-testid="live-reporting-section" className="space-y-4">
       <div className="flex items-baseline gap-2">
         <h1 className="text-2xl font-bold">Live-Dashboard</h1>
         <p className="text-muted-foreground">

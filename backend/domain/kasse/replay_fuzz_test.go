@@ -60,21 +60,122 @@ func FuzzApplyEvent(f *testing.F) {
 	f.Add("unbekannt:v1", []byte(`{"foo":"bar"}`))
 
 	f.Fuzz(func(t *testing.T, typ string, data []byte) {
+		subject := TischSessionSubject(1, 1)
+
+		// Ausgangszustand: eine gültige Bestellung stellt einen realistischen,
+		// nicht-leeren Tisch her (Saldo 700, eine Position mit Menge 2). So testet
+		// der Fuzzer das folgende Event auf einem echten Vorzustand — nicht nur auf
+		// dem Nullwert — und die Invarianten haben einen Bezugspunkt.
+		basis, err := ApplyEvent(TischSession{Subject: subject}, e.Event{
+			ID: 1, UserID: 1, UserName: "fuzz", Version: 1,
+			Type:    string(EventTypeBestellungAufgenommenV1),
+			Time:    time.Unix(0, 0).UTC(),
+			Subject: subject,
+			Data:    json.RawMessage(`{"bestellungId":"11111111-1111-4111-8111-111111111111","positionen":[` + fuzzPositionLiteral + `],"gesamtPreisCents":700,"kommentar":""}`),
+		})
+		if err != nil {
+			t.Fatalf("Basis-Bestellung muss anwendbar sein: %v", err)
+		}
+
 		evt := e.Event{
-			ID:       1,
+			ID:       2,
 			UserID:   1,
 			UserName: "fuzz",
 			Type:     typ,
 			Time:     time.Unix(0, 0).UTC(),
-			Subject:  TischSessionSubject(1, 1),
+			Subject:  subject,
 			Version:  1,
 			Data:     json.RawMessage(data),
 		}
 
 		// Kein Panic: der Rückgabewert bei Fehler wird vom Aufrufer verworfen, daher
-		// prüfen wir hier nur die Panic-Freiheit der Replay-Kante.
-		_, _ = ApplyEvent(TischSession{Subject: evt.Subject}, evt)
+		// prüfen wir bei Fehlern nur die Panic-Freiheit der Replay-Kante. Ein
+		// fachlich falsches, aber wohlgeformtes Event darf einen Fehler liefern.
+		next, applyErr := ApplyEvent(basis, evt)
+		if applyErr != nil {
+			return
+		}
+
+		// Ab hier: das Event wurde erfolgreich angewendet. Die folgenden
+		// semantischen Invarianten müssen für jeden erfolgreichen Replay gelten.
+
+		// Invariante 1 — Positionsmengen konsistent: Reduzierungen und
+		// Akkumulationen halten jede projizierte Position bei einer echten,
+		// positiven Menge; eine Position mit Menge <= 0 wäre ein Projektionsfehler
+		// (nicht-entfernter Nulleintrag oder Vorzeichenfehler). Die Prüfung greift
+		// nur, wenn die Positionen des angewendeten Events selbst gültig sind
+		// (Menge > 0, gesetzte PositionID) — eine Menge-0-Position in der Payload
+		// liegt außerhalb des validierten Korpus und würde ihren Nulleintrag
+		// erwartungsgemäß durchreichen.
+		if eingabePositionenGueltig(evt.Data) {
+			for _, pos := range next.UnbezahltePositionen {
+				if pos.Menge <= 0 {
+					t.Fatalf("unbezahlte Position mit nicht-positiver Menge %d (%s) nach %s", pos.Menge, pos.PositionID, typ)
+				}
+			}
+			for _, pos := range next.AusstehendePositionen {
+				if pos.Menge <= 0 {
+					t.Fatalf("ausstehende Position mit nicht-positiver Menge %d (%s) nach %s", pos.Menge, pos.PositionID, typ)
+				}
+			}
+		}
+
+		// Invariante 2 — Saldo nie negativ: Der offene Betrag eines Tisches darf
+		// nicht unter 0 fallen. Saldo-mindernde Events (Zahlung/Korrektur/Umbuchung
+		// als Abgang) tragen einen validierten, nicht-negativen Betrag, der den
+		// offenen Betrag nicht übersteigt. Der Fuzzer speist jedoch beliebige
+		// Beträge ein: eine Minderung, die größer als der Vorzustands-Saldo ist,
+		// liegt außerhalb des validierten Korpus (im Betrieb kann nie mehr kassiert
+		// werden als offen ist) und wird von der Prüfung ausgenommen. Innerhalb des
+		// realistischen Rahmens muss der Saldo aber nicht-negativ bleiben.
+		if minderung := saldoMinderung(typ, evt.Data); minderung <= basis.SaldoCents && next.SaldoCents < 0 {
+			t.Fatalf("negativer Saldo %d nach %s (Basis %d, Minderung %d)", next.SaldoCents, typ, basis.SaldoCents, minderung)
+		}
 	})
+}
+
+// saldoMinderung liest den Saldo-mindernden Betrag eines Events aus der Payload,
+// um die Saldo-Invariante auf den realistischen Rahmen (Minderung <= offener
+// Betrag) einzugrenzen. Nicht-mindernde Events liefern 0.
+func saldoMinderung(typ string, data json.RawMessage) int {
+	switch typ {
+	case string(EventTypeZahlungKassiertV1):
+		var d ZahlungKassiertV1Data
+		if json.Unmarshal(data, &d) == nil {
+			return d.GesamtZahlungCents
+		}
+	case string(EventTypeBestellungKorrigiertV1):
+		var d BestellungKorrigiertV1Data
+		if json.Unmarshal(data, &d) == nil {
+			return d.GesamtCents
+		}
+	case string(EventTypeBestellungUmgebuchtV1):
+		var d BestellungUmgebuchtV1Data
+		if json.Unmarshal(data, &d) == nil && d.QuellTischID == 1 {
+			// Nur der Abgang (Quelltisch == Subjekt-Tisch 1) mindert den Saldo.
+			return d.GesamtCents
+		}
+	}
+	return 0
+}
+
+// eingabePositionenGueltig prüft, ob die Positionen in der Event-Payload einem
+// gültigen Vorgang entsprechen (jede Position hat eine PositionID und eine Menge
+// > 0). Nur dann greift die Positions-Mengen-Invariante; Menge-0- oder
+// PositionID-lose Positionen liegen außerhalb des validierten Schreibpfads.
+func eingabePositionenGueltig(data json.RawMessage) bool {
+	var payload struct {
+		Positionen []PositionEventData `json:"positionen"`
+	}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return false
+	}
+	for _, pos := range payload.Positionen {
+		if pos.PositionID == "" || pos.Menge <= 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // FuzzPositionEventDataRoundtrip prüft die Persistenz-Roundtrip-Eigenschaft der

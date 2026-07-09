@@ -18,9 +18,7 @@ test.describe('Admin sieht das Live-Dashboard', () => {
     // Die Seite zeigt sowohl das Live-Dashboard als auch (weiter unten) eine
     // historische Auswertung mit denselben Tab-Beschriftungen — deshalb bleibt
     // jede Prüfung auf den Live-Dashboard-Bereich beschränkt.
-    const liveSection = page.locator('div.space-y-4', {
-      has: page.getByRole('heading', { name: 'Live-Dashboard' }),
-    })
+    const liveSection = page.getByTestId('live-reporting-section')
     await expect(liveSection.getByRole('heading', { name: 'Live-Dashboard' })).toBeVisible()
 
     // Übersicht-Kennzahlen der laufenden Sitzung sind sichtbar (Seed hat

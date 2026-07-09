@@ -34,10 +34,13 @@ test.describe('Admin verwaltet Benutzer', () => {
     await expect(createdDialog).toBeVisible()
     await expect(createdDialog.getByText('petra', { exact: true })).toBeVisible()
     const code = await createdDialog
-      .locator('p.text-3xl.tracking-widest')
+      .getByTestId('onetime-password')
       .textContent()
-    expect(code, 'Einmalpasswort-Code muss angezeigt werden').toBeTruthy()
-    expect(code?.trim().length).toBeGreaterThan(0)
+    // Das Einmalpasswort ist ein sechsstelliger Zifferncode (siehe
+    // ADMIN-EINMALPASSWORT-Format); die Assertion prüft genau dieses Format.
+    expect(code?.trim(), 'Einmalpasswort muss sechsstelliger Zifferncode sein').toMatch(
+      /^\d{6}$/,
+    )
     await createdDialog.getByRole('button', { name: 'Okay' }).click()
 
     // Neue Benutzer starten inaktiv (Passwort noch nicht gesetzt): erst

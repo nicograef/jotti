@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { Locator, Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 import {
   simuliereNetzabbruch,
@@ -7,6 +7,7 @@ import {
 } from '../helpers/fehlerpfade'
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
+import { zeileMit } from '../support/servicekraft'
 
 // Kassieren-Drawer (ZahlungDrawer) meldet Fehler über useActionSubmit als
 // Toast (siehe frontend/src/hooks/use-action-submit.ts + lib/errorMessages.ts)
@@ -92,12 +93,4 @@ async function kassiereEinePosition(page: Page) {
   await page.getByRole('button', { name: /Kassieren/ }).click()
   const drawer = page.getByRole('dialog')
   await drawer.getByRole('button', { name: 'Kassieren' }).click()
-}
-
-function zeileMit(page: Page, text: string, buttonName: string): Locator {
-  return page
-    .locator('div')
-    .filter({ hasText: text })
-    .filter({ has: page.getByRole('button', { name: buttonName }) })
-    .last()
 }

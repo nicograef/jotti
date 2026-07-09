@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
-import type { Locator, Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
+import { zeileMit } from '../support/servicekraft'
 
 // Tracer-Bullet-Spec: der Kernpfad einer Servicekraft am Tisch — anmelden,
 // eine Bestellung aufnehmen, kassieren und den sichtbaren Betrag prüfen. Läuft
@@ -68,17 +69,6 @@ test.describe('Servicekraft nimmt eine Bestellung auf und kassiert', () => {
     await expect(page.getByText('0,00 €').first()).toBeVisible()
   })
 })
-
-// zeileMit liefert die innerste Zeile (div), die sowohl den gegebenen Text als
-// auch einen Button mit dem gegebenen Namen enthält. So lassen sich einzelne
-// Varianten-/Positions-Zeilen ohne Test-IDs und ohne Index eindeutig treffen.
-function zeileMit(page: Page, text: string, buttonName: string): Locator {
-  return page
-    .locator('div')
-    .filter({ hasText: text })
-    .filter({ has: page.getByRole('button', { name: buttonName }) })
-    .last()
-}
 
 // bestelleEinProdukt fügt eine Bratwurst XXL zur Bestellung hinzu und nimmt sie
 // über den Bestell-Drawer auf.

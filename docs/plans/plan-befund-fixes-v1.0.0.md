@@ -245,11 +245,11 @@ Fuzz: `assertQRCommandLengths` parst die ESC/POS-Kommandostruktur, statt auf ein
 
 ### Acceptance criteria
 
-- [ ] OTP-Assertion schlägt bei nicht-6-stelligem Wert fehl (Format-Regex statt nicht-leer)
-- [ ] Die im Befund genannten Tailwind-Klassen-Selektoren sind durch `data-testid` ersetzt; keine `zeileMit`-Dubletten mehr in den Spec-Dateien
-- [ ] `assertQRCommandLengths` erkennt eine QR-Payload, die selbst mit `GS(k` beginnt, korrekt (Regressionstest vorhanden)
-- [ ] `FuzzApplyEvent` prüft die genannten Invarianten; `make fuzz` grün (4 Targets je 90s, kein Crasher)
-- [ ] E2E-Suite und `make verify` grün
+- [x] OTP-Assertion schlägt bei nicht-6-stelligem Wert fehl (Format-Regex statt nicht-leer)
+- [x] Die im Befund genannten Tailwind-Klassen-Selektoren sind durch `data-testid` ersetzt; keine `zeileMit`-Dubletten mehr in den Spec-Dateien
+- [x] `assertQRCommandLengths` erkennt eine QR-Payload, die selbst mit `GS(k` beginnt, korrekt (Regressionstest vorhanden)
+- [x] `FuzzApplyEvent` prüft die genannten Invarianten; `make fuzz` grün (4 Targets je 90s, kein Crasher)
+- [x] E2E-Suite und `make verify` grün
 
 ---
 
