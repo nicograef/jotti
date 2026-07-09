@@ -1,6 +1,6 @@
 import { REGEXP_ONLY_DIGITS } from 'input-otp'
 import { EyeClosedIcon, EyeIcon } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import {
   Controller,
   type ControllerFieldState,
@@ -83,17 +83,17 @@ export function UsernameField<AllFormFields extends FieldValues>({
   withLabel,
   placeholder,
 }: FieldProps<{ username: string } & AllFormFields>) {
+  const id = useId()
   return (
     <Controller
       name={'username' as Path<{ username: string } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && (
-            <FieldLabel htmlFor="form-username">Benutzername</FieldLabel>
-          )}
+          {withLabel && <FieldLabel htmlFor={id}>Benutzername</FieldLabel>}
           <Input
             {...field}
+            id={id}
             onChange={(e) => {
               const username = toUsername(e.target.value)
               field.onChange(username)

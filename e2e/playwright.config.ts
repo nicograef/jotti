@@ -34,14 +34,20 @@ export default defineConfig({
   },
   projects: [
     {
-      // Admin arbeitet am Desktop (großer Viewport).
+      // Admin arbeitet am Desktop (großer Viewport). Nur die Admin-Specs
+      // laufen hier — die mobile-service-Specs würden sonst zusätzlich im
+      // Desktop-Viewport doppelt ausgeführt.
       name: 'desktop-admin',
       use: { ...devices['Desktop Chrome'] },
+      testMatch: /admin-.*\.spec\.ts$/,
     },
     {
       // Servicekräfte arbeiten mobil (BYOD-Smartphone, Hochkant-Viewport).
+      // Admin-Verwaltungsseiten sind Desktop-only und laufen daher nur im
+      // desktop-admin-Projekt.
       name: 'mobile-service',
       use: { ...devices['Pixel 7'] },
+      testIgnore: /admin-.*\.spec\.ts$/,
     },
   ],
 })
