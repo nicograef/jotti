@@ -26,8 +26,8 @@ func Run(ctx context.Context, database *sql.DB) error {
 // ResetAndSeed leert alle Daten-Tabellen und schreibt anschließend den
 // Demo-Zustand neu — beides in einer Transaktion. Anders als Run überspringt es
 // den Kassenjournal-Guard (das Leeren ist gewollt) und ist ausschließlich für
-// den Test-Reset-Endpoint (POST /test/reset-and-seed) gedacht, der wie das
-// seed-Subkommando nur bei JOTTI_ALLOW_SEED=1 registriert wird.
+// den HTTP-Test-Reset-Endpoint (POST /test/reset-and-seed) gedacht, der nur bei
+// JOTTI_ENABLE_TEST_API=1 registriert wird (nur E2E-Umgebung).
 func ResetAndSeed(ctx context.Context, database *sql.DB) error {
 	return seedInTransaction(ctx, database, true)
 }
@@ -100,7 +100,7 @@ func writeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDate
 		// leeren. SET LOCAL session_replication_role = replica deaktiviert die
 		// User-Trigger nur für DIESE Transaktion (pool-sicher, setzt sich beim
 		// Commit/Rollback selbst zurück). Der Endpoint existiert ohnehin nur bei
-		// JOTTI_ALLOW_SEED=1 (Test-/Demo-Umgebung), nie in Produktion.
+		// JOTTI_ENABLE_TEST_API=1 (nur E2E-Umgebung), nie in Produktion.
 		// kassenidentitaet ist von SeedTruncateAll bewusst ausgenommen (Install-
 		// Identität, insert-once) und bleibt daher unangetastet.
 		if _, err := tx.ExecContext(ctx, "SET LOCAL session_replication_role = replica"); err != nil {

@@ -22,6 +22,7 @@ type Config struct {
 	JWTSecret      string // Secret key for JWT signing
 	RelayToken     string // Statischer Token für das Print-Relay
 	FiskalyBaseURL string // Basis-URL fuer fiskaly SIGN-DE Middleware API
+	EnableTestApi  bool   // Schaltet den HTTP-Test-Reset-Endpoint frei (nur E2E, JOTTI_ENABLE_TEST_API=1)
 }
 
 // MinSecretLength ist die geforderte Mindestlänge für JWT_SECRET,
@@ -60,6 +61,7 @@ func Load() Config {
 		JWTSecret:      os.Getenv("JWT_SECRET"),
 		RelayToken:     os.Getenv("RELAY_AUTH_TOKEN"),
 		FiskalyBaseURL: parseEnvString("FISKALY_BASE_URL", "https://kassensichv-middleware.fiskaly.com"),
+		EnableTestApi:  os.Getenv("JOTTI_ENABLE_TEST_API") == "1",
 	}
 
 	if err := ValidateSecrets(cfg); err != nil {

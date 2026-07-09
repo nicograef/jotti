@@ -3,8 +3,9 @@ name: jotti-e2e
 # Selbststaendiger E2E-Test-Stack: baut die ECHTEN Images aus dem Checkout
 # (Backend, Frontend-nginx, Migrate, Reverse-Proxy) — dieselben Dockerfiles wie
 # der prod-Stack, aber ohne .env-Datei. Alle Secrets stehen fest und inline
-# (nur Testwerte), JOTTI_ALLOW_SEED=1 schaltet den Reset-Endpoint frei, und der
-# Reverse-Proxy laeuft im Klartext-HTTP-Mode (PROXY_HTTP_ONLY=1) ohne TLS/ACME.
+# (nur Testwerte), JOTTI_ENABLE_TEST_API=1 schaltet den HTTP-Reset-Endpoint frei,
+# und der Reverse-Proxy laeuft im Klartext-HTTP-Mode (PROXY_HTTP_ONLY=1) ohne
+# TLS/ACME und ist nur an 127.0.0.1 gebunden.
 #
 # Der oeffentliche HTTP-Port ist ueber E2E_HTTP_PORT parametrierbar (Default
 # 8080), damit parallele Laeufe sich nicht in die Quere kommen. Start:
@@ -64,8 +65,8 @@ services:
       POSTGRES_DBNAME: jotti
       JWT_SECRET: e2e-jwt-secret-do-not-use-in-production
       RELAY_AUTH_TOKEN: e2e-relay-token-do-not-use-in-production
-      # Schaltet den Test-Reset-Endpoint (POST /test/reset-and-seed) frei.
-      JOTTI_ALLOW_SEED: "1"
+      # Schaltet den HTTP-Test-Reset-Endpoint (POST /test/reset-and-seed) frei.
+      JOTTI_ENABLE_TEST_API: "1"
     networks:
       - app-network
     depends_on:
@@ -117,7 +118,7 @@ services:
       # und dieselbe CSP wie die anderen Modi (nur fuer die Testumgebung).
       PROXY_HTTP_ONLY: "1"
     ports:
-      - "${E2E_HTTP_PORT:-8080}:80"
+      - "127.0.0.1:${E2E_HTTP_PORT:-8080}:80"
     networks:
       - app-network
     depends_on:

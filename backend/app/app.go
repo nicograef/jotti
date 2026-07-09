@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -15,7 +14,6 @@ import (
 	"github.com/nicograef/jotti/backend/api/health"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/config"
-	"github.com/nicograef/jotti/backend/seed"
 )
 
 // App represents the application with its configuration, router, server, and database connection.
@@ -59,11 +57,11 @@ func SetupRoutes(cfg config.Config, db *sql.DB, version string) http.Handler {
 
 	areas := Areas()
 
-	// Test-Reset — nur in Test-/Demo-Umgebungen (JOTTI_ALLOW_SEED=1), dieselbe
-	// Guard-Logik wie das seed-Subkommando. Der Bereich wird über dieselbe
+	// Test-Reset — nur in der E2E-Umgebung (JOTTI_ENABLE_TEST_API=1), über
+	// cfg.EnableTestApi statt direktem os.Getenv. Der Bereich wird über dieselbe
 	// deklarative Area-Struktur (mountArea) verdrahtet: bewusst ohne JWT wie
-	// auth/relay. In Produktion existiert die Route nicht.
-	if seed.AllowedByEnv(os.Getenv) {
+	// auth/relay, aber rate-limitet. In Produktion existiert die Route nicht.
+	if cfg.EnableTestApi {
 		areas = append(areas, testResetArea(db))
 	}
 

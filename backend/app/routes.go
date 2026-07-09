@@ -117,16 +117,19 @@ func mountArea(r *http.ServeMux, area Area, cfg config.Config, deps api.Deps) {
 	r.Handle(area.Prefix+"/", handler)
 }
 
-// testResetArea liefert den Test-/Demo-Bereich (POST /test/reset-and-seed) als
-// deklarative Area. Er wird nur bei JOTTI_ALLOW_SEED=1 an Areas angehängt und
+// testResetArea liefert den Test-Bereich (POST /test/reset-and-seed) als
+// deklarative Area. Er wird nur bei JOTTI_ENABLE_TEST_API=1 an Areas angehängt und
 // läuft — wie auth/relay — bewusst ohne JWT: der Endpunkt setzt die Datenbank
-// auf den Demo-Zustand zurück und ist ausschließlich in Test-/Demo-Umgebungen
-// registriert. Er wird über dieselbe mountArea-Verdrahtung gemountet.
+// auf den Test-Zustand zurück und ist ausschließlich in der E2E-Umgebung
+// registriert. Er ist wie auth/relay rate-limitet, damit ein voller Truncate +
+// Reseed nicht als DoS-Vektor missbraucht werden kann, und wird über dieselbe
+// mountArea-Verdrahtung gemountet.
 func testResetArea(db *sql.DB) Area {
 	return Area{
 		Name:         "test",
 		Prefix:       "/test",
 		RequiresAuth: false,
+		RateLimited:  true,
 		build: func(_ config.Config, _ api.Deps) (http.Handler, []string) {
 			handler := testapi.NewHandler(db)
 			mux := http.NewServeMux()

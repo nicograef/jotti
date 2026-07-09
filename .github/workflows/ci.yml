@@ -505,7 +505,7 @@ jobs:
 
   # End-to-End-Tests (Playwright) gegen den ECHTEN Stack: die Prod-Images werden
   # aus dem Checkout via docker-compose.e2e.yml gebaut (HTTP-only, feste
-  # Test-Secrets, JOTTI_ALLOW_SEED=1). Der Job laeuft bei JEDEM Pull Request und
+  # Test-Secrets, JOTTI_ENABLE_TEST_API=1). Der Job laeuft bei JEDEM Pull Request und
   # bei jedem Push auf main; bei Rot werden Traces und Screenshots als Artefakt
   # hochgeladen.
   e2e:

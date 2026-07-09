@@ -18,7 +18,7 @@ export interface SeedZugangsdaten {
 
 // resetAndSeed setzt die Datenbank auf den deterministischen Demo-Zustand
 // zurück und liefert die Zugangsdaten für die Anmeldung. Der Endpoint ist nur
-// registriert, wenn der Stack mit JOTTI_ALLOW_SEED=1 läuft (Test-/Demo-Umgebung).
+// registriert, wenn der Stack mit JOTTI_ENABLE_TEST_API=1 läuft (E2E-Umgebung).
 // Jede Spec ruft dies als Erstes auf, damit sie vom bekannten Seed-Zustand startet.
 export async function resetAndSeed(
   request: APIRequestContext,

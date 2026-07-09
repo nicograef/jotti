@@ -178,7 +178,7 @@ func TestBerechtigungsMatrix_OeffentlicheBereiche(t *testing.T) {
 
 // TestBerechtigungsMatrix_TestResetOeffentlich behandelt den Sonderfall des
 // bedingten Test-Reset-Bereichs (POST /test/reset-and-seed) explizit: er wird
-// nur bei JOTTI_ALLOW_SEED=1 registriert und läuft — wie auth/relay — bewusst
+// nur bei JOTTI_ENABLE_TEST_API=1 registriert und läuft — wie auth/relay — bewusst
 // ohne JWT. Der Test baut den Bereich über dieselbe Fabrik wie SetupRoutes und
 // prüft die Deklaration (RequiresAuth == false ⇒ keine JWT-Middleware im
 // mountArea-Pfad) samt Pfad. Der Endpunkt selbst wird bewusst NICHT aufgerufen:

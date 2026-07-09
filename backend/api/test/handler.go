@@ -1,5 +1,5 @@
 // Package test stellt Testhilfen als HTTP-Endpunkte bereit, die ausschließlich
-// in Test- und Demo-Umgebungen registriert werden dürfen (JOTTI_ALLOW_SEED=1).
+// in der E2E-Umgebung registriert werden dürfen (JOTTI_ENABLE_TEST_API=1).
 // Der einzige Endpunkt, POST /test/reset-and-seed, setzt die Datenbank auf den
 // deterministischen Demo-Zustand zurück und gibt der aufrufenden E2E-Suite die
 // benötigten Zugangsdaten zurück. In Produktion wird die Route nie registriert.
