@@ -212,10 +212,10 @@ Positionszustände, Salden, Abschlussmeldung.
 
 ### Akzeptanzkriterien
 
-- [ ] Jeder Flow aus User Story 1 hat eine Spec im Handy-Viewport, die vom Seed-Zustand startet
-- [ ] Der Kassenabschluss-Test erzeugt seine Umsätze selbst und assertet die sichtbare Abschlussmeldung
-- [ ] Beide Storno-Arten und die Teilzahlung sind abgedeckt
-- [ ] CI-E2E-Job weiterhin grün
+- [x] Jeder Flow aus User Story 1 hat eine Spec im Handy-Viewport, die vom Seed-Zustand startet
+- [x] Der Kassenabschluss-Test erzeugt seine Umsätze selbst und assertet die sichtbare Abschlussmeldung
+- [x] Beide Storno-Arten und die Teilzahlung sind abgedeckt
+- [x] CI-E2E-Job weiterhin grün
 
 ---
 
@@ -241,10 +241,10 @@ leer; die inhaltliche Prüfung übernimmt der Validator ab Phase 5).
 
 ### Akzeptanzkriterien
 
-- [ ] Jeder Admin-Bereich (Produkte, Tische, Benutzer, Druckstationen, Kassenführung, Reporting) hat mindestens eine Spec mit sichtbaren Assertions
-- [ ] Export-Spec lädt eine nicht-leere ZIP-Datei über die Oberfläche herunter
-- [ ] Specs laufen im Desktop-Projekt und starten vom Seed-Zustand
-- [ ] CI-E2E-Job weiterhin grün
+- [x] Jeder Admin-Bereich (Produkte, Tische, Benutzer, Druckstationen, Kassenführung, Reporting) hat mindestens eine Spec mit sichtbaren Assertions
+- [x] Export-Spec lädt eine nicht-leere ZIP-Datei über die Oberfläche herunter
+- [x] Specs laufen im Desktop-Projekt und starten vom Seed-Zustand
+- [x] CI-E2E-Job weiterhin grün
 
 ---
 
@@ -268,9 +268,9 @@ Leer-Default wie Saldo 0,00 oder eine leere Liste ohne Hinweis.
 
 ### Akzeptanzkriterien
 
-- [ ] Serverfehler- und Netzabbruch-Spec je für Service-Screens und Admin-Reporting
-- [ ] Jede Spec assertet einen sichtbaren Fehlerzustand; Leer-Defaults gelten als Fehlschlag
-- [ ] CI-E2E-Job weiterhin grün
+- [x] Serverfehler- und Netzabbruch-Spec je für Service-Screens und Admin-Reporting
+- [x] Jede Spec assertet einen sichtbaren Fehlerzustand; Leer-Defaults gelten als Fehlschlag
+- [x] CI-E2E-Job weiterhin grün
 
 ---
 
@@ -332,9 +332,9 @@ wirklich ausübt.
 
 ### Akzeptanzkriterien
 
-- [ ] Alle Inhaltsregeln aus User Story 10 implementiert, je mit Fundstellen-Kommentar und kaputtem Fixture
-- [ ] Das Seed-Szenario übt jede Inhaltsregel nachweislich aus (Storno, Kombi, Tagesabschluss, TSE-Stammdaten)
-- [ ] Integrationstest weiterhin befundfrei; `make verify` grün
+- [x] Alle Inhaltsregeln aus User Story 10 implementiert, je mit Fundstellen-Kommentar und kaputtem Fixture
+- [x] Das Seed-Szenario übt jede Inhaltsregel nachweislich aus (Storno, Kombi, Tagesabschluss, TSE-Stammdaten)
+- [x] Integrationstest weiterhin befundfrei; `make verify` grün
 
 ---
 
@@ -425,10 +425,10 @@ Doppelbuchung.
 
 ### Akzeptanzkriterien
 
-- [ ] Drei Fuzz-Targets mit Seed-Korpus, die als normale Unit-Tests mitlaufen
-- [ ] `make fuzz` führt längere Läufe lokal aus
-- [ ] Parallelzugriffstest (zwei Clients, gleicher Tisch) unter dem integration-Tag, Konsistenz-Assertions auf Journal und Projektion
-- [ ] `make verify` grün
+- [x] Drei Fuzz-Targets mit Seed-Korpus, die als normale Unit-Tests mitlaufen
+- [x] `make fuzz` führt längere Läufe lokal aus
+- [x] Parallelzugriffstest (zwei Clients, gleicher Tisch) unter dem integration-Tag, Konsistenz-Assertions auf Journal und Projektion
+- [x] `make verify` grün
 
 ---
 
