@@ -245,7 +245,7 @@ func setup(t *testing.T) (int, int, Repository, func(t *testing.T)) {
 
 	return userID, ksNr, NewRepository(db), func(t *testing.T) {
 		cleanDB(t, db)
-		db.Close()
+		_ = db.Close()
 	}
 }
 
@@ -1351,7 +1351,7 @@ func TestWriteEvent_MultipleEvents_ProjectionCorrect(t *testing.T) {
 		t.Fatalf("Expected no error reading tisch session, got %v", err)
 	}
 
-	// Saldo: 700 - 350 = 350
+	// Saldo ist 350 (700 abzueglich 350 gezahlt)
 	if state.SaldoCents != 350 {
 		t.Fatalf("Expected SaldoCents 350, got %d", state.SaldoCents)
 	}

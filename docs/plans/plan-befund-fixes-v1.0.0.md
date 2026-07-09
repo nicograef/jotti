@@ -222,10 +222,10 @@ Der Reset (Testendpoint und Integrationstests) stellt einen deterministischen Au
 
 ### Acceptance criteria
 
-- [ ] Seed-Integrationstests zweimal direkt hintereinander grün (gleiche DB, kein manuelles Aufräumen)
-- [ ] `golangci-lint run --build-tags=integration` im Backend ohne Findings
-- [ ] Backend-Lint in `check-backend` und `lint-backend-full` läuft mit `--build-tags=integration`
-- [ ] `make verify` und `make check-integration` grün
+- [x] Seed-Integrationstests zweimal direkt hintereinander grün (gleiche DB, kein manuelles Aufräumen)
+- [x] `golangci-lint run --build-tags=integration` im Backend ohne Findings
+- [x] Backend-Lint in `check-backend` und `lint-backend-full` läuft mit `--build-tags=integration`
+- [x] `make verify` und `make check-integration` grün
 
 ---
 

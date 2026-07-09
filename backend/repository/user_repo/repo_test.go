@@ -49,7 +49,7 @@ func setup(t *testing.T) (user.User, Repository, func(t *testing.T)) {
 			t.Fatalf("Failed to clean users table: %v", err)
 		}
 
-		db.Close()
+		_ = db.Close()
 	}
 }
 
@@ -83,7 +83,7 @@ func TestGetUser_Error(t *testing.T) {
 	defer teardown(t)
 
 	_, err := repo.GetUser(context.Background(), 100000)
-	if err != dbpkg.ErrNotFound {
+	if !errors.Is(err, dbpkg.ErrNotFound) {
 		t.Fatalf("expected user not found error, got %v", err)
 	}
 }
@@ -107,7 +107,7 @@ func TestGetUserByUsername_Error(t *testing.T) {
 
 	_, err := repo.GetUserByUsername(context.Background(), "nonexistentuser")
 
-	if err != dbpkg.ErrNotFound {
+	if !errors.Is(err, dbpkg.ErrNotFound) {
 		t.Fatalf("expected user not found error, got %v", err)
 	}
 }
@@ -176,7 +176,7 @@ func TestUpdateUserInDB_Error(t *testing.T) {
 	u.ID = 99999 // Non-existent user ID
 	err := repo.UpdateUser(context.Background(), u)
 
-	if err != dbpkg.ErrNotFound {
+	if !errors.Is(err, dbpkg.ErrNotFound) {
 		t.Fatalf("expected user not found error, got %v", err)
 	}
 }

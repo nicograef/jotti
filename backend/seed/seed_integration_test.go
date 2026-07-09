@@ -25,7 +25,7 @@ func snapshotTischSessions(t *testing.T, db *sql.DB) string {
 	if err != nil {
 		t.Fatalf("tisch_sessions abfragen: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var b strings.Builder
 	for rows.Next() {
@@ -66,6 +66,10 @@ func cleanSeedDB(t *testing.T, db *sql.DB) {
 		"DELETE FROM tische",
 		"DELETE FROM betreiber",
 		"DELETE FROM users",
+		// tse_konfiguration auf die leere Singleton-Zeile der Migration
+		// normalisieren, damit der Ausgangszustand unabhaengig davon ist, ob
+		// zuvor ein Reset (der die Tabelle leert und neu befuellt) lief.
+		"INSERT INTO tse_konfiguration (id, api_key, api_secret, tss_id, client_id, updated_at) VALUES (1, '', '', '', '', NOW()) ON CONFLICT (id) DO UPDATE SET api_key = '', api_secret = '', tss_id = '', client_id = ''",
 	}
 	for _, stmt := range stmts {
 		if _, err := db.Exec(stmt); err != nil {

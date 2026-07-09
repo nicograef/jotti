@@ -22,6 +22,7 @@ linters:
       excludes:
         - G115 # Suppress integer overflow conversion warnings (false positives on safe casts)
         - G117 # Suppress implicit memory aliasing in for loops (resolved in Go 1.22+)
+        - G704 # SSRF-Taint auf die fiskaly-Basis-URL: sie stammt aus der Konfiguration (FiskalyBaseURL), nie aus Request-Daten — false positive
     gocritic:
       enabled-tags:
         - diagnostic # Catch common bugs and suspicious code patterns

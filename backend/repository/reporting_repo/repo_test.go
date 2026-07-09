@@ -129,7 +129,7 @@ func korrekturData(betragCents int, kommentar string) map[string]any {
 // username stays the maßgebliche identity in the event rows.
 func TestGetReporting_ResolvesKlarnameIncludingSoftDeleted(t *testing.T) {
 	db := dbpkg.OpenTestDatabase()
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
 
@@ -182,7 +182,7 @@ func TestGetReporting_ResolvesKlarnameIncludingSoftDeleted(t *testing.T) {
 // marked as Bar-Rückgabe) and the geldneutral Korrektur (bestellung-korrigiert).
 func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
 	db := dbpkg.OpenTestDatabase()
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
 
@@ -248,7 +248,7 @@ func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
 // unaggregierte Zeilen; die Aufschlüsselung rechnet die Anwendungsschicht.
 func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
 	db := dbpkg.OpenTestDatabase()
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
 

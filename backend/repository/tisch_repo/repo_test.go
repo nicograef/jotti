@@ -4,6 +4,7 @@ package tisch_repo
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ func setup(t *testing.T) (Repository, func(t *testing.T)) {
 			t.Fatalf("Failed to clean tische table: %v", err)
 		}
 
-		db.Close()
+		_ = db.Close()
 	}
 }
 
@@ -111,7 +112,7 @@ func TestUpdateTableDB_NotFound(t *testing.T) {
 	now := time.Now().UTC()
 	err := repo.UpdateTable(ctx, tisch.Tisch{ID: 999999, Name: "New Name", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
-	if err != dbpkg.ErrNotFound {
+	if !errors.Is(err, dbpkg.ErrNotFound) {
 		t.Fatalf("expected table not found error, got %v", err)
 	}
 }

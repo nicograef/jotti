@@ -62,7 +62,7 @@ func setupRepository(t *testing.T) (Repository, *testUmgebung, func(t *testing.T
 
 	return NewRepository(database), umgebung, func(t *testing.T) {
 		reset(t)
-		database.Close()
+		_ = database.Close()
 	}
 }
 
@@ -393,7 +393,7 @@ func statusMap(t *testing.T, db *sql.DB) map[int]string {
 	if err != nil {
 		t.Fatalf("statusMap query: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	status := map[int]string{}
 	for rows.Next() {
 		var id int

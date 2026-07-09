@@ -22,7 +22,7 @@ import (
 const (
 	testJWTSecret  = "test-jwt-secret-abc123456789"
 	testRelayToken = "test-relay-token-abc123"
-	testDBPassword = "test-postgres-password-1234"
+	testDBPassword = "test-postgres-password-1234" //nolint:gosec // Test-Platzhalter, kein echtes Secret
 )
 
 type pollRequest struct {
@@ -157,11 +157,15 @@ type testEnv struct {
 func setupTestEnv(t *testing.T) testEnv {
 	t.Helper()
 
-	os.Setenv("JWT_SECRET", testJWTSecret)
-	os.Setenv("RELAY_AUTH_TOKEN", testRelayToken)
+	t.Setenv("JWT_SECRET", testJWTSecret)
+	t.Setenv("RELAY_AUTH_TOKEN", testRelayToken)
 
 	db := jottiDB.OpenTestDatabase()
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Logf("Testdatenbank schließen: %v", err)
+		}
+	})
 
 	adminUserID, serviceUserID, produktID, varianteID, tischID := seedTestData(t, db)
 
@@ -170,9 +174,13 @@ func setupTestEnv(t *testing.T) testEnv {
 	// so override the env with a valid value purely to satisfy config validation,
 	// then restore it so later tests' OpenTestDatabase still reaches the DB.
 	origPW := os.Getenv("POSTGRES_PASSWORD")
-	os.Setenv("POSTGRES_PASSWORD", testDBPassword)
+	if err := os.Setenv("POSTGRES_PASSWORD", testDBPassword); err != nil {
+		t.Fatalf("POSTGRES_PASSWORD setzen: %v", err)
+	}
 	cfg := config.Load()
-	os.Setenv("POSTGRES_PASSWORD", origPW)
+	if err := os.Setenv("POSTGRES_PASSWORD", origPW); err != nil {
+		t.Fatalf("POSTGRES_PASSWORD zurücksetzen: %v", err)
+	}
 	handler := app.SetupRoutes(cfg, db, "dev")
 	ts := httptest.NewServer(handler)
 	t.Cleanup(func() { ts.Close() })
@@ -205,7 +213,7 @@ func openKassensitzungIfNeeded(t *testing.T, env testEnv) {
 		Bezeichnung: "Integration Test",
 		BetragCents: 10000,
 	}, env.adminToken)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		var errResp struct {
 			Code string `json:"code"`
@@ -239,7 +247,7 @@ func postJSON(t *testing.T, url string, body any, authToken string) *http.Respon
 
 func decodePollResponse(t *testing.T, resp *http.Response) pollResponse {
 	t.Helper()
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck // Testpfad: Body-Close-Fehler ohne Belang
 	var result pollResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		t.Fatalf("Failed to decode poll response: %v", err)
@@ -254,7 +262,7 @@ func configureDruckstation(t *testing.T, serverURL, token, kategorie, ip, bonmod
 		DruckerIP: ip,
 		Bonmodus:  bonmodus,
 	}, token)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Failed to configure druckstation for %s: status %d", kategorie, resp.StatusCode)
 	}
@@ -277,10 +285,10 @@ func createBestellung(t *testing.T, env testEnv, kommentar string) {
 		},
 		Kommentar: kommentar,
 	}, env.svcToken)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		var errResp map[string]any
-		json.NewDecoder(resp.Body).Decode(&errResp)
+		_ = json.NewDecoder(resp.Body).Decode(&errResp)
 		t.Fatalf("Failed to create bestellung: status %d, body %v", resp.StatusCode, errResp)
 	}
 }
@@ -331,7 +339,7 @@ func TestRelayPollErgebnisFlow(t *testing.T) {
 	}
 
 	resp = reportErgebnis(t, env.server.URL, testRelayToken, ids)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Expected ergebnis status 200, got %d", resp.StatusCode)
 	}
@@ -367,7 +375,7 @@ func TestRelayPollFalscherToken(t *testing.T) {
 	env := setupTestEnv(t)
 
 	resp := pollRelay(t, env.server.URL, "wrong-token")
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("Expected 400 for wrong token, got %d", resp.StatusCode)
@@ -376,7 +384,7 @@ func TestRelayPollFalscherToken(t *testing.T) {
 	var errResp struct {
 		Code string `json:"code"`
 	}
-	json.NewDecoder(resp.Body).Decode(&errResp)
+	_ = json.NewDecoder(resp.Body).Decode(&errResp)
 	if errResp.Code != "unauthorized" {
 		t.Fatalf("Expected error code 'unauthorized', got %q", errResp.Code)
 	}

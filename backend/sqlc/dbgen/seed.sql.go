@@ -119,6 +119,20 @@ func (q *Queries) SeedInsertKassensitzung(ctx context.Context, arg SeedInsertKas
 	return err
 }
 
+const seedInsertLeereTSEKonfiguration = `-- name: SeedInsertLeereTSEKonfiguration :exec
+INSERT INTO tse_konfiguration (id, api_key, api_secret, tss_id, client_id, updated_at)
+VALUES (1, '', '', '', '', NOW())
+`
+
+// SeedInsertLeereTSEKonfiguration stellt nach dem Truncate die leere
+// Singleton-Zeile der tse_konfiguration wieder her, die die Migration beim
+// Erstlauf anlegt. Ohne sie bliebe die Tabelle nach einem Reset dauerhaft leer
+// und ein Folge-Reseed liefe auf einen anderen Ausgangszustand.
+func (q *Queries) SeedInsertLeereTSEKonfiguration(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, seedInsertLeereTSEKonfiguration)
+	return err
+}
+
 const seedInsertProdukt = `-- name: SeedInsertProdukt :exec
 INSERT INTO produkte (id, name, kategorie, steuersatz, status, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)

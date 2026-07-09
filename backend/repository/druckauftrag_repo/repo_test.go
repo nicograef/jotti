@@ -27,7 +27,7 @@ func setup(t *testing.T) (Repository, func(t *testing.T)) {
 		if err != nil {
 			t.Fatalf("Failed to reset druckauftraege: %v", err)
 		}
-		database.Close()
+		_ = database.Close()
 	}
 }
 

@@ -15,7 +15,7 @@ import (
 // naechsten Tick); nach der Freigabe erwirbt der Retry ihn.
 func TestTSESignaturWorker_AdvisoryLock_ZweiteSessionHaeltLock(t *testing.T) {
 	db := dbpkg.OpenTestDatabase()
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	ctx := context.Background()
 
 	// Erste „Instanz": eigene, gepinnte Session haelt den Lock.
@@ -23,7 +23,7 @@ func TestTSESignaturWorker_AdvisoryLock_ZweiteSessionHaeltLock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Halter-Connection oeffnen: %v", err)
 	}
-	t.Cleanup(func() { halter.Close() })
+	t.Cleanup(func() { _ = halter.Close() })
 
 	var gehalten bool
 	if err := halter.QueryRowContext(ctx, "SELECT pg_try_advisory_lock($1)", tseSignaturWorkerLockKey).Scan(&gehalten); err != nil {

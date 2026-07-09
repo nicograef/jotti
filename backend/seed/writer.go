@@ -109,6 +109,13 @@ func writeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDate
 		if err := qtx.SeedTruncateAll(ctx); err != nil {
 			return fmt.Errorf("tabellen leeren: %w", err)
 		}
+		// Die leere tse_konfiguration-Singleton-Zeile wiederherstellen, die die
+		// Migration beim Erstlauf anlegt und das Truncate mitgelöscht hat. Ohne
+		// sie ist der Ausgangszustand nach einem Reset ein anderer als nach der
+		// Erstmigration, und ein Folge-Reseed liefe nicht mehr deterministisch.
+		if err := qtx.SeedInsertLeereTSEKonfiguration(ctx); err != nil {
+			return fmt.Errorf("leere tse-konfiguration wiederherstellen: %w", err)
+		}
 	}
 
 	if err := writeStammdaten(ctx, qtx, s, jetzt); err != nil {

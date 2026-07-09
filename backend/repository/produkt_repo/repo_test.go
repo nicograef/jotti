@@ -4,6 +4,7 @@ package produkt_repo
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -36,7 +37,7 @@ func setup(t *testing.T) (Repository, func(t *testing.T)) {
 			t.Fatalf("Failed to clean products table: %v", err)
 		}
 
-		db.Close()
+		_ = db.Close()
 	}
 }
 
@@ -167,7 +168,7 @@ func TestGetProduct_NotFound(t *testing.T) {
 	ctx := context.Background()
 	_, err := repo.GetProduct(ctx, 999999)
 
-	if err != dbpkg.ErrNotFound {
+	if !errors.Is(err, dbpkg.ErrNotFound) {
 		t.Fatalf("Expected ErrNotFound, got %v", err)
 	}
 }
@@ -221,7 +222,7 @@ func TestUpdateProduct_NotFound(t *testing.T) {
 	ctx := context.Background()
 	err := repo.UpdateProduct(ctx, produkt.Produkt{ID: 999999, Name: "Updated Name", Kategorie: produkt.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produkt.ActiveStatus, UpdatedAt: time.Now().UTC()})
 
-	if err != dbpkg.ErrNotFound {
+	if !errors.Is(err, dbpkg.ErrNotFound) {
 		t.Fatalf("Expected ErrNotFound, got %v", err)
 	}
 }
@@ -274,7 +275,7 @@ func TestGetVariant_NotFound(t *testing.T) {
 	ctx := context.Background()
 	_, err := repo.GetVariant(ctx, 999999)
 
-	if err != dbpkg.ErrNotFound {
+	if !errors.Is(err, dbpkg.ErrNotFound) {
 		t.Fatalf("Expected ErrNotFound, got %v", err)
 	}
 }
@@ -317,7 +318,7 @@ func TestUpdateVariant_NotFound(t *testing.T) {
 	ctx := context.Background()
 	err := repo.UpdateVariant(ctx, produkt.Variante{ID: 999999, Name: "Test", PreisCents: 100, Status: produkt.ActiveStatus})
 
-	if err != dbpkg.ErrNotFound {
+	if !errors.Is(err, dbpkg.ErrNotFound) {
 		t.Fatalf("Expected ErrNotFound, got %v", err)
 	}
 }

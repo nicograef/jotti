@@ -41,7 +41,7 @@ func setupKassenfuehrungIntegration(t *testing.T) (ctx context.Context, cmd Comm
 	cleanKassenfuehrungDB(t, db)
 	t.Cleanup(func() {
 		cleanKassenfuehrungDB(t, db)
-		db.Close()
+		_ = db.Close()
 	})
 
 	ctx = context.Background()

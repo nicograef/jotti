@@ -78,8 +78,8 @@ fuzz: ## Fuzz-Targets länger laufen lassen (je Target 90s; kein CI-Dauerlauf)
 lint-backend: ## Backend Linting (go vet + goimports)
 	cd backend && go vet ./... && goimports -l .
 
-lint-backend-full: ## Backend Linting mit golangci-lint
-	cd backend && golangci-lint run
+lint-backend-full: ## Backend Linting mit golangci-lint (inkl. Integrationstest-Dateien)
+	cd backend && golangci-lint run --build-tags=integration
 
 lint-frontend: ## Frontend Linting (ESLint)
 	cd frontend && pnpm lint
@@ -283,8 +283,8 @@ check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
 		fi; \
 	done
 
-check-backend: ## Backend komplett prüfen (Deps, Format, Lint, Test, Build)
-	cd backend && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -tags=unit -count=1 -race ./... && go build ./...
+check-backend: ## Backend komplett prüfen (Deps, Format, Lint inkl. Integration-Tag, Test, Build)
+	cd backend && go mod tidy -diff && golangci-lint run --build-tags=integration && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -tags=unit -count=1 -race ./... && go build ./...
 
 check-relay: ## Print-Relay komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd windows/relay && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...

@@ -21,7 +21,7 @@ func TestHealthCheck_WithMockDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create mock DB: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	hc := HealthCheck{DB: db}
 	handler := hc.Handler()

@@ -45,7 +45,7 @@ func setupDVIntegration(t *testing.T) (ctx context.Context, cmd Command, db *sql
 	cleanDVDB(t, db)
 	t.Cleanup(func() {
 		cleanDVDB(t, db)
-		db.Close()
+		_ = db.Close()
 	})
 
 	ctx = context.Background()

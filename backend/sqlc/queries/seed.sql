@@ -31,6 +31,14 @@ TRUNCATE TABLE
     tse_stoerungen
 RESTART IDENTITY CASCADE;
 
+-- SeedInsertLeereTSEKonfiguration stellt nach dem Truncate die leere
+-- Singleton-Zeile der tse_konfiguration wieder her, die die Migration beim
+-- Erstlauf anlegt. Ohne sie bliebe die Tabelle nach einem Reset dauerhaft leer
+-- und ein Folge-Reseed liefe auf einen anderen Ausgangszustand.
+-- name: SeedInsertLeereTSEKonfiguration :exec
+INSERT INTO tse_konfiguration (id, api_key, api_secret, tss_id, client_id, updated_at)
+VALUES (1, '', '', '', '', NOW());
+
 -- name: SeedInsertUser :exec
 INSERT INTO users (id, name, username, password_hash, role, status, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8);

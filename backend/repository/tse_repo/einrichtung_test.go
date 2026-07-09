@@ -61,7 +61,7 @@ func setupEinrichtung(t *testing.T) (Repository, *einrichtungsUmgebung, func(t *
 
 	return NewRepository(database), umgebung, func(t *testing.T) {
 		reset(t)
-		database.Close()
+		_ = database.Close()
 	}
 }
 

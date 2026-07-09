@@ -45,7 +45,7 @@ func setupBestellungIntegration(t *testing.T) (ctx context.Context, cmd Command,
 	cleanTischDB(t, db)
 	t.Cleanup(func() {
 		cleanTischDB(t, db)
-		db.Close()
+		_ = db.Close()
 	})
 
 	ctx = context.Background()

@@ -21,7 +21,7 @@ import (
 // Go-Aggregation und SQL-Aggregation nicht auseinanderlaufen können.
 func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 	db := dbpkg.OpenTestDatabase()
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
 

@@ -66,7 +66,7 @@ func setupMatrix(t *testing.T) (http.Handler, map[user.Role]testUser, func()) {
 
 	return handler, users, func() {
 		_, _ = db.Exec("DELETE FROM users")
-		db.Close()
+		_ = db.Close()
 	}
 }
 

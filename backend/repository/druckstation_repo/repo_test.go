@@ -34,7 +34,7 @@ func setup(t *testing.T) (Repository, func(t *testing.T)) {
 
 	return NewRepository(db), func(t *testing.T) {
 		reset()
-		db.Close()
+		_ = db.Close()
 	}
 }
 
