@@ -1,0 +1,238 @@
+import type { Locator, Page } from '@playwright/test'
+import { expect } from '@playwright/test'
+
+// Wiederverwendbare Helfer für die Servicekraft-Flows (Tischservice). Jede
+// Funktion nutzt ausschließlich zugängliche Selektoren (Rolle, Platzhalter,
+// Beschriftung) statt Test-IDs, passend zum Muster der Tracer-Bullet-Spec.
+
+// zeileMit liefert die innerste Zeile (div), die sowohl den gegebenen Text als
+// auch einen Button mit dem gegebenen Namen enthält. So lassen sich einzelne
+// Varianten-/Positions-Zeilen ohne Test-IDs und ohne Index eindeutig treffen.
+// scope ist wahlweise die ganze Seite oder ein bereits eingegrenzter Bereich
+// (z. B. ein Drawer), damit sich Zeilen auch innerhalb eines Dialogs isolieren
+// lassen. Der „has"-Filter wird bewusst von der Seite aus gebaut (nicht vom
+// scope aus) — verkettet man ihn stattdessen vom selben scope, matcht
+// Playwright das Filter-Locator nicht zuverlässig gegen die Kandidaten.
+export function zeileMit(
+  scope: Page | Locator,
+  text: string,
+  buttonName: string | RegExp,
+): Locator {
+  const page = 'page' in scope ? scope.page() : scope
+  return scope
+    .locator('div')
+    .filter({ hasText: text })
+    .filter({ has: page.getByRole('button', { name: buttonName }) })
+    .last()
+}
+
+// oeffneTisch navigiert von der Tischauswahl zur Detailseite eines Tisches
+// über den „Alle Tische"-Drawer (funktioniert unabhängig davon, ob der Tisch
+// bereits in „Meine Tische" markiert ist).
+export async function oeffneTisch(page: Page, tisch: string): Promise<void> {
+  await page.goto('/service/tische')
+  await page.getByRole('button', { name: 'Alle Tische' }).click()
+  await page.getByPlaceholder('Tisch suchen...').fill(tisch)
+  await page
+    .getByRole('button', { name: new RegExp(`^${tisch}\\b.*€`) })
+    .click()
+  await expect(page.getByRole('tab', { name: 'Bestellen' })).toBeVisible()
+}
+
+// bestellePosition nimmt auf dem aktuell offenen Tisch eine Bestellung über
+// den Bestellen-Tab auf: Produkt aufklappen, Variante zur gewünschten Menge
+// hinzufügen, Bestellung im Drawer bestätigen.
+export async function bestellePosition(
+  page: Page,
+  produkt: string,
+  variante: string,
+  menge = 1,
+): Promise<void> {
+  await page.getByRole('tab', { name: 'Bestellen' }).click()
+
+  const variantenZeile = zeileMit(page, variante, 'Variante hinzufügen')
+  // Produkt nur aufklappen, wenn die Variante noch nicht sichtbar ist — beim
+  // zweiten Aufruf für dasselbe Produkt bliebe es sonst geöffnet und der
+  // erneute Klick würde es wieder einklappen.
+  if (!(await variantenZeile.isVisible())) {
+    await page.getByText(produkt, { exact: false }).first().click()
+  }
+  await expect(variantenZeile).toBeVisible()
+
+  for (let i = 0; i < menge; i++) {
+    await variantenZeile.getByRole('button', { name: 'Variante hinzufügen' }).click()
+  }
+
+  await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()
+  const drawer = page.getByRole('dialog')
+  await drawer.getByRole('button', { name: 'Bestellung aufnehmen' }).click()
+  // .first(): Sonner kann bei mehreren Bestellungen kurzzeitig zwei Toasts mit
+  // demselben Text im DOM halten (neuer Toast, alter noch beim Ausblenden).
+  await expect(
+    page.getByText('Bestellung wurde aufgenommen.').first(),
+  ).toBeVisible()
+}
+
+// gebeAusstehendePositionAus wählt im Bestellen-Tab die ausstehende Position
+// mit dem gegebenen Namen (Produkt + Variante) zur gewünschten Menge aus und
+// bestätigt anschließend die Ausgabe über die Ausgabe-Karte.
+export async function gebeAusstehendePositionAus(
+  page: Page,
+  positionName: string,
+  menge = 1,
+): Promise<void> {
+  await page.getByRole('tab', { name: 'Bestellen' }).click()
+  const position = zeileMit(page, positionName, 'Produkt hinzufügen')
+  await expect(position).toBeVisible()
+  for (let i = 0; i < menge; i++) {
+    await position.getByRole('button', { name: 'Produkt hinzufügen' }).click()
+  }
+
+  await page.getByRole('button', { name: 'Ausgabe bestätigen' }).click()
+  const drawer = page.getByRole('dialog')
+  await drawer.getByRole('button', { name: 'Ausgabe bestätigen' }).click()
+  await expect(
+    page.getByText('Ausgabe wurde bestätigt.').first(),
+  ).toBeVisible()
+}
+
+// kassierePosition wechselt auf den Kassieren-Tab, wählt die Position mit dem
+// angegebenen Namen zur gewünschten Menge aus und schließt die Zahlung ab.
+export async function kassierePosition(
+  page: Page,
+  positionName: string,
+  menge = 1,
+): Promise<void> {
+  await page.getByRole('tab', { name: 'Kassieren' }).click()
+  const position = zeileMit(page, positionName, 'Produkt hinzufügen')
+  await expect(position).toBeVisible()
+  for (let i = 0; i < menge; i++) {
+    await position.getByRole('button', { name: 'Produkt hinzufügen' }).click()
+  }
+
+  const kassierenLeiste = page.getByRole('button', { name: /Kassieren/ })
+  await kassierenLeiste.click()
+
+  const drawer = page.getByRole('dialog')
+  await drawer.getByRole('button', { name: 'Kassieren' }).click()
+  await expect(page.getByText('Zahlung erfolgreich.').first()).toBeVisible()
+}
+
+// offeneTischNamen liest über den „Alle Tische"-Drawer alle Tische mit einem
+// Saldo ungleich 0,00 € aus. Der Kassenabschluss verlangt, dass jeder Tisch
+// ausgeglichen ist — das Demo-Drehbuch des laufenden Tages lässt bewusst
+// mehrere Tische in unterschiedlichen offenen Zuständen zurück (teilbezahlt,
+// teilgeliefert, frisch bestellt, …). Name und Saldo stehen im DOM als eigene
+// <span>-Kinder ohne Trennzeichen dazwischen (z. B. „Tisch 10,00 €" für
+// „Tisch 1" mit Saldo „0,00 €") — deshalb werden sie über je einen eigenen
+// <span> ausgelesen statt über den zusammengesetzten Button-Text.
+async function offeneTischNamen(page: Page): Promise<string[]> {
+  await page.goto('/service/tische')
+  await page.getByRole('button', { name: 'Alle Tische' }).click()
+  const zeilen = await page
+    .getByRole('button', { name: /^.+\d,\d{2}\s*€$/ })
+    .all()
+  const namen: string[] = []
+  for (const zeile of zeilen) {
+    const spans = zeile.locator('span')
+    const name = (await spans.nth(0).textContent())?.trim() ?? ''
+    const saldo = (await spans.nth(1).textContent())?.trim() ?? ''
+    if (name && !/^0,00\s*€$/.test(saldo)) {
+      namen.push(name)
+    }
+  }
+  await page.keyboard.press('Escape')
+  return namen
+}
+
+// zeigeAlleAn klappt — falls vorhanden — die Positionen anderer Servicekräfte
+// auf („Alle anzeigen"), die sonst standardmäßig eingeklappt bleiben.
+async function zeigeAlleAn(page: Page): Promise<void> {
+  const alleAnzeigenButton = page.getByRole('button', {
+    name: /^Alle anzeigen/,
+  })
+  if (await alleAnzeigenButton.isVisible()) {
+    await alleAnzeigenButton.click()
+  }
+}
+
+// vollePositionsZeilen liefert alle Positions-Zeilen (shadcn Item,
+// [data-slot="item"]) mit einem „Produkt hinzufügen"-Button — das grenzt sie
+// eindeutig von der umschließenden ItemGroup ab, die ebenfalls alle Buttons
+// enthält.
+function vollePositionsZeilen(page: Page): Locator {
+  return page.locator('[data-slot="item"]').filter({
+    has: page.getByRole('button', { name: 'Produkt hinzufügen' }),
+  })
+}
+
+// waehleAlleVollAus klickt in jeder Positions-Zeile so oft auf „+", bis die
+// Zeile ihre volle ausstehende/unbezahlte Menge erreicht hat — erkennbar
+// daran, dass „noch 0" im Zeilentext steht. Eine Obergrenze pro Zeile
+// verhindert eine Endlosschleife, falls der Text unerwartet nie „noch 0"
+// erreicht.
+async function waehleAlleVollAus(page: Page): Promise<void> {
+  const zeilen = vollePositionsZeilen(page)
+  const anzahlZeilen = await zeilen.count()
+  for (let i = 0; i < anzahlZeilen; i++) {
+    const zeile = zeilen.nth(i)
+    for (let klick = 0; klick < 50; klick++) {
+      const text = (await zeile.textContent()) ?? ''
+      if (/noch 0\b/.test(text)) break
+      await zeile.getByRole('button', { name: 'Produkt hinzufügen' }).click()
+    }
+  }
+}
+
+// settleAlleOffenenTische gleicht jeden Tisch mit offenem Saldo vollständig
+// aus: alle ausstehenden Positionen ausgeben, alle unbezahlten Positionen
+// kassieren. Nötig, bevor der Kassenabschluss angefordert werden kann (jeder
+// Tisch muss ausgeglichen sein). Positionen anderer Servicekräfte stehen
+// hinter „Alle anzeigen" — das wird vor jeder Zählung/Auswahl aufgeklappt,
+// sonst übersieht die Funktion Positionen und bricht die Schleife vorzeitig ab.
+export async function settleAlleOffenenTische(page: Page): Promise<void> {
+  const namen = await offeneTischNamen(page)
+  for (const tisch of namen) {
+    await oeffneTisch(page, tisch)
+
+    // Alle ausstehenden Positionen ausgeben (falls welche vorhanden sind).
+    await page.getByRole('tab', { name: 'Bestellen' }).click()
+    await zeigeAlleAn(page)
+    const ausgabeButton = page.getByRole('button', {
+      name: 'Ausgabe bestätigen',
+    })
+    if (await ausgabeButton.isVisible()) {
+      await waehleAlleVollAus(page)
+      await ausgabeButton.click()
+      const drawer = page.getByRole('dialog')
+      await drawer.getByRole('button', { name: 'Ausgabe bestätigen' }).click()
+      await expect(
+        page.getByText('Ausgabe wurde bestätigt.').first(),
+      ).toBeVisible()
+    }
+
+    // Alle unbezahlten Positionen kassieren (falls welche vorhanden sind). Der
+    // „Kassieren"-Button ist immer im DOM (nur deaktiviert bei leerer Auswahl)
+    // — ob es überhaupt unbezahlte Positionen gibt, zeigt die Positionsliste.
+    await page.getByRole('tab', { name: 'Kassieren' }).click()
+    await zeigeAlleAn(page)
+    if ((await vollePositionsZeilen(page).count()) > 0) {
+      await waehleAlleVollAus(page)
+      await page.getByRole('button', { name: /Kassieren/ }).click()
+      const drawer = page.getByRole('dialog')
+      await drawer.getByRole('button', { name: 'Kassieren' }).click()
+      await expect(
+        page.getByText('Zahlung erfolgreich.').first(),
+      ).toBeVisible()
+    }
+  }
+}
+
+// abmelden meldet den aktuell eingeloggten Benutzer über das Benutzermenü ab
+// und wartet auf die Weiterleitung zur Login-Seite — zum Rollenwechsel
+// innerhalb einer Spec (z. B. Service → Serviceleitung → Admin).
+export async function abmelden(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Benutzermenü' }).click()
+  await page.getByRole('menuitem', { name: 'Abmelden' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+}
