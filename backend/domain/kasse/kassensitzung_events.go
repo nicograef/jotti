@@ -46,9 +46,12 @@ type KassensitzungEroeffnetV1Data struct {
 }
 
 var kassensitzungEroeffnetV1DataSchema = z.Struct(z.Shape{
-	"Datum":        z.String().Min(8).Max(10).Required(),
-	"Bezeichnung":  z.String().Min(1).Max(200).Required(),
-	"BetragCents":  z.Int().GTE(0).Required(),
+	"Datum":       z.String().Min(8).Max(10).Required(),
+	"Bezeichnung": z.String().Min(1).Max(200).Required(),
+	// Kein Required(): zog wertet den Zero-Value 0 als fehlend, ein
+	// Anfangsbestand von 0 Cent ist aber gültig (Pflichtprüfung macht die
+	// HTTP-Schicht via Ptr+NotNil).
+	"BetragCents":  z.Int().GTE(0),
 	"EroeffnetVon": z.Int().GTE(1).Required(),
 })
 
@@ -77,7 +80,9 @@ type KassensturzDurchgefuehrtV1Data struct {
 
 var kassensturzDurchgefuehrtV1DataSchema = z.Struct(z.Shape{
 	"SollBestandCents": z.Int(),
-	"IstBestandCents":  z.Int().GTE(0).Required(),
+	// Kein Required(): eine leer gezählte Kasse (0 Cent) ist ein gültiger
+	// Ist-Bestand; zog würde den Zero-Value sonst als fehlend ablehnen.
+	"IstBestandCents":  z.Int().GTE(0),
 	"DifferenzCents":   z.Int(),
 	"DurchgefuehrtVon": z.Int().GTE(1).Required(),
 })
