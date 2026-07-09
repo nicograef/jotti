@@ -3,7 +3,7 @@ title: Häufige Fragen
 description: 'Kurze Antworten auf häufige Fragen zum jotti-Betrieb: Internet, TSE-Pflicht, Trinkgeld, Testen und Kosten.'
 ---
 
-**Brauchen wir beim Fest Internet?** Ja, durch die TSE braucht jotti eine Internetverbindung.
+**Brauchen wir beim Fest Internet?** Ja, durch die TSE braucht jotti eine Internetverbindung. Fällt sie kurzzeitig aus, läuft der Verkauf trotzdem weiter (siehe nächste Frage).
 
 **Was, wenn das Internet oder die TSE ausfällt?** Weiterverkaufen ist erlaubt.
 jotti bucht ganz normal weiter und signiert die Vorgänge automatisch nach, sobald

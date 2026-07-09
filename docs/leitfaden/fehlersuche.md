@@ -79,3 +79,17 @@ automatisch nach, sobald die Verbindung zur TSE zurück ist. Die Störung wird
 dabei automatisch dokumentiert; nachsignierte Belege tragen den Vermerk
 „Nachsigniert am …". Ihr müsst nichts weiter tun, nur die Internetverbindung
 wiederherstellen (Router prüfen, ggf. neu starten).
+
+## Nach einem Update klappt das Anmelden nicht
+
+Sehr selten passt nach einem Update (meist von einer sehr alten Version) das in der
+Datenbank gespeicherte Passwort nicht mehr zum Installations-Schlüssel. jotti
+startet dann zwar, aber das Anmelden schlägt fehl. Eure Daten sind dabei nicht
+verloren. Es gibt zwei datenerhaltende Wege zurück:
+
+1. **`jotti-repair.cmd`** doppelklicken. Es gleicht das Datenbank-Passwort an den
+   aktuellen Installations-Schlüssel an und startet jotti neu, ohne eure Daten zu
+   verändern. Mehrfaches Ausführen schadet nicht. Danach einmal neu anmelden.
+2. Habt ihr noch die **`.env` aus der alten Installation**, kopiert ihr sie nach
+   `C:\ProgramData\jotti\.env` und startet `jotti-start.exe` erneut. Dann verwendet
+   jotti wieder den ursprünglichen Schlüssel.

@@ -20,15 +20,19 @@ automatisch: Die Produktions-Konfiguration (`docker-compose.prod.yml`) bringt ei
 Caddy-Reverse-Proxy mit, der es beim ersten Start selbst bei Let's Encrypt
 anfordert und danach erneuert.
 
-> ⚠️ Ohne HTTPS dürft ihr jotti nicht über das offene Internet betreiben:
-> Anmeldedaten und Bestellungen würden sonst unverschlüsselt übertragen.
+> ⚠️ **Kein Betrieb ohne HTTPS.** Ohne HTTPS dürft ihr jotti nicht über das offene
+> Internet betreiben: Anmeldedaten und Bestellungen würden sonst unverschlüsselt
+> übertragen.
 
 ## Ersteinrichtung
 
 1. **Docker installieren.** Auf dem Server Docker Engine samt Compose-Plugin
    einrichten (<https://docs.docker.com/engine/install/>).
-2. **Projektdateien holen.** Das aktuelle Release als ZIP entpacken oder das
-   Repository klonen, dann in den Projektordner wechseln.
+2. **Projektdateien holen.** Das Repository klonen oder das Quellcode-Archiv des
+   Releases („Source code (zip)" auf der Releases-Seite) entpacken, dann in den
+   Projektordner wechseln. Nicht das `jotti-windows`-ZIP verwenden: Es enthält nur
+   den Windows-Starter, aber weder `Makefile`, `scripts/` noch
+   `docker-compose.prod.yml`.
 3. **`.env` anlegen** mit `make init` (erzeugt sichere Zufallswerte für die
    Geheimnisse).
 4. **Domain, E-Mail und Version eintragen** in der `.env`:
@@ -36,8 +40,12 @@ anfordert und danach erneuert.
    ```bash
    JOTTI_DOMAIN=kasse-musterverein.de
    LETSENCRYPT_EMAIL=vorstand@musterverein.de
-   JOTTI_VERSION=v0.2.0
+   JOTTI_VERSION=v0.14.0
    ```
+
+   Die aktuelle Versionsnummer übernehmt ihr von der
+   [GitHub-Releases-Seite](https://github.com/nicograef/jotti/releases) — ein
+   nicht existierendes Tag lässt den Image-Download fehlschlagen.
 
 5. **DNS auf den Server zeigen lassen.** Beim Domain-Anbieter einen A-Record (und
    bei IPv6 einen AAAA-Record) auf die öffentliche IP des Servers setzen. Erst wenn
@@ -48,3 +56,10 @@ anfordert und danach erneuert.
 
 Danach ist jotti unter `https://<eure-domain>` erreichbar; HTTP leitet automatisch
 auf HTTPS um.
+
+## Erster Login
+
+`make prod-init` gibt beim ersten Start einen einmaligen, 6-stelligen
+Anmelde-Code aus. Damit meldet ihr euch an wie unter
+[Installation und Start](installation.md#erster-login) beschrieben: Benutzername
+`admin`, „Neues Passwort festlegen", Code eingeben und ein eigenes Passwort setzen.

@@ -12,6 +12,8 @@ export const publishedDocs = [
   'leitfaden/was-ist-jotti.md',
   'leitfaden/installation.md',
   'leitfaden/tse-einrichten.md',
+  'leitfaden/veranstaltungstag.md',
+  'leitfaden/aktualisieren.md',
   'leitfaden/checkliste.md',
   'leitfaden/pflichten.md',
   'leitfaden/finanzamt-anmelden.md',

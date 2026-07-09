@@ -16,7 +16,7 @@ Die TSE (Technische Sicherheitseinrichtung) signiert jeden Kassenvorgang fälsch
 2. Im Dashboard einen API-Key erstellen. Ihr erhaltet zwei Werte: den **API-Key** (eine Art Benutzername) und das **API-Secret** (das Passwort, wird nur einmal angezeigt).
 3. Beide Werte sicher notieren. Das Secret könnt ihr später nicht erneut einsehen, nur neu erzeugen.
 
-Mehr ist im Dashboard nicht nötig. Die TSS anlegen, initialisieren und den Client registrieren übernimmt jottis Assistent.
+Mehr ist im Dashboard nicht nötig. Die TSS (so heißt eure TSE im fiskaly-Konto) anlegen, initialisieren und den Client registrieren übernimmt jottis Assistent.
 
 > 🔒 **API-Key und Secret sind geheim.** Sie gehören nicht in Chats, E-Mails oder
 > öffentliche Dokumente. Ihr tragt sie nur einmal im Assistenten ein; jotti

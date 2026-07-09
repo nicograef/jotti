@@ -54,6 +54,11 @@ export default defineConfig({
               label: 'TSE einrichten (fiskaly)',
               slug: 'docs/leitfaden/tse-einrichten',
             },
+            {
+              label: 'Der Veranstaltungstag',
+              slug: 'docs/leitfaden/veranstaltungstag',
+            },
+            { label: 'Aktualisieren', slug: 'docs/leitfaden/aktualisieren' },
             { label: 'Checkliste', slug: 'docs/leitfaden/checkliste' },
           ],
         },
@@ -78,10 +83,10 @@ export default defineConfig({
             },
             { label: 'Steuerrecht Gastronomie', slug: 'docs/steuerrecht' },
             {
-              label: 'Verfahrensdokumentation',
+              label: 'Muster-Verfahrensdokumentation',
               slug: 'docs/verfahrensdokumentation',
             },
-            { label: 'Compliance-Grundlagen', slug: 'docs/compliance' },
+            { label: 'Compliance-Anforderungen', slug: 'docs/compliance' },
           ],
         },
         {
@@ -92,12 +97,8 @@ export default defineConfig({
               slug: 'docs/leitfaden/self-hosting',
             },
             {
-              label: 'Aktualisieren und Backups',
+              label: 'Server aktualisieren und Backups',
               slug: 'docs/leitfaden/aktualisieren-backups',
-            },
-            {
-              label: 'TSE-Sonderfälle',
-              slug: 'docs/leitfaden/tse-sonderfaelle',
             },
           ],
         },
@@ -105,6 +106,10 @@ export default defineConfig({
           label: 'Hilfe',
           items: [
             { label: 'Fehlersuche', slug: 'docs/leitfaden/fehlersuche' },
+            {
+              label: 'TSE-Sonderfälle',
+              slug: 'docs/leitfaden/tse-sonderfaelle',
+            },
             { label: 'Häufige Fragen', slug: 'docs/leitfaden/haeufige-fragen' },
           ],
         },

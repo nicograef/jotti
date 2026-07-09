@@ -6,9 +6,11 @@ description: 'jotti ist eine gesetzliche Kasse: Was das für euren Verein bedeut
 jotti ist eine Kasse im Sinne des Gesetzes (ein „elektronisches
 Aufzeichnungssystem"). Damit gelten dieselben Regeln wie für jede Registrierkasse, auch für gemeinnützige Vereine und auch bei kurzen Festen.
 
-Drei Dinge müsst ihr als Verein selbst erledigen:
+Bevor ihr jotti installiert, schließt ihr einmalig die kostenlose
+Nutzungsvereinbarung mit dem Autor ab (siehe [Lizenzmodell](../lizenzmodell.md)).
+Danach müsst ihr als Verein drei Dinge selbst erledigen:
 
-1. Bei [fiskaly](https://www.fiskaly.com/de/signde) ein Account für die TSE anlegen und die Schlüssel in jotti eintragen (TSE = manipulationssicheres Signaturmodul für Kassensysteme).
+1. Bei [fiskaly](https://www.fiskaly.com/de/signde) ein Konto für die TSE anlegen und die Schlüssel in jotti eintragen (TSE = manipulationssicheres Signaturmodul für Kassensysteme).
 2. Eure Kasse beim Finanzamt anmelden (online über ELSTER). Dafür braucht ihr die Seriennummer, die jotti euch im Admin-Bereich anzeigt.
 3. Alle Kassendaten 10 Jahre aufbewahren (regelmäßige Backups).
 

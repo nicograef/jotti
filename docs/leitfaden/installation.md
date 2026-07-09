@@ -4,7 +4,7 @@ description: 'Standardweg: einen Windows-Computer im Vereinsheim per Doppelklick
 ---
 
 Für fast alle Vereinsfeste ist das der richtige Weg: Ein vorhandener
-Windows-Computer im Vereinsheim wird zum Kassenrechner. Die Servicekräfte bedienen jotti auf ihren eigenen Handys im selben WLAN. Kein Server, keine Domain, keine laufenden Kosten.
+Windows-Computer im Vereinsheim wird zum Kassenrechner. Die Servicekräfte bedienen jotti auf ihren eigenen Handys im selben WLAN. Kein Server, keine Domain, keine Servermiete; nur die gesetzlich vorgeschriebene TSE kostet laufend (siehe [Was ist jotti?](was-ist-jotti.md)).
 
 ## Voraussetzungen
 
@@ -16,14 +16,16 @@ Windows-Computer im Vereinsheim wird zum Kassenrechner. Die Servicekräfte bedie
 
 Für Windows gibt es einen Doppelklick-Starter, der die `.env` erzeugt, den Stack hochfährt und Docker-Start sowie Firewall-Freigabe selbst erledigt, ganz ohne Kommandozeile.
 
+> ⚠️ **Erststart zuhause mit Internet, nicht auf dem Fest.** Beim ersten Start lädt jotti seine Programmteile herunter und holt das grüne Zertifikat — beides braucht Internet. Macht den Erststart (und spätere [Updates](aktualisieren.md)) in Ruhe vorab, nicht erst am Veranstaltungstag.
+
 1. Das aktuelle Release-ZIP von der [GitHub-Releases-Seite](https://github.com/nicograef/jotti/releases) herunterladen und entpacken (alle Dateien bleiben im selben Ordner).
 2. `jotti-start.exe` doppelklicken. Beim ersten Mal dauert der Start einige Minuten (Programmteile werden heruntergeladen).
    - SmartScreen mit „Weitere Informationen" → „Trotzdem ausführen" und UAC mit „Ja" bestätigen.
 3. Wenn alles läuft, die Status-Seite `http://localhost:8484` am Kassenrechner im Browser öffnen. Dort stehen die Zugangsadresse und ein QR-Code.
 
-Für den Bondruck zusätzlich `jotti-relay.exe` doppelklicken. Den vollständigen Ablauf (SmartScreen, UAC, Bondruck, Beenden, Aktualisieren) beschreibt die `KURZANLEITUNG.md` im ZIP.
+Den vollständigen Windows-Ablauf (SmartScreen, UAC, Beenden) beschreibt auch die `KURZANLEITUNG.md` im ZIP. Für gedruckte Bons folgt weiter unten der Abschnitt „Bondruck einrichten".
 
-> 🔒 **Grünes Schloss als Normalfall.** Für den lokalen Betrieb holt jotti automatisch ein echtes Zertifikat über die Adresse `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start ausgestellt und selbst erneuert. Dafür müsst ihr einmalig eine Ausnahme für den DNS-Rebind-Schutz bei eurem Router konfigurieren. Welche Adresse gerade gilt, zeigt samt QR-Code die Status-Seite `http://localhost:8484` am Kassenrechner.
+> 🔒 **Grünes Schloss als Normalfall.** Für den lokalen Betrieb holt jotti automatisch ein echtes Zertifikat über die Adresse `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start ausgestellt und selbst erneuert. Dafür müsst ihr einmalig eine Ausnahme für den DNS-Rebind-Schutz an eurem Router eintragen ([Anleitung je Router](fehlersuche.md#router-hinweise)); bis dahin arbeitet ihr über die Fallback-Adresse ganz normal weiter. Welche Adresse gerade gilt, zeigt samt QR-Code die Status-Seite `http://localhost:8484` am Kassenrechner.
 >
 > Greift die grüne Adresse nicht, springt ein Fallback `https://<LAN-IP>` mit selbstsigniertem Zertifikat ein (einmalige Browserwarnung pro Gerät, siehe [Fehlersuche](fehlersuche.md)).
 
@@ -31,7 +33,7 @@ Für den Bondruck zusätzlich `jotti-relay.exe` doppelklicken. Den vollständige
 
 Beim ersten Start legt das Backend automatisch den Admin-Benutzer an und erzeugt einen einmaligen Anmelde-Code aus 6 Ziffern. Der Code steht in der Startkonsole (dem Fenster von `jotti-start.exe`); beim Serverbetrieb per `make prod-init` erscheint er in der Ausgabe des Befehls. Ist die Konsole schon geschlossen, jotti einfach neu starten, dann wird ein neuer Code erzeugt und angezeigt.
 
-Öffne die jotti-Oberfläche und melde dich **nicht** normal an, sondern wähle „Neues Passwort festlegen":
+Öffnet die jotti-Oberfläche (die Zugangsadresse steht auf der Status-Seite `http://localhost:8484`) und meldet euch **nicht** normal an, sondern wählt „Neues Passwort festlegen":
 
 - **Benutzername:** `admin`
 - **Einmalpasswort:** der 6-stellige Code aus der Startkonsole
@@ -44,6 +46,24 @@ Nach dem Speichern ist das Einmalpasswort ungültig und der Login mit dem neuen 
 Das Handy ins Vereins-WLAN bringen. Dann den QR-Code von der Status-Seite scannen oder die grüne Adresse eintippen, dann anmelden.
 
 Geht die grüne Adresse nicht, nennt die Status-Seite die Fallback-Adresse (z. B. `https://192.168.1.50`). Beim ersten Zugriff pro Gerät die einmalige Browserwarnung bestätigen, danach anmelden. Lädt die grüne Adresse auf den Handys gar nicht, blockiert vermutlich der Router (siehe [Fehlersuche](fehlersuche.md)).
+
+## Bondruck einrichten (optional)
+
+Für gedruckte Bons braucht ihr einen netzwerkfähigen Bondrucker (ESC/POS, 80 mm,
+Ethernet, TCP-Port 9100; eine feste IP-Adresse ist empfohlen). Die Einrichtung hat
+zwei Teile:
+
+1. **Druckstationen im Admin-Bereich anlegen.** Unter „Druckstationen" je
+   Produktkategorie die „Drucker-IP" und den „Bonmodus" eintragen. Ohne
+   konfigurierte Station wird nichts gedruckt.
+2. **Drucker-Programm starten.** Auf dem Kassenrechner zusätzlich `jotti-relay.exe`
+   doppelklicken. Es läuft ohne Administratorrechte und nimmt seine Zugangsdaten aus
+   der `.env`, die `jotti-start.exe` angelegt hat.
+
+## Aktualisieren
+
+Eine neue Version spielt ihr in drei Doppelklicks ein, eure Daten bleiben erhalten.
+Den genauen Ablauf beschreibt [Aktualisieren](aktualisieren.md).
 
 ## Beenden
 

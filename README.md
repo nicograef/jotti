@@ -3,12 +3,12 @@
 > [!NOTE]
 > **Beta:** jotti 1.0 wird gerade noch getestet und geprüft.
 
-Ein kostenloses, quelloffenes **Gastronomie-Kassensystem (mPOS)** für Vereine und gemeinnützige Organisationen — Vereinsfeste, Weihnachtsmärkte, Konzerte, Maihocks, Sommerfeste.
+Ein kostenloses **Gastronomie-Kassensystem (mPOS)** mit einsehbarem Quellcode (Source-Available) für Vereine und gemeinnützige Organisationen — Vereinsfeste, Weihnachtsmärkte, Konzerte, Maihocks, Sommerfeste.
 
 Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer, führen den Kassenbestand und erstellen den Tagesabschluss.
 
 > **Kostenlos. Self-hosted. Auf die KassenSichV ausgelegt.**
-> Keine Hardware-Bindung. Keine laufenden Kosten. Kein Cloud-Abo. jotti bringt die fiskalischen Bausteine mit: eine BSI-zertifizierte Cloud-TSE, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber.
+> Keine Hardware-Bindung, keine Softwarekosten, kein Cloud-Abo für jotti selbst; allein die gesetzlich vorgeschriebene Cloud-TSE von fiskaly (und optional ein Server) kostet laufend. jotti bringt die fiskalischen Bausteine mit: eine BSI-zertifizierte Cloud-TSE, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber.
 
 ## Was jotti kann
 
@@ -20,12 +20,13 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - ↩️ **Stornierungen** mit Rollen-Kontrolle (Admin & Serviceleitung) — mit Pflichtkommentar
 - 🔄 **Umbuchung** — Bestellungen auf einen anderen Tisch verschieben
 - 📋 **Tisch-Übersicht** mit offenem Saldo, Positionen und Bestellhistorie
-- ⭐ **Meine Tische** — Favoriten als Rich Cards auf dem Dashboard, Schnellsuche per Name/Nummer
+- ⭐ **Meine Tische** — Favoriten als große Tischkarten auf dem Dashboard, Schnellsuche per Name/Nummer
+- 🛒 **Direktverkauf** — bestellen, kassieren und ausgeben in einem Schritt, ohne Tisch (mit Historie und Storno)
 
 ### Küche & Ausgabe
 
-- 🖥️ **Küchendisplay (KDS)** _(in Entwicklung)_ — eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe
-- 🍳 **Ausgabestationen** _(in Entwicklung)_ — Zubereitungsstatus verwalten, Servicekräfte sehen, wann Positionen abholbereit sind
+- 🖥️ **Küchendisplay (KDS)** _(geplant)_ — eingehende Bestellungen in Echtzeit auf einem Bildschirm in Küche oder Ausgabe
+- 🍳 **Ausgabestationen** _(geplant)_ — Zubereitungsstatus verwalten, Servicekräfte sehen, wann Positionen abholbereit sind
 - 🖨️ **Bon-Druck** — Bestell- und Küchenbons automatisch an zugeordnete Bondrucker senden (pro Kategorie konfigurierbar)
 
 ### Kasse
@@ -42,8 +43,8 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 📊 **Tagesabrechnung** — Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge, nach Steuersatz aufgeschlüsselt
 - 🧾 **Abrechnung pro Tisch** — detaillierte Aufstellung je Tisch
 - 👤 **Abrechnung pro Servicekraft** — Umsatz und Transaktionen pro Person
-- 📈 **Produktumsatz-Reporting** _(in Entwicklung)_ — meistverkaufte Varianten, Mengen und Einnahmen pro Produkt
-- 📥 **Datenexport (CSV)** _(in Entwicklung)_ — Umsätze, Bestellungen und Artikeldaten für die Vereinsbuchhaltung
+- 📈 **Produktumsatz-Reporting** _(geplant)_ — meistverkaufte Varianten, Mengen und Einnahmen pro Produkt
+- 📥 **Datenexport (CSV)** _(geplant)_ — Umsätze, Bestellungen und Artikeldaten für die Vereinsbuchhaltung
 - 📦 **DSFinV-K-Export** — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.4)
 
 ### Verwaltung & Sicherheit
@@ -55,7 +56,11 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 🛡️ **TSE-Anbindung** — integrierte Cloud-TSE von fiskaly mit Signatur jedes Vorgangs
 - 🧾 **Belegausgabe** — gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse
 
-## Schnellstart
+## Installation für Vereine
+
+Für den Einsatz beim Vereinsfest braucht ihr die Kommandozeile nicht: Ladet das Windows-Release von der [GitHub-Releases-Seite](https://github.com/nicograef/jotti/releases) herunter und startet es per Doppelklick. Die vollständige Anleitung steht im [Leitfaden für Vereine](https://jotti.rocks) und unter [docs/leitfaden/installation.md](docs/leitfaden/installation.md).
+
+## Schnellstart (Entwicklung)
 
 ```bash
 make init
@@ -71,10 +76,10 @@ Das Print-Relay verbindet den jotti-Server mit den ESC/POS-Bondruckern (80 mm, E
 make build-relay
 RELAY_AUTH_TOKEN="<Token aus .env des Servers>" \
 RELAY_BACKEND_URL="https://jotti.meinverein.de/api" \
-./windows/relay/jotti-relay
+./windows/relay/relay
 ```
 
-Optionale Umgebungsvariablen: `RELAY_POLL_SECONDS` (Abfrageintervall, Standard `2`) und `RELAY_TLS_SKIP_VERIFY=1` (Zertifikatsprüfung überspringen). Ohne `RELAY_BACKEND_URL` nutzt das Relay `https://localhost/api` und überspringt die Zertifikatsprüfung automatisch (lokales, selbstsigniertes Setup); bei gültigem Zertifikat `RELAY_TLS_SKIP_VERIFY` **nicht** setzen. Bei nicht erreichbarem Drucker macht das Relay pro Zyklus genau einen kurzen Zustellversuch (TCP-Timeout 2 s) und meldet den Fehlversuch ans Backend; nach drei gemeldeten Fehlversuchen markiert das Backend den Auftrag als `fehlgeschlagen` (im Admin unter »Druckstationen« sichtbar, dort erneut einreihbar oder verwerfbar). Noch offene Aufträge liefert der nächste Poll erneut. Schnelltest: `curl -X POST http://localhost:3000/relay/poll -H "Content-Type: application/json" -d '{"token":"<RELAY_AUTH_TOKEN>"}'` → `200` mit `auftraege` bei gültigem Token, `401` bei ungültigem.
+Optionale Umgebungsvariablen: `RELAY_POLL_SECONDS` (Abfrageintervall, Standard `2`) und `RELAY_TLS_SKIP_VERIFY=1` (Zertifikatsprüfung überspringen). Ohne `RELAY_BACKEND_URL` nutzt das Relay `https://localhost/api` und überspringt die Zertifikatsprüfung automatisch (lokales, selbstsigniertes Setup); bei gültigem Zertifikat `RELAY_TLS_SKIP_VERIFY` **nicht** setzen. Bei nicht erreichbarem Drucker macht das Relay pro Zyklus genau einen kurzen Zustellversuch (TCP-Timeout 2 s) und meldet den Fehlversuch ans Backend; nach sechs gemeldeten Fehlversuchen markiert das Backend den Auftrag als `fehlgeschlagen` (im Admin unter »Druckstationen« sichtbar, dort erneut einreihbar oder verwerfbar). Noch offene Aufträge liefert das Relay mit steigendem Abstand erneut aus (Backoff 5 s, 15 s, 30 s, 60 s, 180 s). Schnelltest gegen den laufenden Stack: `curl -X POST http://localhost/api/relay/poll -H "Content-Type: application/json" -d '{"token":"<RELAY_AUTH_TOKEN>"}'` → `200` mit `auftraege` bei gültigem Token, `401` bei ungültigem.
 
 ## Tech-Stack
 
@@ -103,22 +108,22 @@ Kasse-Operationen (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Umbuchungen
 - Kartenzahlung / NFC / Online-Payment
 - Kommerzielle Gastro-Betriebe (ohne separate Lizenz)
 
-> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die fiskalischen Bausteine (TSE-Anbindung, Belegausgabe und DSFinV-K-Export v2.4) sind integriert; eine geprüfte Konformität wird nicht zugesichert. jotti erfüllt die TSE-Pflicht über eine Cloud-TSE von fiskaly — der Betreiber schließt den Vertrag mit fiskaly selbst ab und konfiguriert die API-Schlüssel über die `.env`-Datei. Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Leitfaden für Vereine](docs/leitfaden/was-ist-jotti.md).
+> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die fiskalischen Bausteine (TSE-Anbindung, Belegausgabe und DSFinV-K-Export v2.4) sind integriert; eine geprüfte Konformität wird nicht zugesichert. jotti erfüllt die TSE-Pflicht über eine Cloud-TSE von fiskaly — der Betreiber schließt den Vertrag mit fiskaly selbst ab und trägt die API-Schlüssel über den geführten TSE-Assistenten im Admin-Bereich ein (jotti speichert sie in seiner Datenbank). Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Leitfaden für Vereine](docs/leitfaden/was-ist-jotti.md).
 
 ## Lizenz & Urheberrecht
 
 **Copyright (c) 2025-2026 Nico Gräf. Alle Rechte vorbehalten.**
 
-jotti steht unter einer **proprietären Source-Available-Lizenz** — siehe [LICENSE](LICENSE). Der Quellcode ist öffentlich einsehbar, aber **es werden keine Nutzungsrechte automatisch gewährt**. jotti ist kein Open-Source-Projekt im Sinne der OSI-Definition.
+jotti steht unter einer proprietären Source-Available-Lizenz (siehe [LICENSE](LICENSE)). Der Quellcode ist öffentlich einsehbar, aber es werden keine Nutzungsrechte automatisch gewährt. jotti ist kein Open-Source-Projekt im Sinne der OSI-Definition.
 
 **Was das bedeutet:**
 
-- ✅ **Quellcode lesen** — zum Lernen, Evaluieren oder für Sicherheitsüberprüfungen — ist ohne Vereinbarung erlaubt.
-- ✅ **Pull Requests** an das offizielle Repository sind willkommen (unter dem [CLA](CLA.md)).
-- ✅ **Eingetragene Vereine (e.V.), gemeinnützige Stiftungen und NGOs/NPOs** können eine **kostenlose Nutzungsvereinbarung** mit dem Autor abschließen.
-- ❌ **Jede Nutzung** (Installation, Deployment, Betrieb) **erfordert eine vorherige Nutzungsvereinbarung in Textform (E-Mail)** mit dem Autor.
-- ❌ **Forks, Modifikation und Weitergabe** sind nicht gestattet (außer PRs an das offizielle Repo).
-- 💼 **Kommerzielle Lizenzierung:** Für gewerbliche Nutzung ist eine separate kommerzielle Lizenz vom Urheber erforderlich — Kontakt über GitHub.
-- 🤝 **Optionaler Service:** Einrichtung, Hosting-Hilfe, Support und Schulung sind auf Anfrage gegen Entgelt verfügbar — als Unterstützung nach gesonderter Absprache, freiwillig und unabhängig von der kostenlosen Nutzung der Software. Die Verantwortung für den konformen Betrieb bleibt beim Verein.
+- ✅ **Quellcode lesen:** zum Lernen, Evaluieren oder für Sicherheitsüberprüfungen ohne Vereinbarung erlaubt.
+- ✅ **Pull Requests:** an das offizielle Repository willkommen (unter dem [CLA](CLA.md)).
+- ✅ **Kostenlose Nutzungsvereinbarung:** Eingetragene Vereine (e.V.), gemeinnützige Stiftungen und NGOs/NPOs können sie mit dem Autor abschließen.
+- ❌ **Jede Nutzung erfordert eine Vereinbarung:** Installation, Deployment und Betrieb setzen eine vorherige Nutzungsvereinbarung in Textform (E-Mail) mit dem Autor voraus.
+- ❌ **Keine Forks oder Weitergabe:** Forks, Modifikation und Weitergabe sind nicht gestattet (außer PRs an das offizielle Repo).
+- 💼 **Kommerzielle Lizenzierung:** Für gewerbliche Nutzung ist eine separate kommerzielle Lizenz vom Urheber erforderlich (Kontakt über GitHub).
+- 🤝 **Optionaler Service:** Einrichtung, Hosting-Hilfe, Support und Schulung sind auf Anfrage gegen Entgelt verfügbar, nach gesonderter Absprache, freiwillig und unabhängig von der kostenlosen Nutzung der Software. Die Verantwortung für den konformen Betrieb bleibt beim Verein.
 
 Ausführliche Informationen: [docs/lizenzmodell.md](docs/lizenzmodell.md) · Nutzungsbedingungen & Prozess: [TERMS.md](TERMS.md)
