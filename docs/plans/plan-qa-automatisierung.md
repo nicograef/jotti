@@ -589,8 +589,8 @@ selbst sind Folgearbeit außerhalb dieses Plans.
 
 ### Akzeptanzkriterien
 
-- [ ] Alle Suiten-Läufe protokolliert (grün oder Befund im Report)
-- [ ] TSE-Live-Blöcke vollständig durchgespielt, Latenzergebnis dokumentiert
+- [x] Alle Suiten-Läufe protokolliert (grün oder Befund im Report)
+- [x] TSE-Live-Blöcke vollständig durchgespielt, Latenzergebnis dokumentiert
 - [ ] Ops-Smoke in allen drei Modi auf dem Wegwerf-Host gelaufen
-- [ ] Screen-Sweep über alle Routen/Zustände und heuristische UX-Review durchgeführt
-- [ ] Befund-Report existiert, nach Schwere geordnet, mit Verweis auf Reproduktionsweg je Befund
+- [x] Screen-Sweep über alle Routen/Zustände und heuristische UX-Review durchgeführt
+- [x] Befund-Report existiert, nach Schwere geordnet, mit Verweis auf Reproduktionsweg je Befund
