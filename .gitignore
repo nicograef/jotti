@@ -53,3 +53,8 @@ logs
 temp/
 # Claude Code personal settings
 .claude/settings.local.json
+.claude/worktrees/
+.claude/qa-*
+
+# Playwright-MCP-Artefakte
+.playwright-mcp/
