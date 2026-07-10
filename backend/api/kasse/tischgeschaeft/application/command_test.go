@@ -303,10 +303,9 @@ func TestZahlungKassieren_DoublePayment(t *testing.T) {
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 	eventMock.SetTischSession(subject, kasse.TischSession{
-		SaldoCents:            0,
-		UnbezahltePositionen:  []kasse.Position{},
-		AusstehendePositionen: []kasse.Position{},
-		GesamtZahlungenCents:  350,
+		SaldoCents:           0,
+		UnbezahltePositionen: []kasse.Position{},
+		GesamtZahlungenCents: 350,
 	})
 	command := Command{
 		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
@@ -445,10 +444,9 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	eventMock.SetTischSession(subject, kasse.TischSession{
-		SaldoCents:            0,
-		UnbezahltePositionen:  []kasse.Position{},
-		AusstehendePositionen: []kasse.Position{},
-		GesamtZahlungenCents:  350,
+		SaldoCents:           0,
+		UnbezahltePositionen: []kasse.Position{},
+		GesamtZahlungenCents: 350,
 	})
 	orderEvent.Subject = subject
 	paymentEvent.Subject = subject
@@ -497,10 +495,9 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	eventMock.SetTischSession(subject, kasse.TischSession{
-		SaldoCents:            0,
-		UnbezahltePositionen:  []kasse.Position{},
-		AusstehendePositionen: []kasse.Position{},
-		GesamtZahlungenCents:  0,
+		SaldoCents:           0,
+		UnbezahltePositionen: []kasse.Position{},
+		GesamtZahlungenCents: 0,
 	})
 	orderEvent.Subject = subject
 	cancelEvent.Subject = subject
@@ -531,9 +528,6 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 		UnbezahltePositionen: []kasse.Position{
 			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		},
-		AusstehendePositionen: []kasse.Position{
-			{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
-		},
 	})
 	command := Command{
 		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
@@ -553,13 +547,12 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 }
 
 // duplikatTestSession liefert eine Tisch-Session mit einer Position (Menge 3),
-// unbezahlt und ausstehend, für die Duplikat-Ablehnungstests.
+// unbezahlt, für die Duplikat-Ablehnungstests.
 func duplikatTestSession() kasse.TischSession {
 	pos := kasse.Position{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 3}
 	return kasse.TischSession{
-		SaldoCents:            1050,
-		UnbezahltePositionen:  []kasse.Position{pos},
-		AusstehendePositionen: []kasse.Position{pos},
+		SaldoCents:           1050,
+		UnbezahltePositionen: []kasse.Position{pos},
 	}
 }
 

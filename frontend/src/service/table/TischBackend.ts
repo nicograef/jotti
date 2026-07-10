@@ -3,7 +3,6 @@ import { z } from 'zod'
 import type { BackendClient } from '@/lib/Backend'
 
 import { BelegDruckenResponseSchema, type BelegStatus } from '../beleg'
-import { type Ausgabe, AusgabeSchema } from './Ausgabe'
 import {
   type Bestellung,
   BestellungAufnehmenSchema,
@@ -108,7 +107,7 @@ export class TischBackend {
 
   public async getTischHistorie(
     tischId: number,
-  ): Promise<(Bestellung | Zahlung | Stornierung | Umbuchung | Ausgabe)[]> {
+  ): Promise<(Bestellung | Zahlung | Stornierung | Umbuchung)[]> {
     const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
     const { historie } = await this.backend.post(
       'service/get-tisch-historie',
@@ -120,7 +119,6 @@ export class TischBackend {
             ZahlungSchema,
             StornierungSchema,
             UmbuchungSchema,
-            AusgabeSchema,
           ]),
         ),
       }),

@@ -26,7 +26,6 @@ var allEventTypes = []EventType{
 	EventTypeStornierungErteiltV1,
 	EventTypeBestellungKorrigiertV1,
 	EventTypeBestellungUmgebuchtV1,
-	EventTypeAusgabeBestaetigtV1,
 	EventTypeKassensitzungEroeffnetV1,
 	EventTypeGeldtransitGebuchtV1,
 	EventTypeKassensturzDurchgefuehrtV1,
@@ -45,7 +44,6 @@ func TestEventContract_AllTypesPinned(t *testing.T) {
 		EventTypeStornierungErteiltV1:       true,
 		EventTypeBestellungKorrigiertV1:     true,
 		EventTypeBestellungUmgebuchtV1:      true,
-		EventTypeAusgabeBestaetigtV1:        true,
 		EventTypeKassensitzungEroeffnetV1:   true,
 		EventTypeGeldtransitGebuchtV1:       true,
 		EventTypeKassensturzDurchgefuehrtV1: true,
@@ -269,22 +267,6 @@ func TestEventContract_BestellungUmgebuchtV1(t *testing.T) {
 	assertField(t, "quellTischId", data.QuellTischID, 3)
 	assertField(t, "zielTischId", data.ZielTischID, 7)
 	assertField(t, "gesamtCents", data.GesamtCents, 700)
-	if len(data.Positionen) != 1 {
-		t.Fatalf("positionen count: %d", len(data.Positionen))
-	}
-	assertPosition(t, data.Positionen[0])
-	assertJSONKeyPresent(t, data, "kommentar")
-}
-
-func TestEventContract_AusgabeBestaetigtV1(t *testing.T) {
-	const lit = `{
-		"ausgabeId":  "66666666-6666-4666-8666-666666666666",
-		"positionen": [` + positionLiteral + `],
-		"kommentar":  ""
-	}`
-	var data AusgabeBestaetigtV1Data
-	unmarshalJSON(t, lit, &data)
-	assertField(t, "ausgabeId", data.AusgabeID, "66666666-6666-4666-8666-666666666666")
 	if len(data.Positionen) != 1 {
 		t.Fatalf("positionen count: %d", len(data.Positionen))
 	}

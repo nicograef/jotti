@@ -131,30 +131,6 @@ func toBestellung(eintrag k.HistorieEintrag) bestellung {
 	}
 }
 
-type ausgabe struct {
-	Art          string     `json:"art"`
-	ID           string     `json:"id"`
-	UserID       int        `json:"userId"`
-	UserName     string     `json:"userName"`
-	TischID      int        `json:"tischId"`
-	Positionen   []position `json:"positionen"`
-	Kommentar    string     `json:"kommentar"`
-	AusgegebenAm time.Time  `json:"ausgegebenAm"`
-}
-
-func toAusgabe(a k.Ausgabe) ausgabe {
-	return ausgabe{
-		Art:          string(k.HistorieEintragAusgabe),
-		ID:           a.ID,
-		UserID:       a.UserID,
-		UserName:     a.UserName,
-		TischID:      a.TischID,
-		Positionen:   toPositionen(a.Positionen),
-		Kommentar:    a.Kommentar,
-		AusgegebenAm: a.AusgegebenAm,
-	}
-}
-
 type zahlung struct {
 	Art                string     `json:"art"`
 	ID                 string     `json:"id"`
@@ -254,10 +230,6 @@ func toHistorie(eintraege []k.HistorieEintrag) []any {
 			if eintrag.Bestellung != nil {
 				historieResponse = append(historieResponse, toBestellung(eintrag))
 			}
-		case k.HistorieEintragAusgabe:
-			if eintrag.Ausgabe != nil {
-				historieResponse = append(historieResponse, toAusgabe(*eintrag.Ausgabe))
-			}
 		case k.HistorieEintragZahlung:
 			if eintrag.Zahlung != nil {
 				historieResponse = append(historieResponse, toZahlung(*eintrag.Zahlung))
@@ -298,24 +270,22 @@ type getTischStateRequest struct {
 }
 
 type tischState struct {
-	TischID               int        `json:"tischId"`
-	TischName             string     `json:"tischName"`
-	SaldoCents            int        `json:"saldoCents"`
-	UnbezahltePositionen  []position `json:"unbezahltePositionen"`
-	AusstehendePositionen []position `json:"ausstehendePositionen"`
-	GesamtZahlungenCents  int        `json:"gesamtZahlungenCents"`
-	FuerMichErledigt      bool       `json:"fuerMichErledigt"`
+	TischID              int        `json:"tischId"`
+	TischName            string     `json:"tischName"`
+	SaldoCents           int        `json:"saldoCents"`
+	UnbezahltePositionen []position `json:"unbezahltePositionen"`
+	GesamtZahlungenCents int        `json:"gesamtZahlungenCents"`
+	FuerMichErledigt     bool       `json:"fuerMichErledigt"`
 }
 
 func toTischState(s application.TischStateView) tischState {
 	return tischState{
-		TischID:               s.TischID,
-		TischName:             s.TischName,
-		SaldoCents:            s.SaldoCents,
-		UnbezahltePositionen:  toPositionen(s.UnbezahltePositionen),
-		AusstehendePositionen: toPositionen(s.AusstehendePositionen),
-		GesamtZahlungenCents:  s.GesamtZahlungenCents,
-		FuerMichErledigt:      s.FuerMichErledigt,
+		TischID:              s.TischID,
+		TischName:            s.TischName,
+		SaldoCents:           s.SaldoCents,
+		UnbezahltePositionen: toPositionen(s.UnbezahltePositionen),
+		GesamtZahlungenCents: s.GesamtZahlungenCents,
+		FuerMichErledigt:     s.FuerMichErledigt,
 	}
 }
 

@@ -40,18 +40,6 @@ func TestComputeEigeneArbeitAnTisch(t *testing.T) {
 			wantErledigt: true,
 		},
 		{
-			// Ausstehende Positionen fließen seit ADR 01 nicht mehr in die offene
-			// Arbeit ein: eigene ausstehende, aber bezahlte Positionen gelten als
-			// erledigt.
-			name: "ausstehende Positionen werden ignoriert",
-			session: TischSession{
-				AusstehendePositionen: []Position{pos("p1", 7, "Anna")},
-				UnbezahltePositionen:  nil,
-			},
-			userID:       7,
-			wantErledigt: true,
-		},
-		{
 			// Schichtübergabe: eine Kollegin hat die eigenen Positionen kassiert,
 			// sie sind aus der Unbezahlt-Liste verschwunden.
 			name:         "schichtübergabe erledigt",
@@ -89,12 +77,6 @@ func TestComputeOffeneArbeitRollup(t *testing.T) {
 				pos("p2", 8, "Bert"),
 				pos("p3", 7, "Anna"),
 			},
-		},
-		{
-			// Anna hat hier nur ausstehende (bezahlte) Positionen -> erledigt,
-			// dieser Tisch darf nicht erscheinen.
-			TischID:               2,
-			AusstehendePositionen: []Position{pos("p4", 7, "Anna")},
 		},
 	}
 
@@ -140,10 +122,9 @@ func TestComputeOffeneArbeitRollup(t *testing.T) {
 }
 
 func TestComputeOffeneArbeitRollup_AllesErledigt(t *testing.T) {
-	// Nur fremde bzw. bezahlte Positionen -> die Servicekraft ist überall fertig.
+	// Nur fremde Positionen -> die Servicekraft ist überall fertig.
 	sessions := []TischSession{
 		{TischID: 1, UnbezahltePositionen: []Position{pos("p1", 8, "Bert")}},
-		{TischID: 2, AusstehendePositionen: []Position{pos("p2", 7, "Anna")}},
 	}
 
 	rollup := ComputeOffeneArbeitRollup(sessions, 7)
@@ -179,12 +160,6 @@ func TestComputeOffeneArbeitProServicekraft(t *testing.T) {
 				pos("p2", 8, "Bert"),
 				pos("p3", 7, "Anna"),
 			},
-		},
-		{
-			// Cleo (9) hat hier nur ausstehende, bezahlte Positionen -> sie hat
-			// keine offene Arbeit und darf nicht erscheinen.
-			TischID:               2,
-			AusstehendePositionen: []Position{pos("p4", 9, "Cleo")},
 		},
 	}
 

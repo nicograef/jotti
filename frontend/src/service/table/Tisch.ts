@@ -20,7 +20,6 @@ export const TischSessionSchema = z.object({
   tischName: z.string(),
   saldoCents: z.number().int(),
   unbezahltePositionen: z.array(PositionSchema),
-  ausstehendePositionen: z.array(PositionSchema),
   gesamtZahlungenCents: z.number().int(),
   // True, wenn die anfragende Servicekraft an diesem Tisch keine eigenen
   // unbezahlten Positionen mehr hat.

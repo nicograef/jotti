@@ -46,7 +46,7 @@ var kommentarTestPositionen = []Position{
 }
 
 // kommentarTestPositionenMitID is for events whose schema requires a PositionID
-// (Zahlung, Stornierung, Ausgabe) — unlike Bestellung, which generates the IDs itself.
+// (Zahlung, Stornierung) — unlike Bestellung, which generates the IDs itself.
 var kommentarTestPositionenMitID = []Position{
 	{
 		PositionID:       "a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",
@@ -98,22 +98,6 @@ func TestNewZahlungKassiertEvent_Kommentar(t *testing.T) {
 	for _, tt := range optionalKommentarTests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewZahlungKassiertEvent(kommentarTestSubject, 1, "Servicekraft", kommentarTestPositionenMitID, 350, tt.kommentar)
-			if tt.wantErr && err == nil {
-				t.Errorf("erwartete Fehler für Kommentar %q, aber kein Fehler", tt.kommentar)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("kein Fehler erwartet für Kommentar %q, aber: %v", tt.kommentar, err)
-			}
-		})
-	}
-}
-
-// --- Ausgabe: Kommentar ist optional ---
-
-func TestNewAusgabeBestaetigtEvent_Kommentar(t *testing.T) {
-	for _, tt := range optionalKommentarTests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewAusgabeBestaetigtEvent(kommentarTestSubject, 1, "Servicekraft", kommentarTestPositionenMitID, tt.kommentar)
 			if tt.wantErr && err == nil {
 				t.Errorf("erwartete Fehler für Kommentar %q, aber kein Fehler", tt.kommentar)
 			}

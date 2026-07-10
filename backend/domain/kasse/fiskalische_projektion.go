@@ -132,7 +132,7 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 			ProcessData: BuildTagesabschlussProcessData(data.ZNr, data.ZeitraumVon, data.ZeitraumBis),
 		}, true, nil
 
-	case EventTypeAusgabeBestaetigtV1, EventTypeKassensturzDurchgefuehrtV1:
+	case EventTypeKassensturzDurchgefuehrtV1:
 		return FiskalischerVorgang{}, false, nil
 
 	default:

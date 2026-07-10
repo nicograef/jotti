@@ -184,11 +184,6 @@ func TestFiskalischeProjektion(t *testing.T) {
 			wantProcessData: "Tagesabschluss^ZNr:2^Von:2026-06-13T10:00:00Z^Bis:2026-06-13T22:00:00Z",
 		},
 		{
-			name:      "ausgabe bestaetigt: nicht signaturpflichtig",
-			event:     projektionsEvent(t, EventTypeAusgabeBestaetigtV1, tischSubject, AusgabeBestaetigtV1Data{AusgabeID: "a", Positionen: testPositionen()}),
-			pflichtig: false,
-		},
-		{
 			name:      "kassensturz durchgefuehrt: nicht signaturpflichtig",
 			event:     projektionsEvent(t, EventTypeKassensturzDurchgefuehrtV1, "kassensitzung-1", KassensturzDurchgefuehrtV1Data{IstBestandCents: 100, DurchgefuehrtVon: 1}),
 			pflichtig: false,

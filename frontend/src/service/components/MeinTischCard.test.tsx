@@ -38,7 +38,6 @@ function tischSession(overrides: Partial<TischSession>): TischSession {
     tischName: 'Stammtisch',
     saldoCents: 0,
     unbezahltePositionen: [],
-    ausstehendePositionen: [],
     gesamtZahlungenCents: 0,
     fuerMichErledigt: true,
     ...overrides,
@@ -65,11 +64,8 @@ describe('MeinTischCard', () => {
     expect(screen.queryByText('Alles erledigt')).not.toBeInTheDocument()
   })
 
-  it('ignoriert ausstehende Positionen und zählt nur unbezahlte', () => {
-    // Nur ausstehende (bereits bezahlte) Positionen -> keine offene Arbeit.
-    const state = tischSession({
-      ausstehendePositionen: [position('p1', 1)],
-    })
+  it('zeigt "Alles erledigt" ohne unbezahlte Positionen', () => {
+    const state = tischSession({ unbezahltePositionen: [] })
 
     render(<MeinTischCard state={state} />)
 

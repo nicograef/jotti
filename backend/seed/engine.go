@@ -126,7 +126,7 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 
 // sitzungsBuilder baut die Event-Folge einer Kassensitzung auf. Er hält dafür den laufenden
 // Kassenbestand, die Tagessummen und die bisherigen Events je Tisch bzw. Direktverkauf,
-// um Folge-Aktionen (Ausgabe, Zahlung, Storno) gegen den tatsächlichen Zustand aufzulösen.
+// um Folge-Aktionen (Zahlung, Storno) gegen den tatsächlichen Zustand aufzulösen.
 type sitzungsBuilder struct {
 	sitzung   kassensitzungDrehbuch
 	varianten map[int]kasse.Position

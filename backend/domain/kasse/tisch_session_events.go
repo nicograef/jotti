@@ -17,7 +17,6 @@ const (
 	EventTypeStornierungErteiltV1    EventType = "stornierung-erteilt:v1"
 	EventTypeBestellungKorrigiertV1  EventType = "bestellung-korrigiert:v1"
 	EventTypeBestellungUmgebuchtV1   EventType = "bestellung-umgebucht:v1"
-	EventTypeAusgabeBestaetigtV1     EventType = "ausgabe-bestaetigt:v1"
 )
 
 // --- Event-Data-Structs ---
@@ -110,18 +109,6 @@ var bestellungUmgebuchtV1DataSchema = z.Struct(z.Shape{
 	"Positionen":   z.Slice(positionSchema).Min(1).Required(),
 	"GesamtCents":  z.Int().GTE(0).Required(),
 	"Kommentar":    z.String().Max(100),
-})
-
-type AusgabeBestaetigtV1Data struct {
-	AusgabeID  string              `json:"ausgabeId"`
-	Positionen []PositionEventData `json:"positionen"`
-	Kommentar  string              `json:"kommentar"`
-}
-
-var ausgabeBestaetigtV1DataSchema = z.Struct(z.Shape{
-	"AusgabeID":  z.String().UUID().Required(),
-	"Positionen": z.Slice(positionSchema).Min(1).Required(),
-	"Kommentar":  z.String().Max(100),
 })
 
 // --- Event-Erstellungsfunktionen ---
@@ -246,21 +233,6 @@ func NewBestellungUmgebuchtEvents(zNr int, quellTischID int, zielTischID int, us
 	}
 
 	return quellEvent, zielEvent, nil
-}
-
-func NewAusgabeBestaetigtEvent(subject string, userID int, userName string, positionen []Position, kommentar string) (e.Event, error) {
-	data := AusgabeBestaetigtV1Data{
-		AusgabeID:  uuid.New().String(),
-		Positionen: toPositionenEventData(positionen),
-		Kommentar:  kommentar,
-	}
-
-	if err := ausgabeBestaetigtV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("ausgabe bestaetigt data validation failed: %v", issues)
-	}
-
-	return e.New(userID, userName, string(EventTypeAusgabeBestaetigtV1), subject, data)
 }
 
 // --- Build-from-Event-Funktionen ---
@@ -441,38 +413,4 @@ func buildUmbuchungFromEvent(event e.Event) (Umbuchung, error) {
 	}
 
 	return umbuchung, nil
-}
-
-func buildAusgabeFromEvent(event e.Event) (Ausgabe, error) {
-	if event.Type != string(EventTypeAusgabeBestaetigtV1) {
-		return Ausgabe{}, fmt.Errorf("unsupported event type: %s", event.Type)
-	}
-
-	tischID, err := ParseTischIDFromSubject(event.Subject)
-	if err != nil {
-		return Ausgabe{}, err
-	}
-
-	data := AusgabeBestaetigtV1Data{}
-	err = e.ParseData(event, &data, ausgabeBestaetigtV1DataSchema)
-	if err != nil {
-		return Ausgabe{}, err
-	}
-
-	ausgabe := Ausgabe{
-		ID:           data.AusgabeID,
-		UserID:       event.UserID,
-		UserName:     event.UserName,
-		TischID:      tischID,
-		Positionen:   fromPositionenEventData(data.Positionen),
-		Kommentar:    data.Kommentar,
-		AusgegebenAm: event.Time,
-	}
-
-	if err := ausgabeSchema.Validate(&ausgabe); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return Ausgabe{}, fmt.Errorf("ausgabe validation failed: %v", issues)
-	}
-
-	return ausgabe, nil
 }

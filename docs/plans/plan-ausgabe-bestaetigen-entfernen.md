@@ -309,31 +309,38 @@ ist nicht signaturpflichtig" entfällt ersatzlos.
 
 ### Acceptance criteria
 
-- [ ] `database/migrations/03_ausgabe_entfernen.up.sql` existiert, ist
+- [x] `database/migrations/03_ausgabe_entfernen.up.sql` existiert, ist
       in `BEGIN;`/`COMMIT;` geklammert und führt aus: Trigger
       `kassenjournal_no_delete` deaktivieren, `tisch_sessions` leeren,
       `ausgabe-bestaetigt:v1`-Events löschen, Trigger wieder
       aktivieren, Spalte `ausstehende_positionen` droppen. Ein
       Kommentar in der Migration verweist auf ADR 01.
-- [ ] Neuer Integrationstest: Ein Kassenjournal mit
+- [x] Neuer Integrationstest: Ein Kassenjournal mit
       Ausgabe-Alt-Events wird migriert; danach läuft
       `RebuildAllProjections()` fehlerfrei und die Tisch-Zustände
       (Saldo, unbezahlte Positionen) sind korrekt. Der Test belegt
       auch, dass der Append-only-Trigger nach der Migration wieder
       aktiv ist (DELETE auf `kassenjournal` schlägt fehl).
-- [ ] Grep über `backend/` und `frontend/src/` nach
+      (`TestMigration03_AusgabeEntfernen`.)
+- [x] Grep über `backend/` und `frontend/src/` nach
       `ausgabe-bestaetigt`, `AusgabeBestaetigt`, `AusstehendePositionen`
       bzw. `ausstehendePositionen` liefert keine Code-Treffer mehr
-      (Migrationen und `docs/` ausgenommen).
-- [ ] `ApplyEvent()`, `ComputeNichtStorniertePositionen()`,
+      (Migrationen und `docs/` ausgenommen). (Produktivcode ist
+      vollständig sauber; der einzige verbleibende
+      `ausgabe-bestaetigt:v1`-Literal steht im neuen
+      Migrations-Integrationstest, der das Alt-Event zwangsläufig
+      benennen muss, um seine Löschung zu belegen.)
+- [x] `ApplyEvent()`, `ComputeNichtStorniertePositionen()`,
       `GetHistorieFromEvents()` und `FiskalischeProjektion()` behandeln
       unbekannte Event-Typen weiterhin als Fehler (Contract-Test
       `allEventTypes` ohne den entfernten Typ, Fuzz angepasst).
-- [ ] `make sqlc` ist gelaufen; `sqlc/dbgen/` enthält keine
+- [x] `make sqlc` ist gelaufen; `sqlc/dbgen/` enthält keine
       `ausstehende_positionen`-Referenzen mehr.
-- [ ] Die Tisch-Historie im Frontend kennt nur noch Bestellung,
+- [x] Die Tisch-Historie im Frontend kennt nur noch Bestellung,
       Zahlung, Stornierung und Umbuchung.
-- [ ] `make verify` (inkl. Integrationstests) ist grün.
+- [x] `make verify` (inkl. Integrationstests) ist grün. (In der
+      Cloud-Session als `make check` plus lokale Integrationstest-Rezept
+      ausgeführt — beide grün.)
 
 ---
 

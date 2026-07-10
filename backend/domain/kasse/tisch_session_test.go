@@ -48,15 +48,6 @@ func mustCreateKorrekturEvent(t *testing.T, subject string, userID int, position
 
 const testZahlungID = "11111111-1111-1111-1111-111111111111"
 
-func mustCreateDeliveryEvent(t *testing.T, subject string, userID int, positions []Position) e.Event {
-	t.Helper()
-	event, err := NewAusgabeBestaetigtEvent(subject, userID, "TestUser", positions, "")
-	if err != nil {
-		t.Fatalf("failed to create delivery event: %v", err)
-	}
-	return event
-}
-
 // helper to create a test Position with fat event fields
 func testPosition(varianteID int, produktName, varianteName, kategorie string, einzelpreis, menge int) Position {
 	steuersatz := "regel"
@@ -119,12 +110,6 @@ func TestApplyEvent_BestellungOnEmptyTable(t *testing.T) {
 	}
 	if state.UnbezahltePositionen[0].Menge != 2 {
 		t.Fatalf("expected Menge 2, got %d", state.UnbezahltePositionen[0].Menge)
-	}
-	if len(state.AusstehendePositionen) != 1 {
-		t.Fatalf("expected 1 ungelieferte position, got %d", len(state.AusstehendePositionen))
-	}
-	if state.AusstehendePositionen[0].Menge != 2 {
-		t.Fatalf("expected Menge 2, got %d", state.AusstehendePositionen[0].Menge)
 	}
 	if state.GesamtZahlungenCents != 0 {
 		t.Fatalf("expected GesamtZahlungenCents 0, got %d", state.GesamtZahlungenCents)
@@ -210,13 +195,6 @@ func TestApplyEvent_KorrekturReducesSaldoAndUnbezahlt(t *testing.T) {
 	if state.UnbezahltePositionen[0].Menge != 1 {
 		t.Fatalf("expected Menge 1, got %d", state.UnbezahltePositionen[0].Menge)
 	}
-	// Stornierung also reduces ausstehende
-	if len(state.AusstehendePositionen) != 1 {
-		t.Fatalf("expected 1 ungelieferte position, got %d", len(state.AusstehendePositionen))
-	}
-	if state.AusstehendePositionen[0].Menge != 1 {
-		t.Fatalf("expected Menge 1, got %d", state.AusstehendePositionen[0].Menge)
-	}
 }
 
 func TestApplyEvent_UmbuchungMovesPositionsBetweenTische(t *testing.T) {
@@ -258,9 +236,6 @@ func TestApplyEvent_UmbuchungMovesPositionsBetweenTische(t *testing.T) {
 	if len(quellState.UnbezahltePositionen) != 1 || quellState.UnbezahltePositionen[0].Menge != 1 {
 		t.Fatalf("expected 1 unbezahlte position with menge 1, got %+v", quellState.UnbezahltePositionen)
 	}
-	if len(quellState.AusstehendePositionen) != 1 || quellState.AusstehendePositionen[0].Menge != 1 {
-		t.Fatalf("expected 1 ausstehende position with menge 1, got %+v", quellState.AusstehendePositionen)
-	}
 
 	// Zugang auf dem leeren Zieltisch: wie eine frische Bestellung.
 	zielState, err := ApplyEvent(TischSession{Subject: zielSubject}, zielEvent)
@@ -273,55 +248,12 @@ func TestApplyEvent_UmbuchungMovesPositionsBetweenTische(t *testing.T) {
 	if len(zielState.UnbezahltePositionen) != 1 || zielState.UnbezahltePositionen[0].Menge != 1 {
 		t.Fatalf("expected 1 unbezahlte position with menge 1, got %+v", zielState.UnbezahltePositionen)
 	}
-	if len(zielState.AusstehendePositionen) != 1 || zielState.AusstehendePositionen[0].Menge != 1 {
-		t.Fatalf("expected 1 ausstehende position with menge 1, got %+v", zielState.AusstehendePositionen)
-	}
 	if zielState.ErsteBestellungLogTime == nil {
 		t.Fatal("expected target ErsteBestellungLogTime to be set by the zugang")
 	}
 	// Der Zugang trägt frische PositionIDs (eigenständig auf dem Zieltisch).
 	if zielState.UnbezahltePositionen[0].PositionID == quellState.UnbezahltePositionen[0].PositionID {
 		t.Fatal("expected target position to carry a fresh PositionID")
-	}
-}
-
-func TestApplyEvent_AusgabeReducesOnlyAusstehend(t *testing.T) {
-	products := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
-	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
-	orderEvent.ID = 1
-	orderEvent.Version = 1
-
-	state, err := ApplyEvent(TischSession{}, orderEvent)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	positions := positionsFromOrder(t, orderEvent, 2)
-	deliveryEvent := mustCreateDeliveryEvent(t, testSubject, 1, positions)
-	deliveryEvent.ID = 2
-	deliveryEvent.Version = 2
-
-	state, err = ApplyEvent(state, deliveryEvent)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	// Saldo unchanged
-	if state.SaldoCents != 1000 {
-		t.Fatalf("expected SaldoCents 1000, got %d", state.SaldoCents)
-	}
-	// Unbezahlt unchanged
-	if len(state.UnbezahltePositionen) != 1 {
-		t.Fatalf("expected 1 unbezahlte position, got %d", len(state.UnbezahltePositionen))
-	}
-	if state.UnbezahltePositionen[0].Menge != 2 {
-		t.Fatalf("expected Menge 2, got %d", state.UnbezahltePositionen[0].Menge)
-	}
-	// Ungeliefert reduced to 0
-	if len(state.AusstehendePositionen) != 0 {
-		t.Fatalf("expected 0 ungelieferte positionen, got %d", len(state.AusstehendePositionen))
 	}
 }
 
@@ -343,36 +275,17 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 		t.Fatalf("expected SaldoCents 2300, got %d", state.SaldoCents)
 	}
 
-	// Deliver all beer
 	bestellung, err := buildBestellungFromEvent(orderEvent)
 	if err != nil {
 		t.Fatalf("failed to build bestellung: %v", err)
-	}
-	beerPos := []Position{bestellung.Positionen[0]}
-	beerPos[0].Menge = 3
-	deliveryEvent := mustCreateDeliveryEvent(t, testSubject, 1, beerPos)
-	deliveryEvent.ID = 2
-	deliveryEvent.Version = 2
-
-	state, err = ApplyEvent(state, deliveryEvent)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	// Saldo unchanged
-	if state.SaldoCents != 2300 {
-		t.Fatalf("expected SaldoCents 2300, got %d", state.SaldoCents)
-	}
-	// 2 ausstehende (only wurst remaining)
-	if len(state.AusstehendePositionen) != 1 {
-		t.Fatalf("expected 1 ungelieferte position, got %d", len(state.AusstehendePositionen))
 	}
 
 	// Pay for 1 beer (500)
 	beerPayPos := []Position{bestellung.Positionen[0]}
 	beerPayPos[0].Menge = 1
 	paymentEvent := mustCreatePaymentEvent(t, testSubject, 1, beerPayPos, 500)
-	paymentEvent.ID = 3
-	paymentEvent.Version = 3
+	paymentEvent.ID = 2
+	paymentEvent.Version = 2
 
 	state, err = ApplyEvent(state, paymentEvent)
 	if err != nil {
@@ -389,8 +302,8 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 	wurstPos := []Position{bestellung.Positionen[1]}
 	wurstPos[0].Menge = 1
 	cancelEvent := mustCreateKorrekturEvent(t, testSubject, 1, wurstPos, 400)
-	cancelEvent.ID = 4
-	cancelEvent.Version = 4
+	cancelEvent.ID = 3
+	cancelEvent.Version = 3
 
 	state, err = ApplyEvent(state, cancelEvent)
 	if err != nil {
@@ -399,11 +312,11 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 	if state.SaldoCents != 1400 {
 		t.Fatalf("expected SaldoCents 1400, got %d", state.SaldoCents)
 	}
-	if state.LastEventID != 4 {
-		t.Fatalf("expected LastEventID 4, got %d", state.LastEventID)
+	if state.LastEventID != 3 {
+		t.Fatalf("expected LastEventID 3, got %d", state.LastEventID)
 	}
-	if state.LastEventVersion != 4 {
-		t.Fatalf("expected LastEventVersion 4, got %d", state.LastEventVersion)
+	if state.LastEventVersion != 3 {
+		t.Fatalf("expected LastEventVersion 3, got %d", state.LastEventVersion)
 	}
 }
 
@@ -424,10 +337,6 @@ func TestApplyEvent_BestellungTagsBesteller(t *testing.T) {
 	if state.UnbezahltePositionen[0].BestellerUserID != 7 || state.UnbezahltePositionen[0].BestellerName != "Anna" {
 		t.Errorf("expected unbezahlt besteller 7/Anna, got %d/%q",
 			state.UnbezahltePositionen[0].BestellerUserID, state.UnbezahltePositionen[0].BestellerName)
-	}
-	if state.AusstehendePositionen[0].BestellerUserID != 7 || state.AusstehendePositionen[0].BestellerName != "Anna" {
-		t.Errorf("expected ausstehend besteller 7/Anna, got %d/%q",
-			state.AusstehendePositionen[0].BestellerUserID, state.AusstehendePositionen[0].BestellerName)
 	}
 }
 
@@ -454,7 +363,7 @@ func TestApplyEvent_MultipleBestellerAtSameTable(t *testing.T) {
 	}
 
 	bestellerByProdukt := map[string]string{}
-	for _, pos := range state.AusstehendePositionen {
+	for _, pos := range state.UnbezahltePositionen {
 		bestellerByProdukt[pos.ProduktName] = pos.BestellerName
 	}
 	if bestellerByProdukt["Beer"] != "Anna" {
@@ -465,7 +374,7 @@ func TestApplyEvent_MultipleBestellerAtSameTable(t *testing.T) {
 	}
 }
 
-func TestApplyEvent_PaymentCancelDeliveryKeepBestellerTag(t *testing.T) {
+func TestApplyEvent_PaymentKeepsBestellerTag(t *testing.T) {
 	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)}
 	orderEvent, err := NewBestellungAufgenommenEvent(testSubject, 7, "Anna", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", products, "")
 	if err != nil {
@@ -478,26 +387,15 @@ func TestApplyEvent_PaymentCancelDeliveryKeepBestellerTag(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// A colleague (Bert) delivers and pays part of Anna's order — the besteller tag must survive.
-	deliverPos := positionsFromOrder(t, orderEvent, 1)
-	deliveryEvent := mustCreateDeliveryEvent(t, testSubject, 8, deliverPos)
-	deliveryEvent.ID, deliveryEvent.Version = 2, 2
-	state, err = ApplyEvent(state, deliveryEvent)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
+	// A colleague (Bert) pays part of Anna's order — the besteller tag must survive.
 	payPos := positionsFromOrder(t, orderEvent, 1)
 	paymentEvent := mustCreatePaymentEvent(t, testSubject, 8, payPos, 500)
-	paymentEvent.ID, paymentEvent.Version = 3, 3
+	paymentEvent.ID, paymentEvent.Version = 2, 2
 	state, err = ApplyEvent(state, paymentEvent)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if state.AusstehendePositionen[0].BestellerName != "Anna" {
-		t.Errorf("expected ausstehend besteller to stay Anna, got %q", state.AusstehendePositionen[0].BestellerName)
-	}
 	if state.UnbezahltePositionen[0].BestellerName != "Anna" {
 		t.Errorf("expected unbezahlt besteller to stay Anna, got %q", state.UnbezahltePositionen[0].BestellerName)
 	}
@@ -506,7 +404,7 @@ func TestApplyEvent_PaymentCancelDeliveryKeepBestellerTag(t *testing.T) {
 // TestApplyEvent_DoesNotMutateInputState belegt, dass ApplyEvent den übergebenen
 // State (inkl. seiner Position-Slices) nicht mutiert — kein Backing-Array-Alias.
 // Dieser Test schlägt ohne die Klon-Fixes in accumulatePositionen/
-// reduceByPosition*/tagBesteller fehl, weil die Helfer das Backing-Array der
+// reduceByPositionStrict/tagBesteller fehl, weil die Helfer das Backing-Array der
 // Eingabe direkt modifizieren.
 func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)}
@@ -522,14 +420,11 @@ func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 	}
 
 	// Menge und Länge vor dem zweiten ApplyEvent einfrieren.
-	wantMenge := state.UnbezahltePositionen[0].Menge       // = 3
-	wantLen := len(state.UnbezahltePositionen)             // = 1
-	wantAusstLen := len(state.AusstehendePositionen)       // = 1
-	wantAusstMenge := state.AusstehendePositionen[0].Menge // = 3
+	wantMenge := state.UnbezahltePositionen[0].Menge // = 3
+	wantLen := len(state.UnbezahltePositionen)       // = 1
 
-	// Korrektur über 1 Einheit: ruft reduceByPositionStrict (UnbezahltePositionen) UND
-	// reduceByPosition (AusstehendePositionen) auf — beide Klon-Pfade werden geprüft.
-	// Ohne den make+copy-Klon würden beide Helfer das Backing-Array des Input-State mutieren.
+	// Korrektur über 1 Einheit ruft reduceByPositionStrict (UnbezahltePositionen) auf.
+	// Ohne den make+copy-Klon würde der Helfer das Backing-Array des Input-State mutieren.
 	korrekturPositionen := positionsFromOrder(t, orderEvent, 1)
 	korrekturEvent := mustCreateKorrekturEvent(t, testSubject, 1, korrekturPositionen, 500)
 	korrekturEvent.ID, korrekturEvent.Version = 2, 2
@@ -548,23 +443,10 @@ func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 		t.Errorf("ApplyEvent mutierte den Input-State: UnbezahltePositionen[0].Menge = %d, want %d",
 			state.UnbezahltePositionen[0].Menge, wantMenge)
 	}
-	if len(state.AusstehendePositionen) != wantAusstLen {
-		t.Errorf("original state AusstehendePositionen length mutated: was %d, now %d",
-			wantAusstLen, len(state.AusstehendePositionen))
-	}
-	// Feld-Level-Alias: reduceByPosition schreibt list[i].Menge -= 1 in das Backing-Array.
-	// Ohne den make+copy-Klon wäre state.AusstehendePositionen[0].Menge nach dem ApplyEvent 2.
-	if state.AusstehendePositionen[0].Menge != wantAusstMenge {
-		t.Errorf("original state AusstehendePositionen[0].Menge mutated: was %d, now %d",
-			wantAusstMenge, state.AusstehendePositionen[0].Menge)
-	}
 
 	// Zur Sicherheit: state2 muss korrekte Werte haben.
 	if state2.UnbezahltePositionen[0].Menge != 2 {
 		t.Errorf("new state UnbezahltePositionen[0].Menge = %d, want 2", state2.UnbezahltePositionen[0].Menge)
-	}
-	if state2.AusstehendePositionen[0].Menge != 2 {
-		t.Errorf("new state AusstehendePositionen[0].Menge = %d, want 2", state2.AusstehendePositionen[0].Menge)
 	}
 }
 
@@ -584,8 +466,7 @@ func TestApplyEvent_UnknownEventType_ReturnsError(t *testing.T) {
 
 // TestApplyEvent_WarenruecknahmeAfterPayment belegt, dass eine kassenwirksame
 // Warenrücknahme bezahlter Positionen den offenen Betrag nicht ins Minus dreht: der
-// Saldo bleibt 0, die am Tisch vereinnahmten Zahlungen werden um die Rückgabe gemindert
-// und die zurückgenommene Position verschwindet aus der Ausstehend-Liste.
+// Saldo bleibt 0 und die am Tisch vereinnahmten Zahlungen werden um die Rückgabe gemindert.
 func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
@@ -633,10 +514,6 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 	// Unbezahlt was already empty (paid), stays empty
 	if len(state.UnbezahltePositionen) != 0 {
 		t.Fatalf("expected 0 unbezahlte positionen, got %d", len(state.UnbezahltePositionen))
-	}
-	// Die zurückgenommene Position verschwindet aus der Ausstehend-Liste.
-	if state.AusstehendePositionen[0].Menge != 1 {
-		t.Fatalf("expected 1 ausstehende position remaining, got %+v", state.AusstehendePositionen)
 	}
 }
 
