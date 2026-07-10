@@ -34,7 +34,7 @@ Kartenzahlung, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, C
 
 | Context        | Typ                   | Beschreibung                                                                                                                                      | Persistenz                                             |
 | -------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Kasse          | Core Domain           | Alle finanziellen Geschäftsvorfälle: Bestellen, Ausgabe bestätigen, Bezahlen/Kassieren, Stornieren, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal)                         |
+| Kasse          | Core Domain           | Alle finanziellen Geschäftsvorfälle: Bestellen, Bezahlen/Kassieren, Stornieren, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal)                         |
 | Fiskalisierung | Supporting Sub-Domain | TSE-Signierung (Outbox, Worker, Watchdog), DSFinV-K-Export, Setup und Kassenidentität                                                             | Outbox (`tse_signaturauftraege`, `tse_stoerungen`), CRUD (`tse_konfiguration`, `kassenidentitaet`) |
 | Druck/Ausgabe  | Supporting Sub-Domain | Arbeitsbon und Kassenbeleg: Bondruck-Policy, ESC/POS-Formatierung, Druckauftrags-Outbox, Relay-Transport, Druckstationen-Konfiguration             | Outbox (`druckauftraege`), CRUD (`druckstationen`)     |
 | Stammdaten     | Supporting Sub-Domain | Verwaltung von Produkten, Tischen, Benutzern, Betreiber-Stammdaten (CRUD)                                                                         | CRUD                                                   |
@@ -62,7 +62,7 @@ Der Kasse-Kontext schützt sich über eine Anti-Corruption Layer (ACL) vor Stamm
 
 ## 3. Kasse (Core Domain)
 
-Der Kasse-Kontext vereint alle finanziellen Geschäftsvorfälle mit Event-Sourcing über das Kassenjournal: tischbezogene Vorgänge (Bestellen, Ausgabe bestätigen, Bezahlen/Kassieren, Stornieren, Umbuchen) und kassenführungsbezogene Vorgänge (Kassensitzung eröffnen, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss).
+Der Kasse-Kontext vereint alle finanziellen Geschäftsvorfälle mit Event-Sourcing über das Kassenjournal: tischbezogene Vorgänge (Bestellen, Bezahlen/Kassieren, Stornieren, Umbuchen) und kassenführungsbezogene Vorgänge (Kassensitzung eröffnen, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss).
 
 ### 3.1 Kassensitzung und Abrechnungskreis
 
@@ -112,7 +112,7 @@ Die Tisch-Session ist die transaktionale Grenze für tischbezogene Vorgänge. Je
 
 ### 3.5 Kassensitzung-Lifecycle
 
-Die Kassensitzung durchläuft: Eröffnung (Datum, Bezeichnung, Anfangsbestand/Wechselgeld) → Betrieb (Bestellungen, Ausgaben, Zahlungen, Stornierungen, Kassenbewegungen) → Kassensturz (Soll-Ist-Abgleich) → Tagesabschluss (Z-Bon, KS schließen). Alle KS-Events werden im selben Kassenjournal wie Tisch-Events gespeichert, Subject `kassensitzung-{nr}`.
+Die Kassensitzung durchläuft: Eröffnung (Datum, Bezeichnung, Anfangsbestand/Wechselgeld) → Betrieb (Bestellungen, Zahlungen, Stornierungen, Kassenbewegungen) → Kassensturz (Soll-Ist-Abgleich) → Tagesabschluss (Z-Bon, KS schließen). Alle KS-Events werden im selben Kassenjournal wie Tisch-Events gespeichert, Subject `kassensitzung-{nr}`.
 
 ### 3.6 Domain Events
 
@@ -123,7 +123,6 @@ Alle Events sind unveränderlich (append-only) und werden im Kassenjournal persi
 | Event                       | Semantik                                        | Tragende Constraints                                                                     |
 | --------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `bestellung-aufgenommen:v1` | Servicekraft nimmt eine Bestellung am Tisch auf | ≥ 1 Position; Produktname, Variante, Kategorie und Einzelpreis als Fat Event eingefroren |
-| `ausgabe-bestaetigt:v1`     | Positionen als ausgegeben markiert              | Positionsbezug (`position_id` + `menge`); Teilausgaben möglich                           |
 | `zahlung-kassiert:v1`       | Barzahlung kassiert                             | Betrag = Summe der gewählten Positionen; Teilzahlungen möglich                           |
 | `stornierung-erteilt:v1`    | Kassenwirksame Warenrücknahme bezahlter Positionen | Genau eine `zahlungId` (FIFO je Zahlung); negativer Umsatz am Ursprungssteuersatz + Bar-Rückgabe; Kommentar Pflicht (min. 3 Zeichen) |
 | `bestellung-korrigiert:v1`  | Geldneutrale Stornierung unbezahlter Positionen | Positionsbezug; ohne Geld- und Umsatzwirkung; Kommentar optional                         |
@@ -155,11 +154,10 @@ $$\text{Saldo} = \sum \text{Bestellungen} - \sum \text{Zahlungen} - \sum \text{K
 Alle Beträge in Cent (Integer); der Saldo ist die Summe der noch offenen (bestellten, nicht bezahlten, nicht korrigierten/umgebuchten) Positionen und stets ≥ 0. Saldo = 0 bedeutet: alle Positionen bezahlt, korrigiert oder umgebucht. Die kassenwirksame Warenrücknahme bereits bezahlter Positionen (`stornierung-erteilt:v1`) verändert den Saldo nicht; sie wirkt allein auf den Kassenbestand (Bar-Rückgabe).
 
 - **Kassensitzung-Invariante:** Jeder schreibende Tisch-Vorgang erfordert eine offene Kassensitzung. Prüfung via `kassensitzungen`-Entität im Application Service. Keine offene KS → HTTP 409.
-- **Ausgabe-Invariante:** Nur bestellte, nicht-stornierte Positionen können ausgegeben werden. Bereits ausgegebene Positionen nicht erneut ausgebbar. Teilausgaben zulässig.
 - **Bezahl-Invariante:** Nur bestellte, nicht-stornierte, nicht-bezahlte Positionen können bezahlt werden. Der Zahlungsbetrag ergibt sich aus der Summe der gewählten Positionen, Überzahlung nicht möglich. Teilzahlungen zulässig.
 - **Stornierungsinvariante:** Nur bestellte, nicht-stornierte Positionen sind stornierbar. Eine „Stornieren"-Anforderung wird serverseitig nach Bezahlstatus aufgeteilt: noch unbezahlte Positionen werden geldneutral korrigiert (`bestellung-korrigiert:v1`, Kommentar optional), bereits bezahlte als kassenwirksame Warenrücknahme zurückgenommen (`stornierung-erteilt:v1`, je betroffener Zahlung ein Event mit genau einer `zahlungId`, FIFO nach Zahlung, Kommentar Pflicht, min. 3 Zeichen). Die entstehenden Events werden atomar geschrieben, jedes mit eigener TSE-Transaktion; der Saldo bleibt stets ≥ 0.
-- **Rolleninvariante:** Stornierungen nur durch `serviceleitung` und `admin`. Alle anderen Tischoperationen (Bestellen, Ausgabe bestätigen, Kassieren, Umbuchen) stehen allen drei Rollen zur Verfügung.
-- **Mindestmengen-Invariante:** Jede positionsbasierte Operation erfordert mindestens eine Position. Bestellung, Ausgabe, Zahlung oder Stornierung ohne Positionen sind ungültig.
+- **Rolleninvariante:** Stornierungen nur durch `serviceleitung` und `admin`. Alle anderen Tischoperationen (Bestellen, Kassieren, Umbuchen) stehen allen drei Rollen zur Verfügung.
+- **Mindestmengen-Invariante:** Jede positionsbasierte Operation erfordert mindestens eine Position. Bestellung, Zahlung oder Stornierung ohne Positionen sind ungültig.
 
 #### Kassensitzung-Invarianten
 
@@ -190,7 +188,7 @@ Die Zustandsberechnung (`ApplyEvent()` in `backend/domain/kasse/tisch_session.go
 
 **`kassensitzungen` (CRUD-Entität, Hot-Path):** hält nur `z_nr`, `datum` und `status` und wird bei jedem Tisch-Schreibvorgang gelesen (Kassensitzung-Sperre). Alle weiteren KS-Daten (Anfangsbestand, Bezeichnung, Kassenbewegungen) werden bei Bedarf per In-Memory-Replay der wenigen KS-Events berechnet.
 
-**`tisch_sessions` (session-scoped Projektion):** pro Subject eine Zeile mit Tisch-Referenz, Saldo, unbezahlten und ausstehenden Positionen (JSONB) sowie der ID/Version des zuletzt verarbeiteten Events. Operative Queries lesen direkt aus der Projektion; die Historie liest den Event-Stream via `ReadEventsBySubject()`. Bei Inkonsistenz kann die Projektion jederzeit aus dem Kassenjournal neu berechnet werden (Single Source of Truth).
+**`tisch_sessions` (session-scoped Projektion):** pro Subject eine Zeile mit Tisch-Referenz, Saldo, unbezahlten Positionen (JSONB) sowie der ID/Version des zuletzt verarbeiteten Events. Operative Queries lesen direkt aus der Projektion; die Historie liest den Event-Stream via `ReadEventsBySubject()`. Bei Inkonsistenz kann die Projektion jederzeit aus dem Kassenjournal neu berechnet werden (Single Source of Truth).
 
 ### 3.9 Kassenbestand (Read Model)
 
@@ -298,7 +296,7 @@ Bondruck umfasst zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druc
 | Arbeitsbon  | `bestellung-aufgenommen:v1` (automatisch)       | nicht-fiskalisch       | Ware ohne Preise (Küche/Theke)                  |
 | Kassenbeleg | `POST /service/beleg-drucken` (auf Anforderung) | fiskalisch (§ 146a AO) | Positionen mit Preisen, Vereinsdaten, Kassen-ID |
 
-**Arbeitsbon (operativ, K-12):** Eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)). Bei `bestellung-aufgenommen:v1` gruppiert die Arbeitsbon-Policy (`backend/api/druck/bondruck`) die Positionen nach Kategorie, schlägt Drucker-IP und Bonmodus (`pro_position` oder `pro_bestellung`) aus der `druckstationen`-Tabelle nach (eine Zeile pro Kategorie; Admin-Konfiguration mit beidseitiger IPv4-Validierung), formatiert den ESC/POS-Payload und reiht je einen Druckauftrag in die Outbox ein. Kategorien ohne konfigurierte Druckstation erzeugen keinen Auftrag. Inhalt: Tischnummer, Positionen (Art + Menge), Kommentar, Uhrzeit, Servicekraft, keine Preise. Kein Beleg i. S. v. § 146a AO. KDS (K-13) und Zubereitungsstatus (K-15) sind noch offen.
+**Arbeitsbon (operativ, K-12):** Eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)). Bei `bestellung-aufgenommen:v1` gruppiert die Arbeitsbon-Policy (`backend/api/druck/bondruck`) die Positionen nach Kategorie, schlägt Drucker-IP und Bonmodus (`pro_position` oder `pro_bestellung`) aus der `druckstationen`-Tabelle nach (eine Zeile pro Kategorie; Admin-Konfiguration mit beidseitiger IPv4-Validierung), formatiert den ESC/POS-Payload und reiht je einen Druckauftrag in die Outbox ein. Kategorien ohne konfigurierte Druckstation erzeugen keinen Auftrag. Inhalt: Tischnummer, Positionen (Art + Menge), Kommentar, Uhrzeit, Servicekraft, keine Preise. Kein Beleg i. S. v. § 146a AO.
 
 **Kassenbeleg (fiskalisch, auf Anforderung):** Ein Service-Command (`POST /service/beleg-drucken`) erzeugt pro Anforderung genau einen Druckauftrag an den Kassenbeleg-Drucker. Als Datenquelle dient entweder eine Tischzahlung (`zahlung-kassiert:v1`) oder ein Direktverkauf (`direktverkauf-getaetigt:v1`); die Outbox-Referenz ist die Event-ID des referenzierten Vorgangs. Inhalt: Vereinsdaten (K-20), Kassen-Seriennummer (F-01), Datum/Uhrzeit, Positionen mit Einzelpreis × Menge, Gesamtbetrag, Zahlungsart „bar", Bon-Nummer. Erneuter Aufruf druckt nach, ohne den Vorgang fachlich zu wiederholen. Am Fest wird der Beleg selten verlangt (Belegausgabe-Befreiung → [compliance.md §5.1](compliance.md#51-gesetzliche-grundlage)). Der Beleg enthält die Steueraufteilung (F-07) und (sofern eine TSE konfiguriert ist) die TSE-Pflichtfelder inkl. QR-Code (F-02).
 
@@ -334,7 +332,6 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen. Die Rollenprüfung erfol
 | Betreiber-Stammdaten verwalten |   ✔   |                |              |
 | _Kasse: Tisch-Operationen_     |       |                |              |
 | Bestellung aufnehmen           |   ✔   |       ✔        |      ✔       |
-| Ausgabe bestätigen             |   ✔   |       ✔        |      ✔       |
 | Zahlung kassieren              |   ✔   |       ✔        |      ✔       |
 | Stornierung erteilen           |   ✔   |       ✔        |              |
 | Bestellung umbuchen            |   ✔   |       ✔        |      ✔       |
@@ -414,7 +411,7 @@ Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 
 | Bereich   | Seiten                                                                                                                                                                                               |
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Service   | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Kassieren, Historie). Ausgabe bestätigen ist in den Bestellen-Tab integriert; Stornieren ist für `serviceleitung`/`admin` im Historie-Tab verfügbar. |
+| Service   | Tischübersicht → Tisch-Detail (Tabs: Bestellen, Kassieren, Historie). Stornieren ist für `serviceleitung`/`admin` im Historie-Tab verfügbar. |
 | Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten · Druckerkonfiguration (`DruckerConfigPage`, IP und Bonmodus pro Kategorie konfigurieren)                                                 |
 | Allgemein | Login · Passwort setzen (Erstanmeldung)                                                                                                                                                              |
 
@@ -465,8 +462,8 @@ Read Models sind aufbereitete Lese-Ansichten, reine Projektionen über vorhanden
 
 | Name             | ID   | Quelle                                           | Inhalt (Kurzfassung)                                                                                                                                                                              |
 | ---------------- | ---- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tischübersicht   | K-06 | `tisch_sessions` + Stammdaten                    | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter und ausstehender Positionen. Startseite des Service-Bereichs. JOIN auf `kassensitzung_nr`.                                                     |
-| Tischdetails     | K-06 | `tisch_sessions`                                 | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Ausgabe bestätigen, Bezahlen/Kassieren, Stornieren, Historie.                                                  |
+| Tischübersicht   | K-06 | `tisch_sessions` + Stammdaten                    | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter Positionen. Startseite des Service-Bereichs. JOIN auf `kassensitzung_nr`.                                                                      |
+| Tischdetails     | K-06 | `tisch_sessions`                                 | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Bezahlen/Kassieren, Stornieren, Historie.                                                                      |
 | Produktkatalog   | —    | Produkt-Stammdaten                               | Aktive Produkte und Varianten, nach Kategorie gruppiert. Im Bestellvorgang geladen (kein eigenes Navigationsziel).                                                                                |
 | Kassenjournal    | K-07 | Kassenjournal (Event Stream, Replay per Subject) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich.                                                                      |
 | Eigene Übersicht | R-06 | `kassenjournal` (SQL-Aggregation)                | KPIs der eigenen Servicekraft: Anzahl und Summe eigener Bestellungen sowie kassierter Zahlungen. Gefiltert auf `user_id` und `kassensitzung_nr`. Endpunkt: `POST /service/get-eigene-uebersicht`. |
@@ -486,7 +483,7 @@ Beide `summary`-Sektionen enthalten die Direktverkauf-Kennzahlen `anzahlDirektve
 
 ### 7.3 Ausgabe-Ansichten
 
-Der Relay-Poll-Endpunkt (`POST /relay/poll`) liefert die offenen Druckaufträge aus der `druckauftraege`-Outbox an das Print-Relay (reiner Transport, → [4.6 Bondruck](#46-bondruck-arbeitsbon-und-kassenbeleg-k-12)). KDS-Ansicht (K-13) und Zubereitungsstatus (K-15) sind noch offen.
+Der Relay-Poll-Endpunkt (`POST /relay/poll`) liefert die offenen Druckaufträge aus der `druckauftraege`-Outbox an das Print-Relay (reiner Transport, → [4.6 Bondruck](#46-bondruck-arbeitsbon-und-kassenbeleg-k-12)).
 
 ---
 

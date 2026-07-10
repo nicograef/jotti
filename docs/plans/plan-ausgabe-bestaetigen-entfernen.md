@@ -371,15 +371,22 @@ volle Verifikation.
 
 ### Acceptance criteria
 
-- [ ] Grep über `docs/` (ohne `docs/prds/`, `docs/plans/`,
+- [x] Grep über `docs/` (ohne `docs/prds/`, `docs/plans/`,
       `docs/adrs/`) und `README.md` nach „Ausgabe bestätigen",
       `ausgabe-bestaetigt` und K-03 liefert keine Treffer mehr, die den
       entfernten Ist-Zustand beschreiben.
-- [ ] K-13 und K-15 sind aus der Roadmap entfernt; die Streichung
-      verweist auf ADR 01.
-- [ ] Die Berechtigungsmatrix und die Invarianten-Liste im Handbuch
+- [x] K-13 und K-15 sind aus der Roadmap entfernt; die Streichung
+      verweist auf ADR 01. (Beide in die Nicht-Ziele-Tabelle
+      verschoben, jeweils mit Verweis auf ADR 01; die Spiegelungen in
+      `language.md`, `produktbeschreibung.md`, `README.md` und die
+      „noch offen"-Notizen im Handbuch sind entfernt.)
+- [x] Die Berechtigungsmatrix und die Invarianten-Liste im Handbuch
       enthalten keine Ausgabe-Zeilen mehr; die
       Offene-Arbeit-Beschreibung nennt „unbezahlt" als Datenbasis.
-- [ ] `make verify` und der E2E-Lauf sind grün; PRD, ADR und dieser
+- [x] `make verify` und der E2E-Lauf sind grün; PRD, ADR und dieser
       Plan sind die einzigen verbleibenden Dokumente, die das entfernte
-      Feature beschreiben.
+      Feature beschreiben. (In der Cloud-Session ohne Docker als
+      `make check` plus lokales Integrationstest-Rezept ausgeführt —
+      beide grün; der reine Doku-Diff berührt keinen Testpfad. Der
+      Docker-gebundene E2E-Lauf ist in dieser Session nicht
+      ausführbar.)
