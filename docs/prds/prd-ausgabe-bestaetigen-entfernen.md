@@ -134,31 +134,10 @@ Installationen werden beim Update automatisch bereinigt.
 
 ## Further Notes
 
-**Manuelle Bereinigung (Fallback zur Release-Migration).** Für den
-Fall, dass die Instanz ohne Update bereinigt werden soll — Reihenfolge
-beachten, vorher Backup (`scripts/prod-backup.sh` bzw. `pg_dump`):
-
-Wichtig: Das Kassenjournal ist per Trigger append-only
-(`kassenjournal_no_delete` blockiert DELETE für alle Rollen). Die
-Bereinigung muss als Schema-Owner laufen (der `POSTGRES_USER` der
-Installation) und den Trigger transaktional aushebeln:
-
-```sql
-BEGIN;
--- Append-only-Guard temporär deaktivieren (nur als Table-Owner möglich)
-ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete;
--- 1. Projektion löschen (FK auf kassenjournal; wird beim Start neu aufgebaut)
-DELETE FROM tisch_sessions;
--- 2. Ausgabe-Events löschen (nicht signaturpflichtig, keine TSE-Referenzen)
-DELETE FROM kassenjournal WHERE type = 'ausgabe-bestaetigt:v1';
--- Guard wieder aktivieren
-ALTER TABLE kassenjournal ENABLE TRIGGER kassenjournal_no_delete;
-COMMIT;
-```
-
-Danach das Backend neu starten; der Startup-Rebuild erzeugt die
-Projektion aus den verbleibenden Events. Auf einer Alt-Version (mit
-Ausgabe-Feature) ist die Bereinigung ebenfalls unschädlich — die
-Lücken in den Versionsnummern je Subject stören die optimistische
-Nebenläufigkeitskontrolle nicht, da sie nur auf der Maximal-Version
-aufsetzt.
+Die Bereinigung läuft vollständig über die Release-Migration im
+normalen Update-Ablauf (Backup → Migrate-Container → App-Start); ein
+manueller Eingriff ist nicht vorgesehen. Die Lücken in den
+Versionsnummern je Subject, die die Event-Löschung hinterlässt, sind
+unschädlich — die optimistische Nebenläufigkeitskontrolle setzt nur auf
+der Maximal-Version je Subject auf, und der Startup-Rebuild erzeugt die
+Projektion aus den verbleibenden Events.
