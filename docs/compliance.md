@@ -281,15 +281,11 @@ Die TSE-Daten können platzsparend als QR-Code auf den Beleg, das Format muss de
 2. TSE-Daten auf dem Beleg andrucken: umgesetzt. `FormatKassenbeleg` druckt den TSE-Abschnitt (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Start- und Endzeitpunkt, Signatur); bei einem Ausfall ohne Signatur einen Ausfallvermerk.
 3. **Erste-Bestellung-Zeitstempel:** umgesetzt. Die `logTime` der ersten `Bestellung-V1` hält die Tisch-Session-Projektion vor und der Tisch-Beleg druckt sie an (nur Tisch-Belege, Direktverkäufe haben keine vorgelagerte Bestellung).
 4. QR-Code-Generierung im DSFinV-K-Format: umgesetzt. Der von fiskaly gelieferte `qr_code_data`-String wird als nativer ESC/POS-QR-Code gedruckt.
-5. Beleg-Archivierung: Die fiskalischen Daten liegen im Kassenjournal (Event samt TSE-Signatur) und im DSFinV-K-Export; der Beleg ist daraus jederzeit reproduzierbar. Eine separate Archivierung digitaler eBelege folgt mit F-09.
+5. Beleg-Archivierung: Die fiskalischen Daten liegen im Kassenjournal (Event samt TSE-Signatur) und im DSFinV-K-Export; der Beleg ist daraus jederzeit reproduzierbar.
 
 ### 5.6 Umsetzung der Belegausgabe im BYOD-Setup
 
-Die Servicekräfte nutzen private Smartphones ohne mobile Bondrucker, daraus folgen zwei Ausgabewege:
-
-**Variante A (Zentraler Bondrucker an der Theke, Primärlösung, Phase 1):** Die Servicekraft kassiert auf dem Smartphone; erst nach erfolgreichem TSE-Abschluss (`FinishTransaction`) sendet das Backend den Druckbefehl an den stationären Bondrucker, die Reihenfolge TSE-Abschluss vor Druck ist rechtlich zwingend, da erst dann die Prüfwerte feststehen. Die Servicekraft bietet dem Gast den Bon an. Lehnt der Gast ab, ist die Pflicht dennoch erfüllt, § 146a Abs. 2 AO verlangt das „Ausstellen und Zur-Verfügung-Stellen", nicht die Annahme.
-
-**Variante B (Digitaler eBeleg via QR-Code, optional, Phase 2):** Die bloße Bildschirmanzeige auf dem Kellner-Smartphone ist unzulässig, der Gast muss den Beleg elektronisch entgegennehmen können. jotti zeigt nach dem Kassiervorgang einen QR-Code (Download-Link zu PDF/JPG/PNG auf dem Backend); der Gast scannt ihn mit dem eigenen Gerät. Die Zustimmung gilt mit dem Scan als konkludent erteilt. Generierte eBelege müssen für DSFinV-K und GoBD archiviert werden. [1, 2]
+Die Servicekräfte nutzen private Smartphones ohne mobile Bondrucker; die Belegausgabe läuft über einen zentralen Bondrucker an der Theke: Die Servicekraft kassiert auf dem Smartphone; erst nach erfolgreichem TSE-Abschluss (`FinishTransaction`) sendet das Backend den Druckbefehl an den stationären Bondrucker, die Reihenfolge TSE-Abschluss vor Druck ist rechtlich zwingend, da erst dann die Prüfwerte feststehen. Die Servicekraft bietet dem Gast den Bon an. Lehnt der Gast ab, ist die Pflicht dennoch erfüllt, § 146a Abs. 2 AO verlangt das „Ausstellen und Zur-Verfügung-Stellen", nicht die Annahme.
 
 ---
 
@@ -356,7 +352,7 @@ Der Bonkopf (`transactions.csv`) führt zusätzlich `BEDIENER_ID` und `BEDIENER_
 Das Feld `ABRECHNUNGSKREIS` (in `allocation_groups.csv`, je `BON_ID`) verknüpft Bestellungen und Zahlungen eines Tisches zu einer logischen Einheit, Beispieltabelle und Ablauf: → [§3.6](#36-das-festzelt-muster-atomare-tse-transaktionen).
 
 - **Vergabe (✅ umgesetzt):** pro Tisch und Kassensitzung, Wert = Tischname (z. B. `Tisch 42`; das Format erlaubt beliebige Strings bis 40 Zeichen, `Tisch {Name}` ist eine jotti-interne Konvention); intern Subject `kassensitzung-{nr}/tisch-{id}`. Jeder Tisch erhält seinen eigenen Abrechnungskreis, ein Gesamt-Schlüssel für alle Tische verstieße gegen die GoBD-Nachvollziehbarkeit. Der Tagesabschluss schließt die Kassensitzung und damit alle Tisch-Sessions.
-- **Geplant: manuelle Tischfreigabe** (→ [anforderungen.md K-23](anforderungen.md)): neue Gästegruppe am selben Tisch erhält ein Suffix (`Tisch 42-B`), korrektere Abbildung im Festzelt, weniger Rückfragen bei Prüfungen. Bis dahin teilen sich Gästegruppen am selben Tisch einen Abrechnungskreis, zulässig, solange alle Bons korrekt verknüpft sind.
+- **Mehrere Gästegruppen am selben Tisch:** teilen sich einen Abrechnungskreis — zulässig, solange alle Bons korrekt verknüpft sind.
 - **Direktverkauf:** sofort geschlossene Transaktion ohne Tisch, im Export ohne `ABRECHNUNGSKREIS` (Feld ist optional) oder per Konvention `Theke`; Entscheidung bei Implementierung des Exporters. Keine `Bestellung-V1` nötig, direkt als `Kassenbeleg-V1` abgesichert.
 
 ### 6.6 Storno-Handling in DSFinV-K

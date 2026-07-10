@@ -18,11 +18,7 @@ Rollen: `admin` (Stammdaten und Kasse), `serviceleitung` (Kasse inkl. Storno), `
 | ---- | ------------------------ | ----------------------------------------------------------------------------- | ----------- | ------ |
 | K-13 | Küchendisplay (KDS)      | Passive Echtzeit-Anzeige offener Bestellungen je Ausgabestation.              | Kasse       | Should |
 | K-15 | Zubereitungsstatus       | Positionen als „in Zubereitung" / „fertig" markieren (baut auf K-13).         | Kasse       | Nice   |
-| K-23 | Manuelle Tischfreigabe   | Neue Tisch-Session mit Suffix bei Saldo 0.                                    | Kasse       | Nice   |
-| R-02 | Datenexport CSV          | Umsätze, Bestellungen und Artikel als CSV je Kassensitzung.                   | Reporting   | Nice   |
 | R-05 | Produktumsatz-Reporting  | Mengen, Ranking und Einnahmen pro Produkt und Variante.                       | Reporting   | Nice   |
-| F-08 | GoBD-Integritätsnachweis | Read-only Selbsttest (Versionsfolge und Signaturpflicht) ohne Schemaänderung. | Fiskal      | Nice   |
-| F-09 | eBeleg                   | Digitaler Beleg per QR-Code (PDF oder HTML).                                  | Fiskal      | Nice   |
 
 ## Nicht-Ziele
 
@@ -108,7 +104,7 @@ jotti unterliegt als elektronisches Aufzeichnungssystem der KassenSichV (§146a 
 | ---- | ----------------------- | ----------------------------------------------------------------- |
 | F-01 | Seriennummer            | Eindeutige Kassen- und Client-ID je Aufzeichnung.                 |
 | F-02 | TSE-Integration         | Signatur jedes Geschäftsvorfalls (fiskaly Cloud-TSE).             |
-| F-03 | Belegausgabepflicht     | Bondruck nach §146a AO (eBeleg geplant, F-09).                    |
+| F-03 | Belegausgabepflicht     | Bondruck nach §146a AO.                                           |
 | F-04 | DSFinV-K Export         | Prüfdatensatz im DSFinV-K-Format.                                 |
 | F-05 | ELSTER-Meldung          | Manuelle Kassenmeldung im Mein-ELSTER-Portal (per Dokumentation). |
 | F-06 | Abrechnungskreis        | Pro Tisch und Kassensitzung.                                      |

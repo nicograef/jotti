@@ -44,7 +44,6 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, bestätige
 - 🧾 **Abrechnung pro Tisch** — detaillierte Aufstellung je Tisch
 - 👤 **Abrechnung pro Servicekraft** — Umsatz und Transaktionen pro Person
 - 📈 **Produktumsatz-Reporting** _(geplant)_ — meistverkaufte Varianten, Mengen und Einnahmen pro Produkt
-- 📥 **Datenexport (CSV)** _(geplant)_ — Umsätze, Bestellungen und Artikeldaten für die Vereinsbuchhaltung
 - 📦 **DSFinV-K-Export** — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.4)
 
 ### Verwaltung & Sicherheit

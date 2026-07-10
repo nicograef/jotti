@@ -404,14 +404,13 @@ Separater Dienst (`windows/relay/`, Repo-Root): reiner Transport ohne Fachlogik 
 - **Trinkgeld:** Trinkgeld an den Verein ist voll steuerpflichtig; direkt an die Servicekraft in der Regel steuerfrei (→ [compliance.md](compliance.md)).
 - **BYOD (Bring Your Own Device):** Servicekräfte nutzen eigene Smartphones; kein App-Install nötig.
 - **Belegausgabepflicht (Bonpflicht):** Gesetzliche Pflicht nach § 146a Abs. 2 AO, Beleg nach jedem Kassiervorgang. Siehe → Kassenbeleg.
-- **eBeleg:** Digitaler Kassenbon als papierloser Beleg-Ersatz. Geplant (→ anforderungen.md F-09).
 - **Kassensturzfähigkeit:** Der Soll-Bestand muss jederzeit mit dem Ist-Bestand abgleichbar sein; Voraussetzung für GoBD-Konformität.
 
 ---
 
 ### Fiskalkonformität (Compliance Sub-Domain)
 
-Begriffe der gesetzlich vorgeschriebenen Fiskalisierung nach § 146a AO und KassenSichV. TSE-Integration, Steuersätze, Kassenbeleg und DSFinV-K-Export sind umgesetzt; die Kassenmeldung erfolgt manuell über das ELSTER-Portal (F-05), der eBeleg ist offen (→ `docs/anforderungen.md`).
+Begriffe der gesetzlich vorgeschriebenen Fiskalisierung nach § 146a AO und KassenSichV. TSE-Integration, Steuersätze, Kassenbeleg und DSFinV-K-Export sind umgesetzt; die Kassenmeldung erfolgt manuell über das ELSTER-Portal (F-05).
 
 > **Sprachkonvention:** Fiskal-Fachbegriffe folgen der deutschen Gesetzessprache und DSFinV-K-Spezifikation.
 
@@ -489,5 +488,4 @@ Die folgenden Begriffe sind definiert, aber noch nicht im Code implementiert. De
 - **Zubereitungsstatus:** Status einer Position: offen → in Zubereitung → fertig (K-15).
 - **Ausgabestation:** Physischer Ort (Küche, Getränketheke), an dem Positionen ausgegeben werden (K-13/K-15).
 - **Stornoquote:** Verhältnis Stornierungsbetrag zu Bestellsumme.
-- **Export:** CSV-Download von Umsätzen, Bestellungen und Artikeldaten für die Buchhaltung (R-02).
 - **Privatentnahme / Privateinlage:** eigene DSFinV-K-Geschäftsvorfalltypen für Bewegungen in den/aus dem privaten Bereich des Vereins (neben dem → Geldtransit); aktuell wird jede Bargeld-Bewegung als Geldtransit gebucht.

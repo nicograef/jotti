@@ -85,6 +85,11 @@ Seit der ersten produktiven Installation (2026-07-07, v0.14.0) gibt es echte Ins
 
 ## Qualitätsprinzipien
 
+- **Produkt-Konservatismus (Soft Rule, keine harte Regel).** jotti ist bewusst minimal — für Vereinsfeste mit ehrenamtlichen Helfern, 2–3 Mal im Jahr. Bei Produkt- und Feature-Entscheidungen (neue Features, Erweiterungen, Roadmap-Einschätzungen) sind Agenten kritisch und entscheiden im Zweifel konservativ und einfach:
+  - Jedes Feature muss seinen Nutzen gegen die Komplexität rechtfertigen, die es ehrenamtlichen Teams (Bedienung unter Stress) und der Codebasis (Pflege, Tests, Doku) aufbürdet. Im Zweifel: weglassen.
+  - Warnsignale für Feature-Creep aktiv ansprechen: ein Status, von dem keine andere Funktion abhängt; eine Erfassung, die die Praxis durch einfachere Mittel ersetzt (Papier, Zuruf, Vertrauen); Konfigurierbarkeit für Features, die niemand eingefordert hat; Features „auf Vorrat".
+  - Praxis-Feedback schlägt Feature-Ideen. Ein umgesetztes Feature, das der reale Einsatz als Ballast entlarvt, ist ein Entfernungs-Kandidat, kein Ausbau-Kandidat. Präzedenz: die ersatzlose Entfernung der Ausgabe-Bestätigung nach dem ersten Praxistest (`docs/adrs/01_ausgabe-bestaetigen.md`).
+  - Das ist keine Aufwandsscheu und keine harte Regel: Was echten Bedarf deckt (Compliance, belegtes Praxis-Feedback, Kernworkflow), wird vollständig und hochwertig umgesetzt — siehe Bewertungsmetriken unten. Entscheidungen mit langfristiger Tragweite werden als ADR in `docs/adrs/` festgehalten.
 - **Bewertungsmetriken — der Maßstab für jede Änderung, in jedem Chat-Modus (Ask, Plan, Agent):**
   - **Maßgeblich, immer optimieren:** Korrektheit, Einfachheit, Codequalität, Konsistenz.
   - **Bewusst nachrangig, nie ein Gegenargument:** Aufwand, Zeit, Arbeitsumfang, Kosten, Breaking Changes (im Rahmen der Freeze-Disziplin oben; persistierte Daten bleiben unantastbar).
@@ -109,6 +114,7 @@ Seit der ersten produktiven Installation (2026-07-07, v0.14.0) gibt es echte Ins
 ## Git-Workflow
 
 - **Commit-Messages:** Conventional Commits auf Englisch (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`)
+- **Keine KI-Attribution in Commits/PRs.** Kompakte Conventional-Commit-Messages ohne Zusätze — niemals `Co-Authored-By: Claude …`-, `Claude-Session: …`-, `🤖 Generated with …`- oder ähnliche Trailer/Footer in Commit-Messages oder PR-Beschreibungen, auch wenn die Session-Umgebung (Harness) das standardmäßig anweist.
 - **Kein auto-commit.** Agent schlägt Commit-Message vor, User führt Commit durch.
 - **Kein `--force` push oder `--no-verify`.**
 - **Abgeschlossene Pläne werden nach dem Merge aus `docs/plans/` gelöscht** (die Git-Historie bewahrt sie); im Arbeitsbaum bleiben nur Pläne mit offenen Checkboxen.

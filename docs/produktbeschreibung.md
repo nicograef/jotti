@@ -96,7 +96,6 @@ Mit _(in Entwicklung)_ markierte Features sind geplant, aber noch nicht umgesetz
 | Tagesabschluss (Z-Bon)                     | Formaler Abschluss mit fortlaufender Nummer, Umsatzaggregation und Stammdaten-Snapshot                                          |
 | Abrechnung                                 | Tagesabrechnung nach Steuersatz, pro Tisch und pro Servicekraft                                                                 |
 | Produktumsatz-Reporting _(in Entwicklung)_ | Verkaufte Mengen, Ranking und Gesamteinnahmen pro Variante                                                                      |
-| Datenexport (CSV) _(in Entwicklung)_       | Umsätze und Bestellungen als CSV für die Vereinsbuchhaltung                                                                     |
 | DSFinV-K-Export                            | Maschinenlesbarer Export nach DSFinV-K v2.4 als ZIP-Archiv                                                                      |
 | TSE-Anbindung (Cloud-TSE)                  | Integrierte Cloud-TSE-Schnittstelle mit fiskaly-Adapter; jeder Vorgang wird signiert                                            |
 | Belegausgabe                               | Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse                                              |
