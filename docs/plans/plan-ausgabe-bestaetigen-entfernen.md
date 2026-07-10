@@ -200,14 +200,13 @@ weiterhin korrekt replayed.
       `ErrPositionNichtAusgebbar` existieren nicht mehr. Die geteilten
       Helfer `validatePositionRefs()`/`resolvePositions()` bleiben und
       Kassieren/Umbuchen funktionieren unverändert.
-- [ ] `Ausgabe.tsx`, `AusgabeDrawer.tsx`, `Ausgabe.test.tsx` und
+- [x] `Ausgabe.tsx`, `AusgabeDrawer.tsx`, `Ausgabe.test.tsx` und
       `Ausgabe.ts` (Service-Frontend) sind gelöscht;
       `TischBackend.ausgabeBestaetigen()` und die Fehlermeldung
-      `position_nicht_ausgebbar` sind entfernt. (Teilweise: die drei
-      Write-UI-Dateien und die Schreib-Anteile sind gelöscht; `Ausgabe.ts`
-      ist auf das Lese-Schema `AusgabeSchema` reduziert, das der
-      Historie-Lesepfad — in Phase 1 laut Plan unangetastet — bis Phase 3
-      noch braucht.)
+      `position_nicht_ausgebbar` sind entfernt. (In Phase 1 wurden die
+      drei Write-UI-Dateien und die Schreib-Anteile gelöscht; `Ausgabe.ts`
+      blieb als Lese-Schema für den Historie-Lesepfad erhalten und wurde
+      in Phase 3 mit dem Lesepfad gelöscht.)
 - [x] Der Bestellen-Tab rendert nur noch die Bestellkomponente; das
       Header-Badge ist entfernt; `TablePage.test.tsx` ist angepasst.
 - [x] Seed-Engine und -Szenario enthalten keine `ausgeben`-Aktionen
