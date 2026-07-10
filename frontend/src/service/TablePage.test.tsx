@@ -55,9 +55,8 @@ vi.mock('./table/TischBackend', () => ({
   },
 }))
 
-// Tisch ohne ausstehende Positionen: zeigt das Badge „Alles ausgegeben!".
-// Der Saldo ist bewusst ungleich 0, damit er sich im DOM eindeutig von den
-// 0,00-€-Summen der Bestell-Leiste unterscheidet.
+// Tischzustand mit offenem Saldo. Der Saldo ist bewusst ungleich 0, damit er
+// sich im DOM eindeutig von den 0,00-€-Summen der Bestell-Leiste unterscheidet.
 const stammtisch: TischSession = {
   tischId: 1,
   tischName: 'Stammtisch',
@@ -93,9 +92,8 @@ describe('TablePage', () => {
     expect(
       await screen.findByText('Tischdaten konnten nicht geladen werden'),
     ).toBeInTheDocument()
-    // Die Leer-Defaults (Saldo 0,00 €, „Alles ausgegeben!") dürfen bei einem
-    // Fehler nicht erscheinen — der Tisch wirkt sonst fälschlich abgerechnet.
-    expect(screen.queryByText('Alles ausgegeben!')).not.toBeInTheDocument()
+    // Der Leer-Default (Saldo 0,00 €) darf bei einem Fehler nicht erscheinen —
+    // der Tisch wirkt sonst fälschlich abgerechnet.
     expect(screen.queryByText('0,00 €')).not.toBeInTheDocument()
   })
 
@@ -119,13 +117,12 @@ describe('TablePage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('zeigt ohne Fehler den Tischzustand mit Saldo und Ausgabe-Badge', async () => {
+  it('zeigt ohne Fehler den Tischzustand mit Saldo', async () => {
     getTischState.mockResolvedValue(stammtisch)
     getTischHistorie.mockResolvedValue([])
     renderPage()
 
     expect(await screen.findByText('Stammtisch')).toBeInTheDocument()
-    expect(screen.getByText('Alles ausgegeben!')).toBeInTheDocument()
     expect(screen.getByText('12,50 €')).toBeInTheDocument()
   })
 })

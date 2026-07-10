@@ -4,7 +4,6 @@ import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 import {
   bestellePosition,
-  gebeAusstehendePositionAus,
   kassierePosition,
   oeffneTisch,
   zeileMit,
@@ -32,11 +31,10 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
     await oeffneTisch(page, TISCH)
 
     // Pommes Klein (2,50 €) bleibt unbezahlt (geldneutrale Korrektur), Brezel
-    // Normal (2,00 €) wird ausgegeben und kassiert (Warenrücknahme).
+    // Normal (2,00 €) wird kassiert (Warenrücknahme).
     await bestellePosition(page, 'Pommes', 'Klein')
     await bestellePosition(page, 'Brezel', 'Normal')
 
-    await gebeAusstehendePositionAus(page, 'Brezel Normal')
     await kassierePosition(page, 'Brezel Normal')
 
     // Saldo zeigt nur noch die unbezahlten Pommes.
@@ -60,7 +58,6 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
     // Die geldneutrale Korrektur gleicht den Saldo aus — der Tisch ist wieder
     // bei 0,00 €.
     await expect(page.getByText('0,00 €').first()).toBeVisible()
-    await expect(page.getByText('Alles ausgegeben!')).toBeVisible()
 
     // --- Kassenwirksame Warenrücknahme: Storno der bezahlten Brezel-Bestellung ---
     // Die Bestellung, aus der die kassierte Position stammt, bleibt weiterhin

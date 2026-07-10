@@ -157,11 +157,11 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 	}
 
 	// Jedes fiskalische Event hat genau einen Signaturauftrag (event_id UNIQUE sichert
-	// höchstens einen); nur Ausgabe und Kassensturz sind im Szenario nicht fiskalisch.
+	// höchstens einen); nur der Kassensturz ist im Szenario nicht fiskalisch.
 	var fiskalischOhneAuftrag int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM kassenjournal e
 		LEFT JOIN tse_signaturauftraege a ON a.event_id = e.id
-		WHERE e.type NOT IN ('ausgabe-bestaetigt:v1', 'kassensturz-durchgefuehrt:v1')
+		WHERE e.type <> 'kassensturz-durchgefuehrt:v1'
 		  AND a.id IS NULL`).Scan(&fiskalischOhneAuftrag); err != nil {
 		t.Fatalf("fiskalische Events ohne Auftrag zählen: %v", err)
 	}
@@ -171,7 +171,7 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 	var nichtFiskalischMitAuftrag int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM tse_signaturauftraege a
 		JOIN kassenjournal e ON e.id = a.event_id
-		WHERE e.type IN ('ausgabe-bestaetigt:v1', 'kassensturz-durchgefuehrt:v1')`).Scan(&nichtFiskalischMitAuftrag); err != nil {
+		WHERE e.type = 'kassensturz-durchgefuehrt:v1'`).Scan(&nichtFiskalischMitAuftrag); err != nil {
 		t.Fatalf("nicht-fiskalische Events mit Auftrag zählen: %v", err)
 	}
 	if nichtFiskalischMitAuftrag != 0 {

@@ -80,10 +80,6 @@ const mappedCodes: [string, string][] = [
     'Das Passwort ist zu schwach. Bitte ein stärkeres Passwort verwenden.',
   ],
   [
-    'position_nicht_ausgebbar',
-    'Mindestens eine Position kann nicht ausgegeben werden. Bitte Tischstatus aktualisieren und erneut versuchen.',
-  ],
-  [
     'position_nicht_bezahlbar',
     'Mindestens eine Position ist nicht mehr bezahlbar. Bitte Tischstatus aktualisieren und erneut versuchen.',
   ],

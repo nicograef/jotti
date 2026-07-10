@@ -10,7 +10,7 @@ import { resetAndSeed } from '../support/seed'
 // Tisch-Detail (TablePage) hat einen expliziten Fehlerzustand für
 // get-tisch-state/get-tisch-historie (siehe frontend/src/service/TablePage.tsx)
 // — diese Specs bestätigen, dass er bei Serverfehler und Netzabbruch greift und
-// den Tisch nicht als „Saldo 0,00 €, alles ausgegeben" ausgibt.
+// den Tisch nicht als „Saldo 0,00 €" ausgibt.
 
 // „Tisch 3" hat im Demo-Drehbuch Historie, ist für diese Specs aber nur ein
 // beliebiger aktiver Tisch — der Zustand selbst wird ja abgefangen.

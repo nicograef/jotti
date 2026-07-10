@@ -175,8 +175,6 @@ func (b *sitzungsBuilder) process(a aktion) error {
 	switch a := a.(type) {
 	case bestellen:
 		return b.bestellen(a)
-	case ausgeben:
-		return b.ausgeben(a)
 	case kassieren:
 		return b.kassieren(a)
 	case stornieren:
@@ -206,27 +204,6 @@ func (b *sitzungsBuilder) bestellen(a bestellen) error {
 		return err
 	}
 	evt, err := kasse.NewBestellungAufgenommenEvent(b.tischSubject(a.Tisch), a.User, name, uuid.New().String(), positionen, a.Kommentar)
-	if err != nil {
-		return err
-	}
-	b.addTisch(a.Tisch, evt)
-	return nil
-}
-
-func (b *sitzungsBuilder) ausgeben(a ausgeben) error {
-	name, err := b.benutzerName(a.User)
-	if err != nil {
-		return err
-	}
-	state, err := b.tischState(a.Tisch)
-	if err != nil {
-		return err
-	}
-	auswahl, err := selectPositionen(state.AusstehendePositionen, a.Posten)
-	if err != nil {
-		return fmt.Errorf("ausstehende Positionen: %w", err)
-	}
-	evt, err := kasse.NewAusgabeBestaetigtEvent(b.tischSubject(a.Tisch), a.User, name, auswahl, "")
 	if err != nil {
 		return err
 	}

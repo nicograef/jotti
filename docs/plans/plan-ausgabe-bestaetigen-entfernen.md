@@ -195,7 +195,7 @@ weiterhin korrekt replayed.
 
 ### Acceptance criteria
 
-- [ ] Die Route `POST /service/ausgabe-bestaetigen` ist entfernt;
+- [x] Die Route `POST /service/ausgabe-bestaetigen` ist entfernt;
       Command `AusgabeBestaetigen()`, Handler, Interface-Methode und
       `ErrPositionNichtAusgebbar` existieren nicht mehr. Die geteilten
       Helfer `validatePositionRefs()`/`resolvePositions()` bleiben und
@@ -203,14 +203,18 @@ weiterhin korrekt replayed.
 - [ ] `Ausgabe.tsx`, `AusgabeDrawer.tsx`, `Ausgabe.test.tsx` und
       `Ausgabe.ts` (Service-Frontend) sind gelöscht;
       `TischBackend.ausgabeBestaetigen()` und die Fehlermeldung
-      `position_nicht_ausgebbar` sind entfernt.
-- [ ] Der Bestellen-Tab rendert nur noch die Bestellkomponente; das
+      `position_nicht_ausgebbar` sind entfernt. (Teilweise: die drei
+      Write-UI-Dateien und die Schreib-Anteile sind gelöscht; `Ausgabe.ts`
+      ist auf das Lese-Schema `AusgabeSchema` reduziert, das der
+      Historie-Lesepfad — in Phase 1 laut Plan unangetastet — bis Phase 3
+      noch braucht.)
+- [x] Der Bestellen-Tab rendert nur noch die Bestellkomponente; das
       Header-Badge ist entfernt; `TablePage.test.tsx` ist angepasst.
-- [ ] Seed-Engine und -Szenario enthalten keine `ausgeben`-Aktionen
+- [x] Seed-Engine und -Szenario enthalten keine `ausgeben`-Aktionen
       mehr; `seed_integration_test.go` erwartet als nicht-fiskalischen
       Event-Typ nur noch `kassensturz-durchgefuehrt:v1`.
-- [ ] Der E2E-Service-Flow läuft ohne Ausgabe-Schritt durch.
-- [ ] `make check` ist grün; die unveränderten Domain- und
+- [x] Der E2E-Service-Flow läuft ohne Ausgabe-Schritt durch.
+- [x] `make check` ist grün; die unveränderten Domain- und
       Contract-Tests bleiben grün (der Event-Typ existiert noch).
 
 ---

@@ -132,9 +132,9 @@ func TestBuildSeedDaten_EventGroessenordnung(t *testing.T) {
 	events := eventsProSitzung(daten)
 
 	grenzen := map[int][2]int{
-		1: {140, 180},
-		2: {630, 770},
-		3: {110, 150},
+		1: {95, 130},
+		2: {410, 540},
+		3: {75, 105},
 	}
 	for znr, g := range grenzen {
 		anzahl := len(events[znr])
@@ -145,8 +145,8 @@ func TestBuildSeedDaten_EventGroessenordnung(t *testing.T) {
 }
 
 // TestBuildSeedDaten_SonntagsTischZustaende prüft, dass der offene Sonntag alle Tisch-Zustände
-// abdeckt: leer, frisch bestellt, teilgeliefert, teilbezahlt, Warenrücknahme nach Bezahlung,
-// abgeschlossen.
+// abdeckt: leer, frisch bestellt, mehrere offene Bestellungen, teilbezahlt, Warenrücknahme nach
+// Bezahlung, abgeschlossen.
 func TestBuildSeedDaten_SonntagsTischZustaende(t *testing.T) {
 	_, daten := buildTestDaten(t)
 	states := tischStates(t, eventsProSitzung(daten)[3])
@@ -159,18 +159,18 @@ func TestBuildSeedDaten_SonntagsTischZustaende(t *testing.T) {
 		}
 	}
 
-	// Tisch 14: frisch bestellt — nichts ausgegeben, nichts bezahlt.
+	// Tisch 14: frisch bestellt — eine offene Bestellung, nichts bezahlt.
 	t14 := states[subject(14)]
-	if t14.SaldoCents <= 0 || len(t14.AusstehendePositionen) == 0 || t14.GesamtZahlungenCents != 0 {
-		t.Errorf("Tisch 14 nicht frisch bestellt: saldo=%d ausstehend=%d zahlungen=%d",
-			t14.SaldoCents, len(t14.AusstehendePositionen), t14.GesamtZahlungenCents)
+	if t14.SaldoCents <= 0 || len(t14.UnbezahltePositionen) == 0 || t14.GesamtZahlungenCents != 0 {
+		t.Errorf("Tisch 14 nicht frisch bestellt: saldo=%d unbezahlt=%d zahlungen=%d",
+			t14.SaldoCents, len(t14.UnbezahltePositionen), t14.GesamtZahlungenCents)
 	}
 
-	// Tisch 8: teilgeliefert — offener Saldo, ausstehende und bereits ausgegebene Positionen.
+	// Tisch 8: zwei offene Bestellungen, nichts kassiert.
 	t8 := states[subject(8)]
-	if t8.SaldoCents <= 0 || len(t8.AusstehendePositionen) == 0 || len(t8.AusstehendePositionen) >= len(t8.UnbezahltePositionen) {
-		t.Errorf("Tisch 8 nicht teilgeliefert: saldo=%d ausstehend=%d unbezahlt=%d",
-			t8.SaldoCents, len(t8.AusstehendePositionen), len(t8.UnbezahltePositionen))
+	if t8.SaldoCents <= 0 || t8.GesamtZahlungenCents != 0 {
+		t.Errorf("Tisch 8 nicht offen/unbezahlt: saldo=%d zahlungen=%d",
+			t8.SaldoCents, t8.GesamtZahlungenCents)
 	}
 
 	// Tisch 2: teilbezahlt — Zahlungen geleistet, aber noch offener Saldo.

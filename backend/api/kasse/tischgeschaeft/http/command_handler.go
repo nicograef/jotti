@@ -19,7 +19,6 @@ type command interface {
 	BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef) error
 	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
-	AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 }
 
 type CommandHandler struct {
@@ -262,53 +261,6 @@ func (h *CommandHandler) BestellungUmbuchenHandler() http.HandlerFunc {
 					application.ErrTischNotActive:         "tisch_not_active",
 					application.ErrPositionNichtUmbuchbar: "position_nicht_umbuchbar",
 					application.ErrUmbuchungGleicherTisch: "umbuchung_gleicher_tisch",
-				})
-			}
-			return
-		}
-
-		helper.SendEmptyResponse(w)
-	}
-}
-
-type ausgabeBestaetigenRequest struct {
-	TischID    int                  `json:"tischId"`
-	Positionen []positionRefRequest `json:"positionen"`
-	Kommentar  string               `json:"kommentar"`
-}
-
-var ausgabeBestaetigenSchema = z.Struct(z.Shape{
-	"TischID":    tisch.TischIDSchema.Required(),
-	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
-	"Kommentar":  z.String().Max(100),
-})
-
-func (h *CommandHandler) AusgabeBestaetigenHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body := ausgabeBestaetigenRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, ausgabeBestaetigenSchema) {
-			return
-		}
-
-		userID, userName, ok := middleware.UserFromContext(r.Context())
-		if !ok {
-			helper.SendServerError(w)
-			return
-		}
-		err := h.Command.AusgabeBestaetigen(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
-		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-				helper.SendConflict(w, "kasse_wird_abgeschlossen")
-			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			default:
-				helper.MapError(w, err, map[error]string{
-					application.ErrTischNotFound:          "tisch_not_found",
-					application.ErrTischNotActive:         "tisch_not_active",
-					application.ErrPositionNichtAusgebbar: "position_nicht_ausgebbar",
 				})
 			}
 			return

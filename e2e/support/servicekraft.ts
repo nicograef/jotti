@@ -73,29 +73,6 @@ export async function bestellePosition(
   ).toBeVisible()
 }
 
-// gebeAusstehendePositionAus wählt im Bestellen-Tab die ausstehende Position
-// mit dem gegebenen Namen (Produkt + Variante) zur gewünschten Menge aus und
-// bestätigt anschließend die Ausgabe über die Ausgabe-Karte.
-export async function gebeAusstehendePositionAus(
-  page: Page,
-  positionName: string,
-  menge = 1,
-): Promise<void> {
-  await page.getByRole('tab', { name: 'Bestellen' }).click()
-  const position = zeileMit(page, positionName, 'Produkt hinzufügen')
-  await expect(position).toBeVisible()
-  for (let i = 0; i < menge; i++) {
-    await position.getByRole('button', { name: 'Produkt hinzufügen' }).click()
-  }
-
-  await page.getByRole('button', { name: 'Ausgabe bestätigen' }).click()
-  const drawer = page.getByRole('dialog')
-  await drawer.getByRole('button', { name: 'Ausgabe bestätigen' }).click()
-  await expect(
-    page.getByText('Ausgabe wurde bestätigt.').first(),
-  ).toBeVisible()
-}
-
 // kassierePosition wechselt auf den Kassieren-Tab, wählt die Position mit dem
 // angegebenen Namen zur gewünschten Menge aus und schließt die Zahlung ab.
 export async function kassierePosition(
@@ -167,8 +144,8 @@ function vollePositionsZeilen(page: Page): Locator {
 }
 
 // waehleAlleVollAus klickt in jeder Positions-Zeile so oft auf „+", bis die
-// Zeile ihre volle ausstehende/unbezahlte Menge erreicht hat — erkennbar
-// daran, dass „noch 0" im Zeilentext steht. Eine Obergrenze pro Zeile
+// Zeile ihre volle unbezahlte Menge erreicht hat — erkennbar daran, dass
+// „noch 0" im Zeilentext steht. Eine Obergrenze pro Zeile
 // verhindert eine Endlosschleife, falls der Text unerwartet nie „noch 0"
 // erreicht.
 async function waehleAlleVollAus(page: Page): Promise<void> {
@@ -196,11 +173,11 @@ async function warteAufTischGeladen(page: Page): Promise<void> {
 }
 
 // settleAlleOffenenTische gleicht jeden Tisch mit offenem Saldo vollständig
-// aus: alle ausstehenden Positionen ausgeben, alle unbezahlten Positionen
-// kassieren. Nötig, bevor der Kassenabschluss angefordert werden kann (jeder
-// Tisch muss ausgeglichen sein). Positionen anderer Servicekräfte stehen
-// hinter „Alle anzeigen" — das wird vor jeder Zählung/Auswahl aufgeklappt,
-// sonst übersieht die Funktion Positionen und bricht die Schleife vorzeitig ab.
+// aus: alle unbezahlten Positionen kassieren. Nötig, bevor der Kassenabschluss
+// angefordert werden kann (jeder Tisch muss ausgeglichen sein). Positionen
+// anderer Servicekräfte stehen hinter „Alle anzeigen" — das wird vor jeder
+// Zählung/Auswahl aufgeklappt, sonst übersieht die Funktion Positionen und
+// bricht die Schleife vorzeitig ab.
 export async function settleAlleOffenenTische(page: Page): Promise<void> {
   const namen = await offeneTischNamen(page)
   for (const tisch of namen) {
@@ -209,25 +186,9 @@ export async function settleAlleOffenenTische(page: Page): Promise<void> {
     // Auf das Fertigladen des Tisches warten, bevor auf Buttons/Zeilen geprüft
     // wird: TablePage rendert die Tab-Inhalte erst nach dem State-Fetch und zeigt
     // den Header-Saldo bis dahin als „?". Ohne dieses Ready-Signal würden die
-    // isVisible()/count()-Prüfungen unten den noch leeren DOM lesen und die
-    // Ausgabe-/Kassieren-Zweige stumm überspringen (Fetch-Race).
+    // isVisible()/count()-Prüfungen unten den noch leeren DOM lesen und den
+    // Kassieren-Zweig stumm überspringen (Fetch-Race).
     await warteAufTischGeladen(page)
-
-    // Alle ausstehenden Positionen ausgeben (falls welche vorhanden sind).
-    await page.getByRole('tab', { name: 'Bestellen' }).click()
-    await zeigeAlleAn(page)
-    const ausgabeButton = page.getByRole('button', {
-      name: 'Ausgabe bestätigen',
-    })
-    if (await ausgabeButton.isVisible()) {
-      await waehleAlleVollAus(page)
-      await ausgabeButton.click()
-      const drawer = page.getByRole('dialog')
-      await drawer.getByRole('button', { name: 'Ausgabe bestätigen' }).click()
-      await expect(
-        page.getByText('Ausgabe wurde bestätigt.').first(),
-      ).toBeVisible()
-    }
 
     // Alle unbezahlten Positionen kassieren (falls welche vorhanden sind). Der
     // „Kassieren"-Button ist immer im DOM (nur deaktiviert bei leerer Auswahl)

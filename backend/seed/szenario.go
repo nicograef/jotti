@@ -97,12 +97,6 @@ type bestellen struct {
 	Kommentar   string
 }
 
-// ausgeben bestätigt die Ausgabe; leere Posten = alle ausstehenden Positionen.
-type ausgeben struct {
-	Tisch, User int
-	Posten      []bestellposten
-}
-
 // kassieren kassiert Positionen; leere Posten = alle unbezahlten Positionen.
 type kassieren struct {
 	Tisch, User int
@@ -159,7 +153,6 @@ type kassensturz struct {
 }
 
 func (bestellen) istAktion()           {}
-func (ausgeben) istAktion()            {}
 func (kassieren) istAktion()           {}
 func (stornieren) istAktion()          {}
 func (umbuchen) istAktion()            {}
@@ -241,11 +234,10 @@ func pos(varianteID, menge int) bestellposten {
 // posten bündelt Bestellposten zu einer Bestellung.
 func posten(p ...bestellposten) []bestellposten { return p }
 
-// runde ist der Standard-Zyklus eines Tischbesuchs: Bestellen, Ausgeben, Kassieren.
+// runde ist der Standard-Zyklus eines Tischbesuchs: Bestellen, Kassieren.
 func runde(tisch, user int, p []bestellposten) []aktion {
 	return []aktion{
 		bestellen{Tisch: tisch, User: user, Posten: p},
-		ausgeben{Tisch: tisch, User: user},
 		kassieren{Tisch: tisch, User: user},
 	}
 }
@@ -614,7 +606,7 @@ func freitagsAktionen() []aktion {
 
 // samstagsAktionen ist der Haupttag (~700 Events): voller Betrieb auf 16 Tischen mit
 // Geburtstagsfeier, Stornierungen durch die Serviceleitung (geldneutrale Korrektur und
-// kassenwirksame Warenrücknahme), Teil-Ausgabe und -Zahlung, Direktverkaufsstand mit
+// kassenwirksame Warenrücknahme), Teil-Zahlung, Direktverkaufsstand mit
 // Storno, Geldtransit-Entnahme und Kassensturz mit kleiner Soll/Ist-Differenz.
 func samstagsAktionen() []aktion {
 	stammtisch := runden(1, maria, 18,
@@ -633,7 +625,6 @@ func samstagsAktionen() []aktion {
 		bestellen{Tisch: 2, User: jan, Posten: posten(pos(25, 3))},
 		stornieren{Tisch: 2, User: felix, Posten: posten(pos(25, 3)), Kommentar: "Falsch bestellt, Gäste wollten 0,5l statt Maß"},
 		bestellen{Tisch: 2, User: jan, Posten: posten(pos(24, 3))},
-		ausgeben{Tisch: 2, User: jan},
 		kassieren{Tisch: 2, User: jan},
 	)
 	ehepaar := runden(3, maria, 4,
@@ -649,7 +640,6 @@ func samstagsAktionen() []aktion {
 		posten(pos(12, 4), pos(39, 4)),
 	),
 		bestellen{Tisch: 4, User: sophie, Posten: posten(pos(13, 2)), Kommentar: "Nachbestellung Geburtstagsrunde"},
-		ausgeben{Tisch: 4, User: sophie},
 		kassieren{Tisch: 4, User: sophie},
 		stornieren{Tisch: 4, User: sophie, Posten: posten(pos(13, 1)), Kommentar: "Reklamation: Grillplatte kalt serviert"},
 	)
@@ -666,7 +656,6 @@ func samstagsAktionen() []aktion {
 		posten(pos(6, 2), pos(31, 2)),
 	),
 		bestellen{Tisch: 7, User: lisa, Posten: posten(pos(10, 4), pos(27, 4))},
-		ausgeben{Tisch: 7, User: lisa},
 		kassieren{Tisch: 7, User: lisa, Posten: posten(pos(10, 2), pos(27, 2))},
 		kassieren{Tisch: 7, User: lisa},
 	)
@@ -687,19 +676,16 @@ func samstagsAktionen() []aktion {
 		posten(pos(24, 2), pos(31, 2)),
 	),
 		bestellen{Tisch: 10, User: sophie, Posten: posten(pos(8, 2), pos(44, 2))},
-		ausgeben{Tisch: 10, User: sophie},
 		kassieren{Tisch: 10, User: sophie},
 		stornieren{Tisch: 10, User: sophie, Posten: posten(pos(8, 1)), Kommentar: "Flammkuchen verbrannt, Küche bestätigt"},
 	)
-	// Jugendgruppe: große Essensbestellung kommt in zwei Ausgaben aus der Küche.
+	// Jugendgruppe: große Essensbestellung, in einem Zug kassiert.
 	jugend := append(runden(12, markus, 10,
 		posten(pos(4, 4), pos(31, 4)),
 		posten(pos(17, 4), pos(34, 2)),
 		posten(pos(20, 4)),
 	),
 		bestellen{Tisch: 12, User: markus, Posten: posten(pos(12, 6), pos(31, 6))},
-		ausgeben{Tisch: 12, User: markus, Posten: posten(pos(12, 3), pos(31, 3))},
-		ausgeben{Tisch: 12, User: markus},
 		kassieren{Tisch: 12, User: markus},
 	)
 	musikverein := runden(13, markus, 6,
@@ -760,9 +746,8 @@ func samstagsAktionen() []aktion {
 }
 
 // sonntagsAktionen ist der offene aktuelle Tag (~130 Events): Tische in allen Zuständen
-// (leer, frisch bestellt, teilgeliefert, teilbezahlt, Warenrücknahme nach Bezahlung,
-// abgeschlossen), eine Umbuchung vom Stehtisch Eingang an den freien Tisch 4 und die
-// Wechselgeld-Einlage.
+// (leer, frisch bestellt, teilbezahlt, Warenrücknahme nach Bezahlung, abgeschlossen),
+// eine Umbuchung vom Stehtisch Eingang an den freien Tisch 4 und die Wechselgeld-Einlage.
 func sonntagsAktionen() []aktion {
 	// Frühschoppen am Stammtisch: jede Runde direkt bezahlt, Tisch ist ausgeglichen.
 	stammtisch := runden(1, maria, 4,
@@ -773,45 +758,38 @@ func sonntagsAktionen() []aktion {
 	// Tisch 2: teilbezahlt — die erste Bestellung ist kassiert, die zweite noch offen.
 	teilbezahlt := []aktion{
 		bestellen{Tisch: 2, User: jan, Posten: posten(pos(11, 2), pos(24, 2))},
-		ausgeben{Tisch: 2, User: jan},
 		bestellen{Tisch: 2, User: jan, Posten: posten(pos(16, 2), pos(45, 2))},
-		ausgeben{Tisch: 2, User: jan},
 		kassieren{Tisch: 2, User: jan, Posten: posten(pos(11, 2), pos(24, 2))},
 	}
 	vorstand := runden(5, felix, 2,
 		posten(pos(49, 2), pos(48, 2)),
 		posten(pos(11, 2), pos(42, 2)),
 	)
-	// Tisch 6: frische Gäste, bestellt und ausgegeben, noch nicht kassiert.
+	// Tisch 6: frische Gäste, bestellt, noch nicht kassiert.
 	frischeGaeste := []aktion{
 		bestellen{Tisch: 6, User: lisa, Posten: posten(pos(11, 3), pos(31, 2), pos(5, 2))},
-		ausgeben{Tisch: 6, User: lisa},
 	}
 	// Tisch 7: Stornierung nach Bezahlung — die Bar-Rückgabe ist Teil des Stornos
 	// (Warenrücknahme), der Tisch ist danach ausgeglichen.
 	warenruecknahme := []aktion{
 		bestellen{Tisch: 7, User: lisa, Posten: posten(pos(11, 2), pos(27, 2))},
-		ausgeben{Tisch: 7, User: lisa},
 		kassieren{Tisch: 7, User: lisa},
 		stornieren{Tisch: 7, User: sophie, Posten: posten(pos(11, 1)), Kommentar: "Essen kam zu spät, Kulanz"},
 	}
-	// Tisch 8: teilgeliefert — die Getränke sind ausgegeben, das Essen steht noch aus.
-	teilgeliefert := []aktion{
+	// Tisch 8: zwei offene Bestellungen, noch nichts kassiert.
+	offeneBestellungen := []aktion{
 		bestellen{Tisch: 8, User: lisa, Posten: posten(pos(13, 1), pos(5, 2), pos(31, 3))},
-		ausgeben{Tisch: 8, User: lisa, Posten: posten(pos(31, 3))},
 		bestellen{Tisch: 8, User: lisa, Posten: posten(pos(16, 2))},
 	}
 	// Kegelclub: Stornierung nach Bezahlung — die Bar-Rückgabe ist Teil des Stornos
 	// (Warenrücknahme), der Tisch ist danach ausgeglichen.
 	kegelclub := []aktion{
 		bestellen{Tisch: 9, User: lisa, Posten: posten(pos(24, 6), pos(11, 3))},
-		ausgeben{Tisch: 9, User: lisa},
 		kassieren{Tisch: 9, User: lisa},
 		stornieren{Tisch: 9, User: felix, Posten: posten(pos(11, 1)), Kommentar: "Reklamation Tagesgericht, Kulanz"},
 	}
 	dazugekommen := []aktion{
 		bestellen{Tisch: 11, User: markus, Posten: posten(pos(24, 2), pos(31, 2))},
-		ausgeben{Tisch: 11, User: markus},
 		bestellen{Tisch: 11, User: markus, Posten: posten(pos(11, 2))},
 	}
 	frischBestellt := []aktion{
@@ -823,7 +801,6 @@ func sonntagsAktionen() []aktion {
 		posten(pos(6, 2), pos(31, 2)),
 	),
 		bestellen{Tisch: 16, User: jan, Posten: posten(pos(24, 6))},
-		ausgeben{Tisch: 16, User: jan},
 	)
 	zeltA2 := append(runden(17, jan, 2,
 		posten(pos(2, 2), pos(24, 2)),
@@ -838,7 +815,7 @@ func sonntagsAktionen() []aktion {
 		posten(pos(23, 2)),
 	)
 	// Stehtisch Eingang: Die Gäste finden einen freien Tisch — die offene Bestellung
-	// wird auf Tisch 4 umgebucht und dort ausgegeben.
+	// wird auf Tisch 4 umgebucht.
 	umbuchung := append(runden(19, anna, 5,
 		posten(pos(31, 2), pos(20, 2)),
 		posten(pos(24, 2)),
@@ -846,7 +823,6 @@ func sonntagsAktionen() []aktion {
 	),
 		bestellen{Tisch: 19, User: anna, Posten: posten(pos(11, 2), pos(24, 2))},
 		umbuchen{VonTisch: 19, NachTisch: 4, User: anna},
-		ausgeben{Tisch: 4, User: anna},
 	)
 	terrasse := append(runden(20, anna, 4,
 		posten(pos(41, 2), pos(16, 2)),
@@ -861,7 +837,7 @@ func sonntagsAktionen() []aktion {
 		direktverkauf{VerkaufID: dvID(3, 4), User: sophie, Posten: posten(pos(16, 2), pos(52, 2))},
 	}
 
-	tag := verflechte(stammtisch, teilbezahlt, vorstand, frischeGaeste, warenruecknahme, teilgeliefert,
+	tag := verflechte(stammtisch, teilbezahlt, vorstand, frischeGaeste, warenruecknahme, offeneBestellungen,
 		kegelclub, dazugekommen, frischBestellt, zeltA1, zeltA2, bar, umbuchung, terrasse, stand)
 	// Wechselgeld-Einlage gleich nach der Eröffnung.
 	return append([]aktion{
