@@ -4,6 +4,7 @@ import { EuroInput } from '@/components/common/EuroInput'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
+  DrawerBody,
   DrawerClose,
   DrawerContent,
   DrawerDescription,
@@ -100,14 +101,14 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
           disabled={noPositionenSelected}
         />
       </DrawerTrigger>
-      <DrawerContent>
-        <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader>
-            <DrawerTitle>Zahlung für {props.tisch.name}</DrawerTitle>
-            <DrawerDescription>
-              Überprüfe deine Zahlung vor dem Absenden.
-            </DrawerDescription>
-          </DrawerHeader>
+      <DrawerContent pending={loading}>
+        <DrawerHeader className="mx-auto w-full max-w-sm">
+          <DrawerTitle>Zahlung für {props.tisch.name}</DrawerTitle>
+          <DrawerDescription>
+            Überprüfe deine Zahlung vor dem Absenden.
+          </DrawerDescription>
+        </DrawerHeader>
+        <DrawerBody className="mx-auto w-full max-w-sm">
           <Receipt
             positionen={toReceiptItems(positionenToPay)}
             totalPrice={totalPrice}
@@ -157,22 +158,22 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
               }}
             />
           </div>
-          <DrawerFooter>
-            <Button
-              disabled={loading}
-              onClick={() => {
-                void onSubmit()
-              }}
-            >
-              {loading ? <Spinner /> : null} Kassieren
+        </DrawerBody>
+        <DrawerFooter className="mx-auto w-full max-w-sm">
+          <Button
+            disabled={loading}
+            onClick={() => {
+              void onSubmit()
+            }}
+          >
+            {loading ? <Spinner /> : null} Kassieren
+          </Button>
+          <DrawerClose asChild>
+            <Button variant="outline" disabled={loading}>
+              Abbrechen
             </Button>
-            <DrawerClose asChild>
-              <Button variant="outline" disabled={loading}>
-                Abbrechen
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </div>
+          </DrawerClose>
+        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   )

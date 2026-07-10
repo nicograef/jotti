@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
+  DrawerBody,
   DrawerClose,
   DrawerContent,
   DrawerDescription,
@@ -85,14 +86,14 @@ export function DirektverkaufStornoDrawer({
         if (!isOpen) onClose()
       }}
     >
-      <DrawerContent>
-        <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader>
-            <DrawerTitle>Verkauf stornieren</DrawerTitle>
-            <DrawerDescription>
-              Positionen aus diesem Verkauf zum Stornieren auswählen.
-            </DrawerDescription>
-          </DrawerHeader>
+      <DrawerContent pending={loading}>
+        <DrawerHeader className="mx-auto w-full max-w-sm">
+          <DrawerTitle>Verkauf stornieren</DrawerTitle>
+          <DrawerDescription>
+            Positionen aus diesem Verkauf zum Stornieren auswählen.
+          </DrawerDescription>
+        </DrawerHeader>
+        <DrawerBody className="mx-auto w-full max-w-sm">
           <PositionAuswahlListe
             positionen={toAuswahlPositionen(verkauf.offenePositionen)}
             mengen={mengen}
@@ -118,23 +119,23 @@ export function DirektverkaufStornoDrawer({
               }}
             />
           </div>
-          <DrawerFooter>
-            <Button
-              variant="destructive"
-              disabled={loading || noPositionenSelected || kommentarInvalid}
-              onClick={() => {
-                void onSubmit()
-              }}
-            >
-              {loading ? <Spinner /> : null} Stornierung erteilen
+        </DrawerBody>
+        <DrawerFooter className="mx-auto w-full max-w-sm">
+          <Button
+            variant="destructive"
+            disabled={loading || noPositionenSelected || kommentarInvalid}
+            onClick={() => {
+              void onSubmit()
+            }}
+          >
+            {loading ? <Spinner /> : null} Stornierung erteilen
+          </Button>
+          <DrawerClose asChild>
+            <Button variant="outline" disabled={loading}>
+              Abbrechen
             </Button>
-            <DrawerClose asChild>
-              <Button variant="outline" disabled={loading}>
-                Abbrechen
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </div>
+          </DrawerClose>
+        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   )

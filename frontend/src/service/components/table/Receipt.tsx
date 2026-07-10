@@ -15,7 +15,7 @@ export function Receipt({
 }) {
   return (
     <>
-      <div className="inset-shadow-sm overflow-y-auto max-h-[40dvh] px-4 pt-2 pb-0 space-y-2">
+      <div className="px-4 pt-2 pb-0 space-y-2">
         {positionen.map((position) => {
           return (
             <div

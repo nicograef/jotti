@@ -20,14 +20,12 @@ interface PositionAuswahlListeProps {
   onRemove: (id: string) => void
 }
 
-// PositionAuswahlListe rendert eine scrollbare Positionsliste mit Mengen-Steppern
+// PositionAuswahlListe rendert eine Positionsliste mit Mengen-Steppern
 // (Minus/Anzahl/Plus). Sie ist controlled: die Mengenlogik (Grenzen,
-// Voll-Vorauswahl) bleibt im jeweiligen Drawer, hier liegen nur Darstellung und
-// der native Scrollbereich. Nur diese Liste scrollt (natives overflow-y-auto,
-// dvh-basierte Maximalhöhe, damit Kommentarfeld und Buttons auch mit geöffneter
-// Bildschirmtastatur erreichbar bleiben); Header, Summe, Kommentarfeld und Footer
-// liegen im Drawer außerhalb dieser Komponente. Lange Namen werden per truncate
-// abgeschnitten, sodass die Stepper-Buttons an ihrem Platz bleiben.
+// Voll-Vorauswahl) bleibt im jeweiligen Drawer, hier liegt nur die Darstellung.
+// Die Liste scrollt nicht selbst — sie liegt im DrawerBody, dem einzigen
+// Scrollbereich des Drawers. Lange Namen werden per truncate abgeschnitten,
+// sodass die Stepper-Buttons an ihrem Platz bleiben.
 export function PositionAuswahlListe({
   positionen,
   mengen,
@@ -35,7 +33,7 @@ export function PositionAuswahlListe({
   onRemove,
 }: PositionAuswahlListeProps) {
   return (
-    <div className="px-4 space-y-2 overflow-y-auto max-h-[45dvh]">
+    <div className="px-4 space-y-2">
       {positionen.map((position) => {
         const selected = mengen[position.id] || 0
         return (

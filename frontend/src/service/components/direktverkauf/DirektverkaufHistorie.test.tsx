@@ -1,6 +1,5 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { DirektverkaufHistorieEintrag } from '../../direktverkauf/Direktverkauf'
@@ -13,21 +12,6 @@ vi.mock('sonner', () => ({
 vi.mock('@/lib/Auth', () => ({
   AuthSingleton: { canCancel: true },
 }))
-
-// vaul's Drawer depends on browser APIs unavailable in jsdom.
-// Render its children inline so the storno form logic stays testable.
-vi.mock('@/components/ui/drawer', () => {
-  const Passthrough = ({ children }: { children?: ReactNode }) => children
-  return {
-    Drawer: Passthrough,
-    DrawerContent: Passthrough,
-    DrawerHeader: Passthrough,
-    DrawerTitle: Passthrough,
-    DrawerDescription: Passthrough,
-    DrawerFooter: Passthrough,
-    DrawerClose: Passthrough,
-  }
-})
 
 afterEach(() => {
   cleanup()

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
+  DrawerBody,
   DrawerClose,
   DrawerContent,
   DrawerDescription,
@@ -424,16 +425,16 @@ function Details({
       }}
     >
       <DrawerContent>
-        <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader>
-            <DrawerTitle>
-              {title} {id.slice(0, 8)}
-            </DrawerTitle>
-            <DrawerDescription>
-              von {userName} am {new Date(date).toLocaleDateString('de-DE')} um{' '}
-              {new Date(date).toLocaleTimeString('de-DE')} Uhr
-            </DrawerDescription>
-          </DrawerHeader>
+        <DrawerHeader className="mx-auto w-full max-w-sm">
+          <DrawerTitle>
+            {title} {id.slice(0, 8)}
+          </DrawerTitle>
+          <DrawerDescription>
+            von {userName} am {new Date(date).toLocaleDateString('de-DE')} um{' '}
+            {new Date(date).toLocaleTimeString('de-DE')} Uhr
+          </DrawerDescription>
+        </DrawerHeader>
+        <DrawerBody className="mx-auto w-full max-w-sm">
           {positionen ? (
             <Receipt positionen={positionen} totalPrice={totalPrice} />
           ) : (
@@ -448,22 +449,22 @@ function Details({
               <Kommentar value={kommentar} />
             </div>
           )}
-          <DrawerFooter>
-            {primaryAction && (
-              <Button
-                onClick={primaryAction.onAction}
-                disabled={primaryAction.loading}
-              >
-                {primaryAction.loading ? 'Drucke…' : primaryAction.label}
-              </Button>
-            )}
-            <DrawerClose asChild>
-              <Button variant="outline" disabled={primaryAction?.loading}>
-                Schließen
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </div>
+        </DrawerBody>
+        <DrawerFooter className="mx-auto w-full max-w-sm">
+          {primaryAction && (
+            <Button
+              onClick={primaryAction.onAction}
+              disabled={primaryAction.loading}
+            >
+              {primaryAction.loading ? 'Drucke…' : primaryAction.label}
+            </Button>
+          )}
+          <DrawerClose asChild>
+            <Button variant="outline" disabled={primaryAction?.loading}>
+              Schließen
+            </Button>
+          </DrawerClose>
+        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   )

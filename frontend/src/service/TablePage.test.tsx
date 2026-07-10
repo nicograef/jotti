@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Position } from './table/Bestellung'
@@ -42,22 +41,6 @@ vi.mock('@/hooks/use-mobile', () => ({
 vi.mock('./product/hooks', () => ({
   useAktiveProdukte: () => ({ produkte: [], isPending: false }),
 }))
-
-// vaul's Drawer braucht Browser-APIs, die jsdom nicht bereitstellt — der
-// Drawer-Inhalt ist für diese Tests irrelevant.
-vi.mock('@/components/ui/drawer', () => {
-  const Passthrough = ({ children }: { children?: ReactNode }) => children
-  return {
-    Drawer: Passthrough,
-    DrawerTrigger: Passthrough,
-    DrawerContent: () => null,
-    DrawerHeader: Passthrough,
-    DrawerTitle: Passthrough,
-    DrawerDescription: Passthrough,
-    DrawerFooter: Passthrough,
-    DrawerClose: Passthrough,
-  }
-})
 
 const { getTischState, getTischHistorie } = vi.hoisted(() => ({
   getTischState: vi.fn<() => Promise<TischSession>>(),

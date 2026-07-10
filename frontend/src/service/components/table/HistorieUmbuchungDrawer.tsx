@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
+  DrawerBody,
   DrawerClose,
   DrawerContent,
   DrawerDescription,
@@ -132,16 +133,16 @@ export function HistorieUmbuchungDrawer({
         if (!isOpen) onClose()
       }}
     >
-      <DrawerContent>
-        <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader>
-            <DrawerTitle>
-              Umbuchung aus Vorgang {vorgangId.slice(0, 8)}
-            </DrawerTitle>
-            <DrawerDescription>
-              Positionen auswählen und auf einen Ziel-Tisch umbuchen.
-            </DrawerDescription>
-          </DrawerHeader>
+      <DrawerContent pending={loading}>
+        <DrawerHeader className="mx-auto w-full max-w-sm">
+          <DrawerTitle>
+            Umbuchung aus Vorgang {vorgangId.slice(0, 8)}
+          </DrawerTitle>
+          <DrawerDescription>
+            Positionen auswählen und auf einen Ziel-Tisch umbuchen.
+          </DrawerDescription>
+        </DrawerHeader>
+        <DrawerBody className="mx-auto w-full max-w-sm">
           <PositionAuswahlListe
             positionen={toAuswahlPositionen(positionen)}
             mengen={mengen}
@@ -180,28 +181,28 @@ export function HistorieUmbuchungDrawer({
               )}
             </NativeSelect>
           </div>
-          <DrawerFooter>
-            <Button
-              variant="secondary"
-              disabled={
-                loading ||
-                noPositionenSelected ||
-                zielTischId === null ||
-                zielTische.length === 0
-              }
-              onClick={() => {
-                void onSubmit()
-              }}
-            >
-              {loading ? <Spinner /> : null} Umbuchung ausführen
+        </DrawerBody>
+        <DrawerFooter className="mx-auto w-full max-w-sm">
+          <Button
+            variant="secondary"
+            disabled={
+              loading ||
+              noPositionenSelected ||
+              zielTischId === null ||
+              zielTische.length === 0
+            }
+            onClick={() => {
+              void onSubmit()
+            }}
+          >
+            {loading ? <Spinner /> : null} Umbuchung ausführen
+          </Button>
+          <DrawerClose asChild>
+            <Button variant="outline" disabled={loading}>
+              Abbrechen
             </Button>
-            <DrawerClose asChild>
-              <Button variant="outline" disabled={loading}>
-                Abbrechen
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </div>
+          </DrawerClose>
+        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   )

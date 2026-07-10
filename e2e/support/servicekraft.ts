@@ -39,17 +39,15 @@ export async function oeffneTisch(page: Page, tisch: string): Promise<void> {
   await expect(page.getByRole('tab', { name: 'Bestellen' })).toBeVisible()
 }
 
-// bestellePosition nimmt auf dem aktuell offenen Tisch eine Bestellung über
-// den Bestellen-Tab auf: Produkt aufklappen, Variante zur gewünschten Menge
-// hinzufügen, Bestellung im Drawer bestätigen.
-export async function bestellePosition(
+// waehleVariante fügt auf dem Bestellen-Tab eine Variante zur gewünschten
+// Menge der aktuellen Auswahl hinzu, ohne die Bestellung abzuschicken —
+// Baustein für Bestellungen mit mehreren Positionen.
+export async function waehleVariante(
   page: Page,
   produkt: string,
   variante: string,
   menge = 1,
 ): Promise<void> {
-  await page.getByRole('tab', { name: 'Bestellen' }).click()
-
   const variantenZeile = zeileMit(page, variante, 'Variante hinzufügen')
   // Produkt nur aufklappen, wenn die Variante noch nicht sichtbar ist — beim
   // zweiten Aufruf für dasselbe Produkt bliebe es sonst geöffnet und der
@@ -62,6 +60,20 @@ export async function bestellePosition(
   for (let i = 0; i < menge; i++) {
     await variantenZeile.getByRole('button', { name: 'Variante hinzufügen' }).click()
   }
+}
+
+// bestellePosition nimmt auf dem aktuell offenen Tisch eine Bestellung über
+// den Bestellen-Tab auf: Produkt aufklappen, Variante zur gewünschten Menge
+// hinzufügen, Bestellung im Drawer bestätigen.
+export async function bestellePosition(
+  page: Page,
+  produkt: string,
+  variante: string,
+  menge = 1,
+): Promise<void> {
+  await page.getByRole('tab', { name: 'Bestellen' }).click()
+
+  await waehleVariante(page, produkt, variante, menge)
 
   await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()
   const drawer = page.getByRole('dialog')
@@ -148,7 +160,7 @@ function vollePositionsZeilen(page: Page): Locator {
 // „noch 0" im Zeilentext steht. Eine Obergrenze pro Zeile
 // verhindert eine Endlosschleife, falls der Text unerwartet nie „noch 0"
 // erreicht.
-async function waehleAlleVollAus(page: Page): Promise<void> {
+export async function waehleAlleVollAus(page: Page): Promise<void> {
   const zeilen = vollePositionsZeilen(page)
   const anzahlZeilen = await zeilen.count()
   for (let i = 0; i < anzahlZeilen; i++) {

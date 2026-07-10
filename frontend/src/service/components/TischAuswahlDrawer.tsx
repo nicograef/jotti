@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 
 import {
   Drawer,
+  DrawerBody,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
@@ -64,12 +65,13 @@ export function TischAuswahlDrawer({
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} direction="bottom">
-      <DrawerContent className="px-4 pb-6">
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent aria-describedby={undefined}>
         <DrawerHeader>
           <DrawerTitle>Alle Tische</DrawerTitle>
         </DrawerHeader>
-        <div className="mb-3">
+        {/* Suchfeld außerhalb von DrawerBody, damit es beim Scrollen der Liste sichtbar bleibt. */}
+        <div className="px-4 pb-3">
           <Input
             placeholder="Tisch suchen..."
             value={suche}
@@ -78,7 +80,7 @@ export function TischAuswahlDrawer({
             }}
           />
         </div>
-        <div className="flex flex-col gap-0 overflow-y-auto max-h-[60vh]">
+        <DrawerBody className="flex flex-col gap-0 px-4 pb-6">
           {gefilterteTische.map((tisch) => (
             <div
               key={tisch.id}
@@ -121,7 +123,7 @@ export function TischAuswahlDrawer({
               </button>
             </div>
           ))}
-        </div>
+        </DrawerBody>
       </DrawerContent>
     </Drawer>
   )
