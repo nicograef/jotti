@@ -474,19 +474,6 @@ func TestWriteEvent_SignaturpflichtigErzeugtOffenenAuftrag(t *testing.T) {
 		t.Fatalf("Failed to write zahlung event: %v", err)
 	}
 
-	// Ausgabe ist nicht signaturpflichtig — kein Auftrag.
-	ausgabe := newTestEvent(userID, "ausgabe-bestaetigt:v1", subject, 3, map[string]any{
-		"ausgabeId": "a0000000-0000-4000-8000-000000000001",
-		"positionen": []map[string]any{
-			{"positionId": "10000000-0000-4000-8000-000000000001", "menge": 1},
-		},
-		"kommentar": "",
-	})
-	ausgabeID, err := repo.WriteEvent(context.Background(), ausgabe, kasse.StreamTypeTischSession, ksNr)
-	if err != nil {
-		t.Fatalf("Failed to write ausgabe event: %v", err)
-	}
-
 	assertOffenerAuftrag := func(eventID int, wantProcessType, wantProcessData string) {
 		t.Helper()
 		var status, processType, processData, txID string
@@ -513,14 +500,6 @@ func TestWriteEvent_SignaturpflichtigErzeugtOffenenAuftrag(t *testing.T) {
 
 	assertOffenerAuftrag(bestellungID, "Bestellung-V1", `1;"Bier 0.5L";3.50`)
 	assertOffenerAuftrag(zahlungID, "Kassenbeleg-V1", "Beleg^3.50_0.00_0.00_0.00_0.00^3.50:Bar")
-
-	var ausgabeAuftraege int
-	if err := repo.db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege WHERE event_id = $1", ausgabeID).Scan(&ausgabeAuftraege); err != nil {
-		t.Fatalf("Failed to count auftraege for ausgabe: %v", err)
-	}
-	if ausgabeAuftraege != 0 {
-		t.Fatalf("Expected no auftrag for nicht signaturpflichtige ausgabe, got %d", ausgabeAuftraege)
-	}
 
 	var gesamt int
 	if err := repo.db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege").Scan(&gesamt); err != nil {
@@ -607,9 +586,6 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	if len(quellState.UnbezahltePositionen) != 0 {
 		t.Fatalf("Expected no source unbezahlte positionen, got %d", len(quellState.UnbezahltePositionen))
 	}
-	if len(quellState.AusstehendePositionen) != 0 {
-		t.Fatalf("Expected no source ausstehende positionen, got %d", len(quellState.AusstehendePositionen))
-	}
 
 	zielState, err := repo.ReadTischSession(context.Background(), zielSubject)
 	if err != nil {
@@ -620,9 +596,6 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	}
 	if len(zielState.UnbezahltePositionen) != 1 {
 		t.Fatalf("Expected 1 target unbezahlte position, got %d", len(zielState.UnbezahltePositionen))
-	}
-	if len(zielState.AusstehendePositionen) != 1 {
-		t.Fatalf("Expected 1 target ausstehende position, got %d", len(zielState.AusstehendePositionen))
 	}
 	if zielState.UnbezahltePositionen[0].EinzelpreisCents != 350 {
 		t.Fatalf("Expected target einzelpreis 350, got %d", zielState.UnbezahltePositionen[0].EinzelpreisCents)
@@ -1278,9 +1251,6 @@ func TestWriteEvent_WithTischSessionProjection(t *testing.T) {
 	if state.UnbezahltePositionen[0].Menge != 2 {
 		t.Fatalf("Expected Menge 2, got %d", state.UnbezahltePositionen[0].Menge)
 	}
-	if len(state.AusstehendePositionen) != 1 {
-		t.Fatalf("Expected 1 ausstehende position, got %d", len(state.AusstehendePositionen))
-	}
 	if state.TischID != tischID {
 		t.Fatalf("Expected TischID %d, got %d", tischID, state.TischID)
 	}
@@ -1312,9 +1282,6 @@ func TestReadTischSession_NotFound(t *testing.T) {
 	}
 	if len(state.UnbezahltePositionen) != 0 {
 		t.Fatalf("Expected empty unbezahlte positionen, got %d", len(state.UnbezahltePositionen))
-	}
-	if len(state.AusstehendePositionen) != 0 {
-		t.Fatalf("Expected empty ausstehende positionen, got %d", len(state.AusstehendePositionen))
 	}
 }
 
@@ -1365,13 +1332,6 @@ func TestWriteEvent_MultipleEvents_ProjectionCorrect(t *testing.T) {
 	}
 	if state.UnbezahltePositionen[0].Menge != 1 {
 		t.Fatalf("Expected remaining Menge 1, got %d", state.UnbezahltePositionen[0].Menge)
-	}
-	// Ausstehend: still 1 position with Menge 2 (no delivery yet)
-	if len(state.AusstehendePositionen) != 1 {
-		t.Fatalf("Expected 1 ausstehende position, got %d", len(state.AusstehendePositionen))
-	}
-	if state.AusstehendePositionen[0].Menge != 2 {
-		t.Fatalf("Expected ausstehend Menge 2, got %d", state.AusstehendePositionen[0].Menge)
 	}
 	if state.LastEventVersion != 2 {
 		t.Fatalf("Expected LastEventVersion 2, got %d", state.LastEventVersion)
@@ -1585,9 +1545,6 @@ func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
 	if len(rebuiltState.UnbezahltePositionen) != len(expectedState.UnbezahltePositionen) {
 		t.Fatalf("Expected %d unbezahlte positionen, got %d", len(expectedState.UnbezahltePositionen), len(rebuiltState.UnbezahltePositionen))
 	}
-	if len(rebuiltState.AusstehendePositionen) != len(expectedState.AusstehendePositionen) {
-		t.Fatalf("Expected %d ausstehende positionen, got %d", len(expectedState.AusstehendePositionen), len(rebuiltState.AusstehendePositionen))
-	}
 	if rebuiltState.LastEventID != expectedState.LastEventID {
 		t.Fatalf("Expected LastEventID %d, got %d", expectedState.LastEventID, rebuiltState.LastEventID)
 	}
@@ -1735,5 +1692,92 @@ func TestWriteEvent_KassensitzungOtherEvent_NoCRUDChange(t *testing.T) {
 	}
 	if status != string(kasse.KassensitzungOffen) {
 		t.Fatalf("Expected status 'offen', got %s", status)
+	}
+}
+
+// TestMigration03_AusgabeEntfernen belegt die Datenbereinigung der Migration
+// 03_ausgabe_entfernen: Ein Kassenjournal mit einem ausgabe-bestaetigt:v1-Alt-Event
+// verhindert den Projektions-Rebuild (unbekannter Event-Typ → Fehler). Nach dem
+// Löschen der Alt-Events — wie es die Migration innerhalb ihrer Transaktion mit
+// deaktiviertem Delete-Trigger tut — läuft RebuildAllProjections fehlerfrei durch und
+// die Tisch-Zustände (Saldo, unbezahlte Positionen) sind korrekt. Der
+// Append-only-Schutz besteht danach unverändert (siehe
+// docs/adrs/01_ausgabe-bestaetigen.md).
+func TestMigration03_AusgabeEntfernen(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	tischID, err := createTisch(repo.db, "Tisch Migration")
+	if err != nil {
+		t.Fatalf("Failed to create tisch: %v", err)
+	}
+
+	subject := kasse.TischSessionSubject(ksNr, tischID)
+	posID := "10000000-0000-4000-8000-000000000001"
+
+	// Bestellung (2x @500 = 1000) und Zahlung (1x @500) über den normalen Schreibpfad.
+	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, validBestellungData("b0000000-0000-0000-0000-000000000001", posID, 500, 2))
+	if _, err := repo.WriteEvent(context.Background(), bestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
+		t.Fatalf("Failed to write bestellung: %v", err)
+	}
+	zahlung := newTestEvent(userID, "zahlung-kassiert:v1", subject, 2, validZahlungData(posID, 1, 500))
+	if _, err := repo.WriteEvent(context.Background(), zahlung, kasse.StreamTypeTischSession, ksNr); err != nil {
+		t.Fatalf("Failed to write zahlung: %v", err)
+	}
+
+	// Ein ausgabe-bestaetigt:v1-Alt-Event, wie es Bestandsinstanzen vor der Migration
+	// im Journal hatten, roh einfügen (INSERT ist erlaubt; nur DELETE/UPDATE sind gesperrt).
+	ausgabe := newTestEvent(userID, "ausgabe-bestaetigt:v1", subject, 3, map[string]any{
+		"ausgabeId": "a0000000-0000-4000-8000-000000000001",
+		"positionen": []map[string]any{
+			{"positionId": posID, "menge": 1},
+		},
+		"kommentar": "",
+	})
+	if _, err := insertEventRaw(repo.db, ausgabe, ksNr); err != nil {
+		t.Fatalf("Failed to insert ausgabe old event: %v", err)
+	}
+
+	// Solange das Alt-Event im Journal liegt, scheitert der Rebuild — genau der Grund,
+	// warum die Migration die Events löschen muss (exklusive Event-Switches).
+	if _, err := repo.RebuildAllProjections(context.Background()); err == nil {
+		t.Fatal("Expected RebuildAllProjections to fail while ausgabe-bestaetigt:v1 events remain")
+	}
+
+	// Datenbereinigung wie in der Migration: Delete-Trigger transaktional deaktivieren,
+	// Alt-Events löschen, Trigger wieder aktivieren.
+	if _, err := repo.db.Exec("ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete"); err != nil {
+		t.Fatalf("Failed to disable delete trigger: %v", err)
+	}
+	if _, err := repo.db.Exec("DELETE FROM kassenjournal WHERE type = 'ausgabe-bestaetigt:v1'"); err != nil {
+		t.Fatalf("Failed to delete ausgabe events: %v", err)
+	}
+	if _, err := repo.db.Exec("ALTER TABLE kassenjournal ENABLE TRIGGER kassenjournal_no_delete"); err != nil {
+		t.Fatalf("Failed to re-enable delete trigger: %v", err)
+	}
+
+	// Nach der Bereinigung läuft der Rebuild fehlerfrei und die Projektion ist korrekt.
+	count, err := repo.RebuildAllProjections(context.Background())
+	if err != nil {
+		t.Fatalf("Expected RebuildAllProjections to succeed after cleanup, got %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("Expected 1 rebuilt subject, got %d", count)
+	}
+
+	state, err := repo.ReadTischSession(context.Background(), subject)
+	if err != nil {
+		t.Fatalf("Expected no error reading state, got %v", err)
+	}
+	if state.SaldoCents != 500 {
+		t.Fatalf("Expected SaldoCents 500, got %d", state.SaldoCents)
+	}
+	if len(state.UnbezahltePositionen) != 1 || state.UnbezahltePositionen[0].Menge != 1 {
+		t.Fatalf("Expected 1 unbezahlte position with menge 1, got %+v", state.UnbezahltePositionen)
+	}
+
+	// Der Append-only-Schutz besteht nach der Migration unverändert: DELETE schlägt fehl.
+	if _, err := repo.db.Exec("DELETE FROM kassenjournal WHERE subject = $1", subject); err == nil {
+		t.Fatal("Expected DELETE on kassenjournal to be rejected by the append-only trigger")
 	}
 }

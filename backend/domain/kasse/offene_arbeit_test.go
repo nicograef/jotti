@@ -4,152 +4,127 @@ package kasse
 
 import "testing"
 
-func TestComputeEigeneArbeitAnTisch_OffeneEigeneArbeit(t *testing.T) {
-	session := TischSession{
-		AusstehendePositionen: []Position{
-			{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
-			{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
+func pos(positionID string, bestellerUserID int, bestellerName string) Position {
+	return Position{PositionID: positionID, Menge: 1, BestellerUserID: bestellerUserID, BestellerName: bestellerName}
+}
+
+func TestComputeEigeneArbeitAnTisch(t *testing.T) {
+	tests := []struct {
+		name          string
+		session       TischSession
+		userID        int
+		wantUnbezahlt int
+		wantOffen     int
+		wantErledigt  bool
+	}{
+		{
+			name: "offene eigene unbezahlte Positionen",
+			session: TischSession{
+				UnbezahltePositionen: []Position{
+					pos("p1", 7, "Anna"),
+					pos("p2", 8, "Bert"),
+					pos("p3", 7, "Anna"),
+				},
+			},
+			userID:        7,
+			wantUnbezahlt: 2,
+			wantOffen:     2,
+			wantErledigt:  false,
 		},
-		UnbezahltePositionen: []Position{
-			{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
-			{PositionID: "p3", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
+		{
+			name: "erledigt ohne eigene unbezahlte Positionen",
+			session: TischSession{
+				UnbezahltePositionen: []Position{pos("p2", 8, "Bert")},
+			},
+			userID:       7,
+			wantErledigt: true,
+		},
+		{
+			// Schichtübergabe: eine Kollegin hat die eigenen Positionen kassiert,
+			// sie sind aus der Unbezahlt-Liste verschwunden.
+			name:         "schichtübergabe erledigt",
+			session:      TischSession{UnbezahltePositionen: nil},
+			userID:       7,
+			wantErledigt: true,
 		},
 	}
 
-	arbeit := ComputeEigeneArbeitAnTisch(session, 7)
-
-	if arbeit.AnzahlAusstehend != 1 {
-		t.Errorf("expected 1 ausstehend, got %d", arbeit.AnzahlAusstehend)
-	}
-	if arbeit.AnzahlUnbezahlt != 2 {
-		t.Errorf("expected 2 unbezahlt, got %d", arbeit.AnzahlUnbezahlt)
-	}
-	// p1 (ausstehend ∪ unbezahlt) and p3 (unbezahlt) -> 2 distinct positions.
-	if arbeit.AnzahlOffen != 2 {
-		t.Errorf("expected 2 offen (union), got %d", arbeit.AnzahlOffen)
-	}
-	if arbeit.Erledigt {
-		t.Errorf("expected not erledigt with open own positions")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			arbeit := ComputeEigeneArbeitAnTisch(tt.session, tt.userID)
+			if arbeit.AnzahlUnbezahlt != tt.wantUnbezahlt {
+				t.Errorf("AnzahlUnbezahlt = %d, want %d", arbeit.AnzahlUnbezahlt, tt.wantUnbezahlt)
+			}
+			if arbeit.AnzahlOffen != tt.wantOffen {
+				t.Errorf("AnzahlOffen = %d, want %d", arbeit.AnzahlOffen, tt.wantOffen)
+			}
+			if arbeit.Erledigt != tt.wantErledigt {
+				t.Errorf("Erledigt = %v, want %v", arbeit.Erledigt, tt.wantErledigt)
+			}
+		})
 	}
 }
 
-func TestComputeEigeneArbeitAnTisch_ErledigtWhenNoOwnPositions(t *testing.T) {
-	session := TischSession{
-		AusstehendePositionen: []Position{
-			{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
-		},
-		UnbezahltePositionen: []Position{
-			{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
-		},
-	}
-
-	arbeit := ComputeEigeneArbeitAnTisch(session, 7)
-
-	if !arbeit.Erledigt {
-		t.Errorf("expected erledigt for servicekraft without own positions")
-	}
-	if arbeit.AnzahlOffen != 0 {
-		t.Errorf("expected 0 offen, got %d", arbeit.AnzahlOffen)
-	}
-}
-
-// Schichtübergabe: a colleague delivered and paid Anna's positions, so they no
-// longer appear in either list — Anna is "erledigt" at this table.
-func TestComputeEigeneArbeitAnTisch_SchichtuebergabeErledigt(t *testing.T) {
-	session := TischSession{
-		AusstehendePositionen: nil,
-		UnbezahltePositionen:  nil,
-	}
-
-	arbeit := ComputeEigeneArbeitAnTisch(session, 7)
-
-	if !arbeit.Erledigt {
-		t.Errorf("expected erledigt after colleague handled all own positions")
-	}
-}
-
-func TestComputeEigeneArbeitAnTisch_OnlyAusstehendNotErledigt(t *testing.T) {
-	session := TischSession{
-		AusstehendePositionen: []Position{
-			{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
-		},
-		UnbezahltePositionen: nil,
-	}
-
-	arbeit := ComputeEigeneArbeitAnTisch(session, 7)
-
-	if arbeit.Erledigt {
-		t.Errorf("expected not erledigt with one ausstehende own position")
-	}
-	if arbeit.AnzahlAusstehend != 1 || arbeit.AnzahlUnbezahlt != 0 || arbeit.AnzahlOffen != 1 {
-		t.Errorf("unexpected counts: %+v", arbeit)
-	}
-}
-
-func TestComputeOffeneArbeitRollup_MehrereTischeUndServicekraefte(t *testing.T) {
+func TestComputeOffeneArbeitRollup(t *testing.T) {
 	sessions := []TischSession{
 		{
-			TischID: 3,
-			AusstehendePositionen: []Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
-			},
-			UnbezahltePositionen: []Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
-			},
+			TischID:              3,
+			UnbezahltePositionen: []Position{pos("p1", 7, "Anna")},
 		},
 		{
 			TischID: 1,
-			AusstehendePositionen: []Position{
-				{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
-			},
 			UnbezahltePositionen: []Position{
-				{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
-				{PositionID: "p3", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
+				pos("p2", 8, "Bert"),
+				pos("p3", 7, "Anna"),
 			},
+		},
+	}
+
+	tests := []struct {
+		name         string
+		userID       int
+		wantTischIDs []int
+		wantErledigt bool
+	}{
+		{
+			name:         "offene Arbeit an mehreren Tischen, aufsteigend sortiert",
+			userID:       7,
+			wantTischIDs: []int{1, 3},
+			wantErledigt: false,
 		},
 		{
-			// Anna hat hier alles erledigt; dieser Tisch darf nicht erscheinen.
-			TischID: 2,
-			AusstehendePositionen: []Position{
-				{PositionID: "p4", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
-			},
+			name:         "servicekraft nur an einem Tisch offen",
+			userID:       8,
+			wantTischIDs: []int{1},
+			wantErledigt: false,
 		},
 	}
 
-	rollup := ComputeOffeneArbeitRollup(sessions, 7)
-
-	if rollup.Erledigt {
-		t.Errorf("expected Anna to have open work")
-	}
-	if len(rollup.OffeneTische) != 2 {
-		t.Fatalf("expected 2 open tische for Anna, got %d: %+v", len(rollup.OffeneTische), rollup.OffeneTische)
-	}
-	// Aufsteigend nach TischID sortiert: Tisch 1 zuerst, dann Tisch 3.
-	if rollup.OffeneTische[0].TischID != 1 || rollup.OffeneTische[1].TischID != 3 {
-		t.Errorf("expected tische sorted by id [1 3], got %+v", rollup.OffeneTische)
-	}
-	if rollup.OffeneTische[0].AnzahlAusstehend != 0 || rollup.OffeneTische[0].AnzahlUnbezahlt != 1 || rollup.OffeneTische[0].AnzahlOffen != 1 {
-		t.Errorf("unexpected counts for tisch 1: %+v", rollup.OffeneTische[0])
-	}
-	if rollup.OffeneTische[1].AnzahlAusstehend != 1 || rollup.OffeneTische[1].AnzahlUnbezahlt != 1 || rollup.OffeneTische[1].AnzahlOffen != 1 {
-		t.Errorf("unexpected counts for tisch 3: %+v", rollup.OffeneTische[1])
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rollup := ComputeOffeneArbeitRollup(sessions, tt.userID)
+			if rollup.Erledigt != tt.wantErledigt {
+				t.Errorf("Erledigt = %v, want %v", rollup.Erledigt, tt.wantErledigt)
+			}
+			if len(rollup.OffeneTische) != len(tt.wantTischIDs) {
+				t.Fatalf("got %d offene Tische, want %d: %+v", len(rollup.OffeneTische), len(tt.wantTischIDs), rollup.OffeneTische)
+			}
+			for i, wantID := range tt.wantTischIDs {
+				if rollup.OffeneTische[i].TischID != wantID {
+					t.Errorf("OffeneTische[%d].TischID = %d, want %d", i, rollup.OffeneTische[i].TischID, wantID)
+				}
+				if rollup.OffeneTische[i].AnzahlUnbezahlt != 1 || rollup.OffeneTische[i].AnzahlOffen != 1 {
+					t.Errorf("OffeneTische[%d] unexpected counts: %+v", i, rollup.OffeneTische[i])
+				}
+			}
+		})
 	}
 }
 
-// Schichtübergabe im Rollup: hat eine Kollegin alle eigenen Positionen
-// ausgegeben und kassiert, gilt die Servicekraft über alle Tische als erledigt.
 func TestComputeOffeneArbeitRollup_AllesErledigt(t *testing.T) {
+	// Nur fremde Positionen -> die Servicekraft ist überall fertig.
 	sessions := []TischSession{
-		{
-			TischID: 1,
-			AusstehendePositionen: []Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
-			},
-			UnbezahltePositionen: []Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
-			},
-		},
-		{TischID: 2},
+		{TischID: 1, UnbezahltePositionen: []Position{pos("p1", 8, "Bert")}},
 	}
 
 	rollup := ComputeOffeneArbeitRollup(sessions, 7)
@@ -173,25 +148,17 @@ func TestComputeOffeneArbeitRollup_EmptySessions(t *testing.T) {
 	}
 }
 
-func TestComputeOffeneArbeitProServicekraft_MehrereServicekraefte(t *testing.T) {
+func TestComputeOffeneArbeitProServicekraft(t *testing.T) {
 	sessions := []TischSession{
 		{
-			TischID: 3,
-			AusstehendePositionen: []Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
-			},
-			UnbezahltePositionen: []Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
-			},
+			TischID:              3,
+			UnbezahltePositionen: []Position{pos("p1", 7, "Anna")},
 		},
 		{
 			TischID: 1,
-			AusstehendePositionen: []Position{
-				{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
-			},
 			UnbezahltePositionen: []Position{
-				{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
-				{PositionID: "p3", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
+				pos("p2", 8, "Bert"),
+				pos("p3", 7, "Anna"),
 			},
 		},
 	}
@@ -215,27 +182,6 @@ func TestComputeOffeneArbeitProServicekraft_MehrereServicekraefte(t *testing.T) 
 	}
 	if len(bert.OffeneTische) != 1 || bert.OffeneTische[0].TischID != 1 {
 		t.Errorf("expected Bert open at tisch [1], got %+v", bert.OffeneTische)
-	}
-}
-
-// Schichtübergabe: eine Servicekraft ohne offene eigene Arbeit erscheint nicht,
-// auch wenn sie an einem Tisch bestellt hatte und Kolleginnen alles abgearbeitet
-// haben.
-func TestComputeOffeneArbeitProServicekraft_FertigeServicekraftFehlt(t *testing.T) {
-	sessions := []TischSession{
-		{
-			TischID: 1,
-			AusstehendePositionen: []Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
-			},
-			// Anna (7) hatte hier nichts mehr offen.
-		},
-	}
-
-	servicekraefte := ComputeOffeneArbeitProServicekraft(sessions)
-
-	if len(servicekraefte) != 1 || servicekraefte[0].UserID != 8 {
-		t.Fatalf("expected only Bert (8) with open work, got %+v", servicekraefte)
 	}
 }
 

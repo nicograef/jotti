@@ -19,7 +19,7 @@ import (
 func snapshotTischSessions(t *testing.T, db *sql.DB) string {
 	t.Helper()
 	rows, err := db.Query(`SELECT subject, tisch_id, kassensitzung_nr, saldo_cents,
-		unbezahlte_positionen::text, ausstehende_positionen::text, gesamt_zahlungen_cents,
+		unbezahlte_positionen::text, gesamt_zahlungen_cents,
 		COALESCE(erste_bestellung_logtime::text, ''), last_event_id, last_event_version
 		FROM tisch_sessions ORDER BY subject`)
 	if err != nil {
@@ -30,15 +30,15 @@ func snapshotTischSessions(t *testing.T, db *sql.DB) string {
 	var b strings.Builder
 	for rows.Next() {
 		var (
-			subject, unbezahlt, ausstehend, ersteBestellung           string
+			subject, unbezahlt, ersteBestellung                       string
 			tischID, ksNr, saldo, gesamtZahlungen, eventID, eventVers int
 		)
-		if err := rows.Scan(&subject, &tischID, &ksNr, &saldo, &unbezahlt, &ausstehend,
+		if err := rows.Scan(&subject, &tischID, &ksNr, &saldo, &unbezahlt,
 			&gesamtZahlungen, &ersteBestellung, &eventID, &eventVers); err != nil {
 			t.Fatalf("tisch_sessions-Zeile lesen: %v", err)
 		}
-		fmt.Fprintf(&b, "%s|%d|%d|%d|%s|%s|%d|%s|%d|%d\n", subject, tischID, ksNr, saldo,
-			unbezahlt, ausstehend, gesamtZahlungen, ersteBestellung, eventID, eventVers)
+		fmt.Fprintf(&b, "%s|%d|%d|%d|%s|%d|%s|%d|%d\n", subject, tischID, ksNr, saldo,
+			unbezahlt, gesamtZahlungen, ersteBestellung, eventID, eventVers)
 	}
 	if err := rows.Err(); err != nil {
 		t.Fatalf("tisch_sessions iterieren: %v", err)
@@ -157,11 +157,11 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 	}
 
 	// Jedes fiskalische Event hat genau einen Signaturauftrag (event_id UNIQUE sichert
-	// höchstens einen); nur Ausgabe und Kassensturz sind im Szenario nicht fiskalisch.
+	// höchstens einen); nur der Kassensturz ist im Szenario nicht fiskalisch.
 	var fiskalischOhneAuftrag int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM kassenjournal e
 		LEFT JOIN tse_signaturauftraege a ON a.event_id = e.id
-		WHERE e.type NOT IN ('ausgabe-bestaetigt:v1', 'kassensturz-durchgefuehrt:v1')
+		WHERE e.type <> 'kassensturz-durchgefuehrt:v1'
 		  AND a.id IS NULL`).Scan(&fiskalischOhneAuftrag); err != nil {
 		t.Fatalf("fiskalische Events ohne Auftrag zählen: %v", err)
 	}
@@ -171,7 +171,7 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 	var nichtFiskalischMitAuftrag int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM tse_signaturauftraege a
 		JOIN kassenjournal e ON e.id = a.event_id
-		WHERE e.type IN ('ausgabe-bestaetigt:v1', 'kassensturz-durchgefuehrt:v1')`).Scan(&nichtFiskalischMitAuftrag); err != nil {
+		WHERE e.type = 'kassensturz-durchgefuehrt:v1'`).Scan(&nichtFiskalischMitAuftrag); err != nil {
 		t.Fatalf("nicht-fiskalische Events mit Auftrag zählen: %v", err)
 	}
 	if nichtFiskalischMitAuftrag != 0 {

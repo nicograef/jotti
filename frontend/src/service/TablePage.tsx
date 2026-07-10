@@ -2,7 +2,6 @@ import { useParams } from 'react-router'
 
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
 import {
   Item,
   ItemContent,
@@ -14,7 +13,6 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { BackendSingleton } from '@/lib/Backend'
 import { formatCents } from '@/lib/utils'
 
-import { Ausgabe } from './components/table/Ausgabe'
 import { Bestellung } from './components/table/Bestellung'
 import { TischHistorie } from './components/table/TischHistorie'
 import { Zahlung } from './components/table/Zahlung'
@@ -56,8 +54,8 @@ export function TablePage() {
     void reloadHistorie()
   }
 
-  // Expliziter Fehlerzustand statt der Leer-Defaults (Saldo 0,00 €,
-  // „Alles ausgegeben!") — sonst wirkt der Tisch bei Netzabbruch abgerechnet.
+  // Expliziter Fehlerzustand statt der Leer-Defaults (Saldo 0,00 €) — sonst
+  // wirkt der Tisch bei Netzabbruch abgerechnet.
   if (stateError || historieError) {
     return (
       <LadefehlerAlert
@@ -73,11 +71,8 @@ export function TablePage() {
     saldoCents: state.saldoCents,
   }
 
-  const offenePositionen = state.ausstehendePositionen.reduce(
-    (sum, position) => sum + position.menge,
-    0,
-  )
   const tabsLocked = stateLoading || historieLoading
+  const anzahlUnbezahlt = state.unbezahltePositionen.length
 
   return (
     <>
@@ -85,12 +80,12 @@ export function TablePage() {
         <ItemContent>
           <ItemTitle className="text-2xl">
             {stateLoading ? 'Tisch ??' : tisch.name}{' '}
-            {!stateLoading && offenePositionen > 0 && (
-              <Badge variant="destructive">{offenePositionen} offen</Badge>
-            )}
-            {!stateLoading && offenePositionen === 0 && (
-              <Badge>Alles ausgegeben!</Badge>
-            )}
+            {!stateLoading &&
+              (anzahlUnbezahlt > 0 ? (
+                <Badge variant="destructive">{anzahlUnbezahlt} unbezahlt</Badge>
+              ) : (
+                <Badge>Alles bezahlt</Badge>
+              ))}
           </ItemTitle>
           {!stateLoading && (
             <ItemDescription>
@@ -139,26 +134,13 @@ export function TablePage() {
         </div>
         <TabsContent value="order" className={tabInhaltFreiraum}>
           {!stateLoading && (
-            <>
-              {offenePositionen > 0 && (
-                <Card className="p-2 gap-0 mb-4">
-                  <Ausgabe
-                    backend={tischBackend}
-                    tisch={tisch}
-                    positionen={state.ausstehendePositionen}
-                    loading={stateLoading}
-                    onAusgabeBestaetigt={reload}
-                  />
-                </Card>
-              )}
-              <Bestellung
-                backend={tischBackend}
-                tisch={tisch}
-                products={produkte}
-                productsLoading={isPending}
-                onBestellungAufgenommen={reload}
-              />
-            </>
+            <Bestellung
+              backend={tischBackend}
+              tisch={tisch}
+              products={produkte}
+              productsLoading={isPending}
+              onBestellungAufgenommen={reload}
+            />
           )}
         </TabsContent>
         <TabsContent value="payment" className={tabInhaltFreiraum}>

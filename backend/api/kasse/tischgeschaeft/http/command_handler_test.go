@@ -34,10 +34,6 @@ func (m *mockCommand) StornierungErteilen(ctx context.Context, userID int, userN
 	return m.err
 }
 
-func (m *mockCommand) AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
-	return m.err
-}
-
 func TestBestellungAufnehmenHandler_Conflict(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
 
@@ -83,23 +79,6 @@ func TestZahlungKassierenHandler_Conflict(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	handler.ZahlungKassierenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusConflict {
-		t.Errorf("expected status 409, got %d", rec.Code)
-	}
-}
-
-func TestAusgabeBestaetigenHandler_Conflict(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
-
-	body := `{"tischId":1,"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}],"kommentar":""}`
-	req := httptest.NewRequest(http.MethodPost, "/ausgabe-bestaetigen", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
-	req = req.WithContext(ctx)
-	rec := httptest.NewRecorder()
-
-	handler.AusgabeBestaetigenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusConflict {
 		t.Errorf("expected status 409, got %d", rec.Code)

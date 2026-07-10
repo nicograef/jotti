@@ -206,9 +206,6 @@ func TestGetEigeneUebersicht_MitOffenerArbeit(t *testing.T) {
 	sessions := []kasse.TischSession{
 		{
 			TischID: 3,
-			AusstehendePositionen: []kasse.Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 7},
-			},
 			UnbezahltePositionen: []kasse.Position{
 				{PositionID: "p1", Menge: 1, BestellerUserID: 7},
 			},
@@ -216,7 +213,7 @@ func TestGetEigeneUebersicht_MitOffenerArbeit(t *testing.T) {
 		{
 			// Nur fremde Arbeit -> für User 7 erledigt, darf nicht erscheinen.
 			TischID: 1,
-			AusstehendePositionen: []kasse.Position{
+			UnbezahltePositionen: []kasse.Position{
 				{PositionID: "p2", Menge: 1, BestellerUserID: 8},
 			},
 		},
@@ -251,7 +248,7 @@ func TestGetEigeneUebersicht_AllesErledigt(t *testing.T) {
 	sessions := []kasse.TischSession{
 		{
 			TischID: 1,
-			AusstehendePositionen: []kasse.Position{
+			UnbezahltePositionen: []kasse.Position{
 				{PositionID: "p1", Menge: 1, BestellerUserID: 8},
 			},
 		},
@@ -368,9 +365,6 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 		{
 			// Anna (7, hat Umsatz) hat hier noch offene Arbeit.
 			TischID: 3,
-			AusstehendePositionen: []kasse.Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
-			},
 			UnbezahltePositionen: []kasse.Position{
 				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
 			},

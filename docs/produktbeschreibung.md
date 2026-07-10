@@ -11,7 +11,7 @@ Produktidentität von jotti: Positionierung, Zielgruppe, Abgrenzung, Kernfeature
 
 > jotti: Das kostenlose Kassensystem für Vereinsfeste.
 
-jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfeste, Weihnachtsmärkte, Konzerte und andere Non-Profit-Veranstaltungen. Servicekräfte nehmen Bestellungen direkt auf ihrem Smartphone auf, bestätigen die Ausgabe, kassieren und stornieren, alles pro Tisch, alles im Browser. jotti bringt die fiskalischen Bausteine mit: eine BSI-zertifizierte Cloud-TSE, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber. Kein Cloud-Abo, keine spezielle Hardware, einfach auf dem eigenen Server installieren und loslegen.
+jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfeste, Weihnachtsmärkte, Konzerte und andere Non-Profit-Veranstaltungen. Servicekräfte nehmen Bestellungen direkt auf ihrem Smartphone auf, kassieren und stornieren, alles pro Tisch, alles im Browser. jotti bringt die fiskalischen Bausteine mit: eine BSI-zertifizierte Cloud-TSE, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber. Kein Cloud-Abo, keine spezielle Hardware, einfach auf dem eigenen Server installieren und loslegen.
 
 ---
 
@@ -52,7 +52,7 @@ Vereins- und Sommerfeste, Weihnachts- und Adventsmärkte, Maihocks und Straßenf
 ### 3.3 Personas
 
 - **Thomas, 52, Vereinsvorstand (Admin):** Entscheider für die Software-Anschaffung, mit technischen Grundkenntnissen (startet Docker nach Anleitung). Will eine kostenlose, von jedem bedienbare Lösung mit verlässlicher Abrechnung, die einer Betriebsprüfung standhält.
-- **Maria, 23, Servicekraft (Service):** Nutzt ihr eigenes Smartphone (BYOD), arbeitet ehrenamtlich, erwartet intuitive Bedienung ohne Schulung. Will am Tisch bestellen, ausgeben und kassieren, mehr nicht.
+- **Maria, 23, Servicekraft (Service):** Nutzt ihr eigenes Smartphone (BYOD), arbeitet ehrenamtlich, erwartet intuitive Bedienung ohne Schulung. Will am Tisch bestellen und kassieren, mehr nicht.
 - **Felix, 34, Serviceleitung (Senior Service):** Koordiniert das Service-Team, braucht Stornierungsberechtigung und die Tisch-Übersicht auf einen Blick.
 
 ---
@@ -78,13 +78,11 @@ Mit _(in Entwicklung)_ markierte Features sind geplant, aber noch nicht umgesetz
 
 | Feature                                    | Beschreibung                                                                                                                    |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| Bestellung & Ausgabe                       | Produkte und Varianten auf den Tisch buchen (Menge, Steuersatz, Kommentar), als ausgegeben markieren, ausstehende nachverfolgen |
+| Bestellung                                 | Produkte und Varianten auf den Tisch buchen (Menge, Steuersatz, Kommentar)                                                      |
 | Zahlung kassieren                          | Bargeld kassieren: Teilzahlung und Rückgeldberechnung                                                                           |
 | Stornierung                                | Falschbestellungen rückgängig machen (Serviceleitung/Admin): bezahlte Positionen als Warenrücknahme mit Bar-Rückgabe, unbezahlte geldneutral                |
 | Umbuchen & Direktverkauf                   | Bestellungen atomar zwischen Tischen verschieben; Barverkauf an der Theke in einem Schritt                                      |
 | Tisch-Übersicht                            | Saldo, Bestellungen, Zahlungen und Historie auf einen Blick; Favoriten als Rich Cards, Schnellsuche per Name/Nummer             |
-| Küchendisplay (KDS) _(in Entwicklung)_     | Eingehende Bestellungen in Echtzeit im Küchen-/Ausgabebereich anzeigen                                                          |
-| Ausgabestationen _(in Entwicklung)_        | Zubereitungsstatus verwalten; Servicekräfte sehen, wann Positionen abholbereit sind                                             |
 | Bon-Druck                                  | Bestell- und Küchenbons automatisch an Bondrucker senden (pro Kategorie konfigurierbar)                                         |
 | Stammdaten-Verwaltung                      | Produkte (mit Varianten), Tische und Benutzer anlegen, bearbeiten und Rollen zuweisen                                           |
 | Betreiber-Stammdaten                       | Vereinsname, Adresse und Steuernummer (für Belege, Z-Bons und DSFinV-K)                                                         |

@@ -50,7 +50,6 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
 
     // Der Quelltisch ist danach ausgeglichen …
     await expect(page.getByText('0,00 €').first()).toBeVisible()
-    await expect(page.getByText('Alles ausgegeben!')).toBeVisible()
 
     // … und der Zieltisch zeigt den übernommenen Saldo.
     await oeffneTisch(page, ZIEL_TISCH)

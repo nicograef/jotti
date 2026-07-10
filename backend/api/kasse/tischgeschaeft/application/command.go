@@ -605,30 +605,3 @@ func (c Command) persistStornoEvents(ctx context.Context, stornoEvents []event.E
 	log.Info().Int("tisch_id", tischID).Int("anzahl_events", len(events)).Msg("Stornierung erteilt")
 	return nil
 }
-
-func (c Command) AusgabeBestaetigen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
-	log := zerolog.Ctx(ctx)
-
-	// Tisch-Existenz, Status und State laden
-	subject, kassensitzungNr, state, err := c.loadTischState(ctx, tischID)
-	if err != nil {
-		return err
-	}
-
-	// Ausgabe-Invariante: nur ausstehende Positionen können ausgegeben werden
-	if !validatePositionRefs(state.AusstehendePositionen, positionen) {
-		log.Warn().Int("tisch_id", tischID).Msg("Ausgabe-Invariante verletzt: angeforderte Positionen nicht ausgebbar")
-		return ErrPositionNichtAusgebbar
-	}
-
-	resolvedPositionen, _ := resolvePositions(state.AusstehendePositionen, positionen)
-
-	evt, err := kasse.NewAusgabeBestaetigtEvent(subject, userID, userName, resolvedPositionen, kommentar)
-	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create ausgabe bestaetigt event")
-		return err
-	}
-
-	// OCC gegen den validierten Zustand (siehe ZahlungKassieren).
-	return c.persistTischEvent(ctx, evt, subject, state.LastEventVersion, kassensitzungNr, tischID, "Ausgabe bestätigt")
-}

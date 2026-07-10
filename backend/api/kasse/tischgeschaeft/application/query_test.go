@@ -21,10 +21,9 @@ func TestGetTischState(t *testing.T) {
 	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	subject := kasse.TischSessionSubject(1, 1)
 	eventMock.SetTischSession(subject, kasse.TischSession{
-		SaldoCents:            700,
-		UnbezahltePositionen:  positions,
-		AusstehendePositionen: positions,
-		GesamtZahlungenCents:  0,
+		SaldoCents:           700,
+		UnbezahltePositionen: positions,
+		GesamtZahlungenCents: 0,
 	})
 	query := Query{
 		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus}}, nil),
@@ -47,9 +46,6 @@ func TestGetTischState(t *testing.T) {
 	}
 	if state.UnbezahltePositionen[0].BestellerName != "Anna" {
 		t.Errorf("expected besteller Anna, got %q", state.UnbezahltePositionen[0].BestellerName)
-	}
-	if len(state.AusstehendePositionen) != 1 {
-		t.Fatalf("expected 1 ausstehende position, got %d", len(state.AusstehendePositionen))
 	}
 	// Anna hat eigene offene Positionen an diesem Tisch -> nicht erledigt.
 	if state.FuerMichErledigt {
@@ -85,9 +81,6 @@ func TestGetTischState_NoState(t *testing.T) {
 	if state.UnbezahltePositionen != nil {
 		t.Errorf("expected nil unbezahlt, got %v", state.UnbezahltePositionen)
 	}
-	if state.AusstehendePositionen != nil {
-		t.Errorf("expected nil ausstehend, got %v", state.AusstehendePositionen)
-	}
 }
 
 type favoritMock struct {
@@ -112,9 +105,8 @@ func TestGetMeineTischeState_BatchInFavoriteOrder(t *testing.T) {
 	eventMock.SetTischName(3, "Tisch 3")
 	// Nur Tisch 7 hat eine Session; Tisch 3 bleibt session-los.
 	eventMock.SetTischSession(kasse.TischSessionSubject(1, 7), kasse.TischSession{
-		SaldoCents:            700,
-		UnbezahltePositionen:  positions,
-		AusstehendePositionen: positions,
+		SaldoCents:           700,
+		UnbezahltePositionen: positions,
 	})
 
 	query := Query{

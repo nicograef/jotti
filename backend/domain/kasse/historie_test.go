@@ -29,15 +29,14 @@ func TestGetHistorieFromEvents_ReturnsAllEventTypes(t *testing.T) {
 		orderEvent,
 		mustCreatePaymentEvent(t, testSubject, 1, positions, 500),
 		mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, positions, 500),
-		mustCreateDeliveryEvent(t, testSubject, 1, positions),
 	}
 
 	history, err := GetHistorieFromEvents(events)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if len(history) != 4 {
-		t.Fatalf("expected 4 history items, got %d", len(history))
+	if len(history) != 3 {
+		t.Fatalf("expected 3 history items, got %d", len(history))
 	}
 }
 

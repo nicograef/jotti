@@ -4,11 +4,6 @@ import type { BackendClient } from '@/lib/Backend'
 
 import { BelegDruckenResponseSchema, type BelegStatus } from '../beleg'
 import {
-  type Ausgabe,
-  AusgabeBestaetigenSchema,
-  AusgabeSchema,
-} from './Ausgabe'
-import {
   type Bestellung,
   BestellungAufnehmenSchema,
   BestellungSchema,
@@ -110,16 +105,9 @@ export class TischBackend {
     await this.backend.post('service/bestellung-umbuchen', body)
   }
 
-  public async ausgabeBestaetigen(
-    ausgabe: z.infer<typeof AusgabeBestaetigenSchema>,
-  ): Promise<void> {
-    const body = AusgabeBestaetigenSchema.parse(ausgabe)
-    await this.backend.post('service/ausgabe-bestaetigen', body)
-  }
-
   public async getTischHistorie(
     tischId: number,
-  ): Promise<(Bestellung | Zahlung | Stornierung | Umbuchung | Ausgabe)[]> {
+  ): Promise<(Bestellung | Zahlung | Stornierung | Umbuchung)[]> {
     const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
     const { historie } = await this.backend.post(
       'service/get-tisch-historie',
@@ -131,7 +119,6 @@ export class TischBackend {
             ZahlungSchema,
             StornierungSchema,
             UmbuchungSchema,
-            AusgabeSchema,
           ]),
         ),
       }),

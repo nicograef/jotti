@@ -6,7 +6,7 @@ Die Ubiquitous Language ist ein Living Document: Sie wird fortlaufend aktualisie
 
 ## Sprachkonventionen
 
-1. **Domänenbegriffe sind deutsch.** Alle Fachbegriffe der Kasse, der Stammdaten und der Gastronomie-Domäne werden auf Deutsch benannt, in Code, Dokumentation und Kommunikation. Beispiele: `Bestellung`, `Tisch`, `Zahlung`, `Position`, `Ausgabe`, `Stornierung`, `Saldo`, `Kassensitzung`, `Kassenjournal`.
+1. **Domänenbegriffe sind deutsch.** Alle Fachbegriffe der Kasse, der Stammdaten und der Gastronomie-Domäne werden auf Deutsch benannt, in Code, Dokumentation und Kommunikation. Beispiele: `Bestellung`, `Tisch`, `Zahlung`, `Position`, `Stornierung`, `Saldo`, `Kassensitzung`, `Kassenjournal`.
 
 2. **Infrastruktur-Code bleibt englisch.** Authentifizierung, Konfiguration, HTTP-Framework und generische Sub-Domains verwenden englische Bezeichnungen. Beispiele: `User`, `Role`, `Token`, `Config`, `Middleware`. Technische Felder (z. B. `created_at`, `status`, `id`) bleiben in allen Schichten englisch.
 
@@ -53,7 +53,7 @@ Das Finanzamt teilt einen Verein in vier steuerliche Sphären, die Buchführungs
 
 **Fachliche Akteure (kein Code-Mapping):**
 
-- **Servicekraft / Bedienung:** Freiwillige Helfer, die Bestellungen aufnehmen, kassieren und Ausgaben bestätigen. Systemrolle `service`.
+- **Servicekraft / Bedienung:** Freiwillige Helfer, die Bestellungen aufnehmen und kassieren. Systemrolle `service`.
 - **Serviceleitung:** Erfahrene Servicekraft mit erweiterten Rechten für Stornierungen. Systemrolle `serviceleitung`.
 - **Kassenwart / Schatzmeister:** Vorstandsmitglied, verantwortlich für Finanzen, Buchhaltung und Steuererklärungen. Typischerweise Systemrolle `admin`.
 - **Vorstand:** Gesetzliches Vertretungsorgan des Vereins; haftet persönlich für die Einhaltung steuerlicher Pflichten. Typischerweise Systemrolle `admin`.
@@ -92,7 +92,7 @@ Die Event-Feldschemata (Felder, Typen, Constraints) aller Kasse-Events stehen ka
 
 #### Tischgeschäft
 
-Sammelbezeichnung für alle tischbezogenen Kasse-Operationen: Bestellung aufnehmen, Ausgabe bestätigen, Zahlung kassieren, Stornierung erteilen, Umbuchung, Direktverkauf. Im Code: `api/kasse/tischgeschaeft/` (Tisch-Sessions) und `api/kasse/direktverkauf/`.
+Sammelbezeichnung für alle tischbezogenen Kasse-Operationen: Bestellung aufnehmen, Zahlung kassieren, Stornierung erteilen, Umbuchung, Direktverkauf. Im Code: `api/kasse/tischgeschaeft/` (Tisch-Sessions) und `api/kasse/direktverkauf/`.
 
 #### Kassenführung
 
@@ -106,7 +106,7 @@ Go-Struct: `Tisch` · TS-Typ: `Tisch` · DB-Tabelle: `tische`
 
 #### Tisch-Session (Abrechnungskreis)
 
-Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Bestellungen, Zahlungen, Stornierungen, Umbuchungen, Ausgaben) eines Tisches innerhalb einer Kassensitzung ab. Entsteht implizit mit der ersten Bestellung.
+Das Event-Sourced Aggregat im Kasse-Kontext. Bildet alle Geschäftsvorfälle (Bestellungen, Zahlungen, Stornierungen, Umbuchungen) eines Tisches innerhalb einer Kassensitzung ab. Entsteht implizit mit der ersten Bestellung.
 
 | Go-Struct      | TS-Typ         | DB-Projektion    | Subject-Format                       |
 | -------------- | -------------- | ---------------- | ------------------------------------ |
@@ -157,17 +157,9 @@ Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einze
 
 #### Besteller (bestellende Servicekraft)
 
-Die Servicekraft, die eine Bestellung aufgenommen hat. Reines Projektions- und Anzeigekonzept: Jede offene `Position` trägt den Besteller als eingefrorenen Username aus dem Event-Umschlag des `bestellung-aufgenommen`-Events. Die Event-Form bleibt unverändert, spätere Umbenennungen ändern alte Positionen nicht. Grundlage für die persönliche Erledigt-Sicht, die Sortierung „eigene zuerst" beim Kassieren und Ausgeben und die Schichtende-Prüfung im Live-Dashboard.
+Die Servicekraft, die eine Bestellung aufgenommen hat. Reines Projektions- und Anzeigekonzept: Jede offene `Position` trägt den Besteller als eingefrorenen Username aus dem Event-Umschlag des `bestellung-aufgenommen`-Events. Die Event-Form bleibt unverändert, spätere Umbenennungen ändern alte Positionen nicht. Grundlage für die persönliche Erledigt-Sicht, die Sortierung „eigene zuerst" beim Kassieren und die Schichtende-Prüfung im Live-Dashboard.
 
 Go-Projektion-Felder: `Position.BestellerUserID`, `Position.BestellerName` · JSON/TS: `bestellerUserId`, `bestellerName`
-
-#### Ausgabe
-
-Bestätigung, dass bestellte Positionen dem Gast übergeben wurden.
-
-| Go-Struct | TS-Typ    | Event-Typ               |
-| --------- | --------- | ----------------------- |
-| `Ausgabe` | `Ausgabe` | `ausgabe-bestaetigt:v1` |
 
 #### Zahlung
 
@@ -224,8 +216,8 @@ Go-Funktion: `GetHistorieFromEvents()` · Application-Query: `GetTischHistorie()
 | -------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Kommentar            | Freitextnotiz; Pflicht bei Warenrücknahme (kassenwirksamer Storno), sonst optional | Go `Kommentar` · JSON/TS `kommentar`                                                                  |
 | Menge                | Anzahl einer Produktvariante innerhalb einer Position                     | Go `Menge` · JSON/TS `menge`                                                                                   |
-| PositionRef          | Referenz auf eine Position (ID + Menge) für Zahlung, Ausgabe, Stornierung | Go/TS `PositionRef` · JSON `positionId`, `menge`                                                               |
-| HistorieEintrag      | Eintrag der Tisch-Historie, typisiert nach Art                            | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `umbuchung`, `ausgabe`              |
+| PositionRef          | Referenz auf eine Position (ID + Menge) für Zahlung, Stornierung, Umbuchung | Go/TS `PositionRef` · JSON `positionId`, `menge`                                                             |
+| HistorieEintrag      | Eintrag der Tisch-Historie, typisiert nach Art                            | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `umbuchung`              |
 | EigeneUebersicht     | KPI-Read-Model einer Servicekraft: eigene Bestellungen und Zahlungen      | Go/TS `EigeneUebersicht` · JSON `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` |
 | AktiverTisch         | Kompakte Tisch-Darstellung mit Saldo für die Tischübersicht (Read Model)  | Go `AktiverTisch` · TS `AktiverTischMitFavorit` (mit `istFavorit`)                                             |
 | BestellPositionInput | Frontend-Eingabetyp einer Bestellposition (Produkt + Variante + Menge)    | TS `BestellPositionInput` · JSON `produktId`, `varianteId`, `menge`                                            |
@@ -484,8 +476,5 @@ Kurzdefinitionen, die kanonische Architektur-Erklärung steht im [handbuch.md](h
 
 Die folgenden Begriffe sind definiert, aber noch nicht im Code implementiert. Details und Priorisierung in `docs/anforderungen.md`.
 
-- **Küchendisplay (KDS):** Echtzeit-Anzeige offener Bestellungen an der Ausgabestation (K-13).
-- **Zubereitungsstatus:** Status einer Position: offen → in Zubereitung → fertig (K-15).
-- **Ausgabestation:** Physischer Ort (Küche, Getränketheke), an dem Positionen ausgegeben werden (K-13/K-15).
 - **Stornoquote:** Verhältnis Stornierungsbetrag zu Bestellsumme.
 - **Privatentnahme / Privateinlage:** eigene DSFinV-K-Geschäftsvorfalltypen für Bewegungen in den/aus dem privaten Bereich des Vereins (neben dem → Geldtransit); aktuell wird jede Bargeld-Bewegung als Geldtransit gebucht.

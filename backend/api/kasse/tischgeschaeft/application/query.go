@@ -12,15 +12,14 @@ import (
 
 // TischStateView combines a TischSession with the tisch name for display purposes.
 type TischStateView struct {
-	TischID               int
-	TischName             string
-	Subject               string
-	SaldoCents            int
-	UnbezahltePositionen  []kasse.Position
-	AusstehendePositionen []kasse.Position
-	GesamtZahlungenCents  int
+	TischID              int
+	TischName            string
+	Subject              string
+	SaldoCents           int
+	UnbezahltePositionen []kasse.Position
+	GesamtZahlungenCents int
 	// FuerMichErledigt ist true, wenn die anfragende Servicekraft an diesem Tisch
-	// keine eigenen ausstehenden und keine eigenen unbezahlten Positionen mehr hat.
+	// keine eigenen unbezahlten Positionen mehr hat.
 	FuerMichErledigt bool
 }
 
@@ -87,14 +86,13 @@ func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (Tisc
 
 	log.Info().Int("tisch_id", tischID).Int("saldo_cents", state.SaldoCents).Msg("Retrieved tisch state")
 	return TischStateView{
-		TischID:               tisch.ID,
-		TischName:             tisch.Name,
-		Subject:               subject,
-		SaldoCents:            state.SaldoCents,
-		UnbezahltePositionen:  state.UnbezahltePositionen,
-		AusstehendePositionen: state.AusstehendePositionen,
-		GesamtZahlungenCents:  state.GesamtZahlungenCents,
-		FuerMichErledigt:      kasse.ComputeEigeneArbeitAnTisch(state, userID).Erledigt,
+		TischID:              tisch.ID,
+		TischName:            tisch.Name,
+		Subject:              subject,
+		SaldoCents:           state.SaldoCents,
+		UnbezahltePositionen: state.UnbezahltePositionen,
+		GesamtZahlungenCents: state.GesamtZahlungenCents,
+		FuerMichErledigt:     kasse.ComputeEigeneArbeitAnTisch(state, userID).Erledigt,
 	}, nil
 }
 
@@ -163,14 +161,13 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 
 		state := entry.Session
 		views = append(views, TischStateView{
-			TischID:               tischID,
-			TischName:             entry.Name,
-			Subject:               kasse.TischSessionSubject(kassensitzungNr, tischID),
-			SaldoCents:            state.SaldoCents,
-			UnbezahltePositionen:  state.UnbezahltePositionen,
-			AusstehendePositionen: state.AusstehendePositionen,
-			GesamtZahlungenCents:  state.GesamtZahlungenCents,
-			FuerMichErledigt:      kasse.ComputeEigeneArbeitAnTisch(state, userID).Erledigt,
+			TischID:              tischID,
+			TischName:            entry.Name,
+			Subject:              kasse.TischSessionSubject(kassensitzungNr, tischID),
+			SaldoCents:           state.SaldoCents,
+			UnbezahltePositionen: state.UnbezahltePositionen,
+			GesamtZahlungenCents: state.GesamtZahlungenCents,
+			FuerMichErledigt:     kasse.ComputeEigeneArbeitAnTisch(state, userID).Erledigt,
 		})
 	}
 

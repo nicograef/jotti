@@ -25,7 +25,6 @@ import { AuthSingleton } from '@/lib/Auth'
 import { formatCents } from '@/lib/utils'
 
 import { belegDruckenMitNachfassen, meldeBelegStatus } from '../../beleg'
-import type { Ausgabe } from '../../table/Ausgabe'
 import type { Bestellung } from '../../table/Bestellung'
 import type { Stornierung } from '../../table/Stornierung'
 import type { Tisch } from '../../table/Tisch'
@@ -38,7 +37,7 @@ import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 import { Receipt, type ReceiptPosition } from './Receipt'
 
-type HistorieEintrag = Bestellung | Zahlung | Stornierung | Umbuchung | Ausgabe
+type HistorieEintrag = Bestellung | Zahlung | Stornierung | Umbuchung
 
 // Quelle ist ein Eintrag, der Positionen auf den Tisch bringt — eine Bestellung oder
 // der Zugang einer Umbuchung. Nur diese tragen stornier-/umbuchbare Positionen.
@@ -182,19 +181,6 @@ export function TischHistorie({
                       key={item.id}
                       title={`${item.barRueckgabe ? 'Warenrücknahme' : 'Korrektur'} -${formatCents(item.gesamtStornierungCents)} €`}
                       date={item.storniertAm}
-                      userName={item.userName}
-                      kommentar={item.kommentar}
-                      onClick={() => {
-                        setDetail(item)
-                      }}
-                    />
-                  )
-                case 'ausgabe':
-                  return (
-                    <HistoryItem
-                      key={item.id}
-                      title="Ausgabe"
-                      date={item.ausgegebenAm}
                       userName={item.userName}
                       kommentar={item.kommentar}
                       onClick={() => {
@@ -399,12 +385,6 @@ function detailView(eintrag: HistorieEintrag): {
         date: eintrag.umgebuchtAm,
         positionen: toReceiptItems(eintrag.positionen),
         totalPrice: eintrag.gesamtCents,
-      }
-    case 'ausgabe':
-      return {
-        title: 'Ausgabe',
-        date: eintrag.ausgegebenAm,
-        positionen: toReceiptItems(eintrag.positionen),
       }
   }
 }

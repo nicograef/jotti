@@ -332,10 +332,6 @@ func upsertTischSessionState(ctx context.Context, qtx *dbgen.Queries, subject st
 	if err != nil {
 		return fmt.Errorf("marshal unbezahlte positionen: %w", err)
 	}
-	ausstehendeJSON, err := json.Marshal(state.AusstehendePositionen)
-	if err != nil {
-		return fmt.Errorf("marshal ausstehende positionen: %w", err)
-	}
 
 	err = qtx.UpsertTischSession(ctx, dbgen.UpsertTischSessionParams{
 		Subject:                subject,
@@ -343,7 +339,6 @@ func upsertTischSessionState(ctx context.Context, qtx *dbgen.Queries, subject st
 		KassensitzungNr:        kassensitzungNr,
 		SaldoCents:             state.SaldoCents,
 		UnbezahltePositionen:   unbezahltJSON,
-		AusstehendePositionen:  ausstehendeJSON,
 		GesamtZahlungenCents:   state.GesamtZahlungenCents,
 		ErsteBestellungLogtime: toNullTime(state.ErsteBestellungLogTime),
 		LastEventID:            state.LastEventID,
@@ -397,7 +392,7 @@ func (r Repository) ReadFavoritenTischStates(ctx context.Context, tischIDs []int
 
 	const query = `SELECT t.id, t.name,
 			ts.subject, ts.kassensitzung_nr, ts.saldo_cents,
-			ts.unbezahlte_positionen, ts.ausstehende_positionen, ts.gesamt_zahlungen_cents,
+			ts.unbezahlte_positionen, ts.gesamt_zahlungen_cents,
 			ts.erste_bestellung_logtime, ts.last_event_id, ts.last_event_version
 		FROM tische t
 		LEFT JOIN tisch_sessions ts ON ts.tisch_id = t.id AND ts.kassensitzung_nr = $2
@@ -418,13 +413,12 @@ func (r Repository) ReadFavoritenTischStates(ctx context.Context, tischIDs []int
 			sessionKsNr      sql.NullInt64
 			saldoCents       sql.NullInt64
 			unbezahlt        []byte
-			ausstehend       []byte
 			gesamtZahlungen  sql.NullInt64
 			ersteBestellung  sql.NullTime
 			lastEventID      sql.NullInt64
 			lastEventVersion sql.NullInt64
 		)
-		if err := rows.Scan(&id, &name, &subject, &sessionKsNr, &saldoCents, &unbezahlt, &ausstehend, &gesamtZahlungen, &ersteBestellung, &lastEventID, &lastEventVersion); err != nil {
+		if err := rows.Scan(&id, &name, &subject, &sessionKsNr, &saldoCents, &unbezahlt, &gesamtZahlungen, &ersteBestellung, &lastEventID, &lastEventVersion); err != nil {
 			return nil, db.Error(err)
 		}
 
@@ -439,7 +433,6 @@ func (r Repository) ReadFavoritenTischStates(ctx context.Context, tischIDs []int
 				KassensitzungNr:        int(sessionKsNr.Int64),
 				SaldoCents:             int(saldoCents.Int64),
 				UnbezahltePositionen:   unbezahlt,
-				AusstehendePositionen:  ausstehend,
 				GesamtZahlungenCents:   int(gesamtZahlungen.Int64),
 				ErsteBestellungLogtime: ersteBestellung,
 				LastEventID:            int(lastEventID.Int64),
@@ -482,11 +475,6 @@ func toTischSession(row dbgen.TischSession) (kasse.TischSession, error) {
 		return kasse.TischSession{}, fmt.Errorf("unmarshal unbezahlte positionen: %w", err)
 	}
 
-	var ausstehende []kasse.Position
-	if err := json.Unmarshal(row.AusstehendePositionen, &ausstehende); err != nil {
-		return kasse.TischSession{}, fmt.Errorf("unmarshal ausstehende positionen: %w", err)
-	}
-
 	var ersteBestellungLogTime *time.Time
 	if row.ErsteBestellungLogtime.Valid {
 		v := row.ErsteBestellungLogtime.Time.UTC()
@@ -499,7 +487,6 @@ func toTischSession(row dbgen.TischSession) (kasse.TischSession, error) {
 		KassensitzungNr:        row.KassensitzungNr,
 		SaldoCents:             row.SaldoCents,
 		UnbezahltePositionen:   unbezahlt,
-		AusstehendePositionen:  ausstehende,
 		GesamtZahlungenCents:   row.GesamtZahlungenCents,
 		ErsteBestellungLogTime: ersteBestellungLogTime,
 		LastEventID:            row.LastEventID,

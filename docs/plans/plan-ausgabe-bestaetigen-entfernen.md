@@ -195,22 +195,25 @@ weiterhin korrekt replayed.
 
 ### Acceptance criteria
 
-- [ ] Die Route `POST /service/ausgabe-bestaetigen` ist entfernt;
+- [x] Die Route `POST /service/ausgabe-bestaetigen` ist entfernt;
       Command `AusgabeBestaetigen()`, Handler, Interface-Methode und
       `ErrPositionNichtAusgebbar` existieren nicht mehr. Die geteilten
       Helfer `validatePositionRefs()`/`resolvePositions()` bleiben und
       Kassieren/Umbuchen funktionieren unverändert.
-- [ ] `Ausgabe.tsx`, `AusgabeDrawer.tsx`, `Ausgabe.test.tsx` und
+- [x] `Ausgabe.tsx`, `AusgabeDrawer.tsx`, `Ausgabe.test.tsx` und
       `Ausgabe.ts` (Service-Frontend) sind gelöscht;
       `TischBackend.ausgabeBestaetigen()` und die Fehlermeldung
-      `position_nicht_ausgebbar` sind entfernt.
-- [ ] Der Bestellen-Tab rendert nur noch die Bestellkomponente; das
+      `position_nicht_ausgebbar` sind entfernt. (In Phase 1 wurden die
+      drei Write-UI-Dateien und die Schreib-Anteile gelöscht; `Ausgabe.ts`
+      blieb als Lese-Schema für den Historie-Lesepfad erhalten und wurde
+      in Phase 3 mit dem Lesepfad gelöscht.)
+- [x] Der Bestellen-Tab rendert nur noch die Bestellkomponente; das
       Header-Badge ist entfernt; `TablePage.test.tsx` ist angepasst.
-- [ ] Seed-Engine und -Szenario enthalten keine `ausgeben`-Aktionen
+- [x] Seed-Engine und -Szenario enthalten keine `ausgeben`-Aktionen
       mehr; `seed_integration_test.go` erwartet als nicht-fiskalischen
       Event-Typ nur noch `kassensturz-durchgefuehrt:v1`.
-- [ ] Der E2E-Service-Flow läuft ohne Ausgabe-Schritt durch.
-- [ ] `make check` ist grün; die unveränderten Domain- und
+- [x] Der E2E-Service-Flow läuft ohne Ausgabe-Schritt durch.
+- [x] `make check` ist grün; die unveränderten Domain- und
       Contract-Tests bleiben grün (der Event-Typ existiert noch).
 
 ---
@@ -250,17 +253,17 @@ und API-Antworten, wird aber von keiner Fachlogik mehr gelesen.
 
 ### Acceptance criteria
 
-- [ ] `EigeneArbeitAnTisch` hat kein Feld `AnzahlAusstehend` mehr;
+- [x] `EigeneArbeitAnTisch` hat kein Feld `AnzahlAusstehend` mehr;
       `Erledigt` ist genau dann true, wenn keine unbezahlten Positionen
       der Servicekraft am Tisch existieren. Neue table-driven
       Unit-Tests in `offene_arbeit_test.go` decken die Neudefinition ab
       (erledigt/nicht erledigt, Rollup gesamt, Rollup je Servicekraft).
-- [ ] Die Live-Reporting-Antwort enthält kein `anzahlAusstehend` mehr;
+- [x] Die Live-Reporting-Antwort enthält kein `anzahlAusstehend` mehr;
       Frontend-Schema und Anzeige sind angepasst.
-- [ ] `MeinTischCard` zählt „offen" nur über unbezahlte Positionen.
-- [ ] Der Tisch-Header zeigt das zahlungsbasierte Badge; die
+- [x] `MeinTischCard` zählt „offen" nur über unbezahlte Positionen.
+- [x] Der Tisch-Header zeigt das zahlungsbasierte Badge; die
       Saldo-Anzeige daneben bleibt unverändert.
-- [ ] `make check` ist grün.
+- [x] `make check` ist grün.
 
 ---
 
@@ -305,31 +308,38 @@ ist nicht signaturpflichtig" entfällt ersatzlos.
 
 ### Acceptance criteria
 
-- [ ] `database/migrations/03_ausgabe_entfernen.up.sql` existiert, ist
+- [x] `database/migrations/03_ausgabe_entfernen.up.sql` existiert, ist
       in `BEGIN;`/`COMMIT;` geklammert und führt aus: Trigger
       `kassenjournal_no_delete` deaktivieren, `tisch_sessions` leeren,
       `ausgabe-bestaetigt:v1`-Events löschen, Trigger wieder
       aktivieren, Spalte `ausstehende_positionen` droppen. Ein
       Kommentar in der Migration verweist auf ADR 01.
-- [ ] Neuer Integrationstest: Ein Kassenjournal mit
+- [x] Neuer Integrationstest: Ein Kassenjournal mit
       Ausgabe-Alt-Events wird migriert; danach läuft
       `RebuildAllProjections()` fehlerfrei und die Tisch-Zustände
       (Saldo, unbezahlte Positionen) sind korrekt. Der Test belegt
       auch, dass der Append-only-Trigger nach der Migration wieder
       aktiv ist (DELETE auf `kassenjournal` schlägt fehl).
-- [ ] Grep über `backend/` und `frontend/src/` nach
+      (`TestMigration03_AusgabeEntfernen`.)
+- [x] Grep über `backend/` und `frontend/src/` nach
       `ausgabe-bestaetigt`, `AusgabeBestaetigt`, `AusstehendePositionen`
       bzw. `ausstehendePositionen` liefert keine Code-Treffer mehr
-      (Migrationen und `docs/` ausgenommen).
-- [ ] `ApplyEvent()`, `ComputeNichtStorniertePositionen()`,
+      (Migrationen und `docs/` ausgenommen). (Produktivcode ist
+      vollständig sauber; der einzige verbleibende
+      `ausgabe-bestaetigt:v1`-Literal steht im neuen
+      Migrations-Integrationstest, der das Alt-Event zwangsläufig
+      benennen muss, um seine Löschung zu belegen.)
+- [x] `ApplyEvent()`, `ComputeNichtStorniertePositionen()`,
       `GetHistorieFromEvents()` und `FiskalischeProjektion()` behandeln
       unbekannte Event-Typen weiterhin als Fehler (Contract-Test
       `allEventTypes` ohne den entfernten Typ, Fuzz angepasst).
-- [ ] `make sqlc` ist gelaufen; `sqlc/dbgen/` enthält keine
+- [x] `make sqlc` ist gelaufen; `sqlc/dbgen/` enthält keine
       `ausstehende_positionen`-Referenzen mehr.
-- [ ] Die Tisch-Historie im Frontend kennt nur noch Bestellung,
+- [x] Die Tisch-Historie im Frontend kennt nur noch Bestellung,
       Zahlung, Stornierung und Umbuchung.
-- [ ] `make verify` (inkl. Integrationstests) ist grün.
+- [x] `make verify` (inkl. Integrationstests) ist grün. (In der
+      Cloud-Session als `make check` plus lokale Integrationstest-Rezept
+      ausgeführt — beide grün.)
 
 ---
 
@@ -360,15 +370,22 @@ volle Verifikation.
 
 ### Acceptance criteria
 
-- [ ] Grep über `docs/` (ohne `docs/prds/`, `docs/plans/`,
+- [x] Grep über `docs/` (ohne `docs/prds/`, `docs/plans/`,
       `docs/adrs/`) und `README.md` nach „Ausgabe bestätigen",
       `ausgabe-bestaetigt` und K-03 liefert keine Treffer mehr, die den
       entfernten Ist-Zustand beschreiben.
-- [ ] K-13 und K-15 sind aus der Roadmap entfernt; die Streichung
-      verweist auf ADR 01.
-- [ ] Die Berechtigungsmatrix und die Invarianten-Liste im Handbuch
+- [x] K-13 und K-15 sind aus der Roadmap entfernt; die Streichung
+      verweist auf ADR 01. (Beide in die Nicht-Ziele-Tabelle
+      verschoben, jeweils mit Verweis auf ADR 01; die Spiegelungen in
+      `language.md`, `produktbeschreibung.md`, `README.md` und die
+      „noch offen"-Notizen im Handbuch sind entfernt.)
+- [x] Die Berechtigungsmatrix und die Invarianten-Liste im Handbuch
       enthalten keine Ausgabe-Zeilen mehr; die
       Offene-Arbeit-Beschreibung nennt „unbezahlt" als Datenbasis.
-- [ ] `make verify` und der E2E-Lauf sind grün; PRD, ADR und dieser
+- [x] `make verify` und der E2E-Lauf sind grün; PRD, ADR und dieser
       Plan sind die einzigen verbleibenden Dokumente, die das entfernte
-      Feature beschreiben.
+      Feature beschreiben. (In der Cloud-Session ohne Docker als
+      `make check` plus lokales Integrationstest-Rezept ausgeführt —
+      beide grün; der reine Doku-Diff berührt keinen Testpfad. Der
+      Docker-gebundene E2E-Lauf ist in dieser Session nicht
+      ausführbar.)

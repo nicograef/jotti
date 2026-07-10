@@ -34,9 +34,8 @@ func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]kasse.H
 
 func (m mockQuery) GetTischState(ctx context.Context, tischID int, userID int) (application.TischStateView, error) {
 	return application.TischStateView{
-		SaldoCents:            m.balance,
-		UnbezahltePositionen:  []kasse.Position{m.position},
-		AusstehendePositionen: []kasse.Position{m.position},
+		SaldoCents:           m.balance,
+		UnbezahltePositionen: []kasse.Position{m.position},
 	}, m.err
 }
 
@@ -46,11 +45,10 @@ func (m mockQuery) GetAktiveTischeMitFavoriten(_ context.Context, _ int) ([]tisc
 
 func (m mockQuery) GetMeineTischeState(_ context.Context, _ int) ([]application.TischStateView, error) {
 	return []application.TischStateView{{
-		TischID:               m.tisch.ID,
-		TischName:             m.tisch.Name,
-		SaldoCents:            m.balance,
-		UnbezahltePositionen:  []kasse.Position{m.position},
-		AusstehendePositionen: []kasse.Position{m.position},
+		TischID:              m.tisch.ID,
+		TischName:            m.tisch.Name,
+		SaldoCents:           m.balance,
+		UnbezahltePositionen: []kasse.Position{m.position},
 	}}, m.err
 }
 
@@ -120,13 +118,6 @@ func TestPositionResponsesIncludeSteuersatz(t *testing.T) {
 		if resp.UnbezahltePositionen[0].Steuersatz == "" {
 			t.Fatal("expected steuersatz in unbezahltePositionen[0] to be present")
 		}
-
-		if len(resp.AusstehendePositionen) == 0 {
-			t.Fatal("expected ausstehendePositionen to contain at least one position")
-		}
-		if resp.AusstehendePositionen[0].Steuersatz == "" {
-			t.Fatal("expected steuersatz in ausstehendePositionen[0] to be present")
-		}
 	})
 
 	t.Run("get-tisch-historie", func(t *testing.T) {
@@ -178,13 +169,6 @@ func TestPositionResponsesIncludeSteuersatz(t *testing.T) {
 		}
 		if resp.Tische[0].UnbezahltePositionen[0].Steuersatz == "" {
 			t.Fatal("expected steuersatz in tische[0].unbezahltePositionen[0] to be present")
-		}
-
-		if len(resp.Tische[0].AusstehendePositionen) == 0 {
-			t.Fatal("expected at least one ausstehende position")
-		}
-		if resp.Tische[0].AusstehendePositionen[0].Steuersatz == "" {
-			t.Fatal("expected steuersatz in tische[0].ausstehendePositionen[0] to be present")
 		}
 	})
 }

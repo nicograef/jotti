@@ -35,9 +35,6 @@ var ErrTischNotActive = errors.New("tisch not active")
 // ErrPositionNichtBezahlbar is returned when a position cannot be paid (not in unbezahlt list).
 var ErrPositionNichtBezahlbar = errors.New("position nicht bezahlbar")
 
-// ErrPositionNichtAusgebbar is returned when a position cannot be issued (not in ausstehend list).
-var ErrPositionNichtAusgebbar = errors.New("position nicht ausgebbar")
-
 // ErrPositionNichtStornierbar is returned when a position cannot be cancelled (not in unbezahlt list).
 var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 

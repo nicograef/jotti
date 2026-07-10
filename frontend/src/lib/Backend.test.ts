@@ -148,7 +148,7 @@ describe('Backend.post', () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            ausstehendePositionen: [
+            unbezahltePositionen: [
               { steuersatz: 'SECRET', secretToken: 'SECRET' },
             ],
           }),
@@ -165,7 +165,7 @@ describe('Backend.post', () => {
       'service/get-tisch-state',
       {},
       z.object({
-        ausstehendePositionen: z.array(
+        unbezahltePositionen: z.array(
           z.object({
             steuersatz: z.number().int(),
           }),
@@ -175,7 +175,7 @@ describe('Backend.post', () => {
 
     await expect(request).rejects.toBeInstanceOf(ResponseBodyError)
     await expect(request).rejects.toThrow(
-      'Response of service/get-tisch-state is invalid: ausstehendePositionen[0].steuersatz (invalid_type)',
+      'Response of service/get-tisch-state is invalid: unbezahltePositionen[0].steuersatz (invalid_type)',
     )
 
     let thrown: Error | null = null

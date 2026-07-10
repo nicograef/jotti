@@ -16,8 +16,8 @@ import (
 
 // TestParallelzugriff_ZweiClientsSelberTisch prüft die Konsistenz von
 // Kassenjournal, seiner Projektion (tisch_sessions) und den Salden, wenn zwei
-// nebenläufige Servicekräfte DENSELBEN Tisch bedienen (bestellen, ausgeben,
-// kassieren) — über mehrere Runden hinweg.
+// nebenläufige Servicekräfte DENSELBEN Tisch bedienen (bestellen, kassieren) —
+// über mehrere Runden hinweg.
 //
 // Jede Servicekraft arbeitet auf einer eigenen Produktvariante (A vs. B), sodass
 // die erwarteten Endsummen je Variante eindeutig sind. Der geteilte Event-Stream
@@ -131,10 +131,10 @@ func TestParallelzugriff_ZweiClientsSelberTisch(t *testing.T) {
 	}
 }
 
-// bedieneTisch führt für eine Servicekraft runden × (bestellen → ausgeben →
-// kassieren) auf ihrer eigenen Variante aus, plus einen abschließenden Durchlauf
-// für etwaige durch Interleaving übrig gebliebene Positionen. Alle Schreibzugriffe
-// treffen den geteilten Tisch-Stream; OCC-Konflikte werden per Retry aufgelöst.
+// bedieneTisch führt für eine Servicekraft runden × (bestellen → kassieren) auf
+// ihrer eigenen Variante aus, plus einen abschließenden Durchlauf für etwaige
+// durch Interleaving übrig gebliebene Positionen. Alle Schreibzugriffe treffen
+// den geteilten Tisch-Stream; OCC-Konflikte werden per Retry aufgelöst.
 func bedieneTisch(ctx context.Context, cmd Command, subject string, userID int, userName string, produktID, tischID, varianteID, runden, menge int) error {
 	for r := 0; r < runden; r++ {
 		bestellungID := uuid.New().String()
@@ -144,29 +144,20 @@ func bedieneTisch(ctx context.Context, cmd Command, subject string, userID int, 
 		}); err != nil {
 			return err
 		}
-		if err := ausgebenUndKassieren(ctx, cmd, subject, userID, userName, tischID, varianteID); err != nil {
+		if err := kassiere(ctx, cmd, subject, userID, userName, tischID, varianteID); err != nil {
 			return err
 		}
 	}
 	// Abschließender Durchlauf: Positionen, die in einer Runde wegen Interleaving
-	// noch offen waren, werden hier ausgegeben und kassiert.
-	return ausgebenUndKassieren(ctx, cmd, subject, userID, userName, tischID, varianteID)
+	// noch offen waren, werden hier kassiert.
+	return kassiere(ctx, cmd, subject, userID, userName, tischID, varianteID)
 }
 
-// ausgebenUndKassieren gibt die noch ausstehenden und kassiert die noch
-// unbezahlten Positionen der Variante aus dem aktuellen Sessionzustand aus.
-func ausgebenUndKassieren(ctx context.Context, cmd Command, subject string, userID int, userName string, tischID, varianteID int) error {
-	if err := retryConflict(func() error {
-		refs, err := offeneRefsFuerVariante(ctx, cmd, subject, varianteID, ausstehend)
-		if err != nil || len(refs) == 0 {
-			return err
-		}
-		return cmd.AusgabeBestaetigen(ctx, userID, userName, tischID, refs, "")
-	}); err != nil {
-		return err
-	}
+// kassiere kassiert die noch unbezahlten Positionen der Variante aus dem
+// aktuellen Sessionzustand.
+func kassiere(ctx context.Context, cmd Command, subject string, userID int, userName string, tischID, varianteID int) error {
 	return retryConflict(func() error {
-		refs, err := offeneRefsFuerVariante(ctx, cmd, subject, varianteID, unbezahlt)
+		refs, err := offeneRefsFuerVariante(ctx, cmd, subject, varianteID)
 		if err != nil || len(refs) == 0 {
 			return err
 		}
@@ -174,28 +165,17 @@ func ausgebenUndKassieren(ctx context.Context, cmd Command, subject string, user
 	})
 }
 
-type positionsFilter int
-
-const (
-	unbezahlt positionsFilter = iota
-	ausstehend
-)
-
 // offeneRefsFuerVariante liest die aktuelle Tisch-Session und liefert die noch
-// offenen Positionen der gegebenen Variante als PositionRefs. So bearbeitet jede
-// Servicekraft nur ihre eigenen Positionen; eine Doppelverarbeitung derselben
-// Position verhindert zusätzlich die serverseitige Bezahl-/Ausgabe-Invariante.
-func offeneRefsFuerVariante(ctx context.Context, cmd Command, subject string, varianteID int, filter positionsFilter) ([]kasse.PositionRef, error) {
+// unbezahlten Positionen der gegebenen Variante als PositionRefs. So bearbeitet
+// jede Servicekraft nur ihre eigenen Positionen; eine Doppelverarbeitung
+// derselben Position verhindert zusätzlich die serverseitige Bezahl-Invariante.
+func offeneRefsFuerVariante(ctx context.Context, cmd Command, subject string, varianteID int) ([]kasse.PositionRef, error) {
 	state, err := cmd.EventRepo.ReadTischSession(ctx, subject)
 	if err != nil {
 		return nil, err
 	}
-	quelle := state.UnbezahltePositionen
-	if filter == ausstehend {
-		quelle = state.AusstehendePositionen
-	}
 	var refs []kasse.PositionRef
-	for _, p := range quelle {
+	for _, p := range state.UnbezahltePositionen {
 		if p.VarianteID == varianteID {
 			refs = append(refs, kasse.PositionRef{PositionID: p.PositionID, Menge: p.Menge})
 		}

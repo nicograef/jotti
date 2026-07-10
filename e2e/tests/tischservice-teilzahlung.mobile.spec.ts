@@ -4,12 +4,11 @@ import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 import {
   bestellePosition,
-  gebeAusstehendePositionAus,
   kassierePosition,
   oeffneTisch,
 } from '../support/servicekraft'
 
-// Servicekraft-Kernflow am Handy: Bestellen, Ausgeben, Kassieren — einmal als
+// Servicekraft-Kernflow am Handy: Bestellen, Kassieren — einmal als
 // Teilzahlung (der Tisch bleibt danach mit Restsaldo offen) und einmal als
 // Vollzahlung (Tisch danach ausgeglichen). „Tisch 13" ist im Demo-Drehbuch des
 // laufenden Tages unbenutzt, damit die Beträge deterministisch bleiben.
@@ -20,7 +19,7 @@ const TISCH = 'Tisch 13'
 const NORMAL = 'Bratwurst Normal' // 3,50 €
 const XXL = 'Bratwurst XXL' // 5,00 €
 
-test.describe('Servicekraft bestellt, gibt aus und kassiert', () => {
+test.describe('Servicekraft bestellt und kassiert', () => {
   test('Teilzahlung lässt Restsaldo offen, Vollzahlung gleicht den Tisch aus', async ({
     page,
     request,
@@ -32,11 +31,6 @@ test.describe('Servicekraft bestellt, gibt aus und kassiert', () => {
 
     await bestellePosition(page, 'Bratwurst', 'Normal')
     await bestellePosition(page, 'Bratwurst', 'XXL')
-
-    await expect(page.getByText('2 offen')).toBeVisible()
-
-    await gebeAusstehendePositionAus(page, 'Bratwurst Normal')
-    await gebeAusstehendePositionAus(page, 'Bratwurst XXL')
 
     // Saldo-Element im Tisch-Header (die einzige item-description mit text-2xl,
     // siehe TablePage): so prüft die Assertion den tatsächlichen Restsaldo statt
@@ -53,6 +47,5 @@ test.describe('Servicekraft bestellt, gibt aus und kassiert', () => {
     await kassierePosition(page, XXL)
 
     await expect(tischSaldo).toHaveText('0,00 €')
-    await expect(page.getByText('Alles ausgegeben!')).toBeVisible()
   })
 })

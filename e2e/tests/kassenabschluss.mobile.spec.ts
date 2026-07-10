@@ -5,14 +5,13 @@ import { resetAndSeed } from '../support/seed'
 import {
   abmelden,
   bestellePosition,
-  gebeAusstehendePositionAus,
   kassierePosition,
   oeffneTisch,
   settleAlleOffenenTische,
 } from '../support/servicekraft'
 
 // Kassenabschluss: die Spec erzeugt selbst einen frischen Umsatz (Bestellung,
-// Ausgabe, Kassieren) auf einem im Demo-Drehbuch unbenutzten Tisch, meldet sich
+// Kassieren) auf einem im Demo-Drehbuch unbenutzten Tisch, meldet sich
 // dann als Admin an und schließt die laufende Kassensitzung ab. Assertiert wird
 // ausschließlich die sichtbare Abschlussmeldung. Läuft im Handy-Viewport wie
 // die übrigen Service-Flows, obwohl „Kasse abschließen" eine Admin-Route ist
@@ -42,7 +41,6 @@ test.describe('Kassenabschluss beendet die laufende Kassensitzung', () => {
     await anmelden(page, zugangsdaten.service)
     await oeffneTisch(page, TISCH)
     await bestellePosition(page, 'Kaffee', 'Tasse') // 2,00 €
-    await gebeAusstehendePositionAus(page, 'Kaffee Tasse')
     await kassierePosition(page, 'Kaffee Tasse')
     // Saldo-Element im Tisch-Header (die einzige item-description mit text-2xl,
     // siehe TablePage): der Tisch ist nach dem Kassieren ausgeglichen.

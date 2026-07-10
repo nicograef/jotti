@@ -43,10 +43,6 @@ func FuzzApplyEvent(f *testing.F) {
 			`{"korrekturId":"44444444-4444-4444-8444-444444444444","positionen":[` + fuzzPositionLiteral + `],"gesamtCents":700,"kommentar":""}`,
 		},
 		{
-			string(EventTypeAusgabeBestaetigtV1),
-			`{"ausgabeId":"55555555-5555-4555-8555-555555555555","positionen":[` + fuzzPositionLiteral + `],"kommentar":""}`,
-		},
-		{
 			string(EventTypeBestellungUmgebuchtV1),
 			`{"umbuchungId":"66666666-6666-4666-8666-666666666666","quellTischId":1,"zielTischId":2,"positionen":[` + fuzzPositionLiteral + `],"gesamtCents":700,"kommentar":""}`,
 		},
@@ -111,11 +107,6 @@ func FuzzApplyEvent(f *testing.F) {
 			for _, pos := range next.UnbezahltePositionen {
 				if pos.Menge <= 0 {
 					t.Fatalf("unbezahlte Position mit nicht-positiver Menge %d (%s) nach %s", pos.Menge, pos.PositionID, typ)
-				}
-			}
-			for _, pos := range next.AusstehendePositionen {
-				if pos.Menge <= 0 {
-					t.Fatalf("ausstehende Position mit nicht-positiver Menge %d (%s) nach %s", pos.Menge, pos.PositionID, typ)
 				}
 			}
 		}

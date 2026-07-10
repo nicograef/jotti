@@ -20,10 +20,9 @@ export const TischSessionSchema = z.object({
   tischName: z.string(),
   saldoCents: z.number().int(),
   unbezahltePositionen: z.array(PositionSchema),
-  ausstehendePositionen: z.array(PositionSchema),
   gesamtZahlungenCents: z.number().int(),
   // True, wenn die anfragende Servicekraft an diesem Tisch keine eigenen
-  // ausstehenden und keine eigenen unbezahlten Positionen mehr hat.
+  // unbezahlten Positionen mehr hat.
   fuerMichErledigt: z.boolean(),
 })
 export type TischSession = z.infer<typeof TischSessionSchema>
@@ -41,7 +40,6 @@ export type AktiverTischMitFavorit = z.infer<
 export const OffeneArbeitTischSchema = z.object({
   tischId: TischIdSchema,
   tischName: z.string(),
-  anzahlAusstehend: z.number().int(),
   anzahlUnbezahlt: z.number().int(),
   anzahlOffen: z.number().int(),
 })

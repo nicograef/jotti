@@ -380,8 +380,6 @@ type TischSession struct {
 	SaldoCents int
 	// Positions ordered but not yet paid (JSON array), reduced by Zahlung and Stornierung
 	UnbezahltePositionen json.RawMessage
-	// Positions ordered but not yet handed out (JSON array), reduced by Ausgabe and Stornierung
-	AusstehendePositionen json.RawMessage
 	// Sum of all Zahlungen collected in this session, in cents
 	GesamtZahlungenCents int
 	// TSE logTime of the first Bestellung (fallback: event time); NULL until the first Bestellung

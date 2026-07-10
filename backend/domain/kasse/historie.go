@@ -14,7 +14,6 @@ const (
 	HistorieEintragZahlung     HistorieEintragArt = "zahlung"
 	HistorieEintragStornierung HistorieEintragArt = "stornierung"
 	HistorieEintragUmbuchung   HistorieEintragArt = "umbuchung"
-	HistorieEintragAusgabe     HistorieEintragArt = "ausgabe"
 )
 
 type HistorieEintrag struct {
@@ -23,7 +22,6 @@ type HistorieEintrag struct {
 	Zahlung     *Zahlung
 	Stornierung *Stornierung
 	Umbuchung   *Umbuchung
-	Ausgabe     *Ausgabe
 
 	// StornierbarePositionen and UmbuchbarePositionen are populated for the entries
 	// that introduce positions onto the table — a Bestellung or the incoming side
@@ -75,13 +73,6 @@ func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragUmbuchung, Umbuchung: &umbuchung})
-
-		case string(EventTypeAusgabeBestaetigtV1):
-			ausgabe, err := buildAusgabeFromEvent(event)
-			if err != nil {
-				return nil, err
-			}
-			history = append(history, HistorieEintrag{Art: HistorieEintragAusgabe, Ausgabe: &ausgabe})
 
 		default:
 			return nil, fmt.Errorf("unknown event type: %s", event.Type)

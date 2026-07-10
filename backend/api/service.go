@@ -36,7 +36,6 @@ func NewServiceApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/bestellung-aufnehmen", tc.BestellungAufnehmenHandler())
 	r.HandleFunc("/bestellung-umbuchen", tc.BestellungUmbuchenHandler())
 	r.HandleFunc("/zahlung-kassieren", tc.ZahlungKassierenHandler())
-	r.HandleFunc("/ausgabe-bestaetigen", tc.AusgabeBestaetigenHandler())
 
 	bc := belegHTTP.CommandHandler{}
 	bc.Command = belegApp.Command{

@@ -45,7 +45,6 @@ describe('LiveReportingSection — Servicekräfte', () => {
               {
                 tischId: 3,
                 tischName: 'Tisch 3',
-                anzahlAusstehend: 1,
                 anzahlUnbezahlt: 2,
                 anzahlOffen: 2,
               },
@@ -68,12 +67,10 @@ describe('LiveReportingSection — Servicekräfte', () => {
 
     await user.click(screen.getByRole('tab', { name: /Servicekräfte/ }))
 
-    // Servicekraft mit offener Arbeit: Tisch + ausstehend/unbezahlt-Aufschlüsselung.
+    // Servicekraft mit offener Arbeit: Tisch + Anzahl zu kassierender Positionen.
     expect(screen.getByText('Anna (Anna A.)')).toBeInTheDocument()
     expect(screen.getByText('Tisch 3')).toBeInTheDocument()
-    expect(
-      screen.getByText(/1 auszugeben · 2 zu kassieren/),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/2 zu kassieren/)).toBeInTheDocument()
 
     // Fertige Servicekraft: nur Hinweis, keine offenen Tische.
     expect(screen.getByText('Cleo')).toBeInTheDocument()

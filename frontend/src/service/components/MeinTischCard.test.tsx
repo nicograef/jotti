@@ -38,7 +38,6 @@ function tischSession(overrides: Partial<TischSession>): TischSession {
     tischName: 'Stammtisch',
     saldoCents: 0,
     unbezahltePositionen: [],
-    ausstehendePositionen: [],
     gesamtZahlungenCents: 0,
     fuerMichErledigt: true,
     ...overrides,
@@ -46,24 +45,29 @@ function tischSession(overrides: Partial<TischSession>): TischSession {
 }
 
 describe('MeinTischCard', () => {
-  it('zählt offene Positionen als Vereinigung und hebt die eigenen hervor', () => {
+  it('zählt offene (unbezahlte) Positionen und hebt die eigenen hervor', () => {
     const state = tischSession({
-      // p1 von mir (in beiden Listen → einmal gezählt), p2 von Kollegin.
-      ausstehendePositionen: [position('p1', 1), position('p2', 2)],
-      unbezahltePositionen: [position('p1', 1), position('p3', 1)],
+      // p1 und p3 von mir, p2 von Kollegin.
+      unbezahltePositionen: [
+        position('p1', 1),
+        position('p2', 2),
+        position('p3', 1),
+      ],
       fuerMichErledigt: false,
     })
 
     render(<MeinTischCard state={state} />)
 
-    // p1 ∪ p2 ∪ p3 = 3 offen, davon p1 und p3 von mir = 2.
+    // p1, p2, p3 = 3 offen, davon p1 und p3 von mir = 2.
     expect(screen.getByText('3 offen')).toBeInTheDocument()
     expect(screen.getByText('davon 2 von dir')).toBeInTheDocument()
     expect(screen.queryByText('Alles erledigt')).not.toBeInTheDocument()
   })
 
-  it('zeigt "Alles erledigt" wenn keine offenen Positionen', () => {
-    render(<MeinTischCard state={tischSession({})} />)
+  it('zeigt "Alles erledigt" ohne unbezahlte Positionen', () => {
+    const state = tischSession({ unbezahltePositionen: [] })
+
+    render(<MeinTischCard state={state} />)
 
     expect(screen.getByText('Alles erledigt')).toBeInTheDocument()
     expect(screen.queryByText(/offen/)).not.toBeInTheDocument()

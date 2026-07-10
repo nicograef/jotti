@@ -114,11 +114,10 @@ type ServicekraftLive struct {
 // OffeneArbeitTisch ist die offene eigene Arbeit einer Servicekraft an einem
 // Tisch, angereichert um den Tisch-Namen für die Anzeige.
 type OffeneArbeitTisch struct {
-	TischID          int
-	TischName        string
-	AnzahlAusstehend int
-	AnzahlUnbezahlt  int
-	AnzahlOffen      int
+	TischID         int
+	TischName       string
+	AnzahlUnbezahlt int
+	AnzahlOffen     int
 }
 
 type EigeneUebersicht struct {

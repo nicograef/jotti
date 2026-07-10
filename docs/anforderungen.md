@@ -16,8 +16,6 @@ Rollen: `admin` (Stammdaten und Kasse), `serviceleitung` (Kasse inkl. Storno), `
 
 | ID   | Titel                    | Beschreibung                                                                  | Bereich     | Prio   |
 | ---- | ------------------------ | ----------------------------------------------------------------------------- | ----------- | ------ |
-| K-13 | Küchendisplay (KDS)      | Passive Echtzeit-Anzeige offener Bestellungen je Ausgabestation.              | Kasse       | Should |
-| K-15 | Zubereitungsstatus       | Positionen als „in Zubereitung" / „fertig" markieren (baut auf K-13).         | Kasse       | Nice   |
 | R-05 | Produktumsatz-Reporting  | Mengen, Ranking und Einnahmen pro Produkt und Variante.                       | Reporting   | Nice   |
 
 ## Nicht-Ziele
@@ -26,6 +24,9 @@ Bewusst nicht geplant. Zurückgezogene IDs werden nicht wiederverwendet (siehe K
 
 | Ex-ID | Titel                                     | Begründung                                                                                                                                                                                                                                                                              |
 | ----- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| K-03  | Ausgabe bestätigen                        | Nach dem ersten Praxiseinsatz ersatzlos entfernt: Der Ausgabe-Status war rein informativ, keine andere Funktion hing davon ab, und die Ausgabe koordinieren die Teams ohnehin über Arbeitsbons (K-12). Siehe [ADR 01](adrs/01_ausgabe-bestaetigen.md).                                   |
+| K-13  | Küchendisplay (KDS)                       | Von der Roadmap gestrichen: baut auf dem im Praxistest verworfenen Ausgabe-Tracking (K-03) auf. Siehe [ADR 01](adrs/01_ausgabe-bestaetigen.md).                                                                                                                                          |
+| K-15  | Zubereitungsstatus                        | Von der Roadmap gestrichen: baut auf K-13 und demselben verworfenen Ausgabe-Tracking auf. Siehe [ADR 01](adrs/01_ausgabe-bestaetigen.md).                                                                                                                                                |
 | F-12  | Automatisierte ELSTER-Meldung (ERiC/API)  | Die Kassenmeldung nach § 146a Abs. 4 AO fällt pro Instanz nur einmal an (Inbetriebnahme, Außerbetriebnahme). Die manuelle Meldung über das ELSTER-Portal (F-05) deckt sie vollständig ab; eine native ERiC-C-Library oder die fiskaly-Submission-API lohnt für einen einmaligen Vorgang nicht. Siehe [compliance.md §7](compliance.md#7-elektronische-meldepflicht-elster). |
 
 ## Funktionsumfang
@@ -36,7 +37,6 @@ Bewusst nicht geplant. Zurückgezogene IDs werden nicht wiederverwendet (siehe K
 | ---- | ----------------------- | --------------------------------------------------------------------------------- |
 | K-01 | Bestellung aufnehmen    | Tisch wählen, aus dem Produktkatalog eine Bestellung zusammenstellen und abgeben. |
 | K-02 | Zahlung registrieren    | Barzahlung mit Positionsauswahl (Teilzahlung), reduziert den Tischsaldo.          |
-| K-03 | Ausgabe bestätigen      | Positionen als ausgegeben markieren, offene nachverfolgen.                        |
 | K-04 | Stornierung erteilen    | Serviceleitung/Admin storniert Positionen; bezahlte als kassenwirksame Warenrücknahme, unbezahlte geldneutral; Saldo bleibt ≥ 0. |
 | K-06 | Tischübersicht          | Dashboard mit Favoriten, Alle-Tische-Drawer und Tisch-Detail.                     |
 | K-07 | Kassenjournal           | Append-only Event-Tabelle als Single Source of Truth.                             |
