@@ -1,6 +1,7 @@
 import { useParams } from 'react-router'
 
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
+import { Badge } from '@/components/ui/badge'
 import {
   Item,
   ItemContent,
@@ -71,13 +72,20 @@ export function TablePage() {
   }
 
   const tabsLocked = stateLoading || historieLoading
+  const anzahlUnbezahlt = state.unbezahltePositionen.length
 
   return (
     <>
       <Item>
         <ItemContent>
           <ItemTitle className="text-2xl">
-            {stateLoading ? 'Tisch ??' : tisch.name}
+            {stateLoading ? 'Tisch ??' : tisch.name}{' '}
+            {!stateLoading &&
+              (anzahlUnbezahlt > 0 ? (
+                <Badge variant="destructive">{anzahlUnbezahlt} unbezahlt</Badge>
+              ) : (
+                <Badge>Alles bezahlt</Badge>
+              ))}
           </ItemTitle>
           {!stateLoading && (
             <ItemDescription>

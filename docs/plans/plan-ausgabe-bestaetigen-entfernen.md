@@ -254,17 +254,17 @@ und API-Antworten, wird aber von keiner Fachlogik mehr gelesen.
 
 ### Acceptance criteria
 
-- [ ] `EigeneArbeitAnTisch` hat kein Feld `AnzahlAusstehend` mehr;
+- [x] `EigeneArbeitAnTisch` hat kein Feld `AnzahlAusstehend` mehr;
       `Erledigt` ist genau dann true, wenn keine unbezahlten Positionen
       der Servicekraft am Tisch existieren. Neue table-driven
       Unit-Tests in `offene_arbeit_test.go` decken die Neudefinition ab
       (erledigt/nicht erledigt, Rollup gesamt, Rollup je Servicekraft).
-- [ ] Die Live-Reporting-Antwort enthält kein `anzahlAusstehend` mehr;
+- [x] Die Live-Reporting-Antwort enthält kein `anzahlAusstehend` mehr;
       Frontend-Schema und Anzeige sind angepasst.
-- [ ] `MeinTischCard` zählt „offen" nur über unbezahlte Positionen.
-- [ ] Der Tisch-Header zeigt das zahlungsbasierte Badge; die
+- [x] `MeinTischCard` zählt „offen" nur über unbezahlte Positionen.
+- [x] Der Tisch-Header zeigt das zahlungsbasierte Badge; die
       Saldo-Anzeige daneben bleibt unverändert.
-- [ ] `make check` ist grün.
+- [x] `make check` ist grün.
 
 ---
 

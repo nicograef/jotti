@@ -166,11 +166,10 @@ func (q Query) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.E
 	data.OffeneTische = make([]reporting.OffeneArbeitTisch, len(rollup.OffeneTische))
 	for i, tisch := range rollup.OffeneTische {
 		data.OffeneTische[i] = reporting.OffeneArbeitTisch{
-			TischID:          tisch.TischID,
-			TischName:        nameByTischID[tisch.TischID],
-			AnzahlAusstehend: tisch.AnzahlAusstehend,
-			AnzahlUnbezahlt:  tisch.AnzahlUnbezahlt,
-			AnzahlOffen:      tisch.AnzahlOffen,
+			TischID:         tisch.TischID,
+			TischName:       nameByTischID[tisch.TischID],
+			AnzahlUnbezahlt: tisch.AnzahlUnbezahlt,
+			AnzahlOffen:     tisch.AnzahlOffen,
 		}
 	}
 
@@ -249,11 +248,10 @@ func mergeServicekraefteLive(
 		offeneTische := make([]reporting.OffeneArbeitTisch, len(arbeit.OffeneTische))
 		for i, tisch := range arbeit.OffeneTische {
 			offeneTische[i] = reporting.OffeneArbeitTisch{
-				TischID:          tisch.TischID,
-				TischName:        nameByTischID[tisch.TischID],
-				AnzahlAusstehend: tisch.AnzahlAusstehend,
-				AnzahlUnbezahlt:  tisch.AnzahlUnbezahlt,
-				AnzahlOffen:      tisch.AnzahlOffen,
+				TischID:         tisch.TischID,
+				TischName:       nameByTischID[tisch.TischID],
+				AnzahlUnbezahlt: tisch.AnzahlUnbezahlt,
+				AnzahlOffen:     tisch.AnzahlOffen,
 			}
 		}
 

@@ -3,39 +3,29 @@ package kasse
 import "sort"
 
 // EigeneArbeitAnTisch ist die offene eigene Arbeit einer Servicekraft an einem
-// einzelnen Tisch: ihre noch ausstehenden (nicht ausgegebenen) und noch
-// unbezahlten Positionen sowie das daraus abgeleitete "erledigt"-Kennzeichen.
+// einzelnen Tisch: ihre noch unbezahlten Positionen sowie das daraus abgeleitete
+// "erledigt"-Kennzeichen. "Offen" bedeutet seit ADR 01 "noch nicht kassiert"
+// (unbezahlt).
 //
 // Reines, DB-freies Deep Module: Eingabe ist eine Tisch-Session, Ausgabe ist die
 // berechnete Sicht für genau eine Servicekraft. Der tischweite offene Saldo
 // fließt bewusst nicht ein.
 type EigeneArbeitAnTisch struct {
-	// AnzahlAusstehend ist die Anzahl eigener Positionen, die noch nicht ausgegeben sind.
-	AnzahlAusstehend int
 	// AnzahlUnbezahlt ist die Anzahl eigener Positionen, die noch nicht bezahlt sind.
 	AnzahlUnbezahlt int
-	// AnzahlOffen zählt die Vereinigung: eigene Positionen, die ausstehend ODER
-	// unbezahlt sind, je Position (PositionID) einmal.
+	// AnzahlOffen zählt die offenen (= unbezahlten) eigenen Positionen, je Position
+	// (PositionID) einmal.
 	AnzahlOffen int
-	// Erledigt ist true, wenn keine eigenen ausstehenden UND keine eigenen
-	// unbezahlten Positionen mehr offen sind.
+	// Erledigt ist true, wenn keine eigenen unbezahlten Positionen mehr offen sind.
 	Erledigt bool
 }
 
 // ComputeEigeneArbeitAnTisch berechnet die offene eigene Arbeit der Servicekraft
 // userID an der gegebenen Tisch-Session. Schichtübergabe ist implizit: sobald
-// eine Kollegin eine eigene Position ausgibt oder kassiert, verschwindet sie aus
-// der jeweiligen Liste und zählt damit nicht mehr als offen.
+// eine Kollegin eine eigene Position kassiert, verschwindet sie aus der
+// Unbezahlt-Liste und zählt damit nicht mehr als offen.
 func ComputeEigeneArbeitAnTisch(session TischSession, userID int) EigeneArbeitAnTisch {
 	offeneIDs := make(map[string]struct{})
-
-	anzahlAusstehend := 0
-	for _, pos := range session.AusstehendePositionen {
-		if pos.BestellerUserID == userID {
-			anzahlAusstehend++
-			offeneIDs[pos.PositionID] = struct{}{}
-		}
-	}
 
 	anzahlUnbezahlt := 0
 	for _, pos := range session.UnbezahltePositionen {
@@ -46,20 +36,18 @@ func ComputeEigeneArbeitAnTisch(session TischSession, userID int) EigeneArbeitAn
 	}
 
 	return EigeneArbeitAnTisch{
-		AnzahlAusstehend: anzahlAusstehend,
-		AnzahlUnbezahlt:  anzahlUnbezahlt,
-		AnzahlOffen:      len(offeneIDs),
-		Erledigt:         anzahlAusstehend == 0 && anzahlUnbezahlt == 0,
+		AnzahlUnbezahlt: anzahlUnbezahlt,
+		AnzahlOffen:     len(offeneIDs),
+		Erledigt:        anzahlUnbezahlt == 0,
 	}
 }
 
 // OffeneArbeitTisch ist die offene eigene Arbeit einer Servicekraft an einem
 // einzelnen Tisch, angereichert um die Tisch-ID für die Rollup-Liste.
 type OffeneArbeitTisch struct {
-	TischID          int
-	AnzahlAusstehend int
-	AnzahlUnbezahlt  int
-	AnzahlOffen      int
+	TischID         int
+	AnzahlUnbezahlt int
+	AnzahlOffen     int
 }
 
 // OffeneArbeitRollup fasst die offene eigene Arbeit einer Servicekraft über
@@ -84,10 +72,9 @@ func ComputeOffeneArbeitRollup(sessions []TischSession, userID int) OffeneArbeit
 			continue
 		}
 		offeneTische = append(offeneTische, OffeneArbeitTisch{
-			TischID:          session.TischID,
-			AnzahlAusstehend: arbeit.AnzahlAusstehend,
-			AnzahlUnbezahlt:  arbeit.AnzahlUnbezahlt,
-			AnzahlOffen:      arbeit.AnzahlOffen,
+			TischID:         session.TischID,
+			AnzahlUnbezahlt: arbeit.AnzahlUnbezahlt,
+			AnzahlOffen:     arbeit.AnzahlOffen,
 		})
 	}
 
@@ -111,16 +98,13 @@ type OffeneArbeitServicekraft struct {
 }
 
 // ComputeOffeneArbeitProServicekraft berechnet die offene eigene Arbeit aller
-// Servicekräfte, die in den Sessions noch offene Positionen haben (ausstehend
-// oder unbezahlt). Servicekräfte ohne offene eigene Arbeit erscheinen nicht;
-// das Ergebnis ist aufsteigend nach UserID sortiert. Schichtübergabe ist
-// implizit über ComputeOffeneArbeitRollup abgedeckt.
+// Servicekräfte, die in den Sessions noch unbezahlte Positionen haben.
+// Servicekräfte ohne offene eigene Arbeit erscheinen nicht; das Ergebnis ist
+// aufsteigend nach UserID sortiert. Schichtübergabe ist implizit über
+// ComputeOffeneArbeitRollup abgedeckt.
 func ComputeOffeneArbeitProServicekraft(sessions []TischSession) []OffeneArbeitServicekraft {
 	nameByUserID := make(map[int]string)
 	for _, session := range sessions {
-		for _, pos := range session.AusstehendePositionen {
-			nameByUserID[pos.BestellerUserID] = pos.BestellerName
-		}
 		for _, pos := range session.UnbezahltePositionen {
 			nameByUserID[pos.BestellerUserID] = pos.BestellerName
 		}

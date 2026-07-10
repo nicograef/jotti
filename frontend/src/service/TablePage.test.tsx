@@ -4,8 +4,24 @@ import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import type { Position } from './table/Bestellung'
 import type { TischSession } from './table/Tisch'
 import { TablePage } from './TablePage'
+
+function position(positionId: string): Position {
+  return {
+    positionId,
+    varianteId: 1,
+    produktName: 'Bratwurst',
+    varianteName: 'Normal',
+    kategorie: 'essen',
+    steuersatz: 'regel',
+    einzelpreisCents: 350,
+    menge: 1,
+    bestellerUserId: 1,
+    bestellerName: 'Tester',
+  }
+}
 
 vi.mock('react-router', () => ({
   useParams: () => ({ tischId: '1' }),
@@ -124,5 +140,25 @@ describe('TablePage', () => {
 
     expect(await screen.findByText('Stammtisch')).toBeInTheDocument()
     expect(screen.getByText('12,50 €')).toBeInTheDocument()
+  })
+
+  it('zeigt "Alles bezahlt" ohne unbezahlte Positionen', async () => {
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    renderPage()
+
+    expect(await screen.findByText('Alles bezahlt')).toBeInTheDocument()
+  })
+
+  it('zeigt die Anzahl unbezahlter Positionen als Badge', async () => {
+    getTischState.mockResolvedValue({
+      ...stammtisch,
+      unbezahltePositionen: [position('p1'), position('p2')],
+    })
+    getTischHistorie.mockResolvedValue([])
+    renderPage()
+
+    expect(await screen.findByText('2 unbezahlt')).toBeInTheDocument()
+    expect(screen.queryByText('Alles bezahlt')).not.toBeInTheDocument()
   })
 })

@@ -268,11 +268,10 @@ func (h *QueryHandler) GetAllKassensitzungenHandler() http.HandlerFunc {
 }
 
 type offeneArbeitTischResponse struct {
-	TischID          int    `json:"tischId"`
-	TischName        string `json:"tischName"`
-	AnzahlAusstehend int    `json:"anzahlAusstehend"`
-	AnzahlUnbezahlt  int    `json:"anzahlUnbezahlt"`
-	AnzahlOffen      int    `json:"anzahlOffen"`
+	TischID         int    `json:"tischId"`
+	TischName       string `json:"tischName"`
+	AnzahlUnbezahlt int    `json:"anzahlUnbezahlt"`
+	AnzahlOffen     int    `json:"anzahlOffen"`
 }
 
 type eigeneUebersichtResponse struct {
@@ -301,11 +300,10 @@ func (h *QueryHandler) GetEigeneUebersichtHandler() http.HandlerFunc {
 		offeneTische := make([]offeneArbeitTischResponse, len(data.OffeneTische))
 		for i, tisch := range data.OffeneTische {
 			offeneTische[i] = offeneArbeitTischResponse{
-				TischID:          tisch.TischID,
-				TischName:        tisch.TischName,
-				AnzahlAusstehend: tisch.AnzahlAusstehend,
-				AnzahlUnbezahlt:  tisch.AnzahlUnbezahlt,
-				AnzahlOffen:      tisch.AnzahlOffen,
+				TischID:         tisch.TischID,
+				TischName:       tisch.TischName,
+				AnzahlUnbezahlt: tisch.AnzahlUnbezahlt,
+				AnzahlOffen:     tisch.AnzahlOffen,
 			}
 		}
 
@@ -371,11 +369,10 @@ func toServicekraftLive(s reporting.ServicekraftLive) servicekraftLiveResponse {
 	offeneTische := make([]offeneArbeitTischResponse, len(s.OffeneTische))
 	for i, t := range s.OffeneTische {
 		offeneTische[i] = offeneArbeitTischResponse{
-			TischID:          t.TischID,
-			TischName:        t.TischName,
-			AnzahlAusstehend: t.AnzahlAusstehend,
-			AnzahlUnbezahlt:  t.AnzahlUnbezahlt,
-			AnzahlOffen:      t.AnzahlOffen,
+			TischID:         t.TischID,
+			TischName:       t.TischName,
+			AnzahlUnbezahlt: t.AnzahlUnbezahlt,
+			AnzahlOffen:     t.AnzahlOffen,
 		}
 	}
 	return servicekraftLiveResponse{

@@ -20,7 +20,7 @@ type TischStateView struct {
 	AusstehendePositionen []kasse.Position
 	GesamtZahlungenCents  int
 	// FuerMichErledigt ist true, wenn die anfragende Servicekraft an diesem Tisch
-	// keine eigenen ausstehenden und keine eigenen unbezahlten Positionen mehr hat.
+	// keine eigenen unbezahlten Positionen mehr hat.
 	FuerMichErledigt bool
 }
 

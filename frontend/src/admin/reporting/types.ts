@@ -74,7 +74,6 @@ export type OffenerTisch = z.infer<typeof OffenerTischSchema>
 export const OffeneArbeitTischSchema = z.object({
   tischId: z.number().int(),
   tischName: z.string(),
-  anzahlAusstehend: z.number().int(),
   anzahlUnbezahlt: z.number().int(),
   anzahlOffen: z.number().int(),
 })
