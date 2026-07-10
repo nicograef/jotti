@@ -51,6 +51,12 @@ beim Backend-Start wird die Tisch-Session-Projektion vollständig aus dem
 Journal neu aufgebaut. Verbleibende `ausgabe-bestaetigt:v1`-Events
 würden den Start also verhindern. Deshalb löscht eine Release-Migration
 die Alt-Events (und die Projektionsspalte der ausstehenden Positionen).
+Da das Kassenjournal auch auf DB-Ebene append-only ist (`BEFORE`-Trigger
+blockieren DELETE für alle Rollen, einschließlich des Table-Owners),
+deaktiviert die Migration den Delete-Trigger innerhalb ihrer Transaktion
+und aktiviert ihn vor dem COMMIT wieder; sie läuft als Schema-Owner und
+kann das. Der DB-seitige Schreibschutz bleibt nach der Migration
+unverändert bestehen.
 
 Diese **einmalige Ausnahme vom Append-only-Prinzip** des Kassenjournals
 und vom Event-Contract-Freeze ist vertretbar, weil:

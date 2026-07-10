@@ -67,8 +67,16 @@ Installationen werden beim Update automatisch bereinigt.
   Events per Fremdschlüssel und werden beim Backend-Start ohnehin
   vollständig neu aufgebaut), dann die Alt-Events des Typs
   `ausgabe-bestaetigt:v1`, und entfernt anschließend die Spalte der
-  ausstehenden Positionen aus der Projektionstabelle. Die bewusste,
-  einmalige Ausnahme vom Append-only-Prinzip des Kassenjournals ist
+  ausstehenden Positionen aus der Projektionstabelle. Das Kassenjournal
+  ist zusätzlich auf DB-Ebene schreibgeschützt: `BEFORE`-Trigger
+  blockieren UPDATE/DELETE/TRUNCATE für alle Rollen, auch den
+  Table-Owner. Die Migration deaktiviert den Delete-Trigger deshalb
+  innerhalb ihrer Transaktion und aktiviert ihn vor dem COMMIT wieder;
+  sie läuft als Schema-Owner (jotti-migrate-Container), der `ALTER
+  TABLE` ausführen darf und von den REVOKE-Grants nicht eingeschränkt
+  wird. Der Schutz besteht nach der Migration unverändert fort. Die
+  bewusste, einmalige Ausnahme vom Append-only-Prinzip des
+  Kassenjournals ist
   vertretbar, weil das Projekt vor v1.0.0 steht, die einzige bekannte
   Instanz im Testbetrieb ohne TSE läuft und der Event-Typ nicht
   signaturpflichtig ist (garantiert keine TSE-Signatur-Referenzen);
@@ -130,12 +138,21 @@ Installationen werden beim Update automatisch bereinigt.
 Fall, dass die Instanz ohne Update bereinigt werden soll — Reihenfolge
 beachten, vorher Backup (`scripts/prod-backup.sh` bzw. `pg_dump`):
 
+Wichtig: Das Kassenjournal ist per Trigger append-only
+(`kassenjournal_no_delete` blockiert DELETE für alle Rollen). Die
+Bereinigung muss als Schema-Owner laufen (der `POSTGRES_USER` der
+Installation) und den Trigger transaktional aushebeln:
+
 ```sql
 BEGIN;
+-- Append-only-Guard temporär deaktivieren (nur als Table-Owner möglich)
+ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete;
 -- 1. Projektion löschen (FK auf kassenjournal; wird beim Start neu aufgebaut)
 DELETE FROM tisch_sessions;
 -- 2. Ausgabe-Events löschen (nicht signaturpflichtig, keine TSE-Referenzen)
 DELETE FROM kassenjournal WHERE type = 'ausgabe-bestaetigt:v1';
+-- Guard wieder aktivieren
+ALTER TABLE kassenjournal ENABLE TRIGGER kassenjournal_no_delete;
 COMMIT;
 ```
 
