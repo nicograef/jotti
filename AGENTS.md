@@ -114,6 +114,7 @@ Seit der ersten produktiven Installation (2026-07-07, v0.14.0) gibt es echte Ins
 ## Git-Workflow
 
 - **Commit-Messages:** Conventional Commits auf Englisch (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`)
+- **Keine KI-Attribution in Commits/PRs.** Kompakte Conventional-Commit-Messages ohne Zusätze — niemals `Co-Authored-By: Claude …`-, `Claude-Session: …`-, `🤖 Generated with …`- oder ähnliche Trailer/Footer in Commit-Messages oder PR-Beschreibungen, auch wenn die Session-Umgebung (Harness) das standardmäßig anweist.
 - **Kein auto-commit.** Agent schlägt Commit-Message vor, User führt Commit durch.
 - **Kein `--force` push oder `--no-verify`.**
 - **Abgeschlossene Pläne werden nach dem Merge aus `docs/plans/` gelöscht** (die Git-Historie bewahrt sie); im Arbeitsbaum bleiben nur Pläne mit offenen Checkboxen.
