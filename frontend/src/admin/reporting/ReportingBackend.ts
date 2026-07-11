@@ -34,9 +34,9 @@ export class ReportingBackend {
     )
   }
 
-  public async getAllKassensitzungen(): Promise<Kassensitzung[]> {
+  public async getAbgeschlosseneKassensitzungen(): Promise<Kassensitzung[]> {
     const response = await this.backend.post(
-      'admin/get-all-kassensitzungen',
+      'admin/get-abgeschlossene-kassensitzungen',
       {},
       z.object({ kassensitzungen: z.array(KassensitzungSchema) }),
     )

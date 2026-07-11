@@ -1,4 +1,5 @@
 import {
+  FileText,
   Lamp,
   Landmark,
   LayoutDashboard,
@@ -32,9 +33,14 @@ import { useVersion } from './hooks'
 
 const reportingItems = [
   {
-    title: 'Dashboard',
+    title: 'Live-Dashboard',
     url: '/admin/auswertung',
     icon: LayoutDashboard,
+  },
+  {
+    title: 'Kassenberichte',
+    url: '/admin/kassenberichte',
+    icon: FileText,
   },
 ]
 

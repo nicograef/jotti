@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
@@ -17,9 +18,10 @@ import (
 )
 
 type mockQuery struct {
-	data     reporting.ReportingData
-	liveData *reporting.LiveReportingData
-	err      error
+	data            reporting.ReportingData
+	liveData        *reporting.LiveReportingData
+	kassensitzungen []kasse.Kassensitzung
+	err             error
 }
 
 func (m mockQuery) GetReporting(_ context.Context, _ int) (reporting.ReportingData, error) {
@@ -30,8 +32,8 @@ func (m mockQuery) GetEigeneUebersicht(_ context.Context, _ int) (reporting.Eige
 	return reporting.EigeneUebersicht{}, m.err
 }
 
-func (m mockQuery) GetAllKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
-	return nil, m.err
+func (m mockQuery) GetAbgeschlosseneKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
+	return m.kassensitzungen, m.err
 }
 
 func (m mockQuery) GetLiveReporting(_ context.Context) (*reporting.LiveReportingData, error) {
@@ -156,6 +158,53 @@ func TestGetReportingHandler_QueryError_Returns500(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	handler.GetReportingHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", rec.Code)
+	}
+}
+
+func TestGetAbgeschlosseneKassensitzungenHandler_ReturnsItems(t *testing.T) {
+	handler := QueryHandler{Query: mockQuery{kassensitzungen: []kasse.Kassensitzung{
+		{ZNr: 2, Datum: time.Date(2026, 7, 5, 0, 0, 0, 0, time.UTC), Bezeichnung: "Sommerfest Samstag", Status: kasse.KassensitzungAbgeschlossen},
+	}}}
+
+	req := httptest.NewRequest(http.MethodPost, "/get-abgeschlossene-kassensitzungen", strings.NewReader("{}"))
+	rec := httptest.NewRecorder()
+
+	handler.GetAbgeschlosseneKassensitzungenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		Kassensitzungen []struct {
+			ZNr         int    `json:"zNr"`
+			Datum       string `json:"datum"`
+			Bezeichnung string `json:"bezeichnung"`
+			Status      string `json:"status"`
+		} `json:"kassensitzungen"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("expected valid JSON response: %v", err)
+	}
+	if len(resp.Kassensitzungen) != 1 {
+		t.Fatalf("expected 1 kassensitzung, got %d", len(resp.Kassensitzungen))
+	}
+	item := resp.Kassensitzungen[0]
+	if item.ZNr != 2 || item.Datum != "2026-07-05" || item.Status != "abgeschlossen" {
+		t.Fatalf("unexpected kassensitzung item: %+v", item)
+	}
+}
+
+func TestGetAbgeschlosseneKassensitzungenHandler_QueryError_Returns500(t *testing.T) {
+	handler := QueryHandler{Query: mockQuery{err: errors.New("db error")}}
+
+	req := httptest.NewRequest(http.MethodPost, "/get-abgeschlossene-kassensitzungen", strings.NewReader("{}"))
+	rec := httptest.NewRecorder()
+
+	handler.GetAbgeschlosseneKassensitzungenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status 500, got %d", rec.Code)

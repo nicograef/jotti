@@ -11,10 +11,7 @@ vi.mock('react-router', () => ({
 }))
 
 vi.mock('./hooks', () => ({
-  useKassensitzungen: () => ({ kassensitzungen: [], isPending: false }),
   useLiveReporting: () => ({ liveData: null, isPending: false }),
-  useReport: () => ({ result: null, isPending: false }),
-  useDsfinvkExport: () => ({ exportieren: vi.fn(), isPending: false }),
 }))
 
 vi.mock('@/admin/tse/hooks', () => ({

@@ -1,16 +1,12 @@
 import { TriangleAlert } from 'lucide-react'
-import { useState } from 'react'
 import { NavLink } from 'react-router'
 
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
 import { Alert, AlertTitle } from '@/components/ui/alert'
 
-import { DsfinvkExportButton } from './DsfinvkExportButton'
-import { useKassensitzungen, useLiveReporting, useReport } from './hooks'
+import { useLiveReporting } from './hooks'
 import { LiveReportingSection } from './LiveReportingSection'
-import { ReportingFilter } from './ReportingFilter'
-import { ReportingResults } from './ReportingResults'
 
 // Ab rund einer Minute Rückstand warnt das Dashboard (deckt sich mit der
 // Nachsigniert-Schwelle im Backend); der Störungszeitraum entsteht erst ab
@@ -19,14 +15,9 @@ const RUECKSTAND_WARN_SEKUNDEN = 60
 
 export function AdminDashboardPage() {
   const { liveData, isPending: liveLoading } = useLiveReporting()
-  const { kassensitzungen, isPending: listLoading } = useKassensitzungen()
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
   const { queue } = useTSESignaturQueue()
   const { druckauftraege } = useFehlgeschlageneDruckauftraege()
-  const [selectedNr, setSelectedNr] = useState<number | null>(null)
-
-  const effectiveNr = selectedNr ?? kassensitzungen.at(0)?.zNr ?? null
-  const { result, isPending: reportLoading } = useReport(effectiveNr)
 
   // Ohne TSE-Konfiguration steht der permanente Konfigurationsalarm; ein
   // Queue-Alarm (Rückstand oder endgültig fehlgeschlagene Aufträge) erscheint
@@ -88,24 +79,6 @@ export function AdminDashboardPage() {
       )}
 
       <LiveReportingSection liveData={liveData} loading={liveLoading} />
-      <hr className="my-8" />
-
-      <h2 className="mt-10 text-lg font-semibold">Historische Auswertung</h2>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <ReportingFilter
-          kassensitzungen={kassensitzungen}
-          kassensitzungNr={effectiveNr}
-          loading={listLoading}
-          onKassensitzungNrChange={setSelectedNr}
-        />
-        <DsfinvkExportButton kassensitzungNr={effectiveNr} />
-      </div>
-
-      {result && (
-        <div className="my-6">
-          <ReportingResults result={result} loading={reportLoading} />
-        </div>
-      )}
     </>
   )
 }

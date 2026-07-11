@@ -10,11 +10,11 @@ import type { Kassensitzung, LiveReportingData, ReportingData } from './types'
 
 const reportingBackend = new ReportingBackend(BackendSingleton)
 
-export function useKassensitzungen() {
+export function useAbgeschlosseneKassensitzungen() {
   const { data: kassensitzungen = [] as Kassensitzung[], isPending } = useQuery(
     {
-      queryKey: ['kassensitzungen'],
-      queryFn: () => reportingBackend.getAllKassensitzungen(),
+      queryKey: ['abgeschlossene-kassensitzungen'],
+      queryFn: () => reportingBackend.getAbgeschlosseneKassensitzungen(),
     },
   )
   return { kassensitzungen, isPending }

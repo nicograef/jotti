@@ -23,11 +23,12 @@ import {
   TabsContent,
   TabsTrigger,
 } from '@/components/ui/tabs'
-import { formatCents, formatPositionName } from '@/lib/utils'
+import { formatCents } from '@/lib/utils'
 
+import { StornoItem } from './StornoItem'
 import { SummaryCard } from './SummaryCard'
 import type { ReportingData } from './types'
-import { formatBediener, formatLocalTime } from './utils'
+import { formatBediener } from './utils'
 
 export function ReportingResults({
   result,
@@ -83,14 +84,14 @@ export function ReportingResults({
             sub="Kassierungen − Warenrücknahmen"
           />
           <SummaryCard
-            title="Direktverkauf"
-            value={String(summary.anzahlDirektverkaeufe)}
-            sub={`${formatCents(summary.direktverkaufUmsatzCents)} €`}
-          />
-          <SummaryCard
             title="Bestellungen"
             value={String(summary.anzahlBestellungen)}
             sub={`${formatCents(summary.gesamtBestellungenCents)} €`}
+          />
+          <SummaryCard
+            title="Direktverkauf"
+            value={String(summary.anzahlDirektverkaeufe)}
+            sub={`${formatCents(summary.direktverkaufUmsatzCents)} €`}
           />
           <SummaryCard
             title="Stornierungen"
@@ -192,64 +193,10 @@ export function ReportingResults({
         ) : (
           <ItemGroup>
             {result.stornierungen.map((storno) => (
-              <Item
+              <StornoItem
                 key={`${storno.zeitpunkt}-${String(storno.tischId)}-${String(storno.userId)}`}
-                variant="outline"
-              >
-                <ItemContent>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <ItemTitle>
-                        {storno.quelle === 'direktverkauf'
-                          ? 'Direktverkauf'
-                          : storno.tischName}
-                        <Badge variant="secondary" className="ml-2 font-normal">
-                          {formatBediener(storno.userName, storno.name)}
-                        </Badge>
-                      </ItemTitle>
-                      <p className="mt-0.5 text-sm text-muted-foreground">
-                        {formatLocalTime(storno.zeitpunkt)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={storno.barRueckgabe ? 'outline' : 'secondary'}
-                      >
-                        {storno.barRueckgabe ? 'Bar-Rückgabe' : 'Geldneutral'}
-                      </Badge>
-                      <Badge variant="destructive">
-                        {formatCents(storno.betragCents)} €
-                      </Badge>
-                    </div>
-                  </div>
-                  {storno.kommentar && (
-                    <p className="mt-1 text-sm italic text-muted-foreground">
-                      {storno.kommentar}
-                    </p>
-                  )}
-                  {storno.positionen.length > 0 && (
-                    <ul className="mt-2 space-y-0.5">
-                      {storno.positionen.map((pos) => (
-                        <li
-                          key={`${pos.produktName}-${pos.varianteName}`}
-                          className="flex justify-between text-sm text-muted-foreground"
-                        >
-                          <span>
-                            {pos.menge}×{' '}
-                            {formatPositionName(
-                              pos.produktName,
-                              pos.varianteName,
-                            )}
-                          </span>
-                          <span className="whitespace-nowrap">
-                            {formatCents(pos.einzelpreisCents)} €
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </ItemContent>
-              </Item>
+                storno={storno}
+              />
             ))}
           </ItemGroup>
         )}

@@ -97,6 +97,13 @@ export const router = createBrowserRouter([
             }),
           },
           {
+            path: 'kassenberichte',
+            lazy: async () => ({
+              Component: (await import('./admin/reporting/KassenberichtePage'))
+                .KassenberichtePage,
+            }),
+          },
+          {
             path: 'produkte',
             lazy: async () => ({
               Component: (await import('./admin/products/AdminProductsPage'))

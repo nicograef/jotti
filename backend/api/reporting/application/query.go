@@ -21,7 +21,7 @@ type reportingRepo interface {
 }
 
 type kassensitzungenRepo interface {
-	GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
+	GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
 	GetOffeneKassensitzungNr(ctx context.Context) (int, error)
 	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
@@ -117,16 +117,16 @@ func computeUmsatzProSteuersatz(bruttoZeilen []reporting.UmsatzSteuersatz) []rep
 	return out
 }
 
-func (q Query) GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error) {
+func (q Query) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error) {
 	log := zerolog.Ctx(ctx)
 
-	data, err := q.KassensitzungenRepo.GetAllKassensitzungen(ctx)
+	data, err := q.KassensitzungenRepo.GetAbgeschlosseneKassensitzungen(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get all kassensitzungen")
+		log.Error().Err(err).Msg("Failed to get abgeschlossene kassensitzungen")
 		return nil, ErrDatabase
 	}
 
-	log.Info().Msg("Retrieved all kassensitzungen")
+	log.Info().Msg("Retrieved abgeschlossene kassensitzungen")
 	return data, nil
 }
 

@@ -29,16 +29,12 @@ import {
   TabsContent,
   TabsTrigger,
 } from '@/components/ui/tabs'
-import { formatCents, formatPositionName } from '@/lib/utils'
+import { formatCents } from '@/lib/utils'
 
+import { StornoItem } from './StornoItem'
 import { SummaryCard } from './SummaryCard'
 import type { LiveReportingData } from './types'
-import {
-  formatBediener,
-  formatDatum,
-  formatLocalTime,
-  formatOffeneArbeit,
-} from './utils'
+import { formatBediener, formatDatum, formatOffeneArbeit } from './utils'
 
 export function LiveReportingSection({
   liveData,
@@ -235,53 +231,10 @@ export function LiveReportingSection({
           ) : (
             <ItemGroup>
               {liveData.stornierungen.map((s) => (
-                <Item
-                  key={`${s.zeitpunkt}-${String(s.tischId)}`}
-                  variant="outline"
-                  size="sm"
-                >
-                  <ItemContent>
-                    <ItemTitle>
-                      {s.quelle === 'direktverkauf'
-                        ? 'Direktverkauf'
-                        : s.tischName}{' '}
-                      · {formatBediener(s.userName, s.name)}
-                    </ItemTitle>
-                    <p className="text-xs text-muted-foreground">
-                      {formatLocalTime(s.zeitpunkt)}
-                      {s.kommentar ? ` — ${s.kommentar}` : ''}
-                    </p>
-                    {s.positionen.length > 0 && (
-                      <ul className="mt-1">
-                        {s.positionen.map((pos) => (
-                          <li
-                            key={`${pos.produktName}-${pos.varianteName}`}
-                            className="flex justify-between text-sm text-muted-foreground"
-                          >
-                            <span>
-                              {pos.menge}×{' '}
-                              {formatPositionName(
-                                pos.produktName,
-                                pos.varianteName,
-                              )}
-                            </span>
-                            <span className="whitespace-nowrap">
-                              {formatCents(pos.einzelpreisCents)} €
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </ItemContent>
-                  <ItemActions>
-                    <Badge variant={s.barRueckgabe ? 'outline' : 'secondary'}>
-                      {s.barRueckgabe ? 'Bar-Rückgabe' : 'Geldneutral'}
-                    </Badge>
-                    <span className="whitespace-nowrap text-sm font-semibold">
-                      {formatCents(s.betragCents)} €
-                    </span>
-                  </ItemActions>
-                </Item>
+                <StornoItem
+                  key={`${s.zeitpunkt}-${String(s.tischId)}-${String(s.userId)}`}
+                  storno={s}
+                />
               ))}
             </ItemGroup>
           )}

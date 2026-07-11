@@ -40,6 +40,12 @@ WHERE z_nr = $1 AND status = 'wird_abgeschlossen';
 SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
 FROM kassensitzungen ORDER BY datum DESC, created_at DESC;
 
+-- name: GetAbgeschlosseneKassensitzungen :many
+-- Nur abgeschlossene Sitzungen für die Kassenberichte-Seite; der transiente
+-- Status 'wird_abgeschlossen' bleibt außen vor. Sortierung wie GetAllKassensitzungen.
+SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
+FROM kassensitzungen WHERE status = 'abgeschlossen' ORDER BY datum DESC, created_at DESC;
+
 -- name: GetKassenbestand :one
 -- Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Warenrücknahmen, Geldtransits und Differenz-Buchungen.
 -- Die kassenwirksame Warenrücknahme (stornierung-erteilt) gibt Bargeld zurück und mindert den Bestand;

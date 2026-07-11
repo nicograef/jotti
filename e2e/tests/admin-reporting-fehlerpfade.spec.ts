@@ -7,10 +7,10 @@ import {
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 
-// Admin-Dashboard/Reporting (AdminDashboardPage) — der globale
+// Admin-Reporting (Live-Dashboard und Kassenberichte) — der globale
 // QueryCache-Handler (frontend/src/lib/queryClient.ts) fängt Query-Fehler mit
 // einem Toast ab. Diese Specs erzwingen, dass er auch hier greift, statt dass
-// das Live-Dashboard stillschweigend wie „keine Kassensitzung offen" wirkt.
+// die Seite stillschweigend wie „keine Kassensitzung offen" wirkt.
 
 test.describe('Admin-Dashboard bei Serverfehler und Netzabbruch', () => {
   test('Serverfehler beim Live-Reporting zeigt einen sichtbaren Fehlerhinweis', async ({
@@ -35,8 +35,8 @@ test.describe('Admin-Dashboard bei Serverfehler und Netzabbruch', () => {
     const zugangsdaten = await resetAndSeed(request)
     await anmelden(page, zugangsdaten.admin)
 
-    await simuliereNetzabbruch(page, ['admin/get-all-kassensitzungen'])
-    await page.goto('/admin/auswertung')
+    await simuliereNetzabbruch(page, ['admin/get-abgeschlossene-kassensitzungen'])
+    await page.goto('/admin/kassenberichte')
 
     await expect(
       page.getByText('Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.'),

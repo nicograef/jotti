@@ -264,17 +264,17 @@ Kasse-Seite.
 
 ### Acceptance criteria
 
-- [ ] `/admin/auswertung` zeigt ausschließlich Live-Inhalte; `/admin/kassenberichte` zeigt
+- [x] `/admin/auswertung` zeigt ausschließlich Live-Inhalte; `/admin/kassenberichte` zeigt
       Select (nur abgeschlossene Sitzungen), Export und Auswertung.
-- [ ] Bei offener Kassensitzung erscheinen deren Zahlen **nur** auf dem Live-Dashboard —
+- [x] Bei offener Kassensitzung erscheinen deren Zahlen **nur** auf dem Live-Dashboard —
       nirgendwo doppelt.
-- [ ] Sidebar zeigt unter „Auswertungen" die Einträge „Live-Dashboard" und
+- [x] Sidebar zeigt unter „Auswertungen" die Einträge „Live-Dashboard" und
       „Kassenberichte"; aktiver Zustand stimmt je Route.
-- [ ] Backend liefert unter `/admin/get-abgeschlossene-kassensitzungen` nur
+- [x] Backend liefert unter `/admin/get-abgeschlossene-kassensitzungen` nur
       `status = 'abgeschlossen'`; der alte Endpoint existiert nicht mehr.
-- [ ] Storno-Einträge sehen auf beiden Seiten identisch aus (eine `StornoItem`-Komponente).
-- [ ] Kassenberichte ohne abgeschlossene Sitzung zeigen einen erklärenden leeren Zustand.
-- [ ] `make verify` grün; `admin-dsfinvk-export.spec.ts` und
+- [x] Storno-Einträge sehen auf beiden Seiten identisch aus (eine `StornoItem`-Komponente).
+- [x] Kassenberichte ohne abgeschlossene Sitzung zeigen einen erklärenden leeren Zustand.
+- [x] `make verify` grün; `admin-dsfinvk-export.spec.ts` und
       `admin-reporting-fehlerpfade.spec.ts` auf die neue Route umgestellt.
 
 ---

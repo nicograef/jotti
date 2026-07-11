@@ -23,6 +23,22 @@ func (r Repository) GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensi
 	return kassensitzungen, nil
 }
 
+// GetAbgeschlosseneKassensitzungen reads only closed Kassensitzungen (status 'abgeschlossen')
+// for the Kassenberichte page; the transient 'wird_abgeschlossen' status never appears there.
+func (r Repository) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error) {
+	rows, err := r.q.GetAbgeschlosseneKassensitzungen(ctx)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	kassensitzungen := make([]kasse.Kassensitzung, 0, len(rows))
+	for _, row := range rows {
+		kassensitzungen = append(kassensitzungen, kassensitzungRowToDomain(row))
+	}
+
+	return kassensitzungen, nil
+}
+
 // GetOffeneKassensitzung reads the currently open Kassensitzung from the kassensitzungen CRUD entity.
 // Returns nil if no open Kassensitzung exists.
 func (r Repository) GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error) {

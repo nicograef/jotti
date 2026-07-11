@@ -14,7 +14,7 @@ import (
 type query interface {
 	GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error)
 	GetEigeneUebersicht(ctx context.Context, userID int) (reporting.EigeneUebersicht, error)
-	GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
+	GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
 	GetLiveReporting(ctx context.Context) (*reporting.LiveReportingData, error)
 }
 
@@ -215,13 +215,13 @@ type kassensitzungItem struct {
 	Status      string `json:"status"`
 }
 
-type getAllKassensitzungenResponse struct {
+type getAbgeschlosseneKassensitzungenResponse struct {
 	Kassensitzungen []kassensitzungItem `json:"kassensitzungen"`
 }
 
-func (h *QueryHandler) GetAllKassensitzungenHandler() http.HandlerFunc {
+func (h *QueryHandler) GetAbgeschlosseneKassensitzungenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		data, err := h.Query.GetAllKassensitzungen(r.Context())
+		data, err := h.Query.GetAbgeschlosseneKassensitzungen(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -237,7 +237,7 @@ func (h *QueryHandler) GetAllKassensitzungenHandler() http.HandlerFunc {
 			}
 		}
 
-		helper.SendResponse(w, getAllKassensitzungenResponse{Kassensitzungen: items})
+		helper.SendResponse(w, getAbgeschlosseneKassensitzungenResponse{Kassensitzungen: items})
 	}
 }
 
