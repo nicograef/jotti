@@ -39,32 +39,56 @@ export async function oeffneTisch(page: Page, tisch: string): Promise<void> {
   await expect(page.getByRole('tab', { name: 'Bestellen' })).toBeVisible()
 }
 
+// Kategorie-Chips filtern die flache Variantenliste: nur die aktive Kategorie
+// steht im DOM. Der erste Chip (Essen) ist per Default aktiv; Getränke- oder
+// Sonstiges-Varianten erscheinen erst nach Klick auf den passenden Chip. Die
+// Chips fehlen, wenn nur eine Kategorie belegt ist — daher jeder Wechsel
+// tolerant (Chip nur klicken, wenn vorhanden).
+const KATEGORIE_CHIPS = ['Essen', 'Getränke', 'Sonstiges']
+
 // waehleVariante fügt auf dem Bestellen-Tab eine Variante zur gewünschten
 // Menge der aktuellen Auswahl hinzu, ohne die Bestellung abzuschicken —
-// Baustein für Bestellungen mit mehreren Positionen.
+// Baustein für Bestellungen mit mehreren Positionen. Variantennamen („Normal",
+// „Klein") kommen in mehreren Produkten vor und stehen in der flachen Liste
+// alle gleichzeitig im DOM — die Zeile wird deshalb über die Produktgruppe
+// (innerster Container mit dem Gruppenkopf) eingegrenzt.
 export async function waehleVariante(
   page: Page,
   produkt: string,
   variante: string,
   menge = 1,
 ): Promise<void> {
-  const variantenZeile = zeileMit(page, variante, 'Variante hinzufügen')
-  // Produkt nur aufklappen, wenn die Variante noch nicht sichtbar ist — beim
-  // zweiten Aufruf für dasselbe Produkt bliebe es sonst geöffnet und der
-  // erneute Klick würde es wieder einklappen.
-  if (!(await variantenZeile.isVisible())) {
-    await page.getByText(produkt, { exact: false }).first().click()
+  const gruppe = page
+    .locator('div')
+    .filter({ has: page.getByRole('heading', { name: produkt, exact: true }) })
+    .filter({ has: page.getByRole('button', { name: 'Variante hinzufügen' }) })
+    .last()
+  const variantenZeile = zeileMit(gruppe, variante, 'Variante hinzufügen')
+  // Flache Liste: Varianten anderer Kategorien sind nach dem Chip-Filter nicht
+  // im DOM. Ist die Zeile nicht sichtbar, den passenden Kategorie-Chip
+  // aktivieren — der Produktname allein verrät die Kategorie nicht, daher
+  // reihum jeden vorhandenen Chip probieren, bis die Zeile erscheint.
+  if (!(await variantenZeile.isVisible().catch(() => false))) {
+    for (const label of KATEGORIE_CHIPS) {
+      const chip = page.getByRole('button', { name: label, exact: true })
+      if (await chip.isVisible().catch(() => false)) {
+        await chip.click()
+        if (await variantenZeile.isVisible().catch(() => false)) break
+      }
+    }
   }
   await expect(variantenZeile).toBeVisible()
 
   for (let i = 0; i < menge; i++) {
-    await variantenZeile.getByRole('button', { name: 'Variante hinzufügen' }).click()
+    await variantenZeile
+      .getByRole('button', { name: 'Variante hinzufügen' })
+      .click()
   }
 }
 
 // bestellePosition nimmt auf dem aktuell offenen Tisch eine Bestellung über
-// den Bestellen-Tab auf: Produkt aufklappen, Variante zur gewünschten Menge
-// hinzufügen, Bestellung im Drawer bestätigen.
+// den Bestellen-Tab auf: Variante zur gewünschten Menge hinzufügen (bei Bedarf
+// über den Kategorie-Chip), Bestellung im Drawer bestätigen.
 export async function bestellePosition(
   page: Page,
   produkt: string,

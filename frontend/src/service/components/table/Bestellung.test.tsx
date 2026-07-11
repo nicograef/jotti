@@ -57,7 +57,6 @@ describe('Bestellung Aktionsleiste', () => {
       screen.getByRole('button', { name: /Bestellung überprüfen/ }),
     ).toBeDisabled()
 
-    await user.click(screen.getByText('Bratwurst'))
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )

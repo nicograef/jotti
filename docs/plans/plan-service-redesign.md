@@ -126,11 +126,11 @@ Sticky Kategorie-Chips als Zeile über der Liste (`sticky` unter dem App-Header,
 
 ### Acceptance criteria
 
-- [ ] "1 Bier 0,5 l" kostet genau einen Tap (Plus auf der Variantenzeile); kein Aufklapp-Schritt mehr, `expandedProducts` existiert nicht mehr.
-- [ ] Kategorie-Chips filtern die Liste, erscheinen nur bei mehr als einer belegten Kategorie und bleiben beim Scrollen sichtbar.
-- [ ] Direktverkauf zeigt dieselbe flache Liste ohne eigene Anpassung.
-- [ ] Zeilen mit Menge > 0 sind visuell markiert; Skeleton passt zum neuen Layout.
-- [ ] Tests angepasst: `Bestellung.test.tsx`, `Direktverkauf.test.tsx`; `make check` grün.
+- [x] "1 Bier 0,5 l" kostet genau einen Tap (Plus auf der Variantenzeile); kein Aufklapp-Schritt mehr, `expandedProducts` existiert nicht mehr.
+- [x] Kategorie-Chips filtern die Liste, erscheinen nur bei mehr als einer belegten Kategorie und bleiben beim Scrollen sichtbar.
+- [x] Direktverkauf zeigt dieselbe flache Liste ohne eigene Anpassung.
+- [x] Zeilen mit Menge > 0 sind visuell markiert; Skeleton passt zum neuen Layout.
+- [x] Tests angepasst: `Bestellung.test.tsx`, `Direktverkauf.test.tsx`; `make check` grün.
 
 ---
 

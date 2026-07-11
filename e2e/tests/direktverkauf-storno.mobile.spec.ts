@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
-import { zeileMit } from '../support/servicekraft'
+import { waehleVariante, zeileMit } from '../support/servicekraft'
 
 // Direktverkauf (Verkauf an der Theke ohne Tisch) und dessen Storno — beides
 // am Handy-Viewport. Festbändchen Erwachsene (5,00 €) und Kinder (3,00 €) sind
@@ -22,12 +22,10 @@ test.describe('Servicekraft tätigt einen Direktverkauf und storniert ihn', () =
     await page.goto('/service/direktverkauf')
     await expect(page.getByRole('tab', { name: 'Verkaufen' })).toBeVisible()
 
-    // Festbändchen Erwachsene (5,00 €) und Kinder (3,00 €) verkaufen.
-    await page.getByText('Festbändchen', { exact: false }).first().click()
-    const erwachsene = zeileMit(page, 'Erwachsene', 'Variante hinzufügen')
-    await erwachsene.getByRole('button', { name: 'Variante hinzufügen' }).click()
-    const kinder = zeileMit(page, 'Kinder', 'Variante hinzufügen')
-    await kinder.getByRole('button', { name: 'Variante hinzufügen' }).click()
+    // Festbändchen Erwachsene (5,00 €) und Kinder (3,00 €) verkaufen —
+    // waehleVariante aktiviert dafür den Sonstiges-Kategorie-Chip.
+    await waehleVariante(page, 'Festbändchen', 'Erwachsene')
+    await waehleVariante(page, 'Festbändchen', 'Kinder')
 
     await expect(page.getByText('8,00 €')).toBeVisible()
 
