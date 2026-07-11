@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body { margin:0; background:oklch(0.972 0.004 106.5); font-family:'Inter',sans-serif; }
+a { color:oklch(0.508 0.118 165.612); text-decoration:none; }
+a:hover { color:oklch(0.432 0.095 166.913); text-decoration:underline; }
+</style>
+</helmet>
+<div style="max-width:820px;margin:0 auto;padding:56px 32px;color:oklch(0.153 0.006 107.1);line-height:1.6">
+
+  <div style="font-family:ui-monospace,monospace;font-size:12px;color:oklch(0.53 0.031 107.3);margin-bottom:12px">jotti · frontend/src/service · Umsetzung des Redesigns (Reihe D im Review)</div>
+  <h1 style="margin:0 0 8px 0;font-size:30px;font-weight:700;letter-spacing:-0.02em">Implementierungsplan</h1>
+  <p style="margin:0 0 32px 0;font-size:15px;color:oklch(0.4 0.02 107.3)">5 Phasen, sortiert nach Fundament → Nutzen. Jede Phase ist einzeln shippbar; keine Backend-Änderung nötig (eine optionale Ausnahme in Phase 4). Referenzen <a href="Jotti Service Review.dc.html#1n">1n</a>–<a href="Jotti Service Review.dc.html#1r">1r</a> zeigen auf das Review-Canvas.</p>
+
+  <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:14px;padding:20px 24px;margin-bottom:32px">
+    <div style="font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:oklch(0.53 0.031 107.3);margin-bottom:10px">Reihenfolge &amp; Abhängigkeiten</div>
+    <div style="font-size:14px">Phase 1 (Dock + Stepper) zuerst — alle späteren Phasen bauen darauf auf. Phase 2–5 sind danach unabhängig voneinander und parallelisierbar. Betroffene Tests je Phase am Ende jedes Abschnitts.</div>
+  </div>
+
+  <!-- Phase 1 -->
+  <h2 style="margin:0 0 4px 0;font-size:20px;font-weight:700"><span style="color:oklch(0.432 0.095 166.913)">Phase 1</span> — Fundament: Dock &amp; Stepper</h2>
+  <p style="margin:0 0 16px 0;font-size:13px;color:oklch(0.53 0.031 107.3)">Geringes Risiko, wirkt auf jedem Screen · Referenz <a href="Jotti Service Review.dc.html#1o">1o</a></p>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:12px;font-size:14px">
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">1.1 &nbsp;<code style="font-family:ui-monospace,monospace;font-size:13px;background:oklch(0.966 0.005 106.5);padding:1px 6px;border-radius:4px">ServiceDock.tsx</code> (neu) — ein Bottom-Dock statt zwei schwebender Leisten</div>
+      <div>Opake Fläche mit <code style="font-family:ui-monospace,monospace;font-size:13px">border-t</code>: oben Aktionsbutton (bisheriger <code style="font-family:ui-monospace,monospace;font-size:13px">StickyActionBar</code>-Inhalt, als DrawerTrigger-Slot), darunter die TabsList in voller Breite. Ersetzt in <code style="font-family:ui-monospace,monospace;font-size:13px">TablePage.tsx</code> das fixierte Tab-Div und macht <code style="font-family:ui-monospace,monospace;font-size:13px">tabInhaltFreiraum</code> (das 8.5rem-Spezial-Padding) überflüssig — nur noch normale Content-Padding-Bottom in Dock-Höhe. <code style="font-family:ui-monospace,monospace;font-size:13px">StickyActionBar.tsx</code> wird zum Dock-Kind (Positionierung raus, Button bleibt).</div>
+    </div>
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">1.2 &nbsp;<code style="font-family:ui-monospace,monospace;font-size:13px;background:oklch(0.966 0.005 106.5);padding:1px 6px;border-radius:4px">Stepper.tsx</code> (neu) — ein Stepper-Stil überall</div>
+      <div>44 px, rund; Plus dauerhaft primär (emerald), Minus outline, bei Menge 0 gestrichelt + inaktiv (statt 50 %-Icon-Opacity). Ersetzt die Button-Paare in <code style="font-family:ui-monospace,monospace;font-size:13px">ProductList.tsx</code> (VariantItem), <code style="font-family:ui-monospace,monospace;font-size:13px">Zahlung.tsx</code> (PositionItem) und <code style="font-family:ui-monospace,monospace;font-size:13px">PositionAuswahlListe.tsx</code> (bisher 32 px secondary).</div>
+    </div>
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">1.3 &nbsp;Saldo mit Label</div>
+      <div>„Offen"-Label über dem Betrag, <code style="font-family:ui-monospace,monospace;font-size:13px">tabular-nums</code>; Kopf in <code style="font-family:ui-monospace,monospace;font-size:13px">TablePage.tsx</code> entzerren (Badge unter den Titel). Gleiches Label in <code style="font-family:ui-monospace,monospace;font-size:13px">MeinTischCard.tsx</code>.</div>
+    </div>
+  </div>
+  <p style="margin:0 0 32px 0;font-size:13px;color:oklch(0.53 0.031 107.3)">Tests: <code style="font-family:ui-monospace,monospace;font-size:12px">StickyActionBar.test.tsx</code>, <code style="font-family:ui-monospace,monospace;font-size:12px">TablePage.test.tsx</code>, <code style="font-family:ui-monospace,monospace;font-size:12px">PositionAuswahlListe.test.tsx</code></p>
+
+  <!-- Phase 2 -->
+  <h2 style="margin:0 0 4px 0;font-size:20px;font-weight:700"><span style="color:oklch(0.432 0.095 166.913)">Phase 2</span> — Bestellen: flache Variantenliste</h2>
+  <p style="margin:0 0 16px 0;font-size:13px;color:oklch(0.53 0.031 107.3)">Größter Tempo-Gewinn („1 Bier" = 1 Tap) · Referenz <a href="Jotti Service Review.dc.html#1o">1o</a></p>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:12px;font-size:14px">
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">2.1 &nbsp;<code style="font-family:ui-monospace,monospace;font-size:13px;background:oklch(0.966 0.005 106.5);padding:1px 6px;border-radius:4px">ProductList.tsx</code> umbauen</div>
+      <div>Produkt wird Gruppenkopf (13 px, muted), Varianten immer sichtbar mit Stepper aus 1.2. Der <code style="font-family:ui-monospace,monospace;font-size:13px">expandedProducts</code>-State, die Chevrons und der Zähl-Badge entfallen ersatzlos. Da <code style="font-family:ui-monospace,monospace;font-size:13px">Direktverkauf.tsx</code> dieselbe Liste nutzt, profitiert der Direktverkauf automatisch.</div>
+    </div>
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">2.2 &nbsp;Sticky Kategorie-Chips</div>
+      <div>Chip-Zeile (Essen / Getränke / Sonstiges) unter dem Kopf, <code style="font-family:ui-monospace,monospace;font-size:13px">sticky top-14</code>; Tap scrollt zur Kategorie oder filtert (Empfehlung: filtern — kein <code style="font-family:ui-monospace,monospace;font-size:13px">scrollIntoView</code>-Gefummel, weniger DOM). Nur zeigen, wenn &gt; 1 Kategorie Produkte hat.</div>
+    </div>
+  </div>
+  <p style="margin:0 0 32px 0;font-size:13px;color:oklch(0.53 0.031 107.3)">Tests: <code style="font-family:ui-monospace,monospace;font-size:12px">Bestellung.test.tsx</code>, <code style="font-family:ui-monospace,monospace;font-size:12px">Direktverkauf.test.tsx</code></p>
+
+  <!-- Phase 3 -->
+  <h2 style="margin:0 0 4px 0;font-size:20px;font-weight:700"><span style="color:oklch(0.432 0.095 166.913)">Phase 3</span> — Kassieren: Alles auswählen &amp; Restbetrag</h2>
+  <p style="margin:0 0 16px 0;font-size:13px;color:oklch(0.53 0.031 107.3)">Referenz <a href="Jotti Service Review.dc.html#1p">1p</a></p>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:12px;font-size:14px">
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">3.1 &nbsp;„Alle X Positionen auswählen · Summe"</div>
+      <div><code style="font-family:ui-monospace,monospace;font-size:13px">use-mengen.ts</code> um <code style="font-family:ui-monospace,monospace;font-size:13px">setAll(maxMengen)</code> erweitern; Button oben in <code style="font-family:ui-monospace,monospace;font-size:13px">Zahlung.tsx</code> (nur eigene Positionen vorauswählen — Fremd-Kassieren bleibt bewusste Einzelaktion). Zweiter Tap = Auswahl leeren.</div>
+    </div>
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">3.2 &nbsp;Positive Formulierung &amp; Auswahl-Markierung</div>
+      <div>„2 von 2 ausgewählt · 9,00 €" statt „noch 0 unbezahlt"; Zeilen mit Auswahl &gt; 0 bekommen emerald Rahmen/Tint (<code style="font-family:ui-monospace,monospace;font-size:13px">border-primary/60 bg-primary/5</code>).</div>
+    </div>
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">3.3 &nbsp;„Von anderen" sichtbar + Restbetrag im Dock</div>
+      <div>Statt Toggle-Button: eingeklappte Gruppe mit Kopfzeile „Von anderen · N" und Summenzeile — der Tisch-Saldo widerspricht der Liste nicht mehr. Im Dock über dem Kassieren-Button: „Nach dieser Zahlung noch offen: X €" (<code style="font-family:ui-monospace,monospace;font-size:13px">saldoCents − auswahlCents</code>).</div>
+    </div>
+  </div>
+  <p style="margin:0 0 32px 0;font-size:13px;color:oklch(0.53 0.031 107.3)">Tests: <code style="font-family:ui-monospace,monospace;font-size:12px">Zahlung.test.tsx</code>, <code style="font-family:ui-monospace,monospace;font-size:12px">ZahlungDrawer.test.tsx</code>, <code style="font-family:ui-monospace,monospace;font-size:12px">use-form-action-submit.test.ts</code> unberührt</p>
+
+  <!-- Phase 4 -->
+  <h2 style="margin:0 0 4px 0;font-size:20px;font-weight:700"><span style="color:oklch(0.432 0.095 166.913)">Phase 4</span> — Historie &amp; Fehlervermeidung</h2>
+  <p style="margin:0 0 16px 0;font-size:13px;color:oklch(0.53 0.031 107.3)">Referenz <a href="Jotti Service Review.dc.html#1q">1q</a>, <a href="Jotti Service Review.dc.html#1k">1k</a></p>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:12px;font-size:14px">
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">4.1 &nbsp;Storno raus aus der Liste (<code style="font-family:ui-monospace,monospace;font-size:13px;background:oklch(0.966 0.005 106.5);padding:1px 6px;border-radius:4px">TischHistorie.tsx</code>)</div>
+      <div>HistoryItem: ganze Zeile = Tap → Detail-Drawer; X- und ⇄-Buttons entfallen. „Umbuchen" / „Stornieren…" wandern als beschriftete Buttons in den Details-Footer (Rollen-Gating <code style="font-family:ui-monospace,monospace;font-size:13px">canCancel</code>/<code style="font-family:ui-monospace,monospace;font-size:13px">canRebook</code> bleibt identisch). Gleiches Muster in <code style="font-family:ui-monospace,monospace;font-size:13px">DirektverkaufHistorie.tsx</code>.</div>
+    </div>
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">4.2 &nbsp;Scanbare Zeilen</div>
+      <div>Typ-Icon im farbigen Kreis (Bestellung +, Zahlung Banknote, Storno Rück-Pfeil, Umbuchung ⇄), Betrag rechts, farbcodiert (+ emerald / − rot nur bei Storno), <code style="font-family:ui-monospace,monospace;font-size:13px">tabular-nums</code>. Neue Utility <code style="font-family:ui-monospace,monospace;font-size:13px">formatRelativeTime()</code> in <code style="font-family:ui-monospace,monospace;font-size:13px">lib/utils.ts</code> („vor 19 min", ab 6 h absolut) — voller Timestamp bleibt im Detail.</div>
+    </div>
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">4.3 &nbsp;Menschenlesbare Drawer-Titel</div>
+      <div>„Bestellung · vor 32 min · Nico" statt <code style="font-family:ui-monospace,monospace;font-size:13px">vorgangId.slice(0, 8)</code> — in <code style="font-family:ui-monospace,monospace;font-size:13px">detailView()</code>, <code style="font-family:ui-monospace,monospace;font-size:13px">HistorieStornierungDrawer.tsx</code>, <code style="font-family:ui-monospace,monospace;font-size:13px">HistorieUmbuchungDrawer.tsx</code> (Quell-Eintrag statt nur <code style="font-family:ui-monospace,monospace;font-size:13px">vorgangId</code> als Prop durchreichen).</div>
+    </div>
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">4.4 &nbsp;Umbuchung entschärfen (<code style="font-family:ui-monospace,monospace;font-size:13px;background:oklch(0.966 0.005 106.5);padding:1px 6px;border-radius:4px">HistorieUmbuchungDrawer.tsx</code>)</div>
+      <div>Ziel-Tisch ohne stillen Default: Placeholder „Ziel-Tisch wählen…", Submit erst nach expliziter Wahl (<code style="font-family:ui-monospace,monospace;font-size:13px">zielTischId</code>-Fallback auf ersten Tisch entfernen). Primärbutton von <code style="font-family:ui-monospace,monospace;font-size:13px">secondary</code> auf <code style="font-family:ui-monospace,monospace;font-size:13px">default</code>. <em>Optional (Backend):</em> Kommentarfeld wie beim Storno — nur wenn das Umbuchungs-Event ein Kommentarfeld bekommt.</div>
+    </div>
+  </div>
+  <p style="margin:0 0 32px 0;font-size:13px;color:oklch(0.53 0.031 107.3)">Tests: <code style="font-family:ui-monospace,monospace;font-size:12px">TischHistorie.test.tsx</code>, <code style="font-family:ui-monospace,monospace;font-size:12px">HistorieStornierungDrawer.test.tsx</code>, <code style="font-family:ui-monospace,monospace;font-size:12px">HistorieUmbuchungDrawer.test.tsx</code>, <code style="font-family:ui-monospace,monospace;font-size:12px">DirektverkaufHistorie.test.tsx</code></p>
+
+  <!-- Phase 5 -->
+  <h2 style="margin:0 0 4px 0;font-size:20px;font-weight:700"><span style="color:oklch(0.432 0.095 166.913)">Phase 5</span> — Dashboard &amp; Direktverkauf</h2>
+  <p style="margin:0 0 16px 0;font-size:13px;color:oklch(0.53 0.031 107.3)">Referenz <a href="Jotti Service Review.dc.html#1n">1n</a>, <a href="Jotti Service Review.dc.html#1r">1r</a></p>
+  <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:12px;font-size:14px">
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">5.1 &nbsp;<code style="font-family:ui-monospace,monospace;font-size:13px;background:oklch(0.966 0.005 106.5);padding:1px 6px;border-radius:4px">TableSelectionPage.tsx</code></div>
+      <div><code style="font-family:ui-monospace,monospace;font-size:13px">EigeneUebersicht.tsx</code>: zwei Karten → eine einzeilige Stat-Card; die „Deine offenen Tische"-Karte entfällt (Duplikat). <code style="font-family:ui-monospace,monospace;font-size:13px">MeinTischCard.tsx</code>: Status-Punkt, „Offen"-Label, Chevron. Gruppierung „Noch offen / Erledigt" (offene zuerst). Suchfeld direkt auf der Seite (Filter über <code style="font-family:ui-monospace,monospace;font-size:13px">useMeineTischeState</code> + Sprung in <code style="font-family:ui-monospace,monospace;font-size:13px">TischAuswahlDrawer</code>-Logik); „Alle Tische" als fixe Fußzeile.</div>
+    </div>
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">5.2 &nbsp;<code style="font-family:ui-monospace,monospace;font-size:13px;background:oklch(0.966 0.005 106.5);padding:1px 6px;border-radius:4px">TischAuswahlDrawer.tsx</code>: Stern-Trefferfläche</div>
+      <div>Favoriten-Button auf 44 px (<code style="font-family:ui-monospace,monospace;font-size:13px">size-11</code>) mit klarer Trennung zur Zeilen-Navigation; Sortierung: Favoriten → offener Saldo → Name.</div>
+    </div>
+    <div style="background:oklch(1 0 0);border:1px solid oklch(0.93 0.007 106.5);border-radius:10px;padding:16px 20px">
+      <div style="font-weight:600;margin-bottom:6px">5.3 &nbsp;<code style="font-family:ui-monospace,monospace;font-size:13px;background:oklch(0.966 0.005 106.5);padding:1px 6px;border-radius:4px">Direktverkauf.tsx</code>: Zahlung in den Drawer</div>
+      <div>Sticky Card entfällt; neuer <code style="font-family:ui-monospace,monospace;font-size:13px">DirektverkaufDrawer</code> nach dem Muster von <code style="font-family:ui-monospace,monospace;font-size:13px">ZahlungDrawer.tsx</code> (Receipt + Erhalten + Rückgeld + Kommentar), getriggert vom Dock aus Phase 1. <code style="font-family:ui-monospace,monospace;font-size:13px">DirektverkaufPage.tsx</code> bekommt dasselbe Dock (Tabs Verkaufen/Historie unten). Fehlercode-Mapping (<code style="font-family:ui-monospace,monospace;font-size:13px">kasse_nicht_geoeffnet</code> etc.) zieht unverändert um.</div>
+    </div>
+  </div>
+  <p style="margin:0 0 40px 0;font-size:13px;color:oklch(0.53 0.031 107.3)">Tests: <code style="font-family:ui-monospace,monospace;font-size:12px">MeinTischCard.test.tsx</code>, <code style="font-family:ui-monospace,monospace;font-size:12px">TischAuswahlDrawer.test.tsx</code>, <code style="font-family:ui-monospace,monospace;font-size:12px">Direktverkauf.test.tsx</code></p>
+
+  <div style="background:oklch(0.508 0.118 165.612 / 0.05);border:1px solid oklch(0.508 0.118 165.612 / 0.25);border-radius:14px;padding:20px 24px">
+    <div style="font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:oklch(0.432 0.095 166.913);margin-bottom:10px">Querschnitt, in jeder Phase</div>
+    <div style="font-size:14px;display:flex;flex-direction:column;gap:6px">
+      <div>· <strong>Dark Mode</strong> je Phase mitprüfen (Item-Rahmen: ggf. <code style="font-family:ui-monospace,monospace;font-size:13px">bg-card</code> statt nur Border — Befund 1l/1m).</div>
+      <div>· <strong>A11y:</strong> bestehende <code style="font-family:ui-monospace,monospace;font-size:13px">aria-label</code> übernehmen; neue Buttons (Alles auswählen, Dock) beschriften.</div>
+      <div>· <strong>Keine Backend-/Event-Änderungen</strong> nötig — alles reine Frontend-Umbauten (Ausnahme: optionaler Umbuchungs-Kommentar, 4.4).</div>
+      <div>· Empfohlener Schnitt: 1 PR pro Phase, Screenshots gegen die Review-Frames <a href="Jotti Service Review.dc.html#1n">1n</a>–<a href="Jotti Service Review.dc.html#1r">1r</a> als Abnahme.</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
