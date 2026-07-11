@@ -91,22 +91,6 @@ WHERE e.type IN ('stornierung-erteilt:v1', 'bestellung-korrigiert:v1', 'direktve
 AND e.kassensitzung_nr = @kassensitzung_nr
 ORDER BY e.timestamp DESC;
 
--- name: GetUmsatzProTisch :many
--- Tagesabrechnung: kassierte Zahlungen gruppiert nach Tisch pro Kassensitzung.
--- Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
-SELECT
-    tss.tisch_id,
-    t.name AS tisch_name,
-    COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS zahlungen_cents,
-    COUNT(CASE WHEN e.type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
-FROM kassenjournal e
-JOIN tisch_sessions tss ON tss.subject = e.subject
-JOIN tische t ON t.id = tss.tisch_id
-WHERE e.type = 'zahlung-kassiert:v1'
-AND e.kassensitzung_nr = @kassensitzung_nr
-GROUP BY tss.tisch_id, t.name
-ORDER BY zahlungen_cents DESC;
-
 -- name: GetUmsatzPositionszeilen :many
 -- Tagesabrechnung: umsatzwirksame Brutto-Positionszeilen mit Steuersatz pro
 -- Kassensitzung, unaggregiert (eine Zeile je Position). Die USt-Aufschlüsselung

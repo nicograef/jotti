@@ -27,7 +27,6 @@ const reportingResult: ReportingData = {
         anzahlZahlungen: 3,
       },
     ],
-    umsatzProTisch: [],
   },
   umsatzProSteuersatz: [
     {

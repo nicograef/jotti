@@ -69,20 +69,12 @@ type summaryResponse struct {
 
 type breakdownsResponse struct {
 	UmsatzProServicekraft []umsatzServicekraft `json:"umsatzProServicekraft"`
-	UmsatzProTisch        []umsatzTisch        `json:"umsatzProTisch"`
 }
 
 type umsatzServicekraft struct {
 	UserID          int    `json:"userId"`
 	UserName        string `json:"userName"`
 	Name            string `json:"name"`
-	ZahlungenCents  int    `json:"zahlungenCents"`
-	AnzahlZahlungen int    `json:"anzahlZahlungen"`
-}
-
-type umsatzTisch struct {
-	TischID         int    `json:"tischId"`
-	TischName       string `json:"tischName"`
 	ZahlungenCents  int    `json:"zahlungenCents"`
 	AnzahlZahlungen int    `json:"anzahlZahlungen"`
 }
@@ -129,23 +121,6 @@ func toUmsatzServicekraftList(umsatz []reporting.UmsatzServicekraft) []umsatzSer
 	out := make([]umsatzServicekraft, len(umsatz))
 	for i := range umsatz {
 		out[i] = toUmsatzServicekraft(umsatz[i])
-	}
-	return out
-}
-
-func toUmsatzTisch(u reporting.UmsatzTisch) umsatzTisch {
-	return umsatzTisch{
-		TischID:         u.TischID,
-		TischName:       u.TischName,
-		ZahlungenCents:  u.ZahlungenCents,
-		AnzahlZahlungen: u.AnzahlZahlungen,
-	}
-}
-
-func toUmsatzTischList(tische []reporting.UmsatzTisch) []umsatzTisch {
-	out := make([]umsatzTisch, len(tische))
-	for i := range tische {
-		out[i] = toUmsatzTisch(tische[i])
 	}
 	return out
 }
@@ -227,7 +202,6 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 		},
 		Breakdowns: breakdownsResponse{
 			UmsatzProServicekraft: toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),
-			UmsatzProTisch:        toUmsatzTischList(d.Breakdowns.UmsatzProTisch),
 		},
 		UmsatzProSteuersatz: toUmsatzSteuersatzList(d.UmsatzProSteuersatz),
 		Stornierungen:       toStornierungDetails(d.Stornierungen),
@@ -351,7 +325,6 @@ type servicekraftLiveResponse struct {
 // Servicekraft-Sicht statt des reinen kassierten Umsatzes.
 type liveBreakdownsResponse struct {
 	Servicekraefte []servicekraftLiveResponse `json:"servicekraefte"`
-	UmsatzProTisch []umsatzTisch              `json:"umsatzProTisch"`
 }
 
 type liveReportingResponse struct {
@@ -421,7 +394,6 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 		},
 		Breakdowns: liveBreakdownsResponse{
 			Servicekraefte: toServicekraefteLive(d.Servicekraefte),
-			UmsatzProTisch: toUmsatzTischList(d.Breakdowns.UmsatzProTisch),
 		},
 		Stornierungen: toStornierungDetails(d.Stornierungen),
 	}

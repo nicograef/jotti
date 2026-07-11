@@ -14,13 +14,6 @@ type UmsatzServicekraft struct {
 	AnzahlZahlungen int
 }
 
-type UmsatzTisch struct {
-	TischID         int
-	TischName       string
-	ZahlungenCents  int
-	AnzahlZahlungen int
-}
-
 type UmsatzSteuersatz struct {
 	Satz        steuer.Steuersatz
 	BruttoCents int
@@ -62,7 +55,6 @@ type Summary struct {
 
 type Breakdowns struct {
 	UmsatzProServicekraft []UmsatzServicekraft
-	UmsatzProTisch        []UmsatzTisch
 }
 
 type ReportingData struct {

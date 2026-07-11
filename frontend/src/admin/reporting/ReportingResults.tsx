@@ -1,4 +1,4 @@
-import { Ban, ChartBar, Loader2, TableIcon, Users } from 'lucide-react'
+import { Ban, ChartBar, Loader2, Users } from 'lucide-react'
 
 import { STEUERSATZ_LABEL } from '@/admin/products/Produkt'
 import { Badge } from '@/components/ui/badge'
@@ -60,15 +60,6 @@ export function ReportingResults({
           {breakdowns.umsatzProServicekraft.length > 0 && (
             <Badge variant="secondary" className="ml-1">
               {breakdowns.umsatzProServicekraft.length}
-            </Badge>
-          )}
-        </TabsTrigger>
-        <TabsTrigger value="tische">
-          <TableIcon className="size-4" />
-          Tische
-          {breakdowns.umsatzProTisch.length > 0 && (
-            <Badge variant="secondary" className="ml-1">
-              {breakdowns.umsatzProTisch.length}
             </Badge>
           )}
         </TabsTrigger>
@@ -176,38 +167,6 @@ export function ReportingResults({
                 <ItemActions>
                   <span className="min-w-24 text-right text-sm font-semibold">
                     {formatCents(sk.zahlungenCents)} €
-                  </span>
-                </ItemActions>
-              </Item>
-            ))}
-          </ItemGroup>
-        )}
-      </TabsContent>
-
-      {/* Tische */}
-      <TabsContent value="tische" className="mt-4">
-        {breakdowns.umsatzProTisch.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <TableIcon />
-              </EmptyMedia>
-              <EmptyTitle>Keine Tischzahlungen</EmptyTitle>
-              <EmptyDescription>
-                Keine Tischzahlungen im gewählten Zeitraum.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          <ItemGroup>
-            {breakdowns.umsatzProTisch.map((t) => (
-              <Item key={t.tischId} variant="outline" size="sm">
-                <ItemContent>
-                  <ItemTitle>{t.tischName}</ItemTitle>
-                </ItemContent>
-                <ItemActions>
-                  <span className="min-w-24 text-right text-sm font-semibold">
-                    {formatCents(t.zahlungenCents)} €
                   </span>
                 </ItemActions>
               </Item>

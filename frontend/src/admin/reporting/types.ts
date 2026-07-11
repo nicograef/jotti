@@ -42,14 +42,6 @@ export const StornierungDetailSchema = z.object({
 })
 export type StornierungDetail = z.infer<typeof StornierungDetailSchema>
 
-export const UmsatzTischSchema = z.object({
-  tischId: z.number().int(),
-  tischName: z.string(),
-  zahlungenCents: z.number().int(),
-  anzahlZahlungen: z.number().int(),
-})
-export type UmsatzTisch = z.infer<typeof UmsatzTischSchema>
-
 export const UmsatzSteuersatzSchema = z.object({
   satz: z.enum(['regel', 'ermaessigt', 'befreit', 'kombi']),
   bruttoCents: z.number().int(),
@@ -101,7 +93,6 @@ export const LiveReportingDataSchema = z.object({
   summary: SummarySchema,
   breakdowns: z.object({
     servicekraefte: z.array(ServicekraftLiveSchema),
-    umsatzProTisch: z.array(UmsatzTischSchema),
   }),
   stornierungen: z.array(StornierungDetailSchema),
 })
@@ -112,7 +103,6 @@ export const ReportingDataSchema = z.object({
   summary: SummarySchema,
   breakdowns: z.object({
     umsatzProServicekraft: z.array(UmsatzServicekraftSchema),
-    umsatzProTisch: z.array(UmsatzTischSchema),
   }),
   umsatzProSteuersatz: z.array(UmsatzSteuersatzSchema),
   stornierungen: z.array(StornierungDetailSchema),

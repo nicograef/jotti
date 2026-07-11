@@ -81,7 +81,6 @@ func TestGetReporting_HappyPath(t *testing.T) {
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
-			UmsatzProTisch:        []reporting.UmsatzTisch{},
 		},
 		UmsatzProSteuersatz: []reporting.UmsatzSteuersatz{},
 		Stornierungen:       []reporting.StornierungDetail{},
@@ -358,7 +357,6 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 				{UserID: 7, UserName: "Anna", Name: "Anna A.", ZahlungenCents: 1500, AnzahlZahlungen: 2},
 				{UserID: 9, UserName: "Cleo", Name: "Cleo C.", ZahlungenCents: 900, AnzahlZahlungen: 1},
 			},
-			UmsatzProTisch: []reporting.UmsatzTisch{},
 		},
 	}
 	sessions := []kasse.TischSession{

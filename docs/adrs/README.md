@@ -15,3 +15,4 @@ Entscheidung, Konsequenzen).
 | Nr. | Titel                                              | Status     |
 | --- | -------------------------------------------------- | ---------- |
 | 01  | [Ausgabe-Bestätigung entfernen](01_ausgabe-bestaetigen.md) | akzeptiert |
+| 02  | [Umsatz pro Tisch entfernen](02_umsatz-pro-tisch-entfernen.md) | akzeptiert |

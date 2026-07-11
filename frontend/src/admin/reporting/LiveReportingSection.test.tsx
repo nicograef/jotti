@@ -24,7 +24,7 @@ function liveData(
       anzahlDirektverkaeufe: 0,
       direktverkaufUmsatzCents: 0,
     },
-    breakdowns: { servicekraefte, umsatzProTisch: [] },
+    breakdowns: { servicekraefte },
     stornierungen: [],
   }
 }

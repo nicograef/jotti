@@ -93,7 +93,6 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
-			UmsatzProTisch:        []reporting.UmsatzTisch{},
 		},
 		UmsatzProSteuersatz: []reporting.UmsatzSteuersatz{
 			{Satz: steuer.RegelSteuersatz, BruttoCents: 1190, NettoCents: 1000, SteuerCents: 190},
@@ -194,7 +193,6 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
-			UmsatzProTisch:        []reporting.UmsatzTisch{},
 		},
 		Servicekraefte: []reporting.ServicekraftLive{
 			{

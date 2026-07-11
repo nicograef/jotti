@@ -92,7 +92,7 @@ Mit _(in Entwicklung)_ markierte Features sind geplant, aber noch nicht umgesetz
 | Kassenbewegungen                           | Geldtransit (Einlage und Entnahme) buchen                                                                                       |
 | Kassensturz                                | Ist-Bestand eingeben, Differenz berechnen, Abweichung automatisch buchen                                                        |
 | Tagesabschluss (Z-Bon)                     | Formaler Abschluss mit fortlaufender Nummer, Umsatzaggregation und Stammdaten-Snapshot                                          |
-| Abrechnung                                 | Tagesabrechnung nach Steuersatz, pro Tisch und pro Servicekraft                                                                 |
+| Abrechnung                                 | Tagesabrechnung nach Steuersatz und pro Servicekraft                                                                            |
 | Produktumsatz-Reporting _(in Entwicklung)_ | Verkaufte Mengen, Ranking und Gesamteinnahmen pro Variante                                                                      |
 | DSFinV-K-Export                            | Maschinenlesbarer Export nach DSFinV-K v2.4 als ZIP-Archiv                                                                      |
 | TSE-Anbindung (Cloud-TSE)                  | Integrierte Cloud-TSE-Schnittstelle mit fiskaly-Adapter; jeder Vorgang wird signiert                                            |

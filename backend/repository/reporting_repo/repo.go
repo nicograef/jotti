@@ -40,7 +40,6 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	var (
 		stats      dbgen.GetReportingStatsRow
 		umsatzRows []dbgen.GetUmsatzProServicekraftRow
-		tischRows  []dbgen.GetUmsatzProTischRow
 		zeilenRows []dbgen.GetUmsatzPositionszeilenRow
 		stornoRows []dbgen.GetStornierungenRow
 	)
@@ -55,11 +54,6 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	g.Go(func() error {
 		var err error
 		umsatzRows, err = r.q.GetUmsatzProServicekraft(ctx, kassensitzungNr)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		tischRows, err = r.q.GetUmsatzProTisch(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
@@ -97,7 +91,6 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		Summary:         toSummary(stats),
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: toUmsatzServicekraft(umsatzRows),
-			UmsatzProTisch:        toUmsatzTische(tischRows),
 		},
 		UmsatzProSteuersatz: umsatzProSteuersatz,
 		Stornierungen:       stornierungen,
@@ -110,7 +103,6 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 		offeneSaldi      int
 		offeneTischeRows []dbgen.GetOffeneTischeDetailsRow
 		umsatzRows       []dbgen.GetUmsatzProServicekraftRow
-		tischRows        []dbgen.GetUmsatzProTischRow
 		stornoRows       []dbgen.GetStornierungenRow
 	)
 
@@ -134,11 +126,6 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 	g.Go(func() error {
 		var err error
 		umsatzRows, err = r.q.GetUmsatzProServicekraft(ctx, kassensitzungNr)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		tischRows, err = r.q.GetUmsatzProTisch(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
@@ -172,7 +159,6 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 		Summary:          toSummary(stats),
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: toUmsatzServicekraft(umsatzRows),
-			UmsatzProTisch:        toUmsatzTische(tischRows),
 		},
 		Stornierungen: stornierungen,
 	}, nil
@@ -220,19 +206,6 @@ func toUmsatzServicekraft(rows []dbgen.GetUmsatzProServicekraftRow) []reporting.
 		}
 	}
 	return umsatz
-}
-
-func toUmsatzTische(rows []dbgen.GetUmsatzProTischRow) []reporting.UmsatzTisch {
-	tische := make([]reporting.UmsatzTisch, len(rows))
-	for i, row := range rows {
-		tische[i] = reporting.UmsatzTisch{
-			TischID:         row.TischID,
-			TischName:       row.TischName,
-			ZahlungenCents:  row.ZahlungenCents,
-			AnzahlZahlungen: row.AnzahlZahlungen,
-		}
-	}
-	return tische
 }
 
 func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungDetail, error) {

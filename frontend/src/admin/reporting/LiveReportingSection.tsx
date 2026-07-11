@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   LayoutDashboard,
   Loader2,
-  TableIcon,
   Users,
 } from 'lucide-react'
 import { NavLink } from 'react-router'
@@ -98,15 +97,6 @@ export function LiveReportingSection({
             {breakdowns.servicekraefte.length > 0 && (
               <Badge variant="secondary" className="ml-1">
                 {breakdowns.servicekraefte.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="tische">
-            <TableIcon className="size-4" />
-            Tische
-            {breakdowns.umsatzProTisch.length > 0 && (
-              <Badge variant="secondary" className="ml-1">
-                {breakdowns.umsatzProTisch.length}
               </Badge>
             )}
           </TabsTrigger>
@@ -220,38 +210,6 @@ export function LiveReportingSection({
                   <ItemActions>
                     <span className="min-w-24 text-right text-sm font-semibold">
                       {formatCents(sk.zahlungenCents)} €
-                    </span>
-                  </ItemActions>
-                </Item>
-              ))}
-            </ItemGroup>
-          )}
-        </TabsContent>
-
-        {/* Tische */}
-        <TabsContent value="tische" className="mt-4">
-          {breakdowns.umsatzProTisch.length === 0 ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <TableIcon />
-                </EmptyMedia>
-                <EmptyTitle>Keine Tischzahlungen</EmptyTitle>
-                <EmptyDescription>
-                  Keine Tischzahlungen im gewählten Zeitraum.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <ItemGroup>
-              {breakdowns.umsatzProTisch.map((t) => (
-                <Item key={t.tischId} variant="outline" size="sm">
-                  <ItemContent>
-                    <ItemTitle>{t.tischName}</ItemTitle>
-                  </ItemContent>
-                  <ItemActions>
-                    <span className="min-w-24 text-right text-sm font-semibold">
-                      {formatCents(t.zahlungenCents)} €
                     </span>
                   </ItemActions>
                 </Item>

@@ -79,7 +79,6 @@ Zeitraumbezogene Auswertungen beziehen sich je auf eine Kassensitzung (`kassensi
 | ID   | Titel                       | Beschreibung                             |
 | ---- | --------------------------- | ---------------------------------------- |
 | R-01 | Tagesabrechnung             | KPIs und Breakdowns je Kassensitzung.    |
-| R-03 | Abrechnung pro Tisch        | Umsatz pro Tisch (Teil von R-01).        |
 | R-04 | Abrechnung pro Servicekraft | Umsatz pro Servicekraft (Teil von R-01). |
 | R-06 | Eigene Übersicht            | KPI-Sektion auf dem Service-Dashboard.   |
 | R-07 | Live-Dashboard              | Echtzeit-KPIs der offenen Kassensitzung. |

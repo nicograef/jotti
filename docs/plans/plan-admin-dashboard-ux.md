@@ -221,15 +221,15 @@ beantwortet keine Kassenwart-Frage; Präzedenz ADR 01).
 
 ### Acceptance criteria
 
-- [ ] Kein Tab/Abschnitt „Tische" mehr im Live-Dashboard und in der historischen
+- [x] Kein Tab/Abschnitt „Tische" mehr im Live-Dashboard und in der historischen
       Auswertung; „Offene Tische" (Salden) unverändert vorhanden.
-- [ ] `grep -ri "umsatzProTisch\|UmsatzTisch" backend/ frontend/src/` liefert keine Treffer
+- [x] `grep -ri "umsatzProTisch\|UmsatzTisch" backend/ frontend/src/` liefert keine Treffer
       mehr (außer ggf. Git-Historie/Plan-Datei).
-- [ ] Live- und Reporting-Response enthalten das Feld `umsatzProTisch` nicht mehr; die
+- [x] Live- und Reporting-Response enthalten das Feld `umsatzProTisch` nicht mehr; die
       Zod-Schemas validieren die neuen Responses.
-- [ ] R-03 ist aus `docs/anforderungen.md` entfernt, `docs/handbuch.md` beschreibt das
+- [x] R-03 ist aus `docs/anforderungen.md` entfernt, `docs/handbuch.md` beschreibt das
       Read Model ohne Tisch-Umsatz, ADR 02 existiert und ist im ADR-README indexiert.
-- [ ] `make check` und Backend-Integrationstests (`make verify`) grün; E2E-Specs
+- [x] `make check` und Backend-Integrationstests (`make verify`) grün; E2E-Specs
       (`admin-live-reporting.spec.ts`, `admin-reporting-fehlerpfade.spec.ts`) angepasst.
 
 ---
