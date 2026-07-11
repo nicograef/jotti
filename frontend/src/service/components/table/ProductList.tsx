@@ -1,8 +1,7 @@
-import { ChevronDown, ChevronRight, Minus, Package, Plus } from 'lucide-react'
+import { ChevronDown, ChevronRight, Package } from 'lucide-react'
 import { useState } from 'react'
 
 import { EmptyState } from '@/components/common/EmptyState'
-import { Button } from '@/components/ui/button'
 import {
   Item,
   ItemActions,
@@ -20,6 +19,7 @@ import {
   type Produkt,
   type Variante,
 } from '../../product/Produkt'
+import { Stepper } from '../Stepper'
 
 interface ProductListComponentProps {
   products: Produkt[]
@@ -161,31 +161,13 @@ function VariantItem({
         </ItemDescription>
       </ItemContent>
       <ItemActions>
-        <Button
-          size="icon"
-          variant="outline"
-          className="rounded-full min-h-12 min-w-12"
-          aria-label="Variante entfernen"
-          onClick={(e) => {
-            e.stopPropagation()
-            onRemove()
-          }}
-        >
-          <Minus />
-        </Button>
-        <span className="text-lg mx-2">{menge}</span>
-        <Button
-          size="icon"
-          variant="outline"
-          className="rounded-full min-h-12 min-w-12"
-          aria-label="Variante hinzufügen"
-          onClick={(e) => {
-            e.stopPropagation()
-            onAdd()
-          }}
-        >
-          <Plus />
-        </Button>
+        <Stepper
+          menge={menge}
+          onAdd={onAdd}
+          onRemove={onRemove}
+          addLabel="Variante hinzufügen"
+          removeLabel="Variante entfernen"
+        />
       </ItemActions>
     </Item>
   )
@@ -207,7 +189,11 @@ export function ProductListSkeleton() {
                   <Skeleton className="h-4 w-24" />
                 </ItemContent>
                 <ItemActions>
-                  <Plus />
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="size-11 rounded-full" />
+                    <span className="w-7" />
+                    <Skeleton className="size-11 rounded-full" />
+                  </div>
                 </ItemActions>
               </Item>
             ))}

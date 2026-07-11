@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Produkt } from '../../product/Produkt'
 import type { Tisch } from '../../table/Tisch'
+import { ServiceDock } from '../ServiceDock'
 import { BestellungDrawer } from './BestellungDrawer'
 
 vi.mock('sonner', () => ({
@@ -35,30 +36,34 @@ const testProdukt: Produkt = {
   updatedAt: '2025-01-01T00:00:00Z',
 }
 
+// Der Aktionsbutton rendert per Portal in den ServiceDock; deshalb wird der
+// Drawer hier in ein Dock eingebettet (leiste bleibt leer).
 function renderDrawer(mengen: Record<number, number>) {
   render(
-    <BestellungDrawer
-      backend={{ bestellungAufnehmen: vi.fn().mockResolvedValue(undefined) }}
-      tisch={tisch}
-      products={[testProdukt]}
-      mengen={mengen}
-      bestellungAufgenommen={vi.fn()}
-    />,
+    <ServiceDock leiste={null}>
+      <BestellungDrawer
+        backend={{ bestellungAufnehmen: vi.fn().mockResolvedValue(undefined) }}
+        tisch={tisch}
+        products={[testProdukt]}
+        mengen={mengen}
+        bestellungAufgenommen={vi.fn()}
+      />
+    </ServiceDock>,
   )
 }
 
 describe('BestellungDrawer', () => {
-  it('öffnet bei leerer Auswahl nicht (onOpenChange-Guard)', async () => {
+  it('öffnet bei leerer Auswahl nicht (Guard über deaktivierten Trigger)', async () => {
     const user = userEvent.setup()
     renderDrawer({})
 
-    // Klick auf die Trigger-Fläche (das Wurzel-Div der Aktionsleiste), nicht
-    // auf den deaktivierten Button — der Guard muss das Öffnen verhindern.
-    const bar = screen
-      .getByRole('button', { name: /Bestellung überprüfen/ })
-      .closest('div[aria-haspopup="dialog"]')
-    if (bar === null) throw new Error('Trigger-Fläche nicht gefunden')
-    await user.click(bar)
+    // Ohne Auswahl ist der Trigger-Button deaktiviert; ein Klick darf den
+    // Drawer nicht öffnen (der onOpenChange-Guard sichert zusätzlich ab).
+    const trigger = screen.getByRole('button', {
+      name: /Bestellung überprüfen/,
+    })
+    expect(trigger).toBeDisabled()
+    await user.click(trigger)
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })

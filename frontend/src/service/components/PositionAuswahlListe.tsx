@@ -1,7 +1,6 @@
-import { Minus, Plus } from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
 import { formatCents } from '@/lib/utils'
+
+import { Stepper } from './Stepper'
 
 // AuswahlPosition ist die minimale Form, die PositionAuswahlListe braucht: ein
 // bereits formatierter Name, der Einzelpreis und die Obergrenze der auswählbaren
@@ -50,32 +49,19 @@ export function PositionAuswahlListe({
                 {position.maxMenge}&nbsp;Stück
               </div>
             </div>
-            <div className="flex items-center gap-1 ml-2">
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-8 w-8"
-                aria-label={`${position.name} verringern`}
-                onClick={() => {
-                  onRemove(position.id)
-                }}
-              >
-                <Minus className={selected > 0 ? '' : 'opacity-50'} size={16} />
-              </Button>
-              <span className="font-bold tabular-nums text-center w-6 text-sm">
-                {selected}
-              </span>
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-8 w-8"
-                aria-label={`${position.name} hinzufügen`}
-                onClick={() => {
+            <div className="ml-2">
+              <Stepper
+                menge={selected}
+                onAdd={() => {
                   onAdd(position.id)
                 }}
-              >
-                <Plus size={16} />
-              </Button>
+                onRemove={() => {
+                  onRemove(position.id)
+                }}
+                addLabel={`${position.name} hinzufügen`}
+                removeLabel={`${position.name} verringern`}
+                addDisabled={selected >= position.maxMenge}
+              />
             </div>
           </div>
         )

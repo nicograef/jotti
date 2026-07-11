@@ -174,14 +174,14 @@ export async function waehleAlleVollAus(page: Page): Promise<void> {
 }
 
 // warteAufTischGeladen wartet, bis der State-Fetch des Tisches fertig ist:
-// TablePage zeigt den Header-Saldo (die einzige item-description mit text-2xl)
-// während des Ladens als „?" und danach als Euro-Betrag (z. B. „0,00 €"). Das
-// ist ein deterministisches Ready-Signal — erst danach ist der Tab-Inhalt
-// gerendert und Prüfungen auf Buttons/Positionszeilen lesen den fertigen DOM.
+// TablePage zeigt den Header-Saldo ([data-slot="tisch-saldo"]) während des
+// Ladens als „?" und danach als Euro-Betrag (z. B. „0,00 €"). Das ist ein
+// deterministisches Ready-Signal — erst danach ist der Tab-Inhalt gerendert und
+// Prüfungen auf Buttons/Positionszeilen lesen den fertigen DOM.
 async function warteAufTischGeladen(page: Page): Promise<void> {
-  await expect(
-    page.locator('[data-slot="item-description"].text-2xl'),
-  ).toHaveText(/\d,\d{2}\s*€/)
+  await expect(page.locator('[data-slot="tisch-saldo"]')).toHaveText(
+    /\d,\d{2}\s*€/,
+  )
 }
 
 // settleAlleOffenenTische gleicht jeden Tisch mit offenem Saldo vollständig

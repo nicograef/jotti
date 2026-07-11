@@ -34,10 +34,6 @@ vi.mock('@/lib/Backend', () => ({
   BackendSingleton: {},
 }))
 
-vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: () => false,
-}))
-
 vi.mock('./product/hooks', () => ({
   useAktiveProdukte: () => ({ produkte: [], isPending: false }),
 }))

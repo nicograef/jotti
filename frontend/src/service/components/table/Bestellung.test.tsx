@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Produkt } from '../../product/Produkt'
 import type { Tisch } from '../../table/Tisch'
+import { ServiceDock } from '../ServiceDock'
 import { Bestellung } from './Bestellung'
 
 vi.mock('sonner', () => ({
@@ -39,13 +40,17 @@ describe('Bestellung Aktionsleiste', () => {
   it('ist ohne Auswahl deaktiviert und zeigt nach Auswahl Anzahl und Summe', async () => {
     const user = userEvent.setup()
     render(
-      <Bestellung
-        backend={{ bestellungAufnehmen: vi.fn().mockResolvedValue(undefined) }}
-        tisch={tisch}
-        products={[testProdukt]}
-        productsLoading={false}
-        onBestellungAufgenommen={vi.fn()}
-      />,
+      <ServiceDock leiste={null}>
+        <Bestellung
+          backend={{
+            bestellungAufnehmen: vi.fn().mockResolvedValue(undefined),
+          }}
+          tisch={tisch}
+          products={[testProdukt]}
+          productsLoading={false}
+          onBestellungAufgenommen={vi.fn()}
+        />
+      </ServiceDock>,
     )
 
     expect(

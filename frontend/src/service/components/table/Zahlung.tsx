@@ -1,4 +1,3 @@
-import { Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -19,6 +18,7 @@ import { formatCents, formatPositionName } from '@/lib/utils'
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import { Stepper } from '../Stepper'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
 interface ZahlungProps {
@@ -162,25 +162,14 @@ function PositionItem({
         </ItemDescription>
       </ItemContent>
       <ItemActions>
-        <Button
-          size="icon"
-          variant="outline"
-          className="rounded-full min-h-12 min-w-12"
-          aria-label="Produkt entfernen"
-          onClick={onRemove}
-        >
-          <Minus />
-        </Button>
-        <span className="text-lg mx-2">{menge}</span>
-        <Button
-          size="icon"
-          variant="outline"
-          className="rounded-full min-h-12 min-w-12"
-          aria-label="Produkt hinzufügen"
-          onClick={onAdd}
-        >
-          <Plus />
-        </Button>
+        <Stepper
+          menge={menge}
+          onAdd={onAdd}
+          onRemove={onRemove}
+          addLabel="Produkt hinzufügen"
+          removeLabel="Produkt entfernen"
+          addDisabled={menge >= unbezahlteMenge}
+        />
       </ItemActions>
     </Item>
   )
@@ -193,9 +182,11 @@ function PositionItemSkeleton() {
         <Skeleton className="h-4 w-24" />
       </ItemContent>
       <ItemActions>
-        <Minus />
-        <span className="text-lg mx-2">&nbsp;</span>
-        <Plus />
+        <div className="flex items-center gap-2">
+          <Skeleton className="size-11 rounded-full" />
+          <span className="w-7" />
+          <Skeleton className="size-11 rounded-full" />
+        </div>
       </ItemActions>
     </Item>
   )

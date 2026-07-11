@@ -42,11 +42,11 @@ test.describe('Kassenabschluss beendet die laufende Kassensitzung', () => {
     await oeffneTisch(page, TISCH)
     await bestellePosition(page, 'Kaffee', 'Tasse') // 2,00 €
     await kassierePosition(page, 'Kaffee Tasse')
-    // Saldo-Element im Tisch-Header (die einzige item-description mit text-2xl,
-    // siehe TablePage): der Tisch ist nach dem Kassieren ausgeglichen.
-    await expect(
-      page.locator('[data-slot="item-description"].text-2xl'),
-    ).toHaveText('0,00 €')
+    // Saldo-Element im Tisch-Header ([data-slot="tisch-saldo"], siehe
+    // TablePage): der Tisch ist nach dem Kassieren ausgeglichen.
+    await expect(page.locator('[data-slot="tisch-saldo"]')).toHaveText(
+      '0,00 €',
+    )
 
     // Alle übrigen, vom Drehbuch offen gelassenen Tische ausgleichen, damit
     // der Kassenabschluss nicht am „tische_saldo_offen"-Gate scheitert.

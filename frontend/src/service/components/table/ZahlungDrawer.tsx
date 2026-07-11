@@ -22,6 +22,7 @@ import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { KommentarField } from './CommentField'
+import { DockActionButton } from './DockActionButton'
 import {
   calculateTotalPrice,
   calculateZahlungsbetraege,
@@ -30,7 +31,6 @@ import {
   toReceiptItems,
 } from './drawerUtils'
 import { Receipt } from './Receipt'
-import { StickyActionBar } from './StickyActionBar'
 
 interface ZahlungDrawerProps {
   backend: Pick<TischBackend, 'zahlungKassieren'>
@@ -94,7 +94,7 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
-        <StickyActionBar
+        <DockActionButton
           label="Kassieren"
           anzahl={anzahl}
           summeCents={totalPrice}

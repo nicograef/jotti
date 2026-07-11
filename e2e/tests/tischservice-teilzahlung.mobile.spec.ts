@@ -32,10 +32,10 @@ test.describe('Servicekraft bestellt und kassiert', () => {
     await bestellePosition(page, 'Bratwurst', 'Normal')
     await bestellePosition(page, 'Bratwurst', 'XXL')
 
-    // Saldo-Element im Tisch-Header (die einzige item-description mit text-2xl,
-    // siehe TablePage): so prüft die Assertion den tatsächlichen Restsaldo statt
-    // eines beliebigen gleichlautenden Betrags irgendwo auf der Seite.
-    const tischSaldo = page.locator('[data-slot="item-description"].text-2xl')
+    // Saldo-Element im Tisch-Header ([data-slot="tisch-saldo"], siehe
+    // TablePage): so prüft die Assertion den tatsächlichen Restsaldo statt eines
+    // beliebigen gleichlautenden Betrags irgendwo auf der Seite.
+    const tischSaldo = page.locator('[data-slot="tisch-saldo"]')
 
     // Nur die Bratwurst Normal (3,50 €) kassieren — die Bratwurst XXL bleibt
     // unbezahlt, der Tisch zeigt den Restsaldo.

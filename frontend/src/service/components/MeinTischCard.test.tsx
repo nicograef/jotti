@@ -47,6 +47,7 @@ function tischSession(overrides: Partial<TischSession>): TischSession {
 describe('MeinTischCard', () => {
   it('zählt offene (unbezahlte) Positionen und hebt die eigenen hervor', () => {
     const state = tischSession({
+      saldoCents: 1050,
       // p1 und p3 von mir, p2 von Kollegin.
       unbezahltePositionen: [
         position('p1', 1),
@@ -62,6 +63,9 @@ describe('MeinTischCard', () => {
     expect(screen.getByText('3 offen')).toBeInTheDocument()
     expect(screen.getByText('davon 2 von dir')).toBeInTheDocument()
     expect(screen.queryByText('Alles erledigt')).not.toBeInTheDocument()
+    // Saldo trägt das "Offen"-Label über dem Betrag.
+    expect(screen.getByText('Offen')).toBeInTheDocument()
+    expect(screen.getByText(/10,50\s*€/)).toBeInTheDocument()
   })
 
   it('zeigt "Alles erledigt" ohne unbezahlte Positionen', () => {

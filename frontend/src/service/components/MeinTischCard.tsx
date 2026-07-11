@@ -27,9 +27,16 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
       onClick={handleClick}
     >
       <CardContent className="pt-4">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-start justify-between mb-2">
           <span className="font-semibold text-base">{state.tischName}</span>
-          <span className="font-medium">{formatCents(state.saldoCents)} €</span>
+          <div className="text-right">
+            <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground">
+              Offen
+            </div>
+            <div className="font-bold tabular-nums">
+              {formatCents(state.saldoCents)}&nbsp;€
+            </div>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {anzahlOffen > 0 && (

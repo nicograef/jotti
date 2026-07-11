@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
+import { ServiceDock } from '../ServiceDock'
 import { Zahlung } from './Zahlung'
 
 vi.mock('sonner', () => ({
@@ -49,15 +50,17 @@ const fremdePosition: Position = {
 
 function renderZahlung(positionen: Position[] = [position]) {
   render(
-    <Zahlung
-      backend={{
-        zahlungKassieren: vi.fn().mockResolvedValue(undefined),
-      }}
-      tisch={tisch}
-      positionen={positionen}
-      loading={false}
-      onZahlungKassiert={vi.fn()}
-    />,
+    <ServiceDock leiste={null}>
+      <Zahlung
+        backend={{
+          zahlungKassieren: vi.fn().mockResolvedValue(undefined),
+        }}
+        tisch={tisch}
+        positionen={positionen}
+        loading={false}
+        onZahlungKassiert={vi.fn()}
+      />
+    </ServiceDock>,
   )
 }
 

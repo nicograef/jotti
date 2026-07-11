@@ -19,9 +19,9 @@ import type { Produkt } from '../../product/Produkt'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { KommentarField } from './CommentField'
+import { DockActionButton } from './DockActionButton'
 import { calculateTotalPrice, toBestellungData } from './drawerUtils'
 import { Receipt } from './Receipt'
-import { StickyActionBar } from './StickyActionBar'
 
 interface BestellungDrawerProps {
   backend: Pick<TischBackend, 'bestellungAufnehmen'>
@@ -81,7 +81,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
-        <StickyActionBar
+        <DockActionButton
           label="Bestellung überprüfen"
           anzahl={anzahl}
           summeCents={totalPrice}

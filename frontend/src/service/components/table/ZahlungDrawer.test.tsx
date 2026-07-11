@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
+import { ServiceDock } from '../ServiceDock'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
 vi.mock('sonner', () => ({
@@ -33,14 +34,18 @@ function renderDrawer(
   zahlungKassieren: () => Promise<void> = vi.fn().mockResolvedValue(undefined),
 ) {
   const zahlungKassiert = vi.fn()
+  // Der Aktionsbutton rendert per Portal in den ServiceDock; deshalb wird der
+  // Drawer hier in ein Dock eingebettet (leiste bleibt leer).
   render(
-    <ZahlungDrawer
-      backend={{ zahlungKassieren }}
-      tisch={tisch}
-      unbezahltePositionen={[position]}
-      mengen={{ [position.positionId]: 1 }}
-      zahlungKassiert={zahlungKassiert}
-    />,
+    <ServiceDock leiste={null}>
+      <ZahlungDrawer
+        backend={{ zahlungKassieren }}
+        tisch={tisch}
+        unbezahltePositionen={[position]}
+        mengen={{ [position.positionId]: 1 }}
+        zahlungKassiert={zahlungKassiert}
+      />
+    </ServiceDock>,
   )
   return { zahlungKassiert }
 }

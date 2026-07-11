@@ -58,9 +58,9 @@ test.describe('Servicekraft nimmt eine Bestellung auf und kassiert', () => {
     await expect(page.getByText('Zahlung erfolgreich.')).toBeVisible()
 
     // Nach dem Kassieren ist der Tisch wieder ausgeglichen. Auf das Saldo-Element
-    // im Tisch-Header gescopt (die einzige item-description mit text-2xl, siehe
-    // TablePage) statt auf ein beliebiges „0,00 €" irgendwo auf der Seite.
-    const tischSaldo = page.locator('[data-slot="item-description"].text-2xl')
+    // im Tisch-Header gescopt ([data-slot="tisch-saldo"], siehe TablePage) statt
+    // auf ein beliebiges „0,00 €" irgendwo auf der Seite.
+    const tischSaldo = page.locator('[data-slot="tisch-saldo"]')
     await expect(tischSaldo).toHaveText('0,00 €')
   })
 })

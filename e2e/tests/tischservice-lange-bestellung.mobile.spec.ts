@@ -89,7 +89,7 @@ test.describe('Drawer-Scroll-Layout bei langer Positionsliste', () => {
     await expect(page.getByText('Zahlung erfolgreich.').first()).toBeVisible()
 
     // Tisch ist danach wieder ausgeglichen (Saldo-Element im Tisch-Header).
-    const tischSaldo = page.locator('[data-slot="item-description"].text-2xl')
+    const tischSaldo = page.locator('[data-slot="tisch-saldo"]')
     await expect(tischSaldo).toHaveText('0,00 €')
   })
 })

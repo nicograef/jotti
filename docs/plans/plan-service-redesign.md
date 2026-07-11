@@ -100,12 +100,12 @@ Saldo mit Label: Label "OFFEN" (11 px, medium, uppercase, letter-spacing 0.04em,
 
 ### Acceptance criteria
 
-- [ ] Auf Tisch-Detail existiert genau eine Bodenfläche (Dock) mit Aktionsbutton über der TabsList; keine zwei übereinander schwebenden Leisten mehr, keine `tabInhaltFreiraum`-Konstante, keine `isMobile`-Verzweigung in `TablePage`.
-- [ ] Drawer öffnen weiterhin über den Dock-Button (Portal + `DrawerTrigger` verifiziert), Guard bei leerer Auswahl greift unverändert.
-- [ ] Letzte Listenzeile ist über dem Dock vollständig sichtbar und antippbar (Content-Padding stimmt, auch mit Safe-Area-Inset).
-- [ ] Alle drei Stepper-Einsatzorte (`ProductList`, `Zahlung`, `PositionAuswahlListe`) nutzen `Stepper` mit identischem Verhalten; Minus bei Menge 0 ist `disabled` und gestrichelt.
-- [ ] Tisch-Kopf zeigt Titel, Badge darunter, rechts Saldo mit "OFFEN"-Label; `MeinTischCard`-Saldo trägt dasselbe Label.
-- [ ] Tests angepasst: `StickyActionBar.test.tsx` (umbenannt zu `DockActionButton.test.tsx`), `TablePage.test.tsx`, `PositionAuswahlListe.test.tsx`; dazu `Bestellung.test.tsx`, `Zahlung.test.tsx`, `Direktverkauf.test.tsx` (der Stepper ersetzt die Buttonpaare schon in dieser Phase) und `MeinTischCard.test.tsx` (Saldo-Label); `make check` grün.
+- [x] Auf Tisch-Detail existiert genau eine Bodenfläche (Dock) mit Aktionsbutton über der TabsList; keine zwei übereinander schwebenden Leisten mehr, keine `tabInhaltFreiraum`-Konstante, keine `isMobile`-Verzweigung in `TablePage`.
+- [x] Drawer öffnen weiterhin über den Dock-Button (Portal + `DrawerTrigger` verifiziert), Guard bei leerer Auswahl greift unverändert.
+- [x] Letzte Listenzeile ist über dem Dock vollständig sichtbar und antippbar (Content-Padding stimmt, auch mit Safe-Area-Inset).
+- [x] Alle drei Stepper-Einsatzorte (`ProductList`, `Zahlung`, `PositionAuswahlListe`) nutzen `Stepper` mit identischem Verhalten; Minus bei Menge 0 ist `disabled` und gestrichelt.
+- [x] Tisch-Kopf zeigt Titel, Badge darunter, rechts Saldo mit "OFFEN"-Label; `MeinTischCard`-Saldo trägt dasselbe Label.
+- [x] Tests angepasst: `StickyActionBar.test.tsx` (umbenannt zu `DockActionButton.test.tsx`), `TablePage.test.tsx`, `PositionAuswahlListe.test.tsx`; dazu `Bestellung.test.tsx`, `Zahlung.test.tsx`, `Direktverkauf.test.tsx` (der Stepper ersetzt die Buttonpaare schon in dieser Phase) und `MeinTischCard.test.tsx` (Saldo-Label); `make check` grün.
 
 ---
 
