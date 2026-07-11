@@ -12,8 +12,8 @@ Zwei Dinge gehören ins Archiv.
 erwartete Standardform eurer Kassendaten, lesbar mit jeder Tabellenkalkulation. So
 sichert ihr ihn nach jedem Veranstaltungstag:
 
-1. Im Admin-Bereich unter „Auswertungen" das „Dashboard" öffnen und im Abschnitt
-   „Historische Auswertung" die abgeschlossene Kassensitzung auswählen.
+1. Im Admin-Bereich unter „Auswertungen" die „Kassenberichte" öffnen und die
+   abgeschlossene Kassensitzung auswählen.
 2. Auf „DSFinV-K-Export" klicken. jotti lädt eine ZIP-Datei in den Download-Ordner.
 3. Prüfen: die ZIP-Datei öffnen. Darin liegen mehrere CSV-Dateien, eine `index.xml`
    und eine `.dtd`. Lässt sie sich öffnen und sind die CSV-Dateien nicht leer, ist

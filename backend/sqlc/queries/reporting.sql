@@ -1,11 +1,12 @@
 -- name: GetOffeneTischeDetails :many
--- Live-Dashboard: Offene Tische der offenen Kassensitzung mit Name und aktuellem Saldo.
+-- Live-Dashboard: Offene Tische der offenen Kassensitzung mit Name und aktuellem
+-- Saldo, größte offene Beträge zuerst (Tisch-Name als stabiler Tiebreaker).
 SELECT ts.tisch_id, t.name AS tisch_name, ts.saldo_cents
 FROM tisch_sessions ts
 JOIN tische t ON t.id = ts.tisch_id
 WHERE ts.saldo_cents > 0
   AND ts.kassensitzung_nr = @kassensitzung_nr
-ORDER BY t.name;
+ORDER BY ts.saldo_cents DESC, t.name;
 
 -- name: GetReportingStats :one
 -- Reporting: Aggregierte Kennzahlen fuer eine Kassensitzung.
@@ -90,22 +91,6 @@ LEFT JOIN users u ON u.id = e.user_id
 WHERE e.type IN ('stornierung-erteilt:v1', 'bestellung-korrigiert:v1', 'direktverkauf-storniert:v1')
 AND e.kassensitzung_nr = @kassensitzung_nr
 ORDER BY e.timestamp DESC;
-
--- name: GetUmsatzProTisch :many
--- Tagesabrechnung: kassierte Zahlungen gruppiert nach Tisch pro Kassensitzung.
--- Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
-SELECT
-    tss.tisch_id,
-    t.name AS tisch_name,
-    COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS zahlungen_cents,
-    COUNT(CASE WHEN e.type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
-FROM kassenjournal e
-JOIN tisch_sessions tss ON tss.subject = e.subject
-JOIN tische t ON t.id = tss.tisch_id
-WHERE e.type = 'zahlung-kassiert:v1'
-AND e.kassensitzung_nr = @kassensitzung_nr
-GROUP BY tss.tisch_id, t.name
-ORDER BY zahlungen_cents DESC;
 
 -- name: GetUmsatzPositionszeilen :many
 -- Tagesabrechnung: umsatzwirksame Brutto-Positionszeilen mit Steuersatz pro

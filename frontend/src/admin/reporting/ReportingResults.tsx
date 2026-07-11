@@ -1,4 +1,4 @@
-import { Ban, ChartBar, TableIcon, Users } from 'lucide-react'
+import { Ban, ChartBar, Loader2, Users } from 'lucide-react'
 
 import { STEUERSATZ_LABEL } from '@/admin/products/Produkt'
 import { Badge } from '@/components/ui/badge'
@@ -17,18 +17,19 @@ import {
   ItemGroup,
   ItemTitle,
 } from '@/components/ui/item'
-import { Progress } from '@/components/ui/progress'
 import {
   ScrollableTabsList,
   Tabs,
   TabsContent,
   TabsTrigger,
 } from '@/components/ui/tabs'
-import { formatCents, formatPositionName } from '@/lib/utils'
+import { formatCents } from '@/lib/utils'
 
+import { StornoItem } from './StornoItem'
+import { StornoAggregat, StornoMarker } from './StornoServicekraft'
 import { SummaryCard } from './SummaryCard'
 import type { ReportingData } from './types'
-import { formatBediener, formatLocalTime, pct } from './utils'
+import { formatBediener } from './utils'
 
 export function ReportingResults({
   result,
@@ -39,11 +40,17 @@ export function ReportingResults({
 }) {
   const summary = result.summary
   const breakdowns = result.breakdowns
+  const stornoAnzahlByUserId = new Map(
+    breakdowns.stornierungenProServicekraft.map((s) => [
+      s.userId,
+      s.anzahlStornierungen,
+    ]),
+  )
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Progress className="w-1/2" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -64,15 +71,6 @@ export function ReportingResults({
             </Badge>
           )}
         </TabsTrigger>
-        <TabsTrigger value="tische">
-          <TableIcon className="size-4" />
-          Tische
-          {breakdowns.umsatzProTisch.length > 0 && (
-            <Badge variant="secondary" className="ml-1">
-              {breakdowns.umsatzProTisch.length}
-            </Badge>
-          )}
-        </TabsTrigger>
         <TabsTrigger value="stornierungen">
           <Ban className="size-4" />
           Stornierungen
@@ -90,17 +88,17 @@ export function ReportingResults({
           <SummaryCard
             title="Gesamtumsatz"
             value={`${formatCents(summary.gesamtUmsatzCents)} €`}
-            sub="Kassierungen − Warenrücknahmen"
-          />
-          <SummaryCard
-            title="Direktverkauf"
-            value={String(summary.anzahlDirektverkaeufe)}
-            sub={`${formatCents(summary.direktverkaufUmsatzCents)} €`}
+            sub="kassiert, abzüglich Warenrücknahmen"
           />
           <SummaryCard
             title="Bestellungen"
             value={String(summary.anzahlBestellungen)}
             sub={`${formatCents(summary.gesamtBestellungenCents)} €`}
+          />
+          <SummaryCard
+            title="Direktverkauf"
+            value={String(summary.anzahlDirektverkaeufe)}
+            sub={`${formatCents(summary.direktverkaufUmsatzCents)} €`}
           />
           <SummaryCard
             title="Stornierungen"
@@ -116,45 +114,37 @@ export function ReportingResults({
           <CardContent>
             {result.umsatzProSteuersatz.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Keine steuerrelevanten Umsätze im gewählten Zeitraum.
+                Keine steuerrelevanten Umsätze in dieser Kassensitzung.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[32rem] text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 pr-3 font-medium">Steuersatz</th>
-                      <th className="py-2 pr-3 text-right font-medium">
-                        Brutto
-                      </th>
-                      <th className="py-2 pr-3 text-right font-medium">
-                        Netto
-                      </th>
-                      <th className="py-2 text-right font-medium">Steuer</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.umsatzProSteuersatz.map((umsatz) => (
-                      <tr
-                        key={umsatz.satz}
-                        className="border-b last:border-b-0"
-                      >
-                        <td className="py-2 pr-3">
-                          {STEUERSATZ_LABEL[umsatz.satz]}
-                        </td>
-                        <td className="py-2 pr-3 text-right">
+              <div className="space-y-3">
+                {result.umsatzProSteuersatz.map((umsatz) => (
+                  <div key={umsatz.satz} className="rounded-md border p-3">
+                    <p className="font-medium">
+                      {STEUERSATZ_LABEL[umsatz.satz]}
+                    </p>
+                    <dl className="mt-2 space-y-1 text-sm">
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-muted-foreground">Brutto</dt>
+                        <dd className="whitespace-nowrap font-medium">
                           {formatCents(umsatz.bruttoCents)} €
-                        </td>
-                        <td className="py-2 pr-3 text-right">
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-muted-foreground">Netto</dt>
+                        <dd className="whitespace-nowrap">
                           {formatCents(umsatz.nettoCents)} €
-                        </td>
-                        <td className="py-2 text-right">
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-muted-foreground">Steuer</dt>
+                        <dd className="whitespace-nowrap">
                           {formatCents(umsatz.steuerCents)} €
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
@@ -171,70 +161,30 @@ export function ReportingResults({
               </EmptyMedia>
               <EmptyTitle>Keine Zahlungen</EmptyTitle>
               <EmptyDescription>
-                Keine Zahlungen im gewählten Zeitraum.
+                Keine Zahlungen in dieser Kassensitzung.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
           <ItemGroup>
-            {breakdowns.umsatzProServicekraft.map((sk) => (
-              <Item key={sk.userId} variant="outline" size="sm">
-                <ItemContent>
-                  <ItemTitle>{formatBediener(sk.userName, sk.name)}</ItemTitle>
-                  <Progress
-                    value={pct(sk.zahlungenCents, summary.gesamtUmsatzCents)}
-                    className="mt-1 h-1.5"
-                  />
-                </ItemContent>
-                <ItemActions>
-                  <Badge variant="secondary">
-                    {sk.anzahlZahlungen} Zahlungen
-                  </Badge>
-                  <span className="min-w-24 text-right text-sm font-semibold">
-                    {formatCents(sk.zahlungenCents)} €
-                  </span>
-                </ItemActions>
-              </Item>
-            ))}
-          </ItemGroup>
-        )}
-      </TabsContent>
-
-      {/* Tische */}
-      <TabsContent value="tische" className="mt-4">
-        {breakdowns.umsatzProTisch.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <TableIcon />
-              </EmptyMedia>
-              <EmptyTitle>Keine Tischzahlungen</EmptyTitle>
-              <EmptyDescription>
-                Keine Tischzahlungen im gewählten Zeitraum.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          <ItemGroup>
-            {breakdowns.umsatzProTisch.map((t) => (
-              <Item key={t.tischId} variant="outline" size="sm">
-                <ItemContent>
-                  <ItemTitle>{t.tischName}</ItemTitle>
-                  <Progress
-                    value={pct(t.zahlungenCents, summary.gesamtUmsatzCents)}
-                    className="mt-1 h-1.5"
-                  />
-                </ItemContent>
-                <ItemActions>
-                  <Badge variant="secondary">
-                    {t.anzahlZahlungen} Zahlungen
-                  </Badge>
-                  <span className="min-w-24 text-right text-sm font-semibold">
-                    {formatCents(t.zahlungenCents)} €
-                  </span>
-                </ItemActions>
-              </Item>
-            ))}
+            {breakdowns.umsatzProServicekraft.map((sk) => {
+              const stornoAnzahl = stornoAnzahlByUserId.get(sk.userId) ?? 0
+              return (
+                <Item key={sk.userId} variant="outline" size="sm">
+                  <ItemContent>
+                    <ItemTitle>
+                      {formatBediener(sk.userName, sk.name)}
+                    </ItemTitle>
+                    {stornoAnzahl > 0 && <StornoMarker anzahl={stornoAnzahl} />}
+                  </ItemContent>
+                  <ItemActions>
+                    <span className="min-w-24 text-right text-sm font-semibold">
+                      {formatCents(sk.zahlungenCents)} €
+                    </span>
+                  </ItemActions>
+                </Item>
+              )
+            })}
           </ItemGroup>
         )}
       </TabsContent>
@@ -249,71 +199,26 @@ export function ReportingResults({
               </EmptyMedia>
               <EmptyTitle>Keine Stornierungen</EmptyTitle>
               <EmptyDescription>
-                Keine Stornierungen im gewählten Zeitraum.
+                Keine Stornierungen in dieser Kassensitzung.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
-          <ItemGroup>
-            {result.stornierungen.map((storno) => (
-              <Item
-                key={`${storno.zeitpunkt}-${String(storno.tischId)}-${String(storno.userId)}`}
-                variant="outline"
-              >
-                <ItemContent>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <ItemTitle>
-                        {storno.quelle === 'direktverkauf'
-                          ? 'Direktverkauf'
-                          : storno.tischName}
-                        <Badge variant="secondary" className="ml-2 font-normal">
-                          {formatBediener(storno.userName, storno.name)}
-                        </Badge>
-                      </ItemTitle>
-                      <p className="mt-0.5 text-sm text-muted-foreground">
-                        {formatLocalTime(storno.zeitpunkt)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={storno.barRueckgabe ? 'outline' : 'secondary'}
-                      >
-                        {storno.barRueckgabe ? 'Bar-Rückgabe' : 'Geldneutral'}
-                      </Badge>
-                      <Badge variant="destructive">
-                        {formatCents(storno.betragCents)} €
-                      </Badge>
-                    </div>
-                  </div>
-                  {storno.kommentar && (
-                    <p className="mt-1 text-sm italic text-muted-foreground">
-                      {storno.kommentar}
-                    </p>
-                  )}
-                  {storno.positionen.length > 0 && (
-                    <ul className="mt-2 space-y-0.5">
-                      {storno.positionen.map((pos) => (
-                        <li
-                          key={`${pos.produktName}-${pos.varianteName}`}
-                          className="flex justify-between text-sm text-muted-foreground"
-                        >
-                          <span>
-                            {pos.menge}×{' '}
-                            {formatPositionName(
-                              pos.produktName,
-                              pos.varianteName,
-                            )}
-                          </span>
-                          <span>{formatCents(pos.einzelpreisCents)} €</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </ItemContent>
-              </Item>
-            ))}
-          </ItemGroup>
+          <>
+            {breakdowns.stornierungenProServicekraft.length > 0 && (
+              <StornoAggregat
+                eintraege={breakdowns.stornierungenProServicekraft}
+              />
+            )}
+            <ItemGroup>
+              {result.stornierungen.map((storno) => (
+                <StornoItem
+                  key={`${storno.zeitpunkt}-${String(storno.tischId)}-${String(storno.userId)}`}
+                  storno={storno}
+                />
+              ))}
+            </ItemGroup>
+          </>
         )}
       </TabsContent>
     </Tabs>

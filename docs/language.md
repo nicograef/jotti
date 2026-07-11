@@ -346,9 +346,8 @@ Reporting-Daten werden on-demand per SQL-Aggregation aus dem Kassenjournal berec
 | ------------------- | ---------------------------------------------------------------------------------------------------------- |
 | ReportingData       | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen                |
 | Summary             | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen)                |
-| Breakdowns          | Aufschlüsselung des Umsatzes: `UmsatzProServicekraft []UmsatzServicekraft`, `UmsatzProTisch []UmsatzTisch` |
+| Breakdowns          | Aufschlüsselung des Umsatzes: `UmsatzProServicekraft []UmsatzServicekraft`                                 |
 | UmsatzServicekraft  | Umsatz einer einzelnen Servicekraft (Zahlungen, Anzahl)                                                    |
-| UmsatzTisch         | Umsatz eines einzelnen Tisches (Zahlungen, Anzahl)                                                         |
 | StornierungDetail   | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, Benutzer, Betrag, Kommentar, Positionen); `barRueckgabe` markiert die kassenwirksame Warenrücknahme gegenüber der geldneutralen Korrektur |
 | StornierungPosition | Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis)                |
 

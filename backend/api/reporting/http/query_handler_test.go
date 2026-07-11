@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
@@ -17,9 +18,10 @@ import (
 )
 
 type mockQuery struct {
-	data     reporting.ReportingData
-	liveData *reporting.LiveReportingData
-	err      error
+	data            reporting.ReportingData
+	liveData        *reporting.LiveReportingData
+	kassensitzungen []kasse.Kassensitzung
+	err             error
 }
 
 func (m mockQuery) GetReporting(_ context.Context, _ int) (reporting.ReportingData, error) {
@@ -30,8 +32,8 @@ func (m mockQuery) GetEigeneUebersicht(_ context.Context, _ int) (reporting.Eige
 	return reporting.EigeneUebersicht{}, m.err
 }
 
-func (m mockQuery) GetAllKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
-	return nil, m.err
+func (m mockQuery) GetAbgeschlosseneKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
+	return m.kassensitzungen, m.err
 }
 
 func (m mockQuery) GetLiveReporting(_ context.Context) (*reporting.LiveReportingData, error) {
@@ -93,7 +95,9 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
-			UmsatzProTisch:        []reporting.UmsatzTisch{},
+			StornierungenProServicekraft: []reporting.StornierungServicekraft{
+				{UserID: 3, UserName: "felix", Name: "Felix W.", AnzahlStornierungen: 2, StornierungenCents: 800},
+			},
 		},
 		UmsatzProSteuersatz: []reporting.UmsatzSteuersatz{
 			{Satz: steuer.RegelSteuersatz, BruttoCents: 1190, NettoCents: 1000, SteuerCents: 190},
@@ -125,9 +129,22 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 			NettoCents  int    `json:"nettoCents"`
 			SteuerCents int    `json:"steuerCents"`
 		} `json:"umsatzProSteuersatz"`
+		Breakdowns struct {
+			StornierungenProServicekraft []struct {
+				UserID              int `json:"userId"`
+				AnzahlStornierungen int `json:"anzahlStornierungen"`
+				StornierungenCents  int `json:"stornierungenCents"`
+			} `json:"stornierungenProServicekraft"`
+		} `json:"breakdowns"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("expected valid JSON response: %v", err)
+	}
+	if len(resp.Breakdowns.StornierungenProServicekraft) != 1 {
+		t.Fatalf("expected 1 stornierungenProServicekraft row, got %+v", resp.Breakdowns.StornierungenProServicekraft)
+	}
+	if sk := resp.Breakdowns.StornierungenProServicekraft[0]; sk.UserID != 3 || sk.AnzahlStornierungen != 2 || sk.StornierungenCents != 800 {
+		t.Fatalf("unexpected stornierungenProServicekraft row: %+v", resp.Breakdowns.StornierungenProServicekraft[0])
 	}
 	if resp.Summary.GesamtUmsatzCents != 10000 {
 		t.Errorf("expected gesamtUmsatzCents 10000, got %d", resp.Summary.GesamtUmsatzCents)
@@ -157,6 +174,53 @@ func TestGetReportingHandler_QueryError_Returns500(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	handler.GetReportingHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500, got %d", rec.Code)
+	}
+}
+
+func TestGetAbgeschlosseneKassensitzungenHandler_ReturnsItems(t *testing.T) {
+	handler := QueryHandler{Query: mockQuery{kassensitzungen: []kasse.Kassensitzung{
+		{ZNr: 2, Datum: time.Date(2026, 7, 5, 0, 0, 0, 0, time.UTC), Bezeichnung: "Sommerfest Samstag", Status: kasse.KassensitzungAbgeschlossen},
+	}}}
+
+	req := httptest.NewRequest(http.MethodPost, "/get-abgeschlossene-kassensitzungen", strings.NewReader("{}"))
+	rec := httptest.NewRecorder()
+
+	handler.GetAbgeschlosseneKassensitzungenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		Kassensitzungen []struct {
+			ZNr         int    `json:"zNr"`
+			Datum       string `json:"datum"`
+			Bezeichnung string `json:"bezeichnung"`
+			Status      string `json:"status"`
+		} `json:"kassensitzungen"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("expected valid JSON response: %v", err)
+	}
+	if len(resp.Kassensitzungen) != 1 {
+		t.Fatalf("expected 1 kassensitzung, got %d", len(resp.Kassensitzungen))
+	}
+	item := resp.Kassensitzungen[0]
+	if item.ZNr != 2 || item.Datum != "2026-07-05" || item.Status != "abgeschlossen" {
+		t.Fatalf("unexpected kassensitzung item: %+v", item)
+	}
+}
+
+func TestGetAbgeschlosseneKassensitzungenHandler_QueryError_Returns500(t *testing.T) {
+	handler := QueryHandler{Query: mockQuery{err: errors.New("db error")}}
+
+	req := httptest.NewRequest(http.MethodPost, "/get-abgeschlossene-kassensitzungen", strings.NewReader("{}"))
+	rec := httptest.NewRecorder()
+
+	handler.GetAbgeschlosseneKassensitzungenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status 500, got %d", rec.Code)
@@ -194,15 +258,18 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
-			UmsatzProTisch:        []reporting.UmsatzTisch{},
+			StornierungenProServicekraft: []reporting.StornierungServicekraft{
+				{UserID: 7, UserName: "sophie", Name: "Sophie B.", AnzahlStornierungen: 1, StornierungenCents: 250},
+			},
 		},
 		Servicekraefte: []reporting.ServicekraftLive{
 			{
 				UserID:         7,
 				UserName:       "Anna",
 				ZahlungenCents: 1500,
+				OffenCents:     900,
 				OffeneTische: []reporting.OffeneArbeitTisch{
-					{TischID: 3, TischName: "Tisch 3", AnzahlUnbezahlt: 1, AnzahlOffen: 1},
+					{TischID: 3, TischName: "Tisch 3", AnzahlUnbezahlt: 1, AnzahlOffen: 1, OffenCents: 900},
 				},
 				Erledigt: false,
 			},
@@ -238,15 +305,26 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 			Servicekraefte []struct {
 				UserID       int  `json:"userId"`
 				Erledigt     bool `json:"erledigt"`
+				OffenCents   int  `json:"offenCents"`
 				OffeneTische []struct {
-					TischName   string `json:"tischName"`
-					AnzahlOffen int    `json:"anzahlOffen"`
+					TischName string `json:"tischName"`
 				} `json:"offeneTische"`
 			} `json:"servicekraefte"`
+			StornierungenProServicekraft []struct {
+				UserID              int `json:"userId"`
+				AnzahlStornierungen int `json:"anzahlStornierungen"`
+				StornierungenCents  int `json:"stornierungenCents"`
+			} `json:"stornierungenProServicekraft"`
 		} `json:"breakdowns"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("expected valid JSON response: %v", err)
+	}
+	if len(resp.Breakdowns.StornierungenProServicekraft) != 1 {
+		t.Fatalf("expected 1 stornierungenProServicekraft row, got %+v", resp.Breakdowns.StornierungenProServicekraft)
+	}
+	if sk := resp.Breakdowns.StornierungenProServicekraft[0]; sk.UserID != 7 || sk.AnzahlStornierungen != 1 || sk.StornierungenCents != 250 {
+		t.Fatalf("unexpected stornierungenProServicekraft row: %+v", resp.Breakdowns.StornierungenProServicekraft[0])
 	}
 	if resp.KassensitzungNr != 42 {
 		t.Errorf("expected kassensitzungNr 42, got %d", resp.KassensitzungNr)
@@ -276,7 +354,10 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 	if sk.UserID != 7 || sk.Erledigt {
 		t.Errorf("expected servicekraft 7 with open work, got %+v", sk)
 	}
-	if len(sk.OffeneTische) != 1 || sk.OffeneTische[0].TischName != "Tisch 3" || sk.OffeneTische[0].AnzahlOffen != 1 {
+	if sk.OffenCents != 900 {
+		t.Errorf("expected servicekraft offenCents 900, got %d", sk.OffenCents)
+	}
+	if len(sk.OffeneTische) != 1 || sk.OffeneTische[0].TischName != "Tisch 3" {
 		t.Errorf("expected open work at 'Tisch 3', got %+v", sk.OffeneTische)
 	}
 }

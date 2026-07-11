@@ -14,13 +14,6 @@ type UmsatzServicekraft struct {
 	AnzahlZahlungen int
 }
 
-type UmsatzTisch struct {
-	TischID         int
-	TischName       string
-	ZahlungenCents  int
-	AnzahlZahlungen int
-}
-
 type UmsatzSteuersatz struct {
 	Satz        steuer.Steuersatz
 	BruttoCents int
@@ -49,6 +42,17 @@ type StornierungDetail struct {
 	Positionen   []StornierungPosition
 }
 
+// StornierungServicekraft aggregiert die Stornierungen einer Servicekraft
+// (Anzahl und Betrag) über eine Kassensitzung — als Kontroll-Signal im
+// Admin-Dashboard. Aus den StornierungDetail-Zeilen zusammengefasst.
+type StornierungServicekraft struct {
+	UserID              int
+	UserName            string // eingefrorener Username
+	Name                string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
+	AnzahlStornierungen int
+	StornierungenCents  int
+}
+
 type Summary struct {
 	GesamtUmsatzCents        int
 	GesamtBestellungenCents  int
@@ -61,8 +65,8 @@ type Summary struct {
 }
 
 type Breakdowns struct {
-	UmsatzProServicekraft []UmsatzServicekraft
-	UmsatzProTisch        []UmsatzTisch
+	UmsatzProServicekraft        []UmsatzServicekraft
+	StornierungenProServicekraft []StornierungServicekraft
 }
 
 type ReportingData struct {
@@ -104,6 +108,9 @@ type ServicekraftLive struct {
 	Name            string // live aus users aufgeloester Klarname (leer bei reiner offener Arbeit)
 	ZahlungenCents  int
 	AnzahlZahlungen int
+	// OffenCents ist der noch offene (unbezahlte) Betrag der eigenen Arbeit über
+	// alle Tische — die Servicekraft-Ebene-Summe über OffeneTische.OffenCents.
+	OffenCents int
 	// OffeneTische listet die Tische mit offener eigener Arbeit (aufsteigend nach
 	// Tisch-ID); leer wenn die Servicekraft fertig ist.
 	OffeneTische []OffeneArbeitTisch
@@ -118,6 +125,9 @@ type OffeneArbeitTisch struct {
 	TischName       string
 	AnzahlUnbezahlt int
 	AnzahlOffen     int
+	// OffenCents ist der noch offene (unbezahlte) Betrag der eigenen Positionen
+	// an diesem Tisch.
+	OffenCents int
 }
 
 type EigeneUebersicht struct {

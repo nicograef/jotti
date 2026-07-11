@@ -10,11 +10,11 @@ import type { Kassensitzung, LiveReportingData, ReportingData } from './types'
 
 const reportingBackend = new ReportingBackend(BackendSingleton)
 
-export function useKassensitzungen() {
+export function useAbgeschlosseneKassensitzungen() {
   const { data: kassensitzungen = [] as Kassensitzung[], isPending } = useQuery(
     {
-      queryKey: ['kassensitzungen'],
-      queryFn: () => reportingBackend.getAllKassensitzungen(),
+      queryKey: ['abgeschlossene-kassensitzungen'],
+      queryFn: () => reportingBackend.getAbgeschlosseneKassensitzungen(),
     },
   )
   return { kassensitzungen, isPending }
@@ -30,12 +30,19 @@ export function useReport(kassensitzungNr: number | null) {
 }
 
 export function useLiveReporting() {
-  const { data: liveData = null as LiveReportingData | null, isPending } =
-    useQuery({
-      queryKey: ['live-reporting'],
-      queryFn: () => reportingBackend.getLiveReporting(),
-    })
-  return { liveData, isPending }
+  const {
+    data: liveData = null as LiveReportingData | null,
+    isPending,
+    dataUpdatedAt,
+    refetch,
+  } = useQuery({
+    queryKey: ['live-reporting'],
+    queryFn: () => reportingBackend.getLiveReporting(),
+    // Auto-Refresh: das Live-Dashboard aktualisiert sich alle 30 s ohne
+    // Interaktion (lokaler Server, eine Admin-Session).
+    refetchInterval: 30_000,
+  })
+  return { liveData, isPending, dataUpdatedAt, refetch }
 }
 
 export function useDsfinvkExport() {

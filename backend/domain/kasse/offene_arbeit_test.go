@@ -65,6 +65,42 @@ func TestComputeEigeneArbeitAnTisch(t *testing.T) {
 	}
 }
 
+func TestComputeOffeneArbeit_OffenCents(t *testing.T) {
+	sessions := []TischSession{
+		{
+			TischID: 3,
+			UnbezahltePositionen: []Position{
+				{PositionID: "p1", Menge: 2, EinzelpreisCents: 250, BestellerUserID: 7},
+			},
+		},
+		{
+			TischID: 1,
+			UnbezahltePositionen: []Position{
+				{PositionID: "p2", Menge: 1, EinzelpreisCents: 400, BestellerUserID: 7},
+				{PositionID: "p3", Menge: 3, EinzelpreisCents: 100, BestellerUserID: 8},
+			},
+		},
+	}
+
+	// Einzeltisch: nur eigene Positionen zählen (2 × 250 = 500 Cent).
+	arbeit := ComputeEigeneArbeitAnTisch(sessions[0], 7)
+	if arbeit.OffenCents != 500 {
+		t.Errorf("OffenCents = %d, want 500", arbeit.OffenCents)
+	}
+
+	// Rollup reicht OffenCents je Tisch durch (Tisch 1: 400, Tisch 3: 500).
+	rollup := ComputeOffeneArbeitRollup(sessions, 7)
+	if len(rollup.OffeneTische) != 2 {
+		t.Fatalf("expected 2 offene Tische, got %d: %+v", len(rollup.OffeneTische), rollup.OffeneTische)
+	}
+	if rollup.OffeneTische[0].TischID != 1 || rollup.OffeneTische[0].OffenCents != 400 {
+		t.Errorf("Tisch 1: got %+v, want OffenCents 400", rollup.OffeneTische[0])
+	}
+	if rollup.OffeneTische[1].TischID != 3 || rollup.OffeneTische[1].OffenCents != 500 {
+		t.Errorf("Tisch 3: got %+v, want OffenCents 500", rollup.OffeneTische[1])
+	}
+}
+
 func TestComputeOffeneArbeitRollup(t *testing.T) {
 	sessions := []TischSession{
 		{

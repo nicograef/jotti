@@ -4,7 +4,8 @@ import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 
 // Deckt das Live-Dashboard ab: die Umsätze der laufenden (Sonntags-)Sitzung
-// aus den Seed-Daten sind sichtbar.
+// aus den Seed-Daten sind sichtbar. Das Dashboard ist eine einzelne scrollbare
+// Seite ohne Tabs — alle Blöcke sind direkt erreichbar.
 
 test.describe('Admin sieht das Live-Dashboard', () => {
   test('Live-Dashboard zeigt Umsätze der Seed-Daten', async ({
@@ -15,31 +16,47 @@ test.describe('Admin sieht das Live-Dashboard', () => {
     await anmelden(page, zugangsdaten.admin)
 
     await page.goto('/admin/auswertung')
-    // Die Seite zeigt sowohl das Live-Dashboard als auch (weiter unten) eine
-    // historische Auswertung mit denselben Tab-Beschriftungen — deshalb bleibt
-    // jede Prüfung auf den Live-Dashboard-Bereich beschränkt.
     const liveSection = page.getByTestId('live-reporting-section')
-    await expect(liveSection.getByRole('heading', { name: 'Live-Dashboard' })).toBeVisible()
+    await expect(
+      liveSection.getByRole('heading', { name: 'Live-Dashboard' }),
+    ).toBeVisible()
 
-    // Übersicht-Kennzahlen der laufenden Sitzung sind sichtbar (Seed hat
-    // Bestellungen, Direktverkäufe und Stornierungen am Sonntag).
-    await expect(liveSection.getByText('Bestellungen')).toBeVisible()
+    // Single-Scroll: keine Tabs mehr.
+    await expect(liveSection.getByRole('tab')).toHaveCount(0)
+
+    // Kennzahlen der laufenden Sitzung sind sichtbar (Seed hat Bestellungen,
+    // Direktverkäufe und Stornierungen am Sonntag).
     await expect(liveSection.getByText('Gesamtumsatz')).toBeVisible()
     await expect(liveSection.getByText('Offene Saldi')).toBeVisible()
+    await expect(liveSection.getByText('Bestellungen')).toBeVisible()
+
+    // Aktualitäts-Anzeige und manueller Refresh sind vorhanden.
+    await expect(liveSection.getByText(/^Stand \d{2}:\d{2}$/)).toBeVisible()
+    await expect(
+      liveSection.getByRole('button', { name: 'Aktualisieren' }),
+    ).toBeVisible()
 
     // Offene Tische aus dem Seed-Drehbuch sind gelistet.
     await expect(
       liveSection.getByRole('heading', { name: 'Offene Tische' }),
     ).toBeVisible()
 
-    // Servicekräfte-Tab zeigt die aktiven Bediener des Sonntags.
-    await liveSection.getByRole('tab', { name: 'Servicekräfte' }).click()
+    // Servicekräfte-Block zeigt die aktiven Bediener des Sonntags.
+    await expect(
+      liveSection.getByRole('heading', { name: 'Servicekräfte' }),
+    ).toBeVisible()
     await expect(liveSection.getByText('maria (Maria Schmidt)')).toBeVisible()
 
-    // Stornierungen-Tab zeigt die dokumentierten Stornos des Sonntags.
-    await liveSection.getByRole('tab', { name: 'Stornierungen' }).click()
+    // Stornierungen-Block zeigt die dokumentierten Stornos des Sonntags.
+    await expect(
+      liveSection.getByRole('heading', { name: 'Stornierungen' }),
+    ).toBeVisible()
     await expect(
       liveSection.getByText('Reklamation Tagesgericht, Kulanz'),
     ).toBeVisible()
+
+    // Stornierungen pro Servicekraft: felix hat kassiert und storniert, seine
+    // Servicekraft-Zeile trägt den roten Storno-Marker.
+    await expect(liveSection.getByText('1 Storno')).toBeVisible()
   })
 })

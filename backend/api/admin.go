@@ -81,7 +81,7 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 		TischRepo:           deps.TischRepo,
 	}
 	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
-	r.HandleFunc("/get-all-kassensitzungen", rq.GetAllKassensitzungenHandler())
+	r.HandleFunc("/get-abgeschlossene-kassensitzungen", rq.GetAbgeschlosseneKassensitzungenHandler())
 	r.HandleFunc("/get-live-reporting", rq.GetLiveReportingHandler())
 
 	exportHandler := exportHTTP.Handler{}

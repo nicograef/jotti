@@ -177,17 +177,17 @@ erfüllt:
 
 ### Acceptance criteria
 
-- [ ] Bei 375×667 mit offener Kassensitzung: keine Progressbar und kein „Zahlungen"-Badge
+- [x] Bei 375×667 mit offener Kassensitzung: keine Progressbar und kein „Zahlungen"-Badge
       mehr im gesamten Admin-Dashboard (live + historisch).
-- [ ] Erste Kennzahlen-Kachel ist bei 375×667 trotz aktiver Drucker- und TSE-Warnung ohne
+- [x] Erste Kennzahlen-Kachel ist bei 375×667 trotz aktiver Drucker- und TSE-Warnung ohne
       Scrollen sichtbar.
-- [ ] Ladezustand zeigt einen sichtbaren, animierten Spinner.
-- [ ] Steuersatz-Tabelle zeigt bei 375 px alle Beträge (Brutto/Netto/Steuer) ohne
+- [x] Ladezustand zeigt einen sichtbaren, animierten Spinner.
+- [x] Steuersatz-Tabelle zeigt bei 375 px alle Beträge (Brutto/Netto/Steuer) ohne
       horizontalen Scroll.
-- [ ] Storno-Einträge zeigen `HH:MM`; kein Preis bricht zwischen Betrag und „€" um.
-- [ ] Kassensitzungs-Select zeigt Datum + Bezeichnung ungekürzt (typische Länge wie
+- [x] Storno-Einträge zeigen `HH:MM`; kein Preis bricht zwischen Betrag und „€" um.
+- [x] Kassensitzungs-Select zeigt Datum + Bezeichnung ungekürzt (typische Länge wie
       „11.07.2026 (Sommerfest 26 Sonntag)").
-- [ ] `make check` grün; betroffene Vitest-Specs (`LiveReportingSection.test.tsx`,
+- [x] `make check` grün; betroffene Vitest-Specs (`LiveReportingSection.test.tsx`,
       `ReportingResults.test.tsx`, `AdminDashboardPage.test.tsx`) angepasst und grün.
 
 ---
@@ -221,15 +221,15 @@ beantwortet keine Kassenwart-Frage; Präzedenz ADR 01).
 
 ### Acceptance criteria
 
-- [ ] Kein Tab/Abschnitt „Tische" mehr im Live-Dashboard und in der historischen
+- [x] Kein Tab/Abschnitt „Tische" mehr im Live-Dashboard und in der historischen
       Auswertung; „Offene Tische" (Salden) unverändert vorhanden.
-- [ ] `grep -ri "umsatzProTisch\|UmsatzTisch" backend/ frontend/src/` liefert keine Treffer
+- [x] `grep -ri "umsatzProTisch\|UmsatzTisch" backend/ frontend/src/` liefert keine Treffer
       mehr (außer ggf. Git-Historie/Plan-Datei).
-- [ ] Live- und Reporting-Response enthalten das Feld `umsatzProTisch` nicht mehr; die
+- [x] Live- und Reporting-Response enthalten das Feld `umsatzProTisch` nicht mehr; die
       Zod-Schemas validieren die neuen Responses.
-- [ ] R-03 ist aus `docs/anforderungen.md` entfernt, `docs/handbuch.md` beschreibt das
+- [x] R-03 ist aus `docs/anforderungen.md` entfernt, `docs/handbuch.md` beschreibt das
       Read Model ohne Tisch-Umsatz, ADR 02 existiert und ist im ADR-README indexiert.
-- [ ] `make check` und Backend-Integrationstests (`make verify`) grün; E2E-Specs
+- [x] `make check` und Backend-Integrationstests (`make verify`) grün; E2E-Specs
       (`admin-live-reporting.spec.ts`, `admin-reporting-fehlerpfade.spec.ts`) angepasst.
 
 ---
@@ -264,17 +264,17 @@ Kasse-Seite.
 
 ### Acceptance criteria
 
-- [ ] `/admin/auswertung` zeigt ausschließlich Live-Inhalte; `/admin/kassenberichte` zeigt
+- [x] `/admin/auswertung` zeigt ausschließlich Live-Inhalte; `/admin/kassenberichte` zeigt
       Select (nur abgeschlossene Sitzungen), Export und Auswertung.
-- [ ] Bei offener Kassensitzung erscheinen deren Zahlen **nur** auf dem Live-Dashboard —
+- [x] Bei offener Kassensitzung erscheinen deren Zahlen **nur** auf dem Live-Dashboard —
       nirgendwo doppelt.
-- [ ] Sidebar zeigt unter „Auswertungen" die Einträge „Live-Dashboard" und
+- [x] Sidebar zeigt unter „Auswertungen" die Einträge „Live-Dashboard" und
       „Kassenberichte"; aktiver Zustand stimmt je Route.
-- [ ] Backend liefert unter `/admin/get-abgeschlossene-kassensitzungen` nur
+- [x] Backend liefert unter `/admin/get-abgeschlossene-kassensitzungen` nur
       `status = 'abgeschlossen'`; der alte Endpoint existiert nicht mehr.
-- [ ] Storno-Einträge sehen auf beiden Seiten identisch aus (eine `StornoItem`-Komponente).
-- [ ] Kassenberichte ohne abgeschlossene Sitzung zeigen einen erklärenden leeren Zustand.
-- [ ] `make verify` grün; `admin-dsfinvk-export.spec.ts` und
+- [x] Storno-Einträge sehen auf beiden Seiten identisch aus (eine `StornoItem`-Komponente).
+- [x] Kassenberichte ohne abgeschlossene Sitzung zeigen einen erklärenden leeren Zustand.
+- [x] `make verify` grün; `admin-dsfinvk-export.spec.ts` und
       `admin-reporting-fehlerpfade.spec.ts` auf die neue Route umgestellt.
 
 ---
@@ -312,17 +312,17 @@ Seitenkopf, manueller Refresh-Button daneben.
 
 ### Acceptance criteria
 
-- [ ] Live-Dashboard hat keine Tabs; alle vier Blöcke sind per Scroll erreichbar, Reihenfolge
+- [x] Live-Dashboard hat keine Tabs; alle vier Blöcke sind per Scroll erreichbar, Reihenfolge
       wie oben.
-- [ ] Kennzahlen-Reihenfolge beginnt mit Gesamtumsatz; Sub-Labels benennen den Zusammenhang
+- [x] Kennzahlen-Reihenfolge beginnt mit Gesamtumsatz; Sub-Labels benennen den Zusammenhang
       bestellt/kassiert/offen wie festgelegt.
-- [ ] Offene Tische sind absteigend nach Saldo sortiert (Backend-Response-Reihenfolge; kein
+- [x] Offene Tische sind absteigend nach Saldo sortiert (Backend-Response-Reihenfolge; kein
       Frontend-Sort).
-- [ ] Servicekraft-Zeile zeigt „Fertig" oder „Offen: X € · <Tischnamen>"; Betrag entspricht
+- [x] Servicekraft-Zeile zeigt „Fertig" oder „Offen: X € · <Tischnamen>"; Betrag entspricht
       der Summe der eigenen unbezahlten Positionen (Backend-Unit-Test auf `OffenCents`).
-- [ ] Live-Daten aktualisieren sich ohne Interaktion (30-s-Intervall); „Stand HH:MM" und
+- [x] Live-Daten aktualisieren sich ohne Interaktion (30-s-Intervall); „Stand HH:MM" und
       Refresh-Button sind vorhanden und funktionieren.
-- [ ] `make verify` grün; `admin-live-reporting.spec.ts` auf die Blockstruktur umgeschrieben
+- [x] `make verify` grün; `admin-live-reporting.spec.ts` auf die Blockstruktur umgeschrieben
       (keine Tab-Selektoren mehr).
 
 ---
@@ -354,12 +354,12 @@ Kassenberichten erscheint dasselbe Aggregat im Servicekräfte-Abschnitt (Spalte/
 
 ### Acceptance criteria
 
-- [ ] Live- und Reporting-Response enthalten `stornierungenProServicekraft`; Summe über
+- [x] Live- und Reporting-Response enthalten `stornierungenProServicekraft`; Summe über
       alle Servicekräfte entspricht `anzahlStornierungen`/`gesamtStornierungenCents` der
       Summary (Backend-Unit-Test).
-- [ ] Servicekraft-Zeilen mit ≥ 1 Storno zeigen live und in den Kassenberichten einen roten
+- [x] Servicekraft-Zeilen mit ≥ 1 Storno zeigen live und in den Kassenberichten einen roten
       „N Storno"-Marker; Zeilen ohne Storno zeigen nichts.
-- [ ] Der Stornierungen-Block zeigt vor der Detail-Liste das Aggregat pro Servicekraft;
+- [x] Der Stornierungen-Block zeigt vor der Detail-Liste das Aggregat pro Servicekraft;
       die Detail-Liste (wer/wann/warum/Bar-Rückgabe/Positionen) bleibt unverändert.
-- [ ] Zod-Schemas validieren die erweiterten Responses; `make verify` grün; E2E-Spec des
+- [x] Zod-Schemas validieren die erweiterten Responses; `make verify` grün; E2E-Spec des
       Live-Dashboards prüft den Storno-Marker mit Seed-Daten.

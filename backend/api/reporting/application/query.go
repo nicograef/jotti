@@ -21,7 +21,7 @@ type reportingRepo interface {
 }
 
 type kassensitzungenRepo interface {
-	GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
+	GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
 	GetOffeneKassensitzungNr(ctx context.Context) (int, error)
 	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
@@ -51,9 +51,36 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 	}
 
 	data.UmsatzProSteuersatz = computeUmsatzProSteuersatz(data.UmsatzProSteuersatz)
+	data.Breakdowns.StornierungenProServicekraft = aggregateStornierungenProServicekraft(data.Stornierungen)
 
 	log.Info().Msg("Retrieved reporting")
 	return data, nil
+}
+
+// aggregateStornierungenProServicekraft fasst die Storno-Detailzeilen pro
+// Servicekraft zusammen (Anzahl und Betrag) — als Kontroll-Signal fürs
+// Admin-Dashboard. Die Reihenfolge folgt dem ersten Auftreten in der
+// Detail-Liste (stabil). Die Summen entsprechen den Storno-Kennzahlen der
+// Summary, weil beide dieselben Storno-Events auswerten.
+func aggregateStornierungenProServicekraft(stornierungen []reporting.StornierungDetail) []reporting.StornierungServicekraft {
+	out := []reporting.StornierungServicekraft{}
+	indexByUserID := make(map[int]int, len(stornierungen))
+	for _, s := range stornierungen {
+		if idx, ok := indexByUserID[s.UserID]; ok {
+			out[idx].AnzahlStornierungen++
+			out[idx].StornierungenCents += s.BetragCents
+			continue
+		}
+		indexByUserID[s.UserID] = len(out)
+		out = append(out, reporting.StornierungServicekraft{
+			UserID:              s.UserID,
+			UserName:            s.UserName,
+			Name:                s.Name,
+			AnzahlStornierungen: 1,
+			StornierungenCents:  s.BetragCents,
+		})
+	}
+	return out
 }
 
 // computeUmsatzProSteuersatz aggregiert die USt-Aufschlüsselung aus den
@@ -117,16 +144,16 @@ func computeUmsatzProSteuersatz(bruttoZeilen []reporting.UmsatzSteuersatz) []rep
 	return out
 }
 
-func (q Query) GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error) {
+func (q Query) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error) {
 	log := zerolog.Ctx(ctx)
 
-	data, err := q.KassensitzungenRepo.GetAllKassensitzungen(ctx)
+	data, err := q.KassensitzungenRepo.GetAbgeschlosseneKassensitzungen(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get all kassensitzungen")
+		log.Error().Err(err).Msg("Failed to get abgeschlossene kassensitzungen")
 		return nil, ErrDatabase
 	}
 
-	log.Info().Msg("Retrieved all kassensitzungen")
+	log.Info().Msg("Retrieved abgeschlossene kassensitzungen")
 	return data, nil
 }
 
@@ -170,6 +197,7 @@ func (q Query) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.E
 			TischName:       nameByTischID[tisch.TischID],
 			AnzahlUnbezahlt: tisch.AnzahlUnbezahlt,
 			AnzahlOffen:     tisch.AnzahlOffen,
+			OffenCents:      tisch.OffenCents,
 		}
 	}
 
@@ -215,6 +243,7 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 	}
 
 	data.Servicekraefte = mergeServicekraefteLive(data.Breakdowns.UmsatzProServicekraft, sessions, nameByTischID)
+	data.Breakdowns.StornierungenProServicekraft = aggregateStornierungenProServicekraft(data.Stornierungen)
 
 	log.Info().Msg("Retrieved live reporting")
 	return &data, nil
@@ -246,17 +275,21 @@ func mergeServicekraefteLive(
 
 	for _, arbeit := range kasse.ComputeOffeneArbeitProServicekraft(sessions) {
 		offeneTische := make([]reporting.OffeneArbeitTisch, len(arbeit.OffeneTische))
+		offenCents := 0
 		for i, tisch := range arbeit.OffeneTische {
 			offeneTische[i] = reporting.OffeneArbeitTisch{
 				TischID:         tisch.TischID,
 				TischName:       nameByTischID[tisch.TischID],
 				AnzahlUnbezahlt: tisch.AnzahlUnbezahlt,
 				AnzahlOffen:     tisch.AnzahlOffen,
+				OffenCents:      tisch.OffenCents,
 			}
+			offenCents += tisch.OffenCents
 		}
 
 		if idx, ok := indexByUserID[arbeit.UserID]; ok {
 			servicekraefte[idx].OffeneTische = offeneTische
+			servicekraefte[idx].OffenCents = offenCents
 			servicekraefte[idx].Erledigt = false
 			continue
 		}
@@ -264,6 +297,7 @@ func mergeServicekraefteLive(
 		servicekraefte = append(servicekraefte, reporting.ServicekraftLive{
 			UserID:       arbeit.UserID,
 			UserName:     arbeit.UserName,
+			OffenCents:   offenCents,
 			OffeneTische: offeneTische,
 			Erledigt:     false,
 		})

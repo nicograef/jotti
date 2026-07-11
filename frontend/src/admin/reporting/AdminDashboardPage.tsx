@@ -1,16 +1,12 @@
 import { TriangleAlert } from 'lucide-react'
-import { useState } from 'react'
 import { NavLink } from 'react-router'
 
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertTitle } from '@/components/ui/alert'
 
-import { DsfinvkExportButton } from './DsfinvkExportButton'
-import { useKassensitzungen, useLiveReporting, useReport } from './hooks'
+import { useLiveReporting } from './hooks'
 import { LiveReportingSection } from './LiveReportingSection'
-import { ReportingFilter } from './ReportingFilter'
-import { ReportingResults } from './ReportingResults'
 
 // Ab rund einer Minute Rückstand warnt das Dashboard (deckt sich mit der
 // Nachsigniert-Schwelle im Backend); der Störungszeitraum entsteht erst ab
@@ -18,15 +14,15 @@ import { ReportingResults } from './ReportingResults'
 const RUECKSTAND_WARN_SEKUNDEN = 60
 
 export function AdminDashboardPage() {
-  const { liveData, isPending: liveLoading } = useLiveReporting()
-  const { kassensitzungen, isPending: listLoading } = useKassensitzungen()
+  const {
+    liveData,
+    isPending: liveLoading,
+    dataUpdatedAt,
+    refetch,
+  } = useLiveReporting()
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
   const { queue } = useTSESignaturQueue()
   const { druckauftraege } = useFehlgeschlageneDruckauftraege()
-  const [selectedNr, setSelectedNr] = useState<number | null>(null)
-
-  const effectiveNr = selectedNr ?? kassensitzungen.at(0)?.zNr ?? null
-  const { result, isPending: reportLoading } = useReport(effectiveNr)
 
   // Ohne TSE-Konfiguration steht der permanente Konfigurationsalarm; ein
   // Queue-Alarm (Rückstand oder endgültig fehlgeschlagene Aufträge) erscheint
@@ -47,30 +43,23 @@ export function AdminDashboardPage() {
   return (
     <>
       {showDruckBanner && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert variant="destructive" className="mb-3">
           <TriangleAlert className="size-4" />
-          <AlertTitle>Drucker prüfen</AlertTitle>
-          <AlertDescription>
+          <AlertTitle className="font-normal">
             {druckauftraege.length === 1
               ? '1 Druckauftrag konnte nicht gedruckt werden.'
               : `${String(druckauftraege.length)} Druckaufträge konnten nicht gedruckt werden.`}{' '}
-            Mehr dazu unter{' '}
-            <NavLink
-              to="/admin/druckstationen"
-              className="underline underline-offset-4"
-            >
+            <NavLink to="/admin/druckstationen" className="font-medium">
               Druckstationen
             </NavLink>
-            .
-          </AlertDescription>
+          </AlertTitle>
         </Alert>
       )}
 
       {showTSEBanner && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert variant="destructive" className="mb-3">
           <TriangleAlert className="size-4" />
-          <AlertTitle>TSE prüfen</AlertTitle>
-          <AlertDescription>
+          <AlertTitle className="font-normal">
             {showKonfigWarnung && <span>Die TSE ist nicht konfiguriert. </span>}
             {rueckstand && (
               <span>
@@ -87,37 +76,19 @@ export function AdminDashboardPage() {
                 {queue?.letzterFehler ? ` (${queue.letzterFehler})` : ''}.{' '}
               </span>
             )}
-            Mehr dazu unter{' '}
-            <NavLink
-              to="/admin/finanzamt"
-              className="underline underline-offset-4"
-            >
+            <NavLink to="/admin/finanzamt" className="font-medium">
               Finanzamt
             </NavLink>
-            .
-          </AlertDescription>
+          </AlertTitle>
         </Alert>
       )}
 
-      <LiveReportingSection liveData={liveData} loading={liveLoading} />
-      <hr className="my-8" />
-
-      <h2 className="mt-10 text-lg font-semibold">Historische Auswertung</h2>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <ReportingFilter
-          kassensitzungen={kassensitzungen}
-          kassensitzungNr={effectiveNr}
-          loading={listLoading}
-          onKassensitzungNrChange={setSelectedNr}
-        />
-        <DsfinvkExportButton kassensitzungNr={effectiveNr} />
-      </div>
-
-      {result && (
-        <div className="my-6">
-          <ReportingResults result={result} loading={reportLoading} />
-        </div>
-      )}
+      <LiveReportingSection
+        liveData={liveData}
+        loading={liveLoading}
+        dataUpdatedAt={dataUpdatedAt}
+        onRefresh={() => void refetch()}
+      />
     </>
   )
 }

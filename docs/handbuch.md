@@ -477,7 +477,7 @@ Reporting ist Admin-only und wird on-demand per SQL-Aggregation über `kassenjou
 | Endpunkt                         | Scope                                  | Inhalt                                                                              |
 | -------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------- |
 | `POST /admin/get-live-reporting` | offene Kassensitzung (ohne Parameter)  | KPIs, offene Tische, offene Saldi, Stornierungen                                    |
-| `POST /admin/get-abrechnung`     | bestimmte Kassensitzung (`kassensitzungNr`) | `summary`, `breakdowns` (Umsatz pro Servicekraft/Tisch), `umsatzProSteuersatz`, `stornierungen` |
+| `POST /admin/get-abrechnung`     | bestimmte Kassensitzung (`kassensitzungNr`) | `summary`, `breakdowns` (Umsatz pro Servicekraft), `umsatzProSteuersatz`, `stornierungen` |
 
 Beide `summary`-Sektionen enthalten die Direktverkauf-Kennzahlen `anzahlDirektverkaeufe` und `direktverkaufUmsatzCents` (netto: Verkauf minus Storno). Anforderungs-IDs (R-01–R-05) → [anforderungen.md](anforderungen.md).
 

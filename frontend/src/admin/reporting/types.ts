@@ -16,9 +16,21 @@ export const UmsatzServicekraftSchema = z.object({
   userName: z.string(),
   name: z.string(),
   zahlungenCents: z.number().int(),
-  anzahlZahlungen: z.number().int(),
 })
 export type UmsatzServicekraft = z.infer<typeof UmsatzServicekraftSchema>
+
+// StornierungServicekraft aggregiert die Stornierungen einer Servicekraft
+// (Anzahl und Betrag) — Kontroll-Signal für Live-Dashboard und Kassenberichte.
+export const StornierungServicekraftSchema = z.object({
+  userId: z.number().int(),
+  userName: z.string(),
+  name: z.string(),
+  anzahlStornierungen: z.number().int(),
+  stornierungenCents: z.number().int(),
+})
+export type StornierungServicekraft = z.infer<
+  typeof StornierungServicekraftSchema
+>
 
 export const StornierungPositionSchema = z.object({
   produktName: z.string(),
@@ -42,14 +54,6 @@ export const StornierungDetailSchema = z.object({
 })
 export type StornierungDetail = z.infer<typeof StornierungDetailSchema>
 
-export const UmsatzTischSchema = z.object({
-  tischId: z.number().int(),
-  tischName: z.string(),
-  zahlungenCents: z.number().int(),
-  anzahlZahlungen: z.number().int(),
-})
-export type UmsatzTisch = z.infer<typeof UmsatzTischSchema>
-
 export const UmsatzSteuersatzSchema = z.object({
   satz: z.enum(['regel', 'ermaessigt', 'befreit', 'kombi']),
   bruttoCents: z.number().int(),
@@ -71,11 +75,12 @@ export const OffenerTischSchema = z.object({
 })
 export type OffenerTisch = z.infer<typeof OffenerTischSchema>
 
+// OffeneArbeitTisch trägt nur den Tisch-Namen für die Inline-Anzeige der
+// offenen Tische einer Servicekraft; der offene Betrag wird auf
+// Servicekraft-Ebene (ServicekraftLive.offenCents) vom Backend aggregiert.
 export const OffeneArbeitTischSchema = z.object({
   tischId: z.number().int(),
   tischName: z.string(),
-  anzahlUnbezahlt: z.number().int(),
-  anzahlOffen: z.number().int(),
 })
 export type OffeneArbeitTisch = z.infer<typeof OffeneArbeitTischSchema>
 
@@ -86,7 +91,7 @@ export const ServicekraftLiveSchema = z.object({
   userName: z.string(),
   name: z.string(),
   zahlungenCents: z.number().int(),
-  anzahlZahlungen: z.number().int(),
+  offenCents: z.number().int(),
   offeneTische: z.array(OffeneArbeitTischSchema),
   erledigt: z.boolean(),
 })
@@ -101,7 +106,7 @@ export const LiveReportingDataSchema = z.object({
   summary: SummarySchema,
   breakdowns: z.object({
     servicekraefte: z.array(ServicekraftLiveSchema),
-    umsatzProTisch: z.array(UmsatzTischSchema),
+    stornierungenProServicekraft: z.array(StornierungServicekraftSchema),
   }),
   stornierungen: z.array(StornierungDetailSchema),
 })
@@ -112,7 +117,7 @@ export const ReportingDataSchema = z.object({
   summary: SummarySchema,
   breakdowns: z.object({
     umsatzProServicekraft: z.array(UmsatzServicekraftSchema),
-    umsatzProTisch: z.array(UmsatzTischSchema),
+    stornierungenProServicekraft: z.array(StornierungServicekraftSchema),
   }),
   umsatzProSteuersatz: z.array(UmsatzSteuersatzSchema),
   stornierungen: z.array(StornierungDetailSchema),

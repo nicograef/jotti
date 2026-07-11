@@ -61,7 +61,7 @@ func (m mockKasseRepo) GetOffeneKassensitzungNr(_ context.Context) (int, error) 
 	return m.kassensitzungNr, m.err
 }
 
-func (m mockKasseRepo) GetAllKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
+func (m mockKasseRepo) GetAbgeschlosseneKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
 	return nil, m.err
 }
 
@@ -81,7 +81,6 @@ func TestGetReporting_HappyPath(t *testing.T) {
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
-			UmsatzProTisch:        []reporting.UmsatzTisch{},
 		},
 		UmsatzProSteuersatz: []reporting.UmsatzSteuersatz{},
 		Stornierungen:       []reporting.StornierungDetail{},
@@ -184,6 +183,59 @@ func TestGetReporting_UmsatzProSteuersatzRechnetJeZeile(t *testing.T) {
 	regel := bySatz[steuer.RegelSteuersatz]
 	if regel.BruttoCents != 152 || regel.NettoCents != 128 || regel.SteuerCents != 24 {
 		t.Fatalf("unexpected regel values (Warenrücknahme abgezogen): %+v", regel)
+	}
+}
+
+func TestGetReporting_AggregiertStornierungenProServicekraft(t *testing.T) {
+	data := reporting.ReportingData{
+		KassensitzungNr: testKassensitzungNr,
+		Summary: reporting.Summary{
+			AnzahlStornierungen:      3,
+			GesamtStornierungenCents: 1050,
+		},
+		Stornierungen: []reporting.StornierungDetail{
+			{UserID: 3, UserName: "felix", Name: "Felix W.", BetragCents: 500},
+			{UserID: 7, UserName: "sophie", Name: "Sophie B.", BetragCents: 250},
+			{UserID: 3, UserName: "felix", Name: "Felix W.", BetragCents: 300},
+		},
+	}
+
+	q := Query{ReportingRepo: mockReportingRepo{data: data}, KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
+
+	result, err := q.GetReporting(context.Background(), testKassensitzungNr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	assertStornoAggregat(t, result.Breakdowns.StornierungenProServicekraft, result.Summary)
+
+	// Reihenfolge folgt dem ersten Auftreten (felix vor sophie).
+	agg := result.Breakdowns.StornierungenProServicekraft
+	if len(agg) != 2 {
+		t.Fatalf("expected 2 servicekraefte with stornos, got %d: %+v", len(agg), agg)
+	}
+	if agg[0].UserID != 3 || agg[0].UserName != "felix" || agg[0].Name != "Felix W." || agg[0].AnzahlStornierungen != 2 || agg[0].StornierungenCents != 800 {
+		t.Errorf("unexpected felix aggregate: %+v", agg[0])
+	}
+	if agg[1].UserID != 7 || agg[1].AnzahlStornierungen != 1 || agg[1].StornierungenCents != 250 {
+		t.Errorf("unexpected sophie aggregate: %+v", agg[1])
+	}
+}
+
+// assertStornoAggregat prüft die Kern-Invariante: die Summe über alle
+// Servicekräfte entspricht anzahlStornierungen/gesamtStornierungenCents der Summary.
+func assertStornoAggregat(t *testing.T, agg []reporting.StornierungServicekraft, summary reporting.Summary) {
+	t.Helper()
+	var summeAnzahl, summeCents int
+	for _, a := range agg {
+		summeAnzahl += a.AnzahlStornierungen
+		summeCents += a.StornierungenCents
+	}
+	if summeAnzahl != summary.AnzahlStornierungen {
+		t.Errorf("Summe AnzahlStornierungen %d != Summary %d", summeAnzahl, summary.AnzahlStornierungen)
+	}
+	if summeCents != summary.GesamtStornierungenCents {
+		t.Errorf("Summe StornierungenCents %d != Summary %d", summeCents, summary.GesamtStornierungenCents)
 	}
 }
 
@@ -358,7 +410,6 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 				{UserID: 7, UserName: "Anna", Name: "Anna A.", ZahlungenCents: 1500, AnzahlZahlungen: 2},
 				{UserID: 9, UserName: "Cleo", Name: "Cleo C.", ZahlungenCents: 900, AnzahlZahlungen: 1},
 			},
-			UmsatzProTisch: []reporting.UmsatzTisch{},
 		},
 	}
 	sessions := []kasse.TischSession{
@@ -366,14 +417,14 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 			// Anna (7, hat Umsatz) hat hier noch offene Arbeit.
 			TischID: 3,
 			UnbezahltePositionen: []kasse.Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
+				{PositionID: "p1", Menge: 2, EinzelpreisCents: 375, BestellerUserID: 7, BestellerName: "Anna"},
 			},
 		},
 		{
 			// Bert (8) hat offene Arbeit, aber keinen kassierten Umsatz.
 			TischID: 1,
 			UnbezahltePositionen: []kasse.Position{
-				{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
+				{PositionID: "p2", Menge: 1, EinzelpreisCents: 300, BestellerUserID: 8, BestellerName: "Bert"},
 			},
 		},
 	}
@@ -403,6 +454,14 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	if len(anna.OffeneTische) != 1 || anna.OffeneTische[0].TischID != 3 || anna.OffeneTische[0].TischName != "Tisch 3" || anna.OffeneTische[0].AnzahlOffen != 1 {
 		t.Errorf("expected Anna offen an Tisch 3, got %+v", anna.OffeneTische)
 	}
+	// OffenCents wird aus der Domäne durchgereicht: 2 × 375 = 750 Cent.
+	if anna.OffeneTische[0].OffenCents != 750 {
+		t.Errorf("expected Anna OffenCents 750, got %d", anna.OffeneTische[0].OffenCents)
+	}
+	// Der offene Betrag wird auf Servicekraft-Ebene aggregiert (Summe über Tische).
+	if anna.OffenCents != 750 {
+		t.Errorf("expected Anna Servicekraft-OffenCents 750, got %d", anna.OffenCents)
+	}
 
 	cleo := result.Servicekraefte[1]
 	if cleo.UserID != 9 || !cleo.Erledigt || len(cleo.OffeneTische) != 0 {
@@ -416,6 +475,46 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	}
 	if len(bert.OffeneTische) != 1 || bert.OffeneTische[0].TischID != 1 || bert.OffeneTische[0].AnzahlUnbezahlt != 1 {
 		t.Errorf("expected Bert offen an Tisch 1, got %+v", bert.OffeneTische)
+	}
+	if bert.OffeneTische[0].OffenCents != 300 {
+		t.Errorf("expected Bert OffenCents 300, got %d", bert.OffeneTische[0].OffenCents)
+	}
+	if bert.OffenCents != 300 {
+		t.Errorf("expected Bert Servicekraft-OffenCents 300, got %d", bert.OffenCents)
+	}
+}
+
+func TestGetLiveReporting_AggregiertStornierungenProServicekraft(t *testing.T) {
+	ks := &kasse.Kassensitzung{ZNr: testKassensitzungNr, Status: kasse.KassensitzungOffen}
+	liveData := reporting.LiveReportingData{
+		KassensitzungNr: testKassensitzungNr,
+		Summary: reporting.Summary{
+			AnzahlStornierungen:      2,
+			GesamtStornierungenCents: 750,
+		},
+		Stornierungen: []reporting.StornierungDetail{
+			{UserID: 3, UserName: "felix", Name: "Felix W.", BetragCents: 500},
+			{UserID: 7, UserName: "sophie", Name: "Sophie B.", BetragCents: 250},
+		},
+	}
+	q := Query{
+		ReportingRepo:       mockReportingRepo{liveData: liveData},
+		KassensitzungenRepo: mockKasseRepo{kassensitzung: ks},
+		TischSessionRepo:    mockTischSessionRepo{},
+		TischRepo:           mockTischRepo{},
+	}
+
+	result, err := q.GetLiveReporting(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+
+	assertStornoAggregat(t, result.Breakdowns.StornierungenProServicekraft, result.Summary)
+	if len(result.Breakdowns.StornierungenProServicekraft) != 2 {
+		t.Fatalf("expected 2 servicekraefte with stornos, got %+v", result.Breakdowns.StornierungenProServicekraft)
 	}
 }
 

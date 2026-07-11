@@ -17,8 +17,8 @@ test.describe('Admin lädt den DSFinV-K-Export herunter', () => {
     const zugangsdaten = await resetAndSeed(request)
     await anmelden(page, zugangsdaten.admin)
 
-    await page.goto('/admin/auswertung')
-    await expect(page.getByRole('heading', { name: 'Live-Dashboard' })).toBeVisible()
+    await page.goto('/admin/kassenberichte')
+    await expect(page.getByRole('heading', { name: 'Kassenberichte' })).toBeVisible()
 
     // Eine abgeschlossene Kassensitzung wählen (Seed: Freitag/Samstag sind
     // abgeschlossen, Sonntag ist die laufende Sitzung).
