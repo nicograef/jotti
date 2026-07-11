@@ -2,8 +2,8 @@
 
 - **Status:** akzeptiert (2026-07-11)
 - **Kontext-Dokumente:**
-  [UX-Umbau-Plan](../plans/plan-admin-dashboard-ux.md),
-  `docs/anforderungen.md`, ADR 01 (Präzedenz)
+  UX-Umbau-Plan `plan-admin-dashboard-ux.md` (nach Merge gelöscht,
+  siehe Git-Historie), `docs/anforderungen.md`, ADR 01 (Präzedenz)
 
 ## Kontext
 

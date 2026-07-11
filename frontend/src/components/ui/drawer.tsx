@@ -1,7 +1,11 @@
-import * as React from "react"
-import { Dialog as DrawerPrimitive } from "radix-ui"
+// Bottom-Sheet auf Radix Dialog — bewusst ohne vaul, dessen Scroll-Lock das
+// Layout der installierten iOS-PWA bricht (Praxistest 09.07.2026, vaul#505).
+// Der Layout-Vertrag (85dvh statt vh, Safe-Area-Padding, ein Scrollbereich,
+// kein Drag-Handle) ist bindend: docs/adrs/03_drawer-radix-statt-vaul.md
+import * as React from 'react'
+import { Dialog as DrawerPrimitive } from 'radix-ui'
 
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils'
 
 function Drawer({
   ...props
@@ -35,8 +39,8 @@ function DrawerOverlay({
     <DrawerPrimitive.Overlay
       data-slot="drawer-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
-        className
+        'fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+        className,
       )}
       {...props}
     />
@@ -80,8 +84,8 @@ function DrawerContent({
           onInteractOutside?.(event)
         }}
         className={cn(
-          "group/drawer-content fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-xl border-t bg-popover pb-[env(safe-area-inset-bottom,0px)] text-sm text-popover-foreground duration-200 data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-10 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-10",
-          className
+          'group/drawer-content fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-xl border-t bg-popover pb-[env(safe-area-inset-bottom,0px)] text-sm text-popover-foreground duration-200 data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-10 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-10',
+          className,
         )}
         {...props}
       >
@@ -91,13 +95,13 @@ function DrawerContent({
   )
 }
 
-function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
+function DrawerHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="drawer-header"
       className={cn(
-        "flex flex-col gap-0.5 p-4 text-center md:gap-1.5 md:text-left",
-        className
+        'flex flex-col gap-0.5 p-4 text-center md:gap-1.5 md:text-left',
+        className,
       )}
       {...props}
     />
@@ -107,24 +111,24 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
 // DrawerBody ist der einzige Scrollbereich des Drawers. Header und Footer
 // sind direkte Flex-Kinder von DrawerContent und bleiben dadurch immer
 // sichtbar — auch bei beliebig langem Inhalt.
-function DrawerBody({ className, ...props }: React.ComponentProps<"div">) {
+function DrawerBody({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="drawer-body"
       className={cn(
-        "min-h-0 overflow-y-auto group-data-[pending]/drawer-content:pointer-events-none group-data-[pending]/drawer-content:opacity-50",
-        className
+        'min-h-0 overflow-y-auto group-data-[pending]/drawer-content:pointer-events-none group-data-[pending]/drawer-content:opacity-50',
+        className,
       )}
       {...props}
     />
   )
 }
 
-function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
+function DrawerFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="drawer-footer"
-      className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+      className={cn('mt-auto flex flex-col gap-2 p-4', className)}
       {...props}
     />
   )
@@ -137,7 +141,7 @@ function DrawerTitle({
   return (
     <DrawerPrimitive.Title
       data-slot="drawer-title"
-      className={cn("font-heading font-medium text-foreground", className)}
+      className={cn('font-heading font-medium text-foreground', className)}
       {...props}
     />
   )
@@ -150,7 +154,7 @@ function DrawerDescription({
   return (
     <DrawerPrimitive.Description
       data-slot="drawer-description"
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn('text-sm text-muted-foreground', className)}
       {...props}
     />
   )

@@ -1,6 +1,6 @@
 # Rest-Guide: Manuelle QA vor v1.0.0
 
-Handlungsleitfaden für Nico. Enthält nur noch, was keine Suite automatisiert: physische Hardware, der echte Windows-Rechner, das fiskaly-Konto samt TEST→LIVE-Umschaltung und PUK/PIN-Verwahrung, destruktive Ops-Schritte, TLS-Abnahme, Usability mit echten Vereinshelfern und die Abnahme-Entscheidungen selbst. Alles Automatisierbare ist in eine der folgenden Suiten gewandert (siehe [PRD QA-Automatisierung](../prds/prd-qa-automatisierung.md)):
+Handlungsleitfaden für Nico. Enthält nur noch, was keine Suite automatisiert: physische Hardware, der echte Windows-Rechner, das fiskaly-Konto samt TEST→LIVE-Umschaltung und PUK/PIN-Verwahrung, destruktive Ops-Schritte, TLS-Abnahme, Usability mit echten Vereinshelfern und die Abnahme-Entscheidungen selbst. Alles Automatisierbare ist in eine der folgenden Suiten gewandert (Hintergrund: PRD QA-Automatisierung, nach Merge gelöscht, siehe Git-Historie):
 
 - **E2E-Suite** (`make test-e2e`, `e2e/`): Service- und Admin-Kernflows, Fehlerpfade, Export-Download, Handy-Viewport.
 - **DSFinV-K-Validator** (`backend/dsfinvkpruefung`, läuft in `make verify`): Struktur- und Inhaltsregeln des Exports.
@@ -11,7 +11,7 @@ Handlungsleitfaden für Nico. Enthält nur noch, was keine Suite automatisiert: 
 - **TSE-Live-Suite** (`make test-tse-live`): alle Geschäftsvorfälle real gegen fiskaly-TEST signiert, Ausfall/Nachsignierung, p95-Latenzmessung.
 - **Ops-Smoke** (`scripts/ops-smoke.sh install|ops|release`): Erstinstallation, Backup/-Verifikation, Update-Roundtrip, Security-Header, Rate-Limiting, Release-Smoke.
 
-Die Checkboxen der Gates im [Release-Guide](plan-v1.0.0-release.md) bleiben führend; hier steht nur die Handarbeit, die diese Gates noch brauchen.
+Der frühere Release-Guide (`plan-v1.0.0-release.md`) wurde beim Docs-Cleanup gelöscht (Git-Historie); die verbleibende Release-Vorbereitung (Changelog, Versions-Bump, Release-Mechanik) ist in [offene-punkte.md](offene-punkte.md) getrackt. Die Abnahme läuft über die Abnahme-Entscheidungen am Ende dieses Guides.
 
 ## Vorbereitung
 

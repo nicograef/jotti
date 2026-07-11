@@ -2,8 +2,8 @@
 
 - **Status:** akzeptiert (2026-07-10)
 - **Kontext-Dokumente:**
-  [PRD](../prds/prd-ausgabe-bestaetigen-entfernen.md),
-  `docs/produktbeschreibung.md`
+  PRD `prd-ausgabe-bestaetigen-entfernen.md` (nach Merge gelöscht,
+  siehe Git-Historie), `docs/produktbeschreibung.md`
 
 ## Kontext
 
