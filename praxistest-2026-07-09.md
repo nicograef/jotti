@@ -1,6 +1,0 @@
-- Service UI: alles auf einmal ausgeben; alles aufeinmal abkassieren.
-- Service UI Schnellfunktion Checkbox: Beim Abkassieren direkt auch alle Positionen ausgegeben setzen.
-- iOS Flicker bei installierter webapp. Im Browser (Chrome auf iOS) scheint es zu funktionieren.
-- Service UI: Ausgeben bei hoher Anzahl von Positionen sehr nervig und unübersichtlich auf Bestell-Tab
-- Generell Probleme bei installierter PWA auf iOS und Android
-- Admin UI: Vereinfachen. Bei Report keine Progressbars, keine "17 Zahlungen".
