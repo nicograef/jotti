@@ -55,9 +55,11 @@ function DrawerContent({
   // DrawerBody wird gedimmt und nimmt keine Eingaben an.
   pending?: boolean
 }) {
-  // Radix ruft die Dismiss-Handler aus dem Closure ihrer Registrierung auf;
-  // ein dort eingefrorenes `pending` wäre veraltet. Die Ref liefert dem
-  // Handler immer den aktuellen Wert.
+  // Radix ruft die Dismiss-Handler mit der Closure ihrer Registrierung auf:
+  // Ein direkt gelesenes `pending` bleibt im Escape-Handler nach dem Wechsel
+  // auf true noch false (radix-ui 1.6.1; durch den Pending-Unit-Test in
+  // ZahlungDrawer.test.tsx abgesichert). Die Ref liefert dem Handler deshalb
+  // immer den aktuellen Wert.
   const pendingRef = React.useRef(pending)
   React.useEffect(() => {
     pendingRef.current = pending
