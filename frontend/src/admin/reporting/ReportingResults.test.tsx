@@ -27,6 +27,15 @@ const reportingResult: ReportingData = {
         anzahlZahlungen: 3,
       },
     ],
+    stornierungenProServicekraft: [
+      {
+        userId: 5,
+        userName: 'Bea',
+        name: 'Bea B.',
+        anzahlStornierungen: 1,
+        stornierungenCents: 300,
+      },
+    ],
   },
   umsatzProSteuersatz: [
     {
@@ -36,7 +45,21 @@ const reportingResult: ReportingData = {
       steuerCents: 190,
     },
   ],
-  stornierungen: [],
+  stornierungen: [
+    {
+      zeitpunkt: '2026-07-05T12:00:00Z',
+      quelle: 'tisch',
+      barRueckgabe: true,
+      tischId: 4,
+      tischName: 'Tisch 4',
+      userId: 5,
+      userName: 'Bea',
+      name: 'Bea B.',
+      betragCents: 300,
+      kommentar: '',
+      positionen: [],
+    },
+  ],
 }
 
 afterEach(() => {
@@ -77,5 +100,18 @@ describe('ReportingResults', () => {
     expect(screen.getByText('67,89 €')).toBeInTheDocument()
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     expect(screen.queryByText(/Zahlungen/)).not.toBeInTheDocument()
+  })
+
+  it('markiert Servicekräfte mit Stornos und zeigt das Aggregat über der Storno-Liste', async () => {
+    const user = userEvent.setup()
+    render(<ReportingResults result={reportingResult} loading={false} />)
+
+    // Servicekräfte-Tab: roter Marker an der Zeile mit Stornos.
+    await user.click(screen.getByRole('tab', { name: /Servicekräfte/ }))
+    expect(screen.getByText('1 Storno')).toBeInTheDocument()
+
+    // Stornierungen-Tab: Aggregat pro Servicekraft über der Detail-Liste.
+    await user.click(screen.getByRole('tab', { name: /Stornierungen/ }))
+    expect(screen.getByText('Bea (Bea B.) 1')).toBeInTheDocument()
   })
 })

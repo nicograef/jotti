@@ -20,6 +20,19 @@ export const UmsatzServicekraftSchema = z.object({
 })
 export type UmsatzServicekraft = z.infer<typeof UmsatzServicekraftSchema>
 
+// StornierungServicekraft aggregiert die Stornierungen einer Servicekraft
+// (Anzahl und Betrag) — Kontroll-Signal für Live-Dashboard und Kassenberichte.
+export const StornierungServicekraftSchema = z.object({
+  userId: z.number().int(),
+  userName: z.string(),
+  name: z.string(),
+  anzahlStornierungen: z.number().int(),
+  stornierungenCents: z.number().int(),
+})
+export type StornierungServicekraft = z.infer<
+  typeof StornierungServicekraftSchema
+>
+
 export const StornierungPositionSchema = z.object({
   produktName: z.string(),
   varianteName: z.string(),
@@ -94,6 +107,7 @@ export const LiveReportingDataSchema = z.object({
   summary: SummarySchema,
   breakdowns: z.object({
     servicekraefte: z.array(ServicekraftLiveSchema),
+    stornierungenProServicekraft: z.array(StornierungServicekraftSchema),
   }),
   stornierungen: z.array(StornierungDetailSchema),
 })
@@ -104,6 +118,7 @@ export const ReportingDataSchema = z.object({
   summary: SummarySchema,
   breakdowns: z.object({
     umsatzProServicekraft: z.array(UmsatzServicekraftSchema),
+    stornierungenProServicekraft: z.array(StornierungServicekraftSchema),
   }),
   umsatzProSteuersatz: z.array(UmsatzSteuersatzSchema),
   stornierungen: z.array(StornierungDetailSchema),

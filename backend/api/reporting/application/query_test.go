@@ -186,6 +186,59 @@ func TestGetReporting_UmsatzProSteuersatzRechnetJeZeile(t *testing.T) {
 	}
 }
 
+func TestGetReporting_AggregiertStornierungenProServicekraft(t *testing.T) {
+	data := reporting.ReportingData{
+		KassensitzungNr: testKassensitzungNr,
+		Summary: reporting.Summary{
+			AnzahlStornierungen:      3,
+			GesamtStornierungenCents: 1050,
+		},
+		Stornierungen: []reporting.StornierungDetail{
+			{UserID: 3, UserName: "felix", Name: "Felix W.", BetragCents: 500},
+			{UserID: 7, UserName: "sophie", Name: "Sophie B.", BetragCents: 250},
+			{UserID: 3, UserName: "felix", Name: "Felix W.", BetragCents: 300},
+		},
+	}
+
+	q := Query{ReportingRepo: mockReportingRepo{data: data}, KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
+
+	result, err := q.GetReporting(context.Background(), testKassensitzungNr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	assertStornoAggregat(t, result.Breakdowns.StornierungenProServicekraft, result.Summary)
+
+	// Reihenfolge folgt dem ersten Auftreten (felix vor sophie).
+	agg := result.Breakdowns.StornierungenProServicekraft
+	if len(agg) != 2 {
+		t.Fatalf("expected 2 servicekraefte with stornos, got %d: %+v", len(agg), agg)
+	}
+	if agg[0].UserID != 3 || agg[0].UserName != "felix" || agg[0].Name != "Felix W." || agg[0].AnzahlStornierungen != 2 || agg[0].StornierungenCents != 800 {
+		t.Errorf("unexpected felix aggregate: %+v", agg[0])
+	}
+	if agg[1].UserID != 7 || agg[1].AnzahlStornierungen != 1 || agg[1].StornierungenCents != 250 {
+		t.Errorf("unexpected sophie aggregate: %+v", agg[1])
+	}
+}
+
+// assertStornoAggregat prüft die Kern-Invariante: die Summe über alle
+// Servicekräfte entspricht anzahlStornierungen/gesamtStornierungenCents der Summary.
+func assertStornoAggregat(t *testing.T, agg []reporting.StornierungServicekraft, summary reporting.Summary) {
+	t.Helper()
+	var summeAnzahl, summeCents int
+	for _, a := range agg {
+		summeAnzahl += a.AnzahlStornierungen
+		summeCents += a.StornierungenCents
+	}
+	if summeAnzahl != summary.AnzahlStornierungen {
+		t.Errorf("Summe AnzahlStornierungen %d != Summary %d", summeAnzahl, summary.AnzahlStornierungen)
+	}
+	if summeCents != summary.GesamtStornierungenCents {
+		t.Errorf("Summe StornierungenCents %d != Summary %d", summeCents, summary.GesamtStornierungenCents)
+	}
+}
+
 func TestGetReporting_DatabaseError(t *testing.T) {
 	q := Query{ReportingRepo: mockReportingRepo{err: errors.New("db connection failed")}, KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
 
@@ -421,6 +474,40 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	}
 	if bert.OffeneTische[0].OffenCents != 300 {
 		t.Errorf("expected Bert OffenCents 300, got %d", bert.OffeneTische[0].OffenCents)
+	}
+}
+
+func TestGetLiveReporting_AggregiertStornierungenProServicekraft(t *testing.T) {
+	ks := &kasse.Kassensitzung{ZNr: testKassensitzungNr, Status: kasse.KassensitzungOffen}
+	liveData := reporting.LiveReportingData{
+		KassensitzungNr: testKassensitzungNr,
+		Summary: reporting.Summary{
+			AnzahlStornierungen:      2,
+			GesamtStornierungenCents: 750,
+		},
+		Stornierungen: []reporting.StornierungDetail{
+			{UserID: 3, UserName: "felix", Name: "Felix W.", BetragCents: 500},
+			{UserID: 7, UserName: "sophie", Name: "Sophie B.", BetragCents: 250},
+		},
+	}
+	q := Query{
+		ReportingRepo:       mockReportingRepo{liveData: liveData},
+		KassensitzungenRepo: mockKasseRepo{kassensitzung: ks},
+		TischSessionRepo:    mockTischSessionRepo{},
+		TischRepo:           mockTischRepo{},
+	}
+
+	result, err := q.GetLiveReporting(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+
+	assertStornoAggregat(t, result.Breakdowns.StornierungenProServicekraft, result.Summary)
+	if len(result.Breakdowns.StornierungenProServicekraft) != 2 {
+		t.Fatalf("expected 2 servicekraefte with stornos, got %+v", result.Breakdowns.StornierungenProServicekraft)
 	}
 }
 

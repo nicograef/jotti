@@ -19,6 +19,7 @@ import {
 import { formatCents } from '@/lib/utils'
 
 import { StornoItem } from './StornoItem'
+import { StornoAggregat, StornoMarker } from './StornoServicekraft'
 import { SummaryCard } from './SummaryCard'
 import type { LiveReportingData } from './types'
 import { formatBediener, formatDatum, formatStand } from './utils'
@@ -62,6 +63,11 @@ export function LiveReportingSection({
 
   const summary = liveData.summary
   const servicekraefte = liveData.breakdowns.servicekraefte
+  const stornierungenProServicekraft =
+    liveData.breakdowns.stornierungenProServicekraft
+  const stornoAnzahlByUserId = new Map(
+    stornierungenProServicekraft.map((s) => [s.userId, s.anzahlStornierungen]),
+  )
 
   return (
     <div data-testid="live-reporting-section" className="space-y-6">
@@ -149,14 +155,19 @@ export function LiveReportingSection({
             Keine Stornierungen in dieser Kassensitzung.
           </p>
         ) : (
-          <ItemGroup>
-            {liveData.stornierungen.map((s) => (
-              <StornoItem
-                key={`${s.zeitpunkt}-${String(s.tischId)}-${String(s.userId)}`}
-                storno={s}
-              />
-            ))}
-          </ItemGroup>
+          <>
+            {stornierungenProServicekraft.length > 0 && (
+              <StornoAggregat eintraege={stornierungenProServicekraft} />
+            )}
+            <ItemGroup>
+              {liveData.stornierungen.map((s) => (
+                <StornoItem
+                  key={`${s.zeitpunkt}-${String(s.tischId)}-${String(s.userId)}`}
+                  storno={s}
+                />
+              ))}
+            </ItemGroup>
+          </>
         )}
       </div>
 
@@ -179,12 +190,14 @@ export function LiveReportingSection({
               const tischNamen = sk.offeneTische
                 .map((t) => t.tischName)
                 .join(', ')
+              const stornoAnzahl = stornoAnzahlByUserId.get(sk.userId) ?? 0
               return (
                 <Item key={sk.userId} variant="outline" size="sm">
                   <ItemContent>
                     <ItemTitle>
                       {formatBediener(sk.userName, sk.name)}
                     </ItemTitle>
+                    {stornoAnzahl > 0 && <StornoMarker anzahl={stornoAnzahl} />}
                     {sk.erledigt ? (
                       <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-primary">
                         <CheckCircle2 className="size-3.5" />

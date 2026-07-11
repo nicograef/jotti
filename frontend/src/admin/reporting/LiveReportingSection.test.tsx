@@ -11,6 +11,8 @@ afterEach(() => {
 
 function liveData(
   servicekraefte: LiveReportingData['breakdowns']['servicekraefte'],
+  stornierungenProServicekraft: LiveReportingData['breakdowns']['stornierungenProServicekraft'] = [],
+  stornierungen: LiveReportingData['stornierungen'] = [],
 ): LiveReportingData {
   return {
     kassensitzungNr: 1,
@@ -28,8 +30,8 @@ function liveData(
       anzahlDirektverkaeufe: 2,
       direktverkaufUmsatzCents: 800,
     },
-    breakdowns: { servicekraefte },
-    stornierungen: [],
+    breakdowns: { servicekraefte, stornierungenProServicekraft },
+    stornierungen,
   }
 }
 
@@ -127,6 +129,77 @@ describe('LiveReportingSection — Single-Scroll', () => {
     ).toBeInTheDocument()
     expect(
       screen.getByText('Bestellwert, inkl. noch nicht kassiert'),
+    ).toBeInTheDocument()
+  })
+
+  it('markiert Servicekraft-Zeilen mit Stornos und zeigt das Aggregat über der Detail-Liste', () => {
+    render(
+      <LiveReportingSection
+        liveData={liveData(
+          [
+            {
+              userId: 3,
+              userName: 'felix',
+              name: 'Felix W.',
+              zahlungenCents: 1500,
+              anzahlZahlungen: 2,
+              offeneTische: [],
+              erledigt: true,
+            },
+            {
+              userId: 9,
+              userName: 'cleo',
+              name: '',
+              zahlungenCents: 900,
+              anzahlZahlungen: 1,
+              offeneTische: [],
+              erledigt: true,
+            },
+          ],
+          [
+            {
+              userId: 3,
+              userName: 'felix',
+              name: 'Felix W.',
+              anzahlStornierungen: 1,
+              stornierungenCents: 500,
+            },
+            {
+              userId: 7,
+              userName: 'sophie',
+              name: 'Sophie B.',
+              anzahlStornierungen: 1,
+              stornierungenCents: 250,
+            },
+          ],
+          [
+            {
+              zeitpunkt: '2026-06-18T12:00:00Z',
+              quelle: 'tisch',
+              barRueckgabe: true,
+              tischId: 9,
+              tischName: 'Tisch 9',
+              userId: 3,
+              userName: 'felix',
+              name: 'Felix W.',
+              betragCents: 500,
+              kommentar: '',
+              positionen: [],
+            },
+          ],
+        )}
+        loading={false}
+        dataUpdatedAt={0}
+        onRefresh={noopRefresh}
+      />,
+    )
+
+    // Roter Marker an felix' Servicekraft-Zeile (hat Stornos), cleo ohne Marker.
+    expect(screen.getByText('1 Storno')).toBeInTheDocument()
+
+    // Aggregat-Zeile pro Servicekraft über der Detail-Liste.
+    expect(
+      screen.getByText('felix (Felix W.) 1 · sophie (Sophie B.) 1'),
     ).toBeInTheDocument()
   })
 

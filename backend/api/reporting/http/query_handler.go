@@ -68,7 +68,8 @@ type summaryResponse struct {
 }
 
 type breakdownsResponse struct {
-	UmsatzProServicekraft []umsatzServicekraft `json:"umsatzProServicekraft"`
+	UmsatzProServicekraft        []umsatzServicekraft      `json:"umsatzProServicekraft"`
+	StornierungenProServicekraft []stornierungServicekraft `json:"stornierungenProServicekraft"`
 }
 
 type umsatzServicekraft struct {
@@ -77,6 +78,16 @@ type umsatzServicekraft struct {
 	Name            string `json:"name"`
 	ZahlungenCents  int    `json:"zahlungenCents"`
 	AnzahlZahlungen int    `json:"anzahlZahlungen"`
+}
+
+// stornierungServicekraft ist das Storno-Aggregat pro Servicekraft (Anzahl und
+// Betrag) — identisch in Live- und Reporting-Response.
+type stornierungServicekraft struct {
+	UserID              int    `json:"userId"`
+	UserName            string `json:"userName"`
+	Name                string `json:"name"`
+	AnzahlStornierungen int    `json:"anzahlStornierungen"`
+	StornierungenCents  int    `json:"stornierungenCents"`
 }
 
 type umsatzSteuersatzResponse struct {
@@ -121,6 +132,20 @@ func toUmsatzServicekraftList(umsatz []reporting.UmsatzServicekraft) []umsatzSer
 	out := make([]umsatzServicekraft, len(umsatz))
 	for i := range umsatz {
 		out[i] = toUmsatzServicekraft(umsatz[i])
+	}
+	return out
+}
+
+func toStornierungenProServicekraft(werte []reporting.StornierungServicekraft) []stornierungServicekraft {
+	out := make([]stornierungServicekraft, len(werte))
+	for i, w := range werte {
+		out[i] = stornierungServicekraft{
+			UserID:              w.UserID,
+			UserName:            w.UserName,
+			Name:                w.Name,
+			AnzahlStornierungen: w.AnzahlStornierungen,
+			StornierungenCents:  w.StornierungenCents,
+		}
 	}
 	return out
 }
@@ -201,7 +226,8 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 			DirektverkaufUmsatzCents: d.Summary.DirektverkaufUmsatzCents,
 		},
 		Breakdowns: breakdownsResponse{
-			UmsatzProServicekraft: toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),
+			UmsatzProServicekraft:        toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),
+			StornierungenProServicekraft: toStornierungenProServicekraft(d.Breakdowns.StornierungenProServicekraft),
 		},
 		UmsatzProSteuersatz: toUmsatzSteuersatzList(d.UmsatzProSteuersatz),
 		Stornierungen:       toStornierungDetails(d.Stornierungen),
@@ -324,9 +350,11 @@ type servicekraftLiveResponse struct {
 }
 
 // liveBreakdownsResponse trägt im Live-Dashboard die zusammengeführte
-// Servicekraft-Sicht statt des reinen kassierten Umsatzes.
+// Servicekraft-Sicht statt des reinen kassierten Umsatzes; das Storno-Aggregat
+// pro Servicekraft ist identisch zur Reporting-Response.
 type liveBreakdownsResponse struct {
-	Servicekraefte []servicekraftLiveResponse `json:"servicekraefte"`
+	Servicekraefte               []servicekraftLiveResponse `json:"servicekraefte"`
+	StornierungenProServicekraft []stornierungServicekraft  `json:"stornierungenProServicekraft"`
 }
 
 type liveReportingResponse struct {
@@ -396,7 +424,8 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 			DirektverkaufUmsatzCents: d.Summary.DirektverkaufUmsatzCents,
 		},
 		Breakdowns: liveBreakdownsResponse{
-			Servicekraefte: toServicekraefteLive(d.Servicekraefte),
+			Servicekraefte:               toServicekraefteLive(d.Servicekraefte),
+			StornierungenProServicekraft: toStornierungenProServicekraft(d.Breakdowns.StornierungenProServicekraft),
 		},
 		Stornierungen: toStornierungDetails(d.Stornierungen),
 	}

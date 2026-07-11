@@ -51,9 +51,36 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 	}
 
 	data.UmsatzProSteuersatz = computeUmsatzProSteuersatz(data.UmsatzProSteuersatz)
+	data.Breakdowns.StornierungenProServicekraft = aggregateStornierungenProServicekraft(data.Stornierungen)
 
 	log.Info().Msg("Retrieved reporting")
 	return data, nil
+}
+
+// aggregateStornierungenProServicekraft fasst die Storno-Detailzeilen pro
+// Servicekraft zusammen (Anzahl und Betrag) — als Kontroll-Signal fürs
+// Admin-Dashboard. Die Reihenfolge folgt dem ersten Auftreten in der
+// Detail-Liste (stabil). Die Summen entsprechen den Storno-Kennzahlen der
+// Summary, weil beide dieselben Storno-Events auswerten.
+func aggregateStornierungenProServicekraft(stornierungen []reporting.StornierungDetail) []reporting.StornierungServicekraft {
+	out := []reporting.StornierungServicekraft{}
+	indexByUserID := make(map[int]int, len(stornierungen))
+	for _, s := range stornierungen {
+		if idx, ok := indexByUserID[s.UserID]; ok {
+			out[idx].AnzahlStornierungen++
+			out[idx].StornierungenCents += s.BetragCents
+			continue
+		}
+		indexByUserID[s.UserID] = len(out)
+		out = append(out, reporting.StornierungServicekraft{
+			UserID:              s.UserID,
+			UserName:            s.UserName,
+			Name:                s.Name,
+			AnzahlStornierungen: 1,
+			StornierungenCents:  s.BetragCents,
+		})
+	}
+	return out
 }
 
 // computeUmsatzProSteuersatz aggregiert die USt-Aufschlüsselung aus den
@@ -216,6 +243,7 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 	}
 
 	data.Servicekraefte = mergeServicekraefteLive(data.Breakdowns.UmsatzProServicekraft, sessions, nameByTischID)
+	data.Breakdowns.StornierungenProServicekraft = aggregateStornierungenProServicekraft(data.Stornierungen)
 
 	log.Info().Msg("Retrieved live reporting")
 	return &data, nil

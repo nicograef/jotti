@@ -95,6 +95,9 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
+			StornierungenProServicekraft: []reporting.StornierungServicekraft{
+				{UserID: 3, UserName: "felix", Name: "Felix W.", AnzahlStornierungen: 2, StornierungenCents: 800},
+			},
 		},
 		UmsatzProSteuersatz: []reporting.UmsatzSteuersatz{
 			{Satz: steuer.RegelSteuersatz, BruttoCents: 1190, NettoCents: 1000, SteuerCents: 190},
@@ -126,9 +129,22 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 			NettoCents  int    `json:"nettoCents"`
 			SteuerCents int    `json:"steuerCents"`
 		} `json:"umsatzProSteuersatz"`
+		Breakdowns struct {
+			StornierungenProServicekraft []struct {
+				UserID              int `json:"userId"`
+				AnzahlStornierungen int `json:"anzahlStornierungen"`
+				StornierungenCents  int `json:"stornierungenCents"`
+			} `json:"stornierungenProServicekraft"`
+		} `json:"breakdowns"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("expected valid JSON response: %v", err)
+	}
+	if len(resp.Breakdowns.StornierungenProServicekraft) != 1 {
+		t.Fatalf("expected 1 stornierungenProServicekraft row, got %+v", resp.Breakdowns.StornierungenProServicekraft)
+	}
+	if sk := resp.Breakdowns.StornierungenProServicekraft[0]; sk.UserID != 3 || sk.AnzahlStornierungen != 2 || sk.StornierungenCents != 800 {
+		t.Fatalf("unexpected stornierungenProServicekraft row: %+v", resp.Breakdowns.StornierungenProServicekraft[0])
 	}
 	if resp.Summary.GesamtUmsatzCents != 10000 {
 		t.Errorf("expected gesamtUmsatzCents 10000, got %d", resp.Summary.GesamtUmsatzCents)
@@ -242,6 +258,9 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 		},
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
+			StornierungenProServicekraft: []reporting.StornierungServicekraft{
+				{UserID: 7, UserName: "sophie", Name: "Sophie B.", AnzahlStornierungen: 1, StornierungenCents: 250},
+			},
 		},
 		Servicekraefte: []reporting.ServicekraftLive{
 			{
@@ -290,10 +309,21 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 					AnzahlOffen int    `json:"anzahlOffen"`
 				} `json:"offeneTische"`
 			} `json:"servicekraefte"`
+			StornierungenProServicekraft []struct {
+				UserID              int `json:"userId"`
+				AnzahlStornierungen int `json:"anzahlStornierungen"`
+				StornierungenCents  int `json:"stornierungenCents"`
+			} `json:"stornierungenProServicekraft"`
 		} `json:"breakdowns"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("expected valid JSON response: %v", err)
+	}
+	if len(resp.Breakdowns.StornierungenProServicekraft) != 1 {
+		t.Fatalf("expected 1 stornierungenProServicekraft row, got %+v", resp.Breakdowns.StornierungenProServicekraft)
+	}
+	if sk := resp.Breakdowns.StornierungenProServicekraft[0]; sk.UserID != 7 || sk.AnzahlStornierungen != 1 || sk.StornierungenCents != 250 {
+		t.Fatalf("unexpected stornierungenProServicekraft row: %+v", resp.Breakdowns.StornierungenProServicekraft[0])
 	}
 	if resp.KassensitzungNr != 42 {
 		t.Errorf("expected kassensitzungNr 42, got %d", resp.KassensitzungNr)

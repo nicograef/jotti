@@ -354,12 +354,12 @@ Kassenberichten erscheint dasselbe Aggregat im Servicekräfte-Abschnitt (Spalte/
 
 ### Acceptance criteria
 
-- [ ] Live- und Reporting-Response enthalten `stornierungenProServicekraft`; Summe über
+- [x] Live- und Reporting-Response enthalten `stornierungenProServicekraft`; Summe über
       alle Servicekräfte entspricht `anzahlStornierungen`/`gesamtStornierungenCents` der
       Summary (Backend-Unit-Test).
-- [ ] Servicekraft-Zeilen mit ≥ 1 Storno zeigen live und in den Kassenberichten einen roten
+- [x] Servicekraft-Zeilen mit ≥ 1 Storno zeigen live und in den Kassenberichten einen roten
       „N Storno"-Marker; Zeilen ohne Storno zeigen nichts.
-- [ ] Der Stornierungen-Block zeigt vor der Detail-Liste das Aggregat pro Servicekraft;
+- [x] Der Stornierungen-Block zeigt vor der Detail-Liste das Aggregat pro Servicekraft;
       die Detail-Liste (wer/wann/warum/Bar-Rückgabe/Positionen) bleibt unverändert.
-- [ ] Zod-Schemas validieren die erweiterten Responses; `make verify` grün; E2E-Spec des
+- [x] Zod-Schemas validieren die erweiterten Responses; `make verify` grün; E2E-Spec des
       Live-Dashboards prüft den Storno-Marker mit Seed-Daten.

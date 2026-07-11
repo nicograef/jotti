@@ -42,6 +42,17 @@ type StornierungDetail struct {
 	Positionen   []StornierungPosition
 }
 
+// StornierungServicekraft aggregiert die Stornierungen einer Servicekraft
+// (Anzahl und Betrag) über eine Kassensitzung — als Kontroll-Signal im
+// Admin-Dashboard. Aus den StornierungDetail-Zeilen zusammengefasst.
+type StornierungServicekraft struct {
+	UserID              int
+	UserName            string // eingefrorener Username
+	Name                string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
+	AnzahlStornierungen int
+	StornierungenCents  int
+}
+
 type Summary struct {
 	GesamtUmsatzCents        int
 	GesamtBestellungenCents  int
@@ -54,7 +65,8 @@ type Summary struct {
 }
 
 type Breakdowns struct {
-	UmsatzProServicekraft []UmsatzServicekraft
+	UmsatzProServicekraft        []UmsatzServicekraft
+	StornierungenProServicekraft []StornierungServicekraft
 }
 
 type ReportingData struct {

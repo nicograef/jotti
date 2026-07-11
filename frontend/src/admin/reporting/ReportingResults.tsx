@@ -26,6 +26,7 @@ import {
 import { formatCents } from '@/lib/utils'
 
 import { StornoItem } from './StornoItem'
+import { StornoAggregat, StornoMarker } from './StornoServicekraft'
 import { SummaryCard } from './SummaryCard'
 import type { ReportingData } from './types'
 import { formatBediener } from './utils'
@@ -39,6 +40,12 @@ export function ReportingResults({
 }) {
   const summary = result.summary
   const breakdowns = result.breakdowns
+  const stornoAnzahlByUserId = new Map(
+    breakdowns.stornierungenProServicekraft.map((s) => [
+      s.userId,
+      s.anzahlStornierungen,
+    ]),
+  )
 
   if (loading) {
     return (
@@ -160,18 +167,24 @@ export function ReportingResults({
           </Empty>
         ) : (
           <ItemGroup>
-            {breakdowns.umsatzProServicekraft.map((sk) => (
-              <Item key={sk.userId} variant="outline" size="sm">
-                <ItemContent>
-                  <ItemTitle>{formatBediener(sk.userName, sk.name)}</ItemTitle>
-                </ItemContent>
-                <ItemActions>
-                  <span className="min-w-24 text-right text-sm font-semibold">
-                    {formatCents(sk.zahlungenCents)} €
-                  </span>
-                </ItemActions>
-              </Item>
-            ))}
+            {breakdowns.umsatzProServicekraft.map((sk) => {
+              const stornoAnzahl = stornoAnzahlByUserId.get(sk.userId) ?? 0
+              return (
+                <Item key={sk.userId} variant="outline" size="sm">
+                  <ItemContent>
+                    <ItemTitle>
+                      {formatBediener(sk.userName, sk.name)}
+                    </ItemTitle>
+                    {stornoAnzahl > 0 && <StornoMarker anzahl={stornoAnzahl} />}
+                  </ItemContent>
+                  <ItemActions>
+                    <span className="min-w-24 text-right text-sm font-semibold">
+                      {formatCents(sk.zahlungenCents)} €
+                    </span>
+                  </ItemActions>
+                </Item>
+              )
+            })}
           </ItemGroup>
         )}
       </TabsContent>
@@ -191,14 +204,21 @@ export function ReportingResults({
             </EmptyHeader>
           </Empty>
         ) : (
-          <ItemGroup>
-            {result.stornierungen.map((storno) => (
-              <StornoItem
-                key={`${storno.zeitpunkt}-${String(storno.tischId)}-${String(storno.userId)}`}
-                storno={storno}
+          <>
+            {breakdowns.stornierungenProServicekraft.length > 0 && (
+              <StornoAggregat
+                eintraege={breakdowns.stornierungenProServicekraft}
               />
-            ))}
-          </ItemGroup>
+            )}
+            <ItemGroup>
+              {result.stornierungen.map((storno) => (
+                <StornoItem
+                  key={`${storno.zeitpunkt}-${String(storno.tischId)}-${String(storno.userId)}`}
+                  storno={storno}
+                />
+              ))}
+            </ItemGroup>
+          </>
         )}
       </TabsContent>
     </Tabs>

@@ -54,5 +54,9 @@ test.describe('Admin sieht das Live-Dashboard', () => {
     await expect(
       liveSection.getByText('Reklamation Tagesgericht, Kulanz'),
     ).toBeVisible()
+
+    // Stornierungen pro Servicekraft: felix hat kassiert und storniert, seine
+    // Servicekraft-Zeile trägt den roten Storno-Marker.
+    await expect(liveSection.getByText('1 Storno')).toBeVisible()
   })
 })
