@@ -16,6 +16,9 @@ type EigeneArbeitAnTisch struct {
 	// AnzahlOffen zählt die offenen (= unbezahlten) eigenen Positionen, je Position
 	// (PositionID) einmal.
 	AnzahlOffen int
+	// OffenCents ist der noch offene (unbezahlte) Betrag der eigenen Positionen:
+	// Summe aus EinzelpreisCents × Menge.
+	OffenCents int
 	// Erledigt ist true, wenn keine eigenen unbezahlten Positionen mehr offen sind.
 	Erledigt bool
 }
@@ -28,9 +31,11 @@ func ComputeEigeneArbeitAnTisch(session TischSession, userID int) EigeneArbeitAn
 	offeneIDs := make(map[string]struct{})
 
 	anzahlUnbezahlt := 0
+	offenCents := 0
 	for _, pos := range session.UnbezahltePositionen {
 		if pos.BestellerUserID == userID {
 			anzahlUnbezahlt++
+			offenCents += pos.EinzelpreisCents * pos.Menge
 			offeneIDs[pos.PositionID] = struct{}{}
 		}
 	}
@@ -38,6 +43,7 @@ func ComputeEigeneArbeitAnTisch(session TischSession, userID int) EigeneArbeitAn
 	return EigeneArbeitAnTisch{
 		AnzahlUnbezahlt: anzahlUnbezahlt,
 		AnzahlOffen:     len(offeneIDs),
+		OffenCents:      offenCents,
 		Erledigt:        anzahlUnbezahlt == 0,
 	}
 }
@@ -48,6 +54,7 @@ type OffeneArbeitTisch struct {
 	TischID         int
 	AnzahlUnbezahlt int
 	AnzahlOffen     int
+	OffenCents      int
 }
 
 // OffeneArbeitRollup fasst die offene eigene Arbeit einer Servicekraft über
@@ -75,6 +82,7 @@ func ComputeOffeneArbeitRollup(sessions []TischSession, userID int) OffeneArbeit
 			TischID:         session.TischID,
 			AnzahlUnbezahlt: arbeit.AnzahlUnbezahlt,
 			AnzahlOffen:     arbeit.AnzahlOffen,
+			OffenCents:      arbeit.OffenCents,
 		})
 	}
 

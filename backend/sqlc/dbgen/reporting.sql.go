@@ -67,7 +67,7 @@ FROM tisch_sessions ts
 JOIN tische t ON t.id = ts.tisch_id
 WHERE ts.saldo_cents > 0
   AND ts.kassensitzung_nr = $1
-ORDER BY t.name
+ORDER BY ts.saldo_cents DESC, t.name
 `
 
 type GetOffeneTischeDetailsRow struct {
@@ -76,7 +76,8 @@ type GetOffeneTischeDetailsRow struct {
 	SaldoCents int
 }
 
-// Live-Dashboard: Offene Tische der offenen Kassensitzung mit Name und aktuellem Saldo.
+// Live-Dashboard: Offene Tische der offenen Kassensitzung mit Name und aktuellem
+// Saldo, größte offene Beträge zuerst (Tisch-Name als stabiler Tiebreaker).
 func (q *Queries) GetOffeneTischeDetails(ctx context.Context, kassensitzungNr int) ([]GetOffeneTischeDetailsRow, error) {
 	rows, err := q.db.QueryContext(ctx, getOffeneTischeDetails, kassensitzungNr)
 	if err != nil {

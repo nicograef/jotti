@@ -110,6 +110,9 @@ type OffeneArbeitTisch struct {
 	TischName       string
 	AnzahlUnbezahlt int
 	AnzahlOffen     int
+	// OffenCents ist der noch offene (unbezahlte) Betrag der eigenen Positionen
+	// an diesem Tisch.
+	OffenCents int
 }
 
 type EigeneUebersicht struct {

@@ -11,7 +11,12 @@ vi.mock('react-router', () => ({
 }))
 
 vi.mock('./hooks', () => ({
-  useLiveReporting: () => ({ liveData: null, isPending: false }),
+  useLiveReporting: () => ({
+    liveData: null,
+    isPending: false,
+    dataUpdatedAt: 0,
+    refetch: vi.fn(),
+  }),
 }))
 
 vi.mock('@/admin/tse/hooks', () => ({

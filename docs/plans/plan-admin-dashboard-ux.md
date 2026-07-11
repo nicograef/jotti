@@ -312,17 +312,17 @@ Seitenkopf, manueller Refresh-Button daneben.
 
 ### Acceptance criteria
 
-- [ ] Live-Dashboard hat keine Tabs; alle vier Blöcke sind per Scroll erreichbar, Reihenfolge
+- [x] Live-Dashboard hat keine Tabs; alle vier Blöcke sind per Scroll erreichbar, Reihenfolge
       wie oben.
-- [ ] Kennzahlen-Reihenfolge beginnt mit Gesamtumsatz; Sub-Labels benennen den Zusammenhang
+- [x] Kennzahlen-Reihenfolge beginnt mit Gesamtumsatz; Sub-Labels benennen den Zusammenhang
       bestellt/kassiert/offen wie festgelegt.
-- [ ] Offene Tische sind absteigend nach Saldo sortiert (Backend-Response-Reihenfolge; kein
+- [x] Offene Tische sind absteigend nach Saldo sortiert (Backend-Response-Reihenfolge; kein
       Frontend-Sort).
-- [ ] Servicekraft-Zeile zeigt „Fertig" oder „Offen: X € · <Tischnamen>"; Betrag entspricht
+- [x] Servicekraft-Zeile zeigt „Fertig" oder „Offen: X € · <Tischnamen>"; Betrag entspricht
       der Summe der eigenen unbezahlten Positionen (Backend-Unit-Test auf `OffenCents`).
-- [ ] Live-Daten aktualisieren sich ohne Interaktion (30-s-Intervall); „Stand HH:MM" und
+- [x] Live-Daten aktualisieren sich ohne Interaktion (30-s-Intervall); „Stand HH:MM" und
       Refresh-Button sind vorhanden und funktionieren.
-- [ ] `make verify` grün; `admin-live-reporting.spec.ts` auf die Blockstruktur umgeschrieben
+- [x] `make verify` grün; `admin-live-reporting.spec.ts` auf die Blockstruktur umgeschrieben
       (keine Tab-Selektoren mehr).
 
 ---

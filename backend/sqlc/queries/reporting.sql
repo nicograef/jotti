@@ -1,11 +1,12 @@
 -- name: GetOffeneTischeDetails :many
--- Live-Dashboard: Offene Tische der offenen Kassensitzung mit Name und aktuellem Saldo.
+-- Live-Dashboard: Offene Tische der offenen Kassensitzung mit Name und aktuellem
+-- Saldo, größte offene Beträge zuerst (Tisch-Name als stabiler Tiebreaker).
 SELECT ts.tisch_id, t.name AS tisch_name, ts.saldo_cents
 FROM tisch_sessions ts
 JOIN tische t ON t.id = ts.tisch_id
 WHERE ts.saldo_cents > 0
   AND ts.kassensitzung_nr = @kassensitzung_nr
-ORDER BY t.name;
+ORDER BY ts.saldo_cents DESC, t.name;
 
 -- name: GetReportingStats :one
 -- Reporting: Aggregierte Kennzahlen fuer eine Kassensitzung.

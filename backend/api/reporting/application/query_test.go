@@ -364,14 +364,14 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 			// Anna (7, hat Umsatz) hat hier noch offene Arbeit.
 			TischID: 3,
 			UnbezahltePositionen: []kasse.Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 7, BestellerName: "Anna"},
+				{PositionID: "p1", Menge: 2, EinzelpreisCents: 375, BestellerUserID: 7, BestellerName: "Anna"},
 			},
 		},
 		{
 			// Bert (8) hat offene Arbeit, aber keinen kassierten Umsatz.
 			TischID: 1,
 			UnbezahltePositionen: []kasse.Position{
-				{PositionID: "p2", Menge: 1, BestellerUserID: 8, BestellerName: "Bert"},
+				{PositionID: "p2", Menge: 1, EinzelpreisCents: 300, BestellerUserID: 8, BestellerName: "Bert"},
 			},
 		},
 	}
@@ -401,6 +401,10 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	if len(anna.OffeneTische) != 1 || anna.OffeneTische[0].TischID != 3 || anna.OffeneTische[0].TischName != "Tisch 3" || anna.OffeneTische[0].AnzahlOffen != 1 {
 		t.Errorf("expected Anna offen an Tisch 3, got %+v", anna.OffeneTische)
 	}
+	// OffenCents wird aus der Domäne durchgereicht: 2 × 375 = 750 Cent.
+	if anna.OffeneTische[0].OffenCents != 750 {
+		t.Errorf("expected Anna OffenCents 750, got %d", anna.OffeneTische[0].OffenCents)
+	}
 
 	cleo := result.Servicekraefte[1]
 	if cleo.UserID != 9 || !cleo.Erledigt || len(cleo.OffeneTische) != 0 {
@@ -414,6 +418,9 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	}
 	if len(bert.OffeneTische) != 1 || bert.OffeneTische[0].TischID != 1 || bert.OffeneTische[0].AnzahlUnbezahlt != 1 {
 		t.Errorf("expected Bert offen an Tisch 1, got %+v", bert.OffeneTische)
+	}
+	if bert.OffeneTische[0].OffenCents != 300 {
+		t.Errorf("expected Bert OffenCents 300, got %d", bert.OffeneTische[0].OffenCents)
 	}
 }
 

@@ -14,7 +14,12 @@ import { LiveReportingSection } from './LiveReportingSection'
 const RUECKSTAND_WARN_SEKUNDEN = 60
 
 export function AdminDashboardPage() {
-  const { liveData, isPending: liveLoading } = useLiveReporting()
+  const {
+    liveData,
+    isPending: liveLoading,
+    dataUpdatedAt,
+    refetch,
+  } = useLiveReporting()
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
   const { queue } = useTSESignaturQueue()
   const { druckauftraege } = useFehlgeschlageneDruckauftraege()
@@ -78,7 +83,12 @@ export function AdminDashboardPage() {
         </Alert>
       )}
 
-      <LiveReportingSection liveData={liveData} loading={liveLoading} />
+      <LiveReportingSection
+        liveData={liveData}
+        loading={liveLoading}
+        dataUpdatedAt={dataUpdatedAt}
+        onRefresh={() => void refetch()}
+      />
     </>
   )
 }

@@ -170,6 +170,7 @@ func (q Query) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.E
 			TischName:       nameByTischID[tisch.TischID],
 			AnzahlUnbezahlt: tisch.AnzahlUnbezahlt,
 			AnzahlOffen:     tisch.AnzahlOffen,
+			OffenCents:      tisch.OffenCents,
 		}
 	}
 
@@ -252,6 +253,7 @@ func mergeServicekraefteLive(
 				TischName:       nameByTischID[tisch.TischID],
 				AnzahlUnbezahlt: tisch.AnzahlUnbezahlt,
 				AnzahlOffen:     tisch.AnzahlOffen,
+				OffenCents:      tisch.OffenCents,
 			}
 		}
 

@@ -1,14 +1,7 @@
-import {
-  Ban,
-  ChartBar,
-  CheckCircle2,
-  LayoutDashboard,
-  Loader2,
-  Users,
-} from 'lucide-react'
+import { CheckCircle2, LayoutDashboard, Loader2, RefreshCw } from 'lucide-react'
 import { NavLink } from 'react-router'
 
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Empty,
   EmptyDescription,
@@ -23,25 +16,23 @@ import {
   ItemGroup,
   ItemTitle,
 } from '@/components/ui/item'
-import {
-  ScrollableTabsList,
-  Tabs,
-  TabsContent,
-  TabsTrigger,
-} from '@/components/ui/tabs'
 import { formatCents } from '@/lib/utils'
 
 import { StornoItem } from './StornoItem'
 import { SummaryCard } from './SummaryCard'
 import type { LiveReportingData } from './types'
-import { formatBediener, formatDatum, formatOffeneArbeit } from './utils'
+import { formatBediener, formatDatum, formatStand } from './utils'
 
 export function LiveReportingSection({
   liveData,
   loading,
+  dataUpdatedAt,
+  onRefresh,
 }: {
   liveData: LiveReportingData | null
   loading: boolean
+  dataUpdatedAt: number
+  onRefresh: () => void
 }) {
   if (loading) {
     return (
@@ -70,112 +61,125 @@ export function LiveReportingSection({
   }
 
   const summary = liveData.summary
-  const breakdowns = liveData.breakdowns
+  const servicekraefte = liveData.breakdowns.servicekraefte
 
   return (
-    <div data-testid="live-reporting-section" className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Live-Dashboard</h1>
-        <p className="text-muted-foreground">
-          <strong>{formatDatum(liveData.datum)}</strong> {liveData.bezeichnung}
-        </p>
+    <div data-testid="live-reporting-section" className="space-y-6">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold">Live-Dashboard</h1>
+          <p className="text-muted-foreground">
+            <strong>{formatDatum(liveData.datum)}</strong>{' '}
+            {liveData.bezeichnung}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="whitespace-nowrap text-xs text-muted-foreground">
+            Stand {formatStand(dataUpdatedAt)}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onRefresh}
+            aria-label="Aktualisieren"
+          >
+            <RefreshCw className="size-4" />
+          </Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="uebersicht">
-        <ScrollableTabsList variant="line">
-          <TabsTrigger value="uebersicht">
-            <ChartBar className="size-4" />
-            Übersicht
-          </TabsTrigger>
-          <TabsTrigger value="servicekraefte">
-            <Users className="size-4" />
-            Servicekräfte
-            {breakdowns.servicekraefte.length > 0 && (
-              <Badge variant="secondary" className="ml-1">
-                {breakdowns.servicekraefte.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="stornierungen">
-            <Ban className="size-4" />
-            Stornierungen
-            {summary.anzahlStornierungen > 0 && (
-              <Badge variant="destructive" className="ml-1">
-                {summary.anzahlStornierungen}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </ScrollableTabsList>
+      {/* Kennzahlen (kanonische Reihenfolge) */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <SummaryCard
+          title="Gesamtumsatz"
+          value={`${formatCents(summary.gesamtUmsatzCents)} €`}
+          sub="kassiert, abzüglich Warenrücknahmen"
+        />
+        <SummaryCard
+          title="Offene Saldi"
+          value={`${formatCents(liveData.offeneSaldiCents)} €`}
+          sub={`${String(liveData.offeneTische.length)} offene Tische`}
+        />
+        <SummaryCard
+          title="Bestellungen"
+          value={`${formatCents(summary.gesamtBestellungenCents)} €`}
+          sub="Bestellwert, inkl. noch nicht kassiert"
+        />
+        <SummaryCard
+          title="Direktverkauf"
+          value={String(summary.anzahlDirektverkaeufe)}
+          sub={`${formatCents(summary.direktverkaufUmsatzCents)} €`}
+        />
+        <SummaryCard
+          title="Stornierungen"
+          value={String(summary.anzahlStornierungen)}
+          sub={`${formatCents(summary.gesamtStornierungenCents)} €`}
+        />
+      </div>
 
-        {/* Übersicht */}
-        <TabsContent value="uebersicht" className="mt-4 space-y-6">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <SummaryCard
-              title="Bestellungen"
-              value={String(summary.anzahlBestellungen)}
-              sub={`${formatCents(summary.gesamtBestellungenCents)} €`}
-            />
-            <SummaryCard
-              title="Direktverkauf"
-              value={String(summary.anzahlDirektverkaeufe)}
-              sub={`${formatCents(summary.direktverkaufUmsatzCents)} €`}
-            />
-            <SummaryCard
-              title="Gesamtumsatz"
-              value={`${formatCents(summary.gesamtUmsatzCents)} €`}
-              sub="Kassierungen − Warenrücknahmen"
-            />
-            <SummaryCard
-              title="Offene Saldi"
-              value={`${formatCents(liveData.offeneSaldiCents)} €`}
-              sub={`${String(liveData.offeneTische.length)} offene Tische`}
-            />
-            <SummaryCard
-              title="Stornierungen"
-              value={String(summary.anzahlStornierungen)}
-              sub={`${formatCents(summary.gesamtStornierungenCents)} €`}
-            />
-          </div>
-
-          {liveData.offeneTische.length > 0 && (
-            <div>
-              <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-                Offene Tische
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {liveData.offeneTische.map((t) => (
-                  <div
-                    key={t.tischId}
-                    className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm"
-                  >
-                    <span>{t.tischName}</span>
-                    <span className="font-semibold">
-                      {formatCents(t.saldoCents)} €
-                    </span>
-                  </div>
-                ))}
+      {/* Offene Tische (Backend-Sortierung nach Saldo absteigend) */}
+      {liveData.offeneTische.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+            Offene Tische
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {liveData.offeneTische.map((t) => (
+              <div
+                key={t.tischId}
+                className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm"
+              >
+                <span>{t.tischName}</span>
+                <span className="font-semibold">
+                  {formatCents(t.saldoCents)} €
+                </span>
               </div>
-            </div>
-          )}
-        </TabsContent>
+            ))}
+          </div>
+        </div>
+      )}
 
-        {/* Servicekräfte */}
-        <TabsContent value="servicekraefte" className="mt-4">
-          {breakdowns.servicekraefte.length === 0 ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Users />
-                </EmptyMedia>
-                <EmptyTitle>Keine Servicekräfte aktiv</EmptyTitle>
-                <EmptyDescription>
-                  Noch keine Zahlungen und keine offenen Tische.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <ItemGroup>
-              {breakdowns.servicekraefte.map((sk) => (
+      {/* Stornierungen */}
+      <div>
+        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+          Stornierungen
+        </h2>
+        {liveData.stornierungen.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Keine Stornierungen in dieser Kassensitzung.
+          </p>
+        ) : (
+          <ItemGroup>
+            {liveData.stornierungen.map((s) => (
+              <StornoItem
+                key={`${s.zeitpunkt}-${String(s.tischId)}-${String(s.userId)}`}
+                storno={s}
+              />
+            ))}
+          </ItemGroup>
+        )}
+      </div>
+
+      {/* Servicekräfte */}
+      <div>
+        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+          Servicekräfte
+        </h2>
+        {servicekraefte.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Noch keine Zahlungen und keine offenen Tische.
+          </p>
+        ) : (
+          <ItemGroup>
+            {servicekraefte.map((sk) => {
+              const offenCents = sk.offeneTische.reduce(
+                (summe, t) => summe + t.offenCents,
+                0,
+              )
+              const tischNamen = sk.offeneTische
+                .map((t) => t.tischName)
+                .join(', ')
+              return (
                 <Item key={sk.userId} variant="outline" size="sm">
                   <ItemContent>
                     <ItemTitle>
@@ -187,20 +191,14 @@ export function LiveReportingSection({
                         Fertig
                       </span>
                     ) : (
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">
-                        {sk.offeneTische.map((t) => (
-                          <span
-                            key={t.tischId}
-                            className="rounded-md border px-2 py-0.5 text-xs"
-                          >
-                            <span className="font-medium">{t.tischName}</span>
-                            <span className="text-muted-foreground">
-                              {' · '}
-                              {formatOffeneArbeit(t)}
-                            </span>
-                          </span>
-                        ))}
-                      </div>
+                      <span className="mt-1.5 text-xs text-muted-foreground">
+                        Offen:{' '}
+                        <span className="whitespace-nowrap font-medium">
+                          {formatCents(offenCents)} €
+                        </span>
+                        {' · '}
+                        {tischNamen}
+                      </span>
                     )}
                   </ItemContent>
                   <ItemActions>
@@ -209,37 +207,11 @@ export function LiveReportingSection({
                     </span>
                   </ItemActions>
                 </Item>
-              ))}
-            </ItemGroup>
-          )}
-        </TabsContent>
-
-        {/* Stornierungen */}
-        <TabsContent value="stornierungen" className="mt-4">
-          {liveData.stornierungen.length === 0 ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Ban />
-                </EmptyMedia>
-                <EmptyTitle>Keine Stornierungen</EmptyTitle>
-                <EmptyDescription>
-                  Keine Stornierungen in dieser Kassensitzung.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <ItemGroup>
-              {liveData.stornierungen.map((s) => (
-                <StornoItem
-                  key={`${s.zeitpunkt}-${String(s.tischId)}-${String(s.userId)}`}
-                  storno={s}
-                />
-              ))}
-            </ItemGroup>
-          )}
-        </TabsContent>
-      </Tabs>
+              )
+            })}
+          </ItemGroup>
+        )}
+      </div>
     </div>
   )
 }

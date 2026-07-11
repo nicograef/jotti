@@ -68,6 +68,7 @@ export const OffeneArbeitTischSchema = z.object({
   tischName: z.string(),
   anzahlUnbezahlt: z.number().int(),
   anzahlOffen: z.number().int(),
+  offenCents: z.number().int(),
 })
 export type OffeneArbeitTisch = z.infer<typeof OffeneArbeitTischSchema>
 

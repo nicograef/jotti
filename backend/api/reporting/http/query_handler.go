@@ -246,6 +246,7 @@ type offeneArbeitTischResponse struct {
 	TischName       string `json:"tischName"`
 	AnzahlUnbezahlt int    `json:"anzahlUnbezahlt"`
 	AnzahlOffen     int    `json:"anzahlOffen"`
+	OffenCents      int    `json:"offenCents"`
 }
 
 type eigeneUebersichtResponse struct {
@@ -278,6 +279,7 @@ func (h *QueryHandler) GetEigeneUebersichtHandler() http.HandlerFunc {
 				TischName:       tisch.TischName,
 				AnzahlUnbezahlt: tisch.AnzahlUnbezahlt,
 				AnzahlOffen:     tisch.AnzahlOffen,
+				OffenCents:      tisch.OffenCents,
 			}
 		}
 
@@ -346,6 +348,7 @@ func toServicekraftLive(s reporting.ServicekraftLive) servicekraftLiveResponse {
 			TischName:       t.TischName,
 			AnzahlUnbezahlt: t.AnzahlUnbezahlt,
 			AnzahlOffen:     t.AnzahlOffen,
+			OffenCents:      t.OffenCents,
 		}
 	}
 	return servicekraftLiveResponse{
