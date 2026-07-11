@@ -136,12 +136,12 @@ in iOS-Standalone korrekt arbeitet.
 
 ### Acceptance criteria
 
-- [ ] `grep -r "vaul" frontend/src frontend/package.json` liefert keine Treffer mehr.
-- [ ] Alle sechs Drawer öffnen und schließen in den bestehenden Unit-Tests über die
+- [x] `grep -r "vaul" frontend/src frontend/package.json` liefert keine Treffer mehr.
+- [x] Alle sechs Drawer öffnen und schließen in den bestehenden Unit-Tests über die
       unveränderte `Drawer*`-API (Dialog-Rolle sichtbar, Overlay vorhanden).
-- [ ] `StickyActionBar` als `DrawerTrigger asChild` öffnet den Drawer; bei leerer Auswahl
+- [x] `StickyActionBar` als `DrawerTrigger asChild` öffnet den Drawer; bei leerer Auswahl
       verhindert der bestehende `onOpenChange`-Guard das Öffnen (bestehende Tests grün).
-- [ ] `make check` grün; komplette E2E-Suite (`desktop-admin` + `mobile-service`) grün —
+- [x] `make check` grün; komplette E2E-Suite (`desktop-admin` + `mobile-service`) grün —
       insbesondere `bestellen-kassieren.spec.ts`, `stornierung-serviceleitung.mobile.spec.ts`,
       `umbuchung.mobile.spec.ts`, `direktverkauf-storno.mobile.spec.ts`.
 
@@ -178,15 +178,15 @@ erfolgreich abschließen.
 
 ### Acceptance criteria
 
-- [ ] Im mobilen E2E-Viewport ist der Kassieren-Button bei ≥ 9 Positionen **und** gefüllten
+- [x] Im mobilen E2E-Viewport ist der Kassieren-Button bei ≥ 9 Positionen **und** gefüllten
       Trinkgeld-/Erhalten-Feldern sichtbar (`toBeInViewport`) und die Zahlung wird
       erfolgreich verbucht (neue Spec grün).
-- [ ] Gleiches Kriterium für „Bestellung aufnehmen" bei einer Bestellung mit ≥ 9 Positionen.
-- [ ] Rückgeld-/Trinkgeld-Zeilen und Hinweistext erscheinen weiterhin korrekt (bestehende
+- [x] Gleiches Kriterium für „Bestellung aufnehmen" bei einer Bestellung mit ≥ 9 Positionen.
+- [x] Rückgeld-/Trinkgeld-Zeilen und Hinweistext erscheinen weiterhin korrekt (bestehende
       Unit-Tests `Zahlung.test.tsx` grün, ggf. angepasst an neue Struktur).
-- [ ] Kein Element im Drawer außer `DrawerBody` ist vertikal scrollbar (kein verschachteltes
+- [x] Kein Element im Drawer außer `DrawerBody` ist vertikal scrollbar (kein verschachteltes
       Scrollen; `Receipt` ohne eigenen `max-h`-Cap).
-- [ ] `make check` und E2E-Suite grün.
+- [x] `make check` und E2E-Suite grün.
 
 ---
 
@@ -213,16 +213,16 @@ Umbuchen-Button und „Abbrechen" bei beliebig vielen Positionen sichtbar.
 
 ### Acceptance criteria
 
-- [ ] Alle vier Drawer folgen der Struktur Header → `DrawerBody` → Footer; keine eigenen
+- [x] Alle vier Drawer folgen der Struktur Header → `DrawerBody` → Footer; keine eigenen
       `max-h`-Caps in Listen mehr (`grep -rn "max-h-\[" frontend/src/service` zeigt keine
       Treffer in Drawer-Inhalten).
-- [ ] Storno- und Umbuchungs-Footer sind im mobilen E2E-Viewport bei vielen Positionen
+- [x] Storno- und Umbuchungs-Footer sind im mobilen E2E-Viewport bei vielen Positionen
       sichtbar und funktionsfähig (bestehende Specs `stornierung-serviceleitung.mobile`,
       `umbuchung.mobile`, `direktverkauf-storno.mobile` grün; wo keine lange Liste
       abgedeckt ist, Unit-Test auf Strukturebene ergänzen).
-- [ ] Tischsuche im `TischAuswahlDrawer` funktioniert unverändert (bestehender Unit-Test
+- [x] Tischsuche im `TischAuswahlDrawer` funktioniert unverändert (bestehender Unit-Test
       grün); das Suchfeld scrollt nicht mit der Liste.
-- [ ] `make check` und E2E-Suite grün.
+- [x] `make check` und E2E-Suite grün.
 
 ---
 
@@ -248,10 +248,10 @@ jedem Drawer. Kein neues Overlay-Framework, kein globaler State.
 
 ### Acceptance criteria
 
-- [ ] Während eines laufenden Submits schließt weder Escape noch Backdrop-Tap den Drawer;
+- [x] Während eines laufenden Submits schließt weder Escape noch Backdrop-Tap den Drawer;
       nach Erfolg schließt er wie bisher automatisch (Unit-Test je Verhalten).
-- [ ] Der Pending-Zustand ist visuell erkennbar (gedimmter Body + Spinner im Button) —
+- [x] Der Pending-Zustand ist visuell erkennbar (gedimmter Body + Spinner im Button) —
       Unit-Test auf Strukturebene.
-- [ ] Fehlerfall unverändert: Toast erscheint, Drawer bleibt offen und wieder bedienbar
+- [x] Fehlerfall unverändert: Toast erscheint, Drawer bleibt offen und wieder bedienbar
       (bestehende Tests grün).
-- [ ] `make check` und E2E-Suite grün.
+- [x] `make check` und E2E-Suite grün.

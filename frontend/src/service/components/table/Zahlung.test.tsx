@@ -1,6 +1,5 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Position } from '../../table/Bestellung'
@@ -14,23 +13,6 @@ vi.mock('sonner', () => ({
 vi.mock('@/lib/Auth', () => ({
   AuthSingleton: { userId: 1 },
 }))
-
-// vaul's Drawer braucht Browser-APIs, die jsdom nicht bereitstellt. Trigger
-// inline rendern, Drawer-Inhalt ausblenden — so bleibt nur die Aktionsleiste
-// (der Kassieren-Trigger) übrig.
-vi.mock('@/components/ui/drawer', () => {
-  const Passthrough = ({ children }: { children?: ReactNode }) => children
-  return {
-    Drawer: Passthrough,
-    DrawerTrigger: Passthrough,
-    DrawerContent: () => null,
-    DrawerHeader: Passthrough,
-    DrawerTitle: Passthrough,
-    DrawerDescription: Passthrough,
-    DrawerFooter: Passthrough,
-    DrawerClose: Passthrough,
-  }
-})
 
 afterEach(() => {
   cleanup()

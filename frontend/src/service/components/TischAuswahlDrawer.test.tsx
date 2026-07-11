@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -17,17 +16,6 @@ vi.mock('react-router', () => ({
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
-
-// vaul's Drawer depends on browser APIs unavailable in jsdom — render children inline.
-vi.mock('@/components/ui/drawer', () => {
-  const Passthrough = ({ children }: { children?: ReactNode }) => children
-  return {
-    Drawer: Passthrough,
-    DrawerContent: Passthrough,
-    DrawerHeader: Passthrough,
-    DrawerTitle: Passthrough,
-  }
-})
 
 vi.mock('@/lib/Backend', () => ({
   BackendSingleton: {},
@@ -70,6 +58,18 @@ function renderDrawer() {
 }
 
 describe('TischAuswahlDrawer', () => {
+  it('zeigt die Tisch-Liste im DrawerBody, das Suchfeld scrollt nicht mit', () => {
+    renderDrawer()
+
+    const dialog = screen.getByRole('dialog')
+    const body = dialog.querySelector('[data-slot="drawer-body"]')
+    expect(body).not.toBeNull()
+    expect(body).toContainElement(screen.getByText('Stammtisch'))
+    expect(body).not.toContainElement(
+      screen.getByPlaceholderText('Tisch suchen...'),
+    )
+  })
+
   it('invalidiert nach Favoriten-Toggle beide Query-Caches', async () => {
     const user = userEvent.setup()
     const { invalidate } = renderDrawer()

@@ -5,7 +5,6 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Bestellung } from '../../table/Bestellung'
@@ -23,23 +22,6 @@ vi.mock('sonner', () => ({
 vi.mock('@/lib/Auth', () => ({
   AuthSingleton: { canCancel: true },
 }))
-
-// vaul's Drawer braucht Browser-APIs, die jsdom nicht bereitstellt.
-// DrawerContent wird als Passthrough gemockt, damit Drawer-Inhalte
-// (inkl. Beleg-Buttons) im Test sichtbar sind.
-vi.mock('@/components/ui/drawer', () => {
-  const Passthrough = ({ children }: { children?: ReactNode }) => children
-  return {
-    Drawer: Passthrough,
-    DrawerTrigger: Passthrough,
-    DrawerContent: Passthrough,
-    DrawerHeader: Passthrough,
-    DrawerTitle: Passthrough,
-    DrawerDescription: Passthrough,
-    DrawerFooter: Passthrough,
-    DrawerClose: Passthrough,
-  }
-})
 
 afterEach(() => {
   cleanup()
