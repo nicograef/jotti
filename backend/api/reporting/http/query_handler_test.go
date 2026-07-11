@@ -267,8 +267,9 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 				UserID:         7,
 				UserName:       "Anna",
 				ZahlungenCents: 1500,
+				OffenCents:     900,
 				OffeneTische: []reporting.OffeneArbeitTisch{
-					{TischID: 3, TischName: "Tisch 3", AnzahlUnbezahlt: 1, AnzahlOffen: 1},
+					{TischID: 3, TischName: "Tisch 3", AnzahlUnbezahlt: 1, AnzahlOffen: 1, OffenCents: 900},
 				},
 				Erledigt: false,
 			},
@@ -304,9 +305,9 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 			Servicekraefte []struct {
 				UserID       int  `json:"userId"`
 				Erledigt     bool `json:"erledigt"`
+				OffenCents   int  `json:"offenCents"`
 				OffeneTische []struct {
-					TischName   string `json:"tischName"`
-					AnzahlOffen int    `json:"anzahlOffen"`
+					TischName string `json:"tischName"`
 				} `json:"offeneTische"`
 			} `json:"servicekraefte"`
 			StornierungenProServicekraft []struct {
@@ -353,7 +354,10 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 	if sk.UserID != 7 || sk.Erledigt {
 		t.Errorf("expected servicekraft 7 with open work, got %+v", sk)
 	}
-	if len(sk.OffeneTische) != 1 || sk.OffeneTische[0].TischName != "Tisch 3" || sk.OffeneTische[0].AnzahlOffen != 1 {
+	if sk.OffenCents != 900 {
+		t.Errorf("expected servicekraft offenCents 900, got %d", sk.OffenCents)
+	}
+	if len(sk.OffeneTische) != 1 || sk.OffeneTische[0].TischName != "Tisch 3" {
 		t.Errorf("expected open work at 'Tisch 3', got %+v", sk.OffeneTische)
 	}
 }

@@ -73,11 +73,10 @@ type breakdownsResponse struct {
 }
 
 type umsatzServicekraft struct {
-	UserID          int    `json:"userId"`
-	UserName        string `json:"userName"`
-	Name            string `json:"name"`
-	ZahlungenCents  int    `json:"zahlungenCents"`
-	AnzahlZahlungen int    `json:"anzahlZahlungen"`
+	UserID         int    `json:"userId"`
+	UserName       string `json:"userName"`
+	Name           string `json:"name"`
+	ZahlungenCents int    `json:"zahlungenCents"`
 }
 
 // stornierungServicekraft ist das Storno-Aggregat pro Servicekraft (Anzahl und
@@ -120,11 +119,10 @@ type stornierungDetail struct {
 
 func toUmsatzServicekraft(u reporting.UmsatzServicekraft) umsatzServicekraft {
 	return umsatzServicekraft{
-		UserID:          u.UserID,
-		UserName:        u.UserName,
-		Name:            u.Name,
-		ZahlungenCents:  u.ZahlungenCents,
-		AnzahlZahlungen: u.AnzahlZahlungen,
+		UserID:         u.UserID,
+		UserName:       u.UserName,
+		Name:           u.Name,
+		ZahlungenCents: u.ZahlungenCents,
 	}
 }
 
@@ -337,16 +335,24 @@ type liveSummaryResponse struct {
 	DirektverkaufUmsatzCents int `json:"direktverkaufUmsatzCents"`
 }
 
+// offeneArbeitTischLiveResponse ist die schlanke Tisch-Zeile der Live-Sicht: nur
+// der Tisch-Name für die Inline-Anzeige. Der offene Betrag wird auf
+// Servicekraft-Ebene (servicekraftLiveResponse.OffenCents) aggregiert.
+type offeneArbeitTischLiveResponse struct {
+	TischID   int    `json:"tischId"`
+	TischName string `json:"tischName"`
+}
+
 // servicekraftLiveResponse ist die Live-Sicht pro Servicekraft: kassierter
 // Umsatz zusammengeführt mit der offenen eigenen Arbeit.
 type servicekraftLiveResponse struct {
-	UserID          int                         `json:"userId"`
-	UserName        string                      `json:"userName"`
-	Name            string                      `json:"name"`
-	ZahlungenCents  int                         `json:"zahlungenCents"`
-	AnzahlZahlungen int                         `json:"anzahlZahlungen"`
-	OffeneTische    []offeneArbeitTischResponse `json:"offeneTische"`
-	Erledigt        bool                        `json:"erledigt"`
+	UserID         int                             `json:"userId"`
+	UserName       string                          `json:"userName"`
+	Name           string                          `json:"name"`
+	ZahlungenCents int                             `json:"zahlungenCents"`
+	OffenCents     int                             `json:"offenCents"`
+	OffeneTische   []offeneArbeitTischLiveResponse `json:"offeneTische"`
+	Erledigt       bool                            `json:"erledigt"`
 }
 
 // liveBreakdownsResponse trägt im Live-Dashboard die zusammengeführte
@@ -369,24 +375,21 @@ type liveReportingResponse struct {
 }
 
 func toServicekraftLive(s reporting.ServicekraftLive) servicekraftLiveResponse {
-	offeneTische := make([]offeneArbeitTischResponse, len(s.OffeneTische))
+	offeneTische := make([]offeneArbeitTischLiveResponse, len(s.OffeneTische))
 	for i, t := range s.OffeneTische {
-		offeneTische[i] = offeneArbeitTischResponse{
-			TischID:         t.TischID,
-			TischName:       t.TischName,
-			AnzahlUnbezahlt: t.AnzahlUnbezahlt,
-			AnzahlOffen:     t.AnzahlOffen,
-			OffenCents:      t.OffenCents,
+		offeneTische[i] = offeneArbeitTischLiveResponse{
+			TischID:   t.TischID,
+			TischName: t.TischName,
 		}
 	}
 	return servicekraftLiveResponse{
-		UserID:          s.UserID,
-		UserName:        s.UserName,
-		Name:            s.Name,
-		ZahlungenCents:  s.ZahlungenCents,
-		AnzahlZahlungen: s.AnzahlZahlungen,
-		OffeneTische:    offeneTische,
-		Erledigt:        s.Erledigt,
+		UserID:         s.UserID,
+		UserName:       s.UserName,
+		Name:           s.Name,
+		ZahlungenCents: s.ZahlungenCents,
+		OffenCents:     s.OffenCents,
+		OffeneTische:   offeneTische,
+		Erledigt:       s.Erledigt,
 	}
 }
 

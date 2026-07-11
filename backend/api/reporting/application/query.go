@@ -275,6 +275,7 @@ func mergeServicekraefteLive(
 
 	for _, arbeit := range kasse.ComputeOffeneArbeitProServicekraft(sessions) {
 		offeneTische := make([]reporting.OffeneArbeitTisch, len(arbeit.OffeneTische))
+		offenCents := 0
 		for i, tisch := range arbeit.OffeneTische {
 			offeneTische[i] = reporting.OffeneArbeitTisch{
 				TischID:         tisch.TischID,
@@ -283,10 +284,12 @@ func mergeServicekraefteLive(
 				AnzahlOffen:     tisch.AnzahlOffen,
 				OffenCents:      tisch.OffenCents,
 			}
+			offenCents += tisch.OffenCents
 		}
 
 		if idx, ok := indexByUserID[arbeit.UserID]; ok {
 			servicekraefte[idx].OffeneTische = offeneTische
+			servicekraefte[idx].OffenCents = offenCents
 			servicekraefte[idx].Erledigt = false
 			continue
 		}
@@ -294,6 +297,7 @@ func mergeServicekraefteLive(
 		servicekraefte = append(servicekraefte, reporting.ServicekraftLive{
 			UserID:       arbeit.UserID,
 			UserName:     arbeit.UserName,
+			OffenCents:   offenCents,
 			OffeneTische: offeneTische,
 			Erledigt:     false,
 		})

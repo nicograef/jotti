@@ -88,7 +88,7 @@ export function ReportingResults({
           <SummaryCard
             title="Gesamtumsatz"
             value={`${formatCents(summary.gesamtUmsatzCents)} €`}
-            sub="Kassierungen − Warenrücknahmen"
+            sub="kassiert, abzüglich Warenrücknahmen"
           />
           <SummaryCard
             title="Bestellungen"
@@ -114,7 +114,7 @@ export function ReportingResults({
           <CardContent>
             {result.umsatzProSteuersatz.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Keine steuerrelevanten Umsätze im gewählten Zeitraum.
+                Keine steuerrelevanten Umsätze in dieser Kassensitzung.
               </p>
             ) : (
               <div className="space-y-3">
@@ -161,7 +161,7 @@ export function ReportingResults({
               </EmptyMedia>
               <EmptyTitle>Keine Zahlungen</EmptyTitle>
               <EmptyDescription>
-                Keine Zahlungen im gewählten Zeitraum.
+                Keine Zahlungen in dieser Kassensitzung.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -199,7 +199,7 @@ export function ReportingResults({
               </EmptyMedia>
               <EmptyTitle>Keine Stornierungen</EmptyTitle>
               <EmptyDescription>
-                Keine Stornierungen im gewählten Zeitraum.
+                Keine Stornierungen in dieser Kassensitzung.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

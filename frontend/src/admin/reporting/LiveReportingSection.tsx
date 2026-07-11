@@ -183,10 +183,6 @@ export function LiveReportingSection({
         ) : (
           <ItemGroup>
             {servicekraefte.map((sk) => {
-              const offenCents = sk.offeneTische.reduce(
-                (summe, t) => summe + t.offenCents,
-                0,
-              )
               const tischNamen = sk.offeneTische
                 .map((t) => t.tischName)
                 .join(', ')
@@ -207,7 +203,7 @@ export function LiveReportingSection({
                       <span className="mt-1.5 text-xs text-muted-foreground">
                         Offen:{' '}
                         <span className="whitespace-nowrap font-medium">
-                          {formatCents(offenCents)} €
+                          {formatCents(sk.offenCents)} €
                         </span>
                         {' · '}
                         {tischNamen}

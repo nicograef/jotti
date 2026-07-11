@@ -458,6 +458,10 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	if anna.OffeneTische[0].OffenCents != 750 {
 		t.Errorf("expected Anna OffenCents 750, got %d", anna.OffeneTische[0].OffenCents)
 	}
+	// Der offene Betrag wird auf Servicekraft-Ebene aggregiert (Summe über Tische).
+	if anna.OffenCents != 750 {
+		t.Errorf("expected Anna Servicekraft-OffenCents 750, got %d", anna.OffenCents)
+	}
 
 	cleo := result.Servicekraefte[1]
 	if cleo.UserID != 9 || !cleo.Erledigt || len(cleo.OffeneTische) != 0 {
@@ -474,6 +478,9 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	}
 	if bert.OffeneTische[0].OffenCents != 300 {
 		t.Errorf("expected Bert OffenCents 300, got %d", bert.OffeneTische[0].OffenCents)
+	}
+	if bert.OffenCents != 300 {
+		t.Errorf("expected Bert Servicekraft-OffenCents 300, got %d", bert.OffenCents)
 	}
 }
 

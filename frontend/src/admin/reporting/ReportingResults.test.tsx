@@ -24,7 +24,6 @@ const reportingResult: ReportingData = {
         userName: 'Bea',
         name: 'Bea B.',
         zahlungenCents: 6789,
-        anzahlZahlungen: 3,
       },
     ],
     stornierungenProServicekraft: [

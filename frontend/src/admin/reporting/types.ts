@@ -16,7 +16,6 @@ export const UmsatzServicekraftSchema = z.object({
   userName: z.string(),
   name: z.string(),
   zahlungenCents: z.number().int(),
-  anzahlZahlungen: z.number().int(),
 })
 export type UmsatzServicekraft = z.infer<typeof UmsatzServicekraftSchema>
 
@@ -76,12 +75,12 @@ export const OffenerTischSchema = z.object({
 })
 export type OffenerTisch = z.infer<typeof OffenerTischSchema>
 
+// OffeneArbeitTisch trägt nur den Tisch-Namen für die Inline-Anzeige der
+// offenen Tische einer Servicekraft; der offene Betrag wird auf
+// Servicekraft-Ebene (ServicekraftLive.offenCents) vom Backend aggregiert.
 export const OffeneArbeitTischSchema = z.object({
   tischId: z.number().int(),
   tischName: z.string(),
-  anzahlUnbezahlt: z.number().int(),
-  anzahlOffen: z.number().int(),
-  offenCents: z.number().int(),
 })
 export type OffeneArbeitTisch = z.infer<typeof OffeneArbeitTischSchema>
 
@@ -92,7 +91,7 @@ export const ServicekraftLiveSchema = z.object({
   userName: z.string(),
   name: z.string(),
   zahlungenCents: z.number().int(),
-  anzahlZahlungen: z.number().int(),
+  offenCents: z.number().int(),
   offeneTische: z.array(OffeneArbeitTischSchema),
   erledigt: z.boolean(),
 })

@@ -108,6 +108,9 @@ type ServicekraftLive struct {
 	Name            string // live aus users aufgeloester Klarname (leer bei reiner offener Arbeit)
 	ZahlungenCents  int
 	AnzahlZahlungen int
+	// OffenCents ist der noch offene (unbezahlte) Betrag der eigenen Arbeit über
+	// alle Tische — die Servicekraft-Ebene-Summe über OffeneTische.OffenCents.
+	OffenCents int
 	// OffeneTische listet die Tische mit offener eigener Arbeit (aufsteigend nach
 	// Tisch-ID); leer wenn die Servicekraft fertig ist.
 	OffeneTische []OffeneArbeitTisch
