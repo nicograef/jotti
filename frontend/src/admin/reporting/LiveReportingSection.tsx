@@ -3,6 +3,7 @@ import {
   ChartBar,
   CheckCircle2,
   LayoutDashboard,
+  Loader2,
   TableIcon,
   Users,
 } from 'lucide-react'
@@ -23,7 +24,6 @@ import {
   ItemGroup,
   ItemTitle,
 } from '@/components/ui/item'
-import { Progress } from '@/components/ui/progress'
 import {
   ScrollableTabsList,
   Tabs,
@@ -39,7 +39,6 @@ import {
   formatDatum,
   formatLocalTime,
   formatOffeneArbeit,
-  pct,
 } from './utils'
 
 export function LiveReportingSection({
@@ -52,7 +51,7 @@ export function LiveReportingSection({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Progress className="w-1/2" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -80,7 +79,7 @@ export function LiveReportingSection({
 
   return (
     <div data-testid="live-reporting-section" className="space-y-4">
-      <div className="flex items-baseline gap-2">
+      <div>
         <h1 className="text-2xl font-bold">Live-Dashboard</h1>
         <p className="text-muted-foreground">
           <strong>{formatDatum(liveData.datum)}</strong> {liveData.bezeichnung}
@@ -196,12 +195,8 @@ export function LiveReportingSection({
                     <ItemTitle>
                       {formatBediener(sk.userName, sk.name)}
                     </ItemTitle>
-                    <Progress
-                      value={pct(sk.zahlungenCents, summary.gesamtUmsatzCents)}
-                      className="mt-1 h-1.5"
-                    />
                     {sk.erledigt ? (
-                      <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-green-700">
+                      <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-primary">
                         <CheckCircle2 className="size-3.5" />
                         Fertig
                       </span>
@@ -223,9 +218,6 @@ export function LiveReportingSection({
                     )}
                   </ItemContent>
                   <ItemActions>
-                    <Badge variant="secondary">
-                      {sk.anzahlZahlungen} Zahlungen
-                    </Badge>
                     <span className="min-w-24 text-right text-sm font-semibold">
                       {formatCents(sk.zahlungenCents)} €
                     </span>
@@ -256,15 +248,8 @@ export function LiveReportingSection({
                 <Item key={t.tischId} variant="outline" size="sm">
                   <ItemContent>
                     <ItemTitle>{t.tischName}</ItemTitle>
-                    <Progress
-                      value={pct(t.zahlungenCents, summary.gesamtUmsatzCents)}
-                      className="mt-1 h-1.5"
-                    />
                   </ItemContent>
                   <ItemActions>
-                    <Badge variant="secondary">
-                      {t.anzahlZahlungen} Zahlungen
-                    </Badge>
                     <span className="min-w-24 text-right text-sm font-semibold">
                       {formatCents(t.zahlungenCents)} €
                     </span>
@@ -322,7 +307,9 @@ export function LiveReportingSection({
                                 pos.varianteName,
                               )}
                             </span>
-                            <span>{formatCents(pos.einzelpreisCents)} €</span>
+                            <span className="whitespace-nowrap">
+                              {formatCents(pos.einzelpreisCents)} €
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -332,7 +319,7 @@ export function LiveReportingSection({
                     <Badge variant={s.barRueckgabe ? 'outline' : 'secondary'}>
                       {s.barRueckgabe ? 'Bar-Rückgabe' : 'Geldneutral'}
                     </Badge>
-                    <span className="text-sm font-semibold">
+                    <span className="whitespace-nowrap text-sm font-semibold">
                       {formatCents(s.betragCents)} €
                     </span>
                   </ItemActions>

@@ -1,15 +1,16 @@
-export function pct(part: number, total: number): number {
-  return total > 0 ? Math.round((part / total) * 100) : 0
-}
-
 // Admin-Auswertungen zeigen den eingefrorenen Username, ergaenzt um den live
 // aufgeloesten Klarnamen: "username (Klarname)". Fehlt der Klarname, nur Username.
 export function formatBediener(userName: string, name: string): string {
   return name ? `${userName} (${name})` : userName
 }
 
+// Storno-Zeitstempel innerhalb einer Kassensitzung (ein Tag) als HH:MM in
+// lokaler Zeit; das Datum ergibt sich aus der Kassensitzung.
 export function formatLocalTime(utcString: string): string {
-  return new Date(utcString).toLocaleString('de-DE')
+  return new Date(utcString).toLocaleTimeString('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 export function formatDatum(datum: string): string {

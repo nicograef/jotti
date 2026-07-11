@@ -51,7 +51,7 @@ describe('AdminDashboardPage Drucker-Banner', () => {
     druckState.anzahl = 2
     render(<AdminDashboardPage />)
 
-    expect(screen.getByText('Drucker prüfen')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toBeInTheDocument()
     expect(
       screen.getByText(/2 Druckaufträge konnten nicht gedruckt werden\./),
     ).toBeInTheDocument()
@@ -73,6 +73,6 @@ describe('AdminDashboardPage Drucker-Banner', () => {
     druckState.anzahl = 0
     render(<AdminDashboardPage />)
 
-    expect(screen.queryByText('Drucker prüfen')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })

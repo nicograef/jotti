@@ -1,4 +1,4 @@
-import { Ban, ChartBar, TableIcon, Users } from 'lucide-react'
+import { Ban, ChartBar, Loader2, TableIcon, Users } from 'lucide-react'
 
 import { STEUERSATZ_LABEL } from '@/admin/products/Produkt'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +17,6 @@ import {
   ItemGroup,
   ItemTitle,
 } from '@/components/ui/item'
-import { Progress } from '@/components/ui/progress'
 import {
   ScrollableTabsList,
   Tabs,
@@ -28,7 +27,7 @@ import { formatCents, formatPositionName } from '@/lib/utils'
 
 import { SummaryCard } from './SummaryCard'
 import type { ReportingData } from './types'
-import { formatBediener, formatLocalTime, pct } from './utils'
+import { formatBediener, formatLocalTime } from './utils'
 
 export function ReportingResults({
   result,
@@ -43,7 +42,7 @@ export function ReportingResults({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Progress className="w-1/2" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -119,42 +118,34 @@ export function ReportingResults({
                 Keine steuerrelevanten Umsätze im gewählten Zeitraum.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[32rem] text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 pr-3 font-medium">Steuersatz</th>
-                      <th className="py-2 pr-3 text-right font-medium">
-                        Brutto
-                      </th>
-                      <th className="py-2 pr-3 text-right font-medium">
-                        Netto
-                      </th>
-                      <th className="py-2 text-right font-medium">Steuer</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {result.umsatzProSteuersatz.map((umsatz) => (
-                      <tr
-                        key={umsatz.satz}
-                        className="border-b last:border-b-0"
-                      >
-                        <td className="py-2 pr-3">
-                          {STEUERSATZ_LABEL[umsatz.satz]}
-                        </td>
-                        <td className="py-2 pr-3 text-right">
+              <div className="space-y-3">
+                {result.umsatzProSteuersatz.map((umsatz) => (
+                  <div key={umsatz.satz} className="rounded-md border p-3">
+                    <p className="font-medium">
+                      {STEUERSATZ_LABEL[umsatz.satz]}
+                    </p>
+                    <dl className="mt-2 space-y-1 text-sm">
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-muted-foreground">Brutto</dt>
+                        <dd className="whitespace-nowrap font-medium">
                           {formatCents(umsatz.bruttoCents)} €
-                        </td>
-                        <td className="py-2 pr-3 text-right">
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-muted-foreground">Netto</dt>
+                        <dd className="whitespace-nowrap">
                           {formatCents(umsatz.nettoCents)} €
-                        </td>
-                        <td className="py-2 text-right">
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-muted-foreground">Steuer</dt>
+                        <dd className="whitespace-nowrap">
                           {formatCents(umsatz.steuerCents)} €
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
@@ -181,15 +172,8 @@ export function ReportingResults({
               <Item key={sk.userId} variant="outline" size="sm">
                 <ItemContent>
                   <ItemTitle>{formatBediener(sk.userName, sk.name)}</ItemTitle>
-                  <Progress
-                    value={pct(sk.zahlungenCents, summary.gesamtUmsatzCents)}
-                    className="mt-1 h-1.5"
-                  />
                 </ItemContent>
                 <ItemActions>
-                  <Badge variant="secondary">
-                    {sk.anzahlZahlungen} Zahlungen
-                  </Badge>
                   <span className="min-w-24 text-right text-sm font-semibold">
                     {formatCents(sk.zahlungenCents)} €
                   </span>
@@ -220,15 +204,8 @@ export function ReportingResults({
               <Item key={t.tischId} variant="outline" size="sm">
                 <ItemContent>
                   <ItemTitle>{t.tischName}</ItemTitle>
-                  <Progress
-                    value={pct(t.zahlungenCents, summary.gesamtUmsatzCents)}
-                    className="mt-1 h-1.5"
-                  />
                 </ItemContent>
                 <ItemActions>
-                  <Badge variant="secondary">
-                    {t.anzahlZahlungen} Zahlungen
-                  </Badge>
                   <span className="min-w-24 text-right text-sm font-semibold">
                     {formatCents(t.zahlungenCents)} €
                   </span>
@@ -305,7 +282,9 @@ export function ReportingResults({
                               pos.varianteName,
                             )}
                           </span>
-                          <span>{formatCents(pos.einzelpreisCents)} €</span>
+                          <span className="whitespace-nowrap">
+                            {formatCents(pos.einzelpreisCents)} €
+                          </span>
                         </li>
                       ))}
                     </ul>

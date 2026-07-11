@@ -75,5 +75,11 @@ describe('LiveReportingSection — Servicekräfte', () => {
     // Fertige Servicekraft: nur Hinweis, keine offenen Tische.
     expect(screen.getByText('Cleo')).toBeInTheDocument()
     expect(screen.getByText('Fertig')).toBeInTheDocument()
+
+    // Mobile-Politur: keine Progressbar und kein "Zahlungen"-Badge mehr.
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Zahlungen/)).not.toBeInTheDocument()
+    // Der kassierte Betrag bleibt sichtbar.
+    expect(screen.getByText('15,00 €')).toBeInTheDocument()
   })
 })

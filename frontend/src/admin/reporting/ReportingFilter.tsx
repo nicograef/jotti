@@ -29,7 +29,7 @@ export function ReportingFilter({
   if (kassensitzungen.length === 0) {
     return (
       <Select disabled>
-        <SelectTrigger className="w-72">
+        <SelectTrigger className="w-full sm:w-72">
           <SelectValue placeholder="Noch keine Kassensitzungen vorhanden" />
         </SelectTrigger>
         <SelectContent />
@@ -45,7 +45,7 @@ export function ReportingFilter({
       }}
       disabled={loading}
     >
-      <SelectTrigger className="w-72">
+      <SelectTrigger className="w-full sm:w-72">
         <SelectValue placeholder="Kassensitzung wählen" />
       </SelectTrigger>
       <SelectContent>

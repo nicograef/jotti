@@ -4,7 +4,7 @@ import { NavLink } from 'react-router'
 
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertTitle } from '@/components/ui/alert'
 
 import { DsfinvkExportButton } from './DsfinvkExportButton'
 import { useKassensitzungen, useLiveReporting, useReport } from './hooks'
@@ -47,30 +47,23 @@ export function AdminDashboardPage() {
   return (
     <>
       {showDruckBanner && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert variant="destructive" className="mb-3">
           <TriangleAlert className="size-4" />
-          <AlertTitle>Drucker prüfen</AlertTitle>
-          <AlertDescription>
+          <AlertTitle className="font-normal">
             {druckauftraege.length === 1
               ? '1 Druckauftrag konnte nicht gedruckt werden.'
               : `${String(druckauftraege.length)} Druckaufträge konnten nicht gedruckt werden.`}{' '}
-            Mehr dazu unter{' '}
-            <NavLink
-              to="/admin/druckstationen"
-              className="underline underline-offset-4"
-            >
+            <NavLink to="/admin/druckstationen" className="font-medium">
               Druckstationen
             </NavLink>
-            .
-          </AlertDescription>
+          </AlertTitle>
         </Alert>
       )}
 
       {showTSEBanner && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert variant="destructive" className="mb-3">
           <TriangleAlert className="size-4" />
-          <AlertTitle>TSE prüfen</AlertTitle>
-          <AlertDescription>
+          <AlertTitle className="font-normal">
             {showKonfigWarnung && <span>Die TSE ist nicht konfiguriert. </span>}
             {rueckstand && (
               <span>
@@ -87,15 +80,10 @@ export function AdminDashboardPage() {
                 {queue?.letzterFehler ? ` (${queue.letzterFehler})` : ''}.{' '}
               </span>
             )}
-            Mehr dazu unter{' '}
-            <NavLink
-              to="/admin/finanzamt"
-              className="underline underline-offset-4"
-            >
+            <NavLink to="/admin/finanzamt" className="font-medium">
               Finanzamt
             </NavLink>
-            .
-          </AlertDescription>
+          </AlertTitle>
         </Alert>
       )}
 
