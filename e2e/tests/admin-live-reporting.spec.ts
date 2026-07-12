@@ -47,12 +47,12 @@ test.describe('Admin sieht das Live-Dashboard', () => {
     ).toBeVisible()
     await expect(liveSection.getByText('maria (Maria Schmidt)')).toBeVisible()
 
-    // Stornierungen pro Servicekraft: felix hat kassiert und storniert, seine
-    // Team-Zeile trägt den roten Storno-Marker.
-    await expect(liveSection.getByText('1 Storno')).toBeVisible()
-
-    // Der Stornierungen-Block ist eingeklappt; „Details" zeigt die
-    // dokumentierten Stornos des Sonntags.
+    // Der Stornierungen-Block ist eingeklappt: die Zusammenfassung schlüsselt die
+    // Stornos pro Servicekraft auf (felix hat kassiert und storniert), „Details"
+    // zeigt die dokumentierten Stornos des Sonntags.
+    await expect(
+      liveSection.getByText(/felix \(Felix Weber\) 1/),
+    ).toBeVisible()
     await liveSection.getByRole('button', { name: 'Details' }).click()
     await expect(
       liveSection.getByText('Reklamation Tagesgericht, Kulanz'),
