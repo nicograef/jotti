@@ -20,6 +20,7 @@ vi.mock('./hooks', () => ({
 }))
 
 vi.mock('@/admin/tse/hooks', () => ({
+  RUECKSTAND_WARN_SEKUNDEN: 60,
   useTSEStatus: () => ({
     tseStatus: { istKonfiguriert: true },
     isPending: false,

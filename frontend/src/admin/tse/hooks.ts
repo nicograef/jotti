@@ -15,6 +15,11 @@ import {
 
 const tseBackend = new TSEBackend(BackendSingleton)
 
+// Ab rund einer Minute Signatur-Rückstand gilt der TSE-Signatur-Rückstand als
+// kritisch (deckt sich mit der Nachsigniert-Schwelle im Backend). Dashboard und
+// Sidebar teilen sich diese Schwelle.
+export const RUECKSTAND_WARN_SEKUNDEN = 60
+
 export function useTSEKonfiguration() {
   const queryClient = useQueryClient()
   const { isPending, data, error } = useQuery({

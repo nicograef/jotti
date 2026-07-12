@@ -2,16 +2,15 @@ import { TriangleAlert } from 'lucide-react'
 import { NavLink } from 'react-router'
 
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
-import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
+import {
+  RUECKSTAND_WARN_SEKUNDEN,
+  useTSESignaturQueue,
+  useTSEStatus,
+} from '@/admin/tse/hooks'
 import { Alert, AlertTitle } from '@/components/ui/alert'
 
 import { useLiveReporting } from './hooks'
 import { LiveReportingSection } from './LiveReportingSection'
-
-// Ab rund einer Minute Rückstand warnt das Dashboard (deckt sich mit der
-// Nachsigniert-Schwelle im Backend); der Störungszeitraum entsteht erst ab
-// zwei Minuten.
-const RUECKSTAND_WARN_SEKUNDEN = 60
 
 export function AdminDashboardPage() {
   const {

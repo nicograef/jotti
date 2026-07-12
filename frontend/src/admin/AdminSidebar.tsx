@@ -14,6 +14,12 @@ import {
 } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 
+import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
+import {
+  RUECKSTAND_WARN_SEKUNDEN,
+  useTSESignaturQueue,
+  useTSEStatus,
+} from '@/admin/tse/hooks'
 import { useTheme } from '@/components/theme-provider'
 import {
   Sidebar,
@@ -29,69 +35,18 @@ import {
 } from '@/components/ui/sidebar'
 import { AuthSingleton } from '@/lib/Auth'
 
+import { StatusDot, type StatusDotZustand } from './components/StatusDot'
 import { useVersion } from './hooks'
+import { useOffeneKassensitzung } from './kasse/hooks'
 
-const reportingItems = [
-  {
-    title: 'Live-Dashboard',
-    url: '/admin/auswertung',
-    icon: LayoutDashboard,
-  },
-  {
-    title: 'Kassenberichte',
-    url: '/admin/kassenberichte',
-    icon: FileText,
-  },
-]
+interface NavItem {
+  title: string
+  url: string
+  icon: LucideIcon
+  status?: { zustand: StatusDotZustand; label: string }
+}
 
-const adminItems = [
-  {
-    title: 'Produkte',
-    url: '/admin/produkte',
-    icon: Utensils,
-  },
-  {
-    title: 'Tische',
-    url: '/admin/tische',
-    icon: Lamp,
-  },
-  {
-    title: 'Benutzer',
-    url: '/admin/benutzer',
-    icon: Users,
-  },
-  {
-    title: 'Kasse',
-    url: '/admin/kasse',
-    icon: Wallet,
-  },
-  {
-    title: 'Druckstationen',
-    url: '/admin/druckstationen',
-    icon: Printer,
-  },
-  {
-    title: 'Finanzamt',
-    url: '/admin/finanzamt',
-    icon: Landmark,
-  },
-]
-
-const serviceItems = [
-  {
-    title: 'Tischauswahl',
-    url: '/service/tische',
-    icon: Lamp,
-  },
-]
-
-function NavGroup({
-  label,
-  items,
-}: {
-  label: string
-  items: { title: string; url: string; icon: LucideIcon }[]
-}) {
+function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
   const location = useLocation()
 
   return (
@@ -107,7 +62,13 @@ function NavGroup({
               >
                 <NavLink to={item.url}>
                   <item.icon />
-                  <span>{item.title}</span>
+                  <span className="flex-1">{item.title}</span>
+                  {item.status && (
+                    <StatusDot
+                      zustand={item.status.zustand}
+                      label={item.status.label}
+                    />
+                  )}
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -122,6 +83,97 @@ export function AdminSidebar() {
   const navigate = useNavigate()
   const version = useVersion()
   const { isDark, setTheme } = useTheme()
+
+  const { kassensitzung } = useOffeneKassensitzung()
+  const { druckauftraege } = useFehlgeschlageneDruckauftraege()
+  const { tseStatus, isPending: tseLoading } = useTSEStatus()
+  const { queue } = useTSESignaturQueue()
+
+  const kasseOffen = kassensitzung !== null
+  const bondruckerFehler = druckauftraege.length > 0
+  // Finanzamt & TSE ist kritisch, wenn die TSE nicht konfiguriert ist oder —
+  // bei konfigurierter TSE — der Signatur-Rückstand die Schwelle reißt bzw.
+  // Signaturaufträge endgültig fehlgeschlagen sind. Deckt sich mit der
+  // showTSEBanner-Logik im Dashboard: ein fehlerhafter Status (nicht ladend)
+  // zählt als „nicht konfiguriert".
+  const tseNichtKonfiguriert = !tseLoading && !tseStatus?.istKonfiguriert
+  const signaturRueckstand =
+    !tseNichtKonfiguriert &&
+    ((queue?.rueckstandSekunden ?? 0) >= RUECKSTAND_WARN_SEKUNDEN ||
+      (queue?.fehlgeschlageneAuftraege ?? 0) > 0)
+  const finanzamtFehler = tseNichtKonfiguriert || signaturRueckstand
+
+  const heuteItems: NavItem[] = [
+    {
+      title: 'Übersicht',
+      url: '/admin/auswertung',
+      icon: LayoutDashboard,
+    },
+    {
+      title: 'Kassentag',
+      url: '/admin/kasse',
+      icon: Wallet,
+      status: kasseOffen ? { zustand: 'ok', label: 'Kasse offen' } : undefined,
+    },
+  ]
+
+  const vorbereitungItems: NavItem[] = [
+    {
+      title: 'Produkte & Preise',
+      url: '/admin/produkte',
+      icon: Utensils,
+    },
+    {
+      title: 'Tische',
+      url: '/admin/tische',
+      icon: Lamp,
+    },
+    {
+      title: 'Helfer & Zugänge',
+      url: '/admin/benutzer',
+      icon: Users,
+    },
+    {
+      title: 'Bondrucker',
+      url: '/admin/druckstationen',
+      icon: Printer,
+      status: bondruckerFehler
+        ? { zustand: 'fehler', label: 'Druckauftrag fehlgeschlagen' }
+        : undefined,
+    },
+  ]
+
+  const nachDemFestItems: NavItem[] = [
+    {
+      title: 'Berichte & Export',
+      url: '/admin/kassenberichte',
+      icon: FileText,
+    },
+    {
+      title: 'Finanzamt & TSE',
+      url: '/admin/finanzamt',
+      icon: Landmark,
+      status: finanzamtFehler
+        ? { zustand: 'fehler', label: 'TSE benötigt Aufmerksamkeit' }
+        : undefined,
+    },
+  ]
+
+  const serviceItems: NavItem[] = [
+    {
+      title: 'Zum Service-Bereich',
+      url: '/service/tische',
+      icon: LogOut,
+    },
+  ]
+
+  // "Kasse offen · seit HH:MM" bei offener Kasse, sonst "Kasse geschlossen".
+  const kasseStatusText = kasseOffen
+    ? `Kasse offen · seit ${new Date(
+        kassensitzung.eroeffnetAm,
+      ).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
+    : 'Kasse geschlossen'
+
   const toggleTheme = () => {
     setTheme(isDark ? 'light' : 'dark')
   }
@@ -133,40 +185,45 @@ export function AdminSidebar() {
 
   return (
     <Sidebar collapsible="offcanvas">
-      <SidebarHeader>
-        <h1 className="text-4xl text-center font-extrabold">jotti</h1>
+      <SidebarHeader className="gap-3">
+        <h1 className="px-1 text-3xl font-extrabold">jotti</h1>
+        <NavLink
+          to="/admin/kasse"
+          className="flex flex-col gap-1 rounded-lg border bg-background px-3 py-2.5 shadow-sm"
+        >
+          <span className="text-sm font-semibold">
+            {kassensitzung?.bezeichnung ?? 'Kein Kassentag'}
+          </span>
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <StatusDot
+              zustand={kasseOffen ? 'ok' : 'neutral'}
+              label={kasseOffen ? 'Kasse offen' : 'Kasse geschlossen'}
+            />
+            {kasseStatusText}
+          </span>
+        </NavLink>
       </SidebarHeader>
       <SidebarContent>
-        <NavGroup label="Auswertungen" items={reportingItems} />
-        <NavGroup label="Verwaltung" items={adminItems} />
+        <NavGroup label="Heute" items={heuteItems} />
+        <NavGroup label="Vorbereitung" items={vorbereitungItems} />
+        <NavGroup label="Nach dem Fest" items={nachDemFestItems} />
         <NavGroup label="Service" items={serviceItems} />
-        <SidebarGroup>
-          <SidebarGroupLabel>Einstellungen</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={toggleTheme}>
-                  {isDark ? <Sun /> : <Moon />}
-                  <span>{isDark ? 'Hell' : 'Dunkel'}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={logout}>
-                  <LogOut />
-                  <span>Abmelden</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={toggleTheme}>
+              {isDark ? <Sun /> : <Moon />}
+              <span>{isDark ? 'Helles Design' : 'Dunkles Design'}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={logout}>
+              <LogOut />
+              <span>Abmelden</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         {version !== undefined && (
           <p className="text-center text-sm text-muted-foreground">
             jotti {version}

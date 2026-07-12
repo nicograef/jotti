@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -24,6 +25,7 @@ type offeneKassensitzungResponse struct {
 	Datum       string `json:"datum"`
 	Bezeichnung string `json:"bezeichnung"`
 	Status      string `json:"status"`
+	EroeffnetAm string `json:"eroeffnetAm"`
 }
 
 type kassenbestandRequest struct {
@@ -54,6 +56,7 @@ func (h *QueryHandler) GetOffeneKassensitzungHandler() http.HandlerFunc {
 			Datum:       ks.Datum.Format("2006-01-02"),
 			Bezeichnung: ks.Bezeichnung,
 			Status:      string(ks.Status),
+			EroeffnetAm: ks.CreatedAt.Format(time.RFC3339),
 		})
 	}
 }

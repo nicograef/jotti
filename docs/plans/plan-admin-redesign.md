@@ -201,12 +201,12 @@ Gruppen und Icons (ausschließlich Lucide, laut Handoff).
 
 ### Acceptance criteria
 
-- [ ] Sidebar zeigt die vier Gruppen mit den neuen Labels und Icons laut Handoff; alle Links führen auf die unveränderten Routen
-- [ ] Event-Status-Chip zeigt beide Zustände (offen mit Bezeichnung und Uhrzeit, geschlossen) und verlinkt auf `/admin/kasse`
-- [ ] Statuspunkte erscheinen an Kassentag (grün bei offener Kasse), Bondrucker (rot bei fehlgeschlagenen Bons) und Finanzamt & TSE (rot bei TSE-Problemen) und fehlen im Normalzustand ohne Befund
-- [ ] Die TSE-Warnschwelle nutzt dieselbe Konstante wie das Dashboard (keine duplizierte Zahl)
-- [ ] `StatusDot` existiert als gemeinsamer Baustein und wird für Chip und Menüpunkte verwendet
-- [ ] `AdminSidebar.test.tsx` deckt Gruppen/Labels, Chip-Zustände und mindestens einen Statuspunkt-Fall ab; `make check` grün
+- [x] Sidebar zeigt die vier Gruppen mit den neuen Labels und Icons laut Handoff; alle Links führen auf die unveränderten Routen
+- [x] Event-Status-Chip zeigt beide Zustände (offen mit Bezeichnung und Uhrzeit, geschlossen) und verlinkt auf `/admin/kasse`
+- [x] Statuspunkte erscheinen an Kassentag (grün bei offener Kasse), Bondrucker (rot bei fehlgeschlagenen Bons) und Finanzamt & TSE (rot bei TSE-Problemen) und fehlen im Normalzustand ohne Befund
+- [x] Die TSE-Warnschwelle nutzt dieselbe Konstante wie das Dashboard (keine duplizierte Zahl)
+- [x] `StatusDot` existiert als gemeinsamer Baustein und wird für Chip und Menüpunkte verwendet
+- [x] `AdminSidebar.test.tsx` deckt Gruppen/Labels, Chip-Zustände und mindestens einen Statuspunkt-Fall ab; `make check` grün
 
 ---
 
