@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
-	t "github.com/nicograef/jotti/backend/domain/tisch"
+	"github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
 )
 
 type query interface {
-	GetAllTische(ctx context.Context) ([]t.Tisch, error)
+	GetAllTische(ctx context.Context) ([]application.TischMitSaldo, error)
 }
 
 type QueryHandler struct {
@@ -18,31 +18,33 @@ type QueryHandler struct {
 }
 
 type tisch struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID         int       `json:"id"`
+	Name       string    `json:"name"`
+	Status     string    `json:"status"`
+	SaldoCents int       `json:"saldoCents"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
 type getAllTischeResponse struct {
 	Tische []tisch `json:"tische"`
 }
 
-func toTisch(src t.Tisch) tisch {
+func toTisch(src application.TischMitSaldo) tisch {
 	return tisch{
-		ID:        src.ID,
-		Name:      src.Name,
-		Status:    string(src.Status),
-		CreatedAt: src.CreatedAt,
-		UpdatedAt: src.UpdatedAt,
+		ID:         src.Tisch.ID,
+		Name:       src.Tisch.Name,
+		Status:     string(src.Tisch.Status),
+		SaldoCents: src.SaldoCents,
+		CreatedAt:  src.Tisch.CreatedAt,
+		UpdatedAt:  src.Tisch.UpdatedAt,
 	}
 }
 
-func toTische(tische []t.Tisch) []tisch {
+func toTische(tische []application.TischMitSaldo) []tisch {
 	tischeResponse := make([]tisch, 0, len(tische))
-	for _, tisch := range tische {
-		tischeResponse = append(tischeResponse, toTisch(tisch))
+	for i := range tische {
+		tischeResponse = append(tischeResponse, toTisch(tische[i]))
 	}
 
 	return tischeResponse

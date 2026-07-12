@@ -31,6 +31,34 @@ func (r Repository) GetAllTables(ctx context.Context) ([]tisch.Tisch, error) {
 	return tables, nil
 }
 
+// GetTischSaldiOffeneSitzung liefert je Tisch mit offenem Saldo den Betrag aus
+// der tisch_sessions-Projektion der offenen Kassensitzung (Map tischID →
+// saldoCents). Ohne offene Sitzung ist die Map leer. Reine Journal-Projektion.
+func (r Repository) GetTischSaldiOffeneSitzung(ctx context.Context) (map[int]int, error) {
+	rows, err := r.q.GetTischSaldiOffeneSitzung(ctx)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	result := make(map[int]int, len(rows))
+	for _, row := range rows {
+		result[row.TischID] = row.SaldoCents
+	}
+
+	return result, nil
+}
+
+// TischHatOffenenSaldo meldet, ob der Tisch in der offenen Kassensitzung einen
+// offenen Saldo trägt (Schutz-Guard). Ohne offene Sitzung immer false.
+func (r Repository) TischHatOffenenSaldo(ctx context.Context, tischID int) (bool, error) {
+	hat, err := r.q.TischHatOffenenSaldo(ctx, tischID)
+	if err != nil {
+		return false, db.Error(err)
+	}
+
+	return hat, nil
+}
+
 func (r Repository) GetActiveTables(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error) {
 	rows, err := r.q.GetAktiveTische(ctx, kassensitzungNr)
 	if err != nil {

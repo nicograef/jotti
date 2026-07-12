@@ -65,6 +65,8 @@ const commonErrorMessages: Record<string, string> = {
     'Das Produkt wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
   request_too_large:
     'Die Anfrage ist zu groß. Bitte weniger Daten auf einmal senden und erneut versuchen.',
+  tisch_saldo_offen:
+    'Dieser Tisch hat noch einen offenen Saldo. Bitte zuerst abrechnen, dann lässt er sich deaktivieren oder löschen.',
   tische_saldo_offen:
     'Es gibt noch offene Tische mit ausstehenden Beträgen. Bitte alle Tische abrechnen.',
   tse_nicht_konfiguriert:

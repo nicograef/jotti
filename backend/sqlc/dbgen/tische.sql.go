@@ -173,6 +173,63 @@ func (q *Queries) GetTisch(ctx context.Context, id int) (Tische, error) {
 	return i, err
 }
 
+const getTischSaldiOffeneSitzung = `-- name: GetTischSaldiOffeneSitzung :many
+SELECT tss.tisch_id, tss.saldo_cents
+FROM tisch_sessions tss
+JOIN kassensitzungen k ON k.z_nr = tss.kassensitzung_nr AND k.status = 'offen'
+WHERE tss.saldo_cents > 0
+`
+
+type GetTischSaldiOffeneSitzungRow struct {
+	TischID    int
+	SaldoCents int
+}
+
+// Liefert je Tisch mit offenem Saldo (> 0) den Betrag aus der tisch_sessions-
+// Projektion der aktuell offenen Kassensitzung. Ohne offene Sitzung ist das
+// Ergebnis leer. Reine Projektion; das Kassenjournal bleibt unberührt.
+func (q *Queries) GetTischSaldiOffeneSitzung(ctx context.Context) ([]GetTischSaldiOffeneSitzungRow, error) {
+	rows, err := q.db.QueryContext(ctx, getTischSaldiOffeneSitzung)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetTischSaldiOffeneSitzungRow{}
+	for rows.Next() {
+		var i GetTischSaldiOffeneSitzungRow
+		if err := rows.Scan(&i.TischID, &i.SaldoCents); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const tischHatOffenenSaldo = `-- name: TischHatOffenenSaldo :one
+SELECT EXISTS (
+    SELECT 1
+    FROM tisch_sessions tss
+    JOIN kassensitzungen k ON k.z_nr = tss.kassensitzung_nr AND k.status = 'offen'
+    WHERE tss.tisch_id = $1
+      AND tss.saldo_cents > 0
+)::bool AS hat_offenen_saldo
+`
+
+// Schutz-Guard: true, wenn der Tisch in der offenen Kassensitzung einen
+// offenen Saldo (> 0) trägt. Ohne offene Sitzung immer false.
+func (q *Queries) TischHatOffenenSaldo(ctx context.Context, tischID int) (bool, error) {
+	row := q.db.QueryRowContext(ctx, tischHatOffenenSaldo, tischID)
+	var hat_offenen_saldo bool
+	err := row.Scan(&hat_offenen_saldo)
+	return hat_offenen_saldo, err
+}
+
 const updateTisch = `-- name: UpdateTisch :execresult
 UPDATE tische SET name = $1, status = $2, updated_at = $3 WHERE id = $4
 `

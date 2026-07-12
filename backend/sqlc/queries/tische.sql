@@ -6,6 +6,26 @@ FROM tische WHERE id = $1 AND status != 'deleted';
 SELECT id, name, status, created_at, updated_at
 FROM tische WHERE status != 'deleted' ORDER BY id ASC;
 
+-- name: GetTischSaldiOffeneSitzung :many
+-- Liefert je Tisch mit offenem Saldo (> 0) den Betrag aus der tisch_sessions-
+-- Projektion der aktuell offenen Kassensitzung. Ohne offene Sitzung ist das
+-- Ergebnis leer. Reine Projektion; das Kassenjournal bleibt unberührt.
+SELECT tss.tisch_id, tss.saldo_cents
+FROM tisch_sessions tss
+JOIN kassensitzungen k ON k.z_nr = tss.kassensitzung_nr AND k.status = 'offen'
+WHERE tss.saldo_cents > 0;
+
+-- name: TischHatOffenenSaldo :one
+-- Schutz-Guard: true, wenn der Tisch in der offenen Kassensitzung einen
+-- offenen Saldo (> 0) trägt. Ohne offene Sitzung immer false.
+SELECT EXISTS (
+    SELECT 1
+    FROM tisch_sessions tss
+    JOIN kassensitzungen k ON k.z_nr = tss.kassensitzung_nr AND k.status = 'offen'
+    WHERE tss.tisch_id = $1
+      AND tss.saldo_cents > 0
+)::bool AS hat_offenen_saldo;
+
 -- name: GetAktiveTische :many
 SELECT t.id, t.name, COALESCE(tss.saldo_cents, 0)::integer AS saldo_cents
 FROM tische t

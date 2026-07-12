@@ -133,3 +133,76 @@ func TestTischDeaktivieren_NotFound(t *testing.T) {
 		t.Fatalf("expected ErrTischNotFound, got %v", err)
 	}
 }
+
+func TestTischDeaktivieren_SaldoOffen(t *testing.T) {
+	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	repo.SetOffenerSaldo(1, 9850)
+	command := Command{TischRepo: repo}
+
+	err := command.TischDeaktivieren(context.Background(), 1)
+	if err != ErrTischSaldoOffen {
+		t.Fatalf("expected ErrTischSaldoOffen, got %v", err)
+	}
+
+	tbl, err := repo.GetTable(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected no error retrieving tisch, got %v", err)
+	}
+	if tbl.Status != tisch.ActiveStatus {
+		t.Errorf("tisch must stay active when it has an open saldo, got status %v", tbl.Status)
+	}
+}
+
+func TestTischLoeschen_OhneSaldo(t *testing.T) {
+	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	command := Command{TischRepo: repo}
+
+	err := command.TischLoeschen(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	tbl, err := repo.GetTable(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected no error retrieving tisch, got %v", err)
+	}
+	if tbl.Status != tisch.DeletedStatus {
+		t.Errorf("expected tisch status to be Deleted, got %v", tbl.Status)
+	}
+}
+
+func TestTischLoeschen_SaldoOffen(t *testing.T) {
+	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	repo.SetOffenerSaldo(1, 9850)
+	command := Command{TischRepo: repo}
+
+	err := command.TischLoeschen(context.Background(), 1)
+	if err != ErrTischSaldoOffen {
+		t.Fatalf("expected ErrTischSaldoOffen, got %v", err)
+	}
+
+	tbl, err := repo.GetTable(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected no error retrieving tisch, got %v", err)
+	}
+	if tbl.Status != tisch.ActiveStatus {
+		t.Errorf("tisch must not be deleted when it has an open saldo, got status %v", tbl.Status)
+	}
+}
+
+// TestTischDeaktivieren_OhneOffeneSitzung bestätigt, dass ohne offene
+// Kassensitzung (leere Saldo-Map) kein Tisch geschützt ist.
+func TestTischDeaktivieren_OhneOffeneSitzung(t *testing.T) {
+	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	command := Command{TischRepo: repo}
+
+	err := command.TischDeaktivieren(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected no error without open session, got %v", err)
+	}
+
+	tbl, _ := repo.GetTable(context.Background(), 1)
+	if tbl.Status != tisch.InactiveStatus {
+		t.Errorf("expected tisch status to be Inactive, got %v", tbl.Status)
+	}
+}

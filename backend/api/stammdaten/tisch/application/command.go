@@ -12,6 +12,7 @@ type tischRepo interface {
 	CreateTable(ctx context.Context, t tisch.Tisch) (int, error)
 	UpdateTable(ctx context.Context, t tisch.Tisch) error
 	GetAllTables(ctx context.Context) ([]tisch.Tisch, error)
+	TischHatOffenenSaldo(ctx context.Context, tischID int) (bool, error)
 }
 
 type favoritRepo interface {
@@ -100,24 +101,42 @@ func (c Command) TischAktualisieren(ctx context.Context, id int, name string) er
 }
 
 func (c Command) TischAktivieren(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(ctx, id, "Tisch activated", func(t *tisch.Tisch) { t.Activate() })
+	return c.applyTischStatusChange(ctx, id, false, "Tisch activated", func(t *tisch.Tisch) { t.Activate() })
 }
 
 func (c Command) TischDeaktivieren(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(ctx, id, "Tisch deactivated", func(t *tisch.Tisch) { t.Deactivate() })
+	return c.applyTischStatusChange(ctx, id, true, "Tisch deactivated", func(t *tisch.Tisch) { t.Deactivate() })
 }
 
 func (c Command) TischLoeschen(ctx context.Context, id int) error {
-	return c.applyTischStatusChange(ctx, id, "Tisch deleted", func(t *tisch.Tisch) { t.Delete() })
+	return c.applyTischStatusChange(ctx, id, true, "Tisch deleted", func(t *tisch.Tisch) { t.Delete() })
 }
 
-func (c Command) applyTischStatusChange(ctx context.Context, id int, successMsg string, action func(*tisch.Tisch)) error {
+// applyTischStatusChange lädt den Tisch, wendet action an und persistiert das
+// Ergebnis. Ist guardSaldo gesetzt (Deaktivieren, Löschen), wird ein Tisch mit
+// offenem Saldo in der offenen Kassensitzung abgelehnt — das Backend erzwingt
+// den Schutz als Single Source of Truth, unabhängig davon, was das Frontend
+// anbietet.
+func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo bool, successMsg string, action func(*tisch.Tisch)) error {
 	log := zerolog.Ctx(ctx)
 
 	tisch, err := c.TischRepo.GetTable(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
+
+	if guardSaldo {
+		hatSaldo, err := c.TischRepo.TischHatOffenenSaldo(ctx, id)
+		if err != nil {
+			log.Error().Err(err).Int("tisch_id", id).Msg("Failed to check open saldo for status change")
+			return ErrDatabase
+		}
+		if hatSaldo {
+			log.Warn().Int("tisch_id", id).Msg("Cannot change status of tisch with open saldo")
+			return ErrTischSaldoOffen
+		}
+	}
+
 	action(&tisch)
 	if err := c.TischRepo.UpdateTable(ctx, tisch); err != nil {
 		return fromRepositoryError(err, log, id)

@@ -4,6 +4,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,12 +14,14 @@ import (
 )
 
 type mockQuery struct {
-	tisch t.Tisch
-	err   error
+	err error
 }
 
-func (m mockQuery) GetAllTische(ctx context.Context) ([]t.Tisch, error) {
-	return []t.Tisch{m.tisch}, m.err
+func (m mockQuery) GetAllTische(ctx context.Context) ([]application.TischMitSaldo, error) {
+	return []application.TischMitSaldo{
+		{Tisch: t.Tisch{ID: 1, Name: "Tisch 1", Status: t.ActiveStatus}, SaldoCents: 9850},
+		{Tisch: t.Tisch{ID: 2, Name: "Tisch 2", Status: t.ActiveStatus}, SaldoCents: 0},
+	}, m.err
 }
 
 func TestGetAllTischeHandler_Success(t *testing.T) {
@@ -31,6 +34,28 @@ func TestGetAllTischeHandler_Success(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+
+	// saldoCents muss pro Tisch im JSON serialisiert werden — fängt eine
+	// Regression, die das Feld beim DTO-Mapping wieder verliert.
+	var body struct {
+		Tische []struct {
+			ID         int `json:"id"`
+			SaldoCents int `json:"saldoCents"`
+		} `json:"tische"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode response body: %v", err)
+	}
+
+	if len(body.Tische) != 2 {
+		t.Fatalf("expected 2 tische, got %d", len(body.Tische))
+	}
+	if body.Tische[0].SaldoCents != 9850 {
+		t.Errorf("expected tisch %d saldoCents=9850, got %d", body.Tische[0].ID, body.Tische[0].SaldoCents)
+	}
+	if body.Tische[1].SaldoCents != 0 {
+		t.Errorf("expected tisch %d saldoCents=0, got %d", body.Tische[1].ID, body.Tische[1].SaldoCents)
 	}
 }
 

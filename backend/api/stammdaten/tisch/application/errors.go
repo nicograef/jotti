@@ -22,6 +22,10 @@ var ErrInvalidTischData = errors.New("invalid tisch data")
 // ErrTischNotActive is returned when an operation is attempted on an inactive or deleted tisch.
 var ErrTischNotActive = errors.New("tisch not active")
 
+// ErrTischSaldoOffen is returned when a tisch cannot be deactivated or deleted
+// because it carries an open balance in the currently open Kassensitzung.
+var ErrTischSaldoOffen = errors.New("tisch has open saldo")
+
 // fromRepositoryError maps repository errors to application-layer errors with structured logging.
 // It consolidates tisch-ID context and error mapping at a single location, avoiding duplicated
 // error-handling code across the many command methods that load or update tisch records.

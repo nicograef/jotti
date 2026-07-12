@@ -4,6 +4,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,6 +13,18 @@ import (
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
 )
+
+// decodeErrorCode liest den Client-Fehlercode aus der JSON-Antwort.
+func decodeErrorCode(t *testing.T, rec *httptest.ResponseRecorder) string {
+	t.Helper()
+	var body struct {
+		Code string `json:"code"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode error body: %v", err)
+	}
+	return body.Code
+}
 
 type mockCommand struct {
 	err error
@@ -192,6 +205,42 @@ func TestTischDeaktivierenHandler_NotFound(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestTischDeaktivierenHandler_SaldoOffen(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischSaldoOffen}}
+
+	body := `{"id":1}`
+	req := httptest.NewRequest(http.MethodPost, "/deactivate-tisch", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.TischDeaktivierenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+	if code := decodeErrorCode(t, rec); code != "tisch_saldo_offen" {
+		t.Errorf("expected code tisch_saldo_offen, got %q", code)
+	}
+}
+
+func TestTischLoeschenHandler_SaldoOffen(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischSaldoOffen}}
+
+	body := `{"id":1}`
+	req := httptest.NewRequest(http.MethodPost, "/delete-tisch", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.TischLoeschenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+	if code := decodeErrorCode(t, rec); code != "tisch_saldo_offen" {
+		t.Errorf("expected code tisch_saldo_offen, got %q", code)
 	}
 }
 

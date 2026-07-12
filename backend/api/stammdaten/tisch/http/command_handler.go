@@ -189,7 +189,8 @@ func (h *CommandHandler) TischDeaktivierenHandler() http.HandlerFunc {
 		err := h.Command.TischDeaktivieren(r.Context(), body.ID)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
-				application.ErrTischNotFound: "tisch_not_found",
+				application.ErrTischNotFound:   "tisch_not_found",
+				application.ErrTischSaldoOffen: "tisch_saldo_offen",
 			})
 			return
 		}
@@ -216,7 +217,8 @@ func (h *CommandHandler) TischLoeschenHandler() http.HandlerFunc {
 		err := h.Command.TischLoeschen(r.Context(), body.ID)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
-				application.ErrTischNotFound: "tisch_not_found",
+				application.ErrTischNotFound:   "tisch_not_found",
+				application.ErrTischSaldoOffen: "tisch_saldo_offen",
 			})
 			return
 		}

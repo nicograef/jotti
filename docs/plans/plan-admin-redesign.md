@@ -374,11 +374,11 @@ Saldo-Schutz; Unterzeile im Kopf dynamisch („n Tische · m aktiv · …").
 
 ### Acceptance criteria
 
-- [ ] `/get-all-tische` liefert `saldoCents` (offene Sitzung); `/deactivate-tisch` und `/delete-tisch` lehnen bei offenem Saldo mit `tisch_saldo_offen` ab (Backend-Tests je Fall grün)
-- [ ] Tischseite zeigt das präfix-gruppierte Kachel-Grid; die Gruppierungsfunktion ist isoliert getestet
-- [ ] Kacheln mit offenem Saldo zeigen den Betrag, Switch und Löschen sind deaktiviert (Tooltip) und vom Backend erzwungen; Fehlercode-Meldung in `errorMessages.ts`
-- [ ] Es gibt keine Serienanlage (PRD-Abweichung vom Handoff eingehalten)
-- [ ] Neuer Seitentest für die Tischseite (Gruppierung, Saldo-Schutz samt Tooltip, Deaktivieren-Aktion); `make check` grün
+- [x] `/get-all-tische` liefert `saldoCents` (offene Sitzung); `/deactivate-tisch` und `/delete-tisch` lehnen bei offenem Saldo mit `tisch_saldo_offen` ab (Backend-Tests je Fall grün)
+- [x] Tischseite zeigt das präfix-gruppierte Kachel-Grid; die Gruppierungsfunktion ist isoliert getestet
+- [x] Kacheln mit offenem Saldo zeigen den Betrag, Switch und Löschen sind deaktiviert (Tooltip) und vom Backend erzwungen; Fehlercode-Meldung in `errorMessages.ts` <!-- Abweichung wie Phase 4: dauerhaft sichtbarer Grund statt Hover-Tooltip (Touch-App) -->
+- [x] Es gibt keine Serienanlage (PRD-Abweichung vom Handoff eingehalten)
+- [x] Neuer Seitentest für die Tischseite (Gruppierung, Saldo-Schutz samt Tooltip, Deaktivieren-Aktion); `make check` grün
 
 ---
 

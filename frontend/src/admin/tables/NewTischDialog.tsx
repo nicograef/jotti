@@ -56,6 +56,7 @@ export function NewTischDialog(props: NewTischDialogProps) {
         id,
         ...data,
         status: 'inactive',
+        saldoCents: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })

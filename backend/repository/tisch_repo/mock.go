@@ -16,14 +16,42 @@ func NewMock(tables []tisch.Tisch, err error) *mockRepo {
 	}
 
 	return &mockRepo{
-		tables: tableMap,
-		err:    err,
+		tables:      tableMap,
+		offeneSaldi: make(map[int]int),
+		err:         err,
 	}
 }
 
 type mockRepo struct {
 	tables map[int]tisch.Tisch
-	err    error
+	// offeneSaldi enthält die offenen Saldi (tischID → saldoCents) der offenen
+	// Kassensitzung — für die saldoCents-Projektion und den Schutz-Guard.
+	offeneSaldi map[int]int
+	err         error
+}
+
+// SetOffenerSaldo markiert einen Tisch mit einem offenen Saldo in der offenen
+// Kassensitzung (Testhilfe für den tisch_saldo_offen-Pfad).
+func (m *mockRepo) SetOffenerSaldo(tischID, saldoCents int) {
+	m.offeneSaldi[tischID] = saldoCents
+}
+
+func (m *mockRepo) GetTischSaldiOffeneSitzung(ctx context.Context) (map[int]int, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	result := make(map[int]int, len(m.offeneSaldi))
+	for id, saldo := range m.offeneSaldi {
+		result[id] = saldo
+	}
+	return result, nil
+}
+
+func (m *mockRepo) TischHatOffenenSaldo(ctx context.Context, tischID int) (bool, error) {
+	if m.err != nil {
+		return false, m.err
+	}
+	return m.offeneSaldi[tischID] > 0, nil
 }
 
 func (m mockRepo) GetTable(ctx context.Context, id int) (tisch.Tisch, error) {

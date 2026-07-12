@@ -27,6 +27,16 @@ export function AdminTablesPage() {
   const invalidateTische = () =>
     void queryClient.invalidateQueries({ queryKey: [ALLE_TISCHE_KEY] })
 
+  const aktiveAnzahl = tische.filter((t) => t.status === 'active').length
+  const mitSaldoAnzahl = tische.filter((t) => t.saldoCents > 0).length
+  const unterzeile = [
+    `${String(tische.length)} ${tische.length === 1 ? 'Tisch' : 'Tische'}`,
+    `${String(aktiveAnzahl)} aktiv`,
+    mitSaldoAnzahl > 0
+      ? `${String(mitSaldoAnzahl)} mit offenem Saldo`
+      : 'Tische mit offenem Saldo lassen sich nicht deaktivieren',
+  ].join(' · ')
+
   return (
     <>
       {editState.tisch && (
@@ -37,6 +47,10 @@ export function AdminTablesPage() {
           updated={() => {
             invalidateTische()
           }}
+          deleted={() => {
+            invalidateTische()
+            toast.success('Tisch wurde gelöscht.')
+          }}
           close={() => {
             setEditState(initialEditState)
           }}
@@ -44,7 +58,7 @@ export function AdminTablesPage() {
       )}
       <AdminPageHeader
         titel="Tische"
-        unterzeile="Tische mit offenem Saldo lassen sich nicht deaktivieren"
+        unterzeile={unterzeile}
         aktionen={
           <NewTischDialog
             backend={tischBackend}
@@ -65,10 +79,6 @@ export function AdminTablesPage() {
         }}
         onStatusChange={() => {
           invalidateTische()
-        }}
-        onDeleted={() => {
-          invalidateTische()
-          toast.success('Tisch wurde gelöscht.')
         }}
       />
     </>
