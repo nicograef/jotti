@@ -31,6 +31,15 @@ on:
     # changes touching the modules above.
     - cron: "0 4 * * 1"
 
+# Least-privilege token; a job that needs more requests its scopes at job level.
+permissions:
+  contents: read
+
+# Cancel superseded runs on rapid pushes to the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   vuln-scan-go:
     runs-on: ubuntu-latest

@@ -15,13 +15,22 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+# Least-privilege default; the release job requests the write scopes it
+# actually needs (below) at job level.
 permissions:
-  contents: write # GitHub-Release anlegen
-  packages: write # Images nach GHCR pushen
+  contents: read
+
+# Releases serialize instead of aborting a half-finished publish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # GitHub-Release anlegen
+      packages: write # Images nach GHCR pushen
     steps:
       - uses: actions/checkout@v7
         with:
