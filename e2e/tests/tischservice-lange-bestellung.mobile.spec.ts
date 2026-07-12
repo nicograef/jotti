@@ -75,12 +75,15 @@ test.describe('Drawer-Scroll-Layout bei langer Positionsliste', () => {
     // Trinkgeld und Erhalten eintragen: Die zusätzlichen Rückgeld-/
     // Trinkgeld-Zeilen samt Hinweistext verlängern den Drawer-Inhalt weiter.
     const zahlungsDrawer = page.getByRole('dialog')
-    await zahlungsDrawer.getByLabel('inklusive Trinkgeld').fill('55,00')
+    await zahlungsDrawer.getByLabel('Zahlbetrag inkl. Trinkgeld').fill('55,00')
     await zahlungsDrawer.getByLabel('Erhalten').fill('60,00')
     await expect(
       zahlungsDrawer.getByText('Trinkgeld', { exact: true }),
     ).toBeVisible()
-    await expect(zahlungsDrawer.getByText('Rückgeld')).toBeVisible()
+    // exact: der Hilfetext zum Zahlbetrag-Feld enthält das Wort ebenfalls.
+    await expect(
+      zahlungsDrawer.getByText('Rückgeld', { exact: true }),
+    ).toBeVisible()
 
     // Der Kassieren-Button bleibt im Viewport und die Zahlung gelingt.
     const kassieren = zahlungsDrawer.getByRole('button', { name: 'Kassieren' })

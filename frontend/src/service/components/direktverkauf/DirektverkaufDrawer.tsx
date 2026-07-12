@@ -103,9 +103,14 @@ export function DirektverkaufDrawer(props: DirektverkaufDrawerProps) {
       </DrawerTrigger>
       <DrawerContent pending={loading}>
         <DrawerHeader className="mx-auto w-full max-w-sm">
-          <DrawerTitle>Verkauf abschließen</DrawerTitle>
-          <DrawerDescription>
-            Überprüfe den Verkauf vor dem Absenden.
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Verkauf abschließen
+          </p>
+          <DrawerTitle className="text-[22px] font-semibold">
+            Direktverkauf
+          </DrawerTitle>
+          <DrawerDescription className="sr-only">
+            Verkauf abschließen
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">
@@ -124,9 +129,11 @@ export function DirektverkaufDrawer(props: DirektverkaufDrawerProps) {
               />
             </div>
             {rueckgeldCents !== null && (
-              <div className="flex justify-between font-medium">
-                <div>Rückgeld</div>
-                <div>{formatCents(rueckgeldCents)}&nbsp;€</div>
+              <div className="flex items-baseline justify-between pt-1">
+                <div className="text-[15px] font-semibold">Rückgeld</div>
+                <div className="text-xl font-bold tabular-nums">
+                  {formatCents(rueckgeldCents)}&nbsp;€
+                </div>
               </div>
             )}
           </div>

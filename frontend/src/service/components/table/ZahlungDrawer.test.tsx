@@ -144,6 +144,33 @@ describe('ZahlungDrawer', () => {
     expect(zahlungKassiert).toHaveBeenCalled()
   })
 
+  it('zeigt den Tischnamen als Überschrift und die Felder in der Reihenfolge Erhalten, Zahlbetrag', async () => {
+    const user = userEvent.setup()
+    renderDrawer()
+
+    await openDrawer(user)
+
+    expect(
+      screen.getByRole('heading', { name: tisch.name }),
+    ).toBeInTheDocument()
+
+    const labels = screen
+      .getAllByText(/^(Erhalten|Zahlbetrag inkl\. Trinkgeld)$/)
+      .map((el) => el.textContent)
+    expect(labels).toEqual(['Erhalten', 'Zahlbetrag inkl. Trinkgeld'])
+  })
+
+  it('hebt das Rückgeld als größten Betrag im Sheet hervor', async () => {
+    const user = userEvent.setup()
+    renderDrawer()
+
+    await openDrawer(user)
+    await user.type(screen.getByLabelText('Erhalten'), '5,00')
+
+    const rueckgeld = screen.getByText('Rückgeld').nextElementSibling
+    expect(rueckgeld).toHaveClass('text-xl', 'font-bold', 'tabular-nums')
+  })
+
   it('bleibt im Fehlerfall offen und wieder bedienbar', async () => {
     const { toast } = await import('sonner')
     const user = userEvent.setup()

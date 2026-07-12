@@ -291,8 +291,8 @@ Nicht enthalten (bewusst, siehe Resolved decisions): Mengen-Korrektur im Prüf-D
 
 ### Acceptance criteria
 
-- [ ] In beiden Prüf-Drawern ist der Tischname das größte Kopf-Element; die generische Prosa-Description existiert nicht mehr; keine a11y-Warnungen (Description-Slot sinnvoll belegt).
-- [ ] Im Zahlungs-Drawer steht "Erhalten" vor dem Trinkgeld-Feld; das Trinkgeld-Feld erklärt sich über Label/Hilfetext.
-- [ ] Die Rückgeld-Zeile ist der visuell größte Betrag im Sheet; Live-Berechnung unverändert.
-- [ ] Bestell- und Kassier-Flow funktionieren unverändert (Guard, Reset bei Close, Idempotenz der Bestellung).
-- [ ] Tests angepasst: `BestellungDrawer.test.tsx`, `ZahlungDrawer.test.tsx`; `make check` grün.
+- [x] In beiden Prüf-Drawern ist der Tischname das größte Kopf-Element; die generische Prosa-Description existiert nicht mehr; keine a11y-Warnungen (Description-Slot sinnvoll belegt).
+- [x] Im Zahlungs-Drawer steht "Erhalten" vor dem Trinkgeld-Feld; das Trinkgeld-Feld erklärt sich über Label/Hilfetext.
+- [x] Die Rückgeld-Zeile ist der visuell größte Betrag im Sheet; Live-Berechnung unverändert.
+- [x] Bestell- und Kassier-Flow funktionieren unverändert (Guard, Reset bei Close, Idempotenz der Bestellung).
+- [x] Tests angepasst: `BestellungDrawer.test.tsx`, `ZahlungDrawer.test.tsx`; `make check` grün.

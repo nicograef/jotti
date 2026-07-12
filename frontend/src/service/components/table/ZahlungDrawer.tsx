@@ -113,9 +113,14 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
       </DrawerTrigger>
       <DrawerContent pending={loading}>
         <DrawerHeader className="mx-auto w-full max-w-sm">
-          <DrawerTitle>Zahlung für {props.tisch.name}</DrawerTitle>
-          <DrawerDescription>
-            Überprüfe deine Zahlung vor dem Absenden.
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Zahlung für
+          </p>
+          <DrawerTitle className="text-[22px] font-semibold">
+            {props.tisch.name}
+          </DrawerTitle>
+          <DrawerDescription className="sr-only">
+            Zahlung für {props.tisch.name}
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">
@@ -125,15 +130,6 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
           />
           <div className="px-4 pt-3 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="zielbetrag">inklusive Trinkgeld</Label>
-              <EuroInput
-                id="zielbetrag"
-                value={zielbetragEuro}
-                onValueChange={setZielbetragEuro}
-                className="w-28"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
               <Label htmlFor="erhalten">Erhalten</Label>
               <EuroInput
                 id="erhalten"
@@ -142,17 +138,39 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
                 className="w-28"
               />
             </div>
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="zielbetrag">Zahlbetrag inkl. Trinkgeld</Label>
+              <EuroInput
+                id="zielbetrag"
+                value={zielbetragEuro}
+                onValueChange={setZielbetragEuro}
+                aria-describedby="zielbetrag-hinweis"
+                className="w-28"
+              />
+            </div>
+            <p
+              id="zielbetrag-hinweis"
+              className="text-xs text-muted-foreground"
+            >
+              Nur ausfüllen, wenn der Gast aufrundet: den vollen Betrag
+              inklusive Trinkgeld eintragen, dann rechnet die Kasse das Rückgeld
+              passend.
+            </p>
             {rueckgeldCents !== null && (
-              <div className="flex justify-between font-medium">
-                <div>Rückgeld</div>
-                <div>{formatCents(rueckgeldCents)}&nbsp;€</div>
+              <div className="flex items-baseline justify-between pt-1">
+                <div className="text-[15px] font-semibold">Rückgeld</div>
+                <div className="text-xl font-bold tabular-nums">
+                  {formatCents(rueckgeldCents)}&nbsp;€
+                </div>
               </div>
             )}
             {trinkgeldCents !== null && (
               <>
                 <div className="flex justify-between font-medium">
                   <div>Trinkgeld</div>
-                  <div>{formatCents(trinkgeldCents)}&nbsp;€</div>
+                  <div className="tabular-nums">
+                    {formatCents(trinkgeldCents)}&nbsp;€
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Trinkgeld wird nicht als Kasseneinnahme gebucht und gehört

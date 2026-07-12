@@ -90,9 +90,14 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
       </DrawerTrigger>
       <DrawerContent pending={loading}>
         <DrawerHeader className="mx-auto w-full max-w-sm">
-          <DrawerTitle>Bestellung für {props.tisch.name}</DrawerTitle>
-          <DrawerDescription>
-            Überprüfe deine Bestellung vor dem Absenden.
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Bestellung für
+          </p>
+          <DrawerTitle className="text-[22px] font-semibold">
+            {props.tisch.name}
+          </DrawerTitle>
+          <DrawerDescription className="sr-only">
+            Bestellung für {props.tisch.name}
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">

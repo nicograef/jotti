@@ -92,4 +92,19 @@ describe('BestellungDrawer', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
   })
+
+  it('zeigt den Tischnamen als dominante Überschrift ohne Prosa-Description', async () => {
+    const user = userEvent.setup()
+    renderDrawer({ 1: 2 })
+
+    await user.click(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    )
+
+    await screen.findByRole('dialog')
+    expect(
+      screen.getByRole('heading', { name: tisch.name }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/vor dem Absenden/)).not.toBeInTheDocument()
+  })
 })
