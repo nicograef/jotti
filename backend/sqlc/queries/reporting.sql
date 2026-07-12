@@ -108,6 +108,43 @@ CROSS JOIN LATERAL kj_extract_umsatz_pro_steuersatz(kj.type, kj.data) AS s(steue
 WHERE kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1', 'stornierung-erteilt:v1')
 AND kj.kassensitzung_nr = @kassensitzung_nr;
 
+-- name: GetKassensitzungMetadaten :one
+-- Tagesabrechnung: Sitzungs-Metadaten für den formalen Berichtskopf, reine
+-- Projektion über die vorhandenen Journal-Events. Eröffnungs- und
+-- Abschlusszeitpunkt sind die Event-timestamps von kassensitzung-eroeffnet:v1
+-- bzw. tagesabschluss-erstellt:v1; der abschließende Benutzer ist der
+-- eingefrorene user_name des Tagesabschluss-Events; die Kassensturz-Differenz
+-- kommt aus data->differenzCents des kassensturz-durchgefuehrt:v1-Events. Alle
+-- Felder sind nullable, solange die zugehörigen Events noch nicht existieren.
+SELECT
+    eroeffnet.eroeffnet_am,
+    abschluss.abgeschlossen_am,
+    abschluss.abgeschlossen_von,
+    -- kassensturz_data ist das JSONB-Event des letzten Kassensturzes; ohne
+    -- Kassensturz liefert die COALESCE das JSON-Literal 'null' (kein SQL-NULL,
+    -- damit json.RawMessage sauber scannt). Die Anwendungsschicht parst
+    -- differenzCents daraus — wie das Reporting-Repo die Storno-Positionen.
+    COALESCE(kassensturz.kassensturz_data, 'null'::jsonb)::jsonb AS kassensturz_data
+FROM (SELECT @kassensitzung_nr::int AS nr) params
+LEFT JOIN LATERAL (
+    SELECT kj.timestamp AS eroeffnet_am FROM kassenjournal kj
+    WHERE kj.kassensitzung_nr = params.nr
+      AND kj.type = 'kassensitzung-eroeffnet:v1'
+    ORDER BY kj.timestamp ASC LIMIT 1
+) eroeffnet ON true
+LEFT JOIN LATERAL (
+    SELECT kj.timestamp AS abgeschlossen_am, kj.user_name AS abgeschlossen_von FROM kassenjournal kj
+    WHERE kj.kassensitzung_nr = params.nr
+      AND kj.type = 'tagesabschluss-erstellt:v1'
+    ORDER BY kj.timestamp DESC LIMIT 1
+) abschluss ON true
+LEFT JOIN LATERAL (
+    SELECT kj.data AS kassensturz_data FROM kassenjournal kj
+    WHERE kj.kassensitzung_nr = params.nr
+      AND kj.type = 'kassensturz-durchgefuehrt:v1'
+    ORDER BY kj.timestamp DESC LIMIT 1
+) kassensturz ON true;
+
 -- name: GetEigeneUebersicht :one
 -- Service-Dashboard: Eigene KPIs der eingeloggten Servicekraft pro Kassensitzung.
 SELECT

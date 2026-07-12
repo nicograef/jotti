@@ -23,3 +23,14 @@ sql:
             go_type: "encoding/json.RawMessage"
           - db_type: "jsonb"
             go_type: "encoding/json.RawMessage"
+          # Sitzungs-Metadaten (Berichtskopf) und der Abschlusszeitpunkt der
+          # Berichtsliste sind reine Event-Projektionen über LEFT JOIN LATERAL;
+          # sqlc kann deren NULL-Barkeit nicht ableiten, daher hier explizit
+          # nullable, damit fehlende Events (z. B. offene Sitzung) sauber
+          # gescannt werden statt beim NULL-Scan zu scheitern.
+          - column: "*.eroeffnet_am"
+            go_type: "database/sql.NullTime"
+          - column: "*.abgeschlossen_am"
+            go_type: "database/sql.NullTime"
+          - column: "*.abgeschlossen_von"
+            go_type: "database/sql.NullString"

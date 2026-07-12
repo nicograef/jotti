@@ -68,6 +68,29 @@ export {
   kassensitzungStatusLabel,
 } from '@/admin/kasse/Kassensitzung'
 
+// AbgeschlosseneSitzung ist ein Eintrag der Kassenberichte-Sitzungsliste: die
+// abgeschlossene Kassensitzung mit Gesamtumsatz und Abschlusszeitpunkt aus dem
+// Tagesabschluss-Event. Status entfällt (alle Einträge sind abgeschlossen).
+export const AbgeschlosseneSitzungSchema = z.object({
+  zNr: z.number().int(),
+  datum: z.string(),
+  bezeichnung: z.string(),
+  umsatzGesamtCents: z.number().int(),
+  abgeschlossenAm: z.string().nullable(),
+})
+export type AbgeschlosseneSitzung = z.infer<typeof AbgeschlosseneSitzungSchema>
+
+// Metadaten sind die Kopfdaten des formalen Tagesberichts, rein aus den
+// Journal-Events projiziert. Alle Felder sind optional, solange die zugehörigen
+// Events fehlen (z. B. bei einer noch offenen Sitzung).
+export const MetadatenSchema = z.object({
+  eroeffnetAm: z.string().nullable(),
+  abgeschlossenAm: z.string().nullable(),
+  abgeschlossenVon: z.string(),
+  kassensturzDifferenzCents: z.number().int().nullable(),
+})
+export type Metadaten = z.infer<typeof MetadatenSchema>
+
 export const OffenerTischSchema = z.object({
   tischId: z.number().int(),
   tischName: z.string(),
@@ -114,6 +137,7 @@ export type LiveReportingData = z.infer<typeof LiveReportingDataSchema>
 
 export const ReportingDataSchema = z.object({
   kassensitzungNr: z.number().int(),
+  metadaten: MetadatenSchema,
   summary: SummarySchema,
   breakdowns: z.object({
     umsatzProServicekraft: z.array(UmsatzServicekraftSchema),

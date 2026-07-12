@@ -61,7 +61,7 @@ func (m mockKasseRepo) GetOffeneKassensitzungNr(_ context.Context) (int, error) 
 	return m.kassensitzungNr, m.err
 }
 
-func (m mockKasseRepo) GetAbgeschlosseneKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
+func (m mockKasseRepo) GetAbgeschlosseneKassensitzungen(_ context.Context) ([]reporting.AbgeschlosseneSitzung, error) {
 	return nil, m.err
 }
 

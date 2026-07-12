@@ -1,7 +1,9 @@
-import { FileText } from 'lucide-react'
+import { Building2, Download, FileText, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink } from 'react-router'
 
+import { useOffeneKassensitzung } from '@/admin/kasse/hooks'
+import { Button } from '@/components/ui/button'
 import {
   Empty,
   EmptyDescription,
@@ -11,28 +13,74 @@ import {
 } from '@/components/ui/empty'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
-import { DsfinvkExportButton } from './DsfinvkExportButton'
-import { useAbgeschlosseneKassensitzungen, useReport } from './hooks'
-import { ReportingFilter } from './ReportingFilter'
+import {
+  useAbgeschlosseneKassensitzungen,
+  useDsfinvkExport,
+  useReport,
+} from './hooks'
 import { ReportingResults } from './ReportingResults'
+import { SitzungsListe } from './SitzungsListe'
+
+// Export-Block „Für Steuerberater & Finanzamt": erklärt das DSFinV-K-Archiv im
+// Klartext und lädt es über den bestehenden useDsfinvkExport herunter.
+function ExportBlock({ kassensitzungNr }: { kassensitzungNr: number }) {
+  const { exportieren, isPending } = useDsfinvkExport()
+
+  return (
+    <div className="flex items-center gap-4 rounded-xl border bg-sidebar p-4 print:hidden">
+      <Building2 className="size-5 shrink-0 text-primary" aria-hidden />
+      <div className="flex-1">
+        <p className="text-sm font-semibold">Für Steuerberater & Finanzamt</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Das DSFinV-K-Archiv ist das maschinenlesbare Kassenprotokoll dieser
+          Sitzung. Bei einer Prüfung wird genau diese Datei verlangt — einfach
+          herunterladen und weitergeben.
+        </p>
+      </div>
+      <Button
+        className="shrink-0"
+        disabled={isPending}
+        onClick={() => {
+          exportieren(kassensitzungNr)
+        }}
+      >
+        {isPending ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Download className="size-4" />
+        )}
+        Archiv herunterladen (ZIP)
+      </Button>
+    </div>
+  )
+}
 
 // Kassenberichte zeigen die historische Auswertung abgeschlossener
-// Kassensitzungen samt Steuersatz-Tabelle und DSFinV-K-Export. Laufende
-// (offene) Sitzungen erscheinen ausschließlich auf dem Live-Dashboard.
+// Kassensitzungen: links die Sitzungsliste (offene Sitzung als Hinweis, darunter
+// die abgeschlossenen als wählbare Karten), rechts der vollständige Tagesbericht
+// mit Steuersatz-Tabelle und DSFinV-K-Export. Laufende Sitzungen werden nur auf
+// dem Live-Dashboard ausgewertet.
 export function KassenberichtePage() {
   const { kassensitzungen, isPending: listLoading } =
     useAbgeschlosseneKassensitzungen()
+  const { kassensitzung: offeneSitzung } = useOffeneKassensitzung()
   const [selectedNr, setSelectedNr] = useState<number | null>(null)
 
   const effectiveNr = selectedNr ?? kassensitzungen.at(0)?.zNr ?? null
+  const selectedSitzung =
+    kassensitzungen.find((k) => k.zNr === effectiveNr) ?? null
   const { result, isPending: reportLoading } = useReport(effectiveNr)
 
   return (
     <>
-      <AdminPageHeader
-        titel="Berichte & Export"
-        unterzeile="Jede abgeschlossene Kassensitzung ergibt einen Tagesbericht (Z-Bon)."
-      />
+      {/* Generischer Seitenkopf gehört nicht auf den gedruckten Z-Bon —
+          gedruckt wird nur die Berichtsspalte mit ihrem formalen Kopf. */}
+      <div className="print:hidden">
+        <AdminPageHeader
+          titel="Berichte & Export"
+          unterzeile="Jede abgeschlossene Kassensitzung ergibt einen Tagesbericht (Z-Bon)."
+        />
+      </div>
 
       {!listLoading && kassensitzungen.length === 0 ? (
         <Empty className="mt-6">
@@ -54,23 +102,35 @@ export function KassenberichtePage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <ReportingFilter
-              kassensitzungen={kassensitzungen}
-              kassensitzungNr={effectiveNr}
-              loading={listLoading}
-              onKassensitzungNrChange={setSelectedNr}
+        <div className="mt-4 grid gap-5 md:grid-cols-[280px_1fr]">
+          <div className="print:hidden">
+            <SitzungsListe
+              sitzungen={kassensitzungen}
+              offeneSitzung={offeneSitzung}
+              selectedNr={effectiveNr}
+              onSelect={setSelectedNr}
             />
-            <DsfinvkExportButton kassensitzungNr={effectiveNr} />
           </div>
 
-          {result && (
-            <div className="my-6">
-              <ReportingResults result={result} loading={reportLoading} />
-            </div>
-          )}
-        </>
+          <div className="flex flex-col gap-4">
+            {reportLoading || !result || !selectedSitzung ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="size-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                <ReportingResults
+                  result={result}
+                  sitzung={selectedSitzung}
+                  loading={false}
+                />
+                {effectiveNr !== null && (
+                  <ExportBlock kassensitzungNr={effectiveNr} />
+                )}
+              </>
+            )}
+          </div>
+        </div>
       )}
     </>
   )

@@ -38,10 +38,11 @@ type stornierungEventData struct {
 
 func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error) {
 	var (
-		stats      dbgen.GetReportingStatsRow
-		umsatzRows []dbgen.GetUmsatzProServicekraftRow
-		zeilenRows []dbgen.GetUmsatzPositionszeilenRow
-		stornoRows []dbgen.GetStornierungenRow
+		stats        dbgen.GetReportingStatsRow
+		umsatzRows   []dbgen.GetUmsatzProServicekraftRow
+		zeilenRows   []dbgen.GetUmsatzPositionszeilenRow
+		stornoRows   []dbgen.GetStornierungenRow
+		metadatenRow dbgen.GetKassensitzungMetadatenRow
 	)
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -66,12 +67,22 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		stornoRows, err = r.q.GetStornierungen(ctx, kassensitzungNr)
 		return err
 	})
+	g.Go(func() error {
+		var err error
+		metadatenRow, err = r.q.GetKassensitzungMetadaten(ctx, kassensitzungNr)
+		return err
+	})
 
 	if err := g.Wait(); err != nil {
 		return reporting.ReportingData{}, err
 	}
 
 	stornierungen, err := toStornierungen(stornoRows)
+	if err != nil {
+		return reporting.ReportingData{}, err
+	}
+
+	metadaten, err := toMetadaten(metadatenRow)
 	if err != nil {
 		return reporting.ReportingData{}, err
 	}
@@ -88,6 +99,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 
 	return reporting.ReportingData{
 		KassensitzungNr: kassensitzungNr,
+		Metadaten:       metadaten,
 		Summary:         toSummary(stats),
 		Breakdowns: reporting.Breakdowns{
 			UmsatzProServicekraft: toUmsatzServicekraft(umsatzRows),
@@ -95,6 +107,43 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		UmsatzProSteuersatz: umsatzProSteuersatz,
 		Stornierungen:       stornierungen,
 	}, nil
+}
+
+// kassensturzDataJSON deserialisiert die für den Berichtskopf benötigte
+// Kassensturz-Differenz aus dem kassensturz-durchgefuehrt:v1-Event.
+type kassensturzDataJSON struct {
+	DifferenzCents int `json:"differenzCents"`
+}
+
+// toMetadaten übersetzt die Sitzungs-Metadaten-Zeile in das Domänenmodell:
+// nullable Zeitpunkte/Benutzer werden zu optionalen Feldern, die
+// Kassensturz-Differenz wird aus dem JSONB-Event geparst (nil ohne Kassensturz).
+func toMetadaten(row dbgen.GetKassensitzungMetadatenRow) (reporting.Metadaten, error) {
+	metadaten := reporting.Metadaten{}
+
+	if row.EroeffnetAm.Valid {
+		eroeffnetAm := row.EroeffnetAm.Time
+		metadaten.EroeffnetAm = &eroeffnetAm
+	}
+	if row.AbgeschlossenAm.Valid {
+		abgeschlossenAm := row.AbgeschlossenAm.Time
+		metadaten.AbgeschlossenAm = &abgeschlossenAm
+	}
+	if row.AbgeschlossenVon.Valid {
+		metadaten.AbgeschlossenVon = row.AbgeschlossenVon.String
+	}
+	// Ohne Kassensturz liefert die Query das JSON-Literal 'null'; in ein
+	// Pointer-Ziel deserialisiert das zu nil und lässt das Feld sauber leer.
+	var data *kassensturzDataJSON
+	if err := json.Unmarshal(row.KassensturzData, &data); err != nil {
+		return reporting.Metadaten{}, err
+	}
+	if data != nil {
+		differenzCents := data.DifferenzCents
+		metadaten.KassensturzDifferenzCents = &differenzCents
+	}
+
+	return metadaten, nil
 }
 
 func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (reporting.LiveReportingData, error) {

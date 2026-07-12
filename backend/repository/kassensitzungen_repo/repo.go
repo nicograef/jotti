@@ -7,6 +7,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/reporting"
 )
 
 func (r Repository) GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error) {
@@ -25,18 +26,30 @@ func (r Repository) GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensi
 
 // GetAbgeschlosseneKassensitzungen reads only closed Kassensitzungen (status 'abgeschlossen')
 // for the Kassenberichte page; the transient 'wird_abgeschlossen' status never appears there.
-func (r Repository) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error) {
+// Each entry is enriched with the day's total revenue and close timestamp, projected from the
+// tagesabschluss-erstellt:v1 journal event.
+func (r Repository) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]reporting.AbgeschlosseneSitzung, error) {
 	rows, err := r.q.GetAbgeschlosseneKassensitzungen(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	kassensitzungen := make([]kasse.Kassensitzung, 0, len(rows))
+	sitzungen := make([]reporting.AbgeschlosseneSitzung, 0, len(rows))
 	for _, row := range rows {
-		kassensitzungen = append(kassensitzungen, kassensitzungRowToDomain(row))
+		sitzung := reporting.AbgeschlosseneSitzung{
+			ZNr:               row.ZNr,
+			Datum:             row.Datum,
+			Bezeichnung:       row.Bezeichnung,
+			UmsatzGesamtCents: row.UmsatzGesamtCents,
+		}
+		if row.AbgeschlossenAm.Valid {
+			abgeschlossenAm := row.AbgeschlossenAm.Time
+			sitzung.AbgeschlossenAm = &abgeschlossenAm
+		}
+		sitzungen = append(sitzungen, sitzung)
 	}
 
-	return kassensitzungen, nil
+	return sitzungen, nil
 }
 
 // GetOffeneKassensitzung reads the currently open Kassensitzung from the kassensitzungen CRUD entity.

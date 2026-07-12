@@ -7,25 +7,60 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
 const getAbgeschlosseneKassensitzungen = `-- name: GetAbgeschlosseneKassensitzungen :many
-SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
-FROM kassensitzungen WHERE status = 'abgeschlossen' ORDER BY datum DESC, created_at DESC
+SELECT
+    ks.z_nr,
+    ks.datum,
+    ks.bezeichnung,
+    ks.status,
+    ks.created_at,
+    ks.updated_at,
+    COALESCE(ta.umsatz_gesamt_cents, 0)::int AS umsatz_gesamt_cents,
+    ta.abgeschlossen_am AS abgeschlossen_am
+FROM kassensitzungen ks
+LEFT JOIN LATERAL (
+    SELECT
+        COALESCE((kj.data->>'umsatzGesamtCents')::int, 0) AS umsatz_gesamt_cents,
+        kj.timestamp AS abgeschlossen_am
+    FROM kassenjournal kj
+    WHERE kj.kassensitzung_nr = ks.z_nr
+      AND kj.type = 'tagesabschluss-erstellt:v1'
+    ORDER BY kj.timestamp DESC
+    LIMIT 1
+) ta ON true
+WHERE ks.status = 'abgeschlossen'
+ORDER BY ks.datum DESC, ks.created_at DESC
 `
+
+type GetAbgeschlosseneKassensitzungenRow struct {
+	ZNr               int
+	Datum             time.Time
+	Bezeichnung       string
+	Status            string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	UmsatzGesamtCents int
+	AbgeschlossenAm   sql.NullTime
+}
 
 // Nur abgeschlossene Sitzungen für die Kassenberichte-Seite; der transiente
 // Status 'wird_abgeschlossen' bleibt außen vor. Sortierung wie GetAllKassensitzungen.
-func (q *Queries) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]Kassensitzungen, error) {
+// Umsatz und Abschlusszeitpunkt sind reine Projektionen aus dem
+// tagesabschluss-erstellt:v1-Event (data->umsatzGesamtCents bzw. dessen
+// timestamp); das LEFT JOIN LATERAL bleibt tolerant, falls das Event fehlt.
+func (q *Queries) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]GetAbgeschlosseneKassensitzungenRow, error) {
 	rows, err := q.db.QueryContext(ctx, getAbgeschlosseneKassensitzungen)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Kassensitzungen{}
+	items := []GetAbgeschlosseneKassensitzungenRow{}
 	for rows.Next() {
-		var i Kassensitzungen
+		var i GetAbgeschlosseneKassensitzungenRow
 		if err := rows.Scan(
 			&i.ZNr,
 			&i.Datum,
@@ -33,6 +68,8 @@ func (q *Queries) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]Kasse
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UmsatzGesamtCents,
+			&i.AbgeschlossenAm,
 		); err != nil {
 			return nil, err
 		}

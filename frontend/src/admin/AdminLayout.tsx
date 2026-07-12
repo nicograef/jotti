@@ -11,7 +11,7 @@ function AdminMobileHeader() {
   const { toggleSidebar } = useSidebar()
 
   return (
-    <header className="sticky top-0 h-14 border-b bg-background z-40 flex items-center justify-between px-4 lg:hidden">
+    <header className="sticky top-0 h-14 border-b bg-background z-40 flex items-center justify-between px-4 lg:hidden print:hidden">
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"

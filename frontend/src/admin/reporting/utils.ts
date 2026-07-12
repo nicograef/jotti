@@ -33,3 +33,26 @@ export function formatDatum(datum: string): string {
     timeZone: 'UTC',
   })
 }
+
+// formatDatumKurz gibt Wochentag und Tag/Monat für die Sitzungslisten-Karten
+// aus ("Fr, 05.07."). Der Kalendertag der Kassensitzung ist UTC-normiert.
+export function formatDatumKurz(datum: string): string {
+  return new Date(datum).toLocaleDateString('de-DE', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'UTC',
+  })
+}
+
+// formatDatumLang gibt Wochentag und vollständiges Datum für den Berichtskopf
+// aus ("Fr, 05.07.2026").
+export function formatDatumLang(datum: string): string {
+  return new Date(datum).toLocaleDateString('de-DE', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}

@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
@@ -20,7 +19,7 @@ import (
 type mockQuery struct {
 	data            reporting.ReportingData
 	liveData        *reporting.LiveReportingData
-	kassensitzungen []kasse.Kassensitzung
+	kassensitzungen []reporting.AbgeschlosseneSitzung
 	err             error
 }
 
@@ -32,7 +31,7 @@ func (m mockQuery) GetEigeneUebersicht(_ context.Context, _ int) (reporting.Eige
 	return reporting.EigeneUebersicht{}, m.err
 }
 
-func (m mockQuery) GetAbgeschlosseneKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
+func (m mockQuery) GetAbgeschlosseneKassensitzungen(_ context.Context) ([]reporting.AbgeschlosseneSitzung, error) {
 	return m.kassensitzungen, m.err
 }
 
@@ -85,8 +84,17 @@ func assertBadRequestCode(t *testing.T, rec *httptest.ResponseRecorder, expected
 }
 
 func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
+	eroeffnetAm := time.Date(2026, 7, 5, 9, 58, 0, 0, time.UTC)
+	abgeschlossenAm := time.Date(2026, 7, 5, 23, 12, 0, 0, time.UTC)
+	kassensturzDifferenz := -150
 	mockData := reporting.ReportingData{
 		KassensitzungNr: 1,
+		Metadaten: reporting.Metadaten{
+			EroeffnetAm:               &eroeffnetAm,
+			AbgeschlossenAm:           &abgeschlossenAm,
+			AbgeschlossenVon:          "nico",
+			KassensturzDifferenzCents: &kassensturzDifferenz,
+		},
 		Summary: reporting.Summary{
 			GesamtUmsatzCents:        10000,
 			AnzahlBestellungen:       3,
@@ -117,6 +125,12 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 	}
 
 	var resp struct {
+		Metadaten struct {
+			EroeffnetAm               *time.Time `json:"eroeffnetAm"`
+			AbgeschlossenAm           *time.Time `json:"abgeschlossenAm"`
+			AbgeschlossenVon          string     `json:"abgeschlossenVon"`
+			KassensturzDifferenzCents *int       `json:"kassensturzDifferenzCents"`
+		} `json:"metadaten"`
 		Summary struct {
 			GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
 			AnzahlBestellungen       int `json:"anzahlBestellungen"`
@@ -145,6 +159,18 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 	}
 	if sk := resp.Breakdowns.StornierungenProServicekraft[0]; sk.UserID != 3 || sk.AnzahlStornierungen != 2 || sk.StornierungenCents != 800 {
 		t.Fatalf("unexpected stornierungenProServicekraft row: %+v", resp.Breakdowns.StornierungenProServicekraft[0])
+	}
+	if resp.Metadaten.EroeffnetAm == nil || !resp.Metadaten.EroeffnetAm.Equal(eroeffnetAm) {
+		t.Errorf("expected eroeffnetAm %v, got %v", eroeffnetAm, resp.Metadaten.EroeffnetAm)
+	}
+	if resp.Metadaten.AbgeschlossenAm == nil || !resp.Metadaten.AbgeschlossenAm.Equal(abgeschlossenAm) {
+		t.Errorf("expected abgeschlossenAm %v, got %v", abgeschlossenAm, resp.Metadaten.AbgeschlossenAm)
+	}
+	if resp.Metadaten.AbgeschlossenVon != "nico" {
+		t.Errorf("expected abgeschlossenVon 'nico', got %q", resp.Metadaten.AbgeschlossenVon)
+	}
+	if resp.Metadaten.KassensturzDifferenzCents == nil || *resp.Metadaten.KassensturzDifferenzCents != -150 {
+		t.Errorf("expected kassensturzDifferenzCents -150, got %v", resp.Metadaten.KassensturzDifferenzCents)
 	}
 	if resp.Summary.GesamtUmsatzCents != 10000 {
 		t.Errorf("expected gesamtUmsatzCents 10000, got %d", resp.Summary.GesamtUmsatzCents)
@@ -181,8 +207,9 @@ func TestGetReportingHandler_QueryError_Returns500(t *testing.T) {
 }
 
 func TestGetAbgeschlosseneKassensitzungenHandler_ReturnsItems(t *testing.T) {
-	handler := QueryHandler{Query: mockQuery{kassensitzungen: []kasse.Kassensitzung{
-		{ZNr: 2, Datum: time.Date(2026, 7, 5, 0, 0, 0, 0, time.UTC), Bezeichnung: "Sommerfest Samstag", Status: kasse.KassensitzungAbgeschlossen},
+	abgeschlossenAm := time.Date(2026, 7, 5, 23, 12, 0, 0, time.UTC)
+	handler := QueryHandler{Query: mockQuery{kassensitzungen: []reporting.AbgeschlosseneSitzung{
+		{ZNr: 2, Datum: time.Date(2026, 7, 5, 0, 0, 0, 0, time.UTC), Bezeichnung: "Sommerfest Samstag", UmsatzGesamtCents: 341200, AbgeschlossenAm: &abgeschlossenAm},
 	}}}
 
 	req := httptest.NewRequest(http.MethodPost, "/get-abgeschlossene-kassensitzungen", strings.NewReader("{}"))
@@ -196,10 +223,11 @@ func TestGetAbgeschlosseneKassensitzungenHandler_ReturnsItems(t *testing.T) {
 
 	var resp struct {
 		Kassensitzungen []struct {
-			ZNr         int    `json:"zNr"`
-			Datum       string `json:"datum"`
-			Bezeichnung string `json:"bezeichnung"`
-			Status      string `json:"status"`
+			ZNr               int        `json:"zNr"`
+			Datum             string     `json:"datum"`
+			Bezeichnung       string     `json:"bezeichnung"`
+			UmsatzGesamtCents int        `json:"umsatzGesamtCents"`
+			AbgeschlossenAm   *time.Time `json:"abgeschlossenAm"`
 		} `json:"kassensitzungen"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -209,8 +237,11 @@ func TestGetAbgeschlosseneKassensitzungenHandler_ReturnsItems(t *testing.T) {
 		t.Fatalf("expected 1 kassensitzung, got %d", len(resp.Kassensitzungen))
 	}
 	item := resp.Kassensitzungen[0]
-	if item.ZNr != 2 || item.Datum != "2026-07-05" || item.Status != "abgeschlossen" {
+	if item.ZNr != 2 || item.Datum != "2026-07-05" || item.UmsatzGesamtCents != 341200 {
 		t.Fatalf("unexpected kassensitzung item: %+v", item)
+	}
+	if item.AbgeschlossenAm == nil || !item.AbgeschlossenAm.Equal(abgeschlossenAm) {
+		t.Fatalf("expected abgeschlossenAm %v, got %v", abgeschlossenAm, item.AbgeschlossenAm)
 	}
 }
 

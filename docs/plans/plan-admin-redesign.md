@@ -460,12 +460,12 @@ herunterladen (ZIP)" über den bestehenden `useDsfinvkExport`.
 
 ### Acceptance criteria
 
-- [ ] Sitzungsliste zeigt abgeschlossene Sitzungen mit Datum, Nr., Bezeichnung und Umsatz; die offene Sitzung ist sichtbar, nicht wählbar und führt zur Übersicht; keine Status-Emojis mehr
-- [ ] Berichtskopf zeigt Nr., Eröffnungs- und Abschlusszeit, abschließenden Benutzer und Kassensturz-Differenz aus den neuen Feldern
-- [ ] Steuersatz-Tabelle, Servicekraft-Umsätze und Stornierungen stehen ohne Tabs untereinander
-- [ ] Export-Block erklärt das DSFinV-K-Archiv und lädt es über den bestehenden Export herunter
-- [ ] Drucken gibt nur die Berichtsspalte aus (manuelle Sichtprüfung, `print:`-Klassen vorhanden)
-- [ ] Backend-Tests für beide erweiterten Antworten grün (Journal-Fixtures); Seitentest (`KassenberichtePage.test.tsx`) deckt Sitzungsliste inkl. offener Sitzung und Berichtskopf ab; `make check` grün
+- [x] Sitzungsliste zeigt abgeschlossene Sitzungen mit Datum, Nr., Bezeichnung und Umsatz; die offene Sitzung ist sichtbar, nicht wählbar und führt zur Übersicht; keine Status-Emojis mehr
+- [x] Berichtskopf zeigt Nr., Eröffnungs- und Abschlusszeit, abschließenden Benutzer und Kassensturz-Differenz aus den neuen Feldern
+- [x] Steuersatz-Tabelle, Servicekraft-Umsätze und Stornierungen stehen ohne Tabs untereinander
+- [x] Export-Block erklärt das DSFinV-K-Archiv und lädt es über den bestehenden Export herunter
+- [x] Drucken gibt nur die Berichtsspalte aus (manuelle Sichtprüfung, `print:`-Klassen vorhanden) <!-- print:hidden auf Sidebar, Mobile-Header, Sitzungsliste, Export-Block UND generischem Seitenkopf; Sichtprüfung Phase 12 -->
+- [x] Backend-Tests für beide erweiterten Antworten grün (Journal-Fixtures, zusätzlich volle Integration gegen echtes Postgres gelaufen); Seitentest (`KassenberichtePage.test.tsx`) deckt Sitzungsliste inkl. offener Sitzung und Berichtskopf ab; `make check` grün
 
 ---
 

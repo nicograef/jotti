@@ -3,8 +3,8 @@ import { z } from 'zod'
 import type { BackendClient, DownloadResult } from '@/lib/Backend'
 
 import {
-  type Kassensitzung,
-  KassensitzungSchema,
+  type AbgeschlosseneSitzung,
+  AbgeschlosseneSitzungSchema,
   type LiveReportingData,
   LiveReportingDataSchema,
   type ReportingData,
@@ -34,11 +34,13 @@ export class ReportingBackend {
     )
   }
 
-  public async getAbgeschlosseneKassensitzungen(): Promise<Kassensitzung[]> {
+  public async getAbgeschlosseneKassensitzungen(): Promise<
+    AbgeschlosseneSitzung[]
+  > {
     const response = await this.backend.post(
       'admin/get-abgeschlossene-kassensitzungen',
       {},
-      z.object({ kassensitzungen: z.array(KassensitzungSchema) }),
+      z.object({ kassensitzungen: z.array(AbgeschlosseneSitzungSchema) }),
     )
     return response.kassensitzungen
   }

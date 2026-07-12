@@ -288,3 +288,90 @@ func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
 		t.Errorf("expected Zeilen-Summe %d == GesamtUmsatz %d", summe, data.Summary.GesamtUmsatzCents)
 	}
 }
+
+// TestGetReporting_MetadatenAusJournalEvents verifiziert, dass der Berichtskopf
+// seine Metadaten rein aus den Journal-Events projiziert: Eröffnungs- und
+// Abschlusszeitpunkt, den abschließenden Benutzer (eingefrorener user_name) und
+// die Kassensturz-Differenz aus dem kassensturz-durchgefuehrt:v1-Event.
+func TestGetReporting_MetadatenAusJournalEvents(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	annaID := createUser(t, db, "Anna Müller", "anna", "active")
+	nicoID := createUser(t, db, "Nico Gräf", "nico", "active")
+	ksNr := createKassensitzung(t, db)
+
+	insertEvent(t, db, annaID, "anna", "kassensitzung-eroeffnet:v1", "kassensitzung-1", 1, map[string]any{
+		"datum": "2026-07-05", "bezeichnung": "Sommerfest", "betragCents": 10000, "eroeffnetVon": annaID,
+	}, ksNr)
+	insertEvent(t, db, nicoID, "nico", "kassensturz-durchgefuehrt:v1", "kassensitzung-1", 2, map[string]any{
+		"sollBestandCents": 20000, "istBestandCents": 19850, "differenzCents": -150, "durchgefuehrtVon": nicoID,
+	}, ksNr)
+	insertEvent(t, db, nicoID, "nico", "tagesabschluss-erstellt:v1", "kassensitzung-1", 3, map[string]any{
+		"zNr": ksNr, "umsatzGesamtCents": 341200, "erstelltVon": nicoID,
+	}, ksNr)
+
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+
+	m := data.Metadaten
+	if m.EroeffnetAm == nil {
+		t.Error("expected eroeffnetAm to be set from kassensitzung-eroeffnet:v1")
+	}
+	if m.AbgeschlossenAm == nil {
+		t.Error("expected abgeschlossenAm to be set from tagesabschluss-erstellt:v1")
+	}
+	if m.AbgeschlossenVon != "nico" {
+		t.Errorf("expected abgeschlossenVon 'nico', got %q", m.AbgeschlossenVon)
+	}
+	if m.KassensturzDifferenzCents == nil || *m.KassensturzDifferenzCents != -150 {
+		t.Errorf("expected kassensturzDifferenzCents -150, got %v", m.KassensturzDifferenzCents)
+	}
+}
+
+// TestGetReporting_MetadatenLeerOhneAbschlussEvents stellt sicher, dass die
+// Projektion für eine noch nicht abgeschlossene Sitzung (nur Eröffnung, kein
+// Kassensturz/Tagesabschluss) die optionalen Metadaten sauber leer lässt statt
+// beim NULL-Scan zu scheitern.
+func TestGetReporting_MetadatenLeerOhneAbschlussEvents(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	annaID := createUser(t, db, "Anna Müller", "anna", "active")
+	ksNr := createKassensitzung(t, db)
+
+	insertEvent(t, db, annaID, "anna", "kassensitzung-eroeffnet:v1", "kassensitzung-1", 1, map[string]any{
+		"datum": "2026-07-05", "bezeichnung": "Sommerfest", "betragCents": 10000, "eroeffnetVon": annaID,
+	}, ksNr)
+
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+
+	m := data.Metadaten
+	if m.EroeffnetAm == nil {
+		t.Error("expected eroeffnetAm to be set even for the open session")
+	}
+	if m.AbgeschlossenAm != nil {
+		t.Errorf("expected abgeschlossenAm to be nil without tagesabschluss, got %v", m.AbgeschlossenAm)
+	}
+	if m.AbgeschlossenVon != "" {
+		t.Errorf("expected abgeschlossenVon empty without tagesabschluss, got %q", m.AbgeschlossenVon)
+	}
+	if m.KassensturzDifferenzCents != nil {
+		t.Errorf("expected kassensturzDifferenzCents nil without kassensturz, got %v", m.KassensturzDifferenzCents)
+	}
+}

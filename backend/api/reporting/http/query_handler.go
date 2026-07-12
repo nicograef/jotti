@@ -7,14 +7,13 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/middleware"
-	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 )
 
 type query interface {
 	GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error)
 	GetEigeneUebersicht(ctx context.Context, userID int) (reporting.EigeneUebersicht, error)
-	GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
+	GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]reporting.AbgeschlosseneSitzung, error)
 	GetLiveReporting(ctx context.Context) (*reporting.LiveReportingData, error)
 }
 
@@ -26,8 +25,16 @@ type getReportingRequest struct {
 	KassensitzungNr int `json:"kassensitzungNr"`
 }
 
+type metadatenResponse struct {
+	EroeffnetAm               *time.Time `json:"eroeffnetAm"`
+	AbgeschlossenAm           *time.Time `json:"abgeschlossenAm"`
+	AbgeschlossenVon          string     `json:"abgeschlossenVon"`
+	KassensturzDifferenzCents *int       `json:"kassensturzDifferenzCents"`
+}
+
 type reportingResponse struct {
 	KassensitzungNr     int                        `json:"kassensitzungNr"`
+	Metadaten           metadatenResponse          `json:"metadaten"`
 	Summary             summaryResponse            `json:"summary"`
 	Breakdowns          breakdownsResponse         `json:"breakdowns"`
 	UmsatzProSteuersatz []umsatzSteuersatzResponse `json:"umsatzProSteuersatz"`
@@ -213,6 +220,12 @@ func toStornierungDetails(details []reporting.StornierungDetail) []stornierungDe
 func toReportingResponse(d reporting.ReportingData) reportingResponse {
 	return reportingResponse{
 		KassensitzungNr: d.KassensitzungNr,
+		Metadaten: metadatenResponse{
+			EroeffnetAm:               d.Metadaten.EroeffnetAm,
+			AbgeschlossenAm:           d.Metadaten.AbgeschlossenAm,
+			AbgeschlossenVon:          d.Metadaten.AbgeschlossenVon,
+			KassensturzDifferenzCents: d.Metadaten.KassensturzDifferenzCents,
+		},
 		Summary: summaryResponse{
 			GesamtUmsatzCents:        d.Summary.GesamtUmsatzCents,
 			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
@@ -233,10 +246,11 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 }
 
 type kassensitzungItem struct {
-	ZNr         int    `json:"zNr"`
-	Datum       string `json:"datum"`
-	Bezeichnung string `json:"bezeichnung"`
-	Status      string `json:"status"`
+	ZNr               int        `json:"zNr"`
+	Datum             string     `json:"datum"`
+	Bezeichnung       string     `json:"bezeichnung"`
+	UmsatzGesamtCents int        `json:"umsatzGesamtCents"`
+	AbgeschlossenAm   *time.Time `json:"abgeschlossenAm"`
 }
 
 type getAbgeschlosseneKassensitzungenResponse struct {
@@ -254,10 +268,11 @@ func (h *QueryHandler) GetAbgeschlosseneKassensitzungenHandler() http.HandlerFun
 		items := make([]kassensitzungItem, len(data))
 		for i, k := range data {
 			items[i] = kassensitzungItem{
-				ZNr:         k.ZNr,
-				Datum:       k.Datum.Format("2006-01-02"),
-				Bezeichnung: k.Bezeichnung,
-				Status:      string(k.Status),
+				ZNr:               k.ZNr,
+				Datum:             k.Datum.Format("2006-01-02"),
+				Bezeichnung:       k.Bezeichnung,
+				UmsatzGesamtCents: k.UmsatzGesamtCents,
+				AbgeschlossenAm:   k.AbgeschlossenAm,
 			}
 		}
 

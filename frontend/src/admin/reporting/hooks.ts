@@ -6,17 +6,20 @@ import { triggerBrowserDownload } from '@/lib/download'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { ReportingBackend } from './ReportingBackend'
-import type { Kassensitzung, LiveReportingData, ReportingData } from './types'
+import type {
+  AbgeschlosseneSitzung,
+  LiveReportingData,
+  ReportingData,
+} from './types'
 
 const reportingBackend = new ReportingBackend(BackendSingleton)
 
 export function useAbgeschlosseneKassensitzungen() {
-  const { data: kassensitzungen = [] as Kassensitzung[], isPending } = useQuery(
-    {
+  const { data: kassensitzungen = [] as AbgeschlosseneSitzung[], isPending } =
+    useQuery({
       queryKey: ['abgeschlossene-kassensitzungen'],
       queryFn: () => reportingBackend.getAbgeschlosseneKassensitzungen(),
-    },
-  )
+    })
   return { kassensitzungen, isPending }
 }
 

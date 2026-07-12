@@ -69,12 +69,36 @@ type Breakdowns struct {
 	StornierungenProServicekraft []StornierungServicekraft
 }
 
+// Metadaten sind die Sitzungs-Kopfdaten für den formalen Tagesbericht, rein aus
+// den Journal-Events projiziert: Eröffnungs- und Abschlusszeitpunkt, der
+// abschließende Benutzer und die Kassensturz-Differenz. Alle Felder sind
+// optional, solange die zugehörigen Events fehlen (z. B. offene Sitzung).
+type Metadaten struct {
+	EroeffnetAm               *time.Time
+	AbgeschlossenAm           *time.Time
+	AbgeschlossenVon          string // eingefrorener user_name des Tagesabschluss-Events
+	KassensturzDifferenzCents *int
+}
+
 type ReportingData struct {
 	KassensitzungNr     int
+	Metadaten           Metadaten
 	Summary             Summary
 	Breakdowns          Breakdowns
 	UmsatzProSteuersatz []UmsatzSteuersatz
 	Stornierungen       []StornierungDetail
+}
+
+// AbgeschlosseneSitzung ist ein Eintrag der Kassenberichte-Sitzungsliste: die
+// abgeschlossene Kassensitzung mit ihrem Gesamtumsatz und Abschlusszeitpunkt aus
+// dem tagesabschluss-erstellt:v1-Event. AbgeschlossenAm ist optional, falls das
+// Event ausnahmsweise fehlt.
+type AbgeschlosseneSitzung struct {
+	ZNr               int
+	Datum             time.Time
+	Bezeichnung       string
+	UmsatzGesamtCents int
+	AbgeschlossenAm   *time.Time
 }
 
 type OffenerTisch struct {

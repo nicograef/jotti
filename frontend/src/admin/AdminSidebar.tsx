@@ -184,7 +184,7 @@ export function AdminSidebar() {
   }
 
   return (
-    <Sidebar collapsible="offcanvas">
+    <Sidebar collapsible="offcanvas" className="print:hidden">
       <SidebarHeader className="gap-3">
         <h1 className="px-1 text-3xl font-extrabold">jotti</h1>
         <NavLink

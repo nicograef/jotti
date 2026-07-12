@@ -43,8 +43,31 @@ FROM kassensitzungen ORDER BY datum DESC, created_at DESC;
 -- name: GetAbgeschlosseneKassensitzungen :many
 -- Nur abgeschlossene Sitzungen für die Kassenberichte-Seite; der transiente
 -- Status 'wird_abgeschlossen' bleibt außen vor. Sortierung wie GetAllKassensitzungen.
-SELECT z_nr, datum, bezeichnung, status, created_at, updated_at
-FROM kassensitzungen WHERE status = 'abgeschlossen' ORDER BY datum DESC, created_at DESC;
+-- Umsatz und Abschlusszeitpunkt sind reine Projektionen aus dem
+-- tagesabschluss-erstellt:v1-Event (data->umsatzGesamtCents bzw. dessen
+-- timestamp); das LEFT JOIN LATERAL bleibt tolerant, falls das Event fehlt.
+SELECT
+    ks.z_nr,
+    ks.datum,
+    ks.bezeichnung,
+    ks.status,
+    ks.created_at,
+    ks.updated_at,
+    COALESCE(ta.umsatz_gesamt_cents, 0)::int AS umsatz_gesamt_cents,
+    ta.abgeschlossen_am AS abgeschlossen_am
+FROM kassensitzungen ks
+LEFT JOIN LATERAL (
+    SELECT
+        COALESCE((kj.data->>'umsatzGesamtCents')::int, 0) AS umsatz_gesamt_cents,
+        kj.timestamp AS abgeschlossen_am
+    FROM kassenjournal kj
+    WHERE kj.kassensitzung_nr = ks.z_nr
+      AND kj.type = 'tagesabschluss-erstellt:v1'
+    ORDER BY kj.timestamp DESC
+    LIMIT 1
+) ta ON true
+WHERE ks.status = 'abgeschlossen'
+ORDER BY ks.datum DESC, ks.created_at DESC;
 
 -- name: GetKassenbestand :one
 -- Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Warenrücknahmen, Geldtransits und Differenz-Buchungen.

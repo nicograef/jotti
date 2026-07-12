@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"time"
 )
@@ -44,6 +45,63 @@ func (q *Queries) GetEigeneUebersicht(ctx context.Context, arg GetEigeneUebersic
 		&i.BestellungenCents,
 		&i.AnzahlZahlungen,
 		&i.ZahlungenCents,
+	)
+	return i, err
+}
+
+const getKassensitzungMetadaten = `-- name: GetKassensitzungMetadaten :one
+SELECT
+    eroeffnet.eroeffnet_am,
+    abschluss.abgeschlossen_am,
+    abschluss.abgeschlossen_von,
+    -- kassensturz_data ist das JSONB-Event des letzten Kassensturzes; ohne
+    -- Kassensturz liefert die COALESCE das JSON-Literal 'null' (kein SQL-NULL,
+    -- damit json.RawMessage sauber scannt). Die Anwendungsschicht parst
+    -- differenzCents daraus — wie das Reporting-Repo die Storno-Positionen.
+    COALESCE(kassensturz.kassensturz_data, 'null'::jsonb)::jsonb AS kassensturz_data
+FROM (SELECT $1::int AS nr) params
+LEFT JOIN LATERAL (
+    SELECT kj.timestamp AS eroeffnet_am FROM kassenjournal kj
+    WHERE kj.kassensitzung_nr = params.nr
+      AND kj.type = 'kassensitzung-eroeffnet:v1'
+    ORDER BY kj.timestamp ASC LIMIT 1
+) eroeffnet ON true
+LEFT JOIN LATERAL (
+    SELECT kj.timestamp AS abgeschlossen_am, kj.user_name AS abgeschlossen_von FROM kassenjournal kj
+    WHERE kj.kassensitzung_nr = params.nr
+      AND kj.type = 'tagesabschluss-erstellt:v1'
+    ORDER BY kj.timestamp DESC LIMIT 1
+) abschluss ON true
+LEFT JOIN LATERAL (
+    SELECT kj.data AS kassensturz_data FROM kassenjournal kj
+    WHERE kj.kassensitzung_nr = params.nr
+      AND kj.type = 'kassensturz-durchgefuehrt:v1'
+    ORDER BY kj.timestamp DESC LIMIT 1
+) kassensturz ON true
+`
+
+type GetKassensitzungMetadatenRow struct {
+	EroeffnetAm      sql.NullTime
+	AbgeschlossenAm  sql.NullTime
+	AbgeschlossenVon sql.NullString
+	KassensturzData  json.RawMessage
+}
+
+// Tagesabrechnung: Sitzungs-Metadaten für den formalen Berichtskopf, reine
+// Projektion über die vorhandenen Journal-Events. Eröffnungs- und
+// Abschlusszeitpunkt sind die Event-timestamps von kassensitzung-eroeffnet:v1
+// bzw. tagesabschluss-erstellt:v1; der abschließende Benutzer ist der
+// eingefrorene user_name des Tagesabschluss-Events; die Kassensturz-Differenz
+// kommt aus data->differenzCents des kassensturz-durchgefuehrt:v1-Events. Alle
+// Felder sind nullable, solange die zugehörigen Events noch nicht existieren.
+func (q *Queries) GetKassensitzungMetadaten(ctx context.Context, kassensitzungNr int) (GetKassensitzungMetadatenRow, error) {
+	row := q.db.QueryRowContext(ctx, getKassensitzungMetadaten, kassensitzungNr)
+	var i GetKassensitzungMetadatenRow
+	err := row.Scan(
+		&i.EroeffnetAm,
+		&i.AbgeschlossenAm,
+		&i.AbgeschlossenVon,
+		&i.KassensturzData,
 	)
 	return i, err
 }

@@ -1,12 +1,17 @@
 import { cleanup, render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ReportingResults } from './ReportingResults'
-import type { ReportingData } from './types'
+import type { AbgeschlosseneSitzung, ReportingData } from './types'
 
 const reportingResult: ReportingData = {
   kassensitzungNr: 1,
+  metadaten: {
+    eroeffnetAm: '2026-07-05T07:58:00Z',
+    abgeschlossenAm: '2026-07-05T21:12:00Z',
+    abgeschlossenVon: 'nico',
+    kassensturzDifferenzCents: -150,
+  },
   summary: {
     gesamtUmsatzCents: 12345,
     gesamtBestellungenCents: 6500,
@@ -61,56 +66,90 @@ const reportingResult: ReportingData = {
   ],
 }
 
+const sitzung: AbgeschlosseneSitzung = {
+  zNr: 11,
+  datum: '2026-07-05',
+  bezeichnung: 'Sommerfest Tag 1',
+  umsatzGesamtCents: 12345,
+  abgeschlossenAm: '2026-07-05T21:12:00Z',
+}
+
 afterEach(() => {
   cleanup()
 })
 
 describe('ReportingResults', () => {
-  it('shows the Direktverkauf summary card in overview', () => {
-    render(<ReportingResults result={reportingResult} loading={false} />)
+  it('zeigt den formalen Berichtskopf mit Nr., Bezeichnung und Metadaten', () => {
+    render(
+      <ReportingResults
+        result={reportingResult}
+        sitzung={sitzung}
+        loading={false}
+      />,
+    )
 
+    expect(
+      screen.getByRole('heading', {
+        name: 'Tagesbericht Nr. 11 — Sommerfest Tag 1',
+      }),
+    ).toBeInTheDocument()
+    // Metadaten-Zeile: abschließender Benutzer und Kassensturz-Differenz.
+    expect(screen.getByText(/von nico/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Kassensturz-Differenz -1,50 €/),
+    ).toBeInTheDocument()
+  })
+
+  it('zeigt die vier Kennzahl-Kacheln', () => {
+    render(
+      <ReportingResults
+        result={reportingResult}
+        sitzung={sitzung}
+        loading={false}
+      />,
+    )
+
+    expect(screen.getByText('Kassierter Umsatz')).toBeInTheDocument()
+    expect(screen.getByText('Bestellungen')).toBeInTheDocument()
     expect(screen.getByText('Direktverkauf')).toBeInTheDocument()
-    expect(screen.getByText('7')).toBeInTheDocument()
+    expect(screen.getByText('Storniert')).toBeInTheDocument()
     expect(screen.getByText('45,00 €')).toBeInTheDocument()
+  })
+
+  it('zeigt Steuersatz-Tabelle, Servicekräfte und Stornierungen ohne Tabs untereinander', () => {
+    render(
+      <ReportingResults
+        result={reportingResult}
+        sitzung={sitzung}
+        loading={false}
+      />,
+    )
+
+    // Keine Tabs mehr: alle Abschnitte gleichzeitig sichtbar.
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
     expect(screen.getByText('Umsatz nach Steuersatz')).toBeInTheDocument()
     expect(screen.getByText('Regelsteuersatz (19 %)')).toBeInTheDocument()
-  })
-
-  it('zeigt die Steuersätze als gestapelte Blöcke mit beschrifteten Zeilen', () => {
-    render(<ReportingResults result={reportingResult} loading={false} />)
-
-    // Mobile-Politur: keine Tabelle mit horizontalem Scroll, sondern
-    // gestapelte Blöcke mit beschrifteten Brutto/Netto/Steuer-Zeilen.
-    expect(screen.getByText('Brutto')).toBeInTheDocument()
-    expect(screen.getByText('Netto')).toBeInTheDocument()
-    expect(screen.getByText('Steuer')).toBeInTheDocument()
-    expect(screen.getByText('11,90 €')).toBeInTheDocument()
-    expect(screen.getByText('10,00 €')).toBeInTheDocument()
-    expect(screen.getByText('1,90 €')).toBeInTheDocument()
-  })
-
-  it('zeigt Servicekräfte ohne Progressbar und ohne Zahlungen-Badge', async () => {
-    const user = userEvent.setup()
-    render(<ReportingResults result={reportingResult} loading={false} />)
-
-    await user.click(screen.getByRole('tab', { name: /Servicekräfte/ }))
-
+    expect(screen.getByText('Umsatz pro Servicekraft')).toBeInTheDocument()
     expect(screen.getByText('Bea (Bea B.)')).toBeInTheDocument()
     expect(screen.getByText('67,89 €')).toBeInTheDocument()
-    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
-    expect(screen.queryByText(/Zahlungen/)).not.toBeInTheDocument()
+    // Storno-Marker an der Servicekraft-Zeile.
+    expect(screen.getByText('1 Storno')).toBeInTheDocument()
   })
 
-  it('markiert Servicekräfte mit Stornos und zeigt das Aggregat über der Storno-Liste', async () => {
+  it('druckt beim Klick auf Drucken über window.print', async () => {
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(vi.fn())
+    const { default: userEvent } = await import('@testing-library/user-event')
     const user = userEvent.setup()
-    render(<ReportingResults result={reportingResult} loading={false} />)
+    render(
+      <ReportingResults
+        result={reportingResult}
+        sitzung={sitzung}
+        loading={false}
+      />,
+    )
 
-    // Servicekräfte-Tab: roter Marker an der Zeile mit Stornos.
-    await user.click(screen.getByRole('tab', { name: /Servicekräfte/ }))
-    expect(screen.getByText('1 Storno')).toBeInTheDocument()
-
-    // Stornierungen-Tab: Aggregat pro Servicekraft über der Detail-Liste.
-    await user.click(screen.getByRole('tab', { name: /Stornierungen/ }))
-    expect(screen.getByText('Bea (Bea B.) 1')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Drucken' }))
+    expect(printSpy).toHaveBeenCalledOnce()
+    printSpy.mockRestore()
   })
 })

@@ -21,7 +21,7 @@ type reportingRepo interface {
 }
 
 type kassensitzungenRepo interface {
-	GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
+	GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]reporting.AbgeschlosseneSitzung, error)
 	GetOffeneKassensitzungNr(ctx context.Context) (int, error)
 	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
@@ -144,7 +144,7 @@ func computeUmsatzProSteuersatz(bruttoZeilen []reporting.UmsatzSteuersatz) []rep
 	return out
 }
 
-func (q Query) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error) {
+func (q Query) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]reporting.AbgeschlosseneSitzung, error) {
 	log := zerolog.Ctx(ctx)
 
 	data, err := q.KassensitzungenRepo.GetAbgeschlosseneKassensitzungen(ctx)
