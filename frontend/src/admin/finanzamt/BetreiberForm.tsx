@@ -2,34 +2,29 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
-import { type Betreiber } from './BetreiberBackend'
-import { useBetreiber } from './hooks'
+import { type BetreiberEingabe } from './BetreiberBackend'
 
-function BetreiberForm({
+// Formular für die Betreiber-Stammdaten (Adresse). Wird in der
+// Einrichtungs-Checkliste unter „Bearbeiten" ausgeklappt.
+export function BetreiberForm({
   initial,
   onSave,
 }: {
-  initial: Betreiber
-  onSave: (b: Betreiber) => Promise<void>
+  initial: BetreiberEingabe
+  onSave: (b: BetreiberEingabe) => Promise<void>
 }) {
-  const [form, setForm] = useState<Betreiber>(initial)
+  const [form, setForm] = useState<BetreiberEingabe>(initial)
   const { loading: saving, run } = useActionSubmit({
     actionLabel: 'Betreiber-Stammdaten speichern',
   })
 
   const handleChange =
-    (field: keyof Betreiber) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    (field: keyof BetreiberEingabe) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value
       setForm((prev) => ({
         ...prev,
@@ -113,47 +108,5 @@ function BetreiberForm({
         </Button>
       </div>
     </div>
-  )
-}
-
-const emptyBetreiber: Betreiber = {
-  vereinsname: '',
-  strasse: '',
-  plz: '',
-  ort: '',
-  steuernummer: null,
-  ustId: null,
-}
-
-export function BetreiberSection() {
-  const { betreiber, isPending, error, saveBetreiber } = useBetreiber()
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Betreiber-Stammdaten</CardTitle>
-        <CardDescription>
-          Name und Adresse des Vereins erscheinen auf jedem Kassenbeleg (§ 6
-          KassenSichV). Eine Kassensitzung kann erst eröffnet werden, wenn
-          mindestens der Vereinsname gesetzt ist.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isPending && (
-          <p className="text-muted-foreground text-sm">Lade Betreiber-Daten…</p>
-        )}
-        {error && (
-          <p className="text-destructive text-sm">
-            Fehler beim Laden der Betreiber-Daten.
-          </p>
-        )}
-        {!isPending && !error && (
-          <BetreiberForm
-            initial={betreiber ?? emptyBetreiber}
-            onSave={saveBetreiber}
-          />
-        )}
-      </CardContent>
-    </Card>
   )
 }

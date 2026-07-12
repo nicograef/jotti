@@ -644,11 +644,11 @@ bleibt unverändert auf der TSE-Einrichtungsseite.
 
 ### Acceptance criteria
 
-- [ ] Migration und Befehle funktionieren: Setzen persistiert das Datum, Zurücknehmen löscht es, `/get-betreiber` liefert `elsterGemeldetAm` (Backend-Tests grün)
-- [ ] Checkliste zeigt „x von 3" korrekt für alle Kombinationen aus Vereinsdaten/TSE/Meldung; jeder unerledigte Schritt bietet die Behebung direkt an (Formular, Wizard-Link, Als-erledigt-markieren)
-- [ ] Kassenmeldung zeigt offen den Fristtext mit Paragraf und Seriennummer-Pill, erledigt „Gemeldet am {Datum}" mit Korrektur-Möglichkeit; die rote Warnung verschwindet nach dem Abhaken
-- [ ] „Läuft alles?" zeigt den grünen Normalzustand als Klartext und den roten Fehlerzustand nach bestehender Logik; Roh-Metriken und Störungsliste sind in Collapsibles erreichbar
-- [ ] Neuer Seitentest für die Finanzamt-Seite (Checklisten-Zustände, Als-erledigt-Flow, Ampel-Zustände, Collapsible-Inhalt) nach dem bestehenden Mock-Muster; `make check` grün
+- [x] Migration und Befehle funktionieren: Setzen persistiert das Datum, Zurücknehmen löscht es, `/get-betreiber` liefert `elsterGemeldetAm` (Backend-Tests grün)
+- [x] Checkliste zeigt „x von 3" korrekt für alle Kombinationen aus Vereinsdaten/TSE/Meldung; jeder unerledigte Schritt bietet die Behebung direkt an (Formular, Wizard-Link, Als-erledigt-markieren)
+- [x] Kassenmeldung zeigt offen den Fristtext mit Paragraf und Seriennummer-Pill, erledigt „Gemeldet am {Datum}" mit Korrektur-Möglichkeit; die rote Warnung verschwindet nach dem Abhaken
+- [x] „Läuft alles?" zeigt den grünen Normalzustand als Klartext und den roten Fehlerzustand nach bestehender Logik; Roh-Metriken und Störungsliste sind in Collapsibles erreichbar
+- [x] Neuer Seitentest für die Finanzamt-Seite (Checklisten-Zustände, Als-erledigt-Flow, Ampel-Zustände, Collapsible-Inhalt) nach dem bestehenden Mock-Muster; `make check` grün
 
 ---
 

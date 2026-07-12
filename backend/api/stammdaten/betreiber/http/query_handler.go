@@ -25,6 +25,9 @@ type betreiberResponse struct {
 	Ort          string  `json:"ort"`
 	Steuernummer *string `json:"steuernummer"`
 	UstID        *string `json:"ustId"`
+	// ElsterGemeldetAm ist das Datum der ELSTER-Kassenmeldung als YYYY-MM-DD
+	// oder null, solange die Kasse noch nicht gemeldet wurde.
+	ElsterGemeldetAm *string `json:"elsterGemeldetAm"`
 }
 
 func (h *QueryHandler) GetBetreiberHandler() http.HandlerFunc {
@@ -38,13 +41,19 @@ func (h *QueryHandler) GetBetreiberHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
+		var elsterGemeldetAm *string
+		if b.ElsterGemeldetAm != nil {
+			datum := b.ElsterGemeldetAm.Format("2006-01-02")
+			elsterGemeldetAm = &datum
+		}
 		helper.SendResponse(w, betreiberResponse{
-			Vereinsname:  b.Vereinsname,
-			Strasse:      b.Strasse,
-			Plz:          b.Plz,
-			Ort:          b.Ort,
-			Steuernummer: b.Steuernummer,
-			UstID:        b.UstID,
+			Vereinsname:      b.Vereinsname,
+			Strasse:          b.Strasse,
+			Plz:              b.Plz,
+			Ort:              b.Ort,
+			Steuernummer:     b.Steuernummer,
+			UstID:            b.UstID,
+			ElsterGemeldetAm: elsterGemeldetAm,
 		})
 	}
 }

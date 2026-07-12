@@ -167,6 +167,8 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	bc := betreiberHTTP.CommandHandler{}
 	bc.Command = betreiberApp.Command{BetreiberRepo: deps.BetreiberRepo}
 	r.HandleFunc("/update-betreiber", bc.UpdateBetreiberHandler())
+	r.HandleFunc("/elster-meldung-setzen", bc.SetzeElsterMeldungHandler())
+	r.HandleFunc("/elster-meldung-zuruecknehmen", bc.NimmElsterMeldungZurueckHandler())
 
 	return r.Handler(), r.Paths()
 }

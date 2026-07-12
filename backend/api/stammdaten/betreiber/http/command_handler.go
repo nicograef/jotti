@@ -11,6 +11,8 @@ import (
 
 type betreiberCommand interface {
 	UpdateBetreiber(ctx context.Context, b betreiber.Betreiber) error
+	SetzeElsterMeldung(ctx context.Context) error
+	NimmElsterMeldungZurueck(ctx context.Context) error
 }
 
 type CommandHandler struct {
@@ -49,6 +51,30 @@ func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {
 		}
 
 		if err := h.Command.UpdateBetreiber(r.Context(), b); err != nil {
+			helper.SendServerError(w)
+			return
+		}
+		helper.SendEmptyResponse(w)
+	}
+}
+
+// SetzeElsterMeldungHandler markiert die ELSTER-Kassenmeldung als erledigt
+// (serverseitig auf das aktuelle Datum). Kein Request-Body.
+func (h *CommandHandler) SetzeElsterMeldungHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := h.Command.SetzeElsterMeldung(r.Context()); err != nil {
+			helper.SendServerError(w)
+			return
+		}
+		helper.SendEmptyResponse(w)
+	}
+}
+
+// NimmElsterMeldungZurueckHandler setzt die ELSTER-Kassenmeldung zurück (NULL),
+// damit ein Fehlklick korrigierbar bleibt. Kein Request-Body.
+func (h *CommandHandler) NimmElsterMeldungZurueckHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := h.Command.NimmElsterMeldungZurueck(r.Context()); err != nil {
 			helper.SendServerError(w)
 			return
 		}

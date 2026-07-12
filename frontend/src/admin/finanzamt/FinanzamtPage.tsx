@@ -1,24 +1,18 @@
 import { AdminPageHeader } from '../components/AdminPageHeader'
-import { BetreiberSection } from './BetreiberSection'
-import { DokumenteUndPflichtenSection } from './DokumenteUndPflichtenSection'
-import { KassenidentitaetSection } from './KassenidentitaetSection'
-import { SignaturauftraegeSection } from './SignaturauftraegeSection'
-import { TSEAnbindungSection } from './TSEAnbindungSection'
-import { TSEAusfalldokumentationSection } from './TSEAusfalldokumentationSection'
+import { EinrichtungSection } from './EinrichtungSection'
+import { GutZuWissenSection } from './GutZuWissenSection'
+import { LaeuftAllesSection } from './LaeuftAllesSection'
 
 export function FinanzamtPage() {
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
+    <div className="flex max-w-4xl flex-col gap-6">
       <AdminPageHeader
         titel="Finanzamt & TSE"
         unterzeile="Einmal einrichten, dann läuft es im Hintergrund. jotti erinnert dich, wenn etwas fehlt."
       />
-      <BetreiberSection />
-      <KassenidentitaetSection />
-      <SignaturauftraegeSection />
-      <TSEAusfalldokumentationSection />
-      <TSEAnbindungSection />
-      <DokumenteUndPflichtenSection />
+      <EinrichtungSection />
+      <LaeuftAllesSection />
+      <GutZuWissenSection />
     </div>
   )
 }

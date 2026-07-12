@@ -11,20 +11,33 @@ import (
 	"time"
 )
 
+const clearElsterGemeldetAm = `-- name: ClearElsterGemeldetAm :exec
+UPDATE betreiber
+SET elster_gemeldet_am = NULL,
+    updated_at         = NOW()
+WHERE id = 1
+`
+
+func (q *Queries) ClearElsterGemeldetAm(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, clearElsterGemeldetAm)
+	return err
+}
+
 const getBetreiber = `-- name: GetBetreiber :one
-SELECT vereinsname, strasse, plz, ort, steuernummer, ust_id, updated_at
+SELECT vereinsname, strasse, plz, ort, steuernummer, ust_id, elster_gemeldet_am, updated_at
 FROM betreiber
 LIMIT 1
 `
 
 type GetBetreiberRow struct {
-	Vereinsname  string
-	Strasse      string
-	Plz          string
-	Ort          string
-	Steuernummer sql.NullString
-	UstID        sql.NullString
-	UpdatedAt    time.Time
+	Vereinsname      string
+	Strasse          string
+	Plz              string
+	Ort              string
+	Steuernummer     sql.NullString
+	UstID            sql.NullString
+	ElsterGemeldetAm sql.NullTime
+	UpdatedAt        time.Time
 }
 
 func (q *Queries) GetBetreiber(ctx context.Context) (GetBetreiberRow, error) {
@@ -37,9 +50,22 @@ func (q *Queries) GetBetreiber(ctx context.Context) (GetBetreiberRow, error) {
 		&i.Ort,
 		&i.Steuernummer,
 		&i.UstID,
+		&i.ElsterGemeldetAm,
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const setElsterGemeldetAm = `-- name: SetElsterGemeldetAm :exec
+UPDATE betreiber
+SET elster_gemeldet_am = CURRENT_DATE,
+    updated_at         = NOW()
+WHERE id = 1
+`
+
+func (q *Queries) SetElsterGemeldetAm(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, setElsterGemeldetAm)
+	return err
 }
 
 const upsertBetreiber = `-- name: UpsertBetreiber :exec

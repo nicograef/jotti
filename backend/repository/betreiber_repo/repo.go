@@ -26,6 +26,22 @@ func (r Repository) GetBetreiber(ctx context.Context) (betreiber.Betreiber, erro
 	return toDomain(row), nil
 }
 
+// SetElsterGemeldetAm marks the ELSTER report as done today (CURRENT_DATE).
+func (r Repository) SetElsterGemeldetAm(ctx context.Context) error {
+	if err := r.q.SetElsterGemeldetAm(ctx); err != nil {
+		return db.Error(err)
+	}
+	return nil
+}
+
+// ClearElsterGemeldetAm resets the ELSTER report date to NULL (correction).
+func (r Repository) ClearElsterGemeldetAm(ctx context.Context) error {
+	if err := r.q.ClearElsterGemeldetAm(ctx); err != nil {
+		return db.Error(err)
+	}
+	return nil
+}
+
 // UpsertBetreiber creates or updates the betreiber data.
 func (r Repository) UpsertBetreiber(ctx context.Context, b betreiber.Betreiber) error {
 	params := dbgen.UpsertBetreiberParams{
@@ -59,6 +75,10 @@ func toDomain(row dbgen.GetBetreiberRow) betreiber.Betreiber {
 	}
 	if row.UstID.Valid {
 		b.UstID = &row.UstID.String
+	}
+	if row.ElsterGemeldetAm.Valid {
+		gemeldet := row.ElsterGemeldetAm.Time
+		b.ElsterGemeldetAm = &gemeldet
 	}
 	return b
 }

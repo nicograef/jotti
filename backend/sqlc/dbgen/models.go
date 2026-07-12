@@ -249,6 +249,8 @@ type Betreiber struct {
 	UstID sql.NullString
 	// Letzte Änderung (UTC)
 	UpdatedAt time.Time
+	// Datum der ELSTER-Kassenmeldung (§ 146a Abs. 4 AO); NULL = noch nicht gemeldet.
+	ElsterGemeldetAm sql.NullTime
 }
 
 // Technische Outbox-Warteschlange fuer Druckjobs (Arbeitsbon und Kassenbeleg).

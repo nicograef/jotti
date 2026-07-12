@@ -14,7 +14,11 @@ type Betreiber struct {
 	Ort          string
 	Steuernummer *string
 	UstID        *string
-	UpdatedAt    time.Time
+	// ElsterGemeldetAm ist das Datum der ELSTER-Kassenmeldung (§ 146a Abs. 4 AO)
+	// oder nil, solange die Kasse noch nicht gemeldet wurde. Es wird nicht über
+	// den Konstruktor gesetzt, sondern über die dedizierten Meldungs-Befehle.
+	ElsterGemeldetAm *time.Time
+	UpdatedAt        time.Time
 }
 
 var betreiberSchema = z.Struct(z.Shape{
