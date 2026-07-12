@@ -142,8 +142,8 @@
   /* olive-800 */
   --accent-foreground: oklch(0.988 0.003 106.5);
   /* olive-50 */
-  --destructive: oklch(0.704 0.191 22.216);
-  /* red-400 */
+  --destructive: oklch(0.74 0.191 22.216);
+  /* red-400, aufgehellt fuer Dark-Mode-Lesbarkeit von destructive-Text und Soft-Flaechen */
   --border: oklch(1 0 0 / 10%);
   /* white 10%, dekorative Trennlinien */
   --input: oklch(1 0 0 / 40%);

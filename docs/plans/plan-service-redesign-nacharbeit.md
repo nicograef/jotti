@@ -429,11 +429,11 @@ Storno-Drawer, Direktverkauf-Historie). Light-Mode-Token bleibt unverändert.
 
 ### Acceptance criteria
 
-- [ ] Destructive Buttons/Badges sind im Dark Mode deutlich vom
+- [x] Destructive Buttons/Badges sind im Dark Mode deutlich vom
       Umgebungs-Hintergrund und vom Disabled-Zustand unterscheidbar
       (Screenshot-Vergleich vorher/nachher).
-- [ ] Light Mode ist pixel-unverändert auf den geprüften Screens.
-- [ ] `make check` grün.
+- [x] Light Mode ist pixel-unverändert auf den geprüften Screens.
+- [x] `make check` grün.
 
 ---
 
