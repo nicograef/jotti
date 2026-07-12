@@ -15,7 +15,11 @@ import {
 } from '@/components/ui/drawer'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
-import { formatCents, formatRelativeTime } from '@/lib/utils'
+import {
+  formatCents,
+  formatPositionName,
+  formatRelativeTime,
+} from '@/lib/utils'
 
 import { belegDruckenMitNachfassen, meldeBelegStatus } from '../../beleg'
 import type {
@@ -28,6 +32,17 @@ import { toReceiptItems } from '../table/drawerUtils'
 import { HistorieRowSkeleton } from '../table/HistorieRowSkeleton'
 import { Receipt } from '../table/Receipt'
 import { DirektverkaufStornoDrawer } from './DirektverkaufStornoDrawer'
+
+function positionenZusammenfassung(
+  positionen: DirektverkaufHistorieEintrag['positionen'],
+): string {
+  return positionen
+    .map(
+      (position) =>
+        `${position.menge.toString()}× ${formatPositionName(position.produktName, position.varianteName)}`,
+    )
+    .join(', ')
+}
 
 interface DirektverkaufHistorieProps {
   historie: DirektverkaufHistorieEintrag[]
@@ -120,6 +135,9 @@ export function DirektverkaufHistorie({
               <span className="text-sm text-muted-foreground">
                 {formatRelativeTime(verkauf.getaetigtAm)} · {verkauf.userName}
                 {verkauf.kommentar && ` · „${verkauf.kommentar}“`}
+              </span>
+              <span className="truncate text-sm text-muted-foreground">
+                {positionenZusammenfassung(verkauf.positionen)}
               </span>
             </span>
             <span className="shrink-0 text-[15px] font-bold tabular-nums">

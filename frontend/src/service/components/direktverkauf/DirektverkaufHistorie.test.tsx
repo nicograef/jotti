@@ -54,6 +54,47 @@ const verkauf: DirektverkaufHistorieEintrag = {
 }
 
 describe('DirektverkaufHistorie', () => {
+  it('shows the position summary as a sub-line on each sale row', () => {
+    const mehrpositionenVerkauf: DirektverkaufHistorieEintrag = {
+      ...verkauf,
+      positionen: [
+        {
+          positionId,
+          varianteId: 1,
+          produktName: 'Cola',
+          varianteName: '0,5l',
+          kategorie: 'getraenk',
+          steuersatz: 'regel',
+          einzelpreisCents: 500,
+          menge: 2,
+        },
+        {
+          positionId: '44444444-4444-4444-4444-444444444444',
+          varianteId: 2,
+          produktName: 'Brezel',
+          varianteName: '',
+          kategorie: 'essen',
+          steuersatz: 'ermaessigt',
+          einzelpreisCents: 150,
+          menge: 1,
+        },
+      ],
+    }
+    render(
+      <DirektverkaufHistorie
+        historie={[mehrpositionenVerkauf]}
+        historieLoading={false}
+        backend={{
+          direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
+          kassenbelegDrucken: vi.fn().mockResolvedValue('eingereiht'),
+        }}
+        onStorniert={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('2× Cola 0,5l, 1× Brezel')).toBeInTheDocument()
+  })
+
   it('cancels selected positions with exactly one backend call', async () => {
     const user = userEvent.setup()
     const direktverkaufStornieren = vi.fn().mockResolvedValue(undefined)

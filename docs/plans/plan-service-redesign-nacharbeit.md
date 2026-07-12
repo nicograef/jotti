@@ -367,11 +367,11 @@ des Details wiederauffindbar.
 
 ### Acceptance criteria
 
-- [ ] Jede Verkaufs-Zeile zeigt die Positions-Zusammenfassung als einzeilige,
+- [x] Jede Verkaufs-Zeile zeigt die Positions-Zusammenfassung als einzeilige,
       CSS-gekürzte Unterzeile.
-- [ ] Zeitpunkt-/Name-Zeile, Beträge, Storno-Darstellung und Detail-Drawer sind
+- [x] Zeitpunkt-/Name-Zeile, Beträge, Storno-Darstellung und Detail-Drawer sind
       unverändert.
-- [ ] `DirektverkaufHistorie.test.tsx` prüft die Zusammenfassung; `make check`
+- [x] `DirektverkaufHistorie.test.tsx` prüft die Zusammenfassung; `make check`
       grün.
 
 ---
