@@ -218,7 +218,7 @@ func TestApplyEvent_UmbuchungMovesPositionsBetweenTische(t *testing.T) {
 
 	// Eine von zwei Positionen auf den Zieltisch umbuchen.
 	umbuchPositionen := positionsFromOrder(t, orderEvent, 1)
-	quellEvent, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", umbuchPositionen, 500, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle")
+	quellEvent, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", umbuchPositionen, 500, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle", "")
 	if err != nil {
 		t.Fatalf("failed to create umbuchung events: %v", err)
 	}

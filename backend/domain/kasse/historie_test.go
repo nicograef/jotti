@@ -183,7 +183,7 @@ func TestGetHistorieFromEvents_UmbuchungAbgangReduziertRestmengen(t *testing.T) 
 	orderEvent := mustCreateOrderEvent(t, quellSubject, 1, products)
 	eine := positionsFromOrder(t, orderEvent, 1)
 
-	quellEvent, _, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", eine, 500, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle")
+	quellEvent, _, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", eine, 500, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle", "")
 	if err != nil {
 		t.Fatalf("failed to create umbuchung events: %v", err)
 	}
@@ -219,7 +219,7 @@ func TestGetHistorieFromEvents_UmbuchungZugangIstStornierbar(t *testing.T) {
 	// PositionIDs werden im Quell-Event vergeben; für den Zugang reicht eine ID.
 	positionen[0].PositionID = "11111111-1111-4111-8111-111111111111"
 
-	_, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", positionen, 1000, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle")
+	_, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", positionen, 1000, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle", "")
 	if err != nil {
 		t.Fatalf("failed to create umbuchung events: %v", err)
 	}

@@ -198,6 +198,7 @@ type umbuchung struct {
 	Positionen             []position `json:"positionen"`
 	GesamtCents            int        `json:"gesamtCents"`
 	Kommentar              string     `json:"kommentar"`
+	BenutzerKommentar      string     `json:"benutzerKommentar"`
 	UmgebuchtAm            time.Time  `json:"umgebuchtAm"`
 	StornierbarePositionen []position `json:"stornierbarePositionen"`
 	UmbuchbarePositionen   []position `json:"umbuchbarePositionen"`
@@ -216,6 +217,7 @@ func toUmbuchung(eintrag k.HistorieEintrag) umbuchung {
 		Positionen:             toPositionen(u.Positionen),
 		GesamtCents:            u.GesamtCents,
 		Kommentar:              u.Kommentar,
+		BenutzerKommentar:      u.BenutzerKommentar,
 		UmgebuchtAm:            u.UmgebuchtAm,
 		StornierbarePositionen: toPositionen(eintrag.StornierbarePositionen),
 		UmbuchbarePositionen:   toPositionen(eintrag.UmbuchbarePositionen),

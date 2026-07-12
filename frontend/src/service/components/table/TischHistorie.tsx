@@ -88,13 +88,14 @@ function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
       return {
         icon: ArrowRightLeft,
         iconWrapper: 'bg-muted text-muted-foreground',
-        // Der Autotext („Umbuchung von/auf Tisch X") ist selbst der Titel.
+        // Der Autotext („Umbuchung von/auf Tisch X") ist selbst der Titel; das
+        // optionale Benutzerkommentar erscheint in Unterzeile und Detail.
         title: item.kommentar,
         betrag: `${istZugang ? '+' : '-'}${formatCents(item.gesamtCents)} €`,
         betragFarbe: istZugang ? 'zugang' : 'neutral',
         date: item.umgebuchtAm,
         userName: item.userName,
-        kommentar: '',
+        kommentar: item.benutzerKommentar,
       }
     }
     case 'stornierung':
@@ -345,7 +346,7 @@ function ItemSkeleton() {
 
 // detailView maps a history entry to the fields the detail drawer renders. Titel
 // und Kommentar liefert stattdessen zeilenmodell(), damit Zeile und Detail nie
-// auseinanderlaufen (Umbuchung: Autotext als Titel, kein Kommentar-Widget).
+// auseinanderlaufen (Umbuchung: Autotext als Titel, Benutzerkommentar als Kommentar-Widget).
 function detailView(eintrag: HistorieEintrag): {
   date: string
   positionen?: ReceiptPosition[]

@@ -543,7 +543,7 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 		Menge:            2,
 	}
 
-	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ksNr, quellTischID, zielTischID, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle")
+	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ksNr, quellTischID, zielTischID, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle", "")
 	if err != nil {
 		t.Fatalf("Failed to build umbuchung events: %v", err)
 	}

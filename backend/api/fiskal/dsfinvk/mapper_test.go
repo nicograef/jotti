@@ -630,14 +630,23 @@ const umbuchungBonID = "99999999-9999-4999-8999-999999999999"
 // UmbuchungID.
 func umbuchungEventPaar(t *testing.T) (event.Event, event.Event) {
 	t.Helper()
+	return umbuchungEventPaarMitBenutzerKommentar(t, "")
+}
+
+// umbuchungEventPaarMitBenutzerKommentar baut das Umbuchungs-Paar mit einem
+// optionalen Benutzerkommentar (beide Seiten tragen denselben Text, wie im
+// Produktivbetrieb).
+func umbuchungEventPaarMitBenutzerKommentar(t *testing.T, benutzerKommentar string) (event.Event, event.Event) {
+	t.Helper()
 
 	bauen := func(id int, tischID int, posID string, kommentar string) event.Event {
 		data := kasse.BestellungUmgebuchtV1Data{
-			UmbuchungID:  umbuchungBonID,
-			QuellTischID: 42,
-			ZielTischID:  7,
-			GesamtCents:  450,
-			Kommentar:    kommentar,
+			UmbuchungID:       umbuchungBonID,
+			QuellTischID:      42,
+			ZielTischID:       7,
+			GesamtCents:       450,
+			Kommentar:         kommentar,
+			BenutzerKommentar: benutzerKommentar,
 			Positionen: []kasse.PositionEventData{
 				{PositionID: posID, VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1},
 			},
@@ -717,6 +726,40 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 		if got := field(t, transactions, row, "UMS_BRUTTO"); got != "0,00" {
 			t.Errorf("umbuchung[%d] UMS_BRUTTO = %q, want 0.00", row, got)
 		}
+	}
+	// Ohne Benutzerkommentar ist BON_NOTIZ allein der Richtungs-Autotext
+	// (byte-identisch zum bisherigen Export).
+	if got := field(t, transactions, 0, "BON_NOTIZ"); got != "Umbuchung auf Tisch Tisch 7" {
+		t.Errorf("abgang BON_NOTIZ = %q, want Autotext", got)
+	}
+	if got := field(t, transactions, 1, "BON_NOTIZ"); got != "Umbuchung von Tisch Tisch 42" {
+		t.Errorf("zugang BON_NOTIZ = %q, want Autotext", got)
+	}
+}
+
+// TestMapUmbuchungNotizMitBenutzerKommentar belegt: liegt ein Benutzerkommentar vor,
+// verkettet die BON_NOTIZ des Umbuchungs-Bons den Richtungs-Autotext und den
+// Benutzertext mit "; ".
+func TestMapUmbuchungNotizMitBenutzerKommentar(t *testing.T) {
+	snapshot := testSnapshot()
+	snapshot.Tischnamen = map[int]string{42: "Tisch 42", 7: "Tisch 7"}
+
+	abgang, zugang := umbuchungEventPaarMitBenutzerKommentar(t, "Gast gewechselt")
+	signaturen := map[int]tse.EventSignatur{
+		2: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4722, 22, "2026-06-16T13:30:00Z", "2026-06-16T13:30:01Z", "UMBUCHABSIG==")},
+		3: {ProcessType: "Bestellung-V1", Signatur: testSignatur(t, 4723, 23, "2026-06-16T13:30:00Z", "2026-06-16T13:30:01Z", "UMBUCHZUSIG==")},
+	}
+	archive, err := Map(snapshot, []event.Event{abgang, zugang}, signaturen)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	transactions := tableByFile(t, archive, "transactions.csv")
+	if got := field(t, transactions, 0, "BON_NOTIZ"); got != "Umbuchung auf Tisch Tisch 7; Gast gewechselt" {
+		t.Errorf("abgang BON_NOTIZ = %q, want Autotext + Benutzerkommentar", got)
+	}
+	if got := field(t, transactions, 1, "BON_NOTIZ"); got != "Umbuchung von Tisch Tisch 42; Gast gewechselt" {
+		t.Errorf("zugang BON_NOTIZ = %q, want Autotext + Benutzerkommentar", got)
 	}
 
 	// Kein Bargeld bewegt sich durch die Umbuchung.

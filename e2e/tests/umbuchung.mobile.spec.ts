@@ -48,6 +48,9 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
 
     // Ohne explizite Ziel-Tisch-Wahl bleibt die Umbuchung gesperrt (kein stiller
     // Default mehr) — erst die Auswahl gibt den Button frei.
+    // Optionales Benutzerkommentar erfassen (ergänzt den Richtungs-Autotext).
+    await drawer.getByPlaceholder('Kommentar (optional)').fill('Gast gewechselt')
+
     const ausfuehren = drawer.getByRole('button', {
       name: 'Umbuchung ausführen',
     })
@@ -63,5 +66,17 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
     // … und der Zieltisch zeigt den übernommenen Saldo.
     await oeffneTisch(page, ZIEL_TISCH)
     await expect(page.getByText('2,00 €').first()).toBeVisible()
+
+    // Der Umbuchungs-Zugang trägt das Benutzerkommentar (Autotext bleibt Titel).
+    // Der Autotext lautet "Umbuchung von Tisch <Tischname>" — mit dem Seed-Namen
+    // "Tisch 3" ergibt das die Doppelung "… von Tisch Tisch 3".
+    await page.getByRole('tab', { name: 'Historie' }).click()
+    const zugangDetail = await oeffneHistorienDetail(
+      page,
+      new RegExp(`Umbuchung von Tisch ${QUELL_TISCH}`),
+    )
+    await expect(zugangDetail.getByRole('textbox')).toHaveValue(
+      'Gast gewechselt',
+    )
   })
 })

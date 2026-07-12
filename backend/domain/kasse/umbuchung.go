@@ -20,8 +20,10 @@ type Umbuchung struct {
 	ZielTischID  int
 	Positionen   []Position
 	GesamtCents  int
-	Kommentar    string
-	UmgebuchtAm  time.Time
+	// Kommentar ist der Richtungs-Autotext, BenutzerKommentar der optionale freie Text.
+	Kommentar         string
+	BenutzerKommentar string
+	UmgebuchtAm       time.Time
 }
 
 // IstZugang meldet, ob dieser Eintrag den Zugang auf dem Zieltisch beschreibt
@@ -31,13 +33,14 @@ func (u Umbuchung) IstZugang() bool {
 }
 
 var umbuchungSchema = z.Struct(z.Shape{
-	"ID":           z.String().UUID().Required(),
-	"UserID":       z.Int().GTE(1).Required(),
-	"UserName":     z.String().Min(1).Required(),
-	"TischID":      z.Int().GTE(1).Required(),
-	"QuellTischID": z.Int().GTE(1).Required(),
-	"ZielTischID":  z.Int().GTE(1).Required(),
-	"Positionen":   z.Slice(positionSchema).Min(1).Required(),
-	"GesamtCents":  z.Int().GTE(0).Required(),
-	"Kommentar":    z.String().Max(100),
+	"ID":                z.String().UUID().Required(),
+	"UserID":            z.Int().GTE(1).Required(),
+	"UserName":          z.String().Min(1).Required(),
+	"TischID":           z.Int().GTE(1).Required(),
+	"QuellTischID":      z.Int().GTE(1).Required(),
+	"ZielTischID":       z.Int().GTE(1).Required(),
+	"Positionen":        z.Slice(positionSchema).Min(1).Required(),
+	"GesamtCents":       z.Int().GTE(0).Required(),
+	"Kommentar":         z.String().Max(100),
+	"BenutzerKommentar": z.String().Max(100),
 })

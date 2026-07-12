@@ -152,6 +152,25 @@ func assertJSONKeyPresent(t *testing.T, v any, jsonKey string) {
 	}
 }
 
+// assertJSONKeyAbsent marshals v and checks that jsonKey is NOT present in the
+// output. Sichert die Byte-Identität eines additiven omitempty-Feldes ab: ein Event
+// ohne Benutzerkommentar darf den Key nicht enthalten, sonst wiche es vom heutigen
+// Format ab.
+func assertJSONKeyAbsent(t *testing.T, v any, jsonKey string) {
+	t.Helper()
+	raw, err := json.Marshal(v)
+	if err != nil {
+		t.Fatalf("marshal %T: %v", v, err)
+	}
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatalf("unmarshal to map: %v", err)
+	}
+	if _, ok := m[jsonKey]; ok {
+		t.Errorf("JSON key %q unexpectedly present in %T output — omitempty missing?", jsonKey, v)
+	}
+}
+
 // positionLiteral is the frozen position JSON used by each event contract test.
 // Changing any key here means the corresponding SQL or frontend schema must also change.
 const positionLiteral = `{
@@ -253,13 +272,14 @@ func TestEventContract_BestellungKorrigiertV1(t *testing.T) {
 }
 
 func TestEventContract_BestellungUmgebuchtV1(t *testing.T) {
+	// Alt-Event ohne benutzerKommentar (Format vor Phase 6): parst mit Leerstring.
 	const lit = `{
 		"umbuchungId":  "55555555-5555-4555-8555-555555555555",
 		"quellTischId": 3,
 		"zielTischId":  7,
 		"positionen":   [` + positionLiteral + `],
 		"gesamtCents":  700,
-		"kommentar":    ""
+		"kommentar":    "Umbuchung von Tisch 3"
 	}`
 	var data BestellungUmgebuchtV1Data
 	unmarshalJSON(t, lit, &data)
@@ -267,11 +287,46 @@ func TestEventContract_BestellungUmgebuchtV1(t *testing.T) {
 	assertField(t, "quellTischId", data.QuellTischID, 3)
 	assertField(t, "zielTischId", data.ZielTischID, 7)
 	assertField(t, "gesamtCents", data.GesamtCents, 700)
+	assertField(t, "kommentar", data.Kommentar, "Umbuchung von Tisch 3")
+	assertField(t, "benutzerKommentar", data.BenutzerKommentar, "")
 	if len(data.Positionen) != 1 {
 		t.Fatalf("positionen count: %d", len(data.Positionen))
 	}
 	assertPosition(t, data.Positionen[0])
 	assertJSONKeyPresent(t, data, "kommentar")
+
+	// Ein Alt-Event ohne benutzerKommentar muss weiterhin durch das Schema validieren;
+	// bricht, falls das Feld je auf Required umgestellt wird (zog-Zero-Value-Falle).
+	if err := bestellungUmgebuchtV1DataSchema.Validate(&data); err != nil {
+		t.Errorf("alt event without benutzerKommentar rejected by schema: %v", err)
+	}
+
+	// Ein Alt-Event (ohne benutzerKommentar) serialisiert byte-identisch zum
+	// heutigen Format: omitempty lässt den Key bei Leerstring weg.
+	altData := BestellungUmgebuchtV1Data{
+		UmbuchungID:  "55555555-5555-4555-8555-555555555555",
+		QuellTischID: 3,
+		ZielTischID:  7,
+		Positionen:   data.Positionen,
+		GesamtCents:  700,
+		Kommentar:    "Umbuchung von Tisch 3",
+	}
+	assertJSONKeyAbsent(t, altData, "benutzerKommentar")
+
+	// Ein Event mit benutzerKommentar pinnt das additive Feld unter seinem JSON-Key.
+	const litMitBenutzer = `{
+		"umbuchungId":       "55555555-5555-4555-8555-555555555555",
+		"quellTischId":      3,
+		"zielTischId":       7,
+		"positionen":        [` + positionLiteral + `],
+		"gesamtCents":       700,
+		"kommentar":         "Umbuchung von Tisch 3",
+		"benutzerKommentar": "Gast an anderen Tisch gewechselt"
+	}`
+	var dataMitBenutzer BestellungUmgebuchtV1Data
+	unmarshalJSON(t, litMitBenutzer, &dataMitBenutzer)
+	assertField(t, "benutzerKommentar", dataMitBenutzer.BenutzerKommentar, "Gast an anderen Tisch gewechselt")
+	assertJSONKeyPresent(t, dataMitBenutzer, "benutzerKommentar")
 }
 
 func TestEventContract_KassensitzungEroeffnetV1(t *testing.T) {

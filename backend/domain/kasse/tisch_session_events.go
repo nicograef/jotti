@@ -99,16 +99,22 @@ type BestellungUmgebuchtV1Data struct {
 	ZielTischID  int                 `json:"zielTischId"`
 	Positionen   []PositionEventData `json:"positionen"`
 	GesamtCents  int                 `json:"gesamtCents"`
-	Kommentar    string              `json:"kommentar"`
+	// Kommentar trägt den Richtungs-Autotext ("Umbuchung auf/von Tisch X") und ist
+	// stets gesetzt. BenutzerKommentar ist der optionale, frei eingegebene Text; er
+	// fehlt im JSON, wenn leer (omitempty), damit Events ohne Benutzertext
+	// byte-identisch zum ursprünglichen Format bleiben.
+	Kommentar         string `json:"kommentar"`
+	BenutzerKommentar string `json:"benutzerKommentar,omitempty"`
 }
 
 var bestellungUmgebuchtV1DataSchema = z.Struct(z.Shape{
-	"UmbuchungID":  z.String().UUID().Required(),
-	"QuellTischID": z.Int().GTE(1).Required(),
-	"ZielTischID":  z.Int().GTE(1).Required(),
-	"Positionen":   z.Slice(positionSchema).Min(1).Required(),
-	"GesamtCents":  z.Int().GTE(0).Required(),
-	"Kommentar":    z.String().Max(100),
+	"UmbuchungID":       z.String().UUID().Required(),
+	"QuellTischID":      z.Int().GTE(1).Required(),
+	"ZielTischID":       z.Int().GTE(1).Required(),
+	"Positionen":        z.Slice(positionSchema).Min(1).Required(),
+	"GesamtCents":       z.Int().GTE(0).Required(),
+	"Kommentar":         z.String().Max(100),
+	"BenutzerKommentar": z.String().Max(100),
 })
 
 // --- Event-Erstellungsfunktionen ---
@@ -194,7 +200,7 @@ func NewBestellungKorrigiertEvent(subject string, userID int, userName string, p
 // ein Zugang auf dem Zieltisch (mit frischen PositionIDs, damit die Positionen dort
 // eigenständig weiterverarbeitet werden können). Beide teilen sich eine UmbuchungID
 // und werden vom Aufrufer atomar geschrieben.
-func NewBestellungUmgebuchtEvents(zNr int, quellTischID int, zielTischID int, userID int, userName string, quellPositionen []Position, gesamtCents int, quellKommentar string, zielKommentar string) (e.Event, e.Event, error) {
+func NewBestellungUmgebuchtEvents(zNr int, quellTischID int, zielTischID int, userID int, userName string, quellPositionen []Position, gesamtCents int, quellKommentar string, zielKommentar string, benutzerKommentar string) (e.Event, e.Event, error) {
 	umbuchungID := uuid.New().String()
 
 	zielPositionen := slices.Clone(quellPositionen)
@@ -203,12 +209,13 @@ func NewBestellungUmgebuchtEvents(zNr int, quellTischID int, zielTischID int, us
 	}
 
 	quellData := BestellungUmgebuchtV1Data{
-		UmbuchungID:  umbuchungID,
-		QuellTischID: quellTischID,
-		ZielTischID:  zielTischID,
-		Positionen:   toPositionenEventData(quellPositionen),
-		GesamtCents:  gesamtCents,
-		Kommentar:    quellKommentar,
+		UmbuchungID:       umbuchungID,
+		QuellTischID:      quellTischID,
+		ZielTischID:       zielTischID,
+		Positionen:        toPositionenEventData(quellPositionen),
+		GesamtCents:       gesamtCents,
+		Kommentar:         quellKommentar,
+		BenutzerKommentar: benutzerKommentar,
 	}
 	zielData := quellData
 	zielData.Positionen = toPositionenEventData(zielPositionen)
@@ -395,16 +402,17 @@ func buildUmbuchungFromEvent(event e.Event) (Umbuchung, error) {
 	}
 
 	umbuchung := Umbuchung{
-		ID:           data.UmbuchungID,
-		UserID:       event.UserID,
-		UserName:     event.UserName,
-		TischID:      tischID,
-		QuellTischID: data.QuellTischID,
-		ZielTischID:  data.ZielTischID,
-		Positionen:   fromPositionenEventData(data.Positionen),
-		GesamtCents:  data.GesamtCents,
-		Kommentar:    data.Kommentar,
-		UmgebuchtAm:  event.Time,
+		ID:                data.UmbuchungID,
+		UserID:            event.UserID,
+		UserName:          event.UserName,
+		TischID:           tischID,
+		QuellTischID:      data.QuellTischID,
+		ZielTischID:       data.ZielTischID,
+		Positionen:        fromPositionenEventData(data.Positionen),
+		GesamtCents:       data.GesamtCents,
+		Kommentar:         data.Kommentar,
+		BenutzerKommentar: data.BenutzerKommentar,
+		UmgebuchtAm:       event.Time,
 	}
 
 	if err := umbuchungSchema.Validate(&umbuchung); err != nil {

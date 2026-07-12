@@ -323,7 +323,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtCents,
-				notiz:            data.Kommentar,
+				notiz:            umbuchungNotiz(data.Kommentar, data.BenutzerKommentar),
 			}
 			if tischID == data.QuellTischID {
 				bon.bonID = data.UmbuchungID
@@ -489,6 +489,18 @@ func ursprungsbons(positionen []kasse.PositionEventData, herkunft map[string]str
 		bons = append(bons, bon)
 	}
 	return bons
+}
+
+// umbuchungNotiz komponiert die BON_NOTIZ eines Umbuchungs-Bons aus dem
+// Richtungs-Autotext und dem optionalen Benutzerkommentar. Ohne Benutzerkommentar
+// ist die Notiz allein der Autotext (byte-identisch zum bisherigen Export); sonst
+// werden beide mit "; " verkettet (maximal 202 von 255 erlaubten Zeichen, keine
+// Kürzung nötig).
+func umbuchungNotiz(autotext string, benutzerKommentar string) string {
+	if benutzerKommentar == "" {
+		return autotext
+	}
+	return autotext + "; " + benutzerKommentar
 }
 
 // zeit formatiert den Event-Zeitstempel als ISO-8601-UTC für BON_START/BON_ENDE.

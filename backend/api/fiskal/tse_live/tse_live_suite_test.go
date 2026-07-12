@@ -471,7 +471,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	// bestellung-umgebucht:v1 auf beiden Seiten (Bestellung-V1). Geprüft: Abgang
 	// vom Quelltisch (negative Mengen) und Zugang auf dem Zieltisch.
 	umbuchRefs := positionRefsAusSession(t, u, ksNr, u.tischID2, 1)
-	if err := u.tisch.BestellungUmbuchen(ctx, u.userID, "test", u.tischID2, u.tischID, umbuchRefs); err != nil {
+	if err := u.tisch.BestellungUmbuchen(ctx, u.userID, "test", u.tischID2, u.tischID, umbuchRefs, ""); err != nil {
 		t.Fatalf("BestellungUmbuchen: %v", err)
 	}
 	signiereUndPruefe("Umbuchung Abgang", string(kasse.EventTypeBestellungUmgebuchtV1), tisch2Subject, tse.ProcessTypeBestellungV1)

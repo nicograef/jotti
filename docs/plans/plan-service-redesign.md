@@ -260,12 +260,12 @@ Query und Frontend: Das `umbuchung`-DTO und der Frontend-Typ `Umbuchung` bekomme
 
 ### Acceptance criteria
 
-- [ ] Eine Umbuchung mit Kommentar trägt in beiden Event-Seiten unverändert den Richtungs-Autotext in `kommentar` und den Benutzertext in `benutzerKommentar`; ohne Kommentar fehlt der Key im Event-JSON (`omitempty`), das Event ist byte-identisch zum heutigen Format.
-- [ ] Alt-Events ohne das Feld parsen weiter (Replay und Historie); der Contract-Guard deckt beide Fälle ab.
-- [ ] Der DSFinV-K-Export trägt für Umbuchungs-Bons Autotext plus Benutzerkommentar in der Notiz ("; "-Verkettung, maximal 202 von 255 erlaubten Zeichen); Alt-Events exportieren unverändert.
-- [ ] Historien-Zeilen titeln Umbuchungen weiter mit dem Autotext; das Benutzerkommentar erscheint in Anführungszeichen in Unterzeile und Detail.
-- [ ] Der Umbuchungs-Drawer bietet ein optionales Kommentarfeld; Backend- und Frontend-Validierung begrenzen auf 100 Zeichen.
-- [ ] Tests angepasst: Backend Event-/Command-/Handler-/Mapper-Tests, `event_json_contract_test.go`, `HistorieUmbuchungDrawer.test.tsx`, `TischHistorie.test.tsx`; `make verify` grün (Integrationstests wegen Backend-Änderung).
+- [x] Eine Umbuchung mit Kommentar trägt in beiden Event-Seiten unverändert den Richtungs-Autotext in `kommentar` und den Benutzertext in `benutzerKommentar`; ohne Kommentar fehlt der Key im Event-JSON (`omitempty`), das Event ist byte-identisch zum heutigen Format.
+- [x] Alt-Events ohne das Feld parsen weiter (Replay und Historie); der Contract-Guard deckt beide Fälle ab.
+- [x] Der DSFinV-K-Export trägt für Umbuchungs-Bons Autotext plus Benutzerkommentar in der Notiz ("; "-Verkettung, maximal 202 von 255 erlaubten Zeichen); Alt-Events exportieren unverändert.
+- [x] Historien-Zeilen titeln Umbuchungen weiter mit dem Autotext; das Benutzerkommentar erscheint in Anführungszeichen in Unterzeile und Detail.
+- [x] Der Umbuchungs-Drawer bietet ein optionales Kommentarfeld; Backend- und Frontend-Validierung begrenzen auf 100 Zeichen.
+- [x] Tests angepasst: Backend Event-/Command-/Handler-/Mapper-Tests, `event_json_contract_test.go`, `HistorieUmbuchungDrawer.test.tsx`, `TischHistorie.test.tsx`; `make verify` grün (Integrationstests wegen Backend-Änderung).
 
 ---
 

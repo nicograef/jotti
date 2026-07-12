@@ -23,6 +23,7 @@ import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import type { Umbuchung } from '../../table/Umbuchung'
 import { PositionAuswahlListe } from '../PositionAuswahlListe'
+import { KommentarField } from './CommentField'
 import {
   calculateTotalPrice,
   quelleTitel,
@@ -60,6 +61,7 @@ export function HistorieUmbuchungDrawer({
     createDefaultMengen(positionen),
   )
   const [zielTischId, setZielTischId] = useState<number | null>(null)
+  const [kommentar, setKommentar] = useState('')
   const { tische, isPending: tischeLoading } = useAktiveTische()
 
   const zielTische = useMemo(
@@ -111,6 +113,7 @@ export function HistorieUmbuchungDrawer({
         quellTischId: tisch.id,
         zielTischId,
         positionen: toPositionRefs(selectedPositionen),
+        kommentar,
       })
     })
   }
@@ -174,6 +177,13 @@ export function HistorieUmbuchungDrawer({
                 </NativeSelectOption>
               ))}
             </NativeSelect>
+          </div>
+          <div className="px-4">
+            <KommentarField
+              onChange={(value) => {
+                setKommentar(value)
+              }}
+            />
           </div>
         </DrawerBody>
         <DrawerFooter className="mx-auto w-full max-w-sm">

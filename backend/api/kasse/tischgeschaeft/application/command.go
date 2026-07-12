@@ -382,7 +382,7 @@ func buildUmbuchungKommentar(prefix string, tischName string) string {
 	return prefix + truncateRunes(tischName, maxTischNameRunes)
 }
 
-func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef) error {
+func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	if quellTischID == zielTischID {
@@ -432,7 +432,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	quellKommentar := buildUmbuchungKommentar("Umbuchung auf Tisch ", zielTisch.Name)
 	zielKommentar := buildUmbuchungKommentar("Umbuchung von Tisch ", quellTisch.Name)
 
-	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ks.ZNr, quellTischID, zielTischID, userID, userName, resolvedPositionen, gesamtCents, quellKommentar, zielKommentar)
+	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ks.ZNr, quellTischID, zielTischID, userID, userName, resolvedPositionen, gesamtCents, quellKommentar, zielKommentar, benutzerKommentar)
 	if err != nil {
 		log.Error().Err(err).Int("quell_tisch_id", quellTischID).Int("ziel_tisch_id", zielTischID).Msg("Failed to create umbuchung events")
 		return err

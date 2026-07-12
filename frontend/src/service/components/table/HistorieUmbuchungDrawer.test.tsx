@@ -113,4 +113,26 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(title).toHaveTextContent('Nico')
     expect(screen.queryByText(/00000000/)).not.toBeInTheDocument()
   })
+
+  it('reicht ein optionales Kommentar an die Umbuchung durch', async () => {
+    const user = userEvent.setup()
+    const bestellungUmbuchen = renderDrawer()
+
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (optional)'),
+      'Gast gewechselt',
+    )
+    await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
+    await user.click(
+      screen.getByRole('button', { name: 'Umbuchung ausführen' }),
+    )
+
+    expect(bestellungUmbuchen).toHaveBeenCalledWith(
+      expect.objectContaining({
+        quellTischId: 1,
+        zielTischId: 2,
+        kommentar: 'Gast gewechselt',
+      }),
+    )
+  })
 })

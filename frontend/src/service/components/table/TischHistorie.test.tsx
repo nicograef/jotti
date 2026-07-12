@@ -116,6 +116,7 @@ function umbuchung(overrides: Partial<Umbuchung> = {}): Umbuchung {
     positionen: [position()],
     gesamtCents: 350,
     kommentar: 'Umbuchung von Tisch 2',
+    benutzerKommentar: '',
     umgebuchtAm: '2026-06-18T12:15:00Z',
     stornierbarePositionen: [],
     umbuchbarePositionen: [],
@@ -315,6 +316,33 @@ describe('TischHistorie', () => {
     expect(
       within(dialog).queryByDisplayValue('Umbuchung von Tisch 2'),
     ).not.toBeInTheDocument()
+  })
+
+  it('zeigt das Benutzerkommentar einer Umbuchung in Anführungszeichen in Unterzeile und Detail — Titel bleibt der Autotext', () => {
+    renderHistorie([
+      umbuchung({
+        id: '00000000-0000-0000-0000-0000000000d1',
+        kommentar: 'Umbuchung von Tisch 2',
+        benutzerKommentar: 'Gast gewechselt',
+      }),
+    ])
+
+    // Zeile: Autotext als Titel, Benutzerkommentar in Anführungszeichen in der Unterzeile.
+    expect(screen.getByText('Umbuchung von Tisch 2')).toBeInTheDocument()
+    expect(screen.getByText(/„Gast gewechselt“/)).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Umbuchung von Tisch 2/ }),
+    )
+
+    // Detail: Titel weiterhin der Autotext, Benutzerkommentar im Kommentarfeld.
+    const dialog = screen.getByRole('dialog')
+    expect(
+      within(dialog).getByText(/^Umbuchung von Tisch 2 ·/),
+    ).toBeInTheDocument()
+    expect(
+      within(dialog).getByDisplayValue('Gast gewechselt'),
+    ).toBeInTheDocument()
   })
 
   it('bietet aus einem Umbuchungs-Zugang Stornieren und Umbuchen im Detail an', () => {

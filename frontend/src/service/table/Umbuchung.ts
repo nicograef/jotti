@@ -7,6 +7,7 @@ export const BestellungUmbuchenSchema = z.object({
   quellTischId: z.number().int().min(1),
   zielTischId: z.number().int().min(1),
   positionen: PositionRefSchema.array().min(1),
+  kommentar: z.string().max(100),
 })
 export type BestellungUmbuchen = z.infer<typeof BestellungUmbuchenSchema>
 
@@ -25,7 +26,9 @@ export const UmbuchungSchema = z.object({
   zielTischId: z.number().int().min(1),
   positionen: PositionSchema.array().min(1),
   gesamtCents: z.number().int().min(0),
+  // kommentar ist der Richtungs-Autotext, benutzerKommentar der optionale freie Text.
   kommentar: z.string().max(100),
+  benutzerKommentar: z.string().max(100),
   umgebuchtAm: DateStringSchema,
   // Backend-computed (single source of truth); nur für den Zugang befüllt.
   stornierbarePositionen: PositionSchema.array(),
