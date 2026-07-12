@@ -162,16 +162,16 @@ Richtungs-Autotext und `BenutzerKommentar` der optionale Freitext.
 
 ### Acceptance criteria
 
-- [ ] Interface, Request-Struct, JSON-Key und Frontend-Schema nennen den
+- [x] Interface, Request-Struct, JSON-Key und Frontend-Schema nennen den
       Freitext einheitlich `benutzerKommentar`; eine Umbuchung mit Kommentar
       funktioniert Ende-zu-Ende.
-- [ ] `event_json_contract_test.go` ist unverändert und grün (Event-Format
+- [x] `event_json_contract_test.go` ist unverändert und grün (Event-Format
       nicht berührt).
-- [ ] Die Geldneutralitäts-Prüfung (`Z_SE_BARZAHLUNGEN`) liegt wieder in
+- [x] Die Geldneutralitäts-Prüfung (`Z_SE_BARZAHLUNGEN`) liegt wieder in
       `TestMapUmbuchungGeldneutralMitReferenz`; der Notiz-Test endet mit den
       BON_NOTIZ-Assertions.
-- [ ] `docs/language.md` beschreibt beide Umbuchungs-Kommentarbegriffe.
-- [ ] `make check` grün.
+- [x] `docs/language.md` beschreibt beide Umbuchungs-Kommentarbegriffe.
+- [x] `make check` grün.
 
 ---
 

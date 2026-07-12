@@ -22,7 +22,7 @@ func (m *mockCommand) BestellungAufnehmen(ctx context.Context, userID int, userN
 	return m.err
 }
 
-func (m *mockCommand) BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, kommentar string) error {
+func (m *mockCommand) BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
 	return m.err
 }
 

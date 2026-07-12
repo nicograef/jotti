@@ -16,7 +16,7 @@ import (
 
 type command interface {
 	BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, positionen []application.BestellPositionInput, kommentar string) error
-	BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, kommentar string) error
+	BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error
 	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 }
@@ -181,10 +181,10 @@ type stornierungErteilenRequest struct {
 }
 
 type bestellungUmbuchenRequest struct {
-	QuellTischID int                  `json:"quellTischId"`
-	ZielTischID  int                  `json:"zielTischId"`
-	Positionen   []positionRefRequest `json:"positionen"`
-	Kommentar    string               `json:"kommentar"`
+	QuellTischID      int                  `json:"quellTischId"`
+	ZielTischID       int                  `json:"zielTischId"`
+	Positionen        []positionRefRequest `json:"positionen"`
+	BenutzerKommentar string               `json:"benutzerKommentar"`
 }
 
 var stornierungErteilenSchema = z.Struct(z.Shape{
@@ -194,10 +194,10 @@ var stornierungErteilenSchema = z.Struct(z.Shape{
 })
 
 var bestellungUmbuchenSchema = z.Struct(z.Shape{
-	"QuellTischID": tisch.TischIDSchema.Required(),
-	"ZielTischID":  tisch.TischIDSchema.Required(),
-	"Positionen":   z.Slice(positionRefRequestSchema).Min(1).Required(),
-	"Kommentar":    z.String().Max(100),
+	"QuellTischID":      tisch.TischIDSchema.Required(),
+	"ZielTischID":       tisch.TischIDSchema.Required(),
+	"Positionen":        z.Slice(positionRefRequestSchema).Min(1).Required(),
+	"BenutzerKommentar": z.String().Max(100),
 })
 
 func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
@@ -248,7 +248,7 @@ func (h *CommandHandler) BestellungUmbuchenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.BestellungUmbuchen(r.Context(), userID, userName, body.QuellTischID, body.ZielTischID, toPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.BestellungUmbuchen(r.Context(), userID, userName, body.QuellTischID, body.ZielTischID, toPositionRefs(body.Positionen), body.BenutzerKommentar)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrConflict):

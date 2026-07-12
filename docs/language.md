@@ -186,7 +186,7 @@ Beide Arten bleiben im Code die `Stornierung`, werden in der Tisch-Historie aber
 
 #### Umbuchung
 
-Geldneutrale Verschiebung noch unbezahlter Positionen zwischen zwei Tischen, durch die Servicekraft (Endpunkt `/bestellung-umbuchen`, Rolle `service`). Quell- und Zielstrom erhalten je ein Event mit derselben `UmbuchungID`: der Quelltisch verliert die Positionen (Saldo sinkt), der Zieltisch nimmt sie geldneutral auf (Saldo steigt um denselben Betrag). Beide Events werden atomar geschrieben und als `Bestellung-V1` signiert (ohne Zahlungszeile). `Kommentar` ist optional. In Historie und Export erscheint der Vorgang als „Umbuchung", nicht als „Stornierung".
+Geldneutrale Verschiebung noch unbezahlter Positionen zwischen zwei Tischen, durch die Servicekraft (Endpunkt `/bestellung-umbuchen`, Rolle `service`). Quell- und Zielstrom erhalten je ein Event mit derselben `UmbuchungID`: der Quelltisch verliert die Positionen (Saldo sinkt), der Zieltisch nimmt sie geldneutral auf (Saldo steigt um denselben Betrag). Beide Events werden atomar geschrieben und als `Bestellung-V1` signiert (ohne Zahlungszeile). Jede Seite trägt zwei Kommentarfelder: `Kommentar` ist der serverseitig gesetzte Richtungs-Autotext (`Umbuchung von <Tischname>` bzw. `Umbuchung auf <Tischname>`), `BenutzerKommentar` der optionale Freitext der Servicekraft (an der HTTP-Grenze `benutzerKommentar`). In Historie und Export erscheint der Vorgang als „Umbuchung", nicht als „Stornierung".
 
 | Go-Struct   | TS-Typ      | Event-Typ                 |
 | ----------- | ----------- | ------------------------- |
@@ -214,7 +214,8 @@ Go-Funktion: `GetHistorieFromEvents()` · Application-Query: `GetTischHistorie()
 
 | Begriff              | Bedeutung                                                                 | Code-Mapping                                                                                                   |
 | -------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Kommentar            | Freitextnotiz; Pflicht bei Warenrücknahme (kassenwirksamer Storno), sonst optional | Go `Kommentar` · JSON/TS `kommentar`                                                                  |
+| Kommentar            | Freitextnotiz; Pflicht bei Warenrücknahme (kassenwirksamer Storno), sonst optional. Bei der Umbuchung der serverseitige Richtungs-Autotext | Go `Kommentar` · JSON/TS `kommentar`                                                                  |
+| BenutzerKommentar    | Optionaler Freitext der Servicekraft bei der Umbuchung (neben dem Richtungs-Autotext `Kommentar`) | Go `BenutzerKommentar` · JSON/TS `benutzerKommentar`                                                  |
 | Menge                | Anzahl einer Produktvariante innerhalb einer Position                     | Go `Menge` · JSON/TS `menge`                                                                                   |
 | PositionRef          | Referenz auf eine Position (ID + Menge) für Zahlung, Stornierung, Umbuchung | Go/TS `PositionRef` · JSON `positionId`, `menge`                                                             |
 | HistorieEintrag      | Eintrag der Tisch-Historie, typisiert nach Art                            | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `umbuchung`              |

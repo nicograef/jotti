@@ -131,7 +131,7 @@ describe('HistorieUmbuchungDrawer', () => {
       expect.objectContaining({
         quellTischId: 1,
         zielTischId: 2,
-        kommentar: 'Gast gewechselt',
+        benutzerKommentar: 'Gast gewechselt',
       }),
     )
   })

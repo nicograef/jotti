@@ -113,7 +113,7 @@ export function HistorieUmbuchungDrawer({
         quellTischId: tisch.id,
         zielTischId,
         positionen: toPositionRefs(selectedPositionen),
-        kommentar,
+        benutzerKommentar: kommentar,
       })
     })
   }

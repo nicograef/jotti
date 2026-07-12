@@ -735,6 +735,12 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 	if got := field(t, transactions, 1, "BON_NOTIZ"); got != "Umbuchung von Tisch Tisch 42" {
 		t.Errorf("zugang BON_NOTIZ = %q, want Autotext", got)
 	}
+
+	// Kein Bargeld bewegt sich durch die Umbuchung.
+	closing := tableByFile(t, archive, "cashpointclosing.csv")
+	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "0,00" {
+		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 0.00 (Umbuchung ist geldneutral)", got)
+	}
 }
 
 // TestMapUmbuchungNotizMitBenutzerKommentar belegt: liegt ein Benutzerkommentar vor,
@@ -760,12 +766,6 @@ func TestMapUmbuchungNotizMitBenutzerKommentar(t *testing.T) {
 	}
 	if got := field(t, transactions, 1, "BON_NOTIZ"); got != "Umbuchung von Tisch Tisch 42; Gast gewechselt" {
 		t.Errorf("zugang BON_NOTIZ = %q, want Autotext + Benutzerkommentar", got)
-	}
-
-	// Kein Bargeld bewegt sich durch die Umbuchung.
-	closing := tableByFile(t, archive, "cashpointclosing.csv")
-	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "0,00" {
-		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 0.00 (Umbuchung ist geldneutral)", got)
 	}
 }
 

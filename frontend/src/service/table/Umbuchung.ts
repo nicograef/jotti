@@ -7,7 +7,7 @@ export const BestellungUmbuchenSchema = z.object({
   quellTischId: z.number().int().min(1),
   zielTischId: z.number().int().min(1),
   positionen: PositionRefSchema.array().min(1),
-  kommentar: z.string().max(100),
+  benutzerKommentar: z.string().max(100),
 })
 export type BestellungUmbuchen = z.infer<typeof BestellungUmbuchenSchema>
 
