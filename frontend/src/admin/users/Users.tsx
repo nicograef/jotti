@@ -1,13 +1,13 @@
 import { Users as UsersIcon } from 'lucide-react'
 
 import { EmptyState } from '@/components/common/EmptyState'
-import { ItemGroup } from '@/components/ui/item'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 
 import { type User, UserStatus } from './User'
 import type { UserBackend } from './UserBackend'
-import { UserItem } from './UserItem'
+import { UserRow } from './UserRow'
+import { BENUTZER_SPALTEN } from './UsersSpalten'
 
 interface UsersProps {
   loading: boolean
@@ -15,9 +15,12 @@ interface UsersProps {
   users: User[]
   onEdit: (userId: number) => void
   onStatusChange: (userId: number, status: UserStatus) => void
+  onResetPassword: (userId: number) => Promise<void>
   onDeleted: (userId: number) => void
 }
 
+// Benutzer als Tabelle (Design-Handoff 1e): Spalten Name·Login, Rolle, Status
+// und Aktionen. Ersetzt das frühere Kachel-Grid.
 export function Users(props: UsersProps) {
   const { loading: activateLoading, run: runActivate } = useActionSubmit({
     actionLabel: 'Benutzer aktivieren',
@@ -63,19 +66,28 @@ export function Users(props: UsersProps) {
   }
 
   return (
-    <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+    <div className="overflow-hidden rounded-lg border">
+      <div
+        className={`${BENUTZER_SPALTEN} bg-muted px-4 py-2 text-xs font-semibold text-muted-foreground`}
+      >
+        <span>Name · Login</span>
+        <span>Rolle</span>
+        <span>Status</span>
+        <span />
+      </div>
       {props.users.map((user) => (
-        <UserItem
+        <UserRow
           key={user.id}
           loading={loading || props.loading}
           user={user}
           isSelf={user.id === AuthSingleton.userId}
           onActivate={activateUser}
           onDeactivate={deactivateUser}
+          onResetPassword={props.onResetPassword}
           onDelete={deleteUser}
           onEdit={props.onEdit}
         />
       ))}
-    </ItemGroup>
+    </div>
   )
 }

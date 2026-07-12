@@ -411,11 +411,11 @@ Handoff. Kein Backend-Change.
 
 ### Acceptance criteria
 
-- [ ] Benutzerliste als Tabelle mit Rollen-Badges, Status-Switch und „···"-Menü; Stern-Symbole sind ersetzt
-- [ ] Passwort-Reset ist über das Zeilen-Menü in zwei Klicks erreichbar und nutzt den bestehenden Dialog-Flow
-- [ ] Eigener Account zeigt „das bist du" und bietet kein Löschen an
-- [ ] Onboarding- und Rollen-Panel stehen neben der Tabelle mit der Handoff-Copy
-- [ ] Neuer Seitentest für die Benutzerseite (Badges, das-bist-du-Fall, Reset-Aktion im Menü); `make check` grün
+- [x] Benutzerliste als Tabelle mit Rollen-Badges, Status-Switch und „···"-Menü; Stern-Symbole sind ersetzt
+- [x] Passwort-Reset ist über das Zeilen-Menü in zwei Klicks erreichbar und nutzt den bestehenden Dialog-Flow
+- [x] Eigener Account zeigt „das bist du" und bietet kein Löschen an
+- [x] Onboarding- und Rollen-Panel stehen neben der Tabelle mit der Handoff-Copy
+- [x] Neuer Seitentest für die Benutzerseite (Badges, das-bist-du-Fall, Reset-Aktion im Menü); `make check` grün
 
 ---
 
