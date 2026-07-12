@@ -1,5 +1,7 @@
 import { Ban } from 'lucide-react'
 
+import { cn } from '@/lib/utils'
+
 import type { StornierungServicekraft } from './types'
 import { formatBediener } from './utils'
 
@@ -15,14 +17,18 @@ export function StornoMarker({ anzahl }: { anzahl: number }) {
 }
 
 // StornoAggregat fasst die Stornierungen pro Servicekraft in einer Zeile
-// zusammen ("felix 1 · sophie 1") und steht über der Storno-Detail-Liste.
+// zusammen ("felix 1 · sophie 1"). Auf der Kassenberichte-Seite steht sie über
+// der Storno-Detail-Liste (Default-Abstand mb-3); in der Übersicht bildet sie
+// die eingeklappte Zusammenfassung (className überschreibt den Abstand).
 export function StornoAggregat({
   eintraege,
+  className,
 }: {
   eintraege: StornierungServicekraft[]
+  className?: string
 }) {
   return (
-    <p className="mb-3 text-sm text-muted-foreground">
+    <p className={cn('mb-3 text-sm text-muted-foreground', className)}>
       {eintraege
         .map(
           (e) =>

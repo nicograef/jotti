@@ -283,12 +283,12 @@ Kassensitzung bleibt beim bestehenden `Empty`-Muster mit Link zu
 
 ### Acceptance criteria
 
-- [ ] Status-Zeile zeigt Kasse/TSE/Drucker mit Normal- und Fehlerzustand; „Beheben" navigiert zur jeweiligen Seite; die alten Banner sind entfernt
-- [ ] Hero-Kennzahl „Kassierter Umsatz" und die vier Nebenkarten zeigen die Werte aus `useLiveReporting` mit den erklärenden Unterzeilen aus dem Handoff
-- [ ] Offene Tische und Team stehen nebeneinander; die Tisch-Liste kürzt nach fünf Einträgen mit „Alle n anzeigen"
-- [ ] Storno-Zeile ist eingeklappt, zeigt Zusammenfassung und expandiert zur bestehenden Detail-Liste
-- [ ] Auto-Refresh bleibt bei 30 s; „aktualisiert HH:MM" und der Jetzt-Button funktionieren
-- [ ] Seitentests (`AdminDashboardPage.test.tsx` und Nachfolger der `LiveReportingSection`-Tests) decken Status-Zeile (ok/Fehler), Hero-Zahl und Storno-Aufklappen ab; `make check` grün
+- [x] Status-Zeile zeigt Kasse/TSE/Drucker mit Normal- und Fehlerzustand; „Beheben" navigiert zur jeweiligen Seite; die alten Banner sind entfernt
+- [x] Hero-Kennzahl „Kassierter Umsatz" und die vier Nebenkarten zeigen die Werte aus `useLiveReporting` mit den erklärenden Unterzeilen aus dem Handoff
+- [x] Offene Tische und Team stehen nebeneinander; die Tisch-Liste kürzt nach fünf Einträgen mit „Alle n anzeigen"
+- [x] Storno-Zeile ist eingeklappt, zeigt Zusammenfassung und expandiert zur bestehenden Detail-Liste
+- [x] Auto-Refresh bleibt bei 30 s; „aktualisiert HH:MM" und der Jetzt-Button funktionieren
+- [x] Seitentests (`AdminDashboardPage.test.tsx` und Nachfolger der `LiveReportingSection`-Tests) decken Status-Zeile (ok/Fehler), Hero-Zahl und Storno-Aufklappen ab; `make check` grün
 
 ---
 

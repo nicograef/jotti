@@ -1,9 +1,16 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { LiveReportingSection } from './LiveReportingSection'
 import type { LiveReportingData } from './types'
+
+vi.mock('react-router', () => ({
+  NavLink: ({ children, to }: { children?: ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
+}))
 
 afterEach(() => {
   cleanup()
@@ -13,6 +20,7 @@ function liveData(
   servicekraefte: LiveReportingData['breakdowns']['servicekraefte'],
   stornierungenProServicekraft: LiveReportingData['breakdowns']['stornierungenProServicekraft'] = [],
   stornierungen: LiveReportingData['stornierungen'] = [],
+  overrides: Partial<LiveReportingData> = {},
 ): LiveReportingData {
   return {
     kassensitzungNr: 1,
@@ -32,6 +40,7 @@ function liveData(
     },
     breakdowns: { servicekraefte, stornierungenProServicekraft },
     stornierungen,
+    ...overrides,
   }
 }
 
@@ -39,8 +48,34 @@ const noopRefresh = () => {
   // no-op
 }
 
-describe('LiveReportingSection — Single-Scroll', () => {
-  it('rendert alle Blöcke ohne Tabs und zeigt offene Arbeit als Euro-Betrag mit Tischnamen', () => {
+describe('LiveReportingSection — Übersicht', () => {
+  it('zeigt die Hero-Kennzahl „Kassierter Umsatz" und die vier Nebenkarten', () => {
+    render(
+      <LiveReportingSection
+        liveData={liveData([])}
+        loading={false}
+        dataUpdatedAt={0}
+        onRefresh={noopRefresh}
+      />,
+    )
+
+    // Hero: kassierter Umsatz mit erklärender Unterzeile.
+    expect(screen.getByText('Kassierter Umsatz')).toBeInTheDocument()
+    expect(screen.getByText('24,00 €')).toBeInTheDocument()
+    expect(
+      screen.getByText('bereits bezahlt, Stornos abgezogen'),
+    ).toBeInTheDocument()
+
+    // Nebenkarten mit Handoff-Unterzeilen.
+    expect(screen.getByText('Noch offen')).toBeInTheDocument()
+    expect(screen.getByText('Bestellt gesamt')).toBeInTheDocument()
+    expect(screen.getByText('bezahlt + offen zusammen')).toBeInTheDocument()
+    expect(screen.getByText('Direktverkauf')).toBeInTheDocument()
+    expect(screen.getByText('2 Verkäufe ohne Tisch')).toBeInTheDocument()
+    expect(screen.getByText('Storniert')).toBeInTheDocument()
+  })
+
+  it('zeigt offene Arbeit einer Servicekraft als Euro-Betrag mit Tischanzahl', () => {
     render(
       <LiveReportingSection
         liveData={liveData([
@@ -72,78 +107,60 @@ describe('LiveReportingSection — Single-Scroll', () => {
       />,
     )
 
-    // Single-Scroll: keine Tabs mehr.
+    // Keine Tabs mehr.
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
 
     // Servicekraft mit offener Arbeit: Euro-Betrag (5,00 + 2,50 = 7,50 €) und
-    // die Tischnamen inline, kein "N zu kassieren" mehr.
+    // die Tischnamen inline.
     expect(screen.getByText('Anna (Anna A.)')).toBeInTheDocument()
     expect(screen.getByText('7,50 €')).toBeInTheDocument()
     expect(screen.getByText(/Tisch 3, Zelt A2/)).toBeInTheDocument()
-    expect(screen.queryByText(/zu kassieren/)).not.toBeInTheDocument()
 
-    // Fertige Servicekraft: nur Hinweis.
+    // Fertige Servicekraft: Abrechnungs-Hinweis.
     expect(screen.getByText('Cleo')).toBeInTheDocument()
-    expect(screen.getByText('Fertig')).toBeInTheDocument()
+    expect(screen.getByText('Alles abgerechnet')).toBeInTheDocument()
 
-    // Keine Progressbar und kein "Zahlungen"-Badge.
-    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
-    expect(screen.queryByText(/Zahlungen/)).not.toBeInTheDocument()
     // Der kassierte Betrag bleibt sichtbar.
     expect(screen.getByText('15,00 €')).toBeInTheDocument()
   })
 
-  it('zeigt die Kennzahlen in kanonischer Reihenfolge mit erklärenden Sub-Labels', () => {
+  it('kürzt die Liste offener Tische nach fünf Einträgen und blendet den Rest ein', async () => {
+    const user = userEvent.setup()
+    const offeneTische = Array.from({ length: 7 }, (_, i) => ({
+      tischId: i + 1,
+      tischName: `Tisch ${String(i + 1)}`,
+      saldoCents: 100 * (i + 1),
+    }))
+
     render(
       <LiveReportingSection
-        liveData={liveData([])}
+        liveData={liveData([], [], [], {
+          offeneTische,
+          offeneSaldiCents: 2800,
+        })}
         loading={false}
         dataUpdatedAt={0}
         onRefresh={noopRefresh}
       />,
     )
 
-    // Erste Kachel ist Gesamtumsatz, danach folgt Bestellungen im DOM.
-    const gesamtumsatz = screen.getByText('Gesamtumsatz')
-    const bestellungen = screen.getByText('Bestellungen')
-    expect(
-      gesamtumsatz.compareDocumentPosition(bestellungen) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
+    // Nur fünf Zeilen sichtbar, Tisch 6/7 verborgen.
+    expect(screen.getByText('Tisch 5')).toBeInTheDocument()
+    expect(screen.queryByText('Tisch 6')).not.toBeInTheDocument()
 
-    // Sub-Labels benennen den Zusammenhang bestellt/kassiert.
-    expect(
-      screen.getByText('kassiert, abzüglich Warenrücknahmen'),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText('Bestellwert, inkl. noch nicht kassiert'),
-    ).toBeInTheDocument()
+    // „Alle 7 anzeigen" blendet den Rest ein.
+    await user.click(screen.getByRole('button', { name: 'Alle 7 anzeigen' }))
+    expect(screen.getByText('Tisch 6')).toBeInTheDocument()
+    expect(screen.getByText('Tisch 7')).toBeInTheDocument()
   })
 
-  it('markiert Servicekraft-Zeilen mit Stornos und zeigt das Aggregat über der Detail-Liste', () => {
+  it('zeigt die Stornierungen eingeklappt und expandiert zur Detail-Liste', async () => {
+    const user = userEvent.setup()
+
     render(
       <LiveReportingSection
         liveData={liveData(
-          [
-            {
-              userId: 3,
-              userName: 'felix',
-              name: 'Felix W.',
-              zahlungenCents: 1500,
-              offenCents: 0,
-              offeneTische: [],
-              erledigt: true,
-            },
-            {
-              userId: 9,
-              userName: 'cleo',
-              name: '',
-              zahlungenCents: 900,
-              offenCents: 0,
-              offeneTische: [],
-              erledigt: true,
-            },
-          ],
+          [],
           [
             {
               userId: 3,
@@ -151,13 +168,6 @@ describe('LiveReportingSection — Single-Scroll', () => {
               name: 'Felix W.',
               anzahlStornierungen: 1,
               stornierungenCents: 500,
-            },
-            {
-              userId: 7,
-              userName: 'sophie',
-              name: 'Sophie B.',
-              anzahlStornierungen: 1,
-              stornierungenCents: 250,
             },
           ],
           [
@@ -171,10 +181,22 @@ describe('LiveReportingSection — Single-Scroll', () => {
               userName: 'felix',
               name: 'Felix W.',
               betragCents: 500,
-              kommentar: '',
+              kommentar: 'Falsch gebucht',
               positionen: [],
             },
           ],
+          {
+            summary: {
+              gesamtUmsatzCents: 2400,
+              gesamtBestellungenCents: 3600,
+              gesamtStornierungenCents: 500,
+              geldtransitCents: 0,
+              anzahlBestellungen: 5,
+              anzahlStornierungen: 1,
+              anzahlDirektverkaeufe: 2,
+              direktverkaufUmsatzCents: 800,
+            },
+          },
         )}
         loading={false}
         dataUpdatedAt={0}
@@ -182,16 +204,17 @@ describe('LiveReportingSection — Single-Scroll', () => {
       />,
     )
 
-    // Roter Marker an felix' Servicekraft-Zeile (hat Stornos), cleo ohne Marker.
-    expect(screen.getByText('1 Storno')).toBeInTheDocument()
+    // Zusammenfassung sichtbar, Detail (Kommentar) zunächst verborgen.
+    expect(screen.getByText('1 Stornierung')).toBeInTheDocument()
+    expect(screen.queryByText('Falsch gebucht')).not.toBeInTheDocument()
 
-    // Aggregat-Zeile pro Servicekraft über der Detail-Liste.
-    expect(
-      screen.getByText('felix (Felix W.) 1 · sophie (Sophie B.) 1'),
-    ).toBeInTheDocument()
+    // Aufklappen zeigt die bestehende Detail-Liste.
+    await user.click(screen.getByRole('button', { name: /Details/ }))
+    expect(screen.getByText('Falsch gebucht')).toBeInTheDocument()
+    expect(screen.getByText('Tisch 9 · felix (Felix W.)')).toBeInTheDocument()
   })
 
-  it('zeigt "Stand HH:MM" und löst den Refresh-Button aus', async () => {
+  it('zeigt „Live · aktualisiert HH:MM" und löst den Jetzt-Button aus', async () => {
     const user = userEvent.setup()
     const onRefresh = vi.fn()
     const stand = new Date('2026-06-18T14:05:00Z').getTime()
@@ -205,9 +228,27 @@ describe('LiveReportingSection — Single-Scroll', () => {
       />,
     )
 
-    expect(screen.getByText(/^Stand \d{2}:\d{2}$/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/^Live · aktualisiert \d{2}:\d{2}$/),
+    ).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Aktualisieren' }))
+    await user.click(screen.getByRole('button', { name: 'Jetzt' }))
     expect(onRefresh).toHaveBeenCalledTimes(1)
+  })
+
+  it('zeigt den Leerzustand ohne Kassensitzung mit Link zur Kasse', () => {
+    render(
+      <LiveReportingSection
+        liveData={null}
+        loading={false}
+        dataUpdatedAt={0}
+        onRefresh={noopRefresh}
+      />,
+    )
+
+    expect(screen.getByText('Keine Kassensitzung geöffnet')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Zur Kassensitzungs-Seite' }),
+    ).toHaveAttribute('href', '/admin/kasse')
   })
 })
