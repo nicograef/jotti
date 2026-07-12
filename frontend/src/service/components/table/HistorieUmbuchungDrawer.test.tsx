@@ -85,25 +85,51 @@ describe('HistorieUmbuchungDrawer', () => {
     )
   })
 
-  it('sperrt die Umbuchung, bis ein Ziel-Tisch aktiv gewählt wurde', async () => {
+  it('startet mit leerer Auswahl und sperrt, bis Positionen und Ziel-Tisch gewählt sind', async () => {
     const user = userEvent.setup()
     const bestellungUmbuchen = renderDrawer()
+
+    const button = screen.getByRole('button', { name: 'Umbuchung ausführen' })
 
     // Ohne Wahl steht der Placeholder, nicht ein vorbelegter Tisch.
     const select = screen.getByRole('combobox')
     expect(select).toHaveValue('')
     expect(screen.getByText('Ziel-Tisch wählen…')).toBeInTheDocument()
 
-    const button = screen.getByRole('button', { name: 'Umbuchung ausführen' })
+    // Ziel-Tisch allein reicht nicht: ohne ausgewählte Positionen bleibt gesperrt.
+    await user.selectOptions(select, 'Nebentisch')
     expect(button).toBeDisabled()
 
-    await user.selectOptions(select, 'Nebentisch')
+    // „Alle auswählen" wählt die volle umbuchbare Menge und gibt den Button frei.
+    await user.click(
+      screen.getByRole('button', { name: /Alle 1 Positionen auswählen/ }),
+    )
     expect(button).toBeEnabled()
 
     await user.click(button)
     expect(bestellungUmbuchen).toHaveBeenCalledWith(
-      expect.objectContaining({ quellTischId: 1, zielTischId: 2 }),
+      expect.objectContaining({
+        quellTischId: 1,
+        zielTischId: 2,
+        positionen: [{ positionId: position.positionId, menge: 2 }],
+      }),
     )
+  })
+
+  it('leert die Auswahl beim zweiten Tap auf „Alle auswählen"', async () => {
+    const user = userEvent.setup()
+    renderDrawer()
+
+    const button = screen.getByRole('button', { name: 'Umbuchung ausführen' })
+    await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
+
+    await user.click(
+      screen.getByRole('button', { name: /Alle 1 Positionen auswählen/ }),
+    )
+    expect(button).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Auswahl aufheben' }))
+    expect(button).toBeDisabled()
   })
 
   it('titelt menschenlesbar mit Vorgangstyp und Name statt UUID-Fragment', () => {
@@ -121,6 +147,9 @@ describe('HistorieUmbuchungDrawer', () => {
     await user.type(
       screen.getByPlaceholderText('Kommentar (optional)'),
       'Gast gewechselt',
+    )
+    await user.click(
+      screen.getByRole('button', { name: /Alle 1 Positionen auswählen/ }),
     )
     await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
     await user.click(

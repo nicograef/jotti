@@ -334,13 +334,13 @@ Kommentar, Ausführen).
 
 ### Acceptance criteria
 
-- [ ] Der Umbuchungs-Drawer öffnet mit leerer Auswahl; "Umbuchung ausführen" ist
+- [x] Der Umbuchungs-Drawer öffnet mit leerer Auswahl; "Umbuchung ausführen" ist
       deaktiviert, bis mindestens eine Position gewählt ist.
-- [ ] Ein Tap auf "Alle auswählen" wählt alle umbuchbaren Positionen voll aus;
+- [x] Ein Tap auf "Alle auswählen" wählt alle umbuchbaren Positionen voll aus;
       ein zweiter Tap leert die Auswahl.
-- [ ] Die Mengenlogik kommt aus `useMengen`; im Drawer existiert keine eigene
+- [x] Die Mengenlogik kommt aus `useMengen`; im Drawer existiert keine eigene
       Increment-/Decrement-Implementierung mehr.
-- [ ] `HistorieUmbuchungDrawer.test.tsx` und `umbuchung.mobile.spec.ts` bilden
+- [x] `HistorieUmbuchungDrawer.test.tsx` und `umbuchung.mobile.spec.ts` bilden
       den Leer-Start ab und sind grün; `make check` grün.
 
 ---

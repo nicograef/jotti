@@ -42,18 +42,24 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
     ).toBeVisible()
 
     const wasserZeile = zeileMit(drawer, 'Wasser Still 0,5l', 'hinzufügen')
-    // Die Position ist standardmäßig bereits mit der vollen Menge vorbelegt,
-    // daher wird hier nichts weiter angeklickt.
     await expect(wasserZeile).toBeVisible()
-
-    // Optionales Benutzerkommentar erfassen (ergänzt den Richtungs-Autotext).
-    await drawer.getByPlaceholder('Kommentar (optional)').fill('Gast gewechselt')
 
     const ausfuehren = drawer.getByRole('button', {
       name: 'Umbuchung ausführen',
     })
-    // Ohne explizite Ziel-Tisch-Wahl bleibt die Umbuchung gesperrt (kein stiller
-    // Default mehr) — erst die Auswahl gibt den Button frei.
+    // Der Drawer startet mit leerer Auswahl (wie Kassieren/Storno): ohne
+    // ausgewählte Position und ohne Ziel-Tisch bleibt die Umbuchung gesperrt.
+    await expect(ausfuehren).toBeDisabled()
+
+    // „Alle auswählen" übernimmt die volle umbuchbare Menge aller Positionen.
+    await drawer
+      .getByRole('button', { name: /Alle \d+ Positionen auswählen/ })
+      .click()
+
+    // Optionales Benutzerkommentar erfassen (ergänzt den Richtungs-Autotext).
+    await drawer.getByPlaceholder('Kommentar (optional)').fill('Gast gewechselt')
+
+    // Auch mit gewählten Positionen bleibt gesperrt, bis der Ziel-Tisch steht.
     await expect(ausfuehren).toBeDisabled()
     await drawer.getByRole('combobox').selectOption({ label: ZIEL_TISCH })
     await expect(ausfuehren).toBeEnabled()

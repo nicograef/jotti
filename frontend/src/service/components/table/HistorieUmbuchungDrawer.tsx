@@ -1,3 +1,4 @@
+import { CircleCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -15,6 +16,7 @@ import {
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useMengen } from '@/hooks/use-mengen'
 import { formatCents, formatRelativeTime } from '@/lib/utils'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
@@ -43,6 +45,7 @@ interface HistorieUmbuchungDrawerProps {
   onBestellungUmgebucht: () => void
 }
 
+// Volle umbuchbare Menge je Position — Basis für den „Alle auswählen"-Button.
 function createDefaultMengen(positionen: Position[]): Record<string, number> {
   return positionen.reduce<Record<string, number>>((acc, position) => {
     acc[position.positionId] = position.menge
@@ -58,12 +61,21 @@ export function HistorieUmbuchungDrawer({
   onBestellungUmgebucht,
 }: HistorieUmbuchungDrawerProps) {
   const positionen = quelle.umbuchbarePositionen
-  const [mengen, setMengen] = useState<Record<string, number>>(() =>
-    createDefaultMengen(positionen),
-  )
   const [zielTischId, setZielTischId] = useState<number | null>(null)
   const [kommentar, setKommentar] = useState('')
   const { tische, isPending: tischeLoading } = useAktiveTische()
+
+  const umbuchbareMengen = useMemo(
+    () => createDefaultMengen(positionen),
+    [positionen],
+  )
+  const {
+    mengen,
+    add: onAdd,
+    remove: onRemove,
+    reset,
+    setAll,
+  } = useMengen<string>((positionId) => umbuchbareMengen[positionId] || 0)
 
   const zielTische = useMemo(
     () => tische.filter((candidate) => candidate.id !== tisch.id),
@@ -74,22 +86,19 @@ export function HistorieUmbuchungDrawer({
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
 
-  const onAdd = (positionId: string) => {
-    const maxMenge =
-      positionen.find((p) => p.positionId === positionId)?.menge ?? 0
-    setMengen((prev) => {
-      const current = prev[positionId] || 0
-      if (current >= maxMenge) return prev
-      return { ...prev, [positionId]: current + 1 }
-    })
-  }
+  const alleVollAusgewaehlt =
+    positionen.length > 0 &&
+    positionen.every(
+      (position) => (mengen[position.positionId] || 0) === position.menge,
+    )
+  const umbuchbarGesamt = calculateTotalPrice(positionen)
 
-  const onRemove = (positionId: string) => {
-    setMengen((prev) => {
-      const current = prev[positionId] || 0
-      if (current <= 0) return prev
-      return { ...prev, [positionId]: current - 1 }
-    })
+  const alleAuswaehlen = () => {
+    if (alleVollAusgewaehlt) {
+      reset()
+      return
+    }
+    setAll(umbuchbareMengen)
   }
 
   const { loading, run } = useActionSubmit({
@@ -137,6 +146,20 @@ export function HistorieUmbuchungDrawer({
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">
+          {positionen.length > 0 && (
+            <div className="px-4 pb-2">
+              <button
+                type="button"
+                onClick={alleAuswaehlen}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/5 px-4 text-sm font-medium text-primary"
+              >
+                <CircleCheck className="size-5" />
+                {alleVollAusgewaehlt
+                  ? 'Auswahl aufheben'
+                  : `Alle ${positionen.length.toString()} Positionen auswählen · ${formatCents(umbuchbarGesamt)}\u00A0€`}
+              </button>
+            </div>
+          )}
           <PositionAuswahlListe
             positionen={toAuswahlPositionen(positionen)}
             mengen={mengen}
