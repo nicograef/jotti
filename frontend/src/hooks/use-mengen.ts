@@ -3,8 +3,10 @@ import { useState } from 'react'
 /**
  * Quantity-selector state keyed by id (variant id for ordering/direct sale,
  * position id for payment). `add` increments, `remove` decrements but never
- * below zero, `reset` clears the whole selection. Pass `max` to cap a key's
- * quantity (e.g. the still-unpaid amount of a position).
+ * below zero, `reset` clears the whole selection, `setAll` replaces the whole
+ * selection with the given quantities (without applying `max` — the caller is
+ * responsible for staying within the cap). Pass `max` to cap a key's quantity
+ * on `add` (e.g. the still-unpaid amount of a position).
  */
 export function useMengen<K extends string | number>(max?: (key: K) => number) {
   const [mengen, setMengen] = useState<Record<K, number>>(
@@ -31,5 +33,9 @@ export function useMengen<K extends string | number>(max?: (key: K) => number) {
     setMengen({} as Record<K, number>)
   }
 
-  return { mengen, add, remove, reset }
+  const setAll = (next: Record<K, number>) => {
+    setMengen(next)
+  }
+
+  return { mengen, add, remove, reset, setAll }
 }

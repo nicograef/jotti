@@ -156,11 +156,11 @@ Restbetrag im Dock über dem Kassieren-Button: links "Nach dieser Zahlung noch o
 
 ### Acceptance criteria
 
-- [ ] Ein Tap auf "Alle X Positionen auswählen" wählt alle eigenen unbezahlten Positionen voll aus; Button-Text zeigt Anzahl und Summe; zweiter Tap leert die Auswahl.
-- [ ] Fremd-Positionen erscheinen als sichtbare eingeklappte Gruppe mit Summe; aufgeklappt einzeln wählbar mit Besteller-Name.
-- [ ] Positionszeilen formulieren positiv ("X von Y ausgewählt") und markieren Auswahl farblich; die Formulierung "noch X unbezahlt" kommt nicht mehr vor.
-- [ ] Über dem Kassieren-Button steht der Restbetrag nach dieser Zahlung und rechnet live mit.
-- [ ] Tests angepasst: `Zahlung.test.tsx`, `ZahlungDrawer.test.tsx`; neue Fälle für `setAll` (über die bestehenden Komponententests); `make check` grün.
+- [x] Ein Tap auf "Alle X Positionen auswählen" wählt alle eigenen unbezahlten Positionen voll aus; Button-Text zeigt Anzahl und Summe; zweiter Tap leert die Auswahl.
+- [x] Fremd-Positionen erscheinen als sichtbare eingeklappte Gruppe mit Summe; aufgeklappt einzeln wählbar mit Besteller-Name.
+- [x] Positionszeilen formulieren positiv ("X von Y ausgewählt") und markieren Auswahl farblich; die Formulierung "noch X unbezahlt" kommt nicht mehr vor.
+- [x] Über dem Kassieren-Button steht der Restbetrag nach dieser Zahlung und rechnet live mit.
+- [x] Tests angepasst: `Zahlung.test.tsx`, `ZahlungDrawer.test.tsx`; neue Fälle für `setAll` (über die bestehenden Komponententests); `make check` grün.
 
 ---
 

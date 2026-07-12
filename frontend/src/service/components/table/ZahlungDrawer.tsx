@@ -21,6 +21,7 @@ import { formatCents, parseCents } from '@/lib/utils'
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import { DockActionSlot } from '../ServiceDock'
 import { KommentarField } from './CommentField'
 import { DockActionButton } from './DockActionButton'
 import {
@@ -37,6 +38,7 @@ interface ZahlungDrawerProps {
   tisch: Tisch
   unbezahltePositionen: Position[]
   mengen: Record<string, number>
+  restNachZahlungCents: number
   zahlungKassiert: () => void
 }
 
@@ -93,6 +95,14 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
+      <DockActionSlot>
+        <div className="flex items-center justify-between gap-3 text-[13px] text-muted-foreground">
+          <span>Nach dieser Zahlung noch offen</span>
+          <span className="font-semibold tabular-nums text-foreground">
+            {formatCents(props.restNachZahlungCents)}&nbsp;€
+          </span>
+        </div>
+      </DockActionSlot>
       <DrawerTrigger asChild>
         <DockActionButton
           label="Kassieren"

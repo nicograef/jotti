@@ -39,7 +39,7 @@ export function ServiceDock({ children, leiste }: ServiceDockProps) {
       {children}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
         <div className="mx-auto flex w-full max-w-md flex-col gap-2">
-          <div ref={setSlot} />
+          <div ref={setSlot} className="flex flex-col gap-2" />
           {leiste}
         </div>
       </div>

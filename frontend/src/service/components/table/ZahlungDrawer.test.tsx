@@ -43,6 +43,7 @@ function renderDrawer(
         tisch={tisch}
         unbezahltePositionen={[position]}
         mengen={{ [position.positionId]: 1 }}
+        restNachZahlungCents={350}
         zahlungKassiert={zahlungKassiert}
       />
     </ServiceDock>,

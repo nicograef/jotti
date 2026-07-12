@@ -158,14 +158,14 @@ async function offeneTischNamen(page: Page): Promise<string[]> {
   return namen
 }
 
-// zeigeAlleAn klappt — falls vorhanden — die Positionen anderer Servicekräfte
-// auf („Alle anzeigen"), die sonst standardmäßig eingeklappt bleiben.
+// zeigeAlleAn klappt — falls vorhanden — die Gruppe „Von anderen" auf, die die
+// Positionen anderer Servicekräfte standardmäßig eingeklappt hält. Der
+// Gruppenkopf trägt die Anzahl („Von anderen · 2"); nur klicken, wenn er
+// vorhanden ist (fehlt, sobald keine fremden Positionen offen sind).
 async function zeigeAlleAn(page: Page): Promise<void> {
-  const alleAnzeigenButton = page.getByRole('button', {
-    name: /^Alle anzeigen/,
-  })
-  if (await alleAnzeigenButton.isVisible()) {
-    await alleAnzeigenButton.click()
+  const vonAnderenKopf = page.getByRole('button', { name: /^Von anderen ·/ })
+  if (await vonAnderenKopf.isVisible().catch(() => false)) {
+    await vonAnderenKopf.click()
   }
 }
 
@@ -180,10 +180,11 @@ function vollePositionsZeilen(page: Page): Locator {
 }
 
 // waehleAlleVollAus klickt in jeder Positions-Zeile so oft auf „+", bis die
-// Zeile ihre volle unbezahlte Menge erreicht hat — erkennbar daran, dass
-// „noch 0" im Zeilentext steht. Eine Obergrenze pro Zeile
-// verhindert eine Endlosschleife, falls der Text unerwartet nie „noch 0"
-// erreicht.
+// Zeile voll ausgewählt ist — erkennbar an der Unterzeile „N von N ausgewählt"
+// (X == Y). Anders als der „Alle auswählen"-Button, der nur eigene Positionen
+// erfasst, gleicht diese Funktion jede sichtbare Zeile aus (auch fremde, sofern
+// zuvor über zeigeAlleAn aufgeklappt). Eine Obergrenze pro Zeile verhindert eine
+// Endlosschleife, falls die Vollauswahl-Formulierung unerwartet nie erscheint.
 export async function waehleAlleVollAus(page: Page): Promise<void> {
   const zeilen = vollePositionsZeilen(page)
   const anzahlZeilen = await zeilen.count()
@@ -191,7 +192,8 @@ export async function waehleAlleVollAus(page: Page): Promise<void> {
     const zeile = zeilen.nth(i)
     for (let klick = 0; klick < 50; klick++) {
       const text = (await zeile.textContent()) ?? ''
-      if (/noch 0\b/.test(text)) break
+      const treffer = /(\d+) von (\d+) ausgewählt/.exec(text)
+      if (treffer && treffer[1] === treffer[2]) break
       await zeile.getByRole('button', { name: 'Produkt hinzufügen' }).click()
     }
   }
@@ -211,9 +213,9 @@ async function warteAufTischGeladen(page: Page): Promise<void> {
 // settleAlleOffenenTische gleicht jeden Tisch mit offenem Saldo vollständig
 // aus: alle unbezahlten Positionen kassieren. Nötig, bevor der Kassenabschluss
 // angefordert werden kann (jeder Tisch muss ausgeglichen sein). Positionen
-// anderer Servicekräfte stehen hinter „Alle anzeigen" — das wird vor jeder
-// Zählung/Auswahl aufgeklappt, sonst übersieht die Funktion Positionen und
-// bricht die Schleife vorzeitig ab.
+// anderer Servicekräfte stehen in der eingeklappten Gruppe „Von anderen" — die
+// wird vor jeder Zählung/Auswahl aufgeklappt, sonst übersieht die Funktion
+// Positionen und bricht die Schleife vorzeitig ab.
 export async function settleAlleOffenenTische(page: Page): Promise<void> {
   const namen = await offeneTischNamen(page)
   for (const tisch of namen) {
