@@ -57,11 +57,15 @@ test.describe('Kassenabschluss beendet die laufende Kassensitzung', () => {
     // Als Admin die Kasse abschließen.
     await anmelden(page, zugangsdaten.admin)
     await page.goto('/admin/kasse')
-    await expect(page.getByRole('heading', { name: 'Kassensitzung' })).toBeVisible()
-    await expect(page.getByText('offen')).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: /Kassentag Nr\. 3/ }),
+    ).toBeVisible()
+    await expect(page.getByText('Laufender Betrieb')).toBeVisible()
 
     await page.getByLabel('Gezählter Ist-Bestand').fill('342,00')
-    await page.getByRole('button', { name: 'Kasse abschließen' }).click()
+    await page
+      .getByRole('button', { name: /Kasse endgültig abschließen/ })
+      .click()
 
     await expect(
       page.getByRole('alertdialog', { name: 'Kasse abschließen?' }),

@@ -4,7 +4,9 @@ import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 
 // Deckt den Verwaltungspfad für Produkte samt Varianten ab: Anlegen,
-// Bearbeiten, eine Variante aktivieren und wieder deaktivieren.
+// Bearbeiten, eine Variante aktivieren und wieder deaktivieren. Die Seite
+// „Produkte & Preise" listet Produkte je Kategorie mit Varianten als Chips
+// (Name, Preis, Mini-Switch); eine inaktive Variante trägt die „aus"-Markierung.
 
 test.describe('Admin verwaltet Produkte und Varianten', () => {
   test('Produkt samt Variante anlegen, ändern und Variante deaktivieren', async ({
@@ -15,7 +17,9 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
     await anmelden(page, zugangsdaten.admin)
 
     await page.goto('/admin/produkte')
-    await expect(page.getByRole('heading', { name: 'Produkte verwalten' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Produkte & Preise' }),
+    ).toBeVisible()
 
     // Neues Produkt anlegen.
     await page.getByRole('button', { name: 'Neues Produkt' }).click()
@@ -24,12 +28,14 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
     await newProductDialog.getByRole('button', { name: 'Produkt anlegen' }).click()
     await expect(page.getByText('Produkt "Eistee" wurde angelegt.')).toBeVisible()
 
-    // Das neue Produkt in der Liste öffnen und eine Variante anlegen.
+    // Die Produktzeile über den Namen und ihren Bearbeiten-Button auflösen und
+    // eine Variante anlegen (der gestrichelte „Variante"-Button je Zeile).
     const produktItem = page
-      .locator('[data-slot="item"]')
+      .locator('div')
+      .filter({ has: page.getByRole('button', { name: 'Produkt bearbeiten' }) })
       .filter({ hasText: 'Eistee' })
-    await produktItem.getByRole('button', { name: 'Varianten' }).click()
-    await produktItem.getByRole('button', { name: 'Variante' }).click()
+      .last()
+    await produktItem.getByRole('button', { name: 'Variante', exact: true }).click()
 
     const newVariantDialog = page.getByRole('dialog')
     await newVariantDialog.getByLabel('Name').fill('0,5l')
@@ -37,20 +43,23 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
     await newVariantDialog.getByRole('button', { name: 'Variante anlegen' }).click()
     await expect(page.getByText('Variante "0,5l" wurde angelegt.')).toBeVisible()
 
-    // Die neue Variante ist zunächst deaktiviert; die Zeile mit Preis prüfen.
+    // Die neue Variante ist zunächst deaktiviert: Preis-Chip sichtbar, Switch
+    // aus und die „aus"-Markierung gesetzt.
     await expect(produktItem.getByText('2,80')).toBeVisible()
+    const ausMarker = produktItem.getByText('aus', { exact: true })
+    await expect(ausMarker).toBeVisible()
     const variantSwitch = produktItem.getByRole('switch').last()
     await expect(variantSwitch).not.toBeChecked()
 
-    // Variante aktivieren.
+    // Variante aktivieren: Switch an, „aus"-Markierung verschwindet.
     await variantSwitch.click()
     await expect(variantSwitch).toBeChecked()
-    await expect(produktItem.getByText('1 aktiv')).toBeVisible()
+    await expect(ausMarker).toBeHidden()
 
     // Variante wieder deaktivieren.
     await variantSwitch.click()
     await expect(variantSwitch).not.toBeChecked()
-    await expect(produktItem.getByText('0 aktiv')).toBeVisible()
+    await expect(ausMarker).toBeVisible()
 
     // Produkt bearbeiten: Namen ändern.
     await produktItem
@@ -60,8 +69,6 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
     await editDialog.getByLabel('Name').fill('Eistee Pfirsich')
     await editDialog.getByRole('button', { name: 'Speichern' }).click()
 
-    await expect(
-      page.locator('[data-slot="item"]').filter({ hasText: 'Eistee Pfirsich' }),
-    ).toBeVisible()
+    await expect(page.getByText('Eistee Pfirsich')).toBeVisible()
   })
 })

@@ -4,7 +4,8 @@ import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 
 // Deckt den Verwaltungspfad für Benutzer ab: Anlegen (inkl. Anzeige des
-// Einmalpasswort-Codes) und Deaktivieren.
+// Einmalpasswort-Codes) und Deaktivieren. Die Seite „Helfer & Zugänge" zeigt
+// die Benutzer als Tabelle mit Status-Switch je Zeile.
 
 test.describe('Admin verwaltet Benutzer', () => {
   test('Benutzer anlegen zeigt das Einmalpasswort und der Benutzer lässt sich deaktivieren', async ({
@@ -15,10 +16,12 @@ test.describe('Admin verwaltet Benutzer', () => {
     await anmelden(page, zugangsdaten.admin)
 
     await page.goto('/admin/benutzer')
-    await expect(page.getByRole('heading', { name: 'Benutzer verwalten' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Helfer & Zugänge' }),
+    ).toBeVisible()
 
     // Neuen Benutzer anlegen.
-    await page.getByRole('button', { name: 'Neuer Benutzer' }).click()
+    await page.getByRole('button', { name: 'Neuer Helfer' }).click()
     const newDialog = page.getByRole('dialog')
     await newDialog.getByLabel('Name', { exact: true }).fill('Petra Neumann')
     await newDialog.getByLabel('Benutzername').fill('petra')
@@ -44,12 +47,15 @@ test.describe('Admin verwaltet Benutzer', () => {
     await createdDialog.getByRole('button', { name: 'Okay' }).click()
 
     // Neue Benutzer starten inaktiv (Passwort noch nicht gesetzt): erst
-    // aktivieren, dann den Deaktivieren-Pfad prüfen.
-    const userItem = page
-      .locator('[data-slot="item"]')
+    // aktivieren, dann den Deaktivieren-Pfad prüfen. Die Tabellenzeile wird
+    // über den Namen und ihren Status-Switch aufgelöst.
+    const userRow = page
+      .locator('div')
+      .filter({ has: page.getByRole('switch') })
       .filter({ hasText: 'Petra Neumann' })
-    await expect(userItem).toBeVisible()
-    const userSwitch = userItem.getByRole('switch')
+      .last()
+    await expect(userRow).toBeVisible()
+    const userSwitch = userRow.getByRole('switch')
     await expect(userSwitch).not.toBeChecked()
 
     await userSwitch.click()

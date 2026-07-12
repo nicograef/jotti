@@ -17,22 +17,27 @@ test.describe('Admin führt die Kasse', () => {
     await anmelden(page, zugangsdaten.admin)
 
     await page.goto('/admin/kasse')
-    await expect(page.getByRole('heading', { name: 'Kassensitzung' })).toBeVisible()
+    // Die offene Sonntags-Sitzung (ZNr 3) ist als Kassentag-Stepper sichtbar.
+    await expect(
+      page.getByRole('heading', { name: /Kassentag Nr\. 3/ }),
+    ).toBeVisible()
+    await expect(page.getByText('Laufender Betrieb')).toBeVisible()
 
-    // Die offene Sonntags-Sitzung (ZNr 3) ist sichtbar.
-    await expect(page.getByText(/Kassensitzung #3/)).toBeVisible()
-    await expect(page.getByText(/offen/)).toBeVisible()
-
-    // Geldtransit-Einlage buchen.
-    await page.getByRole('radio', { name: /Einlage/ }).check()
-    await page.getByLabel('Betrag').fill('25,00')
-    await page.getByLabel('Kommentar').fill('Zusätzliches Wechselgeld')
-    await page.getByRole('button', { name: 'Geldtransit buchen' }).click()
+    // Geldtransit-Einlage buchen: „Geld einlegen" öffnet den Buchungsdialog.
+    await page.getByRole('button', { name: 'Geld einlegen' }).click()
+    const geldtransitDialog = page.getByRole('dialog')
+    await geldtransitDialog.getByLabel('Betrag').fill('25,00')
+    await geldtransitDialog.getByLabel('Kommentar').fill('Zusätzliches Wechselgeld')
+    await geldtransitDialog
+      .getByRole('button', { name: 'Geld einlegen' })
+      .click()
     await expect(page.getByText('Kassenbewegung gebucht.')).toBeVisible()
 
     // Kasse abschließen anstoßen: Soll-Bestand zählen und Dialog öffnen.
     await page.getByLabel('Gezählter Ist-Bestand').fill('500,00')
-    await page.getByRole('button', { name: 'Kasse abschließen' }).first().click()
+    await page
+      .getByRole('button', { name: /Kasse endgültig abschließen/ })
+      .click()
 
     const confirmDialog = page.getByRole('alertdialog')
     await expect(confirmDialog.getByText('Soll-Bestand')).toBeVisible()
