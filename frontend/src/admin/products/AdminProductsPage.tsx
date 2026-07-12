@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
 
+import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditProductDialog } from './EditProductDialog'
 import { ALLE_PRODUKTE_KEY, useAllProdukte } from './hooks'
 import { NewProductDialog } from './NewProductDialog'
@@ -36,13 +37,6 @@ export function AdminProductsPage() {
 
   return (
     <>
-      <NewProductDialog
-        backend={produktBackend}
-        created={(produkt) => {
-          invalidateProdukte()
-          toast.success(`Produkt "${produkt.name}" wurde angelegt.`)
-        }}
-      />
       {produktEditState.produkt && (
         <EditProductDialog
           backend={produktBackend}
@@ -56,7 +50,19 @@ export function AdminProductsPage() {
           }}
         />
       )}
-      <h1 className="text-2xl font-bold">Produkte verwalten</h1>
+      <AdminPageHeader
+        titel="Produkte & Preise"
+        unterzeile="Änderungen wirken sofort auf allen Service-Handys"
+        aktionen={
+          <NewProductDialog
+            backend={produktBackend}
+            created={(produkt) => {
+              invalidateProdukte()
+              toast.success(`Produkt "${produkt.name}" wurde angelegt.`)
+            }}
+          />
+        }
+      />
       <Products
         loading={isPending}
         backend={produktBackend}

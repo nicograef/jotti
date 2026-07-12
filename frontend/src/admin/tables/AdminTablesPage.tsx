@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
 
+import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditTischDialog } from './EditTischDialog'
 import { ALLE_TISCHE_KEY, useAllTische } from './hooks'
 import { NewTischDialog } from './NewTischDialog'
@@ -28,13 +29,6 @@ export function AdminTablesPage() {
 
   return (
     <>
-      <NewTischDialog
-        backend={tischBackend}
-        created={(tisch) => {
-          invalidateTische()
-          toast.success(`Tisch "${tisch.name}" wurde angelegt.`)
-        }}
-      />
       {editState.tisch && (
         <EditTischDialog
           backend={tischBackend}
@@ -48,7 +42,19 @@ export function AdminTablesPage() {
           }}
         />
       )}
-      <h1 className="text-2xl font-bold">Tische verwalten</h1>
+      <AdminPageHeader
+        titel="Tische"
+        unterzeile="Tische mit offenem Saldo lassen sich nicht deaktivieren"
+        aktionen={
+          <NewTischDialog
+            backend={tischBackend}
+            created={(tisch) => {
+              invalidateTische()
+              toast.success(`Tisch "${tisch.name}" wurde angelegt.`)
+            }}
+          />
+        }
+      />
       <Tische
         loading={isPending}
         backend={tischBackend}

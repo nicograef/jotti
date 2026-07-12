@@ -2,6 +2,7 @@ import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
+import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EroeffnenSection } from './EroeffnenSection'
 import { GeldtransitSection } from './GeldtransitSection'
 import { useOffeneKassensitzung } from './hooks'
@@ -15,10 +16,17 @@ export function KassensitzungPage() {
   const { kassensitzung, isPending, isError, refetch } =
     useOffeneKassensitzung()
 
+  const header = (
+    <AdminPageHeader
+      titel="Kassentag"
+      unterzeile="Ein Kassentag läuft von der Eröffnung bis zum Tagesabschluss (Z-Bon)."
+    />
+  )
+
   if (isPending) {
     return (
       <>
-        <h1 className="text-2xl font-bold">Kassensitzung</h1>
+        {header}
         <p className="mt-4 text-muted-foreground">Laden…</p>
       </>
     )
@@ -29,7 +37,7 @@ export function KassensitzungPage() {
   if (isError) {
     return (
       <>
-        <h1 className="text-2xl font-bold">Kassensitzung</h1>
+        {header}
         <LadefehlerAlert
           titel="Kassendaten konnten nicht geladen werden"
           onErneutVersuchen={() => void refetch()}
@@ -41,7 +49,7 @@ export function KassensitzungPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Kassensitzung</h1>
+      {header}
 
       {kassensitzung ? (
         <div className="mt-4 space-y-6">

@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { BackendSingleton } from '@/lib/Backend'
 
+import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditUserDialog } from './EditUserDialog'
 import { ALLE_USERS_KEY, useAllUsers } from './hooks'
 import { NewUserDialog } from './NewUserDialog'
@@ -48,14 +49,6 @@ export function AdminUsersPage() {
 
   return (
     <>
-      <NewUserDialog
-        backend={userBackend}
-        created={(user, onetimePassword) => {
-          invalidateUsers()
-          setUserCreatedState({ user, onetimePassword, open: true })
-          toast.success(`Neuer Benutzer "${user.name}" wurde erstellt.`)
-        }}
-      />
       <UserCreatedDialog
         {...userCreatedState}
         close={() => {
@@ -84,7 +77,20 @@ export function AdminUsersPage() {
           }}
         />
       )}
-      <h1 className="text-2xl font-bold">Benutzer verwalten</h1>
+      <AdminPageHeader
+        titel="Helfer & Zugänge"
+        unterzeile="Wer sich anmelden kann und mit welcher Rolle"
+        aktionen={
+          <NewUserDialog
+            backend={userBackend}
+            created={(user, onetimePassword) => {
+              invalidateUsers()
+              setUserCreatedState({ user, onetimePassword, open: true })
+              toast.success(`Neuer Benutzer "${user.name}" wurde erstellt.`)
+            }}
+          />
+        }
+      />
       <Users
         loading={isPending}
         backend={userBackend}

@@ -10,6 +10,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 
+import { AdminPageHeader } from '../components/AdminPageHeader'
 import { DsfinvkExportButton } from './DsfinvkExportButton'
 import { useAbgeschlosseneKassensitzungen, useReport } from './hooks'
 import { ReportingFilter } from './ReportingFilter'
@@ -28,7 +29,10 @@ export function KassenberichtePage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Kassenberichte</h1>
+      <AdminPageHeader
+        titel="Berichte & Export"
+        unterzeile="Jede abgeschlossene Kassensitzung ergibt einen Tagesbericht (Z-Bon)."
+      />
 
       {!listLoading && kassensitzungen.length === 0 ? (
         <Empty className="mt-6">

@@ -239,11 +239,11 @@ jeweiligen Seiten-Redesign.
 
 ### Acceptance criteria
 
-- [ ] `AdminPageHeader`, `HinweisKarte`, `WarnKarte` existieren als Bausteine mit den Token aus dem Handoff (keine neuen Farben/Radii)
-- [ ] Alle acht Seiten zeigen H1 + Unterzeile über `AdminPageHeader`; Druckstationen- und Finanzamt-Seite haben damit erstmals ein H1
-- [ ] „+ Neues Produkt", „+ Neuer Tisch", „+ Neuer Helfer" öffnen die bestehenden Dialoge aus dem Seitenkopf; kein FAB und keine Scroll-Clearance mehr im Admin
-- [ ] `adminListBottomClearance` ist aus dem Code entfernt
-- [ ] Bestehende Seitentests laufen angepasst grün (`make check`)
+- [x] `AdminPageHeader`, `HinweisKarte`, `WarnKarte` existieren als Bausteine mit den Token aus dem Handoff (keine neuen Farben/Radii)
+- [x] Alle acht Seiten zeigen H1 + Unterzeile über `AdminPageHeader`; Druckstationen- und Finanzamt-Seite haben damit erstmals ein H1
+- [x] „+ Neues Produkt", „+ Neuer Tisch", „+ Neuer Helfer" öffnen die bestehenden Dialoge aus dem Seitenkopf; kein FAB und keine Scroll-Clearance mehr im Admin
+- [x] `adminListBottomClearance` ist aus dem Code entfernt
+- [x] Bestehende Seitentests laufen angepasst grün (`make check`)
 
 ---
 

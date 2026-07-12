@@ -3,7 +3,6 @@ import { Package } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ItemGroup } from '@/components/ui/item'
 
-import { adminListBottomClearance } from '../adminListLayout'
 import { ProductItem } from './ProductItem'
 import { type Produkt, type Variante, VarianteStatus } from './Produkt'
 import { type ProduktBackend } from './ProduktBackend'
@@ -43,9 +42,7 @@ export function Products(props: ProductsProps) {
   }
 
   return (
-    <ItemGroup
-      className={`grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4 ${adminListBottomClearance}`}
-    >
+    <ItemGroup className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 my-4">
       {props.products.map((product) => (
         <ProductItem
           key={product.id}

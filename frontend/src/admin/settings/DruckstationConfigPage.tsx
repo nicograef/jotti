@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
+import { AdminPageHeader } from '../components/AdminPageHeader'
 import {
   type Bonmodus,
   type DruckstationConfig,
@@ -344,35 +345,38 @@ export function DruckstationConfigPage() {
   const { druckstationen, isPending, error, updateDruckstation } =
     useDruckstationen()
 
+  let inhalt
   if (isPending) {
-    return <p className="text-muted-foreground">Lade Druckstationen…</p>
-  }
-
-  if (error) {
-    return (
+    inhalt = <p className="text-muted-foreground">Lade Druckstationen…</p>
+  } else if (error) {
+    inhalt = (
       <p className="text-destructive">Fehler beim Laden der Druckstationen.</p>
+    )
+  } else {
+    inhalt = (
+      <>
+        <div className="mt-6 rounded-md border px-4">
+          {druckstationen.map((config) => (
+            <DruckstationRow
+              key={config.kategorie}
+              config={config}
+              onUpdate={updateDruckstation}
+            />
+          ))}
+        </div>
+
+        <FehlgeschlageneDruckauftraege />
+      </>
     )
   }
 
   return (
     <div className="max-w-2xl">
-      <h2 className="text-xl font-semibold mb-4">Druckstationen</h2>
-      <p className="text-muted-foreground text-sm mb-6">
-        Jede Druckstation kann einen Drucker im lokalen Netzwerk zugewiesen
-        bekommen. Eine leere IP bedeutet, dass für diese Station nicht gedruckt
-        wird.
-      </p>
-      <div className="rounded-md border px-4">
-        {druckstationen.map((config) => (
-          <DruckstationRow
-            key={config.kategorie}
-            config={config}
-            onUpdate={updateDruckstation}
-          />
-        ))}
-      </div>
-
-      <FehlgeschlageneDruckauftraege />
+      <AdminPageHeader
+        titel="Bondrucker"
+        unterzeile="Jede Station bekommt einen Drucker im WLAN/LAN zugewiesen. Ohne Drucker wird für die Station nichts gedruckt."
+      />
+      {inhalt}
     </div>
   )
 }

@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/item'
 import { formatCents } from '@/lib/utils'
 
+import { AdminPageHeader } from '../components/AdminPageHeader'
 import { StornoItem } from './StornoItem'
 import { StornoAggregat, StornoMarker } from './StornoServicekraft'
 import { SummaryCard } from './SummaryCard'
@@ -71,28 +72,30 @@ export function LiveReportingSection({
 
   return (
     <div data-testid="live-reporting-section" className="space-y-6">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold">Live-Dashboard</h1>
-          <p className="text-muted-foreground">
+      <AdminPageHeader
+        titel="Übersicht"
+        unterzeile={
+          <>
             <strong>{formatDatum(liveData.datum)}</strong>{' '}
             {liveData.bezeichnung}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="whitespace-nowrap text-xs text-muted-foreground">
-            Stand {formatStand(dataUpdatedAt)}
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onRefresh}
-            aria-label="Aktualisieren"
-          >
-            <RefreshCw className="size-4" />
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+        aktionen={
+          <>
+            <span className="whitespace-nowrap text-xs text-muted-foreground">
+              Stand {formatStand(dataUpdatedAt)}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onRefresh}
+              aria-label="Aktualisieren"
+            >
+              <RefreshCw className="size-4" />
+            </Button>
+          </>
+        }
+      />
 
       {/* Kennzahlen (kanonische Reihenfolge) */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
