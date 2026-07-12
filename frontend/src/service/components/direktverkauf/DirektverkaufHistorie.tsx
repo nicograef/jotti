@@ -136,7 +136,11 @@ export function DirektverkaufHistorie({
                 {formatRelativeTime(verkauf.getaetigtAm)} · {verkauf.userName}
                 {verkauf.kommentar && ` · „${verkauf.kommentar}“`}
               </span>
-              <span className="truncate text-sm text-muted-foreground">
+              {/* line-clamp-1 statt truncate: truncate (nowrap) lässt die
+                  Zusammenfassung in die Max-Content-Breite der Seite eingehen —
+                  mobile Browser weiten dann den Layout-Viewport (Zoom-out) und
+                  Tap-Koordinaten in Drawern gehen daneben. */}
+              <span className="line-clamp-1 text-sm text-muted-foreground">
                 {positionenZusammenfassung(verkauf.positionen)}
               </span>
             </span>
