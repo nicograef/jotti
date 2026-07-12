@@ -27,6 +27,7 @@ import { KommentarField } from './CommentField'
 import {
   calculateTotalPrice,
   quelleTitel,
+  quelleZeitpunkt,
   selectPositionen,
   toAuswahlPositionen,
   toPositionRefs,
@@ -129,12 +130,7 @@ export function HistorieUmbuchungDrawer({
         <DrawerHeader className="mx-auto w-full max-w-sm">
           <DrawerTitle>
             {quelleTitel(quelle)} ·{' '}
-            {formatRelativeTime(
-              quelle.art === 'bestellung'
-                ? quelle.aufgenommenAm
-                : quelle.umgebuchtAm,
-            )}{' '}
-            · {quelle.userName}
+            {formatRelativeTime(quelleZeitpunkt(quelle))} · {quelle.userName}
           </DrawerTitle>
           <DrawerDescription>
             Positionen auswählen und auf einen Ziel-Tisch umbuchen.

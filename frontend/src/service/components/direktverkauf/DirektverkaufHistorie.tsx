@@ -13,7 +13,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatCents, formatRelativeTime } from '@/lib/utils'
@@ -26,6 +25,7 @@ import type {
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
 import { Kommentar } from '../table/CommentField'
 import { toReceiptItems } from '../table/drawerUtils'
+import { HistorieRowSkeleton } from '../table/HistorieRowSkeleton'
 import { Receipt } from '../table/Receipt'
 import { DirektverkaufStornoDrawer } from './DirektverkaufStornoDrawer'
 
@@ -78,7 +78,7 @@ export function DirektverkaufHistorie({
       <div className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
         {Array.from({ length: 6 }).map((_, index) => (
           // eslint-disable-next-line react-x/no-array-index-key
-          <HistorieItemSkeleton key={index} />
+          <HistorieRowSkeleton key={index} />
         ))}
       </div>
     )
@@ -274,18 +274,5 @@ function Details({
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
-  )
-}
-
-function HistorieItemSkeleton() {
-  return (
-    <div className="flex items-center gap-3 rounded-md border px-3 py-3">
-      <Skeleton className="size-10 shrink-0 rounded-full" />
-      <div className="flex flex-1 flex-col gap-1">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-3 w-48" />
-      </div>
-      <Skeleton className="h-4 w-16" />
-    </div>
   )
 }

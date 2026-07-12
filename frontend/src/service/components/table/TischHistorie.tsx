@@ -6,6 +6,7 @@ import {
   Plus,
   RotateCcw,
 } from 'lucide-react'
+import type { Dispatch, SetStateAction } from 'react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -20,7 +21,6 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { ItemGroup } from '@/components/ui/item'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import { cn, formatCents, formatRelativeTime } from '@/lib/utils'
@@ -34,6 +34,7 @@ import type { Umbuchung } from '../../table/Umbuchung'
 import type { Zahlung } from '../../table/Zahlung'
 import { Kommentar } from './CommentField'
 import { toReceiptItems } from './drawerUtils'
+import { HistorieRowSkeleton } from './HistorieRowSkeleton'
 import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 import { Receipt, type ReceiptPosition } from './Receipt'
@@ -138,28 +139,6 @@ export function TischHistorie({
   const [detail, setDetail] = useState<HistorieEintrag | null>(null)
   const [stornierenQuelle, setStornierenQuelle] = useState<Quelle | null>(null)
   const [umbuchenQuelle, setUmbuchenQuelle] = useState<Quelle | null>(null)
-  const { loading: belegDruckenLoading, run: runBelegDrucken } =
-    useActionSubmit({
-      actionLabel: 'Beleg drucken',
-      byCode: {
-        kassenbeleg_drucker_nicht_konfiguriert:
-          'Kein Kassenbeleg-Drucker konfiguriert. Bitte in den Admin-Einstellungen hinterlegen.',
-        zahlung_not_found: 'Die ausgewählte Zahlung wurde nicht gefunden.',
-        stornierung_not_found: 'Die Stornierung wurde nicht gefunden.',
-      },
-    })
-
-  const stornobelegAnfordern = (stornierungId: string) => {
-    void runBelegDrucken(async () => {
-      const status = await belegDruckenMitNachfassen(() =>
-        backend.stornobelegDrucken(tisch.id, stornierungId),
-      )
-      meldeBelegStatus(
-        status,
-        'Stornobeleg in die Druckwarteschlange eingereiht.',
-      )
-    })
-  }
 
   return (
     <>
@@ -167,7 +146,7 @@ export function TischHistorie({
         {historieLoading
           ? Array.from({ length: 6 }).map((_, index) => (
               // eslint-disable-next-line react-x/no-array-index-key
-              <ItemSkeleton key={index} />
+              <HistorieRowSkeleton key={index} />
             ))
           : historie.map((item) => (
               <HistoryRow
@@ -179,75 +158,16 @@ export function TischHistorie({
               />
             ))}
       </ItemGroup>
-      {detail &&
-        (() => {
-          const canStornieren =
-            (detail.art === 'bestellung' || detail.art === 'umbuchung') &&
-            AuthSingleton.canCancel &&
-            detail.stornierbarePositionen.length > 0
-          const canUmbuchen =
-            (detail.art === 'bestellung' || detail.art === 'umbuchung') &&
-            AuthSingleton.canRebook &&
-            detail.umbuchbarePositionen.length > 0
-          const zeile = zeilenmodell(detail)
-          return (
-            <Details
-              {...detailView(detail)}
-              title={zeile.title}
-              userName={detail.userName}
-              tischName={tisch.name}
-              kommentar={zeile.kommentar}
-              onClose={() => {
-                setDetail(null)
-              }}
-              onStornieren={
-                canStornieren
-                  ? () => {
-                      setDetail(null)
-                      setStornierenQuelle(detail)
-                    }
-                  : undefined
-              }
-              onUmbuchen={
-                canUmbuchen
-                  ? () => {
-                      setDetail(null)
-                      setUmbuchenQuelle(detail)
-                    }
-                  : undefined
-              }
-              primaryAction={
-                detail.art === 'zahlung'
-                  ? {
-                      label: 'Beleg drucken',
-                      loading: belegDruckenLoading,
-                      onAction: () => {
-                        void runBelegDrucken(async () => {
-                          const status = await belegDruckenMitNachfassen(() =>
-                            backend.belegDrucken(tisch.id, detail.id),
-                          )
-                          meldeBelegStatus(
-                            status,
-                            'Beleg in die Druckwarteschlange eingereiht.',
-                          )
-                        })
-                      },
-                    }
-                  : // Nur die kassenwirksame Warenrücknahme (Bargeld zurück)
-                    // erzeugt einen Stornobeleg; die geldneutrale Korrektur nicht.
-                    detail.art === 'stornierung' && detail.barRueckgabe
-                    ? {
-                        label: 'Stornobeleg drucken',
-                        loading: belegDruckenLoading,
-                        onAction: () => {
-                          stornobelegAnfordern(detail.id)
-                        },
-                      }
-                    : undefined
-              }
-            />
-          )
-        })()}
+      {detail && (
+        <HistorieDetail
+          detail={detail}
+          tisch={tisch}
+          backend={backend}
+          setDetail={setDetail}
+          setStornierenQuelle={setStornierenQuelle}
+          setUmbuchenQuelle={setUmbuchenQuelle}
+        />
+      )}
       {stornierenQuelle && (
         <HistorieStornierungDrawer
           backend={backend}
@@ -277,6 +197,116 @@ export function TischHistorie({
         />
       )}
     </>
+  )
+}
+
+// HistorieDetail rendert den Detail-Drawer eines Historien-Eintrags: leitet die
+// Aktions-Berechtigungen und das Zeilenmodell intern ab und kümmert sich um den
+// Belegdruck (Zahlung → Beleg, Warenrücknahme → Stornobeleg).
+function HistorieDetail({
+  detail,
+  tisch,
+  backend,
+  setDetail,
+  setStornierenQuelle,
+  setUmbuchenQuelle,
+}: {
+  detail: HistorieEintrag
+  tisch: Tisch
+  backend: Pick<TischBackend, 'belegDrucken' | 'stornobelegDrucken'>
+  setDetail: Dispatch<SetStateAction<HistorieEintrag | null>>
+  setStornierenQuelle: Dispatch<SetStateAction<Quelle | null>>
+  setUmbuchenQuelle: Dispatch<SetStateAction<Quelle | null>>
+}) {
+  const { loading: belegDruckenLoading, run: runBelegDrucken } =
+    useActionSubmit({
+      actionLabel: 'Beleg drucken',
+      byCode: {
+        kassenbeleg_drucker_nicht_konfiguriert:
+          'Kein Kassenbeleg-Drucker konfiguriert. Bitte in den Admin-Einstellungen hinterlegen.',
+        zahlung_not_found: 'Die ausgewählte Zahlung wurde nicht gefunden.',
+        stornierung_not_found: 'Die Stornierung wurde nicht gefunden.',
+      },
+    })
+
+  const stornobelegAnfordern = (stornierungId: string) => {
+    void runBelegDrucken(async () => {
+      const status = await belegDruckenMitNachfassen(() =>
+        backend.stornobelegDrucken(tisch.id, stornierungId),
+      )
+      meldeBelegStatus(
+        status,
+        'Stornobeleg in die Druckwarteschlange eingereiht.',
+      )
+    })
+  }
+
+  const canStornieren =
+    (detail.art === 'bestellung' || detail.art === 'umbuchung') &&
+    AuthSingleton.canCancel &&
+    detail.stornierbarePositionen.length > 0
+  const canUmbuchen =
+    (detail.art === 'bestellung' || detail.art === 'umbuchung') &&
+    AuthSingleton.canRebook &&
+    detail.umbuchbarePositionen.length > 0
+  const zeile = zeilenmodell(detail)
+
+  return (
+    <Details
+      {...detailView(detail)}
+      title={zeile.title}
+      userName={detail.userName}
+      tischName={tisch.name}
+      kommentar={zeile.kommentar}
+      onClose={() => {
+        setDetail(null)
+      }}
+      onStornieren={
+        canStornieren
+          ? () => {
+              setDetail(null)
+              setStornierenQuelle(detail)
+            }
+          : undefined
+      }
+      onUmbuchen={
+        canUmbuchen
+          ? () => {
+              setDetail(null)
+              setUmbuchenQuelle(detail)
+            }
+          : undefined
+      }
+      primaryAction={
+        detail.art === 'zahlung'
+          ? {
+              label: 'Beleg drucken',
+              loading: belegDruckenLoading,
+              onAction: () => {
+                void runBelegDrucken(async () => {
+                  const status = await belegDruckenMitNachfassen(() =>
+                    backend.belegDrucken(tisch.id, detail.id),
+                  )
+                  meldeBelegStatus(
+                    status,
+                    'Beleg in die Druckwarteschlange eingereiht.',
+                  )
+                })
+              },
+            }
+          : // Nur die kassenwirksame Warenrücknahme (Bargeld zurück)
+            // erzeugt einen Stornobeleg; die geldneutrale Korrektur nicht.
+            detail.art === 'stornierung' && detail.barRueckgabe
+            ? {
+                label: 'Stornobeleg drucken',
+                loading: belegDruckenLoading,
+                onAction: () => {
+                  stornobelegAnfordern(detail.id)
+                },
+              }
+            : undefined
+      }
+    />
   )
 }
 
@@ -328,19 +358,6 @@ function HistoryRow({
       </span>
       <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
     </button>
-  )
-}
-
-function ItemSkeleton() {
-  return (
-    <div className="flex items-center gap-3 rounded-md border px-3 py-3">
-      <Skeleton className="size-10 shrink-0 rounded-full" />
-      <div className="flex flex-1 flex-col gap-1">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-3 w-48" />
-      </div>
-      <Skeleton className="h-4 w-16" />
-    </div>
   )
 }
 
@@ -457,7 +474,6 @@ function Details({
                 <Button
                   variant="outline"
                   className="flex-1"
-                  disabled={primaryAction?.loading}
                   onClick={onUmbuchen}
                 >
                   <ArrowRightLeft /> Umbuchen
@@ -467,7 +483,6 @@ function Details({
                 <Button
                   variant="outline"
                   className="flex-1 border-destructive/40 text-destructive"
-                  disabled={primaryAction?.loading}
                   onClick={onStornieren}
                 >
                   <RotateCcw /> Stornieren…

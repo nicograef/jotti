@@ -46,14 +46,14 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
     // daher wird hier nichts weiter angeklickt.
     await expect(wasserZeile).toBeVisible()
 
-    // Ohne explizite Ziel-Tisch-Wahl bleibt die Umbuchung gesperrt (kein stiller
-    // Default mehr) — erst die Auswahl gibt den Button frei.
     // Optionales Benutzerkommentar erfassen (ergänzt den Richtungs-Autotext).
     await drawer.getByPlaceholder('Kommentar (optional)').fill('Gast gewechselt')
 
     const ausfuehren = drawer.getByRole('button', {
       name: 'Umbuchung ausführen',
     })
+    // Ohne explizite Ziel-Tisch-Wahl bleibt die Umbuchung gesperrt (kein stiller
+    // Default mehr) — erst die Auswahl gibt den Button frei.
     await expect(ausfuehren).toBeDisabled()
     await drawer.getByRole('combobox').selectOption({ label: ZIEL_TISCH })
     await expect(ausfuehren).toBeEnabled()

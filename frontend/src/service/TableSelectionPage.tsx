@@ -75,7 +75,7 @@ export function TableSelectionPage() {
         />
       ) : gefilterteTische.length === 0 ? (
         <div className="py-8 text-center text-muted-foreground">
-          <p>Kein markierter Tisch passt zu „{suche.trim()}".</p>
+          <p>Kein markierter Tisch passt zu „{suche.trim()}“.</p>
           <Button
             variant="link"
             onClick={() => {

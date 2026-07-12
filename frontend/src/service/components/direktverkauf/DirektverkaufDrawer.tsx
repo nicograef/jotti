@@ -44,8 +44,9 @@ export function DirektverkaufDrawer(props: DirektverkaufDrawerProps) {
   const [open, setOpen] = useState(false)
   const [erhaltenEuro, setErhaltenEuro] = useState('')
   const [kommentar, setKommentar] = useState('')
-  // verkaufId pro logischem Vorgang, nicht pro Retry.
-  const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
+  // verkaufId pro logischem Vorgang, nicht pro Retry — die Regeneration erfolgt
+  // beim Öffnen in onOpenChange(true).
+  const [verkaufId, setVerkaufId] = useState('')
 
   const { rueckgeldCents } = calculateZahlungsbetraege(
     props.totalCents,

@@ -49,7 +49,9 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
     await detail.getByRole('button', { name: /Stornieren…/ }).click()
 
     let drawer = page.getByRole('dialog')
-    await expect(drawer.getByRole('heading', { name: /^Bestellung ·/ })).toBeVisible()
+    await expect(
+      drawer.getByRole('heading', { name: /^Bestellung ·/ }),
+    ).toBeVisible()
     const pommesZeile = zeileMit(drawer, 'Pommes Klein', 'hinzufügen')
     await pommesZeile.getByRole('button', { name: /hinzufügen/ }).click()
     await drawer

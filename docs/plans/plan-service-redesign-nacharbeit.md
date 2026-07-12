@@ -213,13 +213,13 @@ umbuchung.
 
 ### Acceptance criteria
 
-- [ ] Kein sichtbares oder funktionales Verhalten ändert sich (reine
+- [x] Kein sichtbares oder funktionales Verhalten ändert sich (reine
       Extraktionen, tote Ausdrücke, Typografie); bestehende Komponenten-Tests
       laufen unverändert grün.
-- [ ] `TischHistorie.tsx` enthält keine Inline-IIFE mehr; das Skeleton existiert
+- [x] `TischHistorie.tsx` enthält keine Inline-IIFE mehr; das Skeleton existiert
       genau einmal.
-- [ ] Beide Historie-Drawer beziehen Titel und Zeitpunkt aus `drawerUtils`.
-- [ ] `make check` und die beiden angefassten E2E-Specs grün.
+- [x] Beide Historie-Drawer beziehen Titel und Zeitpunkt aus `drawerUtils`.
+- [x] `make check` und die beiden angefassten E2E-Specs grün.
 
 ---
 

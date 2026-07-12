@@ -18,6 +18,13 @@ export function quelleTitel(quelle: Bestellung | Umbuchung): string {
   return quelle.art === 'bestellung' ? 'Bestellung' : quelle.kommentar
 }
 
+// quelleZeitpunkt liefert den Erfassungszeitpunkt des Vorgangs für die
+// Folge-Drawer (Stornieren/Umbuchen): den Bestellzeitpunkt einer Bestellung
+// bzw. den Umbuchungszeitpunkt eines Umbuchungs-Zugangs.
+export function quelleZeitpunkt(quelle: Bestellung | Umbuchung): string {
+  return quelle.art === 'bestellung' ? quelle.aufgenommenAm : quelle.umgebuchtAm
+}
+
 // Minimale Positionsform, die toAuswahlPositionen benötigt (Position und
 // VerkaufPosition erfüllen sie beide).
 interface AuswaehlbarePosition {
