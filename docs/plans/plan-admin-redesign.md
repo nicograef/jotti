@@ -679,7 +679,7 @@ bis zur Abnahme liegen.
 
 ### Acceptance criteria
 
-- [ ] G10-Punkt in `offene-punkte.md` ist gegengeprüft und abgehakt oder mit konkretem Restbestand aktualisiert
-- [ ] Alle vier PRD-Vereinfachungen und die Out-of-Scope-Grenzen sind im Code verifiziert (kurze Checkliste im Chat)
-- [ ] `make verify` (inkl. Integrationstests) ist grün
-- [ ] Screenshots aller acht Admin-Seiten in Light und Dark liegen zur Abnahme bereit
+- [x] G10-Punkt in `offene-punkte.md` ist gegengeprüft und abgehakt oder mit konkretem Restbestand aktualisiert
+- [x] Alle vier PRD-Vereinfachungen und die Out-of-Scope-Grenzen sind im Code verifiziert (kurze Checkliste im Chat)
+- [x] `make verify` (inkl. Integrationstests) ist grün
+- [x] Screenshots aller acht Admin-Seiten in Light und Dark liegen zur Abnahme bereit <!-- 16 PNGs im Session-Scratchpad admin-shots/ via e2e-Stack (docker-compose.e2e.yml) + Playwright; nicht committet (Abnahme-Artefakt) -->

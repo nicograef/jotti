@@ -16,7 +16,7 @@ Quelle: `plan-audit-v0.15.0.md`, Phase-5-Befunde vom 09.07.2026.
   ausgeführt (aktuell No-op, weil dort keines existiert). Patch: in der
   while-Schleife vor dem Binary-Test einfügen:
   `if [ -n "$CLAUDE_PROJECT_DIR" ]; then case "$d" in "$CLAUDE_PROJECT_DIR"|"$CLAUDE_PROJECT_DIR"/*) ;; *) break;; esac; fi;`
-- [ ] **G10: Dark-Mode-Kontrast der Löschen-Buttons** (Design-Entscheidung
+- [x] **G10: Dark-Mode-Kontrast der Löschen-Buttons** (Design-Entscheidung
   offen). Solide Buttons mit `bg-destructive text-white` erreichen im
   Dark-Mode nur 2,89:1 (WCAG AA verlangt 4,5:1; `--destructive` ist dort
   red-400, `frontend/src/index.css`). Betroffen: DruckstationConfigPage,
@@ -25,6 +25,14 @@ Quelle: `plan-audit-v0.15.0.md`, Phase-5-Befunde vom 09.07.2026.
   auf Flächen) oder eigenes `--destructive-foreground`-Token (präziser, fünf
   Call-Sites). Alle übrigen Kern-Token-Paare bestehen AA in Light und Dark;
   a11y-relevant wegen BYOD-Nutzung im Freien.
+  **Erledigt (2026-07-12, Admin-Redesign Phase 12):** Zweifach adressiert —
+  (1) das Dark-`--destructive` wurde bereits in `ea3ade0` angehoben; (2) das
+  Admin-Redesign hat die Befund-Grundlage aufgelöst: `VariantItem` und
+  `UserItem` sind gelöscht, und jede destruktive Löschen-Aktion sitzt jetzt in
+  einem „···"-DropdownMenu + AlertDialog. Die einzigen verbleibenden soliden
+  `bg-destructive`-Buttons sind AlertDialog-Bestätigungen (ein Button pro
+  Modal), keine über die Listenzeilen gestreuten Volltonflächen mehr
+  (Compliance-Audit `acbafa6..HEAD`, alle Call-Sites geprüft).
 - [ ] **G7: `reset-and-seed.sh --yes` umgeht den Bestands-Guard**
   (Produktentscheidung offen). `jotti seed` (CLI) und der E2E-Reset-Endpoint
   brechen bei vorhandenen Kassenjournal-Events ab; `scripts/reset-and-seed.sh
