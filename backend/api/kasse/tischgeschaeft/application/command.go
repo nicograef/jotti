@@ -429,8 +429,8 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 
 	resolvedPositionen, gesamtCents := resolvePositions(quellState.UnbezahltePositionen, positionen)
 
-	quellKommentar := buildUmbuchungKommentar("Umbuchung auf Tisch ", zielTisch.Name)
-	zielKommentar := buildUmbuchungKommentar("Umbuchung von Tisch ", quellTisch.Name)
+	quellKommentar := buildUmbuchungKommentar("Umbuchung auf ", zielTisch.Name)
+	zielKommentar := buildUmbuchungKommentar("Umbuchung von ", quellTisch.Name)
 
 	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ks.ZNr, quellTischID, zielTischID, userID, userName, resolvedPositionen, gesamtCents, quellKommentar, zielKommentar, benutzerKommentar)
 	if err != nil {

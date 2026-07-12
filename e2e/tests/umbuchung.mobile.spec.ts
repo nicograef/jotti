@@ -68,12 +68,12 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
     await expect(page.getByText('2,00 €').first()).toBeVisible()
 
     // Der Umbuchungs-Zugang trägt das Benutzerkommentar (Autotext bleibt Titel).
-    // Der Autotext lautet "Umbuchung von Tisch <Tischname>" — mit dem Seed-Namen
-    // "Tisch 3" ergibt das die Doppelung "… von Tisch Tisch 3".
+    // Der Autotext lautet "Umbuchung von <Tischname>" — mit dem Seed-Namen
+    // "Tisch 3" ergibt das "Umbuchung von Tisch 3", ohne Doppelung des Worts "Tisch".
     await page.getByRole('tab', { name: 'Historie' }).click()
     const zugangDetail = await oeffneHistorienDetail(
       page,
-      new RegExp(`Umbuchung von Tisch ${QUELL_TISCH}`),
+      new RegExp(`Umbuchung von ${QUELL_TISCH}`),
     )
     await expect(zugangDetail.getByRole('textbox')).toHaveValue(
       'Gast gewechselt',

@@ -251,13 +251,13 @@ Alt-Texte bleiben gültig.
 
 ### Acceptance criteria
 
-- [ ] Eine neue Umbuchung erzeugt die Kommentare `Umbuchung von <Name>` (Zugang)
+- [x] Eine neue Umbuchung erzeugt die Kommentare `Umbuchung von <Name>` (Zugang)
       und `Umbuchung auf <Name>` (Abgang); die 100-Runen-Kürzung über
       `buildUmbuchungKommentar` bleibt wirksam.
-- [ ] `event_json_contract_test.go` unverändert grün.
-- [ ] `command_test.go`, `seed/engine_test.go` und
+- [x] `event_json_contract_test.go` unverändert grün.
+- [x] `command_test.go`, `seed/engine_test.go` und
       `umbuchung.mobile.spec.ts` (inkl. bereinigtem Doppelungs-Kommentar) grün.
-- [ ] `make check` grün.
+- [x] `make check` grün.
 
 ---
 

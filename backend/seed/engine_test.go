@@ -284,7 +284,7 @@ func TestBuildSeedDaten_Umbuchungspaar(t *testing.T) {
 			continue
 		}
 		abgang := parseData[kasse.BestellungUmgebuchtV1Data](t, ev.event)
-		if !strings.HasPrefix(abgang.Kommentar, "Umbuchung auf Tisch ") {
+		if !strings.HasPrefix(abgang.Kommentar, "Umbuchung auf ") {
 			continue
 		}
 		anzahl++
@@ -297,7 +297,7 @@ func TestBuildSeedDaten_Umbuchungspaar(t *testing.T) {
 			t.Fatalf("auf Umbuchungs-Abgang folgt %s, erwartet bestellung-umgebucht", naechstes.event.Type)
 		}
 		zugang := parseData[kasse.BestellungUmgebuchtV1Data](t, naechstes.event)
-		if !strings.HasPrefix(zugang.Kommentar, "Umbuchung von Tisch ") {
+		if !strings.HasPrefix(zugang.Kommentar, "Umbuchung von ") {
 			t.Errorf("Zugangs-Kommentar %q ohne Umbuchungs-Präfix", zugang.Kommentar)
 		}
 		if zugang.UmbuchungID != abgang.UmbuchungID {

@@ -690,7 +690,7 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	if quellData.QuellTischID != quellTisch.ID || quellData.ZielTischID != zielTisch.ID {
 		t.Fatalf("unexpected source tisch refs: quell=%d ziel=%d", quellData.QuellTischID, quellData.ZielTischID)
 	}
-	if quellData.Kommentar != "Umbuchung auf Tisch Tisch Ziel" {
+	if quellData.Kommentar != "Umbuchung auf Tisch Ziel" {
 		t.Fatalf("unexpected source comment: %q", quellData.Kommentar)
 	}
 	if quellData.BenutzerKommentar != "Gast gewechselt" {
@@ -718,7 +718,7 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	if zielData.UmbuchungID != quellData.UmbuchungID {
 		t.Fatalf("expected shared UmbuchungID, got quell=%q ziel=%q", quellData.UmbuchungID, zielData.UmbuchungID)
 	}
-	if zielData.Kommentar != "Umbuchung von Tisch Tisch Quelle" {
+	if zielData.Kommentar != "Umbuchung von Tisch Quelle" {
 		t.Fatalf("unexpected target comment: %q", zielData.Kommentar)
 	}
 	if zielData.BenutzerKommentar != "Gast gewechselt" {
@@ -786,10 +786,10 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 	if utf8.RuneCountInString(zielData.Kommentar) > 100 {
 		t.Fatalf("expected target comment length <= 100 runes, got %d", utf8.RuneCountInString(zielData.Kommentar))
 	}
-	if !strings.HasPrefix(quellData.Kommentar, "Umbuchung auf Tisch ") {
+	if !strings.HasPrefix(quellData.Kommentar, "Umbuchung auf ") {
 		t.Fatalf("expected source comment prefix, got %q", quellData.Kommentar)
 	}
-	if !strings.HasPrefix(zielData.Kommentar, "Umbuchung von Tisch ") {
+	if !strings.HasPrefix(zielData.Kommentar, "Umbuchung von ") {
 		t.Fatalf("expected target comment prefix, got %q", zielData.Kommentar)
 	}
 }

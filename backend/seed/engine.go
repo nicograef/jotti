@@ -319,7 +319,7 @@ func (b *sitzungsBuilder) umbuchen(a umbuchen) error {
 	betrag := summeCents(auswahl)
 
 	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(b.sitzung.ZNr, a.VonTisch, a.NachTisch, a.User, name,
-		auswahl, betrag, "Umbuchung auf Tisch "+zielTisch, "Umbuchung von Tisch "+quellTisch, "")
+		auswahl, betrag, "Umbuchung auf "+zielTisch, "Umbuchung von "+quellTisch, "")
 	if err != nil {
 		return err
 	}
