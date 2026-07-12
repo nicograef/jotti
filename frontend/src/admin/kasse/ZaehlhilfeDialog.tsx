@@ -28,8 +28,9 @@ function nennwertLabel(nennwert: Nennwert): string {
     : `${String(nennwert / 100)} €`
 }
 
-// ZaehlhilfeInhalt hält die Zählung. Er wird beim Öffnen frisch gemountet (key
-// am Aufrufer), damit jede Zählung leer startet — ohne setState im Effekt.
+// ZaehlhilfeInhalt hält die Zählung. Er wird beim Öffnen frisch gemountet
+// (bedingt gerendert am Aufrufer), damit jede Zählung leer startet — ohne
+// setState im Effekt.
 function ZaehlhilfeInhalt({
   onOpenChange,
   onUebernehmen,

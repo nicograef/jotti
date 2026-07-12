@@ -60,7 +60,7 @@ export function AdminDashboardPage() {
       `seit ${formatStand(new Date(kassensitzung.eroeffnetAm).getTime())}`,
     kassenbestand !== null &&
       `Soll-Bestand ${formatCents(kassenbestand.sollBestandCents)} €`,
-  ].filter((teil): teil is string => teil !== false && teil !== '')
+  ].filter((teil): teil is string => typeof teil === 'string')
   const kasseText = kasseTeile.length > 0 ? kasseTeile.join(' · ') : 'geöffnet'
 
   return (

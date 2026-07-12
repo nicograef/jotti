@@ -12,6 +12,7 @@ import {
   type Kassenbestand,
   KassenbestandSchema,
   KassensitzungSchema,
+  KommentarSchema,
 } from './Kassensitzung'
 
 export const KassensitzungEroeffnenSchema = z.object({
@@ -34,10 +35,7 @@ export const GeldtransitBuchenSchema = z.object({
     .number()
     .int()
     .min(1, { message: 'Betrag muss mindestens 1 Cent sein.' }),
-  kommentar: z
-    .string()
-    .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' })
-    .max(200, { message: 'Kommentar darf maximal 200 Zeichen lang sein.' }),
+  kommentar: KommentarSchema,
 })
 
 export const KasseAbschliessenSchema = z.object({

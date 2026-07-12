@@ -24,7 +24,11 @@ import { Input } from '@/components/ui/input'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import { kasseBackend } from './hooks'
-import { BetragCentsSchema, type GeldtransitRichtung } from './Kassensitzung'
+import {
+  BetragCentsSchema,
+  type GeldtransitRichtung,
+  KommentarSchema,
+} from './Kassensitzung'
 
 // GeldtransitDialog bucht eine einzelne Bargeldbewegung mit fest vorgegebener
 // Richtung (die Buttons „+ Geld einlegen" / „− Geld entnehmen" wählen sie). Die
@@ -48,10 +52,7 @@ export function GeldtransitDialog({
     betragCents: BetragCentsSchema.gte(1, {
       message: 'Bitte einen Betrag größer als 0 eingeben.',
     }),
-    kommentar: z
-      .string()
-      .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' })
-      .max(200, { message: 'Kommentar darf maximal 200 Zeichen lang sein.' }),
+    kommentar: KommentarSchema,
   })
   type FormData = z.infer<typeof FormDataSchema>
 

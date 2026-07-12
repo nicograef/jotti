@@ -73,9 +73,10 @@ const REFERENZ_PRAEFIX_LABEL: Record<string, string> = {
   'stornierung-erteilt': 'Stornierung',
 }
 
-// Testbons tragen als Referenz "testdruck:<kategorie>" (keine Event-ID). Sie
-// werden fachlich als „Testbon <Station>" angezeigt.
-const KATEGORIE_LABEL: Record<string, string> = {
+// Fachlicher Anzeigename je Kategorie, geteilt von der Referenz-Anzeige
+// fehlgeschlagener Druckaufträge (unten) und den Stationsköpfen der
+// Bondrucker-Seite. Testbons tragen als Referenz "testdruck:<kategorie>".
+export const KATEGORIE_LABEL: Record<string, string> = {
   essen: 'Essen',
   getraenk: 'Getränk',
   sonstiges: 'Sonstiges',

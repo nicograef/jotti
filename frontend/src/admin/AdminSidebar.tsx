@@ -15,11 +15,8 @@ import {
 import { NavLink, useLocation, useNavigate } from 'react-router'
 
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
-import {
-  RUECKSTAND_WARN_SEKUNDEN,
-  useTSESignaturQueue,
-  useTSEStatus,
-} from '@/admin/tse/hooks'
+import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
+import { tseAmpel } from '@/admin/tse/tseAmpel'
 import { useTheme } from '@/components/theme-provider'
 import {
   Sidebar,
@@ -91,17 +88,9 @@ export function AdminSidebar() {
 
   const kasseOffen = kassensitzung !== null
   const bondruckerFehler = druckauftraege.length > 0
-  // Finanzamt & TSE ist kritisch, wenn die TSE nicht konfiguriert ist oder —
-  // bei konfigurierter TSE — der Signatur-Rückstand die Schwelle reißt bzw.
-  // Signaturaufträge endgültig fehlgeschlagen sind. Deckt sich mit der
-  // showTSEBanner-Logik im Dashboard: ein fehlerhafter Status (nicht ladend)
-  // zählt als „nicht konfiguriert".
-  const tseNichtKonfiguriert = !tseLoading && !tseStatus?.istKonfiguriert
-  const signaturRueckstand =
-    !tseNichtKonfiguriert &&
-    ((queue?.rueckstandSekunden ?? 0) >= RUECKSTAND_WARN_SEKUNDEN ||
-      (queue?.fehlgeschlageneAuftraege ?? 0) > 0)
-  const finanzamtFehler = tseNichtKonfiguriert || signaturRueckstand
+  // Finanzamt & TSE ist kritisch nach derselben Regel wie die „Läuft alles?"-
+  // Karte: tseAmpel ist die Single Source of Truth für den TSE-Fehlerzustand.
+  const finanzamtFehler = tseAmpel(tseStatus, tseLoading, queue).fehler
 
   const heuteItems: NavItem[] = [
     {
@@ -167,7 +156,6 @@ export function AdminSidebar() {
     },
   ]
 
-  // "Kasse offen · seit HH:MM" bei offener Kasse, sonst "Kasse geschlossen".
   const kasseStatusText = kasseOffen
     ? `Kasse offen · seit ${new Date(
         kassensitzung.eroeffnetAm,

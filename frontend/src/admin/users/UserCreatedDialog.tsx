@@ -36,11 +36,11 @@ export function UserCreatedDialog(props: UserCreatedDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <Field className="gap-1">
-          <FieldLabel htmlFor="username">Benutzername</FieldLabel>
+          <FieldLabel>Benutzername</FieldLabel>
           <p className="text-3xl">{props.user?.username}</p>
         </Field>
         <Field className="gap-1">
-          <FieldLabel htmlFor="onetimePassword">Code</FieldLabel>
+          <FieldLabel>Code</FieldLabel>
           <p
             data-testid="onetime-password"
             className="text-3xl tracking-widest"

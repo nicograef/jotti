@@ -34,11 +34,11 @@ export function PasswordResetDialog(props: PasswordResetDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <Field className="gap-1">
-          <FieldLabel htmlFor="username">Benutzername</FieldLabel>
+          <FieldLabel>Benutzername</FieldLabel>
           <p className="text-3xl">{props.username}</p>
         </Field>
         <Field className="gap-1">
-          <FieldLabel htmlFor="onetimePassword">Code</FieldLabel>
+          <FieldLabel>Code</FieldLabel>
           <p
             data-testid="onetime-password"
             className="text-3xl tracking-widest"
