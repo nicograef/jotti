@@ -88,9 +88,24 @@ vi.mock('./hooks', () => ({
   }),
 }))
 
+interface OffenerTischMock {
+  tischId: number
+  tischName: string
+  saldoCents: number
+}
+
+const liveReportingState = vi.hoisted(
+  (): { offeneTische: OffenerTischMock[]; offeneSaldiCents: number } => ({
+    offeneTische: [],
+    offeneSaldiCents: 0,
+  }),
+)
+
 vi.mock('@/admin/reporting/hooks', () => ({
   useLiveReporting: () => ({
     liveData: {
+      offeneTische: liveReportingState.offeneTische,
+      offeneSaldiCents: liveReportingState.offeneSaldiCents,
       summary: {
         gesamtUmsatzCents: 12345,
         gesamtStornierungenCents: 300,
@@ -126,6 +141,8 @@ afterEach(() => {
   offeneKassensitzungState.isError = false
   offeneKassensitzungState.kassensitzung = null
   geldtransitListeState.buchungen = []
+  liveReportingState.offeneTische = []
+  liveReportingState.offeneSaldiCents = 0
 })
 
 describe('KassensitzungPage', () => {
@@ -193,8 +210,9 @@ describe('KassensitzungPage', () => {
     expect(
       screen.getByText('Kassentag Nr. 12 — Sommerfest Tag 2'),
     ).toBeInTheDocument()
-    // Soll-Bestand groß und die vier Aufschlüsselungs-Kacheln.
-    expect(screen.getByText('340,00 €')).toBeInTheDocument()
+    // Soll-Bestand groß und die vier Aufschlüsselungs-Kacheln. 340,00 € steht in
+    // Schritt 2 (Soll-Bestand groß) und in der Live-Rechnung von Schritt 3.
+    expect(screen.getAllByText('340,00 €').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Anfangsbestand')).toBeInTheDocument()
     expect(screen.getByText('+ Bareinnahmen')).toBeInTheDocument()
     expect(screen.getByText('+ Einlagen')).toBeInTheDocument()
@@ -330,20 +348,72 @@ describe('EroeffnenSection', () => {
 })
 
 describe('KasseAbschliessenSection', () => {
-  it('nimmt den Ist-Bestand auf und stellt Soll, Ist und Differenz im Dialog gegenüber', async () => {
+  it('rechnet die Differenz live als Ist − Soll, Fehlbetrag negativ in Rot', async () => {
     const user = userEvent.setup()
     render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
 
-    const istInput = screen.getByLabelText('Gezählter Ist-Bestand')
-    await user.type(istInput, '342,50')
-    expect(istInput).toHaveValue('342,50')
+    // Soll ist 340,00 € (aus dem Kassenbestand-Mock). Ohne Eingabe: Gezählt
+    // 0,00 €, Differenz −340,00 € (Ist − Soll) als kompletter Fehlbetrag, rot.
+    expect(screen.getByText('340,00 €')).toBeInTheDocument()
+    expect(screen.getByText('0,00 €')).toBeInTheDocument()
+    const leerDifferenz = screen.getByText('-340,00 €')
+    expect(leerDifferenz).toHaveClass('text-destructive')
 
-    await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
+    // 337,50 € gezählt → Differenz −2,50 € (Fehlbetrag, fehlendes Geld), rot.
+    await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '337,50')
+    const fehlbetrag = screen.getByText('-2,50 €')
+    expect(fehlbetrag).toBeInTheDocument()
+    expect(fehlbetrag).toHaveClass('text-destructive')
+  })
+
+  it('färbt einen Überschuss (Ist > Soll) nicht rot', async () => {
+    const user = userEvent.setup()
+    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+
+    // 342,50 € gezählt bei Soll 340,00 € → Differenz +2,50 € (Überschuss),
+    // nicht rot.
+    await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
+    const ueberschuss = screen.getByText('2,50 €')
+    expect(ueberschuss).toBeInTheDocument()
+    expect(ueberschuss).not.toHaveClass('text-destructive')
+  })
+
+  it('warnt bei offenen Tischen mit Anzahl und Betrag, ohne offene Tische fehlt die Warnung', () => {
+    liveReportingState.offeneTische = [
+      { tischId: 1, tischName: 'Tisch 1', saldoCents: 25000 },
+      { tischId: 2, tischName: 'Tisch 2', saldoCents: 16200 },
+    ]
+    liveReportingState.offeneSaldiCents = 41200
+    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+
+    expect(
+      screen.getByText('2 Tische sind noch offen (412,00 €).'),
+    ).toBeInTheDocument()
+  })
+
+  it('zeigt ohne offene Tische keine Warnung', () => {
+    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+
+    expect(screen.queryByText(/noch offen/)).not.toBeInTheDocument()
+  })
+
+  it('stellt Soll, Ist und Differenz im Bestätigungsdialog gegenüber', async () => {
+    const user = userEvent.setup()
+    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
+    await user.click(
+      screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
+    )
 
     expect(screen.getByText('Kasse abschließen?')).toBeInTheDocument()
-    expect(screen.getByText('340,00 €')).toBeInTheDocument() // Soll
-    expect(screen.getByText('342,50 €')).toBeInTheDocument() // Ist
-    expect(screen.getByText('-2,50 €')).toBeInTheDocument() // Differenz (Soll − Ist)
+    // Ist-Bestand steht in der Live-Rechnung (Gezählt) und im Dialog (Ist-Bestand
+    // gezählt) — also mindestens zweimal.
+    expect(screen.getAllByText('342,50 €').length).toBeGreaterThanOrEqual(2)
+    // Der Bestätigungs-Button trägt weiterhin „Kasse abschließen".
+    expect(
+      screen.getByRole('button', { name: 'Kasse abschließen' }),
+    ).toBeInTheDocument()
   })
 
   it('bucht den Abschluss mit dem gezählten Ist-Bestand in Cent', async () => {
@@ -351,12 +421,25 @@ describe('KasseAbschliessenSection', () => {
     render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
 
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
+    await user.click(
+      screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
+    )
     await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
 
-    const buttons = screen.getAllByRole('button', { name: 'Kasse abschließen' })
-    await user.click(buttons[buttons.length - 1])
-
     expect(kasseAbschliessen).toHaveBeenCalledWith(34250)
+  })
+
+  it('übernimmt die Zählhilfe-Summe in das Ist-Bestand-Feld', async () => {
+    const user = userEvent.setup()
+    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /Zählhilfe öffnen/ }))
+    // 3×100 € (30000) + 2×20 € (4000) = 34000 → 340,00 €.
+    await user.type(screen.getByLabelText('100 €'), '3')
+    await user.type(screen.getByLabelText('20 €'), '2')
+    await user.click(screen.getByRole('button', { name: 'Übernehmen' }))
+
+    expect(screen.getByLabelText('Gezählter Ist-Bestand')).toHaveValue('340,00')
   })
 
   it('weist Ausfall-Reste in der Erfolgsmeldung aus', async () => {
@@ -368,9 +451,10 @@ describe('KasseAbschliessenSection', () => {
     render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
 
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
+    await user.click(
+      screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
+    )
     await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
-    const buttons = screen.getAllByRole('button', { name: 'Kasse abschließen' })
-    await user.click(buttons[buttons.length - 1])
 
     expect(toast.success).toHaveBeenCalledWith(
       expect.stringContaining('nachsigniert'),
@@ -391,9 +475,10 @@ describe('KasseAbschliessenSection', () => {
     render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
 
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
+    await user.click(
+      screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
+    )
     await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
-    const buttons = screen.getAllByRole('button', { name: 'Kasse abschließen' })
-    await user.click(buttons[buttons.length - 1])
 
     expect(toast.warning).toHaveBeenCalledWith(
       expect.stringContaining('2 Vorgänge sind noch nicht signiert'),

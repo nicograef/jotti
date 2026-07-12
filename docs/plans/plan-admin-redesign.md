@@ -546,11 +546,11 @@ Kein Backend-Change.
 
 ### Acceptance criteria
 
-- [ ] Live-Rechnung zeigt Soll, Gezählt und Differenz und aktualisiert bei jeder Eingabe; negative Differenz erscheint rot
-- [ ] Bei offenen Tischen erscheint die Warnung mit Anzahl und Betrag; ohne offene Tische fehlt sie
-- [ ] Zählhilfe summiert Stückzahlen je Nennwert und übernimmt die Summe ins Ist-Bestand-Feld; `summeAusStueckzahlen` und der Dialog sind isoliert getestet (Eingaben → Summe → Übernahme)
-- [ ] Der Abschluss läuft weiter über den bestehenden AlertDialog inklusive `signaturen_ausstehend`-Retry (Seitentest deckt den Retry-Fall weiter ab)
-- [ ] Differenz-Rechnung und Warnung sind über den Kassentag-Seitentest abgedeckt; `make check` grün
+- [x] Live-Rechnung zeigt Soll, Gezählt und Differenz und aktualisiert bei jeder Eingabe; negative Differenz erscheint rot
+- [x] Bei offenen Tischen erscheint die Warnung mit Anzahl und Betrag; ohne offene Tische fehlt sie
+- [x] Zählhilfe summiert Stückzahlen je Nennwert und übernimmt die Summe ins Ist-Bestand-Feld; `summeAusStueckzahlen` und der Dialog sind isoliert getestet (Eingaben → Summe → Übernahme)
+- [x] Der Abschluss läuft weiter über den bestehenden AlertDialog inklusive `signaturen_ausstehend`-Retry (Seitentest deckt den Retry-Fall weiter ab)
+- [x] Differenz-Rechnung und Warnung sind über den Kassentag-Seitentest abgedeckt; `make check` grün
 
 ---
 

@@ -169,10 +169,19 @@ export function KassensitzungPage() {
             </StepperRow>
 
             <StepperRow nummer={3} state="active" istLetzter>
-              <KasseAbschliessenSection
-                kassensitzungNr={kassensitzung.zNr}
-                onSuccess={() => void refetch()}
-              />
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    3 · Am Ende des Tages: Kasse abschließen
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <KasseAbschliessenSection
+                    kassensitzungNr={kassensitzung.zNr}
+                    onSuccess={() => void refetch()}
+                  />
+                </CardContent>
+              </Card>
             </StepperRow>
           </>
         ) : (
