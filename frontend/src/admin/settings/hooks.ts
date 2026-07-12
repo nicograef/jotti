@@ -5,6 +5,7 @@ import { BackendSingleton } from '@/lib/Backend'
 import {
   DruckstationBackend,
   type DruckstationConfig,
+  type Kategorie,
 } from './DruckstationBackend'
 
 const druckstationBackend = new DruckstationBackend(BackendSingleton)
@@ -25,7 +26,17 @@ export function useDruckstationen() {
     await queryClient.invalidateQueries({ queryKey: ['druckstationen'] })
   }
 
-  return { druckstationen: data, isPending, error, updateDruckstation }
+  const testbonDrucken = async (kategorie: Kategorie) => {
+    await druckstationBackend.testbonDrucken(kategorie)
+  }
+
+  return {
+    druckstationen: data,
+    isPending,
+    error,
+    updateDruckstation,
+    testbonDrucken,
+  }
 }
 
 export function useFehlgeschlageneDruckauftraege() {

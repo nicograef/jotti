@@ -192,6 +192,36 @@ func FormatDirektverkaufAbholbon(
 	return FormatSammelBon(positionen, "Direktverkauf", userName, zeitpunkt, kommentar, false)
 }
 
+// FormatTestbon generiert einen einfachen Testbon zum Prüfen von Drucker und
+// Netzwerk beim Aufbau. Er trägt nur Stationsname und Zeitstempel — kein
+// fiskalischer Inhalt, keine TSE-Daten. Der Testbon läuft wie jeder Bon über
+// die Outbox und schneidet das Papier am Ende.
+func FormatTestbon(stationsName string, zeitpunkt time.Time) []byte {
+	var buf bytes.Buffer
+
+	buf.WriteString(Init)
+	buf.WriteString(SetCodepageWPC1252)
+
+	buf.WriteString(AlignCenter)
+	buf.WriteString(TextDoubleAll)
+	buf.WriteString(BoldOn)
+	buf.WriteString(toWPC1252("TESTBON\n"))
+	buf.WriteString(BoldOff)
+	buf.WriteString(TextNormal)
+	buf.WriteString("\n")
+
+	buf.WriteString(toWPC1252(fmt.Sprintf("Station: %s\n", stationsName)))
+	buf.WriteString(toWPC1252(fmt.Sprintf("%s\n", zeitpunkt.Format("02.01.2006 15:04:05"))))
+	buf.WriteString("\n")
+	buf.WriteString(toWPC1252("Drucker und Netzwerk funktionieren.\n"))
+
+	buf.WriteString(AlignLeft)
+	buf.WriteString(strings.Repeat("\n", 5))
+	buf.WriteString(CutPaper)
+
+	return buf.Bytes()
+}
+
 // FormatKassenbeleg generiert einen fiskalischen Kassenbeleg.
 func FormatKassenbeleg(data KassenbelegData) []byte {
 	var buf bytes.Buffer

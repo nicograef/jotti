@@ -62,14 +62,25 @@ export function validateDruckerIp(druckerIp: string): string | null {
   return z.ipv4().safeParse(druckerIp).success ? null : 'Ungültige IPv4-Adresse'
 }
 
-// Referenz-Formate aus dem Backend (unverändert, siehe arbeitsbon_policy.go
-// und kassenbeleg_command.go): "<technischer-event-name>:<eventId>".
+// Referenz-Formate aus dem Backend (unverändert, siehe arbeitsbon_policy.go,
+// kassenbeleg_command.go und station/application/command.go):
+// "<technischer-event-name>:<eventId>" bzw. für Testbons "testdruck:<kategorie>".
 const REFERENZ_PRAEFIX_LABEL: Record<string, string> = {
   'bestellung-aufgenommen': 'Bestellung',
   'zahlung-kassiert': 'Zahlung',
   'direktverkauf-getaetigt': 'Direktverkauf',
   'direktverkauf-storniert': 'Direktverkauf-Storno',
   'stornierung-erteilt': 'Stornierung',
+}
+
+// Testbons tragen als Referenz "testdruck:<kategorie>" (keine Event-ID). Sie
+// werden fachlich als „Testbon <Station>" angezeigt.
+const KATEGORIE_LABEL: Record<string, string> = {
+  essen: 'Essen',
+  getraenk: 'Getränk',
+  sonstiges: 'Sonstiges',
+  kassenbeleg: 'Kassenbeleg',
+  abholbon: 'Abholbon',
 }
 
 // formatDruckauftragReferenz übersetzt die rohe Referenz eines fehlgeschlagenen
@@ -81,12 +92,18 @@ export function formatDruckauftragReferenz(referenz: string): string {
     return referenz
   }
   const praefix = referenz.slice(0, trennerIndex)
-  const id = referenz.slice(trennerIndex + 1)
-  const label = REFERENZ_PRAEFIX_LABEL[praefix] ?? ''
-  if (label === '' || id.length === 0) {
+  const rest = referenz.slice(trennerIndex + 1)
+  if (rest.length === 0) {
     return referenz
   }
-  return `${label} Nr. ${id}`
+  if (praefix === 'testdruck') {
+    return `Testbon ${KATEGORIE_LABEL[rest] ?? rest}`
+  }
+  const label = REFERENZ_PRAEFIX_LABEL[praefix] ?? ''
+  if (label === '') {
+    return referenz
+  }
+  return `${label} Nr. ${rest}`
 }
 
 export class DruckstationBackend {
@@ -107,6 +124,13 @@ export class DruckstationBackend {
 
   public async updateDruckstation(config: DruckstationConfig): Promise<void> {
     await this.backend.post('admin/update-druckstationen', config)
+  }
+
+  // Reiht einen Testbon (Stationsname + Zeitstempel) für die Kategorie in die
+  // Druck-Warteschlange ein. Ohne konfigurierten Drucker antwortet das Backend
+  // mit dem Fehlercode druckstation_nicht_konfiguriert.
+  public async testbonDrucken(kategorie: Kategorie): Promise<void> {
+    await this.backend.post('admin/testbon-drucken', { kategorie })
   }
 
   public async getFehlgeschlageneDruckauftraege(): Promise<

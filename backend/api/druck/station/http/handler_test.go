@@ -9,15 +9,23 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/nicograef/jotti/backend/api/druck/station/application"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 type mockDruckstationCommand struct {
-	err error
+	err               error
+	testbonErr        error
+	testbonKategorien []string
 }
 
 func (m *mockDruckstationCommand) UpsertDruckstation(ctx context.Context, kategorie, druckerIP, bonmodus string) error {
 	return m.err
+}
+
+func (m *mockDruckstationCommand) TestbonDrucken(ctx context.Context, kategorie string) error {
+	m.testbonKategorien = append(m.testbonKategorien, kategorie)
+	return m.testbonErr
 }
 
 type mockDruckstationQuery struct {
@@ -163,6 +171,63 @@ func TestUpdateDruckstationenHandler_StationOhneBonmodusAbgelehnt(t *testing.T) 
 		if rec.Code != http.StatusBadRequest {
 			t.Errorf("expected status 400 for %s without bonmodus, got %d", kategorie, rec.Code)
 		}
+	}
+}
+
+func TestTestbonDruckenHandler_Success(t *testing.T) {
+	cmd := &mockDruckstationCommand{}
+	handler := &CommandHandler{Command: cmd}
+
+	body := `{"kategorie":"essen"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/testbon-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.TestbonDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if len(cmd.testbonKategorien) != 1 || cmd.testbonKategorien[0] != "essen" {
+		t.Errorf("expected TestbonDrucken called with 'essen', got %v", cmd.testbonKategorien)
+	}
+}
+
+func TestTestbonDruckenHandler_InvalidKategorie(t *testing.T) {
+	cmd := &mockDruckstationCommand{}
+	handler := &CommandHandler{Command: cmd}
+
+	body := `{"kategorie":"quatsch"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/testbon-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.TestbonDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400 for invalid kategorie, got %d", rec.Code)
+	}
+	if len(cmd.testbonKategorien) != 0 {
+		t.Errorf("expected command not called on validation error, got %v", cmd.testbonKategorien)
+	}
+}
+
+func TestTestbonDruckenHandler_NichtKonfiguriert(t *testing.T) {
+	cmd := &mockDruckstationCommand{testbonErr: application.ErrDruckstationNichtKonfiguriert}
+	handler := &CommandHandler{Command: cmd}
+
+	body := `{"kategorie":"essen"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/testbon-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.TestbonDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400 for nicht konfiguriert, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "druckstation_nicht_konfiguriert") {
+		t.Errorf("expected error code druckstation_nicht_konfiguriert, got %s", rec.Body.String())
 	}
 }
 

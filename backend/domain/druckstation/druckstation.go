@@ -30,6 +30,25 @@ func (k Kategorie) HatBonmodus() bool {
 	}
 }
 
+// Anzeigename liefert die deutschsprachige Bezeichnung der Station (etwa für
+// den Testbon-Kopf). Für unbekannte Kategorien fällt sie auf den Rohwert zurück.
+func (k Kategorie) Anzeigename() string {
+	switch k {
+	case KategorieEssen:
+		return "Essen"
+	case KategorieGetraenk:
+		return "Getränk"
+	case KategorieSonstiges:
+		return "Sonstiges"
+	case KategorieKassenbeleg:
+		return "Kassenbeleg"
+	case KategorieAbholbon:
+		return "Abholbon"
+	default:
+		return string(k)
+	}
+}
+
 func (k Kategorie) isValid() bool {
 	switch k {
 	case KategorieEssen, KategorieGetraenk, KategorieSonstiges, KategorieKassenbeleg, KategorieAbholbon:

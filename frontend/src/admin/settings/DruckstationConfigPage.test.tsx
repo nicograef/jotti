@@ -3,15 +3,28 @@ import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { FehlgeschlagenerDruckauftrag } from './DruckstationBackend'
+import type {
+  DruckstationConfig,
+  FehlgeschlagenerDruckauftrag,
+} from './DruckstationBackend'
 import { DruckstationConfigPage } from './DruckstationConfigPage'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
 }))
 
-const { alleVerwerfen } = vi.hoisted(() => ({
-  alleVerwerfen: vi.fn<() => Promise<number>>().mockResolvedValue(2),
+const { alleVerwerfen, updateDruckstation, testbonDrucken } = vi.hoisted(
+  () => ({
+    alleVerwerfen: vi.fn<() => Promise<number>>().mockResolvedValue(2),
+    updateDruckstation: vi
+      .fn<() => Promise<void>>()
+      .mockResolvedValue(undefined),
+    testbonDrucken: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  }),
+)
+
+const druckstationenState = vi.hoisted(() => ({
+  druckstationen: [] as DruckstationConfig[],
 }))
 
 const fehlgeschlageneState = vi.hoisted(() => ({
@@ -20,10 +33,11 @@ const fehlgeschlageneState = vi.hoisted(() => ({
 
 vi.mock('./hooks', () => ({
   useDruckstationen: () => ({
-    druckstationen: [],
+    druckstationen: druckstationenState.druckstationen,
     isPending: false,
     error: null,
-    updateDruckstation: vi.fn(),
+    updateDruckstation,
+    testbonDrucken,
   }),
   useFehlgeschlageneDruckauftraege: () => ({
     druckauftraege: fehlgeschlageneState.druckauftraege,
@@ -47,27 +61,40 @@ function makeAuftrag(id: number): FehlgeschlagenerDruckauftrag {
   }
 }
 
+function makeStation(
+  overrides: Partial<DruckstationConfig>,
+): DruckstationConfig {
+  return {
+    kategorie: 'essen',
+    druckerIp: '192.168.1.50',
+    bonmodus: 'pro_position',
+    ...overrides,
+  }
+}
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
   fehlgeschlageneState.druckauftraege = []
+  druckstationenState.druckstationen = []
 })
 
-describe('DruckstationConfigPage', () => {
-  it('zeigt bei fehlgeschlagenen Aufträgen den Button "Alle verwerfen" und löst nach Bestätigung das Sammel-Verwerfen aus', async () => {
+describe('DruckstationConfigPage — Alarm-Karte', () => {
+  it('zeigt bei mehreren fehlgeschlagenen Aufträgen die Alarm-Karte mit "Alle verwerfen" und löst das Sammel-Verwerfen aus', async () => {
     fehlgeschlageneState.druckauftraege = [makeAuftrag(1), makeAuftrag(2)]
     const user = userEvent.setup()
     render(<DruckstationConfigPage />)
 
-    const trigger = screen.getByRole('button', { name: 'Alle verwerfen' })
-    expect(trigger).toBeInTheDocument()
+    expect(
+      screen.getByText(/2 Bons konnten nicht gedruckt werden/),
+    ).toBeInTheDocument()
 
+    const trigger = screen.getByRole('button', { name: 'Alle verwerfen' })
     await user.click(trigger)
 
     expect(
       screen.getByText('Alle fehlgeschlagenen Druckaufträge verwerfen?'),
     ).toBeInTheDocument()
-    expect(screen.getByText(/2 fehlgeschlagene Aufträge/)).toBeInTheDocument()
 
     const confirmButtons = screen.getAllByRole('button', {
       name: 'Alle verwerfen',
@@ -78,23 +105,110 @@ describe('DruckstationConfigPage', () => {
     expect(toast.success).toHaveBeenCalledWith('2 Aufträge verworfen.')
   })
 
-  it('zeigt ohne fehlgeschlagene Aufträge keinen "Alle verwerfen"-Button', () => {
-    fehlgeschlageneState.druckauftraege = []
+  it('zeigt bei genau einem Auftrag keinen "Alle verwerfen"-Button, aber "Nochmal drucken" am Auftrag', () => {
+    fehlgeschlageneState.druckauftraege = [makeAuftrag(1)]
     render(<DruckstationConfigPage />)
 
     expect(
       screen.queryByRole('button', { name: 'Alle verwerfen' }),
     ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Nochmal drucken' }),
+    ).toBeInTheDocument()
+  })
+
+  it('zeigt ohne fehlgeschlagene Aufträge keine Alarm-Karte', () => {
+    fehlgeschlageneState.druckauftraege = []
+    render(<DruckstationConfigPage />)
+
+    expect(
+      screen.queryByText(/konnten? nicht gedruckt werden/),
+    ).not.toBeInTheDocument()
   })
 
   it('zeigt die Referenz fachlich und den Rohwert im title-Attribut', () => {
     fehlgeschlageneState.druckauftraege = [makeAuftrag(86)]
-    const { container } = render(<DruckstationConfigPage />)
+    render(<DruckstationConfigPage />)
 
-    expect(screen.getByText(/Bestellung Nr\. 86/)).toBeInTheDocument()
-    expect(screen.queryByText(/bestellung-aufgenommen:86/)).toBeNull()
-
-    const referenzZeile = container.querySelector('[title]')
+    const referenzZeile = screen.getByText(/Bestellung Nr\. 86/)
     expect(referenzZeile).toHaveAttribute('title', 'bestellung-aufgenommen:86')
+  })
+})
+
+describe('DruckstationConfigPage — Stationskarten', () => {
+  it('löst den Testbon-Endpunkt für die Station aus und zeigt einen Erfolgs-Toast', async () => {
+    druckstationenState.druckstationen = [
+      makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
+    ]
+    const user = userEvent.setup()
+    render(<DruckstationConfigPage />)
+
+    await user.click(screen.getByRole('button', { name: /Testbon/ }))
+
+    expect(testbonDrucken).toHaveBeenCalledWith('essen')
+    expect(toast.success).toHaveBeenCalledWith('Testbon an „Essen“ gesendet.')
+  })
+
+  it('speichert die Drucker-IP on-blur mit Erfolgs-Toast', async () => {
+    druckstationenState.druckstationen = [
+      makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
+    ]
+    const user = userEvent.setup()
+    render(<DruckstationConfigPage />)
+
+    const input = screen.getByLabelText('Drucker-IP')
+    await user.clear(input)
+    await user.type(input, '192.168.1.99')
+    await user.tab()
+
+    expect(updateDruckstation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kategorie: 'essen',
+        druckerIp: '192.168.1.99',
+      }),
+    )
+    expect(toast.success).toHaveBeenCalledWith(
+      'Drucker-IP für „Essen“ gespeichert.',
+    )
+  })
+
+  it('speichert eine unveränderte IP nicht und zeigt bei ungültiger IP einen Fehler', async () => {
+    druckstationenState.druckstationen = [
+      makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
+    ]
+    const user = userEvent.setup()
+    render(<DruckstationConfigPage />)
+
+    const input = screen.getByLabelText('Drucker-IP')
+    await user.clear(input)
+    await user.type(input, '999.1.1.1')
+    await user.tab()
+
+    expect(updateDruckstation).not.toHaveBeenCalled()
+    expect(screen.getByText('Ungültige IPv4-Adresse')).toBeInTheDocument()
+  })
+
+  it('fasst nicht konfigurierte Stationen als gestrichelte Karte mit "Drucker zuweisen" zusammen', async () => {
+    druckstationenState.druckstationen = [
+      makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
+      makeStation({ kategorie: 'sonstiges', druckerIp: '' }),
+      makeStation({
+        kategorie: 'abholbon',
+        druckerIp: '',
+        bonmodus: 'pro_bestellung',
+      }),
+    ]
+    const user = userEvent.setup()
+    render(<DruckstationConfigPage />)
+
+    expect(
+      screen.getByText(/Sonstiges & Abholbon — kein Drucker/),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Drucker zuweisen' }))
+
+    // Nach dem Aufklappen sind die IP-Felder der bisher unkonfigurierten
+    // Stationen editierbar.
+    expect(screen.getAllByLabelText('Drucker-IP').length).toBe(3)
   })
 })

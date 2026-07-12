@@ -56,6 +56,7 @@ func (h *QueryHandler) GetDruckstationenHandler() http.HandlerFunc {
 
 type druckstationCommand interface {
 	UpsertDruckstation(ctx context.Context, kategorie, druckerIP, bonmodus string) error
+	TestbonDrucken(ctx context.Context, kategorie string) error
 }
 
 type CommandHandler struct {
@@ -103,6 +104,37 @@ func (h *CommandHandler) UpdateDruckstationenHandler() http.HandlerFunc {
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				application.ErrUngueltigeDruckstation: "validation_error",
+			})
+			return
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+type testbonDruckenRequest struct {
+	Kategorie string `json:"kategorie"`
+}
+
+var testbonDruckenSchema = z.Struct(z.Shape{
+	"Kategorie": z.String().OneOf(
+		[]string{"essen", "getraenk", "sonstiges", "kassenbeleg", "abholbon"},
+		z.Message("Ungültige Kategorie"),
+	).Required(),
+})
+
+// POST /admin/testbon-drucken
+func (h *CommandHandler) TestbonDruckenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body testbonDruckenRequest
+		if !helper.ReadAndValidateBody(w, r, &body, testbonDruckenSchema) {
+			return
+		}
+
+		err := h.Command.TestbonDrucken(r.Context(), body.Kategorie)
+		if err != nil {
+			helper.MapError(w, err, map[error]string{
+				application.ErrDruckstationNichtKonfiguriert: "druckstation_nicht_konfiguriert",
 			})
 			return
 		}

@@ -18,6 +18,8 @@ const commonErrorMessages: Record<string, string> = {
     'Nach dem Kassensturz wurden noch Buchungen erfasst. Der Abschluss kann so nicht wiederholt werden. Bitte den Administrator kontaktieren.',
   cannot_delete_self:
     'Der aktuell angemeldete Benutzer kann nicht gelöscht werden. Bitte einen anderen Benutzer wählen.',
+  druckstation_nicht_konfiguriert:
+    'Für diese Station ist kein Drucker konfiguriert. Bitte zuerst eine Drucker-IP eintragen, dann den Testbon senden.',
   conflict:
     'Die Daten wurden gerade von jemand anderem geändert. Bitte aktualisieren und erneut versuchen.',
   invalid_json:

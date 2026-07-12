@@ -1,3 +1,4 @@
+import { Printer } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -15,16 +16,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { cn } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
+import { WarnKarte } from '../components/WarnKarte'
 import {
   type Bonmodus,
   type DruckstationConfig,
@@ -36,122 +32,252 @@ import {
 } from './DruckstationBackend'
 import { useDruckstationen, useFehlgeschlageneDruckauftraege } from './hooks'
 
-const BON_ART_LABEL: Record<string, string> = {
-  arbeitsbon: 'Arbeitsbon',
-  kassenbeleg: 'Kassenbeleg',
-}
-
+// Kurzbeschreibung und ein einprägsames Label je Station (Handoff 1g).
 const KATEGORIE_INFO: Record<
   Kategorie,
   { label: string; beschreibung: string }
 > = {
-  essen: {
-    label: 'Essen',
-    beschreibung: 'Arbeitsbons für bestellte Essens-Positionen.',
-  },
-  getraenk: {
-    label: 'Getränk',
-    beschreibung: 'Arbeitsbons für bestellte Getränke-Positionen.',
-  },
+  essen: { label: 'Essen', beschreibung: 'Bons für die Essensausgabe' },
+  getraenk: { label: 'Getränk', beschreibung: 'Bons für den Ausschank' },
   sonstiges: {
     label: 'Sonstiges',
-    beschreibung: 'Arbeitsbons für sonstige Positionen.',
+    beschreibung: 'Bons für sonstige Positionen',
   },
-  kassenbeleg: {
-    label: 'Kassenbeleg',
-    beschreibung: 'Drucker für den Kassenbeleg (Zahlungsbeleg).',
-  },
+  kassenbeleg: { label: 'Kassenbeleg', beschreibung: 'Beleg für Gäste' },
   abholbon: {
     label: 'Abholbon',
-    beschreibung:
-      'Ist hier ein Drucker konfiguriert, werden beim Direktverkauf Abholbons an diese Station gedruckt (je nach Bonmodus einer pro Position oder ein Sammelbon) — sonst gehen Direktverkäufe an die Produktstationen.',
+    beschreibung: 'Abholnummern beim Direktverkauf',
   },
 }
 
-function DruckstationRow({
+// Die zwei Bonmodus-Optionen mit erklärendem Untertitel (Handoff 1g).
+const BONMODUS_OPTIONEN: { wert: Bonmodus; titel: string; hinweis: string }[] =
+  [
+    {
+      wert: 'pro_position',
+      titel: 'Pro Position',
+      hinweis: 'je Gericht ein Abreiß-Bon',
+    },
+    {
+      wert: 'pro_bestellung',
+      titel: 'Pro Bestellung',
+      hinweis: 'ein Sammelbon',
+    },
+  ]
+
+function BonmodusOptionen({
+  aktiv,
+  disabled,
+  onSelect,
+}: {
+  aktiv: Bonmodus | ''
+  disabled: boolean
+  onSelect: (bonmodus: Bonmodus) => void
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-muted-foreground">
+        Wie sollen Bons gedruckt werden?
+      </Label>
+      <div className="grid grid-cols-2 gap-2">
+        {BONMODUS_OPTIONEN.map((option) => {
+          const gewaehlt = aktiv === option.wert
+          return (
+            <button
+              key={option.wert}
+              type="button"
+              disabled={disabled}
+              aria-pressed={gewaehlt}
+              onClick={() => {
+                onSelect(option.wert)
+              }}
+              className={cn(
+                'rounded-lg border p-3 text-left transition-colors disabled:opacity-60',
+                gewaehlt ? 'border-primary bg-primary/5' : 'hover:bg-accent/50',
+              )}
+            >
+              <div className="text-sm font-semibold">{option.titel}</div>
+              <div className="text-xs text-muted-foreground">
+                {option.hinweis}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function DruckstationCard({
   config,
   onUpdate,
+  onTestbon,
 }: {
   config: DruckstationConfig
   onUpdate: (config: DruckstationConfig) => Promise<void>
+  onTestbon: (kategorie: Kategorie) => Promise<void>
 }) {
   const info = KATEGORIE_INFO[config.kategorie]
   const zeigtBonmodus = hatBonmodus(config.kategorie)
   const [druckerIp, setDruckerIp] = useState(config.druckerIp)
-  const [bonmodus, setBonmodus] = useState<Bonmodus | ''>(config.bonmodus)
   const [ipError, setIpError] = useState<string | null>(null)
-  const { loading: saving, run } = useActionSubmit({
-    actionLabel: 'Druckstation speichern',
+  const { loading: saving, run: runSave } = useActionSubmit({
+    actionLabel: 'Drucker-IP speichern',
+  })
+  const { loading: testing, run: runTestbon } = useActionSubmit({
+    actionLabel: 'Testbon senden',
+  })
+  const { loading: bonmodusSaving, run: runBonmodus } = useActionSubmit({
+    actionLabel: 'Bonmodus speichern',
   })
 
-  const handleSave = async () => {
+  // Speichert die Drucker-IP nur, wenn sie sich geändert und die Validierung
+  // besteht. Wird on-blur und per Enter ausgelöst (kein Speichern-Button).
+  const speichereIp = async () => {
+    if (druckerIp === config.druckerIp) {
+      setIpError(null)
+      return
+    }
     const fehler = validateDruckerIp(druckerIp)
     if (fehler !== null) {
       setIpError(fehler)
       return
     }
     setIpError(null)
+    await runSave(async () => {
+      await onUpdate({ ...config, druckerIp })
+      toast.success(`Drucker-IP für „${info.label}“ gespeichert.`)
+    })
+  }
 
-    await run(async () => {
-      await onUpdate({ kategorie: config.kategorie, druckerIp, bonmodus })
-      toast.success(`Druckstation „${info.label}“ gespeichert.`)
+  const waehleBonmodus = async (bonmodus: Bonmodus) => {
+    if (bonmodus === config.bonmodus) {
+      return
+    }
+    await runBonmodus(async () => {
+      await onUpdate({ ...config, bonmodus })
+      toast.success(`Bonmodus für „${info.label}“ geändert.`)
     })
   }
 
   return (
-    <div className="flex flex-col gap-3 py-4 border-b last:border-b-0">
+    <div className="flex flex-col gap-3 rounded-xl border p-5">
       <div>
-        <div className="font-medium">{info.label}</div>
-        <p className="text-sm text-muted-foreground">{info.beschreibung}</p>
+        <span className="text-base font-semibold">{info.label}</span>{' '}
+        <span className="text-xs font-normal text-muted-foreground">
+          — {info.beschreibung}
+        </span>
       </div>
 
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="flex flex-col gap-1 min-w-[200px]">
-          <Label htmlFor={`ip-${config.kategorie}`}>Drucker-IP</Label>
+      <div className="flex items-end gap-2.5">
+        <div className="flex flex-1 flex-col gap-1">
+          <Label
+            htmlFor={`ip-${config.kategorie}`}
+            className="text-muted-foreground"
+          >
+            Drucker-IP
+          </Label>
           <Input
             id={`ip-${config.kategorie}`}
             value={druckerIp}
+            disabled={saving}
             onChange={(e) => {
               setDruckerIp(e.target.value)
               if (ipError !== null) {
                 setIpError(null)
               }
             }}
+            onBlur={() => void speichereIp()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.currentTarget.blur()
+              }
+            }}
             aria-invalid={ipError !== null}
             placeholder="z.B. 192.168.1.50"
           />
-          {ipError !== null && (
-            <p className="text-sm text-destructive">{ipError}</p>
-          )}
-          {ipError === null && druckerIp === '' && (
-            <p className="text-sm text-muted-foreground">kein Drucker</p>
-          )}
         </div>
-
-        {zeigtBonmodus && (
-          <div className="flex flex-col gap-1 min-w-[180px]">
-            <Label htmlFor={`bonmodus-${config.kategorie}`}>Bonmodus</Label>
-            <Select
-              value={bonmodus}
-              onValueChange={(v) => {
-                setBonmodus(v as Bonmodus)
-              }}
-            >
-              <SelectTrigger id={`bonmodus-${config.kategorie}`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pro_position">Pro Position</SelectItem>
-                <SelectItem value="pro_bestellung">Pro Bestellung</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        <Button onClick={() => void handleSave()} disabled={saving} size="sm">
-          {saving ? 'Speichern…' : 'Speichern'}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9"
+          disabled={testing || config.druckerIp === ''}
+          onClick={() =>
+            void runTestbon(async () => {
+              await onTestbon(config.kategorie)
+              toast.success(`Testbon an „${info.label}“ gesendet.`)
+            })
+          }
+        >
+          <Printer className="size-4" />
+          Testbon
         </Button>
       </div>
+      {ipError !== null && (
+        <p className="text-sm text-destructive">{ipError}</p>
+      )}
+
+      {zeigtBonmodus && (
+        <BonmodusOptionen
+          aktiv={config.bonmodus}
+          disabled={bonmodusSaving}
+          onSelect={(bonmodus) => void waehleBonmodus(bonmodus)}
+        />
+      )}
+    </div>
+  )
+}
+
+function NichtKonfigurierteKarte({
+  stationen,
+  onUpdate,
+  onTestbon,
+}: {
+  stationen: DruckstationConfig[]
+  onUpdate: (config: DruckstationConfig) => Promise<void>
+  onTestbon: (kategorie: Kategorie) => Promise<void>
+}) {
+  const [zuweisen, setZuweisen] = useState(false)
+
+  if (zuweisen) {
+    return (
+      <>
+        {stationen.map((config) => (
+          <DruckstationCard
+            key={config.kategorie}
+            config={config}
+            onUpdate={onUpdate}
+            onTestbon={onTestbon}
+          />
+        ))}
+      </>
+    )
+  }
+
+  const namen = stationen
+    .map((s) => KATEGORIE_INFO[s.kategorie].label)
+    .join(' & ')
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-dashed bg-muted/30 p-5">
+      <span className="text-base font-semibold text-muted-foreground">
+        {namen} — kein Drucker
+      </span>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        Diese Stationen drucken nichts. Abholbon aktivieren, wenn Gäste am
+        Direktverkauf eine Abholnummer bekommen sollen — sonst gehen
+        Direktverkäufe an die Produktstationen.
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-fit"
+        onClick={() => {
+          setZuweisen(true)
+        }}
+      >
+        Drucker zuweisen
+      </Button>
     </div>
   )
 }
@@ -170,20 +296,19 @@ function FehlgeschlagenerDruckauftragRow({
   })
 
   return (
-    <div className="flex flex-col gap-2 py-4 border-b last:border-b-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div className="font-medium">
-          {BON_ART_LABEL[auftrag.bonArt] ?? auftrag.bonArt} → {auftrag.zielIp}
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-background p-3">
+      <div className="min-w-[200px] flex-1">
+        <div className="text-sm font-semibold" title={auftrag.referenz}>
+          {formatDruckauftragReferenz(auftrag.referenz)} → {auftrag.zielIp}
         </div>
-        <div className="text-sm text-muted-foreground">
-          {new Date(auftrag.erstelltAm).toLocaleString('de-DE')}
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          {new Date(auftrag.erstelltAm).toLocaleTimeString('de-DE', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}{' '}
+          Uhr · {auftrag.letzterFehler} · {auftrag.versuche} Versuche
         </div>
       </div>
-      <div className="text-sm text-muted-foreground" title={auftrag.referenz}>
-        Referenz: {formatDruckauftragReferenz(auftrag.referenz)} ·{' '}
-        {auftrag.versuche} Versuche
-      </div>
-      <p className="text-sm text-destructive">{auftrag.letzterFehler}</p>
       <div className="flex gap-2">
         <Button
           size="sm"
@@ -195,7 +320,7 @@ function FehlgeschlagenerDruckauftragRow({
             })
           }
         >
-          Erneut versuchen
+          Nochmal drucken
         </Button>
         <Button
           size="sm"
@@ -250,7 +375,7 @@ function AlleVerwerfenDialog({
           </AlertDialogTitle>
           <AlertDialogDescription>
             {verwerfenBeschreibung} Noch benötigte Bons vorher einzeln über
-            „Erneut versuchen“ nachdrucken.
+            „Nochmal drucken“ nachdrucken.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -276,38 +401,22 @@ function AlleVerwerfenDialog({
   )
 }
 
-function FehlgeschlageneDruckauftraege() {
-  const {
-    druckauftraege,
-    isPending,
-    error,
-    erneutVersuchen,
-    verwerfen,
-    alleVerwerfen,
-  } = useFehlgeschlageneDruckauftraege()
+function AlarmKarte() {
+  const { druckauftraege, erneutVersuchen, verwerfen, alleVerwerfen } =
+    useFehlgeschlageneDruckauftraege()
 
-  let inhalt
-  if (isPending) {
-    inhalt = (
-      <p className="text-muted-foreground">
-        Lade fehlgeschlagene Druckaufträge…
-      </p>
-    )
-  } else if (error) {
-    inhalt = (
-      <p className="text-destructive">
-        Fehler beim Laden der fehlgeschlagenen Druckaufträge.
-      </p>
-    )
-  } else if (druckauftraege.length === 0) {
-    inhalt = (
-      <p className="text-muted-foreground">
-        Keine fehlgeschlagenen Druckaufträge.
-      </p>
-    )
-  } else {
-    inhalt = (
-      <div className="rounded-md border px-4 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-muted max-h-96 overflow-auto">
+  if (druckauftraege.length === 0) {
+    return null
+  }
+
+  const titel =
+    druckauftraege.length === 1
+      ? '1 Bon konnte nicht gedruckt werden — die Küche hat ihn nicht!'
+      : `${String(druckauftraege.length)} Bons konnten nicht gedruckt werden — die Küche hat sie nicht!`
+
+  return (
+    <WarnKarte title={titel} className="mb-6">
+      <div className="mt-2 flex flex-col gap-2">
         {druckauftraege.map((auftrag) => (
           <FehlgeschlagenerDruckauftragRow
             key={auftrag.id}
@@ -317,33 +426,30 @@ function FehlgeschlageneDruckauftraege() {
           />
         ))}
       </div>
-    )
-  }
-
-  return (
-    <div className="mt-10">
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <h2 className="text-xl font-semibold">Fehlgeschlagene Druckaufträge</h2>
-        {druckauftraege.length > 0 && (
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <span className="text-xs text-muted-foreground">
+          Tipp: Erst Drucker prüfen (Strom, Netzwerk, Papier), dann „Nochmal
+          drucken“.
+        </span>
+        {druckauftraege.length > 1 && (
           <AlleVerwerfenDialog
             anzahl={druckauftraege.length}
             alleVerwerfen={alleVerwerfen}
           />
         )}
       </div>
-      <p className="text-muted-foreground text-sm mb-6">
-        Aufträge, die auch nach mehreren Zustellversuchen über rund 5 Minuten
-        nicht gedruckt werden konnten. „Erneut versuchen“ reiht den Auftrag
-        wieder ein; „Verwerfen“ entfernt ihn aus der Warteschlange.
-      </p>
-      {inhalt}
-    </div>
+    </WarnKarte>
   )
 }
 
 export function DruckstationConfigPage() {
-  const { druckstationen, isPending, error, updateDruckstation } =
-    useDruckstationen()
+  const {
+    druckstationen,
+    isPending,
+    error,
+    updateDruckstation,
+    testbonDrucken,
+  } = useDruckstationen()
 
   let inhalt
   if (isPending) {
@@ -353,25 +459,35 @@ export function DruckstationConfigPage() {
       <p className="text-destructive">Fehler beim Laden der Druckstationen.</p>
     )
   } else {
+    const konfiguriert = druckstationen.filter((s) => s.druckerIp !== '')
+    const nichtKonfiguriert = druckstationen.filter((s) => s.druckerIp === '')
+
     inhalt = (
       <>
-        <div className="mt-6 rounded-md border px-4">
-          {druckstationen.map((config) => (
-            <DruckstationRow
+        <AlarmKarte />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {konfiguriert.map((config) => (
+            <DruckstationCard
               key={config.kategorie}
               config={config}
               onUpdate={updateDruckstation}
+              onTestbon={testbonDrucken}
             />
           ))}
+          {nichtKonfiguriert.length > 0 && (
+            <NichtKonfigurierteKarte
+              stationen={nichtKonfiguriert}
+              onUpdate={updateDruckstation}
+              onTestbon={testbonDrucken}
+            />
+          )}
         </div>
-
-        <FehlgeschlageneDruckauftraege />
       </>
     )
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-4xl">
       <AdminPageHeader
         titel="Bondrucker"
         unterzeile="Jede Station bekommt einen Drucker im WLAN/LAN zugewiesen. Ohne Drucker wird für die Station nichts gedruckt."

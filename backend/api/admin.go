@@ -114,11 +114,15 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/get-geldtransit-liste", kq.GetGeldtransitListeHandler())
 
 	druckstationCommandHandler := druckstationHTTP.CommandHandler{}
-	druckstationCommandHandler.Command = druckstationApp.Command{DruckstationRepo: deps.DruckstationRepo}
+	druckstationCommandHandler.Command = druckstationApp.Command{
+		DruckstationRepo: deps.DruckstationRepo,
+		DruckauftragRepo: deps.DruckauftragRepo,
+	}
 	druckstationQueryHandler := druckstationHTTP.QueryHandler{}
 	druckstationQueryHandler.Query = druckstationApp.Query{DruckstationRepo: deps.DruckstationRepo}
 	r.HandleFunc("/get-druckstationen", druckstationQueryHandler.GetDruckstationenHandler())
 	r.HandleFunc("/update-druckstationen", druckstationCommandHandler.UpdateDruckstationenHandler())
+	r.HandleFunc("/testbon-drucken", druckstationCommandHandler.TestbonDruckenHandler())
 
 	druckauftragCommandHandler := druckauftragHTTP.CommandHandler{}
 	druckauftragCommandHandler.Command = druckauftragApp.Command{DruckauftragRepo: deps.DruckauftragRepo}

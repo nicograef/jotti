@@ -595,12 +595,12 @@ zuweisen".
 
 ### Acceptance criteria
 
-- [ ] `/testbon-drucken` erzeugt einen Outbox-Auftrag mit `bon_art = 'testbon'` und Referenz `testdruck:<kategorie>`; ohne IP kommt `druckstation_nicht_konfiguriert` (Backend-Tests grün, Migration angewendet)
-- [ ] Alarm-Karte steht zuoberst, zeigt Referenz-Darstellung, Fehlertext und Versuche und bietet Nochmal-drucken/Verwerfen direkt am Auftrag; kein Bon-Klartext, kein Stations-Status (PRD-Abweichungen eingehalten)
-- [ ] Testbon-Button je konfigurierter Station löst den neuen Endpunkt aus (Erfolgs-Toast; Fehlercode-Meldung in `errorMessages.ts`)
-- [ ] Drucker-IP speichert on-blur und per Enter mit Toast; kein Speichern-Button je Feld mehr
-- [ ] Bonmodus erscheint als zwei erklärende Options-Karten und schaltet über das bestehende Update
-- [ ] `DruckstationConfigPage.test.tsx` deckt Alarm-Karte, Testbon-Aktion und IP-Speichern ab; `make check` grün
+- [x] `/testbon-drucken` erzeugt einen Outbox-Auftrag mit `bon_art = 'testbon'` und Referenz `testdruck:<kategorie>`; ohne IP kommt `druckstation_nicht_konfiguriert` (Backend-Tests grün, Migration angewendet)
+- [x] Alarm-Karte steht zuoberst, zeigt Referenz-Darstellung, Fehlertext und Versuche und bietet Nochmal-drucken/Verwerfen direkt am Auftrag; kein Bon-Klartext, kein Stations-Status (PRD-Abweichungen eingehalten)
+- [x] Testbon-Button je konfigurierter Station löst den neuen Endpunkt aus (Erfolgs-Toast; Fehlercode-Meldung in `errorMessages.ts`)
+- [x] Drucker-IP speichert on-blur und per Enter mit Toast; kein Speichern-Button je Feld mehr
+- [x] Bonmodus erscheint als zwei erklärende Options-Karten und schaltet über das bestehende Update
+- [x] `DruckstationConfigPage.test.tsx` deckt Alarm-Karte, Testbon-Aktion und IP-Speichern ab; `make check` grün
 
 ---
 
