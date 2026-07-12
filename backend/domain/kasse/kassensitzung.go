@@ -22,3 +22,27 @@ const (
 	KassensitzungWirdAbgeschlossen KassensitzungStatus = "wird_abgeschlossen"
 	KassensitzungAbgeschlossen     KassensitzungStatus = "abgeschlossen"
 )
+
+// Kassenbestand ist der Soll-Kassenbestand einer Kassensitzung mitsamt seiner
+// Aufschlüsselung. Reine Projektion des Kassenjournals. Es gilt (vor dem
+// Kassensturz, also solange keine Differenz gebucht ist):
+//
+//	AnfangsbestandCents + BareinnahmenCents + EinlagenCents − EntnahmenCents = SollBestandCents.
+type Kassenbestand struct {
+	SollBestandCents    int
+	AnfangsbestandCents int
+	BareinnahmenCents   int
+	EinlagenCents       int
+	EntnahmenCents      int
+}
+
+// Geldtransit ist eine einzelne, gebuchte Bargeldbewegung (Einlage/Entnahme)
+// einer Kassensitzung — die Anzeigeform der geldtransit-gebucht:v1-Events für die
+// Bewegungsliste. GebuchtVon ist der eingefrorene Anzeigename aus dem Kassenjournal.
+type Geldtransit struct {
+	Zeitpunkt   time.Time
+	Richtung    string
+	BetragCents int
+	Kommentar   string
+	GebuchtVon  string
+}

@@ -5,6 +5,8 @@ import type { BackendClient } from '@/lib/Backend'
 import {
   BetragCentsSchema,
   BezeichnungSchema,
+  type GeldtransitBuchung,
+  GeldtransitBuchungSchema,
   type GeldtransitRichtung,
   GeldtransitRichtungSchema,
   type Kassenbestand,
@@ -123,6 +125,16 @@ export class KasseBackend {
       'admin/get-kassenbestand',
       { kassensitzungNr },
       KassenbestandSchema,
+    )
+  }
+
+  async getGeldtransitListe(
+    kassensitzungNr: number,
+  ): Promise<GeldtransitBuchung[]> {
+    return this.backend.post(
+      'admin/get-geldtransit-liste',
+      { kassensitzungNr },
+      z.array(GeldtransitBuchungSchema),
     )
   }
 }

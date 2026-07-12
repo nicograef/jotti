@@ -17,7 +17,8 @@ var errDB = errors.New("db error")
 
 type mockQuery struct {
 	kassensitzung *kasse.Kassensitzung
-	bestand       int
+	bestand       kasse.Kassenbestand
+	geldtransit   []kasse.Geldtransit
 	err           error
 }
 
@@ -25,8 +26,12 @@ func (m *mockQuery) GetOffeneKassensitzung(_ context.Context) (*kasse.Kassensitz
 	return m.kassensitzung, m.err
 }
 
-func (m *mockQuery) GetKassenbestand(_ context.Context, _ int) (int, error) {
+func (m *mockQuery) GetKassenbestand(_ context.Context, _ int) (kasse.Kassenbestand, error) {
 	return m.bestand, m.err
+}
+
+func (m *mockQuery) GetGeldtransitListe(_ context.Context, _ int) ([]kasse.Geldtransit, error) {
+	return m.geldtransit, m.err
 }
 
 // GetOffeneKassensitzung
@@ -74,7 +79,7 @@ func TestGetOffeneKassensitzungHandler_DBError(t *testing.T) {
 // GetKassenbestand
 
 func TestGetKassenbestandHandler_Success(t *testing.T) {
-	handler := &QueryHandler{Query: &mockQuery{bestand: 5000}}
+	handler := &QueryHandler{Query: &mockQuery{bestand: kasse.Kassenbestand{SollBestandCents: 5000}}}
 
 	body := `{"kassensitzungNr":1}`
 	req := httptest.NewRequest(http.MethodPost, "/get-kassenbestand", strings.NewReader(body))
@@ -100,5 +105,57 @@ func TestGetKassenbestandHandler_InvalidNr(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+// GetGeldtransitListe
+
+func TestGetGeldtransitListeHandler_Success(t *testing.T) {
+	handler := &QueryHandler{Query: &mockQuery{geldtransit: []kasse.Geldtransit{
+		{Richtung: kasse.GeldtransitRichtungEinlage, BetragCents: 20000, Kommentar: "Wechselgeld", GebuchtVon: "sophie"},
+	}}}
+
+	body := `{"kassensitzungNr":1}`
+	req := httptest.NewRequest(http.MethodPost, "/get-geldtransit-liste", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.GetGeldtransitListeHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "sophie") || !strings.Contains(rec.Body.String(), "einlage") {
+		t.Errorf("expected geldtransit item in body, got %s", rec.Body.String())
+	}
+}
+
+func TestGetGeldtransitListeHandler_InvalidNr(t *testing.T) {
+	handler := &QueryHandler{Query: &mockQuery{}}
+
+	body := `{"kassensitzungNr":0}`
+	req := httptest.NewRequest(http.MethodPost, "/get-geldtransit-liste", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.GetGeldtransitListeHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestGetGeldtransitListeHandler_DBError(t *testing.T) {
+	handler := &QueryHandler{Query: &mockQuery{err: errDB}}
+
+	body := `{"kassensitzungNr":1}`
+	req := httptest.NewRequest(http.MethodPost, "/get-geldtransit-liste", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.GetGeldtransitListeHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d", rec.Code)
 	}
 }

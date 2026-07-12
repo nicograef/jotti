@@ -62,7 +62,24 @@ export const KassensitzungSchema = z.object({
 })
 export type Kassensitzung = z.infer<typeof KassensitzungSchema>
 
+// Der Kassenbestand (Soll) samt Aufschlüsselung. Es gilt (vor dem Kassensturz):
+// anfangsbestand + bareinnahmen + einlagen − entnahmen = sollBestand.
 export const KassenbestandSchema = z.object({
   sollBestandCents: z.number().int(),
+  anfangsbestandCents: z.number().int(),
+  bareinnahmenCents: z.number().int(),
+  einlagenCents: z.number().int(),
+  entnahmenCents: z.number().int(),
 })
 export type Kassenbestand = z.infer<typeof KassenbestandSchema>
+
+// Eine einzelne gebuchte Bargeldbewegung (Einlage/Entnahme) für die
+// Bewegungsliste; gebuchtVon ist der eingefrorene Anzeigename aus dem Kassenjournal.
+export const GeldtransitBuchungSchema = z.object({
+  zeitpunkt: z.string(),
+  richtung: GeldtransitRichtungSchema,
+  betragCents: z.number().int(),
+  kommentar: z.string(),
+  gebuchtVon: z.string(),
+})
+export type GeldtransitBuchung = z.infer<typeof GeldtransitBuchungSchema>

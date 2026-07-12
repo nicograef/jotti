@@ -21,7 +21,8 @@ type kassenjournalRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
-	GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error)
+	GetKassenbestand(ctx context.Context, kassensitzungNr int) (kasse.Kassenbestand, error)
+	GetGeldtransitListe(ctx context.Context, kassensitzungNr int) ([]kasse.Geldtransit, error)
 	GetTischSessionsByKassensitzungNr(ctx context.Context, kassensitzungNr int) ([]kasse.TischSession, error)
 	ReadKassensitzungEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error)
 	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
@@ -345,11 +346,12 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 
-	sollBestandCents, err := c.KassenjournalRepo.GetKassenbestand(ctx, ks.ZNr)
+	kassenbestand, err := c.KassenjournalRepo.GetKassenbestand(ctx, ks.ZNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get Kassenbestand for Kassenabschluss")
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
+	sollBestandCents := kassenbestand.SollBestandCents
 
 	// Wiederanlauf-Erkennung: Ein früherer Abschluss-Versuch kann den Kassensturz bereits
 	// geschrieben haben (Teilfehler nach Schritt 1). Der dokumentierte Kassensturz zählt —

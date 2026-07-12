@@ -743,13 +743,42 @@ func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
 	return rebuiltCount, nil
 }
 
-// GetKassenbestand returns the Soll-Kassenbestand for the given Kassensitzung in cents.
-func (r Repository) GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error) {
-	bestand, err := r.q.GetKassenbestand(ctx, kassensitzungNr)
+// GetKassenbestand returns the Soll-Kassenbestand for the given Kassensitzung in cents,
+// together with its four components (Anfangsbestand, Bareinnahmen, Einlagen, Entnahmen).
+func (r Repository) GetKassenbestand(ctx context.Context, kassensitzungNr int) (kasse.Kassenbestand, error) {
+	row, err := r.q.GetKassenbestand(ctx, kassensitzungNr)
 	if err != nil {
-		return 0, db.Error(err)
+		return kasse.Kassenbestand{}, db.Error(err)
 	}
-	return bestand, nil
+	return kasse.Kassenbestand{
+		SollBestandCents:    row.SollBestandCents,
+		AnfangsbestandCents: row.AnfangsbestandCents,
+		BareinnahmenCents:   row.BareinnahmenCents,
+		EinlagenCents:       row.EinlagenCents,
+		EntnahmenCents:      row.EntnahmenCents,
+	}, nil
+}
+
+// GetGeldtransitListe returns all Geldbewegungen (Einlagen/Entnahmen) of the given
+// Kassensitzung, newest first — a pure projection of the geldtransit-gebucht:v1 events.
+func (r Repository) GetGeldtransitListe(ctx context.Context, kassensitzungNr int) ([]kasse.Geldtransit, error) {
+	rows, err := r.q.GetGeldtransitListe(ctx, kassensitzungNr)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	buchungen := make([]kasse.Geldtransit, 0, len(rows))
+	for i := range rows {
+		buchungen = append(buchungen, kasse.Geldtransit{
+			Zeitpunkt:   rows[i].Zeitpunkt,
+			Richtung:    rows[i].Richtung,
+			BetragCents: rows[i].BetragCents,
+			Kommentar:   rows[i].Kommentar,
+			GebuchtVon:  rows[i].GebuchtVon,
+		})
+	}
+
+	return buchungen, nil
 }
 
 // GetTischSessionsByKassensitzungNr returns all tisch sessions for a given Kassensitzung.

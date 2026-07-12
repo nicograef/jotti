@@ -11,7 +11,8 @@ import (
 
 type query interface {
 	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
-	GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error)
+	GetKassenbestand(ctx context.Context, kassensitzungNr int) (kasse.Kassenbestand, error)
+	GetGeldtransitListe(ctx context.Context, kassensitzungNr int) ([]kasse.Geldtransit, error)
 }
 
 type QueryHandler struct {
@@ -32,8 +33,26 @@ type kassenbestandRequest struct {
 	KassensitzungNr int `json:"kassensitzungNr"`
 }
 
+// kassenbestandResponse weist den Soll-Bestand samt seiner vier Komponenten aus.
+// Invariante (vor Kassensturz): anfangsbestand + bareinnahmen + einlagen − entnahmen = sollBestand.
 type kassenbestandResponse struct {
-	SollBestandCents int `json:"sollBestandCents"`
+	SollBestandCents    int `json:"sollBestandCents"`
+	AnfangsbestandCents int `json:"anfangsbestandCents"`
+	BareinnahmenCents   int `json:"bareinnahmenCents"`
+	EinlagenCents       int `json:"einlagenCents"`
+	EntnahmenCents      int `json:"entnahmenCents"`
+}
+
+type geldtransitListeRequest struct {
+	KassensitzungNr int `json:"kassensitzungNr"`
+}
+
+type geldtransitItemResponse struct {
+	Zeitpunkt   string `json:"zeitpunkt"`
+	Richtung    string `json:"richtung"`
+	BetragCents int    `json:"betragCents"`
+	Kommentar   string `json:"kommentar"`
+	GebuchtVon  string `json:"gebuchtVon"`
 }
 
 // --- Handlers ---
@@ -79,6 +98,45 @@ func (h *QueryHandler) GetKassenbestandHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, kassenbestandResponse{SollBestandCents: bestand})
+		helper.SendResponse(w, kassenbestandResponse{
+			SollBestandCents:    bestand.SollBestandCents,
+			AnfangsbestandCents: bestand.AnfangsbestandCents,
+			BareinnahmenCents:   bestand.BareinnahmenCents,
+			EinlagenCents:       bestand.EinlagenCents,
+			EntnahmenCents:      bestand.EntnahmenCents,
+		})
+	}
+}
+
+func (h *QueryHandler) GetGeldtransitListeHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := geldtransitListeRequest{}
+		if !helper.ReadBody(w, r, &body) {
+			return
+		}
+
+		if body.KassensitzungNr < 1 {
+			helper.SendClientError(w, "invalid_kassensitzung_nr", nil)
+			return
+		}
+
+		buchungen, err := h.Query.GetGeldtransitListe(r.Context(), body.KassensitzungNr)
+		if err != nil {
+			helper.SendServerError(w)
+			return
+		}
+
+		items := make([]geldtransitItemResponse, 0, len(buchungen))
+		for _, b := range buchungen {
+			items = append(items, geldtransitItemResponse{
+				Zeitpunkt:   b.Zeitpunkt.Format(time.RFC3339),
+				Richtung:    b.Richtung,
+				BetragCents: b.BetragCents,
+				Kommentar:   b.Kommentar,
+				GebuchtVon:  b.GebuchtVon,
+			})
+		}
+
+		helper.SendResponse(w, items)
 	}
 }

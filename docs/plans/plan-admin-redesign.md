@@ -508,11 +508,11 @@ formatiertem Datum.
 
 ### Acceptance criteria
 
-- [ ] `/get-kassenbestand` liefert die vier Komponenten; ein Backend-Test weist die Summen-Invariante gegen den bestehenden Soll-Bestand nach (Journal mit Zahlungen, Direktverkauf, geldwirksamem Storno, Einlage und Entnahme)
-- [ ] `/get-geldtransit-liste` liefert die Buchungen der Sitzung mit Zeitpunkt, Richtung, Betrag, Kommentar und Anzeigename (Backend-Tests grün)
-- [ ] Kassentag zeigt den 3-Schritte-Stepper; ohne offene Sitzung ist Schritt 1 das aktive Eröffnen-Formular, Schritte 2–3 sind ausgegraut
-- [ ] Schritt 2 zeigt Soll-Bestand, Aufschlüsselungs-Kacheln und die Bewegungsliste; Einlage/Entnahme lassen sich über die Buttons mit vorbelegter Richtung buchen und erscheinen nach dem Buchen in der Liste
-- [ ] Seitentest deckt Stepper-Zustände (offene Sitzung vs. Leerzustand) und die Bewegungsliste ab; `make check` grün
+- [x] `/get-kassenbestand` liefert die vier Komponenten; ein Backend-Test weist die Summen-Invariante gegen den bestehenden Soll-Bestand nach (Journal mit Zahlungen, Direktverkauf, geldwirksamem Storno, Einlage und Entnahme)
+- [x] `/get-geldtransit-liste` liefert die Buchungen der Sitzung mit Zeitpunkt, Richtung, Betrag, Kommentar und Anzeigename (Backend-Tests grün)
+- [x] Kassentag zeigt den 3-Schritte-Stepper; ohne offene Sitzung ist Schritt 1 das aktive Eröffnen-Formular, Schritte 2–3 sind ausgegraut
+- [x] Schritt 2 zeigt Soll-Bestand, Aufschlüsselungs-Kacheln und die Bewegungsliste; Einlage/Entnahme lassen sich über die Buttons mit vorbelegter Richtung buchen und erscheinen nach dem Buchen in der Liste
+- [x] Seitentest deckt Stepper-Zustände (offene Sitzung vs. Leerzustand) und die Bewegungsliste ab; `make check` grün
 
 ---
 

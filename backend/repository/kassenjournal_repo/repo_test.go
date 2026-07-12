@@ -865,8 +865,8 @@ func TestGetKassenbestand_DirektverkaufIncreasesThenStornoDecreases(t *testing.T
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if bestand != 1200 {
-		t.Fatalf("Expected kassenbestand 1200 after direktverkauf, got %d", bestand)
+	if bestand.SollBestandCents != 1200 {
+		t.Fatalf("Expected kassenbestand 1200 after direktverkauf, got %d", bestand.SollBestandCents)
 	}
 
 	storno := newTestEvent(userID, "direktverkauf-storniert:v1", subject, 2, validDirektverkaufStornoData("verkauf-1", 500))
@@ -878,8 +878,8 @@ func TestGetKassenbestand_DirektverkaufIncreasesThenStornoDecreases(t *testing.T
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if bestand != 700 {
-		t.Fatalf("Expected kassenbestand 700 after direktverkauf-storno, got %d", bestand)
+	if bestand.SollBestandCents != 700 {
+		t.Fatalf("Expected kassenbestand 700 after direktverkauf-storno, got %d", bestand.SollBestandCents)
 	}
 }
 
@@ -898,8 +898,8 @@ func TestGetKassenbestand_WarenruecknahmeDecreasesKorrekturDoesNot(t *testing.T)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if bestand != 1000 {
-		t.Fatalf("Expected kassenbestand 1000 after zahlung, got %d", bestand)
+	if bestand.SollBestandCents != 1000 {
+		t.Fatalf("Expected kassenbestand 1000 after zahlung, got %d", bestand.SollBestandCents)
 	}
 
 	// Geldneutrale Korrektur verändert den Kassenbestand nicht.
@@ -912,8 +912,8 @@ func TestGetKassenbestand_WarenruecknahmeDecreasesKorrekturDoesNot(t *testing.T)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if bestand != 1000 {
-		t.Fatalf("Expected kassenbestand 1000 after geldneutrale Korrektur, got %d", bestand)
+	if bestand.SollBestandCents != 1000 {
+		t.Fatalf("Expected kassenbestand 1000 after geldneutrale Korrektur, got %d", bestand.SollBestandCents)
 	}
 
 	// Kassenwirksame Warenrücknahme gibt Bargeld zurück und mindert den Bestand.
@@ -926,8 +926,8 @@ func TestGetKassenbestand_WarenruecknahmeDecreasesKorrekturDoesNot(t *testing.T)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if bestand != 700 {
-		t.Fatalf("Expected kassenbestand 700 after Warenrücknahme, got %d", bestand)
+	if bestand.SollBestandCents != 700 {
+		t.Fatalf("Expected kassenbestand 700 after Warenrücknahme, got %d", bestand.SollBestandCents)
 	}
 }
 
@@ -1126,8 +1126,8 @@ func TestGetKassenbestand_DifferenzbuchungGleichtSollAnIstAn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if bestand != 15000 {
-		t.Fatalf("Expected kassenbestand 15000 (Soll vor Kassensturz), got %d", bestand)
+	if bestand.SollBestandCents != 15000 {
+		t.Fatalf("Expected kassenbestand 15000 (Soll vor Kassensturz), got %d", bestand.SollBestandCents)
 	}
 
 	// Kassensturz zählt Ist = 13000 → Differenz = Soll − Ist = +2000 (Fehlbetrag).
@@ -1140,8 +1140,8 @@ func TestGetKassenbestand_DifferenzbuchungGleichtSollAnIstAn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if bestand != 13000 {
-		t.Fatalf("Expected kassenbestand 13000 (= Ist) nach Fehlbetrag-Buchung, got %d", bestand)
+	if bestand.SollBestandCents != 13000 {
+		t.Fatalf("Expected kassenbestand 13000 (= Ist) nach Fehlbetrag-Buchung, got %d", bestand.SollBestandCents)
 	}
 }
 
@@ -1166,8 +1166,142 @@ func TestGetKassenbestand_UeberschussErhoehtSollAufIst(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if bestand != 10500 {
-		t.Fatalf("Expected kassenbestand 10500 (= Ist) nach Überschuss-Buchung, got %d", bestand)
+	if bestand.SollBestandCents != 10500 {
+		t.Fatalf("Expected kassenbestand 10500 (= Ist) nach Überschuss-Buchung, got %d", bestand.SollBestandCents)
+	}
+}
+
+// validGeldtransitData returns valid geldtransit-gebucht:v1 event data. Each call
+// needs a distinct geldtransitId (unique index idx_kassenjournal_geldtransit_id).
+func validGeldtransitData(geldtransitID, richtung string, betragCents int, kommentar string) map[string]any {
+	return map[string]any{
+		"geldtransitId": geldtransitID,
+		"richtung":      richtung,
+		"betragCents":   betragCents,
+		"kommentar":     kommentar,
+		"gebuchtVon":    1,
+	}
+}
+
+// Die vier Komponenten des Kassenbestands werden einzeln ausgewertet und müssen
+// zusammen den bestehenden Soll-Bestand ergeben (Invariante vor dem Kassensturz):
+// Anfangsbestand + Bareinnahmen + Einlagen − Entnahmen = Soll-Bestand. Das Journal
+// deckt alle Komponenten ab: Anfangsbestand, Zahlung, Direktverkauf, geldwirksamer
+// Storno (Warenrücknahme), Einlage und Entnahme.
+func TestGetKassenbestand_KomponentenErgebenSollBestand(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	ksSubject := kasse.KassensitzungSubject(ksNr)
+	tischSubject := kasse.TischSessionSubject(ksNr, 1)
+	dvSubject := kasse.DirektverkaufSubject(ksNr, "verkauf-1")
+
+	// Anfangsbestand 150,00 €
+	eroeffnung := newTestEvent(userID, "kassensitzung-eroeffnet:v1", ksSubject, 1, validEroeffnungData(userID, 15000))
+	if _, err := insertEventRaw(repo.db, eroeffnung, ksNr); err != nil {
+		t.Fatalf("Failed to insert eroeffnung: %v", err)
+	}
+	// Zahlung 50,00 €
+	zahlung := newTestEvent(userID, "zahlung-kassiert:v1", tischSubject, 1, validZahlungData("p0000000-0000-0000-0000-000000000001", 1, 5000))
+	if _, err := insertEventRaw(repo.db, zahlung, ksNr); err != nil {
+		t.Fatalf("Failed to insert zahlung: %v", err)
+	}
+	// Geldwirksamer Storno (Warenrücknahme) 8,00 € → mindert Bareinnahmen
+	storno := newTestEvent(userID, "stornierung-erteilt:v1", tischSubject, 2, validStornierungData(800))
+	if _, err := insertEventRaw(repo.db, storno, ksNr); err != nil {
+		t.Fatalf("Failed to insert storno: %v", err)
+	}
+	// Direktverkauf 12,00 €
+	dv := newTestEvent(userID, "direktverkauf-getaetigt:v1", dvSubject, 1, validDirektverkaufData("verkauf-1", 1200))
+	if _, err := insertEventRaw(repo.db, dv, ksNr); err != nil {
+		t.Fatalf("Failed to insert direktverkauf: %v", err)
+	}
+	// Einlage 200,00 €
+	einlage := newTestEvent(userID, "geldtransit-gebucht:v1", ksSubject, 2, validGeldtransitData("40000000-0000-4000-8000-000000000001", "einlage", 20000, "Wechselgeld Nachschub"))
+	if _, err := insertEventRaw(repo.db, einlage, ksNr); err != nil {
+		t.Fatalf("Failed to insert einlage: %v", err)
+	}
+	// Entnahme 30,00 €
+	entnahme := newTestEvent(userID, "geldtransit-gebucht:v1", ksSubject, 3, validGeldtransitData("40000000-0000-4000-8000-000000000002", "entnahme", 3000, "Getränke-Nachkauf"))
+	if _, err := insertEventRaw(repo.db, entnahme, ksNr); err != nil {
+		t.Fatalf("Failed to insert entnahme: %v", err)
+	}
+
+	bestand, err := repo.GetKassenbestand(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Bareinnahmen = Zahlung 5000 + Direktverkauf 1200 − Storno 800 = 5400.
+	if bestand.AnfangsbestandCents != 15000 {
+		t.Errorf("Anfangsbestand: expected 15000, got %d", bestand.AnfangsbestandCents)
+	}
+	if bestand.BareinnahmenCents != 5400 {
+		t.Errorf("Bareinnahmen: expected 5400, got %d", bestand.BareinnahmenCents)
+	}
+	if bestand.EinlagenCents != 20000 {
+		t.Errorf("Einlagen: expected 20000, got %d", bestand.EinlagenCents)
+	}
+	if bestand.EntnahmenCents != 3000 {
+		t.Errorf("Entnahmen: expected 3000, got %d", bestand.EntnahmenCents)
+	}
+
+	// Invariante: Anfangsbestand + Bareinnahmen + Einlagen − Entnahmen = Soll-Bestand.
+	summe := bestand.AnfangsbestandCents + bestand.BareinnahmenCents + bestand.EinlagenCents - bestand.EntnahmenCents
+	if summe != bestand.SollBestandCents {
+		t.Fatalf("Invariante verletzt: Komponenten-Summe %d ≠ Soll-Bestand %d", summe, bestand.SollBestandCents)
+	}
+	if bestand.SollBestandCents != 37400 {
+		t.Fatalf("Soll-Bestand: expected 37400, got %d", bestand.SollBestandCents)
+	}
+}
+
+// GetGeldtransitListe projiziert nur die geldtransit-gebucht:v1-Events einer
+// Kassensitzung, neueste zuerst, samt Richtung, Betrag, Kommentar und Anzeigename.
+func TestGetGeldtransitListe_ProjiziertBuchungen(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	ksSubject := kasse.KassensitzungSubject(ksNr)
+	tischSubject := kasse.TischSessionSubject(ksNr, 1)
+
+	// Eine Zahlung darf NICHT in der Liste erscheinen.
+	zahlung := newTestEvent(userID, "zahlung-kassiert:v1", tischSubject, 1, validZahlungData("p0000000-0000-0000-0000-000000000001", 1, 5000))
+	if _, err := insertEventRaw(repo.db, zahlung, ksNr); err != nil {
+		t.Fatalf("Failed to insert zahlung: %v", err)
+	}
+
+	einlage := newTestEvent(userID, "geldtransit-gebucht:v1", ksSubject, 2, validGeldtransitData("40000000-0000-4000-8000-000000000001", "einlage", 20000, "Wechselgeld Nachschub"))
+	einlage.Time = time.Date(2026, 7, 11, 14, 5, 0, 0, time.UTC)
+	if _, err := insertEventRaw(repo.db, einlage, ksNr); err != nil {
+		t.Fatalf("Failed to insert einlage: %v", err)
+	}
+	entnahme := newTestEvent(userID, "geldtransit-gebucht:v1", ksSubject, 3, validGeldtransitData("40000000-0000-4000-8000-000000000002", "entnahme", 3000, "Getränke-Nachkauf"))
+	entnahme.Time = time.Date(2026, 7, 11, 17, 40, 0, 0, time.UTC)
+	if _, err := insertEventRaw(repo.db, entnahme, ksNr); err != nil {
+		t.Fatalf("Failed to insert entnahme: %v", err)
+	}
+
+	liste, err := repo.GetGeldtransitListe(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if len(liste) != 2 {
+		t.Fatalf("Expected 2 geldtransit buchungen (keine Zahlung), got %d", len(liste))
+	}
+	// Neueste zuerst: die Entnahme (17:40) vor der Einlage (14:05).
+	if liste[0].Richtung != "entnahme" || liste[0].BetragCents != 3000 {
+		t.Errorf("erste Buchung: expected entnahme/3000, got %s/%d", liste[0].Richtung, liste[0].BetragCents)
+	}
+	if liste[0].Kommentar != "Getränke-Nachkauf" {
+		t.Errorf("erste Buchung Kommentar: expected 'Getränke-Nachkauf', got %q", liste[0].Kommentar)
+	}
+	if liste[0].GebuchtVon != "nico" {
+		t.Errorf("erste Buchung gebuchtVon: expected 'nico', got %q", liste[0].GebuchtVon)
+	}
+	if liste[1].Richtung != "einlage" || liste[1].BetragCents != 20000 {
+		t.Errorf("zweite Buchung: expected einlage/20000, got %s/%d", liste[1].Richtung, liste[1].BetragCents)
 	}
 }
 

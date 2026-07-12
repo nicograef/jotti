@@ -26,16 +26,32 @@ func (q Query) GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung
 	return ks, nil
 }
 
-// GetKassenbestand returns the Soll-Kassenbestand for the given Kassensitzung.
-func (q Query) GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error) {
+// GetKassenbestand returns the Soll-Kassenbestand for the given Kassensitzung
+// together with its four components (Anfangsbestand, Bareinnahmen, Einlagen, Entnahmen).
+func (q Query) GetKassenbestand(ctx context.Context, kassensitzungNr int) (kasse.Kassenbestand, error) {
 	log := zerolog.Ctx(ctx)
 
 	bestand, err := q.KassenjournalRepo.GetKassenbestand(ctx, kassensitzungNr)
 	if err != nil {
 		log.Error().Err(err).Int("z_nr", kassensitzungNr).Msg("Failed to get Kassenbestand")
-		return 0, ErrDatabase
+		return kasse.Kassenbestand{}, ErrDatabase
 	}
 
-	log.Debug().Int("z_nr", kassensitzungNr).Int("bestand_cents", bestand).Msg("Retrieved Kassenbestand")
+	log.Debug().Int("z_nr", kassensitzungNr).Int("bestand_cents", bestand.SollBestandCents).Msg("Retrieved Kassenbestand")
 	return bestand, nil
+}
+
+// GetGeldtransitListe returns all Geldbewegungen (Einlagen/Entnahmen) of the given
+// Kassensitzung, newest first — a pure projection of the geldtransit-gebucht:v1 events.
+func (q Query) GetGeldtransitListe(ctx context.Context, kassensitzungNr int) ([]kasse.Geldtransit, error) {
+	log := zerolog.Ctx(ctx)
+
+	buchungen, err := q.KassenjournalRepo.GetGeldtransitListe(ctx, kassensitzungNr)
+	if err != nil {
+		log.Error().Err(err).Int("z_nr", kassensitzungNr).Msg("Failed to get Geldtransit-Liste")
+		return nil, ErrDatabase
+	}
+
+	log.Debug().Int("z_nr", kassensitzungNr).Int("anzahl", len(buchungen)).Msg("Retrieved Geldtransit-Liste")
+	return buchungen, nil
 }

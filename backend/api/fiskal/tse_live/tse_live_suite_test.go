@@ -572,7 +572,7 @@ func aktuellerSollBestand(t *testing.T, db *sql.DB, ksNr int) int {
 	if err != nil {
 		t.Fatalf("Kassenbestand lesen: %v", err)
 	}
-	return bestand
+	return bestand.SollBestandCents
 }
 
 // pruefeStammdatenVollstaendigkeit liest die TSS-Stammdaten real von fiskaly,

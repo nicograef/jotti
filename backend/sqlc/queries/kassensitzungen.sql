@@ -70,20 +70,41 @@ WHERE ks.status = 'abgeschlossen'
 ORDER BY ks.datum DESC, ks.created_at DESC;
 
 -- name: GetKassenbestand :one
--- Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Warenrücknahmen, Geldtransits und Differenz-Buchungen.
+-- Kassenbestand (Soll) samt Aufschlüsselung. Der Soll-Bestand ist die Summe aus
+-- Anfangsbestand, Zahlungen, Warenrücknahmen, Geldtransits und Differenz-Buchungen.
 -- Die kassenwirksame Warenrücknahme (stornierung-erteilt) gibt Bargeld zurück und mindert den Bestand;
 -- geldneutrale Vorgänge (bestellung-korrigiert, bestellung-umgebucht) berühren den Kassenbestand nicht.
 -- Die Differenz ist als Soll − Ist gebucht; ihre Bargeldwirkung ist Ist − Soll und wird deshalb
 -- subtrahiert: Nach der Differenzbuchung entspricht der Soll-Bestand dem gezählten Ist-Bestand.
-SELECT (
-    COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int
-    + COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
-    - COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
-    + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
-    - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
-    + COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int
-    - COALESCE(SUM(kj_extract_differenz_cents(type, data)), 0)::int
-)::int AS soll_bestand_cents
+--
+-- Die vier Komponenten werten dieselben kj_extract_*-Funktionen einzeln aus:
+--   - anfangsbestand = Anfangsbestand der Eröffnung
+--   - bareinnahmen   = Zahlungen + Direktverkauf − geldwirksame Stornos (Warenrücknahme + Direktverkauf-Storno)
+--   - einlagen       = geldtransit-gebucht:v1 mit richtung='einlage'
+--   - entnahmen      = geldtransit-gebucht:v1 mit richtung='entnahme'
+-- Invariante (vor Kassensturz, also ohne Differenzbuchung):
+--   anfangsbestand + bareinnahmen + einlagen − entnahmen = soll_bestand_cents.
+SELECT
+    (
+        COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_differenz_cents(type, data)), 0)::int
+    )::int AS soll_bestand_cents,
+    COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int AS anfangsbestand_cents,
+    (
+        COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
+    )::int AS bareinnahmen_cents,
+    COALESCE(SUM(CASE WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'einlage'
+        THEN (data->>'betragCents')::int END), 0)::int AS einlagen_cents,
+    COALESCE(SUM(CASE WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'entnahme'
+        THEN (data->>'betragCents')::int END), 0)::int AS entnahmen_cents
 FROM kassenjournal
 WHERE kassensitzung_nr = $1
   AND type IN (
@@ -95,3 +116,18 @@ WHERE kassensitzung_nr = $1
     'geldtransit-gebucht:v1',
     'differenz-soll-ist-gebucht:v1'
   );
+
+-- name: GetGeldtransitListe :many
+-- Alle Geldbewegungen (Einlagen/Entnahmen) einer Kassensitzung als reine
+-- Projektion der geldtransit-gebucht:v1-Events, neueste zuerst. Der Anzeigename
+-- ist der eingefrorene user_name aus dem Kassenjournal.
+SELECT
+    timestamp AS zeitpunkt,
+    (data->>'richtung')::text AS richtung,
+    (data->>'betragCents')::int AS betrag_cents,
+    (data->>'kommentar')::text AS kommentar,
+    user_name AS gebucht_von
+FROM kassenjournal
+WHERE kassensitzung_nr = $1
+  AND type = 'geldtransit-gebucht:v1'
+ORDER BY timestamp DESC, id DESC;

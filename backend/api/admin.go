@@ -111,6 +111,7 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	kq.Query = kasseApp.Query{KassenjournalRepo: deps.KassenjournalRepo, KassensitzungenRepo: deps.KassensitzungenRepo}
 	r.HandleFunc("/get-offene-kassensitzung", kq.GetOffeneKassensitzungHandler())
 	r.HandleFunc("/get-kassenbestand", kq.GetKassenbestandHandler())
+	r.HandleFunc("/get-geldtransit-liste", kq.GetGeldtransitListeHandler())
 
 	druckstationCommandHandler := druckstationHTTP.CommandHandler{}
 	druckstationCommandHandler.Command = druckstationApp.Command{DruckstationRepo: deps.DruckstationRepo}

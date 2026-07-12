@@ -140,16 +140,81 @@ func (q *Queries) GetAllKassensitzungen(ctx context.Context) ([]Kassensitzungen,
 	return items, nil
 }
 
+const getGeldtransitListe = `-- name: GetGeldtransitListe :many
+SELECT
+    timestamp AS zeitpunkt,
+    (data->>'richtung')::text AS richtung,
+    (data->>'betragCents')::int AS betrag_cents,
+    (data->>'kommentar')::text AS kommentar,
+    user_name AS gebucht_von
+FROM kassenjournal
+WHERE kassensitzung_nr = $1
+  AND type = 'geldtransit-gebucht:v1'
+ORDER BY timestamp DESC, id DESC
+`
+
+type GetGeldtransitListeRow struct {
+	Zeitpunkt   time.Time
+	Richtung    string
+	BetragCents int
+	Kommentar   string
+	GebuchtVon  string
+}
+
+// Alle Geldbewegungen (Einlagen/Entnahmen) einer Kassensitzung als reine
+// Projektion der geldtransit-gebucht:v1-Events, neueste zuerst. Der Anzeigename
+// ist der eingefrorene user_name aus dem Kassenjournal.
+func (q *Queries) GetGeldtransitListe(ctx context.Context, kassensitzungNr int) ([]GetGeldtransitListeRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGeldtransitListe, kassensitzungNr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetGeldtransitListeRow{}
+	for rows.Next() {
+		var i GetGeldtransitListeRow
+		if err := rows.Scan(
+			&i.Zeitpunkt,
+			&i.Richtung,
+			&i.BetragCents,
+			&i.Kommentar,
+			&i.GebuchtVon,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getKassenbestand = `-- name: GetKassenbestand :one
-SELECT (
-    COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int
-    + COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
-    - COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
-    + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
-    - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
-    + COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int
-    - COALESCE(SUM(kj_extract_differenz_cents(type, data)), 0)::int
-)::int AS soll_bestand_cents
+SELECT
+    (
+        COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_differenz_cents(type, data)), 0)::int
+    )::int AS soll_bestand_cents,
+    COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int AS anfangsbestand_cents,
+    (
+        COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
+    )::int AS bareinnahmen_cents,
+    COALESCE(SUM(CASE WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'einlage'
+        THEN (data->>'betragCents')::int END), 0)::int AS einlagen_cents,
+    COALESCE(SUM(CASE WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'entnahme'
+        THEN (data->>'betragCents')::int END), 0)::int AS entnahmen_cents
 FROM kassenjournal
 WHERE kassensitzung_nr = $1
   AND type IN (
@@ -163,16 +228,41 @@ WHERE kassensitzung_nr = $1
   )
 `
 
-// Kassenbestand (Soll): Summe aus Anfangsbestand, Zahlungen, Warenrücknahmen, Geldtransits und Differenz-Buchungen.
+type GetKassenbestandRow struct {
+	SollBestandCents    int
+	AnfangsbestandCents int
+	BareinnahmenCents   int
+	EinlagenCents       int
+	EntnahmenCents      int
+}
+
+// Kassenbestand (Soll) samt Aufschlüsselung. Der Soll-Bestand ist die Summe aus
+// Anfangsbestand, Zahlungen, Warenrücknahmen, Geldtransits und Differenz-Buchungen.
 // Die kassenwirksame Warenrücknahme (stornierung-erteilt) gibt Bargeld zurück und mindert den Bestand;
 // geldneutrale Vorgänge (bestellung-korrigiert, bestellung-umgebucht) berühren den Kassenbestand nicht.
 // Die Differenz ist als Soll − Ist gebucht; ihre Bargeldwirkung ist Ist − Soll und wird deshalb
 // subtrahiert: Nach der Differenzbuchung entspricht der Soll-Bestand dem gezählten Ist-Bestand.
-func (q *Queries) GetKassenbestand(ctx context.Context, kassensitzungNr int) (int, error) {
+//
+// Die vier Komponenten werten dieselben kj_extract_*-Funktionen einzeln aus:
+//   - anfangsbestand = Anfangsbestand der Eröffnung
+//   - bareinnahmen   = Zahlungen + Direktverkauf − geldwirksame Stornos (Warenrücknahme + Direktverkauf-Storno)
+//   - einlagen       = geldtransit-gebucht:v1 mit richtung='einlage'
+//   - entnahmen      = geldtransit-gebucht:v1 mit richtung='entnahme'
+//
+// Invariante (vor Kassensturz, also ohne Differenzbuchung):
+//
+//	anfangsbestand + bareinnahmen + einlagen − entnahmen = soll_bestand_cents.
+func (q *Queries) GetKassenbestand(ctx context.Context, kassensitzungNr int) (GetKassenbestandRow, error) {
 	row := q.db.QueryRowContext(ctx, getKassenbestand, kassensitzungNr)
-	var soll_bestand_cents int
-	err := row.Scan(&soll_bestand_cents)
-	return soll_bestand_cents, err
+	var i GetKassenbestandRow
+	err := row.Scan(
+		&i.SollBestandCents,
+		&i.AnfangsbestandCents,
+		&i.BareinnahmenCents,
+		&i.EinlagenCents,
+		&i.EntnahmenCents,
+	)
+	return i, err
 }
 
 const getKassensitzungStatusForShare = `-- name: GetKassensitzungStatusForShare :one
