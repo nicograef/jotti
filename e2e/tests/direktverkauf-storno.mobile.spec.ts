@@ -2,7 +2,11 @@ import { expect, test } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
-import { waehleVariante, zeileMit } from '../support/servicekraft'
+import {
+  oeffneHistorienDetail,
+  waehleVariante,
+  zeileMit,
+} from '../support/servicekraft'
 
 // Direktverkauf (Verkauf an der Theke ohne Tisch) und dessen Storno — beides
 // am Handy-Viewport. Festbändchen Erwachsene (5,00 €) und Kinder (3,00 €) sind
@@ -32,12 +36,12 @@ test.describe('Servicekraft tätigt einen Direktverkauf und storniert ihn', () =
     await page.getByRole('button', { name: 'Verkauf abschließen' }).click()
     await expect(page.getByText('Verkauf abgeschlossen.')).toBeVisible()
 
-    // In der Historie erscheint der frische Verkauf mit dem Gesamtbetrag.
+    // In der Historie erscheint der frische Verkauf mit dem Gesamtbetrag. Die
+    // Zeile trägt keine Inline-Aktionen mehr: sie (per Betrag eindeutig) öffnet
+    // den Detail-Drawer, dort liegt „Stornieren…".
     await page.getByRole('tab', { name: 'Historie' }).click()
-    const verkaufsEintrag = zeileMit(page, '8,00', 'Stornieren')
-    await expect(verkaufsEintrag).toBeVisible()
-
-    await verkaufsEintrag.getByRole('button', { name: 'Stornieren' }).click()
+    const detail = await oeffneHistorienDetail(page, /Verkauf.*8,00/)
+    await detail.getByRole('button', { name: /Stornieren…/ }).click()
 
     const drawer = page.getByRole('dialog')
     await expect(drawer.getByText('Verkauf stornieren')).toBeVisible()

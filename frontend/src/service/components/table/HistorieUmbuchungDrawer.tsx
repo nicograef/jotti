@@ -15,15 +15,17 @@ import {
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { formatCents } from '@/lib/utils'
+import { formatCents, formatRelativeTime } from '@/lib/utils'
 
-import type { Position } from '../../table/Bestellung'
+import type { Bestellung, Position } from '../../table/Bestellung'
 import { useAktiveTische } from '../../table/hooks'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import type { Umbuchung } from '../../table/Umbuchung'
 import { PositionAuswahlListe } from '../PositionAuswahlListe'
 import {
   calculateTotalPrice,
+  quelleTitel,
   selectPositionen,
   toAuswahlPositionen,
   toPositionRefs,
@@ -34,8 +36,7 @@ interface HistorieUmbuchungDrawerProps {
   tisch: Tisch
   // Ursprungsvorgang (Bestellung oder Umbuchungs-Zugang), dessen Positionen umgebucht
   // werden; beschriftet den Drawer.
-  vorgangId: string
-  positionen: Position[]
+  quelle: Bestellung | Umbuchung
   onClose: () => void
   onBestellungUmgebucht: () => void
 }
@@ -50,33 +51,21 @@ function createDefaultMengen(positionen: Position[]): Record<string, number> {
 export function HistorieUmbuchungDrawer({
   backend,
   tisch,
-  vorgangId,
-  positionen,
+  quelle,
   onClose,
   onBestellungUmgebucht,
 }: HistorieUmbuchungDrawerProps) {
+  const positionen = quelle.umbuchbarePositionen
   const [mengen, setMengen] = useState<Record<string, number>>(() =>
     createDefaultMengen(positionen),
   )
-  const [zielTischIdOverride, setZielTischIdOverride] = useState<number | null>(
-    null,
-  )
+  const [zielTischId, setZielTischId] = useState<number | null>(null)
   const { tische, isPending: tischeLoading } = useAktiveTische()
 
   const zielTische = useMemo(
     () => tische.filter((candidate) => candidate.id !== tisch.id),
     [tisch.id, tische],
   )
-  const zielTischId: number | null = useMemo(() => {
-    if (
-      zielTischIdOverride !== null &&
-      zielTische.some((candidate) => candidate.id === zielTischIdOverride)
-    ) {
-      return zielTischIdOverride
-    }
-
-    return zielTische.length > 0 ? zielTische[0].id : null
-  }, [zielTischIdOverride, zielTische])
 
   const selectedPositionen = selectPositionen(positionen, mengen)
   const totalPrice = calculateTotalPrice(selectedPositionen)
@@ -136,7 +125,13 @@ export function HistorieUmbuchungDrawer({
       <DrawerContent pending={loading}>
         <DrawerHeader className="mx-auto w-full max-w-sm">
           <DrawerTitle>
-            Umbuchung aus Vorgang {vorgangId.slice(0, 8)}
+            {quelleTitel(quelle)} ·{' '}
+            {formatRelativeTime(
+              quelle.art === 'bestellung'
+                ? quelle.aufgenommenAm
+                : quelle.umgebuchtAm,
+            )}{' '}
+            · {quelle.userName}
           </DrawerTitle>
           <DrawerDescription>
             Positionen auswählen und auf einen Ziel-Tisch umbuchen.
@@ -161,30 +156,28 @@ export function HistorieUmbuchungDrawer({
               className="w-full"
               value={zielTischId === null ? '' : String(zielTischId)}
               onChange={(event) => {
-                setZielTischIdOverride(Number(event.target.value))
+                setZielTischId(Number(event.target.value))
               }}
               disabled={loading || tischeLoading || zielTische.length === 0}
             >
-              {zielTische.length === 0 ? (
-                <NativeSelectOption value="">
-                  Kein aktiver Ziel-Tisch verfügbar
+              <NativeSelectOption value="" disabled>
+                {zielTische.length === 0
+                  ? 'Kein aktiver Ziel-Tisch verfügbar'
+                  : 'Ziel-Tisch wählen…'}
+              </NativeSelectOption>
+              {zielTische.map((candidate) => (
+                <NativeSelectOption
+                  key={candidate.id}
+                  value={String(candidate.id)}
+                >
+                  {candidate.name}
                 </NativeSelectOption>
-              ) : (
-                zielTische.map((candidate) => (
-                  <NativeSelectOption
-                    key={candidate.id}
-                    value={String(candidate.id)}
-                  >
-                    {candidate.name}
-                  </NativeSelectOption>
-                ))
-              )}
+              ))}
             </NativeSelect>
           </div>
         </DrawerBody>
         <DrawerFooter className="mx-auto w-full max-w-sm">
           <Button
-            variant="secondary"
             disabled={
               loading ||
               noPositionenSelected ||

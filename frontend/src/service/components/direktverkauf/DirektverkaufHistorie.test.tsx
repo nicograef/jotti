@@ -68,7 +68,9 @@ describe('DirektverkaufHistorie', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Stornieren' }))
+    // Zeile antippen → Detail-Drawer, dort Stornieren…
+    await user.click(screen.getByRole('button', { name: /Verkauf/ }))
+    await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
     await user.click(
       screen.getByRole('button', { name: 'Cola 0,5l hinzufügen' }),
     )
@@ -106,6 +108,7 @@ describe('DirektverkaufHistorie', () => {
       />,
     )
 
+    await user.click(screen.getByRole('button', { name: /Verkauf/ }))
     await user.click(
       screen.getByRole('button', { name: 'Kassenbeleg drucken' }),
     )
@@ -145,6 +148,7 @@ describe('DirektverkaufHistorie', () => {
       />,
     )
 
+    await user.click(screen.getByRole('button', { name: /Verkauf/ }))
     await user.click(
       screen.getByRole('button', { name: 'Stornobeleg drucken' }),
     )

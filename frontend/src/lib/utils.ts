@@ -34,6 +34,44 @@ export function formatPositionName(
 }
 
 /**
+ * Formats a timestamp relative to now, for scanning history lists: "gerade eben"
+ * (< 1 min), "vor X min" (< 60 min), "vor X Std" (< 6 h), otherwise the absolute
+ * clock time "18:42" (same day) or "11.7., 18:42" (earlier day). No live ticker —
+ * the value only changes on re-render/refetch, which is accepted. The full
+ * timestamp stays available in the detail drawer.
+ */
+export function formatRelativeTime(
+  date: string,
+  now: Date = new Date(),
+): string {
+  const then = new Date(date)
+  const diffMs = now.getTime() - then.getTime()
+  const diffMin = Math.floor(diffMs / 60_000)
+
+  if (diffMin < 1) return 'gerade eben'
+  if (diffMin < 60) return `vor ${diffMin.toString()} min`
+
+  const diffStd = Math.floor(diffMin / 60)
+  if (diffStd < 6) return `vor ${diffStd.toString()} Std`
+
+  const uhrzeit = then.toLocaleTimeString('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  const gleicherTag =
+    then.getFullYear() === now.getFullYear() &&
+    then.getMonth() === now.getMonth() &&
+    then.getDate() === now.getDate()
+  if (gleicherTag) return uhrzeit
+
+  const datum = then.toLocaleDateString('de-DE', {
+    day: 'numeric',
+    month: 'numeric',
+  })
+  return `${datum}, ${uhrzeit}`
+}
+
+/**
  * Parses a Euro string (with comma or dot separator, at most two decimals) to
  * cents. String-based, no float arithmetic. Invalid or over-precise input
  * (more than two decimals, multiple separators) parses to 0.

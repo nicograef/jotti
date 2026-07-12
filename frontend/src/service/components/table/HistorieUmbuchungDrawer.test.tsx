@@ -1,7 +1,8 @@
 import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { Position } from '../../table/Bestellung'
+import type { Bestellung, Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 
@@ -38,18 +39,38 @@ const position: Position = {
   bestellerName: 'Tester',
 }
 
+const quelle: Bestellung = {
+  art: 'bestellung',
+  id: '00000000-0000-0000-0000-000000000042',
+  userId: 1,
+  userName: 'Nico',
+  tischId: 1,
+  positionen: [position],
+  gesamtPreisCents: 700,
+  kommentar: '',
+  aufgenommenAm: '2026-06-18T12:00:00Z',
+  stornierbarePositionen: [position],
+  umbuchbarePositionen: [position],
+}
+
+function renderDrawer(
+  bestellungUmbuchen = vi.fn().mockResolvedValue(undefined),
+) {
+  render(
+    <HistorieUmbuchungDrawer
+      backend={{ bestellungUmbuchen }}
+      tisch={tisch}
+      quelle={quelle}
+      onClose={vi.fn()}
+      onBestellungUmgebucht={vi.fn()}
+    />,
+  )
+  return bestellungUmbuchen
+}
+
 describe('HistorieUmbuchungDrawer', () => {
   it('rendert Positionsliste und Ziel-Tisch-Auswahl im DrawerBody, Buttons im Footer außerhalb', () => {
-    render(
-      <HistorieUmbuchungDrawer
-        backend={{ bestellungUmbuchen: vi.fn().mockResolvedValue(undefined) }}
-        tisch={tisch}
-        vorgangId="00000000-0000-0000-0000-000000000042"
-        positionen={[position]}
-        onClose={vi.fn()}
-        onBestellungUmgebucht={vi.fn()}
-      />,
-    )
+    renderDrawer()
 
     const dialog = screen.getByRole('dialog')
     const body = dialog.querySelector('[data-slot="drawer-body"]')
@@ -62,5 +83,34 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(body).not.toContainElement(
       screen.getByRole('button', { name: 'Abbrechen' }),
     )
+  })
+
+  it('sperrt die Umbuchung, bis ein Ziel-Tisch aktiv gewählt wurde', async () => {
+    const user = userEvent.setup()
+    const bestellungUmbuchen = renderDrawer()
+
+    // Ohne Wahl steht der Placeholder, nicht ein vorbelegter Tisch.
+    const select = screen.getByRole('combobox')
+    expect(select).toHaveValue('')
+    expect(screen.getByText('Ziel-Tisch wählen…')).toBeInTheDocument()
+
+    const button = screen.getByRole('button', { name: 'Umbuchung ausführen' })
+    expect(button).toBeDisabled()
+
+    await user.selectOptions(select, 'Nebentisch')
+    expect(button).toBeEnabled()
+
+    await user.click(button)
+    expect(bestellungUmbuchen).toHaveBeenCalledWith(
+      expect.objectContaining({ quellTischId: 1, zielTischId: 2 }),
+    )
+  })
+
+  it('titelt menschenlesbar mit Vorgangstyp und Name statt UUID-Fragment', () => {
+    renderDrawer()
+
+    const title = screen.getByText(/^Bestellung ·/)
+    expect(title).toHaveTextContent('Nico')
+    expect(screen.queryByText(/00000000/)).not.toBeInTheDocument()
   })
 })

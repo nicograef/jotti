@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { Position } from '../../table/Bestellung'
+import type { Bestellung, Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 
@@ -28,14 +28,27 @@ const position: Position = {
   bestellerName: 'Tester',
 }
 
+const quelle: Bestellung = {
+  art: 'bestellung',
+  id: '00000000-0000-0000-0000-000000000042',
+  userId: 1,
+  userName: 'Nico',
+  tischId: 1,
+  positionen: [position],
+  gesamtPreisCents: 700,
+  kommentar: '',
+  aufgenommenAm: '2026-06-18T12:00:00Z',
+  stornierbarePositionen: [position],
+  umbuchbarePositionen: [position],
+}
+
 describe('HistorieStornierungDrawer', () => {
   it('rendert Positionsliste und Kommentar im DrawerBody, Buttons im Footer außerhalb', () => {
     render(
       <HistorieStornierungDrawer
         backend={{ stornierungErteilen: vi.fn().mockResolvedValue(undefined) }}
         tisch={tisch}
-        vorgangId="00000000-0000-0000-0000-000000000042"
-        positionen={[position]}
+        quelle={quelle}
         onClose={vi.fn()}
         onStornierungErteilt={vi.fn()}
       />,
@@ -54,5 +67,22 @@ describe('HistorieStornierungDrawer', () => {
     expect(body).not.toContainElement(
       screen.getByRole('button', { name: 'Abbrechen' }),
     )
+  })
+
+  it('titelt menschenlesbar mit Vorgangstyp und Name statt UUID-Fragment', () => {
+    render(
+      <HistorieStornierungDrawer
+        backend={{ stornierungErteilen: vi.fn().mockResolvedValue(undefined) }}
+        tisch={tisch}
+        quelle={quelle}
+        onClose={vi.fn()}
+        onStornierungErteilt={vi.fn()}
+      />,
+    )
+
+    const title = screen.getByText(/^Bestellung ·/)
+    expect(title).toBeInTheDocument()
+    expect(title).toHaveTextContent('Nico')
+    expect(screen.queryByText(/00000000/)).not.toBeInTheDocument()
   })
 })

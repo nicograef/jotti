@@ -189,12 +189,12 @@ Detail-Drawer: menschenlesbarer Titel "Bestellung · vor 32 min · Nico" statt `
 
 ### Acceptance criteria
 
-- [ ] Historien-Zeilen (Tisch und Direktverkauf) haben keine Inline-Aktions-Buttons mehr; Tap öffnet das Detail; Umbuchen/Stornieren/Drucken liegen ausschließlich im Detail-Footer mit unverändertem Gating.
-- [ ] Zeilen zeigen Typ-Icon im farbigen Kreis, farbcodierten Betrag und relative Zeit; Kommentare erscheinen in Anführungszeichen in der Unterzeile.
-- [ ] Kein UUID-Fragment mehr in Drawer-Titeln; Detail und Folge-Drawer titeln "Typ · relative Zeit · Name".
-- [ ] Umbuchung: ohne explizite Ziel-Tisch-Wahl ist Submit disabled; es gibt keinen vorbelegten Ziel-Tisch; Primärbutton ist primär.
-- [ ] `formatRelativeTime` deckt die Grenzen (< 1 min, < 60 min, < 6 h, absolut) per Unit-Test ab.
-- [ ] Tests angepasst: `TischHistorie.test.tsx`, `HistorieStornierungDrawer.test.tsx`, `HistorieUmbuchungDrawer.test.tsx`, `DirektverkaufHistorie.test.tsx`, `utils.test.ts`; `make check` grün.
+- [x] Historien-Zeilen (Tisch und Direktverkauf) haben keine Inline-Aktions-Buttons mehr; Tap öffnet das Detail; Umbuchen/Stornieren/Drucken liegen ausschließlich im Detail-Footer mit unverändertem Gating.
+- [x] Zeilen zeigen Typ-Icon im farbigen Kreis, farbcodierten Betrag und relative Zeit; Kommentare erscheinen in Anführungszeichen in der Unterzeile.
+- [x] Kein UUID-Fragment mehr in Drawer-Titeln; Detail und Folge-Drawer titeln "Typ · relative Zeit · Name".
+- [x] Umbuchung: ohne explizite Ziel-Tisch-Wahl ist Submit disabled; es gibt keinen vorbelegten Ziel-Tisch; Primärbutton ist primär.
+- [x] `formatRelativeTime` deckt die Grenzen (< 1 min, < 60 min, < 6 h, absolut) per Unit-Test ab.
+- [x] Tests angepasst: `TischHistorie.test.tsx`, `HistorieStornierungDrawer.test.tsx`, `HistorieUmbuchungDrawer.test.tsx`, `DirektverkaufHistorie.test.tsx`, `utils.test.ts`; `make check` grün.
 
 ---
 

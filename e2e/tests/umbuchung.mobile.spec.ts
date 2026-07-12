@@ -4,6 +4,7 @@ import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 import {
   bestellePosition,
+  oeffneHistorienDetail,
   oeffneTisch,
   zeileMit,
 } from '../support/servicekraft'
@@ -29,23 +30,31 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
 
     await expect(page.getByText('2,00 €').first()).toBeVisible()
 
+    // Historien-Zeilen tragen keine Inline-Aktionen mehr: die Bestellzeile öffnet
+    // den Detail-Drawer, dort liegt „Umbuchen".
     await page.getByRole('tab', { name: 'Historie' }).click()
-    const bestellungsEintrag = zeileMit(page, 'Bestellung', 'Umbuchen')
-    await expect(bestellungsEintrag).toBeVisible()
-    await bestellungsEintrag.getByRole('button', { name: 'Umbuchen' }).click()
+    const detail = await oeffneHistorienDetail(page, /Bestellung/)
+    await detail.getByRole('button', { name: /Umbuchen/ }).click()
 
     const drawer = page.getByRole('dialog')
-    await expect(drawer.getByText(/Umbuchung aus Vorgang/)).toBeVisible()
+    await expect(
+      drawer.getByRole('heading', { name: /^Bestellung ·/ }),
+    ).toBeVisible()
 
     const wasserZeile = zeileMit(drawer, 'Wasser Still 0,5l', 'hinzufügen')
-    // Die Position ist standardmäßig bereits mit der vollen Menge vorbelegt
-    // (createDefaultMengen), daher wird hier nichts weiter angeklickt.
+    // Die Position ist standardmäßig bereits mit der vollen Menge vorbelegt,
+    // daher wird hier nichts weiter angeklickt.
     await expect(wasserZeile).toBeVisible()
 
+    // Ohne explizite Ziel-Tisch-Wahl bleibt die Umbuchung gesperrt (kein stiller
+    // Default mehr) — erst die Auswahl gibt den Button frei.
+    const ausfuehren = drawer.getByRole('button', {
+      name: 'Umbuchung ausführen',
+    })
+    await expect(ausfuehren).toBeDisabled()
     await drawer.getByRole('combobox').selectOption({ label: ZIEL_TISCH })
-    await drawer
-      .getByRole('button', { name: 'Umbuchung ausführen' })
-      .click()
+    await expect(ausfuehren).toBeEnabled()
+    await ausfuehren.click()
     await expect(page.getByText('Bestellung umgebucht.')).toBeVisible()
 
     // Der Quelltisch ist danach ausgeglichen …

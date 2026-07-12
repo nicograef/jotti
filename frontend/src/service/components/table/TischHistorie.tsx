@@ -1,4 +1,11 @@
-import { ArrowRightLeft, Eye, X } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import {
+  ArrowRightLeft,
+  Banknote,
+  ChevronRight,
+  Plus,
+  RotateCcw,
+} from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -12,18 +19,11 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemTitle,
-} from '@/components/ui/item'
+import { ItemGroup } from '@/components/ui/item'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
-import { formatCents } from '@/lib/utils'
+import { cn, formatCents, formatRelativeTime } from '@/lib/utils'
 
 import { belegDruckenMitNachfassen, meldeBelegStatus } from '../../beleg'
 import type { Bestellung } from '../../table/Bestellung'
@@ -43,6 +43,73 @@ type HistorieEintrag = Bestellung | Zahlung | Stornierung | Umbuchung
 // Quelle ist ein Eintrag, der Positionen auf den Tisch bringt — eine Bestellung oder
 // der Zugang einer Umbuchung. Nur diese tragen stornier-/umbuchbare Positionen.
 type Quelle = Bestellung | Umbuchung
+
+// Betragsfarbe: Zugänge (Bestellung, Umbuchungs-Zugang) emerald, kassenwirksame
+// Storni rot, Zahlung und Umbuchungs-Abgang neutral.
+type Betragsfarbe = 'zugang' | 'storno' | 'neutral'
+
+interface Zeilenmodell {
+  icon: LucideIcon
+  iconWrapper: string
+  title: string
+  betrag: string
+  betragFarbe: Betragsfarbe
+  date: string
+  userName: string
+  kommentar: string
+}
+
+function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
+  switch (item.art) {
+    case 'bestellung':
+      return {
+        icon: Plus,
+        iconWrapper: 'bg-primary/10 text-primary',
+        title: 'Bestellung',
+        betrag: `+${formatCents(item.gesamtPreisCents)} €`,
+        betragFarbe: 'zugang',
+        date: item.aufgenommenAm,
+        userName: item.userName,
+        kommentar: item.kommentar,
+      }
+    case 'zahlung':
+      return {
+        icon: Banknote,
+        iconWrapper: 'bg-muted text-muted-foreground',
+        title: 'Zahlung',
+        betrag: `-${formatCents(item.gesamtZahlungCents)} €`,
+        betragFarbe: 'neutral',
+        date: item.kassiertAm,
+        userName: item.userName,
+        kommentar: item.kommentar,
+      }
+    case 'umbuchung': {
+      const istZugang = item.tischId === item.zielTischId
+      return {
+        icon: ArrowRightLeft,
+        iconWrapper: 'bg-muted text-muted-foreground',
+        // Der Autotext („Umbuchung von/auf Tisch X") ist selbst der Titel.
+        title: item.kommentar,
+        betrag: `${istZugang ? '+' : '-'}${formatCents(item.gesamtCents)} €`,
+        betragFarbe: istZugang ? 'zugang' : 'neutral',
+        date: item.umgebuchtAm,
+        userName: item.userName,
+        kommentar: '',
+      }
+    }
+    case 'stornierung':
+      return {
+        icon: RotateCcw,
+        iconWrapper: 'bg-destructive/10 text-destructive',
+        title: item.barRueckgabe ? 'Warenrücknahme' : 'Korrektur',
+        betrag: `-${formatCents(item.gesamtStornierungCents)} €`,
+        betragFarbe: 'storno',
+        date: item.storniertAm,
+        userName: item.userName,
+        kommentar: item.kommentar,
+      }
+  }
+}
 
 interface TischHistorieProps {
   historie: HistorieEintrag[]
@@ -101,143 +168,90 @@ export function TischHistorie({
               // eslint-disable-next-line react-x/no-array-index-key
               <ItemSkeleton key={index} />
             ))
-          : historie.map((item) => {
-              switch (item.art) {
-                case 'zahlung':
-                  return (
-                    <HistoryItem
-                      key={item.id}
-                      title={`Zahlung -${formatCents(item.gesamtZahlungCents)} €`}
-                      date={item.kassiertAm}
-                      userName={item.userName}
-                      kommentar={item.kommentar}
-                      onClick={() => {
-                        setDetail(item)
-                      }}
-                    />
-                  )
-                case 'bestellung':
-                  return (
-                    <HistoryItem
-                      key={item.id}
-                      title={`Bestellung +${formatCents(item.gesamtPreisCents)} €`}
-                      date={item.aufgenommenAm}
-                      userName={item.userName}
-                      kommentar={item.kommentar}
-                      onClick={() => {
-                        setDetail(item)
-                      }}
-                      onStornieren={
-                        AuthSingleton.canCancel &&
-                        item.stornierbarePositionen.length > 0
-                          ? () => {
-                              setStornierenQuelle(item)
-                            }
-                          : undefined
-                      }
-                      onUmbuchen={
-                        AuthSingleton.canRebook &&
-                        item.umbuchbarePositionen.length > 0
-                          ? () => {
-                              setUmbuchenQuelle(item)
-                            }
-                          : undefined
-                      }
-                    />
-                  )
-                case 'umbuchung': {
-                  const istZugang = item.tischId === item.zielTischId
-                  return (
-                    <HistoryItem
-                      key={item.id}
-                      title={`Umbuchung ${istZugang ? '+' : '-'}${formatCents(item.gesamtCents)} €`}
-                      date={item.umgebuchtAm}
-                      userName={item.userName}
-                      kommentar={item.kommentar}
-                      onClick={() => {
-                        setDetail(item)
-                      }}
-                      onStornieren={
-                        AuthSingleton.canCancel &&
-                        item.stornierbarePositionen.length > 0
-                          ? () => {
-                              setStornierenQuelle(item)
-                            }
-                          : undefined
-                      }
-                      onUmbuchen={
-                        AuthSingleton.canRebook &&
-                        item.umbuchbarePositionen.length > 0
-                          ? () => {
-                              setUmbuchenQuelle(item)
-                            }
-                          : undefined
-                      }
-                    />
-                  )
-                }
-                case 'stornierung':
-                  return (
-                    <HistoryItem
-                      key={item.id}
-                      title={`${item.barRueckgabe ? 'Warenrücknahme' : 'Korrektur'} -${formatCents(item.gesamtStornierungCents)} €`}
-                      date={item.storniertAm}
-                      userName={item.userName}
-                      kommentar={item.kommentar}
-                      onClick={() => {
-                        setDetail(item)
-                      }}
-                    />
-                  )
-              }
-            })}
+          : historie.map((item) => (
+              <HistoryRow
+                key={item.id}
+                {...zeilenmodell(item)}
+                onClick={() => {
+                  setDetail(item)
+                }}
+              />
+            ))}
       </ItemGroup>
-      {detail && (
-        <Details
-          {...detailView(detail)}
-          id={detail.id}
-          userName={detail.userName}
-          kommentar={detail.kommentar}
-          onClose={() => {
-            setDetail(null)
-          }}
-          primaryAction={
-            detail.art === 'zahlung'
-              ? {
-                  label: 'Beleg drucken',
-                  loading: belegDruckenLoading,
-                  onAction: () => {
-                    void runBelegDrucken(async () => {
-                      const status = await belegDruckenMitNachfassen(() =>
-                        backend.belegDrucken(tisch.id, detail.id),
-                      )
-                      meldeBelegStatus(
-                        status,
-                        'Beleg in die Druckwarteschlange eingereiht.',
-                      )
-                    })
-                  },
-                }
-              : // Nur die kassenwirksame Warenrücknahme (Bargeld zurück)
-                // erzeugt einen Stornobeleg; die geldneutrale Korrektur nicht.
-                detail.art === 'stornierung' && detail.barRueckgabe
-                ? {
-                    label: 'Stornobeleg drucken',
-                    loading: belegDruckenLoading,
-                    onAction: () => {
-                      stornobelegAnfordern(detail.id)
-                    },
-                  }
-                : undefined
-          }
-        />
-      )}
+      {detail &&
+        (() => {
+          const canStornieren =
+            (detail.art === 'bestellung' || detail.art === 'umbuchung') &&
+            AuthSingleton.canCancel &&
+            detail.stornierbarePositionen.length > 0
+          const canUmbuchen =
+            (detail.art === 'bestellung' || detail.art === 'umbuchung') &&
+            AuthSingleton.canRebook &&
+            detail.umbuchbarePositionen.length > 0
+          const zeile = zeilenmodell(detail)
+          return (
+            <Details
+              {...detailView(detail)}
+              title={zeile.title}
+              userName={detail.userName}
+              tischName={tisch.name}
+              kommentar={zeile.kommentar}
+              onClose={() => {
+                setDetail(null)
+              }}
+              onStornieren={
+                canStornieren
+                  ? () => {
+                      setDetail(null)
+                      setStornierenQuelle(detail)
+                    }
+                  : undefined
+              }
+              onUmbuchen={
+                canUmbuchen
+                  ? () => {
+                      setDetail(null)
+                      setUmbuchenQuelle(detail)
+                    }
+                  : undefined
+              }
+              primaryAction={
+                detail.art === 'zahlung'
+                  ? {
+                      label: 'Beleg drucken',
+                      loading: belegDruckenLoading,
+                      onAction: () => {
+                        void runBelegDrucken(async () => {
+                          const status = await belegDruckenMitNachfassen(() =>
+                            backend.belegDrucken(tisch.id, detail.id),
+                          )
+                          meldeBelegStatus(
+                            status,
+                            'Beleg in die Druckwarteschlange eingereiht.',
+                          )
+                        })
+                      },
+                    }
+                  : // Nur die kassenwirksame Warenrücknahme (Bargeld zurück)
+                    // erzeugt einen Stornobeleg; die geldneutrale Korrektur nicht.
+                    detail.art === 'stornierung' && detail.barRueckgabe
+                    ? {
+                        label: 'Stornobeleg drucken',
+                        loading: belegDruckenLoading,
+                        onAction: () => {
+                          stornobelegAnfordern(detail.id)
+                        },
+                      }
+                    : undefined
+              }
+            />
+          )
+        })()}
       {stornierenQuelle && (
         <HistorieStornierungDrawer
           backend={backend}
           tisch={tisch}
-          vorgangId={stornierenQuelle.id}
-          positionen={stornierenQuelle.stornierbarePositionen}
+          quelle={stornierenQuelle}
           onClose={() => {
             setStornierenQuelle(null)
           }}
@@ -251,8 +265,7 @@ export function TischHistorie({
         <HistorieUmbuchungDrawer
           backend={backend}
           tisch={tisch}
-          vorgangId={umbuchenQuelle.id}
-          positionen={umbuchenQuelle.umbuchbarePositionen}
+          quelle={umbuchenQuelle}
           onClose={() => {
             setUmbuchenQuelle(null)
           }}
@@ -266,94 +279,74 @@ export function TischHistorie({
   )
 }
 
-function HistoryItem({
+const betragKlassen: Record<Betragsfarbe, string> = {
+  zugang: 'text-emerald-600',
+  storno: 'text-destructive',
+  neutral: 'text-foreground',
+}
+
+function HistoryRow({
+  icon: Icon,
+  iconWrapper,
   title,
+  betrag,
+  betragFarbe,
   date,
   userName,
   kommentar,
   onClick,
-  onStornieren,
-  onUmbuchen,
-}: {
-  title: string
-  date: string
-  userName: string
-  kommentar: string
-  onClick: () => void
-  onStornieren?: () => void
-  onUmbuchen?: () => void
-}) {
+}: Zeilenmodell & { onClick: () => void }) {
   return (
-    <Item variant="outline">
-      <ItemContent>
-        <ItemTitle>{title}</ItemTitle>
-        <ItemDescription>
-          <span className="block">von {userName}</span>
-          {new Date(date).toLocaleString('de-DE')}
-          {kommentar && (
-            <>
-              <br />
-              {kommentar}
-            </>
-          )}
-        </ItemDescription>
-      </ItemContent>
-      <ItemActions>
-        {onStornieren && (
-          <Button
-            size="icon-sm"
-            variant="destructive"
-            className="rounded-full cursor-pointer"
-            aria-label="Stornieren"
-            onClick={onStornieren}
-          >
-            <X />
-          </Button>
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-md border bg-card px-3 py-3 text-left transition-colors hover:bg-muted/50"
+    >
+      <span
+        className={cn(
+          'flex size-10 shrink-0 items-center justify-center rounded-full [&_svg]:size-5',
+          iconWrapper,
         )}
-        {onUmbuchen && (
-          <Button
-            size="icon-sm"
-            variant="outline"
-            className="rounded-full cursor-pointer"
-            aria-label="Umbuchen"
-            onClick={onUmbuchen}
-          >
-            <ArrowRightLeft />
-          </Button>
+      >
+        <Icon />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate text-[15px] font-medium">{title}</span>
+        <span className="text-sm text-muted-foreground">
+          {formatRelativeTime(date)} · {userName}
+          {kommentar && ` · „${kommentar}“`}
+        </span>
+      </span>
+      <span
+        className={cn(
+          'shrink-0 text-[15px] font-bold tabular-nums',
+          betragKlassen[betragFarbe],
         )}
-        <Button
-          size="icon-sm"
-          variant="outline"
-          className="rounded-full cursor-pointer"
-          aria-label="Details anzeigen"
-          onClick={onClick}
-        >
-          <Eye />
-        </Button>
-      </ItemActions>
-    </Item>
+      >
+        {betrag}
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+    </button>
   )
 }
 
 function ItemSkeleton() {
   return (
-    <Item variant="outline">
-      <ItemContent>
-        <ItemTitle>
-          <Skeleton className="h-6 w-32" />
-        </ItemTitle>
-        <Skeleton className="h-4 w-48" />
-      </ItemContent>
-      <ItemActions>
-        <Skeleton className="h-8 w-8 rounded-full" />
-      </ItemActions>
-    </Item>
+    <div className="flex items-center gap-3 rounded-md border px-3 py-3">
+      <Skeleton className="size-10 shrink-0 rounded-full" />
+      <div className="flex flex-1 flex-col gap-1">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-3 w-48" />
+      </div>
+      <Skeleton className="h-4 w-16" />
+    </div>
   )
 }
 
-// detailView maps a history entry to the fields the detail drawer renders.
+// detailView maps a history entry to the fields the detail drawer renders. Titel
+// und Kommentar liefert stattdessen zeilenmodell(), damit Zeile und Detail nie
+// auseinanderlaufen (Umbuchung: Autotext als Titel, kein Kommentar-Widget).
 function detailView(eintrag: HistorieEintrag): {
-  title: string
   date: string
   positionen?: ReceiptPosition[]
   totalPrice?: number
@@ -361,28 +354,24 @@ function detailView(eintrag: HistorieEintrag): {
   switch (eintrag.art) {
     case 'bestellung':
       return {
-        title: 'Bestellung',
         date: eintrag.aufgenommenAm,
         positionen: toReceiptItems(eintrag.positionen),
         totalPrice: eintrag.gesamtPreisCents,
       }
     case 'zahlung':
       return {
-        title: 'Zahlung',
         date: eintrag.kassiertAm,
         positionen: toReceiptItems(eintrag.positionen),
         totalPrice: eintrag.gesamtZahlungCents,
       }
     case 'stornierung':
       return {
-        title: 'Stornierung',
         date: eintrag.storniertAm,
         positionen: toReceiptItems(eintrag.positionen),
         totalPrice: eintrag.gesamtStornierungCents,
       }
     case 'umbuchung':
       return {
-        title: 'Umbuchung',
         date: eintrag.umgebuchtAm,
         positionen: toReceiptItems(eintrag.positionen),
         totalPrice: eintrag.gesamtCents,
@@ -399,23 +388,27 @@ interface PrimaryAction {
 function Details({
   onClose,
   title,
-  id,
   date,
   userName,
+  tischName,
   kommentar,
   positionen,
   totalPrice,
   primaryAction,
+  onStornieren,
+  onUmbuchen,
 }: {
   onClose: () => void
   title: string
-  id: string
   date: string
   userName: string
+  tischName: string
   kommentar: string
   positionen?: ReceiptPosition[]
   totalPrice?: number
   primaryAction?: PrimaryAction
+  onStornieren?: () => void
+  onUmbuchen?: () => void
 }) {
   return (
     <Drawer
@@ -427,11 +420,17 @@ function Details({
       <DrawerContent>
         <DrawerHeader className="mx-auto w-full max-w-sm">
           <DrawerTitle>
-            {title} {id.slice(0, 8)}
+            {title} · {formatRelativeTime(date)} · {userName}
           </DrawerTitle>
           <DrawerDescription>
-            von {userName} am {new Date(date).toLocaleDateString('de-DE')} um{' '}
-            {new Date(date).toLocaleTimeString('de-DE')} Uhr
+            {tischName} ·{' '}
+            {new Date(date).toLocaleString('de-DE', {
+              day: 'numeric',
+              month: 'numeric',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">
@@ -451,6 +450,30 @@ function Details({
           )}
         </DrawerBody>
         <DrawerFooter className="mx-auto w-full max-w-sm">
+          {(onUmbuchen ?? onStornieren) && (
+            <div className="flex gap-2">
+              {onUmbuchen && (
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  disabled={primaryAction?.loading}
+                  onClick={onUmbuchen}
+                >
+                  <ArrowRightLeft /> Umbuchen
+                </Button>
+              )}
+              {onStornieren && (
+                <Button
+                  variant="outline"
+                  className="flex-1 border-destructive/40 text-destructive"
+                  disabled={primaryAction?.loading}
+                  onClick={onStornieren}
+                >
+                  <RotateCcw /> Stornieren…
+                </Button>
+              )}
+            </div>
+          )}
           {primaryAction && (
             <Button
               onClick={primaryAction.onAction}

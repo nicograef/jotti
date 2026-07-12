@@ -5,6 +5,7 @@ import { resetAndSeed } from '../support/seed'
 import {
   bestellePosition,
   kassierePosition,
+  oeffneHistorienDetail,
   oeffneTisch,
   zeileMit,
 } from '../support/servicekraft'
@@ -41,13 +42,14 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
     await expect(page.getByText('2,50 €').first()).toBeVisible()
 
     // --- Geldneutrale Korrektur: Storno der unbezahlten Pommes-Bestellung ---
+    // Historien-Zeilen tragen keine Inline-Aktionen mehr: die Zeile (per Betrag
+    // eindeutig) öffnet den Detail-Drawer, dort liegt „Stornieren…".
     await page.getByRole('tab', { name: 'Historie' }).click()
-    const bestellungPommes = zeileMit(page, 'Bestellung +2,50', 'Stornieren')
-    await expect(bestellungPommes).toBeVisible()
-    await bestellungPommes.getByRole('button', { name: 'Stornieren' }).click()
+    let detail = await oeffneHistorienDetail(page, /Bestellung.*\+2,50/)
+    await detail.getByRole('button', { name: /Stornieren…/ }).click()
 
     let drawer = page.getByRole('dialog')
-    await expect(drawer.getByText(/Stornierung aus Vorgang/)).toBeVisible()
+    await expect(drawer.getByRole('heading', { name: /^Bestellung ·/ })).toBeVisible()
     const pommesZeile = zeileMit(drawer, 'Pommes Klein', 'hinzufügen')
     await pommesZeile.getByRole('button', { name: /hinzufügen/ }).click()
     await drawer
@@ -63,9 +65,8 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
     // Die Bestellung, aus der die kassierte Position stammt, bleibt weiterhin
     // stornierbar (Warenrücknahme storniert die Bestellposition, nicht die
     // separate Zahlung).
-    const bestellungBrezel = zeileMit(page, 'Bestellung +2,00', 'Stornieren')
-    await expect(bestellungBrezel).toBeVisible()
-    await bestellungBrezel.getByRole('button', { name: 'Stornieren' }).click()
+    detail = await oeffneHistorienDetail(page, /Bestellung.*\+2,00/)
+    await detail.getByRole('button', { name: /Stornieren…/ }).click()
 
     drawer = page.getByRole('dialog')
     const brezelZeile = zeileMit(drawer, 'Brezel Normal', 'hinzufügen')
@@ -79,7 +80,7 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
     // bereits bezahlt) und erscheint als eigener „Warenrücknahme"-Eintrag mit
     // dem erstatteten Betrag in der Historie.
     await expect(page.getByText('0,00 €').first()).toBeVisible()
-    const stornoEintrag = zeileMit(page, 'Warenrücknahme', 'Details anzeigen')
+    const stornoEintrag = page.getByRole('button', { name: /Warenrücknahme/ })
     await expect(stornoEintrag).toBeVisible()
     await expect(stornoEintrag).toContainText('2,00')
   })

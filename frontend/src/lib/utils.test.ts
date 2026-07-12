@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatCents, formatPositionName, parseCents } from './utils'
+import {
+  formatCents,
+  formatPositionName,
+  formatRelativeTime,
+  parseCents,
+} from './utils'
 
 describe('formatCents', () => {
   it.each([
@@ -24,6 +29,44 @@ describe('formatPositionName', () => {
     ['Cola', 'Cola', 'Cola Cola'],
   ])('formatPositionName(%s, %s) = %s', (produkt, variante, expected) => {
     expect(formatPositionName(produkt, variante)).toBe(expected)
+  })
+})
+
+describe('formatRelativeTime', () => {
+  // Fester Bezugspunkt für deterministische Grenzfälle.
+  const now = new Date('2026-07-12T18:42:00')
+
+  function vor(msVor: number): string {
+    return new Date(now.getTime() - msVor).toISOString()
+  }
+
+  const MIN = 60_000
+  const STD = 60 * MIN
+
+  it('nennt Zeitpunkte unter einer Minute „gerade eben"', () => {
+    expect(formatRelativeTime(vor(0), now)).toBe('gerade eben')
+    expect(formatRelativeTime(vor(MIN - 1), now)).toBe('gerade eben')
+  })
+
+  it('zählt volle Minuten bis unter einer Stunde', () => {
+    expect(formatRelativeTime(vor(MIN), now)).toBe('vor 1 min')
+    expect(formatRelativeTime(vor(32 * MIN), now)).toBe('vor 32 min')
+    expect(formatRelativeTime(vor(59 * MIN), now)).toBe('vor 59 min')
+  })
+
+  it('zählt volle Stunden bis unter sechs Stunden', () => {
+    expect(formatRelativeTime(vor(STD), now)).toBe('vor 1 Std')
+    expect(formatRelativeTime(vor(5 * STD + 59 * MIN), now)).toBe('vor 5 Std')
+  })
+
+  it('zeigt ab sechs Stunden die absolute Uhrzeit desselben Tages', () => {
+    expect(formatRelativeTime('2026-07-12T09:05:00', now)).toBe('09:05')
+    expect(formatRelativeTime('2026-07-12T00:00:00', now)).toBe('00:00')
+  })
+
+  it('ergänzt an früheren Tagen das Datum', () => {
+    expect(formatRelativeTime('2026-07-11T18:42:00', now)).toBe('11.7., 18:42')
+    expect(formatRelativeTime('2025-12-24T20:00:00', now)).toBe('24.12., 20:00')
   })
 })
 

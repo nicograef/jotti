@@ -14,15 +14,17 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
-import { formatCents } from '@/lib/utils'
+import { formatCents, formatRelativeTime } from '@/lib/utils'
 
-import type { Position } from '../../table/Bestellung'
+import type { Bestellung } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import type { Umbuchung } from '../../table/Umbuchung'
 import { PositionAuswahlListe } from '../PositionAuswahlListe'
 import { KommentarField } from './CommentField'
 import {
   calculateTotalPrice,
+  quelleTitel,
   selectPositionen,
   toAuswahlPositionen,
   toPositionRefs,
@@ -33,8 +35,7 @@ interface HistorieStornierungDrawerProps {
   tisch: Tisch
   // Ursprungsvorgang (Bestellung oder Umbuchungs-Zugang), dessen Positionen storniert
   // werden; beschriftet den Drawer.
-  vorgangId: string
-  positionen: Position[]
+  quelle: Bestellung | Umbuchung
   onClose: () => void
   onStornierungErteilt: () => void
 }
@@ -42,11 +43,11 @@ interface HistorieStornierungDrawerProps {
 export function HistorieStornierungDrawer({
   backend,
   tisch,
-  vorgangId,
-  positionen,
+  quelle,
   onClose,
   onStornierungErteilt,
 }: HistorieStornierungDrawerProps) {
+  const positionen = quelle.stornierbarePositionen
   const [kommentar, setKommentar] = useState('')
   const { mengen, add, remove } = useMengen<string>(
     (positionId) =>
@@ -89,7 +90,13 @@ export function HistorieStornierungDrawer({
       <DrawerContent pending={loading}>
         <DrawerHeader className="mx-auto w-full max-w-sm">
           <DrawerTitle>
-            Stornierung aus Vorgang {vorgangId.slice(0, 8)}
+            {quelleTitel(quelle)} ·{' '}
+            {formatRelativeTime(
+              quelle.art === 'bestellung'
+                ? quelle.aufgenommenAm
+                : quelle.umgebuchtAm,
+            )}{' '}
+            · {quelle.userName}
           </DrawerTitle>
           <DrawerDescription>
             Positionen aus diesem Vorgang zum Stornieren auswählen.

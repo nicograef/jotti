@@ -26,6 +26,21 @@ export function zeileMit(
     .last()
 }
 
+// oeffneHistorienDetail tippt die Historien-Zeile an, deren Beschriftung den
+// gegebenen Text enthält (z. B. „Bestellung … +2,50 €"). Historien-Zeilen sind
+// seit dem Redesign selbst Buttons ohne Inline-Aktionen — die ganze Zeile öffnet
+// den Detail-Drawer, in dem Umbuchen/Stornieren/Drucken liegen. Der Text muss die
+// Zeile eindeutig treffen (in den Specs über den Betrag).
+export async function oeffneHistorienDetail(
+  page: Page,
+  text: string | RegExp,
+): Promise<Locator> {
+  await page.getByRole('button', { name: text }).click()
+  const drawer = page.getByRole('dialog')
+  await expect(drawer).toBeVisible()
+  return drawer
+}
+
 // oeffneTisch navigiert von der Tischauswahl zur Detailseite eines Tisches
 // über den „Alle Tische"-Drawer (funktioniert unabhängig davon, ob der Tisch
 // bereits in „Meine Tische" markiert ist).

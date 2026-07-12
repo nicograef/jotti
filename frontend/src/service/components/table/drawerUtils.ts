@@ -3,11 +3,20 @@ import { formatPositionName } from '@/lib/utils'
 import type { Produkt } from '../../product/Produkt'
 import type {
   BestellPositionInput,
+  Bestellung,
   Position,
   PositionRef,
 } from '../../table/Bestellung'
+import type { Umbuchung } from '../../table/Umbuchung'
 import type { AuswahlPosition } from '../PositionAuswahlListe'
 import type { ReceiptPosition } from './Receipt'
+
+// quelleTitel liefert den menschenlesbaren Vorgangstitel für die Folge-Drawer
+// (Stornieren/Umbuchen): „Bestellung" bzw. für einen Umbuchungs-Zugang den
+// Richtungs-Autotext („Umbuchung von Tisch X"), wie in der Historien-Zeile.
+export function quelleTitel(quelle: Bestellung | Umbuchung): string {
+  return quelle.art === 'bestellung' ? 'Bestellung' : quelle.kommentar
+}
 
 // Minimale Positionsform, die toAuswahlPositionen benötigt (Position und
 // VerkaufPosition erfüllen sie beide).
@@ -115,7 +124,14 @@ export function toBestellungData(
   }
 }
 
-export function toReceiptItems(positionen: Position[]): ReceiptPosition[] {
+export function toReceiptItems(
+  positionen: {
+    produktName: string
+    varianteName: string
+    einzelpreisCents: number
+    menge: number
+  }[],
+): ReceiptPosition[] {
   return positionen.map((p) => ({
     name: formatPositionName(p.produktName, p.varianteName),
     einzelpreisCents: p.einzelpreisCents,
