@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width: 256px; height: 100%; box-sizing: border-box; background: oklch(0.988 0.003 106.5); border-right: 1px solid oklch(0.93 0.007 106.5); display: flex; flex-direction: column; font-family: 'Inter', sans-serif; color: oklch(0.153 0.006 107.1); flex-shrink: 0;">
+  <div style="padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="font-size: 28px; line-height: 32px; font-weight: 800; padding: 0 4px;">jotti</div>
+    <div style="background: #fff; border: 1px solid oklch(0.93 0.007 106.5); border-radius: 7.2px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
+      <span style="font-size: 13px; font-weight: 600;">Sommerfest Tag 2</span>
+      <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: oklch(0.53 0.031 107.3);">
+        <span style="width: 7px; height: 7px; border-radius: 999px; background: oklch(0.508 0.118 165.612); flex-shrink: 0;"></span>
+        Kasse offen · seit 10:02
+      </span>
+    </div>
+  </div>
+  <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; overflow: hidden;">
+    <div style="padding: 8px; display: flex; flex-direction: column;">
+      <div style="height: 32px; display: flex; align-items: center; padding: 0 8px; font-size: 12px; font-weight: 500; color: color-mix(in oklab, oklch(0.153 0.006 107.1) 70%, transparent);">Heute</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="{{ s_uebersicht }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+          <span>Übersicht</span>
+        </div>
+        <div style="{{ s_kasse }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+          <span style="flex: 1;">Kassentag</span>
+          <span style="width: 7px; height: 7px; border-radius: 999px; background: oklch(0.508 0.118 165.612);"></span>
+        </div>
+      </div>
+    </div>
+    <div style="padding: 8px; display: flex; flex-direction: column;">
+      <div style="height: 32px; display: flex; align-items: center; padding: 0 8px; font-size: 12px; font-weight: 500; color: color-mix(in oklab, oklch(0.153 0.006 107.1) 70%, transparent);">Vorbereitung</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="{{ s_produkte }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>
+          <span>Produkte &amp; Preise</span>
+        </div>
+        <div style="{{ s_tische }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12v6"></path><path d="M4.077 10.615A1 1 0 0 0 5 12h14a1 1 0 0 0 .923-1.385l-3.077-7.384A2 2 0 0 0 15 2H9a2 2 0 0 0-1.846 1.23Z"></path><path d="M8 20a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z"></path></svg>
+          <span>Tische</span>
+        </div>
+        <div style="{{ s_benutzer }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>
+          <span>Helfer &amp; Zugänge</span>
+        </div>
+        <div style="{{ s_druck }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"></path><rect x="6" y="14" width="12" height="8" rx="1"></rect></svg>
+          <span style="flex: 1;">Bondrucker</span>
+          <span style="width: 7px; height: 7px; border-radius: 999px; background: oklch(0.577 0.245 27.325);"></span>
+        </div>
+      </div>
+    </div>
+    <div style="padding: 8px; display: flex; flex-direction: column;">
+      <div style="height: 32px; display: flex; align-items: center; padding: 0 8px; font-size: 12px; font-weight: 500; color: color-mix(in oklab, oklch(0.153 0.006 107.1) 70%, transparent);">Nach dem Fest</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="{{ s_berichte }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+          <span>Berichte &amp; Export</span>
+        </div>
+        <div style="{{ s_finanzamt }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18v-7"></path><path d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z"></path><path d="M14 18v-7"></path><path d="M18 18v-7"></path><path d="M3 22h18"></path><path d="M6 18v-7"></path></svg>
+          <span>Finanzamt &amp; TSE</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding: 8px; display: flex; flex-direction: column;">
+      <div style="height: 32px; display: flex; align-items: center; padding: 0 8px; font-size: 12px; font-weight: 500; color: color-mix(in oklab, oklch(0.153 0.006 107.1) 70%, transparent);">Service</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="{{ s_service }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>
+          <span>Zum Service-Bereich</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="padding: 8px; border-top: 1px solid oklch(0.93 0.007 106.5); display: flex; flex-direction: column; gap: 4px;">
+    <div style="{{ s_theme }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"></path></svg>
+      <span>Dunkles Design</span>
+    </div>
+    <div style="{{ s_logout }}">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>
+      <span>Abmelden</span>
+    </div>
+    <p style="margin: 4px 0 2px; text-align: center; font-size: 12px; color: oklch(0.53 0.031 107.3);">jotti 1.0.0 · Nico Gräf</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:256,&quot;height&quot;:900},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;uebersicht&quot;,&quot;kasse&quot;,&quot;produkte&quot;,&quot;tische&quot;,&quot;benutzer&quot;,&quot;druck&quot;,&quot;berichte&quot;,&quot;finanzamt&quot;],&quot;default&quot;:&quot;uebersicht&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const active = this.props.active ?? '';
+    const base = {
+      display: 'flex', alignItems: 'center', gap: '8px', height: '32px',
+      boxSizing: 'border-box', padding: '8px', borderRadius: '5.2px',
+      fontSize: '14px', lineHeight: '20px', color: 'oklch(0.153 0.006 107.1)',
+      fontWeight: 400, background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap'
+    };
+    const activeStyle = Object.assign({}, base, {
+      background: 'oklch(0.966 0.005 106.5)', fontWeight: 500,
+      color: 'oklch(0.228 0.013 107.4)'
+    });
+    const keys = ['uebersicht', 'kasse', 'produkte', 'tische', 'benutzer', 'druck', 'berichte', 'finanzamt', 'service', 'theme', 'logout'];
+    const vals = {};
+    for (const k of keys) vals['s_' + k] = (k === active) ? activeStyle : base;
+    return vals;
+  }
+}
+</script>
+</body>
+</html>
