@@ -110,6 +110,39 @@ func TestUpdateProductHandler_Failure(t *testing.T) {
 	}
 }
 
+func TestDeleteProduktHandler_Success(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"id":1}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/delete-produkt", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.DeleteProduktHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestDeleteProduktHandler_HatVerkaeufe(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrProduktHatVerkaeufe}}
+
+	body := `{"id":1}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/delete-produkt", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.DeleteProduktHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "produkt_hat_verkaeufe") {
+		t.Errorf("expected fehlercode produkt_hat_verkaeufe in body, got %q", rec.Body.String())
+	}
+}
+
 func TestCreateVariantHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 

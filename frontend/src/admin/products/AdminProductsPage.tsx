@@ -5,9 +5,11 @@ import { toast } from 'sonner'
 import { BackendSingleton } from '@/lib/Backend'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
+import { useDruckstationen } from '../settings/hooks'
 import { EditProductDialog } from './EditProductDialog'
 import { ALLE_PRODUKTE_KEY, useAllProdukte } from './hooks'
 import { NewProductDialog } from './NewProductDialog'
+import { produktUnterzeile } from './productGrouping'
 import { Products } from './Products'
 import type { Produkt } from './Produkt'
 import { ProduktBackend } from './ProduktBackend'
@@ -22,6 +24,7 @@ const produktBackend = new ProduktBackend(BackendSingleton)
 export function AdminProductsPage() {
   const queryClient = useQueryClient()
   const { isPending, produkte } = useAllProdukte()
+  const { druckstationen } = useDruckstationen()
   const [produktEditState, setProduktEditState] = useState(
     initialProduktEditState,
   )
@@ -52,7 +55,7 @@ export function AdminProductsPage() {
       )}
       <AdminPageHeader
         titel="Produkte & Preise"
-        unterzeile="Änderungen wirken sofort auf allen Service-Handys"
+        unterzeile={produktUnterzeile(produkte)}
         aktionen={
           <NewProductDialog
             backend={produktBackend}
@@ -67,6 +70,7 @@ export function AdminProductsPage() {
         loading={isPending}
         backend={produktBackend}
         products={produkte}
+        druckstationen={druckstationen}
         onEdit={(produktId) => {
           const produktToEdit = produkte.find((p) => p.id === produktId) ?? null
           setProduktEditState({ produkt: produktToEdit, open: true })
@@ -79,12 +83,12 @@ export function AdminProductsPage() {
         onVariantUpdated={() => {
           invalidateProdukte()
         }}
+        onVariantStatusChange={() => {
+          invalidateProdukte()
+        }}
         onVariantDeleted={() => {
           invalidateProdukte()
           toast.success('Variante wurde gelöscht.')
-        }}
-        onVariantStatusChange={() => {
-          invalidateProdukte()
         }}
       />
     </>

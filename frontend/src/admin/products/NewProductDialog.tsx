@@ -77,6 +77,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
         ...data,
         status: 'active',
         varianten: [],
+        hatVerkaeufe: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })

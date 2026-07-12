@@ -19,6 +19,7 @@ type produktRepo interface {
 	UpdateVariant(ctx context.Context, variant produkt.Variante) error
 	GetAllProducts(ctx context.Context) ([]produkt.Produkt, error)
 	GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error)
+	ProduktHatVerkaeufe(ctx context.Context, productID int) (bool, error)
 }
 
 type Command struct {
@@ -183,6 +184,18 @@ func (c Command) DeleteProdukt(ctx context.Context, productID int) error {
 		}
 		log.Error().Int("product_id", productID).Msg("Failed to retrieve product for deletion")
 		return ErrDatabase
+	}
+
+	// Backend als Single Source of Truth: Produkte mit Verkäufen dürfen nicht
+	// gelöscht werden (Berichte/Belege verweisen darauf); sie werden deaktiviert.
+	hatVerkaeufe, err := c.ProduktRepo.ProduktHatVerkaeufe(ctx, productID)
+	if err != nil {
+		log.Error().Int("product_id", productID).Msg("Failed to check product sales for deletion")
+		return ErrDatabase
+	}
+	if hatVerkaeufe {
+		log.Warn().Int("product_id", productID).Msg("Cannot delete product with sales")
+		return ErrProduktHatVerkaeufe
 	}
 
 	for i := range produkt.Varianten {

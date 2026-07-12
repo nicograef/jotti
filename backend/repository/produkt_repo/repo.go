@@ -89,6 +89,32 @@ func (r Repository) GetActiveProducts(ctx context.Context) ([]produkt.Produkt, e
 	return products, nil
 }
 
+// GetProduktIDsMitVerkaeufen liefert die IDs aller Produkte, von denen eine
+// Variante bereits verkauft wurde (Projektion über das Kassenjournal).
+func (r Repository) GetProduktIDsMitVerkaeufen(ctx context.Context) (map[int]bool, error) {
+	ids, err := r.q.GetProduktIDsMitVerkaeufen(ctx)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	result := make(map[int]bool, len(ids))
+	for _, id := range ids {
+		result[id] = true
+	}
+
+	return result, nil
+}
+
+// ProduktHatVerkaeufe meldet, ob eine Variante des Produkts bereits verkauft wurde.
+func (r Repository) ProduktHatVerkaeufe(ctx context.Context, productID int) (bool, error) {
+	hat, err := r.q.ProduktHatVerkaeufe(ctx, productID)
+	if err != nil {
+		return false, db.Error(err)
+	}
+
+	return hat, nil
+}
+
 func (r Repository) CreateProduct(ctx context.Context, p produkt.Produkt) (int, error) {
 	id, err := r.q.CreateProdukt(ctx, dbgen.CreateProduktParams{
 		Name:       p.Name,

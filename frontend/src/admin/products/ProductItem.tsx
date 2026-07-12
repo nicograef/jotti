@@ -1,13 +1,4 @@
-import {
-  ChevronDown,
-  ChevronUp,
-  Hamburger,
-  Pen,
-  Plus,
-  Shell,
-  Trash2,
-  Wine,
-} from 'lucide-react'
+import { MoreHorizontal, Pen, Plus, PowerOff, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 import {
@@ -19,16 +10,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemTitle,
-} from '@/components/ui/item'
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Tooltip,
   TooltipContent,
@@ -36,16 +27,10 @@ import {
 } from '@/components/ui/tooltip'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
-import { adminItemActionButton } from '../adminListLayout'
 import { NewVariantDialog } from './NewVariantDialog'
-import {
-  Kategorie,
-  type Produkt,
-  type Variante,
-  VarianteStatus,
-} from './Produkt'
+import { type Produkt, type Variante, VarianteStatus } from './Produkt'
 import type { ProduktBackend } from './ProduktBackend'
-import { VariantItem } from './VariantItem'
+import { VariantChip } from './VariantChip'
 
 interface ProductItemProps {
   loading: boolean
@@ -62,41 +47,33 @@ interface ProductItemProps {
   onDelete: (produktId: number) => Promise<void>
   onVariantCreated: (variante: Variante) => void
   onVariantUpdated: (variante: Variante) => void
-  onVariantDeleted: (varianteId: number) => void
   onVariantStatusChange: (varianteId: number, status: VarianteStatus) => void
+  onVariantDeleted: () => void
 }
 
 export function ProductItem(props: ProductItemProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const { loading: deleteLoading, run: runDeleteProduct } = useActionSubmit({
     actionLabel: 'Produkt löschen',
   })
   const { loading: activateVariantLoading, run: runActivateVariant } =
-    useActionSubmit({
-      actionLabel: 'Variante aktivieren',
-    })
+    useActionSubmit({ actionLabel: 'Variante aktivieren' })
   const { loading: deactivateVariantLoading, run: runDeactivateVariant } =
-    useActionSubmit({
-      actionLabel: 'Variante deaktivieren',
-    })
-  const { loading: deleteVariantLoading, run: runDeleteVariant } =
-    useActionSubmit({
-      actionLabel: 'Variante löschen',
-    })
+    useActionSubmit({ actionLabel: 'Variante deaktivieren' })
+  const {
+    loading: deactivateAllVariantsLoading,
+    run: runDeactivateAllVariants,
+  } = useActionSubmit({ actionLabel: 'Varianten deaktivieren' })
 
   const variantLoading =
-    activateVariantLoading || deactivateVariantLoading || deleteVariantLoading
+    activateVariantLoading ||
+    deactivateVariantLoading ||
+    deactivateAllVariantsLoading
 
-  const handleDelete = async () => {
-    await runDeleteProduct(async () => {
-      await props.onDelete(props.product.id)
-    })
-  }
-
-  const activeVariantsCount = props.product.varianten.filter(
+  const activeVarianten = props.product.varianten.filter(
     (v) => v.status === VarianteStatus.ACTIVE,
-  ).length
+  )
 
   const handleActivateVariant = async (variantId: number) => {
     await runActivateVariant(async () => {
@@ -112,168 +89,151 @@ export function ProductItem(props: ProductItemProps) {
     })
   }
 
-  const handleDeleteVariant = async (variantId: number) => {
-    await runDeleteVariant(async () => {
-      await props.backend.deleteVariante(props.product.id, variantId)
-      props.onVariantDeleted(variantId)
+  const handleDeactivateAllVariants = async () => {
+    await runDeactivateAllVariants(async () => {
+      for (const variante of activeVarianten) {
+        await props.backend.deaktiviereVariante(variante.id)
+        props.onVariantStatusChange(variante.id, VarianteStatus.INACTIVE)
+      }
+    })
+  }
+
+  const handleDelete = async () => {
+    await runDeleteProduct(async () => {
+      await props.onDelete(props.product.id)
+      setDeleteOpen(false)
     })
   }
 
   return (
-    <Item variant="outline" className="flex-col items-stretch">
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex flex-col gap-3 shrink-0">
-          <KategorieIcon category={props.product.kategorie} />
-        </div>
-        <ItemContent className="self-start flex-1">
-          <ItemTitle>{props.product.name}</ItemTitle>
-          <ItemDescription>
-            {props.product.varianten.length} Variante
-            {props.product.varianten.length !== 1 ? 'n' : ''} (
-            {activeVariantsCount} aktiv)
-          </ItemDescription>
-          <ItemDescription>
-            Erstellt am{' '}
-            {new Date(props.product.createdAt).toLocaleDateString('de-DE')}
-          </ItemDescription>
-        </ItemContent>
-        <ItemActions className="flex gap-2 w-full sm:w-auto justify-end">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon-sm"
-                variant="outline"
-                className={`rounded-full cursor-pointer ${adminItemActionButton}`}
-                aria-label="Produkt bearbeiten"
-                onClick={() => {
-                  props.onEdit(props.product.id)
-                }}
-              >
-                <Pen />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Bearbeiten</TooltipContent>
-          </Tooltip>
-          <AlertDialog>
-            <Tooltip>
-              <AlertDialogTrigger asChild>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="icon-sm"
-                    variant="outline"
-                    className={`rounded-full cursor-pointer text-destructive ${adminItemActionButton}`}
-                    aria-label="Produkt löschen"
-                  >
-                    <Trash2 />
-                  </Button>
-                </TooltipTrigger>
-              </AlertDialogTrigger>
-              <TooltipContent>Löschen</TooltipContent>
-            </Tooltip>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Produkt löschen?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Das Produkt &quot;{props.product.name}&quot; und alle
-                  zugehörigen Varianten werden unwiderruflich gelöscht.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-white hover:bg-destructive/90"
-                  onClick={() => void handleDelete()}
-                  disabled={deleteLoading}
-                >
-                  Löschen
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="cursor-pointer"
-            onClick={() => {
-              setExpanded(!expanded)
-            }}
+    <div className="flex flex-wrap items-start gap-x-4 gap-y-2 border-b py-3 last:border-b-0">
+      <span className="min-w-32 shrink-0 pt-1 font-medium">
+        {props.product.name}
+      </span>
+
+      <div className="flex flex-1 flex-wrap items-center gap-2">
+        {props.product.varianten.map((variant) => (
+          <VariantChip
+            key={variant.id}
+            produktId={props.product.id}
+            variant={variant}
+            loading={props.loading || variantLoading}
+            backend={props.backend}
+            onActivate={handleActivateVariant}
+            onDeactivate={handleDeactivateVariant}
+            onUpdated={props.onVariantUpdated}
+            onDeleted={props.onVariantDeleted}
+          />
+        ))}
+        <NewVariantDialog
+          productId={props.product.id}
+          backend={props.backend}
+          created={props.onVariantCreated}
+        >
+          <button
+            type="button"
+            className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-full border border-dashed px-3 text-sm text-muted-foreground"
           >
-            {expanded ? <ChevronUp /> : <ChevronDown />}
-            {expanded ? 'Einklappen' : 'Varianten'}
-          </Button>
-        </ItemActions>
+            <Plus className="size-3.5" /> Variante
+          </button>
+        </NewVariantDialog>
       </div>
 
-      {expanded && (
-        <div className="border-t mt-4 pt-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-muted-foreground">
-              Produkt-Varianten
-            </span>
-            <NewVariantDialog
-              productId={props.product.id}
-              backend={props.backend}
-              created={props.onVariantCreated}
+      <div className="flex shrink-0 items-center gap-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="cursor-pointer rounded-full"
+              aria-label="Produkt bearbeiten"
+              onClick={() => {
+                props.onEdit(props.product.id)
+              }}
             >
-              <Button size="sm" variant="outline" className="cursor-pointer">
-                <Plus className="h-4 w-4" /> Variante
-              </Button>
-            </NewVariantDialog>
-          </div>
-          {props.product.varianten.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">
-              Keine Varianten vorhanden
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {props.product.varianten.map((variant) => (
-                <VariantItem
-                  key={variant.id}
-                  variant={variant}
-                  loading={props.loading || variantLoading}
-                  backend={props.backend}
-                  onActivate={handleActivateVariant}
-                  onDeactivate={handleDeactivateVariant}
-                  onDelete={handleDeleteVariant}
-                  onUpdated={props.onVariantUpdated}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </Item>
-  )
-}
+              <Pen />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Bearbeiten</TooltipContent>
+        </Tooltip>
 
-function KategorieIcon(props: { category: Kategorie }) {
-  switch (props.category) {
-    case Kategorie.ESSEN:
-      return (
-        <Tooltip>
-          <TooltipTrigger>
-            <Hamburger size={32} className="stroke-primary" />
-          </TooltipTrigger>
-          <TooltipContent>Essen</TooltipContent>
-        </Tooltip>
-      )
-    case Kategorie.GETRAENK:
-      return (
-        <Tooltip>
-          <TooltipTrigger>
-            <Wine size={32} className="stroke-primary" />
-          </TooltipTrigger>
-          <TooltipContent>Getränk</TooltipContent>
-        </Tooltip>
-      )
-    case Kategorie.SONSTIGES:
-      return (
-        <Tooltip>
-          <TooltipTrigger>
-            <Shell size={32} className="stroke-primary" />
-          </TooltipTrigger>
-          <TooltipContent>Sonstiges</TooltipContent>
-        </Tooltip>
-      )
-  }
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="cursor-pointer rounded-full"
+              aria-label="Weitere Aktionen"
+            >
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onSelect={() => {
+                props.onEdit(props.product.id)
+              }}
+            >
+              <Pen /> Umbenennen
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={activeVarianten.length === 0 || variantLoading}
+              onSelect={() => void handleDeactivateAllVariants()}
+            >
+              <PowerOff /> Alle Varianten deaktivieren
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {props.product.hatVerkaeufe ? (
+              // Löschen ist gesperrt, sobald das Produkt verkauft wurde (das
+              // Backend erzwingt es als Single Source of Truth). Die Begründung
+              // steht als stets sichtbare Zeile darunter — auf den Touch-Handys
+              // der Servicekräfte gibt es kein Hover für einen Tooltip.
+              <>
+                <DropdownMenuItem variant="destructive" disabled>
+                  <Trash2 /> Löschen…
+                </DropdownMenuItem>
+                <DropdownMenuLabel className="pt-0 font-normal text-muted-foreground">
+                  Produkte mit Verkäufen können nur deaktiviert werden
+                </DropdownMenuLabel>
+              </>
+            ) : (
+              <DropdownMenuItem
+                variant="destructive"
+                onSelect={() => {
+                  setDeleteOpen(true)
+                }}
+              >
+                <Trash2 /> Löschen…
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Produkt löschen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Das Produkt &quot;{props.product.name}&quot; und alle zugehörigen
+              Varianten werden unwiderruflich gelöscht.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={(e) => {
+                e.preventDefault()
+                void handleDelete()
+              }}
+              disabled={deleteLoading}
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
 }

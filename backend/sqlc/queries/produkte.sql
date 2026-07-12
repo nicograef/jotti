@@ -95,6 +95,32 @@ INNER JOIN varianten_json vj ON vj.produkt_id = p.id
 WHERE p.status = 'active'
 ORDER BY p.id ASC;
 
+-- name: GetProduktIDsMitVerkaeufen :many
+-- Liefert die IDs aller Produkte, von denen mindestens eine Variante in einem
+-- bestellung-aufgenommen:v1- oder direktverkauf-getaetigt:v1-Event vorkommt.
+-- Reine Projektion über das (immutable) Kassenjournal; jede Position trägt ihre
+-- varianteId, die auf produkt_varianten.produkt_id zurückführt. Auch soft-
+-- gelöschte Varianten zählen (ein verkauftes Produkt bleibt verkauft).
+SELECT DISTINCT pv.produkt_id AS produkt_id
+FROM produkt_varianten pv
+JOIN kassenjournal kj
+    ON kj.type IN ('bestellung-aufgenommen:v1', 'direktverkauf-getaetigt:v1')
+JOIN LATERAL jsonb_array_elements(kj.data->'positionen') AS position ON TRUE
+WHERE (position->>'varianteId')::int = pv.id;
+
+-- name: ProduktHatVerkaeufe :one
+-- Lösch-Guard: true, wenn eine Variante des Produkts in mindestens einem
+-- bestellung-aufgenommen:v1- oder direktverkauf-getaetigt:v1-Event vorkommt.
+SELECT EXISTS (
+    SELECT 1
+    FROM produkt_varianten pv
+    JOIN kassenjournal kj
+        ON kj.type IN ('bestellung-aufgenommen:v1', 'direktverkauf-getaetigt:v1')
+    JOIN LATERAL jsonb_array_elements(kj.data->'positionen') AS position ON TRUE
+    WHERE pv.produkt_id = $1
+      AND (position->>'varianteId')::int = pv.id
+)::bool AS hat_verkaeufe;
+
 -- name: CreateProdukt :one
 INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;

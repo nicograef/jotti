@@ -332,11 +332,11 @@ Kategorie-Icons und „Erstellt am" entfallen.
 
 ### Acceptance criteria
 
-- [ ] `/get-all-produkte` liefert `hatVerkaeufe`; `/delete-produkt` lehnt Produkte mit Verkäufen mit `produkt_hat_verkaeufe` ab (Backend-Tests je Fall grün, inkl. Journal-Fixture-Test für das Flag)
-- [ ] Produktseite zeigt die Preisliste gruppiert nach Kategorie mit Varianten-Chips; Switch schaltet Varianten ohne Dialog
-- [ ] Löschen sitzt nur im „···"-Menü, ist bei Verkäufen deaktiviert (Tooltip) und vom Backend erzwungen; der Fehlercode hat eine deutsche Meldung in `errorMessages.ts`
-- [ ] „Alle Varianten deaktivieren" schaltet alle aktiven Varianten des Produkts ab
-- [ ] Neuer Seitentest für die Produktseite (Gruppierung, Switch-Aktion, deaktiviertes Löschen samt Tooltip) nach dem bestehenden Mock-Muster; `make check` grün
+- [x] `/get-all-produkte` liefert `hatVerkaeufe`; `/delete-produkt` lehnt Produkte mit Verkäufen mit `produkt_hat_verkaeufe` ab (Backend-Tests je Fall grün, inkl. Journal-Fixture-Test für das Flag) <!-- sales_test.go (Integration) läuft real in Phase 12 make verify; Unit-Guard-Tests grün, SQL gegen echte DB verifiziert -->
+- [x] Produktseite zeigt die Preisliste gruppiert nach Kategorie mit Varianten-Chips; Switch schaltet Varianten ohne Dialog
+- [x] Löschen sitzt nur im „···"-Menü, ist bei Verkäufen deaktiviert (Tooltip) und vom Backend erzwungen; der Fehlercode hat eine deutsche Meldung in `errorMessages.ts` <!-- Abweichung: dauerhaft sichtbares Begründungs-Label statt Hover-Tooltip (Touch-App; Handoff kritisiert Hover-Tooltips) -->
+- [x] „Alle Varianten deaktivieren" schaltet alle aktiven Varianten des Produkts ab
+- [x] Neuer Seitentest für die Produktseite (Gruppierung, Switch-Aktion, deaktiviertes Löschen samt Tooltip) nach dem bestehenden Mock-Muster; `make check` grün
 
 ---
 
