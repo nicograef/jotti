@@ -398,13 +398,13 @@ ohne eigene Änderung.
 
 ### Acceptance criteria
 
-- [ ] Beim Öffnen eines Storno-Drawers ist die Kommentar-Anforderung sichtbar
+- [x] Beim Öffnen eines Storno-Drawers ist die Kommentar-Anforderung sichtbar
       (muted), ohne dass das Feld berührt wurde.
-- [ ] Nach Berühren mit ungültigem Inhalt wird derselbe Hinweis destructive;
+- [x] Nach Berühren mit ungültigem Inhalt wird derselbe Hinweis destructive;
       bei gültigem Inhalt verschwindet die Fehlerfarbe.
-- [ ] Optionale Kommentarfelder (Bestellen, Kassieren, Umbuchen, Direktverkauf)
+- [x] Optionale Kommentarfelder (Bestellen, Kassieren, Umbuchen, Direktverkauf)
       zeigen weiterhin keinen Hilfetext.
-- [ ] Betroffene Komponenten-Tests angepasst; `make check` grün.
+- [x] Betroffene Komponenten-Tests angepasst; `make check` grün.
 
 ---
 

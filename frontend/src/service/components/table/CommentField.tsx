@@ -34,8 +34,12 @@ export function KommentarField({
         }}
         spellCheck={false}
       />
-      {required && touched && invalid && (
-        <p className="text-sm text-destructive mt-1">
+      {required && (
+        <p
+          className={`text-sm mt-1 ${
+            touched && invalid ? 'text-destructive' : 'text-muted-foreground'
+          }`}
+        >
           Kommentar ist erforderlich (mind. 3 Zeichen).
         </p>
       )}
