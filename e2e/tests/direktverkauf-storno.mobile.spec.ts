@@ -31,9 +31,14 @@ test.describe('Servicekraft tätigt einen Direktverkauf und storniert ihn', () =
     await waehleVariante(page, 'Festbändchen', 'Erwachsene')
     await waehleVariante(page, 'Festbändchen', 'Kinder')
 
-    await expect(page.getByText('8,00 €')).toBeVisible()
-
-    await page.getByRole('button', { name: 'Verkauf abschließen' }).click()
+    // Der Dock-Aktionsbutton trägt Anzahl, Label und Summe („2 · Kassieren ·
+    // 8,00 €") und öffnet den Kassieren-Drawer; „Verkauf abschließen" liegt dort.
+    await page.getByRole('button', { name: /Kassieren.*8,00/ }).click()
+    const kassierenDrawer = page.getByRole('dialog')
+    await expect(kassierenDrawer).toBeVisible()
+    await kassierenDrawer
+      .getByRole('button', { name: 'Verkauf abschließen' })
+      .click()
     await expect(page.getByText('Verkauf abgeschlossen.')).toBeVisible()
 
     // In der Historie erscheint der frische Verkauf mit dem Gesamtbetrag. Die

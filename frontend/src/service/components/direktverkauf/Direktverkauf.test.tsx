@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Produkt } from '../../product/Produkt'
+import { ServiceDock } from '../ServiceDock'
 import { Direktverkauf } from './Direktverkauf'
 
 vi.mock('sonner', () => ({
@@ -34,42 +35,46 @@ const testProdukt: Produkt = {
 
 function renderDirektverkauf() {
   const direktverkaufTaetigen = vi.fn().mockResolvedValue(undefined)
+  // Der Aktionsbutton rendert per Portal in den ServiceDock; deshalb wird der
+  // Direktverkauf hier in ein Dock eingebettet (leiste bleibt leer).
   render(
-    <Direktverkauf
-      backend={{ direktverkaufTaetigen }}
-      products={[testProdukt]}
-      productsLoading={false}
-    />,
+    <ServiceDock leiste={null}>
+      <Direktverkauf
+        backend={{ direktverkaufTaetigen }}
+        products={[testProdukt]}
+        productsLoading={false}
+      />
+    </ServiceDock>,
   )
   return { direktverkaufTaetigen }
 }
 
 describe('Direktverkauf', () => {
-  it('renders the combined surface (products + confirm button, no tabs)', () => {
+  it('zeigt die flache Produktliste und den deaktivierten Kassieren-Button ohne Auswahl', () => {
     renderDirektverkauf()
 
     expect(screen.getByText('Bratwurst')).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /Verkauf abschließen/ }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toBeDisabled()
     expect(screen.queryAllByRole('tab')).toHaveLength(0)
   })
 
-  it('completes a sale with exactly one backend call and resets the input', async () => {
+  it('schließt einen Verkauf über den Drawer mit genau einem Backend-Call ab und setzt zurück', async () => {
     const user = userEvent.setup()
     const { direktverkaufTaetigen } = renderDirektverkauf()
-
-    const confirmButton = screen.getByRole('button', {
-      name: /Verkauf abschließen/,
-    })
-    expect(confirmButton).toBeDisabled()
 
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )
 
-    expect(confirmButton).toBeEnabled()
-    await user.click(confirmButton)
+    const kassierenButton = screen.getByRole('button', { name: /Kassieren/ })
+    expect(kassierenButton).toBeEnabled()
+    expect(kassierenButton).toHaveTextContent('3,50')
+
+    await user.click(kassierenButton)
+    const dialog = await screen.findByRole('dialog')
+    await user.click(
+      screen.getByRole('button', { name: 'Verkauf abschließen' }),
+    )
 
     await waitFor(() => {
       expect(direktverkaufTaetigen).toHaveBeenCalledTimes(1)
@@ -85,11 +90,10 @@ describe('Direktverkauf', () => {
       }),
     )
 
-    // After success the selection resets, disabling the confirm button again.
+    // Nach Erfolg schließt der Drawer und die Auswahl ist zurückgesetzt.
     await waitFor(() => {
-      expect(
-        screen.getByRole('button', { name: /Verkauf abschließen/ }),
-      ).toBeDisabled()
+      expect(dialog).not.toBeInTheDocument()
     })
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toBeDisabled()
   })
 })

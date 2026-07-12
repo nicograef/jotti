@@ -28,18 +28,21 @@ vi.mock('../table/TischBackend', () => ({
   },
 }))
 
+let mockTische = [
+  { id: 1, name: 'Stammtisch', istFavorit: false, saldoCents: 0 },
+]
+
 vi.mock('../table/hooks', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../table/hooks')>()
   return {
     ...actual,
-    useAktiveTischeMitFavoriten: () => ({
-      tische: [{ id: 1, name: 'Stammtisch', istFavorit: false, saldoCents: 0 }],
-    }),
+    useAktiveTischeMitFavoriten: () => ({ tische: mockTische }),
   }
 })
 
 afterEach(() => {
   cleanup()
+  mockTische = [{ id: 1, name: 'Stammtisch', istFavorit: false, saldoCents: 0 }]
 })
 
 function renderDrawer() {
@@ -88,5 +91,19 @@ describe('TischAuswahlDrawer', () => {
         queryKey: [MEINE_TISCHE_STATE_KEY],
       })
     })
+  })
+
+  it('sortiert Favoriten zuerst, dann Saldo absteigend, dann Name', () => {
+    mockTische = [
+      { id: 1, name: 'Bar', istFavorit: false, saldoCents: 500 },
+      { id: 2, name: 'Zelt', istFavorit: true, saldoCents: 100 },
+      { id: 3, name: 'Ausschank', istFavorit: false, saldoCents: 500 },
+    ]
+    renderDrawer()
+
+    const namen = screen
+      .getAllByText(/^(Bar|Zelt|Ausschank)$/)
+      .map((el) => el.textContent)
+    expect(namen).toEqual(['Zelt', 'Ausschank', 'Bar'])
   })
 })

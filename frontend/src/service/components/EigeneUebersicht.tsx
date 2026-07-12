@@ -1,8 +1,3 @@
-import { CheckCircle2 } from 'lucide-react'
-import { useNavigate } from 'react-router'
-
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCents } from '@/lib/utils'
 
@@ -19,101 +14,51 @@ export function EigeneUebersichtKarten({
 }: EigeneUebersichtProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-3 my-4">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-4 w-24" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-6 w-12 mb-1" />
-            <Skeleton className="h-4 w-20" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-4 w-24" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-6 w-12 mb-1" />
-            <Skeleton className="h-4 w-20" />
-          </CardContent>
-        </Card>
+      <div className="my-4 grid grid-cols-2 divide-x rounded-xl bg-muted/60 px-4 py-3">
+        {[0, 1].map((spalte) => (
+          <div key={spalte} className="px-4 first:pl-0 last:pr-0">
+            <Skeleton className="mb-1 h-3 w-20" />
+            <Skeleton className="h-5 w-28" />
+          </div>
+        ))}
       </div>
     )
   }
 
   return (
-    <div className="my-4 space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">
-              Bestellungen
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold">{uebersicht.anzahlBestellungen}</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {formatCents(uebersicht.bestellungenCents)} €
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">
-              Kassiert
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold">{uebersicht.anzahlZahlungen}</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {formatCents(uebersicht.zahlungenCents)} €
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <EigeneArbeitSicht uebersicht={uebersicht} />
+    <div className="my-4 grid grid-cols-2 divide-x rounded-xl bg-muted/60 px-4 py-3">
+      <StatSpalte
+        label="Bestellungen"
+        anzahl={uebersicht.anzahlBestellungen}
+        cents={uebersicht.bestellungenCents}
+      />
+      <StatSpalte
+        label="Kassiert"
+        anzahl={uebersicht.anzahlZahlungen}
+        cents={uebersicht.zahlungenCents}
+      />
     </div>
   )
 }
 
-function EigeneArbeitSicht({ uebersicht }: { uebersicht: EigeneUebersicht }) {
-  const navigate = useNavigate()
-
-  if (uebersicht.alleErledigt) {
-    return (
-      <Card className="border-green-600/30 bg-green-600/5">
-        <CardContent className="flex items-center gap-2 py-3 text-green-700">
-          <CheckCircle2 className="size-5" />
-          <span className="font-medium">Alles erledigt!</span>
-        </CardContent>
-      </Card>
-    )
-  }
-
+function StatSpalte({
+  label,
+  anzahl,
+  cents,
+}: {
+  label: string
+  anzahl: number
+  cents: number
+}) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm text-muted-foreground">
-          Deine offenen Tische
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {uebersicht.offeneTische.map((tisch) => (
-          <button
-            key={tisch.tischId}
-            type="button"
-            onClick={() => {
-              void navigate(`/service/tische/${tisch.tischId.toString()}`)
-            }}
-            className="flex w-full items-center justify-between rounded-md border p-3 text-left transition-colors hover:bg-accent/50"
-          >
-            <span className="font-medium">{tisch.tischName}</span>
-            <Badge variant="secondary">{tisch.anzahlOffen} offen</Badge>
-          </button>
-        ))}
-      </CardContent>
-    </Card>
+    <div className="px-4 first:pl-0 last:pr-0">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-base font-bold tabular-nums">{anzahl}</span>
+        <span className="text-[13px] text-muted-foreground tabular-nums">
+          · {formatCents(cents)}&nbsp;€
+        </span>
+      </div>
+    </div>
   )
 }

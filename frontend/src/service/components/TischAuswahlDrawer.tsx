@@ -24,6 +24,18 @@ import { TischBackend } from '../table/TischBackend'
 
 const tischBackend = new TischBackend(BackendSingleton)
 
+// Reihenfolge im Alle-Tische-Drawer: Favoriten zuerst, dann nach offenem Saldo
+// (absteigend), zuletzt nach Name. Reine Darstellungssortierung bereits
+// vollständig geladener Daten.
+function sortiereTische(
+  a: AktiverTischMitFavorit,
+  b: AktiverTischMitFavorit,
+): number {
+  if (a.istFavorit !== b.istFavorit) return a.istFavorit ? -1 : 1
+  if (a.saldoCents !== b.saldoCents) return b.saldoCents - a.saldoCents
+  return a.name.localeCompare(b.name, 'de')
+}
+
 interface TischAuswahlDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -41,9 +53,9 @@ export function TischAuswahlDrawer({
     actionLabel: 'Favorit ändern',
   })
 
-  const gefilterteTische = tische.filter((t) =>
-    t.name.toLowerCase().includes(suche.toLowerCase()),
-  )
+  const gefilterteTische = tische
+    .filter((t) => t.name.toLowerCase().includes(suche.toLowerCase()))
+    .sort(sortiereTische)
 
   const favoritMutation = useMutation({
     mutationFn: (tisch: AktiverTischMitFavorit) =>
@@ -84,11 +96,11 @@ export function TischAuswahlDrawer({
           {gefilterteTische.map((tisch) => (
             <div
               key={tisch.id}
-              className="flex items-center gap-3 py-3 border-b last:border-b-0"
+              className="flex items-center border-b last:border-b-0"
             >
               <button
                 type="button"
-                className="text-xl leading-none shrink-0 w-7 text-center"
+                className="flex size-11 shrink-0 items-center justify-center text-xl leading-none"
                 disabled={favoritMutation.isPending || favoritLoading}
                 onClick={() => {
                   void runToggleFavorit(async () => {
@@ -105,7 +117,7 @@ export function TischAuswahlDrawer({
               </button>
               <button
                 type="button"
-                className="flex-1 flex items-center justify-between text-left hover:bg-accent/50 rounded px-2 py-1 transition-colors"
+                className="flex-1 flex items-center justify-between text-left hover:bg-accent/50 rounded px-2 py-3 transition-colors"
                 onClick={() => {
                   handleTischClick(tisch)
                 }}

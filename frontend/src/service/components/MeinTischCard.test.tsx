@@ -60,20 +60,19 @@ describe('MeinTischCard', () => {
     render(<MeinTischCard state={state} />)
 
     // p1, p2, p3 = 3 offen, davon p1 und p3 von mir = 2.
-    expect(screen.getByText('3 offen')).toBeInTheDocument()
-    expect(screen.getByText('davon 2 von dir')).toBeInTheDocument()
-    expect(screen.queryByText('Alles erledigt')).not.toBeInTheDocument()
+    expect(screen.getByText('3 offen · 2 von dir')).toBeInTheDocument()
+    expect(screen.queryByText('Alles bezahlt')).not.toBeInTheDocument()
     // Saldo trägt das "Offen"-Label über dem Betrag.
     expect(screen.getByText('Offen')).toBeInTheDocument()
     expect(screen.getByText(/10,50\s*€/)).toBeInTheDocument()
   })
 
-  it('zeigt "Alles erledigt" ohne unbezahlte Positionen', () => {
+  it('zeigt "Alles bezahlt" ohne unbezahlte Positionen', () => {
     const state = tischSession({ unbezahltePositionen: [] })
 
     render(<MeinTischCard state={state} />)
 
-    expect(screen.getByText('Alles erledigt')).toBeInTheDocument()
+    expect(screen.getByText('Alles bezahlt')).toBeInTheDocument()
     expect(screen.queryByText(/offen/)).not.toBeInTheDocument()
   })
 })

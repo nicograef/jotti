@@ -222,12 +222,12 @@ Direktverkauf: Die sticky Zahlungskarte entfällt; Produkte beginnen direkt unte
 
 ### Acceptance criteria
 
-- [ ] Meine Tische zeigt eine einzeilige Stat-Card, darunter Suche, darunter gruppierte Tischkarten (Noch offen zuerst); die Duplikat-Karte existiert nicht mehr; "Alle Tische" liegt fix in der Fußzeile.
-- [ ] `MeinTischCard` zeigt Status-Punkt, Unterzeile, OFFEN-Label mit Betrag und Chevron; erledigte Tische sind gedimmt unter eigenem Abschnittskopf.
-- [ ] Suche filtert live; bei 0 Treffern führt ein Verweis in den Alle-Tische-Drawer.
-- [ ] Favoriten-Stern hat 44 px Trefferfläche; Drawer-Sortierung ist Favoriten → offener Saldo → Name.
-- [ ] Direktverkauf: Produkte ab dem ersten Viewport sichtbar; Kassieren läuft über Dock-Button + `DirektverkaufDrawer` mit Receipt, Erhalten, Rückgeld, Kommentar; Verkauf und Fehlerfälle funktionieren wie zuvor.
-- [ ] Tests angepasst: `MeinTischCard.test.tsx`, `TischAuswahlDrawer.test.tsx`, `Direktverkauf.test.tsx`; `make check` grün.
+- [x] Meine Tische zeigt eine einzeilige Stat-Card, darunter Suche, darunter gruppierte Tischkarten (Noch offen zuerst); die Duplikat-Karte existiert nicht mehr; "Alle Tische" liegt fix in der Fußzeile.
+- [x] `MeinTischCard` zeigt Status-Punkt, Unterzeile, OFFEN-Label mit Betrag und Chevron; erledigte Tische sind gedimmt unter eigenem Abschnittskopf.
+- [x] Suche filtert live; bei 0 Treffern führt ein Verweis in den Alle-Tische-Drawer.
+- [x] Favoriten-Stern hat 44 px Trefferfläche; Drawer-Sortierung ist Favoriten → offener Saldo → Name.
+- [x] Direktverkauf: Produkte ab dem ersten Viewport sichtbar; Kassieren läuft über Dock-Button + `DirektverkaufDrawer` mit Receipt, Erhalten, Rückgeld, Kommentar; Verkauf und Fehlerfälle funktionieren wie zuvor.
+- [x] Tests angepasst: `MeinTischCard.test.tsx`, `TischAuswahlDrawer.test.tsx`, `Direktverkauf.test.tsx`; `make check` grün.
 
 ---
 

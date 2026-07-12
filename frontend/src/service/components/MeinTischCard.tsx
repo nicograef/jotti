@@ -1,9 +1,8 @@
+import { ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router'
 
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import { AuthSingleton } from '@/lib/Auth'
-import { formatCents } from '@/lib/utils'
+import { cn, formatCents } from '@/lib/utils'
 
 import type { TischSession } from '../table/Tisch'
 
@@ -21,40 +20,49 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
   const { anzahlOffen, anzahlEigeneOffen } = countOffenePositionen(state)
   const alleErledigt = anzahlOffen === 0
 
+  const statusFarbe = alleErledigt
+    ? 'bg-green-600'
+    : anzahlEigeneOffen > 0
+      ? 'bg-destructive'
+      : 'bg-amber-500'
+
   return (
-    <Card
-      className="cursor-pointer hover:bg-accent/50 transition-colors"
+    <button
+      type="button"
       onClick={handleClick}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left ring-1 ring-foreground/10 transition-colors hover:bg-accent/50',
+        alleErledigt && 'opacity-75',
+      )}
     >
-      <CardContent className="pt-4">
-        <div className="flex items-start justify-between mb-2">
-          <span className="font-semibold text-base">{state.tischName}</span>
-          <div className="text-right">
-            <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground">
-              Offen
-            </div>
-            <div className="font-bold tabular-nums">
-              {formatCents(state.saldoCents)}&nbsp;€
-            </div>
+      <span
+        aria-hidden
+        className={cn('size-2.5 shrink-0 rounded-full', statusFarbe)}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="text-base font-semibold">{state.tischName}</div>
+        {alleErledigt ? (
+          <div className="text-[13px] font-medium text-green-600">
+            Alles bezahlt
+          </div>
+        ) : (
+          <div className="text-[13px] text-muted-foreground">
+            {anzahlOffen} offen · {anzahlEigeneOffen} von dir
+          </div>
+        )}
+      </div>
+      {!alleErledigt && (
+        <div className="shrink-0 text-right">
+          <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground">
+            Offen
+          </div>
+          <div className="font-bold tabular-nums">
+            {formatCents(state.saldoCents)}&nbsp;€
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {anzahlOffen > 0 && (
-            <>
-              <Badge variant="secondary">{anzahlOffen} offen</Badge>
-              <span className="text-sm text-muted-foreground">
-                davon {anzahlEigeneOffen} von dir
-              </span>
-            </>
-          )}
-          {alleErledigt && (
-            <span className="text-sm text-green-600 font-medium">
-              Alles erledigt
-            </span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      )}
+      <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+    </button>
   )
 }
 

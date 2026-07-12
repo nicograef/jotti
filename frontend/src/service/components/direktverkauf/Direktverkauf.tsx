@@ -1,23 +1,14 @@
-import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { EuroInput } from '@/components/common/EuroInput'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Spinner } from '@/components/ui/spinner'
-import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
-import { formatCents, parseCents } from '@/lib/utils'
+import { formatPositionName } from '@/lib/utils'
 
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
 import type { Produkt } from '../../product/Produkt'
-import { KommentarField } from '../table/CommentField'
-import {
-  calculateTotalPrice,
-  calculateZahlungsbetraege,
-} from '../table/drawerUtils'
+import { calculateTotalPrice } from '../table/drawerUtils'
 import { ProductList, ProductListSkeleton } from '../table/ProductList'
+import type { ReceiptPosition } from '../table/Receipt'
+import { DirektverkaufDrawer } from './DirektverkaufDrawer'
 
 interface DirektverkaufProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
@@ -29,6 +20,7 @@ interface DirektverkaufProps {
 interface SelectedItem {
   produktId: number
   varianteId: number
+  name: string
   einzelpreisCents: number
   menge: number
 }
@@ -43,6 +35,7 @@ function selectItems(
       .map((variant) => ({
         produktId: product.id,
         varianteId: variant.id,
+        name: formatPositionName(product.name, variant.name),
         einzelpreisCents: variant.preisCents,
         menge: mengen[variant.id],
       })),
@@ -56,99 +49,44 @@ export function Direktverkauf({
   onVerkauft,
 }: DirektverkaufProps) {
   const { mengen, add, remove, reset } = useMengen<number>()
-  const [erhaltenEuro, setErhaltenEuro] = useState('')
-  const [kommentar, setKommentar] = useState('')
-  // verkaufId pro logischem Vorgang (nicht pro Retry). Neue ID nach Erfolg.
-  const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
 
   const items = selectItems(products, mengen)
   const total = calculateTotalPrice(items)
-  const { rueckgeldCents } = calculateZahlungsbetraege(
-    total,
-    parseCents(erhaltenEuro),
-    0,
-  )
-  const noPositionenSelected = items.length === 0
-
-  const { loading, run } = useActionSubmit({
-    actionLabel: 'Verkauf abschließen',
-    byCode: {
-      kasse_nicht_geoeffnet:
-        'Es ist keine Kassensitzung geöffnet. Bitte zuerst die Kasse öffnen.',
-      produkt_not_found:
-        'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
-    },
-    onSuccess: () => {
-      reset()
-      setErhaltenEuro('')
-      setKommentar('')
-      setVerkaufId(crypto.randomUUID())
-      toast.success('Verkauf abgeschlossen.')
-      onVerkauft?.()
-    },
-  })
-
-  const onSubmit = async () => {
-    await run(async () => {
-      await backend.direktverkaufTaetigen({
-        verkaufId,
-        positionen: items.map((item) => ({
-          produktId: item.produktId,
-          varianteId: item.varianteId,
-          menge: item.menge,
-        })),
-        kommentar,
-      })
-    })
-  }
+  const anzahl = items.reduce((sum, item) => sum + item.menge, 0)
+  const receiptItems: ReceiptPosition[] = items.map((item) => ({
+    name: item.name,
+    einzelpreisCents: item.einzelpreisCents,
+    menge: item.menge,
+  }))
 
   if (productsLoading) {
     return <ProductListSkeleton />
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="p-4 space-y-3 sticky top-14 z-30">
-        <div className="flex justify-between text-lg font-semibold">
-          <span>Gesamt</span>
-          <span>{formatCents(total)}&nbsp;€</span>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <Label htmlFor="erhalten">Erhalten</Label>
-          <EuroInput
-            id="erhalten"
-            value={erhaltenEuro}
-            onValueChange={setErhaltenEuro}
-            className="w-28"
-          />
-        </div>
-        {rueckgeldCents !== null && (
-          <div className="flex justify-between font-medium">
-            <span>Rückgeld</span>
-            <span>{formatCents(rueckgeldCents)}&nbsp;€</span>
-          </div>
-        )}
-        <KommentarField
-          onChange={(value) => {
-            setKommentar(value)
-          }}
-        />
-        <Button
-          disabled={noPositionenSelected || loading}
-          onClick={() => {
-            void onSubmit()
-          }}
-          className="w-full"
-        >
-          {loading ? <Spinner /> : null} Verkauf abschließen
-        </Button>
-      </Card>
+    <>
+      <DirektverkaufDrawer
+        backend={backend}
+        receiptItems={receiptItems}
+        positionen={items.map((item) => ({
+          produktId: item.produktId,
+          varianteId: item.varianteId,
+          menge: item.menge,
+        }))}
+        anzahl={anzahl}
+        totalCents={total}
+        verkaufAbgeschlossen={() => {
+          reset()
+          toast.success('Verkauf abgeschlossen.')
+          onVerkauft?.()
+        }}
+      />
       <ProductList
         products={products}
         variantMengen={mengen}
         onAdd={add}
         onRemove={remove}
       />
-    </div>
+    </>
   )
 }
