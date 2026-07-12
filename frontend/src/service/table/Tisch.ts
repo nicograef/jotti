@@ -37,22 +37,10 @@ export type AktiverTischMitFavorit = z.infer<
   typeof AktiverTischMitFavoritSchema
 >
 
-export const OffeneArbeitTischSchema = z.object({
-  tischId: TischIdSchema,
-  tischName: z.string(),
-  anzahlUnbezahlt: z.number().int(),
-  anzahlOffen: z.number().int(),
-})
-export type OffeneArbeitTisch = z.infer<typeof OffeneArbeitTischSchema>
-
 export const EigeneUebersichtSchema = z.object({
   anzahlBestellungen: z.number().int(),
   bestellungenCents: z.number().int(),
   anzahlZahlungen: z.number().int(),
   zahlungenCents: z.number().int(),
-  // Tische der offenen Kassensitzung mit noch offener eigener Arbeit.
-  offeneTische: z.array(OffeneArbeitTischSchema),
-  // True, wenn die Servicekraft an keinem Tisch noch offene eigene Arbeit hat.
-  alleErledigt: z.boolean(),
 })
 export type EigeneUebersicht = z.infer<typeof EigeneUebersichtSchema>

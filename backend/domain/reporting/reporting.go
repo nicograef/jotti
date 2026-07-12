@@ -135,10 +135,4 @@ type EigeneUebersicht struct {
 	BestellungenCents  int
 	AnzahlZahlungen    int
 	ZahlungenCents     int
-	// OffeneTische listet die Tische der offenen Kassensitzung, an denen die
-	// Servicekraft noch offene eigene Arbeit hat (aufsteigend nach Tisch-ID).
-	OffeneTische []OffeneArbeitTisch
-	// AlleErledigt ist true, wenn die Servicekraft an keinem Tisch noch offene
-	// eigene Arbeit hat.
-	AlleErledigt bool
 }

@@ -77,8 +77,6 @@ const DEFAULT_EIGENE_UEBERSICHT: EigeneUebersicht = {
   bestellungenCents: 0,
   anzahlZahlungen: 0,
   zahlungenCents: 0,
-  offeneTische: [],
-  alleErledigt: true,
 }
 
 export function useEigeneUebersicht() {

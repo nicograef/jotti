@@ -295,13 +295,13 @@ bleiben ebenfalls (von `GetLiveReporting` genutzt).
 
 ### Acceptance criteria
 
-- [ ] Die `get-eigene-uebersicht`-Response enthält genau die vier
+- [x] Die `get-eigene-uebersicht`-Response enthält genau die vier
       Statistikfelder; "Meine Tische" (Stat-Card) funktioniert unverändert.
-- [ ] `GetEigeneUebersicht` lädt keine Tisch-Sessions und keine Tische mehr.
-- [ ] Kein Vorkommen von `OffeneTische`/`AlleErledigt` bzw.
+- [x] `GetEigeneUebersicht` lädt keine Tisch-Sessions und keine Tische mehr.
+- [x] Kein Vorkommen von `OffeneTische`/`AlleErledigt` bzw.
       `offeneTische`/`alleErledigt` mehr im EigeneUebersicht-Pfad (Domain-Struct,
       Query, DTO, Zod-Schema, Hook, Tests); Admin-Reporting unberührt.
-- [ ] `make verify` grün (inkl. Integrationstests).
+- [x] `make verify` grün (inkl. Integrationstests).
 
 ---
 

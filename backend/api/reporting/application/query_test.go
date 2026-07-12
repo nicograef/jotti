@@ -248,33 +248,16 @@ func TestGetReporting_DatabaseError(t *testing.T) {
 	}
 }
 
-func TestGetEigeneUebersicht_MitOffenerArbeit(t *testing.T) {
+func TestGetEigeneUebersicht_ReichtStatistikDurch(t *testing.T) {
 	base := reporting.EigeneUebersicht{
 		AnzahlBestellungen: 4,
 		BestellungenCents:  3000,
 		AnzahlZahlungen:    2,
 		ZahlungenCents:     1500,
 	}
-	sessions := []kasse.TischSession{
-		{
-			TischID: 3,
-			UnbezahltePositionen: []kasse.Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 7},
-			},
-		},
-		{
-			// Nur fremde Arbeit -> für User 7 erledigt, darf nicht erscheinen.
-			TischID: 1,
-			UnbezahltePositionen: []kasse.Position{
-				{PositionID: "p2", Menge: 1, BestellerUserID: 8},
-			},
-		},
-	}
 	q := Query{
 		ReportingRepo:       mockReportingRepo{eigeneUebersicht: base},
 		KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr},
-		TischSessionRepo:    mockTischSessionRepo{sessions: sessions},
-		TischRepo:           mockTischRepo{tische: []tisch.Tisch{{ID: 3, Name: "Tisch 3"}, {ID: 1, Name: "Tisch 1"}}},
 	}
 
 	result, err := q.GetEigeneUebersicht(context.Background(), 7)
@@ -284,52 +267,12 @@ func TestGetEigeneUebersicht_MitOffenerArbeit(t *testing.T) {
 	if result.AnzahlBestellungen != 4 || result.BestellungenCents != 3000 || result.AnzahlZahlungen != 2 || result.ZahlungenCents != 1500 {
 		t.Errorf("expected base reporting numbers to be preserved, got %+v", result)
 	}
-	if result.AlleErledigt {
-		t.Errorf("expected open work, AlleErledigt should be false")
-	}
-	if len(result.OffeneTische) != 1 {
-		t.Fatalf("expected 1 offener Tisch, got %d: %+v", len(result.OffeneTische), result.OffeneTische)
-	}
-	offen := result.OffeneTische[0]
-	if offen.TischID != 3 || offen.TischName != "Tisch 3" || offen.AnzahlOffen != 1 {
-		t.Errorf("unexpected offener Tisch: %+v", offen)
-	}
-}
-
-func TestGetEigeneUebersicht_AllesErledigt(t *testing.T) {
-	sessions := []kasse.TischSession{
-		{
-			TischID: 1,
-			UnbezahltePositionen: []kasse.Position{
-				{PositionID: "p1", Menge: 1, BestellerUserID: 8},
-			},
-		},
-	}
-	q := Query{
-		ReportingRepo:       mockReportingRepo{},
-		KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr},
-		TischSessionRepo:    mockTischSessionRepo{sessions: sessions},
-		TischRepo:           mockTischRepo{tische: []tisch.Tisch{{ID: 1, Name: "Tisch 1"}}},
-	}
-
-	result, err := q.GetEigeneUebersicht(context.Background(), 7)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if !result.AlleErledigt {
-		t.Errorf("expected AlleErledigt true for servicekraft without own work")
-	}
-	if len(result.OffeneTische) != 0 {
-		t.Errorf("expected no offene Tische, got %+v", result.OffeneTische)
-	}
 }
 
 func TestGetEigeneUebersicht_DatabaseError(t *testing.T) {
 	q := Query{
 		ReportingRepo:       mockReportingRepo{err: errors.New("db error")},
 		KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr},
-		TischSessionRepo:    mockTischSessionRepo{},
-		TischRepo:           mockTischRepo{},
 	}
 
 	_, err := q.GetEigeneUebersicht(context.Background(), 7)
