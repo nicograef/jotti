@@ -55,21 +55,39 @@ fi
 # version so a green CI and a green `make verify` mean the same thing (D13).
 GOLANGCI_LINT_VERSION="v2.11.4"
 info "Ensuring golangci-lint ($GOLANGCI_LINT_VERSION) is available..."
+
+# golangci-lint refuses to run when the Go it was built with is older than the
+# version the module targets (backend/go.mod), so it must be built with the
+# module's own toolchain. Prebuilt GitHub release binaries are additionally
+# unreachable through the cloud-session proxy, so `go install` via the
+# (allowlisted) module proxy is the one method that works locally and in cloud.
+GO_TOOLCHAIN="$(cd "$PROJECT_ROOT/backend" && go env GOVERSION)"
+
+INSTALLED_GOLANGCI=""
 if command -v golangci-lint >/dev/null 2>&1; then
   INSTALLED_GOLANGCI="v$(golangci-lint version --short 2>/dev/null || echo 'unknown')"
+fi
+
+if [ "$INSTALLED_GOLANGCI" = "$GOLANGCI_LINT_VERSION" ]; then
   info "golangci-lint already installed: $INSTALLED_GOLANGCI"
-  if [ "$INSTALLED_GOLANGCI" != "$GOLANGCI_LINT_VERSION" ]; then
-    warn "golangci-lint $INSTALLED_GOLANGCI differs from the CI version $GOLANGCI_LINT_VERSION; lint results may diverge from CI."
-  fi
 else
-  ensure_cmd curl "Install curl to bootstrap golangci-lint."
-  info "Installing golangci-lint $GOLANGCI_LINT_VERSION with official install script"
-  curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh \
-    | sh -s -- -b "$GO_BIN_PATH" "$GOLANGCI_LINT_VERSION"
+  [ -n "$INSTALLED_GOLANGCI" ] && info "Replacing golangci-lint $INSTALLED_GOLANGCI with the pinned $GOLANGCI_LINT_VERSION"
+  info "Building golangci-lint $GOLANGCI_LINT_VERSION with $GO_TOOLCHAIN into $GO_BIN_PATH"
+  GOTOOLCHAIN="$GO_TOOLCHAIN" GOBIN="$GO_BIN_PATH" \
+    go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$GOLANGCI_LINT_VERSION"
+fi
+
+# Cloud sessions ship an older golangci-lint at /usr/local/bin — on the default
+# PATH, ahead of "$GO_BIN_PATH" — that would shadow the pinned build in `make`.
+# The container is ephemeral, so point that copy at the pinned build too.
+if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] && [ -w /usr/local/bin/golangci-lint ] \
+   && [ "$(/usr/local/bin/golangci-lint version --short 2>/dev/null)" != "${GOLANGCI_LINT_VERSION#v}" ]; then
+  info "Cloud session: replacing the base-image golangci-lint at /usr/local/bin with $GOLANGCI_LINT_VERSION"
+  cp "$GO_BIN_PATH/golangci-lint" /usr/local/bin/golangci-lint
 fi
 
 if ! command -v golangci-lint >/dev/null 2>&1; then
-  fatal "golangci-lint installation failed. Ensure '$GO_BIN_PATH' is on PATH and rerun."
+  fatal "golangci-lint installation failed. Ensure '$GO_BIN_PATH' is on PATH (before any system golangci-lint) and rerun."
 fi
 
 info "Ensuring sqlc is available..."
