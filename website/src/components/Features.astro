@@ -1,0 +1,37 @@
+---
+import FeatureExplorer from './FeatureExplorer.tsx'
+
+// Funktionen-Sektion der Landing (Handoff-Prototyp, #features).
+// Statischer Sektionskopf (Eyebrow, H2, Intro) plus die interaktive
+// FeatureExplorer-Island. Direktive client:visible — der Explorer liegt unter
+// dem Fold; die Hydration lohnt erst beim Hereinscrollen. Die Island trägt kein
+// Server-sichtbares interaktives Verhalten, das vor der Hydration nötig wäre
+// (der erste Bereich ist bereits im SSR-HTML markiert und lesbar).
+---
+
+<section id="features" class="mx-auto max-w-6xl px-6 pt-16 pb-10 sm:pt-24">
+  <div class="reveal max-w-[660px]">
+    <p
+      class="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal)] uppercase"
+    >
+      <span
+        class="h-[3px] w-[22px] rounded-sm"
+        style="background: var(--spectral);"
+        aria-hidden="true"></span>
+      Funktionen
+    </p>
+    <h2
+      class="font-brand mt-3 text-[length:var(--fs-h2)] leading-[1.06] font-bold tracking-[-0.025em]"
+    >
+      Ein echtes Kassensystem.<br />Kein Spielzeug.
+    </h2>
+    <p class="mt-4 text-[1.0625rem] leading-relaxed text-muted">
+      Vom ersten Bier bis zum Z-Bon. Tippe dich durch die Bereiche — jotti deckt
+      den kompletten Kassenbetrieb eines Vereinsfests ab.
+    </p>
+  </div>
+
+  <div class="reveal">
+    <FeatureExplorer client:visible />
+  </div>
+</section>

@@ -318,11 +318,6 @@
     @apply inline-block rounded-full border border-control-border bg-brand-tint px-3.5 py-1.5 text-sm font-semibold text-brand;
   }
 
-  .badge-wip {
-    @apply ml-1.5 inline-block whitespace-nowrap rounded-full border border-control-border bg-brand-tint px-2 py-0.5
-      align-middle text-[0.65rem] font-semibold tracking-[0.02em] text-brand;
-  }
-
   /* Feine Spektral-Haarlinie: ersetzt an genau zwei wiederkehrenden Kanten
      (Header-Unterkante, Footer-Oberkante) die neutrale Trennlinie durch den
      dekorativen Logo-Verlauf. Umgesetzt als 2px-Rand mit Verlaufs-border-image;
