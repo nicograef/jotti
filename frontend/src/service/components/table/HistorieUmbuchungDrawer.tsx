@@ -91,10 +91,13 @@ export function HistorieUmbuchungDrawer({
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
   const keinZielTischVerfuegbar = zielTische.length === 0
+  // Grund am Button nur für die behebbaren Bedingungen: Fehlt gänzlich ein
+  // Ziel-Tisch, nennt bereits der Select-Platzhalter den Grund — ein zweiter
+  // Hinweis wäre redundant (gleiche Dedup wie in HistorieStornierungDrawer).
   const disabledReason = noPositionenSelected
     ? 'Positionen auswählen'
     : keinZielTischVerfuegbar
-      ? 'Kein aktiver Ziel-Tisch verfügbar'
+      ? null
       : zielTischId === null
         ? 'Ziel-Tisch wählen'
         : null
@@ -224,7 +227,7 @@ export function HistorieUmbuchungDrawer({
           </div>
           <ActionHint reason={disabledReason} />
           <Button
-            disabled={loading || disabledReason !== null}
+            disabled={loading || noPositionenSelected || zielTischId === null}
             onClick={() => {
               void onSubmit()
             }}
