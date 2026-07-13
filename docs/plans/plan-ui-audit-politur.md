@@ -269,10 +269,10 @@ Phase 8 auf AA gebracht (Cross-Ref).
 
 ### Acceptance criteria
 
-- [ ] Der 3-Schritt-Container ist nicht breiter als die Panels darunter, oder die Schritte stapeln unterhalb ~1100px vertikal.
-- [ ] Die ELSTER-UUID steht in einem eigenen, vollbreiten Feld mit Kopier-Button und ist vollständig lesbar/abtippbar (nicht mehr nur truncated).
-- [ ] „Als erledigt markieren“ ist bei 1440px und 1024px vollständig sichtbar und klickbar.
-- [ ] Kein horizontaler Überlauf der Finanzamt-Seite bei 390px (Basis-Track gesetzt).
+- [x] Der 3-Schritt-Container ist nicht breiter als die Panels darunter, oder die Schritte stapeln unterhalb ~1100px vertikal.
+- [x] Die ELSTER-UUID steht in einem eigenen, vollbreiten Feld mit Kopier-Button und ist vollständig lesbar/abtippbar (nicht mehr nur truncated).
+- [x] „Als erledigt markieren“ ist bei 1440px und 1024px vollständig sichtbar und klickbar.
+- [x] Kein horizontaler Überlauf der Finanzamt-Seite bei 390px (Basis-Track gesetzt).
 
 ---
 

@@ -26,7 +26,7 @@ export function WarnKarte({
         className="mt-0.5 size-4 shrink-0 text-destructive"
         aria-hidden
       />
-      <div className="space-y-1 leading-relaxed">
+      <div className="min-w-0 space-y-1 leading-relaxed">
         {title !== undefined && (
           <p className="font-medium text-destructive">{title}</p>
         )}

@@ -11,7 +11,7 @@ export function GutZuWissenSection() {
       <CardHeader>
         <CardTitle>Gut zu wissen</CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-2">
+      <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <a
           href={LEITFADEN_URL}
           target="_blank"

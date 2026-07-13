@@ -156,7 +156,9 @@ export function EinrichtungSection() {
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3">
-        <div className="grid gap-3 lg:grid-cols-3">
+        {/* 3 Spalten erst ab xl (~1280px), damit die Schritte im max-w-4xl-
+            Container nicht zu schmal werden; darunter stapeln sie vertikal. */}
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
           <SchrittKarte
             nummer={1}
             titel="Vereinsdaten"
@@ -224,23 +226,31 @@ export function EinrichtungSection() {
                   <span className="text-xs">(§ 146a Abs. 4 AO)</span>
                 </span>
                 {kassenidentitaet && (
-                  <div className="flex items-center gap-1.5">
-                    <code className="min-w-0 flex-1 truncate rounded-md border bg-background px-2 py-1 font-mono text-xs">
-                      {kassenidentitaet.seriennummer}
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="size-7 shrink-0"
-                      onClick={() => void handleCopy()}
-                      aria-label="Seriennummer kopieren"
-                    >
-                      {copied ? (
-                        <Check className="size-3.5" />
-                      ) : (
-                        <Copy className="size-3.5" />
-                      )}
-                    </Button>
+                  // Eigenes, vollbreites Feld statt truncated <code>: die
+                  // Seriennummer muss zum Abtippen in ELSTER vollständig lesbar
+                  // sein (break-all bricht die UUID um, statt sie zu kürzen).
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Seriennummer des elektronischen Aufzeichnungssystems
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <code className="min-w-0 flex-1 rounded-md border bg-background px-2 py-1 font-mono text-xs break-all">
+                        {kassenidentitaet.seriennummer}
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="size-7 shrink-0"
+                        onClick={() => void handleCopy()}
+                        aria-label="Seriennummer kopieren"
+                      >
+                        {copied ? (
+                          <Check className="size-3.5" />
+                        ) : (
+                          <Copy className="size-3.5" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 )}
                 <div className="flex flex-wrap items-center gap-3">
