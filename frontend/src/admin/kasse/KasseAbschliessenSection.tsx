@@ -189,72 +189,77 @@ export function KasseAbschliessenSection({
         </WarnKarte>
       )}
 
+      {/* €-Eingabe, Soll/Gezählt/Differenz und die Bestätigung sitzen in einer
+          gemeinsamen Gruppe, damit die Bestätigung direkt neben den Zahlen
+          steht, die sie bucht (NEU07). */}
       <form
         onSubmit={(e) => {
           e.preventDefault()
           void form.handleSubmit(onSubmit)()
         }}
-        className="mt-4 flex flex-wrap items-end gap-4"
+        className="mt-4 flex flex-col gap-4 rounded-lg border p-4"
       >
-        <EuroField
-          form={form}
-          name="istBestandCents"
-          label="Gezählter Ist-Bestand"
-          withLabel
-          placeholder="z.B. 342,50"
-          className="w-44"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setZaehlhilfeOpen(true)
-          }}
-        >
-          <Calculator />
-          Zählhilfe öffnen
-        </Button>
-
-        <div className="ml-auto flex gap-6 text-sm">
-          <div className="text-right">
-            <div className="text-muted-foreground">Soll</div>
-            <div className="text-base font-semibold">
-              {sollBestandCents !== null
-                ? `${formatCents(sollBestandCents)} €`
-                : '—'}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-muted-foreground">Gezählt</div>
-            <div className="text-base font-semibold">
-              {formatCents(gezaehltCents)} €
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-muted-foreground">Differenz</div>
-            <div
-              className={cn(
-                'text-base font-bold',
-                liveDifferenzCents !== null &&
-                  liveDifferenzCents < 0 &&
-                  'text-destructive',
-              )}
-            >
-              {liveDifferenzCents !== null
-                ? `${formatCents(liveDifferenzCents)} €`
-                : '—'}
-            </div>
-          </div>
+        <div className="flex flex-wrap items-end gap-4">
+          <EuroField
+            form={form}
+            name="istBestandCents"
+            label="Gezählter Ist-Bestand"
+            withLabel
+            placeholder="z.B. 342,50"
+            className="w-44"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setZaehlhilfeOpen(true)
+            }}
+          >
+            <Calculator />
+            Zählhilfe öffnen
+          </Button>
         </div>
 
-        <div className="flex w-full items-center justify-between gap-3 border-t pt-4">
-          <span className="text-muted-foreground text-xs">
-            Kleine Differenzen sind normal und werden automatisch dokumentiert.
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-4">
+          <div className="flex gap-6 text-sm">
+            <div className="text-right">
+              <div className="text-muted-foreground">Soll</div>
+              <div className="text-base font-semibold">
+                {sollBestandCents !== null
+                  ? `${formatCents(sollBestandCents)} €`
+                  : '—'}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-muted-foreground">Gezählt</div>
+              <div className="text-base font-semibold">
+                {formatCents(gezaehltCents)} €
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-muted-foreground">Differenz</div>
+              <div
+                className={cn(
+                  'text-base font-bold',
+                  liveDifferenzCents !== null &&
+                    liveDifferenzCents < 0 &&
+                    'text-destructive',
+                )}
+              >
+                {liveDifferenzCents !== null
+                  ? `${formatCents(liveDifferenzCents)} €`
+                  : '—'}
+              </div>
+            </div>
+          </div>
           <Button type="submit" variant="warn">
             Kasse endgültig abschließen…
           </Button>
         </div>
+
+        <span className="text-muted-foreground text-xs">
+          Kleine Differenzen sind normal und werden automatisch dokumentiert.
+        </span>
       </form>
 
       <ZaehlhilfeDialog

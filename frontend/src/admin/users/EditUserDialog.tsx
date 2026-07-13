@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dialog'
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import { type User, UserSchema } from './User'
@@ -33,11 +32,10 @@ const FormDataSchema = UserSchema.pick({
 type FormData = z.infer<typeof FormDataSchema>
 
 interface EditUserDialogProps {
-  backend: Pick<UserBackend, 'updateUser' | 'resetPassword'>
+  backend: Pick<UserBackend, 'updateUser'>
   open: boolean
   user: User
   updated: (user: User) => void
-  onPasswordReset: (username: string, onetimePassword: string) => void
   close: () => void
 }
 
@@ -48,7 +46,7 @@ export function EditUserDialog(props: EditUserDialogProps) {
     mode: 'onTouched',
   })
 
-  const { loading: saveLoading, run: runSave } = useFormActionSubmit({
+  const { loading, run: runSave } = useFormActionSubmit({
     form,
     actionLabel: 'Benutzer speichern',
     fieldErrorsByCode: {
@@ -57,10 +55,6 @@ export function EditUserDialog(props: EditUserDialogProps) {
       },
     },
   })
-  const { loading: resetLoading, run: runResetPassword } = useActionSubmit({
-    actionLabel: 'Passwort zurücksetzen',
-  })
-  const loading = saveLoading || resetLoading
 
   const onOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -77,15 +71,6 @@ export function EditUserDialog(props: EditUserDialogProps) {
       })
       form.reset()
       props.updated({ ...props.user, ...data })
-      props.close()
-    })
-  }
-
-  const resetPassword = async () => {
-    await runResetPassword(async () => {
-      const onetimePassword = await props.backend.resetPassword(props.user.id)
-      form.reset()
-      props.onPasswordReset(props.user.username, onetimePassword)
       props.close()
     })
   }
@@ -113,15 +98,6 @@ export function EditUserDialog(props: EditUserDialogProps) {
           </FieldGroup>
         </form>
         <DialogFooter className="mt-4">
-          <Button
-            variant="ghost"
-            disabled={loading}
-            onClick={() => {
-              void resetPassword()
-            }}
-          >
-            {loading ? <Spinner /> : null} Passwort zurücksetzen
-          </Button>
           <DialogClose asChild>
             <Button variant="outline" disabled={loading}>
               Abbrechen
