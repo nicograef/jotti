@@ -33,14 +33,12 @@ export function Receipt({
           )
         })}
       </div>
-      <div className="flex justify-between font-bold px-4 pt-2 pb-4 border-t-2">
-        {totalPrice !== undefined && (
-          <>
-            <div>Gesamt</div>
-            <div>{formatCents(totalPrice)}&nbsp;€</div>
-          </>
-        )}
-      </div>
+      {totalPrice !== undefined && (
+        <div className="flex justify-between font-bold px-4 pt-2 pb-4 border-t-2">
+          <div>Gesamt</div>
+          <div>{formatCents(totalPrice)}&nbsp;€</div>
+        </div>
+      )}
     </>
   )
 }

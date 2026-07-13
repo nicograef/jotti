@@ -69,14 +69,19 @@ function renderDrawer(
 }
 
 describe('HistorieUmbuchungDrawer', () => {
-  it('rendert Positionsliste und Ziel-Tisch-Auswahl im DrawerBody, Buttons im Footer außerhalb', () => {
+  it('rendert Positionsliste im DrawerBody; Ziel-Tisch-Auswahl und Buttons im sichtbaren Footer', () => {
     renderDrawer()
 
     const dialog = screen.getByRole('dialog')
     const body = dialog.querySelector('[data-slot="drawer-body"]')
+    const footer = dialog.querySelector('[data-slot="drawer-footer"]')
     expect(body).not.toBeNull()
+    expect(footer).not.toBeNull()
     expect(body).toContainElement(screen.getByText(/Bratwurst/))
-    expect(body).toContainElement(screen.getByRole('combobox'))
+    // Die Ziel-Tisch-Auswahl (Pflichtfeld) steht im nicht-scrollenden Footer.
+    const select = screen.getByRole('combobox')
+    expect(footer).toContainElement(select)
+    expect(body).not.toContainElement(select)
     expect(body).not.toContainElement(
       screen.getByRole('button', { name: 'Umbuchung ausführen' }),
     )

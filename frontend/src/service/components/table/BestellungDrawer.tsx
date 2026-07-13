@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { formatCents } from '@/lib/utils'
 
 import type { Produkt } from '../../product/Produkt'
 import type { Tisch } from '../../table/Tisch'
@@ -101,7 +102,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">
-          <Receipt positionen={receiptItems} totalPrice={totalPrice} />
+          <Receipt positionen={receiptItems} />
           <div className="px-4">
             <KommentarField
               onChange={(value) => {
@@ -111,6 +112,10 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
           </div>
         </DrawerBody>
         <DrawerFooter className="mx-auto w-full max-w-sm">
+          <div className="flex justify-between border-t-2 pt-2 font-bold">
+            <div>Gesamt</div>
+            <div>{formatCents(totalPrice)}&nbsp;€</div>
+          </div>
           <Button
             disabled={loading}
             onClick={() => {

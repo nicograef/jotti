@@ -166,13 +166,22 @@ export function HistorieUmbuchungDrawer({
             onAdd={onAdd}
             onRemove={onRemove}
           />
+          <div className="px-4">
+            <KommentarField
+              onChange={(value) => {
+                setKommentar(value)
+              }}
+            />
+          </div>
+        </DrawerBody>
+        <DrawerFooter className="mx-auto w-full max-w-sm">
           {!noPositionenSelected && (
-            <div className="flex justify-between font-bold px-4 pt-2 pb-2 border-t-2">
+            <div className="flex justify-between border-t-2 pt-2 font-bold">
               <div>Umbuchung gesamt</div>
               <div>{formatCents(totalPrice)}&nbsp;€</div>
             </div>
           )}
-          <div className="px-4 pb-2 space-y-1">
+          <div className="space-y-1">
             <p className="text-sm font-medium">Ziel-Tisch</p>
             <NativeSelect
               className="w-full"
@@ -197,15 +206,6 @@ export function HistorieUmbuchungDrawer({
               ))}
             </NativeSelect>
           </div>
-          <div className="px-4">
-            <KommentarField
-              onChange={(value) => {
-                setKommentar(value)
-              }}
-            />
-          </div>
-        </DrawerBody>
-        <DrawerFooter className="mx-auto w-full max-w-sm">
           <Button
             disabled={
               loading ||
