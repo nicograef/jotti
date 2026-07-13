@@ -426,11 +426,11 @@ Light und Dark eingerichtet.
 
 ### Acceptance criteria
 
-- [ ] Grüne Aktionen, Outline-Buttons, Input-/Drucker-IP-Felder und deaktivierte Primäraktionen erreichen im Dark Mode AA (Text 4,5:1, UI-Ränder 3:1).
-- [ ] Der Light-Mode-Kontrast dieser Primitive bleibt bei/über AA (nicht gesenkt).
-- [ ] `@axe-core/playwright` ist als devDependency in `e2e/package.json` ergänzt (mit aktualisiertem `e2e/pnpm-lock.yaml`); kein Eintrag in `frontend/`.
-- [ ] Ein automatisierter axe-WCAG-AA-Durchlauf bestätigt die Recovery-/Compliance-Screens in Light und Dark grün.
-- [ ] Ein AA-taugliches Disabled-Treatment ist definiert und in Phase 9 wiederverwendbar.
+- [x] Grüne Aktionen, Outline-Buttons, Input-/Drucker-IP-Felder und deaktivierte Primäraktionen erreichen im Dark Mode AA (Text 4,5:1, UI-Ränder 3:1).
+- [x] Der Light-Mode-Kontrast dieser Primitive bleibt bei/über AA (nicht gesenkt).
+- [x] `@axe-core/playwright` ist als devDependency in `e2e/package.json` ergänzt (mit aktualisiertem `e2e/pnpm-lock.yaml`); kein Eintrag in `frontend/`.
+- [x] Ein automatisierter axe-WCAG-AA-Durchlauf bestätigt die Recovery-/Compliance-Screens in Light und Dark grün.
+- [x] Ein AA-taugliches Disabled-Treatment ist definiert und in Phase 9 wiederverwendbar.
 
 ---
 
