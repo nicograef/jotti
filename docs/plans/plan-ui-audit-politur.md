@@ -301,10 +301,10 @@ besteht, Bestellung).
 
 ### Acceptance criteria
 
-- [ ] Bei deaktivierter Primäraktion in Stornierung und Umbuchung erscheint ein sichtbarer, zur fehlenden Bedingung passender Grund nahe der Aktion.
-- [ ] Kein stummer, grundloser toter Button mehr in diesen Service-Drawern.
-- [ ] Der Enabled-Zustand der Aktion folgt der Validierung; der Grundtext verschwindet, sobald die Bedingung erfüllt ist.
-- [ ] Vitest-Komponententest: bei deaktivierter Aktion wird der Grund gerendert (Sichtbarkeit/Textinhalt, keine Klassennamen-Assertion).
+- [x] Bei deaktivierter Primäraktion in Stornierung und Umbuchung erscheint ein sichtbarer, zur fehlenden Bedingung passender Grund nahe der Aktion.
+- [x] Kein stummer, grundloser toter Button mehr in diesen Service-Drawern.
+- [x] Der Enabled-Zustand der Aktion folgt der Validierung; der Grundtext verschwindet, sobald die Bedingung erfüllt ist.
+- [x] Vitest-Komponententest: bei deaktivierter Aktion wird der Grund gerendert (Sichtbarkeit/Textinhalt, keine Klassennamen-Assertion).
 
 ---
 

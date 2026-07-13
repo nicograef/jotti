@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
@@ -87,5 +88,38 @@ describe('HistorieStornierungDrawer', () => {
     expect(title).toBeInTheDocument()
     expect(title).toHaveTextContent('Nico')
     expect(screen.queryByText(/00000000/)).not.toBeInTheDocument()
+  })
+
+  it('nennt den Sperrgrund neben der Aktion und gibt frei, sobald er erfüllt ist', async () => {
+    const user = userEvent.setup()
+    render(
+      <HistorieStornierungDrawer
+        backend={{ stornierungErteilen: vi.fn().mockResolvedValue(undefined) }}
+        tisch={tisch}
+        quelle={quelle}
+        onClose={vi.fn()}
+        onStornierungErteilt={vi.fn()}
+      />,
+    )
+
+    const button = screen.getByRole('button', { name: 'Stornierung erteilen' })
+
+    // Ohne Auswahl: der Grund nennt die fehlende Positionswahl, die Aktion sperrt.
+    expect(button).toBeDisabled()
+    expect(screen.getByText('Positionen auswählen')).toBeVisible()
+
+    // Position gewählt, aber Kommentar fehlt noch: Der Positions-Grund
+    // verschwindet, die Kommentar-Pflicht bleibt am Feld genannt.
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    expect(screen.queryByText('Positionen auswählen')).not.toBeInTheDocument()
+    expect(screen.getByText(/Kommentar ist erforderlich/)).toBeVisible()
+    expect(button).toBeDisabled()
+
+    // Gültiger Kommentar: die Aktion wird frei.
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch bestellt',
+    )
+    expect(button).toBeEnabled()
   })
 })

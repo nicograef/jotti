@@ -25,6 +25,7 @@ import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import type { Umbuchung } from '../../table/Umbuchung'
 import { PositionAuswahlListe } from '../PositionAuswahlListe'
+import { ActionHint } from './ActionHint'
 import { KommentarField } from './CommentField'
 import {
   calculateTotalPrice,
@@ -85,6 +86,14 @@ export function HistorieUmbuchungDrawer({
   const selectedPositionen = selectPositionen(positionen, mengen)
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
+  const keinZielTischVerfuegbar = zielTische.length === 0
+  const disabledReason = noPositionenSelected
+    ? 'Positionen auswählen'
+    : keinZielTischVerfuegbar
+      ? 'Kein aktiver Ziel-Tisch verfügbar'
+      : zielTischId === null
+        ? 'Ziel-Tisch wählen'
+        : null
 
   const alleVollAusgewaehlt =
     positionen.length > 0 &&
@@ -189,10 +198,10 @@ export function HistorieUmbuchungDrawer({
               onChange={(event) => {
                 setZielTischId(Number(event.target.value))
               }}
-              disabled={loading || tischeLoading || zielTische.length === 0}
+              disabled={loading || tischeLoading || keinZielTischVerfuegbar}
             >
               <NativeSelectOption value="" disabled>
-                {zielTische.length === 0
+                {keinZielTischVerfuegbar
                   ? 'Kein aktiver Ziel-Tisch verfügbar'
                   : 'Ziel-Tisch wählen…'}
               </NativeSelectOption>
@@ -206,13 +215,9 @@ export function HistorieUmbuchungDrawer({
               ))}
             </NativeSelect>
           </div>
+          <ActionHint reason={disabledReason} />
           <Button
-            disabled={
-              loading ||
-              noPositionenSelected ||
-              zielTischId === null ||
-              zielTische.length === 0
-            }
+            disabled={loading || disabledReason !== null}
             onClick={() => {
               void onSubmit()
             }}
