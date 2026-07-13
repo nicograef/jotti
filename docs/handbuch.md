@@ -53,10 +53,11 @@ Kasse ist Core Domain, weil alle übrigen Kontexte von ihr abhängen oder sie un
 | Kasse          | Fiskalisierung | Published Event (Outbox) | Jeder signaturpflichtige Vorgang schreibt einen Signaturauftrag in die Outbox   |
 | Kasse          | Druck/Ausgabe  | Published Event (Outbox) | Bestellaufnahme und Kassiervorgang schreiben Druckaufträge in die Outbox        |
 | Kassenjournal  | Reporting      | Open Host Service       | Reporting liest direkt aus `kassenjournal` (SQL-Aggregation, kein eigener Store) |
+| Kasse          | Stammdaten     | Open Host Service (read-only) | Stammdaten liest `tisch_sessions`/`kassensitzungen` für Saldo-Anzeige und Lösch-/Deaktivier-Schutz; nur Projektionsspalten, kein Event-Contract |
 | Auth           | Kasse          | Open Host Service       | Token mit Benutzer-ID und Rolle                                                  |
 | Auth           | Stammdaten     | Open Host Service       | Token mit Benutzer-ID und Rolle                                                  |
 
-Der Kasse-Kontext schützt sich über eine Anti-Corruption Layer (ACL) vor Stammdaten-Änderungen: Bestellungs-Events enthalten alle relevanten Produktdaten zum Zeitpunkt der Bestellung (Fat Events). Spätere Preis- oder Stammdaten-Änderungen haben keinen Einfluss auf historische Bestellungen und wirken erst in künftigen Bestellungen (Änderungssperre für Steuersätze folgt mit Compliance-Phase 1). Reporting aggregiert direkt über das Kassenjournal, keine Cross-Context-Kommunikation nötig.
+Der Kasse-Kontext schützt sich über eine Anti-Corruption Layer (ACL) vor Stammdaten-Änderungen: Bestellungs-Events enthalten alle relevanten Produktdaten zum Zeitpunkt der Bestellung (Fat Events). Spätere Preis- oder Stammdaten-Änderungen haben keinen Einfluss auf historische Bestellungen und wirken erst in künftigen Bestellungen (Änderungssperre für Steuersätze folgt mit Compliance-Phase 1). Reporting aggregiert direkt über das Kassenjournal; dafür ist keine Cross-Context-Kommunikation nötig. Eine bewusste read-only Rückkante Kasse→Stammdaten besteht dagegen für den Tisch-Saldo: Die Admin-Tischliste liest die `tisch_sessions`-Projektion der offenen Kassensitzung (Saldo-Anzeige) und verhindert das Löschen oder Deaktivieren eines Tischs mit offenem Saldo, damit kein Geld auf einem nicht mehr kassier-/stornier-/umbuchbaren Tisch strandet. Die Query liest ausschließlich Projektionsspalten, nie Event-Payloads.
 
 ---
 
@@ -197,6 +198,8 @@ SQL-Aggregation über das Kassenjournal (eine `SELECT`-Query über `kassensitzun
 $$\text{Soll} = \text{Anfangsbestand}_{\text{KS}} + \sum_{\text{Tische}} \text{Zahlungen} - \sum_{\text{Tische}} \text{Warenrücknahmen} + \sum \text{Direktverkauf} - \sum \text{Direktverkauf-Storno} + \text{Kassenbewegungen}_{\text{netto}} + \text{DifferenzSollIst}$$
 
 Alle Summanden stammen aus dem Kassenjournal. Keine Cross-Context-Projektion. Direktverkauf-Events (`direktverkauf-getaetigt:v1`, `direktverkauf-storniert:v1`) haben keine eigene Projektion, sind aber vollständig kassenwirksam und fließen in den Soll-Bestand ein.
+
+Die API liefert den Soll-Bestand zusätzlich als Vier-Komponenten-Aufschlüsselung (`Kassenbestand`-Struct, `domain/kasse/kassensitzung.go`): `Anfangsbestand + Bareinnahmen + Einlagen − Entnahmen = Soll` (solange keine Kassensturz-Differenz gebucht ist). `Bareinnahmen` bündelt die kassenwirksamen Verkaufsbewegungen (Tisch-Zahlungen abzüglich Warenrücknahmen, Direktverkäufe abzüglich Storno), `Einlagen`/`Entnahmen` die Geldtransit-Bewegungen. JSON-Keys: `sollBestandCents`, `anfangsbestandCents`, `bareinnahmenCents`, `einlagenCents`, `entnahmenCents`. Die einzelnen Bargeldbewegungen sind zusätzlich als Geldtransit-Liste (`Geldtransit`-Read-Model, `POST /admin/get-geldtransit-liste`) abrufbar — reine Projektion der `geldtransit-gebucht:v1`-Events.
 
 ### 3.10 Kassensturz
 
@@ -472,12 +475,14 @@ Die operativen Ansichten (Tischübersicht, Tischdetails) lesen aus der synchrone
 
 ### 7.2 Admin-Ansichten (Reporting)
 
-Reporting ist Admin-only und wird on-demand per SQL-Aggregation über `kassenjournal` und `tisch_sessions` berechnet (kein Polling, kein eigener Schreibpfad). Zwei Endpunkte:
+Reporting ist Admin-only und wird on-demand per SQL-Aggregation über `kassenjournal` und `tisch_sessions` berechnet (kein Polling, kein eigener Schreibpfad). Daneben nutzt die Admin-Tischverwaltung eine Tischliste mit offenem Saldo. Endpunkte:
 
 | Endpunkt                         | Scope                                  | Inhalt                                                                              |
 | -------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------- |
 | `POST /admin/get-live-reporting` | offene Kassensitzung (ohne Parameter)  | KPIs, offene Tische, offene Saldi, Stornierungen                                    |
-| `POST /admin/get-abrechnung`     | bestimmte Kassensitzung (`kassensitzungNr`) | `summary`, `breakdowns` (Umsatz pro Servicekraft), `umsatzProSteuersatz`, `stornierungen` |
+| `POST /admin/get-abrechnung`     | bestimmte Kassensitzung (`kassensitzungNr`) | `metadaten` (`eroeffnetAm`, `abgeschlossenAm`, `abgeschlossenVon`, `kassensturzDifferenzCents`), `summary`, `breakdowns` (Umsatz pro Servicekraft), `umsatzProSteuersatz`, `stornierungen` |
+| `POST /admin/get-abgeschlossene-kassensitzungen` | alle abgeschlossenen Kassensitzungen | Liste `AbgeschlosseneSitzung`: `zNr`, `datum`, `bezeichnung`, `umsatzGesamtCents`, `abgeschlossenAm` (aus `tagesabschluss-erstellt:v1`) — Auswahlliste der Kassenberichte |
+| `POST /admin/get-all-tische`     | alle Tische (Stammdaten)               | Tischliste mit offenem Saldo (`TischMitSaldo`): Tisch-Stammdaten + `saldoCents` aus der `tisch_sessions`-Projektion der offenen Kassensitzung (Saldo-Anzeige, Lösch-/Deaktivier-Schutz, → [§2.2](#22-beziehungen-zwischen-kontexten)) |
 
 Beide `summary`-Sektionen enthalten die Direktverkauf-Kennzahlen `anzahlDirektverkaeufe` und `direktverkaufUmsatzCents` (netto: Verkauf minus Storno). Anforderungs-IDs (R-01–R-05) → [anforderungen.md](anforderungen.md).
 

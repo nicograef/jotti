@@ -253,9 +253,9 @@ Wechselgeld zu Beginn einer Kassensitzung. Wird bei der Eröffnung gesetzt, als 
 
 #### Kassenbestand
 
-Erwarteter Bargeldbestand (Soll), on-demand per SQL-Aggregation aus dem Kassenjournal berechnet, kein eigenes Read Model. Formel → [handbuch.md §3.9](handbuch.md#39-kassenbestand-read-model).
+Erwarteter Bargeldbestand (Soll), on-demand per SQL-Aggregation aus dem Kassenjournal berechnet, kein eigenes Read Model. Setzt sich aus vier Komponenten zusammen: `Anfangsbestand + Bareinnahmen + Einlagen − Entnahmen = Soll`. Formel → [handbuch.md §3.9](handbuch.md#39-kassenbestand-read-model).
 
-JSON-Key: `sollBestandCents`
+JSON-Keys: `sollBestandCents`, `anfangsbestandCents`, `bareinnahmenCents`, `einlagenCents`, `entnahmenCents`
 
 #### Geldtransit (Kassenbewegung)
 
@@ -278,6 +278,10 @@ Vergleich des errechneten Soll-Bestands mit dem physisch gezählten Ist-Bestand;
 | Event-Typen                                                                          | JSON-Keys                                               |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------- |
 | `kassensturz-durchgefuehrt:v1` (+ `differenz-soll-ist-gebucht:v1` bei Differenz ≠ 0) | `sollBestandCents`, `istBestandCents`, `differenzCents` |
+
+#### Zählhilfe
+
+Stückzahl-Erfassung der Euro-Nennwerte (1 ct bis 200 €) beim Kassensturz: Der zählende Admin trägt je Nennwert die Anzahl ein, deren Summe den Ist-Bestand ergibt. Reine Frontend-Rechenhilfe ohne Persistenz (`frontend/src/admin/kasse/zaehlhilfe.ts`).
 
 #### DifferenzSollIst
 
@@ -366,6 +370,12 @@ Operativer, nicht-fiskalischer Bon an eine Ausgabestation (Küche, Theke). Träg
 
 Fiskalischer Zahlungsbeleg (§ 146a Abs. 2 AO, § 6 KassenSichV) für den Gast: alle Positionen mit Preisen, Steueraufteilung (F-07), Vereinsdaten (K-20), Kassen-Seriennummer (F-01) und (sofern TSE konfiguriert) TSE-Pflichtfelder inkl. QR-Code (F-02). Wird auf Anforderung pro Kassiervorgang gedruckt, am Fest greift meist die Belegausgabe-Befreiung (→ [compliance.md §5.1](compliance.md#51-gesetzliche-grundlage)). DSFinV-K-`processType`: `Kassenbeleg-V1`.
 
+#### Testbon
+
+Nicht-fiskalischer Prüf-Bon (Stationsname + Zeitstempel), den der Admin beim Aufbau an eine konfigurierte Druckstation schickt, um Drucker und Netzwerk zu prüfen. Läuft über dieselbe Outbox wie Arbeitsbon und Kassenbeleg. Kein Beleg im Sinne von § 146a AO.
+
+DB-Wert: `bon_art = 'testbon'` · API-Pfad: `/admin/testbon-drucken`
+
 #### Druckstation
 
 Konfigurierter Drucker je Kategorie: drei Produktstationen für Arbeitsbons plus die Stationen `kassenbeleg` und `abholbon`. CRUD-Entität.
@@ -382,7 +392,7 @@ DB-Enum: `'pro_position'`, `'pro_bestellung'`
 
 Konkreter Druckjob in der Outbox, Single Source of Truth für alle Druckjobs, Arbeitsbon und Kassenbeleg. Das Backend reiht ein, das Relay leert.
 
-DB-Tabelle: `druckauftraege` · Spalten u. a.: `ziel_ip`, `payload` (Base64-ESC/POS), `bon_art` (`'arbeitsbon'` | `'kassenbeleg'`), `referenz`, `status` (`offen` → `gedruckt`; nach 3 Fehlversuchen `fehlgeschlagen` → `verworfen` oder zurück auf `offen`)
+DB-Tabelle: `druckauftraege` · Spalten u. a.: `ziel_ip`, `payload` (Base64-ESC/POS), `bon_art` (`'arbeitsbon'` | `'kassenbeleg'` | `'testbon'`), `referenz`, `status` (`offen` → `gedruckt`; nach 3 Fehlversuchen `fehlgeschlagen` → `verworfen` oder zurück auf `offen`)
 
 #### Relay
 
@@ -457,6 +467,7 @@ Je ein Satz, Pflichten und Details: [compliance.md §2](compliance.md#2-rechtlic
 | TAR-Archiv             | Gesetzlich vorgeschriebenes Dateiformat für den Export der rohen, kryptografisch gesicherten TSE-Log-Nachrichten.                                              |
 | Kassenmeldung / ELSTER | Pflicht nach § 146a Abs. 4 AO: Meldung jeder jotti-Instanz innerhalb eines Monats nach Inbetriebnahme über das ELSTER-Portal (→ F-05).                         |
 | ERiC                   | „ELSTER Rich Client", Programmierschnittstelle für die automatisierte ELSTER-Kommunikation. Nicht-Ziel: die Kassenmeldung erfolgt manuell über das ELSTER-Portal (F-05).                                                           |
+| ElsterGemeldetAm       | Datum der erfolgten ELSTER-Kassenmeldung (§ 146a Abs. 4 AO) oder leer, solange nicht gemeldet. Vom Admin nach der Portal-Meldung gesetzt (korrigierbar). Go: `betreiber.ElsterGemeldetAm` · DB: `betreiber.elster_gemeldet_am` (DATE) · JSON-Key: `elsterGemeldetAm` (`YYYY-MM-DD`) |
 
 ---
 
