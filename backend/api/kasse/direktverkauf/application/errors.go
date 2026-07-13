@@ -16,6 +16,11 @@ var ErrKasseWirdAbgeschlossen = errors.New("kasse wird gerade abgeschlossen")
 // ErrProduktNotFound is returned when a product or variant is not found during enrichment.
 var ErrProduktNotFound = errors.New("produkt not found")
 
+// ErrVarianteNichtAktiv is returned when a referenced variant or its product is
+// deactivated (inactive). Kept separate from ErrProduktNotFound, which covers
+// deleted or non-existent IDs.
+var ErrVarianteNichtAktiv = errors.New("variante nicht aktiv")
+
 // ErrVerkaufNichtGefunden is returned when no Direktverkauf exists for the given verkaufId.
 var ErrVerkaufNichtGefunden = errors.New("verkauf nicht gefunden")
 

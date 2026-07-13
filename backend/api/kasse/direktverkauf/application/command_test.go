@@ -181,6 +181,37 @@ func TestDirektverkaufTaetigen_WritesSingleEvent(t *testing.T) {
 	}
 }
 
+// Ein deaktivierte (inactive) Variante taucht im Verkaufs-Menü nicht auf, kann
+// aber per direktem POST referenziert werden — der Command lehnt sie ab.
+func TestDirektverkaufTaetigen_InactiveVariante(t *testing.T) {
+	inactiveVariant := produkt.Variante{
+		ID:         2,
+		Name:       "Cola 0,5l",
+		PreisCents: 350,
+		Status:     produkt.InactiveStatus,
+	}
+	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock.AddVariant(testProduct.ID, inactiveVariant)
+	spy := &spyEventRepo{}
+	command := Command{
+		EventRepo:           spy,
+		ProduktRepo:         productMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	inputs := []VerkaufPositionInput{
+		{ProduktID: testProduct.ID, VarianteID: inactiveVariant.ID, Menge: 1},
+	}
+
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", inputs, "")
+	if err != ErrVarianteNichtAktiv {
+		t.Fatalf("expected ErrVarianteNichtAktiv, got %v", err)
+	}
+	if len(spy.written) != 0 {
+		t.Fatalf("expected no event written, got %d", len(spy.written))
+	}
+}
+
 func TestDirektverkaufTaetigen_ProduktNotFound(t *testing.T) {
 	spy := &spyEventRepo{}
 	command := Command{

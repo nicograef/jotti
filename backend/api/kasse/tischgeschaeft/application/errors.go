@@ -29,6 +29,11 @@ var ErrConflict = errors.New("conflict")
 // ErrProduktNotFound is returned when a product or variant is not found during enrichment.
 var ErrProduktNotFound = errors.New("produkt not found")
 
+// ErrVarianteNichtAktiv is returned when a referenced variant or its product is
+// deactivated (inactive). Kept separate from ErrProduktNotFound, which covers
+// deleted or non-existent IDs.
+var ErrVarianteNichtAktiv = errors.New("variante nicht aktiv")
+
 // ErrTischNotActive is returned when an operation is attempted on an inactive or deleted tisch.
 var ErrTischNotActive = errors.New("tisch not active")
 

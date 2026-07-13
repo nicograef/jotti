@@ -82,6 +82,8 @@ const commonErrorMessages: Record<string, string> = {
   username_already_exists:
     'Dieser Benutzername ist bereits vergeben. Bitte einen anderen Benutzernamen wählen.',
   validation_error: 'Bitte die Eingaben prüfen und erneut versuchen.',
+  variante_nicht_aktiv:
+    'Ein Artikel ist nicht mehr verfügbar. Bitte die Auswahl aktualisieren und erneut versuchen.',
   variante_not_found:
     'Die Variante wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
   verkauf_not_found:

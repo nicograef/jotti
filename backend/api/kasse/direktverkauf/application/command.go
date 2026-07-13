@@ -297,6 +297,13 @@ func (c Command) enrichPositionen(ctx context.Context, inputs []VerkaufPositionI
 			return nil, ErrProduktNotFound
 		}
 
+		// Defense-in-Depth: deaktivierte (inactive) Varianten/Produkte tauchen im
+		// Verkaufs-Menü nicht auf, könnten aber per direktem POST referenziert werden.
+		if variant.Status != produkt.ActiveStatus || prod.Status != produkt.ActiveStatus {
+			log.Warn().Int("variante_id", input.VarianteID).Int("produkt_id", input.ProduktID).Msg("Variant or product not active")
+			return nil, ErrVarianteNichtAktiv
+		}
+
 		positionen = append(positionen, kasse.Position{
 			VarianteID:       input.VarianteID,
 			ProduktName:      prod.Name,

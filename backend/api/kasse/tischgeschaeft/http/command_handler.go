@@ -115,9 +115,10 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
 				helper.MapError(w, err, map[error]string{
-					application.ErrTischNotFound:   "tisch_not_found",
-					application.ErrTischNotActive:  "tisch_not_active",
-					application.ErrProduktNotFound: "produkt_not_found",
+					application.ErrTischNotFound:      "tisch_not_found",
+					application.ErrTischNotActive:     "tisch_not_active",
+					application.ErrProduktNotFound:    "produkt_not_found",
+					application.ErrVarianteNichtAktiv: "variante_nicht_aktiv",
 				})
 			}
 			return

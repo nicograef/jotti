@@ -64,7 +64,8 @@ func (r Repository) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]pr
 
 // GetProductsByIDs fetches multiple products in a single query.
 // Returns a map keyed by product ID for O(1) lookup during Bestellung enrichment.
-// Only retrieves fields needed for fat-event enrichment (Name, Kategorie, Steuersatz).
+// Retrieves the fields needed for fat-event enrichment (Name, Kategorie, Steuersatz)
+// plus Status, so the sales path can reject deactivated products server-side.
 // Uses ANY($1) with a []int32 parameter; see GetVariantsByIDs for rationale.
 func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error) {
 	if len(ids) == 0 {
@@ -73,7 +74,7 @@ func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]pr
 
 	ids32 := toInt32Slice(ids)
 
-	const query = `SELECT id, name, kategorie, steuersatz
+	const query = `SELECT id, name, kategorie, steuersatz, status
 		FROM produkte
 		WHERE id = ANY($1) AND status != 'deleted'`
 
@@ -90,8 +91,9 @@ func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]pr
 			name       string
 			kategorie  string
 			steuersatz string
+			status     string
 		)
-		if err := rows.Scan(&id, &name, &kategorie, &steuersatz); err != nil {
+		if err := rows.Scan(&id, &name, &kategorie, &steuersatz, &status); err != nil {
 			return nil, db.Error(err)
 		}
 		result[id] = produkt.Produkt{
@@ -99,6 +101,7 @@ func (r Repository) GetProductsByIDs(ctx context.Context, ids []int) (map[int]pr
 			Name:       name,
 			Kategorie:  produkt.Kategorie(kategorie),
 			Steuersatz: steuer.Steuersatz(steuersatz),
+			Status:     produkt.Status(status),
 		}
 	}
 	if err := rows.Close(); err != nil {

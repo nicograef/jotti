@@ -283,6 +283,31 @@ func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {
 	}
 }
 
+// Ein deaktivierte (inactive) Variante taucht im Bestell-Menü nicht auf, kann
+// aber per direktem POST referenziert werden — der Command lehnt sie ab.
+func TestBestellungAufnehmen_InactiveVariante(t *testing.T) {
+	ctx := context.Background()
+	inactiveVariant := produkt.Variante{
+		ID:         2,
+		Name:       "Cola 0,5l",
+		PreisCents: 350,
+		Status:     produkt.InactiveStatus,
+	}
+	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock.AddVariant(testProduct.ID, inactiveVariant)
+	command := newTestCommand([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct})
+	command.ProduktRepo = productMock
+
+	inputs := []BestellPositionInput{
+		{ProduktID: testProduct.ID, VarianteID: inactiveVariant.ID, Menge: 1},
+	}
+
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testActiveTisch.ID, inputs, "")
+	if err != ErrVarianteNichtAktiv {
+		t.Fatalf("expected ErrVarianteNichtAktiv, got %v", err)
+	}
+}
+
 func TestZahlungKassieren_NonOrderedPosition(t *testing.T) {
 	ctx := context.Background()
 	// No order events exist — paying a non-existent position should fail

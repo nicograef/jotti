@@ -82,7 +82,8 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
 				helper.MapError(w, err, map[error]string{
-					application.ErrProduktNotFound: "produkt_not_found",
+					application.ErrProduktNotFound:    "produkt_not_found",
+					application.ErrVarianteNichtAktiv: "variante_nicht_aktiv",
 				})
 			}
 			return
