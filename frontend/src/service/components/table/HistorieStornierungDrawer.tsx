@@ -21,6 +21,7 @@ import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import type { Umbuchung } from '../../table/Umbuchung'
 import { PositionAuswahlListe } from '../PositionAuswahlListe'
+import { ActionHint } from './ActionHint'
 import { KommentarField } from './CommentField'
 import {
   calculateTotalPrice,
@@ -59,6 +60,9 @@ export function HistorieStornierungDrawer({
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
   const kommentarInvalid = kommentar.trim().length < 3
+  // Grund am Button nur für die Positionsauswahl: Die Kommentar-Pflicht nennt
+  // bereits das KommentarField dauerhaft, ein zweiter Hinweis wäre redundant.
+  const hinweisGrund = noPositionenSelected ? 'Positionen auswählen' : null
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Stornierung ausführen',
@@ -124,6 +128,7 @@ export function HistorieStornierungDrawer({
               setKommentar(value)
             }}
           />
+          <ActionHint reason={hinweisGrund} />
           <Button
             variant="destructive"
             disabled={loading || noPositionenSelected || kommentarInvalid}

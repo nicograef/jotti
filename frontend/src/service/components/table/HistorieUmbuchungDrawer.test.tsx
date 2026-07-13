@@ -145,6 +145,30 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(screen.queryByText(/00000000/)).not.toBeInTheDocument()
   })
 
+  it('nennt den Sperrgrund neben der Aktion und gibt frei, sobald er erfüllt ist', async () => {
+    const user = userEvent.setup()
+    renderDrawer()
+
+    const button = screen.getByRole('button', { name: 'Umbuchung ausführen' })
+
+    // Ohne Auswahl: der Grund nennt die fehlende Positionswahl.
+    expect(button).toBeDisabled()
+    expect(screen.getByText('Positionen auswählen')).toBeVisible()
+
+    // Positionen gewählt, aber Ziel-Tisch fehlt: der Grund wechselt.
+    await user.click(
+      screen.getByRole('button', { name: /Alle 1 Positionen auswählen/ }),
+    )
+    expect(screen.queryByText('Positionen auswählen')).not.toBeInTheDocument()
+    expect(screen.getByText('Ziel-Tisch wählen')).toBeVisible()
+    expect(button).toBeDisabled()
+
+    // Ziel-Tisch gewählt: der Grund verschwindet, die Aktion wird frei.
+    await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
+    expect(screen.queryByText('Ziel-Tisch wählen')).not.toBeInTheDocument()
+    expect(button).toBeEnabled()
+  })
+
   it('reicht ein optionales Kommentar an die Umbuchung durch', async () => {
     const user = userEvent.setup()
     const bestellungUmbuchen = renderDrawer()
