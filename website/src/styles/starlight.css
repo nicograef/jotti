@@ -1,23 +1,36 @@
 /* Brandet das Starlight-Doku-Theme mit dem gemeinsamen jotti-Token-Set.
    Übersetzt die Markenwerte aus brand.css in Starlights CSS-Custom-Properties,
-   damit Landing und Doku visuell konsistent sind. */
+   damit Landing und Doku eine Marke sind: dieselbe Farbwelt, dieselbe Schrift.
+
+   Polarität wie die Landing: Light auf :root, Dark auf [data-theme='dark'].
+   Werte, die über die Marken-Tokens ohnehin kippen (Akzent = --primary,
+   Fläche = --bg/--fg/--border), werden nur einmal auf :root gesetzt; nur die
+   Akzent-Töne, die zwischen Hell und Dunkel die Richtung wechseln
+   (low ↔ high), bekommen einen eigenen Dark-Wert.
+
+   Diese Datei ist bewusst unlayered und gewinnt damit gegen Starlights
+   @layer starlight.base. */
 
 @import './brand.css';
 
 :root {
-  --sl-font: var(--brand-font);
-}
+  /* Doku vollständig in Inter — keine Space-Grotesk-Heading-Brücke. */
+  --sl-font: var(--font-body);
 
-/* Dunkelmodus (Starlight-Default, folgt System) — Akzent als helleres Grün */
-:root {
-  --sl-color-accent-low: oklch(0.27 0.06 165.612);
-  --sl-color-accent: oklch(0.62 0.12 165.612);
-  --sl-color-accent-high: oklch(0.9 0.05 165.612);
-}
+  /* Fläche und Text aus der neuen Farbwelt (kippen via Marken-Tokens). */
+  --sl-color-bg: var(--bg);
+  --sl-color-text: var(--fg);
+  --sl-color-hairline: var(--border);
+  --sl-color-hairline-light: var(--border);
 
-/* Hellmodus — Akzent als Markengrün */
-:root[data-theme='light'] {
+  /* Grün-Akzent folgt --primary (hell #007a55 / dunkel #10b981). */
+  --sl-color-accent: var(--primary);
   --sl-color-accent-low: var(--brand-green-tint);
-  --sl-color-accent: var(--brand-green);
   --sl-color-accent-high: var(--brand-green-deep);
+}
+
+:root[data-theme='dark'] {
+  /* low/high invertieren gegenüber Hell: gedeckter Grund, heller Text. */
+  --sl-color-accent-low: #063a2a;
+  --sl-color-accent-high: #86efac;
 }
