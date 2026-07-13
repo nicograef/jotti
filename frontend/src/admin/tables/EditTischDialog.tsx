@@ -121,11 +121,11 @@ export function EditTischDialog(props: EditTischDialogProps) {
           // Begründung steht als stets sichtbare Zeile — auf den Touch-Handys
           // der Servicekräfte gibt es kein Hover für einen Tooltip.
           <div className="mt-4 space-y-1">
-            <Button
-              variant="outline"
-              className="w-full text-destructive"
-              disabled
-            >
+            {/* Dauerhaft deaktiviert: nutzt das gemeinsame Disabled-Token der
+                Primäraktion (neutrale Fläche + AA-Text) statt einer
+                hand-gerollten text-destructive-Abblendung. Der aktive
+                Löschen-Einstieg (rot) steht im else-Zweig. */}
+            <Button className="w-full" disabled>
               <Trash2 /> Tisch löschen
             </Button>
             <p className="text-xs text-muted-foreground">

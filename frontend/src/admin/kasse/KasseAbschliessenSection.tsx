@@ -251,7 +251,7 @@ export function KasseAbschliessenSection({
           <span className="text-muted-foreground text-xs">
             Kleine Differenzen sind normal und werden automatisch dokumentiert.
           </span>
-          <Button type="submit" variant="destructive">
+          <Button type="submit" variant="warn">
             Kasse endgültig abschließen…
           </Button>
         </div>
@@ -340,7 +340,7 @@ export function KasseAbschliessenSection({
           <AlertDialogFooter>
             <AlertDialogCancel disabled={loading}>Abbrechen</AlertDialogCancel>
             <AlertDialogAction
-              variant="destructive"
+              variant="warn"
               disabled={loading}
               onClick={(e) => {
                 e.preventDefault()
