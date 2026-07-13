@@ -75,7 +75,7 @@ func TestUpdateProduct_NotFound(t *testing.T) {
 	}
 }
 
-func TestDeleteProdukt_OhneVerkaeufe(t *testing.T) {
+func TestDeleteProdukt(t *testing.T) {
 	repo := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
 	cmd := Command{ProduktRepo: repo}
 
@@ -90,24 +90,5 @@ func TestDeleteProdukt_OhneVerkaeufe(t *testing.T) {
 	}
 	if deleted.Status != produkt.DeletedStatus {
 		t.Errorf("expected status deleted, got %q", deleted.Status)
-	}
-}
-
-func TestDeleteProdukt_MitVerkaeufen(t *testing.T) {
-	repo := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
-	repo.SetVerkauft(1)
-	cmd := Command{ProduktRepo: repo}
-
-	err := cmd.DeleteProdukt(context.Background(), 1)
-	if err != ErrProduktHatVerkaeufe {
-		t.Fatalf("expected ErrProduktHatVerkaeufe, got %v", err)
-	}
-
-	unchanged, err := repo.GetProduct(context.Background(), 1)
-	if err != nil {
-		t.Fatalf("failed to get product: %v", err)
-	}
-	if unchanged.Status != produkt.ActiveStatus {
-		t.Errorf("product must not be deleted when it has sales, got status %q", unchanged.Status)
 	}
 }

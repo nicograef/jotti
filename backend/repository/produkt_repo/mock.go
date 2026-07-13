@@ -16,10 +16,9 @@ func NewMock(products []produkt.Produkt, err error) *mockRepo {
 	}
 
 	return &mockRepo{
-		products:          productMap,
-		variants:          make(map[int]variantWithProduct),
-		verkaufteProdukte: make(map[int]bool),
-		err:               err,
+		products: productMap,
+		variants: make(map[int]variantWithProduct),
+		err:      err,
 	}
 }
 
@@ -31,34 +30,7 @@ type variantWithProduct struct {
 type mockRepo struct {
 	products map[int]produkt.Produkt
 	variants map[int]variantWithProduct
-	// verkaufteProdukte enthält die Produkt-IDs, die als "bereits verkauft"
-	// gelten (für die hatVerkaeufe-Projektion und den Lösch-Guard).
-	verkaufteProdukte map[int]bool
-	err               error
-}
-
-// SetVerkauft markiert ein Produkt als bereits verkauft (Testhilfe für den
-// hatVerkaeufe-Pfad).
-func (m *mockRepo) SetVerkauft(productID int) {
-	m.verkaufteProdukte[productID] = true
-}
-
-func (m *mockRepo) GetProduktIDsMitVerkaeufen(ctx context.Context) (map[int]bool, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-	result := make(map[int]bool, len(m.verkaufteProdukte))
-	for id := range m.verkaufteProdukte {
-		result[id] = true
-	}
-	return result, nil
-}
-
-func (m *mockRepo) ProduktHatVerkaeufe(ctx context.Context, productID int) (bool, error) {
-	if m.err != nil {
-		return false, m.err
-	}
-	return m.verkaufteProdukte[productID], nil
+	err      error
 }
 
 // AddVariant adds a variant to the mock repository, associated with a produkt.

@@ -16,7 +16,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -183,29 +182,14 @@ export function ProductItem(props: ProductItemProps) {
               <PowerOff /> Alle Varianten deaktivieren
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {props.product.hatVerkaeufe ? (
-              // Löschen ist gesperrt, sobald das Produkt verkauft wurde (das
-              // Backend erzwingt es als Single Source of Truth). Die Begründung
-              // steht als stets sichtbare Zeile darunter — auf den Touch-Handys
-              // der Servicekräfte gibt es kein Hover für einen Tooltip.
-              <>
-                <DropdownMenuItem variant="destructive" disabled>
-                  <Trash2 /> Löschen…
-                </DropdownMenuItem>
-                <DropdownMenuLabel className="pt-0 font-normal text-muted-foreground">
-                  Produkte mit Verkäufen können nur deaktiviert werden
-                </DropdownMenuLabel>
-              </>
-            ) : (
-              <DropdownMenuItem
-                variant="destructive"
-                onSelect={() => {
-                  setDeleteOpen(true)
-                }}
-              >
-                <Trash2 /> Löschen…
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => {
+                setDeleteOpen(true)
+              }}
+            >
+              <Trash2 /> Löschen…
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

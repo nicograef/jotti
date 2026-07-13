@@ -94,8 +94,7 @@ export function Products(props: ProductsProps) {
       <HinweisKarte>
         <strong className="text-foreground">Ausverkauft?</strong> Schalter aus
         statt löschen — die Variante verschwindet sofort von den Service-Handys,
-        bleibt aber in allen Berichten. Löschen ist im „···"-Menü und nur für
-        Produkte ohne Verkäufe möglich.
+        bleibt aber in allen Berichten. Löschen ist im „···"-Menü möglich.
       </HinweisKarte>
     </div>
   )

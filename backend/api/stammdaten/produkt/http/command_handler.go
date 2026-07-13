@@ -240,8 +240,7 @@ func (h *CommandHandler) DeleteProduktHandler() http.HandlerFunc {
 		err := h.Command.DeleteProdukt(r.Context(), body.ID)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
-				application.ErrProduktNotFound:     "produkt_not_found",
-				application.ErrProduktHatVerkaeufe: "produkt_hat_verkaeufe",
+				application.ErrProduktNotFound: "produkt_not_found",
 			})
 			return
 		}

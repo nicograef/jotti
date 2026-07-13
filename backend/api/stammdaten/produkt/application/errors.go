@@ -15,10 +15,6 @@ var ErrProduktAlreadyExists = errors.New("produkt already exists")
 // ErrVarianteNotFound is returned when a variant is not found.
 var ErrVarianteNotFound = errors.New("variante not found")
 
-// ErrProduktHatVerkaeufe is returned when a product cannot be deleted because
-// one of its variants has already been sold.
-var ErrProduktHatVerkaeufe = errors.New("produkt has sales")
-
 // ErrDatabase is returned when there is a database error.
 var ErrDatabase = db.ErrDatabase
 

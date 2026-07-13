@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -48,7 +48,6 @@ function produkt(overrides: Partial<Produkt>): Produkt {
     steuersatz: 'ermaessigt',
     status: 'active',
     varianten: [variante()],
-    hatVerkaeufe: false,
     createdAt: '2026-07-01T10:00:00Z',
     updatedAt: '2026-07-01T10:00:00Z',
     ...overrides,
@@ -119,28 +118,9 @@ describe('Products', () => {
     expect(be.deaktiviereVariante).toHaveBeenCalledWith(7)
   })
 
-  it('disables Löschen and explains why when the product has sales', async () => {
+  it('offers an active Löschen entry in the actions menu', async () => {
     const user = userEvent.setup()
-    renderProducts([produkt({ id: 1, name: 'Bier', hatVerkaeufe: true })])
-
-    await user.click(screen.getByRole('button', { name: 'Weitere Aktionen' }))
-
-    const menu = screen.getByRole('menu')
-    const loeschen = within(menu).getByText('Löschen…')
-    // Löschen ist deaktiviert (Backend erzwingt es zusätzlich als SSOT).
-    expect(loeschen.closest('[data-disabled]')).not.toBeNull()
-
-    // Die Begründung steht als stets sichtbare Zeile im offenen Menü.
-    expect(
-      within(menu).getByText(
-        'Produkte mit Verkäufen können nur deaktiviert werden',
-      ),
-    ).toBeInTheDocument()
-  })
-
-  it('offers an active Löschen entry when the product has no sales', async () => {
-    const user = userEvent.setup()
-    renderProducts([produkt({ id: 1, name: 'Brezel', hatVerkaeufe: false })])
+    renderProducts([produkt({ id: 1, name: 'Brezel' })])
 
     await user.click(screen.getByRole('button', { name: 'Weitere Aktionen' }))
 

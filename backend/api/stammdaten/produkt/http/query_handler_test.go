@@ -17,30 +17,24 @@ type mockQuery struct {
 	err error
 }
 
-func (m *mockQuery) GetAllProducts(ctx context.Context) ([]application.ProduktMitVerkauf, error) {
-	return []application.ProduktMitVerkauf{
+func (m *mockQuery) GetAllProducts(ctx context.Context) ([]dom.Produkt, error) {
+	return []dom.Produkt{
 		{
-			Produkt: dom.Produkt{
-				ID:        1,
-				Name:      "French Fries",
-				Kategorie: dom.EssenKategorie,
-				Varianten: []dom.Variante{
-					{ID: 1, Name: "Regular", PreisCents: 499, Status: dom.ActiveStatus},
-					{ID: 2, Name: "Large", PreisCents: 699, Status: dom.ActiveStatus},
-				},
+			ID:        1,
+			Name:      "French Fries",
+			Kategorie: dom.EssenKategorie,
+			Varianten: []dom.Variante{
+				{ID: 1, Name: "Regular", PreisCents: 499, Status: dom.ActiveStatus},
+				{ID: 2, Name: "Large", PreisCents: 699, Status: dom.ActiveStatus},
 			},
-			HatVerkaeufe: true,
 		},
 		{
-			Produkt: dom.Produkt{
-				ID:        2,
-				Name:      "Cola",
-				Kategorie: dom.GetraenkKategorie,
-				Varianten: []dom.Variante{
-					{ID: 3, Name: "0.5L", PreisCents: 250, Status: dom.ActiveStatus},
-				},
+			ID:        2,
+			Name:      "Cola",
+			Kategorie: dom.GetraenkKategorie,
+			Varianten: []dom.Variante{
+				{ID: 3, Name: "0.5L", PreisCents: 250, Status: dom.ActiveStatus},
 			},
-			HatVerkaeufe: false,
 		},
 	}, m.err
 }
@@ -68,12 +62,13 @@ func TestGetAllProductsHandler_Success(t *testing.T) {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
 
-	// hatVerkaeufe muss pro Produkt im JSON serialisiert werden — fängt eine
-	// Regression, die das Feld beim DTO-Mapping wieder verliert.
 	var body struct {
 		Produkte []struct {
-			ID           int  `json:"id"`
-			HatVerkaeufe bool `json:"hatVerkaeufe"`
+			ID        int    `json:"id"`
+			Name      string `json:"name"`
+			Varianten []struct {
+				ID int `json:"id"`
+			} `json:"varianten"`
 		} `json:"produkte"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
@@ -83,11 +78,11 @@ func TestGetAllProductsHandler_Success(t *testing.T) {
 	if len(body.Produkte) != 2 {
 		t.Fatalf("expected 2 produkte, got %d", len(body.Produkte))
 	}
-	if !body.Produkte[0].HatVerkaeufe {
-		t.Errorf("expected produkt %d hatVerkaeufe=true, got false", body.Produkte[0].ID)
+	if body.Produkte[0].Name != "French Fries" {
+		t.Errorf("expected first produkt 'French Fries', got %q", body.Produkte[0].Name)
 	}
-	if body.Produkte[1].HatVerkaeufe {
-		t.Errorf("expected produkt %d hatVerkaeufe=false, got true", body.Produkte[1].ID)
+	if len(body.Produkte[0].Varianten) != 2 {
+		t.Errorf("expected produkt %d to have 2 varianten, got %d", body.Produkte[0].ID, len(body.Produkte[0].Varianten))
 	}
 }
 

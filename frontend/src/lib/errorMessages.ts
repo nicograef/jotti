@@ -61,8 +61,6 @@ const commonErrorMessages: Record<string, string> = {
     'Mindestens eine Position kann nicht umgebucht werden. Bitte Tischstatus aktualisieren und erneut versuchen.',
   produkt_already_exists:
     'Ein Produkt mit diesem Namen existiert bereits. Bitte einen anderen Namen verwenden.',
-  produkt_hat_verkaeufe:
-    'Produkte mit Verkäufen können nur deaktiviert werden, damit die Berichte vollständig bleiben.',
   produkt_not_found:
     'Das Produkt wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
   request_too_large:

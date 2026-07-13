@@ -72,9 +72,6 @@ export const ProduktSchema = z.object({
   steuersatz: SteuersatzSchema,
   status: VarianteStatusSchema,
   varianten: z.array(VarianteSchema),
-  // true, wenn eine Variante des Produkts bereits verkauft wurde: dann ist
-  // Löschen gesperrt (nur Deaktivieren), das Backend erzwingt es zusätzlich.
-  hatVerkaeufe: z.boolean(),
   createdAt: DateStringSchema,
   updatedAt: DateStringSchema,
 })

@@ -6,12 +6,11 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
 	dom "github.com/nicograef/jotti/backend/domain/produkt"
 )
 
 type query interface {
-	GetAllProducts(ctx context.Context) ([]application.ProduktMitVerkauf, error)
+	GetAllProducts(ctx context.Context) ([]dom.Produkt, error)
 	GetActiveProducts(ctx context.Context) ([]dom.Produkt, error)
 }
 
@@ -29,15 +28,14 @@ type variante struct {
 }
 
 type produkt struct {
-	ID           int        `json:"id"`
-	Name         string     `json:"name"`
-	Kategorie    string     `json:"kategorie"`
-	Steuersatz   string     `json:"steuersatz"`
-	Status       string     `json:"status"`
-	Varianten    []variante `json:"varianten"`
-	HatVerkaeufe bool       `json:"hatVerkaeufe"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
+	ID         int        `json:"id"`
+	Name       string     `json:"name"`
+	Kategorie  string     `json:"kategorie"`
+	Steuersatz string     `json:"steuersatz"`
+	Status     string     `json:"status"`
+	Varianten  []variante `json:"varianten"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
 }
 
 type getAllProductsResponse struct {
@@ -82,17 +80,6 @@ func toProdukte(produkte []dom.Produkt) []produkt {
 	return produkteResponse
 }
 
-func toProdukteMitVerkauf(produkte []application.ProduktMitVerkauf) []produkt {
-	produkteResponse := make([]produkt, 0, len(produkte))
-	for i := range produkte {
-		dto := toProdukt(produkte[i].Produkt)
-		dto.HatVerkaeufe = produkte[i].HatVerkaeufe
-		produkteResponse = append(produkteResponse, dto)
-	}
-
-	return produkteResponse
-}
-
 func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		products, err := h.Query.GetAllProducts(r.Context())
@@ -101,7 +88,7 @@ func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, getAllProductsResponse{Produkte: toProdukteMitVerkauf(products)})
+		helper.SendResponse(w, getAllProductsResponse{Produkte: toProdukte(products)})
 	}
 }
 

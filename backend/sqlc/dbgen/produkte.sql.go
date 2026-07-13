@@ -281,43 +281,6 @@ func (q *Queries) GetProdukt(ctx context.Context, id int) (GetProduktRow, error)
 	return i, err
 }
 
-const getProduktIDsMitVerkaeufen = `-- name: GetProduktIDsMitVerkaeufen :many
-SELECT DISTINCT pv.produkt_id AS produkt_id
-FROM produkt_varianten pv
-JOIN kassenjournal kj
-    ON kj.type IN ('bestellung-aufgenommen:v1', 'direktverkauf-getaetigt:v1')
-JOIN LATERAL jsonb_array_elements(kj.data->'positionen') AS position ON TRUE
-WHERE (position->>'varianteId')::int = pv.id
-`
-
-// Liefert die IDs aller Produkte, von denen mindestens eine Variante in einem
-// bestellung-aufgenommen:v1- oder direktverkauf-getaetigt:v1-Event vorkommt.
-// Reine Projektion über das (immutable) Kassenjournal; jede Position trägt ihre
-// varianteId, die auf produkt_varianten.produkt_id zurückführt. Auch soft-
-// gelöschte Varianten zählen (ein verkauftes Produkt bleibt verkauft).
-func (q *Queries) GetProduktIDsMitVerkaeufen(ctx context.Context) ([]int, error) {
-	rows, err := q.db.QueryContext(ctx, getProduktIDsMitVerkaeufen)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []int{}
-	for rows.Next() {
-		var produkt_id int
-		if err := rows.Scan(&produkt_id); err != nil {
-			return nil, err
-		}
-		items = append(items, produkt_id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getVariante = `-- name: GetVariante :one
 SELECT id, name, preis_cents, status, created_at, updated_at
 FROM produkt_varianten WHERE id = $1 AND status != 'deleted'
@@ -344,27 +307,6 @@ func (q *Queries) GetVariante(ctx context.Context, id int) (GetVarianteRow, erro
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const produktHatVerkaeufe = `-- name: ProduktHatVerkaeufe :one
-SELECT EXISTS (
-    SELECT 1
-    FROM produkt_varianten pv
-    JOIN kassenjournal kj
-        ON kj.type IN ('bestellung-aufgenommen:v1', 'direktverkauf-getaetigt:v1')
-    JOIN LATERAL jsonb_array_elements(kj.data->'positionen') AS position ON TRUE
-    WHERE pv.produkt_id = $1
-      AND (position->>'varianteId')::int = pv.id
-)::bool AS hat_verkaeufe
-`
-
-// Lösch-Guard: true, wenn eine Variante des Produkts in mindestens einem
-// bestellung-aufgenommen:v1- oder direktverkauf-getaetigt:v1-Event vorkommt.
-func (q *Queries) ProduktHatVerkaeufe(ctx context.Context, produktID int) (bool, error) {
-	row := q.db.QueryRowContext(ctx, produktHatVerkaeufe, produktID)
-	var hat_verkaeufe bool
-	err := row.Scan(&hat_verkaeufe)
-	return hat_verkaeufe, err
 }
 
 const updateProdukt = `-- name: UpdateProdukt :execresult
