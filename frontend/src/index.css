@@ -25,6 +25,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-disabled: var(--disabled);
+  --color-disabled-foreground: var(--disabled-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -77,8 +79,13 @@
   /* olive-100 */
   --accent-foreground: oklch(0.228 0.013 107.4);
   /* olive-900 */
-  --destructive: oklch(0.577 0.245 27.325);
-  /* red-600 */
+  --destructive: oklch(0.53 0.238 27.325);
+  /* red-600 abgedunkelt: text-destructive erreicht WCAG AA (4,5:1) auch auf den
+     weichen destructive/4- und destructive/10-Tints (z. B. WarnKarte) */
+  --disabled: oklch(0.9 0.004 106.5);
+  /* olive-200, neutrale Flaeche fuer deaktivierte Primaeraktionen */
+  --disabled-foreground: oklch(0.47 0.012 106.5);
+  /* olive-700, WCAG-AA-Text (4,5:1) auf der Disabled-Flaeche */
   --border: oklch(0.93 0.007 106.5);
   /* olive-200, dekorative Trennlinien */
   --input: oklch(0.65 0.021 106.9);
@@ -144,6 +151,10 @@
   /* olive-50 */
   --destructive: oklch(0.74 0.191 22.216);
   /* red-400, aufgehellt fuer Dark-Mode-Lesbarkeit von destructive-Text und Soft-Flaechen */
+  --disabled: oklch(0.33 0.008 107.4);
+  /* olive-800, neutrale Flaeche fuer deaktivierte Primaeraktionen */
+  --disabled-foreground: oklch(0.74 0.016 106.9);
+  /* olive-400, WCAG-AA-Text (4,5:1) auf der Disabled-Flaeche */
   --border: oklch(1 0 0 / 10%);
   /* white 10%, dekorative Trennlinien */
   --input: oklch(1 0 0 / 40%);
