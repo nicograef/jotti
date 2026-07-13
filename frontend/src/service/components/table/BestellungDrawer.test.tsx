@@ -68,7 +68,7 @@ describe('BestellungDrawer', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('öffnet mit Auswahl über den Trigger; Footer-Buttons liegen außerhalb des Scrollbereichs', async () => {
+  it('öffnet mit Auswahl über den Trigger; Gesamtsumme und Footer-Buttons liegen außerhalb des Scrollbereichs', async () => {
     const user = userEvent.setup()
     renderDrawer({ 1: 2 })
 
@@ -78,8 +78,14 @@ describe('BestellungDrawer', () => {
 
     const dialog = await screen.findByRole('dialog')
     const body = dialog.querySelector('[data-slot="drawer-body"]')
+    const footer = dialog.querySelector('[data-slot="drawer-footer"]')
     expect(body).not.toBeNull()
+    expect(footer).not.toBeNull()
     expect(body).toContainElement(screen.getByText(/Bratwurst/))
+    // Die Gesamtsumme steht im nicht-scrollenden Footer, nicht im Body.
+    const gesamt = screen.getByText('Gesamt')
+    expect(footer).toContainElement(gesamt)
+    expect(body).not.toContainElement(gesamt)
     expect(body).not.toContainElement(
       screen.getByRole('button', { name: 'Bestellung aufnehmen' }),
     )

@@ -1,24 +1,21 @@
+import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 import {
+  oeffneHistorienDetail,
   oeffneTisch,
   waehleAlleVollAus,
   waehleVariante,
 } from '../support/servicekraft'
 
-// Viewport-Regression für das Drawer-Scroll-Layout (Bug 2 aus dem Praxistest
-// 2026-07-09): Bei einer Bestellung mit vielen Positionen und ausgefüllten
-// Trinkgeld-/Erhalten-Feldern müssen die Primär-Buttons („Bestellung
-// aufnehmen", „Kassieren") im mobilen Viewport sichtbar und bedienbar bleiben
-// — der Mittelteil des Drawers (DrawerBody) scrollt, Header und Footer stehen
-// fest.
-
-// „Tisch 1" startet im Demo-Drehbuch ausgeglichen (Saldo 0,00 €) und ohne
-// unbezahlte Positionen — die Auswahl auf dem Kassieren-Tab enthält damit
-// genau die hier bestellten Positionen.
-const TISCH = 'Tisch 1'
+// Viewport-Regression für das Drawer-Sticky-Footer-Layout. Bei einer langen
+// Positionsliste (der DrawerBody scrollt) müssen Gesamtsumme, das jeweilige
+// Pflichtfeld und die Primäraktion ohne Scrollen gleichzeitig sichtbar bleiben —
+// sie liegen im nicht-scrollenden DrawerFooter, nur die Positionsliste (Body)
+// scrollt. Ursprung: Bug 2 aus dem Praxistest 2026-07-09 (Bestellen/Kassieren),
+// mit der UI-Politur (Phase 1) auf Stornierung und Umbuchung ausgeweitet.
 
 // 9 unterschiedliche Varianten → 9 Positionen im Beleg (Summe 52,00 €). Die
 // Variantennamen sind über alle gewählten Produkte hinweg eindeutig, damit
@@ -35,26 +32,47 @@ const POSITIONEN: [produkt: string, variante: string][] = [
   ['Tagesgericht', 'Fr: Schnitzel mit Pommes'],
 ]
 
-test.describe('Drawer-Scroll-Layout bei langer Positionsliste', () => {
-  test('Bestellung mit 9 Positionen aufnehmen und mit Trinkgeld kassieren', async ({
+// Nimmt auf dem aktuell offenen Tisch eine Bestellung mit allen POSITIONEN in
+// einem Vorgang auf — Grundlage für die langen Listen in allen drei Drawern.
+async function nimmLangeBestellungAuf(page: Page): Promise<void> {
+  await page.getByRole('tab', { name: 'Bestellen' }).click()
+  for (const [produkt, variante] of POSITIONEN) {
+    await waehleVariante(page, produkt, variante)
+  }
+
+  await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()
+  const bestellDrawer = page.getByRole('dialog')
+  await expect(bestellDrawer.getByText('Flammkuchen Mediterran')).toBeVisible()
+  await bestellDrawer
+    .getByRole('button', { name: 'Bestellung aufnehmen' })
+    .click()
+  await expect(
+    page.getByText('Bestellung wurde aufgenommen.').first(),
+  ).toBeVisible()
+}
+
+test.describe('Drawer-Sticky-Footer bei langer Positionsliste', () => {
+  // „Tisch 1" startet im Demo-Drehbuch ausgeglichen (Saldo 0,00 €) und ohne
+  // unbezahlte Positionen — die Auswahl auf dem Kassieren-Tab enthält damit
+  // genau die hier bestellten Positionen.
+  test('Bestellung aufnehmen und mit Trinkgeld kassieren — Summe und Aktion sichtbar', async ({
     page,
     request,
   }) => {
     const zugangsdaten = await resetAndSeed(request)
     await anmelden(page, zugangsdaten.service)
-    await oeffneTisch(page, TISCH)
+    await oeffneTisch(page, 'Tisch 1')
 
-    // Alle 9 Positionen in einer Bestellung sammeln.
+    // Bestell-Drawer: Beleg zeigt alle Positionen, Gesamtsumme und Buttons
+    // bleiben trotz langer Liste im Viewport.
     await page.getByRole('tab', { name: 'Bestellen' }).click()
     for (const [produkt, variante] of POSITIONEN) {
       await waehleVariante(page, produkt, variante)
     }
-
-    // Bestell-Drawer: Beleg zeigt alle Positionen, die Buttons bleiben trotz
-    // langer Liste im Viewport.
     await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()
     const bestellDrawer = page.getByRole('dialog')
     await expect(bestellDrawer.getByText('Flammkuchen Mediterran')).toBeVisible()
+    await expect(bestellDrawer.getByText('Gesamt')).toBeInViewport()
     const aufnehmen = bestellDrawer.getByRole('button', {
       name: 'Bestellung aufnehmen',
     })
@@ -94,5 +112,82 @@ test.describe('Drawer-Scroll-Layout bei langer Positionsliste', () => {
     // Tisch ist danach wieder ausgeglichen (Saldo-Element im Tisch-Header).
     const tischSaldo = page.locator('[data-slot="tisch-saldo"]')
     await expect(tischSaldo).toHaveText('0,00 €')
+  })
+
+  // „Tisch 15" ist im Demo-Drehbuch unbenutzt; Storno ist nur der Serviceleitung
+  // (bzw. Admin) erlaubt (AuthSingleton.canCancel).
+  test('Stornierung: Summe, Pflicht-Kommentar und Aktion bleiben im Viewport', async ({
+    page,
+    request,
+  }) => {
+    const zugangsdaten = await resetAndSeed(request)
+    await anmelden(page, zugangsdaten.serviceleitung)
+    await oeffneTisch(page, 'Tisch 15')
+    await nimmLangeBestellungAuf(page)
+
+    // Über die Historie die Bestellung öffnen und den Storno-Drawer starten.
+    await page.getByRole('tab', { name: 'Historie' }).click()
+    const detail = await oeffneHistorienDetail(page, /Bestellung/)
+    await detail.getByRole('button', { name: /Stornieren…/ }).click()
+
+    const drawer = page.getByRole('dialog')
+    await expect(drawer.getByText('Bratwurst Normal')).toBeVisible()
+
+    // Alle Positionen auswählen (jede Zeile einmal „+"): erst dann steht die
+    // Gesamtsumme im Footer; jede Menge ist 1, der Add-Button deaktiviert danach.
+    const hinzufuegen = drawer.getByRole('button', { name: /hinzufügen$/ })
+    const anzahl = await hinzufuegen.count()
+    for (let i = 0; i < anzahl; i++) {
+      await hinzufuegen.nth(i).click()
+    }
+
+    await drawer
+      .getByPlaceholder('Kommentar (erforderlich)')
+      .fill('Falsch bestellt, storniert')
+
+    // Gesamtsumme, Pflicht-Kommentar und Primäraktion liegen zusammen im
+    // sichtbaren Footer — auch bei langer, scrollender Positionsliste.
+    await expect(drawer.getByText('Stornierung gesamt')).toBeInViewport()
+    await expect(
+      drawer.getByPlaceholder('Kommentar (erforderlich)'),
+    ).toBeInViewport()
+    await expect(
+      drawer.getByRole('button', { name: 'Stornierung erteilen' }),
+    ).toBeInViewport()
+  })
+
+  // „Tisch 3" (Quelle) und „Tisch 10" (Ziel) sind im Demo-Drehbuch unbenutzt;
+  // Umbuchen ist für jede Servicekraft erlaubt.
+  test('Umbuchung: Summe, Ziel-Tisch und Aktion bleiben im Viewport', async ({
+    page,
+    request,
+  }) => {
+    const zugangsdaten = await resetAndSeed(request)
+    await anmelden(page, zugangsdaten.service)
+    await oeffneTisch(page, 'Tisch 3')
+    await nimmLangeBestellungAuf(page)
+
+    // Über die Historie die Bestellung öffnen und den Umbuchungs-Drawer starten.
+    await page.getByRole('tab', { name: 'Historie' }).click()
+    const detail = await oeffneHistorienDetail(page, /Bestellung/)
+    await detail.getByRole('button', { name: /Umbuchen/ }).click()
+
+    const drawer = page.getByRole('dialog')
+    await expect(drawer.getByText('Bratwurst Normal')).toBeVisible()
+
+    // „Alle auswählen" übernimmt die volle umbuchbare Menge — erst dann steht die
+    // Gesamtsumme im Footer.
+    await drawer
+      .getByRole('button', { name: /Alle \d+ Positionen auswählen/ })
+      .click()
+    await drawer.getByRole('combobox').selectOption({ label: 'Tisch 10' })
+
+    // Gesamtsumme, Ziel-Tisch-Auswahl (Pflichtfeld) und Primäraktion liegen
+    // zusammen im sichtbaren Footer — auch bei langer, scrollender Liste.
+    await expect(drawer.getByText('Umbuchung gesamt')).toBeInViewport()
+    await expect(drawer.getByRole('combobox')).toBeInViewport()
+    await expect(
+      drawer.getByRole('button', { name: 'Umbuchung ausführen' }),
+    ).toBeInViewport()
   })
 })

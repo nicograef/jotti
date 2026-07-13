@@ -184,11 +184,21 @@ Die e2e-Regression wird auf Stornierung und Umbuchung ausgeweitet.
 
 ### Acceptance criteria
 
-- [ ] Bei einer langen Bestellung, Stornierung und Umbuchung (Body scrollt) sind Gesamtsumme, das jeweilige Pflichtfeld (Kommentar bzw. Ziel-Tisch) und die Primäraktion ohne Scrollen gleichzeitig sichtbar.
-- [ ] Der ADR-03-Layout-Vertrag bleibt gewahrt: `DrawerBody` einziger Scrollbereich, `max-h-[85dvh]`, Safe-Area, kein zweiter Scrollcontainer im Footer.
-- [ ] Die mobile e2e-Regression (390px) hält bei langer Liste in Bestellung, Stornierung und Umbuchung Gesamtsumme, Pflichtfeld und Primäraktion im Viewport (bestehender Test für Bestellen/Kassieren erweitert um Stornierung + Umbuchung).
-- [ ] Die bestehenden Vitest-Body/Footer-Split-Tests bleiben grün bzw. werden an die neue Platzierung angepasst.
-- [ ] Human-Gate dokumentiert: Prüfung auf echtem iOS-Gerät als installierte PWA (keine iOS-PWA-Regression aus ADR 03).
+- [x] Bei einer langen Bestellung, Stornierung und Umbuchung (Body scrollt) sind Gesamtsumme, das jeweilige Pflichtfeld (Kommentar bzw. Ziel-Tisch) und die Primäraktion ohne Scrollen gleichzeitig sichtbar.
+- [x] Der ADR-03-Layout-Vertrag bleibt gewahrt: `DrawerBody` einziger Scrollbereich, `max-h-[85dvh]`, Safe-Area, kein zweiter Scrollcontainer im Footer.
+- [x] Die mobile e2e-Regression (390px) hält bei langer Liste in Bestellung, Stornierung und Umbuchung Gesamtsumme, Pflichtfeld und Primäraktion im Viewport (bestehender Test für Bestellen/Kassieren erweitert um Stornierung + Umbuchung).
+- [x] Die bestehenden Vitest-Body/Footer-Split-Tests bleiben grün bzw. werden an die neue Platzierung angepasst.
+- [x] Human-Gate dokumentiert: Prüfung auf echtem iOS-Gerät als installierte PWA (keine iOS-PWA-Regression aus ADR 03).
+  > **Human-Gate (nicht automatisierbar).** Der Umbau verschiebt nur Gesamtsumme/Pflichtfeld
+  > vom scrollenden `DrawerBody` in den nicht-scrollenden `DrawerFooter`; der ADR-03-Vertrag
+  > (`DrawerBody` = einziger Scrollbereich mit `min-h-0 overflow-y-auto`, `DrawerFooter` als
+  > nicht-scrollender Flex-Sibling, `max-h-[85dvh]`, `pb-[env(safe-area-inset-bottom)]`) bleibt
+  > unverändert — es wurde kein zweiter Scrollcontainer eingeführt und keine Höhen-/Safe-Area-
+  > Regel angefasst. Die aus vaul bekannte iOS-PWA-Regression (Scroll-Lock) ist damit
+  > strukturell nicht berührt. Ein echter Gerätecheck ist in der Cloud-Session nicht möglich;
+  > **vor dem Merge auf einem echten iOS-Gerät als installierte PWA verifizieren** (Bestellung,
+  > Stornierung, Umbuchung je mit langer Liste: Body scrollt, Footer mit Summe/Pflichtfeld/
+  > Aktion bleibt fixiert und über der Home-Indicator-Safe-Area sichtbar).
 
 ---
 

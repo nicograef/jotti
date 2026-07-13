@@ -43,7 +43,7 @@ const quelle: Bestellung = {
 }
 
 describe('HistorieStornierungDrawer', () => {
-  it('rendert Positionsliste und Kommentar im DrawerBody, Buttons im Footer außerhalb', () => {
+  it('rendert Positionsliste im DrawerBody; Pflicht-Kommentar und Buttons im sichtbaren Footer', () => {
     render(
       <HistorieStornierungDrawer
         backend={{ stornierungErteilen: vi.fn().mockResolvedValue(undefined) }}
@@ -56,11 +56,14 @@ describe('HistorieStornierungDrawer', () => {
 
     const dialog = screen.getByRole('dialog')
     const body = dialog.querySelector('[data-slot="drawer-body"]')
+    const footer = dialog.querySelector('[data-slot="drawer-footer"]')
     expect(body).not.toBeNull()
+    expect(footer).not.toBeNull()
     expect(body).toContainElement(screen.getByText(/Bratwurst/))
-    expect(body).toContainElement(
-      screen.getByPlaceholderText('Kommentar (erforderlich)'),
-    )
+    // Das Pflichtfeld steht im nicht-scrollenden Footer, nicht im Body.
+    const kommentar = screen.getByPlaceholderText('Kommentar (erforderlich)')
+    expect(footer).toContainElement(kommentar)
+    expect(body).not.toContainElement(kommentar)
     expect(body).not.toContainElement(
       screen.getByRole('button', { name: 'Stornierung erteilen' }),
     )
