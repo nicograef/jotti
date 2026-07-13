@@ -290,6 +290,28 @@ describe('TischHistorie', () => {
     })
   })
 
+  it('bietet im Detail einer Zahlung den Gäste-Beleg als „Kassenbeleg drucken" an', async () => {
+    const belegDrucken = vi.fn().mockResolvedValue('eingereiht')
+    renderHistorie([zahlung({ id: '00000000-0000-0000-0000-0000000000f1' })], {
+      belegDrucken,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Zahlung/ }))
+
+    // Der Gäste-Beleg heißt „Kassenbeleg", nicht generisch „Beleg" (#7).
+    const belegButton = screen.getByRole('button', {
+      name: 'Kassenbeleg drucken',
+    })
+    fireEvent.click(belegButton)
+
+    await waitFor(() => {
+      expect(belegDrucken).toHaveBeenCalledWith(
+        1,
+        '00000000-0000-0000-0000-0000000000f1',
+      )
+    })
+  })
+
   it('nutzt bei Umbuchungen den Richtungs-Autotext als Titel — in Zeile und Detail — ohne ihn als Kommentar auszugeben', () => {
     renderHistorie([
       umbuchung({

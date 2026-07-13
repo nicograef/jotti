@@ -107,6 +107,66 @@ export function formatDruckauftragReferenz(referenz: string): string {
   return `${label} Nr. ${rest}`
 }
 
+// Substantiv (Singular/Plural) je Bon-Art für die Fehl-Bon-Meldungen. „Bon"
+// bleibt dem operativen Arbeitsbon vorbehalten; der Gäste-Beleg ist der
+// „Kassenbeleg", der Prüf-Bon der „Testbon" (siehe docs/language.md).
+const BON_ART_SUBSTANTIV: Record<string, { singular: string; plural: string }> =
+  {
+    arbeitsbon: { singular: 'Bon', plural: 'Bons' },
+    kassenbeleg: { singular: 'Kassenbeleg', plural: 'Kassenbelege' },
+    testbon: { singular: 'Testbon', plural: 'Testbons' },
+  }
+
+export interface FehlBonBeschreibung {
+  singular: string
+  plural: string
+  // Nur eine reine Arbeitsbon-Menge ist tatsächlich an einer Ausgabestation
+  // (Küche/Theke) gelandet; nur dann trifft die Küchen-Formulierung zu.
+  kuecheBetroffen: boolean
+}
+
+// beschreibeFehlBons leitet aus den Bon-Arten fehlgeschlagener Druckaufträge das
+// passende Substantiv und die Frage ab, ob die Küchen-Formulierung passt. Eine
+// gemischte Menge (oder eine unbekannte Bon-Art) fällt auf den neutralen
+// Oberbegriff „Bon" ohne Küchen-Behauptung zurück.
+export function beschreibeFehlBons(bonArten: string[]): FehlBonBeschreibung {
+  const eindeutigeArten = new Set(bonArten)
+  const art = bonArten[0]
+  if (
+    eindeutigeArten.size === 1 &&
+    Object.prototype.hasOwnProperty.call(BON_ART_SUBSTANTIV, art)
+  ) {
+    return { ...BON_ART_SUBSTANTIV[art], kuecheBetroffen: art === 'arbeitsbon' }
+  }
+  return { singular: 'Bon', plural: 'Bons', kuecheBetroffen: false }
+}
+
+// Bekannte Symptome roher Relay-Fehlertexte (Go-Fehlerketten mit IP, Status-Hex,
+// „dial tcp"). Reihenfolge = Priorität. Übersetzt in eine knappe, für
+// ehrenamtliche Helfer verständliche Meldung.
+const DRUCKFEHLER_MELDUNGEN: { schluessel: string; meldung: string }[] = [
+  { schluessel: 'papier', meldung: 'Papier leer' },
+  { schluessel: 'abdeckung', meldung: 'Abdeckung offen' },
+  { schluessel: 'nicht erreichbar', meldung: 'Drucker nicht erreichbar' },
+  {
+    schluessel: 'senden fehlgeschlagen',
+    meldung: 'Übertragung fehlgeschlagen',
+  },
+]
+
+const DRUCKFEHLER_FALLBACK = 'Druckfehler'
+
+// formatDruckfehler übersetzt den rohen letzterFehler eines fehlgeschlagenen
+// Druckauftrags in eine einheitliche, laienverständliche Meldung. Unbekannte
+// Texte fallen auf eine neutrale Sammelmeldung zurück, nie auf den Rohtext.
+export function formatDruckfehler(letzterFehler: string): string {
+  const text = letzterFehler.toLowerCase()
+  const treffer = DRUCKFEHLER_MELDUNGEN.find((eintrag) =>
+    text.includes(eintrag.schluessel),
+  )
+  return treffer?.meldung ?? DRUCKFEHLER_FALLBACK
+}
+
 export class DruckstationBackend {
   private readonly backend: BackendClient
 

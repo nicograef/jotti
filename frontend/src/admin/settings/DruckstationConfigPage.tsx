@@ -22,10 +22,12 @@ import { cn } from '@/lib/utils'
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { WarnKarte } from '../components/WarnKarte'
 import {
+  beschreibeFehlBons,
   type Bonmodus,
   type DruckstationConfig,
   type FehlgeschlagenerDruckauftrag,
   formatDruckauftragReferenz,
+  formatDruckfehler,
   hatBonmodus,
   type Kategorie,
   KATEGORIE_LABEL,
@@ -317,7 +319,8 @@ function FehlgeschlagenerDruckauftragRow({
             hour: '2-digit',
             minute: '2-digit',
           })}{' '}
-          Uhr · {auftrag.letzterFehler} · {auftrag.versuche} Versuche
+          Uhr · {formatDruckfehler(auftrag.letzterFehler)} · {auftrag.versuche}{' '}
+          Versuche
         </div>
       </div>
       <div className="flex gap-2">
@@ -420,10 +423,22 @@ function AlarmKarte() {
     return null
   }
 
+  // Der Warntext folgt der tatsächlichen Bon-Art: nur Arbeitsbons landen in der
+  // Küche/an der Theke; ein Kassenbeleg (Gäste-Beleg) oder Testbon darf nicht
+  // als Küchenproblem beschrieben werden (NEU02).
+  const anzahl = druckauftraege.length
+  const { singular, plural, kuecheBetroffen } = beschreibeFehlBons(
+    druckauftraege.map((auftrag) => auftrag.bonArt),
+  )
+  const kuecheHinweis = !kuecheBetroffen
+    ? ''
+    : anzahl === 1
+      ? ' — die Küche hat ihn nicht!'
+      : ' — die Küche hat sie nicht!'
   const titel =
-    druckauftraege.length === 1
-      ? '1 Bon konnte nicht gedruckt werden — die Küche hat ihn nicht!'
-      : `${String(druckauftraege.length)} Bons konnten nicht gedruckt werden — die Küche hat sie nicht!`
+    anzahl === 1
+      ? `1 ${singular} konnte nicht gedruckt werden${kuecheHinweis}`
+      : `${String(anzahl)} ${plural} konnten nicht gedruckt werden${kuecheHinweis}`
 
   return (
     <WarnKarte title={titel} className="mb-6">

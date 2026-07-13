@@ -49,10 +49,13 @@ vi.mock('./hooks', () => ({
   }),
 }))
 
-function makeAuftrag(id: number): FehlgeschlagenerDruckauftrag {
+function makeAuftrag(
+  id: number,
+  bonArt = 'arbeitsbon',
+): FehlgeschlagenerDruckauftrag {
   return {
     id,
-    bonArt: 'arbeitsbon',
+    bonArt,
     zielIp: '192.168.1.51',
     referenz: `bestellung-aufgenommen:${String(id)}`,
     versuche: 6,
@@ -103,6 +106,29 @@ describe('DruckstationConfigPage — Alarm-Karte', () => {
 
     expect(alleVerwerfen).toHaveBeenCalled()
     expect(toast.success).toHaveBeenCalledWith('2 Aufträge verworfen.')
+  })
+
+  it('beschreibt einen fehlgeschlagenen Kassenbeleg nicht als Küchenproblem und übersetzt den Fehlertext', () => {
+    fehlgeschlageneState.druckauftraege = [makeAuftrag(1, 'kassenbeleg')]
+    render(<DruckstationConfigPage />)
+
+    expect(
+      screen.getByText('1 Kassenbeleg konnte nicht gedruckt werden'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Küche/)).not.toBeInTheDocument()
+    // Roher Relay-Jargon („drucker nicht erreichbar") wird laienverständlich.
+    expect(screen.getByText(/Drucker nicht erreichbar/)).toBeInTheDocument()
+  })
+
+  it('nennt Arbeitsbon-Fehldrucke „Bon" und weist auf die fehlende Küche hin', () => {
+    fehlgeschlageneState.druckauftraege = [makeAuftrag(1, 'arbeitsbon')]
+    render(<DruckstationConfigPage />)
+
+    expect(
+      screen.getByText(
+        '1 Bon konnte nicht gedruckt werden — die Küche hat ihn nicht!',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('zeigt bei genau einem Auftrag keinen "Alle verwerfen"-Button, aber "Nochmal drucken" am Auftrag', () => {

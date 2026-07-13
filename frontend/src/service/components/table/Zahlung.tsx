@@ -13,7 +13,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMengen } from '@/hooks/use-mengen'
 import { AuthSingleton } from '@/lib/Auth'
-import { cn, formatCents, formatPositionName } from '@/lib/utils'
+import {
+  cn,
+  formatAlleAuswaehlenLabel,
+  formatCents,
+  formatPositionName,
+} from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -155,7 +160,10 @@ export function Zahlung({
               <CircleCheck className="size-5" />
               {alleEigenenVollAusgewaehlt
                 ? 'Auswahl aufheben'
-                : `Alle ${meinePositionen.length.toString()} Positionen auswählen · ${formatCents(eigeneUnbezahltGesamt)}\u00A0€`}
+                : formatAlleAuswaehlenLabel(
+                    meinePositionen.length,
+                    eigeneUnbezahltGesamt,
+                  )}
             </button>
           )}
           <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
