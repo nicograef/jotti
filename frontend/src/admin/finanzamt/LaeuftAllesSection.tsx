@@ -183,7 +183,7 @@ export function LaeuftAllesSection() {
           {ampel.ueberschrift}
         </span>
       </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-2">
+      <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <SignaturPanel queue={queue} />
         <StoerungPanel stoerungen={stoerungen} />
       </CardContent>

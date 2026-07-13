@@ -158,8 +158,12 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     expect(
       screen.getByText('Einrichtung — 2 von 3 Schritten erledigt'),
     ).toBeInTheDocument()
-    // Offene Meldung: Fristtext mit Paragraf und Seriennummer-Pill.
+    // Offene Meldung: Fristtext mit Paragraf und die vollständige Seriennummer
+    // in einem eigenen, beschrifteten Feld (abtippbar für ELSTER).
     expect(screen.getByText(/§ 146a Abs\. 4 AO/)).toBeInTheDocument()
+    expect(
+      screen.getByText('Seriennummer des elektronischen Aufzeichnungssystems'),
+    ).toBeInTheDocument()
     expect(screen.getByText(kassenidentitaet.seriennummer)).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Als erledigt markieren' }),
