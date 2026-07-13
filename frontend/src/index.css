@@ -27,6 +27,8 @@
   --color-destructive: var(--destructive);
   --color-disabled: var(--disabled);
   --color-disabled-foreground: var(--disabled-foreground);
+  --color-warn: var(--warn);
+  --color-warn-foreground: var(--warn-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -86,6 +88,11 @@
   /* olive-200, neutrale Flaeche fuer deaktivierte Primaeraktionen */
   --disabled-foreground: oklch(0.47 0.012 106.5);
   /* olive-700, WCAG-AA-Text (4,5:1) auf der Disabled-Flaeche */
+  --warn: oklch(0.769 0.188 70.08);
+  /* amber-500, Warn-Flaeche fuer irreversible Routine-Bestaetigungen —
+     distinkt von destruktiv-Rot und primaer-Gruen (ADR 04) */
+  --warn-foreground: oklch(0.279 0.077 45.635);
+  /* amber-950, dunkler Text auf der Warn-Flaeche: 7:1, WCAG AA/AAA */
   --border: oklch(0.93 0.007 106.5);
   /* olive-200, dekorative Trennlinien */
   --input: oklch(0.65 0.021 106.9);
@@ -155,6 +162,11 @@
   /* olive-800, neutrale Flaeche fuer deaktivierte Primaeraktionen */
   --disabled-foreground: oklch(0.74 0.016 106.9);
   /* olive-400, WCAG-AA-Text (4,5:1) auf der Disabled-Flaeche */
+  --warn: oklch(0.769 0.188 70.08);
+  /* amber-500, gleiche Warn-Flaeche wie im Light-Mode: die solide amber-Flaeche
+     traegt ihren Kontrast selbst (7:1 zum dunklen Text), unabhaengig vom Theme */
+  --warn-foreground: oklch(0.279 0.077 45.635);
+  /* amber-950, dunkler Text auf der Warn-Flaeche: 7:1, WCAG AA/AAA */
   --border: oklch(1 0 0 / 10%);
   /* white 10%, dekorative Trennlinien */
   --input: oklch(1 0 0 / 40%);

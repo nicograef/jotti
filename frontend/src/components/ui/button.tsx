@@ -14,15 +14,20 @@ const buttonVariants = cva(
         // Abblendung des Grüns, die im Dark Mode unter AA fällt. Phase 9
         // verdrahtet dieses Treatment an die übrigen Primäraktions-Call-Sites.
         default:
-          "bg-primary text-primary-foreground hover:bg-primary/80 disabled:bg-disabled disabled:text-disabled-foreground",
+          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/80 disabled:bg-disabled disabled:text-disabled-foreground",
         outline:
           "border-border bg-background shadow-xs hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground disabled:opacity-50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground disabled:opacity-50",
+          "bg-secondary text-secondary-foreground shadow-xs hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground disabled:opacity-50",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground disabled:opacity-50 dark:hover:bg-muted/50",
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 disabled:opacity-50 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+          "bg-destructive/10 text-destructive shadow-xs hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 disabled:opacity-50 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+        // Warn: solide Amber-Fläche für die Bestätigung irreversibler, aber
+        // routinemäßiger Aktionen (z. B. Kasse abschließen). Signalisiert
+        // „irreversibel", nicht „gefährlich" — distinkt von destructive-Rot und
+        // primär-Grün. Verbindliches Muster: ADR 04.
+        warn: "bg-warn text-warn-foreground shadow-xs hover:bg-warn/90 disabled:opacity-50",
         link: "text-primary underline-offset-4 hover:underline disabled:opacity-50",
       },
       size: {

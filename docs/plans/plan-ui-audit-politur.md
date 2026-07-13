@@ -462,12 +462,12 @@ Light und Dark eingerichtet.
 
 ### Acceptance criteria
 
-- [ ] Ein Warn-Amber-Token existiert in Light und Dark (beide AA); „Kasse endgültig abschließen“ nutzt das Warn-Treatment, nicht destruktiv-rot.
-- [ ] `docs/adrs/04_warn-bestaetigung.md` ist angelegt und beschreibt die Warn-Bestätigung für irreversible Routine-Aktionen.
-- [ ] Deaktivierte Primäraktionen nutzen durchgängig ein einziges Disabled-Treatment (kein Mint-gegen-Rosa); hand-gerollte Disabled-Stile sind ersetzt.
-- [ ] Alle Rollen-Badges nutzen denselben Badge-Variant; die Rolle wird nur über den Text unterschieden.
-- [ ] Die „Kassierter Umsatz“-Karte wirkt zwischen den weißen Karten nicht grau/deaktiviert (einheitliche Füllung).
-- [ ] `shadow-xs` ist über die soliden Button-Varianten einheitlich (nicht nur auf `outline`).
+- [x] Ein Warn-Amber-Token existiert in Light und Dark (beide AA); „Kasse endgültig abschließen“ nutzt das Warn-Treatment, nicht destruktiv-rot.
+- [x] `docs/adrs/04_warn-bestaetigung.md` ist angelegt und beschreibt die Warn-Bestätigung für irreversible Routine-Aktionen.
+- [x] Deaktivierte Primäraktionen nutzen durchgängig ein einziges Disabled-Treatment (kein Mint-gegen-Rosa); hand-gerollte Disabled-Stile sind ersetzt.
+- [x] Alle Rollen-Badges nutzen denselben Badge-Variant; die Rolle wird nur über den Text unterschieden.
+- [x] Die „Kassierter Umsatz“-Karte wirkt zwischen den weißen Karten nicht grau/deaktiviert (einheitliche Füllung).
+- [x] `shadow-xs` ist über die soliden Button-Varianten einheitlich (nicht nur auf `outline`).
 
 ---
 
