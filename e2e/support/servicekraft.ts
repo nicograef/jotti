@@ -124,6 +124,45 @@ export async function bestellePosition(
   ).toBeVisible()
 }
 
+// LANGE_BESTELLUNG_POSITIONEN ist eine lange, gemischte Bestellung: neun
+// unterschiedliche Varianten → neun Positionen im Beleg (Summe 52,00 €). Die
+// Variantennamen sind über alle gewählten Produkte hinweg eindeutig, damit
+// waehleVariante jede Zeile ohne Mehrdeutigkeit trifft. Teils lange Namen
+// (z. B. „Fr: Schnitzel mit Pommes") füllen die Kassieren- und Historien-Listen
+// mit genug nicht-umbrechendem Text für Drawer-Footer- und Überlauf-Regressionen.
+export const LANGE_BESTELLUNG_POSITIONEN: [produkt: string, variante: string][] =
+  [
+    ['Bratwurst', 'Normal'],
+    ['Bratwurst', 'XXL'],
+    ['Bratwurst', 'Currywurst'],
+    ['Pommes', 'Klein'],
+    ['Pommes', 'Groß'],
+    ['Flammkuchen', 'Classic'],
+    ['Flammkuchen', 'Speck & Zwiebel'],
+    ['Flammkuchen', 'Mediterran'],
+    ['Tagesgericht', 'Fr: Schnitzel mit Pommes'],
+  ]
+
+// nimmLangeBestellungAuf nimmt auf dem aktuell offenen Tisch eine Bestellung mit
+// allen LANGE_BESTELLUNG_POSITIONEN in einem Vorgang auf — Grundlage für die
+// langen Listen in den Drawern und den Servicekraft-Listen.
+export async function nimmLangeBestellungAuf(page: Page): Promise<void> {
+  await page.getByRole('tab', { name: 'Bestellen' }).click()
+  for (const [produkt, variante] of LANGE_BESTELLUNG_POSITIONEN) {
+    await waehleVariante(page, produkt, variante)
+  }
+
+  await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()
+  const bestellDrawer = page.getByRole('dialog')
+  await expect(bestellDrawer.getByText('Flammkuchen Mediterran')).toBeVisible()
+  await bestellDrawer
+    .getByRole('button', { name: 'Bestellung aufnehmen' })
+    .click()
+  await expect(
+    page.getByText('Bestellung wurde aufgenommen.').first(),
+  ).toBeVisible()
+}
+
 // kassierePosition wechselt auf den Kassieren-Tab, wählt die Position mit dem
 // angegebenen Namen zur gewünschten Menge aus und schließt die Zahlung ab.
 export async function kassierePosition(

@@ -138,7 +138,7 @@ export function Zahlung({
         }}
       />
       {loading ? (
-        <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+        <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
           {Array.from({ length: 6 }).map((_, index) => (
             // eslint-disable-next-line react-x/no-array-index-key
             <PositionItemSkeleton key={index} />
@@ -158,7 +158,7 @@ export function Zahlung({
                 : `Alle ${meinePositionen.length.toString()} Positionen auswählen · ${formatCents(eigeneUnbezahltGesamt)}\u00A0€`}
             </button>
           )}
-          <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+          <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
             {meinePositionen.map((position) => renderPosition(position, false))}
           </ItemGroup>
           {anderePositionen.length > 0 && (
@@ -182,7 +182,7 @@ export function Zahlung({
                 />
               </button>
               {andereOffen ? (
-                <ItemGroup className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+                <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
                   {anderePositionen.map((position) =>
                     renderPosition(position, true),
                   )}

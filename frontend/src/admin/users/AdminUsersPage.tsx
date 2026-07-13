@@ -117,7 +117,7 @@ export function AdminUsersPage() {
           />
         }
       />
-      <div className="mt-4 grid items-start gap-5 lg:grid-cols-[1fr_320px]">
+      <div className="mt-4 grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_320px]">
         <Users
           loading={isPending}
           backend={userBackend}
