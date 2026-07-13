@@ -115,79 +115,80 @@ export function EditTischDialog(props: EditTischDialogProps) {
           </FieldGroup>
         </form>
 
-        {hatSaldo ? (
-          // Löschen ist gesperrt, solange der Tisch einen offenen Saldo trägt
-          // (das Backend erzwingt es zusätzlich als Single Source of Truth). Die
-          // Begründung steht als stets sichtbare Zeile — auf den Touch-Handys
-          // der Servicekräfte gibt es kein Hover für einen Tooltip.
-          <div className="mt-4 space-y-1">
-            {/* Dauerhaft deaktiviert: nutzt das gemeinsame Disabled-Token der
-                Primäraktion (neutrale Fläche + AA-Text) statt einer
-                hand-gerollten text-destructive-Abblendung. Der aktive
-                Löschen-Einstieg (rot) steht im else-Zweig. */}
-            <Button className="w-full" disabled>
-              <Trash2 /> Tisch löschen
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Offener Saldo: {formatCents(props.tisch.saldoCents)} € — erst
-              abrechnen, dann lässt sich der Tisch löschen.
-            </p>
-          </div>
-        ) : (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="mt-4 w-full text-destructive"
-                disabled={deleteLoading}
-              >
+        <DialogFooter className="mt-4 sm:justify-between">
+          {hatSaldo ? (
+            // Löschen ist gesperrt, solange der Tisch einen offenen Saldo trägt
+            // (das Backend erzwingt es zusätzlich als Single Source of Truth).
+            // Die Begründung steht als stets sichtbare Zeile — auf den
+            // Touch-Handys gibt es kein Hover für einen Tooltip.
+            <div className="space-y-1">
+              {/* Dauerhaft deaktiviert: nutzt das gemeinsame Disabled-Token der
+                  Primäraktion (neutrale Fläche + AA-Text) statt einer
+                  hand-gerollten text-destructive-Abblendung. Der aktive
+                  Löschen-Einstieg (rot) steht im else-Zweig. */}
+              <Button className="w-full sm:w-auto" disabled>
                 <Trash2 /> Tisch löschen
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Tisch löschen?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Der Tisch &ldquo;{props.tisch.name}&rdquo; wird unwiderruflich
-                  gelöscht.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-white hover:bg-destructive/90"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    void onDelete()
-                  }}
-                  disabled={deleteLoading}
+              <p className="text-xs text-muted-foreground">
+                Offener Saldo: {formatCents(props.tisch.saldoCents)} € — erst
+                abrechnen, dann lässt sich der Tisch löschen.
+              </p>
+            </div>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive"
+                  disabled={loading || deleteLoading}
                 >
-                  Löschen
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-
-        <DialogFooter className="mt-4">
-          <DialogClose asChild>
+                  <Trash2 /> Tisch löschen
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Tisch löschen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Der Tisch &ldquo;{props.tisch.name}&rdquo; wird
+                    unwiderruflich gelöscht.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-white hover:bg-destructive/90"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      void onDelete()
+                    }}
+                    disabled={deleteLoading}
+                  >
+                    Löschen
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            <DialogClose asChild>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  form.reset()
+                }}
+                disabled={loading}
+              >
+                Abbrechen
+              </Button>
+            </DialogClose>
             <Button
-              variant="outline"
-              onClick={() => {
-                form.reset()
-              }}
-              disabled={loading}
+              type="submit"
+              form="table-form"
+              disabled={loading || !form.formState.isValid}
             >
-              Abbrechen
+              {loading ? <Spinner /> : null} Speichern
             </Button>
-          </DialogClose>
-          <Button
-            type="submit"
-            form="table-form"
-            disabled={loading || !form.formState.isValid}
-          >
-            {loading ? <Spinner /> : null} Speichern
-          </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

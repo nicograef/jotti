@@ -95,9 +95,6 @@ export function AdminUsersPage() {
           updated={() => {
             invalidateUsers()
           }}
-          onPasswordReset={(username, onetimePassword) => {
-            setPasswordResetState({ username, onetimePassword, open: true })
-          }}
           close={() => {
             setEditState(initialEditState)
           }}

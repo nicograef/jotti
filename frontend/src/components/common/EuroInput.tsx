@@ -38,10 +38,10 @@ interface EuroInputProps {
 }
 
 /**
- * The canonical money input: a fixed `€` prefix, the decimal keypad on mobile,
- * input sanitised to digits and a comma, and normalisation to two decimals on
- * blur (and after a typing pause). String in, string out — wrap it in a form
- * field for cents-based state.
+ * The canonical money input: a `€` sign seamlessly inside the field, the decimal
+ * keypad on mobile, input sanitised to digits and a comma, and normalisation to
+ * two decimals on blur (and after a typing pause). String in, string out — wrap
+ * it in a form field for cents-based state.
  */
 export function EuroInput({
   value,
@@ -63,15 +63,15 @@ export function EuroInput({
   }, [])
 
   return (
-    <div className="flex">
-      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-background text-muted-foreground text-sm">
+    <div className="relative">
+      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-sm text-muted-foreground">
         €
       </span>
       <Input
         id={id}
         type="text"
         inputMode="decimal"
-        className={cn('border-l-0', className)}
+        className={cn('pl-7', className)}
         autoComplete="off"
         spellCheck={false}
         placeholder={placeholder}

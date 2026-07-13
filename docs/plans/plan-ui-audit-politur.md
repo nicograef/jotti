@@ -494,11 +494,11 @@ Light und Dark eingerichtet.
 
 ### Acceptance criteria
 
-- [ ] `EuroInput` zeigt eine nahtlose €-Affordanz (kein separater umrandeter Präfix-Kasten); Cent-rein/formatiert-und-Cent-raus bleibt unverändert (bestehende `EuroInput`-Unit-Tests grün bzw. angepasst).
-- [ ] Die Geld-Eingabe ist über Neue Variante, Variante bearbeiten und Kasse abschließen identisch.
-- [ ] `EditTischDialog` nutzt den Ein-Zeilen-Footer wie `EditVariantDialog`.
-- [ ] Es gibt nur noch einen Passwort-Reset-Einstieg (Zeilen-„···“-Menü); der Einstieg im Bearbeiten-Dialog ist entfernt.
-- [ ] Im Kassenabschluss sind €-Eingabe, Soll/Gezählt-Differenz und CTA visuell zusammengeführt/ausgerichtet.
+- [x] `EuroInput` zeigt eine nahtlose €-Affordanz (kein separater umrandeter Präfix-Kasten); Cent-rein/formatiert-und-Cent-raus bleibt unverändert (bestehende `EuroInput`-Unit-Tests grün bzw. angepasst).
+- [x] Die Geld-Eingabe ist über Neue Variante, Variante bearbeiten und Kasse abschließen identisch.
+- [x] `EditTischDialog` nutzt den Ein-Zeilen-Footer wie `EditVariantDialog`.
+- [x] Es gibt nur noch einen Passwort-Reset-Einstieg (Zeilen-„···“-Menü); der Einstieg im Bearbeiten-Dialog ist entfernt.
+- [x] Im Kassenabschluss sind €-Eingabe, Soll/Gezählt-Differenz und CTA visuell zusammengeführt/ausgerichtet.
 
 ---
 
