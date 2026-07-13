@@ -117,6 +117,18 @@
   }
 }
 
+/* Erfolgs-„Pop" des Häkchens im Kassieren-Overlay der Live-Demo. */
+@keyframes demo-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @layer components {
   /* Animiertes Spektral-Akzentwort (Hero-H1). Statisch zeigt es den Verlauf,
      die Animation lässt ihn wandern (siehe reduced-motion am Dateiende). */
@@ -244,12 +256,26 @@
     background: var(--bg);
   }
 
-  .hero-phone-screen img {
+  /* Direktes Kind: nur der randlose Hero-Screenshot füllt den Rahmen.
+     Nicht als Nachfahren-Selektor — sonst würde das kleine jotti-Logo im
+     Kopf der Live-Demo (Phase 5) mitgedehnt. */
+  .hero-phone-screen > img {
     display: block;
     height: 100%;
     width: 100%;
     object-fit: cover;
     object-position: top;
+  }
+
+  /* Live-Demo (Phase 5) verwendet denselben Telefonrahmen, hält ihn aber ruhig:
+     ein schwebendes Telefon wäre bei antippbaren Steppern ein bewegtes Ziel. */
+  .demo-phone {
+    animation: none;
+  }
+
+  /* Häkchen-Pop im Kassieren-Overlay (unter reduced-motion neutralisiert). */
+  .demo-pop {
+    animation: demo-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
   }
 }
 
@@ -393,7 +419,8 @@
   .spectral-text,
   .hero-orb,
   .hero-phone,
-  .reveal {
+  .reveal,
+  .demo-pop {
     animation: none !important;
   }
 }

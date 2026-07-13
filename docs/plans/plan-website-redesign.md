@@ -549,17 +549,17 @@ bleibt voll funktionsfähig). Dies ist der einzige UI-Nachbau der Seite.
 
 ### Acceptance criteria
 
-- [ ] `live-demo.ts` ist UI-frei; vitest-Tests decken Mengenänderung,
+- [x] `live-demo.ts` ist UI-frei; vitest-Tests decken Mengenänderung,
       Summenbildung, Auto-Skriptablauf, Stopp bei manueller Interaktion und
       Reset ab.
-- [ ] Auto-Demo startet beim Hereinscrollen, durchläuft das Handoff-Skript
+- [x] Auto-Demo startet beim Hereinscrollen, durchläuft das Handoff-Skript
       (Endsumme 14,50 €) und stoppt dauerhaft bei manueller Interaktion;
       „Demo neu abspielen" startet neu.
-- [ ] Kassieren-Overlay mit Erfolgsanimation und Reset funktionieren; Beträge
+- [x] Kassieren-Overlay mit Erfolgsanimation und Reset funktionieren; Beträge
       sind durchgehend in Cent gerechnet und korrekt formatiert.
-- [ ] Unter `prefers-reduced-motion` keine Auto-Demo, keine Animationen;
+- [x] Unter `prefers-reduced-motion` keine Auto-Demo, keine Animationen;
       manuelle Bedienung funktioniert.
-- [ ] `make website-check` grün; Island hydriert unter Produktiv-CSP.
+- [x] `make website-check` grün; Island hydriert unter Produktiv-CSP.
 
 ---
 
