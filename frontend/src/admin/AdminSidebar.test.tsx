@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -7,8 +8,16 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 import { AdminSidebar } from './AdminSidebar'
 import type { OffeneKassensitzung } from './kasse/KasseBackend'
 
+const themeState = vi.hoisted<{
+  isDark: boolean
+  setTheme: ReturnType<typeof vi.fn>
+}>(() => ({ isDark: false, setTheme: vi.fn() }))
+
 vi.mock('@/components/theme-provider', () => ({
-  useTheme: () => ({ isDark: false, setTheme: vi.fn() }),
+  useTheme: () => ({
+    isDark: themeState.isDark,
+    setTheme: themeState.setTheme,
+  }),
 }))
 
 // jsdom kennt window.matchMedia nicht (von SidebarProvider via useIsMobile benötigt).
@@ -98,6 +107,8 @@ beforeEach(() => {
   tseState.istKonfiguriert = true
   tseState.rueckstandSekunden = 0
   tseState.fehlgeschlageneAuftraege = 0
+  themeState.isDark = false
+  themeState.setTheme = vi.fn()
 })
 
 afterEach(() => {
@@ -182,5 +193,33 @@ describe('AdminSidebar', () => {
     expect(
       screen.queryByRole('img', { name: 'TSE benötigt Aufmerksamkeit' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('beschriftet den Theme-Umschalter stabil, unabhängig vom aktiven Design', () => {
+    themeState.isDark = false
+    renderSidebar()
+    expect(
+      screen.getByRole('button', { name: 'Design wechseln' }),
+    ).toBeInTheDocument()
+    // Kein aus isDark abgeleitetes „Helles/Dunkles Design" mehr.
+    expect(screen.queryByText(/Helles Design|Dunkles Design/)).toBeNull()
+
+    cleanup()
+
+    themeState.isDark = true
+    renderSidebar()
+    expect(
+      screen.getByRole('button', { name: 'Design wechseln' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Helles Design|Dunkles Design/)).toBeNull()
+  })
+
+  it('schaltet auf das Gegenteil des aktuellen Designs', async () => {
+    const user = userEvent.setup()
+    themeState.isDark = false
+    renderSidebar()
+
+    await user.click(screen.getByRole('button', { name: 'Design wechseln' }))
+    expect(themeState.setTheme).toHaveBeenCalledWith('dark')
   })
 })

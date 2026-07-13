@@ -524,8 +524,8 @@ Light und Dark eingerichtet.
 
 ### Acceptance criteria
 
-- [ ] Der Minus-Stepper bei Menge 0 ist eindeutig als deaktiviert erkennbar und wirkt nicht antippbar.
-- [ ] Die Zählhilfe zeigt keine nativen Number-Spinner-Pfeile mehr.
-- [ ] Bei offenem Service-Drawer ist die Tab-Leiste nicht interaktiv und nicht per Tastatur fokussierbar (durch Test belegt).
-- [ ] Der Theme-Umschalter hat ein stabiles Label unabhängig vom aktiven Theme.
-- [ ] Der Theme-Umschalter erhält im Dark Mode kein Active-Page-Highlight.
+- [x] Der Minus-Stepper bei Menge 0 ist eindeutig als deaktiviert erkennbar und wirkt nicht antippbar.
+- [x] Die Zählhilfe zeigt keine nativen Number-Spinner-Pfeile mehr.
+- [x] Bei offenem Service-Drawer ist die Tab-Leiste nicht interaktiv und nicht per Tastatur fokussierbar (durch Test belegt).
+- [x] Der Theme-Umschalter hat ein stabiles Label unabhängig vom aktiven Theme.
+- [x] Der Theme-Umschalter erhält im Dark Mode kein Active-Page-Highlight.

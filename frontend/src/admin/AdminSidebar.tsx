@@ -12,6 +12,7 @@ import {
   Utensils,
   Wallet,
 } from 'lucide-react'
+import type { MouseEvent } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
@@ -162,8 +163,14 @@ export function AdminSidebar() {
       ).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
     : 'Kasse geschlossen'
 
-  const toggleTheme = () => {
+  const toggleTheme = (event: MouseEvent<HTMLButtonElement>) => {
     setTheme(isDark ? 'light' : 'dark')
+    // Nach einem Maus-Klick den Fokus lösen: sonst bliebe der Umschalter
+    // engagiert und seine Hover-/Fokus-Fläche (bg-sidebar-accent) läse sich im
+    // Dark Mode wie das Active-Page-Highlight der Navigation. Tastaturbedienung
+    // (event.detail === 0) behält den Fokus, damit die Orientierung erhalten
+    // bleibt.
+    if (event.detail !== 0) event.currentTarget.blur()
   }
 
   const logout = () => {
@@ -202,7 +209,7 @@ export function AdminSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton onClick={toggleTheme}>
               {isDark ? <Sun /> : <Moon />}
-              <span>{isDark ? 'Helles Design' : 'Dunkles Design'}</span>
+              <span>Design wechseln</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

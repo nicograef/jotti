@@ -67,9 +67,7 @@ function ZaehlhilfeInhalt({
               </Label>
               <Input
                 id={id}
-                type="number"
-                min={0}
-                step={1}
+                type="text"
                 inputMode="numeric"
                 placeholder="0"
                 className="h-8 w-20 text-right"
