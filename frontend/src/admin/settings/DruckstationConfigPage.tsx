@@ -442,7 +442,10 @@ function AlarmKarte() {
 
   return (
     <WarnKarte title={titel} className="mb-6">
-      <div className="mt-2 flex flex-col gap-2">
+      {/* Höhenbegrenzt und scrollbar, damit die Stationskonfiguration darunter
+          auch bei vielen Fehl-Bons ohne langes Scrollen erreichbar bleibt.
+          Der Cap greift erst über der Schwelle; wenige Einträge bleiben kompakt. */}
+      <div className="mt-2 flex max-h-80 flex-col gap-2 overflow-y-auto">
         {druckauftraege.map((auftrag) => (
           <FehlgeschlagenerDruckauftragRow
             key={auftrag.id}
