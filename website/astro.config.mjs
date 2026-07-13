@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'astro/config'
 
 import { remarkDocLinks } from './src/lib/remark-doc-links.ts'
+import { externalizeInlineScripts } from './src/lib/externalize-inline-scripts.ts'
 
 // Querverweise: Autoren schreiben repo-relative Markdown-Links in `docs/`; der
 // remark-Link-Rewriter bildet sie auf Website-Routen bzw. GitHub-URLs ab.
@@ -21,6 +22,12 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'jotti',
+      // ThemeProvider-Override: ersetzt Starlights Inline-Theme-Init durch das
+      // externe, CSP-konforme /theme-init.js (gleicher Speicher-Key und dieselbe
+      // Semantik wie die Landing). Siehe src/components/ThemeProvider.astro.
+      components: {
+        ThemeProvider: './src/components/ThemeProvider.astro',
+      },
       // Explizites Favicon: schließt die /favicon.svg-Lücke des Starlight-Defaults
       // und zeigt in der Doku dieselbe Marke wie die Landing (Kopie in public/).
       favicon: '/icons/jotti-icon-light-32.png',
@@ -122,6 +129,10 @@ export default defineConfig({
         },
       ],
     }),
+    // Externalisiert nach dem Build alle verbliebenen Inline-Skripte (v. a.
+    // Starlights is:inline-Skripte für Suche und Sidebar-Persistenz), damit die
+    // Produktiv-CSP (`script-src 'self'`) kein Skript blockt.
+    externalizeInlineScripts(),
   ],
   vite: {
     plugins: [tailwindcss()],

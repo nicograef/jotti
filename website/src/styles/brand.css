@@ -1,93 +1,111 @@
 /* jotti-Marke — gemeinsames Token-Set für Landing und Doku.
-   Einzige Quelle der Markenwerte: Markengrün (identisch zum App- und
-   Landing-Primary, Brand-Hue 165.612) und die self-hosted Schrift Montserrat.
+   Quelle der Markenwerte: der Design-Handoff
+   (docs/prds/design_handoff_jotti_website/README.md). Light-Palette auf :root,
+   Dark-Palette auf [data-theme='dark'] (nicht mehr prefers-color-scheme); dazu
+   die acht Spektral-Tokens, die Spektral-Verläufe, Radien, Schatten und die
+   Typo-Skala. Selbst gehostete Variable-Fonts: Space Grotesk (Headings/
+   Wortmarke) und Inter (Body/UI).
    Landing nutzt diese Tokens direkt; das Starlight-Theme bezieht sie in
-   starlight.css über dessen CSS-Custom-Properties. */
+   starlight.css über dessen CSS-Custom-Properties.
+
+   Übergangsregel (Plan Phase 1): Der Umbau läuft sektionsweise. Die alten
+   Token-Namen (--brand-*) und Komponentenklassen (.btn/.card/.icon-box/
+   .carousel-*) bleiben als Aliase auf die neuen Werte erhalten, bis die
+   konsumierende Sektion in ihrer Phase neu gebaut wird — dann fallen Alias und
+   Sektion gemeinsam weg. */
 
 @font-face {
-  font-family: Montserrat;
-  src: url('/fonts/Montserrat-Regular.woff2') format('woff2');
-  font-weight: 400;
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: Montserrat;
-  src: url('/fonts/Montserrat-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: Montserrat;
-  src: url('/fonts/Montserrat-Italic.woff2') format('woff2');
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: Montserrat;
-  src: url('/fonts/Montserrat-BoldItalic.woff2') format('woff2');
-  font-weight: 700;
-  font-style: italic;
+  font-family: 'Space Grotesk';
+  src: url('/fonts/SpaceGrotesk-Variable.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: normal;
   font-display: swap;
 }
 
 :root {
-  /* Markengrün (Brand-Hue 165.612) und davon abgeleitete Töne */
-  --brand-green: oklch(0.508 0.118 165.612);
-  --brand-green-hover: oklch(0.44 0.118 165.612);
-  --brand-green-tint: oklch(0.93 0.03 165.612);
-  --brand-green-deep: oklch(0.3 0.07 165.612);
+  /* --- Farben: Light (Handoff) --- */
+  --bg: #ffffff;
+  --fg: #0c0c09;
+  --card: #ffffff;
+  --card2: #fbfbf9;
+  --muted: #f4f4f0;
+  --muted-fg: #5b5b4f;
+  --border: #e7e7df;
+  --primary: #007a55;
+  --primary-fg: #ffffff;
+  --ring: rgba(0, 122, 85, 0.35);
+  --shadow: 0 1px 2px rgba(12, 12, 9, 0.06), 0 12px 32px -12px rgba(12, 12, 9, 0.14);
 
-  --brand-font: Montserrat, system-ui, -apple-system, sans-serif;
+  /* --- Spektralpalette (Markenakzent): Light --- */
+  --sp-red: #d24a2a;
+  --sp-orange: #c8781e;
+  --sp-yellow: #8f9a2c;
+  --sp-green: #4f9636;
+  --sp-teal: #1f9b8a;
+  --sp-blue: #2f6fc4;
+  --sp-indigo: #4a4fc0;
+  --sp-violet: #8b3fc0;
+  --spectral: linear-gradient(100deg, #d24a2a, #c8781e, #4f9636, #1f9b8a, #2f6fc4, #8b3fc0);
+  --spectral-v: linear-gradient(180deg, #d24a2a, #c8781e, #4f9636, #1f9b8a, #2f6fc4, #8b3fc0);
 
-  /* Dekorativer Logo-Spektrum-Verlauf (Rot → Violett, Markengrün in der Mitte).
-     Ausschließlich dekorativ: feine Haarlinie an Header/Footer und ein leiser
-     Schimmer im Hero. Keine UI-Fläche, kein CTA und kein Doku-Akzent nutzt ihn.
-     Die Bedienoberfläche bleibt durchgehend grün. Chroma bewusst gedeckt. */
-  --brand-spectrum: linear-gradient(
-    90deg,
-    oklch(0.62 0.13 25),
-    oklch(0.75 0.12 70),
-    oklch(0.8 0.13 120),
-    oklch(0.55 0.12 165.612),
-    oklch(0.58 0.12 245),
-    oklch(0.5 0.13 300)
-  );
-  /* Sehr leiser Schimmer derselben Farben für großflächige Hintergründe
-     (Hero). Mitte transparent, damit der grüne Anker durchatmet. */
+  /* --- Typografie --- */
+  --font-heading: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --fs-h1: clamp(40px, 5.4vw, 68px);
+  --fs-h2: clamp(30px, 3.7vw, 46px);
+
+  /* --- Radien (Handoff) --- */
+  --radius-sm: 11px; /* Pills, kleine Buttons */
+  --radius-md: 13px; /* Buttons, CTAs */
+  --radius-lg: 16px; /* Kacheln */
+  --radius-xl: 20px; /* Karten */
+  --radius-2xl: 26px; /* große CTA-Karte */
+
+  /* --- Übergangs-Aliase auf die neuen Werte (siehe Kopf) --- */
+  /* Konstant, damit gefüllte Buttons (weißer Text) in beiden Modi tragen. */
+  --brand-green: #007a55;
+  --brand-green-hover: #00694a;
+  --brand-green-tint: #e3f1ec;
+  --brand-green-deep: #04231a;
+  --brand-font: var(--font-body);
+  --brand-spectrum: var(--spectral);
+  /* Leiser Spektral-Schimmer für großflächige Hintergründe (alter Hero). */
   --brand-spectrum-wash: linear-gradient(
     105deg,
-    oklch(0.62 0.13 25 / 0.1),
-    oklch(0.75 0.12 70 / 0.07),
+    color-mix(in srgb, var(--sp-red) 10%, transparent),
+    color-mix(in srgb, var(--sp-orange) 7%, transparent),
     transparent 45%,
-    oklch(0.58 0.12 245 / 0.07),
-    oklch(0.5 0.13 300 / 0.1)
+    color-mix(in srgb, var(--sp-blue) 7%, transparent),
+    color-mix(in srgb, var(--sp-violet) 10%, transparent)
   );
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dunkelmodus: gleiche Hues, etwas heller und leiser, damit der Verlauf
-       auf dunklem Grund nicht grell wirkt. */
-    --brand-spectrum: linear-gradient(
-      90deg,
-      oklch(0.66 0.12 25),
-      oklch(0.78 0.11 70),
-      oklch(0.83 0.12 120),
-      oklch(0.66 0.12 165.612),
-      oklch(0.66 0.12 245),
-      oklch(0.58 0.13 300)
-    );
-    --brand-spectrum-wash: linear-gradient(
-      105deg,
-      oklch(0.66 0.12 25 / 0.12),
-      oklch(0.78 0.11 70 / 0.08),
-      transparent 45%,
-      oklch(0.66 0.12 245 / 0.08),
-      oklch(0.58 0.13 300 / 0.12)
-    );
-  }
+[data-theme='dark'] {
+  /* --- Farben: Dark (Handoff) --- */
+  --bg: #0c0c09;
+  --fg: #fbfbf9;
+  --card: #1d1d16;
+  --card2: #161610;
+  --muted: #2b2b22;
+  --muted-fg: #a7a79a;
+  --border: rgba(255, 255, 255, 0.1);
+  --primary: #10b981;
+  --primary-fg: #04231a;
+  --ring: rgba(16, 185, 129, 0.4);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 40px -14px rgba(0, 0, 0, 0.6);
+
+  /* --- Spektral: Dark-Overrides (nur die abweichenden Töne) --- */
+  --sp-red: #e2603f;
+  --sp-green: #5fb045;
+  --sp-teal: #28b8a3;
+  --sp-blue: #4b86dd;
+  --sp-violet: #a457dd;
 }

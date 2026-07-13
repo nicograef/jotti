@@ -6,47 +6,42 @@
 @import 'tailwindcss';
 @import './brand.css';
 
-/* Semantische Farb-Tokens. Hell/Dunkel folgen der Systemeinstellung
-   (prefers-color-scheme), damit die Landing im Dunkelmodus konsistent zum
-   Starlight-Doku-Theme erscheint. */
+/* Semantische Farb-Tokens der Landing, auf das gemeinsame Marken-Token-Set aus
+   brand.css abgebildet. Hell/Dunkel folgen jetzt dem `data-theme`-Attribut
+   (gesetzt vom Pre-Paint-Skript und dem Doku-Schalter), nicht mehr
+   prefers-color-scheme. Die meisten Tokens erben die Umschaltung direkt aus den
+   Marken-Tokens (die auf [data-theme='dark'] kippen); nur die Grün-Akzente
+   brauchen einen eigenen Dark-Wert (unten). */
 :root {
-  --c-background: #f6f9f4;
-  --c-foreground: #18231a;
-  --c-card: #ffffff;
-  --c-card-border: #d8e1d3;
-  /* Kräftigere Kante für Controls (Ghost-Button, Carousel) und Chip-Haarlinien. */
-  --c-control-border: #c4d2bd;
+  --c-background: var(--bg);
+  --c-foreground: var(--fg);
+  --c-card: var(--card);
+  --c-card-border: var(--border);
+  /* Kante für Controls (Ghost-Button, Carousel) und Chip-Haarlinien. */
+  --c-control-border: var(--border);
   /* Gepolsterter Rahmen hinter App-Screenshots (erdet sie gegen den Grund). */
-  --c-screenshot-frame: #d8e1d3;
-  --c-muted: #5e6c62;
-  --c-surface-alt: #eef4ea;
-  /* Akzent-Grün für Text/Icons; hell genug für dunklen Grund im Dark-Mode. */
-  --c-brand: var(--brand-green);
-  --c-brand-hover: var(--brand-green-hover);
+  --c-screenshot-frame: var(--card2);
+  --c-muted: var(--muted-fg);
+  --c-surface-alt: var(--card2);
+  /* Akzent-Grün für Text/Icons; folgt --primary (hell #007a55 / dunkel #10b981). */
+  --c-brand: var(--primary);
+  --c-brand-hover: #00563c;
   /* Dezenter Grün-Hintergrund (Icon-Boxen, Tags, Tabellen-Highlight). */
   --c-brand-tint: var(--brand-green-tint);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --c-background: oklch(0.24 0.008 170);
-    --c-foreground: oklch(0.93 0.01 170);
-    --c-card: oklch(0.32 0.01 170);
-    --c-card-border: oklch(0.46 0.015 170);
-    --c-control-border: oklch(0.58 0.018 170);
-    --c-screenshot-frame: oklch(0.16 0.006 170);
-    --c-muted: oklch(0.73 0.015 170);
-    --c-surface-alt: oklch(0.28 0.01 170);
-    --c-brand: oklch(0.72 0.12 165.612);
-    --c-brand-hover: oklch(0.8 0.12 165.612);
-    --c-brand-tint: oklch(0.34 0.075 165.612);
-  }
+/* Dark-Werte, die nicht schon über die Marken-Tokens kippen. */
+:root[data-theme='dark'] {
+  --c-brand-hover: #34d399;
+  --c-brand-tint: rgba(16, 185, 129, 0.14);
 }
 
 /* `inline`: die Utilities referenzieren direkt die obigen, umschaltbaren
    Variablen, sodass der Moduswechsel ohne Neudefinition der Tokens greift. */
 @theme inline {
-  --font-sans: var(--brand-font);
+  --font-sans: var(--font-body);
+  /* Headings/Wortmarke: Space Grotesk über die Utility `font-brand`. */
+  --font-brand: var(--font-heading);
 
   --color-background: var(--c-background);
   --color-foreground: var(--c-foreground);

@@ -43,7 +43,16 @@ Durable decisions, die für alle Phasen gelten:
   Phase mit Client-JS: gebautes `dist/` hinter einem lokalen Static-Server, der
   den CSP-Header wortgleich aus `nginx.rocks.conf` setzt, Konsole ohne
   Verstöße. Invarianten dafür: kein `ViewTransitions`/`ClientRouter`, kein
-  `define:vars`, keine `is:inline`-Skripte mit Inline-Body. Phase 2 ist das
+  `define:vars`, keine `is:inline`-Skripte mit Inline-Body. *Umsetzungsbefund
+  Phase 1:* Starlights Doku-Shell liefert `is:inline`-Skripte aus vier
+  Komponenten (ThemeProvider, ThemeSelect, Search/Pagefind, SidebarPersister);
+  statt vier driftanfälliger Component-Override-Kopien externalisiert eine
+  Build-Integration (`website/src/lib/externalize-inline-scripts.ts`,
+  kommentar-sicher, nur ausführbare Skripttypen) diese Shell-Skripte nach
+  `_astro/` — die automatisierte Form von Fallback-Stufe (1), CSP und
+  Semantik unverändert. Astros eigene Island-Skripte müssen in Phase 2
+  nativ extern sein (`assetsInlineLimit: 0`), nicht durch den Externalizer
+  gerettet. Phase 2 ist das
   Machbarkeits-Gate des Islands-Ansatzes; scheitert der Beweis, gilt die
   Fallback-Leiter: (1) das betroffene Skript als externe Datei nach dem
   `public/`-Muster, (2) gezielter `sha256`-Hash für ein einzelnes stabiles
@@ -342,20 +351,20 @@ den Doku-Schalter demonstrieren.
 
 ### Acceptance criteria
 
-- [ ] Landing und Doku laufen in Space Grotesk/Inter und der neuen Farbwelt,
+- [x] Landing und Doku laufen in Space Grotesk/Inter und der neuen Farbwelt,
       hell und dunkel; keine Montserrat-Reste (Dateien, `@font-face`,
       Preloads).
-- [ ] Die Theme-Wahl im Doku-Schalter wirkt nach Navigation auch auf die
+- [x] Die Theme-Wahl im Doku-Schalter wirkt nach Navigation auch auf die
       Landing (gemeinsamer Speicher, `data-theme` auf `<html>`), ohne
       Aufblitzen des falschen Themes beim Laden.
-- [ ] Spektral-Tokens (`--sp-*`, `--spectral`) stehen bereit und stimmen mit
+- [x] Spektral-Tokens (`--sp-*`, `--spectral`) stehen bereit und stimmen mit
       dem Handoff-README überein.
-- [ ] Alt-Sektionen sind optisch intakt: alte Token-Namen und
+- [x] Alt-Sektionen sind optisch intakt: alte Token-Namen und
       Komponentenklassen wirken weiter (nötigenfalls als Alias).
-- [ ] Gebautes `dist/` hinter einem lokalen Static-Server mit dem
+- [x] Gebautes `dist/` hinter einem lokalen Static-Server mit dem
       CSP-Header aus `nginx.rocks.conf`: keine CSP-Verstöße in der Konsole auf
       Landing- und Doku-Seiten, Theme-Init eingeschlossen.
-- [ ] `make website-check` grün.
+- [x] `make website-check` grün.
 
 ---
 

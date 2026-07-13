@@ -27,6 +27,14 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
     />
     <meta name="author" content="Nico Gräf" />
     <meta name="robots" content="index, follow" />
+
+    <!--
+      Theme vor dem ersten Paint setzen: externe, klassisch-synchrone Datei aus
+      public/ (kein type=module/defer/async), damit unter der Produktiv-CSP kein
+      Inline-Skript nötig ist und kein falsches Theme aufblitzt. Liest denselben
+      Starlight-Speicher wie der Doku-Schalter (siehe public/theme-init.js).
+    -->
+    <script is:inline src="/theme-init.js"></script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
@@ -79,17 +87,17 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
       media="(prefers-color-scheme: dark)"
     />
 
-    <!-- Schrift vorladen -->
+    <!-- Schrift vorladen: selbst gehostete Variable-Fonts -->
     <link
       rel="preload"
-      href="/fonts/Montserrat-Regular.woff2"
+      href="/fonts/Inter-Variable.woff2"
       as="font"
       type="font/woff2"
       crossorigin
     />
     <link
       rel="preload"
-      href="/fonts/Montserrat-Bold.woff2"
+      href="/fonts/SpaceGrotesk-Variable.woff2"
       as="font"
       type="font/woff2"
       crossorigin
@@ -122,7 +130,7 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
           aria-label="jotti Startseite"
         >
           <Image src={jottiSymbol} alt="" class="h-7 w-auto" loading="eager" />
-          <span class="text-xl font-bold tracking-tight">jotti</span>
+          <span class="font-brand text-xl font-bold tracking-tight">jotti</span>
         </a>
 
         <nav
@@ -261,7 +269,7 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
           aria-label="jotti Startseite"
         >
           <Image src={jottiSymbol} alt="" class="h-7 w-auto" loading="lazy" />
-          <span class="text-xl font-bold tracking-tight">jotti</span>
+          <span class="font-brand text-xl font-bold tracking-tight">jotti</span>
         </a>
         <p class="max-w-160 text-[0.9375rem] text-muted">
           Das kostenlose Kassensystem mit TSE-Anbindung für Vereinsfeste und
@@ -311,9 +319,10 @@ const ogImageUrl = new URL(ogImage.src, Astro.site).href
     </footer>
 
     <!--
-      Externe Datei aus public/ statt eines gebuendelten <script>: Astro inlinet
-      kleine Skripte, die Produktiv-CSP (`script-src 'self'`) blockiert aber
-      Inline-Skripte. is:inline laesst Astro das Tag unveraendert ausliefern.
+      Externe Datei aus public/ statt eines gebuendelten Inline-Skripts: Astro
+      inlinet kleine Skripte, die Produktiv-CSP (`script-src 'self'`) blockiert
+      aber Inline-Skripte. is:inline laesst Astro das Tag unveraendert
+      ausliefern.
     -->
     <script is:inline type="module" src="/mobile-nav.js"></script>
   </body>
