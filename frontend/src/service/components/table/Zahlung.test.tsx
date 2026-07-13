@@ -140,9 +140,10 @@ describe('Zahlung „Alle auswählen"', () => {
     expect(screen.getByRole('button', { name: /Kassieren/ })).toBeDisabled()
 
     // Erster Tap: eigene Position (2× 3,50 €) voll ausgewählt, fremde nicht.
+    // Genau eine eigene Position → Singular „1 Position" (kein „Alle").
     await user.click(
       screen.getByRole('button', {
-        name: /Alle 1 Positionen auswählen · 7,00/,
+        name: /^1 Position auswählen · 7,00/,
       }),
     )
     expect(screen.getByText('2 von 2 ausgewählt · 7,00 €')).toBeInTheDocument()
@@ -166,9 +167,25 @@ describe('Zahlung Restbetrag', () => {
     expect(screen.getByText('9,00 €')).toBeInTheDocument()
 
     await user.click(
-      screen.getByRole('button', { name: /Alle 1 Positionen auswählen/ }),
+      screen.getByRole('button', { name: /^1 Position auswählen/ }),
     )
 
     expect(screen.getByText('2,00 €')).toBeInTheDocument()
+  })
+
+  it('beschriftet den Sammel-Button bei mehreren eigenen Positionen im Plural', () => {
+    // Zweite eigene Position (bestellerUserId 1) → Plural „Alle 2 Positionen".
+    const zweite: Position = {
+      ...position,
+      positionId: '00000000-0000-0000-0000-000000000003',
+      produktName: 'Brezel',
+      einzelpreisCents: 200,
+      menge: 1,
+    }
+    renderZahlung([position, zweite])
+
+    expect(
+      screen.getByRole('button', { name: /^Alle 2 Positionen auswählen/ }),
+    ).toBeInTheDocument()
   })
 })

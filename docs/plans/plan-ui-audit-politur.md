@@ -362,11 +362,11 @@ rechten Rand. Dasselbe Layout in beiden Bereichen.
 
 ### Acceptance criteria
 
-- [ ] Ein fehlgeschlagener Kassenbeleg wird nicht als Küchenproblem beschrieben; der Warntext folgt der tatsächlichen Bon-Art (Arbeitsbon/Kassenbeleg/Testbon).
-- [ ] Bei einer Position rendert die Oberfläche „1 Position“, bei mehreren „N Positionen“ (Kassieren und Umbuchung).
-- [ ] Die zuvor „Alle 1 Positionen“ pinnenden Tests prüfen nun „1 Position“ (Singular) und „N Positionen“ (Plural).
-- [ ] `TischHistorie` verwendet „Kassenbeleg“ konsistent mit `DirektverkaufHistorie`; „Bondrucker“-Sidebar-Label und `/druckstationen`-Route unverändert.
-- [ ] Drucker-Fehlertexte sind einheitlich formuliert; kein roher Backend-Jargon-String mehr direkt in der Admin-UI.
+- [x] Ein fehlgeschlagener Kassenbeleg wird nicht als Küchenproblem beschrieben; der Warntext folgt der tatsächlichen Bon-Art (Arbeitsbon/Kassenbeleg/Testbon).
+- [x] Bei einer Position rendert die Oberfläche „1 Position“, bei mehreren „N Positionen“ (Kassieren und Umbuchung).
+- [x] Die zuvor „Alle 1 Positionen“ pinnenden Tests prüfen nun „1 Position“ (Singular) und „N Positionen“ (Plural).
+- [x] `TischHistorie` verwendet „Kassenbeleg“ konsistent mit `DirektverkaufHistorie`; „Bondrucker“-Sidebar-Label und `/druckstationen`-Route unverändert.
+- [x] Drucker-Fehlertexte sind einheitlich formuliert; kein roher Backend-Jargon-String mehr direkt in der Admin-UI.
 
 ---
 

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  beschreibeFehlBons,
   DruckstationConfigSchema,
   formatDruckauftragReferenz,
+  formatDruckfehler,
   hatBonmodus,
   validateDruckerIp,
 } from './DruckstationBackend'
@@ -65,6 +67,71 @@ describe('formatDruckauftragReferenz', () => {
   it('fällt bei fehlendem Trenner auf den Rohwert zurück', () => {
     expect(formatDruckauftragReferenz('ohne-doppelpunkt')).toBe(
       'ohne-doppelpunkt',
+    )
+  })
+})
+
+describe('beschreibeFehlBons', () => {
+  it('nennt reine Arbeitsbons „Bon" und ordnet sie der Küche zu', () => {
+    expect(beschreibeFehlBons(['arbeitsbon', 'arbeitsbon'])).toEqual({
+      singular: 'Bon',
+      plural: 'Bons',
+      kuecheBetroffen: true,
+    })
+  })
+
+  it('nennt Kassenbelege beim Namen und behauptet kein Küchenproblem', () => {
+    expect(beschreibeFehlBons(['kassenbeleg'])).toEqual({
+      singular: 'Kassenbeleg',
+      plural: 'Kassenbelege',
+      kuecheBetroffen: false,
+    })
+  })
+
+  it('nennt Testbons neutral ohne Küchenbezug', () => {
+    expect(beschreibeFehlBons(['testbon'])).toEqual({
+      singular: 'Testbon',
+      plural: 'Testbons',
+      kuecheBetroffen: false,
+    })
+  })
+
+  it('fällt bei gemischten Bon-Arten auf den neutralen Oberbegriff zurück', () => {
+    expect(beschreibeFehlBons(['arbeitsbon', 'kassenbeleg'])).toEqual({
+      singular: 'Bon',
+      plural: 'Bons',
+      kuecheBetroffen: false,
+    })
+  })
+
+  it('fällt bei unbekannter Bon-Art auf den neutralen Oberbegriff zurück', () => {
+    expect(beschreibeFehlBons(['unbekannt'])).toEqual({
+      singular: 'Bon',
+      plural: 'Bons',
+      kuecheBetroffen: false,
+    })
+  })
+})
+
+describe('formatDruckfehler', () => {
+  it.each([
+    [
+      'drucker 192.168.1.5: nicht erreichbar: dial tcp',
+      'Drucker nicht erreichbar',
+    ],
+    ['papier leer (status=0x08)', 'Papier leer'],
+    ['Drucker meldet: Abdeckung offen', 'Abdeckung offen'],
+    [
+      'drucker 192.168.1.5: senden fehlgeschlagen: EOF',
+      'Übertragung fehlgeschlagen',
+    ],
+  ])('übersetzt „%s" zu „%s"', (roh, erwartet) => {
+    expect(formatDruckfehler(roh)).toBe(erwartet)
+  })
+
+  it('fällt bei unbekanntem Jargon auf eine neutrale Sammelmeldung zurück', () => {
+    expect(formatDruckfehler('ungueltiges Base64: illegal data')).toBe(
+      'Druckfehler',
     )
   })
 })

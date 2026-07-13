@@ -1,4 +1,5 @@
 import { useKassenbestand, useOffeneKassensitzung } from '@/admin/kasse/hooks'
+import { beschreibeFehlBons } from '@/admin/settings/DruckstationBackend'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import {
   RUECKSTAND_WARN_SEKUNDEN,
@@ -45,10 +46,15 @@ export function AdminDashboardPage() {
         : `${String(queue?.offeneAuftraege ?? 0)} Vorgänge in Warteschlange (normal)`
 
   const druckFehler = druckauftraege.length > 0
+  // Substantiv folgt der Bon-Art: „Bon" nur für Arbeitsbons, sonst „Kassenbeleg"
+  // bzw. „Testbon"; gemischt bleibt es der neutrale Oberbegriff (NEU02).
+  const { singular: druckSingular, plural: druckPlural } = beschreibeFehlBons(
+    druckauftraege.map((auftrag) => auftrag.bonArt),
+  )
   const druckTitel = druckFehler
     ? druckauftraege.length === 1
-      ? '1 Bon nicht gedruckt'
-      : `${String(druckauftraege.length)} Bons nicht gedruckt`
+      ? `1 ${druckSingular} nicht gedruckt`
+      : `${String(druckauftraege.length)} ${druckPlural} nicht gedruckt`
     : 'Drucker bereit'
   const druckText = druckFehler ? 'Drucker prüfen' : 'Alle Bons gedruckt'
 

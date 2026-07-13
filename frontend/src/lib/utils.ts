@@ -22,6 +22,22 @@ export function formatCents(cents: number): string {
 }
 
 /**
+ * Label of the "Alle auswählen" button in Kassieren and Umbuchung: correct
+ * grammatical number (singular "1 Position", plural "N Positionen") plus the
+ * selection sum. With exactly one position the plural-implying "Alle" is dropped.
+ */
+export function formatAlleAuswaehlenLabel(
+  anzahl: number,
+  summeCents: number,
+): string {
+  const auswahl =
+    anzahl === 1
+      ? '1 Position auswählen'
+      : `Alle ${anzahl.toString()} Positionen auswählen`
+  return `${auswahl} · ${formatCents(summeCents)}\u00A0€`
+}
+
+/**
  * Composes the canonical position name: product name and variant name joined by
  * a single space, trimmed at the edges. No brackets, no dedup.
  * Example: ("Pommes", "mit Ketchup") → "Pommes mit Ketchup"

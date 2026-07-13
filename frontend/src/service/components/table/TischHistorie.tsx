@@ -202,7 +202,7 @@ export function TischHistorie({
 
 // HistorieDetail rendert den Detail-Drawer eines Historien-Eintrags: leitet die
 // Aktions-Berechtigungen und das Zeilenmodell intern ab und kümmert sich um den
-// Belegdruck (Zahlung → Beleg, Warenrücknahme → Stornobeleg).
+// Belegdruck (Zahlung → Kassenbeleg, Warenrücknahme → Stornobeleg).
 function HistorieDetail({
   detail,
   tisch,
@@ -220,7 +220,7 @@ function HistorieDetail({
 }) {
   const { loading: belegDruckenLoading, run: runBelegDrucken } =
     useActionSubmit({
-      actionLabel: 'Beleg drucken',
+      actionLabel: 'Kassenbeleg drucken',
       byCode: {
         kassenbeleg_drucker_nicht_konfiguriert:
           'Kein Kassenbeleg-Drucker konfiguriert. Bitte in den Admin-Einstellungen hinterlegen.',
@@ -280,7 +280,7 @@ function HistorieDetail({
       primaryAction={
         detail.art === 'zahlung'
           ? {
-              label: 'Beleg drucken',
+              label: 'Kassenbeleg drucken',
               loading: belegDruckenLoading,
               onAction: () => {
                 void runBelegDrucken(async () => {
@@ -289,7 +289,7 @@ function HistorieDetail({
                   )
                   meldeBelegStatus(
                     status,
-                    'Beleg in die Druckwarteschlange eingereiht.',
+                    'Kassenbeleg in die Druckwarteschlange eingereiht.',
                   )
                 })
               },

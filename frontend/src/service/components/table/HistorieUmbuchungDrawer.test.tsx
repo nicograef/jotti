@@ -107,7 +107,7 @@ describe('HistorieUmbuchungDrawer', () => {
 
     // „Alle auswählen" wählt die volle umbuchbare Menge und gibt den Button frei.
     await user.click(
-      screen.getByRole('button', { name: /Alle 1 Positionen auswählen/ }),
+      screen.getByRole('button', { name: /^1 Position auswählen/ }),
     )
     expect(button).toBeEnabled()
 
@@ -129,7 +129,7 @@ describe('HistorieUmbuchungDrawer', () => {
     await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
 
     await user.click(
-      screen.getByRole('button', { name: /Alle 1 Positionen auswählen/ }),
+      screen.getByRole('button', { name: /^1 Position auswählen/ }),
     )
     expect(button).toBeEnabled()
 
@@ -157,7 +157,7 @@ describe('HistorieUmbuchungDrawer', () => {
 
     // Positionen gewählt, aber Ziel-Tisch fehlt: der Grund wechselt.
     await user.click(
-      screen.getByRole('button', { name: /Alle 1 Positionen auswählen/ }),
+      screen.getByRole('button', { name: /^1 Position auswählen/ }),
     )
     expect(screen.queryByText('Positionen auswählen')).not.toBeInTheDocument()
     expect(screen.getByText('Ziel-Tisch wählen')).toBeVisible()
@@ -178,7 +178,7 @@ describe('HistorieUmbuchungDrawer', () => {
       'Gast gewechselt',
     )
     await user.click(
-      screen.getByRole('button', { name: /Alle 1 Positionen auswählen/ }),
+      screen.getByRole('button', { name: /^1 Position auswählen/ }),
     )
     await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
     await user.click(
@@ -192,5 +192,28 @@ describe('HistorieUmbuchungDrawer', () => {
         benutzerKommentar: 'Gast gewechselt',
       }),
     )
+  })
+
+  it('beschriftet den Sammel-Button bei mehreren Positionen im Plural', () => {
+    const zweite: Position = {
+      ...position,
+      positionId: '00000000-0000-0000-0000-000000000002',
+      produktName: 'Pommes',
+      einzelpreisCents: 250,
+      menge: 1,
+    }
+    render(
+      <HistorieUmbuchungDrawer
+        backend={{ bestellungUmbuchen: vi.fn().mockResolvedValue(undefined) }}
+        tisch={tisch}
+        quelle={{ ...quelle, umbuchbarePositionen: [position, zweite] }}
+        onClose={vi.fn()}
+        onBestellungUmgebucht={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.getByRole('button', { name: /^Alle 2 Positionen auswählen/ }),
+    ).toBeInTheDocument()
   })
 })

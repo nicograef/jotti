@@ -52,8 +52,9 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
     await expect(ausfuehren).toBeDisabled()
 
     // „Alle auswählen" übernimmt die volle umbuchbare Menge aller Positionen.
+    // Der Button beschriftet den Numerus korrekt: „1 Position" bzw. „N Positionen".
     await drawer
-      .getByRole('button', { name: /Alle \d+ Positionen auswählen/ })
+      .getByRole('button', { name: /Position(?:en)? auswählen/ })
       .click()
 
     // Optionales Benutzerkommentar erfassen (ergänzt den Richtungs-Autotext).

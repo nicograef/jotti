@@ -17,7 +17,11 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
-import { formatCents, formatRelativeTime } from '@/lib/utils'
+import {
+  formatAlleAuswaehlenLabel,
+  formatCents,
+  formatRelativeTime,
+} from '@/lib/utils'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
 import { useAktiveTische } from '../../table/hooks'
@@ -165,7 +169,10 @@ export function HistorieUmbuchungDrawer({
                 <CircleCheck className="size-5" />
                 {alleVollAusgewaehlt
                   ? 'Auswahl aufheben'
-                  : `Alle ${positionen.length.toString()} Positionen auswählen · ${formatCents(umbuchbarGesamt)}\u00A0€`}
+                  : formatAlleAuswaehlenLabel(
+                      positionen.length,
+                      umbuchbarGesamt,
+                    )}
               </button>
             </div>
           )}
