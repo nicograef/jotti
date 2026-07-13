@@ -390,9 +390,9 @@ Einträgen immer erreichbar bleibt. Microcopy dieses Bereichs kommt aus Phase 6.
 
 ### Acceptance criteria
 
-- [ ] Die Fehl-Bon-Liste ist höhenbegrenzt und scrollbar.
-- [ ] Bei vielen Einträgen bleibt die Stationskonfiguration darunter ohne Scrollen durch die gesamte Liste erreichbar.
-- [ ] Bei wenigen Einträgen entsteht kein leerer/abgeschnittener Eindruck (Höhe passt sich an bzw. Cap greift erst über der Schwelle).
+- [x] Die Fehl-Bon-Liste ist höhenbegrenzt und scrollbar.
+- [x] Bei vielen Einträgen bleibt die Stationskonfiguration darunter ohne Scrollen durch die gesamte Liste erreichbar.
+- [x] Bei wenigen Einträgen entsteht kein leerer/abgeschnittener Eindruck (Höhe passt sich an bzw. Cap greift erst über der Schwelle).
 
 ---
 

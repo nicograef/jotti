@@ -143,6 +143,30 @@ describe('DruckstationConfigPage — Alarm-Karte', () => {
     ).toBeInTheDocument()
   })
 
+  it('begrenzt die Fehl-Bon-Liste in der Höhe und macht sie scrollbar, ohne die Aktionen darunter zu verdrängen', () => {
+    fehlgeschlageneState.druckauftraege = Array.from({ length: 20 }, (_, i) =>
+      makeAuftrag(i + 1),
+    )
+    const { container } = render(<DruckstationConfigPage />)
+
+    // Genau ein Scrollbereich (die Liste selbst); höhenbegrenzt via max-h.
+    const scrollbereiche = container.querySelectorAll(
+      '[class*="overflow-y-auto"]',
+    )
+    expect(scrollbereiche).toHaveLength(1)
+    const liste = scrollbereiche[0]
+    expect(liste.className).toMatch(/max-h-/)
+
+    // Alle Zeilen bleiben im DOM (nur visuell gekappt), und die
+    // Sammel-Aktion darunter ist weiterhin erreichbar.
+    expect(
+      screen.getAllByRole('button', { name: 'Nochmal drucken' }),
+    ).toHaveLength(20)
+    expect(
+      screen.getByRole('button', { name: 'Alle verwerfen' }),
+    ).toBeInTheDocument()
+  })
+
   it('zeigt ohne fehlgeschlagene Aufträge keine Alarm-Karte', () => {
     fehlgeschlageneState.druckauftraege = []
     render(<DruckstationConfigPage />)
