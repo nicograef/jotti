@@ -43,6 +43,10 @@
   /* Headings/Wortmarke: Space Grotesk über die Utility `font-brand`. */
   --font-brand: var(--font-heading);
 
+  /* Header-Breakpoint aus dem Handoff (860px): Desktop-Nav ab `nav:`,
+     Burger-Menü darunter (`max-nav:`/`nav:hidden`). */
+  --breakpoint-nav: 53.75rem;
+
   --color-background: var(--c-background);
   --color-foreground: var(--c-foreground);
   --color-card: var(--c-card);
@@ -64,8 +68,8 @@
 @layer base {
   html {
     scroll-behavior: smooth;
-    /* Sticky-Header inkl. Beta-Banner darüber: Anker nicht verdecken. */
-    scroll-padding-top: 7rem;
+    /* Sticky-Header (h-16 = 4rem): Anker nicht verdecken. */
+    scroll-padding-top: 5rem;
   }
 
   ::selection {

@@ -1,4 +1,5 @@
 // @ts-check
+import react from '@astrojs/react'
 import starlight from '@astrojs/starlight'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
@@ -20,6 +21,10 @@ export default defineConfig({
     remarkPlugins: [[remarkDocLinks, { docsDir, repoBaseUrl }]],
   },
   integrations: [
+    // React-Islands (ThemeToggle, MobileNav, …). Zusammen mit
+    // vite.build.assetsInlineLimit: 0 liefert Astro die Hydration-Skripte nativ
+    // als externe Dateien aus — kein Inline-Skript, das die Produktiv-CSP bräche.
+    react(),
     starlight({
       title: 'jotti',
       // ThemeProvider-Override: ersetzt Starlights Inline-Theme-Init durch das
@@ -136,5 +141,8 @@ export default defineConfig({
   ],
   vite: {
     plugins: [tailwindcss()],
+    // Kein Skript-Inlining: erzwingt externe Skript-Dateien, damit die
+    // Produktiv-CSP (`script-src 'self'`, kein `unsafe-inline`) greift.
+    build: { assetsInlineLimit: 0 },
   },
 })
