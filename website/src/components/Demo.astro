@@ -1,0 +1,19 @@
+---
+import LiveDemo from './LiveDemo.tsx'
+
+// Live-Demo-Sektion der Landing (Handoff-Prototyp, #demo). Dünner statischer
+// Wrapper (Sektionsrahmen, Hintergrund, Container) um die LiveDemo-Island;
+// die gesamte interaktive Darstellung — inklusive der linken Erklärspalte mit
+// dem „Demo neu abspielen"-Button — liegt in der Island, weil der Button den
+// Insel-Zustand steuert. Direktive client:visible: die Sektion liegt unter dem
+// Fold, und die Auto-Demo soll ohnehin erst beim Hereinscrollen starten.
+---
+
+<section
+  id="demo"
+  class="border-y border-card-border bg-surface-alt py-16 sm:py-24"
+>
+  <div class="reveal mx-auto max-w-6xl px-6">
+    <LiveDemo client:visible />
+  </div>
+</section>

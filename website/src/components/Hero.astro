@@ -11,11 +11,10 @@ import tischBestellen from '../assets/screenshots/tisch-bestellen.png'
 // Beta-Kommunikation: übernimmt das Beta-Badge vom entfernten Header-Banner.
 //
 // CTA-Übergang: Der Prototyp zeigt zwei CTAs — primär „Für Verein anfragen"
-// (Ziel /fuer-vereine) und sekundär „Live-Demo ansehen" (Ziel #demo). Beide
-// Ziele existieren noch nicht: /fuer-vereine kommt in Phase 8, #demo in
-// Phase 5. Nach der Übergangsregel des Plans (keine toten Links) zeigt der
-// primäre CTA übergangsweise auf #download (wie der Header-CTA) und der
-// Demo-CTA wird erst in Phase 5 mit seiner Sektion eingehängt.
+// (Ziel /fuer-vereine) und sekundär „Live-Demo ansehen" (Ziel #demo). Der
+// primäre CTA zeigt bis Phase 8 übergangsweise auf #download (wie der
+// Header-CTA); der Demo-CTA ist ab Phase 5 auf die nun existierende
+// #demo-Sektion eingehängt.
 //
 // Phone-Screen: bis Phase 9 dient der heutige helle Screenshot als
 // Übergangsvariante für beide Themes; theme-abhängige Aufnahmen folgen dort.
@@ -54,6 +53,10 @@ import tischBestellen from '../assets/screenshots/tisch-bestellen.png'
         <a href="/#download" class="btn btn-primary">
           Für Verein anfragen
           <span aria-hidden="true">→</span>
+        </a>
+        <a href="/#demo" class="btn btn-ghost">
+          <span aria-hidden="true">▶</span>
+          Live-Demo ansehen
         </a>
       </div>
 
