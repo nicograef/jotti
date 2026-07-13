@@ -18,17 +18,21 @@ test.describe('Admin lädt den DSFinV-K-Export herunter', () => {
     await anmelden(page, zugangsdaten.admin)
 
     await page.goto('/admin/kassenberichte')
-    await expect(page.getByRole('heading', { name: 'Kassenberichte' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Berichte & Export' }),
+    ).toBeVisible()
 
     // Eine abgeschlossene Kassensitzung wählen (Seed: Freitag/Samstag sind
-    // abgeschlossen, Sonntag ist die laufende Sitzung).
-    const kassensitzungFilter = page.getByRole('combobox').first()
-    await kassensitzungFilter.click()
-    await page.getByRole('option', { name: /Sommerfest 26 Samstag/ }).click()
-    await expect(kassensitzungFilter).toContainText('Sommerfest 26 Samstag')
+    // abgeschlossen, Sonntag ist die laufende Sitzung). Die Sitzungsliste ist
+    // eine Spalte wählbarer Karten.
+    await page
+      .getByRole('button', { name: /Sommerfest 26 Samstag/ })
+      .click()
 
     const downloadPromise = page.waitForEvent('download')
-    await page.getByRole('button', { name: 'DSFinV-K-Export' }).click()
+    await page
+      .getByRole('button', { name: 'Archiv herunterladen (ZIP)' })
+      .click()
     const download = await downloadPromise
 
     await expect(page.getByText('DSFinV-K-Archiv heruntergeladen.')).toBeVisible()

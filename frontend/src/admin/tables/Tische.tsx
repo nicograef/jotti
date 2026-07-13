@@ -4,7 +4,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import { HinweisKarte } from '../components/HinweisKarte'
-import { type Tisch, TischStatus } from './Tisch'
+import { type Tisch } from './Tisch'
 import type { TischBackend } from './TischBackend'
 import { gruppiereTische } from './tischGrouping'
 import { TischItem } from './TischItem'
@@ -14,7 +14,7 @@ interface TischeProps {
   backend: Pick<TischBackend, 'activateTisch' | 'deactivateTisch'>
   tische: Tisch[]
   onEdit: (tischId: number) => void
-  onStatusChange: (tischId: number, status: TischStatus) => void
+  onStatusChange: () => void
 }
 
 export function Tische(props: TischeProps) {
@@ -30,14 +30,14 @@ export function Tische(props: TischeProps) {
   const activateTisch = async (tischId: number) => {
     await runActivate(async () => {
       await props.backend.activateTisch(tischId)
-      props.onStatusChange(tischId, TischStatus.ACTIVE)
+      props.onStatusChange()
     })
   }
 
   const deactivateTisch = async (tischId: number) => {
     await runDeactivate(async () => {
       await props.backend.deactivateTisch(tischId)
-      props.onStatusChange(tischId, TischStatus.INACTIVE)
+      props.onStatusChange()
     })
   }
 

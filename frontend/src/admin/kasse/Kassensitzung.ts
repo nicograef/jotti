@@ -15,7 +15,8 @@ export const GeldtransitRichtungSchema = z.enum([
 export const KassensitzungStatus = {
   OFFEN: 'offen',
   // Transienter Barrierestatus, den KasseAbschliessen hält (Saldo-Prüfung,
-  // Reporting, TSE-Signierung). Erstwertig, nicht dasselbe wie abgeschlossen.
+  // Reporting, TSE-Signierung). Ein eigenständiger Wert, nicht dasselbe wie
+  // abgeschlossen.
   WIRD_ABGESCHLOSSEN: 'wird_abgeschlossen',
   ABGESCHLOSSEN: 'abgeschlossen',
 } as const
@@ -47,6 +48,11 @@ export const BetragCentsSchema = z
   .number()
   .int()
   .gte(0, { message: 'Betrag muss mindestens 0 Cent sein.' })
+
+export const KommentarSchema = z
+  .string()
+  .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' })
+  .max(200, { message: 'Kommentar darf maximal 200 Zeichen lang sein.' })
 
 // Canonical Kassensitzung record (zNr, datum, bezeichnung, status). Reporting
 // re-exports this so both areas share one definition.

@@ -62,12 +62,6 @@ export const UmsatzSteuersatzSchema = z.object({
 })
 export type UmsatzSteuersatz = z.infer<typeof UmsatzSteuersatzSchema>
 
-export {
-  type Kassensitzung,
-  KassensitzungSchema,
-  kassensitzungStatusLabel,
-} from '@/admin/kasse/Kassensitzung'
-
 // AbgeschlosseneSitzung ist ein Eintrag der Kassenberichte-Sitzungsliste: die
 // abgeschlossene Kassensitzung mit Gesamtumsatz und Abschlusszeitpunkt aus dem
 // Tagesabschluss-Event. Status entfällt (alle Einträge sind abgeschlossen).

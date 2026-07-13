@@ -1,5 +1,5 @@
-// Admin-Auswertungen zeigen den eingefrorenen Username, ergaenzt um den live
-// aufgeloesten Klarnamen: "username (Klarname)". Fehlt der Klarname, nur Username.
+// Admin-Auswertungen zeigen den eingefrorenen Username, ergänzt um den live
+// aufgelösten Klarnamen: "username (Klarname)". Fehlt der Klarname, nur Username.
 export function formatBediener(userName: string, name: string): string {
   return name ? `${userName} (${name})` : userName
 }

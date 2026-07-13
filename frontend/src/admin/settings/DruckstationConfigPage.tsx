@@ -28,24 +28,35 @@ import {
   formatDruckauftragReferenz,
   hatBonmodus,
   type Kategorie,
+  KATEGORIE_LABEL,
   validateDruckerIp,
 } from './DruckstationBackend'
 import { useDruckstationen, useFehlgeschlageneDruckauftraege } from './hooks'
 
-// Kurzbeschreibung und ein einprägsames Label je Station (Handoff 1g).
+// Kurzbeschreibung und Label je Station (Handoff 1g); das Label kommt aus dem
+// geteilten KATEGORIE_LABEL des Backends (Single Source of Truth).
 const KATEGORIE_INFO: Record<
   Kategorie,
   { label: string; beschreibung: string }
 > = {
-  essen: { label: 'Essen', beschreibung: 'Bons für die Essensausgabe' },
-  getraenk: { label: 'Getränk', beschreibung: 'Bons für den Ausschank' },
+  essen: {
+    label: KATEGORIE_LABEL.essen,
+    beschreibung: 'Bons für die Essensausgabe',
+  },
+  getraenk: {
+    label: KATEGORIE_LABEL.getraenk,
+    beschreibung: 'Bons für den Ausschank',
+  },
   sonstiges: {
-    label: 'Sonstiges',
+    label: KATEGORIE_LABEL.sonstiges,
     beschreibung: 'Bons für sonstige Positionen',
   },
-  kassenbeleg: { label: 'Kassenbeleg', beschreibung: 'Beleg für Gäste' },
+  kassenbeleg: {
+    label: KATEGORIE_LABEL.kassenbeleg,
+    beschreibung: 'Beleg für Gäste',
+  },
   abholbon: {
-    label: 'Abholbon',
+    label: KATEGORIE_LABEL.abholbon,
     beschreibung: 'Abholnummern beim Direktverkauf',
   },
 }
