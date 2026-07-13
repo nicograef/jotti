@@ -1,0 +1,97 @@
+---
+import { Image } from 'astro:assets'
+
+import tischBestellen from '../assets/screenshots/tisch-bestellen.png'
+
+// Hero der Landing (Handoff-Prototyp docs/prds/design_handoff_jotti_website).
+// Statische Astro-Sektion ohne client:-Direktive. Der Spektral-Verlauf ist
+// tragendes Markenelement (ADR 05); Bewegung ist Progressive Enhancement und
+// unter prefers-reduced-motion neutralisiert (siehe landing.css).
+//
+// Beta-Kommunikation: übernimmt das Beta-Badge vom entfernten Header-Banner.
+//
+// CTA-Übergang: Der Prototyp zeigt zwei CTAs — primär „Für Verein anfragen"
+// (Ziel /fuer-vereine) und sekundär „Live-Demo ansehen" (Ziel #demo). Beide
+// Ziele existieren noch nicht: /fuer-vereine kommt in Phase 8, #demo in
+// Phase 5. Nach der Übergangsregel des Plans (keine toten Links) zeigt der
+// primäre CTA übergangsweise auf #download (wie der Header-CTA) und der
+// Demo-CTA wird erst in Phase 5 mit seiner Sektion eingehängt.
+//
+// Phone-Screen: bis Phase 9 dient der heutige helle Screenshot als
+// Übergangsvariante für beide Themes; theme-abhängige Aufnahmen folgen dort.
+---
+
+<section class="relative overflow-hidden">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div
+    class="relative mx-auto grid max-w-6xl items-center gap-10 px-6 pt-14 pb-10 nav:grid-cols-[1.05fr_0.95fr] nav:pt-[76px]"
+  >
+    {/* Textspalte */}
+    <div class="relative z-10">
+      <p
+        class="inline-flex items-center gap-2 rounded-full border border-card-border bg-card py-1.5 pr-3.5 pl-2 text-[0.78rem] font-semibold text-muted shadow-md"
+      >
+        <span
+          class="inline-block h-2 w-2 rounded-full"
+          style="background: var(--spectral); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sp-teal) 30%, transparent);"
+          aria-hidden="true"></span>
+        Beta 1.0 · Kostenlos für Vereine
+      </p>
+
+      <h1
+        class="font-brand mt-5 text-[length:var(--fs-h1)] leading-[1.02] font-bold tracking-[-0.03em]"
+      >
+        Das Kassensystem fürs <span class="spectral-text">Vereinsfest.</span>
+      </h1>
+
+      <p class="mt-5 max-w-[30em] text-[1.0625rem] leading-relaxed text-muted">
+        Deine Helfer:innen kassieren am eigenen Handy — Bestellung, Zahlung,
+        Storno, alles pro Tisch, alles im Browser. Kostenlos, self-hosted und
+        mit fiskalischen Bausteinen für die KassenSichV.
+      </p>
+
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href="/#download" class="btn btn-primary">
+          Für Verein anfragen
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
+
+      <ul
+        class="mt-9 flex flex-wrap gap-x-7 gap-y-3 text-sm font-medium text-muted"
+      >
+        <li class="inline-flex items-center gap-2">
+          <span class="text-[var(--sp-green)]" aria-hidden="true">✓</span>
+          0 € Softwarekosten
+        </li>
+        <li class="inline-flex items-center gap-2">
+          <span class="text-[var(--sp-teal)]" aria-hidden="true">✓</span>
+          Keine Hardware-Bindung
+        </li>
+        <li class="inline-flex items-center gap-2">
+          <span class="text-[var(--sp-blue)]" aria-hidden="true">✓</span>
+          BYOD — eigenes Smartphone
+        </li>
+      </ul>
+    </div>
+
+    {/* Telefonspalte */}
+    <div class="relative flex min-h-[520px] items-center justify-center">
+      <div class="hero-orb hero-orb-a" aria-hidden="true"></div>
+      <div class="hero-orb hero-orb-b" aria-hidden="true"></div>
+      <div class="hero-floor" aria-hidden="true"></div>
+      <div class="hero-phone">
+        <div class="hero-phone-notch" aria-hidden="true"></div>
+        <div class="hero-phone-screen">
+          <Image
+            src={tischBestellen}
+            alt="jotti-Bestellansicht auf dem Smartphone: die aufgeklappte Produktkategorie „Salat“ mit Mengen-Steppern und die grüne Leiste „Bestellung überprüfen“ über 14,50 €."
+            widths={[276, 552]}
+            sizes="276px"
+            loading="eager"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
