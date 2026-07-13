@@ -102,7 +102,7 @@ export function KassenberichtePage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="mt-4 grid gap-5 md:grid-cols-[280px_1fr]">
+        <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-[280px_1fr]">
           <div className="print:hidden">
             <SitzungsListe
               sitzungen={kassensitzungen}

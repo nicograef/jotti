@@ -128,7 +128,7 @@ function TischGruppe({
       <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {titel} · {tische.length}
       </h2>
-      <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
         {tische.map((state) => (
           <MeinTischCard key={state.tischId} state={state} />
         ))}
@@ -139,7 +139,7 @@ function TischGruppe({
 
 function TischListSkeleton() {
   return (
-    <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
       {Array.from({ length: 4 }).map((_, index) => (
         <div
           key={`skeleton-${index.toString()}`}

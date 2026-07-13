@@ -151,7 +151,7 @@ export function LiveReportingSection({
       </div>
 
       {/* Offene Tische und Team nebeneinander */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-xl border p-5">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-base font-semibold">Offene Tische</h2>

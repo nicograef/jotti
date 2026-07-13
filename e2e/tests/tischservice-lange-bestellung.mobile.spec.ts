@@ -1,9 +1,10 @@
-import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 import {
+  LANGE_BESTELLUNG_POSITIONEN,
+  nimmLangeBestellungAuf,
   oeffneHistorienDetail,
   oeffneTisch,
   waehleAlleVollAus,
@@ -16,40 +17,6 @@ import {
 // sie liegen im nicht-scrollenden DrawerFooter, nur die Positionsliste (Body)
 // scrollt. Ursprung: Bug 2 aus dem Praxistest 2026-07-09 (Bestellen/Kassieren),
 // mit der UI-Politur (Phase 1) auf Stornierung und Umbuchung ausgeweitet.
-
-// 9 unterschiedliche Varianten → 9 Positionen im Beleg (Summe 52,00 €). Die
-// Variantennamen sind über alle gewählten Produkte hinweg eindeutig, damit
-// waehleVariante jede Zeile ohne Mehrdeutigkeit trifft.
-const POSITIONEN: [produkt: string, variante: string][] = [
-  ['Bratwurst', 'Normal'],
-  ['Bratwurst', 'XXL'],
-  ['Bratwurst', 'Currywurst'],
-  ['Pommes', 'Klein'],
-  ['Pommes', 'Groß'],
-  ['Flammkuchen', 'Classic'],
-  ['Flammkuchen', 'Speck & Zwiebel'],
-  ['Flammkuchen', 'Mediterran'],
-  ['Tagesgericht', 'Fr: Schnitzel mit Pommes'],
-]
-
-// Nimmt auf dem aktuell offenen Tisch eine Bestellung mit allen POSITIONEN in
-// einem Vorgang auf — Grundlage für die langen Listen in allen drei Drawern.
-async function nimmLangeBestellungAuf(page: Page): Promise<void> {
-  await page.getByRole('tab', { name: 'Bestellen' }).click()
-  for (const [produkt, variante] of POSITIONEN) {
-    await waehleVariante(page, produkt, variante)
-  }
-
-  await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()
-  const bestellDrawer = page.getByRole('dialog')
-  await expect(bestellDrawer.getByText('Flammkuchen Mediterran')).toBeVisible()
-  await bestellDrawer
-    .getByRole('button', { name: 'Bestellung aufnehmen' })
-    .click()
-  await expect(
-    page.getByText('Bestellung wurde aufgenommen.').first(),
-  ).toBeVisible()
-}
 
 test.describe('Drawer-Sticky-Footer bei langer Positionsliste', () => {
   // „Tisch 1" startet im Demo-Drehbuch ausgeglichen (Saldo 0,00 €) und ohne
@@ -66,7 +33,7 @@ test.describe('Drawer-Sticky-Footer bei langer Positionsliste', () => {
     // Bestell-Drawer: Beleg zeigt alle Positionen, Gesamtsumme und Buttons
     // bleiben trotz langer Liste im Viewport.
     await page.getByRole('tab', { name: 'Bestellen' }).click()
-    for (const [produkt, variante] of POSITIONEN) {
+    for (const [produkt, variante] of LANGE_BESTELLUNG_POSITIONEN) {
       await waehleVariante(page, produkt, variante)
     }
     await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()

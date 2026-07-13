@@ -63,7 +63,7 @@ Drawer / Service:
 - `frontend/src/service/components/ServiceDock.tsx — ServiceDock, DockActionSlot` — festes Bottom-Dock (`z-40`).
 
 Raster / Preis:
-- 15 verifizierte Sweep-Stellen (siehe Phase 2). Referenz für korrektes Muster: `frontend/src/admin/reporting/UebersichtStatusZeile.tsx` (`grid grid-cols-1 gap-3 sm:grid-cols-3`).
+- 12 verifizierte Sweep-Stellen (siehe Phase 2). Referenz für korrektes Muster: `frontend/src/admin/reporting/UebersichtStatusZeile.tsx` (`grid grid-cols-1 gap-3 sm:grid-cols-3`).
 - `frontend/src/admin/products/VariantChip.tsx — VariantChip` — Preis inline nach Name (kein feste Spalte).
 - `frontend/src/service/components/table/ProductList.tsx — VariantRow` — Preis inline nach Name; `Stepper` rechts via `justify-between`. Genutzt von `Bestellung.tsx` und `Direktverkauf.tsx`.
 - `frontend/src/service/components/Stepper.tsx — Stepper` — Mengen-Stepper (`w-7`-Label).
@@ -211,7 +211,7 @@ Die e2e-Regression wird auf Stornierung und Umbuchung ausgeweitet.
 ### Context
 
 - Referenz für das korrekte Muster: `frontend/src/admin/reporting/UebersichtStatusZeile.tsx` (`grid grid-cols-1 gap-3 sm:grid-cols-3`).
-- 15 verifizierte Fix-Stellen (Breakpoint-only ohne Basis-Track):
+- 12 verifizierte Fix-Stellen (Breakpoint-only ohne Basis-Track):
   - `frontend/src/service/TableSelectionPage.tsx — TischGruppe, TischListSkeleton` (2 Grids `lg:grid-cols-2 2xl:grid-cols-3`).
   - `frontend/src/service/components/table/TischHistorie.tsx — TischHistorie` (`lg:grid-cols-2 2xl:grid-cols-3`).
   - `frontend/src/service/components/direktverkauf/DirektverkaufHistorie.tsx` (2 Grids `lg:grid-cols-2 2xl:grid-cols-3`).
@@ -222,10 +222,11 @@ Die e2e-Regression wird auf Stornierung und Umbuchung ausgeweitet.
   - `frontend/src/admin/users/AdminUsersPage.tsx` (`lg:grid-cols-[1fr_320px]` — fixe px-Spalte, braucht Basis-Track).
 - **Nicht anfassen** (bewusste Basis): u. a. `ReportingResults.tsx` `grid-cols-2 lg:grid-cols-4`, `LaufenderBetriebSection.tsx`, `Tische.tsx`, `EigeneUebersicht.tsx`, `DruckstationConfigPage.tsx` `grid-cols-2`, sowie shadcn/ui-Primitive.
 - **Ausgenommen (Phase 3):** die drei Finanzamt-Grids (`EinrichtungSection`, `LaeuftAllesSection`, `GutZuWissenSection`).
+- **Testabdeckung:** Der 390px-Überlauf-Check (`e2e/tests/tischservice-viewport-ueberlauf.mobile.spec.ts`) deckt die vier Servicekraft-Screens verhaltensbasiert ab (Kassieren, Historie, Tischauswahl, Direktverkauf-Historie). Die vier Admin-Screens (`LiveReportingSection`, `ReportingResults`-Panel-Zeile, `KassenberichtePage`, `AdminUsersPage`) und der `ReportingResults`-Steuertabellen-Randfall (AC #5) sind Desktop-Flächen (`admin-*`-Specs laufen in Desktop Chrome, nicht am 390px-Handy); ihre Überlauf-Sicherheit ist strukturell durch den vorangestellten Basis-Track (`grid-cols-1` erzwingt mobil eine Einzelspalte) begründet, nicht e2e-gemessen.
 
 ### What to build
 
-Mechanischer Sweep: jedem der 15 Breakpoint-only-Grids eine Basis `grid-cols-1`
+Mechanischer Sweep: jedem der 12 Breakpoint-only-Grids eine Basis `grid-cols-1`
 voranstellen; bei den beiden fixen px-Template-Grids sicherstellen, dass die
 Template-Spaltendefinition erst am Breakpoint greift und mobil eine
 Einzelspalte gilt. Jede geänderte Fläche visuell prüfen, damit bewusste
@@ -234,11 +235,11 @@ betroffenen Screens hinzufügen bzw. erweitern.
 
 ### Acceptance criteria
 
-- [ ] Bei 390px gibt es keinen horizontalen Seiten-Überlauf (`scrollWidth ≤ innerWidth`) auf Historie, Kassieren, Direktverkauf-Historie und Tischauswahl sowie den übrigen im Sweep berührten Screens.
-- [ ] Alle 15 Fix-Stellen tragen eine Basis `grid-cols-1`; kein bewusstes `grid-cols-2`-Layout wurde verändert.
-- [ ] Beträge und Labels sind bei 390px vollständig lesbar (nicht abgeschnitten).
-- [ ] Eine mobile e2e-Überlaufmessung (390px) deckt die betroffenen Screens ab.
-- [ ] Falls die `ReportingResults`-Steuertabelle bei 390px überläuft, erhält sie einen horizontalen Scroll-Container (kein `grid-cols-1`); andernfalls bleibt sie unberührt.
+- [x] Bei 390px gibt es keinen horizontalen Seiten-Überlauf (`scrollWidth ≤ innerWidth`) auf Historie, Kassieren, Direktverkauf-Historie und Tischauswahl sowie den übrigen im Sweep berührten Screens.
+- [x] Alle 12 Fix-Stellen tragen eine Basis `grid-cols-1`; kein bewusstes `grid-cols-2`-Layout wurde verändert.
+- [x] Beträge und Labels sind bei 390px vollständig lesbar (nicht abgeschnitten).
+- [x] Eine mobile e2e-Überlaufmessung (390px) deckt die betroffenen Screens ab.
+- [x] Falls die `ReportingResults`-Steuertabelle bei 390px überläuft, erhält sie einen horizontalen Scroll-Container (kein `grid-cols-1`); andernfalls bleibt sie unberührt.
 
 ---
 

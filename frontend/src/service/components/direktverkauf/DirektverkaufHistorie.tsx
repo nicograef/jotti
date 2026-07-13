@@ -90,7 +90,7 @@ export function DirektverkaufHistorie({
 
   if (historieLoading) {
     return (
-      <div className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+      <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
         {Array.from({ length: 6 }).map((_, index) => (
           // eslint-disable-next-line react-x/no-array-index-key
           <HistorieRowSkeleton key={index} />
@@ -109,7 +109,7 @@ export function DirektverkaufHistorie({
 
   return (
     <>
-      <div className="grid gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+      <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
         {historie.map((verkauf) => (
           <button
             key={verkauf.verkaufId}
