@@ -458,17 +458,17 @@ ADR-Index verlinkt.
 
 ### Acceptance criteria
 
-- [ ] Hero entspricht dem Handoff in Hell und Dunkel (Referenz: Bundle
+- [x] Hero entspricht dem Handoff in Hell und Dunkel (Referenz: Bundle
       `screenshots/01-light.png`/`01-dark.png`); Phone-Rahmen ist reines CSS.
       Der Bildinhalt des Phones bleibt bis Phase 9 die helle
       Übergangsvariante und wird erst dort dunkel abgenommen; der Screenshot
       trägt einen beschreibenden Alt-Text.
-- [ ] H1-Verlauf, Blobs und Scroll-Reveal laufen dort, wo der Browser sie
+- [x] H1-Verlauf, Blobs und Scroll-Reveal laufen dort, wo der Browser sie
       unterstützt; ohne Unterstützung und unter `prefers-reduced-motion` sind
       alle Inhalte statisch und vollständig sichtbar.
-- [ ] Beta-Kommunikation über das Hero-Badge vorhanden.
-- [ ] ADR 05 liegt vor und ist im ADR-Index verlinkt.
-- [ ] `make website-check` grün; CSP-Durchlauf weiterhin ohne Verstöße.
+- [x] Beta-Kommunikation über das Hero-Badge vorhanden.
+- [x] ADR 05 liegt vor und ist im ADR-Index verlinkt.
+- [x] `make website-check` grün; CSP-Durchlauf weiterhin ohne Verstöße.
 
 ---
 

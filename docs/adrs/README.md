@@ -17,3 +17,4 @@ Entscheidung, Konsequenzen).
 | 01  | [Ausgabe-Bestätigung entfernen](01_ausgabe-bestaetigen.md) | akzeptiert |
 | 02  | [Umsatz pro Tisch entfernen](02_umsatz-pro-tisch-entfernen.md) | akzeptiert |
 | 03  | [Drawer auf Radix Dialog statt vaul](03_drawer-radix-statt-vaul.md) | akzeptiert |
+| 05  | [Spektral-Branding auf der Website](05_spektral-branding-website.md) | akzeptiert |

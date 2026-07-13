@@ -77,15 +77,6 @@
   --brand-green-deep: #04231a;
   --brand-font: var(--font-body);
   --brand-spectrum: var(--spectral);
-  /* Leiser Spektral-Schimmer für großflächige Hintergründe (alter Hero). */
-  --brand-spectrum-wash: linear-gradient(
-    105deg,
-    color-mix(in srgb, var(--sp-red) 10%, transparent),
-    color-mix(in srgb, var(--sp-orange) 7%, transparent),
-    transparent 45%,
-    color-mix(in srgb, var(--sp-blue) 7%, transparent),
-    color-mix(in srgb, var(--sp-violet) 10%, transparent)
-  );
 }
 
 [data-theme='dark'] {
