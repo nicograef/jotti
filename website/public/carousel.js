@@ -2,7 +2,7 @@
 //
 // Bewusst eine statische Datei in public/ (kein gebuendeltes Astro-`<script>`):
 // Die Produktiv-CSP erlaubt nur `script-src 'self'` ohne `'unsafe-inline'`, also
-// werden Inline-Skripte vom Browser blockiert (siehe mobile-nav.js).
+// werden Inline-Skripte vom Browser blockiert (siehe theme-init.js).
 //
 // Das Carousel ist ohne JS voll bedienbar (Scroll-Snap/Wischen). Dieses Skript
 // ergaenzt nur die Pfeil-Buttons und die Punkt-Indikatoren als Komfort.

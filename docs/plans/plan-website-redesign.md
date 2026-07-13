@@ -50,9 +50,12 @@ Durable decisions, die für alle Phasen gelten:
   Build-Integration (`website/src/lib/externalize-inline-scripts.ts`,
   kommentar-sicher, nur ausführbare Skripttypen) diese Shell-Skripte nach
   `_astro/` — die automatisierte Form von Fallback-Stufe (1), CSP und
-  Semantik unverändert. Astros eigene Island-Skripte müssen in Phase 2
-  nativ extern sein (`assetsInlineLimit: 0`), nicht durch den Externalizer
-  gerettet. Phase 2 ist das
+  Semantik unverändert. *Gate-Befund Phase 2:* Astro 6 injiziert seine
+  Hydration-Runtime (`getPrescripts()`) hart als Inline-Skripte außerhalb
+  der Vite-Asset-Pipeline; `assetsInlineLimit: 0` greift dort nicht. Der
+  Externalizer deckt auch diese zwei (deduplizierte) Runtime-Skripte ab und
+  ist damit tragende Säule des Islands-Ansatzes — er darf nicht entfernt
+  werden. Phase 2 ist das
   Machbarkeits-Gate des Islands-Ansatzes; scheitert der Beweis, gilt die
   Fallback-Leiter: (1) das betroffene Skript als externe Datei nach dem
   `public/`-Muster, (2) gezielter `sha256`-Hash für ein einzelnes stabiles
@@ -405,19 +408,19 @@ erst in ihren jeweiligen Phasen neu gebaut.
 
 ### Acceptance criteria
 
-- [ ] Header entspricht dem Handoff (sticky, Blur, Anker-Nav ohne den erst in
+- [x] Header entspricht dem Handoff (sticky, Blur, Anker-Nav ohne den erst in
       Phase 7 folgenden `#faq`-Link, Leitfaden-Link, CTA); Beta-Banner ist
       entfernt; Skip-Link vorhanden und bei Fokus sichtbar.
-- [ ] ThemeToggle wechselt Hell/Dunkel sofort, persistiert und bleibt mit dem
+- [x] ThemeToggle wechselt Hell/Dunkel sofort, persistiert und bleibt mit dem
       Doku-Schalter konsistent (beide Richtungen).
-- [ ] Mobile Navigation als Burger-Menü unter 860px, per Tastatur bedienbar
+- [x] Mobile Navigation als Burger-Menü unter 860px, per Tastatur bedienbar
       (Fokus, Escape, Schließen bei Link-Klick), mit korrektem
       `aria-expanded`.
-- [ ] Das gebaute `dist/`-HTML enthält keine Inline-Skripte; beide Islands
+- [x] Das gebaute `dist/`-HTML enthält keine Inline-Skripte; beide Islands
       hydrieren unter dem Produktiv-CSP-Header ohne Konsolen-Verstöße.
-- [ ] `public/mobile-nav.js` und sein Script-Tag in `Landing.astro` sind
+- [x] `public/mobile-nav.js` und sein Script-Tag in `Landing.astro` sind
       entfernt.
-- [ ] `make website-check` grün.
+- [x] `make website-check` grün.
 
 ---
 
