@@ -51,6 +51,16 @@ test.describe('Kein horizontaler Überlauf der Servicekraft-Screens bei 390px', 
     // Kassieren- und Historien-Listen dieses Tisches mit genug nicht-umbrechendem
     // Text (teils lange Varianten-Namen), dass ein fehlender Basis-Track überliefe.
     await oeffneTisch(page, 'Tisch 3')
+
+    // Bestellen-Tab: die Varianten-Liste (VariantRow) mit teils langen Namen.
+    // Dieser Check ist die 390px-Überlauf-Regression für den Bestellen-Screen
+    // (Akzeptanzkriterium: kein horizontaler Überlauf, keine abgeschnittenen
+    // Preise). Die feste Preis-Spalte selbst (Name flex-1 truncate, Preis
+    // shrink-0) deckt der Unit-Test von VariantNamePreis ab; hier zählt allein
+    // die Seitenbreite.
+    await expect(page.getByText('Fr: Schnitzel mit Pommes')).toBeVisible()
+    await erwarteKeinenHorizontalenUeberlauf(page, 'Bestellen')
+
     await nimmLangeBestellungAuf(page)
 
     // Kassieren-Tab: Positionsliste (Zahlung-Grid) gefüllt.

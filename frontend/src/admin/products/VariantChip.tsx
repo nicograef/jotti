@@ -1,7 +1,8 @@
 import { useState } from 'react'
 
+import { VariantNamePreis } from '@/components/common/VariantNamePreis'
 import { Switch } from '@/components/ui/switch'
-import { cn, formatCents } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'
 import { type Variante, VarianteStatus } from './Produkt'
@@ -36,22 +37,24 @@ export function VariantChip(props: VariantChipProps) {
       >
         <button
           type="button"
-          className="cursor-pointer inline-flex items-center gap-1.5"
+          className="flex min-w-0 cursor-pointer items-center gap-1.5"
           aria-label={`Variante „${props.variant.name}" bearbeiten`}
           onClick={() => {
             setEditOpen(true)
           }}
         >
-          <span>{props.variant.name}</span>
-          <strong className="font-semibold">
-            {formatCents(props.variant.preisCents)} €
-          </strong>
+          <VariantNamePreis
+            name={props.variant.name}
+            preisCents={props.variant.preisCents}
+          />
           {!isActive && (
-            <span className="text-xs uppercase tracking-wide">aus</span>
+            <span className="shrink-0 text-xs uppercase tracking-wide">
+              aus
+            </span>
           )}
         </button>
         <Switch
-          className="cursor-pointer"
+          className="shrink-0 cursor-pointer"
           disabled={props.loading}
           checked={isActive}
           aria-label={
