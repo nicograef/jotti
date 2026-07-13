@@ -1,0 +1,157 @@
+---
+import { Check, ShieldCheck, Server, ArrowRight } from '@lucide/astro'
+
+// Preis-Sektion der Landing (Handoff-Prototyp, #preis). Statische Astro-Sektion:
+// die „Kostenlos. Punkt."-Karte mit Leistungs-Checkliste plus eine ehrliche
+// Fremdkosten-Karte. Icons über @lucide/astro (build-time SVG, kein Client-JS).
+//
+// Erhaltene Inhalte (PRD + Übergangsregel): Die Checkliste trägt „Keine Werbung,
+// kein Tracking"; die laufenden Fremdkosten übernehmen die konkreten Zahlen aus
+// der abgelösten #technik-Kostenliste (jotti-Software 0 €, Cloud-TSE Preis auf
+// Anfrage, Server optional ca. 5 €/Monat) — keine Kostenaussage geht verloren.
+//
+// CTA-Übergang: „Kostenlose Nutzungsvereinbarung anfragen" zeigt bis Phase 8
+// übergangsweise auf #download (wie Header- und Hero-CTA), danach auf
+// /fuer-vereine.
+
+const leistungen = [
+  'Alle Kassenfunktionen',
+  'Unbegrenzt Helfer:innen',
+  'Fiskalische Bausteine',
+  'DSFinV-K-Export',
+  'Self-hosted, deine Daten',
+  'Quellcode einsehbar',
+  'Keine Werbung, kein Tracking',
+]
+
+const fremdkosten = [
+  {
+    Icon: ShieldCheck,
+    accent: 'var(--sp-blue)',
+    titel: 'Cloud-TSE (fiskaly)',
+    preis: 'Preis auf Anfrage',
+    text: 'Gesetzlich vorgeschrieben. Den Vertrag schließt ihr direkt mit fiskaly.',
+  },
+  {
+    Icon: Server,
+    accent: 'var(--sp-violet)',
+    titel: 'Server (optional)',
+    preis: 'ca. 5 €/Monat',
+    text: 'Fürs Vereinsfest reicht ein Windows-Rechner per Doppelklick.',
+  },
+]
+---
+
+<section
+  id="preis"
+  class="border-y border-card-border bg-surface-alt py-16 sm:py-24"
+>
+  <div class="mx-auto max-w-6xl px-6">
+    <div class="reveal mx-auto max-w-[680px] text-center">
+      <p
+        class="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal)] uppercase"
+      >
+        <span
+          class="h-[3px] w-[22px] rounded-sm"
+          style="background: var(--spectral);"
+          aria-hidden="true"></span>
+        Preis
+      </p>
+      <h2
+        class="font-brand mt-3 text-[length:var(--fs-h2)] leading-[1.06] font-bold tracking-[-0.025em]"
+      >
+        Kostenlos. Punkt.
+      </h2>
+      <p class="mx-auto mt-4 max-w-[34em] text-[1.0625rem] leading-relaxed text-muted">
+        Keine Lizenzgebühr, kein Cloud-Abo für jotti, keine Hardware-Bindung. Von
+        einem Entwickler für Vereine gebaut.
+      </p>
+    </div>
+
+    <div
+      class="reveal mx-auto mt-11 grid max-w-[920px] items-start gap-6 nav:grid-cols-[1.4fr_1fr]"
+    >
+      {/* Hauptkarte: Preis + Leistungen */}
+      <div
+        class="relative overflow-hidden rounded-[22px] border border-card-border bg-card p-[34px] shadow-[var(--shadow)]"
+      >
+        <div
+          class="absolute inset-x-0 top-0 h-[6px]"
+          style="background: var(--spectral);"
+          aria-hidden="true"></div>
+        <div class="flex items-baseline gap-2.5">
+          <span
+            class="font-brand text-[64px] leading-none font-bold tracking-[-0.03em]"
+            style="background: var(--spectral); -webkit-background-clip: text; background-clip: text; color: transparent;"
+            >0 €</span
+          >
+          <span class="text-[16px] font-medium text-muted">/ für immer</span>
+        </div>
+        <p class="font-brand mt-[18px] text-[19px] font-semibold">
+          jotti für deinen Verein
+        </p>
+        <ul class="mt-5 grid gap-x-[18px] gap-y-[11px] sm:grid-cols-2">
+          {
+            leistungen.map((punkt) => (
+              <li class="flex items-center gap-[9px] text-[14.5px]">
+                <span
+                  class="shrink-0 text-[var(--sp-green)]"
+                  aria-hidden="true"
+                >
+                  <Check size={17} stroke-width={2.4} />
+                </span>
+                {punkt}
+              </li>
+            ))
+          }
+        </ul>
+        <a
+          href="/#download"
+          class="btn btn-primary mt-[26px] w-full whitespace-normal text-center"
+        >
+          Kostenlose Nutzungsvereinbarung anfragen
+          <ArrowRight size={17} />
+        </a>
+      </div>
+
+      {/* Fremdkosten-Karte: ehrlich, mit konkreten Zahlen */}
+      <div class="rounded-[22px] border border-card-border bg-card p-[28px]">
+        <p class="font-brand text-[16px] font-semibold">Was läuft laufend?</p>
+        <p class="mt-2 mb-[18px] text-[13.5px] leading-[1.5] text-muted">
+          Ehrlich gesagt: jotti ist kostenlos, aber der gesetzeskonforme Betrieb
+          hat kleine Fixkosten — nicht an uns.
+        </p>
+        <div class="flex flex-col gap-3.5">
+          {
+            fremdkosten.map(({ Icon, accent, titel, preis, text }) => (
+              <div class="flex gap-3">
+                <span
+                  class="mt-0.5 shrink-0"
+                  style={{ color: accent }}
+                  aria-hidden="true"
+                >
+                  <Icon size={18} />
+                </span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-baseline justify-between gap-3">
+                    <span class="text-[14px] font-semibold">{titel}</span>
+                    <span class="text-[13px] font-bold whitespace-nowrap text-brand">
+                      {preis}
+                    </span>
+                  </div>
+                  <p class="mt-0.5 text-[12.5px] leading-[1.45] text-muted">
+                    {text}
+                  </p>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+        <p class="mt-[18px] text-[12.5px] leading-[1.5] text-muted">
+          Der Standardweg im Vereinsheim kommt ohne Servermiete aus — der
+          Computer vor Ort genügt.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
