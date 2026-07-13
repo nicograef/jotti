@@ -12,11 +12,12 @@ interface StepperProps {
 }
 
 // Stepper ist der einheitliche 44-px-Mengen-Wähler des Service-Bereichs. Plus
-// ist dauerhaft primär, Minus outline; bei Menge 0 ist Minus deaktiviert und
-// gestrichelt (Icon 25 % Deckkraft). Die Menge in der Mitte hat feste Breite,
-// damit der Zustandswechsel keinen Layout-Shift auslöst. addDisabled deckelt
-// das Plus dort, wo eine Höchstmenge gilt (z. B. die unbezahlte Menge einer
-// Position).
+// ist dauerhaft primär, Minus outline; bei Menge 0 ist Minus regulär deaktiviert
+// (abgeblendet und nicht antippbar wie jeder deaktivierte Outline-Button), damit
+// der deaktivierte Zustand eindeutig ist. Die Menge in der Mitte
+// hat feste Breite, damit der Zustandswechsel keinen Layout-Shift auslöst.
+// addDisabled deckelt das Plus dort, wo eine Höchstmenge gilt (z. B. die
+// unbezahlte Menge einer Position).
 export function Stepper({
   menge,
   onAdd,
@@ -32,7 +33,7 @@ export function Stepper({
       <Button
         size="icon"
         variant="outline"
-        className={`size-11 rounded-full disabled:opacity-100 ${leer ? 'border-dashed' : ''}`}
+        className="size-11 rounded-full"
         aria-label={removeLabel}
         disabled={leer}
         onClick={(e) => {
@@ -40,7 +41,7 @@ export function Stepper({
           onRemove()
         }}
       >
-        <Minus className={leer ? 'opacity-25' : ''} />
+        <Minus />
       </Button>
       <span className="w-7 text-center text-[17px] font-bold tabular-nums">
         {menge}

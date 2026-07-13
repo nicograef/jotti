@@ -42,4 +42,16 @@ describe('ZaehlhilfeDialog', () => {
 
     expect(screen.getByTestId('zaehlhilfe-summe')).toHaveTextContent('0,00 €')
   })
+
+  it('nutzt Text-Felder ohne native Number-Spinner', () => {
+    render(
+      <ZaehlhilfeDialog open onOpenChange={vi.fn()} onUebernehmen={vi.fn()} />,
+    )
+
+    // type="number" zeigt native Spinner-Pfeile; die Stückzahl-Felder sind
+    // deshalb konsistente Text-Felder mit numerischer Tastatur (wie EuroInput).
+    const feld = screen.getByLabelText('50 €')
+    expect(feld).toHaveAttribute('type', 'text')
+    expect(feld).toHaveAttribute('inputmode', 'numeric')
+  })
 })
