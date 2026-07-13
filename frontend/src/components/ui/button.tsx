@@ -21,8 +21,13 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground shadow-xs hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground disabled:opacity-50",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground disabled:opacity-50 dark:hover:bg-muted/50",
+        // Auch deaktivierte destruktive Primäraktionen (z. B. „Stornierung
+        // erteilen") nutzen dasselbe neutrale Disabled-Token wie die Default-
+        // Primäraktion statt einer opacity-50-Abblendung des Rots: Eine gesperrte
+        // Aktion trägt keine destruktive Affordanz und muss im Dark Mode AA
+        // halten. So gibt es ein einziges Disabled-Treatment für Primäraktionen.
         destructive:
-          "bg-destructive/10 text-destructive shadow-xs hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 disabled:opacity-50 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+          "bg-destructive/10 text-destructive shadow-xs hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 disabled:bg-disabled disabled:text-disabled-foreground dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         // Warn: solide Amber-Fläche für die Bestätigung irreversibler, aber
         // routinemäßiger Aktionen (z. B. Kasse abschließen). Signalisiert
         // „irreversibel", nicht „gefährlich" — distinkt von destructive-Rot und
