@@ -505,16 +505,16 @@ Fokus. Auf Mobil einspaltig mit Detail-Karte unterhalb der Tiles.
 
 ### Acceptance criteria
 
-- [ ] Sechs Bereiche mit korrekten Akzentfarben, Icons (Bedeutungen gemäß
+- [x] Sechs Bereiche mit korrekten Akzentfarben, Icons (Bedeutungen gemäß
       Handoff erhalten) und Copy; Referenz `02-light.png`/`02-dark.png`.
-- [ ] Explorer-Copy gegen `docs/anforderungen.md` geprüft: kein Verweis auf
+- [x] Explorer-Copy gegen `docs/anforderungen.md` geprüft: kein Verweis auf
       entfernte Features (insb. keine „Abrechnung pro Tisch"), kein „In
       Entwicklung".
-- [ ] Auswahl per Maus, Touch und Tastatur (Pfeiltasten/Tab gemäß
+- [x] Auswahl per Maus, Touch und Tastatur (Pfeiltasten/Tab gemäß
       ARIA-Pattern); Screenreader-Semantik korrekt.
-- [ ] Mobil (390px) einspaltig ohne horizontalen Überlauf.
-- [ ] Alte Funktionen-Sektion entfernt; Anker `#features` zeigt auf die neue.
-- [ ] `make website-check` grün; Island hydriert unter Produktiv-CSP.
+- [x] Mobil (390px) einspaltig ohne horizontalen Überlauf.
+- [x] Alte Funktionen-Sektion entfernt; Anker `#features` zeigt auf die neue.
+- [x] `make website-check` grün; Island hydriert unter Produktiv-CSP.
 
 ---
 
