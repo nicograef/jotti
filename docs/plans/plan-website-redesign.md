@@ -596,17 +596,17 @@ bleibt bis Phase 7 stehen, damit das Service-Angebot nie unauffindbar ist.
 
 ### Acceptance criteria
 
-- [ ] Vier Sektionen entsprechen dem Handoff (Referenzen `04-light.png`,
+- [x] Vier Sektionen entsprechen dem Handoff (Referenzen `04-light.png`,
       `05-light.png`, `07-light.png`, `08-light.png`), hell und dunkel, mobil
       einspaltig.
-- [ ] Preis-Karte enthält „Keine Werbung, kein Tracking" und die ehrlichen
+- [x] Preis-Karte enthält „Keine Werbung, kein Tracking" und die ehrlichen
       Fremdkosten; keine Kostenaussage geht verloren.
-- [ ] Alt-Sektionen `#fuer-wen`, `#versprechen`, `#so-funktionierts`,
+- [x] Alt-Sektionen `#fuer-wen`, `#versprechen`, `#so-funktionierts`,
       `#compliance`/`#technik` sind entfernt; Nav-Anker zeigen auf die neuen
       Sektionen.
-- [ ] Scroll-Reveal auf den neuen Sektionen; unter `prefers-reduced-motion`
+- [x] Scroll-Reveal auf den neuen Sektionen; unter `prefers-reduced-motion`
       alles statisch sichtbar.
-- [ ] `make website-check` grün.
+- [x] `make website-check` grün.
 
 ---
 

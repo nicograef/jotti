@@ -1,0 +1,109 @@
+---
+import { Check, X } from '@lucide/astro'
+
+// „Für wen"-Sektion der Landing (Handoff-Prototyp, #fuerwen). Statische
+// Astro-Sektion: ehrliche Geeignet/Nicht-geeignet-Gegenüberstellung in zwei
+// Karten. Icons über @lucide/astro (build-time SVG, kein Client-JS).
+// Scroll-Reveal ist Progressive Enhancement (siehe landing.css).
+
+const geeignet = [
+  'Eingetragene Vereine (e.V.), gemeinnützige Organisationen, NPOs',
+  'Vereinsfeste, Sommerfeste, Weihnachtsmärkte, Maihocks, Konzerte',
+  'Ehrenamtliche Teams von 1 bis 30 Helfer:innen',
+  'Bargeld-Betrieb mit integrierten fiskalischen Bausteinen',
+]
+
+const nichtGeeignet = [
+  'Dauerbetrieb wie Restaurants und Cafés',
+  'Kartenzahlung, NFC oder Online-Payment',
+  'Kommerzielle Gastro-Betriebe (ohne separate Lizenz)',
+  'Betrieb ohne eigene TSE-Vereinbarung mit fiskaly',
+]
+---
+
+<section
+  id="fuerwen"
+  class="border-y border-card-border bg-surface-alt py-16 sm:py-24"
+>
+  <div class="mx-auto max-w-6xl px-6">
+    <div class="reveal max-w-[660px]">
+      <p
+        class="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal)] uppercase"
+      >
+        <span
+          class="h-[3px] w-[22px] rounded-sm"
+          style="background: var(--spectral);"
+          aria-hidden="true"></span>
+        Für wen
+      </p>
+      <h2
+        class="font-brand mt-3 text-[length:var(--fs-h2)] leading-[1.06] font-bold tracking-[-0.025em]"
+      >
+        Gemacht für Vereine.<br />Ehrlich über die Grenzen.
+      </h2>
+      <p class="mt-4 text-[1.0625rem] leading-relaxed text-muted">
+        jotti ist bewusst fokussiert. Damit du sofort weißt, ob es passt.
+      </p>
+    </div>
+
+    <div class="reveal mt-10 grid gap-6 md:grid-cols-2">
+      <div
+        class="rounded-[20px] border border-card-border bg-card p-[30px] shadow-[var(--shadow)]"
+      >
+        <div class="flex items-center gap-3">
+          <span
+            class="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--sp-green)]"
+            style="background: color-mix(in srgb, var(--sp-green) 16%, transparent);"
+          >
+            <Check size={22} stroke-width={2.4} />
+          </span>
+          <h3 class="font-brand text-[20px] font-bold">Geeignet für</h3>
+        </div>
+        <ul class="mt-[22px] flex flex-col gap-[13px]">
+          {
+            geeignet.map((punkt) => (
+              <li class="flex gap-[11px] text-[15px] leading-[1.45]">
+                <span
+                  class="mt-0.5 shrink-0 text-[var(--sp-green)]"
+                  aria-hidden="true"
+                >
+                  <Check size={19} />
+                </span>
+                {punkt}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <div
+        class="rounded-[20px] border border-card-border bg-card p-[30px] shadow-[var(--shadow)]"
+      >
+        <div class="flex items-center gap-3">
+          <span
+            class="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--sp-red)]"
+            style="background: color-mix(in srgb, var(--sp-red) 15%, transparent);"
+          >
+            <X size={20} stroke-width={2.4} />
+          </span>
+          <h3 class="font-brand text-[20px] font-bold">Nicht geeignet für</h3>
+        </div>
+        <ul class="mt-[22px] flex flex-col gap-[13px]">
+          {
+            nichtGeeignet.map((punkt) => (
+              <li class="flex gap-[11px] text-[15px] leading-[1.45] text-muted">
+                <span
+                  class="mt-0.5 shrink-0 text-[var(--sp-red)]"
+                  aria-hidden="true"
+                >
+                  <X size={17} stroke-width={2.4} />
+                </span>
+                {punkt}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,104 @@
+---
+import {
+  ShieldCheck,
+  FileCheck,
+  ScrollText,
+  Download,
+  Users,
+  Lock,
+} from '@lucide/astro'
+
+// Sicherheit-&-Compliance-Sektion der Landing (Handoff-Prototyp, #sicherheit).
+// Statische Astro-Sektion: sechs Karten für die fiskalischen Bausteine, jede mit
+// eigenem Spektral-Akzent im Icon. Icons über @lucide/astro (build-time SVG,
+// kein Client-JS). Scroll-Reveal ist Progressive Enhancement (siehe landing.css).
+//
+// Copy gegen docs/compliance.md geprüft: DSFinV-K aktuell verbindlich v2.4,
+// Argon2id-Hashing und JWT-Auth sind im Backend umgesetzt.
+
+const bausteine = [
+  {
+    Icon: ShieldCheck,
+    accent: 'var(--sp-blue)',
+    titel: 'BSI-zertifizierte Cloud-TSE',
+    text: 'Integrierte TSE von fiskaly, signiert jeden Vorgang — TSE-Pflicht nach § 146a AO.',
+  },
+  {
+    Icon: FileCheck,
+    accent: 'var(--sp-teal)',
+    titel: 'Belegausgabe § 146a AO',
+    text: 'Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse.',
+  },
+  {
+    Icon: ScrollText,
+    accent: 'var(--sp-green)',
+    titel: 'GoBD-Kassenjournal',
+    text: 'Event-Sourcing: eine lückenlose, unveränderliche Historie durch Append-only-Architektur.',
+  },
+  {
+    Icon: Download,
+    accent: 'var(--sp-violet)',
+    titel: 'DSFinV-K-Export v2.4',
+    text: 'Maschinenlesbarer Export für die Finanzverwaltung als ZIP-Archiv.',
+  },
+  {
+    Icon: Users,
+    accent: 'var(--sp-red)',
+    titel: 'Rollenmodell',
+    text: 'Admin, Serviceleitung und Service — Stornos nur mit Berechtigung und Pflichtkommentar.',
+  },
+  {
+    Icon: Lock,
+    accent: 'var(--sp-orange)',
+    titel: 'Sicheres Onboarding',
+    text: 'Einmalpasswort, Argon2id-Hashing und JWT-Auth — Helfer:innen sind in Sekunden startklar.',
+  },
+]
+---
+
+<section id="sicherheit" class="mx-auto max-w-6xl px-6 py-16 sm:py-24">
+  <div class="reveal max-w-[680px]">
+    <p
+      class="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal)] uppercase"
+    >
+      <span
+        class="h-[3px] w-[22px] rounded-sm"
+        style="background: var(--spectral);"
+        aria-hidden="true"></span>
+      Sicherheit & Compliance
+    </p>
+    <h2
+      class="font-brand mt-3 text-[length:var(--fs-h2)] leading-[1.06] font-bold tracking-[-0.025em]"
+    >
+      Auf die KassenSichV ausgelegt.
+    </h2>
+    <p class="mt-4 text-[1.0625rem] leading-relaxed text-muted">
+      jotti bringt die fiskalischen Bausteine mit. Den konformen Betrieb
+      verantwortet der Verein als Betreiber.
+    </p>
+  </div>
+
+  <div class="reveal mt-10 grid gap-4 sm:grid-cols-2 nav:grid-cols-3">
+    {
+      bausteine.map(({ Icon, accent, titel, text }) => (
+        <div class="rounded-[16px] border border-card-border bg-card p-[22px]">
+          <span
+            class="flex h-[42px] w-[42px] items-center justify-center rounded-xl"
+            style={`color: ${accent}; background: color-mix(in srgb, ${accent} 15%, transparent);`}
+          >
+            <Icon size={22} />
+          </span>
+          <h3 class="font-brand mt-3.5 text-[16.5px] font-semibold">{titel}</h3>
+          <p class="mt-1.5 text-[13.5px] leading-[1.5] text-muted">{text}</p>
+        </div>
+      ))
+    }
+  </div>
+
+  <p class="mt-[22px] max-w-[64em] text-[13px] leading-[1.5] text-muted">
+    Hinweis: jotti ist ein elektronisches Aufzeichnungssystem nach § 1
+    KassenSichV. Die fiskalischen Bausteine sind integriert; eine geprüfte
+    Konformität wird nicht zugesichert. Der Betreiber schließt den TSE-Vertrag
+    mit fiskaly selbst ab und verantwortet Kassenmeldung und Aufbewahrung.
+  </p>
+</section>

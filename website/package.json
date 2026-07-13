@@ -19,6 +19,7 @@
   "dependencies": {
     "@astrojs/react": "^5.0.7",
     "@astrojs/starlight": "^0.40.0",
+    "@lucide/astro": "1.24.0",
     "astro": "^6.4.8",
     "lucide-react": "1.24.0",
     "react": "^19.2.7",
