@@ -330,9 +330,9 @@ rechten Rand. Dasselbe Layout in beiden Bereichen.
 
 ### Acceptance criteria
 
-- [ ] Der Variantenpreis steht an einer festen Spaltenposition, unabhängig von der Namenslänge; ein langer/umbrechender Name löst den Preis nicht ab.
-- [ ] Admin (Produkt-Chips) und Service (Bestellen) nutzen dasselbe Name/Preis/Stepper-Layout.
-- [ ] Bei 390px kein Überlauf und keine abgeschnittenen Preise in diesen Listen.
+- [x] Der Variantenpreis steht an einer festen Spaltenposition, unabhängig von der Namenslänge; ein langer/umbrechender Name löst den Preis nicht ab.
+- [x] Admin (Produkt-Chips) und Service (Bestellen) nutzen dasselbe Name/Preis/Stepper-Layout.
+- [x] Bei 390px kein Überlauf und keine abgeschnittenen Preise in diesen Listen.
 
 ---
 

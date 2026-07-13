@@ -2,8 +2,9 @@ import { Package } from 'lucide-react'
 import { useState } from 'react'
 
 import { EmptyState } from '@/components/common/EmptyState'
+import { VariantNamePreis } from '@/components/common/VariantNamePreis'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn, formatCents } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 
 import {
   type Kategorie,
@@ -121,16 +122,11 @@ function VariantRow({
   return (
     <div
       className={cn(
-        'flex items-center justify-between rounded-lg border bg-card px-3.5 py-2.5',
+        'flex items-center gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-[15px]',
         menge > 0 && 'border-primary/50 bg-primary/[0.04]',
       )}
     >
-      <div className="flex items-baseline gap-2.5">
-        <span className="text-[15px] font-medium">{variant.name}</span>
-        <span className="text-sm font-bold tabular-nums">
-          {formatCents(variant.preisCents)}&nbsp;€
-        </span>
-      </div>
+      <VariantNamePreis name={variant.name} preisCents={variant.preisCents} />
       <Stepper
         menge={menge}
         onAdd={onAdd}
