@@ -52,7 +52,7 @@ export class ReportingBackend {
   ): Promise<DownloadResult> {
     return this.backend.download(
       'admin/export/dsfinvk',
-      kassensitzungNr ? { kassensitzung: kassensitzungNr } : {},
+      kassensitzungNr ? { kassensitzungNr } : {},
     )
   }
 }
