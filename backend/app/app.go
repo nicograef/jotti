@@ -24,7 +24,7 @@ type App struct {
 }
 
 // NewApp creates a new application instance
-func NewApp(cfg config.Config, db *sql.DB, version string) (*App, error) {
+func NewApp(cfg config.Config, db *sql.DB, version string) *App {
 	router := SetupRoutes(cfg, db, version)
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
@@ -38,7 +38,7 @@ func NewApp(cfg config.Config, db *sql.DB, version string) (*App, error) {
 		Server: server,
 		Config: cfg,
 		DB:     db,
-	}, nil
+	}
 }
 
 // SetupRoutes configures HTTP routes. Alle bereichsgebundenen Routen werden aus

@@ -18,11 +18,11 @@ type Event struct {
 	UserID int
 	// The name of the user who triggered the event.
 	UserName string
-	// The type of event related to the source system and subject. E.g. com.library.book.borrowed:v1
+	// The type of event related to the source system and subject. E.g. bestellung-aufgenommen:v1
 	Type string
 	// The timestamp of when the event occurred.
 	Time time.Time
-	// The subject of the event in the context of the event producer (identified by source). E.g. the entity to which the event is primarily related. E.g. /users/12345
+	// The subject of the event in the context of the event producer, i.e. the entity to which the event is primarily related. E.g. kassensitzung-1/tisch-42
 	Subject string
 	// The version of the event for optimistic concurrency control.
 	Version int

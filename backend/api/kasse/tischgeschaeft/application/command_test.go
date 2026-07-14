@@ -32,14 +32,7 @@ var testOpenKS = &kasse.Kassensitzung{
 }
 
 func newTestCommand(tables []tisch.Tisch, products []produkt.Produkt) Command {
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
-	return Command{
-		TischRepo:           tisch_repo.NewMock(tables, nil),
-		EventRepo:           eventMock,
-		ProduktRepo:         produkt_repo.NewMock(products, db.ErrNotFound),
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-		DruckstationRepo:    &mockDruckstationRepo{},
-	}
+	return newTestCommandWithEventMock(tables, products, kassenjournal_repo.NewMock(nil, nil))
 }
 
 func newTestCommandWithEventMock(tables []tisch.Tisch, products []produkt.Produkt, eventMock *kassenjournal_repo.MockRepo) Command {

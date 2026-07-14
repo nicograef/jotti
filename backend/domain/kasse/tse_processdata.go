@@ -99,9 +99,9 @@ func BuildBestellungProcessData(positionen []Position, faktor int) (string, erro
 // Einlagen mit positivem, Entnahmen mit negativem Zahlbetrag.
 func BuildGeldtransitProcessData(richtung string, betragCents int) (string, error) {
 	switch richtung {
-	case "einlage":
+	case GeldtransitRichtungEinlage:
 		return BuildEigenbelegProcessData(betragCents), nil
-	case "entnahme":
+	case GeldtransitRichtungEntnahme:
 		return BuildEigenbelegProcessData(-betragCents), nil
 	default:
 		return "", fmt.Errorf("unsupported richtung %q", richtung)

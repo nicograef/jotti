@@ -265,9 +265,6 @@ func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungD
 			return nil, err
 		}
 		positionen := toStornierungPositionen(data.Positionen)
-		if positionen == nil {
-			positionen = []reporting.StornierungPosition{}
-		}
 		stornierungen[i] = reporting.StornierungDetail{
 			Zeitpunkt:    row.Timestamp,
 			Quelle:       row.Quelle,

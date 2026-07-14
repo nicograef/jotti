@@ -11,10 +11,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func TestHealthCheck_WithDatabase(t *testing.T) {
-	t.Skip("Integration test requires database - run with testcontainers")
-}
-
 func TestHealthCheck_WithMockDB(t *testing.T) {
 	// Create a mock database connection (will fail on ping)
 	db, err := sql.Open("pgx", "invalid-connection-string")

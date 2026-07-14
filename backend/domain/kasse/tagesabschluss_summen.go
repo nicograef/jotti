@@ -71,7 +71,7 @@ func ComputeAbschlussSummen(events []e.Event) (AbschlussSummen, error) {
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
 			}
-			if data.Richtung == "einlage" {
+			if data.Richtung == GeldtransitRichtungEinlage {
 				s.GeldtransitCents += data.BetragCents
 			} else {
 				s.GeldtransitCents -= data.BetragCents
