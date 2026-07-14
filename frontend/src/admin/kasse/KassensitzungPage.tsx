@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Check } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 
 import { AdminPageHeader } from '@/admin/components/AdminPageHeader'
 import { formatDatumLang } from '@/admin/reporting/utils'
@@ -24,6 +24,16 @@ export { KasseAbschliessenSection } from './KasseAbschliessenSection'
 
 type StepState = 'done' | 'active' | 'inactive'
 
+// ErledigtHaekchen rendert das Häkchen des erledigten Schritts. Es poppt
+// (Motion-Inventar „Statuswechsel", 350 ms), wenn der Schritt gerade auf
+// „erledigt" wechselt — nicht, wenn die Seite bereits erledigt lädt. Der
+// Pop-Zustand wird beim Mounten erfasst, damit ein späteres Neurendern (z. B.
+// eintreffender Kassenbestand) die Animation nicht abreißt.
+function ErledigtHaekchen({ animiert }: { animiert: boolean }) {
+  const [poppen] = useState(animiert)
+  return <Check className={cn('size-4', poppen && 'animate-pop')} />
+}
+
 // StepperRow rendert die Nummern-Schiene (Kreis + Verbindungslinie) links und den
 // Schritt-Inhalt rechts. Der erledigte Schritt (done) bekommt ein Häkchen, der
 // aktive Schritt einen umrandeten Kreis, inaktive Schritte sind ausgegraut.
@@ -31,11 +41,15 @@ function StepperRow({
   nummer,
   state,
   istLetzter,
+  markerAnimiert,
   children,
 }: {
   nummer: number
   state: StepState
   istLetzter?: boolean
+  // Lässt das erledigt-Häkchen einmalig poppen, wenn der Schritt gerade auf
+  // „erledigt" wechselt (nur Schritt 1 nach dem Eröffnen).
+  markerAnimiert?: boolean
   children: ReactNode
 }) {
   return (
@@ -51,7 +65,11 @@ function StepperRow({
               'border-2 border-border bg-background text-muted-foreground',
           )}
         >
-          {state === 'done' ? <Check className="size-4" /> : nummer}
+          {state === 'done' ? (
+            <ErledigtHaekchen animiert={markerAnimiert ?? false} />
+          ) : (
+            nummer
+          )}
         </span>
         {!istLetzter && <span className="mt-1 w-0.5 flex-1 bg-border" />}
       </div>
@@ -70,16 +88,28 @@ function StepperRow({
 function EroeffnetKarte({
   kassensitzung,
   anfangsbestandCents,
+  animieren,
 }: {
   kassensitzung: OffeneKassensitzung
   anfangsbestandCents: number | null
+  // Lässt die Karte einmalig mit fadeUp eintreten, wenn sie gerade durch das
+  // Eröffnen erscheint (nicht beim Laden einer bereits offenen Kasse).
+  animieren: boolean
 }) {
   const eroeffnetAm = new Date(kassensitzung.eroeffnetAm).toLocaleString(
     'de-DE',
     { dateStyle: 'medium', timeStyle: 'short' },
   )
+  // Beim Mount erfasst, damit ein späteres Neurendern die Animation nicht abreißt.
+  const [initialAnimieren] = useState(animieren)
   return (
-    <Card className="bg-muted/30">
+    <Card
+      className={cn(
+        'bg-muted/30',
+        initialAnimieren &&
+          'animate-fade-up [animation-duration:450ms] [animation-timing-function:cubic-bezier(0.2,0.7,0.3,1)]',
+      )}
+    >
       <CardContent className="py-4">
         <div className="text-sm font-semibold">1 · Kasse eröffnet</div>
         <p className="mt-0.5 text-sm text-muted-foreground">
@@ -100,6 +130,22 @@ export function KassensitzungPage() {
   // dedupliziert mit dem Abruf innerhalb von LaufenderBetriebSection.
   const { kassenbestand } = useKassenbestand(kassensitzung?.zNr ?? null)
   const queryClient = useQueryClient()
+
+  // „Gerade eröffnet" erkennt den Wechsel von geschlossener zu offener Kasse,
+  // um die erledigt-Karte nur nach dem Eröffnen zu animieren — nicht beim Laden
+  // einer bereits offenen Kasse. Der Ref bleibt `null`, solange die erste
+  // Abfrage lädt (`isPending`), damit der Anfangszustand nicht als Wechsel gilt.
+  // Er liegt bewusst in einem Ref (kein zusätzliches Rendern, das die Animation
+  // abreißen würde); der Schreibzugriff erfolgt nur im Effekt.
+  const istOffen = kassensitzung != null
+  const zuletztOffenRef = useRef<boolean | null>(null)
+  // eslint-disable-next-line react-hooks/refs
+  const geradeEroeffnet = zuletztOffenRef.current === false && istOffen
+  useEffect(() => {
+    if (!isPending) {
+      zuletztOffenRef.current = istOffen
+    }
+  }, [isPending, istOffen])
 
   const titel = kassensitzung
     ? `Kassentag Nr. ${String(kassensitzung.zNr)} — ${kassensitzung.bezeichnung}`
@@ -153,10 +199,15 @@ export function KassensitzungPage() {
       <div className="mt-6 flex flex-col gap-4">
         {kassensitzung ? (
           <>
-            <StepperRow nummer={1} state="done">
+            <StepperRow
+              nummer={1}
+              state="done"
+              markerAnimiert={geradeEroeffnet}
+            >
               <EroeffnetKarte
                 kassensitzung={kassensitzung}
                 anfangsbestandCents={kassenbestand?.anfangsbestandCents ?? null}
+                animieren={geradeEroeffnet}
               />
             </StepperRow>
 

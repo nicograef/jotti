@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 
 import { EigeneUebersichtKarten } from './components/EigeneUebersicht'
 import { MeinTischCard } from './components/MeinTischCard'
@@ -32,6 +33,13 @@ export function TableSelectionPage() {
   )
   const erledigteTische = gefilterteTische.filter(
     (state) => state.unbezahltePositionen.length === 0,
+  )
+
+  // Der Listen-Eintritt staffelt nur beim ersten Aufbau mit Daten (nicht beim
+  // Skeleton, nicht bei späteren Refetches). Beide Gruppen teilen sich eine
+  // fortlaufende Staffelung: „Erledigt" setzt hinter „Noch offen" fort.
+  const erstAufbau = useErstAufbau(
+    !tischeLoading && gefilterteTische.length > 0,
   )
 
   return (
@@ -88,10 +96,18 @@ export function TableSelectionPage() {
       ) : (
         <div className="space-y-6">
           {offeneTische.length > 0 && (
-            <TischGruppe titel="Noch offen" tische={offeneTische} />
+            <TischGruppe
+              titel="Noch offen"
+              tische={offeneTische}
+              eintrittAb={erstAufbau ? 0 : null}
+            />
           )}
           {erledigteTische.length > 0 && (
-            <TischGruppe titel="Erledigt" tische={erledigteTische} />
+            <TischGruppe
+              titel="Erledigt"
+              tische={erledigteTische}
+              eintrittAb={erstAufbau ? offeneTische.length : null}
+            />
           )}
         </div>
       )}
@@ -119,9 +135,13 @@ export function TableSelectionPage() {
 function TischGruppe({
   titel,
   tische,
+  eintrittAb,
 }: {
   titel: string
   tische: TischSession[]
+  // Start-Index der Eintritts-Staffelung oder `null`, wenn nicht animiert
+  // eingetreten werden soll.
+  eintrittAb: number | null
 }) {
   return (
     <section className="space-y-3">
@@ -129,8 +149,12 @@ function TischGruppe({
         {titel} · {tische.length}
       </h2>
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
-        {tische.map((state) => (
-          <MeinTischCard key={state.tischId} state={state} />
+        {tische.map((state, index) => (
+          <MeinTischCard
+            key={state.tischId}
+            state={state}
+            eintrittIndex={eintrittAb === null ? undefined : eintrittAb + index}
+          />
         ))}
       </div>
     </section>

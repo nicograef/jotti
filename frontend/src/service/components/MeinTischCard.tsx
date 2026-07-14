@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { AuthSingleton } from '@/lib/Auth'
@@ -8,10 +9,16 @@ import type { TischSession } from '../table/Tisch'
 
 interface MeinTischCardProps {
   state: TischSession
+  // Position in der Eintritts-Staffelung (0-basiert) oder `undefined`, wenn die
+  // Karte nicht animiert eintreten soll (z. B. nach einem Refetch).
+  eintrittIndex?: number
 }
 
-export function MeinTischCard({ state }: MeinTischCardProps) {
+export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
   const navigate = useNavigate()
+  // Beim Mount erfasst: so bleibt die Staffelung stabil, wenn die Elternliste
+  // während der Animation neu rendert (Übersicht-Query trifft separat ein).
+  const [eintritt] = useState(eintrittIndex)
 
   const handleClick = () => {
     void navigate(`/service/tische/${state.tischId.toString()}`)
@@ -30,9 +37,19 @@ export function MeinTischCard({ state }: MeinTischCardProps) {
     <button
       type="button"
       onClick={handleClick}
+      // Listen-Eintritt (Handoff): fadeUp 450 ms, 60 ms Stagger je Karte, nur
+      // beim ersten Aufbau. Der Verzögerungswert ist dynamisch und steht daher
+      // inline; die weiche Kurve überschreibt die kanonische 250-ms-ease-Utility.
+      style={
+        eintritt === undefined
+          ? undefined
+          : { animationDelay: `${(eintritt * 60).toString()}ms` }
+      }
       className={cn(
         'flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left ring-1 ring-foreground/10 transition-colors hover:bg-accent/50',
         alleErledigt && 'opacity-75',
+        eintritt !== undefined &&
+          'animate-fade-up [animation-duration:450ms] [animation-timing-function:cubic-bezier(0.2,0.7,0.3,1)]',
       )}
     >
       <span
