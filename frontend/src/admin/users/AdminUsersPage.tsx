@@ -103,6 +103,7 @@ export function AdminUsersPage() {
       <AdminPageHeader
         titel="Helfer & Zugänge"
         unterzeile={unterzeile}
+        glowFarben={['blue', 'red']}
         aktionen={
           <NewUserDialog
             backend={userBackend}
