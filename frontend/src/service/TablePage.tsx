@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useParams } from 'react-router'
 
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
@@ -8,6 +8,7 @@ import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import { BackendSingleton } from '@/lib/Backend'
 import { formatCents } from '@/lib/utils'
 
+import { ErfolgsPop } from './components/ErfolgsPop'
 import { ServiceDock } from './components/ServiceDock'
 import { Bestellung } from './components/table/Bestellung'
 import { TischHistorie } from './components/table/TischHistorie'
@@ -75,10 +76,23 @@ export function TablePage() {
     refetch: reloadHistorie,
   } = useTischHistorie(Number(tischId))
 
-  const reload = () => {
+  const reload = useCallback(() => {
     void reloadState()
     void reloadHistorie()
-  }
+  }, [reloadState, reloadHistorie])
+
+  // Erfolgs-Pop: Bestellen und Kassieren öffnen ihn mit ihrer Meldung (statt
+  // eines Erfolgs-Toasts). Der nachgelagerte Refetch (reload) läuft erst beim
+  // Schließen, damit sichtbare Statuswechsel (Saldo, Badge, Listen) dem Pop
+  // folgen. Der Stornierungs-/Umbuchungspfad der Historie lädt weiterhin sofort.
+  const [erfolg, setErfolg] = useState({ open: false, text: '' })
+  const zeigeErfolg = useCallback((nachricht: string) => {
+    setErfolg({ open: true, text: nachricht })
+  }, [])
+  const erfolgSchliessen = useCallback(() => {
+    setErfolg((prev) => ({ ...prev, open: false }))
+    reload()
+  }, [reload])
 
   // Expliziter Fehlerzustand statt der Leer-Defaults (Saldo 0,00 €) — sonst
   // wirkt der Tisch bei Netzabbruch abgerechnet.
@@ -172,7 +186,7 @@ export function TablePage() {
                 tisch={tisch}
                 products={produkte}
                 productsLoading={isPending}
-                onBestellungAufgenommen={reload}
+                onErfolg={zeigeErfolg}
               />
             )}
           </TabsContent>
@@ -182,7 +196,7 @@ export function TablePage() {
                 backend={tischBackend}
                 tisch={tisch}
                 positionen={state.unbezahltePositionen}
-                onZahlungKassiert={reload}
+                onErfolg={zeigeErfolg}
               />
             )}
           </TabsContent>
@@ -200,6 +214,11 @@ export function TablePage() {
           </TabsContent>
         </ServiceDock>
       </Tabs>
+      <ErfolgsPop
+        open={erfolg.open}
+        text={erfolg.text}
+        onDismiss={erfolgSchliessen}
+      />
     </>
   )
 }

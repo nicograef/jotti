@@ -1,5 +1,3 @@
-import { toast } from 'sonner'
-
 import { useMengen } from '@/hooks/use-mengen'
 
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
@@ -12,14 +10,16 @@ interface DirektverkaufProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
   products: Produkt[]
   productsLoading: boolean
-  onVerkauft?: () => void
+  // Meldet den abgeschlossenen Verkauf samt Bestätigungstext an die Seite, die
+  // den Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
+  onErfolg?: (nachricht: string) => void
 }
 
 export function Direktverkauf({
   backend,
   products,
   productsLoading,
-  onVerkauft,
+  onErfolg,
 }: DirektverkaufProps) {
   const { mengen, add, remove, reset } = useMengen<number>()
 
@@ -41,8 +41,7 @@ export function Direktverkauf({
         totalCents={total}
         verkaufAbgeschlossen={() => {
           reset()
-          toast.success('Verkauf abgeschlossen.')
-          onVerkauft?.()
+          onErfolg?.('Verkauf abgeschlossen.')
         }}
       />
       <ProductList

@@ -48,7 +48,7 @@ describe('Bestellung Aktionsleiste', () => {
           tisch={tisch}
           products={[testProdukt]}
           productsLoading={false}
-          onBestellungAufgenommen={vi.fn()}
+          onErfolg={vi.fn()}
         />
       </ServiceDock>,
     )

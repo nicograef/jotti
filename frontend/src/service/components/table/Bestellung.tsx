@@ -1,5 +1,3 @@
-import { toast } from 'sonner'
-
 import { useMengen } from '@/hooks/use-mengen'
 
 import type { Produkt } from '../../product/Produkt'
@@ -13,7 +11,9 @@ interface BestellungProps {
   tisch: Tisch
   products: Produkt[]
   productsLoading: boolean
-  onBestellungAufgenommen: () => void
+  // Meldet die erfolgreiche Buchung samt Bestätigungstext an die Seite, die den
+  // Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
+  onErfolg: (nachricht: string) => void
 }
 
 export function Bestellung({
@@ -21,7 +21,7 @@ export function Bestellung({
   tisch,
   products,
   productsLoading,
-  onBestellungAufgenommen,
+  onErfolg,
 }: BestellungProps) {
   const { mengen, add, remove, reset } = useMengen<number>()
 
@@ -38,8 +38,7 @@ export function Bestellung({
         mengen={mengen}
         bestellungAufgenommen={() => {
           reset()
-          toast.success(`Bestellung wurde aufgenommen.`)
-          onBestellungAufgenommen()
+          onErfolg('Bestellung wurde aufgenommen.')
         }}
       />
       <ProductList
