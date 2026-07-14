@@ -111,8 +111,7 @@ Durable decisions, die für alle Phasen gelten:
   `.PHONY`-Liste des Makefile.
 - **ADR.** Die Ablösung von „Spektrum nur dekorativ" wird als
   `docs/adrs/05_spektral-branding-website.md` festgehalten. Nummer 05, weil 04
-  bereits durch den aktiven Plan `docs/plans/plan-ui-audit-politur.md`
-  reserviert ist.
+  bereits durch `docs/adrs/04_warn-bestaetigung.md` belegt ist.
 - **Übergangsregel.** Der Umbau läuft sektionsweise auf `main`: alte Sektionen
   bleiben stehen, bis ihr Nachfolger in der jeweiligen Phase landet, und werden
   dann mit entfernt. Phase 1 tauscht dafür nur Token-Werte und Fonts: alte
