@@ -19,3 +19,4 @@ Entscheidung, Konsequenzen).
 | 03  | [Drawer auf Radix Dialog statt vaul](03_drawer-radix-statt-vaul.md) | akzeptiert |
 | 04  | [Warn-Bestätigung für irreversible Routine-Aktionen](04_warn-bestaetigung.md) | akzeptiert |
 | 05  | [Spektral-Branding auf der Website](05_spektral-branding-website.md) | akzeptiert |
+| 06  | [Spektral-Branding im App-Frontend](06_spektral-branding-app.md) | akzeptiert |
