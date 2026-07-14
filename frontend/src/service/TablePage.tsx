@@ -4,6 +4,7 @@ import { useParams } from 'react-router'
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useCountUp } from '@/hooks/use-count-up'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import { BackendSingleton } from '@/lib/Backend'
 import { formatCents } from '@/lib/utils'
@@ -76,6 +77,10 @@ export function TablePage() {
     refetch: reloadHistorie,
   } = useTischHistorie(Number(tischId))
 
+  // Der Saldo zählt bei jeder Änderung animiert zum neuen Wert (u. a. nach dem
+  // Schließen des Erfolgs-Pops, wenn der Refetch den Tischzustand aktualisiert).
+  const animierterSaldo = useCountUp(state.saldoCents)
+
   const reload = useCallback(() => {
     void reloadState()
     void reloadHistorie()
@@ -140,7 +145,7 @@ export function TablePage() {
             data-slot="tisch-saldo"
             className="text-xl font-bold tabular-nums"
           >
-            {stateLoading ? '?' : <>{formatCents(state.saldoCents)}&nbsp;€</>}
+            {stateLoading ? '?' : <>{formatCents(animierterSaldo)}&nbsp;€</>}
           </div>
         </div>
       </div>

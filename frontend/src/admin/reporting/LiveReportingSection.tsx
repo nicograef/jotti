@@ -21,6 +21,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { useCountUp } from '@/hooks/use-count-up'
 import { formatCents } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
@@ -49,6 +50,9 @@ export function LiveReportingSection({
   statusZeile?: ReactNode
 }) {
   const [tischeAusgeklappt, setTischeAusgeklappt] = useState(false)
+  // Hero-Kennzahl zählt bei Refetch animiert; vor dem Laden fehlt liveData, der
+  // Hook startet dann bei 0 (Hook-Aufruf muss vor den frühen Returns stehen).
+  const heroUmsatz = useCountUp(liveData?.summary.gesamtUmsatzCents ?? 0)
 
   if (loading) {
     return (
@@ -127,7 +131,7 @@ export function LiveReportingSection({
             Kassierter Umsatz
           </span>
           <span className="text-3xl font-extrabold tracking-tight whitespace-nowrap tabular-nums">
-            {formatCents(summary.gesamtUmsatzCents)} €
+            {formatCents(heroUmsatz)} €
           </span>
           <span className="text-xs text-muted-foreground">
             bereits bezahlt, Stornos abgezogen
@@ -135,22 +139,22 @@ export function LiveReportingSection({
         </div>
         <SummaryCard
           title="Noch offen"
-          value={`${formatCents(liveData.offeneSaldiCents)} €`}
+          valueCents={liveData.offeneSaldiCents}
           sub={`auf ${String(offeneTische.length)} Tischen bestellt, noch nicht bezahlt`}
         />
         <SummaryCard
           title="Bestellt gesamt"
-          value={`${formatCents(summary.gesamtBestellungenCents)} €`}
+          valueCents={summary.gesamtBestellungenCents}
           sub="bezahlt + offen zusammen"
         />
         <SummaryCard
           title="Direktverkauf"
-          value={`${formatCents(summary.direktverkaufUmsatzCents)} €`}
+          valueCents={summary.direktverkaufUmsatzCents}
           sub={`${String(summary.anzahlDirektverkaeufe)} Verkäufe ohne Tisch`}
         />
         <SummaryCard
           title="Storniert"
-          value={`${formatCents(summary.gesamtStornierungenCents)} €`}
+          valueCents={summary.gesamtStornierungenCents}
           sub={`${String(summary.anzahlStornierungen)} Stornierungen`}
         />
       </div>
