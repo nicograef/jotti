@@ -10,9 +10,8 @@ import { Check, ShieldCheck, Server, ArrowRight } from '@lucide/astro'
 // der abgelösten #technik-Kostenliste (jotti-Software 0 €, Cloud-TSE Preis auf
 // Anfrage, Server optional ca. 5 €/Monat) — keine Kostenaussage geht verloren.
 //
-// CTA-Übergang: „Kostenlose Nutzungsvereinbarung anfragen" zeigt bis Phase 8
-// übergangsweise auf #download (wie Header- und Hero-CTA), danach auf
-// /fuer-vereine.
+// CTA „Kostenlose Nutzungsvereinbarung anfragen" führt seit Phase 8 auf die
+// Anfrage-Seite /fuer-vereine (wie Header- und Hero-CTA; Prototyp: goVereine).
 
 const leistungen = [
   'Alle Kassenfunktionen',
@@ -106,7 +105,7 @@ const fremdkosten = [
           }
         </ul>
         <a
-          href="/#download"
+          href="/fuer-vereine"
           class="btn btn-primary mt-[26px] w-full whitespace-normal text-center"
         >
           Kostenlose Nutzungsvereinbarung anfragen
