@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 
-// FAQ-Accordion der Landing (Handoff-Prototyp docs/prds/design_handoff_jotti_website, #faq).
+// FAQ-Accordion der Landing (Handoff-Prototyp, PRD docs/prds/prd-website-redesign.md, #faq).
 // Neun Items, single-open: das Öffnen eines Items schließt das zuvor offene.
 // Disclosure-Pattern nach WAI-ARIA — jede Frage ist ein <button> mit
 // aria-expanded und aria-controls, das Antwort-Panel eine per aria-labelledby

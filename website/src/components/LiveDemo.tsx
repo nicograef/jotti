@@ -18,7 +18,7 @@ import {
   type DemoState,
 } from '../lib/live-demo'
 
-// Live-Demo-Island (Handoff-Prototyp docs/prds/design_handoff_jotti_website, #demo).
+// Live-Demo-Island (Handoff-Prototyp, PRD docs/prds/prd-website-redesign.md, #demo).
 // Der einzige UI-Nachbau der App auf der ganzen Seite. Die gesamte Logik
 // (Warenkorb, Summen in Cent, Auto-Skript, Stopp, Reset) liegt UI-frei in
 // src/lib/live-demo.ts; diese Komponente rendert nur den Zustand und liefert
@@ -114,7 +114,7 @@ export default function LiveDemo() {
     <div className="grid items-center gap-14 nav:grid-cols-2">
       {/* Textspalte */}
       <div>
-        <p className="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal)] uppercase">
+        <p className="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal-text)] uppercase">
           <span
             className="h-[3px] w-[22px] rounded-sm"
             style={{ background: 'var(--spectral)' }}

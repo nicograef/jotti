@@ -10,7 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-// Interaktiver Feature-Explorer (Handoff-Prototyp docs/prds/design_handoff_jotti_website).
+// Interaktiver Feature-Explorer (Handoff-Prototyp, PRD docs/prds/prd-website-redesign.md).
 // Sechs Bereichs-Tiles mit je eigenem Spektral-Akzent; ein Bereich ist aktiv und
 // füllt die sticky Detail-Karte. Umsetzung nach dem WAI-ARIA-Tabs-Pattern:
 // role=tablist/tab/tabpanel, roving tabindex, Pfeiltasten + Home/End, automatische

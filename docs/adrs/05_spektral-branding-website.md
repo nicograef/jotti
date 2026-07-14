@@ -2,9 +2,8 @@
 
 - **Status:** akzeptiert (2026-07-13)
 - **Kontext-Dokumente:**
-  PRD `docs/prds/prd-website-redesign.md`, Plan
-  `docs/plans/plan-website-redesign.md`, Design-Handoff
-  `docs/prds/design_handoff_jotti_website/`
+  PRD `docs/prds/prd-website-redesign.md` (fasst den Design-Handoff
+  zusammen), Plan `docs/plans/plan-website-redesign.md`
 
 ## Kontext
 
@@ -15,7 +14,7 @@ keine UI-Fläche" — hielt den Verlauf aus Text, Flächen und interaktiven
 Elementen heraus; der einzige tragende Akzent war das Markengrün.
 
 Der Design-Handoff für das Website-Redesign
-(`docs/prds/design_handoff_jotti_website/`) macht den Spektral-Verlauf dagegen
+(im PRD `docs/prds/prd-website-redesign.md` zusammengefasst) macht den Spektral-Verlauf dagegen
 zum zentralen Markenelement der Website: ein animierter Text-Verlauf im
 H1-Akzentwort, sechs Spektral-Akzentfarben für Feature-Explorer,
 Ablauf-Schritte und Compliance-Karten, weiche Spektral-Blobs im Hintergrund,
