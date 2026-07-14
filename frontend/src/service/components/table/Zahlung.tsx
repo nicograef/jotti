@@ -1,6 +1,5 @@
 import { ChevronDown, CircleCheck } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import {
   Item,
@@ -30,14 +29,16 @@ interface ZahlungProps {
   backend: Pick<TischBackend, 'zahlungKassieren'>
   tisch: Tisch
   positionen: Position[]
-  onZahlungKassiert: () => void
+  // Meldet die erfolgreiche Zahlung samt Bestätigungstext an die Seite, die den
+  // Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
+  onErfolg: (nachricht: string) => void
 }
 
 export function Zahlung({
   tisch,
   backend,
   positionen,
-  onZahlungKassiert,
+  onErfolg,
 }: ZahlungProps) {
   const [andereOffen, setAndereOffen] = useState(false)
   // Positionen treten nur beim ersten Aufbau gestaffelt ein; nach einer Zahlung
@@ -144,8 +145,7 @@ export function Zahlung({
         restNachZahlungCents={restNachZahlung}
         zahlungKassiert={() => {
           reset()
-          toast.success(`Zahlung erfolgreich.`)
-          onZahlungKassiert()
+          onErfolg('Zahlung erfolgreich.')
         }}
       />
       <div className="my-4 space-y-3">
