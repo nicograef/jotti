@@ -1,0 +1,37 @@
+---
+import FaqAccordion from './FaqAccordion.tsx'
+
+// FAQ-Sektion der Landing (Handoff-Prototyp docs/prds/design_handoff_jotti_website, #faq).
+// Statischer, zentrierter Sektionskopf (Eyebrow, H2) plus die interaktive
+// FaqAccordion-Island. Direktive client:visible — das Accordion liegt weit unten;
+// die Hydration lohnt erst beim Hereinscrollen. Das erste Item ist bereits im
+// SSR-HTML aufgeklappt und damit ohne JavaScript lesbar.
+---
+
+<section
+  id="faq"
+  class="border-y border-card-border bg-surface-alt py-16 sm:py-24"
+>
+  <div class="mx-auto max-w-[820px] px-6">
+    <div class="reveal text-center">
+      <p
+        class="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal)] uppercase"
+      >
+        <span
+          class="h-[3px] w-[22px] rounded-sm"
+          style="background: var(--spectral);"
+          aria-hidden="true"></span>
+        FAQ
+      </p>
+      <h2
+        class="font-brand mt-3 text-[length:var(--fs-h2)] leading-[1.06] font-bold tracking-[-0.025em]"
+      >
+        Häufige Fragen
+      </h2>
+    </div>
+
+    <div class="reveal">
+      <FaqAccordion client:visible />
+    </div>
+  </div>
+</section>

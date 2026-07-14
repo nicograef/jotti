@@ -1,0 +1,101 @@
+---
+import Landing from '../layouts/Landing.astro'
+import Platzhalter from '../components/Platzhalter.astro'
+import { betreiberEmail } from '../lib/links'
+
+// Datenschutzerklärung. Statische Seite auf Basis des Landing-Layouts
+// (Header/Footer, eigene Meta über die Layout-Props). Die Website ist
+// trackingfrei (keine Cookies, kein Analytics, keine externen Einbindungen); die
+// einzige clientseitige Speicherung ist die funktionale Theme-Wahl in
+// localStorage. Die betreiberspezifischen und rechtsverbindlichen Texte sind
+// deutlich markierte Platzhalter und decken Server-Logs/Hosting, den
+// E-Mail-Provider des Betreibers, die Betroffenenrechte und die Speicherdauer
+// ab; die finalen Texte setzt der Betreiber vor der Abnahme ein (Plan Phase 7/10).
+
+const title = 'Datenschutzerklärung – jotti'
+const description =
+  'Datenschutzerklärung für die Website von jotti: trackingfreie statische Seite ohne Cookies, mit funktionaler Theme-Speicherung.'
+---
+
+<Landing title={title} description={description}>
+  <article class="mx-auto max-w-[760px] px-6 py-16 sm:py-24">
+    <h1
+      class="font-brand text-[length:var(--fs-h2)] leading-[1.06] font-bold tracking-[-0.025em]"
+    >
+      Datenschutzerklärung
+    </h1>
+    <p class="mt-4 text-[1.0625rem] leading-relaxed text-muted">
+      Diese Website ist eine statische Seite ohne Tracking: keine Cookies, keine
+      Analyse-Werkzeuge, keine eingebetteten Inhalte Dritter. Ein Cookie-Banner
+      ist deshalb nicht erforderlich. Nachfolgend, welche Daten dennoch
+      verarbeitet werden.
+    </p>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Verantwortlicher
+    </h2>
+    <Platzhalter betreff="Verantwortliche Stelle">
+      Name und Anschrift der/des Verantwortlichen im Sinne der DSGVO (in der
+      Regel identisch mit den Angaben im Impressum), Kontakt-E-Mail und – falls
+      benannt – Datenschutzbeauftragte:r.
+    </Platzhalter>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Funktionale Theme-Speicherung (localStorage)
+    </h2>
+    <Platzhalter betreff="Speicherung der Hell-/Dunkel-Wahl">
+      Die Wahl zwischen hellem und dunklem Design wird ausschließlich lokal im
+      Browser gespeichert (localStorage-Schlüssel <code>starlight-theme</code>).
+      Diese Angabe verlässt das Gerät nicht, wird nicht an einen Server
+      übertragen und dient allein der Darstellung. Es handelt sich um eine
+      unbedingt erforderliche, funktionale Speicherung ohne Einwilligungspflicht.
+    </Platzhalter>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Server-Logs und Hosting
+    </h2>
+    <Platzhalter betreff="Hosting-Anbieter, Server-Logdaten und Speicherdauer">
+      Hosting-Anbieter (Auftragsverarbeiter) mit Anschrift, die beim Abruf
+      automatisch verarbeiteten Server-Logdaten (z. B. IP-Adresse, Datum und
+      Uhrzeit, abgerufene Seite, User-Agent), die Rechtsgrundlage (Art. 6 Abs. 1
+      lit. f DSGVO) sowie die konkrete Speicherdauer bzw. Löschfristen dieser
+      Logdaten.
+    </Platzhalter>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Verarbeitung von E-Mail-Anfragen
+    </h2>
+    <Platzhalter betreff="E-Mail-Anfragen und E-Mail-Provider des Betreibers">
+      Wer über das Anfrage-Formular oder direkt per E-Mail (<a
+        href={`mailto:${betreiberEmail}`}
+        class="font-semibold text-brand hover:underline">{betreiberEmail}</a
+      >) Kontakt aufnimmt, dessen Angaben werden zur Bearbeitung der Anfrage
+      verarbeitet. Anzugeben sind: der eingesetzte E-Mail-Provider des Betreibers
+      (Auftragsverarbeiter) mit Anschrift, die verarbeiteten Datenkategorien, die
+      Rechtsgrundlage (Art. 6 Abs. 1 lit. b bzw. f DSGVO) und die Speicherdauer
+      der Korrespondenz. Hinweis: Das Formular öffnet nur einen vorbefüllten
+      E-Mail-Entwurf im lokalen Mailprogramm; es findet kein serverseitiger
+      Versand über diese Website statt.
+    </Platzhalter>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Speicherdauer
+    </h2>
+    <Platzhalter betreff="Allgemeine Speicherdauer und Löschkonzept">
+      Zusammenfassende Angabe der Speicherdauern je Verarbeitungszweck und der
+      Kriterien für die Festlegung der Löschfristen (Server-Logs, E-Mail-Anfragen,
+      gesetzliche Aufbewahrungspflichten).
+    </Platzhalter>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Betroffenenrechte
+    </h2>
+    <Platzhalter betreff="Rechte der betroffenen Personen">
+      Darstellung der Rechte nach DSGVO: Auskunft (Art. 15), Berichtigung
+      (Art. 16), Löschung (Art. 17), Einschränkung (Art. 18), Datenübertragbarkeit
+      (Art. 20), Widerspruch (Art. 21) sowie das Beschwerderecht bei einer
+      Aufsichtsbehörde (Art. 77), einschließlich der zuständigen Behörde und der
+      Kontaktangaben zur Ausübung dieser Rechte.
+    </Platzhalter>
+  </article>
+</Landing>

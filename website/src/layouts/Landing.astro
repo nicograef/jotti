@@ -18,15 +18,54 @@ const { title, description } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href
 const ogImageUrl = new URL(ogImage.src, Astro.site).href
 
-// Header-Navigation (Handoff): Anker-Links plus Leitfaden. Der `#faq`-Link folgt
-// erst in Phase 7 mit seiner Sektion. Eine Quelle für Desktop-Nav und die
-// MobileNav-Island, damit die Liste nicht auseinanderläuft.
+// Header-Navigation (Handoff): Anker-Links plus Leitfaden. Der `#faq`-Link ist
+// seit Phase 7 mit seiner Sektion eingehängt. Eine Quelle für Desktop-Nav und
+// die MobileNav-Island, damit die Liste nicht auseinanderläuft.
 const navLinks = [
   { href: '/#features', label: 'Funktionen' },
   { href: '/#ablauf', label: 'Ablauf' },
   { href: '/#fuerwen', label: 'Für wen' },
   { href: '/#sicherheit', label: 'Sicherheit' },
+  { href: '/#faq', label: 'FAQ' },
   { href: leitfadenUrl, label: 'Leitfaden' },
+]
+
+// Footer-Spalten (Handoff-Prototyp): Produkt, Ressourcen, Rechtliches. Anker
+// zeigen absolut auf die Landing (`/#...`), damit sie auch von den Rechtsseiten
+// aus funktionieren. Unter Rechtliches die neuen Seiten plus die erhaltenen
+// Links auf Nutzungsbedingungen (TERMS.md) und Lizenz (LICENSE).
+const footerSpalten = [
+  {
+    titel: 'Produkt',
+    links: [
+      { href: '/#features', label: 'Funktionen', extern: false },
+      { href: '/#demo', label: 'Live-Demo', extern: false },
+      { href: '/#ablauf', label: 'Ablauf', extern: false },
+      { href: '/#preis', label: 'Preis', extern: false },
+      { href: '/#faq', label: 'FAQ', extern: false },
+    ],
+  },
+  {
+    titel: 'Ressourcen',
+    links: [
+      { href: leitfadenUrl, label: 'Leitfaden für Vereine', extern: false },
+      { href: `${githubUrl}/releases`, label: 'Releases', extern: true },
+      { href: githubUrl, label: 'GitHub', extern: true },
+    ],
+  },
+  {
+    titel: 'Rechtliches',
+    links: [
+      { href: '/impressum', label: 'Impressum', extern: false },
+      { href: '/datenschutz', label: 'Datenschutz', extern: false },
+      {
+        href: `${githubUrl}/blob/main/TERMS.md`,
+        label: 'Nutzungsbedingungen',
+        extern: true,
+      },
+      { href: `${githubUrl}/blob/main/LICENSE`, label: 'Lizenz', extern: true },
+    ],
+  },
 ]
 ---
 
@@ -169,62 +208,77 @@ const navLinks = [
       <slot />
     </main>
 
-    <footer class="spectrum-edge-t py-10">
-      <div
-        class="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 text-center"
-      >
-        <a
-          href="/"
-          class="flex items-center gap-2"
-          aria-label="jotti Startseite"
+    <footer class="border-t border-card-border bg-surface-alt">
+      <div class="mx-auto max-w-6xl px-6 pt-16 pb-8">
+        <div
+          class="grid grid-cols-2 gap-x-8 gap-y-10 nav:grid-cols-[1.6fr_1fr_1fr_1fr]"
         >
-          <Image src={jottiSymbol} alt="" class="h-7 w-auto" loading="lazy" />
-          <span class="font-brand text-xl font-bold tracking-tight">jotti</span>
-        </a>
-        <p class="max-w-160 text-[0.9375rem] text-muted">
-          Das kostenlose Kassensystem mit TSE-Anbindung für Vereinsfeste und
-          gemeinnützige Organisationen.
-        </p>
-        <nav
-          class="flex flex-wrap justify-center gap-6"
-          aria-label="Footer-Navigation"
+          <div class="col-span-2 nav:col-span-1">
+            <a
+              href="/"
+              class="flex items-center gap-2.5"
+              aria-label="jotti Startseite"
+            >
+              <Image
+                src={jottiSymbol}
+                alt=""
+                class="h-7 w-auto"
+                loading="lazy"
+              />
+              <span class="font-brand text-xl font-bold tracking-tight"
+                >jotti</span
+              >
+            </a>
+            <p class="mt-4 max-w-[30em] text-[14.5px] leading-relaxed text-muted">
+              Das kostenlose Kassensystem für Vereinsfeste. Von einem Entwickler
+              für Vereine gebaut.
+            </p>
+            <div
+              class="mt-5 h-1 w-[180px] rounded-sm"
+              style="background: var(--spectral);"
+              aria-hidden="true">
+            </div>
+          </div>
+
+          {
+            footerSpalten.map((spalte) => (
+              <nav aria-label={spalte.titel}>
+                <p
+                  class="text-[12px] font-bold tracking-[0.1em] text-muted uppercase"
+                >
+                  {spalte.titel}
+                </p>
+                <ul class="mt-4 flex flex-col gap-[11px]">
+                  {spalte.links.map((link) => (
+                    <li>
+                      <a
+                        href={link.href}
+                        target={link.extern ? '_blank' : undefined}
+                        rel={link.extern ? 'noopener noreferrer' : undefined}
+                        class="text-[14.5px] text-foreground/80 hover:text-brand"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))
+          }
+        </div>
+
+        <div
+          class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-card-border pt-6 text-[13px] text-muted"
         >
-          <a
-            href={leitfadenUrl}
-            class="text-sm font-semibold text-muted hover:text-brand"
-            >Leitfaden für Vereine</a
-          >
-          <a
-            href={githubUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sm font-semibold text-muted hover:text-brand">GitHub</a
-          >
-          <a
-            href={`${githubUrl}/blob/main/TERMS.md`}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sm font-semibold text-muted hover:text-brand"
-            >Nutzungsbedingungen</a
-          >
-          <a
-            href={`${githubUrl}/blob/main/LICENSE`}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-sm font-semibold text-muted hover:text-brand">Lizenz</a
-          >
-        </nav>
-        <p
-          class="w-full border-t border-card-border pt-5 text-[0.8125rem] text-muted"
-        >
-          Entwickelt von
-          <a
-            href="https://nicograef.de"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="font-semibold hover:text-brand">Nico Gräf</a
-          >
-        </p>
+          <span>© 2025–2026 Nico Gräf. Alle Rechte vorbehalten. Source-available.</span>
+          <span class="inline-flex items-center gap-2">
+            <span
+              class="inline-block h-2 w-2 rounded-full"
+              style="background: var(--spectral);"
+              aria-hidden="true"></span>
+            Gebaut in Deutschland
+          </span>
+        </div>
       </div>
     </footer>
 

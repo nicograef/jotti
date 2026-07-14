@@ -1,0 +1,117 @@
+---
+import { Download, BookOpen, Code, ArrowRight } from '@lucide/astro'
+import { githubUrl, leitfadenUrl } from '../lib/links'
+
+// Download-Sektion der Landing (Handoff-Prototyp docs/prds/design_handoff_jotti_website, #download).
+// Große CTA-Karte mit spektralem Radial-Schein, zweispaltig (mobil einspaltig).
+// Icons über @lucide/astro (build-time SVG, kein Client-JS).
+//
+// Ehrliche Copy (PRD): Das Release ist ein ZIP mit Starter und benötigt Docker
+// Desktop; der Leitfaden führt durch die Einrichtung. Kein „.exe"- und kein
+// „5 Minuten"-Versprechen, solange das native Windows-Paket nicht existiert. Die
+// Hinweis-Pill ist der zweite Träger der Beta-Kommunikation (neben dem
+// Hero-Badge).
+
+const releasesUrl = `${githubUrl}/releases`
+---
+
+<section id="download" class="mx-auto max-w-6xl px-6 py-16 sm:py-24">
+  <div
+    class="reveal relative overflow-hidden rounded-[26px] border border-card-border bg-card p-8 shadow-[var(--shadow)] sm:p-[52px]"
+  >
+    <div
+      class="pointer-events-none absolute inset-0"
+      style="background: radial-gradient(70% 120% at 88% 10%, color-mix(in srgb, var(--sp-teal) 16%, transparent), transparent 60%), radial-gradient(60% 120% at 10% 90%, color-mix(in srgb, var(--sp-violet) 14%, transparent), transparent 60%);"
+      aria-hidden="true">
+    </div>
+
+    <div
+      class="relative grid items-center gap-10 nav:grid-cols-[1.2fr_1fr]"
+    >
+      <div>
+        <p
+          class="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal)] uppercase"
+        >
+          <span
+            class="h-[3px] w-[22px] rounded-sm"
+            style="background: var(--spectral);"
+            aria-hidden="true"></span>
+          Loslegen
+        </p>
+        <h2
+          class="font-brand mt-3 text-[length:var(--fs-h2)] leading-[1.07] font-bold tracking-[-0.025em]"
+        >
+          Startklar fürs<br />nächste Fest.
+        </h2>
+        <p class="mt-3.5 max-w-[32em] text-[1.0625rem] leading-relaxed text-muted">
+          Ladet das Release als ZIP von GitHub, entpackt es und startet den
+          enthaltenen Starter — dafür braucht ihr Docker Desktop auf dem Rechner.
+          Der Leitfaden für Vereine führt euch durch den Rest.
+        </p>
+        <div
+          class="mt-5 inline-flex items-center gap-2.5 rounded-full border border-card-border bg-surface-alt px-3.5 py-[7px] text-[13px] text-muted"
+        >
+          <span
+            class="inline-block h-2 w-2 rounded-full"
+            style="background: var(--sp-orange);"
+            aria-hidden="true"></span>
+          Beta 1.0 — wird gerade getestet und geprüft
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <a
+          href={releasesUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center gap-3.5 rounded-[15px] bg-brand-solid px-5 py-[17px] text-white shadow-[var(--shadow)] transition-colors hover:bg-brand-solid-hover"
+        >
+          <Download size={24} aria-hidden="true" />
+          <span class="flex-1">
+            <span class="block text-[16px] font-semibold">Release herunterladen</span>
+            <span class="block text-[12.5px] opacity-85"
+              >GitHub Releases · ZIP mit Starter</span
+            >
+          </span>
+          <ArrowRight size={18} aria-hidden="true" />
+        </a>
+
+        <a
+          href={leitfadenUrl}
+          class="flex items-center gap-3.5 rounded-[15px] border border-card-border bg-surface-alt px-5 py-[17px] text-foreground transition-colors hover:border-brand"
+        >
+          <span style="color: var(--sp-teal);" aria-hidden="true">
+            <BookOpen size={24} />
+          </span>
+          <span class="flex-1">
+            <span class="block text-[16px] font-semibold">Leitfaden für Vereine</span>
+            <span class="block text-[12.5px] text-muted"
+              >Installation Schritt für Schritt</span
+            >
+          </span>
+          <span class="text-muted" aria-hidden="true">
+            <ArrowRight size={18} />
+          </span>
+        </a>
+
+        <a
+          href={githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center gap-3.5 rounded-[15px] border border-card-border bg-surface-alt px-5 py-[17px] text-foreground transition-colors hover:border-brand"
+        >
+          <Code size={24} aria-hidden="true" />
+          <span class="flex-1">
+            <span class="block text-[16px] font-semibold">Quellcode auf GitHub</span>
+            <span class="block text-[12.5px] text-muted"
+              >Source-available · einsehbar</span
+            >
+          </span>
+          <span class="text-muted" aria-hidden="true">
+            <ArrowRight size={18} />
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
