@@ -356,7 +356,11 @@
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    /* Auch Verzögerungen nullen: gestaffelte Listen-Eintritte (animation-delay)
+       dürfen Inhalte sonst trotz fill-mode:both sekundenlang verborgen halten. */
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
 }

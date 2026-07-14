@@ -175,7 +175,10 @@ function TabsContent({
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn('flex-1 text-sm outline-none', className)}
+      // Radix hängt den inaktiven Tab-Inhalt aus dem DOM aus; beim Aktivieren
+      // mountet er neu, wodurch die fadeUp-Animation (250 ms) jedes Mal neu
+      // startet (Motion-Inventar „Tab-/Detail-Wechsel").
+      className={cn('flex-1 text-sm outline-none animate-fade-up', className)}
       {...props}
     />
   )

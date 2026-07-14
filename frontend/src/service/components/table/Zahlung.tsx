@@ -10,6 +10,7 @@ import {
   ItemGroup,
   ItemTitle,
 } from '@/components/ui/item'
+import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import { useMengen } from '@/hooks/use-mengen'
 import { AuthSingleton } from '@/lib/Auth'
 import {
@@ -39,6 +40,9 @@ export function Zahlung({
   onZahlungKassiert,
 }: ZahlungProps) {
   const [andereOffen, setAndereOffen] = useState(false)
+  // Positionen treten nur beim ersten Aufbau gestaffelt ein; nach einer Zahlung
+  // (Refetch) bleiben die verbleibenden Zeilen unbewegt.
+  const erstAufbau = useErstAufbau(true)
 
   const unbezahlteMengen: Record<string, number> = {}
   positionen.forEach((position) => {
@@ -109,13 +113,18 @@ export function Zahlung({
     0,
   )
 
-  const renderPosition = (position: Position, showBesteller: boolean) => (
+  const renderPosition = (
+    position: Position,
+    showBesteller: boolean,
+    eintrittIndex?: number,
+  ) => (
     <PositionItem
       key={position.positionId}
       position={position}
       showBesteller={showBesteller}
       menge={mengen[position.positionId] || 0}
       unbezahlteMenge={unbezahlteMengen[position.positionId] || 0}
+      eintrittIndex={eintrittIndex}
       onAdd={() => {
         onAdd(position.positionId)
       }}
@@ -156,7 +165,9 @@ export function Zahlung({
           </button>
         )}
         <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
-          {meinePositionen.map((position) => renderPosition(position, false))}
+          {meinePositionen.map((position, index) =>
+            renderPosition(position, false, erstAufbau ? index : undefined),
+          )}
         </ItemGroup>
         {anderePositionen.length > 0 && (
           <div className="space-y-2">
@@ -207,6 +218,9 @@ interface PositionItemProps {
   menge: number
   unbezahlteMenge: number
   showBesteller: boolean
+  // Position in der Eintritts-Staffelung (0-basiert) oder `undefined` ohne
+  // animierten Eintritt (z. B. Fremdpositionen oder nach einem Refetch).
+  eintrittIndex?: number
   onAdd: () => void
   onRemove: () => void
 }
@@ -216,18 +230,32 @@ function PositionItem({
   menge,
   unbezahlteMenge,
   showBesteller,
+  eintrittIndex,
   onAdd,
   onRemove,
 }: PositionItemProps) {
   const ausgewaehlt = menge > 0
   const zeilenSumme = menge * position.einzelpreisCents
   const unbezahltSumme = unbezahlteMenge * position.einzelpreisCents
+  // Beim Mount erfasst, damit ein Refetch die Staffelung nicht mittendrin abreißt.
+  const [eintritt] = useState(eintrittIndex)
 
   return (
     <Item
       key={position.positionId}
       variant="outline"
-      className={cn(ausgewaehlt && 'border-primary/60 bg-primary/5')}
+      // Listen-Eintritt (Handoff): fadeUp 450 ms, 60 ms Stagger, weiche Kurve,
+      // nur beim ersten Aufbau. Verzögerung dynamisch → inline.
+      style={
+        eintritt === undefined
+          ? undefined
+          : { animationDelay: `${(eintritt * 60).toString()}ms` }
+      }
+      className={cn(
+        ausgewaehlt && 'border-primary/60 bg-primary/5',
+        eintritt !== undefined &&
+          'animate-fade-up [animation-duration:450ms] [animation-timing-function:cubic-bezier(0.2,0.7,0.3,1)]',
+      )}
     >
       <ItemContent>
         <ItemTitle className="text-[15px]">
