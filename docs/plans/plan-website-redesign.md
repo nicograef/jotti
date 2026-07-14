@@ -776,23 +776,23 @@ alte `#einblicke`-Carousel-Sektion entfällt; der Repo-Root-Ordner
 
 ### Acceptance criteria
 
-- [ ] `make website-screenshots` erzeugt alle Motive hell und dunkel
+- [x] `make website-screenshots` erzeugt alle Motive hell und dunkel
       reproduzierbar gegen den geseedeten e2e-Stack; das Skript ist
       committed und im Makefile dokumentiert (inkl. `.PHONY`-Eintrag).
-- [ ] Hero und `#screenshots` zeigen echte, aktuelle App-Screenshots; das
+- [x] Hero und `#screenshots` zeigen echte, aktuelle App-Screenshots; das
       „Jedes Gerät"-Statement entspricht dem Handoff
       (`06-light.png`/`03-dark.png`: ein Phone bleibt fest hell, eines fest
       dunkel).
-- [ ] Galerie zeigt die weiteren Motive kompakt und theme-passend; die alte
+- [x] Galerie zeigt die weiteren Motive kompakt und theme-passend; die alte
       `#einblicke`-Sektion samt Carousel-Code ist entfernt, sofern die
       Galerie ihn nicht wiederverwendet.
-- [ ] Jedes eingesetzte Motiv (Hero, „Jedes Gerät", Galerie) trägt einen
+- [x] Jedes eingesetzte Motiv (Hero, „Jedes Gerät", Galerie) trägt einen
       beschreibenden Alt-Text.
-- [ ] OG-Bild zeigt das neue Design (1200×630) und ist je Route korrekt
+- [x] OG-Bild zeigt das neue Design (1200×630) und ist je Route korrekt
       verdrahtet.
-- [ ] Veraltete Screenshot-Assets und der Repo-Root-Ordner `screenshots/`
+- [x] Veraltete Screenshot-Assets und der Repo-Root-Ordner `screenshots/`
       sind gelöscht; kein Bild der Seite zeigt mehr den alten App-Stand.
-- [ ] `make website-check` grün.
+- [x] `make website-check` grün.
 
 ---
 

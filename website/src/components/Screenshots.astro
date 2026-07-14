@@ -1,0 +1,209 @@
+---
+import { Image } from 'astro:assets'
+
+import ThemeImage from './ThemeImage.astro'
+
+// Screenshots-Sektion der Landing (Handoff-Prototyp, #screenshots): das
+// Statement „Ein Design. Jedes Gerät." mit Desktop-Admin im Browser-Rahmen und
+// zwei festen Telefonen (eines hell, eines dunkel) plus eine kompakte Galerie
+// der übrigen Motive. Alle Bilder sind echte, per Skript reproduzierbare
+// App-Aufnahmen (e2e/website/screenshots.mjs, Make-Target website-screenshots).
+//
+// Der Desktop-Rahmen und die Galerie folgen dem Seiten-Theme (theme-passende
+// Bildpaare über ThemeImage, rein CSS). Die beiden Telefone im Statement bleiben
+// bewusst fest hell bzw. dunkel — sie zeigen beide Themes nebeneinander.
+
+// Desktop-Admin im Browser-Rahmen (theme-passend).
+import produktverwaltungLight from '../assets/screenshots/produktverwaltung-light.png'
+import produktverwaltungDark from '../assets/screenshots/produktverwaltung-dark.png'
+
+// Galerie-Motive (theme-passend). Die beiden festen Telefone im „Jedes Gerät"-
+// Statement zeigen tischuebersicht-light bzw. zahlung-dark; die Galerie zeigt
+// dieselben Motive theme-passend (das jeweils andere Theme wird hier verwendet).
+import tischuebersichtLight from '../assets/screenshots/tischuebersicht-light.png'
+import tischuebersichtDark from '../assets/screenshots/tischuebersicht-dark.png'
+import zahlungLight from '../assets/screenshots/zahlung-light.png'
+import zahlungDark from '../assets/screenshots/zahlung-dark.png'
+import stornierungLight from '../assets/screenshots/stornierung-light.png'
+import stornierungDark from '../assets/screenshots/stornierung-dark.png'
+import direktverkaufLight from '../assets/screenshots/direktverkauf-light.png'
+import direktverkaufDark from '../assets/screenshots/direktverkauf-dark.png'
+import produkteLight from '../assets/screenshots/produkte-light.png'
+import produkteDark from '../assets/screenshots/produkte-dark.png'
+import benutzerLight from '../assets/screenshots/benutzer-light.png'
+import benutzerDark from '../assets/screenshots/benutzer-dark.png'
+import geldtransitLight from '../assets/screenshots/geldtransit-light.png'
+import geldtransitDark from '../assets/screenshots/geldtransit-dark.png'
+import auswertungLight from '../assets/screenshots/auswertung-light.png'
+import auswertungDark from '../assets/screenshots/auswertung-dark.png'
+
+// Alle acht übrigen Motive (Plan: „Galerie übernimmt die neun heutigen
+// Motive“, Bestellansicht liegt im Hero). Tischübersicht und Kassieren
+// erscheinen bewusst zusätzlich als feste Phones im Statement oben.
+const galerie = [
+  {
+    light: tischuebersichtLight,
+    dark: tischuebersichtDark,
+    titel: 'Meine Tische',
+    alt: 'jotti-Serviceansicht „Meine Tische“ auf dem Handy: offene und erledigte Tische mit Saldo und Status-Punkt.',
+  },
+  {
+    light: zahlungLight,
+    dark: zahlungDark,
+    titel: 'Kassieren',
+    alt: 'jotti-Kassieren auf dem Handy: der Zahlungs-Dialog eines Tisches mit Positionen, Gesamtbetrag und Trinkgeld-Feld.',
+  },
+  {
+    light: stornierungLight,
+    dark: stornierungDark,
+    titel: 'Stornieren',
+    alt: 'jotti-Stornierung auf dem Handy: der Storno-Dialog der Serviceleitung mit ausgewählter Position und Pflichtkommentar.',
+  },
+  {
+    light: direktverkaufLight,
+    dark: direktverkaufDark,
+    titel: 'Direktverkauf',
+    alt: 'jotti-Direktverkauf auf dem Handy: Produktliste mit Mengen-Steppern und grüner Kassieren-Leiste über dem Verkaufsbetrag.',
+  },
+  {
+    light: produkteLight,
+    dark: produkteDark,
+    titel: 'Produkte',
+    alt: 'jotti-Produktverwaltung auf dem Handy: Produkte mit Varianten, Preisen und aktiven Umschaltern je Variante.',
+  },
+  {
+    light: benutzerLight,
+    dark: benutzerDark,
+    titel: 'Helfer',
+    alt: 'jotti-Benutzerverwaltung auf dem Handy: die Helferliste mit Namen, Rolle und Aktiv-Status.',
+  },
+  {
+    light: geldtransitLight,
+    dark: geldtransitDark,
+    titel: 'Kassenführung',
+    alt: 'jotti-Kassenführung auf dem Handy: der Dialog „Geld einlegen“ mit Betrag- und Kommentarfeld.',
+  },
+  {
+    light: auswertungLight,
+    dark: auswertungDark,
+    titel: 'Auswertung',
+    alt: 'jotti-Tagesbericht auf dem Handy: Kennzahl-Karten und die Tabelle „Umsatz nach Steuersatz“ einer abgeschlossenen Kassensitzung.',
+  },
+]
+---
+
+<section id="screenshots" class="bg-surface-alt py-16 sm:py-24">
+  <div class="mx-auto max-w-6xl px-6">
+    <div class="reveal max-w-[680px]">
+      <p
+        class="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal)] uppercase"
+      >
+        <span
+          class="h-[3px] w-[22px] rounded-sm"
+          style="background: var(--spectral);"
+          aria-hidden="true"></span>
+        Screenshots
+      </p>
+      <h2
+        class="font-brand mt-3 text-[length:var(--fs-h2)] leading-[1.06] font-bold tracking-[-0.025em]"
+      >
+        Ein Design. Jedes Gerät.
+      </h2>
+      <p class="mt-4 text-[1.0625rem] leading-relaxed text-muted">
+        Servicekräfte kassieren am Handy, die Serviceleitung verwaltet am Laptop
+        — dieselbe klare, ruhige Oberfläche. Hell und dunkel.
+      </p>
+    </div>
+
+    {/* „Jedes Gerät": Desktop-Rahmen (theme-passend) plus zwei feste Telefone. */}
+    <div
+      class="reveal mt-12 flex flex-wrap items-end justify-center gap-x-7 gap-y-8"
+    >
+      <figure class="m-0 shrink-0">
+        <div class="device-browser w-[540px] max-w-full">
+          <div class="device-browser-bar" aria-hidden="true">
+            <span class="device-browser-dot" style="background: #ec6a5e;"></span>
+            <span class="device-browser-dot" style="background: #f4bf4f;"></span>
+            <span class="device-browser-dot" style="background: #61c554;"></span>
+            <span
+              class="mx-auto rounded-md border border-card-border bg-background px-3.5 py-[3px] text-[11.5px] text-muted"
+              >jotti.verein.de/admin</span
+            >
+          </div>
+          <ThemeImage
+            light={produktverwaltungLight}
+            dark={produktverwaltungDark}
+            alt="jotti-Adminbereich am Laptop: die Produktverwaltung mit Kategorien, Varianten, Preisen und aktiven Umschaltern je Variante."
+            class="w-full"
+            widths={[540, 1080]}
+            sizes="(min-width: 640px) 540px, 86vw"
+          />
+        </div>
+        <figcaption class="mt-3.5 text-center text-[13px] font-medium text-muted">
+          Admin · Produkte verwalten
+        </figcaption>
+      </figure>
+
+      <figure class="m-0 shrink-0">
+        <div class="device-phone w-[218px]">
+          <div class="device-phone-screen">
+            <Image
+              src={tischuebersichtLight}
+              alt="jotti-Serviceansicht „Meine Tische“ auf dem Handy im hellen Design: offene und erledigte Tische mit Saldo und Status-Punkt."
+              widths={[218, 436]}
+              sizes="218px"
+              loading="lazy"
+            />
+          </div>
+        </div>
+        <figcaption class="mt-3.5 text-center text-[13px] font-medium text-muted">
+          Service · Meine Tische (hell)
+        </figcaption>
+      </figure>
+
+      <figure class="m-0 shrink-0">
+        <div class="device-phone w-[218px]">
+          <div class="device-phone-screen">
+            <Image
+              src={zahlungDark}
+              alt="jotti-Kassieren auf dem Handy im dunklen Design: der Zahlungs-Dialog eines Tisches mit Positionen, Gesamtbetrag und Trinkgeld-Feld."
+              widths={[218, 436]}
+              sizes="218px"
+              loading="lazy"
+            />
+          </div>
+        </div>
+        <figcaption class="mt-3.5 text-center text-[13px] font-medium text-muted">
+          Service · Kassieren (dunkel)
+        </figcaption>
+      </figure>
+    </div>
+
+    {/* Galerie der übrigen Motive, theme-passend. */}
+    <ul
+      class="reveal mt-14 grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-4"
+    >
+      {
+        galerie.map((motiv) => (
+          <li>
+            <figure class="m-0">
+              <div class="overflow-hidden rounded-2xl border border-card-border bg-card shadow-md">
+                <ThemeImage
+                  light={motiv.light}
+                  dark={motiv.dark}
+                  alt={motiv.alt}
+                  class="w-full"
+                  widths={[180, 360]}
+                  sizes="(min-width: 860px) 12rem, 45vw"
+                />
+              </div>
+              <figcaption class="mt-2.5 text-center text-[12.5px] font-medium text-muted">
+                {motiv.titel}
+              </figcaption>
+            </figure>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
