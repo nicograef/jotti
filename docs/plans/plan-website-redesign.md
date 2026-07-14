@@ -656,22 +656,22 @@ und `#bereit` entfallen.
 
 ### Acceptance criteria
 
-- [ ] FAQ: neun Items inklusive Service- und Vergleichs-Item, single-open,
+- [x] FAQ: neun Items inklusive Service- und Vergleichs-Item, single-open,
       per Tastatur bedienbar, korrekte ARIA-Semantik; Referenz
       `09-light.png`/`04-dark.png`; `#faq`-Link ist im Header eingehängt.
-- [ ] Download-Bereich: ehrliche Copy (ZIP, Starter, Docker Desktop,
+- [x] Download-Bereich: ehrliche Copy (ZIP, Starter, Docker Desktop,
       Leitfaden), Links auf Leitfaden und Quellcode, Hinweis-Pill; die Wörter
       „.exe" und „5 Minuten" kommen nicht vor.
-- [ ] Footer mit drei Spalten; `/impressum` und `/datenschutz` erreichbar,
+- [x] Footer mit drei Spalten; `/impressum` und `/datenschutz` erreichbar,
       mit eigener Meta und markierten Platzhaltertexten;
       Nutzungsbedingungen- und Lizenz-Links erhalten. Die
       Datenschutz-Platzhalter decken auch Server-Logs/Hosting,
       E-Mail-Provider, Betroffenenrechte und Speicherdauer ab.
-- [ ] Die Betreiber-Mailadresse liegt als Konstante in
+- [x] Die Betreiber-Mailadresse liegt als Konstante in
       `website/src/lib/links.ts`.
-- [ ] Alt-Sektionen `#service` und `#bereit` entfernt; das Service-Angebot
+- [x] Alt-Sektionen `#service` und `#bereit` entfernt; das Service-Angebot
       ist im FAQ-Item abgedeckt.
-- [ ] `make website-check` grün; FaqAccordion hydriert unter Produktiv-CSP.
+- [x] `make website-check` grün; FaqAccordion hydriert unter Produktiv-CSP.
 
 ---
 

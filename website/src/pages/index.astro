@@ -9,7 +9,8 @@ import Ablauf from '../components/Ablauf.astro'
 import FuerWen from '../components/FuerWen.astro'
 import Preis from '../components/Preis.astro'
 import Sicherheit from '../components/Sicherheit.astro'
-import jottiSymbol from '../assets/jotti-symbol.png'
+import Faq from '../components/Faq.astro'
+import Download from '../components/Download.astro'
 import tischeUebersicht from '../assets/screenshots/service-tische-uebersicht.png'
 import tischBestellen from '../assets/screenshots/tisch-bestellen.png'
 import tischZahlung from '../assets/screenshots/tisch-zahlung.png'
@@ -18,7 +19,6 @@ import kasseGeldtransit from '../assets/screenshots/kasse-geldtransit.png'
 import produkteVerwalten from '../assets/screenshots/produkte-verwalten.png'
 import auswertungHistorisch from '../assets/screenshots/auswertung-historisch.png'
 import direktverkauf from '../assets/screenshots/direktverkauf.png'
-import { githubUrl, leitfadenUrl } from '../lib/links'
 
 // Reihenfolge der Showcase-Sektion „Einblicke" (CSS-Scroll-Snap-Carousel).
 // Service- und Admin-Ansichten gemischt; Alt-Texte stammen aus
@@ -202,197 +202,11 @@ const description =
   {/* ============ SICHERHEIT & COMPLIANCE ============ */}
   <Sicherheit />
 
-  {/* ============ SERVICE (optional, auf Anfrage) ============ */}
-  <section class="bg-surface-alt py-16 sm:py-24" id="service">
-    <div class="mx-auto max-w-6xl px-6">
-      <p class="eyebrow mb-3 text-center">Optionale Unterstützung</p>
-      <h2
-        class="mb-3 text-center text-2xl font-bold tracking-tight sm:text-4xl"
-      >
-        Wenn ihr Hilfe möchtet.
-      </h2>
-      <p
-        class="mx-auto mb-12 max-w-160 text-center text-[1.0625rem] text-muted"
-      >
-        Die Software bleibt kostenlos. Wer sich Einrichtung oder Betrieb nicht
-        allein zutraut, kann mich anfragen.
-      </p>
-      <div class="grid gap-x-10 gap-y-7 md:grid-cols-2 lg:grid-cols-4">
-        <div class="card">
-          <span class="icon-box">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path
-                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
-              ></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-          </span>
-          <h3 class="mb-1.5 text-lg font-bold">Einrichtung</h3>
-          <p class="card-text">
-            Gemeinsam alles einrichten, damit ihr fürs erste Fest startklar
-            seid.
-          </p>
-        </div>
-        <div class="card">
-          <span class="icon-box">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <rect width="20" height="8" x="2" y="2" rx="2" ry="2"></rect>
-              <rect width="20" height="8" x="2" y="14" rx="2" ry="2"></rect>
-              <line x1="6" x2="6.01" y1="6" y2="6"></line>
-              <line x1="6" x2="6.01" y1="18" y2="18"></line>
-            </svg>
-          </span>
-          <h3 class="mb-1.5 text-lg font-bold">Hosting-Hilfe</h3>
-          <p class="card-text">
-            Beim Aufsetzen auf einem Server oder im Vereinsheim helfen.
-          </p>
-        </div>
-        <div class="card">
-          <span class="icon-box">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="m4.93 4.93 4.24 4.24"></path>
-              <path d="m14.83 9.17 4.24-4.24"></path>
-              <path d="m14.83 14.83 4.24 4.24"></path>
-              <path d="m9.17 14.83-4.24 4.24"></path>
-              <circle cx="12" cy="12" r="4"></circle>
-            </svg>
-          </span>
-          <h3 class="mb-1.5 text-lg font-bold">Tech-Support</h3>
-          <p class="card-text">
-            Ansprechpartner bei Fragen und Problemen, auch während eurer
-            Veranstaltung.
-          </p>
-        </div>
-        <div class="card">
-          <span class="icon-box">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path
-                d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"
-              ></path>
-              <path d="M22 10v6"></path>
-              <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path>
-            </svg>
-          </span>
-          <h3 class="mb-1.5 text-lg font-bold">Schulung</h3>
-          <p class="card-text">
-            Eure Helfer schulen, damit am Festtag jeder Handgriff sitzt.
-          </p>
-        </div>
-      </div>
+  {/* ============ FAQ ============ */}
+  <Faq />
 
-      <div class="mt-8 p-8 text-center">
-        <p class="mx-auto mb-6 max-w-160 card-text">
-          Schreibt mir kurz, was ihr braucht. Diese Hilfe ist freiwillig und
-          unabhängig von der kostenlosen Software; die Verantwortung für den
-          Betrieb bleibt bei eurem Verein.
-        </p>
-        <div class="flex flex-col justify-center gap-4 sm:flex-row">
-          <a href="mailto:graef.nico@gmail.com" class="btn btn-primary"
-            >Per E-Mail anfragen</a
-          >
-          <a
-            href="https://nicograef.de"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn btn-ghost"
-          >
-            Mehr über den Entwickler
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  {/* ============ CTA ============ */}
-  <section class="bg-brand-solid py-16 sm:py-24" id="download">
-    <div
-      class="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 text-center"
-    >
-      <Image src={jottiSymbol} alt="jotti" class="h-20 w-auto" loading="lazy" />
-      <h2 class="text-2xl font-bold tracking-tight text-white sm:text-4xl">
-        Bereit für euer nächstes Fest?
-      </h2>
-      <p class="max-w-[480px] text-[1.0625rem] text-white/85">
-        Startet mit dem Leitfaden für Vereine: Er führt euch Schritt für
-        Schritt zum ersten Einsatz.
-      </p>
-      <div class="flex flex-col gap-4 sm:flex-row">
-        <a href={leitfadenUrl} class="btn btn-lg btn-on-brand"
-          >Leitfaden für Vereine lesen</a
-        >
-        <a
-          href={githubUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="btn btn-lg border-white/70 text-white hover:bg-white/10"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path
-              d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
-            ></path>
-            <path d="M9 18c-4.51 2-5-2-7-2"></path>
-          </svg>
-          Auf GitHub ansehen
-        </a>
-      </div>
-    </div>
-  </section>
+  {/* ============ DOWNLOAD ============ */}
+  <Download />
 
   {/*
     Externe Datei aus public/ statt eines gebuendelten <script>: Die Produktiv-CSP

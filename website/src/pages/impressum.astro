@@ -1,0 +1,66 @@
+---
+import Landing from '../layouts/Landing.astro'
+import Platzhalter from '../components/Platzhalter.astro'
+import { betreiberEmail } from '../lib/links'
+
+// Impressum (Anbieterkennzeichnung, § 5 DDG). Statische Seite auf Basis des
+// Landing-Layouts (Header/Footer, eigene Meta über die Layout-Props). Die
+// betreiberspezifischen Angaben sind deutlich markierte Platzhalter; die
+// verbindlichen Texte setzt der Betreiber vor der Abnahme ein (Plan Phase 7/10).
+
+const title = 'Impressum – jotti'
+const description =
+  'Impressum und Anbieterkennzeichnung für jotti, das kostenlose Kassensystem für Vereinsfeste.'
+---
+
+<Landing title={title} description={description}>
+  <article class="mx-auto max-w-[760px] px-6 py-16 sm:py-24">
+    <h1
+      class="font-brand text-[length:var(--fs-h2)] leading-[1.06] font-bold tracking-[-0.025em]"
+    >
+      Impressum
+    </h1>
+    <p class="mt-4 text-[1.0625rem] leading-relaxed text-muted">
+      Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG).
+    </p>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Diensteanbieter
+    </h2>
+    <Platzhalter betreff="Name und Anschrift des Betreibers">
+      Vollständiger Name bzw. Vereinsname, ladungsfähige Anschrift (Straße,
+      Hausnummer, PLZ, Ort) und – bei Vereinen – das Vereinsregister mit
+      Registergericht und Registernummer sowie der/die Vertretungsberechtigte.
+    </Platzhalter>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Kontakt
+    </h2>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      E-Mail: <a
+        href={`mailto:${betreiberEmail}`}
+        class="font-semibold text-brand hover:underline">{betreiberEmail}</a
+      >
+    </p>
+    <Platzhalter betreff="Weitere Kontaktangaben">
+      Optional Telefonnummer und weitere Kontaktmöglichkeiten für eine schnelle
+      elektronische Kontaktaufnahme.
+    </Platzhalter>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Verantwortlich für den Inhalt
+    </h2>
+    <Platzhalter betreff="Inhaltlich Verantwortliche:r nach § 18 Abs. 2 MStV">
+      Name und Anschrift der inhaltlich verantwortlichen Person nach § 18 Abs. 2
+      Medienstaatsvertrag (MStV).
+    </Platzhalter>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Haftung und Urheberrecht
+    </h2>
+    <Platzhalter betreff="Haftungs- und Urheberrechtshinweise">
+      Hinweise zur Haftung für eigene Inhalte und verlinkte fremde Inhalte sowie
+      zum Urheberrecht der auf dieser Seite veröffentlichten Inhalte.
+    </Platzhalter>
+  </article>
+</Landing>

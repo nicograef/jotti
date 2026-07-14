@@ -9,10 +9,11 @@
    starlight.css über dessen CSS-Custom-Properties.
 
    Übergangsregel (Plan Phase 1): Der Umbau läuft sektionsweise. Die alten
-   Token-Namen (--brand-*) und Komponentenklassen (.btn/.card/.icon-box/
-   .carousel-*) bleiben als Aliase auf die neuen Werte erhalten, bis die
-   konsumierende Sektion in ihrer Phase neu gebaut wird — dann fallen Alias und
-   Sektion gemeinsam weg. */
+   Token-Namen (--brand-*) und Komponentenklassen (.btn, .carousel-*) bleiben
+   als Aliase auf die neuen Werte erhalten, bis die konsumierende Sektion in
+   ihrer Phase neu gebaut wird — dann fallen Alias und Sektion gemeinsam weg
+   (so bereits geschehen für .card/.icon-box/.spectrum-edge-* und
+   --brand-spectrum mit den Sektionen #service, #bereit und dem Footer). */
 
 @font-face {
   font-family: 'Inter';
@@ -76,7 +77,6 @@
   --brand-green-tint: #e3f1ec;
   --brand-green-deep: #04231a;
   --brand-font: var(--font-body);
-  --brand-spectrum: var(--spectral);
 }
 
 [data-theme='dark'] {
