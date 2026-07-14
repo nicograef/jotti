@@ -172,12 +172,12 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return ErrDatabase
 	}
 
-	if !validatePositionRefs(nichtStorniert, positionen) {
+	if !kasse.ValidatePositionRefs(nichtStorniert, positionen) {
 		log.Warn().Str("verkauf_id", verkaufID).Msg("Storno-Invariante verletzt: angeforderte Positionen nicht stornierbar")
 		return ErrPositionNichtStornierbar
 	}
 
-	resolvedPositionen, gesamtStornierungCents := resolvePositionen(nichtStorniert, positionen)
+	resolvedPositionen, gesamtStornierungCents := kasse.ResolvePositionen(nichtStorniert, positionen)
 
 	evt, err := kasse.NewDirektverkaufStorniertEvent(subject, verkaufID, userID, userName, resolvedPositionen, gesamtStornierungCents, kommentar)
 	if err != nil {
@@ -197,60 +197,6 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 
 	log.Info().Str("verkauf_id", verkaufID).Int("gesamt_stornierung_cents", gesamtStornierungCents).Msg("Direktverkauf storniert")
 	return nil
-}
-
-// validatePositionRefs checks that every requested PositionRef exists in the available positions,
-// that no PositionID is referenced more than once (duplicates would add up unnoticed), and that
-// the requested Menge does not exceed the available Menge.
-func validatePositionRefs(available []kasse.Position, requested []kasse.PositionRef) bool {
-	seen := make(map[string]bool, len(requested))
-	for _, ref := range requested {
-		if seen[ref.PositionID] {
-			return false
-		}
-		seen[ref.PositionID] = true
-		found := false
-		for _, pos := range available {
-			if pos.PositionID == ref.PositionID {
-				if ref.Menge > pos.Menge {
-					return false
-				}
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
-}
-
-// resolvePositionen resolves the requested PositionRefs to fat Positions using the available
-// (not-yet-cancelled) positions, returning the resolved positions and their total in cents.
-// Mirrors the Tisch-Storno so the storno event is self-contained (fat).
-func resolvePositionen(available []kasse.Position, requested []kasse.PositionRef) ([]kasse.Position, int) {
-	resolved := make([]kasse.Position, 0, len(requested))
-	totalCents := 0
-	for _, ref := range requested {
-		for _, pos := range available {
-			if pos.PositionID == ref.PositionID {
-				resolved = append(resolved, kasse.Position{
-					PositionID:       pos.PositionID,
-					VarianteID:       pos.VarianteID,
-					ProduktName:      pos.ProduktName,
-					VarianteName:     pos.VarianteName,
-					Kategorie:        pos.Kategorie,
-					Steuersatz:       pos.Steuersatz,
-					EinzelpreisCents: pos.EinzelpreisCents,
-					Menge:            ref.Menge,
-				})
-				totalCents += pos.EinzelpreisCents * ref.Menge
-				break
-			}
-		}
-	}
-	return resolved, totalCents
 }
 
 // enrichPositionen batch-fetches the referenced variants and products and turns the inputs

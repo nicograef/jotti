@@ -187,33 +187,6 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 	return subject, ks.ZNr, state, nil
 }
 
-// validatePositionRefs checks that every requested PositionRef exists in the available
-// positions, that no PositionID is referenced more than once (duplicates would add up
-// unnoticed), and that the requested Menge does not exceed the available Menge.
-func validatePositionRefs(available []kasse.Position, requested []kasse.PositionRef) bool {
-	seen := make(map[string]bool, len(requested))
-	for _, ref := range requested {
-		if seen[ref.PositionID] {
-			return false
-		}
-		seen[ref.PositionID] = true
-		found := false
-		for _, pos := range available {
-			if pos.PositionID == ref.PositionID {
-				if ref.Menge > pos.Menge {
-					return false
-				}
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
-}
-
 // BestellungAufnehmen nimmt eine Bestellung für einen Tisch auf.
 // bestellungID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel). Bei
 // UniqueViolation (Duplikat-Einreichung) wird per bestellungId nachgeschlagen:
@@ -338,32 +311,6 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	return nil
 }
 
-// resolvePositions resolves PositionRefs to full Positions using the available
-// positions. Returns the resolved positions and the total amount in cents.
-func resolvePositions(available []kasse.Position, refs []kasse.PositionRef) ([]kasse.Position, int) {
-	resolved := make([]kasse.Position, 0, len(refs))
-	totalCents := 0
-	for _, ref := range refs {
-		for _, pos := range available {
-			if pos.PositionID == ref.PositionID {
-				resolved = append(resolved, kasse.Position{
-					PositionID:       pos.PositionID,
-					VarianteID:       pos.VarianteID,
-					ProduktName:      pos.ProduktName,
-					VarianteName:     pos.VarianteName,
-					Kategorie:        pos.Kategorie,
-					Steuersatz:       pos.Steuersatz,
-					EinzelpreisCents: pos.EinzelpreisCents,
-					Menge:            ref.Menge,
-				})
-				totalCents += pos.EinzelpreisCents * ref.Menge
-				break
-			}
-		}
-	}
-	return resolved, totalCents
-}
-
 const maxUmbuchungKommentarRunes = 100
 
 func truncateRunes(s string, max int) string {
@@ -429,12 +376,12 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return ErrDatabase
 	}
 
-	if !validatePositionRefs(quellState.UnbezahltePositionen, positionen) {
+	if !kasse.ValidatePositionRefs(quellState.UnbezahltePositionen, positionen) {
 		log.Warn().Int("quell_tisch_id", quellTischID).Msg("Umbuchungsinvariante verletzt: Positionen nicht umbuchbar")
 		return ErrPositionNichtUmbuchbar
 	}
 
-	resolvedPositionen, gesamtCents := resolvePositions(quellState.UnbezahltePositionen, positionen)
+	resolvedPositionen, gesamtCents := kasse.ResolvePositionen(quellState.UnbezahltePositionen, positionen)
 
 	quellKommentar := buildUmbuchungKommentar("Umbuchung auf ", zielTisch.Name)
 	zielKommentar := buildUmbuchungKommentar("Umbuchung von ", quellTisch.Name)
@@ -492,12 +439,12 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	}
 
 	// Bezahl-Invariante: nur unbezahlte Positionen können bezahlt werden
-	if !validatePositionRefs(state.UnbezahltePositionen, positionen) {
+	if !kasse.ValidatePositionRefs(state.UnbezahltePositionen, positionen) {
 		log.Warn().Int("tisch_id", tischID).Msg("Bezahl-Invariante verletzt: angeforderte Positionen nicht verfügbar")
 		return ErrPositionNichtBezahlbar
 	}
 
-	resolvedPositionen, gesamtZahlungCents := resolvePositions(state.UnbezahltePositionen, positionen)
+	resolvedPositionen, gesamtZahlungCents := kasse.ResolvePositionen(state.UnbezahltePositionen, positionen)
 
 	evt, err := kasse.NewZahlungKassiertEvent(subject, userID, userName, resolvedPositionen, gesamtZahlungCents, kommentar)
 	if err != nil {
