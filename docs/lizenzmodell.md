@@ -13,7 +13,7 @@ Die Software jotti (Quellcode, Dokumentation, Architektur, Design und alle zugeh
 
 ## 2. Source-Available, nicht Open Source
 
-jotti steht unter einer proprietären Source-Available-Lizenz: Der Quellcode ist öffentlich einsehbar, aber Nutzungsrechte werden nicht automatisch gewährt. Jede Nutzung erfordert eine vorherige Nutzungsvereinbarung in Textform; Ablauf und E-Mail-Vorlage: [TERMS.md → Prozess](../TERMS.md#prozess-nutzungsvereinbarung-abschließen).
+jotti steht unter einer proprietären Source-Available-Lizenz: Der Quellcode ist öffentlich einsehbar, aber Nutzungsrechte werden nicht automatisch gewährt. Jede Nutzung erfordert eine vorherige Nutzungsvereinbarung in Textform — eine einzige E-Mail an den Autor genügt, ohne Nachweis und ohne Bestätigung durch den Autor; Ablauf und E-Mail-Vorlage: [TERMS.md → Prozess](../TERMS.md#prozess-nutzungsvereinbarung-abschließen).
 
 | Eigenschaft                       | Source-Available (jotti) | Open Source (z. B. MIT, Apache) |
 | --------------------------------- | ------------------------ | ------------------------------- |
@@ -41,7 +41,7 @@ Kostenlose Nutzungsvereinbarungen erhalten ausschließlich eingetragene Organisa
 | Eingetragene Vereine (e.V.)               | Eintragung im Vereinsregister gemäß §§ 21 ff. BGB                    |
 | Eingetragene gemeinnützige Stiftungen     | Stiftungsregister + Anerkennung der Gemeinnützigkeit                 |
 | Gemeinnützige GmbH / UG (gGmbH, gUG)       | Handelsregister + steuerliche Anerkennung der Gemeinnützigkeit       |
-| Sonstige eingetragene NGOs / NPOs         | Nachweisbare Registereintragung und fehlende Gewinnerzielungsabsicht |
+| Sonstige eingetragene NGOs / NPOs         | Registereintragung und fehlende Gewinnerzielungsabsicht              |
 
 Keine kostenlose Vereinbarung erhalten gewerbliche Unternehmen, Organisationen ohne gemeinnützigen Status, gewerblich nutzende Einzelpersonen und Dritte, die jotti als Dienstleistung betreiben wollen (SaaS). Sie benötigen eine kostenpflichtige kommerzielle Lizenz (→ [Abschnitt 5](#5-kommerzialisierung-und-dual-licensing)). Entfallen die Voraussetzungen, endet die kostenlose Nutzungslizenz automatisch ([TERMS.md § 2 Abs. 3](../TERMS.md)).
 
@@ -75,4 +75,4 @@ Jeder Beitrag (Pull Request, Patch, Code-Einreichung) unterliegt dem [Contributo
 
 ## 7. Verbindliche Regelungen in den Nutzungsbedingungen
 
-Hosting und Betrieb, Datenschutz (DSGVO), Gewährleistungsausschluss, Haftungsbegrenzung, Freistellung und Compliance-Verantwortung (KassenSichV / TSE) sind abschließend in [TERMS.md §§ 5–10](../TERMS.md) geregelt. Kurzfassung: Die nutzende Organisation ist alleinige Betreiberin und datenschutzrechtlich Verantwortliche; der Autor stellt ausschließlich Quellcode bereit („as-is", Haftung nach Schenkungsrecht § 521 BGB nur für Vorsatz und grobe Fahrlässigkeit) und wird von Ansprüchen Dritter freigestellt. Die fachlichen Compliance-Pflichten der Betreiber beschreibt [compliance.md](compliance.md).
+Hosting und Betrieb, Datenschutz (DSGVO), Compliance-Verantwortung (KassenSichV / TSE), Gewährleistungsausschluss, Haftungsbegrenzung und Freistellung sind abschließend in [TERMS.md §§ 4–6](../TERMS.md) geregelt. Kurzfassung: Die nutzende Organisation ist alleinige Betreiberin und datenschutzrechtlich Verantwortliche; der Autor stellt ausschließlich Quellcode bereit („as-is", Haftung nach Schenkungsrecht § 521 BGB nur für Vorsatz und grobe Fahrlässigkeit) und wird von Ansprüchen Dritter freigestellt. Die fachlichen Compliance-Pflichten der Betreiber beschreibt [compliance.md](compliance.md).

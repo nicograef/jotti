@@ -37,7 +37,7 @@ d) Schulung: Einweisung der Helferinnen und Helfer des Auftraggebers in die Bedi
 
 (2) Der Autor schuldet insbesondere nicht die Herstellung eines gesetzeskonformen, betriebsprüfungssicheren oder „finanzamtssicheren" Kassensystems. Einrichtung, TSE-Anbindung, Konfiguration und Schulung erfolgen unterstützend; die Verantwortung für die Einhaltung der gesetzlichen Vorschriften (insbesondere KassenSichV, § 146a AO, GoBD, DSFinV-K, DSGVO) verbleibt beim Auftraggeber.
 
-(3) Eine Gewähr für Fehlerfreiheit, Vollständigkeit, Verfügbarkeit oder Eignung der Software für einen bestimmten Zweck wird nicht übernommen; insoweit gilt § 7 der Nutzungsbedingungen.
+(3) Eine Gewähr für Fehlerfreiheit, Vollständigkeit, Verfügbarkeit oder Eignung der Software für einen bestimmten Zweck wird nicht übernommen; insoweit gilt § 6 der Nutzungsbedingungen.
 
 ---
 
@@ -69,7 +69,7 @@ e) die eigenständige Prüfung und Freigabe der Einrichtung vor dem produktiven 
 
 (1) Der Autor erstellt auf Anfrage ein Angebot mit Leistungsumfang und Vergütung. Es gibt keine allgemeine Preisliste; die Konditionen werden individuell vereinbart.
 
-(2) Der Auftrag kommt mit der Auftragsbestätigung in Textform zustande (§ 12 des nachfolgenden Prozesses).
+(2) Der Auftrag kommt mit der Auftragsbestätigung in Textform zustande (Schritt 3 des nachfolgenden Prozesses).
 
 (3) Ob Umsatzsteuer ausgewiesen wird, ergibt sich aus dem jeweiligen Angebot. Reisekosten und sonstige Auslagen werden nur erstattet, soweit sie im Angebot ausgewiesen oder vorab vereinbart sind.
 

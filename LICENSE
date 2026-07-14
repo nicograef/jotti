@@ -1,6 +1,6 @@
              JOTTI — PROPRIETARY SOURCE-AVAILABLE LICENSE
 
-                    Version 1.0, 21 March 2026
+                    Version 1.1, 14 July 2026
 
 Copyright (c) 2025-2026 Nico Gräf, Freiburg im Breisgau, Germany.
 All rights reserved.
@@ -44,12 +44,13 @@ license agreement in text form (Textform, § 126b BGB).
    requires a prior license agreement in text form (Textform, § 126b BGB
    German Civil Code) with the Author.
 
-   A license agreement in text form is concluded by email exchange: the
+   A license agreement in text form is concluded by a single email: the
    organization sends an email to graef.nico@gmail.com identifying itself
-   (name, legal form, registration number, contact person) and explicitly
+   (name, legal form, registered office, contact person) and explicitly
    confirming acceptance of the terms of use in the version dated in the
-   document. The Author confirms by reply email. No printed form or
-   signature is required. See TERMS.md for the full process and a
+   document. No reply or confirmation by the Author, no proof of status,
+   no printed form, and no signature is required — use may begin as soon
+   as the email has been sent. See TERMS.md for the full process and a
    ready-to-use email template.
 
    The Author offers free-of-charge license agreements for non-commercial
