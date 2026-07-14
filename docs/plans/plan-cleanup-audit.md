@@ -98,15 +98,15 @@ Frontend-Key in `exportDsfinvk()`, und der Smoke-Test-Payload in `ops-smoke.sh`.
 
 ### Acceptance criteria
 
-- [ ] `NameSchema` in `Produkt.ts` enthält `.trim()` vor `min`/`max`; bestehende
+- [x] `NameSchema` in `Produkt.ts` enthält `.trim()` vor `min`/`max`; bestehende
       Fehlermeldungs-Strings bleiben erhalten.
-- [ ] `backend/api/fiskal/export/http/handler.go` verwendet Struct-Feld
+- [x] `backend/api/fiskal/export/http/handler.go` verwendet Struct-Feld
       `KassensitzungNr int` mit Tag `json:"kassensitzungNr"`; keine Vorkommen von
       `json:"kassensitzung"` mehr im Repo (`grep -rn 'json:"kassensitzung"' backend/`).
-- [ ] `ReportingBackend.ts — exportDsfinvk()` sendet `{ kassensitzungNr }` im
+- [x] `ReportingBackend.ts — exportDsfinvk()` sendet `{ kassensitzungNr }` im
       Nicht-Null-Fall und weiterhin `{}` bei `null`.
-- [ ] `scripts/ops-smoke.sh` sendet `{"kassensitzungNr":0}`.
-- [ ] `make check` läuft grün.
+- [x] `scripts/ops-smoke.sh` sendet `{"kassensitzungNr":0}`.
+- [x] `make check` läuft grün.
 
 ---
 
@@ -150,25 +150,25 @@ Delegation auflösen (`newTestCommand` ruft `newTestCommandWithEventMock` mit In
 
 ### Acceptance criteria
 
-- [ ] `errors.go` (tischgeschaeft/application): `ErrTischAlreadyExists` und der
+- [x] `errors.go` (tischgeschaeft/application): `ErrTischAlreadyExists` und der
       `db.ErrAlreadyExists`-Branch sind entfernt; `grep -rn ErrTischAlreadyExists backend/api/kasse/`
       liefert nichts.
-- [ ] `QRCodeModuleSize6` existiert nicht mehr im Repo.
-- [ ] Der `if positionen == nil`-Guard in `reporting_repo/repo.go` ist entfernt.
-- [ ] `tse_processdata.go` und `tagesabschluss_summen.go` referenzieren ausschließlich
+- [x] `QRCodeModuleSize6` existiert nicht mehr im Repo.
+- [x] Der `if positionen == nil`-Guard in `reporting_repo/repo.go` ist entfernt.
+- [x] `tse_processdata.go` und `tagesabschluss_summen.go` referenzieren ausschließlich
       `GeldtransitRichtungEinlage`/`GeldtransitRichtungEntnahme`; keine Literale
       `"einlage"`/`"entnahme"` mehr in Vergleichen/Switches dieser Dateien.
-- [ ] `event.go`-Kommentare zeigen jotti-Formate, kein `com.library.book.borrowed`, kein
+- [x] `event.go`-Kommentare zeigen jotti-Formate, kein `com.library.book.borrowed`, kein
       doppeltes „E.g." mehr.
-- [ ] `command_handler.go` (tischgeschaeft/http): `toBestellPositionInput` und
+- [x] `command_handler.go` (tischgeschaeft/http): `toBestellPositionInput` und
       `toPositionRef` sind inlined/entfernt; nur die Slice-Varianten bleiben.
-- [ ] `applyUserStatusChange` hat die Signatur-Form der Geschwister (nur `successMsg` als
+- [x] `applyUserStatusChange` hat die Signatur-Form der Geschwister (nur `successMsg` als
       Message-Parameter); alle Aufrufer angepasst.
-- [ ] `NewApp` gibt nur `*App` zurück; `backend/main.go` und `app_test.go` ohne toten
+- [x] `NewApp` gibt nur `*App` zurück; `backend/main.go` und `app_test.go` ohne toten
       err-Check.
-- [ ] `TestHealthCheck_WithDatabase` ist gelöscht.
-- [ ] `newTestCommand` delegiert an `newTestCommandWithEventMock`.
-- [ ] `make check` läuft grün (inkl. `event_json_contract_test.go` — Event-JSON unverändert).
+- [x] `TestHealthCheck_WithDatabase` ist gelöscht.
+- [x] `newTestCommand` delegiert an `newTestCommandWithEventMock`.
+- [x] `make check` läuft grün (inkl. `event_json_contract_test.go` — Event-JSON unverändert).
 
 ---
 
@@ -210,20 +210,20 @@ Rückgabe); tote Pfade löschen (`loading`-Prop samt Skeleton-Branch und
 
 ### Acceptance criteria
 
-- [ ] `AdminDashboardPage.tsx` berechnet keinen eigenen TSE-Fehlerzustand mehr; die
+- [x] `AdminDashboardPage.tsx` berechnet keinen eigenen TSE-Fehlerzustand mehr; die
       Schwellen-/Fehlerregel steht nur noch in `tseAmpel.ts`.
-- [ ] `Direktverkauf.tsx` enthält kein lokales `selectItems`/`SelectedItem` mehr und nutzt
+- [x] `Direktverkauf.tsx` enthält kein lokales `selectItems`/`SelectedItem` mehr und nutzt
       `toBestellungData` + `calculateTotalPrice`; Anzeige (Summe, Anzahl, Beleg-Items) und
       gesendete Positionen sind unverändert.
-- [ ] `Zahlung.tsx` hat keine `loading`-Prop und kein `PositionItemSkeleton`;
+- [x] `Zahlung.tsx` hat keine `loading`-Prop und kein `PositionItemSkeleton`;
       `TablePage.tsx` übergibt kein `loading` mehr.
-- [ ] `frontend/src/components/mode-toggle.tsx` ist gelöscht;
+- [x] `frontend/src/components/mode-toggle.tsx` ist gelöscht;
       `grep -rn 'mode-toggle\|ModeToggle' frontend/src/` liefert nichts.
-- [ ] `AuthRedirect` beginnt mit `if (!AuthSingleton.isAuthenticated) return` und wertet
+- [x] `AuthRedirect` beginnt mit `if (!AuthSingleton.isAuthenticated) return` und wertet
       den Getter genau einmal aus.
-- [ ] Die drei Storno-/Umbuchungs-Drawer nutzen das `open`-Shorthand.
-- [ ] `EuroInput.tsx`-Kommentar ohne „seamlessly".
-- [ ] `make check` läuft grün.
+- [x] Die drei Storno-/Umbuchungs-Drawer nutzen das `open`-Shorthand.
+- [x] `EuroInput.tsx`-Kommentar ohne „seamlessly".
+- [x] `make check` läuft grün.
 
 ---
 
@@ -263,18 +263,18 @@ korrigieren; „Stack neustarten" → „Restart the stack".
 
 ### Acceptance criteria
 
-- [ ] `docs/language.md`: DSFinV-K-Eintrag nennt „Version 2.4" und einen
+- [x] `docs/language.md`: DSFinV-K-Eintrag nennt „Version 2.4" und einen
       Umgesetzt-Status; kein „Geplant (→ F-04)" mehr.
-- [ ] `docs/handbuch.md`: kein Link auf `betrieb/` oder
+- [x] `docs/handbuch.md`: kein Link auf `betrieb/` oder
       `prds/prd-tse-admin-vereinfachung.md`; keine Formulierung „wird phasenweise
       implementiert"; kein Vorkommen von „Compliance-Phase 1" mehr im Repo.
-- [ ] `docs/plans/plan-ui-audit-politur.md` und `docs/prds/prd-ui-audit-politur.md` sind
+- [x] `docs/plans/plan-ui-audit-politur.md` und `docs/prds/prd-ui-audit-politur.md` sind
       gelöscht; `grep -rn 'ui-audit-politur' . --include='*.md'` trifft nur noch die
       Git-Historie-Verweise in ADR 04 (und ggf. diesen Plan).
-- [ ] `nginx.rocks.conf` verweist nicht mehr auf ein unqualifiziertes `nginx.conf`;
+- [x] `nginx.rocks.conf` verweist nicht mehr auf ein unqualifiziertes `nginx.conf`;
       CSP-Pflegehinweis nennt nur noch `caddyfile.go`.
-- [ ] `scripts/prod-init.sh`: Operator-Block durchgängig englisch.
-- [ ] Link-Check: alle in dieser Phase angefassten relativen Links zeigen auf existierende
+- [x] `scripts/prod-init.sh`: Operator-Block durchgängig englisch.
+- [x] Link-Check: alle in dieser Phase angefassten relativen Links zeigen auf existierende
       Dateien.
 
 ---
@@ -300,10 +300,10 @@ getestet werden, wandern diese Tests nach `backend/domain/kasse/positionen_test.
 
 ### Acceptance criteria
 
-- [ ] `grep -rn 'func validatePositionRefs\|func resolvePosition' backend/api/` liefert
+- [x] `grep -rn 'func validatePositionRefs\|func resolvePosition' backend/api/` liefert
       nichts; die einzige Implementierung liegt in `backend/domain/kasse/positionen.go`.
-- [ ] Beide Application-Pakete nutzen `kasse.ValidatePositionRefs`/`kasse.ResolvePositionen`;
+- [x] Beide Application-Pakete nutzen `kasse.ValidatePositionRefs`/`kasse.ResolvePositionen`;
       Aufruf-Semantik (Reihenfolge, Rückgaben, Fehlerpfade) unverändert.
-- [ ] Direkt auf die Helfer zielende Tests liegen im Domain-Paket; alle bestehenden
+- [x] Direkt auf die Helfer zielende Tests liegen im Domain-Paket; alle bestehenden
       Storno-/Bestell-Tests laufen unverändert grün.
-- [ ] `make check` läuft grün; abschließend `make verify` für den ganzen Plan.
+- [x] `make check` läuft grün; abschließend `make verify` für den ganzen Plan.
