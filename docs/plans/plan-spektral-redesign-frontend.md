@@ -236,19 +236,19 @@ Sichtbarer Effekt dieser Phase ist ausschließlich der Schriftwechsel der
 
 ### Acceptance criteria
 
-- [ ] `--sp-*` und `--spectral` stehen in `:root` und `.dark` wertidentisch
+- [x] `--sp-*` und `--spectral` stehen in `:root` und `.dark` wertidentisch
       zur Website (Dark-Verlauf rekomponiert), mit Quellkommentar auf
       `website/src/styles/brand.css`.
-- [ ] Keyframes `shimmer`/`fadeUp`/`pop`/`pulsedot`/`drift` und die benannten
+- [x] Keyframes `shimmer`/`fadeUp`/`pop`/`pulsedot`/`drift` und die benannten
       Utilities sind zentral in `index.css` definiert und in Komponenten
       verwendbar.
-- [ ] Die zentrale `prefers-reduced-motion`-Regel nullt Animationen und
+- [x] Die zentrale `prefers-reduced-motion`-Regel nullt Animationen und
       Transitions global (DevTools-Emulation: auch bestehende Drawer-/
       Spinner-Animationen stehen).
-- [ ] `CardTitle`, Dialog-/Drawer-Titel, `AdminPageHeader`-h1 und
+- [x] `CardTitle`, Dialog-/Drawer-Titel, `AdminPageHeader`-h1 und
       Tischtitel rendern Space Grotesk; Fließtext, Buttons, Beträge und die
       Doku bleiben Inter.
-- [ ] Kein weiterer visueller Diff; `make check` grün.
+- [x] Kein weiterer visueller Diff; `make check` grün.
 
 ---
 
@@ -277,14 +277,14 @@ mobiler Admin-Kopf (bestehende Größe).
 
 ### Acceptance criteria
 
-- [ ] „jotti“ erscheint an allen sechs Stellen mit Spektralverlauf in Space
+- [x] „jotti“ erscheint an allen sechs Stellen mit Spektralverlauf in Space
       Grotesk und bleibt als Text im DOM auffindbar (kein Bild).
-- [ ] Login-, Passwort-, Fehler- und Hydrate-Seite sind optisch identisch
+- [x] Login-, Passwort-, Fehler- und Hydrate-Seite sind optisch identisch
       behandelt.
-- [ ] Dark Mode nutzt den Dark-Verlauf (automatisch über das Token).
-- [ ] Bestehende Tests, die auf den Text „jotti“ matchen, laufen unverändert;
+- [x] Dark Mode nutzt den Dark-Verlauf (automatisch über das Token).
+- [x] Bestehende Tests, die auf den Text „jotti“ matchen, laufen unverändert;
       die Footer-Versionszeile der Sidebar ist unverändert schlichter Text.
-- [ ] `make check` grün.
+- [x] `make check` grün.
 
 ---
 
@@ -314,19 +314,19 @@ teal+violett; Farbpaare nach Mapping. Alle Glows sind `aria-hidden`,
 
 ### Acceptance criteria
 
-- [ ] Login (und über das `AuthLayout` auch Passwort- und Fehlerseite) zeigt
+- [x] Login (und über das `AuthLayout` auch Passwort- und Fehlerseite) zeigt
       die drei driftenden Glows hinter der Karte; unter reduzierter Bewegung
       steht die Drift.
-- [ ] Alle acht Admin-Seiten zeigen den Seitenkopf-Glow mit dem Farbpaar aus
+- [x] Alle acht Admin-Seiten zeigen den Seitenkopf-Glow mit dem Farbpaar aus
       dem Mapping.
-- [ ] Glows sind für Screenreader und Accessibility-Queries unsichtbar und
+- [x] Glows sind für Screenreader und Accessibility-Queries unsichtbar und
       klickdurchlässig; bestehende Tests grün.
-- [ ] Kontrast-Stichprobe: Text über Glows erfüllt AA in Hell und Dunkel
+- [x] Kontrast-Stichprobe: Text über Glows erfüllt AA in Hell und Dunkel
       (Deckkraft ggf. innerhalb der Handoff-Bandbreite justiert).
-- [ ] Druckvorschau der Kassenberichte ist frei von Glows.
-- [ ] Kein Layout-Shift und keine horizontalen Scrollbalken durch
+- [x] Druckvorschau der Kassenberichte ist frei von Glows.
+- [x] Kein Layout-Shift und keine horizontalen Scrollbalken durch
       Glow-Überhang.
-- [ ] `make check` grün.
+- [x] `make check` grün.
 
 ---
 
@@ -350,15 +350,15 @@ einheitlich spektral — keine Änderungen an den Verwendungsstellen nötig.
 
 ### Acceptance criteria
 
-- [ ] Die Skeleton-Komponente shimmert spektral getönt in Hell und Dunkel;
+- [x] Die Skeleton-Komponente shimmert spektral getönt in Hell und Dunkel;
       `grep animate-pulse frontend/src` liefert keine Treffer mehr.
-- [ ] Alle Verwendungsstellen gesichtet: `TischListSkeleton`,
+- [x] Alle Verwendungsstellen gesichtet: `TischListSkeleton`,
       `ProductListSkeleton` (Bestellen + Direktverkauf),
       `HistorieRowSkeleton` (beide Historien), `EigeneUebersicht`,
       `SidebarMenuSkeleton`.
-- [ ] Unter reduzierter Bewegung steht der Shimmer (statischer Platzhalter
+- [x] Unter reduzierter Bewegung steht der Shimmer (statischer Platzhalter
       bleibt sichtbar).
-- [ ] `make check` grün.
+- [x] `make check` grün.
 
 ---
 
@@ -382,13 +382,13 @@ Opacity .6), ausgelöst über den bestehenden `data-active`-Zustand.
 
 ### Acceptance criteria
 
-- [ ] Die Hero-Karte trägt die Spektral-Kante; die vier Nebenkarten und alle
+- [x] Die Hero-Karte trägt die Spektral-Kante; die vier Nebenkarten und alle
       übrigen Karten nicht.
-- [ ] Der aktive Sidebar-Eintrag zeigt den Marker zusätzlich zum bestehenden
+- [x] Der aktive Sidebar-Eintrag zeigt den Marker zusätzlich zum bestehenden
       Hintergrund; alle Nav-Einträge geprüft, Icons und Text unverschoben.
-- [ ] Beide Akzente sind dekorativ (`aria-hidden`), Hell und Dunkel geprüft;
+- [x] Beide Akzente sind dekorativ (`aria-hidden`), Hell und Dunkel geprüft;
       im Druckpfad der Kassenberichte tauchen sie nicht auf.
-- [ ] `make check` grün.
+- [x] `make check` grün.
 
 ---
 
@@ -416,11 +416,11 @@ Handoff-Delta C).
 
 ### Acceptance criteria
 
-- [ ] Buttons geben beim Drücken spürbares Press-Feedback, Stepper stärker;
+- [x] Buttons geben beim Drücken spürbares Press-Feedback, Stepper stärker;
       Disabled-Verhalten unverändert (keine `pointer-events`-Regression).
-- [ ] Die Mengen-Pill im Dock-Button poppt bei Änderung.
-- [ ] Unter reduzierter Bewegung wechseln Zustände sofort, ohne Übergänge.
-- [ ] Bestehende Button-/Stepper-/Drawer-Tests grün; `make check` grün.
+- [x] Die Mengen-Pill im Dock-Button poppt bei Änderung.
+- [x] Unter reduzierter Bewegung wechseln Zustände sofort, ohne Übergänge.
+- [x] Bestehende Button-/Stepper-/Drawer-Tests grün; `make check` grün.
 
 ---
 
@@ -449,15 +449,15 @@ Pop.
 
 ### Acceptance criteria
 
-- [ ] Tab-Wechsel in Tischansicht und Direktverkauf blenden sanft ein;
+- [x] Tab-Wechsel in Tischansicht und Direktverkauf blenden sanft ein;
       `tabsLocked`-Verhalten unverändert.
-- [ ] Tischkarten und Zahlungs-Positionen staggern nur beim ersten Aufbau;
+- [x] Tischkarten und Zahlungs-Positionen staggern nur beim ersten Aufbau;
       ein Refetch (z. B. nach einer Buchung) animiert nicht erneut.
-- [ ] Badge-Wechsel poppt; Texte und Semantik unverändert (Tests grün).
-- [ ] Nach dem Eröffnen der Kasse erscheint die erledigt-Karte mit fadeUp,
+- [x] Badge-Wechsel poppt; Texte und Semantik unverändert (Tests grün).
+- [x] Nach dem Eröffnen der Kasse erscheint die erledigt-Karte mit fadeUp,
       das Häkchen poppt.
-- [ ] Unter reduzierter Bewegung erscheint alles sofort, ohne Flackern.
-- [ ] `make check` grün.
+- [x] Unter reduzierter Bewegung erscheint alles sofort, ohne Flackern.
+- [x] `make check` grün.
 
 ---
 
@@ -490,17 +490,17 @@ die bisherigen Toast-Texte.
 
 ### Acceptance criteria
 
-- [ ] Pop erscheint nach erfolgreichem Bestellen, Kassieren und
+- [x] Pop erscheint nach erfolgreichem Bestellen, Kassieren und
       Direktverkauf; in diesen drei Flows feuert kein Erfolgs-Toast mehr.
-- [ ] Auto-Dismiss nach Ablauf der Anzeigedauer, Tap schließt sofort; der
+- [x] Auto-Dismiss nach Ablauf der Anzeigedauer, Tap schließt sofort; der
       nachgelagerte Statuswechsel/Refetch wird erst nach dem Schließen
       ausgelöst — getestet mit `vi.useFakeTimers`.
-- [ ] Fehlerpfad unverändert (`toast.error`, Drawer bleibt offen; bestehende
+- [x] Fehlerpfad unverändert (`toast.error`, Drawer bleibt offen; bestehende
       `ZahlungDrawer`-Tests grün).
-- [ ] Umbuchungs-, Storno-, Belegdruck- und Verwaltungs-Toasts unverändert.
-- [ ] Unter reduzierter Bewegung erscheint der Pop ohne Animation und
+- [x] Umbuchungs-, Storno-, Belegdruck- und Verwaltungs-Toasts unverändert.
+- [x] Unter reduzierter Bewegung erscheint der Pop ohne Animation und
       verschwindet nach Ablauf bzw. Tap.
-- [ ] `make check` grün.
+- [x] `make check` grün.
 
 ---
 
@@ -528,14 +528,14 @@ Layout-Shift).
 
 ### Acceptance criteria
 
-- [ ] Der Tisch-Saldo zählt bei Änderung animiert und endet exakt am
+- [x] Der Tisch-Saldo zählt bei Änderung animiert und endet exakt am
       Zielwert (Hook-Test).
-- [ ] Die Übersicht-Kennzahlen zählen beim 30-s-Refetch bzw.
+- [x] Die Übersicht-Kennzahlen zählen beim 30-s-Refetch bzw.
       „Jetzt“-Refresh nur bei tatsächlicher Wertänderung; kein Layout-Shift.
-- [ ] Ohne Animationsumgebung liefert der Hook sofort den Endwert (Test).
-- [ ] Bestehende `TablePage`-/`LiveReportingSection`-Tests bleiben grün
+- [x] Ohne Animationsumgebung liefert der Hook sofort den Endwert (Test).
+- [x] Bestehende `TablePage`-/`LiveReportingSection`-Tests bleiben grün
       (Endzustände unverändert).
-- [ ] `make check` grün.
+- [x] `make check` grün.
 
 ---
 
@@ -567,15 +567,15 @@ Druck-Stichprobe der Kassenberichte, volle Prüfung.
 
 ### Acceptance criteria
 
-- [ ] Der Kassentag-Chip pulsiert nur bei offener Kasse, der Live-Punkt der
+- [x] Der Kassentag-Chip pulsiert nur bei offener Kasse, der Live-Punkt der
       Übersicht pulsiert; alle übrigen StatusDots statisch; `aria-label` und
       Rolle unverändert (`AdminSidebar`-Tests grün).
-- [ ] Unter reduzierter Bewegung steht der Puls.
-- [ ] `docs/adrs/06_spektral-branding-app.md` geschrieben, ADR 05 mit
+- [x] Unter reduzierter Bewegung steht der Puls.
+- [x] `docs/adrs/06_spektral-branding-app.md` geschrieben, ADR 05 mit
       Ablöse-Vermerk, README-Tabelle aktualisiert.
-- [ ] Screenshot-Satz aller Screens in Hell und Dunkel für die Sichtabnahme
+- [x] Screenshot-Satz aller Screens in Hell und Dunkel für die Sichtabnahme
       erstellt; Reduced-Motion- und Druck-Gegenprobe durchgeführt und im
       Chat dokumentiert.
-- [ ] `make verify` grün.
+- [x] `make verify` grün.
 - [ ] Nach bestandener Sichtabnahme durch den Betreiber (Human-Gate):
       Handoff-Bundle `docs/prds/design_handoff_spektral_redesign/` löschen.
