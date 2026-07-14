@@ -106,7 +106,7 @@ export function LiveReportingSection({
         aktionen={
           <>
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
-              <StatusDot zustand="ok" label="Live" />
+              <StatusDot zustand="ok" label="Live" puls />
               Live · aktualisiert {formatStand(dataUpdatedAt)}
             </span>
             <Button variant="outline" size="sm" onClick={onRefresh}>

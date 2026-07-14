@@ -202,6 +202,7 @@ export function AdminSidebar() {
             <StatusDot
               zustand={kasseOffen ? 'ok' : 'neutral'}
               label={kasseOffen ? 'Kasse offen' : 'Kasse geschlossen'}
+              puls={kasseOffen}
             />
             {kasseStatusText}
           </span>

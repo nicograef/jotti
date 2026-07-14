@@ -15,13 +15,19 @@ const zustandKlasse: Record<StatusDotZustand, string> = {
 // gesetzt, damit der Zustand auch ohne Sichtkontakt lesbar ist. role="img"
 // statt role="status": Der Punkt trägt Bedeutung (roter Punkt = Problem), soll
 // aber nicht als Live-Region bei jedem Refetch neu vorgelesen werden.
+//
+// puls: weicher Ring-Puls (Keyframe pulsedot, 2,4 s), signalisiert einen
+// „lebenden" Zustand. Bewusst nur an zwei Stellen gesetzt (Kassentag-Chip bei
+// offener Kasse, Live-Punkt der Übersicht); alle übrigen Punkte bleiben statisch.
 export function StatusDot({
   zustand,
   label,
+  puls = false,
   className,
 }: {
   zustand: StatusDotZustand
   label: string
+  puls?: boolean
   className?: string
 }) {
   return (
@@ -31,6 +37,7 @@ export function StatusDot({
       className={cn(
         'inline-block size-[7px] shrink-0 rounded-full',
         zustandKlasse[zustand],
+        puls && 'animate-pulsedot',
         className,
       )}
     />

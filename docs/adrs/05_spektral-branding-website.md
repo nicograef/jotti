@@ -4,6 +4,12 @@
 - **Kontext-Dokumente:**
   PRD `docs/prds/prd-website-redesign.md` (fasst den Design-Handoff
   zusammen), Plan `docs/plans/plan-website-redesign.md`
+- **Ablöse-Vermerk (2026-07-14):** Die Frontend-Ausnahme dieses ADR (unten
+  unter „Entscheidung": „Das Produkt-Frontend (`frontend/`) behält sein
+  bestehendes, zurückhaltendes Design") ist durch
+  [ADR 06](06_spektral-branding-app.md) abgelöst — die App erhält nun eine
+  dezente Spektral-Übertragung nach der Vier-Stellen-Regel. Der übrige Inhalt
+  dieses ADR (Website) bleibt akzeptiert und unverändert gültig.
 
 ## Kontext
 

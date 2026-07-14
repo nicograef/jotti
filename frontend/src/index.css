@@ -297,8 +297,12 @@
 }
 
 @keyframes pulsedot {
+  /* Ring-Farbe aus --primary abgeleitet (nicht die Handoff-Festfarbe
+     rgb(16 185 129)), damit der Puls in Hell und Dunkel zum grünen
+     StatusDot (bg-primary) passt — die Festfarbe entspricht nur dem
+     Dark-Primary. */
   0% {
-    box-shadow: 0 0 0 0 rgb(16 185 129 / 0.5);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 50%, transparent);
   }
   70% {
     box-shadow: 0 0 0 7px transparent;
