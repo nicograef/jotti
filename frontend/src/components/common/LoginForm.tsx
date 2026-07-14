@@ -13,6 +13,7 @@ import { type AuthBackend, LoginSchema } from '@/lib/AuthBackend'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { PasswordField, UsernameField } from './FormFields'
+import { Wortmarke } from './Wortmarke'
 
 type FormData = z.infer<typeof LoginSchema>
 
@@ -64,7 +65,7 @@ export function LoginForm(props: LoginFormProps) {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <h1 className="text-4xl text-center font-extrabold">jotti</h1>
+        <Wortmarke as="h1" className="text-[38px] text-center" />
       </CardHeader>
       <CardContent>
         <form

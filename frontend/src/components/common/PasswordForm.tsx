@@ -17,6 +17,7 @@ import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import { AuthBackend, SetPasswordSchema } from '@/lib/AuthBackend'
 
 import { NewPasswordField, OTPField, UsernameField } from './FormFields'
+import { Wortmarke } from './Wortmarke'
 
 type FormData = z.infer<typeof SetPasswordSchema>
 
@@ -60,7 +61,7 @@ export function PasswordForm(props: PasswordFormProps) {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <h1 className="text-4xl text-center font-extrabold">jotti</h1>
+        <Wortmarke as="h1" className="text-[38px] text-center" />
       </CardHeader>
       <CardDescription className="text-center mb-4 px-8">
         Lege ein neues Passwort für dein Konto fest.
