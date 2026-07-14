@@ -57,7 +57,6 @@ function renderZahlung(positionen: Position[] = [position]) {
         }}
         tisch={tisch}
         positionen={positionen}
-        loading={false}
         onZahlungKassiert={vi.fn()}
       />
     </ServiceDock>,

@@ -14,16 +14,15 @@ import { LoginPage } from './pages/LoginPage'
 import { PasswordPage } from './pages/PasswordPage'
 
 function AuthRedirect() {
-  if (AuthSingleton.isAuthenticated && AuthSingleton.isAdmin) {
+  if (!AuthSingleton.isAuthenticated) return
+
+  if (AuthSingleton.isAdmin) {
     return redirect('/admin')
-  } else if (
-    AuthSingleton.isAuthenticated &&
-    (AuthSingleton.isService || AuthSingleton.isServiceleitung)
-  ) {
-    return redirect('/service')
-  } else if (AuthSingleton.isAuthenticated) {
-    return redirect('/')
   }
+  if (AuthSingleton.isService || AuthSingleton.isServiceleitung) {
+    return redirect('/service')
+  }
+  return redirect('/')
 }
 
 export function AdminGuard() {

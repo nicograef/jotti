@@ -149,7 +149,6 @@ export function TablePage() {
                 backend={tischBackend}
                 tisch={tisch}
                 positionen={state.unbezahltePositionen}
-                loading={stateLoading}
                 onZahlungKassiert={reload}
               />
             )}

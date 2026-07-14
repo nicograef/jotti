@@ -38,7 +38,7 @@ interface EuroInputProps {
 }
 
 /**
- * The canonical money input: a `€` sign seamlessly inside the field, the decimal
+ * The canonical money input: a `€` sign inside the field, the decimal
  * keypad on mobile, input sanitised to digits and a comma, and normalisation to
  * two decimals on blur (and after a typing pause). String in, string out — wrap
  * it in a form field for cents-based state.

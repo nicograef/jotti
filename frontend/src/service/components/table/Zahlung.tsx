@@ -10,7 +10,6 @@ import {
   ItemGroup,
   ItemTitle,
 } from '@/components/ui/item'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useMengen } from '@/hooks/use-mengen'
 import { AuthSingleton } from '@/lib/Auth'
 import {
@@ -30,7 +29,6 @@ interface ZahlungProps {
   backend: Pick<TischBackend, 'zahlungKassieren'>
   tisch: Tisch
   positionen: Position[]
-  loading: boolean
   onZahlungKassiert: () => void
 }
 
@@ -38,7 +36,6 @@ export function Zahlung({
   tisch,
   backend,
   positionen,
-  loading,
   onZahlungKassiert,
 }: ZahlungProps) {
   const [andereOffen, setAndereOffen] = useState(false)
@@ -142,74 +139,65 @@ export function Zahlung({
           onZahlungKassiert()
         }}
       />
-      {loading ? (
-        <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-          {Array.from({ length: 6 }).map((_, index) => (
-            // eslint-disable-next-line react-x/no-array-index-key
-            <PositionItemSkeleton key={index} />
-          ))}
+      <div className="my-4 space-y-3">
+        {meinePositionen.length > 0 && (
+          <button
+            type="button"
+            onClick={alleAuswaehlen}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/5 px-4 text-sm font-medium text-primary"
+          >
+            <CircleCheck className="size-5" />
+            {alleEigenenVollAusgewaehlt
+              ? 'Auswahl aufheben'
+              : formatAlleAuswaehlenLabel(
+                  meinePositionen.length,
+                  eigeneUnbezahltGesamt,
+                )}
+          </button>
+        )}
+        <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+          {meinePositionen.map((position) => renderPosition(position, false))}
         </ItemGroup>
-      ) : (
-        <div className="my-4 space-y-3">
-          {meinePositionen.length > 0 && (
+        {anderePositionen.length > 0 && (
+          <div className="space-y-2">
             <button
               type="button"
-              onClick={alleAuswaehlen}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/5 px-4 text-sm font-medium text-primary"
+              onClick={() => {
+                setAndereOffen((offen) => !offen)
+              }}
+              className="flex w-full items-center justify-between gap-2 py-1 text-left"
+              aria-expanded={andereOffen}
             >
-              <CircleCheck className="size-5" />
-              {alleEigenenVollAusgewaehlt
-                ? 'Auswahl aufheben'
-                : formatAlleAuswaehlenLabel(
-                    meinePositionen.length,
-                    eigeneUnbezahltGesamt,
-                  )}
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Von anderen · {anderePositionen.length}
+              </span>
+              <ChevronDown
+                className={cn(
+                  'size-4 text-muted-foreground transition-transform',
+                  andereOffen && 'rotate-180',
+                )}
+              />
             </button>
-          )}
-          <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
-            {meinePositionen.map((position) => renderPosition(position, false))}
-          </ItemGroup>
-          {anderePositionen.length > 0 && (
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setAndereOffen((offen) => !offen)
-                }}
-                className="flex w-full items-center justify-between gap-2 py-1 text-left"
-                aria-expanded={andereOffen}
-              >
-                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Von anderen · {anderePositionen.length}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    'size-4 text-muted-foreground transition-transform',
-                    andereOffen && 'rotate-180',
-                  )}
-                />
-              </button>
-              {andereOffen ? (
-                <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
-                  {anderePositionen.map((position) =>
-                    renderPosition(position, true),
-                  )}
-                </ItemGroup>
-              ) : andereAusgewaehlteAnzahl > 0 ? (
-                <p className="text-[13px] font-medium text-primary/80">
-                  {andereAusgewaehlteAnzahl} ausgewählt ·{' '}
-                  {formatCents(andereAusgewaehlteSumme)}&nbsp;€
-                </p>
-              ) : (
-                <p className="text-[13px] text-muted-foreground">
-                  {anderePositionenNamen} · {formatCents(anderePositionenSumme)}
-                  &nbsp;€
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+            {andereOffen ? (
+              <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+                {anderePositionen.map((position) =>
+                  renderPosition(position, true),
+                )}
+              </ItemGroup>
+            ) : andereAusgewaehlteAnzahl > 0 ? (
+              <p className="text-[13px] font-medium text-primary/80">
+                {andereAusgewaehlteAnzahl} ausgewählt ·{' '}
+                {formatCents(andereAusgewaehlteSumme)}&nbsp;€
+              </p>
+            ) : (
+              <p className="text-[13px] text-muted-foreground">
+                {anderePositionenNamen} · {formatCents(anderePositionenSumme)}
+                &nbsp;€
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </>
   )
 }
@@ -270,23 +258,6 @@ function PositionItem({
           removeLabel="Produkt entfernen"
           addDisabled={menge >= unbezahlteMenge}
         />
-      </ItemActions>
-    </Item>
-  )
-}
-
-function PositionItemSkeleton() {
-  return (
-    <Item variant="outline">
-      <ItemContent>
-        <Skeleton className="h-4 w-24" />
-      </ItemContent>
-      <ItemActions>
-        <div className="flex items-center gap-2">
-          <Skeleton className="size-11 rounded-full" />
-          <span className="w-7" />
-          <Skeleton className="size-11 rounded-full" />
-        </div>
       </ItemActions>
     </Item>
   )

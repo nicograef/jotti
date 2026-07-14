@@ -87,7 +87,7 @@ export function HistorieStornierungDrawer({
 
   return (
     <Drawer
-      open={true}
+      open
       onOpenChange={(isOpen) => {
         if (!isOpen) onClose()
       }}
