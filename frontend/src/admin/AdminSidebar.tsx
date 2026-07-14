@@ -18,6 +18,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
 import { tseAmpel } from '@/admin/tse/tseAmpel'
+import { Wortmarke } from '@/components/common/Wortmarke'
 import { useTheme } from '@/components/theme-provider'
 import {
   Sidebar,
@@ -181,7 +182,7 @@ export function AdminSidebar() {
   return (
     <Sidebar collapsible="offcanvas" className="print:hidden">
       <SidebarHeader className="gap-3">
-        <h1 className="px-1 text-3xl font-extrabold">jotti</h1>
+        <Wortmarke as="h1" className="w-fit px-1 text-[26px]" />
         <NavLink
           to="/admin/kasse"
           className="flex flex-col gap-1 rounded-lg border bg-background px-3 py-2.5 shadow-sm"

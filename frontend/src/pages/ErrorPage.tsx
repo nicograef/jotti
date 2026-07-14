@@ -1,6 +1,7 @@
 import { isRouteErrorResponse, useNavigate, useRouteError } from 'react-router'
 
 import { AuthLayout } from '@/components/common/AuthLayout'
+import { Wortmarke } from '@/components/common/Wortmarke'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 
@@ -18,7 +19,7 @@ function FehlerAnzeige({ titel, text }: FehlerAnzeigeProps) {
     <AuthLayout>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <h1 className="text-4xl text-center font-extrabold">jotti</h1>
+          <Wortmarke as="h1" className="text-[38px] text-center" />
         </CardHeader>
         <CardContent className="text-center space-y-2">
           <h2 className="text-lg font-semibold">{titel}</h2>

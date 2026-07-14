@@ -2,6 +2,7 @@ import { Menu } from 'lucide-react'
 import { Outlet } from 'react-router'
 
 import { UserDropdown } from '@/components/common/UserDropdown'
+import { Wortmarke } from '@/components/common/Wortmarke'
 import { Button } from '@/components/ui/button'
 import { SidebarProvider, useSidebar } from '@/components/ui/sidebar'
 
@@ -22,7 +23,7 @@ function AdminMobileHeader() {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <span className="text-sm font-bold">jotti</span>
+        <Wortmarke className="text-sm" />
       </div>
       <UserDropdown />
     </header>
