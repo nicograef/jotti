@@ -117,11 +117,16 @@ export function LiveReportingSection({
 
       {/* Kennzahlen: Hero-Karte „Kassierter Umsatz" plus vier Nebenkarten */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <div className="col-span-2 flex flex-col gap-1.5 rounded-xl bg-card p-5 shadow-xs ring-1 ring-foreground/10 lg:col-span-1">
+        <div className="relative flex flex-col gap-1.5 overflow-hidden rounded-xl bg-card p-5 shadow-xs ring-1 ring-foreground/10 col-span-2 lg:col-span-1">
+          {/* Dekorative Spektral-Kante als oberste Linie der Hero-Karte. */}
+          <span
+            aria-hidden
+            className="absolute inset-x-0 top-0 h-0.5 bg-[image:var(--spectral)] opacity-60"
+          />
           <span className="text-sm font-medium text-muted-foreground">
             Kassierter Umsatz
           </span>
-          <span className="text-3xl font-extrabold tracking-tight">
+          <span className="text-3xl font-extrabold tracking-tight whitespace-nowrap tabular-nums">
             {formatCents(summary.gesamtUmsatzCents)} €
           </span>
           <span className="text-xs text-muted-foreground">

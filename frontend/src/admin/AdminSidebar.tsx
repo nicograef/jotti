@@ -53,25 +53,33 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
       <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                asChild
-                isActive={location.pathname === item.url}
-              >
-                <NavLink to={item.url}>
-                  <item.icon />
-                  <span className="flex-1">{item.title}</span>
-                  {item.status && (
-                    <StatusDot
-                      zustand={item.status.zustand}
-                      label={item.status.label}
-                    />
-                  )}
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          {items.map((item) => {
+            const istAktiv = location.pathname === item.url
+            return (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild isActive={istAktiv}>
+                  <NavLink to={item.url} className="relative">
+                    {/* Dekorativer Spektral-Marker am linken Rand des aktiven
+                        Eintrags, zusätzlich zum bestehenden bg-sidebar-accent. */}
+                    {istAktiv && (
+                      <span
+                        aria-hidden
+                        className="absolute inset-y-2 left-0 w-[3px] rounded-[2px] bg-[image:var(--spectral)] opacity-60"
+                      />
+                    )}
+                    <item.icon />
+                    <span className="flex-1">{item.title}</span>
+                    {item.status && (
+                      <StatusDot
+                        zustand={item.status.zustand}
+                        label={item.status.label}
+                      />
+                    )}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )
+          })}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
