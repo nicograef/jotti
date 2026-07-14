@@ -108,7 +108,13 @@ export function KassensitzungPage() {
     ? `${formatDatumLang(kassensitzung.datum)} · Ein Kassentag läuft von der Eröffnung bis zum Tagesabschluss (Z-Bon).`
     : 'Ein Kassentag läuft von der Eröffnung bis zum Tagesabschluss (Z-Bon).'
 
-  const header = <AdminPageHeader titel={titel} unterzeile={unterzeile} />
+  const header = (
+    <AdminPageHeader
+      titel={titel}
+      unterzeile={unterzeile}
+      glowFarben={['orange', 'teal']}
+    />
+  )
 
   if (isPending) {
     return (

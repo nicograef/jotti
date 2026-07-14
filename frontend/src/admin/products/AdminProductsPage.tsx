@@ -56,6 +56,7 @@ export function AdminProductsPage() {
       <AdminPageHeader
         titel="Produkte & Preise"
         unterzeile={produktUnterzeile(produkte)}
+        glowFarben={['green', 'blue']}
         aktionen={
           <NewProductDialog
             backend={produktBackend}
