@@ -1,0 +1,38 @@
+---
+import { Image } from 'astro:assets'
+
+// Theme-abhängiges Bildpaar (Phase 9): zeigt die zum aktiven Seiten-Theme
+// passende Screenshot-Variante. Rein CSS-basiert (kein JS-Island) über die
+// `.theme-light`/`.theme-dark`-Utilities in landing.css, die am
+// `data-theme`-Attribut hängen. Beide Varianten tragen denselben Alt-Text; die
+// nicht sichtbare ist `display:none` und wird von Screenreadern übersprungen.
+
+interface Props {
+  light: ImageMetadata
+  dark: ImageMetadata
+  alt: string
+  class?: string
+  widths?: number[]
+  sizes?: string
+  loading?: 'lazy' | 'eager'
+}
+
+const { light, dark, alt, class: klass, widths, sizes, loading = 'lazy' } = Astro.props
+---
+
+<Image
+  src={light}
+  alt={alt}
+  class:list={['theme-light', klass]}
+  widths={widths}
+  sizes={sizes}
+  loading={loading}
+/>
+<Image
+  src={dark}
+  alt={alt}
+  class:list={['theme-dark', klass]}
+  widths={widths}
+  sizes={sizes}
+  loading={loading}
+/>

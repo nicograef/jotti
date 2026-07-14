@@ -13,7 +13,7 @@
        db-shell seed rebuild-projections \
        clean \
        check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-integration check check-full verify \
-       website-dev website-build website-test website-check \
+       website-dev website-build website-test website-check website-screenshots \
        help
 
 # ──────────────────────────────────────────────
@@ -326,6 +326,33 @@ website-test: ## Website Unit-Tests (Link-Rewriter, Vitest)
 
 website-check: ## Website prüfen (Vitest + astro check + Build)
 	cd website && pnpm test && pnpm check
+
+# Port des selbst gestarteten Screenshot-Stacks (parametrierbar für parallele Läufe).
+E2E_SCREENSHOT_PORT ?= 8080
+
+website-screenshots: ## App-Screenshots + OG-Bild reproduzierbar neu erzeugen (e2e-Stack)
+	@# Erzeugt jedes Website-Motiv hell+dunkel (website/src/assets/screenshots/)
+	@# und das OG-Bild (website/src/assets/og-startseite.png). Das Skript
+	@# (e2e/website/screenshots.mjs) läuft standardmäßig gegen einen eigens
+	@# gestarteten docker-compose.e2e.yml-Stack (JOTTI_ENABLE_TEST_API=1) auf
+	@# E2E_SCREENSHOT_PORT und räumt ihn danach wieder ab. Es ist BASE-URL-agnostisch
+	@# (E2E_BASE_URL wie die e2e-Suite): ist E2E_BASE_URL gesetzt, wird dieser
+	@# bereits laufende Stack genutzt und kein eigener gestartet.
+	cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install chromium
+	@if [ -n "$$E2E_BASE_URL" ]; then \
+	  echo "Nutze laufenden Stack: $$E2E_BASE_URL"; \
+	  node --experimental-strip-types e2e/website/screenshots.mjs; \
+	else \
+	  set -e; \
+	  trap 'docker compose -p jotti-screenshots -f docker-compose.e2e.yml down -v' EXIT; \
+	  E2E_HTTP_PORT=$(E2E_SCREENSHOT_PORT) docker compose -p jotti-screenshots -f docker-compose.e2e.yml up -d --build; \
+	  for i in $$(seq 1 60); do \
+	    code=$$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$(E2E_SCREENSHOT_PORT)/ || true); \
+	    if [ "$$code" = "200" ]; then echo "Stack ist bereit."; break; fi; \
+	    echo "warte auf Stack ($$i/60), Status $${code:-none} ..."; sleep 2; \
+	  done; \
+	  E2E_BASE_URL=http://localhost:$(E2E_SCREENSHOT_PORT) node --experimental-strip-types e2e/website/screenshots.mjs; \
+	fi
 
 # ──────────────────────────────────────────────
 # Hilfe

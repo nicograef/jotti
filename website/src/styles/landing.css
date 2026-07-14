@@ -17,7 +17,7 @@
   --c-foreground: var(--fg);
   --c-card: var(--card);
   --c-card-border: var(--border);
-  /* Kante für Controls (Ghost-Button, Carousel) und Chip-Haarlinien. */
+  /* Kante für Controls (Ghost-Button) und Chip-Haarlinien. */
   --c-control-border: var(--border);
   /* Gepolsterter Rahmen hinter App-Screenshots (erdet sie gegen den Grund). */
   --c-screenshot-frame: var(--card2);
@@ -321,56 +321,57 @@
   .eyebrow {
     @apply text-[0.8125rem] font-bold tracking-[0.06em] text-brand uppercase;
   }
-
-  /* Einheitlicher Phone-Mockup-Look für alle Oberflächen-Screenshots
-     (Hero, Schnellstart-Schritte, Einblicke-Carousel). */
-  .phone-shot {
-    @apply h-auto rounded-[1.25rem] border border-card-border bg-screenshot-frame p-1.5 shadow-xl;
-  }
 }
 
-/* ============ Einblicke: Screenshot-Carousel ============ */
+/* ============ Screenshots: „Jedes Gerät" und Galerie (Phase 9) ============
+   Theme-abhängige Bildpaare und reine CSS-Geräterahmen (Browser, Telefon).
+   Kein JS-Island: die zum aktiven Theme passende Bildvariante wird per
+   `data-theme`-Selektor ein-/ausgeblendet. Ohne `data-theme` (No-JS/auto vor
+   dem Init) bleibt die helle Variante sichtbar. */
 @layer components {
-  /* Voll-bleed Track: die Phone-Mockups scrollen horizontal mit
-     Scroll-Snap. Ohne JS bereits voll bedienbar (Wischen/Scrollen);
-     carousel.js ergänzt nur Pfeile und Punkt-Indikatoren. */
-  .carousel-track {
-    @apply flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pt-2 pb-4;
-    scroll-padding-inline: 1.5rem;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+  .theme-light {
+    display: block;
   }
 
-  .carousel-track::-webkit-scrollbar {
+  .theme-dark {
     display: none;
   }
 
-  .carousel-slide {
-    @apply w-[70vw] max-w-64 shrink-0 snap-center sm:w-64;
+  [data-theme='dark'] .theme-light {
+    display: none;
   }
 
-  .carousel-controls {
-    @apply mt-6 flex items-center justify-center gap-4;
+  [data-theme='dark'] .theme-dark {
+    display: block;
   }
 
-  .carousel-arrow {
-    @apply inline-flex h-10 w-10 items-center justify-center rounded-full
-      border border-control-border bg-card text-foreground transition-colors
-      hover:border-brand hover:bg-brand-tint hover:text-brand
-      disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-control-border
-      disabled:hover:bg-card disabled:hover:text-foreground;
+  /* Browser-Rahmen (Desktop-Admin): Titelleiste mit drei Punkten und einer
+     Adress-Pille, darunter der randlose Screenshot. */
+  .device-browser {
+    @apply overflow-hidden rounded-2xl border border-card-border bg-card shadow-2xl;
   }
 
-  .carousel-dots {
-    @apply flex items-center gap-2;
+  .device-browser-bar {
+    @apply flex h-[38px] items-center gap-2 border-b border-card-border bg-surface-alt px-3.5;
   }
 
-  .carousel-dot {
-    @apply h-2.5 w-2.5 rounded-full bg-control-border transition-colors hover:bg-brand;
+  .device-browser-dot {
+    @apply h-[11px] w-[11px] rounded-full;
   }
 
-  .carousel-dot[aria-current='true'] {
-    @apply w-6 bg-brand;
+  /* Telefonrahmen (statisch, ohne Notch/Float — die Sektion zeigt zwei feste
+     Themes nebeneinander). Der Screen erbt den Bild-Hintergrund. */
+  .device-phone {
+    @apply shrink-0 rounded-[2.25rem] p-2.5 shadow-2xl;
+    background: #0a0a08;
+  }
+
+  .device-phone-screen {
+    @apply overflow-hidden rounded-[1.75rem] bg-background;
+  }
+
+  .device-phone-screen img {
+    @apply block h-auto w-full;
   }
 }
 

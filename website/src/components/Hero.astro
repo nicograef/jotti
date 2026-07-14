@@ -1,7 +1,8 @@
 ---
-import { Image } from 'astro:assets'
+import ThemeImage from './ThemeImage.astro'
 
-import tischBestellen from '../assets/screenshots/tisch-bestellen.png'
+import bestellansichtLight from '../assets/screenshots/bestellansicht-light.png'
+import bestellansichtDark from '../assets/screenshots/bestellansicht-dark.png'
 
 // Hero der Landing (Handoff-Prototyp docs/prds/design_handoff_jotti_website).
 // Statische Astro-Sektion ohne client:-Direktive. Der Spektral-Verlauf ist
@@ -13,8 +14,8 @@ import tischBestellen from '../assets/screenshots/tisch-bestellen.png'
 // CTAs (Handoff): primär „Für Verein anfragen" (Ziel /fuer-vereine, seit
 // Phase 8) und sekundär „Live-Demo ansehen" (Ziel #demo, ab Phase 5).
 //
-// Phone-Screen: bis Phase 9 dient der heutige helle Screenshot als
-// Übergangsvariante für beide Themes; theme-abhängige Aufnahmen folgen dort.
+// Phone-Screen (seit Phase 9): echte Bestellansicht, theme-abhängig hell/dunkel
+// (CSS-only über ThemeImage), aufgenommen per e2e/website/screenshots.mjs.
 ---
 
 <section class="relative overflow-hidden">
@@ -83,9 +84,10 @@ import tischBestellen from '../assets/screenshots/tisch-bestellen.png'
       <div class="hero-phone">
         <div class="hero-phone-notch" aria-hidden="true"></div>
         <div class="hero-phone-screen">
-          <Image
-            src={tischBestellen}
-            alt="jotti-Bestellansicht auf dem Smartphone: die aufgeklappte Produktkategorie „Salat“ mit Mengen-Steppern und die grüne Leiste „Bestellung überprüfen“ über 14,50 €."
+          <ThemeImage
+            light={bestellansichtLight}
+            dark={bestellansichtDark}
+            alt="jotti-Bestellansicht auf dem Smartphone: die Produktkategorie „Essen“ mit Mengen-Steppern und die grüne Leiste „Bestellung überprüfen“ über 14,00 €."
             widths={[276, 552]}
             sizes="276px"
             loading="eager"
