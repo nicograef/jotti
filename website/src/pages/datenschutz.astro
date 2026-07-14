@@ -1,16 +1,17 @@
 ---
 import Landing from '../layouts/Landing.astro'
-import Platzhalter from '../components/Platzhalter.astro'
 import { betreiberEmail } from '../lib/links'
 
 // Datenschutzerklärung. Statische Seite auf Basis des Landing-Layouts
-// (Header/Footer, eigene Meta über die Layout-Props). Die Website ist
-// trackingfrei (keine Cookies, kein Analytics, keine externen Einbindungen); die
-// einzige clientseitige Speicherung ist die funktionale Theme-Wahl in
-// localStorage. Die betreiberspezifischen und rechtsverbindlichen Texte sind
-// deutlich markierte Platzhalter und decken Server-Logs/Hosting, den
-// E-Mail-Provider des Betreibers, die Betroffenenrechte und die Speicherdauer
-// ab; die finalen Texte setzt der Betreiber vor der Abnahme ein (Plan Phase 7/10).
+// (Header/Footer, eigene Meta über die Layout-Props). Jede Tatsachenaussage
+// hier ist gegen die Implementierung verifiziert und muss mit ihr synchron
+// bleiben: trackingfreie statische Seite (keine Cookies, keine externen
+// Einbindungen, selbst gehostete Fonts), Theme-Wahl in localStorage
+// (public/theme-init.js, Key `starlight-theme`), Sidebar-Zustand der Doku in
+// sessionStorage (Starlight, Key `sl-sidebar-state`), Anfrage-Formular nur als
+// mailto-Entwurf (src/lib/anfrage-mailto.ts), Server-Logs mit gekürzter IP und
+// größenbegrenzter Rotation (reverse-proxy/nginx.rocks.conf,
+// docker-compose.rocks.yml), Hosting auf einem netcup-VPS in Nürnberg.
 
 const title = 'Datenschutzerklärung – jotti'
 const description =
@@ -26,76 +27,164 @@ const description =
     </h1>
     <p class="mt-4 text-[1.0625rem] leading-relaxed text-muted">
       Diese Website ist eine statische Seite ohne Tracking: keine Cookies, keine
-      Analyse-Werkzeuge, keine eingebetteten Inhalte Dritter. Ein Cookie-Banner
-      ist deshalb nicht erforderlich. Nachfolgend, welche Daten dennoch
-      verarbeitet werden.
+      Analyse-Werkzeuge, keine eingebetteten Inhalte Dritter — auch Schriften
+      werden von diesem Server ausgeliefert. Ein Cookie-Banner ist deshalb nicht
+      erforderlich. Nachfolgend, welche Daten dennoch verarbeitet werden.
     </p>
 
     <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
       Verantwortlicher
     </h2>
-    <Platzhalter betreff="Verantwortliche Stelle">
-      Name und Anschrift der/des Verantwortlichen im Sinne der DSGVO (in der
-      Regel identisch mit den Angaben im Impressum), Kontakt-E-Mail und – falls
-      benannt – Datenschutzbeauftragte:r.
-    </Platzhalter>
-
-    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
-      Funktionale Theme-Speicherung (localStorage)
-    </h2>
-    <Platzhalter betreff="Speicherung der Hell-/Dunkel-Wahl">
-      Die Wahl zwischen hellem und dunklem Design wird ausschließlich lokal im
-      Browser gespeichert (localStorage-Schlüssel <code>starlight-theme</code>).
-      Diese Angabe verlässt das Gerät nicht, wird nicht an einen Server
-      übertragen und dient allein der Darstellung. Es handelt sich um eine
-      unbedingt erforderliche, funktionale Speicherung ohne Einwilligungspflicht.
-    </Platzhalter>
-
-    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
-      Server-Logs und Hosting
-    </h2>
-    <Platzhalter betreff="Hosting-Anbieter, Server-Logdaten und Speicherdauer">
-      Hosting-Anbieter (Auftragsverarbeiter) mit Anschrift, die beim Abruf
-      automatisch verarbeiteten Server-Logdaten (z. B. IP-Adresse, Datum und
-      Uhrzeit, abgerufene Seite, User-Agent), die Rechtsgrundlage (Art. 6 Abs. 1
-      lit. f DSGVO) sowie die konkrete Speicherdauer bzw. Löschfristen dieser
-      Logdaten.
-    </Platzhalter>
-
-    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
-      Verarbeitung von E-Mail-Anfragen
-    </h2>
-    <Platzhalter betreff="E-Mail-Anfragen und E-Mail-Provider des Betreibers">
-      Wer über das Anfrage-Formular oder direkt per E-Mail (<a
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Verantwortlich im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
+    </p>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Nico Gräf<br />
+      Tränkestraße 32<br />
+      79114 Freiburg im Breisgau<br />
+      Deutschland<br />
+      E-Mail: <a
         href={`mailto:${betreiberEmail}`}
         class="font-semibold text-brand hover:underline">{betreiberEmail}</a
-      >) Kontakt aufnimmt, dessen Angaben werden zur Bearbeitung der Anfrage
-      verarbeitet. Anzugeben sind: der eingesetzte E-Mail-Provider des Betreibers
-      (Auftragsverarbeiter) mit Anschrift, die verarbeiteten Datenkategorien, die
-      Rechtsgrundlage (Art. 6 Abs. 1 lit. b bzw. f DSGVO) und die Speicherdauer
-      der Korrespondenz. Hinweis: Das Formular öffnet nur einen vorbefüllten
-      E-Mail-Entwurf im lokalen Mailprogramm; es findet kein serverseitiger
-      Versand über diese Website statt.
-    </Platzhalter>
+      >
+    </p>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Hosting und Server-Logs
+    </h2>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Die Website läuft auf einem vom Verantwortlichen verwalteten virtuellen
+      Server der netcup GmbH, Emmy-Noether-Straße 10, 76131 Karlsruhe
+      (Serverstandort: Nürnberg, Deutschland). Mit netcup besteht ein Vertrag
+      über Auftragsverarbeitung nach Art. 28 DSGVO.
+    </p>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Beim Abruf verarbeitet der Webserver technisch notwendige
+      Verbindungsdaten und protokolliert sie in Server-Logs: IP-Adresse in
+      gekürzter Form (das letzte Adress-Segment wird vor dem Schreiben des
+      Log-Eintrags entfernt, sodass kein Personenbezug gespeichert wird), Datum
+      und Uhrzeit, aufgerufene Seite, HTTP-Status, übertragene Datenmenge,
+      Referrer und User-Agent. Die vollständige IP-Adresse wird nur flüchtig
+      verarbeitet, um die Seite auszuliefern und Angriffe abzuwehren
+      (Rate-Limiting); in den Zugriffsprotokollen wird sie nicht gespeichert.
+    </p>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO — das berechtigte
+      Interesse an einem sicheren und stabilen Betrieb der Website. Die
+      Log-Dateien werden automatisch rotierend überschrieben (größenbegrenzt
+      auf wenige Megabyte je Dienst) und nicht mit anderen Daten
+      zusammengeführt.
+    </p>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      Speicherung im Browser (keine Cookies)
+    </h2>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Die Website setzt keine Cookies. Zwei rein funktionale Angaben werden
+      lokal im Browser gespeichert und verlassen das Gerät nicht:
+    </p>
+    <ul
+      class="mt-3 list-disc space-y-2 pl-5 text-[0.9375rem] leading-relaxed"
+    >
+      <li>
+        Die Wahl zwischen hellem und dunklem Design (localStorage-Schlüssel
+        <code>starlight-theme</code>). Sie bleibt gespeichert, bis sie im
+        Browser gelöscht wird.
+      </li>
+      <li>
+        Der Auf-/Zuklapp-Zustand der Seitenleiste in der Dokumentation
+        (sessionStorage-Schlüssel <code>sl-sidebar-state</code>). Er wird mit
+        dem Ende der Browser-Sitzung gelöscht.
+      </li>
+    </ul>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Beide Speicherungen sind für die gewünschte Darstellung unbedingt
+      erforderlich und daher nach § 25 Abs. 2 Nr. 2 TDDDG ohne Einwilligung
+      zulässig. Auch die Suche der Dokumentation läuft vollständig im Browser:
+      Suchbegriffe werden nicht an den Server übermittelt, der Browser lädt
+      lediglich statische Indexdateien.
+    </p>
+
+    <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
+      E-Mail-Anfragen
+    </h2>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Das Anfrage-Formular auf <a
+        href="/fuer-vereine"
+        class="font-semibold text-brand hover:underline">/fuer-vereine</a
+      > sendet keine Daten an den Server dieser Website: Es öffnet einen
+      vorbefüllten E-Mail-Entwurf im eigenen Mail-Programm, der erst durch den
+      Absender selbst verschickt wird.
+    </p>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Wer per E-Mail Kontakt aufnimmt (<a
+        href={`mailto:${betreiberEmail}`}
+        class="font-semibold text-brand hover:underline">{betreiberEmail}</a
+      >), dessen Angaben — E-Mail-Adresse, Name, Vereins- bzw.
+      Organisationsname, Art der Organisation und Nachrichteninhalt — werden
+      zur Bearbeitung der Anfrage verarbeitet. Rechtsgrundlage ist Art. 6
+      Abs. 1 lit. b DSGVO (Anbahnung und Durchführung der
+      Nutzungsvereinbarung), im Übrigen Art. 6 Abs. 1 lit. f DSGVO (Interesse
+      an der Beantwortung von Anfragen).
+    </p>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Das E-Mail-Postfach wird bei Google Ireland Limited, Gordon House, Barrow
+      Street, Dublin 4, Irland (Gmail) geführt. Dabei kann eine Übermittlung an
+      die Google LLC in die USA stattfinden; sie stützt sich auf den
+      Angemessenheitsbeschluss der EU-Kommission zum EU-US Data Privacy
+      Framework, unter dem Google LLC zertifiziert ist.
+    </p>
 
     <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
       Speicherdauer
     </h2>
-    <Platzhalter betreff="Allgemeine Speicherdauer und Löschkonzept">
-      Zusammenfassende Angabe der Speicherdauern je Verarbeitungszweck und der
-      Kriterien für die Festlegung der Löschfristen (Server-Logs, E-Mail-Anfragen,
-      gesetzliche Aufbewahrungspflichten).
-    </Platzhalter>
+    <ul
+      class="mt-3 list-disc space-y-2 pl-5 text-[0.9375rem] leading-relaxed"
+    >
+      <li>
+        Server-Logs: automatisch rotierend überschrieben (siehe oben), ohne
+        gespeicherten Personenbezug.
+      </li>
+      <li>
+        E-Mail-Korrespondenz: bis zum Abschluss der Bearbeitung; Korrespondenz
+        zu einer geschlossenen Nutzungsvereinbarung für deren Laufzeit. Danach
+        wird sie gelöscht, soweit keine gesetzlichen Aufbewahrungspflichten
+        entgegenstehen.
+      </li>
+      <li>
+        Browser-Speicherung: verbleibt ausschließlich auf dem eigenen Gerät
+        (löschbar über die Browser-Einstellungen bzw. automatisch mit
+        Sitzungsende).
+      </li>
+    </ul>
 
     <h2 class="font-brand mt-10 text-[22px] font-bold tracking-[-0.02em]">
       Betroffenenrechte
     </h2>
-    <Platzhalter betreff="Rechte der betroffenen Personen">
-      Darstellung der Rechte nach DSGVO: Auskunft (Art. 15), Berichtigung
-      (Art. 16), Löschung (Art. 17), Einschränkung (Art. 18), Datenübertragbarkeit
-      (Art. 20), Widerspruch (Art. 21) sowie das Beschwerderecht bei einer
-      Aufsichtsbehörde (Art. 77), einschließlich der zuständigen Behörde und der
-      Kontaktangaben zur Ausübung dieser Rechte.
-    </Platzhalter>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Betroffene Personen haben gegenüber dem Verantwortlichen das Recht auf
+      Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16), Löschung (Art. 17),
+      Einschränkung der Verarbeitung (Art. 18) und Datenübertragbarkeit
+      (Art. 20). Gegen Verarbeitungen auf Grundlage von Art. 6 Abs. 1 lit. f
+      DSGVO besteht das Recht auf Widerspruch aus Gründen der besonderen
+      Situation (Art. 21 DSGVO). Zur Ausübung genügt eine formlose E-Mail an
+      die oben genannte Adresse.
+    </p>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Daneben besteht das Beschwerderecht bei einer
+      Datenschutz-Aufsichtsbehörde (Art. 77 DSGVO), insbesondere am eigenen
+      gewöhnlichen Aufenthaltsort. Für den Verantwortlichen zuständig ist der
+      Landesbeauftragte für den Datenschutz und die Informationsfreiheit
+      Baden-Württemberg, Königstraße 10a, 70173 Stuttgart,
+      <a
+        href="https://www.baden-wuerttemberg.datenschutz.de"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="font-semibold text-brand hover:underline"
+        >baden-wuerttemberg.datenschutz.de</a
+      >.
+    </p>
+
+    <p class="mt-10 text-[0.875rem] text-muted">Stand: Juli 2026</p>
   </article>
 </Landing>

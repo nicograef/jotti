@@ -844,9 +844,12 @@ Abnahme.
       mit und ohne `prefers-reduced-motion`.
 - [x] Meta (Title, Description, Canonical, OG, Twitter) je Route korrekt;
       Sitemap enthält `/`, `/fuer-vereine/`, `/impressum/`, `/datenschutz/`.
-- [ ] Rechtsseiten-Texte des Betreibers sind eingesetzt (Platzhalter weg).
-      — offen: Bring-Schuld des Betreibers; die markierten Platzhalter bleiben
-      bis zur Textlieferung stehen.
+- [x] Rechtsseiten-Texte des Betreibers sind eingesetzt (Platzhalter weg).
+      — Texte mit dem Betreiber geklärt und eingesetzt; `Platzhalter.astro`
+      samt `--sp-orange-text`-Token entfernt. Flankierend: Access-Logs auf
+      gekürzte IPs umgestellt (`reverse-proxy/nginx.rocks.conf`,
+      `website/nginx.conf`), damit die Datenschutzerklärung der Realität
+      entspricht.
 - [ ] `make website-check` grün; Sichtabnahme durch den Betreiber erteilt.
       — `make website-check` ist grün; offen bleibt die Sichtabnahme des
-      Betreibers (setzt die eingesetzten Rechtsseiten-Texte voraus).
+      Betreibers.

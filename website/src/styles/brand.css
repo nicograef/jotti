@@ -61,12 +61,11 @@
   /* --- Spektral-Textvarianten (AA-sicher als kleiner Text): Light ---
      Die vollen --sp-*-Werte oben tragen Verlauf, Streifen, Icons und
      Akzentflächen (WCAG 1.4.11 Non-Text-Kontrast, 3:1). Als kleiner Text
-     (Eyebrow, Formular-Fehler, Platzhalter-Label, Schritt-Label) unterschreiten
-     Teal, Orange, Rot und Grün im Hellen die AA-Textschwelle 4,5:1; diese
-     abgedunkelten Varianten erfüllen sie auf Weiß, Karten- und Muted-Grund. Im
-     Dunkeln erben sie unten die vollen Töne (dort bereits AA-sicher). */
+     (Eyebrow, Formular-Fehler, Schritt-Label) unterschreiten Teal, Rot und
+     Grün im Hellen die AA-Textschwelle 4,5:1; diese abgedunkelten Varianten
+     erfüllen sie auf Weiß, Karten- und Muted-Grund. Im Dunkeln erben sie
+     unten die vollen Töne (dort bereits AA-sicher). */
   --sp-teal-text: #177a6b;
-  --sp-orange-text: #985b17;
   --sp-red-text: #c03f1c;
   --sp-green-text: #447f2c;
 
@@ -115,7 +114,6 @@
 
   /* Textvarianten erben im Dunkeln die vollen Töne (dort schon AA-sicher). */
   --sp-teal-text: var(--sp-teal);
-  --sp-orange-text: var(--sp-orange);
   --sp-red-text: var(--sp-red);
   --sp-green-text: var(--sp-green);
 }
