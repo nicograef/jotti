@@ -224,7 +224,7 @@ else
 fi
 echo ""
 echo "  Useful commands:"
-echo "    make prod-up     — Stack neustarten"
+echo "    make prod-up     — Restart the stack"
 echo "    make prod-down   — Stop all services"
 echo "    make prod-logs   — Follow logs"
 echo ""

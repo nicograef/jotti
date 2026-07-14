@@ -1,6 +1,6 @@
 # Entwickler-Handbuch: jotti
 
-> **Zweck:** Architektur-Referenz: Bounded Contexts, Aggregate, Invarianten und Design-Entscheidungen. Feld-Schemata und Implementierungsdetails stehen kanonisch im Code (`backend/domain/`, `database/migrations/`); Start und Betrieb im [README](../README.md) und in [betrieb/](betrieb/).
+> **Zweck:** Architektur-Referenz: Bounded Contexts, Aggregate, Invarianten und Design-Entscheidungen. Feld-Schemata und Implementierungsdetails stehen kanonisch im Code (`backend/domain/`, `database/migrations/`); Start und Betrieb im [README](../README.md) und im [Leitfaden](leitfaden/was-ist-jotti.md).
 
 ## 1. Überblick
 
@@ -24,7 +24,7 @@ jotti ist ein self-hosted mPOS-System (Go-Backend, React-Frontend, PostgreSQL, D
 
 Kartenzahlung, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM und Kiosk-Modus sind bewusst ausgeschlossen. Vollständige Liste mit Begründung: siehe [produktbeschreibung.md §6.2](produktbeschreibung.md#62-was-jotti-bewusst-nicht-ist).
 
-> **TSE / KassenSichV:** jotti unterliegt der TSE-Pflicht nach § 146a AO. Die TSE-Integration wird phasenweise implementiert: siehe [anforderungen.md](anforderungen.md) und [compliance.md](compliance.md).
+> **TSE / KassenSichV:** jotti unterliegt der TSE-Pflicht nach § 146a AO (umgesetzt): siehe [anforderungen.md](anforderungen.md) und [compliance.md](compliance.md).
 
 ---
 
@@ -57,7 +57,7 @@ Kasse ist Core Domain, weil alle übrigen Kontexte von ihr abhängen oder sie un
 | Auth           | Kasse          | Open Host Service       | Token mit Benutzer-ID und Rolle                                                  |
 | Auth           | Stammdaten     | Open Host Service       | Token mit Benutzer-ID und Rolle                                                  |
 
-Der Kasse-Kontext schützt sich über eine Anti-Corruption Layer (ACL) vor Stammdaten-Änderungen: Bestellungs-Events enthalten alle relevanten Produktdaten zum Zeitpunkt der Bestellung (Fat Events). Spätere Preis- oder Stammdaten-Änderungen haben keinen Einfluss auf historische Bestellungen und wirken erst in künftigen Bestellungen (Änderungssperre für Steuersätze folgt mit Compliance-Phase 1). Reporting aggregiert direkt über das Kassenjournal; dafür ist keine Cross-Context-Kommunikation nötig. Eine bewusste read-only Rückkante Kasse→Stammdaten besteht dagegen für den Tisch-Saldo: Die Admin-Tischliste liest die `tisch_sessions`-Projektion der offenen Kassensitzung (Saldo-Anzeige) und verhindert das Löschen oder Deaktivieren eines Tischs mit offenem Saldo, damit kein Geld auf einem nicht mehr kassier-/stornier-/umbuchbaren Tisch strandet. Die Query liest ausschließlich Projektionsspalten, nie Event-Payloads.
+Der Kasse-Kontext schützt sich über eine Anti-Corruption Layer (ACL) vor Stammdaten-Änderungen: Bestellungs-Events enthalten alle relevanten Produktdaten zum Zeitpunkt der Bestellung (Fat Events). Spätere Preis- oder Stammdaten-Änderungen haben keinen Einfluss auf historische Bestellungen und wirken erst in künftigen Bestellungen (Steuersatz-Änderungen erfordern zuvor einen Kassenabschluss, der den Stammdaten-Snapshot einfriert → [3.11](#311-tagesabschluss-z-bon)). Reporting aggregiert direkt über das Kassenjournal; dafür ist keine Cross-Context-Kommunikation nötig. Eine bewusste read-only Rückkante Kasse→Stammdaten besteht dagegen für den Tisch-Saldo: Die Admin-Tischliste liest die `tisch_sessions`-Projektion der offenen Kassensitzung (Saldo-Anzeige) und verhindert das Löschen oder Deaktivieren eines Tischs mit offenem Saldo, damit kein Geld auf einem nicht mehr kassier-/stornier-/umbuchbaren Tisch strandet. Die Query liest ausschließlich Projektionsspalten, nie Event-Payloads.
 
 ---
 
@@ -241,7 +241,7 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 
 **Kassenabschluss-Gate:** Der Ein-Klick-Kassenabschluss (`/admin/kasse-abschliessen`) prüft vor der wird-abgeschlossen-Barriere jeden offenen Auftrag über dieselbe Signaturstatus-Funktion und blockiert genau dann mit 409 (Anzahl und Alter der offenen Aufträge), wenn mindestens einer ausstehend ist. Ausfall-Reste (endgültig fehlgeschlagen, offen im aktiven Störungszeitraum) lassen den Abschluss zu und werden in der Abschlussmeldung ausgewiesen; `tse_nicht_konfiguriert` blockiert nie. Die signaturpflichtigen Abschluss-Events (Differenzbuchung, Tagesabschluss) laufen regulär über die Queue; nach dem Abschluss verbliebene offene Reste signiert der Worker bei Rückkehr der TSE nach.
 
-**Monitoring (statt Verwaltung):** Die Admin-Seite ist reines Monitoring ohne mutierende Aktionen auf Signaturaufträgen. Zwei Lesewege genügen: der Queue-Zustand (`/admin/get-tse-signatur-queue`) mit offenen Aufträgen, Rückstand (Alter des ältesten offenen Auftrags), Durchsatz und Signierdauer-p95 (global über ein gleitendes 15-Minuten-Fenster), dazu die Zahl endgültig fehlgeschlagener Aufträge der aktiven Kassensitzung samt letztem Fehlertext; und das Störungsprotokoll (`/admin/get-tse-stoerungen`). Die fehlgeschlagen-Zählung ist sitzungsbezogen: Der Kassenabschluss weist die Ausfall-Reste aus, danach endet die Warnung von selbst. `fehlgeschlagen` entsteht praktisch nur durch einen jotti-Bug, den kein Vereinshelfer per Klick beheben kann; die frühere Signaturauftrags-Verwaltung (Liste, Zurücksetzen, Verwerfen) entfällt deshalb ersatzlos (→ [prd-tse-admin-vereinfachung.md](prds/prd-tse-admin-vereinfachung.md)).
+**Monitoring (statt Verwaltung):** Die Admin-Seite ist reines Monitoring ohne mutierende Aktionen auf Signaturaufträgen. Zwei Lesewege genügen: der Queue-Zustand (`/admin/get-tse-signatur-queue`) mit offenen Aufträgen, Rückstand (Alter des ältesten offenen Auftrags), Durchsatz und Signierdauer-p95 (global über ein gleitendes 15-Minuten-Fenster), dazu die Zahl endgültig fehlgeschlagener Aufträge der aktiven Kassensitzung samt letztem Fehlertext; und das Störungsprotokoll (`/admin/get-tse-stoerungen`). Die fehlgeschlagen-Zählung ist sitzungsbezogen: Der Kassenabschluss weist die Ausfall-Reste aus, danach endet die Warnung von selbst. `fehlgeschlagen` entsteht praktisch nur durch einen jotti-Bug, den kein Vereinshelfer per Klick beheben kann; die frühere Signaturauftrags-Verwaltung (Liste, Zurücksetzen, Verwerfen) entfällt deshalb ersatzlos.
 
 **Reparatur nach Bugfix (SQL-Runbook):** Ein Endstatus `fehlgeschlagen` hat seine Ursache in einem jotti-Bug. Nach dem Fix reiht der Betreiber die betroffenen Aufträge bewusst per SQL wieder ein; dafür gibt es keine UI. Das Kommando setzt den Status zurück auf `offen`, nullt die Versuche und macht den Auftrag sofort fällig, der Signatur-Worker signiert ihn danach regulär nach:
 
