@@ -1,0 +1,164 @@
+---
+import { Check } from '@lucide/astro'
+
+import Landing from '../layouts/Landing.astro'
+import AnfrageFormular from '../components/AnfrageFormular.tsx'
+import { betreiberEmail } from '../lib/links'
+
+// Seite „Für Vereine" (/fuer-vereine, Handoff-Prototyp data-vereine). Erklärt
+// die Nutzungsanfrage, benennt das freiwillige (kostenpflichtige) Service-
+// Angebot, trägt nahe dem Formular einen Beta-Hinweis (dritter Träger der
+// Beta-Kommunikation neben Hero-Badge und Download-Pill) und zeigt die
+// Betreiber-Mailadresse sichtbar als Fallback. Das Formular selbst ist die
+// AnfrageFormular-Island; Meta/Canonical/OG liefert das Landing-Layout je Route.
+
+const title = 'Für Vereine – jotti'
+const description =
+  'Kostenlose Nutzungsvereinbarung für jotti anfragen: Das Formular öffnet einen vorbefüllten E-Mail-Entwurf an den Betreiber. Für eingetragene Vereine, gemeinnützige Organisationen und NPOs.'
+
+// „Das ist drin" (Handoff): vier Punkte mit Spektral-Akzent, der vierte benennt
+// das freiwillige Service-Angebot.
+const leistungen = [
+  {
+    accent: 'var(--sp-green)',
+    titel: 'Voller Funktionsumfang, 0 €',
+    text: 'Alle Kassen-, Küchen- und Reporting-Funktionen ohne Einschränkung.',
+  },
+  {
+    accent: 'var(--sp-teal)',
+    titel: 'Deine Daten, self-hosted',
+    text: 'Läuft auf eurem Rechner oder Server — kein Cloud-Zwang.',
+  },
+  {
+    accent: 'var(--sp-blue)',
+    titel: 'Fiskalische Bausteine inklusive',
+    text: 'TSE-Anbindung, Belegausgabe und DSFinV-K-Export ab Werk.',
+  },
+  {
+    accent: 'var(--sp-violet)',
+    titel: 'Optionaler Service',
+    text: 'Einrichtung, Hosting-Hilfe und Schulung auf Wunsch — freiwillig und kostenpflichtig.',
+  },
+]
+
+// „So läuft's" (Handoff): drei nummerierte Schritte mit Spektral-Akzenten.
+const schritte = [
+  {
+    accent: 'var(--sp-red)',
+    titel: 'Anfrage senden',
+    text: 'Das Formular ausfüllen — dauert eine Minute.',
+  },
+  {
+    accent: 'var(--sp-teal)',
+    titel: 'Vereinbarung in Textform',
+    text: 'Kurze Nutzungsvereinbarung per E-Mail — kostenlos.',
+  },
+  {
+    accent: 'var(--sp-violet)',
+    titel: 'Loslegen',
+    text: 'Herunterladen, einrichten, kassieren.',
+  },
+]
+---
+
+<Landing title={title} description={description}>
+  <div class="mx-auto max-w-6xl px-6 py-16 sm:py-24">
+    <div class="reveal max-w-[46rem]">
+      <p
+        class="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal)] uppercase"
+      >
+        <span
+          class="h-[3px] w-[22px] rounded-sm"
+          style="background: var(--spectral);"
+          aria-hidden="true"></span>
+        Für Vereine
+      </p>
+      <h1
+        class="font-brand mt-3.5 text-[length:var(--fs-h1)] leading-[1.03] font-bold tracking-[-0.03em]"
+      >
+        Kostenlos für<br />deinen Verein.
+      </h1>
+      <p class="mt-[18px] max-w-[36em] text-[1.125rem] leading-relaxed text-muted">
+        Eingetragene Vereine, gemeinnützige Organisationen und NPOs können jotti
+        dauerhaft kostenlos nutzen — nach einer kurzen Nutzungsvereinbarung in
+        Textform mit dem Autor.
+      </p>
+    </div>
+
+    <div
+      class="mt-12 grid items-start gap-11 nav:mt-[52px] nav:grid-cols-[1fr_1.05fr]"
+    >
+      {/* Linke Spalte: Das ist drin, So läuft's, E-Mail-Fallback */}
+      <div class="reveal">
+        <h2 class="font-brand text-[22px] font-bold tracking-[-0.02em]">
+          Das ist drin
+        </h2>
+        <div class="mt-5 flex flex-col gap-3.5">
+          {
+            leistungen.map(({ accent, titel, text }) => (
+              <div class="flex gap-3">
+                <span
+                  class="mt-0.5 shrink-0"
+                  style={{ color: accent }}
+                  aria-hidden="true"
+                >
+                  <Check size={20} stroke-width={2.3} />
+                </span>
+                <div>
+                  <div class="text-[15.5px] font-semibold">{titel}</div>
+                  <div class="text-[14px] leading-[1.45] text-muted">{text}</div>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+
+        <h2 class="font-brand mt-9 text-[22px] font-bold tracking-[-0.02em]">
+          So läuft's
+        </h2>
+        <ol class="mt-[18px] flex flex-col">
+          {
+            schritte.map(({ accent, titel, text }, index) => (
+              <li
+                class="relative ml-[15px] border-l-2 border-card-border pl-[22px] pb-[18px] last:border-transparent last:pb-0"
+              >
+                <span
+                  class="font-brand absolute top-0 -left-[15px] flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-bold text-white"
+                  style={{ background: accent }}
+                  aria-hidden="true"
+                >
+                  {index + 1}
+                </span>
+                <div class="text-[15.5px] font-semibold">{titel}</div>
+                <div class="text-[14px] text-muted">{text}</div>
+              </li>
+            ))
+          }
+        </ol>
+
+        <p class="mt-8 text-[14px] leading-relaxed text-muted">
+          Lieber direkt schreiben? Schreib an{' '}
+          <a
+            href={`mailto:${betreiberEmail}`}
+            class="font-semibold text-brand hover:underline">{betreiberEmail}</a
+          >.
+        </p>
+      </div>
+
+      {/* Rechte Spalte: Beta-Hinweis nahe dem Formular, dann die Island */}
+      <div class="reveal flex flex-col gap-4">
+        <div
+          class="inline-flex items-center gap-2.5 self-start rounded-full border border-card-border bg-surface-alt px-3.5 py-[7px] text-[13px] text-muted"
+        >
+          <span
+            class="inline-block h-2 w-2 rounded-full"
+            style="background: var(--sp-orange);"
+            aria-hidden="true"></span>
+          Beta 1.0 — wird gerade getestet und geprüft
+        </div>
+
+        <AnfrageFormular client:load />
+      </div>
+    </div>
+  </div>
+</Landing>

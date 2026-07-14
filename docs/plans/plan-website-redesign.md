@@ -717,18 +717,18 @@ möglich). Der Header-CTA „Für Vereine" zielt ab jetzt auf `/fuer-vereine`.
 
 ### Acceptance criteria
 
-- [ ] `anfrage-mailto.ts` ist UI-frei; vitest-Tests decken Pflichtfelder und
+- [x] `anfrage-mailto.ts` ist UI-frei; vitest-Tests decken Pflichtfelder und
       URL-Encoding ab (Umlaute, Zeilenumbrüche).
-- [ ] Formular validiert clientseitig; Fehler sind programmatisch verknüpft
+- [x] Formular validiert clientseitig; Fehler sind programmatisch verknüpft
       (`aria-invalid`/`aria-describedby`, Live-Region); gültiges Absenden
       öffnet den vorbefüllten E-Mail-Entwurf mit allen Feldwerten per
       JS-Navigation, ohne `form-action`-Verstoß.
-- [ ] Bestätigungs-State sagt ehrlich, dass der Entwurf geöffnet wurde und
+- [x] Bestätigungs-State sagt ehrlich, dass der Entwurf geöffnet wurde und
       noch zu senden ist; E-Mail-Adresse steht sichtbar auf der Seite.
-- [ ] Service-Angebot und Beta-Hinweis stehen auf der Seite; Meta (Title,
+- [x] Service-Angebot und Beta-Hinweis stehen auf der Seite; Meta (Title,
       Description, Canonical, OG) je Route korrekt; Header-CTA führt auf
       `/fuer-vereine`.
-- [ ] Mobil einspaltig bedienbar; `make website-check` grün; Island hydriert
+- [x] Mobil einspaltig bedienbar; `make website-check` grün; Island hydriert
       unter Produktiv-CSP.
 
 ---
