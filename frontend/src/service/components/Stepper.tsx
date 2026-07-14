@@ -18,6 +18,9 @@ interface StepperProps {
 // hat feste Breite, damit der Zustandswechsel keinen Layout-Shift auslöst.
 // addDisabled deckelt das Plus dort, wo eine Höchstmenge gilt (z. B. die
 // unbezahlte Menge einer Position).
+// Beide Tasten geben ein deutlich stärkeres Press-Feedback als der Standard-
+// Button (scale .92 statt .99); die transform-only-Transition (100 ms linear)
+// hält das Eindrücken knackig gemäß Motion-Inventar.
 export function Stepper({
   menge,
   onAdd,
@@ -33,7 +36,7 @@ export function Stepper({
       <Button
         size="icon"
         variant="outline"
-        className="size-11 rounded-full"
+        className="size-11 rounded-full transition-transform duration-100 ease-linear active:not-aria-[haspopup]:scale-[.92]"
         aria-label={removeLabel}
         disabled={leer}
         onClick={(e) => {
@@ -48,7 +51,7 @@ export function Stepper({
       </span>
       <Button
         size="icon"
-        className="size-11 rounded-full"
+        className="size-11 rounded-full transition-transform duration-100 ease-linear active:not-aria-[haspopup]:scale-[.92]"
         aria-label={addLabel}
         disabled={addDisabled}
         onClick={(e) => {
