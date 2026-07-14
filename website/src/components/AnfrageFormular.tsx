@@ -11,8 +11,8 @@ import {
 } from '../lib/anfrage-mailto'
 import { betreiberEmail } from '../lib/links'
 
-// AnfrageFormular-Island der Seite /fuer-vereine (Handoff-Prototyp
-// docs/prds/design_handoff_jotti_website, data-vereine-Formular). Rendert die
+// AnfrageFormular-Island der Seite /fuer-vereine (Handoff-Prototyp,
+// PRD docs/prds/prd-website-redesign.md, data-vereine-Formular). Rendert die
 // Handoff-Felder, validiert clientseitig über src/lib/anfrage-mailto.ts, öffnet
 // bei gültigem Absenden den vorbefüllten mailto-Entwurf per JS-Navigation
 // (window.location.href — bewusst kein natives <form action="mailto:">, das
@@ -182,7 +182,7 @@ export default function AnfrageFormular() {
             className={`${feldKlassen} h-[46px]`}
           />
           {fehler.verein && (
-            <p id={fehlerId('verein')} className="mt-1.5 text-[13px] text-[var(--sp-red)]">
+            <p id={fehlerId('verein')} className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
               {fehler.verein}
             </p>
           )}
@@ -204,7 +204,7 @@ export default function AnfrageFormular() {
             className={`${feldKlassen} h-[46px]`}
           />
           {fehler.name && (
-            <p id={fehlerId('name')} className="mt-1.5 text-[13px] text-[var(--sp-red)]">
+            <p id={fehlerId('name')} className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
               {fehler.name}
             </p>
           )}
@@ -224,7 +224,7 @@ export default function AnfrageFormular() {
             className={`${feldKlassen} h-[46px]`}
           />
           {fehler.email && (
-            <p id={fehlerId('email')} className="mt-1.5 text-[13px] text-[var(--sp-red)]">
+            <p id={fehlerId('email')} className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
               {fehler.email}
             </p>
           )}

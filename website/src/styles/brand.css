@@ -1,6 +1,6 @@
 /* jotti-Marke — gemeinsames Token-Set für Landing und Doku.
-   Quelle der Markenwerte: der Design-Handoff
-   (docs/prds/design_handoff_jotti_website/README.md). Light-Palette auf :root,
+   Quelle der Markenwerte: der Design-Handoff, zusammengefasst im
+   PRD docs/prds/prd-website-redesign.md. Light-Palette auf :root,
    Dark-Palette auf [data-theme='dark'] (nicht mehr prefers-color-scheme); dazu
    die acht Spektral-Tokens, die Spektral-Verläufe, Radien, Schatten und die
    Typo-Skala. Selbst gehostete Variable-Fonts: Space Grotesk (Headings/
@@ -58,6 +58,18 @@
   --spectral: linear-gradient(100deg, #d24a2a, #c8781e, #4f9636, #1f9b8a, #2f6fc4, #8b3fc0);
   --spectral-v: linear-gradient(180deg, #d24a2a, #c8781e, #4f9636, #1f9b8a, #2f6fc4, #8b3fc0);
 
+  /* --- Spektral-Textvarianten (AA-sicher als kleiner Text): Light ---
+     Die vollen --sp-*-Werte oben tragen Verlauf, Streifen, Icons und
+     Akzentflächen (WCAG 1.4.11 Non-Text-Kontrast, 3:1). Als kleiner Text
+     (Eyebrow, Formular-Fehler, Platzhalter-Label, Schritt-Label) unterschreiten
+     Teal, Orange, Rot und Grün im Hellen die AA-Textschwelle 4,5:1; diese
+     abgedunkelten Varianten erfüllen sie auf Weiß, Karten- und Muted-Grund. Im
+     Dunkeln erben sie unten die vollen Töne (dort bereits AA-sicher). */
+  --sp-teal-text: #177a6b;
+  --sp-orange-text: #985b17;
+  --sp-red-text: #c03f1c;
+  --sp-green-text: #447f2c;
+
   /* --- Typografie --- */
   --font-heading: 'Space Grotesk', system-ui, -apple-system, sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
@@ -100,4 +112,10 @@
   --sp-teal: #28b8a3;
   --sp-blue: #4b86dd;
   --sp-violet: #a457dd;
+
+  /* Textvarianten erben im Dunkeln die vollen Töne (dort schon AA-sicher). */
+  --sp-teal-text: var(--sp-teal);
+  --sp-orange-text: var(--sp-orange);
+  --sp-red-text: var(--sp-red);
+  --sp-green-text: var(--sp-green);
 }

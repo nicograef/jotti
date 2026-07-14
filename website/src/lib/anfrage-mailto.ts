@@ -8,7 +8,7 @@
 // blockt).
 //
 // Feldnamen und Rechtsform-Labels stammen aus dem Handoff-Prototyp
-// (docs/prds/design_handoff_jotti_website/jotti Website.dc.html).
+// (PRD docs/prds/prd-website-redesign.md).
 
 import { betreiberEmail } from './links'
 

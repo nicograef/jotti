@@ -1,7 +1,7 @@
 ---
 import { Settings2, Smartphone, Euro, FileCheck } from '@lucide/astro'
 
-// Ablauf-Sektion der Landing (Handoff-Prototyp docs/prds/design_handoff_jotti_website, #ablauf).
+// Ablauf-Sektion der Landing (Handoff-Prototyp, PRD docs/prds/prd-website-redesign.md, #ablauf).
 // Statische Astro-Sektion ohne client:-Direktive. Vier nummerierte Schritte vom
 // Einrichten bis zum Z-Bon, jeder mit eigenem Spektral-Akzent; im Desktop-Layout
 // verbindet eine spektrale Linie die Schritt-Icons. Icons über @lucide/astro
@@ -11,10 +11,13 @@ import { Settings2, Smartphone, Euro, FileCheck } from '@lucide/astro'
 // Scroll-Reveal (.reveal) ist Progressive Enhancement; unter
 // prefers-reduced-motion bleibt alles statisch sichtbar (siehe landing.css).
 
+// accent färbt das Icon (Non-Text, 3:1 genügt); labelColor das Schritt-Label
+// als kleiner Text (AA 4,5:1 — Textvarianten, Violett besteht auch voll).
 const schritte = [
   {
     Icon: Settings2,
     accent: 'var(--sp-red)',
+    labelColor: 'var(--sp-red-text)',
     label: 'Schritt 1',
     titel: 'Einrichten',
     text: 'Produkte mit Varianten & Steuersätzen, Tische und Helfer:innen im Admin-Bereich anlegen.',
@@ -22,6 +25,7 @@ const schritte = [
   {
     Icon: Smartphone,
     accent: 'var(--sp-green)',
+    labelColor: 'var(--sp-green-text)',
     label: 'Schritt 2',
     titel: 'Helfer starten',
     text: 'Adresse im Browser öffnen, per Einmalpasswort anmelden, App aufs Handy legen. Kein App Store.',
@@ -29,6 +33,7 @@ const schritte = [
   {
     Icon: Euro,
     accent: 'var(--sp-teal)',
+    labelColor: 'var(--sp-teal-text)',
     label: 'Schritt 3',
     titel: 'Kassieren',
     text: 'Den ganzen Abend: bestellen, kassieren, stornieren, Küchenbons drucken — pro Tisch.',
@@ -36,6 +41,7 @@ const schritte = [
   {
     Icon: FileCheck,
     accent: 'var(--sp-violet)',
+    labelColor: 'var(--sp-violet)',
     label: 'Schritt 4',
     titel: 'Abschluss',
     text: 'Kassensturz mit Differenz, formaler Tagesabschluss (Z-Bon) und DSFinV-K-Export.',
@@ -46,7 +52,7 @@ const schritte = [
 <section id="ablauf" class="mx-auto max-w-6xl px-6 py-16 sm:py-24">
   <div class="reveal max-w-[660px]">
     <p
-      class="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal)] uppercase"
+      class="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal-text)] uppercase"
     >
       <span
         class="h-[3px] w-[22px] rounded-sm"
@@ -74,7 +80,7 @@ const schritte = [
       style="background: var(--spectral);"
       aria-hidden="true"></span>
     {
-      schritte.map(({ Icon, accent, label, titel, text }) => (
+      schritte.map(({ Icon, accent, labelColor, label, titel, text }) => (
         <li class="relative">
           <span
             class="flex h-[62px] w-[62px] items-center justify-center rounded-[18px] border border-card-border bg-card shadow-[var(--shadow)]"
@@ -84,7 +90,7 @@ const schritte = [
           </span>
           <p
             class="font-brand mt-[18px] text-[13px] font-bold tracking-[0.04em]"
-            style={{ color: accent }}
+            style={{ color: labelColor }}
           >
             {label}
           </p>

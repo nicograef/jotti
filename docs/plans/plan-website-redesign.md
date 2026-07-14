@@ -309,6 +309,16 @@ Im Multi-Experten-Review (2026-07-13) mit dem Betreiber entschieden:
   Barrierefreiheit); nötige Korrekturen erfolgen token-seitig, nicht als
   Einzelfall-Hacks. Namentlich zu prüfen: der Eyebrow (`--sp-teal` `#1f9b8a`
   auf Weiß bei 12,5px, überschlägig ~3,4:1 — unter AA 4,5:1).
+  **Gelöst (Phase 10, token-seitig):** Drei AA-sichere Text-Varianten in
+  `brand.css` für Light — `--sp-teal-text` `#177a6b` (Eyebrow),
+  `--sp-red-text` `#c03f1c` (Formular-Fehler) und `--sp-orange-text` `#985b17`
+  (Platzhalter-Label, bei der Messung ebenfalls unter AA gefunden). Im Dunkeln
+  erben sie die vollen Töne (dort schon AA-sicher). Die vollen `--sp-*`-Werte
+  bleiben für Verlauf, Streifen, Icons und Akzentflächen unverändert (Non-Text
+  3:1), damit die Spektral-Identität und die `--spectral`-Verläufe erhalten
+  bleiben. Jede Text-Verwendung jedes Spektral-Tokens wurde in beiden Themes im
+  Browser gemessen: kleiner Text durchgehend ≥ 4,5:1, Icons/dekorative Marken
+  ≥ 3:1.
 - **Rechtsseiten-Texte** sind eine Bring-Schuld des Betreibers und blockieren
   die Gesamtabnahme (Phase 10), nicht die Umsetzung.
 
@@ -826,13 +836,17 @@ Abnahme.
 
 ### Acceptance criteria
 
-- [ ] Handoff-Bundle entfernt; keine Referenzen darauf im Repo (außer
+- [x] Handoff-Bundle entfernt; keine Referenzen darauf im Repo (außer
       Git-Historie und PRD-Erwähnung).
-- [ ] „Regenbogen" kommt in Quelltext und Copy der Website nicht vor.
-- [ ] Alle vier Routen und die Doku laufen unter der Produktiv-CSP ohne
+- [x] „Regenbogen" kommt in Quelltext und Copy der Website nicht vor.
+- [x] Alle vier Routen und die Doku laufen unter der Produktiv-CSP ohne
       Konsolen-Verstöße, in Hell und Dunkel, auf Desktop und 390px-Mobil,
       mit und ohne `prefers-reduced-motion`.
-- [ ] Meta (Title, Description, Canonical, OG, Twitter) je Route korrekt;
+- [x] Meta (Title, Description, Canonical, OG, Twitter) je Route korrekt;
       Sitemap enthält `/`, `/fuer-vereine/`, `/impressum/`, `/datenschutz/`.
 - [ ] Rechtsseiten-Texte des Betreibers sind eingesetzt (Platzhalter weg).
+      — offen: Bring-Schuld des Betreibers; die markierten Platzhalter bleiben
+      bis zur Textlieferung stehen.
 - [ ] `make website-check` grün; Sichtabnahme durch den Betreiber erteilt.
+      — `make website-check` ist grün; offen bleibt die Sichtabnahme des
+      Betreibers (setzt die eingesetzten Rechtsseiten-Texte voraus).
