@@ -335,7 +335,7 @@
 }
 
 /* Skeleton-Shimmer: Muted-Verlauf mit leichter Teal-/Violett-Tönung
-   (Handoff-Rezept), löst in Phase 4 das graue animate-pulse ab. */
+   (Handoff-Rezept), löst den früheren grauen Puls-Platzhalter ab. */
 @utility skeleton-shimmer {
   background: linear-gradient(
     90deg,
