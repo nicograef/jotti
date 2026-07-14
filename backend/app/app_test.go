@@ -25,10 +25,7 @@ func setRequiredConfigEnv(t *testing.T) {
 func TestNewApp(t *testing.T) {
 	setRequiredConfigEnv(t)
 	cfg := config.Load()
-	app, err := NewApp(cfg, &sql.DB{}, "dev")
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
+	app := NewApp(cfg, &sql.DB{}, "dev")
 
 	if app.Server == nil {
 		t.Error("Server should not be nil")
@@ -163,25 +160,17 @@ func TestSetupRoutes_ResetSeedRouteGuardedByEnv(t *testing.T) {
 func TestShutdown(t *testing.T) {
 	setRequiredConfigEnv(t)
 	cfg := config.Load()
-	app, err := NewApp(cfg, &sql.DB{}, "dev")
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
+	app := NewApp(cfg, &sql.DB{}, "dev")
 
-	err = app.Shutdown()
-	if err != nil {
+	if err := app.Shutdown(); err != nil {
 		t.Errorf("Shutdown() failed: %v", err)
 	}
-
 }
 
 func TestRun_ContextCancellation(t *testing.T) {
 	setRequiredConfigEnv(t)
 	cfg := config.Load()
-	app, err := NewApp(cfg, &sql.DB{}, "dev")
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
+	app := NewApp(cfg, &sql.DB{}, "dev")
 
 	// Create a cancellable context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -199,8 +188,7 @@ func TestRun_ContextCancellation(t *testing.T) {
 	cancel()
 
 	// Wait for Run to return
-	err = <-errChan
-	if err != nil {
+	if err := <-errChan; err != nil {
 		t.Errorf("Run() returned error: %v", err)
 	}
 }

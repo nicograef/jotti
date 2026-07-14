@@ -31,18 +31,14 @@ type bestellPositionInput struct {
 	Menge      int `json:"menge"`
 }
 
-func toBestellPositionInput(p bestellPositionInput) application.BestellPositionInput {
-	return application.BestellPositionInput{
-		ProduktID:  p.ProduktID,
-		VarianteID: p.VarianteID,
-		Menge:      p.Menge,
-	}
-}
-
 func toBestellPositionInputs(positionen []bestellPositionInput) []application.BestellPositionInput {
 	out := make([]application.BestellPositionInput, len(positionen))
 	for i, p := range positionen {
-		out[i] = toBestellPositionInput(p)
+		out[i] = application.BestellPositionInput{
+			ProduktID:  p.ProduktID,
+			VarianteID: p.VarianteID,
+			Menge:      p.Menge,
+		}
 	}
 	return out
 }
@@ -59,17 +55,10 @@ type positionRefRequest struct {
 	Menge      int    `json:"menge"`
 }
 
-func toPositionRef(p positionRefRequest) kasse.PositionRef {
-	return kasse.PositionRef{
-		PositionID: p.PositionID,
-		Menge:      p.Menge,
-	}
-}
-
 func toPositionRefs(refs []positionRefRequest) []kasse.PositionRef {
 	out := make([]kasse.PositionRef, len(refs))
 	for i, ref := range refs {
-		out[i] = toPositionRef(ref)
+		out[i] = kasse.PositionRef{PositionID: ref.PositionID, Menge: ref.Menge}
 	}
 	return out
 }

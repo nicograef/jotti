@@ -77,59 +77,27 @@ func (c Command) UpdateUser(ctx context.Context, userID int, name, username stri
 }
 
 func (c Command) ActivateUser(ctx context.Context, userID int) error {
-	return c.applyUserStatusChange(
-		ctx,
-		userID,
-		"User not found for activation",
-		"Failed to retrieve user for activation",
-		"Failed to update user",
-		"User activated successfully",
-		func(u *user.User) { u.Activate() },
-	)
+	return c.applyUserStatusChange(ctx, userID, "User activated successfully", func(u *user.User) { u.Activate() })
 }
 
 func (c Command) DeactivateUser(ctx context.Context, userID int) error {
-	return c.applyUserStatusChange(
-		ctx,
-		userID,
-		"User not found for deactivation",
-		"Failed to retrieve user for deactivation",
-		"Failed to update user",
-		"User deactivated successfully",
-		func(u *user.User) { u.Deactivate() },
-	)
+	return c.applyUserStatusChange(ctx, userID, "User deactivated successfully", func(u *user.User) { u.Deactivate() })
 }
 
 func (c Command) DeleteUser(ctx context.Context, userID int) error {
-	return c.applyUserStatusChange(
-		ctx,
-		userID,
-		"User not found for deletion",
-		"Failed to retrieve user for deletion",
-		"Failed to delete user",
-		"User deleted successfully",
-		func(u *user.User) { u.Delete() },
-	)
+	return c.applyUserStatusChange(ctx, userID, "User deleted successfully", func(u *user.User) { u.Delete() })
 }
 
-func (c Command) applyUserStatusChange(
-	ctx context.Context,
-	userID int,
-	notFoundMsg string,
-	loadFailedMsg string,
-	updateFailedMsg string,
-	successMsg string,
-	action func(*user.User),
-) error {
+func (c Command) applyUserStatusChange(ctx context.Context, userID int, successMsg string, action func(*user.User)) error {
 	log := zerolog.Ctx(ctx)
 
 	user, err := c.UserRepo.GetUser(ctx, userID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("user_id", userID).Msg(notFoundMsg)
+			log.Warn().Int("user_id", userID).Msg("User not found for status change")
 			return ErrUserNotFound
 		}
-		log.Error().Int("user_id", userID).Msg(loadFailedMsg)
+		log.Error().Int("user_id", userID).Msg("Failed to retrieve user for status change")
 		return ErrDatabase
 	}
 
@@ -137,7 +105,7 @@ func (c Command) applyUserStatusChange(
 
 	err = c.UserRepo.UpdateUser(ctx, user)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", userID).Msg(updateFailedMsg)
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to update user")
 		return ErrDatabase
 	}
 

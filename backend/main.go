@@ -91,10 +91,7 @@ func run(cfg config.Config, db *sql.DB) error {
 	}
 	res.Log(log.Logger)
 
-	a, err := app.NewApp(cfg, db, version)
-	if err != nil {
-		return fmt.Errorf("failed to create app: %w", err)
-	}
+	a := app.NewApp(cfg, db, version)
 
 	// Set up signal handling
 	ctx, cancel := context.WithCancel(context.Background())
