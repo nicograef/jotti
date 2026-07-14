@@ -1,11 +1,8 @@
 import { useKassenbestand, useOffeneKassensitzung } from '@/admin/kasse/hooks'
 import { beschreibeFehlBons } from '@/admin/settings/DruckstationBackend'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
-import {
-  RUECKSTAND_WARN_SEKUNDEN,
-  useTSESignaturQueue,
-  useTSEStatus,
-} from '@/admin/tse/hooks'
+import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
+import { tseAmpel } from '@/admin/tse/tseAmpel'
 import { formatCents } from '@/lib/utils'
 
 import { useLiveReporting } from './hooks'
@@ -26,16 +23,14 @@ export function AdminDashboardPage() {
   const { queue } = useTSESignaturQueue()
   const { druckauftraege } = useFehlgeschlageneDruckauftraege()
 
-  // TSE-Fehler und -Schwellen wie im bisherigen Banner: ohne Konfiguration der
-  // permanente Alarm, sonst Rückstand über der geteilten Schwelle oder
-  // endgültig fehlgeschlagene Signaturen.
-  const tseNichtKonfiguriert = !tseLoading && !tseStatus?.istKonfiguriert
-  const rueckstand =
-    !tseNichtKonfiguriert &&
-    (queue?.rueckstandSekunden ?? 0) >= RUECKSTAND_WARN_SEKUNDEN
-  const signaturFehlgeschlagen =
-    !tseNichtKonfiguriert && (queue?.fehlgeschlageneAuftraege ?? 0) > 0
-  const tseFehler = tseNichtKonfiguriert || rueckstand || signaturFehlgeschlagen
+  // TSE-Fehlerzustand aus der Single Source of Truth (tseAmpel); die Einzel-Flags
+  // bauen den ausführlichen Warteschlangen-Text der Übersichtszeile.
+  const {
+    fehler: tseFehler,
+    nichtKonfiguriert: tseNichtKonfiguriert,
+    rueckstand,
+    signaturFehlgeschlagen,
+  } = tseAmpel(tseStatus, tseLoading, queue)
 
   const tseText = tseNichtKonfiguriert
     ? 'Nicht konfiguriert'

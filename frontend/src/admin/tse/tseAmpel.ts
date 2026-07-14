@@ -8,6 +8,9 @@ import type { TSESignaturQueue, TSEStatus } from './TSEBackend'
 export interface TSEAmpel {
   fehler: boolean
   ueberschrift: string
+  nichtKonfiguriert: boolean
+  rueckstand: boolean
+  signaturFehlgeschlagen: boolean
 }
 
 export function tseAmpel(
@@ -32,5 +35,11 @@ export function tseAmpel(
     ueberschrift = 'Ja — TSE signiert normal'
   }
 
-  return { fehler, ueberschrift }
+  return {
+    fehler,
+    ueberschrift,
+    nichtKonfiguriert,
+    rueckstand,
+    signaturFehlgeschlagen,
+  }
 }

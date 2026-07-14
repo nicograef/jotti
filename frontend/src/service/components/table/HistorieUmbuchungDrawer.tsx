@@ -146,7 +146,7 @@ export function HistorieUmbuchungDrawer({
 
   return (
     <Drawer
-      open={true}
+      open
       onOpenChange={(isOpen) => {
         if (!isOpen) onClose()
       }}

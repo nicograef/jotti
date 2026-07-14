@@ -81,7 +81,7 @@ export function DirektverkaufStornoDrawer({
 
   return (
     <Drawer
-      open={true}
+      open
       onOpenChange={(isOpen) => {
         if (!isOpen) onClose()
       }}
