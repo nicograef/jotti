@@ -20,6 +20,13 @@ automatisch: Die Produktions-Konfiguration (`docker-compose.prod.yml`) bringt ei
 Caddy-Reverse-Proxy mit, der es beim ersten Start selbst bei Let's Encrypt
 anfordert und danach erneuert.
 
+Ein gemieteter Server bedeutet auch: Der Hoster verarbeitet personenbezogene Daten
+für euren Verein, denn jotti speichert unter anderem die Namen der Helfer. Schließt
+deshalb mit dem Hoster eine Vereinbarung zur Auftragsverarbeitung ab (AVV,
+Art. 28 DSGVO). Die üblichen Anbieter stellen dafür kostenlos einen Generator im
+Kundenportal bereit, ausgefüllt ist er in wenigen Minuten. Beim Standardweg im
+lokalen WLAN stellt sich die Frage nicht, dort ist kein Hoster beteiligt.
+
 > ⚠️ **Kein Betrieb ohne HTTPS.** Ohne HTTPS dürft ihr jotti nicht über das offene
 > Internet betreiben: Anmeldedaten und Bestellungen würden sonst unverschlüsselt
 > übertragen.

@@ -437,6 +437,7 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 | BYOD-Smartphones melden                      | —                  | ❌ Nicht erforderlich       |
 | 10-Jahres-Archivierung (GoBD)                | —                  | ✅ Pflicht                  |
 | Server-Betrieb und Datensicherung            | —                  | ✅ Pflicht                  |
+| AVV mit dem Hoster (Art. 28 DSGVO)           | —                  | ✅ Pflicht (nur bei gemietetem Server, → [Leitfaden](leitfaden/self-hosting.md)) |
 
 **Vor dem ersten Einsatz:**
 

@@ -156,3 +156,8 @@ Zertifikats-Erneuerungen schlagen fehl (Abhilfe je Installation: lokalen State l
 registrieren, neue Install-ID, neue Adresse). Deshalb in die VPS-Backup-Routine aufnehmen.
 
 Logs: `make rocks-logs` zeigt resolver- und acme-dns-Logs mit an.
+
+AVV (Datenschutz): Für den VPS besteht eine Vereinbarung zur Auftragsverarbeitung nach
+Art. 28 DSGVO mit netcup (abgeschlossen 2026-07-14). Kopien liegen im netcup-CCP
+(Stammdaten → Auftragsverarbeitung) und im privaten Vertragsarchiv. Der Vertragsinhalt
+ist vertraulich (Ziff. 11 der Vereinbarung) und gehört nicht ins Repository.
