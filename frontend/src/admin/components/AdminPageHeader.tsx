@@ -16,7 +16,7 @@ export function AdminPageHeader({
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold leading-8">{titel}</h1>
+        <h1 className="font-heading text-2xl font-bold leading-8">{titel}</h1>
         {unterzeile !== undefined && (
           <p className="mt-1 text-sm text-muted-foreground">{unterzeile}</p>
         )}

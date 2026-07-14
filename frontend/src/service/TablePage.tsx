@@ -67,7 +67,7 @@ export function TablePage() {
     <>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-semibold leading-tight">
+          <h1 className="font-heading text-[22px] font-semibold leading-tight">
             {stateLoading ? 'Tisch ??' : tisch.name}
           </h1>
           {!stateLoading && (
