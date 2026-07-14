@@ -22,7 +22,7 @@ type Handler struct {
 // exportRequest wählt die zu exportierende Kassensitzung. 0 (bzw. fehlend) steht
 // für die Standard-Sitzung (offen, sonst jüngste abgeschlossene).
 type exportRequest struct {
-	Kassensitzung int `json:"kassensitzung"`
+	KassensitzungNr int `json:"kassensitzungNr"`
 }
 
 // ExportHandler streamt das DSFinV-K-ZIP der gewählten Kassensitzung. Die
@@ -35,12 +35,12 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 		if !helper.ReadBody(w, r, &body) {
 			return
 		}
-		if body.Kassensitzung < 0 {
+		if body.KassensitzungNr < 0 {
 			helper.SendClientError(w, "invalid_kassensitzung", nil)
 			return
 		}
 
-		archiv, err := h.Service.Erstellen(r.Context(), body.Kassensitzung)
+		archiv, err := h.Service.Erstellen(r.Context(), body.KassensitzungNr)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrKassensitzungNichtGefunden):

@@ -390,7 +390,7 @@ step_sale_receipt_export() {
   start="$(date +%s)"
   status="$(curl -sS -o "$SMOKE_TMP/export.zip" -w '%{http_code}' --max-time 15 \
     -X POST -H 'Content-Type: application/json' -H "$auth_header" \
-    -d '{"kassensitzung":0}' "$BASE_URL/api/admin/export/dsfinvk" 2>"$SMOKE_TMP/curl.log" || echo 000)"
+    -d '{"kassensitzungNr":0}' "$BASE_URL/api/admin/export/dsfinvk" 2>"$SMOKE_TMP/curl.log" || echo 000)"
   end="$(date +%s)"; duration=$((end - start))
   if [[ "$status" != "200" ]]; then
     fail_step "export-dsfinvk" "expected 200, got $status"
