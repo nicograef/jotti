@@ -48,8 +48,8 @@ Abschnitt macht das transparent, damit niemand aus Umsatz ÷ Menge einen
 Stückpreis ableitet.
 
 Sortierung: innerhalb jeder Kategorie werden die Produkte **nach ausgegebener
-Menge aufsteigend** gelistet (Produktname als stabiler Tiebreaker); Varianten
-innerhalb eines Produkts ebenso nach ausgegebener Menge aufsteigend. Eine
+Menge absteigend** gelistet (Produktname als stabiler Tiebreaker); Varianten
+innerhalb eines Produkts ebenso nach ausgegebener Menge absteigend. Eine
 Kassensitzung ohne Verkäufe zeigt einen leeren Zustand; ein Kategorie-Abschnitt
 ohne Verkäufe entfällt.
 
@@ -102,8 +102,8 @@ ohne Verkäufe entfällt.
   Kategoriewechsel eines Produkts innerhalb einer Sitzung würde als getrennte
   Gruppen erscheinen — vernachlässigbarer Randfall.)
 - **Sortierung:** innerhalb jedes Kategorie-Abschnitts Produkte nach
-  `AusgegebeneMenge` **aufsteigend** (`ProduktName` als Tiebreaker); Varianten je
-  Produkt ebenso nach `AusgegebeneMenge` aufsteigend.
+  `AusgegebeneMenge` **absteigend** (`ProduktName` als Tiebreaker); Varianten je
+  Produkt ebenso nach `AusgegebeneMenge` absteigend.
 - **Ein-Varianten-Produkte** werden in der Anzeige zu einer einzigen Zeile
   zusammengefasst; Beschriftung dann `produktName` + `varianteName` (analog
   `Position.Bezeichnung()`). Das Datenmodell bleibt unverändert (Produkt mit einer
@@ -164,8 +164,8 @@ geldneutral vs. kassenwirksam:
 - **Anwendungsschicht (`api/reporting/application`):** eine reine Funktion baut
   aus den flachen Varianten-Zeilen die Produkt-Hierarchie, berechnet die
   Zwischensummen und sortiert: Kategorien in fester Reihenfolge (Essen → Getränke
-  → Sonstiges), Produkte je Kategorie nach `AusgegebeneMenge` aufsteigend,
-  Varianten je Produkt nach `AusgegebeneMenge` aufsteigend (`ProduktName` bzw.
+  → Sonstiges), Produkte je Kategorie nach `AusgegebeneMenge` absteigend,
+  Varianten je Produkt nach `AusgegebeneMenge` absteigend (`ProduktName` bzw.
   `VarianteName` als stabiler Tiebreaker). Die Liste ist damit bereits fertig
   sortiert; das Frontend rendert nur. Deep Module, isoliert testbar über flache
   Eingabe → gruppierte, sortierte Ausgabe.
@@ -213,7 +213,7 @@ nicht die interne Zerlegung.
   `api/reporting/application/query_test.go` (analog `computeUmsatzProSteuersatz`).
   Flache Varianten-Zeilen → korrekte Kategorie-Abschnitte in fester Reihenfolge
   (Essen → Getränke → Sonstiges), korrekte Produkt-Gruppen, korrekte
-  Zwischensummen, Sortierung nach Menge aufsteigend, stabile Tiebreaker.
+  Zwischensummen, Sortierung nach Menge absteigend, stabile Tiebreaker.
 - **Konsistenz mit den Gesamtzahlen:** Prior Art
   `api/reporting/application/query_export_konsistenz_test.go`. Die Summe aller
   Produkt-`UmsatzCents` muss mit dem bestehenden kassierten Gesamtumsatz (bzw. der
@@ -248,9 +248,8 @@ nicht die interne Zerlegung.
 - Setzt die Roadmap-Anforderung **R-05 (Produktumsatz-Reporting, Nice)** um.
 - **Direktverkauf zählt in beide Zahlen** (er gibt aus *und* nimmt ein) — als
   konsequente Anwendung des „rausgegeben/eingenommen"-Prinzips bestätigt.
-- **Sortierung nach Menge aufsteigend** (kleinste Menge zuerst) je Kategorie —
-  wie festgelegt. Falls stattdessen die Top-Seller oben stehen sollen, wäre es
-  absteigend; eine reine Sortier-Umkehr, jederzeit änderbar.
+- **Sortierung nach Menge absteigend** (größte Menge zuerst, Meistverkaufte oben)
+  je Kategorie — wie festgelegt.
 - Die bewusste Trennung der Grundlagen ist ein Feature, kein Bug: eine
   zurückgenommene Portion bleibt „ausgegeben", mindert aber den Umsatz. Der
   erklärende Hinweis im Report verhindert Fehlinterpretationen.

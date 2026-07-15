@@ -10,7 +10,7 @@ und Variante — je Zeile zwei getrennte Zahlen: **ausgegebene Menge** (Bestellu
 Warenrücknahme/Storno). Gegliedert in Kategorie-Abschnitte (Essen → Getränke →
 Sonstiges), pro Variante aufgeschlüsselt und auf Produktebene mit Zwischensumme
 gruppiert, Ein-Varianten-Produkte zu einer Zeile zusammengefasst, je Kategorie
-nach Menge aufsteigend sortiert. Angezeigt sowohl in der Tagesabrechnung
+nach Menge absteigend sortiert. Angezeigt sowohl in der Tagesabrechnung
 (`get-abrechnung`) als auch im Live-Dashboard (`get-live-reporting`). Setzt die
 Roadmap-Anforderung **R-05** um.
 
@@ -76,8 +76,8 @@ Dauerhafte Entscheidungen, die für alle Phasen gelten:
   `computeUmsatzProSteuersatz` in `query.go`) baut aus den flachen
   `ProduktStatistikZeile`-Werten die Produkt-Hierarchie, berechnet Zwischensummen
   und sortiert: Kategorien fest Essen → Getränke → Sonstiges; Produkte je Kategorie
-  nach `AusgegebeneMenge` aufsteigend; Varianten je Produkt nach `AusgegebeneMenge`
-  aufsteigend; `ProduktName`/`VarianteName` als stabiler Tiebreaker. Backend liefert
+  nach `AusgegebeneMenge` absteigend; Varianten je Produkt nach `AusgegebeneMenge`
+  absteigend; `ProduktName`/`VarianteName` als stabiler Tiebreaker. Backend liefert
   die Liste fertig sortiert. Isoliert unit-testbar (flache Eingabe → gruppierte,
   sortierte Ausgabe).
 - **JSON-Contract** (HTTP-Response-DTO in
@@ -141,16 +141,14 @@ Dauerhafte Entscheidungen, die für alle Phasen gelten:
   bewusst nicht ineinander umrechenbar; erklärender Hinweis im Report.
 - **Direktverkauf** zählt in beide Zahlen.
 - **Kategorie-Abschnitte** Essen → Getränke → Sonstiges; keine Kategorie-Summenzeile.
-- **Sortierung nach ausgegebener Menge aufsteigend** je Kategorie.
+- **Sortierung nach ausgegebener Menge absteigend** je Kategorie.
 - **Ein-Varianten-Produkte** als eine Zeile (Beschriftung `produktName varianteName`).
 - **Kein neues Event, keine Migration, kein Stammdaten-Join.**
 - Gruppierung/Sortierung im **Backend** (Single Source of Truth für Aufbereitung).
 
 ## Open questions / Risks
 
-- **Sortierrichtung**: „aufsteigend" ist wie festgelegt umgesetzt (kleinste Menge
-  zuerst). Falls Top-Seller oben gewünscht, ist es eine reine Umkehr der
-  Vergleichsfunktion — kein Struktureingriff.
+- **Sortierrichtung**: absteigend nach Menge (Meistverkaufte oben) — festgelegt.
 - **Konsistenz-Invariante**: Σ aller Produkt-`UmsatzCents` muss dem kassierten
   Gesamtumsatz (= Σ `UmsatzProSteuersatz`-Brutto) entsprechen — dieselbe
   Positions-Basis. Einziger realer Bruchweg: die `WHERE type IN (…)`-Menge der
@@ -191,7 +189,7 @@ Varianten-Zeilen mit ausgegebener Menge und Umsatz (Vorzeichen laut Event-Mappin
 oben). Eine dedizierte Repo-Methode `GetProduktStatistik` mappt die Rows in
 `[]ProduktStatistikZeile`. Die reine Funktion `gruppiereProduktStatistik` in der
 Anwendungsschicht gruppiert diese zu Kategorie-Abschnitten und Produkten mit
-Zwischensummen und sortiert sie (Kategorie-Reihenfolge fest, Menge aufsteigend,
+Zwischensummen und sortiert sie (Kategorie-Reihenfolge fest, Menge absteigend,
 Name-Tiebreaker); `Query.GetReporting` weist das Ergebnis
 `data.ProduktStatistik` zu. Es wird als `produktStatistik`-Feld der
 `get-abrechnung`-Response serialisiert, im Frontend per Zod validiert und in
@@ -212,11 +210,11 @@ Teil des Z-Bons.
   eine geldneutrale Korrektur mindert nur die Menge, nicht den Umsatz.
 - [ ] Die Ausgabe ist in Kategorie-Abschnitte (Essen → Getränke → Sonstiges)
   gegliedert; je Produkt gibt es eine Zwischensumme über seine Varianten; Produkte
-  und Varianten sind nach ausgegebener Menge aufsteigend sortiert (Name-Tiebreaker).
+  und Varianten sind nach ausgegebener Menge absteigend sortiert (Name-Tiebreaker).
 - [ ] `gruppiereProduktStatistik` ist als reine Funktion isoliert unit-getestet
   (`query_test.go`, Muster `computeUmsatzProSteuersatz`): flache
   `ProduktStatistikZeile`-Eingabe → korrekte Kategorie-Reihenfolge, Produkt-Gruppen,
-  Zwischensummen, aufsteigende Mengensortierung und stabiler Tiebreaker.
+  Zwischensummen, absteigende Mengensortierung und stabiler Tiebreaker.
 - [ ] Σ aller Produkt-`umsatzCents` entspricht der Summe der
   `umsatzProSteuersatz`-Bruttowerte derselben Kassensitzung. Diese Invariante wird
   im **Repo-Integrationstest** (`repo_test.go`, echtes Postgres, dieselben Events
