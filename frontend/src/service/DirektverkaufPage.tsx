@@ -83,11 +83,21 @@ export function DirektverkaufPage() {
             </TabsContent>
           </ServiceDock>
         ) : (
-          <>
+          // Höhenbegrenzte Flex-Spalte (Viewport minus Header und Content-
+          // Padding aus ServiceLayout); die Reiter-Höhe ergibt sich per Flex,
+          // der Split füllt via h-full den Rest und scrollt in seinen Spalten.
+          <div className="flex h-[calc(100dvh-5.5rem)] flex-col xl:h-[calc(100dvh-6.5rem)]">
             <div className="mb-4 max-w-md">{tabTrigger}</div>
-            <TabsContent value="verkaufen">{verkaufenInhalt}</TabsContent>
-            <TabsContent value="historie">{historieInhalt}</TabsContent>
-          </>
+            <TabsContent value="verkaufen" className="min-h-0 flex-1">
+              {verkaufenInhalt}
+            </TabsContent>
+            <TabsContent
+              value="historie"
+              className="min-h-0 flex-1 overflow-y-auto"
+            >
+              {historieInhalt}
+            </TabsContent>
+          </div>
         )}
       </Tabs>
       <ErfolgsPop
