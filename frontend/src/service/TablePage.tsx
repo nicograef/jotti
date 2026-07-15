@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCountUp } from '@/hooks/use-count-up'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { BackendSingleton } from '@/lib/Backend'
 import { formatCents } from '@/lib/utils'
 
@@ -56,12 +57,12 @@ function StatusBadgeInhalt({
 }
 
 // Unterer Freiraum des Tab-Inhalts in Dock-Höhe, damit die letzte Listenzeile
-// über dem fixierten ServiceDock endet und antippbar bleibt. Das Dock ist der
-// Aktionsbutton (3.5rem) plus TabsList (2.5rem) plus Innenabstände; der Freiraum
-// wächst mit env(safe-area-inset-bottom) mit.
+// über dem fixierten ServiceDock endet und antippbar bleibt. Nur im Handy-Layout
+// (unter lg) relevant; ab lg trägt die Spalte den Button selbst.
 const dockFreiraum = 'pb-[calc(9rem+env(safe-area-inset-bottom,0px))]'
 
 export function TablePage() {
+  const isMobile = useIsMobile()
   const { tischId } = useParams<{ tischId: string }>()
   const {
     state,
@@ -119,106 +120,139 @@ export function TablePage() {
   const tabsLocked = stateLoading || historieLoading
   const anzahlUnbezahlt = state.unbezahltePositionen.length
 
-  return (
-    <>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-[22px] font-semibold leading-tight">
-            {stateLoading ? 'Tisch ??' : tisch.name}
-          </h1>
-          {!stateLoading && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              <TischStatusBadge anzahlUnbezahlt={anzahlUnbezahlt} />
-              <span className="text-sm text-muted-foreground">
-                {state.fuerMichErledigt
-                  ? 'Für dich erledigt'
-                  : 'Für dich noch offen'}
-              </span>
-            </div>
-          )}
+  const kopf = (
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <h1 className="font-heading text-[22px] font-semibold leading-tight">
+          {stateLoading ? 'Tisch ??' : tisch.name}
+        </h1>
+        {!stateLoading && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <TischStatusBadge anzahlUnbezahlt={anzahlUnbezahlt} />
+            <span className="text-sm text-muted-foreground">
+              {state.fuerMichErledigt
+                ? 'Für dich erledigt'
+                : 'Für dich noch offen'}
+            </span>
+          </div>
+        )}
+      </div>
+      <div className="text-right">
+        <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground">
+          Offen
         </div>
-        <div className="text-right">
-          <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground">
-            Offen
-          </div>
-          <div
-            data-slot="tisch-saldo"
-            className="text-xl font-bold tabular-nums"
-          >
-            {stateLoading ? '?' : <>{formatCents(animierterSaldo)}&nbsp;€</>}
-          </div>
+        <div data-slot="tisch-saldo" className="text-xl font-bold tabular-nums">
+          {stateLoading ? '?' : <>{formatCents(animierterSaldo)}&nbsp;€</>}
         </div>
       </div>
-      <Tabs defaultValue="order" className="mt-4">
-        <ServiceDock
-          leiste={
-            <>
-              {tabsLocked && (
-                <p className="rounded-md border bg-background/90 px-3 py-1 text-center text-xs text-muted-foreground">
-                  Lade Tischdaten. Tabs sind kurzzeitig deaktiviert.
-                </p>
-              )}
-              <TabsList className="h-10 w-full">
-                <TabsTrigger
-                  value="order"
-                  className="flex-1"
-                  disabled={tabsLocked}
-                >
-                  Bestellen
-                </TabsTrigger>
-                <TabsTrigger
-                  value="payment"
-                  className="flex-1"
-                  disabled={tabsLocked}
-                >
-                  Kassieren
-                </TabsTrigger>
-                <TabsTrigger
-                  value="history"
-                  className="flex-1"
-                  disabled={tabsLocked}
-                >
-                  Historie
-                </TabsTrigger>
-              </TabsList>
-            </>
-          }
+    </div>
+  )
+
+  const tabsLockedHinweis = tabsLocked && (
+    <p className="rounded-md border bg-background/90 px-3 py-1 text-center text-xs text-muted-foreground">
+      Lade Tischdaten. Tabs sind kurzzeitig deaktiviert.
+    </p>
+  )
+
+  const tabsList = (
+    <TabsList className="h-10 w-full">
+      <TabsTrigger value="order" className="flex-1" disabled={tabsLocked}>
+        Bestellen
+      </TabsTrigger>
+      <TabsTrigger value="payment" className="flex-1" disabled={tabsLocked}>
+        Kassieren
+      </TabsTrigger>
+      <TabsTrigger value="history" className="flex-1" disabled={tabsLocked}>
+        Historie
+      </TabsTrigger>
+    </TabsList>
+  )
+
+  const bestellenInhalt = !stateLoading && (
+    <Bestellung
+      backend={tischBackend}
+      tisch={tisch}
+      products={produkte}
+      productsLoading={isPending}
+      onErfolg={zeigeErfolg}
+    />
+  )
+  const kassierenInhalt = !stateLoading && (
+    <Zahlung
+      backend={tischBackend}
+      tisch={tisch}
+      positionen={state.unbezahltePositionen}
+      onErfolg={zeigeErfolg}
+    />
+  )
+  const historieInhalt = !stateLoading && (
+    <TischHistorie
+      historie={historie}
+      historieLoading={historieLoading}
+      tisch={tisch}
+      backend={tischBackend}
+      onStornierungErteilt={reload}
+      onBestellungUmgebucht={reload}
+    />
+  )
+
+  return (
+    <>
+      {isMobile ? (
+        <>
+          {kopf}
+          <Tabs defaultValue="order" className="mt-4">
+            <ServiceDock
+              leiste={
+                <>
+                  {tabsLockedHinweis}
+                  {tabsList}
+                </>
+              }
+            >
+              <TabsContent value="order" className={dockFreiraum}>
+                {bestellenInhalt}
+              </TabsContent>
+              <TabsContent value="payment" className={dockFreiraum}>
+                {kassierenInhalt}
+              </TabsContent>
+              <TabsContent value="history" className={dockFreiraum}>
+                {historieInhalt}
+              </TabsContent>
+            </ServiceDock>
+          </Tabs>
+        </>
+      ) : (
+        // Höhenbegrenzte Flex-Spalte (Viewport minus Header und Content-Padding
+        // aus ServiceLayout); Kopf und Reiter-Zeile ergeben sich per Flex, der
+        // aktive Tab füllt via flex-1 den Rest und scrollt in sich bzw. seinen
+        // Spalten.
+        <Tabs
+          defaultValue="order"
+          className="flex h-[calc(100dvh-5.5rem)] flex-col xl:h-[calc(100dvh-6.5rem)]"
         >
-          <TabsContent value="order" className={dockFreiraum}>
-            {!stateLoading && (
-              <Bestellung
-                backend={tischBackend}
-                tisch={tisch}
-                products={produkte}
-                productsLoading={isPending}
-                onErfolg={zeigeErfolg}
-              />
-            )}
+          {kopf}
+          <div className="mt-4 mb-4 max-w-md space-y-1">
+            {tabsLockedHinweis}
+            {tabsList}
+          </div>
+          <TabsContent value="order" className="min-h-0 flex-1">
+            {bestellenInhalt}
           </TabsContent>
-          <TabsContent value="payment" className={dockFreiraum}>
-            {!stateLoading && (
-              <Zahlung
-                backend={tischBackend}
-                tisch={tisch}
-                positionen={state.unbezahltePositionen}
-                onErfolg={zeigeErfolg}
-              />
-            )}
+          <TabsContent
+            value="payment"
+            className="min-h-0 flex-1 overflow-y-auto"
+          >
+            {kassierenInhalt}
           </TabsContent>
-          <TabsContent value="history" className={dockFreiraum}>
-            {!stateLoading && (
-              <TischHistorie
-                historie={historie}
-                historieLoading={historieLoading}
-                tisch={tisch}
-                backend={tischBackend}
-                onStornierungErteilt={reload}
-                onBestellungUmgebucht={reload}
-              />
-            )}
+          <TabsContent
+            value="history"
+            className="min-h-0 flex-1 overflow-y-auto"
+          >
+            {historieInhalt}
           </TabsContent>
-        </ServiceDock>
-      </Tabs>
+        </Tabs>
+      )}
       <ErfolgsPop
         open={erfolg.open}
         text={erfolg.text}

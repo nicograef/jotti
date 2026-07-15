@@ -1,28 +1,13 @@
 import { useState } from 'react'
 
-import { Button } from '@/components/ui/button'
-import {
-  Drawer,
-  DrawerBody,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from '@/components/ui/drawer'
-import { Spinner } from '@/components/ui/spinner'
-import { useActionSubmit } from '@/hooks/use-action-submit'
-import { formatCents } from '@/lib/utils'
+import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
 
 import type { Produkt } from '../../product/Produkt'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
-import { KommentarField } from './CommentField'
+import { BestellungAbschluss } from './BestellungAbschluss'
 import { DockActionButton } from './DockActionButton'
 import { calculateTotalPrice, toBestellungData } from './drawerUtils'
-import { Receipt } from './Receipt'
 
 interface BestellungDrawerProps {
   backend: Pick<TischBackend, 'bestellungAufnehmen'>
@@ -32,11 +17,11 @@ interface BestellungDrawerProps {
   bestellungAufgenommen: () => void
 }
 
+// Handy-Container (unter lg): Dock-Aktionsbutton als Trigger plus
+// Bottom-Sheet-Drawer, der den gemeinsamen Abschluss-Inhalt trägt. Ab lg rendert
+// die Fläche stattdessen die feste Abschluss-Spalte (siehe Bestellung).
 export function BestellungDrawer(props: BestellungDrawerProps) {
   const [open, setOpen] = useState(false)
-  const [kommentar, setKommentar] = useState('')
-  // bestellungId pro logischem Vorgang (nicht pro Retry). Neue ID wenn Drawer öffnet.
-  const [bestellungId, setBestellungId] = useState(() => crypto.randomUUID())
   const { receiptItems, inputItems } = toBestellungData(
     props.products,
     props.mengen,
@@ -45,38 +30,8 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
   const anzahl = inputItems.reduce((sum, item) => sum + item.menge, 0)
   const noPositionenSelected = inputItems.length === 0
 
-  const { loading, run } = useActionSubmit({
-    actionLabel: 'Bestellung aufnehmen',
-    byCode: {
-      produkt_not_found:
-        'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
-    },
-    onSuccess: () => {
-      props.bestellungAufgenommen()
-      setOpen(false)
-    },
-  })
-
-  const onSubmit = async () => {
-    await run(async () => {
-      await props.backend.bestellungAufnehmen({
-        bestellungId,
-        tischId: props.tisch.id,
-        positionen: inputItems,
-        kommentar,
-      })
-    })
-  }
-
   const onOpenChange = (isOpen: boolean) => {
-    if (noPositionenSelected) {
-      setOpen(false)
-    } else {
-      if (isOpen) {
-        setBestellungId(crypto.randomUUID())
-      }
-      setOpen(isOpen)
-    }
+    setOpen(noPositionenSelected ? false : isOpen)
   }
 
   return (
@@ -89,48 +44,18 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
           disabled={noPositionenSelected}
         />
       </DrawerTrigger>
-      <DrawerContent pending={loading}>
-        <DrawerHeader className="mx-auto w-full max-w-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Bestellung für
-          </p>
-          <DrawerTitle className="text-[22px] font-semibold">
-            {props.tisch.name}
-          </DrawerTitle>
-          <DrawerDescription className="sr-only">
-            Bestellung für {props.tisch.name}
-          </DrawerDescription>
-        </DrawerHeader>
-        <DrawerBody className="mx-auto w-full max-w-sm">
-          <Receipt positionen={receiptItems} />
-          <div className="px-4">
-            <KommentarField
-              onChange={(value) => {
-                setKommentar(value)
-              }}
-            />
-          </div>
-        </DrawerBody>
-        <DrawerFooter className="mx-auto w-full max-w-sm">
-          <div className="flex justify-between border-t-2 pt-2 font-bold">
-            <div>Gesamt</div>
-            <div>{formatCents(totalPrice)}&nbsp;€</div>
-          </div>
-          <Button
-            disabled={loading}
-            onClick={() => {
-              void onSubmit()
-            }}
-          >
-            {loading ? <Spinner /> : null} Bestellung aufnehmen
-          </Button>
-          <DrawerClose asChild>
-            <Button variant="outline" disabled={loading}>
-              Abbrechen
-            </Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
+      <BestellungAbschluss
+        variant="sheet"
+        backend={props.backend}
+        tisch={props.tisch}
+        receiptItems={receiptItems}
+        positionen={inputItems}
+        totalCents={totalPrice}
+        bestellungAufgenommen={() => {
+          setOpen(false)
+          props.bestellungAufgenommen()
+        }}
+      />
     </Drawer>
   )
 }

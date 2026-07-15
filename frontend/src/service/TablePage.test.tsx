@@ -30,6 +30,13 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+// Diese Suite prüft Kopfbereich und Fehlerzustand (identisch in beiden
+// Layouts). Auf dem Handy-Pfad trägt nur der Kopf den Tischnamen; ab lg zeigt
+// ihn zusätzlich die Abschluss-Spalte — der Split selbst ist manuelle Abnahme.
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: () => true,
+}))
+
 vi.mock('@/lib/Backend', () => ({
   BackendSingleton: {},
 }))

@@ -11,6 +11,13 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+// Diese Suite prüft das Handy-Layout (Dock-Aktionsbutton); ab lg rendert
+// Bestellung die feste Abschluss-Spalte, deren Verhalten
+// BestellungAbschluss.test.tsx container-neutral abdeckt.
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: () => true,
+}))
+
 afterEach(() => {
   cleanup()
 })
