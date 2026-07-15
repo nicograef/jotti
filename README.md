@@ -77,6 +77,22 @@ RELAY_BACKEND_URL="https://jotti.meinverein.de/api" \
 
 Optionale Umgebungsvariablen: `RELAY_POLL_SECONDS` (Abfrageintervall, Standard `2`) und `RELAY_TLS_SKIP_VERIFY=1` (Zertifikatsprüfung überspringen). Ohne `RELAY_BACKEND_URL` nutzt das Relay `https://localhost/api` und überspringt die Zertifikatsprüfung automatisch (lokales, selbstsigniertes Setup); bei gültigem Zertifikat `RELAY_TLS_SKIP_VERIFY` **nicht** setzen. Bei nicht erreichbarem Drucker macht das Relay pro Zyklus genau einen kurzen Zustellversuch (TCP-Timeout 2 s) und meldet den Fehlversuch ans Backend; nach sechs gemeldeten Fehlversuchen markiert das Backend den Auftrag als `fehlgeschlagen` (im Admin unter »Druckstationen« sichtbar, dort erneut einreihbar oder verwerfbar). Noch offene Aufträge liefert das Relay mit steigendem Abstand erneut aus (Backoff 5 s, 15 s, 30 s, 60 s, 180 s). Schnelltest gegen den laufenden Stack: `curl -X POST http://localhost/api/relay/poll -H "Content-Type: application/json" -d '{"token":"<RELAY_AUTH_TOKEN>"}'` → `200` mit `auftraege` bei gültigem Token, `401` bei ungültigem.
 
+## Erster Login (Admin-Zugang)
+
+Beim ersten Start legt das Backend automatisch den Benutzer `admin` an und gibt ein einmaliges, sechsstelliges Anmelde-Passwort in seinem Log aus. Damit meldet ihr euch einmalig an und legt danach ein eigenes Passwort fest (»Neues Passwort festlegen«).
+
+Wo der Code steht, hängt vom Setup ab:
+
+- **Windows-Release:** Der Starter zeigt den Code direkt im Konsolenfenster.
+- **Server per `make prod-init`:** Der Code wird am Ende der Ausgabe angezeigt.
+- **Manuelles `docker compose` (Entwicklung/Self-Hosting):** aus dem Backend-Log lesen:
+
+  ```bash
+  docker compose logs backend | grep ADMIN-EINMALPASSWORT
+  ```
+
+Ausführliche Anleitung je nach Setup: [docs/leitfaden/installation.md](docs/leitfaden/installation.md) (Windows) und [docs/leitfaden/self-hosting.md](docs/leitfaden/self-hosting.md) (Server/VPS).
+
 ## Tech-Stack
 
 | Komponente    | Technologie                                           |
