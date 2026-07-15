@@ -479,12 +479,14 @@ Reporting ist Admin-only und wird on-demand per SQL-Aggregation über `kassenjou
 
 | Endpunkt                         | Scope                                  | Inhalt                                                                              |
 | -------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------- |
-| `POST /admin/get-live-reporting` | offene Kassensitzung (ohne Parameter)  | KPIs, offene Tische, offene Saldi, Stornierungen                                    |
-| `POST /admin/get-abrechnung`     | bestimmte Kassensitzung (`kassensitzungNr`) | `metadaten` (`eroeffnetAm`, `abgeschlossenAm`, `abgeschlossenVon`, `kassensturzDifferenzCents`), `summary`, `breakdowns` (Umsatz pro Servicekraft), `umsatzProSteuersatz`, `stornierungen` |
+| `POST /admin/get-live-reporting` | offene Kassensitzung (ohne Parameter)  | KPIs, offene Tische, offene Saldi, Stornierungen, `produktStatistik`                 |
+| `POST /admin/get-abrechnung`     | bestimmte Kassensitzung (`kassensitzungNr`) | `metadaten` (`eroeffnetAm`, `abgeschlossenAm`, `abgeschlossenVon`, `kassensturzDifferenzCents`), `summary`, `breakdowns` (Umsatz pro Servicekraft), `umsatzProSteuersatz`, `stornierungen`, `produktStatistik` |
 | `POST /admin/get-abgeschlossene-kassensitzungen` | alle abgeschlossenen Kassensitzungen | Liste `AbgeschlosseneSitzung`: `zNr`, `datum`, `bezeichnung`, `umsatzGesamtCents`, `abgeschlossenAm` (aus `tagesabschluss-erstellt:v1`) — Auswahlliste der Kassenberichte |
 | `POST /admin/get-all-tische`     | alle Tische (Stammdaten)               | Tischliste mit offenem Saldo (`TischMitSaldo`): Tisch-Stammdaten + `saldoCents` aus der `tisch_sessions`-Projektion der offenen Kassensitzung (Saldo-Anzeige, Lösch-/Deaktivier-Schutz, → [§2.2](#22-beziehungen-zwischen-kontexten)) |
 
-Beide `summary`-Sektionen enthalten die Direktverkauf-Kennzahlen `anzahlDirektverkaeufe` und `direktverkaufUmsatzCents` (netto: Verkauf minus Storno). Anforderungs-IDs (R-01–R-05) → [anforderungen.md](anforderungen.md).
+Beide `summary`-Sektionen enthalten die Direktverkauf-Kennzahlen `anzahlDirektverkaeufe` und `direktverkaufUmsatzCents` (netto: Verkauf minus Storno). Anforderungs-IDs (R-01–R-07) → [anforderungen.md](anforderungen.md).
+
+`produktStatistik` (R-05) ist in beiden Antworten identisch: die Verkäufe je Produkt und Variante der Kassensitzung, aus den eingefrorenen Fat-Event-Positionen aggregiert (kein Stammdaten-Join). Read-Model-Typen `ProduktStatistik` (Produkt mit Zwischensumme, Feld `varianten`) und `VarianteStatistik` (`varianteId`, `varianteName`, `ausgegebeneMenge`, `umsatzCents`) — zwei bewusst getrennte Zahlen: ausgegebene Menge (Bestellung − Korrektur + Direktverkauf) und Umsatz (Kassiert + Direktverkauf − Warenrücknahme/Storno). Die Anwendungsschicht gruppiert die flachen SQL-Zeilen zu Kategorie-Abschnitten (Essen → Getränke → Sonstiges) und sortiert je Kategorie nach Menge absteigend; die Umsatzsumme deckt sich mit `umsatzProSteuersatz` (dieselbe Positions-/Vorzeichenbasis).
 
 ### 7.3 Ausgabe-Ansichten
 

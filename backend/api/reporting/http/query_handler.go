@@ -39,6 +39,7 @@ type reportingResponse struct {
 	Breakdowns          breakdownsResponse         `json:"breakdowns"`
 	UmsatzProSteuersatz []umsatzSteuersatzResponse `json:"umsatzProSteuersatz"`
 	Stornierungen       []stornierungDetail        `json:"stornierungen"`
+	ProduktStatistik    []produktStatistikResponse `json:"produktStatistik"`
 }
 
 func (h *QueryHandler) GetReportingHandler() http.HandlerFunc {
@@ -101,6 +102,23 @@ type umsatzSteuersatzResponse struct {
 	BruttoCents int    `json:"bruttoCents"`
 	NettoCents  int    `json:"nettoCents"`
 	SteuerCents int    `json:"steuerCents"`
+}
+
+// varianteStatistikResponse und produktStatistikResponse tragen die gruppierte
+// Verkaufsstatistik der Response; die flachen Repo-Zeilen erscheinen nie hier.
+type varianteStatistikResponse struct {
+	VarianteID       int    `json:"varianteId"`
+	VarianteName     string `json:"varianteName"`
+	AusgegebeneMenge int    `json:"ausgegebeneMenge"`
+	UmsatzCents      int    `json:"umsatzCents"`
+}
+
+type produktStatistikResponse struct {
+	Kategorie        string                      `json:"kategorie"`
+	ProduktName      string                      `json:"produktName"`
+	AusgegebeneMenge int                         `json:"ausgegebeneMenge"`
+	UmsatzCents      int                         `json:"umsatzCents"`
+	Varianten        []varianteStatistikResponse `json:"varianten"`
 }
 
 type stornierungPosition struct {
@@ -217,6 +235,33 @@ func toStornierungDetails(details []reporting.StornierungDetail) []stornierungDe
 	return out
 }
 
+func toProduktStatistik(p reporting.ProduktStatistik) produktStatistikResponse {
+	varianten := make([]varianteStatistikResponse, len(p.Varianten))
+	for i, v := range p.Varianten {
+		varianten[i] = varianteStatistikResponse{
+			VarianteID:       v.VarianteID,
+			VarianteName:     v.VarianteName,
+			AusgegebeneMenge: v.AusgegebeneMenge,
+			UmsatzCents:      v.UmsatzCents,
+		}
+	}
+	return produktStatistikResponse{
+		Kategorie:        p.Kategorie,
+		ProduktName:      p.ProduktName,
+		AusgegebeneMenge: p.AusgegebeneMenge,
+		UmsatzCents:      p.UmsatzCents,
+		Varianten:        varianten,
+	}
+}
+
+func toProduktStatistikList(werte []reporting.ProduktStatistik) []produktStatistikResponse {
+	out := make([]produktStatistikResponse, len(werte))
+	for i := range werte {
+		out[i] = toProduktStatistik(werte[i])
+	}
+	return out
+}
+
 func toReportingResponse(d reporting.ReportingData) reportingResponse {
 	return reportingResponse{
 		KassensitzungNr: d.KassensitzungNr,
@@ -242,6 +287,7 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 		},
 		UmsatzProSteuersatz: toUmsatzSteuersatzList(d.UmsatzProSteuersatz),
 		Stornierungen:       toStornierungDetails(d.Stornierungen),
+		ProduktStatistik:    toProduktStatistikList(d.ProduktStatistik),
 	}
 }
 
@@ -356,14 +402,15 @@ type liveBreakdownsResponse struct {
 }
 
 type liveReportingResponse struct {
-	KassensitzungNr  int                    `json:"kassensitzungNr"`
-	Bezeichnung      string                 `json:"bezeichnung"`
-	Datum            string                 `json:"datum"` // Kalendertag YYYY-MM-DD
-	OffeneTische     []offenerTischResponse `json:"offeneTische"`
-	OffeneSaldiCents int                    `json:"offeneSaldiCents"`
-	Summary          liveSummaryResponse    `json:"summary"`
-	Breakdowns       liveBreakdownsResponse `json:"breakdowns"`
-	Stornierungen    []stornierungDetail    `json:"stornierungen"`
+	KassensitzungNr  int                        `json:"kassensitzungNr"`
+	Bezeichnung      string                     `json:"bezeichnung"`
+	Datum            string                     `json:"datum"` // Kalendertag YYYY-MM-DD
+	OffeneTische     []offenerTischResponse     `json:"offeneTische"`
+	OffeneSaldiCents int                        `json:"offeneSaldiCents"`
+	Summary          liveSummaryResponse        `json:"summary"`
+	Breakdowns       liveBreakdownsResponse     `json:"breakdowns"`
+	Stornierungen    []stornierungDetail        `json:"stornierungen"`
+	ProduktStatistik []produktStatistikResponse `json:"produktStatistik"`
 }
 
 func toServicekraftLive(s reporting.ServicekraftLive) servicekraftLiveResponse {
@@ -422,7 +469,8 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 			Servicekraefte:               toServicekraefteLive(d.Servicekraefte),
 			StornierungenProServicekraft: toStornierungenProServicekraft(d.Breakdowns.StornierungenProServicekraft),
 		},
-		Stornierungen: toStornierungDetails(d.Stornierungen),
+		Stornierungen:    toStornierungDetails(d.Stornierungen),
+		ProduktStatistik: toProduktStatistikList(d.ProduktStatistik),
 	}
 }
 

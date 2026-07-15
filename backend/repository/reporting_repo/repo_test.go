@@ -124,6 +124,160 @@ func korrekturData(betragCents int, kommentar string) map[string]any {
 	}
 }
 
+// produktPosition baut eine Fat-Event-Position mit den für die
+// Produkt-/Varianten-Statistik nötigen eingefrorenen Feldern (varianteId,
+// produktName, varianteName, kategorie, einzelpreisCents, menge).
+func produktPosition(varianteID int, produktName, varianteName, kategorie string, einzelpreisCents, menge int) map[string]any {
+	return map[string]any{
+		"positionId":       "p0000000-0000-0000-0000-000000000001",
+		"varianteId":       varianteID,
+		"produktName":      produktName,
+		"varianteName":     varianteName,
+		"kategorie":        kategorie,
+		"steuersatz":       "regel",
+		"einzelpreisCents": einzelpreisCents,
+		"menge":            menge,
+	}
+}
+
+// TestGetProduktStatistik_MengeUndUmsatzMitVorzeichen prüft die beiden getrennten
+// Zahlen je Variante über alle beteiligten Event-Typen: Bestellung (+Menge),
+// Korrektur (−Menge, geldneutral), Zahlung (+Umsatz), Warenrücknahme (−Umsatz,
+// menge-neutral), Direktverkauf (+Menge/+Umsatz) und Direktverkauf-Storno
+// (−Umsatz). Zugleich die Konsistenz-Invariante: Σ Produkt-Umsatz == Σ Brutto
+// der Umsatz-Positionszeilen derselben Sitzung (kein WHERE-type-Drift).
+func TestGetProduktStatistik_MengeUndUmsatzMitVorzeichen(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	userID := createUser(t, db, "Anna Müller", "anna", "active")
+	ksNr := createKassensitzung(t, db)
+
+	pommes := func(menge int) map[string]any {
+		return produktPosition(10, "Pommes", "groß", "essen", 300, menge)
+	}
+	cola := func(menge int) map[string]any {
+		return produktPosition(20, "Cola", "0,5 l", "getraenk", 250, menge)
+	}
+
+	// Pommes groß: bestellt 5, korrigiert 1 (geldneutral), kassiert 4, 1 zurückgenommen.
+	insertEvent(t, db, userID, "anna", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 1, map[string]any{
+		"bestellungId": "b1", "gesamtPreisCents": 1500, "positionen": []map[string]any{pommes(5)},
+	}, ksNr)
+	insertEvent(t, db, userID, "anna", "bestellung-korrigiert:v1", "kassensitzung-1/tisch-1", 2, map[string]any{
+		"korrekturId": "k1", "gesamtCents": 300, "kommentar": "eine zu viel", "positionen": []map[string]any{pommes(1)},
+	}, ksNr)
+	insertEvent(t, db, userID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 3, map[string]any{
+		"zahlungId": "z1", "gesamtZahlungCents": 1200, "kommentar": "", "positionen": []map[string]any{pommes(4)},
+	}, ksNr)
+	insertEvent(t, db, userID, "anna", "stornierung-erteilt:v1", "kassensitzung-1/tisch-1", 4, map[string]any{
+		"stornierungId": "s1", "zahlungId": "z1", "gesamtStornierungCents": 300, "kommentar": "Warenrücknahme", "positionen": []map[string]any{pommes(1)},
+	}, ksNr)
+
+	// Cola 0,5 l: Direktverkauf 3, davon 1 storniert (Umsatz-mindernd, menge-neutral).
+	insertEvent(t, db, userID, "anna", "direktverkauf-getaetigt:v1", "kassensitzung-1/direktverkauf-d1", 5, map[string]any{
+		"verkaufId": "d1", "gesamtbetragCents": 750, "positionen": []map[string]any{cola(3)},
+	}, ksNr)
+	insertEvent(t, db, userID, "anna", "direktverkauf-storniert:v1", "kassensitzung-1/direktverkauf-d1", 6, map[string]any{
+		"stornierungId": "ds1", "verkaufId": "d1", "gesamtStornierungCents": 250, "kommentar": "Fehlbuchung", "positionen": []map[string]any{cola(1)},
+	}, ksNr)
+
+	zeilen, err := repo.GetProduktStatistik(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetProduktStatistik failed: %v", err)
+	}
+
+	byVariante := map[int]reporting.ProduktStatistikZeile{}
+	for _, z := range zeilen {
+		byVariante[z.VarianteID] = z
+	}
+	if len(zeilen) != 2 {
+		t.Fatalf("expected 2 variant rows, got %d: %+v", len(zeilen), zeilen)
+	}
+
+	// Pommes: ausgegebene Menge 5 − 1 = 4; Umsatz 1200 − 300 = 900.
+	pommesZeile := byVariante[10]
+	if pommesZeile.ProduktName != "Pommes" || pommesZeile.VarianteName != "groß" || pommesZeile.Kategorie != "essen" {
+		t.Errorf("unexpected Pommes identity: %+v", pommesZeile)
+	}
+	if pommesZeile.AusgegebeneMenge != 4 {
+		t.Errorf("expected Pommes menge 4 (5 bestellt − 1 korrigiert), got %d", pommesZeile.AusgegebeneMenge)
+	}
+	if pommesZeile.UmsatzCents != 900 {
+		t.Errorf("expected Pommes umsatz 900 (1200 kassiert − 300 Warenrücknahme), got %d", pommesZeile.UmsatzCents)
+	}
+
+	// Cola: Direktverkauf-Storno mindert nur den Umsatz, nicht die Menge.
+	colaZeile := byVariante[20]
+	if colaZeile.AusgegebeneMenge != 3 {
+		t.Errorf("expected Cola menge 3 (Direktverkauf, Storno menge-neutral), got %d", colaZeile.AusgegebeneMenge)
+	}
+	if colaZeile.UmsatzCents != 500 {
+		t.Errorf("expected Cola umsatz 500 (750 Direktverkauf − 250 Storno), got %d", colaZeile.UmsatzCents)
+	}
+
+	// Konsistenz-Invariante: Σ Produkt-Umsatz == Σ Brutto der Umsatz-Positionszeilen
+	// derselben Sitzung — dieselbe WHERE-type-/Vorzeichenbasis, kein Drift.
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+	summeZeilenBrutto := 0
+	for _, z := range data.UmsatzProSteuersatz {
+		summeZeilenBrutto += z.BruttoCents
+	}
+	summeProduktUmsatz := 0
+	for _, z := range zeilen {
+		summeProduktUmsatz += z.UmsatzCents
+	}
+	if summeProduktUmsatz != summeZeilenBrutto {
+		t.Errorf("Σ Produkt-Umsatz %d != Σ Positionszeilen-Brutto %d (WHERE-type-Drift)", summeProduktUmsatz, summeZeilenBrutto)
+	}
+}
+
+// TestGetProduktStatistik_UmbuchungZaehltNicht stellt sicher, dass
+// bestellung-umgebucht:v1 weder Menge noch Umsatz verändert (die Positionen sind
+// bereits bei der Bestellung erfasst).
+func TestGetProduktStatistik_UmbuchungZaehltNicht(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	userID := createUser(t, db, "Anna Müller", "anna", "active")
+	ksNr := createKassensitzung(t, db)
+
+	pos := produktPosition(10, "Pommes", "groß", "essen", 300, 2)
+	insertEvent(t, db, userID, "anna", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 1, map[string]any{
+		"bestellungId": "b1", "gesamtPreisCents": 600, "positionen": []map[string]any{pos},
+	}, ksNr)
+	insertEvent(t, db, userID, "anna", "bestellung-umgebucht:v1", "kassensitzung-1/tisch-3", 2, map[string]any{
+		"umbuchungId": "u1", "quellTischId": 1, "zielTischId": 3, "gesamtCents": 600, "kommentar": "", "positionen": []map[string]any{pos},
+	}, ksNr)
+
+	zeilen, err := repo.GetProduktStatistik(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetProduktStatistik failed: %v", err)
+	}
+	if len(zeilen) != 1 {
+		t.Fatalf("expected 1 variant row, got %d: %+v", len(zeilen), zeilen)
+	}
+	if zeilen[0].AusgegebeneMenge != 2 {
+		t.Errorf("expected menge 2 (Umbuchung zählt nicht), got %d", zeilen[0].AusgegebeneMenge)
+	}
+	if zeilen[0].UmsatzCents != 0 {
+		t.Errorf("expected umsatz 0 (nur Bestellung, keine Zahlung), got %d", zeilen[0].UmsatzCents)
+	}
+}
+
 // TestGetReporting_ResolvesKlarnameIncludingSoftDeleted verifies that the live LEFT JOIN
 // resolves the current Klarname for both active and soft-deleted users, while the frozen
 // username stays the maßgebliche identity in the event rows.

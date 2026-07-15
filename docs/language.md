@@ -349,12 +349,15 @@ Reporting-Daten werden on-demand per SQL-Aggregation aus dem Kassenjournal berec
 
 | Begriff             | Bedeutung                                                                                                  |
 | ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| ReportingData       | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen                |
+| ReportingData       | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen + ProduktStatistik |
 | Summary             | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen)                |
 | Breakdowns          | Aufschlüsselung des Umsatzes: `UmsatzProServicekraft []UmsatzServicekraft`                                 |
 | UmsatzServicekraft  | Umsatz einer einzelnen Servicekraft (Zahlungen, Anzahl)                                                    |
 | StornierungDetail   | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, Benutzer, Betrag, Kommentar, Positionen); `barRueckgabe` markiert die kassenwirksame Warenrücknahme gegenüber der geldneutralen Korrektur |
 | StornierungPosition | Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis)                |
+| ProduktStatistik    | Verkäufe eines Produkts einer Kassensitzung, gruppiert nach Kategorie, mit Zwischensumme über `Varianten []VarianteStatistik` (ausgegebene Menge und Umsatz). Teil von `ReportingData` und `LiveReportingData` (`produktStatistik`) |
+| VarianteStatistik   | Verkaufs-Kennzahl einer Variante: `varianteId`, `varianteName`, `ausgegebeneMenge` (Bestellung − Korrektur + Direktverkauf) und `umsatzCents` (Kassiert + Direktverkauf − Warenrücknahme/Storno) — zwei bewusst getrennte Grundlagen |
+| ProduktStatistikZeile | Flache Repo-Ausgabezeile je Variante (SQL `GetProduktStatistik`), Eingabe der Gruppierung; erscheint nie in einer Response                                 |
 
 ---
 

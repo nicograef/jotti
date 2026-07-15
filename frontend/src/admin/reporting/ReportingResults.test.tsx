@@ -64,6 +64,42 @@ const reportingResult: ReportingData = {
       positionen: [],
     },
   ],
+  produktStatistik: [
+    {
+      kategorie: 'essen',
+      produktName: 'Pommes',
+      ausgegebeneMenge: 9,
+      umsatzCents: 2500,
+      varianten: [
+        {
+          varianteId: 10,
+          varianteName: 'groß',
+          ausgegebeneMenge: 5,
+          umsatzCents: 1500,
+        },
+        {
+          varianteId: 11,
+          varianteName: 'klein',
+          ausgegebeneMenge: 4,
+          umsatzCents: 1000,
+        },
+      ],
+    },
+    {
+      kategorie: 'getraenk',
+      produktName: 'Cola',
+      ausgegebeneMenge: 3,
+      umsatzCents: 900,
+      varianten: [
+        {
+          varianteId: 20,
+          varianteName: '0,5 l',
+          ausgegebeneMenge: 3,
+          umsatzCents: 900,
+        },
+      ],
+    },
+  ],
 }
 
 const sitzung: AbgeschlosseneSitzung = {
@@ -134,6 +170,45 @@ describe('ReportingResults', () => {
     expect(screen.getByText('67,89 €')).toBeInTheDocument()
     // Storno-Marker an der Servicekraft-Zeile.
     expect(screen.getByText('1 Storno')).toBeInTheDocument()
+  })
+
+  it('zeigt den Abschnitt „Verkäufe pro Produkt" mit Kategorien, Zwischensumme und Ein-Varianten-Zeile', () => {
+    render(
+      <ReportingResults
+        result={reportingResult}
+        sitzung={sitzung}
+        loading={false}
+      />,
+    )
+
+    expect(screen.getByText('Verkäufe pro Produkt')).toBeInTheDocument()
+    // Kategorie-Überschriften.
+    expect(screen.getByText('Essen')).toBeInTheDocument()
+    expect(screen.getByText('Getränke')).toBeInTheDocument()
+    // Mehr-Varianten-Produkt: Produktzeile plus zwei Variantenzeilen.
+    expect(screen.getByText('Pommes')).toBeInTheDocument()
+    expect(screen.getByText('groß')).toBeInTheDocument()
+    expect(screen.getByText('klein')).toBeInTheDocument()
+    // Ein-Varianten-Produkt zu einer Zeile zusammengefasst (produktName ==
+    // varianteName erscheint genau einmal).
+    expect(screen.getByText('Cola 0,5 l')).toBeInTheDocument()
+    // Spaltenüberschriften und ein Umsatzwert.
+    expect(screen.getByText('Ausgegeben')).toBeInTheDocument()
+    expect(screen.getByText('25,00 €')).toBeInTheDocument()
+  })
+
+  it('zeigt einen leeren Zustand ohne Verkäufe', () => {
+    render(
+      <ReportingResults
+        result={{ ...reportingResult, produktStatistik: [] }}
+        sitzung={sitzung}
+        loading={false}
+      />,
+    )
+
+    expect(
+      screen.getByText('Keine Verkäufe in dieser Kassensitzung.'),
+    ).toBeInTheDocument()
   })
 
   it('druckt beim Klick auf Drucken über window.print', async () => {

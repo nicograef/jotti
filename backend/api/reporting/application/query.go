@@ -6,6 +6,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/domain/tisch"
@@ -18,6 +19,7 @@ type reportingRepo interface {
 	GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error)
 	GetEigeneUebersicht(ctx context.Context, userID int, kassensitzungNr int) (reporting.EigeneUebersicht, error)
 	GetLiveReporting(ctx context.Context, kassensitzungNr int) (reporting.LiveReportingData, error)
+	GetProduktStatistik(ctx context.Context, kassensitzungNr int) ([]reporting.ProduktStatistikZeile, error)
 }
 
 type kassensitzungenRepo interface {
@@ -52,6 +54,13 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 
 	data.UmsatzProSteuersatz = computeUmsatzProSteuersatz(data.UmsatzProSteuersatz)
 	data.Breakdowns.StornierungenProServicekraft = aggregateStornierungenProServicekraft(data.Stornierungen)
+
+	zeilen, err := q.ReportingRepo.GetProduktStatistik(ctx, kassensitzungNr)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get produkt statistik")
+		return reporting.ReportingData{}, ErrDatabase
+	}
+	data.ProduktStatistik = gruppiereProduktStatistik(zeilen)
 
 	log.Info().Msg("Retrieved reporting")
 	return data, nil
@@ -144,6 +153,87 @@ func computeUmsatzProSteuersatz(bruttoZeilen []reporting.UmsatzSteuersatz) []rep
 	return out
 }
 
+// kategorieRang legt die feste Reihenfolge der Kategorie-Abschnitte fest:
+// Essen → Getränke → Sonstiges. Unbekannte Kategorien (theoretischer Randfall)
+// sortieren dahinter und werden untereinander alphabetisch geordnet.
+func kategorieRang(kategorie string) int {
+	switch kategorie {
+	case string(produkt.EssenKategorie):
+		return 0
+	case string(produkt.GetraenkKategorie):
+		return 1
+	case string(produkt.SonstigesKategorie):
+		return 2
+	default:
+		return 3
+	}
+}
+
+// gruppiereProduktStatistik baut aus den flachen Varianten-Zeilen die
+// Produkt-Hierarchie für den Report: je Produkt eine Gruppe mit Zwischensumme
+// über ihre Varianten, in Kategorie-Abschnitte gegliedert. Sortierung:
+// Kategorien fest (Essen → Getränke → Sonstiges), Produkte je Kategorie und
+// Varianten je Produkt nach ausgegebener Menge absteigend, Name als stabiler
+// Tiebreaker. Reine Funktion — das Backend liefert die Liste fertig sortiert,
+// die Ein-Varianten-Zusammenfassung bleibt reine Präsentation im Frontend.
+func gruppiereProduktStatistik(zeilen []reporting.ProduktStatistikZeile) []reporting.ProduktStatistik {
+	// Produkte per (Kategorie, ProduktName) sammeln; ein Produkt liegt je Sitzung
+	// in genau einer Kategorie, der Produktname ist innerhalb der Sitzung eindeutig.
+	type produktKey struct {
+		kategorie   string
+		produktName string
+	}
+	indexByKey := make(map[produktKey]int, len(zeilen))
+	produkte := []reporting.ProduktStatistik{}
+	for _, z := range zeilen {
+		key := produktKey{kategorie: z.Kategorie, produktName: z.ProduktName}
+		idx, ok := indexByKey[key]
+		if !ok {
+			idx = len(produkte)
+			indexByKey[key] = idx
+			produkte = append(produkte, reporting.ProduktStatistik{
+				Kategorie:   z.Kategorie,
+				ProduktName: z.ProduktName,
+				Varianten:   []reporting.VarianteStatistik{},
+			})
+		}
+		produkte[idx].Varianten = append(produkte[idx].Varianten, reporting.VarianteStatistik{
+			VarianteID:       z.VarianteID,
+			VarianteName:     z.VarianteName,
+			AusgegebeneMenge: z.AusgegebeneMenge,
+			UmsatzCents:      z.UmsatzCents,
+		})
+		produkte[idx].AusgegebeneMenge += z.AusgegebeneMenge
+		produkte[idx].UmsatzCents += z.UmsatzCents
+	}
+
+	for i := range produkte {
+		varianten := produkte[i].Varianten
+		sort.SliceStable(varianten, func(a, b int) bool {
+			if varianten[a].AusgegebeneMenge != varianten[b].AusgegebeneMenge {
+				return varianten[a].AusgegebeneMenge > varianten[b].AusgegebeneMenge
+			}
+			return varianten[a].VarianteName < varianten[b].VarianteName
+		})
+	}
+
+	sort.SliceStable(produkte, func(a, b int) bool {
+		rangA, rangB := kategorieRang(produkte[a].Kategorie), kategorieRang(produkte[b].Kategorie)
+		if rangA != rangB {
+			return rangA < rangB
+		}
+		if produkte[a].Kategorie != produkte[b].Kategorie {
+			return produkte[a].Kategorie < produkte[b].Kategorie
+		}
+		if produkte[a].AusgegebeneMenge != produkte[b].AusgegebeneMenge {
+			return produkte[a].AusgegebeneMenge > produkte[b].AusgegebeneMenge
+		}
+		return produkte[a].ProduktName < produkte[b].ProduktName
+	})
+
+	return produkte
+}
+
 func (q Query) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]reporting.AbgeschlosseneSitzung, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -215,6 +305,13 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 
 	data.Servicekraefte = mergeServicekraefteLive(data.Breakdowns.UmsatzProServicekraft, sessions, nameByTischID)
 	data.Breakdowns.StornierungenProServicekraft = aggregateStornierungenProServicekraft(data.Stornierungen)
+
+	zeilen, err := q.ReportingRepo.GetProduktStatistik(ctx, ks.ZNr)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get produkt statistik for live reporting")
+		return nil, ErrDatabase
+	}
+	data.ProduktStatistik = gruppiereProduktStatistik(zeilen)
 
 	log.Info().Msg("Retrieved live reporting")
 	return &data, nil

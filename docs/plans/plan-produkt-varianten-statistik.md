@@ -201,33 +201,33 @@ Teil des Z-Bons.
 
 ### Acceptance criteria
 
-- [ ] Für eine Kassensitzung mit Bestellungen, Korrekturen, Zahlungen,
+- [x] Für eine Kassensitzung mit Bestellungen, Korrekturen, Zahlungen,
   Warenrücknahmen, Direktverkäufen und Direktverkauf-Stornos liefert die Auswertung
   je Variante die korrekte ausgegebene Menge (Bestellung − Korrektur +
   Direktverkauf) und den korrekten Umsatz (Kassiert + Direktverkauf − Storno);
   Umbuchungen verändern beide Zahlen nicht.
-- [ ] Warenrücknahme/Direktverkauf-Storno mindern nur den Umsatz, nicht die Menge;
+- [x] Warenrücknahme/Direktverkauf-Storno mindern nur den Umsatz, nicht die Menge;
   eine geldneutrale Korrektur mindert nur die Menge, nicht den Umsatz.
-- [ ] Die Ausgabe ist in Kategorie-Abschnitte (Essen → Getränke → Sonstiges)
+- [x] Die Ausgabe ist in Kategorie-Abschnitte (Essen → Getränke → Sonstiges)
   gegliedert; je Produkt gibt es eine Zwischensumme über seine Varianten; Produkte
   und Varianten sind nach ausgegebener Menge absteigend sortiert (Name-Tiebreaker).
-- [ ] `gruppiereProduktStatistik` ist als reine Funktion isoliert unit-getestet
+- [x] `gruppiereProduktStatistik` ist als reine Funktion isoliert unit-getestet
   (`query_test.go`, Muster `computeUmsatzProSteuersatz`): flache
   `ProduktStatistikZeile`-Eingabe → korrekte Kategorie-Reihenfolge, Produkt-Gruppen,
   Zwischensummen, absteigende Mengensortierung und stabiler Tiebreaker.
-- [ ] Σ aller Produkt-`umsatzCents` entspricht der Summe der
+- [x] Σ aller Produkt-`umsatzCents` entspricht der Summe der
   `umsatzProSteuersatz`-Bruttowerte derselben Kassensitzung. Diese Invariante wird
   im **Repo-Integrationstest** (`repo_test.go`, echtes Postgres, dieselben Events
   speisen `GetProduktStatistik` und `GetUmsatzPositionszeilen`) geprüft — dort, wo
   ein Drift der `WHERE type IN (…)`-Mengen real auffällt; ein
   Anwendungs-Unit-Test mit handgebauten Eingaben kann diesen SQL-Drift nicht fangen.
-- [ ] `admin/get-abrechnung` liefert das Feld `produktStatistik` mit
+- [x] `admin/get-abrechnung` liefert das Feld `produktStatistik` mit
   verschachtelten `varianten`; das Frontend validiert es per Zod ohne Fehler.
-- [ ] `ReportingResults.tsx` zeigt den Abschnitt „Verkäufe pro Produkt" mit
+- [x] `ReportingResults.tsx` zeigt den Abschnitt „Verkäufe pro Produkt" mit
   Kategorie-Überschriften, Zwischensummen, den Spalten „Ausgegeben"/„Umsatz", dem
   erklärenden Hinweis und einem leeren Zustand bei einer Sitzung ohne Verkäufe;
   Ein-Varianten-Produkte erscheinen als eine Zeile.
-- [ ] `make sqlc`, `make lint` und die betroffenen Backend- und Frontend-Tests
+- [x] `make sqlc`, `make lint` und die betroffenen Backend- und Frontend-Tests
   laufen grün; `sqlc/dbgen/` wurde nicht von Hand editiert.
 
 ---
@@ -264,16 +264,16 @@ sodass die Statistik der offenen Kassensitzung in Echtzeit erscheint.
 
 ### Acceptance criteria
 
-- [ ] `admin/get-live-reporting` liefert für die offene Kassensitzung das Feld
+- [x] `admin/get-live-reporting` liefert für die offene Kassensitzung das Feld
   `produktStatistik` mit identischer Struktur und identischen Zahlen-Regeln wie die
   Abrechnung (dieselbe Gruppierungs-/Sortierfunktion, keine Duplikat-Logik).
-- [ ] Das Live-Dashboard zeigt den Abschnitt „Verkäufe pro Produkt" mit denselben
+- [x] Das Live-Dashboard zeigt den Abschnitt „Verkäufe pro Produkt" mit denselben
   Kategorie-Abschnitten, Zwischensummen und Spalten wie die Abrechnung; ein leerer
   Zustand erscheint, solange noch keine Verkäufe vorliegen.
-- [ ] In einer offenen Sitzung mit noch unbezahlten Bestellungen erscheint die
+- [x] In einer offenen Sitzung mit noch unbezahlten Bestellungen erscheint die
   ausgegebene Menge > 0 bei Umsatz 0 (bestellt/rausgegeben, aber noch nicht
   kassiert) — konsistent mit den Kennzahl-Regeln.
-- [ ] `make lint` und die betroffenen Backend-/Frontend-Tests laufen grün.
+- [x] `make lint` und die betroffenen Backend-/Frontend-Tests laufen grün.
 
 ---
 
@@ -301,11 +301,11 @@ Endpunkt-Beschreibung von `docs/handbuch.md` §7.2 sowie in der Begriffsliste vo
 
 ### Acceptance criteria
 
-- [ ] R-05 steht nicht mehr in der Roadmap, sondern als umgesetzte Anforderung im
+- [x] R-05 steht nicht mehr in der Roadmap, sondern als umgesetzte Anforderung im
   Reporting-Funktionsumfang von `docs/anforderungen.md`.
-- [ ] `docs/handbuch.md` §7.2 nennt `produktStatistik` als Bestandteil der
+- [x] `docs/handbuch.md` §7.2 nennt `produktStatistik` als Bestandteil der
   `get-abrechnung`- und `get-live-reporting`-Antwort und führt die neuen
   Read-Model-Typen in der Übersicht.
-- [ ] `docs/language.md` enthält Einträge für `ProduktStatistik` und
+- [x] `docs/language.md` enthält Einträge für `ProduktStatistik` und
   `VarianteStatistik`.
-- [ ] Keine toten Verweise; Begriffe konsistent mit den im Code verwendeten Namen.
+- [x] Keine toten Verweise; Begriffe konsistent mit den im Code verwendeten Namen.

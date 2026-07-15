@@ -18,6 +18,7 @@ type mockReportingRepo struct {
 	data             reporting.ReportingData
 	liveData         reporting.LiveReportingData
 	eigeneUebersicht reporting.EigeneUebersicht
+	produktStatistik []reporting.ProduktStatistikZeile
 	err              error
 }
 
@@ -31,6 +32,10 @@ func (m mockReportingRepo) GetEigeneUebersicht(_ context.Context, _ int, _ int) 
 
 func (m mockReportingRepo) GetLiveReporting(_ context.Context, _ int) (reporting.LiveReportingData, error) {
 	return m.liveData, m.err
+}
+
+func (m mockReportingRepo) GetProduktStatistik(_ context.Context, _ int) ([]reporting.ProduktStatistikZeile, error) {
+	return m.produktStatistik, m.err
 }
 
 type mockTischSessionRepo struct {
@@ -236,6 +241,115 @@ func assertStornoAggregat(t *testing.T, agg []reporting.StornierungServicekraft,
 	}
 	if summeCents != summary.GesamtStornierungenCents {
 		t.Errorf("Summe StornierungenCents %d != Summary %d", summeCents, summary.GesamtStornierungenCents)
+	}
+}
+
+func TestGruppiereProduktStatistik_GruppiertSortiertUndSummiert(t *testing.T) {
+	// Bewusst unsortierte, kategorieübergreifende Eingabe: Sonstiges vor Essen,
+	// Varianten und Produkte in wechselnder Mengen-Reihenfolge.
+	zeilen := []reporting.ProduktStatistikZeile{
+		{Kategorie: "sonstiges", ProduktName: "Los", VarianteID: 90, VarianteName: "Los", AusgegebeneMenge: 4, UmsatzCents: 400},
+		{Kategorie: "getraenk", ProduktName: "Cola", VarianteID: 20, VarianteName: "0,5 l", AusgegebeneMenge: 3, UmsatzCents: 900},
+		{Kategorie: "getraenk", ProduktName: "Cola", VarianteID: 21, VarianteName: "0,3 l", AusgegebeneMenge: 10, UmsatzCents: 2000},
+		{Kategorie: "essen", ProduktName: "Pommes", VarianteID: 10, VarianteName: "groß", AusgegebeneMenge: 5, UmsatzCents: 1500},
+		{Kategorie: "essen", ProduktName: "Pommes", VarianteID: 11, VarianteName: "klein", AusgegebeneMenge: 5, UmsatzCents: 1000},
+		{Kategorie: "essen", ProduktName: "Wurst", VarianteID: 12, VarianteName: "Wurst", AusgegebeneMenge: 8, UmsatzCents: 2400},
+	}
+
+	produkte := gruppiereProduktStatistik(zeilen)
+
+	// Kategorie-Reihenfolge fest Essen → Getränke → Sonstiges; innerhalb Essen
+	// Wurst (8) vor Pommes (10 gesamt)? Nein: Pommes hat 5+5=10 > Wurst 8.
+	if len(produkte) != 4 {
+		t.Fatalf("expected 4 produkte, got %d: %+v", len(produkte), produkte)
+	}
+
+	// Essen zuerst; Pommes (Menge 10) vor Wurst (Menge 8).
+	if produkte[0].Kategorie != "essen" || produkte[0].ProduktName != "Pommes" {
+		t.Fatalf("expected Pommes first in Essen, got %+v", produkte[0])
+	}
+	if produkte[0].AusgegebeneMenge != 10 || produkte[0].UmsatzCents != 2500 {
+		t.Errorf("expected Pommes subtotal menge 10 / umsatz 2500, got %d / %d", produkte[0].AusgegebeneMenge, produkte[0].UmsatzCents)
+	}
+	// Varianten je Produkt nach Menge absteigend, Name als Tiebreaker bei
+	// Gleichstand (groß vor klein: beide 5).
+	if len(produkte[0].Varianten) != 2 || produkte[0].Varianten[0].VarianteName != "groß" || produkte[0].Varianten[1].VarianteName != "klein" {
+		t.Errorf("expected Pommes-Varianten groß, klein (Name-Tiebreaker), got %+v", produkte[0].Varianten)
+	}
+
+	if produkte[1].Kategorie != "essen" || produkte[1].ProduktName != "Wurst" {
+		t.Errorf("expected Wurst second in Essen, got %+v", produkte[1])
+	}
+
+	// Getränke nach Essen; Cola-Varianten 0,3 l (10) vor 0,5 l (3).
+	if produkte[2].Kategorie != "getraenk" || produkte[2].ProduktName != "Cola" {
+		t.Fatalf("expected Cola in Getränke, got %+v", produkte[2])
+	}
+	if produkte[2].AusgegebeneMenge != 13 || produkte[2].UmsatzCents != 2900 {
+		t.Errorf("expected Cola subtotal menge 13 / umsatz 2900, got %d / %d", produkte[2].AusgegebeneMenge, produkte[2].UmsatzCents)
+	}
+	if produkte[2].Varianten[0].VarianteName != "0,3 l" || produkte[2].Varianten[1].VarianteName != "0,5 l" {
+		t.Errorf("expected Cola-Varianten 0,3 l vor 0,5 l (Menge absteigend), got %+v", produkte[2].Varianten)
+	}
+
+	// Sonstiges zuletzt; Ein-Varianten-Produkt behält genau eine Variante.
+	if produkte[3].Kategorie != "sonstiges" || produkte[3].ProduktName != "Los" || len(produkte[3].Varianten) != 1 {
+		t.Errorf("expected Los as single-variant Sonstiges product, got %+v", produkte[3])
+	}
+}
+
+func TestGruppiereProduktStatistik_LeereEingabe(t *testing.T) {
+	produkte := gruppiereProduktStatistik(nil)
+	if produkte == nil {
+		t.Fatal("expected non-nil empty slice for empty input")
+	}
+	if len(produkte) != 0 {
+		t.Errorf("expected empty result, got %+v", produkte)
+	}
+}
+
+func TestGetReporting_ReichtProduktStatistikDurch(t *testing.T) {
+	zeilen := []reporting.ProduktStatistikZeile{
+		{Kategorie: "essen", ProduktName: "Pommes", VarianteID: 10, VarianteName: "groß", AusgegebeneMenge: 5, UmsatzCents: 1500},
+	}
+	q := Query{
+		ReportingRepo:       mockReportingRepo{produktStatistik: zeilen},
+		KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr},
+	}
+
+	result, err := q.GetReporting(context.Background(), testKassensitzungNr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(result.ProduktStatistik) != 1 || result.ProduktStatistik[0].ProduktName != "Pommes" {
+		t.Fatalf("expected ProduktStatistik with Pommes, got %+v", result.ProduktStatistik)
+	}
+	if result.ProduktStatistik[0].AusgegebeneMenge != 5 || result.ProduktStatistik[0].UmsatzCents != 1500 {
+		t.Errorf("expected Pommes subtotal 5 / 1500, got %+v", result.ProduktStatistik[0])
+	}
+}
+
+func TestGetLiveReporting_ReichtProduktStatistikDurch(t *testing.T) {
+	ks := &kasse.Kassensitzung{ZNr: testKassensitzungNr, Status: kasse.KassensitzungOffen}
+	zeilen := []reporting.ProduktStatistikZeile{
+		{Kategorie: "getraenk", ProduktName: "Cola", VarianteID: 20, VarianteName: "0,5 l", AusgegebeneMenge: 3, UmsatzCents: 900},
+	}
+	q := Query{
+		ReportingRepo:       mockReportingRepo{produktStatistik: zeilen},
+		KassensitzungenRepo: mockKasseRepo{kassensitzung: ks},
+		TischSessionRepo:    mockTischSessionRepo{},
+		TischRepo:           mockTischRepo{},
+	}
+
+	result, err := q.GetLiveReporting(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+	if len(result.ProduktStatistik) != 1 || result.ProduktStatistik[0].ProduktName != "Cola" {
+		t.Fatalf("expected ProduktStatistik with Cola, got %+v", result.ProduktStatistik)
 	}
 }
 

@@ -282,6 +282,31 @@ func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungD
 	return stornierungen, nil
 }
 
+// GetProduktStatistik liefert die flachen Verkaufszeilen je Variante einer
+// Kassensitzung (ausgegebene Menge und Umsatz); die Gruppierung/Sortierung zu
+// Kategorie-Abschnitten übernimmt die Anwendungsschicht. Bewusst als eigene
+// Methode statt in der GetReporting-errgroup, damit derselbe Code den
+// Abrechnungs- und den Live-Pfad speist.
+func (r Repository) GetProduktStatistik(ctx context.Context, kassensitzungNr int) ([]reporting.ProduktStatistikZeile, error) {
+	rows, err := r.q.GetProduktStatistik(ctx, kassensitzungNr)
+	if err != nil {
+		return nil, err
+	}
+
+	zeilen := make([]reporting.ProduktStatistikZeile, len(rows))
+	for i, row := range rows {
+		zeilen[i] = reporting.ProduktStatistikZeile{
+			Kategorie:        row.Kategorie,
+			ProduktName:      row.ProduktName,
+			VarianteID:       row.VarianteID,
+			VarianteName:     row.VarianteName,
+			AusgegebeneMenge: row.AusgegebeneMenge,
+			UmsatzCents:      row.UmsatzCents,
+		}
+	}
+	return zeilen, nil
+}
+
 func (r Repository) GetEigeneUebersicht(ctx context.Context, userID int, kassensitzungNr int) (reporting.EigeneUebersicht, error) {
 	row, err := r.q.GetEigeneUebersicht(ctx, dbgen.GetEigeneUebersichtParams{
 		UserID:          userID,

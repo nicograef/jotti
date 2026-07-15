@@ -62,6 +62,28 @@ export const UmsatzSteuersatzSchema = z.object({
 })
 export type UmsatzSteuersatz = z.infer<typeof UmsatzSteuersatzSchema>
 
+// VarianteStatistik: Verkaufs-Kennzahl einer Variante — ausgegebene Menge
+// (Produktion) und Umsatz (Einnahmen), bewusst getrennte Grundlagen.
+export const VarianteStatistikSchema = z.object({
+  varianteId: z.number().int(),
+  varianteName: z.string(),
+  ausgegebeneMenge: z.number().int(),
+  umsatzCents: z.number().int(),
+})
+export type VarianteStatistik = z.infer<typeof VarianteStatistikSchema>
+
+// ProduktStatistik: ein Produkt mit Zwischensumme über seine Varianten,
+// eingeordnet in eine Kategorie (essen/getraenk/sonstiges). Vom Backend fertig
+// gruppiert und sortiert geliefert; Ein-Varianten-Produkte tragen eine Variante.
+export const ProduktStatistikSchema = z.object({
+  kategorie: z.string(),
+  produktName: z.string(),
+  ausgegebeneMenge: z.number().int(),
+  umsatzCents: z.number().int(),
+  varianten: z.array(VarianteStatistikSchema),
+})
+export type ProduktStatistik = z.infer<typeof ProduktStatistikSchema>
+
 // AbgeschlosseneSitzung ist ein Eintrag der Kassenberichte-Sitzungsliste: die
 // abgeschlossene Kassensitzung mit Gesamtumsatz und Abschlusszeitpunkt aus dem
 // Tagesabschluss-Event. Status entfällt (alle Einträge sind abgeschlossen).
@@ -126,6 +148,7 @@ export const LiveReportingDataSchema = z.object({
     stornierungenProServicekraft: z.array(StornierungServicekraftSchema),
   }),
   stornierungen: z.array(StornierungDetailSchema),
+  produktStatistik: z.array(ProduktStatistikSchema),
 })
 export type LiveReportingData = z.infer<typeof LiveReportingDataSchema>
 
@@ -139,5 +162,6 @@ export const ReportingDataSchema = z.object({
   }),
   umsatzProSteuersatz: z.array(UmsatzSteuersatzSchema),
   stornierungen: z.array(StornierungDetailSchema),
+  produktStatistik: z.array(ProduktStatistikSchema),
 })
 export type ReportingData = z.infer<typeof ReportingDataSchema>

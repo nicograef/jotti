@@ -159,6 +159,92 @@ func (q *Queries) GetOffeneTischeDetails(ctx context.Context, kassensitzungNr in
 	return items, nil
 }
 
+const getProduktStatistik = `-- name: GetProduktStatistik :many
+SELECT
+    (position->>'kategorie')::text AS kategorie,
+    (position->>'varianteId')::int AS variante_id,
+    (position->>'produktName')::text AS produkt_name,
+    (position->>'varianteName')::text AS variante_name,
+    COALESCE(SUM(
+        (position->>'menge')::int * CASE
+            WHEN kj.type IN ('bestellung-aufgenommen:v1', 'direktverkauf-getaetigt:v1') THEN 1
+            WHEN kj.type = 'bestellung-korrigiert:v1' THEN -1
+            ELSE 0
+        END
+    ), 0)::int AS ausgegebene_menge,
+    COALESCE(SUM(
+        ((position->>'einzelpreisCents')::int * (position->>'menge')::int) * CASE
+            WHEN kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1') THEN 1
+            WHEN kj.type IN ('stornierung-erteilt:v1', 'direktverkauf-storniert:v1') THEN -1
+            ELSE 0
+        END
+    ), 0)::int AS umsatz_cents
+FROM kassenjournal kj
+CROSS JOIN LATERAL jsonb_array_elements(kj.data->'positionen') AS position
+WHERE kj.type IN (
+    'bestellung-aufgenommen:v1',
+    'bestellung-korrigiert:v1',
+    'direktverkauf-getaetigt:v1',
+    'zahlung-kassiert:v1',
+    'stornierung-erteilt:v1',
+    'direktverkauf-storniert:v1'
+)
+AND kj.kassensitzung_nr = $1
+GROUP BY kategorie, variante_id, produkt_name, variante_name
+`
+
+type GetProduktStatistikRow struct {
+	Kategorie        string
+	VarianteID       int
+	ProduktName      string
+	VarianteName     string
+	AusgegebeneMenge int
+	UmsatzCents      int
+}
+
+// Tagesabrechnung/Live: Verkäufe je Produkt und Variante einer Kassensitzung,
+// aus den eingefrorenen Fat-Event-Positionen aggregiert (kein Stammdaten-Join).
+// Flache Zeilen je Variante mit zwei bewusst getrennten Zahlen — die
+// Anwendungsschicht gruppiert und sortiert sie zu Kategorie-Abschnitten:
+//
+//	Ausgegebene Menge (Produktion) = Σ menge: bestellung-aufgenommen (+),
+//	  bestellung-korrigiert (−), direktverkauf-getaetigt (+).
+//	Umsatz (Einnahmen) = Σ einzelpreisCents × menge: zahlung-kassiert (+),
+//	  direktverkauf-getaetigt (+), stornierung-erteilt (−), direktverkauf-storniert (−).
+//
+// bestellung-umgebucht zählt nicht (Positionen bereits bei der Bestellung erfasst).
+// Dieselbe Positions-/Vorzeichenbasis wie GetUmsatzPositionszeilen für den
+// Umsatzanteil, damit Σ umsatzCents dem kassierten Gesamtumsatz entspricht.
+func (q *Queries) GetProduktStatistik(ctx context.Context, kassensitzungNr int) ([]GetProduktStatistikRow, error) {
+	rows, err := q.db.QueryContext(ctx, getProduktStatistik, kassensitzungNr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetProduktStatistikRow{}
+	for rows.Next() {
+		var i GetProduktStatistikRow
+		if err := rows.Scan(
+			&i.Kategorie,
+			&i.VarianteID,
+			&i.ProduktName,
+			&i.VarianteName,
+			&i.AusgegebeneMenge,
+			&i.UmsatzCents,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getReportingStats = `-- name: GetReportingStats :one
 SELECT
     (
