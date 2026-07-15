@@ -21,3 +21,4 @@ Entscheidung, Konsequenzen).
 | 05  | [Spektral-Branding auf der Website](05_spektral-branding-website.md) | akzeptiert |
 | 06  | [Spektral-Branding im App-Frontend](06_spektral-branding-app.md) | akzeptiert |
 | 07  | [Einheitliche Desktop-Schwelle bei lg (1024px)](07_desktop-breakpoint-lg.md) | akzeptiert |
+| 08  | [Zweispaltiges Service-Layout ab lg](08_service-split-screen.md) | akzeptiert |

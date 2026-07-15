@@ -10,6 +10,13 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+// Diese Suite prüft das Handy-Layout (Dock-Aktionsbutton plus Bottom-Sheet).
+// Ab lg rendert Direktverkauf stattdessen die feste Abschluss-Spalte; deren
+// Verhalten deckt DirektverkaufAbschluss.test.tsx container-neutral ab.
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: () => true,
+}))
+
 afterEach(() => {
   cleanup()
 })

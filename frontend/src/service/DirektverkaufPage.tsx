@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { BackendSingleton } from '@/lib/Backend'
 
 import { Direktverkauf } from './components/direktverkauf/Direktverkauf'
@@ -15,10 +16,11 @@ const direktverkaufBackend = new DirektverkaufBackend(BackendSingleton)
 
 // Unterer Freiraum der Tab-Inhalte in Dock-Höhe (Aktionsbutton plus TabsList
 // plus Innenabstände), damit die letzte Zeile über dem fixierten ServiceDock
-// endet und antippbar bleibt.
+// endet und antippbar bleibt. Nur im Handy-Layout (unter lg) relevant.
 const dockFreiraum = 'pb-[calc(9rem+env(safe-area-inset-bottom,0px))]'
 
 export function DirektverkaufPage() {
+  const isMobile = useIsMobile()
   const { produkte, isPending } = useAktiveProdukte()
   const {
     historie,
@@ -38,40 +40,55 @@ export function DirektverkaufPage() {
     void reloadHistorie()
   }, [reloadHistorie])
 
+  const tabTrigger = (
+    <TabsList className="h-10 w-full">
+      <TabsTrigger value="verkaufen" className="flex-1">
+        Verkaufen
+      </TabsTrigger>
+      <TabsTrigger value="historie" className="flex-1">
+        Historie
+      </TabsTrigger>
+    </TabsList>
+  )
+
+  const verkaufenInhalt = (
+    <Direktverkauf
+      backend={direktverkaufBackend}
+      products={produkte}
+      productsLoading={isPending}
+      onErfolg={zeigeErfolg}
+    />
+  )
+  const historieInhalt = (
+    <DirektverkaufHistorie
+      historie={historie}
+      historieLoading={historieLoading}
+      backend={direktverkaufBackend}
+      onStorniert={() => {
+        void reloadHistorie()
+      }}
+    />
+  )
+
   return (
     <>
       <Tabs defaultValue="verkaufen">
-        <ServiceDock
-          leiste={
-            <TabsList className="h-10 w-full">
-              <TabsTrigger value="verkaufen" className="flex-1">
-                Verkaufen
-              </TabsTrigger>
-              <TabsTrigger value="historie" className="flex-1">
-                Historie
-              </TabsTrigger>
-            </TabsList>
-          }
-        >
-          <TabsContent value="verkaufen" className={dockFreiraum}>
-            <Direktverkauf
-              backend={direktverkaufBackend}
-              products={produkte}
-              productsLoading={isPending}
-              onErfolg={zeigeErfolg}
-            />
-          </TabsContent>
-          <TabsContent value="historie" className={dockFreiraum}>
-            <DirektverkaufHistorie
-              historie={historie}
-              historieLoading={historieLoading}
-              backend={direktverkaufBackend}
-              onStorniert={() => {
-                void reloadHistorie()
-              }}
-            />
-          </TabsContent>
-        </ServiceDock>
+        {isMobile ? (
+          <ServiceDock leiste={tabTrigger}>
+            <TabsContent value="verkaufen" className={dockFreiraum}>
+              {verkaufenInhalt}
+            </TabsContent>
+            <TabsContent value="historie" className={dockFreiraum}>
+              {historieInhalt}
+            </TabsContent>
+          </ServiceDock>
+        ) : (
+          <>
+            <div className="mb-4 max-w-md">{tabTrigger}</div>
+            <TabsContent value="verkaufen">{verkaufenInhalt}</TabsContent>
+            <TabsContent value="historie">{historieInhalt}</TabsContent>
+          </>
+        )}
       </Tabs>
       <ErfolgsPop
         open={erfolg.open}

@@ -21,6 +21,12 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+// Der Buchungsflow-Test unten prüft den Handy-Pfad (Dock-Button plus
+// Bottom-Sheet); ab lg trägt die feste Spalte den Abschluss.
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: () => true,
+}))
+
 describe('ErfolgsPop', () => {
   beforeEach(() => {
     vi.useFakeTimers()
