@@ -6,7 +6,7 @@ import AnfrageFormular from '../components/AnfrageFormular.tsx'
 import { betreiberEmail } from '../lib/links'
 
 // Seite „Für Vereine" (/fuer-vereine, Handoff-Prototyp data-vereine). Erklärt
-// die Nutzungsanfrage, benennt das freiwillige (kostenpflichtige) Service-
+// den Abschluss der Nutzungsvereinbarung, benennt das freiwillige (kostenpflichtige) Service-
 // Angebot, trägt nahe dem Formular einen Beta-Hinweis (dritter Träger der
 // Beta-Kommunikation neben Hero-Badge und Download-Pill) und zeigt die
 // Betreiber-Mailadresse sichtbar als Fallback. Das Formular selbst ist die
@@ -14,7 +14,7 @@ import { betreiberEmail } from '../lib/links'
 
 const title = 'Für Vereine – jotti'
 const description =
-  'Kostenlose Nutzungsvereinbarung für jotti anfragen: Das Formular öffnet einen vorbefüllten E-Mail-Entwurf an den Betreiber. Für eingetragene Vereine, gemeinnützige Organisationen und NPOs.'
+  'Kostenlose Nutzungsvereinbarung für jotti abschließen: Das Formular öffnet einen vorbefüllten E-Mail-Entwurf an den Betreiber — eine einzige E-Mail genügt. Für eingetragene Vereine, gemeinnützige Organisationen und NPOs.'
 
 // „Das ist drin" (Handoff): vier Punkte mit Spektral-Akzent, der vierte benennt
 // das freiwillige Service-Angebot.
@@ -45,18 +45,18 @@ const leistungen = [
 const schritte = [
   {
     accent: 'var(--sp-red)',
-    titel: 'Anfrage senden',
-    text: 'Das Formular ausfüllen — dauert eine Minute.',
+    titel: 'Vereinbarung abschließen',
+    text: 'Formular ausfüllen und die vorbefüllte Annahme-E-Mail absenden — mehr braucht es nicht.',
   },
   {
     accent: 'var(--sp-teal)',
-    titel: 'Vereinbarung in Textform',
-    text: 'Kurze Nutzungsvereinbarung per E-Mail — kostenlos.',
+    titel: 'Herunterladen & einrichten',
+    text: 'jotti von GitHub laden und auf eurem Rechner oder Server aufsetzen.',
   },
   {
     accent: 'var(--sp-violet)',
     titel: 'Loslegen',
-    text: 'Herunterladen, einrichten, kassieren.',
+    text: 'Produkte und Tische anlegen — und kassieren.',
   },
 ]
 ---

@@ -1,7 +1,7 @@
 // UI-freies Logik-Modul des Anfrage-Formulars (/fuer-vereine).
 // Baut aus den Feldwerten eine korrekt encodierte mailto-URL (Empfänger ist die
-// Betreiber-Adresse aus links.ts, Betreff und strukturierter Body aus den
-// Feldern) und validiert die Pflichtfelder. Kein DOM, keine React-Abhängigkeit —
+// Betreiber-Adresse aus links.ts, Betreff und Annahme-E-Mail-Body nach der
+// TERMS.md-Vorlage) und validiert die Pflichtfelder. Kein DOM, keine React-Abhängigkeit —
 // die AnfrageFormular-Island (src/components/AnfrageFormular.tsx) rendert die
 // Felder, ruft dieses Modul auf und öffnet die URL per JS-Navigation (kein
 // natives <form action="mailto:">, das die Produktiv-CSP form-action 'self'
@@ -10,7 +10,7 @@
 // Feldnamen und Rechtsform-Labels stammen aus dem Handoff-Prototyp
 // (PRD docs/prds/prd-website-redesign.md).
 
-import { betreiberEmail } from './links'
+import { betreiberEmail, githubUrl } from './links'
 
 export interface AnfrageFelder {
   verein: string
@@ -67,24 +67,32 @@ export function hatFehler(fehler: AnfrageFehler): boolean {
 
 // Baut die mailto-URL: Empfänger als roher addr-spec im Pfad, Betreff und Body
 // per encodeURIComponent (encodiert Umlaute, Zeilenumbrüche als %0A, Leerzeichen
-// als %20 und Sonderzeichen wie & ? = +). Der Body ist ein strukturierter
-// Feld-Abzug; der optionale Nachrichten-Block entfällt, wenn keine Nachricht
-// eingegeben wurde.
+// als %20 und Sonderzeichen wie & ? = +). Betreff und Body folgen der
+// E-Mail-Vorlage aus TERMS.md: Die Nutzungsvereinbarung kommt durch diese eine
+// Annahme-E-Mail zustande, deshalb enthält der Body den wörtlichen Annahmesatz
+// mit Fassungsbezug (14. Juli 2026) und der TERMS-URL neben den Kontaktfeldern.
+// Der optionale Nachrichten-Block entfällt, wenn keine Nachricht eingegeben wurde.
 export function buildMailtoUrl(felder: AnfrageFelder): string {
   const verein = felder.verein.trim()
-  const betreff = `Nutzungsvereinbarung anfragen – ${verein}`
+  const betreff = `Nutzungsvereinbarung jotti — ${verein}`
+
+  const termsUrl = `${githubUrl}/blob/main/TERMS.md`
 
   const zeilen = [
-    `Verein / Organisation: ${verein}`,
-    `Ansprechpartner:in: ${felder.name.trim()}`,
-    `E-Mail: ${felder.email.trim()}`,
+    'Hallo Herr Gräf,',
+    '',
+    `wir sind ${verein} und akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 14. Juli 2026 (${termsUrl}).`,
+    '',
     `Rechtsform: ${felder.art.trim()}`,
+    `Ansprechperson: ${felder.name.trim()}, ${felder.email.trim()}`,
   ]
 
   const nachricht = felder.message.trim()
   if (nachricht) {
     zeilen.push('', 'Nachricht:', nachricht)
   }
+
+  zeilen.push('', 'Mit freundlichen Grüßen', felder.name.trim(), verein)
 
   const body = zeilen.join('\n')
 

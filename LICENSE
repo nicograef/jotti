@@ -173,6 +173,9 @@ license agreement in text form (Textform, § 126b BGB).
    d) Any data protection violations resulting from the licensee's
    operation of the Software.
 
+   This indemnification does not apply to the extent the Author acted with
+   intent (Vorsatz) or gross negligence (grobe Fahrlässigkeit).
+
 10. NO SUPPORT, NO MAINTENANCE
 
     The Author is under no obligation to provide support, maintenance,
@@ -194,10 +197,9 @@ license agreement in text form (Textform, § 126b BGB).
 12. SEVERABILITY
 
     If any provision of this license is held to be invalid, illegal, or
-    unenforceable by a court of competent jurisdiction, such provision
-    shall be modified to the minimum extent necessary to make it valid
-    and enforceable, or if modification is not possible, shall be severed.
-    The remaining provisions shall continue in full force and effect.
+    unenforceable by a court of competent jurisdiction, that provision
+    shall be severed and the remaining provisions shall continue in full
+    force and effect.
 
 13. ENTIRE AGREEMENT
 

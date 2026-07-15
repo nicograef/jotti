@@ -68,14 +68,25 @@ describe('buildMailtoUrl', () => {
       ).search,
     )
     expect(params.get('subject')).toBe(
-      'Nutzungsvereinbarung anfragen – TSV Musterhausen e.V.',
+      'Nutzungsvereinbarung jotti — TSV Musterhausen e.V.',
     )
     const body = params.get('body') ?? ''
-    expect(body).toContain('Verein / Organisation: TSV Musterhausen e.V.')
-    expect(body).toContain('Ansprechpartner:in: Erika Mustermann')
-    expect(body).toContain('E-Mail: vorstand@musterhausen.de')
+    expect(body).toContain('wir sind TSV Musterhausen e.V.')
     expect(body).toContain('Rechtsform: Eingetragener Verein (e.V.)')
+    expect(body).toContain(
+      'Ansprechperson: Erika Mustermann, vorstand@musterhausen.de',
+    )
     expect(body).toContain('Nachricht:\nFür unser Sommerfest im Juli.')
+  })
+
+  it('enthält den wörtlichen Annahmesatz mit Fassungsbezug und TERMS-URL', () => {
+    const body =
+      new URLSearchParams(new URL(buildMailtoUrl(felder())).search).get(
+        'body',
+      ) ?? ''
+    expect(body).toContain(
+      'akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 14. Juli 2026 (https://github.com/nicograef/jotti/blob/main/TERMS.md).',
+    )
   })
 
   it('lässt den Nachrichten-Block weg, wenn keine Nachricht eingegeben wurde', () => {
@@ -95,7 +106,7 @@ describe('buildMailtoUrl', () => {
       ).search,
     )
     expect(params.get('subject')).toBe(
-      'Nutzungsvereinbarung anfragen – TSV Musterhausen e.V.',
+      'Nutzungsvereinbarung jotti — TSV Musterhausen e.V.',
     )
     expect(params.get('body')).toContain('Nachricht:\nHallo')
   })
@@ -107,7 +118,7 @@ describe('buildMailtoUrl', () => {
     expect(url).toContain(encodeURIComponent('Schützenverein Grünäöüß'))
     // Round-trip: decodiert steht der Originaltext wieder im Betreff.
     const subject = new URLSearchParams(new URL(url).search).get('subject')
-    expect(subject).toBe('Nutzungsvereinbarung anfragen – Schützenverein Grünäöüß')
+    expect(subject).toBe('Nutzungsvereinbarung jotti — Schützenverein Grünäöüß')
   })
 
   it('encodiert Zeilenumbrüche im Body als %0A', () => {
