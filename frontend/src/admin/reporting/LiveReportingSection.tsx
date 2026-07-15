@@ -121,7 +121,7 @@ export function LiveReportingSection({
       {statusZeile}
 
       {/* Kennzahlen: Hero-Karte „Kassierter Umsatz" plus vier Nebenkarten */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
         <div className="relative flex flex-col gap-1.5 overflow-hidden rounded-xl bg-card p-5 shadow-xs ring-1 ring-foreground/10 col-span-2 lg:col-span-1">
           {/* Dekorative Spektral-Kante als oberste Linie der Hero-Karte. */}
           <span

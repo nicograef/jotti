@@ -196,7 +196,7 @@ export function KassensitzungPage() {
     <>
       {header}
 
-      <div className="mt-6 flex flex-col gap-4">
+      <div className="mt-6 flex max-w-4xl flex-col gap-4">
         {kassensitzung ? (
           <>
             <StepperRow

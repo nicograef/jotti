@@ -60,7 +60,7 @@ export function VerkaufStatistik({
   produktStatistik: ProduktStatistik[]
 }) {
   return (
-    <div>
+    <div className="max-w-4xl">
       <div className="mb-2 text-sm font-semibold">Verkäufe pro Produkt</div>
       <p className="mb-2 text-xs text-muted-foreground">
         „Ausgegeben" zählt zubereitete Portionen (bestellt minus Korrekturen,
