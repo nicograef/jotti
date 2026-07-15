@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/item'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import { useMengen } from '@/hooks/use-mengen'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { AuthSingleton } from '@/lib/Auth'
 import {
   cn,
@@ -22,7 +23,10 @@ import {
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { Stepper } from '../Stepper'
+import { selectPositionen } from './drawerUtils'
+import { ZahlungAbschluss } from './ZahlungAbschluss'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
 interface ZahlungProps {
@@ -40,6 +44,7 @@ export function Zahlung({
   positionen,
   onErfolg,
 }: ZahlungProps) {
+  const isMobile = useIsMobile()
   const [andereOffen, setAndereOffen] = useState(false)
   // Positionen treten nur beim ersten Aufbau gestaffelt ein; nach einer Zahlung
   // (Refetch) bleiben die verbleibenden Zeilen unbewegt.
@@ -71,6 +76,9 @@ export function Zahlung({
     0,
   )
   const restNachZahlung = tisch.saldoCents - auswahlSumme
+  // Die ausgewählten Positionen (Menge = Auswahl) für Beleg und Nutzlast der
+  // Abschluss-Spalte; auswahlSumme ist deren Gesamtsumme.
+  const positionenToPay = selectPositionen(positionen, mengen)
 
   const alleEigenenVollAusgewaehlt =
     meinePositionen.length > 0 &&
@@ -135,6 +143,98 @@ export function Zahlung({
     />
   )
 
+  const zahlungKassiert = () => {
+    reset()
+    onErfolg('Zahlung erfolgreich.')
+  }
+
+  const auswahl = (
+    <div className="my-4 space-y-3">
+      {meinePositionen.length > 0 && (
+        <button
+          type="button"
+          onClick={alleAuswaehlen}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/5 px-4 text-sm font-medium text-primary"
+        >
+          <CircleCheck className="size-5" />
+          {alleEigenenVollAusgewaehlt
+            ? 'Auswahl aufheben'
+            : formatAlleAuswaehlenLabel(
+                meinePositionen.length,
+                eigeneUnbezahltGesamt,
+              )}
+        </button>
+      )}
+      <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+        {meinePositionen.map((position, index) =>
+          renderPosition(position, false, erstAufbau ? index : undefined),
+        )}
+      </ItemGroup>
+      {anderePositionen.length > 0 && (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => {
+              setAndereOffen((offen) => !offen)
+            }}
+            className="flex w-full items-center justify-between gap-2 py-1 text-left"
+            aria-expanded={andereOffen}
+          >
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Von anderen · {anderePositionen.length}
+            </span>
+            <ChevronDown
+              className={cn(
+                'size-4 text-muted-foreground transition-transform',
+                andereOffen && 'rotate-180',
+              )}
+            />
+          </button>
+          {andereOffen ? (
+            <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+              {anderePositionen.map((position) =>
+                renderPosition(position, true),
+              )}
+            </ItemGroup>
+          ) : andereAusgewaehlteAnzahl > 0 ? (
+            <p className="text-[13px] font-medium text-primary/80">
+              {andereAusgewaehlteAnzahl} ausgewählt ·{' '}
+              {formatCents(andereAusgewaehlteSumme)}&nbsp;€
+            </p>
+          ) : (
+            <p className="text-[13px] text-muted-foreground">
+              {anderePositionenNamen} · {formatCents(anderePositionenSumme)}
+              &nbsp;€
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+
+  // Ab lg: offene Positionen links, Zahlungsübersicht rechts. Der extrahierte
+  // Abschluss-Inhalt mountet genau einmal (isMobile entscheidet den Zweig).
+  if (!isMobile) {
+    return (
+      <ServiceSplitLayout
+        auswahl={auswahl}
+        abschluss={
+          <ZahlungAbschluss
+            variant="spalte"
+            backend={backend}
+            tisch={tisch}
+            positionenToPay={positionenToPay}
+            totalCents={auswahlSumme}
+            restNachZahlungCents={restNachZahlung}
+            zahlungKassiert={zahlungKassiert}
+          />
+        }
+      />
+    )
+  }
+
+  // Unter lg: unverändert Dock-Aktionsbutton (plus Restbetrag im Dock-Slot) und
+  // Bottom-Sheet-Drawer.
   return (
     <>
       <ZahlungDrawer
@@ -143,72 +243,9 @@ export function Zahlung({
         unbezahltePositionen={positionen}
         mengen={mengen}
         restNachZahlungCents={restNachZahlung}
-        zahlungKassiert={() => {
-          reset()
-          onErfolg('Zahlung erfolgreich.')
-        }}
+        zahlungKassiert={zahlungKassiert}
       />
-      <div className="my-4 space-y-3">
-        {meinePositionen.length > 0 && (
-          <button
-            type="button"
-            onClick={alleAuswaehlen}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/5 px-4 text-sm font-medium text-primary"
-          >
-            <CircleCheck className="size-5" />
-            {alleEigenenVollAusgewaehlt
-              ? 'Auswahl aufheben'
-              : formatAlleAuswaehlenLabel(
-                  meinePositionen.length,
-                  eigeneUnbezahltGesamt,
-                )}
-          </button>
-        )}
-        <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
-          {meinePositionen.map((position, index) =>
-            renderPosition(position, false, erstAufbau ? index : undefined),
-          )}
-        </ItemGroup>
-        {anderePositionen.length > 0 && (
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => {
-                setAndereOffen((offen) => !offen)
-              }}
-              className="flex w-full items-center justify-between gap-2 py-1 text-left"
-              aria-expanded={andereOffen}
-            >
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Von anderen · {anderePositionen.length}
-              </span>
-              <ChevronDown
-                className={cn(
-                  'size-4 text-muted-foreground transition-transform',
-                  andereOffen && 'rotate-180',
-                )}
-              />
-            </button>
-            {andereOffen ? (
-              <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
-                {anderePositionen.map((position) =>
-                  renderPosition(position, true),
-                )}
-              </ItemGroup>
-            ) : andereAusgewaehlteAnzahl > 0 ? (
-              <p className="text-[13px] font-medium text-primary/80">
-                {andereAusgewaehlteAnzahl} ausgewählt ·{' '}
-                {formatCents(andereAusgewaehlteSumme)}&nbsp;€
-              </p>
-            ) : (
-              <p className="text-[13px] text-muted-foreground">
-                {anderePositionenNamen} · {formatCents(anderePositionenSumme)}
-                &nbsp;€
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+      {auswahl}
     </>
   )
 }

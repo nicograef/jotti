@@ -2,6 +2,8 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { useIsMobile } from '@/hooks/use-mobile'
+
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import { ServiceDock } from '../ServiceDock'
@@ -11,12 +13,20 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+// Standardmäßig Handy-Layout (Dock-Button, Restbetrag im Dock-Slot); ein Test
+// unten schaltet auf Desktop, um die Verdrahtung der festen Spalte zu prüfen.
+// Deren container-neutrales Verhalten deckt ZahlungAbschluss.test.tsx ab.
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: vi.fn(() => true),
+}))
+
 vi.mock('@/lib/Auth', () => ({
   AuthSingleton: { userId: 1 },
 }))
 
 afterEach(() => {
   cleanup()
+  vi.mocked(useIsMobile).mockReturnValue(true)
 })
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 900 }
@@ -62,6 +72,32 @@ function renderZahlung(positionen: Position[] = [position]) {
     </ServiceDock>,
   )
 }
+
+describe('Zahlung feste Spalte (ab lg)', () => {
+  it('rendert die Abschluss-Spalte mit Restbetrag statt Dock und Drawer', async () => {
+    vi.mocked(useIsMobile).mockReturnValue(false)
+    const user = userEvent.setup()
+    // Kein ServiceDock: die feste Spalte trägt Aktionsbutton und Restbetrag.
+    render(
+      <Zahlung
+        backend={{ zahlungKassieren: vi.fn().mockResolvedValue(undefined) }}
+        tisch={tisch}
+        positionen={[position]}
+        onErfolg={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Bratwurst Normal')).toBeInTheDocument()
+    // Restbetrag steht in der Spalte (nicht im Dock-Slot).
+    expect(screen.getByText('Nach dieser Zahlung noch offen')).toBeVisible()
+    const button = screen.getByRole('button', { name: 'Kassieren' })
+    expect(button).toBeDisabled()
+
+    // Auswahl links aktiviert den Kassieren-Button rechts.
+    await user.click(screen.getByRole('button', { name: 'Produkt hinzufügen' }))
+    expect(screen.getByRole('button', { name: 'Kassieren' })).toBeEnabled()
+  })
+})
 
 describe('Zahlung Aktionsleiste', () => {
   it('ist ohne Auswahl deaktiviert und zeigt nach Auswahl Anzahl und Summe', async () => {

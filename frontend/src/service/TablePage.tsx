@@ -239,10 +239,7 @@ export function TablePage() {
           <TabsContent value="order" className="min-h-0 flex-1">
             {bestellenInhalt}
           </TabsContent>
-          <TabsContent
-            value="payment"
-            className="min-h-0 flex-1 overflow-y-auto"
-          >
+          <TabsContent value="payment" className="min-h-0 flex-1">
             {kassierenInhalt}
           </TabsContent>
           <TabsContent
