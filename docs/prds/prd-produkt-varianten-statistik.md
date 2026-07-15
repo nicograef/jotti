@@ -25,10 +25,14 @@ der Tagesabrechnung einer (i. d. R. abgeschlossenen) Kassensitzung als auch im
 Live-Dashboard der offenen Kassensitzung. Beide zeigen die Statistik jeweils
 **pro Kassensitzung** — passend zum restlichen Report, ohne neuen Filter.
 
-Die Liste ist **pro Variante aufgeschlüsselt und auf Produktebene gruppiert**:
-jedes Produkt bildet eine Gruppe mit einer Zwischensumme, darunter stehen seine
-Varianten. Jede Zeile (Variante wie Produkt-Zwischensumme) trägt zwei bewusst
-getrennte, klar benannte Zahlen:
+Die Liste ist **nach Kategorie in getrennte Abschnitte gegliedert** (Essen,
+Getränke, Sonstiges — in dieser Reihenfolge) und innerhalb jedes Abschnitts
+**pro Variante aufgeschlüsselt und auf Produktebene gruppiert**: jedes Produkt
+bildet eine Gruppe mit einer Zwischensumme, darunter stehen seine Varianten.
+**Produkte mit nur einer Variante werden zu einer einzigen Zeile
+zusammengefasst** (z. B. „Tagesessen" statt „Tagesessen → Tagesessen"; „Cola
+0,5 l" statt Produkt- plus identischer Variantenzeile). Jede Zeile (Variante wie
+Produkt-Zwischensumme) trägt zwei bewusst getrennte, klar benannte Zahlen:
 
 - **Ausgegebene Menge** — wieviele Portionen zubereitet bzw. rausgegeben wurden.
   Basis: aufgenommene Bestellungen minus geldneutrale Korrekturen, inklusive
@@ -43,9 +47,11 @@ zählt als ausgegeben, mindert aber den Umsatz. Ein kurzer erklärender Hinweis 
 Abschnitt macht das transparent, damit niemand aus Umsatz ÷ Menge einen
 Stückpreis ableitet.
 
-Sortierung als Ranking: Produkte nach Umsatz-Zwischensumme absteigend, Varianten
-innerhalb eines Produkts nach Umsatz absteigend (Namens-Tiebreaker). Eine
-Kassensitzung ohne Verkäufe zeigt einen leeren Zustand.
+Sortierung: innerhalb jeder Kategorie werden die Produkte **nach ausgegebener
+Menge aufsteigend** gelistet (Produktname als stabiler Tiebreaker); Varianten
+innerhalb eines Produkts ebenso nach ausgegebener Menge aufsteigend. Eine
+Kassensitzung ohne Verkäufe zeigt einen leeren Zustand; ein Kategorie-Abschnitt
+ohne Verkäufe entfällt.
 
 ## User Stories
 
@@ -56,10 +62,13 @@ Kassensitzung ohne Verkäufe zeigt einen leeren Zustand.
 3. Als **Admin/Kassenwart** möchte ich die Varianten unter ihrem Produkt gruppiert
    und mit Produkt-Zwischensumme sehen, damit ich schnell das große Bild und
    zugleich die Detailtiefe habe.
-4. Als **Admin/Kassenwart** möchte ich die Statistik bereits während des
+4. Als **Admin/Kassenwart** möchte ich die Produkte nach Kategorie (Essen,
+   Getränke, Sonstiges) getrennt aufgelistet sehen, damit ich verwandte Ware
+   zusammen im Blick habe und Essen und Getränke nicht vermischt werden.
+5. Als **Admin/Kassenwart** möchte ich die Statistik bereits während des
    laufenden Fests im Live-Dashboard sehen, damit ich kurzfristig nachsteuern kann
    (z. B. Ware nachordern, wenn ein Produkt schnell weggeht).
-5. Als **Admin/Kassenwart** möchte ich die Statistik je Kassensitzung erhalten,
+6. Als **Admin/Kassenwart** möchte ich die Statistik je Kassensitzung erhalten,
    passend zum übrigen Report, damit sich Zahlen einer Sitzung eindeutig zuordnen
    lassen.
 
@@ -77,7 +86,7 @@ Kassensitzung ohne Verkäufe zeigt einen leeren Zustand.
   Kassenjournal, nicht die Stammdaten (ACL). Es gibt daher keinen Join auf die
   aktuellen Produkt-/Varianten-Stammdaten.
 
-### Gruppierung
+### Gruppierung und Sortierung
 
 - **Variantenschlüssel:** `varianteId` (stabil, global eindeutige Identity-PK).
   Anzeigename ist der **eingefrorene** `varianteName` aus dem Event.
@@ -86,6 +95,19 @@ Kassensitzung ohne Verkäufe zeigt einen leeren Zustand.
   Kassensitzung ist der Produktname stabil und eindeutig (aktiver Name ist unique).
   Eine Produkt-ID-basierte Gruppierung ist bewusst nicht vorgesehen (siehe
   Out of Scope).
+- **Kategorie-Abschnitte:** die Position trägt ein eingefrorenes `kategorie`-Feld
+  (`essen`/`getraenk`/`sonstiges`). Produkte werden nach Kategorie in getrennte
+  Abschnitte gegliedert, feste Reihenfolge Essen → Getränke → Sonstiges. (Ein
+  Produkt liegt je Kassensitzung in genau einer Kategorie; ein theoretischer
+  Kategoriewechsel eines Produkts innerhalb einer Sitzung würde als getrennte
+  Gruppen erscheinen — vernachlässigbarer Randfall.)
+- **Sortierung:** innerhalb jedes Kategorie-Abschnitts Produkte nach
+  `AusgegebeneMenge` **aufsteigend** (`ProduktName` als Tiebreaker); Varianten je
+  Produkt ebenso nach `AusgegebeneMenge` aufsteigend.
+- **Ein-Varianten-Produkte** werden in der Anzeige zu einer einzigen Zeile
+  zusammengefasst; Beschriftung dann `produktName` + `varianteName` (analog
+  `Position.Bezeichnung()`). Das Datenmodell bleibt unverändert (Produkt mit einer
+  Varianten-Zeile); nur die Darstellung fasst zusammen.
 
 ### Die zwei Kennzahlen (Event-Mapping)
 
@@ -123,26 +145,30 @@ geldneutral vs. kassenwirksam:
   analog zu `UmsatzServicekraft`/`StornierungPosition`:
   - `VarianteStatistik` — `VarianteID`, `VarianteName`, `AusgegebeneMenge`,
     `UmsatzCents`.
-  - `ProduktStatistik` — `ProduktName`, `AusgegebeneMenge` (Zwischensumme),
-    `UmsatzCents` (Zwischensumme), `Varianten []VarianteStatistik`.
+  - `ProduktStatistik` — `Kategorie`, `ProduktName`, `AusgegebeneMenge`
+    (Zwischensumme), `UmsatzCents` (Zwischensumme), `Varianten []VarianteStatistik`.
   - Neues Feld `ProduktStatistik []ProduktStatistik` auf `ReportingData` **und**
     `LiveReportingData`.
 - **Query (`sqlc/queries/reporting.sql`):** eine neue Query
   `GetProduktStatistik(@kassensitzung_nr)`, die `data->'positionen'` per
   `jsonb_array_elements` entfaltet und **flache Zeilen pro Variante**
-  `(varianteId, produktName, varianteName, ausgegebeneMenge, umsatzCents)` mit den
-  obigen Vorzeichen liefert (`GROUP BY varianteId, produktName, varianteName`).
-  Anschließend `make sqlc`. Die Aggregation der beiden Vorzeichen-Regeln bleibt in
-  der Query; die Produkt-Gruppierung, Zwischensummen und Sortierung erledigt die
+  `(kategorie, varianteId, produktName, varianteName, ausgegebeneMenge, umsatzCents)`
+  mit den obigen Vorzeichen liefert
+  (`GROUP BY kategorie, varianteId, produktName, varianteName`). Anschließend
+  `make sqlc`. Die Aggregation der beiden Vorzeichen-Regeln bleibt in der Query;
+  die Kategorie-/Produkt-Gruppierung, Zwischensummen und Sortierung erledigt die
   Anwendungsschicht (wie `computeUmsatzProSteuersatz`).
 - **Repository (`repository/reporting_repo`):** die neue Query in die bestehenden
   `errgroup`-Blöcke von `GetReporting` und `GetLiveReporting` einreihen; Zeilen →
-  flache `VarianteStatistik`-Liste mappen.
+  flache Varianten-Zeilen mappen.
 - **Anwendungsschicht (`api/reporting/application`):** eine reine Funktion baut
   aus den flachen Varianten-Zeilen die Produkt-Hierarchie, berechnet die
-  Zwischensummen und sortiert (Produkte nach `UmsatzCents` absteigend, Varianten
-  je Produkt nach `UmsatzCents` absteigend, Name als stabiler Tiebreaker). Deep
-  Module, isoliert testbar über flache Eingabe → gruppierte Ausgabe.
+  Zwischensummen und sortiert: Kategorien in fester Reihenfolge (Essen → Getränke
+  → Sonstiges), Produkte je Kategorie nach `AusgegebeneMenge` aufsteigend,
+  Varianten je Produkt nach `AusgegebeneMenge` aufsteigend (`ProduktName` bzw.
+  `VarianteName` als stabiler Tiebreaker). Die Liste ist damit bereits fertig
+  sortiert; das Frontend rendert nur. Deep Module, isoliert testbar über flache
+  Eingabe → gruppierte, sortierte Ausgabe.
 - **HTTP (`api/reporting/http`):** neue `json`-getaggte Response-DTOs
   (`produktStatistik` mit verschachtelten `varianten`) plus `to*`-Mapper. Keine
   neuen Endpunkte — die bestehenden `admin/get-abrechnung` und
@@ -151,15 +177,19 @@ geldneutral vs. kassenwirksam:
 ### Frontend-Module
 
 - **Zod-Schemas (`admin/reporting/types.ts`):** Spiegel der neuen DTOs
-  (`ProduktStatistikSchema` mit `varianten`), eingehängt in `ReportingDataSchema`
-  und `LiveReportingDataSchema`.
+  (`ProduktStatistikSchema` mit `kategorie` und `varianten`), eingehängt in
+  `ReportingDataSchema` und `LiveReportingDataSchema`.
 - **Backend-Klasse:** unverändert im Aufruf; validiert das erweiterte Schema.
 - **Anzeige:** neuer Abschnitt „Verkäufe pro Produkt" in `ReportingResults.tsx`
   (Tagesabrechnung, Teil des druckoptimierten Z-Bons) und in
-  `LiveReportingSection.tsx` (Live-Dashboard). Produktzeile mit Zwischensumme,
-  darunter die Variantenzeilen; zwei Spalten **„Ausgegeben"** (Menge) und
-  **„Umsatz"** (€, über `formatEuro`), plus der erklärende Ein-Satz-Hinweis zu den
-  beiden Grundlagen. Leerer Zustand bei einer Sitzung ohne Verkäufe.
+  `LiveReportingSection.tsx` (Live-Dashboard). Gegliedert in Kategorie-Abschnitte
+  (Essen, Getränke, Sonstiges) mit Abschnittsüberschrift; je Produkt eine
+  Produktzeile mit Zwischensumme und darunter die Variantenzeilen, **außer bei
+  einer einzigen Variante — dann eine zusammengefasste Zeile**. Zwei Spalten
+  **„Ausgegeben"** (Menge) und **„Umsatz"** (€, über `formatEuro`), plus der
+  erklärende Ein-Satz-Hinweis zu den beiden Grundlagen. Leerer Zustand bei einer
+  Sitzung ohne Verkäufe; leere Kategorie-Abschnitte werden weggelassen. Die
+  Reihenfolge kommt fertig vom Backend — das Frontend sortiert nicht um.
 
 ### Dokumentation
 
@@ -181,16 +211,19 @@ nicht die interne Zerlegung.
   (Warenrücknahme mindert nur Umsatz, Korrektur nur Menge).
 - **Gruppierung und Sortierung (Anwendungsschicht, Unit-Test):** Prior Art
   `api/reporting/application/query_test.go` (analog `computeUmsatzProSteuersatz`).
-  Flache Varianten-Zeilen → korrekte Produkt-Gruppen, korrekte Zwischensummen,
-  Ranking-Reihenfolge, stabile Tiebreaker.
+  Flache Varianten-Zeilen → korrekte Kategorie-Abschnitte in fester Reihenfolge
+  (Essen → Getränke → Sonstiges), korrekte Produkt-Gruppen, korrekte
+  Zwischensummen, Sortierung nach Menge aufsteigend, stabile Tiebreaker.
 - **Konsistenz mit den Gesamtzahlen:** Prior Art
   `api/reporting/application/query_export_konsistenz_test.go`. Die Summe aller
   Produkt-`UmsatzCents` muss mit dem bestehenden kassierten Gesamtumsatz (bzw. der
   Summe der `UmsatzProSteuersatz`-Brutto­werte) übereinstimmen — dieselbe
   Positions-Basis.
 - **Frontend-Darstellung:** Prior Art `ReportingResults.test.tsx` /
-  `LiveReportingSection.test.tsx`. Aus einer Fixture werden Produkte, Varianten,
-  Zwischensummen und der leere Zustand gerendert; das Schema wird validiert.
+  `LiveReportingSection.test.tsx`. Aus einer Fixture werden Kategorie-Abschnitte,
+  Produkte, Varianten, Zwischensummen, die Ein-Zeilen-Zusammenfassung bei
+  Ein-Varianten-Produkten und der leere Zustand gerendert; das Schema wird
+  validiert.
 
 ## Out of Scope
 
@@ -199,7 +232,9 @@ nicht die interne Zerlegung.
 - **Produkt-Rollup über die Stammdaten (`produktId`).** Gruppiert wird über den
   eingefrorenen `produktName`; ein Join auf die aktuellen Stammdaten würde die
   Reporting-ACL verletzen.
-- **Aggregation auf Kategorie-Ebene** (essen/getraenk/sonstiges).
+- **Kategorie-Zwischensummen.** Die Kategorien Essen/Getränke/Sonstiges dienen nur
+  der Gliederung in Abschnitte (siehe Solution), nicht als eigene aggregierte
+  Summenzeile pro Kategorie.
 - **Zeitliche Aufschlüsselung** (Stunden-/Tageszeit-Verlauf), Trends, Diagramme.
 - **Separate „kassierte Menge"-Spalte.** Es gibt genau die zwei vereinbarten
   Zahlen (ausgegebene Menge, Umsatz).
@@ -211,10 +246,11 @@ nicht die interne Zerlegung.
 ## Further Notes
 
 - Setzt die Roadmap-Anforderung **R-05 (Produktumsatz-Reporting, Nice)** um.
-- **Direktverkauf zählt in beide Zahlen** (er gibt aus *und* nimmt ein) — das ist
-  die konsequente Anwendung des „rausgegeben/eingenommen"-Prinzips. Bitte beim
-  Review bestätigen; falls die ausgegebene Menge nur Tisch-Bestellungen umfassen
-  soll, entfällt `direktverkauf-getaetigt:v1` aus der Mengen-Spalte.
+- **Direktverkauf zählt in beide Zahlen** (er gibt aus *und* nimmt ein) — als
+  konsequente Anwendung des „rausgegeben/eingenommen"-Prinzips bestätigt.
+- **Sortierung nach Menge aufsteigend** (kleinste Menge zuerst) je Kategorie —
+  wie festgelegt. Falls stattdessen die Top-Seller oben stehen sollen, wäre es
+  absteigend; eine reine Sortier-Umkehr, jederzeit änderbar.
 - Die bewusste Trennung der Grundlagen ist ein Feature, kein Bug: eine
   zurückgenommene Portion bleibt „ausgegeben", mindert aber den Umsatz. Der
   erklärende Hinweis im Report verhindert Fehlinterpretationen.
