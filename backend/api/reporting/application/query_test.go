@@ -258,8 +258,8 @@ func TestGruppiereProduktStatistik_GruppiertSortiertUndSummiert(t *testing.T) {
 
 	produkte := gruppiereProduktStatistik(zeilen)
 
-	// Kategorie-Reihenfolge fest Essen → Getränke → Sonstiges; innerhalb Essen
-	// Wurst (8) vor Pommes (10 gesamt)? Nein: Pommes hat 5+5=10 > Wurst 8.
+	// Sechs Varianten-Zeilen fallen zu vier Produkt-Gruppen zusammen
+	// (Pommes und Cola je zweivariantig, Wurst und Los einvariantig).
 	if len(produkte) != 4 {
 		t.Fatalf("expected 4 produkte, got %d: %+v", len(produkte), produkte)
 	}

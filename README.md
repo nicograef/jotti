@@ -40,7 +40,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, kassieren 
 - 📊 **Tagesabrechnung** — Gesamtübersicht aller Umsätze, Zahlungen und offenen Beträge, nach Steuersatz aufgeschlüsselt
 - 🧾 **Abrechnung pro Tisch** — detaillierte Aufstellung je Tisch
 - 👤 **Abrechnung pro Servicekraft** — Umsatz und Transaktionen pro Person
-- 📈 **Produktumsatz-Reporting** _(geplant)_ — meistverkaufte Varianten, Mengen und Einnahmen pro Produkt
+- 📈 **Produktumsatz-Reporting** — meistverkaufte Varianten, Mengen und Einnahmen pro Produkt
 - 📦 **DSFinV-K-Export** — maschinenlesbarer Export für die Finanzverwaltung (ZIP-Archiv nach DSFinV-K v2.4)
 
 ### Verwaltung & Sicherheit

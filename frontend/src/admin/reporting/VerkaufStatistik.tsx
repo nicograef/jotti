@@ -111,7 +111,7 @@ export function VerkaufStatistik({
                     />
                     {produkt.varianten.map((variante) => (
                       <StatistikZeile
-                        key={variante.varianteId}
+                        key={`${String(variante.varianteId)}-${variante.varianteName}`}
                         label={variante.varianteName}
                         ausgegebeneMenge={variante.ausgegebeneMenge}
                         umsatzCents={variante.umsatzCents}
