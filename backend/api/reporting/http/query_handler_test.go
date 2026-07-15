@@ -111,6 +111,14 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 			{Satz: steuer.RegelSteuersatz, BruttoCents: 1190, NettoCents: 1000, SteuerCents: 190},
 		},
 		Stornierungen: []reporting.StornierungDetail{},
+		ProduktStatistik: []reporting.ProduktStatistik{
+			{
+				Kategorie: "essen", ProduktName: "Pommes", AusgegebeneMenge: 4, UmsatzCents: 900,
+				Varianten: []reporting.VarianteStatistik{
+					{VarianteID: 10, VarianteName: "groß", AusgegebeneMenge: 4, UmsatzCents: 900},
+				},
+			},
+		},
 	}
 	handler := QueryHandler{Query: mockQuery{data: mockData}}
 
@@ -150,9 +158,30 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 				StornierungenCents  int `json:"stornierungenCents"`
 			} `json:"stornierungenProServicekraft"`
 		} `json:"breakdowns"`
+		ProduktStatistik []struct {
+			Kategorie        string `json:"kategorie"`
+			ProduktName      string `json:"produktName"`
+			AusgegebeneMenge int    `json:"ausgegebeneMenge"`
+			UmsatzCents      int    `json:"umsatzCents"`
+			Varianten        []struct {
+				VarianteID       int    `json:"varianteId"`
+				VarianteName     string `json:"varianteName"`
+				AusgegebeneMenge int    `json:"ausgegebeneMenge"`
+				UmsatzCents      int    `json:"umsatzCents"`
+			} `json:"varianten"`
+		} `json:"produktStatistik"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("expected valid JSON response: %v", err)
+	}
+	if len(resp.ProduktStatistik) != 1 {
+		t.Fatalf("expected 1 produktStatistik row, got %+v", resp.ProduktStatistik)
+	}
+	if p := resp.ProduktStatistik[0]; p.Kategorie != "essen" || p.ProduktName != "Pommes" || p.AusgegebeneMenge != 4 || p.UmsatzCents != 900 {
+		t.Fatalf("unexpected produktStatistik row: %+v", resp.ProduktStatistik[0])
+	}
+	if v := resp.ProduktStatistik[0].Varianten; len(v) != 1 || v[0].VarianteID != 10 || v[0].VarianteName != "groß" {
+		t.Fatalf("unexpected produktStatistik varianten: %+v", resp.ProduktStatistik[0].Varianten)
 	}
 	if len(resp.Breakdowns.StornierungenProServicekraft) != 1 {
 		t.Fatalf("expected 1 stornierungenProServicekraft row, got %+v", resp.Breakdowns.StornierungenProServicekraft)

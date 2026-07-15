@@ -67,6 +67,7 @@ function makeReport(zNr: number): ReportingData {
     },
     umsatzProSteuersatz: [],
     stornierungen: [],
+    produktStatistik: [],
   }
 }
 

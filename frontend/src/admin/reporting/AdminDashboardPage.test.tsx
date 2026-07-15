@@ -84,6 +84,7 @@ function makeLiveData(): LiveReportingData {
     },
     breakdowns: { servicekraefte: [], stornierungenProServicekraft: [] },
     stornierungen: [],
+    produktStatistik: [],
   }
 }
 

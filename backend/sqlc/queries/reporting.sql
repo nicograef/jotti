@@ -108,6 +108,50 @@ CROSS JOIN LATERAL kj_extract_umsatz_pro_steuersatz(kj.type, kj.data) AS s(steue
 WHERE kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1', 'stornierung-erteilt:v1')
 AND kj.kassensitzung_nr = @kassensitzung_nr;
 
+-- name: GetProduktStatistik :many
+-- Tagesabrechnung/Live: Verkäufe je Produkt und Variante einer Kassensitzung,
+-- aus den eingefrorenen Fat-Event-Positionen aggregiert (kein Stammdaten-Join).
+-- Flache Zeilen je Variante mit zwei bewusst getrennten Zahlen — die
+-- Anwendungsschicht gruppiert und sortiert sie zu Kategorie-Abschnitten:
+--   Ausgegebene Menge (Produktion) = Σ menge: bestellung-aufgenommen (+),
+--     bestellung-korrigiert (−), direktverkauf-getaetigt (+).
+--   Umsatz (Einnahmen) = Σ einzelpreisCents × menge: zahlung-kassiert (+),
+--     direktverkauf-getaetigt (+), stornierung-erteilt (−), direktverkauf-storniert (−).
+-- bestellung-umgebucht zählt nicht (Positionen bereits bei der Bestellung erfasst).
+-- Dieselbe Positions-/Vorzeichenbasis wie GetUmsatzPositionszeilen für den
+-- Umsatzanteil, damit Σ umsatzCents dem kassierten Gesamtumsatz entspricht.
+SELECT
+    (position->>'kategorie')::text AS kategorie,
+    (position->>'varianteId')::int AS variante_id,
+    (position->>'produktName')::text AS produkt_name,
+    (position->>'varianteName')::text AS variante_name,
+    COALESCE(SUM(
+        (position->>'menge')::int * CASE
+            WHEN kj.type IN ('bestellung-aufgenommen:v1', 'direktverkauf-getaetigt:v1') THEN 1
+            WHEN kj.type = 'bestellung-korrigiert:v1' THEN -1
+            ELSE 0
+        END
+    ), 0)::int AS ausgegebene_menge,
+    COALESCE(SUM(
+        ((position->>'einzelpreisCents')::int * (position->>'menge')::int) * CASE
+            WHEN kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1') THEN 1
+            WHEN kj.type IN ('stornierung-erteilt:v1', 'direktverkauf-storniert:v1') THEN -1
+            ELSE 0
+        END
+    ), 0)::int AS umsatz_cents
+FROM kassenjournal kj
+CROSS JOIN LATERAL jsonb_array_elements(kj.data->'positionen') AS position
+WHERE kj.type IN (
+    'bestellung-aufgenommen:v1',
+    'bestellung-korrigiert:v1',
+    'direktverkauf-getaetigt:v1',
+    'zahlung-kassiert:v1',
+    'stornierung-erteilt:v1',
+    'direktverkauf-storniert:v1'
+)
+AND kj.kassensitzung_nr = @kassensitzung_nr
+GROUP BY kategorie, variante_id, produkt_name, variante_name;
+
 -- name: GetKassensitzungMetadaten :one
 -- Tagesabrechnung: Sitzungs-Metadaten für den formalen Berichtskopf, reine
 -- Projektion über die vorhandenen Journal-Events. Eröffnungs- und

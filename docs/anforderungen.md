@@ -14,9 +14,7 @@ Rollen: `admin` (Stammdaten und Kasse), `serviceleitung` (Kasse inkl. Storno), `
 
 ## Roadmap
 
-| ID   | Titel                    | Beschreibung                                                                  | Bereich     | Prio   |
-| ---- | ------------------------ | ----------------------------------------------------------------------------- | ----------- | ------ |
-| R-05 | Produktumsatz-Reporting  | Mengen, Ranking und Einnahmen pro Produkt und Variante.                       | Reporting   | Nice   |
+Aktuell keine offenen Roadmap-Anforderungen — alle spezifizierten Anforderungen sind umgesetzt (siehe Funktionsumfang).
 
 ## Nicht-Ziele
 
@@ -79,10 +77,11 @@ Zeitraumbezogene Auswertungen beziehen sich je auf eine Kassensitzung (`kassensi
 
 | ID   | Titel                       | Beschreibung                             |
 | ---- | --------------------------- | ---------------------------------------- |
-| R-01 | Tagesabrechnung             | KPIs und Breakdowns je Kassensitzung.    |
-| R-04 | Abrechnung pro Servicekraft | Umsatz pro Servicekraft (Teil von R-01). |
-| R-06 | Eigene Übersicht            | KPI-Sektion auf dem Service-Dashboard.   |
-| R-07 | Live-Dashboard              | Echtzeit-KPIs der offenen Kassensitzung. |
+| R-01 | Tagesabrechnung              | KPIs und Breakdowns je Kassensitzung.                                                                        |
+| R-04 | Abrechnung pro Servicekraft  | Umsatz pro Servicekraft (Teil von R-01).                                                                     |
+| R-05 | Produkt-/Varianten-Statistik | Ausgegebene Menge und Umsatz pro Produkt und Variante je Kassensitzung — in Tagesabrechnung und Live-Dashboard. |
+| R-06 | Eigene Übersicht             | KPI-Sektion auf dem Service-Dashboard.                                                                       |
+| R-07 | Live-Dashboard               | Echtzeit-KPIs der offenen Kassensitzung.                                                                     |
 
 ### Querschnitt (Qualitätsmerkmale)
 

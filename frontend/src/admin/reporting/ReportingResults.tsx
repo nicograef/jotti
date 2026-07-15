@@ -8,6 +8,7 @@ import { StornoItem } from './StornoItem'
 import { StornoMarker } from './StornoServicekraft'
 import type { AbgeschlosseneSitzung, ReportingData } from './types'
 import { formatBediener, formatDatumLang, formatLocalTime } from './utils'
+import { VerkaufStatistik } from './VerkaufStatistik'
 
 // Berichtskopf-Zeile: Datum, Eröffnungs-/Abschlusszeit, abschließender Benutzer
 // und Kassensturz-Differenz — rein aus den vom Backend projizierten Metadaten.
@@ -227,6 +228,8 @@ export function ReportingResults({
           )}
         </div>
       </div>
+
+      <VerkaufStatistik produktStatistik={result.produktStatistik} />
     </div>
   )
 }

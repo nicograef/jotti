@@ -31,6 +31,7 @@ import { StornoAggregat } from './StornoServicekraft'
 import { SummaryCard } from './SummaryCard'
 import type { LiveReportingData } from './types'
 import { formatBediener, formatDatum, formatStand } from './utils'
+import { VerkaufStatistik } from './VerkaufStatistik'
 
 // Nach fünf Einträgen wird die Liste offener Tische gekürzt; „Alle n anzeigen"
 // blendet den Rest ein (Design-Handoff 1a).
@@ -263,6 +264,11 @@ export function LiveReportingSection({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Verkäufe pro Produkt: dieselbe Aufbereitung wie in der Abrechnung */}
+      <div className="rounded-xl border p-5">
+        <VerkaufStatistik produktStatistik={liveData.produktStatistik} />
       </div>
 
       {/* Stornierungen: eingeklappte Zeile, Aufklappen zeigt die Detail-Liste */}

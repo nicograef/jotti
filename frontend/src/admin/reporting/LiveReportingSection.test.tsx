@@ -40,6 +40,7 @@ function liveData(
     },
     breakdowns: { servicekraefte, stornierungenProServicekraft },
     stornierungen,
+    produktStatistik: [],
     ...overrides,
   }
 }
@@ -250,5 +251,55 @@ describe('LiveReportingSection — Übersicht', () => {
     expect(
       screen.getByRole('link', { name: 'Zur Kassensitzungs-Seite' }),
     ).toHaveAttribute('href', '/admin/kasse')
+  })
+})
+
+describe('LiveReportingSection — Verkäufe pro Produkt', () => {
+  it('zeigt die Produkt-/Varianten-Statistik der offenen Sitzung', () => {
+    render(
+      <LiveReportingSection
+        liveData={liveData([], [], [], {
+          produktStatistik: [
+            {
+              kategorie: 'essen',
+              produktName: 'Pommes',
+              // Bestellt/ausgegeben, aber noch nicht kassiert: Menge > 0, Umsatz 0.
+              ausgegebeneMenge: 6,
+              umsatzCents: 0,
+              varianten: [
+                {
+                  varianteId: 10,
+                  varianteName: 'groß',
+                  ausgegebeneMenge: 6,
+                  umsatzCents: 0,
+                },
+              ],
+            },
+          ],
+        })}
+        loading={false}
+        dataUpdatedAt={0}
+        onRefresh={noopRefresh}
+      />,
+    )
+
+    expect(screen.getByText('Verkäufe pro Produkt')).toBeInTheDocument()
+    expect(screen.getByText('Essen')).toBeInTheDocument()
+    expect(screen.getByText('Pommes groß')).toBeInTheDocument()
+  })
+
+  it('zeigt einen leeren Zustand ohne Verkäufe', () => {
+    render(
+      <LiveReportingSection
+        liveData={liveData([])}
+        loading={false}
+        dataUpdatedAt={0}
+        onRefresh={noopRefresh}
+      />,
+    )
+
+    expect(
+      screen.getByText('Keine Verkäufe in dieser Kassensitzung.'),
+    ).toBeInTheDocument()
   })
 })

@@ -53,6 +53,40 @@ type StornierungServicekraft struct {
 	StornierungenCents  int
 }
 
+// ProduktStatistikZeile ist eine flache Ausgabezeile der GetProduktStatistik-Query:
+// je Variante die ausgegebene Menge (Produktion) und der Umsatz (Einnahmen) einer
+// Kassensitzung. Eingabe der Gruppierung (gruppiereProduktStatistik); erscheint
+// nie direkt in einer Response.
+type ProduktStatistikZeile struct {
+	Kategorie        string
+	ProduktName      string
+	VarianteID       int
+	VarianteName     string
+	AusgegebeneMenge int
+	UmsatzCents      int
+}
+
+// VarianteStatistik ist die aufbereitete Verkaufs-Kennzahl einer Variante:
+// ausgegebene Menge und Umsatz, bewusst getrennte Grundlagen (nicht ineinander
+// umrechenbar).
+type VarianteStatistik struct {
+	VarianteID       int
+	VarianteName     string
+	AusgegebeneMenge int
+	UmsatzCents      int
+}
+
+// ProduktStatistik gruppiert die Varianten eines Produkts mit Zwischensummen
+// über ausgegebene Menge und Umsatz. Ein-Varianten-Produkte tragen genau eine
+// Variante; die Zusammenfassung zu einer Zeile ist reine Präsentation.
+type ProduktStatistik struct {
+	Kategorie        string
+	ProduktName      string
+	AusgegebeneMenge int
+	UmsatzCents      int
+	Varianten        []VarianteStatistik
+}
+
 type Summary struct {
 	GesamtUmsatzCents        int
 	GesamtBestellungenCents  int
@@ -87,6 +121,10 @@ type ReportingData struct {
 	Breakdowns          Breakdowns
 	UmsatzProSteuersatz []UmsatzSteuersatz
 	Stornierungen       []StornierungDetail
+	// ProduktStatistik ist die fertig gruppierte und sortierte Verkaufsstatistik
+	// je Produkt/Variante (Kategorie-Abschnitte). Von der Anwendungsschicht aus
+	// den flachen ProduktStatistikZeile-Werten gebaut.
+	ProduktStatistik []ProduktStatistik
 }
 
 // AbgeschlosseneSitzung ist ein Eintrag der Kassenberichte-Sitzungsliste: die
@@ -120,6 +158,9 @@ type LiveReportingData struct {
 	// eigenen Arbeit über die Tisch-Sessions, per user_id gemerged.
 	Servicekraefte []ServicekraftLive
 	Stornierungen  []StornierungDetail
+	// ProduktStatistik ist die fertig gruppierte und sortierte Verkaufsstatistik
+	// der offenen Sitzung — identische Form und Regeln wie in der Abrechnung.
+	ProduktStatistik []ProduktStatistik
 }
 
 // ServicekraftLive ist die Live-Sicht auf eine Servicekraft im Admin-Dashboard:

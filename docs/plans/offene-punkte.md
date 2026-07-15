@@ -78,5 +78,7 @@ Release-Vorbereitung.
   (GoBD-Integritätsnachweis) und F-09 (eBeleg) als v1.1 nachziehen sollten.
   Commit `186aea9` hat K-23, R-02 (CSV-Export), F-08 und F-09 jedoch ohne
   Begründung aus `anforderungen.md` entfernt (weder Roadmap noch
-  Nicht-Ziele; nur R-05 steht noch). Entscheiden, ob sie zurück in die
-  Roadmap kommen oder als Nicht-Ziele dokumentiert werden.
+  Nicht-Ziele). R-05 ist inzwischen umgesetzt und in den Funktionsumfang
+  verschoben; die Roadmap ist damit leer. Entscheiden, ob K-23, R-02, F-08
+  und F-09 zurück in die Roadmap kommen oder als Nicht-Ziele dokumentiert
+  werden.
