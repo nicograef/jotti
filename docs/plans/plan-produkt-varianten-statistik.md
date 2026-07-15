@@ -1,0 +1,272 @@
+# Plan: Produkt- und Varianten-Statistik im Report
+
+> Source PRD: `docs/prds/prd-produkt-varianten-statistik.md`
+
+## Goal
+
+Der Report zeigt pro Kassensitzung eine Aufschlüsselung der Verkäufe pro Produkt
+und Variante — je Zeile zwei getrennte Zahlen: **ausgegebene Menge** (Bestellung
+− Korrektur + Direktverkauf) und **Umsatz** (Kassiert + Direktverkauf −
+Warenrücknahme/Storno). Gegliedert in Kategorie-Abschnitte (Essen → Getränke →
+Sonstiges), pro Variante aufgeschlüsselt und auf Produktebene mit Zwischensumme
+gruppiert, Ein-Varianten-Produkte zu einer Zeile zusammengefasst, je Kategorie
+nach Menge aufsteigend sortiert. Angezeigt sowohl in der Tagesabrechnung
+(`get-abrechnung`) als auch im Live-Dashboard (`get-live-reporting`). Setzt die
+Roadmap-Anforderung **R-05** um.
+
+## Architectural decisions
+
+Dauerhafte Entscheidungen, die für alle Phasen gelten:
+
+- **Endpunkte**: keine neuen. Die bestehenden `admin/get-abrechnung` und
+  `admin/get-live-reporting` tragen ein neues Response-Feld `produktStatistik`.
+- **Datenquelle**: reine additive Leseauswertung über `kassenjournal`, gefiltert
+  nach `kassensitzung_nr`. Kein neues Event, keine Schema-Migration, kein Join auf
+  Stammdaten (Reporting-ACL bleibt gewahrt). Positionsdaten kommen aus den
+  eingefrorenen Fat-Events.
+- **SQL**: eine neue sqlc-Query `GetProduktStatistik` in
+  `backend/sqlc/queries/reporting.sql`, die `data->'positionen'` per
+  `jsonb_array_elements` entfaltet und **flache Zeilen pro Variante**
+  `(kategorie, varianteId, produktName, varianteName, ausgegebeneMenge, umsatzCents)`
+  liefert (`GROUP BY kategorie, varianteId, produktName, varianteName`). Kein neuer
+  `kj_extract_*`-DB-Helper (die Vorzeichen-Logik steht inline in der Query). Nach
+  Query-Änderung: `make sqlc`.
+- **Event-Mapping** (in der SQL-Query als `CASE`):
+  - *Ausgegebene Menge* = Σ `menge`: `bestellung-aufgenommen:v1` (+),
+    `bestellung-korrigiert:v1` (−), `direktverkauf-getaetigt:v1` (+).
+  - *Umsatz* = Σ `einzelpreisCents × menge`: `zahlung-kassiert:v1` (+),
+    `direktverkauf-getaetigt:v1` (+), `stornierung-erteilt:v1` (−),
+    `direktverkauf-storniert:v1` (−).
+  - `bestellung-umgebucht:v1` wird **nicht** gezählt (Positionen bereits bei der
+    Bestellung erfasst).
+- **Domänen-Modelle** (`backend/domain/reporting/reporting.go`, keine `json`-Tags):
+  - `VarianteStatistik` — `VarianteID int`, `VarianteName string`,
+    `AusgegebeneMenge int`, `UmsatzCents int`.
+  - `ProduktStatistik` — `Kategorie string`, `ProduktName string`,
+    `AusgegebeneMenge int` (Zwischensumme), `UmsatzCents int` (Zwischensumme),
+    `Varianten []VarianteStatistik`.
+  - Neues Feld `ProduktStatistik []ProduktStatistik` auf `ReportingData` **und**
+    `LiveReportingData`.
+- **Gruppierung/Sortierung**: eine reine Funktion in der Anwendungsschicht
+  (`backend/api/reporting/application/`, analog `computeUmsatzProSteuersatz` in
+  `query.go`) baut aus den flachen Varianten-Zeilen die Produkt-Hierarchie,
+  berechnet Zwischensummen und sortiert: Kategorien fest Essen → Getränke →
+  Sonstiges; Produkte je Kategorie nach `AusgegebeneMenge` aufsteigend; Varianten
+  je Produkt nach `AusgegebeneMenge` aufsteigend; `ProduktName`/`VarianteName` als
+  stabiler Tiebreaker. Backend liefert die Liste fertig sortiert.
+- **JSON-Contract** (HTTP-Response-DTO in
+  `backend/api/reporting/http/query_handler.go` und Live-Pendant): Feld
+  `produktStatistik` = Array von `{ kategorie, produktName, ausgegebeneMenge,
+  umsatzCents, varianten: [{ varianteId, varianteName, ausgegebeneMenge,
+  umsatzCents }] }`.
+- **Frontend**: neue Zod-Schemas `VarianteStatistikSchema` /
+  `ProduktStatistikSchema` in `frontend/src/admin/reporting/types.ts`, eingehängt
+  in `ReportingDataSchema` und `LiveReportingDataSchema`. Anzeige als neue
+  Komponente, eingebunden in `ReportingResults.tsx` (Abrechnung) und
+  `LiveReportingSection.tsx` (Live). Ein-Varianten-Produkte werden in der
+  Darstellung zu einer Zeile zusammengefasst (reine Präsentation; Datenmodell
+  bleibt Produkt + eine Varianten-Zeile).
+
+## Inventory
+
+- `backend/sqlc/queries/reporting.sql` — bestehende Reporting-Queries; Muster
+  `GetUmsatzPositionszeilen` (entfaltet `data->'positionen'`, liefert unaggregierte
+  Zeilen) ist die direkte Vorlage.
+- `backend/repository/reporting_repo/repo.go — Repository.GetReporting()` /
+  `Repository.GetLiveReporting()` — feuern die Reporting-Queries parallel per
+  `errgroup` und mappen Rows → Domäne. Hier wird die neue Query eingereiht.
+- `backend/domain/reporting/reporting.go` — Read-Model-Typen (`ReportingData`,
+  `LiveReportingData`, `UmsatzServicekraft`, `StornierungPosition`); Vorlage für
+  die neuen Typen und den neuen Feld-Anbau.
+- `backend/api/reporting/application/query.go — Query.GetReporting()` /
+  `Query.GetLiveReporting()` und `computeUmsatzProSteuersatz()` — Vorlage für die
+  reine Gruppierungs-/Sortierfunktion und deren Aufruf.
+- `backend/api/reporting/http/query_handler.go — toReportingResponse()`,
+  `reportingResponse`, `umsatzSteuersatzResponse`, `stornierungPosition` — DTO- und
+  Mapper-Muster; Live-Pendant im selben File (`liveSummaryResponse` ff.).
+- `backend/domain/kasse/bestellung.go — Position`, `PositionEventData`,
+  `Position.Bezeichnung()` — Positions-Felder (`VarianteID`, `ProduktName`,
+  `VarianteName`, `Kategorie`, `EinzelpreisCents`, `Menge`) und die
+  Produkt-plus-Variante-Beschriftung.
+- `backend/domain/kasse/event_json_contract_test.go` — eingefrorene JSON-Keys der
+  Positionen (`varianteId`, `produktName`, `varianteName`, `kategorie`,
+  `einzelpreisCents`, `menge`); Referenz, nicht zu ändern.
+- `frontend/src/admin/reporting/types.ts` — Zod-Schemas
+  (`ReportingDataSchema`, `LiveReportingDataSchema`, `UmsatzSteuersatzSchema`,
+  `StornierungPositionSchema`); Vorlage und Einhängepunkt.
+- `frontend/src/admin/reporting/ReportingResults.tsx — ReportingResults()` — Body
+  der Abrechnung (Kennzahlen, „Umsatz nach Steuersatz", Servicekraft-/Storno-Listen);
+  Einhängepunkt für den neuen Abschnitt.
+- `frontend/src/admin/reporting/LiveReportingSection.tsx` — Live-Dashboard-Body;
+  zweiter Einhängepunkt.
+- `frontend/src/admin/reporting/ReportingBackend.ts` — `getReporting()` /
+  `getLiveReporting()`; unverändert im Aufruf, validieren die erweiterten Schemas.
+- `frontend/src/admin/reporting/utils.ts`, `@/lib/utils — formatEuro` — Cent-Format.
+- Tests als Prior Art: `backend/repository/reporting_repo/repo_test.go`,
+  `backend/api/reporting/application/query_test.go`,
+  `backend/api/reporting/application/query_export_konsistenz_test.go`,
+  `frontend/src/admin/reporting/ReportingResults.test.tsx`,
+  `frontend/src/admin/reporting/LiveReportingSection.test.tsx`.
+
+## Resolved decisions
+
+- **Zwei getrennte Grundlagen** für Menge (Produktion) und Umsatz (Einnahmen) —
+  bewusst nicht ineinander umrechenbar; erklärender Hinweis im Report.
+- **Direktverkauf** zählt in beide Zahlen.
+- **Kategorie-Abschnitte** Essen → Getränke → Sonstiges; keine Kategorie-Summenzeile.
+- **Sortierung nach ausgegebener Menge aufsteigend** je Kategorie.
+- **Ein-Varianten-Produkte** als eine Zeile (Beschriftung `produktName varianteName`).
+- **Kein neues Event, keine Migration, kein Stammdaten-Join.**
+- Gruppierung/Sortierung im **Backend** (Single Source of Truth für Aufbereitung).
+
+## Open questions / Risks
+
+- **Sortierrichtung**: „aufsteigend" ist wie festgelegt umgesetzt (kleinste Menge
+  zuerst). Falls Top-Seller oben gewünscht, ist es eine reine Umkehr der
+  Vergleichsfunktion — kein Struktureingriff.
+- **Konsistenz-Invariante**: Σ aller Produkt-`UmsatzCents` muss dem kassierten
+  Gesamtumsatz (= Σ `UmsatzProSteuersatz`-Brutto) entsprechen — dieselbe
+  Positions-Basis. Wird per Test abgesichert (Phase 1).
+
+---
+
+## Phase 1: Produkt-/Varianten-Statistik in der Tagesabrechnung
+
+**User stories**: 1, 2, 3, 4, 6
+
+### Context
+
+- `backend/sqlc/queries/reporting.sql` — `GetUmsatzPositionszeilen` als
+  Query-Vorlage (Entfaltung von `data->'positionen'`).
+- `backend/domain/reporting/reporting.go` — Read-Model-Typen; neue Typen +
+  Feld-Anbau an `ReportingData`.
+- `backend/repository/reporting_repo/repo.go — Repository.GetReporting()` —
+  `errgroup`, in den die neue Query eingereiht wird; Row→Domäne-Mapping.
+- `backend/api/reporting/application/query.go — Query.GetReporting()`,
+  `computeUmsatzProSteuersatz()` — Aufruf- und Muster-Vorlage für die neue reine
+  Gruppierungs-/Sortierfunktion.
+- `backend/api/reporting/http/query_handler.go — toReportingResponse()`,
+  `reportingResponse` — DTO + Mapper.
+- `frontend/src/admin/reporting/types.ts — ReportingDataSchema` — Zod-Einhängepunkt.
+- `frontend/src/admin/reporting/ReportingResults.tsx — ReportingResults()` —
+  Anzeige-Einhängepunkt.
+- `frontend/src/admin/reporting/ReportingResults.test.tsx` — Test-Vorlage.
+
+### What to build
+
+Ein durchgehender vertikaler Schnitt für die Tagesabrechnung: eine neue
+sqlc-Query aggregiert die eingefrorenen Positionen einer Kassensitzung zu flachen
+Varianten-Zeilen mit ausgegebener Menge und Umsatz (Vorzeichen laut Event-Mapping
+oben). Das Repository reiht die Query in die bestehende `GetReporting`-`errgroup`
+ein und mappt die Rows in flache Varianten-Statistik-Werte. Eine reine Funktion in
+der Anwendungsschicht gruppiert diese zu Kategorie-Abschnitten und Produkten mit
+Zwischensummen und sortiert sie (Kategorie-Reihenfolge fest, Menge aufsteigend,
+Name-Tiebreaker). Das Ergebnis hängt als `ProduktStatistik []ProduktStatistik` an
+`ReportingData`, wird als `produktStatistik`-Feld der `get-abrechnung`-Response
+serialisiert, im Frontend per Zod validiert und in `ReportingResults.tsx` als neuer
+Abschnitt „Verkäufe pro Produkt" angezeigt: Kategorie-Überschriften, Produktzeile
+mit Zwischensumme und Variantenzeilen darunter, Ein-Varianten-Produkte als eine
+Zeile, Spalten „Ausgegeben" und „Umsatz" (`formatEuro`), erklärender Ein-Satz-
+Hinweis, leerer Zustand, druckfreundlich als Teil des Z-Bons.
+
+### Acceptance criteria
+
+- [ ] Für eine Kassensitzung mit Bestellungen, Korrekturen, Zahlungen,
+  Warenrücknahmen, Direktverkäufen und Direktverkauf-Stornos liefert die Auswertung
+  je Variante die korrekte ausgegebene Menge (Bestellung − Korrektur +
+  Direktverkauf) und den korrekten Umsatz (Kassiert + Direktverkauf − Storno);
+  Umbuchungen verändern beide Zahlen nicht.
+- [ ] Warenrücknahme/Direktverkauf-Storno mindern nur den Umsatz, nicht die Menge;
+  eine geldneutrale Korrektur mindert nur die Menge, nicht den Umsatz.
+- [ ] Die Ausgabe ist in Kategorie-Abschnitte (Essen → Getränke → Sonstiges)
+  gegliedert; je Produkt gibt es eine Zwischensumme über seine Varianten; Produkte
+  und Varianten sind nach ausgegebener Menge aufsteigend sortiert (Name-Tiebreaker).
+- [ ] Σ aller Produkt-`umsatzCents` entspricht der Summe der
+  `umsatzProSteuersatz`-Bruttowerte derselben Kassensitzung (Konsistenz-Test grün,
+  Muster `query_export_konsistenz_test.go`).
+- [ ] `admin/get-abrechnung` liefert das Feld `produktStatistik` mit
+  verschachtelten `varianten`; das Frontend validiert es per Zod ohne Fehler.
+- [ ] `ReportingResults.tsx` zeigt den Abschnitt „Verkäufe pro Produkt" mit
+  Kategorie-Überschriften, Zwischensummen, den Spalten „Ausgegeben"/„Umsatz", dem
+  erklärenden Hinweis und einem leeren Zustand bei einer Sitzung ohne Verkäufe;
+  Ein-Varianten-Produkte erscheinen als eine Zeile.
+- [ ] `make sqlc`, `make lint` und die betroffenen Backend- und Frontend-Tests
+  laufen grün; `sqlc/dbgen/` wurde nicht von Hand editiert.
+
+---
+
+## Phase 2: Produkt-/Varianten-Statistik im Live-Dashboard
+
+**User stories**: 5, 6
+
+### Context
+
+- `backend/repository/reporting_repo/repo.go — Repository.GetLiveReporting()` —
+  zweite `errgroup`, in die dieselbe Query eingereiht wird.
+- `backend/api/reporting/application/query.go — Query.GetLiveReporting()` — ruft
+  die in Phase 1 erstellte Gruppierungs-/Sortierfunktion für die Live-Daten auf.
+- `backend/domain/reporting/reporting.go — LiveReportingData` — Feld-Anbau
+  (Typen aus Phase 1 wiederverwendet).
+- `backend/api/reporting/http/query_handler.go` — Live-Response-DTO (Pendant zu
+  `toReportingResponse`) um `produktStatistik` erweitern.
+- `frontend/src/admin/reporting/types.ts — LiveReportingDataSchema` — Zod-Einhängepunkt.
+- `frontend/src/admin/reporting/LiveReportingSection.tsx` — Anzeige-Einhängepunkt.
+- `frontend/src/admin/reporting/LiveReportingSection.test.tsx` — Test-Vorlage.
+
+### What to build
+
+Der in Phase 1 gebaute Backend-Kern (Query, Domäne-Typen, Gruppierungs-/
+Sortierfunktion) wird in den Live-Pfad eingehängt: `GetLiveReporting` im Repository
+feuert die Query zusätzlich, die Anwendungsschicht gruppiert identisch, das Feld
+`ProduktStatistik` hängt an `LiveReportingData` und wird in der
+`get-live-reporting`-Response als `produktStatistik` serialisiert. Im Frontend wird
+dieselbe Anzeige-Komponente aus Phase 1 in `LiveReportingSection.tsx` eingebunden,
+sodass die Statistik der offenen Kassensitzung in Echtzeit erscheint.
+
+### Acceptance criteria
+
+- [ ] `admin/get-live-reporting` liefert für die offene Kassensitzung das Feld
+  `produktStatistik` mit identischer Struktur und identischen Zahlen-Regeln wie die
+  Abrechnung (dieselbe Gruppierungs-/Sortierfunktion, keine Duplikat-Logik).
+- [ ] Das Live-Dashboard zeigt den Abschnitt „Verkäufe pro Produkt" mit denselben
+  Kategorie-Abschnitten, Zwischensummen und Spalten wie die Abrechnung; ein leerer
+  Zustand erscheint, solange noch keine Verkäufe vorliegen.
+- [ ] In einer offenen Sitzung mit noch unbezahlten Bestellungen erscheint die
+  ausgegebene Menge > 0 bei Umsatz 0 (bestellt/rausgegeben, aber noch nicht
+  kassiert) — konsistent mit den Kennzahl-Regeln.
+- [ ] `make lint` und die betroffenen Backend-/Frontend-Tests laufen grün.
+
+---
+
+## Phase 3: Dokumentation nachziehen
+
+**User stories**: — (Doku-Pflege gemäß AGENTS.md)
+
+### Context
+
+- `docs/anforderungen.md` — Roadmap-Tabelle (R-05) und Reporting-Funktionsumfang
+  (R-01 ff.).
+- `docs/handbuch.md` — §7.2 Admin-Ansichten (Reporting), Read-Model-Übersicht und
+  Endpunkt-Tabelle (`get-abrechnung`/`get-live-reporting`).
+- `docs/language.md` — Read-Model-Begriffe (`Summary`, `Breakdowns`,
+  `UmsatzServicekraft` …).
+
+### What to build
+
+Die Doku wird an das umgesetzte Feature angepasst: R-05 wandert in
+`docs/anforderungen.md` aus der Roadmap in den Reporting-Funktionsumfang; die neuen
+Read-Model-Typen (`ProduktStatistik`, `VarianteStatistik`) und das erweiterte
+Response-Feld `produktStatistik` werden in der Read-Model-Übersicht und der
+Endpunkt-Beschreibung von `docs/handbuch.md` §7.2 sowie in der Begriffsliste von
+`docs/language.md` ergänzt.
+
+### Acceptance criteria
+
+- [ ] R-05 steht nicht mehr in der Roadmap, sondern als umgesetzte Anforderung im
+  Reporting-Funktionsumfang von `docs/anforderungen.md`.
+- [ ] `docs/handbuch.md` §7.2 nennt `produktStatistik` als Bestandteil der
+  `get-abrechnung`- und `get-live-reporting`-Antwort und führt die neuen
+  Read-Model-Typen in der Übersicht.
+- [ ] `docs/language.md` enthält Einträge für `ProduktStatistik` und
+  `VarianteStatistik`.
+- [ ] Keine toten Verweise; Begriffe konsistent mit den im Code verwendeten Namen.
