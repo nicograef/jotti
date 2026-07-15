@@ -95,6 +95,47 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     expect(verkaufAbgeschlossen).toHaveBeenCalledTimes(1)
   })
 
+  it('setzt Erhalten und Kommentar beim neuen Vorgang zurück (kein Übertrag)', async () => {
+    const user = userEvent.setup()
+
+    function Harness() {
+      const [leer, setLeer] = useState(false)
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setLeer((v) => !v)
+            }}
+          >
+            toggle
+          </button>
+          <DirektverkaufAbschluss
+            variant="spalte"
+            backend={{ direktverkaufTaetigen: vi.fn() }}
+            receiptItems={leer ? [] : receiptItems}
+            positionen={leer ? [] : positionen}
+            totalCents={leer ? 0 : 700}
+            verkaufAbgeschlossen={vi.fn()}
+          />
+        </>
+      )
+    }
+    render(<Harness />)
+
+    await user.type(screen.getByLabelText('Erhalten'), '10,00')
+    await user.type(screen.getByPlaceholderText(/Kommentar/), 'Für Tisch 3')
+    expect(screen.getByLabelText('Erhalten')).toHaveValue('10,00')
+
+    // Auswahl leeren (abgebrochener Vorgang) und neu beginnen: der neue Vorgang
+    // startet mit leeren Eingaben, damit nichts aus dem alten übertragen wird.
+    await user.click(screen.getByRole('button', { name: 'toggle' }))
+    await user.click(screen.getByRole('button', { name: 'toggle' }))
+
+    expect(screen.getByLabelText('Erhalten')).toHaveValue('')
+    expect(screen.getByPlaceholderText(/Kommentar/)).toHaveValue('')
+  })
+
   it('behält den verkaufId über einen Retry und wechselt ihn beim neuen Vorgang', async () => {
     const user = userEvent.setup()
     const direktverkaufTaetigen = vi

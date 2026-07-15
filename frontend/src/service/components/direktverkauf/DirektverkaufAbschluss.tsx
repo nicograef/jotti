@@ -54,12 +54,18 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
   // verkaufId je logischem Vorgang: neu, sobald eine Zusammenstellung aus dem
   // Leerzustand beginnt, und — weil ein erfolgreicher Abschluss die Auswahl leert
   // — erneut beim nächsten Aufbau. Ein Retry desselben Vorgangs behält seinen
-  // Schlüssel, weil die Auswahl dabei nicht leer wird.
+  // Schlüssel, weil die Auswahl dabei nicht leer wird. Mit dem neuen Schlüssel
+  // starten auch die Eingaben leer: In der dauerhaften Spalte überlebt der State
+  // sonst über einen Auswahl-Reset hinweg und würde Erhalten/Kommentar eines
+  // abgebrochenen Vorgangs in den nächsten tragen (der Idempotenz-Schlüssel und
+  // die Eingaben bleiben so an derselben Vorgangsgrenze konsistent).
   const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
   const warLeerRef = useRef(noPositionenSelected)
   useEffect(() => {
     if (warLeerRef.current && !noPositionenSelected) {
       setVerkaufId(crypto.randomUUID())
+      setErhaltenEuro('')
+      setKommentar('')
     }
     warLeerRef.current = noPositionenSelected
   }, [noPositionenSelected])
@@ -133,6 +139,7 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
             </div>
             <div className="px-4 pt-3">
               <KommentarField
+                value={kommentar}
                 onChange={(value) => {
                   setKommentar(value)
                 }}
