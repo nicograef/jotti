@@ -240,17 +240,17 @@ in der Spalte. Leerzustand und Idempotenz-Lebenszyklus analog Phase 1.
 
 ### Acceptance criteria
 
-- [ ] Ab 1024px zeigt der Reiter „Bestellen" die Produktliste links und die
+- [x] Ab 1024px zeigt der Reiter „Bestellen" die Produktliste links und die
       entstehende Bestellung rechts dauerhaft nebeneinander; kein Drawer, keine
       fixierte Dock-Leiste auf dieser Breite.
-- [ ] Unterhalb 1024px ist der Reiter „Bestellen" unverändert.
-- [ ] Abschluss-Inhalt aus einer Komponente in beiden Containern; Leerzustand mit
+- [x] Unterhalb 1024px ist der Reiter „Bestellen" unverändert.
+- [x] Abschluss-Inhalt aus einer Komponente in beiden Containern; Leerzustand mit
       Hinweistext plus deaktiviertem Button.
-- [ ] `bestellungId` bleibt über Retry stabil und wechselt bei neuem logischem
+- [x] `bestellungId` bleibt über Retry stabil und wechselt bei neuem logischem
       Vorgang.
-- [ ] Beim Abschluss wird `bestellungAufnehmen` genau einmal mit der erwarteten
+- [x] Beim Abschluss wird `bestellungAufnehmen` genau einmal mit der erwarteten
       Nutzlast aufgerufen; Erfolgs-Pop verhält sich wie zuvor.
-- [ ] Bestehende Bestellen-Verhaltenstests grün; `make check` grün.
+- [x] Bestehende Bestellen-Verhaltenstests grün; `make check` grün.
 
 ---
 
@@ -283,21 +283,21 @@ erfolgreicher Zahlung nur den lokalen Eingabe-State zurück; der
 
 ### Acceptance criteria
 
-- [ ] Ab 1024px zeigt der Reiter „Kassieren" die offenen Positionen links und die
+- [x] Ab 1024px zeigt der Reiter „Kassieren" die offenen Positionen links und die
       Zahlungsübersicht (Erhalten, Zielbetrag/Trinkgeld, Rückgeld, Restbetrag)
       rechts dauerhaft nebeneinander; kein Drawer, keine fixierte Dock-Leiste.
-- [ ] Die Restbetrag-Zeile ist ab `lg` in der Abschluss-Spalte sichtbar (nicht im
+- [x] Die Restbetrag-Zeile ist ab `lg` in der Abschluss-Spalte sichtbar (nicht im
       Dock-Slot).
-- [ ] Unterhalb 1024px ist der Reiter „Kassieren" unverändert, inklusive der
+- [x] Unterhalb 1024px ist der Reiter „Kassieren" unverändert, inklusive der
       Restbetrag-Zeile im Dock-Slot.
-- [ ] Abschluss-Inhalt aus einer Komponente in beiden Containern; Leerzustand mit
+- [x] Abschluss-Inhalt aus einer Komponente in beiden Containern; Leerzustand mit
       Hinweistext plus deaktiviertem Button.
-- [ ] Rückgeld- und Trinkgeld-Berechnung sind in der breiten Ansicht identisch zur
+- [x] Rückgeld- und Trinkgeld-Berechnung sind in der breiten Ansicht identisch zur
       schmalen.
-- [ ] Beim Abschluss wird `zahlungKassieren` genau einmal mit der erwarteten
+- [x] Beim Abschluss wird `zahlungKassieren` genau einmal mit der erwarteten
       Nutzlast (ohne zusätzlichen Schlüssel) aufgerufen; ein Doppelklick löst
       keinen zweiten Aufruf aus.
-- [ ] Bestehende Kassieren-Verhaltenstests grün; `make check` grün.
+- [x] Bestehende Kassieren-Verhaltenstests grün; `make check` grün.
 
 ---
 
@@ -326,14 +326,14 @@ Fachliches Verhalten (Validierung, Idempotenz, Fehler) bleibt unberührt.
 
 ### Acceptance criteria
 
-- [ ] Ab 1024px erscheinen Stornieren und Umbuchen (Tisch) sowie der
+- [x] Ab 1024px erscheinen Stornieren und Umbuchen (Tisch) sowie der
       Direktverkauf-Storno als mittig zentrierter Dialog; unterhalb 1024px
       unverändert als Bottom-Sheet.
-- [ ] Der ADR-03-Handy-Vertrag (85dvh, Safe-Area, ein Scrollbereich, kein
+- [x] Der ADR-03-Handy-Vertrag (85dvh, Safe-Area, ein Scrollbereich, kein
       Drag-Handle) gilt unter `lg` wörtlich weiter; die installierte iOS-PWA
       (nur Handy-Breiten) ist nicht betroffen.
-- [ ] Es bleibt ein Drawer-System (kein Fork der Primitive, kein Parallelsystem).
-- [ ] Auf großen Bildschirmen fährt in keiner Service-Fläche mehr ein Sheet vom
+- [x] Es bleibt ein Drawer-System (kein Fork der Primitive, kein Parallelsystem).
+- [x] Auf großen Bildschirmen fährt in keiner Service-Fläche mehr ein Sheet vom
       unteren Rand herein.
-- [ ] Fachliches Verhalten der Korrekturvorgänge unverändert; bestehende Tests
+- [x] Fachliches Verhalten der Korrekturvorgänge unverändert; bestehende Tests
       grün; `make check` grün.
