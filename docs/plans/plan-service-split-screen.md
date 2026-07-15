@@ -194,24 +194,24 @@ Die tragende Scheibe: die responsive Service-Shell **und** die erste Fläche
 
 ### Acceptance criteria
 
-- [ ] Ab 1024px zeigt Direktverkauf-Verkaufen Produkte links und den Warenkorb
+- [x] Ab 1024px zeigt Direktverkauf-Verkaufen Produkte links und den Warenkorb
       (Receipt, Erhalten/Rückgeld, Kommentar, „Verkauf abschließen") rechts
       dauerhaft nebeneinander; kein Bottom-Sheet-Drawer und keine fixierte
-      Dock-Leiste erscheinen auf dieser Breite.
-- [ ] Unterhalb 1024px ist Direktverkauf-Verkaufen unverändert (einspaltig,
+      Dock-Leiste erscheinen auf dieser Breite. _(Sichtabnahme manuell)_
+- [x] Unterhalb 1024px ist Direktverkauf-Verkaufen unverändert (einspaltig,
       fixierte Dock-Leiste, Bottom-Sheet-Drawer).
-- [ ] Der Abschluss-Inhalt stammt aus **einer** Komponente, die in beiden
+- [x] Der Abschluss-Inhalt stammt aus **einer** Komponente, die in beiden
       Containern gerendert wird (kein dupliziertes Markup, keine zweite
       State-Quelle).
-- [ ] Leerzustand der Abschluss-Spalte: Hinweistext plus deaktivierter Button.
-- [ ] `verkaufId` bleibt über einen Retry stabil und wechselt bei einem neuen
+- [x] Leerzustand der Abschluss-Spalte: Hinweistext plus deaktivierter Button.
+- [x] `verkaufId` bleibt über einen Retry stabil und wechselt bei einem neuen
       logischen Vorgang (aus Leerzustand bzw. nach erfolgreichem Abschluss).
-- [ ] Beim Abschluss wird `direktverkaufTaetigen` genau einmal mit der
+- [x] Beim Abschluss wird `direktverkaufTaetigen` genau einmal mit der
       erwarteten Nutzlast aufgerufen; Erfolgs-Pop und Betragsberechnung
       verhalten sich wie zuvor.
-- [ ] Die bestehenden Direktverkauf-Verhaltenstests laufen (ggf. auf die
+- [x] Die bestehenden Direktverkauf-Verhaltenstests laufen (ggf. auf die
       extrahierte Komponente umgezogen) grün; keine Snapshot-Tests.
-- [ ] `docs/adrs/08_service-split-screen.md` existiert, ist in
+- [x] `docs/adrs/08_service-split-screen.md` existiert, ist in
       `docs/adrs/README.md` verlinkt, und `make check` ist grün.
 
 ---
