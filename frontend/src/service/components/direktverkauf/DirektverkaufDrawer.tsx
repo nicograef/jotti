@@ -1,29 +1,11 @@
 import { useState } from 'react'
 
-import { EuroInput } from '@/components/common/EuroInput'
-import { Button } from '@/components/ui/button'
-import {
-  Drawer,
-  DrawerBody,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from '@/components/ui/drawer'
-import { Label } from '@/components/ui/label'
-import { Spinner } from '@/components/ui/spinner'
-import { useActionSubmit } from '@/hooks/use-action-submit'
-import { formatCents, parseCents } from '@/lib/utils'
+import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
 
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
-import { KommentarField } from '../table/CommentField'
 import { DockActionButton } from '../table/DockActionButton'
-import { calculateZahlungsbetraege } from '../table/drawerUtils'
 import type { ReceiptPosition } from '../table/Receipt'
-import { Receipt } from '../table/Receipt'
+import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
 
 interface VerkaufPositionInput {
   produktId: number
@@ -40,56 +22,15 @@ interface DirektverkaufDrawerProps {
   verkaufAbgeschlossen: () => void
 }
 
+// Handy-Container (unter lg): Dock-Aktionsbutton als Trigger plus
+// Bottom-Sheet-Drawer, der den gemeinsamen Abschluss-Inhalt trägt. Ab lg rendert
+// die Fläche stattdessen die feste Abschluss-Spalte (siehe Direktverkauf).
 export function DirektverkaufDrawer(props: DirektverkaufDrawerProps) {
   const [open, setOpen] = useState(false)
-  const [erhaltenEuro, setErhaltenEuro] = useState('')
-  const [kommentar, setKommentar] = useState('')
-  // verkaufId pro logischem Vorgang, nicht pro Retry — die Regeneration erfolgt
-  // beim Öffnen in onOpenChange(true).
-  const [verkaufId, setVerkaufId] = useState('')
-
-  const { rueckgeldCents } = calculateZahlungsbetraege(
-    props.totalCents,
-    parseCents(erhaltenEuro),
-    0,
-  )
   const noPositionenSelected = props.positionen.length === 0
 
-  const { loading, run } = useActionSubmit({
-    actionLabel: 'Verkauf abschließen',
-    byCode: {
-      kasse_nicht_geoeffnet:
-        'Es ist keine Kassensitzung geöffnet. Bitte zuerst die Kasse öffnen.',
-      produkt_not_found:
-        'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
-    },
-    onSuccess: () => {
-      setOpen(false)
-      setErhaltenEuro('')
-      setKommentar('')
-      props.verkaufAbgeschlossen()
-    },
-  })
-
-  const onSubmit = async () => {
-    await run(async () => {
-      await props.backend.direktverkaufTaetigen({
-        verkaufId,
-        positionen: props.positionen,
-        kommentar,
-      })
-    })
-  }
-
   const onOpenChange = (isOpen: boolean) => {
-    const nextOpen = noPositionenSelected ? false : isOpen
-    if (nextOpen) {
-      setVerkaufId(crypto.randomUUID())
-    }
-    setOpen(nextOpen)
-    if (!nextOpen) {
-      setErhaltenEuro('')
-    }
+    setOpen(noPositionenSelected ? false : isOpen)
   }
 
   return (
@@ -102,66 +43,17 @@ export function DirektverkaufDrawer(props: DirektverkaufDrawerProps) {
           disabled={noPositionenSelected}
         />
       </DrawerTrigger>
-      <DrawerContent pending={loading}>
-        <DrawerHeader className="mx-auto w-full max-w-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Verkauf abschließen
-          </p>
-          <DrawerTitle className="text-[22px] font-semibold">
-            Direktverkauf
-          </DrawerTitle>
-          <DrawerDescription className="sr-only">
-            Verkauf abschließen
-          </DrawerDescription>
-        </DrawerHeader>
-        <DrawerBody className="mx-auto w-full max-w-sm">
-          <Receipt
-            positionen={props.receiptItems}
-            totalPrice={props.totalCents}
-          />
-          <div className="flex flex-col gap-2 px-4 pt-3">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="erhalten">Erhalten</Label>
-              <EuroInput
-                id="erhalten"
-                value={erhaltenEuro}
-                onValueChange={setErhaltenEuro}
-                className="w-28"
-              />
-            </div>
-            {rueckgeldCents !== null && (
-              <div className="flex items-baseline justify-between pt-1">
-                <div className="text-[15px] font-semibold">Rückgeld</div>
-                <div className="text-xl font-bold tabular-nums">
-                  {formatCents(rueckgeldCents)}&nbsp;€
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="px-4 pt-3">
-            <KommentarField
-              onChange={(value) => {
-                setKommentar(value)
-              }}
-            />
-          </div>
-        </DrawerBody>
-        <DrawerFooter className="mx-auto w-full max-w-sm">
-          <Button
-            disabled={loading}
-            onClick={() => {
-              void onSubmit()
-            }}
-          >
-            {loading ? <Spinner /> : null} Verkauf abschließen
-          </Button>
-          <DrawerClose asChild>
-            <Button variant="outline" disabled={loading}>
-              Abbrechen
-            </Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
+      <DirektverkaufAbschluss
+        variant="sheet"
+        backend={props.backend}
+        receiptItems={props.receiptItems}
+        positionen={props.positionen}
+        totalCents={props.totalCents}
+        verkaufAbgeschlossen={() => {
+          setOpen(false)
+          props.verkaufAbgeschlossen()
+        }}
+      />
     </Drawer>
   )
 }
