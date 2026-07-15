@@ -88,5 +88,16 @@ freeze-konform (nur Frontend).
 - Das Motion-Inventar und die Typografie aus dem Spektral-Redesign (ADR 06)
   gelten in der zweispaltigen Ansicht unverändert weiter; die Layout-Änderung
   führt keine neuen Motion- oder Farb-Entscheidungen ein.
+- **Eingabe-State ist vorgangs-, nicht container-gebunden.** Die extrahierten
+  Abschluss-Komponenten sind dauerhaft gemountet (in der Spalte ohnehin, im Sheet
+  als Kind des Drawers), und Erhalten/Zielbetrag/Kommentar werden je logischem
+  Vorgang zurückgesetzt (Beginn aus dem Leerzustand bzw. nach erfolgreichem
+  Abschluss), nicht beim Schließen des Drawers. Ein bewusster, vereinheitlichter
+  Bruch mit dem alten Handy-Drawer, der Erhalten/Zielbetrag beim Schließen leerte:
+  Ein Schließen ohne Auswahländerung beendet den Vorgang nicht, die Eingaben
+  bleiben also erhalten (Handy und Spalte verhalten sich gleich). Kein
+  Geld-/Nutzlast-Effekt — Erhalten/Zielbetrag steuern nur die sichtbare Rückgeld-/
+  Trinkgeld-Berechnung und gehen nie an das Backend; die Felder sind kontrolliert,
+  Angezeigtes und Berechnetes stimmen immer überein.
 - Eine Rückkehr zum durchgängig einspaltigen Service-Bereich bräuchte ein neues
   ADR.

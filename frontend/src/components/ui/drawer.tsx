@@ -1,7 +1,13 @@
 // Bottom-Sheet auf Radix Dialog — bewusst ohne vaul, dessen Scroll-Lock das
 // Layout der installierten iOS-PWA bricht (Praxistest 09.07.2026, vaul#505).
-// Der Layout-Vertrag (85dvh statt vh, Safe-Area-Padding, ein Scrollbereich,
-// kein Drag-Handle) ist bindend: docs/adrs/03_drawer-radix-statt-vaul.md
+// Der Handy-Layout-Vertrag (85dvh statt vh, Safe-Area-Padding, ein Scrollbereich,
+// kein Drag-Handle) ist unter lg bindend: docs/adrs/03_drawer-radix-statt-vaul.md
+//
+// Responsive Präsentation (ADR 08, docs/adrs/08_service-split-screen.md): unter
+// lg unverändert Bottom-Sheet, ab lg mittig zentrierter Modal-Dialog (analog
+// dialog.tsx). Ein Drawer-System, kein Fork — die Umschaltung ist reines CSS
+// über lg:-Overrides in DrawerContent. Die installierte iOS-PWA läuft nur auf
+// Handy-Breiten und bleibt damit ausschließlich im Bottom-Sheet.
 import * as React from 'react'
 import { Dialog as DrawerPrimitive } from 'radix-ui'
 
@@ -84,7 +90,10 @@ function DrawerContent({
           onInteractOutside?.(event)
         }}
         className={cn(
-          'group/drawer-content fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-xl border-t bg-popover pb-[env(safe-area-inset-bottom,0px)] text-sm text-popover-foreground duration-200 data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-10 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-10',
+          // Unter lg: Bottom-Sheet (ADR 03). Ab lg: mittig zentrierter Dialog
+          // (ADR 08) — die lg:-Overrides heben die Bodenverankerung auf, zentrieren
+          // und tauschen die Einfahr-Animation gegen ein Zoom (wie dialog.tsx).
+          'group/drawer-content fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-xl border-t bg-popover pb-[env(safe-area-inset-bottom,0px)] text-sm text-popover-foreground duration-200 data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-10 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-10 lg:inset-x-auto lg:bottom-auto lg:top-1/2 lg:left-1/2 lg:w-full lg:max-w-md lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-xl lg:border lg:pb-0 lg:ring-1 lg:ring-foreground/10 lg:data-open:slide-in-from-bottom-0 lg:data-open:zoom-in-95 lg:data-closed:slide-out-to-bottom-0 lg:data-closed:zoom-out-95',
           className,
         )}
         {...props}
