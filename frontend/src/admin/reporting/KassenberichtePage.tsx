@@ -27,7 +27,7 @@ function ExportBlock({ kassensitzungNr }: { kassensitzungNr: number }) {
   const { exportieren, isPending } = useDsfinvkExport()
 
   return (
-    <div className="flex items-center gap-4 rounded-xl border bg-sidebar p-4 print:hidden">
+    <div className="flex flex-col gap-4 rounded-xl border bg-sidebar p-4 sm:flex-row sm:items-center print:hidden">
       <Building2 className="size-5 shrink-0 text-primary" aria-hidden />
       <div className="flex-1">
         <p className="text-sm font-semibold">Für Steuerberater & Finanzamt</p>
@@ -102,7 +102,7 @@ export function KassenberichtePage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-[280px_1fr]">
+        <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
           <div className="print:hidden">
             <SitzungsListe
               sitzungen={kassensitzungen}

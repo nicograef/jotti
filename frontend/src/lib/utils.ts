@@ -22,6 +22,15 @@ export function formatCents(cents: number): string {
 }
 
 /**
+ * Formats a price in cents as a Euro amount followed by the € sign, joined by a
+ * non-breaking space (U+00A0) so amount and sign never wrap apart.
+ * Example: 1250 → "12,50 €"
+ */
+export function formatEuro(cents: number): string {
+  return `${formatCents(cents)}\u00A0€`
+}
+
+/**
  * Label of the "Alle auswählen" button in Kassieren and Umbuchung: correct
  * grammatical number (singular "1 Position", plural "N Positionen") plus the
  * selection sum. With exactly one position the plural-implying "Alle" is dropped.
@@ -34,7 +43,7 @@ export function formatAlleAuswaehlenLabel(
     anzahl === 1
       ? '1 Position auswählen'
       : `Alle ${anzahl.toString()} Positionen auswählen`
-  return `${auswahl} · ${formatCents(summeCents)}\u00A0€`
+  return `${auswahl} · ${formatEuro(summeCents)}`
 }
 
 /**

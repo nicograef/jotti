@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 import { formatStand } from '@/admin/reporting/utils'
 import { Button } from '@/components/ui/button'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import { GeldtransitDialog } from './GeldtransitDialog'
 import { useGeldtransitListe, useKassenbestand } from './hooks'
@@ -31,7 +31,7 @@ function AufschluesselungKachel({
     <div className="rounded-lg bg-muted/60 px-3 py-2.5">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-sm font-semibold">
-        {betragCents !== null ? `${formatCents(betragCents)} €` : '—'}
+        {betragCents !== null ? formatEuro(betragCents) : '—'}
       </div>
     </div>
   )
@@ -43,14 +43,14 @@ function BewegungZeile({ buchung }: { buchung: GeldtransitBuchung }) {
   const vorzeichen = istEntnahme ? '−' : '+'
   return (
     <div className="flex items-center justify-between gap-3 px-3.5 py-2 text-sm">
-      <span className="min-w-0 truncate text-muted-foreground">
+      <span className="min-w-0 flex-1 truncate text-muted-foreground">
         {formatBewegungZeit(buchung.zeitpunkt)} · {richtungLabel} · „
         {buchung.kommentar}" · {buchung.gebuchtVon}
       </span>
       <span
         className={`shrink-0 font-semibold ${istEntnahme ? 'text-destructive' : ''}`}
       >
-        {vorzeichen} {formatCents(buchung.betragCents)} €
+        {vorzeichen} {formatEuro(buchung.betragCents)}
       </span>
     </div>
   )
@@ -82,7 +82,7 @@ export function LaufenderBetriebSection({
         <div className="text-right">
           <div className="text-3xl font-extrabold tracking-tight tabular-nums">
             {kassenbestand !== null
-              ? `${formatCents(kassenbestand.sollBestandCents)} €`
+              ? formatEuro(kassenbestand.sollBestandCents)
               : '—'}
           </div>
           <div className="text-xs text-muted-foreground">

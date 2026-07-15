@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Item, ItemContent } from '@/components/ui/item'
-import { formatCents, formatPositionName } from '@/lib/utils'
+import { formatEuro, formatPositionName } from '@/lib/utils'
 
 import type { StornierungDetail } from './types'
 import { formatBediener, formatLocalTime } from './utils'
@@ -29,7 +29,7 @@ export function StornoItem({ storno }: { storno: StornierungDetail }) {
               {storno.barRueckgabe ? 'Bar-Rückgabe' : 'Geldneutral'}
             </Badge>
             <span className="whitespace-nowrap text-sm font-semibold">
-              {formatCents(storno.betragCents)} €
+              {formatEuro(storno.betragCents)}
             </span>
           </div>
         </div>
@@ -50,7 +50,7 @@ export function StornoItem({ storno }: { storno: StornierungDetail }) {
                   {formatPositionName(pos.produktName, pos.varianteName)}
                 </span>
                 <span className="whitespace-nowrap">
-                  {formatCents(pos.einzelpreisCents)} €
+                  {formatEuro(pos.einzelpreisCents)}
                 </span>
               </li>
             ))}

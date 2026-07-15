@@ -2,7 +2,7 @@ import { Loader2, Printer } from 'lucide-react'
 
 import { STEUERSATZ_LABEL } from '@/admin/products/Produkt'
 import { Button } from '@/components/ui/button'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import { StornoItem } from './StornoItem'
 import { StornoMarker } from './StornoServicekraft'
@@ -33,7 +33,7 @@ function BerichtsMeta({
   }
   if (metadaten.kassensturzDifferenzCents !== null) {
     teile.push(
-      `Kassensturz-Differenz ${formatCents(metadaten.kassensturzDifferenzCents)} €`,
+      `Kassensturz-Differenz ${formatEuro(metadaten.kassensturzDifferenzCents)}`,
     )
   }
   return (
@@ -117,7 +117,7 @@ export function ReportingResults({
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kennzahl
           label="Kassierter Umsatz"
-          wert={`${formatCents(summary.gesamtUmsatzCents)} €`}
+          wert={formatEuro(summary.gesamtUmsatzCents)}
         />
         <Kennzahl
           label="Bestellungen"
@@ -125,11 +125,11 @@ export function ReportingResults({
         />
         <Kennzahl
           label="Direktverkauf"
-          wert={`${formatCents(summary.direktverkaufUmsatzCents)} €`}
+          wert={formatEuro(summary.direktverkaufUmsatzCents)}
         />
         <Kennzahl
           label="Storniert"
-          wert={`${formatCents(summary.gesamtStornierungenCents)} €`}
+          wert={formatEuro(summary.gesamtStornierungenCents)}
           destructive={summary.gesamtStornierungenCents > 0}
         />
       </div>
@@ -155,13 +155,13 @@ export function ReportingResults({
               >
                 <span>{STEUERSATZ_LABEL[umsatz.satz]}</span>
                 <span className="text-right font-semibold">
-                  {formatCents(umsatz.bruttoCents)} €
+                  {formatEuro(umsatz.bruttoCents)}
                 </span>
                 <span className="text-right">
-                  {formatCents(umsatz.nettoCents)} €
+                  {formatEuro(umsatz.nettoCents)}
                 </span>
                 <span className="text-right">
-                  {formatCents(umsatz.steuerCents)} €
+                  {formatEuro(umsatz.steuerCents)}
                 </span>
               </div>
             ))}
@@ -194,7 +194,7 @@ export function ReportingResults({
                       )}
                     </span>
                     <span className="whitespace-nowrap font-semibold">
-                      {formatCents(sk.zahlungenCents)} €
+                      {formatEuro(sk.zahlungenCents)}
                     </span>
                   </div>
                 )
@@ -208,7 +208,7 @@ export function ReportingResults({
             Stornierungen{' '}
             <span className="font-normal text-muted-foreground">
               ({summary.anzahlStornierungen} ·{' '}
-              {formatCents(summary.gesamtStornierungenCents)} €)
+              {formatEuro(summary.gesamtStornierungenCents)})
             </span>
           </div>
           {result.stornierungen.length === 0 ? (
