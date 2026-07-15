@@ -31,6 +31,12 @@ Dauerhafte Entscheidungen, die für alle Phasen gelten:
   liefert (`GROUP BY kategorie, varianteId, produktName, varianteName`). Kein neuer
   `kj_extract_*`-DB-Helper (die Vorzeichen-Logik steht inline in der Query). Nach
   Query-Änderung: `make sqlc`.
+  - Casts wie in den bestehenden Reporting-Queries: `(position->>'varianteId')::int`,
+    `(position->>'menge')::int`, `(position->>'einzelpreisCents')::int` sowie
+    `COALESCE(SUM(... CASE ...), 0)::int` für beide Summenspalten, damit sqlc
+    Go-`int` erzeugt (passend zu den `int`-Domänenfeldern). `kategorie`,
+    `produktName`, `varianteName` bleiben `text` — **kein** Enum-Cast (die Query
+    trägt keinen `Steuersatz`, anders als `GetUmsatzPositionszeilen`).
 - **Event-Mapping** (in der SQL-Query als `CASE`):
   - *Ausgegebene Menge* = Σ `menge`: `bestellung-aufgenommen:v1` (+),
     `bestellung-korrigiert:v1` (−), `direktverkauf-getaetigt:v1` (+).
@@ -40,20 +46,40 @@ Dauerhafte Entscheidungen, die für alle Phasen gelten:
   - `bestellung-umgebucht:v1` wird **nicht** gezählt (Positionen bereits bei der
     Bestellung erfasst).
 - **Domänen-Modelle** (`backend/domain/reporting/reporting.go`, keine `json`-Tags):
+  - `ProduktStatistikZeile` — **flacher Zeilentyp** (Repo-Ausgabe, Eingabe der
+    Gruppierung): `Kategorie string`, `ProduktName string`, `VarianteID int`,
+    `VarianteName string`, `AusgegebeneMenge int`, `UmsatzCents int`. Genau die
+    Spalten der SQL-Query.
   - `VarianteStatistik` — `VarianteID int`, `VarianteName string`,
     `AusgegebeneMenge int`, `UmsatzCents int`.
   - `ProduktStatistik` — `Kategorie string`, `ProduktName string`,
     `AusgegebeneMenge int` (Zwischensumme), `UmsatzCents int` (Zwischensumme),
     `Varianten []VarianteStatistik`.
   - Neues Feld `ProduktStatistik []ProduktStatistik` auf `ReportingData` **und**
-    `LiveReportingData`.
-- **Gruppierung/Sortierung**: eine reine Funktion in der Anwendungsschicht
-  (`backend/api/reporting/application/`, analog `computeUmsatzProSteuersatz` in
-  `query.go`) baut aus den flachen Varianten-Zeilen die Produkt-Hierarchie,
-  berechnet Zwischensummen und sortiert: Kategorien fest Essen → Getränke →
-  Sonstiges; Produkte je Kategorie nach `AusgegebeneMenge` aufsteigend; Varianten
-  je Produkt nach `AusgegebeneMenge` aufsteigend; `ProduktName`/`VarianteName` als
-  stabiler Tiebreaker. Backend liefert die Liste fertig sortiert.
+    `LiveReportingData` (die *gruppierte* Form; die flachen Zeilen erscheinen nie
+    in der Response).
+- **Repo → Gruppierung → Response (Plumbing, ausdrücklich festgelegt):** die
+  `computeUmsatzProSteuersatz`-In-place-Analogie gilt hier **nicht**, weil Ein- und
+  Ausgabe unterschiedliche Formen haben (flache Zeilen → verschachtelte
+  Produkte). Deshalb:
+  1. Eine dedizierte Repo-Methode `GetProduktStatistik(ctx, kassensitzungNr)
+     ([]reporting.ProduktStatistikZeile, error)` auf dem `reportingRepo`-Interface
+     liefert die flachen Zeilen (SQL-Rows → `ProduktStatistikZeile`).
+  2. Die Anwendungsschicht ruft sie in `Query.GetReporting` **und**
+     `Query.GetLiveReporting` auf und weist
+     `data.ProduktStatistik = gruppiereProduktStatistik(zeilen)` zu — analog dazu,
+     wie `GetLiveReporting` bereits mehrere Repos orchestriert. Kein transientes
+     Feld auf der Domäne/Response; ein zusätzlicher On-Demand-Query-Roundtrip ist
+     für einen Admin-Report vernachlässigbar.
+- **Gruppierung/Sortierung**: eine reine Funktion `gruppiereProduktStatistik`
+  in der Anwendungsschicht (`backend/api/reporting/application/`, neben
+  `computeUmsatzProSteuersatz` in `query.go`) baut aus den flachen
+  `ProduktStatistikZeile`-Werten die Produkt-Hierarchie, berechnet Zwischensummen
+  und sortiert: Kategorien fest Essen → Getränke → Sonstiges; Produkte je Kategorie
+  nach `AusgegebeneMenge` aufsteigend; Varianten je Produkt nach `AusgegebeneMenge`
+  aufsteigend; `ProduktName`/`VarianteName` als stabiler Tiebreaker. Backend liefert
+  die Liste fertig sortiert. Isoliert unit-testbar (flache Eingabe → gruppierte,
+  sortierte Ausgabe).
 - **JSON-Contract** (HTTP-Response-DTO in
   `backend/api/reporting/http/query_handler.go` und Live-Pendant): Feld
   `produktStatistik` = Array von `{ kategorie, produktName, ausgegebeneMenge,
@@ -74,7 +100,8 @@ Dauerhafte Entscheidungen, die für alle Phasen gelten:
   Zeilen) ist die direkte Vorlage.
 - `backend/repository/reporting_repo/repo.go — Repository.GetReporting()` /
   `Repository.GetLiveReporting()` — feuern die Reporting-Queries parallel per
-  `errgroup` und mappen Rows → Domäne. Hier wird die neue Query eingereiht.
+  `errgroup` und mappen Rows → Domäne. Vorlage für die neue dedizierte Methode
+  `Repository.GetProduktStatistik()`, die SQL-Rows → `[]ProduktStatistikZeile` mappt.
 - `backend/domain/reporting/reporting.go` — Read-Model-Typen (`ReportingData`,
   `LiveReportingData`, `UmsatzServicekraft`, `StornierungPosition`); Vorlage für
   die neuen Typen und den neuen Feld-Anbau.
@@ -126,7 +153,9 @@ Dauerhafte Entscheidungen, die für alle Phasen gelten:
   Vergleichsfunktion — kein Struktureingriff.
 - **Konsistenz-Invariante**: Σ aller Produkt-`UmsatzCents` muss dem kassierten
   Gesamtumsatz (= Σ `UmsatzProSteuersatz`-Brutto) entsprechen — dieselbe
-  Positions-Basis. Wird per Test abgesichert (Phase 1).
+  Positions-Basis. Einziger realer Bruchweg: die `WHERE type IN (…)`-Menge der
+  neuen Query driftet von `GetUmsatzPositionszeilen` ab. Abgesichert im
+  Repo-Integrationstest (Phase 1), nicht im Anwendungs-Unit-Test.
 
 ---
 
@@ -141,7 +170,9 @@ Dauerhafte Entscheidungen, die für alle Phasen gelten:
 - `backend/domain/reporting/reporting.go` — Read-Model-Typen; neue Typen +
   Feld-Anbau an `ReportingData`.
 - `backend/repository/reporting_repo/repo.go — Repository.GetReporting()` —
-  `errgroup`, in den die neue Query eingereiht wird; Row→Domäne-Mapping.
+  Row→Domäne-Mapping-Muster; die neue Query kommt als **dedizierte Methode**
+  `Repository.GetProduktStatistik()` hinzu (nicht in die `GetReporting`-`errgroup`
+  eingereiht), aufgerufen von der Anwendungsschicht.
 - `backend/api/reporting/application/query.go — Query.GetReporting()`,
   `computeUmsatzProSteuersatz()` — Aufruf- und Muster-Vorlage für die neue reine
   Gruppierungs-/Sortierfunktion.
@@ -157,17 +188,18 @@ Dauerhafte Entscheidungen, die für alle Phasen gelten:
 Ein durchgehender vertikaler Schnitt für die Tagesabrechnung: eine neue
 sqlc-Query aggregiert die eingefrorenen Positionen einer Kassensitzung zu flachen
 Varianten-Zeilen mit ausgegebener Menge und Umsatz (Vorzeichen laut Event-Mapping
-oben). Das Repository reiht die Query in die bestehende `GetReporting`-`errgroup`
-ein und mappt die Rows in flache Varianten-Statistik-Werte. Eine reine Funktion in
-der Anwendungsschicht gruppiert diese zu Kategorie-Abschnitten und Produkten mit
+oben). Eine dedizierte Repo-Methode `GetProduktStatistik` mappt die Rows in
+`[]ProduktStatistikZeile`. Die reine Funktion `gruppiereProduktStatistik` in der
+Anwendungsschicht gruppiert diese zu Kategorie-Abschnitten und Produkten mit
 Zwischensummen und sortiert sie (Kategorie-Reihenfolge fest, Menge aufsteigend,
-Name-Tiebreaker). Das Ergebnis hängt als `ProduktStatistik []ProduktStatistik` an
-`ReportingData`, wird als `produktStatistik`-Feld der `get-abrechnung`-Response
-serialisiert, im Frontend per Zod validiert und in `ReportingResults.tsx` als neuer
-Abschnitt „Verkäufe pro Produkt" angezeigt: Kategorie-Überschriften, Produktzeile
-mit Zwischensumme und Variantenzeilen darunter, Ein-Varianten-Produkte als eine
-Zeile, Spalten „Ausgegeben" und „Umsatz" (`formatEuro`), erklärender Ein-Satz-
-Hinweis, leerer Zustand, druckfreundlich als Teil des Z-Bons.
+Name-Tiebreaker); `Query.GetReporting` weist das Ergebnis
+`data.ProduktStatistik` zu. Es wird als `produktStatistik`-Feld der
+`get-abrechnung`-Response serialisiert, im Frontend per Zod validiert und in
+`ReportingResults.tsx` als neuer Abschnitt „Verkäufe pro Produkt" angezeigt:
+Kategorie-Überschriften, Produktzeile mit Zwischensumme und Variantenzeilen
+darunter, Ein-Varianten-Produkte als eine Zeile, Spalten „Ausgegeben" und „Umsatz"
+(`formatEuro`), erklärender Ein-Satz-Hinweis, leerer Zustand, druckfreundlich als
+Teil des Z-Bons.
 
 ### Acceptance criteria
 
@@ -181,9 +213,16 @@ Hinweis, leerer Zustand, druckfreundlich als Teil des Z-Bons.
 - [ ] Die Ausgabe ist in Kategorie-Abschnitte (Essen → Getränke → Sonstiges)
   gegliedert; je Produkt gibt es eine Zwischensumme über seine Varianten; Produkte
   und Varianten sind nach ausgegebener Menge aufsteigend sortiert (Name-Tiebreaker).
+- [ ] `gruppiereProduktStatistik` ist als reine Funktion isoliert unit-getestet
+  (`query_test.go`, Muster `computeUmsatzProSteuersatz`): flache
+  `ProduktStatistikZeile`-Eingabe → korrekte Kategorie-Reihenfolge, Produkt-Gruppen,
+  Zwischensummen, aufsteigende Mengensortierung und stabiler Tiebreaker.
 - [ ] Σ aller Produkt-`umsatzCents` entspricht der Summe der
-  `umsatzProSteuersatz`-Bruttowerte derselben Kassensitzung (Konsistenz-Test grün,
-  Muster `query_export_konsistenz_test.go`).
+  `umsatzProSteuersatz`-Bruttowerte derselben Kassensitzung. Diese Invariante wird
+  im **Repo-Integrationstest** (`repo_test.go`, echtes Postgres, dieselben Events
+  speisen `GetProduktStatistik` und `GetUmsatzPositionszeilen`) geprüft — dort, wo
+  ein Drift der `WHERE type IN (…)`-Mengen real auffällt; ein
+  Anwendungs-Unit-Test mit handgebauten Eingaben kann diesen SQL-Drift nicht fangen.
 - [ ] `admin/get-abrechnung` liefert das Feld `produktStatistik` mit
   verschachtelten `varianten`; das Frontend validiert es per Zod ohne Fehler.
 - [ ] `ReportingResults.tsx` zeigt den Abschnitt „Verkäufe pro Produkt" mit
@@ -201,8 +240,9 @@ Hinweis, leerer Zustand, druckfreundlich als Teil des Z-Bons.
 
 ### Context
 
-- `backend/repository/reporting_repo/repo.go — Repository.GetLiveReporting()` —
-  zweite `errgroup`, in die dieselbe Query eingereiht wird.
+- `backend/repository/reporting_repo/repo.go — Repository.GetProduktStatistik()` —
+  in Phase 1 erstellt; wird im Live-Pfad von `Query.GetLiveReporting` unverändert
+  mitbenutzt.
 - `backend/api/reporting/application/query.go — Query.GetLiveReporting()` — ruft
   die in Phase 1 erstellte Gruppierungs-/Sortierfunktion für die Live-Daten auf.
 - `backend/domain/reporting/reporting.go — LiveReportingData` — Feld-Anbau
@@ -215,10 +255,11 @@ Hinweis, leerer Zustand, druckfreundlich als Teil des Z-Bons.
 
 ### What to build
 
-Der in Phase 1 gebaute Backend-Kern (Query, Domäne-Typen, Gruppierungs-/
-Sortierfunktion) wird in den Live-Pfad eingehängt: `GetLiveReporting` im Repository
-feuert die Query zusätzlich, die Anwendungsschicht gruppiert identisch, das Feld
-`ProduktStatistik` hängt an `LiveReportingData` und wird in der
+Der in Phase 1 gebaute Backend-Kern (Query, `GetProduktStatistik`-Repo-Methode,
+Domäne-Typen, `gruppiereProduktStatistik`) wird in den Live-Pfad eingehängt:
+`Query.GetLiveReporting` ruft dieselbe Repo-Methode und dieselbe
+Gruppierungsfunktion auf und weist `data.ProduktStatistik` zu (keine Duplikat-
+Logik); das Feld hängt an `LiveReportingData` und wird in der
 `get-live-reporting`-Response als `produktStatistik` serialisiert. Im Frontend wird
 dieselbe Anzeige-Komponente aus Phase 1 in `LiveReportingSection.tsx` eingebunden,
 sodass die Statistik der offenen Kassensitzung in Echtzeit erscheint.
