@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router'
 
 import type { OffeneKassensitzung } from '@/admin/kasse/KasseBackend'
-import { cn, formatCents } from '@/lib/utils'
+import { cn, formatEuro } from '@/lib/utils'
 
 import type { AbgeschlosseneSitzung } from './types'
 import { formatDatumKurz } from './utils'
@@ -65,7 +65,7 @@ export function SitzungsListe({
                 {formatDatumKurz(sitzung.datum)} · Nr. {sitzung.zNr}
               </span>
               <span className="text-sm font-semibold">
-                {formatCents(sitzung.umsatzGesamtCents)} €
+                {formatEuro(sitzung.umsatzGesamtCents)}
               </span>
             </div>
             <span className="text-xs text-muted-foreground">

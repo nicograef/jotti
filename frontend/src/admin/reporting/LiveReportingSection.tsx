@@ -22,7 +22,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { useCountUp } from '@/hooks/use-count-up'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { StatusDot } from '../components/StatusDot'
@@ -131,7 +131,7 @@ export function LiveReportingSection({
             Kassierter Umsatz
           </span>
           <span className="text-3xl font-extrabold tracking-tight whitespace-nowrap tabular-nums">
-            {formatCents(heroUmsatz)} €
+            {formatEuro(heroUmsatz)}
           </span>
           <span className="text-xs text-muted-foreground">
             bereits bezahlt, Stornos abgezogen
@@ -166,7 +166,7 @@ export function LiveReportingSection({
             <h2 className="text-base font-semibold">Offene Tische</h2>
             <span className="text-sm text-muted-foreground">
               {offeneTische.length} Tische ·{' '}
-              {formatCents(liveData.offeneSaldiCents)} €
+              {formatEuro(liveData.offeneSaldiCents)}
             </span>
           </div>
           {offeneTische.length === 0 ? (
@@ -182,7 +182,7 @@ export function LiveReportingSection({
                 >
                   <span>{t.tischName}</span>
                   <span className="font-semibold">
-                    {formatCents(t.saldoCents)} €
+                    {formatEuro(t.saldoCents)}
                   </span>
                 </div>
               ))}
@@ -237,7 +237,7 @@ export function LiveReportingSection({
                         <span className="text-xs text-muted-foreground">
                           Offen:{' '}
                           <span className="whitespace-nowrap font-medium">
-                            {formatCents(sk.offenCents)} €
+                            {formatEuro(sk.offenCents)}
                           </span>{' '}
                           auf {sk.offeneTische.length}{' '}
                           {sk.offeneTische.length === 1 ? 'Tisch' : 'Tischen'}
@@ -255,7 +255,7 @@ export function LiveReportingSection({
                       )}
                     </div>
                     <span className="whitespace-nowrap text-sm font-semibold">
-                      {formatCents(sk.zahlungenCents)} €
+                      {formatEuro(sk.zahlungenCents)}
                     </span>
                   </div>
                 )
@@ -277,7 +277,7 @@ export function LiveReportingSection({
                     {summary.anzahlStornierungen} Stornierung
                     {summary.anzahlStornierungen === 1 ? '' : 'en'}
                   </strong>{' '}
-                  · {formatCents(summary.gesamtStornierungenCents)} €
+                  · {formatEuro(summary.gesamtStornierungenCents)}
                 </p>
                 {stornierungenProServicekraft.length > 0 && (
                   <StornoAggregat

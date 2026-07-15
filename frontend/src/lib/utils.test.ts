@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   formatCents,
+  formatEuro,
   formatPositionName,
   formatRelativeTime,
   parseCents,
@@ -19,6 +20,21 @@ describe('formatCents', () => {
     [10, '0,10'],
   ])('formatCents(%i) = %s', (input, expected) => {
     expect(formatCents(input)).toBe(expected)
+  })
+})
+
+describe('formatEuro', () => {
+  it.each([
+    [1250, '12,50\u00A0€'],
+    [0, '0,00\u00A0€'],
+    [-350, '-3,50\u00A0€'],
+  ])('formatEuro(%i) = %s', (input, expected) => {
+    expect(formatEuro(input)).toBe(expected)
+  })
+
+  it('trennt Betrag und € mit geschütztem Leerzeichen (U+00A0)', () => {
+    expect(formatEuro(1250)).toBe('12,50\u00A0€')
+    expect(formatEuro(1250)).not.toContain('12,50 €')
   })
 })
 

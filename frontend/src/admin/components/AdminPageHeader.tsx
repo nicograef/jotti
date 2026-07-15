@@ -20,7 +20,7 @@ export function AdminPageHeader({
   glowFarben?: readonly [SpektralFarbe, SpektralFarbe]
 }) {
   return (
-    <div className="relative isolate flex items-start justify-between gap-4">
+    <div className="relative isolate flex flex-wrap items-start justify-between gap-4">
       <HeaderGlow farben={glowFarben} />
       <div>
         <h1 className="font-heading text-2xl font-bold leading-8">{titel}</h1>
