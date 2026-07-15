@@ -37,7 +37,7 @@ describe('ErfolgsPop', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Zahlung erfolgreich.')
   })
 
-  it('rendert nichts, solange es geschlossen ist', () => {
+  it('hält die Status-Region auch geschlossen ohne Text im DOM', () => {
     render(
       <ErfolgsPop
         open={false}
@@ -46,7 +46,9 @@ describe('ErfolgsPop', () => {
       />,
     )
 
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    // Die Live-Region bleibt dauerhaft gemountet (nur der Inhalt wird
+    // getoggelt), damit Screenreader spätere Textwechsel zuverlässig ansagen.
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
 
   it('schließt nach Ablauf der Anzeigedauer automatisch', () => {
@@ -60,13 +62,17 @@ describe('ErfolgsPop', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 
-  it('schließt beim Antippen sofort, noch vor der Auto-Dismiss-Zeit', () => {
+  it('trägt pointer-events-none und schließt nicht beim Antippen', () => {
     const onDismiss = vi.fn()
     render(<ErfolgsPop open text="Fertig" onDismiss={onDismiss} />)
 
-    fireEvent.click(screen.getByRole('status'))
+    const pop = screen.getByRole('status')
+    expect(pop).toHaveClass('pointer-events-none')
 
-    expect(onDismiss).toHaveBeenCalledTimes(1)
+    fireEvent.click(pop)
+
+    // Der Tap wird nicht mehr abgefangen; nur der Auto-Dismiss-Timer schließt.
+    expect(onDismiss).not.toHaveBeenCalled()
   })
 })
 
@@ -150,17 +156,20 @@ describe('Erfolgs-Pop im Buchungsflow', () => {
 
     // Der Pop erscheint mit der Bestätigung; der Refetch läuft noch nicht und es
     // gibt keinen Erfolgs-Toast mehr.
-    const pop = await screen.findByText('Verkauf abgeschlossen.')
+    await screen.findByText('Verkauf abgeschlossen.')
     expect(reload).not.toHaveBeenCalled()
     expect(toast.success).not.toHaveBeenCalled()
 
-    // Tap schließt den Pop und löst erst dann den nachgelagerten Refetch aus.
-    await user.click(pop)
-    await waitFor(() => {
-      expect(
-        screen.queryByText('Verkauf abgeschlossen.'),
-      ).not.toBeInTheDocument()
-    })
+    // Der Auto-Dismiss-Timer schließt den Pop und löst erst dann den
+    // nachgelagerten Refetch aus (Tap-zum-Schließen entfällt).
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByText('Verkauf abgeschlossen.'),
+        ).not.toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
     expect(reload).toHaveBeenCalledTimes(1)
   })
 })
