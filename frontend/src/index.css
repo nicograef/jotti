@@ -341,6 +341,10 @@
 /* Skeleton-Shimmer: Muted-Verlauf mit leichter Teal-/Violett-Tönung
    (Handoff-Rezept), löst den früheren grauen Puls-Platzhalter ab. */
 @utility skeleton-shimmer {
+  /* Solider Fallback zuerst: Browser ohne color-mix()-Support (iOS Safari
+     16.0–16.1) verwerfen die Gradient-Deklaration und behalten diese muted
+     Fläche statt transparent zu rendern. Der Shimmer bleibt, wo unterstützt. */
+  background: var(--muted);
   background: linear-gradient(
     90deg,
     var(--muted) 20%,
