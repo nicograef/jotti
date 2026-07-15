@@ -145,20 +145,20 @@ ihr Inhalt getoggelt (statt die befüllte Region frisch zu mounten).
 
 ### Acceptance criteria
 
-- [ ] Ein Tap auf den sichtbaren Pop schließt ihn nicht mehr vorzeitig und wird
+- [x] Ein Tap auf den sichtbaren Pop schließt ihn nicht mehr vorzeitig und wird
       nicht mehr verschluckt; der darunterliegende Zielbutton empfängt den Tap
       (`pointer-events-none` am Backdrop, verifiziert im laufenden Service-Flow
       bei 360×800 im Direktverkauf-Wiederholungspfad).
-- [ ] Auf simuliertem fehlendem `color-mix()`-Support bleibt eine sichtbare
+- [x] Auf simuliertem fehlendem `color-mix()`-Support bleibt eine sichtbare
       Abdunklung; mit `supports`-Guard bleibt der Blur nur dort aktiv, wo
       `backdrop-filter` unterstützt wird (Muster identisch zu `dialog.tsx`).
-- [ ] Die Live-Region ist im gemounteten Service-Screen dauerhaft vorhanden und
+- [x] Die Live-Region ist im gemounteten Service-Screen dauerhaft vorhanden und
       wechselt nur ihren Textinhalt; der Erfolgstext wird bei Bestellen,
       Kassieren und Direktverkauf angesagt.
-- [ ] Auto-Dismiss nach `ANZEIGE_DAUER_MS` funktioniert unverändert; Timer wird
+- [x] Auto-Dismiss nach `ANZEIGE_DAUER_MS` funktioniert unverändert; Timer wird
       bei Unmount aufgeräumt; bestehende Tests grün, ergänzt um einen Test, der
       belegt, dass der Backdrop `pointer-events-none` trägt.
-- [ ] `prefers-reduced-motion` stellt den Pop weiterhin still (globale Regel in
+- [x] `prefers-reduced-motion` stellt den Pop weiterhin still (globale Regel in
       `index.css` unverändert wirksam).
 
 ---
@@ -191,17 +191,17 @@ erreichbar bleiben.
 
 ### Acceptance criteria
 
-- [ ] Skeleton rendert bei simuliert fehlendem `color-mix()`-Support als solide
+- [x] Skeleton rendert bei simuliert fehlendem `color-mix()`-Support als solide
       `--muted`-Fläche (nicht transparent); auf modernen Browsern erscheint der
       Shimmer unverändert.
-- [ ] Das Passwort-Setzen-Formular ist auf 375×667 und in Landscape vollständig
+- [x] Das Passwort-Setzen-Formular ist auf 375×667 und in Landscape vollständig
       scrollbar erreichbar — „Passwort festlegen"-Button, „Zum Login"-Link und
       Footer sind nicht abgeschnitten (verifiziert per Screenshot bei 375×667
       und 667×375).
-- [ ] Die dekorativen Glows werden weiterhin am Rand geclippt (kein
+- [x] Die dekorativen Glows werden weiterhin am Rand geclippt (kein
       horizontaler Dokument-Überlauf durch die Glows) und bleiben `aria-hidden`
       / `print:hidden`.
-- [ ] Login-Screen (kurzer Inhalt) rendert visuell unverändert zu vorher.
+- [x] Login-Screen (kurzer Inhalt) rendert visuell unverändert zu vorher.
 
 ---
 
@@ -235,18 +235,18 @@ eine schlichte Salvatorik (Unwirksames entfällt, der Rest bleibt wirksam).
 
 ### Acceptance criteria
 
-- [ ] Die vom Formular erzeugte mailto-URL enthält den wörtlichen Annahmesatz
+- [x] Die vom Formular erzeugte mailto-URL enthält den wörtlichen Annahmesatz
       mit Fassungsdatum „14. Juli 2026" und der TERMS-URL; Betreff und
       Button-/CTA-Text spiegeln einen Vertragsabschluss, keine Anfrage.
-- [ ] `anfrage-mailto`-Tests decken den neuen Body ab (Annahmesatz vorhanden,
+- [x] `anfrage-mailto`-Tests decken den neuen Body ab (Annahmesatz vorhanden,
       Fassungsbezug vorhanden, Pflichtfeld-Validierung unverändert); bestehende
       Tests angepasst.
-- [ ] `fuer-vereine.astro` beschreibt keinen Autor-Bestätigungsschritt mehr und
+- [x] `fuer-vereine.astro` beschreibt keinen Autor-Bestätigungsschritt mehr und
       ist konsistent mit `TERMS.md`-Prozess und E-Mail-Vorlage.
-- [ ] `LICENSE` Section 9 enthält den Vorsatz/grobe-Fahrlässigkeit-Carve-out
+- [x] `LICENSE` Section 9 enthält den Vorsatz/grobe-Fahrlässigkeit-Carve-out
       (wortgleich zur Intention von `TERMS.md § 6(3)`); Section 12 ist eine
       schlichte Salvatorik ohne geltungserhaltende Reduktion.
-- [ ] Kein weiterer Verweis im Repo beschreibt den alten Drei-Schritte-/
+- [x] Kein weiterer Verweis im Repo beschreibt den alten Drei-Schritte-/
       Bestätigungs-Prozess (`grep` nach „Bestätigung", „anfragen",
       „Vereinbarung in Textform" in `website/` und Doku bereinigt).
 
@@ -287,20 +287,20 @@ umstellen, damit `€` nie vom Betrag getrennt umbricht.
 
 ### Acceptance criteria
 
-- [ ] Im 768–1023px-Band zeigt der Admin-Bereich nur die Desktop-Sidebar, kein
+- [x] Im 768–1023px-Band zeigt der Admin-Bereich nur die Desktop-Sidebar, kein
       zusätzliches Hamburger-Header-Chrome; bei <768px bleibt der Hamburger-
       Header sichtbar und die Sidebar off-canvas (verifiziert bei 767px und
       768px).
-- [ ] `/admin/kassenberichte` erzeugt keinen horizontalen Überlauf mehr bei
+- [x] `/admin/kassenberichte` erzeugt keinen horizontalen Überlauf mehr bei
       375×667, 360×800, 390×844, 414×896 und 768×1024 (mit sichtbarer Sidebar);
       `scrollWidth === clientWidth`.
-- [ ] `/admin/kasse` (Kassentag-Stepper, laufender Betrieb) erzeugt keinen
+- [x] `/admin/kasse` (Kassentag-Stepper, laufender Betrieb) erzeugt keinen
       horizontalen Überlauf mehr bei 768×1024; `BewegungZeile`-Text kürzt per
       Ellipse statt zu überlaufen.
-- [ ] `formatEuro()` existiert in `frontend/src/lib/utils.ts`; alle im Inventory
+- [x] `formatEuro()` existiert in `frontend/src/lib/utils.ts`; alle im Inventory
       genannten Anzeigestellen und `formatAlleAuswaehlenLabel` nutzen ihn;
       Betrag und `€` brechen in Kacheln (`SummaryCard`) und Steuertabelle
       (`ReportingResults`) nicht mehr getrennt um.
-- [ ] Frontend-Suite grün (`make check-frontend` bzw. `pnpm test --run` +
+- [x] Frontend-Suite grün (`make check-frontend` bzw. `pnpm test --run` +
       `pnpm lint`); die vorab automatisiert gemessenen Overflow-Stellen der
       betroffenen Routen sind auf allen sieben Referenz-Viewports sauber.
