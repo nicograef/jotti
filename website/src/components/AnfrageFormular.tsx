@@ -17,7 +17,7 @@ import { betreiberEmail } from '../lib/links'
 // bei gültigem Absenden den vorbefüllten mailto-Entwurf per JS-Navigation
 // (window.location.href — bewusst kein natives <form action="mailto:">, das
 // die Produktiv-CSP form-action 'self' blockt) und wechselt in einen ehrlichen
-// Bestätigungs-State: der Entwurf ist geöffnet und muss noch gesendet werden.
+// Erfolgs-State: der Entwurf ist geöffnet und muss noch gesendet werden.
 //
 // Fehler sind programmatisch verknüpft (aria-invalid + aria-describedby am
 // Feld) und werden zusätzlich über eine assertive Live-Region angekündigt. Die
@@ -69,7 +69,7 @@ export default function AnfrageFormular() {
     if (hatFehler(gefunden)) {
       setFehler(gefunden)
       setAnkuendigung(
-        'Die Anfrage konnte nicht geöffnet werden. Bitte fülle die markierten Pflichtfelder aus.',
+        'Der E-Mail-Entwurf konnte nicht geöffnet werden. Bitte fülle die markierten Pflichtfelder aus.',
       )
       // Fokus auf das erste fehlerhafte Feld.
       const erstesFeld = (['verein', 'name', 'email'] as const).find(
@@ -114,7 +114,7 @@ export default function AnfrageFormular() {
           <p className="mt-3 max-w-[34em] text-[15.5px] leading-relaxed text-muted">
             Wir haben einen vorbefüllten E-Mail-Entwurf in deinem Mailprogramm
             geöffnet. Bitte prüfe ihn und <strong>sende ihn ab</strong> — erst
-            dann erreicht uns deine Anfrage.
+            mit dem Absenden ist die Nutzungsvereinbarung geschlossen.
           </p>
           <p className="mt-4 text-[14px] text-muted">
             Öffnet sich kein Entwurf? Schreib direkt an{' '}
@@ -159,10 +159,11 @@ export default function AnfrageFormular() {
       </div>
 
       <h2 className="font-brand text-[22px] font-bold tracking-[-0.02em]">
-        Nutzungsvereinbarung anfragen
+        Nutzungsvereinbarung abschließen
       </h2>
       <p className="mt-1.5 mb-[22px] text-[14px] text-muted">
-        Wir melden uns mit den nächsten Schritten.
+        Eine einzige E-Mail schließt die Vereinbarung ab — danach könnt ihr
+        direkt loslegen.
       </p>
 
       <div className="flex flex-col gap-[15px]">
@@ -268,12 +269,12 @@ export default function AnfrageFormular() {
         type="submit"
         className="btn btn-primary mt-[22px] w-full"
       >
-        Anfrage senden
+        Vereinbarung abschließen
         <ArrowRight size={17} aria-hidden="true" />
       </button>
       <p className="mt-3.5 text-center text-[12px] leading-[1.5] text-muted">
-        Kostenlos & unverbindlich. Das Formular öffnet nur einen vorbefüllten
-        E-Mail-Entwurf — gesendet wird er von dir.
+        Kostenlos für gemeinnützige Organisationen. Das Formular öffnet nur einen
+        vorbefüllten E-Mail-Entwurf — gesendet wird er von dir.
       </p>
     </form>
   )
