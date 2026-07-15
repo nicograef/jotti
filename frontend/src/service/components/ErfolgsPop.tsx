@@ -2,9 +2,7 @@ import { Check } from 'lucide-react'
 import { useEffect } from 'react'
 
 // Anzeigedauer bis zum automatischen Schließen (Motion-Inventar „Erfolgs-Pop",
-// ~1,4 s). Der Auto-Dismiss-Timer ist die alleinige Schließ-Logik; ein Tap wird
-// bewusst nicht mehr abgefangen (pointer-events-none), damit er sein Ziel unter
-// dem Overlay erreicht.
+// ~1,4 s). Ein Tap schließt jederzeit früher.
 const ANZEIGE_DAUER_MS = 1400
 
 interface ErfolgsPopProps {
@@ -15,10 +13,12 @@ interface ErfolgsPopProps {
 
 // Vollbild-Overlay des sichtbaren Pops: solide Abdunklung als Fallback, darüber
 // die feinere color-mix-Tönung für moderne Browser (siehe style-Prop), Blur nur
-// dort, wo backdrop-filter unterstützt wird (analog zu dialog/drawer/sheet).
-// pointer-events-none lässt Taps zum darunterliegenden Bedienelement durch.
+// dort, wo backdrop-filter unterstützt wird (analog zu dialog/drawer/sheet). Das
+// Overlay blockiert bewusst Interaktion, bis es sich schließt: Der nachgelagerte
+// Refetch (onDismiss in TablePage) soll greifen, bevor der nächste Tap ein noch
+// nicht aktualisiertes Bedienelement trifft.
 const OVERLAY_CLASSES =
-  'pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-[rgb(0_0_0/0.25)] supports-backdrop-filter:backdrop-blur-[6px]'
+  'fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-[rgb(0_0_0/0.25)] supports-backdrop-filter:backdrop-blur-[6px]'
 
 // Unübersehbare Buchungsbestätigung im Service: Vollbild-Overlay mit geblurtem
 // Backdrop und Häkchen-Kreis in Primärgrün, das nach kurzer Zeit automatisch
@@ -26,8 +26,8 @@ const OVERLAY_CLASSES =
 // Direktverkauf) statt eines Toasts genutzt. Die role="status"-Live-Region ist
 // dauerhaft gemountet und wechselt nur ihren Textinhalt, damit Screenreader den
 // Erfolg zuverlässig ankündigen (eine frisch befüllt gemountete Region wird oft
-// verschluckt). Der Pop meldet das Schließen über onDismiss (Auto-Dismiss); der
-// nachgelagerte Statuswechsel/Refetch folgt erst dann, sodass sichtbare
+// verschluckt). Der Pop meldet das Schließen über onDismiss (Auto-Dismiss oder
+// Tap); der nachgelagerte Statuswechsel/Refetch folgt erst dann, sodass sichtbare
 // Änderungen dem Pop folgen.
 export function ErfolgsPop({ open, text, onDismiss }: ErfolgsPopProps) {
   useEffect(() => {
@@ -42,6 +42,7 @@ export function ErfolgsPop({ open, text, onDismiss }: ErfolgsPopProps) {
     <div
       role="status"
       className={open ? OVERLAY_CLASSES : 'sr-only'}
+      onClick={open ? onDismiss : undefined}
       // Die color-mix-Tönung liegt inline über der soliden bg-Fallback-Klasse:
       // moderne Browser nutzen sie, iOS Safari 16.0–16.1 verwirft sie und
       // behält die sichtbare Abdunklung.

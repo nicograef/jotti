@@ -62,17 +62,14 @@ describe('ErfolgsPop', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 
-  it('trägt pointer-events-none und schließt nicht beim Antippen', () => {
+  it('schließt beim Antippen sofort', () => {
     const onDismiss = vi.fn()
     render(<ErfolgsPop open text="Fertig" onDismiss={onDismiss} />)
 
-    const pop = screen.getByRole('status')
-    expect(pop).toHaveClass('pointer-events-none')
+    fireEvent.click(screen.getByRole('status'))
 
-    fireEvent.click(pop)
-
-    // Der Tap wird nicht mehr abgefangen; nur der Auto-Dismiss-Timer schließt.
-    expect(onDismiss).not.toHaveBeenCalled()
+    // Ein Tap schließt den Pop früher als der Auto-Dismiss-Timer.
+    expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -161,7 +158,7 @@ describe('Erfolgs-Pop im Buchungsflow', () => {
     expect(toast.success).not.toHaveBeenCalled()
 
     // Der Auto-Dismiss-Timer schließt den Pop und löst erst dann den
-    // nachgelagerten Refetch aus (Tap-zum-Schließen entfällt).
+    // nachgelagerten Refetch aus.
     await waitFor(
       () => {
         expect(

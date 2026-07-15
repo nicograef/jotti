@@ -19,8 +19,15 @@ Korrektheits-, Robustheits- und Konsistenzfixes; kein neues Feature, keine
 Durable decisions, die für alle Phasen gelten:
 
 - **Erfolgs-Pop bleibt.** Das Vollbild-Overlay wird nicht durch Toasts ersetzt;
-  es wird gehärtet (Interaktion, Alt-Browser-Fallback, Screenreader). Der
-  bewusste Redesign-Entwurf bleibt erhalten.
+  es wird gehärtet (Alt-Browser-Fallback, Screenreader). Der bewusste
+  Redesign-Entwurf bleibt erhalten. **Wichtig:** Das Overlay bleibt bewusst
+  klick-blockierend (kein `pointer-events-none`) — der nachgelagerte Refetch
+  (`onDismiss` → `reload` in `TablePage`) ist an das Schließen gekoppelt, sodass
+  das Overlay die nächste Interaktion so lange hält, bis die frischen Daten
+  geladen sind. Ein Tap schließt weiterhin früher (`onClick={onDismiss}`). Der
+  ursprünglich geplante Tap-Durchgriff (`pointer-events-none`) würde erlauben,
+  auf noch nicht aktualisierten Bildschirmzustand zu tippen (Bestellen →
+  Kassieren rennt der Projektion davon) und wird deshalb nicht umgesetzt.
 - **Alt-Browser-Fallback-Muster.** Neue dekorative `color-mix()`-Flächen
   bekommen eine solide bzw. rgba-Vorab-Deklaration, sodass bei fehlendem
   `color-mix()`-Support (iOS Safari 16.0–16.1) ein sichtbarer Ersatz bleibt.
@@ -133,22 +140,25 @@ Bestehende Muster zum Nachnutzen:
 
 ### What to build
 
-Den Erfolgs-Pop so anpassen, dass (1) ein Tap im Anzeigefenster sein
-eigentliches Ziel erreicht: der Backdrop erhält `pointer-events-none`, der
-Auto-Dismiss-Timer bleibt die alleinige Schließ-Logik (der bisherige
-Tap-zum-Schließen entfällt, da er den Folgetap kostete); (2) die Tönung auf
-Browsern ohne `color-mix()` sichtbar bleibt: solider/rgba-Vorab-Hintergrund vor
-der `color-mix()`-Deklaration und Blur hinter `supports-[backdrop-filter]`
-gegatet, analog zu den anderen Overlays; (3) die Erfolgsmeldung zuverlässig
-angesagt wird: die `role="status"`-Live-Region wird dauerhaft gemountet und nur
-ihr Inhalt getoggelt (statt die befüllte Region frisch zu mounten).
+Den Erfolgs-Pop so anpassen, dass (1) das Overlay klick-blockierend bleibt und
+ein Tap es weiterhin früher schließt (`onClick={onDismiss}`): der ursprünglich
+geplante `pointer-events-none`-Durchgriff wird **nicht** umgesetzt, weil der
+nachgelagerte Refetch an `onDismiss` hängt — ein durchgereichter Tap würde auf
+noch nicht aktualisiertem Zustand landen (Bestellen → Kassieren, die Projektion
+ist noch nicht nachgeladen); (2) die Tönung auf Browsern ohne `color-mix()`
+sichtbar bleibt: solider/rgba-Vorab-Hintergrund vor der `color-mix()`-Deklaration
+und Blur hinter `supports-[backdrop-filter]` gegatet, analog zu den anderen
+Overlays; (3) die Erfolgsmeldung zuverlässig angesagt wird: die
+`role="status"`-Live-Region wird dauerhaft gemountet und nur ihr Inhalt
+getoggelt (statt die befüllte Region frisch zu mounten).
 
 ### Acceptance criteria
 
-- [x] Ein Tap auf den sichtbaren Pop schließt ihn nicht mehr vorzeitig und wird
-      nicht mehr verschluckt; der darunterliegende Zielbutton empfängt den Tap
-      (`pointer-events-none` am Backdrop, verifiziert im laufenden Service-Flow
-      bei 360×800 im Direktverkauf-Wiederholungspfad).
+- [x] Das Overlay bleibt klick-blockierend, sodass der an `onDismiss` gekoppelte
+      Refetch vor der nächsten Interaktion greift (verifiziert im
+      Bestellen→Kassieren-Flow: der Tab-Klick wartet ~1,7 s auf Pop-Schließen +
+      Nachladen, danach ist der Kassieren-Button aktiv); ein Tap schließt den Pop
+      weiterhin früher (`onClick={onDismiss}`).
 - [x] Auf simuliertem fehlendem `color-mix()`-Support bleibt eine sichtbare
       Abdunklung; mit `supports`-Guard bleibt der Blur nur dort aktiv, wo
       `backdrop-filter` unterstützt wird (Muster identisch zu `dialog.tsx`).
@@ -156,8 +166,8 @@ ihr Inhalt getoggelt (statt die befüllte Region frisch zu mounten).
       wechselt nur ihren Textinhalt; der Erfolgstext wird bei Bestellen,
       Kassieren und Direktverkauf angesagt.
 - [x] Auto-Dismiss nach `ANZEIGE_DAUER_MS` funktioniert unverändert; Timer wird
-      bei Unmount aufgeräumt; bestehende Tests grün, ergänzt um einen Test, der
-      belegt, dass der Backdrop `pointer-events-none` trägt.
+      bei Unmount aufgeräumt; bestehende Tests grün, inkl. Test, der belegt, dass
+      ein Tap den Pop schließt.
 - [x] `prefers-reduced-motion` stellt den Pop weiterhin still (globale Regel in
       `index.css` unverändert wirksam).
 
