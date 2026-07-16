@@ -50,10 +50,12 @@ function StatistikZeile({
 
 // VerkaufStatistik zeigt die Verkäufe je Produkt und Variante einer
 // Kassensitzung, in Kategorie-Abschnitte (Essen → Getränke → Sonstiges)
-// gegliedert. Zwei bewusst getrennte Zahlen: ausgegebene Menge (Produktion) und
-// Umsatz (Einnahmen) — nicht ineinander umrechenbar. Ein-Varianten-Produkte
-// erscheinen als eine Zeile; sonst Produkt-Zwischensumme mit eingerückten
-// Varianten. Das Backend liefert die Liste fertig gruppiert und sortiert.
+// gegliedert. Beide Zahlen ruhen auf den aufgenommenen Bestellungen: die
+// ausgegebene Menge und der Umsatz (Bestellwert derselben Portionen zu
+// Bestellzeit-Preisen). Ein-Varianten-Produkte erscheinen als eine Zeile; sonst
+// Produkt-Zwischensumme mit eingerückten Varianten. Das Backend liefert die
+// Liste fertig gruppiert und sortiert. Bei vielen Produkten scrollt die Liste
+// innerhalb eines gedeckelten Bereichs, statt die Seite zu überlängen.
 export function VerkaufStatistik({
   produktStatistik,
 }: {
@@ -63,18 +65,16 @@ export function VerkaufStatistik({
     <div className="max-w-4xl">
       <div className="mb-2 text-sm font-semibold">Verkäufe pro Produkt</div>
       <p className="mb-2 text-xs text-muted-foreground">
-        „Ausgegeben" zählt zubereitete Portionen (bestellt minus Korrekturen,
-        inklusive Direktverkauf); „Umsatz" zählt die Einnahmen (kassiert und
-        Direktverkauf minus Storno). Die beiden Zahlen ruhen auf
-        unterschiedlichen Grundlagen und sind nicht ineinander umrechenbar.
+        Zahlen basieren auf den aufgenommenen Bestellungen, nicht auf kassierten
+        Zahlungen.
       </p>
       {produktStatistik.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           Keine Verkäufe in dieser Kassensitzung.
         </p>
       ) : (
-        <div className="overflow-hidden rounded-lg border">
-          <div className="grid grid-cols-[1.6fr_1fr_1fr] gap-x-3 bg-sidebar px-3 py-2 text-xs font-semibold text-muted-foreground">
+        <div className="max-h-[60vh] overflow-y-auto rounded-lg border">
+          <div className="sticky top-0 z-10 grid grid-cols-[1.6fr_1fr_1fr] gap-x-3 bg-sidebar px-3 py-2 text-xs font-semibold text-muted-foreground">
             <span>Produkt</span>
             <span className="text-right">Ausgegeben</span>
             <span className="text-right">Umsatz</span>

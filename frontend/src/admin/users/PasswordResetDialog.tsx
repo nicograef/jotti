@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -29,23 +30,25 @@ export function PasswordResetDialog(props: PasswordResetDialogProps) {
           <DialogTitle>Passwort zurückgesetzt!</DialogTitle>
           <DialogDescription>
             Das Passwort für {props.username} wurde zurückgesetzt. Beim nächsten
-            Anmelden muss der Benutzer mit dem untenstehenden Code sein neues
+            Anmelden muss der Helfer mit dem untenstehenden Code sein neues
             Passwort setzen.
           </DialogDescription>
         </DialogHeader>
-        <Field className="gap-1">
-          <FieldLabel>Benutzername</FieldLabel>
-          <p className="text-3xl">{props.username}</p>
-        </Field>
-        <Field className="gap-1">
-          <FieldLabel>Code</FieldLabel>
-          <p
-            data-testid="onetime-password"
-            className="text-3xl tracking-widest"
-          >
-            {props.onetimePassword}
-          </p>
-        </Field>
+        <DialogBody className="flex flex-col gap-6">
+          <Field className="gap-1">
+            <FieldLabel>Benutzername</FieldLabel>
+            <p className="text-3xl">{props.username}</p>
+          </Field>
+          <Field className="gap-1">
+            <FieldLabel>Code</FieldLabel>
+            <p
+              data-testid="onetime-password"
+              className="text-3xl tracking-widest"
+            >
+              {props.onetimePassword}
+            </p>
+          </Field>
+        </DialogBody>
         <DialogFooter className="mt-4">
           <DialogClose asChild>
             <Button>Okay</Button>

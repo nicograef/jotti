@@ -69,9 +69,7 @@ export function UserRow(props: UserRowProps) {
       <span className="flex items-center gap-2 text-xs text-muted-foreground">
         <Switch
           className="cursor-pointer"
-          aria-label={
-            isActive ? 'Benutzer deaktivieren' : 'Benutzer aktivieren'
-          }
+          aria-label={isActive ? 'Helfer deaktivieren' : 'Helfer aktivieren'}
           disabled={props.loading}
           checked={isActive}
           onCheckedChange={(checked) => {
@@ -90,7 +88,7 @@ export function UserRow(props: UserRowProps) {
           size="icon-sm"
           variant="ghost"
           className="cursor-pointer rounded-full"
-          aria-label="Benutzer bearbeiten"
+          aria-label="Helfer bearbeiten"
           onClick={() => {
             props.onEdit(props.user.id)
           }}
@@ -136,9 +134,9 @@ export function UserRow(props: UserRowProps) {
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Benutzer löschen?</AlertDialogTitle>
+            <AlertDialogTitle>Helfer löschen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Der Benutzer &ldquo;{props.user.name}&rdquo; wird unwiderruflich
+              Der Helfer &ldquo;{props.user.name}&rdquo; wird unwiderruflich
               gelöscht.
             </AlertDialogDescription>
           </AlertDialogHeader>

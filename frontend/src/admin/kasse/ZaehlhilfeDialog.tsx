@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -11,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import {
   type Nennwert,
@@ -53,43 +54,47 @@ function ZaehlhilfeInhalt({
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-        {NENNWERTE_CENTS.map((nennwert) => {
-          const id = `zaehlhilfe-${String(nennwert)}`
-          const anzahl = stueckzahlen[nennwert]
-          return (
-            <div
-              key={nennwert}
-              className="flex items-center justify-between gap-3"
-            >
-              <Label htmlFor={id} className="w-14 shrink-0">
-                {nennwertLabel(nennwert)}
-              </Label>
-              <Input
-                id={id}
-                type="text"
-                inputMode="numeric"
-                placeholder="0"
-                className="h-8 w-20 text-right"
-                value={anzahl !== undefined && anzahl > 0 ? String(anzahl) : ''}
-                onChange={(e) => {
-                  setAnzahl(nennwert, e.target.value)
-                }}
-              />
-            </div>
-          )
-        })}
-      </div>
+      <DialogBody className="flex flex-col gap-6">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          {NENNWERTE_CENTS.map((nennwert) => {
+            const id = `zaehlhilfe-${String(nennwert)}`
+            const anzahl = stueckzahlen[nennwert]
+            return (
+              <div
+                key={nennwert}
+                className="flex items-center justify-between gap-3"
+              >
+                <Label htmlFor={id} className="w-14 shrink-0">
+                  {nennwertLabel(nennwert)}
+                </Label>
+                <Input
+                  id={id}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0"
+                  className="h-11 w-20 text-right"
+                  value={
+                    anzahl !== undefined && anzahl > 0 ? String(anzahl) : ''
+                  }
+                  onChange={(e) => {
+                    setAnzahl(nennwert, e.target.value)
+                  }}
+                />
+              </div>
+            )
+          })}
+        </div>
 
-      <div className="flex items-center justify-between border-t pt-4 text-sm">
-        <span className="text-muted-foreground">Summe</span>
-        <span
-          className="text-base font-semibold"
-          data-testid="zaehlhilfe-summe"
-        >
-          {formatCents(summeCents)} €
-        </span>
-      </div>
+        <div className="flex items-center justify-between border-t pt-4 text-sm">
+          <span className="text-muted-foreground">Summe</span>
+          <span
+            className="text-base font-semibold"
+            data-testid="zaehlhilfe-summe"
+          >
+            {formatEuro(summeCents)}
+          </span>
+        </div>
+      </DialogBody>
 
       <DialogFooter>
         <Button

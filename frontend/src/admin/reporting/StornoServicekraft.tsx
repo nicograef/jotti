@@ -3,7 +3,7 @@ import { Ban } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import type { StornierungServicekraft } from './types'
-import { formatBediener } from './utils'
+import { formatServicekraft } from './utils'
 
 // StornoMarker markiert eine Servicekraft-Zeile mit Stornos als rotes
 // Kontroll-Signal ("N Storno"). Wird nur bei ≥ 1 Storno gerendert.
@@ -32,7 +32,7 @@ export function StornoAggregat({
       {eintraege
         .map(
           (e) =>
-            `${formatBediener(e.userName, e.name)} ${String(e.anzahlStornierungen)}`,
+            `${formatServicekraft(e.userName, e.name)} ${String(e.anzahlStornierungen)}`,
         )
         .join(' · ')}
     </p>

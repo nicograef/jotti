@@ -64,6 +64,12 @@ Das Finanzamt teilt einen Verein in vier steuerliche Sphären, die Buchführungs
 
 Person mit Zugang zum System, identifiziert durch einen eindeutigen Benutzernamen.
 
+In der Admin-Helfer-Verwaltung (Seite „Helfer & Zugänge", `src/admin/users/`) wird
+die Person durchgängig **„Helfer"** genannt (ehrenamtliche Servicekraft) — in
+Triggern, Dialogtiteln, Schaltflächen und Toasts. Das Zugangs-/Anmeldedatum
+heißt weiterhin **„Benutzername"**; „Benutzer" bleibt der kanonische Oberbegriff
+für die Person mit Zugang (u. a. in Login/Auth-Kontexten).
+
 Go-Struct: `User` · TS-Typ: `User` · DB-Tabelle: `users`
 
 #### Rolle

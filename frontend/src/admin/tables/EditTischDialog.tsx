@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -103,17 +104,19 @@ export function EditTischDialog(props: EditTischDialogProps) {
             Du kannst den Namen des Tisches ändern.
           </DialogDescription>
         </DialogHeader>
-        <form
-          id="table-form"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void form.handleSubmit(onSubmit)()
-          }}
-        >
-          <FieldGroup>
-            <NameField form={form} withLabel />
-          </FieldGroup>
-        </form>
+        <DialogBody>
+          <form
+            id="table-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void form.handleSubmit(onSubmit)()
+            }}
+          >
+            <FieldGroup>
+              <NameField form={form} withLabel />
+            </FieldGroup>
+          </form>
+        </DialogBody>
 
         <DialogFooter className="mt-4 sm:justify-between">
           {hatSaldo ? (

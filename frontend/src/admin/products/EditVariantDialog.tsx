@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -106,22 +107,24 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
             Name und Preis der Variante ändern.
           </DialogDescription>
         </DialogHeader>
-        <form
-          id="edit-variant-form"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void form.handleSubmit(onSubmit)()
-          }}
-        >
-          <FieldGroup>
-            <NameField
-              form={form}
-              withLabel
-              placeholder="z.B. Klein, Groß, 0.5L"
-            />
-            <PriceField form={form} withLabel />
-          </FieldGroup>
-        </form>
+        <DialogBody>
+          <form
+            id="edit-variant-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void form.handleSubmit(onSubmit)()
+            }}
+          >
+            <FieldGroup>
+              <NameField
+                form={form}
+                withLabel
+                placeholder="z.B. Klein, Groß, 0.5L"
+              />
+              <PriceField form={form} withLabel />
+            </FieldGroup>
+          </form>
+        </DialogBody>
         <DialogFooter className="mt-4 sm:justify-between">
           <Button
             variant="ghost"

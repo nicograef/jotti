@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -28,26 +29,28 @@ export function UserCreatedDialog(props: UserCreatedDialogProps) {
     <Dialog open={props.open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Benutzer wurde angelegt!</DialogTitle>
+          <DialogTitle>Helfer wurde angelegt!</DialogTitle>
           <DialogDescription>
-            Für {props.user?.name} wurde ein {props.user?.role}-Benutzer
-            angelegt. Beim erstmaligen Anmelden muss der Benutzer mit dem
-            untenstehenden Code sein Passwort setzen.
+            Für {props.user?.name} wurde ein {props.user?.role}-Helfer angelegt.
+            Beim erstmaligen Anmelden muss der Helfer mit dem untenstehenden
+            Code sein Passwort setzen.
           </DialogDescription>
         </DialogHeader>
-        <Field className="gap-1">
-          <FieldLabel>Benutzername</FieldLabel>
-          <p className="text-3xl">{props.user?.username}</p>
-        </Field>
-        <Field className="gap-1">
-          <FieldLabel>Code</FieldLabel>
-          <p
-            data-testid="onetime-password"
-            className="text-3xl tracking-widest"
-          >
-            {props.onetimePassword}
-          </p>
-        </Field>
+        <DialogBody className="flex flex-col gap-6">
+          <Field className="gap-1">
+            <FieldLabel>Benutzername</FieldLabel>
+            <p className="text-3xl">{props.user?.username}</p>
+          </Field>
+          <Field className="gap-1">
+            <FieldLabel>Code</FieldLabel>
+            <p
+              data-testid="onetime-password"
+              className="text-3xl tracking-widest"
+            >
+              {props.onetimePassword}
+            </p>
+          </Field>
+        </DialogBody>
         <DialogFooter className="mt-4">
           <DialogClose asChild>
             <Button>Okay</Button>

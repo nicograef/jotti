@@ -61,16 +61,15 @@ function renderDrawer() {
 }
 
 describe('TischAuswahlDrawer', () => {
-  it('zeigt die Tisch-Liste im DrawerBody, das Suchfeld scrollt nicht mit', () => {
+  it('zeigt die Tisch-Liste im DrawerBody ohne eigenes Suchfeld', () => {
     renderDrawer()
 
     const dialog = screen.getByRole('dialog')
     const body = dialog.querySelector('[data-slot="drawer-body"]')
     expect(body).not.toBeNull()
     expect(body).toContainElement(screen.getByText('Stammtisch'))
-    expect(body).not.toContainElement(
-      screen.getByPlaceholderText('Tisch suchen...'),
-    )
+    // Die Suche liegt jetzt auf der Hauptseite — der Drawer hat kein Suchfeld.
+    expect(screen.queryByPlaceholderText('Tisch suchen...')).toBeNull()
   })
 
   it('invalidiert nach Favoriten-Toggle beide Query-Caches', async () => {

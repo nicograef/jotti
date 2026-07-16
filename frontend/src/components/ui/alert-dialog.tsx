@@ -56,7 +56,10 @@ function AlertDialogContent({
         data-slot="alert-dialog-content"
         data-size={size}
         className={cn(
-          "group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-full -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl bg-popover p-6 text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // flex-col + Höhen-Cap: mit AlertDialogBody als einzigem Scrollbereich
+          // bleiben Header und Footer (Bestätigen/Abbrechen) auch bei langer
+          // Vorschau gepinnt. Autofokus bleibt Radix-Standard (Button-Fokus).
+          "group/alert-dialog-content fixed top-1/2 left-1/2 z-50 flex max-h-[85dvh] w-full -translate-x-1/2 -translate-y-1/2 flex-col gap-6 rounded-xl bg-popover p-6 text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
@@ -92,6 +95,22 @@ function AlertDialogFooter({
         "flex flex-col-reverse gap-2 group-data-[size=sm]/alert-dialog-content:grid group-data-[size=sm]/alert-dialog-content:grid-cols-2 sm:flex-row sm:justify-end",
         className
       )}
+      {...props}
+    />
+  )
+}
+
+// AlertDialogBody ist der einzige Scrollbereich des Alert-Dialogs. Header und
+// Footer bleiben als direkte Flex-Kinder von AlertDialogContent gepinnt, damit
+// die Aktionsschaltflächen bei langer Vorschau erreichbar bleiben.
+function AlertDialogBody({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-dialog-body"
+      className={cn("-mx-6 min-h-0 overflow-y-auto px-6", className)}
       {...props}
     />
   )
@@ -184,6 +203,7 @@ function AlertDialogCancel({
 export {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,

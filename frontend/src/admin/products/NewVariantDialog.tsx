@@ -7,6 +7,7 @@ import { NameField, PriceField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -77,22 +78,24 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
             werden.
           </DialogDescription>
         </DialogHeader>
-        <form
-          id="variant-form"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void form.handleSubmit(onSubmit)()
-          }}
-        >
-          <FieldGroup>
-            <NameField
-              form={form}
-              withLabel
-              placeholder="z.B. Klein, Groß, 0.5L"
-            />
-            <PriceField form={form} withLabel />
-          </FieldGroup>
-        </form>
+        <DialogBody>
+          <form
+            id="variant-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void form.handleSubmit(onSubmit)()
+            }}
+          >
+            <FieldGroup>
+              <NameField
+                form={form}
+                withLabel
+                placeholder="z.B. Klein, Groß, 0.5L"
+              />
+              <PriceField form={form} withLabel />
+            </FieldGroup>
+          </form>
+        </DialogBody>
         <DialogFooter className="mt-4">
           <DialogClose asChild>
             <Button

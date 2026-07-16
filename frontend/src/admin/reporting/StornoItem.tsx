@@ -3,10 +3,10 @@ import { Item, ItemContent } from '@/components/ui/item'
 import { formatEuro, formatPositionName } from '@/lib/utils'
 
 import type { StornierungDetail } from './types'
-import { formatBediener, formatLocalTime } from './utils'
+import { formatLocalTime, formatServicekraft } from './utils'
 
 // StornoItem rendert einen einzelnen Stornierungs-Eintrag einheitlich für das
-// Live-Dashboard und die Kassenberichte: Tisch/Direktverkauf + Bediener, Uhrzeit
+// Live-Dashboard und die Kassenberichte: Tisch/Direktverkauf + Servicekraft, Uhrzeit
 // (HH:MM), Bar-Rückgabe-Status, Betrag und die stornierten Positionen.
 export function StornoItem({ storno }: { storno: StornierungDetail }) {
   return (
@@ -18,7 +18,7 @@ export function StornoItem({ storno }: { storno: StornierungDetail }) {
               {storno.quelle === 'direktverkauf'
                 ? 'Direktverkauf'
                 : storno.tischName}{' '}
-              · {formatBediener(storno.userName, storno.name)}
+              · {formatServicekraft(storno.userName, storno.name)}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {formatLocalTime(storno.zeitpunkt)}

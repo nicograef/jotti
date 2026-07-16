@@ -112,14 +112,20 @@ AND kj.kassensitzung_nr = @kassensitzung_nr;
 -- Tagesabrechnung/Live: Verkäufe je Produkt und Variante einer Kassensitzung,
 -- aus den eingefrorenen Fat-Event-Positionen aggregiert (kein Stammdaten-Join).
 -- Flache Zeilen je Variante mit zwei bewusst getrennten Zahlen — die
--- Anwendungsschicht gruppiert und sortiert sie zu Kategorie-Abschnitten:
+-- Anwendungsschicht gruppiert und sortiert sie zu Kategorie-Abschnitten. Beide
+-- Zahlen ruhen auf derselben Ereignismenge/Gewichtung (Bestellbasis):
 --   Ausgegebene Menge (Produktion) = Σ menge: bestellung-aufgenommen (+),
 --     bestellung-korrigiert (−), direktverkauf-getaetigt (+).
---   Umsatz (Einnahmen) = Σ einzelpreisCents × menge: zahlung-kassiert (+),
---     direktverkauf-getaetigt (+), stornierung-erteilt (−), direktverkauf-storniert (−).
+--   Umsatz (Bestellwert) = Σ einzelpreisCents × menge über dieselbe Ereignismenge
+--     und Gewichtung: bestellung-aufgenommen (+), bestellung-korrigiert (−),
+--     direktverkauf-getaetigt (+). Es ist der Euro-Wert genau der Portionen, die
+--     „Ausgegeben" zählt (Preise zum Bestellzeitpunkt).
 -- bestellung-umgebucht zählt nicht (Positionen bereits bei der Bestellung erfasst).
--- Dieselbe Positions-/Vorzeichenbasis wie GetUmsatzPositionszeilen für den
--- Umsatzanteil, damit Σ umsatzCents dem kassierten Gesamtumsatz entspricht.
+-- Bewusst NICHT kassenbasiert: nachträgliche Zahlungen und Stornierungen
+-- (zahlung-kassiert, stornierung-erteilt, direktverkauf-storniert) ändern den
+-- Produkt-Umsatz nicht. Die fiskalische, kassierte Umsatzbasis liefert separat
+-- GetUmsatzPositionszeilen (Steuer-Aufschlüsselung, DSFinV-K, „Kassierter Umsatz");
+-- beide Größen weichen bei Stornos bewusst voneinander ab.
 SELECT
     (position->>'kategorie')::text AS kategorie,
     (position->>'varianteId')::int AS variante_id,
@@ -134,8 +140,8 @@ SELECT
     ), 0)::int AS ausgegebene_menge,
     COALESCE(SUM(
         ((position->>'einzelpreisCents')::int * (position->>'menge')::int) * CASE
-            WHEN kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1') THEN 1
-            WHEN kj.type IN ('stornierung-erteilt:v1', 'direktverkauf-storniert:v1') THEN -1
+            WHEN kj.type IN ('bestellung-aufgenommen:v1', 'direktverkauf-getaetigt:v1') THEN 1
+            WHEN kj.type = 'bestellung-korrigiert:v1' THEN -1
             ELSE 0
         END
     ), 0)::int AS umsatz_cents
@@ -144,10 +150,7 @@ CROSS JOIN LATERAL jsonb_array_elements(kj.data->'positionen') AS position
 WHERE kj.type IN (
     'bestellung-aufgenommen:v1',
     'bestellung-korrigiert:v1',
-    'direktverkauf-getaetigt:v1',
-    'zahlung-kassiert:v1',
-    'stornierung-erteilt:v1',
-    'direktverkauf-storniert:v1'
+    'direktverkauf-getaetigt:v1'
 )
 AND kj.kassensitzung_nr = @kassensitzung_nr
 GROUP BY kategorie, variante_id, produkt_name, variante_name;
