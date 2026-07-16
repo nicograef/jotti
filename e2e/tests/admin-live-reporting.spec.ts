@@ -41,7 +41,7 @@ test.describe('Admin sieht das Live-Dashboard', () => {
       liveSection.getByRole('heading', { name: 'Offene Tische' }),
     ).toBeVisible()
 
-    // Team-Block zeigt die aktiven Bediener des Sonntags.
+    // Team-Block zeigt die aktiven Servicekräfte des Sonntags.
     await expect(
       liveSection.getByRole('heading', { name: 'Team' }),
     ).toBeVisible()

@@ -3,12 +3,12 @@ import { expect, test } from '@playwright/test'
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 
-// Deckt den Verwaltungspfad für Benutzer ab: Anlegen (inkl. Anzeige des
+// Deckt den Verwaltungspfad für Helfer ab: Anlegen (inkl. Anzeige des
 // Einmalpasswort-Codes) und Deaktivieren. Die Seite „Helfer & Zugänge" zeigt
-// die Benutzer als Tabelle mit Status-Switch je Zeile.
+// die Helfer als Tabelle mit Status-Switch je Zeile.
 
-test.describe('Admin verwaltet Benutzer', () => {
-  test('Benutzer anlegen zeigt das Einmalpasswort und der Benutzer lässt sich deaktivieren', async ({
+test.describe('Admin verwaltet Helfer', () => {
+  test('Helfer anlegen zeigt das Einmalpasswort und der Helfer lässt sich deaktivieren', async ({
     page,
     request,
   }) => {
@@ -20,19 +20,19 @@ test.describe('Admin verwaltet Benutzer', () => {
       page.getByRole('heading', { name: 'Helfer & Zugänge' }),
     ).toBeVisible()
 
-    // Neuen Benutzer anlegen.
+    // Neuen Helfer anlegen.
     await page.getByRole('button', { name: 'Neuer Helfer' }).click()
     const newDialog = page.getByRole('dialog')
     await newDialog.getByLabel('Name', { exact: true }).fill('Petra Neumann')
     await newDialog.getByLabel('Benutzername').fill('petra')
-    await newDialog.getByRole('button', { name: 'Benutzer anlegen' }).click()
+    await newDialog.getByRole('button', { name: 'Helfer anlegen' }).click()
     await expect(
-      page.getByText('Neuer Benutzer "Petra Neumann" wurde erstellt.'),
+      page.getByText('Neuer Helfer "Petra Neumann" wurde erstellt.'),
     ).toBeVisible()
 
     // Der Einmalpasswort-Dialog zeigt Benutzername und Code an.
     const createdDialog = page.getByRole('dialog').filter({
-      hasText: 'Benutzer wurde angelegt!',
+      hasText: 'Helfer wurde angelegt!',
     })
     await expect(createdDialog).toBeVisible()
     await expect(createdDialog.getByText('petra', { exact: true })).toBeVisible()
@@ -46,7 +46,7 @@ test.describe('Admin verwaltet Benutzer', () => {
     )
     await createdDialog.getByRole('button', { name: 'Okay' }).click()
 
-    // Neue Benutzer starten inaktiv (Passwort noch nicht gesetzt): erst
+    // Neue Helfer starten inaktiv (Passwort noch nicht gesetzt): erst
     // aktivieren, dann den Deaktivieren-Pfad prüfen. Die Tabellenzeile wird
     // über den Namen und ihren Status-Switch aufgelöst.
     const userRow = page
