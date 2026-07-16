@@ -1,6 +1,6 @@
 // Admin-Auswertungen zeigen den eingefrorenen Username, ergänzt um den live
 // aufgelösten Klarnamen: "username (Klarname)". Fehlt der Klarname, nur Username.
-export function formatBediener(userName: string, name: string): string {
+export function formatServicekraft(userName: string, name: string): string {
   return name ? `${userName} (${name})` : userName
 }
 

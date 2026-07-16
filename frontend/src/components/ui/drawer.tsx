@@ -59,6 +59,7 @@ function DrawerContent({
   pending = false,
   onEscapeKeyDown,
   onInteractOutside,
+  onOpenAutoFocus,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content> & {
   // Laufender Submit: Escape und Backdrop-Tap schließen den Drawer nicht,
@@ -81,6 +82,12 @@ function DrawerContent({
       <DrawerPrimitive.Content
         data-slot="drawer-content"
         data-pending={pending || undefined}
+        // Kein Auto-Fokus beim Öffnen (keine ungefragte Tastatur auf dem Handy).
+        // Fokus-Trap, Escape und Fokusrückgabe bleiben unberührt.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          onOpenAutoFocus?.(event)
+        }}
         onEscapeKeyDown={(event) => {
           if (pendingRef.current) event.preventDefault()
           onEscapeKeyDown?.(event)

@@ -23,13 +23,13 @@ interface UsersProps {
 // und Aktionen. Ersetzt das frühere Kachel-Grid.
 export function Users(props: UsersProps) {
   const { loading: activateLoading, run: runActivate } = useActionSubmit({
-    actionLabel: 'Benutzer aktivieren',
+    actionLabel: 'Helfer aktivieren',
   })
   const { loading: deactivateLoading, run: runDeactivate } = useActionSubmit({
-    actionLabel: 'Benutzer deaktivieren',
+    actionLabel: 'Helfer deaktivieren',
   })
   const { loading: deleteLoading, run: runDelete } = useActionSubmit({
-    actionLabel: 'Benutzer löschen',
+    actionLabel: 'Helfer löschen',
   })
 
   const loading = activateLoading || deactivateLoading || deleteLoading
@@ -59,8 +59,8 @@ export function Users(props: UsersProps) {
     return (
       <EmptyState
         icon={UsersIcon}
-        title="Keine Benutzer vorhanden"
-        description="Erstelle einen neuen Benutzer, um loszulegen."
+        title="Keine Helfer vorhanden"
+        description="Erstelle einen neuen Helfer, um loszulegen."
       />
     )
   }

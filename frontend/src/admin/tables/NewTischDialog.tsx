@@ -8,6 +8,7 @@ import { NameField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -77,17 +78,19 @@ export function NewTischDialog(props: NewTischDialogProps) {
             Den Namen kannst du später jederzeit ändern.
           </DialogDescription>
         </DialogHeader>
-        <form
-          id="table-form"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void form.handleSubmit(onSubmit)()
-          }}
-        >
-          <FieldGroup>
-            <NameField form={form} withLabel placeholder="z.B. Tisch 34" />
-          </FieldGroup>
-        </form>
+        <DialogBody>
+          <form
+            id="table-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void form.handleSubmit(onSubmit)()
+            }}
+          >
+            <FieldGroup>
+              <NameField form={form} withLabel placeholder="z.B. Tisch 34" />
+            </FieldGroup>
+          </form>
+        </DialogBody>
 
         <DialogFooter className="mt-4">
           <DialogClose asChild>

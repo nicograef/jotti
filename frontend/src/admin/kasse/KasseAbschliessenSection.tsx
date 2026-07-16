@@ -11,6 +11,7 @@ import { EuroField } from '@/components/common/FormFields'
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -21,7 +22,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { BackendError } from '@/lib/Backend'
 import { getActionErrorMessage } from '@/lib/errorMessages'
-import { cn, formatCents } from '@/lib/utils'
+import { cn, formatEuro } from '@/lib/utils'
 
 import { kasseBackend, useKassenbestand } from './hooks'
 import {
@@ -75,7 +76,7 @@ function offeneTischeWarnung(
 ): string | null {
   if (anzahl <= 0) return null
   const tischWort = anzahl === 1 ? 'Tisch ist' : 'Tische sind'
-  return `${String(anzahl)} ${tischWort} noch offen (${formatCents(saldoCents)} €).`
+  return `${String(anzahl)} ${tischWort} noch offen (${formatEuro(saldoCents)}).`
 }
 
 export function KasseAbschliessenSection({
@@ -225,15 +226,13 @@ export function KasseAbschliessenSection({
             <div className="text-right">
               <div className="text-muted-foreground">Soll</div>
               <div className="text-base font-semibold">
-                {sollBestandCents !== null
-                  ? `${formatCents(sollBestandCents)} €`
-                  : '—'}
+                {sollBestandCents !== null ? formatEuro(sollBestandCents) : '—'}
               </div>
             </div>
             <div className="text-right">
               <div className="text-muted-foreground">Gezählt</div>
               <div className="text-base font-semibold">
-                {formatCents(gezaehltCents)} €
+                {formatEuro(gezaehltCents)}
               </div>
             </div>
             <div className="text-right">
@@ -247,7 +246,7 @@ export function KasseAbschliessenSection({
                 )}
               >
                 {liveDifferenzCents !== null
-                  ? `${formatCents(liveDifferenzCents)} €`
+                  ? formatEuro(liveDifferenzCents)
                   : '—'}
               </div>
             </div>
@@ -283,30 +282,26 @@ export function KasseAbschliessenSection({
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <div className="space-y-4 text-sm">
+          <AlertDialogBody className="space-y-4 text-sm">
             <dl className="space-y-1">
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Soll-Bestand</dt>
                 <dd>
                   {sollBestandCents !== null
-                    ? `${formatCents(sollBestandCents)} €`
+                    ? formatEuro(sollBestandCents)
                     : '—'}
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Ist-Bestand (gezählt)</dt>
                 <dd>
-                  {istBestandCents !== null
-                    ? `${formatCents(istBestandCents)} €`
-                    : '—'}
+                  {istBestandCents !== null ? formatEuro(istBestandCents) : '—'}
                 </dd>
               </div>
               <div className="flex justify-between gap-4 font-medium">
                 <dt>Differenz</dt>
                 <dd>
-                  {differenzCents !== null
-                    ? `${formatCents(differenzCents)} €`
-                    : '—'}
+                  {differenzCents !== null ? formatEuro(differenzCents) : '—'}
                 </dd>
               </div>
             </dl>
@@ -318,7 +313,7 @@ export function KasseAbschliessenSection({
                   <dt className="text-muted-foreground">Umsatz</dt>
                   <dd>
                     {liveData
-                      ? `${formatCents(liveData.summary.gesamtUmsatzCents)} €`
+                      ? formatEuro(liveData.summary.gesamtUmsatzCents)
                       : '—'}
                   </dd>
                 </div>
@@ -326,7 +321,7 @@ export function KasseAbschliessenSection({
                   <dt className="text-muted-foreground">Stornierungen</dt>
                   <dd>
                     {liveData
-                      ? `${formatCents(liveData.summary.gesamtStornierungenCents)} €`
+                      ? formatEuro(liveData.summary.gesamtStornierungenCents)
                       : '—'}
                   </dd>
                 </div>
@@ -334,13 +329,13 @@ export function KasseAbschliessenSection({
                   <dt className="text-muted-foreground">Geldtransit</dt>
                   <dd>
                     {liveData
-                      ? `${formatCents(liveData.summary.geldtransitCents)} €`
+                      ? formatEuro(liveData.summary.geldtransitCents)
                       : '—'}
                   </dd>
                 </div>
               </dl>
             </div>
-          </div>
+          </AlertDialogBody>
 
           <AlertDialogFooter>
             <AlertDialogCancel disabled={loading}>Abbrechen</AlertDialogCancel>

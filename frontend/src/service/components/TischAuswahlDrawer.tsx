@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import {
@@ -9,10 +8,9 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { Input } from '@/components/ui/input'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { BackendSingleton } from '@/lib/Backend'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import {
   AKTIVE_TISCHE_MIT_FAVORITEN_KEY,
@@ -47,15 +45,14 @@ export function TischAuswahlDrawer({
 }: TischAuswahlDrawerProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [suche, setSuche] = useState('')
   const { tische } = useAktiveTischeMitFavoriten()
   const { loading: favoritLoading, run: runToggleFavorit } = useActionSubmit({
     actionLabel: 'Favorit ändern',
   })
 
-  const gefilterteTische = tische
-    .filter((t) => t.name.toLowerCase().includes(suche.toLowerCase()))
-    .sort(sortiereTische)
+  // Reine Durchblätter-/Favorisier-Liste — die Suche über alle Tische liegt
+  // jetzt auf der Hauptseite (TableSelectionPage), kein zweites Suchfeld hier.
+  const sortierteTische = [...tische].sort(sortiereTische)
 
   const favoritMutation = useMutation({
     mutationFn: (tisch: AktiverTischMitFavorit) =>
@@ -82,18 +79,8 @@ export function TischAuswahlDrawer({
         <DrawerHeader>
           <DrawerTitle>Alle Tische</DrawerTitle>
         </DrawerHeader>
-        {/* Suchfeld außerhalb von DrawerBody, damit es beim Scrollen der Liste sichtbar bleibt. */}
-        <div className="px-4 pb-3">
-          <Input
-            placeholder="Tisch suchen..."
-            value={suche}
-            onChange={(e) => {
-              setSuche(e.target.value)
-            }}
-          />
-        </div>
         <DrawerBody className="flex flex-col gap-0 px-4 pb-6">
-          {gefilterteTische.map((tisch) => (
+          {sortierteTische.map((tisch) => (
             <div
               key={tisch.id}
               className="flex items-center border-b last:border-b-0"
@@ -130,7 +117,7 @@ export function TischAuswahlDrawer({
                       : 'text-sm text-muted-foreground'
                   }
                 >
-                  {formatCents(tisch.saldoCents)} €
+                  {formatEuro(tisch.saldoCents)}
                 </span>
               </button>
             </div>

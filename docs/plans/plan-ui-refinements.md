@@ -162,13 +162,13 @@ nicht überlängt — auf Übersicht und „Berichte & Export".
 
 ### Acceptance criteria
 
-- [ ] Auf der Admin-Übersicht steht der Stornierungen-Abschnitt oberhalb von
+- [x] Auf der Admin-Übersicht steht der Stornierungen-Abschnitt oberhalb von
       „Verkäufe pro Produkt".
-- [ ] Die Produktstatistik-Liste scrollt innerhalb eines gedeckelten Bereichs
+- [x] Die Produktstatistik-Liste scrollt innerhalb eines gedeckelten Bereichs
       statt die Seite unbegrenzt zu verlängern — auf beiden Seiten.
-- [ ] Auf „Berichte & Export" bleibt die bestehende Reihenfolge (Stornierungen
+- [x] Auf „Berichte & Export" bleibt die bestehende Reihenfolge (Stornierungen
       vor Produktstatistik) erhalten.
-- [ ] `make lint` ist grün; keine Änderung an gelieferten Zahlen.
+- [x] `make lint` ist grün; keine Änderung an gelieferten Zahlen.
 
 ---
 
@@ -204,15 +204,15 @@ kassenbasiert.
 
 ### Acceptance criteria
 
-- [ ] `GetProduktStatistik` liefert Umsatz je Variante = Σ
+- [x] `GetProduktStatistik` liefert Umsatz je Variante = Σ
       `einzelpreisCents × menge` über `bestellung-aufgenommen` (+),
       `bestellung-korrigiert` (−), `direktverkauf-getaetigt` (+).
-- [ ] Eine nachträgliche kassenwirksame Stornierung reduziert den
+- [x] Eine nachträgliche kassenwirksame Stornierung reduziert den
       Produkt-Umsatz **nicht** (Test belegt das).
-- [ ] Die separate „Kassierter Umsatz"-KPI/Steueraufschlüsselung bleibt
+- [x] Die separate „Kassierter Umsatz"-KPI/Steueraufschlüsselung bleibt
       kassenbasiert unverändert (DSFinV-K-Konsistenztest weiterhin grün).
-- [ ] Der Beschreibungstext über der Tabelle ist auf eine kurze Aussage gekürzt.
-- [ ] `make sqlc` ausgeführt, `dbgen` regeneriert; `make verify` grün.
+- [x] Der Beschreibungstext über der Tabelle ist auf eine kurze Aussage gekürzt.
+- [x] `make sqlc` ausgeführt, `dbgen` regeneriert; `make verify` grün.
 
 ---
 
@@ -244,13 +244,13 @@ primäre Aktion nie hinter der Tastatur oder unterhalb des Inhalts verschwindet.
 
 ### Acceptance criteria
 
-- [ ] Beim Öffnen von Drawer/Dialog/Sheet erhält **kein** Eingabefeld den Fokus
+- [x] Beim Öffnen von Drawer/Dialog/Sheet erhält **kein** Eingabefeld den Fokus
       (Test am Bestell-Drawer belegt: `document.activeElement` ist kein Input).
-- [ ] `AlertDialog`-Bestätigungen bleiben unverändert (button-fokussiert).
-- [ ] Admin-Formulardialoge (u. a. Zählhilfe, Kassenabschluss, Produkt-/Tisch-/
+- [x] `AlertDialog`-Bestätigungen bleiben unverändert (button-fokussiert).
+- [x] Admin-Formulardialoge (u. a. Zählhilfe, Kassenabschluss, Produkt-/Tisch-/
       Benutzer-Dialoge) haben einen Höhen-Cap mit internem Scroll und gepinnter
       Fußleiste; die Absende-Schaltfläche bleibt erreichbar.
-- [ ] Tastaturbedienung (Tab-Fokus-Trap, Escape, Fokusrückgabe) funktioniert
+- [x] Tastaturbedienung (Tab-Fokus-Trap, Escape, Fokusrückgabe) funktioniert
       weiter; `make lint` grün.
 
 ---
@@ -283,14 +283,14 @@ für das Durchblättern und Favorisieren, hat aber kein eigenes Suchfeld mehr.
 
 ### Acceptance criteria
 
-- [ ] Ein Suchbegriff auf der Hauptseite, der auf einen **nicht favorisierten**
+- [x] Ein Suchbegriff auf der Hauptseite, der auf einen **nicht favorisierten**
       aktiven Tisch passt, zeigt diesen als Treffer (Test belegt das).
-- [ ] Ein Treffer öffnet den Tisch direkt.
-- [ ] Bei leerem Suchfeld zeigt die Hauptseite unverändert die Favoriten
+- [x] Ein Treffer öffnet den Tisch direkt.
+- [x] Bei leerem Suchfeld zeigt die Hauptseite unverändert die Favoriten
       („Meine Tische"), gruppiert in „Noch offen"/„Erledigt".
-- [ ] Der „Alle Tische"-Drawer hat kein zweites Suchfeld mehr, bleibt aber zum
+- [x] Der „Alle Tische"-Drawer hat kein zweites Suchfeld mehr, bleibt aber zum
       Durchblättern/Favorisieren funktionsfähig.
-- [ ] `make lint` grün; bestehende Service-Tabellentests grün.
+- [x] `make lint` grün; bestehende Service-Tabellentests grün.
 
 ---
 
@@ -326,11 +326,11 @@ Kleinere Konsistenz- und Ergonomie-Politur: größere Zählhilfe-Eingaben, über
 
 ### Acceptance criteria
 
-- [ ] Zählhilfe-Eingaben erfüllen ein mobiltaugliches Touch-Maß (≥ ~44 px Höhe).
-- [ ] Admin-seitige Beträge nutzen `formatEuro`; „€" bricht nicht mehr allein um.
-- [ ] Die Helfer-Verwaltung nennt die Person durchgängig „Helfer" (Trigger,
+- [x] Zählhilfe-Eingaben erfüllen ein mobiltaugliches Touch-Maß (≥ ~44 px Höhe).
+- [x] Admin-seitige Beträge nutzen `formatEuro`; „€" bricht nicht mehr allein um.
+- [x] Die Helfer-Verwaltung nennt die Person durchgängig „Helfer" (Trigger,
       Titel, Schaltfläche, Toast); das Zugangsfeld heißt weiter „Benutzername".
-- [ ] `formatBediener` ist zur Domänenkonsistenz umbenannt; keine
+- [x] `formatBediener` ist zur Domänenkonsistenz umbenannt; keine
       benutzer-sichtbare „Bediener"-Zeichenkette verbleibt.
-- [ ] `docs/language.md` spiegelt geänderte benutzer-sichtbare Begriffe;
+- [x] `docs/language.md` spiegelt geänderte benutzer-sichtbare Begriffe;
       `make lint` grün.

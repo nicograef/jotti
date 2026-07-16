@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -45,7 +46,7 @@ export function NewUserDialog(props: NewUserDialogProps) {
 
   const { loading, run } = useFormActionSubmit({
     form,
-    actionLabel: 'Benutzer anlegen',
+    actionLabel: 'Helfer anlegen',
     fieldErrorsByCode: {
       username_already_exists: {
         username: 'Dieser Benutzername ist bereits vergeben.',
@@ -84,24 +85,26 @@ export function NewUserDialog(props: NewUserDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="mb-4">
-          <DialogTitle>Neuen Benutzer anlegen</DialogTitle>
+          <DialogTitle>Neuen Helfer anlegen</DialogTitle>
           <DialogDescription>
-            Das Passwort kann der Benutzer später selbst festlegen.
+            Das Passwort kann der Helfer später selbst festlegen.
           </DialogDescription>
         </DialogHeader>
-        <form
-          id="user-form"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void form.handleSubmit(onSubmit)()
-          }}
-        >
-          <FieldGroup>
-            <NameField form={form} withLabel />
-            <UsernameField form={form} withLabel />
-            <RoleField form={form} withLabel />
-          </FieldGroup>
-        </form>
+        <DialogBody>
+          <form
+            id="user-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void form.handleSubmit(onSubmit)()
+            }}
+          >
+            <FieldGroup>
+              <NameField form={form} withLabel />
+              <UsernameField form={form} withLabel />
+              <RoleField form={form} withLabel />
+            </FieldGroup>
+          </form>
+        </DialogBody>
         <DialogFooter className="mt-4">
           <DialogClose asChild>
             <Button
@@ -119,7 +122,7 @@ export function NewUserDialog(props: NewUserDialogProps) {
             form="user-form"
             disabled={loading || !form.formState.isValid}
           >
-            {loading ? <Spinner /> : null} Benutzer anlegen
+            {loading ? <Spinner /> : null} Helfer anlegen
           </Button>
         </DialogFooter>
       </DialogContent>

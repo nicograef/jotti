@@ -8,6 +8,7 @@ import { EuroField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -102,57 +103,60 @@ export function GeldtransitDialog({
               : 'Bargeld aus der Kasse nehmen (z.B. Abschöpfung in den Tresor). Der Soll-Bestand sinkt entsprechend.'}
           </DialogDescription>
         </DialogHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            void form.handleSubmit(onSubmit)()
-          }}
-        >
-          <FieldGroup>
-            <EuroField
-              form={form}
-              name="betragCents"
-              label="Betrag"
-              withLabel
-              placeholder="z.B. 25,00"
-              className="w-44"
-            />
-            <Field
-              data-invalid={!!form.formState.errors.kommentar}
-              className="gap-1"
-            >
-              <FieldLabel htmlFor="bewegung-kommentar">Kommentar</FieldLabel>
-              <Input
-                id="bewegung-kommentar"
-                {...form.register('kommentar')}
-                aria-invalid={!!form.formState.errors.kommentar}
-                placeholder={
-                  istEinlage
-                    ? 'z.B. Wechselgeld Nachschub'
-                    : 'z.B. Abschöpfung in den Tresor'
-                }
+        <DialogBody>
+          <form
+            id="geldtransit-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void form.handleSubmit(onSubmit)()
+            }}
+          >
+            <FieldGroup>
+              <EuroField
+                form={form}
+                name="betragCents"
+                label="Betrag"
+                withLabel
+                placeholder="z.B. 25,00"
+                className="w-44"
               />
-              {form.formState.errors.kommentar && (
-                <FieldError errors={[form.formState.errors.kommentar]} />
-              )}
-            </Field>
-          </FieldGroup>
-          <DialogFooter className="mt-4">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={loading}
-              onClick={() => {
-                onOpenChange(false)
-              }}
-            >
-              Abbrechen
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {titel}
-            </Button>
-          </DialogFooter>
-        </form>
+              <Field
+                data-invalid={!!form.formState.errors.kommentar}
+                className="gap-1"
+              >
+                <FieldLabel htmlFor="bewegung-kommentar">Kommentar</FieldLabel>
+                <Input
+                  id="bewegung-kommentar"
+                  {...form.register('kommentar')}
+                  aria-invalid={!!form.formState.errors.kommentar}
+                  placeholder={
+                    istEinlage
+                      ? 'z.B. Wechselgeld Nachschub'
+                      : 'z.B. Abschöpfung in den Tresor'
+                  }
+                />
+                {form.formState.errors.kommentar && (
+                  <FieldError errors={[form.formState.errors.kommentar]} />
+                )}
+              </Field>
+            </FieldGroup>
+          </form>
+        </DialogBody>
+        <DialogFooter className="mt-4">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading}
+            onClick={() => {
+              onOpenChange(false)
+            }}
+          >
+            Abbrechen
+          </Button>
+          <Button type="submit" form="geldtransit-form" disabled={loading}>
+            {titel}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

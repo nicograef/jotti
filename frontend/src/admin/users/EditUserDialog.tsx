@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -48,7 +49,7 @@ export function EditUserDialog(props: EditUserDialogProps) {
 
   const { loading, run: runSave } = useFormActionSubmit({
     form,
-    actionLabel: 'Benutzer speichern',
+    actionLabel: 'Helfer speichern',
     fieldErrorsByCode: {
       username_already_exists: {
         username: 'Dieser Benutzername ist bereits vergeben.',
@@ -81,22 +82,24 @@ export function EditUserDialog(props: EditUserDialogProps) {
         <DialogHeader className="mb-4">
           <DialogTitle>{props.user.name}</DialogTitle>
           <DialogDescription>
-            Du kannst Name, Benutzername und Rolle des Benutzers ändern.
+            Du kannst Name, Benutzername und Rolle des Helfers ändern.
           </DialogDescription>
         </DialogHeader>
-        <form
-          id="user-form"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void form.handleSubmit(onSubmit)()
-          }}
-        >
-          <FieldGroup>
-            <NameField form={form} withLabel />
-            <UsernameField form={form} withLabel />
-            <RoleField form={form} withLabel />
-          </FieldGroup>
-        </form>
+        <DialogBody>
+          <form
+            id="user-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void form.handleSubmit(onSubmit)()
+            }}
+          >
+            <FieldGroup>
+              <NameField form={form} withLabel />
+              <UsernameField form={form} withLabel />
+              <RoleField form={form} withLabel />
+            </FieldGroup>
+          </form>
+        </DialogBody>
         <DialogFooter className="mt-4">
           <DialogClose asChild>
             <Button variant="outline" disabled={loading}>

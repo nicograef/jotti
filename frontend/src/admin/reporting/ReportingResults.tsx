@@ -7,7 +7,7 @@ import { formatEuro } from '@/lib/utils'
 import { StornoItem } from './StornoItem'
 import { StornoMarker } from './StornoServicekraft'
 import type { AbgeschlosseneSitzung, ReportingData } from './types'
-import { formatBediener, formatDatumLang, formatLocalTime } from './utils'
+import { formatDatumLang, formatLocalTime, formatServicekraft } from './utils'
 import { VerkaufStatistik } from './VerkaufStatistik'
 
 // Berichtskopf-Zeile: Datum, Eröffnungs-/Abschlusszeit, abschließender Benutzer
@@ -189,7 +189,7 @@ export function ReportingResults({
                     className="flex items-center justify-between gap-2 border-b py-2 last:border-b-0"
                   >
                     <span className="flex flex-col">
-                      {formatBediener(sk.userName, sk.name)}
+                      {formatServicekraft(sk.userName, sk.name)}
                       {stornoAnzahl > 0 && (
                         <StornoMarker anzahl={stornoAnzahl} />
                       )}

@@ -110,7 +110,7 @@ export function AdminUsersPage() {
             created={(user, onetimePassword) => {
               invalidateUsers()
               setUserCreatedState({ user, onetimePassword, open: true })
-              toast.success(`Neuer Benutzer "${user.name}" wurde erstellt.`)
+              toast.success(`Neuer Helfer "${user.name}" wurde erstellt.`)
             }}
           />
         }
@@ -130,7 +130,7 @@ export function AdminUsersPage() {
           onResetPassword={resetPassword}
           onDeleted={() => {
             invalidateUsers()
-            toast.success('Benutzer wurde gelöscht.')
+            toast.success('Helfer wurde gelöscht.')
           }}
         />
         <HelferPanels />

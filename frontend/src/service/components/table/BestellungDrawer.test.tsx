@@ -99,6 +99,25 @@ describe('BestellungDrawer', () => {
     })
   })
 
+  it('öffnet ohne Auto-Fokus auf ein Eingabefeld (keine ungefragte Tastatur)', async () => {
+    const user = userEvent.setup()
+    renderDrawer({ 1: 2 })
+
+    await user.click(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    )
+    await screen.findByRole('dialog')
+
+    // Das optionale Kommentarfeld ist das erste Feld im Drawer. Beim Öffnen darf
+    // KEIN Eingabefeld den Fokus erhalten — sonst öffnet sich auf dem Handy
+    // ungefragt die Tastatur (zentrale onOpenAutoFocus-Unterdrückung im Drawer).
+    const kommentar = screen.getByPlaceholderText(/Kommentar/)
+    expect(kommentar).not.toHaveFocus()
+    const active = document.activeElement
+    expect(active?.tagName).not.toBe('INPUT')
+    expect(active?.tagName).not.toBe('TEXTAREA')
+  })
+
   it('zeigt den Tischnamen als dominante Überschrift ohne Prosa-Description', async () => {
     const user = userEvent.setup()
     renderDrawer({ 1: 2 })

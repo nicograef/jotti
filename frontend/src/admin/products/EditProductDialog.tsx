@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -94,19 +95,21 @@ export function EditProductDialog(props: EditProductDialogProps) {
             Du kannst Name und Kategorie des Produkts ändern.
           </DialogDescription>
         </DialogHeader>
-        <form
-          id="product-form"
-          onSubmit={(e) => {
-            e.preventDefault()
-            void form.handleSubmit(onSubmit)()
-          }}
-        >
-          <FieldGroup>
-            <NameField form={form} withLabel />
-            <CategoryField form={form} withLabel />
-            <SteuersatzField form={form} withLabel />
-          </FieldGroup>
-        </form>
+        <DialogBody>
+          <form
+            id="product-form"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void form.handleSubmit(onSubmit)()
+            }}
+          >
+            <FieldGroup>
+              <NameField form={form} withLabel />
+              <CategoryField form={form} withLabel />
+              <SteuersatzField form={form} withLabel />
+            </FieldGroup>
+          </form>
+        </DialogBody>
         <DialogFooter className="mt-4">
           <DialogClose asChild>
             <Button

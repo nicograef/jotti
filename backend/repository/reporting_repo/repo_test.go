@@ -140,13 +140,14 @@ func produktPosition(varianteID int, produktName, varianteName, kategorie string
 	}
 }
 
-// TestGetProduktStatistik_MengeUndUmsatzMitVorzeichen prüft die beiden getrennten
-// Zahlen je Variante über alle beteiligten Event-Typen: Bestellung (+Menge),
-// Korrektur (−Menge, geldneutral), Zahlung (+Umsatz), Warenrücknahme (−Umsatz,
-// menge-neutral), Direktverkauf (+Menge/+Umsatz) und Direktverkauf-Storno
-// (−Umsatz). Zugleich die Konsistenz-Invariante: Σ Produkt-Umsatz == Σ Brutto
-// der Umsatz-Positionszeilen derselben Sitzung (kein WHERE-type-Drift).
-func TestGetProduktStatistik_MengeUndUmsatzMitVorzeichen(t *testing.T) {
+// TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis prüft, dass Menge und
+// Umsatz je Variante auf derselben Ereignismenge (Bestellbasis) ruhen:
+// Bestellung (+Menge/+Umsatz), Korrektur (−Menge/−Umsatz), Direktverkauf
+// (+Menge/+Umsatz). Nachträgliche kassenwirksame Vorgänge — Zahlung,
+// Warenrücknahme (stornierung-erteilt) und Direktverkauf-Storno — sind bewusst
+// vorhanden, dürfen den Produkt-Umsatz aber NICHT verändern: er ist der
+// Bestellwert der ausgegebenen Portionen, nicht der kassierte Umsatz.
+func TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis(t *testing.T) {
 	db := dbpkg.OpenTestDatabase()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
@@ -200,7 +201,9 @@ func TestGetProduktStatistik_MengeUndUmsatzMitVorzeichen(t *testing.T) {
 		t.Fatalf("expected 2 variant rows, got %d: %+v", len(zeilen), zeilen)
 	}
 
-	// Pommes: ausgegebene Menge 5 − 1 = 4; Umsatz 1200 − 300 = 900.
+	// Pommes: ausgegebene Menge 5 − 1 = 4; Umsatz 1500 bestellt − 300 korrigiert
+	// = 1200. Die spätere Warenrücknahme (stornierung-erteilt) mindert den
+	// Produkt-Umsatz bewusst NICHT.
 	pommesZeile := byVariante[10]
 	if pommesZeile.ProduktName != "Pommes" || pommesZeile.VarianteName != "groß" || pommesZeile.Kategorie != "essen" {
 		t.Errorf("unexpected Pommes identity: %+v", pommesZeile)
@@ -208,35 +211,18 @@ func TestGetProduktStatistik_MengeUndUmsatzMitVorzeichen(t *testing.T) {
 	if pommesZeile.AusgegebeneMenge != 4 {
 		t.Errorf("expected Pommes menge 4 (5 bestellt − 1 korrigiert), got %d", pommesZeile.AusgegebeneMenge)
 	}
-	if pommesZeile.UmsatzCents != 900 {
-		t.Errorf("expected Pommes umsatz 900 (1200 kassiert − 300 Warenrücknahme), got %d", pommesZeile.UmsatzCents)
+	if pommesZeile.UmsatzCents != 1200 {
+		t.Errorf("expected Pommes umsatz 1200 (1500 bestellt − 300 korrigiert, Warenrücknahme umsatzneutral), got %d", pommesZeile.UmsatzCents)
 	}
 
-	// Cola: Direktverkauf-Storno mindert nur den Umsatz, nicht die Menge.
+	// Cola: Direktverkauf zählt Menge und Umsatz; der Direktverkauf-Storno
+	// mindert weder Menge noch Umsatz (Produkt-Umsatz ist bestellbasiert).
 	colaZeile := byVariante[20]
 	if colaZeile.AusgegebeneMenge != 3 {
 		t.Errorf("expected Cola menge 3 (Direktverkauf, Storno menge-neutral), got %d", colaZeile.AusgegebeneMenge)
 	}
-	if colaZeile.UmsatzCents != 500 {
-		t.Errorf("expected Cola umsatz 500 (750 Direktverkauf − 250 Storno), got %d", colaZeile.UmsatzCents)
-	}
-
-	// Konsistenz-Invariante: Σ Produkt-Umsatz == Σ Brutto der Umsatz-Positionszeilen
-	// derselben Sitzung — dieselbe WHERE-type-/Vorzeichenbasis, kein Drift.
-	data, err := repo.GetReporting(ctx, ksNr)
-	if err != nil {
-		t.Fatalf("GetReporting failed: %v", err)
-	}
-	summeZeilenBrutto := 0
-	for _, z := range data.UmsatzProSteuersatz {
-		summeZeilenBrutto += z.BruttoCents
-	}
-	summeProduktUmsatz := 0
-	for _, z := range zeilen {
-		summeProduktUmsatz += z.UmsatzCents
-	}
-	if summeProduktUmsatz != summeZeilenBrutto {
-		t.Errorf("Σ Produkt-Umsatz %d != Σ Positionszeilen-Brutto %d (WHERE-type-Drift)", summeProduktUmsatz, summeZeilenBrutto)
+	if colaZeile.UmsatzCents != 750 {
+		t.Errorf("expected Cola umsatz 750 (Direktverkauf, Storno umsatzneutral), got %d", colaZeile.UmsatzCents)
 	}
 }
 
@@ -273,8 +259,8 @@ func TestGetProduktStatistik_UmbuchungZaehltNicht(t *testing.T) {
 	if zeilen[0].AusgegebeneMenge != 2 {
 		t.Errorf("expected menge 2 (Umbuchung zählt nicht), got %d", zeilen[0].AusgegebeneMenge)
 	}
-	if zeilen[0].UmsatzCents != 0 {
-		t.Errorf("expected umsatz 0 (nur Bestellung, keine Zahlung), got %d", zeilen[0].UmsatzCents)
+	if zeilen[0].UmsatzCents != 600 {
+		t.Errorf("expected umsatz 600 (2 × 300 bestellt, Umbuchung zählt nicht), got %d", zeilen[0].UmsatzCents)
 	}
 }
 

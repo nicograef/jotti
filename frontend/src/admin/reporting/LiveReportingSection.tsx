@@ -30,7 +30,7 @@ import { StornoItem } from './StornoItem'
 import { StornoAggregat } from './StornoServicekraft'
 import { SummaryCard } from './SummaryCard'
 import type { LiveReportingData } from './types'
-import { formatBediener, formatDatum, formatStand } from './utils'
+import { formatDatum, formatServicekraft, formatStand } from './utils'
 import { VerkaufStatistik } from './VerkaufStatistik'
 
 // Nach fünf Einträgen wird die Liste offener Tische gekürzt; „Alle n anzeigen"
@@ -228,7 +228,7 @@ export function LiveReportingSection({
                   >
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="text-sm font-medium">
-                        {formatBediener(sk.userName, sk.name)}
+                        {formatServicekraft(sk.userName, sk.name)}
                       </span>
                       {sk.erledigt ? (
                         <span className="text-xs font-medium text-primary">
@@ -266,12 +266,9 @@ export function LiveReportingSection({
         </div>
       </div>
 
-      {/* Verkäufe pro Produkt: dieselbe Aufbereitung wie in der Abrechnung */}
-      <div className="rounded-xl border p-5">
-        <VerkaufStatistik produktStatistik={liveData.produktStatistik} />
-      </div>
-
-      {/* Stornierungen: eingeklappte Zeile, Aufklappen zeigt die Detail-Liste */}
+      {/* Stornierungen: eingeklappte Zeile, Aufklappen zeigt die Detail-Liste.
+          Bewusst über der Produktstatistik — Stornos sind das Kontroll-Signal,
+          das zuerst auffallen soll. */}
       {liveData.stornierungen.length > 0 && (
         <Collapsible>
           <div className="rounded-lg border">
@@ -316,6 +313,11 @@ export function LiveReportingSection({
           </div>
         </Collapsible>
       )}
+
+      {/* Verkäufe pro Produkt: dieselbe Aufbereitung wie in der Abrechnung */}
+      <div className="rounded-xl border p-5">
+        <VerkaufStatistik produktStatistik={liveData.produktStatistik} />
+      </div>
     </div>
   )
 }
