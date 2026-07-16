@@ -90,15 +90,16 @@ describe('TableSelectionPage', () => {
     const user = userEvent.setup()
     render(<TableSelectionPage />)
 
-    await user.type(
-      screen.getByPlaceholderText('Tisch suchen — Name oder Nummer'),
-      'Bar',
-    )
+    // Suchfeld und Treffer werden genau so angesprochen wie im e2e-Helper
+    // (support/servicekraft.ts oeffneTisch): Platzhalter-Teilstring plus
+    // Button-Name „<Name> … <Saldo> €".
+    await user.type(screen.getByPlaceholderText(/Tisch suchen/), 'Bar')
 
     // Der nicht favorisierte Tisch erscheint als Treffer …
-    expect(screen.getByText('Bar')).toBeInTheDocument()
+    const treffer = screen.getByRole('button', { name: /^Bar\b.*€/ })
+    expect(treffer).toBeInTheDocument()
     // … und ein Treffer öffnet den Tisch direkt.
-    await user.click(screen.getByText('Bar'))
+    await user.click(treffer)
     expect(navigate).toHaveBeenCalledWith('/service/tische/2')
   })
 

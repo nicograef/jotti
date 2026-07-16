@@ -42,12 +42,12 @@ export async function oeffneHistorienDetail(
 }
 
 // oeffneTisch navigiert von der Tischauswahl zur Detailseite eines Tisches
-// über den „Alle Tische"-Drawer (funktioniert unabhängig davon, ob der Tisch
-// bereits in „Meine Tische" markiert ist).
+// über die Hauptsuche, die über alle aktiven Tische greift und einen Treffer
+// direkt öffnet (funktioniert unabhängig davon, ob der Tisch bereits in
+// „Meine Tische" markiert ist).
 export async function oeffneTisch(page: Page, tisch: string): Promise<void> {
   await page.goto('/service/tische')
-  await page.getByRole('button', { name: 'Alle Tische' }).click()
-  await page.getByPlaceholder('Tisch suchen...').fill(tisch)
+  await page.getByPlaceholder('Tisch suchen').fill(tisch)
   await page
     .getByRole('button', { name: new RegExp(`^${tisch}\\b.*€`) })
     .click()
