@@ -61,11 +61,15 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
-        // Kein Auto-Fokus beim Öffnen: auf dem Handy soll sich nicht ungefragt
-        // die Tastatur öffnen (der Nutzer tippt selbst das gewünschte Feld an).
-        // Fokus-Trap, Escape und Fokusrückgabe bleiben unberührt.
+        // Kein Auto-Fokus auf ein Eingabefeld beim Öffnen (keine ungefragte
+        // Tastatur auf dem Handy). Der Fokus wandert stattdessen auf den
+        // Dialog-Container (tabIndex -1 via Radix FocusScope), damit Fokus-Trap,
+        // Escape und Fokusrückgabe unverändert greifen.
         onOpenAutoFocus={(event) => {
           event.preventDefault()
+          if (event.currentTarget instanceof HTMLElement) {
+            event.currentTarget.focus({ preventScroll: true })
+          }
           onOpenAutoFocus?.(event)
         }}
         className={cn(

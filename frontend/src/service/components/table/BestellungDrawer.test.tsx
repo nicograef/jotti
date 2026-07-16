@@ -106,7 +106,7 @@ describe('BestellungDrawer', () => {
     await user.click(
       screen.getByRole('button', { name: /Bestellung überprüfen/ }),
     )
-    await screen.findByRole('dialog')
+    const dialog = await screen.findByRole('dialog')
 
     // Das optionale Kommentarfeld ist das erste Feld im Drawer. Beim Öffnen darf
     // KEIN Eingabefeld den Fokus erhalten — sonst öffnet sich auf dem Handy
@@ -116,6 +116,9 @@ describe('BestellungDrawer', () => {
     const active = document.activeElement
     expect(active?.tagName).not.toBe('INPUT')
     expect(active?.tagName).not.toBe('TEXTAREA')
+    // Der Fokus liegt aber IM Dialog (auf dem Container), damit Fokus-Falle,
+    // Escape und Fokusrückgabe weiter funktionieren.
+    expect(active === dialog || dialog.contains(active)).toBe(true)
   })
 
   it('zeigt den Tischnamen als dominante Überschrift ohne Prosa-Description', async () => {
