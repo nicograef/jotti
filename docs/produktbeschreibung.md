@@ -74,7 +74,7 @@ Die meisten Vereine bewirtschaften ihre Veranstaltungen mit Stift & Papier (fehl
 
 ## 5. Kernfeatures
 
-Mit _(in Entwicklung)_ markierte Features sind geplant, aber noch nicht umgesetzt; Status pro Anforderung: [anforderungen.md](anforderungen.md).
+Status pro Anforderung: [anforderungen.md](anforderungen.md).
 
 | Feature                                    | Beschreibung                                                                                                                    |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -93,7 +93,7 @@ Mit _(in Entwicklung)_ markierte Features sind geplant, aber noch nicht umgesetz
 | Kassensturz                                | Ist-Bestand eingeben, Differenz berechnen, Abweichung automatisch buchen                                                        |
 | Tagesabschluss (Z-Bon)                     | Formaler Abschluss mit fortlaufender Nummer, Umsatzaggregation und Stammdaten-Snapshot                                          |
 | Abrechnung                                 | Tagesabrechnung nach Steuersatz und pro Servicekraft                                                                            |
-| Produktumsatz-Reporting _(in Entwicklung)_ | Verkaufte Mengen, Ranking und Gesamteinnahmen pro Variante                                                                      |
+| Produktumsatz-Reporting                    | Verkaufte Mengen, Ranking und Gesamteinnahmen pro Variante                                                                      |
 | DSFinV-K-Export                            | Maschinenlesbarer Export nach DSFinV-K v2.4 als ZIP-Archiv                                                                      |
 | TSE-Anbindung (Cloud-TSE)                  | Integrierte Cloud-TSE-Schnittstelle mit fiskaly-Adapter; jeder Vorgang wird signiert                                            |
 | Belegausgabe                               | Gesetzeskonforme Belege mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse                                              |
@@ -138,7 +138,7 @@ jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV u
 | Steuersätze           | 19 % (Standard), 7 % (ermäßigt), 0 %, konfigurierbar pro Produktvariante      |
 | Abrechnungskreis      | Fortlaufend nummerierte Kassensitzungen mit Tagesabschluss (Z-Bon)            |
 | DSFinV-K-Export       | Vollständiger Export als ZIP (CSV + index.xml) nach DSFinV-K v2.4             |
-| Seriennummer / ELSTER | UUID beim ersten Start; ELSTER-Meldeanleitung _(in Entwicklung)_              |
+| Seriennummer / ELSTER | UUID beim ersten Start; ELSTER-Meldeanleitung                                |
 
 **Architekturprinzip:** Die Smartphones der Servicekräfte sind reine Eingabegeräte: TSE-Anbindung, Protokollierung und DSFinV-K-Persistenz laufen zentral im Backend; jeder Vorgang ist ein synchroner Backend-Request, ohne Verbindung ist kein Kassieren möglich (keine Offline-Erfassung). Da jotti self-hosted läuft, schließen Betreiber den Cloud-TSE-Vertrag selbst ab und hinterlegen die API-Schlüssel (Bring Your Own TSE); ohne TSE-Konfiguration bleiben Buchungen unsigniert, was nur für Test und Entwicklung gedacht und für echte Verkäufe nicht konform ist (§ 379 AO). Rechtliche Grundlagen und Betreiberpflichten (ELSTER-Meldung, Datensicherung, 10-jährige GoBD-konforme Aufbewahrung): [compliance.md](compliance.md).
 

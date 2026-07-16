@@ -91,7 +91,7 @@ Zeitraumbezogene Auswertungen beziehen sich je auf eine Kassensitzung (`kassensi
 | Q-02 | Mehrbenutzerfähig | Parallele Zugriffe, Optimistic Concurrency Control.         |
 | Q-03 | Validierung       | Zod (Frontend) und zog (Backend), deutsche Fehlermeldungen. |
 | Q-04 | Datenintegrität   | Transaktionssicher, append-only, Cent-Werte, Soft-Deletes.  |
-| Q-06 | HTTPS / TLS       | Caddy lokal, nginx und Let's Encrypt in Produktion.         |
+| Q-06 | HTTPS / TLS       | Caddy mit Let's Encrypt, lokal/LAN und in Produktion.        |
 | Q-07 | Rate Limiting     | Login-Endpunkt geschützt (HTTP 429).                        |
 | Q-08 | Security Headers  | CSP, X-Content-Type-Options, X-Frame-Options, HSTS.         |
 

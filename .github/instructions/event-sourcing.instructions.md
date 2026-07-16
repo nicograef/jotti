@@ -18,7 +18,6 @@ Events für Kasse-Operationen (Tisch-Sessions, Direktverkäufe und Kassensitzung
 **Tisch-Session Events** (Subject: `kassensitzung-{nr}/tisch-{id}`):
 
 - `bestellung-aufgenommen:v1`
-- `ausgabe-bestaetigt:v1`
 - `zahlung-kassiert:v1`
 - `stornierung-erteilt:v1` (kassenwirksame Warenrücknahme bezahlter Positionen)
 - `bestellung-korrigiert:v1` (geldneutrale Korrektur unbezahlter Positionen)
@@ -43,7 +42,6 @@ Alle Event-Typen und deren Datenstrukturen: `backend/domain/kasse/tisch_session_
 
 - Saldo = Summe(Bestellungen) − Summe(Zahlungen) − Summe(Korrekturen) ± Summe(Umbuchungen); stets ≥ 0. Die Warenrücknahme (`stornierung-erteilt`) verändert den Saldo nicht (wirkt nur auf den Kassenbestand).
 - UnbezahltePositionen = bestellt − bezahlt − korrigiert − umgebucht (Abgang) + umgebucht (Zugang)
-- AusstehendePositionen = bestellt − ausgegeben − korrigiert/zurückgenommen ± umgebucht
 
 ## Event-Store
 
@@ -61,6 +59,6 @@ Routing über `StreamType`-Parameter: `"tisch-session"` | `"kassensitzung"` | `"
 
 ## JSON-Tags in Event-Data-Structs
 
-Event-Data-Structs (zum Beispiel `BestellungAufgenommenV1Data`, `ZahlungKassiertV1Data`, `StornierungErteiltV1Data`, `AusgabeBestaetigtV1Data`, `KassensitzungEroeffnetV1Data` u. a.) behalten `json`-Tags fuer `json.Marshal` und `json.Unmarshal` im Event Store. Das ist Persistenz-Serialisierung und kein HTTP-Concern.
+Event-Data-Structs (zum Beispiel `BestellungAufgenommenV1Data`, `ZahlungKassiertV1Data`, `StornierungErteiltV1Data`, `KassensitzungEroeffnetV1Data` u. a.) behalten `json`-Tags fuer `json.Marshal` und `json.Unmarshal` im Event Store. Das ist Persistenz-Serialisierung und kein HTTP-Concern.
 
 Dies ist die einzige erlaubte Ausnahme von der Regel "keine `json`-Tags in `domain/`".

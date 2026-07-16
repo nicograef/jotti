@@ -41,14 +41,14 @@ frontend/
 ## Patterns
 
 - **401-Interceptor**: `Backend.post()` erkennt 401, loggt aus und leitet zu `/login` weiter — kein manuelles 401-Handling nötig
-- **Drawer-Pattern**: Bestellen, Kassieren, Stornieren, Liefern öffnen Bottom-Sheet-Drawer mit Zusammenfassung. Hilfsfunktionen (`selectPositionen`, `calculateTotalPrice`) in `src/service/components/table/drawerUtils.ts`
+- **Drawer-Pattern**: Bestellen, Kassieren, Stornieren, Umbuchen, Direktverkauf öffnen Bottom-Sheet-Drawer mit Zusammenfassung. Hilfsfunktionen (`selectPositionen`, `calculateTotalPrice`) in `src/service/components/table/drawerUtils.ts`
 - **Geldbeträge anzeigen**: `formatCents()` aus `src/lib/utils.ts` — nie inline formatieren
 - **API-Vertrag durch Backend-DTOs definiert**: Die JSON-Struktur der API ist durch Response-DTOs in der Backend HTTP-Schicht festgelegt, nicht durch Domain-Modelle. Frontend Zod-Schemas sollten gegen die API-Dokumentation bzw. tatsächliche Responses validiert werden.
 
 ## Styling
 
 - Tailwind CSS 4 via `@tailwindcss/vite` (keine `tailwind.config.js`)
-- CSS-Variablen in `src/index.css` (Violet/Indigo-Schema, Dark Mode via `.dark`-Klasse)
+- CSS-Variablen in `src/index.css` (Olive/Emerald/Zinc-Schema, Dark Mode via `.dark`-Klasse)
 - `cn()` Utility aus `src/lib/utils.ts` (`clsx` + `tailwind-merge`)
 - Path-Alias: `@/` → `./src/`
 

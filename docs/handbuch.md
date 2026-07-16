@@ -445,7 +445,7 @@ Mehrere Servicekräfte arbeiten gleichzeitig, auch am selben Tisch. Schreibkonfl
 
 | Maßnahme                   | Umsetzung                                                                                                                     | Anforderung |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| HTTPS / TLS                | nginx terminiert TLS, Let's Encrypt-Zertifikat, HTTP → HTTPS-Redirect                                                         | Q-06        |
+| HTTPS / TLS                | Caddy terminiert TLS, Let's Encrypt-Zertifikat, automatischer HTTP → HTTPS-Redirect (nginx nur im jotti.rocks-Demo-Stack)     | Q-06        |
 | Rate Limiting              | Login-Endpunkt ist durch Rate Limiting geschützt (Brute-Force-Schutz)                                                         | Q-07        |
 | Security Headers           | Reverse Proxy setzt HSTS, X-Frame-Options, X-Content-Type-Options, CSP                                                        | Q-08        |
 | Input-Validierung          | Frontend (Zod) + Backend (zog), beide Seiten unabhängig voneinander                                                           | Q-03        |
