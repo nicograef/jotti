@@ -191,7 +191,7 @@ func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]kasse.Histo
 	subject := kasse.TischSessionSubject(kassensitzungNr, tischID)
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		log.Error().Int("tisch_id", tischID).Msg("Failed to read events for tisch")
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for tisch")
 		return nil, ErrDatabase
 	}
 

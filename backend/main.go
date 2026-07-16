@@ -52,14 +52,19 @@ func main() {
 
 	log.Info().Msg("Connected to database")
 
-	if len(os.Args) > 1 && os.Args[1] == "rebuild-projections" {
+	subcommand := ""
+	if len(os.Args) > 1 {
+		subcommand = os.Args[1]
+	}
+
+	if subcommand == "rebuild-projections" {
 		if err := rebuildProjections(db); err != nil {
 			log.Fatal().Err(err).Msg("Failed to rebuild projections")
 		}
 		return
 	}
 
-	if len(os.Args) > 1 && os.Args[1] == "seed" {
+	if subcommand == "seed" {
 		if !seed.AllowedByEnv(os.Getenv) {
 			log.Fatal().Msgf("seed refused: set %s=1 to allow demo seeding (never do this in production)", seed.AllowSeedEnv)
 		}

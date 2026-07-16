@@ -73,7 +73,12 @@ func NewServiceApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/get-direktverkauf-historie", dq.GetDirektverkaufHistorieHandler())
 
 	tq := tischgeschaeftHTTP.QueryHandler{}
-	tq.Query = tischgeschaeftApp.Query{TischRepo: deps.TischRepo, EventRepo: deps.KassenjournalRepo, FavoritRepo: deps.FavoritRepo, KassensitzungenRepo: deps.KassensitzungenRepo}
+	tq.Query = tischgeschaeftApp.Query{
+		TischRepo:           deps.TischRepo,
+		EventRepo:           deps.KassenjournalRepo,
+		FavoritRepo:         deps.FavoritRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+	}
 	r.HandleFunc("/get-aktive-tische", tq.GetAktiveTischeHandler())
 	r.HandleFunc("/get-tisch-historie", tq.GetTischHistorieHandler())
 	r.HandleFunc("/get-tisch-state", tq.GetTischStateHandler())

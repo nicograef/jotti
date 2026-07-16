@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"errors"
-	"io"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -68,13 +67,6 @@ func ResultError(res sql.Result) error {
 	}
 
 	return nil
-}
-
-// Close safely closes an io.Closer and logs any error that occurs.
-func Close(c io.Closer, name string) {
-	if err := c.Close(); err != nil {
-		log.Error().Err(err).Str("resource", name).Msg("Error while closing resource")
-	}
 }
 
 // PingWithRetry calls ping repeatedly until it succeeds or the time budget is

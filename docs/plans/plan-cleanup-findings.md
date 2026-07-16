@@ -94,9 +94,9 @@ Sieben kleine, verhaltensneutrale Go-Korrekturen: `.Err(err)` im Historie-Log er
 
 ### Acceptance criteria
 
-- [ ] `make check` grün
-- [ ] `grep -rn "liveSummaryResponse\|func Close" backend/` liefert keine Treffer mehr
-- [ ] Kein JSON-Feld eines Endpunkts hat sich geändert (Reporting-Handler-Tests unverändert grün)
+- [x] `make check` grün
+- [x] `grep -rn "liveSummaryResponse\|func Close" backend/` liefert keine Treffer mehr
+- [x] Kein JSON-Feld eines Endpunkts hat sich geändert (Reporting-Handler-Tests unverändert grün)
 
 ---
 

@@ -50,7 +50,7 @@ func (h *CommandHandler) LoginHandler() http.HandlerFunc {
 				helper.SendTooManyRequests(w, "login_throttled")
 			case errors.Is(err, application.ErrNotActive):
 				helper.SendClientError(w, "user_inactive", nil)
-			case errors.Is(err, application.ErrUserNotFound) || errors.Is(err, application.ErrInvalidPassword):
+			case errors.Is(err, application.ErrUserNotFound), errors.Is(err, application.ErrInvalidPassword):
 				helper.SendClientError(w, "invalid_credentials", nil)
 			case errors.Is(err, application.ErrNoPassword):
 				helper.SendClientError(w, "no_password_set", "user has no password yet, set one via one-time password first")

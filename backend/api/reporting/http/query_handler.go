@@ -362,17 +362,6 @@ type offenerTischResponse struct {
 	SaldoCents int    `json:"saldoCents"`
 }
 
-type liveSummaryResponse struct {
-	GesamtUmsatzCents        int `json:"gesamtUmsatzCents"`
-	GesamtBestellungenCents  int `json:"gesamtBestellungenCents"`
-	GesamtStornierungenCents int `json:"gesamtStornierungenCents"`
-	GeldtransitCents         int `json:"geldtransitCents"`
-	AnzahlBestellungen       int `json:"anzahlBestellungen"`
-	AnzahlStornierungen      int `json:"anzahlStornierungen"`
-	AnzahlDirektverkaeufe    int `json:"anzahlDirektverkaeufe"`
-	DirektverkaufUmsatzCents int `json:"direktverkaufUmsatzCents"`
-}
-
 // offeneArbeitTischLiveResponse ist die schlanke Tisch-Zeile der Live-Sicht: nur
 // der Tisch-Name für die Inline-Anzeige. Der offene Betrag wird auf
 // Servicekraft-Ebene (servicekraftLiveResponse.OffenCents) aggregiert.
@@ -407,7 +396,7 @@ type liveReportingResponse struct {
 	Datum            string                     `json:"datum"` // Kalendertag YYYY-MM-DD
 	OffeneTische     []offenerTischResponse     `json:"offeneTische"`
 	OffeneSaldiCents int                        `json:"offeneSaldiCents"`
-	Summary          liveSummaryResponse        `json:"summary"`
+	Summary          summaryResponse            `json:"summary"`
 	Breakdowns       liveBreakdownsResponse     `json:"breakdowns"`
 	Stornierungen    []stornierungDetail        `json:"stornierungen"`
 	ProduktStatistik []produktStatistikResponse `json:"produktStatistik"`
@@ -455,7 +444,7 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 		Datum:            d.Datum.Format("2006-01-02"),
 		OffeneTische:     offeneTische,
 		OffeneSaldiCents: d.OffeneSaldiCents,
-		Summary: liveSummaryResponse{
+		Summary: summaryResponse{
 			GesamtUmsatzCents:        d.Summary.GesamtUmsatzCents,
 			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
 			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,

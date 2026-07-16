@@ -108,7 +108,8 @@ func parseEnvString(name, defaultValue string) string {
 	v := os.Getenv(name)
 	if v == "" && defaultValue != "" {
 		return defaultValue
-	} else if v == "" {
+	}
+	if v == "" {
 		log.Fatalf("%s is not set and has no default value\n", name)
 	}
 
