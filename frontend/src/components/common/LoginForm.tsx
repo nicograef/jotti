@@ -88,7 +88,7 @@ export function LoginForm(props: LoginFormProps) {
           type="submit"
           form="login-form"
           className="w-full"
-          disabled={loading || !form.formState.isValid}
+          disabled={loading}
         >
           {loading ? <Spinner /> : null} Anmelden
         </Button>

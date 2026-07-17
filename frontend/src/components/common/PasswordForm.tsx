@@ -89,7 +89,7 @@ export function PasswordForm(props: PasswordFormProps) {
           type="submit"
           form="password-form"
           className="w-full"
-          disabled={loading || !form.formState.isValid}
+          disabled={loading}
         >
           {loading ? <Spinner /> : null} Passwort festlegen
         </Button>
