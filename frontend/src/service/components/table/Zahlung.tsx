@@ -166,6 +166,7 @@ export function Zahlung({
             : formatAlleAuswaehlenLabel(
                 meinePositionen.length,
                 eigeneUnbezahltGesamt,
+                'meine',
               )}
         </button>
       )}

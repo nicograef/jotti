@@ -22,7 +22,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { BackendError } from '@/lib/Backend'
 import { getActionErrorMessage } from '@/lib/errorMessages'
-import { cn, formatEuro } from '@/lib/utils'
+import { cn, formatEuro, formatEuroMitVorzeichen } from '@/lib/utils'
 
 import { kasseBackend, useKassenbestand } from './hooks'
 import {
@@ -246,7 +246,7 @@ export function KasseAbschliessenSection({
                 )}
               >
                 {liveDifferenzCents !== null
-                  ? formatEuro(liveDifferenzCents)
+                  ? formatEuroMitVorzeichen(liveDifferenzCents)
                   : '—'}
               </div>
             </div>
@@ -301,7 +301,9 @@ export function KasseAbschliessenSection({
               <div className="flex justify-between gap-4 font-medium">
                 <dt>Differenz</dt>
                 <dd>
-                  {differenzCents !== null ? formatEuro(differenzCents) : '—'}
+                  {differenzCents !== null
+                    ? formatEuroMitVorzeichen(differenzCents)
+                    : '—'}
                 </dd>
               </div>
             </dl>

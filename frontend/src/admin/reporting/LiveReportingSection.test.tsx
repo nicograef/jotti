@@ -215,7 +215,7 @@ describe('LiveReportingSection — Übersicht', () => {
     expect(screen.getByText('Tisch 9 · felix (Felix W.)')).toBeInTheDocument()
   })
 
-  it('zeigt „Live · aktualisiert HH:MM" und löst den Jetzt-Button aus', async () => {
+  it('zeigt „Live · aktualisiert HH:MM" und löst den Aktualisieren-Button aus', async () => {
     const user = userEvent.setup()
     const onRefresh = vi.fn()
     const stand = new Date('2026-06-18T14:05:00Z').getTime()
@@ -233,7 +233,7 @@ describe('LiveReportingSection — Übersicht', () => {
       screen.getByText(/^Live · aktualisiert \d{2}:\d{2}$/),
     ).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Jetzt' }))
+    await user.click(screen.getByRole('button', { name: 'Aktualisieren' }))
     expect(onRefresh).toHaveBeenCalledTimes(1)
   })
 

@@ -173,7 +173,7 @@ export function ProductItem(props: ProductItemProps) {
                 props.onEdit(props.product.id)
               }}
             >
-              <Pen /> Umbenennen
+              <Pen /> Bearbeiten
             </DropdownMenuItem>
             <DropdownMenuItem
               disabled={activeVarianten.length === 0 || variantLoading}

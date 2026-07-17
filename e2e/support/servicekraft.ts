@@ -254,10 +254,11 @@ export async function waehleAlleVollAus(page: Page): Promise<void> {
 }
 
 // warteAufTischGeladen wartet, bis der State-Fetch des Tisches fertig ist:
-// TablePage zeigt den Header-Saldo ([data-slot="tisch-saldo"]) während des
-// Ladens als „?" und danach als Euro-Betrag (z. B. „0,00 €"). Das ist ein
-// deterministisches Ready-Signal — erst danach ist der Tab-Inhalt gerendert und
-// Prüfungen auf Buttons/Positionszeilen lesen den fertigen DOM.
+// TablePage zeigt den Header-Saldo während des Ladens als Skeleton-Platzhalter
+// und rendert erst danach [data-slot="tisch-saldo"] mit dem Euro-Betrag (z. B.
+// „0,00 €"). Das ist ein deterministisches Ready-Signal — erst danach ist der
+// Tab-Inhalt gerendert und Prüfungen auf Buttons/Positionszeilen lesen den
+// fertigen DOM.
 async function warteAufTischGeladen(page: Page): Promise<void> {
   await expect(page.locator('[data-slot="tisch-saldo"]')).toHaveText(
     /\d,\d{2}\s*€/,
@@ -277,9 +278,9 @@ export async function settleAlleOffenenTische(page: Page): Promise<void> {
 
     // Auf das Fertigladen des Tisches warten, bevor auf Buttons/Zeilen geprüft
     // wird: TablePage rendert die Tab-Inhalte erst nach dem State-Fetch und zeigt
-    // den Header-Saldo bis dahin als „?". Ohne dieses Ready-Signal würden die
-    // isVisible()/count()-Prüfungen unten den noch leeren DOM lesen und den
-    // Kassieren-Zweig stumm überspringen (Fetch-Race).
+    // den Header-Saldo bis dahin als Skeleton-Platzhalter. Ohne dieses
+    // Ready-Signal würden die isVisible()/count()-Prüfungen unten den noch leeren
+    // DOM lesen und den Kassieren-Zweig stumm überspringen (Fetch-Race).
     await warteAufTischGeladen(page)
 
     // Alle unbezahlten Positionen kassieren (falls welche vorhanden sind). Der
