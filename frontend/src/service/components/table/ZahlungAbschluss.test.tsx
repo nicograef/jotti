@@ -73,18 +73,18 @@ describe('ZahlungAbschluss (Spalte)', () => {
     expect(screen.getByText('2,00 €')).toBeInTheDocument()
   })
 
-  it('rechnet Rückgeld ohne Zielbetrag und Trinkgeld mit Zielbetrag', async () => {
+  it('rechnet Rückgeld ohne Zielbetrag und Trinkgeld mit Aufrunden-Chip', async () => {
     const user = userEvent.setup()
     renderSpalte()
 
-    // Ohne Zielbetrag: Rückgeld = Erhalten − Gesamt.
+    // Ohne Zielbetrag („genau"): Rückgeld = Erhalten − Gesamt.
     await user.type(screen.getByLabelText('Erhalten'), '10,00')
     expect(screen.getByText('Rückgeld').nextElementSibling).toHaveTextContent(
       '3,00',
     )
 
-    // Mit Zielbetrag (Aufrundung): Trinkgeld = Zielbetrag − Gesamt.
-    await user.type(screen.getByLabelText('Zahlbetrag inkl. Trinkgeld'), '8,00')
+    // Aufrunden-Chip auf 8,00 € (Gesamt 7,00 €): Trinkgeld = Zielbetrag − Gesamt.
+    await user.click(screen.getByRole('button', { name: /8,00/ }))
     expect(screen.getByText('Trinkgeld').nextElementSibling).toHaveTextContent(
       '1,00',
     )

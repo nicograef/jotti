@@ -18,6 +18,7 @@ import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { AbschlussHeader } from './AbschlussHeader'
 import { AbschlussLeer } from './AbschlussLeer'
+import { AufrundenChips } from './AufrundenChips'
 import { KommentarField } from './CommentField'
 import {
   calculateZahlungsbetraege,
@@ -52,6 +53,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
   const [kommentar, setKommentar] = useState('')
   const [erhaltenEuro, setErhaltenEuro] = useState('')
   const [zielbetragEuro, setZielbetragEuro] = useState('')
+  const [andererAktiv, setAndererAktiv] = useState(false)
 
   const noPositionenSelected = props.positionenToPay.length === 0
 
@@ -64,6 +66,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
     if (warLeerRef.current && !noPositionenSelected) {
       setErhaltenEuro('')
       setZielbetragEuro('')
+      setAndererAktiv(false)
       setKommentar('')
     }
     warLeerRef.current = noPositionenSelected
@@ -84,6 +87,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
     onSuccess: () => {
       setErhaltenEuro('')
       setZielbetragEuro('')
+      setAndererAktiv(false)
       setKommentar('')
       props.zahlungKassiert()
     },
@@ -126,24 +130,13 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
                   className="w-28"
                 />
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="zielbetrag">Zahlbetrag inkl. Trinkgeld</Label>
-                <EuroInput
-                  id="zielbetrag"
-                  value={zielbetragEuro}
-                  onValueChange={setZielbetragEuro}
-                  aria-describedby="zielbetrag-hinweis"
-                  className="w-28"
-                />
-              </div>
-              <p
-                id="zielbetrag-hinweis"
-                className="text-xs text-muted-foreground"
-              >
-                Nur ausfüllen, wenn der Gast aufrundet: den vollen Betrag
-                inklusive Trinkgeld eintragen, dann rechnet die Kasse das
-                Rückgeld passend.
-              </p>
+              <AufrundenChips
+                gesamtCents={props.totalCents}
+                zielbetragEuro={zielbetragEuro}
+                onZielbetragEuroChange={setZielbetragEuro}
+                andererAktiv={andererAktiv}
+                onAndererAktivChange={setAndererAktiv}
+              />
               {rueckgeldCents !== null && (
                 <div className="flex items-baseline justify-between pt-1">
                   <div className="text-[15px] font-semibold">Rückgeld</div>

@@ -4,6 +4,7 @@ import type { Produkt } from '@/service/product/Produkt'
 import type { Position } from '@/service/table/Bestellung'
 
 import {
+  aufrundenVorschlaege,
   calculateTotalPrice,
   calculateZahlungsbetraege,
   selectPositionen,
@@ -180,6 +181,20 @@ describe('calculateZahlungsbetraege', () => {
         trinkgeldCents: null,
       })
     })
+  })
+})
+
+describe('aufrundenVorschlaege', () => {
+  it('liefert 1-€- und 5-€-Vorschlag echt über einem Zwischenbetrag', () => {
+    expect(aufrundenVorschlaege(1230)).toEqual([1300, 1500])
+  })
+
+  it('rundet einen glatten Euro-Betrag auf den nächsten 1-€- und 5-€-Schritt', () => {
+    expect(aufrundenVorschlaege(1300)).toEqual([1400, 1500])
+  })
+
+  it('ersetzt den Doppelgänger, wenn 1-€- und 5-€-Vorschlag zusammenfallen', () => {
+    expect(aufrundenVorschlaege(450)).toEqual([500, 1000])
   })
 })
 

@@ -59,13 +59,15 @@ test.describe('Drawer-Sticky-Footer bei langer Positionsliste', () => {
 
     // Trinkgeld und Erhalten eintragen: Die zusätzlichen Rückgeld-/
     // Trinkgeld-Zeilen samt Hinweistext verlängern den Drawer-Inhalt weiter.
+    // Der freie Zielbetrag steckt hinter dem „Anderer …"-Aufrunden-Chip.
     const zahlungsDrawer = page.getByRole('dialog')
+    await zahlungsDrawer.getByRole('button', { name: 'Anderer …' }).click()
     await zahlungsDrawer.getByLabel('Zahlbetrag inkl. Trinkgeld').fill('55,00')
     await zahlungsDrawer.getByLabel('Erhalten').fill('60,00')
+    // exact: der Trinkgeld-Buchungshinweis enthält das Wort ebenfalls.
     await expect(
       zahlungsDrawer.getByText('Trinkgeld', { exact: true }),
     ).toBeVisible()
-    // exact: der Hilfetext zum Zahlbetrag-Feld enthält das Wort ebenfalls.
     await expect(
       zahlungsDrawer.getByText('Rückgeld', { exact: true }),
     ).toBeVisible()

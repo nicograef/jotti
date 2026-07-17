@@ -315,14 +315,14 @@ Neue gemeinsame Komponente `AufrundenChips` (unter `frontend/src/service/compone
 
 ### Acceptance criteria
 
-- [ ] `aufrundenVorschlaege`: Unit-Tests für die Beispiele 12,30 → [13, 15]; 13,00 → [14, 15]; 4,50 → [5, 10] (Dedup-Fall)
-- [ ] Chip-Tap setzt den Zielbetrag, Trinkgeld- und Rückgeld-Zeilen rechnen wie bisher clientseitig; erneuter Tap wählt ab (Tests)
-- [ ] „Anderer …" blendet das Euro-Feld ein; freie Beträge funktionieren wie bisher
-- [ ] Der dreizeilige Zielbetrag-Hinweistext existiert nicht mehr; der Trinkgeld-Buchungshinweis bleibt
-- [ ] Direktverkauf zeigt erstmals Trinkgeld bei aufgerundetem Zielbetrag (Test in `DirektverkaufAbschluss.test.tsx`)
-- [ ] Kassieren- und Direktverkauf-Payloads unverändert (bestehende Submit-Tests grün, kein neues Feld)
-- [ ] warLeer-Reset leert auch den Chip-/Zielbetrag-Zustand beim Start eines neuen Vorgangs
-- [ ] Chips ≥ 44 px hoch, Ziffern tabular; `make check` grün
+- [x] `aufrundenVorschlaege`: Unit-Tests für die Beispiele 12,30 → [13, 15]; 13,00 → [14, 15]; 4,50 → [5, 10] (Dedup-Fall)
+- [x] Chip-Tap setzt den Zielbetrag, Trinkgeld- und Rückgeld-Zeilen rechnen wie bisher clientseitig; erneuter Tap wählt ab (Tests)
+- [x] „Anderer …" blendet das Euro-Feld ein; freie Beträge funktionieren wie bisher
+- [x] Der dreizeilige Zielbetrag-Hinweistext existiert nicht mehr; der Trinkgeld-Buchungshinweis bleibt
+- [x] Direktverkauf zeigt erstmals Trinkgeld bei aufgerundetem Zielbetrag (Test in `DirektverkaufAbschluss.test.tsx`)
+- [x] Kassieren- und Direktverkauf-Payloads unverändert (bestehende Submit-Tests grün, kein neues Feld)
+- [x] warLeer-Reset leert auch den Chip-/Zielbetrag-Zustand beim Start eines neuen Vorgangs
+- [x] Chips ≥ 44 px hoch, Ziffern tabular; `make check` grün
 
 ---
 
