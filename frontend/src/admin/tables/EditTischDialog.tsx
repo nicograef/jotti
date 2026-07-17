@@ -30,7 +30,7 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import { type Tisch } from './Tisch'
 import { TischBackend, UpdateTischSchema } from './TischBackend'
@@ -133,7 +133,7 @@ export function EditTischDialog(props: EditTischDialogProps) {
                 <Trash2 /> Tisch löschen
               </Button>
               <p className="text-xs text-muted-foreground">
-                Offener Saldo: {formatCents(props.tisch.saldoCents)} € — erst
+                Offener Saldo: {formatEuro(props.tisch.saldoCents)} — erst
                 abrechnen, dann lässt sich der Tisch löschen.
               </p>
             </div>

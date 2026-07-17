@@ -70,31 +70,8 @@ func TestCheckSignaturGate(t *testing.T) {
 	}
 }
 
-// checkSignaturGate meldet Anzahl und Alter des ältesten ausstehenden Auftrags
-// für die 409-Antwort.
-func TestCheckSignaturGate_AeltesterAusstehend(t *testing.T) {
-	ctx := context.Background()
-	alt := time.Now().Add(-45 * time.Second).UTC()
-	jung := time.Now().Add(-5 * time.Second).UTC()
-	cmd := Command{TSERepo: tseGateMock{staende: []tse.SignaturauftragStand{
-		{Status: tse.StatusOffen, ErstelltAm: jung},
-		{Status: tse.StatusOffen, ErstelltAm: alt},
-	}}}
-
-	gate, err := cmd.checkSignaturGate(ctx, 1)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if gate.ausstehendAnzahl != 2 {
-		t.Fatalf("expected 2 ausstehend, got %d", gate.ausstehendAnzahl)
-	}
-	if !gate.aeltesterAusstehend.Equal(alt) {
-		t.Errorf("aeltesterAusstehend = %v, want %v (oldest)", gate.aeltesterAusstehend, alt)
-	}
-}
-
 // Frischer offener Auftrag ohne Störung blockiert den Abschluss mit
-// SignaturenAusstehendError (Anzahl + Alter); die Barriere wird nicht gesetzt
+// SignaturenAusstehendError (Anzahl); die Barriere wird nicht gesetzt
 // und kein Event geschrieben — das Gate greift vor der Barriere.
 func TestKasseAbschliessen_GateBlocktBeiAusstehend(t *testing.T) {
 	ctx := context.Background()
@@ -118,9 +95,6 @@ func TestKasseAbschliessen_GateBlocktBeiAusstehend(t *testing.T) {
 	}
 	if ausstehend.Anzahl != 1 {
 		t.Errorf("expected Anzahl 1, got %d", ausstehend.Anzahl)
-	}
-	if !ausstehend.AeltesterErstelltAm.Equal(erstellt) {
-		t.Errorf("expected AeltesterErstelltAm %v, got %v", erstellt, ausstehend.AeltesterErstelltAm)
 	}
 	if sitzungMock.WirdAbgeschlossenCalls != 0 {
 		t.Errorf("expected barrier NOT set when gate blocks, got %d calls", sitzungMock.WirdAbgeschlossenCalls)

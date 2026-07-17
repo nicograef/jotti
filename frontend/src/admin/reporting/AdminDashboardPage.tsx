@@ -3,7 +3,7 @@ import { beschreibeFehlBons } from '@/admin/settings/DruckstationBackend'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
 import { tseAmpel } from '@/admin/tse/tseAmpel'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import { useLiveReporting } from './hooks'
 import { LiveReportingSection } from './LiveReportingSection'
@@ -60,7 +60,7 @@ export function AdminDashboardPage() {
     kassensitzung &&
       `seit ${formatStand(new Date(kassensitzung.eroeffnetAm).getTime())}`,
     kassenbestand !== null &&
-      `Soll-Bestand ${formatCents(kassenbestand.sollBestandCents)} €`,
+      `Soll-Bestand ${formatEuro(kassenbestand.sollBestandCents)}`,
   ].filter((teil): teil is string => typeof teil === 'string')
   const kasseText = kasseTeile.length > 0 ? kasseTeile.join(' · ') : 'geöffnet'
 

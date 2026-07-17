@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
@@ -271,8 +270,7 @@ func TestKasseAbschliessenHandler_KasseNichtGeoeffnet(t *testing.T) {
 
 func TestKasseAbschliessenHandler_SignaturenAusstehend(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: &application.SignaturenAusstehendError{
-		Anzahl:              2,
-		AeltesterErstelltAm: time.Now().Add(-30 * time.Second),
+		Anzahl: 2,
 	}}}
 
 	req := requestWithUser(`{"istBestandCents":10000}`)

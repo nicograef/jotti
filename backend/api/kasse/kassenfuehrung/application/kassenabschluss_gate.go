@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"time"
 
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/rs/zerolog"
@@ -13,8 +12,7 @@ import (
 // den Ausfall (Ergebnis ausstehend der Signaturstatus-Funktion). Die TSE holt
 // in Kuerze auf; die Abschluss-Operation wird unveraendert erneut angefordert.
 type SignaturenAusstehendError struct {
-	Anzahl              int
-	AeltesterErstelltAm time.Time
+	Anzahl int
 }
 
 func (e *SignaturenAusstehendError) Error() string {
@@ -38,7 +36,6 @@ type KassenabschlussErgebnis struct {
 // Signaturauftraege der Kassensitzung.
 type signaturGate struct {
 	ausstehendAnzahl        int
-	aeltesterAusstehend     time.Time
 	ausfallResteAnzahl      int
 	ohneKonfigurationAnzahl int
 }
@@ -68,9 +65,6 @@ func (c Command) checkSignaturGate(ctx context.Context, kassensitzungNr int) (si
 		ergebnis := tse.DetermineSignaturstatus(stand, aktiveStoerung)
 		switch ergebnis.Status {
 		case tse.SignaturstatusAusstehend:
-			if gate.ausstehendAnzahl == 0 || stand.ErstelltAm.Before(gate.aeltesterAusstehend) {
-				gate.aeltesterAusstehend = stand.ErstelltAm
-			}
 			gate.ausstehendAnzahl++
 		case tse.SignaturstatusAusfall:
 			if ergebnis.AusfallGrund == tse.StatusTSENichtKonfiguriert || ergebnis.AusfallGrund == tse.StoerungGrundKeineKonfiguration {

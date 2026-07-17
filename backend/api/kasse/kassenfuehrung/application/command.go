@@ -302,8 +302,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	if gate.ausstehendAnzahl > 0 {
 		log.Warn().Int("z_nr", ks.ZNr).Int("ausstehend", gate.ausstehendAnzahl).Msg("Kassenabschluss blockiert: Signaturen ausstehend")
 		return KassenabschlussErgebnis{}, &SignaturenAusstehendError{
-			Anzahl:              gate.ausstehendAnzahl,
-			AeltesterErstelltAm: gate.aeltesterAusstehend,
+			Anzahl: gate.ausstehendAnzahl,
 		}
 	}
 	ergebnis = KassenabschlussErgebnis{

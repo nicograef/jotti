@@ -1,5 +1,5 @@
 import { Switch } from '@/components/ui/switch'
-import { cn, formatCents } from '@/lib/utils'
+import { cn, formatEuro } from '@/lib/utils'
 
 import { type Tisch, TischStatus } from './Tisch'
 
@@ -68,7 +68,7 @@ export function TischItem(props: TischItemProps) {
         </span>
         {hatSaldo ? (
           <span className="font-medium text-primary">
-            {formatCents(props.tisch.saldoCents)} € offen
+            {formatEuro(props.tisch.saldoCents)} offen
           </span>
         ) : (
           <span>{isActive ? 'aktiv' : 'aus'}</span>

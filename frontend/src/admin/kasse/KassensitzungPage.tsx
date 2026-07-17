@@ -6,7 +6,7 @@ import { AdminPageHeader } from '@/admin/components/AdminPageHeader'
 import { formatDatumLang } from '@/admin/reporting/utils'
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { cn, formatCents } from '@/lib/utils'
+import { cn, formatEuro } from '@/lib/utils'
 
 import { EroeffnenSection } from './EroeffnenSection'
 import {
@@ -115,7 +115,7 @@ function EroeffnetKarte({
         <p className="mt-0.5 text-sm text-muted-foreground">
           {eroeffnetAm}
           {anfangsbestandCents !== null
-            ? ` · Wechselgeld (Anfangsbestand): ${formatCents(anfangsbestandCents)} €`
+            ? ` · Wechselgeld (Anfangsbestand): ${formatEuro(anfangsbestandCents)}`
             : ''}
         </p>
       </CardContent>

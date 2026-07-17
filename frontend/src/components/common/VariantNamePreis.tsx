@@ -1,4 +1,4 @@
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 // VariantNamePreis ist das geteilte Name/Preis-Paar der Varianten-Listen —
 // Admin-Produkt-Chips (VariantChip) und Service-Bestellen (VariantRow). Es MUSS
@@ -19,7 +19,7 @@ export function VariantNamePreis({
     <>
       <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
       <span className="shrink-0 text-sm font-semibold tabular-nums">
-        {formatCents(preisCents)}&nbsp;€
+        {formatEuro(preisCents)}
       </span>
     </>
   )

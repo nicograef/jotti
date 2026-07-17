@@ -333,7 +333,7 @@ func ausfallGateStand(t *testing.T, u *liveTestUmgebung, ksNr int) gateStand {
 
 // pruefeGateBlockiertOhneStoerung erzwingt einen frisch offenen Auftrag ohne
 // aktive Stoerung und prueft, dass der reale Kassenabschluss mit
-// *SignaturenAusstehendError (409 mit Anzahl/Alter) blockiert. Anschliessend
+// *SignaturenAusstehendError (409 mit Anzahl) blockiert. Anschliessend
 // wird der Auftrag abgewartet, damit die Sitzung wieder abschliessbar waere.
 func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int) {
 	t.Helper()
@@ -366,9 +366,6 @@ func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int
 	}
 	if ausstehend.Anzahl < 1 {
 		t.Errorf("SignaturenAusstehendError.Anzahl = %d, erwartet mindestens 1", ausstehend.Anzahl)
-	}
-	if ausstehend.AeltesterErstelltAm.IsZero() {
-		t.Error("SignaturenAusstehendError.AeltesterErstelltAm nicht gesetzt (Alter fehlt)")
 	}
 
 	// Auftrag abwarten, damit ein evtl. Zwischenstatus der Sitzung nicht haengt.
