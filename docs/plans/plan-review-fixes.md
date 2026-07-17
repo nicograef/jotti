@@ -146,10 +146,10 @@ Stop accumulating `SaldoCents`. After each mutation of `UnbezahltePositionen`, s
 
 ### Acceptance criteria
 
-- [ ] `SaldoCents` is derived from `UnbezahltePositionen` after each position mutation; no arm accumulates it independently.
-- [ ] `GesamtZahlungenCents` still accumulates unchanged.
-- [ ] A unit test pins `SaldoCents == Σ(EinzelpreisCents × Menge)`; the fuzz replay asserts it too.
-- [ ] Projection values are byte-identical to before on all existing tests; the close gate behaves identically.
+- [x] `SaldoCents` is derived from `UnbezahltePositionen` after each position mutation; no arm accumulates it independently.
+- [x] `GesamtZahlungenCents` still accumulates unchanged.
+- [x] A unit test pins `SaldoCents == Σ(EinzelpreisCents × Menge)`; the fuzz replay asserts it too.
+- [x] Projection values are byte-identical to before on all existing tests; the close gate behaves identically.
 - [ ] `make verify` (incl. integration + fuzz seed corpus) green.
 
 ---

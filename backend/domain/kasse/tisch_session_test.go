@@ -517,6 +517,106 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 	}
 }
 
+// assertSaldoAbgeleitet prüft die Kern-Invariante von SaldoCents: der offene
+// Betrag ist stets die Summe aus EinzelpreisCents × Menge über die unbezahlten
+// Positionen (Phase 4: abgeleitet, nicht getrennt fortgeschrieben).
+func assertSaldoAbgeleitet(t *testing.T, state TischSession, nachEvent string) {
+	t.Helper()
+	erwartet := 0
+	for _, pos := range state.UnbezahltePositionen {
+		erwartet += pos.EinzelpreisCents * pos.Menge
+	}
+	if state.SaldoCents != erwartet {
+		t.Fatalf("SaldoCents %d weicht von Σ(EinzelpreisCents × Menge) %d ab nach %s", state.SaldoCents, erwartet, nachEvent)
+	}
+}
+
+// TestApplyEvent_SaldoAbgeleitetNachJedemEventtyp pins the SaldoCents invariant
+// after every event type: after each applied event SaldoCents must equal
+// Σ(EinzelpreisCents × Menge) over UnbezahltePositionen.
+func TestApplyEvent_SaldoAbgeleitetNachJedemEventtyp(t *testing.T) {
+	const zNr = 1
+	const quellTischID = 42
+	const zielTischID = 7
+	quellSubject := TischSessionSubject(zNr, quellTischID)
+	zielSubject := TischSessionSubject(zNr, zielTischID)
+
+	// bestellung-aufgenommen: zwei Produkte, Saldo steigt.
+	products := []Position{
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
+		testPosition(2, "Wurst", "Bratwurst", "essen", 400, 2),
+	}
+	orderEvent := mustCreateOrderEvent(t, quellSubject, 1, products)
+	orderEvent.ID, orderEvent.Version = 1, 1
+
+	state, err := ApplyEvent(TischSession{Subject: quellSubject}, orderEvent)
+	if err != nil {
+		t.Fatalf("bestellung: %v", err)
+	}
+	assertSaldoAbgeleitet(t, state, "bestellung-aufgenommen")
+
+	bestellung, err := buildBestellungFromEvent(orderEvent)
+	if err != nil {
+		t.Fatalf("build bestellung: %v", err)
+	}
+
+	// zahlung-kassiert: ein Bier bezahlen, Saldo sinkt, Positionen schrumpfen.
+	beerPay := []Position{bestellung.Positionen[0]}
+	beerPay[0].Menge = 1
+	payEvent := mustCreatePaymentEvent(t, quellSubject, 1, beerPay, 500)
+	payEvent.ID, payEvent.Version = 2, 2
+	state, err = ApplyEvent(state, payEvent)
+	if err != nil {
+		t.Fatalf("zahlung: %v", err)
+	}
+	assertSaldoAbgeleitet(t, state, "zahlung-kassiert")
+
+	// bestellung-korrigiert: eine unbezahlte Wurst geldneutral korrigieren.
+	wurstKorr := []Position{bestellung.Positionen[1]}
+	wurstKorr[0].Menge = 1
+	korrEvent := mustCreateKorrekturEvent(t, quellSubject, 1, wurstKorr, 400)
+	korrEvent.ID, korrEvent.Version = 3, 3
+	state, err = ApplyEvent(state, korrEvent)
+	if err != nil {
+		t.Fatalf("korrektur: %v", err)
+	}
+	assertSaldoAbgeleitet(t, state, "bestellung-korrigiert")
+
+	// stornierung-erteilt: Warenrücknahme der bereits bezahlten Position; ändert
+	// UnbezahltePositionen nicht, der Saldo bleibt damit unverändert.
+	stornoPos := []Position{bestellung.Positionen[0]}
+	stornoPos[0].Menge = 1
+	stornoEvent := mustCreateCancelationEvent(t, quellSubject, 1, testZahlungID, stornoPos, 500)
+	stornoEvent.ID, stornoEvent.Version = 4, 4
+	state, err = ApplyEvent(state, stornoEvent)
+	if err != nil {
+		t.Fatalf("stornierung: %v", err)
+	}
+	assertSaldoAbgeleitet(t, state, "stornierung-erteilt")
+
+	// bestellung-umgebucht (Abgang): eine Bierposition verlässt den Quelltisch.
+	umbuchPositionen := positionsFromOrder(t, orderEvent, 1)
+	umbuchPositionen = []Position{umbuchPositionen[0]}
+	quellEvent, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", umbuchPositionen, 500, "auf Ziel", "von Quelle", "")
+	if err != nil {
+		t.Fatalf("umbuchung events: %v", err)
+	}
+	quellEvent.ID, quellEvent.Version = 5, 5
+	zielEvent.ID, zielEvent.Version = 6, 1
+	state, err = ApplyEvent(state, quellEvent)
+	if err != nil {
+		t.Fatalf("umbuchung abgang: %v", err)
+	}
+	assertSaldoAbgeleitet(t, state, "bestellung-umgebucht (Abgang)")
+
+	// bestellung-umgebucht (Zugang): auf dem leeren Zieltisch wie eine Bestellung.
+	zielState, err := ApplyEvent(TischSession{Subject: zielSubject}, zielEvent)
+	if err != nil {
+		t.Fatalf("umbuchung zugang: %v", err)
+	}
+	assertSaldoAbgeleitet(t, zielState, "bestellung-umgebucht (Zugang)")
+}
+
 func TestApplyEvent_SetsErsteBestellungLogTimeOnlyOnce(t *testing.T) {
 	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)}
 

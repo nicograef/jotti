@@ -122,6 +122,18 @@ func FuzzApplyEvent(f *testing.F) {
 		if minderung := saldoMinderung(typ, evt.Data); minderung <= basis.SaldoCents && next.SaldoCents < 0 {
 			t.Fatalf("negativer Saldo %d nach %s (Basis %d, Minderung %d)", next.SaldoCents, typ, basis.SaldoCents, minderung)
 		}
+
+		// Invariante 3 — Saldo aus Positionen abgeleitet: SaldoCents ist der offene
+		// Betrag und damit stets die Summe aus EinzelpreisCents × Menge über die
+		// unbezahlten Positionen. Nach jedem erfolgreichen Replay muss diese
+		// Ableitung gelten — sie ist die einzige Quelle der Wahrheit für den Saldo.
+		var erwarteterSaldo int
+		for _, pos := range next.UnbezahltePositionen {
+			erwarteterSaldo += pos.EinzelpreisCents * pos.Menge
+		}
+		if next.SaldoCents != erwarteterSaldo {
+			t.Fatalf("SaldoCents %d weicht von Σ(EinzelpreisCents × Menge) %d ab nach %s", next.SaldoCents, erwarteterSaldo, typ)
+		}
 	})
 }
 

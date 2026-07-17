@@ -30,7 +30,6 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal bestellung data: %w", err)
 		}
-		state.SaldoCents += data.GesamtPreisCents
 		neuePositionen := tagBesteller(fromPositionenEventData(data.Positionen), evt.UserID, evt.UserName)
 		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, neuePositionen)
 
@@ -41,7 +40,6 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal zahlung data: %w", err)
 		}
-		state.SaldoCents -= data.GesamtZahlungCents
 		state.GesamtZahlungenCents += data.GesamtZahlungCents
 		unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
 		if err != nil {
@@ -66,7 +64,6 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal korrektur data: %w", err)
 		}
-		state.SaldoCents -= data.GesamtCents
 		unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
 		if err != nil {
 			return state, fmt.Errorf("korrektur %s: %w", evt.Subject, err)
@@ -86,7 +83,6 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		if tischID == data.QuellTischID {
 			// Abgang: die Positionen verlassen den Quelltisch (geldneutral je System,
 			// der Quell-Saldo sinkt).
-			state.SaldoCents -= data.GesamtCents
 			unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, positionen)
 			if err != nil {
 				return state, fmt.Errorf("umbuchung %s: %w", evt.Subject, err)
@@ -96,7 +92,6 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 			// Zugang: die Positionen kommen auf den Zieltisch, wie eine frische
 			// Bestellung (Saldo steigt, Positionen sind unbezahlt).
 			neuePositionen := tagBesteller(positionen, evt.UserID, evt.UserName)
-			state.SaldoCents += data.GesamtCents
 			state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, neuePositionen)
 
 			setErsteBestellungLogTime(&state, evt.Time)
@@ -106,10 +101,29 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		return state, fmt.Errorf("unknown event type: %s", evt.Type)
 	}
 
+	// SaldoCents ist der noch offene Betrag am Tisch und damit vollständig aus
+	// UnbezahltePositionen abgeleitet (Σ EinzelpreisCents × Menge). Statt ihn in
+	// jedem positions-ändernden Arm getrennt fortzuschreiben, wird er hier einmal
+	// aus den Positionen berechnet — die einzige Quelle der Wahrheit. Arme, die die
+	// Positionen unverändert lassen (z. B. Stornierung), lassen den Saldo damit
+	// unverändert. GesamtZahlungenCents bleibt ein echter Akkumulator (nicht
+	// ableitbar) und wird oben je Arm fortgeschrieben.
+	state.SaldoCents = saldoAusPositionen(state.UnbezahltePositionen)
+
 	state.LastEventID = evt.ID
 	state.LastEventVersion = evt.Version
 
 	return state, nil
+}
+
+// saldoAusPositionen berechnet den offenen Saldo als Summe aus EinzelpreisCents ×
+// Menge über alle unbezahlten Positionen.
+func saldoAusPositionen(positionen []Position) int {
+	saldo := 0
+	for _, pos := range positionen {
+		saldo += pos.EinzelpreisCents * pos.Menge
+	}
+	return saldo
 }
 
 // setErsteBestellungLogTime stempelt den Zeitpunkt der ersten Bestellung auf den
