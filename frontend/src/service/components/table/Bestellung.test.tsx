@@ -1,13 +1,24 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 import type { Produkt } from '../../product/Produkt'
 import type { Tisch } from '../../table/Tisch'
 import { ServiceDock } from '../ServiceDock'
 import { Bestellung } from './Bestellung'
+
+// Der Bestell-Korb liegt seit A1 in TablePage; für die isolierten Komponenten-
+// Tests stellt dieser Harness die gehobene Steuerung bereit.
+function BestellungHarness(
+  props: Omit<ComponentProps<typeof Bestellung>, 'mengenSteuerung'>,
+) {
+  const mengenSteuerung = useMengen<number>()
+  return <Bestellung {...props} mengenSteuerung={mengenSteuerung} />
+}
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -51,7 +62,7 @@ describe('Bestellung Aktionsleiste', () => {
     const user = userEvent.setup()
     render(
       <ServiceDock leiste={null}>
-        <Bestellung
+        <BestellungHarness
           backend={{
             bestellungAufnehmen: vi.fn().mockResolvedValue(undefined),
           }}
@@ -81,7 +92,7 @@ describe('Bestellung Aktionsleiste', () => {
     const user = userEvent.setup()
     // Kein ServiceDock: die feste Spalte trägt den Aktionsbutton selbst.
     render(
-      <Bestellung
+      <BestellungHarness
         backend={{ bestellungAufnehmen: vi.fn().mockResolvedValue(undefined) }}
         tisch={tisch}
         products={[testProdukt]}

@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import type { Produkt } from './product/Produkt'
 import type { Position } from './table/Bestellung'
 import type { TischSession } from './table/Tisch'
 import { TablePage } from './TablePage'
@@ -22,8 +23,34 @@ function position(positionId: string): Position {
   }
 }
 
+const testProdukt: Produkt = {
+  id: 1,
+  name: 'Bratwurst',
+  kategorie: 'essen',
+  status: 'active',
+  varianten: [
+    {
+      id: 1,
+      name: 'Normal',
+      preisCents: 350,
+      status: 'active',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
+    },
+  ],
+  createdAt: '2025-01-01T00:00:00Z',
+  updatedAt: '2025-01-01T00:00:00Z',
+}
+
+// Steuerbarer Testzustand: `tischId` bildet den :tischId-Param nach (Tischwechsel
+// ohne Remount), `produkte` speist die Bestell-Tab-Auswahl.
+const testState = vi.hoisted(() => ({
+  tischId: '1',
+  produkte: [] as Produkt[],
+}))
+
 vi.mock('react-router', () => ({
-  useParams: () => ({ tischId: '1' }),
+  useParams: () => ({ tischId: testState.tischId }),
 }))
 
 vi.mock('sonner', () => ({
@@ -41,8 +68,13 @@ vi.mock('@/lib/Backend', () => ({
   BackendSingleton: {},
 }))
 
+// Die eigene Servicekraft (für die „Meine Positionen"-Filterung in Zahlung).
+vi.mock('@/lib/Auth', () => ({
+  AuthSingleton: { userId: 1 },
+}))
+
 vi.mock('./product/hooks', () => ({
-  useAktiveProdukte: () => ({ produkte: [], isPending: false }),
+  useAktiveProdukte: () => ({ produkte: testState.produkte, isPending: false }),
 }))
 
 const { getTischState, getTischHistorie } = vi.hoisted(() => ({
@@ -70,6 +102,8 @@ const stammtisch: TischSession = {
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  testState.tischId = '1'
+  testState.produkte = []
 })
 
 function renderPage() {
@@ -144,5 +178,96 @@ describe('TablePage', () => {
 
     expect(await screen.findByText('2 unbezahlt')).toBeInTheDocument()
     expect(screen.queryByText('Alles bezahlt')).not.toBeInTheDocument()
+  })
+
+  // A1: Der gehobene Auswahl-State überlebt das Aus- und Wiedereinhängen der
+  // Radix-Tab-Inhalte (inaktive Tabs werden ausgehängt). Ohne das Heben nach
+  // TablePage ginge die Auswahl beim Tab-Wechsel verloren.
+  it('behält den Bestell-Korb über einen Tab-Wechsel hinweg', async () => {
+    testState.produkte = [testProdukt]
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+    // Bestellen ist der Default-Tab: eine Variante in den Korb legen.
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    expect(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    ).toHaveTextContent('3,50')
+
+    // Zur Historie und zurück — der Bestellen-Tab wird zwischenzeitlich ausgehängt.
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('tab', { name: 'Bestellen' }))
+
+    expect(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    ).toHaveTextContent('3,50')
+  })
+
+  it('behält die Kassieren-Auswahl über einen Tab-Wechsel hinweg', async () => {
+    getTischState.mockResolvedValue({
+      ...stammtisch,
+      unbezahltePositionen: [position('p1')],
+    })
+    getTischHistorie.mockResolvedValue([])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+    // Die eigene Position auswählen (Auth-userId 1).
+    await user.click(screen.getByRole('button', { name: 'Produkt hinzufügen' }))
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
+      '3,50',
+    )
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
+      '3,50',
+    )
+  })
+
+  it('startet die Auswahl bei einem Tischwechsel leer', async () => {
+    testState.produkte = [testProdukt]
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    const user = userEvent.setup()
+    // Eigener QueryClient, damit Re-Renders die Provider-Instanz teilen; jeder
+    // Aufruf liefert ein frisches Element, sonst überspringt React das
+    // Neurendern (referenzgleiche Props).
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const renderUi = () => (
+      <QueryClientProvider client={queryClient}>
+        <TablePage />
+      </QueryClientProvider>
+    )
+    const { rerender } = render(renderUi())
+
+    await screen.findByText('Stammtisch')
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    expect(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    ).toHaveTextContent('3,50')
+
+    // Anderer Tisch: nur der :tischId-Param wechselt, TablePage bleibt gemountet.
+    testState.tischId = '2'
+    rerender(renderUi())
+
+    // Nach dem Laden des neuen Tisches ist der Korb leer (Aktionsbutton deaktiviert).
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+      ).toBeDisabled()
+    })
   })
 })
