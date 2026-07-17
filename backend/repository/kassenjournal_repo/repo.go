@@ -361,7 +361,7 @@ type TischNameUndSession struct {
 // Ein Favorit ohne Session (noch keine Events) erhält eine Null-TischSession (LEFT JOIN);
 // eine Tisch-ID ohne (nicht gelöschte) tische-Zeile fehlt in der Map — genau wie GetTable,
 // das für einen gelöschten/unbekannten Tisch ErrNotFound liefert. Uses ANY($1) mit einem
-// []int32-Parameter (siehe produkt_repo.GetVariantsByIDs).
+// []int32-Parameter (siehe produkt_repo.GetVariantenByIDs).
 func (r Repository) ReadFavoritenTischStates(ctx context.Context, tischIDs []int, kassensitzungNr int) (map[int]TischNameUndSession, error) {
 	if len(tischIDs) == 0 {
 		return make(map[int]TischNameUndSession), nil
