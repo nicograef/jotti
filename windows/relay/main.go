@@ -372,6 +372,11 @@ func checkPrinter(ip string) error {
 	_ = conn.SetReadDeadline(time.Now().Add(readTimeout))
 	reply := make([]byte, 1)
 	if _, err := conn.Read(reply); err != nil {
+		// Nicht jeder Drucker beantwortet die DLE-EOT-Statusabfrage (manche
+		// ESC/POS-Modelle unterstützen sie schlicht nicht). Eine ausbleibende
+		// Antwort gilt daher als erreichbar-und-OK, nicht als Fehler: der TCP-
+		// Connect oben ist bereits erfolgreich, mehr lässt sich ohne Antwort
+		// nicht prüfen.
 		return nil
 	}
 

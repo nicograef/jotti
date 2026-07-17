@@ -47,7 +47,8 @@ const (
 // maybeBackupBeforeUpdate zieht vor dem vollen `up` (inkl. migrate) automatisch
 // einen pg_dump, sobald bereits Daten existieren und die laufende Version von der
 // zuletzt gesund gestarteten abweicht oder noch kein Marker vorliegt (Erst-Upgrade
-// von einer Vor-Phase-3-Version — siehe core.ShouldBackup). Es faehrt dafuer nur
+// von einer Version vor Einfuehrung des automatischen Pre-Update-Backups — siehe
+// core.ShouldBackup). Es faehrt dafuer nur
 // postgres hoch, wartet auf gesund, dumpt zeitgestempelt ins jotti-backups-Volume
 // und rotiert auf die neuesten keptBackups. Ein Fehler hier ist fatal fuer den
 // Start — lieber nicht migrieren als ohne Sicherungspunkt migrieren. Bei gleicher

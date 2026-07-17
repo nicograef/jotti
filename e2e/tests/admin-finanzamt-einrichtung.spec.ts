@@ -1,8 +1,9 @@
-import type { Locator, Page } from '@playwright/test'
+import type { Locator } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
+import { erwarteKeinenHorizontalenUeberlauf } from '../support/viewport'
 
 // Layout-Regression für die Finanzamt-Einrichtung (Phase 3, Befund #1). Die
 // drei Einrichtungsschritte lagen in einem lg:grid-cols-3, das im max-w-4xl-
@@ -14,22 +15,6 @@ import { resetAndSeed } from '../support/seed'
 // Der Seed lässt Schritt 3 (ELSTER-Kassenmeldung) offen: elsterGemeldetAm ist
 // null, die Kassenidentität existiert. Die WarnKarte mit Aktion und
 // Seriennummer wird daher gerendert.
-
-// erwarteKeinenHorizontalenUeberlauf misst am gerenderten DOM, ob die Seite
-// horizontal überläuft (verhaltensbasiert, keine Klassennamen-Prüfung).
-async function erwarteKeinenHorizontalenUeberlauf(
-  page: Page,
-  screen: string,
-): Promise<void> {
-  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
-    scrollWidth: document.scrollingElement?.scrollWidth ?? 0,
-    innerWidth: window.innerWidth,
-  }))
-  expect(
-    scrollWidth,
-    `${screen}: scrollWidth ${scrollWidth.toString()} darf innerWidth ${innerWidth.toString()} nicht überschreiten`,
-  ).toBeLessThanOrEqual(innerWidth)
-}
 
 // erwarteVollstaendigImViewport prüft, dass der rechte Rand eines Elements die
 // Viewport-Breite nicht überschreitet — das Element ist also nicht rechts
@@ -54,8 +39,8 @@ test.describe('Finanzamt-Einrichtung bleibt bei jeder Breite bedienbar', () => {
     page,
     request,
   }) => {
-    const zugang = await resetAndSeed(request)
-    await anmelden(page, zugang.admin)
+    const zugangsdaten = await resetAndSeed(request)
+    await anmelden(page, zugangsdaten.admin)
     await page.goto('/admin/finanzamt')
 
     const markieren = page.getByRole('button', { name: 'Als erledigt markieren' })

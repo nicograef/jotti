@@ -6,7 +6,8 @@ import (
 )
 
 // Standardpfade der Docker-Desktop-Installation unter Windows; die Diagnosen
-// nennen sie, der Shell-Layer (Phase 2) startet die Anwendung darueber.
+// nennen sie, der Shell-Layer (windows/starter, das ausfuehrbare main-Paket)
+// startet die Anwendung darueber.
 const (
 	DockerBinPath     = `C:\Program Files\Docker\Docker\resources\bin`
 	DockerDesktopPath = `C:\Program Files\Docker\Docker\Docker Desktop.exe`

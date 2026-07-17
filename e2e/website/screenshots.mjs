@@ -32,8 +32,9 @@ import { mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { chromium, devices } from '@playwright/test'
+import { devices } from '@playwright/test'
 
+import { launchBrowser } from './browser.mjs'
 import { anmelden } from '../support/anmelden.ts'
 import { resetAndSeed } from '../support/seed.ts'
 import {
@@ -53,17 +54,6 @@ const OG_OUT =
   process.env.OG_OUT ?? join(repoRoot, 'website', 'src', 'assets', 'og-startseite.png')
 
 const mode = process.argv[2] ?? 'all'
-
-async function launchBrowser() {
-  const executablePath = process.env.CHROMIUM_EXECUTABLE
-  try {
-    return await chromium.launch(executablePath ? { executablePath } : {})
-  } catch (err) {
-    const fallback = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
-    if (!executablePath) return await chromium.launch({ executablePath: fallback })
-    throw err
-  }
-}
 
 // settle wartet auf Fonts und einen Repaint nach dem Theme-Wechsel, damit die
 // Aufnahme nicht mitten im Übergang entsteht. Zusätzlich wird der Fokus vom

@@ -5,7 +5,7 @@
   requireAdministrator: Der Starter setzt eine Firewall-Regel, startet Docker
   Desktop und schaltet bei Bedarf die Container-Engine um — alles privilegierte
   Aktionen. Mit diesem Manifest loest ein Doppelklick genau eine UAC-Abfrage pro
-  Start aus (Nutzer-Entscheid, siehe docs/plans/plan-windows-verpackung.md).
+  Start aus (Nutzer-Entscheid).
 
   Aus dieser XML wird einmalig per `rsrc` das eingecheckte
   rsrc_windows_amd64.syso erzeugt (siehe Makefile-Ziel `starter-syso`); der

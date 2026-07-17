@@ -127,7 +127,8 @@ func run() int {
 	}
 
 	// Erst nach gesundem Stack festhalten, welche Version zuletzt lief — der
-	// Marker steuert in Phase 3 das automatische Pre-Update-Backup.
+	// Marker steuert das automatische Pre-Update-Backup beim naechsten Start
+	// (siehe core.ShouldBackup).
 	if err := writeLastVersion(stateDir); err != nil {
 		fmt.Printf("Hinweis: Versionsmarker konnte nicht geschrieben werden (%v).\n", err)
 	}
@@ -161,9 +162,9 @@ func resolveStateDir(fallback string) (string, error) {
 	return dir, nil
 }
 
-// writeLastVersion schreibt die aktuelle Version in den last-version-Marker. Phase
-// 3 vergleicht ihn beim naechsten Start mit der eigenen Version und zieht bei
-// einem Wechsel vor den Migrationen automatisch ein Backup. Ein Schreibfehler ist
+// writeLastVersion schreibt die aktuelle Version in den last-version-Marker. Der
+// naechste Start vergleicht ihn mit der eigenen Version und zieht bei einem
+// Wechsel vor den Migrationen automatisch ein Backup. Ein Schreibfehler ist
 // nicht fatal: er kostet hoechstens dieses Backup, nie den laufenden Start.
 func writeLastVersion(stateDir string) error {
 	return os.WriteFile(filepath.Join(stateDir, lastVersionFile), []byte(version+"\n"), 0o644)

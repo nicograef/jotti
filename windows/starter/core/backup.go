@@ -15,7 +15,8 @@ const devVersion = "dev"
 // Gesichert wird, sobald Daten existieren (postgres-data-Volume vorhanden) und die
 // laufende Version nicht nachweislich gleich der zuletzt gesund gestarteten ist —
 // also bei einem echten Versionswechsel ebenso wie bei fehlendem last-version-Marker
-// (Erst-Upgrade von einer Vor-Phase-3-Version, die noch keinen Marker schrieb). Ohne
+// (Erst-Upgrade von einer Version vor Einfuehrung des automatischen Pre-Update-
+// Backups, die noch keinen Marker schrieb). Ohne
 // Daten gibt es nichts zu sichern (echte Erstinstallation); ein Dev-Build sichert
 // nie (lokaler Repo-Dev-Lauf bleibt inert).
 func ShouldBackup(lastVersion, currentVersion string, postgresDataExists bool) bool {

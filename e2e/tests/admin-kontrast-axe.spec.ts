@@ -63,8 +63,8 @@ test.describe('WCAG-AA-Kontrast auf Recovery-/Compliance-Screens', () => {
       page,
       request,
     }) => {
-      const zugang = await resetAndSeed(request)
-      await anmelden(page, zugang.admin)
+      const zugangsdaten = await resetAndSeed(request)
+      await anmelden(page, zugangsdaten.admin)
 
       for (const { url, sichtbar } of screens) {
         await pruefeKontrast(page, theme, url, sichtbar)

@@ -215,9 +215,9 @@ Test- und Windows-Hygiene: den Overflow-Helfer nach `e2e/support/viewport.ts` ex
 
 ### Acceptance criteria
 
-- [ ] `make test-e2e` grün; `erwarteKeinenHorizontalenUeberlauf` und `launchBrowser` existieren je genau einmal
-- [ ] `grep -rn "const zugang " e2e/tests/` leer
-- [ ] `go build ./...` in `windows/starter` und `windows/relay` grün; `grep -rn "Phase 2\|Phase 3\|Phase-3\|plan-windows-verpackung" windows/` leer
+- [x] `make test-e2e` grün; `erwarteKeinenHorizontalenUeberlauf` und `launchBrowser` existieren je genau einmal
+- [x] `grep -rn "const zugang " e2e/tests/` leer
+- [x] `go build ./...` in `windows/starter` und `windows/relay` grün; `grep -rn "Phase 2\|Phase 3\|Phase-3\|plan-windows-verpackung" windows/` leer
 
 ---
 

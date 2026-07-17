@@ -8,8 +8,9 @@ import (
 
 // AdminMarkerPrefix ist das feste ASCII-Literal am Anfang der maschinen-greifbaren
 // Backend-Logzeile mit dem Initial-Admin-Code. Es muss mit
-// backend/bootstrap.MarkerPrefix uebereinstimmen (Phase 2) — der Starter grept
-// exakt danach. windows/starter ist ein eigenstaendiges Go-Modul und kann das
+// backend/bootstrap.MarkerPrefix uebereinstimmen (dieselbe Zeile, die das
+// Backend beim Anlegen des Initial-Admins schreibt) — der Starter grept exakt
+// danach. windows/starter ist ein eigenstaendiges Go-Modul und kann das
 // Backend-Package nicht importieren, daher die lokale Kopie.
 const AdminMarkerPrefix = "ADMIN-EINMALPASSWORT"
 

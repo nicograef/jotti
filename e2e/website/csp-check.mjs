@@ -13,7 +13,7 @@
 
 import { resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { chromium } from '@playwright/test'
+import { launchBrowser } from './browser.mjs'
 import { startStaticServer } from './csp-server.mjs'
 
 const repoRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)))
@@ -34,18 +34,6 @@ const COLLECT_VIOLATIONS = `
     });
   });
 `
-
-async function launchBrowser() {
-  const executablePath = process.env.CHROMIUM_EXECUTABLE
-  try {
-    return await chromium.launch(executablePath ? { executablePath } : {})
-  } catch (err) {
-    // Fall back to the preinstalled browser build if the pinned one is missing.
-    const fallback = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
-    if (!executablePath) return await chromium.launch({ executablePath: fallback })
-    throw err
-  }
-}
 
 const server = await startStaticServer(distDir)
 const browser = await launchBrowser()
