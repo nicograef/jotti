@@ -262,11 +262,11 @@ Neue Badge-Variante `warn` nach dem Soft-Tint-Muster der `destructive`-Variante,
 
 ### Acceptance criteria
 
-- [ ] „N unbezahlt"-Badge nutzt die neue `warn`-Variante, nicht mehr `destructive` (Test angepasst)
-- [ ] Status-Punkt: eigene offene → amber, nur fremde offene → neutral, alles erledigt → grün (`MeinTischCard.test.tsx` angepasst)
-- [ ] `bg-destructive` kommt in `MeinTischCard` und `StatusBadgeInhalt` nicht mehr vor
-- [ ] „Alles bezahlt"-Badge und übrige Badge-Verwendungen unverändert
-- [ ] `make check` grün
+- [x] „N unbezahlt"-Badge nutzt die neue `warn`-Variante, nicht mehr `destructive` (Test angepasst)
+- [x] Status-Punkt: eigene offene → amber, nur fremde offene → neutral, alles erledigt → grün (`MeinTischCard.test.tsx` angepasst)
+- [x] `bg-destructive` kommt in `MeinTischCard` und `StatusBadgeInhalt` nicht mehr vor
+- [x] „Alles bezahlt"-Badge und übrige Badge-Verwendungen unverändert
+- [x] `make check` grün
 
 ---
 

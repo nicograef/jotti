@@ -50,7 +50,7 @@ function StatusBadgeInhalt({
   const popKlasse = poppen ? 'animate-pop' : undefined
 
   return anzahlUnbezahlt > 0 ? (
-    <Badge variant="destructive" className={popKlasse}>
+    <Badge variant="warn" className={popKlasse}>
       {anzahlUnbezahlt} unbezahlt
     </Badge>
   ) : (

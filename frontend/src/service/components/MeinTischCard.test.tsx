@@ -43,6 +43,15 @@ function tischSession(overrides: Partial<TischSession>): TischSession {
   }
 }
 
+// Der Status-Punkt ist das einzige aria-hidden `rounded-full`-Element der Karte.
+function statusPunkt(container: HTMLElement): HTMLElement {
+  const punkt = container.querySelector('span.rounded-full')
+  if (!(punkt instanceof HTMLElement)) {
+    throw new Error('Status-Punkt nicht gefunden')
+  }
+  return punkt
+}
+
 describe('MeinTischCard', () => {
   it('zählt offene (unbezahlte) Positionen und hebt die eigenen hervor', () => {
     const state = tischSession({
@@ -73,5 +82,35 @@ describe('MeinTischCard', () => {
 
     expect(screen.getByText('Alles bezahlt')).toBeInTheDocument()
     expect(screen.queryByText(/offen/)).not.toBeInTheDocument()
+  })
+
+  it('färbt den Status-Punkt amber bei eigenen offenen Positionen', () => {
+    const state = tischSession({
+      unbezahltePositionen: [position('p1', 1)],
+      fuerMichErledigt: false,
+    })
+
+    const { container } = render(<MeinTischCard state={state} />)
+
+    expect(statusPunkt(container)).toHaveClass('bg-amber-500')
+  })
+
+  it('färbt den Status-Punkt neutral bei nur fremden offenen Positionen', () => {
+    const state = tischSession({
+      unbezahltePositionen: [position('p1', 2)],
+      fuerMichErledigt: true,
+    })
+
+    const { container } = render(<MeinTischCard state={state} />)
+
+    expect(statusPunkt(container)).toHaveClass('bg-muted-foreground')
+  })
+
+  it('färbt den Status-Punkt grün, wenn alles erledigt ist', () => {
+    const state = tischSession({ unbezahltePositionen: [] })
+
+    const { container } = render(<MeinTischCard state={state} />)
+
+    expect(statusPunkt(container)).toHaveClass('bg-green-600')
   })
 })

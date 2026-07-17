@@ -181,8 +181,11 @@ describe('TablePage', () => {
     getTischHistorie.mockResolvedValue([])
     renderPage()
 
-    expect(await screen.findByText('2 unbezahlt')).toBeInTheDocument()
+    const badge = await screen.findByText('2 unbezahlt')
     expect(screen.queryByText('Alles bezahlt')).not.toBeInTheDocument()
+    // "Unbezahlt" wartet auf die Servicekraft, ist aber kein Gefahrenzustand:
+    // Amber-Warn-Variante statt des Gefahren-Rots (destructive).
+    expect(badge).toHaveAttribute('data-variant', 'warn')
   })
 
   // A1: Der gehobene Auswahl-State überlebt das Aus- und Wiedereinhängen der
