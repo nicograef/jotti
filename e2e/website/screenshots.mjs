@@ -95,9 +95,9 @@ async function captureApp() {
     const phone = await browser.newContext({ baseURL: BASE, ...devices['Pixel 7'] })
     const p = await login(phone, zugangsdaten.service)
 
-    // Tischübersicht („Meine Tische")
+    // Tischübersicht („Tische")
     await p.goto('/service/tische')
-    await p.getByText('Meine Tische').first().waitFor()
+    await p.getByRole('link', { name: 'Tische', exact: true }).waitFor()
     await p.getByText('Noch offen', { exact: false }).first().waitFor()
     await captureLightDark(p, 'tischuebersicht')
 
