@@ -23,6 +23,33 @@ import { TischBackend } from './table/TischBackend'
 
 const tischBackend = new TischBackend(BackendSingleton)
 
+// Deckelt die gehobene Kassieren-Auswahl auf die noch unbezahlte Menge je
+// Position: Einträge über ihrer Obergrenze sinken auf die Obergrenze, Einträge
+// für verschwundene Positionen (Obergrenze 0) fallen heraus. Gibt `null`
+// zurück, wenn nichts zu deckeln ist — damit der State-Abgleich im Render nur
+// bei echter Änderung ein setAll auslöst und keine Render-Schleife dreht.
+function deckeleAuswahl(
+  auswahl: Record<string, number>,
+  obergrenzen: Record<string, number>,
+): Record<string, number> | null {
+  let geaendert = false
+  const gedeckelt: Record<string, number> = {}
+  for (const [positionId, menge] of Object.entries(auswahl)) {
+    const obergrenze = obergrenzen[positionId] || 0
+    if (obergrenze <= 0) {
+      geaendert = true
+      continue
+    }
+    if (menge > obergrenze) {
+      gedeckelt[positionId] = obergrenze
+      geaendert = true
+    } else {
+      gedeckelt[positionId] = menge
+    }
+  }
+  return geaendert ? gedeckelt : null
+}
+
 // Das Status-Badge poppt bei jedem Wertwechsel (Motion-Inventar „Statuswechsel",
 // 350 ms), aber nicht beim ersten Aufbau. Der key-Wechsel auf den Zählwert
 // remountet StatusBadgeInhalt, das seine Pop-Entscheidung beim Mount erfasst:
@@ -118,6 +145,20 @@ export function TablePage() {
     setAktiverTisch(tischId)
     bestellKorb.reset()
     kassierenAuswahl.reset()
+  }
+
+  // Der useMengen-`max` deckelt nur beim `add`, nicht die schon gespeicherte
+  // Auswahl. Schrumpft die unbezahlte Menge einer bereits ausgewählten Position,
+  // während die Auswahl bestehen bleibt (z. B. eine Stornierung auf der
+  // Historie, deren Refetch erst beim Schließen des Erfolgs-Pops eintrifft),
+  // wird die gespeicherte Auswahl beim Eintreffen der kleineren Obergrenzen im
+  // Render abgeglichen — React-idiomatischer State-Sync wie beim Tischwechsel.
+  const gedeckelteAuswahl = deckeleAuswahl(
+    kassierenAuswahl.mengen,
+    unbezahlteMengen,
+  )
+  if (gedeckelteAuswahl) {
+    kassierenAuswahl.setAll(gedeckelteAuswahl)
   }
 
   // Expliziter Fehlerzustand statt der Leer-Defaults (Saldo 0,00 €) — sonst

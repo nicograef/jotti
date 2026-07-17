@@ -183,7 +183,7 @@ describe('Zahlung Positionsgruppen', () => {
   })
 })
 
-describe('Zahlung „Alle auswählen"', () => {
+describe('Zahlung „Meine auswählen"', () => {
   it('wählt nur eigene Positionen voll aus und leert die Auswahl beim zweiten Tap', async () => {
     const user = userEvent.setup()
     renderZahlung([position, fremdePosition])
