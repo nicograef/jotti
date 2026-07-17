@@ -284,6 +284,6 @@ Add a short inline comment at the mirrored guards/sentinels in the kasse command
 
 ### Acceptance criteria
 
-- [ ] Each mirrored kasse guard/sentinel carries a one-line comment marking it as intentionally per-context (citing the review), so future readers/agents don't re-raise the shared-kernel refactor.
-- [ ] No code behavior changes; `make check` green.
-- [ ] The declined non-code campaigns remain recorded in this plan's "Deliberately not doing" section.
+- [x] Each mirrored kasse guard/sentinel carries a one-line comment marking it as intentionally per-context (citing the review), so future readers/agents don't re-raise the shared-kernel refactor.
+- [x] No code behavior changes; `make check` green.
+- [x] The declined non-code campaigns remain recorded in this plan's "Deliberately not doing" section.

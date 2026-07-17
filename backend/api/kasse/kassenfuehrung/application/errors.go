@@ -22,6 +22,9 @@ var ErrKasseWirdAbgeschlossen = errors.New("kasse wird gerade abgeschlossen")
 var ErrKasseAlreadyAbgeschlossen = errors.New("kasse bereits abgeschlossen")
 
 // ErrConflict is returned on a concurrent write conflict.
+// Deliberately per-context, not a shared kernel: errors.Is against this exact sentinel is what the
+// HTTP layer relies on to map the error to 409; a shared sentinel across bounded contexts would
+// couple them and risk a silent 409-to-500 regression (2026-07-17 multi-expert review).
 var ErrConflict = errors.New("conflict")
 
 // ErrTischeSaldoOffen is returned when a Kassenabschluss is attempted but tisch sessions have non-zero saldi.

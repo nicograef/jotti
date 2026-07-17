@@ -20,6 +20,9 @@ var ErrVerkaufNichtGefunden = errors.New("verkauf nicht gefunden")
 var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 
 // ErrConflict is returned when a concurrent write conflicts with this operation.
+// Deliberately per-context, not a shared kernel: errors.Is against this exact sentinel is what the
+// HTTP layer relies on to map the error to 409; a shared sentinel across bounded contexts would
+// couple them and risk a silent 409-to-500 regression (2026-07-17 multi-expert review).
 var ErrConflict = errors.New("conflict")
 
 // ErrDatabase is returned when there is a database error.
