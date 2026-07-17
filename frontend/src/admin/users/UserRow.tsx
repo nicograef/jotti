@@ -143,7 +143,7 @@ export function UserRow(props: UserRowProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>Abbrechen</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-white hover:bg-destructive/90"
+              variant="destructive-solid"
               onClick={(e) => {
                 e.preventDefault()
                 void props.onDelete(props.user.id).then(() => {

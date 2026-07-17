@@ -24,6 +24,87 @@ const screens = [
   { url: '/admin/kasse', sichtbar: /Kassentag/ },
 ]
 
+// Die vier per Seed erreichbaren Lösch-Bestätigungen tragen den soliden
+// destructive-solid-Button (weiße bzw. dunkelrote Schrift auf der destruktiven
+// Fläche). Jede Funktion navigiert zur passenden Admin-Seite und öffnet den
+// AlertDialog; die Kontrastmessung läuft anschließend auf den Dialog-Inhalt.
+const loeschDialoge: {
+  name: string
+  oeffne: (page: Page) => Promise<void>
+}[] = [
+  {
+    name: 'Produkt löschen',
+    oeffne: async (page) => {
+      await page.goto('/admin/produkte')
+      await page.getByRole('heading', { name: 'Produkte & Preise' }).waitFor()
+      await page.waitForLoadState('networkidle')
+      await page
+        .getByRole('button', { name: 'Weitere Aktionen' })
+        .first()
+        .click()
+      await page.getByRole('menuitem', { name: /Löschen/ }).click()
+    },
+  },
+  {
+    name: 'Variante löschen',
+    oeffne: async (page) => {
+      await page.goto('/admin/produkte')
+      await page.getByRole('heading', { name: 'Produkte & Preise' }).waitFor()
+      await page.waitForLoadState('networkidle')
+      // Ersten Varianten-Chip öffnen (Bearbeiten-Dialog), dann darin den
+      // Lösch-Einstieg tippen, der die Bestätigung einblendet.
+      await page
+        .getByRole('button', { name: /^Variante „.+" bearbeiten$/ })
+        .first()
+        .click()
+      await page.getByRole('button', { name: 'Variante löschen' }).click()
+    },
+  },
+  {
+    name: 'Tisch löschen',
+    oeffne: async (page) => {
+      await page.goto('/admin/tische')
+      await page.getByRole('heading', { name: 'Tische' }).waitFor()
+      await page.waitForLoadState('networkidle')
+      // Ein frisch angelegter Tisch trägt keinen Saldo — nur dann bietet der
+      // Bearbeiten-Dialog den aktiven Lösch-Einstieg (statt der gesperrten
+      // Variante bei offenem Saldo).
+      await page.getByRole('button', { name: 'Neuer Tisch' }).click()
+      const neuerDialog = page.getByRole('dialog')
+      await neuerDialog.getByLabel('Name').fill('Tisch 99')
+      await neuerDialog.getByRole('button', { name: 'Tisch anlegen' }).click()
+      await page.getByText('Tisch "Tisch 99" wurde angelegt.').waitFor()
+      await page.getByRole('button', { name: /Tisch 99/ }).getByText('Tisch 99').click()
+      await page
+        .getByRole('dialog')
+        .getByRole('button', { name: 'Tisch löschen' })
+        .click()
+    },
+  },
+  {
+    name: 'Helfer löschen',
+    oeffne: async (page) => {
+      await page.goto('/admin/benutzer')
+      await page.getByRole('heading', { name: 'Helfer & Zugänge' }).waitFor()
+      await page.waitForLoadState('networkidle')
+      // Das eigene Konto bietet kein Löschen — die „···"-Menüs durchgehen, bis
+      // eines den Lösch-Eintrag zeigt (ein fremder Helfer).
+      const menues = page.getByRole('button', { name: 'Weitere Aktionen' })
+      const anzahl = await menues.count()
+      for (let i = 0; i < anzahl; i++) {
+        await menues.nth(i).click()
+        const loeschen = page.getByRole('menuitem', { name: /Löschen/ })
+        if (await loeschen.isVisible().catch(() => false)) {
+          await loeschen.click()
+          return
+        }
+        await page.keyboard.press('Escape')
+      }
+      throw new Error('Kein löschbarer Helfer gefunden')
+    },
+  },
+]
+
 // pruefeKontrast lädt einen Screen im gewünschten Theme und lässt axe nur die
 // color-contrast-Regel laufen. Das Theme wird über den localStorage-Schlüssel
 // des ThemeProviders gesetzt (siehe frontend/src/components/theme-provider.tsx);
@@ -57,9 +138,41 @@ async function pruefeKontrast(
   ).toEqual([])
 }
 
+// pruefeDialogKontrast setzt das Theme, öffnet über oeffne den Lösch-Dialog und
+// misst den Kontrast ausschließlich auf dem AlertDialog-Inhalt (Titel,
+// Beschreibung, Abbrechen und der solide destructive-solid-Button). Die
+// Einschränkung auf den Dialog isoliert die geprüfte Bestätigung vom übrigen
+// Seiten- bzw. Bearbeiten-Dialog-Inhalt.
+async function pruefeDialogKontrast(
+  page: Page,
+  theme: 'light' | 'dark',
+  name: string,
+  oeffne: (page: Page) => Promise<void>,
+): Promise<void> {
+  await page.evaluate((t) => {
+    localStorage.setItem('vite-ui-theme', t)
+  }, theme)
+  await oeffne(page)
+  const dialog = page.locator('[data-slot="alert-dialog-content"]')
+  await expect(dialog, `${name}: Lösch-Dialog sichtbar`).toBeVisible()
+
+  const ergebnis = await new AxeBuilder({ page })
+    .include('[data-slot="alert-dialog-content"]')
+    .withRules(['color-contrast'])
+    .analyze()
+
+  const befunde = ergebnis.violations.flatMap((v) =>
+    v.nodes.map((n) => `${n.target.join(' ')} :: ${n.failureSummary ?? ''}`),
+  )
+  expect(
+    befunde,
+    `${theme} ${name}: Kontrast-Verstöße\n${befunde.join('\n')}`,
+  ).toEqual([])
+}
+
 test.describe('WCAG-AA-Kontrast auf Recovery-/Compliance-Screens', () => {
   for (const theme of ['light', 'dark'] as const) {
-    test(`${theme}: Druckstationen, Finanzamt, Kassenabschluss erfüllen AA`, async ({
+    test(`${theme}: Screens und Lösch-Dialoge erfüllen AA`, async ({
       page,
       request,
     }) => {
@@ -68,6 +181,10 @@ test.describe('WCAG-AA-Kontrast auf Recovery-/Compliance-Screens', () => {
 
       for (const { url, sichtbar } of screens) {
         await pruefeKontrast(page, theme, url, sichtbar)
+      }
+
+      for (const { name, oeffne } of loeschDialoge) {
+        await pruefeDialogKontrast(page, theme, name, oeffne)
       }
     })
   }

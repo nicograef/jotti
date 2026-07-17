@@ -395,7 +395,7 @@ function AlleVerwerfenDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>Abbrechen</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-destructive text-white hover:bg-destructive/90"
+            variant="destructive-solid"
             onClick={() =>
               void run(async () => {
                 const verworfen = await alleVerwerfen()
