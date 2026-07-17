@@ -27,11 +27,14 @@ export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
   const { anzahlOffen, anzahlEigeneOffen } = countOffenePositionen(state)
   const alleErledigt = anzahlOffen === 0
 
+  // Farbsemantik: eigene offene Positionen fordern zur Aktion auf (amber), nur
+  // fremde offene sind neutral wartend (muted), alles erledigt ist grün. Rot
+  // bleibt Storno-/Fehlerzuständen vorbehalten (docs/adrs/04_warn-bestaetigung.md).
   const statusFarbe = alleErledigt
     ? 'bg-green-600'
     : anzahlEigeneOffen > 0
-      ? 'bg-destructive'
-      : 'bg-amber-500'
+      ? 'bg-amber-500'
+      : 'bg-muted-foreground'
 
   return (
     <button
