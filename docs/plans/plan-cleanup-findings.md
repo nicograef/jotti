@@ -192,9 +192,9 @@ Die `.eyebrow`-Klasse auf die Werte der Inline-Variante korrigieren (Schriftgrö
 
 ### Acceptance criteria
 
-- [ ] Website-Build grün; `grep -rn "btn-outline\|btn-lg\|--brand-font" website/src` leer
-- [ ] Der Eyebrow-Markup-Block (Spektral-Balken-Span + Label) existiert in keiner Komponente mehr inline
-- [ ] Screenshot-Parität: `make website-screenshots` vor und nach der Änderung erzeugt pixel-identische Bilder (md5-Vergleich) für die betroffenen Sektionen
+- [x] Website-Build grün; `grep -rn "btn-outline\|btn-lg\|--brand-font" website/src` leer
+- [x] Der Eyebrow-Markup-Block (Spektral-Balken-Span + Label) existiert in keiner Komponente mehr inline
+- [x] Screenshot-Parität: `make website-screenshots` vor und nach der Änderung erzeugt pixel-identische Bilder (md5-Vergleich) für die betroffenen Sektionen
 
 ---
 

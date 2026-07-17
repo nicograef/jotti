@@ -306,20 +306,20 @@
     @apply border-control-border text-foreground hover:border-brand hover:bg-brand-tint hover:text-brand;
   }
 
-  .btn-outline {
-    @apply border-brand bg-transparent text-brand hover:bg-brand hover:text-white;
-  }
-
   .btn-sm {
     @apply px-4 py-2 text-[0.8125rem];
   }
 
-  .btn-lg {
-    @apply px-10 py-4 text-[1.0625rem];
+  /* Sektions-Eyebrow: kleines, gesperrtes Label mit vorangestelltem Spektral-
+     Balken (::before). Einzige Quelle für alle Sektionsköpfe. */
+  .eyebrow {
+    @apply inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal-text)] uppercase;
   }
 
-  .eyebrow {
-    @apply text-[0.8125rem] font-bold tracking-[0.06em] text-brand uppercase;
+  .eyebrow::before {
+    @apply h-[3px] w-[22px] rounded-sm;
+    content: '';
+    background: var(--spectral);
   }
 }
 

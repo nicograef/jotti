@@ -114,14 +114,7 @@ export default function LiveDemo() {
     <div className="grid items-center gap-14 nav:grid-cols-2">
       {/* Textspalte */}
       <div>
-        <p className="inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal-text)] uppercase">
-          <span
-            className="h-[3px] w-[22px] rounded-sm"
-            style={{ background: 'var(--spectral)' }}
-            aria-hidden="true"
-          ></span>
-          Live-Demo
-        </p>
+        <p className="eyebrow">Live-Demo</p>
         <h2 className="font-brand mt-3 text-[length:var(--fs-h2)] leading-[1.06] font-bold tracking-[-0.025em]">
           Bestellen, kassieren,
           <br />
