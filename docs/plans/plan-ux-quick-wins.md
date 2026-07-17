@@ -156,10 +156,10 @@ Das Debounce-Reformat entfällt ersatzlos: Timer-Ref, Cleanup-Effect und Timeout
 
 ### Acceptance criteria
 
-- [ ] Pause-Fall: „1" tippen, über eine Sekunde warten (Fake-Timer), Feld zeigt weiter „1"; danach „5" tippen ergibt „15"; Blur normalisiert zu „15,00" (neuer Test)
-- [ ] Bestehende `EuroInput`-Tests (Sanitisierung, Blur-Normalisierung, Punkt-als-Komma, Dezimalstellen-Kappung) bleiben grün
-- [ ] In `EuroInput.tsx` existiert kein `setTimeout`/Timer-Ref mehr
-- [ ] `make check` grün
+- [x] Pause-Fall: „1" tippen, über eine Sekunde warten (Fake-Timer), Feld zeigt weiter „1"; danach „5" tippen ergibt „15"; Blur normalisiert zu „15,00" (neuer Test)
+- [x] Bestehende `EuroInput`-Tests (Sanitisierung, Blur-Normalisierung, Punkt-als-Komma, Dezimalstellen-Kappung) bleiben grün
+- [x] In `EuroInput.tsx` existiert kein `setTimeout`/Timer-Ref mehr
+- [x] `make check` grün
 
 ---
 
