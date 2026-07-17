@@ -101,6 +101,20 @@ export function calculateZahlungsbetraege(
   }
 }
 
+/**
+ * Two round-up suggestions (in cents) strictly above the order total, for the
+ * tip chips: the smallest whole-Euro multiple and the smallest 5-Euro multiple
+ * above `gesamtCents`. When both coincide (e.g. 4,50 € → both 5 €), the next
+ * 5-Euro multiple replaces the duplicate so the two chips always differ.
+ * Examples: 1230 → [1300, 1500]; 1300 → [1400, 1500]; 450 → [500, 1000].
+ */
+export function aufrundenVorschlaege(gesamtCents: number): number[] {
+  const einEuro = Math.floor(gesamtCents / 100) * 100 + 100
+  let fuenfEuro = Math.floor(gesamtCents / 500) * 500 + 500
+  if (fuenfEuro === einEuro) fuenfEuro += 500
+  return [einEuro, fuenfEuro]
+}
+
 export function toBestellungData(
   products: Produkt[],
   ausgewaehlteMengen: Record<number, number>,

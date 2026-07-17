@@ -17,6 +17,7 @@ import type { VerkaufPositionInput } from '../../direktverkauf/Direktverkauf'
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
 import { AbschlussHeader } from '../table/AbschlussHeader'
 import { AbschlussLeer } from '../table/AbschlussLeer'
+import { AufrundenChips } from '../table/AufrundenChips'
 import { KommentarField } from '../table/CommentField'
 import { calculateZahlungsbetraege } from '../table/drawerUtils'
 import type { ReceiptPosition } from '../table/Receipt'
@@ -42,6 +43,8 @@ interface DirektverkaufAbschlussProps {
 // wird sowohl im Handy-Drawer als auch in der festen Spalte gerendert.
 export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
   const [erhaltenEuro, setErhaltenEuro] = useState('')
+  const [zielbetragEuro, setZielbetragEuro] = useState('')
+  const [andererAktiv, setAndererAktiv] = useState(false)
   const [kommentar, setKommentar] = useState('')
 
   const noPositionenSelected = props.positionen.length === 0
@@ -60,15 +63,17 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
     if (warLeerRef.current && !noPositionenSelected) {
       setVerkaufId(crypto.randomUUID())
       setErhaltenEuro('')
+      setZielbetragEuro('')
+      setAndererAktiv(false)
       setKommentar('')
     }
     warLeerRef.current = noPositionenSelected
   }, [noPositionenSelected])
 
-  const { rueckgeldCents } = calculateZahlungsbetraege(
+  const { rueckgeldCents, trinkgeldCents } = calculateZahlungsbetraege(
     props.totalCents,
     parseCents(erhaltenEuro),
-    0,
+    parseCents(zielbetragEuro),
   )
 
   const { loading, run } = useActionSubmit({
@@ -81,6 +86,8 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
     },
     onSuccess: () => {
       setErhaltenEuro('')
+      setZielbetragEuro('')
+      setAndererAktiv(false)
       setKommentar('')
       props.verkaufAbgeschlossen()
     },
@@ -123,6 +130,13 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
                   className="w-28"
                 />
               </div>
+              <AufrundenChips
+                gesamtCents={props.totalCents}
+                zielbetragEuro={zielbetragEuro}
+                onZielbetragEuroChange={setZielbetragEuro}
+                andererAktiv={andererAktiv}
+                onAndererAktivChange={setAndererAktiv}
+              />
               {rueckgeldCents !== null && (
                 <div className="flex items-baseline justify-between pt-1">
                   <div className="text-[15px] font-semibold">Rückgeld</div>
@@ -130,6 +144,20 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
                     {formatEuro(rueckgeldCents)}
                   </div>
                 </div>
+              )}
+              {trinkgeldCents !== null && (
+                <>
+                  <div className="flex justify-between font-medium">
+                    <div>Trinkgeld</div>
+                    <div className="tabular-nums">
+                      {formatEuro(trinkgeldCents)}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Trinkgeld wird nicht als Kasseneinnahme gebucht und gehört
+                    nicht in die Kassenlade.
+                  </p>
+                </>
               )}
             </div>
             <div className="px-4 pt-3">

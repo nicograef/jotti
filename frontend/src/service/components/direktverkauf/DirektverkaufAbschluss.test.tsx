@@ -73,6 +73,22 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     expect(rueckgeld).toHaveTextContent('3,00')
   })
 
+  it('zeigt Trinkgeld und Rückgeld, wenn ein Aufrunden-Chip gewählt ist', async () => {
+    const user = userEvent.setup()
+    renderSpalte()
+
+    // Gesamt 7,00 €: Chip auf 8,00 € rundet auf, Erhalten 10,00 €.
+    await user.click(screen.getByRole('button', { name: /8,00/ }))
+    await user.type(screen.getByLabelText('Erhalten'), '10,00')
+
+    expect(screen.getByText('Trinkgeld').nextElementSibling).toHaveTextContent(
+      '1,00',
+    )
+    expect(screen.getByText('Rückgeld').nextElementSibling).toHaveTextContent(
+      '2,00',
+    )
+  })
+
   it('schließt den Verkauf mit genau einem Backend-Call und erwarteter Nutzlast ab', async () => {
     const user = userEvent.setup()
     const { direktverkaufTaetigen, verkaufAbgeschlossen } = renderSpalte()

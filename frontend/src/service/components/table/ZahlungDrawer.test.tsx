@@ -144,7 +144,7 @@ describe('ZahlungDrawer', () => {
     expect(zahlungKassiert).toHaveBeenCalled()
   })
 
-  it('zeigt den Tischnamen als Überschrift und die Felder in der Reihenfolge Erhalten, Zahlbetrag', async () => {
+  it('zeigt den Tischnamen als Überschrift, das Erhalten-Feld und die Aufrunden-Chips', async () => {
     const user = userEvent.setup()
     renderDrawer()
 
@@ -154,10 +154,16 @@ describe('ZahlungDrawer', () => {
       screen.getByRole('heading', { name: tisch.name }),
     ).toBeInTheDocument()
 
-    const labels = screen
-      .getAllByText(/^(Erhalten|Zahlbetrag inkl\. Trinkgeld)$/)
-      .map((el) => el.textContent)
-    expect(labels).toEqual(['Erhalten', 'Zahlbetrag inkl. Trinkgeld'])
+    // Erhalten bleibt ein Feld; der Zielbetrag wird über Chips gesetzt und das
+    // freie Feld erscheint erst hinter „Anderer …".
+    expect(screen.getByLabelText('Erhalten')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /genau/ })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Anderer …' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('Zahlbetrag inkl. Trinkgeld'),
+    ).not.toBeInTheDocument()
   })
 
   it('hebt das Rückgeld als größten Betrag im Sheet hervor', async () => {
