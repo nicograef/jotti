@@ -155,6 +155,13 @@ async function pruefeDialogKontrast(
   await oeffne(page)
   const dialog = page.locator('[data-slot="alert-dialog-content"]')
   await expect(dialog, `${name}: Lösch-Dialog sichtbar`).toBeVisible()
+  // Radix blendet den Dialog mit Fade-/Zoom-Animation ein; axe rechnet die
+  // momentane Opacity in die Farben ein. Erst nach Animationsende messen, sonst
+  // verfälscht der halbtransparente Zwischenzustand den Kontrast (der solide
+  // destructive-solid-Button mischt sich dann mit dem dunklen Backdrop).
+  await dialog.evaluate((el) =>
+    Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)),
+  )
 
   const ergebnis = await new AxeBuilder({ page })
     .include('[data-slot="alert-dialog-content"]')
