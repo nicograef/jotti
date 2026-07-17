@@ -288,13 +288,13 @@ Auf den beiden Modus-Startrouten ersetzt eine Segmented Control „Tische | Thek
 
 ### Acceptance criteria
 
-- [ ] Auf `/service/tische` und `/service/direktverkauf` zeigt der Header die Segmented Control; ein Tap navigiert in beide Richtungen (neuer `ServiceLayout.test.tsx` — bisher existiert keiner: Navigation und aktiver Zustand)
-- [ ] Der aktive Zustand entspricht der Route (`aria-current` oder äquivalentes sichtbares Merkmal, im Test prüfbar)
-- [ ] Tisch-Detailseite zeigt weiterhin den Backlink, keinen Switcher
-- [ ] Nach Navigation über die Control ist der Arbeitsmodus persistiert (bestehende Loader-Tests in `routes.test.ts` bleiben grün)
-- [ ] Benutzermenü-Eintrag funktioniert unverändert (`UserDropdown.test.ts` grün)
-- [ ] Empty-State-Text erwähnt das Benutzermenü nicht mehr; E2E-Specs, die auf die alten Header-Titel matchen, sind angepasst
-- [ ] Tap-Ziele der Segmente ≥ 44 px; `make check` grün
+- [x] Auf `/service/tische` und `/service/direktverkauf` zeigt der Header die Segmented Control; ein Tap navigiert in beide Richtungen (neuer `ServiceLayout.test.tsx` — bisher existiert keiner: Navigation und aktiver Zustand)
+- [x] Der aktive Zustand entspricht der Route (`aria-current` oder äquivalentes sichtbares Merkmal, im Test prüfbar)
+- [x] Tisch-Detailseite zeigt weiterhin den Backlink, keinen Switcher
+- [x] Nach Navigation über die Control ist der Arbeitsmodus persistiert (bestehende Loader-Tests in `routes.test.ts` bleiben grün)
+- [x] Benutzermenü-Eintrag funktioniert unverändert (`UserDropdown.test.ts` grün)
+- [x] Empty-State-Text erwähnt das Benutzermenü nicht mehr; E2E-Specs, die auf die alten Header-Titel matchen, sind angepasst
+- [x] Tap-Ziele der Segmente ≥ 44 px; `make check` grün
 
 ---
 
