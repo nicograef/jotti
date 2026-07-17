@@ -6,15 +6,11 @@ import {
   DrawerBody,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
-import { formatEuro, formatRelativeTime } from '@/lib/utils'
 
 import type { Bestellung } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -23,10 +19,9 @@ import type { Umbuchung } from '../../table/Umbuchung'
 import { PositionAuswahlListe } from '../PositionAuswahlListe'
 import { ActionHint } from './ActionHint'
 import { KommentarField } from './CommentField'
+import { GesamtZeile, QuelleDrawerHeader } from './DrawerParts'
 import {
   calculateTotalPrice,
-  quelleTitel,
-  quelleZeitpunkt,
   selectPositionen,
   toAuswahlPositionen,
   toPositionRefs,
@@ -93,15 +88,9 @@ export function HistorieStornierungDrawer({
       }}
     >
       <DrawerContent pending={loading}>
-        <DrawerHeader className="mx-auto w-full max-w-sm">
-          <DrawerTitle>
-            {quelleTitel(quelle)} ·{' '}
-            {formatRelativeTime(quelleZeitpunkt(quelle))} · {quelle.userName}
-          </DrawerTitle>
-          <DrawerDescription>
-            Positionen aus diesem Vorgang zum Stornieren auswählen.
-          </DrawerDescription>
-        </DrawerHeader>
+        <QuelleDrawerHeader quelle={quelle}>
+          Positionen aus diesem Vorgang zum Stornieren auswählen.
+        </QuelleDrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">
           <PositionAuswahlListe
             positionen={toAuswahlPositionen(positionen)}
@@ -116,10 +105,7 @@ export function HistorieStornierungDrawer({
         </DrawerBody>
         <DrawerFooter className="mx-auto w-full max-w-sm">
           {!noPositionenSelected && (
-            <div className="flex justify-between border-t-2 pt-2 font-bold">
-              <div>Stornierung gesamt</div>
-              <div>{formatEuro(totalPrice)}</div>
-            </div>
+            <GesamtZeile label="Stornierung gesamt" betrag={totalPrice} />
           )}
           <KommentarField
             required

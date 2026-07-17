@@ -240,10 +240,10 @@ Extract a `QuelleDrawerHeader({ quelle })` (the `quelleTitel · relativeTime · 
 
 ### Acceptance criteria
 
-- [ ] `QuelleDrawerHeader` and `GesamtZeile` exist and are used by both Historie drawers and `BestellungAbschluss`; the duplicated header/footer JSX is gone.
-- [ ] `TischHistorie` maps each entry through one exhaustive switch; `HistorieDetail` receives the model rather than re-invoking `zeilenmodell`.
-- [ ] Rendered output (row model, detail view, totals) is unchanged; existing `TischHistorie`/drawer tests pass.
-- [ ] Frontend lint + tests green.
+- [x] `QuelleDrawerHeader` and `GesamtZeile` exist and are used by both Historie drawers and `BestellungAbschluss`; the duplicated header/footer JSX is gone.
+- [x] `TischHistorie` maps each entry through one exhaustive switch; `HistorieDetail` receives the model rather than re-invoking `zeilenmodell`.
+- [x] Rendered output (row model, detail view, totals) is unchanged; existing `TischHistorie`/drawer tests pass.
+- [x] Frontend lint + tests green.
 
 ---
 

@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { formatEuro } from '@/lib/utils'
 
 import type { BestellPositionInput } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -17,6 +16,7 @@ import type { TischBackend } from '../../table/TischBackend'
 import { AbschlussHeader } from './AbschlussHeader'
 import { AbschlussLeer } from './AbschlussLeer'
 import { KommentarField } from './CommentField'
+import { GesamtZeile } from './DrawerParts'
 import type { ReceiptPosition } from './Receipt'
 import { Receipt } from './Receipt'
 
@@ -106,10 +106,7 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
         )}
       </DrawerBody>
       <DrawerFooter className="mx-auto w-full max-w-sm">
-        <div className="flex justify-between border-t-2 pt-2 font-bold">
-          <div>Gesamt</div>
-          <div>{formatEuro(props.totalCents)}</div>
-        </div>
+        <GesamtZeile label="Gesamt" betrag={props.totalCents} />
         <Button
           disabled={loading || noPositionenSelected}
           onClick={() => {

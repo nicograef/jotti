@@ -58,6 +58,10 @@ interface Zeilenmodell {
   date: string
   userName: string
   kommentar: string
+  // Beleg-Daten für den Detail-Drawer; jeder Eintrag wird hier einmalig
+  // gemappt (Zeile und Detail teilen dasselbe Modell).
+  positionen: ReceiptPosition[]
+  totalPrice: number
 }
 
 function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
@@ -72,6 +76,8 @@ function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
         date: item.aufgenommenAm,
         userName: item.userName,
         kommentar: item.kommentar,
+        positionen: toReceiptItems(item.positionen),
+        totalPrice: item.gesamtPreisCents,
       }
     case 'zahlung':
       return {
@@ -83,6 +89,8 @@ function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
         date: item.kassiertAm,
         userName: item.userName,
         kommentar: item.kommentar,
+        positionen: toReceiptItems(item.positionen),
+        totalPrice: item.gesamtZahlungCents,
       }
     case 'umbuchung': {
       const istZugang = item.tischId === item.zielTischId
@@ -97,6 +105,8 @@ function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
         date: item.umgebuchtAm,
         userName: item.userName,
         kommentar: item.benutzerKommentar,
+        positionen: toReceiptItems(item.positionen),
+        totalPrice: item.gesamtCents,
       }
     }
     case 'stornierung':
@@ -109,6 +119,8 @@ function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
         date: item.storniertAm,
         userName: item.userName,
         kommentar: item.kommentar,
+        positionen: toReceiptItems(item.positionen),
+        totalPrice: item.gesamtStornierungCents,
       }
   }
 }
@@ -161,6 +173,7 @@ export function TischHistorie({
       {detail && (
         <HistorieDetail
           detail={detail}
+          zeile={zeilenmodell(detail)}
           tisch={tisch}
           backend={backend}
           setDetail={setDetail}
@@ -201,10 +214,12 @@ export function TischHistorie({
 }
 
 // HistorieDetail rendert den Detail-Drawer eines Historien-Eintrags: leitet die
-// Aktions-Berechtigungen und das Zeilenmodell intern ab und kümmert sich um den
-// Belegdruck (Zahlung → Kassenbeleg, Warenrücknahme → Stornobeleg).
+// Aktions-Berechtigungen intern ab und kümmert sich um den Belegdruck (Zahlung →
+// Kassenbeleg, Warenrücknahme → Stornobeleg). Das Zeilenmodell kommt vom
+// Aufrufer, damit Zeile und Detail denselben Eintrag genau einmal mappen.
 function HistorieDetail({
   detail,
+  zeile,
   tisch,
   backend,
   setDetail,
@@ -212,6 +227,7 @@ function HistorieDetail({
   setUmbuchenQuelle,
 }: {
   detail: HistorieEintrag
+  zeile: Zeilenmodell
   tisch: Tisch
   backend: Pick<TischBackend, 'belegDrucken' | 'stornobelegDrucken'>
   setDetail: Dispatch<SetStateAction<HistorieEintrag | null>>
@@ -249,12 +265,13 @@ function HistorieDetail({
     (detail.art === 'bestellung' || detail.art === 'umbuchung') &&
     AuthSingleton.canRebook &&
     detail.umbuchbarePositionen.length > 0
-  const zeile = zeilenmodell(detail)
 
   return (
     <Details
-      {...detailView(detail)}
       title={zeile.title}
+      date={zeile.date}
+      positionen={zeile.positionen}
+      totalPrice={zeile.totalPrice}
       userName={detail.userName}
       tischName={tisch.name}
       kommentar={zeile.kommentar}
@@ -359,42 +376,6 @@ function HistoryRow({
       <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
     </button>
   )
-}
-
-// detailView maps a history entry to the fields the detail drawer renders. Titel
-// und Kommentar liefert stattdessen zeilenmodell(), damit Zeile und Detail nie
-// auseinanderlaufen (Umbuchung: Autotext als Titel, Benutzerkommentar als Kommentar-Widget).
-function detailView(eintrag: HistorieEintrag): {
-  date: string
-  positionen?: ReceiptPosition[]
-  totalPrice?: number
-} {
-  switch (eintrag.art) {
-    case 'bestellung':
-      return {
-        date: eintrag.aufgenommenAm,
-        positionen: toReceiptItems(eintrag.positionen),
-        totalPrice: eintrag.gesamtPreisCents,
-      }
-    case 'zahlung':
-      return {
-        date: eintrag.kassiertAm,
-        positionen: toReceiptItems(eintrag.positionen),
-        totalPrice: eintrag.gesamtZahlungCents,
-      }
-    case 'stornierung':
-      return {
-        date: eintrag.storniertAm,
-        positionen: toReceiptItems(eintrag.positionen),
-        totalPrice: eintrag.gesamtStornierungCents,
-      }
-    case 'umbuchung':
-      return {
-        date: eintrag.umgebuchtAm,
-        positionen: toReceiptItems(eintrag.positionen),
-        totalPrice: eintrag.gesamtCents,
-      }
-  }
 }
 
 interface PrimaryAction {

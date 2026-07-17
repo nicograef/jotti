@@ -7,20 +7,13 @@ import {
   DrawerBody,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
 } from '@/components/ui/drawer'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
-import {
-  formatAlleAuswaehlenLabel,
-  formatEuro,
-  formatRelativeTime,
-} from '@/lib/utils'
+import { formatAlleAuswaehlenLabel } from '@/lib/utils'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
 import { useAktiveTische } from '../../table/hooks'
@@ -30,10 +23,9 @@ import type { Umbuchung } from '../../table/Umbuchung'
 import { PositionAuswahlListe } from '../PositionAuswahlListe'
 import { ActionHint } from './ActionHint'
 import { KommentarField } from './CommentField'
+import { GesamtZeile, QuelleDrawerHeader } from './DrawerParts'
 import {
   calculateTotalPrice,
-  quelleTitel,
-  quelleZeitpunkt,
   selectPositionen,
   toAuswahlPositionen,
   toPositionRefs,
@@ -153,15 +145,9 @@ export function HistorieUmbuchungDrawer({
       }}
     >
       <DrawerContent pending={loading}>
-        <DrawerHeader className="mx-auto w-full max-w-sm">
-          <DrawerTitle>
-            {quelleTitel(quelle)} ·{' '}
-            {formatRelativeTime(quelleZeitpunkt(quelle))} · {quelle.userName}
-          </DrawerTitle>
-          <DrawerDescription>
-            Positionen auswählen und auf einen Ziel-Tisch umbuchen.
-          </DrawerDescription>
-        </DrawerHeader>
+        <QuelleDrawerHeader quelle={quelle}>
+          Positionen auswählen und auf einen Ziel-Tisch umbuchen.
+        </QuelleDrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">
           {positionen.length > 0 && (
             <div className="px-4 pb-2">
@@ -196,10 +182,7 @@ export function HistorieUmbuchungDrawer({
         </DrawerBody>
         <DrawerFooter className="mx-auto w-full max-w-sm">
           {!noPositionenSelected && (
-            <div className="flex justify-between border-t-2 pt-2 font-bold">
-              <div>Umbuchung gesamt</div>
-              <div>{formatEuro(totalPrice)}</div>
-            </div>
+            <GesamtZeile label="Umbuchung gesamt" betrag={totalPrice} />
           )}
           <div className="space-y-1">
             <p className="text-sm font-medium">Ziel-Tisch</p>
