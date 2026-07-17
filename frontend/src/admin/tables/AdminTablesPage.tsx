@@ -2,22 +2,17 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { BackendSingleton } from '@/lib/Backend'
-
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditTischDialog } from './EditTischDialog'
-import { ALLE_TISCHE_KEY, useAllTische } from './hooks'
+import { ALLE_TISCHE_KEY, tischBackend, useAllTische } from './hooks'
 import { NewTischDialog } from './NewTischDialog'
 import type { Tisch } from './Tisch'
-import { TischBackend } from './TischBackend'
 import { Tische } from './Tische'
 
 const initialEditState = {
   tisch: null as Tisch | null,
   open: false,
 }
-
-const tischBackend = new TischBackend(BackendSingleton)
 
 export function AdminTablesPage() {
   const queryClient = useQueryClient()

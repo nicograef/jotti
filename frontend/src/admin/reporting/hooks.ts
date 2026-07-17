@@ -14,10 +14,16 @@ import type {
 
 const reportingBackend = new ReportingBackend(BackendSingleton)
 
+// Query-Keys der Reporting-Ansichten.
+export const ABGESCHLOSSENE_KASSENSITZUNGEN_KEY =
+  'abgeschlossene-kassensitzungen'
+export const REPORT_KEY = 'report'
+export const LIVE_REPORTING_KEY = 'live-reporting'
+
 export function useAbgeschlosseneKassensitzungen() {
   const { data: kassensitzungen = [] as AbgeschlosseneSitzung[], isPending } =
     useQuery({
-      queryKey: ['abgeschlossene-kassensitzungen'],
+      queryKey: [ABGESCHLOSSENE_KASSENSITZUNGEN_KEY],
       queryFn: () => reportingBackend.getAbgeschlosseneKassensitzungen(),
     })
   return { kassensitzungen, isPending }
@@ -25,7 +31,7 @@ export function useAbgeschlosseneKassensitzungen() {
 
 export function useReport(kassensitzungNr: number | null) {
   const { data: result = null as ReportingData | null, isPending } = useQuery({
-    queryKey: ['report', kassensitzungNr],
+    queryKey: [REPORT_KEY, kassensitzungNr],
     queryFn: () => reportingBackend.getReporting(kassensitzungNr ?? 0),
     enabled: kassensitzungNr !== null,
   })
@@ -39,7 +45,7 @@ export function useLiveReporting() {
     dataUpdatedAt,
     refetch,
   } = useQuery({
-    queryKey: ['live-reporting'],
+    queryKey: [LIVE_REPORTING_KEY],
     queryFn: () => reportingBackend.getLiveReporting(),
     // Auto-Refresh: das Live-Dashboard aktualisiert sich alle 30 s ohne
     // Interaktion (lokaler Server, eine Admin-Session).

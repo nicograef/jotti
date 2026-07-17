@@ -50,7 +50,7 @@ vi.mock('./hooks', () => ({
     nimmElsterMeldungZurueck,
   }),
   useKassenidentitaet: () => ({
-    data: hookState.kassenidentitaet,
+    kassenidentitaet: hookState.kassenidentitaet,
     isPending: false,
     error: null,
   }),

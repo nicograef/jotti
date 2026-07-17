@@ -5,7 +5,7 @@ import { BackendSingleton } from '@/lib/Backend'
 import type { Produkt } from './Produkt'
 import { ProduktBackend } from './ProduktBackend'
 
-const produktBackend = new ProduktBackend(BackendSingleton)
+export const produktBackend = new ProduktBackend(BackendSingleton)
 
 export const ALLE_PRODUKTE_KEY = 'alle-produkte'
 

@@ -3,16 +3,14 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { BackendSingleton } from '@/lib/Backend'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditUserDialog } from './EditUserDialog'
 import { HelferPanels } from './HelferPanels'
-import { ALLE_USERS_KEY, useAllUsers } from './hooks'
+import { ALLE_USERS_KEY, useAllUsers, userBackend } from './hooks'
 import { NewUserDialog } from './NewUserDialog'
 import { PasswordResetDialog } from './PasswordResetDialog'
 import { type User, UserStatus } from './User'
-import { UserBackend } from './UserBackend'
 import { UserCreatedDialog } from './UserCreatedDialog'
 import { Users } from './Users'
 
@@ -32,8 +30,6 @@ const initialEditState = {
   user: null as User | null,
   open: false,
 }
-
-const userBackend = new UserBackend(BackendSingleton)
 
 export function AdminUsersPage() {
   const queryClient = useQueryClient()

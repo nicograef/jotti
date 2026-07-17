@@ -2,24 +2,19 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { BackendSingleton } from '@/lib/Backend'
-
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { useDruckstationen } from '../settings/hooks'
 import { EditProductDialog } from './EditProductDialog'
-import { ALLE_PRODUKTE_KEY, useAllProdukte } from './hooks'
+import { ALLE_PRODUKTE_KEY, produktBackend, useAllProdukte } from './hooks'
 import { NewProductDialog } from './NewProductDialog'
 import { produktUnterzeile } from './productGrouping'
 import { Products } from './Products'
 import type { Produkt } from './Produkt'
-import { ProduktBackend } from './ProduktBackend'
 
 const initialProduktEditState = {
   produkt: null as Produkt | null,
   open: false,
 }
-
-const produktBackend = new ProduktBackend(BackendSingleton)
 
 export function AdminProductsPage() {
   const queryClient = useQueryClient()

@@ -5,7 +5,7 @@ import { BackendSingleton } from '@/lib/Backend'
 import type { User } from './User'
 import { UserBackend } from './UserBackend'
 
-const userBackend = new UserBackend(BackendSingleton)
+export const userBackend = new UserBackend(BackendSingleton)
 
 export const ALLE_USERS_KEY = 'alle-users'
 

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 
 import {
@@ -54,19 +54,19 @@ export function TischAuswahlDrawer({
   // jetzt auf der Hauptseite (TableSelectionPage), kein zweites Suchfeld hier.
   const sortierteTische = [...tische].sort(sortiereTische)
 
-  const favoritMutation = useMutation({
-    mutationFn: (tisch: AktiverTischMitFavorit) =>
-      tisch.istFavorit
-        ? tischBackend.favoritEntfernen(tisch.id)
-        : tischBackend.favoritHinzufuegen(tisch.id),
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
-        }),
-        queryClient.invalidateQueries({ queryKey: [MEINE_TISCHE_STATE_KEY] }),
-      ]),
-  })
+  const toggleFavorit = async (tisch: AktiverTischMitFavorit) => {
+    if (tisch.istFavorit) {
+      await tischBackend.favoritEntfernen(tisch.id)
+    } else {
+      await tischBackend.favoritHinzufuegen(tisch.id)
+    }
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
+      }),
+      queryClient.invalidateQueries({ queryKey: [MEINE_TISCHE_STATE_KEY] }),
+    ])
+  }
 
   const handleTischClick = (tisch: AktiverTischMitFavorit) => {
     void navigate(`/service/tische/${tisch.id.toString()}`)
@@ -91,7 +91,7 @@ export function TischAuswahlDrawer({
                 disabled={favoritLoading}
                 onClick={() => {
                   void runToggleFavorit(async () => {
-                    await favoritMutation.mutateAsync(tisch)
+                    await toggleFavorit(tisch)
                   })
                 }}
                 aria-label={

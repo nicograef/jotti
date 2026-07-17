@@ -15,6 +15,13 @@ import {
 
 const tseBackend = new TSEBackend(BackendSingleton)
 
+// Query-Keys der TSE-Ansichten. Nach Speichern/Leeren/Einrichten werden
+// Konfiguration und Status über diese Keys invalidiert.
+export const TSE_KONFIGURATION_KEY = 'tse-konfiguration'
+export const TSE_STATUS_KEY = 'tse-status'
+export const TSE_SIGNATUR_QUEUE_KEY = 'tse-signatur-queue'
+export const TSE_STOERUNGEN_KEY = 'tse-stoerungen'
+
 // Ab rund einer Minute Signatur-Rückstand gilt der TSE-Signatur-Rückstand als
 // kritisch (deckt sich mit der Nachsigniert-Schwelle im Backend). Dashboard und
 // Sidebar teilen sich diese Schwelle.
@@ -23,21 +30,21 @@ export const RUECKSTAND_WARN_SEKUNDEN = 60
 export function useTSEKonfiguration() {
   const queryClient = useQueryClient()
   const { isPending, data, error } = useQuery({
-    queryKey: ['tse-konfiguration'],
+    queryKey: [TSE_KONFIGURATION_KEY],
     queryFn: () => tseBackend.getTSEKonfiguration(),
   })
 
   const saveTSEKonfiguration = async (config: TSEKonfigurationSpeichern) => {
     await tseBackend.saveTSEKonfiguration(config)
     // Speichern/Leeren ändern auch istKonfiguriert — beide Ansichten neu laden.
-    await queryClient.invalidateQueries({ queryKey: ['tse-konfiguration'] })
-    await queryClient.invalidateQueries({ queryKey: ['tse-status'] })
+    await queryClient.invalidateQueries({ queryKey: [TSE_KONFIGURATION_KEY] })
+    await queryClient.invalidateQueries({ queryKey: [TSE_STATUS_KEY] })
   }
 
   const clearTSEKonfiguration = async () => {
     await tseBackend.clearTSEKonfiguration()
-    await queryClient.invalidateQueries({ queryKey: ['tse-konfiguration'] })
-    await queryClient.invalidateQueries({ queryKey: ['tse-status'] })
+    await queryClient.invalidateQueries({ queryKey: [TSE_KONFIGURATION_KEY] })
+    await queryClient.invalidateQueries({ queryKey: [TSE_STATUS_KEY] })
   }
 
   const testTSEVerbindung = async (): Promise<TSEVerbindungStatus> => {
@@ -68,8 +75,8 @@ export function useTSEEinrichtung() {
   ): Promise<TSEEinrichtenErgebnis> => {
     const ergebnis = await tseBackend.richteTSEEin(eingabe)
     // Die Konfiguration ist jetzt gespeichert — abhängige Ansichten neu laden.
-    await queryClient.invalidateQueries({ queryKey: ['tse-konfiguration'] })
-    await queryClient.invalidateQueries({ queryKey: ['tse-status'] })
+    await queryClient.invalidateQueries({ queryKey: [TSE_KONFIGURATION_KEY] })
+    await queryClient.invalidateQueries({ queryKey: [TSE_STATUS_KEY] })
     return ergebnis
   }
 
@@ -77,8 +84,8 @@ export function useTSEEinrichtung() {
     eingabe: TSEUebernehmen,
   ): Promise<TSEEinrichtenErgebnis> => {
     const ergebnis = await tseBackend.uebernimmTSE(eingabe)
-    await queryClient.invalidateQueries({ queryKey: ['tse-konfiguration'] })
-    await queryClient.invalidateQueries({ queryKey: ['tse-status'] })
+    await queryClient.invalidateQueries({ queryKey: [TSE_KONFIGURATION_KEY] })
+    await queryClient.invalidateQueries({ queryKey: [TSE_STATUS_KEY] })
     return ergebnis
   }
 
@@ -87,7 +94,7 @@ export function useTSEEinrichtung() {
 
 export function useTSESignaturQueue() {
   const { data, isPending, error } = useQuery({
-    queryKey: ['tse-signatur-queue'],
+    queryKey: [TSE_SIGNATUR_QUEUE_KEY],
     queryFn: () => tseBackend.getTSESignaturQueue(),
   })
 
@@ -100,7 +107,7 @@ export function useTSEStoerungen() {
     data = [],
     error,
   } = useQuery({
-    queryKey: ['tse-stoerungen'],
+    queryKey: [TSE_STOERUNGEN_KEY],
     queryFn: () => tseBackend.getTSEStoerungen(),
   })
 
@@ -109,7 +116,7 @@ export function useTSEStoerungen() {
 
 export function useTSEStatus() {
   const { data, isPending, error } = useQuery({
-    queryKey: ['tse-status'],
+    queryKey: [TSE_STATUS_KEY],
     queryFn: () => tseBackend.getTSEStatus(),
   })
 

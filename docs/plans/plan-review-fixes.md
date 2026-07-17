@@ -217,11 +217,11 @@ Co-locate every query key in the touched hooks as an exported const, referenced 
 
 ### Acceptance criteria
 
-- [ ] No inline query-key literals remain in `tse/settings/finanzamt/reporting` hooks; each key is one exported const used by `useQuery` and `invalidateQueries`.
-- [ ] Each of products/users/tables exports one `Backend` instance; pages import it; no page calls `new XBackend` a second time.
-- [ ] `useKassenidentitaet` returns the wrapped shape; `EinrichtungSection` consumer updated.
-- [ ] `TischAuswahlDrawer` favorite toggle runs through `useActionSubmit` only (no nested `useMutation`); refresh still works via `invalidateQueries`.
-- [ ] Frontend lint + tests green; user-visible behavior unchanged.
+- [x] No inline query-key literals remain in `tse/settings/finanzamt/reporting` hooks; each key is one exported const used by `useQuery` and `invalidateQueries`.
+- [x] Each of products/users/tables exports one `Backend` instance; pages import it; no page calls `new XBackend` a second time.
+- [x] `useKassenidentitaet` returns the wrapped shape; `EinrichtungSection` consumer updated.
+- [x] `TischAuswahlDrawer` favorite toggle runs through `useActionSubmit` only (no nested `useMutation`); refresh still works via `invalidateQueries`.
+- [x] Frontend lint + tests green; user-visible behavior unchanged.
 
 ---
 

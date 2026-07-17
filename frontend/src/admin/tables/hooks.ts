@@ -5,7 +5,7 @@ import { BackendSingleton } from '@/lib/Backend'
 import type { Tisch } from './Tisch'
 import { TischBackend } from './TischBackend'
 
-const tischBackend = new TischBackend(BackendSingleton)
+export const tischBackend = new TischBackend(BackendSingleton)
 
 export const ALLE_TISCHE_KEY = 'alle-tische'
 

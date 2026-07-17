@@ -74,7 +74,7 @@ export function EinrichtungSection() {
     nimmElsterMeldungZurueck,
   } = useBetreiber()
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
-  const { data: kassenidentitaet } = useKassenidentitaet()
+  const { kassenidentitaet } = useKassenidentitaet()
 
   const [formOffen, setFormOffen] = useState(false)
   const [copied, setCopied] = useState(false)
