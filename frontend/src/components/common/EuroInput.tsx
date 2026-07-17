@@ -1,5 +1,3 @@
-import { useEffect, useRef } from 'react'
-
 import { Input } from '@/components/ui/input'
 import { cn, formatCents, parseCents } from '@/lib/utils'
 
@@ -40,8 +38,8 @@ interface EuroInputProps {
 /**
  * The canonical money input: a `€` sign inside the field, the decimal
  * keypad on mobile, input sanitised to digits and a comma, and normalisation to
- * two decimals on blur (and after a typing pause). String in, string out — wrap
- * it in a form field for cents-based state.
+ * two decimals on blur. String in, string out — wrap it in a form field for
+ * cents-based state.
  */
 export function EuroInput({
   value,
@@ -53,15 +51,6 @@ export function EuroInput({
   disabled,
   'aria-invalid': ariaInvalid,
 }: EuroInputProps) {
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Clear any pending normalisation when the input unmounts.
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [])
-
   return (
     <div className="relative">
       <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-sm text-muted-foreground">
@@ -79,17 +68,9 @@ export function EuroInput({
         aria-invalid={ariaInvalid}
         value={value}
         onChange={(e) => {
-          const cleaned = cleanInput(e.target.value)
-          onValueChange(cleaned)
-
-          // Debounce the reformat so the cursor does not jump while typing.
-          if (debounceRef.current) clearTimeout(debounceRef.current)
-          debounceRef.current = setTimeout(() => {
-            onValueChange(formatBlur(cleaned))
-          }, 1000)
+          onValueChange(cleanInput(e.target.value))
         }}
         onBlur={() => {
-          if (debounceRef.current) clearTimeout(debounceRef.current)
           onValueChange(formatBlur(value))
           onBlur?.()
         }}
