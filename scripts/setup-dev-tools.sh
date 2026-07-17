@@ -37,12 +37,16 @@ info "Checking base runtimes..."
 ensure_cmd go "Install Go >= 1.26.5 (CI uses 1.26.5)."
 ensure_cmd node "Install Node >= 24 (CI uses 24)."
 
-info "Ensuring goimports is available..."
+# Matches CI: .github/workflows/ci.yml pins goimports to this version in every
+# "Check format" step, so local formatting matches CI (D13). goimports across
+# versions can reformat imports differently, so @latest would drift from CI.
+GOIMPORTS_VERSION="v0.40.0"
+info "Ensuring goimports ($GOIMPORTS_VERSION) is available..."
 if command -v goimports >/dev/null 2>&1; then
   info "goimports already installed: $(goimports -V 2>/dev/null || echo 'version unknown')"
 else
-  info "Installing goimports via 'go install golang.org/x/tools/cmd/goimports@latest'"
-  go install golang.org/x/tools/cmd/goimports@latest
+  info "Installing goimports via 'go install golang.org/x/tools/cmd/goimports@$GOIMPORTS_VERSION'"
+  go install "golang.org/x/tools/cmd/goimports@$GOIMPORTS_VERSION"
 fi
 
 GO_BIN_PATH="$(go env GOPATH)/bin"
@@ -90,12 +94,16 @@ if ! command -v golangci-lint >/dev/null 2>&1; then
   fatal "golangci-lint installation failed. Ensure '$GO_BIN_PATH' is on PATH (before any system golangci-lint) and rerun."
 fi
 
-info "Ensuring sqlc is available..."
+# Pinned to the version that generated the checked-in backend/sqlc/dbgen/ (see
+# the "versions:" header in those files); a different sqlc can reformat the
+# generated code and make `make sqlc` dirty the working tree.
+SQLC_VERSION="v1.31.1"
+info "Ensuring sqlc ($SQLC_VERSION) is available..."
 if command -v sqlc >/dev/null 2>&1; then
   info "sqlc already installed: $(sqlc version)"
 else
-  info "Installing sqlc via 'go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest'"
-  go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+  info "Installing sqlc via 'go install github.com/sqlc-dev/sqlc/cmd/sqlc@$SQLC_VERSION'"
+  go install "github.com/sqlc-dev/sqlc/cmd/sqlc@$SQLC_VERSION"
 fi
 
 if ! command -v sqlc >/dev/null 2>&1; then

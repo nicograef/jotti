@@ -235,7 +235,7 @@ Die beiden Versions-Kommentare auf das reale Verhalten korrigieren (bare `${JOTT
 
 ### Acceptance criteria
 
-- [ ] `bash -n` für alle drei Skripte fehlerfrei; kein Skript-Kommentar erwähnt mehr einen `latest`-Fallback
-- [ ] goimports- und sqlc-Version in `setup-dev-tools.sh` sind gepinnt; goimports-Version identisch mit `ci.yml`
-- [ ] `make sqlc` erzeugt nach dem Pin einen leeren `git diff`
-- [ ] Backend-Docker-Image baut erfolgreich (lokal oder über den bestehenden CI-Build)
+- [x] `bash -n` für alle drei Skripte fehlerfrei; kein Skript-Kommentar erwähnt mehr einen `latest`-Fallback
+- [x] goimports- und sqlc-Version in `setup-dev-tools.sh` sind gepinnt; goimports-Version identisch mit `ci.yml`
+- [x] `make sqlc` erzeugt nach dem Pin einen leeren `git diff`
+- [x] Backend-Docker-Image baut erfolgreich (lokal oder über den bestehenden CI-Build)

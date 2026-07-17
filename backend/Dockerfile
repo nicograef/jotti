@@ -1,8 +1,6 @@
 # --- Build Stage ---
 FROM golang:1.26.5-alpine AS builder
 
-RUN apk update
-
 WORKDIR /src
 
 COPY go.mod go.sum ./

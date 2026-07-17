@@ -116,8 +116,9 @@ if [[ -z "$EMAIL" ]]; then
   fatal "LETSENCRYPT_EMAIL is not set in .env. Set it to a contact email for the Let's Encrypt account."
 fi
 # Only a pinned release tag (vMAJOR.MINOR.PATCH) is accepted; "latest" or an
-# empty value would silently pull a moving image. The compose default
-# ${JOTTI_VERSION:-latest} stays as a fallback but is never reached here.
+# empty value would silently pull a moving image. Compose references the tag as a
+# bare ${JOTTI_VERSION} with no default, so an empty value aborts the stack; this
+# check turns that into an early, actionable error before anything is pulled.
 if ! parse_semver "$VERSION" >/dev/null; then
   error "JOTTI_VERSION in .env is not a pinned release tag (found: '${VERSION:-<empty>}')."
   error "Set it to a release tag like v0.3.1 from https://github.com/nicograef/jotti/releases."

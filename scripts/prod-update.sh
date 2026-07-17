@@ -100,8 +100,9 @@ fi
 # ---------------------------------------------------------------------------
 # Target comes from .env (the version the operator bumped to). Only a pinned
 # release tag (vMAJOR.MINOR.PATCH) is accepted; "latest" or an empty value would
-# silently track a moving image and defeat the downgrade guard. The compose
-# default ${JOTTI_VERSION:-latest} stays as a fallback but is never reached here.
+# silently track a moving image and defeat the downgrade guard. Compose references
+# the tag as a bare ${JOTTI_VERSION} with no default, so an empty value aborts the
+# stack; this check turns that into an early, actionable error.
 TARGET_VERSION="$(read_env JOTTI_VERSION)"
 if ! parse_semver "$TARGET_VERSION" >/dev/null; then
   error "JOTTI_VERSION in .env is not a pinned release tag (found: '${TARGET_VERSION:-<empty>}')."
