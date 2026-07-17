@@ -124,9 +124,9 @@ Add a `produkt_repo` method that soft-deletes a product and all its variants ins
 
 ### Acceptance criteria
 
-- [ ] `produkt_repo` exposes one atomic soft-delete-with-variants method wrapping `db.WithTx`; the application layer no longer loops row writes for delete.
-- [ ] An integration test injecting a mid-transaction failure proves atomicity: on failure the product and all its variants remain in their pre-delete state (no partial delete).
-- [ ] Happy-path delete still soft-deletes product + variants; existing produkt tests pass.
+- [x] `produkt_repo` exposes one atomic soft-delete-with-variants method wrapping `db.WithTx`; the application layer no longer loops row writes for delete.
+- [x] An integration test injecting a mid-transaction failure proves atomicity: on failure the product and all its variants remain in their pre-delete state (no partial delete).
+- [x] Happy-path delete still soft-deletes product + variants; existing produkt tests pass.
 - [ ] `make verify` (incl. integration) green.
 
 ---

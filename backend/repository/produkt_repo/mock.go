@@ -80,6 +80,20 @@ func (m *mockRepo) UpdateVariant(ctx context.Context, v produkt.Variante) error 
 	return m.err
 }
 
+func (m *mockRepo) DeleteProduktMitVarianten(ctx context.Context, p produkt.Produkt) error {
+	if m.err != nil {
+		return m.err
+	}
+	m.products[p.ID] = p
+	for i := range p.Varianten {
+		v := p.Varianten[i]
+		if vp, ok := m.variants[v.ID]; ok {
+			m.variants[v.ID] = variantWithProduct{variant: v, productID: vp.productID}
+		}
+	}
+	return nil
+}
+
 func (m *mockRepo) GetAllProducts(ctx context.Context) ([]produkt.Produkt, error) {
 	products := make([]produkt.Produkt, 0, len(m.products))
 	for i := range m.products {

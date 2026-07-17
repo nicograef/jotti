@@ -120,3 +120,43 @@ func (r Repository) UpdateProduct(ctx context.Context, p produkt.Produkt) error 
 
 	return db.ResultError(result)
 }
+
+// DeleteProduktMitVarianten persists the soft-delete of a product together with
+// all its variants in a single transaction. The caller passes the product with
+// Delete() already applied to it and each variant; this method only writes the
+// status transitions. Because all writes share one db.WithTx, a mid-operation
+// failure rolls the whole delete back — the product and every variant stay in
+// their pre-delete state, never a partial delete.
+func (r Repository) DeleteProduktMitVarianten(ctx context.Context, p produkt.Produkt) error {
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		for i := range p.Varianten {
+			v := p.Varianten[i]
+			result, err := qtx.UpdateVariante(ctx, dbgen.UpdateVarianteParams{
+				Name:       v.Name,
+				PreisCents: v.PreisCents,
+				Status:     dbgen.Entitystatus(v.Status),
+				UpdatedAt:  v.UpdatedAt,
+				ID:         v.ID,
+			})
+			if err != nil {
+				return db.Error(err)
+			}
+			if err := db.ResultError(result); err != nil {
+				return err
+			}
+		}
+
+		result, err := qtx.UpdateProdukt(ctx, dbgen.UpdateProduktParams{
+			Name:       p.Name,
+			Kategorie:  dbgen.Produktkategorie(p.Kategorie),
+			Steuersatz: dbgen.Steuersatz(p.Steuersatz),
+			Status:     dbgen.Entitystatus(p.Status),
+			UpdatedAt:  p.UpdatedAt,
+			ID:         p.ID,
+		})
+		if err != nil {
+			return db.Error(err)
+		}
+		return db.ResultError(result)
+	})
+}

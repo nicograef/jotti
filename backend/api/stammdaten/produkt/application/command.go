@@ -19,6 +19,7 @@ type produktRepo interface {
 	UpdateVariant(ctx context.Context, variant produkt.Variante) error
 	GetAllProducts(ctx context.Context) ([]produkt.Produkt, error)
 	GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error)
+	DeleteProduktMitVarianten(ctx context.Context, product produkt.Produkt) error
 }
 
 type Command struct {
@@ -187,16 +188,10 @@ func (c Command) DeleteProdukt(ctx context.Context, productID int) error {
 
 	for i := range produkt.Varianten {
 		produkt.Varianten[i].Delete()
-		err = c.ProduktRepo.UpdateVariant(ctx, produkt.Varianten[i])
-		if err != nil {
-			log.Error().Err(err).Int("variant_id", produkt.Varianten[i].ID).Msg("Failed to delete variant")
-			return ErrDatabase
-		}
 	}
-
 	produkt.Delete()
 
-	err = c.ProduktRepo.UpdateProduct(ctx, produkt)
+	err = c.ProduktRepo.DeleteProduktMitVarianten(ctx, produkt)
 	if err != nil {
 		log.Error().Err(err).Int("product_id", productID).Msg("Failed to delete product")
 		return ErrDatabase
