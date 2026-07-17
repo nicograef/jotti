@@ -8,13 +8,13 @@ import (
 	z "github.com/Oudwins/zog"
 
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 // --- Query Handler ---
 
 type druckauftragQuery interface {
-	GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]druckauftrag_repo.FehlgeschlagenerDruckauftrag, error)
+	GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]druckstation.FehlgeschlagenerDruckauftrag, error)
 }
 
 type QueryHandler struct {

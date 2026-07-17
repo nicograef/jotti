@@ -346,11 +346,10 @@ func mergeServicekraefteLive(
 		offenCents := 0
 		for i, tisch := range arbeit.OffeneTische {
 			offeneTische[i] = reporting.OffeneArbeitTisch{
-				TischID:         tisch.TischID,
-				TischName:       nameByTischID[tisch.TischID],
-				AnzahlUnbezahlt: tisch.AnzahlUnbezahlt,
-				AnzahlOffen:     tisch.AnzahlOffen,
-				OffenCents:      tisch.OffenCents,
+				TischID:     tisch.TischID,
+				TischName:   nameByTischID[tisch.TischID],
+				AnzahlOffen: tisch.AnzahlOffen,
+				OffenCents:  tisch.OffenCents,
 			}
 			offenCents += tisch.OffenCents
 		}

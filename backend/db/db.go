@@ -1,11 +1,13 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 	"github.com/rs/zerolog/log"
 )
 
@@ -67,6 +69,24 @@ func ResultError(res sql.Result) error {
 	}
 
 	return nil
+}
+
+// WithTx runs fn within a single transaction: it begins the tx, rolls back on
+// any error (a rollback after commit is a no-op), and commits otherwise. fn
+// receives the transaction-bound queries and owns its own error wrapping; only
+// begin/commit failures are normalized via Error.
+func WithTx(ctx context.Context, database *sql.DB, fn func(*dbgen.Queries) error) error {
+	tx, err := database.BeginTx(ctx, nil)
+	if err != nil {
+		return Error(err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+
+	if err := fn(dbgen.New(tx)); err != nil {
+		return err
+	}
+
+	return Error(tx.Commit())
 }
 
 // PingWithRetry calls ping repeatedly until it succeeds or the time budget is

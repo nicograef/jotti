@@ -11,20 +11,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nicograef/jotti/backend/repository/tse_repo"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 type mockSignaturauftragQuery struct {
-	queue      tse_repo.SignaturQueueZustand
-	stoerungen []tse_repo.Stoerungszeitraum
+	queue      tse.SignaturQueueZustand
+	stoerungen []tse.Stoerungszeitraum
 	err        error
 }
 
-func (m *mockSignaturauftragQuery) GetTSESignaturQueueZustand(context.Context) (tse_repo.SignaturQueueZustand, error) {
+func (m *mockSignaturauftragQuery) GetTSESignaturQueueZustand(context.Context) (tse.SignaturQueueZustand, error) {
 	return m.queue, m.err
 }
 
-func (m *mockSignaturauftragQuery) GetTSEStoerungen(context.Context) ([]tse_repo.Stoerungszeitraum, error) {
+func (m *mockSignaturauftragQuery) GetTSEStoerungen(context.Context) ([]tse.Stoerungszeitraum, error) {
 	return m.stoerungen, m.err
 }
 
@@ -38,7 +38,7 @@ func postJSON(t *testing.T, handler http.HandlerFunc, path, body string) *httpte
 }
 
 func TestGetTSESignaturQueueHandler_Success(t *testing.T) {
-	query := &mockSignaturauftragQuery{queue: tse_repo.SignaturQueueZustand{
+	query := &mockSignaturauftragQuery{queue: tse.SignaturQueueZustand{
 		OffeneAuftraege:          4,
 		FehlgeschlageneAuftraege: 1,
 		LetzterFehler:            "fiskaly api error 400",
@@ -77,7 +77,7 @@ func TestGetTSESignaturQueueHandler_Success(t *testing.T) {
 
 func TestGetTSEStoerungenHandler_Success(t *testing.T) {
 	ende := time.Date(2026, 6, 11, 12, 0, 0, 0, time.UTC)
-	query := &mockSignaturauftragQuery{stoerungen: []tse_repo.Stoerungszeitraum{
+	query := &mockSignaturauftragQuery{stoerungen: []tse.Stoerungszeitraum{
 		{ID: 2, Beginn: time.Date(2026, 6, 11, 11, 0, 0, 0, time.UTC), GrundArt: "rueckstand", Fehlertext: "Rückstand"},
 		{ID: 1, Beginn: time.Date(2026, 6, 11, 10, 0, 0, 0, time.UTC), Ende: &ende, GrundArt: "tse_fehler", Fehlertext: "TSE nicht erreichbar"},
 	}}

@@ -5,18 +5,18 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 type druckauftragQueryRepo interface {
-	GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]druckauftrag_repo.FehlgeschlagenerDruckauftrag, error)
+	GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]druckstation.FehlgeschlagenerDruckauftrag, error)
 }
 
 type Query struct {
 	DruckauftragRepo druckauftragQueryRepo
 }
 
-func (q Query) GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]druckauftrag_repo.FehlgeschlagenerDruckauftrag, error) {
+func (q Query) GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]druckstation.FehlgeschlagenerDruckauftrag, error) {
 	log := zerolog.Ctx(ctx)
 
 	auftraege, err := q.DruckauftragRepo.GetFehlgeschlageneDruckauftraege(ctx)

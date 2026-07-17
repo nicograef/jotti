@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
@@ -54,18 +55,6 @@ type Fehlversuch struct {
 	Fehler string
 }
 
-// FehlgeschlagenerDruckauftrag ist ein nach MaxDruckversuche aufgegebener
-// Druckauftrag, wie ihn die Druckstationen-Seite zur Verwaltung anzeigt.
-type FehlgeschlagenerDruckauftrag struct {
-	ID            int
-	BonArt        string
-	ZielIP        string
-	Referenz      string
-	Versuche      int
-	LetzterFehler string
-	ErstelltAm    time.Time
-}
-
 type Repository struct {
 	db *sql.DB
 	q  *dbgen.Queries
@@ -75,30 +64,12 @@ func NewRepository(database *sql.DB) Repository {
 	return Repository{db: database, q: dbgen.New(database)}
 }
 
-// withTx runs fn within a single transaction: it begins the tx, rolls back on
-// any error (a rollback after commit is a no-op), and commits otherwise. fn
-// receives the transaction-bound queries and owns its own error wrapping; only
-// begin/commit failures are normalized via db.Error.
-func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
-
-	if err := fn(r.q.WithTx(tx)); err != nil {
-		return err
-	}
-
-	return db.Error(tx.Commit())
-}
-
 func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []NeuerDruckauftrag) error {
 	if len(auftraege) == 0 {
 		return nil
 	}
 
-	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		return InsertDruckauftraege(ctx, qtx, auftraege)
 	})
 }
@@ -151,7 +122,7 @@ func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int,
 		return nil
 	}
 
-	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		for _, id := range gedruckteIDs {
 			if err := qtx.MarkDruckauftragGedruckt(ctx, id); err != nil {
 				return db.Error(err)
@@ -191,15 +162,15 @@ func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int,
 
 // GetFehlgeschlageneDruckauftraege liefert alle nach MaxDruckversuche
 // aufgegebenen Aufträge (Status fehlgeschlagen), älteste zuerst.
-func (r Repository) GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]FehlgeschlagenerDruckauftrag, error) {
+func (r Repository) GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]druckstation.FehlgeschlagenerDruckauftrag, error) {
 	rows, err := r.q.GetFehlgeschlageneDruckauftraege(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	result := make([]FehlgeschlagenerDruckauftrag, 0, len(rows))
+	result := make([]druckstation.FehlgeschlagenerDruckauftrag, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, FehlgeschlagenerDruckauftrag{
+		result = append(result, druckstation.FehlgeschlagenerDruckauftrag{
 			ID:            row.ID,
 			BonArt:        row.BonArt,
 			ZielIP:        row.ZielIp,

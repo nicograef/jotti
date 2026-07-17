@@ -11,10 +11,8 @@ import "sort"
 // berechnete Sicht für genau eine Servicekraft. Der tischweite offene Saldo
 // fließt bewusst nicht ein.
 type EigeneArbeitAnTisch struct {
-	// AnzahlUnbezahlt ist die Anzahl eigener Positionen, die noch nicht bezahlt sind.
-	AnzahlUnbezahlt int
-	// AnzahlOffen zählt die offenen (= unbezahlten) eigenen Positionen, je Position
-	// (PositionID) einmal.
+	// AnzahlOffen zählt die offenen (= unbezahlten) eigenen Positionen. Je
+	// PositionID trägt UnbezahltePositionen höchstens einen Eintrag.
 	AnzahlOffen int
 	// OffenCents ist der noch offene (unbezahlte) Betrag der eigenen Positionen:
 	// Summe aus EinzelpreisCents × Menge.
@@ -28,33 +26,28 @@ type EigeneArbeitAnTisch struct {
 // eine Kollegin eine eigene Position kassiert, verschwindet sie aus der
 // Unbezahlt-Liste und zählt damit nicht mehr als offen.
 func ComputeEigeneArbeitAnTisch(session TischSession, userID int) EigeneArbeitAnTisch {
-	offeneIDs := make(map[string]struct{})
-
-	anzahlUnbezahlt := 0
+	anzahlOffen := 0
 	offenCents := 0
 	for _, pos := range session.UnbezahltePositionen {
 		if pos.BestellerUserID == userID {
-			anzahlUnbezahlt++
+			anzahlOffen++
 			offenCents += pos.EinzelpreisCents * pos.Menge
-			offeneIDs[pos.PositionID] = struct{}{}
 		}
 	}
 
 	return EigeneArbeitAnTisch{
-		AnzahlUnbezahlt: anzahlUnbezahlt,
-		AnzahlOffen:     len(offeneIDs),
-		OffenCents:      offenCents,
-		Erledigt:        anzahlUnbezahlt == 0,
+		AnzahlOffen: anzahlOffen,
+		OffenCents:  offenCents,
+		Erledigt:    anzahlOffen == 0,
 	}
 }
 
 // OffeneArbeitTisch ist die offene eigene Arbeit einer Servicekraft an einem
 // einzelnen Tisch, angereichert um die Tisch-ID für die Rollup-Liste.
 type OffeneArbeitTisch struct {
-	TischID         int
-	AnzahlUnbezahlt int
-	AnzahlOffen     int
-	OffenCents      int
+	TischID     int
+	AnzahlOffen int
+	OffenCents  int
 }
 
 // OffeneArbeitRollup fasst die offene eigene Arbeit einer Servicekraft über
@@ -79,10 +72,9 @@ func ComputeOffeneArbeitRollup(sessions []TischSession, userID int) OffeneArbeit
 			continue
 		}
 		offeneTische = append(offeneTische, OffeneArbeitTisch{
-			TischID:         session.TischID,
-			AnzahlUnbezahlt: arbeit.AnzahlUnbezahlt,
-			AnzahlOffen:     arbeit.AnzahlOffen,
-			OffenCents:      arbeit.OffenCents,
+			TischID:     session.TischID,
+			AnzahlOffen: arbeit.AnzahlOffen,
+			OffenCents:  arbeit.OffenCents,
 		})
 	}
 

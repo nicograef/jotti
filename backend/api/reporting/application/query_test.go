@@ -530,7 +530,7 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	if bert.UserID != 8 || bert.UserName != "Bert" || bert.Name != "" || bert.ZahlungenCents != 0 || bert.Erledigt {
 		t.Errorf("expected Bert ohne Umsatz mit offener Arbeit, got %+v", bert)
 	}
-	if len(bert.OffeneTische) != 1 || bert.OffeneTische[0].TischID != 1 || bert.OffeneTische[0].AnzahlUnbezahlt != 1 {
+	if len(bert.OffeneTische) != 1 || bert.OffeneTische[0].TischID != 1 || bert.OffeneTische[0].AnzahlOffen != 1 {
 		t.Errorf("expected Bert offen an Tisch 1, got %+v", bert.OffeneTische)
 	}
 	if bert.OffeneTische[0].OffenCents != 300 {

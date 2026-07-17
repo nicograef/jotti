@@ -10,12 +10,11 @@ func pos(positionID string, bestellerUserID int, bestellerName string) Position 
 
 func TestComputeEigeneArbeitAnTisch(t *testing.T) {
 	tests := []struct {
-		name          string
-		session       TischSession
-		userID        int
-		wantUnbezahlt int
-		wantOffen     int
-		wantErledigt  bool
+		name         string
+		session      TischSession
+		userID       int
+		wantOffen    int
+		wantErledigt bool
 	}{
 		{
 			name: "offene eigene unbezahlte Positionen",
@@ -26,10 +25,9 @@ func TestComputeEigeneArbeitAnTisch(t *testing.T) {
 					pos("p3", 7, "Anna"),
 				},
 			},
-			userID:        7,
-			wantUnbezahlt: 2,
-			wantOffen:     2,
-			wantErledigt:  false,
+			userID:       7,
+			wantOffen:    2,
+			wantErledigt: false,
 		},
 		{
 			name: "erledigt ohne eigene unbezahlte Positionen",
@@ -52,9 +50,6 @@ func TestComputeEigeneArbeitAnTisch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			arbeit := ComputeEigeneArbeitAnTisch(tt.session, tt.userID)
-			if arbeit.AnzahlUnbezahlt != tt.wantUnbezahlt {
-				t.Errorf("AnzahlUnbezahlt = %d, want %d", arbeit.AnzahlUnbezahlt, tt.wantUnbezahlt)
-			}
 			if arbeit.AnzahlOffen != tt.wantOffen {
 				t.Errorf("AnzahlOffen = %d, want %d", arbeit.AnzahlOffen, tt.wantOffen)
 			}
@@ -149,7 +144,7 @@ func TestComputeOffeneArbeitRollup(t *testing.T) {
 				if rollup.OffeneTische[i].TischID != wantID {
 					t.Errorf("OffeneTische[%d].TischID = %d, want %d", i, rollup.OffeneTische[i].TischID, wantID)
 				}
-				if rollup.OffeneTische[i].AnzahlUnbezahlt != 1 || rollup.OffeneTische[i].AnzahlOffen != 1 {
+				if rollup.OffeneTische[i].AnzahlOffen != 1 {
 					t.Errorf("OffeneTische[%d] unexpected counts: %+v", i, rollup.OffeneTische[i])
 				}
 			}

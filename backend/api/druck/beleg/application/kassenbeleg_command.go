@@ -218,152 +218,30 @@ type KassenbelegDruckenCommand struct {
 	StornierungID string
 }
 
+// belegQuelle bündelt die aus dem Quell-Event aufgelösten Beleg-Daten, die
+// KassenbelegDrucken für TSE-Auflösung, Formatierung und Enqueue braucht.
+// Genau eine resolve…-Funktion je Beleg-Form füllt das Struct.
+type belegQuelle struct {
+	Event                    event.Event
+	Positionen               []kasse.Position
+	GesamtbetragCents        int
+	Referenz                 string
+	ErsteBestellungZeitpunkt *time.Time
+	Stornobeleg              bool
+	StornoZuBelegnummer      string
+}
+
 func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenCommand) (BelegStatus, error) {
 	log := zerolog.Ctx(ctx)
-
-	tischID := cmd.TischID
-	zahlungID := cmd.ZahlungID
-	verkaufID := cmd.VerkaufID
-	stornierungID := cmd.StornierungID
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	var quelleEvent event.Event
-	var positionen []kasse.Position
-	var gesamtbetragCents int
-	var referenz string
-	var ersteBestellungZeitpunkt *time.Time
-	var stornobeleg bool
-	var stornoZuBelegnummer string
-
-	switch {
-	case verkaufID != "" && stornierungID != "":
-		subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
-		events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
-		if err != nil {
-			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to read direktverkauf events for stornobeleg")
-			return "", ErrDatabase
-		}
-
-		verkaufEvent, _, err := findDirektverkaufGetaetigtEvent(events, verkaufID)
-		if err != nil {
-			if errors.Is(err, ErrVerkaufNichtGefunden) {
-				log.Warn().Str("verkauf_id", verkaufID).Msg("Direktverkauf not found for stornobeleg")
-				return "", ErrVerkaufNichtGefunden
-			}
-			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to decode direktverkauf event data")
-			return "", ErrDatabase
-		}
-
-		stornoEvent, stornoData, err := findDirektverkaufStorniertEvent(events, stornierungID)
-		if err != nil {
-			if errors.Is(err, ErrStornierungNichtGefunden) {
-				log.Warn().Str("verkauf_id", verkaufID).Str("stornierung_id", stornierungID).Msg("Stornierung not found for stornobeleg")
-				return "", ErrStornierungNichtGefunden
-			}
-			log.Error().Err(err).Str("verkauf_id", verkaufID).Str("stornierung_id", stornierungID).Msg("Failed to decode direktverkauf storno event data")
-			return "", ErrDatabase
-		}
-
-		quelleEvent = stornoEvent
-		positionen = toKassePositionen(stornoData.Positionen)
-		gesamtbetragCents = -stornoData.GesamtStornierungCents
-		referenz = fmt.Sprintf("direktverkauf-storniert:%d", stornoEvent.ID)
-		stornobeleg = true
-		stornoZuBelegnummer = fmt.Sprintf("%d", verkaufEvent.ID)
-
-	case stornierungID != "":
-		// Tisch-Storno-Beleg (Warenrücknahme): negativer Betrag, Referenz auf den
-		// ursprünglichen Zahlungsbeleg — analog zum Direktverkauf-Storno-Beleg.
-		subject := kasse.TischSessionSubject(ks.ZNr, tischID)
-		events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
-		if err != nil {
-			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for stornobeleg")
-			return "", ErrDatabase
-		}
-
-		stornoEvent, stornoData, err := findStornierungEvent(events, stornierungID)
-		if err != nil {
-			if errors.Is(err, ErrStornierungNichtGefunden) {
-				log.Warn().Int("tisch_id", tischID).Str("stornierung_id", stornierungID).Msg("Stornierung not found for stornobeleg")
-				return "", ErrStornierungNichtGefunden
-			}
-			log.Error().Err(err).Int("tisch_id", tischID).Str("stornierung_id", stornierungID).Msg("Failed to decode stornierung event data")
-			return "", ErrDatabase
-		}
-
-		zahlungEvent, _, err := findZahlungEvent(events, stornoData.ZahlungID)
-		if err != nil {
-			if errors.Is(err, ErrZahlungNichtGefunden) {
-				log.Warn().Int("tisch_id", tischID).Str("zahlung_id", stornoData.ZahlungID).Msg("Referenzierte Zahlung not found for stornobeleg")
-				return "", ErrZahlungNichtGefunden
-			}
-			log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", stornoData.ZahlungID).Msg("Failed to decode referenzierte zahlung event data")
-			return "", ErrDatabase
-		}
-
-		quelleEvent = stornoEvent
-		positionen = toKassePositionen(stornoData.Positionen)
-		gesamtbetragCents = -stornoData.GesamtStornierungCents
-		referenz = fmt.Sprintf("stornierung-erteilt:%d", stornoEvent.ID)
-		stornobeleg = true
-		stornoZuBelegnummer = fmt.Sprintf("%d", zahlungEvent.ID)
-
-	case verkaufID != "":
-		subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
-		events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
-		if err != nil {
-			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to read direktverkauf events for kassenbeleg")
-			return "", ErrDatabase
-		}
-
-		verkaufEvent, verkaufData, err := findDirektverkaufGetaetigtEvent(events, verkaufID)
-		if err != nil {
-			if errors.Is(err, ErrVerkaufNichtGefunden) {
-				log.Warn().Str("verkauf_id", verkaufID).Msg("Direktverkauf not found for kassenbeleg")
-				return "", ErrVerkaufNichtGefunden
-			}
-			log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to decode direktverkauf event data")
-			return "", ErrDatabase
-		}
-
-		quelleEvent = verkaufEvent
-		positionen = toKassePositionen(verkaufData.Positionen)
-		gesamtbetragCents = verkaufData.GesamtbetragCents
-		referenz = fmt.Sprintf("direktverkauf-getaetigt:%d", verkaufEvent.ID)
-
-	default:
-		subject := kasse.TischSessionSubject(ks.ZNr, tischID)
-		state, err := c.EventRepo.ReadTischSession(ctx, subject)
-		if err != nil {
-			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table projection for kassenbeleg")
-			return "", ErrDatabase
-		}
-		ersteBestellungZeitpunkt = state.ErsteBestellungLogTime
-
-		events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
-		if err != nil {
-			log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for kassenbeleg")
-			return "", ErrDatabase
-		}
-
-		zahlungEvent, zahlungData, err := findZahlungEvent(events, zahlungID)
-		if err != nil {
-			if errors.Is(err, ErrZahlungNichtGefunden) {
-				log.Warn().Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Zahlung not found for kassenbeleg")
-				return "", ErrZahlungNichtGefunden
-			}
-			log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to decode zahlung event data")
-			return "", ErrDatabase
-		}
-
-		quelleEvent = zahlungEvent
-		positionen = toKassePositionen(zahlungData.Positionen)
-		gesamtbetragCents = zahlungData.GesamtZahlungCents
-		referenz = fmt.Sprintf("zahlung-kassiert:%d", zahlungEvent.ID)
+	quelle, err := c.resolveBelegQuelle(ctx, ks, cmd)
+	if err != nil {
+		return "", err
 	}
 
 	// Sofortantwort statt Warten: Liegt die Signatur des Vorgangs noch nicht am
@@ -371,13 +249,13 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 	// die UI fasst über denselben Endpunkt nach, bis der Signatur-Worker
 	// quittiert hat. Bei dokumentiertem Ausfall entsteht der Beleg ohne
 	// TSE-Daten, weist den Ausfall aber aus.
-	tseAbschnitt, tseVermerk, ausstehend, err := c.tseAbschnittFuerBeleg(ctx, quelleEvent.ID)
+	tseAbschnitt, tseVermerk, ausstehend, err := c.tseAbschnittFuerBeleg(ctx, quelle.Event.ID)
 	if err != nil {
-		log.Error().Err(err).Int("event_id", quelleEvent.ID).Msg("Failed to resolve TSE section for kassenbeleg")
+		log.Error().Err(err).Int("event_id", quelle.Event.ID).Msg("Failed to resolve TSE section for kassenbeleg")
 		return "", ErrDatabase
 	}
 	if ausstehend {
-		log.Info().Int("event_id", quelleEvent.ID).Msg("Kassenbeleg zurückgestellt: TSE-Signatur ausstehend")
+		log.Info().Int("event_id", quelle.Event.ID).Msg("Kassenbeleg zurückgestellt: TSE-Signatur ausstehend")
 		return BelegStatusAusstehend, nil
 	}
 
@@ -403,8 +281,9 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 		return "", ErrDatabase
 	}
 
+	positionen := quelle.Positionen
 	steuermatrix := steuer.Steuermatrix(toSteuermatrixPositionen(positionen))
-	if stornobeleg {
+	if quelle.Stornobeleg {
 		steuermatrix = negiereAufteilungen(steuermatrix)
 		positionen = negierePositionen(positionen)
 	}
@@ -415,31 +294,199 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 		Plz:                      betreiber.Plz,
 		Ort:                      betreiber.Ort,
 		KassenSeriennummer:       kassenidentitaet.Seriennummer.String(),
-		Belegnummer:              fmt.Sprintf("%d", quelleEvent.ID),
-		Zeitpunkt:                quelleEvent.Time,
-		ErsteBestellungZeitpunkt: ersteBestellungZeitpunkt,
+		Belegnummer:              fmt.Sprintf("%d", quelle.Event.ID),
+		Zeitpunkt:                quelle.Event.Time,
+		ErsteBestellungZeitpunkt: quelle.ErsteBestellungZeitpunkt,
 		Positionen:               positionen,
 		Steuermatrix:             steuermatrix,
 		TSE:                      tseAbschnitt,
 		TSEVermerk:               tseVermerk,
-		GesamtbetragCents:        gesamtbetragCents,
+		GesamtbetragCents:        quelle.GesamtbetragCents,
 		Zahlungsart:              "bar",
-		Stornobeleg:              stornobeleg,
-		StornoZuBelegnummer:      stornoZuBelegnummer,
+		Stornobeleg:              quelle.Stornobeleg,
+		StornoZuBelegnummer:      quelle.StornoZuBelegnummer,
 	})
 
 	auftrag := druckauftrag_repo.NeuerDruckauftrag{
 		ZielIP:   kassenbelegStation.DruckerIP,
 		Payload:  base64.StdEncoding.EncodeToString(payload),
 		BonArt:   "kassenbeleg",
-		Referenz: referenz,
+		Referenz: quelle.Referenz,
 	}
 
 	if err := c.DruckauftragRepo.EnqueueDruckauftraege(ctx, []druckauftrag_repo.NeuerDruckauftrag{auftrag}); err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Str("verkauf_id", verkaufID).Msg("Failed to enqueue kassenbeleg")
+		log.Error().Err(err).Int("tisch_id", cmd.TischID).Str("zahlung_id", cmd.ZahlungID).Str("verkauf_id", cmd.VerkaufID).Msg("Failed to enqueue kassenbeleg")
 		return "", ErrDatabase
 	}
 
-	log.Info().Int("tisch_id", tischID).Str("verkauf_id", verkaufID).Int("event_id", quelleEvent.ID).Msg("Kassenbeleg queued")
+	log.Info().Int("tisch_id", cmd.TischID).Str("verkauf_id", cmd.VerkaufID).Int("event_id", quelle.Event.ID).Msg("Kassenbeleg queued")
 	return BelegStatusEingereiht, nil
+}
+
+// resolveBelegQuelle wählt anhand der gesetzten Command-Felder die Beleg-Form
+// und delegiert an die passende resolve…-Funktion (Direktverkauf-Storno,
+// Tisch-Storno, Direktverkauf, Tisch-Zahlung).
+func (c Command) resolveBelegQuelle(ctx context.Context, ks *kasse.Kassensitzung, cmd KassenbelegDruckenCommand) (belegQuelle, error) {
+	switch {
+	case cmd.VerkaufID != "" && cmd.StornierungID != "":
+		return c.resolveDirektverkaufStornobeleg(ctx, ks, cmd.VerkaufID, cmd.StornierungID)
+	case cmd.StornierungID != "":
+		return c.resolveTischStornobeleg(ctx, ks, cmd.TischID, cmd.StornierungID)
+	case cmd.VerkaufID != "":
+		return c.resolveDirektverkaufBeleg(ctx, ks, cmd.VerkaufID)
+	default:
+		return c.resolveTischZahlungsbeleg(ctx, ks, cmd.TischID, cmd.ZahlungID)
+	}
+}
+
+// resolveDirektverkaufStornobeleg löst den Stornobeleg eines Direktverkaufs auf:
+// negativer Betrag, Referenz auf das Storno-Event, StornoZuBelegnummer auf den
+// ursprünglichen Verkaufsbeleg.
+func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, verkaufID, stornierungID string) (belegQuelle, error) {
+	log := zerolog.Ctx(ctx)
+
+	subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to read direktverkauf events for stornobeleg")
+		return belegQuelle{}, ErrDatabase
+	}
+
+	verkaufEvent, _, err := findDirektverkaufGetaetigtEvent(events, verkaufID)
+	if err != nil {
+		if errors.Is(err, ErrVerkaufNichtGefunden) {
+			log.Warn().Str("verkauf_id", verkaufID).Msg("Direktverkauf not found for stornobeleg")
+			return belegQuelle{}, ErrVerkaufNichtGefunden
+		}
+		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to decode direktverkauf event data")
+		return belegQuelle{}, ErrDatabase
+	}
+
+	stornoEvent, stornoData, err := findDirektverkaufStorniertEvent(events, stornierungID)
+	if err != nil {
+		if errors.Is(err, ErrStornierungNichtGefunden) {
+			log.Warn().Str("verkauf_id", verkaufID).Str("stornierung_id", stornierungID).Msg("Stornierung not found for stornobeleg")
+			return belegQuelle{}, ErrStornierungNichtGefunden
+		}
+		log.Error().Err(err).Str("verkauf_id", verkaufID).Str("stornierung_id", stornierungID).Msg("Failed to decode direktverkauf storno event data")
+		return belegQuelle{}, ErrDatabase
+	}
+
+	return belegQuelle{
+		Event:               stornoEvent,
+		Positionen:          toKassePositionen(stornoData.Positionen),
+		GesamtbetragCents:   -stornoData.GesamtStornierungCents,
+		Referenz:            fmt.Sprintf("direktverkauf-storniert:%d", stornoEvent.ID),
+		Stornobeleg:         true,
+		StornoZuBelegnummer: fmt.Sprintf("%d", verkaufEvent.ID),
+	}, nil
+}
+
+// resolveTischStornobeleg löst den Tisch-Storno-Beleg (Warenrücknahme) auf:
+// negativer Betrag, Referenz auf das Storno-Event, StornoZuBelegnummer auf den
+// ursprünglichen Zahlungsbeleg — analog zum Direktverkauf-Storno-Beleg.
+func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, tischID int, stornierungID string) (belegQuelle, error) {
+	log := zerolog.Ctx(ctx)
+
+	subject := kasse.TischSessionSubject(ks.ZNr, tischID)
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for stornobeleg")
+		return belegQuelle{}, ErrDatabase
+	}
+
+	stornoEvent, stornoData, err := findStornierungEvent(events, stornierungID)
+	if err != nil {
+		if errors.Is(err, ErrStornierungNichtGefunden) {
+			log.Warn().Int("tisch_id", tischID).Str("stornierung_id", stornierungID).Msg("Stornierung not found for stornobeleg")
+			return belegQuelle{}, ErrStornierungNichtGefunden
+		}
+		log.Error().Err(err).Int("tisch_id", tischID).Str("stornierung_id", stornierungID).Msg("Failed to decode stornierung event data")
+		return belegQuelle{}, ErrDatabase
+	}
+
+	zahlungEvent, _, err := findZahlungEvent(events, stornoData.ZahlungID)
+	if err != nil {
+		if errors.Is(err, ErrZahlungNichtGefunden) {
+			log.Warn().Int("tisch_id", tischID).Str("zahlung_id", stornoData.ZahlungID).Msg("Referenzierte Zahlung not found for stornobeleg")
+			return belegQuelle{}, ErrZahlungNichtGefunden
+		}
+		log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", stornoData.ZahlungID).Msg("Failed to decode referenzierte zahlung event data")
+		return belegQuelle{}, ErrDatabase
+	}
+
+	return belegQuelle{
+		Event:               stornoEvent,
+		Positionen:          toKassePositionen(stornoData.Positionen),
+		GesamtbetragCents:   -stornoData.GesamtStornierungCents,
+		Referenz:            fmt.Sprintf("stornierung-erteilt:%d", stornoEvent.ID),
+		Stornobeleg:         true,
+		StornoZuBelegnummer: fmt.Sprintf("%d", zahlungEvent.ID),
+	}, nil
+}
+
+// resolveDirektverkaufBeleg löst den Kassenbeleg eines Direktverkaufs auf.
+func (c Command) resolveDirektverkaufBeleg(ctx context.Context, ks *kasse.Kassensitzung, verkaufID string) (belegQuelle, error) {
+	log := zerolog.Ctx(ctx)
+
+	subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to read direktverkauf events for kassenbeleg")
+		return belegQuelle{}, ErrDatabase
+	}
+
+	verkaufEvent, verkaufData, err := findDirektverkaufGetaetigtEvent(events, verkaufID)
+	if err != nil {
+		if errors.Is(err, ErrVerkaufNichtGefunden) {
+			log.Warn().Str("verkauf_id", verkaufID).Msg("Direktverkauf not found for kassenbeleg")
+			return belegQuelle{}, ErrVerkaufNichtGefunden
+		}
+		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to decode direktverkauf event data")
+		return belegQuelle{}, ErrDatabase
+	}
+
+	return belegQuelle{
+		Event:             verkaufEvent,
+		Positionen:        toKassePositionen(verkaufData.Positionen),
+		GesamtbetragCents: verkaufData.GesamtbetragCents,
+		Referenz:          fmt.Sprintf("direktverkauf-getaetigt:%d", verkaufEvent.ID),
+	}, nil
+}
+
+// resolveTischZahlungsbeleg löst den Kassenbeleg einer Tisch-Zahlung auf und
+// trägt zusätzlich den Zeitpunkt der ersten Bestellung aus der Projektion.
+func (c Command) resolveTischZahlungsbeleg(ctx context.Context, ks *kasse.Kassensitzung, tischID int, zahlungID string) (belegQuelle, error) {
+	log := zerolog.Ctx(ctx)
+
+	subject := kasse.TischSessionSubject(ks.ZNr, tischID)
+	state, err := c.EventRepo.ReadTischSession(ctx, subject)
+	if err != nil {
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table projection for kassenbeleg")
+		return belegQuelle{}, ErrDatabase
+	}
+
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for kassenbeleg")
+		return belegQuelle{}, ErrDatabase
+	}
+
+	zahlungEvent, zahlungData, err := findZahlungEvent(events, zahlungID)
+	if err != nil {
+		if errors.Is(err, ErrZahlungNichtGefunden) {
+			log.Warn().Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Zahlung not found for kassenbeleg")
+			return belegQuelle{}, ErrZahlungNichtGefunden
+		}
+		log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to decode zahlung event data")
+		return belegQuelle{}, ErrDatabase
+	}
+
+	return belegQuelle{
+		Event:                    zahlungEvent,
+		Positionen:               toKassePositionen(zahlungData.Positionen),
+		GesamtbetragCents:        zahlungData.GesamtZahlungCents,
+		Referenz:                 fmt.Sprintf("zahlung-kassiert:%d", zahlungEvent.ID),
+		ErsteBestellungZeitpunkt: state.ErsteBestellungLogTime,
+	}, nil
 }

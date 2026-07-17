@@ -30,32 +30,6 @@ type OffenerSignaturauftrag struct {
 	ProcessData string
 }
 
-// SignaturQueueZustand ist der on demand berechnete Zustand der Signatur-Queue
-// fuer das Admin-Monitoring: Rueckstand (offene Auftraege, Alter des aeltesten)
-// und Leistung ueber ein gleitendes 15-Minuten-Fenster (Signaturen pro Minute,
-// Signierdauer p95). So laesst sich ein wachsender von einem schrumpfenden
-// Rueckstand unterscheiden. FehlgeschlageneAuftraege und LetzterFehler sind
-// sitzungsbezogen (nur die aktive Kassensitzung); mit dem Kassenabschluss
-// verschwindet die Warnung.
-type SignaturQueueZustand struct {
-	OffeneAuftraege          int
-	FehlgeschlageneAuftraege int
-	LetzterFehler            string
-	RueckstandSekunden       int
-	SignaturenProMinute      float64
-	SignierdauerP95Sekunden  float64
-}
-
-// Stoerungszeitraum ist ein Eintrag des Stoerungsprotokolls (Ausfalldokumentation):
-// ein Zeitraum mit Beginn, Ende (nil solange aktiv) und Grund-Art.
-type Stoerungszeitraum struct {
-	ID         int
-	Beginn     time.Time
-	Ende       *time.Time
-	GrundArt   string
-	Fehlertext string
-}
-
 type Repository struct {
 	db *sql.DB
 	q  *dbgen.Queries
@@ -129,12 +103,12 @@ func (r Repository) MarkOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, 
 
 // GetTSESignaturQueueZustand liefert den on demand berechneten Zustand der
 // Signatur-Queue fuer das Admin-Monitoring.
-func (r Repository) GetTSESignaturQueueZustand(ctx context.Context) (SignaturQueueZustand, error) {
+func (r Repository) GetTSESignaturQueueZustand(ctx context.Context) (tse.SignaturQueueZustand, error) {
 	row, err := r.q.GetTSESignaturQueueZustand(ctx)
 	if err != nil {
-		return SignaturQueueZustand{}, db.Error(err)
+		return tse.SignaturQueueZustand{}, db.Error(err)
 	}
-	return SignaturQueueZustand{
+	return tse.SignaturQueueZustand{
 		OffeneAuftraege:          row.OffeneAuftraege,
 		FehlgeschlageneAuftraege: row.FehlgeschlageneAuftraege,
 		LetzterFehler:            row.LetzterFehler,
@@ -146,16 +120,16 @@ func (r Repository) GetTSESignaturQueueZustand(ctx context.Context) (SignaturQue
 
 // GetAlleTSEStoerungen liefert das Stoerungsprotokoll (Ausfalldokumentation):
 // alle Stoerungszeitraeume, neueste zuerst.
-func (r Repository) GetAlleTSEStoerungen(ctx context.Context) ([]Stoerungszeitraum, error) {
+func (r Repository) GetAlleTSEStoerungen(ctx context.Context) ([]tse.Stoerungszeitraum, error) {
 	rows, err := r.q.GetAlleTSEStoerungen(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	result := make([]Stoerungszeitraum, 0, len(rows))
+	result := make([]tse.Stoerungszeitraum, 0, len(rows))
 	for i := range rows {
 		row := &rows[i]
-		zeitraum := Stoerungszeitraum{
+		zeitraum := tse.Stoerungszeitraum{
 			ID:         row.ID,
 			Beginn:     row.Beginn,
 			GrundArt:   row.GrundArt,

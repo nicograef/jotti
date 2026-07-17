@@ -18,3 +18,19 @@ type SignaturauftragStand struct {
 	ErstelltAm time.Time
 	Signatur   *Signatur
 }
+
+// SignaturQueueZustand ist der on demand berechnete Zustand der Signatur-Queue
+// fuer das Admin-Monitoring: Rueckstand (offene Auftraege, Alter des aeltesten)
+// und Leistung ueber ein gleitendes 15-Minuten-Fenster (Signaturen pro Minute,
+// Signierdauer p95). So laesst sich ein wachsender von einem schrumpfenden
+// Rueckstand unterscheiden. FehlgeschlageneAuftraege und LetzterFehler sind
+// sitzungsbezogen (nur die aktive Kassensitzung); mit dem Kassenabschluss
+// verschwindet die Warnung.
+type SignaturQueueZustand struct {
+	OffeneAuftraege          int
+	FehlgeschlageneAuftraege int
+	LetzterFehler            string
+	RueckstandSekunden       int
+	SignaturenProMinute      float64
+	SignierdauerP95Sekunden  float64
+}

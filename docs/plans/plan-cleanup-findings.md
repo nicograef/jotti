@@ -117,11 +117,11 @@ Vier Struktur-Refactorings ohne Verhaltensänderung. Erstens `db.WithTx(ctx, db,
 
 ### Acceptance criteria
 
-- [ ] `make verify` grün (inkl. Integrationstests)
-- [ ] `grep -rn "func (r Repository) withTx" backend/repository/` leer; genau eine `WithTx`-Definition im `db`-Paket
-- [ ] Kein Import von `repository/…`-Paketen mehr in `backend/api/fiskal/signatur/http`, `backend/api/fiskal/signatur/application`, `backend/api/druck/auftrag/http`, `backend/api/druck/auftrag/application`
-- [ ] `grep -rn "AnzahlUnbezahlt" backend/` leer
-- [ ] `KassenbelegDrucken` enthält keine Quell-Auflösungslogik mehr, nur noch den Ablauf resolve, TSE, Formatierung, Enqueue; Beleg-Tests unverändert grün
+- [x] `make verify` grün (inkl. Integrationstests)
+- [x] `grep -rn "func (r Repository) withTx" backend/repository/` leer; genau eine `WithTx`-Definition im `db`-Paket
+- [x] Kein Import von `repository/…`-Paketen mehr in `backend/api/fiskal/signatur/http`, `backend/api/fiskal/signatur/application`, `backend/api/druck/auftrag/http`, `backend/api/druck/auftrag/application`
+- [x] `grep -rn "AnzahlUnbezahlt" backend/` leer
+- [x] `KassenbelegDrucken` enthält keine Quell-Auflösungslogik mehr, nur noch den Ablauf resolve, TSE, Formatierung, Enqueue; Beleg-Tests unverändert grün
 
 ---
 

@@ -108,7 +108,7 @@ func updateUserParams(u user.User) dbgen.UpdateUserParams {
 // danach an den Aufrufer zurückgegeben. Nur echte DB-Fehler brechen ab (Rollback).
 func (r Repository) SetPasswordTx(ctx context.Context, username string, apply func(*user.User) error) error {
 	var applyErr error
-	txErr := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+	txErr := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		row, err := qtx.GetUserByUsernameForUpdate(ctx, username)
 		if err != nil {
 			return db.Error(err)
@@ -126,21 +126,4 @@ func (r Repository) SetPasswordTx(ctx context.Context, username string, apply fu
 		return txErr
 	}
 	return applyErr
-}
-
-// withTx runs fn within a single transaction: it begins the tx, rolls back on any
-// error (a rollback after commit is a no-op), and commits otherwise. fn receives
-// the transaction-bound queries; only begin/commit failures are normalized here.
-func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
-
-	if err := fn(r.q.WithTx(tx)); err != nil {
-		return err
-	}
-
-	return db.Error(tx.Commit())
 }

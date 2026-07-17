@@ -3,6 +3,7 @@ package druckstation
 import (
 	"fmt"
 	"net/netip"
+	"time"
 )
 
 // Kategorie unterscheidet die fünf Druckstationen: die drei Produktkategorien
@@ -111,4 +112,16 @@ func NewDruckstation(kategorie Kategorie, druckerIP string, bonmodus Bonmodus) (
 	}
 
 	return d, nil
+}
+
+// FehlgeschlagenerDruckauftrag ist ein nach der maximalen Zahl von Zustellversuchen
+// aufgegebener Druckauftrag, wie ihn die Druckstationen-Seite zur Verwaltung anzeigt.
+type FehlgeschlagenerDruckauftrag struct {
+	ID            int
+	BonArt        string
+	ZielIP        string
+	Referenz      string
+	Versuche      int
+	LetzterFehler string
+	ErstelltAm    time.Time
 }

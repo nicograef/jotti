@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/repository/tse_repo"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 // --- Query Handler ---
 
 type tseSignaturauftragQuery interface {
-	GetTSESignaturQueueZustand(ctx context.Context) (tse_repo.SignaturQueueZustand, error)
-	GetTSEStoerungen(ctx context.Context) ([]tse_repo.Stoerungszeitraum, error)
+	GetTSESignaturQueueZustand(ctx context.Context) (tse.SignaturQueueZustand, error)
+	GetTSEStoerungen(ctx context.Context) ([]tse.Stoerungszeitraum, error)
 }
 
 type QueryHandler struct {

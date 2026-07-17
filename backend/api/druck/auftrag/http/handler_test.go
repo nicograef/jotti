@@ -11,15 +11,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 type mockDruckauftragQuery struct {
-	result []druckauftrag_repo.FehlgeschlagenerDruckauftrag
+	result []druckstation.FehlgeschlagenerDruckauftrag
 	err    error
 }
 
-func (m *mockDruckauftragQuery) GetFehlgeschlageneDruckauftraege(context.Context) ([]druckauftrag_repo.FehlgeschlagenerDruckauftrag, error) {
+func (m *mockDruckauftragQuery) GetFehlgeschlageneDruckauftraege(context.Context) ([]druckstation.FehlgeschlagenerDruckauftrag, error) {
 	return m.result, m.err
 }
 
@@ -56,7 +56,7 @@ func postJSON(t *testing.T, handler http.HandlerFunc, path, body string) *httpte
 }
 
 func TestGetFehlgeschlageneDruckauftraegeHandler_Success(t *testing.T) {
-	query := &mockDruckauftragQuery{result: []druckauftrag_repo.FehlgeschlagenerDruckauftrag{
+	query := &mockDruckauftragQuery{result: []druckstation.FehlgeschlagenerDruckauftrag{
 		{
 			ID:            7,
 			BonArt:        "arbeitsbon",

@@ -32,24 +32,6 @@ func NewRepository(database *sql.DB) Repository {
 	return Repository{db: database, q: dbgen.New(database)}
 }
 
-// withTx runs fn within a single transaction: it begins the tx, rolls back on
-// any error (a rollback after commit is a no-op), and commits otherwise. fn
-// receives the transaction-bound queries and owns its own error wrapping; only
-// begin/commit failures are normalized via db.Error.
-func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
-
-	if err := fn(r.q.WithTx(tx)); err != nil {
-		return err
-	}
-
-	return db.Error(tx.Commit())
-}
-
 // WriteEvent stores a new event in the kassenjournal and synchronously updates
 // the appropriate projection within the same transaction.
 // Routing by streamType:
@@ -59,7 +41,7 @@ func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) e
 func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
 	var id int
 	eingereiht := false
-	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		stored, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
 		if err != nil {
 			return err
@@ -90,7 +72,7 @@ func (r Repository) WriteEventWithDruckauftraege(
 ) (int, error) {
 	var id int
 	eingereiht := false
-	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		stored, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
 		if err != nil {
 			return err
@@ -120,7 +102,7 @@ func (r Repository) WriteEventWithDruckauftraege(
 // one Warenrücknahme per betroffener Zahlung).
 func (r Repository) WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, kassensitzungNr int) error {
 	eingereiht := false
-	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		for _, evt := range events {
 			_, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeTischSession, kassensitzungNr)
 			if err != nil {
@@ -146,7 +128,7 @@ func (r Repository) WriteTischSessionEventsAtomic(ctx context.Context, events []
 func (r Repository) EroeffneKassensitzung(ctx context.Context, datum time.Time, bezeichnung string, build func(zNr int) (event.Event, error)) (int, error) {
 	var zNr int
 	eingereiht := false
-	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		n, err := qtx.InsertKassensitzung(ctx, dbgen.InsertKassensitzungParams{
 			Datum:       datum,
 			Bezeichnung: bezeichnung,
@@ -690,7 +672,7 @@ func (r Repository) EventExistsByTypeAndVorgangsID(ctx context.Context, eventTyp
 // Returns the number of subjects rebuilt.
 func (r Repository) RebuildAllProjections(ctx context.Context) (int, error) {
 	rebuiltCount := 0
-	err := r.withTx(ctx, func(qtx *dbgen.Queries) error {
+	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		// 1. Delete all existing tisch_sessions projections
 		if err := qtx.DeleteAllTischSession(ctx); err != nil {
 			return fmt.Errorf("delete all tisch sessions: %w", err)

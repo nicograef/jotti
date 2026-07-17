@@ -329,7 +329,7 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 				ZahlungenCents: 1500,
 				OffenCents:     900,
 				OffeneTische: []reporting.OffeneArbeitTisch{
-					{TischID: 3, TischName: "Tisch 3", AnzahlUnbezahlt: 1, AnzahlOffen: 1, OffenCents: 900},
+					{TischID: 3, TischName: "Tisch 3", AnzahlOffen: 1, OffenCents: 900},
 				},
 				Erledigt: false,
 			},

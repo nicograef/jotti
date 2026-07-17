@@ -42,7 +42,7 @@ func (r Repository) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration,
 // Konfiguration (Leeren) sweept nichts: Der Dauerzustand ohne Konfiguration
 // gehoert dem Signatur-Worker, der Stoerungszeitraum bleibt offen.
 func (r Repository) SaveEinrichtung(ctx context.Context, c tse.Konfiguration) error {
-	return r.withTx(ctx, func(qtx *dbgen.Queries) error {
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		warKonfiguriert := false
 		if vorher, err := qtx.GetTSEKonfiguration(ctx); err == nil {
 			warKonfiguriert = toTSEKonfiguration(vorher).IstKonfiguriert()
@@ -74,23 +74,6 @@ func upsertTSEKonfigurationParams(c tse.Konfiguration) dbgen.UpsertTSEKonfigurat
 		TssID:     c.TssID,
 		ClientID:  c.ClientID,
 	}
-}
-
-// withTx runs fn within a single transaction: begin, rollback on any error
-// (a rollback after commit is a no-op), commit otherwise. fn owns its own error
-// wrapping; only begin/commit are normalized via db.Error.
-func (r Repository) withTx(ctx context.Context, fn func(*dbgen.Queries) error) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return db.Error(err)
-	}
-	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
-
-	if err := fn(r.q.WithTx(tx)); err != nil {
-		return err
-	}
-
-	return db.Error(tx.Commit())
 }
 
 // GetTSEStammdaten liest die fiskalischen TSS-Stammdaten fuer den

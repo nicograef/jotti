@@ -19,3 +19,13 @@ type Stoerung struct {
 	GrundArt   string
 	Fehlertext string
 }
+
+// Stoerungszeitraum ist ein Eintrag des Stoerungsprotokolls (Ausfalldokumentation):
+// ein Zeitraum mit Beginn, Ende (nil solange aktiv) und Grund-Art.
+type Stoerungszeitraum struct {
+	ID         int
+	Beginn     time.Time
+	Ende       *time.Time
+	GrundArt   string
+	Fehlertext string
+}

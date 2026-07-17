@@ -5,12 +5,12 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/nicograef/jotti/backend/repository/tse_repo"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 type tseSignaturauftragQueryRepo interface {
-	GetTSESignaturQueueZustand(ctx context.Context) (tse_repo.SignaturQueueZustand, error)
-	GetAlleTSEStoerungen(ctx context.Context) ([]tse_repo.Stoerungszeitraum, error)
+	GetTSESignaturQueueZustand(ctx context.Context) (tse.SignaturQueueZustand, error)
+	GetAlleTSEStoerungen(ctx context.Context) ([]tse.Stoerungszeitraum, error)
 }
 
 type Query struct {
@@ -19,13 +19,13 @@ type Query struct {
 
 // GetTSESignaturQueueZustand liefert den Zustand der Signatur-Queue fuer das
 // Admin-Monitoring (Rueckstand und Leistung ueber ein 15-Minuten-Fenster).
-func (q Query) GetTSESignaturQueueZustand(ctx context.Context) (tse_repo.SignaturQueueZustand, error) {
+func (q Query) GetTSESignaturQueueZustand(ctx context.Context) (tse.SignaturQueueZustand, error) {
 	log := zerolog.Ctx(ctx)
 
 	zustand, err := q.TSERepo.GetTSESignaturQueueZustand(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve tse signatur queue zustand")
-		return tse_repo.SignaturQueueZustand{}, ErrDatabase
+		return tse.SignaturQueueZustand{}, ErrDatabase
 	}
 
 	return zustand, nil
@@ -33,7 +33,7 @@ func (q Query) GetTSESignaturQueueZustand(ctx context.Context) (tse_repo.Signatu
 
 // GetTSEStoerungen liefert das Stoerungsprotokoll (Ausfalldokumentation):
 // die Stoerungszeitraeume mit Beginn, Ende und Grund.
-func (q Query) GetTSEStoerungen(ctx context.Context) ([]tse_repo.Stoerungszeitraum, error) {
+func (q Query) GetTSEStoerungen(ctx context.Context) ([]tse.Stoerungszeitraum, error) {
 	log := zerolog.Ctx(ctx)
 
 	stoerungen, err := q.TSERepo.GetAlleTSEStoerungen(ctx)
