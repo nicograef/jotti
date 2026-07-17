@@ -342,8 +342,8 @@ Der „Alle Tische"-Drawer sortiert durchgehend nach Tischname mit numerischem V
 
 ### Acceptance criteria
 
-- [ ] Drawer-Sortierung: „Tisch 2" vor „Tisch 10", Favoriten nicht mehr vorgezogen (Test in `TischAuswahlDrawer.test.tsx` angepasst)
-- [ ] Favoriten-Stern und Saldo pro Zeile funktionieren unverändert
-- [ ] Nach erfolgreichem IP-Speichern erscheint für ~2 Sekunden eine Inline-Bestätigung am Feld; der Toast bleibt (Test)
-- [ ] Bei Validierungsfehler der IP erscheint keine Erfolgs-Bestätigung
-- [ ] `make check` grün
+- [x] Drawer-Sortierung: „Tisch 2" vor „Tisch 10", Favoriten nicht mehr vorgezogen (Test in `TischAuswahlDrawer.test.tsx` angepasst)
+- [x] Favoriten-Stern und Saldo pro Zeile funktionieren unverändert
+- [x] Nach erfolgreichem IP-Speichern erscheint für ~2 Sekunden eine Inline-Bestätigung am Feld; der Toast bleibt (Test)
+- [x] Bei Validierungsfehler der IP erscheint keine Erfolgs-Bestätigung
+- [x] `make check` grün

@@ -22,16 +22,16 @@ import { TischBackend } from '../table/TischBackend'
 
 const tischBackend = new TischBackend(BackendSingleton)
 
-// Reihenfolge im Alle-Tische-Drawer: Favoriten zuerst, dann nach offenem Saldo
-// (absteigend), zuletzt nach Name. Reine Darstellungssortierung bereits
-// vollständig geladener Daten.
+// Reihenfolge im Alle-Tische-Drawer: durchgehend nach Tischname mit
+// numerischem Vergleich („Tisch 2" vor „Tisch 10"). Favoriten und Saldo
+// werden pro Zeile weiter angezeigt, aber nicht mehr zur Sortierung genutzt —
+// so bleibt die Reihenfolge stabil und vorhersehbar. Reine Darstellungs-
+// sortierung bereits vollständig geladener Daten.
 function sortiereTische(
   a: AktiverTischMitFavorit,
   b: AktiverTischMitFavorit,
 ): number {
-  if (a.istFavorit !== b.istFavorit) return a.istFavorit ? -1 : 1
-  if (a.saldoCents !== b.saldoCents) return b.saldoCents - a.saldoCents
-  return a.name.localeCompare(b.name, 'de')
+  return a.name.localeCompare(b.name, 'de', { numeric: true })
 }
 
 interface TischAuswahlDrawerProps {
