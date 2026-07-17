@@ -179,11 +179,11 @@ Beide Submit-Buttons sind nur noch während des Ladens deaktiviert (`disabled={l
 
 ### Acceptance criteria
 
-- [ ] Tap auf „Anmelden" bei leerem/ungültigem Formular zeigt die Feldfehler; der Login-Backend-Aufruf wird nicht ausgelöst (neuer `LoginForm.test.tsx` — bisher existiert keiner)
-- [ ] Analog für „Passwort festlegen" (neuer `PasswordForm.test.tsx`)
-- [ ] Während des Ladens ist der Button deaktiviert (kein Doppel-Submit)
-- [ ] Gültige Eingaben submitten weiterhin erfolgreich (Happy Path im Test)
-- [ ] `make check` grün
+- [x] Tap auf „Anmelden" bei leerem/ungültigem Formular zeigt die Feldfehler; der Login-Backend-Aufruf wird nicht ausgelöst (neuer `LoginForm.test.tsx` — bisher existiert keiner)
+- [x] Analog für „Passwort festlegen" (neuer `PasswordForm.test.tsx`)
+- [x] Während des Ladens ist der Button deaktiviert (kein Doppel-Submit)
+- [x] Gültige Eingaben submitten weiterhin erfolgreich (Happy Path im Test)
+- [x] `make check` grün
 
 ---
 
