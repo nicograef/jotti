@@ -20,23 +20,9 @@ COMPOSE_PROD="docker-compose.prod.yml"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-info()  { printf "${GREEN}[INFO]${NC}  %s\n" "$1"; }
-warn()  { printf "${YELLOW}[WARN]${NC}  %s\n" "$1"; }
-error() { printf "${RED}[ERROR]${NC} %s\n" "$1" >&2; }
-fatal() { error "$1"; exit 1; }
-
-# read_env KEY — read a single value from .env without executing the file
-# (passwords may contain shell-special characters). Returns the last match,
-# trimmed of surrounding whitespace.
-read_env() {
-  local key="$1"
-  { grep -E "^${key}=" .env 2>/dev/null || true; } | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib.sh
+. "$SCRIPT_DIR/lib.sh"
 
 # parse_semver "v1.2.3" — echoes "1 2 3" and returns 0, or returns 1 when the
 # value is not a plain vMAJOR.MINOR.PATCH (e.g. "latest", "dev"). A pre-release
@@ -74,7 +60,6 @@ validate_secret() {
 # ---------------------------------------------------------------------------
 # Step 0 — Change to project root (script may be called from anywhere)
 # ---------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 

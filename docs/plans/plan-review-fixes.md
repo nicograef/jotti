@@ -193,10 +193,10 @@ Add `scripts/lib.sh` with the color vars, log helpers (writing to **stderr**), a
 
 ### Acceptance criteria
 
-- [ ] `scripts/lib.sh` exists (color vars + stderr log helpers incl. `fatal` + `read_env`); consuming scripts source it via `BASH_SOURCE` with a `# shellcheck source=` directive.
-- [ ] The duplicated color/`read_env` blocks are removed from the migrated scripts; prod-only helpers stay local.
-- [ ] `shellcheck scripts/*.sh` (the CI gate) passes with no new SC1090/SC1091.
-- [ ] `ops-smoke.sh` still emits logs to stderr and its stdout return-value contract is unchanged.
+- [x] `scripts/lib.sh` exists (color vars + stderr log helpers incl. `fatal` + `read_env`); consuming scripts source it via `BASH_SOURCE` with a `# shellcheck source=` directive.
+- [x] The duplicated color/`read_env` blocks are removed from the migrated scripts; prod-only helpers stay local.
+- [x] `shellcheck scripts/*.sh` (the CI gate) passes with no new SC1090/SC1091.
+- [x] `ops-smoke.sh` still emits logs to stderr and its stdout return-value contract is unchanged.
 
 ---
 

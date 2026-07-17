@@ -66,22 +66,9 @@ trap 'rm -rf "$SMOKE_TMP"' EXIT
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-info()  { printf "${GREEN}[INFO]${NC}  %s\n" "$1" >&2; }
-warn()  { printf "${YELLOW}[WARN]${NC}  %s\n" "$1" >&2; }
-error() { printf "${RED}[ERROR]${NC} %s\n" "$1" >&2; }
-
-# read_env KEY — read a single value from .env without executing the file
-# (passwords may contain shell-special characters). Returns the last match,
-# trimmed of surrounding whitespace.
-read_env() {
-  local key="$1"
-  { grep -E "^${key}=" .env 2>/dev/null || true; } | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib.sh
+. "$SCRIPT_DIR/lib.sh"
 
 # log_line STEP STATUS DURATION DETAIL — emits one TSV line (and appends to
 # LOG_FILE if set). This is the single source of the machine-readable protocol.
@@ -173,7 +160,6 @@ case "$MODE" in
     ;;
 esac
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
