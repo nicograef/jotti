@@ -15,11 +15,7 @@ import {
 } from '@/components/ui/drawer'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
-import {
-  formatCents,
-  formatPositionName,
-  formatRelativeTime,
-} from '@/lib/utils'
+import { formatEuro, formatPositionName, formatRelativeTime } from '@/lib/utils'
 
 import { belegDruckenMitNachfassen, meldeBelegStatus } from '../../beleg'
 import type {
@@ -127,8 +123,7 @@ export function DirektverkaufHistorie({
                 Verkauf
                 {verkauf.gesamtStorniertCents > 0 && (
                   <Badge variant="destructive">
-                    −{formatCents(verkauf.gesamtStorniertCents)}&nbsp;€
-                    storniert
+                    −{formatEuro(verkauf.gesamtStorniertCents)} storniert
                   </Badge>
                 )}
               </span>
@@ -145,7 +140,7 @@ export function DirektverkaufHistorie({
               </span>
             </span>
             <span className="shrink-0 text-[15px] font-bold tabular-nums">
-              {formatCents(verkauf.gesamtbetragCents)}&nbsp;€
+              {formatEuro(verkauf.gesamtbetragCents)}
             </span>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </button>
@@ -247,8 +242,8 @@ function Details({
                   className="flex items-center justify-between gap-2 text-sm text-muted-foreground"
                 >
                   <span>
-                    Storno −{formatCents(storno.gesamtStornierungCents)}&nbsp;€
-                    · {formatRelativeTime(storno.storniertAm)}
+                    Storno −{formatEuro(storno.gesamtStornierungCents)} ·{' '}
+                    {formatRelativeTime(storno.storniertAm)}
                   </span>
                   <Button
                     size="icon-sm"

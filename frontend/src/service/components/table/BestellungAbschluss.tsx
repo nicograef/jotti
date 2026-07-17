@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import type { BestellPositionInput } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -108,7 +108,7 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
       <DrawerFooter className="mx-auto w-full max-w-sm">
         <div className="flex justify-between border-t-2 pt-2 font-bold">
           <div>Gesamt</div>
-          <div>{formatCents(props.totalCents)}&nbsp;€</div>
+          <div>{formatEuro(props.totalCents)}</div>
         </div>
         <Button
           disabled={loading || noPositionenSelected}

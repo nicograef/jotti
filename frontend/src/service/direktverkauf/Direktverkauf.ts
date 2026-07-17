@@ -1,7 +1,11 @@
 import { z } from 'zod'
 
 import { KategorieSchema } from '../product/Produkt'
-import { DateStringSchema, SteuersatzSchema } from '../schemas'
+import {
+  DateStringSchema,
+  PositionRefSchema,
+  SteuersatzSchema,
+} from '../schemas'
 
 export const VerkaufPositionInputSchema = z.object({
   produktId: z.number().int().min(1),
@@ -16,12 +20,6 @@ export const DirektverkaufTaetigenSchema = z.object({
   kommentar: z.string().max(100),
 })
 export type DirektverkaufTaetigen = z.infer<typeof DirektverkaufTaetigenSchema>
-
-export const PositionRefSchema = z.object({
-  positionId: z.uuid(),
-  menge: z.number().int().min(1),
-})
-export type PositionRef = z.infer<typeof PositionRefSchema>
 
 export const DirektverkaufStornierenSchema = z.object({
   verkaufId: z.uuid(),

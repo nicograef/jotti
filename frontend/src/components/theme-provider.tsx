@@ -26,7 +26,6 @@ export function ThemeProvider({
   children,
   defaultTheme = 'system',
   storageKey = 'vite-ui-theme',
-  ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem(storageKey)
@@ -72,11 +71,7 @@ export function ThemeProvider({
     },
   }
 
-  return (
-    <ThemeProviderContext {...props} value={value}>
-      {children}
-    </ThemeProviderContext>
-  )
+  return <ThemeProviderContext value={value}>{children}</ThemeProviderContext>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

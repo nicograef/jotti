@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import { DateStringSchema } from '../schemas'
-import { PositionRefSchema, PositionSchema } from './Bestellung'
+import { DateStringSchema, PositionRefSchema } from '../schemas'
+import { PositionSchema } from './Bestellung'
 
 export const BestellungUmbuchenSchema = z.object({
   quellTischId: z.number().int().min(1),

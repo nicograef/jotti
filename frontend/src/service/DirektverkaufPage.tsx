@@ -7,17 +7,12 @@ import { BackendSingleton } from '@/lib/Backend'
 import { Direktverkauf } from './components/direktverkauf/Direktverkauf'
 import { DirektverkaufHistorie } from './components/direktverkauf/DirektverkaufHistorie'
 import { ErfolgsPop } from './components/ErfolgsPop'
-import { ServiceDock } from './components/ServiceDock'
+import { dockFreiraum, ServiceDock } from './components/ServiceDock'
 import { DirektverkaufBackend } from './direktverkauf/DirektverkaufBackend'
 import { useDirektverkaufHistorie } from './direktverkauf/hooks'
 import { useAktiveProdukte } from './product/hooks'
 
 const direktverkaufBackend = new DirektverkaufBackend(BackendSingleton)
-
-// Unterer Freiraum der Tab-Inhalte in Dock-Höhe (Aktionsbutton plus TabsList
-// plus Innenabstände), damit die letzte Zeile über dem fixierten ServiceDock
-// endet und antippbar bleibt. Nur im Handy-Layout (unter lg) relevant.
-const dockFreiraum = 'pb-[calc(9rem+env(safe-area-inset-bottom,0px))]'
 
 export function DirektverkaufPage() {
   const isMobile = useIsMobile()

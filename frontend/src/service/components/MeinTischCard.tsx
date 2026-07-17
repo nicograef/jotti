@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { AuthSingleton } from '@/lib/Auth'
-import { cn, formatCents } from '@/lib/utils'
+import { cn, formatEuro } from '@/lib/utils'
 
 import type { TischSession } from '../table/Tisch'
 
@@ -74,7 +74,7 @@ export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
             Offen
           </div>
           <div className="font-bold tabular-nums">
-            {formatCents(state.saldoCents)}&nbsp;€
+            {formatEuro(state.saldoCents)}
           </div>
         </div>
       )}

@@ -8,10 +8,10 @@ import { useCountUp } from '@/hooks/use-count-up'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { BackendSingleton } from '@/lib/Backend'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import { ErfolgsPop } from './components/ErfolgsPop'
-import { ServiceDock } from './components/ServiceDock'
+import { dockFreiraum, ServiceDock } from './components/ServiceDock'
 import { Bestellung } from './components/table/Bestellung'
 import { TischHistorie } from './components/table/TischHistorie'
 import { Zahlung } from './components/table/Zahlung'
@@ -55,11 +55,6 @@ function StatusBadgeInhalt({
     <Badge className={popKlasse}>Alles bezahlt</Badge>
   )
 }
-
-// Unterer Freiraum des Tab-Inhalts in Dock-Höhe, damit die letzte Listenzeile
-// über dem fixierten ServiceDock endet und antippbar bleibt. Nur im Handy-Layout
-// (unter lg) relevant; ab lg trägt die Spalte den Button selbst.
-const dockFreiraum = 'pb-[calc(9rem+env(safe-area-inset-bottom,0px))]'
 
 export function TablePage() {
   const isMobile = useIsMobile()
@@ -142,7 +137,7 @@ export function TablePage() {
           Offen
         </div>
         <div data-slot="tisch-saldo" className="text-xl font-bold tabular-nums">
-          {stateLoading ? '?' : <>{formatCents(animierterSaldo)}&nbsp;€</>}
+          {stateLoading ? '?' : formatEuro(animierterSaldo)}
         </div>
       </div>
     </div>

@@ -19,12 +19,6 @@ export const PositionSchema = z.object({
 })
 export type Position = z.infer<typeof PositionSchema>
 
-export const PositionRefSchema = z.object({
-  positionId: z.uuid(),
-  menge: z.number().int().min(1),
-})
-export type PositionRef = z.infer<typeof PositionRefSchema>
-
 export const BestellPositionInputSchema = z.object({
   produktId: z.number().int().min(1),
   varianteId: z.number().int().min(1),

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import { DateStringSchema } from '../schemas'
-import { PositionRefSchema, PositionSchema } from './Bestellung'
+import { DateStringSchema, PositionRefSchema } from '../schemas'
+import { PositionSchema } from './Bestellung'
 
 export const ZahlungSchema = z.object({
   art: z.literal('zahlung'),

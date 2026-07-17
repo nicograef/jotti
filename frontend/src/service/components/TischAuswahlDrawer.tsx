@@ -88,7 +88,7 @@ export function TischAuswahlDrawer({
               <button
                 type="button"
                 className="flex size-11 shrink-0 items-center justify-center text-xl leading-none"
-                disabled={favoritMutation.isPending || favoritLoading}
+                disabled={favoritLoading}
                 onClick={() => {
                   void runToggleFavorit(async () => {
                     await favoritMutation.mutateAsync(tisch)

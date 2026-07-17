@@ -1,4 +1,4 @@
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 export interface ReceiptPosition {
   name: string
@@ -26,8 +26,7 @@ export function Receipt({
                 {position.menge} x {position.name}
               </div>
               <div>
-                {formatCents(position.einzelpreisCents * position.menge)}
-                &nbsp;€
+                {formatEuro(position.einzelpreisCents * position.menge)}
               </div>
             </div>
           )
@@ -36,7 +35,7 @@ export function Receipt({
       {totalPrice !== undefined && (
         <div className="flex justify-between font-bold px-4 pt-2 pb-4 border-t-2">
           <div>Gesamt</div>
-          <div>{formatCents(totalPrice)}&nbsp;€</div>
+          <div>{formatEuro(totalPrice)}</div>
         </div>
       )}
     </>

@@ -16,7 +16,7 @@ import { AuthSingleton } from '@/lib/Auth'
 import {
   cn,
   formatAlleAuswaehlenLabel,
-  formatCents,
+  formatEuro,
   formatPositionName,
 } from '@/lib/utils'
 
@@ -199,12 +199,11 @@ export function Zahlung({
           ) : andereAusgewaehlteAnzahl > 0 ? (
             <p className="text-[13px] font-medium text-primary/80">
               {andereAusgewaehlteAnzahl} ausgewählt ·{' '}
-              {formatCents(andereAusgewaehlteSumme)}&nbsp;€
+              {formatEuro(andereAusgewaehlteSumme)}
             </p>
           ) : (
             <p className="text-[13px] text-muted-foreground">
-              {anderePositionenNamen} · {formatCents(anderePositionenSumme)}
-              &nbsp;€
+              {anderePositionenNamen} · {formatEuro(anderePositionenSumme)}
             </p>
           )}
         </div>
@@ -305,8 +304,8 @@ function PositionItem({
           )}
         >
           {ausgewaehlt
-            ? `${menge.toString()} von ${unbezahlteMenge.toString()} ausgewählt · ${formatCents(zeilenSumme)}\u00A0€`
-            : `${unbezahlteMenge.toString()} unbezahlt · ${formatCents(unbezahltSumme)}\u00A0€`}
+            ? `${menge.toString()} von ${unbezahlteMenge.toString()} ausgewählt · ${formatEuro(zeilenSumme)}`
+            : `${unbezahlteMenge.toString()} unbezahlt · ${formatEuro(unbezahltSumme)}`}
           {showBesteller && (
             <span className="block text-muted-foreground">
               von {position.bestellerName}

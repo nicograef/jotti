@@ -1,4 +1,4 @@
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import { Stepper } from './Stepper'
 
@@ -45,8 +45,8 @@ export function PositionAuswahlListe({
                 {position.name}
               </div>
               <div className="text-xs text-muted-foreground">
-                {formatCents(position.einzelpreisCents)}&nbsp;€ ·{' '}
-                {position.maxMenge}&nbsp;Stück
+                {formatEuro(position.einzelpreisCents)} · {position.maxMenge}
+                &nbsp;Stück
               </div>
             </div>
             <div className="ml-2">

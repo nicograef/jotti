@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import { DockActionSlot } from '../ServiceDock'
 
@@ -47,9 +47,7 @@ export function DockActionButton({
           </span>
           {label}
         </span>
-        <span className="font-bold tabular-nums">
-          {formatCents(summeCents)}&nbsp;€
-        </span>
+        <span className="font-bold tabular-nums">{formatEuro(summeCents)}</span>
       </Button>
     </DockActionSlot>
   )

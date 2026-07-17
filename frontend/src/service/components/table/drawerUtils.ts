@@ -1,11 +1,11 @@
 import { formatPositionName } from '@/lib/utils'
 
 import type { Produkt } from '../../product/Produkt'
+import type { PositionRef } from '../../schemas'
 import type {
   BestellPositionInput,
   Bestellung,
   Position,
-  PositionRef,
 } from '../../table/Bestellung'
 import type { Umbuchung } from '../../table/Umbuchung'
 import type { AuswahlPosition } from '../PositionAuswahlListe'

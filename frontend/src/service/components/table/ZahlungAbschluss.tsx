@@ -11,7 +11,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { formatCents, parseCents } from '@/lib/utils'
+import { formatEuro, parseCents } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -148,7 +148,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
                 <div className="flex items-baseline justify-between pt-1">
                   <div className="text-[15px] font-semibold">Rückgeld</div>
                   <div className="text-xl font-bold tabular-nums">
-                    {formatCents(rueckgeldCents)}&nbsp;€
+                    {formatEuro(rueckgeldCents)}
                   </div>
                 </div>
               )}
@@ -157,7 +157,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
                   <div className="flex justify-between font-medium">
                     <div>Trinkgeld</div>
                     <div className="tabular-nums">
-                      {formatCents(trinkgeldCents)}&nbsp;€
+                      {formatEuro(trinkgeldCents)}
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">

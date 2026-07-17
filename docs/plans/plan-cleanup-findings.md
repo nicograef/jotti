@@ -170,11 +170,11 @@ Die Frontend-Befunde in einem Schnitt: die lokalen `VerkaufPositionInput`-Interf
 
 ### Acceptance criteria
 
-- [ ] `make check` grün (Frontend-Lint, -Tests, -Typecheck)
-- [ ] `grep -rn "interface VerkaufPositionInput" frontend/src` leer; genau eine `PositionRefSchema`- und eine `dockFreiraum`-Definition
-- [ ] `grep -rn "kassensitzungStatusLabel\|formatBewegungZeit" frontend/src` leer; der Dialog rendert „Service-Helfer" statt „service-Helfer"
-- [ ] `grep -rn 'id="form-' frontend/src/components/common/FormFields.tsx` leer
-- [ ] In `frontend/src/service/` folgt auf keinen `formatCents(...)`-Aufruf mehr ein Euro-Zeichen (inkl. `&nbsp;€`)
+- [x] `make check` grün (Frontend-Lint, -Tests, -Typecheck)
+- [x] `grep -rn "interface VerkaufPositionInput" frontend/src` leer; genau eine `PositionRefSchema`- und eine `dockFreiraum`-Definition
+- [x] `grep -rn "kassensitzungStatusLabel\|formatBewegungZeit" frontend/src` leer; der Dialog rendert „Service-Helfer" statt „service-Helfer"
+- [x] `grep -rn 'id="form-' frontend/src/components/common/FormFields.tsx` leer
+- [x] In `frontend/src/service/` folgt auf keinen `formatCents(...)`-Aufruf mehr ein Euro-Zeichen (inkl. `&nbsp;€`)
 
 ---
 

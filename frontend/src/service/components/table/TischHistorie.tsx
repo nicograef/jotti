@@ -23,7 +23,7 @@ import {
 import { ItemGroup } from '@/components/ui/item'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
-import { cn, formatCents, formatRelativeTime } from '@/lib/utils'
+import { cn, formatEuro, formatRelativeTime } from '@/lib/utils'
 
 import { belegDruckenMitNachfassen, meldeBelegStatus } from '../../beleg'
 import type { Bestellung } from '../../table/Bestellung'
@@ -67,7 +67,7 @@ function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
         icon: Plus,
         iconWrapper: 'bg-primary/10 text-primary',
         title: 'Bestellung',
-        betrag: `+${formatCents(item.gesamtPreisCents)} €`,
+        betrag: `+${formatEuro(item.gesamtPreisCents)}`,
         betragFarbe: 'zugang',
         date: item.aufgenommenAm,
         userName: item.userName,
@@ -78,7 +78,7 @@ function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
         icon: Banknote,
         iconWrapper: 'bg-muted text-muted-foreground',
         title: 'Zahlung',
-        betrag: `-${formatCents(item.gesamtZahlungCents)} €`,
+        betrag: `-${formatEuro(item.gesamtZahlungCents)}`,
         betragFarbe: 'neutral',
         date: item.kassiertAm,
         userName: item.userName,
@@ -92,7 +92,7 @@ function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
         // Der Autotext („Umbuchung von/auf Tisch X") ist selbst der Titel; das
         // optionale Benutzerkommentar erscheint in Unterzeile und Detail.
         title: item.kommentar,
-        betrag: `${istZugang ? '+' : '-'}${formatCents(item.gesamtCents)} €`,
+        betrag: `${istZugang ? '+' : '-'}${formatEuro(item.gesamtCents)}`,
         betragFarbe: istZugang ? 'zugang' : 'neutral',
         date: item.umgebuchtAm,
         userName: item.userName,
@@ -104,7 +104,7 @@ function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
         icon: RotateCcw,
         iconWrapper: 'bg-destructive/10 text-destructive',
         title: item.barRueckgabe ? 'Warenrücknahme' : 'Korrektur',
-        betrag: `-${formatCents(item.gesamtStornierungCents)} €`,
+        betrag: `-${formatEuro(item.gesamtStornierungCents)}`,
         betragFarbe: 'storno',
         date: item.storniertAm,
         userName: item.userName,
@@ -457,7 +457,7 @@ function Details({
           ) : (
             totalPrice !== undefined && (
               <div className="px-4 py-2">
-                <p className="font-bold">{formatCents(totalPrice)}&nbsp;€</p>
+                <p className="font-bold">{formatEuro(totalPrice)}</p>
               </div>
             )
           )}

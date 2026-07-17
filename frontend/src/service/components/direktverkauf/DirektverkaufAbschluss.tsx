@@ -11,8 +11,9 @@ import {
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { formatCents, parseCents } from '@/lib/utils'
+import { formatEuro, parseCents } from '@/lib/utils'
 
+import type { VerkaufPositionInput } from '../../direktverkauf/Direktverkauf'
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
 import { AbschlussHeader } from '../table/AbschlussHeader'
 import { AbschlussLeer } from '../table/AbschlussLeer'
@@ -20,12 +21,6 @@ import { KommentarField } from '../table/CommentField'
 import { calculateZahlungsbetraege } from '../table/drawerUtils'
 import type { ReceiptPosition } from '../table/Receipt'
 import { Receipt } from '../table/Receipt'
-
-interface VerkaufPositionInput {
-  produktId: number
-  varianteId: number
-  menge: number
-}
 
 interface DirektverkaufAbschlussProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
@@ -132,7 +127,7 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
                 <div className="flex items-baseline justify-between pt-1">
                   <div className="text-[15px] font-semibold">Rückgeld</div>
                   <div className="text-xl font-bold tabular-nums">
-                    {formatCents(rueckgeldCents)}&nbsp;€
+                    {formatEuro(rueckgeldCents)}
                   </div>
                 </div>
               )}

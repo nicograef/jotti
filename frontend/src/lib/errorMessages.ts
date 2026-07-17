@@ -33,7 +33,6 @@ const commonErrorMessages: Record<string, string> = {
     'Die Variantendaten sind ungültig. Bitte Eingaben prüfen.',
   insufficient_permissions:
     'Dafür fehlen die nötigen Berechtigungen. Bitte einen Administrator kontaktieren.',
-  internal_server_error: serverErrorMessage,
   tisch_not_found:
     'Der Tisch wurde nicht gefunden. Bitte zur Tischübersicht zurückkehren und neu öffnen.',
   tisch_not_active: 'Dieser Tisch ist aktuell nicht aktiv.',
@@ -90,7 +89,6 @@ const commonErrorMessages: Record<string, string> = {
     'Der Verkauf wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
   zahlung_not_found:
     'Die Zahlung wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
-  unknown: serverErrorMessage,
 }
 
 interface ErrorMessageOptions {

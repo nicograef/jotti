@@ -8,7 +8,8 @@ import { UserRole } from './User'
 // 1e": Admin default, Serviceleitung outline, Service secondary) bewusst um —
 // unterschiedliche Badge-Farben pro Rolle sind ein Farbrätsel ohne Legende und
 // tragen keine Bedeutung, die der Text nicht schon eindeutig trägt.
-const rolleLabel: Record<UserRole, string> = {
+// eslint-disable-next-line react-refresh/only-export-components
+export const rolleLabel: Record<UserRole, string> = {
   [UserRole.ADMIN]: 'Admin',
   [UserRole.SERVICELEITUNG]: 'Serviceleitung',
   [UserRole.SERVICE]: 'Service',

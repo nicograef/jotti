@@ -14,7 +14,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import type { DirektverkaufHistorieEintrag } from '../../direktverkauf/Direktverkauf'
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
@@ -107,7 +107,7 @@ export function DirektverkaufStornoDrawer({
           {!noPositionenSelected && (
             <div className="flex justify-between font-bold px-4 pt-2 pb-2 border-t-2">
               <div>Stornierung gesamt</div>
-              <div>{formatCents(totalPrice)}&nbsp;€</div>
+              <div>{formatEuro(totalPrice)}</div>
             </div>
           )}
           <div className="px-4">

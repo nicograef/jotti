@@ -12,6 +12,7 @@ import {
 import { Field, FieldLabel } from '@/components/ui/field'
 
 import type { User } from './User'
+import { rolleLabel } from './UserRolle'
 
 interface UserCreatedDialogProps {
   user: User | null
@@ -31,7 +32,8 @@ export function UserCreatedDialog(props: UserCreatedDialogProps) {
         <DialogHeader>
           <DialogTitle>Helfer wurde angelegt!</DialogTitle>
           <DialogDescription>
-            Für {props.user?.name} wurde ein {props.user?.role}-Helfer angelegt.
+            Für {props.user?.name} wurde ein{' '}
+            {props.user ? rolleLabel[props.user.role] : ''}-Helfer angelegt.
             Beim erstmaligen Anmelden muss der Helfer mit dem untenstehenden
             Code sein Passwort setzen.
           </DialogDescription>

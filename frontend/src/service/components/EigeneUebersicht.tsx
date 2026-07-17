@@ -1,5 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatCents } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import type { EigeneUebersicht } from '../table/Tisch'
 
@@ -56,7 +56,7 @@ function StatSpalte({
       <div className="flex items-baseline gap-1.5">
         <span className="text-base font-bold tabular-nums">{anzahl}</span>
         <span className="text-[13px] text-muted-foreground tabular-nums">
-          · {formatCents(cents)}&nbsp;€
+          · {formatEuro(cents)}
         </span>
       </div>
     </div>

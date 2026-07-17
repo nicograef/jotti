@@ -19,7 +19,7 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
 import {
   formatAlleAuswaehlenLabel,
-  formatCents,
+  formatEuro,
   formatRelativeTime,
 } from '@/lib/utils'
 
@@ -197,7 +197,7 @@ export function HistorieUmbuchungDrawer({
           {!noPositionenSelected && (
             <div className="flex justify-between border-t-2 pt-2 font-bold">
               <div>Umbuchung gesamt</div>
-              <div>{formatCents(totalPrice)}&nbsp;€</div>
+              <div>{formatEuro(totalPrice)}</div>
             </div>
           )}
           <div className="space-y-1">

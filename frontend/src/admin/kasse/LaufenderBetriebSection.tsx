@@ -1,7 +1,7 @@
 import { MinusCircle, PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 
-import { formatStand } from '@/admin/reporting/utils'
+import { formatLocalTime, formatStand } from '@/admin/reporting/utils'
 import { Button } from '@/components/ui/button'
 import { formatEuro } from '@/lib/utils'
 
@@ -11,14 +11,6 @@ import {
   type GeldtransitBuchung,
   type GeldtransitRichtung,
 } from './Kassensitzung'
-
-// formatBewegungZeit gibt die lokale Uhrzeit HH:MM einer Bewegung aus.
-function formatBewegungZeit(zeitpunkt: string): string {
-  return new Date(zeitpunkt).toLocaleTimeString('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 function AufschluesselungKachel({
   label,
@@ -44,7 +36,7 @@ function BewegungZeile({ buchung }: { buchung: GeldtransitBuchung }) {
   return (
     <div className="flex items-center justify-between gap-3 px-3.5 py-2 text-sm">
       <span className="min-w-0 flex-1 truncate text-muted-foreground">
-        {formatBewegungZeit(buchung.zeitpunkt)} · {richtungLabel} · „
+        {formatLocalTime(buchung.zeitpunkt)} · {richtungLabel} · „
         {buchung.kommentar}" · {buchung.gebuchtVon}
       </span>
       <span

@@ -23,22 +23,6 @@ export const KassensitzungStatus = {
 export type KassensitzungStatus =
   (typeof KassensitzungStatus)[keyof typeof KassensitzungStatus]
 
-// Anzeige-Label je Status. Der transiente Zwischenstatus wird_abgeschlossen
-// bekommt ein eigenes Symbol (🟡) und darf nie wie abgeschlossen (🔴) aussehen.
-export function kassensitzungStatusLabel(status: KassensitzungStatus): {
-  symbol: string
-  text: string
-} {
-  switch (status) {
-    case KassensitzungStatus.OFFEN:
-      return { symbol: '🟢', text: 'offen' }
-    case KassensitzungStatus.WIRD_ABGESCHLOSSEN:
-      return { symbol: '🟡', text: 'wird abgeschlossen…' }
-    case KassensitzungStatus.ABGESCHLOSSEN:
-      return { symbol: '🔴', text: 'abgeschlossen' }
-  }
-}
-
 export const BezeichnungSchema = z
   .string()
   .min(1, { message: 'Bezeichnung ist erforderlich.' })

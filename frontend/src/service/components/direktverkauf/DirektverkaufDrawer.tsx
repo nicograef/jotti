@@ -2,16 +2,11 @@ import { useState } from 'react'
 
 import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
 
+import type { VerkaufPositionInput } from '../../direktverkauf/Direktverkauf'
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
 import { DockActionButton } from '../table/DockActionButton'
 import type { ReceiptPosition } from '../table/Receipt'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
-
-interface VerkaufPositionInput {
-  produktId: number
-  varianteId: number
-  menge: number
-}
 
 interface DirektverkaufDrawerProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>

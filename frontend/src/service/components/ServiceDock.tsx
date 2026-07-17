@@ -23,6 +23,12 @@ export function DockActionSlot({ children }: { children: React.ReactNode }) {
   return createPortal(children, slot)
 }
 
+// Unterer Freiraum der Tab-Inhalte in Dock-Höhe (Aktionsbutton plus TabsList plus
+// Innenabstände), damit die letzte Zeile über dem fixierten Dock endet und
+// antippbar bleibt. Nur im Handy-Layout (unter lg) relevant; ab lg trägt die
+// Abschluss-Spalte den Button selbst.
+export const dockFreiraum = 'pb-[calc(9rem+env(safe-area-inset-bottom,0px))]'
+
 interface ServiceDockProps {
   // Seiteninhalt oberhalb des Docks (Tab-Inhalte). Er muss innerhalb des
   // Kontexts liegen, damit DockActionSlot aus ihm heraus portalen kann.

@@ -57,16 +57,17 @@ export function NameField<AllFormFields extends FieldValues>({
   withLabel,
   placeholder,
 }: FieldProps<{ name: string } & AllFormFields>) {
+  const id = useId()
   return (
     <Controller
       name={'name' as Path<{ name: string } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && <FieldLabel htmlFor="form-name">Name</FieldLabel>}
+          {withLabel && <FieldLabel htmlFor={id}>Name</FieldLabel>}
           <Input
             {...field}
-            id="form-name"
+            id={id}
             aria-invalid={fieldState.invalid}
             placeholder={placeholder ?? 'Vor- und Nachname eingeben'}
             autoComplete="off"
@@ -223,13 +224,14 @@ export function RoleField<AllFormFields extends FieldValues>({
   withLabel,
   placeholder,
 }: FieldProps<{ role: UserRole } & AllFormFields>) {
+  const id = useId()
   return (
     <Controller
       name={'role' as Path<{ role: UserRole } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && <FieldLabel htmlFor="form-role">Rolle</FieldLabel>}
+          {withLabel && <FieldLabel htmlFor={id}>Rolle</FieldLabel>}
           {field.value === 'admin' && (
             <FieldDescription>
               Administratoren können alle Funktionen nutzen.
@@ -250,7 +252,7 @@ export function RoleField<AllFormFields extends FieldValues>({
             value={field.value}
             onValueChange={field.onChange}
           >
-            <SelectTrigger id="form-role" aria-invalid={fieldState.invalid}>
+            <SelectTrigger id={id} aria-invalid={fieldState.invalid}>
               <SelectValue placeholder={placeholder ?? 'Auswählen'} />
             </SelectTrigger>
             <SelectContent>
@@ -271,16 +273,17 @@ export function LockedField<AllFormFields extends FieldValues>({
   withLabel,
   description,
 }: FieldProps<{ locked: boolean } & AllFormFields>) {
+  const id = useId()
   return (
     <Controller
       name={'locked' as Path<{ locked: boolean } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && <FieldLabel htmlFor="form-locked">Sperren?</FieldLabel>}
+          {withLabel && <FieldLabel htmlFor={id}>Sperren?</FieldLabel>}
           <FieldContent className="flex flex-row items-center">
             <Switch
-              id="form-locked"
+              id={id}
               aria-invalid={fieldState.invalid}
               checked={field.value}
               onCheckedChange={field.onChange}
@@ -304,18 +307,17 @@ export function DescriptionField<AllFormFields extends FieldValues>({
   withLabel,
   placeholder,
 }: FieldProps<{ description: string } & AllFormFields>) {
+  const id = useId()
   return (
     <Controller
       name={'description' as Path<{ description: string } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && (
-            <FieldLabel htmlFor="form-description">Beschreibung</FieldLabel>
-          )}
+          {withLabel && <FieldLabel htmlFor={id}>Beschreibung</FieldLabel>}
           <Textarea
             {...field}
-            id="form-description"
+            id={id}
             aria-invalid={fieldState.invalid}
             placeholder={placeholder ?? 'Beschreibung eingeben (optional)'}
             autoComplete="off"
@@ -453,21 +455,20 @@ export function CategoryField<AllFormFields extends FieldValues>({
   withLabel,
   placeholder,
 }: FieldProps<{ kategorie: Kategorie } & AllFormFields>) {
+  const id = useId()
   return (
     <Controller
       name={'kategorie' as Path<{ kategorie: Kategorie } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && (
-            <FieldLabel htmlFor="form-category">Kategorie</FieldLabel>
-          )}
+          {withLabel && <FieldLabel htmlFor={id}>Kategorie</FieldLabel>}
           <Select
             name={field.name}
             value={field.value}
             onValueChange={field.onChange}
           >
-            <SelectTrigger id="form-category" aria-invalid={fieldState.invalid}>
+            <SelectTrigger id={id} aria-invalid={fieldState.invalid}>
               <SelectValue placeholder={placeholder ?? 'Auswählen'} />
             </SelectTrigger>
             <SelectContent>
@@ -488,24 +489,20 @@ export function SteuersatzField<AllFormFields extends FieldValues>({
   withLabel,
   placeholder,
 }: FieldProps<{ steuersatz: Steuersatz } & AllFormFields>) {
+  const id = useId()
   return (
     <Controller
       name={'steuersatz' as Path<{ steuersatz: Steuersatz } & AllFormFields>}
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && (
-            <FieldLabel htmlFor="form-steuersatz">Steuersatz</FieldLabel>
-          )}
+          {withLabel && <FieldLabel htmlFor={id}>Steuersatz</FieldLabel>}
           <Select
             name={field.name}
             value={field.value}
             onValueChange={field.onChange}
           >
-            <SelectTrigger
-              id="form-steuersatz"
-              aria-invalid={fieldState.invalid}
-            >
+            <SelectTrigger id={id} aria-invalid={fieldState.invalid}>
               <SelectValue placeholder={placeholder ?? 'Auswählen'} />
             </SelectTrigger>
             <SelectContent>

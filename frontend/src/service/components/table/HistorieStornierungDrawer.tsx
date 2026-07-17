@@ -14,7 +14,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
-import { formatCents, formatRelativeTime } from '@/lib/utils'
+import { formatEuro, formatRelativeTime } from '@/lib/utils'
 
 import type { Bestellung } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -118,7 +118,7 @@ export function HistorieStornierungDrawer({
           {!noPositionenSelected && (
             <div className="flex justify-between border-t-2 pt-2 font-bold">
               <div>Stornierung gesamt</div>
-              <div>{formatCents(totalPrice)}&nbsp;€</div>
+              <div>{formatEuro(totalPrice)}</div>
             </div>
           )}
           <KommentarField
