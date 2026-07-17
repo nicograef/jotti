@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -18,7 +19,7 @@ type mockCommand struct {
 	err error
 }
 
-func (m *mockCommand) BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, positionen []application.BestellPositionInput, kommentar string) error {
+func (m *mockCommand) BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, positionen []enrichment.PositionInput, kommentar string) error {
 	return m.err
 }
 
@@ -52,7 +53,7 @@ func TestBestellungAufnehmenHandler_Conflict(t *testing.T) {
 }
 
 func TestBestellungAufnehmenHandler_ProduktNotFound(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrProduktNotFound}}
+	handler := &CommandHandler{Command: &mockCommand{err: enrichment.ErrProduktNotFound}}
 
 	body := `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
 	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufnehmen", strings.NewReader(body))

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
@@ -125,7 +126,7 @@ func newCommandWithDruckstationen(eventRepo eventRepo, ks *kasse.Kassensitzung, 
 	}
 }
 
-var testInputs = []VerkaufPositionInput{
+var testInputs = []enrichment.PositionInput{
 	{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2},
 }
 
@@ -199,12 +200,12 @@ func TestDirektverkaufTaetigen_InactiveVariante(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	inputs := []VerkaufPositionInput{
+	inputs := []enrichment.PositionInput{
 		{ProduktID: testProduct.ID, VarianteID: inactiveVariant.ID, Menge: 1},
 	}
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", inputs, "")
-	if err != ErrVarianteNichtAktiv {
+	if err != enrichment.ErrVarianteNichtAktiv {
 		t.Fatalf("expected ErrVarianteNichtAktiv, got %v", err)
 	}
 	if len(spy.written) != 0 {
@@ -221,7 +222,7 @@ func TestDirektverkaufTaetigen_ProduktNotFound(t *testing.T) {
 	}
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
-	if err != ErrProduktNotFound {
+	if err != enrichment.ErrProduktNotFound {
 		t.Fatalf("expected ErrProduktNotFound, got %v", err)
 	}
 	if len(spy.written) != 0 {

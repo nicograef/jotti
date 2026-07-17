@@ -24,9 +24,8 @@ import (
 
 	"github.com/google/uuid"
 
-	direktverkaufApp "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	kassenfuehrungApp "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
-	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
@@ -83,7 +82,7 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	// muss ohne Warten auf die TSE zurueckkehren (Buchen ist von der Signierung
 	// entkoppelt) — der Signaturauftrag bleibt offen.
 	bestellungID := uuid.NewString()
-	inputs := []tischgeschaeftApp.BestellPositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 1}}
+	inputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 1}}
 	bucheStart := time.Now()
 	if err := u.tisch.BestellungAufnehmen(ctx, u.userID, "test", bestellungID, u.tischID, inputs, ""); err != nil {
 		t.Fatalf("BestellungAufnehmen waehrend Ausfall: %v", err)
@@ -242,7 +241,7 @@ func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 func bucheDirektverkauf(t *testing.T, u *liveTestUmgebung, ksNr int) int {
 	t.Helper()
 	verkaufID := uuid.NewString()
-	verkaufInputs := []direktverkaufApp.VerkaufPositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 1}}
+	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 1}}
 	if err := u.direkt.DirektverkaufTaetigen(context.Background(), u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
 		t.Fatalf("DirektverkaufTaetigen: %v", err)
 	}
@@ -344,7 +343,7 @@ func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int
 	// Worker signiert — deshalb genuegt der erste Poll-Takt Vorlauf nicht, wir
 	// greifen sofort zu.
 	verkaufID := uuid.NewString()
-	verkaufInputs := []direktverkaufApp.VerkaufPositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 1}}
+	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 1}}
 	if err := u.direkt.DirektverkaufTaetigen(ctx, u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
 		t.Fatalf("DirektverkaufTaetigen fuer Gate-Blockade: %v", err)
 	}

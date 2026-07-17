@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
@@ -18,7 +19,7 @@ type mockCommand struct {
 	err error
 }
 
-func (m *mockCommand) DirektverkaufTaetigen(_ context.Context, _ int, _ string, _ string, _ []application.VerkaufPositionInput, _ string) error {
+func (m *mockCommand) DirektverkaufTaetigen(_ context.Context, _ int, _ string, _ string, _ []enrichment.PositionInput, _ string) error {
 	return m.err
 }
 
@@ -70,7 +71,7 @@ func TestDirektverkaufTaetigenHandler_Conflict(t *testing.T) {
 }
 
 func TestDirektverkaufTaetigenHandler_ProduktNotFound(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrProduktNotFound}}
+	handler := &CommandHandler{Command: &mockCommand{err: enrichment.ErrProduktNotFound}}
 
 	rec := httptest.NewRecorder()
 	handler.DirektverkaufTaetigenHandler().ServeHTTP(rec, requestWithUser(validBody))

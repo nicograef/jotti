@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
@@ -158,7 +159,7 @@ func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil), // no open KS
 	}
 
-	inputs := []BestellPositionInput{
+	inputs := []enrichment.PositionInput{
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
 	}
 
@@ -175,7 +176,7 @@ func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 	command := newTestCommand([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct})
 	command.ProduktRepo = productMock
 
-	inputs := []BestellPositionInput{
+	inputs := []enrichment.PositionInput{
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2},
 	}
 
@@ -199,7 +200,7 @@ func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 	command.ProduktRepo = productMock
 	command.DruckstationRepo = stationMock
 
-	inputs := []BestellPositionInput{{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2}}
+	inputs := []enrichment.PositionInput{{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2}}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
 	if err != nil {
@@ -229,7 +230,7 @@ func TestBestellungAufnehmen_Conflict(t *testing.T) {
 	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct}, eventMock)
 	command.ProduktRepo = productMock
 
-	inputs := []BestellPositionInput{
+	inputs := []enrichment.PositionInput{
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
 	}
 
@@ -247,7 +248,7 @@ func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
 	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct}, eventMock)
 	command.ProduktRepo = productMock
 
-	inputs := []BestellPositionInput{
+	inputs := []enrichment.PositionInput{
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
 	}
 
@@ -266,7 +267,7 @@ func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {
 	command := newTestCommand([]tisch.Tisch{testInactiveTisch}, []produkt.Produkt{testProduct})
 	command.ProduktRepo = productMock
 
-	inputs := []BestellPositionInput{
+	inputs := []enrichment.PositionInput{
 		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
 	}
 
@@ -291,12 +292,12 @@ func TestBestellungAufnehmen_InactiveVariante(t *testing.T) {
 	command := newTestCommand([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct})
 	command.ProduktRepo = productMock
 
-	inputs := []BestellPositionInput{
+	inputs := []enrichment.PositionInput{
 		{ProduktID: testProduct.ID, VarianteID: inactiveVariant.ID, Menge: 1},
 	}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testActiveTisch.ID, inputs, "")
-	if err != ErrVarianteNichtAktiv {
+	if err != enrichment.ErrVarianteNichtAktiv {
 		t.Fatalf("expected ErrVarianteNichtAktiv, got %v", err)
 	}
 }

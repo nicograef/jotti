@@ -7,6 +7,7 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -15,7 +16,7 @@ import (
 )
 
 type command interface {
-	BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, positionen []application.BestellPositionInput, kommentar string) error
+	BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, positionen []enrichment.PositionInput, kommentar string) error
 	BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error
 	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
@@ -31,10 +32,10 @@ type bestellPositionInput struct {
 	Menge      int `json:"menge"`
 }
 
-func toBestellPositionInputs(positionen []bestellPositionInput) []application.BestellPositionInput {
-	out := make([]application.BestellPositionInput, len(positionen))
+func toBestellPositionInputs(positionen []bestellPositionInput) []enrichment.PositionInput {
+	out := make([]enrichment.PositionInput, len(positionen))
 	for i, p := range positionen {
-		out[i] = application.BestellPositionInput{
+		out[i] = enrichment.PositionInput{
 			ProduktID:  p.ProduktID,
 			VarianteID: p.VarianteID,
 			Menge:      p.Menge,
@@ -104,10 +105,10 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
 				helper.MapError(w, err, map[error]string{
-					application.ErrTischNotFound:      "tisch_not_found",
-					application.ErrTischNotActive:     "tisch_not_active",
-					application.ErrProduktNotFound:    "produkt_not_found",
-					application.ErrVarianteNichtAktiv: "variante_nicht_aktiv",
+					application.ErrTischNotFound:     "tisch_not_found",
+					application.ErrTischNotActive:    "tisch_not_active",
+					enrichment.ErrProduktNotFound:    "produkt_not_found",
+					enrichment.ErrVarianteNichtAktiv: "variante_nicht_aktiv",
 				})
 			}
 			return

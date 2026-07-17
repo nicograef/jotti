@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	dbpkg "github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -91,7 +92,7 @@ func TestDirektverkaufTaetigen_DuplikatVerkaufId_IdempotenterErfolg(t *testing.T
 	ctx, cmd, db, userID, _, produktID, varianteID := setupDVIntegration(t)
 
 	verkaufID := uuid.New().String()
-	inputs := []VerkaufPositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
 
 	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, ""); err != nil {
 		t.Fatalf("erster Aufruf: %v", err)
@@ -147,7 +148,7 @@ func TestDirektverkaufTaetigen_VersionskonfliktAndereVerkaufId_ErrConflict(t *te
 		t.Fatalf("Vorab-Insert: %v", err)
 	}
 
-	inputs := []VerkaufPositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
 	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, ""); !errors.Is(err, ErrConflict) {
 		t.Errorf("erwartet ErrConflict, bekam: %v", err)
 	}

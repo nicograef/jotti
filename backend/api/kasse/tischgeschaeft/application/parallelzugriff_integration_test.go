@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
@@ -138,7 +139,7 @@ func TestParallelzugriff_ZweiClientsSelberTisch(t *testing.T) {
 func bedieneTisch(ctx context.Context, cmd Command, subject string, userID int, userName string, produktID, tischID, varianteID, runden, menge int) error {
 	for r := 0; r < runden; r++ {
 		bestellungID := uuid.New().String()
-		inputs := []BestellPositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: menge}}
+		inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: menge}}
 		if err := retryConflict(func() error {
 			return cmd.BestellungAufnehmen(ctx, userID, userName, bestellungID, tischID, inputs, "")
 		}); err != nil {

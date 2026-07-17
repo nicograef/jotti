@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/druck/bondruck/application"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
@@ -35,14 +36,6 @@ type produktRepo interface {
 
 type druckstationRepo interface {
 	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
-}
-
-// VerkaufPositionInput is the input for a single Position of a Direktverkauf.
-// The application layer enriches it with Produkt/Variante details (fat events).
-type VerkaufPositionInput struct {
-	ProduktID  int
-	VarianteID int
-	Menge      int
 }
 
 type Command struct {
@@ -76,7 +69,7 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 // UniqueViolation (Duplikat-Einreichung) wird per verkaufId nachgeschlagen:
 // Treffer = idempotente Erfolgsantwort; kein Treffer = echter OCC-Konflikt (409).
 // Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht verglichen.
-func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, inputs []VerkaufPositionInput, kommentar string) error {
+func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, inputs []enrichment.PositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
@@ -84,7 +77,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return err
 	}
 
-	positionen, err := c.enrichPositionen(ctx, inputs)
+	positionen, err := enrichment.EnrichPositionen(ctx, c.ProduktRepo, inputs)
 	if err != nil {
 		return err
 	}
@@ -197,71 +190,6 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 
 	log.Info().Str("verkauf_id", verkaufID).Int("gesamt_stornierung_cents", gesamtStornierungCents).Msg("Direktverkauf storniert")
 	return nil
-}
-
-// enrichPositionen batch-fetches the referenced variants and products and turns the inputs
-// into fat Positions carrying name, category and price for the event store.
-func (c Command) enrichPositionen(ctx context.Context, inputs []VerkaufPositionInput) ([]kasse.Position, error) {
-	log := zerolog.Ctx(ctx)
-
-	varianteIDs := make([]int, 0, len(inputs))
-	produktIDs := make([]int, 0, len(inputs))
-	seenVarianten := make(map[int]bool, len(inputs))
-	seenProdukte := make(map[int]bool, len(inputs))
-	for _, input := range inputs {
-		if !seenVarianten[input.VarianteID] {
-			varianteIDs = append(varianteIDs, input.VarianteID)
-			seenVarianten[input.VarianteID] = true
-		}
-		if !seenProdukte[input.ProduktID] {
-			produktIDs = append(produktIDs, input.ProduktID)
-			seenProdukte[input.ProduktID] = true
-		}
-	}
-
-	variantenByID, err := c.ProduktRepo.GetVariantsByIDs(ctx, varianteIDs)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to batch-fetch variants for position enrichment")
-		return nil, ErrProduktNotFound
-	}
-	produkteByID, err := c.ProduktRepo.GetProductsByIDs(ctx, produktIDs)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to batch-fetch products for position enrichment")
-		return nil, ErrProduktNotFound
-	}
-
-	positionen := make([]kasse.Position, 0, len(inputs))
-	for _, input := range inputs {
-		variant, ok := variantenByID[input.VarianteID]
-		if !ok {
-			log.Error().Int("variante_id", input.VarianteID).Msg("Variant not found in batch result")
-			return nil, ErrProduktNotFound
-		}
-		prod, ok := produkteByID[input.ProduktID]
-		if !ok {
-			log.Error().Int("produkt_id", input.ProduktID).Msg("Product not found in batch result")
-			return nil, ErrProduktNotFound
-		}
-
-		// Defense-in-Depth: deaktivierte (inactive) Varianten/Produkte tauchen im
-		// Verkaufs-Menü nicht auf, könnten aber per direktem POST referenziert werden.
-		if variant.Status != produkt.ActiveStatus || prod.Status != produkt.ActiveStatus {
-			log.Warn().Int("variante_id", input.VarianteID).Int("produkt_id", input.ProduktID).Msg("Variant or product not active")
-			return nil, ErrVarianteNichtAktiv
-		}
-
-		positionen = append(positionen, kasse.Position{
-			VarianteID:       input.VarianteID,
-			ProduktName:      prod.Name,
-			VarianteName:     variant.Name,
-			Kategorie:        string(prod.Kategorie),
-			Steuersatz:       string(prod.Steuersatz),
-			EinzelpreisCents: variant.PreisCents,
-			Menge:            input.Menge,
-		})
-	}
-
-	return positionen, nil
 }
 
 // writeVersionedEvent writes the event with version expectedVersion+1 via write.

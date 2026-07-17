@@ -8,13 +8,14 @@ import (
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 )
 
 type command interface {
-	DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, positionen []application.VerkaufPositionInput, kommentar string) error
+	DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, positionen []enrichment.PositionInput, kommentar string) error
 	DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error
 }
 
@@ -46,10 +47,10 @@ var direktverkaufTaetigenSchema = z.Struct(z.Shape{
 	"Kommentar":  z.String().Max(100),
 })
 
-func toVerkaufPositionInputs(positionen []verkaufPositionInput) []application.VerkaufPositionInput {
-	out := make([]application.VerkaufPositionInput, len(positionen))
+func toVerkaufPositionInputs(positionen []verkaufPositionInput) []enrichment.PositionInput {
+	out := make([]enrichment.PositionInput, len(positionen))
 	for i, p := range positionen {
-		out[i] = application.VerkaufPositionInput{
+		out[i] = enrichment.PositionInput{
 			ProduktID:  p.ProduktID,
 			VarianteID: p.VarianteID,
 			Menge:      p.Menge,
@@ -82,8 +83,8 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
 				helper.MapError(w, err, map[error]string{
-					application.ErrProduktNotFound:    "produkt_not_found",
-					application.ErrVarianteNichtAktiv: "variante_nicht_aktiv",
+					enrichment.ErrProduktNotFound:    "produkt_not_found",
+					enrichment.ErrVarianteNichtAktiv: "variante_nicht_aktiv",
 				})
 			}
 			return

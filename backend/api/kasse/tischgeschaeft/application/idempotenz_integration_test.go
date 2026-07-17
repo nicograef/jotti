@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	dbpkg "github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -98,7 +99,7 @@ func TestBestellungAufnehmen_DuplikatBestellungId_IdempotenterErfolg(t *testing.
 	ctx, cmd, db, userID, _, tischID, produktID, varianteID := setupBestellungIntegration(t)
 
 	bestellungID := uuid.New().String()
-	inputs := []BestellPositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
 
 	if err := cmd.BestellungAufnehmen(ctx, userID, "test", bestellungID, tischID, inputs, ""); err != nil {
 		t.Fatalf("erster Aufruf: %v", err)

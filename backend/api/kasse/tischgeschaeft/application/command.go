@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/druck/bondruck/application"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
@@ -50,14 +51,6 @@ type favoritRepo interface {
 
 type druckstationRepo interface {
 	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
-}
-
-// BestellPositionInput is the input for a single Position of a Bestellung.
-// The application layer enriches it with Produkt/Variante details (fat events).
-type BestellPositionInput struct {
-	ProduktID  int
-	VarianteID int
-	Menge      int
 }
 
 type Command struct {
@@ -192,7 +185,7 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 // UniqueViolation (Duplikat-Einreichung) wird per bestellungId nachgeschlagen:
 // Treffer = idempotente Erfolgsantwort; kein Treffer = echter OCC-Konflikt (409).
 // Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht verglichen.
-func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, inputs []BestellPositionInput, kommentar string) error {
+func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, inputs []enrichment.PositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz, Status prüfen und KS + Subject bestimmen
@@ -201,62 +194,9 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return err
 	}
 
-	varianteIDs := make([]int, 0, len(inputs))
-	produktIDs := make([]int, 0, len(inputs))
-	seenVarianten := make(map[int]bool, len(inputs))
-	seenProdukte := make(map[int]bool, len(inputs))
-	for _, input := range inputs {
-		if !seenVarianten[input.VarianteID] {
-			varianteIDs = append(varianteIDs, input.VarianteID)
-			seenVarianten[input.VarianteID] = true
-		}
-		if !seenProdukte[input.ProduktID] {
-			produktIDs = append(produktIDs, input.ProduktID)
-			seenProdukte[input.ProduktID] = true
-		}
-	}
-
-	variantenByID, err := c.ProduktRepo.GetVariantsByIDs(ctx, varianteIDs)
+	positionen, err := enrichment.EnrichPositionen(ctx, c.ProduktRepo, inputs)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to batch-fetch variants for position enrichment")
-		return ErrProduktNotFound
-	}
-	produkteByID, err := c.ProduktRepo.GetProductsByIDs(ctx, produktIDs)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to batch-fetch products for position enrichment")
-		return ErrProduktNotFound
-	}
-
-	// Enrich positions with Produkt/Variante data (fat events)
-	positionen := make([]kasse.Position, 0, len(inputs))
-	for _, input := range inputs {
-		variant, ok := variantenByID[input.VarianteID]
-		if !ok {
-			log.Error().Int("variante_id", input.VarianteID).Msg("Variant not found in batch result")
-			return ErrProduktNotFound
-		}
-		prod, ok := produkteByID[input.ProduktID]
-		if !ok {
-			log.Error().Int("produkt_id", input.ProduktID).Msg("Product not found in batch result")
-			return ErrProduktNotFound
-		}
-
-		// Defense-in-Depth: deaktivierte (inactive) Varianten/Produkte tauchen im
-		// Bestell-Menü nicht auf, könnten aber per direktem POST referenziert werden.
-		if variant.Status != produkt.ActiveStatus || prod.Status != produkt.ActiveStatus {
-			log.Warn().Int("variante_id", input.VarianteID).Int("produkt_id", input.ProduktID).Msg("Variant or product not active")
-			return ErrVarianteNichtAktiv
-		}
-
-		positionen = append(positionen, kasse.Position{
-			VarianteID:       input.VarianteID,
-			ProduktName:      prod.Name,
-			VarianteName:     variant.Name,
-			Kategorie:        string(prod.Kategorie),
-			Steuersatz:       string(prod.Steuersatz),
-			EinzelpreisCents: variant.PreisCents,
-			Menge:            input.Menge,
-		})
+		return err
 	}
 
 	evt, err := kasse.NewBestellungAufgenommenEvent(subject, userID, userName, bestellungID, positionen, kommentar)

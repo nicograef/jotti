@@ -170,10 +170,10 @@ Create a new application-layer package holding: one `PositionInput` type (`{Prod
 
 ### Acceptance criteria
 
-- [ ] A single enrichment implementation exists in an application-layer package; neither command inlines or privately duplicates it.
-- [ ] Both contexts produce identical enrichment behavior, including the active-status refusal and error-to-HTTP mapping.
-- [ ] `domain/kasse` is untouched by this change (layering preserved).
-- [ ] Existing tischgeschaeft and direktverkauf command + handler tests pass (adjusted only for the shared types/sentinels).
+- [x] A single enrichment implementation exists in an application-layer package; neither command inlines or privately duplicates it.
+- [x] Both contexts produce identical enrichment behavior, including the active-status refusal and error-to-HTTP mapping.
+- [x] `domain/kasse` is untouched by this change (layering preserved).
+- [x] Existing tischgeschaeft and direktverkauf command + handler tests pass (adjusted only for the shared types/sentinels).
 - [ ] `make verify` green.
 
 ---

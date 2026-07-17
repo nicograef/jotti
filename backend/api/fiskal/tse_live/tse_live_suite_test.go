@@ -26,6 +26,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/fiskal/signatur"
 	direktverkaufApp "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
+	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	kassenfuehrungApp "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
 	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	dbpkg "github.com/nicograef/jotti/backend/db"
@@ -417,7 +418,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 
 	// (2) Bestellung → Bestellung-V1. 3 Stück, damit Teil-/Vollzahlung und Storno Mengen haben.
 	bestellungID := uuid.NewString()
-	inputs := []tischgeschaeftApp.BestellPositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 3}}
+	inputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 3}}
 	if err := u.tisch.BestellungAufnehmen(ctx, u.userID, "test", bestellungID, u.tischID, inputs, ""); err != nil {
 		t.Fatalf("BestellungAufnehmen: %v", err)
 	}
@@ -479,7 +480,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 
 	// (8) Direktverkauf → Kassenbeleg-V1.
 	verkaufID := uuid.NewString()
-	verkaufInputs := []direktverkaufApp.VerkaufPositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 2}}
+	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 2}}
 	if err := u.direkt.DirektverkaufTaetigen(ctx, u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
 		t.Fatalf("DirektverkaufTaetigen: %v", err)
 	}
