@@ -75,10 +75,10 @@ Add `run.build-tags: [integration]` to `backend/.golangci.yml` so both the CI ac
 
 ### Acceptance criteria
 
-- [ ] `backend/.golangci.yml` sets `run.build-tags: [integration]`; `golangci-lint run` in `./backend` (as CI invokes it) now lints `//go:build integration` files.
-- [ ] A deliberately-introduced lint violation in an integration-tagged test file fails both `make check` and the CI `backend-golangci` job (verified, then reverted).
-- [ ] `.github/workflows/fuzz.yml` runs `make fuzz` on a weekly `schedule` and on `workflow_dispatch`, and uploads crashers on failure; `actionlint`/CI parses it without error.
-- [ ] `make check` stays green.
+- [x] `backend/.golangci.yml` sets `run.build-tags: [integration]`; `golangci-lint run` in `./backend` (as CI invokes it) now lints `//go:build integration` files.
+- [x] A deliberately-introduced lint violation in an integration-tagged test file fails both `make check` and the CI `backend-golangci` job (verified, then reverted).
+- [x] `.github/workflows/fuzz.yml` runs `make fuzz` on a weekly `schedule` and on `workflow_dispatch`, and uploads crashers on failure; `actionlint`/CI parses it without error.
+- [x] `make check` stays green.
 
 ---
 

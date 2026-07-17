@@ -1,6 +1,13 @@
 # golangci-lint config format version
 version: "2"
 
+# Match `make check-backend` / `make lint-backend-full`, which pass
+# --build-tags=integration: without this, CI's golangci-lint-action lints a
+# smaller file set than local runs and misses the //go:build integration files.
+run:
+  build-tags:
+    - integration
+
 linters:
   enable:
     - errcheck # Checks that error return values are not ignored

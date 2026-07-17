@@ -1,0 +1,36 @@
+name: Fuzz
+
+# Runs the fuzz targets beyond their seed corpora (Makefile `fuzz`, 90s each).
+# Scheduled instead of per-PR: fuzzing is a background correctness net, not a
+# merge gate. workflow_dispatch allows an on-demand run (e.g. after touching
+# a fuzzed target).
+on:
+  schedule:
+    - cron: "0 3 * * 1" # Weekly, Monday 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.5
+          cache-dependency-path: backend/go.sum
+
+      - name: Run fuzz targets
+        run: make fuzz
+
+      # Failing fuzz targets write minimized crashers under testdata/fuzz/;
+      # upload them so the failure is reproducible locally via `go test`.
+      - name: Upload fuzz crashers on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-crashers
+          path: backend/**/testdata/fuzz/**
+          retention-days: 7
