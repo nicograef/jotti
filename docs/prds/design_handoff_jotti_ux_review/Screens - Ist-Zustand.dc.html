@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eceae2;font-family:Inter,sans-serif;color:#0c0c09;-webkit-font-smoothing:antialiased;}
+a{color:#007a55;} a:hover{color:#00543b;}
+</style>
+</helmet>
+<section style="padding:48px;display:flex;flex-direction:column;gap:40px;">
+  <div style="max-width:900px;">
+    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;margin:0 0 8px 0;">jotti — Ist-Zustand <span style="color:#6b695c;font-weight:500;">(Rekonstruktion aus dem Code, main@Jul 2026)</span></h1>
+    <p style="font-size:14px;color:#6b695c;margin:0;max-width:720px;">Oben der Service-Bereich (Handy, 390&nbsp;px), darunter der Admin-Bereich (Desktop 1440&nbsp;px, auf 62&nbsp;% skaliert). Light Mode; Dark-Mode-spezifische Befunde sind im Review-Dokument separat gemockt. Referenz für <a href="UX-Review.dc.html">das UX-Review</a>.</p>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div style="font:600 13px 'Space Grotesk',sans-serif;color:#6b695c;letter-spacing:0.06em;text-transform:uppercase;">Service — Tischservice (Handy)</div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;">
+
+      <!-- S1 Meine Tische -->
+      <div>
+        <div style="font:500 12px Inter,sans-serif;color:#6b695c;margin-bottom:8px;">S1 · Meine Tische (TableSelectionPage)</div>
+        <div data-screen-label="S1 Meine Tische" style="width:390px;height:844px;background:#fff;border-radius:20px;box-shadow:0 0 0 1px rgba(12,12,9,0.08),0 16px 40px rgba(12,12,9,0.14);overflow:hidden;position:relative;">
+          <div style="height:56px;border-bottom:1px solid #e8e7e0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+            <span style="font-size:14px;font-weight:700;">Meine Tische</span>
+            <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#0c0c09;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
+          </div>
+          <div style="padding:8px 16px 0 16px;">
+            <div style="margin:16px 0;display:grid;grid-template-columns:1fr 1fr;background:rgba(244,244,240,0.6);border-radius:11px;padding:12px 16px;">
+              <div style="padding-right:16px;">
+                <div style="font-size:12px;color:#6b695c;">Bestellungen</div>
+                <div style="display:flex;align-items:baseline;gap:6px;"><span style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;">14</span><span style="font-size:13px;color:#6b695c;">· 232,50&nbsp;€</span></div>
+              </div>
+              <div style="padding-left:16px;border-left:1px solid #e8e7e0;">
+                <div style="font-size:12px;color:#6b695c;">Kassiert</div>
+                <div style="display:flex;align-items:baseline;gap:6px;"><span style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;">9</span><span style="font-size:13px;color:#6b695c;">· 168,00&nbsp;€</span></div>
+              </div>
+            </div>
+            <div style="position:relative;margin-bottom:16px;">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#6b695c;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span>
+              <div style="height:44px;border:1px solid #8d8b7c;border-radius:5px;display:flex;align-items:center;padding-left:36px;font-size:16px;color:#6b695c;box-shadow:0 1px 2px rgba(12,12,9,0.05);">Tisch suchen — Name oder Nummer</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:#6b695c;">Noch offen · 3</div>
+              <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:11px;padding:16px;box-shadow:0 0 0 1px rgba(12,12,9,0.1);">
+                <span style="width:10px;height:10px;border-radius:99px;background:#c22a20;flex-shrink:0;"></span>
+                <div style="flex:1;min-width:0;"><div style="font-size:16px;font-weight:600;">Tisch 12</div><div style="font-size:13px;color:#6b695c;">4 offen · 2 von dir</div></div>
+                <div style="text-align:right;"><div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6b695c;">Offen</div><div style="font-weight:700;font-variant-numeric:tabular-nums;">46,50&nbsp;€</div></div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b695c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:11px;padding:16px;box-shadow:0 0 0 1px rgba(12,12,9,0.1);">
+                <span style="width:10px;height:10px;border-radius:99px;background:#f59e0b;flex-shrink:0;"></span>
+                <div style="flex:1;min-width:0;"><div style="font-size:16px;font-weight:600;">Tisch 7</div><div style="font-size:13px;color:#6b695c;">3 offen · 0 von dir</div></div>
+                <div style="text-align:right;"><div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6b695c;">Offen</div><div style="font-weight:700;font-variant-numeric:tabular-nums;">18,00&nbsp;€</div></div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b695c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:11px;padding:16px;box-shadow:0 0 0 1px rgba(12,12,9,0.1);">
+                <span style="width:10px;height:10px;border-radius:99px;background:#c22a20;flex-shrink:0;"></span>
+                <div style="flex:1;min-width:0;"><div style="font-size:16px;font-weight:600;">Stammtisch</div><div style="font-size:13px;color:#6b695c;">6 offen · 6 von dir</div></div>
+                <div style="text-align:right;"><div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6b695c;">Offen</div><div style="font-weight:700;font-variant-numeric:tabular-nums;">62,00&nbsp;€</div></div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b695c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+              </div>
+              <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:#6b695c;margin-top:12px;">Erledigt · 2</div>
+              <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:11px;padding:16px;box-shadow:0 0 0 1px rgba(12,12,9,0.1);opacity:0.75;">
+                <span style="width:10px;height:10px;border-radius:99px;background:#16a34a;flex-shrink:0;"></span>
+                <div style="flex:1;"><div style="font-size:16px;font-weight:600;">Tisch 3</div><div style="font-size:13px;font-weight:500;color:#16a34a;">Alles bezahlt</div></div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b695c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;background:#fff;border-radius:11px;padding:16px;box-shadow:0 0 0 1px rgba(12,12,9,0.1);opacity:0.75;">
+                <span style="width:10px;height:10px;border-radius:99px;background:#16a34a;flex-shrink:0;"></span>
+                <div style="flex:1;"><div style="font-size:16px;font-weight:600;">Tisch 21</div><div style="font-size:13px;font-weight:500;color:#16a34a;">Alles bezahlt</div></div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b695c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+              </div>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;border-top:1px solid #e8e7e0;background:#fff;padding:12px 16px 16px 16px;">
+            <div style="height:48px;border:1px solid #e8e7e0;border-radius:5px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:500;box-shadow:0 1px 2px rgba(12,12,9,0.05);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"></path><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path></svg>
+              Alle Tische
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S2 Bestellen -->
+      <div>
+        <div style="font:500 12px Inter,sans-serif;color:#6b695c;margin-bottom:8px;">S2 · Tisch — Bestellen (TablePage / ProductList)</div>
+        <div data-screen-label="S2 Bestellen" style="width:390px;height:844px;background:#fff;border-radius:20px;box-shadow:0 0 0 1px rgba(12,12,9,0.08),0 16px 40px rgba(12,12,9,0.14);overflow:hidden;position:relative;">
+          <div style="height:56px;border-bottom:1px solid #e8e7e0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+            <span style="display:flex;align-items:center;gap:4px;font-size:14px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Meine Tische</span>
+            <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
+          </div>
+          <div style="padding:8px 16px 0 16px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+              <div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;line-height:1.2;">Tisch 12</div>
+                <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span style="height:20px;display:inline-flex;align-items:center;padding:0 8px;border-radius:99px;background:rgba(194,42,32,0.08);color:#c22a20;font-size:12px;font-weight:500;">4 unbezahlt</span>
+                  <span style="font-size:14px;color:#6b695c;">Für dich noch offen</span>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6b695c;">Offen</div>
+                <div style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;">46,50&nbsp;€</div>
+              </div>
+            </div>
+            <div style="margin:16px -16px 0 -16px;padding:6px 16px 12px 16px;border-bottom:1px solid #e8e7e0;display:flex;gap:8px;">
+              <span style="height:36px;display:inline-flex;align-items:center;padding:0 16px;border-radius:99px;background:#0c0c09;color:#fff;font-size:14px;font-weight:500;">Essen</span>
+              <span style="height:36px;display:inline-flex;align-items:center;padding:0 16px;border-radius:99px;border:1px solid #e8e7e0;font-size:14px;font-weight:500;">Getränke</span>
+              <span style="height:36px;display:inline-flex;align-items:center;padding:0 16px;border-radius:99px;border:1px solid #e8e7e0;font-size:14px;font-weight:500;">Sonstiges</span>
+            </div>
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:20px;">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:#6b695c;margin-bottom:6px;">Pommes</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:flex;align-items:center;gap:12px;border:1px solid #e8e7e0;background:#fff;border-radius:7px;padding:10px 14px;font-size:15px;">
+                    <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">klein</span>
+                    <span style="flex-shrink:0;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;">3,50&nbsp;€</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                      <span style="width:44px;height:44px;border-radius:99px;border:1px solid #e8e7e0;display:flex;align-items:center;justify-content:center;opacity:0.5;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg></span>
+                      <span style="width:28px;text-align:center;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;">0</span>
+                      <span style="width:44px;height:44px;border-radius:99px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(12,12,9,0.1);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></span>
+                    </span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px;border:1px solid rgba(0,122,85,0.5);background:rgba(0,122,85,0.04);border-radius:7px;padding:10px 14px;font-size:15px;">
+                    <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">groß</span>
+                    <span style="flex-shrink:0;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;">4,50&nbsp;€</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                      <span style="width:44px;height:44px;border-radius:99px;border:1px solid #e8e7e0;background:#fff;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg></span>
+                      <span style="width:28px;text-align:center;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;">2</span>
+                      <span style="width:44px;height:44px;border-radius:99px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(12,12,9,0.1);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:#6b695c;margin-bottom:6px;">Bratwurst</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:flex;align-items:center;gap:12px;border:1px solid rgba(0,122,85,0.5);background:rgba(0,122,85,0.04);border-radius:7px;padding:10px 14px;font-size:15px;">
+                    <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">im Weckle</span>
+                    <span style="flex-shrink:0;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;">4,00&nbsp;€</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                      <span style="width:44px;height:44px;border-radius:99px;border:1px solid #e8e7e0;background:#fff;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg></span>
+                      <span style="width:28px;text-align:center;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;">1</span>
+                      <span style="width:44px;height:44px;border-radius:99px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(12,12,9,0.1);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></span>
+                    </span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px;border:1px solid #e8e7e0;background:#fff;border-radius:7px;padding:10px 14px;font-size:15px;">
+                    <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">mit Pommes</span>
+                    <span style="flex-shrink:0;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;">7,50&nbsp;€</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                      <span style="width:44px;height:44px;border-radius:99px;border:1px solid #e8e7e0;display:flex;align-items:center;justify-content:center;opacity:0.5;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg></span>
+                      <span style="width:28px;text-align:center;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;">0</span>
+                      <span style="width:44px;height:44px;border-radius:99px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(12,12,9,0.1);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></span>
+                    </span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px;border:1px solid #e8e7e0;background:#fff;border-radius:7px;padding:10px 14px;font-size:15px;">
+                    <span style="min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">vegan</span>
+                    <span style="flex-shrink:0;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;">4,50&nbsp;€</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                      <span style="width:44px;height:44px;border-radius:99px;border:1px solid #e8e7e0;display:flex;align-items:center;justify-content:center;opacity:0.5;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg></span>
+                      <span style="width:28px;text-align:center;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;">0</span>
+                      <span style="width:44px;height:44px;border-radius:99px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(12,12,9,0.1);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;border-top:1px solid #e8e7e0;background:#fff;padding:12px 16px 16px 16px;display:flex;flex-direction:column;gap:8px;">
+            <div style="height:56px;border-radius:5px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;box-shadow:0 8px 20px rgba(12,12,9,0.18);">
+              <span style="display:flex;align-items:center;gap:8px;"><span style="background:rgba(236,253,245,0.2);border-radius:99px;padding:2px 8px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;">3</span><span style="font-weight:500;">Bestellung überprüfen</span></span>
+              <span style="font-weight:700;font-variant-numeric:tabular-nums;">13,00&nbsp;€</span>
+            </div>
+            <div style="height:40px;background:#f4f4f0;border-radius:8px;padding:3px;display:flex;color:#6b695c;">
+              <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:5px;box-shadow:0 1px 2px rgba(12,12,9,0.08);color:#0c0c09;font-size:14px;font-weight:500;">Bestellen</span>
+              <span style="flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;">Kassieren</span>
+              <span style="flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;">Historie</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S3 Kassieren -->
+      <div>
+        <div style="font:500 12px Inter,sans-serif;color:#6b695c;margin-bottom:8px;">S3 · Tisch — Kassieren (Zahlung)</div>
+        <div data-screen-label="S3 Kassieren" style="width:390px;height:844px;background:#fff;border-radius:20px;box-shadow:0 0 0 1px rgba(12,12,9,0.08),0 16px 40px rgba(12,12,9,0.14);overflow:hidden;position:relative;">
+          <div style="height:56px;border-bottom:1px solid #e8e7e0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+            <span style="display:flex;align-items:center;gap:4px;font-size:14px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Meine Tische</span>
+            <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
+          </div>
+          <div style="padding:8px 16px 0 16px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+              <div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;line-height:1.2;">Tisch 12</div>
+                <div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span style="height:20px;display:inline-flex;align-items:center;padding:0 8px;border-radius:99px;background:rgba(194,42,32,0.08);color:#c22a20;font-size:12px;font-weight:500;">4 unbezahlt</span>
+                  <span style="font-size:14px;color:#6b695c;">Für dich noch offen</span>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6b695c;">Offen</div>
+                <div style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;">46,50&nbsp;€</div>
+              </div>
+            </div>
+            <div style="margin:16px 0;display:flex;flex-direction:column;gap:12px;">
+              <div style="height:44px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(0,122,85,0.5);background:rgba(0,122,85,0.05);border-radius:7px;font-size:14px;font-weight:500;color:#007a55;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>
+                Alle 3 Positionen auswählen · 28,50&nbsp;€
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:14px;border:1px solid rgba(0,122,85,0.6);background:rgba(0,122,85,0.05);border-radius:5px;padding:14px 16px;">
+                  <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:500;">Pommes groß</div><div style="font-size:13px;font-weight:500;color:rgba(0,122,85,0.8);">2 von 2 ausgewählt · 9,00&nbsp;€</div></div>
+                  <span style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:44px;height:44px;border-radius:99px;border:1px solid #e8e7e0;background:#fff;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg></span>
+                    <span style="width:28px;text-align:center;font-size:17px;font-weight:700;">2</span>
+                    <span style="width:44px;height:44px;border-radius:99px;background:#e5e4da;color:#57554a;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:14px;border:1px solid #e8e7e0;border-radius:5px;padding:14px 16px;">
+                  <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:500;">Bratwurst im Weckle</div><div style="font-size:13px;color:#6b695c;">1 unbezahlt · 4,00&nbsp;€</div></div>
+                  <span style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:44px;height:44px;border-radius:99px;border:1px solid #e8e7e0;display:flex;align-items:center;justify-content:center;opacity:0.5;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg></span>
+                    <span style="width:28px;text-align:center;font-size:17px;font-weight:700;">0</span>
+                    <span style="width:44px;height:44px;border-radius:99px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:14px;border:1px solid rgba(0,122,85,0.6);background:rgba(0,122,85,0.05);border-radius:5px;padding:14px 16px;">
+                  <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:500;">Spezi 0,5 l</div><div style="font-size:13px;font-weight:500;color:rgba(0,122,85,0.8);">1 von 2 ausgewählt · 4,00&nbsp;€</div></div>
+                  <span style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:44px;height:44px;border-radius:99px;border:1px solid #e8e7e0;background:#fff;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg></span>
+                    <span style="width:28px;text-align:center;font-size:17px;font-weight:700;">1</span>
+                    <span style="width:44px;height:44px;border-radius:99px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></span>
+                  </span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;">
+                <span style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:#6b695c;">Von anderen · 2</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b695c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+              </div>
+              <div style="font-size:13px;color:#6b695c;">Hefeweizen 0,5 l, Brezel · 12,50&nbsp;€</div>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;border-top:1px solid #e8e7e0;background:#fff;padding:12px 16px 16px 16px;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;color:#6b695c;">
+              <span>Nach dieser Zahlung noch offen</span>
+              <span style="font-weight:600;color:#0c0c09;font-variant-numeric:tabular-nums;">33,50&nbsp;€</span>
+            </div>
+            <div style="height:56px;border-radius:5px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;box-shadow:0 8px 20px rgba(12,12,9,0.18);">
+              <span style="display:flex;align-items:center;gap:8px;"><span style="background:rgba(236,253,245,0.2);border-radius:99px;padding:2px 8px;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;">3</span><span style="font-weight:500;">Kassieren</span></span>
+              <span style="font-weight:700;font-variant-numeric:tabular-nums;">13,00&nbsp;€</span>
+            </div>
+            <div style="height:40px;background:#f4f4f0;border-radius:8px;padding:3px;display:flex;color:#6b695c;">
+              <span style="flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;">Bestellen</span>
+              <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:5px;box-shadow:0 1px 2px rgba(12,12,9,0.08);color:#0c0c09;font-size:14px;font-weight:500;">Kassieren</span>
+              <span style="flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;">Historie</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S4 Kassieren Drawer -->
+      <div>
+        <div style="font:500 12px Inter,sans-serif;color:#6b695c;margin-bottom:8px;">S4 · Kassieren — Bottom-Sheet (ZahlungAbschluss)</div>
+        <div data-screen-label="S4 Kassieren-Drawer" style="width:390px;height:844px;background:#fff;border-radius:20px;box-shadow:0 0 0 1px rgba(12,12,9,0.08),0 16px 40px rgba(12,12,9,0.14);overflow:hidden;position:relative;">
+          <div style="height:56px;border-bottom:1px solid #e8e7e0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;opacity:0.6;">
+            <span style="display:flex;align-items:center;gap:4px;font-size:14px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Meine Tische</span>
+            <span style="width:44px;height:44px;"></span>
+          </div>
+          <div style="padding:8px 16px;opacity:0.6;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;">Tisch 12</div>
+          </div>
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,0.1);backdrop-filter:blur(2px);"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;max-height:85%;background:#fff;border-top:1px solid #e8e7e0;border-radius:11px 11px 0 0;display:flex;flex-direction:column;">
+            <div style="padding:16px;text-align:center;">
+              <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:#6b695c;">Zahlung für</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;margin-top:2px;">Tisch 12</div>
+            </div>
+            <div style="padding:8px 16px 0 16px;display:flex;flex-direction:column;gap:8px;font-size:14px;">
+              <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e8e7e0;padding-bottom:8px;"><span>2 x Pommes groß</span><span>9,00&nbsp;€</span></div>
+              <div style="display:flex;justify-content:space-between;padding-bottom:8px;"><span>1 x Spezi 0,5 l</span><span>4,00&nbsp;€</span></div>
+              <div style="display:flex;justify-content:space-between;border-top:2px solid #0c0c09;padding:8px 0 4px 0;font-weight:700;"><span>Gesamt</span><span>13,00&nbsp;€</span></div>
+            </div>
+            <div style="padding:12px 16px 0 16px;display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                <span style="font-size:14px;font-weight:500;">Erhalten</span>
+                <span style="position:relative;width:112px;"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:#6b695c;">€</span><span style="display:flex;align-items:center;height:36px;border:1px solid #8d8b7c;border-radius:5px;padding-left:28px;font-size:16px;">20,00</span></span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                <span style="font-size:14px;font-weight:500;">Zahlbetrag inkl. Trinkgeld</span>
+                <span style="position:relative;width:112px;"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:#6b695c;">€</span><span style="display:flex;align-items:center;height:36px;border:1px solid #8d8b7c;border-radius:5px;padding-left:28px;font-size:16px;color:#6b695c;">0,00</span></span>
+              </div>
+              <p style="font-size:12px;color:#6b695c;margin:0;line-height:1.5;">Nur ausfüllen, wenn der Gast aufrundet: den vollen Betrag inklusive Trinkgeld eintragen, dann rechnet die Kasse das Rückgeld passend.</p>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;padding-top:4px;">
+                <span style="font-size:15px;font-weight:600;">Rückgeld</span>
+                <span style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;">7,00&nbsp;€</span>
+              </div>
+            </div>
+            <div style="padding:12px 16px 0 16px;">
+              <div style="border:1px solid #8d8b7c;border-radius:5px;min-height:70px;padding:8px 10px;font-size:14px;color:#6b695c;">Kommentar (optional)</div>
+            </div>
+            <div style="padding:16px;display:flex;flex-direction:column;gap:8px;">
+              <div style="height:36px;border-radius:5px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;">Kassieren</div>
+              <div style="height:36px;border-radius:5px;border:1px solid #e8e7e0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;">Abbrechen</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S5 Historie -->
+      <div>
+        <div style="font:500 12px Inter,sans-serif;color:#6b695c;margin-bottom:8px;">S5 · Tisch — Historie (TischHistorie)</div>
+        <div data-screen-label="S5 Historie" style="width:390px;height:844px;background:#fff;border-radius:20px;box-shadow:0 0 0 1px rgba(12,12,9,0.08),0 16px 40px rgba(12,12,9,0.14);overflow:hidden;position:relative;">
+          <div style="height:56px;border-bottom:1px solid #e8e7e0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+            <span style="display:flex;align-items:center;gap:4px;font-size:14px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>Meine Tische</span>
+            <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
+          </div>
+          <div style="padding:8px 16px 0 16px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+              <div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;line-height:1.2;">Tisch 12</div>
+                <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+                  <span style="height:20px;display:inline-flex;align-items:center;padding:0 8px;border-radius:99px;background:rgba(194,42,32,0.08);color:#c22a20;font-size:12px;font-weight:500;">4 unbezahlt</span>
+                  <span style="font-size:14px;color:#6b695c;">Für dich noch offen</span>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;color:#6b695c;">Offen</div>
+                <div style="font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;">46,50&nbsp;€</div>
+              </div>
+            </div>
+            <div style="margin:16px 0;display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:12px;border:1px solid #e8e7e0;background:#fff;border-radius:5px;padding:12px;">
+                <span style="width:40px;height:40px;border-radius:99px;background:rgba(0,122,85,0.1);color:#007a55;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;"><span style="font-size:15px;font-weight:500;">Bestellung</span><span style="font-size:14px;color:#6b695c;">vor 5 min · anna</span></span>
+                <span style="font-size:15px;font-weight:700;color:#059669;font-variant-numeric:tabular-nums;">+13,00 €</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b695c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;border:1px solid #e8e7e0;background:#fff;border-radius:5px;padding:12px;">
+                <span style="width:40px;height:40px;border-radius:99px;background:#f4f4f0;color:#6b695c;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01"></path><path d="M18 12h.01"></path></svg></span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;"><span style="font-size:15px;font-weight:500;">Zahlung</span><span style="font-size:14px;color:#6b695c;">vor 12 min · anna</span></span>
+                <span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;">-18,50 €</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b695c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;border:1px solid #e8e7e0;background:#fff;border-radius:5px;padding:12px;">
+                <span style="width:40px;height:40px;border-radius:99px;background:rgba(194,42,32,0.08);color:#c22a20;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg></span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;"><span style="font-size:15px;font-weight:500;">Korrektur</span><span style="font-size:14px;color:#6b695c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">vor 1 Std · max · „Falsch gebucht“</span></span>
+                <span style="font-size:15px;font-weight:700;color:#c22a20;font-variant-numeric:tabular-nums;">-3,50 €</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b695c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;border:1px solid #e8e7e0;background:#fff;border-radius:5px;padding:12px;">
+                <span style="width:40px;height:40px;border-radius:99px;background:#f4f4f0;color:#6b695c;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"></path><path d="M20 7H4"></path><path d="m8 21-4-4 4-4"></path><path d="M4 17h16"></path></svg></span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;"><span style="font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Umbuchung von Tisch 7</span><span style="font-size:14px;color:#6b695c;">18:12 · lena</span></span>
+                <span style="font-size:15px;font-weight:700;color:#059669;font-variant-numeric:tabular-nums;">+8,00 €</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b695c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+              </div>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;border-top:1px solid #e8e7e0;background:#fff;padding:12px 16px 16px 16px;">
+            <div style="height:40px;background:#f4f4f0;border-radius:8px;padding:3px;display:flex;color:#6b695c;">
+              <span style="flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;">Bestellen</span>
+              <span style="flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;">Kassieren</span>
+              <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:5px;box-shadow:0 1px 2px rgba(12,12,9,0.08);color:#0c0c09;font-size:14px;font-weight:500;">Historie</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div style="font:600 13px 'Space Grotesk',sans-serif;color:#6b695c;letter-spacing:0.06em;text-transform:uppercase;">Admin — Desktop 1440 px (62 % skaliert)</div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;">
+
+      <!-- A1 Übersicht -->
+      <div>
+        <div style="font:500 12px Inter,sans-serif;color:#6b695c;margin-bottom:8px;">A1 · Übersicht (AdminDashboardPage / LiveReporting)</div>
+        <div style="width:893px;height:558px;overflow:hidden;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08),0 16px 40px rgba(12,12,9,0.14);">
+          <div data-screen-label="A1 Übersicht" style="width:1440px;height:900px;transform:scale(0.62);transform-origin:top left;background:#fff;display:flex;">
+            <div style="width:256px;flex-shrink:0;background:#fbfbf9;border-right:1px solid #e8e7e0;display:flex;flex-direction:column;padding:12px 8px;gap:12px;">
+              <div style="padding:0 8px;display:flex;flex-direction:column;gap:12px;">
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;background:linear-gradient(100deg,#d24a2a,#c8781e,#4f9636,#1f9b8a,#2f6fc4,#8b3fc0);-webkit-background-clip:text;background-clip:text;color:transparent;width:fit-content;">jotti</span>
+                <div style="border:1px solid #e8e7e0;background:#fff;border-radius:7px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;box-shadow:0 1px 2px rgba(12,12,9,0.05);">
+                  <span style="font-size:14px;font-weight:600;">Sommerfest Tag 1</span>
+                  <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b695c;"><span style="width:7px;height:7px;border-radius:99px;background:#007a55;"></span>Kasse offen · seit 10:02</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <div style="padding:6px 8px;font-size:12px;color:#6b695c;font-weight:500;">Heute</div>
+                <div style="position:relative;display:flex;align-items:center;gap:8px;padding:0 8px;height:32px;border-radius:5px;background:#f4f4f0;font-size:14px;font-weight:500;"><span style="position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:2px;background:linear-gradient(180deg,#d24a2a,#4f9636,#8b3fc0);opacity:0.6;"></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>Übersicht</div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 8px;height:32px;border-radius:5px;font-size:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path></svg><span style="flex:1;">Kassentag</span><span style="width:7px;height:7px;border-radius:99px;background:#007a55;"></span></div>
+                <div style="padding:6px 8px;font-size:12px;color:#6b695c;font-weight:500;margin-top:8px;">Vorbereitung</div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 8px;height:32px;border-radius:5px;font-size:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>Produkte &amp; Preise</div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 8px;height:32px;border-radius:5px;font-size:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8l4 10H4L8 2Z"></path><path d="M12 12v6"></path><path d="M8 22v-2c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v2H8Z"></path></svg>Tische</div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 8px;height:32px;border-radius:5px;font-size:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Helfer &amp; Zugänge</div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 8px;height:32px;border-radius:5px;font-size:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg><span style="flex:1;">Bondrucker</span><span style="width:7px;height:7px;border-radius:99px;background:#c22a20;"></span></div>
+                <div style="padding:6px 8px;font-size:12px;color:#6b695c;font-weight:500;margin-top:8px;">Nach dem Fest</div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 8px;height:32px;border-radius:5px;font-size:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>Berichte &amp; Export</div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 8px;height:32px;border-radius:5px;font-size:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="22" y2="22"></line><line x1="6" x2="6" y1="18" y2="11"></line><line x1="10" x2="10" y1="18" y2="11"></line><line x1="14" x2="14" y1="18" y2="11"></line><line x1="18" x2="18" y1="18" y2="11"></line><polygon points="12 2 20 7 4 7"></polygon></svg>Finanzamt &amp; TSE</div>
+                <div style="padding:6px 8px;font-size:12px;color:#6b695c;font-weight:500;margin-top:8px;">Service</div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 8px;height:32px;border-radius:5px;font-size:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>Zum Service-Bereich</div>
+              </div>
+              <div style="margin-top:auto;display:flex;flex-direction:column;gap:2px;">
+                <div style="display:flex;align-items:center;gap:8px;padding:0 8px;height:32px;border-radius:5px;font-size:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>Design wechseln</div>
+                <div style="display:flex;align-items:center;gap:8px;padding:0 8px;height:32px;border-radius:5px;font-size:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>Abmelden</div>
+                <p style="text-align:center;font-size:14px;color:#6b695c;margin:8px 0 0 0;">jotti 1.0.0-beta</p>
+                <p style="text-align:center;font-size:14px;color:#6b695c;margin:4px 0 0 0;">Entwickelt von Nico Gräf</p>
+              </div>
+            </div>
+            <div style="flex:1;padding:24px 48px;display:flex;flex-direction:column;gap:24px;overflow:hidden;">
+              <div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+                <div style="position:absolute;top:-70px;left:-40px;width:460px;height:200px;opacity:0.18;filter:blur(52px);background:radial-gradient(ellipse at 20% 40%,rgba(31,155,138,0.4),transparent 60%),radial-gradient(ellipse at 70% 60%,rgba(139,63,192,0.28),transparent 60%);pointer-events:none;"></div>
+                <div style="position:relative;">
+                  <h1 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;line-height:32px;margin:0;">Übersicht</h1>
+                  <p style="margin:4px 0 0 0;font-size:14px;color:#6b695c;"><strong style="color:#0c0c09;">Samstag, 11. Juli 2026</strong> Sommerfest Tag 1</p>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6b695c;white-space:nowrap;"><span style="width:7px;height:7px;border-radius:99px;background:#007a55;box-shadow:0 0 0 4px rgba(0,122,85,0.15);"></span>Live · aktualisiert 14:32</span>
+                  <span style="height:32px;display:inline-flex;align-items:center;gap:6px;border:1px solid #e8e7e0;border-radius:5px;padding:0 10px;font-size:14px;font-weight:500;box-shadow:0 1px 2px rgba(12,12,9,0.05);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Jetzt</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                <div style="display:flex;align-items:center;gap:10px;border:1px solid #e8e7e0;border-radius:7px;padding:12px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#007a55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>
+                  <div style="min-width:0;"><div style="font-size:13px;font-weight:600;">Kasse offen</div><div style="font-size:12px;color:#6b695c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">seit 10:02 · Soll-Bestand 843,50 €</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;border:1px solid #e8e7e0;border-radius:7px;padding:12px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#007a55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                  <div style="min-width:0;"><div style="font-size:13px;font-weight:600;">TSE signiert</div><div style="font-size:12px;color:#6b695c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">2 Vorgänge in Warteschlange (normal)</div></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(194,42,32,0.4);background:rgba(194,42,32,0.04);border-radius:7px;padding:12px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c22a20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+                  <div style="min-width:0;flex:1;"><div style="font-size:13px;font-weight:600;color:#c22a20;">1 Bon nicht gedruckt</div><div style="font-size:12px;color:#6b695c;">Drucker prüfen</div></div>
+                  <span style="height:28px;display:inline-flex;align-items:center;border-radius:5px;background:rgba(194,42,32,0.1);color:#c22a20;padding:0 10px;font-size:12px;font-weight:500;">Beheben</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;">
+                <div style="position:relative;display:flex;flex-direction:column;gap:6px;background:#fff;border-radius:11px;padding:20px;box-shadow:0 0 0 1px rgba(12,12,9,0.1),0 1px 2px rgba(12,12,9,0.05);overflow:hidden;">
+                  <span style="position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(100deg,#d24a2a,#c8781e,#4f9636,#1f9b8a,#2f6fc4,#8b3fc0);opacity:0.6;"></span>
+                  <span style="font-size:14px;font-weight:500;color:#6b695c;">Kassierter Umsatz</span>
+                  <span style="font-size:30px;font-weight:800;letter-spacing:-0.02em;white-space:nowrap;font-variant-numeric:tabular-nums;">1.402,50&nbsp;€</span>
+                  <span style="font-size:12px;color:#6b695c;">bereits bezahlt, Stornos abgezogen</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;background:#fff;border-radius:11px;padding:20px;box-shadow:0 0 0 1px rgba(12,12,9,0.1),0 1px 2px rgba(12,12,9,0.05);">
+                  <span style="font-size:14px;font-weight:500;color:#6b695c;">Noch offen</span>
+                  <span style="font-size:22px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;">126,50&nbsp;€</span>
+                  <span style="font-size:12px;color:#6b695c;">auf 7 Tischen bestellt, noch nicht bezahlt</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;background:#fff;border-radius:11px;padding:20px;box-shadow:0 0 0 1px rgba(12,12,9,0.1),0 1px 2px rgba(12,12,9,0.05);">
+                  <span style="font-size:14px;font-weight:500;color:#6b695c;">Bestellt gesamt</span>
+                  <span style="font-size:22px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;">1.529,00&nbsp;€</span>
+                  <span style="font-size:12px;color:#6b695c;">bezahlt + offen zusammen</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;background:#fff;border-radius:11px;padding:20px;box-shadow:0 0 0 1px rgba(12,12,9,0.1),0 1px 2px rgba(12,12,9,0.05);">
+                  <span style="font-size:14px;font-weight:500;color:#6b695c;">Direktverkauf</span>
+                  <span style="font-size:22px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;">412,00&nbsp;€</span>
+                  <span style="font-size:12px;color:#6b695c;">37 Verkäufe ohne Tisch</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;background:#fff;border-radius:11px;padding:20px;box-shadow:0 0 0 1px rgba(12,12,9,0.1),0 1px 2px rgba(12,12,9,0.05);">
+                  <span style="font-size:14px;font-weight:500;color:#6b695c;">Storniert</span>
+                  <span style="font-size:22px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;">23,00&nbsp;€</span>
+                  <span style="font-size:12px;color:#6b695c;">4 Stornierungen</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div style="border:1px solid #e8e7e0;border-radius:11px;padding:20px;">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;">
+                    <h2 style="font-size:16px;font-weight:600;margin:0;">Offene Tische</h2>
+                    <span style="font-size:14px;color:#6b695c;">7 Tische · 126,50&nbsp;€</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;font-size:14px;">
+                    <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e8e7e0;padding:8px 0;"><span>Stammtisch</span><span style="font-weight:600;">62,00&nbsp;€</span></div>
+                    <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e8e7e0;padding:8px 0;"><span>Tisch 12</span><span style="font-weight:600;">46,50&nbsp;€</span></div>
+                    <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e8e7e0;padding:8px 0;"><span>Tisch 7</span><span style="font-weight:600;">18,00&nbsp;€</span></div>
+                    <div style="padding-top:8px;font-size:14px;font-weight:500;color:#007a55;">Alle 7 anzeigen</div>
+                  </div>
+                </div>
+                <div style="border:1px solid #e8e7e0;border-radius:11px;padding:20px;">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;">
+                    <h2 style="font-size:16px;font-weight:600;margin:0;">Team</h2>
+                    <span style="font-size:14px;color:#6b695c;">3 Servicekräfte aktiv</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;font-size:14px;">
+                    <div style="display:flex;align-items:center;gap:12px;border-bottom:1px solid #e8e7e0;padding:10px 0;">
+                      <div style="flex:1;min-width:0;"><div style="font-weight:500;">anna — Anna K.</div><div style="font-size:12px;color:#6b695c;">Offen: <span style="font-weight:500;">46,50&nbsp;€</span> auf 2 Tischen (Tisch 12, Stammtisch) · <span style="font-weight:500;color:#c22a20;">1 Storno</span></div></div>
+                      <span style="font-weight:600;white-space:nowrap;">612,00&nbsp;€</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;border-bottom:1px solid #e8e7e0;padding:10px 0;">
+                      <div style="flex:1;min-width:0;"><div style="font-weight:500;">max — Max B.</div><div style="font-size:12px;font-weight:500;color:#007a55;">Alles abgerechnet</div></div>
+                      <span style="font-weight:600;white-space:nowrap;">488,50&nbsp;€</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;">
+                      <div style="flex:1;min-width:0;"><div style="font-weight:500;">lena — Lena S.</div><div style="font-size:12px;color:#6b695c;">Offen: <span style="font-weight:500;">80,00&nbsp;€</span> auf 5 Tischen</div></div>
+                      <span style="font-weight:600;white-space:nowrap;">302,00&nbsp;€</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="border:1px solid #e8e7e0;border-radius:7px;display:flex;align-items:center;gap:12px;padding:12px 16px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c22a20" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path></svg>
+                <p style="flex:1;margin:0;font-size:14px;"><strong>4 Stornierungen</strong> · 23,00&nbsp;€</p>
+                <span style="height:32px;display:inline-flex;align-items:center;gap:6px;border:1px solid #e8e7e0;border-radius:5px;padding:0 10px;font-size:14px;font-weight:500;">Details <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A2 Kassentag -->
+      <div>
+        <div style="font:500 12px Inter,sans-serif;color:#6b695c;margin-bottom:8px;">A2 · Kassentag (KassensitzungPage)</div>
+        <div style="width:893px;height:558px;overflow:hidden;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08),0 16px 40px rgba(12,12,9,0.14);">
+          <div data-screen-label="A2 Kassentag" style="width:1440px;height:900px;transform:scale(0.62);transform-origin:top left;background:#fff;display:flex;">
+            <div style="width:256px;flex-shrink:0;background:#fbfbf9;border-right:1px solid #e8e7e0;padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;background:linear-gradient(100deg,#d24a2a,#c8781e,#4f9636,#1f9b8a,#2f6fc4,#8b3fc0);-webkit-background-clip:text;background-clip:text;color:transparent;width:fit-content;">jotti</span>
+              <div style="border:1px solid #e8e7e0;background:#fff;border-radius:7px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;"><span style="font-size:14px;font-weight:600;">Sommerfest Tag 1</span><span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b695c;"><span style="width:7px;height:7px;border-radius:99px;background:#007a55;"></span>Kasse offen · seit 10:02</span></div>
+              <div style="font-size:14px;display:flex;flex-direction:column;gap:8px;color:#6b695c;">
+                <span>Übersicht</span><span style="position:relative;padding-left:8px;color:#0c0c09;font-weight:500;background:#f4f4f0;border-radius:5px;padding:6px 8px;">Kassentag</span><span>Produkte &amp; Preise</span><span>Tische</span><span>Helfer &amp; Zugänge</span><span>Bondrucker</span><span>Berichte &amp; Export</span><span>Finanzamt &amp; TSE</span>
+              </div>
+            </div>
+            <div style="flex:1;padding:24px 48px;overflow:hidden;">
+              <h1 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;margin:0;">Kassentag Nr. 5 — Sommerfest Tag 1</h1>
+              <p style="margin:4px 0 0 0;font-size:14px;color:#6b695c;">Samstag, 11. Juli 2026 · Ein Kassentag läuft von der Eröffnung bis zum Tagesabschluss (Z-Bon).</p>
+              <div style="margin-top:24px;max-width:896px;display:flex;flex-direction:column;gap:16px;">
+                <div style="display:flex;gap:16px;">
+                  <div style="width:28px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+                    <span style="width:28px;height:28px;border-radius:99px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+                    <span style="margin-top:4px;width:2px;flex:1;background:#e8e7e0;"></span>
+                  </div>
+                  <div style="flex:1;background:rgba(244,244,240,0.3);border-radius:11px;box-shadow:0 0 0 1px rgba(12,12,9,0.1);padding:16px 24px;">
+                    <div style="font-size:14px;font-weight:600;">1 · Kasse eröffnet</div>
+                    <p style="margin:2px 0 0 0;font-size:14px;color:#6b695c;">11. Juli 2026, 10:02 · Wechselgeld (Anfangsbestand): 150,00 €</p>
+                  </div>
+                </div>
+                <div style="display:flex;gap:16px;">
+                  <div style="width:28px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+                    <span style="width:28px;height:28px;border-radius:99px;border:2px solid #007a55;color:#007a55;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">2</span>
+                    <span style="margin-top:4px;width:2px;flex:1;background:#e8e7e0;"></span>
+                  </div>
+                  <div style="flex:1;background:#fff;border-radius:11px;box-shadow:0 0 0 1px rgba(12,12,9,0.1);padding:24px;">
+                    <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:500;margin-bottom:16px;">2 · Laufender Betrieb</div>
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+                      <p style="margin:0;font-size:14px;color:#6b695c;">So viel Bargeld müsste jetzt rechnerisch in der Kasse liegen:</p>
+                      <div style="text-align:right;"><div style="font-size:30px;font-weight:800;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;">843,50&nbsp;€</div><div style="font-size:12px;color:#6b695c;">Soll-Bestand · Stand 14:32</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px;">
+                      <div style="background:rgba(244,244,240,0.6);border-radius:7px;padding:10px 12px;"><div style="font-size:12px;color:#6b695c;">Anfangsbestand</div><div style="margin-top:2px;font-size:14px;font-weight:600;">150,00&nbsp;€</div></div>
+                      <div style="background:rgba(244,244,240,0.6);border-radius:7px;padding:10px 12px;"><div style="font-size:12px;color:#6b695c;">+ Bareinnahmen</div><div style="margin-top:2px;font-size:14px;font-weight:600;">745,50&nbsp;€</div></div>
+                      <div style="background:rgba(244,244,240,0.6);border-radius:7px;padding:10px 12px;"><div style="font-size:12px;color:#6b695c;">+ Einlagen</div><div style="margin-top:2px;font-size:14px;font-weight:600;">0,00&nbsp;€</div></div>
+                      <div style="background:rgba(244,244,240,0.6);border-radius:7px;padding:10px 12px;"><div style="font-size:12px;color:#6b695c;">− Entnahmen</div><div style="margin-top:2px;font-size:14px;font-weight:600;">52,00&nbsp;€</div></div>
+                    </div>
+                    <div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                      <span style="font-size:14px;font-weight:600;">Heutige Kassenbewegungen</span>
+                      <span style="display:flex;gap:8px;">
+                        <span style="height:32px;display:inline-flex;align-items:center;gap:4px;border:1px solid #e8e7e0;border-radius:5px;padding:0 10px;font-size:14px;font-weight:500;">+ Geld einlegen</span>
+                        <span style="height:32px;display:inline-flex;align-items:center;gap:4px;border:1px solid #e8e7e0;border-radius:5px;padding:0 10px;font-size:14px;font-weight:500;">− Geld entnehmen</span>
+                      </span>
+                    </div>
+                    <div style="margin-top:8px;border:1px solid #e8e7e0;border-radius:7px;overflow:hidden;">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 14px;font-size:14px;"><span style="color:#6b695c;">12:31 · Entnahme · „Abschöpfung Tresor“ · admin</span><span style="font-weight:600;color:#c22a20;">− 52,00&nbsp;€</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:16px;">
+                  <div style="width:28px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+                    <span style="width:28px;height:28px;border-radius:99px;border:2px solid #007a55;color:#007a55;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;">3</span>
+                  </div>
+                  <div style="flex:1;background:#fff;border-radius:11px;box-shadow:0 0 0 1px rgba(12,12,9,0.1);padding:24px;">
+                    <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:500;">3 · Am Ende des Tages: Kasse abschließen</div>
+                    <p style="margin:8px 0 0 0;font-size:14px;color:#6b695c;">Bargeld zählen, Betrag eintragen — Kassensturz und Tagesabschluss (Z-Bon) werden in einem Schritt gebucht. Das lässt sich nicht rückgängig machen.</p>
+                    <div style="margin-top:16px;border:1px solid #e8e7e0;border-radius:7px;padding:16px;display:flex;flex-direction:column;gap:16px;">
+                      <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;">
+                        <div><div style="font-size:14px;font-weight:500;margin-bottom:4px;">Gezählter Ist-Bestand</div><span style="position:relative;display:block;width:176px;"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:#6b695c;">€</span><span style="display:flex;align-items:center;height:36px;border:1px solid #8d8b7c;border-radius:5px;padding-left:28px;font-size:16px;color:#6b695c;">z.B. 342,50</span></span></div>
+                        <span style="height:36px;display:inline-flex;align-items:center;gap:6px;border:1px solid #e8e7e0;border-radius:5px;padding:0 10px;font-size:14px;font-weight:500;">Zählhilfe öffnen</span>
+                      </div>
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #e8e7e0;padding-top:16px;flex-wrap:wrap;">
+                        <div style="display:flex;gap:24px;font-size:14px;">
+                          <div style="text-align:right;"><div style="color:#6b695c;">Soll</div><div style="font-size:16px;font-weight:600;">843,50&nbsp;€</div></div>
+                          <div style="text-align:right;"><div style="color:#6b695c;">Gezählt</div><div style="font-size:16px;font-weight:600;">0,00&nbsp;€</div></div>
+                          <div style="text-align:right;"><div style="color:#6b695c;">Differenz</div><div style="font-size:16px;font-weight:700;color:#c22a20;">-843,50&nbsp;€</div></div>
+                        </div>
+                        <span style="height:36px;display:inline-flex;align-items:center;border-radius:5px;background:#f59e0b;color:#451a03;padding:0 12px;font-size:14px;font-weight:500;box-shadow:0 1px 2px rgba(12,12,9,0.1);">Kasse endgültig abschließen…</span>
+                      </div>
+                      <span style="font-size:12px;color:#6b695c;">Kleine Differenzen sind normal und werden automatisch dokumentiert.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A3 Produkte -->
+      <div>
+        <div style="font:500 12px Inter,sans-serif;color:#6b695c;margin-bottom:8px;">A3 · Produkte &amp; Preise (AdminProductsPage)</div>
+        <div style="width:893px;height:558px;overflow:hidden;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08),0 16px 40px rgba(12,12,9,0.14);">
+          <div data-screen-label="A3 Produkte" style="width:1440px;height:900px;transform:scale(0.62);transform-origin:top left;background:#fff;display:flex;">
+            <div style="width:256px;flex-shrink:0;background:#fbfbf9;border-right:1px solid #e8e7e0;padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;background:linear-gradient(100deg,#d24a2a,#c8781e,#4f9636,#1f9b8a,#2f6fc4,#8b3fc0);-webkit-background-clip:text;background-clip:text;color:transparent;width:fit-content;">jotti</span>
+              <div style="border:1px solid #e8e7e0;background:#fff;border-radius:7px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;"><span style="font-size:14px;font-weight:600;">Sommerfest Tag 1</span><span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b695c;"><span style="width:7px;height:7px;border-radius:99px;background:#007a55;"></span>Kasse offen · seit 10:02</span></div>
+              <div style="font-size:14px;display:flex;flex-direction:column;gap:8px;color:#6b695c;">
+                <span>Übersicht</span><span>Kassentag</span><span style="color:#0c0c09;font-weight:500;background:#f4f4f0;border-radius:5px;padding:6px 8px;">Produkte &amp; Preise</span><span>Tische</span><span>Helfer &amp; Zugänge</span><span>Bondrucker</span><span>Berichte &amp; Export</span><span>Finanzamt &amp; TSE</span>
+              </div>
+            </div>
+            <div style="flex:1;padding:24px 48px;overflow:hidden;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+                <div>
+                  <h1 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;margin:0;">Produkte &amp; Preise</h1>
+                  <p style="margin:4px 0 0 0;font-size:14px;color:#6b695c;">6 Produkte · 11 Varianten · Änderungen wirken sofort auf allen Service-Handys</p>
+                </div>
+                <span style="height:36px;display:inline-flex;align-items:center;gap:6px;border-radius:5px;background:#007a55;color:#ecfdf5;padding:0 12px;font-size:14px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Neues Produkt</span>
+              </div>
+              <div style="margin-top:24px;display:flex;flex-direction:column;gap:32px;">
+                <section>
+                  <h2 style="margin:0 0 8px 0;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b695c;">Essen <span style="font-weight:400;text-transform:none;letter-spacing:normal;">· 7 % USt. (ermäßigt) · Bons an Station „Essen“</span></h2>
+                  <div style="border:1px solid #e8e7e0;border-radius:7px;padding:0 16px;">
+                    <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 16px;border-bottom:1px solid #e8e7e0;padding:12px 0;">
+                      <span style="min-width:128px;flex-shrink:0;padding-top:4px;font-weight:500;font-size:14px;">Pommes</span>
+                      <div style="flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+                        <span style="display:inline-flex;align-items:center;gap:8px;border:1px solid #e8e7e0;background:#fff;border-radius:99px;padding:4px 8px 4px 12px;font-size:14px;"><span style="font-weight:500;">klein</span><span style="font-size:14px;font-weight:600;">3,50&nbsp;€</span><span style="width:28px;height:16px;border-radius:99px;background:#007a55;position:relative;"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff;"></span></span></span>
+                        <span style="display:inline-flex;align-items:center;gap:8px;border:1px solid #e8e7e0;background:#fff;border-radius:99px;padding:4px 8px 4px 12px;font-size:14px;"><span style="font-weight:500;">groß</span><span style="font-size:14px;font-weight:600;">4,50&nbsp;€</span><span style="width:28px;height:16px;border-radius:99px;background:#007a55;position:relative;"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff;"></span></span></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;border:1px dashed #8d8b7c;border-radius:99px;height:32px;padding:0 12px;font-size:14px;color:#6b695c;">+ Variante</span>
+                      </div>
+                      <span style="display:flex;gap:4px;color:#6b695c;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 16px;padding:12px 0;">
+                      <span style="min-width:128px;flex-shrink:0;padding-top:4px;font-weight:500;font-size:14px;">Bratwurst</span>
+                      <div style="flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+                        <span style="display:inline-flex;align-items:center;gap:8px;border:1px solid #e8e7e0;background:#fff;border-radius:99px;padding:4px 8px 4px 12px;font-size:14px;"><span style="font-weight:500;">im Weckle</span><span style="font-size:14px;font-weight:600;">4,00&nbsp;€</span><span style="width:28px;height:16px;border-radius:99px;background:#007a55;position:relative;"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff;"></span></span></span>
+                        <span style="display:inline-flex;align-items:center;gap:8px;border:1px solid #e8e7e0;background:rgba(244,244,240,0.5);color:#6b695c;border-radius:99px;padding:4px 8px 4px 12px;font-size:14px;"><span style="font-weight:500;">vegan</span><span style="font-size:14px;font-weight:600;">4,50&nbsp;€</span><span style="font-size:12px;text-transform:uppercase;letter-spacing:0.04em;">aus</span><span style="width:28px;height:16px;border-radius:99px;background:#d5d4c8;position:relative;"><span style="position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff;"></span></span></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;border:1px dashed #8d8b7c;border-radius:99px;height:32px;padding:0 12px;font-size:14px;color:#6b695c;">+ Variante</span>
+                      </div>
+                      <span style="display:flex;gap:4px;color:#6b695c;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span>
+                    </div>
+                  </div>
+                </section>
+                <section>
+                  <h2 style="margin:0 0 8px 0;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b695c;">Getränke <span style="font-weight:400;text-transform:none;letter-spacing:normal;">· 19 % USt. (Regelsatz) · Bons an Station „Getränk“</span></h2>
+                  <div style="border:1px solid #e8e7e0;border-radius:7px;padding:0 16px;">
+                    <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 16px;border-bottom:1px solid #e8e7e0;padding:12px 0;">
+                      <span style="min-width:128px;flex-shrink:0;padding-top:4px;font-weight:500;font-size:14px;">Spezi</span>
+                      <div style="flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+                        <span style="display:inline-flex;align-items:center;gap:8px;border:1px solid #e8e7e0;background:#fff;border-radius:99px;padding:4px 8px 4px 12px;font-size:14px;"><span style="font-weight:500;">0,5 l</span><span style="font-size:14px;font-weight:600;">4,00&nbsp;€</span><span style="width:28px;height:16px;border-radius:99px;background:#007a55;position:relative;"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff;"></span></span></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;border:1px dashed #8d8b7c;border-radius:99px;height:32px;padding:0 12px;font-size:14px;color:#6b695c;">+ Variante</span>
+                      </div>
+                      <span style="display:flex;gap:4px;color:#6b695c;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 16px;padding:12px 0;">
+                      <span style="min-width:128px;flex-shrink:0;padding-top:4px;font-weight:500;font-size:14px;">Bier vom Fass</span>
+                      <div style="flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+                        <span style="display:inline-flex;align-items:center;gap:8px;border:1px solid #e8e7e0;background:#fff;border-radius:99px;padding:4px 8px 4px 12px;font-size:14px;"><span style="font-weight:500;">0,3 l</span><span style="font-size:14px;font-weight:600;">3,00&nbsp;€</span><span style="width:28px;height:16px;border-radius:99px;background:#007a55;position:relative;"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff;"></span></span></span>
+                        <span style="display:inline-flex;align-items:center;gap:8px;border:1px solid #e8e7e0;background:#fff;border-radius:99px;padding:4px 8px 4px 12px;font-size:14px;"><span style="font-weight:500;">0,5 l</span><span style="font-size:14px;font-weight:600;">4,50&nbsp;€</span><span style="width:28px;height:16px;border-radius:99px;background:#007a55;position:relative;"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff;"></span></span></span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;border:1px dashed #8d8b7c;border-radius:99px;height:32px;padding:0 12px;font-size:14px;color:#6b695c;">+ Variante</span>
+                      </div>
+                      <span style="display:flex;gap:4px;color:#6b695c;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span>
+                    </div>
+                  </div>
+                </section>
+                <div style="display:flex;gap:12px;border:1px solid #e8e7e0;background:#fbfbf9;border-radius:7px;padding:16px;font-size:14px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b695c" stroke-width="2" stroke-linecap="round" style="margin-top:2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                  <div style="color:#6b695c;line-height:1.6;"><strong style="color:#0c0c09;">Ausverkauft?</strong> Schalter aus statt löschen — die Variante verschwindet sofort von den Service-Handys, bleibt aber in allen Berichten. Löschen ist im „···“-Menü möglich.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A4 Finanzamt & TSE -->
+      <div>
+        <div style="font:500 12px Inter,sans-serif;color:#6b695c;margin-bottom:8px;">A4 · Finanzamt &amp; TSE (FinanzamtPage)</div>
+        <div style="width:893px;height:558px;overflow:hidden;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08),0 16px 40px rgba(12,12,9,0.14);">
+          <div data-screen-label="A4 Finanzamt und TSE" style="width:1440px;height:900px;transform:scale(0.62);transform-origin:top left;background:#fff;display:flex;">
+            <div style="width:256px;flex-shrink:0;background:#fbfbf9;border-right:1px solid #e8e7e0;padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;background:linear-gradient(100deg,#d24a2a,#c8781e,#4f9636,#1f9b8a,#2f6fc4,#8b3fc0);-webkit-background-clip:text;background-clip:text;color:transparent;width:fit-content;">jotti</span>
+              <div style="border:1px solid #e8e7e0;background:#fff;border-radius:7px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;"><span style="font-size:14px;font-weight:600;">Sommerfest Tag 1</span><span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b695c;"><span style="width:7px;height:7px;border-radius:99px;background:#007a55;"></span>Kasse offen · seit 10:02</span></div>
+              <div style="font-size:14px;display:flex;flex-direction:column;gap:8px;color:#6b695c;">
+                <span>Übersicht</span><span>Kassentag</span><span>Produkte &amp; Preise</span><span>Tische</span><span>Helfer &amp; Zugänge</span><span>Bondrucker</span><span>Berichte &amp; Export</span><span style="color:#0c0c09;font-weight:500;background:#f4f4f0;border-radius:5px;padding:6px 8px;">Finanzamt &amp; TSE</span>
+              </div>
+            </div>
+            <div style="flex:1;padding:24px 48px;overflow:hidden;display:flex;flex-direction:column;gap:20px;">
+              <div>
+                <h1 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;margin:0;">Finanzamt &amp; TSE</h1>
+                <p style="margin:4px 0 0 0;font-size:14px;color:#6b695c;">Technische Sicherheitseinrichtung und eure Pflichten gegenüber dem Finanzamt.</p>
+              </div>
+              <div style="background:#fff;border-radius:11px;box-shadow:0 0 0 1px rgba(12,12,9,0.1);padding:24px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;">
+                  <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:500;">Läuft alles?</div>
+                  <span style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:#007a55;"><span style="width:7px;height:7px;border-radius:99px;background:#007a55;"></span>Alles in Ordnung</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div style="border:1px solid #e8e7e0;border-radius:7px;padding:16px;display:flex;flex-direction:column;gap:4px;">
+                    <span style="font-size:14px;font-weight:600;">Signatur-Warteschlange</span>
+                    <span style="font-size:14px;color:#6b695c;line-height:1.6;">2 Vorgänge warten (ältester 4 s) — normal bei vollem Betrieb. Kein Vorgang fehlgeschlagen.</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#6b695c;margin-top:4px;">Technische Details <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></span>
+                  </div>
+                  <div style="border:1px solid #e8e7e0;border-radius:7px;padding:16px;display:flex;flex-direction:column;gap:4px;">
+                    <span style="font-size:14px;font-weight:600;">Störungsprotokoll</span>
+                    <span style="font-size:14px;color:#6b695c;line-height:1.6;">Keine dokumentierte Störung — die TSE-Signierung lief bisher ohne Ausfall.</span>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#fff;border-radius:11px;box-shadow:0 0 0 1px rgba(12,12,9,0.1);padding:24px;">
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:500;margin-bottom:16px;">Einrichtung — 2 von 3 Schritten erledigt</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                  <div style="border:1px solid #e8e7e0;background:#fbfbf9;border-radius:7px;padding:16px;display:flex;flex-direction:column;gap:6px;">
+                    <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#007a55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>1 · Vereinsdaten</span>
+                    <span style="font-size:14px;color:#6b695c;line-height:1.6;">TSV Musterhausen e.V., Hauptstraße 1, 71234 Musterhausen — steht auf jedem Beleg.</span>
+                    <span style="font-size:14px;font-weight:500;color:#007a55;">Bearbeiten</span>
+                  </div>
+                  <div style="border:1px solid #e8e7e0;background:#fbfbf9;border-radius:7px;padding:16px;display:flex;flex-direction:column;gap:6px;">
+                    <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#007a55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>2 · TSE aktiv</span>
+                    <span style="font-size:14px;color:#6b695c;line-height:1.6;">Cloud-TSE verbunden (Umgebung LIVE). Signiert jeden Vorgang automatisch.</span>
+                  </div>
+                  <div style="border:1px solid rgba(194,42,32,0.4);background:rgba(194,42,32,0.04);border-radius:7px;padding:16px;display:flex;gap:12px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c22a20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-top:2px;flex-shrink:0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+                    <div style="display:flex;flex-direction:column;gap:6px;min-width:0;">
+                      <span style="font-size:14px;font-weight:500;color:#c22a20;">3 · Kasse beim Finanzamt melden</span>
+                      <span style="font-size:14px;color:#6b695c;">Noch offen — Frist: innerhalb 1 Monat nach Inbetriebnahme, über ELSTER. <span style="font-size:12px;">(§ 146a Abs. 4 AO)</span></span>
+                      <span style="font-size:12px;font-weight:500;color:#6b695c;">Seriennummer des elektronischen Aufzeichnungssystems</span>
+                      <span style="display:flex;align-items:center;gap:6px;"><code style="min-width:0;flex:1;border:1px solid #e8e7e0;background:#fff;border-radius:5px;padding:4px 8px;font-size:12px;word-break:break-all;">9f3a52c1-7be4-4a90-b1de-30f22b1a77e4</code><span style="width:28px;height:28px;border:1px solid #e8e7e0;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></span></span>
+                      <span style="display:flex;gap:12px;font-size:14px;font-weight:500;"><span style="color:#007a55;">Anleitung öffnen</span><span style="color:#6b695c;">Als erledigt markieren</span></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#fff;border-radius:11px;box-shadow:0 0 0 1px rgba(12,12,9,0.1);padding:24px;">
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:500;margin-bottom:12px;">Gut zu wissen</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div style="border:1px solid #e8e7e0;border-radius:7px;padding:12px 16px;font-size:14px;"><span style="font-weight:500;text-decoration:underline;text-underline-offset:4px;">Leitfaden für Vereine</span><span style="display:block;color:#6b695c;">Eure Pflichten gegenüber dem Finanzamt, Schritt für Schritt.</span></div>
+                  <div style="border:1px solid #e8e7e0;border-radius:7px;padding:12px 16px;font-size:14px;"><span style="font-weight:500;">10 Jahre aufbewahren</span><span style="display:block;color:#6b695c;">Kassendaten regelmäßig sichern — auch nach dem Fest. <span style="font-size:12px;">(§ 147 AO)</span></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- A5 Helfer -->
+      <div>
+        <div style="font:500 12px Inter,sans-serif;color:#6b695c;margin-bottom:8px;">A5 · Helfer &amp; Zugänge (AdminUsersPage)</div>
+        <div style="width:893px;height:558px;overflow:hidden;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08),0 16px 40px rgba(12,12,9,0.14);">
+          <div data-screen-label="A5 Helfer und Zugänge" style="width:1440px;height:900px;transform:scale(0.62);transform-origin:top left;background:#fff;display:flex;">
+            <div style="width:256px;flex-shrink:0;background:#fbfbf9;border-right:1px solid #e8e7e0;padding:12px 16px;display:flex;flex-direction:column;gap:12px;">
+              <span style="font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;background:linear-gradient(100deg,#d24a2a,#c8781e,#4f9636,#1f9b8a,#2f6fc4,#8b3fc0);-webkit-background-clip:text;background-clip:text;color:transparent;width:fit-content;">jotti</span>
+              <div style="border:1px solid #e8e7e0;background:#fff;border-radius:7px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;"><span style="font-size:14px;font-weight:600;">Sommerfest Tag 1</span><span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b695c;"><span style="width:7px;height:7px;border-radius:99px;background:#007a55;"></span>Kasse offen · seit 10:02</span></div>
+              <div style="font-size:14px;display:flex;flex-direction:column;gap:8px;color:#6b695c;">
+                <span>Übersicht</span><span>Kassentag</span><span>Produkte &amp; Preise</span><span>Tische</span><span style="color:#0c0c09;font-weight:500;background:#f4f4f0;border-radius:5px;padding:6px 8px;">Helfer &amp; Zugänge</span><span>Bondrucker</span><span>Berichte &amp; Export</span><span>Finanzamt &amp; TSE</span>
+              </div>
+            </div>
+            <div style="flex:1;padding:24px 48px;overflow:hidden;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+                <div>
+                  <h1 style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;margin:0;">Helfer &amp; Zugänge</h1>
+                  <p style="margin:4px 0 0 0;font-size:14px;color:#6b695c;">4 Zugänge · 3 aktiv</p>
+                </div>
+                <span style="height:36px;display:inline-flex;align-items:center;gap:6px;border-radius:5px;background:#007a55;color:#ecfdf5;padding:0 12px;font-size:14px;font-weight:500;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Neuer Helfer</span>
+              </div>
+              <div style="margin-top:16px;display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;">
+                <div style="border:1px solid #e8e7e0;border-radius:7px;overflow:hidden;">
+                  <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 100px;background:#f4f4f0;padding:8px 16px;font-size:12px;font-weight:600;color:#6b695c;"><span>Name · Login</span><span>Rolle</span><span>Status</span><span></span></div>
+                  <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 100px;align-items:center;padding:12px 16px;font-size:14px;border-top:1px solid #e8e7e0;">
+                    <span style="font-weight:500;">Nico <span style="font-family:monospace;font-size:12px;color:#6b695c;">nico</span> <span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:99px;background:#f4f4f5;font-size:12px;font-weight:500;margin-left:6px;">das bist du</span></span>
+                    <span><span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:99px;background:#f4f4f5;font-size:12px;font-weight:500;">Admin</span></span>
+                    <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:#6b695c;"><span style="width:28px;height:16px;border-radius:99px;background:#007a55;position:relative;"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff;"></span></span>aktiv</span>
+                    <span style="display:flex;justify-content:flex-end;gap:4px;color:#6b695c;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 100px;align-items:center;padding:12px 16px;font-size:14px;border-top:1px solid #e8e7e0;">
+                    <span style="font-weight:500;">Anna K. <span style="font-family:monospace;font-size:12px;color:#6b695c;">anna</span></span>
+                    <span><span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:99px;background:#f4f4f5;font-size:12px;font-weight:500;">Service</span></span>
+                    <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:#6b695c;"><span style="width:28px;height:16px;border-radius:99px;background:#007a55;position:relative;"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff;"></span></span>aktiv</span>
+                    <span style="display:flex;justify-content:flex-end;gap:4px;color:#6b695c;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 100px;align-items:center;padding:12px 16px;font-size:14px;border-top:1px solid #e8e7e0;">
+                    <span style="font-weight:500;">Max B. <span style="font-family:monospace;font-size:12px;color:#6b695c;">max</span></span>
+                    <span><span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:99px;background:#f4f4f5;font-size:12px;font-weight:500;">Serviceleitung</span></span>
+                    <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:#6b695c;"><span style="width:28px;height:16px;border-radius:99px;background:#007a55;position:relative;"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff;"></span></span>aktiv</span>
+                    <span style="display:flex;justify-content:flex-end;gap:4px;color:#6b695c;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 100px;align-items:center;padding:12px 16px;font-size:14px;border-top:1px solid #e8e7e0;">
+                    <span style="font-weight:500;">Lena S. <span style="font-family:monospace;font-size:12px;color:#6b695c;">lena</span></span>
+                    <span><span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:99px;background:#f4f4f5;font-size:12px;font-weight:500;">Service</span></span>
+                    <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:#6b695c;"><span style="width:28px;height:16px;border-radius:99px;background:#d5d4c8;position:relative;"><span style="position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:99px;background:#fff;"></span></span>deaktiviert</span>
+                    <span style="display:flex;justify-content:flex-end;gap:4px;color:#6b695c;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                  <div style="border:1px solid #e8e7e0;background:#fbfbf9;border-radius:7px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+                    <span style="font-size:14px;font-weight:600;">So kommt ein Helfer rein</span>
+                    <div style="display:flex;gap:10px;font-size:14px;color:#6b695c;line-height:1.6;"><span style="width:20px;height:20px;border:1px solid #e8e7e0;background:#fff;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0c0c09;flex-shrink:0;">1</span><span>„Neuer Helfer“ anlegen — jotti erzeugt ein <strong style="color:#0c0c09;">Einmalpasswort</strong>.</span></div>
+                    <div style="display:flex;gap:10px;font-size:14px;color:#6b695c;line-height:1.6;"><span style="width:20px;height:20px;border:1px solid #e8e7e0;background:#fff;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0c0c09;flex-shrink:0;">2</span><span>Passwort dem Helfer zeigen (oder QR-Code scannen lassen).</span></div>
+                    <div style="display:flex;gap:10px;font-size:14px;color:#6b695c;line-height:1.6;"><span style="width:20px;height:20px;border:1px solid #e8e7e0;background:#fff;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0c0c09;flex-shrink:0;">3</span><span>Helfer meldet sich am eigenen Handy an und wählt ein eigenes Passwort.</span></div>
+                  </div>
+                  <div style="border:1px solid #e8e7e0;border-radius:7px;padding:16px;display:flex;flex-direction:column;gap:8px;font-size:14px;color:#6b695c;line-height:1.6;">
+                    <span style="font-weight:600;color:#0c0c09;">Was Rollen dürfen</span>
+                    <span><strong style="color:#0c0c09;">Service</strong> bestellt &amp; kassiert · <strong style="color:#0c0c09;">Serviceleitung</strong> darf zusätzlich stornieren · <strong style="color:#0c0c09;">Admin</strong> verwaltet alles hier.</span>
+                    <span>Passwort vergessen? „···“ → <strong style="color:#0c0c09;">Passwort zurücksetzen</strong> erzeugt ein neues Einmalpasswort.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+</x-dc>
+</body>
+</html>

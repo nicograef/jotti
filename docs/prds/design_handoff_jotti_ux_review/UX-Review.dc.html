@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eceae2;font-family:Inter,sans-serif;color:#0c0c09;-webkit-font-smoothing:antialiased;}
+a{color:#007a55;} a:hover{color:#00543b;}
+</style>
+</helmet>
+<div style="max-width:1040px;margin:0 auto;padding:56px 32px 96px 32px;display:flex;flex-direction:column;gap:32px;">
+
+  <header style="display:flex;flex-direction:column;gap:12px;">
+    <div style="font:600 13px 'Space Grotesk',sans-serif;color:#6b695c;letter-spacing:0.08em;text-transform:uppercase;">UX-Review · jotti 1.0 (Beta)</div>
+    <h1 style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;margin:0;line-height:1.15;">Quick Wins &amp; Reibungspunkte in Service und Admin</h1>
+    <p style="font-size:15px;color:#6b695c;margin:0;max-width:760px;line-height:1.6;">Grundlage: vollständige Durchsicht des Frontend-Codes (main, Juli 2026) — Service-Bereich, Admin, Login, Drawer-/Token-System und die ADRs. Rekonstruierte Screens: <a href="Screens – Ist-Zustand.dc.html">Ist-Zustand ansehen</a>. Alle Vorschläge sind Frontend-only und respektieren die bestehenden ADRs (Abweichungen sind markiert).</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+      <span style="height:24px;display:inline-flex;align-items:center;padding:0 10px;border-radius:99px;background:#fff;box-shadow:0 0 0 1px rgba(12,12,9,0.1);font-size:12px;font-weight:500;">5 priorisierte Fixes</span>
+      <span style="height:24px;display:inline-flex;align-items:center;padding:0 10px;border-radius:99px;background:#fff;box-shadow:0 0 0 1px rgba(12,12,9,0.1);font-size:12px;font-weight:500;">12 weitere Befunde</span>
+      <span style="height:24px;display:inline-flex;align-items:center;padding:0 10px;border-radius:99px;background:#fff;box-shadow:0 0 0 1px rgba(12,12,9,0.1);font-size:12px;font-weight:500;">Light + Dark geprüft</span>
+    </div>
+  </header>
+
+  <div style="background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08);padding:24px 28px;display:flex;flex-direction:column;gap:8px;">
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;">Gesamteindruck</div>
+    <p style="margin:0;font-size:14px;color:#3d3c33;line-height:1.7;">Das UI ist für ein Vereins-Kassensystem ungewöhnlich reif: konsistentes Token-System (inkl. eigenem Warn-Amber nach ADR 04), 44-px-Touchziele, Safe-Area-Handling, Klartext-Copy, dokumentierte Kontrast-Nachweise. Die Befunde unten sind deshalb überwiegend Feinschliff — mit einer Ausnahme: <a href="#f1">F1</a> ist ein echter Datenverlust-Moment im hektischsten Flow und sollte vor 1.0 gefixt werden.</p>
+  </div>
+
+  <!-- ================= TOP 5 ================= -->
+  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin:16px 0 -8px 0;">Top 5 — mit Fix-Mockups</h2>
+
+  <!-- F1 -->
+  <section id="f1" style="background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08);padding:28px;display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="width:28px;height:28px;border-radius:99px;background:#0c0c09;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">1</span>
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;margin:0;">Der Warenkorb geht beim Tab-Wechsel verloren</h3>
+      <span style="height:22px;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;background:rgba(194,42,32,0.08);color:#c22a20;font-size:12px;font-weight:600;">Impact: hoch</span>
+      <span style="height:22px;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;font-size:12px;font-weight:500;color:#6b695c;">Aufwand: S</span>
+    </div>
+    <p style="margin:0;font-size:14px;line-height:1.7;color:#3d3c33;">Radix hängt inaktive Tab-Inhalte aus dem DOM aus (Kommentar in <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">tabs.tsx</code> bestätigt das bewusst, wegen der fadeUp-Animation). <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">Bestellung</code> und <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">Zahlung</code> halten ihre <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">useMengen</code>-Auswahl aber lokal — wer mitten in der Bestellung kurz in die Historie schaut („Was hatten die schon?“), kommt zu einem <strong>kommentarlos geleerten Korb</strong> zurück. Im Gedränge ist das der teuerste Moment, den die App hat: neu zusammentippen, während der Gast wartet. Betrifft Bestellen-Korb <em>und</em> Kassieren-Auswahl.</p>
+    <p style="margin:0;font-size:14px;line-height:1.7;color:#3d3c33;"><strong>Fix:</strong> Mengen-State in <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">TablePage</code> heben (je ein <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">useMengen</code> für Bestellen/Kassieren, als Props durchreichen) — oder <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">forceMount</code> + <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">hidden</code>, dann braucht die fadeUp-Animation einen anderen Trigger. Ersteres ist sauberer und ~30 Zeilen.</p>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch;">
+      <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;font-weight:600;color:#c22a20;text-transform:uppercase;letter-spacing:0.05em;">Heute</div>
+        <div style="border:1px solid #e8e7e0;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fbfbf9;flex:1;">
+          <div style="font-size:13px;color:#6b695c;">3 Positionen gewählt → Tab „Historie“ → zurück zu „Bestellen“:</div>
+          <div style="height:56px;border-radius:5px;background:#e5e4da;color:#57554a;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:15px;">
+            <span style="display:flex;align-items:center;gap:8px;"><span style="background:rgba(12,12,9,0.08);border-radius:99px;padding:2px 8px;font-size:13px;font-weight:600;">0</span><span style="font-weight:500;">Bestellung überprüfen</span></span>
+            <span style="font-weight:700;">0,00&nbsp;€</span>
+          </div>
+          <div style="font-size:13px;color:#c22a20;font-weight:500;">Auswahl wurde stillschweigend geleert.</div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;font-weight:600;color:#007a55;text-transform:uppercase;letter-spacing:0.05em;">Fix</div>
+        <div style="border:1px solid rgba(0,122,85,0.35);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fff;flex:1;">
+          <div style="font-size:13px;color:#6b695c;">Gleicher Weg — der Vorgangs-State lebt auf Seitenebene:</div>
+          <div style="height:56px;border-radius:5px;background:#007a55;color:#ecfdf5;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:15px;box-shadow:0 6px 16px rgba(12,12,9,0.15);">
+            <span style="display:flex;align-items:center;gap:8px;"><span style="background:rgba(236,253,245,0.2);border-radius:99px;padding:2px 8px;font-size:13px;font-weight:600;">3</span><span style="font-weight:500;">Bestellung überprüfen</span></span>
+            <span style="font-weight:700;">13,00&nbsp;€</span>
+          </div>
+          <div style="font-size:13px;color:#007a55;font-weight:500;">Korb bleibt erhalten — wie es die dauerhafte Abschluss-Spalte ab lg (ADR 08) ohnehin schon verspricht.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- F2 -->
+  <section id="f2" style="background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08);padding:28px;display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="width:28px;height:28px;border-radius:99px;background:#0c0c09;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">2</span>
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;margin:0;">Trinkgeld: „Zahlbetrag inkl. Trinkgeld“ ist zu viel Denkarbeit</h3>
+      <span style="height:22px;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;background:rgba(245,158,11,0.15);color:#92600a;font-size:12px;font-weight:600;">Impact: mittel</span>
+      <span style="height:22px;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;font-size:12px;font-weight:500;color:#6b695c;">Aufwand: M</span>
+    </div>
+    <p style="margin:0;font-size:14px;line-height:1.7;color:#3d3c33;">Der häufigste Satz am Tisch ist „machen wir 15“. Dafür muss die Servicekraft heute ein zweites Euro-Feld finden, verstehen, dass dort der <em>Zielbetrag</em> (nicht das Trinkgeld) hineingehört, und einen 3-zeiligen Hinweistext lesen — während sie Wechselgeld in der Hand hält. Das Konzept ist korrekt, aber es ist ein Formular, wo eine Tipp-Geste reichen würde.</p>
+    <p style="margin:0;font-size:14px;line-height:1.7;color:#3d3c33;"><strong>Fix:</strong> Zielbetrag-Feld durch <strong>Aufrunden-Chips</strong> ersetzen, aus dem Gesamtbetrag abgeleitet (nächste glatte Beträge). Ein Tap setzt den Zielbetrag, Trinkgeld + Rückgeld erscheinen sofort. Das freie Feld bleibt hinter „Anderer Betrag…“ erreichbar — keine Funktion geht verloren, der Hinweistext entfällt.</p>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch;">
+      <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;font-weight:600;color:#c22a20;text-transform:uppercase;letter-spacing:0.05em;">Heute</div>
+        <div style="border:1px solid #e8e7e0;border-radius:10px;padding:16px;background:#fbfbf9;display:flex;flex-direction:column;gap:8px;flex:1;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;"><span style="font-size:14px;font-weight:500;">Erhalten</span><span style="position:relative;width:112px;"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:#6b695c;">€</span><span style="display:flex;align-items:center;height:36px;border:1px solid #8d8b7c;border-radius:5px;padding-left:28px;font-size:15px;background:#fff;">20,00</span></span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;"><span style="font-size:14px;font-weight:500;">Zahlbetrag inkl. Trinkgeld</span><span style="position:relative;width:112px;"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:#6b695c;">€</span><span style="display:flex;align-items:center;height:36px;border:1px solid #8d8b7c;border-radius:5px;padding-left:28px;font-size:15px;color:#6b695c;background:#fff;">0,00</span></span></div>
+          <p style="font-size:12px;color:#6b695c;margin:0;line-height:1.5;">Nur ausfüllen, wenn der Gast aufrundet: den vollen Betrag inklusive Trinkgeld eintragen, dann rechnet die Kasse das Rückgeld passend.</p>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:15px;font-weight:600;">Rückgeld</span><span style="font-size:20px;font-weight:700;">7,00&nbsp;€</span></div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;font-weight:600;color:#007a55;text-transform:uppercase;letter-spacing:0.05em;">Fix</div>
+        <div style="border:1px solid rgba(0,122,85,0.35);border-radius:10px;padding:16px;background:#fff;display:flex;flex-direction:column;gap:10px;flex:1;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;"><span style="font-size:14px;font-weight:500;">Erhalten</span><span style="position:relative;width:112px;"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:#6b695c;">€</span><span style="display:flex;align-items:center;height:36px;border:1px solid #8d8b7c;border-radius:5px;padding-left:28px;font-size:15px;">20,00</span></span></div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <span style="font-size:13px;color:#6b695c;">Gast zahlt (Gesamt 13,00&nbsp;€):</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span style="height:40px;display:inline-flex;align-items:center;padding:0 14px;border-radius:99px;border:1px solid #e8e7e0;font-size:14px;font-weight:500;">13&nbsp;€ <span style="color:#6b695c;font-weight:400;margin-left:4px;">genau</span></span>
+              <span style="height:40px;display:inline-flex;align-items:center;padding:0 14px;border-radius:99px;border:1px solid #007a55;background:rgba(0,122,85,0.06);color:#007a55;font-size:14px;font-weight:600;">15&nbsp;€</span>
+              <span style="height:40px;display:inline-flex;align-items:center;padding:0 14px;border-radius:99px;border:1px solid #e8e7e0;font-size:14px;font-weight:500;">20&nbsp;€</span>
+              <span style="height:40px;display:inline-flex;align-items:center;padding:0 14px;border-radius:99px;border:1px solid #e8e7e0;font-size:14px;font-weight:500;color:#6b695c;">Anderer…</span>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;"><span>Trinkgeld</span><span>2,00&nbsp;€</span></div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:15px;font-weight:600;">Rückgeld</span><span style="font-size:20px;font-weight:700;">5,00&nbsp;€</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- F3 -->
+  <section id="f3" style="background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08);padding:28px;display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="width:28px;height:28px;border-radius:99px;background:#0c0c09;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">3</span>
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;margin:0;">Tischservice ↔ Direktverkauf: der Moduswechsel ist versteckt</h3>
+      <span style="height:22px;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;background:rgba(245,158,11,0.15);color:#92600a;font-size:12px;font-weight:600;">Impact: mittel</span>
+      <span style="height:22px;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;font-size:12px;font-weight:500;color:#6b695c;">Aufwand: S–M</span>
+    </div>
+    <p style="margin:0;font-size:14px;line-height:1.7;color:#3d3c33;">Der Wechsel liegt als Eintrag im Benutzermenü (Icon oben rechts) — dort, wo man Abmelden und Dark Mode erwartet, nicht den zweiten Arbeitsbereich. Der leere „Meine Tische“-Zustand muss ihn deshalb per Fließtext erklären („…wechselst du den Arbeitsmodus im Benutzermenü oben rechts“) — ein zuverlässiges Zeichen, dass die Navigation die Arbeit des Textes nicht macht. Helfer, die zwischen Theke und Tischen rotieren, wechseln mehrmals pro Schicht.</p>
+    <p style="margin:0;font-size:14px;line-height:1.7;color:#3d3c33;"><strong>Fix:</strong> Segmented Control im Service-Header („Tische | Theke“). Die Routen, Loader und die Persistenz (<code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">arbeitsmodus.ts</code>) existieren bereits — es fehlt nur die sichtbare Affordanz. Kein ADR steht dem entgegen; der Menüeintrag kann als Zweitweg bleiben.</p>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;font-weight:600;color:#c22a20;text-transform:uppercase;letter-spacing:0.05em;">Heute</div>
+        <div style="border:1px solid #e8e7e0;border-radius:10px;background:#fbfbf9;padding:16px;display:flex;flex-direction:column;gap:8px;">
+          <div style="background:#fff;border:1px solid #e8e7e0;border-radius:8px;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;">
+            <span style="font-size:14px;font-weight:700;">Meine Tische</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+          <div style="align-self:flex-end;width:250px;background:#fff;border:1px solid #e8e7e0;border-radius:8px;box-shadow:0 8px 24px rgba(12,12,9,0.12);padding:6px;font-size:14px;">
+            <div style="padding:8px 10px;border-radius:5px;">Verwaltung</div>
+            <div style="padding:8px 10px;border-radius:5px;background:#f4f4f0;font-weight:500;">Zu Direktverkauf wechseln</div>
+            <div style="padding:8px 10px;border-radius:5px;">Dunkel</div>
+            <div style="padding:8px 10px;border-radius:5px;">Abmelden</div>
+          </div>
+          <div style="font-size:13px;color:#c22a20;font-weight:500;">Zweiter Arbeitsbereich hinter dem Profil-Icon.</div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;font-weight:600;color:#007a55;text-transform:uppercase;letter-spacing:0.05em;">Fix</div>
+        <div style="border:1px solid rgba(0,122,85,0.35);border-radius:10px;background:#fff;padding:16px;display:flex;flex-direction:column;gap:8px;">
+          <div style="background:#fff;border:1px solid #e8e7e0;border-radius:8px;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;gap:12px;">
+            <div style="height:36px;background:#f4f4f0;border-radius:8px;padding:3px;display:flex;flex:1;max-width:220px;color:#6b695c;">
+              <span style="flex:1;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:5px;box-shadow:0 1px 2px rgba(12,12,9,0.08);color:#0c0c09;font-size:13px;font-weight:600;">Tische</span>
+              <span style="flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;">Theke</span>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </div>
+          <div style="font-size:13px;color:#007a55;font-weight:500;">Beide Modi sind immer sichtbar und einen Tap entfernt; die Empty-State-Erklärung entfällt.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- F4 -->
+  <section id="f4" style="background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08);padding:28px;display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="width:28px;height:28px;border-radius:99px;background:#0c0c09;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">4</span>
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;margin:0;">Erfolgs-Feedback: drei Muster für dieselbe Sache — Storno bekommt gar keins</h3>
+      <span style="height:22px;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;background:rgba(245,158,11,0.15);color:#92600a;font-size:12px;font-weight:600;">Impact: mittel</span>
+      <span style="height:22px;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;font-size:12px;font-weight:500;color:#6b695c;">Aufwand: S</span>
+    </div>
+    <p style="margin:0;font-size:14px;line-height:1.7;color:#3d3c33;">Bestellen, Kassieren und Direktverkauf bestätigen mit dem unübersehbaren ErfolgsPop. Umbuchen bestätigt mit einem Toast. <strong>Stornieren bestätigt gar nicht</strong> — der Drawer schließt kommentarlos (<code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">HistorieStornierungDrawer</code> hat als einziger Flow weder Pop noch Toast). Ausgerechnet die geldrelevante, rollengeschützte Korrektur lässt die Serviceleitung im Unklaren, ob sie gebucht wurde.</p>
+    <p style="margin:0;font-size:14px;line-height:1.7;color:#3d3c33;"><strong>Fix:</strong> Eine Regel: <em>Alles, was das Kassenjournal verändert, bestätigt mit dem ErfolgsPop.</em> Storno („Stornierung gebucht.“) und Umbuchung („Auf Tisch 7 umgebucht.“) an den bestehenden Pop-Mechanismus in <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">TablePage</code> anschließen — der Refetch-beim-Schließen-Vorteil des Pops greift dann auch hier.</p>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;font-weight:600;color:#c22a20;text-transform:uppercase;letter-spacing:0.05em;">Heute</div>
+        <div style="border:1px solid #e8e7e0;border-radius:10px;background:#fbfbf9;padding:16px;font-size:14px;display:flex;flex-direction:column;gap:8px;flex:1;">
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e8e7e0;padding-bottom:8px;"><span>Bestellen / Kassieren / Verkauf</span><span style="font-weight:600;color:#007a55;">Vollbild-Pop</span></div>
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e8e7e0;padding-bottom:8px;"><span>Umbuchung</span><span style="font-weight:600;color:#92600a;">Toast</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>Stornierung</span><span style="font-weight:600;color:#c22a20;">— nichts</span></div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;font-weight:600;color:#007a55;text-transform:uppercase;letter-spacing:0.05em;">Fix</div>
+        <div style="position:relative;border:1px solid rgba(0,122,85,0.35);border-radius:10px;overflow:hidden;background:#fff;min-height:190px;display:flex;align-items:center;justify-content:center;flex:1;">
+          <div style="position:absolute;inset:0;background:rgba(12,12,9,0.35);backdrop-filter:blur(3px);"></div>
+          <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px;">
+            <div style="width:76px;height:76px;border-radius:99px;background:#007a55;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 8px rgba(0,122,85,0.15);"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div>
+            <p style="margin:0;font-size:17px;font-weight:600;color:#fff;">Stornierung gebucht.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- F5 -->
+  <section id="f5" style="background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08);padding:28px;display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="width:28px;height:28px;border-radius:99px;background:#0c0c09;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">5</span>
+      <h3 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;margin:0;">Lösch-Bestätigungen: Ad-hoc-Klassen fallen im Dark Mode unter AA</h3>
+      <span style="height:22px;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;background:rgba(245,158,11,0.15);color:#92600a;font-size:12px;font-weight:600;">Impact: mittel (A11y)</span>
+      <span style="height:22px;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;font-size:12px;font-weight:500;color:#6b695c;">Aufwand: S</span>
+    </div>
+    <p style="margin:0;font-size:14px;line-height:1.7;color:#3d3c33;">Sechs AlertDialog-Bestätigungen tragen wörtlich <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">className="bg-destructive text-white"</code> (Produkt, Tisch, Helfer, Variante, Druckaufträge). Im Dark Mode ist <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">--destructive</code> bewusst aufgehellt (red-400) — Weiß darauf liegt bei ≈&nbsp;2,9:1. Genau dieser Rest war im Audit v0.15 (G10) schon notiert; die Ad-hoc-Klasse ist zudem das einzige Styling im Projekt, das am Token-System vorbeigeht.</p>
+    <p style="margin:0;font-size:14px;line-height:1.7;color:#3d3c33;"><strong>Fix:</strong> Button-Variant <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">destructive-solid</code> nach dem Muster von ADR 04 (warn): solide Fläche trägt ihren Kontrast selbst — im Dark Mode dunkler Text auf der hellen roten Fläche (≈&nbsp;7:1). Sechs Call-Sites tauschen eine Klasse gegen den Variant.</p>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;font-weight:600;color:#c22a20;text-transform:uppercase;letter-spacing:0.05em;">Heute (Dark Mode)</div>
+        <div style="background:#0c0c09;border-radius:10px;padding:24px;display:flex;justify-content:center;">
+          <div style="width:100%;max-width:340px;background:#1d1d16;border:1px solid rgba(255,255,255,0.1);border-radius:11px;padding:20px;color:#fbfbf9;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:500;">Helfer löschen?</div>
+            <p style="margin:6px 0 16px 0;font-size:14px;color:#a8a695;line-height:1.5;">Der Helfer “Lena S.” wird unwiderruflich gelöscht.</p>
+            <div style="display:flex;justify-content:flex-end;gap:8px;">
+              <span style="height:36px;display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,0.4);border-radius:5px;padding:0 12px;font-size:14px;font-weight:500;">Abbrechen</span>
+              <span style="height:36px;display:inline-flex;align-items:center;border-radius:5px;background:#f87171;color:#ffffff;padding:0 12px;font-size:14px;font-weight:500;">Löschen</span>
+            </div>
+            <div style="margin-top:10px;font-size:12px;color:#f87171;">Weiß auf red-400 ≈ 2,9:1 — unter WCAG AA (4,5:1)</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:12px;font-weight:600;color:#007a55;text-transform:uppercase;letter-spacing:0.05em;">Fix (Dark Mode)</div>
+        <div style="background:#0c0c09;border-radius:10px;padding:24px;display:flex;justify-content:center;">
+          <div style="width:100%;max-width:340px;background:#1d1d16;border:1px solid rgba(255,255,255,0.1);border-radius:11px;padding:20px;color:#fbfbf9;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:500;">Helfer löschen?</div>
+            <p style="margin:6px 0 16px 0;font-size:14px;color:#a8a695;line-height:1.5;">Der Helfer “Lena S.” wird unwiderruflich gelöscht.</p>
+            <div style="display:flex;justify-content:flex-end;gap:8px;">
+              <span style="height:36px;display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,0.4);border-radius:5px;padding:0 12px;font-size:14px;font-weight:500;">Abbrechen</span>
+              <span style="height:36px;display:inline-flex;align-items:center;border-radius:5px;background:#f87171;color:#450a0a;padding:0 12px;font-size:14px;font-weight:600;">Löschen</span>
+            </div>
+            <div style="margin-top:10px;font-size:12px;color:#4f9636;">Dunkler Text auf der Fläche ≈ 7:1 — Muster wie beim Warn-Token (ADR 04)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= WEITERE BEFUNDE ================= -->
+  <h2 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin:16px 0 -8px 0;">Weitere Befunde</h2>
+
+  <section style="background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08);padding:28px;display:flex;flex-direction:column;gap:0;">
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#6b695c;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:12px;">Service</div>
+
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;background:rgba(245,158,11,0.15);color:#92600a;font-size:12px;font-weight:600;">Mittel · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>EuroInput schluckt Ziffern.</strong> Das Debounce-Reformat (1&nbsp;s) normalisiert mitten im Tippen: Wer langsam „15“ eingibt, hat nach der Pause „1,00“ im Feld — die nächste Ziffer wird als dritte Nachkommastelle verworfen (<code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">cleanInput</code> kappt auf 2). Fix: nur on-blur normalisieren, Debounce streichen.</p>
+    </div>
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;background:rgba(245,158,11,0.15);color:#92600a;font-size:12px;font-weight:600;">Mittel · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>„Alle Tische“-Drawer ohne Suche.</strong> Die Suche liegt bewusst nur auf der Hauptseite; wer aber im Drawer „Tisch 47“ sucht, muss scrollen (Sortierung: Favoriten, dann Saldo — Namen stehen also nicht beieinander) oder den Drawer schließen. Fix: Suchfeld oben im Drawer, oder Sortierung im Drawer nach Name.</p>
+    </div>
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;color:#6b695c;font-size:12px;font-weight:600;">Niedrig · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>„Alle 3 Positionen auswählen“ ist mehrdeutig.</strong> Der Button wählt nur die <em>eigenen</em> Positionen, steht aber über einer Liste, die auch „Von anderen“ enthält. Fix: „Meine 3 Positionen auswählen · 28,50&nbsp;€“ (<code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">formatAlleAuswaehlenLabel</code>; die Umbuchung, wo wirklich „alle“ gilt, behält „Alle“).</p>
+    </div>
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;color:#6b695c;font-size:12px;font-weight:600;">Niedrig · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>Rot für „unbezahlt“ verwässert das eigene Farbsystem.</strong> ADR 04 reserviert Rot für gefährlich/destruktiv — der Badge „4 unbezahlt“ und der rote Punkt in „Meine Tische“ markieren aber den <em>Normalzustand</em> eines bewirtschafteten Tischs. Fix: neutral oder Amber („wartet auf dich“); Rot bleibt Storno &amp; Fehlern.</p>
+    </div>
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;color:#6b695c;font-size:12px;font-weight:600;">Niedrig · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>„Tisch ??“ / „?“ als Ladezustand.</strong> Der Tisch-Kopf zeigt beim Laden wörtlich „Tisch ??“ und „?“ statt der sonst überall verwendeten Skeletons — wirkt im Beta-Test schnell wie ein Bug. Fix: zwei Skeleton-Zeilen.</p>
+    </div>
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;color:#6b695c;font-size:12px;font-weight:600;">Niedrig · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>Direktverkauf kennt kein Trinkgeld.</strong> Der Abschluss hat nur „Erhalten“ — Tisch-Kassieren hat zusätzlich den Zielbetrag. Gäste runden an der Theke genauso auf. Fix: die Aufrunden-Chips aus <a href="#f2">F2</a> in beiden Abschlüssen verwenden (eine Komponente, gleiche Mechanik).</p>
+    </div>
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;color:#6b695c;font-size:12px;font-weight:600;">Niedrig · M</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>Storno braucht zwei Drawer-Sprünge.</strong> Zeile → Detail-Drawer → Storno-Drawer. Für die seltene Korrektur vertretbar, aber die Serviceleitung könnte „Stornieren…“ direkt an der Historien-Zeile bekommen (nur bei <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">canCancel</code>), Detail bleibt für alle anderen Fälle.</p>
+    </div>
+
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#6b695c;text-transform:uppercase;letter-spacing:0.05em;padding:24px 0 12px 0;">Admin</div>
+
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;color:#6b695c;font-size:12px;font-weight:600;">Niedrig · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>Refresh-Button „Jetzt“.</strong> Ohne die Status-Zeile daneben gelesen zu haben, ist „Jetzt“ kryptisch. Fix: „Aktualisieren“.</p>
+    </div>
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;color:#6b695c;font-size:12px;font-weight:600;">Niedrig · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>„Bearbeiten“ vs. „Umbenennen“.</strong> Am Produkt öffnen Stift-Icon (Tooltip „Bearbeiten“) und Menüpunkt „Umbenennen“ denselben Dialog. Zwei Labels für eine Aktion lassen Nutzer nach einem Unterschied suchen. Fix: ein Begriff an beiden Stellen.</p>
+    </div>
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;color:#6b695c;font-size:12px;font-weight:600;">Niedrig · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>LogOut-Icon für „Zum Service-Bereich“.</strong> Dasselbe Icon bedeutet drei Zeilen tiefer „Abmelden“. Fix: <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">ArrowRightLeft</code> oder Smartphone-Icon.</p>
+    </div>
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;color:#6b695c;font-size:12px;font-weight:600;">Niedrig · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>Kassensturz-Differenz ohne Vorzeichen bei Überschuss.</strong> „12,50&nbsp;€“ (zu viel) vs. „-12,50&nbsp;€“ (fehlt) — das Plus fehlt, dabei ist das Vorzeichen hier die eigentliche Information. Fix: immer signieren („+12,50&nbsp;€“), Überschuss ggf. amber statt nur Fehlbetrag rot.</p>
+    </div>
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;border:1px solid #e8e7e0;color:#6b695c;font-size:12px;font-weight:600;">Niedrig · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>Drucker-IP speichert unsichtbar on-blur.</strong> Kein Speichern-Button ist okay — aber der einzige Erfolgshinweis ist ein Toast, der verschwindet. Fix: kurzes Inline-„Gespeichert ✓“ am Feld (Muster existiert schon beim Seriennummer-Kopieren).</p>
+    </div>
+
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:#6b695c;text-transform:uppercase;letter-spacing:0.05em;padding:24px 0 12px 0;">Login</div>
+
+    <div style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #e8e7e0;">
+      <span style="height:22px;flex-shrink:0;display:inline-flex;align-items:center;padding:0 9px;border-radius:99px;background:rgba(245,158,11,0.15);color:#92600a;font-size:12px;font-weight:600;">Mittel · S</span>
+      <p style="margin:0;font-size:14px;line-height:1.65;color:#3d3c33;"><strong>Toter Anmelden-Button.</strong> <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">disabled={!form.formState.isValid}</code> bei <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">mode: 'onSubmit'</code>: Wer auf den gesperrten Button tippt, bekommt keine Validierung zu sehen — er weiß nur nicht, warum nichts passiert. Fix: Button aktiv lassen und Fehler beim Submit zeigen — oder das vorhandene ActionHint-Muster („Benutzername eingeben“) über dem Button nutzen. Gilt auch für „Passwort festlegen“.</p>
+    </div>
+  </section>
+
+  <!-- Positiv -->
+  <section style="background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08);padding:28px;display:flex;flex-direction:column;gap:12px;">
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;margin:0;">Was schon stark ist — nicht anfassen</h2>
+    <ul style="margin:0;padding-left:20px;font-size:14px;color:#3d3c33;line-height:1.9;">
+      <li>Drei-Farben-Aktionssemantik (Grün / Amber / Rot, ADR 04) — selten sauber durchgezogen; <a href="#f5">F5</a> und der Unbezahlt-Badge sind die letzten zwei Lücken.</li>
+      <li>ErfolgsPop blockiert bewusst bis zum Refetch — verhindert Taps auf veraltete Buttons. Genau richtig für den Einsatzort.</li>
+      <li>ActionHint nennt den Sperr-Grund am Button, statt stumm zu deaktivieren (Storno/Umbuchung) — dieses Muster verdient mehr Einsatzstellen (Login!).</li>
+      <li>Klartext-Copy: „— die Küche hat ihn nicht!“, „Erst abrechnen, dann deaktivieren“, Onboarding-Karte bei den Helfern.</li>
+      <li>44-px-Ziele, Safe-Area, <code style="font-size:12px;background:#f4f4f0;padding:1px 5px;border-radius:4px;">inputMode="decimal"</code>, kein Auto-Fokus im Drawer (keine ungefragte Tastatur), reduzierte Bewegung global.</li>
+      <li>Aufgabenorientierte Sidebar („Heute / Vorbereitung / Nach dem Fest“) statt Objektlisten.</li>
+    </ul>
+  </section>
+
+  <!-- Priorisierung -->
+  <section style="background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(12,12,9,0.08);padding:28px;display:flex;flex-direction:column;gap:12px;">
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;margin:0;">Empfohlene Reihenfolge</h2>
+    <ol style="margin:0;padding-left:20px;font-size:14px;color:#3d3c33;line-height:1.9;">
+      <li><strong>Vor 1.0:</strong> <a href="#f1">F1</a> Warenkorb-Verlust, <a href="#f4">F4</a> Storno-Feedback, EuroInput-Debounce, toter Anmelden-Button — alles S-Aufwand, alles Verhalten, das Beta-Tester als Bug melden werden.</li>
+      <li><strong>Copy-&amp;-Token-Sweep (½ Tag):</strong> <a href="#f5">F5</a> destructive-solid, „Meine Positionen“, „Aktualisieren“, ein Label für Bearbeiten, LogOut-Icon, Differenz-Vorzeichen, Skeleton statt „Tisch ??“.</li>
+      <li><strong>Nach 1.0:</strong> <a href="#f3">F3</a> Mode-Switcher, <a href="#f2">F2</a> Aufrunden-Chips (beide Abschlüsse), Drawer-Suche, Storno an der Zeile.</li>
+    </ol>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>
