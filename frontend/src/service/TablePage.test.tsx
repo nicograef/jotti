@@ -241,6 +241,86 @@ describe('TablePage', () => {
     )
   })
 
+  // A1: Der useMengen-`max` deckelt nur beim `add`. Schrumpft die unbezahlte
+  // Menge einer bereits ausgewählten Position (Storno-Refetch, der erst beim
+  // Schließen des Erfolgs-Pops eintrifft), muss die gehobene Auswahl auf die
+  // neue Obergrenze sinken; eine verschwundene Position fällt heraus.
+  it('deckelt die Kassieren-Auswahl, wenn ein Refetch kleinere unbezahlte Mengen liefert', async () => {
+    const posMehr = { ...position('p1'), menge: 2 }
+    const posWeg = position('p2')
+    getTischState
+      .mockResolvedValueOnce({
+        ...stammtisch,
+        unbezahltePositionen: [posMehr, posWeg],
+      })
+      .mockResolvedValue({
+        ...stammtisch,
+        unbezahltePositionen: [{ ...posMehr, menge: 1 }],
+      })
+    getTischHistorie.mockResolvedValue([
+      {
+        art: 'bestellung',
+        id: '00000000-0000-0000-0000-000000000001',
+        userId: 1,
+        userName: 'Tester',
+        tischId: 1,
+        positionen: [posMehr],
+        gesamtPreisCents: 700,
+        kommentar: '',
+        aufgenommenAm: '2026-06-18T12:00:00Z',
+        stornierbarePositionen: [posMehr],
+        umbuchbarePositionen: [],
+      },
+    ])
+    stornierungErteilen.mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+
+    // Kassieren: p1 voll (2 von 2) und p2 (1 von 1) auswählen.
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+    await user.click(
+      screen.getAllByRole('button', { name: 'Produkt hinzufügen' })[0],
+    )
+    await user.click(
+      screen.getAllByRole('button', { name: 'Produkt hinzufügen' })[0],
+    )
+    await user.click(
+      screen.getAllByRole('button', { name: 'Produkt hinzufügen' })[1],
+    )
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
+      '10,50',
+    )
+
+    // Storno auf der Historie; der Refetch läuft erst beim Schließen des Pops.
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('button', { name: /Bestellung/ }))
+    await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch gebucht',
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Stornierung erteilen' }),
+    )
+    await screen.findByText('Stornierung gebucht.')
+    await user.click(screen.getByRole('status'))
+
+    // Zurück auf Kassieren: p1 ist auf die neue Obergrenze (1) gedeckelt statt
+    // der kaputten Über-Deckelung „2 von 1", p2 ist ganz verschwunden.
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+    expect(await screen.findByText(/1 von 1 ausgewählt/)).toBeInTheDocument()
+    expect(screen.queryByText(/2 von 1 ausgewählt/)).not.toBeInTheDocument()
+    expect(
+      screen.getAllByRole('button', { name: 'Produkt hinzufügen' }),
+    ).toHaveLength(1)
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
+      '3,50',
+    )
+  })
+
   it('startet die Auswahl bei einem Tischwechsel leer', async () => {
     testState.produkte = [testProdukt]
     getTischState.mockResolvedValue(stammtisch)
