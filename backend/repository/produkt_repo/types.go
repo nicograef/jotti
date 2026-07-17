@@ -18,7 +18,7 @@ func NewRepository(db *sql.DB) Repository {
 	return Repository{db: db, q: dbgen.New(db)}
 }
 
-type jsonVariant struct {
+type jsonVariante struct {
 	ID         int         `json:"id"`
 	Name       string      `json:"name"`
 	PreisCents int         `json:"preisCents"`
@@ -27,7 +27,7 @@ type jsonVariant struct {
 	UpdatedAt  db.NullTime `json:"updatedAt"`
 }
 
-func (jv *jsonVariant) toDomain() produkt.Variante {
+func (jv *jsonVariante) toDomain() produkt.Variante {
 	return produkt.Variante{
 		ID:         jv.ID,
 		Name:       jv.Name,
@@ -38,21 +38,21 @@ func (jv *jsonVariant) toDomain() produkt.Variante {
 	}
 }
 
-func parseVariantsJSON(data json.RawMessage) ([]produkt.Variante, error) {
-	var variants []jsonVariant
-	if err := json.Unmarshal(data, &variants); err != nil {
+func parseVariantenJSON(data json.RawMessage) ([]produkt.Variante, error) {
+	var varianten []jsonVariante
+	if err := json.Unmarshal(data, &varianten); err != nil {
 		return nil, err
 	}
 
-	result := make([]produkt.Variante, 0, len(variants))
-	for _, v := range variants {
+	result := make([]produkt.Variante, 0, len(varianten))
+	for _, v := range varianten {
 		result = append(result, v.toDomain())
 	}
 
 	return result, nil
 }
 
-func variantRowToDomain(row dbgen.GetVarianteRow) produkt.Variante {
+func varianteRowToDomain(row dbgen.GetVarianteRow) produkt.Variante {
 	return produkt.Variante{
 		ID:         row.ID,
 		Name:       row.Name,

@@ -42,17 +42,17 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/get-all-users", uq.GetAllUsersHandler())
 
 	pc := produktHTTP.CommandHandler{Command: produktApp.Command{ProduktRepo: deps.ProduktRepo}}
-	r.HandleFunc("/create-produkt", pc.CreateProductHandler())
-	r.HandleFunc("/update-produkt", pc.UpdateProductHandler())
-	r.HandleFunc("/create-variante", pc.CreateVariantHandler())
-	r.HandleFunc("/update-variante", pc.UpdateVariantHandler())
-	r.HandleFunc("/activate-variante", pc.ActivateVariantHandler())
-	r.HandleFunc("/deactivate-variante", pc.DeactivateVariantHandler())
+	r.HandleFunc("/create-produkt", pc.CreateProduktHandler())
+	r.HandleFunc("/update-produkt", pc.UpdateProduktHandler())
+	r.HandleFunc("/create-variante", pc.CreateVarianteHandler())
+	r.HandleFunc("/update-variante", pc.UpdateVarianteHandler())
+	r.HandleFunc("/activate-variante", pc.ActivateVarianteHandler())
+	r.HandleFunc("/deactivate-variante", pc.DeactivateVarianteHandler())
 	r.HandleFunc("/delete-produkt", pc.DeleteProduktHandler())
 	r.HandleFunc("/delete-variante", pc.DeleteVarianteHandler())
 
 	pq := produktHTTP.QueryHandler{Query: produktApp.Query{ProduktRepo: deps.ProduktRepo}}
-	r.HandleFunc("/get-all-produkte", pq.GetAllProductsHandler())
+	r.HandleFunc("/get-all-produkte", pq.GetAllProdukteHandler())
 
 	tc := tischHTTP.CommandHandler{Command: tischApp.Command{
 		TischRepo:   deps.TischRepo,

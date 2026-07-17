@@ -18,39 +18,39 @@ type mockCommand struct {
 	err error
 }
 
-func (m *mockCommand) CreateProduct(ctx context.Context, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
+func (m *mockCommand) CreateProdukt(ctx context.Context, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
 	return 1, m.err
 }
 
-func (m *mockCommand) UpdateProduct(ctx context.Context, id int, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) error {
+func (m *mockCommand) UpdateProdukt(ctx context.Context, id int, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) error {
 	return m.err
 }
 
-func (m *mockCommand) CreateVariant(ctx context.Context, productID int, name string, preisCents int) (int, error) {
+func (m *mockCommand) CreateVariante(ctx context.Context, produktID int, name string, preisCents int) (int, error) {
 	return 1, m.err
 }
 
-func (m *mockCommand) UpdateVariant(ctx context.Context, variantID int, name string, preisCents int) error {
+func (m *mockCommand) UpdateVariante(ctx context.Context, varianteID int, name string, preisCents int) error {
 	return m.err
 }
 
-func (m *mockCommand) ActivateVariant(ctx context.Context, variantID int) error {
+func (m *mockCommand) ActivateVariante(ctx context.Context, varianteID int) error {
 	return m.err
 }
 
-func (m *mockCommand) DeactivateVariant(ctx context.Context, variantID int) error {
+func (m *mockCommand) DeactivateVariante(ctx context.Context, varianteID int) error {
 	return m.err
 }
 
-func (m *mockCommand) DeleteProdukt(ctx context.Context, productID int) error {
+func (m *mockCommand) DeleteProdukt(ctx context.Context, produktID int) error {
 	return m.err
 }
 
-func (m *mockCommand) DeleteVariante(ctx context.Context, produktID int, variantID int) error {
+func (m *mockCommand) DeleteVariante(ctx context.Context, produktID int, varianteID int) error {
 	return m.err
 }
 
-func TestCreateProductHandler_Success(t *testing.T) {
+func TestCreateProduktHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
@@ -58,14 +58,14 @@ func TestCreateProductHandler_Success(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
-	handler.CreateProductHandler().ServeHTTP(rec, req)
+	handler.CreateProduktHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
 }
 
-func TestCreateProductHandler_Failure(t *testing.T) {
+func TestCreateProduktHandler_Failure(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
 	body := `{"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
@@ -73,14 +73,14 @@ func TestCreateProductHandler_Failure(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
-	handler.CreateProductHandler().ServeHTTP(rec, req)
+	handler.CreateProduktHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Errorf("expected status 500, got %d", rec.Code)
 	}
 }
 
-func TestUpdateProductHandler_Success(t *testing.T) {
+func TestUpdateProduktHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"id":1,"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
@@ -88,14 +88,14 @@ func TestUpdateProductHandler_Success(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
-	handler.UpdateProductHandler().ServeHTTP(rec, req)
+	handler.UpdateProduktHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
 }
 
-func TestUpdateProductHandler_Failure(t *testing.T) {
+func TestUpdateProduktHandler_Failure(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
 	body := `{"id":1,"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
@@ -103,7 +103,7 @@ func TestUpdateProductHandler_Failure(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
-	handler.UpdateProductHandler().ServeHTTP(rec, req)
+	handler.UpdateProduktHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Errorf("expected status 500, got %d", rec.Code)
@@ -125,7 +125,7 @@ func TestDeleteProduktHandler_Success(t *testing.T) {
 	}
 }
 
-func TestCreateVariantHandler_Success(t *testing.T) {
+func TestCreateVarianteHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"produktId":1,"name":"Large","preisCents":999}`
@@ -133,14 +133,14 @@ func TestCreateVariantHandler_Success(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
-	handler.CreateVariantHandler().ServeHTTP(rec, req)
+	handler.CreateVarianteHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
 }
 
-func TestCreateVariantHandler_Failure(t *testing.T) {
+func TestCreateVarianteHandler_Failure(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
 
 	body := `{"produktId":1,"name":"Large","preisCents":999}`
@@ -148,14 +148,14 @@ func TestCreateVariantHandler_Failure(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
-	handler.CreateVariantHandler().ServeHTTP(rec, req)
+	handler.CreateVarianteHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Errorf("expected status 500, got %d", rec.Code)
 	}
 }
 
-func TestCreateVariantHandler_InvalidInput(t *testing.T) {
+func TestCreateVarianteHandler_InvalidInput(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"produktId":0,"name":"ab","preisCents":-1}`
@@ -163,14 +163,14 @@ func TestCreateVariantHandler_InvalidInput(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
-	handler.CreateVariantHandler().ServeHTTP(rec, req)
+	handler.CreateVarianteHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
 
-func TestUpdateVariantHandler_InvalidInput(t *testing.T) {
+func TestUpdateVarianteHandler_InvalidInput(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"id":0,"name":"ab","preisCents":-1}`
@@ -178,14 +178,14 @@ func TestUpdateVariantHandler_InvalidInput(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
-	handler.UpdateVariantHandler().ServeHTTP(rec, req)
+	handler.UpdateVarianteHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
 
-func TestActivateVariantHandler_Success(t *testing.T) {
+func TestActivateVarianteHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"id":1}`
@@ -193,14 +193,14 @@ func TestActivateVariantHandler_Success(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
-	handler.ActivateVariantHandler().ServeHTTP(rec, req)
+	handler.ActivateVarianteHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
 	}
 }
 
-func TestDeactivateVariantHandler_Success(t *testing.T) {
+func TestDeactivateVarianteHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	body := `{"id":1}`
@@ -208,7 +208,7 @@ func TestDeactivateVariantHandler_Success(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
-	handler.DeactivateVariantHandler().ServeHTTP(rec, req)
+	handler.DeactivateVarianteHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)

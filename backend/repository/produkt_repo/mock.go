@@ -8,74 +8,74 @@ import (
 	"github.com/nicograef/jotti/backend/domain/produkt"
 )
 
-// NewMock creates a new mock repository with the given products and error.
-func NewMock(products []produkt.Produkt, err error) *mockRepo {
-	productMap := make(map[int]produkt.Produkt)
-	for i := range products {
-		productMap[products[i].ID] = products[i]
+// NewMock creates a new mock repository with the given produkte and error.
+func NewMock(produkte []produkt.Produkt, err error) *mockRepo {
+	produktMap := make(map[int]produkt.Produkt)
+	for i := range produkte {
+		produktMap[produkte[i].ID] = produkte[i]
 	}
 
 	return &mockRepo{
-		products: productMap,
-		variants: make(map[int]variantWithProduct),
-		err:      err,
+		produkte:  produktMap,
+		varianten: make(map[int]varianteWithProdukt),
+		err:       err,
 	}
 }
 
-type variantWithProduct struct {
-	variant   produkt.Variante
-	productID int
+type varianteWithProdukt struct {
+	variante  produkt.Variante
+	produktID int
 }
 
 type mockRepo struct {
-	products map[int]produkt.Produkt
-	variants map[int]variantWithProduct
-	err      error
+	produkte  map[int]produkt.Produkt
+	varianten map[int]varianteWithProdukt
+	err       error
 }
 
-// AddVariant adds a variant to the mock repository, associated with a produkt.
-func (m *mockRepo) AddVariant(productID int, v produkt.Variante) {
-	m.variants[v.ID] = variantWithProduct{variant: v, productID: productID}
+// AddVariante adds a variante to the mock repository, associated with a produkt.
+func (m *mockRepo) AddVariante(produktID int, v produkt.Variante) {
+	m.varianten[v.ID] = varianteWithProdukt{variante: v, produktID: produktID}
 }
 
-func (m *mockRepo) GetProduct(ctx context.Context, id int) (produkt.Produkt, error) {
-	t, ok := m.products[id]
+func (m *mockRepo) GetProdukt(ctx context.Context, id int) (produkt.Produkt, error) {
+	t, ok := m.produkte[id]
 	if !ok {
 		return produkt.Produkt{}, m.err
 	}
 	return t, m.err
 }
 
-func (m *mockRepo) CreateProduct(ctx context.Context, t produkt.Produkt) (int, error) {
-	newID := len(m.products) + 1
+func (m *mockRepo) CreateProdukt(ctx context.Context, t produkt.Produkt) (int, error) {
+	newID := len(m.produkte) + 1
 	t.ID = newID
-	m.products[newID] = t
+	m.produkte[newID] = t
 	return newID, m.err
 }
 
-func (m *mockRepo) UpdateProduct(ctx context.Context, t produkt.Produkt) error {
-	m.products[t.ID] = t
+func (m *mockRepo) UpdateProdukt(ctx context.Context, t produkt.Produkt) error {
+	m.produkte[t.ID] = t
 	return m.err
 }
 
-func (m *mockRepo) GetVariant(ctx context.Context, variantID int) (produkt.Variante, error) {
-	vp, ok := m.variants[variantID]
+func (m *mockRepo) GetVariante(ctx context.Context, varianteID int) (produkt.Variante, error) {
+	vp, ok := m.varianten[varianteID]
 	if !ok {
 		return produkt.Variante{}, m.err
 	}
-	return vp.variant, m.err
+	return vp.variante, m.err
 }
 
-func (m *mockRepo) CreateVariant(ctx context.Context, productID int, v produkt.Variante) (int, error) {
-	newID := len(m.variants) + 1
+func (m *mockRepo) CreateVariante(ctx context.Context, produktID int, v produkt.Variante) (int, error) {
+	newID := len(m.varianten) + 1
 	v.ID = newID
-	m.variants[newID] = variantWithProduct{variant: v, productID: productID}
+	m.varianten[newID] = varianteWithProdukt{variante: v, produktID: produktID}
 	return newID, m.err
 }
 
-func (m *mockRepo) UpdateVariant(ctx context.Context, v produkt.Variante) error {
-	if vp, ok := m.variants[v.ID]; ok {
-		m.variants[v.ID] = variantWithProduct{variant: v, productID: vp.productID}
+func (m *mockRepo) UpdateVariante(ctx context.Context, v produkt.Variante) error {
+	if vp, ok := m.varianten[v.ID]; ok {
+		m.varianten[v.ID] = varianteWithProdukt{variante: v, produktID: vp.produktID}
 	}
 	return m.err
 }
@@ -84,54 +84,54 @@ func (m *mockRepo) DeleteProduktMitVarianten(ctx context.Context, p produkt.Prod
 	if m.err != nil {
 		return m.err
 	}
-	m.products[p.ID] = p
+	m.produkte[p.ID] = p
 	for i := range p.Varianten {
 		v := p.Varianten[i]
-		if vp, ok := m.variants[v.ID]; ok {
-			m.variants[v.ID] = variantWithProduct{variant: v, productID: vp.productID}
+		if vp, ok := m.varianten[v.ID]; ok {
+			m.varianten[v.ID] = varianteWithProdukt{variante: v, produktID: vp.produktID}
 		}
 	}
 	return nil
 }
 
-func (m *mockRepo) GetAllProducts(ctx context.Context) ([]produkt.Produkt, error) {
-	products := make([]produkt.Produkt, 0, len(m.products))
-	for i := range m.products {
-		products = append(products, m.products[i])
+func (m *mockRepo) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error) {
+	produkte := make([]produkt.Produkt, 0, len(m.produkte))
+	for i := range m.produkte {
+		produkte = append(produkte, m.produkte[i])
 	}
-	return products, m.err
+	return produkte, m.err
 }
 
-func (m *mockRepo) GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error) {
-	products := make([]produkt.Produkt, 0)
-	for i := range m.products {
-		if m.products[i].Status == produkt.ActiveStatus {
-			products = append(products, m.products[i])
+func (m *mockRepo) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error) {
+	produkte := make([]produkt.Produkt, 0)
+	for i := range m.produkte {
+		if m.produkte[i].Status == produkt.ActiveStatus {
+			produkte = append(produkte, m.produkte[i])
 		}
 	}
-	return products, m.err
+	return produkte, m.err
 }
 
-func (m *mockRepo) GetVariantsByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error) {
+func (m *mockRepo) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	result := make(map[int]produkt.Variante, len(ids))
 	for _, id := range ids {
-		if vp, ok := m.variants[id]; ok {
-			result[id] = vp.variant
+		if vp, ok := m.varianten[id]; ok {
+			result[id] = vp.variante
 		}
 	}
 	return result, nil
 }
 
-func (m *mockRepo) GetProductsByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error) {
+func (m *mockRepo) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	result := make(map[int]produkt.Produkt, len(ids))
 	for _, id := range ids {
-		if p, ok := m.products[id]; ok {
+		if p, ok := m.produkte[id]; ok {
 			result[id] = p
 		}
 	}

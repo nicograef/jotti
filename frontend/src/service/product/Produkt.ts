@@ -21,8 +21,8 @@ export const KategorieLabels: Record<Kategorie, string> = {
 /** Sortierreihenfolge der Kategorien in der UI */
 export const KategorieOrder: Kategorie[] = ['essen', 'getraenk', 'sonstiges']
 
-const ProductIdSchema = z.number().int().min(1)
-const VariantIdSchema = z.number().int().min(1)
+const ProduktIdSchema = z.number().int().min(1)
+const VarianteIdSchema = z.number().int().min(1)
 const NameSchema = z
   .string()
   .min(3, { message: 'Das sieht nicht nach einem echten Namen aus.' })
@@ -34,7 +34,7 @@ const PreisCentsSchema = z
 export const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
 
 export const VarianteSchema = z.object({
-  id: VariantIdSchema,
+  id: VarianteIdSchema,
   name: NameSchema,
   preisCents: PreisCentsSchema,
   status: EntityStatusSchema,
@@ -44,7 +44,7 @@ export const VarianteSchema = z.object({
 export type Variante = z.infer<typeof VarianteSchema>
 
 export const ProduktSchema = z.object({
-  id: ProductIdSchema,
+  id: ProduktIdSchema,
   name: NameSchema,
   kategorie: KategorieSchema,
   status: EntityStatusSchema,

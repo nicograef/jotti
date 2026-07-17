@@ -8,18 +8,18 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-func (r Repository) GetVariant(ctx context.Context, id int) (produkt.Variante, error) {
+func (r Repository) GetVariante(ctx context.Context, id int) (produkt.Variante, error) {
 	row, err := r.q.GetVariante(ctx, id)
 	if err != nil {
 		return produkt.Variante{}, db.Error(err)
 	}
 
-	return variantRowToDomain(row), nil
+	return varianteRowToDomain(row), nil
 }
 
-func (r Repository) CreateVariant(ctx context.Context, productID int, v produkt.Variante) (int, error) {
+func (r Repository) CreateVariante(ctx context.Context, produktID int, v produkt.Variante) (int, error) {
 	id, err := r.q.CreateVariante(ctx, dbgen.CreateVarianteParams{
-		ProduktID:  productID,
+		ProduktID:  produktID,
 		Name:       v.Name,
 		PreisCents: v.PreisCents,
 		Status:     dbgen.Entitystatus(v.Status),
@@ -33,7 +33,7 @@ func (r Repository) CreateVariant(ctx context.Context, productID int, v produkt.
 	return id, nil
 }
 
-func (r Repository) UpdateVariant(ctx context.Context, v produkt.Variante) error {
+func (r Repository) UpdateVariante(ctx context.Context, v produkt.Variante) error {
 	result, err := r.q.UpdateVariante(ctx, dbgen.UpdateVarianteParams{
 		Name:       v.Name,
 		PreisCents: v.PreisCents,

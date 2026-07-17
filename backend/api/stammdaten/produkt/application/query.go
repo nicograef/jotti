@@ -8,36 +8,36 @@ import (
 )
 
 type produktQueryRepo interface {
-	GetAllProducts(ctx context.Context) ([]produkt.Produkt, error)
-	GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error)
+	GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error)
+	GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error)
 }
 
 type Query struct {
 	ProduktRepo produktQueryRepo
 }
 
-func (q Query) GetAllProducts(ctx context.Context) ([]produkt.Produkt, error) {
+func (q Query) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 	log := zerolog.Ctx(ctx)
 
-	products, err := q.ProduktRepo.GetAllProducts(ctx)
+	produkte, err := q.ProduktRepo.GetAllProdukte(ctx)
 	if err != nil {
-		log.Error().Msg("Failed to retrieve all products")
+		log.Error().Msg("Failed to retrieve all produkte")
 		return nil, ErrDatabase
 	}
 
-	log.Info().Int("count", len(products)).Msg("Retrieved all products")
-	return products, nil
+	log.Info().Int("count", len(produkte)).Msg("Retrieved all produkte")
+	return produkte, nil
 }
 
-func (q Query) GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error) {
+func (q Query) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 	log := zerolog.Ctx(ctx)
 
-	products, err := q.ProduktRepo.GetActiveProducts(ctx)
+	produkte, err := q.ProduktRepo.GetActiveProdukte(ctx)
 	if err != nil {
-		log.Error().Msg("Failed to retrieve active products")
+		log.Error().Msg("Failed to retrieve active produkte")
 		return nil, ErrDatabase
 	}
 
-	log.Info().Int("count", len(products)).Msg("Retrieved active products")
-	return products, nil
+	log.Info().Int("count", len(produkte)).Msg("Retrieved active produkte")
+	return produkte, nil
 }

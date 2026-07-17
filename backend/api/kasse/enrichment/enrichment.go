@@ -25,8 +25,8 @@ type PositionInput struct {
 
 // produktRepo is the narrow read side enrichment needs: the two batch lookups.
 type produktRepo interface {
-	GetVariantsByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error)
-	GetProductsByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
+	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error)
+	GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
 }
 
 // ErrProduktNotFound is returned when a product or variant is not found during enrichment.
@@ -57,12 +57,12 @@ func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionIn
 		}
 	}
 
-	variantenByID, err := repo.GetVariantsByIDs(ctx, varianteIDs)
+	variantenByID, err := repo.GetVariantenByIDs(ctx, varianteIDs)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to batch-fetch variants for position enrichment")
 		return nil, ErrProduktNotFound
 	}
-	produkteByID, err := repo.GetProductsByIDs(ctx, produktIDs)
+	produkteByID, err := repo.GetProdukteByIDs(ctx, produktIDs)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to batch-fetch products for position enrichment")
 		return nil, ErrProduktNotFound

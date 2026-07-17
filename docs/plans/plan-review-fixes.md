@@ -262,10 +262,10 @@ Rename the produkt Go identifiers to English-verb + German-noun form (`Productâ†
 
 ### Acceptance criteria
 
-- [ ] No `Product`/`Variant` Go identifier remains in the produkt vertical; produkt uses `Create/Update/Activate/Deactivate/Get + Produkt/Variante` uniformly (with the existing `DeleteProdukt`/`DeleteVariante`).
-- [ ] Every registered URL path string and response JSON key is unchanged; `event_json_contract_test.go` and HTTP handler tests pass without contract edits.
-- [ ] Service frontend schema consts are German; admin (input-form) vs service (response-parser) constraint differences are left as-is per the resolved decision.
-- [ ] `tisch` backend identifiers are untouched.
+- [x] No `Product`/`Variant` Go identifier remains in the produkt vertical; produkt uses `Create/Update/Activate/Deactivate/Get + Produkt/Variante` uniformly (with the existing `DeleteProdukt`/`DeleteVariante`).
+- [x] Every registered URL path string and response JSON key is unchanged; `event_json_contract_test.go` and HTTP handler tests pass without contract edits.
+- [x] Service frontend schema consts are German; admin (input-form) vs service (response-parser) constraint differences are left as-is per the resolved decision.
+- [x] `tisch` backend identifiers are untouched.
 - [ ] `make verify` + frontend lint/tests green.
 
 ---

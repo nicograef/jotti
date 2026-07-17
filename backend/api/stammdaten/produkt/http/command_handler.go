@@ -12,46 +12,46 @@ import (
 )
 
 type command interface {
-	CreateProduct(ctx context.Context, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) (int, error)
-	UpdateProduct(ctx context.Context, id int, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) error
-	DeleteProdukt(ctx context.Context, productID int) error
-	CreateVariant(ctx context.Context, productID int, name string, preisCents int) (int, error)
-	UpdateVariant(ctx context.Context, variantID int, name string, preisCents int) error
-	ActivateVariant(ctx context.Context, variantID int) error
-	DeactivateVariant(ctx context.Context, variantID int) error
-	DeleteVariante(ctx context.Context, produktID int, variantID int) error
+	CreateProdukt(ctx context.Context, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) (int, error)
+	UpdateProdukt(ctx context.Context, id int, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) error
+	DeleteProdukt(ctx context.Context, produktID int) error
+	CreateVariante(ctx context.Context, produktID int, name string, preisCents int) (int, error)
+	UpdateVariante(ctx context.Context, varianteID int, name string, preisCents int) error
+	ActivateVariante(ctx context.Context, varianteID int) error
+	DeactivateVariante(ctx context.Context, varianteID int) error
+	DeleteVariante(ctx context.Context, produktID int, varianteID int) error
 }
 
 type CommandHandler struct {
 	Command command
 }
 
-// Product handlers
+// Produkt handlers
 
-type createProductRequest struct {
+type createProduktRequest struct {
 	Name       string            `json:"name"`
 	Kategorie  dom.Kategorie     `json:"kategorie"`
 	Steuersatz steuer.Steuersatz `json:"steuersatz"`
 }
 
-var createProductSchema = z.Struct(z.Shape{
+var createProduktSchema = z.Struct(z.Shape{
 	"Name":       dom.NameSchema.Required(),
 	"Kategorie":  dom.KategorieSchema.Required(),
 	"Steuersatz": steuer.SteuersatzSchema.Required(),
 })
 
-type createProductResponse struct {
+type createProduktResponse struct {
 	ID int `json:"id"`
 }
 
-func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
+func (h *CommandHandler) CreateProduktHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := createProductRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, createProductSchema) {
+		body := createProduktRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, createProduktSchema) {
 			return
 		}
 
-		id, err := h.Command.CreateProduct(r.Context(), body.Name, body.Kategorie, body.Steuersatz)
+		id, err := h.Command.CreateProdukt(r.Context(), body.Name, body.Kategorie, body.Steuersatz)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				application.ErrProduktAlreadyExists: "produkt_already_exists",
@@ -60,32 +60,32 @@ func (h *CommandHandler) CreateProductHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, createProductResponse{ID: id})
+		helper.SendResponse(w, createProduktResponse{ID: id})
 	}
 }
 
-type updateProductRequest struct {
+type updateProduktRequest struct {
 	ID         int               `json:"id"`
 	Name       string            `json:"name"`
 	Kategorie  dom.Kategorie     `json:"kategorie"`
 	Steuersatz steuer.Steuersatz `json:"steuersatz"`
 }
 
-var updateProductSchema = z.Struct(z.Shape{
+var updateProduktSchema = z.Struct(z.Shape{
 	"ID":         dom.IDSchema.Required(),
 	"Name":       dom.NameSchema.Required(),
 	"Kategorie":  dom.KategorieSchema.Required(),
 	"Steuersatz": steuer.SteuersatzSchema.Required(),
 })
 
-func (h *CommandHandler) UpdateProductHandler() http.HandlerFunc {
+func (h *CommandHandler) UpdateProduktHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := updateProductRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, updateProductSchema) {
+		body := updateProduktRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, updateProduktSchema) {
 			return
 		}
 
-		err := h.Command.UpdateProduct(r.Context(), body.ID, body.Name, body.Kategorie, body.Steuersatz)
+		err := h.Command.UpdateProdukt(r.Context(), body.ID, body.Name, body.Kategorie, body.Steuersatz)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				application.ErrProduktNotFound:    "produkt_not_found",
@@ -98,32 +98,32 @@ func (h *CommandHandler) UpdateProductHandler() http.HandlerFunc {
 	}
 }
 
-// Variant handlers
+// Variante handlers
 
-type createVariantRequest struct {
-	ProductID  int    `json:"produktId"`
+type createVarianteRequest struct {
+	ProduktID  int    `json:"produktId"`
 	Name       string `json:"name"`
 	PreisCents int    `json:"preisCents"`
 }
 
-var createVariantSchema = z.Struct(z.Shape{
-	"ProductID":  dom.IDSchema.Required(),
+var createVarianteSchema = z.Struct(z.Shape{
+	"ProduktID":  dom.IDSchema.Required(),
 	"Name":       dom.NameSchema.Required(),
 	"PreisCents": dom.PreisCentsSchema.Required(),
 })
 
-type createVariantResponse struct {
+type createVarianteResponse struct {
 	ID int `json:"id"`
 }
 
-func (h *CommandHandler) CreateVariantHandler() http.HandlerFunc {
+func (h *CommandHandler) CreateVarianteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := createVariantRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, createVariantSchema) {
+		body := createVarianteRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, createVarianteSchema) {
 			return
 		}
 
-		id, err := h.Command.CreateVariant(r.Context(), body.ProductID, body.Name, body.PreisCents)
+		id, err := h.Command.CreateVariante(r.Context(), body.ProduktID, body.Name, body.PreisCents)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				application.ErrProduktNotFound:     "produkt_not_found",
@@ -132,30 +132,30 @@ func (h *CommandHandler) CreateVariantHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, createVariantResponse{ID: id})
+		helper.SendResponse(w, createVarianteResponse{ID: id})
 	}
 }
 
-type updateVariantRequest struct {
+type updateVarianteRequest struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name"`
 	PreisCents int    `json:"preisCents"`
 }
 
-var updateVariantSchema = z.Struct(z.Shape{
+var updateVarianteSchema = z.Struct(z.Shape{
 	"ID":         dom.IDSchema.Required(),
 	"Name":       dom.NameSchema.Required(),
 	"PreisCents": dom.PreisCentsSchema.Required(),
 })
 
-func (h *CommandHandler) UpdateVariantHandler() http.HandlerFunc {
+func (h *CommandHandler) UpdateVarianteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := updateVariantRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, updateVariantSchema) {
+		body := updateVarianteRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, updateVarianteSchema) {
 			return
 		}
 
-		err := h.Command.UpdateVariant(r.Context(), body.ID, body.Name, body.PreisCents)
+		err := h.Command.UpdateVariante(r.Context(), body.ID, body.Name, body.PreisCents)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				application.ErrVarianteNotFound:    "variante_not_found",
@@ -168,22 +168,22 @@ func (h *CommandHandler) UpdateVariantHandler() http.HandlerFunc {
 	}
 }
 
-type activateVariantRequest struct {
+type activateVarianteRequest struct {
 	ID int `json:"id"`
 }
 
-var activateVariantSchema = z.Struct(z.Shape{
+var activateVarianteSchema = z.Struct(z.Shape{
 	"ID": dom.IDSchema.Required(),
 })
 
-func (h *CommandHandler) ActivateVariantHandler() http.HandlerFunc {
+func (h *CommandHandler) ActivateVarianteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := activateVariantRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, activateVariantSchema) {
+		body := activateVarianteRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, activateVarianteSchema) {
 			return
 		}
 
-		err := h.Command.ActivateVariant(r.Context(), body.ID)
+		err := h.Command.ActivateVariante(r.Context(), body.ID)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				application.ErrVarianteNotFound: "variante_not_found",
@@ -195,22 +195,22 @@ func (h *CommandHandler) ActivateVariantHandler() http.HandlerFunc {
 	}
 }
 
-type deactivateVariantRequest struct {
+type deactivateVarianteRequest struct {
 	ID int `json:"id"`
 }
 
-var deactivateVariantSchema = z.Struct(z.Shape{
+var deactivateVarianteSchema = z.Struct(z.Shape{
 	"ID": dom.IDSchema.Required(),
 })
 
-func (h *CommandHandler) DeactivateVariantHandler() http.HandlerFunc {
+func (h *CommandHandler) DeactivateVarianteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deactivateVariantRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, deactivateVariantSchema) {
+		body := deactivateVarianteRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, deactivateVarianteSchema) {
 			return
 		}
 
-		err := h.Command.DeactivateVariant(r.Context(), body.ID)
+		err := h.Command.DeactivateVariante(r.Context(), body.ID)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
 				application.ErrVarianteNotFound: "variante_not_found",

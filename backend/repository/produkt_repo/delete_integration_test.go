@@ -11,7 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/produkt"
 )
 
-// applyDelete marks the product and all its variants as deleted, mirroring what
+// applyDelete marks the produkt and all its varianten as deleted, mirroring what
 // the application layer does before persisting the atomic soft-delete.
 func applyDelete(p *produkt.Produkt) {
 	for i := range p.Varianten {
@@ -45,13 +45,13 @@ func TestDeleteProduktMitVarianten_HappyPath(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, _ := repo.CreateProduct(ctx, newProduct("Pizza", produkt.EssenKategorie))
-	smallID, _ := repo.CreateVariant(ctx, productID, newVariant("Small", 899, produkt.ActiveStatus))
-	largeID, _ := repo.CreateVariant(ctx, productID, newVariant("Large", 1299, produkt.ActiveStatus))
+	produktID, _ := repo.CreateProdukt(ctx, newProdukt("Pizza", produkt.EssenKategorie))
+	smallID, _ := repo.CreateVariante(ctx, produktID, newVariante("Small", 899, produkt.ActiveStatus))
+	largeID, _ := repo.CreateVariante(ctx, produktID, newVariante("Large", 1299, produkt.ActiveStatus))
 
-	p, err := repo.GetProduct(ctx, productID)
+	p, err := repo.GetProdukt(ctx, produktID)
 	if err != nil {
-		t.Fatalf("failed to load product: %v", err)
+		t.Fatalf("failed to load produkt: %v", err)
 	}
 	applyDelete(&p)
 
@@ -59,14 +59,14 @@ func TestDeleteProduktMitVarianten_HappyPath(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if got := rawProduktStatus(t, repo, productID); got != string(produkt.DeletedStatus) {
-		t.Errorf("expected product status deleted, got %q", got)
+	if got := rawProduktStatus(t, repo, produktID); got != string(produkt.DeletedStatus) {
+		t.Errorf("expected produkt status deleted, got %q", got)
 	}
 	if got := rawVarianteStatus(t, repo, smallID); got != string(produkt.DeletedStatus) {
-		t.Errorf("expected variant %d status deleted, got %q", smallID, got)
+		t.Errorf("expected variante %d status deleted, got %q", smallID, got)
 	}
 	if got := rawVarianteStatus(t, repo, largeID); got != string(produkt.DeletedStatus) {
-		t.Errorf("expected variant %d status deleted, got %q", largeID, got)
+		t.Errorf("expected variante %d status deleted, got %q", largeID, got)
 	}
 }
 
@@ -75,18 +75,18 @@ func TestDeleteProduktMitVarianten_MidFailureRollsBack(t *testing.T) {
 	defer teardown(t)
 
 	ctx := context.Background()
-	productID, _ := repo.CreateProduct(ctx, newProduct("Pizza", produkt.EssenKategorie))
-	variantID, _ := repo.CreateVariant(ctx, productID, newVariant("Small", 899, produkt.ActiveStatus))
+	produktID, _ := repo.CreateProdukt(ctx, newProdukt("Pizza", produkt.EssenKategorie))
+	varianteID, _ := repo.CreateVariante(ctx, produktID, newVariante("Small", 899, produkt.ActiveStatus))
 
-	p, err := repo.GetProduct(ctx, productID)
+	p, err := repo.GetProdukt(ctx, produktID)
 	if err != nil {
-		t.Fatalf("failed to load product: %v", err)
+		t.Fatalf("failed to load produkt: %v", err)
 	}
 	applyDelete(&p)
 
-	// Inject a mid-transaction failure: append a phantom variant whose UPDATE
+	// Inject a mid-transaction failure: append a phantom variante whose UPDATE
 	// affects zero rows (no such id), so the transaction aborts after the real
-	// variant has already been updated inside the same tx.
+	// variante has already been updated inside the same tx.
 	p.Varianten = append(p.Varianten, produkt.Variante{
 		ID:         999999,
 		Name:       "ghost",
@@ -99,11 +99,11 @@ func TestDeleteProduktMitVarianten_MidFailureRollsBack(t *testing.T) {
 		t.Fatal("expected an error from the injected mid-transaction failure, got nil")
 	}
 
-	// Atomicity: nothing was partially deleted — product and real variant remain active.
-	if got := rawProduktStatus(t, repo, productID); got != string(produkt.ActiveStatus) {
-		t.Errorf("expected product to remain active after rollback, got %q", got)
+	// Atomicity: nothing was partially deleted — produkt and real variante remain active.
+	if got := rawProduktStatus(t, repo, produktID); got != string(produkt.ActiveStatus) {
+		t.Errorf("expected produkt to remain active after rollback, got %q", got)
 	}
-	if got := rawVarianteStatus(t, repo, variantID); got != string(produkt.ActiveStatus) {
-		t.Errorf("expected variant to remain active after rollback, got %q", got)
+	if got := rawVarianteStatus(t, repo, varianteID); got != string(produkt.ActiveStatus) {
+		t.Errorf("expected variante to remain active after rollback, got %q", got)
 	}
 }

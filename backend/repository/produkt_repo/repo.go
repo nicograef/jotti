@@ -10,15 +10,15 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-func (r Repository) GetProduct(ctx context.Context, id int) (produkt.Produkt, error) {
+func (r Repository) GetProdukt(ctx context.Context, id int) (produkt.Produkt, error) {
 	row, err := r.q.GetProdukt(ctx, id)
 	if err != nil {
 		return produkt.Produkt{}, db.Error(err)
 	}
 
-	varianten, err := parseVariantsJSON(row.Varianten)
+	varianten, err := parseVariantenJSON(row.Varianten)
 	if err != nil {
-		return produkt.Produkt{}, fmt.Errorf("unmarshal variants: %w", err)
+		return produkt.Produkt{}, fmt.Errorf("unmarshal varianten: %w", err)
 	}
 
 	return produkt.Produkt{
@@ -33,20 +33,20 @@ func (r Repository) GetProduct(ctx context.Context, id int) (produkt.Produkt, er
 	}, nil
 }
 
-func (r Repository) GetAllProducts(ctx context.Context) ([]produkt.Produkt, error) {
+func (r Repository) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 	rows, err := r.q.GetAlleProdukte(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	products := make([]produkt.Produkt, 0, len(rows))
+	produkte := make([]produkt.Produkt, 0, len(rows))
 	for i := range rows {
-		varianten, err := parseVariantsJSON(rows[i].Varianten)
+		varianten, err := parseVariantenJSON(rows[i].Varianten)
 		if err != nil {
-			return nil, fmt.Errorf("unmarshal variants: %w", err)
+			return nil, fmt.Errorf("unmarshal varianten: %w", err)
 		}
 
-		products = append(products, produkt.Produkt{
+		produkte = append(produkte, produkt.Produkt{
 			ID:         rows[i].ID,
 			Name:       rows[i].Name,
 			Kategorie:  produkt.Kategorie(rows[i].Kategorie),
@@ -58,23 +58,23 @@ func (r Repository) GetAllProducts(ctx context.Context) ([]produkt.Produkt, erro
 		})
 	}
 
-	return products, nil
+	return produkte, nil
 }
 
-func (r Repository) GetActiveProducts(ctx context.Context) ([]produkt.Produkt, error) {
+func (r Repository) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 	rows, err := r.q.GetAktiveProdukte(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	products := make([]produkt.Produkt, 0, len(rows))
+	produkte := make([]produkt.Produkt, 0, len(rows))
 	for i := range rows {
-		varianten, err := parseVariantsJSON(rows[i].Varianten)
+		varianten, err := parseVariantenJSON(rows[i].Varianten)
 		if err != nil {
-			return nil, fmt.Errorf("unmarshal variants: %w", err)
+			return nil, fmt.Errorf("unmarshal varianten: %w", err)
 		}
 
-		products = append(products, produkt.Produkt{
+		produkte = append(produkte, produkt.Produkt{
 			ID:         rows[i].ID,
 			Name:       rows[i].Name,
 			Kategorie:  produkt.Kategorie(rows[i].Kategorie),
@@ -86,10 +86,10 @@ func (r Repository) GetActiveProducts(ctx context.Context) ([]produkt.Produkt, e
 		})
 	}
 
-	return products, nil
+	return produkte, nil
 }
 
-func (r Repository) CreateProduct(ctx context.Context, p produkt.Produkt) (int, error) {
+func (r Repository) CreateProdukt(ctx context.Context, p produkt.Produkt) (int, error) {
 	id, err := r.q.CreateProdukt(ctx, dbgen.CreateProduktParams{
 		Name:       p.Name,
 		Kategorie:  dbgen.Produktkategorie(p.Kategorie),
@@ -105,7 +105,7 @@ func (r Repository) CreateProduct(ctx context.Context, p produkt.Produkt) (int, 
 	return id, nil
 }
 
-func (r Repository) UpdateProduct(ctx context.Context, p produkt.Produkt) error {
+func (r Repository) UpdateProdukt(ctx context.Context, p produkt.Produkt) error {
 	result, err := r.q.UpdateProdukt(ctx, dbgen.UpdateProduktParams{
 		Name:       p.Name,
 		Kategorie:  dbgen.Produktkategorie(p.Kategorie),
@@ -121,11 +121,11 @@ func (r Repository) UpdateProduct(ctx context.Context, p produkt.Produkt) error 
 	return db.ResultError(result)
 }
 
-// DeleteProduktMitVarianten persists the soft-delete of a product together with
-// all its variants in a single transaction. The caller passes the product with
-// Delete() already applied to it and each variant; this method only writes the
+// DeleteProduktMitVarianten persists the soft-delete of a produkt together with
+// all its varianten in a single transaction. The caller passes the produkt with
+// Delete() already applied to it and each variante; this method only writes the
 // status transitions. Because all writes share one db.WithTx, a mid-operation
-// failure rolls the whole delete back — the product and every variant stay in
+// failure rolls the whole delete back — the produkt and every variante stay in
 // their pre-delete state, never a partial delete.
 func (r Repository) DeleteProduktMitVarianten(ctx context.Context, p produkt.Produkt) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {

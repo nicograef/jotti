@@ -105,7 +105,7 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 
 func newProductMock() produktRepo {
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
-	productMock.AddVariant(testProduct.ID, testVariant)
+	productMock.AddVariante(testProduct.ID, testVariant)
 	return productMock
 }
 
@@ -192,7 +192,7 @@ func TestDirektverkaufTaetigen_InactiveVariante(t *testing.T) {
 		Status:     produkt.InactiveStatus,
 	}
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
-	productMock.AddVariant(testProduct.ID, inactiveVariant)
+	productMock.AddVariante(testProduct.ID, inactiveVariant)
 	spy := &spyEventRepo{}
 	command := Command{
 		EventRepo:           spy,

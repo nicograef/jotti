@@ -21,7 +21,7 @@ func NewServiceApi(deps Deps) (http.Handler, []string) {
 	r := newRouteMux()
 
 	pq := produktHTTP.QueryHandler{Query: produktApp.Query{ProduktRepo: deps.ProduktRepo}}
-	r.HandleFunc("/get-aktive-produkte", pq.GetActiveProductsHandler())
+	r.HandleFunc("/get-aktive-produkte", pq.GetActiveProdukteHandler())
 
 	tc := tischgeschaeftHTTP.CommandHandler{Command: tischgeschaeftApp.Command{
 		TischRepo:           deps.TischRepo,

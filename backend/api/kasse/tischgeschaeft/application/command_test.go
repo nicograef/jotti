@@ -149,7 +149,7 @@ func (m *umbuchungTableRepoMock) GetActiveTablesWithFavorites(_ context.Context,
 func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 	ctx := context.Background()
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
-	productMock.AddVariant(testProduct.ID, testVariant)
+	productMock.AddVariante(testProduct.ID, testVariant)
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	// no open KS set
 	command := Command{
@@ -172,7 +172,7 @@ func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 	ctx := context.Background()
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
-	productMock.AddVariant(testProduct.ID, testVariant)
+	productMock.AddVariante(testProduct.ID, testVariant)
 	command := newTestCommand([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct})
 	command.ProduktRepo = productMock
 
@@ -189,7 +189,7 @@ func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 	ctx := context.Background()
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
-	productMock.AddVariant(testProduct.ID, testVariant)
+	productMock.AddVariante(testProduct.ID, testVariant)
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	stationMock := &mockDruckstationRepo{konfig: map[string]druckstation.Druckstation{
@@ -225,7 +225,7 @@ func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 func TestBestellungAufnehmen_Conflict(t *testing.T) {
 	ctx := context.Background()
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
-	productMock.AddVariant(testProduct.ID, testVariant)
+	productMock.AddVariante(testProduct.ID, testVariant)
 	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, db.ErrAlreadyExists)
 	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct}, eventMock)
 	command.ProduktRepo = productMock
@@ -243,7 +243,7 @@ func TestBestellungAufnehmen_Conflict(t *testing.T) {
 func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
 	ctx := context.Background()
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
-	productMock.AddVariant(testProduct.ID, testVariant)
+	productMock.AddVariante(testProduct.ID, testVariant)
 	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, db.ErrConflict)
 	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct}, eventMock)
 	command.ProduktRepo = productMock
@@ -263,7 +263,7 @@ func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
 func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {
 	ctx := context.Background()
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
-	productMock.AddVariant(testProduct.ID, testVariant)
+	productMock.AddVariante(testProduct.ID, testVariant)
 	command := newTestCommand([]tisch.Tisch{testInactiveTisch}, []produkt.Produkt{testProduct})
 	command.ProduktRepo = productMock
 
@@ -288,7 +288,7 @@ func TestBestellungAufnehmen_InactiveVariante(t *testing.T) {
 		Status:     produkt.InactiveStatus,
 	}
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
-	productMock.AddVariant(testProduct.ID, inactiveVariant)
+	productMock.AddVariante(testProduct.ID, inactiveVariant)
 	command := newTestCommand([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct})
 	command.ProduktRepo = productMock
 

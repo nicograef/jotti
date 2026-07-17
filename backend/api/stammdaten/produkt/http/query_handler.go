@@ -10,8 +10,8 @@ import (
 )
 
 type query interface {
-	GetAllProducts(ctx context.Context) ([]dom.Produkt, error)
-	GetActiveProducts(ctx context.Context) ([]dom.Produkt, error)
+	GetAllProdukte(ctx context.Context) ([]dom.Produkt, error)
+	GetActiveProdukte(ctx context.Context) ([]dom.Produkt, error)
 }
 
 type QueryHandler struct {
@@ -38,7 +38,7 @@ type produkt struct {
 	UpdatedAt  time.Time  `json:"updatedAt"`
 }
 
-type getAllProductsResponse struct {
+type getAllProdukteResponse struct {
 	Produkte []produkt `json:"produkte"`
 }
 
@@ -80,30 +80,30 @@ func toProdukte(produkte []dom.Produkt) []produkt {
 	return produkteResponse
 }
 
-func (h *QueryHandler) GetAllProductsHandler() http.HandlerFunc {
+func (h *QueryHandler) GetAllProdukteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		products, err := h.Query.GetAllProducts(r.Context())
+		produkte, err := h.Query.GetAllProdukte(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, getAllProductsResponse{Produkte: toProdukte(products)})
+		helper.SendResponse(w, getAllProdukteResponse{Produkte: toProdukte(produkte)})
 	}
 }
 
-type getActiveProductsResponse struct {
+type getActiveProdukteResponse struct {
 	Produkte []produkt `json:"produkte"`
 }
 
-func (h *QueryHandler) GetActiveProductsHandler() http.HandlerFunc {
+func (h *QueryHandler) GetActiveProdukteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		products, err := h.Query.GetActiveProducts(r.Context())
+		produkte, err := h.Query.GetActiveProdukte(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, getActiveProductsResponse{Produkte: toProdukte(products)})
+		helper.SendResponse(w, getActiveProdukteResponse{Produkte: toProdukte(produkte)})
 	}
 }
