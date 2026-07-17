@@ -105,13 +105,13 @@ Die beiden Mengen-Auswahlen (Bestell-Korb nach Variante-ID, Kassieren-Auswahl na
 
 ### Acceptance criteria
 
-- [ ] Bestell-Korb: Mengen wählen, zu Historie wechseln, zurück zu Bestellen — die Mengen sind unverändert da (neuer Test in `TablePage.test.tsx` oder `Bestellung.test.tsx`)
-- [ ] Kassieren-Auswahl: analog über einen Tab-Wechsel hinweg erhalten (neuer Test)
-- [ ] Nach erfolgreichem Bestellen bzw. Kassieren ist die jeweilige Auswahl weiterhin geleert (bestehende Tests bleiben grün, ADR-08-Querschnittskriterium)
-- [ ] Bei Wechsel des Tisches (`:tischId`) startet die Auswahl leer
-- [ ] Kein `forceMount`; `animate-fade-up` läuft weiterhin bei Tab-Aktivierung
-- [ ] Sheet (< 1024 px) und Abschluss-Spalte (≥ 1024 px) verhalten sich identisch (bestehende Drawer-/Abschluss-Tests angepasst, nicht gelöscht)
-- [ ] `make check` grün
+- [x] Bestell-Korb: Mengen wählen, zu Historie wechseln, zurück zu Bestellen — die Mengen sind unverändert da (neuer Test in `TablePage.test.tsx` oder `Bestellung.test.tsx`)
+- [x] Kassieren-Auswahl: analog über einen Tab-Wechsel hinweg erhalten (neuer Test)
+- [x] Nach erfolgreichem Bestellen bzw. Kassieren ist die jeweilige Auswahl weiterhin geleert (bestehende Tests bleiben grün, ADR-08-Querschnittskriterium)
+- [x] Bei Wechsel des Tisches (`:tischId`) startet die Auswahl leer
+- [x] Kein `forceMount`; `animate-fade-up` läuft weiterhin bei Tab-Aktivierung
+- [x] Sheet (< 1024 px) und Abschluss-Spalte (≥ 1024 px) verhalten sich identisch (bestehende Drawer-/Abschluss-Tests angepasst, nicht gelöscht)
+- [x] `make check` grün
 
 ---
 

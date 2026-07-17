@@ -10,7 +10,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
-import { useMengen } from '@/hooks/use-mengen'
+import type { MengenSteuerung } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { AuthSingleton } from '@/lib/Auth'
 import {
@@ -33,6 +33,9 @@ interface ZahlungProps {
   backend: Pick<TischBackend, 'zahlungKassieren'>
   tisch: Tisch
   positionen: Position[]
+  // Kassieren-Auswahl (Position-ID → Menge, gedeckelt auf die unbezahlte
+  // Menge), von TablePage gehoben, damit sie den Tab-Wechsel überlebt.
+  mengenSteuerung: MengenSteuerung<string>
   // Meldet die erfolgreiche Zahlung samt Bestätigungstext an die Seite, die den
   // Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
   onErfolg: (nachricht: string) => void
@@ -42,6 +45,7 @@ export function Zahlung({
   tisch,
   backend,
   positionen,
+  mengenSteuerung,
   onErfolg,
 }: ZahlungProps) {
   const isMobile = useIsMobile()
@@ -61,7 +65,7 @@ export function Zahlung({
     remove: onRemove,
     reset,
     setAll,
-  } = useMengen<string>((positionId) => unbezahlteMengen[positionId] || 0)
+  } = mengenSteuerung
 
   const meinePositionen = positionen.filter(
     (position) => position.bestellerUserId === AuthSingleton.userId,

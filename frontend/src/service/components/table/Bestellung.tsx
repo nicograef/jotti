@@ -1,4 +1,4 @@
-import { useMengen } from '@/hooks/use-mengen'
+import type { MengenSteuerung } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 import type { Produkt } from '../../product/Produkt'
@@ -15,6 +15,9 @@ interface BestellungProps {
   tisch: Tisch
   products: Produkt[]
   productsLoading: boolean
+  // Bestell-Korb (Variante-ID → Menge), von TablePage gehoben, damit die
+  // Auswahl das Aus- und Wiedereinhängen der Tab-Inhalte überlebt.
+  mengenSteuerung: MengenSteuerung<number>
   // Meldet die erfolgreiche Buchung samt Bestätigungstext an die Seite, die den
   // Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
   onErfolg: (nachricht: string) => void
@@ -25,10 +28,11 @@ export function Bestellung({
   tisch,
   products,
   productsLoading,
+  mengenSteuerung,
   onErfolg,
 }: BestellungProps) {
   const isMobile = useIsMobile()
-  const { mengen, add, remove, reset } = useMengen<number>()
+  const { mengen, add, remove, reset } = mengenSteuerung
 
   if (productsLoading) {
     return <ProductListSkeleton />

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCountUp } from '@/hooks/use-count-up'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
+import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { BackendSingleton } from '@/lib/Backend'
 import { formatEuro } from '@/lib/utils'
@@ -95,6 +96,29 @@ export function TablePage() {
     reload()
   }, [reload])
 
+  // Bestell-Korb (Variante-ID → Menge) und Kassieren-Auswahl (Position-ID →
+  // Menge) liegen hier, damit sie das Aus- und Wiedereinhängen der Radix-Tab-
+  // Inhalte überstehen; ein Tab-Wechsel würde die Auswahl sonst verlieren. Die
+  // Kassieren-Auswahl ist auf die noch unbezahlte Menge je Position gedeckelt.
+  const bestellKorb = useMengen<number>()
+  const unbezahlteMengen: Record<string, number> = {}
+  state.unbezahltePositionen.forEach((position) => {
+    unbezahlteMengen[position.positionId] = position.menge
+  })
+  const kassierenAuswahl = useMengen<string>(
+    (positionId) => unbezahlteMengen[positionId] || 0,
+  )
+
+  // Beim Tischwechsel bleibt TablePage gemountet (nur der :tischId-Param
+  // ändert sich), daher wird die gehobene Auswahl pro Tisch zurückgesetzt.
+  // React-idiomatisches Zurücksetzen von State bei Prop-Wechsel im Render.
+  const [aktiverTisch, setAktiverTisch] = useState(tischId)
+  if (tischId !== aktiverTisch) {
+    setAktiverTisch(tischId)
+    bestellKorb.reset()
+    kassierenAuswahl.reset()
+  }
+
   // Expliziter Fehlerzustand statt der Leer-Defaults (Saldo 0,00 €) — sonst
   // wirkt der Tisch bei Netzabbruch abgerechnet.
   if (stateError || historieError) {
@@ -169,6 +193,7 @@ export function TablePage() {
       tisch={tisch}
       products={produkte}
       productsLoading={isPending}
+      mengenSteuerung={bestellKorb}
       onErfolg={zeigeErfolg}
     />
   )
@@ -177,6 +202,7 @@ export function TablePage() {
       backend={tischBackend}
       tisch={tisch}
       positionen={state.unbezahltePositionen}
+      mengenSteuerung={kassierenAuswahl}
       onErfolg={zeigeErfolg}
     />
   )

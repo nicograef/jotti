@@ -1,13 +1,31 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import { ServiceDock } from '../ServiceDock'
 import { Zahlung } from './Zahlung'
+
+// Die Kassieren-Auswahl liegt seit A1 in TablePage; für die isolierten
+// Komponenten-Tests stellt dieser Harness die gehobene Steuerung inklusive der
+// Deckelung auf die unbezahlte Menge bereit.
+function ZahlungHarness(
+  props: Omit<ComponentProps<typeof Zahlung>, 'mengenSteuerung'>,
+) {
+  const unbezahlteMengen: Record<string, number> = {}
+  props.positionen.forEach((position) => {
+    unbezahlteMengen[position.positionId] = position.menge
+  })
+  const mengenSteuerung = useMengen<string>(
+    (positionId) => unbezahlteMengen[positionId] || 0,
+  )
+  return <Zahlung {...props} mengenSteuerung={mengenSteuerung} />
+}
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -61,7 +79,7 @@ const fremdePosition: Position = {
 function renderZahlung(positionen: Position[] = [position]) {
   render(
     <ServiceDock leiste={null}>
-      <Zahlung
+      <ZahlungHarness
         backend={{
           zahlungKassieren: vi.fn().mockResolvedValue(undefined),
         }}
@@ -79,7 +97,7 @@ describe('Zahlung feste Spalte (ab lg)', () => {
     const user = userEvent.setup()
     // Kein ServiceDock: die feste Spalte trägt Aktionsbutton und Restbetrag.
     render(
-      <Zahlung
+      <ZahlungHarness
         backend={{ zahlungKassieren: vi.fn().mockResolvedValue(undefined) }}
         tisch={tisch}
         positionen={[position]}
