@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { EntityStatusSchema } from '@/lib/entityStatus'
+
 import { DateStringSchema } from '../schemas'
 
 export const Kategorie = {
@@ -28,28 +30,24 @@ const NameSchema = z
 const PreisCentsSchema = z
   .number()
   .int()
-  .min(0, { message: 'Der Nettopreis muss positiv sein.' })
+  .min(0, { message: 'Der Preis darf nicht negativ sein.' })
 export const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
-
-const VarianteStatusSchema = z.enum(['active', 'inactive'])
 
 export const VarianteSchema = z.object({
   id: VariantIdSchema,
   name: NameSchema,
   preisCents: PreisCentsSchema,
-  status: VarianteStatusSchema,
+  status: EntityStatusSchema,
   createdAt: DateStringSchema,
   updatedAt: DateStringSchema,
 })
 export type Variante = z.infer<typeof VarianteSchema>
 
-const ProduktStatusSchema = z.enum(['active', 'inactive'])
-
 export const ProduktSchema = z.object({
   id: ProductIdSchema,
   name: NameSchema,
   kategorie: KategorieSchema,
-  status: ProduktStatusSchema,
+  status: EntityStatusSchema,
   varianten: z.array(VarianteSchema),
   createdAt: DateStringSchema,
   updatedAt: DateStringSchema,

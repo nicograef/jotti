@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"time"
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
@@ -72,10 +71,9 @@ type kasseAbschliessenResponse struct {
 }
 
 // signaturenAusstehendDetails sind die strukturierten 409-Details des Gates:
-// wie viele Signaturen noch ausstehen und wie alt der älteste offene Auftrag ist.
+// wie viele Signaturen noch ausstehen.
 type signaturenAusstehendDetails struct {
-	Anzahl        int `json:"anzahl"`
-	AlterSekunden int `json:"alterSekunden"`
+	Anzahl int `json:"anzahl"`
 }
 
 // --- Handlers ---
@@ -157,8 +155,7 @@ func (h *CommandHandler) KasseAbschliessenHandler() http.HandlerFunc {
 			switch {
 			case errors.As(err, &ausstehend):
 				helper.SendConflictDetails(w, "signaturen_ausstehend", signaturenAusstehendDetails{
-					Anzahl:        ausstehend.Anzahl,
-					AlterSekunden: int(time.Since(ausstehend.AeltesterErstelltAm).Seconds()),
+					Anzahl: ausstehend.Anzahl,
 				})
 			case errors.Is(err, kasseApp.ErrConflict):
 				helper.SendConflictError(w)

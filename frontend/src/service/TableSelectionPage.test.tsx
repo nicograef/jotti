@@ -54,7 +54,6 @@ function tischSession(
       ? // Nur die Länge zählt für die Offen/Erledigt-Gruppierung.
         ([{ positionId: 'p1' }] as TischSession['unbezahltePositionen'])
       : [],
-    gesamtZahlungenCents: 0,
     fuerMichErledigt: !offen,
   }
 }

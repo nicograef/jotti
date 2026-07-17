@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { EntityStatusSchema } from '@/lib/entityStatus'
 import { DateStringSchema } from '@/lib/utils'
 
 export const Kategorie = {
@@ -46,7 +47,6 @@ const PreisCentsSchema = z
   .max(99999, { message: 'Preis darf maximal 999,99 € betragen.' })
 const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
 const SteuersatzSchema = z.enum(['regel', 'ermaessigt', 'befreit', 'kombi'])
-const VarianteStatusSchema = z.enum(['active', 'inactive'])
 
 export function defaultSteuersatzByKategorie(kategorie: Kategorie): Steuersatz {
   if (kategorie === Kategorie.ESSEN) {
@@ -60,7 +60,7 @@ export const VarianteSchema = z.object({
   id: VarianteIdSchema,
   name: NameSchema,
   preisCents: PreisCentsSchema,
-  status: VarianteStatusSchema,
+  status: EntityStatusSchema,
   createdAt: DateStringSchema,
   updatedAt: DateStringSchema,
 })
@@ -71,7 +71,7 @@ export const ProduktSchema = z.object({
   name: NameSchema,
   kategorie: KategorieSchema,
   steuersatz: SteuersatzSchema,
-  status: VarianteStatusSchema,
+  status: EntityStatusSchema,
   varianten: z.array(VarianteSchema),
   createdAt: DateStringSchema,
   updatedAt: DateStringSchema,

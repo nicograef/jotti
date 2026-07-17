@@ -37,7 +37,6 @@ const DEFAULT_TISCH_STATE: TischSession = {
   tischName: '',
   saldoCents: 0,
   unbezahltePositionen: [],
-  gesamtZahlungenCents: 0,
   fuerMichErledigt: true,
 }
 

@@ -468,7 +468,6 @@ describe('KasseAbschliessenSection', () => {
     kasseAbschliessen.mockRejectedValueOnce(
       new BackendError(409, 'signaturen_ausstehend', {
         anzahl: 2,
-        alterSekunden: 25,
       }),
     )
     const user = userEvent.setup()

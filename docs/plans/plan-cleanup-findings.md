@@ -141,10 +141,10 @@ Die vier von den Flow-Tracern gefundenen Vertragsbefunde beheben, Backend und Fr
 
 ### Acceptance criteria
 
-- [ ] `make check` grün; `make test-e2e` grün
-- [ ] `grep -rn "alterSekunden\|gesamtZahlungenCents" backend/api frontend/src e2e/` leer; das Read-Model `tischState` und das HTTP-DTO tragen kein `GesamtZahlungenCents`-Feld mehr (das Domain-Feld in `backend/domain/kasse` und seine Projektions-/Integrationstests bleiben)
-- [ ] `grep -rn "Nettopreis\|net price" frontend/src` leer
-- [ ] `grep -rn "VarianteStatusSchema\|ProduktStatusSchema" frontend/src` leer; genau eine `EntityStatusSchema`-Definition
+- [x] `make check` grün; `make test-e2e` grün
+- [x] `grep -rn "alterSekunden\|gesamtZahlungenCents" backend/api frontend/src e2e/` leer; das Read-Model `tischState` und das HTTP-DTO tragen kein `GesamtZahlungenCents`-Feld mehr (das Domain-Feld in `backend/domain/kasse` und seine Projektions-/Integrationstests bleiben)
+- [x] `grep -rn "Nettopreis\|net price" frontend/src` leer
+- [x] `grep -rn "VarianteStatusSchema\|ProduktStatusSchema" frontend/src` leer; genau eine `EntityStatusSchema`-Definition
 
 ---
 

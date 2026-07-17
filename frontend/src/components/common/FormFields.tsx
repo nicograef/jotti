@@ -431,7 +431,7 @@ function EuroFieldControl({
   )
 }
 
-/** Euro input for a product's net price, bound to the `preisCents` form field. */
+/** Euro input for a product's gross price (Brutto), bound to the `preisCents` form field. */
 export function PriceField<AllFormFields extends FieldValues>({
   form,
   withLabel,

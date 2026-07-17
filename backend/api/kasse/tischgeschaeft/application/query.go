@@ -17,7 +17,6 @@ type TischStateView struct {
 	Subject              string
 	SaldoCents           int
 	UnbezahltePositionen []kasse.Position
-	GesamtZahlungenCents int
 	// FuerMichErledigt ist true, wenn die anfragende Servicekraft an diesem Tisch
 	// keine eigenen unbezahlten Positionen mehr hat.
 	FuerMichErledigt bool
@@ -91,7 +90,6 @@ func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (Tisc
 		Subject:              subject,
 		SaldoCents:           state.SaldoCents,
 		UnbezahltePositionen: state.UnbezahltePositionen,
-		GesamtZahlungenCents: state.GesamtZahlungenCents,
 		FuerMichErledigt:     kasse.ComputeEigeneArbeitAnTisch(state, userID).Erledigt,
 	}, nil
 }
@@ -166,7 +164,6 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 			Subject:              kasse.TischSessionSubject(kassensitzungNr, tischID),
 			SaldoCents:           state.SaldoCents,
 			UnbezahltePositionen: state.UnbezahltePositionen,
-			GesamtZahlungenCents: state.GesamtZahlungenCents,
 			FuerMichErledigt:     kasse.ComputeEigeneArbeitAnTisch(state, userID).Erledigt,
 		})
 	}

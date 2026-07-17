@@ -64,7 +64,6 @@ const stammtisch: TischSession = {
   tischName: 'Stammtisch',
   saldoCents: 1250,
   unbezahltePositionen: [],
-  gesamtZahlungenCents: 0,
   fuerMichErledigt: true,
 }
 

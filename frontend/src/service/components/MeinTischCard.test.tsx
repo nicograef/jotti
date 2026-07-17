@@ -38,7 +38,6 @@ function tischSession(overrides: Partial<TischSession>): TischSession {
     tischName: 'Stammtisch',
     saldoCents: 0,
     unbezahltePositionen: [],
-    gesamtZahlungenCents: 0,
     fuerMichErledigt: true,
     ...overrides,
   }

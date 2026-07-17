@@ -54,10 +54,9 @@ export type KassenabschlussErgebnis = z.infer<
 >
 
 // SignaturenAusstehendDetails sind die 409-Details des Kassenabschluss-Gates:
-// wie viele Signaturen noch ausstehen und wie alt der älteste offene Auftrag ist.
+// wie viele Signaturen noch ausstehen.
 export const SignaturenAusstehendDetailsSchema = z.object({
   anzahl: z.number().int(),
-  alterSekunden: z.number().int(),
 })
 
 export class KasseBackend {

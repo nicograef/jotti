@@ -290,9 +290,6 @@ func TestKasseAbschliessenHandler_SignaturenAusstehend(t *testing.T) {
 	if !strings.Contains(body, `"anzahl":2`) {
 		t.Errorf("expected anzahl detail in body, got %s", body)
 	}
-	if !strings.Contains(body, `"alterSekunden"`) {
-		t.Errorf("expected alterSekunden detail in body, got %s", body)
-	}
 }
 
 func TestKasseAbschliessenHandler_AusfallResteImBody(t *testing.T) {

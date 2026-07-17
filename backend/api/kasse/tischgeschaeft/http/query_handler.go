@@ -276,7 +276,6 @@ type tischState struct {
 	TischName            string     `json:"tischName"`
 	SaldoCents           int        `json:"saldoCents"`
 	UnbezahltePositionen []position `json:"unbezahltePositionen"`
-	GesamtZahlungenCents int        `json:"gesamtZahlungenCents"`
 	FuerMichErledigt     bool       `json:"fuerMichErledigt"`
 }
 
@@ -286,7 +285,6 @@ func toTischState(s application.TischStateView) tischState {
 		TischName:            s.TischName,
 		SaldoCents:           s.SaldoCents,
 		UnbezahltePositionen: toPositionen(s.UnbezahltePositionen),
-		GesamtZahlungenCents: s.GesamtZahlungenCents,
 		FuerMichErledigt:     s.FuerMichErledigt,
 	}
 }
