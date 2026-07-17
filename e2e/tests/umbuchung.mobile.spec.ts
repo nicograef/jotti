@@ -65,7 +65,11 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
     await drawer.getByRole('combobox').selectOption({ label: ZIEL_TISCH })
     await expect(ausfuehren).toBeEnabled()
     await ausfuehren.click()
-    await expect(page.getByText('Bestellung umgebucht.')).toBeVisible()
+    // Die Umbuchung bestätigt über den Erfolgs-Pop mit dem Ziel-Tischnamen
+    // (statt eines Toasts); der Refetch folgt beim Schließen des Pops.
+    await expect(
+      page.getByText(`Auf ${ZIEL_TISCH} umgebucht.`),
+    ).toBeVisible()
 
     // Der Quelltisch ist danach ausgeglichen …
     await expect(page.getByText('0,00 €').first()).toBeVisible()

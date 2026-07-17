@@ -1,5 +1,6 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
@@ -192,6 +193,35 @@ describe('HistorieUmbuchungDrawer', () => {
         benutzerKommentar: 'Gast gewechselt',
       }),
     )
+  })
+
+  // A2: Der Erfolg meldet den Namen des Ziel-Tischs für den Erfolgs-Pop; der
+  // frühere „Bestellung umgebucht."-Toast entfällt.
+  it('meldet den Ziel-Tischnamen an den Aufrufer und zeigt keinen Toast', async () => {
+    const user = userEvent.setup()
+    const onBestellungUmgebucht = vi.fn()
+    render(
+      <HistorieUmbuchungDrawer
+        backend={{ bestellungUmbuchen: vi.fn().mockResolvedValue(undefined) }}
+        tisch={tisch}
+        quelle={quelle}
+        onClose={vi.fn()}
+        onBestellungUmgebucht={onBestellungUmgebucht}
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: /^1 Position auswählen/ }),
+    )
+    await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
+    await user.click(
+      screen.getByRole('button', { name: 'Umbuchung ausführen' }),
+    )
+
+    await waitFor(() => {
+      expect(onBestellungUmgebucht).toHaveBeenCalledWith('Nebentisch')
+    })
+    expect(toast.success).not.toHaveBeenCalledWith('Bestellung umgebucht.')
   })
 
   it('beschriftet den Sammel-Button bei mehreren Positionen im Plural', () => {

@@ -6,6 +6,8 @@ import {
   waitFor,
   within,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Bestellung } from '../../table/Bestellung'
@@ -127,6 +129,7 @@ function umbuchung(overrides: Partial<Umbuchung> = {}): Umbuchung {
 function renderHistorie(
   historie: HistorieEintrag[],
   backend: Partial<Parameters<typeof TischHistorie>[0]['backend']> = {},
+  onErfolg: (nachricht: string) => void = vi.fn(),
 ) {
   render(
     <TischHistorie
@@ -140,8 +143,7 @@ function renderHistorie(
         stornobelegDrucken: vi.fn().mockResolvedValue('eingereiht'),
         ...backend,
       }}
-      onStornierungErteilt={vi.fn()}
-      onBestellungUmgebucht={vi.fn()}
+      onErfolg={onErfolg}
     />,
   )
 }
@@ -387,6 +389,72 @@ describe('TischHistorie', () => {
     expect(
       within(dialog).getByRole('button', { name: /Stornieren…/ }),
     ).toBeInTheDocument()
+  })
+
+  // A2: Storno und Umbuchung bestätigen über den Erfolgs-Pop (Text an den
+  // Aufrufer), nicht mehr per Toast oder kommentarlosem Schließen. Der Drawer
+  // schließt beim Erfolg; der Refetch läuft beim Pop-Schließen (TablePage).
+  it('meldet den Storno-Erfolg über den Pop-Text und schließt den Drawer', async () => {
+    const user = userEvent.setup()
+    const onErfolg = vi.fn()
+    renderHistorie(
+      [
+        bestellung({
+          id: '00000000-0000-0000-0000-000000000001',
+          stornierbarePositionen: [position()],
+        }),
+      ],
+      {},
+      onErfolg,
+    )
+
+    await user.click(screen.getByRole('button', { name: /Bestellung/ }))
+    await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch gebucht',
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Stornierung erteilen' }),
+    )
+
+    await waitFor(() => {
+      expect(onErfolg).toHaveBeenCalledWith('Stornierung gebucht.')
+    })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('meldet die Umbuchung mit dem Ziel-Tischnamen über den Pop-Text — ohne Toast', async () => {
+    const user = userEvent.setup()
+    const bestellungUmbuchen = vi.fn().mockResolvedValue(undefined)
+    const onErfolg = vi.fn()
+    renderHistorie(
+      [
+        bestellung({
+          id: '00000000-0000-0000-0000-000000000001',
+          umbuchbarePositionen: [position()],
+        }),
+      ],
+      { bestellungUmbuchen },
+      onErfolg,
+    )
+
+    await user.click(screen.getByRole('button', { name: /Bestellung/ }))
+    await user.click(screen.getByRole('button', { name: /Umbuchen/ }))
+    await user.click(
+      screen.getByRole('button', { name: /Position(?:en)? auswählen/ }),
+    )
+    await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
+    await user.click(
+      screen.getByRole('button', { name: 'Umbuchung ausführen' }),
+    )
+
+    await waitFor(() => {
+      expect(onErfolg).toHaveBeenCalledWith('Auf Nebentisch umgebucht.')
+    })
+    expect(toast.success).not.toHaveBeenCalledWith('Bestellung umgebucht.')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('rendert eine geldneutrale Korrektur mit leerem Kommentar ohne Fehler', () => {

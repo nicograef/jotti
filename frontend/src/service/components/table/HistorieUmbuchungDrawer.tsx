@@ -1,6 +1,5 @@
 import { CircleCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -47,7 +46,8 @@ interface HistorieUmbuchungDrawerProps {
   // werden; beschriftet den Drawer.
   quelle: Bestellung | Umbuchung
   onClose: () => void
-  onBestellungUmgebucht: () => void
+  // Meldet den Erfolg mit dem Namen des Ziel-Tischs für den Erfolgs-Pop.
+  onBestellungUmgebucht: (zielName: string) => void
 }
 
 // Volle umbuchbare Menge je Position — Basis für den „Alle auswählen"-Button.
@@ -124,8 +124,9 @@ export function HistorieUmbuchungDrawer({
         'Mindestens eine Position ist nicht mehr umbuchbar. Bitte Auswahl aktualisieren.',
     },
     onSuccess: () => {
-      toast.success('Bestellung umgebucht.')
-      onBestellungUmgebucht()
+      const zielName =
+        zielTische.find((candidate) => candidate.id === zielTischId)?.name ?? ''
+      onBestellungUmgebucht(zielName)
     },
   })
 

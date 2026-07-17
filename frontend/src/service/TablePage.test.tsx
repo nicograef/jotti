@@ -68,24 +68,29 @@ vi.mock('@/lib/Backend', () => ({
   BackendSingleton: {},
 }))
 
-// Die eigene Servicekraft (für die „Meine Positionen"-Filterung in Zahlung).
+// Die eigene Servicekraft (für die „Meine Positionen"-Filterung in Zahlung);
+// canCancel/canRebook, damit der Storno-/Umbuchen-Pfad der Historie greift.
 vi.mock('@/lib/Auth', () => ({
-  AuthSingleton: { userId: 1 },
+  AuthSingleton: { userId: 1, canCancel: true, canRebook: true },
 }))
 
 vi.mock('./product/hooks', () => ({
   useAktiveProdukte: () => ({ produkte: testState.produkte, isPending: false }),
 }))
 
-const { getTischState, getTischHistorie } = vi.hoisted(() => ({
-  getTischState: vi.fn<() => Promise<TischSession>>(),
-  getTischHistorie: vi.fn<() => Promise<unknown[]>>(),
-}))
+const { getTischState, getTischHistorie, stornierungErteilen } = vi.hoisted(
+  () => ({
+    getTischState: vi.fn<() => Promise<TischSession>>(),
+    getTischHistorie: vi.fn<() => Promise<unknown[]>>(),
+    stornierungErteilen: vi.fn<() => Promise<void>>(),
+  }),
+)
 
 vi.mock('./table/TischBackend', () => ({
   TischBackend: class {
     getTischState = getTischState
     getTischHistorie = getTischHistorie
+    stornierungErteilen = stornierungErteilen
   },
 }))
 
@@ -268,6 +273,55 @@ describe('TablePage', () => {
       expect(
         screen.getByRole('button', { name: /Bestellung überprüfen/ }),
       ).toBeDisabled()
+    })
+  })
+
+  // A2: Eine Stornierung bestätigt über den Erfolgs-Pop; der Refetch des
+  // Tisch-States läuft erst beim Schließen des Pops, nicht schon beim Erfolg.
+  it('zeigt nach der Stornierung den Erfolgs-Pop und lädt erst beim Schließen neu', async () => {
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([
+      {
+        art: 'bestellung',
+        id: '00000000-0000-0000-0000-000000000001',
+        userId: 1,
+        userName: 'Tester',
+        tischId: 1,
+        positionen: [position('p1')],
+        gesamtPreisCents: 350,
+        kommentar: '',
+        aufgenommenAm: '2026-06-18T12:00:00Z',
+        stornierbarePositionen: [position('p1')],
+        umbuchbarePositionen: [],
+      },
+    ])
+    stornierungErteilen.mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+    const ladeCalls = getTischState.mock.calls.length
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('button', { name: /Bestellung/ }))
+    await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch gebucht',
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Stornierung erteilen' }),
+    )
+
+    // Der Pop erscheint; bis zum Schließen läuft kein Refetch des Tisch-States.
+    await screen.findByText('Stornierung gebucht.')
+    expect(getTischState.mock.calls.length).toBe(ladeCalls)
+
+    // Pop schließen (Tap auf das Overlay) → jetzt lädt der Tisch-State neu.
+    await user.click(screen.getByRole('status'))
+    await waitFor(() => {
+      expect(getTischState.mock.calls.length).toBeGreaterThan(ladeCalls)
     })
   })
 })

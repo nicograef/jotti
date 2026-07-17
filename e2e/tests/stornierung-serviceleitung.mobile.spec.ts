@@ -59,6 +59,10 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
       .fill('Falsch bestellt, storniert')
     await drawer.getByRole('button', { name: 'Stornierung erteilen' }).click()
 
+    // Die Stornierung bestätigt über den Erfolgs-Pop (statt kommentarlosem
+    // Schließen); der Refetch des Tisch-States folgt beim Schließen des Pops.
+    await expect(page.getByText('Stornierung gebucht.')).toBeVisible()
+
     // Die geldneutrale Korrektur gleicht den Saldo aus — der Tisch ist wieder
     // bei 0,00 €.
     await expect(page.getByText('0,00 €').first()).toBeVisible()
@@ -77,6 +81,8 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
       .getByPlaceholder('Kommentar (erforderlich)')
       .fill('Brezel reklamiert, Warenrücknahme')
     await drawer.getByRole('button', { name: 'Stornierung erteilen' }).click()
+
+    await expect(page.getByText('Stornierung gebucht.')).toBeVisible()
 
     // Die Warenrücknahme lässt den Tisch-Saldo unverändert (die Position war
     // bereits bezahlt) und erscheint als eigener „Warenrücknahme"-Eintrag mit

@@ -23,9 +23,9 @@ export function DirektverkaufPage() {
     refetch: reloadHistorie,
   } = useDirektverkaufHistorie()
 
-  // Erfolgs-Pop: Der abgeschlossene Verkauf öffnet ihn mit seiner Meldung (statt
-  // eines Erfolgs-Toasts). Der Refetch der Historie läuft erst beim Schließen,
-  // damit der neue Eintrag dem Pop folgt. Der Storno-Pfad lädt weiterhin sofort.
+  // Erfolgs-Pop: Der abgeschlossene Verkauf und der Storno öffnen ihn mit ihrer
+  // Meldung (statt eines Erfolgs-Toasts). Der Refetch der Historie läuft erst
+  // beim Schließen, damit die Änderung dem Pop folgt.
   const [erfolg, setErfolg] = useState({ open: false, text: '' })
   const zeigeErfolg = useCallback((nachricht: string) => {
     setErfolg({ open: true, text: nachricht })
@@ -59,9 +59,7 @@ export function DirektverkaufPage() {
       historie={historie}
       historieLoading={historieLoading}
       backend={direktverkaufBackend}
-      onStorniert={() => {
-        void reloadHistorie()
-      }}
+      onErfolg={zeigeErfolg}
     />
   )
 

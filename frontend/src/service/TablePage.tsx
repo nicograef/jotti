@@ -83,10 +83,10 @@ export function TablePage() {
     void reloadHistorie()
   }, [reloadState, reloadHistorie])
 
-  // Erfolgs-Pop: Bestellen und Kassieren öffnen ihn mit ihrer Meldung (statt
-  // eines Erfolgs-Toasts). Der nachgelagerte Refetch (reload) läuft erst beim
-  // Schließen, damit sichtbare Statuswechsel (Saldo, Badge, Listen) dem Pop
-  // folgen. Der Stornierungs-/Umbuchungspfad der Historie lädt weiterhin sofort.
+  // Erfolgs-Pop: Bestellen, Kassieren, Stornieren und Umbuchen öffnen ihn mit
+  // ihrer Meldung (statt eines Erfolgs-Toasts). Der nachgelagerte Refetch
+  // (reload) läuft erst beim Schließen, damit sichtbare Statuswechsel (Saldo,
+  // Badge, Listen) dem Pop folgen.
   const [erfolg, setErfolg] = useState({ open: false, text: '' })
   const zeigeErfolg = useCallback((nachricht: string) => {
     setErfolg({ open: true, text: nachricht })
@@ -212,8 +212,7 @@ export function TablePage() {
       historieLoading={historieLoading}
       tisch={tisch}
       backend={tischBackend}
-      onStornierungErteilt={reload}
-      onBestellungUmgebucht={reload}
+      onErfolg={zeigeErfolg}
     />
   )
 
