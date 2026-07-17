@@ -132,12 +132,12 @@ Stornierung und Umbuchung der Tischseite sowie der Direktverkauf-Storno werden a
 
 ### Acceptance criteria
 
-- [ ] Nach erfolgreicher Stornierung (Tischseite) erscheint der ErfolgsPop mit „Stornierung gebucht."; der Drawer ist zu (Test in `HistorieStornierungDrawer.test.tsx`/`TischHistorie.test.tsx`)
-- [ ] Nach erfolgreicher Umbuchung erscheint „Auf {Zielname} umgebucht."; kein Toast mehr (Test angepasst)
-- [ ] Nach erfolgreichem Direktverkauf-Storno erscheint der Pop mit „Stornierung gebucht."
-- [ ] Refetch (Tisch-State/Historie) läuft erst beim Schließen des Pops, nicht schon beim Buchungserfolg
-- [ ] Betroffene E2E-Specs (`stornierung-serviceleitung.mobile.spec.ts`, `umbuchung.mobile.spec.ts`, `direktverkauf-storno.mobile.spec.ts`) matchen auf die Pop-Texte statt Toast/kommentarloses Schließen
-- [ ] `make check` grün
+- [x] Nach erfolgreicher Stornierung (Tischseite) erscheint der ErfolgsPop mit „Stornierung gebucht."; der Drawer ist zu (Test in `HistorieStornierungDrawer.test.tsx`/`TischHistorie.test.tsx`)
+- [x] Nach erfolgreicher Umbuchung erscheint „Auf {Zielname} umgebucht."; kein Toast mehr (Test angepasst)
+- [x] Nach erfolgreichem Direktverkauf-Storno erscheint der Pop mit „Stornierung gebucht."
+- [x] Refetch (Tisch-State/Historie) läuft erst beim Schließen des Pops, nicht schon beim Buchungserfolg
+- [x] Betroffene E2E-Specs (`stornierung-serviceleitung.mobile.spec.ts`, `umbuchung.mobile.spec.ts`, `direktverkauf-storno.mobile.spec.ts`) matchen auf die Pop-Texte statt Toast/kommentarloses Schließen
+- [x] `make check` grün
 
 ---
 

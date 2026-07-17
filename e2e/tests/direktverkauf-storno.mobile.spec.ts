@@ -60,6 +60,10 @@ test.describe('Servicekraft tätigt einen Direktverkauf und storniert ihn', () =
       .fill('Kind doch nicht mit')
     await drawer.getByRole('button', { name: 'Stornierung erteilen' }).click()
 
+    // Der Storno bestätigt über den Erfolgs-Pop (statt kommentarlosem
+    // Schließen); der Refetch der Historie folgt beim Schließen des Pops.
+    await expect(page.getByText('Stornierung gebucht.')).toBeVisible()
+
     // Der Verkauf zeigt nun den stornierten Anteil neben dem Gesamtbetrag.
     await expect(page.getByText(/3,00\s*€\s*storniert/)).toBeVisible()
   })

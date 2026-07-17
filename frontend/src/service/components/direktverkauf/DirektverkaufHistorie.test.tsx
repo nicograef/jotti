@@ -88,7 +88,7 @@ describe('DirektverkaufHistorie', () => {
           direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
           kassenbelegDrucken: vi.fn().mockResolvedValue('eingereiht'),
         }}
-        onStorniert={vi.fn()}
+        onErfolg={vi.fn()}
       />,
     )
 
@@ -99,13 +99,13 @@ describe('DirektverkaufHistorie', () => {
     const user = userEvent.setup()
     const direktverkaufStornieren = vi.fn().mockResolvedValue(undefined)
     const kassenbelegDrucken = vi.fn().mockResolvedValue('eingereiht')
-    const onStorniert = vi.fn()
+    const onErfolg = vi.fn()
     render(
       <DirektverkaufHistorie
         historie={[verkauf]}
         historieLoading={false}
         backend={{ direktverkaufStornieren, kassenbelegDrucken }}
-        onStorniert={onStorniert}
+        onErfolg={onErfolg}
       />,
     )
 
@@ -131,7 +131,9 @@ describe('DirektverkaufHistorie', () => {
       positionen: [{ positionId, menge: 1 }],
       kommentar: 'Rückgabe',
     })
-    expect(onStorniert).toHaveBeenCalled()
+    // Statt sofortigem Refetch meldet der Storno den Erfolg über den Pop-Text;
+    // der Refetch folgt beim Schließen des Pops (DirektverkaufPage).
+    expect(onErfolg).toHaveBeenCalledWith('Stornierung gebucht.')
   })
 
   it('triggers kassenbeleg print for a sale with exactly one backend call', async () => {
@@ -145,7 +147,7 @@ describe('DirektverkaufHistorie', () => {
           direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
           kassenbelegDrucken,
         }}
-        onStorniert={vi.fn()}
+        onErfolg={vi.fn()}
       />,
     )
 
@@ -185,7 +187,7 @@ describe('DirektverkaufHistorie', () => {
           direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
           kassenbelegDrucken,
         }}
-        onStorniert={vi.fn()}
+        onErfolg={vi.fn()}
       />,
     )
 

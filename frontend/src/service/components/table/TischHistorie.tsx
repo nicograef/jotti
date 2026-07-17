@@ -124,8 +124,9 @@ interface TischHistorieProps {
     | 'belegDrucken'
     | 'stornobelegDrucken'
   >
-  onStornierungErteilt: () => void
-  onBestellungUmgebucht: () => void
+  // Buchungserfolg (Stornierung/Umbuchung) meldet der Aufrufer über den
+  // Erfolgs-Pop; der nachgelagerte Refetch läuft dort beim Schließen.
+  onErfolg: (nachricht: string) => void
 }
 
 export function TischHistorie({
@@ -133,8 +134,7 @@ export function TischHistorie({
   historieLoading,
   tisch,
   backend,
-  onStornierungErteilt,
-  onBestellungUmgebucht,
+  onErfolg,
 }: TischHistorieProps) {
   const [detail, setDetail] = useState<HistorieEintrag | null>(null)
   const [stornierenQuelle, setStornierenQuelle] = useState<Quelle | null>(null)
@@ -178,7 +178,7 @@ export function TischHistorie({
           }}
           onStornierungErteilt={() => {
             setStornierenQuelle(null)
-            onStornierungErteilt()
+            onErfolg('Stornierung gebucht.')
           }}
         />
       )}
@@ -190,9 +190,9 @@ export function TischHistorie({
           onClose={() => {
             setUmbuchenQuelle(null)
           }}
-          onBestellungUmgebucht={() => {
+          onBestellungUmgebucht={(zielName) => {
             setUmbuchenQuelle(null)
-            onBestellungUmgebucht()
+            onErfolg(`Auf ${zielName} umgebucht.`)
           }}
         />
       )}

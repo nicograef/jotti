@@ -47,14 +47,16 @@ interface DirektverkaufHistorieProps {
     DirektverkaufBackend,
     'direktverkaufStornieren' | 'kassenbelegDrucken'
   >
-  onStorniert: () => void
+  // Storno-Erfolg meldet der Aufrufer über den Erfolgs-Pop; der nachgelagerte
+  // Refetch läuft dort beim Schließen.
+  onErfolg: (nachricht: string) => void
 }
 
 export function DirektverkaufHistorie({
   historie,
   historieLoading,
   backend,
-  onStorniert,
+  onErfolg,
 }: DirektverkaufHistorieProps) {
   const [detail, setDetail] = useState<DirektverkaufHistorieEintrag | null>(
     null,
@@ -178,7 +180,7 @@ export function DirektverkaufHistorie({
           }}
           onStorniert={() => {
             setStornoVerkauf(null)
-            onStorniert()
+            onErfolg('Stornierung gebucht.')
           }}
         />
       )}
