@@ -724,7 +724,7 @@ func buildTransactions(s Snapshot, erstellung string, belege []beleg) Table {
 		records = append(records, []string{
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 			b.bonID, itoa(b.bonNr), b.bonTyp, bonName(b),
-			"", storno(false), b.start, b.ende,
+			"", stornoNein, b.start, b.ende,
 			itoa(b.bedienerID), b.bedienerName, formatAmount(umsBrutto),
 			"", "", "", "",
 			"", "", "", "",
@@ -886,7 +886,7 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, "1", "", b.artikeltext,
 				"", b.gvTyp, "", "",
-				storno(false), "0", "", "",
+				stornoNein, "0", "", "",
 				"", "", formatQuantity(b.sign()), "",
 				"", formatAmount(b.bruttoCents),
 			})
@@ -904,7 +904,7 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, itoa(i + 1), "", positionText(p),
 				"", posGvTyp, "", "",
-				storno(false), "0", itoa(p.VarianteID), "",
+				stornoNein, "0", itoa(p.VarianteID), "",
 				p.Kategorie, p.Kategorie, formatQuantity(b.sign() * p.Menge), "",
 				"", formatAmount(p.EinzelpreisCents),
 			})

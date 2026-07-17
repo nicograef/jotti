@@ -100,12 +100,12 @@ Collapse the admin/service handler wiring into composite literals (`xc := xHTTP.
 
 ### Acceptance criteria
 
-- [ ] admin.go/service.go handlers built as single composite literals; route table and behavior unchanged.
-- [ ] `storno(bool)` gone; DSFinV-K CSV export is byte-identical (existing golden/mapper tests pass unchanged).
-- [ ] `event.New` and `event.Validate` share one field-check helper; event validation behavior and error strings unchanged.
-- [ ] `ComputeNichtStorniertePositionen` comment reflects reality; no caller change required.
-- [ ] `ComputeStornoAufteilung` has a `default` arm; existing storno tests pass; an unknown event type now yields a safe `false` refusal.
-- [ ] `make check` green.
+- [x] admin.go/service.go handlers built as single composite literals; route table and behavior unchanged.
+- [x] `storno(bool)` gone; DSFinV-K CSV export is byte-identical (existing golden/mapper tests pass unchanged).
+- [x] `event.New` and `event.Validate` share one field-check helper; event validation behavior and error strings unchanged.
+- [x] `ComputeNichtStorniertePositionen` comment reflects reality; no caller change required.
+- [x] `ComputeStornoAufteilung` has a `default` arm; existing storno tests pass; an unknown event type now yields a safe `false` refusal.
+- [x] `make check` green.
 
 ---
 

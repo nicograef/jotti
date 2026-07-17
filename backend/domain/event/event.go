@@ -39,20 +39,8 @@ func New(userID int, userName string, eventType string, subject string, data any
 		return Event{}, err
 	}
 
-	if userID <= 0 {
-		return Event{}, errors.New("user ID must be a positive integer")
-	}
-	if len(strings.TrimSpace(userName)) == 0 {
-		return Event{}, errors.New("user name must be a non-empty string")
-	}
-	if len(strings.TrimSpace(eventType)) < 5 {
-		return Event{}, errors.New("event type must be at least 5 characters long")
-	}
-	if len(strings.TrimSpace(subject)) < 3 {
-		return Event{}, errors.New("event subject must be a non-empty string")
-	}
-	if len(dataJSON) == 0 {
-		return Event{}, errors.New("event data cannot be empty")
+	if err := validateFields(userID, userName, eventType, subject, dataJSON); err != nil {
+		return Event{}, err
 	}
 
 	event := Event{
@@ -67,34 +55,41 @@ func New(userID int, userName string, eventType string, subject string, data any
 	return event, nil
 }
 
-// Validate checks the Event fields for validity according to the CNCF Cloudevents specification.
-func (e *Event) Validate() error {
-	if e.UserID <= 0 {
+// validateFields checks the fields shared by New and Validate (user, type,
+// subject, data). Time and Version are validated only by Validate: New has not
+// assigned them yet (Version comes from the OCC mechanism, Time is set on
+// construction).
+func validateFields(userID int, userName, eventType, subject string, data json.RawMessage) error {
+	if userID <= 0 {
 		return errors.New("user ID must be a positive integer")
 	}
-
-	if len(strings.TrimSpace(e.UserName)) == 0 {
+	if len(strings.TrimSpace(userName)) == 0 {
 		return errors.New("user name must be a non-empty string")
 	}
-
-	if len(strings.TrimSpace(e.Type)) < 5 {
+	if len(strings.TrimSpace(eventType)) < 5 {
 		return errors.New("event type must be at least 5 characters long")
+	}
+	if len(strings.TrimSpace(subject)) < 3 {
+		return errors.New("event subject must be a non-empty string")
+	}
+	if len(data) == 0 {
+		return errors.New("event data cannot be empty")
+	}
+	return nil
+}
+
+// Validate checks the Event fields for validity according to the CNCF Cloudevents specification.
+func (e *Event) Validate() error {
+	if err := validateFields(e.UserID, e.UserName, e.Type, e.Subject, e.Data); err != nil {
+		return err
 	}
 
 	if e.Time.IsZero() {
 		return errors.New("event time cannot be zero")
 	}
 
-	if len(strings.TrimSpace(e.Subject)) < 3 {
-		return errors.New("event subject must be a non-empty string")
-	}
-
 	if e.Version < 1 {
 		return errors.New("event version must be >= 1")
-	}
-
-	if len(e.Data) == 0 {
-		return errors.New("event data cannot be empty")
 	}
 
 	return nil

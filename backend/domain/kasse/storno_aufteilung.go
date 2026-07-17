@@ -121,6 +121,12 @@ func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAuftei
 					break
 				}
 			}
+
+		default:
+			// Defense-in-depth: ein unbekannter Event-Typ im Journal darf keine
+			// stille Fehlaufteilung ergeben. Wie die übrigen Fehlerpfade dieser
+			// Funktion verweigern wir mit false statt zu raten.
+			return StornoAufteilung{}, false
 		}
 	}
 

@@ -30,8 +30,7 @@ import (
 func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r := newRouteMux()
 
-	uc := userHTTP.CommandHandler{}
-	uc.Command = userApp.Command{UserRepo: deps.UserRepo}
+	uc := userHTTP.CommandHandler{Command: userApp.Command{UserRepo: deps.UserRepo}}
 	r.HandleFunc("/create-user", uc.CreateUserHandler())
 	r.HandleFunc("/update-user", uc.UpdateUserHandler())
 	r.HandleFunc("/activate-user", uc.ActivateUserHandler())
@@ -39,12 +38,10 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/delete-user", uc.DeleteUserHandler())
 	r.HandleFunc("/reset-password", uc.ResetPasswordHandler())
 
-	uq := userHTTP.QueryHandler{}
-	uq.Query = userApp.Query{UserRepo: deps.UserRepo}
+	uq := userHTTP.QueryHandler{Query: userApp.Query{UserRepo: deps.UserRepo}}
 	r.HandleFunc("/get-all-users", uq.GetAllUsersHandler())
 
-	pc := produktHTTP.CommandHandler{}
-	pc.Command = produktApp.Command{ProduktRepo: deps.ProduktRepo}
+	pc := produktHTTP.CommandHandler{Command: produktApp.Command{ProduktRepo: deps.ProduktRepo}}
 	r.HandleFunc("/create-produkt", pc.CreateProductHandler())
 	r.HandleFunc("/update-produkt", pc.UpdateProductHandler())
 	r.HandleFunc("/create-variante", pc.CreateVariantHandler())
@@ -54,118 +51,102 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/delete-produkt", pc.DeleteProduktHandler())
 	r.HandleFunc("/delete-variante", pc.DeleteVarianteHandler())
 
-	pq := produktHTTP.QueryHandler{}
-	pq.Query = produktApp.Query{ProduktRepo: deps.ProduktRepo}
+	pq := produktHTTP.QueryHandler{Query: produktApp.Query{ProduktRepo: deps.ProduktRepo}}
 	r.HandleFunc("/get-all-produkte", pq.GetAllProductsHandler())
 
-	tc := tischHTTP.CommandHandler{}
-	tc.Command = tischApp.Command{
+	tc := tischHTTP.CommandHandler{Command: tischApp.Command{
 		TischRepo:   deps.TischRepo,
 		FavoritRepo: deps.FavoritRepo,
-	}
+	}}
 	r.HandleFunc("/update-tisch", tc.TischAktualisierenHandler())
 	r.HandleFunc("/create-tisch", tc.TischErstellenHandler())
 	r.HandleFunc("/activate-tisch", tc.TischAktivierenHandler())
 	r.HandleFunc("/deactivate-tisch", tc.TischDeaktivierenHandler())
 	r.HandleFunc("/delete-tisch", tc.TischLoeschenHandler())
 
-	tq := tischHTTP.QueryHandler{}
-	tq.Query = tischApp.Query{TischRepo: deps.TischRepo}
+	tq := tischHTTP.QueryHandler{Query: tischApp.Query{TischRepo: deps.TischRepo}}
 	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())
 
-	rq := reportingHTTP.QueryHandler{}
-	rq.Query = reportingApp.Query{
+	rq := reportingHTTP.QueryHandler{Query: reportingApp.Query{
 		ReportingRepo:       deps.ReportingRepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		TischSessionRepo:    deps.KassenjournalRepo,
 		TischRepo:           deps.TischRepo,
-	}
+	}}
 	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
 	r.HandleFunc("/get-abgeschlossene-kassensitzungen", rq.GetAbgeschlosseneKassensitzungenHandler())
 	r.HandleFunc("/get-live-reporting", rq.GetLiveReportingHandler())
 
-	exportHandler := exportHTTP.Handler{}
-	exportHandler.Service = exportApp.Export{
+	exportHandler := exportHTTP.Handler{Service: exportApp.Export{
 		KassenjournalRepo:   deps.KassenjournalRepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		BetreiberRepo:       deps.BetreiberRepo,
 		TSERepo:             deps.TSERepo,
 		TischRepo:           deps.TischRepo,
 		Version:             deps.Version,
-	}
+	}}
 	r.HandleFunc("/export/dsfinvk", exportHandler.ExportHandler())
 
-	kc := kasseHTTP.CommandHandler{}
-	kc.Command = kasseApp.Command{
+	kc := kasseHTTP.CommandHandler{Command: kasseApp.Command{
 		KassenjournalRepo:   deps.KassenjournalRepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		BetreiberRepo:       deps.BetreiberRepo,
 		TSERepo:             deps.TSERepo,
 		DruckauftragRepo:    deps.DruckauftragRepo,
-	}
+	}}
 	r.HandleFunc("/kassensitzung-eroeffnen", kc.KassensitzungEroeffnenHandler())
 	r.HandleFunc("/geldtransit-buchen", kc.GeldtransitBuchenHandler())
 	r.HandleFunc("/kasse-abschliessen", kc.KasseAbschliessenHandler())
 
-	kq := kasseHTTP.QueryHandler{}
-	kq.Query = kasseApp.Query{KassenjournalRepo: deps.KassenjournalRepo, KassensitzungenRepo: deps.KassensitzungenRepo}
+	kq := kasseHTTP.QueryHandler{Query: kasseApp.Query{KassenjournalRepo: deps.KassenjournalRepo, KassensitzungenRepo: deps.KassensitzungenRepo}}
 	r.HandleFunc("/get-offene-kassensitzung", kq.GetOffeneKassensitzungHandler())
 	r.HandleFunc("/get-kassenbestand", kq.GetKassenbestandHandler())
 	r.HandleFunc("/get-geldtransit-liste", kq.GetGeldtransitListeHandler())
 
-	druckstationCommandHandler := druckstationHTTP.CommandHandler{}
-	druckstationCommandHandler.Command = druckstationApp.Command{
+	druckstationCommandHandler := druckstationHTTP.CommandHandler{Command: druckstationApp.Command{
 		DruckstationRepo: deps.DruckstationRepo,
 		DruckauftragRepo: deps.DruckauftragRepo,
-	}
-	druckstationQueryHandler := druckstationHTTP.QueryHandler{}
-	druckstationQueryHandler.Query = druckstationApp.Query{DruckstationRepo: deps.DruckstationRepo}
+	}}
+	druckstationQueryHandler := druckstationHTTP.QueryHandler{Query: druckstationApp.Query{DruckstationRepo: deps.DruckstationRepo}}
 	r.HandleFunc("/get-druckstationen", druckstationQueryHandler.GetDruckstationenHandler())
 	r.HandleFunc("/update-druckstationen", druckstationCommandHandler.UpdateDruckstationenHandler())
 	r.HandleFunc("/testbon-drucken", druckstationCommandHandler.TestbonDruckenHandler())
 
-	druckauftragCommandHandler := druckauftragHTTP.CommandHandler{}
-	druckauftragCommandHandler.Command = druckauftragApp.Command{DruckauftragRepo: deps.DruckauftragRepo}
-	druckauftragQueryHandler := druckauftragHTTP.QueryHandler{}
-	druckauftragQueryHandler.Query = druckauftragApp.Query{DruckauftragRepo: deps.DruckauftragRepo}
+	druckauftragCommandHandler := druckauftragHTTP.CommandHandler{Command: druckauftragApp.Command{DruckauftragRepo: deps.DruckauftragRepo}}
+	druckauftragQueryHandler := druckauftragHTTP.QueryHandler{Query: druckauftragApp.Query{DruckauftragRepo: deps.DruckauftragRepo}}
 	r.HandleFunc("/get-fehlgeschlagene-druckauftraege", druckauftragQueryHandler.GetFehlgeschlageneDruckauftraegeHandler())
 	r.HandleFunc("/druckauftrag-erneut-versuchen", druckauftragCommandHandler.RetryDruckauftragHandler())
 	r.HandleFunc("/druckauftrag-verwerfen", druckauftragCommandHandler.DiscardDruckauftragHandler())
 	r.HandleFunc("/druckauftraege-verwerfen", druckauftragCommandHandler.DiscardAlleFehlgeschlagenenHandler())
 
-	tseQueryHandler := tseHTTP.QueryHandler{}
-	tseQueryHandler.Query = tseApp.Query{TSERepo: deps.TSERepo}
+	tseQueryHandler := tseHTTP.QueryHandler{Query: tseApp.Query{TSERepo: deps.TSERepo}}
 	r.HandleFunc("/get-tse-signatur-queue", tseQueryHandler.GetTSESignaturQueueHandler())
 	r.HandleFunc("/get-tse-stoerungen", tseQueryHandler.GetTSEStoerungenHandler())
 
-	sq := fiskalSetupHTTP.QueryHandler{}
-	sq.Query = fiskalSetupApp.Query{
+	sq := fiskalSetupHTTP.QueryHandler{Query: fiskalSetupApp.Query{
 		TSERepo:                deps.TSERepo,
 		NewTSEConnectionTester: deps.NewTSEConnectionTester,
 		NewTSESetupClient:      deps.NewTSESetupClient,
-	}
+	}}
 	r.HandleFunc("/get-kassenidentitaet", sq.GetKassenidentitaetHandler())
 	r.HandleFunc("/get-tse-konfiguration", sq.GetTSEKonfigurationHandler())
 	r.HandleFunc("/test-tse-verbindung", sq.TestTSEVerbindungHandler())
 	r.HandleFunc("/tse-setup-pruefen", sq.CheckTSESetupHandler())
 	r.HandleFunc("/get-tse-status", sq.GetTSEStatusHandler())
 
-	sc := fiskalSetupHTTP.CommandHandler{}
-	sc.Command = fiskalSetupApp.Command{
+	sc := fiskalSetupHTTP.CommandHandler{Command: fiskalSetupApp.Command{
 		TSERepo:             deps.TSERepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		NewTSESetupClient:   deps.NewTSESetupClient,
-	}
+	}}
 	r.HandleFunc("/update-tse-konfiguration", sc.UpdateTSEKonfigurationHandler())
 	r.HandleFunc("/tse-einrichten", sc.RichteTSEEinHandler())
 	r.HandleFunc("/tse-uebernehmen", sc.UebernimmTSEHandler())
 
-	bq := betreiberHTTP.QueryHandler{}
-	bq.Query = betreiberApp.Query{BetreiberRepo: deps.BetreiberRepo}
+	bq := betreiberHTTP.QueryHandler{Query: betreiberApp.Query{BetreiberRepo: deps.BetreiberRepo}}
 	r.HandleFunc("/get-betreiber", bq.GetBetreiberHandler())
 
-	bc := betreiberHTTP.CommandHandler{}
-	bc.Command = betreiberApp.Command{BetreiberRepo: deps.BetreiberRepo}
+	bc := betreiberHTTP.CommandHandler{Command: betreiberApp.Command{BetreiberRepo: deps.BetreiberRepo}}
 	r.HandleFunc("/update-betreiber", bc.UpdateBetreiberHandler())
 	r.HandleFunc("/elster-meldung-setzen", bc.SetzeElsterMeldungHandler())
 	r.HandleFunc("/elster-meldung-zuruecknehmen", bc.NimmElsterMeldungZurueckHandler())

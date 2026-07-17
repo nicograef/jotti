@@ -64,13 +64,10 @@ func ptr(s *string) string {
 	return *s
 }
 
-// storno bildet ein Storno-Kennzeichen als DSFinV-K-Boolean ("0"/"1") ab.
-func storno(b bool) string {
-	if b {
-		return "1"
-	}
-	return "0"
-}
+// stornoNein ist das DSFinV-K-Storno-Kennzeichen ("0") für BON_STORNO und
+// P_STORNO. jotti setzt es stets auf "0": Teilrücknahmen werden negativ
+// dargestellt (b.sign()), nicht als Vorgangs-Storno.
+const stornoNein = "0"
 
 // formatAmount stellt einen Cent-Betrag als Dezimalzahl mit KOMMA und zwei
 // Nachkommastellen dar, z. B. 500 -> "5,00", -150 -> "-1,50". Das Komma ist

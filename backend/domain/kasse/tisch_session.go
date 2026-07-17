@@ -126,7 +126,8 @@ func setErsteBestellungLogTime(state *TischSession, eventTime time.Time) {
 }
 
 // ComputeNichtStorniertePositionen replays events to compute all positions that were ordered
-// but not yet cancelled. Used on-demand for stornierung validation.
+// but not yet cancelled. It is a seed helper: its only non-test caller is the seed engine,
+// which uses the list to pick realistic positions to storniere.
 func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 	var nichtStorniert []Position
 
