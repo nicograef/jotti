@@ -206,11 +206,11 @@ Neuer Button-Variant `destructive-solid`: solide destruktive Fläche (`bg-destru
 
 ### Acceptance criteria
 
-- [ ] Variant `destructive-solid` existiert mit Token-getragenem Kontrast in Light und Dark (≥ 4,5:1)
-- [ ] Alle fünf Call-Sites nutzen den Variant; `grep -r "bg-destructive text-white" frontend/src` liefert nichts mehr
-- [ ] `admin-kontrast-axe.spec.ts` öffnet die Lösch-Dialoge Produkt, Variante, Tisch und Helfer und findet in beiden Themes keine color-contrast-Verstöße
-- [ ] Bestehende axe-Prüfungen (drei Seiten, beide Themes) bleiben grün
-- [ ] `make check` grün
+- [x] Variant `destructive-solid` existiert mit Token-getragenem Kontrast in Light und Dark (≥ 4,5:1)
+- [x] Alle fünf Call-Sites nutzen den Variant; `grep -r "bg-destructive text-white" frontend/src` liefert nichts mehr
+- [x] `admin-kontrast-axe.spec.ts` öffnet die Lösch-Dialoge Produkt, Variante, Tisch und Helfer und findet in beiden Themes keine color-contrast-Verstöße
+- [x] Bestehende axe-Prüfungen (drei Seiten, beide Themes) bleiben grün
+- [x] `make check` grün
 
 ---
 

@@ -26,6 +26,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-solid-foreground: var(--destructive-solid-foreground);
   --color-disabled: var(--disabled);
   --color-disabled-foreground: var(--disabled-foreground);
   --color-warn: var(--warn);
@@ -85,6 +86,9 @@
   --destructive: oklch(0.53 0.238 27.325);
   /* red-600 abgedunkelt: text-destructive erreicht WCAG AA (4,5:1) auch auf den
      weichen destructive/4- und destructive/10-Tints (z. B. WarnKarte) */
+  --destructive-solid-foreground: oklch(1 0 0);
+  /* Weiss: die dunkle Light-Destructive-Flaeche traegt AA-Kontrast (5,6:1) fuer
+     den soliden destructive-solid-Button (irreversible Loesch-Bestaetigung) */
   --disabled: oklch(0.9 0.004 106.5);
   /* olive-200, neutrale Flaeche fuer deaktivierte Primaeraktionen */
   --disabled-foreground: oklch(0.47 0.012 106.5);
@@ -181,6 +185,9 @@
   /* olive-50 */
   --destructive: oklch(0.74 0.191 22.216);
   /* red-400, aufgehellt fuer Dark-Mode-Lesbarkeit von destructive-Text und Soft-Flaechen */
+  --destructive-solid-foreground: oklch(0.258 0.092 26.042);
+  /* red-950: dunkler Text auf der aufgehellten Dark-Destructive-Flaeche traegt
+     AA-Kontrast (6:1) fuer den soliden destructive-solid-Button */
   --disabled: oklch(0.33 0.008 107.4);
   /* olive-800, neutrale Flaeche fuer deaktivierte Primaeraktionen */
   --disabled-foreground: oklch(0.74 0.016 106.9);
