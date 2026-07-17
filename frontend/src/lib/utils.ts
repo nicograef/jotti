@@ -31,19 +31,42 @@ export function formatEuro(cents: number): string {
 }
 
 /**
- * Label of the "Alle auswählen" button in Kassieren and Umbuchung: correct
- * grammatical number (singular "1 Position", plural "N Positionen") plus the
- * selection sum. With exactly one position the plural-implying "Alle" is dropped.
+ * Label of the bulk-select button in Kassieren and Umbuchung: correct
+ * grammatical number (singular one position, plural "N Positionen") plus the
+ * selection sum. The variant chooses the leading word: `'alle'` (Umbuchung —
+ * every position) says "Alle N Positionen auswählen" / "1 Position auswählen";
+ * `'meine'` (Kassieren — only the caller's own positions) says "Meine N
+ * Positionen auswählen" / "Meine Position auswählen".
  */
 export function formatAlleAuswaehlenLabel(
   anzahl: number,
   summeCents: number,
+  variante: 'alle' | 'meine' = 'alle',
 ): string {
-  const auswahl =
-    anzahl === 1
-      ? '1 Position auswählen'
-      : `Alle ${anzahl.toString()} Positionen auswählen`
+  let auswahl: string
+  if (variante === 'meine') {
+    auswahl =
+      anzahl === 1
+        ? 'Meine Position auswählen'
+        : `Meine ${anzahl.toString()} Positionen auswählen`
+  } else {
+    auswahl =
+      anzahl === 1
+        ? '1 Position auswählen'
+        : `Alle ${anzahl.toString()} Positionen auswählen`
+  }
   return `${auswahl} · ${formatEuro(summeCents)}`
+}
+
+/**
+ * Like {@link formatEuro} but prefixes a "+" for a positive amount, so a surplus
+ * reads as "+12,50 €". Zero stays "0,00 €" (no sign) and a negative amount keeps
+ * the leading minus of the default formatting ("-3,50 €"). For difference
+ * displays where a positive value means a surplus (e.g. the Kassensturz-Differenz
+ * as Ist − Soll).
+ */
+export function formatEuroMitVorzeichen(cents: number): string {
+  return cents > 0 ? `+${formatEuro(cents)}` : formatEuro(cents)
 }
 
 /**

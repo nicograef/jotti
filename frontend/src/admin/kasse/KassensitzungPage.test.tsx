@@ -373,7 +373,8 @@ describe('KasseAbschliessenSection', () => {
     // 342,50 € gezählt bei Soll 340,00 € → Differenz +2,50 € (Überschuss),
     // nicht rot.
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
-    const ueberschuss = screen.getByText('2,50 €')
+    // Überschuss trägt das Plus-Vorzeichen (+2,50 €), bleibt aber ohne Rot.
+    const ueberschuss = screen.getByText('+2,50 €')
     expect(ueberschuss).toBeInTheDocument()
     expect(ueberschuss).not.toHaveClass('text-destructive')
   })

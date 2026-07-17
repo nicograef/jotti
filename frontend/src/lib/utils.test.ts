@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  formatAlleAuswaehlenLabel,
   formatCents,
   formatEuro,
+  formatEuroMitVorzeichen,
   formatPositionName,
   formatRelativeTime,
   parseCents,
@@ -35,6 +37,41 @@ describe('formatEuro', () => {
   it('trennt Betrag und € mit geschütztem Leerzeichen (U+00A0)', () => {
     expect(formatEuro(1250)).toBe('12,50\u00A0€')
     expect(formatEuro(1250)).not.toContain('12,50 €')
+  })
+})
+
+describe('formatEuroMitVorzeichen', () => {
+  it('setzt ein Plus nur bei positiven Beträgen', () => {
+    expect(formatEuroMitVorzeichen(1250)).toBe(`+${formatEuro(1250)}`)
+    expect(formatEuroMitVorzeichen(1)).toBe(`+${formatEuro(1)}`)
+  })
+
+  it('lässt Null ohne Vorzeichen', () => {
+    expect(formatEuroMitVorzeichen(0)).toBe(formatEuro(0))
+  })
+
+  it('behält das Minus negativer Beträge', () => {
+    expect(formatEuroMitVorzeichen(-350)).toBe(formatEuro(-350))
+  })
+})
+
+describe('formatAlleAuswaehlenLabel', () => {
+  it('nutzt „Alle …" mit Plural und „1 Position" im Singular (Standard-Variante)', () => {
+    expect(formatAlleAuswaehlenLabel(3, 1250)).toBe(
+      `Alle 3 Positionen auswählen · ${formatEuro(1250)}`,
+    )
+    expect(formatAlleAuswaehlenLabel(1, 700)).toBe(
+      `1 Position auswählen · ${formatEuro(700)}`,
+    )
+  })
+
+  it('nutzt „Meine …" in der Kassieren-Variante, Singular ohne Zahl', () => {
+    expect(formatAlleAuswaehlenLabel(2, 1250, 'meine')).toBe(
+      `Meine 2 Positionen auswählen · ${formatEuro(1250)}`,
+    )
+    expect(formatAlleAuswaehlenLabel(1, 700, 'meine')).toBe(
+      `Meine Position auswählen · ${formatEuro(700)}`,
+    )
   })
 })
 

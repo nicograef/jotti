@@ -75,7 +75,7 @@ E2E:
 - **Label-Helfer**: `formatAlleAuswaehlenLabel` bekommt einen Varianten-Parameter statt eines zweiten Helfers; Singular der Meine-Variante: „Meine Position auswählen · X €". Der Toggle-Zustand „Auswahl aufheben" bleibt unverändert.
 - **Amber-Soft-Tint als Badge-Variante mit festen Amber-Klassen** (z. B. `bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400`): Der Status-Punkt in `MeinTischCard` nutzt bereits feste Amber-Klassen; ein neues Soft-Amber-Token-Paar nur für einen Badge wäre Over-Engineering. Zentralisiert als Variante in `badge.tsx`, nicht ad hoc an der Call-Site.
 - **Neutraler Status-Punkt** („nur fremde offene Positionen"): `bg-muted-foreground` (Token), grün bleibt `bg-green-600`, amber bleibt `bg-amber-500`.
-- **Vorzeichen-Helfer**: „+" nur bei Werten > 0; 0 bleibt „0,00 €"; das Minus negativer Beträge liefert die bestehende `formatCents`-Formatierung. Alle Anzeigen der Kassensturz-Differenz nutzen den Helfer; die Farblogik (rot nur bei Fehlbetrag) bleibt.
+- **Vorzeichen-Helfer**: „+" nur bei Werten > 0; 0 bleibt „0,00 €"; das Minus negativer Beträge liefert die bestehende `formatCents`-Formatierung. Der Helfer setzt Ist − Soll voraus (positiv = Überschuss) und wird nur in `KasseAbschliessenSection` (live + Bestätigung) angewendet, wo genau diese Konvention gilt. Der Tagesbericht (`ReportingResults`) bleibt bei `formatEuro`: sein `kassensturzDifferenzCents` stammt aus dem `kassensturz-durchgefuehrt:v1`-Event und ist Soll − Ist (positiv = Fehlbetrag); ein „+" würde dort einen Fehlbetrag fälschlich als Überschuss lesen. Die Farblogik (rot nur bei Fehlbetrag) bleibt.
 - **Chips-Ableitung liefert immer genau zwei Vorschläge**: das kleinste 1-€-Vielfache echt über dem Gesamtbetrag und das kleinste 5-€-Vielfache echt über dem Gesamtbetrag; fallen beide zusammen, ersetzt das übernächste 5-€-Vielfache den Doppelgänger. Beispiele: 12,30 € → [13 €, 15 €]; 13,00 € → [14 €, 15 €]; 4,50 € → [5 €, 10 €]. Das deckt „zwei bis drei glatte Beträge, Duplikate entfernt, bei glattem Betrag die nächsthöheren" aus dem PRD deterministisch ab.
 - **Kein Verhaltens-Reset beim Tab-Wechsel, aber pro Tisch**: `TablePage` bleibt bei einem `:tischId`-Wechsel gemountet (react-router ändert nur den Param). Der gehobene Mengen-State wird deshalb pro Tisch zurückgesetzt (z. B. `key={tischId}` auf dem State-tragenden Teilbaum oder Reset-Effekt auf `tischId`).
 
@@ -235,13 +235,13 @@ Ein gebündelter Sweep ohne Verhaltensänderung: ehrliches Kassieren-Label „Me
 
 ### Acceptance criteria
 
-- [ ] Kassieren-Button sagt „Meine N Positionen auswählen · X €" (Test angepasst); Umbuchungs-Drawer sagt weiter „Alle …"
-- [ ] Live-Reporting-Refresh heißt „Aktualisieren" (Test in `LiveReportingSection.test.tsx` angepasst)
-- [ ] Produkt-Dropdown-Eintrag heißt „Bearbeiten"; in `ProductItem.tsx` kommt „Umbenennen" nicht mehr vor (der Hinweistext der Tische-Verwaltung nutzt das Wort legitim weiter)
-- [ ] „Zum Service-Bereich" nutzt `ArrowRightLeft`; `LogOut` erscheint nur noch bei Abmelden-Aktionen
-- [ ] Kassensturz-Differenz zeigt bei Überschuss „+…" (Unit-Test für `formatEuroMitVorzeichen`: positiv, negativ, null); rot bleibt nur der Fehlbetrag
-- [ ] Tischseite lädt mit Skeletons; die Strings „Tisch ??" und der Saldo-Platzhalter „?" existieren nicht mehr; `warteAufTischGeladen` (E2E) funktioniert unverändert
-- [ ] Betroffene E2E-Assertions (grep nach den alten Labels) angepasst; `make check` grün
+- [x] Kassieren-Button sagt „Meine N Positionen auswählen · X €" (Test angepasst); Umbuchungs-Drawer sagt weiter „Alle …"
+- [x] Live-Reporting-Refresh heißt „Aktualisieren" (Test in `LiveReportingSection.test.tsx` angepasst)
+- [x] Produkt-Dropdown-Eintrag heißt „Bearbeiten"; in `ProductItem.tsx` kommt „Umbenennen" nicht mehr vor (der Hinweistext der Tische-Verwaltung nutzt das Wort legitim weiter)
+- [x] „Zum Service-Bereich" nutzt `ArrowRightLeft`; `LogOut` erscheint nur noch bei Abmelden-Aktionen
+- [x] Kassensturz-Differenz zeigt bei Überschuss „+…" (Unit-Test für `formatEuroMitVorzeichen`: positiv, negativ, null); rot bleibt nur der Fehlbetrag
+- [x] Tischseite lädt mit Skeletons; die Strings „Tisch ??" und der Saldo-Platzhalter „?" existieren nicht mehr; `warteAufTischGeladen` (E2E) funktioniert unverändert
+- [x] Betroffene E2E-Assertions (grep nach den alten Labels) angepasst; `make check` grün
 
 ---
 

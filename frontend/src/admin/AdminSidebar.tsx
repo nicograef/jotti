@@ -1,4 +1,5 @@
 import {
+  ArrowRightLeft,
   FileText,
   Lamp,
   Landmark,
@@ -162,7 +163,7 @@ export function AdminSidebar() {
     {
       title: 'Zum Service-Bereich',
       url: '/service/tische',
-      icon: LogOut,
+      icon: ArrowRightLeft,
     },
   ]
 

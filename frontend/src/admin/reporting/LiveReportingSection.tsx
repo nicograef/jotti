@@ -112,7 +112,7 @@ export function LiveReportingSection({
             </span>
             <Button variant="outline" size="sm" onClick={onRefresh}>
               <RefreshCw className="size-4" />
-              Jetzt
+              Aktualisieren
             </Button>
           </>
         }
