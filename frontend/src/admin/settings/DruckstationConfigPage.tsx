@@ -1,4 +1,4 @@
-import { Printer } from 'lucide-react'
+import { Check, Printer } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -134,6 +134,7 @@ function DruckstationCard({
   const zeigtBonmodus = hatBonmodus(config.kategorie)
   const [druckerIp, setDruckerIp] = useState(config.druckerIp)
   const [ipError, setIpError] = useState<string | null>(null)
+  const [ipGespeichert, setIpGespeichert] = useState(false)
   const { loading: saving, run: runSave } = useActionSubmit({
     actionLabel: 'Drucker-IP speichern',
   })
@@ -160,6 +161,12 @@ function DruckstationCard({
     await runSave(async () => {
       await onUpdate({ ...config, druckerIp })
       toast.success(`Drucker-IP für „${info.label}“ gespeichert.`)
+      // Kurze Inline-Bestätigung am Feld für ~2 Sekunden (Muster der TSE-
+      // Kopier-Bestätigung); der Toast bleibt zusätzlich bestehen.
+      setIpGespeichert(true)
+      setTimeout(() => {
+        setIpGespeichert(false)
+      }, 2000)
     })
   }
 
@@ -189,6 +196,12 @@ function DruckstationCard({
             className="text-muted-foreground"
           >
             Drucker-IP
+            {ipGespeichert && (
+              <span className="flex items-center gap-1 text-primary">
+                <Check className="size-3.5" aria-hidden />
+                Gespeichert
+              </span>
+            )}
           </Label>
           <Input
             id={`ip-${config.kategorie}`}
@@ -198,6 +211,9 @@ function DruckstationCard({
               setDruckerIp(e.target.value)
               if (ipError !== null) {
                 setIpError(null)
+              }
+              if (ipGespeichert) {
+                setIpGespeichert(false)
               }
             }}
             onBlur={() => void speichereIp()}

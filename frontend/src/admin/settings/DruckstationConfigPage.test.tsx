@@ -1,4 +1,9 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  render,
+  screen,
+  waitForElementToBeRemoved,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -222,7 +227,28 @@ describe('DruckstationConfigPage — Stationskarten', () => {
     )
   })
 
-  it('speichert eine unveränderte IP nicht und zeigt bei ungültiger IP einen Fehler', async () => {
+  it('zeigt nach erfolgreichem IP-Speichern eine Inline-Bestätigung, die nach ~2 Sekunden verschwindet', async () => {
+    druckstationenState.druckstationen = [
+      makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
+    ]
+    const user = userEvent.setup()
+    render(<DruckstationConfigPage />)
+
+    const input = screen.getByLabelText('Drucker-IP')
+    await user.clear(input)
+    await user.type(input, '192.168.1.99')
+    await user.tab()
+
+    // Inline-Bestätigung am Feld zusätzlich zum Toast.
+    expect(await screen.findByText('Gespeichert')).toBeInTheDocument()
+
+    // Nach ~2 Sekunden verschwindet die Bestätigung wieder.
+    await waitForElementToBeRemoved(() => screen.queryByText('Gespeichert'), {
+      timeout: 3000,
+    })
+  })
+
+  it('speichert eine unveränderte IP nicht und zeigt bei ungültiger IP einen Fehler ohne Inline-Bestätigung', async () => {
     druckstationenState.druckstationen = [
       makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
     ]
@@ -236,6 +262,7 @@ describe('DruckstationConfigPage — Stationskarten', () => {
 
     expect(updateDruckstation).not.toHaveBeenCalled()
     expect(screen.getByText('Ungültige IPv4-Adresse')).toBeInTheDocument()
+    expect(screen.queryByText('Gespeichert')).not.toBeInTheDocument()
   })
 
   it('fasst nicht konfigurierte Stationen als gestrichelte Karte mit "Drucker zuweisen" zusammen', async () => {

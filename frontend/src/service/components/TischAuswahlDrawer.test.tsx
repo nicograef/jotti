@@ -92,17 +92,38 @@ describe('TischAuswahlDrawer', () => {
     })
   })
 
-  it('sortiert Favoriten zuerst, dann Saldo absteigend, dann Name', () => {
+  it('sortiert durchgehend nach Tischname mit numerischem Vergleich, Favoriten nicht vorgezogen', () => {
     mockTische = [
-      { id: 1, name: 'Bar', istFavorit: false, saldoCents: 500 },
-      { id: 2, name: 'Zelt', istFavorit: true, saldoCents: 100 },
-      { id: 3, name: 'Ausschank', istFavorit: false, saldoCents: 500 },
+      { id: 1, name: 'Tisch 10', istFavorit: false, saldoCents: 500 },
+      { id: 2, name: 'Tisch 2', istFavorit: true, saldoCents: 100 },
+      { id: 3, name: 'Tisch 1', istFavorit: false, saldoCents: 0 },
     ]
     renderDrawer()
 
-    const namen = screen
-      .getAllByText(/^(Bar|Zelt|Ausschank)$/)
-      .map((el) => el.textContent)
-    expect(namen).toEqual(['Zelt', 'Ausschank', 'Bar'])
+    const namen = screen.getAllByText(/^Tisch \d+$/).map((el) => el.textContent)
+    // „Tisch 2" vor „Tisch 10" (numerischer Vergleich); der Favorit „Tisch 2"
+    // wird nicht mehr an den Anfang gezogen.
+    expect(namen).toEqual(['Tisch 1', 'Tisch 2', 'Tisch 10'])
+  })
+
+  it('zeigt Favoriten-Stern und Saldo pro Zeile weiterhin an', () => {
+    mockTische = [
+      { id: 1, name: 'Tisch 2', istFavorit: true, saldoCents: 100 },
+      { id: 2, name: 'Tisch 10', istFavorit: false, saldoCents: 500 },
+    ]
+    renderDrawer()
+
+    // Gefüllter Stern für den Favoriten, leerer für den Nicht-Favoriten.
+    expect(
+      screen.getByRole('button', { name: 'Tisch 2 aus Favoriten entfernen' }),
+    ).toHaveTextContent('★')
+    expect(
+      screen.getByRole('button', {
+        name: 'Tisch 10 zu Favoriten hinzufügen',
+      }),
+    ).toHaveTextContent('☆')
+    // Saldo pro Zeile bleibt sichtbar.
+    expect(screen.getByText(/1,00\s*€/)).toBeInTheDocument()
+    expect(screen.getByText(/5,00\s*€/)).toBeInTheDocument()
   })
 })
