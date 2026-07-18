@@ -55,7 +55,7 @@ export function ProductList(props: ProductListComponentProps) {
   return (
     <div>
       {kategorien.length > 1 && (
-        <div className="sticky top-14 z-20 -mx-4 border-b bg-background px-4 pb-3 pt-1.5 md:-mx-8 md:px-8 xl:-mx-12 xl:px-12">
+        <div className="sticky top-14 z-20 -mx-4 border-b bg-background px-4 pb-3 pt-1.5 md:-mx-8 md:px-8 lg:top-0 lg:mx-0 lg:px-0">
           <div className="flex flex-wrap gap-2">
             {kategorien.map((kategorie) => {
               const aktiv = kategorie === angezeigteKategorie
