@@ -83,6 +83,13 @@ async function login(context, zugangsdaten) {
   return page
 }
 
+// Querformat-Tablet (≥ 1024 px, eigener deviceScaleFactor): löst das
+// zweispaltige Layout ab `lg` aus — den Service-Split-Screen (ADR 08) für den
+// Direktverkauf und das Sidebar-Layout der Admin-Motive. Damit zeigen `produkte`
+// (Tablet) und `produktverwaltung` (Desktop) bewusst dasselbe Design auf zwei
+// Geräteklassen.
+const tabletLandscape = { viewport: { width: 1194, height: 834 }, deviceScaleFactor: 2 }
+
 async function captureApp() {
   mkdirSync(SHOT_OUT, { recursive: true })
   const browser = await launchBrowser()
@@ -120,16 +127,21 @@ async function captureApp() {
     await zahlungDrawer.getByText(/€/).first().waitFor()
     await captureLightDark(p, 'zahlung')
     await p.keyboard.press('Escape')
-
-    // Direktverkauf: Verkaufen-Reiter mit ausgewählten Positionen.
-    await p.goto('/service/direktverkauf')
-    await p.getByRole('tab', { name: 'Verkaufen' }).waitFor()
-    const dvZeile = zeileMit(p, 'Currywurst', 'Variante hinzufügen')
-    await dvZeile.getByRole('button', { name: 'Variante hinzufügen' }).click()
-    await dvZeile.getByRole('button', { name: 'Variante hinzufügen' }).click()
-    await p.getByRole('button', { name: /Kassieren/ }).waitFor()
-    await captureLightDark(p, 'direktverkauf')
     await phone.close()
+
+    // ---- Direktverkauf (Querformat-Tablet, Split-Screen, Servicekraft „maria") ----
+    // Ab lg (1024 px) rendert der Service-Bereich zweispaltig (ADR 08): links die
+    // Produktauswahl, rechts die dauerhaft sichtbare Beleg-/Kassieren-Spalte.
+    const tabletService = await browser.newContext({ baseURL: BASE, ...tabletLandscape })
+    const dv = await login(tabletService, zugangsdaten.service)
+    await dv.goto('/service/direktverkauf')
+    await dv.getByRole('tab', { name: 'Verkaufen' }).waitFor()
+    const dvZeile = zeileMit(dv, 'Currywurst', 'Variante hinzufügen')
+    await dvZeile.getByRole('button', { name: 'Variante hinzufügen' }).click()
+    await dvZeile.getByRole('button', { name: 'Variante hinzufügen' }).click()
+    await dv.getByRole('button', { name: 'Verkauf abschließen' }).waitFor()
+    await captureLightDark(dv, 'direktverkauf')
+    await tabletService.close()
 
     // ---- Stornierung (Handy, Serviceleitung „felix") ----
     const phoneSL = await browser.newContext({ baseURL: BASE, ...devices['Pixel 7'] })
@@ -157,9 +169,9 @@ async function captureApp() {
     await captureLightDark(sl, 'stornierung')
     await phoneSL.close()
 
-    // ---- Admin-Motive (Handy, Admin „thomas") ----
-    const phoneAdmin = await browser.newContext({ baseURL: BASE, ...devices['Pixel 7'] })
-    const pa = await login(phoneAdmin, zugangsdaten.admin)
+    // ---- Admin-Motive (Querformat-Tablet, Admin „thomas") ----
+    const tabletAdmin = await browser.newContext({ baseURL: BASE, ...tabletLandscape })
+    const pa = await login(tabletAdmin, zugangsdaten.admin)
 
     await pa.goto('/admin/produkte')
     await pa.getByText('Produkte & Preise').first().waitFor()
@@ -180,16 +192,9 @@ async function captureApp() {
     await pa.getByLabel('Kommentar').fill('Wechselgeld Nachschub')
     await captureLightDark(pa, 'geldtransit')
     await pa.keyboard.press('Escape')
+    await tabletAdmin.close()
 
-    // Auswertung: historischer Tagesbericht (deterministisch Nr. 2 gewählt).
-    await pa.goto('/admin/kassenberichte')
-    await pa.getByText('Berichte & Export').first().waitFor()
-    await pa.getByText('Sommerfest 26 Samstag').first().click()
-    await pa.getByText('Umsatz nach Steuersatz').first().waitFor()
-    await captureLightDark(pa, 'auswertung')
-    await phoneAdmin.close()
-
-    // ---- Desktop-Motiv (Browser-Rahmen, Admin „thomas") ----
+    // ---- Desktop-Motive (Browser-Rahmen, Admin „thomas") ----
     const desktop = await browser.newContext({
       baseURL: BASE,
       viewport: { width: 1360, height: 850 },
@@ -199,6 +204,13 @@ async function captureApp() {
     await pd.goto('/admin/produkte')
     await pd.getByText('Produkte & Preise').first().waitFor()
     await captureLightDark(pd, 'produktverwaltung')
+
+    // Auswertung: historischer Tagesbericht (deterministisch Nr. 2 gewählt).
+    await pd.goto('/admin/kassenberichte')
+    await pd.getByText('Berichte & Export').first().waitFor()
+    await pd.getByText('Sommerfest 26 Samstag').first().click()
+    await pd.getByText('Umsatz nach Steuersatz').first().waitFor()
+    await captureLightDark(pd, 'auswertung')
     await desktop.close()
   } finally {
     await browser.close()
@@ -224,6 +236,9 @@ async function captureOg() {
       colorScheme: 'light',
     })
     const page = await context.newPage()
+    // Reduzierte Bewegung erzwingen, damit der animierte Hero-Crossfade
+    // deterministisch auf seinem festen ersten Frame steht (stabiles OG-Bild).
+    await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto(server.url + '/', { waitUntil: 'networkidle' })
     await settle(page)
     await page.screenshot({ path: OG_OUT })
