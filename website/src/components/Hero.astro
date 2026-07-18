@@ -1,8 +1,12 @@
 ---
 import ThemeImage from './ThemeImage.astro'
 
+import tischuebersichtLight from '../assets/screenshots/tischuebersicht-light.png'
+import tischuebersichtDark from '../assets/screenshots/tischuebersicht-dark.png'
 import bestellansichtLight from '../assets/screenshots/bestellansicht-light.png'
 import bestellansichtDark from '../assets/screenshots/bestellansicht-dark.png'
+import zahlungLight from '../assets/screenshots/zahlung-light.png'
+import zahlungDark from '../assets/screenshots/zahlung-dark.png'
 
 // Hero der Landing (Handoff-Prototyp, PRD docs/prds/prd-website-redesign.md).
 // Statische Astro-Sektion ohne client:-Direktive. Der Spektral-Verlauf ist
@@ -14,8 +18,11 @@ import bestellansichtDark from '../assets/screenshots/bestellansicht-dark.png'
 // CTAs (Handoff): primär „Für Verein anfragen" (Ziel /fuer-vereine, seit
 // Phase 8) und sekundär „Live-Demo ansehen" (Ziel #demo, ab Phase 5).
 //
-// Phone-Screen (seit Phase 9): echte Bestellansicht, theme-abhängig hell/dunkel
-// (CSS-only über ThemeImage), aufgenommen per e2e/website/screenshots.mjs.
+// Phone-Screen: geloopter CSS-Crossfade aus drei gestapelten Service-Screenshots
+// (Meine Tische → Bestellen → Kassieren), theme-abhängig hell/dunkel (CSS-only
+// über ThemeImage), aufgenommen per e2e/website/screenshots.mjs. Rein CSS
+// (gestaffelte Opacity-Keyframes, keine Hydration-Island); unter
+// prefers-reduced-motion steht nur das erste Bild ohne Blende (siehe landing.css).
 ---
 
 <section class="relative overflow-hidden">
@@ -43,8 +50,8 @@ import bestellansichtDark from '../assets/screenshots/bestellansicht-dark.png'
 
       <p class="mt-5 max-w-[30em] text-[1.0625rem] leading-relaxed text-muted">
         Deine Helfer:innen kassieren am eigenen Handy — Bestellung, Zahlung,
-        Storno, alles pro Tisch, alles im Browser. Kostenlos, self-hosted und
-        mit fiskalischen Bausteinen für die KassenSichV.
+        Storno, am Tisch oder an der Theke, alles im Browser. Kostenlos,
+        self-hosted und mit fiskalischen Bausteinen für die KassenSichV.
       </p>
 
       <div class="mt-8 flex flex-wrap gap-3">
@@ -84,14 +91,38 @@ import bestellansichtDark from '../assets/screenshots/bestellansicht-dark.png'
       <div class="hero-phone">
         <div class="hero-phone-notch" aria-hidden="true"></div>
         <div class="hero-phone-screen">
-          <ThemeImage
-            light={bestellansichtLight}
-            dark={bestellansichtDark}
-            alt="jotti-Bestellansicht auf dem Smartphone: die Produktkategorie „Essen“ mit Mengen-Steppern und die grüne Leiste „Bestellung überprüfen“ über 14,00 €."
-            widths={[276, 552]}
-            sizes="276px"
-            loading="eager"
-          />
+          <div class="hero-crossfade" aria-hidden="true">
+            <div class="hero-frame hero-frame-1">
+              <ThemeImage
+                light={tischuebersichtLight}
+                dark={tischuebersichtDark}
+                alt="jotti-Tischübersicht auf dem Smartphone: die Kacheln der Tische mit offenen Beträgen."
+                widths={[276, 552]}
+                sizes="276px"
+                loading="eager"
+              />
+            </div>
+            <div class="hero-frame hero-frame-2">
+              <ThemeImage
+                light={bestellansichtLight}
+                dark={bestellansichtDark}
+                alt="jotti-Bestellansicht auf dem Smartphone: die Produktkategorie „Essen“ mit Mengen-Steppern und die grüne Leiste „Bestellung überprüfen“ über 14,00 €."
+                widths={[276, 552]}
+                sizes="276px"
+                loading="eager"
+              />
+            </div>
+            <div class="hero-frame hero-frame-3">
+              <ThemeImage
+                light={zahlungLight}
+                dark={zahlungDark}
+                alt="jotti-Zahlungsansicht auf dem Smartphone: der offene Betrag und die Schaltfläche zum Kassieren."
+                widths={[276, 552]}
+                sizes="276px"
+                loading="eager"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

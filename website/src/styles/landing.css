@@ -129,6 +129,27 @@
   }
 }
 
+/* Geloopter Hero-Crossfade: jedes der drei gestapelten Bilder blendet ein, hält
+   ein Drittel des Zyklus und blendet wieder aus. Die Frames sind per
+   animation-delay um ein Drittel versetzt, sodass sich die Blenden überlappen. */
+@keyframes hero-crossfade {
+  0% {
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  29% {
+    opacity: 1;
+  }
+  37% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 @layer components {
   /* Animiertes Spektral-Akzentwort (Hero-H1). Statisch zeigt es den Verlauf,
      die Animation lässt ihn wandern (siehe reduced-motion am Dateiende). */
@@ -261,6 +282,41 @@
      Kopf der Live-Demo (Phase 5) mitgedehnt. */
   .hero-phone-screen > img {
     display: block;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    object-position: top;
+  }
+
+  /* Crossfade-Stapel im Hero-Telefon: drei deckungsgleiche Frames, jeweils ein
+     Drittel des Zyklus sichtbar, mit überlappenden Blenden. */
+  .hero-crossfade {
+    position: absolute;
+    inset: 0;
+  }
+
+  .hero-frame {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    animation: hero-crossfade 15s ease-in-out infinite;
+  }
+
+  .hero-frame-1 {
+    animation-delay: 0s;
+  }
+
+  .hero-frame-2 {
+    animation-delay: 5s;
+  }
+
+  .hero-frame-3 {
+    animation-delay: 10s;
+  }
+
+  /* Kein `display` hier: die Sichtbarkeit der hell/dunkel-Variante steuern die
+     theme-light/theme-dark-Klassen des ThemeImage-Paars. */
+  .hero-frame img {
     height: 100%;
     width: 100%;
     object-fit: cover;
@@ -403,8 +459,19 @@
   .spectral-text,
   .hero-orb,
   .hero-phone,
+  .hero-frame,
   .reveal,
   .demo-pop {
     animation: none !important;
+  }
+
+  /* Kein Crossfade: nur das erste Service-Bild bleibt sichtbar. */
+  .hero-frame-1 {
+    opacity: 1;
+  }
+
+  .hero-frame-2,
+  .hero-frame-3 {
+    display: none;
   }
 }
