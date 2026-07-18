@@ -1,0 +1,202 @@
+---
+import { ConciergeBell, Store, Check, ArrowRight, CircleUser } from '@lucide/astro'
+import ThemeImage from './ThemeImage.astro'
+
+// Betriebsarten-Sektion der Landing (#betriebsarten): stellt die beiden
+// gleichwertigen Arbeitsmodi nebeneinander — Tischservice am Handy, Direktverkauf
+// am Tablet — mit je einer knappen „wofür"-Erklärung, einer Entscheidungshilfe
+// (Frage → Antwort) und dem Hinweis, dass der Modus pro Gerät wählbar ist.
+// Statische Astro-Sektion ohne client:-Direktive. Icons über @lucide/astro
+// (build-time SVG, kein Client-JS). Scroll-Reveal (.reveal) ist Progressive
+// Enhancement; unter prefers-reduced-motion bleibt alles statisch (landing.css).
+//
+// Der Direktverkauf ist personalbedient (eine Helfer:in bedient das Tablet an
+// der Theke) — bewusst kein Kiosk, keine Gäste-Selbstbedienung am Gerät.
+
+// Linke Spalte: Tischservice am Handy. Regulärer Handy-Service-Screenshot.
+import tischuebersichtLight from '../assets/screenshots/tischuebersicht-light.png'
+import tischuebersichtDark from '../assets/screenshots/tischuebersicht-dark.png'
+
+// Rechte Spalte: Direktverkauf am Tablet — dieselbe Split-Screen-Aufnahme wie
+// in der Sektion „Ein Design. Jedes Gerät.".
+import direktverkaufLight from '../assets/screenshots/direktverkauf-light.png'
+import direktverkaufDark from '../assets/screenshots/direktverkauf-dark.png'
+
+const tischservicePunkte = [
+  'Bestellung aufnehmen und später kassieren — pro Tisch getrennt.',
+  'Bestellung und Zahlung sind zeitlich entkoppelt.',
+  'Tischnummern, Umbuchen und Zusammenlegen für den bedienten Betrieb.',
+]
+
+const direktverkaufPunkte = [
+  'Bestellen, kassieren und ausgeben in einem Schritt — ohne Tisch.',
+  'Split-Screen mit Produktliste und Belegvorschau auf einem Blick.',
+  'Ideal für Ausschank, Getränke-, Kuchen- oder Grillstand an der Theke.',
+]
+---
+
+<section
+  id="betriebsarten"
+  class="mx-auto max-w-6xl px-6 py-16 sm:py-24"
+>
+  <div class="reveal max-w-[680px]">
+    <p class="eyebrow">Betriebsarten</p>
+    <h2
+      class="font-brand mt-3 text-[length:var(--fs-h2)] leading-[1.06] font-bold tracking-[-0.025em]"
+    >
+      Am Tisch oder<br />an der Theke?
+    </h2>
+    <p class="mt-4 text-[1.0625rem] leading-relaxed text-muted">
+      jotti kennt zwei gleichwertige Arbeitsmodi. Tischservice am Handy für
+      bediente Tische, Direktverkauf am Tablet für die Theke — beide immer
+      personalbedient.
+    </p>
+  </div>
+
+  <div class="reveal mt-11 grid items-start gap-6 md:grid-cols-2">
+    {/* Tischservice — Handy */}
+    <div
+      class="flex flex-col rounded-[20px] border border-card-border bg-card p-[30px] shadow-[var(--shadow)]"
+    >
+      <div class="flex items-center gap-3">
+        <span
+          class="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--sp-green)]"
+          style="background: color-mix(in srgb, var(--sp-green) 16%, transparent);"
+        >
+          <ConciergeBell size={22} />
+        </span>
+        <h3 class="font-brand text-[20px] font-bold">Tischservice</h3>
+      </div>
+
+      <p class="mt-4 text-[15px] leading-[1.55] text-muted">
+        Für Feste mit bedienten Tischen: Helfer:innen nehmen am Tisch mit dem
+        eigenen Handy die Bestellung auf und kassieren später.
+      </p>
+
+      <div class="mt-6 flex justify-center">
+        <div class="device-phone w-[200px]">
+          <div class="device-phone-screen">
+            <ThemeImage
+              light={tischuebersichtLight}
+              dark={tischuebersichtDark}
+              alt="jotti-Tischservice auf dem Handy: die Ansicht „Meine Tische“ mit offenen und erledigten Tischen, Saldo und Status-Punkt."
+              widths={[200, 400]}
+              sizes="200px"
+            />
+          </div>
+        </div>
+      </div>
+
+      <ul class="mt-6 flex flex-col gap-[13px]">
+        {
+          tischservicePunkte.map((punkt) => (
+            <li class="flex gap-[11px] text-[15px] leading-[1.45]">
+              <span
+                class="mt-0.5 shrink-0 text-[var(--sp-green)]"
+                aria-hidden="true"
+              >
+                <Check size={19} />
+              </span>
+              {punkt}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    {/* Direktverkauf — Tablet */}
+    <div
+      class="flex flex-col rounded-[20px] border border-card-border bg-card p-[30px] shadow-[var(--shadow)]"
+    >
+      <div class="flex items-center gap-3">
+        <span
+          class="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--sp-teal)]"
+          style="background: color-mix(in srgb, var(--sp-teal) 16%, transparent);"
+        >
+          <Store size={22} />
+        </span>
+        <h3 class="font-brand text-[20px] font-bold">Direktverkauf</h3>
+      </div>
+
+      <p class="mt-4 text-[15px] leading-[1.55] text-muted">
+        Für die Theke: eine Helfer:in bedient das Tablet, nimmt die Bestellung
+        an und gibt Ware und Beleg direkt aus — alles in einem Schritt.
+      </p>
+
+      <div class="mt-6 flex justify-center">
+        <div class="device-tablet w-full max-w-[380px]">
+          <div class="device-tablet-screen">
+            <ThemeImage
+              light={direktverkaufLight}
+              dark={direktverkaufDark}
+              alt="jotti-Direktverkauf am Tablet im Split-Screen: links die Produktliste mit Mengen-Steppern, rechts die Belegvorschau mit Kassieren-Leiste."
+              widths={[380, 760]}
+              sizes="(min-width: 768px) 380px, 86vw"
+            />
+          </div>
+        </div>
+      </div>
+
+      <ul class="mt-6 flex flex-col gap-[13px]">
+        {
+          direktverkaufPunkte.map((punkt) => (
+            <li class="flex gap-[11px] text-[15px] leading-[1.45]">
+              <span
+                class="mt-0.5 shrink-0 text-[var(--sp-teal)]"
+                aria-hidden="true"
+              >
+                <Check size={19} />
+              </span>
+              {punkt}
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+
+  {/* Entscheidungshilfe: Frage → Antwort, plus Hinweiszeile. */}
+  <div
+    class="reveal mt-8 rounded-[20px] border border-card-border bg-surface-alt p-[30px]"
+  >
+    <p class="font-brand text-[17px] font-bold">Welcher Modus passt zu eurem Fest?</p>
+
+    <div class="mt-5 grid gap-4 sm:grid-cols-2">
+      <div class="flex items-start gap-3 text-[15px] leading-[1.5]">
+        <span class="mt-0.5 shrink-0 text-[var(--sp-green)]" aria-hidden="true">
+          <ArrowRight size={19} />
+        </span>
+        <span>
+          Bringen eure Helfer die Bestellung an den Tisch?
+          <span class="font-semibold text-[var(--sp-green-text)]"
+            >&nbsp;→ Tischservice.</span
+          >
+        </span>
+      </div>
+      <div class="flex items-start gap-3 text-[15px] leading-[1.5]">
+        <span class="mt-0.5 shrink-0 text-[var(--sp-teal)]" aria-hidden="true">
+          <ArrowRight size={19} />
+        </span>
+        <span>
+          Kommen die Gäste an die Theke und nehmen gleich mit?
+          <span class="font-semibold text-[var(--sp-teal-text)]"
+            >&nbsp;→ Direktverkauf.</span
+          >
+        </span>
+      </div>
+    </div>
+
+    <p
+      class="mt-6 flex items-start gap-2.5 border-t border-card-border pt-5 text-[14px] leading-[1.5] text-muted"
+    >
+      <span class="mt-px shrink-0 text-[var(--sp-teal-text)]" aria-hidden="true">
+        <CircleUser size={18} />
+      </span>
+      <span>
+        Der Modus wird pro Gerät gewählt — beide Betriebsarten können also
+        gleichzeitig laufen (ein Tablet an der Theke, Handys an den Tischen).
+        Gewechselt wird im Benutzermenü.
+      </span>
+    </p>
+  </div>
+</section>
