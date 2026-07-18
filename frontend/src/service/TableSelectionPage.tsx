@@ -93,7 +93,7 @@ export function TableSelectionPage() {
         <EmptyState
           icon={Lamp}
           title="Keine Tische markiert"
-          description="Du hast noch keine Tische markiert. Wähle Tische aus, um sie hier zu sehen."
+          description="Du hast noch keine Tische markiert. Wähle Tische aus, um sie hier zu sehen. Für den Direktverkauf an der Theke wechselst du den Arbeitsmodus im Benutzermenü oben rechts."
           action={
             <Button
               variant="outline"
