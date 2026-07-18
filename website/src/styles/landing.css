@@ -359,8 +359,8 @@
     @apply h-[11px] w-[11px] rounded-full;
   }
 
-  /* Telefonrahmen (statisch, ohne Notch/Float — die Sektion zeigt zwei feste
-     Themes nebeneinander). Der Screen erbt den Bild-Hintergrund. */
+  /* Telefonrahmen (statisch, ohne Notch/Float — theme-passend über ThemeImage).
+     Der Screen erbt den Bild-Hintergrund. */
   .device-phone {
     @apply shrink-0 rounded-[2.25rem] p-2.5 shadow-2xl;
     background: #0a0a08;
@@ -370,8 +370,27 @@
     @apply overflow-hidden rounded-[1.75rem] bg-background;
   }
 
+  /* Nur Größe, kein `display`: die Sichtbarkeit steuern die theme-light/
+     theme-dark-Klassen der ThemeImage-Paare (ein `display:block` hier würde
+     deren Umschaltung überschreiben und beide Varianten zeigen). */
   .device-phone-screen img {
-    @apply block h-auto w-full;
+    @apply h-auto w-full;
+  }
+
+  /* Tablet-Rahmen (Querformat, statisch). Zeigt die Direktverkauf-Split-Screen-
+     Aufnahme; wie das Telefon theme-passend über ThemeImage. Die Bildhöhe folgt
+     dem Seitenverhältnis der Aufnahme, sodass Querformat unverzerrt bleibt. */
+  .device-tablet {
+    @apply shrink-0 rounded-[1.5rem] p-3 shadow-2xl;
+    background: #0a0a08;
+  }
+
+  .device-tablet-screen {
+    @apply overflow-hidden rounded-[0.85rem] bg-background;
+  }
+
+  .device-tablet-screen img {
+    @apply h-auto w-full;
   }
 }
 
