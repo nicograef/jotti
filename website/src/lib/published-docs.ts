@@ -10,6 +10,7 @@
 export const publishedDocs = [
   // Leitfaden (aus `docs/leitfaden.md` aufgeteilt in Schritt-Seiten).
   'leitfaden/was-ist-jotti.md',
+  'leitfaden/betriebsarten.md',
   'leitfaden/installation.md',
   'leitfaden/tse-einrichten.md',
   'leitfaden/veranstaltungstag.md',

@@ -53,6 +53,10 @@ export default defineConfig({
           label: 'Erste Schritte',
           items: [
             { label: 'Was ist jotti?', slug: 'docs/leitfaden/was-ist-jotti' },
+            {
+              label: 'Welcher Modus passt?',
+              slug: 'docs/leitfaden/betriebsarten',
+            },
           ],
         },
         {

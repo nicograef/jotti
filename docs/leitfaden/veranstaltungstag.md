@@ -9,6 +9,9 @@ endet mit dem Tagesabschluss. Die Servicekräfte nehmen währenddessen ganz norm
 auf ihren Handys Bestellungen auf, geben aus und kassieren. Die folgenden Schritte
 macht ein Admin im Admin-Bereich unter „Kasse".
 
+An der Theke läuft der Verkauf statt über Tische im Direktverkauf; wann welcher
+Arbeitsmodus passt, steht unter [Welcher Modus passt?](betriebsarten.md).
+
 ## Vor dem ersten Verkauf: Kassensitzung eröffnen
 
 Zählt das Wechselgeld in der Kasse und öffnet im Admin-Bereich unter „Kasse" die

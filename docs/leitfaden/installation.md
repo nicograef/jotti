@@ -45,6 +45,8 @@ Nach dem Speichern ist das Einmalpasswort ungültig und der Login mit dem neuen 
 
 Das Handy ins Vereins-WLAN bringen. Dann den QR-Code von der Status-Seite scannen oder die grüne Adresse eintippen, dann anmelden.
 
+Für die Theke verbindet ihr statt eines Handys ein Tablet oder einen Laptop und stellt es in den Direktverkauf ([Welcher Modus passt?](betriebsarten.md)).
+
 Geht die grüne Adresse nicht, nennt die Status-Seite die Fallback-Adresse (z. B. `https://192.168.1.50`). Beim ersten Zugriff pro Gerät die einmalige Browserwarnung bestätigen, danach anmelden. Lädt die grüne Adresse auf den Handys gar nicht, blockiert vermutlich der Router (siehe [Fehlersuche](fehlersuche.md)).
 
 ## Bondruck einrichten (optional)

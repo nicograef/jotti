@@ -6,6 +6,9 @@ description: 'jotti ist eine gesetzliche Kasse: Was das für euren Verein bedeut
 jotti ist eine Kasse im Sinne des Gesetzes (ein „elektronisches
 Aufzeichnungssystem"). Damit gelten dieselben Regeln wie für jede Registrierkasse, auch für gemeinnützige Vereine und auch bei kurzen Festen.
 
+jotti kann bediente Tische und die Theke abdecken; welcher Arbeitsmodus zu eurem
+Fest passt, klärt [Welcher Modus passt?](betriebsarten.md).
+
 Bevor ihr jotti installiert, schließt ihr einmalig die kostenlose
 Nutzungsvereinbarung mit dem Autor ab (siehe [Lizenzmodell](../lizenzmodell.md)).
 Danach müsst ihr als Verein drei Dinge selbst erledigen:

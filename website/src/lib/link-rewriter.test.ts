@@ -41,6 +41,16 @@ describe('rewriteDocLink', () => {
     expect(href).toBe('/docs/leitfaden/checkliste/')
   })
 
+  it('schreibt einen repo-relativen Link auf die Betriebsarten-Seite um', () => {
+    const href = rewriteDocLink({
+      target: 'betriebsarten.md',
+      sourcePath: 'leitfaden/was-ist-jotti.md',
+      publishedDocs,
+      repoBaseUrl,
+    })
+    expect(href).toBe('/docs/leitfaden/betriebsarten/')
+  })
+
   it('verweist auf private Dokumente per GitHub-URL', () => {
     expect(rewrite('handbuch.md#313-tse-architektur')).toBe(
       `${repoBaseUrl}/docs/handbuch.md#313-tse-architektur`,
