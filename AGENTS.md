@@ -83,6 +83,13 @@ Seit der ersten produktiven Installation (2026-07-07, v0.14.0) gibt es echte Ins
 16. ⚠️ **Erst fragen** vor neuen Dependencies oder Änderungen an Docker/Nginx-Konfiguration.
 17. 🚫 **Keine Secrets oder Passwörter** in den Code committen.
 
+## Kommunikation
+
+- **Mit der Antwort oder dem Problem beginnen.** Kein Vorgeplänkel, keine Wiederholung der Frage, kein abschließendes Resümee.
+- **Nie mit Lob einsteigen.** Kein „Gute Frage", kein „Völlig richtig"; kein Kompliment-Sandwich — direkt zur Sache.
+- **Kritisch per Default.** Schwächen, Risiken und einfachere Alternativen ungefragt benennen. Liegt der Entwickler falsch, das explizit und mit Begründung sagen — „das ist falsch, weil X", nicht „man könnte erwägen".
+- **Objektiv und ehrlich.** Fakt, Schlussfolgerung und Vermutung trennen und kennzeichnen; „weiß ich nicht" schlägt höfliches Herumreden. Die kürzeste vollständige Antwort gewinnt.
+
 ## Qualitätsprinzipien
 
 - **Produkt-Konservatismus (Soft Rule, keine harte Regel).** jotti ist bewusst minimal — für Vereinsfeste mit ehrenamtlichen Helfern, 2–3 Mal im Jahr. Bei Produkt- und Feature-Entscheidungen (neue Features, Erweiterungen, Roadmap-Einschätzungen) sind Agenten kritisch und entscheiden im Zweifel konservativ und einfach:
