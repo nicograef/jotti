@@ -11,7 +11,7 @@ Handlungsleitfaden für Nico. Enthält nur noch, was keine Suite automatisiert: 
 - **TSE-Live-Suite** (`make test-tse-live`): alle Geschäftsvorfälle real gegen fiskaly-TEST signiert, Ausfall/Nachsignierung, p95-Latenzmessung.
 - **Ops-Smoke** (`scripts/ops-smoke.sh install|ops|release`): Erstinstallation, Backup/-Verifikation, Update-Roundtrip, Security-Header, Rate-Limiting, Release-Smoke.
 
-Der frühere Release-Guide (`plan-v1.0.0-release.md`) wurde beim Docs-Cleanup gelöscht (Git-Historie); die verbleibende Release-Vorbereitung (Changelog, Versions-Bump, Release-Mechanik) ist in [offene-punkte.md](offene-punkte.md) getrackt. Die Abnahme läuft über die Abnahme-Entscheidungen am Ende dieses Guides.
+Der frühere Release-Guide (`plan-v1.0.0-release.md`) wurde beim Docs-Cleanup gelöscht (Git-Historie). Die code-seitigen v1.0-Blocker (zog-Validierung, Prettier-Hook-Guard G3, Entfernen der lokalen DB-Wipe-Fähigkeit G7, `CHANGELOG.md`) stehen im Coding-Agent-Plan [plan-v1.0-release-blockers.md](plan-v1.0-release-blockers.md); die manuelle Release-Vorbereitung (Pin-Bump, Versions-Bump, Tag) ist unten als Block H aufgenommen. Die Abnahme läuft über die Abnahme-Entscheidungen am Ende dieses Guides.
 
 ## Vorbereitung
 
@@ -54,12 +54,21 @@ Der frühere Release-Guide (`plan-v1.0.0-release.md`) wurde beim Docs-Cleanup ge
 
 - [ ] Mindestens eine Servicekraft und ein Admin aus einem echten Verein die Kernflows ohne Anleitung bedienen lassen; Stolperstellen notieren. Nicht durch die E2E-Suite oder eine heuristische UX-Review ersetzbar, weil es um echte Erstnutzer-Reaktionen geht.
 
-## Block H: Release-Smoke v1.0.0
+## Block H: Release schneiden
+
+Voraussetzung: Die code-seitigen v1.0-Blocker aus [plan-v1.0-release-blockers.md](plan-v1.0-release-blockers.md) (zog, G7, G3, `CHANGELOG.md`) sind gemergt, die Blöcke A–G sind abgenommen und die Go/No-Go-Entscheidung (siehe unten) ist getroffen.
+
+- [ ] Beispielversion in `docs/leitfaden/self-hosting.md` (`JOTTI_VERSION=v0.14.0`) auf `v1.0.0` heben. Nur diese Datei ist betroffen: `docker-compose.release.yml` ist ein `:RELEASE_VERSION`-Template (der Makefile-Release-Build ersetzt den Platzhalter), `.env.example` hält `JOTTI_VERSION=` bewusst leer, die Verfahrensdokumentation nennt keine Version. `frontend/package.json` (`0.0.0`, nirgends im Build referenziert) als tot dokumentieren.
+- [ ] Voller `make verify` plus `make lint-backend-full` auf dem Release-Commit grün (der TODO/FIXME/XXX-Grep in den Fiskalmodulen war beim Abgleich 2026-07-20 bereits sauber).
+- [ ] Version-Bump auf 1.0.0 (Image-Tags/`JOTTI_VERSION`, `VERSION` für den Windows-Build, ldflags-Version) und Tag `v1.0.0` pushen — `release.yml` baut Images, Windows-ZIP und Release-Notes (git-cliff).
+
+## Block I: Release-Smoke v1.0.0
 
 - [ ] `scripts/ops-smoke.sh release VERSION=1.0.0` auf frischem Server (nicht der Build-Host) mit den gepinnten 1.0.0-Images: prüft `prod-init`, ersten Login, einen Verkauf, einen Beleg, einen Export automatisiert (Gate 6). Hier nur das Ergebnis abnehmen.
 
 ## Abnahme-Entscheidungen
 
+- [ ] Code-seitige v1.0-Blocker aus [plan-v1.0-release-blockers.md](plan-v1.0-release-blockers.md) (zog, G7, G3, `CHANGELOG.md`) gemergt.
 - [ ] Alle Suiten-Läufe (E2E, DSFinV-K-Validator, Berechtigungs-Matrix, Schwachstellen-Scans, Fuzz-Korpus, Parallelzugriffstest, TSE-Live-Suite, Ops-Smoke) grün; die Befunde der einmaligen QA-Durchführung sind abgearbeitet (`docs/plans/plan-befund-fixes-v1.0.0.md`, gelöscht nach Merge).
 - [ ] Blöcke A–G dieses Guides durchgespielt und abgenommen.
-- [ ] Go/No-Go-Entscheidung für den v1.0.0-Tag getroffen.
+- [ ] Go/No-Go-Entscheidung für den v1.0.0-Tag getroffen — danach Block H (Release schneiden) und Block I (Release-Smoke) durchführen und abnehmen.
