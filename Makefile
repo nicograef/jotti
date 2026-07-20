@@ -9,7 +9,7 @@
        sqlc \
        prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore prod-backup-verify prod-harden \
        rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed \
-       local-up local-down local-logs local-reset-db local-reset-and-seed \
+       local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
        check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-integration check check-full verify \
@@ -240,14 +240,6 @@ local-down: ## Lokalen LAN-Stack stoppen
 
 local-logs: ## Lokalen LAN-Stack Logs folgen
 	docker compose -f docker-compose.local.yml logs -f
-
-local-reset-db: ## Lokale DB zurücksetzen (Caddy-Zertifikate bleiben erhalten)
-	docker compose -f docker-compose.local.yml down
-	docker volume rm jotti-local_postgres-data
-	docker compose -f docker-compose.local.yml up -d --build
-
-local-reset-and-seed: ## Lokale DB resetten + Seed einspielen (Caddy-Zertifikate bleiben erhalten)
-	./scripts/reset-and-seed.sh local --yes
 
 # ──────────────────────────────────────────────
 # Datenbank                                     

@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Resets a single stack's database volume, then recreates the stack and seeds
-# demo data via the `jotti seed` subcommand (guard and projection rebuild included).
+# Resets the jotti.rocks demo stack's database volume, then recreates the stack
+# and seeds demo data via the `jotti seed` subcommand (guard and projection
+# rebuild included).
 #
-# Supported stacks:
-#   local  — LAN stack (docker-compose.local.yml): the smallest setup, a single
-#            device with HTTPS via Caddy. The Caddy data volume (caddy-data,
-#            certificates + internal CA) is NOT touched, so no browser re-trust is
-#            needed after a reset.
+# Supported stack:
 #   rocks  — jotti.rocks demo/staging (docker-compose.rocks.yml). NOT for
 #            self-hosted production. The SSL volumes (letsencrypt,
 #            certbot-challenges) are NOT touched.
@@ -19,12 +16,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/reset-and-seed.sh <local|rocks> [--yes]
+Usage: ./scripts/reset-and-seed.sh rocks [--yes]
 
-Resets one stack's DB data and reloads seed data without touching its TLS/SSL volumes.
+Resets the jotti.rocks demo stack's DB data and reloads seed data without
+touching its TLS/SSL volumes.
 
-Stacks:
-  local    LAN stack (docker-compose.local.yml); Caddy cert volume preserved
+Stack:
   rocks    jotti.rocks demo/staging (docker-compose.rocks.yml); SSL volumes preserved
 
 Options:
@@ -38,7 +35,7 @@ STACK=""
 ASSUME_YES="false"
 for arg in "$@"; do
   case "$arg" in
-    local|rocks)
+    rocks)
       [[ -z "$STACK" ]] || fatal "Stack already set to '$STACK'; unexpected argument: $arg"
       STACK="$arg"
       ;;
@@ -55,22 +52,12 @@ for arg in "$@"; do
   esac
 done
 
-[[ -n "$STACK" ]] || { usage; fatal "Missing required stack argument (local|rocks)"; }
+[[ -n "$STACK" ]] || { usage; fatal "Missing required stack argument (rocks)"; }
 
-case "$STACK" in
-  local)
-    COMPOSE_FILES=(-f docker-compose.local.yml)
-    DB_VOLUME="jotti-local_postgres-data"
-    STACK_LABEL="local (LAN)"
-    TLS_NOTE="The Caddy data volume (caddy-data, TLS certificates) is NOT touched."
-    ;;
-  rocks)
-    COMPOSE_FILES=(-f docker-compose.rocks.yml)
-    DB_VOLUME="jotti_postgres-data"
-    STACK_LABEL="jotti.rocks demo"
-    TLS_NOTE="SSL certificate volumes (letsencrypt, certbot-challenges) are NOT touched."
-    ;;
-esac
+COMPOSE_FILES=(-f docker-compose.rocks.yml)
+DB_VOLUME="jotti_postgres-data"
+STACK_LABEL="jotti.rocks demo"
+TLS_NOTE="SSL certificate volumes (letsencrypt, certbot-challenges) are NOT touched."
 
 PG_SERVICE="postgres"
 BACKEND_SERVICE="backend"
