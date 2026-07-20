@@ -20,7 +20,7 @@ Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht autom
 
 | Dokument                      | Inhalt                                                                                                                                                       | Lesen bei                                                   |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| `docs/anforderungen.md`       | Funktionale und querschnittliche Anforderungen, Akzeptanzkriterien, Priorisierung, Status (K-01–K-24, F-01–F-09, S-01–S-03, A-01–A-03, Q-01–Q-08, R-01–R-06) | neue Features, Akzeptanzkriterien, Rollen                   |
+| `docs/anforderungen.md`       | Funktionale und querschnittliche Anforderungen, Akzeptanzkriterien, Priorisierung, Status (K-01–K-26, F-01–F-14, S-01–S-03, A-01–A-03, Q-01–Q-08, R-01–R-07) | neue Features, Akzeptanzkriterien, Rollen                   |
 | `docs/handbuch.md`            | Architektur, Bounded Contexts, Invarianten, Event-Sourcing, Schichtenarchitektur, Read Models, Tagesabschluss, Bondruck                                      | Architekturentscheidungen, Invarianten, Endpunkte entwerfen |
 | `docs/language.md`            | Verbindliche Fachbegriffe, Namenskonventionen pro Schicht (Go, TS, JSON, DB), Ist/Soll-Abweichungen                                                          | Benennungen klären, neue Felder/Typen benennen              |
 | `docs/produktbeschreibung.md` | Produktidentität, Positionierung, Personas, Abgrenzung                                                                                                       | Zielgruppe verstehen, Positionierung                        |
@@ -34,7 +34,7 @@ Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht autom
 | Komponente    | Technologie                                                                     |
 | ------------- | ------------------------------------------------------------------------------- |
 | Backend       | Go 1.26, stdlib `net/http`, `pgx/v5`, `sqlc`, `zerolog`, `zog`, `golang-jwt/v5` |
-| Frontend      | React 19, Vite 8, TypeScript 5.9 (strict), Tailwind CSS 4, shadcn/ui, Zod 4     |
+| Frontend      | React 19, Vite 8, TypeScript 6.0 (strict), Tailwind CSS 4, shadcn/ui, Zod 4     |
 | Datenbank     | PostgreSQL 17, `golang-migrate`                                                 |
 | Runtime       | Node 24+, pnpm 10+                                                              |
 | Infrastruktur | Docker Compose, Caddy Reverse Proxy, Let's Encrypt                              |
