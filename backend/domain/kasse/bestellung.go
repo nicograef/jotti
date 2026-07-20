@@ -101,7 +101,7 @@ var positionSchema = z.Struct(z.Shape{
 	"VarianteName":     produkt.NameSchema.Required(),
 	"Kategorie":        z.String().OneOf([]string{string(produkt.EssenKategorie), string(produkt.GetraenkKategorie), string(produkt.SonstigesKategorie)}, z.Message("Ungültige Kategorie")).Required(),
 	"Steuersatz":       z.String().OneOf([]string{string(steuer.RegelSteuersatz), string(steuer.ErmaessigtSteuersatz), string(steuer.BefreitSteuersatz), string(steuer.KombiSteuersatz)}, z.Message("Ungültiger Steuersatz")).Required(),
-	"EinzelpreisCents": produkt.PreisCentsSchema.Required(),
+	"EinzelpreisCents": produkt.PreisCentsSchema,
 	"Menge":            z.Int().GTE(1, z.Message("Menge muss mindestens 1 betragen")).Required(),
 })
 
@@ -128,12 +128,14 @@ type Bestellung struct {
 }
 
 var bestellungSchema = z.Struct(z.Shape{
-	"ID":               z.String().UUID().Required(),
-	"UserID":           z.Int().GTE(1).Required(),
-	"UserName":         z.String().Min(1).Required(),
-	"TischID":          z.Int().GTE(1).Required(),
-	"Positionen":       z.Slice(positionSchema).Min(1).Required(),
-	"GesamtPreisCents": z.Int().GTE(0).Required(),
+	"ID":         z.String().UUID().Required(),
+	"UserID":     z.Int().GTE(1).Required(),
+	"UserName":   z.String().Min(1).Required(),
+	"TischID":    z.Int().GTE(1).Required(),
+	"Positionen": z.Slice(positionSchema).Min(1).Required(),
+	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
+	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"GesamtPreisCents": z.Int().GTE(1).Required(),
 	"Kommentar":        z.String().Max(100),
 	"AufgenommenAm":    z.Time().Required(),
 })

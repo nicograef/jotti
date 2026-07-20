@@ -26,12 +26,14 @@ type Stornierung struct {
 }
 
 var stornierungSchema = z.Struct(z.Shape{
-	"ID":                     z.String().UUID().Required(),
-	"UserID":                 z.Int().GTE(1).Required(),
-	"UserName":               z.String().Min(1).Required(),
-	"TischID":                z.Int().GTE(1).Required(),
-	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
-	"GesamtStornierungCents": z.Int().GTE(0).Required(),
+	"ID":         z.String().UUID().Required(),
+	"UserID":     z.Int().GTE(1).Required(),
+	"UserName":   z.String().Min(1).Required(),
+	"TischID":    z.Int().GTE(1).Required(),
+	"Positionen": z.Slice(positionSchema).Min(1).Required(),
+	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
+	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"GesamtStornierungCents": z.Int().GTE(1).Required(),
 	"Kommentar":              z.String().Min(3).Max(100).Required(),
 	"StorniertAm":            z.Time().Required(),
 })

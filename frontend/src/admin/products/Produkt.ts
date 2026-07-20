@@ -43,7 +43,7 @@ const NameSchema = z
 const PreisCentsSchema = z
   .number()
   .int()
-  .min(0, { message: 'Preis muss mindestens 0 Cent sein.' })
+  .min(1, { message: 'Preis muss mindestens 1 Cent betragen.' })
   .max(99999, { message: 'Preis darf maximal 999,99 € betragen.' })
 const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
 const SteuersatzSchema = z.enum(['regel', 'ermaessigt', 'befreit', 'kombi'])

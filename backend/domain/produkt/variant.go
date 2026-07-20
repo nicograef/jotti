@@ -29,7 +29,14 @@ type Variante struct {
 }
 
 // PreisCentsSchema defines the schema for a product variant's gross price in cents.
-var PreisCentsSchema = z.Int().GTE(0, z.Message("Preis darf nicht negativ sein")).LTE(99999, z.Message("Preis zu hoch"))
+// A price is required and must be at least 1 cent (0-cent variants are disallowed).
+// The schema is required by definition, so call sites use it directly and must not
+// call .Required() again — zog's .Required() mutates the receiver in place, and
+// re-mutating a shared exported schema at struct-shape sites is a footgun.
+var PreisCentsSchema = z.Int().
+	GTE(1, z.Message("Preis muss mindestens 1 Cent betragen")).
+	LTE(99999, z.Message("Preis zu hoch")).
+	Required(z.Message("Preis muss mindestens 1 Cent betragen"))
 
 // StatusSchema defines the schema for a product or variant status.
 var StatusSchema = z.StringLike[Status]().OneOf(
@@ -40,7 +47,7 @@ var StatusSchema = z.StringLike[Status]().OneOf(
 var VarianteSchema = z.Struct(z.Shape{
 	"ID":         IDSchema.Required(),
 	"Name":       NameSchema.Required(),
-	"PreisCents": PreisCentsSchema.Required(),
+	"PreisCents": PreisCentsSchema,
 	"Status":     StatusSchema.Required(),
 	"CreatedAt":  z.Time().Required(),
 	"UpdatedAt":  z.Time().Required(),
@@ -61,8 +68,8 @@ func NewVariante(name string, preisCents int) (Variante, error) {
 		return Variante{}, fmt.Errorf("invalid name")
 	}
 
-	if issue := PreisCentsSchema.Validate(&preisCents); issue != nil {
-		return Variante{}, fmt.Errorf("invalid price")
+	if issues := PreisCentsSchema.Validate(&preisCents); issues != nil {
+		return Variante{}, fmt.Errorf("invalid price: %s", issues[0].Message)
 	}
 
 	variante := Variante{
@@ -96,8 +103,8 @@ func (v *Variante) UpdateDetails(name string, preisCents int) error {
 		return fmt.Errorf("invalid name")
 	}
 
-	if issue := PreisCentsSchema.Validate(&preisCents); issue != nil {
-		return fmt.Errorf("invalid price")
+	if issues := PreisCentsSchema.Validate(&preisCents); issues != nil {
+		return fmt.Errorf("invalid price: %s", issues[0].Message)
 	}
 
 	v.Name = name

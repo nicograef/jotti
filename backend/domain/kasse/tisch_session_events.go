@@ -29,9 +29,11 @@ type BestellungAufgenommenV1Data struct {
 }
 
 var bestellungAufgenommenV1DataSchema = z.Struct(z.Shape{
-	"BestellungID":     z.String().UUID().Required(),
-	"Positionen":       z.Slice(positionSchema).Min(1).Required(),
-	"GesamtPreisCents": z.Int().GTE(0).Required(),
+	"BestellungID": z.String().UUID().Required(),
+	"Positionen":   z.Slice(positionSchema).Min(1).Required(),
+	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
+	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"GesamtPreisCents": z.Int().GTE(1).Required(),
 	"Kommentar":        z.String().Max(100),
 })
 
@@ -43,9 +45,11 @@ type ZahlungKassiertV1Data struct {
 }
 
 var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
-	"ZahlungID":          z.String().UUID().Required(),
-	"Positionen":         z.Slice(positionSchema).Min(1).Required(),
-	"GesamtZahlungCents": z.Int().GTE(0).Required(),
+	"ZahlungID":  z.String().UUID().Required(),
+	"Positionen": z.Slice(positionSchema).Min(1).Required(),
+	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
+	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"GesamtZahlungCents": z.Int().GTE(1).Required(),
 	"Kommentar":          z.String().Max(100),
 })
 
@@ -63,10 +67,12 @@ type StornierungErteiltV1Data struct {
 }
 
 var stornierungErteiltV1DataSchema = z.Struct(z.Shape{
-	"StornierungID":          z.String().UUID().Required(),
-	"ZahlungID":              z.String().UUID().Required(),
-	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
-	"GesamtStornierungCents": z.Int().GTE(0).Required(),
+	"StornierungID": z.String().UUID().Required(),
+	"ZahlungID":     z.String().UUID().Required(),
+	"Positionen":    z.Slice(positionSchema).Min(1).Required(),
+	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
+	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"GesamtStornierungCents": z.Int().GTE(1).Required(),
 	"Kommentar":              z.String().Min(3).Max(100).Required(),
 })
 
@@ -84,7 +90,9 @@ type BestellungKorrigiertV1Data struct {
 var bestellungKorrigiertV1DataSchema = z.Struct(z.Shape{
 	"KorrekturID": z.String().UUID().Required(),
 	"Positionen":  z.Slice(positionSchema).Min(1).Required(),
-	"GesamtCents": z.Int().GTE(0).Required(),
+	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
+	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"GesamtCents": z.Int().GTE(1).Required(),
 	"Kommentar":   z.String().Max(100),
 })
 
@@ -108,11 +116,13 @@ type BestellungUmgebuchtV1Data struct {
 }
 
 var bestellungUmgebuchtV1DataSchema = z.Struct(z.Shape{
-	"UmbuchungID":       z.String().UUID().Required(),
-	"QuellTischID":      z.Int().GTE(1).Required(),
-	"ZielTischID":       z.Int().GTE(1).Required(),
-	"Positionen":        z.Slice(positionSchema).Min(1).Required(),
-	"GesamtCents":       z.Int().GTE(0).Required(),
+	"UmbuchungID":  z.String().UUID().Required(),
+	"QuellTischID": z.Int().GTE(1).Required(),
+	"ZielTischID":  z.Int().GTE(1).Required(),
+	"Positionen":   z.Slice(positionSchema).Min(1).Required(),
+	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
+	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"GesamtCents":       z.Int().GTE(1).Required(),
 	"Kommentar":         z.String().Max(100),
 	"BenutzerKommentar": z.String().Max(100),
 })

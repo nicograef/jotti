@@ -22,9 +22,11 @@ type DirektverkaufGetaetigtV1Data struct {
 }
 
 var direktverkaufGetaetigtV1DataSchema = z.Struct(z.Shape{
-	"VerkaufID":         z.String().UUID().Required(),
-	"Positionen":        z.Slice(positionSchema).Min(1).Required(),
-	"GesamtbetragCents": z.Int().GTE(0).Required(),
+	"VerkaufID":  z.String().UUID().Required(),
+	"Positionen": z.Slice(positionSchema).Min(1).Required(),
+	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
+	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"GesamtbetragCents": z.Int().GTE(1).Required(),
 	"Kommentar":         z.String().Max(100),
 })
 
@@ -40,10 +42,12 @@ type DirektverkaufStorniertV1Data struct {
 }
 
 var direktverkaufStorniertV1DataSchema = z.Struct(z.Shape{
-	"StornierungID":          z.String().UUID().Required(),
-	"VerkaufID":              z.String().UUID().Required(),
-	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
-	"GesamtStornierungCents": z.Int().GTE(0).Required(),
+	"StornierungID": z.String().UUID().Required(),
+	"VerkaufID":     z.String().UUID().Required(),
+	"Positionen":    z.Slice(positionSchema).Min(1).Required(),
+	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
+	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"GesamtStornierungCents": z.Int().GTE(1).Required(),
 	"Kommentar":              z.String().Min(3).Max(100).Required(),
 })
 

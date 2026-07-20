@@ -109,7 +109,7 @@ type createVarianteRequest struct {
 var createVarianteSchema = z.Struct(z.Shape{
 	"ProduktID":  dom.IDSchema.Required(),
 	"Name":       dom.NameSchema.Required(),
-	"PreisCents": dom.PreisCentsSchema.Required(),
+	"PreisCents": dom.PreisCentsSchema,
 })
 
 type createVarianteResponse struct {
@@ -145,7 +145,7 @@ type updateVarianteRequest struct {
 var updateVarianteSchema = z.Struct(z.Shape{
 	"ID":         dom.IDSchema.Required(),
 	"Name":       dom.NameSchema.Required(),
-	"PreisCents": dom.PreisCentsSchema.Required(),
+	"PreisCents": dom.PreisCentsSchema,
 })
 
 func (h *CommandHandler) UpdateVarianteHandler() http.HandlerFunc {
