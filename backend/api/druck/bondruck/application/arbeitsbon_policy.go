@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
@@ -33,10 +32,11 @@ type positionenMitKommentarData struct {
 func CreateArbeitsbonAuftraegeFromEvent(
 	evt event.Event,
 	druckstationen map[string]druckstation.Druckstation,
+	tischName string,
 ) []druckauftrag_repo.NeuerDruckauftrag {
 	switch evt.Type {
 	case string(kasse.EventTypeBestellungAufgenommenV1):
-		return createStationsAuftraege(evt, druckstationen, parseTischName(evt.Subject), fmt.Sprintf("bestellung-aufgenommen:%d", evt.ID))
+		return createStationsAuftraege(evt, druckstationen, tischName, fmt.Sprintf("bestellung-aufgenommen:%d", evt.ID))
 	case string(kasse.EventTypeDirektverkaufGetaetigtV1):
 		return createDirektverkaufAuftraege(evt, druckstationen)
 	default:
@@ -177,14 +177,4 @@ func unmarshalPositionenMitKommentar(evt event.Event) (positionenMitKommentarDat
 	}
 
 	return data, true
-}
-
-// parseTischName converts an Event Subject to a human-readable table name.
-// Format: "kassensitzung-{nr}/tisch-{id}" -> "Tisch {id}".
-// If "/tisch-" is missing, the subject is returned unchanged.
-func parseTischName(subject string) string {
-	if idx := strings.LastIndex(subject, "/tisch-"); idx != -1 {
-		return "Tisch " + subject[idx+len("/tisch-"):]
-	}
-	return subject
 }

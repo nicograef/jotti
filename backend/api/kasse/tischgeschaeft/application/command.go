@@ -148,25 +148,25 @@ func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject
 }
 
 // loadTischState loads and validates the Tisch, then reads its projected TischSession.
-// Returns the subject, kassensitzungNr, and TischSession state. Returns
+// Returns the subject, kassensitzungNr, tisch name, and TischSession state. Returns
 // ErrKasseNichtGeoeffnet if no open Kassensitzung exists, ErrTischNotFound if the
 // Tisch doesn't exist and ErrTischNotActive if it is not active.
-func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, kasse.TischSession, error) {
+func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, string, kasse.TischSession, error) {
 	log := zerolog.Ctx(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
-		return "", 0, kasse.TischSession{}, err
+		return "", 0, "", kasse.TischSession{}, err
 	}
 
 	t, err := c.TischRepo.GetTable(ctx, tischID)
 	if err != nil {
-		return "", 0, kasse.TischSession{}, fromRepositoryError(err, log, tischID)
+		return "", 0, "", kasse.TischSession{}, fromRepositoryError(err, log, tischID)
 	}
 
 	if t.Status != tisch.ActiveStatus {
 		log.Warn().Int("tisch_id", tischID).Str("status", string(t.Status)).Msg("Tisch is not active")
-		return "", 0, kasse.TischSession{}, ErrTischNotActive
+		return "", 0, "", kasse.TischSession{}, ErrTischNotActive
 	}
 
 	subject := kasse.TischSessionSubject(ks.ZNr, tischID)
@@ -174,10 +174,10 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 	state, err := c.EventRepo.ReadTischSession(ctx, subject)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read tisch session")
-		return "", 0, kasse.TischSession{}, ErrDatabase
+		return "", 0, "", kasse.TischSession{}, ErrDatabase
 	}
 
-	return subject, ks.ZNr, state, nil
+	return subject, ks.ZNr, t.Name, state, nil
 }
 
 // BestellungAufnehmen nimmt eine Bestellung für einen Tisch auf.
@@ -189,7 +189,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz, Status prüfen und KS + Subject bestimmen
-	subject, kassensitzungNr, _, err := c.loadTischState(ctx, tischID)
+	subject, kassensitzungNr, tischName, _, err := c.loadTischState(ctx, tischID)
 	if err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	// Build the Druckaufträge from the stored event (with its generated ID) so the
 	// event and its print jobs are written in one transaction (transactional outbox).
 	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
-		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen)
+		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, tischName)
 	}
 
 	// Bestellungen validieren keinen Stream-Zustand (reines Anhängen); die Version wird
@@ -373,7 +373,7 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz, Status und State laden
-	subject, kassensitzungNr, state, err := c.loadTischState(ctx, tischID)
+	subject, kassensitzungNr, _, state, err := c.loadTischState(ctx, tischID)
 	if err != nil {
 		return err
 	}
@@ -407,7 +407,7 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 	log := zerolog.Ctx(ctx)
 
 	// Tisch-Existenz und Status prüfen, Subject und KS-Nr bestimmen
-	subject, kassensitzungNr, _, err := c.loadTischState(ctx, tischID)
+	subject, kassensitzungNr, _, _, err := c.loadTischState(ctx, tischID)
 	if err != nil {
 		return err
 	}

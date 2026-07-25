@@ -97,7 +97,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	}
 
 	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
-		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen)
+		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, "")
 	}
 
 	// Frischer Stream (client-UUID): erwartete Version 0, das Event ist immer version = 1.
