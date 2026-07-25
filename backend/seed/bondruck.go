@@ -87,6 +87,11 @@ func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse
 		stationen[string(st.Kategorie)] = druckstation.Druckstation{Kategorie: st.Kategorie, DruckerIP: st.DruckerIP, Bonmodus: st.Bonmodus}
 	}
 
+	tischNamen := make(map[int]string, len(s.Tische))
+	for _, t := range s.Tische {
+		tischNamen[t.ID] = t.Name
+	}
+
 	b := &bondruckBuilder{
 		betreiber:       s.Betreiber,
 		stationen:       stationen,
@@ -100,7 +105,12 @@ func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse
 	for i := range events {
 		evt := events[i].event
 
-		for _, auftrag := range bondruckApp.CreateArbeitsbonAuftraegeFromEvent(evt, stationen) {
+		tischName := ""
+		if tischID, err := kasse.ParseTischIDFromSubject(evt.Subject); err == nil {
+			tischName = tischNamen[tischID]
+		}
+
+		for _, auftrag := range bondruckApp.CreateArbeitsbonAuftraegeFromEvent(evt, stationen, tischName) {
 			zeilen = append(zeilen, b.zeile(auftrag, evt.Time))
 		}
 
