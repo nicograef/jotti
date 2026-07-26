@@ -2,6 +2,8 @@ import { cleanup, render } from '@testing-library/react'
 import { useForm } from 'react-hook-form'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 
+import { drainInputOtpTimers } from '@/test/input-otp'
+
 import { OTPField } from './FormFields'
 
 // input-otp registriert intern einen ResizeObserver; jsdom bringt keinen mit.
@@ -21,8 +23,9 @@ beforeAll(() => {
   globalThis.ResizeObserver = ResizeObserverStub
 })
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
+  await drainInputOtpTimers()
 })
 
 function Harness() {

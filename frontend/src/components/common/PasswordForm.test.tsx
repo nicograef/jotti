@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
+import { drainInputOtpTimers } from '@/test/input-otp'
+
 import { PasswordForm } from './PasswordForm'
 
 // input-otp registriert intern einen ResizeObserver; jsdom bringt keinen mit.
@@ -25,8 +27,9 @@ beforeAll(() => {
   document.elementFromPoint = () => null
 })
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
+  await drainInputOtpTimers()
 })
 
 function otpInput(container: HTMLElement): HTMLInputElement {
