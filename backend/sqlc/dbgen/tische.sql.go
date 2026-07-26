@@ -121,6 +121,42 @@ func (q *Queries) GetAktiveTischeMitFavoriten(ctx context.Context, arg GetAktive
 	return items, nil
 }
 
+const getAlleTischNamen = `-- name: GetAlleTischNamen :many
+SELECT id, name FROM tische ORDER BY id ASC
+`
+
+type GetAlleTischNamenRow struct {
+	ID   int
+	Name string
+}
+
+// Historische Namensauflösung: ALLE Tische inklusive gelöschter. Der DSFinV-K-
+// Export benennt die Abrechnungskreise vergangener Kassensitzungen; ein nach
+// dem Tagesabschluss gelöschter Tisch muss dort weiterhin unter seinem Namen
+// erscheinen. GetAlleTische filtert 'deleted' bewusst weg und taugt dafür nicht.
+func (q *Queries) GetAlleTischNamen(ctx context.Context) ([]GetAlleTischNamenRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAlleTischNamen)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetAlleTischNamenRow{}
+	for rows.Next() {
+		var i GetAlleTischNamenRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAlleTische = `-- name: GetAlleTische :many
 SELECT id, name, status, created_at, updated_at
 FROM tische WHERE status != 'deleted' ORDER BY id ASC

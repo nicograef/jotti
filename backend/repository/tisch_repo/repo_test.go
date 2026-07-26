@@ -53,6 +53,31 @@ func TestGetAllTablesDB(t *testing.T) {
 	}
 }
 
+// Regression: Der DSFinV-K-Export benennt Abrechnungskreise vergangener
+// Kassensitzungen. Ein nach dem Tagesabschluss gelöschter Tisch muss dort
+// weiterhin seinen Namen tragen — GetAllTableNames darf 'deleted' nicht
+// wegfiltern, sonst fällt der Export auf "Tisch <ID>" zurück.
+func TestGetAllTableNamesDB_EnthaeltGeloeschteTische(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+	now := time.Now().UTC()
+	aktivID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Zelt A1", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	geloeschtID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Stehtisch Bar", Status: tisch.DeletedStatus, CreatedAt: now, UpdatedAt: now})
+
+	namen, err := repo.GetAllTableNames(ctx)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if namen[aktivID] != "Zelt A1" {
+		t.Errorf("name of active tisch = %q, want Zelt A1", namen[aktivID])
+	}
+	if namen[geloeschtID] != "Stehtisch Bar" {
+		t.Errorf("name of deleted tisch = %q, want Stehtisch Bar", namen[geloeschtID])
+	}
+}
+
 func TestGetActiveTablesDB(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)

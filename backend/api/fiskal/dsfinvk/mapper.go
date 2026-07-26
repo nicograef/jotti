@@ -527,7 +527,10 @@ func Erstellungszeitpunkt(events []event.Event, fallback time.Time) time.Time {
 
 // abrechnungskreis leitet den ABRECHNUNGSKREIS aus dem Subject ab: jede
 // Tisch-Session ist ein Abrechnungskreis (F-06). Der Name stammt aus den
-// Tisch-Stammdaten; fehlt er (gelöschter Tisch), wird "Tisch N" synthetisiert.
+// Tisch-Stammdaten, die auch gelöschte Tische enthalten (Snapshot.Tischnamen).
+// Fehlt er dennoch, wird als letzte Rückfallebene "Tisch N" synthetisiert — das
+// ist ein Notnagel, kein echter Name: er stimmt nur, solange Tisch-ID und
+// Tisch-Name zufällig zusammenfallen.
 // Subjects ohne Tischbezug (Direktverkauf) tragen keinen Abrechnungskreis.
 func abrechnungskreis(subject string, tischnamen map[int]string) string {
 	tischID, err := kasse.ParseTischIDFromSubject(subject)

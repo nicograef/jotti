@@ -31,6 +31,24 @@ func (r Repository) GetAllTables(ctx context.Context) ([]tisch.Tisch, error) {
 	return tables, nil
 }
 
+// GetAllTableNames liefert die Namen ALLER Tische als Map tischID → Name,
+// inklusive gelöschter. Für die historische Namensauflösung (DSFinV-K-Export
+// vergangener Kassensitzungen), wo GetAllTables den gelöschten Tisch verschweigt
+// und der Aufrufer sonst auf die Tisch-ID zurückfallen müsste.
+func (r Repository) GetAllTableNames(ctx context.Context) (map[int]string, error) {
+	rows, err := r.q.GetAlleTischNamen(ctx)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+
+	namen := make(map[int]string, len(rows))
+	for _, row := range rows {
+		namen[row.ID] = row.Name
+	}
+
+	return namen, nil
+}
+
 // GetTischSaldiOffeneSitzung liefert je Tisch mit offenem Saldo den Betrag aus
 // der tisch_sessions-Projektion der offenen Kassensitzung (Map tischID →
 // saldoCents). Ohne offene Sitzung ist die Map leer. Reine Journal-Projektion.

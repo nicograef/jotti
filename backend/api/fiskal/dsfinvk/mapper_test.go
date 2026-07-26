@@ -396,8 +396,27 @@ func TestMapTischablaufTrennt(t *testing.T) {
 	}
 }
 
-// TestAbrechnungskreisFallback synthetisiert "Tisch N", wenn der Tisch nicht
-// mehr in den Stammdaten steht (z. B. gelöscht).
+// Regression: Weicht der Tisch-Name von der Tisch-ID ab (z. B. Tisch-ID 42 heißt
+// "Stehtisch Bar", weil zwischendurch andere Tische angelegt wurden), muss der
+// Stammdaten-Name im ABRECHNUNGSKREIS stehen — nicht die ID aus dem Subject.
+func TestAbrechnungskreisNutztTischnamen(t *testing.T) {
+	snapshot := testSnapshot()
+	snapshot.Tischnamen = map[int]string{42: "Stehtisch Bar"}
+
+	archive, err := Map(snapshot, []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	groups := tableByFile(t, archive, "allocation_groups.csv")
+	if got := field(t, groups, 0, "ABRECHNUNGSKREIS"); got != "Stehtisch Bar" {
+		t.Errorf("ABRECHNUNGSKREIS = %q, want Stehtisch Bar", got)
+	}
+}
+
+// TestAbrechnungskreisFallback synthetisiert "Tisch N" als letzte Rückfallebene,
+// wenn der Tisch überhaupt nicht in den Stammdaten steht. Gelöschte Tische
+// gehören nicht dazu: der Export liefert deren Namen mit (GetAllTableNames).
 func TestAbrechnungskreisFallback(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = nil // kein Tischname bekannt

@@ -6,6 +6,13 @@ FROM tische WHERE id = $1 AND status != 'deleted';
 SELECT id, name, status, created_at, updated_at
 FROM tische WHERE status != 'deleted' ORDER BY id ASC;
 
+-- name: GetAlleTischNamen :many
+-- Historische Namensauflösung: ALLE Tische inklusive gelöschter. Der DSFinV-K-
+-- Export benennt die Abrechnungskreise vergangener Kassensitzungen; ein nach
+-- dem Tagesabschluss gelöschter Tisch muss dort weiterhin unter seinem Namen
+-- erscheinen. GetAlleTische filtert 'deleted' bewusst weg und taugt dafür nicht.
+SELECT id, name FROM tische ORDER BY id ASC;
+
 -- name: GetTischSaldiOffeneSitzung :many
 -- Liefert je Tisch mit offenem Saldo (> 0) den Betrag aus der tisch_sessions-
 -- Projektion der aktuell offenen Kassensitzung. Ohne offene Sitzung ist das
