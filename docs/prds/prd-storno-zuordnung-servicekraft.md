@@ -34,11 +34,11 @@ einer echten Bargeld-Abrechnung des Tischservice:
 
 ```
 Kassiert   = Tischzahlungen
-− Rückgabe = Warenrücknahmen
+− Rücknahmen = Warenrücknahmen
 = Abzugeben
 ```
 
-Entscheidend ist, **wem** eine Rückgabe angerechnet wird. Jedes kassenwirksame
+Entscheidend ist, **wem** eine Rücknahme angerechnet wird. Jedes kassenwirksame
 Storno-Event trägt bereits einen präzisen Rückverweis auf den Vorgang, dessen
 Bargeld es zurückgibt — dieser Verweis, nicht der Akteur, bestimmt die
 Zuordnung:
@@ -63,8 +63,10 @@ Direktverkauf-Stornos bekommen in der Detailliste dieselbe Zuordnungsregel,
 fließen aber in keine Servicekraft-Summe ein.
 
 Für Admin und Kassenwart entsteht so eine Zahl, gegen die das abgegebene
-Tischservice-Bargeld direkt geprüft werden kann; für die Servicekraft zeigt die
-eigene Übersicht denselben Betrag, den sie abzugeben hat.
+Tischservice-Bargeld direkt geprüft werden kann. Die Servicekraft selbst
+erfährt auf ihrem Dashboard von einer Rücknahme nur dann, wenn ihr eine
+zugeordnet ist — dann aber mit Erklärung, statt sie bei der Abgabe zu
+überraschen.
 
 ## User Stories
 
@@ -85,9 +87,10 @@ eigene Übersicht denselben Betrag, den sie abzugeben hat.
    betrifft, statt wer ihn ausgelöst hat.
 6. Als Serviceleitung möchte ich für eine Servicekraft stornieren können, ohne
    dass mein eigener Abrechnungs-Saldo dadurch verfälscht wird.
-7. Als Servicekraft möchte ich auf meinem Dashboard den Betrag sehen, den ich
-   tatsächlich abzugeben habe, damit ich beim Abrechnen nicht auf eine
-   Differenz laufe, die ich mir nicht erklären kann.
+7. Als Servicekraft möchte ich auf meinem Dashboard erfahren, wenn für mich eine
+   Rücknahme gebucht wurde — und was ich dadurch abzugeben habe —, damit ich
+   beim Abrechnen nicht auf eine Differenz laufe, die ich mir nicht erklären
+   kann.
 
 ## Implementation Decisions
 
@@ -144,8 +147,8 @@ Die bestehende „Umsatz pro Servicekraft"-Aggregation wird zur
 Abrechnungs-Aufschlüsselung. Pro Servicekraft werden geführt:
 
 - **Kassiert:** Summe der Tischzahlungen, nach Akteur (unverändert).
-- **Rückgabe:** Summe der Warenrücknahmen, nach Kassierer-Zuordnung.
-- **Abzugeben:** Kassiert − Rückgabe.
+- **Rücknahme:** Summe der Warenrücknahmen, nach Kassierer-Zuordnung.
+- **Abzugeben:** Kassiert − Rücknahme.
 - **Anzahl Stornos:** Kontroll-Marker über beide Tisch-Storno-Arten —
   Warenrücknahmen (Kassierer-Zuordnung) plus geldneutrale Korrekturen
   (Besteller-Zuordnung).
@@ -155,7 +158,7 @@ Direktverkäufe und Direktverkauf-Stornos gehen in keine dieser Zahlen ein.
 **Invariante: „Abzugeben" ist nie negativ.** Eine Warenrücknahme kann nur
 Positionen zurücknehmen, die in der referenzierten Zahlung enthalten und noch
 nicht zurückgenommen sind (die FIFO-Aufteilung führt darüber Buch). Pro Zahlung
-gilt daher Σ Rückgaben ≤ Zahlbetrag, und weil beide Seiten demselben Kassierer
+gilt daher Σ Rücknahmen ≤ Zahlbetrag, und weil beide Seiten demselben Kassierer
 zugeordnet werden, gilt es auch pro Person. Das ist eine prüfbare Eigenschaft
 der Zuordnungsregel — unter der bisherigen Akteurs-Zuordnung galt sie nicht.
 
@@ -208,20 +211,24 @@ Bedeutung angepasst und in `docs/language.md` nachgezogen.
 
 - **Tagesbericht, Abschnitt „Abrechnung pro Servicekraft"** (bisher „Umsatz pro
   Servicekraft"): pro Zeile „Abzugeben" als Hauptzahl, darunter Kassiert und
-  Rückgabe als Nebenzeile, damit der Abzug nachvollziehbar bleibt. Die
+  Rücknahme als Nebenzeile, damit der Abzug nachvollziehbar bleibt. Die
   Abschnitts-Unterzeile weist aus, dass Direktverkäufe nicht enthalten sind. Der
   Storno-Marker bleibt als Kontroll-Signal, jetzt bei der betroffenen
   Servicekraft.
-- **Live-Dashboard, Team-Liste:** dieselbe Hauptzahl; die Rückgabe wird nur
+- **Live-Dashboard, Team-Liste:** dieselbe Hauptzahl; die Rücknahme wird nur
   eingeblendet, wenn sie ungleich null ist, damit die mobile Zeile schlank
   bleibt.
 - **Storno-Detailzeile:** nennt die betroffene Servicekraft (bei mehreren:
   alle). Weicht der Akteur davon ab, folgt „storniert von <Akteur>" als
   gedämpfter Zusatz.
-- **Eigene Übersicht der Servicekraft** (Service-Dashboard): die Kachel
-  „Kassiert" wird um denselben Rückgabe-Abzug ergänzt und zeigt „Abzugeben", auf
-  derselben Zuordnungsregel. Ohne das würden Servicekraft und Kassenwart auf
-  zwei verschiedene Zahlen schauen.
+- **Eigene Übersicht der Servicekraft** (Service-Dashboard): Die zwei Kacheln
+  (Bestellungen, Kassiert) bleiben unverändert — es ist die Betriebs-Seite
+  während des Abends, keine Abrechnung, und Stornos sind selten. Ist dieser
+  Servicekraft eine Rücknahme zugeordnet, erscheint darunter eine Hinweiszeile,
+  die den Abzug erklärt und den abzugebenden Betrag nennt, damit sie bei der
+  Abgabe nicht auf eine unerklärte Differenz läuft. Ohne Rücknahme ist die Seite
+  unverändert. Geldneutrale Korrekturen bleiben hier außen vor: Sie ändern
+  nichts an dem, was sie abzugeben hat.
 
 ### Was sich nicht ändert
 
@@ -240,13 +247,13 @@ oder welche Zwischenfunktion das zustande kommt.
 `summen_abschluss_test.go` — echte DB, Events schreiben, Query lesen). Kernfälle:
 
 - Servicekraft kassiert, Serviceleitung nimmt stellvertretend Ware zurück →
-  Rückgabe liegt bei der Servicekraft, die Serviceleitung bleibt unbelastet.
+  Rücknahme liegt bei der Servicekraft, die Serviceleitung bleibt unbelastet.
 - Servicekraft nimmt selbst zurück → unverändert bei ihr; die Zuordnung ist
   keine Sonderregel für stellvertretende Stornos.
 - Storno über mehrere Zahlungen verschiedener Kassierer (die FIFO-Aufteilung
-  erzeugt je Zahlung ein Event) → jede Rückgabe landet bei ihrem eigenen
+  erzeugt je Zahlung ein Event) → jede Rücknahme landet bei ihrem eigenen
   Kassierer.
-- Bezahlt Servicekraft A, was B bestellt hat, und wird zurückgenommen → Rückgabe
+- Bezahlt Servicekraft A, was B bestellt hat, und wird zurückgenommen → Rücknahme
   bei A. Der Grenzfall, der die Regel „Kassierer, nicht Besteller" festschreibt.
 - Geldneutrale Korrektur durch einen Dritten → Marker beim Besteller, kein
   Betrag; „Abzugeben" bleibt unverändert.
@@ -268,7 +275,8 @@ Direktverkäufe sind auf beiden Seiten der Gleichung ausgenommen.
 `LiveReportingSection.test.tsx`, React Testing Library gegen gerenderten Text):
 Hauptzahl und Nebenzeile pro Servicekraft, Storno-Marker bei der betroffenen
 Person, Storno-Zeile mit und ohne abweichenden Akteur, Storno-Zeile mit mehreren
-Betroffenen, „Abzugeben" in der eigenen Übersicht.
+Betroffenen, sowie die eigene Übersicht mit und ohne zugeordnete Rücknahme
+(ohne: unverändert zwei Kacheln, keine Hinweiszeile).
 
 Der bestehende Event-JSON-Contract-Test bleibt unverändert grün — das ist der
 Beleg, dass die Änderung rein lesend ist.
