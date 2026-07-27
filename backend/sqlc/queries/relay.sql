@@ -21,12 +21,12 @@ SET versuche = versuche + 1,
     letzter_fehler = @letzter_fehler,
     status = CASE WHEN versuche + 1 >= @max_versuche THEN 'fehlgeschlagen' ELSE status END
 WHERE id = @id AND status = 'offen'
-RETURNING versuche, status;
+RETURNING versuche, status, ziel_ip;
 
--- name: SetDruckauftragFaelligkeit :exec
+-- name: SetDruckauftragFaelligkeitFuerZielIP :exec
 UPDATE druckauftraege
 SET naechster_versuch_ab = NOW() + (sqlc.arg(sekunden)::int * INTERVAL '1 second')
-WHERE id = sqlc.arg(id) AND status = 'offen';
+WHERE ziel_ip = sqlc.arg(ziel_ip) AND status = 'offen';
 
 -- name: GetFehlgeschlageneDruckauftraege :many
 SELECT id, ziel_ip, bon_art, referenz, versuche, letzter_fehler, erstellt_am
