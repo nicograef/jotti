@@ -1,8 +1,13 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 import { AuthSingleton } from './Auth'
-import { Backend, BackendError, ResponseBodyError } from './Backend'
+import {
+  Backend,
+  BackendError,
+  NetzwerkFehler,
+  ResponseBodyError,
+} from './Backend'
 
 const dummyTokenGetter = {
   getToken(): string | null {
@@ -13,6 +18,12 @@ const dummyTokenGetter = {
 function createClient() {
   return new Backend('/api', dummyTokenGetter)
 }
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
 
 describe('Backend.post', () => {
   // Ein abgelaufenes Token beantwortet das Backend mit 401 (invalid_jwt):
@@ -187,5 +198,101 @@ describe('Backend.post', () => {
 
     expect(thrown).not.toBeNull()
     expect(thrown?.message).not.toContain('SECRET')
+  })
+})
+
+describe('Backend Verbindungsfehler', () => {
+  // Ein Request, der nie antwortet (klassisches WLAN-Loch), muss clientseitig
+  // enden — sonst bleibt die Query dauerhaft im Ladezustand.
+  it('bricht einen hängenden Request nach 8 Sekunden als Zeitüberschreitung ab', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () => {
+              reject(new DOMException('Aborted', 'AbortError'))
+            })
+          }),
+      ),
+    )
+
+    const backend = createClient()
+    const request = backend
+      .post('service/foo', {})
+      .catch((error: unknown) => error)
+
+    await vi.advanceTimersByTimeAsync(8000)
+
+    const fehler = await request
+    expect(fehler).toBeInstanceOf(NetzwerkFehler)
+    expect(fehler).toMatchObject({ art: 'zeitueberschreitung' })
+  })
+
+  it('meldet einen Verbindungsabbruch als NetzwerkFehler', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+    )
+
+    const backend = createClient()
+    const request = backend.post('service/foo', {})
+
+    await expect(request).rejects.toBeInstanceOf(NetzwerkFehler)
+    await expect(request).rejects.toMatchObject({ art: 'verbindungsabbruch' })
+  })
+
+  // Ein abgeschnittener Body wirft in der Web-API einen rohen SyntaxError; für
+  // den Aufrufer ist das ein Verbindungsproblem, kein Schema-Verstoß.
+  it('meldet einen abgebrochenen Antwort-Body als NetzwerkFehler', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response('{"ok":tr', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+
+    const backend = createClient()
+    const request = backend.post(
+      'service/foo',
+      {},
+      z.object({ ok: z.boolean() }),
+    )
+
+    await expect(request).rejects.toBeInstanceOf(NetzwerkFehler)
+    await expect(request).rejects.not.toBeInstanceOf(ResponseBodyError)
+  })
+
+  it('leitet bei mehreren gleichzeitigen 401-Antworten nur einmal zum Login weiter', async () => {
+    // jsdom kann die Redirect-Navigation nicht ausführen und loggt einen Fehler.
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const logoutSpy = vi.spyOn(AuthSingleton, 'logout')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ code: 'invalid_jwt' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
+
+    const backend = createClient()
+    const ergebnisse = await Promise.allSettled([
+      backend.post('service/a', {}),
+      backend.post('service/b', {}),
+      backend.post('service/c', {}),
+    ])
+
+    expect(ergebnisse.map((ergebnis) => ergebnis.status)).toEqual([
+      'rejected',
+      'rejected',
+      'rejected',
+    ])
+    expect(logoutSpy).toHaveBeenCalledTimes(1)
   })
 })

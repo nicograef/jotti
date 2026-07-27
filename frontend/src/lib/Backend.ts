@@ -43,6 +43,37 @@ export class ResponseBodyError extends Error {
   }
 }
 
+export type NetzwerkFehlerArt = 'zeitueberschreitung' | 'verbindungsabbruch'
+
+// NetzwerkFehler steht für jeden Fehlschlag ohne auswertbare Antwort des
+// Backends: Zeitüberschreitung, abgebrochene Verbindung oder unvollständig
+// übertragener Antwort-Body. Ein BackendError setzt dagegen immer eine
+// gelesene Antwort des Servers voraus.
+export class NetzwerkFehler extends Error {
+  public readonly art: NetzwerkFehlerArt
+
+  constructor(art: NetzwerkFehlerArt, cause?: unknown) {
+    super(`NetzwerkFehler: ${art}`, { cause })
+    this.art = art
+    Object.setPrototypeOf(this, NetzwerkFehler.prototype)
+  }
+}
+
+// Zeitlimit eines Requests. Ohne Abbruch bleibt eine im WLAN hängende
+// Verbindung dauerhaft offen und die Query dauerhaft im Ladezustand.
+const REQUEST_TIMEOUT_MS = 8000
+
+// leseBody kapselt das Lesen des Antwort-Bodys: Bricht die Übertragung mitten
+// im Body ab, wirft die Web-API einen rohen SyntaxError/TypeError. Für den
+// Aufrufer ist das ein Verbindungsproblem, kein auswertbares Ergebnis.
+async function leseBody<T>(lesen: () => Promise<T>): Promise<T> {
+  try {
+    return await lesen()
+  } catch (error) {
+    throw new NetzwerkFehler('verbindungsabbruch', error)
+  }
+}
+
 // TokenGetter abstracts token retrieval so Backend can be unit-tested with a test double.
 interface TokenGetter {
   getToken(): string | null
@@ -108,6 +139,9 @@ function parseFilename(contentDisposition: string | null): string {
 export class Backend implements BackendClient {
   private readonly baseUrl: string
   private readonly tokenGetter: TokenGetter
+  // Mehrere parallele Queries können gleichzeitig mit 401 scheitern; die
+  // Weiterleitung auf /login darf trotzdem nur einmal ausgelöst werden.
+  private loginWeiterleitungAusgeloest = false
 
   constructor(baseUrl: string, tokenGetter: TokenGetter) {
     this.baseUrl = baseUrl
@@ -116,14 +150,40 @@ export class Backend implements BackendClient {
 
   private async request(endpoint: string, body: unknown): Promise<Response> {
     const token = this.tokenGetter.getToken()
-    return fetch(`${this.baseUrl}/${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(body),
-    })
+    const abbruch = new AbortController()
+    const zeitlimit = setTimeout(() => {
+      abbruch.abort()
+    }, REQUEST_TIMEOUT_MS)
+
+    try {
+      return await fetch(`${this.baseUrl}/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(body),
+        signal: abbruch.signal,
+      })
+    } catch (error) {
+      // Nur das Zeitlimit bricht diesen Controller ab; ein abgebrochenes Signal
+      // bedeutet daher immer Zeitüberschreitung.
+      throw new NetzwerkFehler(
+        abbruch.signal.aborted ? 'zeitueberschreitung' : 'verbindungsabbruch',
+        error,
+      )
+    } finally {
+      clearTimeout(zeitlimit)
+    }
+  }
+
+  private zumLoginWeiterleiten(): void {
+    if (this.loginWeiterleitungAusgeloest) {
+      return
+    }
+    this.loginWeiterleitungAusgeloest = true
+    AuthSingleton.logout()
+    window.location.href = '/login'
   }
 
   private async throwIfNotOk(response: Response): Promise<void> {
@@ -132,13 +192,12 @@ export class Backend implements BackendClient {
     }
 
     if (response.status === 401) {
-      AuthSingleton.logout()
-      window.location.href = '/login'
+      this.zumLoginWeiterleiten()
       throw new BackendError(401, 'unauthorized')
     }
 
     const referenz = response.headers.get('X-Correlation-ID') ?? undefined
-    const responseText = await response.text()
+    const responseText = await leseBody(() => response.text())
     const parsedError = ErrorResponseSchema.safeParse(
       parseJsonSafely(responseText),
     )
@@ -173,7 +232,9 @@ export class Backend implements BackendClient {
       return {} as TResponse
     }
 
-    const { error, data } = responseSchema.safeParse(await response.json())
+    const { error, data } = responseSchema.safeParse(
+      await leseBody(() => response.json()),
+    )
     if (error) {
       const issues = formatSchemaIssues(error)
       const message = `Response of ${endpoint} is invalid: ${issues}`
@@ -191,7 +252,7 @@ export class Backend implements BackendClient {
     const response = await this.request(endpoint, body)
     await this.throwIfNotOk(response)
 
-    const blob = await response.blob()
+    const blob = await leseBody(() => response.blob())
     const filename = parseFilename(response.headers.get('Content-Disposition'))
     return { blob, filename }
   }

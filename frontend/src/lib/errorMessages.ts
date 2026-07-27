@@ -1,9 +1,19 @@
-import { BackendError } from './Backend'
+import { BackendError, NetzwerkFehler } from './Backend'
 
 const serverErrorMessage =
   'Es ist ein unerwarteter Serverfehler aufgetreten. Bitte Seite neu laden oder den Administrator kontaktieren.'
 
-function appendReferenz(message: string, referenz?: string): string {
+const netzwerkErrorMessages = {
+  zeitueberschreitung:
+    'Der Server antwortet nicht rechtzeitig. Bitte WLAN prüfen und erneut versuchen.',
+  verbindungsabbruch:
+    'Keine Verbindung zum Server. Bitte WLAN prüfen und erneut versuchen.',
+}
+
+// appendReferenz hängt die Korrelations-ID an: Ohne sie ist eine gemeldete
+// Störung im Backend-Log nicht auffindbar. Wird auch vom zentralen
+// Query-Fehler-Toast genutzt, damit das Format an einer Stelle steht.
+export function appendReferenz(message: string, referenz?: string): string {
   return referenz ? `${message} Referenz: ${referenz}` : message
 }
 
@@ -62,6 +72,8 @@ const commonErrorMessages: Record<string, string> = {
     'Ein Produkt mit diesem Namen existiert bereits. Bitte einen anderen Namen verwenden.',
   produkt_not_found:
     'Das Produkt wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
+  rate_limited:
+    'Zu viele Anfragen in kurzer Zeit. Bitte einen Moment warten und erneut versuchen.',
   request_too_large:
     'Die Anfrage ist zu groß. Bitte weniger Daten auf einmal senden und erneut versuchen.',
   tisch_saldo_offen:
@@ -103,6 +115,10 @@ export function getActionErrorMessage({
   byCode = {},
 }: ErrorMessageOptions): string {
   const fallback = `${actionLabel} fehlgeschlagen. Bitte erneut versuchen.`
+
+  if (error instanceof NetzwerkFehler) {
+    return netzwerkErrorMessages[error.art]
+  }
 
   if (error instanceof BackendError) {
     if (Object.prototype.hasOwnProperty.call(byCode, error.code)) {
