@@ -18,6 +18,7 @@ afterEach(() => {
 })
 
 const positionId = '22222222-2222-2222-2222-222222222222'
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 const verkauf: DirektverkaufHistorieEintrag = {
   verkaufId: '11111111-1111-1111-1111-111111111111',
@@ -159,6 +160,8 @@ describe('DirektverkaufHistorie', () => {
       expect(direktverkaufStornieren).toHaveBeenCalledTimes(1)
     })
     expect(direktverkaufStornieren).toHaveBeenCalledWith({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      vorgangId: expect.stringMatching(UUID),
       verkaufId: '11111111-1111-1111-1111-111111111111',
       positionen: [{ positionId, menge: 1 }],
       kommentar: 'Rückgabe',

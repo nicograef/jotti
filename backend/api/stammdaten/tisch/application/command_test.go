@@ -179,6 +179,7 @@ func TestTischLoeschen_OhneSaldo(t *testing.T) {
 func TestTischLoeschen_EntferntFavoriten(t *testing.T) {
 	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	favoriten := favorit_repo.NewMock(map[int][]int{5: {1, 2}, 6: {1}}, nil)
+	repo.SetFavoritenCleanup(favoriten.RemoveByTisch)
 	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
 	if err := command.TischLoeschen(context.Background(), 1); err != nil {
@@ -206,6 +207,7 @@ func TestTischLoeschen_EntferntFavoriten(t *testing.T) {
 func TestTischDeaktivieren_BehaeltFavoriten(t *testing.T) {
 	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	favoriten := favorit_repo.NewMock(map[int][]int{5: {1}}, nil)
+	repo.SetFavoritenCleanup(favoriten.RemoveByTisch)
 	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
 	if err := command.TischDeaktivieren(context.Background(), 1); err != nil {
@@ -221,11 +223,14 @@ func TestTischDeaktivieren_BehaeltFavoriten(t *testing.T) {
 	}
 }
 
-// Scheitert der Favoriten-Cleanup, bleibt der Tisch unangetastet — der gemeldete
-// Fehler ist wahr und der Löschvorgang unverändert wiederholbar.
+// Statuswechsel und Favoriten-Cleanup teilen sich eine Transaktion: Scheitert
+// der Cleanup, bleibt der Tisch aktiv. Es entsteht nie ein gelöschter Tisch mit
+// zurückgebliebenen — unsichtbaren und unabwählbaren — Markierungen.
 func TestTischLoeschen_FavoritenCleanupFehlschlag(t *testing.T) {
 	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
-	command := Command{TischRepo: repo, FavoritRepo: favorit_repo.NewMock(map[int][]int{5: {1}}, db.ErrDatabase)}
+	favoriten := favorit_repo.NewMock(map[int][]int{5: {1}}, db.ErrDatabase)
+	repo.SetFavoritenCleanup(favoriten.RemoveByTisch)
+	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
 	if err := command.TischLoeschen(context.Background(), 1); err != ErrDatabase {
 		t.Fatalf("expected ErrDatabase, got %v", err)
