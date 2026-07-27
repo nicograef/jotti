@@ -51,9 +51,10 @@ test.describe('Kassieren-Drawer bei Serverfehler und Netzabbruch', () => {
     await simuliereNetzabbruch(page, ['service/zahlung-kassieren'])
     await kassiereEinePosition(page)
 
-    await expect(
-      page.getByText(/Zahlung kassieren fehlgeschlagen/i),
-    ).toBeVisible()
+    // Ein abgebrochener Request meldet sich als Netzwerkfehler, nicht mehr über
+    // den generischen „<Aktion> fehlgeschlagen"-Fallback: Die Servicekraft soll
+    // das WLAN prüfen, nicht ihre Eingabe.
+    await expect(page.getByText(/Keine Verbindung zum Server/i)).toBeVisible()
     await expect(page.getByText('Zahlung erfolgreich.')).not.toBeVisible()
   })
 })
