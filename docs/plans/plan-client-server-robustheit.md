@@ -190,19 +190,19 @@ Drei zusammengehörige Änderungen:
 
 ### Akzeptanzkriterien
 
-- [ ] Ein Helfer mit einem gelöschten und zwei aktiven Favoriten erhält von
+- [x] Ein Helfer mit einem gelöschten und zwei aktiven Favoriten erhält von
       `service/get-meine-tische-state` HTTP 200 mit den zwei aktiven Tischen.
-- [ ] Der übersprungene Favorit erzeugt genau eine Warn-Log-Zeile mit Tisch-ID
+- [x] Der übersprungene Favorit erzeugt genau eine Warn-Log-Zeile mit Tisch-ID
       und Benutzer-ID.
-- [ ] Nach `admin/delete-tisch` existiert keine `tisch_favoriten`-Zeile mehr
+- [x] Nach `admin/delete-tisch` existiert keine `tisch_favoriten`-Zeile mehr
       für diesen Tisch; die Favoriten anderer Tische bleiben unberührt.
-- [ ] Ein **deaktivierter** (nicht gelöschter) Favoriten-Tisch wird weiterhin
+- [x] Ein **deaktivierter** (nicht gelöschter) Favoriten-Tisch wird weiterhin
       als Favorit geführt und in der Antwort geliefert.
-- [ ] Migration `06_favoriten_cleanup.up.sql` liegt vor, ist in `BEGIN; … COMMIT;`
+- [x] Migration `06_favoriten_cleanup.up.sql` liegt vor, ist in `BEGIN; … COMMIT;`
       geklammert, hat keine `.down.sql` und läuft auf einer Datenbank mit
       verwaisten Favoriten fehlerfrei durch.
-- [ ] `make rebuild-projections` läuft nach der Migration fehlerfrei durch.
-- [ ] Unit-Tests decken ab: alle Favoriten auflösbar, ein Favorit fehlt, alle
+- [x] `make rebuild-projections` läuft nach der Migration fehlerfrei durch.
+- [x] Unit-Tests decken ab: alle Favoriten auflösbar, ein Favorit fehlt, alle
       Favoriten fehlen (Ergebnis: leere Liste, kein Fehler).
 
 ---
@@ -245,23 +245,23 @@ Direktverkaufs-Historie.
 
 ### Akzeptanzkriterien
 
-- [ ] `useMeineTischeState`, `useAktiveTischeMitFavoriten`, `useEigeneUebersicht`,
+- [x] `useMeineTischeState`, `useAktiveTischeMitFavoriten`, `useEigeneUebersicht`,
       `useAktiveProdukte` und `useDirektverkaufHistorie` geben je `isError` und
       `refetch` zurück.
-- [ ] Schlägt eine der drei Queries der Tischübersicht fehl, zeigt die Seite den
+- [x] Schlägt eine der drei Queries der Tischübersicht fehl, zeigt die Seite den
       `LadefehlerAlert` und **nicht** „Keine Tische markiert".
-- [ ] Der „Erneut versuchen"-Button der Tischübersicht stößt den Refetch an;
+- [x] Der „Erneut versuchen"-Button der Tischübersicht stößt den Refetch an;
       nach erfolgreichem Refetch verschwindet der Alert und die Tische werden
       angezeigt.
-- [ ] Bei anstehendem Ladefehler zeigen die Übersichtskarten keine
+- [x] Bei anstehendem Ladefehler zeigen die Übersichtskarten keine
       Null-Beträge.
-- [ ] Erfolgreiche Query mit tatsächlich null Favoriten zeigt weiterhin
+- [x] Erfolgreiche Query mit tatsächlich null Favoriten zeigt weiterhin
       unverändert den Leerzustand „Keine Tische markiert".
-- [ ] Schlägt das Laden der Produkte fehl, zeigt der Bestellen-Tab einen
+- [x] Schlägt das Laden der Produkte fehl, zeigt der Bestellen-Tab einen
       Ladefehler statt einer leeren Produktliste.
-- [ ] Schlägt das Laden der Direktverkaufs-Historie fehl, zeigt die Seite einen
+- [x] Schlägt das Laden der Direktverkaufs-Historie fehl, zeigt die Seite einen
       Ladefehler statt einer leeren Historie.
-- [ ] Komponententests decken für die Tischübersicht ab: Fehlerfall,
+- [x] Komponententests decken für die Tischübersicht ab: Fehlerfall,
       Leerfall und Erfolgsfall.
 
 ---
@@ -307,20 +307,20 @@ erhalten.
 
 ### Akzeptanzkriterien
 
-- [ ] Jeder Request des Backend-Clients trägt ein Abbruch-Signal mit 8 Sekunden
+- [x] Jeder Request des Backend-Clients trägt ein Abbruch-Signal mit 8 Sekunden
       Zeitlimit; ein hängender Request endet als `NetzwerkFehler` vom Typ
       Zeitüberschreitung.
-- [ ] Ein abgebrochener oder unvollständiger Antwort-Body führt zu einem
+- [x] Ein abgebrochener oder unvollständiger Antwort-Body führt zu einem
       `NetzwerkFehler`, nicht zu einem rohen `SyntaxError`.
-- [ ] Eine syntaktisch gültige, aber schema-verletzende Antwort führt weiterhin
+- [x] Eine syntaktisch gültige, aber schema-verletzende Antwort führt weiterhin
       zu `ResponseBodyError` (unverändertes Verhalten).
-- [ ] `getActionErrorMessage` liefert für `NetzwerkFehler` einen
+- [x] `getActionErrorMessage` liefert für `NetzwerkFehler` einen
       verbindungsbezogenen deutschen Text, nicht den Serverfehler-Text.
-- [ ] Der Query-Fehler-Toast zeigt die Korrelations-ID, wenn der Fehler eine
+- [x] Der Query-Fehler-Toast zeigt die Korrelations-ID, wenn der Fehler eine
       trägt, und bleibt ohne Referenz unverändert.
-- [ ] Mehrere gleichzeitig mit 401 scheiternde Queries lösen genau eine
+- [x] Mehrere gleichzeitig mit 401 scheiternde Queries lösen genau eine
       Weiterleitung auf `/login` aus.
-- [ ] Unit-Tests in `frontend/src/lib/Backend.test.ts` decken Timeout,
+- [x] Unit-Tests in `frontend/src/lib/Backend.test.ts` decken Timeout,
       abgebrochenen Body und den unveränderten Schema-Fehlerpfad ab.
 
 ---
@@ -355,15 +355,15 @@ ist von der Schwelle nicht betroffen.
 
 ### Akzeptanzkriterien
 
-- [ ] Ein `BackendError` mit Status 4xx wird nicht wiederholt.
-- [ ] Ein `ResponseBodyError` wird nicht wiederholt.
-- [ ] Ein `NetzwerkFehler` und ein `BackendError` mit Status ab 500 werden
+- [x] Ein `BackendError` mit Status 4xx wird nicht wiederholt.
+- [x] Ein `ResponseBodyError` wird nicht wiederholt.
+- [x] Ein `NetzwerkFehler` und ein `BackendError` mit Status ab 500 werden
       wiederholt, höchstens zweimal, mit wachsendem Abstand.
-- [ ] Queries tragen eine Standard-Aktualitätsschwelle von 30 Sekunden.
-- [ ] Ein `refetch` bzw. `invalidateQueries` nach einer Buchung lädt trotz der
+- [x] Queries tragen eine Standard-Aktualitätsschwelle von 30 Sekunden.
+- [x] Ein `refetch` bzw. `invalidateQueries` nach einer Buchung lädt trotz der
       Schwelle sofort neu — der Tisch-Saldo nach dem Kassieren ist unverändert
       aktuell.
-- [ ] Tests in `frontend/src/lib/queryClient.test.ts` decken die
+- [x] Tests in `frontend/src/lib/queryClient.test.ts` decken die
       Wiederhol-Entscheidung je Fehlerklasse ab.
 
 ---
@@ -394,14 +394,14 @@ eine bewusst offen gelassene Lücke (siehe „Getroffene Entscheidungen").
 
 ### Akzeptanzkriterien
 
-- [ ] Geht das Gerät offline, erscheint das Banner ohne Interaktion innerhalb
+- [x] Geht das Gerät offline, erscheint das Banner ohne Interaktion innerhalb
       einer Sekunde.
-- [ ] Kehrt die Verbindung zurück, verschwindet das Banner ohne Interaktion.
-- [ ] Das Banner erscheint in allen Bereichen (Service, Admin, Login).
-- [ ] Bei aktivem Offline-Zustand erzeugen fehlschlagende Queries keinen
+- [x] Kehrt die Verbindung zurück, verschwindet das Banner ohne Interaktion.
+- [x] Das Banner erscheint in allen Bereichen (Service, Admin, Login).
+- [x] Bei aktivem Offline-Zustand erzeugen fehlschlagende Queries keinen
       zusätzlichen Fehler-Toast.
-- [ ] Bei bestehender Verbindung erscheint der Query-Fehler-Toast unverändert.
-- [ ] Das Banner überdeckt keine Bedienelemente des Service-Bereichs (Kopfzeile
+- [x] Bei bestehender Verbindung erscheint der Query-Fehler-Toast unverändert.
+- [x] Das Banner überdeckt keine Bedienelemente des Service-Bereichs (Kopfzeile
       und Fußleiste bleiben erreichbar).
 
 ---
@@ -436,13 +436,13 @@ hat eine eigene IP).
 
 ### Akzeptanzkriterien
 
-- [ ] Eine rate-limitierte Anfrage liefert Status 429, Content-Type
+- [x] Eine rate-limitierte Anfrage liefert Status 429, Content-Type
       `application/json` und den Body `{"code":"rate_limited"}`.
-- [ ] Der Backend-Client erzeugt daraus einen `BackendError` mit
+- [x] Der Backend-Client erzeugt daraus einen `BackendError` mit
       `code === "rate_limited"`, nicht `"unknown"`.
-- [ ] Das Frontend zeigt für `rate_limited` den Wartetext, nicht den
+- [x] Das Frontend zeigt für `rate_limited` den Wartetext, nicht den
       Serverfehler-Text.
-- [ ] Ein Test in `backend/api/middleware/middleware_test.go` pinnt Status,
+- [x] Ein Test in `backend/api/middleware/middleware_test.go` pinnt Status,
       Content-Type und Body der Limit-Antwort.
 
 ---
@@ -525,31 +525,31 @@ Die Event-JSON-Contracts bleiben unangetastet: `vorgangId` ist kein Event-Feld.
 
 ### Akzeptanzkriterien
 
-- [ ] Migration `07_vorgang_idempotenz.up.sql` legt `vorgang_idempotenz`
+- [x] Migration `07_vorgang_idempotenz.up.sql` legt `vorgang_idempotenz`
       (`vorgang_id` UUID Primärschlüssel, `art`, `user_id`, `created_at`) an,
       transaktional geklammert, ohne `.down.sql`.
-- [ ] `service/zahlung-kassieren`, `serviceleitung/stornierung-erteilen`,
+- [x] `service/zahlung-kassieren`, `serviceleitung/stornierung-erteilen`,
       `service/bestellung-umbuchen` und `serviceleitung/direktverkauf-stornieren`
       verlangen ein `vorgangId` im UUID-Format; eine Anfrage ohne oder mit
       ungültigem `vorgangId` wird mit `validation_error` abgelehnt.
-- [ ] Zweimaliges Senden derselben Kassier-Anfrage mit identischer `vorgangId`
+- [x] Zweimaliges Senden derselben Kassier-Anfrage mit identischer `vorgangId`
       erzeugt genau ein `zahlung-kassiert:v1`-Event, genau einen
       Signaturauftrag und beide Male eine Erfolgsantwort.
-- [ ] Dasselbe gilt für Stornieren (die Event-Anzahl des Vorgangs bleibt
+- [x] Dasselbe gilt für Stornieren (die Event-Anzahl des Vorgangs bleibt
       unverändert, auch wenn er mehrere Events umfasst), für Umbuchen
       (genau ein Quell- und ein Ziel-Event) und für die
       Direktverkauf-Stornierung.
-- [ ] Ein echter OCC-Konflikt — neue `vorgangId`, veraltete Stream-Version —
+- [x] Ein echter OCC-Konflikt — neue `vorgangId`, veraltete Stream-Version —
       liefert weiterhin 409 mit `conflict` und schreibt keine Events.
-- [ ] Die Idempotenz-Zeile und die Events eines Vorgangs werden atomar
+- [x] Die Idempotenz-Zeile und die Events eines Vorgangs werden atomar
       geschrieben: Schlägt der Event-Insert fehl, existiert danach keine
       `vorgang_idempotenz`-Zeile für diesen Vorgang.
-- [ ] Der Guard-Test `backend/domain/kasse/event_json_contract_test.go` läuft
+- [x] Der Guard-Test `backend/domain/kasse/event_json_contract_test.go` läuft
       unverändert durch — kein Event-Typ und kein JSON-Schlüssel hat sich
       geändert.
-- [ ] Im Frontend behält ein Wiederholversuch desselben Vorgangs seine
+- [x] Im Frontend behält ein Wiederholversuch desselben Vorgangs seine
       `vorgangId`; nach erfolgreichem Abschluss wird eine neue erzeugt.
-- [ ] `make rebuild-projections` läuft nach der Migration fehlerfrei durch.
+- [x] `make rebuild-projections` läuft nach der Migration fehlerfrei durch.
 
 ---
 
@@ -579,11 +579,11 @@ aufbewahrungspflichtigen Daten ist das der schlechteste denkbare Ausgang.
 
 ### Akzeptanzkriterien
 
-- [ ] Der Export-Handler setzt vor dem ersten Schreibvorgang eine großzügigere
+- [x] Der Export-Handler setzt vor dem ersten Schreibvorgang eine großzügigere
       Schreibfrist (mindestens fünf Minuten).
-- [ ] Ein Export, dessen Übertragung mehr als zehn Sekunden dauert, kommt
+- [x] Ein Export, dessen Übertragung mehr als zehn Sekunden dauert, kommt
       vollständig und als gültiges ZIP-Archiv beim Client an.
-- [ ] Die Schreibfrist aller übrigen Endpunkte bleibt bei zehn Sekunden.
-- [ ] Kann die Frist nicht gesetzt werden, wird das protokolliert und der
+- [x] Die Schreibfrist aller übrigen Endpunkte bleibt bei zehn Sekunden.
+- [x] Kann die Frist nicht gesetzt werden, wird das protokolliert und der
       Export läuft trotzdem — die Verlängerung ist eine Verbesserung, kein
       Abbruchgrund.
