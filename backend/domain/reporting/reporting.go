@@ -28,18 +28,33 @@ type StornierungPosition struct {
 	EinzelpreisCents int
 }
 
+// ServicekraftRef identifiziert eine Servicekraft in Reporting-Ausgaben:
+// stabile Benutzer-ID, eingefrorener Username aus dem Event-Umschlag und der
+// live aus users aufgeloeste Klarname (nur Admin-Anzeige, leer wenn der
+// Benutzer fehlt). Geteilte Referenz fuer Akteur und Betroffene.
+type ServicekraftRef struct {
+	UserID   int
+	UserName string
+	Name     string
+}
+
 type StornierungDetail struct {
 	Zeitpunkt    time.Time
 	Quelle       string // "tisch" oder "direktverkauf"
 	BarRueckgabe bool   // true bei kassenwirksamer Warenrücknahme, false bei geldneutraler Korrektur
 	TischID      int
 	TischName    string
-	UserID       int
-	UserName     string // eingefrorener Username
-	Name         string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
-	BetragCents  int
-	Kommentar    string
-	Positionen   []StornierungPosition
+	// Akteur ist die Servicekraft, die den Storno ausgelöst hat (Event-Umschlag).
+	Akteur ServicekraftRef
+	// Betroffene sind die Servicekräfte, deren Vorgang der Storno rückgängig
+	// macht (Storno-Zuordnung): der Kassierer der zurückgenommenen Zahlung, der
+	// Verkäufer des stornierten Direktverkaufs bzw. die Besteller der
+	// korrigierten Positionen. Nie leer — ohne auflösbaren Verweis steht hier
+	// der Akteur.
+	Betroffene  []ServicekraftRef
+	BetragCents int
+	Kommentar   string
+	Positionen  []StornierungPosition
 }
 
 // StornierungServicekraft aggregiert die Stornierungen einer Servicekraft

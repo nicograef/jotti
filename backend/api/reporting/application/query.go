@@ -75,16 +75,16 @@ func aggregateStornierungenProServicekraft(stornierungen []reporting.Stornierung
 	out := []reporting.StornierungServicekraft{}
 	indexByUserID := make(map[int]int, len(stornierungen))
 	for _, s := range stornierungen {
-		if idx, ok := indexByUserID[s.UserID]; ok {
+		if idx, ok := indexByUserID[s.Akteur.UserID]; ok {
 			out[idx].AnzahlStornierungen++
 			out[idx].StornierungenCents += s.BetragCents
 			continue
 		}
-		indexByUserID[s.UserID] = len(out)
+		indexByUserID[s.Akteur.UserID] = len(out)
 		out = append(out, reporting.StornierungServicekraft{
-			UserID:              s.UserID,
-			UserName:            s.UserName,
-			Name:                s.Name,
+			UserID:              s.Akteur.UserID,
+			UserName:            s.Akteur.UserName,
+			Name:                s.Akteur.Name,
 			AnzahlStornierungen: 1,
 			StornierungenCents:  s.BetragCents,
 		})

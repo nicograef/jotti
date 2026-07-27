@@ -240,29 +240,38 @@ Korrektur-Zuordnung mitverwendet ergänzt.
 
 ### Acceptance criteria
 
-- [ ] `GetStornierungen` liefert je Storno-Zeile Akteur und eine nicht-leere
+- [x] `GetStornierungen` liefert je Storno-Zeile Akteur und eine nicht-leere
       Liste betroffener Servicekräfte (jeweils Benutzer-ID, eingefrorener
       Username, live aufgelöster Klarname).
-- [ ] Integrationstest: Serviceleitung nimmt eine von einer Servicekraft
+- [x] Integrationstest: Serviceleitung nimmt eine von einer Servicekraft
       kassierte Zahlung zurück → betroffen ist die Servicekraft, Akteur ist die
       Serviceleitung.
-- [ ] Integrationstest: Ein Storno über zwei Zahlungen verschiedener Kassierer
+- [x] Integrationstest: Ein Storno über zwei Zahlungen verschiedener Kassierer
       erzeugt zwei Events (FIFO) → jedes nennt seinen eigenen Kassierer.
-- [ ] Integrationstest: Geldneutrale Korrektur über Positionen zweier Besteller
+- [x] Integrationstest: Geldneutrale Korrektur über Positionen zweier Besteller
       → beide sind als betroffen gelistet, jeder genau einmal.
 - [ ] Integrationstest: Korrektur einer zuvor umgebuchten Position → betroffen
       ist der ursprüngliche Besteller, nicht der Umbucher.
-- [ ] Integrationstest: Direktverkauf-Storno durch einen anderen Benutzer →
+      **Offen — die Annahme des PRD trifft nicht zu:**
+      `kasse.NewBestellungUmgebuchtEvents()` vergibt auf dem Zieltisch *frische*
+      Positions-IDs, die in keinem `bestellung-aufgenommen:v1` vorkommen. Die
+      Positions-Auflösung findet daher nichts und fällt planmäßig auf den Akteur
+      zurück (dokumentiert in
+      `TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck`).
+      Für den ursprünglichen Besteller wäre eine Abstammungs-Auflösung über die
+      Umbuchungs-Event-Paare nötig (Produktentscheidung; die Projektion selbst
+      stempelt bei der Umbuchung den Umbucher als Besteller auf die Positionen).
+- [x] Integrationstest: Direktverkauf-Storno durch einen anderen Benutzer →
       betroffen ist der ursprüngliche Verkäufer.
-- [ ] Der Klarname wird auch für soft-gelöschte Benutzer aufgelöst, wie bisher
+- [x] Der Klarname wird auch für soft-gelöschte Benutzer aufgelöst, wie bisher
       (Verhalten aus `TestGetReporting_ResolvesKlarnameIncludingSoftDeleted`
       gilt für Akteur und Betroffene).
-- [ ] Die Storno-Detailzeile im Tagesbericht und im Live-Dashboard zeigt die
+- [x] Die Storno-Detailzeile im Tagesbericht und im Live-Dashboard zeigt die
       betroffenen Servicekräfte; „storniert von <Akteur>" erscheint genau dann,
       wenn der Akteur nicht selbst betroffen ist.
-- [ ] `docs/language.md` führt **Kassierer** und **Storno-Zuordnung**.
-- [ ] `backend/domain/kasse/event_json_contract_test.go` ist unverändert grün.
-- [ ] `make check` läuft durch.
+- [x] `docs/language.md` führt **Kassierer** und **Storno-Zuordnung**.
+- [x] `backend/domain/kasse/event_json_contract_test.go` ist unverändert grün.
+- [x] `make check` läuft durch.
 
 ---
 

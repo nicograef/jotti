@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"slices"
 	"testing"
 	"time"
 
@@ -78,9 +79,11 @@ func insertEvent(t *testing.T, db *sql.DB, userID int, userName, eventType, subj
 	}
 }
 
-func zahlungData(gesamtCents int) map[string]any {
+// zahlungData baut ein zahlung-kassiert:v1-Event-Data. Die zahlungId ist der
+// Verweis, über den eine spätere Warenrücknahme ihren Kassierer findet.
+func zahlungData(zahlungID string, gesamtCents int) map[string]any {
 	return map[string]any{
-		"zahlungId": "z0000000-0000-0000-0000-000000000001",
+		"zahlungId": zahlungID,
 		"positionen": []map[string]any{{
 			"positionId":       "p0000000-0000-0000-0000-000000000001",
 			"produktName":      "Bier",
@@ -94,10 +97,12 @@ func zahlungData(gesamtCents int) map[string]any {
 	}
 }
 
-func stornierungData(betragCents int, kommentar string) map[string]any {
+// stornierungData baut ein stornierung-erteilt:v1-Event-Data (kassenwirksame
+// Warenrücknahme) mit Verweis auf die zurückgenommene Zahlung.
+func stornierungData(zahlungID string, betragCents int, kommentar string) map[string]any {
 	return map[string]any{
 		"stornierungId":          "s0000000-0000-0000-0000-000000000001",
-		"zahlungId":              "z0000000-0000-0000-0000-000000000001",
+		"zahlungId":              zahlungID,
 		"gesamtStornierungCents": betragCents,
 		"kommentar":              kommentar,
 		"positionen": []map[string]any{{
@@ -110,18 +115,98 @@ func stornierungData(betragCents int, kommentar string) map[string]any {
 	}
 }
 
-func korrekturData(betragCents int, kommentar string) map[string]any {
+// bestellungData baut ein bestellung-aufgenommen:v1-Event-Data über die
+// angegebenen Positions-IDs (je Position 1 Stück zum Preis einzelpreisCents).
+// Die bestellungId leitet sich aus der ersten Positions-ID ab, damit mehrere
+// Bestellungen einer Sitzung den UNIQUE-Index auf bestellungId nicht verletzen.
+func bestellungData(positionIDs []string, einzelpreisCents int) map[string]any {
+	positionen := make([]map[string]any, len(positionIDs))
+	for i, id := range positionIDs {
+		positionen[i] = map[string]any{
+			"positionId":       id,
+			"produktName":      "Limo",
+			"varianteName":     "0.3L",
+			"steuersatz":       "regel",
+			"einzelpreisCents": einzelpreisCents,
+			"menge":            1,
+		}
+	}
+	return map[string]any{
+		"bestellungId":     "b-" + positionIDs[0],
+		"gesamtPreisCents": einzelpreisCents * len(positionIDs),
+		"kommentar":        "",
+		"positionen":       positionen,
+	}
+}
+
+// korrekturData baut ein bestellung-korrigiert:v1-Event-Data (geldneutrale
+// Korrektur) über die angegebenen Positions-IDs — der Verweis, über den die
+// Korrektur ihre Besteller findet.
+func korrekturData(positionIDs []string, betragCents int, kommentar string) map[string]any {
+	data := bestellungData(positionIDs, betragCents/len(positionIDs))
 	return map[string]any{
 		"korrekturId": "k0000000-0000-0000-0000-000000000001",
 		"gesamtCents": betragCents,
 		"kommentar":   kommentar,
+		"positionen":  data["positionen"],
+	}
+}
+
+// direktverkaufData baut ein direktverkauf-getaetigt:v1-Event-Data. Die
+// verkaufId ist der Verweis, über den ein späterer Storno seinen Verkäufer findet.
+func direktverkaufData(verkaufID string, gesamtCents int) map[string]any {
+	return map[string]any{
+		"verkaufId":         verkaufID,
+		"gesamtbetragCents": gesamtCents,
 		"positionen": []map[string]any{{
-			"produktName":      "Limo",
-			"varianteName":     "0.3L",
+			"positionId":       "dp000000-0000-0000-0000-000000000001",
+			"produktName":      "Cola",
+			"varianteName":     "0,5 l",
+			"steuersatz":       "regel",
+			"einzelpreisCents": gesamtCents,
 			"menge":            1,
-			"einzelpreisCents": betragCents,
 		}},
 	}
+}
+
+// direktverkaufStornoData baut ein direktverkauf-storniert:v1-Event-Data mit
+// Verweis auf den stornierten Verkauf.
+func direktverkaufStornoData(verkaufID string, betragCents int, kommentar string) map[string]any {
+	data := direktverkaufData(verkaufID, betragCents)
+	return map[string]any{
+		"stornierungId":          "ds000000-0000-0000-0000-000000000001",
+		"verkaufId":              verkaufID,
+		"gesamtStornierungCents": betragCents,
+		"kommentar":              kommentar,
+		"positionen":             data["positionen"],
+	}
+}
+
+// assertBetroffene prüft die Storno-Zuordnung einer Detailzeile: welche
+// Servicekräfte (eingefrorene Usernames) als betroffen gelistet sind — jede
+// genau einmal, unabhängig von der Reihenfolge.
+func assertBetroffene(t *testing.T, storno reporting.StornierungDetail, wantUsernames ...string) {
+	t.Helper()
+	got := make([]string, len(storno.Betroffene))
+	for i, b := range storno.Betroffene {
+		got[i] = b.UserName
+	}
+	want := slices.Clone(wantUsernames)
+	slices.Sort(got)
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		t.Errorf("Storno %q: expected betroffene %v, got %v", storno.Kommentar, want, got)
+	}
+}
+
+// stornierungenByKommentar indiziert die Storno-Detailzeilen über ihren
+// Kommentar — der in den Tests vergebene, eindeutige Name des Vorgangs.
+func stornierungenByKommentar(stornierungen []reporting.StornierungDetail) map[string]reporting.StornierungDetail {
+	out := map[string]reporting.StornierungDetail{}
+	for _, s := range stornierungen {
+		out[s.Kommentar] = s
+	}
+	return out
 }
 
 // produktPosition baut eine Fat-Event-Position mit den für die
@@ -281,11 +366,11 @@ func TestGetReporting_ResolvesKlarnameIncludingSoftDeleted(t *testing.T) {
 	ksNr := createKassensitzung(t, db)
 
 	// Anna gets more revenue so she sorts first (ORDER BY zahlungen_cents DESC).
-	insertEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 1, zahlungData(2000), ksNr)
-	insertEvent(t, db, bobID, "bob", "zahlung-kassiert:v1", "kassensitzung-1/tisch-2", 1, zahlungData(1000), ksNr)
+	insertEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 1, zahlungData("z-anna", 2000), ksNr)
+	insertEvent(t, db, bobID, "bob", "zahlung-kassiert:v1", "kassensitzung-1/tisch-2", 1, zahlungData("z-bob", 1000), ksNr)
 
-	insertEvent(t, db, annaID, "anna", "stornierung-erteilt:v1", "kassensitzung-1/tisch-1", 2, stornierungData(500, "Anna storniert"), ksNr)
-	insertEvent(t, db, bobID, "bob", "stornierung-erteilt:v1", "kassensitzung-1/tisch-2", 2, stornierungData(300, "Bob storniert"), ksNr)
+	insertEvent(t, db, annaID, "anna", "stornierung-erteilt:v1", "kassensitzung-1/tisch-1", 2, stornierungData("z-anna", 500, "Anna storniert"), ksNr)
+	insertEvent(t, db, bobID, "bob", "stornierung-erteilt:v1", "kassensitzung-1/tisch-2", 2, stornierungData("z-bob", 300, "Bob storniert"), ksNr)
 
 	data, err := repo.GetReporting(ctx, ksNr)
 	if err != nil {
@@ -304,16 +389,27 @@ func TestGetReporting_ResolvesKlarnameIncludingSoftDeleted(t *testing.T) {
 		t.Errorf("expected soft-deleted bob Klarname 'Bob Schmidt', got %q", got)
 	}
 
-	// Stornierungen: same resolution including the soft-deleted user.
+	// Stornierungen: dieselbe Auflösung inkl. des soft-gelöschten Benutzers —
+	// für den Akteur wie für die betroffene Servicekraft.
 	stornoKlarnameByUsername := map[string]string{}
+	betroffeneKlarnameByUsername := map[string]string{}
 	for _, s := range data.Stornierungen {
-		stornoKlarnameByUsername[s.UserName] = s.Name
+		stornoKlarnameByUsername[s.Akteur.UserName] = s.Akteur.Name
+		for _, b := range s.Betroffene {
+			betroffeneKlarnameByUsername[b.UserName] = b.Name
+		}
 	}
 	if got := stornoKlarnameByUsername["anna"]; got != "Anna Müller" {
 		t.Errorf("expected anna storno Klarname 'Anna Müller', got %q", got)
 	}
 	if got := stornoKlarnameByUsername["bob"]; got != "Bob Schmidt" {
 		t.Errorf("expected soft-deleted bob storno Klarname 'Bob Schmidt', got %q", got)
+	}
+	if got := betroffeneKlarnameByUsername["anna"]; got != "Anna Müller" {
+		t.Errorf("expected anna betroffene Klarname 'Anna Müller', got %q", got)
+	}
+	if got := betroffeneKlarnameByUsername["bob"]; got != "Bob Schmidt" {
+		t.Errorf("expected soft-deleted bob betroffene Klarname 'Bob Schmidt', got %q", got)
 	}
 }
 
@@ -332,9 +428,9 @@ func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
 	userID := createUser(t, db, "Anna Müller", "anna", "active")
 	ksNr := createKassensitzung(t, db)
 
-	insertEvent(t, db, userID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 1, zahlungData(2000), ksNr)
-	insertEvent(t, db, userID, "anna", "stornierung-erteilt:v1", "kassensitzung-1/tisch-1", 2, stornierungData(500, "Warenruecknahme"), ksNr)
-	insertEvent(t, db, userID, "anna", "bestellung-korrigiert:v1", "kassensitzung-1/tisch-1", 3, korrekturData(300, "Korrektur"), ksNr)
+	insertEvent(t, db, userID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 1, zahlungData("z-anna", 2000), ksNr)
+	insertEvent(t, db, userID, "anna", "stornierung-erteilt:v1", "kassensitzung-1/tisch-1", 2, stornierungData("z-anna", 500, "Warenruecknahme"), ksNr)
+	insertEvent(t, db, userID, "anna", "bestellung-korrigiert:v1", "kassensitzung-1/tisch-1", 3, korrekturData([]string{"pos-1"}, 300, "Korrektur"), ksNr)
 
 	data, err := repo.GetReporting(ctx, ksNr)
 	if err != nil {
@@ -345,10 +441,7 @@ func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
 		t.Fatalf("expected 2 Stornierungen (Warenrücknahme + Korrektur), got %d", len(data.Stornierungen))
 	}
 
-	byKommentar := map[string]reporting.StornierungDetail{}
-	for _, s := range data.Stornierungen {
-		byKommentar[s.Kommentar] = s
-	}
+	byKommentar := stornierungenByKommentar(data.Stornierungen)
 
 	warenruecknahme, ok := byKommentar["Warenruecknahme"]
 	if !ok {
@@ -398,9 +491,9 @@ func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
 	userID := createUser(t, db, "Anna Müller", "anna", "active")
 	ksNr := createKassensitzung(t, db)
 
-	insertEvent(t, db, userID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 1, zahlungData(2000), ksNr)
-	insertEvent(t, db, userID, "anna", "stornierung-erteilt:v1", "kassensitzung-1/tisch-1", 2, stornierungData(500, "Warenruecknahme"), ksNr)
-	insertEvent(t, db, userID, "anna", "bestellung-korrigiert:v1", "kassensitzung-1/tisch-1", 3, korrekturData(300, "Korrektur"), ksNr)
+	insertEvent(t, db, userID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 1, zahlungData("z-anna", 2000), ksNr)
+	insertEvent(t, db, userID, "anna", "stornierung-erteilt:v1", "kassensitzung-1/tisch-1", 2, stornierungData("z-anna", 500, "Warenruecknahme"), ksNr)
+	insertEvent(t, db, userID, "anna", "bestellung-korrigiert:v1", "kassensitzung-1/tisch-1", 3, korrekturData([]string{"pos-1"}, 300, "Korrektur"), ksNr)
 
 	data, err := repo.GetReporting(ctx, ksNr)
 	if err != nil {
@@ -514,4 +607,210 @@ func TestGetReporting_MetadatenLeerOhneAbschlussEvents(t *testing.T) {
 	if m.KassensturzDifferenzCents != nil {
 		t.Errorf("expected kassensturzDifferenzCents nil without kassensturz, got %v", m.KassensturzDifferenzCents)
 	}
+}
+
+// --- Storno-Zuordnung: wem ein Storno zugeordnet wird ---
+//
+// Jede Storno-Detailzeile trägt zwei Rollen: den Akteur (wer storniert hat) und
+// die Betroffenen (wessen Vorgang rückgängig gemacht wird). Die Betroffenen
+// werden zur Lesezeit über den Rückverweis des Events aufgelöst — zahlungId,
+// verkaufId bzw. die Positions-IDs — und sind nie leer.
+
+// TestGetStornierungen_RuecknahmeTrifftDenKassierer: Nimmt die Serviceleitung
+// stellvertretend eine von einer Servicekraft kassierte Zahlung zurück, ist die
+// Servicekraft die betroffene Person; die Serviceleitung bleibt der Akteur.
+func TestGetStornierungen_RuecknahmeTrifftDenKassierer(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	annaID := createUser(t, db, "Anna Müller", "anna", "active")
+	leitungID := createUser(t, db, "Lena Chef", "lena", "active")
+	ksNr := createKassensitzung(t, db)
+
+	insertEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 1, zahlungData("z-anna", 2000), ksNr)
+	insertEvent(t, db, leitungID, "lena", "stornierung-erteilt:v1", "kassensitzung-1/tisch-1", 2, stornierungData("z-anna", 500, "Ruecknahme"), ksNr)
+
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+	if len(data.Stornierungen) != 1 {
+		t.Fatalf("expected 1 Storno, got %d", len(data.Stornierungen))
+	}
+
+	storno := data.Stornierungen[0]
+	if storno.Akteur.UserName != "lena" || storno.Akteur.UserID != leitungID {
+		t.Errorf("expected Akteur lena (%d), got %+v", leitungID, storno.Akteur)
+	}
+	assertBetroffene(t, storno, "anna")
+	if storno.Betroffene[0].UserID != annaID || storno.Betroffene[0].Name != "Anna Müller" {
+		t.Errorf("expected betroffene anna (%d, 'Anna Müller'), got %+v", annaID, storno.Betroffene[0])
+	}
+}
+
+// TestGetStornierungen_JedeZahlungTrifftIhrenKassierer: Eine Rücknahme über
+// zwei Zahlungen verschiedener Kassierer erzeugt (FIFO je Zahlung) zwei Events —
+// jedes nennt seinen eigenen Kassierer, nicht beide zusammen.
+func TestGetStornierungen_JedeZahlungTrifftIhrenKassierer(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	annaID := createUser(t, db, "Anna Müller", "anna", "active")
+	bobID := createUser(t, db, "Bob Schmidt", "bob", "active")
+	leitungID := createUser(t, db, "Lena Chef", "lena", "active")
+	ksNr := createKassensitzung(t, db)
+
+	insertEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 1, zahlungData("z-anna", 2000), ksNr)
+	insertEvent(t, db, bobID, "bob", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 2, zahlungData("z-bob", 1500), ksNr)
+	insertEvent(t, db, leitungID, "lena", "stornierung-erteilt:v1", "kassensitzung-1/tisch-1", 3, stornierungData("z-anna", 500, "Ruecknahme Anna"), ksNr)
+	insertEvent(t, db, leitungID, "lena", "stornierung-erteilt:v1", "kassensitzung-1/tisch-1", 4, stornierungData("z-bob", 300, "Ruecknahme Bob"), ksNr)
+
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+	byKommentar := stornierungenByKommentar(data.Stornierungen)
+	if len(byKommentar) != 2 {
+		t.Fatalf("expected 2 Stornos, got %d", len(data.Stornierungen))
+	}
+
+	assertBetroffene(t, byKommentar["Ruecknahme Anna"], "anna")
+	assertBetroffene(t, byKommentar["Ruecknahme Bob"], "bob")
+}
+
+// TestGetStornierungen_KorrekturNenntAlleBesteller: Eine geldneutrale Korrektur
+// über Positionen zweier Besteller listet beide als betroffen — jeden genau
+// einmal, auch wenn mehrere seiner Positionen betroffen sind.
+func TestGetStornierungen_KorrekturNenntAlleBesteller(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	annaID := createUser(t, db, "Anna Müller", "anna", "active")
+	bobID := createUser(t, db, "Bob Schmidt", "bob", "active")
+	leitungID := createUser(t, db, "Lena Chef", "lena", "active")
+	ksNr := createKassensitzung(t, db)
+
+	// Anna bestellt zwei Positionen, Bob eine — die Korrektur umfasst alle drei.
+	insertEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 1, bestellungData([]string{"pos-a1", "pos-a2"}, 300), ksNr)
+	insertEvent(t, db, bobID, "bob", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 2, bestellungData([]string{"pos-b1"}, 300), ksNr)
+	insertEvent(t, db, leitungID, "lena", "bestellung-korrigiert:v1", "kassensitzung-1/tisch-1", 3, korrekturData([]string{"pos-a1", "pos-a2", "pos-b1"}, 900, "Korrektur"), ksNr)
+
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+	if len(data.Stornierungen) != 1 {
+		t.Fatalf("expected 1 Storno, got %d", len(data.Stornierungen))
+	}
+
+	storno := data.Stornierungen[0]
+	if storno.Akteur.UserName != "lena" {
+		t.Errorf("expected Akteur lena, got %+v", storno.Akteur)
+	}
+	assertBetroffene(t, storno, "anna", "bob")
+}
+
+// TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck
+// dokumentiert die Grenze der Positions-Auflösung: Eine Umbuchung vergibt auf
+// dem Zieltisch frische Positions-IDs (kasse.NewBestellungUmgebuchtEvents), die
+// in keinem bestellung-aufgenommen:v1-Event vorkommen. Die Korrektur einer
+// solchen Position findet daher keinen Besteller und fällt — wie jeder nicht
+// auflösbare Verweis — auf den Akteur zurück, statt ohne Zuordnung zu bleiben.
+func TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	annaID := createUser(t, db, "Anna Müller", "anna", "active")
+	bobID := createUser(t, db, "Bob Schmidt", "bob", "active")
+	leitungID := createUser(t, db, "Lena Chef", "lena", "active")
+	ksNr := createKassensitzung(t, db)
+
+	// Anna bestellt an Tisch 1; Bob bucht auf Tisch 2 um (Zieltisch bekommt eine
+	// neue Positions-ID); Lena korrigiert die umgebuchte Position.
+	insertEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 1, bestellungData([]string{"pos-a1"}, 300), ksNr)
+	umbuchung := bestellungData([]string{"pos-a1"}, 300)
+	umbuchung["umbuchungId"] = "u-1"
+	umbuchung["quellTischId"] = 1
+	umbuchung["zielTischId"] = 2
+	umbuchung["gesamtCents"] = 300
+	insertEvent(t, db, bobID, "bob", "bestellung-umgebucht:v1", "kassensitzung-1/tisch-1", 2, umbuchung, ksNr)
+	umbuchungZiel := bestellungData([]string{"pos-neu"}, 300)
+	umbuchungZiel["umbuchungId"] = "u-1"
+	umbuchungZiel["quellTischId"] = 1
+	umbuchungZiel["zielTischId"] = 2
+	umbuchungZiel["gesamtCents"] = 300
+	insertEvent(t, db, bobID, "bob", "bestellung-umgebucht:v1", "kassensitzung-1/tisch-2", 1, umbuchungZiel, ksNr)
+	insertEvent(t, db, leitungID, "lena", "bestellung-korrigiert:v1", "kassensitzung-1/tisch-2", 2, korrekturData([]string{"pos-neu"}, 300, "Korrektur"), ksNr)
+
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+	if len(data.Stornierungen) != 1 {
+		t.Fatalf("expected 1 Storno, got %d", len(data.Stornierungen))
+	}
+
+	storno := data.Stornierungen[0]
+	if storno.Akteur.UserName != "lena" {
+		t.Errorf("expected Akteur lena, got %+v", storno.Akteur)
+	}
+	assertBetroffene(t, storno, "lena")
+}
+
+// TestGetStornierungen_DirektverkaufStornoNenntDenVerkaeufer: Ein
+// Direktverkauf-Storno durch einen anderen Benutzer nennt den ursprünglichen
+// Verkäufer als betroffene Person.
+func TestGetStornierungen_DirektverkaufStornoNenntDenVerkaeufer(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	annaID := createUser(t, db, "Anna Müller", "anna", "active")
+	leitungID := createUser(t, db, "Lena Chef", "lena", "active")
+	ksNr := createKassensitzung(t, db)
+
+	dvSubject := "kassensitzung-1/direktverkauf-v-1"
+	insertEvent(t, db, annaID, "anna", "direktverkauf-getaetigt:v1", dvSubject, 1, direktverkaufData("v-1", 750), ksNr)
+	insertEvent(t, db, leitungID, "lena", "direktverkauf-storniert:v1", dvSubject, 2, direktverkaufStornoData("v-1", 250, "DV-Storno"), ksNr)
+
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+	if len(data.Stornierungen) != 1 {
+		t.Fatalf("expected 1 Storno, got %d", len(data.Stornierungen))
+	}
+
+	storno := data.Stornierungen[0]
+	if storno.Quelle != "direktverkauf" {
+		t.Errorf("expected quelle 'direktverkauf', got %q", storno.Quelle)
+	}
+	if storno.Akteur.UserName != "lena" {
+		t.Errorf("expected Akteur lena, got %+v", storno.Akteur)
+	}
+	assertBetroffene(t, storno, "anna")
 }
