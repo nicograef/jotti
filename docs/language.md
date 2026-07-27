@@ -165,6 +165,8 @@ Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einze
 
 Die Servicekraft, die eine Bestellung aufgenommen hat. Reines Projektions- und Anzeigekonzept: Jede offene `Position` trägt den Besteller als eingefrorenen Username aus dem Event-Umschlag des `bestellung-aufgenommen`-Events. Die Event-Form bleibt unverändert, spätere Umbenennungen ändern alte Positionen nicht. Grundlage für die persönliche Erledigt-Sicht, die Sortierung „eigene zuerst" beim Kassieren, die Schichtende-Prüfung im Live-Dashboard und — über die Positions-IDs des Storno-Events — die Storno-Zuordnung der geldneutralen Korrektur.
 
+Ausnahme **Umbuchung:** Der Zieltisch erhält frische Positions-IDs, und die Projektion stempelt den Umbucher als Besteller auf diese Positionen. Die Storno-Zuordnung findet für sie deshalb kein `bestellung-aufgenommen`-Event und fällt auf den Akteur zurück.
+
 Go-Projektion-Felder: `Position.BestellerUserID`, `Position.BestellerName` · JSON/TS: `bestellerUserId`, `bestellerName`
 
 #### Zahlung
