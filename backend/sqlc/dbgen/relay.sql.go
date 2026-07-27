@@ -88,7 +88,11 @@ const getOffeneDruckauftraege = `-- name: GetOffeneDruckauftraege :many
 SELECT id, ziel_ip, payload
 FROM druckauftraege
 WHERE status = 'offen'
-  AND (naechster_versuch_ab IS NULL OR naechster_versuch_ab <= NOW())
+  AND ziel_ip NOT IN (
+    SELECT ziel_ip
+    FROM druckauftraege
+    WHERE status = 'offen' AND naechster_versuch_ab > NOW()
+  )
 ORDER BY id ASC
 LIMIT 200
 `
@@ -99,6 +103,11 @@ type GetOffeneDruckauftraegeRow struct {
 	Payload string
 }
 
+// Eine Ziel-IP wird komplett uebersprungen, solange irgendein offener Auftrag
+// dieses Druckers noch auf seine Backoff-Wartezeit wartet. Sonst wuerde ein
+// waehrend des Backoff-Fensters neu eingereihter Auftrag (naechster_versuch_ab
+// ist dann NULL) die gebremste Warteschlange ueberholen und die Bon-Reihenfolge
+// brechen.
 func (q *Queries) GetOffeneDruckauftraege(ctx context.Context) ([]GetOffeneDruckauftraegeRow, error) {
 	rows, err := q.db.QueryContext(ctx, getOffeneDruckauftraege)
 	if err != nil {
@@ -128,7 +137,7 @@ SET versuche = versuche + 1,
     letzter_fehler = $1,
     status = CASE WHEN versuche + 1 >= $2 THEN 'fehlgeschlagen' ELSE status END
 WHERE id = $3 AND status = 'offen'
-RETURNING versuche, status
+RETURNING versuche, status, ziel_ip
 `
 
 type IncrementDruckauftragFehlversuchParams struct {
@@ -140,12 +149,13 @@ type IncrementDruckauftragFehlversuchParams struct {
 type IncrementDruckauftragFehlversuchRow struct {
 	Versuche int
 	Status   string
+	ZielIp   string
 }
 
 func (q *Queries) IncrementDruckauftragFehlversuch(ctx context.Context, arg IncrementDruckauftragFehlversuchParams) (IncrementDruckauftragFehlversuchRow, error) {
 	row := q.db.QueryRowContext(ctx, incrementDruckauftragFehlversuch, arg.LetzterFehler, arg.MaxVersuche, arg.ID)
 	var i IncrementDruckauftragFehlversuchRow
-	err := row.Scan(&i.Versuche, &i.Status)
+	err := row.Scan(&i.Versuche, &i.Status, &i.ZielIp)
 	return i, err
 }
 
@@ -193,18 +203,25 @@ func (q *Queries) RetryDruckauftrag(ctx context.Context, id int) error {
 	return err
 }
 
-const setDruckauftragFaelligkeit = `-- name: SetDruckauftragFaelligkeit :exec
+const setDruckauftragFaelligkeitFuerZielIP = `-- name: SetDruckauftragFaelligkeitFuerZielIP :exec
 UPDATE druckauftraege
-SET naechster_versuch_ab = NOW() + ($1::int * INTERVAL '1 second')
-WHERE id = $2 AND status = 'offen'
+SET naechster_versuch_ab = GREATEST(
+        naechster_versuch_ab,
+        NOW() + ($1::int * INTERVAL '1 second')
+    )
+WHERE ziel_ip = $2 AND status = 'offen'
 `
 
-type SetDruckauftragFaelligkeitParams struct {
+type SetDruckauftragFaelligkeitFuerZielIPParams struct {
 	Sekunden int
-	ID       int
+	ZielIp   string
 }
 
-func (q *Queries) SetDruckauftragFaelligkeit(ctx context.Context, arg SetDruckauftragFaelligkeitParams) error {
-	_, err := q.db.ExecContext(ctx, setDruckauftragFaelligkeit, arg.Sekunden, arg.ID)
+// GREATEST sorgt dafuer, dass bei mehreren Fehlversuchen derselben Ziel-IP die
+// laengere Wartezeit gewinnt: die Warteschlange wird nie vorzeitig freigegeben.
+// (Postgres ignoriert NULL in GREATEST, ein bisher ungebremster Auftrag bekommt
+// also die neue Faelligkeit.)
+func (q *Queries) SetDruckauftragFaelligkeitFuerZielIP(ctx context.Context, arg SetDruckauftragFaelligkeitFuerZielIPParams) error {
+	_, err := q.db.ExecContext(ctx, setDruckauftragFaelligkeitFuerZielIP, arg.Sekunden, arg.ZielIp)
 	return err
 }

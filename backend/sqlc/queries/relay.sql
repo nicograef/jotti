@@ -3,10 +3,19 @@ INSERT INTO druckauftraege (ziel_ip, payload, status, bon_art, referenz, erstell
 VALUES ($1, $2, 'offen', $3, $4, NOW());
 
 -- name: GetOffeneDruckauftraege :many
+-- Eine Ziel-IP wird komplett uebersprungen, solange irgendein offener Auftrag
+-- dieses Druckers noch auf seine Backoff-Wartezeit wartet. Sonst wuerde ein
+-- waehrend des Backoff-Fensters neu eingereihter Auftrag (naechster_versuch_ab
+-- ist dann NULL) die gebremste Warteschlange ueberholen und die Bon-Reihenfolge
+-- brechen.
 SELECT id, ziel_ip, payload
 FROM druckauftraege
 WHERE status = 'offen'
-  AND (naechster_versuch_ab IS NULL OR naechster_versuch_ab <= NOW())
+  AND ziel_ip NOT IN (
+    SELECT ziel_ip
+    FROM druckauftraege
+    WHERE status = 'offen' AND naechster_versuch_ab > NOW()
+  )
 ORDER BY id ASC
 LIMIT 200;
 
@@ -21,12 +30,19 @@ SET versuche = versuche + 1,
     letzter_fehler = @letzter_fehler,
     status = CASE WHEN versuche + 1 >= @max_versuche THEN 'fehlgeschlagen' ELSE status END
 WHERE id = @id AND status = 'offen'
-RETURNING versuche, status;
+RETURNING versuche, status, ziel_ip;
 
--- name: SetDruckauftragFaelligkeit :exec
+-- name: SetDruckauftragFaelligkeitFuerZielIP :exec
+-- GREATEST sorgt dafuer, dass bei mehreren Fehlversuchen derselben Ziel-IP die
+-- laengere Wartezeit gewinnt: die Warteschlange wird nie vorzeitig freigegeben.
+-- (Postgres ignoriert NULL in GREATEST, ein bisher ungebremster Auftrag bekommt
+-- also die neue Faelligkeit.)
 UPDATE druckauftraege
-SET naechster_versuch_ab = NOW() + (sqlc.arg(sekunden)::int * INTERVAL '1 second')
-WHERE id = sqlc.arg(id) AND status = 'offen';
+SET naechster_versuch_ab = GREATEST(
+        naechster_versuch_ab,
+        NOW() + (sqlc.arg(sekunden)::int * INTERVAL '1 second')
+    )
+WHERE ziel_ip = sqlc.arg(ziel_ip) AND status = 'offen';
 
 -- name: GetFehlgeschlageneDruckauftraege :many
 SELECT id, ziel_ip, bon_art, referenz, versuche, letzter_fehler, erstellt_am
