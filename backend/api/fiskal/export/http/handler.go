@@ -5,11 +5,18 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/nicograef/jotti/backend/api/fiskal/export/application"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/rs/zerolog"
 )
+
+// exportWriteTimeout ersetzt fuer diesen Handler die globale 10-Sekunden-
+// Schreibfrist des Servers (backend/app/app.go): Das DSFinV-K-ZIP kann laenger
+// zum Uebertragen brauchen als jede andere Antwort und darf dabei nicht
+// stillschweigend abgeschnitten werden (aufbewahrungspflichtige Daten).
+const exportWriteTimeout = 5 * time.Minute
 
 type service interface {
 	Erstellen(ctx context.Context, kassensitzungNr int) (application.Archiv, error)
@@ -51,6 +58,15 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 				helper.SendServerError(w)
 			}
 			return
+		}
+
+		// Die Schreibfrist wird verlaengert, BEVOR der erste Schreibvorgang
+		// (WriteHeader/Write) stattfindet. Laesst sie sich nicht setzen (z. B.
+		// weil der ResponseWriter das Interface nicht unterstuetzt), ist das
+		// eine Verbesserung, kein Abbruchgrund: der Export laeuft mit der
+		// globalen Frist weiter.
+		if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(exportWriteTimeout)); err != nil {
+			log.Warn().Err(err).Msg("Failed to extend write deadline for dsfinvk export; falling back to server default")
 		}
 
 		w.Header().Set("Content-Type", "application/zip")
