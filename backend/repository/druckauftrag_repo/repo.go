@@ -94,6 +94,12 @@ func InsertDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []N
 	return nil
 }
 
+// GetOffeneDruckauftraege liefert die zustellbereiten Auftraege in ID-Reihenfolge.
+// Eine Ziel-IP wird dabei komplett uebersprungen, solange irgendein offener
+// Auftrag dieses Druckers noch auf seine Backoff-Wartezeit wartet — der Backoff
+// gehoert der Warteschlange, nicht der einzelnen Zeile. So ueberholt auch ein
+// waehrend des Backoff-Fensters neu eingereihter Auftrag die gebremste
+// Warteschlange nicht.
 func (r Repository) GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruckauftrag, error) {
 	rows, err := r.q.GetOffeneDruckauftraege(ctx)
 	if err != nil {
@@ -120,9 +126,11 @@ func (r Repository) GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruck
 //
 // Der Backoff nach einem Fehlversuch bremst die gesamte Warteschlange der
 // Ziel-IP, nicht nur den gescheiterten Auftrag: alle offenen Auftraege dieses
-// Druckers warten dieselbe Zeit. Das erhaelt die Bon-Reihenfolge und verhindert,
+// Druckers warten dieselbe Zeit, und GetOffeneDruckauftraege ueberspringt die
+// Ziel-IP so lange komplett. Das erhaelt die Bon-Reihenfolge und verhindert,
 // dass der blockierte Auftrag von seinen Nachfolgern ueberholt wird und als
-// Einziger die Fehlversuche aufbraucht.
+// Einziger die Fehlversuche aufbraucht. Melden mehrere Auftraege derselben
+// Ziel-IP im selben Batch einen Fehlversuch, gewinnt die laengere Wartezeit.
 func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
 	if len(gedruckteIDs) == 0 && len(fehlversuche) == 0 {
 		return nil

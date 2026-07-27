@@ -88,7 +88,11 @@ const getOffeneDruckauftraege = `-- name: GetOffeneDruckauftraege :many
 SELECT id, ziel_ip, payload
 FROM druckauftraege
 WHERE status = 'offen'
-  AND (naechster_versuch_ab IS NULL OR naechster_versuch_ab <= NOW())
+  AND ziel_ip NOT IN (
+    SELECT ziel_ip
+    FROM druckauftraege
+    WHERE status = 'offen' AND naechster_versuch_ab > NOW()
+  )
 ORDER BY id ASC
 LIMIT 200
 `
@@ -99,6 +103,11 @@ type GetOffeneDruckauftraegeRow struct {
 	Payload string
 }
 
+// Eine Ziel-IP wird komplett uebersprungen, solange irgendein offener Auftrag
+// dieses Druckers noch auf seine Backoff-Wartezeit wartet. Sonst wuerde ein
+// waehrend des Backoff-Fensters neu eingereihter Auftrag (naechster_versuch_ab
+// ist dann NULL) die gebremste Warteschlange ueberholen und die Bon-Reihenfolge
+// brechen.
 func (q *Queries) GetOffeneDruckauftraege(ctx context.Context) ([]GetOffeneDruckauftraegeRow, error) {
 	rows, err := q.db.QueryContext(ctx, getOffeneDruckauftraege)
 	if err != nil {
@@ -196,7 +205,10 @@ func (q *Queries) RetryDruckauftrag(ctx context.Context, id int) error {
 
 const setDruckauftragFaelligkeitFuerZielIP = `-- name: SetDruckauftragFaelligkeitFuerZielIP :exec
 UPDATE druckauftraege
-SET naechster_versuch_ab = NOW() + ($1::int * INTERVAL '1 second')
+SET naechster_versuch_ab = GREATEST(
+        naechster_versuch_ab,
+        NOW() + ($1::int * INTERVAL '1 second')
+    )
 WHERE ziel_ip = $2 AND status = 'offen'
 `
 
@@ -205,6 +217,10 @@ type SetDruckauftragFaelligkeitFuerZielIPParams struct {
 	ZielIp   string
 }
 
+// GREATEST sorgt dafuer, dass bei mehreren Fehlversuchen derselben Ziel-IP die
+// laengere Wartezeit gewinnt: die Warteschlange wird nie vorzeitig freigegeben.
+// (Postgres ignoriert NULL in GREATEST, ein bisher ungebremster Auftrag bekommt
+// also die neue Faelligkeit.)
 func (q *Queries) SetDruckauftragFaelligkeitFuerZielIP(ctx context.Context, arg SetDruckauftragFaelligkeitFuerZielIPParams) error {
 	_, err := q.db.ExecContext(ctx, setDruckauftragFaelligkeitFuerZielIP, arg.Sekunden, arg.ZielIp)
 	return err
