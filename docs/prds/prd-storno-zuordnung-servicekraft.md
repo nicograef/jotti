@@ -1,10 +1,5 @@
 # PRD: Storno-Zuordnung in der Abrechnung pro Servicekraft
 
-> Die vier Klärungsfragen zu diesem PRD wurden nicht beantwortet. Das Dokument
-> entscheidet daher nach den im Chat empfohlenen Varianten; jede so getroffene
-> Entscheidung ist unter [Annahmen](#annahmen) als **Annahme** markiert und kann
-> ohne Umbau des Rests umgestoßen werden.
-
 ## Problem Statement
 
 Storniert ein Admin oder eine Serviceleitung stellvertretend für eine
@@ -27,9 +22,6 @@ wird nicht beim Admin abgezogen, er wird überhaupt nirgends abgezogen**:
   das ist die gemeldete Beobachtung.
 - **Der Storno-Betrag pro Servicekraft** (`stornierungenCents`) wird vom Backend
   bereits geliefert, aber im Frontend nirgends angezeigt.
-- **Direktverkäufe** fehlen in der Servicekraft-Aufschlüsselung vollständig,
-  obwohl das Bargeld in derselben Tasche landet. Ihre Stornos tauchen dagegen in
-  der Storno-Liste auf.
 
 Für den Kassenwart heißt das: Es gibt heute keine Zahl, gegen die er das
 Bargeld einer Servicekraft prüfen kann. Er muss die Storno-Detailliste von Hand
@@ -38,11 +30,11 @@ durchgehen und selbst zuordnen, wessen Kasse die Bar-Rückgabe belastet hat.
 ## Solution
 
 Die Aufschlüsselung pro Servicekraft wird von einer Brutto-Kassiert-Summe zu
-einer echten Bargeld-Abrechnung:
+einer echten Bargeld-Abrechnung des Tischservice:
 
 ```
-Kassiert   = Tischzahlungen + Direktverkäufe
-− Rückgabe = Warenrücknahmen + Direktverkauf-Stornos
+Kassiert   = Tischzahlungen
+− Rückgabe = Warenrücknahmen
 = Abzugeben
 ```
 
@@ -51,37 +43,46 @@ Storno-Event trägt bereits einen präzisen Rückverweis auf den Vorgang, dessen
 Bargeld es zurückgibt — dieser Verweis, nicht der Akteur, bestimmt die
 Zuordnung:
 
-| Vorgang                                        | Verweis     | Angerechnet auf                            |
-| ---------------------------------------------- | ----------- | ------------------------------------------ |
-| Warenrücknahme (bereits bezahlte Positionen)   | `zahlungId` | die Servicekraft, die diese Zahlung kassiert hat |
-| Direktverkauf-Storno                            | `verkaufId` | die Servicekraft, die diesen Direktverkauf getätigt hat |
-| Geldneutrale Korrektur (unbezahlte Positionen) | —           | niemanden — es fließt kein Bargeld         |
+| Vorgang                                        | Verweis     | Zugeordnet auf                                        | Wirkung                     |
+| ---------------------------------------------- | ----------- | ----------------------------------------------------- | --------------------------- |
+| Warenrücknahme (bereits bezahlte Positionen)   | `zahlungId` | die Servicekraft, die **diese Zahlung kassiert** hat  | mindert „Abzugeben"         |
+| Geldneutrale Korrektur (unbezahlte Positionen) | Positions-IDs | die Servicekraft, die **die Positionen bestellt** hat | nur Kontroll-Marker, kein Betrag |
+| Direktverkauf-Storno                            | `verkaufId` | die Servicekraft, die **den Verkauf getätigt** hat    | nur Detailzeile, keine Aggregation |
 
 Wer den Storno ausgelöst hat, ist für die Abrechnung damit tatsächlich
 nebensächlich. Er bleibt in der Storno-Detailliste sichtbar (Kontroll-Signal
 und Nachvollziehbarkeit), aber als Nebeninformation: Die Zeile nennt zuerst die
-Servicekraft, deren Kasse betroffen ist, und danach — nur wenn abweichend — wer
-stellvertretend storniert hat.
+betroffene Servicekraft und danach — nur wenn abweichend — wer stellvertretend
+storniert hat.
+
+**Direktverkauf bleibt bewusst außerhalb dieser Abrechnung.** Er läuft über eine
+eigene, vom Tischservice getrennte Kasse; ihn in dieselbe Zahl zu mischen würde
+zwei Geldbeutel zu einem verrechnen. Die Servicekraft-Abrechnung bleibt daher
+reine Tischservice-Abrechnung, so wie die Aggregation es heute schon abgrenzt.
+Direktverkauf-Stornos bekommen in der Detailliste dieselbe Zuordnungsregel,
+fließen aber in keine Servicekraft-Summe ein.
 
 Für Admin und Kassenwart entsteht so eine Zahl, gegen die das abgegebene
-Bargeld direkt geprüft werden kann; für die Servicekraft zeigt die eigene
-Übersicht denselben Betrag, den sie abzugeben hat.
+Tischservice-Bargeld direkt geprüft werden kann; für die Servicekraft zeigt die
+eigene Übersicht denselben Betrag, den sie abzugeben hat.
 
 ## User Stories
 
 1. Als Kassenwart möchte ich im Tagesbericht pro Servicekraft sehen, wie viel
-   Bargeld sie abzugeben hat, damit ich die Abgabe ohne Nachrechnen prüfen kann.
+   Bargeld sie aus dem Tischservice abzugeben hat, damit ich die Abgabe ohne
+   Nachrechnen prüfen kann.
 2. Als Kassenwart möchte ich, dass eine Bar-Rückgabe die Kasse der Servicekraft
    belastet, die das Geld ursprünglich kassiert hat, damit ihr Saldo auch dann
    stimmt, wenn Admin oder Serviceleitung stellvertretend storniert haben.
-3. Als Kassenwart möchte ich, dass Direktverkäufe und deren Stornos in derselben
-   Servicekraft-Zahl stecken wie die Tischzahlungen, damit die Zahl das gesamte
-   Bargeld dieser Person abbildet.
-4. Als Admin möchte ich in der Storno-Liste zuerst die betroffene Servicekraft
+3. Als Admin möchte ich in der Storno-Liste zuerst die betroffene Servicekraft
    sehen und den stellvertretenden Akteur nur als Zusatz, damit ich einen Storno
    sofort der richtigen Abrechnung zuordnen kann.
-5. Als Admin möchte ich Stornos weiterhin als Kontroll-Signal je Servicekraft
-   erkennen, damit auffällige Häufungen sichtbar bleiben.
+4. Als Admin möchte ich auch eine geldneutrale Korrektur bei der Servicekraft
+   sehen, deren Bestellung korrigiert wurde, damit Häufungen bei einer Person
+   auffallen — auch wenn kein Geld fließt.
+5. Als Admin möchte ich, dass ein Direktverkauf-Storno den ursprünglichen
+   Verkäufer nennt, damit die Storno-Liste durchgängig zeigt, wen ein Storno
+   betrifft, statt wer ihn ausgelöst hat.
 6. Als Serviceleitung möchte ich für eine Servicekraft stornieren können, ohne
    dass mein eigener Abrechnungs-Saldo dadurch verfälscht wird.
 7. Als Servicekraft möchte ich auf meinem Dashboard den Betrag sehen, den ich
@@ -103,78 +104,102 @@ Kassenjournal ändern sich:
   angefasst.
 - Auch die Tisch-Historie und der Kassenbeleg zeigen weiterhin den Akteur.
 
-Die Zuordnung wird zur Lesezeit aus den vorhandenen Event-Verweisen abgeleitet —
-dasselbe Muster wie das bereits bestehende `barRueckgabe`-Feld, das ebenfalls
-aus dem Event-Typ abgeleitet und nie gespeichert wird.
+Die Zuordnung wird zur Lesezeit aus den vorhandenen Verweisen abgeleitet —
+dasselbe Muster wie das bestehende `barRueckgabe`-Feld, das ebenfalls aus dem
+Event-Typ abgeleitet und nie gespeichert wird.
 
 ### Zuordnungs-Auflösung (Backend, Repository-Schicht)
 
-Die Storno-Query löst den Verweis per Self-Join auf das Kassenjournal auf:
+Die Storno-Query löst je Storno-Art einen anderen Verweis auf, jeweils per
+Self-Join innerhalb derselben Kassensitzung:
 
-- `stornierung-erteilt:v1` → das `zahlung-kassiert:v1`-Event mit derselben
+- **Warenrücknahme** → das `zahlung-kassiert:v1`-Event mit derselben
   `zahlungId`; dessen `user_id` / `user_name` ist die belastete Servicekraft.
-- `direktverkauf-storniert:v1` → das `direktverkauf-getaetigt:v1`-Event mit
-  derselben `verkaufId`.
-- `bestellung-korrigiert:v1` → kein Verweis, keine Zuordnung; die Zeile trägt
-  nur den Akteur.
+  Einwertig, weil eine Zahlung genau einen Akteur hat.
+- **Direktverkauf-Storno** → das `direktverkauf-getaetigt:v1`-Event mit
+  derselben `verkaufId`. Ebenfalls einwertig.
+- **Geldneutrale Korrektur** → für jede Positions-ID im Storno das
+  `bestellung-aufgenommen:v1`-Event, dessen Positions-Array diese ID enthält;
+  dessen Akteur ist der Besteller. **Mehrwertig:** Umfasst eine Korrektur
+  Positionen aus Bestellungen verschiedener Servicekräfte, ist jede von ihnen
+  betroffen.
 
-Beide Verweise sind serverseitig erzeugte UUIDs und je Ziel-Event eindeutig,
-die Auflösung ist damit deterministisch und einwertig. Der Join bleibt innerhalb
-derselben Kassensitzung.
+`zahlungId` und `verkaufId` sind serverseitig erzeugte UUIDs, die Auflösung ist
+deterministisch. Eine Positions-ID ist ebenfalls serverseitig erzeugt und
+stammt immer aus genau einem `bestellung-aufgenommen`-Event; eine Umbuchung
+verschiebt die Position auf einen anderen Tisch, ohne ihre ID zu ändern, sodass
+der Besteller auch nach einer Umbuchung der ursprüngliche bleibt — fachlich
+genau richtig. Lässt sich ein Verweis wider Erwarten nicht auflösen, fällt die
+Zeile auf den Akteur zurück, statt ohne Zuordnung zu bleiben.
 
-Ein Index auf `(data->>'zahlungId')` für `zahlung-kassiert:v1` wird bewusst
+Indizes auf `(data->>'zahlungId')` bzw. auf die Positions-IDs werden bewusst
 **nicht** angelegt: Das Datenvolumen einer Kassensitzung liegt im niedrigen
 vierstelligen Bereich, und die Reporting-Queries laufen on-demand für genau eine
-Sitzung. Falls Messungen später etwas anderes zeigen, ist der Index eine rein
+Sitzung. Falls Messungen später etwas anderes zeigen, ist ein Index eine rein
 additive Migration.
 
 ### Aufschlüsselung pro Servicekraft (Backend)
 
 Die bestehende „Umsatz pro Servicekraft"-Aggregation wird zur
-Abrechnungs-Aufschlüsselung erweitert. Pro Servicekraft werden geführt:
+Abrechnungs-Aufschlüsselung. Pro Servicekraft werden geführt:
 
-- **Kassiert:** Summe der Tischzahlungen **und** Direktverkäufe, je nach Akteur
-  des jeweiligen Events (Direktverkauf ist neu enthalten).
-- **Rückgabe:** Summe der Warenrücknahmen und Direktverkauf-Stornos, zugeordnet
-  nach der obigen Verweis-Auflösung.
-- **Abzugeben:** Kassiert − Rückgabe. Kann rechnerisch negativ werden (eine
-  Servicekraft nimmt Ware zurück, die eine andere kassiert hat, ohne selbst zu
-  kassieren); das wird nicht abgeschnitten, sondern als negativer Betrag
-  ausgewiesen — er ist die Auszahlung, die diese Person aus der Kasse erhalten
-  hat.
-- **Anzahl Stornos:** Kontroll-Signal, gezählt über dieselbe Zuordnung.
+- **Kassiert:** Summe der Tischzahlungen, nach Akteur (unverändert).
+- **Rückgabe:** Summe der Warenrücknahmen, nach Kassierer-Zuordnung.
+- **Abzugeben:** Kassiert − Rückgabe.
+- **Anzahl Stornos:** Kontroll-Marker über beide Tisch-Storno-Arten —
+  Warenrücknahmen (Kassierer-Zuordnung) plus geldneutrale Korrekturen
+  (Besteller-Zuordnung).
 
-Eine Servicekraft erscheint in der Liste, sobald sie kassiert hat, eine
-Rückgabe zugeordnet bekommt oder (im Live-Dashboard) offene Arbeit hat. Die
-bestehende Sortierung nach Umsatz absteigend gilt künftig für „Abzugeben".
+Direktverkäufe und Direktverkauf-Stornos gehen in keine dieser Zahlen ein.
 
-Die Zusammenführung mit der offenen eigenen Arbeit im Live-Dashboard bleibt
-unverändert bestehen.
+**Invariante: „Abzugeben" ist nie negativ.** Eine Warenrücknahme kann nur
+Positionen zurücknehmen, die in der referenzierten Zahlung enthalten und noch
+nicht zurückgenommen sind (die FIFO-Aufteilung führt darüber Buch). Pro Zahlung
+gilt daher Σ Rückgaben ≤ Zahlbetrag, und weil beide Seiten demselben Kassierer
+zugeordnet werden, gilt es auch pro Person. Das ist eine prüfbare Eigenschaft
+der Zuordnungsregel — unter der bisherigen Akteurs-Zuordnung galt sie nicht.
+
+**Bewusste Inkonsistenz beim Marker:** Betrifft eine Korrektur mehrere
+Besteller, zählt sie bei jedem von ihnen. Die Summe aller Marker kann dadurch
+größer sein als die Storno-Anzahl in der Kopfkennzahl. Das ist als
+Kontroll-Signal richtig — beide Personen sind betroffen — darf im Frontend aber
+nicht so dargestellt werden, als wäre der Marker eine Aufteilung der
+Kopfkennzahl.
+
+Eine Servicekraft erscheint in der Liste, sobald sie kassiert hat, einen Storno
+zugeordnet bekommt oder (im Live-Dashboard) offene Arbeit hat. Die bestehende
+Sortierung nach Umsatz absteigend gilt künftig für „Abzugeben". Die
+Zusammenführung mit der offenen eigenen Arbeit im Live-Dashboard bleibt
+unverändert.
 
 ### Storno-Detailzeile (Contract)
 
 Die Storno-Detailzeile trennt die zwei Rollen sauber, statt eine einzelne
 `user`-Angabe doppeldeutig zu belegen:
 
-- **betroffene Servicekraft** — die belastete Person; leer bei geldneutralen
-  Korrekturen.
+- **betroffene Servicekräfte** — die zugeordneten Personen. Bei Warenrücknahme
+  und Direktverkauf-Storno genau eine, bei einer geldneutralen Korrektur eine
+  oder mehrere.
 - **Akteur** — wer den Storno ausgelöst hat; immer gesetzt.
 
 Beides jeweils mit stabiler Benutzer-ID, eingefrorenem Username und live
-aufgelöstem Klarnamen, konsistent zur heutigen Darstellung. Die HTTP-Response
-und die Zod-Schemas des Frontends ziehen mit; eine API-Versionierung ist nicht
-nötig, weil Frontend und Backend gemeinsam ausgeliefert werden.
+aufgelöstem Klarnamen, konsistent zur heutigen Darstellung. HTTP-Response und
+Zod-Schemas des Frontends ziehen mit; eine API-Versionierung ist nicht nötig,
+weil Frontend und Backend gemeinsam ausgeliefert werden.
 
 ### Fachbegriffe
 
 `docs/language.md` erhält zwei Ergänzungen, analog zum dort bereits definierten
-**Besteller (bestellende Servicekraft)**:
+**Besteller (bestellende Servicekraft)**, der für die Korrektur-Zuordnung
+wiederverwendet wird:
 
 - **Kassierer (kassierende Servicekraft):** die Servicekraft, die eine Zahlung
-  kassiert oder einen Direktverkauf getätigt hat — Reporting- und
-  Anzeigekonzept, aus dem Event-Umschlag abgeleitet.
-- **Storno-Zuordnung:** die Regel, dass ein kassenwirksamer Storno dem
-  Kassierer des referenzierten Vorgangs angerechnet wird, nicht dem Akteur.
+  kassiert hat — Reporting- und Anzeigekonzept, aus dem Event-Umschlag
+  abgeleitet.
+- **Storno-Zuordnung:** die Regel, dass ein Storno der Servicekraft zugeordnet
+  wird, deren Vorgang er rückgängig macht (Kassierer bei der Warenrücknahme,
+  Besteller bei der Korrektur, Verkäufer beim Direktverkauf-Storno) — nicht dem
+  Akteur.
 
 Die Reporting-Feldnamen (`UmsatzServicekraft`, `Breakdowns`) werden an die neue
 Bedeutung angepasst und in `docs/language.md` nachgezogen.
@@ -183,20 +208,20 @@ Bedeutung angepasst und in `docs/language.md` nachgezogen.
 
 - **Tagesbericht, Abschnitt „Abrechnung pro Servicekraft"** (bisher „Umsatz pro
   Servicekraft"): pro Zeile „Abzugeben" als Hauptzahl, darunter Kassiert und
-  Rückgabe als Nebenzeile, damit der Abzug nachvollziehbar bleibt. Der
+  Rückgabe als Nebenzeile, damit der Abzug nachvollziehbar bleibt. Die
+  Abschnitts-Unterzeile weist aus, dass Direktverkäufe nicht enthalten sind. Der
   Storno-Marker bleibt als Kontroll-Signal, jetzt bei der betroffenen
   Servicekraft.
 - **Live-Dashboard, Team-Liste:** dieselbe Hauptzahl; die Rückgabe wird nur
   eingeblendet, wenn sie ungleich null ist, damit die mobile Zeile schlank
   bleibt.
-- **Storno-Detailzeile:** zeigt die betroffene Servicekraft; weicht der Akteur
-  ab, folgt „storniert von <Akteur>" als gedämpfter Zusatz. Bei geldneutralen
-  Korrekturen steht wie bisher nur der Akteur.
+- **Storno-Detailzeile:** nennt die betroffene Servicekraft (bei mehreren:
+  alle). Weicht der Akteur davon ab, folgt „storniert von <Akteur>" als
+  gedämpfter Zusatz.
 - **Eigene Übersicht der Servicekraft** (Service-Dashboard): die Kachel
   „Kassiert" wird um denselben Rückgabe-Abzug ergänzt und zeigt „Abzugeben", auf
   derselben Zuordnungsregel. Ohne das würden Servicekraft und Kassenwart auf
-  zwei verschiedene Zahlen schauen. Sichtbar erweiterter Scope gegenüber der
-  ursprünglichen Meldung — bewusst enthalten, siehe [Annahmen](#annahmen).
+  zwei verschiedene Zahlen schauen.
 
 ### Was sich nicht ändert
 
@@ -214,32 +239,36 @@ oder welche Zwischenfunktion das zustande kommt.
 **Repository-Integrationstests** (Prior Art: `reporting_repo/repo_test.go`,
 `summen_abschluss_test.go` — echte DB, Events schreiben, Query lesen). Kernfälle:
 
-- Servicekraft kassiert, Serviceleitung storniert stellvertretend → Rückgabe
-  liegt bei der Servicekraft, die Serviceleitung bleibt unbelastet.
-- Servicekraft storniert selbst → unverändert bei ihr; die Zuordnung ist keine
-  Sonderregel für stellvertretende Stornos.
-- Storno über mehrere Zahlungen verschiedener Kassierer (FIFO-Aufteilung erzeugt
-  je Zahlung ein Event) → jede Rückgabe landet bei ihrem eigenen Kassierer.
-- Direktverkauf-Storno durch einen anderen Benutzer → Rückgabe beim
-  ursprünglichen Verkäufer; Direktverkaufs-Umsatz und -Storno derselben Person
-  heben sich auf.
-- Geldneutrale Korrektur → verändert keine Servicekraft-Summe, erscheint aber in
-  der Detailliste und in den Gesamtkennzahlen.
-- Bezahlt Servicekraft A, was B bestellt hat, und wird storniert → Rückgabe bei
-  A. Grenzfall, der die gewählte Regel (Kassierer, nicht Besteller) festschreibt.
-- Reine Rückgabe ohne eigenes Kassieren → negatives „Abzugeben", nicht
-  abgeschnitten.
+- Servicekraft kassiert, Serviceleitung nimmt stellvertretend Ware zurück →
+  Rückgabe liegt bei der Servicekraft, die Serviceleitung bleibt unbelastet.
+- Servicekraft nimmt selbst zurück → unverändert bei ihr; die Zuordnung ist
+  keine Sonderregel für stellvertretende Stornos.
+- Storno über mehrere Zahlungen verschiedener Kassierer (die FIFO-Aufteilung
+  erzeugt je Zahlung ein Event) → jede Rückgabe landet bei ihrem eigenen
+  Kassierer.
+- Bezahlt Servicekraft A, was B bestellt hat, und wird zurückgenommen → Rückgabe
+  bei A. Der Grenzfall, der die Regel „Kassierer, nicht Besteller" festschreibt.
+- Geldneutrale Korrektur durch einen Dritten → Marker beim Besteller, kein
+  Betrag; „Abzugeben" bleibt unverändert.
+- Korrektur über Positionen zweier Besteller → Marker bei beiden.
+- Korrektur einer umgebuchten Position → Marker beim ursprünglichen Besteller,
+  nicht beim Umbucher und nicht am Zieltisch aufgehängt.
+- Direktverkauf-Storno durch einen anderen Benutzer → Detailzeile nennt den
+  ursprünglichen Verkäufer; keine Servicekraft-Summe verändert sich.
+- „Abzugeben" ist nie negativ — inklusive des Falls, dass eine Zahlung
+  vollständig zurückgenommen wird (Ergebnis: null, nicht negativ).
 
 **Anwendungsschicht-Tests** (Prior Art: `application/query_test.go`,
 `query_export_konsistenz_test.go`): Die Summe aller „Abzugeben" plus der offenen
-Salden bleibt konsistent zum kassierten Gesamtumsatz der Sitzung — der Test, der
-verhindert, dass die Aufschlüsselung und die Kopfkennzahl auseinanderlaufen.
+Salden bleibt konsistent zum kassierten Tischservice-Umsatz der Sitzung — der
+Test, der verhindert, dass Aufschlüsselung und Kopfkennzahl auseinanderlaufen.
+Direktverkäufe sind auf beiden Seiten der Gleichung ausgenommen.
 
 **Frontend-Tests** (Prior Art: `ReportingResults.test.tsx`,
 `LiveReportingSection.test.tsx`, React Testing Library gegen gerenderten Text):
 Hauptzahl und Nebenzeile pro Servicekraft, Storno-Marker bei der betroffenen
-Person, Storno-Zeile mit und ohne abweichenden Akteur, „Abzugeben" in der
-eigenen Übersicht.
+Person, Storno-Zeile mit und ohne abweichenden Akteur, Storno-Zeile mit mehreren
+Betroffenen, „Abzugeben" in der eigenen Übersicht.
 
 Der bestehende Event-JSON-Contract-Test bleibt unverändert grün — das ist der
 Beleg, dass die Änderung rein lesend ist.
@@ -251,54 +280,17 @@ Beleg, dass die Änderung rein lesend ist.
 - **Migration oder Umdeutung bestehender Daten.** Die Zuordnung wird zur
   Lesezeit berechnet und gilt rückwirkend auch für abgeschlossene
   Kassensitzungen, ohne dass eine Zeile angefasst wird.
-- **Zuordnung geldneutraler Korrekturen auf den Besteller.** Erfordert eine
-  Auflösung Position → Bestellung über JSONB und ist mehrdeutig, sobald eine
-  Korrektur Positionen aus Bestellungen verschiedener Servicekräfte umfasst —
-  für einen Vorgang, der kein Bargeld bewegt.
+- **Eine Abrechnung pro Direktverkäufer.** Der Direktverkauf hat eine eigene
+  Kasse und verdient, wenn überhaupt, eine eigene Aufschlüsselung (Verkauft −
+  Storniert) statt einer Vermischung mit dem Tischservice. Eigenes PRD, falls
+  der Bedarf belegt ist.
 - **Ein eigener Abrechnungs-Workflow** (Geld abgegeben, quittiert, Differenz je
   Person erfasst). Die Abgabe bleibt ein Vorgang außerhalb des Systems; der
   Bericht liefert nur die Sollzahl.
 - **Zuordnung von Trinkgeld, Geldtransit oder Kassensturz-Differenz auf
   Personen.** Diese wirken auf die Kassensitzung, nicht auf eine Servicekraft.
-- **Index auf `zahlungId`.** Erst bei belegtem Performance-Bedarf.
-
-## Annahmen
-
-Die folgenden Punkte wurden mangels Antwort nach der jeweils empfohlenen
-Variante entschieden.
-
-> **Annahme 1 — Zuordnung über den Kassierer, nicht den Besteller.** Die Meldung
-> nennt den „Bestell-User". Für den Bargeld-Saldo ist das falsch: Zurückgegeben
-> wird Geld, das der **Kassierer** eingenommen hat, und genau darauf zeigt die
-> `zahlungId` im Storno-Event. Fallen Besteller und Kassierer auseinander,
-> stimmt nur die Kassierer-Zuordnung — und nur sie ist eindeutig, wenn ein
-> Storno Positionen aus mehreren Bestellungen umfasst. In der Praxis ist es
-> meist dieselbe Person. Sollte stattdessen wirklich der Besteller gemeint sein,
-> ändert sich die Auflösungsregel; die übrige Struktur bleibt.
-
-> **Annahme 2 — „Abzugeben" wird die Hauptzahl.** Kassiert und Rückgabe bleiben
-> als Nebenzeile sichtbar. Nur mit einer Netto-Zahl „stimmt die Abrechnung"
-> ohne Nachrechnen.
-
-> **Annahme 3 — Direktverkäufe kommen in die Servicekraft-Zahl.** Sie sind heute
-> bewusst ausgeklammert („Tischservice-Umsatz"). Für einen Bargeld-Saldo müssen
-> sie hinein, sonst zieht die Zahl einen Direktverkauf-Storno ab, dessen Umsatz
-> sie nie enthalten hat. Der Abschnittstitel wechselt deshalb von „Umsatz" zu
-> „Abrechnung pro Servicekraft".
-
-> **Annahme 4 — geldneutrale Korrekturen bleiben aus der
-> Servicekraft-Aufschlüsselung heraus.** Hier weicht das PRD von der im Chat
-> empfohlenen Variante ab: Bei genauerer Betrachtung erfordert eine Zuordnung
-> auf den Besteller eine JSONB-Auflösung Position → Bestellung und ist
-> mehrdeutig, sobald mehrere Besteller betroffen sind — für einen Vorgang, der
-> kein Bargeld bewegt. Der Verzicht macht die Servicekraft-Zahlen eindeutig
-> kassenwirksam. Preis: Häufen sich Korrekturen bei einer Person, fällt das nur
-> noch in der Storno-Detailliste auf, nicht mehr am Marker.
-
-> **Annahme 5 — die eigene Übersicht der Servicekraft zieht mit.** Ohne das
-> zeigen Service-Dashboard und Admin-Bericht zwei verschiedene Zahlen für
-> dieselbe Abgabe. Ist der Scope zu weit, lässt sich dieser Punkt isoliert
-> streichen.
+- **Indizes auf `zahlungId` oder Positions-IDs.** Erst bei belegtem
+  Performance-Bedarf.
 
 ## Further Notes
 
@@ -307,7 +299,7 @@ Variante entschieden.
   `docs/anforderungen.md` wird auf den Abrechnungs-Saldo nachgezogen; R-06
   („Eigene Übersicht") ebenfalls.
 - **Handbuch:** Der Reporting-Abschnitt in `docs/handbuch.md` beschreibt die
-  Endpunkt-Rückgaben; die neue Zuordnungsregel gehört dort als Read-Model-Regel
+  Endpunkt-Rückgaben; die Zuordnungsregel gehört dort als Read-Model-Regel
   hinterlegt.
 - **Rückwirkung:** Weil die Zuordnung zur Lesezeit entsteht, zeigen auch bereits
   abgeschlossene Kassensitzungen sofort die korrigierte Aufschlüsselung. Ein
