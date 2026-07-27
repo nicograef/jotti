@@ -115,6 +115,8 @@ function DirektverkaufMitPop({
         backend={{ direktverkaufTaetigen }}
         products={[testProdukt]}
         productsLoading={false}
+        productsError={false}
+        onErneutVersuchen={vi.fn()}
         onErfolg={(nachricht) => {
           setErfolg({ open: true, text: nachricht })
         }}

@@ -1,3 +1,4 @@
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
 
@@ -13,6 +14,9 @@ interface DirektverkaufProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
   products: Produkt[]
   productsLoading: boolean
+  productsError: boolean
+  // Lädt die Produkte nach einem Ladefehler erneut.
+  onErneutVersuchen: () => void
   // Meldet den abgeschlossenen Verkauf samt Bestätigungstext an die Seite, die
   // den Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
   onErfolg?: (nachricht: string) => void
@@ -22,6 +26,8 @@ export function Direktverkauf({
   backend,
   products,
   productsLoading,
+  productsError,
+  onErneutVersuchen,
   onErfolg,
 }: DirektverkaufProps) {
   const isMobile = useIsMobile()
@@ -30,6 +36,18 @@ export function Direktverkauf({
   const { receiptItems, inputItems } = toBestellungData(products, mengen)
   const total = calculateTotalPrice(receiptItems)
   const anzahl = inputItems.reduce((sum, item) => sum + item.menge, 0)
+
+  // Eine leere Produktliste behauptet, es gebe nichts zu verkaufen — bei einem
+  // Ladefehler ist das falsch.
+  if (productsError) {
+    return (
+      <LadefehlerAlert
+        titel="Produkte konnten nicht geladen werden"
+        onErneutVersuchen={onErneutVersuchen}
+        className="mt-4"
+      />
+    )
+  }
 
   if (productsLoading) {
     return <ProductListSkeleton />

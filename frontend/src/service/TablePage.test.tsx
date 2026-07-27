@@ -1,10 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Produkt } from './product/Produkt'
 import type { Position } from './table/Bestellung'
+import {
+  AKTIVE_TISCHE_MIT_FAVORITEN_KEY,
+  EIGENE_UEBERSICHT_KEY,
+  MEINE_TISCHE_STATE_KEY,
+} from './table/hooks'
 import type { TischSession } from './table/Tisch'
 import { TablePage } from './TablePage'
 
@@ -127,6 +132,37 @@ function renderPage() {
       <TablePage />
     </QueryClientProvider>,
   )
+  return { queryClient }
+}
+
+// Historien-Eintrag mit genau einer stornierbaren Position.
+const bestellungMitPosition = {
+  art: 'bestellung',
+  id: '00000000-0000-0000-0000-000000000001',
+  userId: 1,
+  userName: 'Tester',
+  tischId: 1,
+  positionen: [position('p1')],
+  gesamtPreisCents: 350,
+  kommentar: '',
+  aufgenommenAm: '2026-06-18T12:00:00Z',
+  stornierbarePositionen: [position('p1')],
+  umbuchbarePositionen: [],
+}
+
+// Storno über die Historie: Bestellung öffnen, Position wählen, Kommentar
+// setzen, buchen. Danach steht der Erfolgs-Pop offen — der Refetch läuft erst
+// beim Schließen.
+async function storniereUeberHistorie(user: UserEvent) {
+  await user.click(screen.getByRole('tab', { name: 'Historie' }))
+  await user.click(screen.getByRole('button', { name: /Bestellung/ }))
+  await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
+  await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+  await user.type(
+    screen.getByPlaceholderText('Kommentar (erforderlich)'),
+    'Falsch gebucht',
+  )
+  await user.click(screen.getByRole('button', { name: 'Stornierung erteilen' }))
 }
 
 describe('TablePage', () => {
@@ -316,17 +352,7 @@ describe('TablePage', () => {
     )
 
     // Storno auf der Historie; der Refetch läuft erst beim Schließen des Pops.
-    await user.click(screen.getByRole('tab', { name: 'Historie' }))
-    await user.click(screen.getByRole('button', { name: /Bestellung/ }))
-    await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
-    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
-    await user.type(
-      screen.getByPlaceholderText('Kommentar (erforderlich)'),
-      'Falsch gebucht',
-    )
-    await user.click(
-      screen.getByRole('button', { name: 'Stornierung erteilen' }),
-    )
+    await storniereUeberHistorie(user)
     await screen.findByText('Stornierung gebucht.')
     await user.click(screen.getByRole('status'))
 
@@ -385,21 +411,7 @@ describe('TablePage', () => {
   // Tisch-States läuft erst beim Schließen des Pops, nicht schon beim Erfolg.
   it('zeigt nach der Stornierung den Erfolgs-Pop und lädt erst beim Schließen neu', async () => {
     getTischState.mockResolvedValue(stammtisch)
-    getTischHistorie.mockResolvedValue([
-      {
-        art: 'bestellung',
-        id: '00000000-0000-0000-0000-000000000001',
-        userId: 1,
-        userName: 'Tester',
-        tischId: 1,
-        positionen: [position('p1')],
-        gesamtPreisCents: 350,
-        kommentar: '',
-        aufgenommenAm: '2026-06-18T12:00:00Z',
-        stornierbarePositionen: [position('p1')],
-        umbuchbarePositionen: [],
-      },
-    ])
+    getTischHistorie.mockResolvedValue([bestellungMitPosition])
     stornierungErteilen.mockResolvedValue(undefined)
     const user = userEvent.setup()
     renderPage()
@@ -407,17 +419,7 @@ describe('TablePage', () => {
     await screen.findByText('Stammtisch')
     const ladeCalls = getTischState.mock.calls.length
 
-    await user.click(screen.getByRole('tab', { name: 'Historie' }))
-    await user.click(screen.getByRole('button', { name: /Bestellung/ }))
-    await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
-    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
-    await user.type(
-      screen.getByPlaceholderText('Kommentar (erforderlich)'),
-      'Falsch gebucht',
-    )
-    await user.click(
-      screen.getByRole('button', { name: 'Stornierung erteilen' }),
-    )
+    await storniereUeberHistorie(user)
 
     // Der Pop erscheint; bis zum Schließen läuft kein Refetch des Tisch-States.
     await screen.findByText('Stornierung gebucht.')
@@ -427,6 +429,38 @@ describe('TablePage', () => {
     await user.click(screen.getByRole('status'))
     await waitFor(() => {
       expect(getTischState.mock.calls.length).toBeGreaterThan(ladeCalls)
+    })
+  })
+
+  // Die drei Queries der Tischübersicht hängen an keiner Komponente dieser
+  // Seite; ohne Invalidierung liefert ihr Cache bei der Rückkehr innerhalb der
+  // Aktualitätsschwelle die Werte von vor der Buchung — ein soeben kassierter
+  // Tisch stünde dort weiter unter „Noch offen".
+  it('invalidiert nach einer Buchung die Queries der Tischübersicht', async () => {
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([bestellungMitPosition])
+    stornierungErteilen.mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    const { queryClient } = renderPage()
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+
+    await screen.findByText('Stammtisch')
+    await storniereUeberHistorie(user)
+    await screen.findByText('Stornierung gebucht.')
+
+    // Wie der Refetch läuft auch die Invalidierung erst beim Schließen des Pops.
+    await user.click(screen.getByRole('status'))
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: [MEINE_TISCHE_STATE_KEY],
+      })
+    })
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
+    })
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: [EIGENE_UEBERSICHT_KEY],
     })
   })
 })
