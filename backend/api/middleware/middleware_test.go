@@ -603,6 +603,70 @@ func TestServiceRole_DeniedForCancelEndpoint(t *testing.T) {
 	}
 }
 
+// controllerFaehigerWriter kann, was der echte net/http-ResponseWriter kann und
+// httptest.ResponseRecorder nicht: Schreib- und Lesefristen setzen. Flush bringt
+// der eingebettete Recorder selbst mit (er setzt Flushed).
+type controllerFaehigerWriter struct {
+	*httptest.ResponseRecorder
+	schreibfrist time.Time
+	lesefrist    time.Time
+}
+
+func (w *controllerFaehigerWriter) SetWriteDeadline(t time.Time) error {
+	w.schreibfrist = t
+	return nil
+}
+
+func (w *controllerFaehigerWriter) SetReadDeadline(t time.Time) error {
+	w.lesefrist = t
+	return nil
+}
+
+// LoggingMiddleware umschliesst die GESAMTE Routenkette (backend/app/app.go).
+// Ihr Wrapper muss die Faehigkeiten des echten ResponseWriters durchreichen,
+// sonst liefert http.ResponseController in jedem Handler dahinter "feature not
+// supported" — die verlaengerte Schreibfrist des DSFinV-K-Exports waere in
+// Produktion wirkungslos und ein grosses Archiv wuerde mitten im ZIP abreissen.
+func TestMiddlewareKette_ReichtResponseControllerFaehigkeitenDurch(t *testing.T) {
+	frist := time.Now().UTC().Add(5 * time.Minute)
+	var schreibFehler, leseFehler, flushFehler error
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		rc := http.NewResponseController(w)
+		schreibFehler = rc.SetWriteDeadline(frist)
+		leseFehler = rc.SetReadDeadline(frist)
+		flushFehler = rc.Flush()
+	})
+
+	// Gleiche Reihenfolge wie in app.go: CorrelationID → Logging → POST-only → Recovery.
+	var kette http.Handler = RecoveryMiddleware(handler)
+	kette = PostMethodOnlyMiddleware(kette)
+	kette = LoggingMiddleware(kette)
+	kette = CorrelationIDMiddleware(kette)
+
+	w := &controllerFaehigerWriter{ResponseRecorder: httptest.NewRecorder()}
+	kette.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/test", nil))
+
+	if schreibFehler != nil {
+		t.Errorf("SetWriteDeadline durch die Middleware-Kette: %v", schreibFehler)
+	}
+	if leseFehler != nil {
+		t.Errorf("SetReadDeadline durch die Middleware-Kette: %v", leseFehler)
+	}
+	if flushFehler != nil {
+		t.Errorf("Flush durch die Middleware-Kette: %v", flushFehler)
+	}
+	if !w.schreibfrist.Equal(frist) {
+		t.Errorf("expected write deadline %s to reach the wrapped writer, got %s", frist, w.schreibfrist)
+	}
+	if !w.lesefrist.Equal(frist) {
+		t.Errorf("expected read deadline %s to reach the wrapped writer, got %s", frist, w.lesefrist)
+	}
+	if !w.Flushed {
+		t.Error("expected Flush to reach the wrapped writer")
+	}
+}
+
 // Ein Panic in einem Handler ergibt eine 500-Antwort im bestehenden
 // Fehler-Response-Format; der Prozess lebt weiter und bedient den naechsten
 // Request regulaer.
