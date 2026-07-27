@@ -17,11 +17,12 @@ import (
 )
 
 type eventRepo interface {
-	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
+	WriteEventMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
+	VorgangBereitsGebucht(ctx context.Context, vorgangID string) (bool, error)
 }
 
 type kassensitzungenRepo interface {
@@ -140,8 +141,27 @@ func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]dr
 // has no open Saldo. Requires an open Kassensitzung (ErrKasseNichtGeoeffnet otherwise). Returns
 // ErrVerkaufNichtGefunden when the verkauf does not exist and ErrPositionNichtStornierbar when a
 // requested position is not (or no longer) cancellable.
-func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error {
+// vorgangID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel): Ein
+// Wiederholversuch mit derselben vorgangId wird zur stillen Erfolgsantwort, ohne
+// ein zweites Mal zu buchen. Gleiche ID bedeutet denselben Vorgang — der Payload
+// wird nicht verglichen.
+func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userName string, vorgangID string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
+
+	// Duplikat-Vorprüfung VOR der fachlichen Validierung: Ein Wiederholversuch
+	// nach erfolgreicher Buchung darf nicht an inzwischen geänderten Invarianten
+	// scheitern („Position nicht mehr stornierbar"), sondern wiederholt die
+	// Erfolgsantwort. Das Rennen zweier gleichzeitiger identischer Anfragen
+	// fängt zusätzlich der Insert der Idempotenz-Zeile in der Schreibtransaktion ab.
+	gebucht, err := c.EventRepo.VorgangBereitsGebucht(ctx, vorgangID)
+	if err != nil {
+		log.Error().Err(err).Str("vorgang_id", vorgangID).Msg("Failed to check vorgang idempotency")
+		return ErrDatabase
+	}
+	if gebucht {
+		log.Info().Str("vorgang_id", vorgangID).Str("verkauf_id", verkaufID).Msg("Idempotente Direktverkauf-Stornierung: vorgangId bereits gebucht")
+		return nil
+	}
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
@@ -178,9 +198,19 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return err
 	}
 
+	vorgang := kassenjournal_repo.Vorgang{VorgangID: vorgangID, Art: kassenjournal_repo.VorgangArtDirektverkaufStornierung, UserID: userID}
+
 	// OCC gegen den validierten Zustand: Basis ist die höchste Version des Replays,
-	// gegen den die Storno-Invariante geprüft wurde.
-	if err := c.persistVerkaufEvent(ctx, evt, subject, events[len(events)-1].Version, ks.ZNr, nil); err != nil {
+	// gegen den die Storno-Invariante geprüft wurde. Der Idempotenz-Schlüssel des
+	// Vorgangs wird im selben Commit festgehalten (vor dem Event-Insert).
+	err = writeVersionedEvent(ctx, evt, subject, events[len(events)-1].Version, func(versioned event.Event) (int, error) {
+		return c.EventRepo.WriteEventMitVorgang(ctx, vorgang, versioned, kasse.StreamTypeDirektverkauf, ks.ZNr)
+	})
+	if err != nil {
+		if errors.Is(err, kassenjournal_repo.ErrVorgangBereitsGebucht) {
+			log.Info().Str("vorgang_id", vorgangID).Str("verkauf_id", verkaufID).Msg("Idempotente Direktverkauf-Stornierung: vorgangId bereits gebucht")
+			return nil
+		}
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -219,17 +249,12 @@ func writeVersionedEvent(ctx context.Context, e event.Event, subject string, exp
 	return nil
 }
 
-// persistVerkaufEvent writes a Direktverkauf event with OCC against expectedVersion.
-// When buildAuftraege is non-nil the derived print jobs are written in the same
-// transaction; der Signaturauftrag des Events entsteht in jedem Fall im selben
-// Commit (fiskalische Projektion). Returns ErrConflict on a version conflict.
+// persistVerkaufEvent writes a Direktverkauf event with OCC against expectedVersion;
+// the derived print jobs are written in the same transaction, der Signaturauftrag
+// des Events entsteht ebenfalls im selben Commit (fiskalische Projektion).
+// Returns ErrConflict on a version conflict.
 func (c Command) persistVerkaufEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
-	if buildAuftraege != nil {
-		return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
-			return c.EventRepo.WriteEventWithDruckauftraege(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege)
-		})
-	}
 	return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
-		return c.EventRepo.WriteEvent(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr)
+		return c.EventRepo.WriteEventWithDruckauftraege(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege)
 	})
 }

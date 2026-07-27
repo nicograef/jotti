@@ -222,6 +222,10 @@ func cleanDB(t *testing.T, db *sql.DB) {
 	if err != nil {
 		t.Fatalf("Failed to clean tische table: %v", err)
 	}
+	_, err = db.Exec("DELETE FROM vorgang_idempotenz")
+	if err != nil {
+		t.Fatalf("Failed to clean vorgang_idempotenz table: %v", err)
+	}
 	_, err = db.Exec("DELETE FROM users")
 	if err != nil {
 		t.Fatalf("Failed to clean users table: %v", err)

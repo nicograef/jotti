@@ -16,7 +16,7 @@ import (
 
 type command interface {
 	DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, positionen []enrichment.PositionInput, kommentar string) error
-	DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error
+	DirektverkaufStornieren(ctx context.Context, userID int, userName string, vorgangID string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error
 }
 
 type CommandHandler struct {
@@ -113,12 +113,14 @@ func toPositionRefs(refs []positionRefRequest) []kasse.PositionRef {
 }
 
 type direktverkaufStornierenRequest struct {
+	VorgangID  string               `json:"vorgangId"`
 	VerkaufID  string               `json:"verkaufId"`
 	Positionen []positionRefRequest `json:"positionen"`
 	Kommentar  string               `json:"kommentar"`
 }
 
 var direktverkaufStornierenSchema = z.Struct(z.Shape{
+	"VorgangID":  z.String().UUID().Required(),
 	"VerkaufID":  z.String().UUID().Required(),
 	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
 	"Kommentar":  z.String().Min(3).Max(100).Required(),
@@ -137,7 +139,7 @@ func (h *CommandHandler) DirektverkaufStornierenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.DirektverkaufStornieren(r.Context(), userID, userName, body.VerkaufID, toPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.DirektverkaufStornieren(r.Context(), userID, userName, body.VorgangID, body.VerkaufID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrConflict):

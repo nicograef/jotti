@@ -23,7 +23,7 @@ func (m *mockCommand) DirektverkaufTaetigen(_ context.Context, _ int, _ string, 
 	return m.err
 }
 
-func (m *mockCommand) DirektverkaufStornieren(_ context.Context, _ int, _ string, _ string, _ []kasse.PositionRef, _ string) error {
+func (m *mockCommand) DirektverkaufStornieren(_ context.Context, _ int, _ string, _ string, _ string, _ []kasse.PositionRef, _ string) error {
 	return m.err
 }
 
@@ -102,7 +102,7 @@ func stornoRequestWithUser(body string) *http.Request {
 	return req.WithContext(ctx)
 }
 
-const validStornoBody = `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"Rueckgabe"}`
+const validStornoBody = `{"vorgangId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"Rueckgabe"}`
 
 func TestDirektverkaufStornierenHandler_Success(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
@@ -141,12 +141,37 @@ func TestDirektverkaufStornierenHandler_ValidationError(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
 	// kommentar shorter than 3 characters violates the schema
-	body := `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"ab"}`
+	body := `{"vorgangId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"ab"}`
 	rec := httptest.NewRecorder()
 	handler.DirektverkaufStornierenHandler().ServeHTTP(rec, stornoRequestWithUser(body))
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+// Fehlendes oder ungültiges vorgangId wird über das zog-Schema mit
+// validation_error (400) abgelehnt.
+func TestDirektverkaufStornierenHandler_VorgangIdPflicht_ValidationError(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	bodies := map[string]string{
+		"ohne vorgangId":       `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"Rueckgabe"}`,
+		"ungültiges vorgangId": `{"vorgangId":"nicht-eine-uuid","verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"Rueckgabe"}`,
+	}
+
+	for name, body := range bodies {
+		t.Run(name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			handler.DirektverkaufStornierenHandler().ServeHTTP(rec, stornoRequestWithUser(body))
+
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("expected status 400, got %d", rec.Code)
+			}
+			if !strings.Contains(rec.Body.String(), "validation_error") {
+				t.Errorf("expected validation_error in body, got %s", rec.Body.String())
+			}
+		})
 	}
 }
 

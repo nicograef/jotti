@@ -52,6 +52,7 @@ type MockRepo struct {
 	tischSessionErr        error
 	kassenbestand          int                                   // configurable return value for GetKassenbestand
 	druckauftraege         []druckauftrag_repo.NeuerDruckauftrag // captured via WriteEventWithDruckauftraege
+	vorgaenge              map[string]Vorgang                    // vorgang_idempotenz-Zeilen, keyed nach VorgangID
 }
 
 // versionConflict mirrors the UNIQUE(subject, version) constraint of the kassenjournal.
@@ -132,6 +133,65 @@ func (m *MockRepo) WriteTischSessionEventsAtomic(_ context.Context, events []eve
 
 func (m *MockRepo) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
 	return m.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
+}
+
+// vorgangBereitsGebucht mirrors the PRIMARY KEY of vorgang_idempotenz.
+func (m *MockRepo) vorgangBereitsGebucht(vorgang Vorgang) bool {
+	_, ok := m.vorgaenge[vorgang.VorgangID]
+	return ok
+}
+
+// VorgangBereitsGebucht mirrors the Duplikat-Vorprüfung of the real repo.
+func (m *MockRepo) VorgangBereitsGebucht(_ context.Context, vorgangID string) (bool, error) {
+	if m.err != nil {
+		return false, m.err
+	}
+	_, ok := m.vorgaenge[vorgangID]
+	return ok, nil
+}
+
+// recordVorgang stores the vorgang_idempotenz row. Called only after the event
+// write succeeded — a failed write rolls back the whole transaction in the real
+// repo, so the mock must not keep the row either.
+func (m *MockRepo) recordVorgang(vorgang Vorgang) {
+	if m.vorgaenge == nil {
+		m.vorgaenge = make(map[string]Vorgang)
+	}
+	m.vorgaenge[vorgang.VorgangID] = vorgang
+}
+
+// GebuchterVorgang returns the recorded vorgang_idempotenz row for the given
+// VorgangID, if any.
+func (m *MockRepo) GebuchterVorgang(vorgangID string) (Vorgang, bool) {
+	v, ok := m.vorgaenge[vorgangID]
+	return v, ok
+}
+
+func (m *MockRepo) WriteEventMitVorgang(ctx context.Context, vorgang Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
+	if m.vorgangBereitsGebucht(vorgang) {
+		return 0, ErrVorgangBereitsGebucht
+	}
+	id, err := m.WriteEvent(ctx, e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+	m.recordVorgang(vorgang)
+	return id, nil
+}
+
+func (m *MockRepo) WriteTischSessionEventsAtomicMitVorgang(ctx context.Context, vorgang Vorgang, events []event.Event, kassensitzungNr int) error {
+	if m.vorgangBereitsGebucht(vorgang) {
+		return ErrVorgangBereitsGebucht
+	}
+	if err := m.WriteTischSessionEventsAtomic(ctx, events, kassensitzungNr); err != nil {
+		return err
+	}
+	m.recordVorgang(vorgang)
+	return nil
+}
+
+func (m *MockRepo) WriteUmbuchungMitVorgang(ctx context.Context, vorgang Vorgang, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
+	return m.WriteTischSessionEventsAtomicMitVorgang(ctx, vorgang, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
 }
 
 // CapturedDruckauftraege returns the print jobs produced via WriteEventWithDruckauftraege.
