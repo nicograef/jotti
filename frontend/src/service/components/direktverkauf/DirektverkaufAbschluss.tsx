@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 import { EuroInput } from '@/components/common/EuroInput'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useVorgangId } from '@/hooks/use-vorgang-id'
 import { formatEuro, parseCents } from '@/lib/utils'
 
 import type { VerkaufPositionInput } from '../../direktverkauf/Direktverkauf'
@@ -49,26 +50,31 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
 
   const noPositionenSelected = props.positionen.length === 0
 
-  // verkaufId je logischem Vorgang: neu, sobald eine Zusammenstellung aus dem
-  // Leerzustand beginnt, und — weil ein erfolgreicher Abschluss die Auswahl leert
-  // — erneut beim nächsten Aufbau. Ein Retry desselben Vorgangs behält seinen
-  // Schlüssel, weil die Auswahl dabei nicht leer wird. Mit dem neuen Schlüssel
-  // starten auch die Eingaben leer: In der dauerhaften Spalte überlebt der State
-  // sonst über einen Auswahl-Reset hinweg und würde Erhalten/Kommentar eines
-  // abgebrochenen Vorgangs in den nächsten tragen (der Idempotenz-Schlüssel und
-  // die Eingaben bleiben so an derselben Vorgangsgrenze konsistent).
-  const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
-  const warLeerRef = useRef(noPositionenSelected)
-  useEffect(() => {
-    if (warLeerRef.current && !noPositionenSelected) {
-      setVerkaufId(crypto.randomUUID())
+  // Beginnt eine Zusammenstellung aus dem Leerzustand, starten die Eingaben
+  // leer: In der dauerhaften Spalte überlebt der Eingabe-State sonst einen
+  // Auswahl-Reset und würde Erhalten/Kommentar eines abgebrochenen Vorgangs in
+  // den nächsten tragen. React-idiomatischer State-Sync im Render (wie beim
+  // Tischwechsel in TablePage), nicht per Effekt.
+  const [warLeer, setWarLeer] = useState(noPositionenSelected)
+  if (warLeer !== noPositionenSelected) {
+    setWarLeer(noPositionenSelected)
+    if (warLeer) {
       setErhaltenEuro('')
       setZielbetragEuro('')
       setAndererAktiv(false)
       setKommentar('')
     }
-    warLeerRef.current = noPositionenSelected
-  }, [noPositionenSelected])
+  }
+
+  // verkaufId je fachlichem Vorgang, an die Nutzdaten gebunden: Ein
+  // Wiederholversuch mit unveränderten Nutzdaten behält seinen Schlüssel und
+  // bucht serverseitig kein zweites Mal; jede Änderung (Positionen, Kommentar)
+  // beginnt einen neuen Vorgang mit neuem Schlüssel — auch nach einem
+  // erfolgreichen Abschluss, der die Auswahl leert.
+  const verkaufId = useVorgangId({
+    positionen: props.positionen,
+    kommentar,
+  })
 
   const { rueckgeldCents, trinkgeldCents } = calculateZahlungsbetraege(
     props.totalCents,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -14,6 +14,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
+import { useVorgangId } from '@/hooks/use-vorgang-id'
 import { formatEuro } from '@/lib/utils'
 
 import type { DirektverkaufHistorieEintrag } from '../../direktverkauf/Direktverkauf'
@@ -52,18 +53,20 @@ export function DirektverkaufStornoDrawer({
   const noPositionenSelected = selectedPositionen.length === 0
   const kommentarInvalid = kommentar.trim().length < 3
 
-  // vorgangId je logischem Vorgang: neu, sobald eine Auswahl aus dem
-  // Leerzustand beginnt (und mit dem Mount des Drawers nach einem Abschluss).
-  // Ein Retry derselben Stornierung behält seinen Schlüssel und bucht daher
-  // serverseitig kein zweites Mal.
-  const [vorgangId, setVorgangId] = useState(() => crypto.randomUUID())
-  const warLeerRef = useRef(noPositionenSelected)
-  useEffect(() => {
-    if (warLeerRef.current && !noPositionenSelected) {
-      setVorgangId(crypto.randomUUID())
-    }
-    warLeerRef.current = noPositionenSelected
-  }, [noPositionenSelected])
+  // vorgangId je fachlichem Vorgang, an die Nutzdaten gebunden: Ein
+  // Wiederholversuch mit unveränderten Nutzdaten behält seinen Schlüssel und
+  // bucht serverseitig kein zweites Mal; jede Änderung (Auswahl, Mengen,
+  // Kommentar) beginnt einen neuen Vorgang mit neuem Schlüssel, den der Server
+  // regulär prüft.
+  const positionRefs = selectedPositionen.map((position) => ({
+    positionId: position.positionId,
+    menge: position.menge,
+  }))
+  const vorgangId = useVorgangId({
+    verkaufId: verkauf.verkaufId,
+    positionen: positionRefs,
+    kommentar,
+  })
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Stornierung ausführen',
@@ -84,10 +87,7 @@ export function DirektverkaufStornoDrawer({
       await backend.direktverkaufStornieren({
         vorgangId,
         verkaufId: verkauf.verkaufId,
-        positionen: selectedPositionen.map((position) => ({
-          positionId: position.positionId,
-          menge: position.menge,
-        })),
+        positionen: positionRefs,
         kommentar,
       })
     })

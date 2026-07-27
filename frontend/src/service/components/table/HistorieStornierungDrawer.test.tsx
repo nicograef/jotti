@@ -174,4 +174,48 @@ describe('HistorieStornierungDrawer', () => {
     })
     expect(stornierungErteilen.mock.calls[2][0].vorgangId).not.toBe(ersterKey)
   })
+
+  it('wechselt die vorgangId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
+    const user = userEvent.setup()
+    const stornierungErteilen = vi
+      .fn<(s: StornierungErteilen) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('kaputt'))
+      .mockResolvedValue(undefined)
+    render(
+      <HistorieStornierungDrawer
+        backend={{ stornierungErteilen }}
+        tisch={tisch}
+        quelle={quelle}
+        onClose={vi.fn()}
+        onStornierungErteilt={vi.fn()}
+      />,
+    )
+
+    const erteilen = () =>
+      screen.getByRole('button', { name: 'Stornierung erteilen' })
+
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch bestellt',
+    )
+    await user.click(erteilen())
+    await waitFor(() => {
+      expect(stornierungErteilen).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = stornierungErteilen.mock.calls[0][0].vorgangId
+
+    // Geänderte Nutzdaten nach dem Fehlversuch (Menge 1 → 2): neuer Vorgang,
+    // neuer Schlüssel — der Server prüft die geänderte Auswahl regulär.
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.click(erteilen())
+    await waitFor(() => {
+      expect(stornierungErteilen).toHaveBeenCalledTimes(2)
+    })
+    const zweiterAufruf = stornierungErteilen.mock.calls[1][0]
+    expect(zweiterAufruf.vorgangId).not.toBe(ersterKey)
+    expect(zweiterAufruf.positionen).toEqual([
+      { positionId: position.positionId, menge: 2 },
+    ])
+  })
 })

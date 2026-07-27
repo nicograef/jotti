@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 import { EuroInput } from '@/components/common/EuroInput'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useVorgangId } from '@/hooks/use-vorgang-id'
 import { formatEuro, parseCents } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
@@ -55,25 +56,33 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
 
   const noPositionenSelected = props.positionenToPay.length === 0
 
-  // vorgangId je logischem Vorgang: neu, sobald eine Zusammenstellung aus dem
-  // Leerzustand beginnt, und erneut nach jedem erfolgreichen Abschluss (der die
-  // Auswahl leert). Ein Retry derselben Zahlung behält seinen Schlüssel und
-  // bucht daher serverseitig kein zweites Mal.
-  // In der dauerhaften Spalte überlebt der Eingabe-State sonst über einen
-  // Auswahl-Reset hinweg. Mit dem neuen Schlüssel starten die Eingaben deshalb
-  // leer, damit nichts aus einer abgebrochenen Zahlung übertragen wird.
-  const [vorgangId, setVorgangId] = useState(() => crypto.randomUUID())
-  const warLeerRef = useRef(noPositionenSelected)
-  useEffect(() => {
-    if (warLeerRef.current && !noPositionenSelected) {
-      setVorgangId(crypto.randomUUID())
+  // Beginnt eine Zusammenstellung aus dem Leerzustand, starten die Eingaben
+  // leer: In der dauerhaften Spalte überlebt der Eingabe-State sonst einen
+  // Auswahl-Reset und würde Werte aus einer abgebrochenen Zahlung übertragen.
+  // React-idiomatischer State-Sync im Render (wie beim Tischwechsel in
+  // TablePage), nicht per Effekt.
+  const [warLeer, setWarLeer] = useState(noPositionenSelected)
+  if (warLeer !== noPositionenSelected) {
+    setWarLeer(noPositionenSelected)
+    if (warLeer) {
       setErhaltenEuro('')
       setZielbetragEuro('')
       setAndererAktiv(false)
       setKommentar('')
     }
-    warLeerRef.current = noPositionenSelected
-  }, [noPositionenSelected])
+  }
+
+  // vorgangId je fachlichem Vorgang, an die Nutzdaten gebunden: Ein
+  // Wiederholversuch mit unveränderten Nutzdaten behält seinen Schlüssel und
+  // bucht serverseitig kein zweites Mal; jede Änderung (Auswahl, Mengen,
+  // Kommentar) beginnt einen neuen Vorgang mit neuem Schlüssel, den der Server
+  // regulär prüft.
+  const positionen = toPositionRefs(props.positionenToPay)
+  const vorgangId = useVorgangId({
+    tischId: props.tisch.id,
+    positionen,
+    kommentar,
+  })
 
   const { rueckgeldCents, trinkgeldCents } = calculateZahlungsbetraege(
     props.totalCents,
@@ -101,7 +110,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
       await props.backend.zahlungKassieren({
         vorgangId,
         tischId: props.tisch.id,
-        positionen: toPositionRefs(props.positionenToPay),
+        positionen,
         kommentar,
       })
     })
