@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -52,6 +52,19 @@ export function DirektverkaufStornoDrawer({
   const noPositionenSelected = selectedPositionen.length === 0
   const kommentarInvalid = kommentar.trim().length < 3
 
+  // vorgangId je logischem Vorgang: neu, sobald eine Auswahl aus dem
+  // Leerzustand beginnt (und mit dem Mount des Drawers nach einem Abschluss).
+  // Ein Retry derselben Stornierung behält seinen Schlüssel und bucht daher
+  // serverseitig kein zweites Mal.
+  const [vorgangId, setVorgangId] = useState(() => crypto.randomUUID())
+  const warLeerRef = useRef(noPositionenSelected)
+  useEffect(() => {
+    if (warLeerRef.current && !noPositionenSelected) {
+      setVorgangId(crypto.randomUUID())
+    }
+    warLeerRef.current = noPositionenSelected
+  }, [noPositionenSelected])
+
   const { loading, run } = useActionSubmit({
     actionLabel: 'Stornierung ausführen',
     byCode: {
@@ -69,6 +82,7 @@ export function DirektverkaufStornoDrawer({
   const onSubmit = async () => {
     await run(async () => {
       await backend.direktverkaufStornieren({
+        vorgangId,
         verkaufId: verkauf.verkaufId,
         positionen: selectedPositionen.map((position) => ({
           positionId: position.positionId,

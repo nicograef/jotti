@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
+import type { BestellungUmbuchen } from '../../table/Umbuchung'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 
 vi.mock('sonner', () => ({
@@ -222,6 +223,58 @@ describe('HistorieUmbuchungDrawer', () => {
       expect(onBestellungUmgebucht).toHaveBeenCalledWith('Nebentisch')
     })
     expect(toast.success).not.toHaveBeenCalledWith('Bestellung umgebucht.')
+  })
+
+  it('behält die vorgangId über einen Retry und wechselt sie beim neuen Vorgang', async () => {
+    const user = userEvent.setup()
+    const bestellungUmbuchen = vi
+      .fn<(u: BestellungUmbuchen) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('kaputt'))
+      .mockResolvedValue(undefined)
+    render(
+      <HistorieUmbuchungDrawer
+        backend={{ bestellungUmbuchen }}
+        tisch={tisch}
+        quelle={quelle}
+        onClose={vi.fn()}
+        onBestellungUmgebucht={vi.fn()}
+      />,
+    )
+
+    const ausfuehren = () =>
+      screen.getByRole('button', { name: 'Umbuchung ausführen' })
+
+    await user.click(
+      screen.getByRole('button', { name: /^1 Position auswählen/ }),
+    )
+    await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
+
+    await user.click(ausfuehren())
+    await waitFor(() => {
+      expect(bestellungUmbuchen).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = bestellungUmbuchen.mock.calls[0][0].vorgangId
+    expect(ersterKey).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    )
+
+    // Wiederholversuch desselben Vorgangs: derselbe Schlüssel.
+    await user.click(ausfuehren())
+    await waitFor(() => {
+      expect(bestellungUmbuchen).toHaveBeenCalledTimes(2)
+    })
+    expect(bestellungUmbuchen.mock.calls[1][0].vorgangId).toBe(ersterKey)
+
+    // Neuer logischer Vorgang: Auswahl leeren und neu füllen.
+    await user.click(screen.getByRole('button', { name: 'Auswahl aufheben' }))
+    await user.click(
+      screen.getByRole('button', { name: /^1 Position auswählen/ }),
+    )
+    await user.click(ausfuehren())
+    await waitFor(() => {
+      expect(bestellungUmbuchen).toHaveBeenCalledTimes(3)
+    })
+    expect(bestellungUmbuchen.mock.calls[2][0].vorgangId).not.toBe(ersterKey)
   })
 
   it('beschriftet den Sammel-Button bei mehreren Positionen im Plural', () => {

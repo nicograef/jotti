@@ -4,6 +4,9 @@ import { DateStringSchema, PositionRefSchema } from '../schemas'
 import { PositionSchema } from './Bestellung'
 
 export const BestellungUmbuchenSchema = z.object({
+  // Client-erzeugter Schlüssel des fachlichen Vorgangs. Ein Wiederholversuch
+  // nach Verbindungsabbruch trägt denselben Schlüssel und bucht kein zweites Mal.
+  vorgangId: z.uuid(),
   quellTischId: z.number().int().min(1),
   zielTischId: z.number().int().min(1),
   positionen: PositionRefSchema.array().min(1),

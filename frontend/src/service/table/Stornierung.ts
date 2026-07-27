@@ -23,6 +23,9 @@ export const StornierungSchema = z.object({
 export type Stornierung = z.infer<typeof StornierungSchema>
 
 export const StornierungErteilenSchema = z.object({
+  // Client-erzeugter Schlüssel des fachlichen Vorgangs. Ein Wiederholversuch
+  // nach Verbindungsabbruch trägt denselben Schlüssel und bucht kein zweites Mal.
+  vorgangId: z.uuid(),
   tischId: z.number().int().min(1),
   positionen: PositionRefSchema.array().min(1),
   kommentar: z.string().min(3).max(100),
