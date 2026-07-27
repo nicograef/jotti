@@ -46,20 +46,35 @@ var version = "dev"
 // IP-Gruppe nur um diese Spanne; andere Gruppen laufen parallel weiter.
 const dialTimeout = 2 * time.Second
 
-// readTimeout begrenzt das Warten auf die Papierstatus-Antwort des Druckers.
-const readTimeout = 2 * time.Second
-
 // writeTimeout begrenzt das Senden der Druckdaten an den Drucker.
 const writeTimeout = 10 * time.Second
 
-// quittungBasisTimeout und quittungProBonTimeout bilden zusammen das Lese-Timeout
-// der Zustellquittung. GS r ist ein gepuffertes Kommando: der Drucker antwortet
-// erst, nachdem er die vorher empfangenen Bons gedruckt und geschnitten hat —
-// erfahrungsgemäß 1–2 s je Bon. Der Zuschlag von 2 s je Bon deckt das ab, die
-// Basis von 3 s die Verarbeitung des Kommandos und die Netz-Latenz. Eine Gruppe
-// mit sechs Bons wartet damit höchstens 15 s auf die Quittung.
-const quittungBasisTimeout = 3 * time.Second
-const quittungProBonTimeout = 2 * time.Second
+// zustellTimeouts bündelt die Lese-Timeouts einer Gruppen-Zustellung. Sie sind
+// injizierbar, damit Tests nicht auf echte Drucker- und Netzzeiten warten.
+type zustellTimeouts struct {
+	papier         time.Duration
+	spuelen        time.Duration
+	quittungBasis  time.Duration
+	quittungProBon time.Duration
+}
+
+// produktionsTimeouts sind die Werte für den echten Betrieb:
+//   - papier: Warten auf die Papierstatus-Antwort (Echtzeit-Kommando DLE EOT).
+//   - spuelen: Fenster, in dem vor dem Quittungsumlauf noch eintreffende Reste
+//     der Papierstatus-Runde verworfen werden. Kurz, weil seit der Abfrage
+//     bereits das Papier-Timeout und das Schreiben aller Bons vergangen sind.
+//   - quittungBasis/quittungProBon: Lese-Timeout der Zustellquittung. GS r ist
+//     ein gepuffertes Kommando: der Drucker antwortet erst, nachdem er die
+//     vorher empfangenen Bons gedruckt und geschnitten hat — erfahrungsgemäß
+//     1–2 s je Bon. Der Zuschlag von 2 s je Bon deckt das ab, die Basis von 3 s
+//     die Verarbeitung des Kommandos und die Netz-Latenz. Eine Gruppe mit sechs
+//     Bons wartet damit höchstens 15 s auf die Quittung.
+var produktionsTimeouts = zustellTimeouts{
+	papier:         2 * time.Second,
+	spuelen:        100 * time.Millisecond,
+	quittungBasis:  3 * time.Second,
+	quittungProBon: 2 * time.Second,
+}
 
 // Ausgang der Zustellquittung einer Gruppe — nur für die Logzeile je Gruppe.
 const (
@@ -183,7 +198,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	zustelle := zustelleGruppe(verbindeMitDrucker, quittungBasisTimeout, quittungProBonTimeout)
+	zustelle := zustelleGruppe(verbindeMitDrucker, produktionsTimeouts)
 	lastStatusLog := time.Now()
 
 	for {
@@ -293,57 +308,76 @@ func verbindeMitDrucker(zielIP string) (net.Conn, error) {
 	return net.DialTimeout("tcp", net.JoinHostPort(zielIP, "9100"), dialTimeout)
 }
 
-// zustelleGruppe liefert die Zustellfunktion für eine Auftragsgruppe: einmal
-// verbinden, Papierstatus prüfen, alle Bons in ID-Reihenfolge über dieselbe
-// Verbindung schreiben, danach die Quittung einholen. Eine Verbindung je Ziel-IP
-// und Zyklus statt zwei je Bon — sonst weist ein Bondrucker, der nur eine
-// Verbindung gleichzeitig annimmt, die Folgeaufträge stillschweigend ab.
-//
-// Bricht die Gruppe vor der Quittung ab, gilt nichts als zugestellt — auch nicht
-// die bereits geschriebenen Bons. Sie werden im nächsten Zyklus erneut zugestellt
-// (bewusster Doppeldruck: ein doppelter Arbeitsbon kostet Papier, ein fehlender
-// ein Getränk).
-//
-// verbinde ist der Injektionspunkt für Tests. quittungBasis und quittungProBon
-// bilden das Lese-Timeout der Quittung; Tests kürzen es, um nicht auf echte
-// Druckzeiten zu warten.
-func zustelleGruppe(verbinde verbindeFunc, quittungBasis, quittungProBon time.Duration) gruppenDruckFunc {
+// gruppenErgebnis ist das vollständige Ergebnis einer Gruppen-Zustellung.
+// ausgang und gesendet speisen die Logzeile — und machen den Quittungs-Ausgang
+// prüfbar, ohne die Logausgabe abfangen zu müssen.
+type gruppenErgebnis struct {
+	gedruckteIDs []int
+	fehler       *fehlversuch
+	ausgang      string
+	gesendet     int
+}
+
+// zustelleGruppe liefert die Zustellfunktion für eine Auftragsgruppe und
+// protokolliert je Gruppe eine Zeile. Die Zustellung selbst macht stelleGruppeZu.
+func zustelleGruppe(verbinde verbindeFunc, timeouts zustellTimeouts) gruppenDruckFunc {
 	return func(zielIP string, auftraege []DruckAuftrag) ([]int, *fehlversuch) {
 		if len(auftraege) == 0 {
 			return nil, nil
 		}
 
 		start := time.Now()
-		ausgang := ausgangAbgebrochen
-		gesendet := 0
-		defer func() {
-			log.Printf("Drucker %s: %d/%d Bons gesendet, Quittung %s, Dauer %s",
-				zielIP, gesendet, len(auftraege), ausgang, time.Since(start).Round(time.Millisecond))
-		}()
-
-		conn, err := verbinde(zielIP)
-		if err != nil {
-			return nil, gruppenFehlversuch(auftraege, fmt.Errorf("drucker %s: nicht erreichbar: %w", zielIP, err))
-		}
-		defer func() { _ = conn.Close() }()
-
-		if err := pruefePapier(conn, zielIP); err != nil {
-			return nil, gruppenFehlversuch(auftraege, fmt.Errorf("drucker %s: %w", zielIP, err))
-		}
-
-		for _, a := range auftraege {
-			if err := sendeBon(conn, a); err != nil {
-				return nil, &fehlversuch{ID: a.ID, Fehler: fmt.Sprintf("drucker %s: %v", zielIP, err)}
-			}
-			gesendet++
-		}
-
-		ausgang, err = holeQuittung(conn, quittungBasis+time.Duration(len(auftraege))*quittungProBon)
-		if err != nil {
-			return nil, gruppenFehlversuch(auftraege, fmt.Errorf("drucker %s: quittung fehlgeschlagen: %w", zielIP, err))
-		}
-		return auftragsIDs(auftraege), nil
+		ergebnis := stelleGruppeZu(verbinde, timeouts, zielIP, auftraege)
+		log.Printf("Drucker %s: %d/%d Bons gesendet, Quittung %s, Dauer %s",
+			zielIP, ergebnis.gesendet, len(auftraege), ergebnis.ausgang, time.Since(start).Round(time.Millisecond))
+		return ergebnis.gedruckteIDs, ergebnis.fehler
 	}
+}
+
+// stelleGruppeZu stellt alle Aufträge einer Ziel-IP zu: einmal verbinden,
+// Papierstatus prüfen, alle Bons in ID-Reihenfolge über dieselbe Verbindung
+// schreiben, danach die Quittung einholen. Eine Verbindung je Ziel-IP und Zyklus
+// statt zwei je Bon — sonst weist ein Bondrucker, der nur eine Verbindung
+// gleichzeitig annimmt, die Folgeaufträge stillschweigend ab.
+//
+// Bricht die Gruppe vor der Quittung ab, gilt nichts als zugestellt — auch nicht
+// die bereits geschriebenen Bons. Sie werden im nächsten Zyklus erneut zugestellt
+// (bewusster Doppeldruck: ein doppelter Arbeitsbon kostet Papier, ein fehlender
+// ein Getränk).
+//
+// verbinde ist der Injektionspunkt für Tests; auftraege ist nie leer (das prüft
+// zustelleGruppe).
+func stelleGruppeZu(verbinde verbindeFunc, timeouts zustellTimeouts, zielIP string, auftraege []DruckAuftrag) gruppenErgebnis {
+	ergebnis := gruppenErgebnis{ausgang: ausgangAbgebrochen}
+
+	conn, err := verbinde(zielIP)
+	if err != nil {
+		ergebnis.fehler = gruppenFehlversuch(auftraege, fmt.Errorf("drucker %s: nicht erreichbar: %w", zielIP, err))
+		return ergebnis
+	}
+	defer func() { _ = conn.Close() }()
+
+	if err := pruefePapier(conn, zielIP, timeouts.papier); err != nil {
+		ergebnis.fehler = gruppenFehlversuch(auftraege, fmt.Errorf("drucker %s: %w", zielIP, err))
+		return ergebnis
+	}
+
+	for _, a := range auftraege {
+		if err := sendeBon(conn, a); err != nil {
+			ergebnis.fehler = &fehlversuch{ID: a.ID, Fehler: fmt.Sprintf("drucker %s: %v", zielIP, err)}
+			return ergebnis
+		}
+		ergebnis.gesendet++
+	}
+
+	quittungTimeout := timeouts.quittungBasis + time.Duration(len(auftraege))*timeouts.quittungProBon
+	ergebnis.ausgang, err = holeQuittung(conn, timeouts.spuelen, quittungTimeout)
+	if err != nil {
+		ergebnis.fehler = gruppenFehlversuch(auftraege, fmt.Errorf("drucker %s: quittung fehlgeschlagen: %w", zielIP, err))
+		return ergebnis
+	}
+	ergebnis.gedruckteIDs = auftragsIDs(auftraege)
+	return ergebnis
 }
 
 // gruppenFehlversuch macht den ersten Auftrag der Gruppe zum Fehlversuch. Das ist
@@ -363,7 +397,7 @@ func auftragsIDs(auftraege []DruckAuftrag) []int {
 }
 
 // pruefePapier fragt den Rollenpapier-Sensor auf der bestehenden Verbindung ab.
-func pruefePapier(conn net.Conn, zielIP string) error {
+func pruefePapier(conn net.Conn, zielIP string, timeout time.Duration) error {
 	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
 		return fmt.Errorf("set write deadline: %w", err)
 	}
@@ -371,7 +405,7 @@ func pruefePapier(conn net.Conn, zielIP string) error {
 		return fmt.Errorf("status-abfrage fehlgeschlagen: %w", err)
 	}
 
-	if err := conn.SetReadDeadline(time.Now().Add(readTimeout)); err != nil {
+	if err := conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
 		return fmt.Errorf("set read deadline: %w", err)
 	}
 	antwort := make([]byte, 1)
@@ -414,15 +448,24 @@ func sendeBon(conn net.Conn, a DruckAuftrag) error {
 	return nil
 }
 
-// holeQuittung sendet GS r 1 und wartet auf die Antwort des Druckers. Sie liefert
-// den Ausgang für das Log und einen Fehler genau dann, wenn die Zustellung
-// unbestätigt bleibt:
+// holeQuittung verwirft Reste der Papierstatus-Runde, sendet GS r 1 und wartet
+// auf die Antwort des Druckers. Sie liefert den Ausgang für das Log und einen
+// Fehler genau dann, wenn die Zustellung unbestätigt bleibt:
 //   - Antwort erhalten: der Drucker hat alle Bons der Gruppe verarbeitet.
 //   - Lese-Timeout ohne Antwort: der Drucker unterstützt GS r nicht. Die Gruppe
 //     gilt als zugestellt — sonst wäre ein solcher Drucker dauerhaft unbenutzbar.
 //   - Verbindungsabbruch (EOF, Reset, Schreibfehler): kein Timeout und kein
 //     Nachweis. Die Gruppe bleibt offen.
-func holeQuittung(conn net.Conn, timeout time.Duration) (string, error) {
+func holeQuittung(conn net.Conn, spuelen, timeout time.Duration) (string, error) {
+	// Papierstatus-Abfrage und Quittung teilen sich denselben Lesestrom. Liegt
+	// aus der Papierstatus-Runde noch ein Byte im Empfangspuffer — weil der
+	// Drucker mehr als ein Byte geantwortet hat oder erst nach dem Papier-Timeout
+	// antwortet —, würde es hier als Quittung gelten und die ganze Gruppe
+	// bestätigen, ohne dass der Drucker irgendetwas verarbeitet hat.
+	if err := spueleEmpfangspuffer(conn, spuelen); err != nil {
+		return ausgangAbgebrochen, fmt.Errorf("empfangspuffer spuelen: %w", err)
+	}
+
 	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
 		return ausgangAbgebrochen, fmt.Errorf("set write deadline: %w", err)
 	}
@@ -441,6 +484,26 @@ func holeQuittung(conn net.Conn, timeout time.Duration) (string, error) {
 		return ausgangAbgebrochen, err
 	}
 	return ausgangBestaetigt, nil
+}
+
+// spueleEmpfangspuffer liest alles, was der Drucker bis zum Ablauf des Fensters
+// noch sendet, und verwirft es. Das Fenster muss echt sein: Go liefert bei einer
+// bereits abgelaufenen Lese-Deadline sofort ein i/o-Timeout, ohne gepufferte
+// Bytes herauszugeben — ein Leseversuch ohne Wartezeit würde also nichts leeren.
+// Lesefehler sind hier belanglos (Abbrüche fallen beim Quittungsumlauf erneut
+// an); nur eine nicht setzbare Deadline wird gemeldet. Ein Byte, das erst nach
+// dem Fenster eintrifft, gilt weiterhin als Quittung — DLE EOT und GS r 1
+// antworten beide mit einem Statusbyte und sind am Inhalt nicht zu trennen.
+func spueleEmpfangspuffer(conn net.Conn, fenster time.Duration) error {
+	if err := conn.SetReadDeadline(time.Now().Add(fenster)); err != nil {
+		return err
+	}
+	verworfen := make([]byte, 64)
+	for {
+		if _, err := conn.Read(verworfen); err != nil {
+			return nil
+		}
+	}
 }
 
 // istTimeout unterscheidet ein abgelaufenes Lese-Timeout von einem echten
