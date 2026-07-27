@@ -691,6 +691,59 @@ func TestStelleGruppeZuMeldetDenQuittungsAusgang(t *testing.T) {
 	}
 }
 
+func TestStelleGruppeZuZaehltGesendeteBons(t *testing.T) {
+	// gesendet speist die Logzeile und ist damit das einzige Mittel, nach einem
+	// Einsatz zu erkennen, wie weit eine abgebrochene Gruppe gekommen ist. Ohne
+	// diesen Test dürfte der Zähler dauerhaft 0 melden, ohne dass es auffällt.
+	tests := []struct {
+		name         string
+		opt          druckerOptionen
+		schreibunfug []byte // Inhalt, an dem das Schreiben scheitert (nil = kein Fehler)
+		wantGesendet int
+	}{
+		{
+			name:         "alle Bons gesendet",
+			opt:          druckerOptionen{papierstatusAntwort: papierOK, antwortetAufQuittung: true},
+			wantGesendet: 3,
+		},
+		{
+			name:         "Schreibfehler bei Bon 3 zaehlt nur die beiden davor",
+			opt:          druckerOptionen{papierstatusAntwort: papierOK},
+			schreibunfug: bonDaten(3),
+			wantGesendet: 2,
+		},
+		{
+			name:         "Papier leer sendet keinen Bon",
+			opt:          druckerOptionen{papierstatusAntwort: []byte{0x60}},
+			wantGesendet: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			drucker := starteTestDrucker(t, tt.opt)
+
+			verbinde := drucker.verbinde
+			if tt.schreibunfug != nil {
+				verbinde = func(zielIP string) (net.Conn, error) {
+					conn, err := drucker.verbinde(zielIP)
+					if err != nil {
+						return nil, err
+					}
+					return &schreibfehlerConn{Conn: conn, fehlerBeiInhalt: tt.schreibunfug}, nil
+				}
+			}
+
+			ergebnis := stelleGruppeZu(verbinde, testTimeouts, testZielIP, testAuftraege(3))
+			drucker.warteAufAbschluss(t)
+
+			if ergebnis.gesendet != tt.wantGesendet {
+				t.Fatalf("gesendet: got %d, want %d", ergebnis.gesendet, tt.wantGesendet)
+			}
+		})
+	}
+}
+
 func TestStelleGruppeZuVerwirftVerspaetetePapierstatusAntwort(t *testing.T) {
 	// Antwortet ein langsamer Drucker erst nach dem Papierstatus-Timeout, liegt
 	// sein Byte noch im Empfangspuffer, wenn die Quittung eingeholt wird. Es darf
