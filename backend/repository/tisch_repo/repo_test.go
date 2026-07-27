@@ -20,18 +20,169 @@ import (
 func setup(t *testing.T) (Repository, func(t *testing.T)) {
 	db := dbpkg.OpenTestDatabase()
 
-	_, err := db.Exec("DELETE FROM tische")
-	if err != nil {
+	// tisch_favoriten trägt einen Fremdschlüssel auf tische und muss deshalb
+	// zuerst geleert werden.
+	clean := func() error {
+		if _, err := db.Exec("DELETE FROM tisch_favoriten"); err != nil {
+			return err
+		}
+		if _, err := db.Exec("DELETE FROM tische"); err != nil {
+			return err
+		}
+		_, err := db.Exec("DELETE FROM users WHERE username LIKE 'favorit-tester-%'")
+		return err
+	}
+
+	if err := clean(); err != nil {
 		t.Fatalf("Failed to clean tische table: %v", err)
 	}
 
 	return NewRepository(db), func(t *testing.T) {
-		_, err = db.Exec("DELETE FROM tische")
-		if err != nil {
+		if err := clean(); err != nil {
 			t.Fatalf("Failed to clean tische table: %v", err)
 		}
 
 		_ = db.Close()
+	}
+}
+
+// setupFavoritenUser legt eine Servicekraft an, deren Markierungen die
+// Favoriten-Tests setzen können, und gibt ihre ID zurück. Der Benutzername
+// trägt den Testnamen, damit parallele bzw. aufeinanderfolgende Tests nicht am
+// Unique-Index kollidieren; aufgeräumt wird in setup.
+func setupFavoritenUser(t *testing.T, repo Repository) int {
+	t.Helper()
+
+	now := time.Now().UTC()
+	var userID int
+	err := repo.db.QueryRow(
+		`INSERT INTO users (name, username, role, status, created_at, updated_at)
+		 VALUES ('Favorit Tester', $1, 'service', 'active', $2, $2) RETURNING id`,
+		"favorit-tester-"+t.Name(), now,
+	).Scan(&userID)
+	if err != nil {
+		t.Fatalf("Failed to create user: %v", err)
+	}
+	return userID
+}
+
+// tischStatus liest den Status direkt aus der Tabelle — GetTable filtert
+// 'deleted' weg und taugt deshalb nicht, um ein Soft-Delete nachzuweisen.
+func tischStatus(t *testing.T, repo Repository, tischID int) string {
+	t.Helper()
+
+	var status string
+	if err := repo.db.QueryRow("SELECT status FROM tische WHERE id = $1", tischID).Scan(&status); err != nil {
+		t.Fatalf("Failed to read tisch status: %v", err)
+	}
+	return status
+}
+
+func markiereFavorit(t *testing.T, repo Repository, userID, tischID int) {
+	t.Helper()
+
+	_, err := repo.db.Exec(
+		"INSERT INTO tisch_favoriten (user_id, tisch_id, created_at) VALUES ($1, $2, NOW())",
+		userID, tischID,
+	)
+	if err != nil {
+		t.Fatalf("Failed to mark favorit: %v", err)
+	}
+}
+
+func favoritenVonUser(t *testing.T, repo Repository, userID int) []int {
+	t.Helper()
+
+	rows, err := repo.db.Query("SELECT tisch_id FROM tisch_favoriten WHERE user_id = $1 ORDER BY tisch_id", userID)
+	if err != nil {
+		t.Fatalf("Failed to read favoriten: %v", err)
+	}
+	defer rows.Close() //nolint:errcheck // Lesefehler deckt rows.Err() ab
+
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			t.Fatalf("Failed to scan favorit: %v", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("Failed to iterate favoriten: %v", err)
+	}
+	return ids
+}
+
+// Ein gelöschter Tisch verschwindet aus der Tischauswahl; seine Markierungen
+// müssen mit ihm gehen, sonst hängen sie unabwählbar in der Tischübersicht der
+// betroffenen Servicekräfte. Markierungen anderer Tische bleiben unberührt.
+func TestDeleteTableMitFavoritenDB(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+	now := time.Now().UTC()
+	geloeschtID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Favorit Loeschen", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	bleibtID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Favorit Bleibt", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+
+	userID := setupFavoritenUser(t, repo)
+	markiereFavorit(t, repo, userID, geloeschtID)
+	markiereFavorit(t, repo, userID, bleibtID)
+
+	err := repo.DeleteTableMitFavoriten(ctx, tisch.Tisch{
+		ID: geloeschtID, Name: "Favorit Loeschen", Status: tisch.DeletedStatus, CreatedAt: now, UpdatedAt: now,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if status := tischStatus(t, repo, geloeschtID); status != string(tisch.DeletedStatus) {
+		t.Errorf("expected status deleted, got %q", status)
+	}
+
+	favoriten := favoritenVonUser(t, repo, userID)
+	if len(favoriten) != 1 || favoriten[0] != bleibtID {
+		t.Errorf("expected only tisch %d to stay marked, got %v", bleibtID, favoriten)
+	}
+}
+
+// Statuswechsel und Favoriten-Cleanup teilen sich eine Transaktion. Scheitert
+// der Schreibvorgang auf tische, muss auch das Löschen der Markierungen
+// zurückgerollt werden — sonst verlöre eine Servicekraft ihre Markierungen,
+// obwohl der Tisch weiter existiert. Der Fehlschlag wird hier über den
+// partiellen Unique-Index auf dem Tischnamen erzwungen (idx_tische_name_active),
+// weil das der einzige Weg ist, den zweiten Schreibvorgang scheitern zu lassen,
+// nachdem der erste Zeilen entfernt hat.
+func TestDeleteTableMitFavoritenDB_RollbackBeiSchreibfehler(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+	now := time.Now().UTC()
+	tischID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Rollback Quelle", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	_, _ = repo.CreateTable(ctx, tisch.Tisch{Name: "Rollback Kollision", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+
+	userID := setupFavoritenUser(t, repo)
+	markiereFavorit(t, repo, userID, tischID)
+
+	err := repo.DeleteTableMitFavoriten(ctx, tisch.Tisch{
+		ID: tischID, Name: "Rollback Kollision", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now,
+	})
+	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
+		t.Fatalf("expected already-exists error, got %v", err)
+	}
+
+	favoriten := favoritenVonUser(t, repo, userID)
+	if len(favoriten) != 1 || favoriten[0] != tischID {
+		t.Errorf("favoriten must be rolled back with the failed write, got %v", favoriten)
+	}
+
+	unveraendert, err := repo.GetTable(ctx, tischID)
+	if err != nil {
+		t.Fatalf("expected no error retrieving tisch, got %v", err)
+	}
+	if unveraendert.Name != "Rollback Quelle" {
+		t.Errorf("expected tisch name to stay 'Rollback Quelle', got %q", unveraendert.Name)
 	}
 }
 

@@ -380,7 +380,7 @@ func restBezahlen(t *testing.T, u *liveTestUmgebung, ksNr, tischID int) {
 	for _, pos := range session.UnbezahltePositionen {
 		refs = append(refs, kasse.PositionRef{PositionID: pos.PositionID, Menge: pos.Menge})
 	}
-	if err := u.tisch.ZahlungKassieren(context.Background(), u.userID, "test", tischID, refs, "Restzahlung"); err != nil {
+	if err := u.tisch.ZahlungKassieren(context.Background(), u.userID, "test", uuid.NewString(), tischID, refs, "Restzahlung"); err != nil {
 		t.Fatalf("Restzahlung Tisch %d: %v", tischID, err)
 	}
 }
@@ -427,7 +427,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 
 	// (3) Teilzahlung: 1 von 3 Stück → Kassenbeleg-V1.
 	teilRefs := positionRefsAusSession(t, u, ksNr, u.tischID, 1)
-	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", u.tischID, teilRefs, ""); err != nil {
+	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", uuid.NewString(), u.tischID, teilRefs, ""); err != nil {
 		t.Fatalf("Teilzahlung: %v", err)
 	}
 	teilZahlungID := eventIDByType(t, db, string(kasse.EventTypeZahlungKassiertV1), tischSubject)
@@ -437,7 +437,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	// (4) Vollzahlung: die restlichen 2 Stück → Kassenbeleg-V1. Ein weiteres
 	// zahlung-kassiert:v1-Event auf demselben Subject (höhere ID).
 	vollRefs := positionRefsAusSession(t, u, ksNr, u.tischID, 2)
-	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", u.tischID, vollRefs, ""); err != nil {
+	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", uuid.NewString(), u.tischID, vollRefs, ""); err != nil {
 		t.Fatalf("Vollzahlung: %v", err)
 	}
 	vollZahlungID := eventIDByType(t, db, string(kasse.EventTypeZahlungKassiertV1), tischSubject)
@@ -450,7 +450,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	// (5) Warenrücknahme: Storno von 1 bezahlten Stück → kassenwirksame
 	// stornierung-erteilt:v1 (Kassenbeleg-V1, negativ).
 	stornoRefs := []kasse.PositionRef{{PositionID: teilRefs[0].PositionID, Menge: 1}}
-	if err := u.tisch.StornierungErteilen(ctx, u.userID, "test", u.tischID, stornoRefs, "Rücknahme"); err != nil {
+	if err := u.tisch.StornierungErteilen(ctx, u.userID, "test", uuid.NewString(), u.tischID, stornoRefs, "Rücknahme"); err != nil {
 		t.Fatalf("StornierungErteilen (Warenrücknahme): %v", err)
 	}
 	signiereUndPruefe("Warenrücknahme", string(kasse.EventTypeStornierungErteiltV1), tischSubject, tse.ProcessTypeKassenbelegV1)
@@ -463,7 +463,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	}
 	tisch2Subject := kasse.TischSessionSubject(ksNr, u.tischID2)
 	korrekturRefs := positionRefsAusSession(t, u, ksNr, u.tischID2, 1)
-	if err := u.tisch.StornierungErteilen(ctx, u.userID, "test", u.tischID2, korrekturRefs, "Korrektur"); err != nil {
+	if err := u.tisch.StornierungErteilen(ctx, u.userID, "test", uuid.NewString(), u.tischID2, korrekturRefs, "Korrektur"); err != nil {
 		t.Fatalf("StornierungErteilen (Korrektur): %v", err)
 	}
 	signiereUndPruefe("Geldneutrale Korrektur", string(kasse.EventTypeBestellungKorrigiertV1), tisch2Subject, tse.ProcessTypeBestellungV1)
@@ -472,7 +472,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	// bestellung-umgebucht:v1 auf beiden Seiten (Bestellung-V1). Geprüft: Abgang
 	// vom Quelltisch (negative Mengen) und Zugang auf dem Zieltisch.
 	umbuchRefs := positionRefsAusSession(t, u, ksNr, u.tischID2, 1)
-	if err := u.tisch.BestellungUmbuchen(ctx, u.userID, "test", u.tischID2, u.tischID, umbuchRefs, ""); err != nil {
+	if err := u.tisch.BestellungUmbuchen(ctx, u.userID, "test", uuid.NewString(), u.tischID2, u.tischID, umbuchRefs, ""); err != nil {
 		t.Fatalf("BestellungUmbuchen: %v", err)
 	}
 	signiereUndPruefe("Umbuchung Abgang", string(kasse.EventTypeBestellungUmgebuchtV1), tisch2Subject, tse.ProcessTypeBestellungV1)
@@ -497,7 +497,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 		t.Fatalf("nicht-stornierte Positionen: %v", err)
 	}
 	dvStornoRefs := []kasse.PositionRef{{PositionID: nichtStorniert[0].PositionID, Menge: 1}}
-	if err := u.direkt.DirektverkaufStornieren(ctx, u.userID, "test", verkaufID, dvStornoRefs, "Rücknahme"); err != nil {
+	if err := u.direkt.DirektverkaufStornieren(ctx, u.userID, "test", uuid.NewString(), verkaufID, dvStornoRefs, "Rücknahme"); err != nil {
 		t.Fatalf("DirektverkaufStornieren: %v", err)
 	}
 	signiereUndPruefe("Direktverkauf-Storno", string(kasse.EventTypeDirektverkaufStorniertV1), verkaufSubject, tse.ProcessTypeKassenbelegV1)

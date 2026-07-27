@@ -11,6 +11,7 @@ type tischRepo interface {
 	GetTable(ctx context.Context, id int) (tisch.Tisch, error)
 	CreateTable(ctx context.Context, t tisch.Tisch) (int, error)
 	UpdateTable(ctx context.Context, t tisch.Tisch) error
+	DeleteTableMitFavoriten(ctx context.Context, t tisch.Tisch) error
 	GetAllTables(ctx context.Context) ([]tisch.Tisch, error)
 	TischHatOffenenSaldo(ctx context.Context, tischID int) (bool, error)
 }
@@ -18,7 +19,6 @@ type tischRepo interface {
 type favoritRepo interface {
 	Add(ctx context.Context, userID, tischID int) error
 	Remove(ctx context.Context, userID, tischID int) error
-	RemoveByTisch(ctx context.Context, tischID int) error
 }
 
 type Command struct {
@@ -144,17 +144,16 @@ func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo 
 	// Ein gelöschter Tisch erscheint nicht mehr in der Tischauswahl; eine
 	// zurückbleibende Markierung wäre für die betroffene Servicekraft weder
 	// sichtbar noch abwählbar und hinge dauerhaft in ihrer Tischübersicht.
-	// Der Cleanup läuft vor dem Statuswechsel: Scheitert er, bleibt der Tisch
-	// unangetastet und der Löschvorgang ist unverändert wiederholbar.
-	// Ein deaktivierter Tisch bleibt bewusst markiert — er kommt wieder.
+	// Statuswechsel und Cleanup laufen deshalb in einer Transaktion — ein
+	// halb ausgeführtes Löschen hinterlässt sonst genau diese unsichtbaren
+	// Markierungen. Ein deaktivierter Tisch bleibt bewusst markiert; er kommt
+	// wieder.
+	persist := c.TischRepo.UpdateTable
 	if t.Status == tisch.DeletedStatus {
-		if err := c.FavoritRepo.RemoveByTisch(ctx, id); err != nil {
-			log.Error().Err(err).Int("tisch_id", id).Msg("Failed to remove favoriten of deleted tisch")
-			return ErrDatabase
-		}
+		persist = c.TischRepo.DeleteTableMitFavoriten
 	}
 
-	if err := c.TischRepo.UpdateTable(ctx, t); err != nil {
+	if err := persist(ctx, t); err != nil {
 		return fromRepositoryError(err, log, id)
 	}
 	log.Info().Int("tisch_id", id).Msg(successMsg)
