@@ -106,6 +106,64 @@ func (q *Queries) GetKassensitzungMetadaten(ctx context.Context, kassensitzungNr
 	return i, err
 }
 
+const getKassiertProServicekraft = `-- name: GetKassiertProServicekraft :many
+SELECT
+    e.user_id,
+    MAX(e.user_name)::text AS user_name,
+    COALESCE(MAX(u.name), '')::text AS name,
+    COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS kassiert_cents,
+    COUNT(CASE WHEN e.type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
+FROM kassenjournal e
+LEFT JOIN users u ON u.id = e.user_id
+WHERE e.type = 'zahlung-kassiert:v1'
+AND e.kassensitzung_nr = $1
+GROUP BY e.user_id
+ORDER BY kassiert_cents DESC
+`
+
+type GetKassiertProServicekraftRow struct {
+	UserID          int
+	UserName        string
+	Name            string
+	KassiertCents   int
+	AnzahlZahlungen int
+}
+
+// Tagesabrechnung: kassierte Zahlungen gruppiert nach Servicekraft pro Kassensitzung — die
+// Kassiert-Seite der Abrechnung pro Servicekraft (die zugeordneten Ruecknahmen kommen aus den
+// Storno-Detailzeilen und werden in der Anwendungsschicht gegengerechnet).
+// Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
+// MAX(user_name) nimmt den lexikographisch letzten eingefrorenen Username; name ist der live aus users
+// aufgeloeste Klarname (bleibt auch fuer soft-geloeschte Benutzer verfuegbar, leer wenn der Benutzer fehlt).
+func (q *Queries) GetKassiertProServicekraft(ctx context.Context, kassensitzungNr int) ([]GetKassiertProServicekraftRow, error) {
+	rows, err := q.db.QueryContext(ctx, getKassiertProServicekraft, kassensitzungNr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetKassiertProServicekraftRow{}
+	for rows.Next() {
+		var i GetKassiertProServicekraftRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.UserName,
+			&i.Name,
+			&i.KassiertCents,
+			&i.AnzahlZahlungen,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOffeneSaldi = `-- name: GetOffeneSaldi :one
 SELECT COALESCE(SUM(saldo_cents), 0)::int AS offene_saldi_cents
 FROM tisch_sessions WHERE saldo_cents > 0 AND kassensitzung_nr = $1
@@ -464,62 +522,6 @@ func (q *Queries) GetUmsatzPositionszeilen(ctx context.Context, kassensitzungNr 
 	for rows.Next() {
 		var i GetUmsatzPositionszeilenRow
 		if err := rows.Scan(&i.Steuersatz, &i.BruttoCents); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getUmsatzProServicekraft = `-- name: GetUmsatzProServicekraft :many
-SELECT
-    e.user_id,
-    MAX(e.user_name)::text AS user_name,
-    COALESCE(MAX(u.name), '')::text AS name,
-    COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS zahlungen_cents,
-    COUNT(CASE WHEN e.type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
-FROM kassenjournal e
-LEFT JOIN users u ON u.id = e.user_id
-WHERE e.type = 'zahlung-kassiert:v1'
-AND e.kassensitzung_nr = $1
-GROUP BY e.user_id
-ORDER BY zahlungen_cents DESC
-`
-
-type GetUmsatzProServicekraftRow struct {
-	UserID          int
-	UserName        string
-	Name            string
-	ZahlungenCents  int
-	AnzahlZahlungen int
-}
-
-// Tagesabrechnung: kassierte Zahlungen gruppiert nach Servicekraft pro Kassensitzung.
-// Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
-// MAX(user_name) nimmt den lexikographisch letzten eingefrorenen Username; name ist der live aus users
-// aufgeloeste Klarname (bleibt auch fuer soft-geloeschte Benutzer verfuegbar, leer wenn der Benutzer fehlt).
-func (q *Queries) GetUmsatzProServicekraft(ctx context.Context, kassensitzungNr int) ([]GetUmsatzProServicekraftRow, error) {
-	rows, err := q.db.QueryContext(ctx, getUmsatzProServicekraft, kassensitzungNr)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GetUmsatzProServicekraftRow{}
-	for rows.Next() {
-		var i GetUmsatzProServicekraftRow
-		if err := rows.Scan(
-			&i.UserID,
-			&i.UserName,
-			&i.Name,
-			&i.ZahlungenCents,
-			&i.AnzahlZahlungen,
-		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -23,21 +23,16 @@ const reportingResult: ReportingData = {
     direktverkaufUmsatzCents: 4500,
   },
   breakdowns: {
-    umsatzProServicekraft: [
+    abrechnungProServicekraft: [
       {
         userId: 5,
         userName: 'Bea',
         name: 'Bea B.',
-        zahlungenCents: 6789,
-      },
-    ],
-    stornierungenProServicekraft: [
-      {
-        userId: 5,
-        userName: 'Bea',
-        name: 'Bea B.',
+        kassiertCents: 6789,
+        anzahlZahlungen: 3,
+        ruecknahmenCents: 300,
         anzahlStornierungen: 1,
-        stornierungenCents: 300,
+        abzugebenCents: 6489,
       },
     ],
   },
@@ -164,11 +159,74 @@ describe('ReportingResults', () => {
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
     expect(screen.getByText('Umsatz nach Steuersatz')).toBeInTheDocument()
     expect(screen.getByText('Regelsteuersatz (19 %)')).toBeInTheDocument()
-    expect(screen.getByText('Umsatz pro Servicekraft')).toBeInTheDocument()
+    expect(screen.getByText('Abrechnung pro Servicekraft')).toBeInTheDocument()
     expect(screen.getByText('Bea (Bea B.)')).toBeInTheDocument()
-    expect(screen.getByText('67,89 €')).toBeInTheDocument()
-    // Storno-Marker an der Servicekraft-Zeile.
-    expect(screen.getByText('1 Storno')).toBeInTheDocument()
+  })
+
+  it('zeigt pro Servicekraft „Abzugeben" als Hauptzahl mit Kassiert und Rücknahmen darunter', () => {
+    render(
+      <ReportingResults
+        result={reportingResult}
+        sitzung={sitzung}
+        loading={false}
+      />,
+    )
+
+    // Hauptzahl: Abzugeben (67,89 € kassiert − 3,00 € Rücknahmen).
+    expect(screen.getByText('64,89 €')).toBeInTheDocument()
+    // Nebenzeile: die Herleitung des Abzugs.
+    expect(
+      screen.getByText('Kassiert 67,89 € · Rücknahmen 3,00 €'),
+    ).toBeInTheDocument()
+    // Die Unterzeile grenzt den Direktverkauf aus.
+    expect(
+      screen.getByText(/Direktverkäufe sind nicht enthalten/),
+    ).toBeInTheDocument()
+  })
+
+  it('setzt den Storno-Marker bei der betroffenen, nicht bei der stornierenden Servicekraft', () => {
+    render(
+      <ReportingResults
+        result={{
+          ...reportingResult,
+          breakdowns: {
+            abrechnungProServicekraft: [
+              // Bea hat kassiert und die Rücknahme zugeordnet bekommen.
+              {
+                userId: 5,
+                userName: 'Bea',
+                name: 'Bea B.',
+                kassiertCents: 6789,
+                anzahlZahlungen: 3,
+                ruecknahmenCents: 300,
+                anzahlStornierungen: 1,
+                abzugebenCents: 6489,
+              },
+              // Lena hat stellvertretend storniert — ohne eigene Zuordnung.
+              {
+                userId: 1,
+                userName: 'lena',
+                name: 'Lena C.',
+                kassiertCents: 1000,
+                anzahlZahlungen: 1,
+                ruecknahmenCents: 0,
+                anzahlStornierungen: 0,
+                abzugebenCents: 1000,
+              },
+            ],
+          },
+        }}
+        sitzung={sitzung}
+        loading={false}
+      />,
+    )
+
+    const marker = screen.getByText('1 Storno')
+    expect(marker).toBeInTheDocument()
+    // Der Marker steht in der Zeile von Bea, nicht in der von Lena.
+    const zeile = marker.closest('div')
+    expect(zeile).toHaveTextContent('Bea (Bea B.)')
+    expect(zeile).not.toHaveTextContent('lena')
   })
 
   it('zeigt den Abschnitt „Verkäufe pro Produkt" mit Kategorien, Zwischensumme und Ein-Varianten-Zeile', () => {

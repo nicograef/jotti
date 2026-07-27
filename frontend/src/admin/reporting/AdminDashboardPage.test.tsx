@@ -82,7 +82,7 @@ function makeLiveData(): LiveReportingData {
       anzahlDirektverkaeufe: 63,
       direktverkaufUmsatzCents: 48650,
     },
-    breakdowns: { servicekraefte: [], stornierungenProServicekraft: [] },
+    breakdowns: { servicekraefte: [] },
     stornierungen: [],
     produktStatistik: [],
   }

@@ -324,36 +324,41 @@ nachgezogen.
 
 ### Acceptance criteria
 
-- [ ] Die Response trägt `breakdowns.abrechnungProServicekraft`;
+- [x] Die Response trägt `breakdowns.abrechnungProServicekraft`;
       `breakdowns.umsatzProServicekraft` und
       `breakdowns.stornierungenProServicekraft` existieren nicht mehr — weder in
       der Abrechnungs- noch in der Live-Response.
-- [ ] Integrationstest: Serviceleitung nimmt stellvertretend zurück →
+- [x] Integrationstest: Serviceleitung nimmt stellvertretend zurück →
       Rücknahmen und Abzugeben ändern sich bei der Servicekraft, die
       Serviceleitung bleibt unverändert.
-- [ ] Integrationstest: Die Servicekraft nimmt selbst zurück → dasselbe
+- [x] Integrationstest: Die Servicekraft nimmt selbst zurück → dasselbe
       Ergebnis; die Zuordnung ist keine Sonderregel für Vertretungsfälle.
-- [ ] Integrationstest: Servicekraft A kassiert, was B bestellt hat, danach
+- [x] Integrationstest: Servicekraft A kassiert, was B bestellt hat, danach
       Rücknahme → Rücknahmen bei A, B unverändert.
-- [ ] Integrationstest: Geldneutrale Korrektur → Storno-Anzahl beim Besteller
+- [x] Integrationstest: Geldneutrale Korrektur → Storno-Anzahl beim Besteller
       steigt, Kassiert / Rücknahmen / Abzugeben bleiben unverändert.
-- [ ] Integrationstest: Direktverkauf und Direktverkauf-Storno verändern keine
+- [x] Integrationstest: Direktverkauf und Direktverkauf-Storno verändern keine
       Zeile der Abrechnung pro Servicekraft.
-- [ ] Integrationstest: Vollständige Rücknahme einer Zahlung → Abzugeben ist
+- [x] Integrationstest: Vollständige Rücknahme einer Zahlung → Abzugeben ist
       null, nicht negativ (Invariante).
-- [ ] Anwendungsschicht-Test: Die Summe aller Abzugeben-Beträge entspricht dem
+- [x] Anwendungsschicht-Test: Die Summe aller Abzugeben-Beträge entspricht dem
       kassierten Tischservice-Umsatz der Sitzung abzüglich aller Rücknahmen —
       Direktverkäufe auf beiden Seiten ausgenommen.
-- [ ] Eine Person mit ausschließlich zugeordneten Stornos und ohne eigenes
+- [x] Eine Person mit ausschließlich zugeordneten Stornos und ohne eigenes
       Kassieren erscheint in der Liste.
-- [ ] Frontend-Test: Der Tagesbericht zeigt pro Zeile Abzugeben als Hauptzahl
+- [x] Frontend-Test: Der Tagesbericht zeigt pro Zeile Abzugeben als Hauptzahl
       sowie Kassiert und Rücknahmen; der Storno-Marker steht bei der
       betroffenen, nicht bei der stornierenden Person.
-- [ ] Frontend-Test: Die Live-Team-Liste blendet die Rücknahmen nur bei einem
+- [x] Frontend-Test: Die Live-Team-Liste blendet die Rücknahmen nur bei einem
       Betrag ungleich null ein.
-- [ ] `docs/anforderungen.md` (R-04) und `docs/handbuch.md` beschreiben den
+- [x] `docs/anforderungen.md` (R-04) und `docs/handbuch.md` beschreiben den
       Abrechnungs-Saldo und die Zuordnungsregel.
 - [ ] `make verify` läuft durch.
+      **Nur in Teilen belegt:** In der Umsetzungsumgebung fehlt Docker, `make
+      verify` bricht daher an seinem Docker-Schritt ab. Verifiziert wurden
+      stattdessen `make check` (grün) und die vollständige Integrationstest-Suite
+      gegen die lokale PostgreSQL-Instanz (`go test -tags=integration ./...`,
+      alle Pakete grün) sowie `pnpm test` (455 Tests grün).
 
 ---
 

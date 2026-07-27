@@ -102,9 +102,8 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 			DirektverkaufUmsatzCents: 2750,
 		},
 		Breakdowns: reporting.Breakdowns{
-			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
-			StornierungenProServicekraft: []reporting.StornierungServicekraft{
-				{UserID: 3, UserName: "felix", Name: "Felix W.", AnzahlStornierungen: 2, StornierungenCents: 800},
+			AbrechnungProServicekraft: []reporting.AbrechnungServicekraft{
+				{UserID: 3, UserName: "felix", Name: "Felix W.", KassiertCents: 5000, AnzahlZahlungen: 4, RuecknahmenCents: 800, AnzahlStornierungen: 2, AbzugebenCents: 4200},
 			},
 		},
 		UmsatzProSteuersatz: []reporting.UmsatzSteuersatz{
@@ -152,11 +151,14 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 			SteuerCents int    `json:"steuerCents"`
 		} `json:"umsatzProSteuersatz"`
 		Breakdowns struct {
-			StornierungenProServicekraft []struct {
+			AbrechnungProServicekraft []struct {
 				UserID              int `json:"userId"`
+				KassiertCents       int `json:"kassiertCents"`
+				AnzahlZahlungen     int `json:"anzahlZahlungen"`
+				RuecknahmenCents    int `json:"ruecknahmenCents"`
 				AnzahlStornierungen int `json:"anzahlStornierungen"`
-				StornierungenCents  int `json:"stornierungenCents"`
-			} `json:"stornierungenProServicekraft"`
+				AbzugebenCents      int `json:"abzugebenCents"`
+			} `json:"abrechnungProServicekraft"`
 		} `json:"breakdowns"`
 		ProduktStatistik []struct {
 			Kategorie        string `json:"kategorie"`
@@ -183,11 +185,11 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 	if v := resp.ProduktStatistik[0].Varianten; len(v) != 1 || v[0].VarianteID != 10 || v[0].VarianteName != "groß" {
 		t.Fatalf("unexpected produktStatistik varianten: %+v", resp.ProduktStatistik[0].Varianten)
 	}
-	if len(resp.Breakdowns.StornierungenProServicekraft) != 1 {
-		t.Fatalf("expected 1 stornierungenProServicekraft row, got %+v", resp.Breakdowns.StornierungenProServicekraft)
+	if len(resp.Breakdowns.AbrechnungProServicekraft) != 1 {
+		t.Fatalf("expected 1 abrechnungProServicekraft row, got %+v", resp.Breakdowns.AbrechnungProServicekraft)
 	}
-	if sk := resp.Breakdowns.StornierungenProServicekraft[0]; sk.UserID != 3 || sk.AnzahlStornierungen != 2 || sk.StornierungenCents != 800 {
-		t.Fatalf("unexpected stornierungenProServicekraft row: %+v", resp.Breakdowns.StornierungenProServicekraft[0])
+	if sk := resp.Breakdowns.AbrechnungProServicekraft[0]; sk.UserID != 3 || sk.KassiertCents != 5000 || sk.AnzahlZahlungen != 4 || sk.RuecknahmenCents != 800 || sk.AnzahlStornierungen != 2 || sk.AbzugebenCents != 4200 {
+		t.Fatalf("unexpected abrechnungProServicekraft row: %+v", resp.Breakdowns.AbrechnungProServicekraft[0])
 	}
 	if resp.Metadaten.EroeffnetAm == nil || !resp.Metadaten.EroeffnetAm.Equal(eroeffnetAm) {
 		t.Errorf("expected eroeffnetAm %v, got %v", eroeffnetAm, resp.Metadaten.EroeffnetAm)
@@ -317,17 +319,17 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 			DirektverkaufUmsatzCents: 1800,
 		},
 		Breakdowns: reporting.Breakdowns{
-			UmsatzProServicekraft: []reporting.UmsatzServicekraft{},
-			StornierungenProServicekraft: []reporting.StornierungServicekraft{
-				{UserID: 7, UserName: "sophie", Name: "Sophie B.", AnzahlStornierungen: 1, StornierungenCents: 250},
-			},
+			AbrechnungProServicekraft: []reporting.AbrechnungServicekraft{},
 		},
 		Servicekraefte: []reporting.ServicekraftLive{
 			{
-				UserID:         7,
-				UserName:       "Anna",
-				ZahlungenCents: 1500,
-				OffenCents:     900,
+				UserID:              7,
+				UserName:            "Anna",
+				KassiertCents:       1500,
+				RuecknahmenCents:    250,
+				AnzahlStornierungen: 1,
+				AbzugebenCents:      1250,
+				OffenCents:          900,
 				OffeneTische: []reporting.OffeneArbeitTisch{
 					{TischID: 3, TischName: "Tisch 3", AnzahlOffen: 1, OffenCents: 900},
 				},
@@ -363,28 +365,21 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 		} `json:"summary"`
 		Breakdowns struct {
 			Servicekraefte []struct {
-				UserID       int  `json:"userId"`
-				Erledigt     bool `json:"erledigt"`
-				OffenCents   int  `json:"offenCents"`
-				OffeneTische []struct {
+				UserID              int  `json:"userId"`
+				KassiertCents       int  `json:"kassiertCents"`
+				RuecknahmenCents    int  `json:"ruecknahmenCents"`
+				AnzahlStornierungen int  `json:"anzahlStornierungen"`
+				AbzugebenCents      int  `json:"abzugebenCents"`
+				Erledigt            bool `json:"erledigt"`
+				OffenCents          int  `json:"offenCents"`
+				OffeneTische        []struct {
 					TischName string `json:"tischName"`
 				} `json:"offeneTische"`
 			} `json:"servicekraefte"`
-			StornierungenProServicekraft []struct {
-				UserID              int `json:"userId"`
-				AnzahlStornierungen int `json:"anzahlStornierungen"`
-				StornierungenCents  int `json:"stornierungenCents"`
-			} `json:"stornierungenProServicekraft"`
 		} `json:"breakdowns"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("expected valid JSON response: %v", err)
-	}
-	if len(resp.Breakdowns.StornierungenProServicekraft) != 1 {
-		t.Fatalf("expected 1 stornierungenProServicekraft row, got %+v", resp.Breakdowns.StornierungenProServicekraft)
-	}
-	if sk := resp.Breakdowns.StornierungenProServicekraft[0]; sk.UserID != 7 || sk.AnzahlStornierungen != 1 || sk.StornierungenCents != 250 {
-		t.Fatalf("unexpected stornierungenProServicekraft row: %+v", resp.Breakdowns.StornierungenProServicekraft[0])
 	}
 	if resp.KassensitzungNr != 42 {
 		t.Errorf("expected kassensitzungNr 42, got %d", resp.KassensitzungNr)
@@ -413,6 +408,9 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 	sk := resp.Breakdowns.Servicekraefte[0]
 	if sk.UserID != 7 || sk.Erledigt {
 		t.Errorf("expected servicekraft 7 with open work, got %+v", sk)
+	}
+	if sk.KassiertCents != 1500 || sk.RuecknahmenCents != 250 || sk.AnzahlStornierungen != 1 || sk.AbzugebenCents != 1250 {
+		t.Errorf("expected the live row to carry the abrechnung, got %+v", sk)
 	}
 	if sk.OffenCents != 900 {
 		t.Errorf("expected servicekraft offenCents 900, got %d", sk.OffenCents)
