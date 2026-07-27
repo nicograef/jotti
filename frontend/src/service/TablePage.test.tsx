@@ -47,6 +47,7 @@ const testProdukt: Produkt = {
 const testState = vi.hoisted(() => ({
   tischId: '1',
   produkte: [] as Produkt[],
+  produkteError: false,
 }))
 
 vi.mock('react-router', () => ({
@@ -75,7 +76,12 @@ vi.mock('@/lib/Auth', () => ({
 }))
 
 vi.mock('./product/hooks', () => ({
-  useAktiveProdukte: () => ({ produkte: testState.produkte, isPending: false }),
+  useAktiveProdukte: () => ({
+    produkte: testState.produkte,
+    isPending: false,
+    isError: testState.produkteError,
+    refetch: vi.fn(),
+  }),
 }))
 
 const { getTischState, getTischHistorie, stornierungErteilen } = vi.hoisted(
@@ -109,6 +115,7 @@ afterEach(() => {
   vi.clearAllMocks()
   testState.tischId = '1'
   testState.produkte = []
+  testState.produkteError = false
 })
 
 function renderPage() {
@@ -163,6 +170,21 @@ describe('TablePage', () => {
 
     expect(await screen.findByText('Stammtisch')).toBeInTheDocument()
     expect(screen.getByText('12,50 €')).toBeInTheDocument()
+  })
+
+  it('zeigt im Bestellen-Tab einen Ladefehler statt einer leeren Produktliste', async () => {
+    testState.produkteError = true
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    renderPage()
+
+    expect(
+      await screen.findByText('Produkte konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    // Der Leerzustand der Produktliste behauptet, es gebe nichts zu bestellen.
+    expect(
+      screen.queryByText('Keine Produkte verfügbar'),
+    ).not.toBeInTheDocument()
   })
 
   it('zeigt "Alles bezahlt" ohne unbezahlte Positionen', async () => {

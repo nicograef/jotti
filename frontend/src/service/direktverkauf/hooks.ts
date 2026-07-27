@@ -10,10 +10,11 @@ export function useDirektverkaufHistorie() {
   const {
     data: historie = [],
     isPending,
+    isError,
     refetch,
   } = useQuery({
     queryKey: ['direktverkauf-historie'],
     queryFn: () => direktverkaufBackend.getDirektverkaufHistorie(),
   })
-  return { historie, isPending, refetch }
+  return { historie, isPending, isError, refetch }
 }

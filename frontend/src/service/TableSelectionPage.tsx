@@ -1,8 +1,9 @@
 import { ChevronRight, Lamp, Search, TableIcon } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { EmptyState } from '@/components/common/EmptyState'
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,12 +25,32 @@ const fussleisteFreiraum = 'pb-[calc(6rem+env(safe-area-inset-bottom,0px))]'
 export function TableSelectionPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [suche, setSuche] = useState('')
-  const { tische, isPending: tischeLoading } = useMeineTischeState()
+  const {
+    tische,
+    isPending: tischeLoading,
+    isError: tischeError,
+    refetch: reloadTische,
+  } = useMeineTischeState()
   // Die Suche greift über alle aktiven Tische, nicht nur die favorisierten
   // „Meine Tische" — so findet der Nutzer auch einen nicht markierten Tisch und
   // öffnet ihn per Treffer direkt.
-  const { tische: alleTische } = useAktiveTischeMitFavoriten()
-  const { uebersicht, isPending: uebersichtLoading } = useEigeneUebersicht()
+  const {
+    tische: alleTische,
+    isError: alleTischeError,
+    refetch: reloadAlleTische,
+  } = useAktiveTischeMitFavoriten()
+  const {
+    uebersicht,
+    isPending: uebersichtLoading,
+    isError: uebersichtError,
+    refetch: reloadUebersicht,
+  } = useEigeneUebersicht()
+
+  const reload = useCallback(() => {
+    void reloadTische()
+    void reloadAlleTische()
+    void reloadUebersicht()
+  }, [reloadTische, reloadAlleTische, reloadUebersicht])
 
   const sucheGetrimmt = suche.trim()
   const sucheAktiv = sucheGetrimmt.length > 0
@@ -57,6 +78,18 @@ export function TableSelectionPage() {
   const erstAufbau = useErstAufbau(
     !tischeLoading && !sucheAktiv && tische.length > 0,
   )
+
+  // Expliziter Fehlerzustand statt der Leer-Defaults: „Keine Tische markiert"
+  // und Übersichtskarten mit 0 · 0,00 € behaupten sonst, die eigene Arbeit sei
+  // leer, obwohl bloß die Abfrage fehlgeschlagen ist.
+  if (tischeError || alleTischeError || uebersichtError) {
+    return (
+      <LadefehlerAlert
+        titel="Tische konnten nicht geladen werden"
+        onErneutVersuchen={reload}
+      />
+    )
+  }
 
   return (
     <div className={fussleisteFreiraum}>

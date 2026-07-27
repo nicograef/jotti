@@ -54,6 +54,34 @@ const verkauf: DirektverkaufHistorieEintrag = {
 }
 
 describe('DirektverkaufHistorie', () => {
+  it('zeigt bei einem Ladefehler den Ladefehler statt einer leeren Historie', async () => {
+    const onErneutVersuchen = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <DirektverkaufHistorie
+        historie={[]}
+        historieLoading={false}
+        historieError
+        onErneutVersuchen={onErneutVersuchen}
+        backend={{
+          direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
+          kassenbelegDrucken: vi.fn().mockResolvedValue('eingereiht'),
+        }}
+        onErfolg={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.getByText('Historie konnte nicht geladen werden'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/Noch keine Direktverkäufe/),
+    ).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+    expect(onErneutVersuchen).toHaveBeenCalledTimes(1)
+  })
+
   it('shows the position summary as a sub-line on each sale row', () => {
     const mehrpositionenVerkauf: DirektverkaufHistorieEintrag = {
       ...verkauf,
@@ -84,6 +112,8 @@ describe('DirektverkaufHistorie', () => {
       <DirektverkaufHistorie
         historie={[mehrpositionenVerkauf]}
         historieLoading={false}
+        historieError={false}
+        onErneutVersuchen={vi.fn()}
         backend={{
           direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
           kassenbelegDrucken: vi.fn().mockResolvedValue('eingereiht'),
@@ -104,6 +134,8 @@ describe('DirektverkaufHistorie', () => {
       <DirektverkaufHistorie
         historie={[verkauf]}
         historieLoading={false}
+        historieError={false}
+        onErneutVersuchen={vi.fn()}
         backend={{ direktverkaufStornieren, kassenbelegDrucken }}
         onErfolg={onErfolg}
       />,
@@ -143,6 +175,8 @@ describe('DirektverkaufHistorie', () => {
       <DirektverkaufHistorie
         historie={[verkauf]}
         historieLoading={false}
+        historieError={false}
+        onErneutVersuchen={vi.fn()}
         backend={{
           direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
           kassenbelegDrucken,
@@ -183,6 +217,8 @@ describe('DirektverkaufHistorie', () => {
       <DirektverkaufHistorie
         historie={[stornierterVerkauf]}
         historieLoading={false}
+        historieError={false}
+        onErneutVersuchen={vi.fn()}
         backend={{
           direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
           kassenbelegDrucken,

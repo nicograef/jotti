@@ -1,6 +1,7 @@
 import { Banknote, ChevronRight, Printer, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -43,6 +44,9 @@ function positionenZusammenfassung(
 interface DirektverkaufHistorieProps {
   historie: DirektverkaufHistorieEintrag[]
   historieLoading: boolean
+  historieError: boolean
+  // Lädt die Historie nach einem Ladefehler erneut.
+  onErneutVersuchen: () => void
   backend: Pick<
     DirektverkaufBackend,
     'direktverkaufStornieren' | 'kassenbelegDrucken'
@@ -55,6 +59,8 @@ interface DirektverkaufHistorieProps {
 export function DirektverkaufHistorie({
   historie,
   historieLoading,
+  historieError,
+  onErneutVersuchen,
   backend,
   onErfolg,
 }: DirektverkaufHistorieProps) {
@@ -84,6 +90,18 @@ export function DirektverkaufHistorie({
         'Kassenbeleg in die Druckwarteschlange eingereiht.',
       )
     })
+  }
+
+  // „Noch keine Direktverkäufe" wäre bei einem Ladefehler eine Falschaussage
+  // über die eigene Kassensitzung.
+  if (historieError) {
+    return (
+      <LadefehlerAlert
+        titel="Historie konnte nicht geladen werden"
+        onErneutVersuchen={onErneutVersuchen}
+        className="my-4"
+      />
+    )
   }
 
   if (historieLoading) {
