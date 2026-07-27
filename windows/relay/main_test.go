@@ -268,7 +268,66 @@ func TestVerarbeiteZyklusGruppiertUndHaeltReihenfolge(t *testing.T) {
 	}
 }
 
-func TestVerarbeiteZyklusSkipNachErstfehler(t *testing.T) {
+// barriereDrucker blockiert jede Gruppen-Zustellung, bis alle erwarteten Gruppen
+// gestartet sind. Werden die Gruppen sequenziell verarbeitet, erreicht keine die
+// Barriere rechtzeitig und der Test schlägt fehl, statt dauerhaft zu blockieren.
+type barriereDrucker struct {
+	mu         sync.Mutex
+	ausstehend int
+	verpasst   int
+	alleDa     chan struct{}
+}
+
+func neuerBarriereDrucker(gruppen int) *barriereDrucker {
+	return &barriereDrucker{ausstehend: gruppen, alleDa: make(chan struct{})}
+}
+
+func (b *barriereDrucker) zustelle(_ string, auftraege []DruckAuftrag) ([]int, *fehlversuch) {
+	b.mu.Lock()
+	b.ausstehend--
+	if b.ausstehend == 0 {
+		close(b.alleDa)
+	}
+	b.mu.Unlock()
+
+	select {
+	case <-b.alleDa:
+	case <-time.After(2 * time.Second):
+		b.mu.Lock()
+		b.verpasst++
+		b.mu.Unlock()
+	}
+	return auftragsIDs(auftraege), nil
+}
+
+func (b *barriereDrucker) verpassteBarrieren() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.verpasst
+}
+
+func TestVerarbeiteZyklusStelltGruppenParallelZu(t *testing.T) {
+	// Eine Gruppe wartet bis zu quittungBasis + n*quittungProBon auf ihre
+	// Quittung; liefen die Gruppen nacheinander, blockierte ein stummer Drucker
+	// alle anderen Stationen für diese Spanne.
+	auftraege := []DruckAuftrag{
+		{ID: 1, ZielIP: "10.0.0.1"},
+		{ID: 2, ZielIP: "10.0.0.2"},
+		{ID: 3, ZielIP: "10.0.0.3"},
+	}
+	drucker := neuerBarriereDrucker(3)
+
+	ergebnis := verarbeiteZyklus(auftraege, drucker.zustelle)
+
+	if got := drucker.verpassteBarrieren(); got != 0 {
+		t.Fatalf("%d Gruppen liefen nicht parallel", got)
+	}
+	if want := []int{1, 2, 3}; !reflect.DeepEqual(ergebnis.gedruckteIDs, want) {
+		t.Fatalf("gedruckteIDs: got %v, want %v", ergebnis.gedruckteIDs, want)
+	}
+}
+
+func TestVerarbeiteZyklusFehlerEinerGruppeBetrifftDieAnderenNicht(t *testing.T) {
 	auftraege := []DruckAuftrag{
 		{ID: 1, ZielIP: "10.0.0.1"},
 		{ID: 2, ZielIP: "10.0.0.1"},
@@ -364,22 +423,26 @@ func TestFuehreZyklusAusGibtMeldefehlerWeiter(t *testing.T) {
 	}
 }
 
-// Gekürzte Quittungs-Timeouts: die Tests sollen nicht auf echte Druckzeiten
-// warten. In Produktion gelten quittungBasisTimeout/quittungProBonTimeout.
-const (
-	testQuittungBasis  = 50 * time.Millisecond
-	testQuittungProBon = 10 * time.Millisecond
-)
+// Gekürzte Zustell-Timeouts: die Tests sollen nicht auf echte Drucker- und
+// Netzzeiten warten. In Produktion gilt produktionsTimeouts.
+var testTimeouts = zustellTimeouts{
+	papier:         20 * time.Millisecond,
+	spuelen:        40 * time.Millisecond,
+	quittungBasis:  50 * time.Millisecond,
+	quittungProBon: 10 * time.Millisecond,
+}
 
 const testZielIP = "10.0.0.1"
 
+// papierOK ist die Papierstatus-Antwort eines Druckers mit Papier.
+var papierOK = []byte{0x00}
+
 // druckerOptionen konfiguriert das Verhalten des Test-Druckers.
 type druckerOptionen struct {
-	antwortetAufPapierstatus bool // beantwortet DLE EOT n=4
-	papierstatus             byte // Antwort auf DLE EOT (0x60 = Papier leer)
-	antwortetAufQuittung     bool // beantwortet GS r 1
-	schliesstVorQuittung     bool // schließt die Verbindung, sobald GS r 1 eintrifft
-	nurEineVerbindung        bool // weist jede zusätzliche gleichzeitige Verbindung sofort ab
+	papierstatusAntwort      []byte        // Antwort auf DLE EOT n=4 (leer = keine Antwort)
+	papierstatusVerzoegerung time.Duration // Wartezeit vor der Papierstatus-Antwort
+	antwortetAufQuittung     bool          // beantwortet GS r 1
+	schliesstVorQuittung     bool          // schließt die Verbindung, sobald GS r 1 eintrifft
 }
 
 // testDrucker ist ein echter lokaler TCP-Listener als Drucker-Ersatz: er zählt
@@ -394,7 +457,6 @@ type testDrucker struct {
 	mu           sync.Mutex
 	verbindungen int
 	empfangen    [][]byte
-	aktiv        bool
 }
 
 func starteTestDrucker(t *testing.T, opt druckerOptionen) *testDrucker {
@@ -430,16 +492,8 @@ func (d *testDrucker) akzeptiere() {
 
 		d.mu.Lock()
 		d.verbindungen++
-		belegt := d.aktiv
-		d.aktiv = true
 		d.mu.Unlock()
 
-		if belegt && d.opt.nurEineVerbindung {
-			// Bondrucker mit Ethernet-Modul nehmen typischerweise genau eine
-			// Verbindung gleichzeitig an und weisen jede weitere sofort ab.
-			_ = conn.Close()
-			continue
-		}
 		go d.bediene(conn)
 	}
 }
@@ -447,9 +501,6 @@ func (d *testDrucker) akzeptiere() {
 func (d *testDrucker) bediene(conn net.Conn) {
 	defer func() {
 		_ = conn.Close()
-		d.mu.Lock()
-		d.aktiv = false
-		d.mu.Unlock()
 		d.abgeschlossen <- struct{}{}
 	}()
 
@@ -461,8 +512,9 @@ func (d *testDrucker) bediene(conn net.Conn) {
 			empfangen := d.merke(spur, byteBuf[0])
 			switch {
 			case bytes.HasSuffix(empfangen, dlePapierstatus):
-				if d.opt.antwortetAufPapierstatus {
-					_, _ = conn.Write([]byte{d.opt.papierstatus})
+				if len(d.opt.papierstatusAntwort) > 0 {
+					time.Sleep(d.opt.papierstatusVerzoegerung)
+					_, _ = conn.Write(d.opt.papierstatusAntwort)
 				}
 			case bytes.HasSuffix(empfangen, gsUebertragungsstatus):
 				if d.opt.schliesstVorQuittung {
@@ -544,13 +596,16 @@ func erwarteterDatenstrom(anzahlBons int) []byte {
 }
 
 func TestZustelleGruppeNutztEineVerbindungFuerAlleBons(t *testing.T) {
+	// Regression auf das gemeldete Fehlerbild: Bondrucker mit Ethernet-Modul
+	// nehmen typischerweise genau eine Verbindung gleichzeitig an und weisen
+	// jede weitere ab; früher gingen die Bons 2..6 dabei verloren.
 	drucker := starteTestDrucker(t, druckerOptionen{
-		antwortetAufPapierstatus: true,
-		antwortetAufQuittung:     true,
+		papierstatusAntwort:  papierOK,
+		antwortetAufQuittung: true,
 	})
 	auftraege := testAuftraege(6)
 
-	gedruckte, fehler := zustelleGruppe(drucker.verbinde, testQuittungBasis, testQuittungProBon)(testZielIP, auftraege)
+	gedruckte, fehler := zustelleGruppe(drucker.verbinde, testTimeouts)(testZielIP, auftraege)
 	drucker.warteAufAbschluss(t)
 
 	if want := []int{1, 2, 3, 4, 5, 6}; !reflect.DeepEqual(gedruckte, want) {
@@ -567,106 +622,155 @@ func TestZustelleGruppeNutztEineVerbindungFuerAlleBons(t *testing.T) {
 	}
 }
 
-func TestZustelleGruppeGegenDruckerMitNurEinerVerbindung(t *testing.T) {
-	// Regression auf das gemeldete Fehlerbild: der Drucker nimmt nur eine
-	// Verbindung gleichzeitig an; früher gingen die Bons 2..6 dabei verloren.
-	drucker := starteTestDrucker(t, druckerOptionen{
-		antwortetAufPapierstatus: true,
-		antwortetAufQuittung:     true,
-		nurEineVerbindung:        true,
-	})
-	auftraege := testAuftraege(6)
+func TestStelleGruppeZuMeldetDenQuittungsAusgang(t *testing.T) {
+	// Der Quittungs-Ausgang ist das einzige Diagnosemittel im Log, um nach einem
+	// Einsatz zu erkennen, ob der Drucker GS r beantwortet.
+	tests := []struct {
+		name          string
+		opt           druckerOptionen
+		wantAusgang   string
+		wantGedruckte []int
+		wantFehlerID  int // 0 = kein Fehlversuch erwartet
+	}{
+		{
+			name:          "Antwort auf GS r bestaetigt die ganze Gruppe",
+			opt:           druckerOptionen{papierstatusAntwort: papierOK, antwortetAufQuittung: true},
+			wantAusgang:   ausgangBestaetigt,
+			wantGedruckte: []int{1, 2, 3},
+		},
+		{
+			// Drucker ohne GS-r-Unterstützung: keine Antwort ist ein Lese-Timeout
+			// und darf die Gruppe nicht dauerhaft unbenutzbar machen.
+			name:          "ohne Antwort auf GS r gilt die Gruppe trotzdem als zugestellt",
+			opt:           druckerOptionen{papierstatusAntwort: papierOK},
+			wantAusgang:   ausgangUnbeantwortet,
+			wantGedruckte: []int{1, 2, 3},
+		},
+		{
+			name:         "Verbindungsabbruch vor der Quittung bestaetigt nichts",
+			opt:          druckerOptionen{papierstatusAntwort: papierOK, schliesstVorQuittung: true},
+			wantAusgang:  ausgangAbgebrochen,
+			wantFehlerID: 1,
+		},
+		{
+			// Mehrbytige Papierstatus-Antwort (z. B. bei aktivem Automatic Status
+			// Back): das überzählige Byte darf nicht als Quittung durchgehen.
+			name:          "zweites Byte der Papierstatus-Antwort quittiert nicht",
+			opt:           druckerOptionen{papierstatusAntwort: []byte{0x00, 0x00}},
+			wantAusgang:   ausgangUnbeantwortet,
+			wantGedruckte: []int{1, 2, 3},
+		},
+	}
 
-	gedruckte, fehler := zustelleGruppe(drucker.verbinde, testQuittungBasis, testQuittungProBon)(testZielIP, auftraege)
-	drucker.warteAufAbschluss(t)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			drucker := starteTestDrucker(t, tt.opt)
 
-	if want := []int{1, 2, 3, 4, 5, 6}; !reflect.DeepEqual(gedruckte, want) {
-		t.Fatalf("gedruckte: got %v, want %v", gedruckte, want)
-	}
-	if fehler != nil {
-		t.Fatalf("fehler: got %+v, want nil", fehler)
-	}
-	if got := drucker.anzahlVerbindungen(); got != 1 {
-		t.Fatalf("TCP-Verbindungen: got %d, want 1", got)
-	}
-	if got, want := drucker.empfangeneBytes(0), erwarteterDatenstrom(6); !bytes.Equal(got, want) {
-		t.Fatalf("Datenstrom: got %q, want %q", got, want)
+			ergebnis := stelleGruppeZu(drucker.verbinde, testTimeouts, testZielIP, testAuftraege(3))
+			drucker.warteAufAbschluss(t)
+
+			if ergebnis.ausgang != tt.wantAusgang {
+				t.Fatalf("ausgang: got %q, want %q", ergebnis.ausgang, tt.wantAusgang)
+			}
+			if !reflect.DeepEqual(ergebnis.gedruckteIDs, tt.wantGedruckte) {
+				t.Fatalf("gedruckteIDs: got %v, want %v", ergebnis.gedruckteIDs, tt.wantGedruckte)
+			}
+			if tt.wantFehlerID == 0 {
+				if ergebnis.fehler != nil {
+					t.Fatalf("fehler: got %+v, want nil", ergebnis.fehler)
+				}
+				return
+			}
+			if ergebnis.fehler == nil || ergebnis.fehler.ID != tt.wantFehlerID {
+				t.Fatalf("fehler: got %+v, want Fehlversuch auf Auftrag %d", ergebnis.fehler, tt.wantFehlerID)
+			}
+			if !strings.Contains(ergebnis.fehler.Fehler, "quittung") {
+				t.Fatalf("Fehlermeldung: got %q, want Hinweis auf die Quittung", ergebnis.fehler.Fehler)
+			}
+		})
 	}
 }
 
-func TestZustelleGruppeOhneQuittungsantwortGiltAlsZugestellt(t *testing.T) {
-	// Drucker ohne GS-r-Unterstützung: keine Antwort ist ein Lese-Timeout und
-	// darf die Gruppe nicht dauerhaft unbenutzbar machen.
-	drucker := starteTestDrucker(t, druckerOptionen{antwortetAufPapierstatus: true})
+func TestStelleGruppeZuVerwirftVerspaetetePapierstatusAntwort(t *testing.T) {
+	// Antwortet ein langsamer Drucker erst nach dem Papierstatus-Timeout, liegt
+	// sein Byte noch im Empfangspuffer, wenn die Quittung eingeholt wird. Es darf
+	// die Gruppe nicht bestätigen — der Drucker hat nichts verarbeitet.
+	drucker := starteTestDrucker(t, druckerOptionen{
+		papierstatusAntwort:      papierOK,
+		papierstatusVerzoegerung: 3 * testTimeouts.papier,
+	})
+	timeouts := testTimeouts
+	timeouts.spuelen = 300 * time.Millisecond
+
+	ergebnis := stelleGruppeZu(drucker.verbinde, timeouts, testZielIP, testAuftraege(3))
+	drucker.warteAufAbschluss(t)
+
+	if ergebnis.ausgang != ausgangUnbeantwortet {
+		t.Fatalf("ausgang: got %q, want %q", ergebnis.ausgang, ausgangUnbeantwortet)
+	}
+	if want := []int{1, 2, 3}; !reflect.DeepEqual(ergebnis.gedruckteIDs, want) {
+		t.Fatalf("gedruckteIDs: got %v, want %v", ergebnis.gedruckteIDs, want)
+	}
+}
+
+func TestZustelleGruppeUngueltigesBase64BrichtDieGruppeAb(t *testing.T) {
+	drucker := starteTestDrucker(t, druckerOptionen{
+		papierstatusAntwort:  papierOK,
+		antwortetAufQuittung: true,
+	})
 	auftraege := testAuftraege(3)
+	auftraege[1].Payload = "kein base64!"
 
-	gedruckte, fehler := zustelleGruppe(drucker.verbinde, testQuittungBasis, testQuittungProBon)(testZielIP, auftraege)
-	drucker.warteAufAbschluss(t)
-
-	if want := []int{1, 2, 3}; !reflect.DeepEqual(gedruckte, want) {
-		t.Fatalf("gedruckte: got %v, want %v", gedruckte, want)
-	}
-	if fehler != nil {
-		t.Fatalf("fehler: got %+v, want nil", fehler)
-	}
-	if got, want := drucker.empfangeneBytes(0), erwarteterDatenstrom(3); !bytes.Equal(got, want) {
-		t.Fatalf("Datenstrom: got %q, want %q", got, want)
-	}
-}
-
-func TestZustelleGruppeVerbindungsabbruchVorQuittungBestaetigtNichts(t *testing.T) {
-	drucker := starteTestDrucker(t, druckerOptionen{
-		antwortetAufPapierstatus: true,
-		schliesstVorQuittung:     true,
-	})
-	auftraege := testAuftraege(6)
-
-	gedruckte, fehler := zustelleGruppe(drucker.verbinde, testQuittungBasis, testQuittungProBon)(testZielIP, auftraege)
+	gedruckte, fehler := zustelleGruppe(drucker.verbinde, testTimeouts)(testZielIP, auftraege)
 	drucker.warteAufAbschluss(t)
 
 	if len(gedruckte) != 0 {
 		t.Fatalf("gedruckte: got %v, want none", gedruckte)
 	}
-	if fehler == nil || fehler.ID != 1 {
-		t.Fatalf("fehler: got %+v, want genau einen auf Auftrag 1", fehler)
+	if fehler == nil || fehler.ID != 2 {
+		t.Fatalf("fehler: got %+v, want genau einen auf Auftrag 2", fehler)
 	}
-	if !strings.Contains(fehler.Fehler, "quittung") {
-		t.Fatalf("Fehlermeldung: got %q, want Hinweis auf die Quittung", fehler.Fehler)
+	if !strings.Contains(fehler.Fehler, "Base64") {
+		t.Fatalf("Fehlermeldung: got %q, want Hinweis auf Base64", fehler.Fehler)
+	}
+	// Bon 1 ging noch raus, danach nichts mehr — auch keine Quittungsabfrage.
+	want := append([]byte(nil), dlePapierstatus...)
+	want = append(want, bonDaten(1)...)
+	if got := drucker.empfangeneBytes(0); !bytes.Equal(got, want) {
+		t.Fatalf("Datenstrom: got %q, want %q", got, want)
 	}
 }
 
-// schreibfehlerConn bricht beim n-ten Schreibvorgang ab — so lässt sich ein
-// Drucker simulieren, der mitten in der Gruppe keine Daten mehr annimmt.
-// Reihenfolge der Schreibvorgänge: 1 = Papierstatus, 2..n+1 = Bons, danach die
-// Quittung.
+// schreibfehlerConn lässt genau den Schreibvorgang scheitern, dessen Inhalt
+// fehlerBeiInhalt entspricht — so lässt sich ein Drucker simulieren, der mitten
+// in der Gruppe keine Daten mehr annimmt, ohne von der Zahl der Schreibvorgänge
+// abzuhängen.
 type schreibfehlerConn struct {
 	net.Conn
-	fehlerBeiSchreibvorgang int
-	schreibvorgaenge        int
+	fehlerBeiInhalt []byte
 }
 
 func (c *schreibfehlerConn) Write(b []byte) (int, error) {
-	c.schreibvorgaenge++
-	if c.schreibvorgaenge == c.fehlerBeiSchreibvorgang {
+	if bytes.Equal(b, c.fehlerBeiInhalt) {
 		return 0, errors.New("verbindung abgebrochen")
 	}
 	return c.Conn.Write(b)
 }
 
 func TestZustelleGruppeSchreibfehlerMeldetNurDenBetroffenenBon(t *testing.T) {
-	drucker := starteTestDrucker(t, druckerOptionen{antwortetAufPapierstatus: true})
+	drucker := starteTestDrucker(t, druckerOptionen{papierstatusAntwort: papierOK})
 	auftraege := testAuftraege(6)
 
-	// Schreibvorgang 4 ist Bon 3 (1 = Papierstatus, 2 = Bon 1, 3 = Bon 2).
+	// Bon 3 lässt sich nicht mehr schreiben.
 	verbinde := func(zielIP string) (net.Conn, error) {
 		conn, err := drucker.verbinde(zielIP)
 		if err != nil {
 			return nil, err
 		}
-		return &schreibfehlerConn{Conn: conn, fehlerBeiSchreibvorgang: 4}, nil
+		return &schreibfehlerConn{Conn: conn, fehlerBeiInhalt: bonDaten(3)}, nil
 	}
 
-	gedruckte, fehler := zustelleGruppe(verbinde, testQuittungBasis, testQuittungProBon)(testZielIP, auftraege)
+	gedruckte, fehler := zustelleGruppe(verbinde, testTimeouts)(testZielIP, auftraege)
 	drucker.warteAufAbschluss(t)
 
 	if len(gedruckte) != 0 {
@@ -688,13 +792,10 @@ func TestZustelleGruppeSchreibfehlerMeldetNurDenBetroffenenBon(t *testing.T) {
 }
 
 func TestZustelleGruppePapierLeerSendetKeinenBon(t *testing.T) {
-	drucker := starteTestDrucker(t, druckerOptionen{
-		antwortetAufPapierstatus: true,
-		papierstatus:             0x60,
-	})
+	drucker := starteTestDrucker(t, druckerOptionen{papierstatusAntwort: []byte{0x60}})
 	auftraege := testAuftraege(6)
 
-	gedruckte, fehler := zustelleGruppe(drucker.verbinde, testQuittungBasis, testQuittungProBon)(testZielIP, auftraege)
+	gedruckte, fehler := zustelleGruppe(drucker.verbinde, testTimeouts)(testZielIP, auftraege)
 	drucker.warteAufAbschluss(t)
 
 	if len(gedruckte) != 0 {
@@ -717,7 +818,7 @@ func TestZustelleGruppeOhnePapierstatusAntwortDrucktTrotzdem(t *testing.T) {
 	drucker := starteTestDrucker(t, druckerOptionen{antwortetAufQuittung: true})
 	auftraege := testAuftraege(2)
 
-	gedruckte, fehler := zustelleGruppe(drucker.verbinde, testQuittungBasis, testQuittungProBon)(testZielIP, auftraege)
+	gedruckte, fehler := zustelleGruppe(drucker.verbinde, testTimeouts)(testZielIP, auftraege)
 	drucker.warteAufAbschluss(t)
 
 	if want := []int{1, 2}; !reflect.DeepEqual(gedruckte, want) {
@@ -734,7 +835,7 @@ func TestZustelleGruppeNichtErreichbarerDrucker(t *testing.T) {
 	}
 	auftraege := testAuftraege(3)
 
-	gedruckte, fehler := zustelleGruppe(verbinde, testQuittungBasis, testQuittungProBon)(testZielIP, auftraege)
+	gedruckte, fehler := zustelleGruppe(verbinde, testTimeouts)(testZielIP, auftraege)
 
 	if len(gedruckte) != 0 {
 		t.Fatalf("gedruckte: got %v, want none", gedruckte)
@@ -751,7 +852,7 @@ func TestZustelleGruppeLeereGruppeVerbindetNicht(t *testing.T) {
 		return nil, errors.New("darf nicht passieren")
 	}
 
-	gedruckte, fehler := zustelleGruppe(verbinde, testQuittungBasis, testQuittungProBon)(testZielIP, nil)
+	gedruckte, fehler := zustelleGruppe(verbinde, testTimeouts)(testZielIP, nil)
 
 	if verbunden {
 		t.Fatalf("leere Gruppe hat eine Verbindung geöffnet")
