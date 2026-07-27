@@ -128,12 +128,23 @@ Self-Join innerhalb derselben Kassensitzung:
   betroffen.
 
 `zahlungId` und `verkaufId` sind serverseitig erzeugte UUIDs, die Auflösung ist
-deterministisch. Eine Positions-ID ist ebenfalls serverseitig erzeugt und
-stammt immer aus genau einem `bestellung-aufgenommen`-Event; eine Umbuchung
-verschiebt die Position auf einen anderen Tisch, ohne ihre ID zu ändern, sodass
-der Besteller auch nach einer Umbuchung der ursprüngliche bleibt — fachlich
-genau richtig. Lässt sich ein Verweis wider Erwarten nicht auflösen, fällt die
-Zeile auf den Akteur zurück, statt ohne Zuordnung zu bleiben.
+deterministisch. Eine Positions-ID ist ebenfalls serverseitig erzeugt und stammt
+immer aus genau einem `bestellung-aufgenommen`-Event. Lässt sich ein Verweis
+nicht auflösen, fällt die Zeile auf den Akteur zurück, statt ohne Zuordnung zu
+bleiben.
+
+**Grenzfall Umbuchung (offene Entscheidung, hier bewusst nicht getroffen).** Die
+ursprüngliche Annahme, eine Umbuchung verschiebe die Position ohne Änderung
+ihrer ID, trifft nicht zu: `kasse.NewBestellungUmgebuchtEvents()` vergibt auf
+dem Zieltisch **frische** Positions-IDs, die in keinem
+`bestellung-aufgenommen`-Event vorkommen. Die Korrektur einer umgebuchten
+Position findet über ihre Positions-ID daher keinen Besteller und fällt nach der
+Regel oben auf den Akteur zurück. Zwei Auswege stehen offen — die Zuordnung auf
+den **Umbucher** (konsistent zum restlichen System: `tagBesteller()` stempelt bei
+der Umbuchung den Umbucher als Besteller auf die Zieltisch-Positionen, worauf
+offene Arbeit, Erledigt-Sicht und „eigene zuerst" bereits aufbauen) oder eine
+Abstammungs-Auflösung über die Umbuchungs-Event-Paare auf den ursprünglichen
+Besteller. Beides ist eine Produktentscheidung und nicht Teil dieser Umsetzung.
 
 Indizes auf `(data->>'zahlungId')` bzw. auf die Positions-IDs werden bewusst
 **nicht** angelegt: Das Datenvolumen einer Kassensitzung liegt im niedrigen
@@ -258,8 +269,9 @@ oder welche Zwischenfunktion das zustande kommt.
 - Geldneutrale Korrektur durch einen Dritten → Marker beim Besteller, kein
   Betrag; „Abzugeben" bleibt unverändert.
 - Korrektur über Positionen zweier Besteller → Marker bei beiden.
-- Korrektur einer umgebuchten Position → Marker beim ursprünglichen Besteller,
-  nicht beim Umbucher und nicht am Zieltisch aufgehängt.
+- Korrektur einer umgebuchten Position → dokumentiert den Rückfall auf den
+  Akteur, solange der Grenzfall Umbuchung offen ist (siehe „Grenzfall
+  Umbuchung").
 - Direktverkauf-Storno durch einen anderen Benutzer → Detailzeile nennt den
   ursprünglichen Verkäufer; keine Servicekraft-Summe verändert sich.
 - „Abzugeben" ist nie negativ — inklusive des Falls, dass eine Zahlung
