@@ -22,6 +22,9 @@ export const DirektverkaufTaetigenSchema = z.object({
 export type DirektverkaufTaetigen = z.infer<typeof DirektverkaufTaetigenSchema>
 
 export const DirektverkaufStornierenSchema = z.object({
+  // Client-erzeugter Schlüssel des fachlichen Vorgangs. Ein Wiederholversuch
+  // nach Verbindungsabbruch trägt denselben Schlüssel und bucht kein zweites Mal.
+  vorgangId: z.uuid(),
   verkaufId: z.uuid(),
   positionen: PositionRefSchema.array().min(1),
   kommentar: z.string().min(3).max(100),

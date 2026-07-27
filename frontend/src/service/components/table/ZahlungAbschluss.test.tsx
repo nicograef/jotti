@@ -1,9 +1,11 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
+import type { ZahlungKassieren } from '../../table/Zahlung'
 import { ZahlungAbschluss } from './ZahlungAbschluss'
 
 vi.mock('sonner', () => ({
@@ -28,6 +30,8 @@ const position: Position = {
   bestellerUserId: 1,
   bestellerName: 'Tester',
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 // Die feste Spalte (variant="spalte") ist container-neutral testbar: kein
 // Drawer, kein Dock.
@@ -93,7 +97,7 @@ describe('ZahlungAbschluss (Spalte)', () => {
     )
   })
 
-  it('kassiert mit genau einem Backend-Call und der erwarteten Nutzlast (ohne Schlüssel)', async () => {
+  it('kassiert mit genau einem Backend-Call und der erwarteten Nutzlast', async () => {
     const user = userEvent.setup()
     const { zahlungKassieren, zahlungKassiert } = renderSpalte()
 
@@ -103,11 +107,73 @@ describe('ZahlungAbschluss (Spalte)', () => {
       expect(zahlungKassieren).toHaveBeenCalledTimes(1)
     })
     expect(zahlungKassieren).toHaveBeenCalledWith({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      vorgangId: expect.stringMatching(UUID),
       tischId: 1,
       positionen: [{ positionId: position.positionId, menge: 2 }],
       kommentar: '',
     })
     expect(zahlungKassiert).toHaveBeenCalledTimes(1)
+  })
+
+  it('behält die vorgangId über einen Retry und wechselt sie beim neuen Vorgang', async () => {
+    const user = userEvent.setup()
+    const zahlungKassieren = vi
+      .fn<(z: ZahlungKassieren) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('kaputt'))
+      .mockResolvedValue(undefined)
+
+    function Harness() {
+      const [leer, setLeer] = useState(false)
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setLeer((v) => !v)
+            }}
+          >
+            toggle
+          </button>
+          <ZahlungAbschluss
+            variant="spalte"
+            backend={{ zahlungKassieren }}
+            tisch={tisch}
+            positionenToPay={leer ? [] : [{ ...position, menge: 2 }]}
+            totalCents={leer ? 0 : 700}
+            restNachZahlungCents={leer ? 900 : 200}
+            zahlungKassiert={vi.fn()}
+          />
+        </>
+      )
+    }
+    render(<Harness />)
+
+    const kassieren = () => screen.getByRole('button', { name: 'Kassieren' })
+
+    await user.click(kassieren())
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = zahlungKassieren.mock.calls[0][0].vorgangId
+    expect(ersterKey).toMatch(UUID)
+
+    // Wiederholversuch desselben Vorgangs: derselbe Schlüssel, der Server bucht
+    // daher kein zweites Mal.
+    await user.click(kassieren())
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(2)
+    })
+    expect(zahlungKassieren.mock.calls[1][0].vorgangId).toBe(ersterKey)
+
+    // Neuer logischer Vorgang: Auswahl leeren (wie nach einem Erfolg) und neu füllen.
+    await user.click(screen.getByRole('button', { name: 'toggle' }))
+    await user.click(screen.getByRole('button', { name: 'toggle' }))
+    await user.click(kassieren())
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(3)
+    })
+    expect(zahlungKassieren.mock.calls[2][0].vorgangId).not.toBe(ersterKey)
   })
 
   it('löst bei Doppelklick keinen zweiten Aufruf aus', async () => {

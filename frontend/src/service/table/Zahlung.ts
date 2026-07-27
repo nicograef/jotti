@@ -18,6 +18,9 @@ export const ZahlungSchema = z.object({
 export type Zahlung = z.infer<typeof ZahlungSchema>
 
 export const ZahlungKassierenSchema = z.object({
+  // Client-erzeugter Schlüssel des fachlichen Vorgangs. Ein Wiederholversuch
+  // nach Verbindungsabbruch trägt denselben Schlüssel und bucht kein zweites Mal.
+  vorgangId: z.uuid(),
   tischId: z.number().int().min(1),
   positionen: PositionRefSchema.array().min(1),
   kommentar: z.string().max(100),

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -59,6 +59,19 @@ export function HistorieStornierungDrawer({
   // bereits das KommentarField dauerhaft, ein zweiter Hinweis wäre redundant.
   const hinweisGrund = noPositionenSelected ? 'Positionen auswählen' : null
 
+  // vorgangId je logischem Vorgang: neu, sobald eine Auswahl aus dem
+  // Leerzustand beginnt (und mit dem Mount des Drawers nach einem Abschluss).
+  // Ein Retry derselben Stornierung behält seinen Schlüssel und bucht daher
+  // serverseitig kein zweites Mal.
+  const [vorgangId, setVorgangId] = useState(() => crypto.randomUUID())
+  const warLeerRef = useRef(noPositionenSelected)
+  useEffect(() => {
+    if (warLeerRef.current && !noPositionenSelected) {
+      setVorgangId(crypto.randomUUID())
+    }
+    warLeerRef.current = noPositionenSelected
+  }, [noPositionenSelected])
+
   const { loading, run } = useActionSubmit({
     actionLabel: 'Stornierung ausführen',
     byCode: {
@@ -73,6 +86,7 @@ export function HistorieStornierungDrawer({
   const onSubmit = async () => {
     await run(async () => {
       await backend.stornierungErteilen({
+        vorgangId,
         tischId: tisch.id,
         positionen: toPositionRefs(selectedPositionen),
         kommentar,

@@ -46,9 +46,7 @@ interface ZahlungAbschlussProps {
 // Zielbetrag inkl. Trinkgeld, Rückgeld, Trinkgeld-Hinweis, Kommentar,
 // „Kassieren"). Trägt den vollständigen Eingabe-State und das Submit-/Fehler-/
 // Retry-Verhalten und wird sowohl im Handy-Drawer als auch in der festen Spalte
-// gerendert. Kein Client-Idempotenz-Schlüssel: die Idempotenz ist zustandsbasiert
-// (bereits bezahlte Positionen → position_nicht_bezahlbar), und der
-// Loading-Guard verhindert den Doppel-Submit.
+// gerendert. Der vorgangId-Lebenszyklus folgt dem von BestellungAbschluss.
 export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
   const [kommentar, setKommentar] = useState('')
   const [erhaltenEuro, setErhaltenEuro] = useState('')
@@ -57,13 +55,18 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
 
   const noPositionenSelected = props.positionenToPay.length === 0
 
+  // vorgangId je logischem Vorgang: neu, sobald eine Zusammenstellung aus dem
+  // Leerzustand beginnt, und erneut nach jedem erfolgreichen Abschluss (der die
+  // Auswahl leert). Ein Retry derselben Zahlung behält seinen Schlüssel und
+  // bucht daher serverseitig kein zweites Mal.
   // In der dauerhaften Spalte überlebt der Eingabe-State sonst über einen
-  // Auswahl-Reset hinweg. Beim Beginn einer neuen Zusammenstellung (aus dem
-  // Leerzustand) starten die Eingaben deshalb leer, damit nichts aus einer
-  // abgebrochenen Zahlung übertragen wird.
+  // Auswahl-Reset hinweg. Mit dem neuen Schlüssel starten die Eingaben deshalb
+  // leer, damit nichts aus einer abgebrochenen Zahlung übertragen wird.
+  const [vorgangId, setVorgangId] = useState(() => crypto.randomUUID())
   const warLeerRef = useRef(noPositionenSelected)
   useEffect(() => {
     if (warLeerRef.current && !noPositionenSelected) {
+      setVorgangId(crypto.randomUUID())
       setErhaltenEuro('')
       setZielbetragEuro('')
       setAndererAktiv(false)
@@ -96,6 +99,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
   const onSubmit = async () => {
     await run(async () => {
       await props.backend.zahlungKassieren({
+        vorgangId,
         tischId: props.tisch.id,
         positionen: toPositionRefs(props.positionenToPay),
         kommentar,

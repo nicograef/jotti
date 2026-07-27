@@ -1,8 +1,9 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
+import type { StornierungErteilen } from '../../table/Stornierung'
 import type { Tisch } from '../../table/Tisch'
 import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 
@@ -121,5 +122,56 @@ describe('HistorieStornierungDrawer', () => {
       'Falsch bestellt',
     )
     expect(button).toBeEnabled()
+  })
+
+  it('behält die vorgangId über einen Retry und wechselt sie beim neuen Vorgang', async () => {
+    const user = userEvent.setup()
+    const stornierungErteilen = vi
+      .fn<(s: StornierungErteilen) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('kaputt'))
+      .mockResolvedValue(undefined)
+    render(
+      <HistorieStornierungDrawer
+        backend={{ stornierungErteilen }}
+        tisch={tisch}
+        quelle={quelle}
+        onClose={vi.fn()}
+        onStornierungErteilt={vi.fn()}
+      />,
+    )
+
+    const erteilen = () =>
+      screen.getByRole('button', { name: 'Stornierung erteilen' })
+
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch bestellt',
+    )
+
+    await user.click(erteilen())
+    await waitFor(() => {
+      expect(stornierungErteilen).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = stornierungErteilen.mock.calls[0][0].vorgangId
+    expect(ersterKey).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    )
+
+    // Wiederholversuch desselben Vorgangs: derselbe Schlüssel.
+    await user.click(erteilen())
+    await waitFor(() => {
+      expect(stornierungErteilen).toHaveBeenCalledTimes(2)
+    })
+    expect(stornierungErteilen.mock.calls[1][0].vorgangId).toBe(ersterKey)
+
+    // Neuer logischer Vorgang: Auswahl leeren und neu füllen.
+    await user.click(screen.getByRole('button', { name: /verringern/ }))
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.click(erteilen())
+    await waitFor(() => {
+      expect(stornierungErteilen).toHaveBeenCalledTimes(3)
+    })
+    expect(stornierungErteilen.mock.calls[2][0].vorgangId).not.toBe(ersterKey)
   })
 })
