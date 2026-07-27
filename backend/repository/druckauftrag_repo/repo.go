@@ -117,6 +117,12 @@ func (r Repository) GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruck
 // hochgezaehlt. Beim MaxDruckversuche-ten Fehlversuch wechselt der Auftrag auf
 // fehlgeschlagen und wird nicht mehr ausgeliefert. Das Quittieren bleibt
 // idempotent (Status-Guard 'offen'): eine doppelt gemeldete ID aendert nichts.
+//
+// Der Backoff nach einem Fehlversuch bremst die gesamte Warteschlange der
+// Ziel-IP, nicht nur den gescheiterten Auftrag: alle offenen Auftraege dieses
+// Druckers warten dieselbe Zeit. Das erhaelt die Bon-Reihenfolge und verhindert,
+// dass der blockierte Auftrag von seinen Nachfolgern ueberholt wird und als
+// Einziger die Fehlversuche aufbraucht.
 func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
 	if len(gedruckteIDs) == 0 && len(fehlversuche) == 0 {
 		return nil
@@ -142,13 +148,15 @@ func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int,
 			if err != nil {
 				return db.Error(err)
 			}
-			// Solange der Auftrag offen bleibt, die Backoff-Faelligkeit fuer den
-			// naechsten Versuch setzen. Beim MaxDruckversuche-ten Fehlversuch ist er
-			// bereits fehlgeschlagen und wird nicht mehr ausgeliefert — kein Backoff.
+			// Solange der Auftrag offen bleibt, die Backoff-Faelligkeit fuer die
+			// gesamte Warteschlange seiner Ziel-IP setzen. Beim MaxDruckversuche-ten
+			// Fehlversuch ist er bereits fehlgeschlagen und aus dem Rennen — dann
+			// bekommt die Warteschlange keinen Backoff, der naechste Auftrag darf
+			// sofort versuchen.
 			if row.Status == "offen" {
 				wartezeit := backoffDauer(row.Versuche)
-				if err := qtx.SetDruckauftragFaelligkeit(ctx, dbgen.SetDruckauftragFaelligkeitParams{
-					ID:       f.ID,
+				if err := qtx.SetDruckauftragFaelligkeitFuerZielIP(ctx, dbgen.SetDruckauftragFaelligkeitFuerZielIPParams{
+					ZielIp:   row.ZielIp,
 					Sekunden: int(wartezeit / time.Second),
 				}); err != nil {
 					return db.Error(err)
