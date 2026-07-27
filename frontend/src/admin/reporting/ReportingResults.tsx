@@ -65,7 +65,7 @@ function Kennzahl({
 
 // ReportingResults ist der vollständige Tagesbericht ohne Tabs: formaler
 // Berichtskopf mit Metadaten und Drucken-Knopf, vier Kennzahl-Kacheln, die
-// Steuersatz-Tabelle und die zwei Mini-Listen (Umsatz pro Servicekraft,
+// Steuersatz-Tabelle und die zwei Mini-Listen (Abrechnung pro Servicekraft,
 // Stornierungen). Per Tailwind-print:-Klassen druckt nur diese Berichtsspalte.
 export function ReportingResults({
   result,
@@ -77,13 +77,7 @@ export function ReportingResults({
   loading: boolean
 }) {
   const summary = result.summary
-  const breakdowns = result.breakdowns
-  const stornoAnzahlByUserId = new Map(
-    breakdowns.stornierungenProServicekraft.map((s) => [
-      s.userId,
-      s.anzahlStornierungen,
-    ]),
-  )
+  const abrechnung = result.breakdowns.abrechnungProServicekraft
 
   if (loading) {
     return (
@@ -172,34 +166,39 @@ export function ReportingResults({
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
-          <div className="mb-2 text-sm font-semibold">
-            Umsatz pro Servicekraft
+          <div className="mb-1 text-sm font-semibold">
+            Abrechnung pro Servicekraft
           </div>
-          {breakdowns.umsatzProServicekraft.length === 0 ? (
+          <p className="mb-2 text-xs text-muted-foreground">
+            Abzugeben = Kassiert − Rücknahmen. Direktverkäufe sind nicht
+            enthalten.
+          </p>
+          {abrechnung.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Keine Zahlungen in dieser Kassensitzung.
+              Keine Zahlungen und keine Stornos in dieser Kassensitzung.
             </p>
           ) : (
             <div className="flex flex-col text-sm">
-              {breakdowns.umsatzProServicekraft.map((sk) => {
-                const stornoAnzahl = stornoAnzahlByUserId.get(sk.userId) ?? 0
-                return (
-                  <div
-                    key={sk.userId}
-                    className="flex items-center justify-between gap-2 border-b py-2 last:border-b-0"
-                  >
-                    <span className="flex flex-col">
-                      {formatServicekraft(sk.userName, sk.name)}
-                      {stornoAnzahl > 0 && (
-                        <StornoMarker anzahl={stornoAnzahl} />
-                      )}
+              {abrechnung.map((sk) => (
+                <div
+                  key={sk.userId}
+                  className="flex items-center justify-between gap-2 border-b py-2 last:border-b-0"
+                >
+                  <span className="flex flex-col gap-0.5">
+                    {formatServicekraft(sk.userName, sk.name)}
+                    <span className="text-xs text-muted-foreground">
+                      Kassiert {formatEuro(sk.kassiertCents)} · Rücknahmen{' '}
+                      {formatEuro(sk.ruecknahmenCents)}
                     </span>
-                    <span className="whitespace-nowrap font-semibold">
-                      {formatEuro(sk.zahlungenCents)}
-                    </span>
-                  </div>
-                )
-              })}
+                    {sk.anzahlStornierungen > 0 && (
+                      <StornoMarker anzahl={sk.anzahlStornierungen} />
+                    )}
+                  </span>
+                  <span className="whitespace-nowrap font-semibold">
+                    {formatEuro(sk.abzugebenCents)}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
         </div>

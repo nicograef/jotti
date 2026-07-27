@@ -11,25 +11,23 @@ export const SummarySchema = z.object({
   direktverkaufUmsatzCents: z.number().int(),
 })
 
-export const UmsatzServicekraftSchema = z.object({
+// AbrechnungServicekraft ist die Bargeld-Abrechnung des Tischservice einer
+// Servicekraft: kassiert, die ihr zugeordneten Rücknahmen und der daraus
+// folgende Abzugeben-Saldo (kassiertCents − ruecknahmenCents).
+// anzahlStornierungen ist der kombinierte Kontroll-Zähler über beide
+// Tisch-Storno-Arten. Direktverkäufe sind nicht enthalten.
+export const AbrechnungServicekraftSchema = z.object({
   userId: z.number().int(),
   userName: z.string(),
   name: z.string(),
-  zahlungenCents: z.number().int(),
-})
-export type UmsatzServicekraft = z.infer<typeof UmsatzServicekraftSchema>
-
-// StornierungServicekraft aggregiert die Stornierungen einer Servicekraft
-// (Anzahl und Betrag) — Kontroll-Signal für Live-Dashboard und Kassenberichte.
-export const StornierungServicekraftSchema = z.object({
-  userId: z.number().int(),
-  userName: z.string(),
-  name: z.string(),
+  kassiertCents: z.number().int(),
+  anzahlZahlungen: z.number().int(),
+  ruecknahmenCents: z.number().int(),
   anzahlStornierungen: z.number().int(),
-  stornierungenCents: z.number().int(),
+  abzugebenCents: z.number().int(),
 })
-export type StornierungServicekraft = z.infer<
-  typeof StornierungServicekraftSchema
+export type AbrechnungServicekraft = z.infer<
+  typeof AbrechnungServicekraftSchema
 >
 
 // ServicekraftRef ist die geteilte Servicekraft-Referenz der Storno-Detailzeile:
@@ -134,13 +132,17 @@ export const OffeneArbeitTischSchema = z.object({
 })
 export type OffeneArbeitTisch = z.infer<typeof OffeneArbeitTischSchema>
 
-// ServicekraftLive führt den kassierten Umsatz mit der offenen eigenen Arbeit
-// zusammen; erledigt ist true, wenn keine offene eigene Arbeit mehr besteht.
+// ServicekraftLive führt die Abrechnung einer Servicekraft mit ihrer offenen
+// eigenen Arbeit zusammen; erledigt ist true, wenn keine offene eigene Arbeit
+// mehr besteht.
 export const ServicekraftLiveSchema = z.object({
   userId: z.number().int(),
   userName: z.string(),
   name: z.string(),
-  zahlungenCents: z.number().int(),
+  kassiertCents: z.number().int(),
+  ruecknahmenCents: z.number().int(),
+  anzahlStornierungen: z.number().int(),
+  abzugebenCents: z.number().int(),
   offenCents: z.number().int(),
   offeneTische: z.array(OffeneArbeitTischSchema),
   erledigt: z.boolean(),
@@ -156,7 +158,6 @@ export const LiveReportingDataSchema = z.object({
   summary: SummarySchema,
   breakdowns: z.object({
     servicekraefte: z.array(ServicekraftLiveSchema),
-    stornierungenProServicekraft: z.array(StornierungServicekraftSchema),
   }),
   stornierungen: z.array(StornierungDetailSchema),
   produktStatistik: z.array(ProduktStatistikSchema),
@@ -168,8 +169,7 @@ export const ReportingDataSchema = z.object({
   metadaten: MetadatenSchema,
   summary: SummarySchema,
   breakdowns: z.object({
-    umsatzProServicekraft: z.array(UmsatzServicekraftSchema),
-    stornierungenProServicekraft: z.array(StornierungServicekraftSchema),
+    abrechnungProServicekraft: z.array(AbrechnungServicekraftSchema),
   }),
   umsatzProSteuersatz: z.array(UmsatzSteuersatzSchema),
   stornierungen: z.array(StornierungDetailSchema),

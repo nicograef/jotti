@@ -53,7 +53,9 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 	}
 
 	data.UmsatzProSteuersatz = computeUmsatzProSteuersatz(data.UmsatzProSteuersatz)
-	data.Breakdowns.StornierungenProServicekraft = aggregateStornierungenProServicekraft(data.Stornierungen)
+	data.Breakdowns.AbrechnungProServicekraft = aggregateAbrechnungProServicekraft(
+		data.Breakdowns.AbrechnungProServicekraft, data.Stornierungen,
+	)
 
 	zeilen, err := q.ReportingRepo.GetProduktStatistik(ctx, kassensitzungNr)
 	if err != nil {
@@ -66,29 +68,62 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 	return data, nil
 }
 
-// aggregateStornierungenProServicekraft fasst die Storno-Detailzeilen pro
-// Servicekraft zusammen (Anzahl und Betrag) — als Kontroll-Signal fürs
-// Admin-Dashboard. Die Reihenfolge folgt dem ersten Auftreten in der
-// Detail-Liste (stabil). Die Summen entsprechen den Storno-Kennzahlen der
-// Summary, weil beide dieselben Storno-Events auswerten.
-func aggregateStornierungenProServicekraft(stornierungen []reporting.StornierungDetail) []reporting.StornierungServicekraft {
-	out := []reporting.StornierungServicekraft{}
-	indexByUserID := make(map[int]int, len(stornierungen))
+// aggregateAbrechnungProServicekraft führt die kassierten Tischzahlungen (nach
+// Akteur) mit den Storno-Detailzeilen (nach Storno-Zuordnung) zur Abrechnung pro
+// Servicekraft zusammen: Eine Rücknahme mindert das Abzugeben der Servicekraft,
+// die die zurückgenommene Zahlung kassiert hat; eine geldneutrale Korrektur
+// erhöht nur den Storno-Zähler ihrer Besteller. Direktverkauf-Stornos bleiben
+// außen vor — der Direktverkauf hat eine eigene Kasse (die Kassiert-Zeilen
+// enthalten ihn ebenfalls nicht).
+//
+// Eine Servicekraft erscheint, sobald sie kassiert hat oder ihr ein Tisch-Storno
+// zugeordnet ist. Sortiert nach Abzugeben absteigend; bei Gleichstand bleibt die
+// Eingabereihenfolge erhalten (Kassiert absteigend, danach die reinen
+// Storno-Zeilen in Reihenfolge der Detail-Liste).
+func aggregateAbrechnungProServicekraft(
+	kassiert []reporting.AbrechnungServicekraft,
+	stornierungen []reporting.StornierungDetail,
+) []reporting.AbrechnungServicekraft {
+	out := make([]reporting.AbrechnungServicekraft, len(kassiert))
+	copy(out, kassiert)
+	indexByUserID := make(map[int]int, len(kassiert))
+	for i, k := range out {
+		indexByUserID[k.UserID] = i
+	}
+
 	for _, s := range stornierungen {
-		if idx, ok := indexByUserID[s.Akteur.UserID]; ok {
-			out[idx].AnzahlStornierungen++
-			out[idx].StornierungenCents += s.BetragCents
+		if s.Quelle == reporting.QuelleDirektverkauf {
 			continue
 		}
-		indexByUserID[s.Akteur.UserID] = len(out)
-		out = append(out, reporting.StornierungServicekraft{
-			UserID:              s.Akteur.UserID,
-			UserName:            s.Akteur.UserName,
-			Name:                s.Akteur.Name,
-			AnzahlStornierungen: 1,
-			StornierungenCents:  s.BetragCents,
-		})
+		for _, betroffen := range s.Betroffene {
+			idx, ok := indexByUserID[betroffen.UserID]
+			if !ok {
+				idx = len(out)
+				indexByUserID[betroffen.UserID] = idx
+				out = append(out, reporting.AbrechnungServicekraft{
+					UserID:   betroffen.UserID,
+					UserName: betroffen.UserName,
+					Name:     betroffen.Name,
+				})
+			}
+			out[idx].AnzahlStornierungen++
+			// Nur die kassenwirksame Warenrücknahme trägt einen Betrag. Sie ist
+			// über ihre zahlungId einwertig zugeordnet, der Betrag wird also
+			// genau einer Servicekraft angerechnet.
+			if s.BarRueckgabe {
+				out[idx].RuecknahmenCents += s.BetragCents
+			}
+		}
 	}
+
+	for i := range out {
+		out[i].AbzugebenCents = out[i].KassiertCents - out[i].RuecknahmenCents
+	}
+
+	sort.SliceStable(out, func(a, b int) bool {
+		return out[a].AbzugebenCents > out[b].AbzugebenCents
+	})
+
 	return out
 }
 
@@ -303,8 +338,10 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 		nameByTischID[t.ID] = t.Name
 	}
 
-	data.Servicekraefte = mergeServicekraefteLive(data.Breakdowns.UmsatzProServicekraft, sessions, nameByTischID)
-	data.Breakdowns.StornierungenProServicekraft = aggregateStornierungenProServicekraft(data.Stornierungen)
+	data.Breakdowns.AbrechnungProServicekraft = aggregateAbrechnungProServicekraft(
+		data.Breakdowns.AbrechnungProServicekraft, data.Stornierungen,
+	)
+	data.Servicekraefte = mergeServicekraefteLive(data.Breakdowns.AbrechnungProServicekraft, sessions, nameByTischID)
 
 	zeilen, err := q.ReportingRepo.GetProduktStatistik(ctx, ks.ZNr)
 	if err != nil {
@@ -317,28 +354,31 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 	return &data, nil
 }
 
-// mergeServicekraefteLive führt den kassierten Umsatz pro Servicekraft mit der
-// offenen eigenen Arbeit aus den Tisch-Sessions per user_id zusammen.
-// Servicekräfte mit kassiertem Umsatz erscheinen zuerst (in Umsatz-Reihenfolge),
+// mergeServicekraefteLive führt die Abrechnung pro Servicekraft mit der offenen
+// eigenen Arbeit aus den Tisch-Sessions per user_id zusammen. Servicekräfte mit
+// eigener Abrechnungszeile erscheinen zuerst (in Abrechnungs-Reihenfolge),
 // danach Personen mit ausschließlich offener Arbeit (aufsteigend nach UserID).
 func mergeServicekraefteLive(
-	umsatz []reporting.UmsatzServicekraft,
+	abrechnung []reporting.AbrechnungServicekraft,
 	sessions []kasse.TischSession,
 	nameByTischID map[int]string,
 ) []reporting.ServicekraftLive {
-	servicekraefte := make([]reporting.ServicekraftLive, len(umsatz))
-	indexByUserID := make(map[int]int, len(umsatz))
-	for i, u := range umsatz {
+	servicekraefte := make([]reporting.ServicekraftLive, len(abrechnung))
+	indexByUserID := make(map[int]int, len(abrechnung))
+	for i, a := range abrechnung {
 		servicekraefte[i] = reporting.ServicekraftLive{
-			UserID:          u.UserID,
-			UserName:        u.UserName,
-			Name:            u.Name,
-			ZahlungenCents:  u.ZahlungenCents,
-			AnzahlZahlungen: u.AnzahlZahlungen,
-			OffeneTische:    []reporting.OffeneArbeitTisch{},
-			Erledigt:        true,
+			UserID:              a.UserID,
+			UserName:            a.UserName,
+			Name:                a.Name,
+			KassiertCents:       a.KassiertCents,
+			AnzahlZahlungen:     a.AnzahlZahlungen,
+			RuecknahmenCents:    a.RuecknahmenCents,
+			AnzahlStornierungen: a.AnzahlStornierungen,
+			AbzugebenCents:      a.AbzugebenCents,
+			OffeneTische:        []reporting.OffeneArbeitTisch{},
+			Erledigt:            true,
 		}
-		indexByUserID[u.UserID] = i
+		indexByUserID[a.UserID] = i
 	}
 
 	for _, arbeit := range kasse.ComputeOffeneArbeitProServicekraft(sessions) {

@@ -18,7 +18,6 @@ afterEach(() => {
 
 function liveData(
   servicekraefte: LiveReportingData['breakdowns']['servicekraefte'],
-  stornierungenProServicekraft: LiveReportingData['breakdowns']['stornierungenProServicekraft'] = [],
   stornierungen: LiveReportingData['stornierungen'] = [],
   overrides: Partial<LiveReportingData> = {},
 ): LiveReportingData {
@@ -38,7 +37,7 @@ function liveData(
       anzahlDirektverkaeufe: 2,
       direktverkaufUmsatzCents: 800,
     },
-    breakdowns: { servicekraefte, stornierungenProServicekraft },
+    breakdowns: { servicekraefte },
     stornierungen,
     produktStatistik: [],
     ...overrides,
@@ -84,7 +83,10 @@ describe('LiveReportingSection — Übersicht', () => {
             userId: 7,
             userName: 'Anna',
             name: 'Anna A.',
-            zahlungenCents: 1500,
+            kassiertCents: 1500,
+            ruecknahmenCents: 0,
+            anzahlStornierungen: 0,
+            abzugebenCents: 1500,
             offenCents: 750,
             offeneTische: [
               { tischId: 3, tischName: 'Tisch 3' },
@@ -96,7 +98,10 @@ describe('LiveReportingSection — Übersicht', () => {
             userId: 9,
             userName: 'Cleo',
             name: '',
-            zahlungenCents: 900,
+            kassiertCents: 900,
+            ruecknahmenCents: 0,
+            anzahlStornierungen: 0,
+            abzugebenCents: 900,
             offenCents: 0,
             offeneTische: [],
             erledigt: true,
@@ -121,8 +126,57 @@ describe('LiveReportingSection — Übersicht', () => {
     expect(screen.getByText('Cleo')).toBeInTheDocument()
     expect(screen.getByText('Alles abgerechnet')).toBeInTheDocument()
 
-    // Der kassierte Betrag bleibt sichtbar.
+    // Abzugeben ist die Hauptzahl; ohne Rücknahme entspricht sie dem Kassierten.
     expect(screen.getByText('15,00 €')).toBeInTheDocument()
+    // Ohne Rücknahme bleibt die Zeile schlank: keine Kassiert-Nebenzeile.
+    expect(screen.queryByText(/Rücknahmen/)).not.toBeInTheDocument()
+  })
+
+  it('blendet die Rücknahmen nur bei einem Betrag ungleich null ein', () => {
+    render(
+      <LiveReportingSection
+        liveData={liveData([
+          {
+            userId: 7,
+            userName: 'Anna',
+            name: 'Anna A.',
+            kassiertCents: 2000,
+            ruecknahmenCents: 500,
+            anzahlStornierungen: 1,
+            abzugebenCents: 1500,
+            offenCents: 0,
+            offeneTische: [],
+            erledigt: true,
+          },
+          {
+            userId: 9,
+            userName: 'Cleo',
+            name: '',
+            kassiertCents: 900,
+            ruecknahmenCents: 0,
+            anzahlStornierungen: 0,
+            abzugebenCents: 900,
+            offenCents: 0,
+            offeneTische: [],
+            erledigt: true,
+          },
+        ])}
+        loading={false}
+        dataUpdatedAt={0}
+        onRefresh={noopRefresh}
+      />,
+    )
+
+    // Anna: Abzugeben als Hauptzahl, Rücknahmen erklären den Abzug.
+    expect(screen.getByText('15,00 €')).toBeInTheDocument()
+    expect(
+      screen.getByText('Kassiert 20,00 € · Rücknahmen 5,00 €'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('1 Storno')).toBeInTheDocument()
+
+    // Cleo ohne Rücknahme: genau eine Kassiert-Zeile im Team, ihre nicht.
+    expect(screen.getAllByText(/Rücknahmen/)).toHaveLength(1)
+    expect(screen.getByText('9,00 €')).toBeInTheDocument()
   })
 
   it('kürzt die Liste offener Tische nach fünf Einträgen und blendet den Rest ein', async () => {
@@ -135,7 +189,7 @@ describe('LiveReportingSection — Übersicht', () => {
 
     render(
       <LiveReportingSection
-        liveData={liveData([], [], [], {
+        liveData={liveData([], [], {
           offeneTische,
           offeneSaldiCents: 2800,
         })}
@@ -161,14 +215,18 @@ describe('LiveReportingSection — Übersicht', () => {
     render(
       <LiveReportingSection
         liveData={liveData(
-          [],
           [
             {
               userId: 3,
               userName: 'felix',
               name: 'Felix W.',
+              kassiertCents: 2000,
+              ruecknahmenCents: 500,
               anzahlStornierungen: 1,
-              stornierungenCents: 500,
+              abzugebenCents: 1500,
+              offenCents: 0,
+              offeneTische: [],
+              erledigt: true,
             },
           ],
           [
@@ -262,7 +320,7 @@ describe('LiveReportingSection — Verkäufe pro Produkt', () => {
   it('zeigt die Produkt-/Varianten-Statistik der offenen Sitzung', () => {
     render(
       <LiveReportingSection
-        liveData={liveData([], [], [], {
+        liveData={liveData([], [], {
           produktStatistik: [
             {
               kategorie: 'essen',
