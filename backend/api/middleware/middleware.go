@@ -161,7 +161,7 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 			limiter := getLimiter(ip)
 			if !limiter.Allow() {
 				logger.Warn().Str("ip", ip).Msg("Rate limit exceeded")
-				http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+				helper.SendTooManyRequests(w, "rate_limited")
 				return
 			}
 			next.ServeHTTP(w, r)

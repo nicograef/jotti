@@ -134,6 +134,37 @@ func TestRateLimitMiddleware_BlocksExceedingLimit(t *testing.T) {
 	}
 }
 
+// Die Limit-Antwort muss dem kanonischen JSON-Fehlerformat der API folgen
+// (`{"code":"rate_limited"}`), nicht Plain Text — sonst kann der Backend-Client
+// den Code nicht parsen und meldet dem Helfer fälschlich einen Serverfehler.
+func TestRateLimitMiddleware_AntwortFolgtJSONFehlerformat(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := RateLimitMiddleware(1)(handler)
+
+	for range 10 {
+		req := httptest.NewRequest(http.MethodPost, "/test", nil)
+		rec := httptest.NewRecorder()
+		middleware.ServeHTTP(rec, req)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/test", nil)
+	rec := httptest.NewRecorder()
+	middleware.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected status 429, got %d", rec.Code)
+	}
+	if contentType := rec.Header().Get("Content-Type"); contentType != "application/json" {
+		t.Errorf("expected Content-Type application/json, got %q", contentType)
+	}
+	if body := strings.TrimSpace(rec.Body.String()); body != `{"code":"rate_limited"}` {
+		t.Errorf("expected body %q, got %q", `{"code":"rate_limited"}`, body)
+	}
+}
+
 // Der Limiter-Key darf sich nicht über Client-kontrollierte X-Forwarded-For-Einträge
 // variieren lassen: Nur der LETZTE Eintrag (vom eigenen Reverse-Proxy angehängt) zählt.
 func TestRateLimitMiddleware_XForwardedForSpoofingUmgehtLimitNicht(t *testing.T) {
