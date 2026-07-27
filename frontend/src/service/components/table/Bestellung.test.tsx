@@ -69,6 +69,8 @@ describe('Bestellung Aktionsleiste', () => {
           tisch={tisch}
           products={[testProdukt]}
           productsLoading={false}
+          productsError={false}
+          onErneutVersuchen={vi.fn()}
           onErfolg={vi.fn()}
         />
       </ServiceDock>,
@@ -97,6 +99,8 @@ describe('Bestellung Aktionsleiste', () => {
         tisch={tisch}
         products={[testProdukt]}
         productsLoading={false}
+        productsError={false}
+        onErneutVersuchen={vi.fn()}
         onErfolg={vi.fn()}
       />,
     )
@@ -114,5 +118,31 @@ describe('Bestellung Aktionsleiste', () => {
     expect(
       screen.getByRole('button', { name: 'Bestellung aufnehmen' }),
     ).toBeEnabled()
+  })
+
+  it('zeigt bei einem Ladefehler den Ladefehler statt einer leeren Produktliste', async () => {
+    const onErneutVersuchen = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <BestellungHarness
+        backend={{ bestellungAufnehmen: vi.fn().mockResolvedValue(undefined) }}
+        tisch={tisch}
+        products={[]}
+        productsLoading={false}
+        productsError
+        onErneutVersuchen={onErneutVersuchen}
+        onErfolg={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.getByText('Produkte konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('Keine Produkte verfügbar'),
+    ).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+    expect(onErneutVersuchen).toHaveBeenCalledTimes(1)
   })
 })

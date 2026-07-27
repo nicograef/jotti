@@ -7,9 +7,14 @@ import { ProduktBackend } from './ProduktBackend'
 const produktBackend = new ProduktBackend(BackendSingleton)
 
 export function useAktiveProdukte() {
-  const { data = [], isPending } = useQuery({
+  const {
+    data = [],
+    isPending,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['aktive-produkte'],
     queryFn: () => produktBackend.getAktiveProdukte(),
   })
-  return { produkte: data, isPending }
+  return { produkte: data, isPending, isError, refetch }
 }

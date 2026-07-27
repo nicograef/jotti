@@ -1,3 +1,4 @@
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import type { MengenSteuerung } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
 
@@ -15,6 +16,9 @@ interface BestellungProps {
   tisch: Tisch
   products: Produkt[]
   productsLoading: boolean
+  productsError: boolean
+  // Lädt die Produkte nach einem Ladefehler erneut.
+  onErneutVersuchen: () => void
   // Bestell-Korb (Variante-ID → Menge), von TablePage gehoben, damit die
   // Auswahl das Aus- und Wiedereinhängen der Tab-Inhalte überlebt.
   mengenSteuerung: MengenSteuerung<number>
@@ -28,11 +32,25 @@ export function Bestellung({
   tisch,
   products,
   productsLoading,
+  productsError,
+  onErneutVersuchen,
   mengenSteuerung,
   onErfolg,
 }: BestellungProps) {
   const isMobile = useIsMobile()
   const { mengen, add, remove, reset } = mengenSteuerung
+
+  // Eine leere Produktliste behauptet, es gebe nichts zu bestellen — bei einem
+  // Ladefehler ist das falsch.
+  if (productsError) {
+    return (
+      <LadefehlerAlert
+        titel="Produkte konnten nicht geladen werden"
+        onErneutVersuchen={onErneutVersuchen}
+        className="mt-4"
+      />
+    )
+  }
 
   if (productsLoading) {
     return <ProductListSkeleton />

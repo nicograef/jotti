@@ -20,6 +20,7 @@ export function DirektverkaufPage() {
   const {
     historie,
     isPending: historieLoading,
+    isError: historieError,
     refetch: reloadHistorie,
   } = useDirektverkaufHistorie()
 
@@ -58,6 +59,10 @@ export function DirektverkaufPage() {
     <DirektverkaufHistorie
       historie={historie}
       historieLoading={historieLoading}
+      historieError={historieError}
+      onErneutVersuchen={() => {
+        void reloadHistorie()
+      }}
       backend={direktverkaufBackend}
       onErfolg={zeigeErfolg}
     />

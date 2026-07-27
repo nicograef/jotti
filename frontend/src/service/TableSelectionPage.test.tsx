@@ -12,10 +12,30 @@ vi.mock('react-router', () => ({
 
 let meineTische: TischSession[] = []
 let alleTische: AktiverTischMitFavorit[] = []
+// Fehlerzustand je Query der Seite, damit jeder der drei Pfade einzeln geprüft
+// werden kann.
+let fehler = {
+  meineTische: false,
+  alleTische: false,
+  uebersicht: false,
+}
+
+const reloadMeineTische = vi.fn()
+const reloadAlleTische = vi.fn()
+const reloadUebersicht = vi.fn()
 
 vi.mock('./table/hooks', () => ({
-  useMeineTischeState: () => ({ tische: meineTische, isPending: false }),
-  useAktiveTischeMitFavoriten: () => ({ tische: alleTische }),
+  useMeineTischeState: () => ({
+    tische: meineTische,
+    isPending: false,
+    isError: fehler.meineTische,
+    refetch: reloadMeineTische,
+  }),
+  useAktiveTischeMitFavoriten: () => ({
+    tische: alleTische,
+    isError: fehler.alleTische,
+    refetch: reloadAlleTische,
+  }),
   useEigeneUebersicht: () => ({
     uebersicht: {
       anzahlBestellungen: 0,
@@ -27,13 +47,17 @@ vi.mock('./table/hooks', () => ({
       abzugebenCents: 0,
     },
     isPending: false,
+    isError: fehler.uebersicht,
+    refetch: reloadUebersicht,
   }),
 }))
 
 // Kindkomponenten auf Stubs reduzieren: der Test prüft die Such-/Favoriten-Logik
-// der Seite, nicht das Rendern der Karten oder des Drawers.
+// der Seite, nicht das Rendern der Karten oder des Drawers. Der Karten-Stub
+// trägt einen Marker, damit prüfbar bleibt, dass er bei einem Ladefehler nicht
+// erscheint.
 vi.mock('./components/EigeneUebersicht', () => ({
-  EigeneUebersichtKarten: () => null,
+  EigeneUebersichtKarten: () => <div>Übersichtskarten</div>,
 }))
 vi.mock('./components/MeinTischCard', () => ({
   MeinTischCard: ({ state }: { state: TischSession }) => (
@@ -66,9 +90,57 @@ afterEach(() => {
   vi.clearAllMocks()
   meineTische = []
   alleTische = []
+  fehler = { meineTische: false, alleTische: false, uebersicht: false }
 })
 
 describe('TableSelectionPage', () => {
+  // Eine fehlgeschlagene Query darf nie als Leerzustand erscheinen: „Keine
+  // Tische markiert" ist für einen Helfer mit Favoriten eine Falschaussage.
+  it.each([
+    ['meineTische' as const],
+    ['alleTische' as const],
+    ['uebersicht' as const],
+  ])('zeigt bei Fehler der Query %s den Ladefehler', (query) => {
+    fehler[query] = true
+    render(<TableSelectionPage />)
+
+    expect(
+      screen.getByText('Tische konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Keine Tische markiert')).not.toBeInTheDocument()
+    // Auch die Übersichtskarten bleiben aus — 0 · 0,00 € wäre als
+    // Fehlerdarstellung genauso irreführend wie der leere Tischbereich.
+    expect(screen.queryByText('Übersichtskarten')).not.toBeInTheDocument()
+  })
+
+  it('lädt über „Erneut versuchen" neu und zeigt danach die Tische', async () => {
+    fehler.meineTische = true
+    const user = userEvent.setup()
+    const { rerender } = render(<TableSelectionPage />)
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+    expect(reloadMeineTische).toHaveBeenCalledTimes(1)
+
+    // Der Refetch war erfolgreich: die Query liefert wieder Daten.
+    fehler.meineTische = false
+    meineTische = [tischSession(1, 'Stammtisch', true)]
+    rerender(<TableSelectionPage />)
+
+    expect(screen.getByText('Stammtisch')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Tische konnten nicht geladen werden'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('zeigt ohne Fehler und ohne Favoriten den Leerzustand', () => {
+    render(<TableSelectionPage />)
+
+    expect(screen.getByText('Keine Tische markiert')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Tische konnten nicht geladen werden'),
+    ).not.toBeInTheDocument()
+  })
+
   it('zeigt bei leerem Suchfeld die Favoriten („Meine Tische")', () => {
     meineTische = [tischSession(1, 'Stammtisch', true)]
     alleTische = [
