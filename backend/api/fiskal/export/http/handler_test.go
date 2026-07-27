@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/fiskal/export/application"
+	"github.com/nicograef/jotti/backend/api/middleware"
 )
 
 type mockService struct {
@@ -82,6 +83,37 @@ func TestExportHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing
 
 	if !w.deadlineSet {
 		t.Fatal("expected SetWriteDeadline to be called")
+	}
+	if !w.deadlineBeforeWrite {
+		t.Fatal("expected the write deadline to be set before the first write")
+	}
+	if min := 5 * time.Minute; w.deadline.Before(before.Add(min)) {
+		t.Errorf("expected a write deadline at least %s in the future, got %s", min, w.deadline.Sub(before))
+	}
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+	if body := w.Body.String(); body != "zip-inhalt" {
+		t.Errorf("expected body %q, got %q", "zip-inhalt", body)
+	}
+}
+
+// In Produktion laeuft der Handler nie nackt: LoggingMiddleware umschliesst die
+// gesamte Routenkette (backend/app/app.go) und reicht den Handlern ihren
+// eigenen ResponseWriter-Wrapper. Die Frist muss auch durch diesen Wrapper
+// hindurch beim echten ResponseWriter ankommen — sonst bleibt die globale
+// 10-Sekunden-Frist wirksam und ein grosses DSFinV-K-Archiv reisst mitten im
+// ZIP ab. Der Test oben trifft den Handler direkt und wuerde das uebersehen.
+func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing.T) {
+	svc := &mockService{archiv: application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")}}
+	h := &Handler{Service: svc}
+
+	w := newDeadlineCapturingWriter()
+	before := time.Now()
+	performRequest(t, middleware.LoggingMiddleware(h.ExportHandler()).ServeHTTP, w, 0)
+
+	if !w.deadlineSet {
+		t.Fatal("expected SetWriteDeadline to reach the real ResponseWriter through the middleware chain")
 	}
 	if !w.deadlineBeforeWrite {
 		t.Fatal("expected the write deadline to be set before the first write")

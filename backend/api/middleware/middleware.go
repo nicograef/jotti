@@ -223,6 +223,18 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+// Unwrap gibt den umschlossenen ResponseWriter frei. http.ResponseController
+// sucht genau diese Methode, um an die Faehigkeiten des echten
+// net/http-ResponseWriters zu kommen (SetWriteDeadline, SetReadDeadline,
+// Flush): Das eingebettete Interface allein reicht sie NICHT weiter, weil sie
+// nicht zum Methodenset von http.ResponseWriter gehoeren. Ohne Unwrap
+// scheitert hinter dieser Middleware jeder Controller-Aufruf mit "feature not
+// supported" — und da LoggingMiddleware die gesamte Routenkette umschliesst
+// (backend/app/app.go), betraefe das jeden Handler.
+func (rw *responseWriter) Unwrap() http.ResponseWriter {
+	return rw.ResponseWriter
+}
+
 // UserGetter loads a user by ID; the JWT middleware uses it to verify that the
 // account behind a valid token is still active.
 type UserGetter interface {
