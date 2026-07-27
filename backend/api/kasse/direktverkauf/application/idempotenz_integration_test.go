@@ -31,6 +31,7 @@ func cleanDVDB(t *testing.T, db *sql.DB) {
 		"DELETE FROM kassensitzungen",
 		"DELETE FROM produkt_varianten",
 		"DELETE FROM produkte",
+		"DELETE FROM vorgang_idempotenz",
 		"DELETE FROM users",
 	}
 	for _, stmt := range stmts {
@@ -151,5 +152,64 @@ func TestDirektverkaufTaetigen_VersionskonfliktAndereVerkaufId_ErrConflict(t *te
 	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
 	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, ""); !errors.Is(err, ErrConflict) {
 		t.Errorf("erwartet ErrConflict, bekam: %v", err)
+	}
+}
+
+// TestDirektverkaufStornieren_DuplikatVorgangId_GenauEinEventUndSignaturauftrag: Zwei
+// identische Storno-Anfragen mit derselben vorgangId erzeugen genau ein
+// direktverkauf-storniert:v1-Event und genau einen zusätzlichen Signaturauftrag;
+// beide Aufrufe geben nil zurück (idempotenter Erfolg).
+func TestDirektverkaufStornieren_DuplikatVorgangId_GenauEinEventUndSignaturauftrag(t *testing.T) {
+	ctx, cmd, db, userID, ksNr, produktID, varianteID := setupDVIntegration(t)
+
+	verkaufID := uuid.New().String()
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
+	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, ""); err != nil {
+		t.Fatalf("direktverkauf: %v", err)
+	}
+
+	// Server-erzeugte positionId aus dem Verkaufs-Stream lesen.
+	subject := kasse.DirektverkaufSubject(ksNr, verkaufID)
+	events, err := cmd.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil || len(events) != 1 {
+		t.Fatalf("verkauf events lesen: %v (%d)", err, len(events))
+	}
+	var data struct {
+		Positionen []struct {
+			PositionID string `json:"positionId"`
+		} `json:"positionen"`
+	}
+	if err := json.Unmarshal(events[0].Data, &data); err != nil {
+		t.Fatalf("verkauf data unmarshal: %v", err)
+	}
+	refs := []kasse.PositionRef{{PositionID: data.Positionen[0].PositionID, Menge: 1}}
+
+	var auftraegeVorher int
+	if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege").Scan(&auftraegeVorher); err != nil {
+		t.Fatalf("tse_signaturauftraege zählen: %v", err)
+	}
+
+	vorgangID := uuid.New().String()
+	if err := cmd.DirektverkaufStornieren(ctx, userID, "test", vorgangID, verkaufID, refs, "Rueckgabe"); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+	if err := cmd.DirektverkaufStornieren(ctx, userID, "test", vorgangID, verkaufID, refs, "Rueckgabe"); err != nil {
+		t.Fatalf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
+	}
+
+	var eventCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal WHERE type = 'direktverkauf-storniert:v1'").Scan(&eventCount); err != nil {
+		t.Fatalf("kassenjournal zählen: %v", err)
+	}
+	if eventCount != 1 {
+		t.Errorf("erwartet 1 direktverkauf-storniert:v1-Event, gespeichert: %d", eventCount)
+	}
+
+	var auftraegeNachher int
+	if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege").Scan(&auftraegeNachher); err != nil {
+		t.Fatalf("tse_signaturauftraege zählen: %v", err)
+	}
+	if auftraegeNachher != auftraegeVorher+1 {
+		t.Errorf("erwartet genau 1 zusätzlichen Signaturauftrag, vorher %d, nachher %d", auftraegeVorher, auftraegeNachher)
 	}
 }

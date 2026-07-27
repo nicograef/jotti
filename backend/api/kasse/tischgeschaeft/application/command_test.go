@@ -27,6 +27,10 @@ import (
 
 const testKassensitzungNr = 1
 
+// testVorgangID ist der client-gelieferte Idempotenz-Schlüssel der buchenden
+// Vorgänge (Zahlung, Stornierung, Umbuchung) in diesen Tests.
+const testVorgangID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+
 var testOpenKS = &kasse.Kassensitzung{
 	ZNr:    testKassensitzungNr,
 	Status: kasse.KassensitzungOffen,
@@ -311,7 +315,7 @@ func TestZahlungKassieren_NonOrderedPosition(t *testing.T) {
 		{PositionID: "00000000-0000-0000-0000-000000000001", Menge: 1},
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "")
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testVorgangID, testActiveTisch.ID, fakeRefs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -338,7 +342,7 @@ func TestZahlungKassieren_DoublePayment(t *testing.T) {
 	}
 
 	// Try to pay again — should fail
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testVorgangID, testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -386,7 +390,7 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	err = command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+	err = command.ZahlungKassieren(ctx, 1, "Test User", testVorgangID, testActiveTisch.ID,
 		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
@@ -420,7 +424,7 @@ func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testVorgangID, testActiveTisch.ID,
 		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -481,7 +485,7 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 
 	refs := []kasse.PositionRef{{PositionID: posID, Menge: 1}}
 
-	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "Reklamation")
+	err := command.StornierungErteilen(ctx, 1, "Test User", testVorgangID, testActiveTisch.ID, refs, "Reklamation")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -532,7 +536,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 
 	refs := []kasse.PositionRef{{PositionID: posID, Menge: 1}}
 
-	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
+	err := command.StornierungErteilen(ctx, 1, "Test User", testVorgangID, testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtStornierbar {
 		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
@@ -560,7 +564,7 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 		{PositionID: "pos-1", Menge: 2},
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testVorgangID, testActiveTisch.ID, refs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -593,7 +597,7 @@ func TestZahlungKassieren_DuplikatPositionRefs(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, duplikatRefs, "")
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testVorgangID, testActiveTisch.ID, duplikatRefs, "")
 	if err != ErrPositionNichtBezahlbar {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -634,7 +638,7 @@ func TestStornierungErteilen_DuplikatPositionRefs(t *testing.T) {
 		{PositionID: posID, Menge: 1},
 	}
 
-	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "Duplikat")
+	err := command.StornierungErteilen(ctx, 1, "Test User", testVorgangID, testActiveTisch.ID, refs, "Duplikat")
 	if err != ErrPositionNichtStornierbar {
 		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
@@ -671,7 +675,7 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "Gast gewechselt")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", testVorgangID, quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "Gast gewechselt")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -782,7 +786,7 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", testVorgangID, quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -838,14 +842,14 @@ func TestBestellungUmbuchen_PositionNichtUmbuchbar(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", testVorgangID, quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if err != ErrPositionNichtUmbuchbar {
 		t.Fatalf("expected ErrPositionNichtUmbuchbar, got %v", err)
 	}
 }
 
 func TestBestellungUmbuchen_GleicherTisch(t *testing.T) {
-	err := Command{}.BestellungUmbuchen(context.Background(), 1, "Test User", 3, 3, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
+	err := Command{}.BestellungUmbuchen(context.Background(), 1, "Test User", testVorgangID, 3, 3, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if err != ErrUmbuchungGleicherTisch {
 		t.Fatalf("expected ErrUmbuchungGleicherTisch, got %v", err)
 	}
@@ -862,7 +866,7 @@ func TestBestellungUmbuchen_ZielTischNotActive(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", testVorgangID, quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if err != ErrTischNotActive {
 		t.Fatalf("expected ErrTischNotActive, got %v", err)
 	}
@@ -880,7 +884,7 @@ func TestBestellungUmbuchen_ZielTischNotFound(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, 99, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", testVorgangID, quellTisch.ID, 99, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if err != ErrTischNotFound {
 		t.Fatalf("expected ErrTischNotFound, got %v", err)
 	}
@@ -894,7 +898,7 @@ func TestBestellungUmbuchen_KasseNichtGeoeffnet(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", 1, 2, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", testVorgangID, 1, 2, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if err != ErrKasseNichtGeoeffnet {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
@@ -926,7 +930,7 @@ func TestBestellungUmbuchen_Conflict(t *testing.T) {
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", testVorgangID, quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
@@ -962,7 +966,7 @@ func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahm
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 	}
 
-	err := command.StornierungErteilen(ctx, 2, "Leitung", testActiveTisch.ID, []kasse.PositionRef{{PositionID: posID, Menge: 3}}, "Reklamation")
+	err := command.StornierungErteilen(ctx, 2, "Leitung", testVorgangID, testActiveTisch.ID, []kasse.PositionRef{{PositionID: posID, Menge: 3}}, "Reklamation")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

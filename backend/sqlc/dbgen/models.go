@@ -512,3 +512,12 @@ type User struct {
 	// Last modification timestamp (UTC)
 	UpdatedAt time.Time
 }
+
+// Client-gelieferte Idempotenz-Schlüssel buchender Vorgänge; Zeile entsteht im selben Commit wie die Events des Vorgangs, vor deren Insert.
+type VorgangIdempotenz struct {
+	VorgangID uuid.UUID
+	// Vorgangstyp für die Nachvollziehbarkeit im Support.
+	Art       string
+	UserID    int
+	CreatedAt time.Time
+}

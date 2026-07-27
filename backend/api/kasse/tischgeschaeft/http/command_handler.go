@@ -17,9 +17,9 @@ import (
 
 type command interface {
 	BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, positionen []enrichment.PositionInput, kommentar string) error
-	BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error
-	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
-	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
+	BestellungUmbuchen(ctx context.Context, userID int, userName string, vorgangID string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error
+	ZahlungKassieren(ctx context.Context, userID int, userName string, vorgangID string, tischID int, positionen []kasse.PositionRef, kommentar string) error
+	StornierungErteilen(ctx context.Context, userID int, userName string, vorgangID string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 }
 
 type CommandHandler struct {
@@ -119,12 +119,14 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 }
 
 type zahlungKassierenRequest struct {
+	VorgangID  string               `json:"vorgangId"`
 	TischID    int                  `json:"tischId"`
 	Positionen []positionRefRequest `json:"positionen"`
 	Kommentar  string               `json:"kommentar"`
 }
 
 var zahlungKassierenSchema = z.Struct(z.Shape{
+	"VorgangID":  z.String().UUID().Required(),
 	"TischID":    tisch.TischIDSchema.Required(),
 	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
 	"Kommentar":  z.String().Max(100),
@@ -142,7 +144,7 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.VorgangID, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrConflict):
@@ -166,12 +168,14 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 }
 
 type stornierungErteilenRequest struct {
+	VorgangID  string               `json:"vorgangId"`
 	TischID    int                  `json:"tischId"`
 	Positionen []positionRefRequest `json:"positionen"`
 	Kommentar  string               `json:"kommentar"`
 }
 
 type bestellungUmbuchenRequest struct {
+	VorgangID         string               `json:"vorgangId"`
 	QuellTischID      int                  `json:"quellTischId"`
 	ZielTischID       int                  `json:"zielTischId"`
 	Positionen        []positionRefRequest `json:"positionen"`
@@ -179,12 +183,14 @@ type bestellungUmbuchenRequest struct {
 }
 
 var stornierungErteilenSchema = z.Struct(z.Shape{
+	"VorgangID":  z.String().UUID().Required(),
 	"TischID":    tisch.TischIDSchema.Required(),
 	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
 	"Kommentar":  z.String().Min(3).Max(100).Required(),
 })
 
 var bestellungUmbuchenSchema = z.Struct(z.Shape{
+	"VorgangID":         z.String().UUID().Required(),
 	"QuellTischID":      tisch.TischIDSchema.Required(),
 	"ZielTischID":       tisch.TischIDSchema.Required(),
 	"Positionen":        z.Slice(positionRefRequestSchema).Min(1).Required(),
@@ -203,7 +209,7 @@ func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.StornierungErteilen(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.StornierungErteilen(r.Context(), userID, userName, body.VorgangID, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrConflict):
@@ -239,7 +245,7 @@ func (h *CommandHandler) BestellungUmbuchenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.BestellungUmbuchen(r.Context(), userID, userName, body.QuellTischID, body.ZielTischID, toPositionRefs(body.Positionen), body.BenutzerKommentar)
+		err := h.Command.BestellungUmbuchen(r.Context(), userID, userName, body.VorgangID, body.QuellTischID, body.ZielTischID, toPositionRefs(body.Positionen), body.BenutzerKommentar)
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrConflict):

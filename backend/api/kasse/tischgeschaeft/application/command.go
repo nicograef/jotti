@@ -24,10 +24,11 @@ type tischRepo interface {
 }
 
 type eventRepo interface {
-	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
+	WriteEventMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
-	WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error
-	WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, kassensitzungNr int) error
+	WriteUmbuchungMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error
+	WriteTischSessionEventsAtomicMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, events []event.Event, kassensitzungNr int) error
+	VorgangBereitsGebucht(ctx context.Context, vorgangID string) (bool, error)
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
 	ReadFavoritenTischStates(ctx context.Context, tischIDs []int, kassensitzungNr int) (map[int]kassenjournal_repo.TischNameUndSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
@@ -112,14 +113,6 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 	return eventID, nil
 }
 
-// writeEvent writes an event with optimistic concurrency control against
-// expectedVersion. Returns ErrConflict on a version conflict.
-func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
-	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
-		return repo.WriteEvent(ctx, versioned, streamType, kassensitzungNr)
-	})
-}
-
 // writeEventWithDruckauftraege writes an event and the Druckaufträge derived from it
 // (built from the stored event including its generated ID) in a single transaction
 // (transactional outbox). Returns ErrConflict on a version conflict.
@@ -129,14 +122,38 @@ func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.E
 	})
 }
 
+// vorgangBereitsGebucht prüft VOR der fachlichen Validierung, ob der Vorgang
+// bereits gebucht wurde (Duplikat-Einreichung): Ein Wiederholversuch nach
+// erfolgreicher Buchung darf nicht an inzwischen geänderten Invarianten
+// scheitern (z. B. „Position nicht mehr bezahlbar"), sondern wiederholt die
+// Erfolgsantwort. Das Rennen zweier gleichzeitiger identischer Anfragen fängt
+// zusätzlich der Insert der Idempotenz-Zeile in der Schreibtransaktion ab.
+func (c Command) vorgangBereitsGebucht(ctx context.Context, vorgangID string) (bool, error) {
+	gebucht, err := c.EventRepo.VorgangBereitsGebucht(ctx, vorgangID)
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Str("vorgang_id", vorgangID).Msg("Failed to check vorgang idempotency")
+		return false, ErrDatabase
+	}
+	return gebucht, nil
+}
+
 // persistTischEvent writes a tisch-session event with OCC against expectedVersion
-// (die Version des gelesenen Zustands, gegen den validiert wurde). An OCC conflict
-// maps to ErrConflict, any other write error to ErrDatabase. aktion is the success
-// log message.
-func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
+// (die Version des gelesenen Zustands, gegen den validiert wurde) und hält den
+// Idempotenz-Schlüssel des Vorgangs im selben Commit fest. Eine Duplikat-
+// Einreichung (gleiche vorgangId) wird zur stillen Erfolgsantwort ohne zweite
+// Buchung. An OCC conflict maps to ErrConflict, any other write error to
+// ErrDatabase. aktion is the success log message.
+func (c Command) persistTischEvent(ctx context.Context, vorgang kassenjournal_repo.Vorgang, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
 	log := zerolog.Ctx(ctx)
 
-	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+	_, err := writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
+		return c.EventRepo.WriteEventMitVorgang(ctx, vorgang, versioned, kasse.StreamTypeTischSession, kassensitzungNr)
+	})
+	if err != nil {
+		if errors.Is(err, kassenjournal_repo.ErrVorgangBereitsGebucht) {
+			log.Info().Str("vorgang_id", vorgang.VorgangID).Int("tisch_id", tischID).Msg("Idempotenter Vorgang: vorgangId bereits gebucht")
+			return nil
+		}
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -276,12 +293,25 @@ func buildUmbuchungKommentar(prefix string, tischName string) string {
 	return prefix + truncateRunes(tischName, maxTischNameRunes)
 }
 
-func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
+// BestellungUmbuchen bucht die angeforderten Positionen vom Quell- auf den
+// Ziel-Tisch um (zwei Events, gemeinsame UmbuchungID). vorgangID ist eine
+// client-seitig erzeugte UUID (Idempotenz-Schlüssel): Ein Wiederholversuch mit
+// derselben vorgangId wird zur stillen Erfolgsantwort, ohne ein zweites Mal zu
+// buchen. Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht
+// verglichen.
+func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, vorgangID string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
 	log := zerolog.Ctx(ctx)
 
 	if quellTischID == zielTischID {
 		log.Warn().Int("tisch_id", quellTischID).Msg("Umbuchung mit gleichem Quell- und Ziel-Tisch")
 		return ErrUmbuchungGleicherTisch
+	}
+
+	if gebucht, err := c.vorgangBereitsGebucht(ctx, vorgangID); err != nil {
+		return err
+	} else if gebucht {
+		log.Info().Str("vorgang_id", vorgangID).Int("quell_tisch_id", quellTischID).Msg("Idempotente Umbuchung: vorgangId bereits gebucht")
+		return nil
 	}
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
@@ -345,8 +375,14 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	quellEvent.Version = quellState.LastEventVersion + 1
 	zielEvent.Version = zielMaxVersion + 1
 
-	err = c.EventRepo.WriteUmbuchung(ctx, quellEvent, zielEvent, ks.ZNr)
+	vorgang := kassenjournal_repo.Vorgang{VorgangID: vorgangID, Art: kassenjournal_repo.VorgangArtUmbuchung, UserID: userID}
+
+	err = c.EventRepo.WriteUmbuchungMitVorgang(ctx, vorgang, quellEvent, zielEvent, ks.ZNr)
 	if err != nil {
+		if errors.Is(err, kassenjournal_repo.ErrVorgangBereitsGebucht) {
+			log.Info().Str("vorgang_id", vorgangID).Int("quell_tisch_id", quellTischID).Msg("Idempotente Umbuchung: vorgangId bereits gebucht")
+			return nil
+		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
 			log.Warn().Int("quell_tisch_id", quellTischID).Msg("Kassensitzung nicht mehr offen")
 			return ErrKasseNichtGeoeffnet
@@ -369,8 +405,20 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	return nil
 }
 
-func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
+// ZahlungKassieren kassiert die angeforderten Positionen eines Tisches.
+// vorgangID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel): Ein
+// Wiederholversuch mit derselben vorgangId wird zur stillen Erfolgsantwort,
+// ohne ein zweites Mal zu buchen. Gleiche ID bedeutet denselben Vorgang — der
+// Payload wird nicht verglichen.
+func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, vorgangID string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
+
+	if gebucht, err := c.vorgangBereitsGebucht(ctx, vorgangID); err != nil {
+		return err
+	} else if gebucht {
+		log.Info().Str("vorgang_id", vorgangID).Int("tisch_id", tischID).Msg("Idempotente Zahlung: vorgangId bereits gebucht")
+		return nil
+	}
 
 	// Tisch-Existenz, Status und State laden
 	subject, kassensitzungNr, _, state, err := c.loadTischState(ctx, tischID)
@@ -392,9 +440,11 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		return err
 	}
 
+	vorgang := kassenjournal_repo.Vorgang{VorgangID: vorgangID, Art: kassenjournal_repo.VorgangArtZahlung, UserID: userID}
+
 	// OCC gegen den validierten Zustand: Hat sich der Stream seit dem Lesen geändert
 	// (z. B. eine parallele Zahlung), schlägt der Write mit 409 fehl.
-	return c.persistTischEvent(ctx, evt, subject, state.LastEventVersion, kassensitzungNr, tischID, "Zahlung kassiert")
+	return c.persistTischEvent(ctx, vorgang, evt, subject, state.LastEventVersion, kassensitzungNr, tischID, "Zahlung kassiert")
 }
 
 // StornierungErteilen führt eine „Stornieren"-Aktion aus und teilt sie serverseitig
@@ -403,8 +453,19 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 // FIFO zugeordnet und je Zahlung als kassenwirksame Warenrücknahme zurückgenommen
 // (ein stornierung-erteilt mit genau einer ZahlungID). Jedes entstehende Event trägt
 // eine eigene TSE-Transaktion; alle werden atomar geschrieben (alles-oder-nichts).
-func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
+// vorgangID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel): Ein
+// Wiederholversuch mit derselben vorgangId wird zur stillen Erfolgsantwort, ohne
+// ein zweites Mal zu buchen. Gleiche ID bedeutet denselben Vorgang — der Payload
+// wird nicht verglichen.
+func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, vorgangID string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
+
+	if gebucht, err := c.vorgangBereitsGebucht(ctx, vorgangID); err != nil {
+		return err
+	} else if gebucht {
+		log.Info().Str("vorgang_id", vorgangID).Int("tisch_id", tischID).Msg("Idempotente Stornierung: vorgangId bereits gebucht")
+		return nil
+	}
 
 	// Tisch-Existenz und Status prüfen, Subject und KS-Nr bestimmen
 	subject, kassensitzungNr, _, _, err := c.loadTischState(ctx, tischID)
@@ -438,7 +499,9 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		expectedVersion = events[len(events)-1].Version
 	}
 
-	return c.persistStornoEvents(ctx, stornoEvents, subject, expectedVersion, kassensitzungNr, tischID)
+	vorgang := kassenjournal_repo.Vorgang{VorgangID: vorgangID, Art: kassenjournal_repo.VorgangArtStornierung, UserID: userID}
+
+	return c.persistStornoEvents(ctx, vorgang, stornoEvents, subject, expectedVersion, kassensitzungNr, tischID)
 }
 
 // buildStornoEvents erzeugt die Events einer aufgeteilten Storno-Aktion in
@@ -473,8 +536,10 @@ func buildStornoEvents(ctx context.Context, subject string, userID int, userName
 
 // persistStornoEvents weist den Storno-Events fortlaufende Versionen ab der
 // erwarteten Version (Stand des validierten Replays) zu und schreibt sie atomar
-// (je Event mit seinem Signaturauftrag). Ein OCC-Konflikt wird zu ErrConflict.
-func (c Command) persistStornoEvents(ctx context.Context, stornoEvents []event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int) error {
+// (je Event mit seinem Signaturauftrag); der Idempotenz-Schlüssel des Vorgangs
+// wird im selben Commit festgehalten. Eine Duplikat-Einreichung (gleiche
+// vorgangId) wird zur stillen Erfolgsantwort; ein OCC-Konflikt wird zu ErrConflict.
+func (c Command) persistStornoEvents(ctx context.Context, vorgang kassenjournal_repo.Vorgang, stornoEvents []event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int) error {
 	log := zerolog.Ctx(ctx)
 
 	events := make([]event.Event, 0, len(stornoEvents))
@@ -483,7 +548,11 @@ func (c Command) persistStornoEvents(ctx context.Context, stornoEvents []event.E
 		events = append(events, evt)
 	}
 
-	if err := c.EventRepo.WriteTischSessionEventsAtomic(ctx, events, kassensitzungNr); err != nil {
+	if err := c.EventRepo.WriteTischSessionEventsAtomicMitVorgang(ctx, vorgang, events, kassensitzungNr); err != nil {
+		if errors.Is(err, kassenjournal_repo.ErrVorgangBereitsGebucht) {
+			log.Info().Str("vorgang_id", vorgang.VorgangID).Int("tisch_id", tischID).Msg("Idempotente Stornierung: vorgangId bereits gebucht")
+			return nil
+		}
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Int("tisch_id", tischID).Str("subject", subject).Msg("OCC conflict bei Stornierung")
 			return ErrConflict

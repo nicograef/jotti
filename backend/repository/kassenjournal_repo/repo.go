@@ -23,6 +23,75 @@ import (
 // Application-Schicht mappt das auf ihren Konflikt-Fehler (HTTP 409).
 var ErrKassensitzungNichtOffen = errors.New("kassensitzung ist nicht offen")
 
+// ErrVorgangBereitsGebucht: die vorgang_idempotenz-Zeile existiert bereits —
+// derselbe fachliche Vorgang wurde schon gebucht (Duplikat-Einreichung, z. B.
+// Wiederholversuch nach Verbindungsabbruch). Die Application-Schicht mappt das
+// auf eine stille Erfolgsantwort, ohne ein zweites Mal zu buchen.
+var ErrVorgangBereitsGebucht = errors.New("vorgang bereits gebucht")
+
+// Arten der buchenden Vorgänge in vorgang_idempotenz.art (CHECK-Constraint in
+// Migration 07 gespiegelt).
+const (
+	VorgangArtZahlung                  = "zahlung"
+	VorgangArtStornierung              = "stornierung"
+	VorgangArtUmbuchung                = "umbuchung"
+	VorgangArtDirektverkaufStornierung = "direktverkauf-stornierung"
+)
+
+// Vorgang ist der client-gelieferte Idempotenz-Schlüssel eines buchenden
+// Vorgangs. VorgangID ist eine vom Client erzeugte UUID (vom Request-Schema
+// validiert); Art einer der VorgangArt-Werte.
+type Vorgang struct {
+	VorgangID string
+	Art       string
+	UserID    int
+}
+
+// VorgangBereitsGebucht prüft, ob für die vorgangId bereits eine
+// Idempotenz-Zeile existiert (Duplikat-Einreichung). Die Commands rufen das VOR
+// ihrer fachlichen Validierung auf: Ein Wiederholversuch nach erfolgreicher
+// Buchung darf nicht an inzwischen geänderten Invarianten scheitern (z. B.
+// „Position nicht mehr bezahlbar"), sondern wiederholt die Erfolgsantwort.
+// Das Rennen zweier gleichzeitiger identischer Anfragen fängt zusätzlich der
+// Primärschlüssel beim Insert in der Schreibtransaktion ab.
+func (r Repository) VorgangBereitsGebucht(ctx context.Context, vorgangID string) (bool, error) {
+	id, err := uuid.Parse(vorgangID)
+	if err != nil {
+		return false, fmt.Errorf("parse vorgang_id %q: %w", vorgangID, err)
+	}
+	exists, err := r.q.ExistsVorgangIdempotenz(ctx, id)
+	if err != nil {
+		return false, db.Error(err)
+	}
+	return exists, nil
+}
+
+// insertVorgangIdempotenzInTx schreibt die Idempotenz-Zeile des Vorgangs — im
+// selben Commit wie dessen Events und VOR den Event-Inserts. Nur so ist ein
+// Primärschlüssel-Konflikt eindeutig eine Duplikat-Einreichung
+// (ErrVorgangBereitsGebucht), während ein UNIQUE(subject, version)-Konflikt
+// eindeutig ein echter OCC-Konflikt bleibt.
+func insertVorgangIdempotenzInTx(ctx context.Context, qtx *dbgen.Queries, vorgang Vorgang) error {
+	vorgangID, err := uuid.Parse(vorgang.VorgangID)
+	if err != nil {
+		return fmt.Errorf("parse vorgang_id %q: %w", vorgang.VorgangID, err)
+	}
+
+	err = qtx.InsertVorgangIdempotenz(ctx, dbgen.InsertVorgangIdempotenzParams{
+		VorgangID: vorgangID,
+		Art:       vorgang.Art,
+		UserID:    vorgang.UserID,
+	})
+	if err != nil {
+		if errors.Is(db.Error(err), db.ErrAlreadyExists) {
+			return ErrVorgangBereitsGebucht
+		}
+		return db.Error(err)
+	}
+
+	return nil
+}
+
 type Repository struct {
 	db *sql.DB
 	q  *dbgen.Queries
@@ -39,9 +108,31 @@ func NewRepository(database *sql.DB) Repository {
 //   - "tisch-session" → UPSERT tisch_sessions (synchronous projection)
 //   - "direktverkauf" → kassenjournal only (no projection)
 func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
+	return r.writeSingleEvent(ctx, nil, e, streamType, kassensitzungNr)
+}
+
+// WriteEventMitVorgang schreibt wie WriteEvent und hält zusätzlich den
+// client-gelieferten Idempotenz-Schlüssel des Vorgangs in vorgang_idempotenz
+// fest — vor dem Event-Insert, in derselben Transaktion. Eine
+// Duplikat-Einreichung (gleiche vorgangId) liefert ErrVorgangBereitsGebucht
+// und schreibt nichts.
+func (r Repository) WriteEventMitVorgang(ctx context.Context, vorgang Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
+	return r.writeSingleEvent(ctx, &vorgang, e, streamType, kassensitzungNr)
+}
+
+// writeSingleEvent schreibt ein Event (und optional die Idempotenz-Zeile des
+// Vorgangs, nil = keine) in einer Transaktion. Gemeinsamer Kern von WriteEvent
+// und WriteEventMitVorgang.
+func (r Repository) writeSingleEvent(ctx context.Context, vorgang *Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
 	var id int
 	eingereiht := false
 	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		if vorgang != nil {
+			if err := insertVorgangIdempotenzInTx(ctx, qtx, *vorgang); err != nil {
+				return err
+			}
+		}
+
 		stored, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
 		if err != nil {
 			return err
@@ -101,8 +192,30 @@ func (r Repository) WriteEventWithDruckauftraege(
 // Umbuchung (two linked tables) and the Storno (one geldneutrale Korrektur plus
 // one Warenrücknahme per betroffener Zahlung).
 func (r Repository) WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, kassensitzungNr int) error {
+	return r.writeTischSessionEventsAtomic(ctx, nil, events, kassensitzungNr)
+}
+
+// WriteTischSessionEventsAtomicMitVorgang schreibt wie
+// WriteTischSessionEventsAtomic und hält zusätzlich den client-gelieferten
+// Idempotenz-Schlüssel des Vorgangs in vorgang_idempotenz fest — vor den
+// Event-Inserts, in derselben Transaktion. Eine Duplikat-Einreichung (gleiche
+// vorgangId) liefert ErrVorgangBereitsGebucht und schreibt nichts.
+func (r Repository) WriteTischSessionEventsAtomicMitVorgang(ctx context.Context, vorgang Vorgang, events []event.Event, kassensitzungNr int) error {
+	return r.writeTischSessionEventsAtomic(ctx, &vorgang, events, kassensitzungNr)
+}
+
+// writeTischSessionEventsAtomic schreibt die Events (und optional die
+// Idempotenz-Zeile des Vorgangs, nil = keine) in einer Transaktion.
+// Gemeinsamer Kern der beiden Atomic-Varianten.
+func (r Repository) writeTischSessionEventsAtomic(ctx context.Context, vorgang *Vorgang, events []event.Event, kassensitzungNr int) error {
 	eingereiht := false
 	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		if vorgang != nil {
+			if err := insertVorgangIdempotenzInTx(ctx, qtx, *vorgang); err != nil {
+				return err
+			}
+		}
+
 		for _, evt := range events {
 			_, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeTischSession, kassensitzungNr)
 			if err != nil {
@@ -165,6 +278,14 @@ func (r Repository) EroeffneKassensitzung(ctx context.Context, datum time.Time, 
 // events must already carry their final subject/version.
 func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
 	return r.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
+}
+
+// WriteUmbuchungMitVorgang schreibt wie WriteUmbuchung und hält zusätzlich den
+// client-gelieferten Idempotenz-Schlüssel des Vorgangs fest (vor den
+// Event-Inserts, selbe Transaktion). Eine Duplikat-Einreichung liefert
+// ErrVorgangBereitsGebucht und schreibt nichts.
+func (r Repository) WriteUmbuchungMitVorgang(ctx context.Context, vorgang Vorgang, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
+	return r.WriteTischSessionEventsAtomicMitVorgang(ctx, vorgang, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
 }
 
 // notifySignaturWorker stößt den Signatur-Worker nach einem Commit mit neuem

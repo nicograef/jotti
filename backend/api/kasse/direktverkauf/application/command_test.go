@@ -16,11 +16,16 @@ import (
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/produkt_repo"
 )
 
 const testKassensitzungNr = 1
+
+// testVorgangID ist der client-gelieferte Idempotenz-Schlüssel der
+// Direktverkauf-Stornierung in diesen Tests.
+const testVorgangID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 
 var testOpenKS = &kasse.Kassensitzung{
 	ZNr:    testKassensitzungNr,
@@ -51,6 +56,7 @@ type spyEventRepo struct {
 	writeErr       error
 	streamEvents   []event.Event
 	readErr        error
+	vorgaenge      map[string]kassenjournal_repo.Vorgang // vorgang_idempotenz-Zeilen, keyed nach VorgangID
 }
 
 type writtenEvent struct {
@@ -73,6 +79,30 @@ func (s *spyEventRepo) WriteEvent(_ context.Context, e event.Event, streamType k
 	}
 	s.written = append(s.written, writtenEvent{event: e, streamType: streamType, kassensitzungNr: kassensitzungNr})
 	return len(s.written), nil
+}
+
+// VorgangBereitsGebucht mirrors the Duplikat-Vorprüfung of the real repo.
+func (s *spyEventRepo) VorgangBereitsGebucht(_ context.Context, vorgangID string) (bool, error) {
+	_, ok := s.vorgaenge[vorgangID]
+	return ok, nil
+}
+
+// WriteEventMitVorgang mirrors the real repo: a duplicate VorgangID yields
+// ErrVorgangBereitsGebucht without a write; the vorgang row is only kept when
+// the event write succeeds (rollback semantics).
+func (s *spyEventRepo) WriteEventMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
+	if _, ok := s.vorgaenge[vorgang.VorgangID]; ok {
+		return 0, kassenjournal_repo.ErrVorgangBereitsGebucht
+	}
+	id, err := s.WriteEvent(ctx, e, streamType, kassensitzungNr)
+	if err != nil {
+		return 0, err
+	}
+	if s.vorgaenge == nil {
+		s.vorgaenge = make(map[string]kassenjournal_repo.Vorgang)
+	}
+	s.vorgaenge[vorgang.VorgangID] = vorgang
+	return id, nil
 }
 
 func (s *spyEventRepo) WriteEventWithDruckauftraege(_ context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
@@ -314,7 +344,7 @@ func getaetigtEvent(t *testing.T, einzelpreis, menge int) (event.Event, string, 
 func TestDirektverkaufStornieren_KasseNichtGeoeffnet(t *testing.T) {
 	command := newCommand(&spyEventRepo{}, nil)
 
-	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", testVorgangID, uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
 	if err != ErrKasseNichtGeoeffnet {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
@@ -324,7 +354,7 @@ func TestDirektverkaufStornieren_VerkaufNichtGefunden(t *testing.T) {
 	spy := &spyEventRepo{streamEvents: nil}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", testVorgangID, uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
 	if err != ErrVerkaufNichtGefunden {
 		t.Fatalf("expected ErrVerkaufNichtGefunden, got %v", err)
 	}
@@ -338,7 +368,7 @@ func TestDirektverkaufStornieren_UeberVerfuegbareMenge(t *testing.T) {
 	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 3}}, "Zu viel")
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", testVorgangID, verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 3}}, "Zu viel")
 	if err != ErrPositionNichtStornierbar {
 		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
@@ -359,7 +389,7 @@ func TestDirektverkaufStornieren_DuplikatPositionRefs(t *testing.T) {
 			{PositionID: positionID, Menge: menge},
 			{PositionID: positionID, Menge: menge},
 		}
-		err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, refs, "Duplikat")
+		err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", testVorgangID, verkaufID, refs, "Duplikat")
 		if err != ErrPositionNichtStornierbar {
 			t.Fatalf("menge %d: expected ErrPositionNichtStornierbar, got %v", menge, err)
 		}
@@ -374,7 +404,7 @@ func TestDirektverkaufStornieren_WritesStornoEventWithNextVersion(t *testing.T) 
 	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", testVorgangID, verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -405,13 +435,49 @@ func TestDirektverkaufStornieren_WritesStornoEventWithNextVersion(t *testing.T) 
 	}
 }
 
+// Ein echter OCC-Konflikt (UNIQUE(subject, version)) bleibt ErrConflict und
+// hinterlässt keine Idempotenz-Zeile (Rollback-Semantik des Spy).
 func TestDirektverkaufStornieren_Conflict(t *testing.T) {
 	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 2)
 	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}, writeErr: db.ErrAlreadyExists}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", testVorgangID, verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
+	}
+	if _, ok := spy.vorgaenge[testVorgangID]; ok {
+		t.Error("erwartet keine vorgang_idempotenz-Zeile für den gescheiterten Vorgang (Rollback)")
+	}
+}
+
+// Zwei identische Storno-Aufrufe mit derselben vorgangId: genau ein Event,
+// beide Male Erfolg — der zweite Aufruf bucht nicht erneut.
+func TestDirektverkaufStornieren_DuplikatVorgangId_IdempotenterErfolg(t *testing.T) {
+	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 2)
+	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}
+	command := newCommand(spy, testOpenKS)
+
+	refs := []kasse.PositionRef{{PositionID: positionID, Menge: 1}}
+	if err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", testVorgangID, verkaufID, refs, "Rückgabe"); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+	if err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", testVorgangID, verkaufID, refs, "Rückgabe"); err != nil {
+		t.Fatalf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
+	}
+
+	if len(spy.written) != 1 {
+		t.Fatalf("erwartet genau 1 geschriebenes Event, gespeichert: %d", len(spy.written))
+	}
+
+	vorgang, ok := spy.vorgaenge[testVorgangID]
+	if !ok {
+		t.Fatal("erwartet eine vorgang_idempotenz-Zeile für die vorgangId")
+	}
+	if vorgang.Art != kassenjournal_repo.VorgangArtDirektverkaufStornierung {
+		t.Errorf("erwartet art %q, gespeichert: %q", kassenjournal_repo.VorgangArtDirektverkaufStornierung, vorgang.Art)
+	}
+	if vorgang.UserID != 2 {
+		t.Errorf("erwartet user_id 2, gespeichert: %d", vorgang.UserID)
 	}
 }

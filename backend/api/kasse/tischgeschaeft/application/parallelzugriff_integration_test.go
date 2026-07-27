@@ -155,14 +155,15 @@ func bedieneTisch(ctx context.Context, cmd Command, subject string, userID int, 
 }
 
 // kassiere kassiert die noch unbezahlten Positionen der Variante aus dem
-// aktuellen Sessionzustand.
+// aktuellen Sessionzustand. Jeder Versuch ist ein eigener fachlicher Vorgang
+// mit frischer vorgangId (ein OCC-Konflikt rollt die Idempotenz-Zeile zurück).
 func kassiere(ctx context.Context, cmd Command, subject string, userID int, userName string, tischID, varianteID int) error {
 	return retryConflict(func() error {
 		refs, err := offeneRefsFuerVariante(ctx, cmd, subject, varianteID)
 		if err != nil || len(refs) == 0 {
 			return err
 		}
-		return cmd.ZahlungKassieren(ctx, userID, userName, tischID, refs, "")
+		return cmd.ZahlungKassieren(ctx, userID, userName, uuid.New().String(), tischID, refs, "")
 	})
 }
 
