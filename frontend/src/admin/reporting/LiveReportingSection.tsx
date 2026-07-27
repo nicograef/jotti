@@ -27,7 +27,7 @@ import { formatEuro } from '@/lib/utils'
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { StatusDot } from '../components/StatusDot'
 import { StornoItem } from './StornoItem'
-import { StornoAggregat } from './StornoServicekraft'
+import { StornoAggregat, StornoMarker } from './StornoServicekraft'
 import { SummaryCard } from './SummaryCard'
 import type { LiveReportingData } from './types'
 import { formatDatum, formatServicekraft, formatStand } from './utils'
@@ -83,10 +83,10 @@ export function LiveReportingSection({
 
   const summary = liveData.summary
   const servicekraefte = liveData.breakdowns.servicekraefte
-  const stornierungenProServicekraft =
-    liveData.breakdowns.stornierungenProServicekraft
-  const stornoAnzahlByUserId = new Map(
-    stornierungenProServicekraft.map((s) => [s.userId, s.anzahlStornierungen]),
+  // Storno-Aggregat der eingeklappten Storno-Zeile: dieselbe Team-Liste,
+  // beschränkt auf die Servicekräfte mit mindestens einem zugeordneten Storno.
+  const stornoBetroffene = servicekraefte.filter(
+    (sk) => sk.anzahlStornierungen > 0,
   )
 
   const offeneTische = liveData.offeneTische
@@ -220,7 +220,6 @@ export function LiveReportingSection({
                 const tischNamen = sk.offeneTische
                   .map((t) => t.tischName)
                   .join(', ')
-                const stornoAnzahl = stornoAnzahlByUserId.get(sk.userId) ?? 0
                 return (
                   <div
                     key={sk.userId}
@@ -243,20 +242,23 @@ export function LiveReportingSection({
                           auf {sk.offeneTische.length}{' '}
                           {sk.offeneTische.length === 1 ? 'Tisch' : 'Tischen'}
                           {tischNamen && ` (${tischNamen})`}
-                          {stornoAnzahl > 0 && (
-                            <>
-                              {' · '}
-                              <span className="font-medium text-destructive">
-                                {stornoAnzahl} Storno
-                                {stornoAnzahl === 1 ? '' : 's'}
-                              </span>
-                            </>
-                          )}
                         </span>
+                      )}
+                      {/* Die Rücknahmen erklären den Abzug — eingeblendet nur,
+                          wenn es welche gibt, damit die mobile Zeile schlank
+                          bleibt. */}
+                      {sk.ruecknahmenCents !== 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          Kassiert {formatEuro(sk.kassiertCents)} · Rücknahmen{' '}
+                          {formatEuro(sk.ruecknahmenCents)}
+                        </span>
+                      )}
+                      {sk.anzahlStornierungen > 0 && (
+                        <StornoMarker anzahl={sk.anzahlStornierungen} />
                       )}
                     </div>
                     <span className="whitespace-nowrap text-sm font-semibold">
-                      {formatEuro(sk.zahlungenCents)}
+                      {formatEuro(sk.abzugebenCents)}
                     </span>
                   </div>
                 )
@@ -282,9 +284,9 @@ export function LiveReportingSection({
                   </strong>{' '}
                   · {formatEuro(summary.gesamtStornierungenCents)}
                 </p>
-                {stornierungenProServicekraft.length > 0 && (
+                {stornoBetroffene.length > 0 && (
                   <StornoAggregat
-                    eintraege={stornierungenProServicekraft}
+                    eintraege={stornoBetroffene}
                     className="mb-0 mt-0.5"
                   />
                 )}

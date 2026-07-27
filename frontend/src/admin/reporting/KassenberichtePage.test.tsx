@@ -62,8 +62,7 @@ function makeReport(zNr: number): ReportingData {
       direktverkaufUmsatzCents: 0,
     },
     breakdowns: {
-      umsatzProServicekraft: [],
-      stornierungenProServicekraft: [],
+      abrechnungProServicekraft: [],
     },
     umsatzProSteuersatz: [],
     stornierungen: [],

@@ -76,25 +76,22 @@ type summaryResponse struct {
 }
 
 type breakdownsResponse struct {
-	UmsatzProServicekraft        []umsatzServicekraft      `json:"umsatzProServicekraft"`
-	StornierungenProServicekraft []stornierungServicekraft `json:"stornierungenProServicekraft"`
+	AbrechnungProServicekraft []abrechnungServicekraft `json:"abrechnungProServicekraft"`
 }
 
-type umsatzServicekraft struct {
-	UserID         int    `json:"userId"`
-	UserName       string `json:"userName"`
-	Name           string `json:"name"`
-	ZahlungenCents int    `json:"zahlungenCents"`
-}
-
-// stornierungServicekraft ist das Storno-Aggregat pro Servicekraft (Anzahl und
-// Betrag) — identisch in Live- und Reporting-Response.
-type stornierungServicekraft struct {
+// abrechnungServicekraft ist die Bargeld-Abrechnung des Tischservice pro
+// Servicekraft: kassiert, die ihr zugeordneten Rücknahmen und der daraus
+// folgende Abzugeben-Saldo, dazu der kombinierte Storno-Zähler über beide
+// Tisch-Storno-Arten. Direktverkäufe sind nicht enthalten.
+type abrechnungServicekraft struct {
 	UserID              int    `json:"userId"`
 	UserName            string `json:"userName"`
 	Name                string `json:"name"`
+	KassiertCents       int    `json:"kassiertCents"`
+	AnzahlZahlungen     int    `json:"anzahlZahlungen"`
+	RuecknahmenCents    int    `json:"ruecknahmenCents"`
 	AnzahlStornierungen int    `json:"anzahlStornierungen"`
-	StornierungenCents  int    `json:"stornierungenCents"`
+	AbzugebenCents      int    `json:"abzugebenCents"`
 }
 
 type umsatzSteuersatzResponse struct {
@@ -152,32 +149,18 @@ type stornierungDetail struct {
 	Positionen   []stornierungPosition `json:"positionen"`
 }
 
-func toUmsatzServicekraft(u reporting.UmsatzServicekraft) umsatzServicekraft {
-	return umsatzServicekraft{
-		UserID:         u.UserID,
-		UserName:       u.UserName,
-		Name:           u.Name,
-		ZahlungenCents: u.ZahlungenCents,
-	}
-}
-
-func toUmsatzServicekraftList(umsatz []reporting.UmsatzServicekraft) []umsatzServicekraft {
-	out := make([]umsatzServicekraft, len(umsatz))
-	for i := range umsatz {
-		out[i] = toUmsatzServicekraft(umsatz[i])
-	}
-	return out
-}
-
-func toStornierungenProServicekraft(werte []reporting.StornierungServicekraft) []stornierungServicekraft {
-	out := make([]stornierungServicekraft, len(werte))
+func toAbrechnungProServicekraft(werte []reporting.AbrechnungServicekraft) []abrechnungServicekraft {
+	out := make([]abrechnungServicekraft, len(werte))
 	for i, w := range werte {
-		out[i] = stornierungServicekraft{
+		out[i] = abrechnungServicekraft{
 			UserID:              w.UserID,
 			UserName:            w.UserName,
 			Name:                w.Name,
+			KassiertCents:       w.KassiertCents,
+			AnzahlZahlungen:     w.AnzahlZahlungen,
+			RuecknahmenCents:    w.RuecknahmenCents,
 			AnzahlStornierungen: w.AnzahlStornierungen,
-			StornierungenCents:  w.StornierungenCents,
+			AbzugebenCents:      w.AbzugebenCents,
 		}
 	}
 	return out
@@ -307,8 +290,7 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 			DirektverkaufUmsatzCents: d.Summary.DirektverkaufUmsatzCents,
 		},
 		Breakdowns: breakdownsResponse{
-			UmsatzProServicekraft:        toUmsatzServicekraftList(d.Breakdowns.UmsatzProServicekraft),
-			StornierungenProServicekraft: toStornierungenProServicekraft(d.Breakdowns.StornierungenProServicekraft),
+			AbrechnungProServicekraft: toAbrechnungProServicekraft(d.Breakdowns.AbrechnungProServicekraft),
 		},
 		UmsatzProSteuersatz: toUmsatzSteuersatzList(d.UmsatzProSteuersatz),
 		Stornierungen:       toStornierungDetails(d.Stornierungen),
@@ -395,24 +377,27 @@ type offeneArbeitTischLiveResponse struct {
 	TischName string `json:"tischName"`
 }
 
-// servicekraftLiveResponse ist die Live-Sicht pro Servicekraft: kassierter
-// Umsatz zusammengeführt mit der offenen eigenen Arbeit.
+// servicekraftLiveResponse ist die Live-Sicht pro Servicekraft: ihre Abrechnung
+// (Kassiert, Rücknahmen, Abzugeben, Storno-Zähler) zusammengeführt mit der
+// offenen eigenen Arbeit.
 type servicekraftLiveResponse struct {
-	UserID         int                             `json:"userId"`
-	UserName       string                          `json:"userName"`
-	Name           string                          `json:"name"`
-	ZahlungenCents int                             `json:"zahlungenCents"`
-	OffenCents     int                             `json:"offenCents"`
-	OffeneTische   []offeneArbeitTischLiveResponse `json:"offeneTische"`
-	Erledigt       bool                            `json:"erledigt"`
+	UserID              int                             `json:"userId"`
+	UserName            string                          `json:"userName"`
+	Name                string                          `json:"name"`
+	KassiertCents       int                             `json:"kassiertCents"`
+	RuecknahmenCents    int                             `json:"ruecknahmenCents"`
+	AnzahlStornierungen int                             `json:"anzahlStornierungen"`
+	AbzugebenCents      int                             `json:"abzugebenCents"`
+	OffenCents          int                             `json:"offenCents"`
+	OffeneTische        []offeneArbeitTischLiveResponse `json:"offeneTische"`
+	Erledigt            bool                            `json:"erledigt"`
 }
 
 // liveBreakdownsResponse trägt im Live-Dashboard die zusammengeführte
-// Servicekraft-Sicht statt des reinen kassierten Umsatzes; das Storno-Aggregat
-// pro Servicekraft ist identisch zur Reporting-Response.
+// Servicekraft-Sicht: dieselbe Abrechnung wie in der Reporting-Response, ergänzt
+// um die offene eigene Arbeit.
 type liveBreakdownsResponse struct {
-	Servicekraefte               []servicekraftLiveResponse `json:"servicekraefte"`
-	StornierungenProServicekraft []stornierungServicekraft  `json:"stornierungenProServicekraft"`
+	Servicekraefte []servicekraftLiveResponse `json:"servicekraefte"`
 }
 
 type liveReportingResponse struct {
@@ -436,13 +421,16 @@ func toServicekraftLive(s reporting.ServicekraftLive) servicekraftLiveResponse {
 		}
 	}
 	return servicekraftLiveResponse{
-		UserID:         s.UserID,
-		UserName:       s.UserName,
-		Name:           s.Name,
-		ZahlungenCents: s.ZahlungenCents,
-		OffenCents:     s.OffenCents,
-		OffeneTische:   offeneTische,
-		Erledigt:       s.Erledigt,
+		UserID:              s.UserID,
+		UserName:            s.UserName,
+		Name:                s.Name,
+		KassiertCents:       s.KassiertCents,
+		RuecknahmenCents:    s.RuecknahmenCents,
+		AnzahlStornierungen: s.AnzahlStornierungen,
+		AbzugebenCents:      s.AbzugebenCents,
+		OffenCents:          s.OffenCents,
+		OffeneTische:        offeneTische,
+		Erledigt:            s.Erledigt,
 	}
 }
 
@@ -480,8 +468,7 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 			DirektverkaufUmsatzCents: d.Summary.DirektverkaufUmsatzCents,
 		},
 		Breakdowns: liveBreakdownsResponse{
-			Servicekraefte:               toServicekraefteLive(d.Servicekraefte),
-			StornierungenProServicekraft: toStornierungenProServicekraft(d.Breakdowns.StornierungenProServicekraft),
+			Servicekraefte: toServicekraefteLive(d.Servicekraefte),
 		},
 		Stornierungen:    toStornierungDetails(d.Stornierungen),
 		ProduktStatistik: toProduktStatistikList(d.ProduktStatistik),

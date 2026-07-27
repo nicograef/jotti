@@ -6,12 +6,22 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
-type UmsatzServicekraft struct {
-	UserID          int
-	UserName        string // eingefrorener Username
-	Name            string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
-	ZahlungenCents  int
-	AnzahlZahlungen int
+// AbrechnungServicekraft ist die Bargeld-Abrechnung des Tischservice für eine
+// Servicekraft: was sie kassiert hat, welche Rücknahmen ihr über die
+// Storno-Zuordnung zufallen und was daraus abzugeben ist
+// (AbzugebenCents = KassiertCents − RuecknahmenCents). AnzahlStornierungen ist
+// der kombinierte Kontroll-Zähler über beide Tisch-Storno-Arten (Rücknahmen und
+// geldneutrale Korrekturen). Direktverkäufe und Direktverkauf-Stornos bleiben
+// außen vor — der Direktverkauf hat eine eigene Kasse.
+type AbrechnungServicekraft struct {
+	UserID              int
+	UserName            string // eingefrorener Username
+	Name                string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
+	KassiertCents       int
+	AnzahlZahlungen     int
+	RuecknahmenCents    int
+	AnzahlStornierungen int
+	AbzugebenCents      int
 }
 
 type UmsatzSteuersatz struct {
@@ -38,9 +48,14 @@ type ServicekraftRef struct {
 	Name     string
 }
 
+// QuelleDirektverkauf markiert eine StornierungDetail aus dem Direktverkauf
+// (Gegenstück: "tisch"). Der Direktverkauf hat eine eigene, vom Tischservice
+// getrennte Kasse und bleibt aus jeder Servicekraft-Aggregation heraus.
+const QuelleDirektverkauf = "direktverkauf"
+
 type StornierungDetail struct {
 	Zeitpunkt    time.Time
-	Quelle       string // "tisch" oder "direktverkauf"
+	Quelle       string // "tisch" oder QuelleDirektverkauf
 	BarRueckgabe bool   // true bei kassenwirksamer Warenrücknahme, false bei geldneutraler Korrektur
 	TischID      int
 	TischName    string
@@ -55,17 +70,6 @@ type StornierungDetail struct {
 	BetragCents int
 	Kommentar   string
 	Positionen  []StornierungPosition
-}
-
-// StornierungServicekraft aggregiert die Stornierungen einer Servicekraft
-// (Anzahl und Betrag) über eine Kassensitzung — als Kontroll-Signal im
-// Admin-Dashboard. Aus den StornierungDetail-Zeilen zusammengefasst.
-type StornierungServicekraft struct {
-	UserID              int
-	UserName            string // eingefrorener Username
-	Name                string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
-	AnzahlStornierungen int
-	StornierungenCents  int
 }
 
 // ProduktStatistikZeile ist eine flache Ausgabezeile der GetProduktStatistik-Query:
@@ -114,8 +118,7 @@ type Summary struct {
 }
 
 type Breakdowns struct {
-	UmsatzProServicekraft        []UmsatzServicekraft
-	StornierungenProServicekraft []StornierungServicekraft
+	AbrechnungProServicekraft []AbrechnungServicekraft
 }
 
 // Metadaten sind die Sitzungs-Kopfdaten für den formalen Tagesbericht, rein aus
@@ -168,8 +171,8 @@ type LiveReportingData struct {
 	OffeneSaldiCents int
 	Summary          Summary
 	Breakdowns       Breakdowns
-	// Servicekraefte ist die Live-Sicht pro Servicekraft: kassierter Umsatz
-	// (aus Breakdowns.UmsatzProServicekraft) zusammengeführt mit der offenen
+	// Servicekraefte ist die Live-Sicht pro Servicekraft: die Abrechnung
+	// (aus Breakdowns.AbrechnungProServicekraft) zusammengeführt mit der offenen
 	// eigenen Arbeit über die Tisch-Sessions, per user_id gemerged.
 	Servicekraefte []ServicekraftLive
 	Stornierungen  []StornierungDetail
@@ -179,15 +182,19 @@ type LiveReportingData struct {
 }
 
 // ServicekraftLive ist die Live-Sicht auf eine Servicekraft im Admin-Dashboard:
-// ihr kassierter Umsatz, zusammengeführt mit ihrer offenen eigenen Arbeit (per
-// user_id). Personen mit offener Arbeit, aber ohne kassierten Umsatz erscheinen
-// ebenfalls (dann mit Null-Umsatz).
+// ihre Abrechnung (Kassiert, Rücknahmen, Abzugeben, Storno-Zähler),
+// zusammengeführt mit ihrer offenen eigenen Arbeit (per user_id). Personen mit
+// offener Arbeit, aber ohne eigene Abrechnungszeile erscheinen ebenfalls (dann
+// mit Null-Beträgen).
 type ServicekraftLive struct {
-	UserID          int
-	UserName        string // eingefrorener Username
-	Name            string // live aus users aufgeloester Klarname (leer bei reiner offener Arbeit)
-	ZahlungenCents  int
-	AnzahlZahlungen int
+	UserID              int
+	UserName            string // eingefrorener Username
+	Name                string // live aus users aufgeloester Klarname (leer bei reiner offener Arbeit)
+	KassiertCents       int
+	AnzahlZahlungen     int
+	RuecknahmenCents    int
+	AnzahlStornierungen int
+	AbzugebenCents      int
 	// OffenCents ist der noch offene (unbezahlte) Betrag der eigenen Arbeit über
 	// alle Tische — die Servicekraft-Ebene-Summe über OffeneTische.OffenCents.
 	OffenCents int

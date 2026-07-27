@@ -377,9 +377,9 @@ func TestGetReporting_ResolvesKlarnameIncludingSoftDeleted(t *testing.T) {
 		t.Fatalf("GetReporting failed: %v", err)
 	}
 
-	// Umsatz pro Servicekraft: username frozen in the event, Klarname resolved live.
+	// Abrechnung pro Servicekraft: username frozen in the event, Klarname resolved live.
 	klarnameByUsername := map[string]string{}
-	for _, sk := range data.Breakdowns.UmsatzProServicekraft {
+	for _, sk := range data.Breakdowns.AbrechnungProServicekraft {
 		klarnameByUsername[sk.UserName] = sk.Name
 	}
 	if got := klarnameByUsername["anna"]; got != "Anna Müller" {

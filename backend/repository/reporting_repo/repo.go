@@ -47,7 +47,7 @@ type servicekraftRefJSON struct {
 func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error) {
 	var (
 		stats        dbgen.GetReportingStatsRow
-		umsatzRows   []dbgen.GetUmsatzProServicekraftRow
+		kassiertRows []dbgen.GetKassiertProServicekraftRow
 		zeilenRows   []dbgen.GetUmsatzPositionszeilenRow
 		stornoRows   []dbgen.GetStornierungenRow
 		metadatenRow dbgen.GetKassensitzungMetadatenRow
@@ -62,7 +62,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	})
 	g.Go(func() error {
 		var err error
-		umsatzRows, err = r.q.GetUmsatzProServicekraft(ctx, kassensitzungNr)
+		kassiertRows, err = r.q.GetKassiertProServicekraft(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
@@ -110,7 +110,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		Metadaten:       metadaten,
 		Summary:         toSummary(stats),
 		Breakdowns: reporting.Breakdowns{
-			UmsatzProServicekraft: toUmsatzServicekraft(umsatzRows),
+			AbrechnungProServicekraft: toAbrechnungServicekraft(kassiertRows),
 		},
 		UmsatzProSteuersatz: umsatzProSteuersatz,
 		Stornierungen:       stornierungen,
@@ -159,7 +159,7 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 		stats            dbgen.GetReportingStatsRow
 		offeneSaldi      int
 		offeneTischeRows []dbgen.GetOffeneTischeDetailsRow
-		umsatzRows       []dbgen.GetUmsatzProServicekraftRow
+		kassiertRows     []dbgen.GetKassiertProServicekraftRow
 		stornoRows       []dbgen.GetStornierungenRow
 	)
 
@@ -182,7 +182,7 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 	})
 	g.Go(func() error {
 		var err error
-		umsatzRows, err = r.q.GetUmsatzProServicekraft(ctx, kassensitzungNr)
+		kassiertRows, err = r.q.GetKassiertProServicekraft(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
@@ -215,7 +215,7 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 		OffeneSaldiCents: offeneSaldi,
 		Summary:          toSummary(stats),
 		Breakdowns: reporting.Breakdowns{
-			UmsatzProServicekraft: toUmsatzServicekraft(umsatzRows),
+			AbrechnungProServicekraft: toAbrechnungServicekraft(kassiertRows),
 		},
 		Stornierungen: stornierungen,
 	}, nil
@@ -251,18 +251,22 @@ func toSummary(stats dbgen.GetReportingStatsRow) reporting.Summary {
 	}
 }
 
-func toUmsatzServicekraft(rows []dbgen.GetUmsatzProServicekraftRow) []reporting.UmsatzServicekraft {
-	umsatz := make([]reporting.UmsatzServicekraft, len(rows))
+// toAbrechnungServicekraft übersetzt die Kassiert-Zeilen der Query in die
+// Abrechnung pro Servicekraft. Rücknahmen, Storno-Zähler und der
+// Abzugeben-Saldo entstehen erst in der Anwendungsschicht aus den
+// Storno-Detailzeilen (Storno-Zuordnung) und bleiben hier null.
+func toAbrechnungServicekraft(rows []dbgen.GetKassiertProServicekraftRow) []reporting.AbrechnungServicekraft {
+	abrechnung := make([]reporting.AbrechnungServicekraft, len(rows))
 	for i, row := range rows {
-		umsatz[i] = reporting.UmsatzServicekraft{
+		abrechnung[i] = reporting.AbrechnungServicekraft{
 			UserID:          row.UserID,
 			UserName:        row.UserName,
 			Name:            row.Name,
-			ZahlungenCents:  row.ZahlungenCents,
+			KassiertCents:   row.KassiertCents,
 			AnzahlZahlungen: row.AnzahlZahlungen,
 		}
 	}
-	return umsatz
+	return abrechnung
 }
 
 // toBetroffene übersetzt die von der Query aufgelöste Storno-Zuordnung in

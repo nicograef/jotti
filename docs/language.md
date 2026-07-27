@@ -371,8 +371,8 @@ Reporting-Daten werden on-demand per SQL-Aggregation aus dem Kassenjournal berec
 | ------------------- | ---------------------------------------------------------------------------------------------------------- |
 | ReportingData       | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen + ProduktStatistik |
 | Summary             | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen)                |
-| Breakdowns          | Aufschlüsselung des Umsatzes: `UmsatzProServicekraft []UmsatzServicekraft`                                 |
-| UmsatzServicekraft  | Umsatz einer einzelnen Servicekraft (Zahlungen, Anzahl)                                                    |
+| Breakdowns          | Aufschlüsselung je Servicekraft: `AbrechnungProServicekraft []AbrechnungServicekraft`                       |
+| AbrechnungServicekraft | Bargeld-Abrechnung des Tischservice einer Servicekraft: `kassiertCents` − `ruecknahmenCents` = `abzugebenCents`, dazu `anzahlZahlungen` und `anzahlStornierungen` (kombinierter Zähler über beide Tisch-Storno-Arten). Stornos zählen nach Storno-Zuordnung, Direktverkäufe sind nicht enthalten |
 | StornierungDetail   | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, `akteur`, `betroffene`, Betrag, Kommentar, Positionen); `barRueckgabe` markiert die kassenwirksame Warenrücknahme gegenüber der geldneutralen Korrektur, `betroffene` trägt die Storno-Zuordnung |
 | ServicekraftRef     | Geteilte Servicekraft-Referenz einer Reporting-Zeile: `userId`, `userName` (eingefroren), `name` (live aufgelöster Klarname); trägt `akteur` und `betroffene` der StornierungDetail |
 | StornierungPosition | Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis)                |
