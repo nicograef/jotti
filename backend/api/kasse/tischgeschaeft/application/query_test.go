@@ -3,7 +3,9 @@
 package application
 
 import (
+	"bytes"
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -11,6 +13,7 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/tisch_repo"
+	"github.com/rs/zerolog"
 )
 
 func TestGetTischState(t *testing.T) {
@@ -144,22 +147,70 @@ func TestGetMeineTischeState_BatchInFavoriteOrder(t *testing.T) {
 	}
 }
 
-// Ein Favorit, dessen Tisch nicht (mehr) existiert, führt zu ErrDatabase — wie
-// zuvor der GetTable-NotFound je Favorit.
-func TestGetMeineTischeState_UnknownTischErrors(t *testing.T) {
+// Ein Favorit, dessen Tisch gelöscht oder unbekannt ist, wird übersprungen; die
+// übrigen Favoriten werden normal geliefert. Ein Abbruch nähme der Servicekraft
+// wegen eines einzigen gelöschten Tisches ihre gesamte Tischübersicht.
+func TestGetMeineTischeState_SkipsUnresolvableFavorit(t *testing.T) {
+	var logbuf bytes.Buffer
+	ctx := zerolog.New(&logbuf).WithContext(context.Background())
+
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
-	// Kein SetTischName -> Tisch 42 ist der Batch unbekannt.
+	// Tisch 42 fehlt im Batch (gelöscht); 7 und 3 sind auflösbar.
+	eventMock.SetTischName(7, "Tisch 7")
+	eventMock.SetTischName(3, "Tisch 3")
 
 	query := Query{
 		TischRepo:           tisch_repo.NewMock(nil, nil),
 		EventRepo:           eventMock,
-		FavoritRepo:         favoritMock{ids: []int{42}},
+		FavoritRepo:         favoritMock{ids: []int{7, 42, 3}},
 		KassensitzungenRepo: sitzungMock,
 	}
 
-	if _, err := query.GetMeineTischeState(context.Background(), 1); err != ErrDatabase {
-		t.Fatalf("expected ErrDatabase for unknown tisch, got %v", err)
+	views, err := query.GetMeineTischeState(ctx, 99)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(views) != 2 {
+		t.Fatalf("expected 2 views, got %d", len(views))
+	}
+	if views[0].TischID != 7 || views[1].TischID != 3 {
+		t.Errorf("expected tische 7 and 3, got %d and %d", views[0].TischID, views[1].TischID)
+	}
+
+	var warnLines []string
+	for _, line := range strings.Split(strings.TrimSpace(logbuf.String()), "\n") {
+		if strings.Contains(line, `"level":"warn"`) && strings.Contains(line, "Skipped favorit") {
+			warnLines = append(warnLines, line)
+		}
+	}
+	if len(warnLines) != 1 {
+		t.Fatalf("expected exactly 1 warn line, got %d: %s", len(warnLines), logbuf.String())
+	}
+	if !strings.Contains(warnLines[0], `"tisch_id":42`) || !strings.Contains(warnLines[0], `"user_id":99`) {
+		t.Errorf("warn line must name tisch and user, got %s", warnLines[0])
+	}
+}
+
+// Sind alle Favoriten verwaist, ist das Ergebnis eine leere Liste — kein Fehler.
+func TestGetMeineTischeState_AllFavoritenUnresolvable(t *testing.T) {
+	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
+	// Kein SetTischName -> beide Tische sind dem Batch unbekannt.
+
+	query := Query{
+		TischRepo:           tisch_repo.NewMock(nil, nil),
+		EventRepo:           eventMock,
+		FavoritRepo:         favoritMock{ids: []int{42, 43}},
+		KassensitzungenRepo: sitzungMock,
+	}
+
+	views, err := query.GetMeineTischeState(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(views) != 0 {
+		t.Fatalf("expected 0 views, got %d", len(views))
 	}
 }
 

@@ -152,9 +152,12 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 	for _, tischID := range favoritIDs {
 		entry, ok := states[tischID]
 		if !ok {
-			// Kein Tisch (gelöscht/unbekannt) — wie zuvor GetTable mit ErrNotFound.
-			log.Error().Int("tisch_id", tischID).Msg("Failed to resolve tisch")
-			return nil, ErrDatabase
+			// Kein Tisch (gelöscht/unbekannt): Der Favorit ist verwaist und wird
+			// übersprungen. Ein Abbruch würde die gesamte Tischübersicht der
+			// Servicekraft unbrauchbar machen — ein einziger gelöschter Tisch
+			// nähme ihr auch alle übrigen markierten Tische.
+			log.Warn().Int("tisch_id", tischID).Int("user_id", userID).Msg("Skipped favorit with unresolvable tisch")
+			continue
 		}
 
 		state := entry.Session

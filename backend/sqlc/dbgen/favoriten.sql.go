@@ -69,3 +69,17 @@ func (q *Queries) RemoveFavorit(ctx context.Context, arg RemoveFavoritParams) er
 	_, err := q.db.ExecContext(ctx, removeFavorit, arg.UserID, arg.TischID)
 	return err
 }
+
+const removeFavoritenByTisch = `-- name: RemoveFavoritenByTisch :exec
+DELETE FROM tisch_favoriten
+WHERE tisch_id = $1
+`
+
+// Entfernt die Markierungen aller Servicekräfte für einen Tisch. Wird beim
+// Löschen eines Tisches ausgeführt: der gelöschte Tisch erscheint nicht mehr in
+// der Tischauswahl und wäre für die betroffenen Servicekräfte nicht mehr
+// abwählbar.
+func (q *Queries) RemoveFavoritenByTisch(ctx context.Context, tischID int) error {
+	_, err := q.db.ExecContext(ctx, removeFavoritenByTisch, tischID)
+	return err
+}
