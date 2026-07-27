@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { BackendError } from './Backend'
+import { BackendError, NetzwerkFehler } from './Backend'
 import { getActionErrorMessage } from './errorMessages'
 
 const serverErrorMessage =
@@ -140,6 +140,10 @@ const mappedCodes: [string, string][] = [
     'username_already_exists',
     'Dieser Benutzername ist bereits vergeben. Bitte einen anderen Benutzernamen wählen.',
   ],
+  [
+    'rate_limited',
+    'Zu viele Anfragen in kurzer Zeit. Bitte einen Moment warten und erneut versuchen.',
+  ],
   ['validation_error', 'Bitte die Eingaben prüfen und erneut versuchen.'],
   [
     'variante_not_found',
@@ -206,6 +210,28 @@ describe('getActionErrorMessage', () => {
         error: new BackendError(400, 'something_new'),
       }),
     ).toBe('Speichern fehlgeschlagen. Bitte erneut versuchen.')
+  })
+
+  it('returns a connection message for a timed out request', () => {
+    expect(
+      getActionErrorMessage({
+        actionLabel: 'Kassieren',
+        error: new NetzwerkFehler('zeitueberschreitung'),
+      }),
+    ).toBe(
+      'Der Server antwortet nicht rechtzeitig. Bitte WLAN prüfen und erneut versuchen.',
+    )
+  })
+
+  it('returns a connection message for a dropped connection', () => {
+    expect(
+      getActionErrorMessage({
+        actionLabel: 'Kassieren',
+        error: new NetzwerkFehler('verbindungsabbruch'),
+      }),
+    ).toBe(
+      'Keine Verbindung zum Server. Bitte WLAN prüfen und erneut versuchen.',
+    )
   })
 
   it('returns action fallback for non-backend errors', () => {
