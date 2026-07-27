@@ -17,6 +17,7 @@ vi.mock('../../table/hooks', () => ({
     tische: [
       { id: 1, name: 'Stammtisch', saldoCents: 0 },
       { id: 2, name: 'Nebentisch', saldoCents: 0 },
+      { id: 3, name: 'Ecktisch', saldoCents: 0 },
     ],
     isPending: false,
   }),
@@ -275,6 +276,91 @@ describe('HistorieUmbuchungDrawer', () => {
       expect(bestellungUmbuchen).toHaveBeenCalledTimes(3)
     })
     expect(bestellungUmbuchen.mock.calls[2][0].vorgangId).not.toBe(ersterKey)
+  })
+
+  it('wechselt die vorgangId, wenn sich die Auswahl nach einem Fehlversuch ändert', async () => {
+    const user = userEvent.setup()
+    const bestellungUmbuchen = vi
+      .fn<(u: BestellungUmbuchen) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('kaputt'))
+      .mockResolvedValue(undefined)
+    render(
+      <HistorieUmbuchungDrawer
+        backend={{ bestellungUmbuchen }}
+        tisch={tisch}
+        quelle={quelle}
+        onClose={vi.fn()}
+        onBestellungUmgebucht={vi.fn()}
+      />,
+    )
+
+    const ausfuehren = () =>
+      screen.getByRole('button', { name: 'Umbuchung ausführen' })
+
+    await user.click(
+      screen.getByRole('button', { name: /^1 Position auswählen/ }),
+    )
+    await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
+    await user.click(ausfuehren())
+    await waitFor(() => {
+      expect(bestellungUmbuchen).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = bestellungUmbuchen.mock.calls[0][0].vorgangId
+
+    // Geänderte Nutzdaten nach dem Fehlversuch (Menge 2 → 1): neuer Vorgang,
+    // neuer Schlüssel — der Server prüft die geänderte Auswahl regulär.
+    await user.click(screen.getByRole('button', { name: /verringern/ }))
+    await user.click(ausfuehren())
+    await waitFor(() => {
+      expect(bestellungUmbuchen).toHaveBeenCalledTimes(2)
+    })
+    const zweiterAufruf = bestellungUmbuchen.mock.calls[1][0]
+    expect(zweiterAufruf.vorgangId).not.toBe(ersterKey)
+    expect(zweiterAufruf.positionen).toEqual([
+      { positionId: position.positionId, menge: 1 },
+    ])
+  })
+
+  it('wechselt die vorgangId, wenn nach einem Fehlversuch der Ziel-Tisch wechselt', async () => {
+    const user = userEvent.setup()
+    const bestellungUmbuchen = vi
+      .fn<(u: BestellungUmbuchen) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('kaputt'))
+      .mockResolvedValue(undefined)
+    render(
+      <HistorieUmbuchungDrawer
+        backend={{ bestellungUmbuchen }}
+        tisch={tisch}
+        quelle={quelle}
+        onClose={vi.fn()}
+        onBestellungUmgebucht={vi.fn()}
+      />,
+    )
+
+    const ausfuehren = () =>
+      screen.getByRole('button', { name: 'Umbuchung ausführen' })
+
+    await user.click(
+      screen.getByRole('button', { name: /^1 Position auswählen/ }),
+    )
+    await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
+    await user.click(ausfuehren())
+    await waitFor(() => {
+      expect(bestellungUmbuchen).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = bestellungUmbuchen.mock.calls[0][0].vorgangId
+
+    // Der Ziel-Tisch gehört zu den Nutzdaten: Mit dem alten Schlüssel würde der
+    // Server den Wechsel als Duplikat verschlucken und „Auf Ecktisch umgebucht"
+    // melden, obwohl die Positionen auf dem Nebentisch liegen.
+    await user.selectOptions(screen.getByRole('combobox'), 'Ecktisch')
+    await user.click(ausfuehren())
+    await waitFor(() => {
+      expect(bestellungUmbuchen).toHaveBeenCalledTimes(2)
+    })
+    const zweiterAufruf = bestellungUmbuchen.mock.calls[1][0]
+    expect(zweiterAufruf.vorgangId).not.toBe(ersterKey)
+    expect(zweiterAufruf.zielTischId).toBe(3)
   })
 
   it('beschriftet den Sammel-Button bei mehreren Positionen im Plural', () => {

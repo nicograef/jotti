@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -11,6 +11,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
+import { useVorgangId } from '@/hooks/use-vorgang-id'
 
 import type { Bestellung } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -59,18 +60,17 @@ export function HistorieStornierungDrawer({
   // bereits das KommentarField dauerhaft, ein zweiter Hinweis wäre redundant.
   const hinweisGrund = noPositionenSelected ? 'Positionen auswählen' : null
 
-  // vorgangId je logischem Vorgang: neu, sobald eine Auswahl aus dem
-  // Leerzustand beginnt (und mit dem Mount des Drawers nach einem Abschluss).
-  // Ein Retry derselben Stornierung behält seinen Schlüssel und bucht daher
-  // serverseitig kein zweites Mal.
-  const [vorgangId, setVorgangId] = useState(() => crypto.randomUUID())
-  const warLeerRef = useRef(noPositionenSelected)
-  useEffect(() => {
-    if (warLeerRef.current && !noPositionenSelected) {
-      setVorgangId(crypto.randomUUID())
-    }
-    warLeerRef.current = noPositionenSelected
-  }, [noPositionenSelected])
+  // vorgangId je fachlichem Vorgang, an die Nutzdaten gebunden: Ein
+  // Wiederholversuch mit unveränderten Nutzdaten behält seinen Schlüssel und
+  // bucht serverseitig kein zweites Mal; jede Änderung (Auswahl, Mengen,
+  // Kommentar) beginnt einen neuen Vorgang mit neuem Schlüssel, den der Server
+  // regulär prüft.
+  const positionRefs = toPositionRefs(selectedPositionen)
+  const vorgangId = useVorgangId({
+    tischId: tisch.id,
+    positionen: positionRefs,
+    kommentar,
+  })
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Stornierung ausführen',
@@ -88,7 +88,7 @@ export function HistorieStornierungDrawer({
       await backend.stornierungErteilen({
         vorgangId,
         tischId: tisch.id,
-        positionen: toPositionRefs(selectedPositionen),
+        positionen: positionRefs,
         kommentar,
       })
     })

@@ -127,4 +127,38 @@ describe('DirektverkaufStornoDrawer', () => {
       ersterKey,
     )
   })
+
+  it('wechselt die vorgangId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
+    const user = userEvent.setup()
+    const direktverkaufStornieren = vi
+      .fn<(s: DirektverkaufStornieren) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('kaputt'))
+      .mockResolvedValue(undefined)
+    renderDrawer(direktverkaufStornieren)
+
+    const erteilen = () =>
+      screen.getByRole('button', { name: 'Stornierung erteilen' })
+
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Rückgabe',
+    )
+    await user.click(erteilen())
+    await waitFor(() => {
+      expect(direktverkaufStornieren).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = direktverkaufStornieren.mock.calls[0][0].vorgangId
+
+    // Geänderte Nutzdaten nach dem Fehlversuch (Menge 1 → 2): neuer Vorgang,
+    // neuer Schlüssel — der Server prüft die geänderte Auswahl regulär.
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.click(erteilen())
+    await waitFor(() => {
+      expect(direktverkaufStornieren).toHaveBeenCalledTimes(2)
+    })
+    const zweiterAufruf = direktverkaufStornieren.mock.calls[1][0]
+    expect(zweiterAufruf.vorgangId).not.toBe(ersterKey)
+    expect(zweiterAufruf.positionen).toEqual([{ positionId, menge: 2 }])
+  })
 })

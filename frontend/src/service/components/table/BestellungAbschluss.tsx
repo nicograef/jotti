@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useVorgangId } from '@/hooks/use-vorgang-id'
 
 import type { BestellPositionInput } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -42,20 +43,29 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
 
   const noPositionenSelected = props.positionen.length === 0
 
-  // bestellungId je logischem Vorgang: neu, sobald eine Zusammenstellung aus dem
-  // Leerzustand beginnt, und erneut nach jedem erfolgreichen Abschluss (der die
-  // Auswahl leert). Ein Retry desselben Vorgangs behält seinen Schlüssel. Mit dem
-  // neuen Schlüssel startet auch der Kommentar leer, damit in der dauerhaften
-  // Spalte nichts aus einem abgebrochenen Vorgang übertragen wird.
-  const [bestellungId, setBestellungId] = useState(() => crypto.randomUUID())
-  const warLeerRef = useRef(noPositionenSelected)
-  useEffect(() => {
-    if (warLeerRef.current && !noPositionenSelected) {
-      setBestellungId(crypto.randomUUID())
+  // Beginnt eine Zusammenstellung aus dem Leerzustand, startet der Kommentar
+  // leer: In der dauerhaften Spalte überlebt er sonst einen Auswahl-Reset und
+  // würde aus einem abgebrochenen Vorgang in den nächsten wandern.
+  // React-idiomatischer State-Sync im Render (wie beim Tischwechsel in
+  // TablePage), nicht per Effekt.
+  const [warLeer, setWarLeer] = useState(noPositionenSelected)
+  if (warLeer !== noPositionenSelected) {
+    setWarLeer(noPositionenSelected)
+    if (warLeer) {
       setKommentar('')
     }
-    warLeerRef.current = noPositionenSelected
-  }, [noPositionenSelected])
+  }
+
+  // bestellungId je fachlichem Vorgang, an die Nutzdaten gebunden: Ein
+  // Wiederholversuch mit unveränderten Nutzdaten behält seinen Schlüssel und
+  // bucht serverseitig kein zweites Mal; jede Änderung (Positionen, Kommentar)
+  // beginnt einen neuen Vorgang mit neuem Schlüssel — auch nach einem
+  // erfolgreichen Abschluss, der die Auswahl leert.
+  const bestellungId = useVorgangId({
+    tischId: props.tisch.id,
+    positionen: props.positionen,
+    kommentar,
+  })
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Bestellung aufnehmen',

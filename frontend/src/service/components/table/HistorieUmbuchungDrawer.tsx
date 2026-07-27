@@ -1,5 +1,5 @@
 import { CircleCheck } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -13,6 +13,7 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
+import { useVorgangId } from '@/hooks/use-vorgang-id'
 import { formatAlleAuswaehlenLabel } from '@/lib/utils'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
@@ -109,18 +110,18 @@ export function HistorieUmbuchungDrawer({
     setAll(umbuchbareMengen)
   }
 
-  // vorgangId je logischem Vorgang: neu, sobald eine Auswahl aus dem
-  // Leerzustand beginnt (und mit dem Mount des Drawers nach einem Abschluss).
-  // Ein Retry derselben Umbuchung behält seinen Schlüssel und bucht daher
-  // serverseitig kein zweites Mal.
-  const [vorgangId, setVorgangId] = useState(() => crypto.randomUUID())
-  const warLeerRef = useRef(noPositionenSelected)
-  useEffect(() => {
-    if (warLeerRef.current && !noPositionenSelected) {
-      setVorgangId(crypto.randomUUID())
-    }
-    warLeerRef.current = noPositionenSelected
-  }, [noPositionenSelected])
+  // vorgangId je fachlichem Vorgang, an die Nutzdaten gebunden: Ein
+  // Wiederholversuch mit unveränderten Nutzdaten behält seinen Schlüssel und
+  // bucht serverseitig kein zweites Mal; jede Änderung (Auswahl, Mengen,
+  // Ziel-Tisch, Kommentar) beginnt einen neuen Vorgang mit neuem Schlüssel,
+  // den der Server regulär prüft.
+  const positionRefs = toPositionRefs(selectedPositionen)
+  const vorgangId = useVorgangId({
+    quellTischId: tisch.id,
+    zielTischId,
+    positionen: positionRefs,
+    benutzerKommentar: kommentar,
+  })
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Umbuchung ausführen',
@@ -145,7 +146,7 @@ export function HistorieUmbuchungDrawer({
         vorgangId,
         quellTischId: tisch.id,
         zielTischId,
-        positionen: toPositionRefs(selectedPositionen),
+        positionen: positionRefs,
         benutzerKommentar: kommentar,
       })
     })

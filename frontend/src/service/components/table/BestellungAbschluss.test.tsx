@@ -157,6 +157,64 @@ describe('BestellungAbschluss (Spalte)', () => {
     )
   })
 
+  it('wechselt den bestellungId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
+    const user = userEvent.setup()
+    const bestellungAufnehmen = vi
+      .fn<(b: BestellungAufnehmen) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('kaputt'))
+      .mockResolvedValue(undefined)
+
+    const erweitertePositionen = [
+      ...positionen,
+      { produktId: 2, varianteId: 3, menge: 1 },
+    ]
+
+    function Harness() {
+      const [erweitert, setErweitert] = useState(false)
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setErweitert(true)
+            }}
+          >
+            erweitern
+          </button>
+          <BestellungAbschluss
+            variant="spalte"
+            backend={{ bestellungAufnehmen }}
+            tisch={tisch}
+            receiptItems={receiptItems}
+            positionen={erweitert ? erweitertePositionen : positionen}
+            totalCents={erweitert ? 950 : 700}
+            bestellungAufgenommen={vi.fn()}
+          />
+        </>
+      )
+    }
+    render(<Harness />)
+
+    const aufnehmen = () =>
+      screen.getByRole('button', { name: 'Bestellung aufnehmen' })
+
+    await user.click(aufnehmen())
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = bestellungAufnehmen.mock.calls[0][0].bestellungId
+
+    // Geänderte Nutzdaten nach dem Fehlversuch: neuer Vorgang, neuer Schlüssel.
+    await user.click(screen.getByRole('button', { name: 'erweitern' }))
+    await user.click(aufnehmen())
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(2)
+    })
+    const zweiterAufruf = bestellungAufnehmen.mock.calls[1][0]
+    expect(zweiterAufruf.bestellungId).not.toBe(ersterKey)
+    expect(zweiterAufruf.positionen).toEqual(erweitertePositionen)
+  })
+
   it('setzt den Kommentar beim neuen Vorgang zurück', async () => {
     const user = userEvent.setup()
 

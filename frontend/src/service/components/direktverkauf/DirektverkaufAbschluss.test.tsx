@@ -212,4 +212,61 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     })
     expect(direktverkaufTaetigen.mock.calls[2][0].verkaufId).not.toBe(ersterKey)
   })
+
+  it('wechselt den verkaufId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
+    const user = userEvent.setup()
+    const direktverkaufTaetigen = vi
+      .fn<(verkauf: DirektverkaufTaetigen) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('kaputt'))
+      .mockResolvedValue(undefined)
+
+    const erweitertePositionen = [
+      ...positionen,
+      { produktId: 2, varianteId: 3, menge: 1 },
+    ]
+
+    function Harness() {
+      const [erweitert, setErweitert] = useState(false)
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setErweitert(true)
+            }}
+          >
+            erweitern
+          </button>
+          <DirektverkaufAbschluss
+            variant="spalte"
+            backend={{ direktverkaufTaetigen }}
+            receiptItems={receiptItems}
+            positionen={erweitert ? erweitertePositionen : positionen}
+            totalCents={erweitert ? 950 : 700}
+            verkaufAbgeschlossen={vi.fn()}
+          />
+        </>
+      )
+    }
+    render(<Harness />)
+
+    const abschliessen = () =>
+      screen.getByRole('button', { name: 'Verkauf abschließen' })
+
+    await user.click(abschliessen())
+    await waitFor(() => {
+      expect(direktverkaufTaetigen).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = direktverkaufTaetigen.mock.calls[0][0].verkaufId
+
+    // Geänderte Nutzdaten nach dem Fehlversuch: neuer Vorgang, neuer Schlüssel.
+    await user.click(screen.getByRole('button', { name: 'erweitern' }))
+    await user.click(abschliessen())
+    await waitFor(() => {
+      expect(direktverkaufTaetigen).toHaveBeenCalledTimes(2)
+    })
+    const zweiterAufruf = direktverkaufTaetigen.mock.calls[1][0]
+    expect(zweiterAufruf.verkaufId).not.toBe(ersterKey)
+    expect(zweiterAufruf.positionen).toEqual(erweitertePositionen)
+  })
 })

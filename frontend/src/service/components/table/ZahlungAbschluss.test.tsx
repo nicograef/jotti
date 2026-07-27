@@ -176,6 +176,76 @@ describe('ZahlungAbschluss (Spalte)', () => {
     expect(zahlungKassieren.mock.calls[2][0].vorgangId).not.toBe(ersterKey)
   })
 
+  // Das Befund-Szenario des Reviews: Kassieren schlägt scheinbar fehl (Antwort
+  // im WLAN verloren), der Helfer nimmt eine weitere Position in die Auswahl
+  // und kassiert erneut. Der zweite Versuch trägt geänderte Nutzdaten und muss
+  // deshalb einen NEUEN Schlüssel senden — sonst verschluckt der Server ihn
+  // als Duplikat und meldet Erfolg, ohne die neue Position zu buchen.
+  it('wechselt die vorgangId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
+    const user = userEvent.setup()
+    const zahlungKassieren = vi
+      .fn<(z: ZahlungKassieren) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('kaputt'))
+      .mockResolvedValue(undefined)
+
+    const positionB: Position = {
+      ...position,
+      positionId: '00000000-0000-0000-0000-000000000002',
+      produktName: 'Pommes',
+      einzelpreisCents: 400,
+      menge: 1,
+    }
+
+    function Harness() {
+      const [erweitert, setErweitert] = useState(false)
+      const auswahl = erweitert
+        ? [{ ...position, menge: 2 }, positionB]
+        : [{ ...position, menge: 2 }]
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setErweitert(true)
+            }}
+          >
+            erweitern
+          </button>
+          <ZahlungAbschluss
+            variant="spalte"
+            backend={{ zahlungKassieren }}
+            tisch={tisch}
+            positionenToPay={auswahl}
+            totalCents={erweitert ? 1100 : 700}
+            restNachZahlungCents={erweitert ? 0 : 400}
+            zahlungKassiert={vi.fn()}
+          />
+        </>
+      )
+    }
+    render(<Harness />)
+
+    const kassieren = () => screen.getByRole('button', { name: 'Kassieren' })
+
+    await user.click(kassieren())
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = zahlungKassieren.mock.calls[0][0].vorgangId
+
+    await user.click(screen.getByRole('button', { name: 'erweitern' }))
+    await user.click(kassieren())
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(2)
+    })
+    const zweiterAufruf = zahlungKassieren.mock.calls[1][0]
+    expect(zweiterAufruf.vorgangId).not.toBe(ersterKey)
+    expect(zweiterAufruf.positionen).toEqual([
+      { positionId: position.positionId, menge: 2 },
+      { positionId: positionB.positionId, menge: 1 },
+    ])
+  })
+
   it('löst bei Doppelklick keinen zweiten Aufruf aus', async () => {
     const user = userEvent.setup()
     let resolve: () => void = () => undefined
