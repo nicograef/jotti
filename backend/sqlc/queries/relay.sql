@@ -30,19 +30,12 @@ SET versuche = versuche + 1,
     letzter_fehler = @letzter_fehler,
     status = CASE WHEN versuche + 1 >= @max_versuche THEN 'fehlgeschlagen' ELSE status END
 WHERE id = @id AND status = 'offen'
-RETURNING versuche, status, ziel_ip;
+RETURNING versuche, status;
 
--- name: SetDruckauftragFaelligkeitFuerZielIP :exec
--- GREATEST sorgt dafuer, dass bei mehreren Fehlversuchen derselben Ziel-IP die
--- laengere Wartezeit gewinnt: die Warteschlange wird nie vorzeitig freigegeben.
--- (Postgres ignoriert NULL in GREATEST, ein bisher ungebremster Auftrag bekommt
--- also die neue Faelligkeit.)
+-- name: SetDruckauftragFaelligkeit :exec
 UPDATE druckauftraege
-SET naechster_versuch_ab = GREATEST(
-        naechster_versuch_ab,
-        NOW() + (sqlc.arg(sekunden)::int * INTERVAL '1 second')
-    )
-WHERE ziel_ip = sqlc.arg(ziel_ip) AND status = 'offen';
+SET naechster_versuch_ab = NOW() + (sqlc.arg(sekunden)::int * INTERVAL '1 second')
+WHERE id = sqlc.arg(id) AND status = 'offen';
 
 -- name: GetFehlgeschlageneDruckauftraege :many
 SELECT id, ziel_ip, bon_art, referenz, versuche, letzter_fehler, erstellt_am

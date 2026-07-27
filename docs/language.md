@@ -401,7 +401,7 @@ DB-Enum: `'pro_position'`, `'pro_bestellung'`
 
 Konkreter Druckjob in der Outbox, Single Source of Truth für alle Druckjobs, Arbeitsbon und Kassenbeleg. Das Backend reiht ein, das Relay leert.
 
-DB-Tabelle: `druckauftraege` · Spalten u. a.: `ziel_ip`, `payload` (Base64-ESC/POS), `bon_art` (`'arbeitsbon'` | `'kassenbeleg'` | `'testbon'`), `referenz`, `status` (`offen` → `gedruckt`; nach 3 Fehlversuchen `fehlgeschlagen` → `verworfen` oder zurück auf `offen`)
+DB-Tabelle: `druckauftraege` · Spalten u. a.: `ziel_ip`, `payload` (Base64-ESC/POS), `bon_art` (`'arbeitsbon'` | `'kassenbeleg'` | `'testbon'`), `referenz`, `status` (`offen` → `gedruckt`; nach 6 Fehlversuchen `fehlgeschlagen` → `verworfen` oder zurück auf `offen`)
 
 #### Relay
 

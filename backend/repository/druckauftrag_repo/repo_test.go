@@ -72,7 +72,7 @@ func TestReportDruckergebnis_QuittiertErfolge(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
-	id := enqueueOne(t, repo, "192.168.1.51")
+	id := enqueueEinen(t, repo, "192.168.1.51")
 
 	err := repo.ReportDruckergebnis(context.Background(), []int{id}, nil)
 	if err != nil {
@@ -92,7 +92,7 @@ func TestReportDruckergebnis_QuittierenIstIdempotent(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
-	id := enqueueOne(t, repo, "192.168.1.51")
+	id := enqueueEinen(t, repo, "192.168.1.51")
 
 	for i := 0; i < 2; i++ {
 		if err := repo.ReportDruckergebnis(context.Background(), []int{id}, nil); err != nil {
@@ -113,7 +113,7 @@ func TestReportDruckergebnis_FehlversuchZaehlung(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
-	id := enqueueOne(t, repo, "192.168.1.51")
+	id := enqueueEinen(t, repo, "192.168.1.51")
 
 	// Fehlversuche 1..5: Auftrag bleibt offen, versuche/letzter_fehler werden
 	// aktualisiert und die Backoff-Faelligkeit wird in die Zukunft gesetzt, sodass
@@ -244,36 +244,13 @@ func TestReportDruckergebnis_FehlversuchBremstNurWarteschlangeDerZielIP(t *testi
 	}
 
 	// Die ganze Warteschlange des betroffenen Druckers wartet — nicht nur der
-	// gescheiterte Auftrag.
-	for _, id := range gebremst {
-		naechsterVersuch := readNaechsterVersuch(t, repo, id)
-		if !naechsterVersuch.Valid {
-			t.Fatalf("Expected naechster_versuch_ab to be set for auftrag %d, got NULL", id)
-		}
-		if !naechsterVersuch.Time.After(time.Now()) {
-			t.Fatalf("Expected naechster_versuch_ab in the future for auftrag %d, got %v", id, naechsterVersuch.Time)
-		}
-	}
+	// gescheiterte Auftrag. Der andere Drucker bleibt davon unberuehrt.
+	assertOffeneAuftraege(t, repo, andere)
 
-	// Die Auftraege der anderen Ziel-IP bleiben unberuehrt und sofort faellig.
-	for _, id := range andere {
-		if naechsterVersuch := readNaechsterVersuch(t, repo, id); naechsterVersuch.Valid {
-			t.Fatalf("Expected auftrag %d of another ziel_ip to stay unberuehrt, got %v", id, naechsterVersuch.Time)
-		}
-	}
+	// Nach Ablauf der Wartezeit sind beide Warteschlangen wieder faellig.
+	simuliereWartezeitAbgelaufen(t, repo, "192.168.1.51")
 
-	offene, err := repo.GetOffeneDruckauftraege(context.Background())
-	if err != nil {
-		t.Fatalf("Expected no read error, got %v", err)
-	}
-	if len(offene) != len(andere) {
-		t.Fatalf("Expected only the %d auftraege of the other ziel_ip to be faellig, got %+v", len(andere), offene)
-	}
-	for i, id := range andere {
-		if offene[i].ID != id {
-			t.Fatalf("Expected faelligen auftrag %d at position %d, got %+v", id, i, offene)
-		}
-	}
+	assertOffeneAuftraege(t, repo, append(gebremst, andere...))
 }
 
 func TestReportDruckergebnis_WarteschlangeBleibtInIDReihenfolge(t *testing.T) {
@@ -287,50 +264,22 @@ func TestReportDruckergebnis_WarteschlangeBleibtInIDReihenfolge(t *testing.T) {
 		t.Fatalf("Expected no error on fehlversuch, got %v", err)
 	}
 
-	// Unmittelbar nach dem Fehlversuch: die ganze Warteschlange traegt dieselbe
-	// Faelligkeit in der Zukunft. Bremste der Backoff nur den gescheiterten
-	// Auftrag, waeren seine Nachfolger jetzt sofort faellig und wuerden ihn
-	// ueberholen.
-	faelligkeit := readNaechsterVersuch(t, repo, ids[0])
-	if !faelligkeit.Valid || !faelligkeit.Time.After(time.Now()) {
-		t.Fatalf("Expected naechster_versuch_ab in the future for auftrag %d, got %+v", ids[0], faelligkeit)
-	}
-	for _, id := range ids[1:] {
-		naechsterVersuch := readNaechsterVersuch(t, repo, id)
-		if !naechsterVersuch.Valid || !naechsterVersuch.Time.Equal(faelligkeit.Time) {
-			t.Fatalf("Expected auftrag %d to wait until %v like the rest of the warteschlange, got %+v", id, faelligkeit.Time, naechsterVersuch)
-		}
-	}
+	// Unmittelbar nach dem Fehlversuch wartet die ganze Warteschlange. Laese
+	// GetOffeneDruckauftraege nur die Faelligkeit der eigenen Zeile, waeren die
+	// Nachfolger jetzt sofort faellig und wuerden den gebremsten Auftrag ueberholen.
+	assertOffeneAuftraege(t, repo, nil)
 
-	offene, err := repo.GetOffeneDruckauftraege(context.Background())
-	if err != nil {
-		t.Fatalf("Expected no read error, got %v", err)
-	}
-	if len(offene) != 0 {
-		t.Fatalf("Expected no auftrag faellig while the warteschlange waits, got %+v", offene)
-	}
-
+	// Nach Ablauf der Wartezeit laeuft sie in ID-Reihenfolge weiter.
 	simuliereWartezeitAbgelaufen(t, repo, "192.168.1.51")
 
-	offene, err = repo.GetOffeneDruckauftraege(context.Background())
-	if err != nil {
-		t.Fatalf("Expected no read error, got %v", err)
-	}
-	if len(offene) != len(ids) {
-		t.Fatalf("Expected all %d auftraege faellig again, got %+v", len(ids), offene)
-	}
-	for i, id := range ids {
-		if offene[i].ID != id {
-			t.Fatalf("Expected auftrag %d at position %d, got %+v", id, i, offene)
-		}
-	}
+	assertOffeneAuftraege(t, repo, ids)
 }
 
 func TestReportDruckergebnis_FehlgeschlagenerAuftragBremstWarteschlangeNicht(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
-	auftrag := enqueueOne(t, repo, "192.168.1.51")
+	auftrag := enqueueEinen(t, repo, "192.168.1.51")
 
 	// Fehlversuche 1..5 bremsen die Warteschlange jeweils; das Relay versucht erst
 	// nach Ablauf der Wartezeit erneut, was hier per SQL simuliert wird.
@@ -345,7 +294,7 @@ func TestReportDruckergebnis_FehlgeschlagenerAuftragBremstWarteschlangeNicht(t *
 	// Erst jetzt reiht sich ein weiterer Bon desselben Druckers ein: seine
 	// Faelligkeit ist noch unberuehrt (NULL) und macht damit sichtbar, ob der
 	// letzte Fehlversuch die Warteschlange anfasst.
-	nachfolger := enqueueWeiteren(t, repo, "192.168.1.51")
+	nachfolger := enqueueEinen(t, repo, "192.168.1.51")
 
 	// Der MaxDruckversuche-te Fehlversuch nimmt den Auftrag aus dem Rennen — die
 	// Warteschlange bekommt deshalb keinen Backoff mehr.
@@ -371,7 +320,7 @@ func TestReportDruckergebnis_FehlgeschlagenerAuftragBremstWarteschlangeNicht(t *
 	}
 }
 
-func TestReportDruckergebnis_LaengereWartezeitGewinntImSelbenBatch(t *testing.T) {
+func TestReportDruckergebnis_WarteschlangeWartetAufDieLaengsteWartezeit(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -387,9 +336,8 @@ func TestReportDruckergebnis_LaengereWartezeitGewinntImSelbenBatch(t *testing.T)
 		simuliereWartezeitAbgelaufen(t, repo, "192.168.1.51")
 	}
 
-	// Beide Auftraege derselben Ziel-IP melden im selben Batch einen Fehlversuch.
-	// Der zuletzt verarbeitete, kuerzere Backoff darf die laengere Wartezeit nicht
-	// zurueckdrehen — sonst waere die Warteschlange vorzeitig frei.
+	// Beide Auftraege derselben Ziel-IP melden im selben Batch einen Fehlversuch:
+	// ids[0] seinen dritten (30 s Wartezeit), ids[1] seinen ersten (5 s).
 	fehlversuche := []Fehlversuch{
 		{ID: ids[0], Fehler: "drucker beschaeftigt"},
 		{ID: ids[1], Fehler: "drucker beschaeftigt"},
@@ -398,13 +346,15 @@ func TestReportDruckergebnis_LaengereWartezeitGewinntImSelbenBatch(t *testing.T)
 		t.Fatalf("Expected no error on gemischtem batch, got %v", err)
 	}
 
-	fruehestens := time.Now().Add(20 * time.Second)
-	for _, id := range ids {
-		naechsterVersuch := readNaechsterVersuch(t, repo, id)
-		if !naechsterVersuch.Valid || naechsterVersuch.Time.Before(fruehestens) {
-			t.Fatalf("Expected auftrag %d to keep the longer wartezeit (>= %v), got %+v", id, fruehestens, naechsterVersuch)
-		}
-	}
+	// Nach Ablauf der kuerzeren Wartezeit bleibt die Warteschlange gesperrt: ids[1]
+	// waere fuer sich genommen faellig, wuerde damit aber den noch wartenden
+	// ids[0] ueberholen.
+	simuliereZeitvergangen(t, repo, "192.168.1.51", 10*time.Second)
+	assertOffeneAuftraege(t, repo, nil)
+
+	// Erst nach der laengeren Wartezeit laeuft die Warteschlange wieder an.
+	simuliereZeitvergangen(t, repo, "192.168.1.51", 30*time.Second)
+	assertOffeneAuftraege(t, repo, ids)
 }
 
 func TestGetOffeneDruckauftraege_NeuerAuftragUeberholtGebremsteWarteschlangeNicht(t *testing.T) {
@@ -422,7 +372,7 @@ func TestGetOffeneDruckauftraege_NeuerAuftragUeberholtGebremsteWarteschlangeNich
 	// Waehrend das Backoff-Fenster laeuft, kommt ein neuer Bon fuer denselben
 	// Drucker dazu — seine eigene Faelligkeit ist NULL, er ist also fuer sich
 	// genommen sofort faellig.
-	neu := enqueueWeiteren(t, repo, "192.168.1.51")
+	neu := enqueueEinen(t, repo, "192.168.1.51")
 	if naechsterVersuch := readNaechsterVersuch(t, repo, neu); naechsterVersuch.Valid {
 		t.Fatalf("Expected a freshly enqueued auftrag to carry no faelligkeit, got %v", naechsterVersuch.Time)
 	}
@@ -460,7 +410,7 @@ func TestGetOffeneDruckauftraege_RespektiertFaelligkeit(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
-	id := enqueueOne(t, repo, "192.168.1.51")
+	id := enqueueEinen(t, repo, "192.168.1.51")
 
 	offene, err := repo.GetOffeneDruckauftraege(context.Background())
 	if err != nil {
@@ -551,7 +501,7 @@ func TestRetryDruckauftrag_SetztOffenUndVersucheNull(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
-	id := enqueueOne(t, repo, "192.168.1.51")
+	id := enqueueEinen(t, repo, "192.168.1.51")
 	makeFehlgeschlagen(t, repo, id, "endgueltig")
 
 	if err := repo.RetryDruckauftrag(context.Background(), id); err != nil {
@@ -587,7 +537,7 @@ func TestDiscardDruckauftrag_SetztVerworfenUndBleibtErhalten(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
-	id := enqueueOne(t, repo, "192.168.1.51")
+	id := enqueueEinen(t, repo, "192.168.1.51")
 	makeFehlgeschlagen(t, repo, id, "endgueltig")
 
 	if err := repo.DiscardDruckauftrag(context.Background(), id); err != nil {
@@ -621,7 +571,7 @@ func TestDruckauftragTransitionen_NurAusFehlgeschlagen(t *testing.T) {
 	defer teardown(t)
 
 	// Auftrag bleibt offen (nicht fehlgeschlagen): beide Übergänge sind No-Ops.
-	id := enqueueOne(t, repo, "192.168.1.51")
+	id := enqueueEinen(t, repo, "192.168.1.51")
 
 	if err := repo.RetryDruckauftrag(context.Background(), id); err != nil {
 		t.Fatalf("Expected no error on erneut versuchen, got %v", err)
@@ -724,7 +674,10 @@ func makeFehlgeschlagen(t *testing.T, repo Repository, id int, letzterFehler str
 	}
 }
 
-func enqueueOne(t *testing.T, repo Repository, zielIP string) int {
+// enqueueEinen reiht einen einzelnen Auftrag fuer eine Ziel-IP ein und liefert
+// dessen ID (die hoechste dieser Ziel-IP). Seine Faelligkeit ist wie bei jedem
+// neuen Auftrag NULL.
+func enqueueEinen(t *testing.T, repo Repository, zielIP string) int {
 	t.Helper()
 	err := repo.EnqueueDruckauftraege(context.Background(), []NeuerDruckauftrag{
 		{ZielIP: zielIP, Payload: "AAA=", BonArt: "arbeitsbon", Referenz: "bestellung-aufgenommen:1"},
@@ -733,14 +686,14 @@ func enqueueOne(t *testing.T, repo Repository, zielIP string) int {
 		t.Fatalf("Expected no enqueue error, got %v", err)
 	}
 
-	offene, err := repo.GetOffeneDruckauftraege(context.Background())
+	var id int
+	err = repo.db.QueryRow(
+		"SELECT id FROM druckauftraege WHERE ziel_ip = $1 ORDER BY id DESC LIMIT 1", zielIP,
+	).Scan(&id)
 	if err != nil {
-		t.Fatalf("Expected no read error, got %v", err)
+		t.Fatalf("Failed to read newest auftrag for ziel_ip %s: %v", zielIP, err)
 	}
-	if len(offene) != 1 {
-		t.Fatalf("Expected 1 offener auftrag, got %d", len(offene))
-	}
-	return offene[0].ID
+	return id
 }
 
 // enqueueMehrere legt anzahl Auftraege fuer dieselbe Ziel-IP an und liefert deren
@@ -783,28 +736,6 @@ func enqueueMehrere(t *testing.T, repo Repository, zielIP string, anzahl int) []
 	return ids
 }
 
-// enqueueWeiteren reiht einen zusaetzlichen Auftrag fuer eine Ziel-IP ein, bei
-// der bereits Auftraege liegen, und liefert dessen ID (die hoechste dieser
-// Ziel-IP). Seine Faelligkeit ist wie bei jedem neuen Auftrag NULL.
-func enqueueWeiteren(t *testing.T, repo Repository, zielIP string) int {
-	t.Helper()
-	err := repo.EnqueueDruckauftraege(context.Background(), []NeuerDruckauftrag{
-		{ZielIP: zielIP, Payload: "AAA=", BonArt: "arbeitsbon", Referenz: "bestellung-aufgenommen:neu"},
-	})
-	if err != nil {
-		t.Fatalf("Expected no enqueue error, got %v", err)
-	}
-
-	var id int
-	err = repo.db.QueryRow(
-		"SELECT id FROM druckauftraege WHERE ziel_ip = $1 ORDER BY id DESC LIMIT 1", zielIP,
-	).Scan(&id)
-	if err != nil {
-		t.Fatalf("Failed to read newest auftrag for ziel_ip %s: %v", zielIP, err)
-	}
-	return id
-}
-
 // simuliereWartezeitAbgelaufen setzt die Faelligkeit aller Auftraege einer
 // Ziel-IP in die Vergangenheit, statt die Backoff-Wartezeit real abzuwarten.
 func simuliereWartezeitAbgelaufen(t *testing.T, repo Repository, zielIP string) {
@@ -815,6 +746,40 @@ func simuliereWartezeitAbgelaufen(t *testing.T, repo Repository, zielIP string) 
 	)
 	if err != nil {
 		t.Fatalf("Failed to expire naechster_versuch_ab for ziel_ip %s: %v", zielIP, err)
+	}
+}
+
+// simuliereZeitvergangen laesst dauer verstreichen, indem es die Faelligkeiten
+// aller offenen Auftraege einer Ziel-IP um diese Spanne nach vorne schiebt. So
+// laufen unterschiedlich lange Wartezeiten derselben Warteschlange nacheinander
+// ab, ohne real zu warten.
+func simuliereZeitvergangen(t *testing.T, repo Repository, zielIP string, dauer time.Duration) {
+	t.Helper()
+	_, err := repo.db.Exec(
+		"UPDATE druckauftraege SET naechster_versuch_ab = naechster_versuch_ab - make_interval(secs => $1) WHERE ziel_ip = $2 AND status = 'offen'",
+		dauer.Seconds(), zielIP,
+	)
+	if err != nil {
+		t.Fatalf("Failed to advance naechster_versuch_ab for ziel_ip %s: %v", zielIP, err)
+	}
+}
+
+// assertOffeneAuftraege prueft den beobachtbaren Vertrag von
+// GetOffeneDruckauftraege: genau diese Auftraege sind faellig, in genau dieser
+// Reihenfolge.
+func assertOffeneAuftraege(t *testing.T, repo Repository, erwartet []int) {
+	t.Helper()
+	offene, err := repo.GetOffeneDruckauftraege(context.Background())
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(offene) != len(erwartet) {
+		t.Fatalf("Expected faellige auftraege %v, got %+v", erwartet, offene)
+	}
+	for i, id := range erwartet {
+		if offene[i].ID != id {
+			t.Fatalf("Expected auftrag %d at position %d of %v, got %+v", id, i, erwartet, offene)
+		}
 	}
 }
 

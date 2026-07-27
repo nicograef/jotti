@@ -270,7 +270,7 @@ type Druckauftraege struct {
 	LetzterFehler sql.NullString
 	ErstelltAm    time.Time
 	GedrucktAm    sql.NullTime
-	// Fruehester Zeitpunkt des naechsten Zustellversuchs (Backoff-Nachdruck). NULL = sofort faellig; wird nach jedem Fehlversuch auf NOW() + Backoff-Wartezeit gesetzt.
+	// Fruehester Zeitpunkt des naechsten Zustellversuchs (Backoff-Nachdruck); wird nach jedem Fehlversuch auf NOW() + Backoff-Wartezeit gesetzt. Die Wartezeit gilt der gesamten Warteschlange der Ziel-IP: solange irgendein offener Auftrag dieses Druckers wartet, wird kein Auftrag dieser Ziel-IP ausgeliefert — auch keiner mit NULL.
 	NaechsterVersuchAb sql.NullTime
 }
 
