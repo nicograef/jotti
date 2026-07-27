@@ -322,11 +322,45 @@ SELECT
     e.user_name,
     COALESCE(u.name, '')::text AS name,
     COALESCE((e.data->>'gesamtStornierungCents')::int, (e.data->>'gesamtCents')::int, 0)::int AS betrag_cents,
-    e.data
+    e.data,
+    COALESCE(
+        zuordnung.betroffene,
+        jsonb_build_array(jsonb_build_object(
+            'userId', e.user_id, 'userName', e.user_name, 'name', COALESCE(u.name, '')
+        ))
+    )::jsonb AS betroffene
 FROM kassenjournal e
 LEFT JOIN tisch_sessions tss ON tss.subject = e.subject
 LEFT JOIN tische t ON t.id = tss.tisch_id
 LEFT JOIN users u ON u.id = e.user_id
+LEFT JOIN LATERAL (
+    SELECT jsonb_agg(
+        jsonb_build_object('userId', betroffen.user_id, 'userName', betroffen.user_name, 'name', betroffen.name)
+        ORDER BY betroffen.user_id
+    ) AS betroffene
+    FROM (
+        SELECT DISTINCT ursprung.user_id, ursprung.user_name, COALESCE(bu.name, '')::text AS name
+        FROM kassenjournal ursprung
+        LEFT JOIN users bu ON bu.id = ursprung.user_id
+        WHERE ursprung.kassensitzung_nr = $1
+        AND (
+            (e.type = 'stornierung-erteilt:v1'
+                AND ursprung.type = 'zahlung-kassiert:v1'
+                AND ursprung.data->>'zahlungId' = e.data->>'zahlungId')
+            OR (e.type = 'direktverkauf-storniert:v1'
+                AND ursprung.type = 'direktverkauf-getaetigt:v1'
+                AND ursprung.data->>'verkaufId' = e.data->>'verkaufId')
+            OR (e.type = 'bestellung-korrigiert:v1'
+                AND ursprung.type = 'bestellung-aufgenommen:v1'
+                AND EXISTS (
+                    SELECT 1
+                    FROM jsonb_array_elements(e.data->'positionen') storno_pos
+                    JOIN jsonb_array_elements(ursprung.data->'positionen') bestell_pos
+                        ON bestell_pos->>'positionId' = storno_pos->>'positionId'
+                ))
+        )
+    ) betroffen
+) zuordnung ON true
 WHERE e.type IN ('stornierung-erteilt:v1', 'bestellung-korrigiert:v1', 'direktverkauf-storniert:v1')
 AND e.kassensitzung_nr = $1
 ORDER BY e.timestamp DESC
@@ -343,6 +377,7 @@ type GetStornierungenRow struct {
 	Name         string
 	BetragCents  int
 	Data         json.RawMessage
+	Betroffene   json.RawMessage
 }
 
 // Reporting: Storno-Events pro Kassensitzung — kassenwirksame Warenrücknahme (stornierung-erteilt),
@@ -351,6 +386,17 @@ type GetStornierungenRow struct {
 // Tischbezug; Direktverkauf-Stornos haben keinen (quelle = 'direktverkauf', tisch_id = 0, tisch_name = ”).
 // Der Betrag liegt je nach Event-Typ in gesamtStornierungCents oder gesamtCents; kommentar und fat
 // positions werden in Go aus data geparst.
+//
+// Storno-Zuordnung: Neben dem Akteur (user_id/user_name/name — wer storniert hat) liefert die Query
+// die betroffenen Servicekräfte, deren Vorgang der Storno rückgängig macht, als JSONB-Array
+// [{userId, userName, name}]. Aufgelöst wird jeweils innerhalb derselben Kassensitzung:
+//
+//	Warenrücknahme       → zahlung-kassiert:v1 mit derselben zahlungId (Kassierer, einwertig)
+//	Direktverkauf-Storno → direktverkauf-getaetigt:v1 mit derselben verkaufId (Verkäufer, einwertig)
+//	Korrektur            → je Positions-ID das bestellung-aufgenommen:v1, dessen Positions-Array
+//	                       diese ID enthält (Besteller, mehrwertig, je Person genau einmal)
+//
+// Findet die Auflösung nichts, fällt die Liste auf den Akteur zurück und ist damit nie leer.
 func (q *Queries) GetStornierungen(ctx context.Context, kassensitzungNr int) ([]GetStornierungenRow, error) {
 	rows, err := q.db.QueryContext(ctx, getStornierungen, kassensitzungNr)
 	if err != nil {
@@ -371,6 +417,7 @@ func (q *Queries) GetStornierungen(ctx context.Context, kassensitzungNr int) ([]
 			&i.Name,
 			&i.BetragCents,
 			&i.Data,
+			&i.Betroffene,
 		); err != nil {
 			return nil, err
 		}

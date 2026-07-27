@@ -56,9 +56,8 @@ const reportingResult: ReportingData = {
       barRueckgabe: true,
       tischId: 4,
       tischName: 'Tisch 4',
-      userId: 5,
-      userName: 'Bea',
-      name: 'Bea B.',
+      akteur: { userId: 5, userName: 'Bea', name: 'Bea B.' },
+      betroffene: [{ userId: 5, userName: 'Bea', name: 'Bea B.' }],
       betragCents: 300,
       kommentar: '',
       positionen: [],
@@ -208,6 +207,46 @@ describe('ReportingResults', () => {
 
     expect(
       screen.getByText('Keine Verkäufe in dieser Kassensitzung.'),
+    ).toBeInTheDocument()
+  })
+
+  it('nennt in der Storno-Zeile die betroffene Servicekraft ohne Akteurs-Zusatz, wenn sie selbst storniert hat', () => {
+    render(
+      <ReportingResults
+        result={reportingResult}
+        sitzung={sitzung}
+        loading={false}
+      />,
+    )
+
+    expect(screen.getByText('Tisch 4 · Bea (Bea B.)')).toBeInTheDocument()
+    expect(screen.queryByText(/storniert von/)).not.toBeInTheDocument()
+  })
+
+  it('nennt bei stellvertretender Stornierung die betroffenen Servicekräfte und den Akteur als Zusatz', () => {
+    render(
+      <ReportingResults
+        result={{
+          ...reportingResult,
+          stornierungen: [
+            {
+              ...reportingResult.stornierungen[0],
+              akteur: { userId: 1, userName: 'lena', name: 'Lena C.' },
+              betroffene: [
+                { userId: 5, userName: 'Bea', name: 'Bea B.' },
+                { userId: 6, userName: 'tom', name: '' },
+              ],
+            },
+          ],
+        }}
+        sitzung={sitzung}
+        loading={false}
+      />,
+    )
+
+    expect(screen.getByText('Tisch 4 · Bea (Bea B.), tom')).toBeInTheDocument()
+    expect(
+      screen.getByText(/storniert von lena \(Lena C\.\)/),
     ).toBeInTheDocument()
   })
 

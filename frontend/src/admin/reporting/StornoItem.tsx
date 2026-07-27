@@ -6,9 +6,19 @@ import type { StornierungDetail } from './types'
 import { formatLocalTime, formatServicekraft } from './utils'
 
 // StornoItem rendert einen einzelnen Stornierungs-Eintrag einheitlich für das
-// Live-Dashboard und die Kassenberichte: Tisch/Direktverkauf + Servicekraft, Uhrzeit
-// (HH:MM), Bar-Rückgabe-Status, Betrag und die stornierten Positionen.
+// Live-Dashboard und die Kassenberichte: Tisch/Direktverkauf + die betroffenen
+// Servicekräfte, Uhrzeit (HH:MM), Bar-Rückgabe-Status, Betrag und die
+// stornierten Positionen. Genannt wird zuerst, wen der Storno betrifft (wessen
+// Vorgang er rückgängig macht); wer ihn ausgelöst hat, folgt nur als gedämpfter
+// Zusatz, wenn er nicht selbst betroffen ist.
 export function StornoItem({ storno }: { storno: StornierungDetail }) {
+  const betroffene = storno.betroffene
+    .map((b) => formatServicekraft(b.userName, b.name))
+    .join(', ')
+  const akteurIstBetroffen = storno.betroffene.some(
+    (b) => b.userId === storno.akteur.userId,
+  )
+
   return (
     <Item variant="outline" size="sm">
       <ItemContent>
@@ -18,10 +28,15 @@ export function StornoItem({ storno }: { storno: StornierungDetail }) {
               {storno.quelle === 'direktverkauf'
                 ? 'Direktverkauf'
                 : storno.tischName}{' '}
-              · {formatServicekraft(storno.userName, storno.name)}
+              · {betroffene}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {formatLocalTime(storno.zeitpunkt)}
+              {!akteurIstBetroffen &&
+                ` · storniert von ${formatServicekraft(
+                  storno.akteur.userName,
+                  storno.akteur.name,
+                )}`}
             </p>
           </div>
           <div className="flex items-center gap-2">

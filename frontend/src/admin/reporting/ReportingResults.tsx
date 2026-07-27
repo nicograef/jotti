@@ -220,7 +220,7 @@ export function ReportingResults({
             <div className="flex flex-col gap-2">
               {result.stornierungen.map((storno) => (
                 <StornoItem
-                  key={`${storno.zeitpunkt}-${String(storno.tischId)}-${String(storno.userId)}`}
+                  key={`${storno.zeitpunkt}-${String(storno.tischId)}-${String(storno.akteur.userId)}`}
                   storno={storno}
                 />
               ))}

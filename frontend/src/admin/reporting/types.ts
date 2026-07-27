@@ -32,6 +32,15 @@ export type StornierungServicekraft = z.infer<
   typeof StornierungServicekraftSchema
 >
 
+// ServicekraftRef ist die geteilte Servicekraft-Referenz der Storno-Detailzeile:
+// Benutzer-ID, eingefrorener Username und live aufgelöster Klarname.
+export const ServicekraftRefSchema = z.object({
+  userId: z.number().int(),
+  userName: z.string(),
+  name: z.string(),
+})
+export type ServicekraftRef = z.infer<typeof ServicekraftRefSchema>
+
 export const StornierungPositionSchema = z.object({
   produktName: z.string(),
   varianteName: z.string(),
@@ -39,15 +48,17 @@ export const StornierungPositionSchema = z.object({
   einzelpreisCents: z.number().int(),
 })
 
+// StornierungDetail trennt die zwei Rollen eines Stornos: akteur hat ihn
+// ausgelöst, betroffene sind die Servicekräfte, deren Vorgang er rückgängig
+// macht (Storno-Zuordnung). betroffene liefert das Backend nie leer.
 export const StornierungDetailSchema = z.object({
   zeitpunkt: z.string(),
   quelle: z.enum(['tisch', 'direktverkauf']),
   barRueckgabe: z.boolean(),
   tischId: z.number().int(),
   tischName: z.string(),
-  userId: z.number().int(),
-  userName: z.string(),
-  name: z.string(),
+  akteur: ServicekraftRefSchema,
+  betroffene: z.array(ServicekraftRefSchema),
   betragCents: z.number().int(),
   kommentar: z.string(),
   positionen: z.array(StornierungPositionSchema),

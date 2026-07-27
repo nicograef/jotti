@@ -36,6 +36,14 @@ type stornierungEventData struct {
 	Positionen []stornierungPositionJSON `json:"positionen"`
 }
 
+// servicekraftRefJSON deserialisiert eine Servicekraft-Referenz aus der
+// betroffene-Spalte der GetStornierungen-Query (jsonb_build_object).
+type servicekraftRefJSON struct {
+	UserID   int    `json:"userId"`
+	UserName string `json:"userName"`
+	Name     string `json:"name"`
+}
+
 func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error) {
 	var (
 		stats        dbgen.GetReportingStatsRow
@@ -257,11 +265,34 @@ func toUmsatzServicekraft(rows []dbgen.GetUmsatzProServicekraftRow) []reporting.
 	return umsatz
 }
 
+// toBetroffene übersetzt die von der Query aufgelöste Storno-Zuordnung in
+// Domänen-Referenzen. Die Query garantiert eine nicht-leere Liste (Rückfall auf
+// den Akteur), sodass hier keine Ersatzlogik nötig ist.
+func toBetroffene(raw json.RawMessage) ([]reporting.ServicekraftRef, error) {
+	var refs []servicekraftRefJSON
+	if err := json.Unmarshal(raw, &refs); err != nil {
+		return nil, err
+	}
+	out := make([]reporting.ServicekraftRef, len(refs))
+	for i, ref := range refs {
+		out[i] = reporting.ServicekraftRef{
+			UserID:   ref.UserID,
+			UserName: ref.UserName,
+			Name:     ref.Name,
+		}
+	}
+	return out, nil
+}
+
 func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungDetail, error) {
 	stornierungen := make([]reporting.StornierungDetail, len(rows))
 	for i, row := range rows {
 		var data stornierungEventData
 		if err := json.Unmarshal(row.Data, &data); err != nil {
+			return nil, err
+		}
+		betroffene, err := toBetroffene(row.Betroffene)
+		if err != nil {
 			return nil, err
 		}
 		positionen := toStornierungPositionen(data.Positionen)
@@ -271,12 +302,15 @@ func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungD
 			BarRueckgabe: row.BarRueckgabe,
 			TischID:      row.TischID,
 			TischName:    row.TischName,
-			UserID:       row.UserID,
-			UserName:     row.UserName,
-			Name:         row.Name,
-			BetragCents:  row.BetragCents,
-			Kommentar:    data.Kommentar,
-			Positionen:   positionen,
+			Akteur: reporting.ServicekraftRef{
+				UserID:   row.UserID,
+				UserName: row.UserName,
+				Name:     row.Name,
+			},
+			Betroffene:  betroffene,
+			BetragCents: row.BetragCents,
+			Kommentar:   data.Kommentar,
+			Positionen:  positionen,
 		}
 	}
 	return stornierungen, nil

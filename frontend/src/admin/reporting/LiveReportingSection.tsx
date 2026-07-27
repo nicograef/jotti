@@ -304,7 +304,7 @@ export function LiveReportingSection({
               <div className="space-y-2 border-t px-4 py-3">
                 {liveData.stornierungen.map((s) => (
                   <StornoItem
-                    key={`${s.zeitpunkt}-${String(s.tischId)}-${String(s.userId)}`}
+                    key={`${s.zeitpunkt}-${String(s.tischId)}-${String(s.akteur.userId)}`}
                     storno={s}
                   />
                 ))}

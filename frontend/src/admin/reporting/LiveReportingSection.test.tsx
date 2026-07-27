@@ -178,9 +178,9 @@ describe('LiveReportingSection — Übersicht', () => {
               barRueckgabe: true,
               tischId: 9,
               tischName: 'Tisch 9',
-              userId: 3,
-              userName: 'felix',
-              name: 'Felix W.',
+              // Die Serviceleitung hat stellvertretend für felix storniert.
+              akteur: { userId: 1, userName: 'lena', name: 'Lena C.' },
+              betroffene: [{ userId: 3, userName: 'felix', name: 'Felix W.' }],
               betragCents: 500,
               kommentar: 'Falsch gebucht',
               positionen: [],
@@ -209,10 +209,14 @@ describe('LiveReportingSection — Übersicht', () => {
     expect(screen.getByText('1 Stornierung')).toBeInTheDocument()
     expect(screen.queryByText('Falsch gebucht')).not.toBeInTheDocument()
 
-    // Aufklappen zeigt die bestehende Detail-Liste.
+    // Aufklappen zeigt die bestehende Detail-Liste: zuerst die betroffene
+    // Servicekraft, der stellvertretende Akteur nur als Zusatz.
     await user.click(screen.getByRole('button', { name: /Details/ }))
     expect(screen.getByText('Falsch gebucht')).toBeInTheDocument()
     expect(screen.getByText('Tisch 9 · felix (Felix W.)')).toBeInTheDocument()
+    expect(
+      screen.getByText(/storniert von lena \(Lena C\.\)/),
+    ).toBeInTheDocument()
   })
 
   it('zeigt „Live · aktualisiert HH:MM" und löst den Aktualisieren-Button aus', async () => {

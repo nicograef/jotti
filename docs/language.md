@@ -163,7 +163,7 @@ Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einze
 
 #### Besteller (bestellende Servicekraft)
 
-Die Servicekraft, die eine Bestellung aufgenommen hat. Reines Projektions- und Anzeigekonzept: Jede offene `Position` trägt den Besteller als eingefrorenen Username aus dem Event-Umschlag des `bestellung-aufgenommen`-Events. Die Event-Form bleibt unverändert, spätere Umbenennungen ändern alte Positionen nicht. Grundlage für die persönliche Erledigt-Sicht, die Sortierung „eigene zuerst" beim Kassieren und die Schichtende-Prüfung im Live-Dashboard.
+Die Servicekraft, die eine Bestellung aufgenommen hat. Reines Projektions- und Anzeigekonzept: Jede offene `Position` trägt den Besteller als eingefrorenen Username aus dem Event-Umschlag des `bestellung-aufgenommen`-Events. Die Event-Form bleibt unverändert, spätere Umbenennungen ändern alte Positionen nicht. Grundlage für die persönliche Erledigt-Sicht, die Sortierung „eigene zuerst" beim Kassieren, die Schichtende-Prüfung im Live-Dashboard und — über die Positions-IDs des Storno-Events — die Storno-Zuordnung der geldneutralen Korrektur.
 
 Go-Projektion-Felder: `Position.BestellerUserID`, `Position.BestellerName` · JSON/TS: `bestellerUserId`, `bestellerName`
 
@@ -174,6 +174,10 @@ Kassierung einer Barzahlung. Kann sich auf einzelne Positionen beziehen.
 | Go-Struct | TS-Typ    | Event-Typ             |
 | --------- | --------- | --------------------- |
 | `Zahlung` | `Zahlung` | `zahlung-kassiert:v1` |
+
+#### Kassierer (kassierende Servicekraft)
+
+Die Servicekraft, die eine Zahlung kassiert hat. Reines Reporting- und Anzeigekonzept, zur Lesezeit aus dem Event-Umschlag des `zahlung-kassiert`-Events abgeleitet (kein eigenes Feld, kein Projektions-Tag an der Position). Über die `zahlungId` einer Warenrücknahme eindeutig auflösbar und damit die Grundlage der Storno-Zuordnung: Der Kassierer trägt die Bar-Rückgabe in seiner Abrechnung, nicht der Besteller und nicht der Stornierende.
 
 #### Stornierung
 
@@ -189,6 +193,14 @@ Beide Arten bleiben im Code die `Stornierung`, werden in der Tisch-Historie aber
 | -------------- | ------------- | ------------- | -------------------------- |
 | Warenrücknahme | `Stornierung` | `Stornierung` | `stornierung-erteilt:v1`   |
 | Korrektur      | `Stornierung` | `Stornierung` | `bestellung-korrigiert:v1` |
+
+#### Storno-Zuordnung
+
+Die Regel, dass ein Storno im Reporting der Servicekraft zugeordnet wird, deren Vorgang er rückgängig macht — nicht dem **Akteur**, der ihn ausgelöst hat. Aufgelöst wird zur Lesezeit über den Rückverweis des Storno-Events, jeweils innerhalb derselben Kassensitzung: die Warenrücknahme über `zahlungId` auf den **Kassierer**, die geldneutrale Korrektur über die Positions-IDs auf den/die **Besteller** (mehrwertig), der Direktverkauf-Storno über `verkaufId` auf den Verkäufer. Lässt sich ein Verweis nicht auflösen, fällt die Zeile auf den Akteur zurück; die Liste der Betroffenen ist damit nie leer.
+
+Die fiskalische Ebene bleibt unberührt: `kassenjournal.user_id`/`user_name` und die DSFinV-K-Felder `BEDIENER_ID`/`BEDIENER_NAME` bleiben der Akteur (erfassende Person).
+
+Go: `StornierungDetail.Akteur`, `StornierungDetail.Betroffene []ServicekraftRef` · JSON/TS: `akteur`, `betroffene`
 
 #### Umbuchung
 
@@ -359,7 +371,8 @@ Reporting-Daten werden on-demand per SQL-Aggregation aus dem Kassenjournal berec
 | Summary             | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen)                |
 | Breakdowns          | Aufschlüsselung des Umsatzes: `UmsatzProServicekraft []UmsatzServicekraft`                                 |
 | UmsatzServicekraft  | Umsatz einer einzelnen Servicekraft (Zahlungen, Anzahl)                                                    |
-| StornierungDetail   | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, Benutzer, Betrag, Kommentar, Positionen); `barRueckgabe` markiert die kassenwirksame Warenrücknahme gegenüber der geldneutralen Korrektur |
+| StornierungDetail   | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, `akteur`, `betroffene`, Betrag, Kommentar, Positionen); `barRueckgabe` markiert die kassenwirksame Warenrücknahme gegenüber der geldneutralen Korrektur, `betroffene` trägt die Storno-Zuordnung |
+| ServicekraftRef     | Geteilte Servicekraft-Referenz einer Reporting-Zeile: `userId`, `userName` (eingefroren), `name` (live aufgelöster Klarname); trägt `akteur` und `betroffene` der StornierungDetail |
 | StornierungPosition | Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis)                |
 | ProduktStatistik    | Verkäufe eines Produkts einer Kassensitzung, gruppiert nach Kategorie, mit Zwischensumme über `Varianten []VarianteStatistik` (ausgegebene Menge und Umsatz). Teil von `ReportingData` und `LiveReportingData` (`produktStatistik`) |
 | VarianteStatistik   | Verkaufs-Kennzahl einer Variante: `varianteId`, `varianteName`, `ausgegebeneMenge` (Bestellung − Korrektur + Direktverkauf) und `umsatzCents` (Kassiert + Direktverkauf − Warenrücknahme/Storno) — zwei bewusst getrennte Grundlagen |

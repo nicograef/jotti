@@ -128,15 +128,25 @@ type stornierungPosition struct {
 	EinzelpreisCents int    `json:"einzelpreisCents"`
 }
 
+// servicekraftRef ist die geteilte Servicekraft-Referenz der Storno-Detailzeile:
+// Benutzer-ID, eingefrorener Username und live aufgelöster Klarname.
+type servicekraftRef struct {
+	UserID   int    `json:"userId"`
+	UserName string `json:"userName"`
+	Name     string `json:"name"`
+}
+
+// stornierungDetail trennt die zwei Rollen eines Stornos: akteur hat ihn
+// ausgelöst, betroffene sind die Servicekräfte, deren Vorgang er rückgängig
+// macht (Storno-Zuordnung). betroffene ist nie leer.
 type stornierungDetail struct {
 	Zeitpunkt    time.Time             `json:"zeitpunkt"`
 	Quelle       string                `json:"quelle"`
 	BarRueckgabe bool                  `json:"barRueckgabe"`
 	TischID      int                   `json:"tischId"`
 	TischName    string                `json:"tischName"`
-	UserID       int                   `json:"userId"`
-	UserName     string                `json:"userName"`
-	Name         string                `json:"name"`
+	Akteur       servicekraftRef       `json:"akteur"`
+	Betroffene   []servicekraftRef     `json:"betroffene"`
 	BetragCents  int                   `json:"betragCents"`
 	Kommentar    string                `json:"kommentar"`
 	Positionen   []stornierungPosition `json:"positionen"`
@@ -211,6 +221,22 @@ func toStornierungPositionen(positionen []reporting.StornierungPosition) []storn
 	return out
 }
 
+func toServicekraftRef(ref reporting.ServicekraftRef) servicekraftRef {
+	return servicekraftRef{
+		UserID:   ref.UserID,
+		UserName: ref.UserName,
+		Name:     ref.Name,
+	}
+}
+
+func toServicekraftRefs(refs []reporting.ServicekraftRef) []servicekraftRef {
+	out := make([]servicekraftRef, len(refs))
+	for i := range refs {
+		out[i] = toServicekraftRef(refs[i])
+	}
+	return out
+}
+
 func toStornierungDetail(d reporting.StornierungDetail) stornierungDetail {
 	return stornierungDetail{
 		Zeitpunkt:    d.Zeitpunkt,
@@ -218,9 +244,8 @@ func toStornierungDetail(d reporting.StornierungDetail) stornierungDetail {
 		BarRueckgabe: d.BarRueckgabe,
 		TischID:      d.TischID,
 		TischName:    d.TischName,
-		UserID:       d.UserID,
-		UserName:     d.UserName,
-		Name:         d.Name,
+		Akteur:       toServicekraftRef(d.Akteur),
+		Betroffene:   toServicekraftRefs(d.Betroffene),
 		BetragCents:  d.BetragCents,
 		Kommentar:    d.Kommentar,
 		Positionen:   toStornierungPositionen(d.Positionen),
