@@ -49,6 +49,10 @@ const dialTimeout = 2 * time.Second
 // writeTimeout begrenzt das Senden der Druckdaten an den Drucker.
 const writeTimeout = 10 * time.Second
 
+// maxBonsProZyklus begrenzt, wie viele Bons eine Ziel-IP je Zyklus erhält
+// (Begründung bei bildeZustellgruppen).
+const maxBonsProZyklus = 6
+
 // zustellTimeouts bündelt die Lese-Timeouts einer Gruppen-Zustellung. Sie sind
 // injizierbar, damit Tests nicht auf echte Drucker- und Netzzeiten warten.
 type zustellTimeouts struct {
@@ -67,8 +71,9 @@ type zustellTimeouts struct {
 //     ein gepuffertes Kommando: der Drucker antwortet erst, nachdem er die
 //     vorher empfangenen Bons gedruckt und geschnitten hat — erfahrungsgemäß
 //     1–2 s je Bon. Der Zuschlag von 2 s je Bon deckt das ab, die Basis von 3 s
-//     die Verarbeitung des Kommandos und die Netz-Latenz. Eine Gruppe mit sechs
-//     Bons wartet damit höchstens 15 s auf die Quittung.
+//     die Verarbeitung des Kommandos und die Netz-Latenz. Weil maxBonsProZyklus
+//     eine Gruppe auf sechs Bons begrenzt, wartet sie höchstens 15 s auf die
+//     Quittung.
 var produktionsTimeouts = zustellTimeouts{
 	papier:         2 * time.Second,
 	spuelen:        100 * time.Millisecond,
@@ -87,11 +92,11 @@ const (
 // Kommando: der Drucker antwortet sofort, unabhängig von seinem Druckpuffer.
 var dlePapierstatus = []byte{0x10, 0x04, 0x04}
 
-// gsUebertragungsstatus fordert den Übertragungsstatus an (GS r 1). Gepuffertes
-// Kommando: der Drucker führt es erst aus, wenn er die davor empfangenen
-// Druckdaten verarbeitet hat. Eine Antwort beweist deshalb, dass alle Bons der
-// Gruppe konsumiert wurden — anders als das Echtzeit-Kommando DLE EOT.
-var gsUebertragungsstatus = []byte{0x1D, 0x72, 0x01}
+// gsStatusabfrage ist GS r 1 = Statusabfrage (Papiersensor); gepuffert. Der
+// Drucker führt das Kommando erst aus, wenn er die davor empfangenen Druckdaten
+// verarbeitet hat. Eine Antwort beweist deshalb, dass alle Bons der Gruppe
+// konsumiert wurden — anders als das Echtzeit-Kommando DLE EOT.
+var gsStatusabfrage = []byte{0x1D, 0x72, 0x01}
 
 // verbindeFunc öffnet eine Verbindung zum Drucker mit der gegebenen Ziel-IP.
 // Injizierbar, damit die Zustellung in Tests gegen einen lokalen TCP-Listener
@@ -99,9 +104,9 @@ var gsUebertragungsstatus = []byte{0x1D, 0x72, 0x01}
 type verbindeFunc func(zielIP string) (net.Conn, error)
 
 // gruppenDruckFunc stellt alle Aufträge einer Ziel-IP zu und meldet die bestätigt
-// zugestellten Auftrags-IDs sowie höchstens einen Fehlversuch. Injizierbar, damit
-// die Zyklus-Logik ohne echte Drucker testbar ist.
-type gruppenDruckFunc func(zielIP string, auftraege []DruckAuftrag) ([]int, *fehlversuch)
+// zugestellten Auftrags-IDs sowie die Fehlversuche. Injizierbar, damit die
+// Zyklus-Logik ohne echte Drucker testbar ist.
+type gruppenDruckFunc func(zielIP string, auftraege []DruckAuftrag) ([]int, []fehlversuch)
 
 // meldeFunc meldet das Ergebnis eines Zyklus ans Backend. Injizierbar, damit die
 // Zyklus-Logik ohne HTTP-Backend testbar ist.
@@ -269,7 +274,7 @@ func verarbeiteZyklus(auftraege []DruckAuftrag, zustelle gruppenDruckFunc) zyklu
 		ergebnis zyklusErgebnis
 	)
 
-	for zielIP, gruppe := range gruppiereNachIP(auftraege) {
+	for zielIP, gruppe := range bildeZustellgruppen(auftraege) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -278,9 +283,7 @@ func verarbeiteZyklus(auftraege []DruckAuftrag, zustelle gruppenDruckFunc) zyklu
 			mu.Lock()
 			defer mu.Unlock()
 			ergebnis.gedruckteIDs = append(ergebnis.gedruckteIDs, gedruckte...)
-			if fehler != nil {
-				ergebnis.fehlversuche = append(ergebnis.fehlversuche, *fehler)
-			}
+			ergebnis.fehlversuche = append(ergebnis.fehlversuche, fehler...)
 		}()
 	}
 	wg.Wait()
@@ -292,11 +295,20 @@ func verarbeiteZyklus(auftraege []DruckAuftrag, zustelle gruppenDruckFunc) zyklu
 	return ergebnis
 }
 
-// gruppiereNachIP gruppiert Aufträge nach Ziel-IP. Innerhalb jeder Gruppe bleibt
-// die Eingabe-Reihenfolge (älteste ID zuerst) erhalten.
-func gruppiereNachIP(auftraege []DruckAuftrag) map[string][]DruckAuftrag {
+// bildeZustellgruppen bildet je Ziel-IP die Gruppe, die dieser Zyklus zustellt:
+// höchstens maxBonsProZyklus Aufträge, in der Eingabe-Reihenfolge (älteste ID
+// zuerst). Die übrigen Aufträge bleiben offen und folgen im nächsten Zyklus.
+//
+// Die Obergrenze deckelt zugleich drei Größen, die sonst allein an der Länge der
+// Warteschlange hängen: das Quittungsfenster einer Gruppe, die Wartezeit der
+// übrigen Drucker (der nächste Poll startet erst, wenn die langsamste Gruppe
+// fertig ist) und die Zahl der Bons, die ein Abbruch doppelt drucken lässt.
+func bildeZustellgruppen(auftraege []DruckAuftrag) map[string][]DruckAuftrag {
 	gruppen := make(map[string][]DruckAuftrag)
 	for _, a := range auftraege {
+		if len(gruppen[a.ZielIP]) == maxBonsProZyklus {
+			continue
+		}
 		gruppen[a.ZielIP] = append(gruppen[a.ZielIP], a)
 	}
 	return gruppen
@@ -313,7 +325,7 @@ func verbindeMitDrucker(zielIP string) (net.Conn, error) {
 // prüfbar, ohne die Logausgabe abfangen zu müssen.
 type gruppenErgebnis struct {
 	gedruckteIDs []int
-	fehler       *fehlversuch
+	fehler       []fehlversuch
 	ausgang      string
 	gesendet     int
 }
@@ -321,7 +333,7 @@ type gruppenErgebnis struct {
 // zustelleGruppe liefert die Zustellfunktion für eine Auftragsgruppe und
 // protokolliert je Gruppe eine Zeile. Die Zustellung selbst macht stelleGruppeZu.
 func zustelleGruppe(verbinde verbindeFunc, timeouts zustellTimeouts) gruppenDruckFunc {
-	return func(zielIP string, auftraege []DruckAuftrag) ([]int, *fehlversuch) {
+	return func(zielIP string, auftraege []DruckAuftrag) ([]int, []fehlversuch) {
 		if len(auftraege) == 0 {
 			return nil, nil
 		}
@@ -352,40 +364,48 @@ func stelleGruppeZu(verbinde verbindeFunc, timeouts zustellTimeouts, zielIP stri
 
 	conn, err := verbinde(zielIP)
 	if err != nil {
-		ergebnis.fehler = gruppenFehlversuch(auftraege, fmt.Errorf("drucker %s: nicht erreichbar: %w", zielIP, err))
+		ergebnis.fehler = gruppenFehlversuche(auftraege, fmt.Errorf("drucker %s: nicht erreichbar: %w", zielIP, err))
 		return ergebnis
 	}
 	defer func() { _ = conn.Close() }()
 
 	if err := pruefePapier(conn, zielIP, timeouts.papier); err != nil {
-		ergebnis.fehler = gruppenFehlversuch(auftraege, fmt.Errorf("drucker %s: %w", zielIP, err))
+		ergebnis.fehler = gruppenFehlversuche(auftraege, fmt.Errorf("drucker %s: %w", zielIP, err))
 		return ergebnis
 	}
 
 	for _, a := range auftraege {
 		if err := sendeBon(conn, a); err != nil {
-			ergebnis.fehler = &fehlversuch{ID: a.ID, Fehler: fmt.Sprintf("drucker %s: %v", zielIP, err)}
+			// Nur der betroffene Auftrag: ein Sendefehler hängt am einzelnen Bon
+			// (etwa eine ungültige Payload) und darf keine Versuche der übrigen
+			// Aufträge verbrauchen.
+			ergebnis.fehler = []fehlversuch{{ID: a.ID, Fehler: fmt.Sprintf("drucker %s: %v", zielIP, err)}}
 			return ergebnis
 		}
 		ergebnis.gesendet++
 	}
 
-	quittungTimeout := timeouts.quittungBasis + time.Duration(len(auftraege))*timeouts.quittungProBon
-	ergebnis.ausgang, err = holeQuittung(conn, timeouts.spuelen, quittungTimeout)
+	ergebnis.ausgang, err = holeQuittung(conn, timeouts, zielIP, len(auftraege))
 	if err != nil {
-		ergebnis.fehler = gruppenFehlversuch(auftraege, fmt.Errorf("drucker %s: quittung fehlgeschlagen: %w", zielIP, err))
+		ergebnis.fehler = gruppenFehlversuche(auftraege, fmt.Errorf("drucker %s: quittung fehlgeschlagen: %w", zielIP, err))
 		return ergebnis
 	}
 	ergebnis.gedruckteIDs = auftragsIDs(auftraege)
 	return ergebnis
 }
 
-// gruppenFehlversuch macht den ersten Auftrag der Gruppe zum Fehlversuch. Das ist
-// der Fall bei Problemen, die die ganze Gruppe betreffen (Verbindung, Papier,
-// Quittung) und sich keinem einzelnen Bon zuordnen lassen. Die übrigen Aufträge
-// bleiben offen, ohne einen Fehlversuch zu verbrauchen.
-func gruppenFehlversuch(auftraege []DruckAuftrag, err error) *fehlversuch {
-	return &fehlversuch{ID: auftraege[0].ID, Fehler: err.Error()}
+// gruppenFehlversuche macht jeden Auftrag der Gruppe zum Fehlversuch. Das ist der
+// Fall bei Problemen, die die ganze Gruppe betreffen (Verbindung, Papier,
+// Quittung) und sich keinem einzelnen Bon zuordnen lassen: gescheitert ist die
+// Zustellung aller dieser Aufträge, also zählt der Versuch auch für alle. Nur so
+// erreichen sie die Höchstzahl an Versuchen und werden im Admin als
+// fehlgeschlagen sichtbar, statt unbemerkt offen zu bleiben.
+func gruppenFehlversuche(auftraege []DruckAuftrag, err error) []fehlversuch {
+	fehlversuche := make([]fehlversuch, 0, len(auftraege))
+	for _, a := range auftraege {
+		fehlversuche = append(fehlversuche, fehlversuch{ID: a.ID, Fehler: err.Error()})
+	}
+	return fehlversuche
 }
 
 func auftragsIDs(auftraege []DruckAuftrag) []int {
@@ -452,33 +472,42 @@ func sendeBon(conn net.Conn, a DruckAuftrag) error {
 // auf die Antwort des Druckers. Sie liefert den Ausgang für das Log und einen
 // Fehler genau dann, wenn die Zustellung unbestätigt bleibt:
 //   - Antwort erhalten: der Drucker hat alle Bons der Gruppe verarbeitet.
-//   - Lese-Timeout ohne Antwort: der Drucker unterstützt GS r nicht. Die Gruppe
-//     gilt als zugestellt — sonst wäre ein solcher Drucker dauerhaft unbenutzbar.
+//   - Lese-Timeout ohne Antwort: entweder ist der Drucker offline — bei Papierende
+//     geht er laut ESC/POS-Referenz offline und führt GS r nicht mehr aus — oder er
+//     unterstützt GS r schlicht nicht. Beides trennt eine erneute Papierprüfung per
+//     Echtzeit-Kommando, das auch ein Offline-Drucker beantwortet: meldet sie
+//     Papierende, gilt nichts als zugestellt, sonst die ganze Gruppe (sonst wäre ein
+//     Drucker ohne GS r dauerhaft unbenutzbar). Andere Offline-Zustände (offener
+//     Deckel, Fehlerzustand) erkennt DLE EOT n=4 nicht; sie bleiben unbeantwortet.
 //   - Verbindungsabbruch (EOF, Reset, Schreibfehler): kein Timeout und kein
 //     Nachweis. Die Gruppe bleibt offen.
-func holeQuittung(conn net.Conn, spuelen, timeout time.Duration) (string, error) {
+func holeQuittung(conn net.Conn, timeouts zustellTimeouts, zielIP string, anzahlBons int) (string, error) {
 	// Papierstatus-Abfrage und Quittung teilen sich denselben Lesestrom. Liegt
 	// aus der Papierstatus-Runde noch ein Byte im Empfangspuffer — weil der
 	// Drucker mehr als ein Byte geantwortet hat oder erst nach dem Papier-Timeout
 	// antwortet —, würde es hier als Quittung gelten und die ganze Gruppe
 	// bestätigen, ohne dass der Drucker irgendetwas verarbeitet hat.
-	if err := spueleEmpfangspuffer(conn, spuelen); err != nil {
+	if err := spueleEmpfangspuffer(conn, timeouts.spuelen); err != nil {
 		return ausgangAbgebrochen, fmt.Errorf("empfangspuffer spuelen: %w", err)
 	}
 
 	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
 		return ausgangAbgebrochen, fmt.Errorf("set write deadline: %w", err)
 	}
-	if _, err := conn.Write(gsUebertragungsstatus); err != nil {
+	if _, err := conn.Write(gsStatusabfrage); err != nil {
 		return ausgangAbgebrochen, err
 	}
 
-	if err := conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+	quittungTimeout := timeouts.quittungBasis + time.Duration(anzahlBons)*timeouts.quittungProBon
+	if err := conn.SetReadDeadline(time.Now().Add(quittungTimeout)); err != nil {
 		return ausgangAbgebrochen, fmt.Errorf("set read deadline: %w", err)
 	}
 	antwort := make([]byte, 1)
 	if _, err := conn.Read(antwort); err != nil {
 		if istTimeout(err) {
+			if papierErr := pruefePapier(conn, zielIP, timeouts.papier); papierErr != nil {
+				return ausgangAbgebrochen, papierErr
+			}
 			return ausgangUnbeantwortet, nil
 		}
 		return ausgangAbgebrochen, err

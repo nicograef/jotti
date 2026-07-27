@@ -137,7 +137,7 @@ SET versuche = versuche + 1,
     letzter_fehler = $1,
     status = CASE WHEN versuche + 1 >= $2 THEN 'fehlgeschlagen' ELSE status END
 WHERE id = $3 AND status = 'offen'
-RETURNING versuche, status, ziel_ip
+RETURNING versuche, status
 `
 
 type IncrementDruckauftragFehlversuchParams struct {
@@ -149,13 +149,12 @@ type IncrementDruckauftragFehlversuchParams struct {
 type IncrementDruckauftragFehlversuchRow struct {
 	Versuche int
 	Status   string
-	ZielIp   string
 }
 
 func (q *Queries) IncrementDruckauftragFehlversuch(ctx context.Context, arg IncrementDruckauftragFehlversuchParams) (IncrementDruckauftragFehlversuchRow, error) {
 	row := q.db.QueryRowContext(ctx, incrementDruckauftragFehlversuch, arg.LetzterFehler, arg.MaxVersuche, arg.ID)
 	var i IncrementDruckauftragFehlversuchRow
-	err := row.Scan(&i.Versuche, &i.Status, &i.ZielIp)
+	err := row.Scan(&i.Versuche, &i.Status)
 	return i, err
 }
 
@@ -203,25 +202,18 @@ func (q *Queries) RetryDruckauftrag(ctx context.Context, id int) error {
 	return err
 }
 
-const setDruckauftragFaelligkeitFuerZielIP = `-- name: SetDruckauftragFaelligkeitFuerZielIP :exec
+const setDruckauftragFaelligkeit = `-- name: SetDruckauftragFaelligkeit :exec
 UPDATE druckauftraege
-SET naechster_versuch_ab = GREATEST(
-        naechster_versuch_ab,
-        NOW() + ($1::int * INTERVAL '1 second')
-    )
-WHERE ziel_ip = $2 AND status = 'offen'
+SET naechster_versuch_ab = NOW() + ($1::int * INTERVAL '1 second')
+WHERE id = $2 AND status = 'offen'
 `
 
-type SetDruckauftragFaelligkeitFuerZielIPParams struct {
+type SetDruckauftragFaelligkeitParams struct {
 	Sekunden int
-	ZielIp   string
+	ID       int
 }
 
-// GREATEST sorgt dafuer, dass bei mehreren Fehlversuchen derselben Ziel-IP die
-// laengere Wartezeit gewinnt: die Warteschlange wird nie vorzeitig freigegeben.
-// (Postgres ignoriert NULL in GREATEST, ein bisher ungebremster Auftrag bekommt
-// also die neue Faelligkeit.)
-func (q *Queries) SetDruckauftragFaelligkeitFuerZielIP(ctx context.Context, arg SetDruckauftragFaelligkeitFuerZielIPParams) error {
-	_, err := q.db.ExecContext(ctx, setDruckauftragFaelligkeitFuerZielIP, arg.Sekunden, arg.ZielIp)
+func (q *Queries) SetDruckauftragFaelligkeit(ctx context.Context, arg SetDruckauftragFaelligkeitParams) error {
+	_, err := q.db.ExecContext(ctx, setDruckauftragFaelligkeit, arg.Sekunden, arg.ID)
 	return err
 }
