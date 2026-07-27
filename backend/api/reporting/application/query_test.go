@@ -199,9 +199,9 @@ func TestGetReporting_AggregiertStornierungenProServicekraft(t *testing.T) {
 			GesamtStornierungenCents: 1050,
 		},
 		Stornierungen: []reporting.StornierungDetail{
-			{UserID: 3, UserName: "felix", Name: "Felix W.", BetragCents: 500},
-			{UserID: 7, UserName: "sophie", Name: "Sophie B.", BetragCents: 250},
-			{UserID: 3, UserName: "felix", Name: "Felix W.", BetragCents: 300},
+			{Akteur: reporting.ServicekraftRef{UserID: 3, UserName: "felix", Name: "Felix W."}, BetragCents: 500},
+			{Akteur: reporting.ServicekraftRef{UserID: 7, UserName: "sophie", Name: "Sophie B."}, BetragCents: 250},
+			{Akteur: reporting.ServicekraftRef{UserID: 3, UserName: "felix", Name: "Felix W."}, BetragCents: 300},
 		},
 	}
 
@@ -550,8 +550,8 @@ func TestGetLiveReporting_AggregiertStornierungenProServicekraft(t *testing.T) {
 			GesamtStornierungenCents: 750,
 		},
 		Stornierungen: []reporting.StornierungDetail{
-			{UserID: 3, UserName: "felix", Name: "Felix W.", BetragCents: 500},
-			{UserID: 7, UserName: "sophie", Name: "Sophie B.", BetragCents: 250},
+			{Akteur: reporting.ServicekraftRef{UserID: 3, UserName: "felix", Name: "Felix W."}, BetragCents: 500},
+			{Akteur: reporting.ServicekraftRef{UserID: 7, UserName: "sophie", Name: "Sophie B."}, BetragCents: 250},
 		},
 	}
 	q := Query{
