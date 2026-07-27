@@ -18,6 +18,7 @@ type tischRepo interface {
 type favoritRepo interface {
 	Add(ctx context.Context, userID, tischID int) error
 	Remove(ctx context.Context, userID, tischID int) error
+	RemoveByTisch(ctx context.Context, tischID int) error
 }
 
 type Command struct {
@@ -116,11 +117,12 @@ func (c Command) TischLoeschen(ctx context.Context, id int) error {
 // Ergebnis. Ist guardSaldo gesetzt (Deaktivieren, Löschen), wird ein Tisch mit
 // offenem Saldo in der offenen Kassensitzung abgelehnt — das Backend erzwingt
 // den Schutz als Single Source of Truth, unabhängig davon, was das Frontend
-// anbietet.
+// anbietet. Führt action den Tisch in den Status 'deleted', werden zusätzlich
+// seine Favoriten-Markierungen entfernt.
 func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo bool, successMsg string, action func(*tisch.Tisch)) error {
 	log := zerolog.Ctx(ctx)
 
-	tisch, err := c.TischRepo.GetTable(ctx, id)
+	t, err := c.TischRepo.GetTable(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
@@ -137,8 +139,22 @@ func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo 
 		}
 	}
 
-	action(&tisch)
-	if err := c.TischRepo.UpdateTable(ctx, tisch); err != nil {
+	action(&t)
+
+	// Ein gelöschter Tisch erscheint nicht mehr in der Tischauswahl; eine
+	// zurückbleibende Markierung wäre für die betroffene Servicekraft weder
+	// sichtbar noch abwählbar und hinge dauerhaft in ihrer Tischübersicht.
+	// Der Cleanup läuft vor dem Statuswechsel: Scheitert er, bleibt der Tisch
+	// unangetastet und der Löschvorgang ist unverändert wiederholbar.
+	// Ein deaktivierter Tisch bleibt bewusst markiert — er kommt wieder.
+	if t.Status == tisch.DeletedStatus {
+		if err := c.FavoritRepo.RemoveByTisch(ctx, id); err != nil {
+			log.Error().Err(err).Int("tisch_id", id).Msg("Failed to remove favoriten of deleted tisch")
+			return ErrDatabase
+		}
+	}
+
+	if err := c.TischRepo.UpdateTable(ctx, t); err != nil {
 		return fromRepositoryError(err, log, id)
 	}
 	log.Info().Int("tisch_id", id).Msg(successMsg)
