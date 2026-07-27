@@ -185,34 +185,38 @@ diagnostizierbar ist, ohne DB-Zugriff.
 
 ### Acceptance criteria
 
-- [ ] Eine Gruppe von 6 Aufträgen an dieselbe Ziel-IP öffnet **genau eine**
+- [x] Eine Gruppe von 6 Aufträgen an dieselbe Ziel-IP öffnet **genau eine**
       TCP-Verbindung (heute: 12). Nachgewiesen mit einem echten TCP-Listener im
       Test, der Verbindungen zählt.
-- [ ] Regressionstest gegen das gemeldete Fehlerbild: ein Test-Listener, der
-      **nur eine** Verbindung gleichzeitig annimmt und weitere sofort ablehnt,
-      empfängt alle 6 Bon-Payloads vollständig und in ID-Reihenfolge.
-- [ ] Antwortet der Test-Listener auf `GS r 1`, werden alle Aufträge der Gruppe als
+- [x] Regressionstest gegen das gemeldete Fehlerbild: der Test-Listener empfängt
+      alle 6 Bon-Payloads vollständig und in ID-Reihenfolge über eine Verbindung.
+      **Angepasst gegenüber dem ursprünglichen Wortlaut** („Listener, der nur eine
+      Verbindung annimmt und weitere ablehnt"): dieser Ablehnungspfad ist mit der
+      neuen Architektur unerreichbar, weil nie zwei gleichzeitige Verbindungen
+      geöffnet werden — er war im Test toter Code. Die Zusicherung liegt jetzt
+      direkt in der Verbindungszählung plus dem vollständigen Bytestrom.
+- [x] Antwortet der Test-Listener auf `GS r 1`, werden alle Aufträge der Gruppe als
       `gedruckte IDs` gemeldet, kein Fehlversuch.
-- [ ] Antwortet der Test-Listener **nicht** auf `GS r 1` (Timeout), werden alle
+- [x] Antwortet der Test-Listener **nicht** auf `GS r 1` (Timeout), werden alle
       geschriebenen Aufträge trotzdem als gedruckt gemeldet.
-- [ ] Schließt der Test-Listener die Verbindung, bevor die Quittung kommt, wird
+- [x] Schließt der Test-Listener die Verbindung, bevor die Quittung kommt, wird
       **kein** Auftrag der Gruppe als gedruckt gemeldet, und genau ein Auftrag
       erscheint als Fehlversuch.
-- [ ] Ein Schreibfehler beim dritten Bon macht Auftrag 3 zum Fehlversuch; die
+- [x] Ein Schreibfehler beim dritten Bon macht Auftrag 3 zum Fehlversuch; die
       Aufträge 1, 2, 4, 5, 6 werden **nicht** als gedruckt gemeldet und bleiben
       damit offen.
-- [ ] Meldet der Drucker Papier leer (End-Sensor-Bits gesetzt), ist der erste
+- [x] Meldet der Drucker Papier leer (End-Sensor-Bits gesetzt), ist der erste
       Auftrag der Gruppe der Fehlversuch und kein Bon wird gesendet.
-- [ ] Ein nicht erreichbarer Drucker blockiert andere Ziel-IPs nicht — die
+- [x] Ein nicht erreichbarer Drucker blockiert andere Ziel-IPs nicht — die
       bestehende Zusicherung aus `TestVerarbeiteZyklusSkipNachErstfehler` gilt
       unverändert auf Gruppen-Ebene weiter.
-- [ ] Pro Gruppe erscheint eine Logzeile mit Ziel-IP, Anzahl Bons, Quittungs-Ausgang
+- [x] Pro Gruppe erscheint eine Logzeile mit Ziel-IP, Anzahl Bons, Quittungs-Ausgang
       und Dauer.
-- [ ] `make check-relay` läuft grün (inkl. `-race`, `golangci-lint`, `go vet`).
-- [ ] `README.md — §Print-Relay` beschreibt die neue Zustellung: eine Verbindung je
+- [x] `make check-relay` läuft grün (inkl. `-race`, `golangci-lint`, `go vet`).
+- [x] `README.md — §Print-Relay` beschreibt die neue Zustellung: eine Verbindung je
       Drucker und Zyklus, Quittung per gepuffertem Statuskommando, im Zweifel
       erneute Zustellung.
-- [ ] `docs/handbuch.md — §4.6`, Absatz „Relay = Transport", beschreibt die
+- [x] `docs/handbuch.md — §4.6`, Absatz „Relay = Transport", beschreibt die
       Gruppen-Zustellung und die Quittungssemantik.
 
 ---
@@ -263,31 +267,71 @@ bereits. `make sqlc` muss nach der Query-Änderung laufen,
 
 ### Acceptance criteria
 
-- [ ] Integrationstest: fünf offene Aufträge an dieselbe Ziel-IP, ein gemeldeter
+- [x] Integrationstest: fünf offene Aufträge an dieselbe Ziel-IP, ein gemeldeter
       Fehlversuch auf den ersten → **alle fünf** haben ein `naechster_versuch_ab`
       in der Zukunft, und `GetOffeneDruckauftraege` liefert unmittelbar danach
       keinen davon.
-- [ ] Integrationstest: Aufträge an eine **andere** Ziel-IP bleiben von diesem
+- [x] Integrationstest: Aufträge an eine **andere** Ziel-IP bleiben von diesem
       Fehlversuch unberührt und sind weiterhin sofort fällig.
-- [ ] Integrationstest: nach Ablauf der Wartezeit liefert
+- [x] Integrationstest: nach Ablauf der Wartezeit liefert
       `GetOffeneDruckauftraege` die Aufträge wieder in aufsteigender ID-Reihenfolge
       — der zuvor gescheiterte Auftrag zuerst.
-- [ ] Integrationstest: kippt der Auftrag mit dem sechsten Fehlversuch auf
+- [x] Integrationstest: kippt der Auftrag mit dem sechsten Fehlversuch auf
       `fehlgeschlagen`, bekommen die übrigen offenen Aufträge derselben Ziel-IP
       **keinen** neuen Backoff und sind sofort fällig.
-- [ ] Ein Fehlversuch auf eine ID, die nicht (mehr) `offen` ist, bleibt ein
+- [x] Ein Fehlversuch auf eine ID, die nicht (mehr) `offen` ist, bleibt ein
       No-Op ohne Backoff-Wirkung auf die Warteschlange — die bestehende Zusicherung
       aus `TestReportDruckergebnis_StaleFehlversuchIstNoOp` gilt weiter.
-- [ ] `SetDruckauftragFaelligkeit` (Einzel-ID) existiert nicht mehr, und
+- [x] `SetDruckauftragFaelligkeit` (Einzel-ID) existiert nicht mehr, und
       `grep -rn "SetDruckauftragFaelligkeit\b"` findet keine verwaisten Referenzen.
-- [ ] `make sqlc` ausgeführt, `backend/sqlc/dbgen/` nur generiert, nicht editiert.
-- [ ] Keine neue Datei unter `database/migrations/`.
-- [ ] `make verify` läuft grün.
-- [ ] `README.md — §Print-Relay` und `docs/handbuch.md — §4.6` beschreiben den
+- [x] `make sqlc` ausgeführt, `backend/sqlc/dbgen/` nur generiert, nicht editiert.
+- [x] Keine neue Datei unter `database/migrations/`.
+- [x] `make check` läuft grün, ebenso die Integrationstests des gesamten Backends
+      mit `-race`. `make verify` selbst war in der Entwicklungsumgebung nicht
+      ausführbar (`scripts/test-integration.sh` startet einen Docker-Container,
+      Docker war nicht verfügbar); stattdessen liefen die Integrationstests direkt
+      gegen eine lokale PostgreSQL-Instanz mit demselben Migrationsstand. In CI
+      muss `make verify` grün laufen.
+- [x] `README.md — §Print-Relay` und `docs/handbuch.md — §4.6` beschreiben den
       Backoff als Wartezeit der gesamten Drucker-Warteschlange, nicht des einzelnen
       Auftrags.
 
 ---
+
+## Umsetzungsnotizen
+
+Abweichungen und Ergänzungen gegenüber dem geplanten Vorgehen, alle aus der
+adversarialen Review hervorgegangen:
+
+- **Timeouts sind injizierbar** (`zustellTimeouts` mit `papier`, `spuelen`,
+  `quittungBasis`, `quittungProBon`; Produktion in `produktionsTimeouts`) statt
+  fester Paketkonstanten. Ohne das würde allein der Timeout-Fallback-Test die
+  Relay-Suite um zweistellige Sekunden verlängern.
+- **Der Empfangspuffer wird vor der Quittung gespült** (`spueleEmpfangspuffer`).
+  Ohne diesen Schritt wertet die Quittungs-Leseoperation ein Restbyte der
+  Papierstatus-Runde als `GS r`-Antwort und bestätigt die ganze Gruppe, ohne dass
+  der Drucker etwas verarbeitet hat — dieselbe Fehlerklasse, die der Umbau
+  beseitigen soll. Das Spülfenster braucht echte Zeit: Go gibt bei bereits
+  abgelaufener Lese-Deadline gepufferte Bytes nicht heraus, sondern meldet sofort
+  `i/o timeout`.
+- **Verbleibendes Restrisiko, bewusst offen:** ein Papierstatus-Byte, das erst
+  *nach* dem Spülfenster, aber noch innerhalb des Quittungsfensters eintrifft,
+  gilt weiterhin als Quittung. `DLE EOT` und `GS r` antworten beide mit einem
+  einzelnen, inhaltlich nicht unterscheidbaren Statusbyte; das Zeitfenster ist die
+  einzige verfügbare Trennung. Im Code auf `spueleEmpfangspuffer` dokumentiert.
+  Die saubere Auflösung wäre, `DLE EOT` ganz zu streichen und den Papierstatus aus
+  der `GS r 1`-Antwort zu lesen — dann gibt es nur noch **eine** Statusabfrage je
+  Verbindung und die Verwechslung ist strukturell ausgeschlossen. Preis: Papier
+  leer fällt erst nach dem Senden auf. Das ist eine Planänderung und wurde bewusst
+  nicht ohne Rücksprache umgesetzt.
+- **Phase 2 brauchte mehr als geplant:** ein Backoff nur auf den bestehenden
+  Aufträgen genügt nicht. `InsertDruckauftrag` setzt `naechster_versuch_ab` nicht
+  und die Spalte hat keinen Default, also überholt ein während des Backoff-Fensters
+  neu eingereihter Auftrag die gebremste Warteschlange. `GetOffeneDruckauftraege`
+  überspringt deshalb die Ziel-IP vollständig, solange einer ihrer offenen Aufträge
+  wartet. Zusätzlich setzt `SetDruckauftragFaelligkeitFuerZielIP` die Fälligkeit per
+  `GREATEST`, damit mehrere Fehlversuche derselben Ziel-IP in einem Batch die
+  Warteschlange nicht vorzeitig freigeben.
 
 ## Bewusst nicht im Scope
 
