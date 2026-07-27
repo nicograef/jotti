@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { useParams } from 'react-router'
 
@@ -18,7 +19,13 @@ import { Bestellung } from './components/table/Bestellung'
 import { TischHistorie } from './components/table/TischHistorie'
 import { Zahlung } from './components/table/Zahlung'
 import { useAktiveProdukte } from './product/hooks'
-import { useTischHistorie, useTischState } from './table/hooks'
+import {
+  AKTIVE_TISCHE_MIT_FAVORITEN_KEY,
+  EIGENE_UEBERSICHT_KEY,
+  MEINE_TISCHE_STATE_KEY,
+  useTischHistorie,
+  useTischState,
+} from './table/hooks'
 import { TischBackend } from './table/TischBackend'
 
 const tischBackend = new TischBackend(BackendSingleton)
@@ -111,10 +118,21 @@ export function TablePage() {
   // Schließen des Erfolgs-Pops, wenn der Refetch den Tischzustand aktualisiert).
   const animierterSaldo = useCountUp(state.saldoCents)
 
+  // Eine Buchung ändert nicht nur diesen Tisch, sondern auch die Zahlen der
+  // Tischübersicht (Meine Tische, Alle Tische, eigene Summen). Deren Queries
+  // hängen an keiner Komponente dieser Seite und würden nach der Rückkehr
+  // innerhalb der Aktualitätsschwelle den Cache-Stand von vor der Buchung
+  // zeigen — ein soeben kassierter Tisch stünde weiter unter „Noch offen".
+  const queryClient = useQueryClient()
   const reload = useCallback(() => {
     void reloadState()
     void reloadHistorie()
-  }, [reloadState, reloadHistorie])
+    void queryClient.invalidateQueries({ queryKey: [MEINE_TISCHE_STATE_KEY] })
+    void queryClient.invalidateQueries({
+      queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
+    })
+    void queryClient.invalidateQueries({ queryKey: [EIGENE_UEBERSICHT_KEY] })
+  }, [reloadState, reloadHistorie, queryClient])
 
   // Erfolgs-Pop: Bestellen, Kassieren, Stornieren und Umbuchen öffnen ihn mit
   // ihrer Meldung (statt eines Erfolgs-Toasts). Der nachgelagerte Refetch

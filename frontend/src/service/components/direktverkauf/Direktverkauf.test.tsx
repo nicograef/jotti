@@ -53,6 +53,8 @@ function renderDirektverkauf() {
         backend={{ direktverkaufTaetigen }}
         products={[testProdukt]}
         productsLoading={false}
+        productsError={false}
+        onErneutVersuchen={vi.fn()}
       />
     </ServiceDock>,
   )
@@ -117,6 +119,8 @@ describe('Direktverkauf', () => {
         backend={{ direktverkaufTaetigen }}
         products={[testProdukt]}
         productsLoading={false}
+        productsError={false}
+        onErneutVersuchen={vi.fn()}
       />,
     )
 
@@ -136,5 +140,31 @@ describe('Direktverkauf', () => {
     expect(
       screen.getByRole('button', { name: 'Verkauf abschließen' }),
     ).toBeEnabled()
+  })
+
+  it('zeigt bei einem Ladefehler den Ladefehler statt einer leeren Produktliste', async () => {
+    const onErneutVersuchen = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <Direktverkauf
+        backend={{ direktverkaufTaetigen: vi.fn() }}
+        products={[]}
+        productsLoading={false}
+        productsError
+        onErneutVersuchen={onErneutVersuchen}
+      />,
+    )
+
+    expect(
+      screen.getByText('Produkte konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    // Der Leerzustand schickt den Helfer in den Admin-Bereich, obwohl nur die
+    // Verbindung fehlt.
+    expect(
+      screen.queryByText('Keine Produkte verfügbar'),
+    ).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+    expect(onErneutVersuchen).toHaveBeenCalledTimes(1)
   })
 })

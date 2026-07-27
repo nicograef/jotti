@@ -90,6 +90,7 @@ const DEFAULT_EIGENE_UEBERSICHT: EigeneUebersicht = {
   abzugebenCents: 0,
 }
 
+export const EIGENE_UEBERSICHT_KEY = 'eigene-uebersicht'
 export function useEigeneUebersicht() {
   const {
     data: uebersicht = DEFAULT_EIGENE_UEBERSICHT,
@@ -97,7 +98,7 @@ export function useEigeneUebersicht() {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['eigene-uebersicht'],
+    queryKey: [EIGENE_UEBERSICHT_KEY],
     queryFn: () => tischBackend.getEigeneUebersicht(),
   })
   return { uebersicht, isPending, isError, refetch }

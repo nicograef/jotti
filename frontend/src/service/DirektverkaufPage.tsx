@@ -16,7 +16,12 @@ const direktverkaufBackend = new DirektverkaufBackend(BackendSingleton)
 
 export function DirektverkaufPage() {
   const isMobile = useIsMobile()
-  const { produkte, isPending } = useAktiveProdukte()
+  const {
+    produkte,
+    isPending,
+    isError: produkteError,
+    refetch: reloadProdukte,
+  } = useAktiveProdukte()
   const {
     historie,
     isPending: historieLoading,
@@ -52,6 +57,10 @@ export function DirektverkaufPage() {
       backend={direktverkaufBackend}
       products={produkte}
       productsLoading={isPending}
+      productsError={produkteError}
+      onErneutVersuchen={() => {
+        void reloadProdukte()
+      }}
       onErfolg={zeigeErfolg}
     />
   )
