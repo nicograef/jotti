@@ -151,7 +151,7 @@ Datenbank:
   Duplikat (statt einem echten OCC-Konflikt) zuzuordnen.
 - **Phase 4 ändert globales Verhalten** (`staleTime`, `retry`) und wirkt damit
   auch im Admin-Bereich. Beabsichtigt, aber beim Review mitzuprüfen.
-- **Migration 06 löscht Zeilen.** `tisch_favoriten` ist reine
+- **Migration 07 löscht Zeilen.** `tisch_favoriten` ist reine
   Benutzer-Präferenz und trägt keine aufbewahrungspflichtigen Kassendaten;
   betroffen sind ausschließlich Zeilen, deren Tisch bereits gelöscht ist.
 
@@ -184,7 +184,7 @@ Drei zusammengehörige Änderungen:
    im selben Commit wie den Statuswechsel. Nur beim Löschen — ein
    deaktivierter Tisch bleibt markierbar und wird von
    `ReadFavoritenTischStates` weiterhin geliefert.
-3. Migration `06_favoriten_cleanup.up.sql` löscht die bereits verwaisten Zeilen
+3. Migration `07_favoriten_cleanup.up.sql` löscht die bereits verwaisten Zeilen
    (`tisch_favoriten`-Einträge, deren Tisch `status = 'deleted'` trägt oder
    nicht mehr existiert).
 
@@ -198,7 +198,7 @@ Drei zusammengehörige Änderungen:
       für diesen Tisch; die Favoriten anderer Tische bleiben unberührt.
 - [x] Ein **deaktivierter** (nicht gelöschter) Favoriten-Tisch wird weiterhin
       als Favorit geführt und in der Antwort geliefert.
-- [x] Migration `06_favoriten_cleanup.up.sql` liegt vor, ist in `BEGIN; … COMMIT;`
+- [x] Migration `07_favoriten_cleanup.up.sql` liegt vor, ist in `BEGIN; … COMMIT;`
       geklammert, hat keine `.down.sql` und läuft auf einer Datenbank mit
       verwaisten Favoriten fehlerfrei durch.
 - [x] `make rebuild-projections` läuft nach der Migration fehlerfrei durch.
@@ -512,7 +512,7 @@ strukturgleichen Geldpfaden ungehärtet zu lassen. (Das Buchen selbst —
 `bestellung-aufnehmen` und `direktverkauf-taetigen` — ist über die bestehenden
 partiellen Unique-Indexe bereits abgesichert und bleibt unverändert.)
 
-Migration `07_vorgang_idempotenz.up.sql` legt die Tabelle an. Die `art`-Spalte
+Migration `08_vorgang_idempotenz.up.sql` legt die Tabelle an. Die `art`-Spalte
 hält den Vorgangstyp (`zahlung`, `stornierung`, `umbuchung`,
 `direktverkauf-stornierung`) für die Nachvollziehbarkeit im Support.
 
@@ -525,7 +525,7 @@ Die Event-JSON-Contracts bleiben unangetastet: `vorgangId` ist kein Event-Feld.
 
 ### Akzeptanzkriterien
 
-- [x] Migration `07_vorgang_idempotenz.up.sql` legt `vorgang_idempotenz`
+- [x] Migration `08_vorgang_idempotenz.up.sql` legt `vorgang_idempotenz`
       (`vorgang_id` UUID Primärschlüssel, `art`, `user_id`, `created_at`) an,
       transaktional geklammert, ohne `.down.sql`.
 - [x] `service/zahlung-kassieren`, `serviceleitung/stornierung-erteilen`,

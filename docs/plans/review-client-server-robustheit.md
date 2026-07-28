@@ -103,7 +103,7 @@ Varianten sind falsch. Die Bindung gehört auf die Serverseite.
       Gleicher Schlüssel und gleicher Hash ergibt die stille Erfolgsantwort,
       gleicher Schlüssel und anderer Hash einen expliziten Fehlercode statt
       eines stillen Erfolgs.
-      *Umgesetzt direkt in Migration `07` statt in einer `08`: `07` ist neu auf
+      *Umgesetzt direkt in Migration `08` statt in einer `08`: `07` ist neu auf
       diesem Branch und lief auf keiner Instanz, der Freeze schützt hier also
       keine persistierten Daten. Begründung im Nacharbeitsplan unter
       „Datenbank".*
@@ -117,7 +117,7 @@ Statement-Liste von `cleanLiveDB` endet mit `DELETE FROM users` und enthält
 kein `DELETE FROM vorgang_idempotenz`. Die Suite schreibt über die neuen
 `uuid.NewString()`-Argumente (Zeilen 383, 430, 440, 453, 466, 475, 500) sieben
 Idempotenz-Zeilen mit `user_id` des Testbenutzers.
-`database/migrations/07_vorgang_idempotenz.up.sql:17` deklariert
+`database/migrations/08_vorgang_idempotenz.up.sql:17` deklariert
 `user_id INT NOT NULL REFERENCES users(id)` ohne `ON DELETE`, das Löschen
 bricht also mit 23503 ab und `t.Fatalf` meldet den Lauf als FAIL, obwohl alle
 fiskalischen Assertions grün sind.

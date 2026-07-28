@@ -354,7 +354,7 @@ func writeVersionedEvent(ctx context.Context, e event.Event, subject string, exp
 		if errors.Is(err, db.ErrAlreadyExists) {
 			// Neutral formuliert, weil hier zwei Quellen zusammenlaufen: der
 			// OCC-Versionskonflikt aus UNIQUE(subject, version) — der Regelfall —
-			// und, nur für Vorgänge aus der Zeit vor Migration 07, einer der alten
+			// und, nur für Vorgänge aus der Zeit vor Migration 08, einer der alten
 			// partiellen Indexe auf dem Event-JSON (01_initial.up.sql).
 			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("Unique violation on event write")
 			return ErrConflict

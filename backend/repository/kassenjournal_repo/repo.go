@@ -47,7 +47,7 @@ var ErrVorgangDatenAbweichend = errors.New("vorgang mit abweichenden nutzdaten")
 var errVorgangSchluesselKonflikt = errors.New("vorgang-schlüssel bereits vergeben")
 
 // Arten der buchenden Vorgänge in vorgang_idempotenz.art (CHECK-Constraint in
-// Migration 07 gespiegelt).
+// Migration 08 gespiegelt).
 const (
 	VorgangArtBestellung               = "bestellung"
 	VorgangArtZahlung                  = "zahlung"
