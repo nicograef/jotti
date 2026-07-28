@@ -1,6 +1,14 @@
-import { onlineManager } from '@tanstack/react-query'
+import { onlineManager, QueryClientProvider } from '@tanstack/react-query'
+import { cleanup, renderHook, waitFor } from '@testing-library/react'
+import { createElement, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { useAllTische } from '@/admin/tables/hooks'
+import type { Tisch } from '@/admin/tables/Tisch'
+import { useAktiveProdukte } from '@/service/product/hooks'
+import { useAktiveTische, useTischState } from '@/service/table/hooks'
+import type { TischSession } from '@/service/table/Tisch'
 
 import { BackendError, NetzwerkFehler, ResponseBodyError } from './Backend'
 import { createQueryClient } from './queryClient'
@@ -9,7 +17,37 @@ vi.mock('sonner', () => ({
   toast: { error: vi.fn() },
 }))
 
+// Die beiden Hooks der Aktualitäts-Suite laufen gegen echte Query-Verdrahtung,
+// aber ohne Netz: nur ihre Backend-Klassen sind ersetzt.
+const { getTischState, getAktiveTische, getAktiveProdukte, getAllTische } =
+  vi.hoisted(() => ({
+    getTischState: vi.fn<() => Promise<TischSession>>(),
+    getAktiveTische: vi.fn<() => Promise<never[]>>(),
+    getAktiveProdukte: vi.fn<() => Promise<never[]>>(),
+    getAllTische: vi.fn<() => Promise<Tisch[]>>(),
+  }))
+
+vi.mock('@/service/table/TischBackend', () => ({
+  TischBackend: class {
+    getTischState = getTischState
+    getAktiveTische = getAktiveTische
+  },
+}))
+
+vi.mock('@/admin/tables/TischBackend', () => ({
+  TischBackend: class {
+    getAllTische = getAllTische
+  },
+}))
+
+vi.mock('@/service/product/ProduktBackend', () => ({
+  ProduktBackend: class {
+    getAktiveProdukte = getAktiveProdukte
+  },
+}))
+
 afterEach(() => {
+  cleanup()
   onlineManager.setOnline(true)
   vi.clearAllMocks()
   vi.restoreAllMocks()
@@ -124,33 +162,107 @@ describe('createQueryClient Wiederholungen', () => {
   })
 })
 
-describe('createQueryClient Aktualität', () => {
-  it('setzt eine Aktualitätsschwelle von 30 Sekunden', () => {
-    expect(createQueryClient().getDefaultOptions().queries?.staleTime).toBe(
-      30_000,
-    )
+const stammtisch: TischSession = {
+  tischId: 1,
+  tischName: 'Stammtisch',
+  saldoCents: 1250,
+  unbezahltePositionen: [],
+  fuerMichErledigt: true,
+}
+
+// Ein Provider über einem gemeinsamen Client, damit zwei aufeinanderfolgende
+// Mounts denselben Cache sehen.
+function erzeugeWrapper() {
+  const queryClient = createQueryClient()
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client: queryClient }, children)
+  }
+}
+
+describe('Aktualität der Queries', () => {
+  it('setzt keine Aktualitätsschwelle als Voreinstellung', () => {
+    expect(
+      createQueryClient().getDefaultOptions().queries?.staleTime,
+    ).toBeUndefined()
   })
 
-  // Nach einer Buchung muss der Tisch-Saldo sofort neu geladen werden — die
-  // Schwelle darf das nicht verzögern.
-  it('lädt nach invalidateQueries trotz der Schwelle sofort neu', async () => {
-    const queryClient = createQueryClient()
-    let aufrufe = 0
-    const optionen = {
-      queryKey: ['tisch-state'],
-      queryFn: () => {
-        aufrufe += 1
-        return Promise.resolve(aufrufe)
-      },
-    }
+  // Kassen- und Tischzustand ist ohne Schwelle: Wer einen Tisch öffnet, sieht
+  // nie einen Saldo aus dem Cache und kassiert dadurch zu wenig.
+  it('lädt einen Tischzustand beim zweiten Mount neu', async () => {
+    getTischState.mockResolvedValue(stammtisch)
+    const wrapper = erzeugeWrapper()
 
-    await queryClient.fetchQuery(optionen)
-    await queryClient.fetchQuery(optionen)
-    expect(aufrufe).toBe(1)
+    const ersteMontage = renderHook(() => useTischState(1), { wrapper })
+    await waitFor(() => {
+      expect(getTischState).toHaveBeenCalledTimes(1)
+    })
+    ersteMontage.unmount()
 
-    await queryClient.invalidateQueries({ queryKey: ['tisch-state'] })
-    await queryClient.fetchQuery(optionen)
+    renderHook(() => useTischState(1), { wrapper })
 
-    expect(aufrufe).toBe(2)
+    await waitFor(() => {
+      expect(getTischState).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  // Die Tischliste der Verwaltung trägt `saldoCents` — den offenen Saldo der
+  // laufenden Kassensitzung. Er steuert den Löschen-/Deaktivieren-Guard; aus
+  // dem Cache gäbe er einen soeben bebuchten Tisch zum Deaktivieren frei.
+  it('lädt die Tischliste der Verwaltung beim zweiten Mount neu', async () => {
+    getAllTische.mockResolvedValue([])
+    const wrapper = erzeugeWrapper()
+
+    const ersteMontage = renderHook(() => useAllTische(), { wrapper })
+    await waitFor(() => {
+      expect(getAllTische).toHaveBeenCalledTimes(1)
+    })
+    ersteMontage.unmount()
+
+    renderHook(() => useAllTische(), { wrapper })
+
+    await waitFor(() => {
+      expect(getAllTische).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  // Auch die aktiven Tische des Service tragen `saldoCents`. Sie werden heute
+  // nur als Ziel-Tisch-Auswahl benutzt, aber die Regel gilt der Nutzlast, nicht
+  // dem aktuellen Verwendungszweck: Keine Tisch-Query ist ein Stammdatum.
+  it('lädt die aktiven Tische des Service beim zweiten Mount neu', async () => {
+    getAktiveTische.mockResolvedValue([])
+    const wrapper = erzeugeWrapper()
+
+    const ersteMontage = renderHook(() => useAktiveTische(), { wrapper })
+    await waitFor(() => {
+      expect(getAktiveTische).toHaveBeenCalledTimes(1)
+    })
+    ersteMontage.unmount()
+
+    renderHook(() => useAktiveTische(), { wrapper })
+
+    await waitFor(() => {
+      expect(getAktiveTische).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  // Stammdaten dagegen kommen innerhalb der Schwelle aus dem Cache: Die
+  // Produktliste ändert sich während einer Veranstaltung nicht.
+  it('lädt die Produktliste innerhalb der Stammdaten-Schwelle beim zweiten Mount nicht neu', async () => {
+    getAktiveProdukte.mockResolvedValue([])
+    const wrapper = erzeugeWrapper()
+
+    const ersteMontage = renderHook(() => useAktiveProdukte(), { wrapper })
+    await waitFor(() => {
+      expect(getAktiveProdukte).toHaveBeenCalledTimes(1)
+    })
+    ersteMontage.unmount()
+
+    const zweiteMontage = renderHook(() => useAktiveProdukte(), { wrapper })
+
+    // Die Daten stehen sofort aus dem Cache bereit, ohne zweiten Abruf.
+    await waitFor(() => {
+      expect(zweiteMontage.result.current.isPending).toBe(false)
+    })
+    expect(getAktiveProdukte).toHaveBeenCalledTimes(1)
   })
 })

@@ -42,7 +42,7 @@ vi.mock('./hooks', () => ({
   useBetreiber: () => ({
     betreiber: hookState.betreiber,
     isPending: hookState.betreiberLoading,
-    isError: hookState.betreiberError,
+    isLoadingError: hookState.betreiberError,
     error: hookState.betreiberError ? new Error('Netzfehler') : null,
     refetchBetreiber,
     saveBetreiber,

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -51,8 +51,8 @@ type OffeneKassensitzungMock = {
 } | null
 
 const offeneKassensitzungState = vi.hoisted(
-  (): { isError: boolean; kassensitzung: OffeneKassensitzungMock } => ({
-    isError: false,
+  (): { isLoadingError: boolean; kassensitzung: OffeneKassensitzungMock } => ({
+    isLoadingError: false,
     kassensitzung: null,
   }),
 )
@@ -83,7 +83,7 @@ vi.mock('./hooks', () => ({
   useOffeneKassensitzung: () => ({
     kassensitzung: offeneKassensitzungState.kassensitzung,
     isPending: false,
-    isError: offeneKassensitzungState.isError,
+    isLoadingError: offeneKassensitzungState.isLoadingError,
     refetch: () => Promise.resolve(),
   }),
 }))
@@ -102,6 +102,8 @@ const liveReportingState = vi.hoisted(
 )
 
 vi.mock('@/admin/reporting/hooks', () => ({
+  ABGESCHLOSSENE_KASSENSITZUNGEN_KEY: 'abgeschlossene-kassensitzungen',
+  REPORT_KEY: 'report',
   useLiveReporting: () => ({
     liveData: {
       offeneTische: liveReportingState.offeneTische,
@@ -133,12 +135,13 @@ function renderPage() {
       <KassensitzungPage />
     </QueryClientProvider>,
   )
+  return { queryClient }
 }
 
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
-  offeneKassensitzungState.isError = false
+  offeneKassensitzungState.isLoadingError = false
   offeneKassensitzungState.kassensitzung = null
   geldtransitListeState.buchungen = []
   liveReportingState.offeneTische = []
@@ -146,8 +149,11 @@ afterEach(() => {
 })
 
 describe('KassensitzungPage', () => {
-  it('zeigt bei Query-Fehler einen Fehlerzustand statt des Steppers', () => {
-    offeneKassensitzungState.isError = true
+  // Nur das gescheiterte Erstladen (isLoadingError) ersetzt die Seite; ein
+  // gescheiterter Hintergrund-Refetch bei gefülltem Cache lässt sie stehen —
+  // belegt in hooks.test.ts.
+  it('zeigt bei gescheitertem Erstladen einen Fehlerzustand statt des Steppers', () => {
+    offeneKassensitzungState.isLoadingError = true
     renderPage()
 
     expect(
@@ -263,6 +269,36 @@ describe('KassensitzungPage', () => {
     expect(richtung).toBe('entnahme')
     expect(betragCents).toBe(3000)
     expect(kommentar).toBe('Getränke-Nachkauf')
+  })
+
+  // Der Abschluss legt eine neue abgeschlossene Kassensitzung an. Die
+  // Reporting-Queries hängen an keiner Komponente dieser Seite; ohne
+  // Invalidierung zeigte „Berichte & Export" die Liste von vor dem Abschluss
+  // und lieferte den vorherigen Bericht zum Download.
+  it('invalidiert nach dem Tagesabschluss die Berichts-Queries', async () => {
+    offeneKassensitzungState.kassensitzung = {
+      zNr: 12,
+      datum: '2026-07-11',
+      bezeichnung: 'Sommerfest Tag 2',
+      status: 'offen',
+      eroeffnetAm: '2026-07-11T08:02:00Z',
+    }
+    const user = userEvent.setup()
+    const { queryClient } = renderPage()
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+
+    await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '340,00')
+    await user.click(
+      screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['abgeschlossene-kassensitzungen'],
+      })
+    })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['report'] })
   })
 })
 

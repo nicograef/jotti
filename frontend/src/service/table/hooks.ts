@@ -7,29 +7,47 @@ import { TischBackend } from './TischBackend'
 
 const tischBackend = new TischBackend(BackendSingleton)
 
+// Die Hooks mit Fehlerzweig melden `isLoadingError` statt `isError`: Nur ein
+// gescheitertes Erstladen (kein brauchbarer Cache-Stand) rechtfertigt einen
+// Fehlerzustand statt der Daten. Scheitert ein Hintergrund-Refetch, bleiben die
+// zwischengespeicherten Daten stehen; die Meldung trägt der zentrale
+// Fehler-Toast aus queryClient.ts.
+
+// Dateilokal, anders als TISCH_STATE_KEY und TISCH_HISTORIE_KEY: Diese Query
+// wird nirgends invalidiert und braucht es auch nicht. Ihr einziger Konsument
+// ist die Ziel-Tisch-Auswahl im HistorieUmbuchungDrawer, der nur geöffnet
+// gemountet ist — ohne Aktualitätsschwelle lädt jedes Öffnen ohnehin neu.
+const AKTIVE_TISCHE_KEY = 'aktive-tische'
+// Kein Stammdatum: Die Nutzlast trägt `saldoCents` — den offenen Tisch-Saldo der
+// laufenden Kassensitzung. Damit gilt die Regel wörtlich, statt vom aktuellen
+// Verwendungszweck des Feldes abzuhängen; niemand kann später versehentlich
+// einen veralteten Saldo anzeigen (Präzedenz: `useAllTische` in
+// admin/tables/hooks.ts). Der Traffic-Effekt ist vernachlässigbar: Einziger
+// Konsument ist die Ziel-Tisch-Auswahl beim Umbuchen.
 export function useAktiveTische() {
   const {
     data: tische = [],
     isPending,
+    isLoadingError,
     refetch,
   } = useQuery({
-    queryKey: ['aktive-tische'],
+    queryKey: [AKTIVE_TISCHE_KEY],
     queryFn: () => tischBackend.getAktiveTische(),
   })
-  return { tische, isPending, refetch }
+  return { tische, isPending, isLoadingError, refetch }
 }
 
+export const TISCH_HISTORIE_KEY = 'tisch-historie'
 export function useTischHistorie(tischId: number) {
   const {
     data: historie = [],
     isPending,
-    isError,
-    refetch,
+    isLoadingError,
   } = useQuery({
-    queryKey: ['tisch-historie', tischId],
+    queryKey: [TISCH_HISTORIE_KEY, tischId],
     queryFn: () => tischBackend.getTischHistorie(tischId),
   })
-  return { historie, isPending, isError, refetch }
+  return { historie, isPending, isLoadingError }
 }
 
 const DEFAULT_TISCH_STATE: TischSession = {
@@ -40,30 +58,30 @@ const DEFAULT_TISCH_STATE: TischSession = {
   fuerMichErledigt: true,
 }
 
+export const TISCH_STATE_KEY = 'tisch-state'
 export function useTischState(tischId: number) {
   const {
     data: state = DEFAULT_TISCH_STATE,
     isPending,
-    isError,
-    refetch,
+    isLoadingError,
   } = useQuery({
-    queryKey: ['tisch-state', tischId],
+    queryKey: [TISCH_STATE_KEY, tischId],
     queryFn: () => tischBackend.getTischState(tischId),
   })
-  return { state, isPending, isError, refetch }
+  return { state, isPending, isLoadingError }
 }
 
 export const AKTIVE_TISCHE_MIT_FAVORITEN_KEY = 'aktive-tische-mit-favoriten'
 export function useAktiveTischeMitFavoriten() {
   const {
     data: tische = [],
-    isError,
+    isLoadingError,
     refetch,
   } = useQuery({
     queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
     queryFn: () => tischBackend.getAktiveTischeMitFavoriten(),
   })
-  return { tische, isError, refetch }
+  return { tische, isLoadingError, refetch }
 }
 
 export const MEINE_TISCHE_STATE_KEY = 'meine-tische-state'
@@ -71,13 +89,13 @@ export function useMeineTischeState() {
   const {
     data: tische = [],
     isPending,
-    isError,
+    isLoadingError,
     refetch,
   } = useQuery({
     queryKey: [MEINE_TISCHE_STATE_KEY],
     queryFn: () => tischBackend.getMeineTischeState(),
   })
-  return { tische, isPending, isError, refetch }
+  return { tische, isPending, isLoadingError, refetch }
 }
 
 const DEFAULT_EIGENE_UEBERSICHT: EigeneUebersicht = {
@@ -95,11 +113,11 @@ export function useEigeneUebersicht() {
   const {
     data: uebersicht = DEFAULT_EIGENE_UEBERSICHT,
     isPending,
-    isError,
+    isLoadingError,
     refetch,
   } = useQuery({
     queryKey: [EIGENE_UEBERSICHT_KEY],
     queryFn: () => tischBackend.getEigeneUebersicht(),
   })
-  return { uebersicht, isPending, isError, refetch }
+  return { uebersicht, isPending, isLoadingError, refetch }
 }

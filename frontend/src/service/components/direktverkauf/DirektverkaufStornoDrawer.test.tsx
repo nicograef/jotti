@@ -128,7 +128,11 @@ describe('DirektverkaufStornoDrawer', () => {
     )
   })
 
-  it('wechselt die vorgangId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
+  // Scheitert der erste Versuch scheinbar (Antwort im WLAN verloren) und wächst
+  // die Auswahl danach, muss der zweite Versuch denselben Schlüssel tragen: Nur
+  // dann erkennt der Server den Konflikt mit der bereits gebuchten Stornierung
+  // und meldet ihn, statt ein zweites Mal zu stornieren.
+  it('behält die vorgangId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
     const user = userEvent.setup()
     const direktverkaufStornieren = vi
       .fn<(s: DirektverkaufStornieren) => Promise<void>>()
@@ -150,15 +154,15 @@ describe('DirektverkaufStornoDrawer', () => {
     })
     const ersterKey = direktverkaufStornieren.mock.calls[0][0].vorgangId
 
-    // Geänderte Nutzdaten nach dem Fehlversuch (Menge 1 → 2): neuer Vorgang,
-    // neuer Schlüssel — der Server prüft die geänderte Auswahl regulär.
+    // Geänderte Nutzdaten nach dem Fehlversuch (Menge 1 → 2): derselbe Vorgang,
+    // derselbe Schlüssel — die Abweichung beanstandet der Server.
     await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
     await user.click(erteilen())
     await waitFor(() => {
       expect(direktverkaufStornieren).toHaveBeenCalledTimes(2)
     })
     const zweiterAufruf = direktverkaufStornieren.mock.calls[1][0]
-    expect(zweiterAufruf.vorgangId).not.toBe(ersterKey)
+    expect(zweiterAufruf.vorgangId).toBe(ersterKey)
     expect(zweiterAufruf.positionen).toEqual([{ positionId, menge: 2 }])
   })
 })

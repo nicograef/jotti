@@ -19,13 +19,13 @@ export function DirektverkaufPage() {
   const {
     produkte,
     isPending,
-    isError: produkteError,
+    isLoadingError: produkteError,
     refetch: reloadProdukte,
   } = useAktiveProdukte()
   const {
     historie,
     isPending: historieLoading,
-    isError: historieError,
+    isLoadingError: historieError,
     refetch: reloadHistorie,
   } = useDirektverkaufHistorie()
 
@@ -62,6 +62,9 @@ export function DirektverkaufPage() {
         void reloadProdukte()
       }}
       onErfolg={zeigeErfolg}
+      onVorgangBereitsGebucht={() => {
+        void reloadHistorie()
+      }}
     />
   )
   const historieInhalt = (

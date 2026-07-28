@@ -59,18 +59,34 @@ export class NetzwerkFehler extends Error {
   }
 }
 
-// Zeitlimit eines Requests. Ohne Abbruch bleibt eine im WLAN hängende
-// Verbindung dauerhaft offen und die Query dauerhaft im Ladezustand.
+// Standard-Zeitlimit eines Requests. Es umfasst den gesamten Aufruf bis zum
+// vollständig gelesenen Antwort-Body. Ohne Abbruch bleibt eine im WLAN hängende
+// Verbindung dauerhaft offen und die Query dauerhaft im Ladezustand. Endpunkte,
+// die länger arbeiten dürfen, setzen ihr eigenes Zeitlimit über RequestOptionen.
 const REQUEST_TIMEOUT_MS = 8000
+
+// RequestOptionen steuert einen einzelnen Aufruf. Ohne Angabe gilt
+// REQUEST_TIMEOUT_MS.
+export interface RequestOptionen {
+  zeitlimitMs?: number
+}
 
 // leseBody kapselt das Lesen des Antwort-Bodys: Bricht die Übertragung mitten
 // im Body ab, wirft die Web-API einen rohen SyntaxError/TypeError. Für den
-// Aufrufer ist das ein Verbindungsproblem, kein auswertbares Ergebnis.
-async function leseBody<T>(lesen: () => Promise<T>): Promise<T> {
+// Aufrufer ist das ein Verbindungsproblem, kein auswertbares Ergebnis. Hat das
+// Zeitlimit zugeschlagen, hat es auch den Body-Stream abgebrochen — dann ist der
+// Lesefehler eine Zeitüberschreitung und kein Verbindungsabbruch.
+async function leseBody<T>(
+  lesen: () => Promise<T>,
+  signal: AbortSignal,
+): Promise<T> {
   try {
     return await lesen()
   } catch (error) {
-    throw new NetzwerkFehler('verbindungsabbruch', error)
+    throw new NetzwerkFehler(
+      signal.aborted ? 'zeitueberschreitung' : 'verbindungsabbruch',
+      error,
+    )
   }
 }
 
@@ -124,8 +140,13 @@ export interface BackendClient {
     endpoint: string,
     body: unknown,
     responseSchema?: z.ZodType<TResponse>,
+    optionen?: RequestOptionen,
   ): Promise<TResponse>
-  download(endpoint: string, body: unknown): Promise<DownloadResult>
+  download(
+    endpoint: string,
+    body: unknown,
+    optionen?: RequestOptionen,
+  ): Promise<DownloadResult>
 }
 
 function parseFilename(contentDisposition: string | null): string {
@@ -148,30 +169,50 @@ export class Backend implements BackendClient {
     this.tokenGetter = tokenGetter
   }
 
-  private async request(endpoint: string, body: unknown): Promise<Response> {
+  // request führt den gesamten Aufruf unter einem Zeitlimit aus: Anfrage,
+  // Statusprüfung und das Lesen der Antwort durch leseAntwort. Der Zeitgeber
+  // wird erst gelöscht, wenn leseAntwort fertig ist; bis dahin bricht er den
+  // Aufruf jederzeit ab — auch mitten im Body-Stream. Ein Aufruf, dessen Header
+  // ankommen, dessen Body-Stream aber stockt, läuft damit ebenfalls in die
+  // Zeitüberschreitung.
+  private async request<TResponse>(
+    endpoint: string,
+    body: unknown,
+    optionen: RequestOptionen | undefined,
+    leseAntwort: (
+      response: Response,
+      signal: AbortSignal,
+    ) => Promise<TResponse>,
+  ): Promise<TResponse> {
     const token = this.tokenGetter.getToken()
     const abbruch = new AbortController()
     const zeitlimit = setTimeout(() => {
       abbruch.abort()
-    }, REQUEST_TIMEOUT_MS)
+    }, optionen?.zeitlimitMs ?? REQUEST_TIMEOUT_MS)
 
     try {
-      return await fetch(`${this.baseUrl}/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(body),
-        signal: abbruch.signal,
-      })
-    } catch (error) {
-      // Nur das Zeitlimit bricht diesen Controller ab; ein abgebrochenes Signal
-      // bedeutet daher immer Zeitüberschreitung.
-      throw new NetzwerkFehler(
-        abbruch.signal.aborted ? 'zeitueberschreitung' : 'verbindungsabbruch',
-        error,
-      )
+      let response: Response
+      try {
+        response = await fetch(`${this.baseUrl}/${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(body),
+          signal: abbruch.signal,
+        })
+      } catch (error) {
+        // Nur das Zeitlimit bricht diesen Controller ab; ein abgebrochenes
+        // Signal bedeutet daher immer Zeitüberschreitung.
+        throw new NetzwerkFehler(
+          abbruch.signal.aborted ? 'zeitueberschreitung' : 'verbindungsabbruch',
+          error,
+        )
+      }
+
+      await this.throwIfNotOk(response, abbruch.signal)
+      return await leseAntwort(response, abbruch.signal)
     } finally {
       clearTimeout(zeitlimit)
     }
@@ -186,7 +227,10 @@ export class Backend implements BackendClient {
     window.location.href = '/login'
   }
 
-  private async throwIfNotOk(response: Response): Promise<void> {
+  private async throwIfNotOk(
+    response: Response,
+    signal: AbortSignal,
+  ): Promise<void> {
     if (response.ok) {
       return
     }
@@ -197,7 +241,7 @@ export class Backend implements BackendClient {
     }
 
     const referenz = response.headers.get('X-Correlation-ID') ?? undefined
-    const responseText = await leseBody(() => response.text())
+    const responseText = await leseBody(() => response.text(), signal)
     const parsedError = ErrorResponseSchema.safeParse(
       parseJsonSafely(responseText),
     )
@@ -224,37 +268,39 @@ export class Backend implements BackendClient {
     endpoint: string,
     body: unknown,
     responseSchema?: z.ZodType<TResponse>,
+    optionen?: RequestOptionen,
   ): Promise<TResponse> {
-    const response = await this.request(endpoint, body)
-    await this.throwIfNotOk(response)
+    return this.request(endpoint, body, optionen, async (response, signal) => {
+      if (!responseSchema) {
+        return {} as TResponse
+      }
 
-    if (!responseSchema) {
-      return {} as TResponse
-    }
+      const { error, data } = responseSchema.safeParse(
+        await leseBody(() => response.json(), signal),
+      )
+      if (error) {
+        const issues = formatSchemaIssues(error)
+        const message = `Response of ${endpoint} is invalid: ${issues}`
+        console.error(message)
+        throw new ResponseBodyError(message)
+      }
 
-    const { error, data } = responseSchema.safeParse(
-      await leseBody(() => response.json()),
-    )
-    if (error) {
-      const issues = formatSchemaIssues(error)
-      const message = `Response of ${endpoint} is invalid: ${issues}`
-      console.error(message)
-      throw new ResponseBodyError(message)
-    }
-
-    return data
+      return data
+    })
   }
 
   public async download(
     endpoint: string,
     body: unknown,
+    optionen?: RequestOptionen,
   ): Promise<DownloadResult> {
-    const response = await this.request(endpoint, body)
-    await this.throwIfNotOk(response)
-
-    const blob = await leseBody(() => response.blob())
-    const filename = parseFilename(response.headers.get('Content-Disposition'))
-    return { blob, filename }
+    return this.request(endpoint, body, optionen, async (response, signal) => {
+      const blob = await leseBody(() => response.blob(), signal)
+      const filename = parseFilename(
+        response.headers.get('Content-Disposition'),
+      )
+      return { blob, filename }
+    })
   }
 }
 

@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { useVorgangId } from '@/hooks/use-vorgang-id'
 
 import type { BestellPositionInput } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -27,7 +26,17 @@ interface BestellungAbschlussProps {
   receiptItems: ReceiptPosition[]
   positionen: BestellPositionInput[]
   totalCents: number
+  // Idempotenz-Schlüssel je Zusammenstellung: Jeder Wiederholversuch behält den
+  // Schlüssel — auch mit inzwischen geänderter Auswahl, denn genau diese
+  // Abweichung erkennt und meldet der Server. Er wird von TablePage vergeben,
+  // wo auch der Korb liegt: Der ausgehängte Tab-Inhalt darf ihn nicht mit sich
+  // nehmen, sonst würde ein Wiederholversuch zur zweiten Buchung.
+  bestellungId: string
   bestellungAufgenommen: () => void
+  // Der Server hat den Vorgang unter diesem Schlüssel bereits gebucht (409
+  // `vorgang_daten_abweichend`), nur mit der zuerst gesendeten Auswahl. Räumt
+  // Korb und Tischzustand ab — siehe TablePage, wo beides liegt.
+  vorgangBereitsGebucht: () => void
   // 'sheet' rendert den Bottom-Sheet-Drawer-Inhalt (Handy), 'spalte' die feste
   // Abschluss-Spalte (ab lg). Einzige Quelle des Abschluss-Inhalts; die beiden
   // Varianten unterscheiden sich nur im umschließenden Container.
@@ -35,9 +44,9 @@ interface BestellungAbschlussProps {
 }
 
 // Presentation-neutraler Abschluss-Inhalt des Tisch-Bestellens (Beleg,
-// Kommentar, Gesamt, „Bestellung aufnehmen"). Trägt den vollständigen Zustand
-// samt bestellungId-Lebenszyklus und Submit-/Fehler-/Retry-Verhalten und wird
-// sowohl im Handy-Drawer als auch in der festen Spalte gerendert.
+// Kommentar, Gesamt, „Bestellung aufnehmen"). Trägt den Kommentar und das
+// Submit-/Fehler-/Retry-Verhalten und wird sowohl im Handy-Drawer als auch in
+// der festen Spalte gerendert; Korb und bestellungId kommen von TablePage.
 export function BestellungAbschluss(props: BestellungAbschlussProps) {
   const [kommentar, setKommentar] = useState('')
 
@@ -56,22 +65,21 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
     }
   }
 
-  // bestellungId je fachlichem Vorgang, an die Nutzdaten gebunden: Ein
-  // Wiederholversuch mit unveränderten Nutzdaten behält seinen Schlüssel und
-  // bucht serverseitig kein zweites Mal; jede Änderung (Positionen, Kommentar)
-  // beginnt einen neuen Vorgang mit neuem Schlüssel — auch nach einem
-  // erfolgreichen Abschluss, der die Auswahl leert.
-  const bestellungId = useVorgangId({
-    tischId: props.tisch.id,
-    positionen: props.positionen,
-    kommentar,
-  })
-
   const { loading, run } = useActionSubmit({
     actionLabel: 'Bestellung aufnehmen',
     byCode: {
       produkt_not_found:
         'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
+    },
+    onCode: {
+      // Der Vorgang ist gebucht, nur seine Antwort ging verloren — clientseitig
+      // ist er damit abgeschlossen, auch wenn die zuletzt gesendete Auswahl eine
+      // andere war. Ohne das Abräumen liefe jeder weitere Versuch wieder in
+      // denselben 409, und die nachträglich ergänzte Position bliebe ungebucht.
+      vorgang_daten_abweichend: () => {
+        setKommentar('')
+        props.vorgangBereitsGebucht()
+      },
     },
     onSuccess: () => {
       setKommentar('')
@@ -82,7 +90,7 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
   const onSubmit = async () => {
     await run(async () => {
       await props.backend.bestellungAufnehmen({
-        bestellungId,
+        bestellungId: props.bestellungId,
         tischId: props.tisch.id,
         positionen: props.positionen,
         kommentar,

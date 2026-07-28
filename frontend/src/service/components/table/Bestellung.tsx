@@ -16,15 +16,27 @@ interface BestellungProps {
   tisch: Tisch
   products: Produkt[]
   productsLoading: boolean
+  // Das Erstladen der Produkte ist gescheitert (kein brauchbarer Cache-Stand).
+  // Ein gescheiterter Hintergrund-Refetch setzt die Flagge nicht: Die zuletzt
+  // geladenen Produkte bleiben stehen, die Meldung trägt der zentrale
+  // Fehler-Toast.
   productsError: boolean
   // Lädt die Produkte nach einem Ladefehler erneut.
   onErneutVersuchen: () => void
   // Bestell-Korb (Variante-ID → Menge), von TablePage gehoben, damit die
   // Auswahl das Aus- und Wiedereinhängen der Tab-Inhalte überlebt.
   mengenSteuerung: MengenSteuerung<number>
+  // Idempotenz-Schlüssel dieser Zusammenstellung, aus demselben Grund wie der
+  // Korb von TablePage gehoben: Ein hier gehaltener Schlüssel wechselte beim
+  // Tab-Wechsel und machte aus einem Wiederholversuch eine zweite Buchung.
+  bestellungId: string
   // Meldet die erfolgreiche Buchung samt Bestätigungstext an die Seite, die den
   // Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
   onErfolg: (nachricht: string) => void
+  // Der Server hat den Vorgang unter diesem Schlüssel bereits gebucht (409
+  // `vorgang_daten_abweichend`). Räumt Korb und Tischzustand ab; beides liegt
+  // in TablePage, deshalb kommt der Handler von dort.
+  onVorgangBereitsGebucht: () => void
 }
 
 export function Bestellung({
@@ -35,7 +47,9 @@ export function Bestellung({
   productsError,
   onErneutVersuchen,
   mengenSteuerung,
+  bestellungId,
   onErfolg,
+  onVorgangBereitsGebucht,
 }: BestellungProps) {
   const isMobile = useIsMobile()
   const { mengen, add, remove, reset } = mengenSteuerung
@@ -85,7 +99,9 @@ export function Bestellung({
             receiptItems={receiptItems}
             positionen={inputItems}
             totalCents={calculateTotalPrice(receiptItems)}
+            bestellungId={bestellungId}
             bestellungAufgenommen={bestellungAufgenommen}
+            vorgangBereitsGebucht={onVorgangBereitsGebucht}
           />
         }
       />
@@ -100,7 +116,9 @@ export function Bestellung({
         tisch={tisch}
         products={products}
         mengen={mengen}
+        bestellungId={bestellungId}
         bestellungAufgenommen={bestellungAufgenommen}
+        vorgangBereitsGebucht={onVorgangBereitsGebucht}
       />
       {productList}
     </>

@@ -34,6 +34,8 @@ vi.mock('../../table/hooks', () => ({
       { id: 2, name: 'Nebentisch', saldoCents: 0 },
     ],
     isPending: false,
+    isLoadingError: false,
+    refetch: vi.fn(),
   }),
 }))
 
@@ -135,6 +137,8 @@ function renderHistorie(
     <TischHistorie
       historie={historie}
       historieLoading={false}
+      historieError={false}
+      onErneutVersuchen={vi.fn()}
       tisch={tisch}
       backend={{
         stornierungErteilen: vi.fn().mockResolvedValue(undefined),

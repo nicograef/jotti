@@ -36,6 +36,6 @@ jotti verwendet für Status- und Kategorie-Spalten TEXT+CHECK statt PostgreSQL-E
 
 ## Vorversions-Pinning (CI-Job `upgrade-path`)
 
-- `PREVIOUS_VERSION` im Job pinnt die Vorversion auf das letzte veröffentlichte Release (aktuell `v0.14.0`); die Images kommen von `ghcr.io/nicograef` (`jotti-migrate`, `jotti-backend`).
+- `PREVIOUS_VERSION` im Job pinnt die Vorversion auf das letzte veröffentlichte Release (aktuell `v0.17.1`); die Images kommen von `ghcr.io/nicograef` (`jotti-migrate`, `jotti-backend`).
 - Nach jedem Release wird `PREVIOUS_VERSION` auf das neue Tag angehoben (Teil der Release-Mechanik).
 - Seit der `02_druckauftrag_backoff`-Migration ist der Job das Pflicht-Gate für Schema-Änderungen: Er beweist, dass eine befüllte Bestandsinstanz das Upgrade übersteht (Release-Guide Gate 4 (b)).

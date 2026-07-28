@@ -120,6 +120,7 @@ function DirektverkaufMitPop({
         onErfolg={(nachricht) => {
           setErfolg({ open: true, text: nachricht })
         }}
+        onVorgangBereitsGebucht={vi.fn()}
       />
       <ErfolgsPop
         open={erfolg.open}

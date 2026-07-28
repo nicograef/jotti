@@ -11,6 +11,16 @@ import {
   ReportingDataSchema,
 } from './types'
 
+// Zeitlimit des DSFinV-K-Exports. Das Backend baut das Archiv einer ganzen
+// Kassensitzung und überträgt es anschließend; für den Schreibvorgang der
+// Antwort räumt es sich exportWriteTimeout = 5 Minuten ein
+// (backend/api/fiskal/export/http/handler.go). Der Client wartet 30 s länger:
+// Client-Budget = Schreibbudget des Servers + Netzreserve. Der Aufschlag gilt
+// der Antwort: Ein spät, aber erfolgreich geschriebenes Archiv soll hier noch
+// ankommen. Wäre dieses Budget nicht größer, hätte der Client in genau dem
+// Fenster schon aufgegeben, in dem der Server gerade noch schreibt.
+const EXPORT_TIMEOUT_MS = 330_000
+
 export class ReportingBackend {
   private readonly backend: BackendClient
 
@@ -53,6 +63,7 @@ export class ReportingBackend {
     return this.backend.download(
       'admin/export/dsfinvk',
       kassensitzungNr ? { kassensitzungNr } : {},
+      { zeitlimitMs: EXPORT_TIMEOUT_MS },
     )
   }
 }

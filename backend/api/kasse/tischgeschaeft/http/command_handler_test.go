@@ -210,3 +210,61 @@ func TestBestellungAufnehmenHandler_UngueltigeBestellungId_ValidationError(t *te
 		t.Errorf("expected status 400 for non-UUID bestellungId, got %d", rec.Code)
 	}
 }
+
+// Ein bekannter vorgangId mit abweichenden Nutzdaten ist ein expliziter Konflikt:
+// 409 mit dem Code vorgang_daten_abweichend — weder ein stiller Erfolg noch der
+// generische 400 der MapError-Abbildung.
+func TestBuchendeHandler_VorgangDatenAbweichend_Conflict(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrVorgangDatenAbweichend}}
+
+	cases := []struct {
+		name  string
+		path  string
+		body  string
+		serve func() http.HandlerFunc
+	}{
+		{
+			name:  "bestellung-aufnehmen",
+			path:  "/bestellung-aufnehmen",
+			body:  `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`,
+			serve: handler.BestellungAufnehmenHandler,
+		},
+		{
+			name:  "zahlung-kassieren",
+			path:  "/zahlung-kassieren",
+			body:  `{"vorgangId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}],"kommentar":""}`,
+			serve: handler.ZahlungKassierenHandler,
+		},
+		{
+			name:  "stornierung-erteilen",
+			path:  "/stornierung-erteilen",
+			body:  `{"vorgangId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}],"kommentar":"Reklamation"}`,
+			serve: handler.StornierungErteilenHandler,
+		},
+		{
+			name:  "bestellung-umbuchen",
+			path:  "/bestellung-umbuchen",
+			body:  `{"vorgangId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","quellTischId":1,"zielTischId":2,"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}]}`,
+			serve: handler.BestellungUmbuchenHandler,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, tc.path, strings.NewReader(tc.body))
+			req.Header.Set("Content-Type", "application/json")
+			ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
+			req = req.WithContext(ctx)
+			rec := httptest.NewRecorder()
+
+			tc.serve().ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusConflict {
+				t.Errorf("expected status 409, got %d", rec.Code)
+			}
+			if !strings.Contains(rec.Body.String(), "vorgang_daten_abweichend") {
+				t.Errorf("expected vorgang_daten_abweichend in body, got %s", rec.Body.String())
+			}
+		})
+	}
+}

@@ -11,35 +11,43 @@ import (
 	"github.com/google/uuid"
 )
 
-const existsVorgangIdempotenz = `-- name: ExistsVorgangIdempotenz :one
-SELECT EXISTS(SELECT 1 FROM vorgang_idempotenz WHERE vorgang_id = $1)
+const getVorgangPayloadHash = `-- name: GetVorgangPayloadHash :one
+SELECT payload_hash FROM vorgang_idempotenz WHERE vorgang_id = $1
 `
 
-// Duplikat-Vorprüfung der Commands VOR der fachlichen Validierung: Ein
-// Wiederholversuch nach erfolgreicher Buchung darf nicht an inzwischen
-// geänderten Invarianten scheitern, sondern wiederholt die Erfolgsantwort.
-func (q *Queries) ExistsVorgangIdempotenz(ctx context.Context, vorgangID uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, existsVorgangIdempotenz, vorgangID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
+// Liefert den gespeicherten Nutzdaten-Hash zum Schlüssel; sql.ErrNoRows bedeutet
+// „Schlüssel unbekannt" und damit einen neuen Vorgang. Der Vergleich mit dem Hash
+// der eingereichten Nutzdaten trennt die Duplikat-Einreichung (stille
+// Erfolgsantwort) von abweichenden Nutzdaten (HTTP 409).
+func (q *Queries) GetVorgangPayloadHash(ctx context.Context, vorgangID uuid.UUID) ([]byte, error) {
+	row := q.db.QueryRowContext(ctx, getVorgangPayloadHash, vorgangID)
+	var payload_hash []byte
+	err := row.Scan(&payload_hash)
+	return payload_hash, err
 }
 
 const insertVorgangIdempotenz = `-- name: InsertVorgangIdempotenz :exec
-INSERT INTO vorgang_idempotenz (vorgang_id, art, user_id, created_at)
-VALUES ($1, $2, $3, now())
+INSERT INTO vorgang_idempotenz (vorgang_id, art, user_id, payload_hash, created_at)
+VALUES ($1, $2, $3, $4, now())
 `
 
 type InsertVorgangIdempotenzParams struct {
-	VorgangID uuid.UUID
-	Art       string
-	UserID    int
+	VorgangID   uuid.UUID
+	Art         string
+	UserID      int
+	PayloadHash []byte
 }
 
-// Hält den client-gelieferten Idempotenz-Schlüssel eines buchenden Vorgangs
-// fest — im selben Commit wie dessen Events und VOR den Event-Inserts, damit
-// ein Primärschlüssel-Konflikt eindeutig eine Duplikat-Einreichung ist.
+// Hält Schlüssel und Nutzdaten-Hash eines buchenden Vorgangs fest — im selben
+// Commit wie dessen Events und VOR den Event-Inserts, damit ein
+// Primärschlüssel-Konflikt eindeutig eine Zweiteinreichung desselben Schlüssels
+// ist (Duplikat oder abweichende Nutzdaten, entschieden über payload_hash).
 func (q *Queries) InsertVorgangIdempotenz(ctx context.Context, arg InsertVorgangIdempotenzParams) error {
-	_, err := q.db.ExecContext(ctx, insertVorgangIdempotenz, arg.VorgangID, arg.Art, arg.UserID)
+	_, err := q.db.ExecContext(ctx, insertVorgangIdempotenz,
+		arg.VorgangID,
+		arg.Art,
+		arg.UserID,
+		arg.PayloadHash,
+	)
 	return err
 }

@@ -154,6 +154,10 @@ const mappedCodes: [string, string][] = [
     'Der Verkauf wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
   ],
   [
+    'vorgang_daten_abweichend',
+    'Dieser Vorgang wurde bereits gebucht, allerdings mit einer anderen Auswahl als der jetzt gesendeten. Die Ansicht ist aktualisiert und die Auswahl geleert — bitte nur die Differenz erneut erfassen.',
+  ],
+  [
     'zahlung_not_found',
     'Die Zahlung wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
   ],
@@ -220,6 +224,32 @@ describe('getActionErrorMessage', () => {
       }),
     ).toBe(
       'Der Server antwortet nicht rechtzeitig. Bitte WLAN prüfen und erneut versuchen.',
+    )
+  })
+
+  it('prioritizes byNetzwerkArt overrides over the general network message', () => {
+    expect(
+      getActionErrorMessage({
+        actionLabel: 'TSE einrichten',
+        error: new NetzwerkFehler('zeitueberschreitung'),
+        byNetzwerkArt: {
+          zeitueberschreitung: 'Die Einrichtung läuft im Hintergrund weiter.',
+        },
+      }),
+    ).toBe('Die Einrichtung läuft im Hintergrund weiter.')
+  })
+
+  it('falls back to the general network message for an art without an override', () => {
+    expect(
+      getActionErrorMessage({
+        actionLabel: 'TSE einrichten',
+        error: new NetzwerkFehler('verbindungsabbruch'),
+        byNetzwerkArt: {
+          zeitueberschreitung: 'Die Einrichtung läuft im Hintergrund weiter.',
+        },
+      }),
+    ).toBe(
+      'Keine Verbindung zum Server. Bitte WLAN prüfen und erneut versuchen.',
     )
   })
 

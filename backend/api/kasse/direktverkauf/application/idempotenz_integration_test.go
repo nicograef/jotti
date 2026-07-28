@@ -120,6 +120,80 @@ func TestDirektverkaufTaetigen_DuplikatVerkaufId_IdempotenterErfolg(t *testing.T
 	}
 }
 
+// TestDirektverkaufTaetigen_SelbeVerkaufIdAndereNutzdaten_KeinZweitesEvent: Der im
+// Review beschriebene Fehlbetrags-Pfad — zwei Bier gehen durch, die Antwort geht
+// verloren, der Gast bestellt eine Cola nach, und die Servicekraft schließt den
+// erweiterten Korb unter derselben verkaufId erneut ab. Weder eine zweite Buchung
+// (Doppelbuchung, Fehlbetrag im Kassensturz) noch ein stiller Erfolg (verschluckte
+// Cola) wäre richtig: Der Command meldet ErrVorgangDatenAbweichend und schreibt
+// kein zweites Event.
+func TestDirektverkaufTaetigen_SelbeVerkaufIdAndereNutzdaten_KeinZweitesEvent(t *testing.T) {
+	ctx, cmd, db, userID, _, produktID, varianteID := setupDVIntegration(t)
+
+	verkaufID := uuid.New().String()
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 2}}
+	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, ""); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+
+	var auftraegeVorher int
+	if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege").Scan(&auftraegeVorher); err != nil {
+		t.Fatalf("tse_signaturauftraege zählen: %v", err)
+	}
+
+	colaProduktID, colaVarianteID := createProduktMitVariante(t, db, "Cola", "0.33L", 300)
+	geaendert := []enrichment.PositionInput{
+		{ProduktID: produktID, VarianteID: varianteID, Menge: 2},
+		{ProduktID: colaProduktID, VarianteID: colaVarianteID, Menge: 1},
+	}
+	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, geaendert, ""); !errors.Is(err, ErrVorgangDatenAbweichend) {
+		t.Fatalf("erwartet ErrVorgangDatenAbweichend, bekam: %v", err)
+	}
+
+	var eventCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal WHERE type = 'direktverkauf-getaetigt:v1'").Scan(&eventCount); err != nil {
+		t.Fatalf("kassenjournal zählen: %v", err)
+	}
+	if eventCount != 1 {
+		t.Errorf("erwartet weiterhin 1 direktverkauf-getaetigt:v1-Event, gespeichert: %d", eventCount)
+	}
+
+	var auftraegeNachher int
+	if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege").Scan(&auftraegeNachher); err != nil {
+		t.Fatalf("tse_signaturauftraege zählen: %v", err)
+	}
+	if auftraegeNachher != auftraegeVorher {
+		t.Errorf("abweichende Einreichung hat Signaturaufträge erzeugt: %d -> %d", auftraegeVorher, auftraegeNachher)
+	}
+
+	var vorgaenge int
+	if err := db.QueryRow("SELECT COUNT(*) FROM vorgang_idempotenz WHERE vorgang_id = $1", verkaufID).Scan(&vorgaenge); err != nil {
+		t.Fatalf("vorgang_idempotenz zählen: %v", err)
+	}
+	if vorgaenge != 1 {
+		t.Errorf("erwartet genau 1 vorgang_idempotenz-Zeile, vorhanden: %d", vorgaenge)
+	}
+}
+
+// createProduktMitVariante legt ein Produkt mit genau einer Variante an und
+// liefert beide IDs.
+func createProduktMitVariante(t *testing.T, db *sql.DB, produktName, variantenName string, preisCents int) (produktID, varianteID int) {
+	t.Helper()
+	if err := db.QueryRow(
+		"INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at) VALUES ($1, 'getraenk', 'regel', 'active', now(), now()) RETURNING id",
+		produktName,
+	).Scan(&produktID); err != nil {
+		t.Fatalf("create produkt %q: %v", produktName, err)
+	}
+	if err := db.QueryRow(
+		"INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at) VALUES ($1, $2, $3, 'active', now(), now()) RETURNING id",
+		produktID, variantenName, preisCents,
+	).Scan(&varianteID); err != nil {
+		t.Fatalf("create variante %q: %v", variantenName, err)
+	}
+	return
+}
+
 // TestDirektverkaufTaetigen_VersionskonfliktAndereVerkaufId_ErrConflict: Existiert für den
 // Direktverkauf-Stream bereits version 1 mit einer anderen verkaufId im Datenfeld,
 // antwortet der Command mit ErrConflict (echter OCC-Konflikt, keine Duplikat-Einreichung).
@@ -131,7 +205,8 @@ func TestDirektverkaufTaetigen_VersionskonfliktAndereVerkaufId_ErrConflict(t *te
 
 	// Vorab-Insert: version 1 im selben Stream, aber mit anderer verkaufId im Datenfeld.
 	// Simuliert einen echten OCC-Konflikt: der Command-Write trifft auf eine bereits belegte
-	// (subject, version). Da die verkaufId nicht übereinstimmt, schlägt der Idempotenz-Check fehl.
+	// (subject, version). Die verkaufId ist unbekannt, also greift die Idempotenz nicht — der
+	// Konflikt bleibt als UNIQUE(subject, version)-Verletzung ein OCC-Konflikt.
 	andereVerkaufID := uuid.New().String()
 	data, err := json.Marshal(map[string]any{
 		"verkaufId":         andereVerkaufID,
@@ -211,5 +286,75 @@ func TestDirektverkaufStornieren_DuplikatVorgangId_GenauEinEventUndSignaturauftr
 	}
 	if auftraegeNachher != auftraegeVorher+1 {
 		t.Errorf("erwartet genau 1 zusätzlichen Signaturauftrag, vorher %d, nachher %d", auftraegeVorher, auftraegeNachher)
+	}
+}
+
+// TestDirektverkaufStornieren_SelbeVorgangIdAndereNutzdaten_KeinZweitesEvent:
+// Dieselbe vorgangId mit geänderten Nutzdaten ist weder ein Duplikat noch eine
+// neue Buchung — der Command meldet ErrVorgangDatenAbweichend und schreibt kein
+// zweites Event. Die Vorprüfung greift dabei vor der fachlichen Validierung: Die
+// geänderte Menge wäre hier noch stornierbar.
+func TestDirektverkaufStornieren_SelbeVorgangIdAndereNutzdaten_KeinZweitesEvent(t *testing.T) {
+	ctx, cmd, db, userID, ksNr, produktID, varianteID := setupDVIntegration(t)
+
+	verkaufID := uuid.New().String()
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 3}}
+	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, ""); err != nil {
+		t.Fatalf("direktverkauf: %v", err)
+	}
+
+	// Server-erzeugte positionId aus dem Verkaufs-Stream lesen.
+	subject := kasse.DirektverkaufSubject(ksNr, verkaufID)
+	events, err := cmd.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil || len(events) != 1 {
+		t.Fatalf("verkauf events lesen: %v (%d)", err, len(events))
+	}
+	var data struct {
+		Positionen []struct {
+			PositionID string `json:"positionId"`
+		} `json:"positionen"`
+	}
+	if err := json.Unmarshal(events[0].Data, &data); err != nil {
+		t.Fatalf("verkauf data unmarshal: %v", err)
+	}
+	positionID := data.Positionen[0].PositionID
+
+	vorgangID := uuid.New().String()
+	if err := cmd.DirektverkaufStornieren(ctx, userID, "test", vorgangID, verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rueckgabe"); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+
+	var auftraegeVorher int
+	if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege").Scan(&auftraegeVorher); err != nil {
+		t.Fatalf("tse_signaturauftraege zählen: %v", err)
+	}
+
+	geaenderteRefs := []kasse.PositionRef{{PositionID: positionID, Menge: 2}}
+	if err := cmd.DirektverkaufStornieren(ctx, userID, "test", vorgangID, verkaufID, geaenderteRefs, "Rueckgabe"); !errors.Is(err, ErrVorgangDatenAbweichend) {
+		t.Fatalf("erwartet ErrVorgangDatenAbweichend, bekam: %v", err)
+	}
+
+	var eventCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal WHERE type = 'direktverkauf-storniert:v1'").Scan(&eventCount); err != nil {
+		t.Fatalf("kassenjournal zählen: %v", err)
+	}
+	if eventCount != 1 {
+		t.Errorf("erwartet weiterhin 1 direktverkauf-storniert:v1-Event, gespeichert: %d", eventCount)
+	}
+
+	var auftraegeNachher int
+	if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege").Scan(&auftraegeNachher); err != nil {
+		t.Fatalf("tse_signaturauftraege zählen: %v", err)
+	}
+	if auftraegeNachher != auftraegeVorher {
+		t.Errorf("abweichende Einreichung hat Signaturaufträge erzeugt: %d -> %d", auftraegeVorher, auftraegeNachher)
+	}
+
+	var vorgaenge int
+	if err := db.QueryRow("SELECT COUNT(*) FROM vorgang_idempotenz WHERE vorgang_id = $1", vorgangID).Scan(&vorgaenge); err != nil {
+		t.Fatalf("vorgang_idempotenz zählen: %v", err)
+	}
+	if vorgaenge != 1 {
+		t.Errorf("erwartet genau 1 vorgang_idempotenz-Zeile, vorhanden: %d", vorgaenge)
 	}
 }

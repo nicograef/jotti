@@ -116,7 +116,15 @@ func (h *QueryHandler) GetTSEKonfigurationHandler() http.HandlerFunc {
 
 func (h *QueryHandler) TestTSEVerbindungHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
+
 		status, err := h.Query.TestTSEVerbindung(r.Context())
+
+		// Zweites Setzen der Schreibfrist, jetzt fuer den Schreibvorgang selbst:
+		// Die Frist vom Handler-Eingang ist eine absolute Zeit ab Request-Start
+		// und nach einem langsamen fiskaly-Roundtrip abgelaufen.
+		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
+
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrTSENichtKonfiguriert):
@@ -141,6 +149,8 @@ func (h *QueryHandler) TestTSEVerbindungHandler() http.HandlerFunc {
 
 func (h *QueryHandler) CheckTSESetupHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
+
 		var body checkTSESetupRequest
 		if !helper.ReadAndValidateBody(w, r, &body, checkTSESetupSchema) {
 			return
@@ -150,6 +160,10 @@ func (h *QueryHandler) CheckTSESetupHandler() http.HandlerFunc {
 			ApiKey:    body.ApiKey,
 			ApiSecret: body.ApiSecret,
 		})
+
+		// Zweites Setzen der Schreibfrist — siehe TestTSEVerbindungHandler.
+		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
+
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrTSESetupZugangsdaten):

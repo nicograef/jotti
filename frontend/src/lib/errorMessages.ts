@@ -1,4 +1,4 @@
-import { BackendError, NetzwerkFehler } from './Backend'
+import { BackendError, NetzwerkFehler, type NetzwerkFehlerArt } from './Backend'
 
 const serverErrorMessage =
   'Es ist ein unerwarteter Serverfehler aufgetreten. Bitte Seite neu laden oder den Administrator kontaktieren.'
@@ -82,6 +82,8 @@ const commonErrorMessages: Record<string, string> = {
     'Es gibt noch offene Tische mit ausstehenden Beträgen. Bitte alle Tische abrechnen.',
   tse_nicht_konfiguriert:
     'Die TSE ist nicht konfiguriert. Bitte sie im Bereich Finanzamt einrichten.',
+  tse_setup_laeuft_bereits:
+    'Die TSE-Einrichtung läuft noch im Hintergrund. Bitte nicht erneut starten – das legt eine zweite, kostenpflichtige TSE an. Bitte warten, bis sie fertig ist, und dann die TSE-Konfiguration prüfen.',
   tse_verbindung_fehlgeschlagen:
     'Die Verbindung zur TSE ist fehlgeschlagen. Bitte Verbindung und TSE-Konfiguration prüfen.',
   umbuchung_gleicher_tisch:
@@ -99,6 +101,15 @@ const commonErrorMessages: Record<string, string> = {
     'Die Variante wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
   verkauf_not_found:
     'Der Verkauf wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
+  // Der Wiederholversuch trug denselben Vorgangs-Schlüssel, aber eine andere
+  // Auswahl: Die erste Einreichung ist gebucht, nur ihre Antwort ging verloren.
+  // Die Aufrufstellen im Kassen-Pfad behandeln den Vorgang daraufhin als
+  // abgeschlossen — sie leeren die Auswahl (nur so bekommt der nächste Vorgang
+  // einen eigenen Schlüssel) und laden die Ansicht neu. Die Meldung sagt
+  // deshalb, was bereits geschehen ist, und nennt als einzige verbliebene
+  // Handlung die Differenz; ein bloßes „erneut versuchen" endete wieder hier.
+  vorgang_daten_abweichend:
+    'Dieser Vorgang wurde bereits gebucht, allerdings mit einer anderen Auswahl als der jetzt gesendeten. Die Ansicht ist aktualisiert und die Auswahl geleert — bitte nur die Differenz erneut erfassen.',
   zahlung_not_found:
     'Die Zahlung wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
 }
@@ -107,17 +118,23 @@ interface ErrorMessageOptions {
   actionLabel: string
   error: unknown
   byCode?: Record<string, string>
+  // byNetzwerkArt überschreibt die allgemeine Netzwerk-Meldung für einen
+  // einzelnen Aufruf. Nötig dort, wo deren Rat („erneut versuchen") schadet:
+  // Die TSE-Einrichtung läuft nach dem Client-Zeitlimit serverseitig weiter,
+  // ein zweiter Start legt eine zweite, kostenpflichtige TSE an.
+  byNetzwerkArt?: Partial<Record<NetzwerkFehlerArt, string>>
 }
 
 export function getActionErrorMessage({
   actionLabel,
   error,
   byCode = {},
+  byNetzwerkArt = {},
 }: ErrorMessageOptions): string {
   const fallback = `${actionLabel} fehlgeschlagen. Bitte erneut versuchen.`
 
   if (error instanceof NetzwerkFehler) {
-    return netzwerkErrorMessages[error.art]
+    return byNetzwerkArt[error.art] ?? netzwerkErrorMessages[error.art]
   }
 
   if (error instanceof BackendError) {

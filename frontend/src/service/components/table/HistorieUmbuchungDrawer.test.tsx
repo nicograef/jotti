@@ -12,19 +12,30 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+const tischeState = vi.hoisted(() => ({
+  isLoadingError: false,
+  refetch: vi.fn(),
+}))
+
 vi.mock('../../table/hooks', () => ({
   useAktiveTische: () => ({
-    tische: [
-      { id: 1, name: 'Stammtisch', saldoCents: 0 },
-      { id: 2, name: 'Nebentisch', saldoCents: 0 },
-      { id: 3, name: 'Ecktisch', saldoCents: 0 },
-    ],
+    tische: tischeState.isLoadingError
+      ? []
+      : [
+          { id: 1, name: 'Stammtisch', saldoCents: 0 },
+          { id: 2, name: 'Nebentisch', saldoCents: 0 },
+          { id: 3, name: 'Ecktisch', saldoCents: 0 },
+        ],
     isPending: false,
+    isLoadingError: tischeState.isLoadingError,
+    refetch: tischeState.refetch,
   }),
 }))
 
 afterEach(() => {
   cleanup()
+  vi.clearAllMocks()
+  tischeState.isLoadingError = false
 })
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
@@ -278,7 +289,11 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(bestellungUmbuchen.mock.calls[2][0].vorgangId).not.toBe(ersterKey)
   })
 
-  it('wechselt die vorgangId, wenn sich die Auswahl nach einem Fehlversuch ändert', async () => {
+  // Scheitert der erste Versuch scheinbar (Antwort im WLAN verloren) und ändert
+  // sich die Auswahl danach, muss der zweite Versuch denselben Schlüssel tragen:
+  // Nur dann erkennt der Server den Konflikt mit der bereits gebuchten Umbuchung
+  // und meldet ihn, statt ein zweites Mal umzubuchen.
+  it('behält die vorgangId, wenn sich die Auswahl nach einem Fehlversuch ändert', async () => {
     const user = userEvent.setup()
     const bestellungUmbuchen = vi
       .fn<(u: BestellungUmbuchen) => Promise<void>>()
@@ -307,21 +322,21 @@ describe('HistorieUmbuchungDrawer', () => {
     })
     const ersterKey = bestellungUmbuchen.mock.calls[0][0].vorgangId
 
-    // Geänderte Nutzdaten nach dem Fehlversuch (Menge 2 → 1): neuer Vorgang,
-    // neuer Schlüssel — der Server prüft die geänderte Auswahl regulär.
+    // Geänderte Nutzdaten nach dem Fehlversuch (Menge 2 → 1): derselbe Vorgang,
+    // derselbe Schlüssel — die Abweichung beanstandet der Server.
     await user.click(screen.getByRole('button', { name: /verringern/ }))
     await user.click(ausfuehren())
     await waitFor(() => {
       expect(bestellungUmbuchen).toHaveBeenCalledTimes(2)
     })
     const zweiterAufruf = bestellungUmbuchen.mock.calls[1][0]
-    expect(zweiterAufruf.vorgangId).not.toBe(ersterKey)
+    expect(zweiterAufruf.vorgangId).toBe(ersterKey)
     expect(zweiterAufruf.positionen).toEqual([
       { positionId: position.positionId, menge: 1 },
     ])
   })
 
-  it('wechselt die vorgangId, wenn nach einem Fehlversuch der Ziel-Tisch wechselt', async () => {
+  it('behält die vorgangId, wenn nach einem Fehlversuch der Ziel-Tisch wechselt', async () => {
     const user = userEvent.setup()
     const bestellungUmbuchen = vi
       .fn<(u: BestellungUmbuchen) => Promise<void>>()
@@ -350,17 +365,37 @@ describe('HistorieUmbuchungDrawer', () => {
     })
     const ersterKey = bestellungUmbuchen.mock.calls[0][0].vorgangId
 
-    // Der Ziel-Tisch gehört zu den Nutzdaten: Mit dem alten Schlüssel würde der
-    // Server den Wechsel als Duplikat verschlucken und „Auf Ecktisch umgebucht"
-    // melden, obwohl die Positionen auf dem Nebentisch liegen.
+    // Der Ziel-Tisch gehört zu den Nutzdaten und geht damit in den
+    // serverseitigen Hash ein. Genau deshalb bleibt der Schlüssel gleich: Lag
+    // die Umbuchung auf den Nebentisch bereits vor, beanstandet der Server den
+    // Wechsel auf den Ecktisch, statt ihn ein zweites Mal zu buchen.
     await user.selectOptions(screen.getByRole('combobox'), 'Ecktisch')
     await user.click(ausfuehren())
     await waitFor(() => {
       expect(bestellungUmbuchen).toHaveBeenCalledTimes(2)
     })
     const zweiterAufruf = bestellungUmbuchen.mock.calls[1][0]
-    expect(zweiterAufruf.vorgangId).not.toBe(ersterKey)
+    expect(zweiterAufruf.vorgangId).toBe(ersterKey)
     expect(zweiterAufruf.zielTischId).toBe(3)
+  })
+
+  // Der leere Select behauptet „Kein aktiver Ziel-Tisch verfügbar" — bei einem
+  // Ladefehler ist das falsch: Die Tische gibt es, nur die Liste kam nicht an.
+  it('zeigt bei gescheitertem Erstladen der Tische einen Ladefehler statt des Select-Platzhalters', async () => {
+    tischeState.isLoadingError = true
+    const user = userEvent.setup()
+    renderDrawer()
+
+    expect(
+      screen.getByText('Tische konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('Kein aktiver Ziel-Tisch verfügbar'),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+    expect(tischeState.refetch).toHaveBeenCalled()
   })
 
   it('beschriftet den Sammel-Button bei mehreren Positionen im Plural', () => {

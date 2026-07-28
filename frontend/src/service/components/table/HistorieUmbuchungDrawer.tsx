@@ -1,6 +1,7 @@
 import { CircleCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -61,7 +62,12 @@ export function HistorieUmbuchungDrawer({
   const positionen = quelle.umbuchbarePositionen
   const [zielTischId, setZielTischId] = useState<number | null>(null)
   const [kommentar, setKommentar] = useState('')
-  const { tische, isPending: tischeLoading } = useAktiveTische()
+  const {
+    tische,
+    isPending: tischeLoading,
+    isLoadingError: tischeError,
+    refetch: reloadTische,
+  } = useAktiveTische()
 
   const umbuchbareMengen = useMemo(
     () => createDefaultMengen(positionen),
@@ -85,7 +91,8 @@ export function HistorieUmbuchungDrawer({
   const noPositionenSelected = selectedPositionen.length === 0
   const keinZielTischVerfuegbar = zielTische.length === 0
   // Grund am Button nur für die behebbaren Bedingungen: Fehlt gänzlich ein
-  // Ziel-Tisch, nennt bereits der Select-Platzhalter den Grund — ein zweiter
+  // Ziel-Tisch, nennt ihn bereits der Select-Platzhalter bzw. — wenn die Liste
+  // gar nicht geladen werden konnte — der Ladefehler darüber; ein zweiter
   // Hinweis wäre redundant (gleiche Dedup wie in HistorieStornierungDrawer).
   const disabledReason = noPositionenSelected
     ? 'Positionen auswählen'
@@ -110,18 +117,15 @@ export function HistorieUmbuchungDrawer({
     setAll(umbuchbareMengen)
   }
 
-  // vorgangId je fachlichem Vorgang, an die Nutzdaten gebunden: Ein
-  // Wiederholversuch mit unveränderten Nutzdaten behält seinen Schlüssel und
-  // bucht serverseitig kein zweites Mal; jede Änderung (Auswahl, Mengen,
-  // Ziel-Tisch, Kommentar) beginnt einen neuen Vorgang mit neuem Schlüssel,
-  // den der Server regulär prüft.
+  // vorgangId je Zusammenstellung: Jeder Wiederholversuch behält den Schlüssel —
+  // auch mit inzwischen geänderter Auswahl oder gewechseltem Ziel-Tisch, denn
+  // genau diese Abweichung erkennt und meldet der Server. Ein neuer Schlüssel
+  // entsteht, wenn die Auswahl geleert und neu begonnen wird; nach einer
+  // ausgeführten Umbuchung schließt der Aufrufer den Drawer, der nächste beginnt
+  // ohnehin bei null.
+  const vorgangId = useVorgangId(noPositionenSelected)
+
   const positionRefs = toPositionRefs(selectedPositionen)
-  const vorgangId = useVorgangId({
-    quellTischId: tisch.id,
-    zielTischId,
-    positionen: positionRefs,
-    benutzerKommentar: kommentar,
-  })
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Umbuchung ausführen',
@@ -201,28 +205,37 @@ export function HistorieUmbuchungDrawer({
           )}
           <div className="space-y-1">
             <p className="text-sm font-medium">Ziel-Tisch</p>
-            <NativeSelect
-              className="w-full"
-              value={zielTischId === null ? '' : String(zielTischId)}
-              onChange={(event) => {
-                setZielTischId(Number(event.target.value))
-              }}
-              disabled={loading || tischeLoading || keinZielTischVerfuegbar}
-            >
-              <NativeSelectOption value="" disabled>
-                {keinZielTischVerfuegbar
-                  ? 'Kein aktiver Ziel-Tisch verfügbar'
-                  : 'Ziel-Tisch wählen…'}
-              </NativeSelectOption>
-              {zielTische.map((candidate) => (
-                <NativeSelectOption
-                  key={candidate.id}
-                  value={String(candidate.id)}
-                >
-                  {candidate.name}
+            {/* Ohne Meldung behauptet der leere Select „Kein aktiver Ziel-Tisch
+                verfügbar", obwohl die Liste nur nicht geladen werden konnte. */}
+            {tischeError ? (
+              <LadefehlerAlert
+                titel="Tische konnten nicht geladen werden"
+                onErneutVersuchen={() => void reloadTische()}
+              />
+            ) : (
+              <NativeSelect
+                className="w-full"
+                value={zielTischId === null ? '' : String(zielTischId)}
+                onChange={(event) => {
+                  setZielTischId(Number(event.target.value))
+                }}
+                disabled={loading || tischeLoading || keinZielTischVerfuegbar}
+              >
+                <NativeSelectOption value="" disabled>
+                  {keinZielTischVerfuegbar
+                    ? 'Kein aktiver Ziel-Tisch verfügbar'
+                    : 'Ziel-Tisch wählen…'}
                 </NativeSelectOption>
-              ))}
-            </NativeSelect>
+                {zielTische.map((candidate) => (
+                  <NativeSelectOption
+                    key={candidate.id}
+                    value={String(candidate.id)}
+                  >
+                    {candidate.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            )}
           </div>
           <ActionHint reason={disabledReason} />
           <Button

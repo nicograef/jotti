@@ -10,6 +10,7 @@ import { useCountUp } from '@/hooks/use-count-up'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useVorgangId } from '@/hooks/use-vorgang-id'
 import { BackendSingleton } from '@/lib/Backend'
 import { formatEuro } from '@/lib/utils'
 
@@ -19,10 +20,13 @@ import { Bestellung } from './components/table/Bestellung'
 import { TischHistorie } from './components/table/TischHistorie'
 import { Zahlung } from './components/table/Zahlung'
 import { useAktiveProdukte } from './product/hooks'
+import type { Produkt } from './product/Produkt'
 import {
   AKTIVE_TISCHE_MIT_FAVORITEN_KEY,
   EIGENE_UEBERSICHT_KEY,
   MEINE_TISCHE_STATE_KEY,
+  TISCH_HISTORIE_KEY,
+  TISCH_STATE_KEY,
   useTischHistorie,
   useTischState,
 } from './table/hooks'
@@ -55,6 +59,38 @@ function deckeleAuswahl(
     }
   }
   return geaendert ? gedeckelt : null
+}
+
+// Wirft aus dem Bestell-Korb, was nicht mehr in der aktiven Produktliste steht:
+// Eine deaktivierte Variante hat keine Zeile mehr, ihr Korb-Eintrag wäre also
+// weder sichtbar noch herunterzählbar. Gibt `null` zurück, wenn nichts zu
+// entfernen ist — damit der State-Abgleich im Render nur bei echter Änderung ein
+// setAll auslöst und keine Render-Schleife dreht (wie bei deckeleAuswahl).
+function entferneUnbekannteVarianten(
+  korb: Record<number, number>,
+  produkte: Produkt[],
+): Record<number, number> | null {
+  const aktiveVarianten = new Set(
+    produkte.flatMap((produkt) => produkt.varianten.map(({ id }) => id)),
+  )
+  let geaendert = false
+  const bereinigt: Record<number, number> = {}
+  for (const [varianteId, menge] of Object.entries(korb)) {
+    if (!aktiveVarianten.has(Number(varianteId))) {
+      geaendert = true
+      continue
+    }
+    bereinigt[Number(varianteId)] = menge
+  }
+  return geaendert ? bereinigt : null
+}
+
+// Fachlicher Leerzustand einer Auswahl: Ein Eintrag, der auf 0 heruntergezählt
+// wurde, bleibt in der Mengen-Karte stehen, zählt aber nicht als Auswahl.
+function istAuswahlLeer(
+  mengen: Record<string, number> | Record<number, number>,
+): boolean {
+  return Object.values(mengen).every((menge) => menge <= 0)
 }
 
 // Das Status-Badge poppt bei jedem Wertwechsel (Motion-Inventar „Statuswechsel",
@@ -98,20 +134,18 @@ export function TablePage() {
   const {
     state,
     isPending: stateLoading,
-    isError: stateError,
-    refetch: reloadState,
+    isLoadingError: stateError,
   } = useTischState(Number(tischId))
   const {
     isPending,
-    isError: produkteError,
+    isLoadingError: produkteError,
     produkte,
     refetch: reloadProdukte,
   } = useAktiveProdukte()
   const {
     isPending: historieLoading,
-    isError: historieError,
+    isLoadingError: historieError,
     historie,
-    refetch: reloadHistorie,
   } = useTischHistorie(Number(tischId))
 
   // Der Saldo zählt bei jeder Änderung animiert zum neuen Wert (u. a. nach dem
@@ -120,19 +154,24 @@ export function TablePage() {
 
   // Eine Buchung ändert nicht nur diesen Tisch, sondern auch die Zahlen der
   // Tischübersicht (Meine Tische, Alle Tische, eigene Summen). Deren Queries
-  // hängen an keiner Komponente dieser Seite und würden nach der Rückkehr
-  // innerhalb der Aktualitätsschwelle den Cache-Stand von vor der Buchung
-  // zeigen — ein soeben kassierter Tisch stünde weiter unter „Noch offen".
+  // hängen an keiner Komponente dieser Seite und zeigten nach der Rückkehr sonst
+  // den Cache-Stand von vor der Buchung — ein soeben kassierter Tisch stünde
+  // weiter unter „Noch offen".
+  // Zustand und Historie werden über ihr Präfix invalidiert statt über den
+  // refetch dieses Tischs: Eine Umbuchung ändert auch den Ziel-Tisch, dessen
+  // Queries hier nicht gemountet sind. Inaktive Queries werden dabei nur als
+  // veraltet markiert und lösen keinen zusätzlichen Request aus; der gemountete
+  // Tisch lädt wie bisher sofort neu.
   const queryClient = useQueryClient()
   const reload = useCallback(() => {
-    void reloadState()
-    void reloadHistorie()
+    void queryClient.invalidateQueries({ queryKey: [TISCH_STATE_KEY] })
+    void queryClient.invalidateQueries({ queryKey: [TISCH_HISTORIE_KEY] })
     void queryClient.invalidateQueries({ queryKey: [MEINE_TISCHE_STATE_KEY] })
     void queryClient.invalidateQueries({
       queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
     })
     void queryClient.invalidateQueries({ queryKey: [EIGENE_UEBERSICHT_KEY] })
-  }, [reloadState, reloadHistorie, queryClient])
+  }, [queryClient])
 
   // Erfolgs-Pop: Bestellen, Kassieren, Stornieren und Umbuchen öffnen ihn mit
   // ihrer Meldung (statt eines Erfolgs-Toasts). Der nachgelagerte Refetch
@@ -184,9 +223,54 @@ export function TablePage() {
     kassierenAuswahl.setAll(gedeckelteAuswahl)
   }
 
+  // Derselbe Abgleich für den Bestell-Korb: Wird eine Variante deaktiviert,
+  // während sie im Korb liegt, verschwindet ihre Zeile aus der Produktliste —
+  // der Korb-Eintrag bliebe unsichtbar und nicht mehr herunterzählbar stehen.
+  // Der Korb gälte damit nie wieder als leer, und die bestellungId rotierte für
+  // die restliche Lebensdauer der Seite nicht mehr: Die nächste Bestellung liefe
+  // unter dem Schlüssel der vorherigen. Erst abgleichen, wenn die Produktliste
+  // geladen ist — vorher steht ihr Leerzustand für „noch nichts geladen", nicht
+  // für „nicht mehr aktiv".
+  const bereinigterKorb = isPending
+    ? null
+    : entferneUnbekannteVarianten(bestellKorb.mengen, produkte)
+  if (bereinigterKorb) {
+    bestellKorb.setAll(bereinigterKorb)
+  }
+
+  // Die Idempotenz-Schlüssel liegen bei ihrer Zusammenstellung — also hier, nicht
+  // in den Abschluss-Komponenten: Radix hängt den Inhalt des inaktiven Tabs aus,
+  // und ein dort gehaltener Schlüssel bekäme beim Tab-Wechsel einen neuen Wert.
+  // Eine unveränderte Auswahl würde dann als zweiter Vorgang gebucht, obwohl die
+  // erste Einreichung nur ihre Antwort verloren hat. Schlüssel und Auswahl
+  // müssen dieselbe Lebensdauer haben.
+  const bestellungId = useVorgangId(istAuswahlLeer(bestellKorb.mengen))
+  const zahlungVorgangId = useVorgangId(istAuswahlLeer(kassierenAuswahl.mengen))
+
+  // 409 `vorgang_daten_abweichend`: Der Vorgang unter diesem Schlüssel ist
+  // gebucht, nur seine Antwort ging verloren — er ist damit abgeschlossen, auch
+  // wenn die zuletzt gesendete Auswahl eine andere war. Die Auswahl wird geleert
+  // (erst der Leerzustand rotiert den Schlüssel) und der Tischzustand neu
+  // geladen. Ohne beides folgte auf jeden weiteren Versuch derselbe 409: Die
+  // Meldung rät zur Differenz, aber mit unverändertem Schlüssel und
+  // unverändertem Server-Hash bleibt sie unbuchbar.
+  const bestellungBereitsGebucht = () => {
+    bestellKorb.reset()
+    reload()
+  }
+  const zahlungBereitsGebucht = () => {
+    kassierenAuswahl.reset()
+    reload()
+  }
+
   // Expliziter Fehlerzustand statt der Leer-Defaults (Saldo 0,00 €) — sonst
-  // wirkt der Tisch bei Netzabbruch abgerechnet.
-  if (stateError || historieError) {
+  // wirkt der Tisch bei Netzabbruch abgerechnet. Nur beim gescheiterten
+  // Erstladen: Scheitert ein Hintergrund-Refetch, bleibt der zuletzt geladene
+  // Tischzustand stehen, statt eine geöffnete Ansicht wegzureißen.
+  // Nur der Tischzustand trägt die ganze Seite; ein Ladefehler der Historie
+  // ersetzt allein den Historie-Tab (siehe historieInhalt), damit Bestellen und
+  // Kassieren bedienbar bleiben.
+  if (stateError) {
     return (
       <LadefehlerAlert
         titel="Tischdaten konnten nicht geladen werden"
@@ -274,7 +358,9 @@ export function TablePage() {
         void reloadProdukte()
       }}
       mengenSteuerung={bestellKorb}
+      bestellungId={bestellungId}
       onErfolg={zeigeErfolg}
+      onVorgangBereitsGebucht={bestellungBereitsGebucht}
     />
   )
   const kassierenInhalt = !stateLoading && (
@@ -283,13 +369,17 @@ export function TablePage() {
       tisch={tisch}
       positionen={state.unbezahltePositionen}
       mengenSteuerung={kassierenAuswahl}
+      vorgangId={zahlungVorgangId}
       onErfolg={zeigeErfolg}
+      onVorgangBereitsGebucht={zahlungBereitsGebucht}
     />
   )
   const historieInhalt = !stateLoading && (
     <TischHistorie
       historie={historie}
       historieLoading={historieLoading}
+      historieError={historieError}
+      onErneutVersuchen={reload}
       tisch={tisch}
       backend={tischBackend}
       onErfolg={zeigeErfolg}

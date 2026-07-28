@@ -513,11 +513,13 @@ type User struct {
 	UpdatedAt time.Time
 }
 
-// Client-gelieferte Idempotenz-Schlüssel buchender Vorgänge; Zeile entsteht im selben Commit wie die Events des Vorgangs, vor deren Insert.
+// Client-gelieferte Idempotenz-Schlüssel buchender Vorgänge, an die Nutzdaten des Vorgangs gebunden; Zeile entsteht im selben Commit wie die Events des Vorgangs, vor deren Insert.
 type VorgangIdempotenz struct {
 	VorgangID uuid.UUID
 	// Vorgangstyp für die Nachvollziehbarkeit im Support.
-	Art       string
-	UserID    int
-	CreatedAt time.Time
+	Art    string
+	UserID int
+	// SHA-256 über die Nutzdaten des Vorgangs. Gleicher Schlüssel mit gleichem Hash ist eine Duplikat-Einreichung (stille Erfolgsantwort), gleicher Schlüssel mit anderem Hash sind abweichende Nutzdaten (HTTP 409).
+	PayloadHash []byte
+	CreatedAt   time.Time
 }

@@ -186,3 +186,38 @@ func TestDirektverkaufTaetigenHandler_UngueltigeVerkaufId_ValidationError(t *tes
 		t.Errorf("expected status 400 for non-UUID verkaufId, got %d", rec.Code)
 	}
 }
+
+// Eine bekannte verkaufId mit abweichenden Nutzdaten ist ein expliziter Konflikt:
+// 409 mit dem Code vorgang_daten_abweichend — weder ein stiller Erfolg noch der
+// generische 400 der MapError-Abbildung.
+func TestDirektverkaufTaetigenHandler_VorgangDatenAbweichend_Conflict(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrVorgangDatenAbweichend}}
+
+	body := `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":1}],"kommentar":""}`
+	rec := httptest.NewRecorder()
+	handler.DirektverkaufTaetigenHandler().ServeHTTP(rec, requestWithUser(body))
+
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected status 409, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "vorgang_daten_abweichend") {
+		t.Errorf("expected vorgang_daten_abweichend in body, got %s", rec.Body.String())
+	}
+}
+
+// Ein bekannter vorgangId mit abweichenden Nutzdaten ist ein expliziter Konflikt:
+// 409 mit dem Code vorgang_daten_abweichend — weder ein stiller Erfolg noch der
+// generische 400 der MapError-Abbildung.
+func TestDirektverkaufStornierenHandler_VorgangDatenAbweichend_Conflict(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrVorgangDatenAbweichend}}
+
+	rec := httptest.NewRecorder()
+	handler.DirektverkaufStornierenHandler().ServeHTTP(rec, stornoRequestWithUser(validStornoBody))
+
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected status 409, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "vorgang_daten_abweichend") {
+		t.Errorf("expected vorgang_daten_abweichend in body, got %s", rec.Body.String())
+	}
+}

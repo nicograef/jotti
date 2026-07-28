@@ -17,7 +17,10 @@ interface ZahlungDrawerProps {
   unbezahltePositionen: Position[]
   mengen: Record<string, number>
   restNachZahlungCents: number
+  // Idempotenz-Schlüssel dieser Zusammenstellung, von TablePage gehoben.
+  vorgangId: string
   zahlungKassiert: () => void
+  vorgangBereitsGebucht: () => void
 }
 
 // Handy-Container (unter lg): Dock-Aktionsbutton als Trigger, die Restbetrag-
@@ -58,9 +61,14 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
         positionenToPay={positionenToPay}
         totalCents={totalPrice}
         restNachZahlungCents={props.restNachZahlungCents}
+        vorgangId={props.vorgangId}
         zahlungKassiert={() => {
           setOpen(false)
           props.zahlungKassiert()
+        }}
+        vorgangBereitsGebucht={() => {
+          setOpen(false)
+          props.vorgangBereitsGebucht()
         }}
       />
     </Drawer>

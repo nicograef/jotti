@@ -36,6 +36,27 @@ var testOpenKS = &kasse.Kassensitzung{
 	Status: kasse.KassensitzungOffen,
 }
 
+// seedTischStream legt Setup-Events im Mock ab und schreibt die
+// tisch_sessions-Projektion mit derselben Funktion fort wie der echte
+// Repository. Ohne die passende Projektion scheitert jeder anschließende Write
+// des Mocks, der sie fortschreibt (z. B. eine Korrektur auf einer Position, die
+// ein leerer Zustand nicht kennt).
+func seedTischStream(t *testing.T, eventMock *kassenjournal_repo.MockRepo, subject string, events ...event.Event) {
+	t.Helper()
+
+	zustand := kasse.TischSession{}
+	for _, evt := range events {
+		eventMock.AddEvent(evt)
+
+		neuerZustand, err := kasse.ApplyEvent(zustand, evt)
+		if err != nil {
+			t.Fatalf("Setup-Event %s projizieren: %v", evt.Type, err)
+		}
+		zustand = neuerZustand
+	}
+	eventMock.SetTischSession(subject, zustand)
+}
+
 func newTestCommand(tables []tisch.Tisch, products []produkt.Produkt) Command {
 	return newTestCommandWithEventMock(tables, products, kassenjournal_repo.NewMock(nil, nil))
 }
@@ -956,9 +977,9 @@ func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahm
 	}}, 350, "")
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
-	eventMock.SetTischSession(subject, kasse.TischSession{})
-	eventMock.AddEvent(orderEvent)
-	eventMock.AddEvent(paymentEvent)
+	orderEvent.Version = 1
+	paymentEvent.Version = 2
+	seedTischStream(t, eventMock, subject, orderEvent, paymentEvent)
 
 	command := Command{
 		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),

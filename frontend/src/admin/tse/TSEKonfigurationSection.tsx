@@ -258,7 +258,7 @@ export function TSEKonfigurationSection() {
   const {
     tseKonfiguration,
     isPending,
-    error,
+    isLoadingError,
     saveTSEKonfiguration,
     clearTSEKonfiguration,
     testTSEVerbindung,
@@ -269,7 +269,10 @@ export function TSEKonfigurationSection() {
     inhalt = (
       <p className="text-muted-foreground text-sm">Lade TSE-Konfiguration…</p>
     )
-  } else if (error) {
+  } else if (isLoadingError) {
+    // Nur das gescheiterte Erstladen ersetzt das Formular. Ein gescheiterter
+    // Hintergrund-Refetch darf es nicht wegreißen: Die eingetippten Zugangsdaten
+    // liegen in lokalem State und wären mit dem Unmount verloren.
     inhalt = (
       <p className="text-destructive text-sm">
         Fehler beim Laden der TSE-Konfiguration.

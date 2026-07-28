@@ -27,6 +27,12 @@ var ErrKasseAlreadyAbgeschlossen = errors.New("kasse bereits abgeschlossen")
 // couple them and risk a silent 409-to-500 regression (2026-07-17 multi-expert review).
 var ErrConflict = errors.New("conflict")
 
+// ErrVorgangDatenAbweichend is returned when a known geldtransitId is submitted again with
+// different Nutzdaten. Weder eine zweite Buchung (Doppelbuchung) noch eine stille
+// Erfolgsantwort (verschluckte Einreichung) wäre richtig; die HTTP-Schicht bildet den
+// Fehler deshalb auf 409 vorgang_daten_abweichend ab.
+var ErrVorgangDatenAbweichend = errors.New("vorgang daten abweichend")
+
 // ErrTischeSaldoOffen is returned when a Kassenabschluss is attempted but tisch sessions have non-zero saldi.
 var ErrTischeSaldoOffen = errors.New("tische mit offenem saldo")
 

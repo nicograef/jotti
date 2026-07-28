@@ -31,18 +31,27 @@ vi.mock('../table/TischBackend', () => ({
 let mockTische = [
   { id: 1, name: 'Stammtisch', istFavorit: false, saldoCents: 0 },
 ]
+let mockLadefehler = false
+
+const { refetch } = vi.hoisted(() => ({ refetch: vi.fn() }))
 
 vi.mock('../table/hooks', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../table/hooks')>()
   return {
     ...actual,
-    useAktiveTischeMitFavoriten: () => ({ tische: mockTische }),
+    useAktiveTischeMitFavoriten: () => ({
+      tische: mockTische,
+      isLoadingError: mockLadefehler,
+      refetch,
+    }),
   }
 })
 
 afterEach(() => {
   cleanup()
+  vi.clearAllMocks()
   mockTische = [{ id: 1, name: 'Stammtisch', istFavorit: false, saldoCents: 0 }]
+  mockLadefehler = false
 })
 
 function renderDrawer() {
@@ -104,6 +113,23 @@ describe('TischAuswahlDrawer', () => {
     // „Tisch 2" vor „Tisch 10" (numerischer Vergleich); der Favorit „Tisch 2"
     // wird nicht mehr an den Anfang gezogen.
     expect(namen).toEqual(['Tisch 1', 'Tisch 2', 'Tisch 10'])
+  })
+
+  // Der Drawer ist der einzige Einstieg in einen Tisch, solange die
+  // Servicekraft keinen Tisch markiert hat. Eine leere Liste ohne Meldung wäre
+  // dort eine Sackgasse: Sie behauptet, es gebe keine Tische.
+  it('zeigt bei gescheitertem Erstladen einen Ladefehler statt einer leeren Liste', async () => {
+    mockTische = []
+    mockLadefehler = true
+    const user = userEvent.setup()
+    renderDrawer()
+
+    expect(
+      screen.getByText('Tische konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+    expect(refetch).toHaveBeenCalledTimes(1)
   })
 
   it('zeigt Favoriten-Stern und Saldo pro Zeile weiterhin an', () => {

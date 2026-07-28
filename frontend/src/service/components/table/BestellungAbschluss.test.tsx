@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { useVorgangId } from '@/hooks/use-vorgang-id'
+
 import type { BestellungAufnehmen } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import { BestellungAbschluss } from './BestellungAbschluss'
@@ -24,6 +26,10 @@ const positionen = [{ produktId: 1, varianteId: 1, menge: 2 }]
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
+// Der Idempotenz-Schlüssel kommt seit dem Heben nach TablePage als Prop; wo
+// sein Lebenszyklus nicht Gegenstand des Tests ist, genügt ein fester Wert.
+const BESTELLUNG_ID = '11111111-1111-4111-8111-111111111111'
+
 // Die feste Spalte (variant="spalte") ist container-neutral testbar: kein
 // Drawer, kein Dock.
 function renderSpalte(
@@ -40,7 +46,9 @@ function renderSpalte(
       receiptItems={receiptItems}
       positionen={positionen}
       totalCents={700}
+      bestellungId={BESTELLUNG_ID}
       bestellungAufgenommen={bestellungAufgenommen}
+      vorgangBereitsGebucht={vi.fn()}
     />,
   )
   return { bestellungAufnehmen, bestellungAufgenommen }
@@ -56,7 +64,9 @@ describe('BestellungAbschluss (Spalte)', () => {
         receiptItems={[]}
         positionen={[]}
         totalCents={0}
+        bestellungId={BESTELLUNG_ID}
         bestellungAufgenommen={vi.fn()}
+        vorgangBereitsGebucht={vi.fn()}
       />,
     )
 
@@ -87,8 +97,7 @@ describe('BestellungAbschluss (Spalte)', () => {
     })
     expect(bestellungAufnehmen).toHaveBeenCalledWith(
       expect.objectContaining({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        bestellungId: expect.stringMatching(UUID),
+        bestellungId: BESTELLUNG_ID,
         tischId: 1,
         positionen,
         kommentar: '',
@@ -104,8 +113,11 @@ describe('BestellungAbschluss (Spalte)', () => {
       .mockRejectedValueOnce(new Error('kaputt'))
       .mockResolvedValue(undefined)
 
+    // Der Harness steht für TablePage: Dort liegt der Schlüssel beim Korb, und
+    // von dort kommt er als Prop.
     function Harness() {
       const [leer, setLeer] = useState(false)
+      const bestellungId = useVorgangId(leer)
       return (
         <>
           <button
@@ -123,7 +135,9 @@ describe('BestellungAbschluss (Spalte)', () => {
             receiptItems={leer ? [] : receiptItems}
             positionen={leer ? [] : positionen}
             totalCents={leer ? 0 : 700}
+            bestellungId={bestellungId}
             bestellungAufgenommen={vi.fn()}
+            vorgangBereitsGebucht={vi.fn()}
           />
         </>
       )
@@ -138,6 +152,7 @@ describe('BestellungAbschluss (Spalte)', () => {
       expect(bestellungAufnehmen).toHaveBeenCalledTimes(1)
     })
     const ersterKey = bestellungAufnehmen.mock.calls[0][0].bestellungId
+    expect(ersterKey).toMatch(UUID)
 
     await user.click(aufnehmen())
     await waitFor(() => {
@@ -157,7 +172,11 @@ describe('BestellungAbschluss (Spalte)', () => {
     )
   })
 
-  it('wechselt den bestellungId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
+  // Scheitert der erste Versuch scheinbar (Antwort im WLAN verloren) und wächst
+  // die Auswahl danach, muss der zweite Versuch denselben Schlüssel tragen: Nur
+  // dann erkennt der Server den Konflikt mit der bereits gebuchten Bestellung
+  // und meldet ihn, statt ein zweites Mal zu buchen.
+  it('behält den bestellungId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
     const user = userEvent.setup()
     const bestellungAufnehmen = vi
       .fn<(b: BestellungAufnehmen) => Promise<void>>()
@@ -171,6 +190,7 @@ describe('BestellungAbschluss (Spalte)', () => {
 
     function Harness() {
       const [erweitert, setErweitert] = useState(false)
+      const bestellungId = useVorgangId(false)
       return (
         <>
           <button
@@ -188,7 +208,9 @@ describe('BestellungAbschluss (Spalte)', () => {
             receiptItems={receiptItems}
             positionen={erweitert ? erweitertePositionen : positionen}
             totalCents={erweitert ? 950 : 700}
+            bestellungId={bestellungId}
             bestellungAufgenommen={vi.fn()}
+            vorgangBereitsGebucht={vi.fn()}
           />
         </>
       )
@@ -204,14 +226,15 @@ describe('BestellungAbschluss (Spalte)', () => {
     })
     const ersterKey = bestellungAufnehmen.mock.calls[0][0].bestellungId
 
-    // Geänderte Nutzdaten nach dem Fehlversuch: neuer Vorgang, neuer Schlüssel.
+    // Geänderte Nutzdaten nach dem Fehlversuch: derselbe Vorgang, derselbe
+    // Schlüssel — die Abweichung beanstandet der Server.
     await user.click(screen.getByRole('button', { name: 'erweitern' }))
     await user.click(aufnehmen())
     await waitFor(() => {
       expect(bestellungAufnehmen).toHaveBeenCalledTimes(2)
     })
     const zweiterAufruf = bestellungAufnehmen.mock.calls[1][0]
-    expect(zweiterAufruf.bestellungId).not.toBe(ersterKey)
+    expect(zweiterAufruf.bestellungId).toBe(ersterKey)
     expect(zweiterAufruf.positionen).toEqual(erweitertePositionen)
   })
 
@@ -237,7 +260,9 @@ describe('BestellungAbschluss (Spalte)', () => {
             receiptItems={leer ? [] : receiptItems}
             positionen={leer ? [] : positionen}
             totalCents={leer ? 0 : 700}
+            bestellungId={BESTELLUNG_ID}
             bestellungAufgenommen={vi.fn()}
+            vorgangBereitsGebucht={vi.fn()}
           />
         </>
       )

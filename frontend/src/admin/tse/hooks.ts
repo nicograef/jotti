@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
+import { STAMMDATEN_AKTUALITAET_MS } from '@/lib/queryClient'
 
 import {
   TSEBackend,
@@ -27,11 +28,17 @@ export const TSE_STOERUNGEN_KEY = 'tse-stoerungen'
 // Sidebar teilen sich diese Schwelle.
 export const RUECKSTAND_WARN_SEKUNDEN = 60
 
+// `isLoadingError` statt `error`: Nur ein gescheitertes Erstladen (kein
+// brauchbarer Cache-Stand) rechtfertigt einen Fehlerzustand statt des Formulars.
+// Scheitert ein Hintergrund-Refetch — etwa der Fokus-Refetch, wenn der Admin von
+// fiskaly zurückkehrt —, bleiben Formular und Eingaben stehen; die Meldung trägt
+// der zentrale Fehler-Toast aus queryClient.ts.
 export function useTSEKonfiguration() {
   const queryClient = useQueryClient()
-  const { isPending, data, error } = useQuery({
+  const { isPending, data, isLoadingError } = useQuery({
     queryKey: [TSE_KONFIGURATION_KEY],
     queryFn: () => tseBackend.getTSEKonfiguration(),
+    staleTime: STAMMDATEN_AKTUALITAET_MS,
   })
 
   const saveTSEKonfiguration = async (config: TSEKonfigurationSpeichern) => {
@@ -54,7 +61,7 @@ export function useTSEKonfiguration() {
   return {
     tseKonfiguration: data,
     isPending,
-    error,
+    isLoadingError,
     saveTSEKonfiguration,
     clearTSEKonfiguration,
     testTSEVerbindung,

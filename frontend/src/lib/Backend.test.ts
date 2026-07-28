@@ -19,6 +19,30 @@ function createClient() {
   return new Backend('/api', dummyTokenGetter)
 }
 
+// Antwort-Body, dessen Stream nie etwas liefert und erst durch das
+// Abbruch-Signal endet — so verhält sich fetch, wenn das Zeitlimit zuschlägt,
+// während der Body noch überträgt.
+function stockenderBodyStream(
+  signal: AbortSignal | null | undefined,
+): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      signal?.addEventListener('abort', () => {
+        controller.error(new DOMException('Aborted', 'AbortError'))
+      })
+    },
+  })
+}
+
+// Antwort-Body, dessen Übertragung abreißt, ohne dass abgebrochen wurde.
+function abgerissenerBodyStream(): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.error(new TypeError('network error'))
+    },
+  })
+}
+
 afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllGlobals()
@@ -224,6 +248,93 @@ describe('Backend Verbindungsfehler', () => {
       .catch((error: unknown) => error)
 
     await vi.advanceTimersByTimeAsync(8000)
+
+    const fehler = await request
+    expect(fehler).toBeInstanceOf(NetzwerkFehler)
+    expect(fehler).toMatchObject({ art: 'zeitueberschreitung' })
+  })
+
+  // Das Zeitlimit endet nicht mit den Headern: Antwortet der Server mit 200,
+  // liefert dann aber keinen Body mehr, muss der Aufruf ebenfalls abbrechen.
+  it('bricht einen in der Body-Phase stockenden Request als Zeitüberschreitung ab', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Response(stockenderBodyStream(init.signal), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      ),
+    )
+
+    const backend = createClient()
+    const request = backend
+      .post('service/foo', {}, z.object({ ok: z.boolean() }))
+      .catch((error: unknown) => error)
+
+    await vi.advanceTimersByTimeAsync(8000)
+
+    const fehler = await request
+    expect(fehler).toBeInstanceOf(NetzwerkFehler)
+    expect(fehler).toMatchObject({ art: 'zeitueberschreitung' })
+  })
+
+  // Reißt die Verbindung in der Body-Phase ab, ohne dass das Zeitlimit
+  // abgelaufen ist, bleibt es ein Verbindungsabbruch.
+  it('meldet einen Abriss in der Body-Phase als Verbindungsabbruch', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Response(abgerissenerBodyStream(), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      ),
+    )
+
+    const backend = createClient()
+    const request = backend.post(
+      'service/foo',
+      {},
+      z.object({ ok: z.boolean() }),
+    )
+
+    await expect(request).rejects.toBeInstanceOf(NetzwerkFehler)
+    await expect(request).rejects.toMatchObject({ art: 'verbindungsabbruch' })
+  })
+
+  // Langlaufende Endpunkte (TSE-Einrichtung, DSFinV-K-Export) setzen ihr eigenes
+  // Zeitlimit; die Voreinstellung von 8 Sekunden darf sie nicht abbrechen.
+  it('verwendet ein explizit übergebenes Zeitlimit statt der Voreinstellung', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () => {
+              reject(new DOMException('Aborted', 'AbortError'))
+            })
+          }),
+      ),
+    )
+
+    const backend = createClient()
+    let erledigt = false
+    const request = backend
+      .post('admin/tse-einrichten', {}, undefined, { zeitlimitMs: 30_000 })
+      .catch((error: unknown) => error)
+      .finally(() => {
+        erledigt = true
+      })
+
+    await vi.advanceTimersByTimeAsync(8000)
+    expect(erledigt).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(22_000)
 
     const fehler = await request
     expect(fehler).toBeInstanceOf(NetzwerkFehler)

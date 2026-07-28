@@ -195,6 +195,25 @@ func TestGeldtransitBuchenHandler_UngueltigeGeldtransitId_ValidationError(t *tes
 	}
 }
 
+// Eine bekannte geldtransitId mit abweichenden Nutzdaten ist ein expliziter
+// Konflikt: 409 mit dem Code vorgang_daten_abweichend — weder ein stiller Erfolg
+// noch der generische 500 des default-Zweigs.
+func TestGeldtransitBuchenHandler_VorgangDatenAbweichend_Conflict(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrVorgangDatenAbweichend}}
+
+	req := requestWithUser(`{"geldtransitId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","richtung":"einlage","betragCents":500,"kommentar":"Wechselgeld"}`)
+	rec := httptest.NewRecorder()
+
+	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected status 409, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "vorgang_daten_abweichend") {
+		t.Errorf("expected vorgang_daten_abweichend in body, got %s", rec.Body.String())
+	}
+}
+
 // KasseAbschliessen
 
 func TestKasseAbschliessenHandler_Success(t *testing.T) {

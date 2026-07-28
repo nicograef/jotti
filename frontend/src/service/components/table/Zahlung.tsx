@@ -36,9 +36,17 @@ interface ZahlungProps {
   // Kassieren-Auswahl (Position-ID → Menge, gedeckelt auf die unbezahlte
   // Menge), von TablePage gehoben, damit sie den Tab-Wechsel überlebt.
   mengenSteuerung: MengenSteuerung<string>
+  // Idempotenz-Schlüssel dieser Zusammenstellung, aus demselben Grund wie die
+  // Auswahl von TablePage gehoben: Ein hier gehaltener Schlüssel wechselte beim
+  // Tab-Wechsel und machte aus einem Wiederholversuch eine zweite Buchung.
+  vorgangId: string
   // Meldet die erfolgreiche Zahlung samt Bestätigungstext an die Seite, die den
   // Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
   onErfolg: (nachricht: string) => void
+  // Der Server hat den Vorgang unter diesem Schlüssel bereits gebucht (409
+  // `vorgang_daten_abweichend`). Räumt Auswahl und Tischzustand ab; beides liegt
+  // in TablePage, deshalb kommt der Handler von dort.
+  onVorgangBereitsGebucht: () => void
 }
 
 export function Zahlung({
@@ -46,7 +54,9 @@ export function Zahlung({
   backend,
   positionen,
   mengenSteuerung,
+  vorgangId,
   onErfolg,
+  onVorgangBereitsGebucht,
 }: ZahlungProps) {
   const isMobile = useIsMobile()
   const [andereOffen, setAndereOffen] = useState(false)
@@ -230,7 +240,9 @@ export function Zahlung({
             positionenToPay={positionenToPay}
             totalCents={auswahlSumme}
             restNachZahlungCents={restNachZahlung}
+            vorgangId={vorgangId}
             zahlungKassiert={zahlungKassiert}
+            vorgangBereitsGebucht={onVorgangBereitsGebucht}
           />
         }
       />
@@ -247,7 +259,9 @@ export function Zahlung({
         unbezahltePositionen={positionen}
         mengen={mengen}
         restNachZahlungCents={restNachZahlung}
+        vorgangId={vorgangId}
         zahlungKassiert={zahlungKassiert}
+        vorgangBereitsGebucht={onVorgangBereitsGebucht}
       />
       {auswahl}
     </>

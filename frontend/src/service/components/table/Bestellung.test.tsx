@@ -11,13 +11,22 @@ import type { Tisch } from '../../table/Tisch'
 import { ServiceDock } from '../ServiceDock'
 import { Bestellung } from './Bestellung'
 
-// Der Bestell-Korb liegt seit A1 in TablePage; für die isolierten Komponenten-
-// Tests stellt dieser Harness die gehobene Steuerung bereit.
+// Bestell-Korb und Idempotenz-Schlüssel liegen in TablePage; für die isolierten
+// Komponenten-Tests stellt dieser Harness beides bereit.
 function BestellungHarness(
-  props: Omit<ComponentProps<typeof Bestellung>, 'mengenSteuerung'>,
+  props: Omit<
+    ComponentProps<typeof Bestellung>,
+    'mengenSteuerung' | 'bestellungId'
+  >,
 ) {
   const mengenSteuerung = useMengen<number>()
-  return <Bestellung {...props} mengenSteuerung={mengenSteuerung} />
+  return (
+    <Bestellung
+      {...props}
+      mengenSteuerung={mengenSteuerung}
+      bestellungId="11111111-1111-4111-8111-111111111111"
+    />
+  )
 }
 
 vi.mock('sonner', () => ({
@@ -72,6 +81,7 @@ describe('Bestellung Aktionsleiste', () => {
           productsError={false}
           onErneutVersuchen={vi.fn()}
           onErfolg={vi.fn()}
+          onVorgangBereitsGebucht={vi.fn()}
         />
       </ServiceDock>,
     )
@@ -102,6 +112,7 @@ describe('Bestellung Aktionsleiste', () => {
         productsError={false}
         onErneutVersuchen={vi.fn()}
         onErfolg={vi.fn()}
+        onVorgangBereitsGebucht={vi.fn()}
       />,
     )
 
@@ -132,6 +143,7 @@ describe('Bestellung Aktionsleiste', () => {
         productsError
         onErneutVersuchen={onErneutVersuchen}
         onErfolg={vi.fn()}
+        onVorgangBereitsGebucht={vi.fn()}
       />,
     )
 

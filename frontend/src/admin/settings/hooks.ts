@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
+import { STAMMDATEN_AKTUALITAET_MS } from '@/lib/queryClient'
 
 import {
   DruckstationBackend,
@@ -16,15 +17,22 @@ export const DRUCKSTATIONEN_KEY = 'druckstationen'
 export const FEHLGESCHLAGENE_DRUCKAUFTRAEGE_KEY =
   'fehlgeschlagene-druckauftraege'
 
+// `isLoadingError` statt `error`: Nur ein gescheitertes Erstladen (kein
+// brauchbarer Cache-Stand) rechtfertigt einen Fehlerzustand statt der Stationen.
+// Scheitert ein Hintergrund-Refetch — etwa der nach dem Speichern einer
+// Drucker-IP —, bleibt die Seite samt Alarmkarte für fehlgeschlagene
+// Druckaufträge stehen; die Meldung trägt der zentrale Fehler-Toast aus
+// queryClient.ts.
 export function useDruckstationen() {
   const queryClient = useQueryClient()
   const {
     isPending,
     data = [],
-    error,
+    isLoadingError,
   } = useQuery({
     queryKey: [DRUCKSTATIONEN_KEY],
     queryFn: () => druckstationBackend.getDruckstationen(),
+    staleTime: STAMMDATEN_AKTUALITAET_MS,
   })
 
   const updateDruckstation = async (newConfig: DruckstationConfig) => {
@@ -39,7 +47,7 @@ export function useDruckstationen() {
   return {
     druckstationen: data,
     isPending,
-    error,
+    isLoadingError,
     updateDruckstation,
     testbonDrucken,
   }

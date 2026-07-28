@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { useVorgangId } from '@/hooks/use-vorgang-id'
+
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { ZahlungKassieren } from '../../table/Zahlung'
@@ -33,6 +35,10 @@ const position: Position = {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
+// Der Idempotenz-Schlüssel kommt seit dem Heben nach TablePage als Prop; wo
+// sein Lebenszyklus nicht Gegenstand des Tests ist, genügt ein fester Wert.
+const VORGANG_ID = '11111111-1111-4111-8111-111111111111'
+
 // Die feste Spalte (variant="spalte") ist container-neutral testbar: kein
 // Drawer, kein Dock.
 function renderSpalte(
@@ -47,7 +53,9 @@ function renderSpalte(
       positionenToPay={[{ ...position, menge: 2 }]}
       totalCents={700}
       restNachZahlungCents={200}
+      vorgangId={VORGANG_ID}
       zahlungKassiert={zahlungKassiert}
+      vorgangBereitsGebucht={vi.fn()}
     />,
   )
   return { zahlungKassieren, zahlungKassiert }
@@ -63,7 +71,9 @@ describe('ZahlungAbschluss (Spalte)', () => {
         positionenToPay={[]}
         totalCents={0}
         restNachZahlungCents={900}
+        vorgangId={VORGANG_ID}
         zahlungKassiert={vi.fn()}
+        vorgangBereitsGebucht={vi.fn()}
       />,
     )
 
@@ -107,8 +117,7 @@ describe('ZahlungAbschluss (Spalte)', () => {
       expect(zahlungKassieren).toHaveBeenCalledTimes(1)
     })
     expect(zahlungKassieren).toHaveBeenCalledWith({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      vorgangId: expect.stringMatching(UUID),
+      vorgangId: VORGANG_ID,
       tischId: 1,
       positionen: [{ positionId: position.positionId, menge: 2 }],
       kommentar: '',
@@ -116,15 +125,18 @@ describe('ZahlungAbschluss (Spalte)', () => {
     expect(zahlungKassiert).toHaveBeenCalledTimes(1)
   })
 
-  it('behält die vorgangId über einen Retry und wechselt sie beim neuen Vorgang', async () => {
+  it('behält die vorgangId über Retry und Kommentaränderung und wechselt sie beim neuen Vorgang', async () => {
     const user = userEvent.setup()
     const zahlungKassieren = vi
       .fn<(z: ZahlungKassieren) => Promise<void>>()
       .mockRejectedValueOnce(new Error('kaputt'))
       .mockResolvedValue(undefined)
 
+    // Der Harness steht für TablePage: Dort liegt der Schlüssel bei der
+    // Auswahl, und von dort kommt er als Prop.
     function Harness() {
       const [leer, setLeer] = useState(false)
+      const vorgangId = useVorgangId(leer)
       return (
         <>
           <button
@@ -142,7 +154,9 @@ describe('ZahlungAbschluss (Spalte)', () => {
             positionenToPay={leer ? [] : [{ ...position, menge: 2 }]}
             totalCents={leer ? 0 : 700}
             restNachZahlungCents={leer ? 900 : 200}
+            vorgangId={vorgangId}
             zahlungKassiert={vi.fn()}
+            vorgangBereitsGebucht={vi.fn()}
           />
         </>
       )
@@ -166,22 +180,84 @@ describe('ZahlungAbschluss (Spalte)', () => {
     })
     expect(zahlungKassieren.mock.calls[1][0].vorgangId).toBe(ersterKey)
 
+    // Auch ein geänderter Kommentar ist kein neuer Vorgang: Der Schlüssel darf
+    // sich nicht aus den Nutzdaten ableiten, sonst sähe der Server denselben
+    // Schlüssel nie zweimal und könnte die Abweichung nicht beanstanden.
+    await user.type(screen.getByPlaceholderText(/Kommentar/), 'Tisch 3')
+    await user.click(kassieren())
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(3)
+    })
+    expect(zahlungKassieren.mock.calls[2][0].vorgangId).toBe(ersterKey)
+    expect(zahlungKassieren.mock.calls[2][0].kommentar).toBe('Tisch 3')
+
     // Neuer logischer Vorgang: Auswahl leeren (wie nach einem Erfolg) und neu füllen.
     await user.click(screen.getByRole('button', { name: 'toggle' }))
     await user.click(screen.getByRole('button', { name: 'toggle' }))
     await user.click(kassieren())
     await waitFor(() => {
-      expect(zahlungKassieren).toHaveBeenCalledTimes(3)
+      expect(zahlungKassieren).toHaveBeenCalledTimes(4)
     })
-    expect(zahlungKassieren.mock.calls[2][0].vorgangId).not.toBe(ersterKey)
+    expect(zahlungKassieren.mock.calls[3][0].vorgangId).not.toBe(ersterKey)
+  })
+
+  it('setzt Erhalten, Zielbetrag und Kommentar beim neuen Vorgang zurück (kein Übertrag)', async () => {
+    const user = userEvent.setup()
+
+    function Harness() {
+      const [leer, setLeer] = useState(false)
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setLeer((v) => !v)
+            }}
+          >
+            toggle
+          </button>
+          <ZahlungAbschluss
+            variant="spalte"
+            backend={{ zahlungKassieren: vi.fn() }}
+            tisch={tisch}
+            positionenToPay={leer ? [] : [{ ...position, menge: 2 }]}
+            totalCents={leer ? 0 : 700}
+            restNachZahlungCents={leer ? 900 : 200}
+            vorgangId={VORGANG_ID}
+            zahlungKassiert={vi.fn()}
+            vorgangBereitsGebucht={vi.fn()}
+          />
+        </>
+      )
+    }
+    render(<Harness />)
+
+    await user.type(screen.getByLabelText('Erhalten'), '10,00')
+    await user.click(screen.getByRole('button', { name: /8,00/ }))
+    await user.type(screen.getByPlaceholderText(/Kommentar/), 'Für Tisch 3')
+    expect(screen.getByLabelText('Erhalten')).toHaveValue('10,00')
+    expect(screen.getByText('Trinkgeld')).toBeVisible()
+
+    // Auswahl leeren (abgerechneter oder abgebrochener Vorgang) und neu
+    // beginnen: Die dauerhafte Spalte bleibt dabei montiert, der Eingabe-State
+    // überlebt den Auswahl-Reset also — ohne den Leerzustands-Reset trüge der
+    // nächste Gast Erhalten, Zielbetrag und Kommentar des vorigen.
+    await user.click(screen.getByRole('button', { name: 'toggle' }))
+    await user.click(screen.getByRole('button', { name: 'toggle' }))
+
+    expect(screen.getByLabelText('Erhalten')).toHaveValue('')
+    expect(screen.getByPlaceholderText(/Kommentar/)).toHaveValue('')
+    // Kein Zielbetrag mehr: ohne Trinkgeld auch keine Trinkgeld-Zeile.
+    expect(screen.queryByText('Trinkgeld')).not.toBeInTheDocument()
   })
 
   // Das Befund-Szenario des Reviews: Kassieren schlägt scheinbar fehl (Antwort
   // im WLAN verloren), der Helfer nimmt eine weitere Position in die Auswahl
-  // und kassiert erneut. Der zweite Versuch trägt geänderte Nutzdaten und muss
-  // deshalb einen NEUEN Schlüssel senden — sonst verschluckt der Server ihn
-  // als Duplikat und meldet Erfolg, ohne die neue Position zu buchen.
-  it('wechselt die vorgangId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
+  // und kassiert erneut. Der zweite Versuch muss denselben Schlüssel tragen —
+  // nur dann sieht der Server den Konflikt zwischen der bereits gebuchten und
+  // der jetzt gesendeten Auswahl und meldet ihn, statt ein zweites Mal zu
+  // buchen.
+  it('behält die vorgangId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
     const user = userEvent.setup()
     const zahlungKassieren = vi
       .fn<(z: ZahlungKassieren) => Promise<void>>()
@@ -201,6 +277,7 @@ describe('ZahlungAbschluss (Spalte)', () => {
       const auswahl = erweitert
         ? [{ ...position, menge: 2 }, positionB]
         : [{ ...position, menge: 2 }]
+      const vorgangId = useVorgangId(auswahl.length === 0)
       return (
         <>
           <button
@@ -218,7 +295,9 @@ describe('ZahlungAbschluss (Spalte)', () => {
             positionenToPay={auswahl}
             totalCents={erweitert ? 1100 : 700}
             restNachZahlungCents={erweitert ? 0 : 400}
+            vorgangId={vorgangId}
             zahlungKassiert={vi.fn()}
+            vorgangBereitsGebucht={vi.fn()}
           />
         </>
       )
@@ -239,7 +318,7 @@ describe('ZahlungAbschluss (Spalte)', () => {
       expect(zahlungKassieren).toHaveBeenCalledTimes(2)
     })
     const zweiterAufruf = zahlungKassieren.mock.calls[1][0]
-    expect(zweiterAufruf.vorgangId).not.toBe(ersterKey)
+    expect(zweiterAufruf.vorgangId).toBe(ersterKey)
     expect(zweiterAufruf.positionen).toEqual([
       { positionId: position.positionId, menge: 2 },
       { positionId: positionB.positionId, menge: 1 },
@@ -263,7 +342,9 @@ describe('ZahlungAbschluss (Spalte)', () => {
         positionenToPay={[{ ...position, menge: 2 }]}
         totalCents={700}
         restNachZahlungCents={200}
+        vorgangId={VORGANG_ID}
         zahlungKassiert={vi.fn()}
+        vorgangBereitsGebucht={vi.fn()}
       />,
     )
 

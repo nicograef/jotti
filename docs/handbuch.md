@@ -191,6 +191,8 @@ Die Zustandsberechnung (`ApplyEvent()` in `backend/domain/kasse/tisch_session.go
 
 **`tisch_sessions` (session-scoped Projektion):** pro Subject eine Zeile mit Tisch-Referenz, Saldo, unbezahlten Positionen (JSONB) sowie der ID/Version des zuletzt verarbeiteten Events. Operative Queries lesen direkt aus der Projektion; die Historie liest den Event-Stream via `ReadEventsBySubject()`. Bei Inkonsistenz kann die Projektion jederzeit aus dem Kassenjournal neu berechnet werden (Single Source of Truth).
 
+**`vorgang_idempotenz` (Idempotenz-Schlüssel des Vorgangs):** Die sieben buchenden Vorgänge — Bestellung, Zahlung, Stornierung, Umbuchung, Direktverkauf samt seiner Stornierung und Geldtransit — schreiben in derselben Transaktion zusätzlich eine Zeile mit dem client-erzeugten Vorgangsschlüssel und einem SHA-256 über Art und Nutzdaten des Vorgangs. Sie entsteht **vor** dem Kassenjournal-INSERT: Nur so ist ein Konflikt auf `vorgang_id` eindeutig eine Zweiteinreichung desselben Schlüssels, während ein `UNIQUE(subject, version)`-Konflikt eindeutig ein OCC-Konflikt bleibt (→ [6.6](#66-mehrbenutzerfähigkeit-occ)). Die Schreibpfade der Kassensitzung selbst (Eröffnung, Kassensturz, Differenzbuchung, Tagesabschluss) tragen keinen Schlüssel; sie sind durch fachliche Invarianten gegen eine Zweitbuchung geschützt (höchstens eine aktive Kassensitzung, Wiederanlauf-Erkennung am vorhandenen Kassensturz).
+
 ### 3.9 Kassenbestand (Read Model)
 
 SQL-Aggregation über das Kassenjournal (eine `SELECT`-Query über `kassensitzung_nr`):
@@ -445,7 +447,9 @@ Das System verwendet zwei Persistenzstrategien:
 | Kasse (Tisch-Session + Kassensitzung) | Event-Sourcing | Geschichte ist fachlich relevant (Kassenjournal, Buchhaltung, Compliance) |
 | Stammdaten (Produkt, Tisch, Benutzer) | CRUD           | Nur aktueller Zustand benötigt; Fat Events decken historische Daten ab    |
 
-Mehrere Servicekräfte arbeiten gleichzeitig, auch am selben Tisch. Schreibkonflikte werden über Optimistic Concurrency Control gelöst (Subject- und OCC-Modell → [3.3](#33-subject-design-hierarchische-subjects)). Für den Mehrbenutzerbetrieb relevant ist der Retry: Jeder Schreibvorgang sendet die erwartete `event_version` mit; bei einem Konflikt lädt die Anwendungsschicht den Tischzustand neu und wiederholt den Vorgang.
+Mehrere Servicekräfte arbeiten gleichzeitig, auch am selben Tisch. Schreibkonflikte werden über Optimistic Concurrency Control gelöst (Subject- und OCC-Modell → [3.3](#33-subject-design-hierarchische-subjects)): Jeder Schreibvorgang sendet die erwartete `event_version` mit; ein Konflikt endet in `ErrConflict` (HTTP 409), und die Oberfläche fordert zum Aktualisieren und erneuten Erfassen auf. Es gibt keinen serverseitigen Wiederholversuch.
+
+Die zweite Säule neben OCC ist der Idempotenz-Schlüssel: Ein Wiederholversuch trägt denselben client-erzeugten Vorgangsschlüssel wie die erste Einreichung, und der Server bindet ihn an einen SHA-256 über Art und Nutzdaten des Vorgangs (`vorgang_idempotenz` → [3.8](#38-synchrone-projektion-crud-entität-und-event-replay)). Daraus folgen drei Ausgänge: unbekannter Schlüssel → regulär buchen; bekannter Schlüssel mit unveränderten Nutzdaten → stille Erfolgsantwort ohne zweite Buchung; bekannter Schlüssel mit geänderten Nutzdaten → HTTP 409 `vorgang_daten_abweichend`, damit die Servicekraft die Ansicht aktualisiert und nur die Differenz nachbucht. Eine verlorene Antwort erzeugt so keine Doppelbuchung, und eine veränderte Zweiteinreichung wird nicht stillschweigend verschluckt.
 
 ### 6.7 Sicherheit
 

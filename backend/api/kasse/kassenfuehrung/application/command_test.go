@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -144,6 +145,71 @@ func TestGeldtransitBuchen(t *testing.T) {
 	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "einlage", 10000, "Wechselgeld nachgelegt")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+// Zwei identische Geldtransit-Aufrufe mit derselben geldtransitId: genau ein
+// Event, beide Male Erfolg — der zweite Aufruf bucht nicht erneut.
+func TestGeldtransitBuchen_DuplikatGeldtransitId_KeinZweitesEvent(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		BetreiberRepo:       settingsMock{vereinsname: "TestVerein"},
+		TSERepo:             tseGateMock{},
+	}
+
+	geldtransitID := "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+	if err := cmd.GeldtransitBuchen(ctx, 1, "Admin", geldtransitID, "einlage", 10000, "Wechselgeld"); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+	if err := cmd.GeldtransitBuchen(ctx, 1, "Admin", geldtransitID, "einlage", 10000, "Wechselgeld"); err != nil {
+		t.Fatalf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
+	}
+
+	events, _ := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
+	if len(events) != 1 {
+		t.Fatalf("erwartet genau 1 Event, gespeichert: %d", len(events))
+	}
+
+	vorgang, ok := journalMock.GebuchterVorgang(geldtransitID)
+	if !ok {
+		t.Fatal("erwartet eine vorgang_idempotenz-Zeile für die geldtransitId")
+	}
+	if vorgang.Art != kassenjournal_repo.VorgangArtGeldtransit {
+		t.Errorf("erwartet art %q, gespeichert: %q", kassenjournal_repo.VorgangArtGeldtransit, vorgang.Art)
+	}
+	if vorgang.UserID != 1 {
+		t.Errorf("erwartet user_id 1, gespeichert: %d", vorgang.UserID)
+	}
+}
+
+// Dieselbe geldtransitId mit geändertem Betrag ist weder ein Duplikat noch eine
+// neue Buchung: Der Command meldet den Konflikt und schreibt kein zweites Event.
+func TestGeldtransitBuchen_SelbeGeldtransitIdAndererBetrag_DatenAbweichend(t *testing.T) {
+	ctx := context.Background()
+	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	cmd := Command{
+		KassenjournalRepo:   journalMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		BetreiberRepo:       settingsMock{vereinsname: "TestVerein"},
+		TSERepo:             tseGateMock{},
+	}
+
+	geldtransitID := "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+	if err := cmd.GeldtransitBuchen(ctx, 1, "Admin", geldtransitID, "einlage", 10000, "Wechselgeld"); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+
+	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", geldtransitID, "einlage", 20000, "Wechselgeld")
+	if !errors.Is(err, ErrVorgangDatenAbweichend) {
+		t.Fatalf("erwartet ErrVorgangDatenAbweichend, bekam: %v", err)
+	}
+
+	events, _ := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
+	if len(events) != 1 {
+		t.Fatalf("erwartet weiterhin genau 1 Event, gespeichert: %d", len(events))
 	}
 }
 

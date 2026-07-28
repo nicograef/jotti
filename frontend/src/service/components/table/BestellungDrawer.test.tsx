@@ -46,7 +46,9 @@ function renderDrawer(mengen: Record<number, number>) {
         tisch={tisch}
         products={[testProdukt]}
         mengen={mengen}
+        bestellungId="11111111-1111-4111-8111-111111111111"
         bestellungAufgenommen={vi.fn()}
+        vorgangBereitsGebucht={vi.fn()}
       />
     </ServiceDock>,
   )

@@ -68,6 +68,19 @@ const SETUP_FEHLER = {
     'Die TSE kann nicht geändert werden, solange eine Kassensitzung offen ist. Bitte zuerst den Kassenabschluss durchführen.',
 }
 
+// Die beiden schreibenden Aufrufe (tse-einrichten, tse-uebernehmen) laufen
+// serverseitig weiter, wenn der Client nach 150 s aufgibt: Ihr fiskaly-
+// Lebenszyklus ist vom Client-Abbruch entkoppelt (lebenszyklusKontext in
+// backend/api/fiskal/setup/http/command_handler.go). Die allgemeine
+// Zeitüberschreitungs-Meldung rät hier genau falsch — ein zweiter Start legt
+// eine zweite, kostenpflichtige TSE an. Nur für die Zeitüberschreitung: Bei
+// einem Verbindungsabbruch ist offen, ob die Anfrage den Server überhaupt
+// erreicht hat.
+const LAEUFT_IM_HINTERGRUND_WEITER = {
+  zeitueberschreitung:
+    'Die Einrichtung läuft im Hintergrund weiter. Bitte nicht erneut starten – das legt eine zweite, kostenpflichtige TSE an. Bitte kurz warten und dann unten die TSE-Konfiguration prüfen.',
+}
+
 export function TSEEinrichtungWizard() {
   const [apiKey, setApiKey] = useState('')
   const [apiSecret, setApiSecret] = useState('')
@@ -296,6 +309,7 @@ function UebernahmeSchritt({
       tse_einrichtung_fehlgeschlagen:
         'Die Übernahme ist fehlgeschlagen. Bitte später erneut versuchen.',
     },
+    byNetzwerkArt: LAEUFT_IM_HINTERGRUND_WEITER,
   })
 
   const pinErforderlich = brauchtPin(tss)
@@ -463,6 +477,7 @@ function PukReset({
       tse_einrichtung_fehlgeschlagen:
         'Das Zurücksetzen ist fehlgeschlagen. Bitte später erneut versuchen.',
     },
+    byNetzwerkArt: LAEUFT_IM_HINTERGRUND_WEITER,
   })
 
   const pukFehlt = puk.trim() === ''
@@ -606,6 +621,7 @@ function BestaetigungSchritt({
       tse_einrichtung_fehlgeschlagen:
         'Die Einrichtung ist fehlgeschlagen. Bitte später erneut versuchen.',
     },
+    byNetzwerkArt: LAEUFT_IM_HINTERGRUND_WEITER,
   })
 
   const istLive = umgebung === 'LIVE'

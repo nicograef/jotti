@@ -414,7 +414,7 @@ jobs:
     if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     env:
-      PREVIOUS_VERSION: v0.14.0
+      PREVIOUS_VERSION: v0.17.1
       # Throwaway CI-only values (no secrets); long enough to pass the
       # backend's secret validation (config.MinSecretLength).
       POSTGRES_HOST: localhost

@@ -357,7 +357,7 @@ func TestReadFavoritenTischStates(t *testing.T) {
 	}
 }
 
-func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
+func TestWriteEventWithDruckauftraegeMitVorgang_CommitsEventAndAuftrag(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -370,7 +370,14 @@ func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
 	data := validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 2)
 	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, data)
 
-	eventID, err := repo.WriteEventWithDruckauftraege(context.Background(), e, kasse.StreamTypeTischSession, ksNr,
+	vorgang := Vorgang{
+		VorgangID:   "3a000000-0000-4000-8000-000000000001",
+		Art:         VorgangArtBestellung,
+		UserID:      userID,
+		PayloadHash: payloadHash(t, VorgangArtBestellung, testNutzdaten{TischID: tischID, Positionen: []int{1}}),
+	}
+
+	eventID, err := repo.WriteEventWithDruckauftraegeMitVorgang(context.Background(), vorgang, e, kasse.StreamTypeTischSession, ksNr,
 		func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
 			return []druckauftrag_repo.NeuerDruckauftrag{{
 				ZielIP:   "192.168.1.50",
@@ -405,7 +412,7 @@ func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
 	}
 }
 
-func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T) {
+func TestWriteEventWithDruckauftraegeMitVorgang_RollsBackEventOnAuftragError(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -418,8 +425,15 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 	data := validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 2)
 	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, data)
 
+	vorgang := Vorgang{
+		VorgangID:   "3a000000-0000-4000-8000-000000000002",
+		Art:         VorgangArtBestellung,
+		UserID:      userID,
+		PayloadHash: payloadHash(t, VorgangArtBestellung, testNutzdaten{TischID: tischID, Positionen: []int{1}}),
+	}
+
 	// "ungueltig" violates the bon_art CHECK constraint, so the auftrag INSERT fails.
-	_, err = repo.WriteEventWithDruckauftraege(context.Background(), e, kasse.StreamTypeTischSession, ksNr,
+	_, err = repo.WriteEventWithDruckauftraegeMitVorgang(context.Background(), vorgang, e, kasse.StreamTypeTischSession, ksNr,
 		func(_ event.Event) []druckauftrag_repo.NeuerDruckauftrag {
 			return []druckauftrag_repo.NeuerDruckauftrag{{
 				ZielIP:   "192.168.1.50",
@@ -448,6 +462,12 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 	}
 	if session.LastEventID != 0 {
 		t.Fatalf("Expected no tisch session projection, got LastEventID %d", session.LastEventID)
+	}
+
+	// Die Idempotenz-Zeile entsteht vor dem Event und rollt deshalb mit zurück —
+	// sonst gälte der Wiederholversuch als Duplikat, obwohl nichts gebucht wurde.
+	if n := countRows(t, repo, "SELECT COUNT(*) FROM vorgang_idempotenz WHERE vorgang_id = $1", vorgang.VorgangID); n != 0 {
+		t.Fatalf("Expected vorgang_idempotenz rollback, found %d rows", n)
 	}
 }
 
@@ -514,7 +534,20 @@ func TestWriteEvent_SignaturpflichtigErzeugtOffenenAuftrag(t *testing.T) {
 	}
 }
 
-func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
+// umbuchungsVorgang baut den client-gelieferten Idempotenz-Schlüssel einer
+// Umbuchung; die Nutzdaten sind hier nur Beiwerk, geprüft wird das
+// Transaktionsverhalten der beiden verketteten Events.
+func umbuchungsVorgang(t *testing.T, vorgangID string, userID, quellTischID int) Vorgang {
+	t.Helper()
+	return Vorgang{
+		VorgangID:   vorgangID,
+		Art:         VorgangArtUmbuchung,
+		UserID:      userID,
+		PayloadHash: payloadHash(t, VorgangArtUmbuchung, testNutzdaten{TischID: quellTischID, Positionen: []int{1}}),
+	}
+}
+
+func TestWriteUmbuchungMitVorgang_CommitsBothEventsAndProjections(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -554,7 +587,8 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	quellEvent.Version = 2
 	zielEvent.Version = 1
 
-	if err := repo.WriteUmbuchung(context.Background(), quellEvent, zielEvent, ksNr); err != nil {
+	vorgang := umbuchungsVorgang(t, "3b000000-0000-4000-8000-000000000001", userID, quellTischID)
+	if err := repo.WriteUmbuchungMitVorgang(context.Background(), vorgang, quellEvent, zielEvent, ksNr); err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
@@ -609,7 +643,7 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	}
 }
 
-func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
+func TestWriteUmbuchungMitVorgang_RollsBackWhenTargetWriteFails(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -650,7 +684,8 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 
 	ungueltigesZielEvent := newTestEvent(userID, "unknown-event:v1", zielSubject, 1, map[string]any{"any": "value"})
 
-	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, ungueltigesZielEvent, ksNr)
+	vorgang := umbuchungsVorgang(t, "3b000000-0000-4000-8000-000000000002", userID, quellTischID)
+	err = repo.WriteUmbuchungMitVorgang(context.Background(), vorgang, stornierungEvent, ungueltigesZielEvent, ksNr)
 	if err == nil {
 		t.Fatal("Expected error, got nil")
 	}
@@ -691,7 +726,7 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 	}
 }
 
-func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
+func TestWriteUmbuchungMitVorgang_OCCConflictRollsBackBothSides(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -718,7 +753,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 		t.Fatalf("Failed to write target bestellung: %v", err)
 	}
 
-	// Zahlung für Quelltisch (Version 2), damit die Stornierung im WriteUmbuchung
+	// Zahlung für Quelltisch (Version 2), damit die Stornierung im Umbuchungs-Write
 	// nicht an gesamt_zahlungen_cents >= 0 scheitert (CHECK-Constraint v0.14.0).
 	quellZahlung := newTestEvent(userID, "zahlung-kassiert:v1", quellSubject, 2, validZahlungData(quellPositionID, 2, 700))
 	if _, err := repo.WriteEvent(context.Background(), quellZahlung, kasse.StreamTypeTischSession, ksNr); err != nil {
@@ -748,7 +783,8 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 	}
 	bestellungEvent.Version = 1 // conflicts with existing target event version 1
 
-	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, ksNr)
+	vorgang := umbuchungsVorgang(t, "3b000000-0000-4000-8000-000000000003", userID, quellTischID)
+	err = repo.WriteUmbuchungMitVorgang(context.Background(), vorgang, stornierungEvent, bestellungEvent, ksNr)
 	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
 		t.Fatalf("Expected ErrAlreadyExists conflict, got %v", err)
 	}

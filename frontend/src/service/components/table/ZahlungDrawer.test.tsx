@@ -44,7 +44,9 @@ function renderDrawer(
         unbezahltePositionen={[position]}
         mengen={{ [position.positionId]: 1 }}
         restNachZahlungCents={350}
+        vorgangId="11111111-1111-4111-8111-111111111111"
         zahlungKassiert={zahlungKassiert}
+        vorgangBereitsGebucht={vi.fn()}
       />
     </ServiceDock>,
   )

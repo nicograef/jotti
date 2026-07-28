@@ -14,12 +14,20 @@ interface DirektverkaufProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
   products: Produkt[]
   productsLoading: boolean
+  // Das Erstladen der Produkte ist gescheitert (kein brauchbarer Cache-Stand).
+  // Ein gescheiterter Hintergrund-Refetch setzt die Flagge nicht: Die zuletzt
+  // geladenen Produkte bleiben stehen, die Meldung trägt der zentrale
+  // Fehler-Toast.
   productsError: boolean
   // Lädt die Produkte nach einem Ladefehler erneut.
   onErneutVersuchen: () => void
   // Meldet den abgeschlossenen Verkauf samt Bestätigungstext an die Seite, die
   // den Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
   onErfolg?: (nachricht: string) => void
+  // Der Server hat den Vorgang unter diesem Schlüssel bereits gebucht (409
+  // `vorgang_daten_abweichend`). Lädt die Historie neu, damit der Helfer den
+  // tatsächlichen Stand sieht; die Auswahl leert diese Komponente selbst.
+  onVorgangBereitsGebucht: () => void
 }
 
 export function Direktverkauf({
@@ -29,6 +37,7 @@ export function Direktverkauf({
   productsError,
   onErneutVersuchen,
   onErfolg,
+  onVorgangBereitsGebucht,
 }: DirektverkaufProps) {
   const isMobile = useIsMobile()
   const { mengen, add, remove, reset } = useMengen<number>()
@@ -58,6 +67,13 @@ export function Direktverkauf({
     onErfolg?.('Verkauf abgeschlossen.')
   }
 
+  // Die Auswahl muss auch hier leer werden: Erst ihr Leerzustand rotiert die
+  // verkaufId, sonst liefe der nächste Versuch wieder in denselben 409.
+  const vorgangBereitsGebucht = () => {
+    reset()
+    onVorgangBereitsGebucht()
+  }
+
   const productList = (
     <ProductList
       products={products}
@@ -81,6 +97,7 @@ export function Direktverkauf({
             positionen={inputItems}
             totalCents={total}
             verkaufAbgeschlossen={verkaufAbgeschlossen}
+            vorgangBereitsGebucht={vorgangBereitsGebucht}
           />
         }
       />
@@ -97,6 +114,7 @@ export function Direktverkauf({
         anzahl={anzahl}
         totalCents={total}
         verkaufAbgeschlossen={verkaufAbgeschlossen}
+        vorgangBereitsGebucht={vorgangBereitsGebucht}
       />
       {productList}
     </>

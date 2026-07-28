@@ -134,6 +134,9 @@ func cleanLiveDB(t *testing.T, db *sql.DB) {
 		"DELETE FROM produkte",
 		"DELETE FROM tische",
 		"DELETE FROM betreiber",
+		// Vor users: vorgang_idempotenz.user_id referenziert users(id) ohne
+		// ON DELETE, der Teardown liefe sonst in eine Fremdschlüsselverletzung.
+		"DELETE FROM vorgang_idempotenz",
 		"DELETE FROM users",
 		"UPDATE tse_stammdaten SET seriennummer='', signatur_algorithmus='', public_key='', zertifikat='', log_time_format='', updated_at=now() WHERE id=1",
 	}
