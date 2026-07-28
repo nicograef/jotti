@@ -371,7 +371,6 @@ func mergeServicekraefteLive(
 			UserName:            a.UserName,
 			Name:                a.Name,
 			KassiertCents:       a.KassiertCents,
-			AnzahlZahlungen:     a.AnzahlZahlungen,
 			RuecknahmenCents:    a.RuecknahmenCents,
 			AnzahlStornierungen: a.AnzahlStornierungen,
 			AbzugebenCents:      a.AbzugebenCents,

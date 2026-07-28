@@ -725,6 +725,48 @@ func TestGetStornierungen_KorrekturNenntAlleBesteller(t *testing.T) {
 	assertBetroffene(t, storno, "anna", "bob")
 }
 
+// TestGetStornierungen_UmbenannteServicekraftErscheintEinmal pinnt die
+// Deduplizierung nach Person: Der Username im Event-Umschlag ist eingefroren, ein
+// Rename während der Kassensitzung hinterlässt für dieselbe user_id also zwei
+// verschiedene user_name-Werte. Eine Korrektur über Positionen aus beiden
+// Bestellungen darf die Person trotzdem nur einmal nennen — sonst zählt der
+// Storno-Marker sie doppelt.
+func TestGetStornierungen_UmbenannteServicekraftErscheintEinmal(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	annaID := createUser(t, db, "Anna Müller", "anna_neu", "active")
+	leitungID := createUser(t, db, "Lena Chef", "lena", "active")
+	ksNr := createKassensitzung(t, db)
+
+	// Dieselbe Servicekraft bestellt zweimal, dazwischen wird sie umbenannt —
+	// der eingefrorene Username unterscheidet sich, die user_id nicht.
+	insertEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 1, bestellungData([]string{"pos-1"}, 300), ksNr)
+	insertEvent(t, db, annaID, "anna_neu", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 2, bestellungData([]string{"pos-2"}, 300), ksNr)
+	insertEvent(t, db, leitungID, "lena", "bestellung-korrigiert:v1", "kassensitzung-1/tisch-1", 3, korrekturData([]string{"pos-1", "pos-2"}, 600, "Korrektur"), ksNr)
+
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+	if len(data.Stornierungen) != 1 {
+		t.Fatalf("expected 1 Storno, got %d", len(data.Stornierungen))
+	}
+
+	storno := data.Stornierungen[0]
+	if len(storno.Betroffene) != 1 {
+		t.Fatalf("expected 1 Betroffene, got %d: %+v", len(storno.Betroffene), storno.Betroffene)
+	}
+	if storno.Betroffene[0].UserID != annaID {
+		t.Errorf("expected Betroffene anna (id %d), got %+v", annaID, storno.Betroffene[0])
+	}
+}
+
 // TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck
 // dokumentiert die Grenze der Positions-Auflösung: Eine Umbuchung vergibt auf
 // dem Zieltisch frische Positions-IDs (kasse.NewBestellungUmgebuchtEvents), die

@@ -26,9 +26,12 @@ interface StornoAggregatEintrag {
 }
 
 // StornoAggregat fasst die Stornierungen pro Servicekraft in einer Zeile
-// zusammen ("felix 1 · sophie 1"). Gespeist aus der Abrechnung pro Servicekraft
-// (Einträge mit mindestens einem zugeordneten Storno); in der Übersicht bildet
-// sie die eingeklappte Zusammenfassung der Storno-Detail-Liste.
+// zusammen ("Betroffen: felix 1 · sophie 1"). Gespeist aus der Abrechnung pro
+// Servicekraft (Einträge mit mindestens einem zugeordneten Storno); in der
+// Übersicht bildet sie die eingeklappte Zusammenfassung der Storno-Detail-Liste.
+// Das führende "Betroffen:" ist nötig, damit die Zeile nicht als Aufteilung der
+// darüberstehenden Kopfkennzahl gelesen wird: Eine Korrektur zählt bei jedem
+// Betroffenen, Direktverkauf-Stornos fehlen ganz.
 export function StornoAggregat({
   eintraege,
   className,
@@ -38,6 +41,7 @@ export function StornoAggregat({
 }) {
   return (
     <p className={cn('mb-3 text-sm text-muted-foreground', className)}>
+      Betroffen:{' '}
       {eintraege
         .map(
           (e) =>
