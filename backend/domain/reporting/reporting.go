@@ -48,14 +48,19 @@ type ServicekraftRef struct {
 	Name     string
 }
 
-// QuelleDirektverkauf markiert eine StornierungDetail aus dem Direktverkauf
-// (Gegenstück: "tisch"). Der Direktverkauf hat eine eigene, vom Tischservice
-// getrennte Kasse und bleibt aus jeder Servicekraft-Aggregation heraus.
-const QuelleDirektverkauf = "direktverkauf"
+// QuelleTisch und QuelleDirektverkauf sind die einzigen erlaubten Werte für
+// StornierungDetail.Quelle. Sie müssen mit dem CASE-Ausdruck in GetStornierungen
+// (backend/sqlc/queries/reporting.sql) übereinstimmen. Der Direktverkauf hat eine
+// eigene, vom Tischservice getrennte Kasse und bleibt aus jeder
+// Servicekraft-Aggregation heraus.
+const (
+	QuelleTisch         = "tisch"
+	QuelleDirektverkauf = "direktverkauf"
+)
 
 type StornierungDetail struct {
 	Zeitpunkt    time.Time
-	Quelle       string // "tisch" oder QuelleDirektverkauf
+	Quelle       string // QuelleTisch oder QuelleDirektverkauf
 	BarRueckgabe bool   // true bei kassenwirksamer Warenrücknahme, false bei geldneutraler Korrektur
 	TischID      int
 	TischName    string
@@ -191,7 +196,6 @@ type ServicekraftLive struct {
 	UserName            string // eingefrorener Username
 	Name                string // live aus users aufgeloester Klarname (leer bei reiner offener Arbeit)
 	KassiertCents       int
-	AnzahlZahlungen     int
 	RuecknahmenCents    int
 	AnzahlStornierungen int
 	AbzugebenCents      int

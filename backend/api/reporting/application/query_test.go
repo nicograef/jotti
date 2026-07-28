@@ -213,14 +213,14 @@ func TestGetReporting_AggregiertAbrechnungProServicekraft(t *testing.T) {
 			// Rücknahme, stellvertretend von der Serviceleitung erteilt: Betrag und
 			// Zähler landen beim Kassierer felix, nicht bei lena.
 			{
-				Quelle: "tisch", BarRueckgabe: true, BetragCents: 500,
+				Quelle: reporting.QuelleTisch, BarRueckgabe: true, BetragCents: 500,
 				Akteur:     reporting.ServicekraftRef{UserID: 9, UserName: "lena", Name: "Lena C."},
 				Betroffene: []reporting.ServicekraftRef{{UserID: 3, UserName: "felix", Name: "Felix W."}},
 			},
 			// Geldneutrale Korrektur über Positionen zweier Besteller: nur Zähler,
 			// bei jedem von beiden.
 			{
-				Quelle: "tisch", BarRueckgabe: false, BetragCents: 300,
+				Quelle: reporting.QuelleTisch, BarRueckgabe: false, BetragCents: 300,
 				Akteur: reporting.ServicekraftRef{UserID: 9, UserName: "lena", Name: "Lena C."},
 				Betroffene: []reporting.ServicekraftRef{
 					{UserID: 3, UserName: "felix", Name: "Felix W."},
@@ -276,17 +276,17 @@ func TestGetReporting_SummeAbzugebenEntsprichtTischservice(t *testing.T) {
 	}
 	stornierungen := []reporting.StornierungDetail{
 		{
-			Quelle: "tisch", BarRueckgabe: true, BetragCents: 500,
+			Quelle: reporting.QuelleTisch, BarRueckgabe: true, BetragCents: 500,
 			Akteur:     reporting.ServicekraftRef{UserID: 9, UserName: "lena"},
 			Betroffene: []reporting.ServicekraftRef{{UserID: 3, UserName: "felix"}},
 		},
 		{
-			Quelle: "tisch", BarRueckgabe: true, BetragCents: 1200,
+			Quelle: reporting.QuelleTisch, BarRueckgabe: true, BetragCents: 1200,
 			Akteur:     reporting.ServicekraftRef{UserID: 7, UserName: "sophie"},
 			Betroffene: []reporting.ServicekraftRef{{UserID: 7, UserName: "sophie"}},
 		},
 		{
-			Quelle: "tisch", BarRueckgabe: false, BetragCents: 300,
+			Quelle: reporting.QuelleTisch, BarRueckgabe: false, BetragCents: 300,
 			Akteur:     reporting.ServicekraftRef{UserID: 9, UserName: "lena"},
 			Betroffene: []reporting.ServicekraftRef{{UserID: 3, UserName: "felix"}},
 		},
@@ -341,7 +341,7 @@ func TestGetReporting_ZeigtServicekraftMitNurZugeordnetenStornos(t *testing.T) {
 		Breakdowns:      reporting.Breakdowns{AbrechnungProServicekraft: []reporting.AbrechnungServicekraft{}},
 		Stornierungen: []reporting.StornierungDetail{
 			{
-				Quelle: "tisch", BarRueckgabe: false, BetragCents: 300,
+				Quelle: reporting.QuelleTisch, BarRueckgabe: false, BetragCents: 300,
 				Akteur:     reporting.ServicekraftRef{UserID: 9, UserName: "lena", Name: "Lena C."},
 				Betroffene: []reporting.ServicekraftRef{{UserID: 4, UserName: "tom", Name: "Tom T."}},
 			},
@@ -679,7 +679,7 @@ func TestGetLiveReporting_ServicekraefteTragenAbrechnung(t *testing.T) {
 		},
 		Stornierungen: []reporting.StornierungDetail{
 			{
-				Quelle: "tisch", BarRueckgabe: true, BetragCents: 500,
+				Quelle: reporting.QuelleTisch, BarRueckgabe: true, BetragCents: 500,
 				Akteur:     reporting.ServicekraftRef{UserID: 9, UserName: "lena", Name: "Lena C."},
 				Betroffene: []reporting.ServicekraftRef{{UserID: 3, UserName: "felix", Name: "Felix W."}},
 			},

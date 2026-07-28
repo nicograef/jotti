@@ -84,6 +84,55 @@ ORDER BY kassiert_cents DESC;
 --   Korrektur            → je Positions-ID das bestellung-aufgenommen:v1, dessen Positions-Array
 --                          diese ID enthält (Besteller, mehrwertig, je Person genau einmal)
 -- Findet die Auflösung nichts, fällt die Liste auf den Akteur zurück und ist damit nie leer.
+--
+-- Die Auflösung läuft über CTEs statt über ein korreliertes LATERAL: Das Sitzungs-Journal wird einmal
+-- gelesen und die Positions-Arrays der Bestellungen einmal expandiert, statt je Storno-Zeile erneut.
+-- Dedupliziert wird nach user_id (MAX(user_name) nimmt den lexikographisch letzten eingefrorenen
+-- Username, wie GetKassiertProServicekraft) — ein Rename während der Sitzung darf dieselbe Person
+-- nicht zweimal listen.
+WITH storno AS (
+    SELECT e.id, e.type, e.data
+    FROM kassenjournal e
+    WHERE e.type IN ('stornierung-erteilt:v1', 'bestellung-korrigiert:v1', 'direktverkauf-storniert:v1')
+    AND e.kassensitzung_nr = @kassensitzung_nr
+), ursprung AS (
+    SELECT k.type, k.data, k.user_id, k.user_name
+    FROM kassenjournal k
+    WHERE k.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'bestellung-aufgenommen:v1')
+    AND k.kassensitzung_nr = @kassensitzung_nr
+), bestell_position AS (
+    SELECT u.user_id, u.user_name, pos->>'positionId' AS position_id
+    FROM ursprung u, jsonb_array_elements(u.data->'positionen') pos
+    WHERE u.type = 'bestellung-aufgenommen:v1'
+), zuordnung AS (
+    SELECT s.id, u.user_id, u.user_name
+    FROM storno s
+    JOIN ursprung u ON u.type = 'zahlung-kassiert:v1' AND u.data->>'zahlungId' = s.data->>'zahlungId'
+    WHERE s.type = 'stornierung-erteilt:v1'
+    UNION ALL
+    SELECT s.id, u.user_id, u.user_name
+    FROM storno s
+    JOIN ursprung u ON u.type = 'direktverkauf-getaetigt:v1' AND u.data->>'verkaufId' = s.data->>'verkaufId'
+    WHERE s.type = 'direktverkauf-storniert:v1'
+    UNION ALL
+    SELECT s.id, b.user_id, b.user_name
+    FROM storno s
+    CROSS JOIN LATERAL jsonb_array_elements(s.data->'positionen') storno_pos
+    JOIN bestell_position b ON b.position_id = storno_pos->>'positionId'
+    WHERE s.type = 'bestellung-korrigiert:v1'
+), betroffene_je_storno AS (
+    SELECT je_person.id, jsonb_agg(
+        jsonb_build_object('userId', je_person.user_id, 'userName', je_person.user_name, 'name', COALESCE(bu.name, ''))
+        ORDER BY je_person.user_id
+    ) AS betroffene
+    FROM (
+        SELECT z.id, z.user_id, MAX(z.user_name)::text AS user_name
+        FROM zuordnung z
+        GROUP BY z.id, z.user_id
+    ) je_person
+    LEFT JOIN users bu ON bu.id = je_person.user_id
+    GROUP BY je_person.id
+)
 SELECT
     e.timestamp,
     CASE WHEN e.type = 'direktverkauf-storniert:v1' THEN 'direktverkauf' ELSE 'tisch' END::text AS quelle,
@@ -96,7 +145,7 @@ SELECT
     COALESCE((e.data->>'gesamtStornierungCents')::int, (e.data->>'gesamtCents')::int, 0)::int AS betrag_cents,
     e.data,
     COALESCE(
-        zuordnung.betroffene,
+        bjs.betroffene,
         jsonb_build_array(jsonb_build_object(
             'userId', e.user_id, 'userName', e.user_name, 'name', COALESCE(u.name, '')
         ))
@@ -105,34 +154,7 @@ FROM kassenjournal e
 LEFT JOIN tisch_sessions tss ON tss.subject = e.subject
 LEFT JOIN tische t ON t.id = tss.tisch_id
 LEFT JOIN users u ON u.id = e.user_id
-LEFT JOIN LATERAL (
-    SELECT jsonb_agg(
-        jsonb_build_object('userId', betroffen.user_id, 'userName', betroffen.user_name, 'name', betroffen.name)
-        ORDER BY betroffen.user_id
-    ) AS betroffene
-    FROM (
-        SELECT DISTINCT ursprung.user_id, ursprung.user_name, COALESCE(bu.name, '')::text AS name
-        FROM kassenjournal ursprung
-        LEFT JOIN users bu ON bu.id = ursprung.user_id
-        WHERE ursprung.kassensitzung_nr = @kassensitzung_nr
-        AND (
-            (e.type = 'stornierung-erteilt:v1'
-                AND ursprung.type = 'zahlung-kassiert:v1'
-                AND ursprung.data->>'zahlungId' = e.data->>'zahlungId')
-            OR (e.type = 'direktverkauf-storniert:v1'
-                AND ursprung.type = 'direktverkauf-getaetigt:v1'
-                AND ursprung.data->>'verkaufId' = e.data->>'verkaufId')
-            OR (e.type = 'bestellung-korrigiert:v1'
-                AND ursprung.type = 'bestellung-aufgenommen:v1'
-                AND EXISTS (
-                    SELECT 1
-                    FROM jsonb_array_elements(e.data->'positionen') storno_pos
-                    JOIN jsonb_array_elements(ursprung.data->'positionen') bestell_pos
-                        ON bestell_pos->>'positionId' = storno_pos->>'positionId'
-                ))
-        )
-    ) betroffen
-) zuordnung ON true
+LEFT JOIN betroffene_je_storno bjs ON bjs.id = e.id
 WHERE e.type IN ('stornierung-erteilt:v1', 'bestellung-korrigiert:v1', 'direktverkauf-storniert:v1')
 AND e.kassensitzung_nr = @kassensitzung_nr
 ORDER BY e.timestamp DESC;
