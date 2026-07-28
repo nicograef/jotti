@@ -14,14 +14,40 @@ import (
 
 const getEigeneUebersicht = `-- name: GetEigeneUebersicht :one
 SELECT
-    COALESCE(COUNT(CASE WHEN type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
-    COALESCE(SUM(kj_extract_bestellung_cents(type, data)), 0)::int AS bestellungen_cents,
-    COALESCE(COUNT(CASE WHEN type = 'zahlung-kassiert:v1' THEN 1 END), 0)::int AS anzahl_zahlungen,
-    COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int AS zahlungen_cents
-FROM kassenjournal
-WHERE type IN ('bestellung-aufgenommen:v1', 'zahlung-kassiert:v1')
-AND user_id = $1
-AND kassensitzung_nr = $2
+    eigene.anzahl_bestellungen,
+    eigene.bestellungen_cents,
+    eigene.anzahl_zahlungen,
+    eigene.zahlungen_cents,
+    ruecknahmen.anzahl_ruecknahmen,
+    ruecknahmen.ruecknahmen_cents,
+    (eigene.zahlungen_cents - ruecknahmen.ruecknahmen_cents)::int AS abzugeben_cents
+FROM (
+    SELECT
+        COALESCE(COUNT(CASE WHEN kj.type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
+        COALESCE(SUM(kj_extract_bestellung_cents(kj.type, kj.data)), 0)::int AS bestellungen_cents,
+        COALESCE(COUNT(CASE WHEN kj.type = 'zahlung-kassiert:v1' THEN 1 END), 0)::int AS anzahl_zahlungen,
+        COALESCE(SUM(kj_extract_zahlung_cents(kj.type, kj.data)), 0)::int AS zahlungen_cents
+    FROM kassenjournal kj
+    WHERE kj.type IN ('bestellung-aufgenommen:v1', 'zahlung-kassiert:v1')
+    AND kj.user_id = $1
+    AND kj.kassensitzung_nr = $2
+) eigene
+CROSS JOIN (
+    SELECT
+        COUNT(*)::int AS anzahl_ruecknahmen,
+        COALESCE(SUM(kj_extract_stornierung_cents(storno.type, storno.data)), 0)::int AS ruecknahmen_cents
+    FROM kassenjournal storno
+    WHERE storno.type = 'stornierung-erteilt:v1'
+    AND storno.kassensitzung_nr = $2
+    AND EXISTS (
+        SELECT 1
+        FROM kassenjournal zahlung
+        WHERE zahlung.type = 'zahlung-kassiert:v1'
+        AND zahlung.kassensitzung_nr = $2
+        AND zahlung.user_id = $1
+        AND zahlung.data->>'zahlungId' = storno.data->>'zahlungId'
+    )
+) ruecknahmen
 `
 
 type GetEigeneUebersichtParams struct {
@@ -34,9 +60,20 @@ type GetEigeneUebersichtRow struct {
 	BestellungenCents  int
 	AnzahlZahlungen    int
 	ZahlungenCents     int
+	AnzahlRuecknahmen  int
+	RuecknahmenCents   int
+	AbzugebenCents     int
 }
 
 // Service-Dashboard: Eigene KPIs der eingeloggten Servicekraft pro Kassensitzung.
+//
+// Die Rücknahmen folgen derselben Storno-Zuordnung wie GetStornierungen, hier aber für genau
+// einen Benutzer und ohne Umweg über die Detailzeilen: Eine Warenrücknahme zählt für diese
+// Servicekraft, wenn die über zahlungId referenzierte Zahlung von ihr kassiert wurde — egal,
+// wer storniert hat. Geldneutrale Korrekturen bleiben bewusst außen vor; sie ändern nichts an
+// dem, was abzugeben ist. abzugeben_cents ist nie negativ: Pro Zahlung gilt
+// Σ Rücknahmen <= Zahlbetrag (FIFO-Buchführung in ComputeStornoAufteilung), und beide Seiten
+// sind demselben Kassierer zugeordnet.
 func (q *Queries) GetEigeneUebersicht(ctx context.Context, arg GetEigeneUebersichtParams) (GetEigeneUebersichtRow, error) {
 	row := q.db.QueryRowContext(ctx, getEigeneUebersicht, arg.UserID, arg.KassensitzungNr)
 	var i GetEigeneUebersichtRow
@@ -45,6 +82,9 @@ func (q *Queries) GetEigeneUebersicht(ctx context.Context, arg GetEigeneUebersic
 		&i.BestellungenCents,
 		&i.AnzahlZahlungen,
 		&i.ZahlungenCents,
+		&i.AnzahlRuecknahmen,
+		&i.RuecknahmenCents,
+		&i.AbzugebenCents,
 	)
 	return i, err
 }

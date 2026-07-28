@@ -36,10 +36,16 @@ export type AktiverTischMitFavorit = z.infer<
   typeof AktiverTischMitFavoritSchema
 >
 
+// anzahlRuecknahmen/ruecknahmenCents sind die dieser Servicekraft zugeordneten
+// Warenrücknahmen (zurückgenommen von einer Zahlung, die sie kassiert hat — egal, wer
+// storniert hat). abzugebenCents ist zahlungenCents abzüglich dieser Rücknahmen.
 export const EigeneUebersichtSchema = z.object({
   anzahlBestellungen: z.number().int(),
   bestellungenCents: z.number().int(),
   anzahlZahlungen: z.number().int(),
   zahlungenCents: z.number().int(),
+  anzahlRuecknahmen: z.number().int(),
+  ruecknahmenCents: z.number().int(),
+  abzugebenCents: z.number().int(),
 })
 export type EigeneUebersicht = z.infer<typeof EigeneUebersichtSchema>

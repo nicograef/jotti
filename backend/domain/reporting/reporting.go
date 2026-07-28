@@ -216,9 +216,18 @@ type OffeneArbeitTisch struct {
 	OffenCents int
 }
 
+// EigeneUebersicht sind die KPIs einer Servicekraft auf ihrem Service-Dashboard.
+// Die Rücknahmen folgen der Storno-Zuordnung: gezählt wird, was von einer Zahlung
+// zurückgenommen wurde, die diese Servicekraft kassiert hat — unabhängig davon, wer
+// storniert hat. Geldneutrale Korrekturen bleiben außen vor, sie ändern nichts am
+// abzugebenden Bargeld.
 type EigeneUebersicht struct {
 	AnzahlBestellungen int
 	BestellungenCents  int
 	AnzahlZahlungen    int
 	ZahlungenCents     int
+	AnzahlRuecknahmen  int
+	RuecknahmenCents   int
+	// AbzugebenCents ist ZahlungenCents - RuecknahmenCents und nie negativ.
+	AbzugebenCents int
 }

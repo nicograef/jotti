@@ -338,6 +338,9 @@ type eigeneUebersichtResponse struct {
 	BestellungenCents  int `json:"bestellungenCents"`
 	AnzahlZahlungen    int `json:"anzahlZahlungen"`
 	ZahlungenCents     int `json:"zahlungenCents"`
+	AnzahlRuecknahmen  int `json:"anzahlRuecknahmen"`
+	RuecknahmenCents   int `json:"ruecknahmenCents"`
+	AbzugebenCents     int `json:"abzugebenCents"`
 }
 
 func (h *QueryHandler) GetEigeneUebersichtHandler() http.HandlerFunc {
@@ -359,6 +362,9 @@ func (h *QueryHandler) GetEigeneUebersichtHandler() http.HandlerFunc {
 			BestellungenCents:  data.BestellungenCents,
 			AnzahlZahlungen:    data.AnzahlZahlungen,
 			ZahlungenCents:     data.ZahlungenCents,
+			AnzahlRuecknahmen:  data.AnzahlRuecknahmen,
+			RuecknahmenCents:   data.RuecknahmenCents,
+			AbzugebenCents:     data.AbzugebenCents,
 		})
 	}
 }

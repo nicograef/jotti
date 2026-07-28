@@ -359,5 +359,8 @@ func (r Repository) GetEigeneUebersicht(ctx context.Context, userID int, kassens
 		BestellungenCents:  row.BestellungenCents,
 		AnzahlZahlungen:    row.AnzahlZahlungen,
 		ZahlungenCents:     row.ZahlungenCents,
+		AnzahlRuecknahmen:  row.AnzahlRuecknahmen,
+		RuecknahmenCents:   row.RuecknahmenCents,
+		AbzugebenCents:     row.AbzugebenCents,
 	}, nil
 }
