@@ -48,10 +48,15 @@ test.describe('Admin sieht das Live-Dashboard', () => {
     await expect(liveSection.getByText('maria (Maria Schmidt)')).toBeVisible()
 
     // Der Stornierungen-Block ist eingeklappt: die Zusammenfassung schlüsselt die
-    // Stornos pro Servicekraft auf (felix hat kassiert und storniert), „Details"
-    // zeigt die dokumentierten Stornos des Sonntags.
+    // Stornos nach der Storno-Zuordnung auf, „Details" zeigt die dokumentierten
+    // Stornos des Sonntags. Der Sonntag hat zwei Warenrücknahmen (Tisch 7 und
+    // Tisch 9); beide Zahlungen hat lisa kassiert, ausgelöst haben die Stornos
+    // sophie bzw. felix. Angerechnet werden sie deshalb lisa — ihrer Kasse ging
+    // das Bargeld ab —, nicht den stellvertretend Stornierenden. Der exakte Text
+    // belegt zugleich, dass lisa der einzige Eintrag ist; felix erscheint am
+    // Sonntag nur in der Team-Liste, weil er an Tisch 5 selbst kassiert hat.
     await expect(
-      liveSection.getByText(/felix \(Felix Weber\) 1/),
+      liveSection.getByText('lisa (Lisa Braun) 2', { exact: true }),
     ).toBeVisible()
     await liveSection.getByRole('button', { name: 'Details' }).click()
     await expect(
