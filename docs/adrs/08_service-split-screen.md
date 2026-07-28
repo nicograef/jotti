@@ -11,7 +11,7 @@
   `vorgangId`; alle sieben buchenden Endpunkte tragen seit der Nacharbeit zur
   Client-Server-Robustheit einen client-erzeugten Idempotenz-Schlüssel, den der
   Server an die Nutzdaten des Vorgangs bindet (`vorgang_idempotenz`,
-  Migration `07`). Der übrige Inhalt dieses ADR — Layout, Container-Wahl, eine
+  Migration `08`). Der übrige Inhalt dieses ADR — Layout, Container-Wahl, eine
   Quelle je Abschluss-Inhalt — bleibt akzeptiert und unverändert gültig.
 
 ## Kontext

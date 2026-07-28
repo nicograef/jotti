@@ -60,17 +60,18 @@ Durchgängig gültig für alle Phasen.
 - **Die partiellen Unique-Indexe auf dem Event-JSON**
   (`idx_kassenjournal_bestellung_id`, `idx_kassenjournal_verkauf_id`,
   `idx_kassenjournal_geldtransit_id` in `01_initial.up.sql`) bleiben
-  unverändert als zweite Absicherung. Für alle ab Migration `07` geschriebenen
+  unverändert als zweite Absicherung. Für alle ab Migration `08` geschriebenen
   Vorgänge lösen sie nicht mehr aus, weil die Idempotenz-Zeile vor den Events
   entsteht. Für Bestandsdaten aus der Zeit davor gilt das nicht — siehe
   „Risiken".
 
 ### Datenbank
 
-- **`payload_hash` wird direkt in `07_vorgang_idempotenz.up.sql` ergänzt**,
-  ebenso die erweiterte `art`-CHECK-Liste. Es gibt keine Migration `08`.
+- **`payload_hash` wird direkt in `08_vorgang_idempotenz.up.sql` ergänzt**,
+  ebenso die erweiterte `art`-CHECK-Liste — also direkt in der Migration, die
+  die Tabelle anlegt, und nicht in einer nachgelagerten `09`.
   Begründung: v0.17.1 (produktiv) enthält nur die Migrationen `01`–`05`;
-  `06_favoriten_cleanup.up.sql` und `07_vorgang_idempotenz.up.sql` sind beide
+  `07_favoriten_cleanup.up.sql` und `08_vorgang_idempotenz.up.sql` sind beide
   neu auf diesem Branch und liefen auf keiner Instanz. Der Freeze schützt
   persistierte Daten auf echten Instanzen — hier gibt es keine. Damit ist
   `payload_hash BYTEA NOT NULL` ohne Nullable-Zwischenzustand und ohne einen
@@ -144,7 +145,7 @@ Durchgängig gültig für alle Phasen.
 
 ### Backend — Idempotenz
 
-- `database/migrations/07_vorgang_idempotenz.up.sql` — Tabelle
+- `database/migrations/08_vorgang_idempotenz.up.sql` — Tabelle
   `vorgang_idempotenz`, aktuell ohne `payload_hash`, `art`-CHECK mit vier Werten.
 - `backend/sqlc/queries/vorgang_idempotenz.sql` — `InsertVorgangIdempotenz`,
   `ExistsVorgangIdempotenz`.
@@ -260,11 +261,17 @@ Durchgängig gültig für alle Phasen.
 ## Getroffene Entscheidungen
 
 - **Umfang:** alle 16 Befunde (Blocker, schwerwiegend, geringfügig, Cleanup).
-- **`payload_hash` kommt in Migration `07`**, nicht in eine neue `08`. v0.17.1
-  enthält nur `01`–`05`; `06` und `07` sind neu auf diesem Branch. Konsequenz:
-  lokale Dev-DB und die Demo-Instanz jotti.rocks müssen einmal zurückgesetzt
-  werden, weil golang-migrate Version 7 dort bereits als angewendet führt
+- **`payload_hash` kommt in die Migration, die `vorgang_idempotenz` anlegt**,
+  nicht in eine nachgelagerte. v0.17.1 enthält nur `01`–`05`; `07` und `08` sind
+  neu auf diesem Branch und liefen auf keiner Instanz. Konsequenz: lokale Dev-DB
+  und die Demo-Instanz jotti.rocks müssen einmal zurückgesetzt werden, weil
+  golang-migrate diese Versionen dort bereits als angewendet führt
   (`make rocks-reset-db` bzw. lokaler Reset).
+- **Die Migrationen dieses Branch sind beim Rebase auf `main` von `06`/`07` auf
+  `07`/`08` gerückt.** `main` hat zwischenzeitlich ein eigenes
+  `06_druckauftrag_backoff_warteschlange.up.sql` bekommen; zwei Dateien mit
+  derselben Versionsnummer lehnt golang-migrate ab, und Git meldet dabei keinen
+  Konflikt, weil die Dateinamen verschieden sind.
 - **Alle sieben buchenden Endpunkte laufen über `vorgang_idempotenz`.**
   Bestellung, Direktverkauf und Geldtransit ziehen von der Idempotenz über den
   Event-JSON-Index auf die Tabelle um. Das ist nicht nur additiv: Es entfernt
@@ -364,11 +371,11 @@ aber unvollständig bliebe. Sie sind bewusst enthalten und hier benannt:
 ## Risiken
 
 - **Lokale und Demo-Datenbanken müssen zurückgesetzt werden** (Änderung an
-  Migration `07`). Auf Produktion existiert die Tabelle nicht, dort ist es
+  Migration `08`). Auf Produktion existiert die Tabelle nicht, dort ist es
   folgenlos. Wird der Reset vergessen, fehlt `payload_hash` still und der erste
   buchende Vorgang schlägt fehl.
 - **Ein Wiederholversuch, der das Upgrade überspannt, endet in HTTP 409 statt
-  in der stillen Erfolgsantwort.** Migration `07` legt für Bestands-Events keine
+  in der stillen Erfolgsantwort.** Migration `08` legt für Bestands-Events keine
   Idempotenz-Zeilen an (auf der nachgestellten Upgrade-Strecke v0.17.1 → seed →
   `migrate up`: 673 Zeilen `kassenjournal`, davon 324
   `bestellung-aufgenommen:v1`, und 0 Zeilen `vorgang_idempotenz`). Wurde die
@@ -599,7 +606,7 @@ TSE-Live-Suite sowie vier geringfügige Test- und Cleanup-Befunde.
 
 ### Kontext
 
-- `database/migrations/07_vorgang_idempotenz.up.sql` — Tabelle ohne
+- `database/migrations/08_vorgang_idempotenz.up.sql` — Tabelle ohne
   `payload_hash`, `art`-CHECK mit vier Werten.
 - `backend/sqlc/queries/vorgang_idempotenz.sql` — `InsertVorgangIdempotenz`,
   `ExistsVorgangIdempotenz`.
@@ -630,7 +637,7 @@ TSE-Live-Suite sowie vier geringfügige Test- und Cleanup-Befunde.
 ### Was gebaut wird
 
 Die Tabelle `vorgang_idempotenz` bekommt `payload_hash BYTEA NOT NULL`
-(direkt in Migration `07`). Die Application-Schicht bildet aus den
+(direkt in Migration `08`). Die Application-Schicht bildet aus den
 Kommando-Argumenten jedes buchenden Vorgangs einen SHA-256 über eine explizite,
 pro Kommando deklarierte Nutzdaten-Struktur und übergibt ihn im `Vorgang`.
 
@@ -659,7 +666,7 @@ geänderte Zweiteinreichung würde dort noch still verschluckt. Der Branch darf
 zwischen diesen beiden Phasen nicht ausgeliefert werden; Phase 3 schließt die
 Lücke.
 
-Die `art`-CHECK-Liste in Migration `07` wird schon hier auf alle sieben Werte
+Die `art`-CHECK-Liste in Migration `08` wird schon hier auf alle sieben Werte
 erweitert, damit die Migration nicht zweimal angefasst werden muss. Drei der
 Werte werden erst in Phase 3 benutzt.
 
@@ -675,7 +682,7 @@ weil dieselben Stellen ohnehin umgeschrieben werden.
 
 ### Akzeptanzkriterien
 
-- [x] `07_vorgang_idempotenz.up.sql` deklariert `payload_hash BYTEA NOT NULL`;
+- [x] `08_vorgang_idempotenz.up.sql` deklariert `payload_hash BYTEA NOT NULL`;
       der Tabellen- und Spaltenkommentar erklärt die Nutzdaten-Bindung.
 - [x] Der `art`-CHECK in derselben Migration deckt alle sieben Werte ab
       (`bestellung`, `zahlung`, `stornierung`, `umbuchung`, `direktverkauf`,
@@ -771,7 +778,7 @@ der Fall „gleicher Schlüssel, geänderte Nutzdaten" endet auch hier in einem
 expliziten 409 statt in einer zweiten Buchung.
 
 Weil die Idempotenz-Zeile vor den Events entsteht, können die partiellen
-Unique-Indexe auf dem Event-JSON für alle ab Migration `07` geschriebenen
+Unique-Indexe auf dem Event-JSON für alle ab Migration `08` geschriebenen
 Vorgänge nicht mehr auslösen. Die drei
 „UniqueViolation → per Fach-ID nachschlagen"-Zweige entfallen ersatzlos, und
 mit ihnen `EventExistsByTypeAndVorgangsID` samt sqlc-Query, den drei

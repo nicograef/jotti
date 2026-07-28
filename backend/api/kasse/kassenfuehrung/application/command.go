@@ -109,7 +109,7 @@ func writeKassensitzungEventOCC(ctx context.Context, e event.Event, kassensitzun
 		if errors.Is(err, db.ErrAlreadyExists) {
 			// Neutral formuliert, weil hier zwei Quellen zusammenlaufen: der
 			// OCC-Versionskonflikt aus UNIQUE(subject, version) — der Regelfall —
-			// und, nur für Geldtransite aus der Zeit vor Migration 07,
+			// und, nur für Geldtransite aus der Zeit vor Migration 08,
 			// idx_kassenjournal_geldtransit_id (01_initial.up.sql).
 			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("Unique violation on Kassensitzung event write")
 			return ErrConflict
