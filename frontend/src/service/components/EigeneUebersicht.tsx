@@ -1,3 +1,5 @@
+import { Undo2 } from 'lucide-react'
+
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatEuro } from '@/lib/utils'
 
@@ -26,18 +28,47 @@ export function EigeneUebersichtKarten({
   }
 
   return (
-    <div className="my-4 grid grid-cols-2 divide-x rounded-xl bg-muted/60 px-4 py-3">
-      <StatSpalte
-        label="Bestellungen"
-        anzahl={uebersicht.anzahlBestellungen}
-        cents={uebersicht.bestellungenCents}
-      />
-      <StatSpalte
-        label="Kassiert"
-        anzahl={uebersicht.anzahlZahlungen}
-        cents={uebersicht.zahlungenCents}
-      />
+    <div className="my-4">
+      <div className="grid grid-cols-2 divide-x rounded-xl bg-muted/60 px-4 py-3">
+        <StatSpalte
+          label="Bestellungen"
+          anzahl={uebersicht.anzahlBestellungen}
+          cents={uebersicht.bestellungenCents}
+        />
+        <StatSpalte
+          label="Kassiert"
+          anzahl={uebersicht.anzahlZahlungen}
+          cents={uebersicht.zahlungenCents}
+        />
+      </div>
+      {uebersicht.anzahlRuecknahmen > 0 && (
+        <RuecknahmeHinweis uebersicht={uebersicht} />
+      )}
     </div>
+  )
+}
+
+// RuecknahmeHinweis erklärt der Servicekraft eine Rücknahme, die auf ihre Kasse geht —
+// auch wenn Admin oder Serviceleitung sie stellvertretend gebucht haben. Erscheint nur
+// bei mindestens einer zugeordneten Rücknahme; sonst bleibt die Übersicht unverändert.
+function RuecknahmeHinweis({ uebersicht }: { uebersicht: EigeneUebersicht }) {
+  const anzahl = uebersicht.anzahlRuecknahmen
+  return (
+    <p className="mt-2 rounded-xl bg-muted/60 px-4 py-2 text-sm text-muted-foreground">
+      <Undo2 className="mr-1.5 inline size-4 align-[-3px] text-destructive" />
+      {anzahl === 1
+        ? 'Eine Rücknahme'
+        : `${String(anzahl)} Rücknahmen`} über{' '}
+      <span className="font-medium text-foreground tabular-nums">
+        {formatEuro(uebersicht.ruecknahmenCents)}
+      </span>{' '}
+      wurde{anzahl === 1 ? '' : 'n'} von deinen Zahlungen zurückgegeben. Du
+      gibst damit{' '}
+      <span className="font-semibold text-foreground tabular-nums">
+        {formatEuro(uebersicht.abzugebenCents)}
+      </span>{' '}
+      ab.
+    </p>
   )
 }
 

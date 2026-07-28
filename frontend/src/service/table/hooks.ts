@@ -76,6 +76,9 @@ const DEFAULT_EIGENE_UEBERSICHT: EigeneUebersicht = {
   bestellungenCents: 0,
   anzahlZahlungen: 0,
   zahlungenCents: 0,
+  anzahlRuecknahmen: 0,
+  ruecknahmenCents: 0,
+  abzugebenCents: 0,
 }
 
 export function useEigeneUebersicht() {
