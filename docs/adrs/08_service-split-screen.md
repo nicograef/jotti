@@ -4,6 +4,15 @@
 - **Kontext-Dokumente:** `docs/prds/prd-service-split-screen-tablet.md`;
   `docs/plans/plan-service-split-screen.md`; ADR 03 (Drawer-Layoutvertrag),
   ADR 07 (Desktop-Schwelle `lg`)
+- **Nachtrag (2026-07-28):** Die Feststellung unten unter „Entscheidung"
+  („Tisch-Kassieren trägt bewusst **keinen** Client-Schlüssel
+  (`ZahlungKassierenSchema` hat keinen); die Idempotenz bleibt dort
+  zustandsbasiert") ist überholt. `ZahlungKassierenSchema` trägt inzwischen ein
+  `vorgangId`; alle sieben buchenden Endpunkte tragen seit der Nacharbeit zur
+  Client-Server-Robustheit einen client-erzeugten Idempotenz-Schlüssel, den der
+  Server an die Nutzdaten des Vorgangs bindet (`vorgang_idempotenz`,
+  Migration `07`). Der übrige Inhalt dieses ADR — Layout, Container-Wahl, eine
+  Quelle je Abschluss-Inhalt — bleibt akzeptiert und unverändert gültig.
 
 ## Kontext
 

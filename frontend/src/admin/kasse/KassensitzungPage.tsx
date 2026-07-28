@@ -3,18 +3,17 @@ import { Check } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 
 import { AdminPageHeader } from '@/admin/components/AdminPageHeader'
+import {
+  ABGESCHLOSSENE_KASSENSITZUNGEN_KEY,
+  REPORT_KEY,
+} from '@/admin/reporting/hooks'
 import { formatDatumLang } from '@/admin/reporting/utils'
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn, formatEuro } from '@/lib/utils'
 
 import { EroeffnenSection } from './EroeffnenSection'
-import {
-  GELDTRANSIT_LISTE_KEY,
-  KASSENBESTAND_KEY,
-  useKassenbestand,
-  useOffeneKassensitzung,
-} from './hooks'
+import { useKassenbestand, useOffeneKassensitzung } from './hooks'
 import { KasseAbschliessenSection } from './KasseAbschliessenSection'
 import type { OffeneKassensitzung } from './KasseBackend'
 import { LaufenderBetriebSection } from './LaufenderBetriebSection'
@@ -124,7 +123,7 @@ function EroeffnetKarte({
 }
 
 export function KassensitzungPage() {
-  const { kassensitzung, isPending, isError, refetch } =
+  const { kassensitzung, isPending, isLoadingError, refetch } =
     useOffeneKassensitzung()
   // Kassenbestand-Aufschlüsselung für Schritt 1 (Anfangsbestand); TanStack Query
   // dedupliziert mit dem Abruf innerhalb von LaufenderBetriebSection.
@@ -172,8 +171,10 @@ export function KassensitzungPage() {
   }
 
   // Expliziter Fehlerzustand statt des Leer-Defaults — sonst wirkt die Kasse bei
-  // Netzabbruch fälschlich geschlossen.
-  if (isError) {
+  // Netzabbruch fälschlich geschlossen. Nur beim gescheiterten Erstladen:
+  // Scheitert ein Hintergrund-Refetch, bleibt die geladene Sitzung stehen,
+  // statt die Seite samt eingetipptem Ist-Bestand wegzureißen.
+  if (isLoadingError) {
     return (
       <>
         {header}
@@ -186,10 +187,17 @@ export function KassensitzungPage() {
     )
   }
 
-  // Nach einer Geldtransit-Buchung Kassenbestand und Bewegungsliste neu laden.
-  const invalidateKasse = () => {
-    void queryClient.invalidateQueries({ queryKey: [KASSENBESTAND_KEY] })
-    void queryClient.invalidateQueries({ queryKey: [GELDTRANSIT_LISTE_KEY] })
+  // Der Tagesabschluss schließt die Sitzung ab und legt damit eine neue
+  // abgeschlossene Kassensitzung an. Die Queries von „Berichte & Export" hängen
+  // an keiner Komponente dieser Seite; ohne Invalidierung zeigte ein direkter
+  // Wechsel dorthin die Liste von vor dem Abschluss, und der Archiv-Download
+  // lieferte den vorherigen Bericht.
+  const nachAbschluss = () => {
+    void refetch()
+    void queryClient.invalidateQueries({
+      queryKey: [ABGESCHLOSSENE_KASSENSITZUNGEN_KEY],
+    })
+    void queryClient.invalidateQueries({ queryKey: [REPORT_KEY] })
   }
 
   return (
@@ -219,7 +227,6 @@ export function KassensitzungPage() {
                 <CardContent>
                   <LaufenderBetriebSection
                     kassensitzungNr={kassensitzung.zNr}
-                    onBuchung={invalidateKasse}
                   />
                 </CardContent>
               </Card>
@@ -235,7 +242,7 @@ export function KassensitzungPage() {
                 <CardContent>
                   <KasseAbschliessenSection
                     kassensitzungNr={kassensitzung.zNr}
-                    onSuccess={() => void refetch()}
+                    onSuccess={nachAbschluss}
                   />
                 </CardContent>
               </Card>

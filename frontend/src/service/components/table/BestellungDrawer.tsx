@@ -14,7 +14,10 @@ interface BestellungDrawerProps {
   tisch: Tisch
   products: Produkt[]
   mengen: Record<number, number>
+  // Idempotenz-Schlüssel dieser Zusammenstellung, von TablePage gehoben.
+  bestellungId: string
   bestellungAufgenommen: () => void
+  vorgangBereitsGebucht: () => void
 }
 
 // Handy-Container (unter lg): Dock-Aktionsbutton als Trigger plus
@@ -51,9 +54,14 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
         receiptItems={receiptItems}
         positionen={inputItems}
         totalCents={totalPrice}
+        bestellungId={props.bestellungId}
         bestellungAufgenommen={() => {
           setOpen(false)
           props.bestellungAufgenommen()
+        }}
+        vorgangBereitsGebucht={() => {
+          setOpen(false)
+          props.vorgangBereitsGebucht()
         }}
       />
     </Drawer>

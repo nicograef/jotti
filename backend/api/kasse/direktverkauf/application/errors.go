@@ -19,6 +19,12 @@ var ErrVerkaufNichtGefunden = errors.New("verkauf nicht gefunden")
 // ErrPositionNichtStornierbar is returned when requested positions are not (or no longer) cancellable.
 var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 
+// ErrVorgangDatenAbweichend is returned when a known vorgangId is submitted again with
+// different Nutzdaten. Beide stillen Ausgänge wären hier falsch: Eine zweite Buchung bucht
+// doppelt, eine Erfolgsantwort verschluckt die geänderte Einreichung. Die HTTP-Schicht
+// bildet den Fehler deshalb auf 409 vorgang_daten_abweichend ab.
+var ErrVorgangDatenAbweichend = errors.New("vorgang daten abweichend")
+
 // ErrConflict is returned when a concurrent write conflicts with this operation.
 // Deliberately per-context, not a shared kernel: errors.Is against this exact sentinel is what the
 // HTTP layer relies on to map the error to 409; a shared sentinel across bounded contexts would

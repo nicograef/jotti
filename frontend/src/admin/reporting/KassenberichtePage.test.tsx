@@ -37,7 +37,7 @@ vi.mock('@/admin/kasse/hooks', () => ({
   useOffeneKassensitzung: () => ({
     kassensitzung: hookState.offeneSitzung,
     isPending: false,
-    isError: false,
+    isLoadingError: false,
     refetch: vi.fn(),
   }),
 }))

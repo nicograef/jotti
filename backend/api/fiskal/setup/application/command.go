@@ -44,8 +44,20 @@ func (c Command) ensureKeineOffeneKassensitzung(ctx context.Context) error {
 	return nil
 }
 
+// UpdateTSEKonfiguration speichert eine von Hand eingetragene TSE-Konfiguration.
+// Sie nimmt dasselbe Schloss wie Neuanlage und Uebernahme (einrichtungLaeuft in
+// setup.go): Alle drei schreiben ueber SaveEinrichtung dieselbe Konfiguration,
+// und in der Oberflaeche liegt dieser Pfad direkt unter dem Einrichtungs-Wizard.
+// Ohne das Schloss gewaenne der letzte Schreiber, und die Instanz signierte
+// danach gegen eine TSS/Client-Kombination, die nicht die eingerichtete ist.
 func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfiguration) error {
 	log := zerolog.Ctx(ctx)
+
+	freigeben, err := acquireEinrichtung()
+	if err != nil {
+		return err
+	}
+	defer freigeben()
 
 	if err := c.ensureKeineOffeneKassensitzung(ctx); err != nil {
 		return err

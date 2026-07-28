@@ -53,20 +53,17 @@ export function DirektverkaufStornoDrawer({
   const noPositionenSelected = selectedPositionen.length === 0
   const kommentarInvalid = kommentar.trim().length < 3
 
-  // vorgangId je fachlichem Vorgang, an die Nutzdaten gebunden: Ein
-  // Wiederholversuch mit unveränderten Nutzdaten behält seinen Schlüssel und
-  // bucht serverseitig kein zweites Mal; jede Änderung (Auswahl, Mengen,
-  // Kommentar) beginnt einen neuen Vorgang mit neuem Schlüssel, den der Server
-  // regulär prüft.
+  // vorgangId je Zusammenstellung: Jeder Wiederholversuch behält den Schlüssel —
+  // auch mit inzwischen geänderter Auswahl, denn genau diese Abweichung erkennt
+  // und meldet der Server. Ein neuer Schlüssel entsteht, wenn die Auswahl
+  // geleert und neu begonnen wird; nach einer erteilten Stornierung schließt der
+  // Aufrufer den Drawer, der nächste beginnt ohnehin bei null.
+  const vorgangId = useVorgangId(noPositionenSelected)
+
   const positionRefs = selectedPositionen.map((position) => ({
     positionId: position.positionId,
     menge: position.menge,
   }))
-  const vorgangId = useVorgangId({
-    verkaufId: verkauf.verkaufId,
-    positionen: positionRefs,
-    kommentar,
-  })
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Stornierung ausführen',

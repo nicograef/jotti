@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestSendJSONResponse(t *testing.T) {
@@ -122,5 +123,49 @@ func TestReadBody_UnknownFields(t *testing.T) {
 	}
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", rec.Code)
+	}
+}
+
+// deadlineCapturingWriter implements the SetWriteDeadline interface
+// http.ResponseController looks for, so the test can observe the deadline.
+type deadlineCapturingWriter struct {
+	*httptest.ResponseRecorder
+	deadline time.Time
+	set      bool
+}
+
+func (w *deadlineCapturingWriter) SetWriteDeadline(t time.Time) error {
+	w.deadline = t
+	w.set = true
+	return nil
+}
+
+func TestExtendWriteDeadline(t *testing.T) {
+	w := &deadlineCapturingWriter{ResponseRecorder: httptest.NewRecorder()}
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+
+	before := time.Now()
+	ExtendWriteDeadline(w, req, 2*time.Minute)
+
+	if !w.set {
+		t.Fatal("expected SetWriteDeadline to be called")
+	}
+	if w.deadline.Before(before.Add(2 * time.Minute)) {
+		t.Errorf("expected a deadline at least 2m in the future, got %s", w.deadline.Sub(before))
+	}
+}
+
+// Unterstützt der ResponseWriter SetWriteDeadline nicht (wie
+// httptest.ResponseRecorder), ist das kein Abbruchgrund: Der Handler läuft
+// mit der globalen Frist weiter und liefert seine Antwort.
+func TestExtendWriteDeadline_UnsupportedWriter(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+
+	ExtendWriteDeadline(rec, req, 2*time.Minute)
+
+	SendEmptyResponse(rec)
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200 after a failed deadline extension, got %d", rec.Code)
 	}
 }

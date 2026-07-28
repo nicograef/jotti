@@ -55,6 +55,7 @@ function renderDirektverkauf() {
         productsLoading={false}
         productsError={false}
         onErneutVersuchen={vi.fn()}
+        onVorgangBereitsGebucht={vi.fn()}
       />
     </ServiceDock>,
   )
@@ -121,6 +122,7 @@ describe('Direktverkauf', () => {
         productsLoading={false}
         productsError={false}
         onErneutVersuchen={vi.fn()}
+        onVorgangBereitsGebucht={vi.fn()}
       />,
     )
 
@@ -152,6 +154,7 @@ describe('Direktverkauf', () => {
         productsLoading={false}
         productsError
         onErneutVersuchen={onErneutVersuchen}
+        onVorgangBereitsGebucht={vi.fn()}
       />,
     )
 

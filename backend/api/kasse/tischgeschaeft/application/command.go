@@ -25,15 +25,14 @@ type tischRepo interface {
 
 type eventRepo interface {
 	WriteEventMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
-	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
+	WriteEventWithDruckauftraegeMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
 	WriteUmbuchungMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error
 	WriteTischSessionEventsAtomicMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, events []event.Event, kassensitzungNr int) error
-	VorgangBereitsGebucht(ctx context.Context, vorgangID string) (bool, error)
+	DetermineVorgangStatus(ctx context.Context, vorgangID string, payloadHash []byte) (kassenjournal_repo.VorgangStatus, error)
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
 	ReadFavoritenTischStates(ctx context.Context, tischIDs []int, kassensitzungNr int) (map[int]kassenjournal_repo.TischNameUndSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
-	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
 }
 
 type kassensitzungenRepo interface {
@@ -93,10 +92,14 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 	eventID, err := write(e)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
+			// Neutral formuliert, weil hier zwei Quellen zusammenlaufen: der
+			// OCC-Versionskonflikt aus UNIQUE(subject, version) — der Regelfall —
+			// und, nur für Vorgänge aus der Zeit vor Migration 07, einer der alten
+			// partiellen Indexe auf dem Event-JSON (01_initial.up.sql).
 			zerolog.Ctx(ctx).Warn().
 				Int("version", e.Version).
 				Str("subject", subject).
-				Msg("OCC conflict")
+				Msg("Unique violation on event write")
 			return 0, ErrConflict
 		}
 		if errors.Is(err, db.ErrConflict) {
@@ -115,34 +118,77 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 
 // writeEventWithDruckauftraege writes an event and the Druckaufträge derived from it
 // (built from the stored event including its generated ID) in a single transaction
-// (transactional outbox). Returns ErrConflict on a version conflict.
-func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
+// (transactional outbox); der Idempotenz-Schlüssel des Vorgangs wird im selben
+// Commit festgehalten, vor dem Event-Insert. Returns ErrConflict on a version
+// conflict; ein bereits vergebener Schlüssel liefert je nach Nutzdaten-Hash
+// ErrVorgangBereitsGebucht oder ErrVorgangDatenAbweichend.
+func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, vorgang kassenjournal_repo.Vorgang, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
 	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
-		return repo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
+		return repo.WriteEventWithDruckauftraegeMitVorgang(ctx, vorgang, versioned, streamType, kassensitzungNr, buildAuftraege)
 	})
 }
 
-// vorgangBereitsGebucht prüft VOR der fachlichen Validierung, ob der Vorgang
-// bereits gebucht wurde (Duplikat-Einreichung): Ein Wiederholversuch nach
-// erfolgreicher Buchung darf nicht an inzwischen geänderten Invarianten
-// scheitern (z. B. „Position nicht mehr bezahlbar"), sondern wiederholt die
-// Erfolgsantwort. Das Rennen zweier gleichzeitiger identischer Anfragen fängt
-// zusätzlich der Insert der Idempotenz-Zeile in der Schreibtransaktion ab.
-func (c Command) vorgangBereitsGebucht(ctx context.Context, vorgangID string) (bool, error) {
-	gebucht, err := c.EventRepo.VorgangBereitsGebucht(ctx, vorgangID)
-	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Str("vorgang_id", vorgangID).Msg("Failed to check vorgang idempotency")
-		return false, ErrDatabase
+// positionNutzdaten ist eine angeforderte Position in der Nutzdaten-Sicht eines
+// Vorgangs: welche Position in welcher Menge. Bewusst nicht kasse.PositionRef —
+// Domain-Modelle tragen keine json-Tags, und der Hash braucht eine hier
+// deklarierte, stabile Feldreihenfolge.
+type positionNutzdaten struct {
+	PositionID string `json:"positionId"`
+	Menge      int    `json:"menge"`
+}
+
+func toPositionNutzdaten(refs []kasse.PositionRef) []positionNutzdaten {
+	out := make([]positionNutzdaten, len(refs))
+	for i, ref := range refs {
+		out[i] = positionNutzdaten{PositionID: ref.PositionID, Menge: ref.Menge}
 	}
-	return gebucht, nil
+	return out
+}
+
+// checkVorgang bindet den client-gelieferten Idempotenz-Schlüssel an Art
+// und Nutzdaten des Vorgangs und wertet ihn VOR der fachlichen Validierung aus.
+// Die Art geht mit in den Hash, weil sich alle Arten einen Schlüsselraum teilen
+// und mehrere Kommandos dieselbe Feldmenge einreichen.
+//
+// Ohne die Bindung entschiede allein der Client, was „derselbe Vorgang" ist. Mit
+// ihr hat die Prüfung drei Ausgänge:
+//   - VorgangNeu — regulär buchen.
+//   - VorgangDuplikat (gleicher Schlüssel, gleiche Nutzdaten) — stille
+//     Erfolgsantwort: Ein Wiederholversuch nach erfolgreicher Buchung darf nicht
+//     an inzwischen geänderten Invarianten scheitern (z. B. „Position nicht mehr
+//     bezahlbar"), sondern wiederholt die Erfolgsantwort.
+//   - VorgangDatenAbweichend (gleicher Schlüssel, andere Nutzdaten) —
+//     ErrVorgangDatenAbweichend: Eine zweite Buchung bucht doppelt, eine stille
+//     Erfolgsantwort verschluckt die geänderte Einreichung.
+//
+// Das Rennen zweier gleichzeitiger Anfragen um denselben Schlüssel fängt
+// zusätzlich der Insert der Idempotenz-Zeile in der Schreibtransaktion ab.
+func (c Command) checkVorgang(ctx context.Context, vorgangID string, art string, userID int, nutzdaten any) (kassenjournal_repo.Vorgang, kassenjournal_repo.VorgangStatus, error) {
+	log := zerolog.Ctx(ctx)
+
+	payloadHash, err := kassenjournal_repo.ComputePayloadHash(art, nutzdaten)
+	if err != nil {
+		log.Error().Err(err).Str("vorgang_id", vorgangID).Msg("Failed to hash vorgang payload")
+		return kassenjournal_repo.Vorgang{}, kassenjournal_repo.VorgangNeu, err
+	}
+
+	status, err := c.EventRepo.DetermineVorgangStatus(ctx, vorgangID, payloadHash)
+	if err != nil {
+		log.Error().Err(err).Str("vorgang_id", vorgangID).Msg("Failed to check vorgang idempotency")
+		return kassenjournal_repo.Vorgang{}, kassenjournal_repo.VorgangNeu, ErrDatabase
+	}
+
+	vorgang := kassenjournal_repo.Vorgang{VorgangID: vorgangID, Art: art, UserID: userID, PayloadHash: payloadHash}
+	return vorgang, status, nil
 }
 
 // persistTischEvent writes a tisch-session event with OCC against expectedVersion
 // (die Version des gelesenen Zustands, gegen den validiert wurde) und hält den
-// Idempotenz-Schlüssel des Vorgangs im selben Commit fest. Eine Duplikat-
-// Einreichung (gleiche vorgangId) wird zur stillen Erfolgsantwort ohne zweite
-// Buchung. An OCC conflict maps to ErrConflict, any other write error to
-// ErrDatabase. aktion is the success log message.
+// Idempotenz-Schlüssel des Vorgangs samt Nutzdaten-Hash im selben Commit fest.
+// Verliert der Vorgang das Rennen um den Schlüssel, entscheidet der Hash: gleiche
+// Nutzdaten ergeben die stille Erfolgsantwort ohne zweite Buchung, abweichende
+// ErrVorgangDatenAbweichend. An OCC conflict maps to ErrConflict, any other write
+// error to ErrDatabase. aktion is the success log message.
 func (c Command) persistTischEvent(ctx context.Context, vorgang kassenjournal_repo.Vorgang, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -153,6 +199,10 @@ func (c Command) persistTischEvent(ctx context.Context, vorgang kassenjournal_re
 		if errors.Is(err, kassenjournal_repo.ErrVorgangBereitsGebucht) {
 			log.Info().Str("vorgang_id", vorgang.VorgangID).Int("tisch_id", tischID).Msg("Idempotenter Vorgang: vorgangId bereits gebucht")
 			return nil
+		}
+		if errors.Is(err, kassenjournal_repo.ErrVorgangDatenAbweichend) {
+			log.Warn().Str("vorgang_id", vorgang.VorgangID).Int("tisch_id", tischID).Msg("Vorgang mit abweichenden Nutzdaten unter bekannter vorgangId")
+			return ErrVorgangDatenAbweichend
 		}
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
@@ -197,13 +247,59 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 	return subject, ks.ZNr, t.Name, state, nil
 }
 
+// bestellPositionNutzdaten ist eine angeforderte Bestellposition in der
+// Nutzdaten-Sicht: welches Produkt in welcher Variante und Menge. Genau das
+// schickt der Client; die serverseitige Anreicherung (Produktname, Preis,
+// erzeugte positionId) gehört nicht dazu — sie kann sich zwischen zwei
+// Einreichungen ändern und ließe eine echte Wiederholung fälschlich als
+// abweichend gelten.
+type bestellPositionNutzdaten struct {
+	ProduktID  int `json:"produktId"`
+	VarianteID int `json:"varianteId"`
+	Menge      int `json:"menge"`
+}
+
+func toBestellPositionNutzdaten(inputs []enrichment.PositionInput) []bestellPositionNutzdaten {
+	out := make([]bestellPositionNutzdaten, len(inputs))
+	for i, input := range inputs {
+		out[i] = bestellPositionNutzdaten{ProduktID: input.ProduktID, VarianteID: input.VarianteID, Menge: input.Menge}
+	}
+	return out
+}
+
+// bestellungNutzdaten sind die Nutzdaten, an die der Idempotenz-Schlüssel einer
+// Bestellung gebunden wird: an welchem Tisch was in welcher Menge mit welchem
+// Kommentar bestellt wird. Genau diese Angaben stellt die Servicekraft zusammen;
+// ändert sich eine davon, ist es ein anderer Vorgang.
+type bestellungNutzdaten struct {
+	TischID    int                        `json:"tischId"`
+	Positionen []bestellPositionNutzdaten `json:"positionen"`
+	Kommentar  string                     `json:"kommentar"`
+}
+
 // BestellungAufnehmen nimmt eine Bestellung für einen Tisch auf.
-// bestellungID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel). Bei
-// UniqueViolation (Duplikat-Einreichung) wird per bestellungId nachgeschlagen:
-// Treffer = idempotente Erfolgsantwort; kein Treffer = echter OCC-Konflikt (409).
-// Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht verglichen.
+// bestellungID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel),
+// serverseitig an die Nutzdaten der Bestellung gebunden: Dieselbe bestellungId mit
+// denselben Nutzdaten wird zur stillen Erfolgsantwort, ohne ein zweites Mal zu
+// buchen; dieselbe bestellungId mit abweichenden Nutzdaten ergibt
+// ErrVorgangDatenAbweichend. Ein echter OCC-Konflikt bleibt davon unberührt und
+// ergibt weiterhin ErrConflict.
 func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, inputs []enrichment.PositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
+
+	nutzdaten := bestellungNutzdaten{TischID: tischID, Positionen: toBestellPositionNutzdaten(inputs), Kommentar: kommentar}
+	vorgang, status, err := c.checkVorgang(ctx, bestellungID, kassenjournal_repo.VorgangArtBestellung, userID, nutzdaten)
+	if err != nil {
+		return err
+	}
+	if status == kassenjournal_repo.VorgangDuplikat {
+		log.Info().Str("vorgang_id", bestellungID).Int("tisch_id", tischID).Msg("Idempotente Bestellung: bestellungId bereits gebucht")
+		return nil
+	}
+	if status == kassenjournal_repo.VorgangDatenAbweichend {
+		log.Warn().Str("vorgang_id", bestellungID).Int("tisch_id", tischID).Msg("Bestellung mit abweichenden Nutzdaten unter bekannter bestellungId")
+		return ErrVorgangDatenAbweichend
+	}
 
 	// Tisch-Existenz, Status prüfen und KS + Subject bestimmen
 	subject, kassensitzungNr, tischName, _, err := c.loadTischState(ctx, tischID)
@@ -244,20 +340,21 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return ErrDatabase
 	}
 
-	_, err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
+	// Verliert die Bestellung das Rennen um den Schlüssel, entscheidet der Hash:
+	// gleiche Nutzdaten ergeben die stille Erfolgsantwort ohne zweite Buchung,
+	// abweichende ErrVorgangDatenAbweichend. Ein Versionskonflikt bleibt davon
+	// unterscheidbar — er kommt aus UNIQUE(subject, version) und ergibt ErrConflict.
+	_, err = writeEventWithDruckauftraege(ctx, c.EventRepo, vorgang, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
 	if err != nil {
+		if errors.Is(err, kassenjournal_repo.ErrVorgangBereitsGebucht) {
+			log.Info().Str("vorgang_id", bestellungID).Int("tisch_id", tischID).Msg("Idempotente Bestellung: bestellungId bereits gebucht")
+			return nil
+		}
+		if errors.Is(err, kassenjournal_repo.ErrVorgangDatenAbweichend) {
+			log.Warn().Str("vorgang_id", bestellungID).Int("tisch_id", tischID).Msg("Bestellung mit abweichenden Nutzdaten unter bekannter bestellungId")
+			return ErrVorgangDatenAbweichend
+		}
 		if errors.Is(err, ErrConflict) {
-			// Idempotenz-Check: Ist der Konflikt eine Duplikat-Einreichung (gleiche bestellungId)
-			// oder ein echter OCC-Konflikt?
-			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeBestellungAufgenommenV1), bestellungID, "bestellungId")
-			if lookupErr != nil {
-				log.Error().Err(lookupErr).Str("bestellung_id", bestellungID).Msg("Failed to lookup bestellung idempotency")
-				return ErrDatabase
-			}
-			if exists {
-				log.Info().Str("bestellung_id", bestellungID).Msg("Idempotente Bestellung: bestellungId bereits vorhanden")
-				return nil
-			}
 			return ErrConflict
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung aufgenommen event to database")
@@ -293,12 +390,27 @@ func buildUmbuchungKommentar(prefix string, tischName string) string {
 	return prefix + truncateRunes(tischName, maxTischNameRunes)
 }
 
+// umbuchungNutzdaten sind die Nutzdaten, an die der Idempotenz-Schlüssel einer
+// Umbuchung gebunden wird: von welchem auf welchen Tisch welche Positionen in
+// welcher Menge mit welchem Kommentar umgebucht werden. Genau diese Angaben
+// stellt die Servicekraft zusammen; ändert sich eine davon, ist es ein anderer
+// Vorgang. Serverseitig Angereichertes (Produktnamen, Preise, die aus den
+// Tischnamen gebauten Kommentare) gehört nicht dazu: Es kann sich zwischen zwei
+// Einreichungen ändern und ließe eine echte Wiederholung fälschlich als
+// abweichend gelten.
+type umbuchungNutzdaten struct {
+	QuellTischID      int                 `json:"quellTischId"`
+	ZielTischID       int                 `json:"zielTischId"`
+	Positionen        []positionNutzdaten `json:"positionen"`
+	BenutzerKommentar string              `json:"benutzerKommentar"`
+}
+
 // BestellungUmbuchen bucht die angeforderten Positionen vom Quell- auf den
 // Ziel-Tisch um (zwei Events, gemeinsame UmbuchungID). vorgangID ist eine
-// client-seitig erzeugte UUID (Idempotenz-Schlüssel): Ein Wiederholversuch mit
-// derselben vorgangId wird zur stillen Erfolgsantwort, ohne ein zweites Mal zu
-// buchen. Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht
-// verglichen.
+// client-seitig erzeugte UUID (Idempotenz-Schlüssel), serverseitig an die
+// Nutzdaten der Umbuchung gebunden: Dieselbe vorgangId mit denselben Nutzdaten
+// wird zur stillen Erfolgsantwort, ohne ein zweites Mal zu buchen; dieselbe
+// vorgangId mit abweichenden Nutzdaten ergibt ErrVorgangDatenAbweichend.
 func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, vorgangID string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -307,11 +419,23 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return ErrUmbuchungGleicherTisch
 	}
 
-	if gebucht, err := c.vorgangBereitsGebucht(ctx, vorgangID); err != nil {
+	nutzdaten := umbuchungNutzdaten{
+		QuellTischID:      quellTischID,
+		ZielTischID:       zielTischID,
+		Positionen:        toPositionNutzdaten(positionen),
+		BenutzerKommentar: benutzerKommentar,
+	}
+	vorgang, status, err := c.checkVorgang(ctx, vorgangID, kassenjournal_repo.VorgangArtUmbuchung, userID, nutzdaten)
+	if err != nil {
 		return err
-	} else if gebucht {
+	}
+	if status == kassenjournal_repo.VorgangDuplikat {
 		log.Info().Str("vorgang_id", vorgangID).Int("quell_tisch_id", quellTischID).Msg("Idempotente Umbuchung: vorgangId bereits gebucht")
 		return nil
+	}
+	if status == kassenjournal_repo.VorgangDatenAbweichend {
+		log.Warn().Str("vorgang_id", vorgangID).Int("quell_tisch_id", quellTischID).Msg("Umbuchung mit abweichenden Nutzdaten unter bekannter vorgangId")
+		return ErrVorgangDatenAbweichend
 	}
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
@@ -375,13 +499,15 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	quellEvent.Version = quellState.LastEventVersion + 1
 	zielEvent.Version = zielMaxVersion + 1
 
-	vorgang := kassenjournal_repo.Vorgang{VorgangID: vorgangID, Art: kassenjournal_repo.VorgangArtUmbuchung, UserID: userID}
-
 	err = c.EventRepo.WriteUmbuchungMitVorgang(ctx, vorgang, quellEvent, zielEvent, ks.ZNr)
 	if err != nil {
 		if errors.Is(err, kassenjournal_repo.ErrVorgangBereitsGebucht) {
 			log.Info().Str("vorgang_id", vorgangID).Int("quell_tisch_id", quellTischID).Msg("Idempotente Umbuchung: vorgangId bereits gebucht")
 			return nil
+		}
+		if errors.Is(err, kassenjournal_repo.ErrVorgangDatenAbweichend) {
+			log.Warn().Str("vorgang_id", vorgangID).Int("quell_tisch_id", quellTischID).Msg("Umbuchung mit abweichenden Nutzdaten unter bekannter vorgangId")
+			return ErrVorgangDatenAbweichend
 		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
 			log.Warn().Int("quell_tisch_id", quellTischID).Msg("Kassensitzung nicht mehr offen")
@@ -405,19 +531,44 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	return nil
 }
 
+// zahlungNutzdaten sind die Nutzdaten, an die der Idempotenz-Schlüssel einer
+// Zahlung gebunden wird: an welchem Tisch welche Positionen in welcher Menge mit
+// welchem Kommentar kassiert werden. Genau diese Angaben stellt die Servicekraft
+// zusammen; ändert sich eine davon, ist es ein anderer Vorgang. Serverseitig
+// Angereichertes (Produktnamen, Preise, Gesamtbetrag) gehört nicht dazu: Es kann
+// sich zwischen zwei Einreichungen ändern und ließe eine echte Wiederholung
+// fälschlich als abweichend gelten.
+//
+// Bewusst getrennt von stornierungNutzdaten trotz gleicher Feldmenge: Jedes
+// Kommando bindet seine eigenen Nutzdaten, damit eine spätere Änderung am einen
+// nicht still die Bindung des anderen mitverschiebt.
+type zahlungNutzdaten struct {
+	TischID    int                 `json:"tischId"`
+	Positionen []positionNutzdaten `json:"positionen"`
+	Kommentar  string              `json:"kommentar"`
+}
+
 // ZahlungKassieren kassiert die angeforderten Positionen eines Tisches.
-// vorgangID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel): Ein
-// Wiederholversuch mit derselben vorgangId wird zur stillen Erfolgsantwort,
-// ohne ein zweites Mal zu buchen. Gleiche ID bedeutet denselben Vorgang — der
-// Payload wird nicht verglichen.
+// vorgangID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel),
+// serverseitig an die Nutzdaten der Zahlung gebunden: Dieselbe vorgangId mit
+// denselben Nutzdaten wird zur stillen Erfolgsantwort, ohne ein zweites Mal zu
+// buchen; dieselbe vorgangId mit abweichenden Nutzdaten ergibt
+// ErrVorgangDatenAbweichend.
 func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, vorgangID string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	if gebucht, err := c.vorgangBereitsGebucht(ctx, vorgangID); err != nil {
+	nutzdaten := zahlungNutzdaten{TischID: tischID, Positionen: toPositionNutzdaten(positionen), Kommentar: kommentar}
+	vorgang, status, err := c.checkVorgang(ctx, vorgangID, kassenjournal_repo.VorgangArtZahlung, userID, nutzdaten)
+	if err != nil {
 		return err
-	} else if gebucht {
+	}
+	if status == kassenjournal_repo.VorgangDuplikat {
 		log.Info().Str("vorgang_id", vorgangID).Int("tisch_id", tischID).Msg("Idempotente Zahlung: vorgangId bereits gebucht")
 		return nil
+	}
+	if status == kassenjournal_repo.VorgangDatenAbweichend {
+		log.Warn().Str("vorgang_id", vorgangID).Int("tisch_id", tischID).Msg("Zahlung mit abweichenden Nutzdaten unter bekannter vorgangId")
+		return ErrVorgangDatenAbweichend
 	}
 
 	// Tisch-Existenz, Status und State laden
@@ -440,11 +591,21 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		return err
 	}
 
-	vorgang := kassenjournal_repo.Vorgang{VorgangID: vorgangID, Art: kassenjournal_repo.VorgangArtZahlung, UserID: userID}
-
 	// OCC gegen den validierten Zustand: Hat sich der Stream seit dem Lesen geändert
 	// (z. B. eine parallele Zahlung), schlägt der Write mit 409 fehl.
 	return c.persistTischEvent(ctx, vorgang, evt, subject, state.LastEventVersion, kassensitzungNr, tischID, "Zahlung kassiert")
+}
+
+// stornierungNutzdaten sind die Nutzdaten, an die der Idempotenz-Schlüssel einer
+// Stornierung gebunden wird: an welchem Tisch welche Positionen in welcher Menge
+// mit welchem Grund storniert werden. Die serverseitige Aufteilung nach
+// Bezahlstatus (Korrektur und Warenrücknahmen) gehört nicht dazu — sie hängt vom
+// Stream-Zustand ab und kann sich zwischen zwei Einreichungen ändern, ohne dass
+// der Helfer etwas anderes angefordert hätte.
+type stornierungNutzdaten struct {
+	TischID    int                 `json:"tischId"`
+	Positionen []positionNutzdaten `json:"positionen"`
+	Kommentar  string              `json:"kommentar"`
 }
 
 // StornierungErteilen führt eine „Stornieren"-Aktion aus und teilt sie serverseitig
@@ -453,18 +614,26 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 // FIFO zugeordnet und je Zahlung als kassenwirksame Warenrücknahme zurückgenommen
 // (ein stornierung-erteilt mit genau einer ZahlungID). Jedes entstehende Event trägt
 // eine eigene TSE-Transaktion; alle werden atomar geschrieben (alles-oder-nichts).
-// vorgangID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel): Ein
-// Wiederholversuch mit derselben vorgangId wird zur stillen Erfolgsantwort, ohne
-// ein zweites Mal zu buchen. Gleiche ID bedeutet denselben Vorgang — der Payload
-// wird nicht verglichen.
+// vorgangID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel),
+// serverseitig an die Nutzdaten der Stornierung gebunden: Dieselbe vorgangId mit
+// denselben Nutzdaten wird zur stillen Erfolgsantwort, ohne ein zweites Mal zu
+// buchen; dieselbe vorgangId mit abweichenden Nutzdaten ergibt
+// ErrVorgangDatenAbweichend.
 func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, vorgangID string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	if gebucht, err := c.vorgangBereitsGebucht(ctx, vorgangID); err != nil {
+	nutzdaten := stornierungNutzdaten{TischID: tischID, Positionen: toPositionNutzdaten(positionen), Kommentar: kommentar}
+	vorgang, status, err := c.checkVorgang(ctx, vorgangID, kassenjournal_repo.VorgangArtStornierung, userID, nutzdaten)
+	if err != nil {
 		return err
-	} else if gebucht {
+	}
+	if status == kassenjournal_repo.VorgangDuplikat {
 		log.Info().Str("vorgang_id", vorgangID).Int("tisch_id", tischID).Msg("Idempotente Stornierung: vorgangId bereits gebucht")
 		return nil
+	}
+	if status == kassenjournal_repo.VorgangDatenAbweichend {
+		log.Warn().Str("vorgang_id", vorgangID).Int("tisch_id", tischID).Msg("Stornierung mit abweichenden Nutzdaten unter bekannter vorgangId")
+		return ErrVorgangDatenAbweichend
 	}
 
 	// Tisch-Existenz und Status prüfen, Subject und KS-Nr bestimmen
@@ -498,8 +667,6 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 	if len(events) > 0 {
 		expectedVersion = events[len(events)-1].Version
 	}
-
-	vorgang := kassenjournal_repo.Vorgang{VorgangID: vorgangID, Art: kassenjournal_repo.VorgangArtStornierung, UserID: userID}
 
 	return c.persistStornoEvents(ctx, vorgang, stornoEvents, subject, expectedVersion, kassensitzungNr, tischID)
 }
@@ -537,8 +704,10 @@ func buildStornoEvents(ctx context.Context, subject string, userID int, userName
 // persistStornoEvents weist den Storno-Events fortlaufende Versionen ab der
 // erwarteten Version (Stand des validierten Replays) zu und schreibt sie atomar
 // (je Event mit seinem Signaturauftrag); der Idempotenz-Schlüssel des Vorgangs
-// wird im selben Commit festgehalten. Eine Duplikat-Einreichung (gleiche
-// vorgangId) wird zur stillen Erfolgsantwort; ein OCC-Konflikt wird zu ErrConflict.
+// wird samt Nutzdaten-Hash im selben Commit festgehalten. Verliert der Vorgang
+// das Rennen um den Schlüssel, entscheidet der Hash: gleiche Nutzdaten ergeben
+// die stille Erfolgsantwort, abweichende ErrVorgangDatenAbweichend. Ein
+// OCC-Konflikt wird zu ErrConflict.
 func (c Command) persistStornoEvents(ctx context.Context, vorgang kassenjournal_repo.Vorgang, stornoEvents []event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int) error {
 	log := zerolog.Ctx(ctx)
 
@@ -552,6 +721,10 @@ func (c Command) persistStornoEvents(ctx context.Context, vorgang kassenjournal_
 		if errors.Is(err, kassenjournal_repo.ErrVorgangBereitsGebucht) {
 			log.Info().Str("vorgang_id", vorgang.VorgangID).Int("tisch_id", tischID).Msg("Idempotente Stornierung: vorgangId bereits gebucht")
 			return nil
+		}
+		if errors.Is(err, kassenjournal_repo.ErrVorgangDatenAbweichend) {
+			log.Warn().Str("vorgang_id", vorgang.VorgangID).Int("tisch_id", tischID).Msg("Stornierung mit abweichenden Nutzdaten unter bekannter vorgangId")
+			return ErrVorgangDatenAbweichend
 		}
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn().Int("tisch_id", tischID).Str("subject", subject).Msg("OCC conflict bei Stornierung")

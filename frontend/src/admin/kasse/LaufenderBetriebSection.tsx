@@ -53,10 +53,8 @@ function BewegungZeile({ buchung }: { buchung: GeldtransitBuchung }) {
 // Liste der heutigen Kassenbewegungen mit Einlegen-/Entnehmen-Buttons.
 export function LaufenderBetriebSection({
   kassensitzungNr,
-  onBuchung,
 }: {
   kassensitzungNr: number
-  onBuchung: () => void
 }) {
   const { kassenbestand, dataUpdatedAt } = useKassenbestand(kassensitzungNr)
   const { buchungen } = useGeldtransitListe(kassensitzungNr)
@@ -155,7 +153,6 @@ export function LaufenderBetriebSection({
           if (!open) setDialogRichtung(null)
         }}
         richtung={dialogRichtung}
-        onSuccess={onBuchung}
       />
     </div>
   )

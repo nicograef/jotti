@@ -67,11 +67,15 @@ Vollständige Architektur-Referenz: [handbuch.md §1 und §2](handbuch.md#1-übe
 
 **Strukturierung (Subjects):** Die Ereignisse sind nach Betriebstag (Kassensitzung) und Abrechnungseinheit geordnet: jeder Tisch innerhalb einer Kassensitzung sowie jeder Theken-Direktverkauf bildet einen eigenen, lückenlos versionierten Ereignis-Strom. Das ergibt pro Tisch und pro Betriebstag einen geschlossenen Abrechnungskreis.
 
+**Einmaligkeit jeder Buchung:** Ein Verbindungsabbruch darf weder eine Buchung verlieren noch sie doppelt entstehen lassen. Jeder buchende Vorgang — Bestellung, Zahlung, Stornierung, Umbuchung, Direktverkauf einschließlich seiner Stornierung und Geldtransit — führt deshalb einen im Browser erzeugten, eindeutigen Vorgangsschlüssel mit, den jotti zusammen mit einer Prüfsumme über die eingereichten Daten des Vorgangs in der Tabelle `vorgang_idempotenz` festhält. Diese Zeile entsteht im selben Datenbank-Commit wie die Ereignisse des Vorgangs und vor deren Eintrag; scheitert der Commit, entfällt beides gemeinsam. Aus Schlüssel und Prüfsumme ergeben sich drei Ausgänge: Ein unbekannter Schlüssel wird regulär gebucht. Ein bekannter Schlüssel mit unveränderten Daten ist der Wiederholversuch derselben Einreichung und wird ohne zweite Buchung erneut als erfolgreich beantwortet. Ein bekannter Schlüssel mit abweichenden Daten wird abgelehnt und der bedienenden Person als Konflikt gemeldet, damit sie die Abweichung bewusst nachbucht. Jeder dieser sieben Vorgänge wird damit genau einmal gebucht, gleich wie oft er eingereicht wird.
+
+Die Eröffnung der Kassensitzung und der Kassenabschluss (Kassensturz, Differenzbuchung, Tagesabschluss) tragen bewusst keinen Vorgangsschlüssel: Sie sind bereits durch fachliche Invarianten gegen eine Zweitbuchung geschützt. Eine zweite Kassensitzung kann nicht entstehen, weil ein Datenbank-Index höchstens eine nicht abgeschlossene Kassensitzung zulässt. Ein wiederholter Kassenabschluss erkennt einen bereits protokollierten Kassensturz und setzt auf ihm auf, statt ihn erneut zu schreiben; liegt zwischen Kassensturz und Wiederholung eine Buchung, bricht er mit einer Fehlermeldung ab, statt den veralteten Zählstand zu verbuchen.
+
 **Geldbeträge:** Alle Beträge sind ganzzahlige Cent-Werte. Es werden keine Fließkommazahlen verwendet.
 
 **Stammdaten:** Produkte, Tische und Benutzer werden klassisch verwaltet (CRUD). Gelöscht wird nie physisch, sondern per Soft-Delete (Status `deleted`); die referenzielle Integrität und die historische Nachvollziehbarkeit bleiben dadurch erhalten.
 
-Datenmodell-Referenz: [handbuch.md §3](handbuch.md#3-kasse-core-domain); Schema: `database/migrations/01_initial.up.sql`.
+Datenmodell-Referenz: [handbuch.md §3](handbuch.md#3-kasse-core-domain); Schema: `database/migrations/01_initial.up.sql` und die darauf aufbauenden Migrationen.
 
 ---
 

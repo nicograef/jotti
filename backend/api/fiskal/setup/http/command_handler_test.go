@@ -119,6 +119,28 @@ func TestUpdateTSEKonfigurationHandler_PartialValuesRejected(t *testing.T) {
 	}
 }
 
+// TestUpdateTSEKonfigurationHandler_LaeuftBereits sichert, dass auch der
+// manuelle Zugangsdaten-Pfad als 409 ankommt: Er teilt sich das Schloss auf der
+// TSE-Konfiguration mit Neuanlage und Uebernahme, und die Seite bietet ihn
+// direkt unter dem Wizard an.
+func TestUpdateTSEKonfigurationHandler_LaeuftBereits(t *testing.T) {
+	handler := &CommandHandler{Command: &mockSettingsCommand{err: application.ErrTSESetupLaeuftBereits}}
+
+	body := `{"apiKey":"my-key","apiSecret":"my-secret","tssId":"tss-123","clientId":"client-123"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/update-tse-konfiguration", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.UpdateTSEKonfigurationHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected status 409, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "tse_setup_laeuft_bereits") {
+		t.Fatalf("expected error code tse_setup_laeuft_bereits, got %s", rec.Body.String())
+	}
+}
+
 // TestRichteTSEEinHandler_Success sichert, dass PUK und Admin-PIN genau einmal
 // in der Antwort an die UI erscheinen.
 func TestRichteTSEEinHandler_Success(t *testing.T) {
@@ -193,6 +215,48 @@ func TestRichteTSEEinHandler_BereitsEingerichtet(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "tse_bereits_eingerichtet") {
 		t.Fatalf("expected error code tse_bereits_eingerichtet, got %s", rec.Body.String())
+	}
+}
+
+// TestRichteTSEEinHandler_LaeuftBereits sichert, dass ein zweiter Versuch
+// waehrend einer laufenden Einrichtung als 409 mit eigenem Code ankommt: Die
+// Anfrage war in Ordnung, nur der Zustand ist voruebergehend — der Admin soll
+// warten statt eine zweite, bezahlte TSS anzulegen.
+func TestRichteTSEEinHandler_LaeuftBereits(t *testing.T) {
+	handler := &CommandHandler{Command: &mockSettingsCommand{einrichtErr: application.ErrTSESetupLaeuftBereits}}
+
+	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-einrichten", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.RichteTSEEinHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected status 409, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "tse_setup_laeuft_bereits") {
+		t.Fatalf("expected error code tse_setup_laeuft_bereits, got %s", rec.Body.String())
+	}
+}
+
+// TestUebernimmTSEHandler_LaeuftBereits sichert dieselbe Abbildung fuer die
+// Uebernahme — sie teilt sich das Schloss mit der Neuanlage.
+func TestUebernimmTSEHandler_LaeuftBereits(t *testing.T) {
+	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupLaeuftBereits}}
+
+	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST","tssId":"tss-halb"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-uebernehmen", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.UebernimmTSEHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected status 409, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "tse_setup_laeuft_bereits") {
+		t.Fatalf("expected error code tse_setup_laeuft_bereits, got %s", rec.Body.String())
 	}
 }
 

@@ -15,6 +15,7 @@ interface DirektverkaufDrawerProps {
   anzahl: number
   totalCents: number
   verkaufAbgeschlossen: () => void
+  vorgangBereitsGebucht: () => void
 }
 
 // Handy-Container (unter lg): Dock-Aktionsbutton als Trigger plus
@@ -47,6 +48,10 @@ export function DirektverkaufDrawer(props: DirektverkaufDrawerProps) {
         verkaufAbgeschlossen={() => {
           setOpen(false)
           props.verkaufAbgeschlossen()
+        }}
+        vorgangBereitsGebucht={() => {
+          setOpen(false)
+          props.vorgangBereitsGebucht()
         }}
       />
     </Drawer>

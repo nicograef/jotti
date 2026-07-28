@@ -5,6 +5,7 @@ package application
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -26,6 +27,7 @@ func cleanKassenfuehrungDB(t *testing.T, db *sql.DB) {
 		"ALTER TABLE kassenjournal ENABLE TRIGGER kassenjournal_no_delete",
 		"DELETE FROM kassensitzungen",
 		"DELETE FROM betreiber",
+		"DELETE FROM vorgang_idempotenz",
 		"DELETE FROM users",
 	}
 	for _, stmt := range stmts {
@@ -96,5 +98,86 @@ func TestGeldtransitBuchen_DuplikatGeldtransitId_IdempotenterErfolg(t *testing.T
 	}
 	if auftraegeCount != 1 {
 		t.Errorf("erwartet 1 tse_signaturauftrag, vorhanden: %d", auftraegeCount)
+	}
+}
+
+// Dieselbe geldtransitId mit geändertem Betrag ist weder ein Duplikat noch eine
+// neue Buchung: Der Command meldet ErrVorgangDatenAbweichend und schreibt kein
+// zweites Event.
+func TestGeldtransitBuchen_SelbeGeldtransitIdAndereNutzdaten_KeinZweitesEvent(t *testing.T) {
+	ctx, cmd, db, userID := setupKassenfuehrungIntegration(t)
+
+	geldtransitID := uuid.New().String()
+	if err := cmd.GeldtransitBuchen(ctx, userID, "test", geldtransitID, "einlage", 1000, "Test"); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+
+	if err := cmd.GeldtransitBuchen(ctx, userID, "test", geldtransitID, "einlage", 2000, "Test"); !errors.Is(err, ErrVorgangDatenAbweichend) {
+		t.Fatalf("erwartet ErrVorgangDatenAbweichend, bekam: %v", err)
+	}
+
+	var eventCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal WHERE type = 'geldtransit-gebucht:v1'").Scan(&eventCount); err != nil {
+		t.Fatalf("kassenjournal zählen: %v", err)
+	}
+	if eventCount != 1 {
+		t.Errorf("erwartet weiterhin 1 geldtransit-gebucht:v1-Event, gespeichert: %d", eventCount)
+	}
+
+	var vorgaenge int
+	if err := db.QueryRow("SELECT COUNT(*) FROM vorgang_idempotenz WHERE vorgang_id = $1", geldtransitID).Scan(&vorgaenge); err != nil {
+		t.Fatalf("vorgang_idempotenz zählen: %v", err)
+	}
+	if vorgaenge != 1 {
+		t.Errorf("erwartet genau 1 vorgang_idempotenz-Zeile, vorhanden: %d", vorgaenge)
+	}
+}
+
+// veralteteVersionRepo liefert eine um eins zu niedrige Stream-Version und
+// erzwingt damit im realen Schreibpfad einen echten OCC-Konflikt: Das Event
+// trifft auf eine bereits belegte (subject, version).
+type veralteteVersionRepo struct{ kassenjournalRepo }
+
+func (r veralteteVersionRepo) GetMaxVersion(ctx context.Context, subject string) (int, error) {
+	version, err := r.kassenjournalRepo.GetMaxVersion(ctx, subject)
+	if err != nil {
+		return 0, err
+	}
+	return version - 1, nil
+}
+
+// Ein echter Versionskonflikt ist keine Duplikat-Einreichung: Eine neue
+// geldtransitId gegen eine veraltete Stream-Version scheitert an
+// UNIQUE(subject, version) und ergibt weiterhin ErrConflict — weder die stille
+// Erfolgsantwort noch ErrVorgangDatenAbweichend. Die Idempotenz-Zeile des
+// gescheiterten Vorgangs rollt mit zurück.
+func TestGeldtransitBuchen_NeueGeldtransitIdVeralteteVersion_ErrConflict(t *testing.T) {
+	ctx, cmd, db, userID := setupKassenfuehrungIntegration(t)
+
+	if err := cmd.GeldtransitBuchen(ctx, userID, "test", uuid.New().String(), "einlage", 1000, "Test"); err != nil {
+		t.Fatalf("erster Geldtransit: %v", err)
+	}
+
+	cmd.KassenjournalRepo = veralteteVersionRepo{cmd.KassenjournalRepo}
+
+	zweiteID := uuid.New().String()
+	if err := cmd.GeldtransitBuchen(ctx, userID, "test", zweiteID, "einlage", 2500, "Nachschlag"); !errors.Is(err, ErrConflict) {
+		t.Fatalf("erwartet ErrConflict, bekam: %v", err)
+	}
+
+	var eventCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal WHERE type = 'geldtransit-gebucht:v1'").Scan(&eventCount); err != nil {
+		t.Fatalf("kassenjournal zählen: %v", err)
+	}
+	if eventCount != 1 {
+		t.Errorf("erwartet weiterhin 1 geldtransit-gebucht:v1-Event, gespeichert: %d", eventCount)
+	}
+
+	var vorgaenge int
+	if err := db.QueryRow("SELECT COUNT(*) FROM vorgang_idempotenz WHERE vorgang_id = $1", zweiteID).Scan(&vorgaenge); err != nil {
+		t.Fatalf("vorgang_idempotenz zählen: %v", err)
+	}
+	if vorgaenge != 0 {
+		t.Errorf("erwartet keine vorgang_idempotenz-Zeile nach Rollback, vorhanden: %d", vorgaenge)
 	}
 }

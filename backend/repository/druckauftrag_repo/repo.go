@@ -77,7 +77,7 @@ func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []Neuer
 // InsertDruckauftraege inserts the given print jobs using the provided
 // transaction-bound queries. The caller owns the transaction, which enables a
 // transactional outbox: writing an event and its resulting print jobs atomically
-// (see kassenjournal_repo.WriteEventWithDruckauftraege).
+// (see kassenjournal_repo.WriteEventWithDruckauftraegeMitVorgang).
 func InsertDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []NeuerDruckauftrag) error {
 	for _, auftrag := range auftraege {
 		err := qtx.InsertDruckauftrag(ctx, dbgen.InsertDruckauftragParams{

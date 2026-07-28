@@ -9,11 +9,17 @@ import { appendReferenz } from './errorMessages'
 // den Versuchen wächst (exponentieller Standard-Backoff von react-query).
 const MAX_WIEDERHOLUNGEN = 2
 
-// Aktualitätsschwelle: Ohne sie lädt jedes Entsperren des Handys sämtliche
-// montierten Queries neu — bei 20–30 Helfern der größte Teil des Traffics im
-// Vereins-WLAN. Ein refetch bzw. invalidateQueries nach einer Buchung lädt
-// unabhängig davon sofort neu.
-const AKTUALITAETSSCHWELLE_MS = 30_000
+// Aktualitätsschwelle für Stammdaten — Daten, die sich während einer
+// Veranstaltung nicht ändern (Produkte, Benutzer, Betreiber, Kassenidentität,
+// Druckstationen, TSE-Konfiguration). Nur solche Hooks setzen sie: Sie sparen
+// den größten Teil des Traffics im Vereins-WLAN (jedes Entsperren eines Handys
+// lädt sonst sämtliche montierten Queries neu), ohne dass jemand mit einem
+// veralteten Wert arbeitet. Alles, was Kassen- oder Tischzustand liefert, bleibt
+// ohne Schwelle und lädt beim Mount frisch — das Kriterium schlägt die
+// Kategorie: Keine Tisch-Query ist ein Stammdatum, weil jede von ihnen
+// `saldoCents` der laufenden Kassensitzung mitführt (`useAllTische` in
+// admin/tables/hooks.ts, `useAktiveTische` in service/table/hooks.ts).
+export const STAMMDATEN_AKTUALITAET_MS = 30_000
 
 const queryFehlerMeldung =
   'Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.'
@@ -44,7 +50,6 @@ export function createQueryClient(): QueryClient {
     defaultOptions: {
       queries: {
         retry: sollWiederholen,
-        staleTime: AKTUALITAETSSCHWELLE_MS,
       },
     },
     queryCache: new QueryCache({

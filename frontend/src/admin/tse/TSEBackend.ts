@@ -3,6 +3,23 @@ import { z } from 'zod'
 import type { BackendClient } from '@/lib/Backend'
 import { DateStringSchema } from '@/lib/utils'
 
+// Zeitlimit der Endpunkte, die hinter dem Backend zu fiskaly gehen. Die
+// TSE-Einrichtung setzt bis zu zehn HTTP-Sequenzen nacheinander ab (Auth,
+// ListTSS, CreateTSS, personalisieren, PIN setzen, zweimal Admin-Auth,
+// initialisieren, Client registrieren, Stammdaten), jede mit 10 s Zeitlimit und
+// bis zu vier Versuchen mit Backoff (siehe
+// backend/repository/tse_repo/fiskaly_client.go). Beim Standard-Zeitlimit von
+// 8 s bricht der Client mitten im Lebenszyklus ab und verliert die Antwort mit
+// PUK und Admin-PIN, obwohl die TSS bereits angelegt und bezahlt ist.
+//
+// Der Wert ist das Schreibbudget des Servers plus Netzreserve:
+// tseSetupWriteTimeout = 2 Minuten
+// (backend/api/fiskal/setup/http/command_handler.go) plus 30 s. Der Aufschlag
+// gilt der Antwort: Ein spät, aber erfolgreich geschriebener Antwort-Body soll
+// hier noch ankommen. Wäre dieses Budget nicht größer, hätte der Client in
+// genau dem Fenster schon aufgegeben, in dem der Server gerade noch schreibt.
+const TSE_TIMEOUT_MS = 150_000
+
 export const TSEKonfigurationSchema = z.object({
   apiKeyGesetzt: z.boolean(),
   apiSecretGesetzt: z.boolean(),
@@ -202,6 +219,7 @@ export class TSEBackend {
       'admin/test-tse-verbindung',
       {},
       TSEVerbindungStatusSchema,
+      { zeitlimitMs: TSE_TIMEOUT_MS },
     )
   }
 
@@ -213,6 +231,7 @@ export class TSEBackend {
       'admin/tse-setup-pruefen',
       body,
       TSESetupBefundSchema,
+      { zeitlimitMs: TSE_TIMEOUT_MS },
     )
   }
 
@@ -224,6 +243,7 @@ export class TSEBackend {
       'admin/tse-einrichten',
       body,
       TSEEinrichtenErgebnisSchema,
+      { zeitlimitMs: TSE_TIMEOUT_MS },
     )
   }
 
@@ -235,6 +255,7 @@ export class TSEBackend {
       'admin/tse-uebernehmen',
       body,
       TSEEinrichtenErgebnisSchema,
+      { zeitlimitMs: TSE_TIMEOUT_MS },
     )
   }
 

@@ -19,13 +19,14 @@ import (
 type kassenjournalRepo interface {
 	EroeffneKassensitzung(ctx context.Context, datum time.Time, bezeichnung string, build func(zNr int) (event.Event, error)) (int, error)
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
+	WriteEventMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
+	DetermineVorgangStatus(ctx context.Context, vorgangID string, payloadHash []byte) (kassenjournal_repo.VorgangStatus, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	GetKassenbestand(ctx context.Context, kassensitzungNr int) (kasse.Kassenbestand, error)
 	GetGeldtransitListe(ctx context.Context, kassensitzungNr int) ([]kasse.Geldtransit, error)
 	GetTischSessionsByKassensitzungNr(ctx context.Context, kassensitzungNr int) ([]kasse.TischSession, error)
 	ReadKassensitzungEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error)
-	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
 }
 
 type kassensitzungenRepo interface {
@@ -86,15 +87,31 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 // expectedVersion ist die Version des Zustands, gegen den der Command validiert hat
 // (frischer Stream: 0). Ein UNIQUE(subject, version)-Konflikt wird zu ErrConflict.
 func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kassensitzungNr int, expectedVersion int) error {
+	return writeKassensitzungEventOCC(ctx, e, kassensitzungNr, expectedVersion, func(versioned event.Event) (int, error) {
+		return c.KassenjournalRepo.WriteEvent(ctx, versioned, kasse.StreamTypeKassensitzung, kassensitzungNr)
+	})
+}
+
+// writeKassensitzungEventOCC weist dem Event die Version expectedVersion+1 zu und
+// schreibt es über write. Ein UNIQUE(subject, version)-Konflikt — der Stream hat
+// sich seit dem Lesen geändert — wird zu ErrConflict, eine nicht mehr offene
+// Kassensitzung zu ErrKasseNichtGeoeffnet, jeder unbekannte Fehler zu ErrDatabase.
+// Die beiden Idempotenz-Sentinels des Repositories gehen unverändert an den
+// Aufrufer: Nur er weiß, ob eine Zweiteinreichung seines Schlüssels die stille
+// Erfolgsantwort (gleicher Hash) oder einen Konflikt (anderer Hash) bedeutet.
+func writeKassensitzungEventOCC(ctx context.Context, e event.Event, kassensitzungNr int, expectedVersion int, write func(event.Event) (int, error)) error {
 	log := zerolog.Ctx(ctx)
 
 	subject := kasse.KassensitzungSubject(kassensitzungNr)
 	e.Version = expectedVersion + 1
 
-	_, err := c.KassenjournalRepo.WriteEvent(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr)
-	if err != nil {
+	if _, err := write(e); err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC Kassensitzung conflict")
+			// Neutral formuliert, weil hier zwei Quellen zusammenlaufen: der
+			// OCC-Versionskonflikt aus UNIQUE(subject, version) — der Regelfall —
+			// und, nur für Geldtransite aus der Zeit vor Migration 07,
+			// idx_kassenjournal_geldtransit_id (01_initial.up.sql).
+			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("Unique violation on Kassensitzung event write")
 			return ErrConflict
 		}
 		if errors.Is(err, db.ErrConflict) {
@@ -104,6 +121,9 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
 			log.Warn().Str("subject", subject).Msg("Kassensitzung nicht mehr offen")
 			return ErrKasseNichtGeoeffnet
+		}
+		if errors.Is(err, kassenjournal_repo.ErrVorgangBereitsGebucht) || errors.Is(err, kassenjournal_repo.ErrVorgangDatenAbweichend) {
+			return err
 		}
 		return ErrDatabase
 	}
@@ -200,13 +220,53 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 	return zNr, nil
 }
 
+// geldtransitNutzdaten sind die Nutzdaten, an die der Idempotenz-Schlüssel einer
+// Geldbewegung gebunden wird: in welche Richtung welcher Betrag mit welchem
+// Kommentar gebucht wird. Genau diese Angaben macht der Admin; ändert sich eine
+// davon, ist es ein anderer Vorgang.
+type geldtransitNutzdaten struct {
+	Richtung    string `json:"richtung"`
+	BetragCents int    `json:"betragCents"`
+	Kommentar   string `json:"kommentar"`
+}
+
 // GeldtransitBuchen books a Geldtransit (einlage or entnahme).
-// geldtransitID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel). Bei
-// UniqueViolation (Duplikat-Einreichung) wird per geldtransitId nachgeschlagen:
-// Treffer = idempotente Erfolgsantwort; kein Treffer = echter OCC-Konflikt (409).
-// Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht verglichen.
+// geldtransitID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel),
+// serverseitig an die Nutzdaten der Geldbewegung gebunden: Dieselbe geldtransitId
+// mit denselben Nutzdaten wird zur stillen Erfolgsantwort, ohne ein zweites Mal zu
+// buchen; dieselbe geldtransitId mit abweichenden Nutzdaten ergibt
+// ErrVorgangDatenAbweichend. Ein echter OCC-Konflikt bleibt davon unberührt und
+// ergibt weiterhin ErrConflict.
 func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName string, geldtransitID string, richtung string, betragCents int, kommentar string) error {
 	log := zerolog.Ctx(ctx)
+
+	// Vorprüfung VOR der fachlichen Validierung: Ein Wiederholversuch nach
+	// erfolgreicher Buchung darf nicht daran scheitern, dass die Kassensitzung
+	// inzwischen abgeschlossen wurde, sondern wiederholt die Erfolgsantwort.
+	// Derselbe Schlüssel mit anderen Nutzdaten ist dagegen ein expliziter Konflikt —
+	// stiller Erfolg verschluckte die geänderte Einreichung, eine zweite Buchung
+	// buchte doppelt. Das Rennen zweier gleichzeitiger Anfragen fängt zusätzlich der
+	// Insert der Idempotenz-Zeile in der Schreibtransaktion ab.
+	nutzdaten := geldtransitNutzdaten{Richtung: richtung, BetragCents: betragCents, Kommentar: kommentar}
+	payloadHash, err := kassenjournal_repo.ComputePayloadHash(kassenjournal_repo.VorgangArtGeldtransit, nutzdaten)
+	if err != nil {
+		log.Error().Err(err).Str("vorgang_id", geldtransitID).Msg("Failed to hash vorgang payload")
+		return err
+	}
+
+	status, err := c.KassenjournalRepo.DetermineVorgangStatus(ctx, geldtransitID, payloadHash)
+	if err != nil {
+		log.Error().Err(err).Str("vorgang_id", geldtransitID).Msg("Failed to check vorgang idempotency")
+		return ErrDatabase
+	}
+	if status == kassenjournal_repo.VorgangDuplikat {
+		log.Info().Str("geldtransit_id", geldtransitID).Msg("Idempotenter Geldtransit: geldtransitId bereits gebucht")
+		return nil
+	}
+	if status == kassenjournal_repo.VorgangDatenAbweichend {
+		log.Warn().Str("geldtransit_id", geldtransitID).Msg("Geldtransit mit abweichenden Nutzdaten unter bekannter geldtransitId")
+		return ErrVorgangDatenAbweichend
+	}
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
@@ -227,20 +287,24 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 		return ErrDatabase
 	}
 
-	if err := c.writeKassensitzungEvent(ctx, evt, ks.ZNr, maxVersion); err != nil {
-		if errors.Is(err, ErrConflict) {
-			// Idempotenz-Check: Ist der Konflikt eine Duplikat-Einreichung (gleiche geldtransitId)
-			// oder ein echter OCC-Konflikt?
-			exists, lookupErr := c.KassenjournalRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeGeldtransitGebuchtV1), geldtransitID, "geldtransitId")
-			if lookupErr != nil {
-				log.Error().Err(lookupErr).Str("geldtransit_id", geldtransitID).Msg("Failed to lookup geldtransit idempotency")
-				return ErrDatabase
-			}
-			if exists {
-				log.Info().Str("geldtransit_id", geldtransitID).Msg("Idempotenter Geldtransit: geldtransitId bereits vorhanden")
-				return nil
-			}
-			return ErrConflict
+	// Der Idempotenz-Schlüssel des Vorgangs wird samt Nutzdaten-Hash im selben Commit
+	// festgehalten, vor dem Event-Insert. Verliert die Buchung das Rennen um den
+	// Schlüssel, entscheidet der Hash: gleiche Nutzdaten ergeben die stille
+	// Erfolgsantwort ohne zweite Buchung, abweichende ErrVorgangDatenAbweichend. Ein
+	// Versionskonflikt bleibt davon unterscheidbar — er kommt aus
+	// UNIQUE(subject, version) und ergibt ErrConflict.
+	vorgang := kassenjournal_repo.Vorgang{VorgangID: geldtransitID, Art: kassenjournal_repo.VorgangArtGeldtransit, UserID: userID, PayloadHash: payloadHash}
+	err = writeKassensitzungEventOCC(ctx, evt, ks.ZNr, maxVersion, func(versioned event.Event) (int, error) {
+		return c.KassenjournalRepo.WriteEventMitVorgang(ctx, vorgang, versioned, kasse.StreamTypeKassensitzung, ks.ZNr)
+	})
+	if err != nil {
+		if errors.Is(err, kassenjournal_repo.ErrVorgangBereitsGebucht) {
+			log.Info().Str("geldtransit_id", geldtransitID).Msg("Idempotenter Geldtransit: geldtransitId bereits gebucht")
+			return nil
+		}
+		if errors.Is(err, kassenjournal_repo.ErrVorgangDatenAbweichend) {
+			log.Warn().Str("geldtransit_id", geldtransitID).Msg("Geldtransit mit abweichenden Nutzdaten unter bekannter geldtransitId")
+			return ErrVorgangDatenAbweichend
 		}
 		return err
 	}

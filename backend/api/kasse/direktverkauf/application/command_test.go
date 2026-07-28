@@ -3,8 +3,10 @@
 package application
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -57,6 +59,11 @@ type spyEventRepo struct {
 	streamEvents   []event.Event
 	readErr        error
 	vorgaenge      map[string]kassenjournal_repo.Vorgang // vorgang_idempotenz-Zeilen, keyed nach VorgangID
+	// writeVorgangErr liefert den Konflikt der Schreibtransaktion, ohne dass die
+	// Vorprüfung anschlägt — genau das Rennen zweier gleichzeitiger Anfragen um
+	// denselben Schlüssel. Sequenziell ist dieser Zweig nicht erreichbar: Die
+	// Vorprüfung fängt jede Zweiteinreichung vorher ab.
+	writeVorgangErr error
 }
 
 type writtenEvent struct {
@@ -81,44 +88,83 @@ func (s *spyEventRepo) WriteEvent(_ context.Context, e event.Event, streamType k
 	return len(s.written), nil
 }
 
-// VorgangBereitsGebucht mirrors the Duplikat-Vorprüfung of the real repo.
-func (s *spyEventRepo) VorgangBereitsGebucht(_ context.Context, vorgangID string) (bool, error) {
-	_, ok := s.vorgaenge[vorgangID]
-	return ok, nil
+// vorgangStatus mirrors DetermineVorgangStatus of the real repo on the recorded rows:
+// unbekannter Schlüssel → neu, gleicher Schlüssel mit gleichem Hash → Duplikat,
+// gleicher Schlüssel mit anderem Hash → abweichende Nutzdaten.
+func (s *spyEventRepo) vorgangStatus(vorgangID string, payloadHash []byte) kassenjournal_repo.VorgangStatus {
+	gebucht, ok := s.vorgaenge[vorgangID]
+	if !ok {
+		return kassenjournal_repo.VorgangNeu
+	}
+	if bytes.Equal(gebucht.PayloadHash, payloadHash) {
+		return kassenjournal_repo.VorgangDuplikat
+	}
+	return kassenjournal_repo.VorgangDatenAbweichend
 }
 
-// WriteEventMitVorgang mirrors the real repo: a duplicate VorgangID yields
-// ErrVorgangBereitsGebucht without a write; the vorgang row is only kept when
-// the event write succeeds (rollback semantics).
+// DetermineVorgangStatus mirrors the Vorprüfung of the real repo.
+func (s *spyEventRepo) DetermineVorgangStatus(_ context.Context, vorgangID string, payloadHash []byte) (kassenjournal_repo.VorgangStatus, error) {
+	return s.vorgangStatus(vorgangID, payloadHash), nil
+}
+
+// vorgangKonflikt mirrors the PRIMARY KEY of vorgang_idempotenz plus die
+// Nachprüfung des echten Repositories: writeVorgangErr erzwingt den Konflikt der
+// Schreibtransaktion, sonst entscheidet der gespeicherte Nutzdaten-Hash.
+func (s *spyEventRepo) vorgangKonflikt(vorgang kassenjournal_repo.Vorgang) error {
+	if s.writeVorgangErr != nil {
+		return s.writeVorgangErr
+	}
+	switch s.vorgangStatus(vorgang.VorgangID, vorgang.PayloadHash) {
+	case kassenjournal_repo.VorgangDuplikat:
+		return kassenjournal_repo.ErrVorgangBereitsGebucht
+	case kassenjournal_repo.VorgangDatenAbweichend:
+		return kassenjournal_repo.ErrVorgangDatenAbweichend
+	default:
+		return nil
+	}
+}
+
+// recordVorgang hält die vorgang_idempotenz-Zeile fest — nur nach einem
+// gelungenen Event-Write, weil im echten Repository ein gescheiterter Write die
+// ganze Transaktion zurückrollt.
+func (s *spyEventRepo) recordVorgang(vorgang kassenjournal_repo.Vorgang) {
+	if s.vorgaenge == nil {
+		s.vorgaenge = make(map[string]kassenjournal_repo.Vorgang)
+	}
+	s.vorgaenge[vorgang.VorgangID] = vorgang
+}
+
+// WriteEventMitVorgang mirrors the real repo: ein bereits vergebener Schlüssel
+// liefert je nach Nutzdaten-Hash ErrVorgangBereitsGebucht oder
+// ErrVorgangDatenAbweichend, ohne zu schreiben.
 func (s *spyEventRepo) WriteEventMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
-	if _, ok := s.vorgaenge[vorgang.VorgangID]; ok {
-		return 0, kassenjournal_repo.ErrVorgangBereitsGebucht
+	if err := s.vorgangKonflikt(vorgang); err != nil {
+		return 0, err
 	}
 	id, err := s.WriteEvent(ctx, e, streamType, kassensitzungNr)
 	if err != nil {
 		return 0, err
 	}
-	if s.vorgaenge == nil {
-		s.vorgaenge = make(map[string]kassenjournal_repo.Vorgang)
-	}
-	s.vorgaenge[vorgang.VorgangID] = vorgang
+	s.recordVorgang(vorgang)
 	return id, nil
 }
 
-func (s *spyEventRepo) WriteEventWithDruckauftraege(_ context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
-	id, err := s.WriteEvent(context.Background(), e, streamType, kassensitzungNr)
+// WriteEventWithDruckauftraegeMitVorgang mirrors the real repo: Idempotenz-Zeile,
+// Event und Druckaufträge in einer Transaktion — ein bereits vergebener Schlüssel
+// schreibt nichts davon.
+func (s *spyEventRepo) WriteEventWithDruckauftraegeMitVorgang(ctx context.Context, vorgang kassenjournal_repo.Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
+	if err := s.vorgangKonflikt(vorgang); err != nil {
+		return 0, err
+	}
+	id, err := s.WriteEvent(ctx, e, streamType, kassensitzungNr)
 	if err != nil {
 		return 0, err
 	}
 
 	e.ID = id
 	s.druckauftraege = append(s.druckauftraege, buildAuftraege(e)...)
+	s.recordVorgang(vorgang)
 	return id, nil
-}
-
-func (s *spyEventRepo) EventExistsByTypeAndVorgangsID(_ context.Context, _, _, _ string) (bool, error) {
-	// Spy returns false (no duplicate): the idempotency path is not exercised in these unit tests.
-	return false, nil
 }
 
 type mockDruckstationRepo struct {
@@ -277,6 +323,86 @@ func TestDirektverkaufTaetigen_DeadlockMapsToConflict(t *testing.T) {
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
 	if err != ErrConflict {
 		t.Fatalf("expected ErrConflict, got %v", err)
+	}
+}
+
+// Zwei identische Verkaufs-Aufrufe mit derselben verkaufId: genau ein Event,
+// beide Male Erfolg — der zweite Aufruf bucht nicht erneut.
+func TestDirektverkaufTaetigen_DuplikatVerkaufId_KeinZweitesEvent(t *testing.T) {
+	spy := &spyEventRepo{}
+	command := newCommand(spy, testOpenKS)
+
+	verkaufID := "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+	if err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", verkaufID, testInputs, ""); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+	if err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", verkaufID, testInputs, ""); err != nil {
+		t.Fatalf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
+	}
+
+	if len(spy.written) != 1 {
+		t.Fatalf("erwartet genau 1 geschriebenes Event, gespeichert: %d", len(spy.written))
+	}
+
+	vorgang, ok := spy.vorgaenge[verkaufID]
+	if !ok {
+		t.Fatal("erwartet eine vorgang_idempotenz-Zeile für die verkaufId")
+	}
+	if vorgang.Art != kassenjournal_repo.VorgangArtDirektverkauf {
+		t.Errorf("erwartet art %q, gespeichert: %q", kassenjournal_repo.VorgangArtDirektverkauf, vorgang.Art)
+	}
+	if vorgang.UserID != 1 {
+		t.Errorf("erwartet user_id 1, gespeichert: %d", vorgang.UserID)
+	}
+}
+
+// Dieselbe verkaufId mit geänderten Positionen ist weder ein Duplikat noch eine
+// neue Buchung: Der Command meldet den Konflikt und schreibt kein zweites Event.
+func TestDirektverkaufTaetigen_SelbeVerkaufIdAndereNutzdaten_DatenAbweichend(t *testing.T) {
+	spy := &spyEventRepo{}
+	command := newCommand(spy, testOpenKS)
+
+	verkaufID := "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+	if err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", verkaufID, testInputs, ""); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+
+	geaendert := []enrichment.PositionInput{{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 5}}
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", verkaufID, geaendert, "")
+	if !errors.Is(err, ErrVorgangDatenAbweichend) {
+		t.Fatalf("erwartet ErrVorgangDatenAbweichend, bekam: %v", err)
+	}
+	if len(spy.written) != 1 {
+		t.Fatalf("erwartet weiterhin genau 1 geschriebenes Event, gespeichert: %d", len(spy.written))
+	}
+}
+
+// Verlieren zwei gleichzeitige Verkäufe das Rennen um denselben Schlüssel,
+// schlägt erst der Insert in der Schreibtransaktion fehl — die Vorprüfung hat
+// beide durchgelassen. Der Nutzdaten-Hash entscheidet auch dort.
+func TestDirektverkaufTaetigen_SchluesselkonfliktImWrite(t *testing.T) {
+	faelle := []struct {
+		name      string
+		writeErr  error
+		erwartung error
+	}{
+		{name: "gleiche Nutzdaten", writeErr: kassenjournal_repo.ErrVorgangBereitsGebucht, erwartung: nil},
+		{name: "abweichende Nutzdaten", writeErr: kassenjournal_repo.ErrVorgangDatenAbweichend, erwartung: ErrVorgangDatenAbweichend},
+	}
+
+	for _, fall := range faelle {
+		t.Run(fall.name, func(t *testing.T) {
+			spy := &spyEventRepo{writeVorgangErr: fall.writeErr}
+			command := newCommand(spy, testOpenKS)
+
+			err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
+			if !errors.Is(err, fall.erwartung) {
+				t.Fatalf("erwartet %v, bekam: %v", fall.erwartung, err)
+			}
+			if len(spy.written) != 0 {
+				t.Fatalf("erwartet kein geschriebenes Event, gespeichert: %d", len(spy.written))
+			}
+		})
 	}
 }
 
@@ -479,5 +605,62 @@ func TestDirektverkaufStornieren_DuplikatVorgangId_IdempotenterErfolg(t *testing
 	}
 	if vorgang.UserID != 2 {
 		t.Errorf("erwartet user_id 2, gespeichert: %d", vorgang.UserID)
+	}
+	if len(vorgang.PayloadHash) == 0 {
+		t.Error("erwartet einen Nutzdaten-Hash an der vorgang_idempotenz-Zeile")
+	}
+}
+
+// Dieselbe vorgangId mit geänderten Nutzdaten ist weder ein Duplikat noch eine
+// neue Buchung: Der Server meldet den Konflikt, statt die geänderte Einreichung
+// zu verschlucken oder ein zweites Mal zu buchen.
+func TestDirektverkaufStornieren_SelbeVorgangIdAndereNutzdaten_DatenAbweichend(t *testing.T) {
+	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 3)
+	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}
+	command := newCommand(spy, testOpenKS)
+
+	refs := []kasse.PositionRef{{PositionID: positionID, Menge: 1}}
+	if err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", testVorgangID, verkaufID, refs, "Rückgabe"); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+
+	geaenderteRefs := []kasse.PositionRef{{PositionID: positionID, Menge: 2}}
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", testVorgangID, verkaufID, geaenderteRefs, "Rückgabe")
+	if !errors.Is(err, ErrVorgangDatenAbweichend) {
+		t.Fatalf("erwartet ErrVorgangDatenAbweichend, bekam: %v", err)
+	}
+	if len(spy.written) != 1 {
+		t.Fatalf("erwartet weiterhin genau 1 geschriebenes Event, gespeichert: %d", len(spy.written))
+	}
+}
+
+// Verlieren zwei gleichzeitige Anfragen das Rennen um denselben Schlüssel,
+// schlägt erst der Insert in der Schreibtransaktion fehl — die Vorprüfung hat
+// beide durchgelassen. Der Nutzdaten-Hash entscheidet auch dort.
+func TestDirektverkaufStornieren_SchluesselkonfliktImWrite(t *testing.T) {
+	faelle := []struct {
+		name      string
+		writeErr  error
+		erwartung error
+	}{
+		{name: "gleiche Nutzdaten", writeErr: kassenjournal_repo.ErrVorgangBereitsGebucht, erwartung: nil},
+		{name: "abweichende Nutzdaten", writeErr: kassenjournal_repo.ErrVorgangDatenAbweichend, erwartung: ErrVorgangDatenAbweichend},
+	}
+
+	for _, fall := range faelle {
+		t.Run(fall.name, func(t *testing.T) {
+			getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 2)
+			spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}, writeVorgangErr: fall.writeErr}
+			command := newCommand(spy, testOpenKS)
+
+			refs := []kasse.PositionRef{{PositionID: positionID, Menge: 1}}
+			err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", testVorgangID, verkaufID, refs, "Rückgabe")
+			if !errors.Is(err, fall.erwartung) {
+				t.Fatalf("erwartet %v, bekam: %v", fall.erwartung, err)
+			}
+			if len(spy.written) != 0 {
+				t.Fatalf("erwartet kein geschriebenes Event, gespeichert: %d", len(spy.written))
+			}
+		})
 	}
 }

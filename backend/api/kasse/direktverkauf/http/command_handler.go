@@ -77,6 +77,8 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 			switch {
 			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
+			case errors.Is(err, application.ErrVorgangDatenAbweichend):
+				helper.SendConflict(w, "vorgang_daten_abweichend")
 			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
 				helper.SendConflict(w, "kasse_wird_abgeschlossen")
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
@@ -144,6 +146,8 @@ func (h *CommandHandler) DirektverkaufStornierenHandler() http.HandlerFunc {
 			switch {
 			case errors.Is(err, application.ErrConflict):
 				helper.SendConflictError(w)
+			case errors.Is(err, application.ErrVorgangDatenAbweichend):
+				helper.SendConflict(w, "vorgang_daten_abweichend")
 			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
 				helper.SendConflict(w, "kasse_wird_abgeschlossen")
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):

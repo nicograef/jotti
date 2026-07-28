@@ -3,8 +3,8 @@
 package kassenjournal_repo
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"sort"
 	"strings"
 	"time"
@@ -51,7 +51,7 @@ type MockRepo struct {
 	tischNames             map[int]string // Tischnamen für ReadFavoritenTischStates
 	tischSessionErr        error
 	kassenbestand          int                                   // configurable return value for GetKassenbestand
-	druckauftraege         []druckauftrag_repo.NeuerDruckauftrag // captured via WriteEventWithDruckauftraege
+	druckauftraege         []druckauftrag_repo.NeuerDruckauftrag // captured via WriteEventWithDruckauftraegeMitVorgang
 	vorgaenge              map[string]Vorgang                    // vorgang_idempotenz-Zeilen, keyed nach VorgangID
 }
 
@@ -85,7 +85,7 @@ func (m *MockRepo) EroeffneKassensitzung(ctx context.Context, _ time.Time, _ str
 	return zNr, nil
 }
 
-func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamType, _ int) (int, error) {
+func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
 	if m.writeErr != nil {
 		return 0, m.writeErr
 	}
@@ -98,10 +98,44 @@ func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamTy
 	newID := len(m.events) + 1
 	e.ID = newID
 	m.events[newID] = e
+	if err := m.applyToProjection(e, streamType, kassensitzungNr); err != nil {
+		return 0, err
+	}
 	return newID, nil
 }
 
-func (m *MockRepo) WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
+// applyToProjection schreibt die tisch_sessions-Projektion fort — wie der echte
+// Repository im selben Commit wie den Event-Insert. Ohne das bliebe der
+// projizierte Tischzustand nach einem Write stehen, und die Vorprüfung der
+// Kommandos wäre in den Unit-Tests nicht tragend: Eine Zweiteinreichung liefe
+// erneut anstandslos durch die fachliche Validierung, statt an ihr zu scheitern.
+// Andere Stream-Typen haben keine Projektion (Direktverkauf) bzw. keine, die die
+// Kommandos wieder lesen (Kassensitzung).
+func (m *MockRepo) applyToProjection(e event.Event, streamType kasse.StreamType, kassensitzungNr int) error {
+	if streamType != kasse.StreamTypeTischSession {
+		return nil
+	}
+
+	tischID, err := kasse.ParseTischIDFromSubject(e.Subject)
+	if err != nil {
+		return err
+	}
+
+	neuerStand, err := kasse.ApplyEvent(m.tischSessions[e.Subject], e)
+	if err != nil {
+		return err
+	}
+	neuerStand.Subject = e.Subject
+	neuerStand.TischID = tischID
+	neuerStand.KassensitzungNr = kassensitzungNr
+
+	m.SetTischSession(e.Subject, neuerStand)
+	return nil
+}
+
+// writeEventWithDruckauftraege ist der Vorgang-freie Kern der Mock-Variante: Das
+// echte Repository bietet den Druckauftrags-Write nur noch mit Vorgang an.
+func (m *MockRepo) writeEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
 	id, err := m.WriteEvent(ctx, e, streamType, kassensitzungNr)
 	if err != nil {
 		return 0, err
@@ -111,7 +145,9 @@ func (m *MockRepo) WriteEventWithDruckauftraege(ctx context.Context, e event.Eve
 	return id, nil
 }
 
-func (m *MockRepo) WriteTischSessionEventsAtomic(_ context.Context, events []event.Event, _ int) error {
+// writeTischSessionEventsAtomic ist der Vorgang-freie Kern der Mock-Variante: Das
+// echte Repository bietet den atomaren Tisch-Session-Write nur noch mit Vorgang an.
+func (m *MockRepo) writeTischSessionEventsAtomic(_ context.Context, events []event.Event, kassensitzungNr int) error {
 	if m.writeErr != nil {
 		return m.writeErr
 	}
@@ -126,28 +162,49 @@ func (m *MockRepo) WriteTischSessionEventsAtomic(_ context.Context, events []eve
 		newID := len(m.events) + 1
 		evt.ID = newID
 		m.events[newID] = evt
+		if err := m.applyToProjection(evt, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (m *MockRepo) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
-	return m.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
-}
-
-// vorgangBereitsGebucht mirrors the PRIMARY KEY of vorgang_idempotenz.
-func (m *MockRepo) vorgangBereitsGebucht(vorgang Vorgang) bool {
-	_, ok := m.vorgaenge[vorgang.VorgangID]
-	return ok
-}
-
-// VorgangBereitsGebucht mirrors the Duplikat-Vorprüfung of the real repo.
-func (m *MockRepo) VorgangBereitsGebucht(_ context.Context, vorgangID string) (bool, error) {
-	if m.err != nil {
-		return false, m.err
+// vorgangStatus mirrors DetermineVorgangStatus on the recorded rows: unbekannter
+// Schlüssel → neu, gleicher Schlüssel mit gleichem Hash → Duplikat, gleicher
+// Schlüssel mit anderem Hash → abweichende Nutzdaten.
+func (m *MockRepo) vorgangStatus(vorgangID string, payloadHash []byte) VorgangStatus {
+	gebucht, ok := m.vorgaenge[vorgangID]
+	if !ok {
+		return VorgangNeu
 	}
-	_, ok := m.vorgaenge[vorgangID]
-	return ok, nil
+	if bytes.Equal(gebucht.PayloadHash, payloadHash) {
+		return VorgangDuplikat
+	}
+	return VorgangDatenAbweichend
+}
+
+// DetermineVorgangStatus mirrors the Vorprüfung of the real repo.
+func (m *MockRepo) DetermineVorgangStatus(_ context.Context, vorgangID string, payloadHash []byte) (VorgangStatus, error) {
+	if m.err != nil {
+		return VorgangNeu, m.err
+	}
+	return m.vorgangStatus(vorgangID, payloadHash), nil
+}
+
+// vorgangKonflikt mirrors the PRIMARY KEY of vorgang_idempotenz plus the
+// Nachprüfung des echten Repositories: Ein bereits vergebener Schlüssel liefert
+// je nach Nutzdaten den Duplikat- oder den Abweichungs-Sentinel, ein freier
+// Schlüssel nil.
+func (m *MockRepo) vorgangKonflikt(vorgang Vorgang) error {
+	switch m.vorgangStatus(vorgang.VorgangID, vorgang.PayloadHash) {
+	case VorgangDuplikat:
+		return ErrVorgangBereitsGebucht
+	case VorgangDatenAbweichend:
+		return ErrVorgangDatenAbweichend
+	default:
+		return nil
+	}
 }
 
 // recordVorgang stores the vorgang_idempotenz row. Called only after the event
@@ -168,8 +225,8 @@ func (m *MockRepo) GebuchterVorgang(vorgangID string) (Vorgang, bool) {
 }
 
 func (m *MockRepo) WriteEventMitVorgang(ctx context.Context, vorgang Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
-	if m.vorgangBereitsGebucht(vorgang) {
-		return 0, ErrVorgangBereitsGebucht
+	if err := m.vorgangKonflikt(vorgang); err != nil {
+		return 0, err
 	}
 	id, err := m.WriteEvent(ctx, e, streamType, kassensitzungNr)
 	if err != nil {
@@ -179,11 +236,23 @@ func (m *MockRepo) WriteEventMitVorgang(ctx context.Context, vorgang Vorgang, e 
 	return id, nil
 }
 
-func (m *MockRepo) WriteTischSessionEventsAtomicMitVorgang(ctx context.Context, vorgang Vorgang, events []event.Event, kassensitzungNr int) error {
-	if m.vorgangBereitsGebucht(vorgang) {
-		return ErrVorgangBereitsGebucht
+func (m *MockRepo) WriteEventWithDruckauftraegeMitVorgang(ctx context.Context, vorgang Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
+	if err := m.vorgangKonflikt(vorgang); err != nil {
+		return 0, err
 	}
-	if err := m.WriteTischSessionEventsAtomic(ctx, events, kassensitzungNr); err != nil {
+	id, err := m.writeEventWithDruckauftraege(ctx, e, streamType, kassensitzungNr, buildAuftraege)
+	if err != nil {
+		return 0, err
+	}
+	m.recordVorgang(vorgang)
+	return id, nil
+}
+
+func (m *MockRepo) WriteTischSessionEventsAtomicMitVorgang(ctx context.Context, vorgang Vorgang, events []event.Event, kassensitzungNr int) error {
+	if err := m.vorgangKonflikt(vorgang); err != nil {
+		return err
+	}
+	if err := m.writeTischSessionEventsAtomic(ctx, events, kassensitzungNr); err != nil {
 		return err
 	}
 	m.recordVorgang(vorgang)
@@ -194,7 +263,7 @@ func (m *MockRepo) WriteUmbuchungMitVorgang(ctx context.Context, vorgang Vorgang
 	return m.WriteTischSessionEventsAtomicMitVorgang(ctx, vorgang, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
 }
 
-// CapturedDruckauftraege returns the print jobs produced via WriteEventWithDruckauftraege.
+// CapturedDruckauftraege returns the print jobs produced via WriteEventWithDruckauftraegeMitVorgang.
 func (m *MockRepo) CapturedDruckauftraege() []druckauftrag_repo.NeuerDruckauftrag {
 	return m.druckauftraege
 }
@@ -326,35 +395,6 @@ func (m *MockRepo) GetTischSessionsByKassensitzungNr(_ context.Context, kassensi
 // Use to trigger a post-barrier failure without affecting other journal operations.
 func (m *MockRepo) SetReadKassensitzungEventsErr(err error) {
 	m.kassensitzungEventsErr = err
-}
-
-// EventExistsByTypeAndVorgangsID prüft, ob im Mock ein gespeichertes Event des
-// gegebenen Typs existiert, bei dem data[jsonKey] == vorgangsID.
-func (m *MockRepo) EventExistsByTypeAndVorgangsID(_ context.Context, eventType, vorgangsID, jsonKey string) (bool, error) {
-	if m.err != nil {
-		return false, m.err
-	}
-	for _, e := range m.events {
-		if e.Type != eventType {
-			continue
-		}
-		var data map[string]json.RawMessage
-		if err := json.Unmarshal(e.Data, &data); err != nil {
-			continue
-		}
-		val, ok := data[jsonKey]
-		if !ok {
-			continue
-		}
-		var s string
-		if err := json.Unmarshal(val, &s); err != nil {
-			continue
-		}
-		if s == vorgangsID {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // ReadKassensitzungEvents returns all events whose subject belongs to the given

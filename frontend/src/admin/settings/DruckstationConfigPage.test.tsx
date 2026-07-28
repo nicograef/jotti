@@ -30,6 +30,7 @@ const { alleVerwerfen, updateDruckstation, testbonDrucken } = vi.hoisted(
 
 const druckstationenState = vi.hoisted(() => ({
   druckstationen: [] as DruckstationConfig[],
+  isLoadingError: false,
 }))
 
 const fehlgeschlageneState = vi.hoisted(() => ({
@@ -40,7 +41,7 @@ vi.mock('./hooks', () => ({
   useDruckstationen: () => ({
     druckstationen: druckstationenState.druckstationen,
     isPending: false,
-    error: null,
+    isLoadingError: druckstationenState.isLoadingError,
     updateDruckstation,
     testbonDrucken,
   }),
@@ -85,6 +86,7 @@ afterEach(() => {
   vi.clearAllMocks()
   fehlgeschlageneState.druckauftraege = []
   druckstationenState.druckstationen = []
+  druckstationenState.isLoadingError = false
 })
 
 describe('DruckstationConfigPage — Alarm-Karte', () => {
@@ -187,6 +189,21 @@ describe('DruckstationConfigPage — Alarm-Karte', () => {
 
     const referenzZeile = screen.getByText(/Bestellung Nr\. 86/)
     expect(referenzZeile).toHaveAttribute('title', 'bestellung-aufgenommen:86')
+  })
+})
+
+describe('DruckstationConfigPage — Ladefehler', () => {
+  // Nur das gescheiterte Erstladen (`isLoadingError`) ersetzt die Seite. Ein
+  // gescheiterter Hintergrund-Refetch lässt sie stehen — siehe hooks.test.ts.
+  it('zeigt bei gescheitertem Erstladen eine Meldung statt der Stationen', () => {
+    druckstationenState.isLoadingError = true
+    fehlgeschlageneState.druckauftraege = [makeAuftrag(1)]
+    render(<DruckstationConfigPage />)
+
+    expect(
+      screen.getByText('Fehler beim Laden der Druckstationen.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByLabelText('Drucker-IP')).not.toBeInTheDocument()
   })
 })
 

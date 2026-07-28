@@ -1,16 +1,29 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent, { type UserEvent } from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { BackendError } from '@/lib/Backend'
+
+import { AKTIVE_PRODUKTE_KEY } from './product/hooks'
 import type { Produkt } from './product/Produkt'
-import type { Position } from './table/Bestellung'
+import type { BestellungAufnehmen, Position } from './table/Bestellung'
 import {
   AKTIVE_TISCHE_MIT_FAVORITEN_KEY,
   EIGENE_UEBERSICHT_KEY,
   MEINE_TISCHE_STATE_KEY,
+  TISCH_HISTORIE_KEY,
+  TISCH_STATE_KEY,
 } from './table/hooks'
-import type { TischSession } from './table/Tisch'
+import type { Tisch, TischSession } from './table/Tisch'
+import type { ZahlungKassieren } from './table/Zahlung'
 import { TablePage } from './TablePage'
 
 function position(positionId: string): Position {
@@ -47,12 +60,31 @@ const testProdukt: Produkt = {
   updatedAt: '2025-01-01T00:00:00Z',
 }
 
-// Steuerbarer Testzustand: `tischId` bildet den :tischId-Param nach (Tischwechsel
-// ohne Remount), `produkte` speist die Bestell-Tab-Auswahl.
+// Zweites Produkt derselben Kategorie, damit beide Varianten-Zeilen ohne
+// Kategoriewechsel nebeneinander stehen.
+const testBeilage: Produkt = {
+  id: 2,
+  name: 'Pommes',
+  kategorie: 'essen',
+  status: 'active',
+  varianten: [
+    {
+      id: 2,
+      name: 'Normal',
+      preisCents: 250,
+      status: 'active',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
+    },
+  ],
+  createdAt: '2025-01-01T00:00:00Z',
+  updatedAt: '2025-01-01T00:00:00Z',
+}
+
+// Steuerbarer Testzustand: `tischId` bildet den :tischId-Param nach
+// (Tischwechsel ohne Remount).
 const testState = vi.hoisted(() => ({
   tischId: '1',
-  produkte: [] as Produkt[],
-  produkteError: false,
 }))
 
 vi.mock('react-router', () => ({
@@ -70,7 +102,10 @@ vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: () => true,
 }))
 
-vi.mock('@/lib/Backend', () => ({
+// Nur der Singleton wird ersetzt: Die Fehlerklassen bleiben echt, weil die
+// Fehlermeldungen der Aktionen (use-action-submit) gegen sie prüfen.
+vi.mock('@/lib/Backend', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/Backend')>()),
   BackendSingleton: {},
 }))
 
@@ -80,28 +115,44 @@ vi.mock('@/lib/Auth', () => ({
   AuthSingleton: { userId: 1, canCancel: true, canRebook: true },
 }))
 
-vi.mock('./product/hooks', () => ({
-  useAktiveProdukte: () => ({
-    produkte: testState.produkte,
-    isPending: false,
-    isError: testState.produkteError,
-    refetch: vi.fn(),
-  }),
+// Die Seite läuft gegen die echten Query-Hooks; nur die Backends sind ersetzt.
+// Nur so ist prüfbar, dass ein gescheitertes Erstladen (leerer Cache) und ein
+// gescheiterter Hintergrund-Refetch (gefüllter Cache) verschieden aussehen.
+const {
+  getTischState,
+  getTischHistorie,
+  getAktiveTische,
+  getAktiveProdukte,
+  stornierungErteilen,
+  bestellungUmbuchen,
+  bestellungAufnehmen,
+  zahlungKassieren,
+} = vi.hoisted(() => ({
+  getTischState: vi.fn<() => Promise<TischSession>>(),
+  getTischHistorie: vi.fn<() => Promise<unknown[]>>(),
+  getAktiveTische: vi.fn<() => Promise<Tisch[]>>(),
+  getAktiveProdukte: vi.fn<() => Promise<Produkt[]>>(),
+  stornierungErteilen: vi.fn<() => Promise<void>>(),
+  bestellungUmbuchen: vi.fn<() => Promise<void>>(),
+  bestellungAufnehmen: vi.fn<(b: BestellungAufnehmen) => Promise<void>>(),
+  zahlungKassieren: vi.fn<(z: ZahlungKassieren) => Promise<void>>(),
 }))
 
-const { getTischState, getTischHistorie, stornierungErteilen } = vi.hoisted(
-  () => ({
-    getTischState: vi.fn<() => Promise<TischSession>>(),
-    getTischHistorie: vi.fn<() => Promise<unknown[]>>(),
-    stornierungErteilen: vi.fn<() => Promise<void>>(),
-  }),
-)
+vi.mock('./product/ProduktBackend', () => ({
+  ProduktBackend: class {
+    getAktiveProdukte = getAktiveProdukte
+  },
+}))
 
 vi.mock('./table/TischBackend', () => ({
   TischBackend: class {
     getTischState = getTischState
     getTischHistorie = getTischHistorie
+    getAktiveTische = getAktiveTische
     stornierungErteilen = stornierungErteilen
+    bestellungUmbuchen = bestellungUmbuchen
+    bestellungAufnehmen = bestellungAufnehmen
+    zahlungKassieren = zahlungKassieren
   },
 }))
 
@@ -115,12 +166,14 @@ const stammtisch: TischSession = {
   fuerMichErledigt: true,
 }
 
+beforeEach(() => {
+  getAktiveProdukte.mockResolvedValue([])
+})
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
   testState.tischId = '1'
-  testState.produkte = []
-  testState.produkteError = false
 })
 
 function renderPage() {
@@ -148,6 +201,47 @@ const bestellungMitPosition = {
   aufgenommenAm: '2026-06-18T12:00:00Z',
   stornierbarePositionen: [position('p1')],
   umbuchbarePositionen: [],
+}
+
+// Umbuchung über die Historie: Bestellung öffnen, Position wählen, Ziel-Tisch
+// wählen, buchen. Wie beim Storno steht danach der Erfolgs-Pop offen.
+async function bucheUeberHistorieUm(user: UserEvent) {
+  await user.click(screen.getByRole('tab', { name: 'Historie' }))
+  await user.click(screen.getByRole('button', { name: /Bestellung/ }))
+  await user.click(screen.getByRole('button', { name: 'Umbuchen' }))
+  await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+  await user.selectOptions(screen.getByRole('combobox'), '2')
+  await user.click(screen.getByRole('button', { name: 'Umbuchung ausführen' }))
+}
+
+// Bestellen auf dem Handy-Pfad: Dock-Aktionsbutton öffnet den Drawer, darin
+// liegt der Aufnehmen-Button. Danach wird der Drawer geschlossen, damit der
+// nächste Schritt (Tab-Wechsel) nicht am modalen Overlay hängen bleibt.
+async function bestelleUeberDenDrawer(user: UserEvent) {
+  await user.click(
+    screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+  )
+  const dialog = await screen.findByRole('dialog')
+  await user.click(
+    within(dialog).getByRole('button', { name: 'Bestellung aufnehmen' }),
+  )
+  await user.click(within(dialog).getByRole('button', { name: 'Abbrechen' }))
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+}
+
+// Kassieren auf dem Handy-Pfad, analog zum Bestellen. Der Dock-Trigger trägt
+// zusätzlich Anzahl und Summe im Namen, der Submit-Button im Drawer nur
+// „Kassieren".
+async function kassiereUeberDenDrawer(user: UserEvent) {
+  await user.click(screen.getByRole('button', { name: /Kassieren/ }))
+  const dialog = await screen.findByRole('dialog')
+  await user.click(within(dialog).getByRole('button', { name: 'Kassieren' }))
+  await user.click(within(dialog).getByRole('button', { name: 'Abbrechen' }))
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
 }
 
 // Storno über die Historie: Bestellung öffnen, Position wählen, Kommentar
@@ -209,7 +303,7 @@ describe('TablePage', () => {
   })
 
   it('zeigt im Bestellen-Tab einen Ladefehler statt einer leeren Produktliste', async () => {
-    testState.produkteError = true
+    getAktiveProdukte.mockRejectedValue(new Error('Netzabbruch'))
     getTischState.mockResolvedValue(stammtisch)
     getTischHistorie.mockResolvedValue([])
     renderPage()
@@ -220,6 +314,61 @@ describe('TablePage', () => {
     // Der Leerzustand der Produktliste behauptet, es gebe nichts zu bestellen.
     expect(
       screen.queryByText('Keine Produkte verfügbar'),
+    ).not.toBeInTheDocument()
+  })
+
+  // Der Ladefehler gilt nur dem gescheiterten Erstladen. Scheitert ein
+  // Hintergrund-Refetch, sind die zuletzt geladenen Daten weiter gültig — sie
+  // wegzureißen nähme der Servicekraft mitten im Betrieb den offenen Tisch.
+  // Die Meldung trägt der zentrale Fehler-Toast aus queryClient.ts.
+  it('lässt den Tischzustand stehen, wenn ein Hintergrund-Refetch scheitert', async () => {
+    getTischState
+      .mockResolvedValueOnce(stammtisch)
+      .mockRejectedValue(new Error('Netzabbruch'))
+    getTischHistorie.mockResolvedValue([])
+    const { queryClient } = renderPage()
+
+    await screen.findByText('Stammtisch')
+    await act(async () => {
+      await queryClient.refetchQueries()
+    })
+    // Die Query steht auf „error", die Seite hat die Aktualisierung verarbeitet
+    // — erst danach ist die Anzeige aussagekräftig.
+    await waitFor(() => {
+      expect(queryClient.getQueryState([TISCH_STATE_KEY, 1])?.status).toBe(
+        'error',
+      )
+    })
+
+    expect(getTischState).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('Stammtisch')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Tischdaten konnten nicht geladen werden'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('lässt die Produktliste stehen, wenn ein Hintergrund-Refetch scheitert', async () => {
+    getAktiveProdukte
+      .mockResolvedValueOnce([testProdukt])
+      .mockRejectedValue(new Error('Netzabbruch'))
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    const { queryClient } = renderPage()
+
+    await screen.findByText('Bratwurst')
+    await act(async () => {
+      await queryClient.refetchQueries()
+    })
+    await waitFor(() => {
+      expect(queryClient.getQueryState([AKTIVE_PRODUKTE_KEY])?.status).toBe(
+        'error',
+      )
+    })
+
+    expect(getAktiveProdukte).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('Bratwurst')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Produkte konnten nicht geladen werden'),
     ).not.toBeInTheDocument()
   })
 
@@ -250,7 +399,7 @@ describe('TablePage', () => {
   // Radix-Tab-Inhalte (inaktive Tabs werden ausgehängt). Ohne das Heben nach
   // TablePage ginge die Auswahl beim Tab-Wechsel verloren.
   it('behält den Bestell-Korb über einen Tab-Wechsel hinweg', async () => {
-    testState.produkte = [testProdukt]
+    getAktiveProdukte.mockResolvedValue([testProdukt])
     getTischState.mockResolvedValue(stammtisch)
     getTischHistorie.mockResolvedValue([])
     const user = userEvent.setup()
@@ -297,6 +446,285 @@ describe('TablePage', () => {
     expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
       '3,50',
     )
+  })
+
+  // Der Idempotenz-Schlüssel muss dieselbe Lebensdauer haben wie die Auswahl,
+  // zu der er gehört. Lag er im Tab-Inhalt, gab ihn das Aus- und
+  // Wiedereinhängen der Radix-Tabs neu aus: Der Helfer bucht, die Antwort geht
+  // verloren, er prüft auf der Historie nach und bucht erneut — mit neuem
+  // Schlüssel bucht der Server ein zweites Mal.
+  it('behält die bestellungId über einen Tab-Wechsel hinweg', async () => {
+    getAktiveProdukte.mockResolvedValue([testProdukt])
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    // Die verlorene Antwort: Der Korb bleibt gefüllt, weil nur der Erfolg ihn
+    // leert.
+    bestellungAufnehmen.mockRejectedValue(new Error('Netzabbruch'))
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await bestelleUeberDenDrawer(user)
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = bestellungAufnehmen.mock.calls[0][0].bestellungId
+
+    // Auf die Historie schauen, ob die Bestellung angekommen ist, und zurück.
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('tab', { name: 'Bestellen' }))
+
+    await bestelleUeberDenDrawer(user)
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(2)
+    })
+    const zweiterAufruf = bestellungAufnehmen.mock.calls[1][0]
+    expect(zweiterAufruf.bestellungId).toBe(ersterKey)
+    expect(zweiterAufruf.positionen).toEqual(
+      bestellungAufnehmen.mock.calls[0][0].positionen,
+    )
+  })
+
+  // Ein Admin kann ein Produkt deaktivieren, während es im Korb liegt. Bliebe
+  // der Korb-Eintrag stehen, wäre er unsichtbar (die Zeile ist weg) und nicht
+  // mehr herunterzählbar; der Korb gälte nie wieder als leer, und die
+  // bestellungId rotierte für die restliche Lebensdauer der Seite nicht mehr —
+  // die nächste Bestellung liefe unter dem Schlüssel der vorherigen.
+  it('vergibt eine neue bestellungId, wenn die gewählte Variante aus der Produktliste fällt', async () => {
+    getAktiveProdukte
+      .mockResolvedValueOnce([testProdukt, testBeilage])
+      .mockResolvedValue([testBeilage])
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    // Die verlorene Antwort: Der Korb bleibt gefüllt, weil nur der Erfolg ihn
+    // leert.
+    bestellungAufnehmen.mockRejectedValue(new Error('Netzabbruch'))
+    const user = userEvent.setup()
+    const { queryClient } = renderPage()
+
+    await screen.findByText('Bratwurst')
+    await user.click(
+      screen.getAllByRole('button', { name: 'Variante hinzufügen' })[0],
+    )
+    await bestelleUeberDenDrawer(user)
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = bestellungAufnehmen.mock.calls[0][0].bestellungId
+
+    // Die Bratwurst wird deaktiviert; der nächste Abruf liefert sie nicht mehr.
+    await act(async () => {
+      await queryClient.refetchQueries({ queryKey: [AKTIVE_PRODUKTE_KEY] })
+    })
+    await waitFor(() => {
+      expect(screen.queryByText('Bratwurst')).not.toBeInTheDocument()
+    })
+    // Der Korb ist wirklich leer, nicht nur unsichtbar leer.
+    expect(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    ).toBeDisabled()
+
+    // Neue Zusammenstellung: eigener Vorgang, eigener Schlüssel.
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await bestelleUeberDenDrawer(user)
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(2)
+    })
+    const zweiterAufruf = bestellungAufnehmen.mock.calls[1][0]
+    expect(zweiterAufruf.positionen).toEqual([
+      { produktId: 2, varianteId: 2, menge: 1 },
+    ])
+    expect(zweiterAufruf.bestellungId).not.toBe(ersterKey)
+  })
+
+  // Der 409 `vorgang_daten_abweichend` belegt, dass der Vorgang unter diesem
+  // Schlüssel gebucht ist — nur seine Antwort ging verloren. Bliebe der Korb
+  // stehen, bliebe auch der Schlüssel stehen, und die Meldung („nur die
+  // Differenz erneut erfassen") führte in genau denselben 409 zurück: Die
+  // ergänzte Position wäre nie zu buchen.
+  it('räumt Korb, Schlüssel und Tischzustand ab, wenn der Server den Vorgang als gebucht meldet', async () => {
+    getAktiveProdukte.mockResolvedValue([testProdukt, testBeilage])
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    bestellungAufnehmen
+      .mockRejectedValueOnce(
+        new BackendError(409, 'vorgang_daten_abweichend', ''),
+      )
+      // Der zweite Versuch scheitert am Netz, damit der Drawer offen bleibt und
+      // kein Erfolgs-Pop dazwischenkommt — geprüft wird nur sein Schlüssel.
+      .mockRejectedValue(new Error('Netzabbruch'))
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Bratwurst')
+    await user.click(
+      screen.getAllByRole('button', { name: 'Variante hinzufügen' })[0],
+    )
+    await user.click(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    )
+    const drawer = await screen.findByRole('dialog')
+    // Vor dem Absenden gezählt: Das Abräumen läuft synchron im Fehlerpfad, der
+    // Refetch wäre sonst schon gelaufen, bevor der Zähler steht.
+    const tischAbrufe = getTischState.mock.calls.length
+    await user.click(
+      within(drawer).getByRole('button', { name: 'Bestellung aufnehmen' }),
+    )
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = bestellungAufnehmen.mock.calls[0][0].bestellungId
+
+    // Der abgeschlossene Vorgang schließt den Drawer und leert den Korb.
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    expect(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    ).toBeDisabled()
+    // Der Tischzustand lädt neu — nur so sieht der Helfer, was tatsächlich
+    // gebucht ist, und weiß, was die Differenz ist.
+    await waitFor(() => {
+      expect(getTischState.mock.calls.length).toBeGreaterThan(tischAbrufe)
+    })
+
+    // Die Differenz nachbuchen: eigene Zusammenstellung, eigener Schlüssel.
+    await user.click(
+      screen.getAllByRole('button', { name: 'Variante hinzufügen' })[1],
+    )
+    await user.click(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    )
+    const zweiterDrawer = await screen.findByRole('dialog')
+    await user.click(
+      within(zweiterDrawer).getByRole('button', {
+        name: 'Bestellung aufnehmen',
+      }),
+    )
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(2)
+    })
+
+    const zweiterAufruf = bestellungAufnehmen.mock.calls[1][0]
+    expect(zweiterAufruf.positionen).toEqual([
+      { produktId: 2, varianteId: 2, menge: 1 },
+    ])
+    expect(zweiterAufruf.bestellungId).not.toBe(ersterKey)
+  })
+
+  it('behält die vorgangId der Zahlung über einen Tab-Wechsel hinweg', async () => {
+    getTischState.mockResolvedValue({
+      ...stammtisch,
+      unbezahltePositionen: [position('p1')],
+    })
+    getTischHistorie.mockResolvedValue([])
+    zahlungKassieren.mockRejectedValue(new Error('Netzabbruch'))
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+    await user.click(screen.getByRole('button', { name: 'Produkt hinzufügen' }))
+    await kassiereUeberDenDrawer(user)
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = zahlungKassieren.mock.calls[0][0].vorgangId
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+
+    await kassiereUeberDenDrawer(user)
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(2)
+    })
+    expect(zahlungKassieren.mock.calls[1][0].vorgangId).toBe(ersterKey)
+  })
+
+  // Dieselbe Sackgasse auf dem Kassieren-Pfad: Ohne geleerte Auswahl bliebe der
+  // Schlüssel stehen, und die verbliebene Position wäre nie zu kassieren.
+  it('räumt Kassieren-Auswahl und Schlüssel ab, wenn der Server den Vorgang als gebucht meldet', async () => {
+    getTischState.mockResolvedValue({
+      ...stammtisch,
+      unbezahltePositionen: [position('p1'), position('p2')],
+    })
+    getTischHistorie.mockResolvedValue([])
+    zahlungKassieren
+      .mockRejectedValueOnce(
+        new BackendError(409, 'vorgang_daten_abweichend', ''),
+      )
+      .mockRejectedValue(new Error('Netzabbruch'))
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+    await user.click(
+      screen.getAllByRole('button', { name: 'Produkt hinzufügen' })[0],
+    )
+    await user.click(screen.getByRole('button', { name: /Kassieren/ }))
+    const drawer = await screen.findByRole('dialog')
+    await user.click(within(drawer).getByRole('button', { name: 'Kassieren' }))
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = zahlungKassieren.mock.calls[0][0].vorgangId
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toBeDisabled()
+
+    await user.click(
+      screen.getAllByRole('button', { name: 'Produkt hinzufügen' })[1],
+    )
+    await user.click(screen.getByRole('button', { name: /Kassieren/ }))
+    const zweiterDrawer = await screen.findByRole('dialog')
+    await user.click(
+      within(zweiterDrawer).getByRole('button', { name: 'Kassieren' }),
+    )
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(2)
+    })
+
+    const zweiterAufruf = zahlungKassieren.mock.calls[1][0]
+    expect(zweiterAufruf.positionen).toEqual([{ positionId: 'p2', menge: 1 }])
+    expect(zweiterAufruf.vorgangId).not.toBe(ersterKey)
+  })
+
+  // Die Historie ist eine eigene Query mit eigenem Schlüssel. Scheitert nur
+  // sie, sind Bestellen und Kassieren nicht betroffen — der Tischzustand ist
+  // geladen.
+  it('ersetzt bei einem Ladefehler der Historie nur den Historie-Tab', async () => {
+    getAktiveProdukte.mockResolvedValue([testProdukt])
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockRejectedValue(new Error('Netzabbruch'))
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+    expect(
+      screen.queryByText('Tischdaten konnten nicht geladen werden'),
+    ).not.toBeInTheDocument()
+
+    // Bestellen bleibt bedienbar.
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    expect(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    ).toBeEnabled()
+
+    // Der Ladefehler steht im Historie-Tab.
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    expect(
+      await screen.findByText('Historie konnte nicht geladen werden'),
+    ).toBeInTheDocument()
   })
 
   // A1: Der useMengen-`max` deckelt nur beim `add`. Schrumpft die unbezahlte
@@ -370,7 +798,7 @@ describe('TablePage', () => {
   })
 
   it('startet die Auswahl bei einem Tischwechsel leer', async () => {
-    testState.produkte = [testProdukt]
+    getAktiveProdukte.mockResolvedValue([testProdukt])
     getTischState.mockResolvedValue(stammtisch)
     getTischHistorie.mockResolvedValue([])
     const user = userEvent.setup()
@@ -462,5 +890,44 @@ describe('TablePage', () => {
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: [EIGENE_UEBERSICHT_KEY],
     })
+  })
+
+  // Eine Umbuchung ändert auch den Ziel-Tisch. Dessen Queries sind hier nicht
+  // gemountet; ohne Invalidierung über das Präfix zeigte er beim Öffnen den
+  // Cache-Stand von vor der Umbuchung — die umgebuchten Positionen fehlten.
+  it('markiert nach einer Umbuchung auch den Ziel-Tisch als veraltet', async () => {
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([
+      { ...bestellungMitPosition, umbuchbarePositionen: [position('p1')] },
+    ])
+    getAktiveTische.mockResolvedValue([
+      { id: 1, name: 'Stammtisch', saldoCents: 1250 },
+      { id: 2, name: 'Nebentisch', saldoCents: 0 },
+    ])
+    bestellungUmbuchen.mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    const { queryClient } = renderPage()
+
+    // Der Ziel-Tisch liegt im Cache, ohne dass eine Komponente an ihm hängt.
+    queryClient.setQueryData([TISCH_STATE_KEY, 2], {
+      ...stammtisch,
+      tischId: 2,
+      tischName: 'Nebentisch',
+    })
+    queryClient.setQueryData([TISCH_HISTORIE_KEY, 2], [])
+
+    await screen.findByText('Stammtisch')
+    await bucheUeberHistorieUm(user)
+    await screen.findByText('Auf Nebentisch umgebucht.')
+    await user.click(screen.getByRole('status'))
+
+    await waitFor(() => {
+      expect(
+        queryClient.getQueryState([TISCH_STATE_KEY, 2])?.isInvalidated,
+      ).toBe(true)
+    })
+    expect(
+      queryClient.getQueryState([TISCH_HISTORIE_KEY, 2])?.isInvalidated,
+    ).toBe(true)
   })
 })

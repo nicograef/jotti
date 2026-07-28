@@ -11,7 +11,6 @@ import {
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { useVorgangId } from '@/hooks/use-vorgang-id'
 import { formatEuro, parseCents } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
@@ -36,7 +35,17 @@ interface ZahlungAbschlussProps {
   positionenToPay: Position[]
   totalCents: number
   restNachZahlungCents: number
+  // Idempotenz-Schlüssel je Zusammenstellung: Jeder Wiederholversuch behält den
+  // Schlüssel — auch mit inzwischen geänderter Auswahl, denn genau diese
+  // Abweichung erkennt und meldet der Server. Er wird von TablePage vergeben,
+  // wo auch die Auswahl liegt: Der ausgehängte Tab-Inhalt darf ihn nicht mit
+  // sich nehmen, sonst würde ein Wiederholversuch zur zweiten Buchung.
+  vorgangId: string
   zahlungKassiert: () => void
+  // Der Server hat den Vorgang unter diesem Schlüssel bereits gebucht (409
+  // `vorgang_daten_abweichend`), nur mit der zuerst gesendeten Auswahl. Räumt
+  // Auswahl und Tischzustand ab — siehe TablePage, wo beides liegt.
+  vorgangBereitsGebucht: () => void
   // 'sheet' rendert den Bottom-Sheet-Drawer-Inhalt (Handy), 'spalte' die feste
   // Abschluss-Spalte (ab lg). Einzige Quelle des Abschluss-Inhalts; die beiden
   // Varianten unterscheiden sich nur im umschließenden Container.
@@ -45,9 +54,9 @@ interface ZahlungAbschlussProps {
 
 // Presentation-neutraler Abschluss-Inhalt des Tisch-Kassierens (Beleg, Erhalten,
 // Zielbetrag inkl. Trinkgeld, Rückgeld, Trinkgeld-Hinweis, Kommentar,
-// „Kassieren"). Trägt den vollständigen Eingabe-State und das Submit-/Fehler-/
-// Retry-Verhalten und wird sowohl im Handy-Drawer als auch in der festen Spalte
-// gerendert. Der vorgangId-Lebenszyklus folgt dem von BestellungAbschluss.
+// „Kassieren"). Trägt den Eingabe-State und das Submit-/Fehler-/Retry-Verhalten
+// und wird sowohl im Handy-Drawer als auch in der festen Spalte gerendert;
+// Auswahl und vorgangId kommen wie bei BestellungAbschluss von TablePage.
 export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
   const [kommentar, setKommentar] = useState('')
   const [erhaltenEuro, setErhaltenEuro] = useState('')
@@ -72,17 +81,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
     }
   }
 
-  // vorgangId je fachlichem Vorgang, an die Nutzdaten gebunden: Ein
-  // Wiederholversuch mit unveränderten Nutzdaten behält seinen Schlüssel und
-  // bucht serverseitig kein zweites Mal; jede Änderung (Auswahl, Mengen,
-  // Kommentar) beginnt einen neuen Vorgang mit neuem Schlüssel, den der Server
-  // regulär prüft.
   const positionen = toPositionRefs(props.positionenToPay)
-  const vorgangId = useVorgangId({
-    tischId: props.tisch.id,
-    positionen,
-    kommentar,
-  })
 
   const { rueckgeldCents, trinkgeldCents } = calculateZahlungsbetraege(
     props.totalCents,
@@ -96,6 +95,19 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
       position_nicht_bezahlbar:
         'Mindestens eine Position ist nicht mehr bezahlbar. Bitte Auswahl aktualisieren.',
     },
+    onCode: {
+      // Der Vorgang ist gebucht, nur seine Antwort ging verloren — clientseitig
+      // ist er damit abgeschlossen, auch wenn die zuletzt gesendete Auswahl eine
+      // andere war. Ohne das Abräumen liefe jeder weitere Versuch wieder in
+      // denselben 409, und die Differenz bliebe unkassiert.
+      vorgang_daten_abweichend: () => {
+        setErhaltenEuro('')
+        setZielbetragEuro('')
+        setAndererAktiv(false)
+        setKommentar('')
+        props.vorgangBereitsGebucht()
+      },
+    },
     onSuccess: () => {
       setErhaltenEuro('')
       setZielbetragEuro('')
@@ -108,7 +120,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
   const onSubmit = async () => {
     await run(async () => {
       await props.backend.zahlungKassieren({
-        vorgangId,
+        vorgangId: props.vorgangId,
         tischId: props.tisch.id,
         positionen,
         kommentar,

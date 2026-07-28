@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import {
   Drawer,
   DrawerBody,
@@ -45,7 +46,7 @@ export function TischAuswahlDrawer({
 }: TischAuswahlDrawerProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { tische } = useAktiveTischeMitFavoriten()
+  const { tische, isLoadingError, refetch } = useAktiveTischeMitFavoriten()
   const { loading: favoritLoading, run: runToggleFavorit } = useActionSubmit({
     actionLabel: 'Favorit ändern',
   })
@@ -80,6 +81,15 @@ export function TischAuswahlDrawer({
           <DrawerTitle>Alle Tische</DrawerTitle>
         </DrawerHeader>
         <DrawerBody className="flex flex-col gap-0 px-4 pb-6">
+          {/* Ohne Meldung wirkt die leere Liste wie „keine Tische vorhanden" —
+              und dieser Drawer ist der einzige Einstieg in einen Tisch, wenn
+              die Servicekraft keine Tische markiert hat. */}
+          {isLoadingError && (
+            <LadefehlerAlert
+              titel="Tische konnten nicht geladen werden"
+              onErneutVersuchen={() => void refetch()}
+            />
+          )}
           {sortierteTische.map((tisch) => (
             <div
               key={tisch.id}

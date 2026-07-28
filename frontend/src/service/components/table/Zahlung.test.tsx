@@ -11,11 +11,11 @@ import type { Tisch } from '../../table/Tisch'
 import { ServiceDock } from '../ServiceDock'
 import { Zahlung } from './Zahlung'
 
-// Die Kassieren-Auswahl liegt seit A1 in TablePage; für die isolierten
-// Komponenten-Tests stellt dieser Harness die gehobene Steuerung inklusive der
-// Deckelung auf die unbezahlte Menge bereit.
+// Kassieren-Auswahl und Idempotenz-Schlüssel liegen in TablePage; für die
+// isolierten Komponenten-Tests stellt dieser Harness beides bereit, inklusive
+// der Deckelung auf die unbezahlte Menge.
 function ZahlungHarness(
-  props: Omit<ComponentProps<typeof Zahlung>, 'mengenSteuerung'>,
+  props: Omit<ComponentProps<typeof Zahlung>, 'mengenSteuerung' | 'vorgangId'>,
 ) {
   const unbezahlteMengen: Record<string, number> = {}
   props.positionen.forEach((position) => {
@@ -24,7 +24,13 @@ function ZahlungHarness(
   const mengenSteuerung = useMengen<string>(
     (positionId) => unbezahlteMengen[positionId] || 0,
   )
-  return <Zahlung {...props} mengenSteuerung={mengenSteuerung} />
+  return (
+    <Zahlung
+      {...props}
+      mengenSteuerung={mengenSteuerung}
+      vorgangId="11111111-1111-4111-8111-111111111111"
+    />
+  )
 }
 
 vi.mock('sonner', () => ({
@@ -86,6 +92,7 @@ function renderZahlung(positionen: Position[] = [position]) {
         tisch={tisch}
         positionen={positionen}
         onErfolg={vi.fn()}
+        onVorgangBereitsGebucht={vi.fn()}
       />
     </ServiceDock>,
   )
@@ -102,6 +109,7 @@ describe('Zahlung feste Spalte (ab lg)', () => {
         tisch={tisch}
         positionen={[position]}
         onErfolg={vi.fn()}
+        onVorgangBereitsGebucht={vi.fn()}
       />,
     )
 

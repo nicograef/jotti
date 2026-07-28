@@ -44,6 +44,10 @@ function positionenZusammenfassung(
 interface DirektverkaufHistorieProps {
   historie: DirektverkaufHistorieEintrag[]
   historieLoading: boolean
+  // Das Erstladen der Historie ist gescheitert (kein brauchbarer Cache-Stand).
+  // Ein gescheiterter Hintergrund-Refetch setzt die Flagge nicht: Die zuletzt
+  // geladene Historie bleibt stehen, die Meldung trägt der zentrale
+  // Fehler-Toast.
   historieError: boolean
   // Lädt die Historie nach einem Ladefehler erneut.
   onErneutVersuchen: () => void

@@ -26,6 +26,12 @@ var ErrDatabase = db.ErrDatabase
 // couple them and risk a silent 409-to-500 regression (2026-07-17 multi-expert review).
 var ErrConflict = errors.New("conflict")
 
+// ErrVorgangDatenAbweichend is returned when a known vorgangId is submitted again with
+// different Nutzdaten. Beide stillen Ausgänge wären hier falsch: Eine zweite Buchung bucht
+// doppelt, eine Erfolgsantwort verschluckt die geänderte Einreichung. Die HTTP-Schicht
+// bildet den Fehler deshalb auf 409 vorgang_daten_abweichend ab.
+var ErrVorgangDatenAbweichend = errors.New("vorgang daten abweichend")
+
 // ErrTischNotActive is returned when an operation is attempted on an inactive or deleted tisch.
 var ErrTischNotActive = errors.New("tisch not active")
 

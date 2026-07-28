@@ -1,7 +1,9 @@
 package kassenjournal_repo
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -23,53 +25,156 @@ import (
 // Application-Schicht mappt das auf ihren Konflikt-Fehler (HTTP 409).
 var ErrKassensitzungNichtOffen = errors.New("kassensitzung ist nicht offen")
 
-// ErrVorgangBereitsGebucht: die vorgang_idempotenz-Zeile existiert bereits —
-// derselbe fachliche Vorgang wurde schon gebucht (Duplikat-Einreichung, z. B.
-// Wiederholversuch nach Verbindungsabbruch). Die Application-Schicht mappt das
-// auf eine stille Erfolgsantwort, ohne ein zweites Mal zu buchen.
+// ErrVorgangBereitsGebucht: zum Schlüssel existiert bereits eine
+// vorgang_idempotenz-Zeile mit demselben Nutzdaten-Hash — dieselbe Einreichung
+// ein zweites Mal (z. B. Wiederholversuch nach Verbindungsabbruch). Die
+// Application-Schicht mappt das auf eine stille Erfolgsantwort, ohne ein zweites
+// Mal zu buchen.
 var ErrVorgangBereitsGebucht = errors.New("vorgang bereits gebucht")
+
+// ErrVorgangDatenAbweichend: zum Schlüssel existiert eine Zeile mit einem
+// ANDEREN Nutzdaten-Hash — derselbe Schlüssel trägt andere Nutzdaten. Beide
+// stillen Ausgänge wären hier falsch: Eine zweite Buchung bucht doppelt, eine
+// Erfolgsantwort verschluckt die geänderte Einreichung. Die Application-Schicht
+// mappt das deshalb auf einen expliziten Konflikt (HTTP 409), damit der Helfer
+// den Unterschied am Tisch nachbucht.
+var ErrVorgangDatenAbweichend = errors.New("vorgang mit abweichenden nutzdaten")
+
+// errVorgangSchluesselKonflikt: der Insert der Idempotenz-Zeile scheiterte am
+// Primärschlüssel. Welcher der beiden Sentinels daraus wird, entscheidet erst
+// die Nachprüfung nach dem gescheiterten Commit — in der abgebrochenen
+// Transaktion lässt sich der gespeicherte Hash nicht mehr lesen.
+var errVorgangSchluesselKonflikt = errors.New("vorgang-schlüssel bereits vergeben")
 
 // Arten der buchenden Vorgänge in vorgang_idempotenz.art (CHECK-Constraint in
 // Migration 07 gespiegelt).
 const (
+	VorgangArtBestellung               = "bestellung"
 	VorgangArtZahlung                  = "zahlung"
 	VorgangArtStornierung              = "stornierung"
 	VorgangArtUmbuchung                = "umbuchung"
+	VorgangArtDirektverkauf            = "direktverkauf"
 	VorgangArtDirektverkaufStornierung = "direktverkauf-stornierung"
+	VorgangArtGeldtransit              = "geldtransit"
+)
+
+// VorgangStatus ist das Ergebnis der Idempotenz-Prüfung aus Schlüssel und
+// Nutzdaten-Hash.
+type VorgangStatus int
+
+const (
+	// VorgangNeu: zum Schlüssel ist nichts gespeichert — regulär buchen.
+	VorgangNeu VorgangStatus = iota
+	// VorgangDuplikat: gleicher Schlüssel, gleicher Hash — stille Erfolgsantwort.
+	VorgangDuplikat
+	// VorgangDatenAbweichend: gleicher Schlüssel, anderer Hash — Konflikt.
+	VorgangDatenAbweichend
 )
 
 // Vorgang ist der client-gelieferte Idempotenz-Schlüssel eines buchenden
-// Vorgangs. VorgangID ist eine vom Client erzeugte UUID (vom Request-Schema
-// validiert); Art einer der VorgangArt-Werte.
+// Vorgangs samt der Bindung an dessen Nutzdaten. VorgangID ist eine vom Client
+// erzeugte UUID (vom Request-Schema validiert), Art einer der VorgangArt-Werte,
+// PayloadHash das Ergebnis von ComputePayloadHash über Art und Nutzdaten.
 type Vorgang struct {
-	VorgangID string
-	Art       string
-	UserID    int
+	VorgangID   string
+	Art         string
+	UserID      int
+	PayloadHash []byte
 }
 
-// VorgangBereitsGebucht prüft, ob für die vorgangId bereits eine
-// Idempotenz-Zeile existiert (Duplikat-Einreichung). Die Commands rufen das VOR
-// ihrer fachlichen Validierung auf: Ein Wiederholversuch nach erfolgreicher
-// Buchung darf nicht an inzwischen geänderten Invarianten scheitern (z. B.
-// „Position nicht mehr bezahlbar"), sondern wiederholt die Erfolgsantwort.
-// Das Rennen zweier gleichzeitiger identischer Anfragen fängt zusätzlich der
-// Primärschlüssel beim Insert in der Schreibtransaktion ab.
-func (r Repository) VorgangBereitsGebucht(ctx context.Context, vorgangID string) (bool, error) {
+// vorgangHashDaten ist die gehashte Struktur: die Art des Vorgangs vor dessen
+// Nutzdaten. Die Art gehört in den Hash, weil sich alle sieben Arten einen
+// Schlüsselraum teilen (vorgang_idempotenz, Primärschlüssel vorgang_id allein).
+// Ohne sie gälte derselbe Schlüssel an zwei Endpunkten mit gleicher
+// Feldbelegung als Duplikat — zahlungNutzdaten und stornierungNutzdaten
+// serialisieren byteidentisch.
+type vorgangHashDaten struct {
+	Art       string `json:"art"`
+	Nutzdaten any    `json:"nutzdaten"`
+}
+
+// ComputePayloadHash bildet Art und Nutzdaten eines Vorgangs auf einen SHA-256
+// ab. Ohne diese Bindung entschiede allein der Client, was „derselbe Vorgang"
+// ist — und beide Client-Strategien sind falsch: Ein bei Nutzdaten-Änderung
+// rotierender Schlüssel bucht doppelt, ein stabiler Schlüssel ohne Serverprüfung
+// verschluckt die geänderte Einreichung.
+//
+// nutzdaten ist eine pro Kommando explizit deklarierte Struktur — nicht der rohe
+// HTTP-Body (dessen Bytes sind zwischen zwei Einreichungen nicht garantiert
+// identisch) und ohne serverseitig angereicherte Werte wie Produktnamen oder
+// Preise (die können sich zwischen zwei Einreichungen ändern und ließen eine
+// echte Wiederholung fälschlich als abweichend gelten).
+//
+// Deterministisch über encoding/json: Struct-Felder werden in
+// Deklarationsreihenfolge serialisiert, Slices in Elementreihenfolge. Genau das
+// ist gewollt — eine umsortierte Einreichung gilt als abweichend.
+func ComputePayloadHash(art string, nutzdaten any) ([]byte, error) {
+	rohdaten, err := json.Marshal(vorgangHashDaten{Art: art, Nutzdaten: nutzdaten})
+	if err != nil {
+		return nil, fmt.Errorf("marshal vorgang-nutzdaten: %w", err)
+	}
+	summe := sha256.Sum256(rohdaten)
+	return summe[:], nil
+}
+
+// DetermineVorgangStatus bildet Schlüssel und Nutzdaten-Hash auf einen der drei
+// VorgangStatus ab. Die Commands rufen das VOR ihrer fachlichen Validierung auf:
+// Ein Wiederholversuch nach erfolgreicher Buchung darf nicht an inzwischen
+// geänderten Invarianten scheitern (z. B. „Position nicht mehr bezahlbar"),
+// sondern wiederholt die Erfolgsantwort.
+//
+// Die Abfrage filtert allein auf vorgang_id — die Art steckt im Hash
+// (ComputePayloadHash). Ein Treffer mit anderer Art ergibt deshalb
+// VorgangDatenAbweichend: Ein Duplikat ist er nicht, und eine Neuanlage ist
+// unmöglich, weil der Primärschlüssel auf vorgang_id allein steht.
+//
+// Dieselbe Funktion trägt die zweite Prüfstelle: Verlieren zwei gleichzeitige
+// Anfragen das Rennen um den Primärschlüssel, wertet vorgangKonfliktFehler den
+// Ausgang nach dem gescheiterten Commit hiermit aus.
+func (r Repository) DetermineVorgangStatus(ctx context.Context, vorgangID string, payloadHash []byte) (VorgangStatus, error) {
 	id, err := uuid.Parse(vorgangID)
 	if err != nil {
-		return false, fmt.Errorf("parse vorgang_id %q: %w", vorgangID, err)
+		return VorgangNeu, fmt.Errorf("parse vorgang_id %q: %w", vorgangID, err)
 	}
-	exists, err := r.q.ExistsVorgangIdempotenz(ctx, id)
+
+	gespeicherterHash, err := r.q.GetVorgangPayloadHash(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return VorgangNeu, nil
+	}
 	if err != nil {
-		return false, db.Error(err)
+		return VorgangNeu, db.Error(err)
 	}
-	return exists, nil
+
+	if bytes.Equal(gespeicherterHash, payloadHash) {
+		return VorgangDuplikat, nil
+	}
+	return VorgangDatenAbweichend, nil
+}
+
+// vorgangKonfliktFehler übersetzt den Primärschlüssel-Konflikt aus der
+// Schreibtransaktion in den passenden Sentinel. Der Aufruf gehört ausdrücklich
+// hinter den gescheiterten Commit: Die Transaktion ist an diesem Punkt
+// abgebrochen, in ihr lässt sich nichts mehr lesen. So bleibt die
+// Application-Schicht auf dem Fehlerpfad frei von DB-Zugriffen und die Logik
+// existiert nur einmal — in DetermineVorgangStatus.
+func (r Repository) vorgangKonfliktFehler(ctx context.Context, vorgang Vorgang) error {
+	status, err := r.DetermineVorgangStatus(ctx, vorgang.VorgangID, vorgang.PayloadHash)
+	if err != nil {
+		return err
+	}
+	if status == VorgangDatenAbweichend {
+		return ErrVorgangDatenAbweichend
+	}
+	// VorgangDuplikat und der praktisch unmögliche VorgangNeu (die Zeile wurde
+	// zwischen Konflikt und Nachprüfung gelöscht — die Tabelle ist append-only)
+	// laufen beide auf die stille Erfolgsantwort hinaus.
+	return ErrVorgangBereitsGebucht
 }
 
 // insertVorgangIdempotenzInTx schreibt die Idempotenz-Zeile des Vorgangs — im
 // selben Commit wie dessen Events und VOR den Event-Inserts. Nur so ist ein
-// Primärschlüssel-Konflikt eindeutig eine Duplikat-Einreichung
-// (ErrVorgangBereitsGebucht), während ein UNIQUE(subject, version)-Konflikt
+// Primärschlüssel-Konflikt eindeutig eine Zweiteinreichung desselben Schlüssels
+// (errVorgangSchluesselKonflikt), während ein UNIQUE(subject, version)-Konflikt
 // eindeutig ein echter OCC-Konflikt bleibt.
 func insertVorgangIdempotenzInTx(ctx context.Context, qtx *dbgen.Queries, vorgang Vorgang) error {
 	vorgangID, err := uuid.Parse(vorgang.VorgangID)
@@ -78,13 +183,14 @@ func insertVorgangIdempotenzInTx(ctx context.Context, qtx *dbgen.Queries, vorgan
 	}
 
 	err = qtx.InsertVorgangIdempotenz(ctx, dbgen.InsertVorgangIdempotenzParams{
-		VorgangID: vorgangID,
-		Art:       vorgang.Art,
-		UserID:    vorgang.UserID,
+		VorgangID:   vorgangID,
+		Art:         vorgang.Art,
+		UserID:      vorgang.UserID,
+		PayloadHash: vorgang.PayloadHash,
 	})
 	if err != nil {
 		if errors.Is(db.Error(err), db.ErrAlreadyExists) {
-			return ErrVorgangBereitsGebucht
+			return errVorgangSchluesselKonflikt
 		}
 		return db.Error(err)
 	}
@@ -113,9 +219,10 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType ka
 
 // WriteEventMitVorgang schreibt wie WriteEvent und hält zusätzlich den
 // client-gelieferten Idempotenz-Schlüssel des Vorgangs in vorgang_idempotenz
-// fest — vor dem Event-Insert, in derselben Transaktion. Eine
-// Duplikat-Einreichung (gleiche vorgangId) liefert ErrVorgangBereitsGebucht
-// und schreibt nichts.
+// fest — vor dem Event-Insert, in derselben Transaktion. Ist der Schlüssel
+// bereits vergeben, schreibt der Aufruf nichts und liefert je nach Nutzdaten
+// ErrVorgangBereitsGebucht (gleicher Hash) oder ErrVorgangDatenAbweichend
+// (anderer Hash).
 func (r Repository) WriteEventMitVorgang(ctx context.Context, vorgang Vorgang, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
 	return r.writeSingleEvent(ctx, &vorgang, e, streamType, kassensitzungNr)
 }
@@ -142,6 +249,9 @@ func (r Repository) writeSingleEvent(ctx context.Context, vorgang *Vorgang, e ev
 		return nil
 	})
 	if err != nil {
+		if vorgang != nil && errors.Is(err, errVorgangSchluesselKonflikt) {
+			return 0, r.vorgangKonfliktFehler(ctx, *vorgang)
+		}
 		return 0, err
 	}
 
@@ -149,13 +259,20 @@ func (r Repository) writeSingleEvent(ctx context.Context, vorgang *Vorgang, e ev
 	return id, nil
 }
 
-// WriteEventWithDruckauftraege writes an event and the print jobs derived from it
-// within a single transaction (transactional outbox). buildAuftraege receives the
-// stored event including its generated ID, so a print job's referenz can depend on
+// WriteEventWithDruckauftraegeMitVorgang writes an event and the print jobs derived
+// from it within a single transaction (transactional outbox). buildAuftraege receives
+// the stored event including its generated ID, so a print job's referenz can depend on
 // it. If inserting a print job fails, the event is rolled back — there is never an
 // order without its work tickets, nor work tickets without their order.
-func (r Repository) WriteEventWithDruckauftraege(
+//
+// Der client-gelieferte Idempotenz-Schlüssel des Vorgangs wird in derselben
+// Transaktion in vorgang_idempotenz festgehalten — vor dem Event-Insert. Ist der
+// Schlüssel bereits vergeben, schreibt der Aufruf nichts (weder Event noch
+// Druckaufträge) und liefert je nach Nutzdaten ErrVorgangBereitsGebucht (gleicher
+// Hash) oder ErrVorgangDatenAbweichend (anderer Hash).
+func (r Repository) WriteEventWithDruckauftraegeMitVorgang(
 	ctx context.Context,
+	vorgang Vorgang,
 	e event.Event,
 	streamType kasse.StreamType,
 	kassensitzungNr int,
@@ -164,6 +281,10 @@ func (r Repository) WriteEventWithDruckauftraege(
 	var id int
 	eingereiht := false
 	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		if err := insertVorgangIdempotenzInTx(ctx, qtx, vorgang); err != nil {
+			return err
+		}
+
 		stored, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
 		if err != nil {
 			return err
@@ -178,6 +299,9 @@ func (r Repository) WriteEventWithDruckauftraege(
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, errVorgangSchluesselKonflikt) {
+			return 0, r.vorgangKonfliktFehler(ctx, vorgang)
+		}
 		return 0, err
 	}
 
@@ -185,35 +309,23 @@ func (r Repository) WriteEventWithDruckauftraege(
 	return id, nil
 }
 
-// WriteTischSessionEventsAtomic writes the given tisch-session events atomically
-// (all-or-nothing); each event takes its Signaturauftrag from the fiskalische
-// Projektion within the same transaction. Each event must already carry its final
-// subject and version. Backs UI actions that map to multiple typed events — the
-// Umbuchung (two linked tables) and the Storno (one geldneutrale Korrektur plus
+// WriteTischSessionEventsAtomicMitVorgang writes the given tisch-session events
+// atomically (all-or-nothing); each event takes its Signaturauftrag from the
+// fiskalische Projektion within the same transaction. Each event must already carry
+// its final subject and version. Backs UI actions that map to multiple typed events —
+// the Umbuchung (two linked tables) and the Storno (one geldneutrale Korrektur plus
 // one Warenrücknahme per betroffener Zahlung).
-func (r Repository) WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, kassensitzungNr int) error {
-	return r.writeTischSessionEventsAtomic(ctx, nil, events, kassensitzungNr)
-}
-
-// WriteTischSessionEventsAtomicMitVorgang schreibt wie
-// WriteTischSessionEventsAtomic und hält zusätzlich den client-gelieferten
-// Idempotenz-Schlüssel des Vorgangs in vorgang_idempotenz fest — vor den
-// Event-Inserts, in derselben Transaktion. Eine Duplikat-Einreichung (gleiche
-// vorgangId) liefert ErrVorgangBereitsGebucht und schreibt nichts.
+//
+// Der client-gelieferte Idempotenz-Schlüssel des Vorgangs wird in derselben
+// Transaktion in vorgang_idempotenz festgehalten — vor den Event-Inserts. Ist der
+// Schlüssel bereits vergeben, schreibt der Aufruf nichts und liefert je nach
+// Nutzdaten ErrVorgangBereitsGebucht (gleicher Hash) oder ErrVorgangDatenAbweichend
+// (anderer Hash).
 func (r Repository) WriteTischSessionEventsAtomicMitVorgang(ctx context.Context, vorgang Vorgang, events []event.Event, kassensitzungNr int) error {
-	return r.writeTischSessionEventsAtomic(ctx, &vorgang, events, kassensitzungNr)
-}
-
-// writeTischSessionEventsAtomic schreibt die Events (und optional die
-// Idempotenz-Zeile des Vorgangs, nil = keine) in einer Transaktion.
-// Gemeinsamer Kern der beiden Atomic-Varianten.
-func (r Repository) writeTischSessionEventsAtomic(ctx context.Context, vorgang *Vorgang, events []event.Event, kassensitzungNr int) error {
 	eingereiht := false
 	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
-		if vorgang != nil {
-			if err := insertVorgangIdempotenzInTx(ctx, qtx, *vorgang); err != nil {
-				return err
-			}
+		if err := insertVorgangIdempotenzInTx(ctx, qtx, vorgang); err != nil {
+			return err
 		}
 
 		for _, evt := range events {
@@ -227,6 +339,9 @@ func (r Repository) writeTischSessionEventsAtomic(ctx context.Context, vorgang *
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, errVorgangSchluesselKonflikt) {
+			return r.vorgangKonfliktFehler(ctx, vorgang)
+		}
 		return err
 	}
 
@@ -273,17 +388,11 @@ func (r Repository) EroeffneKassensitzung(ctx context.Context, datum time.Time, 
 	return zNr, nil
 }
 
-// WriteUmbuchung writes the linked source and target umbuchung events atomically;
-// both sides take their Signaturauftrag from the fiskalische Projektion. Both
-// events must already carry their final subject/version.
-func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
-	return r.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
-}
-
-// WriteUmbuchungMitVorgang schreibt wie WriteUmbuchung und hält zusätzlich den
-// client-gelieferten Idempotenz-Schlüssel des Vorgangs fest (vor den
-// Event-Inserts, selbe Transaktion). Eine Duplikat-Einreichung liefert
-// ErrVorgangBereitsGebucht und schreibt nichts.
+// WriteUmbuchungMitVorgang writes the linked source and target umbuchung events
+// atomically; both sides take their Signaturauftrag from the fiskalische Projektion.
+// Both events must already carry their final subject/version. Der
+// client-gelieferte Idempotenz-Schlüssel des Vorgangs wird wie bei jedem atomaren
+// Tisch-Session-Write vor den Event-Inserts festgehalten.
 func (r Repository) WriteUmbuchungMitVorgang(ctx context.Context, vorgang Vorgang, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
 	return r.WriteTischSessionEventsAtomicMitVorgang(ctx, vorgang, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
 }
@@ -765,25 +874,6 @@ func (r Repository) GetMaxVersion(ctx context.Context, subject string) (int, err
 	}
 
 	return version, nil
-}
-
-// EventExistsByTypeAndVorgangsID prüft, ob im kassenjournal ein Event des gegebenen
-// Typs mit dem gegebenen vorgangsID-Wert im angegebenen JSON-Schlüssel existiert.
-// Wird ausschließlich auf dem Fehler-Pfad (nach UniqueViolation) aufgerufen, um
-// zwischen idempotenter Einreichung und echtem OCC-Konflikt zu unterscheiden.
-func (r Repository) EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error) {
-	var dummy int
-	err := r.db.QueryRowContext(ctx,
-		`SELECT 1 FROM kassenjournal WHERE type = $1 AND data->>$2 = $3 LIMIT 1`,
-		eventType, jsonKey, vorgangsID,
-	).Scan(&dummy)
-	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
-	}
-	if err != nil {
-		return false, db.Error(err)
-	}
-	return true, nil
 }
 
 // RebuildAllProjections replays all events and rebuilds the tisch_sessions projection from scratch.

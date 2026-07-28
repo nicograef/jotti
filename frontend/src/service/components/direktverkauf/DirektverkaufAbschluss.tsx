@@ -32,6 +32,10 @@ interface DirektverkaufAbschlussProps {
   // Nach erfolgreichem Verkauf: Auswahl zurücksetzen und Erfolgs-Pop auslösen
   // (im Handy-Container zusätzlich den Drawer schließen).
   verkaufAbgeschlossen: () => void
+  // Der Server hat den Vorgang unter diesem Schlüssel bereits gebucht (409
+  // `vorgang_daten_abweichend`), nur mit der zuerst gesendeten Auswahl. Räumt
+  // Auswahl und Historie ab — siehe Direktverkauf bzw. DirektverkaufPage.
+  vorgangBereitsGebucht: () => void
   // 'sheet' rendert den Bottom-Sheet-Drawer-Inhalt (Handy), 'spalte' die feste
   // Abschluss-Spalte (ab lg). Einzige Quelle des Abschluss-Inhalts; die beiden
   // Varianten unterscheiden sich nur im umschließenden Container.
@@ -66,15 +70,12 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
     }
   }
 
-  // verkaufId je fachlichem Vorgang, an die Nutzdaten gebunden: Ein
-  // Wiederholversuch mit unveränderten Nutzdaten behält seinen Schlüssel und
-  // bucht serverseitig kein zweites Mal; jede Änderung (Positionen, Kommentar)
-  // beginnt einen neuen Vorgang mit neuem Schlüssel — auch nach einem
-  // erfolgreichen Abschluss, der die Auswahl leert.
-  const verkaufId = useVorgangId({
-    positionen: props.positionen,
-    kommentar,
-  })
+  // verkaufId je Zusammenstellung: Jeder Wiederholversuch behält den Schlüssel —
+  // auch mit inzwischen geänderter Auswahl, denn genau diese Abweichung erkennt
+  // und meldet der Server. Ein neuer Schlüssel entsteht erst, wenn nach dem
+  // Leeren der Auswahl (auch nach einem erfolgreichen Verkauf) eine neue
+  // Zusammenstellung beginnt.
+  const verkaufId = useVorgangId(noPositionenSelected)
 
   const { rueckgeldCents, trinkgeldCents } = calculateZahlungsbetraege(
     props.totalCents,
@@ -89,6 +90,19 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
         'Es ist keine Kassensitzung geöffnet. Bitte zuerst die Kasse öffnen.',
       produkt_not_found:
         'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
+    },
+    onCode: {
+      // Der Vorgang ist gebucht, nur seine Antwort ging verloren — clientseitig
+      // ist er damit abgeschlossen, auch wenn die zuletzt gesendete Auswahl eine
+      // andere war. Ohne das Abräumen liefe jeder weitere Versuch wieder in
+      // denselben 409, und die Differenz bliebe unverkauft.
+      vorgang_daten_abweichend: () => {
+        setErhaltenEuro('')
+        setZielbetragEuro('')
+        setAndererAktiv(false)
+        setKommentar('')
+        props.vorgangBereitsGebucht()
+      },
     },
     onSuccess: () => {
       setErhaltenEuro('')

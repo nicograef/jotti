@@ -491,7 +491,7 @@ export function DruckstationConfigPage() {
   const {
     druckstationen,
     isPending,
-    error,
+    isLoadingError,
     updateDruckstation,
     testbonDrucken,
   } = useDruckstationen()
@@ -499,7 +499,11 @@ export function DruckstationConfigPage() {
   let inhalt
   if (isPending) {
     inhalt = <p className="text-muted-foreground">Lade Druckstationen…</p>
-  } else if (error) {
+  } else if (isLoadingError) {
+    // Nur das gescheiterte Erstladen ersetzt die Seite. Ein gescheiterter
+    // Hintergrund-Refetch darf sie nicht wegreißen: Mit ihr verschwänden die
+    // fehlgeschlagenen Druckaufträge samt „Nochmal drucken" und „Verwerfen" —
+    // genau die Funktion, die eine Druckerstörung gerade braucht.
     inhalt = (
       <p className="text-destructive">Fehler beim Laden der Druckstationen.</p>
     )

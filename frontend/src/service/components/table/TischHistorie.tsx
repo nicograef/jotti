@@ -9,6 +9,7 @@ import {
 import type { Dispatch, SetStateAction } from 'react'
 import { useState } from 'react'
 
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -128,6 +129,13 @@ function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
 interface TischHistorieProps {
   historie: HistorieEintrag[]
   historieLoading: boolean
+  // Das Erstladen der Historie ist gescheitert (kein brauchbarer Cache-Stand).
+  // Ein gescheiterter Hintergrund-Refetch setzt die Flagge nicht: Die zuletzt
+  // geladene Historie bleibt stehen, die Meldung trägt der zentrale
+  // Fehler-Toast.
+  historieError: boolean
+  // Lädt die Tischdaten nach einem Ladefehler erneut.
+  onErneutVersuchen: () => void
   tisch: Tisch
   backend: Pick<
     TischBackend,
@@ -144,6 +152,8 @@ interface TischHistorieProps {
 export function TischHistorie({
   historie,
   historieLoading,
+  historieError,
+  onErneutVersuchen,
   tisch,
   backend,
   onErfolg,
@@ -151,6 +161,18 @@ export function TischHistorie({
   const [detail, setDetail] = useState<HistorieEintrag | null>(null)
   const [stornierenQuelle, setStornierenQuelle] = useState<Quelle | null>(null)
   const [umbuchenQuelle, setUmbuchenQuelle] = useState<Quelle | null>(null)
+
+  // Eine leere Historie behauptet, an diesem Tisch sei noch nichts gebucht —
+  // bei einem Ladefehler ist das falsch.
+  if (historieError) {
+    return (
+      <LadefehlerAlert
+        titel="Historie konnte nicht geladen werden"
+        onErneutVersuchen={onErneutVersuchen}
+        className="mt-4"
+      />
+    )
+  }
 
   return (
     <>

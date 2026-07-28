@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
+import { STAMMDATEN_AKTUALITAET_MS } from '@/lib/queryClient'
 
 import { BetreiberBackend, type BetreiberEingabe } from './BetreiberBackend'
 
@@ -13,15 +14,21 @@ export function useKassenidentitaet() {
   const { data, isPending, error } = useQuery({
     queryKey: [KASSENIDENTITAET_KEY],
     queryFn: () => betreiberBackend.getKassenidentitaet(),
+    staleTime: STAMMDATEN_AKTUALITAET_MS,
   })
   return { kassenidentitaet: data, isPending, error }
 }
 
+// `isLoadingError` statt `isError`: Nur ein gescheitertes Erstladen (kein
+// brauchbarer Cache-Stand) rechtfertigt einen Fehlerzustand statt der Daten.
+// Scheitert ein Hintergrund-Refetch, bleibt die Einrichtungs-Checkliste stehen;
+// die Meldung trägt der zentrale Fehler-Toast aus queryClient.ts.
 export function useBetreiber() {
   const queryClient = useQueryClient()
-  const { isPending, isError, data, error, refetch } = useQuery({
+  const { isPending, isLoadingError, data, error, refetch } = useQuery({
     queryKey: [BETREIBER_KEY],
     queryFn: () => betreiberBackend.getBetreiber(),
+    staleTime: STAMMDATEN_AKTUALITAET_MS,
   })
 
   const saveBetreiber = async (b: BetreiberEingabe) => {
@@ -42,7 +49,7 @@ export function useBetreiber() {
   return {
     betreiber: data,
     isPending,
-    isError,
+    isLoadingError,
     error,
     refetchBetreiber: refetch,
     saveBetreiber,

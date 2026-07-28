@@ -39,6 +39,7 @@ function renderSpalte(
       positionen={positionen}
       totalCents={700}
       verkaufAbgeschlossen={verkaufAbgeschlossen}
+      vorgangBereitsGebucht={vi.fn()}
     />,
   )
   return { direktverkaufTaetigen, verkaufAbgeschlossen }
@@ -54,6 +55,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
         positionen={[]}
         totalCents={0}
         verkaufAbgeschlossen={vi.fn()}
+        vorgangBereitsGebucht={vi.fn()}
       />,
     )
 
@@ -133,6 +135,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
             positionen={leer ? [] : positionen}
             totalCents={leer ? 0 : 700}
             verkaufAbgeschlossen={vi.fn()}
+            vorgangBereitsGebucht={vi.fn()}
           />
         </>
       )
@@ -180,6 +183,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
             positionen={leer ? [] : positionen}
             totalCents={leer ? 0 : 700}
             verkaufAbgeschlossen={vi.fn()}
+            vorgangBereitsGebucht={vi.fn()}
           />
         </>
       )
@@ -213,7 +217,11 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     expect(direktverkaufTaetigen.mock.calls[2][0].verkaufId).not.toBe(ersterKey)
   })
 
-  it('wechselt den verkaufId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
+  // Scheitert der erste Versuch scheinbar (Antwort im WLAN verloren) und wächst
+  // die Auswahl danach, muss der zweite Versuch denselben Schlüssel tragen: Nur
+  // dann erkennt der Server den Konflikt mit dem bereits gebuchten Verkauf und
+  // meldet ihn, statt ein zweites Mal zu buchen.
+  it('behält den verkaufId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
     const user = userEvent.setup()
     const direktverkaufTaetigen = vi
       .fn<(verkauf: DirektverkaufTaetigen) => Promise<void>>()
@@ -244,6 +252,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
             positionen={erweitert ? erweitertePositionen : positionen}
             totalCents={erweitert ? 950 : 700}
             verkaufAbgeschlossen={vi.fn()}
+            vorgangBereitsGebucht={vi.fn()}
           />
         </>
       )
@@ -259,14 +268,15 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     })
     const ersterKey = direktverkaufTaetigen.mock.calls[0][0].verkaufId
 
-    // Geänderte Nutzdaten nach dem Fehlversuch: neuer Vorgang, neuer Schlüssel.
+    // Geänderte Nutzdaten nach dem Fehlversuch: derselbe Vorgang, derselbe
+    // Schlüssel — die Abweichung beanstandet der Server.
     await user.click(screen.getByRole('button', { name: 'erweitern' }))
     await user.click(abschliessen())
     await waitFor(() => {
       expect(direktverkaufTaetigen).toHaveBeenCalledTimes(2)
     })
     const zweiterAufruf = direktverkaufTaetigen.mock.calls[1][0]
-    expect(zweiterAufruf.verkaufId).not.toBe(ersterKey)
+    expect(zweiterAufruf.verkaufId).toBe(ersterKey)
     expect(zweiterAufruf.positionen).toEqual(erweitertePositionen)
   })
 })

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math/big"
 	"strings"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/tse"
@@ -15,6 +16,51 @@ import (
 // adminPINStellen ist die Laenge der zufaellig erzeugten Admin-PIN. Zehn Ziffern
 // liegen sicher innerhalb der von fiskaly akzeptierten Laenge.
 const adminPINStellen = 10
+
+// einrichtungLaeuft haelt fest, ob gerade jemand an der TSE-Konfiguration
+// schreibt, und traegt damit die fachliche Invariante "es schreibt hoechstens
+// einer auf der TSE-Konfiguration". Alle drei Schreibpfade nehmen es:
+// RichteTSEEin, UebernimmTSE und UpdateTSEKonfiguration (command.go) — sie
+// enden alle in SaveEinrichtung.
+//
+// Noetig, seit der Lebenszyklus vom Client-Abbruch entkoppelt ist
+// (lebenszyklusKontext in backend/api/fiskal/setup/http/command_handler.go): Er
+// laeuft nach einem Abbruch im Hintergrund weiter, waehrend der Admin bereits
+// eine Fehlermeldung sieht und sofort erneut starten kann. Ohne diese Sperre
+// saehe der zweite Aufruf in ListTSS noch das leere Konto, hatAktiveTSS meldete
+// false, und er legte eine ZWEITE bezahlte LIVE-TSS an. Beide Laeufe endeten in
+// saveEinrichtung, der spaetere ueberschriebe den frueheren — die dem Admin
+// angezeigten PUK und Admin-PIN gehoerten dann zur nicht konfigurierten TSS.
+//
+// Derselbe Ausgang droht ohne den fiskaly-Umweg: Der manuelle
+// Zugangsdaten-Wechsel liegt in der Oberflaeche direkt unter dem Wizard
+// (frontend/src/admin/tse/TSEEinrichtungPage.tsx). Speichert der Admin dort von
+// Hand, waehrend die Einrichtung im Hintergrund noch laeuft, gewinnt der letzte
+// Schreiber, und die Instanz signiert anschliessend gegen eine TSS/Client-
+// Kombination, die nicht die eingerichtete ist.
+//
+// Ein prozessinternes Schloss genuegt: jotti laeuft je Verein als eine einzige
+// Backend-Instanz (Docker Compose), es gibt keine zweite Instanz, gegen die zu
+// koordinieren waere. Ein atomarer Schalter statt eines Mutex, weil der zweite
+// Aufruf nicht warten, sondern sofort mit ErrTSESetupLaeuftBereits abbrechen
+// soll. Er liegt auf Paketebene und nicht als Feld in Command: Command hat
+// Wert-Empfaenger, ein Wert-Feld waere pro Methodenaufruf eine eigene Kopie und
+// damit wirkungslos. Ein Zeiger-Feld (*atomic.Bool, einmal in
+// backend/api/admin.go befuellt) waere prozessweit dasselbe Schloss und damit
+// korrekt — aber unnoetige Verdrahtung mit einer Nil-Falle fuer jeden, der ein
+// Command ohne dieses Feld baut.
+var einrichtungLaeuft atomic.Bool
+
+// acquireEinrichtung reserviert das Schreibrecht auf der TSE-Konfiguration und
+// liefert die Freigabe dazu; schreibt bereits jemand, endet der Aufruf sofort
+// mit ErrTSESetupLaeuftBereits. Die Freigabe gehoert in ein defer, damit auch
+// jeder Fehlerpfad und eine Panik das Schloss wieder loesen.
+func acquireEinrichtung() (func(), error) {
+	if !einrichtungLaeuft.CompareAndSwap(false, true) {
+		return nil, ErrTSESetupLaeuftBereits
+	}
+	return func() { einrichtungLaeuft.Store(false) }, nil
+}
 
 // TSESetupErgebnis ist das Ergebnis der gefuehrten Einrichtung. PUK und AdminPIN
 // erscheinen genau hier — sie werden weder persistiert noch geloggt und nur
@@ -43,6 +89,12 @@ type TSESetupErgebnis struct {
 // Sperre hart.
 func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, neuAnlegenTrotzVorhandener bool) (TSESetupErgebnis, error) {
 	log := zerolog.Ctx(ctx)
+
+	freigeben, err := acquireEinrichtung()
+	if err != nil {
+		return TSESetupErgebnis{}, err
+	}
+	defer freigeben()
 
 	if c.NewTSESetupClient == nil {
 		log.Error().Msg("Missing TSE setup client factory")
@@ -171,6 +223,14 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 // nach erfolgreichem Abschluss atomar gespeichert.
 func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, tssID, pin, puk string) (TSESetupErgebnis, error) {
 	log := zerolog.Ctx(ctx)
+
+	// Dasselbe Schloss wie die Neuanlage: Beide Pfade fuehren denselben
+	// fiskaly-Lebenszyklus und duerfen sich nicht ueberlappen.
+	freigeben, err := acquireEinrichtung()
+	if err != nil {
+		return TSESetupErgebnis{}, err
+	}
+	defer freigeben()
 
 	if c.NewTSESetupClient == nil {
 		log.Error().Msg("Missing TSE setup client factory")

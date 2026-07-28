@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useQueryClient } from '@tanstack/react-query'
+import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -23,8 +23,9 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
+import { useVorgangId } from '@/hooks/use-vorgang-id'
 
-import { kasseBackend } from './hooks'
+import { GELDTRANSIT_LISTE_KEY, kasseBackend, KASSENBESTAND_KEY } from './hooks'
 import {
   BetragCentsSchema,
   type GeldtransitRichtung,
@@ -39,16 +40,11 @@ export function GeldtransitDialog({
   open,
   onOpenChange,
   richtung,
-  onSuccess,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   richtung: GeldtransitRichtung | null
-  onSuccess: () => void
 }) {
-  // geldtransitId pro logischem Vorgang (nicht pro Retry). Neue ID nach Erfolg.
-  const [geldtransitId, setGeldtransitId] = useState(() => crypto.randomUUID())
-
   const FormDataSchema = z.object({
     betragCents: BetragCentsSchema.gte(1, {
       message: 'Bitte einen Betrag größer als 0 eingeben.',
@@ -63,10 +59,29 @@ export function GeldtransitDialog({
     mode: 'onTouched',
   })
 
-  // Bei jedem Öffnen ein sauberes Formular (Betrag/Kommentar leer).
-  useEffect(() => {
-    if (open) form.reset({ betragCents: 0, kommentar: '' })
-  }, [open, form])
+  // Beim Schließen Bewegungsliste und Kassenbestand nachladen: Ging die Antwort
+  // einer Buchung verloren, zeigte die stehengebliebene Liste sie nicht — der
+  // Admin hielte die Buchung für gescheitert und bliebe ohne die Information,
+  // die ihn vom zweiten Versuch abhält. Deckt Abbrechen, Escape und den
+  // Erfolgspfad gleichermaßen ab.
+  const queryClient = useQueryClient()
+  const schliessen = () => {
+    void queryClient.invalidateQueries({ queryKey: [GELDTRANSIT_LISTE_KEY] })
+    void queryClient.invalidateQueries({ queryKey: [KASSENBESTAND_KEY] })
+    onOpenChange(false)
+  }
+
+  // Idempotenz-Schlüssel des Vorgangs, wie an den sechs Aufrufstellen im
+  // Service-Pfad. Leer ist hier das Betragsfeld ohne Betrag: EuroInput lässt nur
+  // Ziffern und ein Komma zu, und parseCents bildet ein leeres Feld auf 0 ab —
+  // `betragCents === 0` ist damit genau der Zustand „kein Betrag eingegeben",
+  // und zugleich der einzige, aus dem heraus nicht gebucht werden kann (das
+  // Schema verlangt mindestens 1 Cent). Ein Wiederholversuch behält den
+  // Schlüssel, auch mit korrigiertem Betrag: Genau diese Abweichung meldet der
+  // Server als `vorgang_daten_abweichend`, statt ein zweites Mal zu buchen.
+  // useWatch ist memoisierbar (anders als form.watch).
+  const betragCents = useWatch({ control: form.control, name: 'betragCents' })
+  const geldtransitId = useVorgangId(betragCents === 0)
 
   const { loading, run } = useFormActionSubmit({
     form,
@@ -86,14 +101,27 @@ export function GeldtransitDialog({
         data.kommentar,
       )
       toast.success('Kassenbewegung gebucht.')
-      setGeldtransitId(crypto.randomUUID())
-      onOpenChange(false)
-      onSuccess()
+      // Der Erfolgspfad stellt den Leerzustand selbst her: Er allein beendet den
+      // Vorgang, und erst der Leerzustand löst die Rotation des Schlüssels aus.
+      // Ohne ihn trüge die nächste Bewegung denselben Schlüssel — eine zweite
+      // Entnahme über denselben Betrag würde als Duplikat verschluckt.
+      // Er ist zugleich die einzige Stelle, die leert: Der Dialog bleibt über
+      // Schließen und Wiederöffnen montiert, und ein Reset beim Öffnen führte
+      // jeden Vorgang durch den Leerzustand — der Wiederholversuch nach einer
+      // verlorenen Antwort (schließen, in der Liste nachsehen, erneut öffnen)
+      // bekäme einen neuen Schlüssel und würde zur zweiten Buchung.
+      form.reset({ betragCents: 0, kommentar: '' })
+      schliessen()
     })
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(naechsteOffen) => {
+        if (!naechsteOffen) schliessen()
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{titel}</DialogTitle>
@@ -147,9 +175,7 @@ export function GeldtransitDialog({
             type="button"
             variant="outline"
             disabled={loading}
-            onClick={() => {
-              onOpenChange(false)
-            }}
+            onClick={schliessen}
           >
             Abbrechen
           </Button>

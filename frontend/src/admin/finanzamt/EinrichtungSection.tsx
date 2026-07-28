@@ -67,7 +67,7 @@ export function EinrichtungSection() {
   const {
     betreiber,
     isPending: betreiberLoading,
-    isError: betreiberError,
+    isLoadingError: betreiberError,
     refetchBetreiber,
     saveBetreiber,
     setElsterMeldung,

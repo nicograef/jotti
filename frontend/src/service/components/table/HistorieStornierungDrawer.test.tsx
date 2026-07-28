@@ -175,7 +175,11 @@ describe('HistorieStornierungDrawer', () => {
     expect(stornierungErteilen.mock.calls[2][0].vorgangId).not.toBe(ersterKey)
   })
 
-  it('wechselt die vorgangId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
+  // Scheitert der erste Versuch scheinbar (Antwort im WLAN verloren) und wächst
+  // die Auswahl danach, muss der zweite Versuch denselben Schlüssel tragen: Nur
+  // dann erkennt der Server den Konflikt mit der bereits gebuchten Stornierung
+  // und meldet ihn, statt ein zweites Mal zu stornieren.
+  it('behält die vorgangId, wenn die Auswahl nach einem Fehlversuch wächst', async () => {
     const user = userEvent.setup()
     const stornierungErteilen = vi
       .fn<(s: StornierungErteilen) => Promise<void>>()
@@ -205,15 +209,15 @@ describe('HistorieStornierungDrawer', () => {
     })
     const ersterKey = stornierungErteilen.mock.calls[0][0].vorgangId
 
-    // Geänderte Nutzdaten nach dem Fehlversuch (Menge 1 → 2): neuer Vorgang,
-    // neuer Schlüssel — der Server prüft die geänderte Auswahl regulär.
+    // Geänderte Nutzdaten nach dem Fehlversuch (Menge 1 → 2): derselbe Vorgang,
+    // derselbe Schlüssel — die Abweichung beanstandet der Server.
     await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
     await user.click(erteilen())
     await waitFor(() => {
       expect(stornierungErteilen).toHaveBeenCalledTimes(2)
     })
     const zweiterAufruf = stornierungErteilen.mock.calls[1][0]
-    expect(zweiterAufruf.vorgangId).not.toBe(ersterKey)
+    expect(zweiterAufruf.vorgangId).toBe(ersterKey)
     expect(zweiterAufruf.positionen).toEqual([
       { positionId: position.positionId, menge: 2 },
     ])

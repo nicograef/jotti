@@ -28,7 +28,7 @@ export function TableSelectionPage() {
   const {
     tische,
     isPending: tischeLoading,
-    isError: tischeError,
+    isLoadingError: tischeError,
     refetch: reloadTische,
   } = useMeineTischeState()
   // Die Suche greift über alle aktiven Tische, nicht nur die favorisierten
@@ -36,16 +36,19 @@ export function TableSelectionPage() {
   // öffnet ihn per Treffer direkt.
   const {
     tische: alleTische,
-    isError: alleTischeError,
+    isLoadingError: alleTischeError,
     refetch: reloadAlleTische,
   } = useAktiveTischeMitFavoriten()
   const {
     uebersicht,
     isPending: uebersichtLoading,
-    isError: uebersichtError,
+    isLoadingError: uebersichtError,
     refetch: reloadUebersicht,
   } = useEigeneUebersicht()
 
+  // Ein Wiederholversuch lädt alle drei Queries neu, egal aus welchem Bereich er
+  // kommt: Sie beschreiben denselben Arbeitsstand, und ein Netzabbruch trifft
+  // meist alle drei.
   const reload = useCallback(() => {
     void reloadTische()
     void reloadAlleTische()
@@ -81,24 +84,91 @@ export function TableSelectionPage() {
 
   // Expliziter Fehlerzustand statt der Leer-Defaults: „Keine Tische markiert"
   // und Übersichtskarten mit 0 · 0,00 € behaupten sonst, die eigene Arbeit sei
-  // leer, obwohl bloß die Abfrage fehlgeschlagen ist.
-  if (tischeError || alleTischeError || uebersichtError) {
-    return (
-      <LadefehlerAlert
-        titel="Tische konnten nicht geladen werden"
-        onErneutVersuchen={reload}
-      />
-    )
-  }
+  // leer, obwohl bloß die Abfrage fehlgeschlagen ist. Der Fehlerzustand gilt nur
+  // dem gescheiterten Erstladen (isLoadingError) — ein gescheiterter
+  // Hintergrund-Refetch lässt die geladenen Daten stehen und meldet sich über
+  // den zentralen Fehler-Toast.
+  //
+  // Jeder Ladefehler ersetzt außerdem nur seinen eigenen Bereich: Suchfeld,
+  // Fußzeilen-Button und TischAuswahlDrawer bleiben in jedem Fehlerfall
+  // bedienbar, denn sie sind die einzigen Einstiege in einen Tisch und
+  // ServiceLayout bietet auf dieser Seite keine Alternativnavigation.
+  const uebersichtBereich = uebersichtError ? (
+    <LadefehlerAlert
+      titel="Eigene Übersicht konnte nicht geladen werden"
+      onErneutVersuchen={reload}
+      className="my-4"
+    />
+  ) : (
+    <EigeneUebersichtKarten
+      uebersicht={uebersicht}
+      loading={uebersichtLoading}
+    />
+  )
+
+  const suchBereich = alleTischeError ? (
+    <LadefehlerAlert
+      titel="Tischsuche konnte nicht geladen werden"
+      onErneutVersuchen={reload}
+    />
+  ) : suchTreffer.length === 0 ? (
+    <div className="py-8 text-center text-muted-foreground">
+      <p>Kein aktiver Tisch passt zu „{sucheGetrimmt}“.</p>
+    </div>
+  ) : (
+    <SuchTrefferListe treffer={suchTreffer} />
+  )
+
+  const favoritenBereich = tischeError ? (
+    <LadefehlerAlert
+      titel="Meine Tische konnten nicht geladen werden"
+      onErneutVersuchen={reload}
+    />
+  ) : tischeLoading ? (
+    <TischListSkeleton />
+  ) : tische.length === 0 ? (
+    <EmptyState
+      icon={Lamp}
+      title="Keine Tische markiert"
+      description="Du hast noch keine Tische markiert. Wähle Tische aus, um sie hier zu sehen. Für den Direktverkauf an der Theke wechselst du den Arbeitsmodus im Benutzermenü oben rechts."
+      action={
+        <Button
+          variant="outline"
+          onClick={() => {
+            setDrawerOpen(true)
+          }}
+        >
+          Tische auswählen
+        </Button>
+      }
+    />
+  ) : (
+    <div className="space-y-6">
+      {offeneTische.length > 0 && (
+        <TischGruppe
+          titel="Noch offen"
+          tische={offeneTische}
+          eintrittAb={erstAufbau ? 0 : null}
+        />
+      )}
+      {erledigteTische.length > 0 && (
+        <TischGruppe
+          titel="Erledigt"
+          tische={erledigteTische}
+          eintrittAb={erstAufbau ? offeneTische.length : null}
+        />
+      )}
+    </div>
+  )
 
   return (
     <div className={fussleisteFreiraum}>
-      <EigeneUebersichtKarten
-        uebersicht={uebersicht}
-        loading={uebersichtLoading}
-      />
+      {uebersichtBereich}
 
-      {alleTische.length > 0 && (
+      {/* Das Suchfeld bleibt auch bei gescheiterter Tischliste stehen: Der
+          Wiederholversuch im Suchbereich hängt daran, dass die Suche bedienbar
+          bleibt. */}
+      {(alleTische.length > 0 || alleTischeError) && (
         <div className="relative mb-4">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -112,50 +182,7 @@ export function TableSelectionPage() {
         </div>
       )}
 
-      {sucheAktiv ? (
-        suchTreffer.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">
-            <p>Kein aktiver Tisch passt zu „{sucheGetrimmt}“.</p>
-          </div>
-        ) : (
-          <SuchTrefferListe treffer={suchTreffer} />
-        )
-      ) : tischeLoading ? (
-        <TischListSkeleton />
-      ) : tische.length === 0 ? (
-        <EmptyState
-          icon={Lamp}
-          title="Keine Tische markiert"
-          description="Du hast noch keine Tische markiert. Wähle Tische aus, um sie hier zu sehen. Für den Direktverkauf an der Theke wechselst du den Arbeitsmodus im Benutzermenü oben rechts."
-          action={
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDrawerOpen(true)
-              }}
-            >
-              Tische auswählen
-            </Button>
-          }
-        />
-      ) : (
-        <div className="space-y-6">
-          {offeneTische.length > 0 && (
-            <TischGruppe
-              titel="Noch offen"
-              tische={offeneTische}
-              eintrittAb={erstAufbau ? 0 : null}
-            />
-          )}
-          {erledigteTische.length > 0 && (
-            <TischGruppe
-              titel="Erledigt"
-              tische={erledigteTische}
-              eintrittAb={erstAufbau ? offeneTische.length : null}
-            />
-          )}
-        </div>
-      )}
+      {sucheAktiv ? suchBereich : favoritenBereich}
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
         <div className="mx-auto w-full max-w-md">

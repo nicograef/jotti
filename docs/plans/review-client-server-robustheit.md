@@ -66,9 +66,9 @@ Auf `main` gibt es keinen AbortController, und `WriteTimeout: 10 * time.Second`
 `r.Context()` zu stornieren. Der Handler lief dort zu Ende und speicherte. Der
 PR verschlechtert diesen Pfad also eindeutig.
 
-- [ ] Zeitlimit pro Aufruf konfigurierbar machen (optionaler Parameter an
+- [x] Zeitlimit pro Aufruf konfigurierbar machen (optionaler Parameter an
       `BackendClient.post` und `BackendClient.download`, Standard 8000 ms).
-- [ ] `admin/tse-einrichten`, `admin/tse-uebernehmen`,
+- [x] `admin/tse-einrichten`, `admin/tse-uebernehmen`,
       `admin/test-tse-verbindung` und den DSFinV-K-Export auf ein deutlich
       höheres Limit ziehen.
 
@@ -99,11 +99,15 @@ Ein Revert ist die falsche Antwort: Auf `main` verschluckte der Server die
 geänderte Einreichung und meldete Erfolg, ohne die Cola zu buchen. Beide
 Varianten sind falsch. Die Bindung gehört auf die Serverseite.
 
-- [ ] Spalte `payload_hash` in `vorgang_idempotenz` (additive Migration `08`).
+- [x] Spalte `payload_hash` in `vorgang_idempotenz` (additive Migration `08`).
       Gleicher Schlüssel und gleicher Hash ergibt die stille Erfolgsantwort,
       gleicher Schlüssel und anderer Hash einen expliziten Fehlercode statt
       eines stillen Erfolgs.
-- [ ] Äquivalenten Abgleich für `bestellung-aufnehmen` und
+      *Umgesetzt direkt in Migration `07` statt in einer `08`: `07` ist neu auf
+      diesem Branch und lief auf keiner Instanz, der Freeze schützt hier also
+      keine persistierten Daten. Begründung im Nacharbeitsplan unter
+      „Datenbank".*
+- [x] Äquivalenten Abgleich für `bestellung-aufnehmen` und
       `direktverkauf-taetigen`, deren Schlüssel im Event-JSON liegt.
 
 ### TSE-Live-Suite scheitert ab sofort im Teardown
@@ -125,7 +129,7 @@ nur diese nicht. Kein Produktionsrisiko, aber `make test-tse-live` ist der
 einzige Ende-zu-Ende-Nachweis, dass jeder signaturpflichtige Vorgang signiert
 wird, und läuft nicht in CI.
 
-- [ ] `"DELETE FROM vorgang_idempotenz",` vor `"DELETE FROM users",` einfügen.
+- [x] `"DELETE FROM vorgang_idempotenz",` vor `"DELETE FROM users",` einfügen.
 
 ### Aktualitätsschwelle 30 s ohne Invalidierung des Tischzustands
 
@@ -148,10 +152,10 @@ invalidiert. Öffnet der Helfer ihn innerhalb von 30 s, zeigt er den Stand vor
 der Umbuchung, während die invalidierte Übersichtskarte desselben Tisches
 bereits den neuen Saldo führt.
 
-- [ ] `staleTime: 0` für die Queries, die geteilten Tischzustand abbilden
+- [x] `staleTime: 0` für die Queries, die geteilten Tischzustand abbilden
       (`useTischState`, `useTischHistorie`, `useMeineTischeState`); die 30 s auf
       Stammdaten beschränken, wo die Traffic-Ersparnis anfällt.
-- [ ] In `TablePage.reload` zusätzlich die Präfixe `['tisch-state']` und
+- [x] In `TablePage.reload` zusätzlich die Präfixe `['tisch-state']` und
       `['tisch-historie']` invalidieren. Inaktive Queries werden dabei nur als
       veraltet markiert und kosten keine zusätzlichen Requests.
 
@@ -177,35 +181,35 @@ nur die rein informative `eigene-uebersicht` gescheitert ist.
 `ServiceLayout.tsx:15-27` bietet auf `/service/tische` keine
 Alternativnavigation.
 
-- [ ] Fehlerzweig nur ziehen, wenn nichts Brauchbares vorliegt (`isLoadingError`
+- [x] Fehlerzweig nur ziehen, wenn nichts Brauchbares vorliegt (`isLoadingError`
       statt `isError`); einen gescheiterten Refetch bei vorhandenen Cache-Daten
       nicht-blockierend melden.
-- [ ] Auf `TableSelectionPage` den Alert auf den Bereich beschränken, dessen
+- [x] Auf `TableSelectionPage` den Alert auf den Bereich beschränken, dessen
       Daten fehlen, und Fußzeilen-Button samt Drawer in jedem Fall gemountet
       lassen.
 
 ## Geringfügig
 
-- [ ] Das Zeitlimit endet mit dem Antwort-Header, nicht mit dem Body.
+- [x] Das Zeitlimit endet mit dem Antwort-Header, nicht mit dem Body.
       `frontend/src/lib/Backend.ts:158-177`: `clearTimeout` steht im `finally`
       von `await fetch`, und fetch löst mit den Headern auf. Stockt die
       Verbindung mitten im Body, hängt die Query bis zum TCP-Timeout des
       Betriebssystems. Keine Regression, aber das abgehakte
       Phase-3-Kriterium gilt nur für die Header-Phase, und
       `Backend.test.ts:207-231` testet auch nur diese.
-- [ ] `abgeschlossene-kassensitzungen` wird nirgends invalidiert
+- [x] `abgeschlossene-kassensitzungen` wird nirgends invalidiert
       (`frontend/src/admin/reporting/hooks.ts:26`). Wer den Tagesabschluss bucht
       und binnen 30 s auf „Berichte & Export“ wechselt, sieht die neue Sitzung
       nicht; der Archiv-Download liefert dann die vorherige Sitzung.
       `ABGESCHLOSSENE_KASSENSITZUNGEN_KEY` und `REPORT_KEY` im Erfolgspfad des
       Tagesabschlusses invalidieren.
-- [ ] `frontend/src/admin/kasse/GeldtransitDialog.tsx:50` ist der siebte
+- [x] `frontend/src/admin/kasse/GeldtransitDialog.tsx:50` ist der siebte
       Idempotenz-Schlüssel und wurde als einziger nicht auf `useVorgangId`
       gezogen. Korrigiert der Admin nach einem Fehlversuch den Betrag, greift
       der Unique-Index, die UI meldet Erfolg und der korrigierte Betrag
       verschwindet. Vorbestehend, durch das neue 8-s-Limit aber
       wahrscheinlicher.
-- [ ] Die vier Zweige, die `ErrVorgangBereitsGebucht` aus der Schreibtransaktion
+- [x] Die vier Zweige, die `ErrVorgangBereitsGebucht` aus der Schreibtransaktion
       auf eine stille Erfolgsantwort abbilden
       (`tischgeschaeft/application/command.go:153,384,554`,
       `direktverkauf/application/command.go:210`), sind von keinem Test
@@ -213,20 +217,20 @@ Alternativnavigation.
       zuerst. Genau dieser Zweig sichert laut Plan das Rennen zweier
       gleichzeitiger Anfragen ab. Repo-Spy ergänzen, der den Fehler aus
       `WriteEventMitVorgang` liefert, ohne dass die Vorprüfung anschlägt.
-- [ ] Drei der vier neuen Duplikat-Unit-Tests
+- [x] Drei der vier neuen Duplikat-Unit-Tests
       (`command_idempotenz_test.go:36,203`,
       `direktverkauf/application/command_test.go:456`) bleiben grün, wenn man
       `vorgangBereitsGebucht` aus allen vier Commands entfernt. Ursache:
       `mock.go:170-180` schreibt die Projektion nach einem erfolgreichen Write
       nicht fort. Die Integrationsstufe fängt den Regress, `make check` nicht.
-- [ ] `kommentar` wird in keinem der vier „wechselt die vorgangId“-Tests
+- [x] `kommentar` wird in keinem der vier „wechselt die vorgangId“-Tests
       variiert; Löschen von `kommentar` aus allen sechs `useVorgangId`-Aufrufen
       lässt die Suite grün (`ZahlungAbschluss.test.tsx:184`). Die zentrale
       Behauptung von `ad17ab9` ist damit nur zur Hälfte abgesichert.
-- [ ] Der Retry-Test in `TableSelectionPage.test.tsx:119` prüft nur
+- [x] Der Retry-Test in `TableSelectionPage.test.tsx:119` prüft nur
       `reloadMeineTische`; ein `reload`, das die anderen beiden Queries nicht
       mehr neu lädt, bliebe grün.
-- [ ] Der auf Render-State-Sync umgeschriebene Leerzustands-Reset in
+- [x] Der auf Render-State-Sync umgeschriebene Leerzustands-Reset in
       `ZahlungAbschluss.tsx:64-73` ist ungetestet; Löschen des Blocks lässt 15
       Dateien mit 111 Tests grün. Die baugleichen Blöcke in
       `DirektverkaufAbschluss` und `BestellungAbschluss` sind abgedeckt.
@@ -236,7 +240,7 @@ Alternativnavigation.
 Nur verhaltenserhaltende Punkte; 3 von 21 Vorschlägen haben die Prüfung
 überstanden.
 
-- [ ] `backend/repository/kassenjournal_repo/repo.go`: `WriteUmbuchung`
+- [x] `backend/repository/kassenjournal_repo/repo.go`: `WriteUmbuchung`
       (Zeile 279) und `WriteTischSessionEventsAtomic` (Zeile 194) haben mit dem
       Wechsel des `eventRepo`-Interfaces auf die `MitVorgang`-Varianten ihren
       letzten Produktionsaufrufer verloren, `MockRepo.WriteUmbuchung`
@@ -244,13 +248,13 @@ Nur verhaltenserhaltende Punkte; 3 von 21 Vorschlägen haben die Prüfung
       (`repo_test.go:557,653,751`) auf `WriteUmbuchungMitVorgang` umstellen;
       danach kann `writeTischSessionEventsAtomic` `vorgang Vorgang` statt
       `*Vorgang` nehmen.
-- [ ] `backend/api/kasse/tischgeschaeft/application/command.go:310` (analog 416
+- [x] `backend/api/kasse/tischgeschaeft/application/command.go:310` (analog 416
       und 463): `if gebucht, err := …; err != nil { return } else if gebucht`
       ist die einzige Stelle im Nicht-Test-Backend, die `else` an einen
       returnenden Fehlerzweig hängt, und versteckt den Happy Path im
       else-Zweig. Auf die Form von
       `direktverkauf/application/command.go:154-163` ziehen.
-- [ ] `backend/api/kasse/direktverkauf/application/command.go:256`:
+- [x] `backend/api/kasse/direktverkauf/application/command.go:256`:
       `persistVerkaufEvent` ist nach dem Wegfall des zweiten Zweigs eine reine
       Weiterleitung mit einem Aufrufer, während die Schwesterstelle im selben
       File `writeVersionedEvent` direkt aufruft. Inlinen.
