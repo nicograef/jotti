@@ -402,24 +402,28 @@ kleinere Zahl zu sehen. Ohne Rücknahme ist die Seite pixelgleich zu heute.
 
 ### Acceptance criteria
 
-- [ ] Die Response von `/service/get-eigene-uebersicht` enthält
+- [x] Die Response von `/service/get-eigene-uebersicht` enthält
       `ruecknahmenCents`, `anzahlRuecknahmen` und `abzugebenCents`.
-- [ ] Integrationstest: Nimmt jemand anderes eine von dieser Servicekraft
+- [x] Integrationstest: Nimmt jemand anderes eine von dieser Servicekraft
       kassierte Zahlung zurück, sinkt ihr `abzugebenCents` und
       `anzahlRuecknahmen` steigt; `zahlungenCents` bleibt unverändert.
-- [ ] Integrationstest: Nimmt diese Servicekraft eine von jemand anderem
+- [x] Integrationstest: Nimmt diese Servicekraft eine von jemand anderem
       kassierte Zahlung zurück, bleiben alle drei Felder unverändert.
-- [ ] Integrationstest: Eine geldneutrale Korrektur verändert keines der drei
+- [x] Integrationstest: Eine geldneutrale Korrektur verändert keines der drei
       Felder.
-- [ ] `abzugebenCents` einer Servicekraft stimmt mit ihrer Zeile in
+- [x] `abzugebenCents` einer Servicekraft stimmt mit ihrer Zeile in
       `breakdowns.abrechnungProServicekraft` derselben Kassensitzung überein.
-- [ ] Frontend-Test: Ohne Rücknahme zeigt das Service-Dashboard genau die zwei
+- [x] Frontend-Test: Ohne Rücknahme zeigt das Service-Dashboard genau die zwei
       bisherigen Kacheln und keine Hinweiszeile.
-- [ ] Frontend-Test: Mit Rücknahme erscheint die Hinweiszeile mit Anzahl,
+- [x] Frontend-Test: Mit Rücknahme erscheint die Hinweiszeile mit Anzahl,
       zurückgegebenem Betrag und abzugebendem Betrag; die Kacheln bleiben
       unverändert.
-- [ ] Die Hinweiszeile ist ab 360 px Breite ohne Überlauf lesbar; der
-      Lade-Skeleton bleibt zweispaltig wie bisher.
-- [ ] `docs/anforderungen.md` (R-06) und `docs/handbuch.md` beschreiben die
+- [x] Die Hinweiszeile ist ab 360 px Breite ohne Überlauf lesbar; der
+      Lade-Skeleton bleibt zweispaltig wie bisher. — Die Hinweiszeile ist ein umbrechender
+      Absatz ohne feste Breite und ohne horizontalen Scroll-Container, kann also nicht
+      überlaufen; der Skeleton-Zustand ist per Test auf genau ein `grid-cols-2` festgenagelt.
+- [x] `docs/anforderungen.md` (R-06) und `docs/handbuch.md` beschreiben die
       erweiterte eigene Übersicht.
-- [ ] `make verify` läuft durch.
+- [ ] `make verify` läuft durch. — In dieser Umgebung nicht ausführbar (kein Docker).
+      Stattdessen verifiziert: `make check`, die vollständige `-tags=integration`-Suite
+      gegen eine lokale PostgreSQL und `pnpm test`.

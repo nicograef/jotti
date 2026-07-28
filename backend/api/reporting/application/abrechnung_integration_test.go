@@ -334,3 +334,114 @@ func TestAbrechnung_VollstaendigeRuecknahmeErgibtNullNichtNegativ(t *testing.T) 
 	byUser := abrechnungByUser(data.Breakdowns.AbrechnungProServicekraft)
 	assertAbrechnung(t, byUser["anna"], 2000, 2000, 0, 1)
 }
+
+// assertEigeneUebersicht prüft die drei Rücknahme-Felder der eigenen Übersicht
+// zusammen mit dem kassierten Betrag, aus dem sie sich ableiten.
+func assertEigeneUebersicht(t *testing.T, u reporting.EigeneUebersicht, kassiert, ruecknahmen, anzahlRuecknahmen, abzugeben int) {
+	t.Helper()
+	if u.ZahlungenCents != kassiert || u.RuecknahmenCents != ruecknahmen ||
+		u.AnzahlRuecknahmen != anzahlRuecknahmen || u.AbzugebenCents != abzugeben {
+		t.Errorf("expected kassiert %d / ruecknahmen %d (%dx) / abzugeben %d, got %+v",
+			kassiert, ruecknahmen, anzahlRuecknahmen, abzugeben, u)
+	}
+}
+
+// Nimmt jemand anderes eine von dieser Servicekraft kassierte Zahlung zurück,
+// sinkt ihr Abzugeben und die Rücknahme-Anzahl steigt — der kassierte Betrag
+// selbst bleibt unangetastet. Zugleich der Konsistenzbeleg: Die eigene Übersicht
+// nennt exakt denselben Abzugeben-Betrag wie ihre Zeile in der Abrechnung.
+func TestEigeneUebersicht_FremdeRuecknahmeMindertAbzugeben(t *testing.T) {
+	db, q, zNr := abrechnungSetup(t)
+	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
+	lenaID := createAbrechnungUser(t, db, "Lena Chef", "lena")
+	tisch := "kassensitzung-1/tisch-1"
+
+	insertAbrechnungEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", tisch, 1, bestellungEvent("pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", tisch, 2, zahlungEvent("z-1", "pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, lenaID, "lena", "stornierung-erteilt:v1", tisch, 3, ruecknahmeEvent("z-1", "pos-1", 500, "Ruecknahme"), zNr)
+
+	ctx := context.Background()
+	uebersicht, err := q.ReportingRepo.GetEigeneUebersicht(ctx, annaID, zNr)
+	if err != nil {
+		t.Fatalf("GetEigeneUebersicht failed: %v", err)
+	}
+	assertEigeneUebersicht(t, uebersicht, 2000, 500, 1, 1500)
+
+	data, err := q.GetReporting(ctx, zNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+	if got := abrechnungByUser(data.Breakdowns.AbrechnungProServicekraft)["anna"].AbzugebenCents; got != uebersicht.AbzugebenCents {
+		t.Errorf("eigene Übersicht (%d) und Abrechnungszeile (%d) müssen denselben Abzugeben-Betrag nennen", uebersicht.AbzugebenCents, got)
+	}
+}
+
+// Nimmt diese Servicekraft eine von jemand anderem kassierte Zahlung zurück,
+// bleibt ihre eigene Übersicht unberührt — belastet wird die Kasse des
+// Kassierers, nicht die des Stornierenden.
+func TestEigeneUebersicht_EigeneRuecknahmeFremderZahlungZaehltNicht(t *testing.T) {
+	db, q, zNr := abrechnungSetup(t)
+	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
+	bobID := createAbrechnungUser(t, db, "Bob Schmidt", "bob")
+	tisch := "kassensitzung-1/tisch-1"
+
+	insertAbrechnungEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", tisch, 1, bestellungEvent("pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", tisch, 2, zahlungEvent("z-anna", "pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, bobID, "bob", "bestellung-aufgenommen:v1", tisch, 3, bestellungEvent("pos-2", 1500), zNr)
+	insertAbrechnungEvent(t, db, bobID, "bob", "zahlung-kassiert:v1", tisch, 4, zahlungEvent("z-bob", "pos-2", 1500), zNr)
+	// anna storniert gegen bobs Zahlung.
+	insertAbrechnungEvent(t, db, annaID, "anna", "stornierung-erteilt:v1", tisch, 5, ruecknahmeEvent("z-bob", "pos-2", 400, "Ruecknahme Bob"), zNr)
+
+	ctx := context.Background()
+	anna, err := q.ReportingRepo.GetEigeneUebersicht(ctx, annaID, zNr)
+	if err != nil {
+		t.Fatalf("GetEigeneUebersicht(anna) failed: %v", err)
+	}
+	assertEigeneUebersicht(t, anna, 2000, 0, 0, 2000)
+
+	bob, err := q.ReportingRepo.GetEigeneUebersicht(ctx, bobID, zNr)
+	if err != nil {
+		t.Fatalf("GetEigeneUebersicht(bob) failed: %v", err)
+	}
+	assertEigeneUebersicht(t, bob, 1500, 400, 1, 1100)
+}
+
+// Eine geldneutrale Korrektur bewegt kein Bargeld und darf die eigene Übersicht
+// deshalb in keinem der drei Rücknahme-Felder verändern.
+func TestEigeneUebersicht_KorrekturVeraendertNichts(t *testing.T) {
+	db, q, zNr := abrechnungSetup(t)
+	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
+	lenaID := createAbrechnungUser(t, db, "Lena Chef", "lena")
+	tisch := "kassensitzung-1/tisch-1"
+
+	insertAbrechnungEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", tisch, 1, bestellungEvent("pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", tisch, 2, zahlungEvent("z-1", "pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", tisch, 3, bestellungEvent("pos-2", 700), zNr)
+	insertAbrechnungEvent(t, db, lenaID, "lena", "bestellung-korrigiert:v1", tisch, 4, korrekturEvent("pos-2", 700, "Korrektur"), zNr)
+
+	uebersicht, err := q.ReportingRepo.GetEigeneUebersicht(context.Background(), annaID, zNr)
+	if err != nil {
+		t.Fatalf("GetEigeneUebersicht failed: %v", err)
+	}
+	assertEigeneUebersicht(t, uebersicht, 2000, 0, 0, 2000)
+}
+
+// Wird eine Zahlung vollständig zurückgenommen, ist Abzugeben null — nie
+// negativ. Die Invariante trägt, weil je Zahlung höchstens der Zahlbetrag
+// zurückgenommen werden kann und beide Seiten demselben Kassierer zufallen.
+func TestEigeneUebersicht_VollstaendigeRuecknahmeErgibtNull(t *testing.T) {
+	db, q, zNr := abrechnungSetup(t)
+	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
+	lenaID := createAbrechnungUser(t, db, "Lena Chef", "lena")
+	tisch := "kassensitzung-1/tisch-1"
+
+	insertAbrechnungEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", tisch, 1, bestellungEvent("pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", tisch, 2, zahlungEvent("z-1", "pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, lenaID, "lena", "stornierung-erteilt:v1", tisch, 3, ruecknahmeEvent("z-1", "pos-1", 2000, "Voll zurueck"), zNr)
+
+	uebersicht, err := q.ReportingRepo.GetEigeneUebersicht(context.Background(), annaID, zNr)
+	if err != nil {
+		t.Fatalf("GetEigeneUebersicht failed: %v", err)
+	}
+	assertEigeneUebersicht(t, uebersicht, 2000, 2000, 1, 0)
+}
