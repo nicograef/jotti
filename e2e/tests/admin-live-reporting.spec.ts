@@ -54,9 +54,11 @@ test.describe('Admin sieht das Live-Dashboard', () => {
     // sophie bzw. felix. Angerechnet werden sie deshalb lisa — ihrer Kasse ging
     // das Bargeld ab —, nicht den stellvertretend Stornierenden. Der exakte Text
     // belegt zugleich, dass lisa der einzige Eintrag ist; felix erscheint am
-    // Sonntag nur in der Team-Liste, weil er an Tisch 5 selbst kassiert hat.
+    // Sonntag nur in der Team-Liste, weil er an Tisch 5 selbst kassiert hat. Das
+    // führende „Betroffen:" gehört zur Zusage, dass die Zeile nicht als
+    // Aufteilung der darüberstehenden Storno-Kopfkennzahl gelesen wird.
     await expect(
-      liveSection.getByText('lisa (Lisa Braun) 2', { exact: true }),
+      liveSection.getByText('Betroffen: lisa (Lisa Braun) 2', { exact: true }),
     ).toBeVisible()
     await liveSection.getByRole('button', { name: 'Details' }).click()
     await expect(
