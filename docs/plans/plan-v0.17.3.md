@@ -108,6 +108,15 @@ Mid-Fest-Release.
   aussieht.
 - **Der TSE-Langläufer-Schutz ist dabei**, obwohl beim Verein die TSE eingerichtet ist. Er
   behebt einen Defekt, der heute schon besteht, und der Handshake verschärft ihn.
+- **Die Idempotenz-Maschinerie bleibt zurückgestellt und kommt in diesem Release nicht
+  wieder.** Sie liegt im Archiv (`archiv/main-vor-v0.17.2`, Commits `c6d9f840`, `187fbfea`,
+  `73aee693` sowie die Nutzlast-Bindung des Schlüssels aus `9ef41ab6`) und macht `vorgangId`
+  zum Pflichtfeld auf den buchenden Endpunkten — jedes Handy, das nicht neu geladen hat,
+  bucht danach nicht mehr. Genau diesen Nachteil hebt der Handshake auf: Ab v0.17.3 erzwingt
+  das System den Reload selbst, ein neues Pflichtfeld ist dann kein Feldrisiko mehr. Das ist
+  ein Grund, sie **nach** der Auslieferung von v0.17.3 neu zu bewerten, kein Grund, sie hier
+  mitzunehmen — sie löst ein Problem, das im Betrieb nie beobachtet wurde, und
+  Produkt-Konservatismus lässt sie draußen, bis eines auftritt.
 - **Die Clientversion ist die echte Build-Version, nicht die beim ersten Laden gesehene
   Serverversion.** Die billigere Variante — die erste gesehene Serverversion als eigene
   Referenz merken — käme ohne jede Änderung an Build-Kette, Vite-Konfiguration und

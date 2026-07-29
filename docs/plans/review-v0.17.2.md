@@ -1,5 +1,11 @@
 # Review: v0.17.2 (Freigabe für die Installation mitten im laufenden Fest)
 
+> Hinweis: Dieser Review bewertet den archivierten Stand `archiv/main-vor-v0.17.2`
+> (annotierter Tag auf dem Remote, zeigt auf Commit `e0960b68` — das ehemalige
+> `main`), nicht den tatsächlich ausgelieferten Stand von v0.17.2. Er ist die
+> Begründung für die in `docs/plans/plan-v0.17.2-release.md` festgehaltenen
+> Zurückstellungen.
+
 > Gegenstand: `main` (HEAD `4040cd21`) gegen Tag `v0.17.1` (`3d334de2`),
 > 180 Dateien, +15870/-1325. Bewertungsmaßstab ist Regressionsfreiheit gegenüber
 > dem seit mehreren Tagen produktiv laufenden v0.17.1, nicht Vollständigkeit der

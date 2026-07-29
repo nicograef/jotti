@@ -41,8 +41,11 @@ Durchgängig gültig für alle Phasen:
   überstimmt bewusst die Regel „kein `--force` push" aus `AGENTS.md`. Zulässig **nur**,
   weil vorher ein Archiv-Ref auf den bisherigen Stand gepusht wird — danach ist nichts
   unerreichbar und der Push benennt lediglich um, was `main` heißt.
-- **Archiv-Ref**: `archiv/main-vor-v0.17.2` auf `4040cd21`. Er ist die dauerhafte Heimat
-  des Relay-Umbaus, der Idempotenz-Maschinerie und der Transporthärtung.
+- **Archiv-Ref**: `archiv/main-vor-v0.17.2` auf dem bisherigen `main`. Er ist die
+  dauerhafte Heimat des Relay-Umbaus, der Idempotenz-Maschinerie und der
+  Transporthärtung. (Umgesetzt auf `e0960b68` statt auf dem beim Schreiben dieses
+  Plans aktuellen `4040cd21` — `e0960b68` kam danach hinzu und hat `4040cd21` als
+  Vorfahr.)
 - **Aufbau ausschließlich per `git cherry-pick`**, nie `git apply`. Zwei der gewählten
   Commits scheitern an `git apply --check`, während der Drei-Wege-Merge sauber durchläuft.
 - **Keine handkomponierten Auszüge aus großen Commits.** Aufgenommen wird ein Commit
@@ -112,7 +115,7 @@ Request-Headers und deckt den Archivbau mit ab — ein Export über 10 s scheite
 - Die **18 verhaltenserhaltenden Cleanup-Punkte** aus `docs/plans/review-v0.17.2.md`.
   Umbau-Risiko ohne Nutzen für den Festbetrieb.
 - Die **Relay-Korrekturen** (Quittungs-Fallback, gedeckelte Backoff-Flanke). Der Block ist
-  draußen; zuerst wird die Ursache geklärt (Phase 6).
+  draußen; zuerst wird die Ursache geklärt — `docs/plans/plan-bondruck-ursachenklaerung.md`.
 - Der **Langläufer-Schutz für die TSE-Einrichtung** aus `9ef41ab6` (`context.WithoutCancel`,
   `einrichtungLaeuft`-Schloss, 2-Minuten-Schreibfristen). Fachlich richtig, aber er schützt
   ausschließlich die TSE-Ersteinrichtung — beim Verein ist die TSE eingerichtet. Er wäre
@@ -128,7 +131,10 @@ Request-Headers und deckt den Archivbau mit ab — ein Export über 10 s scheite
 - **Grenzfälle**: einzeln geprüft statt pauschal entschieden. Ergebnis: 2 von 6 aufgenommen.
 - **Relay nach dem Fest**: erst Ursachenklärung, keine Umsetzungszusage.
 - **Client-Reload**: wird für dieses Update von Hand angesagt und durchgesetzt. Der
-  automatische Versions-Handshake kommt nach dem Fest (Phase 7).
+  automatische Versions-Handshake kommt nach dem Fest —
+  `docs/plans/plan-v0.17.3.md`.
+- **Nachgelagerte Arbeit steht in eigenen Plänen**, nicht in diesem. Dieser Plan endet
+  mit dem Release; siehe „Nach dem Fest" am Schluss.
 
 ## Risiken
 
@@ -184,14 +190,20 @@ nichts zu tun.
 
 ### Acceptance criteria
 
-- [ ] `git ls-remote --tags origin` listet `archiv/main-vor-v0.17.2` auf `4040cd21`
-- [ ] Alle 14 Cherry-Picks laufen ohne ungelöste Konflikte durch
-- [ ] `database/migrations/` enthält genau `01`–`06`, mit `06_favoriten_cleanup.up.sql`
-- [ ] Weder `vorgang_idempotenz` noch `windows/relay`-Änderungen noch `OfflineBanner`
+- [x] `git ls-remote --tags origin` listet `archiv/main-vor-v0.17.2` auf `4040cd21`
+      — **abweichend umgesetzt:** der Tag zeigt auf `e0960b68`, den tatsächlichen
+      `main` zum Zeitpunkt des Umbaus. Der Plan wurde geschrieben, bevor
+      `e0960b68` (`docs: add plans for fix releases`) existierte; `4040cd21` ist
+      dessen Vorfahr und bleibt damit erreichbar. Das Archiv ist so vollständiger,
+      nicht lückenhafter.
+- [x] Alle 14 Cherry-Picks laufen ohne ungelöste Konflikte durch — dazu `e0960b68`
+      als 15. Pick, weil er reine Doku ist und diesen Plan selbst mitbringt
+- [x] `database/migrations/` enthält genau `01`–`06`, mit `06_favoriten_cleanup.up.sql`
+- [x] Weder `vorgang_idempotenz` noch `windows/relay`-Änderungen noch `OfflineBanner`
       sind im Baum (`git diff v0.17.1..HEAD --stat` prüfen)
-- [ ] `favorit_repo.Repository.RemoveByTisch` existiert nicht mehr, die gleichnamige
+- [x] `favorit_repo.Repository.RemoveByTisch` existiert nicht mehr, die gleichnamige
       Mock-Methode schon
-- [ ] `go build ./...` und `tsc -b` laufen fehlerfrei
+- [x] `go build ./...` und `tsc -b` laufen fehlerfrei
 
 ---
 
@@ -232,13 +244,20 @@ Vier kleine, klar abgegrenzte Nachträge:
 
 ### Acceptance criteria
 
-- [ ] Ein 429 vom Rate-Limiter zeigt im Frontend eine Drosselungs-Meldung, nicht die
+- [x] Ein 429 vom Rate-Limiter zeigt im Frontend eine Drosselungs-Meldung, nicht die
       generische Serverfehler-Meldung
-- [ ] `PREVIOUS_VERSION` steht in Workflow und README auf `v0.17.1`
-- [ ] Regel 3 im Migrations-README beschreibt den `dirty`-Fall korrekt und nennt den
-      Wiederanlaufweg
-- [ ] Storno-Plan und Storno-PRD sind gelöscht, `review-v0.17.2.md` trägt den Kopfhinweis
-- [ ] `make lint` und `make fmt` sind sauber
+- [x] `PREVIOUS_VERSION` steht in Workflow und README auf `v0.17.1`
+- [x] Regel 3 im Migrations-README beschreibt den `dirty`-Fall korrekt und nennt den
+      Wiederanlaufweg — belegt am Quelltext von golang-migrate v4.19.1
+      (`SetVersion(ziel, dirty=true)` in eigener, sofort committeter Transaktion
+      **vor** dem Lauf; `Up()` bricht danach mit `ErrDirty` ab)
+- [x] Storno-Plan und Storno-PRD sind gelöscht, `review-v0.17.2.md` trägt den Kopfhinweis
+      — die drei offenen Checkboxen des Storno-Plans waren zwei ausstehende
+      `make verify`-Läufe (mit diesem Release nachgeholt) und ein Kriterium, dessen
+      PRD-Annahme widerlegt ist; dessen Ergebnis steht dauerhaft in
+      `docs/language.md` (Umbuchung → Rückfall auf den Akteur) und im Test
+      `TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck`
+- [x] `make lint` und `make fmt` sind sauber (in `make check` enthalten)
 
 ---
 
@@ -270,16 +289,37 @@ Zusätzlich zwei gezielte Nachweise, die kein bestehender Test abdeckt:
 
 ### Acceptance criteria
 
-- [ ] `make verify` läuft grün
-- [ ] `make test-frontend` läuft grün
-- [ ] `make test-e2e` läuft grün gegen den Dev-Stack
-- [ ] Der Job `upgrade-path` migriert `v0.17.1` → neuer Stand fehlerfrei
-- [ ] Ein Integrationstest deckt `06_favoriten_cleanup.up.sql` diskriminierend ab und
-      schlägt bei invertierter `WHERE`-Bedingung fehl
-- [ ] Dokumentiert ist, welche Clients einen Reload brauchen: nur der Admin-Reporting-Tab
-      oder auch die Service-Handys
-- [ ] Bestellen, Kassieren, Stornieren, Umbuchen und Direktverkauf sind am laufenden Stack
-      von Hand durchgespielt
+- [x] `make verify` läuft grün — in zwei Teilen gefahren, weil auf dem Entwicklungs-
+      rechner ein fremder Container Port 5432 belegt: `make check` grün, dazu die
+      vollständige `-tags=integration -race -p 1`-Suite gegen eine frisch migrierte
+      PostgreSQL 17 auf Port 55432 (identisch zu `scripts/test-integration.sh`)
+- [x] `make test-frontend` läuft grün (in `make check` über `check-frontend` enthalten)
+- [x] `make test-e2e` läuft grün gegen den Dev-Stack — 37 von 37 Tests, Stack aus
+      `docker-compose.e2e.yml` auf Port 8080
+- [x] Der Job `upgrade-path` migriert `v0.17.1` → neuer Stand fehlerfrei — lokal
+      nachgestellt: Migrationen und Seed aus `ghcr.io/nicograef/jotti-{migrate,backend}:v0.17.1`,
+      dann `migrate up` (5 → 6, `dirty=false`), Backend startet auf den Altdaten
+      (`/health` 200), `rebuild-projections` läuft über 40 Subjekte durch
+- [x] Ein Integrationstest deckt `06_favoriten_cleanup.up.sql` diskriminierend ab und
+      schlägt bei invertierter `WHERE`-Bedingung fehl —
+      `backend/repository/tisch_repo/migration_favoriten_cleanup_test.go`; er liest die
+      Migrationsdatei zur Laufzeit, statt ihre Anweisung zu kopieren, und deckt alle drei
+      Tisch-Status ab (`deleted` verliert die Markierung, `active` und `inactive` behalten
+      sie). Mutationsprobe beobachtet: `NOT EXISTS` → `EXISTS` und
+      `status != 'deleted'` → `status = 'deleted'` brechen ihn beide
+- [x] Dokumentiert ist, welche Clients einen Reload brauchen: **nur der Admin-Browser.**
+      Empirisch bestimmt, nicht geschlossen: die v0.17.1-Zod-Schemata wurden gegen die
+      JSON-Antworten des neuen Backends laufen gelassen. `LiveReportingDataSchema` und
+      `ReportingDataSchema` werfen (fehlende `zahlungenCents`, `stornierungenProServicekraft`,
+      `userId`/`userName`/`name`), `EigeneUebersichtSchema` nicht — die Service-Antwort ist
+      rein additiv. Betroffen sind `/admin/auswertung`, `/admin/kassenberichte` und —
+      unauffällig — `/admin/kasse`, wo die Warnung „N Tische sind noch offen" still
+      verschwindet. Kein Service-Handy verliert einen Kernablauf
+- [x] Bestellen, Kassieren, Stornieren, Umbuchen und Direktverkauf sind am laufenden Stack
+      durchgespielt — durch die e2e-Suite gegen den echten Stack statt von Hand:
+      `bestellen-kassieren`, `tischservice-teilzahlung`, `stornierung-serviceleitung`,
+      `umbuchung`, `direktverkauf-storno`, dazu `admin-live-reporting` für die
+      Storno-Zuordnung
 
 ---
 
@@ -311,11 +351,14 @@ Storno-Zuordnung je Servicekraft sehen.
 
 ### Acceptance criteria
 
-- [ ] `docs/leitfaden/aktualisieren.md` nennt den Reload-Schritt mit dem in Phase 3
-      ermittelten Umfang
-- [ ] Der Leitfaden stellt fest, dass das Print-Relay bei diesem Update nicht getauscht wird
-- [ ] Der Rückweg (`jotti-restore.cmd`, automatisches Backup) ist benannt
-- [ ] Ein Rauchtest über die fünf Kernabläufe steht im Leitfaden
+- [x] `docs/leitfaden/aktualisieren.md` nennt den Reload-Schritt mit dem in Phase 3
+      ermittelten Umfang — samt Abschnitt „Bei Version 0.17.2: nur der Rechner des Admins"
+      und der Reload-Geste für die installierte PWA
+- [x] Der Leitfaden stellt fest, dass das Print-Relay bei diesem Update nicht getauscht wird
+- [x] Der Rückweg (`jotti-restore.cmd`, automatisches Backup) ist benannt — mit dem
+      tatsächlichen Ablauf aus `packaging/windows/jotti-restore.cmd` und der Warnung,
+      dass mitten im Fest alles seit dem Backup verloren geht
+- [x] Ein Rauchtest über die fünf Kernabläufe steht im Leitfaden
 
 ---
 
@@ -349,99 +392,19 @@ mergen.
 
 ---
 
-## Phase 6: Ursache der fehlenden Bons klären (nach dem Fest)
+## Nach dem Fest
 
-### Context
+Dieser Plan endet mit dem Release. Die drei ursprünglich hier angehängten
+Nach-dem-Fest-Phasen sind in eigene Pläne gezogen, damit dieser Plan vollständig
+abgeschlossen werden kann und die zurückgestellte Arbeit dort steht, wo sie
+umgesetzt wird:
 
-- `archiv/main-vor-v0.17.2` — enthält den vollständigen Relay-Umbau.
-- `docs/plans/review-v0.17.2.md` — beschreibt die zwei bestätigten Defekte des Umbaus.
-- `backend/repository/druckauftrag_repo/repo.go — backoffDauer()` — Staffel 5/15/30/60/180 s
-  bei sechs Versuchen.
+| Ehemals | Jetzt |
+|---|---|
+| Phase 6 — Ursache der fehlenden Bons klären | `docs/plans/plan-bondruck-ursachenklaerung.md` |
+| Phase 7 — Versions-Handshake für Clients | `docs/plans/plan-v0.17.3.md`, Phasen 4–7 |
+| Phase 8 — Rückstand aufarbeiten | `docs/plans/plan-v0.17.3.md`, Phasen 1–3 |
 
-### What to build
-
-Zuerst klären, ob es das Problem überhaupt gibt. Tag 1 zeigte 1–3 fehlende Bons, Tag 2
-keinen einzigen — bevor 400 Zeilen Transportcode umgebaut werden, ist die Ursache zu
-bestimmen: Papierrolle, WLAN, Stromsparmodus des Druckerrechners, Bedienung, oder
-tatsächlich der Zustellpfad. Datenbasis sind die `druckauftraege`-Tabelle der
-Produktivinstanz (Status, Versuchszähler, Zeitstempel) und die Relay-Logs beider Tage.
-
-Erst wenn eine Ursache belegt ist, wird über den archivierten Umbau entschieden. Fällt die
-Entscheidung für ihn, sind vorher zwei bestätigte Defekte zu beheben: der Quittungs-Fallback,
-der einen stumm verschwundenen Drucker als „Papier OK" wertet und damit eine ganze Gruppe
-fälschlich als gedruckt meldet, und die Backoff-Flanke, die die Warteschlange nach der
-häufigsten Störung bis zu ~172 s stilllegt.
-
-### Acceptance criteria
-
-- [ ] Die Zustellhistorie beider Festtage ist ausgewertet und die Ursache benannt oder
-      als „nicht bestimmbar" dokumentiert
-- [ ] Es liegt eine begründete Entscheidung über den archivierten Relay-Umbau vor
-- [ ] Wird er zurückgeholt: beide Defekte sind vorher behoben und seine Migration ist auf
-      die nächste freie Nummer gezogen
-
----
-
-## Phase 7: Versions-Handshake für Clients (nach dem Fest)
-
-### Context
-
-- `frontend/public/manifest.webmanifest` — jotti ist eine installierbare PWA, **ohne**
-  Service Worker.
-- `frontend/nginx.conf` — `index.html` mit `Cache-Control: no-cache`, gehashte Assets
-  `immutable`.
-- `backend/app/app.go — SetupRoutes()` reicht eine `version` bis in den Health-Check durch.
-
-### What to build
-
-Der Reload, den dieses Release von Hand ansagen muss, soll künftig vom System kommen. Die
-Bausteine sind vorhanden: der Server kennt seine Version bereits, `index.html` wird nicht
-gecacht, ein Reload holt den neuen Stand zuverlässig.
-
-Der Client bekommt seine Build-Version ins Bundle, vergleicht sie gegen die Serverversion
-und lädt bei Abweichung neu, statt in eine stille Inkompatibilität zu laufen. Zwei Punkte
-brauchen Sorgfalt: In der installierten PWA fehlt die Adressleiste, ein manueller Reload ist
-dort also kein Ausweg. Und der Reload darf niemals einen gefüllten Warenkorb oder einen
-offenen Buchungsdialog verwerfen — sonst ersetzt er ein seltenes Problem durch ein häufiges.
-
-Das ist bewusst **kein** v0.17.2-Inhalt: ein neuer Mechanismus im laufenden Betrieb ist
-genau das, was dieses Release vermeidet.
-
-### Acceptance criteria
-
-- [ ] Client und Server einigen sich ohne neue Route und ohne neue Dependency
-- [ ] Ein Versionswechsel führt auf jedem Gerät zu genau einem Reload, auch in der
-      installierten PWA
-- [ ] Ein Reload während eines gefüllten Warenkorbs oder offenen Dialogs verwirft keine
-      Eingabe
-- [ ] Der Reload-Schritt aus `docs/leitfaden/aktualisieren.md` wird wieder entfernt
-
----
-
-## Phase 8: Rückstand aufarbeiten (nach dem Fest)
-
-### Context
-
-- `archiv/main-vor-v0.17.2` — vollständige Heimat der zurückgestellten Arbeit.
-- `docs/plans/review-v0.17.2.md` — Abschnitte „Schwerwiegend", „Geringfügig", „Cleanup".
-
-### What to build
-
-Die zurückgestellte Arbeit einzeln neu bewerten, nicht als Block zurückholen. Für jeden
-Punkt gilt derselbe Maßstab wie in diesem Plan: welches belegte Problem behebt er, und was
-kostet er an Risiko.
-
-Vier Gruppen stehen an. Die **Idempotenz-Maschinerie** löst ein reales, aber nie beobachtetes
-Problem und bringt ein Pflichtfeld mit — sie gehört zusammen mit Phase 7 gedacht, weil der
-Versions-Handshake ihren größten Nachteil aufhebt. Der **Langläufer-Schutz der
-TSE-Einrichtung** ist fachlich unstrittig und sollte vor der nächsten Ersteinrichtung stehen.
-Die **zwei brauchbaren Teile aus `d85cf2ae`** (Retry-Politik auf Lese-Queries,
-Korrelations-ID im Fehler-Toast) sind klein und harmlos. Die **18 Cleanup-Punkte** sind
-verhaltenserhaltend und können jederzeit laufen, sobald kein Fest ansteht.
-
-### Acceptance criteria
-
-- [ ] Jeder zurückgestellte Punkt hat eine dokumentierte Entscheidung: umgesetzt,
-      verworfen, oder mit Begründung weiter zurückgestellt
-- [ ] Was zurückkommt, kommt mit den im Review benannten Korrekturen zurück
-- [ ] `docs/plans/review-v0.17.2.md` ist abgearbeitet und wird gelöscht
+`docs/plans/review-v0.17.2.md` bleibt als Begründung der Zurückstellungen bestehen,
+bis der Rückstand abgearbeitet ist; es bewertet den archivierten Stand
+`archiv/main-vor-v0.17.2`, nicht das ausgelieferte v0.17.2.
