@@ -3,7 +3,9 @@
 > Quell-PRD: n/a (aus `docs/plans/review-v0.17.2.md`, der Commit-Einzelprüfung zum
 > v0.17.2-Schnitt und drei gezielten Code-Erkundungen)
 > Basis: der v0.17.2-Stand. Dieser Plan setzt voraus, dass
-> `docs/plans/plan-v0.17.2-release.md` vollständig umgesetzt ist.
+> `docs/plans/plan-v0.17.2-release.md` umgesetzt ist. Dort steht noch genau eine
+> Checkbox offen (Zeile 397: PR #101 als „nach dem Fest" markieren) — eine reine
+> Verwaltungsaufgabe ohne Code-Anteil, die diesen Plan nicht blockiert.
 
 ## Ziel
 
@@ -23,16 +25,27 @@ Mid-Fest-Release.
 ## Architekturentscheidungen
 
 - **Kein neuer Endpunkt, keine neue Route, keine neue Dependency.** Der Handshake nutzt
-  den bestehenden `/health`-Endpunkt (`backend/api/health/health.go — HealthCheck.ServeHTTP()`),
-  der bereits ein `version`-Feld liefert und außerhalb der JWT-Kette hängt.
+  den bestehenden `/health`-Endpunkt (`backend/api/health/health.go — HealthCheck.Handler()`,
+  registriert in `backend/app/app.go — SetupRoutes()`), der bereits ein `version`-Feld
+  liefert und außerhalb der JWT-Kette hängt. Zu beachten: Der Handler pingt bei **jedem**
+  Aufruf die Datenbank (`health.go — PingContext`) und antwortet bei Ausfall mit 503. Eine
+  regelmäßige Abfrage von jedem Helfer-Handy macht `/health` zum meistgerufenen Endpunkt
+  des Systems; das Abfrageintervall ist deshalb eine bewusste Entscheidung (Phase 4), keine
+  Nebensache.
 - **Die Clientversion ist die echte Build-Version**, eingebrannt zur Bauzeit, analog zur
   Backend-Kette (`backend/Dockerfile` → `-ldflags -X main.version`). Begründung unter
   „Resolved decisions".
 - **Vergleich nur zwischen echten Releases.** Aktiv ausschließlich, wenn **beide** Seiten
   dem Muster `v<major>.<minor>.<patch>` entsprechen. `dev` und `dev-<sha>` schalten den
-  Vergleich still ab. Dieselbe Diskriminante nutzt bereits `Makefile` für `JOTTI_VERSION`.
-  Ein `MODE`/`DEV`-Check wäre falsch: der über Docker gebaute E2E- und Local-Stack meldet
-  `production`, obwohl dort `dev` gegen `dev` steht.
+  Vergleich still ab. Dieselbe Diskriminante gibt es bereits — nicht als Makefile-Variable,
+  sondern als Shell-Prüfung im Target `prod-up` gegen `JOTTI_VERSION` aus der `.env`
+  (`Makefile:173-178`, Regex `^v[0-9]+\.[0-9]+\.[0-9]+([.+-].*)?$`). Dieser Regex lässt
+  Vorabversionen wie `v1.2.3-rc1` zu; der Handshake übernimmt ihn unverändert, damit es nur
+  eine Definition von „echtes Release" im Repo gibt.
+  Ein `MODE`/`DEV`-Check wäre falsch: Vite stempelt jedem `pnpm build` `MODE=production`
+  auf, und `docker-compose.e2e.yml` wie `docker-compose.local.yml` bauen aus dem Quellcode
+  ohne `VERSION`-Build-Arg — dort meldet der Stack `production`, obwohl `dev` gegen `dev`
+  steht.
 - **Vorgangs-Register als Modul-Singleton** mit Zähler und Listener-Set, gelesen über
   `useSyncExternalStore`, geschrieben über genau einen Hook. Kein globaler State-Store,
   kein vierter Context-Provider — die Regel „Nur React Hooks + Singletons" aus `AGENTS.md`
@@ -45,6 +58,12 @@ Mid-Fest-Release.
 - **Reload-Regel**: Bei Versionsabweichung wird sofort neu geladen, **wenn** das
   Vorgangs-Register leer ist. Sonst erscheint ein nicht wegklickbarer Hinweis, und der
   Reload erfolgt automatisch, sobald das Register leer wird.
+- **Höchstens ein Reload je Zielversion.** Vor dem Neuladen wird die Serverversion, auf die
+  hin geladen wird, in `sessionStorage` vermerkt. Beim Start prüft der Guard diesen Vermerk:
+  Passt die eigene Version danach immer noch nicht zur vermerkten Zielversion, wird **nicht
+  erneut** neu geladen — dann bleibt es bei einem Hinweis mit eigenem Text und einer
+  Schaltfläche zum Neuladen von Hand. Ohne diese Bremse entsteht im Update-Fenster eine
+  Reload-Schleife; Begründung unter „Risiken".
 - **Reihenfolge ist fachlich erzwungen**: Der Langläufer-Schutz der TSE-Einrichtung muss
   **vor** dem scharfen Handshake liegen. Begründung unter „Risiken".
 
@@ -69,7 +88,13 @@ Mid-Fest-Release.
 - `frontend/tsconfig.app.json` — inkludiert nur `src`; es existiert **keine** `.d.ts`-Datei
   im Repo.
 - `frontend/nginx.conf` — `index.html` mit `no-cache`, `/assets/` `immutable`. Kein Service
-  Worker, keine PWA-Cache-Schicht.
+  Worker, keine Offline-Cache-Schicht — ein Reload holt also verlässlich den neuen Stand.
+- `frontend/public/manifest.webmanifest` — jotti **ist** als App installierbar
+  (`"display": "standalone"`, verlinkt in `frontend/index.html`, eigene nginx-Regel in
+  `nginx.conf:38-41`). Das ist kein Nebenschauplatz, sondern der Fall, den der Handshake am
+  stärksten verbessert: In der installierten App gibt es weder Adresszeile noch
+  Neu-laden-Pfeil, weshalb `docs/leitfaden/aktualisieren.md` heute verlangt, die App ganz
+  wegzuwischen. Ein programmatischer Reload muss dort nachweislich funktionieren.
 
 **Träger für das Vorgangs-Register**
 - `frontend/src/hooks/use-mengen.ts — useMengen()` — trägt Bestell-Korb,
@@ -78,7 +103,13 @@ Mid-Fest-Release.
 - `frontend/src/hooks/use-action-submit.ts — useActionSubmit()` und
   `frontend/src/hooks/use-form-action-submit.ts — useFormActionSubmit()` — tragen jede
   laufende Buchung, jeden Formular-Submit und den Beleg-Nachfasslauf
-  (`frontend/src/service/beleg.ts — belegDruckenMitNachfassen()`).
+  (`frontend/src/service/beleg.ts — belegDruckenMitNachfassen()`). Beide halten ihren
+  Zustand in schlichtem `useState`, laufen also **nicht** über react-query.
+- **Zwei Submits gehen an diesen Trägern vorbei** und müssen überall dort mitgedacht
+  werden, wo der Plan „die drei generischen Träger" sagt:
+  `frontend/src/components/common/LoginForm.tsx:26` hält seinen Submit-Zustand von Hand,
+  und `frontend/src/admin/reporting/hooks.ts:58 — useDsfinvkExport()` läuft über
+  react-query `useMutation`.
 
 **Sperr- und Reload-Vorlagen**
 - `frontend/src/components/common/ErrorBoundary.tsx` — die einzige bestehende
@@ -103,9 +134,10 @@ Mid-Fest-Release.
   weiterlaufen, den der Handshake abfangen soll.
 - **Die Cleanup-Liste aus `review-v0.17.2.md` wird nicht portiert, sondern der Durchlauf
   gegen den v0.17.2-Baum wiederholt.** Die alte Verifikation galt einem anderen Umfeld:
-  von den 18 Punkten zielen mehrere auf Code, der mit dem Relay- und Idempotenz-Block
+  von den 16 Punkten zielen mehrere auf Code, der mit dem Relay- und Idempotenz-Block
   entfallen ist, und mindestens einer beschreibt eine Form, die im neuen Baum anders
-  aussieht.
+  aussieht. (Das Review-Dokument spricht an drei Stellen von „18 Punkten"; seine Liste
+  enthält tatsächlich 16. Für diesen Plan folgenlos, weil der Durchlauf ohnehin neu läuft.)
 - **Der TSE-Langläufer-Schutz ist dabei**, obwohl beim Verein die TSE eingerichtet ist. Er
   behebt einen Defekt, der heute schon besteht, und der Handshake verschärft ihn.
 - **Die Idempotenz-Maschinerie bleibt zurückgestellt und kommt in diesem Release nicht
@@ -117,6 +149,16 @@ Mid-Fest-Release.
   ein Grund, sie **nach** der Auslieferung von v0.17.3 neu zu bewerten, kein Grund, sie hier
   mitzunehmen — sie löst ein Problem, das im Betrieb nie beobachtet wurde, und
   Produkt-Konservatismus lässt sie draußen, bis eines auftritt.
+- **Der Guard bleibt auf der Anmeldeseite aktiv.** Eine frühere Fassung dieses Plans
+  schaltete ihn dort ab („dort ist nichts offen, ein Reload wäre nur Lärm"). Die Begründung
+  dreht das Argument um: Gerade *weil* dort nichts offen ist, ist die Anmeldeseite der
+  billigste Ort für den Reload. Mit abgeschaltetem Guard meldet sich der veraltete Client
+  erst an, navigiert weiter, und wird eine Sekunde später mitten im Bereichswechsel neu
+  geladen — der Anmeldezustand überlebt das zwar (`frontend/src/lib/Auth.ts:95`, Token im
+  `localStorage`), aber das Flackern trifft den Helfer nach dem Login statt davor. Aktiv
+  gelassen greift der Reload in aller Regel beim Aufschlagen der Seite, bevor überhaupt
+  jemand tippt. Der Restfall — der Reload feuert, während jemand das Passwort eintippt —
+  kostet einmaliges Neutippen auf einer Seite, auf der sonst nichts auf dem Spiel steht.
 - **Die Clientversion ist die echte Build-Version, nicht die beim ersten Laden gesehene
   Serverversion.** Die billigere Variante — die erste gesehene Serverversion als eigene
   Referenz merken — käme ohne jede Änderung an Build-Kette, Vite-Konfiguration und
@@ -129,6 +171,25 @@ Mid-Fest-Release.
 
 ## Risiken
 
+- **Reload-Schleife im Update-Fenster — der schwerwiegendste Fehlerfall.** Beim
+  Selbsthosting-Weg (`make prod-update` → `scripts/prod-update.sh:154,159`) läuft
+  `docker compose pull` und `up -d` **ohne vorheriges Stoppen**, also als rollierendes
+  Neuanlegen in Abhängigkeitsreihenfolge. `docker-compose.prod.yml:110-112` bindet
+  `frontend` per `depends_on` an `backend`, damit wird das Backend **garantiert vor** dem
+  Frontend ersetzt. In dem Fenster dazwischen — Sekunden bis Zehnersekunden — antwortet das
+  neue Backend auf `/health` mit der neuen Version, während der noch alte
+  Frontend-Container über den noch alten Reverse-Proxy weiterhin das alte Bundle
+  ausliefert. Ein Client, der darin abfragt, lädt neu, bekommt dieselbe alte `index.html`,
+  sieht dieselbe Abweichung und lädt wieder neu: eine enge Schleife auf jedem Helfer-Handy,
+  ausgerechnet in der heikelsten Minute eines Updates. Startet der Frontend-Container gar
+  nicht, ist die Schleife unbegrenzt.
+  Das Kriterium „der Reload löst genau einmal aus" schützt **nicht** davor — es gilt je
+  Seitenleben, und jeder Reload beginnt ein neues. Deshalb der `sessionStorage`-Vermerk aus
+  den Architekturentscheidungen: höchstens ein Reloadversuch je Zielversion, danach
+  degradiert der Mechanismus auf den Hinweis aus Phase 4.
+  Der Windows-Weg ist nicht betroffen: `jotti-stop.cmd` fährt alles herunter, und der
+  Reverse-Proxy wartet beim Start auf `backend: service_healthy` **und**
+  `frontend: service_started` — erreichbar wird der Stack erst, wenn beide neu sind.
 - **Der erzwungene Reload ist selbst ein neuer Abbruchgrund.** Ein Reload schließt die
   laufende Verbindung, `net/http` storniert daraufhin `r.Context()` — und der trägt heute
   den kompletten fiskaly-Lebenszyklus der TSE-Einrichtung. Ohne den Langläufer-Schutz
@@ -167,8 +228,9 @@ Mid-Fest-Release.
 
 ### Context
 
-- `docs/plans/review-v0.17.2.md` — Abschnitt „Cleanup", 18 Punkte, verifiziert gegen einen
-  Baum, den es nicht mehr gibt.
+- `docs/plans/review-v0.17.2.md` — Abschnitt „Cleanup", 16 Punkte (das Dokument selbst
+  behauptet 18), verifiziert gegen einen Baum, den es nicht mehr gibt. Abschnitt
+  „Geringfügig": 8 Punkte.
 - `/home/nico/.claude/skills/cleanup/` — Referenzdateien des Cleanup-Skills
   (`readability.md`, `readability-de.md`, `code-smells.md`, `principles.md`,
   `architecture.md`).
@@ -184,11 +246,29 @@ umschreiben, nur subtrahieren oder vereinfachen, keine Kommentare oder Abstrakti
 hinzufügen. Jeder Vorschlag wird vor der Anwendung auf Beleg, Verhaltenserhalt und
 tatsächlichen Nutzen geprüft; Geschmacksfragen fallen raus.
 
-Erwartbar überleben etwa neun Punkte, darunter der doppelt vergebene SQL-Alias und die
-uneinheitliche Join-Form im Reporting, ein toter Prop in der Storno-Anzeige, doppelte
-Assertion-Blöcke in zwei Testdateien, zwei reine Weiterleitungen im Kassen-Command und
-Ladeflaggen ohne sprechenden Namen. Das ist eine Erwartung, kein Soll — null Punkte wären
-ein gültiges Ergebnis.
+Erwartbar überleben etwa neun Punkte. Die folgenden sechs sind am v0.17.2-Stand bereits
+nachgeprüft und existieren dort unverändert:
+
+- doppelt vergebener SQL-Alias `u` — CTE `ursprung u` (`backend/sqlc/queries/reporting.sql:98-115`)
+  gegen Tabellen-Alias `LEFT JOIN users u` (`:65`, `:156`)
+- uneinheitliche Join-Form in derselben Datei — Komma-Join (`reporting.sql:104-105`) gegen
+  `CROSS JOIN LATERAL` (`:122`)
+- toter Prop in der Storno-Anzeige — `className` in
+  `frontend/src/admin/reporting/StornoServicekraft.tsx:35-43`
+- doppelte Assertion-Blöcke in **einer** Testdatei (nicht, wie die alte Liste nahelegt, in
+  zwei): die beiden Funktionen in `backend/api/fiskal/export/http/handler_test.go`
+- zwei reine Weiterleitungen im Kassen-Command —
+  `backend/api/kasse/tischgeschaeft/application/command.go:126`
+  (`writeEventWithDruckauftraege`, ein Aufrufer) und `:89` (`writeEventOCC` gibt eine
+  ungenutzte `eventID` zurück)
+- Ladeflagge ohne sprechenden Namen — `isPending` in `frontend/src/service/TablePage.tsx:97`
+  neben `stateLoading`/`historieLoading`
+
+Das ist eine Erwartung, kein Soll — null Punkte wären ein gültiges Ergebnis.
+
+**Reihenfolge-Hinweis:** `backend/api/fiskal/export/http/handler_test.go` wird in Phase 3
+ohnehin erweitert. Diesen einen Punkt deshalb entweder überspringen oder erst nach Phase 3
+anfassen, statt dieselbe Datei zweimal umzuschreiben.
 
 ### Acceptance criteria
 
@@ -210,7 +290,11 @@ ein gültiges Ergebnis.
   `defaultOptions`; es gilt der Bibliotheks-Default von drei Wiederholungen für **jeden**
   Fehler.
 - `frontend/src/hooks/use-action-submit.ts — useActionSubmit()` — der Pfad, über den
-  Buchungen laufen. Sie laufen **nicht** über react-query.
+  Buchungen laufen. Am Code bestätigt: reiner `useState`, **nicht** react-query. Einzige
+  Ausnahme im Repo ist `frontend/src/admin/reporting/hooks.ts:58 — useDsfinvkExport()`
+  (`useMutation`); eine Retry-Politik unter `defaultOptions.queries` erreicht Mutations
+  nicht, der Export bleibt also unberührt. Das ist der Grund, warum die Politik
+  ausdrücklich nur unter `queries` gesetzt wird und nicht unter `mutations`.
 - `archiv/main-vor-v0.17.2`, Commit `d85cf2ae` — enthält beide Änderungen als Vorlage.
 
 ### What to build
@@ -221,9 +305,9 @@ gepickt.
 **Erstens die Retry-Politik.** Ein Fehler aus der 4xx-Familie wird heute dreimal
 nachgeschleift, bevor die Meldung erscheint — die Helferin wartet auf eine Auskunft, die
 schon beim ersten Versuch feststand. Künftig werden nur Netzfehler und Serverfehler
-wiederholt, und seltener. Der Eingriff ist auf Lese-Queries begrenzt; Buchungen sind nicht
-betroffen, weil sie an react-query vorbeilaufen. Das ist vor der Umsetzung am Code zu
-bestätigen, nicht vorauszusetzen.
+wiederholt, und seltener. Der Eingriff bleibt auf `defaultOptions.queries` begrenzt;
+Buchungen sind nicht betroffen, weil sie an react-query vorbeilaufen, und der
+DSFinV-K-Export nicht, weil Query-Defaults für Mutations nicht gelten.
 
 **Zweitens die Korrelations-ID.** Der zentrale Fehler-Toast zeigt künftig die Referenz aus
 der Backend-Antwort, damit ein gemeldeter Fehler im Server-Log auffindbar ist.
@@ -243,8 +327,19 @@ der Backend-Antwort, damit ein gemeldeter Fehler im Server-Log auffindbar ist.
 
 ### Context
 
-- `backend/api/fiskal/setup/http/command_handler.go` — beide schreibenden Endpunkte
-  reichen heute `r.Context()` durch.
+- `backend/api/fiskal/setup/http/command_handler.go` — **drei** schreibende Endpunkte,
+  alle reichen heute `r.Context()` unverändert durch:
+  `UpdateTSEKonfigurationHandler()` (Zeile 87), `RichteTSEEinHandler()` (113) und
+  `UebernimmTSEHandler()` (157). Den fiskaly-Lebenszyklus fahren nur die letzten beiden —
+  sie bekommen die Kontext-Entkopplung. Das Schloss legt sich über alle drei.
+  `query_handler.go` liest nur und bleibt unberührt.
+- `backend/api/fiskal/export/http/handler.go` — **hier existiert die Fristverlängerung
+  bereits** (Zeile 68, `http.NewResponseController(w).SetWriteDeadline(...)`,
+  `exportWriteTimeout = 5 * time.Minute`, aus Commit `f3fb8aea`). Der neue Helfer wird
+  daraus **extrahiert**, nicht danebengestellt. Die Lücke, die bleibt: Der Aufruf steht
+  *hinter* dem Fehler-Switch (Zeilen 50-61) — eine Fehlerantwort nach einem langen,
+  gescheiterten Archivbau läuft also weiterhin gegen die globale 10-Sekunden-Frist. Genau
+  das schließt der zweite Aufruf am Handler-Eingang.
 - `backend/api/fiskal/setup/application/setup.go — RichteTSEEin()` — fährt den fiskaly-
   Lebenszyklus sequenziell und speichert erst danach; PUK und Admin-PIN entstehen im Lauf,
   werden nirgends persistiert und gehen genau einmal in die Antwort.
@@ -254,17 +349,24 @@ der Backend-Antwort, damit ein gemeldeter Fehler im Server-Log auffindbar ist.
   Antwort-Helfern.
 - `backend/api/middleware/middleware.go — responseWriter.Unwrap()` — bereits im Baum, macht
   die Fristverlängerung hinter der Logging-Middleware überhaupt erst wirksam.
-- `archiv/main-vor-v0.17.2`, Commit `9ef41ab6` — Vorlage. Die berührten Backend-Dateien
-  sind im v0.17.2-Baum byte-identisch mit der dortigen Vorlage; alle benötigten
-  Test-Helfer existieren bereits.
+- `frontend/src/lib/errorMessages.ts` — `commonErrorMessages` (Zeilen 10-94), die
+  Zuordnung Fehlercode → deutscher Klartext. `tse_setup_laeuft_bereits` fehlt dort
+  naturgemäß noch.
+- `archiv/main-vor-v0.17.2`, Commit `9ef41ab6` — Vorlage. `9ef41ab6` ist **kein Vorfahr**
+  von `HEAD`; die Historie ist auseinandergelaufen. Nachgeprüft: Für alle von `9ef41ab6`
+  berührten Dateien dieser Phase (`setup/http/*`, `setup/application/*`, `helper/http.go`,
+  `export/http/*`) ist `HEAD` byte-identisch mit `9ef41ab6^`. Die Vorlage lässt sich also
+  sauber übernehmen; alle benötigten Test-Helfer existieren bereits.
 
 ### What to build
 
-Drei zusammengehörige Schutzmaßnahmen für die vier TSE-Setup-Endpunkte und den
-DSFinV-K-Export.
+Drei zusammengehörige Schutzmaßnahmen für die drei schreibenden TSE-Setup-Endpunkte und
+den DSFinV-K-Export.
 
 **Fristverlängerung.** Ein Helfer kapselt das Heraufsetzen der Schreibfrist auf der
-Verbindung und läuft weiter, wenn der Writer es nicht kann. Er wird an jedem betroffenen
+Verbindung und läuft weiter, wenn der Writer es nicht kann. Er entsteht durch Extraktion
+der bereits im Export-Handler vorhandenen Fassung nach `backend/api/helper/http.go`, nicht
+als zweite, parallele Implementierung. Er wird an jedem betroffenen
 Handler zweimal aufgerufen: einmal am Eingang, damit auch frühe Fehlerantworten den Client
 erreichen, und einmal unmittelbar vor dem Schreiben der Antwort. Zwei Aufrufe sind nötig,
 weil die Frist eine absolute Zeit ab dem Lesen des Request-Headers ist und während der
@@ -279,9 +381,10 @@ hinterlassen.
 denkbar — der würde eine zweite bezahlte TSS anlegen. Ein Schloss über alle drei
 schreibenden Pfade lehnt den zweiten Aufruf mit dem Fehlercode `tse_setup_laeuft_bereits`
 ab, den das Frontend als Klartext zeigt: dass gerade eine Einrichtung läuft und gewartet
-werden muss.
-Ohne diese Meldung fällt der neue Konflikt auf den generischen Fallback zurück, der zum
-zweiten Versuch rät — genau der Rat, der die zweite TSS erzeugt.
+werden muss. Der Eintrag gehört in `frontend/src/lib/errorMessages.ts` nach
+`commonErrorMessages` (Zeilen 10-94); ohne ihn greift der Fallback in Zeile 107,
+`` `${actionLabel} fehlgeschlagen. Bitte erneut versuchen.` `` — genau der Rat, der die
+zweite bezahlte TSS erzeugt.
 
 Der Kommentar, der die gewählten Fristen begründet, wird neu formuliert: die Vorlage rechnet
 gegen Client-Zeitlimits, die es im Zielbaum nicht gibt.
@@ -328,6 +431,13 @@ Zurückkehren in den Vordergrund nach, statt genau einmal je Seitenladen. Der ze
 Fehler-Toast darf davon nicht ausgelöst werden — eine Versionsabfrage, die bei Funkloch
 periodisch eine rote Meldung wirft, wäre eine Verschlechterung.
 
+**Das Intervall ist 30 Sekunden**, gleichauf mit der einzigen bestehenden Polling-Stelle
+(`frontend/src/admin/reporting/hooks.ts:52`). Das ist eine bewusste Festlegung, keine
+Nebensache: `/health` pingt bei jedem Aufruf die Datenbank, und mit dreißig Helfer-Handys
+wird das der meistgerufene Endpunkt des Systems. Dreißig Sekunden sind für Postgres
+belanglos und für einen Versionswechsel schnell genug — wer ein Update ansagt, wartet
+ohnehin länger. Kürzer wird es nicht ohne Anlass.
+
 Diese Phase liefert **noch keinen Reload**. Sichtbares Ergebnis ist ein
 nicht-blockierender Hinweis, dass eine neue Version bereitsteht. Das macht die ganze Kette
 vom Tag bis ins Bundle überprüfbar, ohne den gefährlichen Teil scharf zu schalten.
@@ -344,7 +454,12 @@ Tests steht auf beiden Seiten derselbe Default — dort schlägt er per Konstruk
 - [ ] `pnpm build` und `make test-frontend` laufen; kein Test scheitert an einer
       undefinierten Build-Konstante
 - [ ] Die Versionsabfrage bemerkt einen Serverwechsel ohne Neuladen der Seite
+- [ ] Die Versionsabfrage läuft alle 30 Sekunden und beim Zurückkehren in den Vordergrund
 - [ ] Eine fehlgeschlagene Versionsabfrage erzeugt keinen Fehler-Toast
+- [ ] Der Versionsvergleich ist eine reine Funktion und durch einen Tabellentest gepinnt:
+      `dev`/`dev`, `dev`/Release, Release/`dev`, gleiche Releases, verschiedene Releases,
+      `dev-<sha>` und eine Vorabversion — nur „zwei verschiedene echte Releases" ergibt
+      eine Abweichung
 - [ ] In Dev, E2E und Tests bleibt der Hinweis aus
 - [ ] Die Versionsanzeige in der Admin-Seitenleiste funktioniert unverändert
 
@@ -367,7 +482,10 @@ Tests steht auf beiden Seiten derselbe Default — dort schlägt er per Konstruk
   `frontend/src/admin/reporting/hooks.ts` — die Zustände, die keinen generischen Träger
   haben und sich einzeln melden müssen.
 - `frontend/src/service/components/table/HistorieStornierungDrawer.tsx` und die beiden
-  Schwester-Drawer — ihre Kommentarfelder sind Pflichtangaben und damit meldepflichtig.
+  Schwester-Drawer `HistorieUmbuchungDrawer.tsx` sowie
+  `frontend/src/service/components/direktverkauf/DirektverkaufStornoDrawer.tsx` — ihre
+  Kommentarfelder sind Pflichtangaben und damit meldepflichtig. (Ihre Mengenauswahl läuft
+  bereits über `useMengen`; hinzu kommt nur der Kommentar.)
 
 ### What to build
 
@@ -385,6 +503,12 @@ Storno- und Umbuchungs-Drawer.
 
 Reine Anzeigen melden sich nicht: Detail-Ansichten der Historie, die Tischauswahl mit ihrem
 Suchfeld, die Erfolgsmeldung mit ihrer kurzen Standzeit.
+
+**`frontend/src/components/common/LoginForm.tsx` meldet bewusst nichts**, obwohl es seinen
+Submit-Zustand von Hand hält und damit an den generischen Trägern vorbeiläuft. Meldete es
+sich, würde der Reload bis nach der erfolgreichen Anmeldung warten und dann genau dort
+feuern, wo er am meisten stört. Ohne Meldung greift er beim Aufschlagen der Anmeldeseite,
+bevor jemand tippt — siehe die Entscheidung zum Guard auf der Anmeldeseite oben.
 
 Diese Phase ist für sich genommen unsichtbar. Sie wird über Tests abgenommen und über eine
 temporäre Anzeige während der Entwicklung, die vor dem Abschluss der Phase wieder
@@ -413,6 +537,10 @@ verschwindet.
 - `frontend/src/components/common/ErrorBoundary.tsx` — Vorlage für Text und Reload-Aufruf.
 - `frontend/src/components/ui/alert-dialog.tsx` — Vorlage für den nicht wegklickbaren
   Hinweis.
+- `docker-compose.prod.yml:110-112` und `scripts/prod-update.sh:154,159` — die
+  Reihenfolge, aus der die Reload-Schleife entsteht und gegen die die Bremse gebaut wird.
+- `frontend/src/lib/Auth.ts:95` — das Token liegt im `localStorage`, ein Reload meldet also
+  niemanden ab.
 - Das Vorgangs-Register aus Phase 5 und die Erkennung aus Phase 4.
 
 ### What to build
@@ -429,8 +557,32 @@ Der Guard entscheidet außerhalb des Renders und darf niemals mehrfach auslösen
 nur bei einer erfolgreich beantworteten Versionsabfrage, nie bei einem Fehler — ein
 Serverneustart darf keinen Reload erzwingen, nur ein tatsächlicher Versionswechsel.
 
-Auf der Anmeldeseite ist der Guard abgeschaltet: dort ist nichts offen, und ein Reload wäre
-nur Lärm.
+**Die Schleifenbremse.** Unmittelbar vor `window.location.reload()` vermerkt der Guard die
+Serverversion, auf die hin er lädt, in `sessionStorage`. Beim nächsten Start liest er den
+Vermerk: Trägt der Client immer noch nicht diese Zielversion, war der Reload wirkungslos —
+dann wird **nicht** erneut geladen, sondern nur der Hinweis gezeigt. Stimmt die eigene
+Version mit dem Vermerk überein, wird er gelöscht und der Mechanismus steht wieder scharf.
+`sessionStorage` und nicht `localStorage`: Der Vermerk soll den Reload überleben, aber
+nicht das Schließen des Tabs.
+
+Diese Bremse ist kein Feinschliff, sondern der Unterschied zwischen „lädt einmal neu" und
+„lädt im Update-Fenster in Endlosschleife neu" — die Herleitung steht unter „Risiken".
+Sie verwandelt den einzigen unbegrenzten Fehlerfall des Handshakes in genau einen
+wirkungslosen Reload plus stehenden Hinweis.
+
+**Der gebremste Hinweis braucht einen eigenen Text und eine Schaltfläche.** Greift die
+Bremse, wäre die Zusage „es lädt gleich von selbst neu" schlicht gelogen — dieser Client
+lädt nicht mehr von selbst. Im gebremsten Fall sagt der Hinweis deshalb, dass das
+automatische Erneuern nicht durchgekommen ist und von Hand nachgeholt werden muss, und
+trägt eine Schaltfläche „Jetzt neu laden". Das ist die einzige Stelle, an der eine
+Schaltfläche richtig ist: Im Normalfall wäre sie ignorierbar und damit wertlos (siehe
+„Resolved decisions"), im gebremsten Fall ist sie der einzige ehrliche Ausweg. Sie ist
+zugleich der Rettungsanker für den Fall, dass ein Client dauerhaft an einer alten
+Auslieferung hängt.
+
+**Auf der Anmeldeseite bleibt der Guard aktiv.** Das Register ist dort leer, der Reload
+greift also beim Aufschlagen der Seite — der billigste Zeitpunkt überhaupt. Begründung
+unter „Resolved decisions"; `LoginForm` meldet bewusst keinen Vorgang (Phase 5).
 
 ### Acceptance criteria
 
@@ -441,11 +593,21 @@ nur Lärm.
 - [ ] Sobald das Register leer wird, lädt die Seite von selbst neu
 - [ ] Der Hinweis ist nicht wegklickbar — weder über Escape noch über einen Klick daneben
 - [ ] Eine fehlgeschlagene Versionsabfrage löst keinen Reload aus
-- [ ] Der Reload löst genau einmal aus, auch wenn mehrere Abfragen dieselbe Abweichung
-      melden
-- [ ] Auf der Anmeldeseite erscheint weder Hinweis noch Reload
+- [ ] Der Reload löst innerhalb eines Seitenlebens genau einmal aus, auch wenn mehrere
+      Abfragen dieselbe Abweichung melden
+- [ ] **Ein wirkungsloser Reload wiederholt sich nicht:** Lädt der Client neu und trägt
+      danach immer noch nicht die vermerkte Zielversion, bleibt es beim Hinweis — durch
+      einen Test gepinnt, der den `sessionStorage`-Vermerk vorbelegt
+- [ ] Der gebremste Hinweis verspricht kein automatisches Neuladen mehr und bietet
+      stattdessen „Jetzt neu laden" an; die Schaltfläche lädt tatsächlich neu
+- [ ] Stimmt die eigene Version mit dem Vermerk überein, ist der Vermerk gelöscht und ein
+      späterer Versionswechsel löst wieder einen Reload aus
+- [ ] Auf der Anmeldeseite greift der Guard wie überall sonst
 - [ ] Ein Durchlauf am laufenden Stack bestätigt das Verhalten mit einem echten
       Versionswechsel, nicht nur im Test
+- [ ] Der Reload funktioniert auch in der als App installierten Ansicht
+      (`"display": "standalone"`, ohne Adresszeile und Neu-laden-Pfeil) — der Fall, den der
+      Leitfaden heute nur durch Wegwischen der App lösen kann
 
 ---
 
@@ -461,9 +623,21 @@ nur Lärm.
 ### What to build
 
 Der Reload-Schritt verschwindet aus dem Aktualisierungs-Leitfaden — ab v0.17.3 erledigt ihn
-das System. An seine Stelle tritt die Beschreibung dessen, was die Helfer erwarten dürfen:
-dass sich die App nach einem Update von selbst erneuert, und dass ein stehender Hinweis
-bedeutet, den laufenden Vorgang zuerst abzuschließen.
+das System. Betroffen sind der Abschnitt „Danach: jedes betroffene Gerät einmal neu laden"
+(`docs/leitfaden/aktualisieren.md`, Zeilen 47-105) samt der versionsspezifischen
+Unterabschnitte und der Punkt 6 der Mitten-im-Fest-Reihenfolge. An ihre Stelle tritt die
+Beschreibung dessen, was die Helfer erwarten dürfen: dass sich die App nach einem Update
+von selbst erneuert, und dass ein stehender Hinweis bedeutet, den laufenden Vorgang zuerst
+abzuschließen.
+
+Ausdrücklich mit weg kann die umständlichste Passage: dass die als App installierte jotti
+„ganz geschlossen" und weggewischt werden muss. Genau diesen Fall löst der Handshake ohne
+Zutun.
+
+Ein kurzer Absatz beschreibt den Ausnahmefall: Steht ein Hinweis mit der Schaltfläche
+„Jetzt neu laden", ist das automatische Erneuern nicht durchgekommen — einmal antippen
+genügt. Das ersetzt keine Anweisung an das Team, sondern erklärt, was ein Helfer sieht,
+wenn er es sieht.
 
 Zwei Punkte kommen hinzu. Erstens die Warnung, während eines Updates keine TSE-Einrichtung
 zu starten — der Schutz aus Phase 3 deckt einen Serverneustart nicht ab. Zweitens ein Absatz
