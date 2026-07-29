@@ -1,6 +1,6 @@
 ---
 title: Aktualisieren (Standardweg)
-description: 'Die jotti-Kasse auf dem Windows-Rechner auf eine neue Version bringen: drei Doppelklicks, das Neuladen der Geräte danach, Rauchtest, automatisches Backup und der Weg zurück.'
+description: 'Die jotti-Kasse auf dem Windows-Rechner auf eine neue Version bringen: drei Doppelklicks, das automatische Neuladen der Geräte danach, Rauchtest, automatisches Backup und der Weg zurück.'
 ---
 
 Meldet der Starter beim Hochfahren „Neue Version verfügbar" mit einem
@@ -21,12 +21,25 @@ bleiben dabei erhalten.
 
 Den alten Programmordner könnt ihr danach gefahrlos löschen.
 
+> ⛔ **Während eines Updates keine TSE-Einrichtung starten.** Die Einrichtung legt
+> bei fiskaly eine TSE an — in LIVE eine kostenpflichtige, in TEST eine kostenlose —
+> und zeigt Admin-PUK und Admin-PIN genau einmal an, am Ende des Ablaufs. Wird
+> jotti mittendrin beendet — und genau das tut `jotti-stop.cmd` —, bricht sie ab.
+> Meistens ist das kein Beinbruch: Startet ihr den Assistenten danach erneut,
+> erkennt jotti den tatsächlichen Zustand bei fiskaly und macht dort weiter, wo es
+> aufgehört hat; eine zweite TSE entsteht dabei nicht. Nur ein schmales Zeitfenster
+> ist eine Sackgasse: Bricht die Einrichtung genau zwischen dem Setzen der
+> Admin-PIN und der Anzeige des Ergebnisses ab, fragt die Wiederaufnahme nach einer
+> Admin-PIN, die euch nie angezeigt wurde. Dann hilft in TEST „Stattdessen neue TSE
+> anlegen", in LIVE der fiskaly-Support (siehe
+> [TSE-Sonderfälle](tse-sonderfaelle.md)). Richtet die TSE also vor dem Update ein
+> oder danach, nie währenddessen — und wenn der Assistent gerade läuft, wartet mit
+> dem Update, bis „Verbindung bestätigt" steht.
+
 ## Reihenfolge, wenn ihr mitten im Fest aktualisieren müsst
 
 Aktualisiert nach Möglichkeit zuhause (siehe Kasten oben). Muss es doch während
-des laufenden Betriebs sein, haltet euch an diese Reihenfolge. Sie ist nicht
-beliebig: Ein Handy, das zu früh neu geladen wird, holt sich nur wieder den alten
-Stand.
+des laufenden Betriebs sein, haltet euch an diese Reihenfolge.
 
 1. **Ansagen, bevor ihr etwas anfasst.** „Zwei Minuten Pause, bitte keine neue
    Bestellung anfangen." Wer gerade tippt, schickt die Bestellung vorher ab; wer
@@ -38,76 +51,71 @@ Stand.
    entpacken, `jotti-start.exe`. In dieser Zeit erreicht kein Handy die Kasse.
 4. **Warten, bis der Starter „jotti laeuft" meldet.** Erst dann ist der neue
    Stand wirklich da.
-5. **Jetzt den Browser am Rechner neu laden** (siehe nächster Abschnitt) und den
-   [Rauchtest](#rauchtest-fünf-abläufe-vor-dem-weitermachen) machen.
-6. **Erst danach dem Team Bescheid geben**, dass es weitergeht — und ob die
-   Handys ebenfalls neu geladen werden sollen. Vorher nicht: Ein Neuladen,
-   während jotti aus ist, zeigt nur eine Fehlermeldung.
+5. **Kurz warten, dann den [Rauchtest](#rauchtest-fünf-abläufe-vor-dem-weitermachen)
+   machen.** Die Bedienoberfläche am Rechner lädt sich von selbst neu, sobald jotti
+   wieder läuft; rechnet mit einer halben Minute (siehe nächster Abschnitt).
+6. **Erst danach dem Team Bescheid geben**, dass es weitergeht. Ein Neuladen müsst
+   ihr nicht ansagen — die Handys laden sich genauso von selbst neu. Einzige
+   Ausnahme ist das Update **auf** Version 0.17.3: Dabei muss jedes Gerät noch ein
+   letztes Mal von Hand neu geladen werden (siehe Kasten im nächsten Abschnitt).
 
-## Danach: jedes betroffene Gerät einmal neu laden
+## Danach: die Geräte laden sich von selbst neu
 
 Handys und Rechner behalten die alte Bedienoberfläche im Speicher, bis die Seite
-einmal neu geladen wird. **Von selbst passiert das nicht** — kein Gerät merkt,
-dass auf dem Rechner inzwischen eine neue Version läuft. Genau deshalb muss das
-Neuladen angesagt werden.
+einmal neu geladen wird. **Seit Version 0.17.3 erledigt jotti das allein.** Jedes
+geöffnete jotti fragt im Hintergrund alle halbe Minute nach, welche Version auf
+dem Rechner läuft — und zusätzlich immer dann, wenn ein weggelegtes Handy wieder
+hervorgeholt wird. Weicht die Version ab, lädt sich die Seite selbst neu: im
+Browser am Handy, am Rechner und ebenso in der als App auf dem Startbildschirm
+installierten jotti. **Ihr müsst das Neuladen also nicht mehr ansagen**, und
+niemand muss eine App wegwischen.
 
-Einmal neu laden genügt, und es wirkt zuverlässig: jotti liefert seine Startseite
-grundsätzlich ohne Zwischenspeicher aus, die Programmteile dahinter tragen ihre
-Version im Dateinamen. Beim Neuladen fragt das Gerät die Startseite also wirklich
-neu an und bekommt die neuen Programmteile mitgeliefert. Den Browser-Cache zu
-leeren ist nicht nötig.
+> ⚠️ **Beim Update auf 0.17.3 noch ein letztes Mal von Hand neu laden.** Das
+> automatische Neuladen steckt in der Bedienoberfläche selbst — und die alte
+> Bedienoberfläche, die auf den Geräten noch im Speicher liegt, kennt es nicht.
+> Bei genau diesem Update erneuert sich deshalb kein Gerät von allein, auch nicht
+> der Rechner, an dem ihr gleich den Rauchtest macht. Ladet einmal überall von Hand
+> neu:
+>
+> - **Handy im Browser:** die Seite von ganz oben nach unten ziehen.
+> - **Rechner:** `Strg` + `F5`.
+> - **Als App auf dem Startbildschirm installiert:** Dort gibt es weder Adresszeile
+>   noch Neu-laden-Pfeil. Die App **ganz schließen** und aus der Übersicht der
+>   laufenden Apps wegwischen, dann neu öffnen.
+>
+> Beim nächsten Update, das dann von 0.17.3 aus startet, erledigt jotti es allein.
 
-**So ladet ihr neu:**
+**Wer gerade mitten in etwas steckt, verliert nichts.** Solange ein angefangener
+Vorgang offen ist — ein gefüllter Bestellkorb, eine getroffene Auswahl beim
+Kassieren oder Stornieren, ein halb ausgefülltes Formular —, wartet das
+Neuladen. Stattdessen erscheint auf dem Gerät ein farbiges Band mit diesem Text:
 
-- **Handy im Browser:** die Seite von ganz oben nach unten ziehen
-  (Pull-to-Refresh) oder den Neu-laden-Pfeil neben der Adresszeile antippen.
-- **Rechner:** `Strg` + `F5` oder den Neu-laden-Pfeil.
-- **Wenn jotti als App auf dem Startbildschirm liegt:** jotti lässt sich als App
-  installieren; dann läuft es ohne Adresszeile und ohne Neu-laden-Pfeil. In dem
-  Fall die App **ganz schließen** — in der Übersicht der laufenden Apps
-  wegwischen, nicht nur den Home-Knopf drücken — und danach neu öffnen. Beim
-  Öffnen holt sich jotti die Startseite frisch. Wer unsicher ist, öffnet jotti
-  stattdessen im normalen Browser über die Adresse vom QR-Code (steht auf der
-  Statusseite <http://localhost:8484>) und lädt dort neu.
+> Der Server läuft mit einer anderen Version als diese Seite. Bitte den laufenden
+> Vorgang abschließen oder verwerfen — danach lädt sich die Seite von selbst neu.
 
-### Bei Version 0.17.2: nur der Rechner des Admins
+Mit „Server" ist der Windows-Rechner gemeint, auf dem jotti läuft. Der offene
+Vorgang muss also weg — und zwar wirklich weg: die angefangene Bestellung
+abschicken, das Kassieren zu Ende führen oder die gewählten Mengen mit den
+Minus-Knöpfen wieder auf null stellen. **Beim Bestellen und Kassieren genügt
+„Abbrechen" nicht** — das blendet nur die Eingabe aus, der Korb bleibt gefüllt und
+das Band steht weiter. Bedienen lässt sich in der Zwischenzeit alles wie gewohnt.
+Wegklicken lässt sich das Band nicht — es verschwindet von selbst.
 
-Für dieses Update wurde geprüft, welche Geräte das Neuladen wirklich brauchen.
+**Der Ausnahmefall: „Jetzt neu laden".** Steht auf dem Band stattdessen dieser
+Text, und daneben eine Schaltfläche, ist das automatische Neuladen nicht
+durchgekommen:
 
-**Der Browser am Admin-Rechner muss neu geladen werden.** Ohne Neuladen brechen
-drei Ansichten — nicht mit einer Fehlermeldung, sondern still und irreführend:
+> Der Server läuft mit einer anderen Version als diese Seite. Das automatische
+> Neuladen hat nicht geklappt — bitte von Hand neu laden.
 
-- **„Übersicht" (das Live-Dashboard):** zeigt „Keine Kassensitzung geöffnet",
-  obwohl die Kasse offen ist, und wirft alle 30 Sekunden die Meldung „Daten
-  konnten nicht geladen werden". Lasst euch davon **nicht** dazu verleiten, eine
-  zweite Kassensitzung zu eröffnen — jotti lehnt das ohnehin ab.
-- **„Berichte & Export":** die rechte Spalte dreht sich endlos, und der Knopf für
-  den DSFinV-K-Export erscheint gar nicht erst.
-- **„Kassentag":** der rote Hinweis „N Tische sind noch offen" verschwindet
-  stillschweigend. Das ist die unauffälligste und zugleich ärgerlichste Folge:
-  Wer den Tagesabschluss aus einem nicht neu geladenen Fenster macht, verliert
-  diese Warnung. Der Tagesabschluss selbst funktioniert weiter.
+Dann genügt ein Antippen von **„Jetzt neu laden"**. Das kommt selten vor; ansagen
+müsst ihr dafür nichts. Kommt das Band danach noch einmal, wartet einen Moment und
+tippt erneut.
 
-**Die Handys der Servicekräfte müssen nicht neu geladen werden.** Bestellen,
-Kassieren, Stornieren, Umbuchen und Direktverkauf laufen auf dem alten Stand
-unverändert weiter; keine Service-Ansicht bricht. Es fehlt nur der neue Hinweis
-in „Meine Tische", der eine zugeordnete Rücknahme erklärt („… wurde von deinen
-Zahlungen zurückgegeben. Du gibst damit … ab."). Weil die Helfer damit
-abrechnen, lohnt sich das Neuladen trotzdem — es ist bloß nicht dringend und darf
-bis zur nächsten ruhigen Minute warten.
-
-**Ohne jedes Zutun** wirkt dagegen die Reparatur der Tischübersicht: Ein
-gelöschter Tisch legte bisher die Tischübersicht einzelner Servicekräfte lahm.
-Das ist nach dem Update sofort behoben, auch auf Handys, die nicht neu geladen
-wurden.
-
-> ℹ️ **Diese Aufstellung gilt nur für Version 0.17.2.** Bei einem späteren Update
-> im Zweifel alle Geräte einmal neu laden.
-
-## Das Print-Relay bleibt bei Version 0.17.2, wie es ist
+## Das Print-Relay bleibt bei Version 0.17.3, wie es ist
 
 Das Print-Relay (`jotti-relay.exe`, das Fenster, das die Bons an die Drucker
-schickt) ist gegenüber Version 0.17.1 unverändert, und auch die Verständigung
+schickt) ist seit Version 0.17.1 unverändert, und auch die Verständigung
 zwischen jotti und dem Relay hat sich nicht geändert. **Das laufende Relay darf
 einfach weiterlaufen** — ihr müsst es weder beenden noch ersetzen. Im
 Release-ZIP liegt trotzdem eine `jotti-relay.exe`; sie ist funktional identisch
