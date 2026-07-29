@@ -125,6 +125,10 @@ const mappedCodes: [string, string][] = [
     'Die TSE ist nicht konfiguriert. Bitte sie im Bereich Finanzamt einrichten.',
   ],
   [
+    'tse_setup_laeuft_bereits',
+    'An der TSE-Konfiguration wird gerade geschrieben. Bitte warten, bis der laufende Vorgang abgeschlossen ist, und dann erneut versuchen.',
+  ],
+  [
     'tse_verbindung_fehlgeschlagen',
     'Die Verbindung zur TSE ist fehlgeschlagen. Bitte Verbindung und TSE-Konfiguration prüfen.',
   ],

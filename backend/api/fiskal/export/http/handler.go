@@ -38,6 +38,12 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := zerolog.Ctx(r.Context())
 
+		// Erste Setzung, am Handler-Eingang: Sie gilt den fruehen Fehlerpfaden,
+		// die vor Erstellen() antworten (unlesbarer Body, invalid_kassensitzung).
+		// Die Antwort nach einem langen Archivbau deckt sie nicht — dafuer steht
+		// die zweite Setzung unten.
+		helper.ExtendWriteDeadline(w, r, exportWriteTimeout)
+
 		body := exportRequest{}
 		if !helper.ReadBody(w, r, &body) {
 			return
@@ -48,6 +54,13 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 		}
 
 		archiv, err := h.Service.Erstellen(r.Context(), body.KassensitzungNr)
+
+		// Zweites Setzen der Schreibfrist, jetzt fuer den Schreibvorgang selbst:
+		// Die Frist oben ist eine absolute Zeit ab Request-Start und nach einem
+		// langen Archivbau abgelaufen. Erst dieser Aufruf gibt der Uebertragung
+		// des ZIP ihr eigenes Budget; er deckt zugleich den Fehlerzweig ab.
+		helper.ExtendWriteDeadline(w, r, exportWriteTimeout)
+
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrKassensitzungNichtGefunden):
@@ -58,15 +71,6 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 				helper.SendServerError(w)
 			}
 			return
-		}
-
-		// Die Schreibfrist wird verlaengert, BEVOR der erste Schreibvorgang
-		// (WriteHeader/Write) stattfindet. Laesst sie sich nicht setzen (z. B.
-		// weil der ResponseWriter das Interface nicht unterstuetzt), ist das
-		// eine Verbesserung, kein Abbruchgrund: der Export laeuft mit der
-		// globalen Frist weiter.
-		if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(exportWriteTimeout)); err != nil {
-			log.Warn().Err(err).Msg("Failed to extend write deadline for dsfinvk export; falling back to server default")
 		}
 
 		w.Header().Set("Content-Type", "application/zip")

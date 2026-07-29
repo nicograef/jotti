@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	z "github.com/Oudwins/zog"
 	"github.com/rs/zerolog"
@@ -131,6 +132,38 @@ func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T,
 		return false
 	}
 	return true
+}
+
+// ExtendWriteDeadline verlängert die Schreibfrist der Verbindung auf jetzt +
+// timeout und ersetzt damit für diesen einen Request die globale
+// Schreibfrist des Servers (WriteTimeout: 10s, backend/app/app.go).
+//
+// Entscheidend ist: Die Frist ist eine ABSOLUTE Zeit, keine Stoppuhr für den
+// Schreibvorgang. net/http setzt sie beim Lesen der Request-Header auf jetzt +
+// WriteTimeout; sie läuft also während der gesamten Handler-Laufzeit weiter,
+// und dieser Aufruf setzt sie ebenso auf eine neue absolute Zeit. Ein Handler,
+// der länger arbeitet als sein timeout, schreibt danach in eine bereits
+// abgelaufene Frist: Die Arbeit war erfolgreich, das Ergebnis erreicht den
+// Client trotzdem nie. Bei der TSE-Einrichtung wären PUK und Admin-PIN damit
+// unwiederbringlich verloren, weil sie genau einmal ausgeliefert und nirgends
+// persistiert werden.
+//
+// Deshalb ruft ein langlaufender Handler diese Funktion ZWEIMAL auf:
+//
+//   - einmal als erste Anweisung: Sie gibt allem, was vor der langen Arbeit
+//     antwortet (ungültiger Body, fachliche Ablehnung), dasselbe Budget statt
+//     der globalen 10 Sekunden;
+//   - einmal unmittelbar vor dem Schreiben der Antwort, damit der
+//     Schreibvorgang ein eigenes Budget bekommt, unabhängig davon, wie lange
+//     der Handler zuvor gearbeitet hat.
+//
+// Lässt sich die Frist nicht setzen (ResponseWriter ohne Unterstützung, z. B.
+// httptest.ResponseRecorder), wird gewarnt und weitergearbeitet: Die
+// Verlängerung ist eine Verbesserung, kein Abbruchgrund.
+func ExtendWriteDeadline(w http.ResponseWriter, r *http.Request, timeout time.Duration) {
+	if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(timeout)); err != nil {
+		zerolog.Ctx(r.Context()).Warn().Err(err).Dur("timeout", timeout).Msg("Failed to extend write deadline; falling back to server default")
+	}
 }
 
 // MapError maps a domain/application error to an HTTP error response.

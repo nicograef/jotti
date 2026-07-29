@@ -18,9 +18,15 @@ import (
 type mockService struct {
 	archiv application.Archiv
 	err    error
+	// beiErstellen laeuft, waehrend der Archivbau simuliert wird — der Test
+	// kann damit den Zustand des ResponseWriters zu diesem Zeitpunkt pruefen.
+	beiErstellen func()
 }
 
 func (m *mockService) Erstellen(context.Context, int) (application.Archiv, error) {
+	if m.beiErstellen != nil {
+		m.beiErstellen()
+	}
 	return m.archiv, m.err
 }
 
@@ -37,14 +43,16 @@ func performRequest(t *testing.T, handler http.HandlerFunc, w http.ResponseWrite
 
 // deadlineCapturingWriter wraps httptest.ResponseRecorder and implements the
 // SetWriteDeadline interface http.ResponseController looks for, so the test
-// can observe whether — and when relative to the first write — the handler
-// extends the write deadline.
+// can observe how many times — and when relative to the first write — the
+// handler extends the write deadline. deadlineCountBeforeWrite stops counting
+// with the first write: Nur die Aufrufe DAVOR koennen der Antwort ein Budget
+// geben, spaetere waeren wirkungslos.
 type deadlineCapturingWriter struct {
 	*httptest.ResponseRecorder
-	deadline            time.Time
-	deadlineSet         bool
-	deadlineBeforeWrite bool
-	wroteAnything       bool
+	deadline                 time.Time
+	deadlineCount            int
+	deadlineCountBeforeWrite int
+	wroteAnything            bool
 }
 
 func newDeadlineCapturingWriter() *deadlineCapturingWriter {
@@ -53,9 +61,9 @@ func newDeadlineCapturingWriter() *deadlineCapturingWriter {
 
 func (w *deadlineCapturingWriter) SetWriteDeadline(t time.Time) error {
 	w.deadline = t
-	w.deadlineSet = true
+	w.deadlineCount++
 	if !w.wroteAnything {
-		w.deadlineBeforeWrite = true
+		w.deadlineCountBeforeWrite++
 	}
 	return nil
 }
@@ -81,11 +89,11 @@ func TestExportHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing
 	before := time.Now()
 	performRequest(t, h.ExportHandler(), w, 0)
 
-	if !w.deadlineSet {
+	if w.deadlineCount == 0 {
 		t.Fatal("expected SetWriteDeadline to be called")
 	}
-	if !w.deadlineBeforeWrite {
-		t.Fatal("expected the write deadline to be set before the first write")
+	if w.deadlineCountBeforeWrite != 2 {
+		t.Fatalf("expected the write deadline to be set twice before the first write (handler entry and right before writing), got %d of %d calls", w.deadlineCountBeforeWrite, w.deadlineCount)
 	}
 	if min := 5 * time.Minute; w.deadline.Before(before.Add(min)) {
 		t.Errorf("expected a write deadline at least %s in the future, got %s", min, w.deadline.Sub(before))
@@ -112,11 +120,11 @@ func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing
 	before := time.Now()
 	performRequest(t, middleware.LoggingMiddleware(h.ExportHandler()).ServeHTTP, w, 0)
 
-	if !w.deadlineSet {
+	if w.deadlineCount == 0 {
 		t.Fatal("expected SetWriteDeadline to reach the real ResponseWriter through the middleware chain")
 	}
-	if !w.deadlineBeforeWrite {
-		t.Fatal("expected the write deadline to be set before the first write")
+	if w.deadlineCountBeforeWrite != 2 {
+		t.Fatalf("expected the write deadline to be set twice before the first write (handler entry and right before writing), got %d of %d calls", w.deadlineCountBeforeWrite, w.deadlineCount)
 	}
 	if min := 5 * time.Minute; w.deadline.Before(before.Add(min)) {
 		t.Errorf("expected a write deadline at least %s in the future, got %s", min, w.deadline.Sub(before))
@@ -126,6 +134,62 @@ func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing
 	}
 	if body := w.Body.String(); body != "zip-inhalt" {
 		t.Errorf("expected body %q, got %q", "zip-inhalt", body)
+	}
+}
+
+// Die erste Setzung sitzt am Handler-Eingang, vor jeder Arbeit: Sie gilt den
+// fruehen Fehlerpfaden, die vor Erstellen() antworten (unlesbarer Body,
+// invalid_kassensitzung). Die Antwort nach einem langen Archivbau deckt sie
+// nicht — dafuer steht die zweite Setzung, die auch der Fehlerzweig hier
+// durchlaeuft.
+func TestExportHandler_VerlaengertSchreibfristVorDemArchivbau(t *testing.T) {
+	w := newDeadlineCapturingWriter()
+	fristStandBeimArchivbau := false
+	svc := &mockService{
+		err:          application.ErrKassensitzungNichtGefunden,
+		beiErstellen: func() { fristStandBeimArchivbau = w.deadlineCount > 0 },
+	}
+	h := &Handler{Service: svc}
+
+	performRequest(t, h.ExportHandler(), w, 5)
+
+	if !fristStandBeimArchivbau {
+		t.Fatal("expected the write deadline to be extended before Erstellen() runs")
+	}
+	// Auch die Fehlerantwort geht durch beide Fristen — die zweite gibt ihr ein
+	// eigenes Budget, nachdem der Archivbau lange gelaufen ist.
+	if w.deadlineCountBeforeWrite != 2 {
+		t.Fatalf("expected the write deadline to be set twice before the first write, got %d of %d calls", w.deadlineCountBeforeWrite, w.deadlineCount)
+	}
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected status 404, got %d", w.Code)
+	}
+}
+
+// Die Frist ist eine absolute Zeit ab Request-Start, kein Budget fuer den
+// Schreibvorgang: Nach einem Archivbau von 5 Minuten waere die am
+// Handler-Eingang gesetzte Frist genau abgelaufen, wenn die Uebertragung
+// beginnt. Deshalb wird sie ein zweites Mal gesetzt, unmittelbar bevor
+// geschrieben wird — erst dieser Aufruf gibt der Uebertragung ein eigenes
+// Budget.
+func TestExportHandler_SetztSchreibfristVorDemSchreibenErneut(t *testing.T) {
+	w := newDeadlineCapturingWriter()
+	fristenBeimArchivbau := 0
+	svc := &mockService{
+		archiv:       application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")},
+		beiErstellen: func() { fristenBeimArchivbau = w.deadlineCount },
+	}
+	h := &Handler{Service: svc}
+
+	performRequest(t, h.ExportHandler(), w, 0)
+
+	if fristenBeimArchivbau != 1 {
+		t.Fatalf("expected exactly one write deadline before the archive is built, got %d", fristenBeimArchivbau)
+	}
+	// Gezaehlt wird bis zum ersten Schreibvorgang: Ein Aufruf hinter dem
+	// Schreiben kaeme fuer diese Antwort zu spaet und darf nicht mitzaehlen.
+	if w.deadlineCountBeforeWrite != 2 {
+		t.Fatalf("expected the write deadline to be set again after the archive is built and before writing, got %d of %d calls", w.deadlineCountBeforeWrite, w.deadlineCount)
 	}
 }
 

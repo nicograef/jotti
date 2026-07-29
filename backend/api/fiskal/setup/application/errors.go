@@ -28,6 +28,14 @@ var ErrTSESetupUmgebungAbweichung = errors.New("tse_setup_umgebung_abweichung")
 // laesst sich stattdessen uebernehmen (UebernimmTSE).
 var ErrTSEBereitsEingerichtet = errors.New("tse_bereits_eingerichtet")
 
+// ErrTSESetupLaeuftBereits zeigt an, dass bereits jemand an der
+// TSE-Konfiguration schreibt (Neuanlage, Uebernahme oder manueller
+// Zugangsdaten-Wechsel) und der Aufruf deshalb gar nicht erst gestartet wurde.
+// Zwei ueberlappende Schreiber wuerden eine zweite, bezahlte TSS anlegen bzw.
+// die Konfiguration des jeweils anderen ueberschreiben — siehe
+// einrichtungLaeuft in setup.go.
+var ErrTSESetupLaeuftBereits = errors.New("tse_setup_laeuft_bereits")
+
 // ErrTSEEinrichtung zeigt einen Fehler waehrend des fiskaly-Lebenszyklus an
 // (Anlage, Initialisierung oder Client-Registrierung).
 var ErrTSEEinrichtung = errors.New("tse_einrichtung_fehlgeschlagen")
