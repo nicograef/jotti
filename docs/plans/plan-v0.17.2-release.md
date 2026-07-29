@@ -384,11 +384,20 @@ mergen.
 
 ### Acceptance criteria
 
-- [ ] Der Archiv-Ref ist auf dem Remote nachweisbar, **bevor** der Force-Push läuft
-- [ ] `origin/main` entspricht dem verifizierten Stand aus Phase 3
-- [ ] Tag `v0.17.2` zeigt auf diesen Stand, CI ist grün
-- [ ] Die Release-Artefakte sind gebaut und der Betreiber hat das ZIP
-- [ ] PR #101 ist als „nach dem Fest" markiert
+- [x] Der Archiv-Ref ist auf dem Remote nachweisbar, **bevor** der Force-Push läuft —
+      `archiv/main-vor-v0.17.2` → `e0960b68`; unmittelbar vor dem Push zusätzlich
+      geprüft, dass der damalige `origin/main` ein Vorfahr des Tags ist
+- [x] `origin/main` entspricht dem verifizierten Stand aus Phase 3 — `5a65de49`
+- [x] Tag `v0.17.2` zeigt auf diesen Stand, CI ist grün — `v0.17.2` → `5a65de49`;
+      CI, Security Scans und Release alle grün. `upgrade-path` lief mit dem neuen
+      Pin `v0.17.1` durch, `e2e` und `backend-integration-tests` ebenfalls
+- [x] Die Release-Artefakte sind gebaut und der Betreiber hat das ZIP —
+      `jotti-windows-v0.17.2.zip` hängt am GitHub-Release. Die Übergabe an den
+      Betreiber erfolgt außerhalb des Repos
+- [ ] PR #101 ist als „nach dem Fest" markiert — **offen**, muss von Hand gesetzt
+      werden. Der PR zielt auf `main` und steht seit dem Rewrite auf einer anderen
+      Basis; dependabot setzt ihn voraussichtlich neu auf. 27 Frontend-Bumps mitten
+      im Fest widersprechen dem Maßstab dieses Releases
 
 ---
 
