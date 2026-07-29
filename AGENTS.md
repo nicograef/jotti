@@ -2,7 +2,7 @@
 
 jotti ist ein **kostenloses Mobile-Kassensystem (mPOS)** für Vereine und gemeinnützige Organisationen. Zielgruppe: eingetragene Vereine (e.V.), gGmbH, gUG, Stiftungen, kirchliche Träger — für temporäre Gastronomie-Veranstaltungen (Vereinsfeste, Weihnachtsmärkte, Maihocks, Konzerte, 2–3 Mal pro Jahr, 5–50 Tische, 5–30 ehrenamtliche Helfer).
 
-Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellungen auf, bestätigen die Ausgabe, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer. Self-hosted per Docker Compose, proprietäre Source-Available-Lizenz (Non-Commercial, Nutzungsvereinbarung erforderlich), Mobile-first.
+Servicekräfte nehmen auf ihren eigenen Smartphones (BYOD) im Browser Bestellungen auf, kassieren und stornieren — alles pro Tisch. Admins verwalten Produkte, Tische und Benutzer. Self-hosted per Docker Compose, proprietäre Source-Available-Lizenz (Non-Commercial, Nutzungsvereinbarung erforderlich), Mobile-first.
 
 **Bewusst NICHT enthalten:** Kartenzahlung, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM, Kiosk-Modus. Diese Reduktion ist gewollt — jedes zusätzliche Feature erhöht Komplexität für ehrenamtliche Teams.
 
@@ -36,7 +36,7 @@ Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht autom
 | Backend       | Go 1.26, stdlib `net/http`, `pgx/v5`, `sqlc`, `zerolog`, `zog`, `golang-jwt/v5` |
 | Frontend      | React 19, Vite 8, TypeScript 6.0 (strict), Tailwind CSS 4, shadcn/ui, Zod 4     |
 | Datenbank     | PostgreSQL 17, `golang-migrate`                                                 |
-| Runtime       | Node 24+, pnpm 10+                                                              |
+| Runtime       | Node 24+, pnpm 11+                                                              |
 | Infrastruktur | Docker Compose, Caddy Reverse Proxy, Let's Encrypt                              |
 
 ## Befehle
@@ -115,7 +115,7 @@ Seit der ersten produktiven Installation (2026-07-07, v0.14.0) gibt es echte Ins
 ## Bereiche
 
 - **Admin** (`admin`): Routen `/admin/*` (`api/admin.go`), Frontend `src/admin/`, `AdminGuard`. Kontext-Handler: `api/stammdaten/` (Produkte, Tische, Benutzer, Betreiber), `api/fiskal/` (TSE-Signatur-Monitoring, Setup, DSFinV-K-Export), `api/druck/` (Druckstationen, Druckaufträge), `api/reporting/` (Live-Reporting, Abrechnung), `api/kasse/kassenfuehrung/` (Kassensitzung, Kassensturz, Tagesabschluss).
-- **Service** (`admin` + `serviceleitung` + `service`): Routen `/service/*` (`api/service.go`), Stornierung über `api/serviceleitung.go`. Frontend `src/service/`, `ServiceGuard`. Kontext-Handler: `api/kasse/tischgeschaeft/` (Bestellen, Ausgabe, Kassieren, Umbuchen), `api/kasse/direktverkauf/`, `api/druck/beleg/` (Kassenbeleg drucken).
+- **Service** (`admin` + `serviceleitung` + `service`): Routen `/service/*` (`api/service.go`), Stornierung über `api/serviceleitung.go`. Frontend `src/service/`, `ServiceGuard`. Kontext-Handler: `api/kasse/tischgeschaeft/` (Bestellen, Kassieren, Stornieren, Umbuchen), `api/kasse/direktverkauf/`, `api/druck/beleg/` (Kassenbeleg drucken).
 - **Auth**: Routen `/auth/*` (`api/auth.go`). Kontext-Handler: `api/auth/`. Login, Passwort setzen. JWT-Token (Benutzer-ID + Rolle).
 
 ## Git-Workflow

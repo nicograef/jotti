@@ -36,7 +36,7 @@ Events für Kasse-Operationen (Tisch-Sessions, Direktverkäufe und Kassensitzung
 - `differenz-soll-ist-gebucht:v1`
 - `tagesabschluss-erstellt:v1`
 
-Alle Event-Typen und deren Datenstrukturen: `backend/domain/kasse/tisch_session_events.go` (Tisch-Session) und `backend/domain/kasse/kassensitzung_events.go` (Kassensitzung).
+Alle Event-Typen und deren Datenstrukturen: `backend/domain/kasse/tisch_session_events.go` (Tisch-Session), `backend/domain/kasse/kassensitzung_events.go` (Kassensitzung) und `backend/domain/kasse/direktverkauf_events.go` (Direktverkauf).
 
 ## State-Rekonstruktion
 

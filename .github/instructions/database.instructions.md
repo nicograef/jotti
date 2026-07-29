@@ -34,4 +34,3 @@ Die repo-weite Schema-Policy ist in `AGENTS.md` unter „Freeze-Disziplin" kanon
 - Konfiguration: `backend/sqlc.yaml`
 - Queries: `backend/sqlc/queries/<domain>.sql`
 - Generierter Code: `backend/sqlc/dbgen/`
-- Nach Query-Änderungen: `sqlc generate` ausführen

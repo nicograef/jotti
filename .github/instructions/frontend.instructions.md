@@ -33,7 +33,7 @@ frontend/
 
 ## UI-Bibliotheken
 
-- **shadcn/ui** (Stil: `new-york`, Radix-basiert)
+- **shadcn/ui** (Stil: `radix-vega`, Radix-basiert)
 - **Lucide React** (Icons)
 - **Sonner** (Toasts) — alle mutativen Aktionen zeigen `toast.error(...)` bei Fehlern
 - **Drawer**: eigenes Bottom-Sheet auf Radix Dialog (`src/components/ui/drawer.tsx`) — kein vaul, dessen Scroll-Lock bricht die installierte iOS-PWA (siehe `docs/adrs/03_drawer-radix-statt-vaul.md`)
