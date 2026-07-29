@@ -100,6 +100,10 @@ const mappedCodes: [string, string][] = [
     'Das Produkt wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
   ],
   [
+    'rate_limited',
+    'Zu viele Anfragen in kurzer Zeit. Bitte einen Moment warten und erneut versuchen.',
+  ],
+  [
     'request_too_large',
     'Die Anfrage ist zu groß. Bitte weniger Daten auf einmal senden und erneut versuchen.',
   ],
