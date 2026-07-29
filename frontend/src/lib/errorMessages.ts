@@ -3,7 +3,11 @@ import { BackendError } from './Backend'
 const serverErrorMessage =
   'Es ist ein unerwarteter Serverfehler aufgetreten. Bitte Seite neu laden oder den Administrator kontaktieren.'
 
-function appendReferenz(message: string, referenz?: string): string {
+// appendReferenz hängt die Korrelations-ID der Backend-Antwort an eine Meldung
+// an, damit ein gemeldeter Fehler im Server-Log auffindbar ist. Ohne Referenz
+// bleibt die Meldung unverändert. Geteilt mit dem zentralen Query-Fehler-Toast
+// (queryClient.ts), damit die Referenz überall gleich formuliert ist.
+export function appendReferenz(message: string, referenz?: string): string {
   return referenz ? `${message} Referenz: ${referenz}` : message
 }
 
