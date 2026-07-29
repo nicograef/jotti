@@ -11,6 +11,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
+import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 
 import type { Bestellung } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -50,6 +51,10 @@ export function HistorieStornierungDrawer({
     (positionId) =>
       positionen.find((p) => p.positionId === positionId)?.menge ?? 0,
   )
+
+  // Die Positionsauswahl meldet bereits useMengen; der getippte Grund kommt
+  // hinzu, weil er ein zweites Mal formuliert werden müsste.
+  useOffenerVorgang(kommentar.trim() !== '')
 
   const selectedPositionen = selectPositionen(positionen, mengen)
   const totalPrice = calculateTotalPrice(selectedPositionen)

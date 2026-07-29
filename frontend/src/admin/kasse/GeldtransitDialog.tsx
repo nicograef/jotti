@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
+import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 
 import { kasseBackend } from './hooks'
 import {
@@ -67,6 +68,11 @@ export function GeldtransitDialog({
   useEffect(() => {
     if (open) form.reset({ betragCents: 0, kommentar: '' })
   }, [open, form])
+
+  // Ein angefangenes Formular ist ein offener Vorgang — aber nur im offenen
+  // Dialog: Beim Schließen bleiben die Werte zwar stehen, das nächste Öffnen
+  // verwirft sie ohnehin (siehe Reset oben).
+  useOffenerVorgang(open && form.formState.isDirty)
 
   const { loading, run } = useFormActionSubmit({
     form,

@@ -8,7 +8,9 @@ import {
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import type { Bestellung } from '../../table/Bestellung'
 import type { Stornierung } from '../../table/Stornierung'
@@ -36,6 +38,10 @@ vi.mock('../../table/hooks', () => ({
     isPending: false,
   }),
 }))
+
+beforeEach(() => {
+  VorgangsRegisterSingleton.zuruecksetzen()
+})
 
 afterEach(() => {
   cleanup()
@@ -473,5 +479,23 @@ describe('TischHistorie', () => {
     expect(
       screen.queryByRole('button', { name: 'Stornobeleg drucken' }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('TischHistorie im Vorgangs-Register', () => {
+  it('meldet das geöffnete Detail als reine Anzeige nicht', () => {
+    renderHistorie([
+      bestellung({
+        id: '00000000-0000-0000-0000-000000000001',
+        stornierbarePositionen: [position()],
+        umbuchbarePositionen: [position()],
+      }),
+    ])
+
+    fireEvent.click(screen.getByRole('button', { name: /Bestellung/ }))
+
+    // Das Detail zeigt nur an; erst Stornieren oder Umbuchen wird zur Arbeit.
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 })

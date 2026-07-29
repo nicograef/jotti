@@ -1,8 +1,14 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import { ZaehlhilfeDialog } from './ZaehlhilfeDialog'
+
+beforeEach(() => {
+  VorgangsRegisterSingleton.zuruecksetzen()
+})
 
 afterEach(() => {
   cleanup()
@@ -53,5 +59,40 @@ describe('ZaehlhilfeDialog', () => {
     const feld = screen.getByLabelText('50 €')
     expect(feld).toHaveAttribute('type', 'text')
     expect(feld).toHaveAttribute('inputmode', 'numeric')
+  })
+})
+
+describe('ZaehlhilfeDialog im Vorgangs-Register', () => {
+  it('meldet eine begonnene Zählung und gibt sie beim Schließen frei', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(
+      <ZaehlhilfeDialog open onOpenChange={vi.fn()} onUebernehmen={vi.fn()} />,
+    )
+
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+
+    await user.type(screen.getByLabelText('50 €'), '2')
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
+
+    // Ein zweiter Nennwert ist dieselbe Zählung, kein zweiter Vorgang.
+    await user.type(screen.getByLabelText('2 €'), '3')
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
+
+    rerender(
+      <ZaehlhilfeDialog
+        open={false}
+        onOpenChange={vi.fn()}
+        onUebernehmen={vi.fn()}
+      />,
+    )
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+  })
+
+  it('meldet ohne Eingaben nichts', () => {
+    render(
+      <ZaehlhilfeDialog open onOpenChange={vi.fn()} onUebernehmen={vi.fn()} />,
+    )
+
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 })

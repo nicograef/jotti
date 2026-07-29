@@ -1,7 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import type { Produkt } from './product/Produkt'
 import type { Position } from './table/Bestellung'
@@ -103,6 +105,10 @@ const stammtisch: TischSession = {
   unbezahltePositionen: [],
   fuerMichErledigt: true,
 }
+
+beforeEach(() => {
+  VorgangsRegisterSingleton.zuruecksetzen()
+})
 
 afterEach(() => {
   cleanup()
@@ -357,6 +363,41 @@ describe('TablePage', () => {
         screen.getByRole('button', { name: /Bestellung überprüfen/ }),
       ).toBeDisabled()
     })
+  })
+
+  // Der Tischwechsel ist einer der beiden realen Auslöser für ein Zähler-Leck
+  // im Vorgangs-Register: TablePage bleibt gemountet und setzt den Korb nur
+  // zurück. Ein stehen gebliebener Vorgang blockierte den erzwungenen Reload
+  // dauerhaft, ohne dass es jemandem auffiele.
+  it('gibt den Bestell-Korb beim Tischwechsel im Vorgangs-Register frei', async () => {
+    testState.produkte = [testProdukt]
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    const user = userEvent.setup()
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const renderUi = () => (
+      <QueryClientProvider client={queryClient}>
+        <TablePage />
+      </QueryClientProvider>
+    )
+    const { rerender, unmount } = render(renderUi())
+
+    await screen.findByText('Stammtisch')
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
+
+    // Anderer Tisch: nur der :tischId-Param wechselt, TablePage bleibt gemountet.
+    testState.tischId = '2'
+    rerender(renderUi())
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+
+    // Und auch das Verlassen der Seite hinterlässt keinen offenen Vorgang.
+    unmount()
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 
   // A2: Eine Stornierung bestätigt über den Erfolgs-Pop; der Refetch des

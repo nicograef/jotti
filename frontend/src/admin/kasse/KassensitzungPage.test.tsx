@@ -2,9 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BackendError } from '@/lib/Backend'
+import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import type { GeldtransitBuchung } from './Kassensitzung'
 import {
@@ -134,6 +135,10 @@ function renderPage() {
     </QueryClientProvider>,
   )
 }
+
+beforeEach(() => {
+  VorgangsRegisterSingleton.zuruecksetzen()
+})
 
 afterEach(() => {
   cleanup()
@@ -485,5 +490,66 @@ describe('KasseAbschliessenSection', () => {
     )
     // Dialog bleibt offen: der Abschluss kann erneut angefordert werden.
     expect(screen.getByText('Kasse abschließen?')).toBeInTheDocument()
+  })
+})
+
+describe('GeldtransitDialog im Vorgangs-Register', () => {
+  it('meldet das angefangene Formular und gibt es beim Schließen frei', async () => {
+    offeneKassensitzungState.kassensitzung = {
+      zNr: 12,
+      datum: '2026-07-11',
+      bezeichnung: 'Sommerfest Tag 2',
+      status: 'offen',
+      eroeffnetAm: '2026-07-11T08:02:00Z',
+    }
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(screen.getByRole('button', { name: 'Geld einlegen' }))
+    // Das frisch geöffnete, leere Formular ist noch kein offener Vorgang.
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+
+    await user.type(screen.getByLabelText('Kommentar'), 'Wechselgeld')
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
+
+    // Beim Schließen bleiben die Werte im Formular stehen, werden aber beim
+    // nächsten Öffnen verworfen — der Vorgang ist damit erledigt.
+    await user.click(screen.getByRole('button', { name: 'Abbrechen' }))
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+  })
+})
+
+describe('KasseAbschliessenSection im Vorgangs-Register', () => {
+  it('meldet den eingetippten Ist-Bestand samt offener Rückfrage als einen Vorgang', async () => {
+    const user = userEvent.setup()
+    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+
+    await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
+    )
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
+
+    // Abbrechen schließt nur die Rückfrage; der gezählte Betrag steht weiter da.
+    await user.click(screen.getByRole('button', { name: 'Abbrechen' }))
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
+  })
+
+  it('gibt den Vorgang frei, sobald der Abschluss gebucht ist', async () => {
+    const user = userEvent.setup()
+    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
+    await user.click(
+      screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
+
+    expect(kasseAbschliessen).toHaveBeenCalledWith(34250)
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 })

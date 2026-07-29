@@ -10,6 +10,8 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+
 import type { Produkt } from '../product/Produkt'
 import { Direktverkauf } from './direktverkauf/Direktverkauf'
 import { ErfolgsPop } from './ErfolgsPop'
@@ -30,6 +32,7 @@ vi.mock('@/hooks/use-mobile', () => ({
 describe('ErfolgsPop', () => {
   beforeEach(() => {
     vi.useFakeTimers()
+    VorgangsRegisterSingleton.zuruecksetzen()
   })
 
   afterEach(() => {
@@ -76,6 +79,14 @@ describe('ErfolgsPop', () => {
 
     // Ein Tap schließt den Pop früher als der Auto-Dismiss-Timer.
     expect(onDismiss).toHaveBeenCalledTimes(1)
+  })
+
+  it('meldet als reine Anzeige keinen offenen Vorgang', () => {
+    render(<ErfolgsPop open text="Zahlung erfolgreich." onDismiss={vi.fn()} />)
+
+    // Die Erfolgsmeldung verschwindet nach 1,4 s von selbst; sie darf einen
+    // erzwungenen Reload nicht aufhalten.
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 })
 

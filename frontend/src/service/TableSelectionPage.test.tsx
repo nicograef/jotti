@@ -1,6 +1,8 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import type { AktiverTischMitFavorit, TischSession } from './table/Tisch'
 import { TableSelectionPage } from './TableSelectionPage'
@@ -61,6 +63,10 @@ function tischSession(
   }
 }
 
+beforeEach(() => {
+  VorgangsRegisterSingleton.zuruecksetzen()
+})
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
@@ -119,5 +125,22 @@ describe('TableSelectionPage', () => {
     )
 
     expect(screen.getByText(/Kein aktiver Tisch passt zu/)).toBeInTheDocument()
+  })
+})
+
+describe('TableSelectionPage im Vorgangs-Register', () => {
+  it('meldet die Tischsuche als reine Anzeige nicht', async () => {
+    meineTische = [tischSession(1, 'Stammtisch', true)]
+    alleTische = [
+      { id: 1, name: 'Stammtisch', istFavorit: true, saldoCents: 500 },
+      { id: 2, name: 'Bar', istFavorit: false, saldoCents: 300 },
+    ]
+    const user = userEvent.setup()
+    render(<TableSelectionPage />)
+
+    await user.type(screen.getByPlaceholderText(/Tisch suchen/), 'Bar')
+
+    // Ein Suchbegriff filtert nur die Anzeige — es geht nichts verloren.
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 })

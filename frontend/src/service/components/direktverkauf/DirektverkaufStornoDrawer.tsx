@@ -14,6 +14,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
+import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 import { formatEuro } from '@/lib/utils'
 
 import type { DirektverkaufHistorieEintrag } from '../../direktverkauf/Direktverkauf'
@@ -41,6 +42,10 @@ export function DirektverkaufStornoDrawer({
       verkauf.offenePositionen.find((p) => p.positionId === positionId)
         ?.menge ?? 0,
   )
+
+  // Die Positionsauswahl meldet bereits useMengen; der getippte Grund kommt
+  // hinzu, weil er ein zweites Mal formuliert werden müsste.
+  useOffenerVorgang(kommentar.trim() !== '')
 
   const selectedPositionen = verkauf.offenePositionen
     .map((position) => ({

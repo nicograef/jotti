@@ -1,7 +1,9 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import { LoginForm } from './LoginForm'
 
@@ -17,6 +19,10 @@ vi.mock('@/lib/Auth', () => ({
     },
   },
 }))
+
+beforeEach(() => {
+  VorgangsRegisterSingleton.zuruecksetzen()
+})
 
 afterEach(() => {
   cleanup()
@@ -83,5 +89,34 @@ describe('LoginForm', () => {
     await waitFor(() => {
       expect(login).toHaveBeenCalledWith('anna', 'geheim1')
     })
+  })
+})
+
+describe('LoginForm im Vorgangs-Register', () => {
+  // Bewusst gepinnt: Das Anmeldeformular meldet nichts, obwohl es seinen
+  // Submit-Zustand von Hand hält. Meldete es sich, wartete der erzwungene
+  // Reload bis nach der Anmeldung und feuerte genau dort, wo er am meisten
+  // stört; ohne Meldung greift er beim Aufschlagen der Anmeldeseite.
+  it('meldet weder getippte Zugangsdaten noch den laufenden Login', async () => {
+    const user = userEvent.setup()
+    // Login hängt, damit der Ladezustand während der Assertion aktiv bleibt.
+    const login = vi.fn(
+      () =>
+        new Promise<string>(() => {
+          /* bleibt pending */
+        }),
+    )
+    renderLogin(login)
+
+    await user.type(screen.getByPlaceholderText('Benutzername'), 'anna')
+    await user.type(screen.getByPlaceholderText('Passwort'), 'geheim1')
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+
+    await user.click(screen.getByRole('button', { name: /Anmelden/ }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Anmelden/ })).toBeDisabled()
+    })
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 })

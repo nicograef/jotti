@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 import { BackendError } from '@/lib/Backend'
 
 import { checkTSESetup, useTSEEinrichtung, useTSEKonfiguration } from './hooks'
@@ -74,6 +75,10 @@ export function TSEEinrichtungWizard() {
   const [befund, setBefund] = useState<TSESetupBefund | null>(null)
   const [ergebnis, setErgebnis] = useState<TSEEinrichtenErgebnis | null>(null)
 
+  // Die Zugangsdaten sind aus dem fiskaly-Dashboard abgetippt und werden
+  // nirgends gespeichert; ein Reload verlangt den ganzen Weg dorthin erneut.
+  useOffenerVorgang(apiKey.trim() !== '' || apiSecret.trim() !== '')
+
   const { loading, run } = useActionSubmit({
     actionLabel: 'TSE prüfen',
     byCode: {
@@ -89,7 +94,12 @@ export function TSEEinrichtungWizard() {
     })
   }
 
+  // Leert die Zugangsdaten mit: Nach „Fertig" sind sie im Backend hinterlegt,
+  // nach „Andere Zugangsdaten" sollen sie gerade ersetzt werden. Blieben sie
+  // stehen, meldete der Wizard oben einen offenen Vorgang, den es nicht gibt.
   const zurueckZuZugangsdaten = () => {
+    setApiKey('')
+    setApiSecret('')
     setBefund(null)
     setErgebnis(null)
   }
@@ -283,6 +293,10 @@ function UebernahmeSchritt({
   const [pinUnbekannt, setPinUnbekannt] = useState(false)
   const { uebernimmTSE } = useTSEEinrichtung()
 
+  // Die Admin-PIN wird aus den Unterlagen abgetippt, und jeder Fehlversuch
+  // zählt auf die fünf, nach denen fiskaly sperrt.
+  useOffenerVorgang(pin.trim() !== '')
+
   const { loading, run } = useActionSubmit({
     actionLabel: 'TSE übernehmen',
     byCode: {
@@ -454,6 +468,9 @@ function PukReset({
   const [pukUnbekannt, setPukUnbekannt] = useState(false)
   const { uebernimmTSE } = useTSEEinrichtung()
 
+  // Der abgetippte Admin-PUK ist meldepflichtig, das bloße Aufklappen nicht.
+  useOffenerVorgang(puk.trim() !== '')
+
   const { loading, run } = useActionSubmit({
     actionLabel: 'PIN zurücksetzen',
     byCode: {
@@ -595,6 +612,10 @@ function BestaetigungSchritt({
   const [tippBestaetigung, setTippBestaetigung] = useState('')
   const { richteTSEEin } = useTSEEinrichtung()
 
+  // Wer die Tippbestätigung begonnen hat, steht unmittelbar vor einer Anlage,
+  // die in LIVE Kosten verursacht und sich nicht rückgängig machen lässt.
+  useOffenerVorgang(tippBestaetigung.trim() !== '')
+
   const { loading, run } = useActionSubmit({
     actionLabel: 'TSE einrichten',
     byCode: {
@@ -700,6 +721,12 @@ function ErgebnisSchritt({
   const hatNeuePin = ergebnis.adminPin !== ''
   const hatNeueGeheimnisse = hatNeuenPuk || hatNeuePin
   const abschlussFreigegeben = !hatNeueGeheimnisse || verwahrt
+
+  // Neue Geheimnisse stehen hier genau einmal auf dem Schirm und sind nirgends
+  // gespeichert — ein Reload macht sie unwiederbringlich. Der Haken „verwahrt"
+  // gibt den Vorgang bewusst nicht frei: Bis der Schritt verlassen wird, liest
+  // der Admin PUK und PIN womöglich noch einmal gegen seine Notiz.
+  useOffenerVorgang(hatNeueGeheimnisse)
 
   const handleAbschluss = async () => {
     await run(async () => {

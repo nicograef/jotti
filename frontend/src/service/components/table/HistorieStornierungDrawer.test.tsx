@@ -1,6 +1,8 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -9,6 +11,10 @@ import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
+
+beforeEach(() => {
+  VorgangsRegisterSingleton.zuruecksetzen()
+})
 
 afterEach(() => {
   cleanup()
@@ -121,5 +127,35 @@ describe('HistorieStornierungDrawer', () => {
       'Falsch bestellt',
     )
     expect(button).toBeEnabled()
+  })
+})
+
+describe('HistorieStornierungDrawer im Vorgangs-Register', () => {
+  it('meldet den getippten Kommentar zusätzlich zur Positionsauswahl', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(
+      <HistorieStornierungDrawer
+        backend={{ stornierungErteilen: vi.fn().mockResolvedValue(undefined) }}
+        tisch={tisch}
+        quelle={quelle}
+        onClose={vi.fn()}
+        onStornierungErteilt={vi.fn()}
+      />,
+    )
+
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch bestellt',
+    )
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
+
+    // Die Positionsauswahl meldet über useMengen einen zweiten Vorgang.
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(2)
+
+    unmount()
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 })

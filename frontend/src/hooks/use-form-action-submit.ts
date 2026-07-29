@@ -5,6 +5,8 @@ import { toast } from 'sonner'
 import { BackendError } from '@/lib/Backend'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 
+import { useOffenerVorgang } from './use-offener-vorgang'
+
 interface UseFormActionSubmitOptions<TFieldValues extends FieldValues> {
   form: UseFormReturn<TFieldValues>
   actionLabel: string
@@ -23,6 +25,11 @@ export function useFormActionSubmit<TFieldValues extends FieldValues>({
   onSuccess,
 }: UseFormActionSubmitOptions<TFieldValues>) {
   const [loading, setLoading] = useState(false)
+
+  // Ein laufender Submit ist ein offener Vorgang: Ein Reload mitten im Flug
+  // ließe das Formular ohne Antwort zurück. Das `finally` unten gibt ihn nach
+  // Erfolg wie nach Fehlschlag wieder frei.
+  useOffenerVorgang(loading)
 
   const run = async (fn: () => Promise<void>) => {
     setLoading(true)

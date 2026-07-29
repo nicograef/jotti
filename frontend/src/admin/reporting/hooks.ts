@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
+import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 import { BackendSingleton } from '@/lib/Backend'
 import { triggerBrowserDownload } from '@/lib/download'
 import { getActionErrorMessage } from '@/lib/errorMessages'
@@ -77,5 +78,11 @@ export function useDsfinvkExport() {
       )
     },
   })
+
+  // Der Export läuft über useMutation und damit an den generischen Trägern
+  // vorbei. Ein Reload mitten im Lauf bräche das Archiv ab, bevor es der
+  // Browser als Download übernimmt.
+  useOffenerVorgang(mutation.isPending)
+
   return { exportieren: mutation.mutate, isPending: mutation.isPending }
 }

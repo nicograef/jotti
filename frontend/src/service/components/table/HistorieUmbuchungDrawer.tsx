@@ -13,6 +13,7 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
+import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 import { formatAlleAuswaehlenLabel } from '@/lib/utils'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
@@ -73,6 +74,10 @@ export function HistorieUmbuchungDrawer({
     reset,
     setAll,
   } = useMengen<string>((positionId) => umbuchbareMengen[positionId] || 0)
+
+  // Die Positionsauswahl meldet bereits useMengen; der getippte Kommentar
+  // kommt hinzu, weil er ein zweites Mal formuliert werden müsste.
+  useOffenerVorgang(kommentar.trim() !== '')
 
   const zielTische = useMemo(
     () => tische.filter((candidate) => candidate.id !== tisch.id),

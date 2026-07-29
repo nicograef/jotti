@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 import { BackendError } from '@/lib/Backend'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 import { cn, formatEuro, formatEuroMitVorzeichen } from '@/lib/utils'
@@ -103,6 +104,11 @@ export function KasseAbschliessenSection({
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
   })
+
+  // Dieser Abschnitt hält seinen Submit-Zustand von Hand und läuft damit an den
+  // generischen Trägern vorbei: Der eingetippte Ist-Bestand, die offene
+  // Rückfrage und der laufende Abschluss melden sich hier selbst.
+  useOffenerVorgang(form.formState.isDirty || dialogOpen || loading)
 
   const sollBestandCents = kassenbestand?.sollBestandCents ?? null
   // Live-Rechnung: der aktuell eingetippte Ist-Bestand (bei jeder Eingabe neu),

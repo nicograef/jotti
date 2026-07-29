@@ -1,7 +1,9 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import type { Bestellung, Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
@@ -20,6 +22,10 @@ vi.mock('../../table/hooks', () => ({
     isPending: false,
   }),
 }))
+
+beforeEach(() => {
+  VorgangsRegisterSingleton.zuruecksetzen()
+})
 
 afterEach(() => {
   cleanup()
@@ -245,5 +251,23 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(
       screen.getByRole('button', { name: /^Alle 2 Positionen auswählen/ }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('HistorieUmbuchungDrawer im Vorgangs-Register', () => {
+  it('meldet den getippten Kommentar und gibt ihn beim Aushängen frei', async () => {
+    const user = userEvent.setup()
+    renderDrawer()
+
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (optional)'),
+      'Gast gewechselt',
+    )
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
+
+    cleanup()
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 })

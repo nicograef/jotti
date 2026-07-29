@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 import { formatEuro } from '@/lib/utils'
 
 import {
@@ -44,6 +45,11 @@ function ZaehlhilfeInhalt({
   >({})
 
   const summeCents = summeAusStueckzahlen(stueckzahlen)
+
+  // Eine begonnene Zählung liegt nur hier; ein Reload hieße, das Bargeld noch
+  // einmal zu zählen. Die Summe ist genau dann über null, wenn schon eine
+  // Stückzahl eingetragen ist.
+  useOffenerVorgang(summeCents > 0)
 
   const setAnzahl = (nennwert: Nennwert, roh: string) => {
     // Nur nicht-negative Ganzzahlen; leeres Feld ergibt 0 (kein Eintrag).

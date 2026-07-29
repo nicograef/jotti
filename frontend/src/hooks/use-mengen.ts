@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { useOffenerVorgang } from './use-offener-vorgang'
+
 /**
  * Return shape of {@link useMengen}. Exposed so callers can lift the selection
  * state and pass the whole controller down as a single prop (e.g. TablePage
@@ -27,6 +29,11 @@ export function useMengen<K extends string | number>(
   const [mengen, setMengen] = useState<Record<K, number>>(
     () => ({}) as Record<K, number>,
   )
+
+  // Any selected quantity is work that a forced reload would throw away.
+  // Reported centrally here rather than at the six call sites, each of which
+  // decides "not empty" its own way.
+  useOffenerVorgang(Object.values<number>(mengen).some((menge) => menge > 0))
 
   const add = (key: K) => {
     setMengen((prev) => {
