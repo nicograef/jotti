@@ -13,6 +13,12 @@ const MAX_WIEDERHOLUNGEN = 2
 const queryFehlerMeldung =
   'Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.'
 
+// Als `meta` einer Query gesetzt, unterdrückt dieses Flag den globalen
+// Fehler-Toast. Gedacht für Hintergrundabfragen, die dauerhaft weiterlaufen
+// (Versionsabfrage): Im Funkloch würden sie sonst alle 30 Sekunden eine rote
+// Meldung werfen, ohne dass die Helferin etwas tun könnte.
+export const OHNE_FEHLER_TOAST = { ohneFehlerToast: true }
+
 // sollWiederholen wiederholt nur, was beim nächsten Versuch anders ausgehen
 // kann: Netzfehler und Serverfehler ab Status 500. Ein BackendError mit 4xx
 // (Validierung, fehlende Berechtigung, Konflikt) und ein ResponseBodyError
@@ -56,8 +62,10 @@ export function createQueryClient(): QueryClient {
       },
     },
     queryCache: new QueryCache({
-      onError: (error) => {
+      onError: (error, query) => {
         console.error(error)
+
+        if (query.meta?.ohneFehlerToast === true) return
 
         const referenz =
           error instanceof BackendError ? error.referenz : undefined

@@ -11,7 +11,13 @@ RUN corepack enable \
 
 # Copy the rest of the sources and build
 COPY . .
-RUN pnpm build
+
+# Version als Build-Konstante ins Bundle eingebrannt (Default dev). Der
+# Release-Workflow uebergibt den Tag per --build-arg VERSION=<tag>. Das
+# Argument wird im RUN konsumiert, damit ein Versionswechsel die Build-Schicht
+# invalidiert und nicht das gecachte alte Bundle im neuen Image landet.
+ARG VERSION=dev
+RUN VERSION="${VERSION}" pnpm build
 
 # Runtime stage: serve static files with nginx
 FROM nginx:1.31-alpine AS runner

@@ -29,7 +29,7 @@ const versionState = vi.hoisted<{ version: string | undefined }>(() => ({
   version: undefined,
 }))
 
-vi.mock('./hooks', () => ({
+vi.mock('@/hooks/use-version', () => ({
   useVersion: () => versionState.version,
 }))
 

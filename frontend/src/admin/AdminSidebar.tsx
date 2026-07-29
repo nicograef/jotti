@@ -33,10 +33,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { useVersion } from '@/hooks/use-version'
 import { AuthSingleton } from '@/lib/Auth'
 
 import { StatusDot, type StatusDotZustand } from './components/StatusDot'
-import { useVersion } from './hooks'
 import { useOffeneKassensitzung } from './kasse/hooks'
 
 interface NavItem {
