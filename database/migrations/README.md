@@ -16,7 +16,12 @@ jotti fährt **forward-only: keine Down-Migrationen.** Neue Änderungen kommen a
 
 1. Dateiname `NN_<kurzname>.up.sql`, `NN` = nächste freie Nummer nach der höchsten bereits vorhandenen Migration in diesem Verzeichnis.
 2. Additiv und vorwärtskompatibel. Bestehende Migrationen (insb. `01_initial.up.sql`) werden seit der produktiven Erstinstallation (v0.14.0) **nicht** mehr editiert.
-3. In eine Transaktion klammern (`BEGIN; … COMMIT;`) — Postgres-DDL ist transaktional, so rollt ein Fehlschlag sauber zurück und hinterlässt keinen `dirty`-Zustand in `schema_migrations`.
+3. In eine Transaktion klammern (`BEGIN; … COMMIT;`) — Postgres-DDL ist transaktional, so rollt ein Fehlschlag das **Schema** sauber zurück. Die Klammer schützt aber **nicht** die Versionsbuchführung: golang-migrate (v4.19.1) schreibt `SetVersion(<Zielversion>, dirty=true)` in einer **eigenen**, sofort committeten Transaktion, **bevor** es die Migration ausführt. Scheitert die Migration, steht das Schema also noch auf der Vorversion, `schema_migrations` dagegen committet auf der Zielversion mit `dirty = true`. Jeder weitere `migrate … up` bricht dann sofort mit `ErrDirty` ab („Dirty database version N. Fix and force version.") — und weil der Backend-Container erst nach erfolgreichem `migrate` startet (`depends_on: … service_completed_successfully`), fährt der Stack gar nicht mehr hoch.
+
+   **Wiederanlauf nach einem Fehlschlag:**
+
+   - `migrate … force <vorherige Version>` — die Version, auf der das Schema tatsächlich steht, **nicht** die fehlgeschlagene Zielversion. Das löscht das `dirty`-Flag; danach die Migration korrigieren und `up` wiederholen. `force` fasst nur `schema_migrations` an, nie das Schema.
+   - Ist das Schema in einem unklaren Zustand (Migration ohne `BEGIN/COMMIT`, die teilweise durchlief), ist der Rückweg der Backup-Restore statt `force`: beim Betreiber `jotti-restore.cmd` (Doppelklick, spielt das automatische Backup von vor dem Update zurück), im Repo `make prod-restore`.
 4. Event-JSON-Contracts sind eingefroren (Guard: `backend/domain/kasse/event_json_contract_test.go`); Event-Änderungen additiv als neue Version (`:vN`), nie in-place.
 5. Nach jeder Migration muss `make rebuild-projections` fehlerfrei durchlaufen (Projektionen werden aus Events neu gebaut).
 
@@ -36,6 +41,6 @@ jotti verwendet für Status- und Kategorie-Spalten TEXT+CHECK statt PostgreSQL-E
 
 ## Vorversions-Pinning (CI-Job `upgrade-path`)
 
-- `PREVIOUS_VERSION` im Job pinnt die Vorversion auf das letzte veröffentlichte Release (aktuell `v0.14.0`); die Images kommen von `ghcr.io/nicograef` (`jotti-migrate`, `jotti-backend`).
+- `PREVIOUS_VERSION` im Job pinnt die Vorversion auf das letzte veröffentlichte Release (aktuell `v0.17.1`); die Images kommen von `ghcr.io/nicograef` (`jotti-migrate`, `jotti-backend`).
 - Nach jedem Release wird `PREVIOUS_VERSION` auf das neue Tag angehoben (Teil der Release-Mechanik).
 - Seit der `02_druckauftrag_backoff`-Migration ist der Job das Pflicht-Gate für Schema-Änderungen: Er beweist, dass eine befüllte Bestandsinstanz das Upgrade übersteht (Release-Guide Gate 4 (b)).
