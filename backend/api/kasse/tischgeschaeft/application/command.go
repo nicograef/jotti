@@ -86,35 +86,34 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 // hat (Projektion bzw. Replay) — nicht ein frisches GetMaxVersion zum Schreibzeitpunkt.
 // Nur so erkennt der UNIQUE(subject, version)-Constraint, dass sich der Stream seit dem
 // Lesen geändert hat, und verhindert Doppel-Writes auf Basis veralteter Validierung.
-func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) (int, error) {
+func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) error {
 	e.Version = expectedVersion + 1
 
-	eventID, err := write(e)
-	if err != nil {
+	if _, err := write(e); err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			zerolog.Ctx(ctx).Warn().
 				Int("version", e.Version).
 				Str("subject", subject).
 				Msg("OCC conflict")
-			return 0, ErrConflict
+			return ErrConflict
 		}
 		if errors.Is(err, db.ErrConflict) {
 			zerolog.Ctx(ctx).Warn().Str("subject", subject).Msg("Deadlock on event write")
-			return 0, ErrConflict
+			return ErrConflict
 		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
 			zerolog.Ctx(ctx).Warn().Str("subject", subject).Msg("Kassensitzung nicht mehr offen")
-			return 0, ErrKasseNichtGeoeffnet
+			return ErrKasseNichtGeoeffnet
 		}
-		return 0, err
+		return err
 	}
 
-	return eventID, nil
+	return nil
 }
 
 // writeEvent writes an event with optimistic concurrency control against
 // expectedVersion. Returns ErrConflict on a version conflict.
-func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
+func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int) error {
 	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEvent(ctx, versioned, streamType, kassensitzungNr)
 	})
@@ -123,7 +122,7 @@ func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject stri
 // writeEventWithDruckauftraege writes an event and the Druckaufträge derived from it
 // (built from the stored event including its generated ID) in a single transaction
 // (transactional outbox). Returns ErrConflict on a version conflict.
-func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
+func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
 	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
 	})
@@ -136,7 +135,7 @@ func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.E
 func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
 	log := zerolog.Ctx(ctx)
 
-	if _, err := writeEvent(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+	if err := writeEvent(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -227,7 +226,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return ErrDatabase
 	}
 
-	_, err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
+	err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
 	if err != nil {
 		if errors.Is(err, ErrConflict) {
 			// Idempotenz-Check: Ist der Konflikt eine Duplikat-Einreichung (gleiche bestellungId)

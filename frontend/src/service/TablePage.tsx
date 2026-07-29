@@ -94,7 +94,7 @@ export function TablePage() {
     isError: stateError,
     refetch: reloadState,
   } = useTischState(Number(tischId))
-  const { isPending, produkte } = useAktiveProdukte()
+  const { isPending: produkteLoading, produkte } = useAktiveProdukte()
   const {
     isPending: historieLoading,
     isError: historieError,
@@ -245,7 +245,7 @@ export function TablePage() {
       backend={tischBackend}
       tisch={tisch}
       products={produkte}
-      productsLoading={isPending}
+      productsLoading={produkteLoading}
       mengenSteuerung={bestellKorb}
       onErfolg={zeigeErfolg}
     />

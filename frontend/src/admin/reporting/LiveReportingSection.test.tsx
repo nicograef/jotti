@@ -18,7 +18,6 @@ afterEach(() => {
 
 function liveData(
   servicekraefte: LiveReportingData['breakdowns']['servicekraefte'],
-  stornierungen: LiveReportingData['stornierungen'] = [],
   overrides: Partial<LiveReportingData> = {},
 ): LiveReportingData {
   return {
@@ -38,7 +37,7 @@ function liveData(
       direktverkaufUmsatzCents: 800,
     },
     breakdowns: { servicekraefte },
-    stornierungen,
+    stornierungen: [],
     produktStatistik: [],
     ...overrides,
   }
@@ -189,7 +188,7 @@ describe('LiveReportingSection — Übersicht', () => {
 
     render(
       <LiveReportingSection
-        liveData={liveData([], [], {
+        liveData={liveData([], {
           offeneTische,
           offeneSaldiCents: 2800,
         })}
@@ -229,22 +228,24 @@ describe('LiveReportingSection — Übersicht', () => {
               erledigt: true,
             },
           ],
-          [
-            {
-              zeitpunkt: '2026-06-18T12:00:00Z',
-              quelle: 'tisch',
-              barRueckgabe: true,
-              tischId: 9,
-              tischName: 'Tisch 9',
-              // Die Serviceleitung hat stellvertretend für felix storniert.
-              akteur: { userId: 1, userName: 'lena', name: 'Lena C.' },
-              betroffene: [{ userId: 3, userName: 'felix', name: 'Felix W.' }],
-              betragCents: 500,
-              kommentar: 'Falsch gebucht',
-              positionen: [],
-            },
-          ],
           {
+            stornierungen: [
+              {
+                zeitpunkt: '2026-06-18T12:00:00Z',
+                quelle: 'tisch',
+                barRueckgabe: true,
+                tischId: 9,
+                tischName: 'Tisch 9',
+                // Die Serviceleitung hat stellvertretend für felix storniert.
+                akteur: { userId: 1, userName: 'lena', name: 'Lena C.' },
+                betroffene: [
+                  { userId: 3, userName: 'felix', name: 'Felix W.' },
+                ],
+                betragCents: 500,
+                kommentar: 'Falsch gebucht',
+                positionen: [],
+              },
+            ],
             summary: {
               gesamtUmsatzCents: 2400,
               gesamtBestellungenCents: 3600,
@@ -320,7 +321,7 @@ describe('LiveReportingSection — Verkäufe pro Produkt', () => {
   it('zeigt die Produkt-/Varianten-Statistik der offenen Sitzung', () => {
     render(
       <LiveReportingSection
-        liveData={liveData([], [], {
+        liveData={liveData([], {
           produktStatistik: [
             {
               kategorie: 'essen',

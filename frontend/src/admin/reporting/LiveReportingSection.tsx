@@ -285,10 +285,7 @@ export function LiveReportingSection({
                   · {formatEuro(summary.gesamtStornierungenCents)}
                 </p>
                 {stornoBetroffene.length > 0 && (
-                  <StornoAggregat
-                    eintraege={stornoBetroffene}
-                    className="mb-0 mt-0.5"
-                  />
+                  <StornoAggregat eintraege={stornoBetroffene} />
                 )}
               </div>
               <CollapsibleTrigger asChild>

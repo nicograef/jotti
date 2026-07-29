@@ -421,18 +421,19 @@ WITH storno AS (
     WHERE k.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'bestellung-aufgenommen:v1')
     AND k.kassensitzung_nr = $1
 ), bestell_position AS (
-    SELECT u.user_id, u.user_name, pos->>'positionId' AS position_id
-    FROM ursprung u, jsonb_array_elements(u.data->'positionen') pos
-    WHERE u.type = 'bestellung-aufgenommen:v1'
+    SELECT ur.user_id, ur.user_name, pos->>'positionId' AS position_id
+    FROM ursprung ur
+    CROSS JOIN LATERAL jsonb_array_elements(ur.data->'positionen') pos
+    WHERE ur.type = 'bestellung-aufgenommen:v1'
 ), zuordnung AS (
-    SELECT s.id, u.user_id, u.user_name
+    SELECT s.id, ur.user_id, ur.user_name
     FROM storno s
-    JOIN ursprung u ON u.type = 'zahlung-kassiert:v1' AND u.data->>'zahlungId' = s.data->>'zahlungId'
+    JOIN ursprung ur ON ur.type = 'zahlung-kassiert:v1' AND ur.data->>'zahlungId' = s.data->>'zahlungId'
     WHERE s.type = 'stornierung-erteilt:v1'
     UNION ALL
-    SELECT s.id, u.user_id, u.user_name
+    SELECT s.id, ur.user_id, ur.user_name
     FROM storno s
-    JOIN ursprung u ON u.type = 'direktverkauf-getaetigt:v1' AND u.data->>'verkaufId' = s.data->>'verkaufId'
+    JOIN ursprung ur ON ur.type = 'direktverkauf-getaetigt:v1' AND ur.data->>'verkaufId' = s.data->>'verkaufId'
     WHERE s.type = 'direktverkauf-storniert:v1'
     UNION ALL
     SELECT s.id, b.user_id, b.user_name

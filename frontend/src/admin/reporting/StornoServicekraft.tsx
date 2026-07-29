@@ -1,7 +1,5 @@
 import { Ban } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
-
 import { formatServicekraft } from './utils'
 
 // StornoMarker markiert eine Servicekraft-Zeile mit Stornos als rotes
@@ -34,13 +32,11 @@ interface StornoAggregatEintrag {
 // Betroffenen, Direktverkauf-Stornos fehlen ganz.
 export function StornoAggregat({
   eintraege,
-  className,
 }: {
   eintraege: StornoAggregatEintrag[]
-  className?: string
 }) {
   return (
-    <p className={cn('mb-3 text-sm text-muted-foreground', className)}>
+    <p className="mb-0 mt-0.5 text-sm text-muted-foreground">
       Betroffen:{' '}
       {eintraege
         .map(
