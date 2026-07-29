@@ -9,11 +9,12 @@ import (
 
 // Repository implements table persistence layer using sqlc-generated queries.
 type Repository struct {
-	q *dbgen.Queries
+	db *sql.DB
+	q  *dbgen.Queries
 }
 
 func NewRepository(db *sql.DB) Repository {
-	return Repository{q: dbgen.New(db)}
+	return Repository{db: db, q: dbgen.New(db)}
 }
 
 func tischRowToDomain(row dbgen.Tische) tisch.Tisch {

@@ -144,3 +144,30 @@ func (r Repository) UpdateTable(ctx context.Context, t tisch.Tisch) error {
 
 	return db.ResultError(result)
 }
+
+// DeleteTableMitFavoriten persists the soft-delete of a tisch together with the
+// removal of every service user's favourite marking for it, in a single
+// transaction. The caller passes the tisch with Delete() already applied; this
+// method only writes. Because both writes share one db.WithTx, a mid-operation
+// failure rolls the whole delete back — never a deleted tisch with favourite
+// rows left behind (they would be invisible and unremovable, since a deleted
+// tisch no longer appears in the table picker), and never orphaned removals on
+// a tisch that stayed active.
+func (r Repository) DeleteTableMitFavoriten(ctx context.Context, t tisch.Tisch) error {
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		if err := qtx.RemoveFavoritenByTisch(ctx, t.ID); err != nil {
+			return db.Error(err)
+		}
+
+		result, err := qtx.UpdateTisch(ctx, dbgen.UpdateTischParams{
+			Name:      t.Name,
+			Status:    dbgen.Entitystatus(t.Status),
+			UpdatedAt: t.UpdatedAt,
+			ID:        t.ID,
+		})
+		if err != nil {
+			return db.Error(err)
+		}
+		return db.ResultError(result)
+	})
+}

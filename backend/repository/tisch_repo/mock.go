@@ -27,7 +27,18 @@ type mockRepo struct {
 	// offeneSaldi enthält die offenen Saldi (tischID → saldoCents) der offenen
 	// Kassensitzung — für die saldoCents-Projektion und den Schutz-Guard.
 	offeneSaldi map[int]int
-	err         error
+	// favoritenCleanup ist der Anteil an DeleteTableMitFavoriten, den das echte
+	// Repository in derselben Transaktion wie den Statuswechsel ausführt.
+	favoritenCleanup func(ctx context.Context, tischID int) error
+	err              error
+}
+
+// SetFavoritenCleanup hinterlegt den Favoriten-Cleanup, den
+// DeleteTableMitFavoriten mit dem Statuswechsel zusammen ausführt. Scheitert er,
+// unterbleibt der Statuswechsel — wie beim Rollback der echten Transaktion.
+// Ohne hinterlegten Cleanup löscht der Mock nur den Tisch.
+func (m *mockRepo) SetFavoritenCleanup(cleanup func(ctx context.Context, tischID int) error) {
+	m.favoritenCleanup = cleanup
 }
 
 // SetOffenerSaldo markiert einen Tisch mit einem offenen Saldo in der offenen
@@ -90,6 +101,19 @@ func (m mockRepo) CreateTable(ctx context.Context, t tisch.Tisch) (int, error) {
 func (m mockRepo) UpdateTable(ctx context.Context, t tisch.Tisch) error {
 	m.tables[t.ID] = t
 	return m.err
+}
+
+func (m mockRepo) DeleteTableMitFavoriten(ctx context.Context, t tisch.Tisch) error {
+	if m.err != nil {
+		return m.err
+	}
+	if m.favoritenCleanup != nil {
+		if err := m.favoritenCleanup(ctx, t.ID); err != nil {
+			return err
+		}
+	}
+	m.tables[t.ID] = t
+	return nil
 }
 
 func (m mockRepo) GetActiveTablesWithFavorites(_ context.Context, _ int, _ int) ([]tisch.AktiverTischMitFavorit, error) {
