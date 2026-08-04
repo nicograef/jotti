@@ -82,6 +82,7 @@ Seit der ersten produktiven Installation (2026-07-07, v0.14.0) gibt es echte Ins
 15. ✅ **`make sqlc`** nach Query-Änderungen ausführen; **`make lint`** nach Code-Änderungen.
 16. ⚠️ **Erst fragen** vor neuen Dependencies oder Änderungen an Docker/Nginx-Konfiguration.
 17. 🚫 **Keine Secrets oder Passwörter** in den Code committen.
+18. **Nur der aktuelle Stand.** Dokumentation, Kommentare und Instruktionen beschreiben ausschließlich, was jetzt gilt. Die Git-Historie ist das Archiv und die einzige Aufzeichnung eines früheren Stands. Macht eine Änderung eine Aussage falsch, muss der Agent sie in derselben Änderung umschreiben oder löschen; eine überholte Fassung steht nie neben ihrer Ablösung. In der Prosa verboten: datierte Änderungseinträge, Formulierungen wie „früher / vormals / bisher“ und Deprecation-Hinweise. Ausnahmen: `CHANGELOG.md`, ADRs in `docs/adrs/` und die Git-Historie. Redundante Dateien werden gelöscht statt als veraltet markiert — samt allen Verweisen darauf.
 
 ## Kommunikation
 
@@ -115,7 +116,7 @@ Seit der ersten produktiven Installation (2026-07-07, v0.14.0) gibt es echte Ins
   - Jedes Feature muss seinen Nutzen gegen die Komplexität rechtfertigen, die es ehrenamtlichen Teams (Bedienung unter Stress) und der Codebasis (Pflege, Tests, Doku) aufbürdet. Im Zweifel: weglassen.
   - Warnsignale für Feature-Creep aktiv ansprechen: ein Status, von dem keine andere Funktion abhängt; eine Erfassung, die die Praxis durch einfachere Mittel ersetzt (Papier, Zuruf, Vertrauen); Konfigurierbarkeit für Features, die niemand eingefordert hat; Features „auf Vorrat".
   - Praxis-Feedback schlägt Feature-Ideen. Ein umgesetztes Feature, das der reale Einsatz als Ballast entlarvt, ist ein Entfernungs-Kandidat, kein Ausbau-Kandidat. Präzedenz: die ersatzlose Entfernung der Ausgabe-Bestätigung nach dem ersten Praxistest (`docs/adrs/01_ausgabe-bestaetigen.md`).
-  - Das ist keine Aufwandsscheu und keine harte Regel: Was echten Bedarf deckt (Compliance, belegtes Praxis-Feedback, Kernworkflow), wird vollständig und hochwertig umgesetzt — siehe Bewertungsmetriken unten. Entscheidungen mit langfristiger Tragweite werden als ADR in `docs/adrs/` festgehalten.
+  - Das ist keine Aufwandsscheu und keine harte Regel: Was echten Bedarf deckt (Compliance, belegtes Praxis-Feedback, Kernworkflow), wird vollständig und hochwertig umgesetzt — siehe Bewertungsmetriken unten. Entscheidungen mit langfristiger Tragweite werden als ADR in `docs/adrs/` festgehalten. Ein ADR hält bewusst den Stand seines Entstehungszeitpunkts fest, entsteht als eigener, ausdrücklicher Akt und wird nie auf den aktuellen Stand umgeschrieben — die ausdrückliche Ausnahme von Regel 18 (Nur der aktuelle Stand).
 - **Bewertungsmetriken — der Maßstab für jede Änderung, in jedem Chat-Modus (Ask, Plan, Agent):**
   - **Maßgeblich, immer optimieren:** Korrektheit, Einfachheit, Codequalität, Konsistenz.
   - **Bewusst nachrangig, nie ein Gegenargument:** Aufwand, Zeit, Arbeitsumfang, Kosten, Breaking Changes (im Rahmen der Freeze-Disziplin oben; persistierte Daten bleiben unantastbar).
