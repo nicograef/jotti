@@ -1,9 +1,9 @@
 # Plan: Ursache der fehlenden Bons klären
 
 > Quell-PRD: n/a (aus Feldproblem (b) des ersten Festtags)
-> Grundlage: `docs/plans/review-v0.17.2.md` (Feldproblem (b), zwingende Korrektur 3,
-> Abschnitt „Schwerwiegend") und die vormalige Phase 6 aus
-> `docs/plans/plan-v0.17.2-release.md`, die mit dem Abschluss jenes Plans hierher gezogen ist.
+> Grundlage: Feldproblem (b) und die zwingende Korrektur 3 des v0.17.2-Reviews sowie die
+> vormalige Phase 6 des v0.17.2-Release-Plans. Beide Dokumente sind abgearbeitet und
+> gelöscht; die Git-Historie bewahrt sie.
 
 ## Ziel
 
@@ -41,10 +41,8 @@ rund 400 Zeilen in `windows/relay/main.go` und rund 750 im zugehörigen Test.
   Ursache woanders — Papier, Netz, Bedienung —, ist er erledigt und wird nicht zurückgeholt.
 - **Kommt er zurück, dann nicht als Block.** Vorher sind die beiden bestätigten Defekte zu
   beheben und die Migration auf die nächste freie Nummer zu ziehen (Phase 2).
-- **Dieser Plan ist absichtlich selbsttragend.** `docs/plans/review-v0.17.2.md` wird mit
-  v0.17.3 abgearbeitet und gelöscht (`docs/plans/plan-v0.17.3.md`, Phase 7); die beiden
-  Defekte stehen deshalb hier vollständig, nicht als Verweis. Die Datei- und Zeilenangaben
-  des Reviews zeigen ohnehin in den Archivbaum, nicht in diesen.
+- **Dieser Plan ist absichtlich selbsttragend.** Die beiden Defekte stehen hier
+  vollständig, nicht als Verweis auf ein anderes Dokument.
 
 ## Risiken
 
