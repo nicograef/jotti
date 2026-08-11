@@ -20,6 +20,7 @@ interface ProductsProps {
     | 'deleteVariante'
     | 'verschiebeProdukt'
     | 'verschiebeVariante'
+    | 'sortiereVariantenAlphabetisch'
   >
   products: Produkt[]
   druckstationen: DruckstationConfig[]
