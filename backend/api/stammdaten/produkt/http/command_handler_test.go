@@ -26,6 +26,14 @@ func (m *mockCommand) UpdateProdukt(ctx context.Context, id int, name string, ka
 	return m.err
 }
 
+func (m *mockCommand) VerschiebeProdukt(ctx context.Context, produktID int, richtung application.Richtung) error {
+	return m.err
+}
+
+func (m *mockCommand) VerschiebeVariante(ctx context.Context, varianteID int, richtung application.Richtung) error {
+	return m.err
+}
+
 func (m *mockCommand) CreateVariante(ctx context.Context, produktID int, name string, preisCents int) (int, error) {
 	return 1, m.err
 }

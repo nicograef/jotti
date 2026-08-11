@@ -46,6 +46,8 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/update-produkt", pc.UpdateProduktHandler())
 	r.HandleFunc("/create-variante", pc.CreateVarianteHandler())
 	r.HandleFunc("/update-variante", pc.UpdateVarianteHandler())
+	r.HandleFunc("/verschiebe-produkt", pc.VerschiebeProduktHandler())
+	r.HandleFunc("/verschiebe-variante", pc.VerschiebeVarianteHandler())
 	r.HandleFunc("/activate-variante", pc.ActivateVarianteHandler())
 	r.HandleFunc("/deactivate-variante", pc.DeactivateVarianteHandler())
 	r.HandleFunc("/delete-produkt", pc.DeleteProduktHandler())

@@ -2,7 +2,9 @@ package produkt_repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/produkt"
@@ -118,6 +120,145 @@ func (r Repository) UpdateProdukt(ctx context.Context, p produkt.Produkt) error 
 		return db.Error(err)
 	}
 
+	return db.ResultError(result)
+}
+
+// VerschiebeProdukt tauscht die Reihenfolge eines Produkts mit der seines
+// unmittelbaren Nachbarn in derselben Kategorie; hoch bedeutet in Richtung
+// Listenanfang. Beide Updates teilen sich eine Transaktion, damit nie nur die
+// Hälfte des Tauschs persistiert wird und die Liste keinen Zwischenzustand
+// zeigt. Steht das Produkt bereits am Rand seiner Kategorie, gibt es keinen
+// Nachbarn und die Methode tut nichts — das Verschieben ist idempotent, nicht
+// fehlerhaft.
+//
+// Nachbar ist immer die direkt angrenzende Zeile, auch wenn sie inaktiv und
+// damit im Service unsichtbar ist: die Admin-Liste zeigt, was passiert.
+func (r Repository) VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error {
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		aktuell, err := qtx.GetProduktReihenfolge(ctx, produktID)
+		if err != nil {
+			return db.Error(err)
+		}
+
+		nachbarID, nachbarReihenfolge, gefunden, err := produktNachbar(ctx, qtx, aktuell, hoch)
+		if err != nil || !gefunden {
+			return err
+		}
+
+		now := time.Now().UTC()
+		if err := setProduktReihenfolge(ctx, qtx, produktID, nachbarReihenfolge, now); err != nil {
+			return err
+		}
+
+		return setProduktReihenfolge(ctx, qtx, nachbarID, aktuell.Reihenfolge, now)
+	})
+}
+
+// VerschiebeVariante tauscht die Reihenfolge einer Variante mit der ihres
+// unmittelbaren Nachbarn im selben Produkt. Verhalten wie VerschiebeProdukt.
+func (r Repository) VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error {
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		aktuell, err := qtx.GetVarianteReihenfolge(ctx, varianteID)
+		if err != nil {
+			return db.Error(err)
+		}
+
+		nachbarID, nachbarReihenfolge, gefunden, err := varianteNachbar(ctx, qtx, aktuell, hoch)
+		if err != nil || !gefunden {
+			return err
+		}
+
+		now := time.Now().UTC()
+		if err := setVarianteReihenfolge(ctx, qtx, varianteID, nachbarReihenfolge, now); err != nil {
+			return err
+		}
+
+		return setVarianteReihenfolge(ctx, qtx, nachbarID, aktuell.Reihenfolge, now)
+	})
+}
+
+// produktNachbar liefert id und reihenfolge des angrenzenden Produkts. Das
+// Ausbleiben eines Nachbarn ist ein regulärer Randfall (gefunden = false), kein
+// Fehler.
+func produktNachbar(ctx context.Context, qtx *dbgen.Queries, aktuell dbgen.GetProduktReihenfolgeRow, hoch bool) (int, int, bool, error) {
+	if hoch {
+		nachbar, err := qtx.GetProduktVorgaenger(ctx, dbgen.GetProduktVorgaengerParams{
+			Kategorie:   aktuell.Kategorie,
+			Reihenfolge: aktuell.Reihenfolge,
+			ID:          aktuell.ID,
+		})
+		if err != nil {
+			return 0, 0, false, ignoriereRandfall(err)
+		}
+		return nachbar.ID, nachbar.Reihenfolge, true, nil
+	}
+
+	nachbar, err := qtx.GetProduktNachfolger(ctx, dbgen.GetProduktNachfolgerParams{
+		Kategorie:   aktuell.Kategorie,
+		Reihenfolge: aktuell.Reihenfolge,
+		ID:          aktuell.ID,
+	})
+	if err != nil {
+		return 0, 0, false, ignoriereRandfall(err)
+	}
+	return nachbar.ID, nachbar.Reihenfolge, true, nil
+}
+
+func varianteNachbar(ctx context.Context, qtx *dbgen.Queries, aktuell dbgen.GetVarianteReihenfolgeRow, hoch bool) (int, int, bool, error) {
+	if hoch {
+		nachbar, err := qtx.GetVarianteVorgaenger(ctx, dbgen.GetVarianteVorgaengerParams{
+			ProduktID:   aktuell.ProduktID,
+			Reihenfolge: aktuell.Reihenfolge,
+			ID:          aktuell.ID,
+		})
+		if err != nil {
+			return 0, 0, false, ignoriereRandfall(err)
+		}
+		return nachbar.ID, nachbar.Reihenfolge, true, nil
+	}
+
+	nachbar, err := qtx.GetVarianteNachfolger(ctx, dbgen.GetVarianteNachfolgerParams{
+		ProduktID:   aktuell.ProduktID,
+		Reihenfolge: aktuell.Reihenfolge,
+		ID:          aktuell.ID,
+	})
+	if err != nil {
+		return 0, 0, false, ignoriereRandfall(err)
+	}
+	return nachbar.ID, nachbar.Reihenfolge, true, nil
+}
+
+// ignoriereRandfall macht aus "kein Nachbar vorhanden" ein nil-Ergebnis und
+// lässt jeden anderen Datenbankfehler durch.
+func ignoriereRandfall(err error) error {
+	mapped := db.Error(err)
+	if errors.Is(mapped, db.ErrNotFound) {
+		return nil
+	}
+	return mapped
+}
+
+func setProduktReihenfolge(ctx context.Context, qtx *dbgen.Queries, id int, reihenfolge int, aktualisiert time.Time) error {
+	result, err := qtx.SetProduktReihenfolge(ctx, dbgen.SetProduktReihenfolgeParams{
+		Reihenfolge: reihenfolge,
+		UpdatedAt:   aktualisiert,
+		ID:          id,
+	})
+	if err != nil {
+		return db.Error(err)
+	}
+	return db.ResultError(result)
+}
+
+func setVarianteReihenfolge(ctx context.Context, qtx *dbgen.Queries, id int, reihenfolge int, aktualisiert time.Time) error {
+	result, err := qtx.SetVarianteReihenfolge(ctx, dbgen.SetVarianteReihenfolgeParams{
+		Reihenfolge: reihenfolge,
+		UpdatedAt:   aktualisiert,
+		ID:          id,
+	})
+	if err != nil {
+		return db.Error(err)
+	}
 	return db.ResultError(result)
 }
 

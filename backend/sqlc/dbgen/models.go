@@ -344,6 +344,8 @@ type ProduktVarianten struct {
 	CreatedAt time.Time
 	// Last modification timestamp (UTC)
 	UpdatedAt time.Time
+	// Anzeigereihenfolge innerhalb des Produkts (aufsteigend, Tiebreaker id)
+	Reihenfolge int
 }
 
 // Produkte, die von Gästen bestellt werden können.
@@ -361,6 +363,8 @@ type Produkte struct {
 	CreatedAt time.Time
 	// Last modification timestamp (UTC)
 	UpdatedAt time.Time
+	// Anzeigereihenfolge innerhalb der Kategorie (aufsteigend, Tiebreaker id)
+	Reihenfolge int
 }
 
 // Per-user favourite tables; each service user can mark tables they are responsible for.
