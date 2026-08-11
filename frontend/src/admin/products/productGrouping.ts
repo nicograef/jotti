@@ -37,7 +37,7 @@ export interface ProduktGruppe {
 
 // Gruppiert die Produkte in der festen Kategorie-Reihenfolge. Leere Kategorien
 // werden ausgelassen; die Produktreihenfolge innerhalb einer Gruppe bleibt
-// erhalten (Backend liefert nach ID sortiert).
+// erhalten (Backend liefert nach Reihenfolge sortiert).
 export function groupProdukteByKategorie(produkte: Produkt[]): ProduktGruppe[] {
   return KATEGORIE_ORDER.map((kategorie) => ({
     kategorie,

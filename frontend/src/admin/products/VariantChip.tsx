@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 
 import { VariantNamePreis } from '@/components/common/VariantNamePreis'
@@ -5,16 +6,19 @@ import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'
-import { type Variante, VarianteStatus } from './Produkt'
+import { type Richtung, type Variante, VarianteStatus } from './Produkt'
 import type { ProduktBackend } from './ProduktBackend'
 
 interface VariantChipProps {
   produktId: number
   variant: Variante
   loading: boolean
+  isFirst: boolean
+  isLast: boolean
   backend: Pick<ProduktBackend, 'updateVariante' | 'deleteVariante'>
   onActivate: (varianteId: number) => Promise<void>
   onDeactivate: (varianteId: number) => Promise<void>
+  onMove: (varianteId: number, richtung: Richtung) => Promise<void>
   onUpdated: (variante: Variante) => void
   onDeleted: () => void
 }
@@ -23,18 +27,38 @@ interface VariantChipProps {
 // Klick den Bearbeiten-Dialog, der Mini-Switch schaltet die Variante direkt
 // (aktiv/inaktiv) ohne Dialog. Inaktive Chips sind gedämpft und mit „aus"
 // markiert.
+//
+// Die Chevrons an den Chip-Rändern verschieben die Variante innerhalb ihres
+// Produkts. Sie zeigen nach links und rechts, weil die Chips horizontal
+// umbrechen — die Pfeilrichtung folgt der sichtbaren Anordnung, nicht der
+// Richtungs-Benennung der API.
 export function VariantChip(props: VariantChipProps) {
   const [editOpen, setEditOpen] = useState(false)
   const isActive = props.variant.status === VarianteStatus.ACTIVE
+
+  const chevronClass =
+    'shrink-0 cursor-pointer rounded-full p-0.5 text-muted-foreground hover:text-foreground disabled:cursor-default disabled:opacity-30'
 
   return (
     <>
       <span
         className={cn(
-          'inline-flex items-center gap-2 rounded-full border py-1 pl-3 pr-2 text-sm',
+          'inline-flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-1.5 text-sm',
           isActive ? 'bg-background' : 'bg-muted/50 text-muted-foreground',
         )}
       >
+        <button
+          type="button"
+          className={chevronClass}
+          disabled={props.loading || props.isFirst}
+          aria-label={`Variante „${props.variant.name}" nach vorne`}
+          onClick={() => {
+            void props.onMove(props.variant.id, 'hoch')
+          }}
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+
         <button
           type="button"
           className="flex min-w-0 cursor-pointer items-center gap-1.5"
@@ -53,6 +77,7 @@ export function VariantChip(props: VariantChipProps) {
             </span>
           )}
         </button>
+
         <Switch
           className="shrink-0 cursor-pointer"
           disabled={props.loading}
@@ -70,6 +95,18 @@ export function VariantChip(props: VariantChipProps) {
             }
           }}
         />
+
+        <button
+          type="button"
+          className={chevronClass}
+          disabled={props.loading || props.isLast}
+          aria-label={`Variante „${props.variant.name}" nach hinten`}
+          onClick={() => {
+            void props.onMove(props.variant.id, 'runter')
+          }}
+        >
+          <ChevronRight className="size-4" />
+        </button>
       </span>
 
       <EditVariantDialog
