@@ -63,6 +63,8 @@ function backend() {
     createVariante: vi.fn().mockResolvedValue(1),
     updateVariante: vi.fn().mockResolvedValue(undefined),
     deleteVariante: vi.fn().mockResolvedValue(undefined),
+    verschiebeProdukt: vi.fn().mockResolvedValue(undefined),
+    verschiebeVariante: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -76,6 +78,7 @@ function renderProducts(products: Produkt[], be = backend()) {
         druckstationen={druckstationen}
         onEdit={vi.fn()}
         onDelete={vi.fn().mockResolvedValue(undefined)}
+        onMoved={vi.fn()}
         onVariantCreated={vi.fn()}
         onVariantUpdated={vi.fn()}
         onVariantStatusChange={vi.fn()}
@@ -126,5 +129,47 @@ describe('Products', () => {
 
     const loeschen = screen.getByRole('menuitem', { name: /Löschen/ })
     expect(loeschen).not.toHaveAttribute('data-disabled')
+  })
+
+  it('moves a produkt down and disables the arrows at the ends of a kategorie', async () => {
+    const user = userEvent.setup()
+    const be = renderProducts([
+      produkt({ id: 1, name: 'Pommes' }),
+      produkt({ id: 2, name: 'Brezel' }),
+    ])
+
+    // Das erste Produkt kann nicht höher, das letzte nicht tiefer.
+    expect(
+      screen.getByRole('button', { name: /Pommes.*nach oben/ }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: /Brezel.*nach unten/ }),
+    ).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: /Pommes.*nach unten/ }))
+
+    expect(be.verschiebeProdukt).toHaveBeenCalledWith(1, 'runter')
+  })
+
+  it('moves a variante within its produkt', async () => {
+    const user = userEvent.setup()
+    const be = renderProducts([
+      produkt({
+        id: 1,
+        name: 'Bier',
+        varianten: [
+          variante({ id: 7, name: 'Klein' }),
+          variante({ id: 8, name: 'Groß' }),
+        ],
+      }),
+    ])
+
+    expect(
+      screen.getByRole('button', { name: /Klein.*nach vorne/ }),
+    ).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: /Groß.*nach vorne/ }))
+
+    expect(be.verschiebeVariante).toHaveBeenCalledWith(8, 'hoch')
   })
 })

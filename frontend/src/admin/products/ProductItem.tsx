@@ -1,4 +1,12 @@
-import { MoreHorizontal, Pen, Plus, PowerOff, Trash2 } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronUp,
+  MoreHorizontal,
+  Pen,
+  Plus,
+  PowerOff,
+  Trash2,
+} from 'lucide-react'
 import { useState } from 'react'
 
 import {
@@ -27,13 +35,20 @@ import {
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import { NewVariantDialog } from './NewVariantDialog'
-import { type Produkt, type Variante, VarianteStatus } from './Produkt'
+import {
+  type Produkt,
+  type Richtung,
+  type Variante,
+  VarianteStatus,
+} from './Produkt'
 import type { ProduktBackend } from './ProduktBackend'
 import { VariantChip } from './VariantChip'
 
 interface ProductItemProps {
   loading: boolean
   product: Produkt
+  isFirst: boolean
+  isLast: boolean
   backend: Pick<
     ProduktBackend,
     | 'aktiviereVariante'
@@ -41,9 +56,12 @@ interface ProductItemProps {
     | 'createVariante'
     | 'updateVariante'
     | 'deleteVariante'
+    | 'verschiebeProdukt'
+    | 'verschiebeVariante'
   >
   onEdit: (produktId: number) => void
   onDelete: (produktId: number) => Promise<void>
+  onMoved: () => void
   onVariantCreated: (variante: Variante) => void
   onVariantUpdated: (variante: Variante) => void
   onVariantStatusChange: (varianteId: number, status: VarianteStatus) => void
@@ -64,11 +82,18 @@ export function ProductItem(props: ProductItemProps) {
     loading: deactivateAllVariantsLoading,
     run: runDeactivateAllVariants,
   } = useActionSubmit({ actionLabel: 'Varianten deaktivieren' })
+  const { loading: moveProductLoading, run: runMoveProduct } = useActionSubmit({
+    actionLabel: 'Produkt verschieben',
+  })
+  const { loading: moveVariantLoading, run: runMoveVariant } = useActionSubmit({
+    actionLabel: 'Variante verschieben',
+  })
 
   const variantLoading =
     activateVariantLoading ||
     deactivateVariantLoading ||
-    deactivateAllVariantsLoading
+    deactivateAllVariantsLoading ||
+    moveVariantLoading
 
   const activeVarianten = props.product.varianten.filter(
     (v) => v.status === VarianteStatus.ACTIVE,
@@ -97,6 +122,20 @@ export function ProductItem(props: ProductItemProps) {
     })
   }
 
+  const handleMoveProduct = async (richtung: Richtung) => {
+    await runMoveProduct(async () => {
+      await props.backend.verschiebeProdukt(props.product.id, richtung)
+      props.onMoved()
+    })
+  }
+
+  const handleMoveVariant = async (variantId: number, richtung: Richtung) => {
+    await runMoveVariant(async () => {
+      await props.backend.verschiebeVariante(variantId, richtung)
+      props.onMoved()
+    })
+  }
+
   const handleDelete = async () => {
     await runDeleteProduct(async () => {
       await props.onDelete(props.product.id)
@@ -111,15 +150,18 @@ export function ProductItem(props: ProductItemProps) {
       </span>
 
       <div className="flex flex-1 flex-wrap items-center gap-2">
-        {props.product.varianten.map((variant) => (
+        {props.product.varianten.map((variant, index) => (
           <VariantChip
             key={variant.id}
             produktId={props.product.id}
             variant={variant}
             loading={props.loading || variantLoading}
+            isFirst={index === 0}
+            isLast={index === props.product.varianten.length - 1}
             backend={props.backend}
             onActivate={handleActivateVariant}
             onDeactivate={handleDeactivateVariant}
+            onMove={handleMoveVariant}
             onUpdated={props.onVariantUpdated}
             onDeleted={props.onVariantDeleted}
           />
@@ -139,6 +181,27 @@ export function ProductItem(props: ProductItemProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          className="cursor-pointer rounded-full"
+          aria-label={`Produkt „${props.product.name}" nach oben`}
+          disabled={props.loading || moveProductLoading || props.isFirst}
+          onClick={() => void handleMoveProduct('hoch')}
+        >
+          <ChevronUp />
+        </Button>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          className="cursor-pointer rounded-full"
+          aria-label={`Produkt „${props.product.name}" nach unten`}
+          disabled={props.loading || moveProductLoading || props.isLast}
+          onClick={() => void handleMoveProduct('runter')}
+        >
+          <ChevronDown />
+        </Button>
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
