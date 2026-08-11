@@ -45,6 +45,9 @@ type mockRepo struct {
 	// command layer requested, in order.
 	ProduktVerschiebungen  []Verschiebung
 	VarianteVerschiebungen []Verschiebung
+
+	// SortierteProdukte records the produkt IDs whose varianten were sorted.
+	SortierteProdukte []int
 }
 
 // AddVariante adds a variante to the mock repository, associated with a produkt.
@@ -166,4 +169,12 @@ func (m *mockRepo) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]pro
 		}
 	}
 	return result, nil
+}
+
+func (m *mockRepo) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
+	if m.err != nil {
+		return m.err
+	}
+	m.SortierteProdukte = append(m.SortierteProdukte, produktID)
+	return nil
 }

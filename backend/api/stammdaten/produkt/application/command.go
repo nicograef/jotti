@@ -43,6 +43,7 @@ type produktRepo interface {
 	DeleteProduktMitVarianten(ctx context.Context, produkt produkt.Produkt) error
 	VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error
 	VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error
+	SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error
 }
 
 type Command struct {
@@ -294,5 +295,29 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID i
 	}
 
 	log.Info().Int("variante_id", varianteID).Msg("Variante deleted")
+	return nil
+}
+
+// SortiereVariantenAlphabetisch ordnet die Varianten eines Produkts einmalig
+// alphabetisch. Danach ist es eine gewoehnliche Reihenfolge, die sich mit den
+// Pfeilen weiter anpassen laesst - bewusst kein dauerhafter Sortiermodus.
+func (c Command) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
+	log := zerolog.Ctx(ctx)
+
+	if _, err := c.ProduktRepo.GetProdukt(ctx, produktID); err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for sorting")
+			return ErrProduktNotFound
+		}
+		log.Error().Int("produkt_id", produktID).Msg("Failed to retrieve produkt for sorting")
+		return ErrDatabase
+	}
+
+	if err := c.ProduktRepo.SortiereVariantenAlphabetisch(ctx, produktID); err != nil {
+		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to sort varianten")
+		return ErrDatabase
+	}
+
+	log.Info().Int("produkt_id", produktID).Msg("Varianten sorted alphabetically")
 	return nil
 }

@@ -494,6 +494,32 @@ func (q *Queries) SetVarianteReihenfolge(ctx context.Context, arg SetVarianteRei
 	return q.db.ExecContext(ctx, setVarianteReihenfolge, arg.Reihenfolge, arg.UpdatedAt, arg.ID)
 }
 
+const sortiereVariantenAlphabetisch = `-- name: SortiereVariantenAlphabetisch :exec
+UPDATE produkt_varianten v
+SET reihenfolge = neu.rang, updated_at = $1
+FROM (
+    SELECT id, (row_number() OVER (ORDER BY name COLLATE "de-DE-x-icu", id))::int AS rang
+    FROM produkt_varianten pv
+    WHERE pv.produkt_id = $2 AND pv.status != 'deleted'
+) neu
+WHERE v.id = neu.id
+`
+
+type SortiereVariantenAlphabetischParams struct {
+	UpdatedAt time.Time
+	ProduktID int
+}
+
+// Vergibt die Reihenfolge der Varianten eines Produkts neu, alphabetisch nach
+// Namen. Die Collation ist explizit deutsch: die Datenbank laeuft auf en_US,
+// ohne Angabe landeten Umlaute und Akzente hinter allen anderen Buchstaben
+// ("Cafe Creme" nach "Cz"). Geloeschte Varianten bleiben unberuehrt; ihre alten
+// Werte stoeren nicht, weil sie ueberall herausgefiltert werden.
+func (q *Queries) SortiereVariantenAlphabetisch(ctx context.Context, arg SortiereVariantenAlphabetischParams) error {
+	_, err := q.db.ExecContext(ctx, sortiereVariantenAlphabetisch, arg.UpdatedAt, arg.ProduktID)
+	return err
+}
+
 const updateProdukt = `-- name: UpdateProdukt :execresult
 UPDATE produkte SET name = $1, kategorie = $2, steuersatz = $3, status = $4, updated_at = $5 WHERE id = $6
 `

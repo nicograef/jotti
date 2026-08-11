@@ -65,6 +65,7 @@ function backend() {
     deleteVariante: vi.fn().mockResolvedValue(undefined),
     verschiebeProdukt: vi.fn().mockResolvedValue(undefined),
     verschiebeVariante: vi.fn().mockResolvedValue(undefined),
+    sortiereVariantenAlphabetisch: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -171,5 +172,41 @@ describe('Products', () => {
     await user.click(screen.getByRole('button', { name: /Groß.*nach vorne/ }))
 
     expect(be.verschiebeVariante).toHaveBeenCalledWith(8, 'hoch')
+  })
+})
+
+describe('Products - alphabetische Variantensortierung', () => {
+  it('sorts the varianten of a produkt from the actions menu', async () => {
+    const user = userEvent.setup()
+    const be = renderProducts([
+      produkt({
+        id: 4,
+        name: 'Weine',
+        varianten: [
+          variante({ id: 7, name: 'Rotwein' }),
+          variante({ id: 8, name: 'Federweisser' }),
+        ],
+      }),
+    ])
+
+    await user.click(screen.getByRole('button', { name: 'Weitere Aktionen' }))
+    await user.click(
+      screen.getByRole('menuitem', { name: /alphabetisch sortieren/ }),
+    )
+
+    expect(be.sortiereVariantenAlphabetisch).toHaveBeenCalledWith(4)
+  })
+
+  it('disables the sort entry for a produkt with a single variante', async () => {
+    const user = userEvent.setup()
+    renderProducts([
+      produkt({ id: 5, name: 'Brezel', varianten: [variante({ id: 9 })] }),
+    ])
+
+    await user.click(screen.getByRole('button', { name: 'Weitere Aktionen' }))
+
+    expect(
+      screen.getByRole('menuitem', { name: /alphabetisch sortieren/ }),
+    ).toHaveAttribute('data-disabled')
   })
 })

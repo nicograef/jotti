@@ -22,6 +22,7 @@ type command interface {
 	DeactivateVariante(ctx context.Context, varianteID int) error
 	DeleteVariante(ctx context.Context, produktID int, varianteID int) error
 	VerschiebeVariante(ctx context.Context, varianteID int, richtung application.Richtung) error
+	SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error
 }
 
 type CommandHandler struct {
@@ -331,6 +332,33 @@ func (h *CommandHandler) DeleteVarianteHandler() http.HandlerFunc {
 			helper.MapError(w, err, map[error]string{
 				application.ErrProduktNotFound:  "produkt_not_found",
 				application.ErrVarianteNotFound: "variante_not_found",
+			})
+			return
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+type sortiereVariantenRequest struct {
+	ProduktID int `json:"produktId"`
+}
+
+var sortiereVariantenSchema = z.Struct(z.Shape{
+	"ProduktID": dom.IDSchema.Required(),
+})
+
+func (h *CommandHandler) SortiereVariantenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := sortiereVariantenRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, sortiereVariantenSchema) {
+			return
+		}
+
+		err := h.Command.SortiereVariantenAlphabetisch(r.Context(), body.ProduktID)
+		if err != nil {
+			helper.MapError(w, err, map[error]string{
+				application.ErrProduktNotFound: "produkt_not_found",
 			})
 			return
 		}

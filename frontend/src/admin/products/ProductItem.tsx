@@ -1,4 +1,5 @@
 import {
+  ArrowDownAZ,
   ChevronDown,
   ChevronUp,
   MoreHorizontal,
@@ -58,6 +59,7 @@ interface ProductItemProps {
     | 'deleteVariante'
     | 'verschiebeProdukt'
     | 'verschiebeVariante'
+    | 'sortiereVariantenAlphabetisch'
   >
   onEdit: (produktId: number) => void
   onDelete: (produktId: number) => Promise<void>
@@ -88,12 +90,15 @@ export function ProductItem(props: ProductItemProps) {
   const { loading: moveVariantLoading, run: runMoveVariant } = useActionSubmit({
     actionLabel: 'Variante verschieben',
   })
+  const { loading: sortVariantsLoading, run: runSortVariants } =
+    useActionSubmit({ actionLabel: 'Varianten sortieren' })
 
   const variantLoading =
     activateVariantLoading ||
     deactivateVariantLoading ||
     deactivateAllVariantsLoading ||
-    moveVariantLoading
+    moveVariantLoading ||
+    sortVariantsLoading
 
   const activeVarianten = props.product.varianten.filter(
     (v) => v.status === VarianteStatus.ACTIVE,
@@ -132,6 +137,13 @@ export function ProductItem(props: ProductItemProps) {
   const handleMoveVariant = async (variantId: number, richtung: Richtung) => {
     await runMoveVariant(async () => {
       await props.backend.verschiebeVariante(variantId, richtung)
+      props.onMoved()
+    })
+  }
+
+  const handleSortVariants = async () => {
+    await runSortVariants(async () => {
+      await props.backend.sortiereVariantenAlphabetisch(props.product.id)
       props.onMoved()
     })
   }
@@ -237,6 +249,12 @@ export function ProductItem(props: ProductItemProps) {
               }}
             >
               <Pen /> Bearbeiten
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={props.product.varianten.length < 2 || variantLoading}
+              onSelect={() => void handleSortVariants()}
+            >
+              <ArrowDownAZ /> Varianten alphabetisch sortieren
             </DropdownMenuItem>
             <DropdownMenuItem
               disabled={activeVarianten.length === 0 || variantLoading}

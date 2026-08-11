@@ -47,6 +47,10 @@ export const VerschiebeVarianteSchema = z.object({
   richtung: RichtungSchema,
 })
 
+export const SortiereVariantenSchema = z.object({
+  produktId: ProduktIdSchema,
+})
+
 export class ProduktBackend {
   private readonly backend: BackendClient
 
@@ -115,6 +119,11 @@ export class ProduktBackend {
   ): Promise<void> {
     const body = VerschiebeVarianteSchema.parse({ id, richtung })
     await this.backend.post('admin/verschiebe-variante', body)
+  }
+
+  public async sortiereVariantenAlphabetisch(produktId: number): Promise<void> {
+    const body = SortiereVariantenSchema.parse({ produktId })
+    await this.backend.post('admin/sortiere-varianten', body)
   }
 
   public async aktiviereVariante(id: number): Promise<void> {

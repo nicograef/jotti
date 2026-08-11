@@ -34,6 +34,10 @@ func (m *mockCommand) VerschiebeVariante(ctx context.Context, varianteID int, ri
 	return m.err
 }
 
+func (m *mockCommand) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
+	return m.err
+}
+
 func (m *mockCommand) CreateVariante(ctx context.Context, produktID int, name string, preisCents int) (int, error) {
 	return 1, m.err
 }
