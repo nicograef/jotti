@@ -4,10 +4,31 @@ import (
 	"context"
 	"errors"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/rs/zerolog"
+)
+
+// Richtung beschreibt, wohin ein Produkt oder eine Variante in der
+// Anzeigereihenfolge verschoben wird: hoch zum Listenanfang, runter zum
+// Listenende. Die Reihenfolge selbst ist reine Persistenz und taucht weder im
+// Domain-Modell noch in einer API-Response auf — das Backend liefert die
+// fertig sortierte Liste, das Frontend zeigt sie nur an.
+type Richtung string
+
+const (
+	// RichtungHoch verschiebt in Richtung Listenanfang.
+	RichtungHoch Richtung = "hoch"
+	// RichtungRunter verschiebt in Richtung Listenende.
+	RichtungRunter Richtung = "runter"
+)
+
+// RichtungSchema defines the schema for a move direction.
+var RichtungSchema = z.StringLike[Richtung]().OneOf(
+	[]Richtung{RichtungHoch, RichtungRunter},
+	z.Message("Ungültige Richtung"),
 )
 
 type produktRepo interface {
@@ -20,6 +41,8 @@ type produktRepo interface {
 	GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error)
 	GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error)
 	DeleteProduktMitVarianten(ctx context.Context, produkt produkt.Produkt) error
+	VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error
+	VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error
 }
 
 type Command struct {
@@ -77,6 +100,25 @@ func (c Command) UpdateProdukt(ctx context.Context, produktID int, name string, 
 	}
 
 	log.Info().Int("produkt_id", produktID).Msg("Produkt updated")
+	return nil
+}
+
+// VerschiebeProdukt tauscht das Produkt mit seinem Nachbarn in derselben
+// Kategorie. Am Rand der Kategorie bleibt die Reihenfolge unverändert.
+func (c Command) VerschiebeProdukt(ctx context.Context, produktID int, richtung Richtung) error {
+	log := zerolog.Ctx(ctx)
+
+	err := c.ProduktRepo.VerschiebeProdukt(ctx, produktID, richtung == RichtungHoch)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for move")
+			return ErrProduktNotFound
+		}
+		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to move produkt")
+		return ErrDatabase
+	}
+
+	log.Info().Int("produkt_id", produktID).Str("richtung", string(richtung)).Msg("Produkt moved")
 	return nil
 }
 
@@ -138,6 +180,25 @@ func (c Command) UpdateVariante(ctx context.Context, varianteID int, name string
 	}
 
 	log.Info().Int("variante_id", varianteID).Msg("Variante updated")
+	return nil
+}
+
+// VerschiebeVariante tauscht die Variante mit ihrem Nachbarn im selben Produkt.
+// Am Rand der Variantenliste bleibt die Reihenfolge unverändert.
+func (c Command) VerschiebeVariante(ctx context.Context, varianteID int, richtung Richtung) error {
+	log := zerolog.Ctx(ctx)
+
+	err := c.ProduktRepo.VerschiebeVariante(ctx, varianteID, richtung == RichtungHoch)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn().Int("variante_id", varianteID).Msg("Variante not found for move")
+			return ErrVarianteNotFound
+		}
+		log.Error().Err(err).Int("variante_id", varianteID).Msg("Failed to move variante")
+		return ErrDatabase
+	}
+
+	log.Info().Int("variante_id", varianteID).Str("richtung", string(richtung)).Msg("Variante moved")
 	return nil
 }
 
