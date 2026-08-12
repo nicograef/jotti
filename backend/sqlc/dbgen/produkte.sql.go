@@ -13,8 +13,10 @@ import (
 )
 
 const createProdukt = `-- name: CreateProdukt :one
-INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at, reihenfolge)
+VALUES ($1, $2, $3, $4, $5, $6,
+    COALESCE((SELECT MAX(reihenfolge) + 1 FROM produkte WHERE kategorie = $2), 1))
+RETURNING id
 `
 
 type CreateProduktParams struct {
@@ -26,6 +28,8 @@ type CreateProduktParams struct {
 	UpdatedAt  time.Time
 }
 
+// Neue Produkte landen ans Ende ihrer Kategorie. Die Reihenfolge wird in der
+// Datenbank berechnet, damit zwischen Lesen und Schreiben keine Luecke entsteht.
 func (q *Queries) CreateProdukt(ctx context.Context, arg CreateProduktParams) (int, error) {
 	row := q.db.QueryRowContext(ctx, createProdukt,
 		arg.Name,
@@ -41,8 +45,10 @@ func (q *Queries) CreateProdukt(ctx context.Context, arg CreateProduktParams) (i
 }
 
 const createVariante = `-- name: CreateVariante :one
-INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at, reihenfolge)
+VALUES ($1, $2, $3, $4, $5, $6,
+    COALESCE((SELECT MAX(reihenfolge) + 1 FROM produkt_varianten WHERE produkt_id = $1), 1))
+RETURNING id
 `
 
 type CreateVarianteParams struct {
@@ -54,6 +60,7 @@ type CreateVarianteParams struct {
 	UpdatedAt  time.Time
 }
 
+// Neue Varianten landen ans Ende ihres Produkts (siehe CreateProdukt).
 func (q *Queries) CreateVariante(ctx context.Context, arg CreateVarianteParams) (int, error) {
 	row := q.db.QueryRowContext(ctx, createVariante,
 		arg.ProduktID,
@@ -70,7 +77,7 @@ func (q *Queries) CreateVariante(ctx context.Context, arg CreateVarianteParams) 
 
 const getAktiveProdukte = `-- name: GetAktiveProdukte :many
 WITH varianten_json AS (
-    SELECT 
+    SELECT
         produkt_id,
         json_agg(
             json_build_object(
@@ -81,13 +88,13 @@ WITH varianten_json AS (
                 'createdAt', created_at,
                 'updatedAt', updated_at
             )
-            ORDER BY id
+            ORDER BY reihenfolge, id
         ) AS varianten
     FROM produkt_varianten
     WHERE status = 'active'
     GROUP BY produkt_id
 )
-SELECT 
+SELECT
     p.id,
     p.name,
     p.kategorie,
@@ -99,7 +106,7 @@ SELECT
 FROM produkte p
 INNER JOIN varianten_json vj ON vj.produkt_id = p.id
 WHERE p.status = 'active'
-ORDER BY p.id ASC
+ORDER BY p.kategorie, p.reihenfolge, p.id
 `
 
 type GetAktiveProdukteRow struct {
@@ -150,7 +157,7 @@ func (q *Queries) GetAktiveProdukte(ctx context.Context) ([]GetAktiveProdukteRow
 
 const getAlleProdukte = `-- name: GetAlleProdukte :many
 WITH varianten_json AS (
-    SELECT 
+    SELECT
         produkt_id,
         json_agg(
             json_build_object(
@@ -161,13 +168,13 @@ WITH varianten_json AS (
                 'createdAt', created_at,
                 'updatedAt', updated_at
             )
-            ORDER BY id
+            ORDER BY reihenfolge, id
         ) AS varianten
     FROM produkt_varianten
     WHERE status != 'deleted'
     GROUP BY produkt_id
 )
-SELECT 
+SELECT
     p.id,
     p.name,
     p.kategorie,
@@ -179,7 +186,7 @@ SELECT
 FROM produkte p
 LEFT JOIN varianten_json vj ON vj.produkt_id = p.id
 WHERE p.status != 'deleted'
-ORDER BY p.id ASC
+ORDER BY p.kategorie, p.reihenfolge, p.id
 `
 
 type GetAlleProdukteRow struct {
@@ -226,7 +233,7 @@ func (q *Queries) GetAlleProdukte(ctx context.Context) ([]GetAlleProdukteRow, er
 }
 
 const getProdukt = `-- name: GetProdukt :one
-SELECT 
+SELECT
     p.id,
     p.name,
     p.kategorie,
@@ -244,7 +251,7 @@ SELECT
                 'createdAt', pv.created_at,
                 'updatedAt', pv.updated_at
             )
-            ORDER BY pv.id
+            ORDER BY pv.reihenfolge, pv.id
         )
         FROM produkt_varianten pv
         WHERE pv.produkt_id = p.id AND pv.status != 'deleted'),
@@ -281,6 +288,81 @@ func (q *Queries) GetProdukt(ctx context.Context, id int) (GetProduktRow, error)
 	return i, err
 }
 
+const getProduktNachfolger = `-- name: GetProduktNachfolger :one
+SELECT id, reihenfolge FROM produkte
+WHERE kategorie = $1
+  AND status != 'deleted'
+  AND (reihenfolge > $2
+       OR (reihenfolge = $2 AND id > $3))
+ORDER BY reihenfolge ASC, id ASC
+LIMIT 1
+`
+
+type GetProduktNachfolgerParams struct {
+	Kategorie   Produktkategorie
+	Reihenfolge int
+	ID          int
+}
+
+type GetProduktNachfolgerRow struct {
+	ID          int
+	Reihenfolge int
+}
+
+func (q *Queries) GetProduktNachfolger(ctx context.Context, arg GetProduktNachfolgerParams) (GetProduktNachfolgerRow, error) {
+	row := q.db.QueryRowContext(ctx, getProduktNachfolger, arg.Kategorie, arg.Reihenfolge, arg.ID)
+	var i GetProduktNachfolgerRow
+	err := row.Scan(&i.ID, &i.Reihenfolge)
+	return i, err
+}
+
+const getProduktReihenfolge = `-- name: GetProduktReihenfolge :one
+SELECT id, kategorie, reihenfolge FROM produkte WHERE id = $1 AND status != 'deleted'
+`
+
+type GetProduktReihenfolgeRow struct {
+	ID          int
+	Kategorie   Produktkategorie
+	Reihenfolge int
+}
+
+func (q *Queries) GetProduktReihenfolge(ctx context.Context, id int) (GetProduktReihenfolgeRow, error) {
+	row := q.db.QueryRowContext(ctx, getProduktReihenfolge, id)
+	var i GetProduktReihenfolgeRow
+	err := row.Scan(&i.ID, &i.Kategorie, &i.Reihenfolge)
+	return i, err
+}
+
+const getProduktVorgaenger = `-- name: GetProduktVorgaenger :one
+SELECT id, reihenfolge FROM produkte
+WHERE kategorie = $1
+  AND status != 'deleted'
+  AND (reihenfolge < $2
+       OR (reihenfolge = $2 AND id < $3))
+ORDER BY reihenfolge DESC, id DESC
+LIMIT 1
+`
+
+type GetProduktVorgaengerParams struct {
+	Kategorie   Produktkategorie
+	Reihenfolge int
+	ID          int
+}
+
+type GetProduktVorgaengerRow struct {
+	ID          int
+	Reihenfolge int
+}
+
+// Das in der Sortierung (reihenfolge, id) unmittelbar davor liegende Produkt
+// derselben Kategorie. Kein Treffer bedeutet: das Produkt steht bereits oben.
+func (q *Queries) GetProduktVorgaenger(ctx context.Context, arg GetProduktVorgaengerParams) (GetProduktVorgaengerRow, error) {
+	row := q.db.QueryRowContext(ctx, getProduktVorgaenger, arg.Kategorie, arg.Reihenfolge, arg.ID)
+	var i GetProduktVorgaengerRow
+	err := row.Scan(&i.ID, &i.Reihenfolge)
+	return i, err
+}
+
 const getVariante = `-- name: GetVariante :one
 SELECT id, name, preis_cents, status, created_at, updated_at
 FROM produkt_varianten WHERE id = $1 AND status != 'deleted'
@@ -307,6 +389,135 @@ func (q *Queries) GetVariante(ctx context.Context, id int) (GetVarianteRow, erro
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getVarianteNachfolger = `-- name: GetVarianteNachfolger :one
+SELECT id, reihenfolge FROM produkt_varianten
+WHERE produkt_id = $1
+  AND status != 'deleted'
+  AND (reihenfolge > $2
+       OR (reihenfolge = $2 AND id > $3))
+ORDER BY reihenfolge ASC, id ASC
+LIMIT 1
+`
+
+type GetVarianteNachfolgerParams struct {
+	ProduktID   int
+	Reihenfolge int
+	ID          int
+}
+
+type GetVarianteNachfolgerRow struct {
+	ID          int
+	Reihenfolge int
+}
+
+func (q *Queries) GetVarianteNachfolger(ctx context.Context, arg GetVarianteNachfolgerParams) (GetVarianteNachfolgerRow, error) {
+	row := q.db.QueryRowContext(ctx, getVarianteNachfolger, arg.ProduktID, arg.Reihenfolge, arg.ID)
+	var i GetVarianteNachfolgerRow
+	err := row.Scan(&i.ID, &i.Reihenfolge)
+	return i, err
+}
+
+const getVarianteReihenfolge = `-- name: GetVarianteReihenfolge :one
+SELECT id, produkt_id, reihenfolge FROM produkt_varianten WHERE id = $1 AND status != 'deleted'
+`
+
+type GetVarianteReihenfolgeRow struct {
+	ID          int
+	ProduktID   int
+	Reihenfolge int
+}
+
+func (q *Queries) GetVarianteReihenfolge(ctx context.Context, id int) (GetVarianteReihenfolgeRow, error) {
+	row := q.db.QueryRowContext(ctx, getVarianteReihenfolge, id)
+	var i GetVarianteReihenfolgeRow
+	err := row.Scan(&i.ID, &i.ProduktID, &i.Reihenfolge)
+	return i, err
+}
+
+const getVarianteVorgaenger = `-- name: GetVarianteVorgaenger :one
+SELECT id, reihenfolge FROM produkt_varianten
+WHERE produkt_id = $1
+  AND status != 'deleted'
+  AND (reihenfolge < $2
+       OR (reihenfolge = $2 AND id < $3))
+ORDER BY reihenfolge DESC, id DESC
+LIMIT 1
+`
+
+type GetVarianteVorgaengerParams struct {
+	ProduktID   int
+	Reihenfolge int
+	ID          int
+}
+
+type GetVarianteVorgaengerRow struct {
+	ID          int
+	Reihenfolge int
+}
+
+// Die in der Sortierung (reihenfolge, id) unmittelbar davor liegende Variante
+// desselben Produkts. Kein Treffer bedeutet: die Variante steht bereits oben.
+func (q *Queries) GetVarianteVorgaenger(ctx context.Context, arg GetVarianteVorgaengerParams) (GetVarianteVorgaengerRow, error) {
+	row := q.db.QueryRowContext(ctx, getVarianteVorgaenger, arg.ProduktID, arg.Reihenfolge, arg.ID)
+	var i GetVarianteVorgaengerRow
+	err := row.Scan(&i.ID, &i.Reihenfolge)
+	return i, err
+}
+
+const setProduktReihenfolge = `-- name: SetProduktReihenfolge :execresult
+UPDATE produkte SET reihenfolge = $1, updated_at = $2 WHERE id = $3
+`
+
+type SetProduktReihenfolgeParams struct {
+	Reihenfolge int
+	UpdatedAt   time.Time
+	ID          int
+}
+
+func (q *Queries) SetProduktReihenfolge(ctx context.Context, arg SetProduktReihenfolgeParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, setProduktReihenfolge, arg.Reihenfolge, arg.UpdatedAt, arg.ID)
+}
+
+const setVarianteReihenfolge = `-- name: SetVarianteReihenfolge :execresult
+UPDATE produkt_varianten SET reihenfolge = $1, updated_at = $2 WHERE id = $3
+`
+
+type SetVarianteReihenfolgeParams struct {
+	Reihenfolge int
+	UpdatedAt   time.Time
+	ID          int
+}
+
+func (q *Queries) SetVarianteReihenfolge(ctx context.Context, arg SetVarianteReihenfolgeParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, setVarianteReihenfolge, arg.Reihenfolge, arg.UpdatedAt, arg.ID)
+}
+
+const sortiereVariantenAlphabetisch = `-- name: SortiereVariantenAlphabetisch :exec
+UPDATE produkt_varianten v
+SET reihenfolge = neu.rang, updated_at = $1
+FROM (
+    SELECT id, (row_number() OVER (ORDER BY name COLLATE "de-DE-x-icu", id))::int AS rang
+    FROM produkt_varianten pv
+    WHERE pv.produkt_id = $2 AND pv.status != 'deleted'
+) neu
+WHERE v.id = neu.id
+`
+
+type SortiereVariantenAlphabetischParams struct {
+	UpdatedAt time.Time
+	ProduktID int
+}
+
+// Vergibt die Reihenfolge der Varianten eines Produkts neu, alphabetisch nach
+// Namen. Die Collation ist explizit deutsch: die Datenbank laeuft auf en_US,
+// ohne Angabe landeten Umlaute und Akzente hinter allen anderen Buchstaben
+// ("Cafe Creme" nach "Cz"). Geloeschte Varianten bleiben unberuehrt; ihre alten
+// Werte stoeren nicht, weil sie ueberall herausgefiltert werden.
+func (q *Queries) SortiereVariantenAlphabetisch(ctx context.Context, arg SortiereVariantenAlphabetischParams) error {
+	_, err := q.db.ExecContext(ctx, sortiereVariantenAlphabetisch, arg.UpdatedAt, arg.ProduktID)
+	return err
 }
 
 const updateProdukt = `-- name: UpdateProdukt :execresult

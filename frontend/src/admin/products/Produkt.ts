@@ -32,8 +32,18 @@ export const VarianteStatus = {
 export type VarianteStatus =
   (typeof VarianteStatus)[keyof typeof VarianteStatus]
 
+// Richtung einer Verschiebung in der Anzeigereihenfolge: hoch zum
+// Listenanfang, runter zum Listenende. Die Reihenfolge selbst liefert das
+// Backend fertig sortiert; das Frontend kennt sie nicht als Wert.
+export const Richtung = {
+  HOCH: 'hoch',
+  RUNTER: 'runter',
+} as const
+export type Richtung = (typeof Richtung)[keyof typeof Richtung]
+
 export const ProduktIdSchema = z.number().int().min(1)
 export const VarianteIdSchema = z.number().int().min(1)
+export const RichtungSchema = z.enum(['hoch', 'runter'])
 
 const NameSchema = z
   .string()

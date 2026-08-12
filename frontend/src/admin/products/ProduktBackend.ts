@@ -6,6 +6,8 @@ import {
   type Produkt,
   ProduktIdSchema,
   ProduktSchema,
+  type Richtung,
+  RichtungSchema,
   VarianteIdSchema,
   VarianteSchema,
 } from './Produkt'
@@ -23,6 +25,11 @@ export const UpdateProduktSchema = ProduktSchema.pick({
   steuersatz: true,
 })
 
+export const VerschiebeProduktSchema = z.object({
+  id: ProduktIdSchema,
+  richtung: RichtungSchema,
+})
+
 export const CreateVarianteSchema = z.object({
   produktId: ProduktIdSchema,
   name: VarianteSchema.shape.name,
@@ -33,6 +40,15 @@ export const UpdateVarianteSchema = VarianteSchema.pick({
   id: true,
   name: true,
   preisCents: true,
+})
+
+export const VerschiebeVarianteSchema = z.object({
+  id: VarianteIdSchema,
+  richtung: RichtungSchema,
+})
+
+export const SortiereVariantenSchema = z.object({
+  produktId: ProduktIdSchema,
 })
 
 export class ProduktBackend {
@@ -61,6 +77,14 @@ export class ProduktBackend {
     await this.backend.post('admin/update-produkt', body)
   }
 
+  public async verschiebeProdukt(
+    id: number,
+    richtung: Richtung,
+  ): Promise<void> {
+    const body = VerschiebeProduktSchema.parse({ id, richtung })
+    await this.backend.post('admin/verschiebe-produkt', body)
+  }
+
   public async getAllProdukte(): Promise<Produkt[]> {
     const { produkte } = await this.backend.post(
       'admin/get-all-produkte',
@@ -87,6 +111,19 @@ export class ProduktBackend {
   ): Promise<void> {
     const body = UpdateVarianteSchema.parse(updatedVariante)
     await this.backend.post('admin/update-variante', body)
+  }
+
+  public async verschiebeVariante(
+    id: number,
+    richtung: Richtung,
+  ): Promise<void> {
+    const body = VerschiebeVarianteSchema.parse({ id, richtung })
+    await this.backend.post('admin/verschiebe-variante', body)
+  }
+
+  public async sortiereVariantenAlphabetisch(produktId: number): Promise<void> {
+    const body = SortiereVariantenSchema.parse({ produktId })
+    await this.backend.post('admin/sortiere-varianten', body)
   }
 
   public async aktiviereVariante(id: number): Promise<void> {

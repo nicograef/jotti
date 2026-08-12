@@ -72,6 +72,9 @@ export function AdminProductsPage() {
           setProduktEditState({ produkt: produktToEdit, open: true })
         }}
         onDelete={onProduktDelete}
+        onMoved={() => {
+          invalidateProdukte()
+        }}
         onVariantCreated={(_produktId, variante) => {
           invalidateProdukte()
           toast.success(`Variante "${variante.name}" wurde angelegt.`)

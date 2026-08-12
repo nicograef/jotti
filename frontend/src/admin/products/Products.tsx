@@ -18,11 +18,15 @@ interface ProductsProps {
     | 'createVariante'
     | 'updateVariante'
     | 'deleteVariante'
+    | 'verschiebeProdukt'
+    | 'verschiebeVariante'
+    | 'sortiereVariantenAlphabetisch'
   >
   products: Produkt[]
   druckstationen: DruckstationConfig[]
   onEdit: (produktId: number) => void
   onDelete: (produktId: number) => Promise<void>
+  onMoved: () => void
   onVariantCreated: (produktId: number, variante: Variante) => void
   onVariantUpdated: (produktId: number, variante: Variante) => void
   onVariantStatusChange: (
@@ -66,14 +70,17 @@ export function Products(props: ProductsProps) {
               )}
             </h2>
             <div className="rounded-lg border px-4">
-              {gruppe.produkte.map((product) => (
+              {gruppe.produkte.map((product, index) => (
                 <ProductItem
                   key={product.id}
                   loading={props.loading}
                   product={product}
+                  isFirst={index === 0}
+                  isLast={index === gruppe.produkte.length - 1}
                   backend={props.backend}
                   onEdit={props.onEdit}
                   onDelete={props.onDelete}
+                  onMoved={props.onMoved}
                   onVariantCreated={(variant) => {
                     props.onVariantCreated(product.id, variant)
                   }}
