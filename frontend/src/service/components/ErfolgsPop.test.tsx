@@ -17,6 +17,15 @@ import { Direktverkauf } from './direktverkauf/Direktverkauf'
 import { ErfolgsPop } from './ErfolgsPop'
 import { ServiceDock } from './ServiceDock'
 
+// Mit der Produktebene liegt die Variantenliste eine Navigationsebene tiefer:
+// erst das Produkt oeffnen, dann ist der Hinzufuegen-Knopf da.
+async function produktOeffnen(
+  user: ReturnType<typeof userEvent.setup>,
+  name = 'Bratwurst',
+) {
+  await user.click(screen.getByRole('button', { name: new RegExp(name) }))
+}
+
 // toast wird über useActionSubmit (Fehlerpfad) importiert; die Erfolgs-Flows
 // dürfen ihn nicht mehr aufrufen, was der Flow-Test unten prüft.
 vi.mock('sonner', () => ({
@@ -159,6 +168,7 @@ describe('Erfolgs-Pop im Buchungsflow', () => {
       />,
     )
 
+    await produktOeffnen(user)
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )

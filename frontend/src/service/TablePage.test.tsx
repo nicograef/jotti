@@ -10,6 +10,15 @@ import type { Position } from './table/Bestellung'
 import type { TischSession } from './table/Tisch'
 import { TablePage } from './TablePage'
 
+// Mit der Produktebene liegt die Variantenliste eine Navigationsebene tiefer:
+// erst das Produkt oeffnen, dann ist der Hinzufuegen-Knopf da.
+async function produktOeffnen(
+  user: ReturnType<typeof userEvent.setup>,
+  name = 'Bratwurst',
+) {
+  await user.click(screen.getByRole('button', { name: new RegExp(name) }))
+}
+
 function position(positionId: string): Position {
   return {
     positionId,
@@ -206,6 +215,7 @@ describe('TablePage', () => {
 
     await screen.findByText('Stammtisch')
     // Bestellen ist der Default-Tab: eine Variante in den Korb legen.
+    await produktOeffnen(user)
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )
@@ -346,6 +356,7 @@ describe('TablePage', () => {
     const { rerender } = render(renderUi())
 
     await screen.findByText('Stammtisch')
+    await produktOeffnen(user)
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )
@@ -385,6 +396,7 @@ describe('TablePage', () => {
     const { rerender, unmount } = render(renderUi())
 
     await screen.findByText('Stammtisch')
+    await produktOeffnen(user)
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )

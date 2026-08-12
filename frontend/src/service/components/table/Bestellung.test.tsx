@@ -12,6 +12,15 @@ import type { Tisch } from '../../table/Tisch'
 import { ServiceDock } from '../ServiceDock'
 import { Bestellung } from './Bestellung'
 
+// Mit der Produktebene liegt die Variantenliste eine Navigationsebene tiefer:
+// erst das Produkt oeffnen, dann ist der Hinzufuegen-Knopf da.
+async function produktOeffnen(
+  user: ReturnType<typeof userEvent.setup>,
+  name = 'Bratwurst',
+) {
+  await user.click(screen.getByRole('button', { name: new RegExp(name) }))
+}
+
 // Der Bestell-Korb liegt seit A1 in TablePage; für die isolierten Komponenten-
 // Tests stellt dieser Harness die gehobene Steuerung bereit.
 function BestellungHarness(
@@ -83,6 +92,7 @@ describe('Bestellung Aktionsleiste', () => {
       screen.getByRole('button', { name: /Bestellung überprüfen/ }),
     ).toBeDisabled()
 
+    await produktOeffnen(user)
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )
@@ -113,6 +123,7 @@ describe('Bestellung Aktionsleiste', () => {
       screen.queryByRole('button', { name: /Bestellung überprüfen/ }),
     ).not.toBeInTheDocument()
 
+    await produktOeffnen(user)
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )
@@ -145,6 +156,7 @@ describe('Bestellung im Vorgangs-Register', () => {
     )
     const { rerender, unmount } = render(renderUi())
 
+    await produktOeffnen(user)
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )
