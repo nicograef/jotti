@@ -2,9 +2,8 @@ import { Package } from 'lucide-react'
 import { useState } from 'react'
 
 import { EmptyState } from '@/components/common/EmptyState'
-import { VariantNamePreis } from '@/components/common/VariantNamePreis'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils'
+import { cn, formatEuro } from '@/lib/utils'
 
 import {
   type Kategorie,
@@ -83,10 +82,10 @@ export function ProductList(props: ProductListComponentProps) {
       <div className="mt-4 space-y-5">
         {sichtbareProdukte.map((product) => (
           <div key={product.id}>
-            <h2 className="mb-1.5 text-[13px] font-semibold text-muted-foreground">
+            <h2 className="mb-1 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
               {product.name}
             </h2>
-            <div className="space-y-2">
+            <div>
               {product.varianten.map((variant) => (
                 <VariantRow
                   key={variant.id}
@@ -108,6 +107,13 @@ export function ProductList(props: ProductListComponentProps) {
   )
 }
 
+// VariantRow ist die Bestellzeile einer Variante: Name in der ersten Zeile,
+// Preis darunter, Mengensteuerung rechts. Der Name teilt sich die Breite nur
+// mit der Steuerung und braucht deshalb in der Praxis keinen Umbruch mehr; er
+// kürzt auch nicht, denn „Schorle weiß, sauer" und „Schorle weiß, süß" kürzen
+// sich auf denselben Text und die Servicekraft bucht die falsche Variante.
+// Solange nichts ausgewählt ist, zeigt die Zeile nur das Plus — das hält die
+// Liste ruhig und gibt dem Namen die volle Breite.
 function VariantRow({
   variant,
   menge,
@@ -122,17 +128,25 @@ function VariantRow({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-lg border bg-card px-3.5 py-2.5 text-[15px]',
-        menge > 0 && 'border-primary/50 bg-primary/[0.04]',
+        'flex items-center gap-3 border-b py-2 last:border-b-0',
+        menge > 0 && 'bg-primary/[0.04]',
       )}
     >
-      <VariantNamePreis name={variant.name} preisCents={variant.preisCents} />
+      <div className="min-w-0 flex-1">
+        <div className="break-words text-[15px] font-medium leading-snug">
+          {variant.name}
+        </div>
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatEuro(variant.preisCents)}
+        </div>
+      </div>
       <Stepper
         menge={menge}
         onAdd={onAdd}
         onRemove={onRemove}
         addLabel="Variante hinzufügen"
         removeLabel="Variante entfernen"
+        minusNurAbEins
       />
     </div>
   )
@@ -143,14 +157,17 @@ export function ProductListSkeleton() {
     <div className="mt-4 space-y-5">
       {Array.from({ length: 2 }).map((_, gruppe) => (
         <div key={`skeleton-gruppe-${gruppe.toString()}`}>
-          <Skeleton className="mb-1.5 h-4 w-24" />
-          <div className="space-y-2">
-            {Array.from({ length: 2 }).map((_, zeile) => (
+          <Skeleton className="mb-1 h-4 w-24" />
+          <div>
+            {Array.from({ length: 3 }).map((_, zeile) => (
               <div
                 key={`skeleton-zeile-${gruppe.toString()}-${zeile.toString()}`}
-                className="flex items-center justify-between rounded-lg border bg-card px-3.5 py-2.5"
+                className="flex items-center justify-between gap-3 border-b py-2 last:border-b-0"
               >
-                <Skeleton className="h-5 w-28" />
+                <div className="flex-1">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="mt-1 h-4 w-12" />
+                </div>
                 <Skeleton className="size-11 rounded-full" />
               </div>
             ))}
