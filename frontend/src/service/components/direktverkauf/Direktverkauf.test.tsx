@@ -8,6 +8,15 @@ import type { Produkt } from '../../product/Produkt'
 import { ServiceDock } from '../ServiceDock'
 import { Direktverkauf } from './Direktverkauf'
 
+// Mit der Produktebene liegt die Variantenliste eine Navigationsebene tiefer:
+// erst das Produkt oeffnen, dann ist der Hinzufuegen-Knopf da.
+async function produktOeffnen(
+  user: ReturnType<typeof userEvent.setup>,
+  name = 'Bratwurst',
+) {
+  await user.click(screen.getByRole('button', { name: new RegExp(name) }))
+}
+
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
@@ -72,6 +81,7 @@ describe('Direktverkauf', () => {
     const user = userEvent.setup()
     const { direktverkaufTaetigen } = renderDirektverkauf()
 
+    await produktOeffnen(user)
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )
@@ -130,6 +140,7 @@ describe('Direktverkauf', () => {
     ).not.toBeInTheDocument()
 
     // Auswahl links aktiviert den Button rechts (gemeinsamer Mengen-State).
+    await produktOeffnen(user)
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )
