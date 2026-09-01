@@ -63,7 +63,7 @@ jobs:
         working-directory: ./backend
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: 1.26.5
           cache-dependency-path: backend/go.sum
@@ -110,7 +110,7 @@ jobs:
         working-directory: ./backend
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: 1.26.5
           cache-dependency-path: backend/go.sum
@@ -132,7 +132,7 @@ jobs:
         working-directory: ./resolver
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: 1.26.5
           cache-dependency-path: resolver/go.sum
@@ -179,7 +179,7 @@ jobs:
         working-directory: ./reverse-proxy
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: 1.26.5
           cache-dependency-path: reverse-proxy/go.sum
@@ -226,7 +226,7 @@ jobs:
         module: [relay, starter]
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: 1.26.5
           cache: false
@@ -286,7 +286,7 @@ jobs:
           version: 11.6.0
           run_install: false
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: "pnpm"
@@ -319,7 +319,7 @@ jobs:
           version: 11.6.0
           run_install: false
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: "pnpm"
@@ -369,7 +369,7 @@ jobs:
         working-directory: ./backend
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: 1.26.5
           cache-dependency-path: backend/go.sum
@@ -445,7 +445,7 @@ jobs:
           --health-retries 30
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: 1.26.5
           cache-dependency-path: backend/go.sum
@@ -541,7 +541,7 @@ jobs:
           version: 11.6.0
           run_install: false
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: "pnpm"
