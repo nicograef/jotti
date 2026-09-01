@@ -21,7 +21,7 @@ RUN xcaddy build \
   --with github.com/mholt/caddy-ratelimit@v0.1.0
 
 # --- Entrypoint build stage (jotti-reverse-proxy, stdlib + rsc.io/qr only) ---
-FROM golang:1.26.5-alpine AS proxy-builder
+FROM golang:1.27.0-alpine AS proxy-builder
 
 WORKDIR /src
 COPY go.mod go.sum ./
