@@ -5,21 +5,29 @@
 
 ## Goal
 
-Die Rückmeldungen aus den ersten produktiven Einsätzen in Doku, Website und Software
-einarbeiten: bestätigte Bedienprobleme beheben, Lücken in den Anleitungen schließen,
-Erwartungen an den Nutzungsprozess auf der Website richtigstellen und die Wünsche, die
-jotti bewusst nicht erfüllt, als Nicht-Ziele festhalten.
+Die Rückmeldungen aus den ersten produktiven Einsätzen vollständig in Doku, Website und
+Software einarbeiten und danach v1.0.0 veröffentlichen: bestätigte Bedienprobleme beheben,
+Lücken in den Anleitungen schließen, Erwartungen an den Nutzungsprozess auf der Website
+richtigstellen, die zugrunde liegenden Anforderungen hinter den Wünschen mit eigenen
+Lösungen abdecken und festhalten, was jotti bewusst nicht tut.
 
 ## Architectural decisions
 
 - **Kategorien bleiben ein festes Enum** (`essen`, `getraenk`, `sonstiges`). Sie steuern die
-  Druckstationen-Zuordnung; freie Kategorien würden Druck-Konfiguration und
-  DSFinV-K nach sich ziehen.
-- **Schema-Änderungen nur additiv** als neue Migration (Freeze-Disziplin).
-- **TSE bleibt Cloud-TSE (fiskaly)** bis eine ADR etwas anderes entscheidet; Phase 8
-  liefert die Entscheidungsgrundlage.
+  Druckstationen-Zuordnung; freie Kategorien würden Druck-Konfiguration und DSFinV-K nach
+  sich ziehen.
+- **Bonmodus** bekommt den dritten Wert `pro_stueck`, zulässig nur für die Druckstation
+  `abholbon`. Arbeitsbons der Produktstationen kennen ihn nicht.
+- **Schema-Änderungen nur additiv** als neue Migration (Freeze-Disziplin); die
+  CHECK-Bedingung auf `druckstationen.bonmodus` wird in einer neuen Migration ersetzt,
+  `01_initial.up.sql` bleibt unverändert.
+- **TSE bleibt Cloud-TSE (fiskaly)**, bis die ADR aus Phase 8 etwas anderes entscheidet.
+- **Belegausgabe bleibt Papier** über den Kassenbeleg-Drucker oder die Befreiung nach
+  § 146a Abs. 2 Satz 2 AO; ein elektronischer Beleg ist Nicht-Ziel.
 - **Website und Leitfaden bleiben eine Quelle**: Leitfaden-Seiten werden aus `docs/`
   gelesen (`website/src/content.config.ts`), Änderungen passieren nur in `docs/`.
+- **Release-Reihenfolge**: erst alle Phasen, dann v1.0.0. Vereine mit Einsatz im September
+  arbeiten mit v0.17.3, das produktionsreif ist.
 
 ## Inventory
 
@@ -30,7 +38,8 @@ jotti bewusst nicht erfüllt, als Nicht-Ziele festhalten.
 - `docs/leitfaden/fehlersuche.md — ## Router-Hinweise` — FRITZ!Box-Rezept ohne den
   Hinweis, dass die Ausnahme nach Router-Neustart einmal Internet braucht
 - `docs/leitfaden/haeufige-fragen.md` — keine Antwort zu Stromausfall, Geräteanzahl,
-  Helfer-Verzehr, Größenordnung der TSE-Kosten
+  Helfer-Verzehr, Drucker-Notwendigkeit, Größenordnung der TSE-Kosten
+- `docs/leitfaden/belege-steuersaetze.md` — Befreiung von der Aushändigung beschrieben
 - `website/src/pages/fuer-vereine.astro` + `website/src/components/AnfrageFormular.tsx`
   — Formular öffnet `mailto:` per JS-Navigation; Erfolgs-State ohne Installationslink;
   kein Kopier-Fallback, wenn kein Mailprogramm reagiert
@@ -40,14 +49,23 @@ jotti bewusst nicht erfüllt, als Nicht-Ziele festhalten.
 - `frontend/src/components/common/VariantNamePreis.tsx — VariantNamePreis()` —
   einzeiliges `truncate`; ähnliche Variantennamen werden auf dem Handy identisch
 - `frontend/src/service/components/table/ProductList.tsx — ProductList()` —
-  Kategorie-Pills, danach eine lange Liste ohne Sortierung
+  Kategorie-Pills (seit vor v0.17.2 vorhanden), danach eine lange Liste ohne Sortierung
 - `frontend/src/service/components/ServiceSplitLayout.tsx` — ab 1024 px feste Spalte
   für den Abschluss
-- `backend/api/druck/bondruck/application/arbeitsbon_policy.go` — Bonmodus
-  `pro_position` / `pro_bestellung`
+- `backend/api/druck/bondruck/application/arbeitsbon_policy.go —
+createAbholbonAuftraege()` — ein Auftrag je Position oder je Bestellung
+- `backend/api/druck/bondruck/application/escpos/formatter.go — FormatPositionBon()`
+  — druckt `Nx Bezeichnung`
+- `backend/domain/druckstation/druckstation.go` — Bonmodus-Typ und Validierung
+- `backend/api/druck/station/http/handler.go` — Druckstationen-Konfiguration
+- `frontend/src/admin/settings/DruckstationBackend.ts — BonmodusSchema` und
+  `frontend/src/admin/settings/DruckstationConfigPage.tsx` — Auswahl der Bonmodi
+- `database/migrations/01_initial.up.sql` — CHECK auf `druckstationen.bonmodus`
+- `docs/language.md — #### Abholbon` und `#### Bonmodus`; `docs/handbuch.md —
+  ### 4.6 Bondruck: Arbeitsbon und Kassenbeleg (K-12)`
 - `docs/compliance.md — ### 3.5 TSE-Varianten und Anbieter-Entscheidung` — Hardware-TSE
   als ausgeschlossen begründet
-- `docs/anforderungen.md` — Nicht-Ziele-Tabelle
+- `docs/anforderungen.md` — Funktionsumfang-Tabelle und Nicht-Ziele-Tabelle
 - `docs/plans/plan-bondruck-ursachenklaerung.md` — offen
 - `docs/plans/guide-manuelle-qa-v1.0.0.md` — offen; verweist auf die nicht existierende
   Datei `plan-v1.0-release-blockers.md`
@@ -57,22 +75,32 @@ jotti bewusst nicht erfüllt, als Nicht-Ziele festhalten.
 
 ## Resolved decisions
 
-- **Logo auf dem Bon, Bon pro Stück, Bon per E-Mail, Helferdeckel** werden nicht gebaut.
-  Begründung je Punkt in Phase 9; Helferdeckel wird als Workaround dokumentiert.
-- **Kategorie-Scrollproblem** wird über Reihenfolge (#109) gelöst, nicht über freie
-  Kategorien. Die Produktebene (#111) wird erst nach Feldeinsatz von #109 entschieden.
+- **Vollständig umsetzen, dann releasen.** Alle Phasen landen vor v1.0.0; kein Datum
+  gegenüber Vereinen.
+- **Scroll-Problem** wird über Reihenfolge (#109) gelöst. Die Produktebene (#111) wird
+  erst nach Feldeinsatz von #109 entschieden und vorher gegen das aktuelle Design geprüft:
+  die Kategorie-Pills existieren bereits, der PR darf sie nicht duplizieren.
 - **Mobile-Abschneiden** wird über Umbruch statt Kürzung gelöst; #110 ist der Kandidat.
-- **USB-TSE** bekommt keine Implementierung, sondern einen Kosten- und Anbieter-Spike mit
-  ADR. Das Nicht-Ziel in `docs/compliance.md` bleibt, bis die ADR es ändert.
-- **Druckerliste** nennt nur im Einsatz bestätigte Modelle: Epson TM-T20IV (Ethernet),
-  Sam4s H-Cube (WLAN). USB-Drucker sind nicht unterstützt und werden so benannt.
+- **Bon pro Stück** wird nicht 1:1 übernommen. Die Anforderung (mehrere Einheiten auf
+  einmal kaufen, einzeln an der Theke einlösen) deckt der Abholbon-Modus `pro_stueck`.
+- **Bon per E-Mail** wird nicht gebaut. Die Anforderung (Beleg ohne eigenen Drucker)
+  beantwortet die FAQ mit Befreiung oder Theken-Drucker; elektronischer Beleg ist
+  Nicht-Ziel, weil das Gast-Handy nicht im Vereins-LAN ist.
+- **Vereinslogo auf dem Bon** und **Helferdeckel** sind Nicht-Ziele.
+- **USB-/Hardware-TSE** bekommt einen Kosten- und Anbieter-Spike mit ADR, keine
+  Implementierung. Das Nicht-Ziel in `docs/compliance.md` bleibt bis zur ADR.
+- **Druckerliste** nennt im Einsatz bestätigte Modelle (Epson TM-T20IV per Ethernet,
+  Sam4s H-Cube per WLAN) plus eine recherchierte Kaufempfehlung mit Preisklasse; USB-Drucker
+  sind nicht unterstützt und werden so benannt.
+- **Österreich/Schweiz**: Nutzung erlaubt, Klartext auf Website und in TERMS, dass nur die
+  deutsche KassenSichV abgebildet ist.
 - **Formular-Fallback** bleibt serverlos: der Mailtext wird auf der Seite gezeigt und ist
   kopierbar.
 
 ## Open questions / Risks
 
 - Zwei Vereine setzen jotti in der zweiten Septemberhälfte produktiv ein, einer davon
-  zweitägig mit zwei Druckern. Phase 6 und Phase 1 sollten vorher landen.
+  zweitägig mit zwei Druckern. Phase 6 sollte vorher abgeschlossen sein.
 - Die externen PRs sind nach dem Repo-Stand vom 04.08. entstanden; Konflikte mit
   späteren Änderungen sind beim Review zu prüfen.
 
@@ -88,26 +116,30 @@ jotti bewusst nicht erfüllt, als Nicht-Ziele festhalten.
 - `docs/leitfaden/fehlersuche.md — ## Router-Hinweise` — Router-Neustart
 - `docs/leitfaden/installation.md — ## Bondruck einrichten (optional)` — Drucker
 - `docs/leitfaden/haeufige-fragen.md` — neue Fragen
+- `docs/leitfaden/belege-steuersaetze.md` — Befreiung von der Aushändigung
 
 ### What to build
 
-Vier Doku-Änderungen, die Fragen aus dem Feld ohne Rückfrage beantworten. Kurzanleitung:
+Doku-Änderungen, die Fragen aus dem Feld ohne Rückfrage beantworten. Kurzanleitung:
 „Zertifikat und Handy-Zugang laufen danach ohne Internet; die TSE braucht beim Fest
 Internet." Fehlersuche: FRITZ!Box wendet die Rebind-Ausnahme nach Neustart erst mit
 Internet an; ohne Internet die Fallback-Adresse nutzen. Installation: Abschnitt
-„Bestätigte Bondrucker" mit den zwei Modellen, Anschlussart, und dem Satz, dass
+„Bondrucker" mit den zwei bestätigten Modellen und Anschlussart, einer recherchierten
+Kaufempfehlung (Modell, Anschluss, Preisklasse, Stand der Recherche) und dem Satz, dass
 USB-Drucker nicht unterstützt werden. FAQ: Stromausfall (Server aus, Kasse aus, Daten
-bleiben; Server und Router an eine USV oder Powerbank), wie viele Handys (bis 30
-Helfer, ein Handy pro Servicekraft), Helfer-Verzehr (ein Tisch pro Helfer, am Abend
-kassieren oder stornieren).
+bleiben; Server und Router an eine USV oder Powerbank), wie viele Handys (bis 30 Helfer,
+ein Handy pro Servicekraft), Helfer-Verzehr (ein Tisch pro Helfer, am Abend kassieren
+oder stornieren), „Braucht ihr einen Drucker?" (Befreiung beantragen oder ein
+Theken-Drucker für Belege auf Anforderung; Bon per E-Mail gibt es nicht).
 
 ### Acceptance criteria
 
 - [ ] Kurzanleitung und FAQ widersprechen sich nicht mehr zur Internetfrage
 - [ ] Fehlersuche nennt den Neustart-Fall und verweist auf die Fallback-Adresse
-- [ ] Installation listet die zwei Modelle und schließt USB aus
-- [ ] FAQ beantwortet Stromausfall, Geräteanzahl, Helfer-Verzehr
-- [ ] `make check` grün, Website-Build (`website/`) rendert die vier Seiten
+- [ ] Installation listet die zwei bestätigten Modelle, eine Kaufempfehlung mit
+      Preisklasse und Recherchedatum, und schließt USB aus
+- [ ] FAQ beantwortet Stromausfall, Geräteanzahl, Helfer-Verzehr, Drucker-Notwendigkeit
+- [ ] `make check` grün, Website-Build (`website/`) rendert die geänderten Seiten
 
 ---
 
@@ -240,25 +272,42 @@ Einsätzen Ende September.
 
 ---
 
-## Phase 7: Produktebene bewerten
+## Phase 7: Abholbon pro Stück im Direktverkauf
 
-**Depends on**: 5
+**Depends on**: none
 
 ### Context
 
-- PR #111 — Produkt-Kacheln vor der Variantenliste
-- `docs/adrs/08_service-split-screen.md` — bestehende Entscheidung zum Service-Layout
+- `backend/api/druck/bondruck/application/arbeitsbon_policy.go —
+createAbholbonAuftraege()` — Ableitung der Abholbon-Aufträge
+- `backend/api/druck/bondruck/application/escpos/formatter.go — FormatPositionBon()`
+- `backend/domain/druckstation/druckstation.go` — Bonmodus-Typ
+- `backend/api/druck/station/http/handler.go` — Validierung der Konfiguration
+- `frontend/src/admin/settings/DruckstationBackend.ts — BonmodusSchema`
+- `frontend/src/admin/settings/DruckstationConfigPage.tsx` — Auswahl
+- `database/migrations/01_initial.up.sql` — CHECK auf `bonmodus`
+- `docs/language.md — #### Bonmodus`, `docs/handbuch.md — ### 4.6`,
+  `docs/anforderungen.md` — Funktionsumfang
 
 ### What to build
 
-Nach mindestens einem Fest mit sortierter Liste entscheiden, ob eine Produktebene den
-zusätzlichen Tap pro Bestellung rechtfertigt. Ergebnis ist eine ADR: angenommen (dann
-#111 übernehmen) oder abgelehnt (dann #111 mit Begründung schließen).
+Gäste und Gruppen kaufen im Direktverkauf mehrere Einheiten auf einmal und lösen sie
+einzeln an der Theke ein. Die Druckstation `abholbon` bekommt den dritten Bonmodus
+`pro_stueck`: je Einheit einer Position ein eigener Abholbon mit `1x Bezeichnung`. Für
+die Produktstationen (`essen`, `getraenk`, `sonstiges`) bleibt der Wert unzulässig;
+Backend (zog) und Frontend (Zod) lehnen ihn dort ab. Neue Migration ersetzt die
+CHECK-Bedingung. Kassenbeleg und TSE sind nicht betroffen; der Abholbon bleibt
+nicht-fiskalisch.
 
 ### Acceptance criteria
 
-- [ ] ADR `09_produktebene-service.md` mit Status und Begründung
-- [ ] PR #111 gemerged oder mit Verweis auf die ADR geschlossen
+- [ ] Migration `07_abholbon_pro_stueck.up.sql` erlaubt `pro_stueck` nur für `abholbon`
+- [ ] Direktverkauf mit `3x Bier` und Modus `pro_stueck` erzeugt drei Druckaufträge mit
+      `1x Bier`
+- [ ] Modus `pro_stueck` an einer Produktstation wird von Backend und Admin-UI abgelehnt
+- [ ] Bestehende Konfigurationen behalten ihr Verhalten (Standard bleibt `pro_position`)
+- [ ] `docs/language.md`, `docs/handbuch.md`, `docs/anforderungen.md` beschreiben den Modus
+- [ ] `make verify` grün
 
 ---
 
@@ -283,7 +332,7 @@ ADR und eine ehrliche Kostenaussage in der FAQ.
 
 ### Acceptance criteria
 
-- [ ] ADR `10_tse-kosten-und-hardware-tse.md` mit Konditionen, Alternativen, Entscheidung
+- [ ] ADR `09_tse-kosten-und-hardware-tse.md` mit Konditionen, Alternativen, Entscheidung
 - [ ] FAQ nennt Größenordnung und Vertragsbindung der TSE mit Datum der Recherche
 - [ ] `docs/compliance.md` Abschnitt 3.5 stimmt mit der ADR überein
 
@@ -300,23 +349,50 @@ ADR und eine ehrliche Kostenaussage in der FAQ.
 
 ### What to build
 
-Vier Wünsche werden als Nicht-Ziele mit Begründung eingetragen: Vereinslogo auf dem Bon
+Drei Punkte werden als Nicht-Ziele mit Begründung eingetragen: Vereinslogo auf dem Bon
 (kosmetisch, Raster-Druck und Logo-Upload ohne Kernnutzen; der Vereinsname steht im
-Kopf), Bon pro Stück (macht den Arbeitsbon zur Wertmarke; Workaround Einzelbestellungen
-im Direktverkauf), Bon per E-Mail (Mailversand vom Vereins-Server, Adress-Erfassung am
-Tisch), Helferdeckel (ein Tisch pro Helfer deckt es ab). Die Tabelle bleibt die einzige
-Stelle; die FAQ verweist für den Helfer-Verzehr auf den Workaround aus Phase 1.
+Kopf), elektronischer Beleg per E-Mail oder Link (Gast-Handy ist nicht im Vereins-LAN,
+Mailversand vom Vereins-Server und Adress-Erfassung am Tisch; Befreiung oder
+Theken-Drucker decken den Bedarf), Helferdeckel (ein Tisch pro Helfer deckt es ab). Die
+Tabelle bleibt die einzige Stelle; die FAQ aus Phase 1 verweist darauf.
 
 ### Acceptance criteria
 
-- [ ] Vier Zeilen in der Nicht-Ziele-Tabelle mit je einer Begründung
+- [ ] Drei Zeilen in der Nicht-Ziele-Tabelle mit je einer Begründung
 - [ ] `docs/produktbeschreibung.md` Abgrenzung stimmt damit überein
 
 ---
 
-## Phase 10: Release v1.0.0
+## Phase 10: Produktebene bewerten
 
-**Depends on**: 1, 4, 6
+**Depends on**: 5
+
+### Context
+
+- PR #111 — Produkt-Kacheln vor der Variantenliste
+- `frontend/src/service/components/table/ProductList.tsx — ProductList()` — vorhandene
+  Kategorie-Pills
+- `docs/adrs/08_service-split-screen.md` — bestehende Entscheidung zum Service-Layout
+
+### What to build
+
+Zuerst prüfen, auf welchem Stand der PR entstanden ist und ob er die vorhandenen
+Kategorie-Pills berücksichtigt oder ersetzt. Dann nach mindestens einem Fest mit
+sortierter Liste entscheiden, ob eine Produktebene den zusätzlichen Tap pro Bestellung
+rechtfertigt. Ergebnis ist eine ADR: angenommen (dann #111 auf den aktuellen Stand
+bringen und übernehmen) oder abgelehnt (dann #111 mit Begründung schließen).
+
+### Acceptance criteria
+
+- [ ] Prüfergebnis zum PR-Stand gegenüber den Kategorie-Pills liegt in der ADR
+- [ ] ADR `10_produktebene-service.md` mit Status und Begründung
+- [ ] PR #111 gemerged oder mit Verweis auf die ADR geschlossen
+
+---
+
+## Phase 11: Release v1.0.0
+
+**Depends on**: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 
 ### Context
 
@@ -326,12 +402,13 @@ Stelle; die FAQ verweist für den Helfer-Verzehr auf den Workaround aus Phase 1.
 
 ### What to build
 
-Den QA-Guide durchlaufen, den toten Verweis entfernen, Version und Tag `v1.0.0` setzen.
-Vereine mit Einsätzen in der zweiten Septemberhälfte erhalten das Release mindestens eine
-Woche vorher oder die Aussage, dass v0.17.3 produktionsreif bleibt.
+Den QA-Guide durchlaufen, den toten Verweis entfernen, den Abholbon-Modus `pro_stueck` und
+die Reihenfolge in den `[1.0.0]`-Abschnitt aufnehmen, Version und Tag `v1.0.0` setzen.
+Vereine mit Einsatz vor dem Release arbeiten mit v0.17.3 und erhalten nach dem Release
+eine Nachricht; ein Update ist ein ZIP-Tausch mit automatischem Backup.
 
 ### Acceptance criteria
 
 - [ ] QA-Guide ohne offene Checkbox, Datei gelöscht
 - [ ] Tag `v1.0.0` und GitHub-Release vorhanden
-- [ ] `CHANGELOG.md` `[1.0.0]` trägt das Release-Datum
+- [ ] `CHANGELOG.md` `[1.0.0]` trägt Release-Datum, Reihenfolge und `pro_stueck`
