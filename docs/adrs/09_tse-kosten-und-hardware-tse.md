@@ -22,7 +22,7 @@ bedeuten? Alle Quellen dieses ADR wurden am 07.09.2026 abgerufen.
 | Listenpreis                     | nicht öffentlich; keine Preisseite                                    | [fiskaly SIGN DE](https://www.fiskaly.com/signde)                                                                                   |
 | TEST-Umgebung                   | kostenlos, ohne Kreditkarte                                           | [fiskaly Workspace](https://workspace.fiskaly.com/)                                                                                 |
 | LIVE-Zugang                     | nur mit Vertrag über den Vertrieb, kein Selfservice-Kauf              | [Switch to LIVE](https://developer.fiskaly.com/hub/switch_to_live)                                                                  |
-| Reseller-Orientierung           | 13,25 €/Monat netto oder 143,00 €/Jahr netto je Kasse, inkl. DSFinV-K | [HKSoftware-Shop](https://www.hksoftware-shop.de/p/tse-fiskaly-cloud-inkl-schnittstelle-dsfinv-k)                                   |
+| Wiederverkäufer-Orientierung    | 13,25 €/Monat netto oder 143,00 €/Jahr netto je Kasse, inkl. DSFinV-K | [HKSoftware-Shop](https://www.hksoftware-shop.de/p/tse-fiskaly-cloud-inkl-schnittstelle-dsfinv-k)                                   |
 | Mindestlaufzeit, Mindestabnahme | nicht öffentlich, nicht verifizierbar                                 | keine Quelle gefunden                                                                                                               |
 | Zertifizierung                  | BSI-zertifiziert nach TR-03153, gültig bis 30.03.2033                 | [BSI-K-TR-0717-2025](https://www.bsi.bund.de/SharedDocs/Zertifikate_TR/Technische_Sicherheitseinrichtungen/BSI-K-TR-0717-2025.html) |
 
@@ -33,7 +33,7 @@ ausgeschlossen, aber auch nicht belegt.
 ### Erwogene Alternativen
 
 1. **Swissbit Cloud-TSE 2** — die Laufzeitangaben widersprechen sich: der
-   Hersteller schreibt „cancelable on a monthly basis", der Handel nennt
+   Hersteller schreibt „cancelable on a monthly basis", Wiederverkäufer nennen
    36 Monate. Öffentlich bepreist ist nur das Abo: Typ S kostet 178,10 € netto
    für drei Jahre
    ([Swissbit](https://www.swissbit.com/en/products/security-products/swissbit-tse/cloud-tse/),
@@ -71,8 +71,8 @@ Kein Anbieter verkauft öffentlich eine Lizenz für ein einzelnes Wochenende.
 Bei Jahresabrechnung kostet die Cloud-TSE über fünf Jahre rund 715 € netto
 (5 × 143,00 €). Monatlich abgerechnet sind es 795 € netto (60 × 13,25 €). Die
 Hardware-TSE kostet einmalig 184,95–194,95 € brutto, also rund 155–164 € netto.
-Über fünf Jahre ist die Cloud damit etwa das Vierfache der Hardware. Gleichauf
-läge sie nur bei monatlicher Abrechnung allein in den Festmonaten
+Über fünf Jahre ist die Cloud damit etwa das Vier- bis Fünffache der Hardware.
+Gleichauf läge sie nur bei monatlicher Abrechnung allein in den Festmonaten
 (2–3 × 13,25 € × 5 ≈ 133–199 € netto). Ob fiskaly monatlich abrechnet, ist nicht
 belegt. Die Zertifikatslaufzeit der Hardware verstreicht dagegen auch in den
 Monaten ohne Fest.
@@ -118,17 +118,18 @@ und integriert keinen zweiten Cloud-Anbieter.**
 - **Keine Hardware-TSE — aus technischen Gründen, nicht aus Kostengründen.** Über
   fünf Jahre wäre sie billiger. Dagegen stehen: die Zertifikatslaufzeit beginnt
   mit der Fertigung und verfällt zwischen den Festen; die WORM-Bibliothek ist
-  proprietär und hat keine Go-Bindung; ein cgo-Wrapper wäre Eigenbau; das Gerät
-  müsste in den Linux-Container durchgereicht werden; und `windows/starter` hat
-  dafür keine Vorarbeit. Der Aufwand ist nicht das Argument, das Ergebnis ist es:
-  mehr bewegliche Teile für ehrenamtliche Teams, ohne Gegenwert.
+  proprietär und hat keine offizielle Go-Bindung; ein cgo-Wrapper wäre Eigenbau;
+  das Gerät müsste in den Linux-Container durchgereicht werden; und
+  `windows/starter` hat dafür keine Vorarbeit. Der Aufwand ist nicht das
+  Argument, das Ergebnis ist es: mehr bewegliche Teile für ehrenamtliche Teams,
+  ohne Gegenwert.
 - **Keine Zweitintegration ohne einsehbare Spezifikation.** Für Swissbit und
   D-Trust ist keine öffentliche API-Spezifikation auffindbar, bei Diebold Nixdorf
   ist sie ungeprüft. Ein Source-Available-Projekt kann nicht gegen eine
   Spezifikation entwickeln, die es nicht einsehen darf.
 - **Kostenaussagen tragen Quelle und Datum.** „Nicht öffentlich" bleibt „nicht
-  öffentlich"; jotti erfindet keine Bandbreite und nennt Reseller-Preise als
-  Orientierung, nicht als Angebot von fiskaly.
+  öffentlich"; jotti erfindet keine Bandbreite und nennt Preise von
+  Wiederverkäufern als Orientierung, nicht als Angebot von fiskaly.
 - **Der TSE-Vertrag bleibt Sache des Vereins.** jotti vermittelt keinen Vertrag
   und verhandelt keine Rahmenkonditionen für seine Nutzer.
 
