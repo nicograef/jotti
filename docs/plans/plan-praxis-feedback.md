@@ -501,7 +501,7 @@ bleibt nicht-fiskalisch.
       `docs/handbuch.md` § 4.6 und `docs/anforderungen.md` beschreiben den Modus
 - [x] `make rebuild-projections` läuft nach der Migration fehlerfrei durch
       (`database/migrations/README.md` Regel 5)
-- [ ] CI-Job `upgrade-path` grün — Pflicht-Gate für Schema-Änderungen
+- [x] CI-Job `upgrade-path` grün — Pflicht-Gate für Schema-Änderungen
 - [x] `make verify` grün
 
 ---
