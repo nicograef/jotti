@@ -199,7 +199,7 @@ danach gegen den neuen Stand reviewt.
 - [x] `go.work`, alle `go.mod`, beide Dockerfiles, CI-Workflows, `AGENTS.md` und `docs/`
       nennen dieselbe Go-Version; `frontend/` und `website/` dieselbe TypeScript-Version
 - [x] Ein Commit je Ökosystem mit Conventional-Commit-Betreff `chore(deps): …`
-- [ ] `make verify`, `make website-check` und `make test-e2e` grün; CI grün inklusive
+- [x] `make verify`, `make website-check` und `make test-e2e` grün; CI grün inklusive
       `security-scans` (govulncheck, pnpm audit)
 - [ ] Die acht Dependabot-PRs sind nach dem Landen geschlossen (durch Dependabot) oder,
       falls nicht, mit Verweis auf den Commit manuell geschlossen
