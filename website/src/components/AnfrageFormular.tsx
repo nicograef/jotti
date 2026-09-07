@@ -1,15 +1,16 @@
 import { useId, useRef, useState } from 'react'
 import type { SyntheticEvent } from 'react'
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight, Check, Copy } from 'lucide-react'
 
 import type { AnfrageFehler, AnfrageFelder } from '../lib/anfrage-mailto'
 import {
   artOptionen,
+  buildAnfrageMail,
   buildMailtoUrl,
   hatFehler,
   validateAnfrage,
 } from '../lib/anfrage-mailto'
-import { betreiberEmail, installationUrl } from '../lib/links'
+import { installationUrl } from '../lib/links'
 
 // AnfrageFormular-Island der Seite /fuer-vereine (Handoff-Prototyp,
 // PRD docs/prds/prd-website-redesign.md, data-vereine-Formular). Rendert die
@@ -17,7 +18,10 @@ import { betreiberEmail, installationUrl } from '../lib/links'
 // bei gültigem Absenden den vorbefüllten mailto-Entwurf per JS-Navigation
 // (window.location.href — bewusst kein natives <form action="mailto:">, das
 // die Produktiv-CSP form-action 'self' blockt) und wechselt in einen ehrlichen
-// Erfolgs-State: der Entwurf ist geöffnet und muss noch gesendet werden.
+// Erfolgs-State: der Entwurf ist geöffnet und muss noch gesendet werden. Der
+// Erfolgs-State zeigt zusätzlich Empfänger, Betreff und den vollen Mailtext
+// (aus buildAnfrageMail) in einem readOnly-Textfeld mit Kopieren-Button — für
+// Geräte ohne Mailprogramm oder wenn sich kein Entwurf öffnet.
 //
 // Fehler sind programmatisch verknüpft (aria-invalid + aria-describedby am
 // Feld) und werden zusätzlich über eine assertive Live-Region angekündigt. Die
@@ -42,6 +46,10 @@ export default function AnfrageFormular() {
   const [gesendet, setGesendet] = useState(false)
   // Text der Live-Region; bei fehlgeschlagenem Absenden angekündigt.
   const [ankuendigung, setAnkuendigung] = useState('')
+  // Zustand des Kopieren-Buttons im Erfolgs-State.
+  const [kopieren, setKopieren] = useState<'idle' | 'kopiert' | 'fehler'>(
+    'idle',
+  )
 
   const formRef = useRef<HTMLFormElement>(null)
   // Eindeutige Präfixe, damit mehrere Instanzen kollisionsfrei blieben und die
@@ -89,6 +97,20 @@ export default function AnfrageFormular() {
   }
 
   if (gesendet) {
+    const mail = buildAnfrageMail(felder)
+
+    function kopiereText() {
+      navigator.clipboard
+        .writeText(mail.text)
+        .then(() => {
+          setKopieren('kopiert')
+          setTimeout(() => setKopieren('idle'), 2000)
+        })
+        .catch(() => {
+          setKopieren('fehler')
+        })
+    }
+
     return (
       <div
         role="status"
@@ -128,16 +150,56 @@ export default function AnfrageFormular() {
             . Antwortet der Autor, kann die E-Mail in eurem Spam-Ordner
             landen — dort lohnt sich ein Blick.
           </p>
-          <p className="mt-4 text-[14px] text-muted">
-            Öffnet sich kein Entwurf? Schreib direkt an{' '}
-            <a
-              href={`mailto:${betreiberEmail}`}
-              className="font-semibold text-brand hover:underline"
+          <div className="mt-5 w-full text-left">
+            <p className="text-[13px] text-muted">
+              Öffnet sich kein Entwurf oder hast du keine Mail-App? Kopiere
+              die Angaben unten und verschicke die E-Mail selbst.
+            </p>
+            <dl className="mt-2.5 flex flex-col gap-1 text-[13px]">
+              <div className="flex gap-1.5">
+                <dt className="font-semibold">An:</dt>
+                <dd className="select-all">{mail.empfaenger}</dd>
+              </div>
+              <div className="flex gap-1.5">
+                <dt className="font-semibold">Betreff:</dt>
+                <dd className="select-all">{mail.betreff}</dd>
+              </div>
+            </dl>
+            <label className="mt-2.5 block">
+              <span className="mb-1 block text-[12px] font-semibold">
+                Text
+              </span>
+              <textarea
+                readOnly
+                value={mail.text}
+                rows={7}
+                className="w-full resize-y rounded-[11px] border border-card-border bg-background px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground outline-none"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={kopiereText}
+              className="btn btn-ghost mt-2.5"
             >
-              {betreiberEmail}
-            </a>
-            .
-          </p>
+              {kopieren === 'kopiert' ? (
+                <>
+                  <Check size={16} aria-hidden="true" />
+                  Kopiert
+                </>
+              ) : (
+                <>
+                  <Copy size={16} aria-hidden="true" />
+                  Kopieren
+                </>
+              )}
+            </button>
+            {kopieren === 'fehler' && (
+              <p className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
+                Kopieren war nicht möglich. Bitte den Text im Feld markieren
+                und manuell kopieren.
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => setGesendet(false)}

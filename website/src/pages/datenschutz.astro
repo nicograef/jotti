@@ -8,8 +8,10 @@ import { betreiberEmail } from '../lib/links'
 // bleiben: trackingfreie statische Seite (keine Cookies, keine externen
 // Einbindungen, selbst gehostete Fonts), Theme-Wahl in localStorage
 // (public/theme-init.js, Key `starlight-theme`), Sidebar-Zustand der Doku in
-// sessionStorage (Starlight, Key `sl-sidebar-state`), Anfrage-Formular nur als
-// mailto-Entwurf (src/lib/anfrage-mailto.ts), Server-Logs mit gekürzter IP und
+// sessionStorage (Starlight, Key `sl-sidebar-state`), Anfrage-Formular öffnet
+// einen mailto-Entwurf und zeigt Empfänger, Betreff und Text zusätzlich zum
+// Kopieren an (src/lib/anfrage-mailto.ts) — beides ohne Serverkontakt,
+// Server-Logs mit gekürzter IP und
 // größenbegrenzter Rotation (reverse-proxy/nginx.rocks.conf,
 // docker-compose.rocks.yml), Hosting auf einem netcup-VPS in Nürnberg.
 

@@ -1,11 +1,12 @@
 // UI-freies Logik-Modul des Anfrage-Formulars (/fuer-vereine).
-// Baut aus den Feldwerten eine korrekt encodierte mailto-URL (Empfänger ist die
-// Betreiber-Adresse aus links.ts, Betreff und Annahme-E-Mail-Body nach der
-// TERMS.md-Vorlage) und validiert die Pflichtfelder. Kein DOM, keine React-Abhängigkeit —
-// die AnfrageFormular-Island (src/components/AnfrageFormular.tsx) rendert die
-// Felder, ruft dieses Modul auf und öffnet die URL per JS-Navigation (kein
-// natives <form action="mailto:">, das die Produktiv-CSP form-action 'self'
-// blockt).
+// Baut aus den Feldwerten die Annahme-E-Mail (Empfänger ist die
+// Betreiber-Adresse aus links.ts, Betreff und Body nach der TERMS.md-Vorlage)
+// und validiert die Pflichtfelder. Kein DOM, keine React-Abhängigkeit — die
+// AnfrageFormular-Island (src/components/AnfrageFormular.tsx) rendert die
+// Felder, ruft dieses Modul auf und zeigt Empfänger, Betreff und Text nach
+// dem Absenden zusätzlich zum geöffneten mailto-Entwurf zum Kopieren an
+// (kein natives <form action="mailto:">, das die Produktiv-CSP
+// form-action 'self' blockt).
 //
 // Feldnamen und Rechtsform-Labels stammen aus dem Handoff-Prototyp
 // (PRD docs/prds/prd-website-redesign.md).
@@ -65,14 +66,21 @@ export function hatFehler(fehler: AnfrageFehler): boolean {
   return Object.keys(fehler).length > 0
 }
 
-// Baut die mailto-URL: Empfänger als roher addr-spec im Pfad, Betreff und Body
-// per encodeURIComponent (encodiert Umlaute, Zeilenumbrüche als %0A, Leerzeichen
-// als %20 und Sonderzeichen wie & ? = +). Betreff und Body folgen der
-// E-Mail-Vorlage aus TERMS.md: Die Nutzungsvereinbarung kommt durch diese eine
-// Annahme-E-Mail zustande, deshalb enthält der Body den wörtlichen Annahmesatz
-// mit Fassungsbezug (7. September 2026) und der TERMS-URL neben den Kontaktfeldern.
-// Der optionale Nachrichten-Block entfällt, wenn keine Nachricht eingegeben wurde.
-export function buildMailtoUrl(felder: AnfrageFelder): string {
+// Empfänger, Betreff und Text der Annahme-E-Mail, getrennt und unencodiert.
+// Einzige Quelle sowohl für die mailto-URL (buildMailtoUrl) als auch für die
+// Anzeige zum Kopieren im Erfolgs-State, damit beide nicht auseinanderlaufen.
+export interface AnfrageMail {
+  empfaenger: string
+  betreff: string
+  text: string
+}
+
+// Baut Betreff und Text nach der E-Mail-Vorlage aus TERMS.md: Die
+// Nutzungsvereinbarung kommt durch diese eine Annahme-E-Mail zustande,
+// deshalb enthält der Text den wörtlichen Annahmesatz mit Fassungsbezug
+// (7. September 2026) und der TERMS-URL neben den Kontaktfeldern. Der
+// optionale Nachrichten-Block entfällt, wenn keine Nachricht eingegeben wurde.
+export function buildAnfrageMail(felder: AnfrageFelder): AnfrageMail {
   const verein = felder.verein.trim()
   const betreff = `Nutzungsvereinbarung jotti — ${verein}`
 
@@ -94,9 +102,16 @@ export function buildMailtoUrl(felder: AnfrageFelder): string {
 
   zeilen.push('', 'Mit freundlichen Grüßen', felder.name.trim(), verein)
 
-  const body = zeilen.join('\n')
+  return { empfaenger: betreiberEmail, betreff, text: zeilen.join('\n') }
+}
 
-  return `mailto:${betreiberEmail}?subject=${encodeURIComponent(
+// Baut aus buildAnfrageMail die mailto-URL: Empfänger als roher addr-spec im
+// Pfad, Betreff und Text per encodeURIComponent (encodiert Umlaute,
+// Zeilenumbrüche als %0A, Leerzeichen als %20 und Sonderzeichen wie & ? = +).
+export function buildMailtoUrl(felder: AnfrageFelder): string {
+  const { empfaenger, betreff, text } = buildAnfrageMail(felder)
+
+  return `mailto:${empfaenger}?subject=${encodeURIComponent(
     betreff,
-  )}&body=${encodeURIComponent(body)}`
+  )}&body=${encodeURIComponent(text)}`
 }
