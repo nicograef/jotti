@@ -414,7 +414,7 @@ COLLATE-Begründung, Mock-Felder mit Tests oder weg.
 - [x] `docs/language.md` und `docs/handbuch.md` beschreiben die Reihenfolge
 - [x] `make rebuild-projections` läuft nach der Migration fehlerfrei durch
       (`database/migrations/README.md` Regel 5)
-- [ ] CI-Job `upgrade-path` grün — Pflicht-Gate für Schema-Änderungen
+- [x] CI-Job `upgrade-path` grün — Pflicht-Gate für Schema-Änderungen
 - [x] `make verify` grün
 
 ---
