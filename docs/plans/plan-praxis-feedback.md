@@ -147,6 +147,10 @@ FormatDirektverkaufAbholbon()` — delegiert an `FormatSammelBon()`; druckt je P
   wird, ist offen.
 - Die Major-Updates in Phase 0 (TypeScript 7, Astro 7, Go 1.27) können Build- oder
   Typfehler auslösen, die vor jeder Code-Phase behoben sein müssen.
+- Neues Feedback: Ein Verein mit Lehrgängen und einem Turnier wünscht eine
+  „Kontingent-Funktion" für den Bondruck an der Kasse (Teilnehmer erhalten ein festes
+  Kontingent). Anforderung noch unklar; Rückfrage läuft. Warenwirtschaft ist Nicht-Ziel,
+  ein Tisch pro Teilnehmer oder Abholbons könnten reichen. Entscheidung offen.
 
 ---
 
