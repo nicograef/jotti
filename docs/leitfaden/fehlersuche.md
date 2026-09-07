@@ -49,9 +49,9 @@ Router keinen Rebind-Schutz, blockiert er auch nichts, dann liegt die Ursache
 woanders (siehe unten).
 
 Nach einem vollständigen Router-Neustart (z. B. nach einem Stromausfall) wendet
-eine FRITZ!Box die eingetragene Ausnahme erst an, wenn der Router wieder Internet
-hat. Ohne Internet bleibt die grüne Adresse bis dahin blockiert, obwohl die
-Ausnahme weiterhin eingetragen ist. Bis dahin mit der [Fallback-Adresse](#fallback-adresse)
+eine Fritz!Box die eingetragene Ausnahme erst an, wenn der Router wieder Internet
+hat. Ohne Internet bleibt die grüne Adresse so lange blockiert, obwohl die
+Ausnahme eingetragen ist. Solange mit der [Fallback-Adresse](#fallback-adresse)
 weiterarbeiten — der Verkauf muss nicht warten.
 
 ## Weitere Stolpersteine
