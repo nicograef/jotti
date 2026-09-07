@@ -33,7 +33,7 @@ Die folgenden Dokumente beschreiben jotti vollständig. Sie werden **nicht autom
 
 | Komponente    | Technologie                                                                     |
 | ------------- | ------------------------------------------------------------------------------- |
-| Backend       | Go 1.26, stdlib `net/http`, `pgx/v5`, `sqlc`, `zerolog`, `zog`, `golang-jwt/v5` |
+| Backend       | Go 1.27, stdlib `net/http`, `pgx/v5`, `sqlc`, `zerolog`, `zog`, `golang-jwt/v5` |
 | Frontend      | React 19, Vite 8, TypeScript 6.0 (strict), Tailwind CSS 4, shadcn/ui, Zod 4     |
 | Datenbank     | PostgreSQL 17, `golang-migrate`                                                 |
 | Runtime       | Node 24+, pnpm 11+                                                              |

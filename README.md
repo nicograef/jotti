@@ -98,7 +98,7 @@ Ausführliche Anleitung je nach Setup: [docs/leitfaden/installation.md](docs/lei
 | Komponente    | Technologie                                           |
 | ------------- | ----------------------------------------------------- |
 | Frontend      | React 19, Vite, Tailwind CSS 4, shadcn/ui, TypeScript |
-| Backend       | Go 1.26, stdlib `net/http`, pgx/v5                    |
+| Backend       | Go 1.27, stdlib `net/http`, pgx/v5                    |
 | Datenbank     | PostgreSQL 17                                         |
 | TSE           | Cloud-TSE via fiskaly (Adapter-Pattern)               |
 | Reverse Proxy | Caddy (HTTPS via Let's Encrypt)                       |
