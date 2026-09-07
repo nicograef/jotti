@@ -75,6 +75,26 @@ func TestUpdateProdukt_NotFound(t *testing.T) {
 	}
 }
 
+func TestVerschiebeProdukt_NotFound(t *testing.T) {
+	repo := produkt_repo.NewMock(nil, db.ErrNotFound)
+	cmd := Command{ProduktRepo: repo}
+
+	err := cmd.VerschiebeProdukt(context.Background(), 999, produkt.RichtungHoch)
+	if err != ErrProduktNotFound {
+		t.Fatalf("expected ErrProduktNotFound, got %v", err)
+	}
+}
+
+func TestVerschiebeVariante_NotFound(t *testing.T) {
+	repo := produkt_repo.NewMock(nil, db.ErrNotFound)
+	cmd := Command{ProduktRepo: repo}
+
+	err := cmd.VerschiebeVariante(context.Background(), 999, produkt.RichtungRunter)
+	if err != ErrVarianteNotFound {
+		t.Fatalf("expected ErrVarianteNotFound, got %v", err)
+	}
+}
+
 func TestDeleteProdukt(t *testing.T) {
 	repo := produkt_repo.NewMock([]produkt.Produkt{testProdukt}, nil)
 	cmd := Command{ProduktRepo: repo}

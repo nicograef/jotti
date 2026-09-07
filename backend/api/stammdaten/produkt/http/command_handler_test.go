@@ -182,6 +182,96 @@ func TestCreateVarianteHandler_InvalidInput(t *testing.T) {
 	}
 }
 
+func TestVerschiebeProduktHandler_Success(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"id":1,"richtung":"hoch"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/verschiebe-produkt", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.VerschiebeProduktHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestVerschiebeProduktHandler_InvalidInput(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"id":1,"richtung":"links"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/verschiebe-produkt", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.VerschiebeProduktHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestVerschiebeVarianteHandler_Success(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"id":1,"richtung":"runter"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/verschiebe-variante", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.VerschiebeVarianteHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestVerschiebeVarianteHandler_InvalidInput(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"id":1,"richtung":"links"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/verschiebe-variante", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.VerschiebeVarianteHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestSortiereVariantenHandler_Success(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"produktId":1}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/sortiere-varianten", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.SortiereVariantenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestSortiereVariantenHandler_InvalidInput(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"produktId":0}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/sortiere-varianten", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.SortiereVariantenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+}
+
 func TestUpdateVarianteHandler_InvalidInput(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 

@@ -4,6 +4,7 @@ package produkt_repo
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -71,18 +72,6 @@ func produktNamen(t *testing.T, repo Repository) []string {
 	return namen
 }
 
-func gleich(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 // Neue Varianten haengen sich hinten an, und ein Tausch mit dem Nachbarn
 // vertauscht genau zwei Eintraege - der Rest der Liste bleibt stehen.
 func TestVerschiebeVariante_TauschtMitNachbar(t *testing.T) {
@@ -95,7 +84,7 @@ func TestVerschiebeVariante_TauschtMitNachbar(t *testing.T) {
 	zweiteID, _ := repo.CreateVariante(ctx, produktID, newVariante("Zweite", 200, produkt.ActiveStatus))
 	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Dritte", 300, produkt.ActiveStatus))
 
-	if got := variantenNamen(t, repo, produktID); !gleich(got, []string{"Erste", "Zweite", "Dritte"}) {
+	if got := variantenNamen(t, repo, produktID); !slices.Equal(got, []string{"Erste", "Zweite", "Dritte"}) {
 		t.Fatalf("Ausgangsreihenfolge falsch: %v", got)
 	}
 
@@ -103,7 +92,7 @@ func TestVerschiebeVariante_TauschtMitNachbar(t *testing.T) {
 		t.Fatalf("verschieben fehlgeschlagen: %v", err)
 	}
 
-	if got := variantenNamen(t, repo, produktID); !gleich(got, []string{"Zweite", "Erste", "Dritte"}) {
+	if got := variantenNamen(t, repo, produktID); !slices.Equal(got, []string{"Zweite", "Erste", "Dritte"}) {
 		t.Errorf("nach hoch erwartet [Zweite Erste Dritte], got %v", got)
 	}
 
@@ -111,7 +100,7 @@ func TestVerschiebeVariante_TauschtMitNachbar(t *testing.T) {
 		t.Fatalf("verschieben fehlgeschlagen: %v", err)
 	}
 
-	if got := variantenNamen(t, repo, produktID); !gleich(got, []string{"Erste", "Zweite", "Dritte"}) {
+	if got := variantenNamen(t, repo, produktID); !slices.Equal(got, []string{"Erste", "Zweite", "Dritte"}) {
 		t.Errorf("nach runter erwartet Ausgangsreihenfolge, got %v", got)
 	}
 }
@@ -131,7 +120,7 @@ func TestVerschiebeVariante_AmRandWirkungslos(t *testing.T) {
 		t.Fatalf("erwartet kein Fehler am Listenrand, got %v", err)
 	}
 
-	if got := variantenNamen(t, repo, produktID); !gleich(got, []string{"Erste", "Zweite"}) {
+	if got := variantenNamen(t, repo, produktID); !slices.Equal(got, []string{"Erste", "Zweite"}) {
 		t.Errorf("Reihenfolge sollte unveraendert bleiben, got %v", got)
 	}
 }
@@ -162,13 +151,17 @@ func TestVerschiebeProdukt_BleibtInSeinerKategorie(t *testing.T) {
 		}
 	}
 
-	if got := produktNamen(t, repo); !gleich(got, []string{"Pommes", "Cola", "Bier"}) {
+	if got := produktNamen(t, repo); !slices.Equal(got, []string{"Pommes", "Cola", "Bier"}) {
 		t.Errorf("Bier darf Pommes nicht ueberholen (andere Kategorie), got %v", got)
 	}
 }
 
 // Die alphabetische Sortierung ordnet nach deutschen Regeln: Umlaute und
-// Akzente reihen sich bei ihrem Grundbuchstaben ein, nicht dahinter.
+// Akzente reihen sich bei ihrem Grundbuchstaben ein, nicht dahinter. Beide
+// Akzentzeichen stehen am Wortanfang, weil nur dort die Collation ueber die
+// Position entscheidet. Auf einem Cluster mit der Locale "C" ergaebe dieselbe
+// Liste [Banane Zitrone Äpfel Éclair]; die COLLATE-Klausel haelt die deutsche
+// Reihenfolge unabhaengig von der Cluster-Locale.
 func TestSortiereVariantenAlphabetisch_DeutscheCollation(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
@@ -176,7 +169,7 @@ func TestSortiereVariantenAlphabetisch_DeutscheCollation(t *testing.T) {
 	ctx := context.Background()
 	produktID, _ := repo.CreateProdukt(ctx, newProdukt("Kaffee", produkt.GetraenkKategorie))
 	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Zitrone", 100, produkt.ActiveStatus))
-	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Café Crème", 200, produkt.ActiveStatus))
+	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Éclair", 200, produkt.ActiveStatus))
 	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Äpfel", 300, produkt.ActiveStatus))
 	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Banane", 400, produkt.ActiveStatus))
 
@@ -184,8 +177,8 @@ func TestSortiereVariantenAlphabetisch_DeutscheCollation(t *testing.T) {
 		t.Fatalf("sortieren fehlgeschlagen: %v", err)
 	}
 
-	want := []string{"Äpfel", "Banane", "Café Crème", "Zitrone"}
-	if got := variantenNamen(t, repo, produktID); !gleich(got, want) {
+	want := []string{"Äpfel", "Banane", "Éclair", "Zitrone"}
+	if got := variantenNamen(t, repo, produktID); !slices.Equal(got, want) {
 		t.Errorf("erwartet %v, got %v", want, got)
 	}
 }
@@ -206,7 +199,7 @@ func TestVerschiebeProdukt_TauschtBeiGleichemWert(t *testing.T) {
 		t.Fatalf("verschieben fehlgeschlagen: %v", err)
 	}
 
-	if got := produktNamen(t, repo); !gleich(got, []string{"Bier", "Cola"}) {
+	if got := produktNamen(t, repo); !slices.Equal(got, []string{"Bier", "Cola"}) {
 		t.Errorf("erwartet [Bier Cola], got %v", got)
 	}
 	if bier, cola := produktReihenfolge(t, repo, bierID), produktReihenfolge(t, repo, colaID); bier >= cola {
@@ -230,7 +223,7 @@ func TestVerschiebeVariante_TauschtBeiGleichemWert(t *testing.T) {
 		t.Fatalf("verschieben fehlgeschlagen: %v", err)
 	}
 
-	if got := variantenNamen(t, repo, produktID); !gleich(got, []string{"Gross", "Klein"}) {
+	if got := variantenNamen(t, repo, produktID); !slices.Equal(got, []string{"Gross", "Klein"}) {
 		t.Errorf("erwartet [Gross Klein], got %v", got)
 	}
 }
@@ -256,7 +249,7 @@ func TestVerschiebeProdukt_NachKategoriewechsel(t *testing.T) {
 	if got := produktReihenfolge(t, repo, pommesID); got != 3 {
 		t.Errorf("Pommes muss ans Ende der Getraenke ruecken (3), got %d", got)
 	}
-	if got := produktNamen(t, repo); !gleich(got, []string{"Cola", "Bier", "Pommes"}) {
+	if got := produktNamen(t, repo); !slices.Equal(got, []string{"Cola", "Bier", "Pommes"}) {
 		t.Fatalf("erwartet [Cola Bier Pommes], got %v", got)
 	}
 
@@ -264,7 +257,7 @@ func TestVerschiebeProdukt_NachKategoriewechsel(t *testing.T) {
 		t.Fatalf("verschieben fehlgeschlagen: %v", err)
 	}
 
-	if got := produktNamen(t, repo); !gleich(got, []string{"Cola", "Pommes", "Bier"}) {
+	if got := produktNamen(t, repo); !slices.Equal(got, []string{"Cola", "Pommes", "Bier"}) {
 		t.Errorf("erwartet [Cola Pommes Bier], got %v", got)
 	}
 }
