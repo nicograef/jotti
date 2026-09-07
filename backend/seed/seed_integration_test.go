@@ -128,6 +128,19 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 		t.Error("keine Tisch-Favoriten nach dem Seeding")
 	}
 
+	// Produkte und Varianten tragen ihre Reihenfolge (= ID). Auf DEFAULT 0
+	// waere das Verschieben in Demo, Staging und der e2e-Suite wirkungslos.
+	var produkteOhneReihenfolge, variantenOhneReihenfolge int
+	if err := db.QueryRow("SELECT COUNT(*) FROM produkte WHERE reihenfolge <> id").Scan(&produkteOhneReihenfolge); err != nil {
+		t.Fatalf("Produkt-Reihenfolge abfragen: %v", err)
+	}
+	if err := db.QueryRow("SELECT COUNT(*) FROM produkt_varianten WHERE reihenfolge <> id").Scan(&variantenOhneReihenfolge); err != nil {
+		t.Fatalf("Varianten-Reihenfolge abfragen: %v", err)
+	}
+	if produkteOhneReihenfolge != 0 || variantenOhneReihenfolge != 0 {
+		t.Errorf("Seed ohne reihenfolge = id: %d Produkte, %d Varianten", produkteOhneReihenfolge, variantenOhneReihenfolge)
+	}
+
 	// Kassenjournal enthält Events.
 	var eventCount int
 	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&eventCount); err != nil {
