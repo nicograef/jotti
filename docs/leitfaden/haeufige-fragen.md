@@ -14,7 +14,7 @@ weiter tun.
 **Was, wenn die grüne Adresse nicht lädt?** Mit der Fallback-Adresse weiterarbeiten
 und die [Fehlersuche](fehlersuche.md) durchgehen. Der Verkauf muss nie warten.
 
-**Was passiert bei einem Stromausfall?** Server und Kasse gehen aus, eure Daten
+**Was passiert bei einem Stromausfall?** Der Kassenrechner geht aus, eure Daten
 bleiben erhalten. Kommt der Strom zurück, startet ihr jotti wie am Festtag neu —
 die Status-Seite zeigt danach die dann gültige Adresse. Eine USV für den
 Kassenrechner und den Router (der Router notfalls an einer Powerbank) überbrückt
@@ -33,18 +33,18 @@ Info an, gebucht wird es nicht. Es gehört deshalb nicht in die Kassenlade, sons
 geht der Kassensturz am Abend nicht auf. Trinkgeld direkt an die Servicekraft
 ist in der Regel steuerfrei.
 
-**Wie erfassen wir den Verzehr unserer Helfer:innen?** Über einen eigenen Tisch
-für die Helfer: Bestellungen laufen normal darüber, am Abend kassiert oder
-storniert ihr ihn wie jeden anderen Tisch.
+**Wie erfassen wir den Verzehr unserer Helfer?** Über einen eigenen Tisch pro
+Helfer: Bestellungen laufen normal darüber, am Abend kassiert oder storniert
+ihr diese Tische wie jeden anderen.
 
 **Können wir die TSE erst testen?** Ja. Richtet sie zuerst in der kostenlosen
 TEST-Umgebung von fiskaly ein und wechselt erst für den Echtbetrieb auf LIVE.
 
 **Brauchen wir einen Bondrucker?** Ja. Auch mit bewilligter Befreiung von der
-Aushändigung (siehe [Belege und Steuersätze](belege-steuersaetze.md)) erspart das
-nur das ungefragte Aushändigen — verlangt ein Gast einen Bon, müsst ihr ihn drucken
-können. Einen Bon per E-Mail gibt es nicht; das ist bewusst kein Ziel von jotti
-(siehe [Nicht-Ziele](../anforderungen.md#nicht-ziele)).
+Aushändigung (siehe [Belege und Steuersätze](belege-steuersaetze.md)) erspart die
+Befreiung nur das ungefragte Aushändigen — verlangt ein Gast einen Bon, müsst ihr
+ihn drucken können. Einen Bon per E-Mail gibt es nicht; das ist bewusst kein Ziel
+von jotti (siehe [Nicht-Ziele](../anforderungen.md#nicht-ziele)).
 
 **Was kostet der Betrieb?** jotti ist für euch kostenlos. Kosten entstehen nur für
 die Cloud-TSE von fiskaly (den aktuellen Preis bei fiskaly erfragen) und, beim
