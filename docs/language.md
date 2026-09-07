@@ -337,7 +337,7 @@ Go-Struct: `Variante` · TS-Typ: `Variante` · DB-Tabelle: `produkt_varianten`
 
 #### Reihenfolge
 
-Anzeigereihenfolge der Preisliste, gepflegt vom Admin. Bei Produkten gilt sie innerhalb der Kategorie, bei Varianten innerhalb ihres Produkts; sortiert wird aufsteigend nach `(reihenfolge, id)`, die `id` bleibt Tiebreaker. Der Admin verschiebt einzelne Einträge um eine Position (`hoch` / `runter`, Tausch mit dem unmittelbaren Nachbarn) oder ordnet die Varianten eines Produkts einmalig alphabetisch neu — ein dauerhafter Sortiermodus existiert bewusst nicht.
+Anzeigereihenfolge der Preisliste, gepflegt vom Admin. Bei Produkten gilt sie innerhalb der Kategorie, bei Varianten innerhalb ihres Produkts; sortiert wird aufsteigend nach `(reihenfolge, id)`, die `id` bleibt Tiebreaker. Neue Einträge hängen sich ans Ende ihres Geltungsbereichs an; wechselt ein Produkt die Kategorie, ans Ende der neuen. Der Admin verschiebt einzelne Einträge um eine Position (`hoch` / `runter`, Rangtausch mit dem unmittelbaren Nachbarn) oder ordnet die Varianten eines Produkts einmalig alphabetisch neu — ein dauerhafter Sortiermodus existiert bewusst nicht.
 
 Reine Persistenz: kein Go-Struct-Feld, kein TS-Typ, kein Response-Feld. Das Backend liefert die fertig sortierte Liste, das Frontend zeigt sie in gelieferter Ordnung an. DB-Spalte: `produkte.reihenfolge`, `produkt_varianten.reihenfolge`
 
