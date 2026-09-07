@@ -242,17 +242,17 @@ Bon per E-Mail gibt es nicht).
 
 ### Acceptance criteria
 
-- [ ] Kurzanleitung und FAQ widersprechen sich nicht mehr zur Internetfrage
-- [ ] Fehlersuche nennt den Neustart-Fall und verweist auf die Fallback-Adresse
-- [ ] Installation listet die zwei bestätigten Modelle, eine Kaufempfehlung mit
+- [x] Kurzanleitung und FAQ widersprechen sich nicht mehr zur Internetfrage
+- [x] Fehlersuche nennt den Neustart-Fall und verweist auf die Fallback-Adresse
+- [x] Installation listet die zwei bestätigten Modelle, eine Kaufempfehlung mit
       Preisklasse und Recherchedatum, und schließt USB aus
-- [ ] FAQ beantwortet Stromausfall (inkl. Neustart und Status-Seite), Geräteanzahl,
+- [x] FAQ beantwortet Stromausfall (inkl. Neustart und Status-Seite), Geräteanzahl,
       Helfer-Verzehr, Drucker-Notwendigkeit
-- [ ] FAQ nennt den Drucker als nötig; die Befreiung erspart nur das ungefragte
+- [x] FAQ nennt den Drucker als nötig; die Befreiung erspart nur das ungefragte
       Aushändigen
-- [ ] `docs/leitfaden/installation.md`, `README.md` und
+- [x] `docs/leitfaden/installation.md`, `README.md` und
       `website/src/components/FaqAccordion.tsx` nennen dieselbe Anschluss-Angabe
-- [ ] `make check` und `make website-check` grün; die geänderten Leitfaden-Seiten rendern
+- [x] `make check` und `make website-check` grün; die geänderten Leitfaden-Seiten rendern
 
 ---
 
