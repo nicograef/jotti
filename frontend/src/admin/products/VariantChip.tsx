@@ -48,7 +48,8 @@ export function VariantChip(props: VariantChipProps) {
   // Geschwistern. Ohne den eigenen Stapelkontext verschluckt sie die dem
   // Switch zugewandte Kante von Pfeil und Name-Button — ein Tipp dort schaltet
   // die Variante, statt sie zu verschieben oder zu öffnen.
-  const chevronClass = 'relative z-10 -my-1 shrink-0 cursor-pointer rounded-full'
+  const chevronClass =
+    'relative z-10 -my-1 shrink-0 cursor-pointer rounded-full'
 
   return (
     <>

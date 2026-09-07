@@ -154,7 +154,11 @@ describe('Products', () => {
 
   it('hides the variant chevrons when a produkt has a single variante', () => {
     renderProducts([
-      produkt({ id: 1, name: 'Kuchen', varianten: [variante({ name: 'Stück' })] }),
+      produkt({
+        id: 1,
+        name: 'Kuchen',
+        varianten: [variante({ name: 'Stück' })],
+      }),
     ])
 
     expect(
