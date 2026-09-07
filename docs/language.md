@@ -137,7 +137,7 @@ Schlankes Event-Sourced Aggregat im Kasse-Kontext für den Barverkauf an der The
 
 #### Abholbon
 
-Nicht-fiskalischer Bon für die Warenübergabe beim Direktverkauf. Festes Label „Direktverkauf", keine Preise, `bon_art = 'arbeitsbon'`, gedruckt an der Druckstation `abholbon` (Bonmodus `pro_bestellung` = ein Sammel-Abholbon, `pro_position` = ein Bon je Position).
+Nicht-fiskalischer Bon für die Warenübergabe beim Direktverkauf. Festes Label „Direktverkauf", keine Preise, `bon_art = 'arbeitsbon'`, gedruckt an der Druckstation `abholbon` (Bonmodus `pro_bestellung` = ein Sammel-Abholbon, `pro_position` = ein Bon je Position, `pro_stueck` = ein Bon je Einheit einer Position).
 
 #### Arbeitsmodus
 
@@ -414,9 +414,9 @@ DB-Tabelle: `druckstationen` · DB-Enum `DruckstationKategorie`: `'essen'`, `'ge
 
 #### Bonmodus
 
-Druckmodus für Arbeitsbons/Abholbons: einzelner Bon pro Position oder ein gesammelter Bon pro Bestellung. Für die Kassenbeleg-Station entfällt er (NULL).
+Druckmodus für Arbeitsbons/Abholbons: einzelner Bon pro Position, ein gesammelter Bon pro Bestellung oder — allein an der Abholbon-Station — ein Bon je Einheit (`pro_stueck`). Für die Kassenbeleg-Station entfällt er (NULL).
 
-DB-Enum: `'pro_position'`, `'pro_bestellung'`
+DB-Werte (TEXT + CHECK): `'pro_position'`, `'pro_bestellung'`, `'pro_stueck'` (nur `abholbon`)
 
 #### Druckauftrag
 
