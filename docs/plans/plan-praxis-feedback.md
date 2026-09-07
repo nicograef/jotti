@@ -554,9 +554,9 @@ Tabelle bleibt die einzige Stelle; die FAQ aus Phase 1 verweist darauf.
 
 ### Acceptance criteria
 
-- [ ] Drei Zeilen in der Nicht-Ziele-Tabelle mit je einer Begründung; die Spalte `Ex-ID`
+- [x] Drei Zeilen in der Nicht-Ziele-Tabelle mit je einer Begründung; die Spalte `Ex-ID`
       bleibt „—", weil keiner der drei Punkte je eine Anforderungs-ID trug
-- [ ] `docs/produktbeschreibung.md` Abgrenzung stimmt damit überein
+- [x] `docs/produktbeschreibung.md` Abgrenzung stimmt damit überein
 
 ---
 
