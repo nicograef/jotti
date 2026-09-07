@@ -2,6 +2,7 @@
 
 > Source PRD: n/a (Praxis-Feedback aus E-Mails von Vereinen, April bis September 2026;
 > die Auswertung selbst liegt bewusst außerhalb des Repos)
+> Ausführung: Phase A von [plan-orchestrierung.md](plan-orchestrierung.md)
 
 ## Goal
 
