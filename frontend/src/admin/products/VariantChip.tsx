@@ -41,7 +41,14 @@ export function VariantChip(props: VariantChipProps) {
 
   // 32-px-Ziele wie die Produkt-Pfeile in ProductItem. Das negative my hält den
   // Chip auf seiner Höhe, obwohl der Button höher ist als sein Inhalt.
-  const chevronClass = '-my-1 shrink-0 cursor-pointer rounded-full'
+  //
+  // `relative z-10` ist Pflicht, nicht Kosmetik: Der Switch bringt eine
+  // unsichtbare Trefferflächen-Erweiterung mit (after:-inset-x-3, 12 px je
+  // Seite) und liegt als positioniertes Element über allen unpositionierten
+  // Geschwistern. Ohne den eigenen Stapelkontext verschluckt sie die dem
+  // Switch zugewandte Kante von Pfeil und Name-Button — ein Tipp dort schaltet
+  // die Variante, statt sie zu verschieben oder zu öffnen.
+  const chevronClass = 'relative z-10 -my-1 shrink-0 cursor-pointer rounded-full'
 
   return (
     <>
@@ -68,7 +75,7 @@ export function VariantChip(props: VariantChipProps) {
 
         <button
           type="button"
-          className="flex min-w-0 cursor-pointer items-center gap-1.5"
+          className="relative z-10 flex min-w-0 cursor-pointer items-center gap-1.5"
           aria-label={`Variante „${props.variant.name}" bearbeiten`}
           onClick={() => {
             setEditOpen(true)
