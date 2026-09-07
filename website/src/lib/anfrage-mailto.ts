@@ -3,10 +3,10 @@
 // Betreiber-Adresse aus links.ts, Betreff und Body nach der TERMS.md-Vorlage)
 // und validiert die Pflichtfelder. Kein DOM, keine React-Abhängigkeit — die
 // AnfrageFormular-Island (src/components/AnfrageFormular.tsx) rendert die
-// Felder, ruft dieses Modul auf und zeigt Empfänger, Betreff und Text nach
-// dem Absenden zusätzlich zum geöffneten mailto-Entwurf zum Kopieren an
-// (kein natives <form action="mailto:">, das die Produktiv-CSP
-// form-action 'self' blockt).
+// Felder, ruft dieses Modul auf, öffnet die URL per JS-Navigation (kein
+// natives <form action="mailto:">, das die Produktiv-CSP form-action 'self'
+// blockt) und zeigt Empfänger, Betreff und Text nach dem Absenden zusätzlich
+// zum Kopieren an.
 //
 // Feldnamen und Rechtsform-Labels stammen aus dem Handoff-Prototyp
 // (PRD docs/prds/prd-website-redesign.md).
@@ -34,9 +34,7 @@ export const artOptionen = [
 // Fehler je Pflichtfeld (verein, name, email); die Werte sind
 // benutzer-sichtbare deutsche Meldungen. art hat als Select immer einen Wert,
 // message ist optional — beide brauchen keine Validierung.
-export type AnfrageFehler = Partial<
-  Record<'verein' | 'name' | 'email', string>
->
+export type AnfrageFehler = Partial<Record<'verein' | 'name' | 'email', string>>
 
 // Einfacher Format-Check (etwas@etwas.tld); die eigentliche Zustellbarkeit
 // prüft erst das Mailprogramm.
@@ -46,7 +44,8 @@ export function validateAnfrage(felder: AnfrageFelder): AnfrageFehler {
   const fehler: AnfrageFehler = {}
 
   if (!felder.verein.trim()) {
-    fehler.verein = 'Bitte gib den Namen eures Vereins oder eurer Organisation an.'
+    fehler.verein =
+      'Bitte gib den Namen eures Vereins oder eurer Organisation an.'
   }
   if (!felder.name.trim()) {
     fehler.name = 'Bitte gib eine:n Ansprechpartner:in an.'

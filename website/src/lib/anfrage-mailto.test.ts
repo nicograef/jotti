@@ -29,9 +29,7 @@ describe('validateAnfrage', () => {
   })
 
   it('meldet jedes leere Pflichtfeld (verein, name, email)', () => {
-    const fehler = validateAnfrage(
-      felder({ verein: '', name: '', email: '' }),
-    )
+    const fehler = validateAnfrage(felder({ verein: '', name: '', email: '' }))
     expect(fehler.verein).toBeTruthy()
     expect(fehler.name).toBeTruthy()
     expect(fehler.email).toBeTruthy()
@@ -79,9 +77,7 @@ describe('buildMailtoUrl', () => {
   it('legt Betreff und alle Feldwerte korrekt in der URL ab', () => {
     const params = new URLSearchParams(
       new URL(
-        buildMailtoUrl(
-          felder({ message: 'Für unser Sommerfest im Juli.' }),
-        ),
+        buildMailtoUrl(felder({ message: 'Für unser Sommerfest im Juli.' })),
       ).search,
     )
     expect(params.get('subject')).toBe(
