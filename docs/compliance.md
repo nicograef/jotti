@@ -110,12 +110,12 @@ Das vollständige Mapping aller jotti-Vorgänge (inkl. Geldtransit, Kassendiffer
 
 ### 3.5 TSE-Varianten und Anbieter-Entscheidung
 
-| Variante     | Beschreibung                                       | Beispiel-Anbieter                |
-| ------------ | -------------------------------------------------- | -------------------------------- |
-| Hardware-TSE | Physisches Gerät (USB-Stick, SD-Karte, Smartcard)  | Swissbit, Epson, Diebold Nixdorf |
-| Cloud-TSE    | TSE als Cloud-Service, Kommunikation via HTTPS-API | fiskaly, Deutsche Fiskal         |
+| Variante     | Beschreibung                                       | Beispiel-Anbieter                                   |
+| ------------ | -------------------------------------------------- | --------------------------------------------------- |
+| Hardware-TSE | Physisches Gerät (USB-Stick, microSD-/SD-Karte)    | Swissbit, Epson, cryptovision (für D-Trust)         |
+| Cloud-TSE    | TSE als Cloud-Service, Kommunikation via HTTPS-API | fiskaly, Deutsche Fiskal, Swissbit, Diebold Nixdorf |
 
-Für jotti als Self-hosted-System ist die Cloud-TSE gesetzt, eine Hardware-TSE scheidet für BYOD-Setups auf gemieteten Servern praktisch aus. Gewählter erster Zielanbieter: fiskaly (API-first, BSI-zertifiziert nach TR-03153, unterstützt alle drei processTypes). Das Backend-Interface `TSEClient` bleibt anbieter-agnostisch (Adapter-Pattern), ein Anbieterwechsel erfordert keine Änderung am Domain-Code.
+Für jotti ist die Cloud-TSE gesetzt; eine Hardware-TSE wird nicht angebunden ([ADR 09](adrs/09_tse-kosten-und-hardware-tse.md)). Gründe: das Backend läuft im Linux-Container, ein USB-Gerät am Windows-Host bräuchte eine Durchreichung; die Hersteller-Bibliothek ist proprietär und hat keine Go-Bindung; die Zertifikatslaufzeit beginnt mit der Fertigung, nicht mit der ersten Nutzung; und über fünf Jahre liegt der Preis in derselben Größenordnung wie das Cloud-Abo. Gewählter Zielanbieter: fiskaly (API-first, BSI-zertifiziert nach TR-03153, unterstützt alle drei processTypes). Anbieter ohne öffentlich dokumentierte API werden nicht integriert. Das Backend-Interface `TSEClient` bleibt anbieter-agnostisch (Adapter-Pattern), ein Anbieterwechsel erfordert keine Änderung am Domain-Code.
 
 ### 3.6 Das Festzelt-Muster: Atomare TSE-Transaktionen
 
