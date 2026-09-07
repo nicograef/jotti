@@ -265,6 +265,34 @@ describe('DruckstationConfigPage — Stationskarten', () => {
     expect(screen.queryByText('Gespeichert')).not.toBeInTheDocument()
   })
 
+  it('bietet den Bonmodus „Pro Stück" nur an der Abholbon-Station an und speichert ihn', async () => {
+    druckstationenState.druckstationen = [
+      makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
+      makeStation({
+        kategorie: 'abholbon',
+        druckerIp: '192.168.1.77',
+        bonmodus: 'pro_bestellung',
+      }),
+    ]
+    const user = userEvent.setup()
+    render(<DruckstationConfigPage />)
+
+    // Beide Karten zeigen die zwei Standard-Kacheln, „Pro Stück" nur der Abholbon.
+    expect(
+      screen.getAllByRole('button', { name: /Pro Position/ }),
+    ).toHaveLength(2)
+    const proStueck = screen.getAllByRole('button', { name: /Pro Stück/ })
+    expect(proStueck).toHaveLength(1)
+
+    await user.click(proStueck[0])
+
+    expect(updateDruckstation).toHaveBeenCalledWith({
+      kategorie: 'abholbon',
+      druckerIp: '192.168.1.77',
+      bonmodus: 'pro_stueck',
+    })
+  })
+
   it('fasst nicht konfigurierte Stationen als gestrichelte Karte mit "Drucker zuweisen" zusammen', async () => {
     druckstationenState.druckstationen = [
       makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
