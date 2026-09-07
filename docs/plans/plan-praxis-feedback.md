@@ -485,24 +485,24 @@ bleibt nicht-fiskalisch.
 
 ### Acceptance criteria
 
-- [ ] Neue Migration `NN_abholbon_pro_stueck.up.sql` (`NN` = nächste freie Nummer beim
+- [x] Neue Migration `NN_abholbon_pro_stueck.up.sql` (`NN` = nächste freie Nummer beim
       Anlegen, `database/migrations/README.md` Regel 1; Phase 5 und Phase 6 können
       dieselbe Nummer beanspruchen) erlaubt `pro_stueck` nur für `abholbon`
-- [ ] Die Migration setzt `COMMENT ON COLUMN druckstationen.bonmodus` neu und ändert
+- [x] Die Migration setzt `COMMENT ON COLUMN druckstationen.bonmodus` neu und ändert
       keine Zeile in `druckstationen`; alle bestehenden Bonmodus-Werte bleiben
-- [ ] `make sqlc` ausgeführt, `backend/sqlc/dbgen/models.go` mitcommittet
-- [ ] Direktverkauf mit `3x Bier` und Modus `pro_stueck` erzeugt drei Druckaufträge mit
+- [x] `make sqlc` ausgeführt, `backend/sqlc/dbgen/models.go` mitcommittet
+- [x] Direktverkauf mit `3x Bier` und Modus `pro_stueck` erzeugt drei Druckaufträge mit
       `1x Bier`
-- [ ] Modus `pro_stueck` an einer Produktstation wird von `Validate()`, zog-Schema und
+- [x] Modus `pro_stueck` an einer Produktstation wird von `Validate()`, zog-Schema und
       Admin-UI abgelehnt
-- [ ] Kein Kommentar behauptet mehr, `abholbon` trage keinen Bonmodus
+- [x] Kein Kommentar behauptet mehr, `abholbon` trage keinen Bonmodus
       (`druckstation.go`, `handler.go`, `DruckstationBackend.ts`)
-- [ ] `docs/language.md` (`#### Abholbon`, `#### Bonmodus` inkl. DB-Enum),
+- [x] `docs/language.md` (`#### Abholbon`, `#### Bonmodus` inkl. DB-Enum),
       `docs/handbuch.md` § 4.6 und `docs/anforderungen.md` beschreiben den Modus
-- [ ] `make rebuild-projections` läuft nach der Migration fehlerfrei durch
+- [x] `make rebuild-projections` läuft nach der Migration fehlerfrei durch
       (`database/migrations/README.md` Regel 5)
 - [ ] CI-Job `upgrade-path` grün — Pflicht-Gate für Schema-Änderungen
-- [ ] `make verify` grün
+- [x] `make verify` grün
 
 ---
 
@@ -590,10 +590,10 @@ Produkte festlegen) oder abgelehnt (dann #111 mit Begründung schließen).
 
 ### Acceptance criteria
 
-- [ ] Prüfergebnis zum PR-Stand gegenüber den Kategorie-Pills liegt in der ADR
-- [ ] Die ADR nennt die Variantenzahl je Kategorie aus den Praxis-Setups (7 Produkte,
+- [x] Prüfergebnis zum PR-Stand gegenüber den Kategorie-Pills liegt in der ADR
+- [x] Die ADR nennt die Variantenzahl je Kategorie aus den Praxis-Setups (7 Produkte,
       ~50 Varianten) als Entscheidungsgrundlage
-- [ ] ADR `10_produktebene-service.md` mit Status und Begründung, in der Tabelle in
+- [x] ADR `10_produktebene-service.md` mit Status und Begründung, in der Tabelle in
       `docs/adrs/README.md` verlinkt
 - [ ] PR #111 gemerged oder mit Verweis auf die ADR geschlossen
 
