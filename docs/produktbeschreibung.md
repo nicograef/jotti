@@ -19,7 +19,7 @@ jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfes
 
 ### 2.1 Positioning Statement
 
-Für eingetragene Vereine, gemeinnützige Organisationen und Non-Profit-Veranstalter, die ein einfaches Kassensystem mit fiskalischen Bausteinen für ihre Gastronomie-Veranstaltungen brauchen, ist jotti ein kostenloses, quelloffenes Mobile-Point-of-Sale-System, das ohne teure Hardware, ohne Cloud-Abo und ohne technisches Vorwissen den kompletten Kassenbetrieb auf dem Smartphone ermöglicht, inklusive TSE-Anbindung, Belegausgabe nach KassenSichV und DSFinV-K-Export (v2.4). Anders als kommerzielle POS-Systeme wie Orderbird, Toast oder Zettle erfordert jotti keine laufenden Kosten für die Software selbst — nur die Cloud-TSE ist ein laufender Vertrag des Vereins —, keine Kartenterminals und keine Anbieter-Abhängigkeit; es gehört dem Verein, läuft auf dem eigenen Server und ist speziell für den ehrenamtlichen Einsatz gebaut.
+Für eingetragene Vereine, gemeinnützige Organisationen und Non-Profit-Veranstalter, die ein einfaches Kassensystem mit fiskalischen Bausteinen für ihre Gastronomie-Veranstaltungen brauchen, ist jotti ein kostenloses, quelloffenes Mobile-Point-of-Sale-System, das ohne teure Hardware, ohne Cloud-Abo für die Software und ohne technisches Vorwissen den kompletten Kassenbetrieb auf dem Smartphone ermöglicht, inklusive TSE-Anbindung, Belegausgabe nach KassenSichV und DSFinV-K-Export (v2.4). Anders als kommerzielle POS-Systeme wie Orderbird, Toast oder Zettle erfordert jotti keine laufenden Kosten für die Software selbst — nur die Cloud-TSE ist ein laufender Vertrag des Vereins —, keine Kartenterminals und keine Anbieter-Abhängigkeit; es gehört dem Verein, läuft auf dem eigenen Server und ist speziell für den ehrenamtlichen Einsatz gebaut.
 
 ### 2.2 Marktkategorie
 
@@ -115,7 +115,7 @@ Status pro Anforderung: [anforderungen.md](anforderungen.md).
 | Zielgruppe        | Vereine, gemeinnützige Organisationen                            | Gastronomie-Betriebe, Restaurants    |
 | Zahlungsarten     | Bargeld                                                          | Karte, NFC, Online-Payment           |
 | Fiskalkonformität | TSE (Cloud-TSE/fiskaly) und Belegausgabe; DSFinV-K-Export (v2.4) | Zertifizierte TSE, GoBD, KassenSichV |
-| Vertragslaufzeit  | Keine                                                            | 12–24 Monate                         |
+| Vertragslaufzeit  | Keine für jotti (TSE-Vertrag: Laufzeit bei fiskaly klären)       | 12–24 Monate                         |
 | Datenhoheit       | Volle Kontrolle (eigener Server)                                 | Daten beim Anbieter                  |
 | Quellcode         | Einsehbar (Source-Available)                                     | Proprietär                           |
 
