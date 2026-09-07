@@ -418,7 +418,7 @@ Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 | Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten · Druckerkonfiguration (`DruckerConfigPage`, IP und Bonmodus pro Kategorie konfigurieren)                                                 |
 | Allgemein | Login · Passwort setzen (Erstanmeldung)                                                                                                                                                              |
 
-**UI-Patterns:** Karten für Produkte/Tische, Drawer (Bottom-Sheet) für Bestell-/Bezahl-/Storno-Bestätigung, Tab-Navigation im Tisch-Detail, Plus/Minus-Buttons für Mengenauswahl (Touch-optimiert).
+**UI-Patterns:** Karten für Tische, Zeilenliste für die Varianten im Bestellen-Tab und im Direktverkauf (Name umbrechend, Preis darunter, Mengensteuerung in einem Slot fester Breite), Drawer (Bottom-Sheet) für Bestell-/Bezahl-/Storno-Bestätigung, Tab-Navigation im Tisch-Detail, Plus/Minus-Buttons für Mengenauswahl (Touch-optimiert).
 
 **BackendClient:** Das Frontend kommuniziert ausschließlich über Backend-Klassen, die das `BackendClient`-Interface verwenden. Direktes `fetch()` ist verboten.
 
