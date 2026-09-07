@@ -108,6 +108,11 @@ FormatDirektverkaufAbholbon()` — delegiert an `FormatSammelBon()`; druckt je P
   Service-Layout, nachdem #109 gelandet ist. Die Kategorie-Pills existieren bereits, der
   PR darf sie nicht duplizieren.
 - **Mobile-Abschneiden** wird über Umbruch statt Kürzung gelöst; #110 ist der Kandidat.
+- **Externe PRs werden per Cherry-Pick übernommen**, nicht in den Fork-Branches
+  weiterentwickelt: Die Commits von #109 und #110 landen mit ihrer Autorschaft in den
+  Phasen 5 und 4, die Pflicht-Fixes kommen als eigene Commits obendrauf. Nach dem Landen
+  werden die PRs mit Verweis auf den Merge-Commit geschlossen. #111 folgt der ADR aus
+  Phase 10. Der Autor wird vorab per Kommentar informiert.
 - **Bon pro Stück** wird nicht 1:1 übernommen. Die Anforderung (mehrere Einheiten auf
   einmal kaufen, einzeln an der Theke einlösen) deckt der Abholbon-Modus `pro_stueck`.
 - **Bon per E-Mail** wird nicht gebaut. Die Anforderung („Beleg ohne eigenen Drucker")
@@ -342,8 +347,8 @@ Beide Wege rendern `ProductList`. PR #110 ist reviewt und wird nach fünf Pflich
 (`review-externe-prs.md`): Stepper-Platz bei Menge 0 reservieren statt aushängen (sonst
 Layout-Shift von bis zu 52 px), Kontrakt-Kommentare in `VariantNamePreis.tsx`, dem
 e2e-Überlauf-Spec und `ProductList.tsx` richtigstellen, Test für `minusNurAbEins`.
-Die Fixes kommen entweder vom Autor (Kommentar posten) oder werden beim Übernehmen
-selbst ergänzt. Dazu die Nacharbeiten, die dem Autor nicht obliegen: dieselbe
+Der Commit wird per Cherry-Pick mit Autorschaft übernommen, die Fixes folgen als eigene
+Commits. Dazu die Nacharbeiten, die dem Autor nicht obliegen: dieselbe
 Umbruch-Regel in `PositionAuswahlListe.tsx`, Handbuch § 6.3 und die Website-Screenshots. Trifft es
 `VariantNamePreis`, ändern sich die Admin-Variantenchips mit
 (`frontend/src/admin/products/VariantChip.tsx`) — die Chip-Darstellung wird dann
@@ -389,8 +394,8 @@ Scrollen sinkt ohne neue Interaktionsebene. PR #109 ist reviewt: Migration, Endp
 Validierung passen, aber das Verschieben ist bei gleichem `reihenfolge`-Wert innerhalb
 einer Kategorie ein stiller No-Op (HTTP 200, Liste unverändert), erreichbar über einen
 Kategoriewechsel im Admin und über den Seeder, der `reihenfolge` nicht schreibt. Die acht
-Pflicht-Fixes stehen in `review-externe-prs.md`; sie werden vom Autor eingefordert oder
-beim Übernehmen selbst umgesetzt: Ränge statt Werte tauschen (dichte Nummerierung per
+Pflicht-Fixes stehen in `review-externe-prs.md`; die Commits werden per Cherry-Pick mit
+Autorschaft übernommen, die Fixes folgen als eigene Commits: Ränge statt Werte tauschen (dichte Nummerierung per
 `row_number()`), `reihenfolge` bei Kategoriewechsel auf MAX+1 setzen, Seeder schreibt
 `reihenfolge`, Chevrons mit `relative` und 32-px-Zielen, aussagekräftige Tests, korrekte
 COLLATE-Begründung, Mock-Felder mit Tests oder weg.
@@ -578,9 +583,10 @@ einen zusätzlichen Tap pro Bestellung unter Stress? Der Review liefert die Fakt
 filtern bereits, die Produktebene kostet je Produkt einen Tap plus Bildschirmwechsel, auch
 bei Produkten mit einer Variante; die e2e-Suite bricht komplett; Kachel zeigt ein
 sichtbares Komma; keine Tests; Zurück-Button 24 px; Grid nach Viewport statt Container.
-Ergebnis ist eine ADR: angenommen (dann #111 rebasen, die acht Pflicht-Fixes aus
-`review-externe-prs.md` einfordern oder selbst umsetzen, Direktweg für Ein-Varianten-
-Produkte festlegen) oder abgelehnt (dann #111 mit Begründung schließen).
+Ergebnis ist eine ADR: angenommen (dann den #111-Commit per Cherry-Pick übernehmen, die
+acht Pflicht-Fixes aus `review-externe-prs.md` selbst umsetzen, Direktweg für
+Ein-Varianten-Produkte festlegen) oder abgelehnt (dann #111 mit Begründung und Dank
+schließen; der #110-Anteil ist über Phase 4 ohnehin übernommen).
 
 ### Acceptance criteria
 
