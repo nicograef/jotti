@@ -15,7 +15,8 @@ Ein **Kassenrechner** im WLAN, die Helfer bedienen jotti auf ihren **Handys**.
 > ⚠️ **Den ersten Start unbedingt vorab zuhause mit Internet machen, nicht erst
 > auf dem Fest.** Beim Erststart lädt jotti seine Programmteile herunter **und**
 > holt das vertrauenswürdige Zertifikat (grünes Schloss). Beides braucht Internet.
-> Danach läuft jotti auch ohne Internet.
+> Zertifikat und Handy-Zugang laufen danach ohne Internet; die TSE braucht beim
+> Fest Internet.
 
 1. Das ZIP **entpacken** (Rechtsklick → „Alle extrahieren"). Alle Dateien müssen
    im selben Ordner bleiben.
