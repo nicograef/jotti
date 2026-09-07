@@ -358,17 +358,17 @@ mitgeprüft, und die Kontrakt-Kommentare in `VariantNamePreis.tsx` und
 
 ### Acceptance criteria
 
-- [ ] E2E-Test im Projekt `mobile-service` (Pixel-7-Viewport): zwei Varianten mit langem
+- [x] E2E-Test im Projekt `mobile-service` (Pixel-7-Viewport): zwei Varianten mit langem
       gemeinsamem Präfix sind vollständig lesbar
-- [ ] Hoch- und Querformat des Handy-Viewports geprüft (Playwright `setViewportSize`)
-- [ ] Falls `VariantNamePreis` geändert wurde: Admin-Preisliste (Variantenchips) geprüft
+- [x] Hoch- und Querformat des Handy-Viewports geprüft (Playwright `setViewportSize`)
+- [x] Falls `VariantNamePreis` geändert wurde: Admin-Preisliste (Variantenchips) geprüft
       und die Kontrakt-Kommentare in Komponente und Test angepasst
-- [ ] Stepper-Breite bei Menge 0 reserviert; kein Layout-Shift beim ersten Tap (Pixel-7-Messung)
-- [ ] `Stepper.test.tsx` deckt `minusNurAbEins` ab
-- [ ] `PositionAuswahlListe.tsx` bricht Variantennamen wie die Bestell-Liste um
-- [ ] `docs/handbuch.md` § 6.3 und die Website-Screenshots zeigen den neuen Zustand
-- [ ] `make test-e2e` grün (Playwright läuft weder in `make check` noch in `make verify`)
-- [ ] `make check` grün
+- [x] Stepper-Breite bei Menge 0 reserviert; kein Layout-Shift beim ersten Tap (Pixel-7-Messung)
+- [x] `Stepper.test.tsx` deckt `minusNurAbEins` ab
+- [x] `PositionAuswahlListe.tsx` bricht Variantennamen wie die Bestell-Liste um
+- [x] `docs/handbuch.md` § 6.3 und die Website-Screenshots zeigen den neuen Zustand
+- [x] `make test-e2e` grün (Playwright läuft weder in `make check` noch in `make verify`)
+- [x] `make check` grün
 
 ---
 
