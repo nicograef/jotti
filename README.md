@@ -66,7 +66,7 @@ make dev
 
 ### Print-Relay
 
-Das Print-Relay verbindet den jotti-Server mit den ESC/POS-Bondruckern (80 mm, Ethernet, TCP Port 9100; statische IP empfohlen). Es läuft auf einem Rechner im Drucker-Netzwerk:
+Das Print-Relay verbindet den jotti-Server mit den ESC/POS-Bondruckern (80 mm, im Netzwerk erreichbar (Ethernet oder WLAN), TCP-Port 9100, feste IP-Adresse empfohlen). Es läuft auf einem Rechner im Drucker-Netzwerk:
 
 ```bash
 make build-relay

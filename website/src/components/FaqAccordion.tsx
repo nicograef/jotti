@@ -39,7 +39,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: 'Brauchen wir spezielle Hardware?',
-    a: 'Nein. jotti läuft im Browser auf den Smartphones, Tablets und Rechnern, die ihr schon habt (BYOD). Für Küchenbons genügt ein handelsüblicher ESC/POS-Bondrucker (80 mm, Ethernet).',
+    a: 'Nein. jotti läuft im Browser auf den Smartphones, Tablets und Rechnern, die ihr schon habt (BYOD). Für Küchenbons genügt ein handelsüblicher ESC/POS-Bondrucker (80 mm, im Netzwerk erreichbar (Ethernet oder WLAN), TCP-Port 9100, feste IP-Adresse empfohlen).',
   },
   {
     q: 'Können die Helfer:innen ihre eigenen Handys nutzen?',
