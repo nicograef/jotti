@@ -9,7 +9,8 @@ export const meta = {
 }
 
 // Reusable named workflow: Workflow({ name: 'jotti-full-audit', args: { date: 'YYYY-MM-DD' } })
-// Optional args: repo (default /home/user/jotti), handbook (cleanup skill dir), outFile.
+// Optional args: repo (default /home/user/jotti), handbook (cleanup skill dir), outFile,
+// rev (short sha of the audited checkout), branch (name shown in the header).
 // Model policy of the orchestrator plan: reviewers and skeptics run on Fable 5.1 (explicit
 // owner decision for the audit, overriding the general "no Fable" rule in CLAUDE.md);
 // the assembler is mechanical and runs on Opus.
@@ -18,6 +19,8 @@ const REPO = A.repo || '/home/user/jotti'
 const HANDBOOK = A.handbook || '/home/user/handbook/.claude/skills/cleanup'
 const OUT = A.outFile || `${REPO}/docs/plans/findings-jotti-audit.md`
 const DATE = A.date || 'unbekannt'
+const REV = A.rev || 'unbekannt'
+const BRANCH = A.branch || 'main'
 
 const UNITS = [
   { key: 'api-kasse', kind: 'go', paths: ['backend/api/kasse'] },
@@ -195,7 +198,7 @@ const counts = { blocker: 0, major: 0, minor: 0 }
 finalFindings.forEach((f) => { counts[f.severity]++ })
 const header = `# Findings: Vollreview jotti (${DATE})
 
-> Quelle: Multi-Experten-Review aller Dateien des Repos (Stand \`main\` @ 2ee9cbaa plus Branch-Pläne),
+> Quelle: Multi-Experten-Review aller Dateien des Repos (Stand \`${BRANCH}\` @ ${REV}),
 > ${UNITS.length} Einheiten × 3 Linsen (Cleanup-Skill, Korrektheit/Security, Konventionen/Doku) plus
 > ${FLOWS.length} Cross-Layer-Flüsse; Reviewer und Prüfer: Fable 5.1. Jeder Blocker/Major-Befund wurde von
 > ${'2–3'} unabhängigen Skeptikern gegengeprüft${capped ? ` (gekappt auf ${CAP} Befunde, Blocker zuerst)` : ''}; Minor-Befunde sind ungeprüft.
