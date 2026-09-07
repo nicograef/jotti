@@ -47,6 +47,9 @@ ihn drucken können. Einen Bon per E-Mail gibt es nicht; das ist bewusst kein Zi
 von jotti (siehe [Nicht-Ziele](../anforderungen.md#nicht-ziele)).
 
 **Was kostet der Betrieb?** jotti ist für euch kostenlos. Kosten entstehen nur für
-die Cloud-TSE von fiskaly (den aktuellen Preis bei fiskaly erfragen) und, beim
-Experten-Weg, für den VPS (ca. 5 €/Monat). Der Standardweg kommt ohne Servermiete
-aus.
+die Cloud-TSE von fiskaly und, beim Experten-Weg, für den VPS (ca. 5 €/Monat); der
+Standardweg kommt ohne Servermiete aus. fiskaly veröffentlicht für die TSE keinen
+Preis — Angebote von Wiederverkäufern liegen zur Orientierung bei rund 13 €/Monat
+oder 143 €/Jahr netto je Kasse. Mindestlaufzeit und Mindestabnahme nennt fiskaly
+nicht öffentlich; ein Verein berichtet von beidem — fragt vor Vertragsschluss
+danach. Stand der Recherche: 07.09.2026.

@@ -63,4 +63,4 @@ Habt ihr in TEST geübt, richtet ihr für den Echtbetrieb eine LIVE-TSS ein:
 > und kann nicht gelöscht, nur stillgelegt werden. Legt sie erst an, wenn ihr in
 > den Echtbetrieb geht.
 
-**Kosten:** fiskaly veröffentlicht für SIGN DE keine feste Preisliste; holt für die Budgetplanung ein aktuelles Angebot direkt bei fiskaly ein. Eine TSS genügt für eine jotti-Instanz.
+**Kosten:** fiskaly veröffentlicht für SIGN DE keine feste Preisliste. Angebote von Wiederverkäufern lagen am 07.09.2026 bei rund 13 €/Monat oder 143 €/Jahr netto je Kasse — eine Orientierung, kein Angebot von fiskaly. Holt für die Budgetplanung ein aktuelles Angebot direkt bei fiskaly ein und klärt dabei Mindestlaufzeit und Mindestabnahme. Eine TSS genügt für eine jotti-Instanz.
