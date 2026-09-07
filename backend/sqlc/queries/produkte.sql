@@ -104,7 +104,20 @@ VALUES ($1, $2, $3, $4, $5, $6,
 RETURNING id;
 
 -- name: UpdateProdukt :execresult
-UPDATE produkte SET name = $1, kategorie = $2, steuersatz = $3, status = $4, updated_at = $5 WHERE id = $6;
+-- Wechselt das Produkt die Kategorie, haengt es sich ans Ende der neuen an:
+-- die alte Reihenfolge gilt dort nicht und traefe womoeglich auf den Wert
+-- einer bestehenden Zeile. Bleibt die Kategorie, bleibt auch die Position.
+UPDATE produkte p SET
+    name = $1,
+    kategorie = $2,
+    steuersatz = $3,
+    status = $4,
+    updated_at = $5,
+    reihenfolge = CASE
+        WHEN p.kategorie = $2 THEN p.reihenfolge
+        ELSE COALESCE((SELECT MAX(zk.reihenfolge) + 1 FROM produkte zk WHERE zk.kategorie = $2), 1)
+    END
+WHERE p.id = $6;
 
 -- name: GetProduktReihenfolge :one
 SELECT id, kategorie, reihenfolge FROM produkte WHERE id = $1 AND status != 'deleted';

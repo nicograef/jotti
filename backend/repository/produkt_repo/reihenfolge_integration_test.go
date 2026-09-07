@@ -232,3 +232,37 @@ func TestVerschiebeVariante_TauschtBeiGleichemWert(t *testing.T) {
 		t.Errorf("erwartet [Gross Klein], got %v", got)
 	}
 }
+
+// Ein Produkt, das die Kategorie wechselt, haengt sich ans Ende der neuen
+// Kategorie und laesst sich dort sofort weiterverschieben. Behielte es seinen
+// alten Wert, traefe es dort auf einen bestehenden und bliebe stecken.
+func TestVerschiebeProdukt_NachKategoriewechsel(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+	pommesID, _ := repo.CreateProdukt(ctx, newProdukt("Pommes", produkt.EssenKategorie))
+	_, _ = repo.CreateProdukt(ctx, newProdukt("Cola", produkt.GetraenkKategorie))
+	_, _ = repo.CreateProdukt(ctx, newProdukt("Bier", produkt.GetraenkKategorie))
+
+	pommes := newProdukt("Pommes", produkt.GetraenkKategorie)
+	pommes.ID = pommesID
+	if err := repo.UpdateProdukt(ctx, pommes); err != nil {
+		t.Fatalf("kategoriewechsel fehlgeschlagen: %v", err)
+	}
+
+	if got := produktReihenfolge(t, repo, pommesID); got != 3 {
+		t.Errorf("Pommes muss ans Ende der Getraenke ruecken (3), got %d", got)
+	}
+	if got := produktNamen(t, repo); !gleich(got, []string{"Cola", "Bier", "Pommes"}) {
+		t.Fatalf("erwartet [Cola Bier Pommes], got %v", got)
+	}
+
+	if err := repo.VerschiebeProdukt(ctx, pommesID, true); err != nil {
+		t.Fatalf("verschieben fehlgeschlagen: %v", err)
+	}
+
+	if got := produktNamen(t, repo); !gleich(got, []string{"Cola", "Pommes", "Bier"}) {
+		t.Errorf("erwartet [Cola Pommes Bier], got %v", got)
+	}
+}
