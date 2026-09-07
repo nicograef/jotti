@@ -9,7 +9,7 @@ import {
   hatFehler,
   validateAnfrage,
 } from '../lib/anfrage-mailto'
-import { betreiberEmail } from '../lib/links'
+import { betreiberEmail, installationUrl } from '../lib/links'
 
 // AnfrageFormular-Island der Seite /fuer-vereine (Handoff-Prototyp,
 // PRD docs/prds/prd-website-redesign.md, data-vereine-Formular). Rendert die
@@ -115,6 +115,18 @@ export default function AnfrageFormular() {
             Wir haben einen vorbefüllten E-Mail-Entwurf in deinem Mailprogramm
             geöffnet. Bitte prüfe ihn und <strong>sende ihn ab</strong> — erst
             mit dem Absenden ist die Nutzungsvereinbarung geschlossen.
+          </p>
+          <p className="mt-4 max-w-[34em] text-[14px] leading-relaxed text-muted">
+            Es gibt keine Freigabe und keine Zugangsdaten. Mit dem Absenden
+            könnt ihr{' '}
+            <a
+              href={installationUrl}
+              className="font-semibold text-brand hover:underline"
+            >
+              installieren
+            </a>
+            . Antwortet der Autor, kann die E-Mail in eurem Spam-Ordner
+            landen — dort lohnt sich ein Blick.
           </p>
           <p className="mt-4 text-[14px] text-muted">
             Öffnet sich kein Entwurf? Schreib direkt an{' '}
