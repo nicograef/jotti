@@ -15,13 +15,13 @@ type command interface {
 	CreateProdukt(ctx context.Context, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) (int, error)
 	UpdateProdukt(ctx context.Context, id int, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) error
 	DeleteProdukt(ctx context.Context, produktID int) error
-	VerschiebeProdukt(ctx context.Context, produktID int, richtung application.Richtung) error
+	VerschiebeProdukt(ctx context.Context, produktID int, richtung dom.Richtung) error
 	CreateVariante(ctx context.Context, produktID int, name string, preisCents int) (int, error)
 	UpdateVariante(ctx context.Context, varianteID int, name string, preisCents int) error
 	ActivateVariante(ctx context.Context, varianteID int) error
 	DeactivateVariante(ctx context.Context, varianteID int) error
 	DeleteVariante(ctx context.Context, produktID int, varianteID int) error
-	VerschiebeVariante(ctx context.Context, varianteID int, richtung application.Richtung) error
+	VerschiebeVariante(ctx context.Context, varianteID int, richtung dom.Richtung) error
 	SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error
 }
 
@@ -102,13 +102,13 @@ func (h *CommandHandler) UpdateProduktHandler() http.HandlerFunc {
 }
 
 type verschiebeProduktRequest struct {
-	ID       int                  `json:"id"`
-	Richtung application.Richtung `json:"richtung"`
+	ID       int          `json:"id"`
+	Richtung dom.Richtung `json:"richtung"`
 }
 
 var verschiebeProduktSchema = z.Struct(z.Shape{
 	"ID":       dom.IDSchema.Required(),
-	"Richtung": application.RichtungSchema.Required(),
+	"Richtung": dom.RichtungSchema.Required(),
 })
 
 func (h *CommandHandler) VerschiebeProduktHandler() http.HandlerFunc {
@@ -201,13 +201,13 @@ func (h *CommandHandler) UpdateVarianteHandler() http.HandlerFunc {
 }
 
 type verschiebeVarianteRequest struct {
-	ID       int                  `json:"id"`
-	Richtung application.Richtung `json:"richtung"`
+	ID       int          `json:"id"`
+	Richtung dom.Richtung `json:"richtung"`
 }
 
 var verschiebeVarianteSchema = z.Struct(z.Shape{
 	"ID":       dom.IDSchema.Required(),
-	"Richtung": application.RichtungSchema.Required(),
+	"Richtung": dom.RichtungSchema.Required(),
 })
 
 func (h *CommandHandler) VerschiebeVarianteHandler() http.HandlerFunc {
