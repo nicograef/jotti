@@ -403,19 +403,19 @@ COLLATE-Begründung, Mock-Felder mit Tests oder weg.
 
 ### Acceptance criteria
 
-- [ ] Neue Migration ist additiv, `01_initial.up.sql` unverändert; die Nummer ist beim
+- [x] Neue Migration ist additiv, `01_initial.up.sql` unverändert; die Nummer ist beim
       Anlegen und erneut beim Rebase die nächste freie (`database/migrations/README.md`
       Regel 1) — Phase 6 und Phase 7 können ebenfalls eine Migration mitbringen
-- [ ] Service-Liste sortiert nach (Kategorie, Reihenfolge, ID)
-- [ ] Verschieben tauscht Ränge: Integrationstest mit gleichem `reihenfolge`-Wert in einer
+- [x] Service-Liste sortiert nach (Kategorie, Reihenfolge, ID)
+- [x] Verschieben tauscht Ränge: Integrationstest mit gleichem `reihenfolge`-Wert in einer
       Kategorie und mit Kategoriewechsel vor dem Verschieben ist grün
-- [ ] Seeder schreibt `reihenfolge`; Verschieben funktioniert in der e2e-Suite
-- [ ] Varianten-Chevrons haben 32-px-Ziele und keine Überlappung mit dem Switch
-- [ ] `docs/language.md` und `docs/handbuch.md` beschreiben die Reihenfolge
-- [ ] `make rebuild-projections` läuft nach der Migration fehlerfrei durch
+- [x] Seeder schreibt `reihenfolge`; Verschieben funktioniert in der e2e-Suite
+- [x] Varianten-Chevrons haben 32-px-Ziele und keine Überlappung mit dem Switch
+- [x] `docs/language.md` und `docs/handbuch.md` beschreiben die Reihenfolge
+- [x] `make rebuild-projections` läuft nach der Migration fehlerfrei durch
       (`database/migrations/README.md` Regel 5)
 - [ ] CI-Job `upgrade-path` grün — Pflicht-Gate für Schema-Änderungen
-- [ ] `make verify` grün
+- [x] `make verify` grün
 
 ---
 
