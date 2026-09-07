@@ -15,7 +15,7 @@ jotti ist ein self-hosted mPOS-System (Go-Backend, React-Frontend, PostgreSQL, D
 | Radikale Einfachheit    | Minimaler Funktionsumfang, der genau das abdeckt, was ein Vereinsfest braucht, nicht mehr.                              |
 | Mobile-first            | Alle Interaktionen sind für Smartphone-Browser und Touch-Bedienung optimiert.                                            |
 | Lückenlose Transparenz  | Jede Transaktion ist unveränderlich protokolliert. Kein Datenverlust, keine Manipulation.                                |
-| Null Softwarekosten     | Keine Lizenzgebühr, kein Abo für jotti; laufende Kosten nur für die vorgeschriebene Cloud-TSE.                           |
+| Null Softwarekosten     | Keine Lizenzgebühr, kein Abo für jotti; laufende Kosten nur für die vorgeschriebene Cloud-TSE und optional einen Server. |
 | Volle Datenhoheit       | Self-hosted, alle Daten auf dem eigenen Server.                                                                          |
 | Niedrige Einstiegshürde | Keine Schulung, keine App-Installation. Browser öffnen, einloggen, loslegen.                                             |
 | Nachvollziehbarkeit     | Event-Sourcing im Kassenjournal: Jede Bestellung, Zahlung, Stornierung und Kassenbewegung ist jederzeit nachvollziehbar. |
