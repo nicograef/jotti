@@ -84,7 +84,8 @@ FormatDirektverkaufAbholbon()` — delegiert an `FormatSammelBon()`; druckt je P
 - `docs/plans/guide-manuelle-qa-v1.0.0.md` — offen; verweist auf die nicht existierende
   Datei `plan-v1.0-release-blockers.md`
 - Offene externe PRs: #109 (Reihenfolge für Produkte/Varianten), #110 (Variantenname auf
-  eigener Zeile), #111 (Produktebene über der Variantenliste)
+  eigener Zeile), #111 (Produktebene über der Variantenliste); Review mit Urteilen,
+  Pflicht-Fixes und Kommentar-Entwürfen in `docs/plans/review-externe-prs.md`
 - `e2e/playwright.config.ts` — Projekt mit `devices['Pixel 7']` für Handy-Viewport
 - `.github/dependabot.yml` — monatliche Gruppen je Ökosystem (github-actions, sechs
   Go-Module, npm für `frontend/`, `website/`, `e2e/`, Docker für `backend/` und
@@ -324,7 +325,11 @@ reines Logik-Modul liefert die drei Teile getrennt, damit der Test sie ohne DOM 
 - `frontend/src/admin/products/VariantChip.tsx — VariantChip()` — zweiter Konsument von
   `VariantNamePreis`, Chip mit Switch
 - `frontend/src/components/common/VariantNamePreis.test.tsx` — Kommentar nennt `truncate`
-- PR #110 — Kandidat
+- PR #110 — Urteil „mergen nach Fixes", Security-Risiko none (`review-externe-prs.md`)
+- `frontend/src/service/components/PositionAuswahlListe.tsx` — Storno-/Umbuchungsliste
+  kürzt Variantennamen weiterhin einzeilig
+- `docs/handbuch.md — § 6.3 UI-Patterns` und `website/src/assets/screenshots/` — nennen bzw.
+  zeigen die Karten-Darstellung, die #110 entfernt
 - `e2e/playwright.config.ts` — Projekt `mobile-service` (`devices['Pixel 7']`, ignoriert
   `admin-*.spec.ts`)
 
@@ -333,8 +338,13 @@ reines Logik-Modul liefert die drei Teile getrennt, damit der Test sie ohne DOM 
 Variantennamen dürfen nie so gekürzt werden, dass zwei Varianten desselben Produkts
 gleich aussehen. Der Name bricht auf zwei Zeilen um; der Preis steht darunter oder
 rechts, der Stepper behält seine Breite. Gilt für Tisch-Bestellung und Direktverkauf.
-Beide Wege rendern `ProductList`. PR #110 wird dagegen reviewt: passt er, wird er
-übernommen; sonst wird der Umbruch direkt in `VariantNamePreis` umgesetzt. Trifft es
+Beide Wege rendern `ProductList`. PR #110 ist reviewt und wird nach fünf Pflicht-Fixes übernommen
+(`review-externe-prs.md`): Stepper-Platz bei Menge 0 reservieren statt aushängen (sonst
+Layout-Shift von bis zu 52 px), Kontrakt-Kommentare in `VariantNamePreis.tsx`, dem
+e2e-Überlauf-Spec und `ProductList.tsx` richtigstellen, Test für `minusNurAbEins`.
+Die Fixes kommen entweder vom Autor (Kommentar posten) oder werden beim Übernehmen
+selbst ergänzt. Dazu die Nacharbeiten, die dem Autor nicht obliegen: dieselbe
+Umbruch-Regel in `PositionAuswahlListe.tsx`, Handbuch § 6.3 und die Website-Screenshots. Trifft es
 `VariantNamePreis`, ändern sich die Admin-Variantenchips mit
 (`frontend/src/admin/products/VariantChip.tsx`) — die Chip-Darstellung wird dann
 mitgeprüft, und die Kontrakt-Kommentare in `VariantNamePreis.tsx` und
@@ -347,6 +357,10 @@ mitgeprüft, und die Kontrakt-Kommentare in `VariantNamePreis.tsx` und
 - [ ] Hoch- und Querformat des Handy-Viewports geprüft (Playwright `setViewportSize`)
 - [ ] Falls `VariantNamePreis` geändert wurde: Admin-Preisliste (Variantenchips) geprüft
       und die Kontrakt-Kommentare in Komponente und Test angepasst
+- [ ] Stepper-Breite bei Menge 0 reserviert; kein Layout-Shift beim ersten Tap (Pixel-7-Messung)
+- [ ] `Stepper.test.tsx` deckt `minusNurAbEins` ab
+- [ ] `PositionAuswahlListe.tsx` bricht Variantennamen wie die Bestell-Liste um
+- [ ] `docs/handbuch.md` § 6.3 und die Website-Screenshots zeigen den neuen Zustand
 - [ ] `make test-e2e` grün (Playwright läuft weder in `make check` noch in `make verify`)
 - [ ] `make check` grün
 
@@ -358,7 +372,11 @@ mitgeprüft, und die Kontrakt-Kommentare in `VariantNamePreis.tsx` und
 
 ### Context
 
-- PR #109 — Migration `reihenfolge`, Endpunkte zum Verschieben, Admin-UI
+- PR #109 — Urteil „Änderungen nötig", Security-Risiko none; Migration, Endpunkte und
+  Admin-Guard sind sauber, die Kernoperation ist fehlerhaft (`review-externe-prs.md`)
+- `backend/repository/produkt_repo/repo.go — VerschiebeProdukt()` — tauscht Werte statt Ränge
+- `backend/sqlc/queries/produkte.sql — UpdateProdukt`, `seed.sql — SeedInsertProdukt`
+- `frontend/src/admin/products/VariantChip.tsx` — Chevron unter der Switch-Trefferfläche
 - `database/migrations/README.md` — Regeln für additive Migrationen
 - `docs/language.md` — Begriff „Reihenfolge" aufnehmen
 - `docs/handbuch.md` — Sortierregel der Produktliste
@@ -367,8 +385,15 @@ mitgeprüft, und die Kontrakt-Kommentare in `VariantNamePreis.tsx` und
 
 Admins legen die Reihenfolge von Produkten und ihren Varianten fest; die Service-Liste
 sortiert innerhalb der Kategorie danach. Häufig bestellte Varianten stehen oben, das
-Scrollen sinkt ohne neue Interaktionsebene. PR #109 wird reviewt und, wenn Migration
-(additiv, forward-only), POST-only-Endpunkte und Validierung passen, übernommen.
+Scrollen sinkt ohne neue Interaktionsebene. PR #109 ist reviewt: Migration, Endpunkte und
+Validierung passen, aber das Verschieben ist bei gleichem `reihenfolge`-Wert innerhalb
+einer Kategorie ein stiller No-Op (HTTP 200, Liste unverändert), erreichbar über einen
+Kategoriewechsel im Admin und über den Seeder, der `reihenfolge` nicht schreibt. Die acht
+Pflicht-Fixes stehen in `review-externe-prs.md`; sie werden vom Autor eingefordert oder
+beim Übernehmen selbst umgesetzt: Ränge statt Werte tauschen (dichte Nummerierung per
+`row_number()`), `reihenfolge` bei Kategoriewechsel auf MAX+1 setzen, Seeder schreibt
+`reihenfolge`, Chevrons mit `relative` und 32-px-Zielen, aussagekräftige Tests, korrekte
+COLLATE-Begründung, Mock-Felder mit Tests oder weg.
 
 ### Acceptance criteria
 
@@ -376,6 +401,10 @@ Scrollen sinkt ohne neue Interaktionsebene. PR #109 wird reviewt und, wenn Migra
       Anlegen und erneut beim Rebase die nächste freie (`database/migrations/README.md`
       Regel 1) — Phase 6 und Phase 7 können ebenfalls eine Migration mitbringen
 - [ ] Service-Liste sortiert nach (Kategorie, Reihenfolge, ID)
+- [ ] Verschieben tauscht Ränge: Integrationstest mit gleichem `reihenfolge`-Wert in einer
+      Kategorie und mit Kategoriewechsel vor dem Verschieben ist grün
+- [ ] Seeder schreibt `reihenfolge`; Verschieben funktioniert in der e2e-Suite
+- [ ] Varianten-Chevrons haben 32-px-Ziele und keine Überlappung mit dem Switch
 - [ ] `docs/language.md` und `docs/handbuch.md` beschreiben die Reihenfolge
 - [ ] `make rebuild-projections` läuft nach der Migration fehlerfrei durch
       (`database/migrations/README.md` Regel 5)
@@ -531,7 +560,10 @@ Tabelle bleibt die einzige Stelle; die FAQ aus Phase 1 verweist darauf.
 
 ### Context
 
-- PR #111 — Produkt-Kacheln vor der Variantenliste
+- PR #111 — Urteil „Änderungen nötig", Security-Risiko none; enthält den #110-Commit
+  (`review-externe-prs.md`)
+- `e2e/support/servicekraft.ts — waehleVariante()` — verankert auf dem Produkt-`<h2>`, das
+  #111 entfernt; rund zehn Specs und `e2e/website/screenshots.mjs` brechen
 - `frontend/src/service/components/table/ProductList.tsx — ProductList()` — vorhandene
   Kategorie-Pills
 - `docs/adrs/08_service-split-screen.md` — bestehende Entscheidung zum Service-Layout
@@ -542,9 +574,13 @@ Zuerst prüfen, auf welchem Stand der PR entstanden ist und ob er die vorhandene
 Kategorie-Pills berücksichtigt oder ersetzt. Dann ohne Feldtest entscheiden, per
 Code-Review und Design-Check gegen das Service-Layout mit sortierter Liste (Phase 5): Wie
 viele Varianten bleiben je Kategorie nach der Sortierung sichtbar, und rechtfertigt das
-einen zusätzlichen Tap pro Bestellung unter Stress? Ergebnis ist eine ADR: angenommen
-(dann #111 auf den aktuellen Stand bringen und übernehmen) oder abgelehnt (dann #111 mit
-Begründung schließen).
+einen zusätzlichen Tap pro Bestellung unter Stress? Der Review liefert die Fakten dazu: Die Pills
+filtern bereits, die Produktebene kostet je Produkt einen Tap plus Bildschirmwechsel, auch
+bei Produkten mit einer Variante; die e2e-Suite bricht komplett; Kachel zeigt ein
+sichtbares Komma; keine Tests; Zurück-Button 24 px; Grid nach Viewport statt Container.
+Ergebnis ist eine ADR: angenommen (dann #111 rebasen, die acht Pflicht-Fixes aus
+`review-externe-prs.md` einfordern oder selbst umsetzen, Direktweg für Ein-Varianten-
+Produkte festlegen) oder abgelehnt (dann #111 mit Begründung schließen).
 
 ### Acceptance criteria
 
