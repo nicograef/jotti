@@ -155,6 +155,10 @@ FormatDirektverkaufAbholbon()` — delegiert an `FormatSammelBon()`; druckt je P
   „Kontingent-Funktion" für den Bondruck an der Kasse (Teilnehmer erhalten ein festes
   Kontingent). Anforderung noch unklar; Rückfrage läuft. Warenwirtschaft ist Nicht-Ziel,
   ein Tisch pro Teilnehmer oder Abholbons könnten reichen. Entscheidung offen.
+- TypeScript bleibt in `frontend/` und `website/` auf `~6.0.3` statt der in #117/#118 genannten
+  7.0.2: `typescript-eslint` 8.69.0 bricht mit „typescript-eslint does not support TS 7.0" ab
+  (Support für TS ≥ 7.1 offen, typescript-eslint#10940). Nachziehen, sobald typescript-eslint TS 7
+  unterstützt; `e2e/` steht ohne ESLint bereits auf 7.0.2.
 
 ---
 
@@ -189,17 +193,17 @@ danach gegen den neuen Stand reviewt.
 
 ### Acceptance criteria
 
-- [ ] Alle in #106 und #112–#118 genannten Pakete stehen mindestens auf der dort genannten
+- [x] Alle in #106 und #112–#118 genannten Pakete stehen mindestens auf der dort genannten
       Version; `resolver/`, `reverse-proxy/`, `windows/relay/`, `windows/starter/` sind auf
       demselben Go-Stand
-- [ ] `go.work`, alle `go.mod`, beide Dockerfiles, CI-Workflows, `AGENTS.md` und `docs/`
+- [x] `go.work`, alle `go.mod`, beide Dockerfiles, CI-Workflows, `AGENTS.md` und `docs/`
       nennen dieselbe Go-Version; `frontend/` und `website/` dieselbe TypeScript-Version
-- [ ] Ein Commit je Ökosystem mit Conventional-Commit-Betreff `chore(deps): …`
+- [x] Ein Commit je Ökosystem mit Conventional-Commit-Betreff `chore(deps): …`
 - [ ] `make verify`, `make website-check` und `make test-e2e` grün; CI grün inklusive
       `security-scans` (govulncheck, pnpm audit)
 - [ ] Die acht Dependabot-PRs sind nach dem Landen geschlossen (durch Dependabot) oder,
       falls nicht, mit Verweis auf den Commit manuell geschlossen
-- [ ] Nicht übernehmbare Updates stehen mit Begründung unter „Open questions / Risks"
+- [x] Nicht übernehmbare Updates stehen mit Begründung unter „Open questions / Risks"
 
 ---
 
