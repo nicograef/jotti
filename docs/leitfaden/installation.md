@@ -52,8 +52,16 @@ Geht die grüne Adresse nicht, nennt die Status-Seite die Fallback-Adresse (z. B
 ## Bondruck einrichten (optional)
 
 Für gedruckte Bons braucht ihr einen netzwerkfähigen Bondrucker (ESC/POS, 80 mm,
-Ethernet, TCP-Port 9100; eine feste IP-Adresse ist empfohlen). Die Einrichtung hat
-zwei Teile:
+im Netzwerk erreichbar (Ethernet oder WLAN), TCP-Port 9100, feste IP-Adresse
+empfohlen). USB-Drucker werden nicht unterstützt — jotti druckt ausschließlich
+über das Netzwerk.
+
+Im Feld bestätigt sind der **Epson TM-T20IV** per Ethernet und der
+**Sam4s H-Cube** per WLAN. Kaufempfehlung: Epson TM-T20IV, Modell C31CL47102
+(Ethernet), Preisklasse ca. 185–225 € brutto; günstigere Alternative ist der
+Sam4s Hcube 102DB (Ethernet, ca. 119 € brutto). Stand der Recherche: 07.09.2026.
+
+Die Einrichtung hat zwei Teile:
 
 1. **Druckstationen im Admin-Bereich anlegen.** Unter „Druckstationen" je
    Produktkategorie die „Drucker-IP" und den „Bonmodus" eintragen. Ohne
