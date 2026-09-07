@@ -48,6 +48,12 @@ Nach jeder Änderung den DNS-Dienst des Routers neu laden bzw. neu starten. Hat 
 Router keinen Rebind-Schutz, blockiert er auch nichts, dann liegt die Ursache
 woanders (siehe unten).
 
+Nach einem vollständigen Router-Neustart (z. B. nach einem Stromausfall) wendet
+eine FRITZ!Box die eingetragene Ausnahme erst an, wenn der Router wieder Internet
+hat. Ohne Internet bleibt die grüne Adresse bis dahin blockiert, obwohl die
+Ausnahme weiterhin eingetragen ist. Bis dahin mit der [Fallback-Adresse](#fallback-adresse)
+weiterarbeiten — der Verkauf muss nicht warten.
+
 ## Weitere Stolpersteine
 
 Die grüne Adresse funktioniert nur, wenn das Handy die private LAN-IP des
