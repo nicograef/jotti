@@ -27,27 +27,10 @@ type varianteWithProdukt struct {
 	produktID int
 }
 
-// Verschiebung records a single move call. The mock cannot reproduce the real
-// ordering because the domain model carries no reihenfolge — that column lives
-// in the persistence layer only. Tests therefore assert on the recorded calls;
-// the actual swap is covered by the repository integration test.
-type Verschiebung struct {
-	ID   int
-	Hoch bool
-}
-
 type mockRepo struct {
 	produkte  map[int]produkt.Produkt
 	varianten map[int]varianteWithProdukt
 	err       error
-
-	// ProduktVerschiebungen and VarianteVerschiebungen record the moves the
-	// command layer requested, in order.
-	ProduktVerschiebungen  []Verschiebung
-	VarianteVerschiebungen []Verschiebung
-
-	// SortierteProdukte records the produkt IDs whose varianten were sorted.
-	SortierteProdukte []int
 }
 
 // AddVariante adds a variante to the mock repository, associated with a produkt.
@@ -75,12 +58,11 @@ func (m *mockRepo) UpdateProdukt(ctx context.Context, t produkt.Produkt) error {
 	return m.err
 }
 
+// VerschiebeProdukt reicht nur den Fehler durch: Die Reihenfolge liegt allein
+// in der Persistenz, das Domain-Modell traegt sie nicht. Den Tausch deckt der
+// Integrationstest des Repositories ab.
 func (m *mockRepo) VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error {
-	if m.err != nil {
-		return m.err
-	}
-	m.ProduktVerschiebungen = append(m.ProduktVerschiebungen, Verschiebung{ID: produktID, Hoch: hoch})
-	return nil
+	return m.err
 }
 
 func (m *mockRepo) GetVariante(ctx context.Context, varianteID int) (produkt.Variante, error) {
@@ -106,11 +88,7 @@ func (m *mockRepo) UpdateVariante(ctx context.Context, v produkt.Variante) error
 }
 
 func (m *mockRepo) VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error {
-	if m.err != nil {
-		return m.err
-	}
-	m.VarianteVerschiebungen = append(m.VarianteVerschiebungen, Verschiebung{ID: varianteID, Hoch: hoch})
-	return nil
+	return m.err
 }
 
 func (m *mockRepo) DeleteProduktMitVarianten(ctx context.Context, p produkt.Produkt) error {
@@ -172,9 +150,5 @@ func (m *mockRepo) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]pro
 }
 
 func (m *mockRepo) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
-	if m.err != nil {
-		return m.err
-	}
-	m.SortierteProdukte = append(m.SortierteProdukte, produktID)
-	return nil
+	return m.err
 }
