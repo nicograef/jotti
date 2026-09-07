@@ -176,15 +176,15 @@ func TestSortiereVariantenAlphabetisch_DeutscheCollation(t *testing.T) {
 	ctx := context.Background()
 	produktID, _ := repo.CreateProdukt(ctx, newProdukt("Kaffee", produkt.GetraenkKategorie))
 	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Zitrone", 100, produkt.ActiveStatus))
-	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Cafe Creme", 200, produkt.ActiveStatus))
-	_, _ = repo.CreateVariante(ctx, produktID, newVariante("\u00c4pfel", 300, produkt.ActiveStatus))
+	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Café Crème", 200, produkt.ActiveStatus))
+	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Äpfel", 300, produkt.ActiveStatus))
 	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Banane", 400, produkt.ActiveStatus))
 
 	if err := repo.SortiereVariantenAlphabetisch(ctx, produktID); err != nil {
 		t.Fatalf("sortieren fehlgeschlagen: %v", err)
 	}
 
-	want := []string{"\u00c4pfel", "Banane", "Cafe Creme", "Zitrone"}
+	want := []string{"Äpfel", "Banane", "Café Crème", "Zitrone"}
 	if got := variantenNamen(t, repo, produktID); !gleich(got, want) {
 		t.Errorf("erwartet %v, got %v", want, got)
 	}

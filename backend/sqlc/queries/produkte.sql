@@ -214,10 +214,11 @@ UPDATE produkt_varianten SET reihenfolge = sqlc.arg(reihenfolge), updated_at = s
 
 -- name: SortiereVariantenAlphabetisch :exec
 -- Vergibt die Reihenfolge der Varianten eines Produkts neu, alphabetisch nach
--- Namen. Die Collation ist explizit deutsch: die Datenbank laeuft auf en_US,
--- ohne Angabe landeten Umlaute und Akzente hinter allen anderen Buchstaben
--- ("Cafe Creme" nach "Cz"). Geloeschte Varianten bleiben unberuehrt; ihre alten
--- Werte stoeren nicht, weil sie ueberall herausgefiltert werden.
+-- Namen. COLLATE "de-DE-x-icu" haelt die Sortierung deterministisch deutsch,
+-- unabhaengig von der Locale des Clusters: Umlaute und Akzente reihen sich bei
+-- ihrem Grundbuchstaben ein, statt (etwa unter der C-Locale) hinter allen
+-- anderen Buchstaben zu landen. Geloeschte Varianten bleiben unberuehrt; ihre
+-- alten Werte stoeren nicht, weil sie ueberall herausgefiltert werden.
 UPDATE produkt_varianten v
 SET reihenfolge = neu.rang, updated_at = sqlc.arg(updated_at)
 FROM (

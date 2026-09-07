@@ -550,10 +550,11 @@ type SortiereVariantenAlphabetischParams struct {
 }
 
 // Vergibt die Reihenfolge der Varianten eines Produkts neu, alphabetisch nach
-// Namen. Die Collation ist explizit deutsch: die Datenbank laeuft auf en_US,
-// ohne Angabe landeten Umlaute und Akzente hinter allen anderen Buchstaben
-// ("Cafe Creme" nach "Cz"). Geloeschte Varianten bleiben unberuehrt; ihre alten
-// Werte stoeren nicht, weil sie ueberall herausgefiltert werden.
+// Namen. COLLATE "de-DE-x-icu" haelt die Sortierung deterministisch deutsch,
+// unabhaengig von der Locale des Clusters: Umlaute und Akzente reihen sich bei
+// ihrem Grundbuchstaben ein, statt (etwa unter der C-Locale) hinter allen
+// anderen Buchstaben zu landen. Geloeschte Varianten bleiben unberuehrt; ihre
+// alten Werte stoeren nicht, weil sie ueberall herausgefiltert werden.
 func (q *Queries) SortiereVariantenAlphabetisch(ctx context.Context, arg SortiereVariantenAlphabetischParams) error {
 	_, err := q.db.ExecContext(ctx, sortiereVariantenAlphabetisch, arg.UpdatedAt, arg.ProduktID)
 	return err
