@@ -527,10 +527,10 @@ ADR und eine ehrliche Kostenaussage in der FAQ.
 
 ### Acceptance criteria
 
-- [ ] ADR `09_tse-kosten-und-hardware-tse.md` mit Konditionen, Alternativen,
+- [x] ADR `09_tse-kosten-und-hardware-tse.md` mit Konditionen, Alternativen,
       Entscheidung, in der Tabelle in `docs/adrs/README.md` verlinkt
-- [ ] FAQ nennt Größenordnung und Vertragsbindung der TSE mit Datum der Recherche
-- [ ] `docs/compliance.md` Abschnitt 3.5 stimmt mit der ADR überein
+- [x] FAQ nennt Größenordnung und Vertragsbindung der TSE mit Datum der Recherche
+- [x] `docs/compliance.md` Abschnitt 3.5 stimmt mit der ADR überein
 
 ---
 
