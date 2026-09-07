@@ -13,10 +13,11 @@ interface StepperProps {
 }
 
 // Stepper ist der einheitliche 44-px-Mengen-Wähler des Service-Bereichs. Plus
-// ist dauerhaft primär, Minus outline; bei Menge 0 ist Minus regulär deaktiviert
-// (abgeblendet und nicht antippbar wie jeder deaktivierte Outline-Button), damit
-// der deaktivierte Zustand eindeutig ist. Die Menge in der Mitte
-// hat feste Breite, damit der Zustandswechsel keinen Layout-Shift auslöst.
+// ist dauerhaft primär, Minus outline; bei Menge 0 ist Minus per Default
+// regulär deaktiviert (abgeblendet und nicht antippbar wie jeder deaktivierte
+// Outline-Button), damit der deaktivierte Zustand eindeutig ist. Die Menge in
+// der Mitte hat feste Breite, damit der Zustandswechsel keinen Layout-Shift
+// auslöst.
 // addDisabled deckelt das Plus dort, wo eine Höchstmenge gilt (z. B. die
 // unbezahlte Menge einer Position).
 // Beide Tasten geben ein deutlich stärkeres Press-Feedback als der Standard-
@@ -24,10 +25,12 @@ interface StepperProps {
 // hält das Eindrücken knackig gemäß Motion-Inventar.
 //
 // minusNurAbEins blendet Minus und Mengenanzeige bei Menge 0 ganz aus, statt sie
-// deaktiviert zu zeigen. Gedacht für die Bestellliste, wo jede Zeile nur eine
-// Variante trägt: dort gingen die rund 80 px sonst dauerhaft von der Breite des
-// Variantennamens ab, und ein gekürzter Name führt zur Fehlbuchung. Überall
-// sonst bleibt der deaktivierte Minus-Knopf die klarere Anzeige.
+// deaktiviert zu zeigen. Gedacht für die Bestellliste, in der jede Zeile genau
+// eine Variante trägt: ein deaktivierter Minus-Knopf je Zeile füllt die Liste,
+// statt sie zu beruhigen. Der Aufrufort muss dafür die volle Stepper-Breite
+// reservieren (ProductList: 132 px), sonst wächst der Stepper beim ersten Tap
+// und verschiebt Namensumbruch und Folgezeilen. Überall sonst bleibt der
+// deaktivierte Minus-Knopf die klarere Anzeige.
 export function Stepper({
   menge,
   onAdd,

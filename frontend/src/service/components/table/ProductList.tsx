@@ -82,7 +82,7 @@ export function ProductList(props: ProductListComponentProps) {
       <div className="mt-4 space-y-5">
         {sichtbareProdukte.map((product) => (
           <div key={product.id}>
-            <h2 className="mb-1 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <h2 className="mb-1 text-[13px] font-semibold text-muted-foreground">
               {product.name}
             </h2>
             <div>
@@ -108,12 +108,16 @@ export function ProductList(props: ProductListComponentProps) {
 }
 
 // VariantRow ist die Bestellzeile einer Variante: Name in der ersten Zeile,
-// Preis darunter, Mengensteuerung rechts. Der Name teilt sich die Breite nur
-// mit der Steuerung und braucht deshalb in der Praxis keinen Umbruch mehr; er
-// kürzt auch nicht, denn „Schorle weiß, sauer" und „Schorle weiß, süß" kürzen
-// sich auf denselben Text und die Servicekraft bucht die falsche Variante.
-// Solange nichts ausgewählt ist, zeigt die Zeile nur das Plus — das hält die
-// Liste ruhig und gibt dem Namen die volle Breite.
+// Preis darunter, Mengensteuerung rechts. Der Name kürzt nie, sondern bricht
+// um — „Schorle weiß, sauer" und „Schorle weiß, süß" kürzen sich auf denselben
+// Text, und die Servicekraft bucht dann die falsche Variante. Lange Namen
+// belegen deshalb mehrere Zeilen.
+// Die Mengensteuerung sitzt in einem Slot fester Breite (132 px = volle
+// Stepper-Breite: Minus 44 + Menge 28 + Plus 44 + zwei Lücken à 8). Dadurch
+// bleibt die Namensspalte unabhängig von der Menge gleich breit: Solange nichts
+// ausgewählt ist, zeigt die Zeile nur das rechtsbündige Plus (minusNurAbEins),
+// und der erste Tap bricht weder den Namen neu um noch schiebt er die Zeilen
+// darunter nach unten.
 function VariantRow({
   variant,
   menge,
@@ -140,14 +144,16 @@ function VariantRow({
           {formatEuro(variant.preisCents)}
         </div>
       </div>
-      <Stepper
-        menge={menge}
-        onAdd={onAdd}
-        onRemove={onRemove}
-        addLabel="Variante hinzufügen"
-        removeLabel="Variante entfernen"
-        minusNurAbEins
-      />
+      <div className="flex w-[132px] shrink-0 justify-end">
+        <Stepper
+          menge={menge}
+          onAdd={onAdd}
+          onRemove={onRemove}
+          addLabel="Variante hinzufügen"
+          removeLabel="Variante entfernen"
+          minusNurAbEins
+        />
+      </div>
     </div>
   )
 }
@@ -159,7 +165,7 @@ export function ProductListSkeleton() {
         <div key={`skeleton-gruppe-${gruppe.toString()}`}>
           <Skeleton className="mb-1 h-4 w-24" />
           <div>
-            {Array.from({ length: 3 }).map((_, zeile) => (
+            {Array.from({ length: 2 }).map((_, zeile) => (
               <div
                 key={`skeleton-zeile-${gruppe.toString()}-${zeile.toString()}`}
                 className="flex items-center justify-between gap-3 border-b py-2 last:border-b-0"
