@@ -152,6 +152,19 @@ describe('Products', () => {
     expect(be.verschiebeProdukt).toHaveBeenCalledWith(1, 'runter')
   })
 
+  it('hides the variant chevrons when a produkt has a single variante', () => {
+    renderProducts([
+      produkt({ id: 1, name: 'Kuchen', varianten: [variante({ name: 'Stück' })] }),
+    ])
+
+    expect(
+      screen.queryByRole('button', { name: /Stück.*nach vorne/ }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Stück.*nach hinten/ }),
+    ).not.toBeInTheDocument()
+  })
+
   it('moves a variante within its produkt', async () => {
     const user = userEvent.setup()
     const be = renderProducts([

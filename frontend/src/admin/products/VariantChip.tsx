@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 
 import { VariantNamePreis } from '@/components/common/VariantNamePreis'
+import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
@@ -31,13 +32,16 @@ interface VariantChipProps {
 // Die Chevrons an den Chip-Rändern verschieben die Variante innerhalb ihres
 // Produkts. Sie zeigen nach links und rechts, weil die Chips horizontal
 // umbrechen — die Pfeilrichtung folgt der sichtbaren Anordnung, nicht der
-// Richtungs-Benennung der API.
+// Richtungs-Benennung der API. Bei nur einer Variante gibt es nichts zu
+// tauschen; dann trägt der Chip die Pfeile gar nicht erst.
 export function VariantChip(props: VariantChipProps) {
   const [editOpen, setEditOpen] = useState(false)
   const isActive = props.variant.status === VarianteStatus.ACTIVE
+  const verschiebbar = !(props.isFirst && props.isLast)
 
-  const chevronClass =
-    'shrink-0 cursor-pointer rounded-full p-0.5 text-muted-foreground hover:text-foreground disabled:cursor-default disabled:opacity-30'
+  // 32-px-Ziele wie die Produkt-Pfeile in ProductItem. Das negative my hält den
+  // Chip auf seiner Höhe, obwohl der Button höher ist als sein Inhalt.
+  const chevronClass = '-my-1 shrink-0 cursor-pointer rounded-full'
 
   return (
     <>
@@ -47,17 +51,20 @@ export function VariantChip(props: VariantChipProps) {
           isActive ? 'bg-background' : 'bg-muted/50 text-muted-foreground',
         )}
       >
-        <button
-          type="button"
-          className={chevronClass}
-          disabled={props.loading || props.isFirst}
-          aria-label={`Variante „${props.variant.name}" nach vorne`}
-          onClick={() => {
-            void props.onMove(props.variant.id, 'hoch')
-          }}
-        >
-          <ChevronLeft className="size-4" />
-        </button>
+        {verschiebbar && (
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className={chevronClass}
+            disabled={props.loading || props.isFirst}
+            aria-label={`Variante „${props.variant.name}" nach vorne`}
+            onClick={() => {
+              void props.onMove(props.variant.id, 'hoch')
+            }}
+          >
+            <ChevronLeft />
+          </Button>
+        )}
 
         <button
           type="button"
@@ -96,17 +103,20 @@ export function VariantChip(props: VariantChipProps) {
           }}
         />
 
-        <button
-          type="button"
-          className={chevronClass}
-          disabled={props.loading || props.isLast}
-          aria-label={`Variante „${props.variant.name}" nach hinten`}
-          onClick={() => {
-            void props.onMove(props.variant.id, 'runter')
-          }}
-        >
-          <ChevronRight className="size-4" />
-        </button>
+        {verschiebbar && (
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className={chevronClass}
+            disabled={props.loading || props.isLast}
+            aria-label={`Variante „${props.variant.name}" nach hinten`}
+            onClick={() => {
+              void props.onMove(props.variant.id, 'runter')
+            }}
+          >
+            <ChevronRight />
+          </Button>
+        )}
       </span>
 
       <EditVariantDialog
