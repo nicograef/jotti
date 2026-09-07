@@ -93,27 +93,29 @@ export default function AnfrageFormular() {
     setAnkuendigung('')
     // JS-Navigation zum vorbefüllten Entwurf (kein form-action-Verstoß).
     window.location.href = buildMailtoUrl(felder)
+    setKopieren('idle')
     setGesendet(true)
   }
 
   if (gesendet) {
     const mail = buildAnfrageMail(felder)
 
-    function kopiereText() {
-      navigator.clipboard
-        .writeText(mail.text)
-        .then(() => {
-          setKopieren('kopiert')
-          setTimeout(() => setKopieren('idle'), 2000)
-        })
-        .catch(() => {
-          setKopieren('fehler')
-        })
+    // navigator.clipboard fehlt in unsicheren Kontexten und alten Browsern
+    // und wirft dann synchron — deshalb try/catch statt .then/.catch.
+    async function kopiereText() {
+      try {
+        await navigator.clipboard.writeText(mail.text)
+        setKopieren('kopiert')
+        window.setTimeout(() => setKopieren('idle'), 2000)
+      } catch {
+        setKopieren('fehler')
+      }
     }
 
     return (
       <div
         role="status"
+        aria-atomic="false"
         className="relative overflow-hidden rounded-[22px] border border-card-border bg-card p-8 text-center shadow-[var(--shadow)]"
       >
         <div
@@ -147,13 +149,13 @@ export default function AnfrageFormular() {
             >
               installieren
             </a>
-            . Antwortet der Autor, kann die E-Mail in eurem Spam-Ordner
-            landen — dort lohnt sich ein Blick.
+            . Antwortet der Autor, kann die E-Mail in eurem Spam-Ordner landen —
+            dort lohnt sich ein Blick.
           </p>
           <div className="mt-5 w-full text-left">
             <p className="text-[13px] text-muted">
-              Öffnet sich kein Entwurf oder hast du keine Mail-App? Kopiere
-              die Angaben unten und verschicke die E-Mail selbst.
+              Öffnet sich kein Entwurf oder hast du keine Mail-App? Kopiere die
+              Angaben unten und verschicke die E-Mail selbst.
             </p>
             <dl className="mt-2.5 flex flex-col gap-1 text-[13px]">
               <div className="flex gap-1.5">
@@ -166,14 +168,12 @@ export default function AnfrageFormular() {
               </div>
             </dl>
             <label className="mt-2.5 block">
-              <span className="mb-1 block text-[12px] font-semibold">
-                Text
-              </span>
+              <span className="mb-1 block text-[12px] font-semibold">Text</span>
               <textarea
                 readOnly
                 value={mail.text}
                 rows={7}
-                className="w-full resize-y rounded-[11px] border border-card-border bg-background px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground outline-none"
+                className="w-full resize-y rounded-[11px] border border-card-border bg-background px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground outline-none focus:border-brand focus:ring-[3px] focus:ring-[color:var(--ring)]"
               />
             </label>
             <button
@@ -195,14 +195,17 @@ export default function AnfrageFormular() {
             </button>
             {kopieren === 'fehler' && (
               <p className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
-                Kopieren war nicht möglich. Bitte den Text im Feld markieren
-                und manuell kopieren.
+                Kopieren war nicht möglich. Bitte den Text im Feld markieren und
+                manuell kopieren.
               </p>
             )}
           </div>
           <button
             type="button"
-            onClick={() => setGesendet(false)}
+            onClick={() => {
+              setKopieren('idle')
+              setGesendet(false)
+            }}
             className="btn btn-ghost mt-7"
           >
             Zurück zum Formular
@@ -257,7 +260,10 @@ export default function AnfrageFormular() {
             className={`${feldKlassen} h-[46px]`}
           />
           {fehler.verein && (
-            <p id={fehlerId('verein')} className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
+            <p
+              id={fehlerId('verein')}
+              className="mt-1.5 text-[13px] text-[var(--sp-red-text)]"
+            >
               {fehler.verein}
             </p>
           )}
@@ -279,7 +285,10 @@ export default function AnfrageFormular() {
             className={`${feldKlassen} h-[46px]`}
           />
           {fehler.name && (
-            <p id={fehlerId('name')} className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
+            <p
+              id={fehlerId('name')}
+              className="mt-1.5 text-[13px] text-[var(--sp-red-text)]"
+            >
               {fehler.name}
             </p>
           )}
@@ -299,7 +308,10 @@ export default function AnfrageFormular() {
             className={`${feldKlassen} h-[46px]`}
           />
           {fehler.email && (
-            <p id={fehlerId('email')} className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
+            <p
+              id={fehlerId('email')}
+              className="mt-1.5 text-[13px] text-[var(--sp-red-text)]"
+            >
               {fehler.email}
             </p>
           )}
@@ -325,8 +337,7 @@ export default function AnfrageFormular() {
 
         <label className="block">
           <span className="mb-1.5 block text-[13px] font-semibold">
-            Nachricht{' '}
-            <span className="font-normal text-muted">(optional)</span>
+            Nachricht <span className="font-normal text-muted">(optional)</span>
           </span>
           <textarea
             name="message"
@@ -339,16 +350,13 @@ export default function AnfrageFormular() {
         </label>
       </div>
 
-      <button
-        type="submit"
-        className="btn btn-primary mt-[22px] w-full"
-      >
+      <button type="submit" className="btn btn-primary mt-[22px] w-full">
         Vereinbarung abschließen
         <ArrowRight size={17} aria-hidden="true" />
       </button>
       <p className="mt-3.5 text-center text-[12px] leading-[1.5] text-muted">
-        Kostenlos für gemeinnützige Organisationen. Das Formular öffnet nur einen
-        vorbefüllten E-Mail-Entwurf — gesendet wird er von dir.
+        Kostenlos für gemeinnützige Organisationen. Das Formular öffnet nur
+        einen vorbefüllten E-Mail-Entwurf — gesendet wird er von dir.
       </p>
     </form>
   )
