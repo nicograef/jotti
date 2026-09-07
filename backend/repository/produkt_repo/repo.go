@@ -131,10 +131,25 @@ func (r Repository) UpdateProdukt(ctx context.Context, p produkt.Produkt) error 
 // Nachbarn und die Methode tut nichts — das Verschieben ist idempotent, nicht
 // fehlerhaft.
 //
+// Getauscht werden Ränge, nicht Werte: In derselben Transaktion bekommt die
+// Kategorie zuerst eine dichte Nummerierung (1..N), danach ist die Reihenfolge
+// des Produkts neu zu lesen. Ohne diesen Schritt schriebe der Tausch zweier
+// Zeilen mit demselben Wert nur denselben Wert zurück und liefe still ins
+// Leere.
+//
 // Nachbar ist immer die direkt angrenzende Zeile, auch wenn sie inaktiv und
 // damit im Service unsichtbar ist: die Admin-Liste zeigt, was passiert.
 func (r Repository) VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		vorher, err := qtx.GetProduktReihenfolge(ctx, produktID)
+		if err != nil {
+			return db.Error(err)
+		}
+
+		if err := qtx.NormalisiereProduktReihenfolge(ctx, vorher.Kategorie); err != nil {
+			return db.Error(err)
+		}
+
 		aktuell, err := qtx.GetProduktReihenfolge(ctx, produktID)
 		if err != nil {
 			return db.Error(err)
@@ -155,9 +170,19 @@ func (r Repository) VerschiebeProdukt(ctx context.Context, produktID int, hoch b
 }
 
 // VerschiebeVariante tauscht die Reihenfolge einer Variante mit der ihres
-// unmittelbaren Nachbarn im selben Produkt. Verhalten wie VerschiebeProdukt.
+// unmittelbaren Nachbarn im selben Produkt. Verhalten wie VerschiebeProdukt,
+// dichte Neunummerierung eingeschlossen.
 func (r Repository) VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		vorher, err := qtx.GetVarianteReihenfolge(ctx, varianteID)
+		if err != nil {
+			return db.Error(err)
+		}
+
+		if err := qtx.NormalisiereVarianteReihenfolge(ctx, vorher.ProduktID); err != nil {
+			return db.Error(err)
+		}
+
 		aktuell, err := qtx.GetVarianteReihenfolge(ctx, varianteID)
 		if err != nil {
 			return db.Error(err)

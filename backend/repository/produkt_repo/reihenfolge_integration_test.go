@@ -25,6 +25,52 @@ func variantenNamen(t *testing.T, repo Repository, produktID int) []string {
 	return namen
 }
 
+// produktReihenfolge liest die persistierte Reihenfolge eines Produkts. Die
+// Spalte taucht in keiner Response auf; nur direkt gelesen belegt sie, dass ein
+// Tausch tatsaechlich stattgefunden hat.
+func produktReihenfolge(t *testing.T, repo Repository, produktID int) int {
+	t.Helper()
+	var wert int
+	if err := repo.db.QueryRow("SELECT reihenfolge FROM produkte WHERE id = $1", produktID).Scan(&wert); err != nil {
+		t.Fatalf("reihenfolge lesen: %v", err)
+	}
+	return wert
+}
+
+// setzeProduktReihenfolge erzwingt einen Wert direkt in der Datenbank.
+// Gleichstaende entstehen in echten Instanzen durch Bestandsdaten und alte
+// Seeds, ueber das Repository sind sie nicht mehr herstellbar.
+func setzeProduktReihenfolge(t *testing.T, repo Repository, produktID int, wert int) {
+	t.Helper()
+	if _, err := repo.db.Exec("UPDATE produkte SET reihenfolge = $1 WHERE id = $2", wert, produktID); err != nil {
+		t.Fatalf("reihenfolge setzen: %v", err)
+	}
+}
+
+// setzeVarianteReihenfolge erzwingt einen Wert direkt in der Datenbank, siehe
+// setzeProduktReihenfolge.
+func setzeVarianteReihenfolge(t *testing.T, repo Repository, varianteID int, wert int) {
+	t.Helper()
+	if _, err := repo.db.Exec("UPDATE produkt_varianten SET reihenfolge = $1 WHERE id = $2", wert, varianteID); err != nil {
+		t.Fatalf("reihenfolge setzen: %v", err)
+	}
+}
+
+// produktNamen liest die Produktnamen in der Reihenfolge, in der das Repository
+// sie ausliefert.
+func produktNamen(t *testing.T, repo Repository) []string {
+	t.Helper()
+	alle, err := repo.GetAllProdukte(context.Background())
+	if err != nil {
+		t.Fatalf("failed to load produkte: %v", err)
+	}
+	namen := make([]string, 0, len(alle))
+	for i := range alle {
+		namen = append(namen, alle[i].Name)
+	}
+	return namen
+}
+
 func gleich(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
@@ -139,5 +185,50 @@ func TestSortiereVariantenAlphabetisch_DeutscheCollation(t *testing.T) {
 	want := []string{"\u00c4pfel", "Banane", "Cafe Creme", "Zitrone"}
 	if got := variantenNamen(t, repo, produktID); !gleich(got, want) {
 		t.Errorf("erwartet %v, got %v", want, got)
+	}
+}
+
+// Zwei Zeilen derselben Kategorie koennen denselben Reihenfolge-Wert tragen.
+// Getauscht werden trotzdem die Raenge: das Verschieben ist kein stiller No-Op.
+func TestVerschiebeProdukt_TauschtBeiGleichemWert(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+	colaID, _ := repo.CreateProdukt(ctx, newProdukt("Cola", produkt.GetraenkKategorie))
+	bierID, _ := repo.CreateProdukt(ctx, newProdukt("Bier", produkt.GetraenkKategorie))
+	setzeProduktReihenfolge(t, repo, colaID, 1)
+	setzeProduktReihenfolge(t, repo, bierID, 1)
+
+	if err := repo.VerschiebeProdukt(ctx, bierID, true); err != nil {
+		t.Fatalf("verschieben fehlgeschlagen: %v", err)
+	}
+
+	if got := produktNamen(t, repo); !gleich(got, []string{"Bier", "Cola"}) {
+		t.Errorf("erwartet [Bier Cola], got %v", got)
+	}
+	if bier, cola := produktReihenfolge(t, repo, bierID), produktReihenfolge(t, repo, colaID); bier >= cola {
+		t.Errorf("Bier muss vor Cola liegen, got %d und %d", bier, cola)
+	}
+}
+
+// Derselbe Gleichstand bei Varianten: auch dort tauscht das Verschieben Raenge.
+func TestVerschiebeVariante_TauschtBeiGleichemWert(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+	produktID, _ := repo.CreateProdukt(ctx, newProdukt("Bier", produkt.GetraenkKategorie))
+	kleinID, _ := repo.CreateVariante(ctx, produktID, newVariante("Klein", 300, produkt.ActiveStatus))
+	grossID, _ := repo.CreateVariante(ctx, produktID, newVariante("Gross", 450, produkt.ActiveStatus))
+	setzeVarianteReihenfolge(t, repo, kleinID, 0)
+	setzeVarianteReihenfolge(t, repo, grossID, 0)
+
+	if err := repo.VerschiebeVariante(ctx, grossID, true); err != nil {
+		t.Fatalf("verschieben fehlgeschlagen: %v", err)
+	}
+
+	if got := variantenNamen(t, repo, produktID); !gleich(got, []string{"Gross", "Klein"}) {
+		t.Errorf("erwartet [Gross Klein], got %v", got)
 	}
 }

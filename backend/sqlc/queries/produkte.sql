@@ -129,6 +129,21 @@ WHERE kategorie = sqlc.arg(kategorie)
 ORDER BY reihenfolge ASC, id ASC
 LIMIT 1;
 
+-- name: NormalisiereProduktReihenfolge :exec
+-- Vergibt die Reihenfolge aller Produkte einer Kategorie dicht neu (1..N) in
+-- der bisherigen Sortierung. Das laeuft vor jedem Tausch, weil zwei Zeilen mit
+-- demselben Wert sonst denselben Wert zurueckgeschrieben bekaemen und das
+-- Verschieben wirkungslos bliebe. updated_at bleibt unberuehrt: die
+-- Normalisierung veraendert die sichtbare Reihenfolge nicht.
+UPDATE produkte p
+SET reihenfolge = neu.rang
+FROM (
+    SELECT pk.id, (row_number() OVER (ORDER BY pk.reihenfolge, pk.id))::int AS rang
+    FROM produkte pk
+    WHERE pk.kategorie = sqlc.arg(kategorie) AND pk.status != 'deleted'
+) neu
+WHERE p.id = neu.id;
+
 -- name: SetProduktReihenfolge :execresult
 UPDATE produkte SET reihenfolge = sqlc.arg(reihenfolge), updated_at = sqlc.arg(updated_at) WHERE id = sqlc.arg(id);
 
@@ -168,6 +183,18 @@ WHERE produkt_id = sqlc.arg(produkt_id)
        OR (reihenfolge = sqlc.arg(reihenfolge) AND id > sqlc.arg(id)))
 ORDER BY reihenfolge ASC, id ASC
 LIMIT 1;
+
+-- name: NormalisiereVarianteReihenfolge :exec
+-- Dichte Neunummerierung der Varianten eines Produkts, siehe
+-- NormalisiereProduktReihenfolge.
+UPDATE produkt_varianten v
+SET reihenfolge = neu.rang
+FROM (
+    SELECT pv.id, (row_number() OVER (ORDER BY pv.reihenfolge, pv.id))::int AS rang
+    FROM produkt_varianten pv
+    WHERE pv.produkt_id = sqlc.arg(produkt_id) AND pv.status != 'deleted'
+) neu
+WHERE v.id = neu.id;
 
 -- name: SetVarianteReihenfolge :execresult
 UPDATE produkt_varianten SET reihenfolge = sqlc.arg(reihenfolge), updated_at = sqlc.arg(updated_at) WHERE id = sqlc.arg(id);

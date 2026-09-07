@@ -466,6 +466,45 @@ func (q *Queries) GetVarianteVorgaenger(ctx context.Context, arg GetVarianteVorg
 	return i, err
 }
 
+const normalisiereProduktReihenfolge = `-- name: NormalisiereProduktReihenfolge :exec
+UPDATE produkte p
+SET reihenfolge = neu.rang
+FROM (
+    SELECT pk.id, (row_number() OVER (ORDER BY pk.reihenfolge, pk.id))::int AS rang
+    FROM produkte pk
+    WHERE pk.kategorie = $1 AND pk.status != 'deleted'
+) neu
+WHERE p.id = neu.id
+`
+
+// Vergibt die Reihenfolge aller Produkte einer Kategorie dicht neu (1..N) in
+// der bisherigen Sortierung. Das laeuft vor jedem Tausch, weil zwei Zeilen mit
+// demselben Wert sonst denselben Wert zurueckgeschrieben bekaemen und das
+// Verschieben wirkungslos bliebe. updated_at bleibt unberuehrt: die
+// Normalisierung veraendert die sichtbare Reihenfolge nicht.
+func (q *Queries) NormalisiereProduktReihenfolge(ctx context.Context, kategorie Produktkategorie) error {
+	_, err := q.db.ExecContext(ctx, normalisiereProduktReihenfolge, kategorie)
+	return err
+}
+
+const normalisiereVarianteReihenfolge = `-- name: NormalisiereVarianteReihenfolge :exec
+UPDATE produkt_varianten v
+SET reihenfolge = neu.rang
+FROM (
+    SELECT pv.id, (row_number() OVER (ORDER BY pv.reihenfolge, pv.id))::int AS rang
+    FROM produkt_varianten pv
+    WHERE pv.produkt_id = $1 AND pv.status != 'deleted'
+) neu
+WHERE v.id = neu.id
+`
+
+// Dichte Neunummerierung der Varianten eines Produkts, siehe
+// NormalisiereProduktReihenfolge.
+func (q *Queries) NormalisiereVarianteReihenfolge(ctx context.Context, produktID int) error {
+	_, err := q.db.ExecContext(ctx, normalisiereVarianteReihenfolge, produktID)
+	return err
+}
+
 const setProduktReihenfolge = `-- name: SetProduktReihenfolge :execresult
 UPDATE produkte SET reihenfolge = $1, updated_at = $2 WHERE id = $3
 `
