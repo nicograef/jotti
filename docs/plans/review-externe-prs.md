@@ -3,7 +3,9 @@
 > Quelle: Multi-Linsen-Review (Security/Supply-Chain, Korrektheit, Konventionen, Frontend) je PR,
 > jeder Befund von drei Skeptikern gegengeprüft, Synthese mit Merge-Urteil. Stand: PR-Köpfe vom
 > 11./12.08.2026 auf Basis `main` @ 2ee9cbaa. 60 Befunde, 35 bestätigt, 25 verworfen.
-> Verwendung: Plan 2 Phasen 4, 5 und 10. Die Kommentar-Entwürfe sind zum Posten auf GitHub gedacht.
+> Verwendung: Plan 2 Phasen 4, 5 und 10. Der Eigentümer kommentiert die PRs selbst; die
+> Kommentar-Entwürfe werden nicht gepostet. Das Dokument hält die Pflicht-Fixes fest: Phase 4
+> setzt die zu #110 um, Phase 5 die zu #109; für #111 gilt ADR 10 (abgelehnt).
 > Löschen, sobald alle drei PRs gemerged oder geschlossen sind.
 
 ## Urteile
