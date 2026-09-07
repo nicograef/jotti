@@ -11,7 +11,7 @@ Produktidentität von jotti: Positionierung, Zielgruppe, Abgrenzung, Kernfeature
 
 > jotti: Das kostenlose Kassensystem für Vereinsfeste.
 
-jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfeste, Weihnachtsmärkte, Konzerte und andere Non-Profit-Veranstaltungen. Servicekräfte nehmen Bestellungen direkt auf ihrem Smartphone auf, kassieren und stornieren, alles pro Tisch, alles im Browser. jotti bringt die fiskalischen Bausteine mit: eine BSI-zertifizierte Cloud-TSE, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber. Kein Cloud-Abo, keine spezielle Hardware, einfach auf dem eigenen Server installieren und loslegen.
+jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfeste, Weihnachtsmärkte, Konzerte und andere Non-Profit-Veranstaltungen. Servicekräfte nehmen Bestellungen direkt auf ihrem Smartphone auf, kassieren und stornieren, alles pro Tisch, alles im Browser. jotti bringt die fiskalischen Bausteine mit: eine BSI-zertifizierte Cloud-TSE, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber. Kein Cloud-Abo für jotti selbst, keine spezielle Hardware, einfach auf dem eigenen Server installieren und loslegen.
 
 ---
 
@@ -19,7 +19,7 @@ jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfes
 
 ### 2.1 Positioning Statement
 
-Für eingetragene Vereine, gemeinnützige Organisationen und Non-Profit-Veranstalter, die ein einfaches Kassensystem mit fiskalischen Bausteinen für ihre Gastronomie-Veranstaltungen brauchen, ist jotti ein kostenloses, quelloffenes Mobile-Point-of-Sale-System, das ohne teure Hardware, ohne Cloud-Abo und ohne technisches Vorwissen den kompletten Kassenbetrieb auf dem Smartphone ermöglicht, inklusive TSE-Anbindung, Belegausgabe nach KassenSichV und DSFinV-K-Export (v2.4). Anders als kommerzielle POS-Systeme wie Orderbird, Toast oder Zettle erfordert jotti keine laufenden Kosten, keine Kartenterminals und keine Anbieter-Abhängigkeit; es gehört dem Verein, läuft auf dem eigenen Server und ist speziell für den ehrenamtlichen Einsatz gebaut.
+Für eingetragene Vereine, gemeinnützige Organisationen und Non-Profit-Veranstalter, die ein einfaches Kassensystem mit fiskalischen Bausteinen für ihre Gastronomie-Veranstaltungen brauchen, ist jotti ein kostenloses, quelloffenes Mobile-Point-of-Sale-System, das ohne teure Hardware, ohne Cloud-Abo und ohne technisches Vorwissen den kompletten Kassenbetrieb auf dem Smartphone ermöglicht, inklusive TSE-Anbindung, Belegausgabe nach KassenSichV und DSFinV-K-Export (v2.4). Anders als kommerzielle POS-Systeme wie Orderbird, Toast oder Zettle erfordert jotti keine laufenden Kosten für die Software selbst — nur die Cloud-TSE ist ein laufender Vertrag des Vereins —, keine Kartenterminals und keine Anbieter-Abhängigkeit; es gehört dem Verein, läuft auf dem eigenen Server und ist speziell für den ehrenamtlichen Einsatz gebaut.
 
 ### 2.2 Marktkategorie
 
@@ -31,7 +31,7 @@ Für eingetragene Vereine, gemeinnützige Organisationen und Non-Profit-Veransta
 | Preismodell     | Kostenlos für gemeinnützige Organisationen (proprietäre Source-Available-Lizenz, Nutzungsvereinbarung erforderlich) |
 | Wettbewerbsfeld | Vereinfacht: Stift & Papier → Excel → jotti. Kommerzielles Äquivalent: Orderbird, Toast, Zettle                     |
 
-jotti positioniert sich bewusst unterhalb kommerzieller Kassensysteme: weniger Features, dafür null Kosten, null Komplexität und exakt der Funktionsumfang, den ein Vereinsfest braucht.
+jotti positioniert sich bewusst unterhalb kommerzieller Kassensysteme: weniger Features, dafür null Softwarekosten, null Komplexität und exakt der Funktionsumfang, den ein Vereinsfest braucht.
 
 ---
 
@@ -63,7 +63,7 @@ Die meisten Vereine bewirtschaften ihre Veranstaltungen mit Stift & Papier (fehl
 
 | Problem                                                         | jotti-Lösung                                                                  |
 | --------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Kosten (kommerzielle Systeme: 30–100 €/Monat + Hardware)        | Kostenlos und quelloffen, dauerhaft, keine versteckten Kosten                 |
+| Kosten (kommerzielle Systeme: 30–100 €/Monat + Hardware)        | Software kostenlos und quelloffen, dauerhaft; laufende Kosten nur für die vorgeschriebene TSE |
 | Hardware (dedizierte Terminals, Bon- und Kartendrucker)         | Kein Terminal, kein iPad: läuft auf jedem Smartphone mit Browser (BYOD), dazu ein handelsüblicher Bondrucker für den Kassenbeleg |
 | Komplexität (Reservierung, Inventory, Kartenzahlung)            | Nur die Funktionen, die ein Vereinsfest braucht, nicht mehr                   |
 | Abhängigkeit (Cloud-Abo, Anbieterbindung, kein Datenzugriff)    | Self-hosted auf dem eigenen Server, volle Datenkontrolle                      |
@@ -109,7 +109,7 @@ Status pro Anforderung: [anforderungen.md](anforderungen.md).
 
 | Eigenschaft       | jotti                                                            | Orderbird / Toast / Zettle           |
 | ----------------- | ---------------------------------------------------------------- | ------------------------------------ |
-| Preis             | Kostenlos                                                        | 30–100 €/Monat + Hardware            |
+| Preis             | Kostenlos (TSE-Vertrag separat)                                  | 30–100 €/Monat + Hardware            |
 | Hardware          | Kein Terminal, kein iPad: eigenes Smartphone (BYOD), dazu ein handelsüblicher Bondrucker | Dedizierte Terminals, iPad, Drucker  |
 | Hosting           | Self-hosted (Docker)                                             | Cloud-SaaS                           |
 | Zielgruppe        | Vereine, gemeinnützige Organisationen                            | Gastronomie-Betriebe, Restaurants    |
@@ -161,7 +161,7 @@ Sechs Punkte, die jotti von kommerziellen Kassensystemen und von Stift-und-Papie
 
 | USP                      | Kurz                                                                    |
 | ------------------------ | ----------------------------------------------------------------------- |
-| Kostenlos für Vereine    | Keine Lizenzgebühren, kein Abo, keine versteckten Kosten                |
+| Kostenlos für Vereine    | Keine Lizenzgebühren, kein Abo für jotti, keine versteckten Kosten      |
 | Kaum Hardware            | Jedes Smartphone wird zur Kasse, BYOD statt Terminal oder iPad, dazu ein handelsüblicher Bondrucker für den Kassenbeleg |
 | In Minuten einsatzbereit | Docker Compose starten, Produkte anlegen, Team einladen                 |
 | Lückenlose Transparenz   | Event-Sourcing: unveränderliche, nachvollziehbare Bestellhistorie       |
@@ -176,7 +176,7 @@ Wie jotti die typischen Vereinsprobleme löst, zeigt [§4 Problem & Lösung](#4-
 
 jotti steht unter einer proprietären Source-Available-Lizenz: Der Quellcode ist öffentlich einsehbar, Nutzungsrechte werden aber nicht automatisch gewährt. Eingetragene Vereine und gemeinnützige Organisationen (gGmbH, gUG, Stiftungen, NGOs) dürfen jotti kostenlos nutzen, nach Abschluss einer schriftlichen Nutzungsvereinbarung mit dem Autor (Nico Gräf). Quellcode lesen (Lernen, Evaluation, Sicherheitsaudit) und Pull Requests unter CLA sind ohne Vereinbarung erlaubt; Forks, Weitergabe sowie kommerzielle oder gewerbliche Nutzung erfordern eine separate Lizenz. Lizenzmodell, erlaubte Nutzungsfälle und die vollständigen Bedingungen: [lizenzmodell.md](lizenzmodell.md) und [TERMS.md](../TERMS.md).
 
-„Kostenlos" heißt: keine Lizenzgebühren, keine Nutzungslimits, kein Freemium, keine Werbung, kein Tracking, voller Funktionsumfang. Es entstehen nur Infrastrukturkosten, die unabhängig von jotti anfallen:
+„Kostenlos" heißt: keine Lizenzgebühren, keine Nutzungslimits, kein Freemium, keine Werbung, kein Tracking, voller Funktionsumfang. Neben der Software entstehen nur Kosten für die Infrastruktur und für die gesetzlich vorgeschriebene Cloud-TSE:
 
 | Kostenart                   | Geschätzte Kosten                       |
 | --------------------------- | --------------------------------------- |
