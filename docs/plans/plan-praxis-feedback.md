@@ -281,14 +281,14 @@ Rechtsform-Auswahl bekommt keinen Länder-Eintrag; der Absatz reicht.
 
 ### Acceptance criteria
 
-- [ ] Erfolgs-State enthält Installationslink und Spam-Hinweis
-- [ ] `/fuer-vereine` und `TERMS.md` tragen den Absatz zu Österreich/Schweiz
-- [ ] `TERMS.md` trägt ein neues Fassungsdatum (Tag des Landens) in der Kopfzeile
+- [x] Erfolgs-State enthält Installationslink und Spam-Hinweis
+- [x] `/fuer-vereine` und `TERMS.md` tragen den Absatz zu Österreich/Schweiz
+- [x] `TERMS.md` trägt ein neues Fassungsdatum (Tag des Landens) in der Kopfzeile
       `Stand:` und in der E-Mail-Vorlage; `buildMailtoUrl()` (Kommentar und Annahmesatz)
       und die Erwartung in `anfrage-mailto.test.ts` nennen dasselbe Datum — geprüft per
       `grep -rn 'Fassung vom' TERMS.md website/src`; `14. Juli 2026` kommt dort nicht
       mehr vor
-- [ ] `make website-check` grün (`make check` deckt `website/` nicht ab)
+- [x] `make website-check` grün (`make check` deckt `website/` nicht ab)
 
 ---
 
@@ -312,10 +312,10 @@ reines Logik-Modul liefert die drei Teile getrennt, damit der Test sie ohne DOM 
 
 ### Acceptance criteria
 
-- [ ] Nach dem Absenden sind Empfänger, Betreff und Text sichtbar und kopierbar
-- [ ] Test: die getrennten Teile entsprechen dem Inhalt der `mailto:`-URL
-- [ ] Der bisherige `mailto:`-Weg bleibt unverändert
-- [ ] `make website-check` grün (`make check` deckt `website/` nicht ab)
+- [x] Nach dem Absenden sind Empfänger, Betreff und Text sichtbar und kopierbar
+- [x] Test: die getrennten Teile entsprechen dem Inhalt der `mailto:`-URL
+- [x] Der bisherige `mailto:`-Weg bleibt unverändert
+- [x] `make website-check` grün (`make check` deckt `website/` nicht ab)
 
 ---
 
