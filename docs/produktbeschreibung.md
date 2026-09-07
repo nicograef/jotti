@@ -19,7 +19,7 @@ jotti ist ein kostenloses, quelloffenes Gastronomie-Kassensystem für Vereinsfes
 
 ### 2.1 Positioning Statement
 
-Für eingetragene Vereine, gemeinnützige Organisationen und Non-Profit-Veranstalter, die ein einfaches Kassensystem mit fiskalischen Bausteinen für ihre Gastronomie-Veranstaltungen brauchen, ist jotti ein kostenloses, quelloffenes Mobile-Point-of-Sale-System, das ohne Hardware-Investition, ohne Cloud-Abo und ohne technisches Vorwissen den kompletten Kassenbetrieb auf dem Smartphone ermöglicht, inklusive TSE-Anbindung, Belegausgabe nach KassenSichV und DSFinV-K-Export (v2.4). Anders als kommerzielle POS-Systeme wie Orderbird, Toast oder Zettle erfordert jotti keine laufenden Kosten, keine Kartenterminals und keine Anbieter-Abhängigkeit; es gehört dem Verein, läuft auf dem eigenen Server und ist speziell für den ehrenamtlichen Einsatz gebaut.
+Für eingetragene Vereine, gemeinnützige Organisationen und Non-Profit-Veranstalter, die ein einfaches Kassensystem mit fiskalischen Bausteinen für ihre Gastronomie-Veranstaltungen brauchen, ist jotti ein kostenloses, quelloffenes Mobile-Point-of-Sale-System, das ohne teure Hardware, ohne Cloud-Abo und ohne technisches Vorwissen den kompletten Kassenbetrieb auf dem Smartphone ermöglicht, inklusive TSE-Anbindung, Belegausgabe nach KassenSichV und DSFinV-K-Export (v2.4). Anders als kommerzielle POS-Systeme wie Orderbird, Toast oder Zettle erfordert jotti keine laufenden Kosten, keine Kartenterminals und keine Anbieter-Abhängigkeit; es gehört dem Verein, läuft auf dem eigenen Server und ist speziell für den ehrenamtlichen Einsatz gebaut.
 
 ### 2.2 Marktkategorie
 
@@ -162,7 +162,7 @@ Sechs Punkte, die jotti von kommerziellen Kassensystemen und von Stift-und-Papie
 | USP                      | Kurz                                                                    |
 | ------------------------ | ----------------------------------------------------------------------- |
 | Kostenlos für Vereine    | Keine Lizenzgebühren, kein Abo, keine versteckten Kosten                |
-| Kein Hardware-Kauf       | Jedes Smartphone wird zur Kasse, BYOD statt Terminal oder iPad, dazu ein handelsüblicher Bondrucker für den Kassenbeleg |
+| Kaum Hardware            | Jedes Smartphone wird zur Kasse, BYOD statt Terminal oder iPad, dazu ein handelsüblicher Bondrucker für den Kassenbeleg |
 | In Minuten einsatzbereit | Docker Compose starten, Produkte anlegen, Team einladen                 |
 | Lückenlose Transparenz   | Event-Sourcing: unveränderliche, nachvollziehbare Bestellhistorie       |
 | Volle Datenhoheit        | Self-hosted auf dem eigenen Server, keine fremde Cloud                  |
