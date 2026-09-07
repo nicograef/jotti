@@ -15,10 +15,10 @@ export type Kategorie = z.infer<typeof KategorieSchema>
 const BonmodusSchema = z.enum(['pro_position', 'pro_bestellung', 'pro_stueck'])
 export type Bonmodus = z.infer<typeof BonmodusSchema>
 
-// Welche Bonmodi eine Station zulässt (Spiegel von Kategorie.ErlaubtBonmodus im
-// Backend): pro Position und pro Bestellung überall, pro Stück (je Einheit ein
-// Bon) nur am Abholbon. Eine Quelle für das Schema unten und die Auswahl in der
-// Oberfläche.
+// Kategorieregel für einen gesetzten Bonmodus: pro Stück (je Einheit ein Bon)
+// nur am Abholbon (Backend: Kategorie.ErlaubtBonmodus). Ob eine Station
+// überhaupt einen Bonmodus trägt, sagt hatBonmodus. Eine Quelle für das Schema
+// unten und die Auswahl in der Oberfläche.
 export function erlaubtBonmodus(
   kategorie: Kategorie,
   bonmodus: Bonmodus,

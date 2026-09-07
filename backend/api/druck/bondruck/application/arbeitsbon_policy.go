@@ -143,7 +143,7 @@ func createStationsAuftraegeFromData(
 
 		withBeep := kategorie == "essen"
 
-		if konfig.Bonmodus == "pro_bestellung" {
+		if konfig.Bonmodus == druckstation.BonmodusProBestellung {
 			payload := escpos.FormatSammelBon(
 				positionen,
 				kontextName,

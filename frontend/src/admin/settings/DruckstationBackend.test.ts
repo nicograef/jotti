@@ -187,8 +187,10 @@ describe('erlaubtBonmodus', () => {
     expect(erlaubtBonmodus('sonstiges', 'pro_stueck')).toBe(false)
   })
 
-  it('erlaubt die zwei Standard-Modi an jeder Station', () => {
+  it('erlaubt die zwei Standard-Modi an den Stationen mit Bonmodus', () => {
     expect(erlaubtBonmodus('essen', 'pro_position')).toBe(true)
+    expect(erlaubtBonmodus('getraenk', 'pro_bestellung')).toBe(true)
+    expect(erlaubtBonmodus('sonstiges', 'pro_position')).toBe(true)
     expect(erlaubtBonmodus('abholbon', 'pro_bestellung')).toBe(true)
   })
 })
