@@ -71,7 +71,7 @@ describe('Stepper', () => {
     // Bei Menge 0 sind Minus und Mengenanzeige gar nicht im DOM: kein
     // dauerhaft deaktivierter Knopf je Zeile und nichts davon in der
     // Tab-Reihenfolge. Die Breite reserviert der Aufrufort (ProductList,
-    // 132-px-Slot); in jsdom ist sie nicht messbar und wird e2e geprüft.
+    // 8,25-rem-Slot); in jsdom ist sie nicht messbar und wird e2e geprüft.
     expect(screen.queryByRole('button', { name: 'entfernen' })).toBeNull()
     expect(screen.queryByText('0')).toBeNull()
     expect(screen.getByRole('button', { name: 'hinzufügen' })).toBeEnabled()

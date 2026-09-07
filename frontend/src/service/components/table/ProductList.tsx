@@ -112,12 +112,13 @@ export function ProductList(props: ProductListComponentProps) {
 // um — „Schorle weiß, sauer" und „Schorle weiß, süß" kürzen sich auf denselben
 // Text, und die Servicekraft bucht dann die falsche Variante. Lange Namen
 // belegen deshalb mehrere Zeilen.
-// Die Mengensteuerung sitzt in einem Slot fester Breite (132 px = volle
-// Stepper-Breite: Minus 44 + Menge 28 + Plus 44 + zwei Lücken à 8). Dadurch
-// bleibt die Namensspalte unabhängig von der Menge gleich breit: Solange nichts
-// ausgewählt ist, zeigt die Zeile nur das rechtsbündige Plus (minusNurAbEins),
-// und der erste Tap bricht weder den Namen neu um noch schiebt er die Zeilen
-// darunter nach unten.
+// Die Mengensteuerung sitzt in einem Slot fester Breite: 8,25 rem (132 px bei
+// 16-px-Wurzelschrift: Minus 2,75 + Lücke 0,5 + Menge 1,75 + Lücke 0,5 + Plus
+// 2,75) — die volle Stepper-Breite in derselben Einheit wie der Stepper selbst.
+// Dadurch bleibt die Namensspalte unabhängig von der Menge gleich breit:
+// Solange nichts ausgewählt ist, zeigt die Zeile nur das rechtsbündige Plus
+// (minusNurAbEins), und der erste Tap bricht weder den Namen neu um noch
+// schiebt er die Zeilen darunter nach unten.
 function VariantRow({
   variant,
   menge,
@@ -144,7 +145,7 @@ function VariantRow({
           {formatEuro(variant.preisCents)}
         </div>
       </div>
-      <div className="flex w-[132px] shrink-0 justify-end">
+      <div className="flex w-[8.25rem] shrink-0 justify-end">
         <Stepper
           menge={menge}
           onAdd={onAdd}

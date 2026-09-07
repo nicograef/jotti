@@ -28,7 +28,7 @@ interface StepperProps {
 // deaktiviert zu zeigen. Gedacht für die Bestellliste, in der jede Zeile genau
 // eine Variante trägt: ein deaktivierter Minus-Knopf je Zeile füllt die Liste,
 // statt sie zu beruhigen. Der Aufrufort muss dafür die volle Stepper-Breite
-// reservieren (ProductList: 132 px), sonst wächst der Stepper beim ersten Tap
+// reservieren (ProductList: 8,25 rem), sonst wächst der Stepper beim ersten Tap
 // und verschiebt Namensumbruch und Folgezeilen. Überall sonst bleibt der
 // deaktivierte Minus-Knopf die klarere Anzeige.
 export function Stepper({
