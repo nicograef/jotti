@@ -70,7 +70,7 @@ export function hatFehler(fehler: AnfrageFehler): boolean {
 // als %20 und Sonderzeichen wie & ? = +). Betreff und Body folgen der
 // E-Mail-Vorlage aus TERMS.md: Die Nutzungsvereinbarung kommt durch diese eine
 // Annahme-E-Mail zustande, deshalb enthält der Body den wörtlichen Annahmesatz
-// mit Fassungsbezug (14. Juli 2026) und der TERMS-URL neben den Kontaktfeldern.
+// mit Fassungsbezug (7. September 2026) und der TERMS-URL neben den Kontaktfeldern.
 // Der optionale Nachrichten-Block entfällt, wenn keine Nachricht eingegeben wurde.
 export function buildMailtoUrl(felder: AnfrageFelder): string {
   const verein = felder.verein.trim()
@@ -81,7 +81,7 @@ export function buildMailtoUrl(felder: AnfrageFelder): string {
   const zeilen = [
     'Hallo Herr Gräf,',
     '',
-    `wir sind ${verein} und akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 14. Juli 2026 (${termsUrl}).`,
+    `wir sind ${verein} und akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 7. September 2026 (${termsUrl}).`,
     '',
     `Rechtsform: ${felder.art.trim()}`,
     `Ansprechperson: ${felder.name.trim()}, ${felder.email.trim()}`,

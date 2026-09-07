@@ -1,6 +1,6 @@
 # Nutzungsbedingungen — jotti
 
-**Stand: 14. Juli 2026**
+**Stand: 7. September 2026**
 
 Diese Nutzungsbedingungen regeln die kostenlose Nutzung der Software „jotti" durch gemeinnützige Organisationen. Die Nutzungsvereinbarung kommt durch eine einzige E-Mail an den Autor zustande — kein Formular, keine Unterschrift, kein Nachweis, keine Bestätigung durch den Autor. Der Ablauf und eine fertige E-Mail-Vorlage stehen am Ende dieses Dokuments.
 
@@ -97,7 +97,7 @@ Hallo Herr Gräf,
 
 wir sind [vollständiger Name, Rechtsform und Sitz der Organisation —
 z. B. TSV Musterhausen e.V., Musterhausen] und akzeptieren die
-Nutzungsbedingungen für jotti in der Fassung vom 14. Juli 2026
+Nutzungsbedingungen für jotti in der Fassung vom 7. September 2026
 (https://github.com/nicograef/jotti/blob/main/TERMS.md).
 
 Ansprechperson: [Vorname Nachname, E-Mail-Adresse]
