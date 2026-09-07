@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import type { AnfrageFelder } from './anfrage-mailto'
-import { buildMailtoUrl, hatFehler, validateAnfrage } from './anfrage-mailto'
+import {
+  buildAnfrageMail,
+  buildMailtoUrl,
+  hatFehler,
+  validateAnfrage,
+} from './anfrage-mailto'
 import { betreiberEmail } from './links'
 
 // Vollständig ausgefüllte Basis; einzelne Felder werden je Fall überschrieben.
@@ -49,6 +54,18 @@ describe('validateAnfrage', () => {
       felder({ email: 'a.b+tag@verein-example.de', art: '', message: '' }),
     )
     expect(fehler).toEqual({})
+  })
+})
+
+describe('buildAnfrageMail', () => {
+  it('liefert Empfänger, Betreff und Text deckungsgleich mit der mailto-URL', () => {
+    const eingabe = felder({ message: 'Für unser Sommerfest im Juli.' })
+    const mail = buildAnfrageMail(eingabe)
+    const url = new URL(buildMailtoUrl(eingabe))
+
+    expect(url.pathname).toBe(mail.empfaenger)
+    expect(url.searchParams.get('subject')).toBe(mail.betreff)
+    expect(url.searchParams.get('body')).toBe(mail.text)
   })
 })
 
