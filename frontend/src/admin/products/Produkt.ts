@@ -43,7 +43,7 @@ export type Richtung = (typeof Richtung)[keyof typeof Richtung]
 
 export const ProduktIdSchema = z.number().int().min(1)
 export const VarianteIdSchema = z.number().int().min(1)
-export const RichtungSchema = z.enum(['hoch', 'runter'])
+export const RichtungSchema = z.enum([Richtung.HOCH, Richtung.RUNTER])
 
 const NameSchema = z
   .string()

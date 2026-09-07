@@ -38,7 +38,7 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { NewVariantDialog } from './NewVariantDialog'
 import {
   type Produkt,
-  type Richtung,
+  Richtung,
   type Variante,
   VarianteStatus,
 } from './Produkt'
@@ -199,7 +199,7 @@ export function ProductItem(props: ProductItemProps) {
           className="cursor-pointer rounded-full"
           aria-label={`Produkt „${props.product.name}" nach oben`}
           disabled={props.loading || moveProductLoading || props.isFirst}
-          onClick={() => void handleMoveProduct('hoch')}
+          onClick={() => void handleMoveProduct(Richtung.HOCH)}
         >
           <ChevronUp />
         </Button>
@@ -209,7 +209,7 @@ export function ProductItem(props: ProductItemProps) {
           className="cursor-pointer rounded-full"
           aria-label={`Produkt „${props.product.name}" nach unten`}
           disabled={props.loading || moveProductLoading || props.isLast}
-          onClick={() => void handleMoveProduct('runter')}
+          onClick={() => void handleMoveProduct(Richtung.RUNTER)}
         >
           <ChevronDown />
         </Button>

@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'
-import { type Richtung, type Variante, VarianteStatus } from './Produkt'
+import { Richtung, type Variante, VarianteStatus } from './Produkt'
 import type { ProduktBackend } from './ProduktBackend'
 
 interface VariantChipProps {
@@ -67,7 +67,7 @@ export function VariantChip(props: VariantChipProps) {
             disabled={props.loading || props.isFirst}
             aria-label={`Variante „${props.variant.name}" nach vorne`}
             onClick={() => {
-              void props.onMove(props.variant.id, 'hoch')
+              void props.onMove(props.variant.id, Richtung.HOCH)
             }}
           >
             <ChevronLeft />
@@ -119,7 +119,7 @@ export function VariantChip(props: VariantChipProps) {
             disabled={props.loading || props.isLast}
             aria-label={`Variante „${props.variant.name}" nach hinten`}
             onClick={() => {
-              void props.onMove(props.variant.id, 'runter')
+              void props.onMove(props.variant.id, Richtung.RUNTER)
             }}
           >
             <ChevronRight />
