@@ -136,32 +136,34 @@ func TestVerschiebeVariante_AmRandWirkungslos(t *testing.T) {
 	}
 }
 
-// Produkte tauschen nur innerhalb ihrer Kategorie: ein Produkt am Anfang seiner
-// Kategorie bewegt sich nicht in die davorliegende Kategorie hinein.
+// Produkte tauschen nur innerhalb ihrer Kategorie: Bier steht am Ende der
+// Getraenke und hat einen Nachfolger nur in der Kategorie Essen. Die
+// Nachbarkategorie traegt dazu bewusst einen hoeheren, eigenen Wert — faellt
+// der Kategoriefilter aus der Nachbarsuche, wandern die Reihenfolge-Werte
+// sichtbar.
 func TestVerschiebeProdukt_BleibtInSeinerKategorie(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	ctx := context.Background()
-	_, _ = repo.CreateProdukt(ctx, newProdukt("Pommes", produkt.EssenKategorie))
 	colaID, _ := repo.CreateProdukt(ctx, newProdukt("Cola", produkt.GetraenkKategorie))
-	_, _ = repo.CreateProdukt(ctx, newProdukt("Bier", produkt.GetraenkKategorie))
+	bierID, _ := repo.CreateProdukt(ctx, newProdukt("Bier", produkt.GetraenkKategorie))
+	pommesID, _ := repo.CreateProdukt(ctx, newProdukt("Pommes", produkt.EssenKategorie))
+	setzeProduktReihenfolge(t, repo, pommesID, 3)
 
-	if err := repo.VerschiebeProdukt(ctx, colaID, true); err != nil {
+	if err := repo.VerschiebeProdukt(ctx, bierID, false); err != nil {
 		t.Fatalf("erwartet kein Fehler, got %v", err)
 	}
 
-	alle, err := repo.GetAllProdukte(ctx)
-	if err != nil {
-		t.Fatalf("failed to load produkte: %v", err)
-	}
-	namen := make([]string, 0, len(alle))
-	for i := range alle {
-		namen = append(namen, alle[i].Name)
+	erwartet := map[string]int{"Cola": 1, "Bier": 2, "Pommes": 3}
+	for name, id := range map[string]int{"Cola": colaID, "Bier": bierID, "Pommes": pommesID} {
+		if got := produktReihenfolge(t, repo, id); got != erwartet[name] {
+			t.Errorf("%s: reihenfolge = %d, erwartet %d", name, got, erwartet[name])
+		}
 	}
 
-	if !gleich(namen, []string{"Pommes", "Cola", "Bier"}) {
-		t.Errorf("Cola darf Pommes nicht ueberholen (andere Kategorie), got %v", namen)
+	if got := produktNamen(t, repo); !gleich(got, []string{"Pommes", "Cola", "Bier"}) {
+		t.Errorf("Bier darf Pommes nicht ueberholen (andere Kategorie), got %v", got)
 	}
 }
 
