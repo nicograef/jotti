@@ -270,6 +270,8 @@ Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produ
 
 **Invarianten:** Produkt- und Variantennamen nicht leer; Kategorie gültig; Preis ≥ 0. Varianten können unabhängig vom Produkt deaktiviert werden (`inactive`) und erscheinen dann nicht im Service-Katalog.
 
+**Reihenfolge:** Produkte und Varianten tragen eine vom Admin gepflegte Anzeigereihenfolge (`reihenfolge`). Produkte sortieren nach `(Kategorie, Reihenfolge, ID)`, Varianten innerhalb ihres Produkts nach `(Reihenfolge, ID)`; die ID bleibt Tiebreaker. Neue Einträge landen am Ende ihres Geltungsbereichs, ein Kategoriewechsel setzt das Produkt ans Ende der Zielkategorie. Verschoben werden Ränge, nicht Werte: Der Geltungsbereich wird in derselben Transaktion dicht nummeriert, bevor die beiden Nachbarn tauschen — sonst bliebe ein Verschieben bei gleichen Werten wirkungslos. Die Reihenfolge ist reine Persistenz; das Backend liefert die fertig sortierte Liste.
+
 ### 4.2 Tisch-Stammdaten
 
 Tisch-Stammdaten sind Name + Status. Nur aktive Tische (`active`) erscheinen in der Tischübersicht der Servicekräfte; der Name darf nicht leer sein.
@@ -477,7 +479,7 @@ Read Models sind aufbereitete Lese-Ansichten, reine Projektionen über vorhanden
 | ---------------- | ---- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tischübersicht   | K-06 | `tisch_sessions` + Stammdaten                    | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter Positionen. Startseite des Service-Bereichs. JOIN auf `kassensitzung_nr`.                                                                      |
 | Tischdetails     | K-06 | `tisch_sessions`                                 | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Bezahlen/Kassieren, Stornieren, Historie.                                                                      |
-| Produktkatalog   | —    | Produkt-Stammdaten                               | Aktive Produkte und Varianten, nach Kategorie gruppiert. Im Bestellvorgang geladen (kein eigenes Navigationsziel).                                                                                |
+| Produktkatalog   | —    | Produkt-Stammdaten                               | Aktive Produkte und Varianten, nach Kategorie gruppiert und darin nach der Admin-Reihenfolge sortiert (→ [4.1](#41-produkt-aggregat)). Im Bestellvorgang geladen (kein eigenes Navigationsziel).  |
 | Kassenjournal    | K-07 | Kassenjournal (Event Stream, Replay per Subject) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich.                                                                      |
 | Eigene Übersicht | R-06 | `kassenjournal` (SQL-Aggregation)                | KPIs der eigenen Servicekraft: Anzahl und Summe eigener Bestellungen sowie kassierter Zahlungen, gefiltert auf `user_id` und `kassensitzung_nr`. Zusätzlich die ihr nach der Storno-Zuordnung zufallenden Warenrücknahmen (Anzahl und Betrag, aufgelöst über die `zahlungId` der von ihr kassierten Zahlungen — unabhängig vom Stornierenden) und daraus `abzugebenCents` = kassiert − Rücknahmen (nie negativ). Geldneutrale Korrekturen zählen hier nicht. Endpunkt: `POST /service/get-eigene-uebersicht`. |
 
