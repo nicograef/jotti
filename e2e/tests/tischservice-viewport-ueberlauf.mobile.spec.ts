@@ -37,9 +37,9 @@ test.describe('Kein horizontaler Überlauf der Servicekraft-Screens bei 390px', 
 
     // Bestellen-Tab: die Varianten-Liste (VariantRow) mit teils langen Namen.
     // Dieser Check ist die 390px-Überlauf-Regression für den Bestellen-Screen
-    // (Akzeptanzkriterium: kein horizontaler Überlauf). Die Zeile kürzt nichts
-    // mehr — der Name bricht um, der Preis steht darunter, der Stepper sitzt in
-    // einem Slot fester Breite; dass beide Namen dabei lesbar bleiben, deckt
+    // (Akzeptanzkriterium: kein horizontaler Überlauf). Die Zeile kürzt nicht —
+    // der Name bricht um, der Preis steht darunter, der Stepper sitzt in einem
+    // Slot fester Breite; dass beide Namen dabei lesbar bleiben, deckt
     // variantenname-umbruch.mobile.spec.ts ab. Hier zählt allein die
     // Seitenbreite.
     await expect(page.getByText('Fr: Schnitzel mit Pommes')).toBeVisible()

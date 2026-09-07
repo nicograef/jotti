@@ -9,16 +9,15 @@ import {
   zeilenGeometrie,
 } from '../support/viewport'
 
-// Regression für die Fehlbuchungs-Ursache aus dem Praxis-Feedback: Die
-// Bestellliste klemmte den Variantennamen in eine schmale Spalte und kürzte ihn
-// dort. Zwei Varianten desselben Produkts mit langem gemeinsamem Anfang endeten
-// dadurch sichtbar gleich, und die Servicekraft buchte die falsche. Der Name
-// bricht jetzt um statt zu kürzen, der Preis steht darunter, und der Stepper
-// sitzt in einem Slot fester Breite — der erste Tap darf deshalb weder den Namen
-// neu umbrechen noch die Zeilen darunter verschieben (sonst landet der zweite
-// Tap auf der Nachbarzeile). Geprüft wird am gerenderten DOM, nicht an
-// Klassennamen. Beide Bildschirme, die sich die ProductList teilen, sind
-// abgedeckt: der Bestellen-Tab eines Tisches und der Direktverkauf.
+// Kontrakt der Bestellliste am Handy. Kürzte sie den Variantennamen, sähen zwei
+// Varianten desselben Produkts gleich aus und die Servicekraft griffe zur
+// falschen — die Fehlbuchungs-Ursache aus dem Praxis-Feedback. Der Name bricht
+// um, der Preis steht darunter, der Stepper sitzt in einem Slot fester Breite.
+// Der erste Tap darf deshalb weder den Namen neu umbrechen noch die Zeilen
+// darunter verschieben, sonst landet der zweite Tap auf der Nachbarzeile.
+// Geprüft wird am gerenderten DOM, nicht an Klassennamen. Beide Bildschirme,
+// die sich die ProductList teilen, sind abgedeckt: der Bestellen-Tab eines
+// Tisches und der Direktverkauf.
 
 // Zwei Handy-Lagen, beide unter der lg-Schwelle (1024 px) und damit im
 // einspaltigen Layout: Hochformat ist die Regel-Haltung der Servicekraft,
@@ -28,9 +27,9 @@ const HANDY_LAGEN = [
   { lage: 'Querformat', viewport: { width: 915, height: 412 } },
 ] as const
 
-// Zwei Varianten desselben Seed-Produkts mit langem gemeinsamem Ende
-// („…schorle 0,5l"). In der alten, geklemmten Namensspalte kürzten sich beide
-// auf denselben sichtbaren Text.
+// Zwei Varianten desselben Seed-Produkts, deren Namen ein langes gemeinsames
+// Ende teilen („…schorle 0,5l"). Kürzt die Namensspalte, bleibt für beide
+// derselbe sichtbare Text übrig.
 const PRODUKT = 'Saftschorle'
 const ERSTE_VARIANTE = 'Johannisbeerschorle 0,5l'
 const FOLGE_VARIANTE = 'Rhabarberschorle 0,5l'
@@ -56,8 +55,8 @@ async function erwarteLesbareVariantenOhneShift(
   const ersterName = ersteZeile.getByText(ERSTE_VARIANTE, { exact: true })
   const folgeName = folgeZeile.getByText(FOLGE_VARIANTE, { exact: true })
 
-  // 1. Beide Namen stehen ungekürzt in ihrer Zeile und unterscheiden sich
-  //    sichtbar voneinander — genau das war vor dem Umbruch nicht mehr der Fall.
+  // 1. Beide Namen stehen ungekürzt in ihrer Zeile; erst dadurch bleiben die
+  //    beiden Varianten am Bildschirm unterscheidbar.
   await erwarteVollstaendigLesbarenNamen(
     ersterName,
     ERSTE_VARIANTE,
@@ -68,14 +67,10 @@ async function erwarteLesbareVariantenOhneShift(
     FOLGE_VARIANTE,
     `${screen}: zweite Variante`,
   )
-  expect(
-    await ersterName.textContent(),
-    `${screen}: beide Varianten dürfen nie denselben sichtbaren Text zeigen`,
-  ).not.toBe(await folgeName.textContent())
 
   // 2. Der erste Tap blendet Minus und Menge ein. Weil der Stepper-Slot seine
   //    Breite behält, bleibt die Namensspalte gleich breit und die Folgezeile
-  //    liegt danach exakt dort, wo die Servicekraft sie gerade gesehen hat.
+  //    liegt danach dort, wo die Servicekraft sie gerade sieht.
   const vorher = await zeilenGeometrie(folgeZeile, ersterName)
   await ersteZeile.getByRole('button', { name: 'Variante hinzufügen' }).click()
   await expect(ersteZeile.getByText('1', { exact: true })).toBeVisible()
