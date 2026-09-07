@@ -19,6 +19,8 @@ func TestNewDruckstation(t *testing.T) {
 		{"kassenbeleg ohne bonmodus", KategorieKassenbeleg, "192.168.1.60", "", false},
 		{"abholbon pro_bestellung", KategorieAbholbon, "192.168.1.70", BonmodusProBestellung, false},
 		{"abholbon pro_position", KategorieAbholbon, "", BonmodusProPosition, false},
+		{"abholbon pro_stueck", KategorieAbholbon, "192.168.1.70", BonmodusProStueck, false},
+		{"produktkategorie pro_stueck abgelehnt", KategorieEssen, "", BonmodusProStueck, true},
 		{"abholbon ohne bonmodus abgelehnt", KategorieAbholbon, "", "", true},
 		{"kassenbeleg mit bonmodus abgelehnt", KategorieKassenbeleg, "", BonmodusProPosition, true},
 		{"ungültige kategorie", Kategorie("foo"), "", "", true},
@@ -61,5 +63,35 @@ func TestKategorieHatBonmodus(t *testing.T) {
 
 	if KategorieKassenbeleg.HatBonmodus() {
 		t.Errorf("%q should not carry a Bonmodus", KategorieKassenbeleg)
+	}
+}
+
+func TestKategorieErlaubtBonmodus(t *testing.T) {
+	cases := []struct {
+		kategorie Kategorie
+		bonmodus  Bonmodus
+		want      bool
+	}{
+		{KategorieEssen, BonmodusProPosition, true},
+		{KategorieEssen, BonmodusProBestellung, true},
+		{KategorieEssen, BonmodusProStueck, false},
+		{KategorieEssen, "", false},
+		{KategorieGetraenk, BonmodusProStueck, false},
+		{KategorieSonstiges, BonmodusProStueck, false},
+		{KategorieAbholbon, BonmodusProPosition, true},
+		{KategorieAbholbon, BonmodusProBestellung, true},
+		{KategorieAbholbon, BonmodusProStueck, true},
+		{KategorieAbholbon, "", false},
+		{KategorieKassenbeleg, "", true},
+		{KategorieKassenbeleg, BonmodusProPosition, false},
+		{KategorieAbholbon, Bonmodus("invalid"), false},
+	}
+
+	for _, tc := range cases {
+		t.Run(string(tc.kategorie)+"/"+string(tc.bonmodus), func(t *testing.T) {
+			if got := tc.kategorie.ErlaubtBonmodus(tc.bonmodus); got != tc.want {
+				t.Errorf("ErlaubtBonmodus(%q) = %v, want %v", tc.bonmodus, got, tc.want)
+			}
+		})
 	}
 }

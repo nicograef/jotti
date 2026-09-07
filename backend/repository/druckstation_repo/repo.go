@@ -53,8 +53,8 @@ func (r Repository) GetKonfigurierteDruckstationen(ctx context.Context) (map[str
 	return result, nil
 }
 
-// UpsertDruckstation speichert die Drucker-IP und (für Produktkategorien) den Bonmodus
-// einer Station. Ein leerer Bonmodus wird als NULL persistiert (kassenbeleg/abholbon).
+// UpsertDruckstation speichert die Drucker-IP und (außer beim Kassenbeleg) den
+// Bonmodus einer Station. Ein leerer Bonmodus wird als NULL persistiert (kassenbeleg).
 func (r Repository) UpsertDruckstation(ctx context.Context, station druckstation.Druckstation) error {
 	return db.Error(r.q.UpsertDruckstation(ctx, dbgen.UpsertDruckstationParams{
 		Kategorie: dbgen.Druckstationkategorie(station.Kategorie),

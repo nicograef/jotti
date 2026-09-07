@@ -142,6 +142,38 @@ func TestUpdateDruckstationenHandler_Abholbon(t *testing.T) {
 	}
 }
 
+func TestUpdateDruckstationenHandler_AbholbonProStueck(t *testing.T) {
+	handler := &CommandHandler{Command: &mockDruckstationCommand{}}
+
+	body := `{"kategorie":"abholbon","druckerIp":"192.168.1.70","bonmodus":"pro_stueck"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/update-druckstationen", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.UpdateDruckstationenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200 for abholbon with pro_stueck, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestUpdateDruckstationenHandler_ProStueckFuerProduktstationAbgelehnt(t *testing.T) {
+	handler := &CommandHandler{Command: &mockDruckstationCommand{}}
+
+	for _, kategorie := range []string{"essen", "getraenk", "sonstiges"} {
+		body := `{"kategorie":"` + kategorie + `","druckerIp":"192.168.1.51","bonmodus":"pro_stueck"}`
+		req := httptest.NewRequest(http.MethodPost, "/admin/update-druckstationen", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		handler.UpdateDruckstationenHandler().ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected status 400 for %s with pro_stueck, got %d", kategorie, rec.Code)
+		}
+	}
+}
+
 func TestUpdateDruckstationenHandler_BonmodusFuerKassenbelegAbgelehnt(t *testing.T) {
 	handler := &CommandHandler{Command: &mockDruckstationCommand{}}
 
