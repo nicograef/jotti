@@ -64,7 +64,7 @@ Die meisten Vereine bewirtschaften ihre Veranstaltungen mit Stift & Papier (fehl
 | Problem                                                         | jotti-Lösung                                                                  |
 | --------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | Kosten (kommerzielle Systeme: 30–100 €/Monat + Hardware)        | Kostenlos und quelloffen, dauerhaft, keine versteckten Kosten                 |
-| Hardware (dedizierte Terminals, Bon- und Kartendrucker)         | Keine, läuft auf jedem Smartphone mit Browser (BYOD)                          |
+| Hardware (dedizierte Terminals, Bon- und Kartendrucker)         | Kein Terminal, kein iPad: läuft auf jedem Smartphone mit Browser (BYOD), dazu ein handelsüblicher Bondrucker für den Kassenbeleg |
 | Komplexität (Reservierung, Inventory, Kartenzahlung)            | Nur die Funktionen, die ein Vereinsfest braucht, nicht mehr                   |
 | Abhängigkeit (Cloud-Abo, Anbieterbindung, kein Datenzugriff)    | Self-hosted auf dem eigenen Server, volle Datenkontrolle                      |
 | Abrechnung (am Ende stimmt die Kasse nicht, niemand weiß warum) | Echtzeit-Saldo pro Tisch, lückenlose Bestellhistorie, transparente Abrechnung |
@@ -110,7 +110,7 @@ Status pro Anforderung: [anforderungen.md](anforderungen.md).
 | Eigenschaft       | jotti                                                            | Orderbird / Toast / Zettle           |
 | ----------------- | ---------------------------------------------------------------- | ------------------------------------ |
 | Preis             | Kostenlos                                                        | 30–100 €/Monat + Hardware            |
-| Hardware          | Keine, eigenes Smartphone (BYOD)                                 | Dedizierte Terminals, iPad, Drucker  |
+| Hardware          | Kein Terminal, kein iPad: eigenes Smartphone (BYOD), dazu ein handelsüblicher Bondrucker | Dedizierte Terminals, iPad, Drucker  |
 | Hosting           | Self-hosted (Docker)                                             | Cloud-SaaS                           |
 | Zielgruppe        | Vereine, gemeinnützige Organisationen                            | Gastronomie-Betriebe, Restaurants    |
 | Zahlungsarten     | Bargeld                                                          | Karte, NFC, Online-Payment           |
@@ -162,7 +162,7 @@ Sechs Punkte, die jotti von kommerziellen Kassensystemen und von Stift-und-Papie
 | USP                      | Kurz                                                                    |
 | ------------------------ | ----------------------------------------------------------------------- |
 | Kostenlos für Vereine    | Keine Lizenzgebühren, kein Abo, keine versteckten Kosten                |
-| Kein Hardware-Kauf       | Jedes Smartphone wird zur Kasse, BYOD statt Terminal, iPad, Drucker     |
+| Kein Hardware-Kauf       | Jedes Smartphone wird zur Kasse, BYOD statt Terminal oder iPad, dazu ein handelsüblicher Bondrucker für den Kassenbeleg |
 | In Minuten einsatzbereit | Docker Compose starten, Produkte anlegen, Team einladen                 |
 | Lückenlose Transparenz   | Event-Sourcing: unveränderliche, nachvollziehbare Bestellhistorie       |
 | Volle Datenhoheit        | Self-hosted auf dem eigenen Server, keine fremde Cloud                  |
