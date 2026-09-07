@@ -80,7 +80,6 @@ FormatDirektverkaufAbholbon()` — delegiert an `FormatSammelBon()`; druckt je P
 - `docs/compliance.md — ### 3.5 TSE-Varianten und Anbieter-Entscheidung` — Hardware-TSE
   als ausgeschlossen begründet
 - `docs/anforderungen.md` — Funktionsumfang-Tabelle und Nicht-Ziele-Tabelle
-- `docs/plans/plan-bondruck-ursachenklaerung.md` — offen
 - `docs/plans/guide-manuelle-qa-v1.0.0.md` — offen; verweist auf die nicht existierende
   Datei `plan-v1.0-release-blockers.md`
 - Offene externe PRs: #109 (Reihenfolge für Produkte/Varianten), #110 (Variantenname auf
@@ -134,6 +133,9 @@ FormatDirektverkaufAbholbon()` — delegiert an `FormatSammelBon()`; druckt je P
   Begründung unter „Open questions / Risks" eingetragen, nicht still übersprungen.
 - **Dependabot-PRs werden nicht manuell gemerged.** Die Updates landen als eigene Commits
   je Ökosystem auf `main`; Dependabot schließt seine PRs danach selbst.
+- **Bondruck-Ursachenklärung wird nicht weiterverfolgt.** Der Plan
+  `plan-bondruck-ursachenklaerung.md` ist ersatzlos gelöscht (Entscheidung des Eigentümers);
+  der archivierte Relay-Umbau bleibt archiviert.
 
 ## Open questions / Risks
 
@@ -419,7 +421,7 @@ COLLATE-Begründung, Mock-Felder mit Tests oder weg.
 
 ### Context
 
-- `docs/plans/plan-bondruck-ursachenklaerung.md` — bestehender Plan, alle Punkte offen
+- `docs/plans/plan-bondruck-ursachenklaerung.md` — gelöscht, siehe Resolved decisions
 
 ### What to build
 
@@ -429,7 +431,7 @@ Einsätzen Ende September.
 
 ### Acceptance criteria
 
-- [ ] Bestehender Plan hat keine offene Checkbox mehr oder ist gelöscht
+- [x] Bestehender Plan hat keine offene Checkbox mehr oder ist gelöscht
 
 ---
 
