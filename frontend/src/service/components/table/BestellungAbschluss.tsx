@@ -49,10 +49,15 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
   // Spalte nichts aus einem abgebrochenen Vorgang übertragen wird.
   const [bestellungId, setBestellungId] = useState(() => crypto.randomUUID())
   const warLeerRef = useRef(noPositionenSelected)
+  // Inhalt des letzten Absendeversuchs. Nach einem Fehlversuch mit geändertem
+  // Inhalt ist der Schlüssel verbraucht: Das Backend erkennt ihn als Duplikat
+  // und verwürfe die geänderte Bestellung stillschweigend.
+  const letzterVersuchRef = useRef<string | null>(null)
   useEffect(() => {
     if (warLeerRef.current && !noPositionenSelected) {
       setBestellungId(crypto.randomUUID())
       setKommentar('')
+      letzterVersuchRef.current = null
     }
     warLeerRef.current = noPositionenSelected
   }, [noPositionenSelected])
@@ -70,9 +75,23 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
   })
 
   const onSubmit = async () => {
+    const inhalt = JSON.stringify({
+      positionen: props.positionen,
+      kommentar,
+    })
+    let schluessel = bestellungId
+    if (
+      letzterVersuchRef.current !== null &&
+      letzterVersuchRef.current !== inhalt
+    ) {
+      schluessel = crypto.randomUUID()
+      setBestellungId(schluessel)
+    }
+    letzterVersuchRef.current = inhalt
+
     await run(async () => {
       await props.backend.bestellungAufnehmen({
-        bestellungId,
+        bestellungId: schluessel,
         tischId: props.tisch.id,
         positionen: props.positionen,
         kommentar,

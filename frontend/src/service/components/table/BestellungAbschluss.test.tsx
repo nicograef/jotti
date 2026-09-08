@@ -157,6 +157,46 @@ describe('BestellungAbschluss (Spalte)', () => {
     )
   })
 
+  it('erneuert den bestellungId, wenn sich der Kommentar nach einem Fehlversuch ändert', async () => {
+    const user = userEvent.setup()
+    const bestellungAufnehmen = vi
+      .fn<(b: BestellungAufnehmen) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('kaputt'))
+      .mockResolvedValue(undefined)
+    render(
+      <BestellungAbschluss
+        variant="spalte"
+        backend={{ bestellungAufnehmen }}
+        tisch={tisch}
+        receiptItems={receiptItems}
+        positionen={positionen}
+        totalCents={700}
+        bestellungAufgenommen={vi.fn()}
+      />,
+    )
+
+    const aufnehmen = () =>
+      screen.getByRole('button', { name: 'Bestellung aufnehmen' })
+
+    await user.click(aufnehmen())
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(1)
+    })
+    const ersterKey = bestellungAufnehmen.mock.calls[0][0].bestellungId
+
+    // Geänderter Inhalt ist ein anderer Vorgang: Mit dem alten Schlüssel würde
+    // das Backend ihn als Duplikat verwerfen.
+    await user.type(screen.getByPlaceholderText(/Kommentar/), 'Ohne Zwiebeln')
+    await user.click(aufnehmen())
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(2)
+    })
+    expect(bestellungAufnehmen.mock.calls[1][0].bestellungId).not.toBe(
+      ersterKey,
+    )
+    expect(bestellungAufnehmen.mock.calls[1][0].kommentar).toBe('Ohne Zwiebeln')
+  })
+
   it('setzt den Kommentar beim neuen Vorgang zurück', async () => {
     const user = userEvent.setup()
 
