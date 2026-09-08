@@ -91,8 +91,9 @@ func (h *CommandHandler) UpdateProduktHandler() http.HandlerFunc {
 		err := h.Command.UpdateProdukt(r.Context(), body.ID, body.Name, body.Kategorie, body.Steuersatz)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
-				application.ErrProduktNotFound:    "produkt_not_found",
-				application.ErrInvalidProduktData: "invalid_produkt_data",
+				application.ErrProduktNotFound:      "produkt_not_found",
+				application.ErrProduktAlreadyExists: "produkt_already_exists",
+				application.ErrInvalidProduktData:   "invalid_produkt_data",
 			})
 			return
 		}

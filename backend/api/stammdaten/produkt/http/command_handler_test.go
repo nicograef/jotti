@@ -4,6 +4,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,6 +14,18 @@ import (
 	dom "github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
+
+// decodeErrorCode liest den Client-Fehlercode aus der JSON-Antwort.
+func decodeErrorCode(t *testing.T, rec *httptest.ResponseRecorder) string {
+	t.Helper()
+	var body struct {
+		Code string `json:"code"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode error body: %v", err)
+	}
+	return body.Code
+}
 
 type mockCommand struct {
 	err error
@@ -119,6 +132,24 @@ func TestUpdateProduktHandler_Failure(t *testing.T) {
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Errorf("expected status 500, got %d", rec.Code)
+	}
+}
+
+func TestUpdateProduktHandler_AlreadyExists(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrProduktAlreadyExists}}
+
+	body := `{"id":1,"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/update-produkt", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.UpdateProduktHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+	if code := decodeErrorCode(t, rec); code != "produkt_already_exists" {
+		t.Errorf("expected code produkt_already_exists, got %s", code)
 	}
 }
 

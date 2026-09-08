@@ -28,9 +28,16 @@ type varianteWithProdukt struct {
 }
 
 type mockRepo struct {
-	produkte  map[int]produkt.Produkt
-	varianten map[int]varianteWithProdukt
-	err       error
+	produkte         map[int]produkt.Produkt
+	varianten        map[int]varianteWithProdukt
+	err              error
+	updateProduktErr error
+}
+
+// SetUpdateProduktError makes UpdateProdukt fail with err while the reads keep
+// succeeding — the shape of a UNIQUE violation on the produkt name.
+func (m *mockRepo) SetUpdateProduktError(err error) {
+	m.updateProduktErr = err
 }
 
 // AddVariante adds a variante to the mock repository, associated with a produkt.
@@ -54,6 +61,9 @@ func (m *mockRepo) CreateProdukt(ctx context.Context, t produkt.Produkt) (int, e
 }
 
 func (m *mockRepo) UpdateProdukt(ctx context.Context, t produkt.Produkt) error {
+	if m.updateProduktErr != nil {
+		return m.updateProduktErr
+	}
 	m.produkte[t.ID] = t
 	return m.err
 }

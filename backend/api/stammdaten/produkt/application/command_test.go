@@ -76,6 +76,17 @@ func TestUpdateProdukt_NotFound(t *testing.T) {
 	}
 }
 
+func TestUpdateProdukt_AlreadyExists(t *testing.T) {
+	repo := produkt_repo.NewMock([]produkt.Produkt{testProdukt}, nil)
+	repo.SetUpdateProduktError(db.ErrAlreadyExists)
+	cmd := Command{ProduktRepo: repo}
+
+	err := cmd.UpdateProdukt(context.Background(), 1, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
+	if !errors.Is(err, ErrProduktAlreadyExists) {
+		t.Fatalf("expected ErrProduktAlreadyExists, got %v", err)
+	}
+}
+
 func TestVerschiebeProdukt_NotFound(t *testing.T) {
 	repo := produkt_repo.NewMock(nil, db.ErrNotFound)
 	cmd := Command{ProduktRepo: repo}

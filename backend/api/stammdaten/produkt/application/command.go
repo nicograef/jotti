@@ -75,6 +75,10 @@ func (c Command) UpdateProdukt(ctx context.Context, produktID int, name string, 
 
 	err = c.ProduktRepo.UpdateProdukt(ctx, produkt)
 	if err != nil {
+		if errors.Is(err, db.ErrAlreadyExists) {
+			log.Warn().Err(err).Str("name", produkt.Name).Msg("Produkt name already exists")
+			return ErrProduktAlreadyExists
+		}
 		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to update produkt")
 		return ErrDatabase
 	}
