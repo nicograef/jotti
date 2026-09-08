@@ -54,7 +54,9 @@ func TestBuildArchiveContents(t *testing.T) {
 		if _, err := buf.ReadFrom(rc); err != nil {
 			t.Fatalf("read index.xml: %v", err)
 		}
-		rc.Close()
+		if err := rc.Close(); err != nil {
+			t.Fatalf("close index.xml: %v", err)
+		}
 		if !bytes.Equal(buf.Bytes(), amtlicheIndexXML) {
 			t.Error("index.xml im Archiv weicht von der amtlichen Vorlage ab")
 		}

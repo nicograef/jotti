@@ -639,7 +639,7 @@ func TestMiddlewareKette_ReichtResponseControllerFaehigkeitenDurch(t *testing.T)
 	})
 
 	// Gleiche Reihenfolge wie in app.go: CorrelationID → Logging → POST-only → Recovery.
-	var kette http.Handler = RecoveryMiddleware(handler)
+	kette := RecoveryMiddleware(handler)
 	kette = PostMethodOnlyMiddleware(kette)
 	kette = LoggingMiddleware(kette)
 	kette = CorrelationIDMiddleware(kette)

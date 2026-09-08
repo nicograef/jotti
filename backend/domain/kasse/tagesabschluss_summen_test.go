@@ -210,9 +210,8 @@ func TestComputeAbschlussSummen(t *testing.T) {
 				// neutral
 				bestellung, umbuchung, kassensturz, differenz,
 			},
-			// umsatz:   1200 - 400 + 800 - 300 = 1300
-			// storno:    400 + 150 + 300 = 850
-			// transit:   500 - 200 = 300
+			// erwartet: Umsatz 1200 - 400 + 800 - 300 ergibt 1300,
+			// Storno 400 + 150 + 300 ergibt 850, Transit 500 - 200 ergibt 300.
 			wantUmsatz:  1300,
 			wantStorno:  850,
 			wantTransit: 300,
