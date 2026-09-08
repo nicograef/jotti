@@ -80,10 +80,6 @@ branch, assembleFrom } })`; `rev` und `branch` stempeln den Dokument-Kopf.
 - **Release**: v1.0.0 erst nach Abschluss von Phase D, kein Tag und kein Zwischen-Release
   vorher; die Vereine bleiben bis dahin auf v0.17.3. Zielrahmen des Eigentümers: Mitte
   September.
-- **Offene Eigentümer-Punkte nach dem Merge**: Plan 2 Phase 0 Kriterium 5 (Dependabot-PRs
-  geschlossen) und Phase 10 Kriterium 4 (#111 geschlossen) abhaken; danach Phase A
-  Kriterium 1 abhaken. `docs/plans/review-externe-prs.md` löschen, sobald #109, #110 und
-  #111 geschlossen sind.
 - **Bekannte Drift für den Fix-Plan** (aus Phase A gesammelt, im Findings-Dokument
   gegenzuprüfen): handbuch.md nennt „drei“ Fehlversuche, Code (`MaxDruckversuche = 6`) und
   README „sechs“; `DruckerConfigPage` in handbuch.md;
@@ -154,7 +150,7 @@ CI-Job `upgrade-path`, für Website-Phasen `make website-check`, für Phase 4
 
 ### Acceptance criteria
 
-- [ ] Alle Kriterien der Phasen 0–10 in `plan-praxis-feedback.md` abgehakt; in diesem Lauf
+- [x] Alle Kriterien der Phasen 0–10 in `plan-praxis-feedback.md` abgehakt; in diesem Lauf
       geschriebene Änderungen tragen den Trailer
       `Plan: praxis-feedback phase <N> criterion <M>`; Cherry-Picks aus #109/#110 behalten
       ihre Original-Messages; reine Gate-Kriterien (grün gelaufene Befehle) brauchen

@@ -201,7 +201,7 @@ danach gegen den neuen Stand reviewt.
 - [x] Ein Commit je Ökosystem mit Conventional-Commit-Betreff `chore(deps): …`
 - [x] `make verify`, `make website-check` und `make test-e2e` grün; CI grün inklusive
       `security-scans` (govulncheck, pnpm audit)
-- [ ] Die acht Dependabot-PRs sind nach dem Landen geschlossen (durch Dependabot) oder,
+- [x] Die acht Dependabot-PRs sind nach dem Landen geschlossen (durch Dependabot) oder,
       falls nicht, mit Verweis auf den Commit manuell geschlossen
 - [x] Nicht übernehmbare Updates stehen mit Begründung unter „Open questions / Risks"
 
@@ -595,7 +595,7 @@ Produkte festlegen) oder abgelehnt (dann #111 mit Begründung schließen).
       ~50 Varianten) als Entscheidungsgrundlage
 - [x] ADR `10_produktebene-service.md` mit Status und Begründung, in der Tabelle in
       `docs/adrs/README.md` verlinkt
-- [ ] PR #111 gemerged oder mit Verweis auf die ADR geschlossen
+- [x] PR #111 gemerged oder mit Verweis auf die ADR geschlossen
 
 ---
 
