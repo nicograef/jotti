@@ -249,7 +249,11 @@ func fixBackendComments(files []string) (int, error) {
 		}
 		sort.Slice(edits, func(i, j int) bool { return edits[i].start > edits[j].start })
 		for _, e := range edits {
-			content = append(content[:e.start], append([]byte(e.text), content[e.end:]...)...)
+			var rewritten []byte
+			rewritten = append(rewritten, content[:e.start]...)
+			rewritten = append(rewritten, e.text...)
+			rewritten = append(rewritten, content[e.end:]...)
+			content = rewritten
 			changed++
 		}
 		if err := os.WriteFile(path, content, 0o644); err != nil {
