@@ -388,11 +388,31 @@ func startsAtFirstWord(line string, matchStart int) bool {
 	return strings.Trim(line[:matchStart], "/* \t") == ""
 }
 
+// hasInternalCapital reports whether s has an uppercase letter anywhere
+// after its first rune. German capitalizes only the first letter of a
+// word, compound nouns included (Störungsprotokoll, not
+// StörungsProtokoll), so a word with a capital further in is structurally
+// a multi-part Go identifier (WriteEventWithDruckauftraege), never plain
+// prose — that holds regardless of where in a comment it appears, unlike
+// the doc-header check, which only covers a declaration's own opening
+// word.
+func hasInternalCapital(s string) bool {
+	r := []rune(s)
+	for i := 1; i < len(r); i++ {
+		if unicode.IsUpper(r[i]) {
+			return true
+		}
+	}
+	return false
+}
+
 // checkBackendComments reports transliterated word stems on Go comment
-// lines. It skips a match only when it is a doc comment's own opening
-// word and that word is exactly the name of the declaration the comment
-// documents (docHeaders) — every other occurrence of a real identifier's
-// name, including elsewhere in its own doc comment, is ordinary prose and
+// lines. It skips a match in two cases: the match is a doc comment's own
+// opening word and that word is exactly the name of the declaration the
+// comment documents (docHeaders), or the matched word carries a capital
+// letter beyond its first rune (hasInternalCapital) and so cannot be a
+// plain German word. Every other occurrence of a real identifier's name —
+// including elsewhere in its own doc comment — is ordinary prose and
 // still gets flagged. A block comment's ast.Comment.Text carries embedded
 // "\n"s, so the reported line is the comment's start line plus the
 // newline count before the match.
@@ -432,8 +452,9 @@ func checkBackendComments(files []string) ([]string, error) {
 						whole := line[m[0]:m[1]]
 						stemPart := line[m[2]:m[3]]
 						suffix := line[m[4]:m[5]]
-						if isHeader && commentIdx == 0 && lineOffset == 0 &&
-							whole == headerName && startsAtFirstWord(line, m[0]) {
+						isDocHeader := isHeader && commentIdx == 0 && lineOffset == 0 &&
+							whole == headerName && startsAtFirstWord(line, m[0])
+						if isDocHeader || hasInternalCapital(whole) {
 							continue
 						}
 						lineNo := startLine + lineOffset

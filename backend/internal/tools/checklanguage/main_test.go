@@ -89,7 +89,7 @@ func TestCheckBackendComments_ReportsStemInCommentOnly(t *testing.T) {
 }
 
 func TestCheckBackendComments_ProtectsOnlyDocHeaderName(t *testing.T) {
-	// "Stoerung" opens its own doc comment (Go doc convention: a type's
+	// "Störung" opens its own doc comment (Go doc convention: a type's
 	// comment starts with the type's exact name) and must be protected
 	// there. The same word later in the very same sentence is ordinary
 	// prose and must still be flagged.
@@ -107,6 +107,27 @@ func TestCheckBackendComments_ProtectsOnlyDocHeaderName(t *testing.T) {
 	}
 	if !strings.Contains(hits[0], `"Stoerung"`) || !strings.Contains(hits[0], `"Störung"`) {
 		t.Errorf("expected the second, non-header \"Stoerung\" to be flagged: %v", hits)
+	}
+}
+
+func TestCheckBackendComments_ProtectsMidSentenceIdentifierReference(t *testing.T) {
+	// A struct field's trailing (not doc) comment naming a different
+	// declaration by its exact, multi-capital name — the kind of
+	// reference the doc-header check alone does not see, since it isn't
+	// that field's own opening word.
+	src := "package p\n\n" +
+		"func WriteEventWithDruckauftraege() {}\n\n" +
+		"type mock struct {\n" +
+		"\tdruckauftraege []int // captured via WriteEventWithDruckauftraege\n" +
+		"}\n"
+
+	path := writeTemp(t, "ref.go", src)
+	hits, err := checkBackendComments([]string{path})
+	if err != nil {
+		t.Fatalf("checkBackendComments: %v", err)
+	}
+	if len(hits) != 0 {
+		t.Errorf("a multi-capital identifier reference must never be flagged: %v", hits)
 	}
 }
 
