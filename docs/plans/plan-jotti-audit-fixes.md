@@ -508,7 +508,7 @@ deutsch. Bezeichner ändern sich nicht.
 
 ### Acceptance criteria
 
-- [ ] `scripts/check-language.sh` liest `git ls-files` und schlägt fehl bei
+- [x] `scripts/check-language.sh` liest `git ls-files` und schlägt fehl bei
       Nicht-ASCII-Bytes in Go-String-Literalen unter `windows/**` und in
       `packaging/**/*.cmd`. Kommentare, `*.manifest` und `*.syso` sind ausgenommen; sie
       tragen deutsche Prosa und stehen nie auf der Konsole. Zusätzlich schlägt es fehl bei
@@ -516,15 +516,15 @@ deutsch. Bezeichner ändern sich nicht.
 auftraege, aenderung, gemaess, zurueck, moeglich, spaeter, aendern, pruefen, laeuft,
 haelt, groesse, schliessen, genuegt, einfuehrung` als ganzes Wort in Kommentarzeilen
       unter `backend/`.
-- [ ] `.gitattributes` im Repo-Root enthält `*.cmd text eol=crlf`, und die drei
+- [x] `.gitattributes` im Repo-Root enthält `*.cmd text eol=crlf`, und die drei
       `packaging/windows/*.cmd` sind mit CRLF und ohne Em-Dash eingecheckt.
-- [ ] Die gedruckten Strings in `windows/starter/backup.go`, `windows/starter/main.go`,
+- [x] Die gedruckten Strings in `windows/starter/backup.go`, `windows/starter/main.go`,
       `windows/starter/system.go`, `windows/starter/core/diagnose.go`,
       `windows/relay/env.go` und `windows/relay/main.go` sind reines ASCII („—" → „-",
       „→" → „->", „ü" → „ue"). Befund: windows/starter/backup.go:67,69;
       windows/starter/main.go:238; windows/starter/system.go:58,114,251;
       windows/relay/env.go:84; windows/relay/main.go:148
-- [ ] Die deutsche Prosa in Go-Kommentaren unter `backend/` schreibt durchgängig echte
+- [x] Die deutsche Prosa in Go-Kommentaren unter `backend/` schreibt durchgängig echte
       Umlaute, und die vier englischen Screenreader-Texte lauten „Schließen",
       „Seitenleiste", „Zeigt die mobile Seitenleiste." und „Wird geladen".
       Befund: frontend/src/components/ui/dialog.tsx:93 (ebenso sheet.tsx:90,
