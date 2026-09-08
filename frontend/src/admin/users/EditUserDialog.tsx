@@ -21,7 +21,6 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
-import { AuthSingleton } from '@/lib/Auth'
 
 import { type User, UserSchema } from './User'
 import type { UserBackend } from './UserBackend'
@@ -37,16 +36,15 @@ interface EditUserDialogProps {
   backend: Pick<UserBackend, 'updateUser'>
   open: boolean
   user: User
+  // Das eigene Konto: Die Rolle bleibt dann gesperrt, weil eine Herabstufung
+  // den letzten Admin ohne Datenbankzugriff aussperrt. Das Backend lehnt sie
+  // zusätzlich mit `cannot_demote_self` ab.
+  isSelf: boolean
   updated: (user: User) => void
   close: () => void
 }
 
 export function EditUserDialog(props: EditUserDialogProps) {
-  // Die eigene Rolle bleibt gesperrt: Eine Herabstufung sperrt den letzten
-  // Admin ohne Datenbankzugriff aus. Das Backend lehnt sie zusätzlich mit
-  // `cannot_demote_self` ab.
-  const isSelf = props.user.id === AuthSingleton.userId
-
   const form = useForm<FormData>({
     defaultValues: props.user,
     resolver: zodResolver(FormDataSchema),
@@ -88,7 +86,7 @@ export function EditUserDialog(props: EditUserDialogProps) {
         <DialogHeader className="mb-4">
           <DialogTitle>{props.user.name}</DialogTitle>
           <DialogDescription>
-            {isSelf
+            {props.isSelf
               ? 'Du kannst Name und Benutzername ändern. Die eigene Rolle bleibt gesperrt, damit du dich nicht aussperrst.'
               : 'Du kannst Name, Benutzername und Rolle des Helfers ändern.'}
           </DialogDescription>
@@ -104,7 +102,7 @@ export function EditUserDialog(props: EditUserDialogProps) {
             <FieldGroup>
               <NameField form={form} withLabel />
               <UsernameField form={form} withLabel />
-              <RoleField form={form} withLabel disabled={isSelf} />
+              <RoleField form={form} withLabel disabled={props.isSelf} />
             </FieldGroup>
           </form>
         </DialogBody>

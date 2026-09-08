@@ -6,16 +6,6 @@ import { type User } from './User'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
-// Der eigene Account wird über das Auth-Singleton aufgelöst; im Test ist das
-// die userId 1.
-vi.mock('@/lib/Auth', () => ({
-  AuthSingleton: {
-    get userId() {
-      return 1
-    },
-  },
-}))
-
 function user(overrides: Partial<User> = {}): User {
   return {
     id: 2,
@@ -29,12 +19,13 @@ function user(overrides: Partial<User> = {}): User {
   }
 }
 
-function renderDialog(overrides: Partial<User> = {}) {
+function renderDialog(isSelf = false) {
   render(
     <EditUserDialog
       backend={{ updateUser: vi.fn().mockResolvedValue(undefined) }}
       open
-      user={user(overrides)}
+      user={user()}
+      isSelf={isSelf}
       updated={vi.fn()}
       close={vi.fn()}
     />,
@@ -57,7 +48,7 @@ describe('EditUserDialog', () => {
   it('sperrt das Rollenfeld im eigenen Konto', () => {
     // Ohne die Sperre stuft sich der letzte Admin selbst herab und sperrt die
     // Instanz aus; das Backend lehnt das zusätzlich mit cannot_demote_self ab.
-    renderDialog({ id: 1, role: 'admin' })
+    renderDialog(true)
 
     expect(screen.getByRole('combobox', { name: /Rolle/ })).toBeDisabled()
   })

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { AuthSingleton } from '@/lib/Auth'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditUserDialog } from './EditUserDialog'
@@ -88,6 +89,7 @@ export function AdminUsersPage() {
           backend={userBackend}
           open={editState.open}
           user={editState.user}
+          isSelf={editState.user.id === AuthSingleton.userId}
           updated={() => {
             invalidateUsers()
           }}
