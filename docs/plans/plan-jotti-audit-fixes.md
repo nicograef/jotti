@@ -519,12 +519,16 @@ deutsch. Bezeichner ändern sich nicht.
       tragen deutsche Prosa und stehen nie auf der Konsole. Zusätzlich schlägt es fehl bei
       transliterierten deutschen Wortstämmen samt Flexionen in Kommentarzeilen unter
       `backend/` (unter anderem `fuer, ueber, koenn, muess, waehrend, naechst, auftraeg,
-    aender, gemaess, zurueck, moeglich, spaet, pruef, laeuf, haelt, groess, schliess,
-    genueg, einfuehr, uebernahm, stoerung, laess, rueckstand, traeg, endgueltig,
-    getaetigt, oeffne, fuenf, zaehl, haeng, faeng, waer, fuehr`); die vollständige
+  aender, gemaess, zurueck, moeglich, spaet, pruef, laeuf, haelt, groess, schliess,
+  genueg, einfuehr, uebernahm, stoerung, laess, rueckstand, traeg, endgueltig,
+  getaetigt, oeffne, fuenf, zaehl, haeng, faeng, waer, fuehr`); die vollständige
       Stammliste steht im Prüfer `backend/internal/tools/checklanguage`, der im
       Backend-Modul gelintet und mit einem Unit-Test abgesichert ist und von
       `scripts/check-language.sh` gebaut wird. `backend/sqlc/dbgen/**` ist ausgenommen.
+      Ein Wort, das einem im Backend deklarierten Bezeichner, einem Paketnamen oder
+      einem Wort aus einem String-Literal (auch in `dbgen`) entspricht, ist nie ein
+      Treffer: Routen, Event-Typen, Spalten-, Enum- und Paketnamen behalten in
+      Kommentaren ihre ASCII-Schreibweise. Ein Unit-Test belegt das je Klasse.
 - [x] `.gitattributes` im Repo-Root enthält `*.cmd text eol=crlf`, und die drei
       `packaging/windows/*.cmd` sind mit CRLF und ohne Em-Dash eingecheckt.
 - [x] Die gedruckten Strings in `windows/starter/backup.go`, `windows/starter/main.go`,
