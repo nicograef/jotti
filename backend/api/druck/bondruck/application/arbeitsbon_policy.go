@@ -24,8 +24,8 @@ type positionenMitKommentarData struct {
 // Direktverkauf-Event anhand der konfigurierten Druckstationen.
 //   - bestellung-aufgenommen: Arbeitsbons an die Produktstationen je Kategorie.
 //   - direktverkauf-getaetigt (Ableitungsregel): ist die Abholbon-Station konfiguriert,
-//     entstehen Abholbon(s) an dieser Station gemaess ihrem Bonmodus; sonst Arbeitsbons
-//     an die Produktstationen; ohne konfigurierte Stationen entstehen keine Auftraege.
+//     entstehen Abholbon(s) an dieser Station gemäß ihrem Bonmodus; sonst Arbeitsbons
+//     an die Produktstationen; ohne konfigurierte Stationen entstehen keine Aufträge.
 //
 // Bonmodus pro_position (Standard) erzeugt einen Bon je Position, pro_bestellung einen
 // Sammelbon je Kategorie bzw. einen Sammel-Abholbon. Der Abholbon kennt zusaetzlich
@@ -64,7 +64,7 @@ func createDirektverkaufAuftraege(
 	return createStationsAuftraegeFromData(evt, data, druckstationen, "Direktverkauf", referenz)
 }
 
-// createAbholbonAuftraege erzeugt Abholbons fuer einen Direktverkauf gemaess Bonmodus:
+// createAbholbonAuftraege erzeugt Abholbons für einen Direktverkauf gemäß Bonmodus:
 // pro_bestellung = ein Sammel-Abholbon, pro_position = ein Abholbon je Position,
 // pro_stueck = ein Abholbon je Einheit (eine Positions-Kopie mit Menge 1 je Bon).
 func createAbholbonAuftraege(
@@ -98,7 +98,7 @@ func createAbholbonAuftraege(
 		}
 		return auftraege
 
-	default: // BonmodusProPosition, zugleich Rueckfall fuer unbekannte Werte
+	default: // BonmodusProPosition, zugleich Rueckfall für unbekannte Werte
 		auftraege := make([]druckauftrag_repo.NeuerDruckauftrag, 0, len(data.Positionen))
 		for _, pos := range data.Positionen {
 			auftraege = append(auftraege, abholbon([]kasse.Position{pos}))

@@ -79,7 +79,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 // RecoveryMiddleware faengt Panics aus Handlern ab: Der Request endet mit 500
 // im bestehenden Fehler-Response-Format statt mit einer abgerissenen Verbindung
-// (net/http wuerde nur die Verbindung schliessen), der Stack landet im Log.
+// (net/http wuerde nur die Verbindung schließen), der Stack landet im Log.
 // http.ErrAbortHandler wird durchgereicht — das ist das idiomatische Signal von
 // net/http, eine Response bewusst abzubrechen.
 func RecoveryMiddleware(next http.Handler) http.Handler {

@@ -83,7 +83,7 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 		t.Fatalf("register client failed: %v", err)
 	}
 
-	// Die fiskalischen TSS-Stammdaten fuer den DSFinV-K-Export muessen lesbar sein.
+	// Die fiskalischen TSS-Stammdaten für den DSFinV-K-Export müssen lesbar sein.
 	stammdaten, err := setupClient.RetrieveTSSStammdaten(ctx, erstellt.ID)
 	if err != nil {
 		t.Fatalf("retrieve tss stammdaten failed: %v", err)

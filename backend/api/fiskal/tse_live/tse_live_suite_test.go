@@ -1,7 +1,7 @@
 //go:build integration
 
 // Package tse_live ist die TSE-Live-Suite: Sie loest jeden signaturpflichtigen
-// Geschaeftsvorfall ueber die echten Anwendungsdienste aus, laesst ihn vom
+// Geschaeftsvorfall über die echten Anwendungsdienste aus, laesst ihn vom
 // echten Signatur-Worker gegen die fiskaly-TEST-TSS real signieren und prueft
 // je Vorfall den abgeschlossenen Signaturauftrag, die Signaturdaten im
 // Kassenjournal-Outbox-Eintrag und das processType-Mapping.
@@ -117,7 +117,7 @@ func pruefeTestUmgebungOderAbbruch(t *testing.T, credentials tse.Credentials) {
 }
 
 // cleanLiveDB raeumt alle im Lauf beschriebenen Tabellen ab. Das Kassenjournal
-// ist append-only (Loesch-Trigger); fuer den Test-Reset wird der Trigger
+// ist append-only (Loesch-Trigger); für den Test-Reset wird der Trigger
 // kurzzeitig ausgesetzt.
 func cleanLiveDB(t *testing.T, db *sql.DB) {
 	t.Helper()
@@ -267,7 +267,7 @@ type signaturZeile struct {
 }
 
 // warteAufSignatur pollt den Auftrag des Events, bis er 'erledigt' ist, und
-// gibt seine Signaturdaten zurueck. Ein fehlgeschlagener Auftrag bricht sofort
+// gibt seine Signaturdaten zurück. Ein fehlgeschlagener Auftrag bricht sofort
 // ab (kein Warten bis zum Timeout).
 func warteAufSignatur(t *testing.T, db *sql.DB, eventID int) signaturZeile {
 	t.Helper()
@@ -351,7 +351,7 @@ func eventIDByType(t *testing.T, db *sql.DB, eventType, subject string) int {
 }
 
 // positionRefsAusSession liest die aktuell unbezahlten Positionen eines Tischs
-// und baut PositionRefs ueber genau menge Stueck der ersten Position.
+// und baut PositionRefs über genau menge Stueck der ersten Position.
 func positionRefsAusSession(t *testing.T, u *liveTestUmgebung, ksNr, tischID, menge int) []kasse.PositionRef {
 	t.Helper()
 	session, err := kassenjournal_repo.NewRepository(u.db).ReadTischSession(context.Background(), kasse.TischSessionSubject(ksNr, tischID))
@@ -386,7 +386,7 @@ func restBezahlen(t *testing.T, u *liveTestUmgebung, ksNr, tischID int) {
 }
 
 // TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten loest jeden
-// signaturpflichtigen Geschaeftsvorfall ueber die Anwendungsdienste aus, laesst
+// signaturpflichtigen Geschaeftsvorfall über die Anwendungsdienste aus, laesst
 // ihn real signieren und prueft Signatur, Kassenjournal-Outbox und
 // processType-Mapping. Am Ende wird die Vollstaendigkeit der persistierten
 // TSE-Stammdaten explizit assertet.

@@ -15,8 +15,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// abbruchProbe spielt den Client, der waehrend der Arbeit des Handlers
-// abbricht: Sie storniert den Request-Kontext und haelt fest, was der an die
+// abbruchProbe spielt den Client, der während der Arbeit des Handlers
+// abbricht: Sie storniert den Request-Kontext und hält fest, was der an die
 // Application-Schicht uebergebene Kontext danach meldet.
 type abbruchProbe struct {
 	abbrechen        context.CancelFunc
@@ -25,7 +25,7 @@ type abbruchProbe struct {
 	loggerAktiv      bool
 }
 
-// beobachte laeuft anstelle der fiskaly-Sequenz. context.WithCancel schliesst
+// beobachte läuft anstelle der fiskaly-Sequenz. context.WithCancel schliesst
 // den Done-Kanal aller Kinder synchron im cancel-Aufruf, die Pruefung direkt
 // danach ist damit deterministisch.
 func (p *abbruchProbe) beobachte(ctx context.Context) {
@@ -66,7 +66,7 @@ func (q *abbruchQuery) CheckTSESetup(ctx context.Context, credentials tse.SetupC
 }
 
 // Die beiden schreibenden Endpunkte fahren einen fiskaly-Lebenszyklus, der
-// nicht mittendrin abbrechen darf: Zurueck bliebe eine bezahlte, halbfertige
+// nicht mittendrin abbrechen darf: Zurück bliebe eine bezahlte, halbfertige
 // TSS, deren PUK und Admin-PIN es nur in der verlorenen Antwort gab. Ein
 // Client-Abbruch storniert r.Context() — deshalb laufen sie unter einem davon
 // abgekoppelten Kontext (lebenszyklusKontext). Die beiden lesenden Endpunkte

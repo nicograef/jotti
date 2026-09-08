@@ -219,7 +219,7 @@ func TestRichteTSEEinHandler_BereitsEingerichtet(t *testing.T) {
 }
 
 // TestRichteTSEEinHandler_LaeuftBereits sichert, dass ein zweiter Versuch
-// waehrend einer laufenden Einrichtung als 409 mit eigenem Code ankommt: Die
+// während einer laufenden Einrichtung als 409 mit eigenem Code ankommt: Die
 // Anfrage war in Ordnung, nur der Zustand ist voruebergehend — der Admin soll
 // warten statt eine zweite, bezahlte TSS anzulegen.
 func TestRichteTSEEinHandler_LaeuftBereits(t *testing.T) {
@@ -240,7 +240,7 @@ func TestRichteTSEEinHandler_LaeuftBereits(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSEHandler_LaeuftBereits sichert dieselbe Abbildung fuer die
+// TestUebernimmTSEHandler_LaeuftBereits sichert dieselbe Abbildung für die
 // Uebernahme — sie teilt sich das Schloss mit der Neuanlage.
 func TestUebernimmTSEHandler_LaeuftBereits(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupLaeuftBereits}}
@@ -305,7 +305,7 @@ func TestUebernimmTSEHandler_FehlendeTssID(t *testing.T) {
 }
 
 // TestUebernimmTSEHandler_UnbekanntePIN sichert die Uebersetzung der
-// Sackgassen-Meldung in den verstaendlichen Fehlercode fuer die UI.
+// Sackgassen-Meldung in den verstaendlichen Fehlercode für die UI.
 func TestUebernimmTSEHandler_UnbekanntePIN(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupPINUnbekannt}}
 
@@ -325,7 +325,7 @@ func TestUebernimmTSEHandler_UnbekanntePIN(t *testing.T) {
 }
 
 // TestUebernimmTSEHandler_UnbekannterPUK sichert die Uebersetzung des
-// PUK-Reset-Fehlers in den verstaendlichen Fehlercode fuer die UI.
+// PUK-Reset-Fehlers in den verstaendlichen Fehlercode für die UI.
 func TestUebernimmTSEHandler_UnbekannterPUK(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupPUKUnbekannt}}
 

@@ -17,7 +17,7 @@ import (
 // liegen sicher innerhalb der von fiskaly akzeptierten Laenge.
 const adminPINStellen = 10
 
-// einrichtungLaeuft haelt fest, ob gerade jemand an der TSE-Konfiguration
+// einrichtungLaeuft hält fest, ob gerade jemand an der TSE-Konfiguration
 // schreibt, und traegt damit die fachliche Invariante "es schreibt hoechstens
 // einer auf der TSE-Konfiguration". Alle drei Schreibpfade nehmen es:
 // RichteTSEEin, UebernimmTSE und UpdateTSEKonfiguration (command.go) — sie
@@ -25,7 +25,7 @@ const adminPINStellen = 10
 //
 // Noetig, seit der Lebenszyklus vom Client-Abbruch entkoppelt ist
 // (lebenszyklusKontext in backend/api/fiskal/setup/http/command_handler.go): Er
-// laeuft nach einem Abbruch im Hintergrund weiter, waehrend der Admin bereits
+// läuft nach einem Abbruch im Hintergrund weiter, während der Admin bereits
 // eine Fehlermeldung sieht und sofort erneut starten kann. Ohne diese Sperre
 // saehe der zweite Aufruf in ListTSS noch das leere Konto, hatAktiveTSS meldete
 // false, und er legte eine ZWEITE bezahlte LIVE-TSS an. Beide Laeufe endeten in
@@ -35,11 +35,11 @@ const adminPINStellen = 10
 // Derselbe Ausgang droht ohne den fiskaly-Umweg: Der manuelle
 // Zugangsdaten-Wechsel liegt in der Oberflaeche direkt unter dem Wizard
 // (frontend/src/admin/tse/TSEEinrichtungPage.tsx). Speichert der Admin dort von
-// Hand, waehrend die Einrichtung im Hintergrund noch laeuft, gewinnt der letzte
+// Hand, während die Einrichtung im Hintergrund noch läuft, gewinnt der letzte
 // Schreiber, und die Instanz signiert anschliessend gegen eine TSS/Client-
 // Kombination, die nicht die eingerichtete ist.
 //
-// Ein prozessinternes Schloss genuegt: jotti laeuft je Verein als eine einzige
+// Ein prozessinternes Schloss genügt: jotti läuft je Verein als eine einzige
 // Backend-Instanz (Docker Compose), es gibt keine zweite Instanz, gegen die zu
 // koordinieren waere. Ein atomarer Schalter statt eines Mutex, weil der zweite
 // Aufruf nicht warten, sondern sofort mit ErrTSESetupLaeuftBereits abbrechen
@@ -47,7 +47,7 @@ const adminPINStellen = 10
 // Wert-Empfaenger, ein Wert-Feld waere pro Methodenaufruf eine eigene Kopie und
 // damit wirkungslos. Ein Zeiger-Feld (*atomic.Bool, einmal in
 // backend/api/admin.go befuellt) waere prozessweit dasselbe Schloss und damit
-// korrekt — aber unnoetige Verdrahtung mit einer Nil-Falle fuer jeden, der ein
+// korrekt — aber unnoetige Verdrahtung mit einer Nil-Falle für jeden, der ein
 // Command ohne dieses Feld baut.
 var einrichtungLaeuft atomic.Bool
 
@@ -73,7 +73,7 @@ type TSESetupErgebnis struct {
 	Umgebung string
 }
 
-// RichteTSEEin fuehrt den vollstaendigen fiskaly-Lebenszyklus fuer ein leeres
+// RichteTSEEin fuehrt den vollstaendigen fiskaly-Lebenszyklus für ein leeres
 // Konto durch: TSS anlegen, personalisieren, Admin-PIN setzen, initialisieren
 // und einen Client mit der Kassen-Seriennummer registrieren. Die Konfiguration
 // wird erst nach erfolgreichem Abschluss atomar gespeichert — ein Abbruch
@@ -197,7 +197,7 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 
 // UebernimmTSE uebernimmt eine im Befund gewaehlte, bereits vorhandene TSS und
 // setzt sie aus ihrem aktuellen Zustand bis zum registrierten Client fort. Das
-// ersetzt fuer vorhandene TSS die Verweigerung aus RichteTSEEin und dient
+// ersetzt für vorhandene TSS die Verweigerung aus RichteTSEEin und dient
 // zugleich der Wiederaufnahme nach einem Abbruch:
 //
 //   - CREATED: der PUK wird idempotent erneut bezogen und eine frische Admin-PIN
@@ -375,7 +375,7 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 // saveEinrichtung ist der gemeinsame Speicher-Schritt aller
 // Einrichtungspfade (Neuanlage, Uebernahme, F8-Uebernahme und PUK-Reset): nach
 // erfolgreichem fiskaly-Lebenszyklus wird die TSE-Konfiguration atomar
-// gespeichert und — best effort — die fiskalischen TSS-Stammdaten fuer den
+// gespeichert und — best effort — die fiskalischen TSS-Stammdaten für den
 // DSFinV-K-Export nachgezogen. Schlaegt das Speichern der Konfiguration fehl, ist
 // die Einrichtung nicht abgeschlossen: die TSS existiert bei fiskaly (per
 // Uebernahme einsammelbar), tss_id/client_id werden geloggt (PUK/PIN niemals).
@@ -387,7 +387,7 @@ func (c Command) saveEinrichtung(ctx context.Context, log *zerolog.Logger, clien
 	}
 	// SaveEinrichtung speichert die Konfiguration und markiert beim Uebergang
 	// von nicht konfiguriert zu konfiguriert in derselben Transaktion die noch
-	// offenen, vor-konfigurationellen Auftraege endgueltig (Einrichtungs-Sweep)
+	// offenen, vor-konfigurationellen Aufträge endgueltig (Einrichtungs-Sweep)
 	// und schliesst den keine_konfiguration-Stoerungszeitraum.
 	if err := c.TSERepo.SaveEinrichtung(ctx, konfiguration); err != nil {
 		log.Error().Err(err).Str("tss_id", tssID).Str("client_id", clientID).
@@ -402,7 +402,7 @@ func (c Command) saveEinrichtung(ctx context.Context, log *zerolog.Logger, clien
 }
 
 // fetchTSEStammdaten liest die fiskalischen TSS-Stammdaten von fiskaly und
-// speichert sie fuer den DSFinV-K-Export. Die Stammdaten enthalten die
+// speichert sie für den DSFinV-K-Export. Die Stammdaten enthalten die
 // TSS-Seriennummer (TSE_SERIAL in der DSFinV-K), die nicht aus den Signaturen
 // rekonstruierbar ist; daher ist ein Fehler hier ein harter Einrichtungsfehler.
 func (c Command) fetchTSEStammdaten(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, tssID string) error {

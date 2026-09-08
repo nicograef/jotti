@@ -133,7 +133,7 @@ const (
 	BelegStatusAusstehend BelegStatus = "ausstehend"
 )
 
-// tseAbschnittFuerBeleg loest den TSE-Abschnitt eines Belegs ueber die
+// tseAbschnittFuerBeleg loest den TSE-Abschnitt eines Belegs über die
 // Signaturstatus-Funktion auf — die einzige Implementierung des
 // Ausfallbegriffs. Vier Ergebnisarten: Signatur vorhanden (Abschnitt aus den
 // Signaturspalten des Auftrags), vorhanden mit Nachsigniert-Kennzeichen

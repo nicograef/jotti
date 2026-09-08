@@ -17,8 +17,8 @@ type Query struct {
 	TSERepo tseSignaturauftragQueryRepo
 }
 
-// GetTSESignaturQueueZustand liefert den Zustand der Signatur-Queue fuer das
-// Admin-Monitoring (Rueckstand und Leistung ueber ein 15-Minuten-Fenster).
+// GetTSESignaturQueueZustand liefert den Zustand der Signatur-Queue für das
+// Admin-Monitoring (Rueckstand und Leistung über ein 15-Minuten-Fenster).
 func (q Query) GetTSESignaturQueueZustand(ctx context.Context) (tse.SignaturQueueZustand, error) {
 	log := zerolog.Ctx(ctx)
 

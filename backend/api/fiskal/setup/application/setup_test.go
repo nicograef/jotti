@@ -14,7 +14,7 @@ import (
 
 // stubCommandRepo erfasst die gespeicherte Konfiguration und liefert eine feste
 // Kassenidentitaet, damit die Orchestrator-Tests Seriennummer und Speicherung
-// pruefen koennen.
+// prüfen können.
 type stubCommandRepo struct {
 	identitaet             tse.Kassenidentitaet
 	gespeichert            *tse.Konfiguration
@@ -43,7 +43,7 @@ func (s *stubCommandRepo) UpsertTSEStammdaten(_ context.Context, st tse.Stammdat
 	return nil
 }
 
-// stubKassensitzungReader liefert die offene Kassensitzung fuer den
+// stubKassensitzungReader liefert die offene Kassensitzung für den
 // Konfigurations-Guard; nil (Default) heisst: keine offen.
 type stubKassensitzungReader struct {
 	offene *kasse.Kassensitzung
@@ -699,7 +699,7 @@ func TestUebernimmTSE_DeaktivierteTSS(t *testing.T) {
 	}
 }
 
-// stammdatenAntwort ist die fiskaly-Stammdaten-Antwort fuer die
+// stammdatenAntwort ist die fiskaly-Stammdaten-Antwort für die
 // Persistenz-Tests des DSFinV-K-Exports.
 func stammdatenAntwort() tse.TSSStammdaten {
 	return tse.TSSStammdaten{
@@ -729,7 +729,7 @@ func checkStammdaten(t *testing.T, gespeichert *tse.Stammdaten, erwartet tse.TSS
 
 // TestRichteTSEEin_PersistiertStammdaten sichert, dass nach erfolgreicher
 // Neuanlage die fiskalischen TSS-Stammdaten (Algorithmus, Public Key, Zertifikat,
-// Log-Time-Format) fuer den DSFinV-K-Export gespeichert werden.
+// Log-Time-Format) für den DSFinV-K-Export gespeichert werden.
 func TestRichteTSEEin_PersistiertStammdaten(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{

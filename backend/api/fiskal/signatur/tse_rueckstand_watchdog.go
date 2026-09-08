@@ -29,7 +29,7 @@ type rueckstandStore interface {
 type tseRueckstandWatchdog struct {
 	store rueckstandStore
 	// tickInterval ist der Pruef-Takt; 0 (Zero Value in Tests) faellt auf
-	// tse.WatchdogTickIntervall zurueck.
+	// tse.WatchdogTickIntervall zurück.
 	tickInterval time.Duration
 	now          func() time.Time
 }
@@ -63,7 +63,7 @@ func (w *tseRueckstandWatchdog) Run(ctx context.Context) {
 }
 
 // tick fuehrt eine Loop-Iteration aus. Ein Panic wird abgefangen und geloggt
-// statt den Run-Loop zu beenden — die Ueberwachung laeuft am naechsten Tick
+// statt den Run-Loop zu beenden — die Ueberwachung läuft am naechsten Tick
 // weiter.
 func (w *tseRueckstandWatchdog) tick(ctx context.Context) {
 	defer recoverPanic("TSE-Rückstands-Watchdog")

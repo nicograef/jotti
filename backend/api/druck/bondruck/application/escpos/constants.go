@@ -22,7 +22,7 @@ const BoldOff = "\x1B\x45\x00"
 // Schriftgroesse (GS ! n)
 const TextNormal = "\x1D\x21\x00"
 const TextDoubleHigh = "\x1D\x21\x01" // Doppelte Hoehe
-const TextDoubleAll = "\x1D\x21\x11"  // Doppelte Hoehe und Breite (fuer Tischnummer)
+const TextDoubleAll = "\x1D\x21\x11"  // Doppelte Hoehe und Breite (für Tischnummer)
 
 // QR-Code (GS ( k)
 const QRCodeStorePrefix = "\x1D\x28\x6B" // GS ( k + pL pH

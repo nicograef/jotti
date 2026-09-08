@@ -12,7 +12,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// tseSetupWriteTimeout ersetzt fuer die beiden schreibenden TSE-Endpunkte die
+// tseSetupWriteTimeout ersetzt für die beiden schreibenden TSE-Endpunkte die
 // globale 10-Sekunden-Schreibfrist des Servers (backend/app/app.go). Beide
 // sprechen synchron mit fiskaly: Die Neuanlage setzt im schlimmsten Fall zehn
 // HTTP-Sequenzen nacheinander ab (Auth, ListTSS, CreateTSS, personalisieren,
@@ -24,8 +24,8 @@ import (
 // Retry-Budgets abgeleitet, nicht gemessen.
 //
 // Die Frist begrenzt allein den Schreibvorgang der Antwort. Sie bricht keinen
-// Handler ab: Laeuft sie ab, scheitert nur ein gerade laufender Schreibvorgang,
-// die Arbeit im Handler laeuft davon unberuehrt weiter. Der einzige
+// Handler ab: Läuft sie ab, scheitert nur ein gerade laufender Schreibvorgang,
+// die Arbeit im Handler läuft davon unberuehrt weiter. Der einzige
 // serverseitige Aufgabepunkt der beiden schreibenden Endpunkte ist der
 // Leck-Waechter unten.
 //
@@ -42,7 +42,7 @@ const tseSetupWriteTimeout = 2 * time.Minute
 // ausschliesslich, dass eine haengende fiskaly-Verbindung den vom Request
 // abgekoppelten Lebenszyklus dauerhaft offenhaelt.
 //
-// Der Wert liegt deshalb weit ueber dem Worst Case: Die Uebernahme setzt bis zu
+// Der Wert liegt deshalb weit über dem Worst Case: Die Uebernahme setzt bis zu
 // elf HTTP-Sequenzen nacheinander ab (Auth, ListTSS, ListClients, PUK beziehen
 // bzw. PIN setzen, personalisieren, PIN setzen, zweimal Admin-Auth,
 // initialisieren, Client registrieren, Stammdaten). Jede davon hat 10 s
@@ -65,7 +65,7 @@ const tseSetupLebenszyklusTimeout = 10 * time.Minute
 // TSE-Endpunkte ihren fiskaly-Lebenszyklus fahren. Er ist bewusst vom
 // Request-Kontext abgekoppelt: Schliesst der Client die Verbindung — Tab zu,
 // Seite neu geladen, WLAN weg —, storniert net/http r.Context(), und der
-// Lebenszyklus braeche mitten in der fiskaly-Sequenz ab. Zurueck bliebe eine
+// Lebenszyklus braeche mitten in der fiskaly-Sequenz ab. Zurück bliebe eine
 // bezahlte, halbfertige TSS: hatAktiveTSS blockiert den zweiten
 // Einrichtungsversuch mit tse_bereits_eingerichtet, und die Uebernahme
 // scheitert an der Admin-PIN, die es nur in der verlorenen Antwort gab (PUK und
@@ -82,14 +82,14 @@ const tseSetupLebenszyklusTimeout = 10 * time.Minute
 //
 // Abgekoppelt ist der Kontext, nicht der Ablauf: Der Handler startet keine
 // Goroutine, sondern faehrt den Lebenszyklus synchron und kehrt erst mit ihm
-// zurueck.
+// zurück.
 //
-// Die Zusage gilt deshalb genau fuer den Client-Abbruch, nicht fuer ein
-// Prozessende: Ein Deploy oder Neustart wartet ueber http.Server.Shutdown bis zu
+// Die Zusage gilt deshalb genau für den Client-Abbruch, nicht für ein
+// Prozessende: Ein Deploy oder Neustart wartet über http.Server.Shutdown bis zu
 // 30 s auf den noch laufenden Handler (backend/app/app.go); erst ein danach
 // immer noch laufender Lebenszyklus wird mit dem Prozess mitgerissen, und der
 // Endzustand ist wieder der Blocker — bezahlte TSS, hatAktiveTSS sperrt, die
-// Uebernahme scheitert an der fehlenden PIN. Waehrend einer laufenden
+// Uebernahme scheitert an der fehlenden PIN. Während einer laufenden
 // TSE-Einrichtung darf deshalb kein Deploy und kein Neustart erfolgen.
 //
 // Die beiden lesenden Endpunkte (TestTSEVerbindung, CheckTSESetup in
@@ -151,7 +151,7 @@ type tseUebernehmenRequest struct {
 
 // Pin ist optional: bei der Uebernahme einer TSS im Zustand CREATED nicht noetig,
 // ab UNINITIALIZED traegt es die vom Admin verwahrte Admin-PIN. Puk ist ebenfalls
-// optional und nur fuer den PIN-Reset gesetzt: ist die PIN verloren oder gesperrt,
+// optional und nur für den PIN-Reset gesetzt: ist die PIN verloren oder gesperrt,
 // setzt jotti mit dem PUK eine frische PIN und uebernimmt damit weiter.
 var tseUebernehmenSchema = z.Struct(z.Shape{
 	"ApiKey":    z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
@@ -204,7 +204,7 @@ func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
 }
 
 // RichteTSEEinHandler legt eine neue TSS an und fuehrt sie bis zum
-// registrierten Client. Der Lebenszyklus laeuft unter lebenszyklusKontext und
+// registrierten Client. Der Lebenszyklus läuft unter lebenszyklusKontext und
 // damit unabhaengig davon, ob der Client noch zuhoert: Ein Abbruch mittendrin
 // hinterliesse eine bezahlte, halbfertige TSS, deren PUK und Admin-PIN es nur
 // in dieser einen Antwort gibt.
@@ -227,7 +227,7 @@ func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 			body.NeuAnlegenTrotzVorhandener,
 		)
 
-		// Zweites Setzen der Schreibfrist, jetzt fuer den Schreibvorgang selbst:
+		// Zweites Setzen der Schreibfrist, jetzt für den Schreibvorgang selbst:
 		// Die Frist vom Handler-Eingang ist eine absolute Zeit ab Request-Start
 		// und nach einem langen Lebenszyklus abgelaufen. Diese eine Stelle deckt
 		// den Fehler- wie den Erfolgszweig ab.
@@ -270,10 +270,10 @@ func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 }
 
 // UebernimmTSEHandler setzt eine vorhandene TSS aus ihrem aktuellen Zustand bis
-// zum registrierten Client fort. Wie die Neuanlage laeuft der Lebenszyklus unter
+// zum registrierten Client fort. Wie die Neuanlage läuft der Lebenszyklus unter
 // lebenszyklusKontext: Auch hier entstehen unterwegs PUK bzw. Admin-PIN, die es
 // nur in dieser einen Antwort gibt, und ein Abbruch mittendrin liesse die TSS in
-// einem Zustand zurueck, aus dem kein zweiter Versuch mehr herausfuehrt.
+// einem Zustand zurück, aus dem kein zweiter Versuch mehr herausfuehrt.
 func (h *CommandHandler) UebernimmTSEHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)

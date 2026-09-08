@@ -10,10 +10,10 @@ var ErrDatabase = db.ErrDatabase
 var ErrNotFound = db.ErrNotFound
 var ErrTSENichtKonfiguriert = errors.New("tse_not_configured")
 
-// ErrTSEKonfigurationKassensitzungOffen zeigt an, dass eine Aenderung der
+// ErrTSEKonfigurationKassensitzungOffen zeigt an, dass eine Änderung der
 // TSE-Konfiguration abgelehnt wurde, weil eine Kassensitzung offen ist. Das
 // Signaturgeraet darf nicht mitten in einem laufenden Kassentag wechseln — der
-// Admin schliesst die Kassensitzung und wiederholt die Aenderung.
+// Admin schliesst die Kassensitzung und wiederholt die Änderung.
 var ErrTSEKonfigurationKassensitzungOffen = errors.New("tse_konfiguration_kassensitzung_offen")
 var ErrTSEVerbindungFehlgeschlagen = errors.New("tse_connection_failed")
 var ErrTSESetupZugangsdaten = errors.New("tse_setup_credentials_invalid")
@@ -36,7 +36,7 @@ var ErrTSEBereitsEingerichtet = errors.New("tse_bereits_eingerichtet")
 // einrichtungLaeuft in setup.go.
 var ErrTSESetupLaeuftBereits = errors.New("tse_setup_laeuft_bereits")
 
-// ErrTSEEinrichtung zeigt einen Fehler waehrend des fiskaly-Lebenszyklus an
+// ErrTSEEinrichtung zeigt einen Fehler während des fiskaly-Lebenszyklus an
 // (Anlage, Initialisierung oder Client-Registrierung).
 var ErrTSEEinrichtung = errors.New("tse_einrichtung_fehlgeschlagen")
 
@@ -62,7 +62,7 @@ var ErrTSESetupPINErforderlich = errors.New("tse_setup_pin_erforderlich")
 var ErrTSESetupPINUnbekannt = errors.New("tse_setup_pin_unbekannt")
 
 // ErrTSESetupUebernahmeNichtMoeglich zeigt an, dass die TSS in einem Zustand ist,
-// aus dem keine Wiederaufnahme moeglich ist (z. B. DISABLED oder DEFECTIVE).
+// aus dem keine Wiederaufnahme möglich ist (z. B. DISABLED oder DEFECTIVE).
 var ErrTSESetupUebernahmeNichtMoeglich = errors.New("tse_setup_uebernahme_nicht_moeglich")
 
 // ErrTSESetupPUKUnbekannt zeigt an, dass fiskaly den beim PIN-Reset uebergebenen

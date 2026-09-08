@@ -88,11 +88,11 @@ func (r Repository) TSESignaturauftragFehlversuch(ctx context.Context, auftragID
 	}))
 }
 
-// MarkOffeneAlsNichtKonfiguriert markiert alle offenen Auftraege endgueltig
-// als tse_nicht_konfiguriert und liefert die Anzahl markierter Auftraege. Ohne
+// MarkOffeneAlsNichtKonfiguriert markiert alle offenen Aufträge endgueltig
+// als tse_nicht_konfiguriert und liefert die Anzahl markierter Aufträge. Ohne
 // vorhandene TSE-Konfiguration gibt es keine Signatur; ein Nachsignieren ist
 // ausgeschlossen (keine Fehlversuche, keine automatische Wiederaufnahme).
-// Bereits endgueltig markierte Auftraege bleiben unberuehrt.
+// Bereits endgueltig markierte Aufträge bleiben unberuehrt.
 func (r Repository) MarkOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, error) {
 	n, err := r.q.MarkOffeneTSESignaturauftraegeNichtKonfiguriert(ctx)
 	if err != nil {
@@ -102,7 +102,7 @@ func (r Repository) MarkOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, 
 }
 
 // GetTSESignaturQueueZustand liefert den on demand berechneten Zustand der
-// Signatur-Queue fuer das Admin-Monitoring.
+// Signatur-Queue für das Admin-Monitoring.
 func (r Repository) GetTSESignaturQueueZustand(ctx context.Context) (tse.SignaturQueueZustand, error) {
 	row, err := r.q.GetTSESignaturQueueZustand(ctx)
 	if err != nil {
@@ -145,7 +145,7 @@ func (r Repository) GetAlleTSEStoerungen(ctx context.Context) ([]tse.Stoerungsze
 	return result, nil
 }
 
-// GetSignaturauftragZuEvent liefert den Signatur-Stand eines Events fuer den
+// GetSignaturauftragZuEvent liefert den Signatur-Stand eines Events für den
 // Beleg-Abruf. db.ErrNotFound heisst: kein Auftrag, das Event ist nicht
 // signaturpflichtig.
 func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) (tse.SignaturauftragStand, error) {
@@ -174,8 +174,8 @@ func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) 
 
 // GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Staende
 // aller noch nicht erledigten Signaturauftraege der Kassensitzung — die
-// Grundlage des Kassenabschluss-Gates. Erledigte Auftraege bleiben aussen vor
-// (bereits signiert); das Gate ordnet die Staende ueber DetermineSignaturstatus
+// Grundlage des Kassenabschluss-Gates. Erledigte Aufträge bleiben aussen vor
+// (bereits signiert); das Gate ordnet die Staende über DetermineSignaturstatus
 // in ausstehend bzw. Ausfall ein.
 func (r Repository) GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]tse.SignaturauftragStand, error) {
 	rows, err := r.q.GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx, kassensitzungNr)

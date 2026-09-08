@@ -328,7 +328,7 @@ func (r Repository) DeleteProduktMitVarianten(ctx context.Context, p produkt.Pro
 }
 
 // SortiereVariantenAlphabetisch vergibt die Reihenfolge aller Varianten eines
-// Produkts alphabetisch neu. Eine einzelne UPDATE-Anweisung genuegt und ist von
+// Produkts alphabetisch neu. Eine einzelne UPDATE-Anweisung genügt und ist von
 // sich aus atomar, deshalb ohne explizite Transaktion. Ein Produkt ohne
 // Varianten ist kein Fehler, sondern schlicht wirkungslos.
 func (r Repository) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {

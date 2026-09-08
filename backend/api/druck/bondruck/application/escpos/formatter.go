@@ -58,7 +58,7 @@ const (
 	// TSEVermerkVoruebergehend: die TSE war bei der Erfassung nicht erreichbar;
 	// der Vorgang wird automatisch nachsigniert.
 	TSEVermerkVoruebergehend
-	// TSEVermerkKeineKonfiguration: fuer den Vorgang war keine TSE konfiguriert;
+	// TSEVermerkKeineKonfiguration: für den Vorgang war keine TSE konfiguriert;
 	// er wird nicht nachsigniert.
 	TSEVermerkKeineKonfiguration
 )
@@ -77,7 +77,7 @@ type TSEAbschnitt struct {
 	Nachsigniert bool
 }
 
-// FormatPositionBon generiert einen Bon fuer eine einzelne Position (Standard-Bonmodus).
+// FormatPositionBon generiert einen Bon für eine einzelne Position (Standard-Bonmodus).
 func FormatPositionBon(
 	pos kasse.Position,
 	tischName string,
@@ -126,14 +126,14 @@ func FormatPositionBon(
 	buf.WriteByte('\n')
 	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n", zeitpunkt.In(berlin).Format("15:04"), truncate(userName, 24))))
 
-	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm ueber dem Druckkopf)
+	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm über dem Druckkopf)
 	buf.WriteString(strings.Repeat("\n", 5))
 	buf.WriteString(CutPaper)
 
 	return buf.Bytes()
 }
 
-// FormatSammelBon generiert einen Bon fuer alle Positionen einer Kategorie (optionaler Bonmodus).
+// FormatSammelBon generiert einen Bon für alle Positionen einer Kategorie (optionaler Bonmodus).
 func FormatSammelBon(
 	positionen []kasse.Position,
 	tischName string,
@@ -452,10 +452,10 @@ func steuerKennzeichenAusSatz(satz steuer.Steuersatz) string {
 	}
 }
 
-// steuerMatrixLabel gibt die Bezeichnung fuer eine Steuermatrix-Zeile mit
-// Prozentsatz bzw. Befreiungshinweis gemaess KassenSichV § 6 Satz 1 Nr. 5
+// steuerMatrixLabel gibt die Bezeichnung für eine Steuermatrix-Zeile mit
+// Prozentsatz bzw. Befreiungshinweis gemäß KassenSichV § 6 Satz 1 Nr. 5
 // ("den anzuwendenden Steuersatz oder im Fall einer Steuerbefreiung einen
-// Hinweis darauf, dass fuer die Lieferung oder sonstige Leistung eine
+// Hinweis darauf, dass für die Lieferung oder sonstige Leistung eine
 // Steuerbefreiung gilt").
 func steuerMatrixLabel(satz steuer.Steuersatz) string {
 	switch satz {

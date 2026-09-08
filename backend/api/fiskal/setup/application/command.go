@@ -46,7 +46,7 @@ func (c Command) ensureKeineOffeneKassensitzung(ctx context.Context) error {
 
 // UpdateTSEKonfiguration speichert eine von Hand eingetragene TSE-Konfiguration.
 // Sie nimmt dasselbe Schloss wie Neuanlage und Uebernahme (einrichtungLaeuft in
-// setup.go): Alle drei schreiben ueber SaveEinrichtung dieselbe Konfiguration,
+// setup.go): Alle drei schreiben über SaveEinrichtung dieselbe Konfiguration,
 // und in der Oberflaeche liegt dieser Pfad direkt unter dem Einrichtungs-Wizard.
 // Ohne das Schloss gewaenne der letzte Schreiber, und die Instanz signierte
 // danach gegen eine TSS/Client-Kombination, die nicht die eingerichtete ist.
@@ -63,10 +63,10 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfigurat
 		return err
 	}
 
-	// Auch der direkte Zugangsdaten-Pfad speichert ueber SaveEinrichtung:
+	// Auch der direkte Zugangsdaten-Pfad speichert über SaveEinrichtung:
 	// Fuehrt er den Uebergang zu konfiguriert aus, laufen Einrichtungs-Sweep und
-	// das Schliessen des keine_konfiguration-Stoerungszeitraums in derselben
-	// Transaktion — sonst bliebe der Zeitraum fuer immer offen.
+	// das Schließen des keine_konfiguration-Stoerungszeitraums in derselben
+	// Transaktion — sonst bliebe der Zeitraum für immer offen.
 	if err := c.TSERepo.SaveEinrichtung(ctx, conf); err != nil {
 		log.Error().Err(err).Msg("Failed to save tse_konfiguration")
 		return ErrDatabase

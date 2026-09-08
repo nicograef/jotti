@@ -41,7 +41,7 @@ func (b Befund) String() string {
 	return fmt.Sprintf("[%s] %s: %s", b.Regel, b.Datei, b.Meldung)
 }
 
-// Pruefen liest das DSFinV-K-Export-ZIP (io.ReaderAt plus Größe) und prüft es
+// Prüfen liest das DSFinV-K-Export-ZIP (io.ReaderAt plus Größe) und prüft es
 // gegen die Struktur- und Inhaltsregeln der DSFinV-K 2.4. Rückgabe ist die
 // Befundliste; ein befundfreies (leeres) Ergebnis bedeutet: strukturell und
 // inhaltlich konform. Ein Fehler wird nur zurückgegeben, wenn das ZIP selbst
@@ -55,7 +55,7 @@ func Pruefen(r io.ReaderAt, size int64) ([]Befund, error) {
 }
 
 // PruefenBytes ist der bequeme Einstieg für ein vollständig im Speicher liegendes
-// Archiv (der Regelfall in jotti: der Export erzeugt []byte). Delegiert an Pruefen.
+// Archiv (der Regelfall in jotti: der Export erzeugt []byte). Delegiert an Prüfen.
 func PruefenBytes(archiv []byte) ([]Befund, error) {
 	return Pruefen(bytes.NewReader(archiv), int64(len(archiv)))
 }

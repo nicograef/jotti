@@ -128,7 +128,7 @@ func saldoAusPositionen(positionen []Position) int {
 
 // setErsteBestellungLogTime stempelt den Zeitpunkt der ersten Bestellung auf den
 // Tisch, sofern noch nicht gesetzt. AEAO 1.14.3: Das Aufzeichnungssystem stellt
-// den Zeitpunkt (die TSE-Signatur entsteht asynchron ueber den Signaturauftrag).
+// den Zeitpunkt (die TSE-Signatur entsteht asynchron über den Signaturauftrag).
 // Eine Umbuchung auf einen leeren Zieltisch zaehlt wie eine erste Bestellung.
 func setErsteBestellungLogTime(state *TischSession, eventTime time.Time) {
 	if state.ErsteBestellungLogTime != nil {

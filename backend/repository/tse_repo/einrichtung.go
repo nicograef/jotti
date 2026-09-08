@@ -33,11 +33,11 @@ func (r Repository) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration,
 // SaveEinrichtung speichert die TSE-Konfiguration (alle Schreibpfade:
 // Einrichtung, Uebernahme, Zugangsdaten-Wechsel, Leeren) und fuehrt beim
 // Uebergang von nicht konfiguriert zu konfiguriert in derselben Transaktion den
-// Einrichtungs-Sweep aus: alle noch offenen Auftraege aus der
+// Einrichtungs-Sweep aus: alle noch offenen Aufträge aus der
 // konfigurationslosen Zeit werden endgueltig als tse_nicht_konfiguriert
 // markiert und der keine_konfiguration-Stoerungszeitraum wird geschlossen. War
 // die TSE schon vorher konfiguriert (reiner Zugangsdaten-Wechsel), bleibt es
-// beim reinen Speichern — laufende Auftraege werden nie versehentlich als nicht
+// beim reinen Speichern — laufende Aufträge werden nie versehentlich als nicht
 // konfiguriert markiert. Auch das Speichern einer unvollstaendigen
 // Konfiguration (Leeren) sweept nichts: Der Dauerzustand ohne Konfiguration
 // gehoert dem Signatur-Worker, der Stoerungszeitraum bleibt offen.
@@ -76,7 +76,7 @@ func upsertTSEKonfigurationParams(c tse.Konfiguration) dbgen.UpsertTSEKonfigurat
 	}
 }
 
-// GetTSEStammdaten liest die fiskalischen TSS-Stammdaten fuer den
+// GetTSEStammdaten liest die fiskalischen TSS-Stammdaten für den
 // DSFinV-K-Export (Singleton). Vor der TSE-Einrichtung sind die Felder leer.
 func (r Repository) GetTSEStammdaten(ctx context.Context) (tse.Stammdaten, error) {
 	row, err := r.q.GetTSEStammdaten(ctx)
@@ -93,7 +93,7 @@ func (r Repository) GetTSEStammdaten(ctx context.Context) (tse.Stammdaten, error
 	}, nil
 }
 
-// UpsertTSEStammdaten speichert die fiskalischen TSS-Stammdaten fuer den
+// UpsertTSEStammdaten speichert die fiskalischen TSS-Stammdaten für den
 // DSFinV-K-Export (Singleton).
 func (r Repository) UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error {
 	err := r.q.UpsertTSEStammdaten(ctx, dbgen.UpsertTSEStammdatenParams{

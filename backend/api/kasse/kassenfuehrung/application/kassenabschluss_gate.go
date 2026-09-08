@@ -23,8 +23,8 @@ func (e *SignaturenAusstehendError) Error() string {
 // Sie blockieren den Abschluss nicht (die Signaturstatus-Funktion rechnet sie
 // dem Ausfall zu), werden aber in der Abschlussmeldung ausgewiesen.
 type KassenabschlussErgebnis struct {
-	// AusfallResteAnzahl: endgueltig fehlgeschlagene Auftraege sowie offene
-	// Auftraege waehrend eines aktiven Stoerungszeitraums; werden nach Rueckkehr
+	// AusfallResteAnzahl: endgueltig fehlgeschlagene Aufträge sowie offene
+	// Aufträge während eines aktiven Stoerungszeitraums; werden nach Rueckkehr
 	// der TSE nachsigniert.
 	AusfallResteAnzahl int
 	// OhneKonfigurationAnzahl: Vorgaenge ohne TSE-Signatur, weil keine TSE
@@ -32,7 +32,7 @@ type KassenabschlussErgebnis struct {
 	OhneKonfigurationAnzahl int
 }
 
-// signaturGate ist das interne Urteil des Gates ueber die noch nicht erledigten
+// signaturGate ist das interne Urteil des Gates über die noch nicht erledigten
 // Signaturauftraege der Kassensitzung.
 type signaturGate struct {
 	ausstehendAnzahl        int
@@ -41,7 +41,7 @@ type signaturGate struct {
 }
 
 // checkSignaturGate klassifiziert jeden noch nicht erledigten Signaturauftrag
-// der Kassensitzung ueber die Signaturstatus-Funktion — dieselbe Zurechnung wie
+// der Kassensitzung über die Signaturstatus-Funktion — dieselbe Zurechnung wie
 // beim Beleg-Abruf, kein zweiter Zurechnungspfad. Ergebnis ausstehend blockiert
 // (frischer offener Auftrag ohne Stoerung), Ausfall laesst durch und wird in der
 // Abschlussmeldung ausgewiesen (Ausfall-Rest bzw. fehlende TSE-Konfiguration).

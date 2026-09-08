@@ -182,7 +182,7 @@ func TestReportDruckergebnis_StaleFehlversuchIstNoOp(t *testing.T) {
 	defer teardown(t)
 
 	// Ein Auftrag wird erst gedruckt; danach trifft (verspaetet oder doppelt) noch
-	// ein Fehlversuch fuer dieselbe ID ein — der Auftrag ist nicht mehr offen.
+	// ein Fehlversuch für dieselbe ID ein — der Auftrag ist nicht mehr offen.
 	gedrucktID := enqueueOne(t, repo, "192.168.1.51")
 	if err := repo.ReportDruckergebnis(context.Background(), []int{gedrucktID}, nil); err != nil {
 		t.Fatalf("Expected no error quittieren, got %v", err)

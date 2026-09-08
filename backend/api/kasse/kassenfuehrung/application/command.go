@@ -42,7 +42,7 @@ type betreiberRepo interface {
 // tseGateRepo liefert dem Kassenabschluss-Gate die Signatur-Staende der
 // Kassensitzung und den aktiven Stoerungszeitraum (beide fuettern
 // tse.DetermineSignaturstatus — dieselbe Zurechnung wie beim Beleg-Abruf) sowie
-// die TSE-Konfiguration fuer die Eroeffnungs-Warnung ohne konfigurierte TSE.
+// die TSE-Konfiguration für die Eroeffnungs-Warnung ohne konfigurierte TSE.
 type tseGateRepo interface {
 	GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]tse.SignaturauftragStand, error)
 	GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error)
@@ -50,7 +50,7 @@ type tseGateRepo interface {
 }
 
 // druckauftragCleaner raeumt beim Tagesabschluss die technische Druck-Outbox auf:
-// verbliebene fehlgeschlagene Auftraege (z. B. veraltete Arbeitsbons einer
+// verbliebene fehlgeschlagene Aufträge (z. B. veraltete Arbeitsbons einer
 // unbemerkten Drucker-Stoerung) werden verworfen, damit die Liste zum naechsten
 // Einsatz leer startet. Best effort, siehe KasseAbschliessen.
 type druckauftragCleaner interface {

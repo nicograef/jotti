@@ -65,7 +65,7 @@ func (c Credentials) Validate() error {
 // TSEClient bildet das atomare Transaktionsmuster ab: Start eroeffnet die
 // Transaktion (processType/processData sind laut DSFinV-K bei Start immer
 // leer), Finish schliesst sie mit dem finalen Schema ab. Beide Aufrufe
-// adressieren die Transaktion ueber die von jotti erzeugte tx-ID (UUIDv4).
+// adressieren die Transaktion über die von jotti erzeugte tx-ID (UUIDv4).
 type TSEClient interface {
 	StartTransaction(ctx context.Context, txID string) (StartResult, error)
 	FinishTransaction(ctx context.Context, txID string, processType string, processData string) (FinishResult, error)
@@ -73,7 +73,7 @@ type TSEClient interface {
 
 // ConnectionTester prueft eine konfigurierte TSE. TestConnection ist die volle
 // Diagnose (TSS- und Client-Abruf, Seriennummer); Umgebung ist der leichte Pfad
-// fuer reine Statusanzeigen und kommt allein aus dem Auth-Token, ohne TSS-/
+// für reine Statusanzeigen und kommt allein aus dem Auth-Token, ohne TSS-/
 // Client-Abruf.
 type ConnectionTester interface {
 	TestConnection(ctx context.Context) (VerbindungStatus, error)

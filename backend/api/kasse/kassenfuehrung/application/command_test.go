@@ -213,7 +213,7 @@ func TestKasseAbschliessen_MitDifferenz(t *testing.T) {
 	}
 }
 
-// stubCleaner ist eine Test-Doublette fuer druckauftragCleaner: zaehlt die
+// stubCleaner ist eine Test-Doublette für druckauftragCleaner: zaehlt die
 // Aufrufe und liefert einen konfigurierbaren Fehler, um die Best-effort-Semantik
 // des Aufraeumens beim Tagesabschluss zu belegen.
 type stubCleaner struct {

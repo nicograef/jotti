@@ -550,7 +550,7 @@ func TestFormatPositionBon_SetsWPC1252CodepageAfterInit(t *testing.T) {
 		t.Fatal("Bon setzt nicht die WPC1252-Codepage (ESC t 6)")
 	}
 
-	// ESC @ (Init) setzt die Codepage zurueck; sie muss danach gesetzt werden.
+	// ESC @ (Init) setzt die Codepage zurück; sie muss danach gesetzt werden.
 	initIdx := strings.Index(payload, escpos.Init)
 	if initIdx < 0 || cpIdx < initIdx {
 		t.Errorf("WPC1252-Codepage muss nach Init gesetzt werden; initIdx=%d cpIdx=%d", initIdx, cpIdx)
@@ -558,7 +558,7 @@ func TestFormatPositionBon_SetsWPC1252CodepageAfterInit(t *testing.T) {
 }
 
 func TestFormatPositionBon_TranscodesUmlautsAndEuroToWPC1252(t *testing.T) {
-	// Umlaute und Euro stehen im Kommentar und muessen als WPC1252-Einzelbytes erscheinen.
+	// Umlaute und Euro stehen im Kommentar und müssen als WPC1252-Einzelbytes erscheinen.
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "äöüÄÖÜß 1€", false)
 
 	// WPC1252 (Windows-1252): ä=0xE4 ö=0xF6 ü=0xFC Ä=0xC4 Ö=0xD6 Ü=0xDC ß=0xDF €=0x80
@@ -569,14 +569,14 @@ func TestFormatPositionBon_TranscodesUmlautsAndEuroToWPC1252(t *testing.T) {
 		}
 	}
 
-	// Die UTF-8-Sequenz fuer ä (0xC3 0xA4) darf nach Transkodierung nicht mehr vorkommen.
+	// Die UTF-8-Sequenz für ä (0xC3 0xA4) darf nach Transkodierung nicht mehr vorkommen.
 	if bytes.Contains(payload, []byte{0xC3, 0xA4}) {
 		t.Error("Bon enthaelt rohe UTF-8-Bytes statt WPC1252 (Transkodierung fehlt)")
 	}
 }
 
 // TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis prueft,
-// dass der Beleg fuer den 0%-Satz den Befreiungshinweis gemaess
+// dass der Beleg für den 0%-Satz den Befreiungshinweis gemäß
 // KassenSichV § 6 Satz 1 Nr. 5 ("Hinweis darauf, dass eine Steuerbefreiung gilt")
 // traegt.
 func TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis(t *testing.T) {
@@ -636,7 +636,7 @@ func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *
 	})
 
 	// Modulgroesse-Befehl: QRCodeModuleSizeCmdPrefix (7 Byte) + Groessenbyte.
-	// Fuer 500 Byte (V17, 93 Module): erwartete Groesse = 6 (558 Dots <= 576).
+	// Für 500 Byte (V17, 93 Module): erwartete Größe = 6 (558 Dots <= 576).
 	cmdPrefix := []byte(escpos.QRCodeModuleSizeCmdPrefix)
 	idx := bytes.Index(bon, cmdPrefix)
 	if idx < 0 || idx+len(cmdPrefix) >= len(bon) {

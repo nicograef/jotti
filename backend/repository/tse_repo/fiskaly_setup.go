@@ -63,7 +63,7 @@ type createTSSResponse struct {
 type tssDetailResponse struct {
 	AdminPUK string `json:"admin_puk"`
 	State    string `json:"state"`
-	// Fiskalische Stammdaten der TSS-Ressource fuer den DSFinV-K-Export. fiskaly
+	// Fiskalische Stammdaten der TSS-Ressource für den DSFinV-K-Export. fiskaly
 	// nennt das Log-Time-Format signature_timestamp_format und die Seriennummer
 	// serial_number (SHA-256 des Public Key, hex-kodiert). Nicht mit
 	// tss_serial_number verwechseln — so heisst das Feld nur auf
@@ -139,7 +139,7 @@ func (c *FiskalyTSESetupClient) ListClients(ctx context.Context, tssID string) (
 }
 
 // CreateTSS legt unter einer frisch erzeugten UUID eine neue TSS an. fiskaly
-// liefert in der Antwort den einmaligen Admin-PUK, mit dem spaeter die Admin-PIN
+// liefert in der Antwort den einmaligen Admin-PUK, mit dem später die Admin-PIN
 // gesetzt wird.
 func (c *FiskalyTSESetupClient) CreateTSS(ctx context.Context) (tse.TSSErstellt, error) {
 	tssID := uuid.NewString()
@@ -177,7 +177,7 @@ func (c *FiskalyTSESetupClient) GetAdminPUK(ctx context.Context, tssID string) (
 }
 
 // RetrieveTSSStammdaten liest die fiskalischen Stammdaten der TSS-Ressource
-// (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format) fuer den
+// (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format) für den
 // DSFinV-K-Export. Reine Leseoperation auf derselben TSS-Ressource wie
 // GetAdminPUK.
 func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID string) (tse.TSSStammdaten, error) {
@@ -239,7 +239,7 @@ func (c *FiskalyTSESetupClient) SetAdminPIN(ctx context.Context, tssID, puk, pin
 	return nil
 }
 
-// AuthentifiziereAdmin hebt das aktuelle Zugriffstoken fuer die folgenden
+// AuthentifiziereAdmin hebt das aktuelle Zugriffstoken für die folgenden
 // Admin-Operationen der TSS (Initialisieren, Client registrieren) auf
 // Admin-Rechte an.
 func (c *FiskalyTSESetupClient) AuthentifiziereAdmin(ctx context.Context, tssID, pin string) error {
@@ -294,7 +294,7 @@ func (c *FiskalyTSESetupClient) ReaktiviereClient(ctx context.Context, tssID, cl
 // nach fuenf Fehlversuchen gesperrte Admin-PIN (E_ADMIN_PIN_BLOCKED) liefert
 // fiskaly mit Status 423; sie wird hier ebenfalls als Auth-Fehler gemeldet, damit
 // die Uebernahme in die PIN-Sackgasse (mit PUK-Reset als Ausweg) statt in einen
-// technischen Fehler laeuft. Alle anderen Fehler bleiben unveraendert.
+// technischen Fehler läuft. Alle anderen Fehler bleiben unveraendert.
 func mapSetupError(err error) error {
 	var apiErr apiError
 	if errors.As(err, &apiErr) {

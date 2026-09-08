@@ -312,7 +312,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck(t *testing.T)
 	}
 }
 
-// Ohne konfigurierte Druckstationen entstehen fuer einen Direktverkauf keine Auftraege.
+// Ohne konfigurierte Druckstationen entstehen für einen Direktverkauf keine Aufträge.
 func TestCreateArbeitsbonAuftraege_DirektverkaufOhneStationen(t *testing.T) {
 	evt := makeDirektverkaufEvent(23, []kasse.Position{{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1}}, "")
 

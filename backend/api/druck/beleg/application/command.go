@@ -32,7 +32,7 @@ type druckauftragRepo interface {
 // Signaturauftrags-Tabelle und den aktiven Stoerungszeitraum aus dem
 // Stoerungsprotokoll — die beiden Eingaben der Signaturstatus-Funktion
 // (Beleg-Abruf liest genau eine Signaturquelle) — sowie die Kassenidentitaet
-// (Seriennummer) fuer den Beleg-Kopf.
+// (Seriennummer) für den Beleg-Kopf.
 type tseAuftragRepo interface {
 	GetSignaturauftragZuEvent(ctx context.Context, eventID int) (tse.SignaturauftragStand, error)
 	GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error)

@@ -2,7 +2,7 @@ package tse
 
 import "context"
 
-// RegistrierterClient haelt die Argumente eines RegistriereClient-Aufrufs fuer
+// RegistrierterClient hält die Argumente eines RegistriereClient-Aufrufs für
 // Assertions in den Orchestrator-Tests fest.
 type RegistrierterClient struct {
 	TssID        string
@@ -10,7 +10,7 @@ type RegistrierterClient struct {
 	SerialNumber string
 }
 
-// ReaktivierterClient haelt die Argumente eines ReaktiviereClient-Aufrufs fest.
+// ReaktivierterClient hält die Argumente eines ReaktiviereClient-Aufrufs fest.
 // Eine Reaktivierung traegt keine serial_number — sie aktiviert den vorhandenen
 // Client unter seiner ID wieder.
 type ReaktivierterClient struct {
@@ -18,9 +18,9 @@ type ReaktivierterClient struct {
 	ClientID string
 }
 
-// FakeSetupClient ist das Test-Double fuer SetupClient — analog zu FakeClient.
+// FakeSetupClient ist das Test-Double für SetupClient — analog zu FakeClient.
 // Die Methoden haben Pointer-Receiver, damit die Aufzeichnungsfelder
-// (CreateTSSCalls, RegistrierteClients, ...) ueber den Interface-Wert hinweg
+// (CreateTSSCalls, RegistrierteClients, ...) über den Interface-Wert hinweg
 // sichtbar bleiben.
 type FakeSetupClient struct {
 	UmgebungResponse Umgebung
@@ -42,7 +42,7 @@ type FakeSetupClient struct {
 	RegistriereErr      error
 	ReaktiviereErr      error
 
-	// Aufzeichnung fuer Assertions.
+	// Aufzeichnung für Assertions.
 	CreateTSSCalls      int
 	GetAdminPUKCalls    int
 	StammdatenCalls     int

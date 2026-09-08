@@ -9,7 +9,7 @@ import (
 // ErrSetupAuthFehlgeschlagen zeigt an, dass sich die Setup-Operationen mit dem
 // uebergebenen API-Key/-Secret nicht authentifizieren konnten — fast immer
 // falsche Zugangsdaten. Die Application-Schicht macht daraus eine
-// verstaendliche Meldung fuer den Admin.
+// verstaendliche Meldung für den Admin.
 var ErrSetupAuthFehlgeschlagen = errors.New("tse setup authentication failed")
 
 // ErrSetupTSSLimitErreicht zeigt an, dass das fiskaly-Konto die Obergrenze
@@ -33,13 +33,13 @@ func (c SetupCredentials) Validate() error {
 	return nil
 }
 
-// TSSInfo ist der fuer die Einrichtung relevante Ausschnitt einer fiskaly-TSS.
+// TSSInfo ist der für die Einrichtung relevante Ausschnitt einer fiskaly-TSS.
 type TSSInfo struct {
 	ID    string
 	State string
 }
 
-// ClientInfo ist der fuer die Einrichtung relevante Ausschnitt eines
+// ClientInfo ist der für die Einrichtung relevante Ausschnitt eines
 // fiskaly-Clients einer TSS.
 type ClientInfo struct {
 	ID           string
@@ -60,7 +60,7 @@ type TSSErstellt struct {
 // TSSStammdaten sind die fiskalischen Stammdaten der TSS-Ressource, die der
 // DSFinV-K-Export braucht: Seriennummer, Signaturalgorithmus, Public Key,
 // Zertifikat und Log-Time-Format (fiskaly: signature_timestamp_format). Sie
-// aendern sich ueber die Lebensdauer der TSS nicht.
+// ändern sich über die Lebensdauer der TSS nicht.
 type TSSStammdaten struct {
 	// Seriennummer ist die TSS-Seriennummer (fiskaly: serial_number der
 	// TSS-Ressource; SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld
@@ -83,12 +83,12 @@ type SetupClient interface {
 	ListClients(ctx context.Context, tssID string) ([]ClientInfo, error)
 
 	// RetrieveTSSStammdaten liest die fiskalischen Stammdaten der TSS-Ressource
-	// (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format) fuer den
+	// (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format) für den
 	// DSFinV-K-Export. Reine Leseoperation.
 	RetrieveTSSStammdaten(ctx context.Context, tssID string) (TSSStammdaten, error)
 
 	// CreateTSS legt eine neue TSS an (Zustand CREATED) und liefert deren
-	// einmaligen Admin-PUK zurueck.
+	// einmaligen Admin-PUK zurück.
 	CreateTSS(ctx context.Context) (TSSErstellt, error)
 	// GetAdminPUK liest den Admin-PUK einer TSS erneut aus. fiskaly liefert ihn
 	// nur, solange die TSS im Zustand CREATED ist (Admin-PIN noch nicht gesetzt);
@@ -101,7 +101,7 @@ type SetupClient interface {
 	// setzt eine verlorene PIN neu bzw. entsperrt eine nach fuenf Fehlversuchen
 	// gesperrte PIN — auch auf einer bereits personalisierten TSS.
 	SetAdminPIN(ctx context.Context, tssID, puk, pin string) error
-	// AuthentifiziereAdmin hebt das aktuelle Zugriffstoken fuer die folgenden
+	// AuthentifiziereAdmin hebt das aktuelle Zugriffstoken für die folgenden
 	// Admin-Operationen der TSS auf Admin-Rechte an.
 	AuthentifiziereAdmin(ctx context.Context, tssID, pin string) error
 	// InitialisiereTSS ueberfuehrt die TSS nach INITIALIZED (signierbereit).

@@ -45,7 +45,7 @@ func (c Command) DiscardDruckauftrag(ctx context.Context, id int) error {
 	return nil
 }
 
-// DiscardAlleFehlgeschlagenen verwirft alle fehlgeschlagenen Auftraege in einem
+// DiscardAlleFehlgeschlagenen verwirft alle fehlgeschlagenen Aufträge in einem
 // Schritt und liefert die Anzahl.
 func (c Command) DiscardAlleFehlgeschlagenen(ctx context.Context) (int64, error) {
 	log := zerolog.Ctx(ctx)

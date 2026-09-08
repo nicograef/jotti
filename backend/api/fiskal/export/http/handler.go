@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// exportWriteTimeout ersetzt fuer diesen Handler die globale 10-Sekunden-
+// exportWriteTimeout ersetzt für diesen Handler die globale 10-Sekunden-
 // Schreibfrist des Servers (backend/app/app.go): Das DSFinV-K-ZIP kann laenger
 // zum Uebertragen brauchen als jede andere Antwort und darf dabei nicht
 // stillschweigend abgeschnitten werden (aufbewahrungspflichtige Daten).
@@ -55,7 +55,7 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 
 		archiv, err := h.Service.Erstellen(r.Context(), body.KassensitzungNr)
 
-		// Zweites Setzen der Schreibfrist, jetzt fuer den Schreibvorgang selbst:
+		// Zweites Setzen der Schreibfrist, jetzt für den Schreibvorgang selbst:
 		// Die Frist oben ist eine absolute Zeit ab Request-Start und nach einem
 		// langen Archivbau abgelaufen. Erst dieser Aufruf gibt der Uebertragung
 		// des ZIP ihr eigenes Budget; er deckt zugleich den Fehlerzweig ab.

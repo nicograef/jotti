@@ -41,7 +41,7 @@ type StornierungPosition struct {
 // ServicekraftRef identifiziert eine Servicekraft in Reporting-Ausgaben:
 // stabile Benutzer-ID, eingefrorener Username aus dem Event-Umschlag und der
 // live aus users aufgeloeste Klarname (nur Admin-Anzeige, leer wenn der
-// Benutzer fehlt). Geteilte Referenz fuer Akteur und Betroffene.
+// Benutzer fehlt). Geteilte Referenz für Akteur und Betroffene.
 type ServicekraftRef struct {
 	UserID   int
 	UserName string

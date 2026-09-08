@@ -16,7 +16,7 @@ import (
 // http.ResponseController looks for, so the test can observe how many times —
 // and when relative to the first write — the handler extends the write
 // deadline. deadlineCountBeforeWrite stops counting with the first write: Nur
-// die Aufrufe DAVOR koennen der Antwort ein Budget geben, spaetere waeren
+// die Aufrufe DAVOR können der Antwort ein Budget geben, spaetere waeren
 // wirkungslos.
 type deadlineCapturingWriter struct {
 	*httptest.ResponseRecorder
@@ -53,12 +53,12 @@ func (w *deadlineCapturingWriter) Write(b []byte) (int, error) {
 // die globale 10-Sekunden-Schreibfrist des Servers ueberschreiten kann. Ohne die
 // verlaengerte Frist stirbt die Antwort auf der Verbindung — samt PUK und
 // Admin-PIN, die genau einmal ausgeliefert und nirgends persistiert werden. Der
-// Test laeuft durch die LoggingMiddleware, weil sie in Produktion die gesamte
+// Test läuft durch die LoggingMiddleware, weil sie in Produktion die gesamte
 // Routenkette umschliesst (app/app.go) und die Frist auch durch ihren
 // ResponseWriter-Wrapper hindurch ankommen muss.
 //
 // Die Frist muss dabei ZWEIMAL gesetzt werden: Sie ist eine absolute Zeit ab
-// Request-Start, kein Budget fuer den Schreibvorgang. Der Aufruf am
+// Request-Start, kein Budget für den Schreibvorgang. Der Aufruf am
 // Handler-Eingang deckt die fruehen Fehlerpfade ab, der Aufruf unmittelbar vor
 // dem Schreiben gibt der Antwort ein eigenes Budget — unabhaengig davon, wie
 // lange der fiskaly-Lebenszyklus zuvor gedauert hat.

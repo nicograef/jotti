@@ -209,7 +209,7 @@ func klassifiziereSignierFehler(err error) error {
 	}
 }
 
-// StartTransaction sendet bewusst kein Schema: processType/processData muessen
+// StartTransaction sendet bewusst kein Schema: processType/processData müssen
 // laut DSFinV-K bei StartTransaction immer leer sein (Anhang I).
 func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string) (tse.StartResult, error) {
 	txID = strings.TrimSpace(txID)
@@ -505,7 +505,7 @@ func (c *fiskalyClient) doJSONRequest(
 			triedTokenRefresh = true
 			c.invalidateToken()
 			// Der Token-Refresh ist kein Netz-Retry und verbraucht keinen
-			// Versuch — wichtig fuer Single-Attempt-Clients (maxRetries = 0).
+			// Versuch — wichtig für Single-Attempt-Clients (maxRetries = 0).
 			attempt--
 			continue
 		}

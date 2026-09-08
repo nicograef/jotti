@@ -21,7 +21,7 @@ type Config struct {
 	Postgres       postgresConfig
 	JWTSecret      string // Secret key for JWT signing
 	RelayToken     string // Statischer Token für das Print-Relay
-	FiskalyBaseURL string // Basis-URL fuer fiskaly SIGN-DE Middleware API
+	FiskalyBaseURL string // Basis-URL für fiskaly SIGN-DE Middleware API
 	EnableTestApi  bool   // Schaltet den HTTP-Test-Reset-Endpoint frei (nur E2E, JOTTI_ENABLE_TEST_API=1)
 }
 

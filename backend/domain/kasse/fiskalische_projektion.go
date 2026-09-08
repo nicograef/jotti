@@ -10,14 +10,14 @@ import (
 
 // FiskalischerVorgang ist das Ergebnis der fiskalischen Projektion eines
 // signaturpflichtigen Events: processType und processData (DSFinV-K Anhang I)
-// als Snapshot fuer den Signaturauftrag.
+// als Snapshot für den Signaturauftrag.
 type FiskalischerVorgang struct {
 	ProcessType string
 	ProcessData string
 }
 
 // FiskalischeProjektion bildet ein Event auf (signaturpflichtig, processType,
-// processData) ab. Sie ist die einzige Stelle, die ueber Signaturpflicht
+// processData) ab. Sie ist die einzige Stelle, die über Signaturpflicht
 // entscheidet, und auch datenabhaengig: Die Sitzungseroeffnung ist nur bei
 // Anfangsbestand > 0 ein Geschaeftsvorfall (Bareinlage, AEAO 2.2.3.6.1).
 // Unbekannte Event-Typen sind ein Fehler, damit ein neuer Event-Typ ohne

@@ -25,7 +25,7 @@ import (
 )
 
 // version wird per ldflags einkompiliert (-X main.version=<tag>); der
-// Release-Workflow befuellt sie ueber das Docker-Build-Argument VERSION.
+// Release-Workflow befuellt sie über das Docker-Build-Argument VERSION.
 var version = "dev"
 
 func main() {

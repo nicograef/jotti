@@ -40,7 +40,7 @@ func produktReihenfolge(t *testing.T, repo Repository, produktID int) int {
 
 // setzeProduktReihenfolge erzwingt einen Wert direkt in der Datenbank.
 // Gleichstaende entstehen in echten Instanzen durch Bestandsdaten und alte
-// Seeds, ueber das Repository sind sie nicht mehr herstellbar.
+// Seeds, über das Repository sind sie nicht mehr herstellbar.
 func setzeProduktReihenfolge(t *testing.T, repo Repository, produktID int, wert int) {
 	t.Helper()
 	if _, err := repo.db.Exec("UPDATE produkte SET reihenfolge = $1 WHERE id = $2", wert, produktID); err != nil {
@@ -158,9 +158,9 @@ func TestVerschiebeProdukt_BleibtInSeinerKategorie(t *testing.T) {
 
 // Die alphabetische Sortierung ordnet nach deutschen Regeln: Umlaute und
 // Akzente reihen sich bei ihrem Grundbuchstaben ein, nicht dahinter. Beide
-// Akzentzeichen stehen am Wortanfang, weil nur dort die Collation ueber die
+// Akzentzeichen stehen am Wortanfang, weil nur dort die Collation über die
 // Position entscheidet. Auf einem Cluster mit der Locale "C" ergaebe dieselbe
-// Liste [Banane Zitrone Äpfel Éclair]; die COLLATE-Klausel haelt die deutsche
+// Liste [Banane Zitrone Äpfel Éclair]; die COLLATE-Klausel hält die deutsche
 // Reihenfolge unabhaengig von der Cluster-Locale.
 func TestSortiereVariantenAlphabetisch_DeutscheCollation(t *testing.T) {
 	repo, teardown := setup(t)
@@ -183,7 +183,7 @@ func TestSortiereVariantenAlphabetisch_DeutscheCollation(t *testing.T) {
 	}
 }
 
-// Zwei Zeilen derselben Kategorie koennen denselben Reihenfolge-Wert tragen.
+// Zwei Zeilen derselben Kategorie können denselben Reihenfolge-Wert tragen.
 // Getauscht werden trotzdem die Raenge: das Verschieben ist kein stiller No-Op.
 func TestVerschiebeProdukt_TauschtBeiGleichemWert(t *testing.T) {
 	repo, teardown := setup(t)

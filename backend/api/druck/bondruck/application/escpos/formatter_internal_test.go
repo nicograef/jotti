@@ -53,10 +53,10 @@ func TestQRVersionForLengthM_KnownCapacities(t *testing.T) {
 		payloadLen  int
 		wantVersion int
 	}{
-		{1, 1},    // V1 haelt 16 Byte
-		{16, 1},   // V1 haelt genau 16 Byte
+		{1, 1},    // V1 hält 16 Byte
+		{16, 1},   // V1 hält genau 16 Byte
 		{17, 2},   // V2 ab 17 Byte
-		{507, 17}, // V17 haelt genau 507 Byte
+		{507, 17}, // V17 hält genau 507 Byte
 		{508, 18}, // V18 ab 508 Byte
 	}
 	for _, tc := range cases {

@@ -122,7 +122,7 @@ func BuildEigenbelegProcessData(zahlbetragCents int) string {
 	return fmt.Sprintf("Beleg^0.00_0.00_0.00_0.00_%s^%s", betragString(zahlbetragCents), zahlungen)
 }
 
-// BuildTagesabschlussProcessData erzeugt SonstigerVorgang-processData fuer den
+// BuildTagesabschlussProcessData erzeugt SonstigerVorgang-processData für den
 // Tagesabschluss (Z-Bon): Z-Nummer plus Abschlusszeitraum.
 func BuildTagesabschlussProcessData(zNr int, zeitraumVon time.Time, zeitraumBis time.Time) string {
 	return fmt.Sprintf(

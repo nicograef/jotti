@@ -23,7 +23,7 @@ type mockRueckstandStore struct {
 	getErr      error
 	geoeffnet   []stoerungAufruf
 	geschlossen []string
-	// geprueft signalisiert jeden Durchlauf (fuer Run-Loop-Tests ohne Sleeps).
+	// geprueft signalisiert jeden Durchlauf (für Run-Loop-Tests ohne Sleeps).
 	geprueft chan struct{}
 }
 

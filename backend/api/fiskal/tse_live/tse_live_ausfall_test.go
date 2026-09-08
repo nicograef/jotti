@@ -6,7 +6,7 @@
 // (docs/plans/guide-manuelle-qa-v1.0.0.md) ab:
 //
 //   - Ausfall zur Laufzeit: Vorgaenge bleiben buchbar, das Stoerungsprotokoll
-//     erfasst den Zeitraum mit Grund, nach Wiederherstellung laeuft die
+//     erfasst den Zeitraum mit Grund, nach Wiederherstellung läuft die
 //     Nachsignierung, und das Abschluss-Gate verhaelt sich in beiden Faellen
 //     korrekt (409 bei frisch ausstehenden Signaturen, erlaubt bei
 //     dokumentiertem Ausfall).
@@ -39,13 +39,13 @@ const latenzBurstGroesse = 24
 // Laufzeit auf ungueltige Credentials um (401 gegen fiskaly = TSE-weiter Fehler)
 // und prueft den kompletten Ausfallpfad:
 //
-//   - Waehrend des Ausfalls bleiben Vorgaenge buchbar (Buchen wartet nie auf die
+//   - Während des Ausfalls bleiben Vorgaenge buchbar (Buchen wartet nie auf die
 //     TSE) und der Signaturauftrag bleibt offen.
 //   - Das Stoerungsprotokoll (tse_stoerungen) erfasst den Zeitraum mit Grund
 //     tse_fehler.
-//   - Das Abschluss-Gate laesst waehrend des dokumentierten Ausfalls durch und
+//   - Das Abschluss-Gate laesst während des dokumentierten Ausfalls durch und
 //     weist den Ausfall-Rest in der Abschlussmeldung aus.
-//   - Nach Wiederherstellung der Credentials laeuft die Nachsignierung
+//   - Nach Wiederherstellung der Credentials läuft die Nachsignierung
 //     automatisch; die verspaetete Signatur traegt das Nachsigniert-Kennzeichen.
 func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	credentials := credentialsOderSkip(t)
@@ -78,7 +78,7 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 		ClientID:  credentials.ClientID,
 	})
 
-	// Waehrend des Ausfalls einen signaturpflichtigen Vorgang buchen. Der Aufruf
+	// Während des Ausfalls einen signaturpflichtigen Vorgang buchen. Der Aufruf
 	// muss ohne Warten auf die TSE zurueckkehren (Buchen ist von der Signierung
 	// entkoppelt) — der Signaturauftrag bleibt offen.
 	bestellungID := uuid.NewString()
@@ -102,8 +102,8 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 
 	// Abschluss-Gate im dokumentierten Ausfall: Der offene Auftrag faellt bei
 	// aktiver Stoerung unter Ausfall (nicht ausstehend), der Abschluss ist erlaubt
-	// und weist den Ausfall-Rest aus. Wir pruefen das Gate isoliert ueber die
-	// Klassifikation, ohne die Sitzung abzuschliessen (der Ausfall soll fuer die
+	// und weist den Ausfall-Rest aus. Wir prüfen das Gate isoliert über die
+	// Klassifikation, ohne die Sitzung abzuschliessen (der Ausfall soll für die
 	// Nachsignierung bestehen bleiben).
 	gate := ausfallGateStand(t, u, ksNr)
 	if gate.ausstehend != 0 {
@@ -123,11 +123,11 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	pruefeSignatur(t, "Nachsignierung nach Ausfall", z, tse.ProcessTypeBestellungV1)
 
 	// Die automatische Nachsignierung ist damit belegt: derselbe Auftrag, der
-	// waehrend des Ausfalls offen blieb, traegt nach der Wiederherstellung eine
+	// während des Ausfalls offen blieb, traegt nach der Wiederherstellung eine
 	// vollstaendige Signatur (warteAufSignatur wartet auf status='erledigt').
 	// Wir werten zusaetzlich die Signaturstatus-Funktion aus — dieselbe
 	// Zurechnung wie der Beleg-Abruf. Das Nachsigniert-Kennzeichen setzt eine
-	// Verspaetung ueber tse.NachsigniertSchwelle (eine Minute) voraus; dieser
+	// Verspaetung über tse.NachsigniertSchwelle (eine Minute) voraus; dieser
 	// Ausfall dauert nur den Worker-Backoff (Sekunden), also ist beides gueltig:
 	// bei einem kurzen Ausfall 'vorhanden', bei einem Ausfall > 1 min
 	// 'nachsigniert'. Beide belegen die erfolgte Nachsignierung.
@@ -156,9 +156,9 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	pruefeGateBlockiertOhneStoerung(t, u, ksNr)
 }
 
-// burstDeckelP95 ist die Obergrenze fuer die p95-Ende-zu-Ende-Dauer des
+// burstDeckelP95 ist die Obergrenze für die p95-Ende-zu-Ende-Dauer des
 // gleichzeitigen Bursts. Der Burst ist ein Worst-Case-Stresstest, kein
-// Regelbetrieb: latenzBurstGroesse Auftraege liegen gleichzeitig an, und der
+// Regelbetrieb: latenzBurstGroesse Aufträge liegen gleichzeitig an, und der
 // serielle Worker (ein Sprecher, FIFO) arbeitet sie nacheinander ab, sodass der
 // letzte Auftrag hinter allen Vorgaengern wartet. Gemessen wurden reproduzierbar
 // p50 ~4 s / p95 ~7 s (2026-07-09, fiskaly-TEST-TSS); der Deckel faengt eine
@@ -173,7 +173,7 @@ const burstDeckelP95 = 12 * time.Second
 //   - Regelbetrieb: Signaturauftraege einzeln nacheinander, jeder vor dem
 //     naechsten abgewartet. Das entspricht dem verteilten Anfall im Vereinsbetrieb
 //     und ist die Grundlage der Zusage der Verfahrensdokumentation (p95 < 5 s).
-//   - Burst: latenzBurstGroesse gleichzeitig anliegende Auftraege als
+//   - Burst: latenzBurstGroesse gleichzeitig anliegende Aufträge als
 //     Worst-Case-Stress; der serielle Worker staut sie, der Tail-Wert bildet die
 //     Warteschlangen-Tiefe ab (kein Regelbetrieb).
 func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
@@ -209,7 +209,7 @@ func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 		t.Errorf("Regelbetrieb-p95 %s verletzt die Zusage < 5 s (Verfahrensdokumentation)", regelP95)
 	}
 
-	// Burst: latenzBurstGroesse Auftraege gleichzeitig einreihen, dann alle
+	// Burst: latenzBurstGroesse Aufträge gleichzeitig einreihen, dann alle
 	// abwarten. Der Tail-Wert misst die Warteschlangen-Tiefe des seriellen Workers.
 	burstStart := time.Now()
 	burstIDs := make([]int, 0, latenzBurstGroesse)
@@ -236,7 +236,7 @@ func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 	}
 }
 
-// bucheDirektverkauf bucht einen Direktverkauf ueber die Standard-Variante und
+// bucheDirektverkauf bucht einen Direktverkauf über die Standard-Variante und
 // liefert die kassenjournal-ID des erzeugten Events.
 func bucheDirektverkauf(t *testing.T, u *liveTestUmgebung, ksNr int) int {
 	t.Helper()
@@ -294,7 +294,7 @@ func auftragStatus(t *testing.T, db *sql.DB, eventID int) string {
 	return status
 }
 
-// gateStand buendelt die fuer Block 4 relevanten Kennzahlen des
+// gateStand buendelt die für Block 4 relevanten Kennzahlen des
 // Abschluss-Gates.
 type gateStand struct {
 	ausstehend   int
@@ -340,7 +340,7 @@ func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int
 
 	// Frischen signaturpflichtigen Vorgang buchen; ohne aktive Stoerung ist sein
 	// offener Auftrag ausstehend. Direkt danach den Abschluss versuchen, bevor der
-	// Worker signiert — deshalb genuegt der erste Poll-Takt Vorlauf nicht, wir
+	// Worker signiert — deshalb genügt der erste Poll-Takt Vorlauf nicht, wir
 	// greifen sofort zu.
 	verkaufID := uuid.NewString()
 	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 1}}

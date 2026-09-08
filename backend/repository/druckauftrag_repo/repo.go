@@ -16,7 +16,7 @@ import (
 const MaxDruckversuche = 6
 
 // backoffDauer liefert die Wartezeit vor dem naechsten Zustellversuch nach dem
-// versuch-ten Fehlversuch (1-basiert): 5s, 15s, 30s, 60s, 180s. Fuer 0 oder
+// versuch-ten Fehlversuch (1-basiert): 5s, 15s, 30s, 60s, 180s. Für 0 oder
 // >= 6 ist die Wartezeit 0 — beim 6. Fehlversuch kippt der Auftrag ohnehin auf
 // fehlgeschlagen und wird nicht mehr ausgeliefert.
 func backoffDauer(versuch int) time.Duration {
@@ -142,7 +142,7 @@ func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int,
 			if err != nil {
 				return db.Error(err)
 			}
-			// Solange der Auftrag offen bleibt, die Backoff-Faelligkeit fuer den
+			// Solange der Auftrag offen bleibt, die Backoff-Faelligkeit für den
 			// naechsten Versuch setzen. Beim MaxDruckversuche-ten Fehlversuch ist er
 			// bereits fehlgeschlagen und wird nicht mehr ausgeliefert — kein Backoff.
 			if row.Status == "offen" {
@@ -198,9 +198,9 @@ func (r Repository) DiscardDruckauftrag(ctx context.Context, id int) error {
 	return db.Error(r.q.DiscardDruckauftrag(ctx, id))
 }
 
-// DiscardAlleFehlgeschlagenen verwirft alle fehlgeschlagenen Auftraege
+// DiscardAlleFehlgeschlagenen verwirft alle fehlgeschlagenen Aufträge
 // (fehlgeschlagen -> verworfen) und liefert die Anzahl. Der Status-Guard wirkt
-// nur auf fehlgeschlagene Auftraege; andere Status bleiben unberuehrt.
+// nur auf fehlgeschlagene Aufträge; andere Status bleiben unberuehrt.
 func (r Repository) DiscardAlleFehlgeschlagenen(ctx context.Context) (int64, error) {
 	n, err := r.q.DiscardAlleFehlgeschlagenenDruckauftraege(ctx)
 	if err != nil {

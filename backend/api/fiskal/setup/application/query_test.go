@@ -137,7 +137,7 @@ func TestCheckTSESetup_LeeresKonto(t *testing.T) {
 }
 
 // TestGetTSEStatus_NutztLeichtenUmgebungsPfad sichert, dass der Status die
-// Umgebung ueber den leichten Pfad (tester.Umgebung) bezieht und nicht den
+// Umgebung über den leichten Pfad (tester.Umgebung) bezieht und nicht den
 // vollen Verbindungstest (TSS-/Client-Abruf) ausloest: Der Fake laesst
 // TestConnection bewusst fehlschlagen, der Status muss trotzdem die Umgebung
 // liefern.

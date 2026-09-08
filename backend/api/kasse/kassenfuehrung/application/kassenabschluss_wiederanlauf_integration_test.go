@@ -113,7 +113,7 @@ func TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz(t *testing
 
 // TestKasseAbschliessen_RetryNachZwischenbuchung_BrichtAb: Der erste Abschluss-Versuch
 // schreibt den Kassensturz und scheitert an der Differenzbuchung (Teilfehler). Der defer
-// setzt die Sitzung zurueck auf 'offen'; danach entsteht eine echte Zwischenbuchung
+// setzt die Sitzung zurück auf 'offen'; danach entsteht eine echte Zwischenbuchung
 // (Geldtransit). Der Wiederanlauf erkennt die Buchung nach dem protokollierten Kassensturz
 // und bricht mit ErrBuchungenNachKassensturz ab, ohne ein Abschluss-Event zu schreiben —
 // der veraltete Ist-Bestand wird nicht wiederverwendet.

@@ -6,7 +6,7 @@ import "time"
 // Stelle dieser Konstanten; Signaturstatus-Funktion, Rueckstands-Watchdog und
 // Dashboard-Warnung referenzieren sie.
 const (
-	// NachsigniertSchwelle: Eine Signatur, die spaeter als diese Spanne nach
+	// NachsigniertSchwelle: Eine Signatur, die später als diese Spanne nach
 	// der Auftragserstellung entsteht, traegt das Nachsigniert-Kennzeichen —
 	// ihre TSE-Zeitpunkte weichen sichtbar vom Belegdatum ab.
 	NachsigniertSchwelle = time.Minute
@@ -18,7 +18,7 @@ const (
 	WatchdogTickIntervall = 10 * time.Second
 )
 
-// Signaturstatus ist das Urteil der Signaturstatus-Funktion ueber einen
+// Signaturstatus ist das Urteil der Signaturstatus-Funktion über einen
 // Signaturauftrag — genau eine von vier Ergebnisarten.
 type Signaturstatus string
 
@@ -26,7 +26,7 @@ const (
 	// SignaturstatusVorhanden: Die Signatur liegt vor.
 	SignaturstatusVorhanden Signaturstatus = "vorhanden"
 	// SignaturstatusNachsigniert: Die Signatur liegt vor, entstand aber
-	// verspaetet (spaeter als NachsigniertSchwelle nach der Auftragserstellung);
+	// verspaetet (später als NachsigniertSchwelle nach der Auftragserstellung);
 	// der Beleg traegt das Nachsigniert-Kennzeichen.
 	SignaturstatusNachsigniert Signaturstatus = "nachsigniert"
 	// SignaturstatusAusfall: Keine Signatur, mit belegbarem Grund — Endstatus
@@ -49,7 +49,7 @@ type SignaturstatusErgebnis struct {
 }
 
 // DetermineSignaturstatus ist die einzige Implementierung des Ausfallbegriffs:
-// Beleg-Abruf und Kassenabschluss-Gate urteilen ueber diese Funktion. Der
+// Beleg-Abruf und Kassenabschluss-Gate urteilen über diese Funktion. Der
 // Ausfallbegriff ist rein status- und zeitraumbasiert: Endstatus des Auftrags
 // (fehlgeschlagen, tse_nicht_konfiguriert) oder offener Auftrag bei aktivem
 // Stoerungszeitraum. Fehlversuche unterhalb der Maximalzahl und geschlossene

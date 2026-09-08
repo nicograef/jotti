@@ -6,8 +6,8 @@ import (
 )
 
 // Stammdaten sind die fiskalischen Stammdaten der TSS, die der DSFinV-K-Export
-// fuer die tse.csv braucht: Seriennummer, Signaturalgorithmus, Public Key,
-// Zertifikat und Log-Time-Format. Sie aendern sich ueber die Lebensdauer einer
+// für die tse.csv braucht: Seriennummer, Signaturalgorithmus, Public Key,
+// Zertifikat und Log-Time-Format. Sie ändern sich über die Lebensdauer einer
 // TSS nicht und werden einmalig bei der Einrichtung von fiskaly gelesen und als
 // Singleton gespeichert.
 type Stammdaten struct {
