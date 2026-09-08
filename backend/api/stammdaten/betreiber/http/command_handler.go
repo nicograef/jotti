@@ -29,12 +29,12 @@ type updateBetreiberRequest struct {
 }
 
 var updateBetreiberSchema = z.Struct(z.Shape{
-	"Vereinsname":  z.String().Min(1, z.Message("Vereinsname ist erforderlich")).Required(),
-	"Strasse":      z.String().Min(1, z.Message("Straße ist erforderlich")).Required(),
-	"Plz":          z.String().Min(1, z.Message("PLZ ist erforderlich")).Required(),
-	"Ort":          z.String().Min(1, z.Message("Ort ist erforderlich")).Required(),
-	"Steuernummer": z.Ptr(z.String()),
-	"UstID":        z.Ptr(z.String()),
+	"Vereinsname":  betreiber.VereinsnameSchema,
+	"Strasse":      betreiber.StrasseSchema,
+	"Plz":          betreiber.PlzSchema,
+	"Ort":          betreiber.OrtSchema,
+	"Steuernummer": z.Ptr(betreiber.SteuernummerSchema),
+	"UstID":        z.Ptr(betreiber.UstIDSchema),
 })
 
 func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {
@@ -46,7 +46,11 @@ func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {
 
 		b, err := betreiber.NewBetreiber(body.Vereinsname, body.Strasse, body.Plz, body.Ort, body.Steuernummer, body.UstID)
 		if err != nil {
-			helper.SendServerError(w)
+			// Der Zweig ist defensiv: updateBetreiberSchema prüft dieselben
+			// Feld-Schemas, die der Konstruktor erneut prüft, also lehnt er einen
+			// angenommenen Body nicht ab. Lehnt er doch ab, liegt es an der
+			// Eingabe und nicht am Server — deshalb 400.
+			helper.SendClientError(w, "validation_error", nil)
 			return
 		}
 
