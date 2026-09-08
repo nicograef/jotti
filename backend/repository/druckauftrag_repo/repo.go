@@ -136,7 +136,8 @@ func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int,
 			})
 			if errors.Is(err, sql.ErrNoRows) {
 				// Auftrag ist nicht (mehr) offen (z. B. bereits gedruckt oder doppelt
-				// gemeldet): idempotenter No-Op, konsistent mit dem bisherigen Status-Guard.
+				// gemeldet): idempotenter No-Op, konsistent mit dem Status-Guard von
+				// MarkDruckauftragGedruckt.
 				continue
 			}
 			if err != nil {

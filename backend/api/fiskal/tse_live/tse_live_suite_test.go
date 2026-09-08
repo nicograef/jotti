@@ -540,8 +540,8 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 
 	// Stammdaten-Vollständigkeit: die fiskalischen TSS-Stammdaten (DSFinV-K
 	// tse.csv) müssen von der TSS-Ressource lesbar sein. serial_number liegt auf
-	// der TSS-Ressource selbst (nicht tss_serial_number) — Lektion aus einem
-	// früheren Bug. Wir lesen sie über den Setup-Client und persistieren sie.
+	// der TSS-Ressource selbst (nicht tss_serial_number). Wir lesen sie über den
+	// Setup-Client und persistieren sie.
 	pruefeStammdatenVollstaendigkeit(t, u, credentials)
 }
 

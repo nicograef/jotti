@@ -37,8 +37,7 @@ type Area struct {
 	build func(cfg config.Config, deps api.Deps) (http.Handler, []string)
 }
 
-// Rollen-Mengen als Konstanten, damit Tabelle und Matrix-Test denselben Bezug
-// haben.
+// Rollen-Mengen als Konstanten, damit Tabelle und Matrix-Test denselben Bezug haben.
 var (
 	rolesAdmin          = []string{"admin"}
 	rolesService        = []string{"admin", "serviceleitung", "service"}

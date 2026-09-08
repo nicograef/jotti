@@ -175,7 +175,7 @@ func TestValidateSecrets_Rejects(t *testing.T) {
 		{"placeholder JWT_SECRET", func(c *Config) { c.JWTSecret = "your-256-bit-secret-replace-this-in-production" }, "JWT_SECRET"},
 		{"placeholder RELAY_AUTH_TOKEN", func(c *Config) { c.RelayToken = "your-relay-auth-token-replace-this-in-production" }, "RELAY_AUTH_TOKEN"},
 		{"placeholder POSTGRES_PASSWORD", func(c *Config) { c.Postgres.Password = "your-secure-password-here" }, "POSTGRES_PASSWORD"},
-		{"old admin default POSTGRES_PASSWORD", func(c *Config) { c.Postgres.Password = "admin" }, "POSTGRES_PASSWORD"},
+		{"guessable POSTGRES_PASSWORD", func(c *Config) { c.Postgres.Password = "admin" }, "POSTGRES_PASSWORD"},
 		{"short JWT_SECRET", func(c *Config) { c.JWTSecret = "short" }, "JWT_SECRET"},
 		{"short RELAY_AUTH_TOKEN", func(c *Config) { c.RelayToken = "short" }, "RELAY_AUTH_TOKEN"},
 		{"short POSTGRES_PASSWORD", func(c *Config) { c.Postgres.Password = "short" }, "POSTGRES_PASSWORD"},

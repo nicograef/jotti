@@ -22,7 +22,7 @@ Eingebaute Checks (brechen mit Fehler ab):
 - Alpha-Kanal byte-identisch
 - Nicht-Markenpixel (Neutraltöne, Hintergründe, Text) byte-identisch
 - Hue-Spannweite der Markenpixel deckt das Spektrum ab (Rot bis Violett)
-- Dateigrößen in der Größenordnung der bisherigen Assets (Faktor 0.25–4)
+- Dateigrößen in der Größenordnung der bestehenden Assets (Faktor 0.25–4)
 
 Zusätzlich entstehen Abnahme-Previews in <out>/preview/: Graustufen-Proben
 aller Varianten (Druck-Check) und 16-fach vergrößerte 16px-Favicons.

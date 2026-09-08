@@ -85,7 +85,7 @@ Um das Logo herum muss immer eine ausreichende Schutzzone eingehalten werden, in
 
 Das jotti Theme basiert auf dem TailwindCSS-Farbschema. Kanonische Quelle aller Token-Werte ist `frontend/src/index.css` (Light + Dark); die folgenden Tabellen sind ein Auszug. Die Palette: **olive** als neutrale Basis, **emerald** als primäre Markenfarbe (Grün), **zinc** als Sekundärfläche, **red** für destruktive Aktionen.
 
-> **Hinweis:** Die Logo- und Icon-Bild-Assets (Abschnitt 3, 7) tragen seit Juli 2026 einen kontinuierlichen Spektral-Verlauf (OKLCH-Hue von Rot 25° nach Violett 305° entlang der vertikalen Verlaufsachse, Grün in der Mitte). Helligkeit, Schattierung und Alpha stammen unverändert aus den vorherigen grünen Mastern; erzeugt mit `scripts/generate-spektral-logos.py`. Übergangszustand: die App-Kopien in `frontend/public/icons/` und die UI-Farbtoken (Abschnitt 5) bleiben grün, bis die App in einem eigenen Vorhaben nachzieht. Das frühere Übersichtsbild `jotti-logo-examples-and-definitions.png` (Asset 1) wurde bereits bei der Grün-Umfärbung entfernt; maßgeblich ist die Tabelle in Abschnitt 3.3.
+> **Hinweis:** Die Logo- und Icon-Bild-Assets (Abschnitt 3, 7) tragen einen kontinuierlichen Spektral-Verlauf (OKLCH-Hue von Rot 25° nach Violett 305° entlang der vertikalen Verlaufsachse, Grün in der Mitte). Helligkeit, Schattierung und Alpha entsprechen den grünen Mastern; erzeugt mit `scripts/generate-spektral-logos.py`. Übergangszustand: die App-Kopien in `frontend/public/icons/` und die UI-Farbtoken (Abschnitt 5) bleiben grün, bis die App in einem eigenen Vorhaben nachzieht. Maßgeblich ist die Tabelle in Abschnitt 3.3.
 
 **Border-Radius:** `--radius: 0.45rem` — wird konsequent auf UI-Elemente und die Logo-Icons angewendet.
 

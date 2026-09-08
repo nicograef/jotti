@@ -352,7 +352,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	}
 	sollBestandCents := kassenbestand.SollBestandCents
 
-	// Wiederanlauf-Erkennung: Ein früherer Abschluss-Versuch kann den Kassensturz bereits
+	// Wiederanlauf-Erkennung: Ein vorheriger Abschluss-Versuch kann den Kassensturz bereits
 	// geschrieben haben (Teilfehler nach Schritt 1). Der dokumentierte Kassensturz zählt —
 	// Schritt 1 wird übersprungen und der damals erfasste Ist-Bestand bleibt maßgeblich,
 	// damit die Differenzbuchung zum protokollierten Zählergebnis passt.
@@ -474,7 +474,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 // stehenden kassensturz-durchgefuehrt-Events des Kassensitzungs-Streams (oder
 // nil, wenn keiner existiert) sowie die Information, ob nach diesem Kassensturz
 // eine Zwischenbuchung im Stream liegt. Grundlage der Wiederanlauf-Erkennung des
-// Kassenabschlusses: Ein Kassensturz aus einem abgebrochenen früheren Versuch
+// Kassenabschlusses: Ein Kassensturz aus einem abgebrochenen vorherigen Versuch
 // darf nicht noch einmal geschrieben werden, und sein alter Ist-Bestand bleibt
 // nur maßgeblich, wenn seither keine neue Buchung erfolgt ist.
 //

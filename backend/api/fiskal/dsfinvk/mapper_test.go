@@ -747,8 +747,8 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 			t.Errorf("umbuchung[%d] UMS_BRUTTO = %q, want 0.00", row, got)
 		}
 	}
-	// Ohne Benutzerkommentar ist BON_NOTIZ allein der Richtungs-Autotext
-	// (byte-identisch zum bisherigen Export).
+	// Ohne Benutzerkommentar ist BON_NOTIZ allein der unveränderte
+	// Richtungs-Autotext.
 	if got := field(t, transactions, 0, "BON_NOTIZ"); got != "Umbuchung auf Tisch Tisch 7" {
 		t.Errorf("abgang BON_NOTIZ = %q, want Autotext", got)
 	}

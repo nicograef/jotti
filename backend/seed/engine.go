@@ -125,7 +125,7 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 }
 
 // sitzungsBuilder baut die Event-Folge einer Kassensitzung auf. Er hält dafür den laufenden
-// Kassenbestand, die Tagessummen und die bisherigen Events je Tisch bzw. Direktverkauf,
+// Kassenbestand, die Tagessummen und die aufgelaufenen Events je Tisch bzw. Direktverkauf,
 // um Folge-Aktionen (Zahlung, Storno) gegen den tatsächlichen Zustand aufzulösen.
 type sitzungsBuilder struct {
 	sitzung   kassensitzungDrehbuch
@@ -477,7 +477,7 @@ func (b *sitzungsBuilder) addVerkauf(verkaufID string, evt e.Event) {
 	b.verkaufEvents[verkaufID] = append(b.verkaufEvents[verkaufID], b.add(evt))
 }
 
-// tischState spielt die bisherigen Events des Tischs in den Projektions-Zustand ein.
+// tischState spielt die aufgelaufenen Events des Tischs in den Projektions-Zustand ein.
 func (b *sitzungsBuilder) tischState(tischID int) (kasse.TischSession, error) {
 	state := kasse.TischSession{}
 	for _, evt := range b.tischEvents[tischID] {

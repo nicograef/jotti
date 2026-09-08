@@ -1,3 +1,6 @@
 # scripts/check-prose.sh allowlist — one path per line, reason after "#".
 frontend/src/lib/utils.test.ts  # 'ergänzt an früheren Tagen das Datum' ist Fachprosa zur Datumsberechnung, kein Historienbezug
 scripts/check-prose.sh  # zitiert die verbotenen Wörter selbst (Pattern und Kommentare), wie AGENTS.md Regel 18
+scripts/check-prose.allow  # diese Datei selbst: Begründungstexte zitieren die erlaubten Fundstellen wörtlich
+docs/steuerrecht.md  # 'die frühere Vereinfachung (einheitlich 19 %) entfällt' beschreibt eine reale UStG-Änderung zum 1.1.2026, kein Projekt-Historienbezug
+docs/prds/prd-windows-nativ-ohne-docker.md  # PRD beschreibt per Definition, was die vorgeschlagene Architektur ablöst — wie ein ADR, aber (noch) ohne Umsetzung

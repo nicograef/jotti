@@ -144,7 +144,7 @@ LIMIT 1;
 
 -- name: NormalisiereProduktReihenfolge :exec
 -- Vergibt die Reihenfolge aller Produkte einer Kategorie dicht neu (1..N) in
--- der bisherigen Sortierung. Das laeuft vor jedem Tausch, weil zwei Zeilen mit
+-- der bestehenden Sortierung. Das laeuft vor jedem Tausch, weil zwei Zeilen mit
 -- demselben Wert sonst denselben Wert zurueckgeschrieben bekaemen und das
 -- Verschieben wirkungslos bliebe. updated_at bleibt unberuehrt: die
 -- Normalisierung veraendert die sichtbare Reihenfolge nicht.

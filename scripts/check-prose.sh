@@ -17,10 +17,11 @@ cd "$PROJECT_ROOT"
 
 ALLOWLIST="scripts/check-prose.allow"
 
-# Whole words only (grep -w): "bisher" must not flag "bisherige", and the
-# structural patterns ("Phase [0-9]+", ...) must not flag a longer identifier
-# that merely contains them.
-PATTERN='(früher|frueher|vormals|bisher|bislang|neuerdings|Phase [0-9]+|NEU[0-9]{2}|Muster [0-9]+|Befund #[0-9]*|Design-Handoff|design_handoff|Seit Version [0-9]+|Ab Version [0-9]+)'
+# Whole words only (grep -w): a longer identifier that merely contains a
+# pattern (e.g. "Design-Handoff-Token") must not slip past matching by
+# accident either way. Case-insensitive (grep -i) and with the inflected
+# forms of the history words, so "Bisherige"/"frühere" are caught too.
+PATTERN='(bisher|bisherige[nrs]?|früher|frühere[nrs]?|frueher|bislang|vormals|neuerdings|Phase [0-9]+|NEU[0-9]{2}|Muster [0-9]+|Befund #[0-9]*|Design-Handoff|design_handoff|Seit Version [0-9]+|Ab Version [0-9]+)'
 
 # Paths frozen by the freeze discipline, rule texts that quote the banned
 # words themselves, and generated/vendored files that were never authored
@@ -57,7 +58,7 @@ for file in "${files[@]}"; do
   done
   [ "$skip" -eq 1 ] && continue
 
-  if hits="$(grep -nwE "$PATTERN" "$file" 2>/dev/null)"; then
+  if hits="$(grep -inwE "$PATTERN" "$file" 2>/dev/null)"; then
     while IFS= read -r hit; do
       error "$file:$hit"
     done <<<"$hits"

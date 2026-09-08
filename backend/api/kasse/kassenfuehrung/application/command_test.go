@@ -533,7 +533,7 @@ func TestKasseAbschliessen_WiederanlaufImZwischenstatus(t *testing.T) {
 	}
 }
 
-// Wiederanlauf nach Teilfehler: Steht der Kassensturz eines abgebrochenen früheren
+// Wiederanlauf nach Teilfehler: Steht der Kassensturz eines abgebrochenen vorherigen
 // Versuchs bereits im Journal, wird Schritt 1 übersprungen — es entsteht kein zweites
 // kassensturz-Event, und die Differenz rechnet gegen den dort dokumentierten Ist-Bestand.
 func TestKasseAbschliessen_WiederanlaufSchreibtKeinenZweitenKassensturz(t *testing.T) {
