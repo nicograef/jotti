@@ -2,8 +2,8 @@
 
 // Ausfall-, Nachsignierungs- und Latenzmessung der TSE-Live-Suite. Baut auf der
 // Infrastruktur von tse_live_suite_test.go auf (setupLiveUmgebung, starteWorker,
-// warteAufSignatur) und deckt den Testfall-Katalog aus Block 4 der manuellen QA
-// (docs/plans/guide-manuelle-qa-v1.0.0.md) ab:
+// warteAufSignatur) und deckt den Testfall-Katalog aus Block 4 der manuellen
+// QA ab:
 //
 //   - Ausfall zur Laufzeit: Vorgaenge bleiben buchbar, das Stoerungsprotokoll
 //     erfasst den Zeitraum mit Grund, nach Wiederherstellung läuft die

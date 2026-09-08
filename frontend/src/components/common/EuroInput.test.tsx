@@ -83,7 +83,8 @@ describe('EuroInput', () => {
 
     fireEvent.change(input, { target: { value: '1' } })
 
-    // Über eine Sekunde warten: ohne den Debounce-Guard würde hier zu „1,00" umformatiert.
+    // Über eine Sekunde warten: EuroInput formatiert nur beim Blur; ein laufender
+    // Timer darf nicht umformatieren, „1" bleibt stehen.
     act(() => {
       vi.advanceTimersByTime(1500)
     })

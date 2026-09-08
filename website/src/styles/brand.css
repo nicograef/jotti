@@ -6,8 +6,8 @@
    Landing nutzt diese Tokens direkt; das Starlight-Theme bezieht sie in
    starlight.css über dessen CSS-Custom-Properties.
 
-   --brand-green* sind Aliase auf die aktuellen Werte: starlight.css und
-   landing.css beziehen sich noch auf diese Namen. */
+   --brand-green* sind theme-unabhängige Festwerte für gefüllte Buttons;
+   starlight.css und landing.css beziehen sie über diese Namen. */
 
 @font-face {
   font-family: 'Inter';
@@ -92,7 +92,7 @@
   --radius-xl: 20px; /* Karten */
   --radius-2xl: 26px; /* große CTA-Karte */
 
-  /* --- Übergangs-Aliase auf die neuen Werte (siehe Kopf) --- */
+  /* --- Feste Marken-Grüntöne für gefüllte Buttons --- */
   /* Konstant, damit gefüllte Buttons (weißer Text) in beiden Modi tragen. */
   --brand-green: #007a55;
   --brand-green-hover: #00694a;
