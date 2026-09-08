@@ -519,9 +519,9 @@ deutsch. Bezeichner ändern sich nicht.
       tragen deutsche Prosa und stehen nie auf der Konsole. Zusätzlich schlägt es fehl bei
       transliterierten deutschen Wortstämmen samt Flexionen in Kommentarzeilen unter
       `backend/` (unter anderem `fuer, ueber, koenn, muess, waehrend, naechst, auftraeg,
-  aender, gemaess, zurueck, moeglich, spaet, pruef, laeuf, haelt, groess, schliess,
-  genueg, einfuehr, uebernahm, stoerung, laess, rueckstand, traeg, endgueltig,
-  getaetigt, oeffne, fuenf, zaehl, haeng, faeng, waer, fuehr`); die vollständige
+aender, gemaess, zurueck, moeglich, spaet, pruef, laeuf, haelt, groess, schliess,
+genueg, einfuehr, uebernahm, stoerung, laess, rueckstand, traeg, endgueltig,
+getaetigt, oeffne, fuenf, zaehl, haeng, faeng, waer, fuehr`); die vollständige
       Stammliste steht im Prüfer `backend/internal/tools/checklanguage`, der im
       Backend-Modul gelintet und mit einem Unit-Test abgesichert ist und von
       `scripts/check-language.sh` gebaut wird. `backend/sqlc/dbgen/**` ist ausgenommen.
@@ -631,9 +631,17 @@ Fehler-Logs, die ihren Fehler mitführen.
       `produkt/application/command.go`, `produkt/application/query.go`,
       `auth/application/command.go` und `fiskal/setup/application/setup.go` sind ergänzt.
       Befund: backend/api/stammdaten/produkt/application/command.go:49
-- [ ] Die `byCode`-Umformulierungen in `DirektverkaufAbschluss.tsx`,
-      `DirektverkaufStornoDrawer.tsx` und `DirektverkaufHistorie.tsx` entfallen; ein
-      `byCode`-Eintrag ergänzt nur noch Kontext zur zentralen Meldung.
+- [ ] `byCode` ersetzt die zentrale Meldung (`getActionErrorMessage`). Darum bleibt ein
+      `byCode`-Eintrag nur, wenn der Code keine zentrale Meldung hat oder der Kontext
+      der Stelle eine andere Handlungsanweisung verlangt; reine Umformulierungen
+      entfallen in `DirektverkaufAbschluss.tsx`, `DirektverkaufStornoDrawer.tsx`,
+      `DirektverkaufHistorie.tsx`, `table/BestellungAbschluss.tsx`,
+      `table/ZahlungAbschluss.tsx`, `table/HistorieStornierungDrawer.tsx`,
+      `table/HistorieUmbuchungDrawer.tsx`, `table/TischHistorie.tsx`,
+      `common/LoginForm.tsx`, `admin/kasse/EroeffnenSection.tsx` und
+      `admin/tse/TSEKonfigurationSection.tsx`. Die zentrale Meldung zu
+      `position_nicht_stornierbar` ist kontextneutral („Bitte Ansicht aktualisieren“),
+      weil Direktverkauf keinen Tisch hat.
 
 ---
 
