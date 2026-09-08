@@ -544,6 +544,32 @@ func abrechnungskreis(subject string, tischnamen map[int]string) string {
 
 // --- Stammdatenmodul ---
 
+// Amtliche MaxLength der Betreiber-Felder in den Stammdatenzeilen (DSFinV-K 2.4,
+// index.xml: NAME 60, STRASSE 60, PLZ 10, ORT 62; die LOC_*-Felder der
+// location.csv tragen dieselben Längen).
+const (
+	maxLengthName    = 60
+	maxLengthStrasse = 60
+	maxLengthPlz     = 10
+	maxLengthOrt     = 62
+)
+
+// truncate schneidet wert auf höchstens maxLength Zeichen. Der Schnitt läuft über
+// []rune, damit ein Umlaut nicht mitten in seiner UTF-8-Folge zerfällt und das
+// Feld gültig bleibt.
+//
+// Zu kürzen gibt es nur an Bestandsdaten: Die Betreiber-Spalten sind TEXT, und
+// das Schema in domain/betreiber begrenzt jedes Feld in Bytes — also stets
+// strenger als diese Zeichengrenze.
+func truncate(wert string, maxLength int) string {
+	runen := []rune(wert)
+	if len(runen) <= maxLength {
+		return wert
+	}
+
+	return string(runen[:maxLength])
+}
+
 var cashpointclosingColumns = []column{
 	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
 	alpha("Z_BUCHUNGSTAG"), alpha("TAXONOMIE_VERSION"),
@@ -563,7 +589,8 @@ func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table 
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 		"", Version,
 		belege[0].bonID, belege[len(belege)-1].bonID,
-		s.Betreiber.Vereinsname, s.Betreiber.Strasse, s.Betreiber.Plz, s.Betreiber.Ort, land,
+		truncate(s.Betreiber.Vereinsname, maxLengthName), truncate(s.Betreiber.Strasse, maxLengthStrasse),
+		truncate(s.Betreiber.Plz, maxLengthPlz), truncate(s.Betreiber.Ort, maxLengthOrt), land,
 		ptr(s.Betreiber.Steuernummer), ptr(s.Betreiber.UstID),
 		formatAmount(bar), formatAmount(bar),
 	}
@@ -586,7 +613,8 @@ var locationColumns = []column{
 func buildLocation(s Snapshot, erstellung string) Table {
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-		s.Betreiber.Vereinsname, s.Betreiber.Strasse, s.Betreiber.Plz, s.Betreiber.Ort,
+		truncate(s.Betreiber.Vereinsname, maxLengthName), truncate(s.Betreiber.Strasse, maxLengthStrasse),
+		truncate(s.Betreiber.Plz, maxLengthPlz), truncate(s.Betreiber.Ort, maxLengthOrt),
 		land, ptr(s.Betreiber.UstID),
 	}
 

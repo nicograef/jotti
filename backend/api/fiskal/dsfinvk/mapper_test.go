@@ -1655,3 +1655,38 @@ func tseRowByBonID(t *testing.T, table Table, bonID string) int {
 	t.Fatalf("keine transactions_tse-Zeile für BON_ID %q", bonID)
 	return -1
 }
+
+// Die Betreiber-Spalten sind TEXT: Ein Bestandswert kann länger sein als die
+// amtliche MaxLength der Stammdatenzeilen. Der Mapper kürzt ihn runensicher, hier
+// geprüft an einem 70-Zeichen-Vereinsnamen aus Umlauten (NAME/LOC_NAME: 60).
+func TestMapKuerztZuLangeBetreiberStammdaten(t *testing.T) {
+	snapshot := testSnapshot()
+	snapshot.Betreiber.Vereinsname = strings.Repeat("ä", 70)
+	snapshot.Betreiber.Ort = strings.Repeat("ö", 65)
+
+	archive, err := Map(snapshot, []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	closing := tableByFile(t, archive, "cashpointclosing.csv")
+	location := tableByFile(t, archive, "location.csv")
+	wantName := strings.Repeat("ä", 60)
+	wantOrt := strings.Repeat("ö", 62)
+
+	for _, fall := range []struct {
+		table  Table
+		spalte string
+		want   string
+	}{
+		{table: closing, spalte: "NAME", want: wantName},
+		{table: closing, spalte: "ORT", want: wantOrt},
+		{table: location, spalte: "LOC_NAME", want: wantName},
+		{table: location, spalte: "LOC_ORT", want: wantOrt},
+	} {
+		got := field(t, fall.table, 0, fall.spalte)
+		if got != fall.want {
+			t.Errorf("%s %s hat %d Zeichen (%q), erwartet %d", fall.table.File, fall.spalte, len([]rune(got)), got, len([]rune(fall.want)))
+		}
+	}
+}
