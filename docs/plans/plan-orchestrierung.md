@@ -29,7 +29,9 @@ Die Lead-Session reviewt und implementiert nichts selbst.
   adversariale Verifikation. Der Audit-Workflow liegt als benannter Workflow in
   `.claude/workflows/jotti-full-audit.js` und wird mit
   `Workflow({ name: 'jotti-full-audit', args: { date: '<YYYY-MM-DD>' } })` gestartet.
-- **Git**: Alles landet auf dem Feature-Branch der Orchestrator-Session, nie auf `main`.
+- **Git**: Alles landet auf dem Feature-Branch der jeweiligen Session, nie direkt auf `main`.
+  Schnitt nach Phase B: PR #121 trägt die Phasen A und B; Phasen C–E laufen in einer neuen
+  Session auf einem eigenen Branch ab `main`.
   Kein Force-Push, kein `--no-verify`, keine KI-Trailer. Migrationsnummern werden beim
   Landen vergeben.
 - **Datenschutz**: Keine Vereins- oder Personendaten im Repo. Der Vereins-Antwortplan bleibt
@@ -38,6 +40,9 @@ Die Lead-Session reviewt und implementiert nichts selbst.
 ## Inventory
 
 - `docs/plans/plan-praxis-feedback.md` — Plan 2, 12 Phasen (0–11) mit „Depends on"-Zeilen
+- `.claude/workflows/review-phase.js` — Phasen-Review: Fable-Sweep, Opus-Proben, Opus-Skeptiker
+- `.claude/workflows/plan-audit-fixes.js` — Phase C: Opus-Planer, Fable-Sweep, Opus-Kritik,
+  Überarbeitung, Nachprüfung
 - `.claude/workflows/jotti-full-audit.js` — Audit-Workflow: 22 Einheiten × 3 Linsen
   (Cleanup-Skill, Korrektheit/Security, Konventionen/Doku), 8 Cross-Layer-Flüsse, Dedupe,
   2–3 Skeptiker je Blocker/Major (Kappung 400), Konsolidierung je Bereich, Assembler
@@ -67,21 +72,60 @@ Die Lead-Session reviewt und implementiert nichts selbst.
   Testfehler nach Debugging, nötiger Force-Push, Löschen fremder Worktrees. Dann
   Übergabe an den Menschen, nicht raten.
 
-- Phase A: Kriterium 1 bleibt offen, bis der Eigentümer nach dem Merge Plan 2 Phase 0
-  Kriterium 5 (Dependabot-PRs) und Phase 10 Kriterium 4 (#111) abhakt; alle übrigen
-  Kriterien der Phasen 0–10 sind abgehakt.
+- **Schnitt nach Phase B** (Eigentümer): PR #121 wird per Merge-Commit gemerged, damit die
+  Autorschaft der Cherry-Picks aus #109/#110 und die Commits je Kriterium erhalten bleiben.
+  Der Eigentümer mergt selbst und schließt danach #109, #110 und #111; Dependabot schließt
+  #106 und #112–#118 von allein.
+- **Release**: v1.0.0 erst nach Abschluss von Phase D, kein Tag und kein Zwischen-Release
+  vorher; die Vereine bleiben bis dahin auf v0.17.3. Zielrahmen des Eigentümers: Mitte
+  September.
+- **Offene Eigentümer-Punkte nach dem Merge**: Plan 2 Phase 0 Kriterium 5 (Dependabot-PRs
+  geschlossen) und Phase 10 Kriterium 4 (#111 geschlossen) abhaken; damit ist auch Phase A
+  Kriterium 1 erfüllt. `docs/plans/review-externe-prs.md` löschen, sobald #109, #110 und
+  #111 geschlossen sind.
+- **Bekannte Drift für den Fix-Plan** (aus Phase A gesammelt, im Findings-Dokument
+  gegenzuprüfen): README „sechs“ vs. „drei“ Fehlversuche; `DruckerConfigPage` in
+  handbuch.md; „null Kosten“ in produktbeschreibung.md gegen README/ADR 09;
+  `docs/adrs/README.md`, `04_warn-bestaetigung.md` und die e2e-Dateien nicht prettier-clean;
+  `setup-dev-tools.sh` baut golangci-lint bei reinem Toolchain-Wechsel nicht neu; TERMS.md
+  „setzt um“ (Eigentümer-Entscheidung); `PREVIOUS_VERSION` gehört zu Phase E.
 
 ## Open questions / Risks
 
 - Dauer und Kosten: das Audit hat sechs Fable-Sweeps, rund 80 Opus-Reviewer und Skeptiker
   je Befund; ein Vorlauf mit 268 Agenten brauchte 3,3 Stunden. Rechne mit einem Tag
   Laufzeit für Phase B und einem weiteren für Phase D.
-- Zwei Vereine setzen jotti ab Ende September produktiv ein. Phase A muss vorher landen;
-  Phasen B–D dürfen v1.0.0 nicht über diesen Termin hinaus verzögern, sonst v1.0.0 mit
-  Stand nach Phase A taggen und den Rest in v1.1 planen.
+- Zwei Vereine setzen jotti ab Ende September produktiv ein, bis dahin mit v0.17.3; v1.0.0
+  folgt nach Phase D (siehe Resolved decisions).
 - Das Parallelitätslimit je Workflow ist CPUs − 2 (in der Cloud-Session 2 Agenten). Der
   Audit läuft deshalb im Split-Modus des Workflows: sechs Bereichs-Läufe parallel
   (`area`, `sectionsDir`), danach ein Assemble-Lauf (`assembleFrom`).
+- Das Session-Limit kann Workflows mitten im Lauf stoppen (Meldung „session limit“). Der
+  Audit-Workflow ist dann mit `resumeFromRunId` und identischen Argumenten fortsetzbar;
+  fertige Agenten kommen aus dem Cache.
+
+## Übergabe an die nächste Session (Phasen C–E)
+
+- Session-Start: `nicograef/jotti` und `nicograef/handbook` im GitHub-Scope, Prompt „ultracode,
+  lies docs/plans/plan-orchestrierung.md und starte Phase C“. Handbook-Pfad in der Cloud:
+  `/home/user/handbook`, Skills unter `.claude/skills/`.
+- Umgebung: `bash scripts/setup-dev-tools.sh`; das Basis-Image bringt Node 22 und pnpm 10,
+  das Repo verlangt Node 24 und pnpm 11.6.0 (Phase A installierte Node 24 nach `/opt/node24`
+  und verlinkte die Binaries nach `/usr/local/bin`); `dockerd` von Hand starten; das
+  vorinstallierte PostgreSQL 16 stoppen (`service postgresql stop`), sonst kollidiert
+  `make verify` auf Port 5432; `govulncheck` braucht `GOTOOLCHAIN=go1.27.1`.
+- Phase C: `Workflow({ name: 'plan-audit-fixes', args: { date, handbook:
+'/home/user/handbook/.claude/skills' } })`; die Open questions des Fix-Plans entscheidet
+  die Lead-Session nach `question-rules.md` oder legt sie dem Eigentümer vor.
+- Phase D: `implement-plan` für den Fix-Plan; je Phase `Workflow({ name: 'review-phase',
+args: { phase, worktree, branch, base, planPath, slug: 'jotti-audit-fixes', gateSummary } })`,
+  Defekte per `SendMessage` an den Phasen-Worker. Gates: `make check`, für Schema-Phasen
+  `make verify` plus CI-Job `upgrade-path` auf dem PR, für Website-Phasen
+  `make website-check`, für Service-UI `make test-e2e`. CI läuft nur auf PRs gegen `main`,
+  also früh einen Draft-PR öffnen; der PR-Body wird ohne den injizierten Trailer
+  nachgezogen.
+- Modell-Regel unverändert: Fable nur Sweep, Opus für Review, Skeptiker und Kritik, Worker
+  Opus/Sonnet je Phase wie im Fix-Plan festgelegt.
 
 ---
 
