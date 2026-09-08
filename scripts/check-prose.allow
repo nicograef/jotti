@@ -1,2 +1,3 @@
 # scripts/check-prose.sh allowlist — one path per line, reason after "#".
 frontend/src/lib/utils.test.ts  # 'ergänzt an früheren Tagen das Datum' ist Fachprosa zur Datumsberechnung, kein Historienbezug
+scripts/check-prose.sh  # zitiert die verbotenen Wörter selbst (Pattern und Kommentare), wie AGENTS.md Regel 18

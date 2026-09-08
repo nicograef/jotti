@@ -47,7 +47,7 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Postgres.User != "admin" {
 		t.Errorf("expected default Postgres user 'admin', got %s", cfg.Postgres.User)
 	}
-	// POSTGRES_PASSWORD has no default anymore; it comes from the environment.
+	// POSTGRES_PASSWORD is required; it comes from the environment, not a default.
 	if cfg.Postgres.Password != validPGPassword {
 		t.Errorf("expected Postgres password %q, got %s", validPGPassword, cfg.Postgres.Password)
 	}

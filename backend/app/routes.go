@@ -30,7 +30,7 @@ type Area struct {
 	// Handler (Relay-Token) bzw. entfällt (Login).
 	RequiresAuth bool
 	// RateLimited == true ⇒ zusätzlich IP-Rate-Limit (Login/Relay gegen
-	// Brute-Force). Der Wert 5 bildet das bisherige Verhalten ab.
+	// Brute-Force) mit 5 Anfragen pro Sekunde (siehe mountArea).
 	RateLimited bool
 	// build konstruiert den Bereichs-Handler und liefert dessen registrierte
 	// Pfade zurück; die Pfade sind die Zeilen der Berechtigungs-Matrix.
@@ -38,7 +38,7 @@ type Area struct {
 }
 
 // Rollen-Mengen als Konstanten, damit Tabelle und Matrix-Test denselben Bezug
-// haben (bislang als String-Literale in SetupRoutes verstreut).
+// haben.
 var (
 	rolesAdmin          = []string{"admin"}
 	rolesService        = []string{"admin", "serviceleitung", "service"}
@@ -46,7 +46,6 @@ var (
 )
 
 // Areas ist die deklarative Routentabelle — die einzige Registrierungsquelle.
-// Verhalten identisch zur früheren imperativen Registrierung in SetupRoutes.
 func Areas() []Area {
 	return []Area{
 		{

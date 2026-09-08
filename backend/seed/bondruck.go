@@ -77,7 +77,7 @@ func druckerFensterAus(s szenario, jetzt time.Time) []druckerFenster {
 // entstehen über die produktive Bondruck-Policy aus jeder Bestellung und jedem Direktverkauf,
 // Kassenbelege (inklusive TSE-Abschnitt aus den Signaturspalten des Auftrags) für jede n-te
 // Zahlung über den produktiven ESC/POS-Formatter — nur für Vorgänge mit quittierter
-// Signatur, denn bei ausstehender Signatur entsteht im neuen Modell kein Druckauftrag.
+// Signatur, denn bei ausstehender Signatur entsteht kein Druckauftrag.
 // Der Status ergibt sich aus den Drucker-Ausfallfenstern des Drehbuchs (fehlgeschlagen, der
 // erste Fehlschlag verworfen), dem Relay-Abholfenster vor „jetzt" (offen) und sonst der
 // Gedruckt-Quittung kurz nach der Erstellung.

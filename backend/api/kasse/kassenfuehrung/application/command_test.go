@@ -414,7 +414,7 @@ func TestKasseAbschliessen_KasseNichtGeoeffnet(t *testing.T) {
 	}
 }
 
-// Phase 1 des Abschlusses setzt die Barriere ('wird_abgeschlossen') als ersten Schritt und
+// Der Abschluss setzt die Barriere ('wird_abgeschlossen') als ersten Schritt und
 // setzt sie bei Erfolg nicht zurück.
 func TestKasseAbschliessen_SetztBarriere(t *testing.T) {
 	ctx := context.Background()

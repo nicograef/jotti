@@ -373,7 +373,7 @@ func TestMarkOffeneAlsNichtKonfiguriert_MarkiertNurOffene(t *testing.T) {
 }
 
 // auftragStatus liest Status, Versuche und letzten Fehler eines Auftrags direkt
-// aus der Tabelle — die Admin-Lese-Query gibt es nicht mehr, die Tests pruefen
+// aus der Tabelle, weil es keine Admin-Lese-Query gibt; die Tests pruefen
 // den Auftragszustand per SQL.
 func auftragStatus(t *testing.T, db *sql.DB, id int) (status string, versuche int, letzterFehler string) {
 	t.Helper()

@@ -519,7 +519,7 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 
 // assertSaldoAbgeleitet prüft die Kern-Invariante von SaldoCents: der offene
 // Betrag ist stets die Summe aus EinzelpreisCents × Menge über die unbezahlten
-// Positionen (Phase 4: abgeleitet, nicht getrennt fortgeschrieben).
+// Positionen — abgeleitet, nicht getrennt fortgeschrieben.
 func assertSaldoAbgeleitet(t *testing.T, state TischSession, nachEvent string) {
 	t.Helper()
 	erwartet := 0

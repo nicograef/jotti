@@ -2,7 +2,7 @@
 // into fat kasse.Position values by batch-loading the referenced Produkte and
 // Varianten. It is the single shared implementation used by both the
 // tischgeschaeft (BestellungAufnehmen) and direktverkauf (DirektverkaufTaetigen)
-// command paths (extracted per the 2026-07-17 review, go-code-quality-1).
+// command paths.
 package enrichment
 
 import (

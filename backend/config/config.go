@@ -31,9 +31,9 @@ type Config struct {
 const MinSecretLength = 16
 
 // placeholderSecrets sind die im Repo öffentlich stehenden Beispielwerte aus
-// .env.example sowie der frühere POSTGRES_PASSWORD-Default. Ein solcher Wert in
-// einer laufenden Instanz bedeutet ein bekanntes Secret (JWT-Forgery = Auth-Bypass)
-// und wird deshalb hart abgelehnt.
+// .env.example sowie das leicht erratbare Postgres-Passwort "admin". Ein
+// solcher Wert in einer laufenden Instanz bedeutet ein bekanntes Secret
+// (JWT-Forgery = Auth-Bypass) und wird deshalb hart abgelehnt.
 var placeholderSecrets = map[string]bool{
 	"your-256-bit-secret-replace-this-in-production":   true,
 	"your-relay-auth-token-replace-this-in-production": true,

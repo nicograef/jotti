@@ -80,7 +80,7 @@ func (w *deadlineCapturingWriter) Write(b []byte) (int, error) {
 
 // Der Export laeuft gegen die eigene, verlaengerte Schreibfrist statt gegen
 // die globale 10-Sekunden-Frist des Servers: Sonst wird ein laenger als zehn
-// Sekunden dauernder Export stillschweigend abgeschnitten (Phase 8).
+// Sekunden dauernder Export stillschweigend abgeschnitten.
 func TestExportHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing.T) {
 	svc := &mockService{archiv: application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")}}
 	h := &Handler{Service: svc}

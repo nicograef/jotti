@@ -19,8 +19,8 @@ import (
 const AdminUsername = "admin"
 
 // MarkerPrefix ist das feste ASCII-Literal am Anfang der maschinen-greifbaren
-// Log-Zeile. Phase 3 (Windows-Starter, prod-init.sh) grept exakt diesen String —
-// er darf sich nicht ändern.
+// Log-Zeile. windows/starter/core/adminmarker.go und scripts/prod-init.sh greifen
+// exakt diesen String — er darf sich nicht ändern.
 const MarkerPrefix = "ADMIN-EINMALPASSWORT"
 
 // Action ist die genau eine Aktion, die der Bootstrap aus dem DB-Zustand ableitet.

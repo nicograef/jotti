@@ -493,9 +493,8 @@ func ursprungsbons(positionen []kasse.PositionEventData, herkunft map[string]str
 
 // umbuchungNotiz komponiert die BON_NOTIZ eines Umbuchungs-Bons aus dem
 // Richtungs-Autotext und dem optionalen Benutzerkommentar. Ohne Benutzerkommentar
-// ist die Notiz allein der Autotext (byte-identisch zum bisherigen Export); sonst
-// werden beide mit "; " verkettet (maximal 202 von 255 erlaubten Zeichen, keine
-// Kürzung nötig).
+// ist die Notiz allein der unveränderte Autotext; sonst werden beide mit "; "
+// verkettet (maximal 202 von 255 erlaubten Zeichen, keine Kürzung nötig).
 func umbuchungNotiz(autotext string, benutzerKommentar string) string {
 	if benutzerKommentar == "" {
 		return autotext

@@ -86,7 +86,7 @@ func run() int {
 		ensureFirewall()
 	} else {
 		// Linux-Dev-Lauf: ohne Docker-Daemon-Garantie und ohne Volume bleibt die
-		// .env ordnerlokal und wird nur erzeugt, wenn sie fehlt (wie bisher).
+		// .env ordnerlokal und wird nur erzeugt, wenn sie fehlt.
 		created, err := core.MaterializeEnv(envPath, fileExists, writeEnvFile)
 		if err != nil {
 			fmt.Printf("Konfiguration (.env) konnte nicht erstellt werden: %v\n", err)

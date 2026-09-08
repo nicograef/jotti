@@ -310,8 +310,8 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		OhneKonfigurationAnzahl: gate.ohneKonfigurationAnzahl,
 	}
 
-	// Phase 1: Barriere setzen. Der UPDATE wartet auf noch laufende Buchungen (FOR SHARE);
-	// danach lehnt der Status-Guard alle weiteren Buchungs-Events ab. Idempotent, damit ein
+	// Barriere setzen: Der UPDATE wartet auf noch laufende Buchungen (FOR SHARE); danach
+	// lehnt der Status-Guard alle weiteren Buchungs-Events ab. Idempotent, damit ein
 	// Wiederholungs-Aufruf im Zwischenstatus fortsetzt.
 	rows, err := c.KassensitzungenRepo.SetKassensitzungWirdAbgeschlossen(ctx, ks.ZNr)
 	if err != nil {
