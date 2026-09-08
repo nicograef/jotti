@@ -28,7 +28,8 @@ type positionenMitKommentarData struct {
 //     an die Produktstationen; ohne konfigurierte Stationen entstehen keine Auftraege.
 //
 // Bonmodus pro_position (Standard) erzeugt einen Bon je Position, pro_bestellung einen
-// Sammelbon je Kategorie bzw. einen Sammel-Abholbon.
+// Sammelbon je Kategorie bzw. einen Sammel-Abholbon. Der Abholbon kennt zusaetzlich
+// pro_stueck: je Einheit einer Position einen eigenen Bon.
 func CreateArbeitsbonAuftraegeFromEvent(
 	evt event.Event,
 	druckstationen map[string]druckstation.Druckstation,
@@ -64,34 +65,46 @@ func createDirektverkaufAuftraege(
 }
 
 // createAbholbonAuftraege erzeugt Abholbons fuer einen Direktverkauf gemaess Bonmodus:
-// pro_bestellung = ein Sammel-Abholbon, pro_position = ein Abholbon je Position.
+// pro_bestellung = ein Sammel-Abholbon, pro_position = ein Abholbon je Position,
+// pro_stueck = ein Abholbon je Einheit (eine Positions-Kopie mit Menge 1 je Bon).
 func createAbholbonAuftraege(
 	evt event.Event,
 	data positionenMitKommentarData,
 	station druckstation.Druckstation,
 	referenz string,
 ) []druckauftrag_repo.NeuerDruckauftrag {
-	if station.Bonmodus == "pro_bestellung" {
-		payload := escpos.FormatDirektverkaufAbholbon(data.Positionen, evt.UserName, evt.Time, data.Kommentar)
-		return []druckauftrag_repo.NeuerDruckauftrag{{
+	abholbon := func(positionen []kasse.Position) druckauftrag_repo.NeuerDruckauftrag {
+		payload := escpos.FormatDirektverkaufAbholbon(positionen, evt.UserName, evt.Time, data.Kommentar)
+		return druckauftrag_repo.NeuerDruckauftrag{
 			ZielIP:   station.DruckerIP,
 			Payload:  base64.StdEncoding.EncodeToString(payload),
 			BonArt:   "arbeitsbon",
 			Referenz: referenz,
-		}}
+		}
 	}
 
-	auftraege := make([]druckauftrag_repo.NeuerDruckauftrag, 0, len(data.Positionen))
-	for _, pos := range data.Positionen {
-		payload := escpos.FormatDirektverkaufAbholbon([]kasse.Position{pos}, evt.UserName, evt.Time, data.Kommentar)
-		auftraege = append(auftraege, druckauftrag_repo.NeuerDruckauftrag{
-			ZielIP:   station.DruckerIP,
-			Payload:  base64.StdEncoding.EncodeToString(payload),
-			BonArt:   "arbeitsbon",
-			Referenz: referenz,
-		})
+	switch station.Bonmodus {
+	case druckstation.BonmodusProBestellung:
+		return []druckauftrag_repo.NeuerDruckauftrag{abholbon(data.Positionen)}
+
+	case druckstation.BonmodusProStueck:
+		var auftraege []druckauftrag_repo.NeuerDruckauftrag
+		for _, pos := range data.Positionen {
+			einheit := pos
+			einheit.Menge = 1
+			for range pos.Menge {
+				auftraege = append(auftraege, abholbon([]kasse.Position{einheit}))
+			}
+		}
+		return auftraege
+
+	default: // BonmodusProPosition, zugleich Rueckfall fuer unbekannte Werte
+		auftraege := make([]druckauftrag_repo.NeuerDruckauftrag, 0, len(data.Positionen))
+		for _, pos := range data.Positionen {
+			auftraege = append(auftraege, abholbon([]kasse.Position{pos}))
+		}
+		return auftraege
 	}
-	return auftraege
 }
 
 func createStationsAuftraege(
@@ -130,7 +143,7 @@ func createStationsAuftraegeFromData(
 
 		withBeep := kategorie == "essen"
 
-		if konfig.Bonmodus == "pro_bestellung" {
+		if konfig.Bonmodus == druckstation.BonmodusProBestellung {
 			payload := escpos.FormatSammelBon(
 				positionen,
 				kontextName,

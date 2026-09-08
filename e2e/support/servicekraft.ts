@@ -61,24 +61,35 @@ export async function oeffneTisch(page: Page, tisch: string): Promise<void> {
 // tolerant (Chip nur klicken, wenn vorhanden).
 const KATEGORIE_CHIPS = ['Essen', 'Getränke', 'Sonstiges']
 
+// produktGruppe grenzt die Zeilen eines Produkts ein: der innerste Container,
+// der sowohl den Gruppenkopf (Überschrift) als auch eine Variantenzeile trägt.
+// Variantennamen („Normal", „Klein") kommen in mehreren Produkten vor und stehen
+// in der flachen Liste alle gleichzeitig im DOM — erst die Gruppe macht eine
+// Zeile eindeutig.
+export function produktGruppe(page: Page, produkt: string): Locator {
+  return page
+    .locator('div')
+    .filter({ has: page.getByRole('heading', { name: produkt, exact: true }) })
+    .filter({ has: page.getByRole('button', { name: 'Variante hinzufügen' }) })
+    .last()
+}
+
 // waehleVariante fügt auf dem Bestellen-Tab eine Variante zur gewünschten
 // Menge der aktuellen Auswahl hinzu, ohne die Bestellung abzuschicken —
-// Baustein für Bestellungen mit mehreren Positionen. Variantennamen („Normal",
-// „Klein") kommen in mehreren Produkten vor und stehen in der flachen Liste
-// alle gleichzeitig im DOM — die Zeile wird deshalb über die Produktgruppe
-// (innerster Container mit dem Gruppenkopf) eingegrenzt.
+// Baustein für Bestellungen mit mehreren Positionen. Die Zeile wird über
+// produktGruppe eingegrenzt, damit gleichnamige Varianten anderer Produkte sie
+// nicht mehrdeutig machen.
 export async function waehleVariante(
   page: Page,
   produkt: string,
   variante: string,
   menge = 1,
 ): Promise<void> {
-  const gruppe = page
-    .locator('div')
-    .filter({ has: page.getByRole('heading', { name: produkt, exact: true }) })
-    .filter({ has: page.getByRole('button', { name: 'Variante hinzufügen' }) })
-    .last()
-  const variantenZeile = zeileMit(gruppe, variante, 'Variante hinzufügen')
+  const variantenZeile = zeileMit(
+    produktGruppe(page, produkt),
+    variante,
+    'Variante hinzufügen',
+  )
   // Flache Liste: Varianten anderer Kategorien sind nach dem Chip-Filter nicht
   // im DOM. Ist die Zeile nicht sichtbar, den passenden Kategorie-Chip
   // aktivieren — der Produktname allein verrät die Kategorie nicht, daher

@@ -49,11 +49,18 @@ Für die Theke verbindet ihr statt eines Handys ein Tablet oder einen Laptop und
 
 Geht die grüne Adresse nicht, nennt die Status-Seite die Fallback-Adresse (z. B. `https://192.168.1.50`). Beim ersten Zugriff pro Gerät die einmalige Browserwarnung bestätigen, danach anmelden. Lädt die grüne Adresse auf den Handys gar nicht, blockiert vermutlich der Router (siehe [Fehlersuche](fehlersuche.md)).
 
-## Bondruck einrichten (optional)
+## Bondruck einrichten
 
-Für gedruckte Bons braucht ihr einen netzwerkfähigen Bondrucker (ESC/POS, 80 mm,
-Ethernet, TCP-Port 9100; eine feste IP-Adresse ist empfohlen). Die Einrichtung hat
-zwei Teile:
+Der Kassenbeleg braucht einen Drucker (siehe [Häufige Fragen](haeufige-fragen.md)).
+Für gedruckte Bons braucht ihr einen ESC/POS-Bondrucker mit 80 mm Papier, im Netzwerk erreichbar (Ethernet oder WLAN), TCP-Port 9100, feste IP-Adresse empfohlen. USB-Drucker werden nicht unterstützt — jotti druckt ausschließlich über das Netzwerk.
+
+Im Feld bestätigt sind der **Epson TM-T20IV** per Ethernet und der
+**Sam4s Hcube** per WLAN. Kaufempfehlung: Epson TM-T20IV, Modell C31CL47102
+(Ethernet), Preisklasse ca. 185–225 € brutto; günstigere Alternative ist der
+Sam4s Hcube 102DB (Ethernet, ca. 119 € brutto; Port 9100 vom Hersteller nicht
+dokumentiert, vor dem Kauf prüfen). Stand der Recherche: 07.09.2026.
+
+Die Einrichtung hat zwei Teile:
 
 1. **Druckstationen im Admin-Bereich anlegen.** Unter „Druckstationen" je
    Produktkategorie die „Drucker-IP" und den „Bonmodus" eintragen. Ohne

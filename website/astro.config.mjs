@@ -1,4 +1,5 @@
 // @ts-check
+import { unified } from '@astrojs/markdown-remark'
 import react from '@astrojs/react'
 import starlight from '@astrojs/starlight'
 import tailwindcss from '@tailwindcss/vite'
@@ -18,7 +19,9 @@ export default defineConfig({
   site: 'https://jotti.rocks',
   markdown: {
     // Tupel-Form [attacher, options]: unified ruft remarkDocLinks(options) auf.
-    remarkPlugins: [[remarkDocLinks, { docsDir, repoBaseUrl }]],
+    processor: unified({
+      remarkPlugins: [[remarkDocLinks, { docsDir, repoBaseUrl }]],
+    }),
   },
   integrations: [
     // React-Islands (ThemeToggle, MobileNav, …). Zusammen mit

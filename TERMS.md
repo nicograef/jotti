@@ -1,6 +1,6 @@
 # Nutzungsbedingungen — jotti
 
-**Stand: 14. Juli 2026**
+**Stand: 7. September 2026**
 
 Diese Nutzungsbedingungen regeln die kostenlose Nutzung der Software „jotti" durch gemeinnützige Organisationen. Die Nutzungsvereinbarung kommt durch eine einzige E-Mail an den Autor zustande — kein Formular, keine Unterschrift, kein Nachweis, keine Bestätigung durch den Autor. Der Ablauf und eine fertige E-Mail-Vorlage stehen am Ende dieses Dokuments.
 
@@ -44,7 +44,9 @@ Diese Nutzungsbedingungen regeln die kostenlose Nutzung der Software „jotti" d
 
 ## § 5 Compliance-Verantwortung
 
-Die Organisation ist allein verantwortlich für die Einhaltung der gesetzlichen Vorschriften beim Betrieb eines elektronischen Aufzeichnungssystems — insbesondere KassenSichV und § 146a AO (TSE-Pflicht, Belegausgabe, Kassenmeldung), GoBD, DSFinV-K und DSGVO. Sie prüft die Software vor dem produktiven Einsatz eigenständig auf Eignung, im Zweifel mit steuerlicher Beratung. Der Autor implementiert technische Schnittstellen zur Unterstützung der Compliance, garantiert jedoch nicht deren Vollständigkeit oder Eignung.
+(1) Die Organisation ist allein verantwortlich für die Einhaltung der gesetzlichen Vorschriften beim Betrieb eines elektronischen Aufzeichnungssystems — insbesondere KassenSichV und § 146a AO (TSE-Pflicht, Belegausgabe, Kassenmeldung), GoBD, DSFinV-K und DSGVO. Sie prüft die Software vor dem produktiven Einsatz eigenständig auf Eignung, im Zweifel mit steuerlicher Beratung. Der Autor implementiert technische Schnittstellen zur Unterstützung der Compliance, garantiert jedoch nicht deren Vollständigkeit oder Eignung.
+
+(2) Die Software setzt die deutsche Kassensicherungsverordnung (KassenSichV) um. Für Österreich (Registrierkassensicherheitsverordnung, RKSV) und die Schweiz ist keine Anbindung vorgesehen. Die Nutzung außerhalb Deutschlands ist zulässig; die Konformität mit dem dort geltenden Recht liegt allein bei der Organisation.
 
 ---
 
@@ -95,7 +97,7 @@ Hallo Herr Gräf,
 
 wir sind [vollständiger Name, Rechtsform und Sitz der Organisation —
 z. B. TSV Musterhausen e.V., Musterhausen] und akzeptieren die
-Nutzungsbedingungen für jotti in der Fassung vom 14. Juli 2026
+Nutzungsbedingungen für jotti in der Fassung vom 7. September 2026
 (https://github.com/nicograef/jotti/blob/main/TERMS.md).
 
 Ansprechperson: [Vorname Nachname, E-Mail-Adresse]

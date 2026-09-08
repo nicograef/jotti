@@ -279,7 +279,7 @@ type Druckstationen struct {
 	Kategorie Druckstationkategorie
 	// IPv4-Adresse des Bondruckers (leer = kein Drucker konfiguriert)
 	DruckerIp string
-	// Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon) für essen/getraenk/sonstiges/abholbon; NULL für kassenbeleg.
+	// Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon) für essen/getraenk/sonstiges/abholbon, zusätzlich pro_stueck (1 Bon je Einheit) nur für abholbon; NULL für kassenbeleg.
 	Bonmodus  sql.NullString
 	UpdatedAt time.Time
 }
@@ -344,6 +344,8 @@ type ProduktVarianten struct {
 	CreatedAt time.Time
 	// Last modification timestamp (UTC)
 	UpdatedAt time.Time
+	// Anzeigereihenfolge innerhalb des Produkts (aufsteigend, Tiebreaker id)
+	Reihenfolge int
 }
 
 // Produkte, die von Gästen bestellt werden können.
@@ -361,6 +363,8 @@ type Produkte struct {
 	CreatedAt time.Time
 	// Last modification timestamp (UTC)
 	UpdatedAt time.Time
+	// Anzeigereihenfolge innerhalb der Kategorie (aufsteigend, Tiebreaker id)
+	Reihenfolge int
 }
 
 // Per-user favourite tables; each service user can mark tables they are responsible for.

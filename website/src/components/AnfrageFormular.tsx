@@ -1,15 +1,16 @@
 import { useId, useRef, useState } from 'react'
 import type { SyntheticEvent } from 'react'
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight, Check, Copy } from 'lucide-react'
 
 import type { AnfrageFehler, AnfrageFelder } from '../lib/anfrage-mailto'
 import {
   artOptionen,
+  buildAnfrageMail,
   buildMailtoUrl,
   hatFehler,
   validateAnfrage,
 } from '../lib/anfrage-mailto'
-import { betreiberEmail } from '../lib/links'
+import { installationUrl } from '../lib/links'
 
 // AnfrageFormular-Island der Seite /fuer-vereine (Handoff-Prototyp,
 // PRD docs/prds/prd-website-redesign.md, data-vereine-Formular). Rendert die
@@ -17,7 +18,10 @@ import { betreiberEmail } from '../lib/links'
 // bei gültigem Absenden den vorbefüllten mailto-Entwurf per JS-Navigation
 // (window.location.href — bewusst kein natives <form action="mailto:">, das
 // die Produktiv-CSP form-action 'self' blockt) und wechselt in einen ehrlichen
-// Erfolgs-State: der Entwurf ist geöffnet und muss noch gesendet werden.
+// Erfolgs-State: der Entwurf ist geöffnet und muss noch gesendet werden. Der
+// Erfolgs-State zeigt zusätzlich Empfänger, Betreff und den vollen Mailtext
+// (aus buildAnfrageMail) in einem readOnly-Textfeld mit Kopieren-Button — für
+// Geräte ohne Mailprogramm oder wenn sich kein Entwurf öffnet.
 //
 // Fehler sind programmatisch verknüpft (aria-invalid + aria-describedby am
 // Feld) und werden zusätzlich über eine assertive Live-Region angekündigt. Die
@@ -42,6 +46,10 @@ export default function AnfrageFormular() {
   const [gesendet, setGesendet] = useState(false)
   // Text der Live-Region; bei fehlgeschlagenem Absenden angekündigt.
   const [ankuendigung, setAnkuendigung] = useState('')
+  // Zustand des Kopieren-Buttons im Erfolgs-State.
+  const [kopieren, setKopieren] = useState<'idle' | 'kopiert' | 'fehler'>(
+    'idle',
+  )
 
   const formRef = useRef<HTMLFormElement>(null)
   // Eindeutige Präfixe, damit mehrere Instanzen kollisionsfrei blieben und die
@@ -85,13 +93,29 @@ export default function AnfrageFormular() {
     setAnkuendigung('')
     // JS-Navigation zum vorbefüllten Entwurf (kein form-action-Verstoß).
     window.location.href = buildMailtoUrl(felder)
+    setKopieren('idle')
     setGesendet(true)
   }
 
   if (gesendet) {
+    const mail = buildAnfrageMail(felder)
+
+    // navigator.clipboard fehlt in unsicheren Kontexten und alten Browsern
+    // und wirft dann synchron — deshalb try/catch statt .then/.catch.
+    async function kopiereText() {
+      try {
+        await navigator.clipboard.writeText(mail.text)
+        setKopieren('kopiert')
+        window.setTimeout(() => setKopieren('idle'), 2000)
+      } catch {
+        setKopieren('fehler')
+      }
+    }
+
     return (
       <div
         role="status"
+        aria-atomic="false"
         className="relative overflow-hidden rounded-[22px] border border-card-border bg-card p-8 text-center shadow-[var(--shadow)]"
       >
         <div
@@ -116,19 +140,72 @@ export default function AnfrageFormular() {
             geöffnet. Bitte prüfe ihn und <strong>sende ihn ab</strong> — erst
             mit dem Absenden ist die Nutzungsvereinbarung geschlossen.
           </p>
-          <p className="mt-4 text-[14px] text-muted">
-            Öffnet sich kein Entwurf? Schreib direkt an{' '}
+          <p className="mt-4 max-w-[34em] text-[14px] leading-relaxed text-muted">
+            Es gibt keine Freigabe und keine Zugangsdaten. Mit dem Absenden
+            könnt ihr{' '}
             <a
-              href={`mailto:${betreiberEmail}`}
+              href={installationUrl}
               className="font-semibold text-brand hover:underline"
             >
-              {betreiberEmail}
+              installieren
             </a>
-            .
+            . Antwortet der Autor, kann die E-Mail in eurem Spam-Ordner landen —
+            dort lohnt sich ein Blick.
           </p>
+          <div className="mt-5 w-full text-left">
+            <p className="text-[13px] text-muted">
+              Öffnet sich kein Entwurf oder hast du keine Mail-App? Kopiere die
+              Angaben unten und verschicke die E-Mail selbst.
+            </p>
+            <dl className="mt-2.5 flex flex-col gap-1 text-[13px]">
+              <div className="flex gap-1.5">
+                <dt className="font-semibold">An:</dt>
+                <dd className="select-all">{mail.empfaenger}</dd>
+              </div>
+              <div className="flex gap-1.5">
+                <dt className="font-semibold">Betreff:</dt>
+                <dd className="select-all">{mail.betreff}</dd>
+              </div>
+            </dl>
+            <label className="mt-2.5 block">
+              <span className="mb-1 block text-[12px] font-semibold">Text</span>
+              <textarea
+                readOnly
+                value={mail.text}
+                rows={7}
+                className="w-full resize-y rounded-[11px] border border-card-border bg-background px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground outline-none focus:border-brand focus:ring-[3px] focus:ring-[color:var(--ring)]"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={kopiereText}
+              className="btn btn-ghost mt-2.5"
+            >
+              {kopieren === 'kopiert' ? (
+                <>
+                  <Check size={16} aria-hidden="true" />
+                  Kopiert
+                </>
+              ) : (
+                <>
+                  <Copy size={16} aria-hidden="true" />
+                  Kopieren
+                </>
+              )}
+            </button>
+            {kopieren === 'fehler' && (
+              <p className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
+                Kopieren war nicht möglich. Bitte den Text im Feld markieren und
+                manuell kopieren.
+              </p>
+            )}
+          </div>
           <button
             type="button"
-            onClick={() => setGesendet(false)}
+            onClick={() => {
+              setKopieren('idle')
+              setGesendet(false)
+            }}
             className="btn btn-ghost mt-7"
           >
             Zurück zum Formular
@@ -183,7 +260,10 @@ export default function AnfrageFormular() {
             className={`${feldKlassen} h-[46px]`}
           />
           {fehler.verein && (
-            <p id={fehlerId('verein')} className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
+            <p
+              id={fehlerId('verein')}
+              className="mt-1.5 text-[13px] text-[var(--sp-red-text)]"
+            >
               {fehler.verein}
             </p>
           )}
@@ -205,7 +285,10 @@ export default function AnfrageFormular() {
             className={`${feldKlassen} h-[46px]`}
           />
           {fehler.name && (
-            <p id={fehlerId('name')} className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
+            <p
+              id={fehlerId('name')}
+              className="mt-1.5 text-[13px] text-[var(--sp-red-text)]"
+            >
               {fehler.name}
             </p>
           )}
@@ -225,7 +308,10 @@ export default function AnfrageFormular() {
             className={`${feldKlassen} h-[46px]`}
           />
           {fehler.email && (
-            <p id={fehlerId('email')} className="mt-1.5 text-[13px] text-[var(--sp-red-text)]">
+            <p
+              id={fehlerId('email')}
+              className="mt-1.5 text-[13px] text-[var(--sp-red-text)]"
+            >
               {fehler.email}
             </p>
           )}
@@ -251,8 +337,7 @@ export default function AnfrageFormular() {
 
         <label className="block">
           <span className="mb-1.5 block text-[13px] font-semibold">
-            Nachricht{' '}
-            <span className="font-normal text-muted">(optional)</span>
+            Nachricht <span className="font-normal text-muted">(optional)</span>
           </span>
           <textarea
             name="message"
@@ -265,16 +350,13 @@ export default function AnfrageFormular() {
         </label>
       </div>
 
-      <button
-        type="submit"
-        className="btn btn-primary mt-[22px] w-full"
-      >
+      <button type="submit" className="btn btn-primary mt-[22px] w-full">
         Vereinbarung abschließen
         <ArrowRight size={17} aria-hidden="true" />
       </button>
       <p className="mt-3.5 text-center text-[12px] leading-[1.5] text-muted">
-        Kostenlos für gemeinnützige Organisationen. Das Formular öffnet nur einen
-        vorbefüllten E-Mail-Entwurf — gesendet wird er von dir.
+        Kostenlos für gemeinnützige Organisationen. Das Formular öffnet nur
+        einen vorbefüllten E-Mail-Entwurf — gesendet wird er von dir.
       </p>
     </form>
   )

@@ -63,4 +63,4 @@ Habt ihr in TEST geübt, richtet ihr für den Echtbetrieb eine LIVE-TSS ein:
 > und kann nicht gelöscht, nur stillgelegt werden. Legt sie erst an, wenn ihr in
 > den Echtbetrieb geht.
 
-**Kosten:** fiskaly veröffentlicht für SIGN DE keine feste Preisliste; holt für die Budgetplanung ein aktuelles Angebot direkt bei fiskaly ein. Eine TSS genügt für eine jotti-Instanz.
+**Kosten:** fiskaly veröffentlicht für SIGN DE keine feste Preisliste. Holt für die Budgetplanung ein aktuelles Angebot direkt bei fiskaly ein und klärt dabei Mindestlaufzeit und Mindestabnahme. Größenordnung und Stand der Recherche: [Häufige Fragen](haeufige-fragen.md). Eine TSS genügt für eine jotti-Instanz.

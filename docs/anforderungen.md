@@ -27,6 +27,9 @@ Bewusst nicht geplant. Zurückgezogene IDs werden nicht wiederverwendet (siehe K
 | K-15  | Zubereitungsstatus                        | Von der Roadmap gestrichen: baut auf K-13 und demselben verworfenen Ausgabe-Tracking auf. Siehe [ADR 01](adrs/01_ausgabe-bestaetigen.md).                                                                                                                                                |
 | F-12  | Automatisierte ELSTER-Meldung (ERiC/API)  | Die Kassenmeldung nach § 146a Abs. 4 AO fällt pro Instanz nur einmal an (Inbetriebnahme, Außerbetriebnahme). Die manuelle Meldung über das ELSTER-Portal (F-05) deckt sie vollständig ab; eine native ERiC-C-Library oder die fiskaly-Submission-API lohnt für einen einmaligen Vorgang nicht. Siehe [compliance.md §7](compliance.md#7-elektronische-meldepflicht-elster). |
 | R-03  | Abrechnung pro Tisch                      | Nach dem Praxistest- und UX-Review-Feedback ersatzlos entfernt: Der kassierte Umsatz je Tisch beantwortet keine Frage des Kassenwarts, und die offenen Salden deckt „Offene Tische" bereits ab. Siehe [ADR 02](adrs/02_umsatz-pro-tisch-entfernen.md). |
+| —     | Vereinslogo auf dem Bon                   | Kosmetisch: Raster-Druck und Logo-Upload wären Aufwand ohne Kernnutzen; der Vereinsname steht bereits im Bonkopf. |
+| —     | Elektronischer Beleg per E-Mail oder Link | Das Gast-Handy ist nicht im Vereins-WLAN; Mailversand vom Vereins-Server und Adress-Erfassung am Tisch kämen hinzu, während der Kassenbeleg-Drucker den Bedarf bereits deckt. |
+| —     | Helferdeckel                              | Ein Tisch pro Helfer deckt den Bedarf bereits ab. |
 
 ## Funktionsumfang
 
@@ -52,7 +55,7 @@ Bewusst nicht geplant. Zurückgezogene IDs werden nicht wiederverwendet (siehe K
 | K-21 | Kassensturz durchführen | Gezählter Ist- gegen Soll-Bestand, Differenz wird gebucht; Teil von K-22.         |
 | K-22 | Kassenabschluss / Z-Bon | Kassensturz (K-21) und Tagesabschluss in einem Schritt; alle Tische auf Saldo 0.  |
 | K-24 | Direktverkauf           | Bestellen, zahlen und ausgeben in einem Schritt, ohne Tisch; mit Historie/Storno. |
-| K-25 | Druckstationen          | Konfiguration der Ausgabestationen; Zuordnung von Produktkategorien.              |
+| K-25 | Druckstationen          | Konfiguration der Ausgabestationen; Zuordnung von Produktkategorien; Bonmodus pro Position, pro Bestellung, am Abholbon auch pro Stück. |
 | K-26 | Druckauftrag-Verwaltung | Druckaufträge per Relay abrufen; fehlgeschlagene erneut versuchen/verwerfen.      |
 
 ### Stammdaten (Supporting Domain)

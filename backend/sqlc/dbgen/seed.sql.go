@@ -134,18 +134,19 @@ func (q *Queries) SeedInsertLeereTSEKonfiguration(ctx context.Context) error {
 }
 
 const seedInsertProdukt = `-- name: SeedInsertProdukt :exec
-INSERT INTO produkte (id, name, kategorie, steuersatz, status, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO produkte (id, name, kategorie, steuersatz, status, created_at, updated_at, reihenfolge)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type SeedInsertProduktParams struct {
-	ID         int
-	Name       string
-	Kategorie  Produktkategorie
-	Steuersatz Steuersatz
-	Status     Entitystatus
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID          int
+	Name        string
+	Kategorie   Produktkategorie
+	Steuersatz  Steuersatz
+	Status      Entitystatus
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Reihenfolge int
 }
 
 func (q *Queries) SeedInsertProdukt(ctx context.Context, arg SeedInsertProduktParams) error {
@@ -157,6 +158,7 @@ func (q *Queries) SeedInsertProdukt(ctx context.Context, arg SeedInsertProduktPa
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.Reihenfolge,
 	)
 	return err
 }
@@ -289,18 +291,19 @@ func (q *Queries) SeedInsertUser(ctx context.Context, arg SeedInsertUserParams) 
 }
 
 const seedInsertVariante = `-- name: SeedInsertVariante :exec
-INSERT INTO produkt_varianten (id, produkt_id, name, preis_cents, status, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO produkt_varianten (id, produkt_id, name, preis_cents, status, created_at, updated_at, reihenfolge)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type SeedInsertVarianteParams struct {
-	ID         int
-	ProduktID  int
-	Name       string
-	PreisCents int
-	Status     Entitystatus
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID          int
+	ProduktID   int
+	Name        string
+	PreisCents  int
+	Status      Entitystatus
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Reihenfolge int
 }
 
 func (q *Queries) SeedInsertVariante(ctx context.Context, arg SeedInsertVarianteParams) error {
@@ -312,6 +315,7 @@ func (q *Queries) SeedInsertVariante(ctx context.Context, arg SeedInsertVariante
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.Reihenfolge,
 	)
 	return err
 }

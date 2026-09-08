@@ -284,6 +284,31 @@ func TestDirektverkaufTaetigen_AbholbonModeQueuesExactlyOneAuftrag(t *testing.T)
 	}
 }
 
+// Bonmodus pro_stueck der Abholbon-Station: die zwei Einheiten der Testposition
+// ergeben zwei Druckauftraege.
+func TestDirektverkaufTaetigen_AbholbonProStueckQueuesEinenAuftragJeEinheit(t *testing.T) {
+	spy := &spyEventRepo{}
+	command := newCommandWithDruckstationen(
+		spy,
+		testOpenKS,
+		map[string]druckstation.Druckstation{
+			"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_stueck"},
+		},
+	)
+
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "Direktverkauf")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(spy.druckauftraege) != 2 {
+		t.Fatalf("expected 2 druckauftraege (one per unit), got %d", len(spy.druckauftraege))
+	}
+	if spy.druckauftraege[0].Payload != spy.druckauftraege[1].Payload {
+		t.Error("expected identical payloads for the two units of one position")
+	}
+}
+
 // getaetigtEvent builds a real direktverkauf-getaetigt:v1 event with a single position and returns
 // the event, its verkaufId, and the server-generated positionId for use in storno tests.
 func getaetigtEvent(t *testing.T, einzelpreis, menge int) (event.Event, string, string) {

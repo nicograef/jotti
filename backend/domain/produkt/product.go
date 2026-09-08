@@ -20,6 +20,20 @@ const (
 	SonstigesKategorie Kategorie = "sonstiges"
 )
 
+// Richtung beschreibt, wohin ein Produkt oder eine Variante in der
+// Anzeigereihenfolge verschoben wird: hoch zum Listenanfang, runter zum
+// Listenende. Die Reihenfolge selbst bleibt reine Persistenz — das Aggregat
+// trägt kein Feld dafür und keine Response liefert sie; das Backend gibt die
+// fertig sortierte Liste aus, das Frontend zeigt sie nur an.
+type Richtung string
+
+const (
+	// RichtungHoch verschiebt in Richtung Listenanfang.
+	RichtungHoch Richtung = "hoch"
+	// RichtungRunter verschiebt in Richtung Listenende.
+	RichtungRunter Richtung = "runter"
+)
+
 type Produkt struct {
 	ID         int
 	Name       string
@@ -41,6 +55,12 @@ var NameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(100, z.
 var KategorieSchema = z.StringLike[Kategorie]().OneOf(
 	[]Kategorie{EssenKategorie, GetraenkKategorie, SonstigesKategorie},
 	z.Message("Ungültige Kategorie"),
+)
+
+// RichtungSchema defines the schema for a move direction.
+var RichtungSchema = z.StringLike[Richtung]().OneOf(
+	[]Richtung{RichtungHoch, RichtungRunter},
+	z.Message("Ungültige Richtung"),
 )
 
 var SteuersatzSchema = steuer.SteuersatzSchema

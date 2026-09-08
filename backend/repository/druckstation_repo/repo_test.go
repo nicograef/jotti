@@ -258,4 +258,23 @@ func TestUpsertDruckstation_Abholbon(t *testing.T) {
 	if konfig.Bonmodus != druckstation.BonmodusProPosition {
 		t.Errorf("Expected Bonmodus 'pro_position' for abholbon, got %q", konfig.Bonmodus)
 	}
+
+	// pro_stueck ist allein am Abholbon zulässig; der Roundtrip prüft zugleich
+	// den CHECK aus Migration 08.
+	err = repo.UpsertDruckstation(ctx, druckstation.Druckstation{
+		Kategorie: druckstation.KategorieAbholbon,
+		DruckerIP: "192.168.1.70",
+		Bonmodus:  druckstation.BonmodusProStueck,
+	})
+	if err != nil {
+		t.Fatalf("Expected no error on abholbon pro_stueck upsert, got %v", err)
+	}
+
+	result, err = repo.GetKonfigurierteDruckstationen(ctx)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if result["abholbon"].Bonmodus != druckstation.BonmodusProStueck {
+		t.Errorf("Expected Bonmodus 'pro_stueck' for abholbon, got %q", result["abholbon"].Bonmodus)
+	}
 }

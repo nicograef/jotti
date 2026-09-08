@@ -270,6 +270,48 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProPosition(t *testing.
 	}
 }
 
+// Bonmodus pro_stueck der Abholbon-Station erzeugt einen Abholbon je Einheit; jeder Bon
+// traegt eine Positions-Kopie mit Menge 1.
+func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck(t *testing.T) {
+	positionen := []kasse.Position{
+		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 3},
+		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1},
+	}
+	evt := makeDirektverkaufEvent(24, positionen, "")
+	stationen := map[string]druckstation.Druckstation{
+		"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_stueck"},
+	}
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, "")
+
+	if len(auftraege) != 4 {
+		t.Fatalf("expected 4 abholbon auftraege (one per unit), got %d", len(auftraege))
+	}
+
+	einzeln := func(pos kasse.Position) string {
+		pos.Menge = 1
+		return base64.StdEncoding.EncodeToString(
+			escpos.FormatDirektverkaufAbholbon([]kasse.Position{pos}, evt.UserName, evt.Time, ""),
+		)
+	}
+	erwartet := []string{einzeln(positionen[0]), einzeln(positionen[0]), einzeln(positionen[0]), einzeln(positionen[1])}
+
+	for i, auftrag := range auftraege {
+		if auftrag.ZielIP != "192.168.1.77" {
+			t.Errorf("expected ZielIP 192.168.1.77, got %s", auftrag.ZielIP)
+		}
+		if auftrag.BonArt != "arbeitsbon" {
+			t.Errorf("expected BonArt arbeitsbon, got %s", auftrag.BonArt)
+		}
+		if auftrag.Referenz != "direktverkauf-getaetigt:24" {
+			t.Errorf("expected referenz direktverkauf-getaetigt:24, got %s", auftrag.Referenz)
+		}
+		if auftrag.Payload != erwartet[i] {
+			t.Errorf("abholbon payload %d is not byte-identical to the formatter output for a Menge-1 position", i)
+		}
+	}
+}
+
 // Ohne konfigurierte Druckstationen entstehen fuer einen Direktverkauf keine Auftraege.
 func TestCreateArbeitsbonAuftraege_DirektverkaufOhneStationen(t *testing.T) {
 	evt := makeDirektverkaufEvent(23, []kasse.Position{{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1}}, "")

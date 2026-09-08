@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import type { AnfrageFelder } from './anfrage-mailto'
-import { buildMailtoUrl, hatFehler, validateAnfrage } from './anfrage-mailto'
+import {
+  buildAnfrageMail,
+  buildMailtoUrl,
+  hatFehler,
+  validateAnfrage,
+} from './anfrage-mailto'
 import { betreiberEmail } from './links'
 
 // Vollständig ausgefüllte Basis; einzelne Felder werden je Fall überschrieben.
@@ -24,9 +29,7 @@ describe('validateAnfrage', () => {
   })
 
   it('meldet jedes leere Pflichtfeld (verein, name, email)', () => {
-    const fehler = validateAnfrage(
-      felder({ verein: '', name: '', email: '' }),
-    )
+    const fehler = validateAnfrage(felder({ verein: '', name: '', email: '' }))
     expect(fehler.verein).toBeTruthy()
     expect(fehler.name).toBeTruthy()
     expect(fehler.email).toBeTruthy()
@@ -52,6 +55,18 @@ describe('validateAnfrage', () => {
   })
 })
 
+describe('buildAnfrageMail', () => {
+  it('liefert Empfänger, Betreff und Text deckungsgleich mit der mailto-URL', () => {
+    const eingabe = felder({ message: 'Für unser Sommerfest im Juli.' })
+    const mail = buildAnfrageMail(eingabe)
+    const url = new URL(buildMailtoUrl(eingabe))
+
+    expect(url.pathname).toBe(mail.empfaenger)
+    expect(url.searchParams.get('subject')).toBe(mail.betreff)
+    expect(url.searchParams.get('body')).toBe(mail.text)
+  })
+})
+
 describe('buildMailtoUrl', () => {
   it('setzt die Betreiber-Adresse als Empfänger', () => {
     const url = new URL(buildMailtoUrl(felder()))
@@ -62,9 +77,7 @@ describe('buildMailtoUrl', () => {
   it('legt Betreff und alle Feldwerte korrekt in der URL ab', () => {
     const params = new URLSearchParams(
       new URL(
-        buildMailtoUrl(
-          felder({ message: 'Für unser Sommerfest im Juli.' }),
-        ),
+        buildMailtoUrl(felder({ message: 'Für unser Sommerfest im Juli.' })),
       ).search,
     )
     expect(params.get('subject')).toBe(
@@ -85,7 +98,7 @@ describe('buildMailtoUrl', () => {
         'body',
       ) ?? ''
     expect(body).toContain(
-      'akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 14. Juli 2026 (https://github.com/nicograef/jotti/blob/main/TERMS.md).',
+      'akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 7. September 2026 (https://github.com/nicograef/jotti/blob/main/TERMS.md).',
     )
   })
 

@@ -58,6 +58,13 @@ func (m *mockRepo) UpdateProdukt(ctx context.Context, t produkt.Produkt) error {
 	return m.err
 }
 
+// VerschiebeProdukt reicht nur den Fehler durch: Die Reihenfolge liegt allein
+// in der Persistenz, das Domain-Modell traegt sie nicht. Den Tausch deckt der
+// Integrationstest des Repositories ab.
+func (m *mockRepo) VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error {
+	return m.err
+}
+
 func (m *mockRepo) GetVariante(ctx context.Context, varianteID int) (produkt.Variante, error) {
 	vp, ok := m.varianten[varianteID]
 	if !ok {
@@ -77,6 +84,10 @@ func (m *mockRepo) UpdateVariante(ctx context.Context, v produkt.Variante) error
 	if vp, ok := m.varianten[v.ID]; ok {
 		m.varianten[v.ID] = varianteWithProdukt{variante: v, produktID: vp.produktID}
 	}
+	return m.err
+}
+
+func (m *mockRepo) VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error {
 	return m.err
 }
 
@@ -136,4 +147,8 @@ func (m *mockRepo) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]pro
 		}
 	}
 	return result, nil
+}
+
+func (m *mockRepo) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
+	return m.err
 }

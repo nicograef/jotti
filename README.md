@@ -66,7 +66,7 @@ make dev
 
 ### Print-Relay
 
-Das Print-Relay verbindet den jotti-Server mit den ESC/POS-Bondruckern (80 mm, Ethernet, TCP Port 9100; statische IP empfohlen). Es läuft auf einem Rechner im Drucker-Netzwerk:
+Das Print-Relay verbindet den jotti-Server mit den ESC/POS-Bondruckern mit 80 mm Papier, im Netzwerk erreichbar (Ethernet oder WLAN), TCP-Port 9100, feste IP-Adresse empfohlen. Es läuft auf einem Rechner im Drucker-Netzwerk:
 
 ```bash
 make build-relay
@@ -98,7 +98,7 @@ Ausführliche Anleitung je nach Setup: [docs/leitfaden/installation.md](docs/lei
 | Komponente    | Technologie                                           |
 | ------------- | ----------------------------------------------------- |
 | Frontend      | React 19, Vite, Tailwind CSS 4, shadcn/ui, TypeScript |
-| Backend       | Go 1.26, stdlib `net/http`, pgx/v5                    |
+| Backend       | Go 1.27, stdlib `net/http`, pgx/v5                    |
 | Datenbank     | PostgreSQL 17                                         |
 | TSE           | Cloud-TSE via fiskaly (Adapter-Pattern)               |
 | Reverse Proxy | Caddy (HTTPS via Let's Encrypt)                       |

@@ -51,9 +51,9 @@ jobs:
           - reverse-proxy
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
-          go-version: 1.26.5
+          go-version: 1.27.1
           cache-dependency-path: ${{ matrix.module }}/go.sum
 
       - name: govulncheck
@@ -77,9 +77,9 @@ jobs:
           - windows/starter
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
-          go-version: 1.26.5
+          go-version: 1.27.1
           cache: false
 
       - name: govulncheck
@@ -103,7 +103,7 @@ jobs:
           version: 11.6.0
           run_install: false
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: "pnpm"

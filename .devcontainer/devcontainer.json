@@ -3,7 +3,7 @@
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   "features": {
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.26"
+      "version": "1.27"
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "24"

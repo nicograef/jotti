@@ -183,15 +183,19 @@ func writeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt 
 		}
 	}
 
+	// Reihenfolge = ID, wie der Backfill der Migration sie bestehenden
+	// Instanzen gibt: die Szenario-Reihenfolge bleibt erhalten und das
+	// Verschieben greift auch auf geseedeten Daten.
 	for _, p := range s.Produkte {
 		err := qtx.SeedInsertProdukt(ctx, dbgen.SeedInsertProduktParams{
-			ID:         p.ID,
-			Name:       p.Name,
-			Kategorie:  dbgen.Produktkategorie(p.Kategorie),
-			Steuersatz: dbgen.Steuersatz(p.Steuersatz),
-			Status:     dbgen.Entitystatus(p.Status),
-			CreatedAt:  jetzt,
-			UpdatedAt:  jetzt,
+			ID:          p.ID,
+			Name:        p.Name,
+			Kategorie:   dbgen.Produktkategorie(p.Kategorie),
+			Steuersatz:  dbgen.Steuersatz(p.Steuersatz),
+			Status:      dbgen.Entitystatus(p.Status),
+			CreatedAt:   jetzt,
+			UpdatedAt:   jetzt,
+			Reihenfolge: p.ID,
 		})
 		if err != nil {
 			return fmt.Errorf("produkt %d einfügen: %w", p.ID, err)
@@ -199,13 +203,14 @@ func writeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt 
 
 		for _, v := range p.Varianten {
 			err := qtx.SeedInsertVariante(ctx, dbgen.SeedInsertVarianteParams{
-				ID:         v.ID,
-				ProduktID:  p.ID,
-				Name:       v.Name,
-				PreisCents: v.PreisCents,
-				Status:     dbgen.Entitystatus(v.Status),
-				CreatedAt:  jetzt,
-				UpdatedAt:  jetzt,
+				ID:          v.ID,
+				ProduktID:   p.ID,
+				Name:        v.Name,
+				PreisCents:  v.PreisCents,
+				Status:      dbgen.Entitystatus(v.Status),
+				CreatedAt:   jetzt,
+				UpdatedAt:   jetzt,
+				Reihenfolge: v.ID,
 			})
 			if err != nil {
 				return fmt.Errorf("variante %d einfügen: %w", v.ID, err)

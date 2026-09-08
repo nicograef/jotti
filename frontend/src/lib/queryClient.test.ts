@@ -24,7 +24,7 @@ async function zaehleVersuche(fehler: Error): Promise<number> {
   let versuche = 0
 
   await expect(
-    createQueryClient().fetchQuery({
+    createQueryClient().query({
       queryKey: ['versuche'],
       queryFn: () => {
         versuche += 1
@@ -75,7 +75,7 @@ describe('createQueryClient Fehler-Toast', () => {
     const queryClient = createQueryClient()
 
     await expect(
-      queryClient.fetchQuery({
+      queryClient.query({
         queryKey: ['test-query'],
         queryFn: () => Promise.reject(new Error('Netzabbruch')),
         retry: false,
@@ -92,7 +92,7 @@ describe('createQueryClient Fehler-Toast', () => {
     const queryClient = createQueryClient()
 
     await expect(
-      queryClient.fetchQuery({
+      queryClient.query({
         queryKey: ['test-query-referenz'],
         queryFn: () =>
           Promise.reject(
@@ -112,7 +112,7 @@ describe('createQueryClient Fehler-Toast', () => {
     const queryClient = createQueryClient()
 
     await expect(
-      queryClient.fetchQuery({
+      queryClient.query({
         queryKey: ['test-query-ohne-referenz'],
         queryFn: () =>
           Promise.reject(new BackendError(500, 'internal_server_error')),

@@ -87,6 +87,28 @@ describe('PositionAuswahlListe', () => {
     expect(onRemove).toHaveBeenCalledWith('a')
   })
 
+  it('bricht lange Positionsnamen um, statt sie zu kürzen', () => {
+    const langerName = 'Saftschorle Johannisbeerschorle 0,5l'
+    render(
+      <PositionAuswahlListe
+        positionen={[
+          { id: 'c', name: langerName, einzelpreisCents: 300, maxMenge: 2 },
+        ]}
+        mengen={{}}
+        onAdd={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    )
+
+    // Der Name steht vollständig im DOM und wird nicht gekürzt: Zwei Varianten
+    // desselben Produkts dürfen in der Storno-/Umbuchungsauswahl nie gleich
+    // aussehen. Die tatsächliche Breite ist in jsdom nicht messbar — geprüft
+    // wird die Umbruch-Regel des Namens-Knotens.
+    const name = screen.getByText(langerName)
+    expect(name.className).toContain('break-words')
+    expect(name.className).not.toContain('truncate')
+  })
+
   it('vergibt aria-Labels für alle Stepper-Buttons', () => {
     render(
       <PositionAuswahlListe

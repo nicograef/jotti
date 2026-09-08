@@ -97,3 +97,50 @@ export async function erwarteBuendigeKategorieleisteImSplit(
     )
     .toBeLessThanOrEqual(2)
 }
+
+// erwarteVollstaendigLesbarenNamen prüft am gerenderten DOM, dass ein
+// Variantenname ungekürzt in seiner Zeile steht: scrollWidth ≤ clientWidth des
+// Namensknotens. Eine CSS-Kürzung (overflow hidden + white-space nowrap) ließe
+// den scrollWidth über die Boxbreite hinauswachsen, während textContent
+// unverändert den vollen Namen trägt — der Text allein beweist die Lesbarkeit
+// also nicht. Zusätzlich wird der Text geprüft, damit die Messung nachweislich
+// am richtigen Knoten hängt.
+export async function erwarteVollstaendigLesbarenNamen(
+  nameKnoten: Locator,
+  erwarteterName: string,
+  screen: string,
+): Promise<void> {
+  const messung = await nameKnoten.evaluate((el) => ({
+    scrollWidth: el.scrollWidth,
+    clientWidth: el.clientWidth,
+    text: (el.textContent ?? '').trim(),
+  }))
+
+  expect(messung.text, `${screen}: gemessener Knoten trägt den Namen`).toBe(
+    erwarteterName,
+  )
+  expect(
+    messung.scrollWidth,
+    `${screen}: „${erwarteterName}" wird gekürzt — scrollWidth ${messung.scrollWidth.toString()} überschreitet clientWidth ${messung.clientWidth.toString()}`,
+  ).toBeLessThanOrEqual(messung.clientWidth)
+}
+
+// zeilenGeometrie liest die beiden Größen, die der erste Tap auf eine
+// Variantenzeile nicht verändern darf: die Oberkante der Folgezeile (sie rutscht
+// nach unten, sobald die getippte Zeile wächst) und die Breite des
+// Namensknotens (sie schrumpft, wenn der Stepper beim Einblenden von Minus und
+// Menge Platz vom Namen nimmt, wodurch der Name neu umbricht). Beide Werte sind
+// dokumentbezogen (scrollY eingerechnet), damit ein Scrollen zwischen zwei
+// Messungen sie nicht verfälscht.
+export async function zeilenGeometrie(
+  folgeZeile: Locator,
+  nameKnoten: Locator,
+): Promise<{ folgeZeileY: number; nameBreite: number }> {
+  const folgeZeileY = await folgeZeile.evaluate(
+    (el) => el.getBoundingClientRect().top + window.scrollY,
+  )
+  const nameBreite = await nameKnoten.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  )
+  return { folgeZeileY, nameBreite }
+}

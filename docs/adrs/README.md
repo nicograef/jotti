@@ -22,3 +22,5 @@ Entscheidung, Konsequenzen).
 | 06  | [Spektral-Branding im App-Frontend](06_spektral-branding-app.md) | akzeptiert |
 | 07  | [Einheitliche Desktop-Schwelle bei lg (1024px)](07_desktop-breakpoint-lg.md) | akzeptiert |
 | 08  | [Zweispaltiges Service-Layout ab lg](08_service-split-screen.md) | akzeptiert |
+| 09  | [Cloud-TSE bei fiskaly behalten, keine Hardware-TSE](09_tse-kosten-und-hardware-tse.md) | akzeptiert |
+| 10  | [Keine Produktebene über der Variantenliste im Service](10_produktebene-service.md) | akzeptiert |

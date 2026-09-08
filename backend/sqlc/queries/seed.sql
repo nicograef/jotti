@@ -48,12 +48,12 @@ INSERT INTO tische (id, name, status, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5);
 
 -- name: SeedInsertProdukt :exec
-INSERT INTO produkte (id, name, kategorie, steuersatz, status, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7);
+INSERT INTO produkte (id, name, kategorie, steuersatz, status, created_at, updated_at, reihenfolge)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
 -- name: SeedInsertVariante :exec
-INSERT INTO produkt_varianten (id, produkt_id, name, preis_cents, status, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7);
+INSERT INTO produkt_varianten (id, produkt_id, name, preis_cents, status, created_at, updated_at, reihenfolge)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
 -- name: SeedInsertKassensitzung :exec
 INSERT INTO kassensitzungen (z_nr, datum, bezeichnung, status, created_at, updated_at)

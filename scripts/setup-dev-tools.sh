@@ -18,7 +18,7 @@ ensure_cmd() {
 }
 
 # CI reference (.github/workflows/ci.yml):
-# - Go: 1.26.5
+# - Go: 1.27.1
 # - Node: 24
 # - pnpm: 11
 # - golangci-lint: pinned, see GOLANGCI_LINT_VERSION below
@@ -27,7 +27,7 @@ info "Project root: $PROJECT_ROOT"
 cd "$PROJECT_ROOT"
 
 info "Checking base runtimes..."
-ensure_cmd go "Install Go >= 1.26.5 (CI uses 1.26.5)."
+ensure_cmd go "Install Go >= 1.27.1 (CI uses 1.27.1)."
 ensure_cmd node "Install Node >= 24 (CI uses 24)."
 
 # Matches CI: .github/workflows/ci.yml pins goimports to this version in every
@@ -50,7 +50,7 @@ fi
 
 # Matches CI: .github/workflows/ci.yml pins the golangci-lint action to this
 # version so a green CI and a green `make verify` mean the same thing (D13).
-GOLANGCI_LINT_VERSION="v2.11.4"
+GOLANGCI_LINT_VERSION="v2.13.0"
 info "Ensuring golangci-lint ($GOLANGCI_LINT_VERSION) is available..."
 
 # golangci-lint refuses to run when the Go it was built with is older than the

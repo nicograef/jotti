@@ -25,6 +25,7 @@ import {
   beschreibeFehlBons,
   type Bonmodus,
   type DruckstationConfig,
+  erlaubtBonmodus,
   type FehlgeschlagenerDruckauftrag,
   formatDruckauftragReferenz,
   formatDruckfehler,
@@ -63,7 +64,9 @@ const KATEGORIE_INFO: Record<
   },
 }
 
-// Die zwei Bonmodus-Optionen mit erklärendem Untertitel (Handoff 1g).
+// Die Bonmodus-Optionen mit erklärendem Untertitel (Handoff 1g). „Pro Stück"
+// erscheint nur am Abholbon (siehe erlaubtBonmodus) und füllt dort als dritte
+// Kachel die zweite Zeile des Rasters.
 const BONMODUS_OPTIONEN: { wert: Bonmodus; titel: string; hinweis: string }[] =
   [
     {
@@ -76,13 +79,20 @@ const BONMODUS_OPTIONEN: { wert: Bonmodus; titel: string; hinweis: string }[] =
       titel: 'Pro Bestellung',
       hinweis: 'ein Sammelbon',
     },
+    {
+      wert: 'pro_stueck',
+      titel: 'Pro Stück',
+      hinweis: 'je Einheit ein Bon',
+    },
   ]
 
 function BonmodusOptionen({
+  kategorie,
   aktiv,
   disabled,
   onSelect,
 }: {
+  kategorie: Kategorie
   aktiv: Bonmodus | ''
   disabled: boolean
   onSelect: (bonmodus: Bonmodus) => void
@@ -93,7 +103,9 @@ function BonmodusOptionen({
         Wie sollen Bons gedruckt werden?
       </Label>
       <div className="grid grid-cols-2 gap-2">
-        {BONMODUS_OPTIONEN.map((option) => {
+        {BONMODUS_OPTIONEN.filter((option) =>
+          erlaubtBonmodus(kategorie, option.wert),
+        ).map((option) => {
           const gewaehlt = aktiv === option.wert
           return (
             <button
@@ -106,6 +118,7 @@ function BonmodusOptionen({
               }}
               className={cn(
                 'rounded-lg border p-3 text-left transition-colors disabled:opacity-60',
+                option.wert === 'pro_stueck' && 'col-span-2',
                 gewaehlt ? 'border-primary bg-primary/5' : 'hover:bg-accent/50',
               )}
             >
@@ -248,6 +261,7 @@ function DruckstationCard({
 
       {zeigtBonmodus && (
         <BonmodusOptionen
+          kategorie={config.kategorie}
           aktiv={config.bonmodus}
           disabled={bonmodusSaving}
           onSelect={(bonmodus) => void waehleBonmodus(bonmodus)}

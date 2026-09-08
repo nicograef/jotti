@@ -23,7 +23,7 @@ type QueryHandler struct {
 type druckstationDTO struct {
 	Kategorie string `json:"kategorie"`
 	DruckerIP string `json:"druckerIp"`
-	Bonmodus  string `json:"bonmodus"` // leer für kassenbeleg/abholbon
+	Bonmodus  string `json:"bonmodus"` // leer nur für kassenbeleg
 }
 
 type getDruckstationenResponse struct {
@@ -76,7 +76,7 @@ var updateDruckstationenSchema = z.Struct(z.Shape{
 	).Required(),
 	"DruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
 	"Bonmodus": z.String().OneOf(
-		[]string{"pro_position", "pro_bestellung"},
+		[]string{"pro_position", "pro_bestellung", "pro_stueck"},
 		z.Message("Ungültiger Bonmodus"),
 	).Optional(),
 }).TestFunc(func(val any, ctx z.Ctx) bool {
@@ -84,13 +84,10 @@ var updateDruckstationenSchema = z.Struct(z.Shape{
 	if !ok {
 		return false
 	}
-	if druckstation.Kategorie(body.Kategorie).HatBonmodus() {
-		// essen/getraenk/sonstiges/abholbon tragen verpflichtend einen Bonmodus.
-		return body.Bonmodus != ""
-	}
-	// Nur der Kassenbeleg trägt keinen Bonmodus.
-	return body.Bonmodus == ""
-}, z.Message("Bonmodus ist nur für Produktkategorien zulässig"))
+	// Welcher Bonmodus zu welcher Station passt, entscheidet die Domain:
+	// pro_stueck nur am Abholbon, gar kein Bonmodus am Kassenbeleg.
+	return druckstation.Kategorie(body.Kategorie).ErlaubtBonmodus(druckstation.Bonmodus(body.Bonmodus))
+}, z.Message("Bonmodus passt nicht zu dieser Druckstation"))
 
 // POST /admin/update-druckstationen
 func (h *CommandHandler) UpdateDruckstationenHandler() http.HandlerFunc {

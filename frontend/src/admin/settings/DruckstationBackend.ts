@@ -12,19 +12,44 @@ const KategorieSchema = z.enum([
 ])
 export type Kategorie = z.infer<typeof KategorieSchema>
 
-const BonmodusSchema = z.enum(['pro_position', 'pro_bestellung'])
+const BonmodusSchema = z.enum(['pro_position', 'pro_bestellung', 'pro_stueck'])
 export type Bonmodus = z.infer<typeof BonmodusSchema>
 
-export const DruckstationConfigSchema = z.object({
-  kategorie: KategorieSchema,
-  druckerIp: z.ipv4('Ungültige IPv4-Adresse').or(z.literal('')),
-  // leer für kassenbeleg/abholbon (diese Stationen tragen keinen Bonmodus)
-  bonmodus: BonmodusSchema.or(z.literal('')),
-})
+// Kategorieregel für einen gesetzten Bonmodus: pro Stück (je Einheit ein Bon)
+// nur am Abholbon (Backend: Kategorie.ErlaubtBonmodus). Ob eine Station
+// überhaupt einen Bonmodus trägt, sagt hatBonmodus. Eine Quelle für das Schema
+// unten und die Auswahl in der Oberfläche.
+export function erlaubtBonmodus(
+  kategorie: Kategorie,
+  bonmodus: Bonmodus,
+): boolean {
+  return bonmodus !== 'pro_stueck' || kategorie === 'abholbon'
+}
+
+export const DruckstationConfigSchema = z
+  .object({
+    kategorie: KategorieSchema,
+    druckerIp: z.ipv4('Ungültige IPv4-Adresse').or(z.literal('')),
+    // leer nur für den Kassenbeleg, der keinen Bonmodus trägt
+    bonmodus: BonmodusSchema.or(z.literal('')),
+  })
+  .superRefine((config, ctx) => {
+    if (
+      config.bonmodus === '' ||
+      erlaubtBonmodus(config.kategorie, config.bonmodus)
+    ) {
+      return
+    }
+    ctx.addIssue({
+      code: 'custom',
+      path: ['bonmodus'],
+      message: 'Pro Stück ist nur für den Abholbon zulässig',
+    })
+  })
 export type DruckstationConfig = z.infer<typeof DruckstationConfigSchema>
 
-// Stationen mit Bonmodus: die drei Produktkategorien sowie der Abholbon werden
-// wahlweise pro Position oder pro Bestellung gedruckt. Nur der Kassenbeleg nicht.
+// Stationen mit Bonmodus: die drei Produktkategorien und der Abholbon tragen
+// einen, nur der Kassenbeleg nicht.
 const KATEGORIEN_MIT_BONMODUS: Kategorie[] = [
   'essen',
   'getraenk',

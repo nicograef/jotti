@@ -14,7 +14,7 @@ Die Ubiquitous Language ist ein Living Document: Sie wird fortlaufend aktualisie
 
 4. **Commits sind auf Englisch.** Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`) mit englischen Nachrichten.
 
-5. **Verben folgen dem Command/Query + Schicht-Prinzip.** Zustandsändernde Domänen-Commands (Vorgänge, die das Fiskalrecht oder ein Kassenwart benennt) tragen deutsche Fachverben: `BestellungAufnehmen`, `ZahlungKassieren`, `KasseAbschliessen`, `GeldtransitBuchen`. Queries, Derivationen, Persistence und Infrastruktur tragen englische Verben: `ComputeAbschlussSummen`, `DetermineSignaturstatus`, `GetHistorieFromEvents`, `SetKassensitzungOffen`. Neue Kombinationen aus englischem Verb und deutschem Nomen sind der Normalfall (`ComputeAbschlussSummen`, `ensureKeineOffeneKassensitzung`). Ausnahme: `QuittiereTSESignaturauftrag` bleibt deutsch, weil „quittieren" der in diesem Glossar dokumentierte Domänenbegriff für das Zurückschreiben der Signatur an den Auftrag ist und kein passendes englisches Einwort-Äquivalent existiert.
+5. **Verben folgen dem Command/Query + Schicht-Prinzip.** Zustandsändernde Domänen-Commands (Vorgänge, die das Fiskalrecht oder ein Kassenwart benennt) tragen deutsche Fachverben: `BestellungAufnehmen`, `ZahlungKassieren`, `KasseAbschliessen`, `GeldtransitBuchen`. Queries, Derivationen, Persistence und Infrastruktur tragen englische Verben: `ComputeAbschlussSummen`, `DetermineSignaturstatus`, `GetHistorieFromEvents`, `SetKassensitzungOffen`. Neue Kombinationen aus englischem Verb und deutschem Nomen sind der Normalfall (`ComputeAbschlussSummen`, `ensureKeineOffeneKassensitzung`). Ausnahme: `QuittiereTSESignaturauftrag` bleibt deutsch, weil „quittieren" der in diesem Glossar dokumentierte Domänenbegriff für das Zurückschreiben der Signatur an den Auftrag ist und kein passendes englisches Einwort-Äquivalent existiert. Ebenso deutsch bleiben die Reihenfolge-Operationen `VerschiebeProdukt` und `VerschiebeVariante` (Repository), `SortiereVariantenAlphabetisch` (Repository und sqlc) sowie `NormalisiereProduktReihenfolge` und `NormalisiereVarianteReihenfolge` (sqlc), weil Verschieben und Sortieren die unter „Reihenfolge" definierten Admin-Vorgänge sind.
 
 ## Namenskonventionen pro Schicht
 
@@ -137,7 +137,7 @@ Schlankes Event-Sourced Aggregat im Kasse-Kontext für den Barverkauf an der The
 
 #### Abholbon
 
-Nicht-fiskalischer Bon für die Warenübergabe beim Direktverkauf. Festes Label „Direktverkauf", keine Preise, `bon_art = 'arbeitsbon'`, gedruckt an der Druckstation `abholbon` (Bonmodus `pro_bestellung` = ein Sammel-Abholbon, `pro_position` = ein Bon je Position).
+Nicht-fiskalischer Bon für die Warenübergabe beim Direktverkauf. Festes Label „Direktverkauf", keine Preise, `bon_art = 'arbeitsbon'`, gedruckt an der Druckstation `abholbon` (Bonmodus `pro_bestellung` = ein Sammel-Abholbon, `pro_position` = ein Bon je Position, `pro_stueck` = ein Bon je Einheit einer Position).
 
 #### Arbeitsmodus
 
@@ -335,6 +335,12 @@ Konkrete Ausprägung eines Produkts mit eigenem Namen und Preis in Cent (z. B. P
 
 Go-Struct: `Variante` · TS-Typ: `Variante` · DB-Tabelle: `produkt_varianten`
 
+#### Reihenfolge
+
+Anzeigereihenfolge der Preisliste, gepflegt vom Admin. Bei Produkten gilt sie innerhalb der Kategorie, bei Varianten innerhalb ihres Produkts; sortiert wird aufsteigend nach `(reihenfolge, id)`, die `id` bleibt Tiebreaker. Neue Einträge hängen sich ans Ende ihres Geltungsbereichs an; wechselt ein Produkt die Kategorie, ans Ende der neuen. Der Admin verschiebt einzelne Einträge um eine Position (`hoch` / `runter`, Rangtausch mit dem unmittelbaren Nachbarn) oder ordnet die Varianten eines Produkts einmalig alphabetisch neu — ein dauerhafter Sortiermodus existiert bewusst nicht.
+
+Reine Persistenz: kein Go-Struct-Feld, kein TS-Typ, kein Response-Feld. Das Backend liefert die fertig sortierte Liste, das Frontend zeigt sie in gelieferter Ordnung an. DB-Spalte: `produkte.reihenfolge`, `produkt_varianten.reihenfolge`
+
 #### Kategorie
 
 Gruppierung von Produkten. Aktuell drei feste Kategorien.
@@ -408,9 +414,9 @@ DB-Tabelle: `druckstationen` · DB-Enum `DruckstationKategorie`: `'essen'`, `'ge
 
 #### Bonmodus
 
-Druckmodus für Arbeitsbons/Abholbons: einzelner Bon pro Position oder ein gesammelter Bon pro Bestellung. Für die Kassenbeleg-Station entfällt er (NULL).
+Druckmodus für Arbeitsbons/Abholbons: einzelner Bon pro Position, ein gesammelter Bon pro Bestellung oder — allein an der Abholbon-Station — ein Bon je Einheit (`pro_stueck`). Für die Kassenbeleg-Station entfällt er (NULL).
 
-DB-Enum: `'pro_position'`, `'pro_bestellung'`
+DB-Werte (TEXT + CHECK): `'pro_position'`, `'pro_bestellung'`, `'pro_stueck'` (nur `abholbon`)
 
 #### Druckauftrag
 

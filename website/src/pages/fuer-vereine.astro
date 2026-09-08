@@ -3,7 +3,7 @@ import { Check } from '@lucide/astro'
 
 import Landing from '../layouts/Landing.astro'
 import AnfrageFormular from '../components/AnfrageFormular.tsx'
-import { betreiberEmail } from '../lib/links'
+import { betreiberEmail, installationUrl } from '../lib/links'
 
 // Seite „Für Vereine" (/fuer-vereine, Handoff-Prototyp data-vereine). Erklärt
 // den Abschluss der Nutzungsvereinbarung, benennt das freiwillige (kostenpflichtige) Service-
@@ -129,6 +129,23 @@ const schritte = [
         </ol>
 
         <p class="mt-8 text-[14px] leading-relaxed text-muted">
+          Es gibt keine Freigabe und keine Zugangsdaten. Mit dem Absenden
+          könnt ihr{' '}
+          <a
+            href={installationUrl}
+            class="font-semibold text-brand hover:underline">installieren</a
+          >. Antwortet der Autor, kann die E-Mail in eurem Spam-Ordner landen
+          — dort lohnt sich ein Blick.
+        </p>
+
+        <p class="mt-3 text-[14px] leading-relaxed text-muted">
+          jotti setzt die deutsche Kassensicherungsverordnung (KassenSichV)
+          um. Für Österreich (RKSV) und die Schweiz ist nichts vorgesehen —
+          die Nutzung ist erlaubt, die Konformität mit dortigem Recht liegt
+          beim Verein.
+        </p>
+
+        <p class="mt-3 text-[14px] leading-relaxed text-muted">
           Lieber direkt schreiben? Schreib an{' '}
           <a
             href={`mailto:${betreiberEmail}`}

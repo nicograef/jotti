@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   beschreibeFehlBons,
   DruckstationConfigSchema,
+  erlaubtBonmodus,
   formatDruckauftragReferenz,
   formatDruckfehler,
   hatBonmodus,
@@ -154,5 +155,42 @@ describe('DruckstationConfigSchema', () => {
     })
     expect(parsed.kategorie).toBe('kassenbeleg')
     expect(parsed.bonmodus).toBe('')
+  })
+
+  it('accepts pro_stueck for the abholbon station', () => {
+    const parsed = DruckstationConfigSchema.parse({
+      kategorie: 'abholbon',
+      druckerIp: '192.168.1.77',
+      bonmodus: 'pro_stueck',
+    })
+    expect(parsed.bonmodus).toBe('pro_stueck')
+  })
+
+  it('rejects pro_stueck for a product station', () => {
+    const ergebnis = DruckstationConfigSchema.safeParse({
+      kategorie: 'essen',
+      druckerIp: '192.168.1.51',
+      bonmodus: 'pro_stueck',
+    })
+    expect(ergebnis.success).toBe(false)
+    expect(ergebnis.error?.issues[0].message).toBe(
+      'Pro Stück ist nur für den Abholbon zulässig',
+    )
+  })
+})
+
+describe('erlaubtBonmodus', () => {
+  it('erlaubt pro_stueck nur am Abholbon', () => {
+    expect(erlaubtBonmodus('abholbon', 'pro_stueck')).toBe(true)
+    expect(erlaubtBonmodus('essen', 'pro_stueck')).toBe(false)
+    expect(erlaubtBonmodus('getraenk', 'pro_stueck')).toBe(false)
+    expect(erlaubtBonmodus('sonstiges', 'pro_stueck')).toBe(false)
+  })
+
+  it('erlaubt die zwei Standard-Modi an den Stationen mit Bonmodus', () => {
+    expect(erlaubtBonmodus('essen', 'pro_position')).toBe(true)
+    expect(erlaubtBonmodus('getraenk', 'pro_bestellung')).toBe(true)
+    expect(erlaubtBonmodus('sonstiges', 'pro_position')).toBe(true)
+    expect(erlaubtBonmodus('abholbon', 'pro_bestellung')).toBe(true)
   })
 })

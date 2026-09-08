@@ -9,7 +9,8 @@ import (
 var ErrDatabase = db.ErrDatabase
 
 // ErrUngueltigeDruckstation signalisiert, dass die übergebene Druckstation die
-// Domain-Validierung nicht besteht (z. B. Bonmodus für kassenbeleg/abholbon).
+// Domain-Validierung nicht besteht (z. B. Bonmodus pro_stueck an einer
+// Produktstation oder ein Bonmodus am Kassenbeleg).
 var ErrUngueltigeDruckstation = errors.New("ungueltige druckstation")
 
 // ErrDruckstationNichtKonfiguriert signalisiert, dass für die angeforderte

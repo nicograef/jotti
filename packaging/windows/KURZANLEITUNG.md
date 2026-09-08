@@ -15,7 +15,8 @@ Ein **Kassenrechner** im WLAN, die Helfer bedienen jotti auf ihren **Handys**.
 > ⚠️ **Den ersten Start unbedingt vorab zuhause mit Internet machen, nicht erst
 > auf dem Fest.** Beim Erststart lädt jotti seine Programmteile herunter **und**
 > holt das vertrauenswürdige Zertifikat (grünes Schloss). Beides braucht Internet.
-> Danach läuft jotti auch ohne Internet.
+> Zertifikat und Fallback-Adresse laufen danach ohne Internet; die grüne
+> Adresse und die TSE brauchen beim Fest Internet.
 
 1. Das ZIP **entpacken** (Rechtsklick → „Alle extrahieren"). Alle Dateien müssen
    im selben Ordner bleiben.
@@ -44,9 +45,11 @@ Ein **Kassenrechner** im WLAN, die Helfer bedienen jotti auf ihren **Handys**.
   Router-Anleitung verlinkt die Status-Seite; sie steht auch online unter
   <https://jotti.rocks/docs/leitfaden/fehlersuche/>.
 
-## Bondruck (optional)
+## Bondruck
 
-Für den Bondruck zusätzlich **`jotti-relay.exe`** doppelklicken. Es läuft ohne
+Der gedruckte Kassenbeleg braucht einen Drucker (siehe
+<https://jotti.rocks/docs/leitfaden/haeufige-fragen/>). Für den Bondruck
+zusätzlich **`jotti-relay.exe`** doppelklicken. Es läuft ohne
 Administratorrechte und nimmt seine Zugangsdaten aus der `.env`, die
 `jotti-start.exe` angelegt hat (in `%PROGRAMDATA%\jotti`).
 

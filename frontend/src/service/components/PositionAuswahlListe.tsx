@@ -23,8 +23,10 @@ interface PositionAuswahlListeProps {
 // (Minus/Anzahl/Plus). Sie ist controlled: die Mengenlogik (Grenzen,
 // Voll-Vorauswahl) bleibt im jeweiligen Drawer, hier liegt nur die Darstellung.
 // Die Liste scrollt nicht selbst — sie liegt im DrawerBody, dem einzigen
-// Scrollbereich des Drawers. Lange Namen werden per truncate abgeschnitten,
-// sodass die Stepper-Buttons an ihrem Platz bleiben.
+// Scrollbereich des Drawers. Lange Namen brechen um, statt zu kürzen — wie in
+// der Bestellliste: Zwei gekürzte Varianten desselben Produkts sehen gleich
+// aus, und beim Stornieren oder Umbuchen ist der Griff zur falschen Position
+// teurer als beim Bestellen. Die Stepper-Spalte schrumpft dabei nicht.
 export function PositionAuswahlListe({
   positionen,
   mengen,
@@ -41,7 +43,7 @@ export function PositionAuswahlListe({
             className="flex items-center justify-between border-b pb-2 last:border-0"
           >
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">
+              <div className="text-sm font-medium break-words">
                 {position.name}
               </div>
               <div className="text-xs text-muted-foreground">
@@ -49,7 +51,7 @@ export function PositionAuswahlListe({
                 &nbsp;Stück
               </div>
             </div>
-            <div className="ml-2">
+            <div className="ml-2 shrink-0">
               <Stepper
                 menge={selected}
                 onAdd={() => {

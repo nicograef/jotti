@@ -80,7 +80,6 @@ FormatDirektverkaufAbholbon()` — delegiert an `FormatSammelBon()`; druckt je P
 - `docs/compliance.md — ### 3.5 TSE-Varianten und Anbieter-Entscheidung` — Hardware-TSE
   als ausgeschlossen begründet
 - `docs/anforderungen.md` — Funktionsumfang-Tabelle und Nicht-Ziele-Tabelle
-- `docs/plans/plan-bondruck-ursachenklaerung.md` — offen
 - `docs/plans/guide-manuelle-qa-v1.0.0.md` — offen; verweist auf die nicht existierende
   Datei `plan-v1.0-release-blockers.md`
 - Offene externe PRs: #109 (Reihenfolge für Produkte/Varianten), #110 (Variantenname auf
@@ -134,6 +133,9 @@ FormatDirektverkaufAbholbon()` — delegiert an `FormatSammelBon()`; druckt je P
   Begründung unter „Open questions / Risks" eingetragen, nicht still übersprungen.
 - **Dependabot-PRs werden nicht manuell gemerged.** Die Updates landen als eigene Commits
   je Ökosystem auf `main`; Dependabot schließt seine PRs danach selbst.
+- **Bondruck-Ursachenklärung wird nicht weiterverfolgt.** Der Plan
+  `plan-bondruck-ursachenklaerung.md` ist ersatzlos gelöscht (Entscheidung des Eigentümers);
+  der archivierte Relay-Umbau bleibt archiviert.
 
 ## Open questions / Risks
 
@@ -153,6 +155,10 @@ FormatDirektverkaufAbholbon()` — delegiert an `FormatSammelBon()`; druckt je P
   „Kontingent-Funktion" für den Bondruck an der Kasse (Teilnehmer erhalten ein festes
   Kontingent). Anforderung noch unklar; Rückfrage läuft. Warenwirtschaft ist Nicht-Ziel,
   ein Tisch pro Teilnehmer oder Abholbons könnten reichen. Entscheidung offen.
+- TypeScript bleibt in `frontend/` und `website/` auf `~6.0.3` statt der in #117/#118 genannten
+  7.0.2: `typescript-eslint` 8.69.0 bricht mit „typescript-eslint does not support TS 7.0" ab
+  (Support für TS ≥ 7.1 offen, typescript-eslint#10940). Nachziehen, sobald typescript-eslint TS 7
+  unterstützt; `e2e/` steht ohne ESLint bereits auf 7.0.2.
 
 ---
 
@@ -187,17 +193,17 @@ danach gegen den neuen Stand reviewt.
 
 ### Acceptance criteria
 
-- [ ] Alle in #106 und #112–#118 genannten Pakete stehen mindestens auf der dort genannten
+- [x] Alle in #106 und #112–#118 genannten Pakete stehen mindestens auf der dort genannten
       Version; `resolver/`, `reverse-proxy/`, `windows/relay/`, `windows/starter/` sind auf
       demselben Go-Stand
-- [ ] `go.work`, alle `go.mod`, beide Dockerfiles, CI-Workflows, `AGENTS.md` und `docs/`
+- [x] `go.work`, alle `go.mod`, beide Dockerfiles, CI-Workflows, `AGENTS.md` und `docs/`
       nennen dieselbe Go-Version; `frontend/` und `website/` dieselbe TypeScript-Version
-- [ ] Ein Commit je Ökosystem mit Conventional-Commit-Betreff `chore(deps): …`
-- [ ] `make verify`, `make website-check` und `make test-e2e` grün; CI grün inklusive
+- [x] Ein Commit je Ökosystem mit Conventional-Commit-Betreff `chore(deps): …`
+- [x] `make verify`, `make website-check` und `make test-e2e` grün; CI grün inklusive
       `security-scans` (govulncheck, pnpm audit)
 - [ ] Die acht Dependabot-PRs sind nach dem Landen geschlossen (durch Dependabot) oder,
       falls nicht, mit Verweis auf den Commit manuell geschlossen
-- [ ] Nicht übernehmbare Updates stehen mit Begründung unter „Open questions / Risks"
+- [x] Nicht übernehmbare Updates stehen mit Begründung unter „Open questions / Risks"
 
 ---
 
@@ -236,17 +242,17 @@ Bon per E-Mail gibt es nicht).
 
 ### Acceptance criteria
 
-- [ ] Kurzanleitung und FAQ widersprechen sich nicht mehr zur Internetfrage
-- [ ] Fehlersuche nennt den Neustart-Fall und verweist auf die Fallback-Adresse
-- [ ] Installation listet die zwei bestätigten Modelle, eine Kaufempfehlung mit
+- [x] Kurzanleitung und FAQ widersprechen sich nicht mehr zur Internetfrage
+- [x] Fehlersuche nennt den Neustart-Fall und verweist auf die Fallback-Adresse
+- [x] Installation listet die zwei bestätigten Modelle, eine Kaufempfehlung mit
       Preisklasse und Recherchedatum, und schließt USB aus
-- [ ] FAQ beantwortet Stromausfall (inkl. Neustart und Status-Seite), Geräteanzahl,
+- [x] FAQ beantwortet Stromausfall (inkl. Neustart und Status-Seite), Geräteanzahl,
       Helfer-Verzehr, Drucker-Notwendigkeit
-- [ ] FAQ nennt den Drucker als nötig; die Befreiung erspart nur das ungefragte
+- [x] FAQ nennt den Drucker als nötig; die Befreiung erspart nur das ungefragte
       Aushändigen
-- [ ] `docs/leitfaden/installation.md`, `README.md` und
+- [x] `docs/leitfaden/installation.md`, `README.md` und
       `website/src/components/FaqAccordion.tsx` nennen dieselbe Anschluss-Angabe
-- [ ] `make check` und `make website-check` grün; die geänderten Leitfaden-Seiten rendern
+- [x] `make check` und `make website-check` grün; die geänderten Leitfaden-Seiten rendern
 
 ---
 
@@ -275,14 +281,14 @@ Rechtsform-Auswahl bekommt keinen Länder-Eintrag; der Absatz reicht.
 
 ### Acceptance criteria
 
-- [ ] Erfolgs-State enthält Installationslink und Spam-Hinweis
-- [ ] `/fuer-vereine` und `TERMS.md` tragen den Absatz zu Österreich/Schweiz
-- [ ] `TERMS.md` trägt ein neues Fassungsdatum (Tag des Landens) in der Kopfzeile
+- [x] Erfolgs-State enthält Installationslink und Spam-Hinweis
+- [x] `/fuer-vereine` und `TERMS.md` tragen den Absatz zu Österreich/Schweiz
+- [x] `TERMS.md` trägt ein neues Fassungsdatum (Tag des Landens) in der Kopfzeile
       `Stand:` und in der E-Mail-Vorlage; `buildMailtoUrl()` (Kommentar und Annahmesatz)
       und die Erwartung in `anfrage-mailto.test.ts` nennen dasselbe Datum — geprüft per
       `grep -rn 'Fassung vom' TERMS.md website/src`; `14. Juli 2026` kommt dort nicht
       mehr vor
-- [ ] `make website-check` grün (`make check` deckt `website/` nicht ab)
+- [x] `make website-check` grün (`make check` deckt `website/` nicht ab)
 
 ---
 
@@ -306,10 +312,10 @@ reines Logik-Modul liefert die drei Teile getrennt, damit der Test sie ohne DOM 
 
 ### Acceptance criteria
 
-- [ ] Nach dem Absenden sind Empfänger, Betreff und Text sichtbar und kopierbar
-- [ ] Test: die getrennten Teile entsprechen dem Inhalt der `mailto:`-URL
-- [ ] Der bisherige `mailto:`-Weg bleibt unverändert
-- [ ] `make website-check` grün (`make check` deckt `website/` nicht ab)
+- [x] Nach dem Absenden sind Empfänger, Betreff und Text sichtbar und kopierbar
+- [x] Test: die getrennten Teile entsprechen dem Inhalt der `mailto:`-URL
+- [x] Der bisherige `mailto:`-Weg bleibt unverändert
+- [x] `make website-check` grün (`make check` deckt `website/` nicht ab)
 
 ---
 
@@ -352,17 +358,17 @@ mitgeprüft, und die Kontrakt-Kommentare in `VariantNamePreis.tsx` und
 
 ### Acceptance criteria
 
-- [ ] E2E-Test im Projekt `mobile-service` (Pixel-7-Viewport): zwei Varianten mit langem
+- [x] E2E-Test im Projekt `mobile-service` (Pixel-7-Viewport): zwei Varianten mit langem
       gemeinsamem Präfix sind vollständig lesbar
-- [ ] Hoch- und Querformat des Handy-Viewports geprüft (Playwright `setViewportSize`)
-- [ ] Falls `VariantNamePreis` geändert wurde: Admin-Preisliste (Variantenchips) geprüft
+- [x] Hoch- und Querformat des Handy-Viewports geprüft (Playwright `setViewportSize`)
+- [x] Falls `VariantNamePreis` geändert wurde: Admin-Preisliste (Variantenchips) geprüft
       und die Kontrakt-Kommentare in Komponente und Test angepasst
-- [ ] Stepper-Breite bei Menge 0 reserviert; kein Layout-Shift beim ersten Tap (Pixel-7-Messung)
-- [ ] `Stepper.test.tsx` deckt `minusNurAbEins` ab
-- [ ] `PositionAuswahlListe.tsx` bricht Variantennamen wie die Bestell-Liste um
-- [ ] `docs/handbuch.md` § 6.3 und die Website-Screenshots zeigen den neuen Zustand
-- [ ] `make test-e2e` grün (Playwright läuft weder in `make check` noch in `make verify`)
-- [ ] `make check` grün
+- [x] Stepper-Breite bei Menge 0 reserviert; kein Layout-Shift beim ersten Tap (Pixel-7-Messung)
+- [x] `Stepper.test.tsx` deckt `minusNurAbEins` ab
+- [x] `PositionAuswahlListe.tsx` bricht Variantennamen wie die Bestell-Liste um
+- [x] `docs/handbuch.md` § 6.3 und die Website-Screenshots zeigen den neuen Zustand
+- [x] `make test-e2e` grün (Playwright läuft weder in `make check` noch in `make verify`)
+- [x] `make check` grün
 
 ---
 
@@ -397,19 +403,19 @@ COLLATE-Begründung, Mock-Felder mit Tests oder weg.
 
 ### Acceptance criteria
 
-- [ ] Neue Migration ist additiv, `01_initial.up.sql` unverändert; die Nummer ist beim
+- [x] Neue Migration ist additiv, `01_initial.up.sql` unverändert; die Nummer ist beim
       Anlegen und erneut beim Rebase die nächste freie (`database/migrations/README.md`
       Regel 1) — Phase 6 und Phase 7 können ebenfalls eine Migration mitbringen
-- [ ] Service-Liste sortiert nach (Kategorie, Reihenfolge, ID)
-- [ ] Verschieben tauscht Ränge: Integrationstest mit gleichem `reihenfolge`-Wert in einer
+- [x] Service-Liste sortiert nach (Kategorie, Reihenfolge, ID)
+- [x] Verschieben tauscht Ränge: Integrationstest mit gleichem `reihenfolge`-Wert in einer
       Kategorie und mit Kategoriewechsel vor dem Verschieben ist grün
-- [ ] Seeder schreibt `reihenfolge`; Verschieben funktioniert in der e2e-Suite
-- [ ] Varianten-Chevrons haben 32-px-Ziele und keine Überlappung mit dem Switch
-- [ ] `docs/language.md` und `docs/handbuch.md` beschreiben die Reihenfolge
-- [ ] `make rebuild-projections` läuft nach der Migration fehlerfrei durch
+- [x] Seeder schreibt `reihenfolge`; Verschieben funktioniert in der e2e-Suite
+- [x] Varianten-Chevrons haben 32-px-Ziele und keine Überlappung mit dem Switch
+- [x] `docs/language.md` und `docs/handbuch.md` beschreiben die Reihenfolge
+- [x] `make rebuild-projections` läuft nach der Migration fehlerfrei durch
       (`database/migrations/README.md` Regel 5)
-- [ ] CI-Job `upgrade-path` grün — Pflicht-Gate für Schema-Änderungen
-- [ ] `make verify` grün
+- [x] CI-Job `upgrade-path` grün — Pflicht-Gate für Schema-Änderungen
+- [x] `make verify` grün
 
 ---
 
@@ -419,7 +425,7 @@ COLLATE-Begründung, Mock-Felder mit Tests oder weg.
 
 ### Context
 
-- `docs/plans/plan-bondruck-ursachenklaerung.md` — bestehender Plan, alle Punkte offen
+- `docs/plans/plan-bondruck-ursachenklaerung.md` — gelöscht, siehe Resolved decisions
 
 ### What to build
 
@@ -429,7 +435,7 @@ Einsätzen Ende September.
 
 ### Acceptance criteria
 
-- [ ] Bestehender Plan hat keine offene Checkbox mehr oder ist gelöscht
+- [x] Bestehender Plan hat keine offene Checkbox mehr oder ist gelöscht
 
 ---
 
@@ -479,24 +485,24 @@ bleibt nicht-fiskalisch.
 
 ### Acceptance criteria
 
-- [ ] Neue Migration `NN_abholbon_pro_stueck.up.sql` (`NN` = nächste freie Nummer beim
+- [x] Neue Migration `NN_abholbon_pro_stueck.up.sql` (`NN` = nächste freie Nummer beim
       Anlegen, `database/migrations/README.md` Regel 1; Phase 5 und Phase 6 können
       dieselbe Nummer beanspruchen) erlaubt `pro_stueck` nur für `abholbon`
-- [ ] Die Migration setzt `COMMENT ON COLUMN druckstationen.bonmodus` neu und ändert
+- [x] Die Migration setzt `COMMENT ON COLUMN druckstationen.bonmodus` neu und ändert
       keine Zeile in `druckstationen`; alle bestehenden Bonmodus-Werte bleiben
-- [ ] `make sqlc` ausgeführt, `backend/sqlc/dbgen/models.go` mitcommittet
-- [ ] Direktverkauf mit `3x Bier` und Modus `pro_stueck` erzeugt drei Druckaufträge mit
+- [x] `make sqlc` ausgeführt, `backend/sqlc/dbgen/models.go` mitcommittet
+- [x] Direktverkauf mit `3x Bier` und Modus `pro_stueck` erzeugt drei Druckaufträge mit
       `1x Bier`
-- [ ] Modus `pro_stueck` an einer Produktstation wird von `Validate()`, zog-Schema und
+- [x] Modus `pro_stueck` an einer Produktstation wird von `Validate()`, zog-Schema und
       Admin-UI abgelehnt
-- [ ] Kein Kommentar behauptet mehr, `abholbon` trage keinen Bonmodus
+- [x] Kein Kommentar behauptet mehr, `abholbon` trage keinen Bonmodus
       (`druckstation.go`, `handler.go`, `DruckstationBackend.ts`)
-- [ ] `docs/language.md` (`#### Abholbon`, `#### Bonmodus` inkl. DB-Enum),
+- [x] `docs/language.md` (`#### Abholbon`, `#### Bonmodus` inkl. DB-Enum),
       `docs/handbuch.md` § 4.6 und `docs/anforderungen.md` beschreiben den Modus
-- [ ] `make rebuild-projections` läuft nach der Migration fehlerfrei durch
+- [x] `make rebuild-projections` läuft nach der Migration fehlerfrei durch
       (`database/migrations/README.md` Regel 5)
-- [ ] CI-Job `upgrade-path` grün — Pflicht-Gate für Schema-Änderungen
-- [ ] `make verify` grün
+- [x] CI-Job `upgrade-path` grün — Pflicht-Gate für Schema-Änderungen
+- [x] `make verify` grün
 
 ---
 
@@ -521,10 +527,10 @@ ADR und eine ehrliche Kostenaussage in der FAQ.
 
 ### Acceptance criteria
 
-- [ ] ADR `09_tse-kosten-und-hardware-tse.md` mit Konditionen, Alternativen,
+- [x] ADR `09_tse-kosten-und-hardware-tse.md` mit Konditionen, Alternativen,
       Entscheidung, in der Tabelle in `docs/adrs/README.md` verlinkt
-- [ ] FAQ nennt Größenordnung und Vertragsbindung der TSE mit Datum der Recherche
-- [ ] `docs/compliance.md` Abschnitt 3.5 stimmt mit der ADR überein
+- [x] FAQ nennt Größenordnung und Vertragsbindung der TSE mit Datum der Recherche
+- [x] `docs/compliance.md` Abschnitt 3.5 stimmt mit der ADR überein
 
 ---
 
@@ -548,9 +554,9 @@ Tabelle bleibt die einzige Stelle; die FAQ aus Phase 1 verweist darauf.
 
 ### Acceptance criteria
 
-- [ ] Drei Zeilen in der Nicht-Ziele-Tabelle mit je einer Begründung; die Spalte `Ex-ID`
+- [x] Drei Zeilen in der Nicht-Ziele-Tabelle mit je einer Begründung; die Spalte `Ex-ID`
       bleibt „—", weil keiner der drei Punkte je eine Anforderungs-ID trug
-- [ ] `docs/produktbeschreibung.md` Abgrenzung stimmt damit überein
+- [x] `docs/produktbeschreibung.md` Abgrenzung stimmt damit überein
 
 ---
 
@@ -584,10 +590,10 @@ Produkte festlegen) oder abgelehnt (dann #111 mit Begründung schließen).
 
 ### Acceptance criteria
 
-- [ ] Prüfergebnis zum PR-Stand gegenüber den Kategorie-Pills liegt in der ADR
-- [ ] Die ADR nennt die Variantenzahl je Kategorie aus den Praxis-Setups (7 Produkte,
+- [x] Prüfergebnis zum PR-Stand gegenüber den Kategorie-Pills liegt in der ADR
+- [x] Die ADR nennt die Variantenzahl je Kategorie aus den Praxis-Setups (7 Produkte,
       ~50 Varianten) als Entscheidungsgrundlage
-- [ ] ADR `10_produktebene-service.md` mit Status und Begründung, in der Tabelle in
+- [x] ADR `10_produktebene-service.md` mit Status und Begründung, in der Tabelle in
       `docs/adrs/README.md` verlinkt
 - [ ] PR #111 gemerged oder mit Verweis auf die ADR geschlossen
 

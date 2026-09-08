@@ -15,7 +15,7 @@ jotti ist ein self-hosted mPOS-System (Go-Backend, React-Frontend, PostgreSQL, D
 | Radikale Einfachheit    | Minimaler Funktionsumfang, der genau das abdeckt, was ein Vereinsfest braucht, nicht mehr.                              |
 | Mobile-first            | Alle Interaktionen sind für Smartphone-Browser und Touch-Bedienung optimiert.                                            |
 | Lückenlose Transparenz  | Jede Transaktion ist unveränderlich protokolliert. Kein Datenverlust, keine Manipulation.                                |
-| Null Kosten             | Keine Hardware, keine Abo-Gebühren, keine externe Abhängigkeit.                                                          |
+| Null Softwarekosten     | Keine Lizenzgebühr, kein Abo für jotti; laufende Kosten nur für die vorgeschriebene Cloud-TSE und optional einen Server. |
 | Volle Datenhoheit       | Self-hosted, alle Daten auf dem eigenen Server.                                                                          |
 | Niedrige Einstiegshürde | Keine Schulung, keine App-Installation. Browser öffnen, einloggen, loslegen.                                             |
 | Nachvollziehbarkeit     | Event-Sourcing im Kassenjournal: Jede Bestellung, Zahlung, Stornierung und Kassenbewegung ist jederzeit nachvollziehbar. |
@@ -256,7 +256,7 @@ WHERE status = 'fehlgeschlagen';
 
 **Vorgang → processType:** Bestellung aufnehmen, geldneutrale Korrektur (`bestellung-korrigiert`), Umbuchung (`bestellung-umgebucht`) → `Bestellung-V1`; Zahlung, kassenwirksame Warenrücknahme (`stornierung-erteilt`), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) → `Kassenbeleg-V1`; Tagesabschluss (Z-Bon) → `SonstigerVorgang`. Alle Transaktionen eines Tisches teilen denselben `ABRECHNUNGSKREIS`. Eigenbeleg- und Storno-Details im Export (BON_STORNO, REF_BON_ID, AEAO 2.2.3.6.1) → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 
-**Anbieter- und Meldeweg-Entscheidungen:** TSE-Anbieter (fiskaly als erster Zielanbieter; anbieter-agnostisches `TSEClient`-Interface gegen Vendor-Lock-in) und Kassenmeldungs-Weg (manuell über das ELSTER-Portal; eine programmatische Übermittlung via ERiC/API ist ausdrücklich Nicht-Ziel) sind mitsamt Begründung und Abwägung in [compliance.md §3.5](compliance.md#35-tse-varianten-und-anbieter-entscheidung) und [§7](compliance.md#7-elektronische-meldepflicht-elster) dokumentiert.
+**Anbieter- und Meldeweg-Entscheidungen:** TSE-Anbieter (fiskaly als Zielanbieter; anbieter-agnostisches `TSEClient`-Interface gegen Vendor-Lock-in) und Kassenmeldungs-Weg (manuell über das ELSTER-Portal; eine programmatische Übermittlung via ERiC/API ist ausdrücklich Nicht-Ziel) sind mitsamt Begründung und Abwägung in [compliance.md §3.5](compliance.md#35-tse-varianten-und-anbieter-entscheidung) und [§7](compliance.md#7-elektronische-meldepflicht-elster) dokumentiert.
 
 ---
 
@@ -269,6 +269,8 @@ Alle Stammdaten verwenden Soft-Delete via `status = 'deleted'`. Datensätze werd
 Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produkt gehört zu einer Kategorie (`essen`, `getraenk`, `sonstiges`) und kann beliebig viele Varianten besitzen, jede Variante mit eigenem Namen und Preis (Cent, ≥ 0).
 
 **Invarianten:** Produkt- und Variantennamen nicht leer; Kategorie gültig; Preis ≥ 0. Varianten können unabhängig vom Produkt deaktiviert werden (`inactive`) und erscheinen dann nicht im Service-Katalog.
+
+**Reihenfolge:** Produkte und Varianten tragen eine vom Admin gepflegte Anzeigereihenfolge (`reihenfolge`). Produkte sortieren nach `(Kategorie, Reihenfolge, ID)`, Varianten innerhalb ihres Produkts nach `(Reihenfolge, ID)`; die ID bleibt Tiebreaker. Neue Einträge landen am Ende ihres Geltungsbereichs, ein Kategoriewechsel setzt das Produkt ans Ende der Zielkategorie. Verschoben werden Ränge, nicht Werte: Der Geltungsbereich wird in derselben Transaktion dicht nummeriert, bevor die beiden Nachbarn tauschen — sonst bliebe ein Verschieben bei gleichen Werten wirkungslos. Die Reihenfolge ist reine Persistenz; das Backend liefert die fertig sortierte Liste.
 
 ### 4.2 Tisch-Stammdaten
 
@@ -305,7 +307,7 @@ Bondruck umfasst zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druc
 
 **Druckauftrags-Outbox (`druckauftraege`):** Single Source of Truth für alle Druckjobs, eine technische Warteschlange (Ziel-IP, ESC/POS-Payload, `bon_art`, fachliche Referenz), kein fiskalisches Journal. Statusmodell: `offen → gedruckt`; nach drei gemeldeten Fehlversuchen `fehlgeschlagen`, von dort `verworfen` oder zurück auf `offen`.
 
-**Direktverkauf-Routing (Ableitungsregel):** Der Bondruck für `direktverkauf-getaetigt:v1` wird aus den konfigurierten Druckstationen abgeleitet: Ist die Abholbon-Station konfiguriert, entstehen Abholbons an dieser Station gemäß ihrem Bonmodus; sonst Arbeitsbons an die Produktstationen; ohne konfigurierte Stationen entsteht kein Auftrag. Der Kassenbeleg-Drucker ist die Druckstation `kassenbeleg`; fehlt ihre IP, schlägt `POST /service/beleg-drucken` mit klarer Fehlermeldung fehl.
+**Direktverkauf-Routing (Ableitungsregel):** Der Bondruck für `direktverkauf-getaetigt:v1` wird aus den konfigurierten Druckstationen abgeleitet: Ist die Abholbon-Station konfiguriert, entstehen Abholbons an dieser Station gemäß ihrem Bonmodus (`pro_bestellung` = ein Sammel-Abholbon, `pro_position` = einer je Position, `pro_stueck` = einer je Einheit); sonst Arbeitsbons an die Produktstationen; ohne konfigurierte Stationen entsteht kein Auftrag. Der Kassenbeleg-Drucker ist die Druckstation `kassenbeleg`; fehlt ihre IP, schlägt `POST /service/beleg-drucken` mit klarer Fehlermeldung fehl.
 
 **Relay = Transport:** Das Print-Relay (`windows/relay/main.go`) holt offene Aufträge via `POST /relay/poll`, druckt sie und meldet das Ergebnis via `POST /relay/ergebnis` (gedruckte IDs und Fehlversuche); das Backend setzt die Status entsprechend. Das Relay formatiert nichts, kennt keine Kategorien und führt keinen Cursor, der DB-Status ist autoritativ; noch offene Aufträge liefert der nächste Poll erneut (beim nicht-fiskalischen Arbeitsbon unkritisch). Start und Konfiguration → [README §Print-Relay](../README.md#print-relay).
 
@@ -418,7 +420,7 @@ Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 | Admin     | Produkte verwalten · Tische verwalten · Benutzer verwalten · Druckerkonfiguration (`DruckerConfigPage`, IP und Bonmodus pro Kategorie konfigurieren)                                                 |
 | Allgemein | Login · Passwort setzen (Erstanmeldung)                                                                                                                                                              |
 
-**UI-Patterns:** Karten für Produkte/Tische, Drawer (Bottom-Sheet) für Bestell-/Bezahl-/Storno-Bestätigung, Tab-Navigation im Tisch-Detail, Plus/Minus-Buttons für Mengenauswahl (Touch-optimiert).
+**UI-Patterns:** Karten für Tische, Zeilenliste für die Varianten im Bestellen-Tab und im Direktverkauf (Name umbrechend, Preis darunter, Mengensteuerung in einem Slot fester Breite), Drawer (Bottom-Sheet) für Bestell-/Bezahl-/Storno-Bestätigung, Tab-Navigation im Tisch-Detail, Plus/Minus-Buttons für Mengenauswahl (Touch-optimiert).
 
 **BackendClient:** Das Frontend kommuniziert ausschließlich über Backend-Klassen, die das `BackendClient`-Interface verwenden. Direktes `fetch()` ist verboten.
 
@@ -477,7 +479,7 @@ Read Models sind aufbereitete Lese-Ansichten, reine Projektionen über vorhanden
 | ---------------- | ---- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tischübersicht   | K-06 | `tisch_sessions` + Stammdaten                    | Pro aktivem Tisch: Name, Saldo, Anzahl unbezahlter Positionen. Startseite des Service-Bereichs. JOIN auf `kassensitzung_nr`.                                                                      |
 | Tischdetails     | K-06 | `tisch_sessions`                                 | Alle Positionen mit Status, gruppiert nach Bestellung. Tabs: Übersicht, Bestellen, Bezahlen/Kassieren, Stornieren, Historie.                                                                      |
-| Produktkatalog   | —    | Produkt-Stammdaten                               | Aktive Produkte und Varianten, nach Kategorie gruppiert. Im Bestellvorgang geladen (kein eigenes Navigationsziel).                                                                                |
+| Produktkatalog   | —    | Produkt-Stammdaten                               | Aktive Produkte und Varianten, nach Kategorie gruppiert und darin nach der Admin-Reihenfolge sortiert (→ [4.1](#41-produkt-aggregat)). Im Bestellvorgang geladen (kein eigenes Navigationsziel).  |
 | Kassenjournal    | K-07 | Kassenjournal (Event Stream, Replay per Subject) | Chronologische Liste aller Vorgänge am Tisch: Zeitstempel, Typ, Positionen, Betrag, Servicekraft, Kommentar. Unveränderlich.                                                                      |
 | Eigene Übersicht | R-06 | `kassenjournal` (SQL-Aggregation)                | KPIs der eigenen Servicekraft: Anzahl und Summe eigener Bestellungen sowie kassierter Zahlungen, gefiltert auf `user_id` und `kassensitzung_nr`. Zusätzlich die ihr nach der Storno-Zuordnung zufallenden Warenrücknahmen (Anzahl und Betrag, aufgelöst über die `zahlungId` der von ihr kassierten Zahlungen — unabhängig vom Stornierenden) und daraus `abzugebenCents` = kassiert − Rücknahmen (nie negativ). Geldneutrale Korrekturen zählen hier nicht. Endpunkt: `POST /service/get-eigene-uebersicht`. |
 
