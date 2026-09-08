@@ -36,7 +36,7 @@ import {
 } from './DruckstationBackend'
 import { useDruckstationen, useFehlgeschlageneDruckauftraege } from './hooks'
 
-// Kurzbeschreibung und Label je Station (Handoff 1g); das Label kommt aus dem
+// Kurzbeschreibung und Label je Station; das Label kommt aus dem
 // geteilten KATEGORIE_LABEL des Backends (Single Source of Truth).
 const KATEGORIE_INFO: Record<
   Kategorie,
@@ -64,7 +64,7 @@ const KATEGORIE_INFO: Record<
   },
 }
 
-// Die Bonmodus-Optionen mit erklärendem Untertitel (Handoff 1g). „Pro Stück"
+// Die Bonmodus-Optionen mit erklärendem Untertitel. „Pro Stück"
 // erscheint nur am Abholbon (siehe erlaubtBonmodus) und füllt dort als dritte
 // Kachel die zweite Zeile des Rasters.
 const BONMODUS_OPTIONEN: { wert: Bonmodus; titel: string; hinweis: string }[] =

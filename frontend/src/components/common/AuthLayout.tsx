@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-// Login-Glows (Handoff Delta B): drei stark geblurte, dekorative Farbkreise
+// Login-Glows: drei stark geblurte, dekorative Farbkreise
 // hinter der Karte. Rein dekorativ (aria-hidden, pointer-events-none) und im
 // Druck ausgeblendet. Das Clipping des Überhangs liegt in einer eigenen absolut
 // positionierten Ebene (inset-0 overflow-hidden -z-10), damit der äußere

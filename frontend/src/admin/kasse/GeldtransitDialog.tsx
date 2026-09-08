@@ -34,8 +34,8 @@ import {
 
 // GeldtransitDialog bucht eine einzelne Bargeldbewegung mit fest vorgegebener
 // Richtung (die Buttons „+ Geld einlegen" / „− Geld entnehmen" wählen sie). Die
-// Richtung wird nicht mehr im Formular gewählt — das ist der Unterschied zur
-// früheren GeldtransitSection mit Richtungs-Umschalter.
+// Richtung wird nicht im Formular gewählt, sondern über die aufrufenden
+// Buttons vorgegeben.
 export function GeldtransitDialog({
   open,
   onOpenChange,

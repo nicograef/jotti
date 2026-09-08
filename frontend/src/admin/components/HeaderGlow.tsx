@@ -1,4 +1,4 @@
-// Dekorativer Seitenkopf-Glow (Handoff „Glow-Rezept"): zwei überlagerte,
+// Dekorativer Seitenkopf-Glow: zwei überlagerte,
 // stark geblurte Ellipsen-Gradients aus einem Spektral-Farbpaar hinter dem
 // AdminPageHeader. Rein dekorativ — für Screenreader unsichtbar (aria-hidden),
 // klickdurchlässig (pointer-events-none) und im Druck ausgeblendet
