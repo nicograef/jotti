@@ -49,7 +49,7 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 			log.Warn().Str("username", username).Msg("User not found during login")
 			return "", ErrUserNotFound
 		}
-		log.Error().Str("username", username).Msg("Failed to retrieve user ID")
+		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve user ID")
 		return "", ErrDatabase
 	}
 

@@ -35,7 +35,7 @@ func (c Command) CreateUser(ctx context.Context, name, username string, role use
 			log.Warn().Err(err).Str("username", user.Username).Msg("Username already exists")
 			return 0, "", ErrUsernameAlreadyExists
 		}
-		log.Error().Str("username", user.Username).Msg("Failed to create user")
+		log.Error().Err(err).Str("username", user.Username).Msg("Failed to create user")
 		return 0, "", ErrDatabase
 	}
 
@@ -52,7 +52,7 @@ func (c Command) UpdateUser(ctx context.Context, userID int, name, username stri
 			log.Warn().Int("user_id", userID).Msg("User not found for update")
 			return ErrUserNotFound
 		}
-		log.Error().Int("user_id", userID).Msg("Failed to retrieve user for update")
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve user for update")
 		return ErrDatabase
 	}
 
@@ -97,7 +97,7 @@ func (c Command) applyUserStatusChange(ctx context.Context, userID int, successM
 			log.Warn().Int("user_id", userID).Msg("User not found for status change")
 			return ErrUserNotFound
 		}
-		log.Error().Int("user_id", userID).Msg("Failed to retrieve user for status change")
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve user for status change")
 		return ErrDatabase
 	}
 
@@ -122,7 +122,7 @@ func (c Command) ResetPassword(ctx context.Context, userID int) (string, error) 
 			log.Warn().Int("user_id", userID).Msg("User not found for password reset")
 			return "", ErrUserNotFound
 		}
-		log.Error().Int("user_id", userID).Msg("Failed to retrieve user for password reset")
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve user for password reset")
 		return "", ErrDatabase
 	}
 
@@ -134,7 +134,7 @@ func (c Command) ResetPassword(ctx context.Context, userID int) (string, error) 
 
 	err = c.UserRepo.UpdateUser(ctx, user)
 	if err != nil {
-		log.Error().Int("user_id", userID).Msg("Failed to update user in persistence")
+		log.Error().Err(err).Int("user_id", userID).Msg("Failed to update user in persistence")
 		return "", ErrDatabase
 	}
 

@@ -46,7 +46,7 @@ func (c Command) CreateProdukt(ctx context.Context, name string, kategorie produ
 			log.Warn().Err(err).Str("name", produkt.Name).Msg("Produkt name already exists")
 			return 0, ErrProduktAlreadyExists
 		}
-		log.Error().Str("name", produkt.Name).Msg("Failed to create produkt")
+		log.Error().Err(err).Str("name", produkt.Name).Msg("Failed to create produkt")
 		return 0, ErrDatabase
 	}
 
@@ -63,7 +63,7 @@ func (c Command) UpdateProdukt(ctx context.Context, produktID int, name string, 
 			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for update")
 			return ErrProduktNotFound
 		}
-		log.Error().Int("produkt_id", produktID).Msg("Failed to retrieve produkt for update")
+		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to retrieve produkt for update")
 		return ErrDatabase
 	}
 
@@ -118,7 +118,7 @@ func (c Command) CreateVariante(ctx context.Context, produktID int, name string,
 			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for variante creation")
 			return 0, ErrProduktNotFound
 		}
-		log.Error().Int("produkt_id", produktID).Msg("Failed to retrieve produkt for variante creation")
+		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to retrieve produkt for variante creation")
 		return 0, ErrDatabase
 	}
 
@@ -130,7 +130,7 @@ func (c Command) CreateVariante(ctx context.Context, produktID int, name string,
 
 	varianteID, err := c.ProduktRepo.CreateVariante(ctx, produktID, variante)
 	if err != nil {
-		log.Error().Int("produkt_id", produktID).Str("name", variante.Name).Msg("Failed to create variante")
+		log.Error().Err(err).Int("produkt_id", produktID).Str("name", variante.Name).Msg("Failed to create variante")
 		return 0, ErrDatabase
 	}
 
@@ -147,7 +147,7 @@ func (c Command) UpdateVariante(ctx context.Context, varianteID int, name string
 			log.Warn().Int("variante_id", varianteID).Msg("Variante not found for update")
 			return ErrVarianteNotFound
 		}
-		log.Error().Int("variante_id", varianteID).Msg("Failed to retrieve variante for update")
+		log.Error().Err(err).Int("variante_id", varianteID).Msg("Failed to retrieve variante for update")
 		return ErrDatabase
 	}
 
@@ -203,7 +203,7 @@ func (c Command) applyVarianteStatusChange(ctx context.Context, varianteID int, 
 			log.Warn().Int("variante_id", varianteID).Msg("Variante not found for status change")
 			return ErrVarianteNotFound
 		}
-		log.Error().Int("variante_id", varianteID).Msg("Failed to retrieve variante for status change")
+		log.Error().Err(err).Int("variante_id", varianteID).Msg("Failed to retrieve variante for status change")
 		return ErrDatabase
 	}
 
@@ -227,7 +227,7 @@ func (c Command) DeleteProdukt(ctx context.Context, produktID int) error {
 			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for deletion")
 			return ErrProduktNotFound
 		}
-		log.Error().Int("produkt_id", produktID).Msg("Failed to retrieve produkt for deletion")
+		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to retrieve produkt for deletion")
 		return ErrDatabase
 	}
 
@@ -255,7 +255,7 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID i
 			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for variante deletion")
 			return ErrProduktNotFound
 		}
-		log.Error().Int("produkt_id", produktID).Msg("Failed to retrieve produkt for variante deletion")
+		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to retrieve produkt for variante deletion")
 		return ErrDatabase
 	}
 
@@ -265,7 +265,7 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID i
 			log.Warn().Int("variante_id", varianteID).Msg("Variante not found for deletion")
 			return ErrVarianteNotFound
 		}
-		log.Error().Int("variante_id", varianteID).Msg("Failed to retrieve variante for deletion")
+		log.Error().Err(err).Int("variante_id", varianteID).Msg("Failed to retrieve variante for deletion")
 		return ErrDatabase
 	}
 
@@ -307,7 +307,7 @@ func (c Command) SortiereVariantenAlphabetisch(ctx context.Context, produktID in
 			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for sorting")
 			return ErrProduktNotFound
 		}
-		log.Error().Int("produkt_id", produktID).Msg("Failed to retrieve produkt for sorting")
+		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to retrieve produkt for sorting")
 		return ErrDatabase
 	}
 
