@@ -56,9 +56,9 @@ func (h *CommandHandler) CreateProduktHandler() http.HandlerFunc {
 
 		id, err := h.Command.CreateProdukt(r.Context(), body.Name, body.Kategorie, body.Steuersatz)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrProduktAlreadyExists: "produkt_already_exists",
-				application.ErrInvalidProduktData:   "invalid_produkt_data",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrProduktAlreadyExists, Code: "produkt_already_exists"},
+				{Err: application.ErrInvalidProduktData, Code: "invalid_produkt_data"},
 			})
 			return
 		}
@@ -90,10 +90,10 @@ func (h *CommandHandler) UpdateProduktHandler() http.HandlerFunc {
 
 		err := h.Command.UpdateProdukt(r.Context(), body.ID, body.Name, body.Kategorie, body.Steuersatz)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrProduktNotFound:      "produkt_not_found",
-				application.ErrProduktAlreadyExists: "produkt_already_exists",
-				application.ErrInvalidProduktData:   "invalid_produkt_data",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrProduktNotFound, Code: "produkt_not_found"},
+				{Err: application.ErrProduktAlreadyExists, Code: "produkt_already_exists"},
+				{Err: application.ErrInvalidProduktData, Code: "invalid_produkt_data"},
 			})
 			return
 		}
@@ -121,8 +121,8 @@ func (h *CommandHandler) VerschiebeProduktHandler() http.HandlerFunc {
 
 		err := h.Command.VerschiebeProdukt(r.Context(), body.ID, body.Richtung)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrProduktNotFound: "produkt_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrProduktNotFound, Code: "produkt_not_found"},
 			})
 			return
 		}
@@ -158,9 +158,9 @@ func (h *CommandHandler) CreateVarianteHandler() http.HandlerFunc {
 
 		id, err := h.Command.CreateVariante(r.Context(), body.ProduktID, body.Name, body.PreisCents)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrProduktNotFound:     "produkt_not_found",
-				application.ErrInvalidVarianteData: "invalid_variante_data",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrProduktNotFound, Code: "produkt_not_found"},
+				{Err: application.ErrInvalidVarianteData, Code: "invalid_variante_data"},
 			})
 			return
 		}
@@ -190,9 +190,9 @@ func (h *CommandHandler) UpdateVarianteHandler() http.HandlerFunc {
 
 		err := h.Command.UpdateVariante(r.Context(), body.ID, body.Name, body.PreisCents)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrVarianteNotFound:    "variante_not_found",
-				application.ErrInvalidVarianteData: "invalid_variante_data",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrVarianteNotFound, Code: "variante_not_found"},
+				{Err: application.ErrInvalidVarianteData, Code: "invalid_variante_data"},
 			})
 			return
 		}
@@ -220,8 +220,8 @@ func (h *CommandHandler) VerschiebeVarianteHandler() http.HandlerFunc {
 
 		err := h.Command.VerschiebeVariante(r.Context(), body.ID, body.Richtung)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrVarianteNotFound: "variante_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrVarianteNotFound, Code: "variante_not_found"},
 			})
 			return
 		}
@@ -247,8 +247,8 @@ func (h *CommandHandler) ActivateVarianteHandler() http.HandlerFunc {
 
 		err := h.Command.ActivateVariante(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrVarianteNotFound: "variante_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrVarianteNotFound, Code: "variante_not_found"},
 			})
 			return
 		}
@@ -274,8 +274,8 @@ func (h *CommandHandler) DeactivateVarianteHandler() http.HandlerFunc {
 
 		err := h.Command.DeactivateVariante(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrVarianteNotFound: "variante_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrVarianteNotFound, Code: "variante_not_found"},
 			})
 			return
 		}
@@ -301,8 +301,8 @@ func (h *CommandHandler) DeleteProduktHandler() http.HandlerFunc {
 
 		err := h.Command.DeleteProdukt(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrProduktNotFound: "produkt_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrProduktNotFound, Code: "produkt_not_found"},
 			})
 			return
 		}
@@ -330,9 +330,9 @@ func (h *CommandHandler) DeleteVarianteHandler() http.HandlerFunc {
 
 		err := h.Command.DeleteVariante(r.Context(), body.ProduktID, body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrProduktNotFound:  "produkt_not_found",
-				application.ErrVarianteNotFound: "variante_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrProduktNotFound, Code: "produkt_not_found"},
+				{Err: application.ErrVarianteNotFound, Code: "variante_not_found"},
 			})
 			return
 		}
@@ -358,8 +358,8 @@ func (h *CommandHandler) SortiereVariantenHandler() http.HandlerFunc {
 
 		err := h.Command.SortiereVariantenAlphabetisch(r.Context(), body.ProduktID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrProduktNotFound: "produkt_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrProduktNotFound, Code: "produkt_not_found"},
 			})
 			return
 		}

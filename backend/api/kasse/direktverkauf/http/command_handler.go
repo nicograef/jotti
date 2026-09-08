@@ -82,9 +82,9 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
-				helper.MapError(w, err, map[error]string{
-					enrichment.ErrProduktNotFound:    "produkt_not_found",
-					enrichment.ErrVarianteNichtAktiv: "variante_nicht_aktiv",
+				helper.MapError(w, err, []helper.ErrorCode{
+					{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
+					{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
 				})
 			}
 			return
@@ -147,9 +147,9 @@ func (h *CommandHandler) DirektverkaufStornierenHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
-				helper.MapError(w, err, map[error]string{
-					application.ErrVerkaufNichtGefunden:     "verkauf_not_found",
-					application.ErrPositionNichtStornierbar: "position_nicht_stornierbar",
+				helper.MapError(w, err, []helper.ErrorCode{
+					{Err: application.ErrVerkaufNichtGefunden, Code: "verkauf_not_found"},
+					{Err: application.ErrPositionNichtStornierbar, Code: "position_nicht_stornierbar"},
 				})
 			}
 			return

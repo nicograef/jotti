@@ -165,14 +165,20 @@ func ExtendWriteDeadline(w http.ResponseWriter, r *http.Request, timeout time.Du
 	}
 }
 
-// MapError maps a domain/application error to an HTTP error response.
-// It checks the error against each entry in the provided error-to-code map.
-// If a match is found, it sends a client error with the corresponding code.
-// If no match is found, it sends a generic server error.
-func MapError(w http.ResponseWriter, err error, codeMap map[error]string) {
-	for target, code := range codeMap {
-		if errors.Is(err, target) {
-			SendClientError(w, code, nil)
+// ErrorCode assigns a client error code to an application sentinel.
+type ErrorCode struct {
+	Err  error
+	Code string
+}
+
+// MapError maps a domain/application error to an HTTP error response. It walks
+// codes in order and answers 400 with the code of the first entry the error
+// matches (errors.Is), so an error that matches two entries gets the code of the
+// earlier one. Without a match it answers 500.
+func MapError(w http.ResponseWriter, err error, codes []ErrorCode) {
+	for _, entry := range codes {
+		if errors.Is(err, entry.Err) {
+			SendClientError(w, entry.Code, nil)
 			return
 		}
 	}

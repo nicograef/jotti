@@ -93,9 +93,9 @@ func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 
 		zNr, err := h.Command.KassensitzungEroeffnen(r.Context(), userID, userName, body.Bezeichnung, *body.BetragCents)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				kasseApp.ErrKasseAlreadyOpen:           "kasse_bereits_geoeffnet",
-				kasseApp.ErrBetreiberNichtKonfiguriert: "betreiber_nicht_konfiguriert",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: kasseApp.ErrKasseAlreadyOpen, Code: "kasse_bereits_geoeffnet"},
+				{Err: kasseApp.ErrBetreiberNichtKonfiguriert, Code: "betreiber_nicht_konfiguriert"},
 			})
 			return
 		}
@@ -162,9 +162,9 @@ func (h *CommandHandler) KasseAbschliessenHandler() http.HandlerFunc {
 			case errors.Is(err, kasseApp.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
-				helper.MapError(w, err, map[error]string{
-					kasseApp.ErrTischeSaldoOffen:         "tische_saldo_offen",
-					kasseApp.ErrBuchungenNachKassensturz: "buchungen_nach_kassensturz",
+				helper.MapError(w, err, []helper.ErrorCode{
+					{Err: kasseApp.ErrTischeSaldoOffen, Code: "tische_saldo_offen"},
+					{Err: kasseApp.ErrBuchungenNachKassensturz, Code: "buchungen_nach_kassensturz"},
 				})
 			}
 			return

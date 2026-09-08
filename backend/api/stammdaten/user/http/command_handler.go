@@ -50,8 +50,8 @@ func (h CommandHandler) CreateUserHandler() http.HandlerFunc {
 
 		userID, onetimePassword, err := h.Command.CreateUser(r.Context(), body.Name, body.Username, body.Role)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUsernameAlreadyExists: "username_already_exists",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUsernameAlreadyExists, Code: "username_already_exists"},
 			})
 			return
 		}
@@ -96,9 +96,9 @@ func (h CommandHandler) UpdateUserHandler() http.HandlerFunc {
 
 		err := h.Command.UpdateUser(r.Context(), body.ID, body.Name, body.Username, body.Role)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUserNotFound:          "user_not_found",
-				application.ErrUsernameAlreadyExists: "username_already_exists",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUserNotFound, Code: "user_not_found"},
+				{Err: application.ErrUsernameAlreadyExists, Code: "username_already_exists"},
 			})
 			return
 		}
@@ -129,8 +129,8 @@ func (h CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 
 		onetimePassword, err := h.Command.ResetPassword(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUserNotFound: "user_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUserNotFound, Code: "user_not_found"},
 			})
 			return
 		}
@@ -157,8 +157,8 @@ func (h CommandHandler) ActivateUserHandler() http.HandlerFunc {
 
 		err := h.Command.ActivateUser(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUserNotFound: "user_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUserNotFound, Code: "user_not_found"},
 			})
 			return
 		}
@@ -197,8 +197,8 @@ func (h CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 
 		err := h.Command.DeactivateUser(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUserNotFound: "user_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUserNotFound, Code: "user_not_found"},
 			})
 			return
 		}
@@ -234,8 +234,8 @@ func (h CommandHandler) DeleteUserHandler() http.HandlerFunc {
 
 		err := h.Command.DeleteUser(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUserNotFound: "user_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUserNotFound, Code: "user_not_found"},
 			})
 			return
 		}

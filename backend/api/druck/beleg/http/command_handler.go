@@ -90,11 +90,11 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 			default:
 				// Ein gemeinsames Mapping für alle vier Formen: jede Form kann nur ihre
 				// Teilmenge dieser Fehler liefern, und die Codes sind formunabhängig gleich.
-				helper.MapError(w, err, map[error]string{
-					application.ErrVerkaufNichtGefunden:                "verkauf_not_found",
-					application.ErrStornierungNichtGefunden:            "stornierung_not_found",
-					application.ErrZahlungNichtGefunden:                "zahlung_not_found",
-					application.ErrKassenbelegDruckerNichtKonfiguriert: "kassenbeleg_drucker_nicht_konfiguriert",
+				helper.MapError(w, err, []helper.ErrorCode{
+					{Err: application.ErrVerkaufNichtGefunden, Code: "verkauf_not_found"},
+					{Err: application.ErrStornierungNichtGefunden, Code: "stornierung_not_found"},
+					{Err: application.ErrZahlungNichtGefunden, Code: "zahlung_not_found"},
+					{Err: application.ErrKassenbelegDruckerNichtKonfiguriert, Code: "kassenbeleg_drucker_nicht_konfiguriert"},
 				})
 			}
 			return

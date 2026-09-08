@@ -104,11 +104,11 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
-				helper.MapError(w, err, map[error]string{
-					application.ErrTischNotFound:     "tisch_not_found",
-					application.ErrTischNotActive:    "tisch_not_active",
-					enrichment.ErrProduktNotFound:    "produkt_not_found",
-					enrichment.ErrVarianteNichtAktiv: "variante_nicht_aktiv",
+				helper.MapError(w, err, []helper.ErrorCode{
+					{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+					{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
+					{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
+					{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
 				})
 			}
 			return
@@ -152,10 +152,10 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
-				helper.MapError(w, err, map[error]string{
-					application.ErrTischNotFound:          "tisch_not_found",
-					application.ErrTischNotActive:         "tisch_not_active",
-					application.ErrPositionNichtBezahlbar: "position_nicht_bezahlbar",
+				helper.MapError(w, err, []helper.ErrorCode{
+					{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+					{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
+					{Err: application.ErrPositionNichtBezahlbar, Code: "position_nicht_bezahlbar"},
 				})
 			}
 			return
@@ -213,10 +213,10 @@ func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
-				helper.MapError(w, err, map[error]string{
-					application.ErrTischNotFound:            "tisch_not_found",
-					application.ErrTischNotActive:           "tisch_not_active",
-					application.ErrPositionNichtStornierbar: "position_nicht_stornierbar",
+				helper.MapError(w, err, []helper.ErrorCode{
+					{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+					{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
+					{Err: application.ErrPositionNichtStornierbar, Code: "position_nicht_stornierbar"},
 				})
 			}
 			return
@@ -249,11 +249,11 @@ func (h *CommandHandler) BestellungUmbuchenHandler() http.HandlerFunc {
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
-				helper.MapError(w, err, map[error]string{
-					application.ErrTischNotFound:          "tisch_not_found",
-					application.ErrTischNotActive:         "tisch_not_active",
-					application.ErrPositionNichtUmbuchbar: "position_nicht_umbuchbar",
-					application.ErrUmbuchungGleicherTisch: "umbuchung_gleicher_tisch",
+				helper.MapError(w, err, []helper.ErrorCode{
+					{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+					{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
+					{Err: application.ErrPositionNichtUmbuchbar, Code: "position_nicht_umbuchbar"},
+					{Err: application.ErrUmbuchungGleicherTisch, Code: "umbuchung_gleicher_tisch"},
 				})
 			}
 			return

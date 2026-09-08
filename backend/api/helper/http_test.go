@@ -5,12 +5,63 @@ package helper
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 )
+
+var (
+	errFirst  = errors.New("first")
+	errSecond = errors.New("second")
+)
+
+// mapErrorCodes is the ordered list under test: errFirst before errSecond.
+var mapErrorCodes = []ErrorCode{
+	{Err: errFirst, Code: "first_code"},
+	{Err: errSecond, Code: "second_code"},
+}
+
+// assertMappedError checks status and error code of a MapError response.
+func assertMappedError(t *testing.T, err error, wantStatus int, wantCode string) {
+	t.Helper()
+
+	rec := httptest.NewRecorder()
+	MapError(rec, err, mapErrorCodes)
+
+	if rec.Code != wantStatus {
+		t.Errorf("expected status %d, got %d", wantStatus, rec.Code)
+	}
+	var body struct {
+		Code string `json:"code"`
+	}
+	if decodeErr := json.NewDecoder(rec.Body).Decode(&body); decodeErr != nil {
+		t.Fatalf("failed to decode error body: %v", decodeErr)
+	}
+	if body.Code != wantCode {
+		t.Errorf("expected code %s, got %s", wantCode, body.Code)
+	}
+}
+
+func TestMapError_Match(t *testing.T) {
+	assertMappedError(t, errSecond, http.StatusBadRequest, "second_code")
+}
+
+// Ein Fehler, der auf zwei Einträge passt, bekommt den Code des ersten.
+func TestMapError_FirstMatchWins(t *testing.T) {
+	assertMappedError(t, errors.Join(errSecond, errFirst), http.StatusBadRequest, "first_code")
+}
+
+func TestMapError_NoMatch(t *testing.T) {
+	assertMappedError(t, errors.New("unlisted"), http.StatusInternalServerError, "internal_server_error")
+}
+
+func TestMapError_WrappedError(t *testing.T) {
+	assertMappedError(t, fmt.Errorf("laden fehlgeschlagen: %w", errFirst), http.StatusBadRequest, "first_code")
+}
 
 func TestSendJSONResponse(t *testing.T) {
 	rec := httptest.NewRecorder()
