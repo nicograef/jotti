@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# jotti — one decidable language rule per area (Phase 4, "Sprach- und
-# Zeichen-Gate"): Windows console output stays ASCII, backend Go comments
-# carry real German umlauts, and packaging/**/*.cmd stays ASCII throughout
-# (Windows batch files have no separate doc-comment channel). Identifiers
-# never change here — only string literals, comments and .cmd text.
+# jotti — one decidable language rule per area: Windows console output
+# stays ASCII, backend Go comments carry real German umlauts, and
+# packaging/**/*.cmd stays ASCII throughout (Windows batch files have no
+# separate doc-comment channel). Identifiers never change here — only
+# string literals, comments and .cmd text.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"

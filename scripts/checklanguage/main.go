@@ -1,8 +1,8 @@
-// Command checklanguage backs scripts/check-language.sh (phase 4, "Sprach- und
-// Zeichen-Gate"): it applies the two rules that need a real Go parser instead
-// of a line-based grep — non-ASCII bytes inside Go string literals (not
-// comments) and transliterated umlauts inside Go comment lines — plus the
-// plain-text ASCII rule for packaging/**/*.cmd, which needs no parser at all.
+// Command checklanguage backs scripts/check-language.sh: it applies the two
+// rules that need a real Go parser instead of a line-based grep — non-ASCII
+// bytes inside Go string literals (not comments) and transliterated umlauts
+// inside Go comment lines — plus the plain-text ASCII rule for
+// packaging/**/*.cmd, which needs no parser at all.
 //
 // It is not part of any Go module (no go.mod above scripts/): `go run` builds
 // it as a standalone "command-line-arguments" program, matching the
@@ -28,9 +28,9 @@ import (
 	"unicode"
 )
 
-// umlauts maps each transliterated form from the plan's word list (Phase 4,
-// criterion 4.1) to its correct German spelling. The mapping is per-word,
-// not a generic character substitution: German orthography turns "ss" into
+// umlauts maps each transliterated form on the enforced word list to its
+// correct German spelling. The mapping is per-word, not a generic character
+// substitution: German orthography turns "ss" into
 // "ß" only in some of these words (gemäß, schließen, größe), not others
 // (müssen, genügt) — hardcoding each word keeps that correct.
 var umlauts = map[string]string{
