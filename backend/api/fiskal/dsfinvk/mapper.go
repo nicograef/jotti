@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/steuer"
@@ -544,23 +545,16 @@ func abrechnungskreis(subject string, tischnamen map[int]string) string {
 
 // --- Stammdatenmodul ---
 
-// Amtliche MaxLength der Betreiber-Felder in den Stammdatenzeilen (DSFinV-K 2.4,
-// index.xml: NAME 60, STRASSE 60, PLZ 10, ORT 62; die LOC_*-Felder der
-// location.csv tragen dieselben Längen).
-const (
-	maxLengthName    = 60
-	maxLengthStrasse = 60
-	maxLengthPlz     = 10
-	maxLengthOrt     = 62
-)
-
 // truncate schneidet wert auf höchstens maxLength Zeichen. Der Schnitt läuft über
 // []rune, damit ein Umlaut nicht mitten in seiner UTF-8-Folge zerfällt und das
-// Feld gültig bleibt.
+// Feld gültig bleibt. Die Längen kommen aus domain/betreiber, das jedes Feld
+// beim Schreiben in derselben Einheit begrenzt (NAME 60, STRASSE 60, PLZ 10,
+// ORT 62 laut index.xml). Zu kürzen gibt es damit nur an Bestandswerten, die
+// vor dieser Grenze in die TEXT-Spalten gelangt sind.
 //
-// Zu kürzen gibt es nur an Bestandsdaten: Die Betreiber-Spalten sind TEXT, und
-// das Schema in domain/betreiber begrenzt jedes Feld in Bytes — also stets
-// strenger als diese Zeichengrenze.
+// Gekürzt werden allein die vier Adressfelder. Steuernummer und USt-IdNr.
+// bleiben ungekürzt: Eine abgeschnittene Nummer ist keine kürzere, sondern eine
+// falsche.
 func truncate(wert string, maxLength int) string {
 	runen := []rune(wert)
 	if len(runen) <= maxLength {
@@ -589,8 +583,8 @@ func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table 
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 		"", Version,
 		belege[0].bonID, belege[len(belege)-1].bonID,
-		truncate(s.Betreiber.Vereinsname, maxLengthName), truncate(s.Betreiber.Strasse, maxLengthStrasse),
-		truncate(s.Betreiber.Plz, maxLengthPlz), truncate(s.Betreiber.Ort, maxLengthOrt), land,
+		truncate(s.Betreiber.Vereinsname, betreiber.MaxLengthVereinsname), truncate(s.Betreiber.Strasse, betreiber.MaxLengthStrasse),
+		truncate(s.Betreiber.Plz, betreiber.MaxLengthPlz), truncate(s.Betreiber.Ort, betreiber.MaxLengthOrt), land,
 		ptr(s.Betreiber.Steuernummer), ptr(s.Betreiber.UstID),
 		formatAmount(bar), formatAmount(bar),
 	}
@@ -613,8 +607,8 @@ var locationColumns = []column{
 func buildLocation(s Snapshot, erstellung string) Table {
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-		truncate(s.Betreiber.Vereinsname, maxLengthName), truncate(s.Betreiber.Strasse, maxLengthStrasse),
-		truncate(s.Betreiber.Plz, maxLengthPlz), truncate(s.Betreiber.Ort, maxLengthOrt),
+		truncate(s.Betreiber.Vereinsname, betreiber.MaxLengthVereinsname), truncate(s.Betreiber.Strasse, betreiber.MaxLengthStrasse),
+		truncate(s.Betreiber.Plz, betreiber.MaxLengthPlz), truncate(s.Betreiber.Ort, betreiber.MaxLengthOrt),
 		land, ptr(s.Betreiber.UstID),
 	}
 
