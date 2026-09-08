@@ -116,12 +116,23 @@ jobs:
           cache-dependency-path: backend/go.sum
 
       # Version pinned to the local toolchain (scripts/setup-dev-tools.sh) so a
-      # green CI and a green `make verify` mean the same thing (D13).
-      - name: golangci-lint
+      # green CI and a green `make verify` mean the same thing (D13). Two
+      # passes, matching `make check-backend` / `make lint-backend-full`:
+      # backend/.golangci.yml's build-tags default covers //go:build
+      # integration files; the second pass's --build-tags=unit covers
+      # //go:build unit files.
+      - name: golangci-lint (integration)
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.13.0
           working-directory: ./backend
+
+      - name: golangci-lint (unit)
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.13.0
+          working-directory: ./backend
+          args: --build-tags=unit
 
   resolver-ci:
     needs: changes
