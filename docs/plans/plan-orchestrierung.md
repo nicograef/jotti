@@ -161,10 +161,10 @@ Phasen als vertikale Schnitte je Defektklasse oder Bereich, Gates zuerst (Lint, 
 Test), dann Blocker, Major, Minor; große Refactorings als eigene Entscheidungsphase.
 Jede Phase nennt Implementierer-Modell (Opus/Sonnet), Review-Tier und Gate-Befehl. Ein
 Fable-Sweep übergibt an drei Opus-Kritiker, die den Plan gegen das Findings-Dokument
-prüfen (Vollständigkeit, keine
-Verhaltensänderung bei Cleanup, Freeze-Disziplin, Rule 18); der Planer arbeitet die Kritik
-ein. Das Ask-Gate wird durchlaufen; verbleibende Fragen stehen als „Open questions" im
-Plan, die Lead-Session entscheidet sie nach `question-rules.md` oder stoppt.
+prüfen (Vollständigkeit, keine Verhaltensänderung bei Cleanup, Freeze-Disziplin, Rule 18);
+der Planer arbeitet die Kritik ein. Das Ask-Gate wird durchlaufen; verbleibende Fragen
+stehen als „Open questions" im Plan, die Lead-Session entscheidet sie nach `question-
+rules.md` oder stoppt.
 
 ### Acceptance criteria
 
@@ -189,9 +189,8 @@ Plan, die Lead-Session entscheidet sie nach `question-rules.md` oder stoppt.
 
 `implement-plan` für den Fix-Plan, Modell je Phase wie im Plan festgelegt, je Phase ein
 Fable-Sweep und ein Opus-Review mit Rückgabe an den Worker. Gates wie in Phase A. Neue
-Gates aus den Defektklassen
-werden vor den Einzelfixes gelandet, damit sie die Fixes prüfen. Stopp-Bedingungen aus
-`implement-plan` gelten unverändert.
+Gates aus den Defektklassen werden vor den Einzelfixes gelandet, damit sie die Fixes
+prüfen. Stopp-Bedingungen aus `implement-plan` gelten unverändert.
 
 ### Acceptance criteria
 
