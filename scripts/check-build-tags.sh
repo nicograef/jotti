@@ -15,6 +15,9 @@ cd "$PROJECT_ROOT"
 
 violations=0
 
+# `:(glob)` makes `/**/` mean "zero or more directories". Without the magic
+# git matches `**` like a plain `*`, which needs at least one directory and
+# so skips a test file lying directly in backend/.
 while IFS= read -r file; do
   count="$(grep -c '^//go:build' "$file" || true)"
   if [ "$count" -ne 1 ]; then
@@ -28,7 +31,7 @@ while IFS= read -r file; do
     error "$file: //go:build line must be 'unit' or 'integration', found: $tag"
     violations=$((violations + 1))
   fi
-done < <(git ls-files 'backend/**/*_test.go')
+done < <(git ls-files ':(glob)backend/**/*_test.go')
 
 if [ "$violations" -gt 0 ]; then
   fatal "$violations backend test file(s) missing a valid //go:build tag."
