@@ -27,11 +27,13 @@ Die Lead-Session reviewt und implementiert nichts selbst.
 - **Werkzeuge**: `implement-plan` (Worktrees, Commit je Kriterium, Fold, Landen),
   `create-plan`, `cleanup` (Kriterien-Dateien), Workflow-Tool für Fan-out und
   adversariale Verifikation. Der Audit-Workflow liegt als benannter Workflow in
-  `.claude/workflows/jotti-full-audit.js` und wird mit
-  `Workflow({ name: 'jotti-full-audit', args: { date: '<YYYY-MM-DD>' } })` gestartet.
+  `.claude/workflows/jotti-full-audit.js`. Aufruf je Bereich:
+  `Workflow({ name: 'jotti-full-audit', args: { date, rev, branch, area, sectionsDir } })`
+  für die sechs Bereiche, danach `Workflow({ name: 'jotti-full-audit', args: { date, rev,
+branch, assembleFrom } })`; `rev` und `branch` stempeln den Dokument-Kopf.
 - **Git**: Alles landet auf dem Feature-Branch der jeweiligen Session, nie direkt auf `main`.
-  Schnitt nach Phase B: PR #121 trägt die Phasen A und B; Phasen C–E laufen in einer neuen
-  Session auf einem eigenen Branch ab `main`.
+  Schnitt nach Phase B: PR #121 trägt Phase A und, sobald `findings-jotti-audit.md` committet
+  ist, Phase B; Phasen C–E laufen in einer neuen Session auf einem eigenen Branch ab `main`.
   Kein Force-Push, kein `--no-verify`, keine KI-Trailer. Migrationsnummern werden beim
   Landen vergeben.
 - **Datenschutz**: Keine Vereins- oder Personendaten im Repo. Der Vereins-Antwortplan bleibt
@@ -80,12 +82,12 @@ Die Lead-Session reviewt und implementiert nichts selbst.
   vorher; die Vereine bleiben bis dahin auf v0.17.3. Zielrahmen des Eigentümers: Mitte
   September.
 - **Offene Eigentümer-Punkte nach dem Merge**: Plan 2 Phase 0 Kriterium 5 (Dependabot-PRs
-  geschlossen) und Phase 10 Kriterium 4 (#111 geschlossen) abhaken; damit ist auch Phase A
-  Kriterium 1 erfüllt. `docs/plans/review-externe-prs.md` löschen, sobald #109, #110 und
+  geschlossen) und Phase 10 Kriterium 4 (#111 geschlossen) abhaken; danach Phase A
+  Kriterium 1 abhaken. `docs/plans/review-externe-prs.md` löschen, sobald #109, #110 und
   #111 geschlossen sind.
 - **Bekannte Drift für den Fix-Plan** (aus Phase A gesammelt, im Findings-Dokument
-  gegenzuprüfen): README „sechs“ vs. „drei“ Fehlversuche; `DruckerConfigPage` in
-  handbuch.md; „null Kosten“ in produktbeschreibung.md gegen README/ADR 09;
+  gegenzuprüfen): handbuch.md nennt „drei“ Fehlversuche, Code (`MaxDruckversuche = 6`) und
+  README „sechs“; `DruckerConfigPage` in handbuch.md;
   `docs/adrs/README.md`, `04_warn-bestaetigung.md` und die e2e-Dateien nicht prettier-clean;
   `setup-dev-tools.sh` baut golangci-lint bei reinem Toolchain-Wechsel nicht neu; TERMS.md
   „setzt um“ (Eigentümer-Entscheidung); `PREVIOUS_VERSION` gehört zu Phase E.
@@ -101,19 +103,21 @@ Die Lead-Session reviewt und implementiert nichts selbst.
   Audit läuft deshalb im Split-Modus des Workflows: sechs Bereichs-Läufe parallel
   (`area`, `sectionsDir`), danach ein Assemble-Lauf (`assembleFrom`).
 - Das Session-Limit kann Workflows mitten im Lauf stoppen (Meldung „session limit“). Der
-  Audit-Workflow ist dann mit `resumeFromRunId` und identischen Argumenten fortsetzbar;
-  fertige Agenten kommen aus dem Cache.
+  Aufruf des Workflow-Tools mit der Option `resumeFromRunId` und identischen Argumenten
+  setzt den Lauf fort; fertige Agenten kommen aus dem Cache. Fertige Bereichssektionen
+  liegen ohnehin als Dateien in `sectionsDir`.
 
 ## Übergabe an die nächste Session (Phasen C–E)
 
 - Session-Start: `nicograef/jotti` und `nicograef/handbook` im GitHub-Scope, Prompt „ultracode,
   lies docs/plans/plan-orchestrierung.md und starte Phase C“. Handbook-Pfad in der Cloud:
   `/home/user/handbook`, Skills unter `.claude/skills/`.
-- Umgebung: `bash scripts/setup-dev-tools.sh`; das Basis-Image bringt Node 22 und pnpm 10,
-  das Repo verlangt Node 24 und pnpm 11.6.0 (Phase A installierte Node 24 nach `/opt/node24`
-  und verlinkte die Binaries nach `/usr/local/bin`); `dockerd` von Hand starten; das
-  vorinstallierte PostgreSQL 16 stoppen (`service postgresql stop`), sonst kollidiert
-  `make verify` auf Port 5432; `govulncheck` braucht `GOTOOLCHAIN=go1.27.1`.
+- Umgebung: `bash scripts/setup-dev-tools.sh`; danach `node -v` und `pnpm -v` prüfen — das
+  Repo verlangt Node 24 und pnpm 11.6.0, das Basis-Image kann Node 22 und pnpm 10 liefern;
+  dann Node 24 installieren und vor dem Basis-Image in den `PATH` legen. `dockerd` von Hand
+  starten. Das vorinstallierte PostgreSQL 16 gestoppt lassen (`service postgresql stop`):
+  `make verify` startet seinen eigenen Container auf Port 5432. `govulncheck` braucht
+  `GOTOOLCHAIN=go1.27.1`.
 - Phase C: `Workflow({ name: 'plan-audit-fixes', args: { date, handbook:
 '/home/user/handbook/.claude/skills' } })`; die Open questions des Fix-Plans entscheidet
   die Lead-Session nach `question-rules.md` oder legt sie dem Eigentümer vor.
@@ -121,11 +125,11 @@ Die Lead-Session reviewt und implementiert nichts selbst.
 args: { phase, worktree, branch, base, planPath, slug: 'jotti-audit-fixes', gateSummary } })`,
   Defekte per `SendMessage` an den Phasen-Worker. Gates: `make check`, für Schema-Phasen
   `make verify` plus CI-Job `upgrade-path` auf dem PR, für Website-Phasen
-  `make website-check`, für Service-UI `make test-e2e`. CI läuft nur auf PRs gegen `main`,
-  also früh einen Draft-PR öffnen; der PR-Body wird ohne den injizierten Trailer
-  nachgezogen.
-- Modell-Regel unverändert: Fable nur Sweep, Opus für Review, Skeptiker und Kritik, Worker
-  Opus/Sonnet je Phase wie im Fix-Plan festgelegt.
+  `make website-check`, für Service-UI `make test-e2e`. CI läuft auf Pushes nach `main` und
+  auf PRs gegen `main`, nicht auf Feature-Branch-Pushes — also früh einen Draft-PR öffnen;
+  der PR-Body wird ohne den injizierten Trailer nachgezogen.
+- Modell-Regel: Fable nur Sweep, Opus für Review, Skeptiker und Kritik, Worker Opus/Sonnet
+  je Phase wie im Fix-Plan festgelegt.
 
 ---
 
@@ -151,8 +155,10 @@ CI-Job `upgrade-path`, für Website-Phasen `make website-check`, für Phase 4
 
 ### Acceptance criteria
 
-- [ ] Alle Kriterien der Phasen 0–10 in `plan-praxis-feedback.md` abgehakt, je Kriterium
-      ein Commit mit Trailer `Plan: praxis-feedback phase <N> criterion <M>`
+- [ ] Alle Kriterien der Phasen 0–10 in `plan-praxis-feedback.md` abgehakt; in diesem Lauf
+      geschriebene Änderungen tragen den Trailer `Plan: praxis-feedback phase <N>
+criterion <M>`, Cherry-Picks aus #109/#110 behalten ihre Original-Messages, reine
+      Gate-Kriterien (grün gelaufene Befehle) brauchen keinen Commit
 - [x] Je Phase ein Review-Protokoll mit „keine offenen Defekte" vor dem Fold
 - [x] `plan/praxis-feedback` auf den Feature-Branch gelandet, alle Worktrees entfernt
 - [x] `make verify`, `make website-check`, `make test-e2e` auf dem gelandeten Stand grün
@@ -170,12 +176,11 @@ CI-Job `upgrade-path`, für Website-Phasen `make website-check`, für Phase 4
 
 ### What to build
 
-`Workflow({ name: 'jotti-full-audit', args: { date: '<heute>' } })` auf dem gelandeten
-Stand nach Phase A; auf kleinen Maschinen im Split-Modus (sechs Läufe mit `area` und
-`sectionsDir`, dann ein Lauf mit `assembleFrom`). Ergebnis ist `docs/plans/findings-jotti-audit.md`. Die Lead-Session
-liest nur die Kennzahlen und committet die Datei. Meldet der Workflow Reviewer ohne
-Ergebnis oder eine Kappung, wird das im Dokument-Kopf sichtbar; ein Nachlauf nur für die
-fehlenden Einheiten ist über `resumeFromRunId` möglich.
+Der Audit-Workflow (Aufruf siehe Architectural decisions) auf dem gelandeten Stand nach
+Phase A. Ergebnis ist `docs/plans/findings-jotti-audit.md`. Die Lead-Session liest nur die
+Kennzahlen und committet die Datei. Meldet der Workflow Reviewer ohne Ergebnis oder eine
+Kappung, wird das im Dokument-Kopf sichtbar; ein abgebrochener Bereichslauf wird mit der
+Workflow-Tool-Option `resumeFromRunId` fortgesetzt.
 
 ### Acceptance criteria
 
@@ -256,11 +261,17 @@ prüfen. Stopp-Bedingungen aus `implement-plan` gelten unverändert.
 
 ### What to build
 
-Plan 2 Phase 11 ausführen: QA-Guide, Tag, Release, `PREVIOUS_VERSION`-Bump. Manuelle
-Schritte des QA-Guides (Hardware, Windows-Rechner, fiskaly-Konto) bleiben beim Menschen;
-die Lead-Session bereitet alles vor und stoppt vor dem Tag mit einer Übergabe.
+Plan 2 Phase 11 vorbereiten: QA-Guide durchgehen und den toten Verweis entfernen,
+`CHANGELOG.md` `[1.0.0]` füllen (Reihenfolge, `pro_stueck`, Laufzeit-Versionen), Release-
+Notes entwerfen. Manuelle Schritte des QA-Guides (Hardware, Windows-Rechner, fiskaly-Konto)
+bleiben beim Menschen; die Lead-Session stoppt vor dem Tag mit einer Übergabe. Tag,
+GitHub-Release, `PREVIOUS_VERSION`-Bump und das Löschen der beiden Plan-Dateien folgen
+durch den Eigentümer nach dem Tag.
 
 ### Acceptance criteria
 
-- [ ] Alle Kriterien von Plan 2 Phase 11 abgehakt
-- [ ] `plan-praxis-feedback.md` und dieser Plan gelöscht, Git-Historie bewahrt sie
+- [ ] Plan 2 Phase 11: QA-Guide ohne offene automatisierbare Punkte, toter Verweis entfernt,
+      `CHANGELOG.md` `[1.0.0]` und Release-Notes vorbereitet
+- [ ] Übergabe an den Eigentümer: Tag `v1.0.0`, GitHub-Release, `PREVIOUS_VERSION`-Bump
+      (eigener Commit nach dem Tag), danach `plan-praxis-feedback.md` und dieser Plan
+      gelöscht, Git-Historie bewahrt sie
