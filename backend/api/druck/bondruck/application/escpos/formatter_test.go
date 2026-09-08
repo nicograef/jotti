@@ -1,3 +1,5 @@
+//go:build unit
+
 package escpos_test
 
 import (

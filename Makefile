@@ -12,7 +12,7 @@
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
-       check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-integration check check-full verify \
+       check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-build-tags check-integration check check-full verify \
        website-dev website-build website-test website-check website-screenshots \
        help
 
@@ -293,10 +293,13 @@ check-local-proxy: ## Lokales Proxy-Entrypoint-Binary komplett prüfen (Deps, Fo
 check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
 	cd frontend && pnpm format:check && pnpm lint && pnpm test && pnpm build
 
+check-build-tags: ## Backend-Testdateien auf genau ein //go:build-Tag (unit/integration) prüfen
+	./scripts/check-build-tags.sh
+
 check-integration: ## Integrationstests gegen echte Datenbank ausführen
 	./scripts/test-integration.sh
 
-check: check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend ## Schnelle Komplettprüfung ohne DB-Integration
+check: check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-build-tags ## Schnelle Komplettprüfung ohne DB-Integration
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 
