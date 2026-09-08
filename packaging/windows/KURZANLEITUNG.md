@@ -117,12 +117,26 @@ gefahrlos löschen.
 
 **Automatisches Backup vor dem Update.** Erkennt der Starter eine neue Version,
 sichert er die Datenbank **vor** der Aktualisierung automatisch. Geht beim Update
-etwas schief, stellt **`jotti-restore.cmd`** (Doppelklick) das letzte dieser
-Backups wieder her — seit dem Backup erfasste Daten gehen dabei verloren.
+etwas schief, spielt **`jotti-restore.cmd`** (Doppelklick) das letzte dieser
+Backups zurück — seit dem Backup erfasste Daten gehen dabei verloren.
+
+Das Skript erledigt zwei Schritte, die einzeln gelingen oder scheitern:
+
+1. **Backup einspielen** — danach steht die Datenbank wieder auf dem Stand vor
+   dem Update.
+2. **jotti starten** — das Skript fährt den Stack anschließend selbst hoch.
+
+Bei „FEHLER bei der Wiederherstellung" verrät die Ausgabe darüber, welcher der
+beiden Schritte gescheitert ist. Kam der Fehler erst beim Starten, ist das
+Backup trotzdem eingespielt: Entpackt dann das **vorherige Release-ZIP** und
+startet `jotti-start.exe` daraus. Diese Version passt zur zurückgespielten
+Datenbank.
 
 > 🔁 **Nur vorwärts, kein Downgrade.** Spielt **keine ältere Version** über eine
 > neuere. Updates verändern die Datenbank und lassen sich nicht zurücknehmen;
-> eine alte Version kann mit den neuen Daten nicht mehr starten.
+> eine alte Version kann mit den neuen Daten nicht mehr starten. Einzige
+> Ausnahme ist der Rückweg oben: Nach dem Restore ist die Datenbank wieder auf
+> dem alten Stand, und das vorherige Release passt dazu.
 
 ## Wenn nach einem Update niemand mehr hineinkommt
 

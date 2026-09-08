@@ -173,8 +173,8 @@ unter [Der Weg zurück](#der-weg-zurück-wenn-das-update-schiefgeht).
 
 ## Der Weg zurück, wenn das Update schiefgeht
 
-Der Rückweg ist **nicht**, einfach das alte ZIP wieder auszupacken. Das
-funktioniert nicht: `jotti-start.exe` verweigert den Start einer älteren Version
+Der Rückweg ist **nicht**, einfach das alte ZIP wieder auszupacken. Lief die
+neue Version schon einmal, verweigert `jotti-start.exe` den Start einer älteren
 mit der Meldung „Start verweigert: Diese Version … ist aelter als die zuletzt
 gestartete …". Updates verändern die Datenbank, und diese Änderung wird nicht
 zurückgenommen.
