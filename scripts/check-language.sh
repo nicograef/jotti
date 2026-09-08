@@ -14,16 +14,15 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$PROJECT_ROOT"
 
-# scripts/checklanguage is not part of any Go module (see go.work): building
-# the file directly, not a package path, builds it standalone and sidesteps
-# "outside modules listed in go.work". Built once into a temp binary rather
-# than run via `go run` each time: `go run` collapses every non-zero exit
-# code from the program it runs to 1, which would make a real parse error
-# (checklanguage's exit 2) indistinguishable from "found violations" (its
-# exit 1).
+# backend/internal/tools/checklanguage is a real package of the backend
+# module (golangci-lint, go vet and its own unit test cover it there).
+# Built once into a temp binary rather than run via `go run` each time:
+# `go run` collapses every non-zero exit code from the program it runs to
+# 1, which would make a real parse error (checklanguage's exit 2)
+# indistinguishable from "found violations" (its exit 1).
 CHECKER_BIN="$(mktemp)"
 trap 'rm -f "$CHECKER_BIN"' EXIT
-go build -o "$CHECKER_BIN" "$SCRIPT_DIR/checklanguage/main.go"
+(cd backend && go build -o "$CHECKER_BIN" ./internal/tools/checklanguage)
 
 violations=0
 
