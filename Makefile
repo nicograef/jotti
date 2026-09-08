@@ -93,8 +93,8 @@ lint: lint-backend lint-frontend ## Backend + Frontend Linting
 fmt-backend: ## Backend Code formatieren (goimports)
 	cd backend && goimports -w .
 
-fmt-frontend: ## Frontend Code formatieren (Prettier)
-	cd frontend && pnpm format
+fmt-frontend: ## Frontend Code formatieren (Prettier + ESLint --fix)
+	cd frontend && pnpm format && pnpm lint:fix
 
 fmt: fmt-backend fmt-frontend ## Backend + Frontend formatieren
 
