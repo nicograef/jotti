@@ -49,7 +49,7 @@ Alle Befehle werden über das **Makefile** ausgeführt (`make help` für die vol
 | `make verify` | Vollständige Prüfung inkl. Integrationstests |
 | `make test`   | Backend Unit-Tests                           |
 | `make lint`   | Backend + Frontend Linting                   |
-| `make fmt`    | Backend + Frontend Formatierung              |
+| `make fmt`    | Backend, Frontend und Repo-Prettier          |
 | `make build`  | Backend + Frontend kompilieren               |
 | `make sqlc`   | sqlc Code generieren (nach Query-Änderungen) |
 | `make dev`    | Dev-Stack starten (Docker Compose)           |

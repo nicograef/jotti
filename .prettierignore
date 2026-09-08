@@ -11,8 +11,8 @@ package-lock.json
 backend/sqlc/dbgen
 docs/rechtsquellen
 
-# Plan files are transient and owned by the plan's Lead session; a --write
-# run here would collide with a worker's tick commit.
+# Plan files are transient and edited by hand while a plan is running
+# (AGENTS.md, Git-Workflow).
 docs/plans
 
 # shadcn/ui generated files

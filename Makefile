@@ -3,7 +3,7 @@
 .PHONY: init dev dev-up down restart logs status \
        test test-frontend test-integration test-all test-e2e test-tse-live test-tse-live-setup fuzz \
        lint-backend lint-backend-full lint-frontend lint \
-       fmt-backend fmt-frontend fmt \
+       fmt-backend fmt-frontend fmt-repo fmt \
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
        build-starter-windows build-relay-windows starter-syso release-windows \
        sqlc \
@@ -96,7 +96,10 @@ fmt-backend: ## Backend Code formatieren (goimports)
 fmt-frontend: ## Frontend Code formatieren (Prettier + ESLint --fix)
 	cd frontend && pnpm format && pnpm lint:fix
 
-fmt: fmt-backend fmt-frontend ## Backend + Frontend formatieren
+fmt-repo: ## Repo-weite Prettier-Formatierung schreiben (Gegenstück zu check-format)
+	frontend/node_modules/.bin/prettier --write "**/*.{ts,tsx,js,mjs,cjs,json,css,md}"
+
+fmt: fmt-backend fmt-frontend fmt-repo ## Backend, Frontend und Repo-Prettier formatieren
 
 # ──────────────────────────────────────────────
 # Build
