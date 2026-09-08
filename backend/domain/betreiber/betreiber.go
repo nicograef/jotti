@@ -22,12 +22,12 @@ type Betreiber struct {
 }
 
 // Die Obergrenzen sind die amtlichen Maximallängen der DSFinV-K-Stammdaten
-// (2.4, index.xml: NAME 60, STRASSE 60, PLZ 10, ORT 62, STNR 20, USTID 15) —
-// jedes Feld erscheint dort unverkürzt. Jedes Schema trimmt zuerst; danach fängt
-// Min(1) einen Wert aus reinen Leerzeichen, Required das leere Feld (zog prüft
-// Required vor den Transformationen). Die vier Pflichtfelder sind per Definition
-// required — Aufrufstellen nutzen sie direkt und rufen `.Required()` nie erneut
-// auf (zog mutiert den Empfänger in place).
+// (2.4, index.xml: NAME 60, STRASSE 60, PLZ 10, ORT 62, STNR 20, USTID 15) — der
+// Export schreibt jedes Feld in eine dieser Spalten. Jedes Schema trimmt; danach
+// fängt Min(1) einen Wert aus reinen Leerzeichen, Required das leere Feld (zog
+// prüft Required vor den Transformationen). Die vier Pflichtfelder sind per
+// Definition required — Aufrufstellen nutzen sie direkt und rufen `.Required()`
+// nie erneut auf (zog mutiert den Empfänger in place).
 var VereinsnameSchema = z.String().Trim().
 	Min(1, z.Message("Vereinsname ist erforderlich")).
 	Max(60, z.Message("Vereinsname zu lang")).
