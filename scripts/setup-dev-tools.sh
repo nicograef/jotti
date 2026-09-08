@@ -60,10 +60,8 @@ info "Ensuring golangci-lint ($GOLANGCI_LINT_VERSION) is available..."
 # (allowlisted) module proxy is the one method that works locally and in cloud.
 GO_TOOLCHAIN="$(cd "$PROJECT_ROOT/backend" && go env GOVERSION)"
 
-# A pinned-version binary that was built with an older Go than
-# backend/go.mod now requires still refuses to run (see the note above), so
-# a version match alone is not enough: also compare the Go version recorded
-# in the binary (`go version -m`) against $GO_TOOLCHAIN.
+# So a version match alone is not enough: compare the Go version recorded in
+# the binary (`go version -m`) against $GO_TOOLCHAIN too.
 golangci_lint_built_with() {
   go version -m "$1" 2>/dev/null | awk 'NR==1 {print $2}'
 }
