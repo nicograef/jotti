@@ -29,7 +29,7 @@ type CreateProduktParams struct {
 }
 
 // Neue Produkte landen ans Ende ihrer Kategorie. Die Reihenfolge wird in der
-// Datenbank berechnet, damit zwischen Lesen und Schreiben keine Luecke entsteht.
+// Datenbank berechnet, damit zwischen Lesen und Schreiben keine Lücke entsteht.
 func (q *Queries) CreateProdukt(ctx context.Context, arg CreateProduktParams) (int, error) {
 	row := q.db.QueryRowContext(ctx, createProdukt,
 		arg.Name,
@@ -120,7 +120,7 @@ type GetAktiveProdukteRow struct {
 	Varianten  json.RawMessage
 }
 
-// Bestelliste fuer den Service: nur aktive Produkte mit mindestens einer aktiven Variante.
+// Bestelliste für den Service: nur aktive Produkte mit mindestens einer aktiven Variante.
 // Der INNER JOIN blendet aktive Produkte ohne aktive (bepreiste) Variante bewusst aus,
 // da sie nicht bestellbar sind. Die Admin-Sicht (GetAlleProdukte) zeigt sie via LEFT JOIN.
 func (q *Queries) GetAktiveProdukte(ctx context.Context) ([]GetAktiveProdukteRow, error) {
@@ -478,10 +478,10 @@ WHERE p.id = neu.id
 `
 
 // Vergibt die Reihenfolge aller Produkte einer Kategorie dicht neu (1..N) in
-// der bestehenden Sortierung. Das laeuft vor jedem Tausch, weil zwei Zeilen mit
-// demselben Wert sonst denselben Wert zurueckgeschrieben bekaemen und das
-// Verschieben wirkungslos bliebe. updated_at bleibt unberuehrt: die
-// Normalisierung veraendert die sichtbare Reihenfolge nicht.
+// der bestehenden Sortierung. Das läuft vor jedem Tausch, weil zwei Zeilen mit
+// demselben Wert sonst denselben Wert zurückgeschrieben bekämen und das
+// Verschieben wirkungslos bliebe. updated_at bleibt unberührt: die
+// Normalisierung verändert die sichtbare Reihenfolge nicht.
 func (q *Queries) NormalisiereProduktReihenfolge(ctx context.Context, kategorie Produktkategorie) error {
 	_, err := q.db.ExecContext(ctx, normalisiereProduktReihenfolge, kategorie)
 	return err
@@ -550,11 +550,11 @@ type SortiereVariantenAlphabetischParams struct {
 }
 
 // Vergibt die Reihenfolge der Varianten eines Produkts neu, alphabetisch nach
-// Namen. COLLATE "de-DE-x-icu" haelt die Sortierung deterministisch deutsch,
-// unabhaengig von der Locale des Clusters: Umlaute und Akzente reihen sich bei
+// Namen. COLLATE "de-DE-x-icu" hält die Sortierung deterministisch deutsch,
+// unabhängig von der Locale des Clusters: Umlaute und Akzente reihen sich bei
 // ihrem Grundbuchstaben ein, statt (etwa unter der C-Locale) hinter allen
-// anderen Buchstaben zu landen. Geloeschte Varianten bleiben unberuehrt; ihre
-// alten Werte stoeren nicht, weil sie ueberall herausgefiltert werden.
+// anderen Buchstaben zu landen. Gelöschte Varianten bleiben unberührt; ihre
+// alten Werte stören nicht, weil sie überall herausgefiltert werden.
 func (q *Queries) SortiereVariantenAlphabetisch(ctx context.Context, arg SortiereVariantenAlphabetischParams) error {
 	_, err := q.db.ExecContext(ctx, sortiereVariantenAlphabetisch, arg.UpdatedAt, arg.ProduktID)
 	return err
@@ -583,8 +583,8 @@ type UpdateProduktParams struct {
 	ID         int
 }
 
-// Wechselt das Produkt die Kategorie, haengt es sich ans Ende der neuen an:
-// die alte Reihenfolge gilt dort nicht und traefe womoeglich auf den Wert
+// Wechselt das Produkt die Kategorie, hängt es sich ans Ende der neuen an:
+// die alte Reihenfolge gilt dort nicht und träfe womöglich auf den Wert
 // einer bestehenden Zeile. Bleibt die Kategorie, bleibt auch die Position.
 func (q *Queries) UpdateProdukt(ctx context.Context, arg UpdateProduktParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, updateProdukt,

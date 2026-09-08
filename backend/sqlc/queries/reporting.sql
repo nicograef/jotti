@@ -9,7 +9,7 @@ WHERE ts.saldo_cents > 0
 ORDER BY ts.saldo_cents DESC, t.name;
 
 -- name: GetReportingStats :one
--- Reporting: Aggregierte Kennzahlen fuer eine Kassensitzung.
+-- Reporting: Aggregierte Kennzahlen für eine Kassensitzung.
 SELECT
     (
         COALESCE(SUM(kj_extract_zahlung_cents(type, data)), 0)::int
@@ -50,11 +50,11 @@ FROM tisch_sessions WHERE saldo_cents > 0 AND kassensitzung_nr = @kassensitzung_
 
 -- name: GetKassiertProServicekraft :many
 -- Tagesabrechnung: kassierte Zahlungen gruppiert nach Servicekraft pro Kassensitzung — die
--- Kassiert-Seite der Abrechnung pro Servicekraft (die zugeordneten Ruecknahmen kommen aus den
+-- Kassiert-Seite der Abrechnung pro Servicekraft (die zugeordneten Rücknahmen kommen aus den
 -- Storno-Detailzeilen und werden in der Anwendungsschicht gegengerechnet).
--- Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
+-- Tischservice-Umsatz (Direktverkäufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
 -- MAX(user_name) nimmt den lexikographisch letzten eingefrorenen Username; name ist der live aus users
--- aufgeloeste Klarname (bleibt auch fuer soft-geloeschte Benutzer verfuegbar, leer wenn der Benutzer fehlt).
+-- aufgelöste Klarname (bleibt auch für soft-gelöschte Benutzer verfügbar, leer wenn der Benutzer fehlt).
 SELECT
     e.user_id,
     MAX(e.user_name)::text AS user_name,

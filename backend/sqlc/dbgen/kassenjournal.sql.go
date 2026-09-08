@@ -16,7 +16,7 @@ const getDistinctTischSessionSubjects = `-- name: GetDistinctTischSessionSubject
 SELECT DISTINCT subject FROM kassenjournal WHERE subject LIKE '%/tisch-%' ORDER BY subject ASC
 `
 
-// Nur Tisch-Session-Subjects (enthalten "/tisch-"); Filterung in SQL fuer RebuildAllProjections.
+// Nur Tisch-Session-Subjects (enthalten "/tisch-"); Filterung in SQL für RebuildAllProjections.
 func (q *Queries) GetDistinctTischSessionSubjects(ctx context.Context) ([]string, error) {
 	rows, err := q.db.QueryContext(ctx, getDistinctTischSessionSubjects)
 	if err != nil {
@@ -132,7 +132,7 @@ type ReadEventsByKassensitzungRow struct {
 
 // Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session- und
 // Direktverkauf-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.
-// Der LEFT JOIN auf die Signaturauftraege liefert je Event den Signatur-Stand:
+// Der LEFT JOIN auf die Signaturaufträge liefert je Event den Signatur-Stand:
 // kein Auftrag = nicht signaturpflichtig (keine Projektion zur Lesezeit).
 func (q *Queries) ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]ReadEventsByKassensitzungRow, error) {
 	rows, err := q.db.QueryContext(ctx, readEventsByKassensitzung, kassensitzungNr)
@@ -241,7 +241,7 @@ type ReadKassensitzungEventsRow struct {
 }
 
 // Alle Events einer Kassensitzung ohne Signatur-JOIN: der events-only-Leseweg
-// fuer die Tagesabschluss-Aggregation (Signaturen braucht nur der Export).
+// für die Tagesabschluss-Aggregation (Signaturen braucht nur der Export).
 func (q *Queries) ReadKassensitzungEvents(ctx context.Context, kassensitzungNr int) ([]ReadKassensitzungEventsRow, error) {
 	rows, err := q.db.QueryContext(ctx, readKassensitzungEvents, kassensitzungNr)
 	if err != nil {

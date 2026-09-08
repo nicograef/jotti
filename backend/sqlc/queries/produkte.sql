@@ -60,7 +60,7 @@ WHERE p.status != 'deleted'
 ORDER BY p.kategorie, p.reihenfolge, p.id;
 
 -- name: GetAktiveProdukte :many
--- Bestelliste fuer den Service: nur aktive Produkte mit mindestens einer aktiven Variante.
+-- Bestelliste für den Service: nur aktive Produkte mit mindestens einer aktiven Variante.
 -- Der INNER JOIN blendet aktive Produkte ohne aktive (bepreiste) Variante bewusst aus,
 -- da sie nicht bestellbar sind. Die Admin-Sicht (GetAlleProdukte) zeigt sie via LEFT JOIN.
 WITH varianten_json AS (
@@ -97,15 +97,15 @@ ORDER BY p.kategorie, p.reihenfolge, p.id;
 
 -- name: CreateProdukt :one
 -- Neue Produkte landen ans Ende ihrer Kategorie. Die Reihenfolge wird in der
--- Datenbank berechnet, damit zwischen Lesen und Schreiben keine Luecke entsteht.
+-- Datenbank berechnet, damit zwischen Lesen und Schreiben keine Lücke entsteht.
 INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at, reihenfolge)
 VALUES ($1, $2, $3, $4, $5, $6,
     COALESCE((SELECT MAX(reihenfolge) + 1 FROM produkte WHERE kategorie = $2), 1))
 RETURNING id;
 
 -- name: UpdateProdukt :execresult
--- Wechselt das Produkt die Kategorie, haengt es sich ans Ende der neuen an:
--- die alte Reihenfolge gilt dort nicht und traefe womoeglich auf den Wert
+-- Wechselt das Produkt die Kategorie, hängt es sich ans Ende der neuen an:
+-- die alte Reihenfolge gilt dort nicht und träfe womöglich auf den Wert
 -- einer bestehenden Zeile. Bleibt die Kategorie, bleibt auch die Position.
 UPDATE produkte p SET
     name = $1,
@@ -144,10 +144,10 @@ LIMIT 1;
 
 -- name: NormalisiereProduktReihenfolge :exec
 -- Vergibt die Reihenfolge aller Produkte einer Kategorie dicht neu (1..N) in
--- der bestehenden Sortierung. Das laeuft vor jedem Tausch, weil zwei Zeilen mit
--- demselben Wert sonst denselben Wert zurueckgeschrieben bekaemen und das
--- Verschieben wirkungslos bliebe. updated_at bleibt unberuehrt: die
--- Normalisierung veraendert die sichtbare Reihenfolge nicht.
+-- der bestehenden Sortierung. Das läuft vor jedem Tausch, weil zwei Zeilen mit
+-- demselben Wert sonst denselben Wert zurückgeschrieben bekämen und das
+-- Verschieben wirkungslos bliebe. updated_at bleibt unberührt: die
+-- Normalisierung verändert die sichtbare Reihenfolge nicht.
 UPDATE produkte p
 SET reihenfolge = neu.rang
 FROM (
@@ -214,11 +214,11 @@ UPDATE produkt_varianten SET reihenfolge = sqlc.arg(reihenfolge), updated_at = s
 
 -- name: SortiereVariantenAlphabetisch :exec
 -- Vergibt die Reihenfolge der Varianten eines Produkts neu, alphabetisch nach
--- Namen. COLLATE "de-DE-x-icu" haelt die Sortierung deterministisch deutsch,
--- unabhaengig von der Locale des Clusters: Umlaute und Akzente reihen sich bei
+-- Namen. COLLATE "de-DE-x-icu" hält die Sortierung deterministisch deutsch,
+-- unabhängig von der Locale des Clusters: Umlaute und Akzente reihen sich bei
 -- ihrem Grundbuchstaben ein, statt (etwa unter der C-Locale) hinter allen
--- anderen Buchstaben zu landen. Geloeschte Varianten bleiben unberuehrt; ihre
--- alten Werte stoeren nicht, weil sie ueberall herausgefiltert werden.
+-- anderen Buchstaben zu landen. Gelöschte Varianten bleiben unberührt; ihre
+-- alten Werte stören nicht, weil sie überall herausgefiltert werden.
 UPDATE produkt_varianten v
 SET reihenfolge = neu.rang, updated_at = sqlc.arg(updated_at)
 FROM (
