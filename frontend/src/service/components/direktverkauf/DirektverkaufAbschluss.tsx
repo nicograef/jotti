@@ -78,12 +78,6 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Verkauf abschließen',
-    byCode: {
-      kasse_nicht_geoeffnet:
-        'Es ist keine Kassensitzung geöffnet. Bitte zuerst die Kasse öffnen.',
-      produkt_not_found:
-        'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
-    },
     onSuccess: () => {
       setErhaltenEuro('')
       setZielbetragEuro('')

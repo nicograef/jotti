@@ -59,13 +59,6 @@ export function DirektverkaufStornoDrawer({
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Stornierung ausführen',
-    byCode: {
-      position_nicht_stornierbar:
-        'Mindestens eine Position ist nicht mehr stornierbar. Bitte Auswahl aktualisieren.',
-      kasse_nicht_geoeffnet:
-        'Es ist keine Kassensitzung geöffnet. Bitte zuerst die Kasse öffnen.',
-      verkauf_not_found: 'Der Verkauf wurde nicht gefunden.',
-    },
     onSuccess: () => {
       onStorniert()
     },
