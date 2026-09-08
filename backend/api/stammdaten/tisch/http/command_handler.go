@@ -77,8 +77,9 @@ func (h *CommandHandler) TischAktualisierenHandler() http.HandlerFunc {
 		err := h.Command.TischAktualisieren(r.Context(), body.ID, body.Name)
 		if err != nil {
 			helper.MapError(w, err, map[error]string{
-				application.ErrTischNotFound:    "tisch_not_found",
-				application.ErrInvalidTischData: "invalid_tisch_data",
+				application.ErrTischNotFound:      "tisch_not_found",
+				application.ErrTischAlreadyExists: "tisch_already_exists",
+				application.ErrInvalidTischData:   "invalid_tisch_data",
 			})
 			return
 		}
