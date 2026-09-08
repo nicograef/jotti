@@ -63,7 +63,12 @@ fi
 
 BACKUP_PING_URL="${BACKUP_PING_URL:-$(read_env BACKUP_PING_URL)}"
 
+# A dump holds every cash-register record in clear text, so it stays readable by
+# its owner alone. umask covers everything created from here on (directory, dump,
+# .partial); chmod pulls an already existing, too permissive directory in line.
+umask 077
 mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR"
 
 # ---------------------------------------------------------------------------
 # Step 2 — Dump the database
@@ -92,6 +97,14 @@ if ! gzip -t "$TMPFILE"; then
   fatal "Integrity check failed (gzip -t): the dump is corrupt and was discarded."
 fi
 mv "$TMPFILE" "$OUTFILE"
+chmod 600 "$OUTFILE"
+
+# The success message must not cover a world-readable dump: a stale umask, a
+# noexec/FAT target or a restrictive mount can silently keep another mode.
+OUTFILE_MODE="$(stat -c '%a' "$OUTFILE")"
+if [[ "$OUTFILE_MODE" != "600" ]]; then
+  fatal "Backup file mode is $OUTFILE_MODE, expected 600: $OUTFILE"
+fi
 
 info "Backup created: $OUTFILE ($(du -h "$OUTFILE" | cut -f1))"
 
