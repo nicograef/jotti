@@ -14,16 +14,15 @@ Die Lead-Session reviewt und implementiert nichts selbst.
 
 ## Architectural decisions
 
-- **Rollen und Modelle**: Lead-Session = Fable 5.1, nur Orchestrierung (Workflows starten,
+- **Rollen und Modelle**: Lead-Session = Opus 5, nur Orchestrierung (Workflows starten,
   Ergebnisse lesen, Plan-Dateien pflegen, Commits landen). Sweep = Fable 5.1: je Bereich
   bzw. je Diff ein kurzer, flacher Durchgang, der Hotspots und Fragen an die Reviewer
   übergibt. Reviewer, Skeptiker und Plan-Kritik = Opus 5.
   Implementierer = Opus 5 (Implementierung, Debugging, Migrationen, Architektur) und
   Sonnet 5 (mechanische Fixes, Umbenennungen, Doku-Sweeps, Formatierung). Planer = Opus 5.
-- **Fable-Ausnahme**: `CLAUDE.md` untersagt Fable für Subagenten aus Kostengründen. Für diesen
-  Plan hat der Eigentümer Fable nur für den Sweep freigegeben; der Preis rechtfertigt keine
-  Fable-Reviewer. Die Regel in `CLAUDE.md` bleibt unverändert; die Ausnahme gilt nur für
-  den Sweep.
+- **Fable-Ausnahme**: `CLAUDE.md` untersagt Fable und nennt als einzige Ausnahme den
+  Sweep-Schritt der Workflows unter `.claude/workflows/`; der Preis rechtfertigt keine
+  Fable-Reviewer und keine Fable-Lead-Session.
 - **Werkzeuge**: `implement-plan` (Worktrees, Commit je Kriterium, Fold, Landen),
   `create-plan`, `cleanup` (Kriterien-Dateien), Workflow-Tool für Fan-out und
   adversariale Verifikation. Der Audit-Workflow liegt als benannter Workflow in
@@ -109,8 +108,8 @@ branch, assembleFrom } })`; `rev` und `branch` stempeln den Dokument-Kopf.
 
 ## Übergabe an die nächste Session (Phasen C–E)
 
-- Session-Start: `nicograef/jotti` und `nicograef/handbook` im GitHub-Scope, Prompt „ultracode,
-  lies docs/plans/plan-orchestrierung.md und starte Phase C“. Handbook-Pfad in der Cloud:
+- Session-Start: Opus 5 als Session-Modell, `nicograef/jotti` und `nicograef/handbook` im
+  GitHub-Scope, Prompt „ultracode, lies docs/plans/plan-orchestrierung.md und starte Phase C“. Handbook-Pfad in der Cloud:
   `/home/user/handbook`, Skills unter `.claude/skills/`.
 - Umgebung: `bash scripts/setup-dev-tools.sh`; danach `node -v` und `pnpm -v` prüfen — das
   Repo verlangt Node 24 und pnpm 11.6.0, das Basis-Image kann Node 22 und pnpm 10 liefern;
