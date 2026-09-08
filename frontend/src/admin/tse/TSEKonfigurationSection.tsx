@@ -49,8 +49,11 @@ function TSEKonfigurationForm({
   const { loading: saving, run: runSave } = useActionSubmit({
     actionLabel: 'TSE-Konfiguration speichern',
     byCode: {
+      // validation_error ist der globale Code jedes Formulars; nur hier lässt
+      // sich sagen, welche Felder gemeint sind.
       validation_error:
         'Bitte alle vier Felder ausfüllen und auf gültige Länge prüfen.',
+      // Ohne zentrale Meldung.
       tse_konfiguration_kassensitzung_offen:
         'Die TSE-Konfiguration kann nicht geändert werden, solange eine Kassensitzung offen ist. Bitte zuerst den Kassenabschluss durchführen.',
     },
@@ -58,6 +61,7 @@ function TSEKonfigurationForm({
   const { loading: clearing, run: runClear } = useActionSubmit({
     actionLabel: 'TSE-Konfiguration leeren',
     byCode: {
+      // Ohne zentrale Meldung.
       tse_konfiguration_kassensitzung_offen:
         'Die TSE-Konfiguration kann nicht geleert werden, solange eine Kassensitzung offen ist. Bitte zuerst den Kassenabschluss durchführen.',
     },
@@ -65,6 +69,8 @@ function TSEKonfigurationForm({
   const { loading: testing, run: runTestConnection } = useActionSubmit({
     actionLabel: 'TSE-Verbindung testen',
     byCode: {
+      // Die zentrale Meldung verweist auf den Bereich Finanzamt — auf dem der
+      // Nutzer hier schon steht; der nächste Schritt ist das Speichern.
       tse_nicht_konfiguriert:
         'Bitte zuerst eine vollständige TSE-Konfiguration speichern.',
     },
