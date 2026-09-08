@@ -15,6 +15,20 @@ import (
 
 const lineWidth = 48 // Font A, 12x24 Dots bei 576 dots/line -> 48 Zeichen
 
+// berlin ist die Zeitzone jedes gedruckten Zeitstempels. Zeitpunkte kommen als
+// UTC aus der Datenbank; Belege und Arbeitsbons tragen deutsche Ortszeit, weil
+// Gast, Betreiber und Prüfung sie am Wandkalender lesen. tzdata ist ins Binary
+// eingebettet (backend/main.go), das Laden schlägt nur bei kaputtem Build fehl.
+var berlin = mustLadeBerlin()
+
+func mustLadeBerlin() *time.Location {
+	ort, err := time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		panic("escpos: Zeitzone Europe/Berlin nicht ladbar: " + err.Error())
+	}
+	return ort
+}
+
 type KassenbelegData struct {
 	Vereinsname              string
 	Strasse                  string
@@ -110,7 +124,7 @@ func FormatPositionBon(
 	buf.WriteString(AlignLeft)
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
-	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n", zeitpunkt.Format("15:04"), truncate(userName, 24))))
+	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n", zeitpunkt.In(berlin).Format("15:04"), truncate(userName, 24))))
 
 	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm ueber dem Druckkopf)
 	buf.WriteString(strings.Repeat("\n", 5))
@@ -170,7 +184,7 @@ func FormatSammelBon(
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
 	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n",
-		zeitpunkt.Format("15:04"),
+		zeitpunkt.In(berlin).Format("15:04"),
 		truncate(userName, 24),
 	)))
 
@@ -211,7 +225,7 @@ func FormatTestbon(stationsName string, zeitpunkt time.Time) []byte {
 	buf.WriteString("\n")
 
 	buf.WriteString(toWPC1252(fmt.Sprintf("Station: %s\n", stationsName)))
-	buf.WriteString(toWPC1252(fmt.Sprintf("%s\n", zeitpunkt.Format("02.01.2006 15:04:05"))))
+	buf.WriteString(toWPC1252(fmt.Sprintf("%s\n", zeitpunkt.In(berlin).Format("02.01.2006 15:04:05"))))
 	buf.WriteString("\n")
 	buf.WriteString(toWPC1252("Drucker und Netzwerk funktionieren.\n"))
 
@@ -248,14 +262,14 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString("\n")
 
 	buf.WriteString(AlignLeft)
-	fmt.Fprintf(&buf, "Datum: %s\n", data.Zeitpunkt.Format("02.01.2006 15:04"))
+	fmt.Fprintf(&buf, "Datum: %s\n", data.Zeitpunkt.In(berlin).Format("02.01.2006 15:04"))
 	fmt.Fprintf(&buf, "Bon-Nr: %s\n", data.Belegnummer)
 	if data.StornoZuBelegnummer != "" {
 		fmt.Fprintf(&buf, "Storno zu Bon-Nr: %s\n", data.StornoZuBelegnummer)
 	}
 	fmt.Fprintf(&buf, "Kassen-ID: %s\n", data.KassenSeriennummer)
 	if data.ErsteBestellungZeitpunkt != nil {
-		fmt.Fprintf(&buf, "Erste Bestellung: %s\n", data.ErsteBestellungZeitpunkt.Format("02.01.2006 15:04:05"))
+		fmt.Fprintf(&buf, "Erste Bestellung: %s\n", data.ErsteBestellungZeitpunkt.In(berlin).Format("02.01.2006 15:04:05"))
 	}
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
@@ -295,13 +309,13 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		fmt.Fprintf(&buf, "  TSE-Transaktion: %d\n", data.TSE.TransaktionNr)
 		fmt.Fprintf(&buf, "  Signaturzaehler: %d\n", data.TSE.Signaturzaehler)
 		fmt.Fprintf(&buf, "  TSE-Seriennummer: %s\n", data.TSE.TSESeriennummer)
-		fmt.Fprintf(&buf, "  TSE-Start: %s\n", data.TSE.ZeitpunktBeginn.Format("02.01.2006 15:04:05"))
-		fmt.Fprintf(&buf, "  TSE-Ende: %s\n", data.TSE.ZeitpunktEnde.Format("02.01.2006 15:04:05"))
+		fmt.Fprintf(&buf, "  TSE-Start: %s\n", data.TSE.ZeitpunktBeginn.In(berlin).Format("02.01.2006 15:04:05"))
+		fmt.Fprintf(&buf, "  TSE-Ende: %s\n", data.TSE.ZeitpunktEnde.In(berlin).Format("02.01.2006 15:04:05"))
 		buf.WriteString(toWPC1252("  Signatur: "))
 		buf.WriteString(toWPC1252(wrapLine(data.TSE.Signatur, lineWidth-2)))
 		buf.WriteByte('\n')
 		if data.TSE.Nachsigniert {
-			fmt.Fprintf(&buf, toWPC1252("  Nachsigniert am %s\n"), data.TSE.ZeitpunktEnde.Format("02.01.2006 15:04:05"))
+			fmt.Fprintf(&buf, toWPC1252("  Nachsigniert am %s\n"), data.TSE.ZeitpunktEnde.In(berlin).Format("02.01.2006 15:04:05"))
 			buf.WriteString(toWPC1252("  (TSE war bei der Erfassung nicht erreichbar)\n"))
 		}
 

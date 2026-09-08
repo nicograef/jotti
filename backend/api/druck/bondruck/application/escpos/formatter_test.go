@@ -51,7 +51,7 @@ func TestFormatPositionBon_ContainsBedienung(t *testing.T) {
 func TestFormatPositionBon_ContainsZeit(t *testing.T) {
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
 	got := string(payload)
-	if !strings.Contains(got, "19:34") {
+	if !strings.Contains(got, "21:34") {
 		t.Errorf("Bon enthaelt nicht Zeitstempel; got:\n%q", got)
 	}
 }
@@ -445,8 +445,8 @@ func TestFormatKassenbeleg_WithTSE_ContainsTSEPflichtfelder(t *testing.T) {
 		"TSE-Transaktion: 1003",
 		"Signaturzaehler: 5871",
 		"TSE-Seriennummer: SW-TSE-SN-0042",
-		"TSE-Start: 01.05.2026 20:00:12",
-		"TSE-Ende: 01.05.2026 20:00:14",
+		"TSE-Start: 01.05.2026 22:00:12",
+		"TSE-Ende: 01.05.2026 22:00:14",
 		"Signatur: ABCDEF0123456789",
 	}
 
@@ -535,7 +535,7 @@ func TestFormatKassenbeleg_WithErsteBestellungZeitpunkt_ContainsKlartext(t *test
 	})
 
 	got := string(payload)
-	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 18:01:00") {
+	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 20:01:00") {
 		t.Fatalf("Kassenbeleg mit erster Bestellung muss Klarschrift enthalten; got:\n%q", got)
 	}
 }
@@ -652,5 +652,60 @@ func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *
 	if dotsWide > maxDots {
 		t.Errorf("QR-Breite fuer 500-Byte-Payload: %d Module * %d = %d Dots > %d",
 			totalModules, moduleSize, dotsWide, maxDots)
+	}
+}
+
+// 2026-07-01T23:30:00Z ist in Europe/Berlin (Sommerzeit, UTC+2) bereits der
+// 02.07.2026, 01:30. Zeitpunkte kommen als UTC herein; gedruckt wird die
+// deutsche Ortszeit, sonst weist der Beleg das falsche Datum aus.
+func TestFormatKassenbeleg_ZeitpunkteInDeutscherOrtszeit(t *testing.T) {
+	utcNacht := time.Date(2026, 7, 1, 23, 30, 0, 0, time.UTC)
+	ersteBestellung := time.Date(2026, 7, 1, 22, 5, 9, 0, time.UTC)
+
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:              "SV Musterstadt",
+		Strasse:                  "Musterstrasse 1",
+		Plz:                      "12345",
+		Ort:                      "Musterstadt",
+		KassenSeriennummer:       "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:              "77",
+		Zeitpunkt:                utcNacht,
+		ErsteBestellungZeitpunkt: &ersteBestellung,
+		Positionen:               []kasse.Position{testPos},
+		GesamtbetragCents:        900,
+		Zahlungsart:              "bar",
+		TSE: &escpos.TSEAbschnitt{
+			TransaktionNr:   77,
+			Signaturzaehler: 12,
+			TSESeriennummer: "SW-TSE-SN-0042",
+			ZeitpunktBeginn: utcNacht,
+			ZeitpunktEnde:   utcNacht,
+			Signatur:        "ABCDEF0123456789",
+		},
+	})
+	got := string(payload)
+
+	checks := []string{
+		"Datum: 02.07.2026 01:30",
+		"Erste Bestellung: 02.07.2026 00:05:09",
+		"TSE-Start: 02.07.2026 01:30:00",
+		"TSE-Ende: 02.07.2026 01:30:00",
+	}
+
+	for _, check := range checks {
+		if !strings.Contains(got, check) {
+			t.Errorf("Kassenbeleg enthaelt %q nicht; got:\n%q", check, got)
+		}
+	}
+}
+
+func TestFormatPositionBon_ZeitpunktInDeutscherOrtszeit(t *testing.T) {
+	utcNacht := time.Date(2026, 7, 1, 23, 30, 0, 0, time.UTC)
+
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", utcNacht, "", false)
+	got := string(payload)
+
+	if !strings.Contains(got, "01:30") {
+		t.Errorf("Arbeitsbon zeigt nicht die deutsche Ortszeit 01:30; got:\n%q", got)
 	}
 }

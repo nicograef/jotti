@@ -355,8 +355,8 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 		"TSE-Transaktion: 3001",
 		"Signaturzaehler: 77",
 		"TSE-Seriennummer: SW-TSE-SN-0042",
-		"TSE-Start: 10.06.2026 18:00:01",
-		"TSE-Ende: 10.06.2026 18:00:03",
+		"TSE-Start: 10.06.2026 20:00:01",
+		"TSE-Ende: 10.06.2026 20:00:03",
 		"Signatur: SIG-XYZ",
 	}
 
@@ -439,7 +439,7 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 	}
 
 	got := string(payload)
-	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 18:01:00") {
+	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 20:01:00") {
 		t.Fatalf("expected first order klartext in table receipt, got:\n%q", got)
 	}
 }
@@ -621,7 +621,7 @@ func TestKassenbelegDrucken_VerspaeteteSignatur_TraegtNachsigniertVermerk(t *tes
 	if !strings.Contains(got, "TSE-Daten:") {
 		t.Fatalf("expected TSE block on nachsignierter beleg, got:\n%q", got)
 	}
-	if !strings.Contains(got, "Nachsigniert am 10.06.2026 18:07:03") {
+	if !strings.Contains(got, "Nachsigniert am 10.06.2026 20:07:03") {
 		t.Fatalf("expected Nachsigniert-Vermerk, got:\n%q", got)
 	}
 }
