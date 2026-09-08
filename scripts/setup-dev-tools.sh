@@ -60,15 +60,29 @@ info "Ensuring golangci-lint ($GOLANGCI_LINT_VERSION) is available..."
 # (allowlisted) module proxy is the one method that works locally and in cloud.
 GO_TOOLCHAIN="$(cd "$PROJECT_ROOT/backend" && go env GOVERSION)"
 
+# A pinned-version binary that was built with an older Go than
+# backend/go.mod now requires still refuses to run (see the note above), so
+# a version match alone is not enough: also compare the Go version recorded
+# in the binary (`go version -m`) against $GO_TOOLCHAIN.
+golangci_lint_built_with() {
+  go version -m "$1" 2>/dev/null | awk 'NR==1 {print $2}'
+}
+
 INSTALLED_GOLANGCI=""
+INSTALLED_GOLANGCI_BUILT_WITH=""
 if command -v golangci-lint >/dev/null 2>&1; then
   INSTALLED_GOLANGCI="v$(golangci-lint version --short 2>/dev/null || echo 'unknown')"
+  INSTALLED_GOLANGCI_BUILT_WITH="$(golangci_lint_built_with "$(command -v golangci-lint)")"
 fi
 
-if [ "$INSTALLED_GOLANGCI" = "$GOLANGCI_LINT_VERSION" ]; then
-  info "golangci-lint already installed: $INSTALLED_GOLANGCI"
+if [ "$INSTALLED_GOLANGCI" = "$GOLANGCI_LINT_VERSION" ] && [ "$INSTALLED_GOLANGCI_BUILT_WITH" = "$GO_TOOLCHAIN" ]; then
+  info "golangci-lint already installed: $INSTALLED_GOLANGCI (built with $INSTALLED_GOLANGCI_BUILT_WITH)"
 else
-  [ -n "$INSTALLED_GOLANGCI" ] && info "Replacing golangci-lint $INSTALLED_GOLANGCI with the pinned $GOLANGCI_LINT_VERSION"
+  if [ -n "$INSTALLED_GOLANGCI" ] && [ "$INSTALLED_GOLANGCI" != "$GOLANGCI_LINT_VERSION" ]; then
+    info "Replacing golangci-lint $INSTALLED_GOLANGCI with the pinned $GOLANGCI_LINT_VERSION"
+  elif [ -n "$INSTALLED_GOLANGCI" ]; then
+    info "Rebuilding golangci-lint $GOLANGCI_LINT_VERSION: built with $INSTALLED_GOLANGCI_BUILT_WITH, module now targets $GO_TOOLCHAIN"
+  fi
   info "Building golangci-lint $GOLANGCI_LINT_VERSION with $GO_TOOLCHAIN into $GO_BIN_PATH"
   GOTOOLCHAIN="$GO_TOOLCHAIN" GOBIN="$GO_BIN_PATH" \
     go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$GOLANGCI_LINT_VERSION"
@@ -76,11 +90,15 @@ fi
 
 # Cloud sessions ship an older golangci-lint at /usr/local/bin — on the default
 # PATH, ahead of "$GO_BIN_PATH" — that would shadow the pinned build in `make`.
-# The container is ephemeral, so point that copy at the pinned build too.
-if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] && [ -w /usr/local/bin/golangci-lint ] \
-   && [ "$(/usr/local/bin/golangci-lint version --short 2>/dev/null)" != "${GOLANGCI_LINT_VERSION#v}" ]; then
-  info "Cloud session: replacing the base-image golangci-lint at /usr/local/bin with $GOLANGCI_LINT_VERSION"
-  cp "$GO_BIN_PATH/golangci-lint" /usr/local/bin/golangci-lint
+# The container is ephemeral, so point that copy at the pinned build too,
+# whenever its version or its build toolchain is out of date.
+if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] && [ -w /usr/local/bin/golangci-lint ]; then
+  SHADOW_GOLANGCI_VERSION="$(/usr/local/bin/golangci-lint version --short 2>/dev/null)"
+  SHADOW_GOLANGCI_BUILT_WITH="$(golangci_lint_built_with /usr/local/bin/golangci-lint)"
+  if [ "$SHADOW_GOLANGCI_VERSION" != "${GOLANGCI_LINT_VERSION#v}" ] || [ "$SHADOW_GOLANGCI_BUILT_WITH" != "$GO_TOOLCHAIN" ]; then
+    info "Cloud session: replacing the base-image golangci-lint at /usr/local/bin with $GOLANGCI_LINT_VERSION"
+    cp "$GO_BIN_PATH/golangci-lint" /usr/local/bin/golangci-lint
+  fi
 fi
 
 if ! command -v golangci-lint >/dev/null 2>&1; then
