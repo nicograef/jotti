@@ -68,7 +68,7 @@ BACKUP_PING_URL="${BACKUP_PING_URL:-$(read_env BACKUP_PING_URL)}"
 # .partial); chmod pulls an already existing, too permissive directory in line.
 umask 077
 mkdir -p "$BACKUP_DIR"
-chmod 700 "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR" || fatal "Cannot set mode 700 on $BACKUP_DIR (owner or filesystem?)."
 
 # ---------------------------------------------------------------------------
 # Step 2 — Dump the database
@@ -99,8 +99,8 @@ fi
 mv "$TMPFILE" "$OUTFILE"
 chmod 600 "$OUTFILE"
 
-# The success message must not cover a world-readable dump: a stale umask, a
-# noexec/FAT target or a restrictive mount can silently keep another mode.
+# The success message must not cover a world-readable dump: a target filesystem
+# without Unix modes (exFAT, a CIFS mount with fmask) ignores chmod silently.
 OUTFILE_MODE="$(stat -c '%a' "$OUTFILE")"
 if [[ "$OUTFILE_MODE" != "600" ]]; then
   fatal "Backup file mode is $OUTFILE_MODE, expected 600: $OUTFILE"
