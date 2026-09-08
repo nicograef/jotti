@@ -11,7 +11,9 @@ export function appendReferenz(message: string, referenz?: string): string {
   return referenz ? `${message} Referenz: ${referenz}` : message
 }
 
-const commonErrorMessages: Record<string, string> = {
+// commonErrorMessages ist die zentrale Meldung je Backend-Fehlercode. Der Test
+// iteriert darüber, deshalb ist die Karte exportiert.
+export const commonErrorMessages: Record<string, string> = {
   onetime_password_locked:
     'Das Einmalpasswort wurde nach zu vielen Fehlversuchen gesperrt. Bitte einen Admin um ein neues Einmalpasswort.',
   already_has_password:
@@ -32,6 +34,8 @@ const commonErrorMessages: Record<string, string> = {
     'Die Daten wurden gerade von jemand anderem geändert. Bitte aktualisieren und erneut versuchen.',
   invalid_json:
     'Die Anfrage konnte nicht verarbeitet werden. Bitte Eingaben prüfen und erneut versuchen.',
+  invalid_kassensitzung:
+    'Die gewählte Kassensitzung ist ungültig. Bitte neu auswählen und erneut versuchen.',
   invalid_kassensitzung_nr:
     'Die Kassensitzung konnte nicht gefunden werden. Bitte neu auswählen und erneut versuchen.',
   invalid_produkt_data:
@@ -52,10 +56,10 @@ const commonErrorMessages: Record<string, string> = {
     'Die Kasse wird gerade abgeschlossen. Bitte warten, bis der Abschluss fertig ist, und dann erneut versuchen.',
   kasse_bereits_geoeffnet:
     'Es gibt bereits eine offene Kassensitzung. Bitte zuerst die aktuelle Kassensitzung abschließen.',
-  kassensturz_erforderlich:
-    'Vor dem Tagesabschluss muss ein Kassensturz durchgeführt werden.',
   kassenbeleg_drucker_nicht_konfiguriert:
     'Für Kassenbelege ist kein Drucker konfiguriert. Bitte die Druckstation-Einstellungen prüfen.',
+  login_throttled:
+    'Zu viele Fehlversuche. Bitte kurz warten und dann erneut anmelden.',
   no_password_set:
     'Für diesen Benutzer wurde noch kein Passwort gesetzt. Bitte zuerst ein Passwort vergeben.',
   password_too_weak:
