@@ -156,9 +156,10 @@ CI-Job `upgrade-path`, für Website-Phasen `make website-check`, für Phase 4
 ### Acceptance criteria
 
 - [ ] Alle Kriterien der Phasen 0–10 in `plan-praxis-feedback.md` abgehakt; in diesem Lauf
-      geschriebene Änderungen tragen den Trailer `Plan: praxis-feedback phase <N>
-criterion <M>`, Cherry-Picks aus #109/#110 behalten ihre Original-Messages, reine
-      Gate-Kriterien (grün gelaufene Befehle) brauchen keinen Commit
+      geschriebene Änderungen tragen den Trailer
+      `Plan: praxis-feedback phase <N> criterion <M>`; Cherry-Picks aus #109/#110 behalten
+      ihre Original-Messages; reine Gate-Kriterien (grün gelaufene Befehle) brauchen
+      keinen Commit
 - [x] Je Phase ein Review-Protokoll mit „keine offenen Defekte" vor dem Fold
 - [x] `plan/praxis-feedback` auf den Feature-Branch gelandet, alle Worktrees entfernt
 - [x] `make verify`, `make website-check`, `make test-e2e` auf dem gelandeten Stand grün
