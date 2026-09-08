@@ -35,6 +35,15 @@ const (
 	MaxLengthUstID        = 15
 )
 
+// Die Pflichtmeldungen der vier Adressfelder. Sie stehen einmal, weil das
+// Feld-Schema (Schreibweg) und betreiberSchema (Lesepfad) dieselbe Lücke melden.
+const (
+	vereinsnameErforderlich = "Vereinsname ist erforderlich"
+	strasseErforderlich     = "Straße ist erforderlich"
+	plzErforderlich         = "PLZ ist erforderlich"
+	ortErforderlich         = "Ort ist erforderlich"
+)
+
 // maxRunes baut die Prüfung „höchstens n Zeichen" für ein Zeichenketten-Schema.
 // zogs Max zählt Bytes; ein Vereinsname mit Umlauten hat mehr Bytes als Zeichen
 // und liefe damit gegen eine engere Grenze als die amtliche.
@@ -50,24 +59,24 @@ func maxRunes(n int) z.BoolTFunc[*string] {
 // Aufrufstellen nutzen sie direkt und rufen `.Required()` nie erneut auf (zog
 // mutiert den Empfänger in place).
 var VereinsnameSchema = z.String().Trim().
-	Min(1, z.Message("Vereinsname ist erforderlich")).
+	Min(1, z.Message(vereinsnameErforderlich)).
 	TestFunc(maxRunes(MaxLengthVereinsname), z.Message("Vereinsname zu lang")).
-	Required(z.Message("Vereinsname ist erforderlich"))
+	Required(z.Message(vereinsnameErforderlich))
 
 var StrasseSchema = z.String().Trim().
-	Min(1, z.Message("Straße ist erforderlich")).
+	Min(1, z.Message(strasseErforderlich)).
 	TestFunc(maxRunes(MaxLengthStrasse), z.Message("Straße zu lang")).
-	Required(z.Message("Straße ist erforderlich"))
+	Required(z.Message(strasseErforderlich))
 
 var PlzSchema = z.String().Trim().
-	Min(1, z.Message("PLZ ist erforderlich")).
+	Min(1, z.Message(plzErforderlich)).
 	TestFunc(maxRunes(MaxLengthPlz), z.Message("PLZ zu lang")).
-	Required(z.Message("PLZ ist erforderlich"))
+	Required(z.Message(plzErforderlich))
 
 var OrtSchema = z.String().Trim().
-	Min(1, z.Message("Ort ist erforderlich")).
+	Min(1, z.Message(ortErforderlich)).
 	TestFunc(maxRunes(MaxLengthOrt), z.Message("Ort zu lang")).
-	Required(z.Message("Ort ist erforderlich"))
+	Required(z.Message(ortErforderlich))
 
 // Steuernummer und USt-IdNr. sind optional: Ein Verein ohne Steuernummer lässt
 // das Feld leer, deshalb tragen die beiden Schemas nur die Obergrenze.
@@ -84,10 +93,10 @@ var UstIDSchema = z.String().Trim().
 // hier sperrte die Kasse. Die Grenzen gelten auf dem Schreibweg (NewBetreiber);
 // der DSFinV-K-Export kürzt, was Bestandsdaten mitbringen.
 var betreiberSchema = z.Struct(z.Shape{
-	"Vereinsname":  z.String().Min(1, z.Message("Vereinsname ist erforderlich")).Required(),
-	"Strasse":      z.String().Min(1, z.Message("Straße ist erforderlich")).Required(),
-	"Plz":          z.String().Min(1, z.Message("PLZ ist erforderlich")).Required(),
-	"Ort":          z.String().Min(1, z.Message("Ort ist erforderlich")).Required(),
+	"Vereinsname":  z.String().Min(1, z.Message(vereinsnameErforderlich)).Required(),
+	"Strasse":      z.String().Min(1, z.Message(strasseErforderlich)).Required(),
+	"Plz":          z.String().Min(1, z.Message(plzErforderlich)).Required(),
+	"Ort":          z.String().Min(1, z.Message(ortErforderlich)).Required(),
 	"Steuernummer": z.Ptr(z.String()),
 	"UstID":        z.Ptr(z.String()),
 	"UpdatedAt":    z.Time().Required(),
