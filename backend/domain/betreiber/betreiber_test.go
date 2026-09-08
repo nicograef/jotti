@@ -5,13 +5,28 @@ package betreiber
 import (
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func TestNewBetreiber_LehntZuLangenVereinsnamenAb(t *testing.T) {
-	zuLang := strings.Repeat("a", 61)
+	zuLang := strings.Repeat("a", MaxLengthVereinsname+1)
 
 	if _, err := NewBetreiber(zuLang, "Musterstraße 1", "12345", "Musterstadt", nil, nil); err == nil {
-		t.Errorf("NewBetreiber nahm einen Vereinsnamen mit %d Zeichen an; die amtliche MaxLength ist 60", len(zuLang))
+		t.Errorf("NewBetreiber nahm einen Vereinsnamen mit %d Zeichen an; die amtliche MaxLength ist %d", utf8.RuneCountInString(zuLang), MaxLengthVereinsname)
+	}
+}
+
+// Die amtliche MaxLength zählt Zeichen: Ein Vereinsname aus 60 Umlauten belegt
+// 120 Bytes und muss trotzdem durchgehen, 61 Zeichen nicht mehr.
+func TestNewBetreiber_ZaehltZeichenNichtBytes(t *testing.T) {
+	anDerGrenze := strings.Repeat("ä", MaxLengthVereinsname)
+	darueber := strings.Repeat("ä", MaxLengthVereinsname+1)
+
+	if _, err := NewBetreiber(anDerGrenze, "Musterstraße 1", "12345", "Musterstadt", nil, nil); err != nil {
+		t.Errorf("NewBetreiber lehnte einen Vereinsnamen mit %d Zeichen (%d Bytes) ab: %v", MaxLengthVereinsname, len(anDerGrenze), err)
+	}
+	if _, err := NewBetreiber(darueber, "Musterstraße 1", "12345", "Musterstadt", nil, nil); err == nil {
+		t.Errorf("NewBetreiber nahm einen Vereinsnamen mit %d Zeichen an", MaxLengthVereinsname+1)
 	}
 }
 

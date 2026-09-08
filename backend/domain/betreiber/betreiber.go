@@ -3,6 +3,7 @@ package betreiber
 import (
 	"fmt"
 	"time"
+	"unicode/utf8"
 
 	z "github.com/Oudwins/zog"
 )
@@ -21,38 +22,60 @@ type Betreiber struct {
 	UpdatedAt        time.Time
 }
 
-// Die Obergrenzen sind die amtlichen Maximallängen der DSFinV-K-Stammdaten
-// (2.4, index.xml: NAME 60, STRASSE 60, PLZ 10, ORT 62, STNR 20, USTID 15) — der
-// Export schreibt jedes Feld in eine dieser Spalten. Jedes Schema trimmt; danach
-// fängt Min(1) einen Wert aus reinen Leerzeichen, Required das leere Feld (zog
-// prüft Required vor den Transformationen). Die vier Pflichtfelder sind per
-// Definition required — Aufrufstellen nutzen sie direkt und rufen `.Required()`
-// nie erneut auf (zog mutiert den Empfänger in place).
+// Die amtlichen Maximallängen der Betreiber-Felder in den DSFinV-K-Stammdaten
+// (2.4, index.xml: NAME 60, STRASSE 60, PLZ 10, ORT 62, STNR 20, USTID 15). Sie
+// zählen Zeichen, nicht Bytes; der Export in api/fiskal/dsfinvk misst mit
+// denselben Konstanten.
+const (
+	MaxLengthVereinsname  = 60
+	MaxLengthStrasse      = 60
+	MaxLengthPlz          = 10
+	MaxLengthOrt          = 62
+	MaxLengthSteuernummer = 20
+	MaxLengthUstID        = 15
+)
+
+// maxRunes baut die Prüfung „höchstens n Zeichen" für ein Zeichenketten-Schema.
+// zogs Max zählt Bytes; ein Vereinsname mit Umlauten hat mehr Bytes als Zeichen
+// und liefe damit gegen eine engere Grenze als die amtliche.
+func maxRunes(n int) z.BoolTFunc[*string] {
+	return func(wert *string, _ z.Ctx) bool {
+		return utf8.RuneCountInString(*wert) <= n
+	}
+}
+
+// Jedes Feld-Schema trimmt; danach fängt Min(1) einen Wert aus reinen
+// Leerzeichen, Required das leere Feld (zog prüft Required vor den
+// Transformationen). Die vier Pflichtfelder sind per Definition required —
+// Aufrufstellen nutzen sie direkt und rufen `.Required()` nie erneut auf (zog
+// mutiert den Empfänger in place).
 var VereinsnameSchema = z.String().Trim().
 	Min(1, z.Message("Vereinsname ist erforderlich")).
-	Max(60, z.Message("Vereinsname zu lang")).
+	TestFunc(maxRunes(MaxLengthVereinsname), z.Message("Vereinsname zu lang")).
 	Required(z.Message("Vereinsname ist erforderlich"))
 
 var StrasseSchema = z.String().Trim().
 	Min(1, z.Message("Straße ist erforderlich")).
-	Max(60, z.Message("Straße zu lang")).
+	TestFunc(maxRunes(MaxLengthStrasse), z.Message("Straße zu lang")).
 	Required(z.Message("Straße ist erforderlich"))
 
 var PlzSchema = z.String().Trim().
 	Min(1, z.Message("PLZ ist erforderlich")).
-	Max(10, z.Message("PLZ zu lang")).
+	TestFunc(maxRunes(MaxLengthPlz), z.Message("PLZ zu lang")).
 	Required(z.Message("PLZ ist erforderlich"))
 
 var OrtSchema = z.String().Trim().
 	Min(1, z.Message("Ort ist erforderlich")).
-	Max(62, z.Message("Ort zu lang")).
+	TestFunc(maxRunes(MaxLengthOrt), z.Message("Ort zu lang")).
 	Required(z.Message("Ort ist erforderlich"))
 
 // Steuernummer und USt-IdNr. sind optional: Ein Verein ohne Steuernummer lässt
 // das Feld leer, deshalb tragen die beiden Schemas nur die Obergrenze.
-var SteuernummerSchema = z.String().Trim().Max(20, z.Message("Steuernummer zu lang"))
+var SteuernummerSchema = z.String().Trim().
+	TestFunc(maxRunes(MaxLengthSteuernummer), z.Message("Steuernummer zu lang"))
 
-var UstIDSchema = z.String().Trim().Max(15, z.Message("USt-IdNr. zu lang"))
+var UstIDSchema = z.String().Trim().
+	TestFunc(maxRunes(MaxLengthUstID), z.Message("USt-IdNr. zu lang"))
 
 // betreiberSchema prüft ausschließlich, ob die Stammdaten gefüllt sind: Validate
 // läuft über Daten aus der Datenbank und ist das Gate vor dem Eröffnen einer
