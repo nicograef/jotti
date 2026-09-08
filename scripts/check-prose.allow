@@ -4,4 +4,4 @@ scripts/check-prose.sh  # zitiert die verbotenen Wörter selbst (Pattern und Kom
 scripts/check-prose.allow  # diese Datei selbst: Begründungstexte zitieren die erlaubten Fundstellen wörtlich
 docs/steuerrecht.md  # 'die frühere Vereinfachung (einheitlich 19 %) entfällt' beschreibt eine reale UStG-Änderung zum 1.1.2026, kein Projekt-Historienbezug
 docs/prds/prd-windows-nativ-ohne-docker.md  # PRD beschreibt per Definition, was die vorgeschlagene Architektur ablöst — wie ein ADR, aber (noch) ohne Umsetzung
-backend/api/fiskal/setup/application/setup.go  # 'der spätere überschriebe den früheren' beschreibt zwei gleichzeitige Aufrufe im Konjunktiv, kein Historienbezug
+windows/starter/system.go  # 'ein veralteter Marker aus einem frueheren Boot' beschreibt einen Laufzeit-Zustand des Containers, kein Historienbezug

@@ -29,7 +29,7 @@ const adminPINStellen = 10
 // eine Fehlermeldung sieht und sofort erneut starten kann. Ohne diese Sperre
 // sähe der zweite Aufruf in ListTSS noch das leere Konto, hatAktiveTSS meldete
 // false, und er legte eine ZWEITE bezahlte LIVE-TSS an. Beide Läufe endeten in
-// saveEinrichtung, der spätere überschriebe den früheren — die dem Admin
+// saveEinrichtung, der zweite überschriebe den ersten — die dem Admin
 // angezeigten PUK und Admin-PIN gehörten dann zur nicht konfigurierten TSS.
 //
 // Derselbe Ausgang droht ohne den fiskaly-Umweg: Der manuelle
