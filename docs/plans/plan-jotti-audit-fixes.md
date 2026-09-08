@@ -108,6 +108,11 @@ css, md` im ganzen Repo ab. Grund: 29 Markdown-Dateien außerhalb `docs/plans/` 
   `make verify` lokal aus. Die Lead-Session prüft den CI-Job `e2e` nach dem Landen jeder
   Phase, die `make test-e2e` als Gate nennt. Die Gate-Zeilen bleiben unverändert.
 - **Plan-Dateien sind transient.** Befunde zu `docs/plans/**` werden nicht übernommen.
+- **Nachträge aus den Reviews der Phasen 3 und 4** (Lead): der CI-Job `repo-checks` läuft
+  ohne Pfadfilter, weil seine Gates den ganzen Baum lesen; die fünf Leitfaden-Verweise in
+  3.6 zeigen auf die Seite, die das jeweilige Thema behandelt (Server-Restore, Domain und
+  Zertifikat, LAN-Stack); der Sprachprüfer liegt als Paket im Backend-Modul und prüft
+  Wortstämme samt Flexionen, damit „durchgängig echte Umlaute" in 4.4 auch stimmt.
 
 ### Kritik (2026-09-08)
 
@@ -428,12 +433,12 @@ umgeschrieben, nie kommentarlos gelöscht, wenn sie eine Begründung trägt.
       `.claude/**`, `reverse-proxy/caddyfile.go` und Lockfiles. Eine versionierte
       Allowlist-Datei nennt jede weitere Ausnahme mit Grund; `frontend/src/lib/utils.test.ts`
       steht darin.
-- [x] `scripts/check-links.sh` prüft jeden im Repo genannten relativen `*.md`-Pfad auf
+- [ ] `scripts/check-links.sh` prüft jeden im Repo genannten relativen `*.md`-Pfad auf
       Existenz (gleiche Quelle und Ausnahmen). `make check-repo` bündelt per Glob alle
-      `scripts/check-*.sh`, `make check` ruft `check-repo` mit. Der `changes`-Job in
-      `ci.yml` erhält einen `docs`-Filter (`docs/**`, `**/*.md`, `AGENTS.md`,
-      `README.md`), und der neue Job `repo-checks` läuft bei `docs`, `scripts` oder `ci`.
-- [x] Die Historien-Prosa im Go-Code ist auf Ist-Aussagen umgeschrieben — mindestens
+      `scripts/check-*.sh`, `make check` ruft `check-repo` mit. Der neue CI-Job
+      `repo-checks` läuft ohne Pfadfilter, weil die Gates den ganzen Baum lesen; er
+      richtet Go und pnpm ein und ruft `make check-repo` und `make check-format`.
+- [ ] Die Historien-Prosa im Go-Code ist auf Ist-Aussagen umgeschrieben — mindestens
       `backend/app/routes.go`, `backend/config/config.go`, `backend/config/config_test.go`,
       `backend/repository/druckauftrag_repo/repo.go`,
       `backend/repository/tse_repo/repo_test.go`, `backend/api/fiskal/dsfinvk/mapper.go`,
@@ -444,7 +449,7 @@ umgeschrieben, nie kommentarlos gelöscht, wenn sie eine Begründung trägt.
       `TischAuswahlDrawer.tsx`, `table/Zahlung.tsx`, `table/Bestellung.tsx`,
       `direktverkauf/Direktverkauf.tsx`.
       Befund: frontend/src/service/components/ServiceDock.tsx:4-7
-- [x] Website und E2E-Tooling nennen nur noch den Ist-Zustand: die PRD- und Planzitate in
+- [ ] Website und E2E-Tooling nennen nur noch den Ist-Zustand: die PRD- und Planzitate in
       `website/src/**` und `e2e/website/**` sind ersatzlos gestrichen, der
       Übergangsregel-Absatz in `brand.css` ist durch die geltende Token-Aussage ersetzt,
       und `screenshots.mjs` beschreibt `emulateMedia({ colorScheme })` plus die
@@ -452,16 +457,16 @@ umgeschrieben, nie kommentarlos gelöscht, wenn sie eine Begründung trägt.
       Befund: website/src/styles/brand.css:2-3, :11-17, website/src/layouts/Landing.astro:23-24,
       e2e/website/csp-check.mjs:1-12, e2e/website/csp-server.mjs:7-9,
       e2e/website/screenshots.mjs:12-15
-- [x] Die fünf Verweise auf `docs/leitfaden.md` zeigen auf die konkrete Seite:
-      `scripts/prod-update.sh` und `.env.example` auf `aktualisieren.md`,
-      `scripts/prod-backup.sh` auf `datenaufbewahrung.md`, `Makefile` auf
-      `betriebsarten.md`, `scripts/ops-smoke.sh` auf `self-hosting.md`; zusätzlich sind
+- [ ] Die fünf Verweise auf `docs/leitfaden.md` zeigen auf die konkrete Seite:
+      `scripts/prod-update.sh` auf `aktualisieren-backups.md`, `.env.example` auf
+      `self-hosting.md`, `scripts/prod-backup.sh` auf `datenaufbewahrung.md`, `Makefile`
+      auf `installation.md`, `scripts/ops-smoke.sh` auf `self-hosting.md`; zusätzlich sind
       die Planverweise in `cliff.toml`, `packaging/cron/jotti-backup.cron`,
       `packaging/systemd/jotti-backup.service`, `docker-compose.release.yml` und
       `windows/starter/rsrc_windows_amd64.syso` (per `make starter-syso` neu erzeugt)
       aufgelöst. Befund: scripts/prod-update.sh:111; scripts/prod-backup.sh:132;
       scripts/ops-smoke.sh:34; Makefile:231; .env.example:16
-- [x] Die Historien- und Handoff-Klauseln im Admin- und Komponentenbereich sind entfernt:
+- [ ] Die Historien- und Handoff-Klauseln im Admin- und Komponentenbereich sind entfernt:
       `admin/reporting/UebersichtStatusZeile.tsx`, `admin/kasse/GeldtransitDialog.tsx`,
       `admin/finanzamt/LaeuftAllesSection.tsx`, `admin/reporting/SitzungsListe.tsx`,
       `admin/components/AdminPageHeader.tsx`, `admin/users/UserRolle.tsx`,
@@ -508,14 +513,18 @@ deutsch. Bezeichner ändern sich nicht.
 
 ### Acceptance criteria
 
-- [x] `scripts/check-language.sh` liest `git ls-files` und schlägt fehl bei
+- [ ] `scripts/check-language.sh` liest `git ls-files` und schlägt fehl bei
       Nicht-ASCII-Bytes in Go-String-Literalen unter `windows/**` und in
       `packaging/**/*.cmd`. Kommentare, `*.manifest` und `*.syso` sind ausgenommen; sie
       tragen deutsche Prosa und stehen nie auf der Konsole. Zusätzlich schlägt es fehl bei
-      den transliterierten Formen `fuer, ueber, koennen, muessen, waehrend, naechst,
-auftraege, aenderung, gemaess, zurueck, moeglich, spaeter, aendern, pruefen, laeuft,
-haelt, groesse, schliessen, genuegt, einfuehrung` als ganzes Wort in Kommentarzeilen
-      unter `backend/`.
+      transliterierten deutschen Wortstämmen samt Flexionen in Kommentarzeilen unter
+      `backend/` (unter anderem `fuer, ueber, koenn, muess, waehrend, naechst, auftraeg,
+    aender, gemaess, zurueck, moeglich, spaet, pruef, laeuf, haelt, groess, schliess,
+    genueg, einfuehr, uebernahm, stoerung, laess, rueckstand, traeg, endgueltig,
+    getaetigt, oeffne, fuenf, zaehl, haeng, faeng, waer, fuehr`); die vollständige
+      Stammliste steht im Prüfer `backend/internal/tools/checklanguage`, der im
+      Backend-Modul gelintet und mit einem Unit-Test abgesichert ist und von
+      `scripts/check-language.sh` gebaut wird. `backend/sqlc/dbgen/**` ist ausgenommen.
 - [x] `.gitattributes` im Repo-Root enthält `*.cmd text eol=crlf`, und die drei
       `packaging/windows/*.cmd` sind mit CRLF und ohne Em-Dash eingecheckt.
 - [x] Die gedruckten Strings in `windows/starter/backup.go`, `windows/starter/main.go`,
@@ -524,7 +533,7 @@ haelt, groesse, schliessen, genuegt, einfuehrung` als ganzes Wort in Kommentarze
       „→" → „->", „ü" → „ue"). Befund: windows/starter/backup.go:67,69;
       windows/starter/main.go:238; windows/starter/system.go:58,114,251;
       windows/relay/env.go:84; windows/relay/main.go:148
-- [x] Die deutsche Prosa in Go-Kommentaren unter `backend/` schreibt durchgängig echte
+- [ ] Die deutsche Prosa in Go-Kommentaren unter `backend/` schreibt durchgängig echte
       Umlaute, und die vier englischen Screenreader-Texte lauten „Schließen",
       „Seitenleiste", „Zeigt die mobile Seitenleiste." und „Wird geladen".
       Befund: frontend/src/components/ui/dialog.tsx:93 (ebenso sheet.tsx:90,
