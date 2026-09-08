@@ -17,7 +17,7 @@ import {
 // Aktivierung (Auswahl folgt dem Fokus). Statischer Sektionskopf (Eyebrow, H2,
 // Intro) liegt in Features.astro; nur das interaktive Raster ist eine Island.
 //
-// Icon-Bedeutungen bewusst nach Handoff-Vorgabe (README): Bestellung = Beleg,
+// Icon-Bedeutungen bewusst: Bestellung = Beleg,
 // Zahlung = Geldbörse (NICHT Kartenterminal), Direktverkauf = Einkaufstasche,
 // Küche = Drucker, Kasse = Registrierkasse, Reporting = Balkendiagramm.
 //

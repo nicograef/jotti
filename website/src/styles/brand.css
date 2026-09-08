@@ -26,7 +26,7 @@
 }
 
 :root {
-  /* --- Farben: Light (Handoff) --- */
+  /* --- Farben: Light --- */
   --bg: #ffffff;
   --fg: #0c0c09;
   --card: #ffffff;
@@ -85,7 +85,7 @@
   --fs-h1: clamp(40px, 5.4vw, 68px);
   --fs-h2: clamp(30px, 3.7vw, 46px);
 
-  /* --- Radien (Handoff) --- */
+  /* --- Radien --- */
   --radius-sm: 11px; /* Pills, kleine Buttons */
   --radius-md: 13px; /* Buttons, CTAs */
   --radius-lg: 16px; /* Kacheln */
@@ -101,7 +101,7 @@
 }
 
 [data-theme='dark'] {
-  /* --- Farben: Dark (Handoff) --- */
+  /* --- Farben: Dark --- */
   --bg: #0c0c09;
   --fg: #fbfbf9;
   --card: #1d1d16;

@@ -28,7 +28,7 @@ import { installationUrl } from '../lib/links'
 // Erfolgs-Animation nutzt die geteilte .demo-pop-Klasse aus landing.css, die
 // unter prefers-reduced-motion neutralisiert ist.
 
-// Gemeinsame Feld-Optik (Handoff): Höhe, Radius, Rahmen, Fokus-Ring.
+// Gemeinsame Feld-Optik: Höhe, Radius, Rahmen, Fokus-Ring.
 const feldKlassen =
   'w-full rounded-[11px] border border-card-border bg-background px-3.5 text-[15px] text-foreground outline-none transition-colors focus:border-brand focus:ring-[3px] focus:ring-[color:var(--ring)]'
 

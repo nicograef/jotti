@@ -43,7 +43,7 @@
   /* Headings/Wortmarke: Space Grotesk über die Utility `font-brand`. */
   --font-brand: var(--font-heading);
 
-  /* Header-Breakpoint aus dem Handoff (860px): Desktop-Nav ab `nav:`,
+  /* Header-Breakpoint bei 860px: Desktop-Nav ab `nav:`,
      Burger-Menü darunter (`max-nav:`/`nav:hidden`). */
   --breakpoint-nav: 53.75rem;
 

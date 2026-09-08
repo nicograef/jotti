@@ -49,8 +49,8 @@ export default defineConfig({
       customCss: ['./src/styles/starlight.css'],
       // Doku liegt vollständig unter /docs/ (siehe generateId in content.config.ts);
       // die Landing auf / bleibt eine eigene Astro-Seite.
-      // Sidebar-Gruppen aus der PRD. Der Leitfaden (`docs/leitfaden/`) trennt
-      // Standardweg vom Experten-Weg und Technik vom Recht über die Gruppierung.
+      // Der Leitfaden (`docs/leitfaden/`) trennt Standardweg vom Experten-Weg
+      // und Technik vom Recht über die Sidebar-Gruppierung.
       sidebar: [
         {
           label: 'Erste Schritte',

@@ -18,7 +18,7 @@ export interface DemoProduct {
   variants: DemoVariant[]
 }
 
-// Handoff-Menü: Bier 0,5 l / 0,3 l, Weinschorle, Bratwurst, Pommes.
+// Demo-Menü: Bier 0,5 l / 0,3 l, Weinschorle, Bratwurst, Pommes.
 export const demoMenu: readonly DemoProduct[] = [
   {
     name: 'Bier',
@@ -93,7 +93,7 @@ export function formatEuro(cents: number): string {
 export type DemoStep =
   { action: 'add'; variantId: number } | { action: 'pay' } | { action: 'reset' }
 
-// Handoff-Ablauf: Bratwurst, 2× Bier 0,5 l, Pommes -> Kassieren -> Reset.
+// Auto-Ablauf: Bratwurst, 2× Bier 0,5 l, Pommes -> Kassieren -> Reset.
 // Endsumme vor dem Kassieren: 350 + 400 + 400 + 300 = 1450 Cent = 14,50 €.
 export const demoScript: readonly DemoStep[] = [
   { action: 'add', variantId: 4 },
@@ -104,7 +104,7 @@ export const demoScript: readonly DemoStep[] = [
   { action: 'reset' },
 ]
 
-// Wartezeit vor dem Ausführen des Schritts mit diesem Index (Handoff-Timings).
+// Wartezeit vor dem Ausführen des Schritts mit diesem Index.
 export function stepDelayMs(index: number): number {
   const step = demoScript[index]
   if (!step) return 0
