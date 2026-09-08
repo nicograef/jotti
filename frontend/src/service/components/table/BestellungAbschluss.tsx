@@ -75,19 +75,19 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
   })
 
   const onSubmit = async () => {
-    const inhalt = JSON.stringify({
+    const versuchsInhalt = JSON.stringify({
       positionen: props.positionen,
       kommentar,
     })
     let schluessel = bestellungId
     if (
       letzterVersuchRef.current !== null &&
-      letzterVersuchRef.current !== inhalt
+      letzterVersuchRef.current !== versuchsInhalt
     ) {
       schluessel = crypto.randomUUID()
       setBestellungId(schluessel)
     }
-    letzterVersuchRef.current = inhalt
+    letzterVersuchRef.current = versuchsInhalt
 
     await run(async () => {
       await props.backend.bestellungAufnehmen({
