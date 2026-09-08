@@ -56,7 +56,7 @@ jobs:
 
   backend-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.backend == 'true' }}
+    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -103,7 +103,7 @@ jobs:
 
   backend-golangci:
     needs: changes
-    if: ${{ needs.changes.outputs.backend == 'true' }}
+    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -136,7 +136,7 @@ jobs:
 
   resolver-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.resolver == 'true' }}
+    if: ${{ (needs.changes.outputs.resolver == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -183,7 +183,7 @@ jobs:
 
   local-proxy-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.proxy == 'true' }}
+    if: ${{ (needs.changes.outputs.proxy == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -230,7 +230,7 @@ jobs:
 
   windows-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.windows == 'true' }}
+    if: ${{ (needs.changes.outputs.windows == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -284,7 +284,7 @@ jobs:
 
   frontend-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    if: ${{ (needs.changes.outputs.frontend == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -323,7 +323,7 @@ jobs:
 
   website-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.website == 'true' }}
+    if: ${{ (needs.changes.outputs.website == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -348,17 +348,17 @@ jobs:
 
   shellcheck-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.scripts == 'true' }}
+    if: ${{ (needs.changes.outputs.scripts == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
       - name: Run shellcheck
-        run: shellcheck scripts/*.sh
+        run: shellcheck -x scripts/*.sh
 
   backend-integration-tests:
     needs: changes
-    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') }}
+    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -524,7 +524,6 @@ jobs:
   # every push to main; on failure, traces and screenshots are uploaded as
   # artefacts.
   e2e:
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
