@@ -62,7 +62,7 @@ des laufenden Betriebs sein, haltet euch an diese Reihenfolge.
 ## Danach: die Geräte laden sich von selbst neu
 
 Handys und Rechner behalten die alte Bedienoberfläche im Speicher, bis die Seite
-einmal neu geladen wird. **Jotti erledigt das automatisch.** Jedes
+einmal neu geladen wird. **jotti erledigt das automatisch.** Jedes
 geöffnete jotti fragt im Hintergrund alle halbe Minute nach, welche Version auf
 dem Rechner läuft — und zusätzlich immer dann, wenn ein weggelegtes Handy wieder
 hervorgeholt wird. Weicht die Version ab, lädt sich die Seite selbst neu: im
@@ -115,8 +115,8 @@ tippt erneut.
 ## Das Print-Relay bleibt bei Version 0.17.3, wie es ist
 
 Das Print-Relay (`jotti-relay.exe`, das Fenster, das die Bons an die Drucker
-schickt) ist seit Version 0.17.1 unverändert, und auch die Verständigung
-zwischen jotti und dem Relay hat sich nicht geändert. **Das laufende Relay darf
+schickt) ist unverändert, und auch die Verständigung zwischen jotti und dem
+Relay hat sich nicht geändert. **Das laufende Relay darf
 einfach weiterlaufen** — ihr müsst es weder beenden noch ersetzen. Im
 Release-ZIP liegt trotzdem eine `jotti-relay.exe`; sie ist funktional identisch
 mit der laufenden. Ob ihr sie tauscht oder nicht, macht keinen Unterschied.
