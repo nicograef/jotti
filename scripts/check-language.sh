@@ -14,48 +14,59 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$PROJECT_ROOT"
 
-# scripts/checklanguage is not part of any Go module (see go.work): passing
+# scripts/checklanguage is not part of any Go module (see go.work): building
 # the file directly, not a package path, builds it standalone and sidesteps
-# "outside modules listed in go.work".
-CHECKER="$SCRIPT_DIR/checklanguage/main.go"
+# "outside modules listed in go.work". Built once into a temp binary rather
+# than run via `go run` each time: `go run` collapses every non-zero exit
+# code from the program it runs to 1, which would make a real parse error
+# (checklanguage's exit 2) indistinguishable from "found violations" (its
+# exit 1).
+CHECKER_BIN="$(mktemp)"
+trap 'rm -f "$CHECKER_BIN"' EXIT
+go build -o "$CHECKER_BIN" "$SCRIPT_DIR/checklanguage/main.go"
 
 violations=0
+
+# check_rule MODE FILE... — runs checklanguage in MODE, error()-prints each
+# hit and adds it to $violations. Runs in the current shell, not a
+# subshell, so fatal()'s exit actually stops the script instead of just a
+# command substitution.
+check_rule() {
+  local mode="$1"
+  shift
+  local hits status
+  # The if/else (not a bare "if cond; then ...; fi") matters: without an
+  # else, bash reports the whole if statement's exit status as 0 whenever
+  # the then-branch didn't run, masking the real exit code — and this
+  # command must stay an if-condition (not a plain assignment) so `set -e`
+  # doesn't abort the script on an ordinary "found violations" exit 1.
+  if hits="$("$CHECKER_BIN" "$mode" "$@")"; then
+    return
+  else
+    status=$?
+  fi
+  if [ "$status" -ne 1 ]; then
+    fatal "checklanguage $mode failed (exit $status)"
+  fi
+  while IFS= read -r hit; do
+    error "$hit"
+    violations=$((violations + 1))
+  done <<<"$hits"
+}
 
 # Rule 1a: non-ASCII bytes in Go string literals under windows/**. Comments,
 # *.manifest and *.syso are excluded — they carry German prose and never
 # reach a Windows console.
 mapfile -t windows_go_files < <(git ls-files ':(glob)windows/**/*.go')
 if [ "${#windows_go_files[@]}" -gt 0 ]; then
-  if hits="$(go run "$CHECKER" windows-strings "${windows_go_files[@]}")"; then
-    :
-  else
-    status=$?
-    if [ "$status" -ne 1 ]; then
-      fatal "checklanguage windows-strings failed (exit $status)"
-    fi
-    while IFS= read -r hit; do
-      error "$hit"
-    done <<<"$hits"
-    violations=$((violations + $(printf '%s\n' "$hits" | wc -l)))
-  fi
+  check_rule windows-strings "${windows_go_files[@]}"
 fi
 
 # Rule 1b: non-ASCII bytes anywhere in packaging/**/*.cmd (including REM
 # comments — a Windows batch file has no console-vs-doc split like Go does).
 mapfile -t cmd_files < <(git ls-files ':(glob)packaging/**/*.cmd')
 if [ "${#cmd_files[@]}" -gt 0 ]; then
-  if hits="$(go run "$CHECKER" cmd-ascii "${cmd_files[@]}")"; then
-    :
-  else
-    status=$?
-    if [ "$status" -ne 1 ]; then
-      fatal "checklanguage cmd-ascii failed (exit $status)"
-    fi
-    while IFS= read -r hit; do
-      error "$hit"
-    done <<<"$hits"
-    violations=$((violations + $(printf '%s\n' "$hits" | wc -l)))
-  fi
+  check_rule cmd-ascii "${cmd_files[@]}"
 fi
 
 # Rule 2: transliterated umlaut words (fuer, ueber, koennen, ...) as whole
@@ -67,18 +78,7 @@ fi
 # backend/sqlc/queries/**, not from hand-authored Go prose.
 mapfile -t backend_go_files < <(git ls-files ':(glob)backend/**/*.go' ':(glob,exclude)backend/sqlc/dbgen/**')
 if [ "${#backend_go_files[@]}" -gt 0 ]; then
-  if hits="$(go run "$CHECKER" backend-comments "${backend_go_files[@]}")"; then
-    :
-  else
-    status=$?
-    if [ "$status" -ne 1 ]; then
-      fatal "checklanguage backend-comments failed (exit $status)"
-    fi
-    while IFS= read -r hit; do
-      error "$hit"
-    done <<<"$hits"
-    violations=$((violations + $(printf '%s\n' "$hits" | wc -l)))
-  fi
+  check_rule backend-comments "${backend_go_files[@]}"
 fi
 
 if [ "$violations" -gt 0 ]; then
