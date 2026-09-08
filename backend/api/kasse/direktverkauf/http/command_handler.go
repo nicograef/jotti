@@ -38,7 +38,7 @@ type direktverkaufTaetigenRequest struct {
 var verkaufPositionInputSchema = z.Struct(z.Shape{
 	"ProduktID":  produkt.IDSchema.Required(),
 	"VarianteID": produkt.IDSchema.Required(),
-	"Menge":      z.Int().GTE(1).Required(),
+	"Menge":      kasse.PositionEingabeSchema,
 })
 
 var direktverkaufTaetigenSchema = z.Struct(z.Shape{

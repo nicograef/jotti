@@ -153,3 +153,22 @@ func TestBestellungAufnehmenHandler_UngueltigeBestellungId_ValidationError(t *te
 		t.Errorf("expected status 400 for non-UUID bestellungId, got %d", rec.Code)
 	}
 }
+
+// Die Mengen-Obergrenze schützt die Preissumme vor dem int-Überlauf und gilt
+// auf dem Eingabeweg (kasse.PositionEingabeSchema).
+func TestBestellungAufnehmenHandler_MengeUeber999_ValidationError(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{}}
+
+	body := `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":1000}],"kommentar":""}`
+	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufnehmen", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
+
+	handler.BestellungAufnehmenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400 for menge 1000, got %d", rec.Code)
+	}
+}

@@ -67,7 +67,7 @@ func toPositionRefs(refs []positionRefRequest) []kasse.PositionRef {
 var bestellPositionInputSchema = z.Struct(z.Shape{
 	"ProduktID":  produkt.IDSchema.Required(),
 	"VarianteID": produkt.IDSchema.Required(),
-	"Menge":      z.Int().GTE(1).Required(),
+	"Menge":      kasse.PositionEingabeSchema,
 })
 
 var positionRefRequestSchema = z.Struct(z.Shape{
