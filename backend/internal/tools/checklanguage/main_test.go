@@ -73,7 +73,7 @@ func TestCheckBackendComments_ReportsStemInCommentOnly(t *testing.T) {
 		"}\n"
 
 	path := writeTemp(t, "comments.go", src)
-	hits, err := checkBackendComments([]string{path})
+	hits, err := checkBackendComments([]string{path}, []string{path})
 	if err != nil {
 		t.Fatalf("checkBackendComments: %v", err)
 	}
@@ -91,14 +91,16 @@ func TestCheckBackendComments_ReportsStemInCommentOnly(t *testing.T) {
 func TestCheckBackendComments_ProtectsOnlyDocHeaderName(t *testing.T) {
 	// "Störung" opens its own doc comment (Go doc convention: a type's
 	// comment starts with the type's exact name) and must be protected
-	// there. The same word later in the very same sentence is ordinary
+	// there even when the file is checked without being one of its own
+	// protection sources — the configuration the gate uses for this
+	// package. The same word later in the very same sentence is ordinary
 	// prose and must still be flagged.
 	src := "package p\n\n" +
 		"// Stoerung beschreibt eine Stoerung im System.\n" +
 		"type Stoerung struct{}\n"
 
 	path := writeTemp(t, "doc.go", src)
-	hits, err := checkBackendComments([]string{path})
+	hits, err := checkBackendComments([]string{path}, nil)
 	if err != nil {
 		t.Fatalf("checkBackendComments: %v", err)
 	}
@@ -111,23 +113,117 @@ func TestCheckBackendComments_ProtectsOnlyDocHeaderName(t *testing.T) {
 }
 
 func TestCheckBackendComments_ProtectsMidSentenceIdentifierReference(t *testing.T) {
-	// A struct field's trailing (not doc) comment naming a different
-	// declaration by its exact, multi-capital name — the kind of
-	// reference the doc-header check alone does not see, since it isn't
-	// that field's own opening word.
+	// A comment naming a function of another package, which this file
+	// neither declares nor lists as a protection source: "Eroeffne" opens
+	// the name with a stem, so hasInternalCapital is the only rule that
+	// can keep it out of the hits.
 	src := "package p\n\n" +
-		"func WriteEventWithDruckauftraege() {}\n\n" +
-		"type mock struct {\n" +
-		"\tdruckauftraege []int // captured via WriteEventWithDruckauftraege\n" +
-		"}\n"
+		"// Legt die Sitzung an, wie EroeffneKassensitzung es tut.\n" +
+		"func Foo() {}\n"
 
 	path := writeTemp(t, "ref.go", src)
-	hits, err := checkBackendComments([]string{path})
+	hits, err := checkBackendComments([]string{path}, nil)
 	if err != nil {
 		t.Fatalf("checkBackendComments: %v", err)
 	}
 	if len(hits) != 0 {
 		t.Errorf("a multi-capital identifier reference must never be flagged: %v", hits)
+	}
+}
+
+// TestCheckBackendComments_ProtectsCodeSpellings covers one comment per
+// class of name a backend comment quotes. Every fixture is its own
+// protection source unless the case says otherwise, exactly as the gate
+// passes the backend's files.
+func TestCheckBackendComments_ProtectsCodeSpellings(t *testing.T) {
+	tests := []struct {
+		name      string
+		src       string
+		extraSrc  string
+		noSources bool
+		wantHits  []string
+	}{
+		{
+			name: "route path in a handler doc comment",
+			src: "package p\n\n" +
+				"// POST /admin/get-tse-stoerungen liefert das Störungsprotokoll.\n" +
+				"const route = \"/get-tse-stoerungen\"\n",
+		},
+		{
+			name: "frozen event type",
+			src: "package p\n\n" +
+				"// Event kassensitzung-eroeffnet:v1 eröffnet die Sitzung.\n" +
+				"const eventTyp = \"kassensitzung-eroeffnet:v1\"\n",
+		},
+		{
+			name: "database column",
+			src: "package p\n\n" +
+				"// Spalte naechster_versuch_am trägt den Backoff.\n" +
+				"const query = \"UPDATE tse_signaturauftraege SET naechster_versuch_am = $1\"\n",
+		},
+		{
+			name: "enum value quoted in the comment, declared elsewhere",
+			src: "package p\n\n" +
+				"// Bonmodus \"pro_stueck\" und Kategorie \"getraenk\" kommen aus der Domäne.\n" +
+				"func Foo() {}\n",
+			noSources: true,
+		},
+		{
+			name: "enum value unquoted, declared as a literal",
+			src: "package p\n\n" +
+				"// Kategorie getraenk zieht den Regelsteuersatz.\n" +
+				"const kategorie = \"getraenk\"\n",
+		},
+		{
+			name: "package doc header names its own package",
+			src: "// Package dsfinvkpruefung prüft ein DSFinV-K-Export-ZIP.\n" +
+				"package dsfinvkpruefung\n",
+		},
+		{
+			name: "package doc header of a package that is not a protection source",
+			src: "// Package pruefung liest ein Export-ZIP.\n" +
+				"package pruefung\n",
+			noSources: true,
+		},
+		{
+			name: "package named in prose, declared in another file",
+			src: "package p\n\n" +
+				"// Wie in den Paketen kassenfuehrung und pruefung.\n" +
+				"func Foo() {}\n",
+			extraSrc: "package pruefung\n",
+		},
+		{
+			name: "plain German prose is still reported",
+			src: "package p\n\n" +
+				"// fuer den naechsten Versuch.\n" +
+				"func Foo() {}\n",
+			wantHits: []string{`"fuer"`, `"naechsten"`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := writeTemp(t, "case.go", tt.src)
+			sources := []string{path}
+			if tt.noSources {
+				sources = nil
+			}
+			if tt.extraSrc != "" {
+				sources = append(sources, writeTemp(t, "other.go", tt.extraSrc))
+			}
+			hits, err := checkBackendComments([]string{path}, sources)
+			if err != nil {
+				t.Fatalf("checkBackendComments: %v", err)
+			}
+			if len(hits) != len(tt.wantHits) {
+				t.Fatalf("expected %d hit(s), got %d: %v", len(tt.wantHits), len(hits), hits)
+			}
+			for _, want := range tt.wantHits {
+				if !anyContains(hits, want) {
+					t.Errorf("expected a hit for %s, got %v", want, hits)
+				}
+			}
+		})
 	}
 }
 
@@ -138,7 +234,7 @@ func TestCheckBackendComments_IgnoresGoBuildDirective(t *testing.T) {
 		"func Foo() {}\n"
 
 	path := writeTemp(t, "directive.go", src)
-	hits, err := checkBackendComments([]string{path})
+	hits, err := checkBackendComments([]string{path}, []string{path})
 	if err != nil {
 		t.Fatalf("checkBackendComments: %v", err)
 	}

@@ -10,10 +10,25 @@
 //   - backend-comments: a Go comment line under backend/** must not carry
 //     a German word stem spelled with the two-letter ASCII stand-in for
 //     ä/ö/ü (see the stems map below for the exact list) where a real
-//     umlaut belongs. It never touches string literals, and it never
-//     touches a word that is itself the name of a declared or referenced
-//     Go identifier — Go doc comments conventionally repeat a
-//     declaration's exact name, and identifiers never change.
+//     umlaut belongs. It never touches string literals.
+//
+// The backend-comments rule protects every spelling the code itself uses,
+// because a comment quoting a route, an event type, a table or column, an
+// enum value or a package name must repeat that name byte for byte —
+// identifiers never carry umlauts, and they never change. A match is
+// therefore not reported when it is
+//
+//   - a word in the protected set: the name of any package or identifier
+//     the backend declares or references, or the whole text of any Go
+//     string literal there — read from the protection sources the caller
+//     passes after "--";
+//   - part of a token held together by "/", "_", "-", ":" or "." — a route
+//     path, a column name, an event type, a qualified name;
+//   - inside double quotes or backticks in the comment;
+//   - the name after "Package" in a package doc header;
+//   - carrying an upper-case letter past its first rune, which German
+//     spelling never does but a Go identifier routinely does;
+//   - a doc comment's own opening word, naming the declaration below it.
 //
 // Exit code 0 means no violations, 1 means violations were found and
 // printed, 2 means the tool itself failed (bad arguments, a file that
@@ -232,7 +247,8 @@ func hint(stemPart, suffix string) (string, bool) {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: checklanguage <windows-strings|cmd-ascii|backend-comments> <file>...")
+		fmt.Fprintln(os.Stderr, "usage: checklanguage <windows-strings|cmd-ascii> <file>...")
+		fmt.Fprintln(os.Stderr, "       checklanguage backend-comments <file>... -- <protection-source>...")
 		os.Exit(2)
 	}
 	mode := os.Args[1]
@@ -246,7 +262,8 @@ func main() {
 	case "cmd-ascii":
 		hits, err = checkCmdASCII(files)
 	case "backend-comments":
-		hits, err = checkBackendComments(files)
+		checked, protection := splitAtDoubleDash(files)
+		hits, err = checkBackendComments(checked, protection)
 	default:
 		fmt.Fprintf(os.Stderr, "unknown mode %q\n", mode)
 		os.Exit(2)
@@ -406,22 +423,145 @@ func hasInternalCapital(s string) bool {
 	return false
 }
 
-// checkBackendComments reports transliterated word stems on Go comment
-// lines. It skips a match in two cases: the match is a doc comment's own
-// opening word and that word is exactly the name of the declaration the
-// comment documents (docHeaders), or the matched word carries a capital
-// letter beyond its first rune (hasInternalCapital) and so cannot be a
-// plain German word. Every other occurrence of a real identifier's name —
-// including elsewhere in its own doc comment — is ordinary prose and
-// still gets flagged. A block comment's ast.Comment.Text carries embedded
-// "\n"s, so the reported line is the comment's start line plus the
-// newline count before the match.
+// splitAtDoubleDash splits an argument list at the first "--": the files
+// to check come first, the files that make up the protected word set come
+// after. The two lists differ at both ends — backend/sqlc/dbgen/** is
+// generated and never checked, yet its queries carry the column names
+// comments quote; this tool's own package is checked but must never
+// protect, because its stems map is a list of misspellings, not of names.
+func splitAtDoubleDash(args []string) (checked, protection []string) {
+	for i, a := range args {
+		if a == "--" {
+			return args[:i], args[i+1:]
+		}
+	}
+	return args, nil
+}
+
+// isWordRune reports whether r is a word character, matching what "\w"
+// means to Go's regexp package: ASCII letters, digits and "_".
+func isWordRune(r rune) bool {
+	return r == '_' || r >= '0' && r <= '9' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z'
+}
+
+// tokenSeparators hold a word together with its neighbours into one
+// identifier-shaped token instead of leaving it a word of prose: a route
+// path (/admin/get-tse-stoerungen), a table or column name
+// (naechster_versuch_am), an enum value (pro_stueck), an event type
+// (kassensitzung-eroeffnet:v1) or a qualified name (kasse.Stoerung).
+const tokenSeparators = "/_-:."
+
+func isTokenByte(b byte) bool {
+	return isWordRune(rune(b)) || strings.IndexByte(tokenSeparators, b) >= 0
+}
+
+// enclosingToken returns the token around the match at [start,end): the
+// surrounding run of word characters and tokenSeparators, with leading
+// and trailing separators trimmed. A sentence's closing full stop is
+// therefore not part of the token, while the "/" and "-" of a route path
+// are.
+func enclosingToken(line string, start, end int) string {
+	for start > 0 && isTokenByte(line[start-1]) {
+		start--
+	}
+	for end < len(line) && isTokenByte(line[end]) {
+		end++
+	}
+	return strings.Trim(line[start:end], tokenSeparators)
+}
+
+// protectedWords collects every spelling the backend's own code uses: the
+// name of every package and of every declared or referenced identifier,
+// plus the whole text of every Go string literal. Comments quote these
+// names verbatim — a route, an event type, a table, a column, an enum
+// value — and no declaration spells one with an umlaut, so a comment word
+// that matches one is a reference and not misspelled prose. A literal
+// contributes its text as one word and is never split into parts: a part
+// of a compound name ("pruefen" out of "/admin/tse-setup-pruefen") is an
+// ordinary German word on its own, and a comment that means the compound
+// writes it whole, where enclosingToken already protects it. Keys are
+// lower-cased, and so must lookups be.
+func protectedWords(files []*ast.File) map[string]bool {
+	protected := make(map[string]bool)
+	for _, f := range files {
+		protected[strings.ToLower(f.Name.Name)] = true
+		ast.Inspect(f, func(n ast.Node) bool {
+			switch x := n.(type) {
+			case *ast.Ident:
+				protected[strings.ToLower(x.Name)] = true
+			case *ast.BasicLit:
+				if x.Kind == token.STRING {
+					protected[strings.ToLower(strings.Trim(x.Value, "`\""))] = true
+				}
+			}
+			return true
+		})
+	}
+	return protected
+}
+
+// inQuotes reports whether the match at [start,end) sits between a pair
+// of double quotes or of backticks on the comment line — how a comment
+// marks a value it quotes ("pro_stueck", `regel`). German prose quotes
+// with the typographic „…" pair instead, which this deliberately leaves
+// unprotected.
+func inQuotes(line string, start, end int) bool {
+	for _, quote := range []byte{'"', '`'} {
+		open := -1
+		for i := 0; i < len(line); i++ {
+			if line[i] != quote {
+				continue
+			}
+			if open < 0 {
+				open = i
+				continue
+			}
+			if open < start && end <= i {
+				return true
+			}
+			open = -1
+		}
+	}
+	return false
+}
+
+// isPackageDocName reports whether the match opens a package doc header
+// ("// Package dsfinvkpruefung prüft ..."), the one position Go doc
+// convention puts a package's own name in.
+func isPackageDocName(line string, matchStart int) bool {
+	prefix := strings.Trim(line[:matchStart], "/* \t")
+	return prefix == "Package" || prefix == "package"
+}
+
+// isReference reports whether the stem match at [start,end) spells a name
+// the code itself uses, which a comment has to repeat byte for byte: a
+// word the backend declares or writes in a string literal, a word inside
+// an identifier-shaped token, a quoted value, a package doc's own package
+// name, or a word with an inner capital that German spelling never
+// produces (WriteEventWithDruckauftraege) but a Go identifier routinely
+// does.
+func isReference(line string, start, end int, protected map[string]bool) bool {
+	word := line[start:end]
+	return protected[strings.ToLower(word)] ||
+		strings.ContainsAny(enclosingToken(line, start, end), tokenSeparators) ||
+		inQuotes(line, start, end) ||
+		isPackageDocName(line, start) ||
+		hasInternalCapital(word)
+}
+
 type parsedFile struct {
 	path string
 	file *ast.File
 }
 
-func checkBackendComments(files []string) ([]string, error) {
+// checkBackendComments reports transliterated word stems on the comment
+// lines of files, skipping every match that names code rather than
+// misspelling prose (isReference) and every doc comment's own opening
+// word (docHeaders). The protected word set comes from protectionSources
+// alone; their own comments are never checked. A block comment's
+// ast.Comment.Text carries embedded "\n"s, so the reported line is the
+// comment's start line plus the newline count before the match.
+func checkBackendComments(files, protectionSources []string) ([]string, error) {
 	fset := token.NewFileSet()
 	parsed := make([]parsedFile, 0, len(files))
 	for _, path := range files {
@@ -431,11 +571,20 @@ func checkBackendComments(files []string) ([]string, error) {
 		}
 		parsed = append(parsed, parsedFile{path: path, file: f})
 	}
-	astFiles := make([]*ast.File, len(parsed))
-	for i, p := range parsed {
-		astFiles[i] = p.file
+	sources := make([]*ast.File, 0, len(protectionSources))
+	for _, path := range protectionSources {
+		f, err := parser.ParseFile(fset, path, nil, 0)
+		if err != nil {
+			return nil, fmt.Errorf("parse %s: %w", path, err)
+		}
+		sources = append(sources, f)
+	}
+	astFiles := make([]*ast.File, 0, len(parsed))
+	for _, p := range parsed {
+		astFiles = append(astFiles, p.file)
 	}
 	headers := docHeaders(astFiles)
+	protected := protectedWords(sources)
 
 	var hits []string
 	for _, p := range parsed {
@@ -454,7 +603,7 @@ func checkBackendComments(files []string) ([]string, error) {
 						suffix := line[m[4]:m[5]]
 						isDocHeader := isHeader && commentIdx == 0 && lineOffset == 0 &&
 							whole == headerName && startsAtFirstWord(line, m[0])
-						if isDocHeader || hasInternalCapital(whole) {
+						if isDocHeader || isReference(line, m[0], m[1], protected) {
 							continue
 						}
 						lineNo := startLine + lineOffset

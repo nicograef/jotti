@@ -71,13 +71,20 @@ fi
 # Rule 2: transliterated umlaut words (fuer, ueber, koennen, ...) as whole
 # words on Go comment lines under backend/**. Identifiers such as the
 # `auftraege` parameter in backend/seed are untouched — only *ast.Comment
-# text is scanned. backend/sqlc/dbgen/** is excluded like in
-# check-prose.sh: it is generated code (AGENTS.md rule 14, "niemals
+# text is scanned. backend/sqlc/dbgen/** is excluded from the check like
+# in check-prose.sh: it is generated code (AGENTS.md rule 14, "niemals
 # editieren") whose comments come from database/migrations/** (frozen) and
 # backend/sqlc/queries/**, not from hand-authored Go prose.
+#
+# The files after the "--" are the protected word set: every name the
+# backend declares or writes, which a comment quoting it must spell the
+# same way. dbgen belongs in there (its queries carry the table and column
+# names comments quote); the checker's own package does not, because its
+# stems map lists the very misspellings this rule hunts.
 mapfile -t backend_go_files < <(git ls-files ':(glob)backend/**/*.go' ':(glob,exclude)backend/sqlc/dbgen/**')
+mapfile -t protection_sources < <(git ls-files ':(glob)backend/**/*.go' ':(glob,exclude)backend/internal/tools/checklanguage/**')
 if [ "${#backend_go_files[@]}" -gt 0 ]; then
-  check_rule backend-comments "${backend_go_files[@]}"
+  check_rule backend-comments "${backend_go_files[@]}" -- "${protection_sources[@]}"
 fi
 
 if [ "$violations" -gt 0 ]; then
