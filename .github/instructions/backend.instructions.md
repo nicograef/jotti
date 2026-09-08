@@ -174,7 +174,7 @@ func (c Command) CreateProdukt(ctx context.Context, name string, kategorie produ
 			log.Warn().Err(err).Str("name", produkt.Name).Msg("Produkt name already exists")
 			return 0, ErrProduktAlreadyExists
 		} else {
-			log.Error().Str("name", produkt.Name).Msg("Failed to create produkt")
+			log.Error().Err(err).Str("name", produkt.Name).Msg("Failed to create produkt")
 			return 0, ErrDatabase
 		}
 	}
