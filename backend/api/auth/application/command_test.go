@@ -13,9 +13,8 @@ import (
 	"github.com/nicograef/jotti/backend/repository/user_repo"
 )
 
-// testUserHash ist der Argon2id-Hash zu "testpassword" und der PasswordHash jedes
-// Testbenutzers dieser Datei: damit laufen echte erfolgreiche und fehlgeschlagene
-// Logins durch.
+// testUserHash ist der Argon2id-Hash zu "testpassword"; Testbenutzer mit diesem
+// Hash durchlaufen echte erfolgreiche und fehlgeschlagene Logins.
 const testUserHash = "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"
 
 func TestGenerateJWTToken_NotFound(t *testing.T) {

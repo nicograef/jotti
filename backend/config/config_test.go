@@ -12,7 +12,7 @@ import (
 const (
 	validJWTSecret  = "test-jwt-secret-0123456789"
 	validRelayToken = "test-relay-token-0123456789"
-	validPGPassword = "test-postgres-password-1234" //nolint:gosec // Test-Platzhalter, kein echtes Secret
+	validPGPassword = "test-postgres-password-1234" //nolint:gosec // test placeholder, not a real secret
 )
 
 func setValidSecrets(t *testing.T) {
