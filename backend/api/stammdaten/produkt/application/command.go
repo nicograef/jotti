@@ -249,7 +249,7 @@ func (c Command) DeleteProdukt(ctx context.Context, produktID int) error {
 func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID int) error {
 	log := zerolog.Ctx(ctx)
 
-	_, err := c.ProduktRepo.GetProdukt(ctx, produktID)
+	produkt, err := c.ProduktRepo.GetProdukt(ctx, produktID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for variante deletion")
@@ -267,6 +267,21 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID i
 		}
 		log.Error().Int("variante_id", varianteID).Msg("Failed to retrieve variante for deletion")
 		return ErrDatabase
+	}
+
+	// Die Variante muss zu diesem Produkt gehören: Der Aufruf nennt beide IDs,
+	// und ohne den Abgleich löscht eine fremde varianteId die Variante eines
+	// anderen Produkts.
+	gehoertZumProdukt := false
+	for i := range produkt.Varianten {
+		if produkt.Varianten[i].ID == variante.ID {
+			gehoertZumProdukt = true
+			break
+		}
+	}
+	if !gehoertZumProdukt {
+		log.Warn().Int("produkt_id", produktID).Int("variante_id", varianteID).Msg("Variante does not belong to produkt")
+		return ErrVarianteNotFound
 	}
 
 	variante.Delete()

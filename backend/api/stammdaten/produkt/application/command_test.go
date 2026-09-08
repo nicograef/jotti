@@ -107,6 +107,70 @@ func TestVerschiebeVariante_NotFound(t *testing.T) {
 	}
 }
 
+// testVarianteVon baut ein Produkt mit genau einer Variante — so, wie GetProdukt
+// es liefert: die Variantenliste des Produkts und die Variante selbst.
+func testVarianteVon(id int) (produkt.Produkt, produkt.Variante) {
+	variante := produkt.Variante{
+		ID:         1,
+		Name:       "0,5l",
+		PreisCents: 350,
+		Status:     produkt.ActiveStatus,
+		CreatedAt:  time.Now().UTC(),
+		UpdatedAt:  time.Now().UTC(),
+	}
+	p := testProdukt
+	p.ID = id
+	p.Varianten = []produkt.Variante{variante}
+
+	return p, variante
+}
+
+func TestDeleteVariante(t *testing.T) {
+	eigenes, variante := testVarianteVon(1)
+	repo := produkt_repo.NewMock([]produkt.Produkt{eigenes}, nil)
+	repo.AddVariante(eigenes.ID, variante)
+	cmd := Command{ProduktRepo: repo}
+
+	if err := cmd.DeleteVariante(context.Background(), eigenes.ID, variante.ID); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	geloescht, err := repo.GetVariante(context.Background(), variante.ID)
+	if err != nil {
+		t.Fatalf("failed to get variante after delete: %v", err)
+	}
+	if geloescht.Status != produkt.DeletedStatus {
+		t.Errorf("expected status deleted, got %q", geloescht.Status)
+	}
+}
+
+// Eine Variante gehört genau einem Produkt. Nennt der Aufruf ein fremdes
+// Produkt, wird nichts gelöscht.
+func TestDeleteVariante_FremdeVariante(t *testing.T) {
+	eigenes, variante := testVarianteVon(1)
+	fremdes := testProdukt
+	fremdes.ID = 2
+	fremdes.Name = "Wasser"
+	fremdes.Varianten = []produkt.Variante{}
+
+	repo := produkt_repo.NewMock([]produkt.Produkt{eigenes, fremdes}, nil)
+	repo.AddVariante(eigenes.ID, variante)
+	cmd := Command{ProduktRepo: repo}
+
+	err := cmd.DeleteVariante(context.Background(), fremdes.ID, variante.ID)
+	if !errors.Is(err, ErrVarianteNotFound) {
+		t.Fatalf("expected ErrVarianteNotFound, got %v", err)
+	}
+
+	unberuehrt, err := repo.GetVariante(context.Background(), variante.ID)
+	if err != nil {
+		t.Fatalf("failed to get variante after rejected delete: %v", err)
+	}
+	if unberuehrt.Status != produkt.ActiveStatus {
+		t.Errorf("expected status active, got %q", unberuehrt.Status)
+	}
+}
+
 func TestDeleteProdukt(t *testing.T) {
 	repo := produkt_repo.NewMock([]produkt.Produkt{testProdukt}, nil)
 	cmd := Command{ProduktRepo: repo}
