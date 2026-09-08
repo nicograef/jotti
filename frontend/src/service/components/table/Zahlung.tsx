@@ -285,8 +285,8 @@ function PositionItem({
     <Item
       key={position.positionId}
       variant="outline"
-      // Listen-Eintritt (Handoff): fadeUp 450 ms, 60 ms Stagger, weiche Kurve,
-      // nur beim ersten Aufbau. Verzögerung dynamisch → inline.
+      // Listen-Eintritt: fadeUp 450 ms, 60 ms Stagger, weiche Kurve, nur beim
+      // ersten Aufbau. Verzögerung dynamisch → inline.
       style={
         eintritt === undefined
           ? undefined

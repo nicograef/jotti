@@ -40,7 +40,7 @@ export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
     <button
       type="button"
       onClick={handleClick}
-      // Listen-Eintritt (Handoff): fadeUp 450 ms, 60 ms Stagger je Karte, nur
+      // Listen-Eintritt: fadeUp 450 ms, 60 ms Stagger je Karte, nur
       // beim ersten Aufbau. Der Verzögerungswert ist dynamisch und steht daher
       // inline; die weiche Kurve überschreibt die kanonische 250-ms-ease-Utility.
       style={
