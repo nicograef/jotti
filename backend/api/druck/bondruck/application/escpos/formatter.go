@@ -19,9 +19,9 @@ const lineWidth = 48 // Font A, 12x24 Dots bei 576 dots/line -> 48 Zeichen
 // UTC aus der Datenbank; Belege und Arbeitsbons tragen deutsche Ortszeit, weil
 // Gast, Betreiber und Prüfung sie am Wandkalender lesen. tzdata ist ins Binary
 // eingebettet (backend/main.go), das Laden schlägt nur bei kaputtem Build fehl.
-var berlin = mustLadeBerlin()
+var berlin = mustLoadBerlin()
 
-func mustLadeBerlin() *time.Location {
+func mustLoadBerlin() *time.Location {
 	ort, err := time.LoadLocation("Europe/Berlin")
 	if err != nil {
 		panic("escpos: Zeitzone Europe/Berlin nicht ladbar: " + err.Error())
