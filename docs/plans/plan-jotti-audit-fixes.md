@@ -433,12 +433,12 @@ umgeschrieben, nie kommentarlos gelöscht, wenn sie eine Begründung trägt.
       `.claude/**`, `reverse-proxy/caddyfile.go` und Lockfiles. Eine versionierte
       Allowlist-Datei nennt jede weitere Ausnahme mit Grund; `frontend/src/lib/utils.test.ts`
       steht darin.
-- [ ] `scripts/check-links.sh` prüft jeden im Repo genannten relativen `*.md`-Pfad auf
+- [x] `scripts/check-links.sh` prüft jeden im Repo genannten relativen `*.md`-Pfad auf
       Existenz (gleiche Quelle und Ausnahmen). `make check-repo` bündelt per Glob alle
       `scripts/check-*.sh`, `make check` ruft `check-repo` mit. Der neue CI-Job
       `repo-checks` läuft ohne Pfadfilter, weil die Gates den ganzen Baum lesen; er
       richtet Go und pnpm ein und ruft `make check-repo` und `make check-format`.
-- [ ] Die Historien-Prosa im Go-Code ist auf Ist-Aussagen umgeschrieben — mindestens
+- [x] Die Historien-Prosa im Go-Code ist auf Ist-Aussagen umgeschrieben — mindestens
       `backend/app/routes.go`, `backend/config/config.go`, `backend/config/config_test.go`,
       `backend/repository/druckauftrag_repo/repo.go`,
       `backend/repository/tse_repo/repo_test.go`, `backend/api/fiskal/dsfinvk/mapper.go`,
@@ -449,7 +449,7 @@ umgeschrieben, nie kommentarlos gelöscht, wenn sie eine Begründung trägt.
       `TischAuswahlDrawer.tsx`, `table/Zahlung.tsx`, `table/Bestellung.tsx`,
       `direktverkauf/Direktverkauf.tsx`.
       Befund: frontend/src/service/components/ServiceDock.tsx:4-7
-- [ ] Website und E2E-Tooling nennen nur noch den Ist-Zustand: die PRD- und Planzitate in
+- [x] Website und E2E-Tooling nennen nur noch den Ist-Zustand: die PRD- und Planzitate in
       `website/src/**` und `e2e/website/**` sind ersatzlos gestrichen, der
       Übergangsregel-Absatz in `brand.css` ist durch die geltende Token-Aussage ersetzt,
       und `screenshots.mjs` beschreibt `emulateMedia({ colorScheme })` plus die
@@ -457,7 +457,7 @@ umgeschrieben, nie kommentarlos gelöscht, wenn sie eine Begründung trägt.
       Befund: website/src/styles/brand.css:2-3, :11-17, website/src/layouts/Landing.astro:23-24,
       e2e/website/csp-check.mjs:1-12, e2e/website/csp-server.mjs:7-9,
       e2e/website/screenshots.mjs:12-15
-- [ ] Die fünf Verweise auf `docs/leitfaden.md` zeigen auf die konkrete Seite:
+- [x] Die fünf Verweise auf `docs/leitfaden.md` zeigen auf die konkrete Seite:
       `scripts/prod-update.sh` auf `aktualisieren-backups.md`, `.env.example` auf
       `self-hosting.md`, `scripts/prod-backup.sh` auf `datenaufbewahrung.md`, `Makefile`
       auf `installation.md`, `scripts/ops-smoke.sh` auf `self-hosting.md`; zusätzlich sind
@@ -466,7 +466,7 @@ umgeschrieben, nie kommentarlos gelöscht, wenn sie eine Begründung trägt.
       `windows/starter/rsrc_windows_amd64.syso` (per `make starter-syso` neu erzeugt)
       aufgelöst. Befund: scripts/prod-update.sh:111; scripts/prod-backup.sh:132;
       scripts/ops-smoke.sh:34; Makefile:231; .env.example:16
-- [ ] Die Historien- und Handoff-Klauseln im Admin- und Komponentenbereich sind entfernt:
+- [x] Die Historien- und Handoff-Klauseln im Admin- und Komponentenbereich sind entfernt:
       `admin/reporting/UebersichtStatusZeile.tsx`, `admin/kasse/GeldtransitDialog.tsx`,
       `admin/finanzamt/LaeuftAllesSection.tsx`, `admin/reporting/SitzungsListe.tsx`,
       `admin/components/AdminPageHeader.tsx`, `admin/users/UserRolle.tsx`,
@@ -513,7 +513,7 @@ deutsch. Bezeichner ändern sich nicht.
 
 ### Acceptance criteria
 
-- [ ] `scripts/check-language.sh` liest `git ls-files` und schlägt fehl bei
+- [x] `scripts/check-language.sh` liest `git ls-files` und schlägt fehl bei
       Nicht-ASCII-Bytes in Go-String-Literalen unter `windows/**` und in
       `packaging/**/*.cmd`. Kommentare, `*.manifest` und `*.syso` sind ausgenommen; sie
       tragen deutsche Prosa und stehen nie auf der Konsole. Zusätzlich schlägt es fehl bei
@@ -537,7 +537,7 @@ deutsch. Bezeichner ändern sich nicht.
       „→" → „->", „ü" → „ue"). Befund: windows/starter/backup.go:67,69;
       windows/starter/main.go:238; windows/starter/system.go:58,114,251;
       windows/relay/env.go:84; windows/relay/main.go:148
-- [ ] Die deutsche Prosa in Go-Kommentaren unter `backend/` schreibt durchgängig echte
+- [x] Die deutsche Prosa in Go-Kommentaren unter `backend/` schreibt durchgängig echte
       Umlaute, und die vier englischen Screenreader-Texte lauten „Schließen",
       „Seitenleiste", „Zeigt die mobile Seitenleiste." und „Wird geladen".
       Befund: frontend/src/components/ui/dialog.tsx:93 (ebenso sheet.tsx:90,
