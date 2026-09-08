@@ -16,7 +16,7 @@ import (
 type AbrechnungServicekraft struct {
 	UserID              int
 	UserName            string // eingefrorener Username
-	Name                string // live aus users aufgeloester Klarname (nur Admin-Anzeige)
+	Name                string // live aus users aufgelöster Klarname (nur Admin-Anzeige)
 	KassiertCents       int
 	AnzahlZahlungen     int
 	RuecknahmenCents    int
@@ -40,7 +40,7 @@ type StornierungPosition struct {
 
 // ServicekraftRef identifiziert eine Servicekraft in Reporting-Ausgaben:
 // stabile Benutzer-ID, eingefrorener Username aus dem Event-Umschlag und der
-// live aus users aufgeloeste Klarname (nur Admin-Anzeige, leer wenn der
+// live aus users aufgelöste Klarname (nur Admin-Anzeige, leer wenn der
 // Benutzer fehlt). Geteilte Referenz für Akteur und Betroffene.
 type ServicekraftRef struct {
 	UserID   int
@@ -194,7 +194,7 @@ type LiveReportingData struct {
 type ServicekraftLive struct {
 	UserID              int
 	UserName            string // eingefrorener Username
-	Name                string // live aus users aufgeloester Klarname (leer bei reiner offener Arbeit)
+	Name                string // live aus users aufgelöster Klarname (leer bei reiner offener Arbeit)
 	KassiertCents       int
 	RuecknahmenCents    int
 	AnzahlStornierungen int

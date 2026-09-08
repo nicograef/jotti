@@ -4,7 +4,7 @@ package produkt
 
 import "testing"
 
-// RichtungSchema laesst genau die beiden Verschieberichtungen zu; jeder andere
+// RichtungSchema lässt genau die beiden Verschieberichtungen zu; jeder andere
 // Wert (etwa ein Frontend-Tippfehler oder eine fremde Himmelsrichtung) muss vor
 // dem Repository scheitern.
 func TestRichtungSchema_AkzeptiertNurHochUndRunter(t *testing.T) {

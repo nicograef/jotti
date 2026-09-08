@@ -61,7 +61,7 @@ const nachsignierVerzoegerung = 5 * time.Second
 // stoerungFehlertext ist der Fehlertext der geseedeten tse_fehler-Störungszeiträume.
 const stoerungFehlertext = "Cloud-TSE nicht erreichbar (HTTP 503)"
 
-// ausfallFenster ist ein TSE-Ausfallfenster mit absoluten Zeiten. aufgeloest steuert, ob die
+// ausfallFenster ist ein TSE-Ausfallfenster mit absoluten Zeiten. aufgelöst steuert, ob die
 // Signaturaufträge als vom Worker nachsigniert gelten (abgeschlossene Sitzung) oder offen
 // bleiben (offene Sitzung).
 type ausfallFenster struct {
@@ -86,7 +86,7 @@ func ausfallFensterAus(s szenario, jetzt time.Time) []ausfallFenster {
 	return fenster
 }
 
-// stoerungZeile ist die zu persistierende Zeile der tse_stoerungen-Tabelle
+// stoerungZeile ist die zu persistierende Zeile der tse_störungen-Tabelle
 // (Störungsprotokoll).
 type stoerungZeile struct {
 	Beginn     time.Time
@@ -116,7 +116,7 @@ func stoerungszeitraeumeAus(fenster []ausfallFenster) []stoerungZeile {
 	return zeilen
 }
 
-// signaturauftragZeile ist die zu persistierende Zeile der tse_signaturauftraege-Tabelle:
+// signaturauftragZeile ist die zu persistierende Zeile der tse_signaturaufträge-Tabelle:
 // genau ein Auftrag je fiskalischem Event, die Signatur direkt am Auftrag (NULL bis zur
 // Quittierung).
 type signaturauftragZeile struct {

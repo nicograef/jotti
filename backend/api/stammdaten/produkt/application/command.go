@@ -278,8 +278,8 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID i
 }
 
 // SortiereVariantenAlphabetisch ordnet die Varianten eines Produkts einmalig
-// alphabetisch. Danach ist es eine gewoehnliche Reihenfolge, die sich mit den
-// Pfeilen weiter anpassen laesst - bewusst kein dauerhafter Sortiermodus.
+// alphabetisch. Danach ist es eine gewöhnliche Reihenfolge, die sich mit den
+// Pfeilen weiter anpassen lässt - bewusst kein dauerhafter Sortiermodus.
 func (c Command) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
 	log := zerolog.Ctx(ctx)
 

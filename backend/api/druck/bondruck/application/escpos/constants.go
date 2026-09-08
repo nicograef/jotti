@@ -4,11 +4,11 @@ package escpos
 const Init = "\x1B\x40"
 
 // Zeichentabelle (ESC t n)
-// SetCodepageWPC1252 waehlt am MUNBYN ITPP047P die Codepage 6 (WPC1252 / Windows-1252,
+// SetCodepageWPC1252 wählt am MUNBYN ITPP047P die Codepage 6 (WPC1252 / Windows-1252,
 // "West Europe" mit Euro-Zeichen). Die MUNBYN-Nummerierung folgt NICHT dem Epson-Standard
-// (dort waere WPC1252 = 16); die Liste steht auf der Selbsttest-Seite des Druckers.
+// (dort wäre WPC1252 = 16); die Liste steht auf der Selbsttest-Seite des Druckers.
 // WPC1252 deckt die deutschen Umlaute (ae/oe/ue/Ae/Oe/Ue/ss) und das Euro-Zeichen ab.
-// Wird von ESC @ (Init) zurueckgesetzt und muss daher nach Init gesendet werden.
+// Wird von ESC @ (Init) zurückgesetzt und muss daher nach Init gesendet werden.
 const SetCodepageWPC1252 = "\x1B\x74\x06" // ESC t 6
 
 // Ausrichtung
@@ -19,10 +19,10 @@ const AlignCenter = "\x1B\x61\x01"
 const BoldOn = "\x1B\x45\x01"
 const BoldOff = "\x1B\x45\x00"
 
-// Schriftgroesse (GS ! n)
+// Schriftgröße (GS ! n)
 const TextNormal = "\x1D\x21\x00"
-const TextDoubleHigh = "\x1D\x21\x01" // Doppelte Hoehe
-const TextDoubleAll = "\x1D\x21\x11"  // Doppelte Hoehe und Breite (für Tischnummer)
+const TextDoubleHigh = "\x1D\x21\x01" // Doppelte Höhe
+const TextDoubleAll = "\x1D\x21\x11"  // Doppelte Höhe und Breite (für Tischnummer)
 
 // QR-Code (GS ( k)
 const QRCodeStorePrefix = "\x1D\x28\x6B" // GS ( k + pL pH

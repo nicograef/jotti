@@ -17,7 +17,7 @@ import (
 
 // abbruchProbe spielt den Client, der während der Arbeit des Handlers
 // abbricht: Sie storniert den Request-Kontext und hält fest, was der an die
-// Application-Schicht uebergebene Kontext danach meldet.
+// Application-Schicht übergebene Kontext danach meldet.
 type abbruchProbe struct {
 	abbrechen        context.CancelFunc
 	kontextStorniert bool
@@ -25,8 +25,8 @@ type abbruchProbe struct {
 	loggerAktiv      bool
 }
 
-// beobachte läuft anstelle der fiskaly-Sequenz. context.WithCancel schliesst
-// den Done-Kanal aller Kinder synchron im cancel-Aufruf, die Pruefung direkt
+// beobachte läuft anstelle der fiskaly-Sequenz. context.WithCancel schließt
+// den Done-Kanal aller Kinder synchron im cancel-Aufruf, die Prüfung direkt
 // danach ist damit deterministisch.
 func (p *abbruchProbe) beobachte(ctx context.Context) {
 	p.abbrechen()
@@ -71,7 +71,7 @@ func (q *abbruchQuery) CheckTSESetup(ctx context.Context, credentials tse.SetupC
 // Client-Abbruch storniert r.Context() — deshalb laufen sie unter einem davon
 // abgekoppelten Kontext (lebenszyklusKontext). Die beiden lesenden Endpunkte
 // sind idempotent und wiederholbar; sie behalten r.Context() und sollen mit dem
-// Client abbrechen, statt fiskaly ohne Zuhoerer weiter zu befragen.
+// Client abbrechen, statt fiskaly ohne Zuhörer weiter zu befragen.
 func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing.T) {
 	faelle := []struct {
 		route            string
@@ -149,7 +149,7 @@ func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing
 	}
 }
 
-// Der abgekoppelte Kontext endet spaetestens, wenn der Handler zurueckkehrt
+// Der abgekoppelte Kontext endet spätestens, wenn der Handler zurückkehrt
 // (defer cancel) — abgekoppelt heisst nicht unsterblich.
 func TestTSESetupHandler_LebenszyklusKontextEndetMitDemHandler(t *testing.T) {
 	var erfasst context.Context

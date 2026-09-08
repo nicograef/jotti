@@ -15,7 +15,7 @@ func TestTruncate_KeepsShortStringUnchanged(t *testing.T) {
 }
 
 func TestTruncate_CountsRunesNotBytes(t *testing.T) {
-	// 24 Umlaute = 48 Bytes, aber nur 24 Runen -> darf nicht gekuerzt werden.
+	// 24 Umlaute = 48 Bytes, aber nur 24 Runen -> darf nicht gekürzt werden.
 	name := strings.Repeat("ä", 24)
 	if got := truncate(name, 24); got != name {
 		t.Errorf("24 Runen sollten nicht gekuerzt werden; got %d Runen", utf8.RuneCountInString(got))
@@ -68,16 +68,16 @@ func TestQRVersionForLengthM_KnownCapacities(t *testing.T) {
 }
 
 func TestQRModuleSizeByte_500BytePayload_UsesSize6(t *testing.T) {
-	// V17 (507-Byte-Kapazitaet): Matrix 85 Module + 8 Ruhezone = 93 Module.
-	// 93 * 6 = 558 Dots <= 576 Dots -> Modulgroesse 6.
+	// V17 (507-Byte-Kapazität): Matrix 85 Module + 8 Ruhezone = 93 Module.
+	// 93 * 6 = 558 Dots <= 576 Dots -> Modulgröße 6.
 	if got := qrModuleSizeByte(500); got != 6 {
 		t.Errorf("qrModuleSizeByte(500) = %d, want 6 (93 Module * 6 = 558 <= 576 Dots)", got)
 	}
 }
 
 func TestQRModuleSizeByte_508BytePayload_UsesSize5(t *testing.T) {
-	// V18 (563-Byte-Kapazitaet): Matrix 89 Module + 8 Ruhezone = 97 Module.
-	// 97 * 6 = 582 Dots > 576 -> Modulgroesse 5: 97 * 5 = 485 <= 576 Dots.
+	// V18 (563-Byte-Kapazität): Matrix 89 Module + 8 Ruhezone = 97 Module.
+	// 97 * 6 = 582 Dots > 576 -> Modulgröße 5: 97 * 5 = 485 <= 576 Dots.
 	if got := qrModuleSizeByte(508); got != 5 {
 		t.Errorf("qrModuleSizeByte(508) = %d, want 5 (97 Module * 6 = 582 > 576; * 5 = 485 <= 576)", got)
 	}

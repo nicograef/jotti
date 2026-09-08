@@ -1,4 +1,4 @@
-// Package dsfinvkpruefung prüft ein DSFinV-K-Export-ZIP eigenständig gegen die
+// Package dsfinvkprüfung prüft ein DSFinV-K-Export-ZIP eigenständig gegen die
 // Struktur- und Inhaltsregeln der DSFinV-K 2.4 und liefert eine Befundliste. Es
 // ist der Gegenspieler des Erzeugers (backend/api/fiskal/dsfinvk): der Erzeuger
 // baut das Archiv, diese Prüfung liest es zurück und stellt sicher, dass Paket,

@@ -98,7 +98,7 @@ func (u *testUmgebung) insertAuftragFuerSitzung(t *testing.T, txID string, ksNr 
 }
 
 // insertKassensitzung legt eine weitere offene Kassensitzung an und liefert ihre
-// z_nr. Wegen idx_kassensitzungen_eine_aktiv darf hoechstens eine Sitzung aktiv
+// z_nr. Wegen idx_kassensitzungen_eine_aktiv darf höchstens eine Sitzung aktiv
 // sein — die vorige muss vorher abgeschlossen werden.
 func (u *testUmgebung) insertKassensitzung(t *testing.T) int {
 	t.Helper()
@@ -122,8 +122,8 @@ func (u *testUmgebung) closeKassensitzung(t *testing.T, ksNr int) {
 	}
 }
 
-// markiereFehlgeschlagen laesst einen Auftrag über MaxSignaturVersuche
-// Fehlversuche endgueltig fehlschlagen (Status fehlgeschlagen, letzter_fehler
+// markiereFehlgeschlagen lässt einen Auftrag über MaxSignaturVersuche
+// Fehlversuche endgültig fehlschlagen (Status fehlgeschlagen, letzter_fehler
 // gesetzt).
 func markiereFehlgeschlagen(t *testing.T, store Repository, ctx context.Context, auftragID int, fehler string) {
 	t.Helper()
@@ -146,9 +146,9 @@ func testSignatur(txNr int) tse.Signatur {
 	}
 }
 
-// Die Quittierung fuellt die Signaturspalten genau einmal (Status-Guard offen):
+// Die Quittierung füllt die Signaturspalten genau einmal (Status-Guard offen):
 // Der Auftrag wird erledigt, der Beleg-Abruf liest die Signatur vom Auftrag,
-// und eine zweite Quittierung aendert nichts mehr.
+// und eine zweite Quittierung ändert nichts mehr.
 func TestQuittiereTSESignaturauftrag_EinzelUpdateMitStatusGuard(t *testing.T) {
 	store, umgebung, teardown := setupRepository(t)
 	defer teardown(t)
@@ -171,7 +171,7 @@ func TestQuittiereTSESignaturauftrag_EinzelUpdateMitStatusGuard(t *testing.T) {
 		t.Fatalf("Expected quittierte signatur at auftrag, got %+v", stand.Signatur)
 	}
 
-	// Erledigte Aufträge sind nicht mehr faellig.
+	// Erledigte Aufträge sind nicht mehr fällig.
 	offene, err := store.GetOffeneTSESignaturauftraege(ctx, 20)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
@@ -218,7 +218,7 @@ func TestGetSignaturauftragZuEvent_Faelle(t *testing.T) {
 	}
 }
 
-// Ein Fehlversuch verschiebt den naechsten Versuch in die Zukunft (Backoff):
+// Ein Fehlversuch verschiebt den nächsten Versuch in die Zukunft (Backoff):
 // Der fehlschlagende Auftrag verschwindet aus dem Worker-Batch, ein neuerer
 // Auftrag bleibt abholbar — kein Head-of-Line-Blocking mehr.
 func TestTSESignaturauftragFehlversuch_BackoffBlockiertNeuereNicht(t *testing.T) {
@@ -249,10 +249,10 @@ func TestTSESignaturauftragFehlversuch_BackoffBlockiertNeuereNicht(t *testing.T)
 }
 
 // Die auftragsspezifische Fehlversuchs-Kurve ist eine Sekunden-Kurve (5, 15 s
-// Backoff, dritter Fehlversuch endgueltig fehlgeschlagen): Sie endet deutlich
-// unter der Rueckstands-Schwelle, und der fehlgeschlagene Auftrag verschwindet
-// aus der Rueckstands-Messung — ein Gift-Auftrag oeffnet nie einen
-// Rueckstands-Zeitraum und liefert bis zum endgueltigen Fehlschlag das
+// Backoff, dritter Fehlversuch endgültig fehlgeschlagen): Sie endet deutlich
+// unter der Rückstands-Schwelle, und der fehlgeschlagene Auftrag verschwindet
+// aus der Rückstands-Messung — ein Gift-Auftrag öffnet nie einen
+// Rückstands-Zeitraum und liefert bis zum endgültigen Fehlschlag das
 // Signaturstatus-Ergebnis ausstehend.
 func TestTSESignaturauftragFehlversuch_SekundenKurveEndetVorRueckstandsSchwelle(t *testing.T) {
 	store, umgebung, teardown := setupRepository(t)
@@ -285,7 +285,7 @@ func TestTSESignaturauftragFehlversuch_SekundenKurveEndetVorRueckstandsSchwelle(
 		gesamtBackoff += backoff
 	}
 
-	// Der MaxSignaturVersuche-te Fehlversuch macht den Auftrag endgueltig.
+	// Der MaxSignaturVersuche-te Fehlversuch macht den Auftrag endgültig.
 	if err := store.TSESignaturauftragFehlversuch(ctx, id, "fiskaly api error 400 (E_FAILED_SCHEMA_VALIDATION)"); err != nil {
 		t.Fatalf("letzter Fehlversuch: %v", err)
 	}
@@ -294,12 +294,12 @@ func TestTSESignaturauftragFehlversuch_SekundenKurveEndetVorRueckstandsSchwelle(
 	}
 
 	// Die gesamte Wartezeit der Kurve bleibt weit unter der
-	// Rueckstands-Schwelle — Platz für Tick- und Verarbeitungs-Schlupf.
+	// Rückstands-Schwelle — Platz für Tick- und Verarbeitungs-Schlupf.
 	if gesamtBackoff >= tse.RueckstandSchwelle/2 {
 		t.Fatalf("Backoff-Kurve %v zu nah an der Rueckstands-Schwelle %v", gesamtBackoff, tse.RueckstandSchwelle)
 	}
 
-	// Fehlgeschlagene Aufträge zaehlen nicht als Rueckstand: Der Watchdog
+	// Fehlgeschlagene Aufträge zählen nicht als Rückstand: Der Watchdog
 	// misst nur offene Aufträge.
 	aeltester, err := store.GetAeltesterOffenerTSESignaturauftrag(ctx)
 	if err != nil {
@@ -311,7 +311,7 @@ func TestTSESignaturauftragFehlversuch_SekundenKurveEndetVorRueckstandsSchwelle(
 }
 
 // backoffBis misst den von der Fehlversuchs-Query gesetzten Backoff
-// (naechster_versuch_am − NOW()).
+// (nächster_versuch_am − NOW()).
 func backoffBis(t *testing.T, db *sql.DB, auftragID int) time.Duration {
 	t.Helper()
 	var sekunden float64
@@ -323,8 +323,8 @@ func backoffBis(t *testing.T, db *sql.DB, auftragID int) time.Duration {
 	return time.Duration(sekunden * float64(time.Second))
 }
 
-// Ohne TSE-Konfiguration markiert der Worker offene Aufträge endgueltig als
-// tse_nicht_konfiguriert; erledigte bleiben unberuehrt.
+// Ohne TSE-Konfiguration markiert der Worker offene Aufträge endgültig als
+// tse_nicht_konfiguriert; erledigte bleiben unberührt.
 func TestMarkOffeneAlsNichtKonfiguriert_MarkiertNurOffene(t *testing.T) {
 	store, umgebung, teardown := setupRepository(t)
 	defer teardown(t)
@@ -353,7 +353,7 @@ func TestMarkOffeneAlsNichtKonfiguriert_MarkiertNurOffene(t *testing.T) {
 		t.Fatalf("Expected erledigten auftrag untouched, got %q", status[erledigtID])
 	}
 
-	// Markierte Aufträge sind nicht mehr faellig.
+	// Markierte Aufträge sind nicht mehr fällig.
 	offene, err := store.GetOffeneTSESignaturauftraege(ctx, 20)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
@@ -409,8 +409,8 @@ func statusMap(t *testing.T, db *sql.DB) map[int]string {
 	return status
 }
 
-// Der Queue-Zustand zaehlt offene und fehlgeschlagene Aufträge, misst den
-// Rueckstand (Alter des aeltesten offenen) und die Leistung über das
+// Der Queue-Zustand zählt offene und fehlgeschlagene Aufträge, misst den
+// Rückstand (Alter des ältesten offenen) und die Leistung über das
 // 15-Minuten-Fenster (Signaturen pro Minute, Signierdauer p95). Ohne Aufträge
 // sind alle Werte 0.
 func TestGetTSESignaturQueueZustand(t *testing.T) {
@@ -454,16 +454,16 @@ func TestGetTSESignaturQueueZustand(t *testing.T) {
 }
 
 // Die fehlgeschlagen-Zahl und der letzte Fehlertext sind sitzungsbezogen: Sie
-// zaehlen nur Aufträge der aktiven Kassensitzung. Mit dem Kassenabschluss
+// zählen nur Aufträge der aktiven Kassensitzung. Mit dem Kassenabschluss
 // (Sitzung -> abgeschlossen) verschwindet die Warnung ohne weiteres Zutun, und
-// ein Vorfall aus einer bereits abgeschlossenen Sitzung zaehlt nicht mehr — die
-// neue aktive Sitzung weist nur ihren eigenen juengsten Fehler aus.
+// ein Vorfall aus einer bereits abgeschlossenen Sitzung zählt nicht mehr — die
+// neue aktive Sitzung weist nur ihren eigenen jüngsten Fehler aus.
 func TestGetTSESignaturQueueZustand_FehlgeschlagenSitzungsbezogen(t *testing.T) {
 	store, umgebung, teardown := setupRepository(t)
 	defer teardown(t)
 	ctx := context.Background()
 
-	// Mit aktiver Sitzung: der fehlgeschlagene Auftrag zaehlt und traegt seinen Fehlertext.
+	// Mit aktiver Sitzung: der fehlgeschlagene Auftrag zählt und trägt seinen Fehlertext.
 	fehlID, _ := umgebung.insertAuftrag(t, "tx-fehl-aktiv")
 	markiereFehlgeschlagen(t, store, ctx, fehlID, "fiskaly 503")
 
@@ -487,7 +487,7 @@ func TestGetTSESignaturQueueZustand_FehlgeschlagenSitzungsbezogen(t *testing.T) 
 	}
 
 	// Eine neue aktive Sitzung mit eigenem Fehler weist nur ihren eigenen Fehler
-	// aus; der Vorfall der abgeschlossenen Sitzung zaehlt nicht mehr.
+	// aus; der Vorfall der abgeschlossenen Sitzung zählt nicht mehr.
 	neueNr := umgebung.insertKassensitzung(t)
 	neuFehlID, _ := umgebung.insertAuftragFuerSitzung(t, "tx-fehl-neu", neueNr)
 	markiereFehlgeschlagen(t, store, ctx, neuFehlID, "fiskaly timeout")
@@ -501,8 +501,8 @@ func TestGetTSESignaturQueueZustand_FehlgeschlagenSitzungsbezogen(t *testing.T) 
 	}
 }
 
-// GetAlleTSEStoerungen liefert das Stoerungsprotokoll neueste zuerst; der aktive
-// Zeitraum traegt kein Ende, der geschlossene eines.
+// GetAlleTSEStoerungen liefert das Störungsprotokoll neueste zuerst; der aktive
+// Zeitraum trägt kein Ende, der geschlossene eines.
 func TestGetAlleTSEStoerungen(t *testing.T) {
 	store, _, teardown := setupRepository(t)
 	defer teardown(t)
@@ -525,7 +525,7 @@ func TestGetAlleTSEStoerungen(t *testing.T) {
 	if len(stoerungen) != 2 {
 		t.Fatalf("Expected 2 stoerungen, got %d", len(stoerungen))
 	}
-	// Neueste zuerst: der aktive Rueckstands-Zeitraum ohne Ende.
+	// Neueste zuerst: der aktive Rückstands-Zeitraum ohne Ende.
 	if stoerungen[0].GrundArt != tse.StoerungGrundRueckstand || stoerungen[0].Ende != nil {
 		t.Fatalf("Expected active rueckstand first, got %+v", stoerungen[0])
 	}
@@ -534,7 +534,7 @@ func TestGetAlleTSEStoerungen(t *testing.T) {
 	}
 }
 
-// Hoechstens ein Stoerungszeitraum ist aktiv: Oeffnen bei aktivem Zeitraum ist
+// Höchstens ein Störungszeitraum ist aktiv: Öffnen bei aktivem Zeitraum ist
 // ein No-Op — auch für eine andere Grund-Art. Nach dem Schließen kann ein
 // neuer Zeitraum entstehen.
 func TestTSEStoerung_OeffnenIdempotentHoechstensEineAktiv(t *testing.T) {
@@ -542,7 +542,7 @@ func TestTSEStoerung_OeffnenIdempotentHoechstensEineAktiv(t *testing.T) {
 	defer teardown(t)
 	ctx := context.Background()
 
-	// Ohne Stoerung: kein aktiver Zeitraum.
+	// Ohne Störung: kein aktiver Zeitraum.
 	aktive, err := store.GetAktiveTSEStoerung(ctx)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
@@ -555,7 +555,7 @@ func TestTSEStoerung_OeffnenIdempotentHoechstensEineAktiv(t *testing.T) {
 		t.Fatalf("Expected no oeffnen error, got %v", err)
 	}
 
-	// Erneutes Oeffnen (auch anderer Grund-Art) ist ein No-Op.
+	// Erneutes Öffnen (auch anderer Grund-Art) ist ein No-Op.
 	if err := store.OpenTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
 		t.Fatalf("Expected no-op oeffnen without error, got %v", err)
 	}
@@ -580,7 +580,7 @@ func TestTSEStoerung_OeffnenIdempotentHoechstensEineAktiv(t *testing.T) {
 	}
 }
 
-// Jeder Schreiber schliesst nur Zeitraeume seiner Grund-Art: Das Schließen
+// Jeder Schreiber schließt nur Zeiträume seiner Grund-Art: Das Schließen
 // einer fremden Grund-Art ist ein No-Op, das eigene beendet den Zeitraum und
 // macht Platz für einen neuen.
 func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
@@ -592,7 +592,7 @@ func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
 		t.Fatalf("Expected no oeffnen error, got %v", err)
 	}
 
-	// Fremde Grund-Art schliesst nicht.
+	// Fremde Grund-Art schließt nicht.
 	if err := store.CloseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
 		t.Fatalf("Expected no-op schliessen without error, got %v", err)
 	}
@@ -604,7 +604,7 @@ func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
 		t.Fatal("Expected stoerung to stay active after foreign schliessen")
 	}
 
-	// Eigene Grund-Art schliesst; erneutes Schließen ist ein No-Op.
+	// Eigene Grund-Art schließt; erneutes Schließen ist ein No-Op.
 	if err := store.CloseTSEStoerung(ctx, tse.StoerungGrundRueckstand); err != nil {
 		t.Fatalf("Expected no schliessen error, got %v", err)
 	}
@@ -619,7 +619,7 @@ func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
 		t.Fatalf("Expected no active stoerung after schliessen, got %+v", aktive)
 	}
 
-	// Der geschlossene Zeitraum bleibt erhalten (kein Loeschpfad); ein neuer
+	// Der geschlossene Zeitraum bleibt erhalten (kein Löschpfad); ein neuer
 	// Zeitraum kann jetzt entstehen.
 	if err := store.OpenTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
 		t.Fatalf("Expected no oeffnen error after schliessen, got %v", err)
@@ -634,7 +634,7 @@ func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
 }
 
 // GetAeltesterOffenerTSESignaturauftrag liefert den Erstellungszeitpunkt des
-// aeltesten offenen Auftrags; erledigte Aufträge zaehlen nicht, ohne offene
+// ältesten offenen Auftrags; erledigte Aufträge zählen nicht, ohne offene
 // Aufträge kommt nil.
 func TestGetAeltesterOffenerTSESignaturauftrag(t *testing.T) {
 	store, umgebung, teardown := setupRepository(t)
@@ -660,7 +660,7 @@ func TestGetAeltesterOffenerTSESignaturauftrag(t *testing.T) {
 		t.Fatal("Expected erstellungszeitpunkt of oldest open auftrag, got nil")
 	}
 
-	// Der aelteste Auftrag wird quittiert — der juengere bestimmt jetzt das Alter.
+	// Der älteste Auftrag wird quittiert — der jüngere bestimmt jetzt das Alter.
 	if err := store.QuittiereTSESignaturauftrag(ctx, ersterID, testSignatur(41)); err != nil {
 		t.Fatalf("Expected no quittierung error, got %v", err)
 	}

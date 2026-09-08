@@ -17,7 +17,7 @@ import (
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 )
 
-// teilfehlerJournalRepo umhuellt das echte Repository und laesst den ersten
+// teilfehlerJournalRepo umhüllt das echte Repository und lässt den ersten
 // Schreibversuch des konfigurierten Event-Typs fehlschlagen — simuliert einen
 // Teilfehler des Kassenabschlusses nach Schritt 1.
 type teilfehlerJournalRepo struct {
@@ -46,8 +46,8 @@ func countJournalEvents(t *testing.T, db *sql.DB, eventType string) int {
 // TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz: Der erste
 // Abschluss-Versuch schreibt den Kassensturz und scheitert an der
 // Differenzbuchung (Teilfehler). Der Wiederanlauf erkennt den vorhandenen
-// Kassensturz, ueberspringt Schritt 1 und schliesst ab — im Journal steht
-// genau ein kassensturz-durchgefuehrt:v1.
+// Kassensturz, überspringt Schritt 1 und schließt ab — im Journal steht
+// genau ein kassensturz-durchgeführt:v1.
 func TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz(t *testing.T) {
 	ctx, _, db, userID := setupKassenfuehrungIntegration(t)
 
@@ -62,7 +62,7 @@ func TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz(t *testing
 	}
 
 	// Soll-Bestand ist 0 (keine Buchungen); Ist-Bestand 500 erzwingt eine
-	// Differenzbuchung — genau dort schlaegt der erste Versuch fehl.
+	// Differenzbuchung — genau dort schlägt der erste Versuch fehl.
 	if _, err := cmd.KasseAbschliessen(ctx, userID, "test", 500); err == nil {
 		t.Fatal("erster Versuch: Teilfehler erwartet, bekam nil")
 	}
@@ -74,7 +74,7 @@ func TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz(t *testing
 		t.Fatalf("nach Teilfehler: erwartet 0 tagesabschluss-Events, gespeichert: %d", count)
 	}
 
-	// Wiederanlauf: erkennt den vorhandenen Kassensturz und schliesst ab.
+	// Wiederanlauf: erkennt den vorhandenen Kassensturz und schließt ab.
 	if _, err := cmd.KasseAbschliessen(ctx, userID, "test", 500); err != nil {
 		t.Fatalf("Wiederanlauf erwartet Erfolg, bekam: %v", err)
 	}
@@ -90,7 +90,7 @@ func TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz(t *testing
 	}
 
 	// Die Differenz rechnet gegen den im Kassensturz dokumentierten Ist-Bestand
-	// (Soll 0 − Ist 500 = −500, Ueberschuss).
+	// (Soll 0 − Ist 500 = −500, Überschuss).
 	var differenzCents int
 	if err := db.QueryRow(
 		"SELECT (data->>'betragCents')::int FROM kassenjournal WHERE type = $1",
@@ -131,7 +131,7 @@ func TestKasseAbschliessen_RetryNachZwischenbuchung_BrichtAb(t *testing.T) {
 	}
 
 	// Soll-Bestand ist 0 (keine Buchungen); Ist-Bestand 500 erzwingt eine
-	// Differenzbuchung — genau dort schlaegt der erste Versuch fehl.
+	// Differenzbuchung — genau dort schlägt der erste Versuch fehl.
 	if _, err := cmd.KasseAbschliessen(ctx, userID, "test", 500); err == nil {
 		t.Fatal("erster Versuch: Teilfehler erwartet, bekam nil")
 	}
@@ -151,8 +151,8 @@ func TestKasseAbschliessen_RetryNachZwischenbuchung_BrichtAb(t *testing.T) {
 	}
 
 	// Die Einlage erzeugt einen offenen Signaturauftrag. In Produktion signiert ihn der
-	// Outbox-Worker vor dem naechsten Abschluss; hier wird er direkt auf 'erledigt' gesetzt,
-	// damit das Signatur-Gate durchlaesst und der Wiederanlauf die Zwischenbuchungs-Pruefung
+	// Outbox-Worker vor dem nächsten Abschluss; hier wird er direkt auf 'erledigt' gesetzt,
+	// damit das Signatur-Gate durchlässt und der Wiederanlauf die Zwischenbuchungs-Prüfung
 	// erreicht (sonst blockierte bereits das Gate mit 'signaturen ausstehend').
 	if _, err := db.Exec("UPDATE tse_signaturauftraege SET status = 'erledigt', erledigt_am = now() WHERE status = 'offen'"); err != nil {
 		t.Fatalf("Signaturauftrag als erledigt markieren: %v", err)

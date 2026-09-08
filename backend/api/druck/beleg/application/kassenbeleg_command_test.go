@@ -82,7 +82,7 @@ func (m *mockSettingsRepo) GetBetreiber(_ context.Context) (betreiber.Betreiber,
 }
 
 // mockTSEAuftragRepo liefert den Signaturauftrags-Stand je Event-ID, den
-// aktiven Stoerungszeitraum und die Kassenidentitaet; Events ohne Eintrag gelten
+// aktiven Störungszeitraum und die Kassenidentitaet; Events ohne Eintrag gelten
 // als nicht signaturpflichtig (db.ErrNotFound).
 type mockTSEAuftragRepo struct {
 	staende     map[int]tse.SignaturauftragStand

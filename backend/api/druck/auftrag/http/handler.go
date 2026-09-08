@@ -35,7 +35,7 @@ type getFehlgeschlageneResponse struct {
 	Druckauftraege []fehlgeschlagenerDruckauftragDTO `json:"druckauftraege"`
 }
 
-// POST /admin/get-fehlgeschlagene-druckauftraege
+// POST /admin/get-fehlgeschlagene-druckaufträge
 func (h *QueryHandler) GetFehlgeschlageneDruckauftraegeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		auftraege, err := h.Query.GetFehlgeschlageneDruckauftraege(r.Context())
@@ -119,7 +119,7 @@ type discardAlleResponse struct {
 	Verworfen int64 `json:"verworfen"`
 }
 
-// POST /admin/druckauftraege-verwerfen — verwirft alle fehlgeschlagenen Aufträge.
+// POST /admin/druckaufträge-verwerfen — verwirft alle fehlgeschlagenen Aufträge.
 func (h *CommandHandler) DiscardAlleFehlgeschlagenenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		n, err := h.Command.DiscardAlleFehlgeschlagenen(r.Context())

@@ -330,7 +330,7 @@ func setupSaldo(t *testing.T) (Repository, kassenjournal_repo.Repository, *sql.D
 
 func cleanSaldo(t *testing.T, db *sql.DB) {
 	t.Helper()
-	// tse_signaturauftraege und tisch_sessions referenzieren kassenjournal
+	// tse_signaturaufträge und tisch_sessions referenzieren kassenjournal
 	// (event_id bzw. last_event_id) und müssen zuerst weg — eine signierte
 	// Bestellung reiht einen Signaturauftrag ein.
 	if _, err := db.Exec("DELETE FROM tse_signaturauftraege"); err != nil {

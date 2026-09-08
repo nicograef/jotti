@@ -12,24 +12,24 @@ import (
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
-// positionenMitKommentarData spiegelt die benoetigten Felder von
-// bestellung-aufgenommen:v1 und direktverkauf-getaetigt:v1.
-// Keine Schema-Validierung noetig, da die Daten beim Event-Write validiert wurden.
+// positionenMitKommentarData spiegelt die benötigten Felder von
+// bestellung-aufgenommen:v1 und direktverkauf-getätigt:v1.
+// Keine Schema-Validierung nötig, da die Daten beim Event-Write validiert wurden.
 type positionenMitKommentarData struct {
 	Positionen []kasse.Position `json:"positionen"`
 	Kommentar  string           `json:"kommentar"`
 }
 
-// CreateArbeitsbonAuftraegeFromEvent erzeugt Druckauftraege aus einem Bestell- oder
+// CreateArbeitsbonAuftraegeFromEvent erzeugt Druckaufträge aus einem Bestell- oder
 // Direktverkauf-Event anhand der konfigurierten Druckstationen.
 //   - bestellung-aufgenommen: Arbeitsbons an die Produktstationen je Kategorie.
-//   - direktverkauf-getaetigt (Ableitungsregel): ist die Abholbon-Station konfiguriert,
+//   - direktverkauf-getätigt (Ableitungsregel): ist die Abholbon-Station konfiguriert,
 //     entstehen Abholbon(s) an dieser Station gemäß ihrem Bonmodus; sonst Arbeitsbons
 //     an die Produktstationen; ohne konfigurierte Stationen entstehen keine Aufträge.
 //
 // Bonmodus pro_position (Standard) erzeugt einen Bon je Position, pro_bestellung einen
-// Sammelbon je Kategorie bzw. einen Sammel-Abholbon. Der Abholbon kennt zusaetzlich
-// pro_stueck: je Einheit einer Position einen eigenen Bon.
+// Sammelbon je Kategorie bzw. einen Sammel-Abholbon. Der Abholbon kennt zusätzlich
+// pro_stück: je Einheit einer Position einen eigenen Bon.
 func CreateArbeitsbonAuftraegeFromEvent(
 	evt event.Event,
 	druckstationen map[string]druckstation.Druckstation,
@@ -66,7 +66,7 @@ func createDirektverkaufAuftraege(
 
 // createAbholbonAuftraege erzeugt Abholbons für einen Direktverkauf gemäß Bonmodus:
 // pro_bestellung = ein Sammel-Abholbon, pro_position = ein Abholbon je Position,
-// pro_stueck = ein Abholbon je Einheit (eine Positions-Kopie mit Menge 1 je Bon).
+// pro_stück = ein Abholbon je Einheit (eine Positions-Kopie mit Menge 1 je Bon).
 func createAbholbonAuftraege(
 	evt event.Event,
 	data positionenMitKommentarData,
@@ -98,7 +98,7 @@ func createAbholbonAuftraege(
 		}
 		return auftraege
 
-	default: // BonmodusProPosition, zugleich Rueckfall für unbekannte Werte
+	default: // BonmodusProPosition, zugleich Rückfall für unbekannte Werte
 		auftraege := make([]druckauftrag_repo.NeuerDruckauftrag, 0, len(data.Positionen))
 		for _, pos := range data.Positionen {
 			auftraege = append(auftraege, abholbon([]kasse.Position{pos}))

@@ -13,8 +13,8 @@ import (
 )
 
 // exportWriteTimeout ersetzt für diesen Handler die globale 10-Sekunden-
-// Schreibfrist des Servers (backend/app/app.go): Das DSFinV-K-ZIP kann laenger
-// zum Uebertragen brauchen als jede andere Antwort und darf dabei nicht
+// Schreibfrist des Servers (backend/app/app.go): Das DSFinV-K-ZIP kann länger
+// zum Übertragen brauchen als jede andere Antwort und darf dabei nicht
 // stillschweigend abgeschnitten werden (aufbewahrungspflichtige Daten).
 const exportWriteTimeout = 5 * time.Minute
 
@@ -38,9 +38,9 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := zerolog.Ctx(r.Context())
 
-		// Erste Setzung, am Handler-Eingang: Sie gilt den fruehen Fehlerpfaden,
+		// Erste Setzung, am Handler-Eingang: Sie gilt den frühen Fehlerpfaden,
 		// die vor Erstellen() antworten (unlesbarer Body, invalid_kassensitzung).
-		// Die Antwort nach einem langen Archivbau deckt sie nicht — dafuer steht
+		// Die Antwort nach einem langen Archivbau deckt sie nicht — dafür steht
 		// die zweite Setzung unten.
 		helper.ExtendWriteDeadline(w, r, exportWriteTimeout)
 
@@ -57,7 +57,7 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 
 		// Zweites Setzen der Schreibfrist, jetzt für den Schreibvorgang selbst:
 		// Die Frist oben ist eine absolute Zeit ab Request-Start und nach einem
-		// langen Archivbau abgelaufen. Erst dieser Aufruf gibt der Uebertragung
+		// langen Archivbau abgelaufen. Erst dieser Aufruf gibt der Übertragung
 		// des ZIP ihr eigenes Budget; er deckt zugleich den Fehlerzweig ab.
 		helper.ExtendWriteDeadline(w, r, exportWriteTimeout)
 

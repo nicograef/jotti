@@ -106,7 +106,7 @@ type errorResponse struct {
 
 type sleepFn func(ctx context.Context, duration time.Duration) error
 
-// fiskalyClient buendelt die HTTP-Maschinerie, die sich der Signier-Client und
+// fiskalyClient bündelt die HTTP-Maschinerie, die sich der Signier-Client und
 // der Setup-Client teilen: Basis-URL, API-Key/-Secret-Auth mit Token-Cache und
 // die Retry-Logik. Sie kommt ohne TSS-/Client-ID aus.
 type fiskalyClient struct {
@@ -189,7 +189,7 @@ var tssZustandsCodes400 = map[string]bool{
 // klassifiziereSignierFehler kennzeichnet auftragsspezifische Signierfehler
 // als tse.AuftragsFehler: HTTP 400/409/422 lehnen den konkreten Vorgang ab
 // (processData, Schema, Transaktionszustand) — ausgenommen die dokumentierten
-// TSS-Zustandscodes. Alle uebrigen Fehler (Verbindung, 401/403, 404, 423,
+// TSS-Zustandscodes. Alle übrigen Fehler (Verbindung, 401/403, 404, 423,
 // 429, 5xx) bleiben ungekennzeichnet und gelten dem Worker als TSE-weit.
 func klassifiziereSignierFehler(err error) error {
 	var apiErr apiError
@@ -314,7 +314,7 @@ func (c *FiskalyTSEClient) RetrieveTransaction(ctx context.Context, txID string)
 
 // Umgebung liefert die Umgebung (TEST/LIVE) allein aus dem Auth-Token
 // (access_token_claims.env). Sie kommt ohne TSS-/Client-Abruf aus und dient der
-// reinen Statusanzeige, wo der volle Verbindungstest unnoetig waere.
+// reinen Statusanzeige, wo der volle Verbindungstest unnötig wäre.
 func (c *fiskalyClient) Umgebung(ctx context.Context) (tse.Umgebung, error) {
 	_, env, err := c.getAccessToken(ctx)
 	if err != nil {
@@ -363,8 +363,8 @@ func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungSt
 
 	// Ein nicht-REGISTERED-Client und ein Seriennummern-Mismatch sind keine
 	// Transportfehler — sie werden als Befund im Status transportiert, damit die
-	// UI das Ergebnis aufgeschluesselt anzeigen kann. Den Seriennummern-Abgleich
-	// uebernimmt die Application-Schicht (sie kennt die Kassen-Seriennummer).
+	// UI das Ergebnis aufgeschlüsselt anzeigen kann. Den Seriennummern-Abgleich
+	// übernimmt die Application-Schicht (sie kennt die Kassen-Seriennummer).
 	status := tse.VerbindungStatus{
 		Umgebung:           env,
 		TSSState:           strings.TrimSpace(tssResp.State),

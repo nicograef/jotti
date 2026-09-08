@@ -18,8 +18,8 @@ import (
 )
 
 // katalog legt zwei Produkte mit je einer Variante an: „Pommes" (essen,
-// ermaessigt) und „Cola" (getraenk, regel). Die Steuersaetze unterscheiden sich,
-// damit eine falsch angenommene Paarung sichtbar den Steuersatz verschoebe.
+// ermäßigt) und „Cola" (getränk, regel). Die Steuersätze unterscheiden sich,
+// damit eine falsch angenommene Paarung sichtbar den Steuersatz verschöbe.
 func katalog(t *testing.T) (repo produkt_repo.Repository, pommesID, pommesVarianteID, colaID, colaVarianteID int) {
 	t.Helper()
 

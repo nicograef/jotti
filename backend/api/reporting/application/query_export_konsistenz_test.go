@@ -187,7 +187,7 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 		exportSummen[schluessel] = summe
 	}
 
-	// UST_SCHLUESSEL laut DSFinV-K Anlage 2: 1 = regel, 2 = ermaessigt, 6 = befreit.
+	// UST_SCHLUESSEL laut DSFinV-K Anlage 2: 1 = regel, 2 = ermäßigt, 6 = befreit.
 	schluesselFuerSatz := map[steuer.Steuersatz]string{
 		steuer.RegelSteuersatz:      "1",
 		steuer.ErmaessigtSteuersatz: "2",

@@ -62,7 +62,7 @@ type DirektverkaufStornierung struct {
 	GesamtStornierungCents int
 }
 
-// BuildDirektverkaufHistorieEintrag replays a single Direktverkauf stream (getaetigt + stornos)
+// BuildDirektverkaufHistorieEintrag replays a single Direktverkauf stream (getätigt + stornos)
 // into a compact history entry.
 func BuildDirektverkaufHistorieEintrag(events []e.Event) (DirektverkaufHistorieEintrag, error) {
 	eintrag := DirektverkaufHistorieEintrag{}

@@ -7,7 +7,7 @@ package tse_repo
 // Fallback.
 var signaturWorkerTrigger = make(chan struct{}, 1)
 
-// NotifySignaturWorker stoesst den Signatur-Worker non-blocking an.
+// NotifySignaturWorker stößt den Signatur-Worker non-blocking an.
 func NotifySignaturWorker() {
 	select {
 	case signaturWorkerTrigger <- struct{}{}:

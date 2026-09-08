@@ -39,19 +39,19 @@ type betreiberRepo interface {
 	GetBetreiber(ctx context.Context) (betreiber.Betreiber, error)
 }
 
-// tseGateRepo liefert dem Kassenabschluss-Gate die Signatur-Staende der
-// Kassensitzung und den aktiven Stoerungszeitraum (beide fuettern
+// tseGateRepo liefert dem Kassenabschluss-Gate die Signatur-Stände der
+// Kassensitzung und den aktiven Störungszeitraum (beide füttern
 // tse.DetermineSignaturstatus — dieselbe Zurechnung wie beim Beleg-Abruf) sowie
-// die TSE-Konfiguration für die Eroeffnungs-Warnung ohne konfigurierte TSE.
+// die TSE-Konfiguration für die Eröffnungs-Warnung ohne konfigurierte TSE.
 type tseGateRepo interface {
 	GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]tse.SignaturauftragStand, error)
 	GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error)
 	GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error)
 }
 
-// druckauftragCleaner raeumt beim Tagesabschluss die technische Druck-Outbox auf:
+// druckauftragCleaner räumt beim Tagesabschluss die technische Druck-Outbox auf:
 // verbliebene fehlgeschlagene Aufträge (z. B. veraltete Arbeitsbons einer
-// unbemerkten Drucker-Stoerung) werden verworfen, damit die Liste zum naechsten
+// unbemerkten Drucker-Störung) werden verworfen, damit die Liste zum nächsten
 // Einsatz leer startet. Best effort, siehe KasseAbschliessen.
 type druckauftragCleaner interface {
 	DiscardAlleFehlgeschlagenen(ctx context.Context) (int64, error)
@@ -253,7 +253,7 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 // Differenzbuchung (bei Differenz ungleich Null) und Tagesabschluss.
 //
 // Feste Schreibreihenfolge:
-//  1. kassensturz-durchgefuehrt:v1 (entfällt im Wiederanlauf, wenn bereits vorhanden)
+//  1. kassensturz-durchgeführt:v1 (entfällt im Wiederanlauf, wenn bereits vorhanden)
 //  2. differenz-soll-ist-gebucht:v1 (nur bei Differenz ungleich Null, signiert)
 //  3. tagesabschluss-erstellt:v1 (signiert, schließt die Kassensitzung)
 //
@@ -445,12 +445,12 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		return KassenabschlussErgebnis{}, err
 	}
 
-	// Aufraeumen der technischen Druck-Outbox: Mit dem committeten Tagesabschluss ist
-	// die Sitzung fiskalisch geschlossen. Verbliebene fehlgeschlagene Druckauftraege
-	// werden verworfen, damit die Liste zum naechsten Fest leer startet. Best effort:
-	// ein Fehler hier darf den bereits gueltigen Abschluss nicht scheitern lassen — es
-	// wird NICHT der benannte Return err gesetzt (sonst wuerde der defer-Reset die
-	// geschlossene Sitzung faelschlich auf 'offen' zuruecksetzen). Die Cleaner-Abhaengigkeit
+	// Aufräumen der technischen Druck-Outbox: Mit dem committeten Tagesabschluss ist
+	// die Sitzung fiskalisch geschlossen. Verbliebene fehlgeschlagene Druckaufträge
+	// werden verworfen, damit die Liste zum nächsten Fest leer startet. Best effort:
+	// ein Fehler hier darf den bereits gültigen Abschluss nicht scheitern lassen — es
+	// wird NICHT der benannte Return err gesetzt (sonst würde der defer-Reset die
+	// geschlossene Sitzung fälschlich auf 'offen' zurücksetzen). Die Cleaner-Abhängigkeit
 	// ist optional (nil-guard), damit bestehende Command-Konstruktionen ohne sie weiter laufen.
 	if c.DruckauftragRepo != nil {
 		if verworfen, cleanupErr := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx); cleanupErr != nil {
@@ -471,7 +471,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 }
 
 // findeVorhandenenKassensturz liefert die Daten eines bereits im Journal
-// stehenden kassensturz-durchgefuehrt-Events des Kassensitzungs-Streams (oder
+// stehenden kassensturz-durchgeführt-Events des Kassensitzungs-Streams (oder
 // nil, wenn keiner existiert) sowie die Information, ob nach diesem Kassensturz
 // eine Zwischenbuchung im Stream liegt. Grundlage der Wiederanlauf-Erkennung des
 // Kassenabschlusses: Ein Kassensturz aus einem abgebrochenen vorherigen Versuch

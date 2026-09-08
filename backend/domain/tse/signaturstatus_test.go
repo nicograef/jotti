@@ -75,22 +75,22 @@ func TestDetermineSignaturstatus(t *testing.T) {
 			wantAusfallGrund: StatusTSENichtKonfiguriert,
 		},
 		{
-			// Fehlversuche unterhalb der Maximalzahl zaehlen nicht: Ein
-			// Gift-Auftrag ist bis zum endgueltigen Fehlschlag ausstehend.
+			// Fehlversuche unterhalb der Maximalzahl zählen nicht: Ein
+			// Gift-Auftrag ist bis zum endgültigen Fehlschlag ausstehend.
 			name:       "offen ohne Stoerung -> ausstehend (bloße Latenz ist kein Ausfall)",
 			auftrag:    SignaturauftragStand{Status: StatusOffen, ErstelltAm: statusTestErstellt},
 			wantStatus: SignaturstatusAusstehend,
 		},
 		{
-			// Geschlossene Zeitraeume zaehlen nicht: Der Aufrufer reicht nur
+			// Geschlossene Zeiträume zählen nicht: Der Aufrufer reicht nur
 			// den aktiven Zeitraum herein; ohne aktiven bleibt es ausstehend.
 			name:       "offen nach geschlossener Stoerung -> ausstehend",
 			auftrag:    SignaturauftragStand{Status: StatusOffen, ErstelltAm: statusTestErstellt.Add(-10 * time.Minute)},
 			wantStatus: SignaturstatusAusstehend,
 		},
 		{
-			// Am Watchdog-Tick oeffnet die Schwellen-Ueberschreitung den
-			// Rueckstands-Zeitraum — dasselbe offene Event kippt von
+			// Am Watchdog-Tick öffnet die Schwellen-Überschreitung den
+			// Rückstands-Zeitraum — dasselbe offene Event kippt von
 			// ausstehend in Ausfall.
 			name:             "offen bei aktivem Rueckstands-Zeitraum -> Ausfall mit Grund-Art",
 			auftrag:          SignaturauftragStand{Status: StatusOffen, ErstelltAm: statusTestErstellt},

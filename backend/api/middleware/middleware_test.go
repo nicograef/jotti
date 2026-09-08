@@ -622,11 +622,11 @@ func (w *controllerFaehigerWriter) SetReadDeadline(t time.Time) error {
 	return nil
 }
 
-// LoggingMiddleware umschliesst die GESAMTE Routenkette (backend/app/app.go).
-// Ihr Wrapper muss die Faehigkeiten des echten ResponseWriters durchreichen,
+// LoggingMiddleware umschließt die GESAMTE Routenkette (backend/app/app.go).
+// Ihr Wrapper muss die Fähigkeiten des echten ResponseWriters durchreichen,
 // sonst liefert http.ResponseController in jedem Handler dahinter "feature not
-// supported" — die verlaengerte Schreibfrist des DSFinV-K-Exports waere in
-// Produktion wirkungslos und ein grosses Archiv wuerde mitten im ZIP abreissen.
+// supported" — die verlängerte Schreibfrist des DSFinV-K-Exports wäre in
+// Produktion wirkungslos und ein grosses Archiv würde mitten im ZIP abreissen.
 func TestMiddlewareKette_ReichtResponseControllerFaehigkeitenDurch(t *testing.T) {
 	frist := time.Now().UTC().Add(5 * time.Minute)
 	var schreibFehler, leseFehler, flushFehler error
@@ -668,8 +668,8 @@ func TestMiddlewareKette_ReichtResponseControllerFaehigkeitenDurch(t *testing.T)
 }
 
 // Ein Panic in einem Handler ergibt eine 500-Antwort im bestehenden
-// Fehler-Response-Format; der Prozess lebt weiter und bedient den naechsten
-// Request regulaer.
+// Fehler-Response-Format; der Prozess lebt weiter und bedient den nächsten
+// Request regulär.
 func TestRecoveryMiddleware_PanicErgibt500UndNaechsterRequestFunktioniert(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/panic", func(http.ResponseWriter, *http.Request) {

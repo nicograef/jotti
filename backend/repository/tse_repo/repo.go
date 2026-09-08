@@ -13,16 +13,16 @@ import (
 )
 
 // MaxSignaturVersuche ist die Anzahl auftragsspezifischer Fehlversuche, nach
-// der ein Signaturauftrag endgueltig fehlgeschlagen ist. Solche Fehler (von
+// der ein Signaturauftrag endgültig fehlgeschlagen ist. Solche Fehler (von
 // fiskaly abgelehnte processData, tse.AuftragsFehler) sind fast immer
 // deterministisch — mit dem Sekunden-Backoff (5, 15, 45 s) endet die Kurve
 // nach unter einer Minute und damit bewusst unter tse.RueckstandSchwelle:
-// Ein Gift-Auftrag schlaegt endgueltig fehl, bevor der Watchdog ihn als
-// Rueckstand dokumentiert. TSE-weite Fehler zaehlen nie auf den Auftrag,
-// sondern schalten den Signatur-Worker in den Stoerungszustand.
+// Ein Gift-Auftrag schlägt endgültig fehl, bevor der Watchdog ihn als
+// Rückstand dokumentiert. TSE-weite Fehler zählen nie auf den Auftrag,
+// sondern schalten den Signatur-Worker in den Störungszustand.
 const MaxSignaturVersuche = 3
 
-// OffenerSignaturauftrag ist die Worker-Sicht eines faelligen Auftrags.
+// OffenerSignaturauftrag ist die Worker-Sicht eines fälligen Auftrags.
 type OffenerSignaturauftrag struct {
 	ID          int
 	TxID        string
@@ -59,7 +59,7 @@ func (r Repository) GetOffeneTSESignaturauftraege(ctx context.Context, limit int
 }
 
 // QuittiereTSESignaturauftrag schreibt die Signatur als einzelnes Update an den
-// Auftrag: Signaturspalten fuellen, Status erledigt. Der Status-Guard (offen)
+// Auftrag: Signaturspalten füllen, Status erledigt. Der Status-Guard (offen)
 // macht die Quittierung idempotent — die Signaturspalten werden genau einmal
 // beschrieben.
 func (r Repository) QuittiereTSESignaturauftrag(ctx context.Context, auftragID int, signatur tse.Signatur) error {
@@ -76,7 +76,7 @@ func (r Repository) QuittiereTSESignaturauftrag(ctx context.Context, auftragID i
 }
 
 // TSESignaturauftragFehlversuch verbucht einen auftragsspezifischen
-// Fehlversuch: Zaehler hoch, Fehlertext speichern, naechster Versuch mit
+// Fehlversuch: Zähler hoch, Fehlertext speichern, nächster Versuch mit
 // Sekunden-Backoff (5, 15, 45 s). Beim MaxSignaturVersuche-ten Fehlversuch
 // wechselt der Auftrag auf fehlgeschlagen (Backoff-Logik liegt in der
 // SQL-Query).
@@ -88,11 +88,11 @@ func (r Repository) TSESignaturauftragFehlversuch(ctx context.Context, auftragID
 	}))
 }
 
-// MarkOffeneAlsNichtKonfiguriert markiert alle offenen Aufträge endgueltig
+// MarkOffeneAlsNichtKonfiguriert markiert alle offenen Aufträge endgültig
 // als tse_nicht_konfiguriert und liefert die Anzahl markierter Aufträge. Ohne
 // vorhandene TSE-Konfiguration gibt es keine Signatur; ein Nachsignieren ist
 // ausgeschlossen (keine Fehlversuche, keine automatische Wiederaufnahme).
-// Bereits endgueltig markierte Aufträge bleiben unberuehrt.
+// Bereits endgültig markierte Aufträge bleiben unberührt.
 func (r Repository) MarkOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, error) {
 	n, err := r.q.MarkOffeneTSESignaturauftraegeNichtKonfiguriert(ctx)
 	if err != nil {
@@ -118,8 +118,8 @@ func (r Repository) GetTSESignaturQueueZustand(ctx context.Context) (tse.Signatu
 	}, nil
 }
 
-// GetAlleTSEStoerungen liefert das Stoerungsprotokoll (Ausfalldokumentation):
-// alle Stoerungszeitraeume, neueste zuerst.
+// GetAlleTSEStoerungen liefert das Störungsprotokoll (Ausfalldokumentation):
+// alle Störungszeiträume, neueste zuerst.
 func (r Repository) GetAlleTSEStoerungen(ctx context.Context) ([]tse.Stoerungszeitraum, error) {
 	rows, err := r.q.GetAlleTSEStoerungen(ctx)
 	if err != nil {
@@ -172,10 +172,10 @@ func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) 
 	return stand, nil
 }
 
-// GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Staende
-// aller noch nicht erledigten Signaturauftraege der Kassensitzung — die
+// GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Stände
+// aller noch nicht erledigten Signaturaufträge der Kassensitzung — die
 // Grundlage des Kassenabschluss-Gates. Erledigte Aufträge bleiben aussen vor
-// (bereits signiert); das Gate ordnet die Staende über DetermineSignaturstatus
+// (bereits signiert); das Gate ordnet die Stände über DetermineSignaturstatus
 // in ausstehend bzw. Ausfall ein.
 func (r Repository) GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]tse.SignaturauftragStand, error) {
 	rows, err := r.q.GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx, kassensitzungNr)
@@ -191,8 +191,8 @@ func (r Repository) GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context
 }
 
 // GetAeltesterOffenerTSESignaturauftrag liefert den Erstellungszeitpunkt des
-// aeltesten offenen Signaturauftrags; nil, wenn kein Auftrag offen ist. Der
-// Rueckstands-Watchdog bemisst daran den Signatur-Rueckstand.
+// ältesten offenen Signaturauftrags; nil, wenn kein Auftrag offen ist. Der
+// Rückstands-Watchdog bemisst daran den Signatur-Rückstand.
 func (r Repository) GetAeltesterOffenerTSESignaturauftrag(ctx context.Context) (*time.Time, error) {
 	erstelltAm, err := r.q.GetAeltesterOffenerTSESignaturauftrag(ctx)
 	if err != nil {
@@ -204,9 +204,9 @@ func (r Repository) GetAeltesterOffenerTSESignaturauftrag(ctx context.Context) (
 	return &erstelltAm, nil
 }
 
-// OpenTSEStoerung oeffnet einen Stoerungszeitraum im Stoerungsprotokoll.
-// Idempotent: Solange irgendein Zeitraum aktiv ist, ist das Oeffnen ein No-Op
-// (hoechstens ein aktiver Zeitraum, DB-seitig per partiellem Unique-Index).
+// OpenTSEStoerung öffnet einen Störungszeitraum im Störungsprotokoll.
+// Idempotent: Solange irgendein Zeitraum aktiv ist, ist das Öffnen ein No-Op
+// (höchstens ein aktiver Zeitraum, DB-seitig per partiellem Unique-Index).
 func (r Repository) OpenTSEStoerung(ctx context.Context, grundArt string, fehlertext string) error {
 	return db.Error(r.q.OpenTSEStoerung(ctx, dbgen.OpenTSEStoerungParams{
 		GrundArt:   grundArt,
@@ -214,15 +214,15 @@ func (r Repository) OpenTSEStoerung(ctx context.Context, grundArt string, fehler
 	}))
 }
 
-// CloseTSEStoerung beendet den aktiven Stoerungszeitraum der Grund-Art;
-// jeder Schreiber schliesst nur Zeitraeume seiner Grund-Art. Idempotent: Ohne
+// CloseTSEStoerung beendet den aktiven Störungszeitraum der Grund-Art;
+// jeder Schreiber schließt nur Zeiträume seiner Grund-Art. Idempotent: Ohne
 // aktiven Zeitraum der Art ein No-Op.
 func (r Repository) CloseTSEStoerung(ctx context.Context, grundArt string) error {
 	return db.Error(r.q.CloseTSEStoerung(ctx, grundArt))
 }
 
-// GetAktiveTSEStoerung liefert den aktiven Stoerungszeitraum; nil, wenn keine
-// Stoerung aktiv ist.
+// GetAktiveTSEStoerung liefert den aktiven Störungszeitraum; nil, wenn keine
+// Störung aktiv ist.
 func (r Repository) GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error) {
 	row, err := r.q.GetAktiveTSEStoerung(ctx)
 	if err != nil {

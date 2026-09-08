@@ -12,7 +12,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// FiskalyTSESetupClient fuehrt die lesenden Operationen der gefuehrten
+// FiskalyTSESetupClient führt die lesenden Operationen der geführten
 // TSE-Einrichtung aus. Es teilt sich die HTTP-Maschinerie (Auth, Token-Cache,
 // Retry) mit dem Signier-Client, kommt aber ohne TSS-/Client-ID aus.
 type FiskalyTSESetupClient struct {
@@ -199,12 +199,12 @@ func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID
 	}, nil
 }
 
-// PersonalisiereTSS ueberfuehrt die TSS von CREATED nach UNINITIALIZED.
+// PersonalisiereTSS überführt die TSS von CREATED nach UNINITIALIZED.
 func (c *FiskalyTSESetupClient) PersonalisiereTSS(ctx context.Context, tssID string) error {
 	return c.patchTSSState(ctx, tssID, "UNINITIALIZED")
 }
 
-// InitialisiereTSS ueberfuehrt die TSS nach INITIALIZED und macht sie damit
+// InitialisiereTSS überführt die TSS nach INITIALIZED und macht sie damit
 // signierbereit. Sie setzt eine vorher erfolgte Admin-Authentifizierung voraus.
 func (c *FiskalyTSESetupClient) InitialisiereTSS(ctx context.Context, tssID string) error {
 	return c.patchTSSState(ctx, tssID, "INITIALIZED")
@@ -224,7 +224,7 @@ func (c *FiskalyTSESetupClient) patchTSSState(ctx context.Context, tssID, state 
 
 // SetAdminPIN setzt mit dem Admin-PUK die Admin-PIN der TSS. Derselbe Endpunkt
 // (PATCH /tss/{id}/admin) setzt eine verlorene PIN neu bzw. entsperrt eine nach
-// fuenf Fehlversuchen gesperrte PIN und funktioniert auch auf einer bereits
+// fünf Fehlversuchen gesperrte PIN und funktioniert auch auf einer bereits
 // personalisierten TSS (UNINITIALIZED/INITIALIZED).
 func (c *FiskalyTSESetupClient) SetAdminPIN(ctx context.Context, tssID, puk, pin string) error {
 	tssID = strings.TrimSpace(tssID)
@@ -254,7 +254,7 @@ func (c *FiskalyTSESetupClient) AuthentifiziereAdmin(ctx context.Context, tssID,
 	return nil
 }
 
-// RegistriereClient registriert einen Client unter clientID mit der uebergebenen
+// RegistriereClient registriert einen Client unter clientID mit der übergebenen
 // serial_number (der jotti-Kassen-Seriennummer).
 func (c *FiskalyTSESetupClient) RegistriereClient(ctx context.Context, tssID, clientID, serialNumber string) error {
 	tssID = strings.TrimSpace(tssID)
@@ -287,14 +287,14 @@ func (c *FiskalyTSESetupClient) ReaktiviereClient(ctx context.Context, tssID, cl
 	return nil
 }
 
-// mapSetupError uebersetzt bekannte fiskaly-Fehler in Domain-Sentinels, damit
-// die Application-Schicht verstaendliche Meldungen erzeugen kann: einen
+// mapSetupError übersetzt bekannte fiskaly-Fehler in Domain-Sentinels, damit
+// die Application-Schicht verständliche Meldungen erzeugen kann: einen
 // Auth-Fehler (falsche Zugangsdaten oder abgelehnte/gesperrte Admin-PIN) und das
-// Erreichen des TSS-Limits (E_TSS_LIMIT_REACHED, in TEST fuenf aktive TSS). Eine
-// nach fuenf Fehlversuchen gesperrte Admin-PIN (E_ADMIN_PIN_BLOCKED) liefert
+// Erreichen des TSS-Limits (E_TSS_LIMIT_REACHED, in TEST fünf aktive TSS). Eine
+// nach fünf Fehlversuchen gesperrte Admin-PIN (E_ADMIN_PIN_BLOCKED) liefert
 // fiskaly mit Status 423; sie wird hier ebenfalls als Auth-Fehler gemeldet, damit
-// die Uebernahme in die PIN-Sackgasse (mit PUK-Reset als Ausweg) statt in einen
-// technischen Fehler läuft. Alle anderen Fehler bleiben unveraendert.
+// die Übernahme in die PIN-Sackgasse (mit PUK-Reset als Ausweg) statt in einen
+// technischen Fehler läuft. Alle anderen Fehler bleiben unverändert.
 func mapSetupError(err error) error {
 	var apiErr apiError
 	if errors.As(err, &apiErr) {

@@ -285,8 +285,8 @@ func TestDirektverkaufTaetigen_AbholbonModeQueuesExactlyOneAuftrag(t *testing.T)
 	}
 }
 
-// Bonmodus pro_stueck der Abholbon-Station: die zwei Einheiten der Testposition
-// ergeben zwei Druckauftraege.
+// Bonmodus pro_stück der Abholbon-Station: die zwei Einheiten der Testposition
+// ergeben zwei Druckaufträge.
 func TestDirektverkaufTaetigen_AbholbonProStueckQueuesEinenAuftragJeEinheit(t *testing.T) {
 	spy := &spyEventRepo{}
 	command := newCommandWithDruckstationen(
@@ -310,7 +310,7 @@ func TestDirektverkaufTaetigen_AbholbonProStueckQueuesEinenAuftragJeEinheit(t *t
 	}
 }
 
-// getaetigtEvent builds a real direktverkauf-getaetigt:v1 event with a single position and returns
+// getaetigtEvent builds a real direktverkauf-getätigt:v1 event with a single position and returns
 // the event, its verkaufId, and the server-generated positionId for use in storno tests.
 func getaetigtEvent(t *testing.T, einzelpreis, menge int) (event.Event, string, string) {
 	t.Helper()
@@ -322,7 +322,7 @@ func getaetigtEvent(t *testing.T, einzelpreis, menge int) (event.Event, string, 
 	if err != nil {
 		t.Fatalf("failed to create getaetigt event: %v", err)
 	}
-	// Ein direktverkauf-getaetigt ist immer version = 1 seines Streams; der Storno-Pfad
+	// Ein direktverkauf-getätigt ist immer version = 1 seines Streams; der Storno-Pfad
 	// leitet seine erwartete Version aus dem Replay ab (OCC gegen den gelesenen Zustand).
 	evt.Version = 1
 

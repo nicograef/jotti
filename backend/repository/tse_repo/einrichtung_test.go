@@ -105,10 +105,10 @@ func gueltigeKonfiguration(t *testing.T, tssID string) tse.Konfiguration {
 	return conf
 }
 
-// Der Einrichtungs-Sweep: der Uebergang von nicht konfiguriert zu konfiguriert
+// Der Einrichtungs-Sweep: der Übergang von nicht konfiguriert zu konfiguriert
 // markiert in derselben Transaktion die noch offenen, vor-konfigurationellen
-// Aufträge endgueltig als tse_nicht_konfiguriert und schliesst den
-// keine_konfiguration-Stoerungszeitraum.
+// Aufträge endgültig als tse_nicht_konfiguriert und schließt den
+// keine_konfiguration-Störungszeitraum.
 func TestSaveEinrichtung_UebergangSweeptOffeneUndSchliesstStoerung(t *testing.T) {
 	repo, umgebung, teardown := setupEinrichtung(t)
 	defer teardown(t)
@@ -166,7 +166,7 @@ func TestSaveEinrichtung_DurchgehendKonfiguriertSweeptNicht(t *testing.T) {
 	}
 	offenID := umgebung.insertOffenerAuftrag(t, "tx-laufend")
 
-	// Erneutes Speichern (etwa Uebernahme bei bereits konfigurierter TSE) darf
+	// Erneutes Speichern (etwa Übernahme bei bereits konfigurierter TSE) darf
 	// den laufenden Auftrag nicht antasten.
 	if err := repo.SaveEinrichtung(ctx, gueltigeKonfiguration(t, "tss-neu")); err != nil {
 		t.Fatalf("SaveEinrichtung: %v", err)
@@ -185,9 +185,9 @@ func TestSaveEinrichtung_DurchgehendKonfiguriertSweeptNicht(t *testing.T) {
 }
 
 // Das Speichern einer leeren Konfiguration (Leeren über den
-// Zugangsdaten-Endpunkt) ist kein Uebergang zu konfiguriert: Es sweept nichts
-// und schliesst keinen keine_konfiguration-Stoerungszeitraum — der
-// Dauerzustand ohne Konfiguration gehoert dem Signatur-Worker.
+// Zugangsdaten-Endpunkt) ist kein Übergang zu konfiguriert: Es sweept nichts
+// und schließt keinen keine_konfiguration-Störungszeitraum — der
+// Dauerzustand ohne Konfiguration gehört dem Signatur-Worker.
 func TestSaveEinrichtung_LeereKonfigurationSweeptNicht(t *testing.T) {
 	repo, umgebung, teardown := setupEinrichtung(t)
 	defer teardown(t)

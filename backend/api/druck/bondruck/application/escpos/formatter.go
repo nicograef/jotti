@@ -103,14 +103,14 @@ func FormatPositionBon(
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
-	// Position - doppelte Hoehe, fett, zentriert
+	// Position - doppelte Höhe, fett, zentriert
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
 	buf.WriteString(toWPC1252(fmt.Sprintf("%dx %s\n", pos.Menge, pos.Bezeichnung())))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
-	// Kommentar (optional) - fett, linksbuendig
+	// Kommentar (optional) - fett, linksbündig
 	if kommentar != "" {
 		buf.WriteString("\n")
 		buf.WriteString(AlignLeft)
@@ -159,7 +159,7 @@ func FormatSammelBon(
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
-	// Positionen - doppelte Hoehe, fett, linksbuendig
+	// Positionen - doppelte Höhe, fett, linksbündig
 	buf.WriteString(AlignLeft)
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
@@ -387,7 +387,7 @@ func toWPC1252(s string) string {
 	return encoded
 }
 
-// truncate kuerzt einen String auf maxLen Runen (inkl. Auslassungszeichen)
+// truncate kürzt einen String auf maxLen Runen (inkl. Auslassungszeichen)
 // und schneidet dabei nie mitten in einer Rune.
 func truncate(s string, maxLen int) string {
 	runes := []rune(s)

@@ -116,7 +116,7 @@ func TestReportDruckergebnis_FehlversuchZaehlung(t *testing.T) {
 	id := enqueueOne(t, repo, "192.168.1.51")
 
 	// Fehlversuche 1..5: Auftrag bleibt offen, versuche/letzter_fehler werden
-	// aktualisiert und die Backoff-Faelligkeit wird in die Zukunft gesetzt, sodass
+	// aktualisiert und die Backoff-Fälligkeit wird in die Zukunft gesetzt, sodass
 	// der Auftrag bis dahin nicht mehr im Poll erscheint.
 	for versuch := 1; versuch <= MaxDruckversuche-1; versuch++ {
 		fehler := "drucker nicht erreichbar #" + strconv.Itoa(versuch)
@@ -181,7 +181,7 @@ func TestReportDruckergebnis_StaleFehlversuchIstNoOp(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
-	// Ein Auftrag wird erst gedruckt; danach trifft (verspaetet oder doppelt) noch
+	// Ein Auftrag wird erst gedruckt; danach trifft (verspätet oder doppelt) noch
 	// ein Fehlversuch für dieselbe ID ein — der Auftrag ist nicht mehr offen.
 	gedrucktID := enqueueOne(t, repo, "192.168.1.51")
 	if err := repo.ReportDruckergebnis(context.Background(), []int{gedrucktID}, nil); err != nil {
@@ -202,7 +202,7 @@ func TestReportDruckergebnis_StaleFehlversuchIstNoOp(t *testing.T) {
 		t.Fatalf("Expected stale fehlversuch to be a no-op, got %v", err)
 	}
 
-	// Der bereits gedruckte Auftrag bleibt unveraendert (kein Fehlversuch angerechnet).
+	// Der bereits gedruckte Auftrag bleibt unverändert (kein Fehlversuch angerechnet).
 	status, versuche, letzterFehler := readAuftrag(t, repo, gedrucktID)
 	if status != "gedruckt" || versuche != 0 || letzterFehler != "" {
 		t.Fatalf("Expected gedruckter auftrag unchanged, got status=%q versuche=%d letzterFehler=%q", status, versuche, letzterFehler)

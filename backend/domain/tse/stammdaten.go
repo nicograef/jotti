@@ -24,7 +24,7 @@ type Stammdaten struct {
 
 // NewStammdaten baut die Stammdaten aus den von fiskaly gelesenen Feldern und
 // stempelt den Lesezeitpunkt. Validiert wird nicht: die Felder stammen aus der
-// vertrauenswuerdigen TSS-Ressource, nicht aus Nutzereingaben.
+// vertrauenswürdigen TSS-Ressource, nicht aus Nutzereingaben.
 func NewStammdaten(seriennummer, signaturAlgorithmus, publicKey, zertifikat, logTimeFormat string) Stammdaten {
 	return Stammdaten{
 		Seriennummer:        strings.TrimSpace(seriennummer),

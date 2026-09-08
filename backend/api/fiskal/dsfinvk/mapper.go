@@ -507,7 +507,7 @@ func zeit(ev event.Event) string { return ev.Time.UTC().Format(time.RFC3339) }
 
 // isoZeit formatiert eine TSE-logTime für TSE_TA_START/ENDE. Die amtliche
 // Feldbeschreibung verlangt ISO 8601 mit Millisekunden ("YYYY-MM-DDThh:mm:ss.fffZ");
-// fiskaly liefert Sekundenaufloesung, die Millisekunden sind daher stets .000.
+// fiskaly liefert Sekundenauflösung, die Millisekunden sind daher stets .000.
 func isoZeit(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z07:00") }
 
 // Erstellungszeitpunkt liefert den Z_ERSTELLUNG-Zeitpunkt der Sitzung: bei einer
@@ -1275,7 +1275,7 @@ func certChunk(cert string, index int) string {
 }
 
 // bonName liefert den BON_NAME für den Bonkopf. Bei einem Tagesabschluss-Bon
-// (AVSonstige) ist er amtlich verpflichtend und traegt den festen Text
+// (AVSonstige) ist er amtlich verpflichtend und trägt den festen Text
 // "Tagesabschluss". Bei allen anderen Bontypen bleibt das Feld leer.
 func bonName(b *beleg) string {
 	if b.bonTyp == bonTypSonstige {

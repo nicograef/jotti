@@ -414,7 +414,7 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 	data := validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 2)
 	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, data)
 
-	// "ungueltig" violates the bon_art CHECK constraint, so the auftrag INSERT fails.
+	// "ungültig" violates the bon_art CHECK constraint, so the auftrag INSERT fails.
 	_, err = repo.WriteEventWithDruckauftraege(context.Background(), e, kasse.StreamTypeTischSession, ksNr,
 		func(_ event.Event) []druckauftrag_repo.NeuerDruckauftrag {
 			return []druckauftrag_repo.NeuerDruckauftrag{{
@@ -1083,7 +1083,7 @@ func TestWriteEvent_ZwischenstatusWirdAbgeschlossen(t *testing.T) {
 	}
 }
 
-// validEroeffnungData returns valid kassensitzung-eroeffnet:v1 event data.
+// validEroeffnungData returns valid kassensitzung-eröffnet:v1 event data.
 func validEroeffnungData(userID, betragCents int) map[string]any {
 	return map[string]any{
 		"datum":        "2026-07-03",
@@ -1452,7 +1452,7 @@ func TestWriteEvent_MultipleEvents_ProjectionCorrect(t *testing.T) {
 		t.Fatalf("Expected no error reading tisch session, got %v", err)
 	}
 
-	// Saldo ist 350 (700 abzueglich 350 gezahlt)
+	// Saldo ist 350 (700 abzüglich 350 gezahlt)
 	if state.SaldoCents != 350 {
 		t.Fatalf("Expected SaldoCents 350, got %d", state.SaldoCents)
 	}
@@ -1517,7 +1517,7 @@ func TestWriteEvent_KassensitzungEroeffnet(t *testing.T) {
 	defer teardown(t)
 
 	// The kassensitzung is already created by setup (simulating application layer).
-	// WriteEvent for kassensitzung-eroeffnet:v1 only inserts the event into kassenjournal;
+	// WriteEvent for kassensitzung-eröffnet:v1 only inserts the event into kassenjournal;
 	// the kassensitzungen CRUD entity is managed by the application layer.
 	datum := "2026-03-22"
 	bezeichnung := "Sommerfest Tag 1"

@@ -28,7 +28,7 @@ var (
 
 type kassenjournalRepo interface {
 	// ReadEventsByKassensitzung liefert die Events samt Signatur-Stand je Event
-	// (LEFT JOIN auf die Signaturauftraege: kein Eintrag = nicht signaturpflichtig).
+	// (LEFT JOIN auf die Signaturaufträge: kein Eintrag = nicht signaturpflichtig).
 	ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, map[int]tse.EventSignatur, error)
 }
 

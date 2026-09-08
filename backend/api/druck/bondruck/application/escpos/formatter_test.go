@@ -575,10 +575,10 @@ func TestFormatPositionBon_TranscodesUmlautsAndEuroToWPC1252(t *testing.T) {
 	}
 }
 
-// TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis prueft,
+// TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis prüft,
 // dass der Beleg für den 0%-Satz den Befreiungshinweis gemäß
 // KassenSichV § 6 Satz 1 Nr. 5 ("Hinweis darauf, dass eine Steuerbefreiung gilt")
-// traegt.
+// trägt.
 func TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis(t *testing.T) {
 	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
 		Vereinsname:        "SV Musterstadt",
@@ -604,9 +604,9 @@ func TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis(t *tes
 	}
 }
 
-// TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots prueft,
+// TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots prüft,
 // dass ein 500-Byte-QR-Payload (oberhalb des typischen fiskaly-Bereichs von 350-470 Byte)
-// mit Modulgroesse 6 innerhalb der druckbaren 576 Dots bleibt.
+// mit Modulgröße 6 innerhalb der druckbaren 576 Dots bleibt.
 // Rechnung: QR-Version 17 (ECL M: bis 507 Byte), Matrix 85 Module + 8 Ruhezone = 93 Module,
 // 93 * 6 = 558 Dots <= 576 Dots.
 func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *testing.T) {
@@ -635,7 +635,7 @@ func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *
 		},
 	})
 
-	// Modulgroesse-Befehl: QRCodeModuleSizeCmdPrefix (7 Byte) + Groessenbyte.
+	// Modulgröße-Befehl: QRCodeModuleSizeCmdPrefix (7 Byte) + Größenbyte.
 	// Für 500 Byte (V17, 93 Module): erwartete Größe = 6 (558 Dots <= 576).
 	cmdPrefix := []byte(escpos.QRCodeModuleSizeCmdPrefix)
 	idx := bytes.Index(bon, cmdPrefix)

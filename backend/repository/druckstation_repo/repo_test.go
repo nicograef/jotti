@@ -259,7 +259,7 @@ func TestUpsertDruckstation_Abholbon(t *testing.T) {
 		t.Errorf("Expected Bonmodus 'pro_position' for abholbon, got %q", konfig.Bonmodus)
 	}
 
-	// pro_stueck ist allein am Abholbon zulässig; der Roundtrip prüft zugleich
+	// pro_stück ist allein am Abholbon zulässig; der Roundtrip prüft zugleich
 	// den CHECK aus Migration 08.
 	err = repo.UpsertDruckstation(ctx, druckstation.Druckstation{
 		Kategorie: druckstation.KategorieAbholbon,

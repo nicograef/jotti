@@ -18,7 +18,7 @@ type Query struct {
 }
 
 // GetTSESignaturQueueZustand liefert den Zustand der Signatur-Queue für das
-// Admin-Monitoring (Rueckstand und Leistung über ein 15-Minuten-Fenster).
+// Admin-Monitoring (Rückstand und Leistung über ein 15-Minuten-Fenster).
 func (q Query) GetTSESignaturQueueZustand(ctx context.Context) (tse.SignaturQueueZustand, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -31,8 +31,8 @@ func (q Query) GetTSESignaturQueueZustand(ctx context.Context) (tse.SignaturQueu
 	return zustand, nil
 }
 
-// GetTSEStoerungen liefert das Stoerungsprotokoll (Ausfalldokumentation):
-// die Stoerungszeitraeume mit Beginn, Ende und Grund.
+// GetTSEStoerungen liefert das Störungsprotokoll (Ausfalldokumentation):
+// die Störungszeiträume mit Beginn, Ende und Grund.
 func (q Query) GetTSEStoerungen(ctx context.Context) ([]tse.Stoerungszeitraum, error) {
 	log := zerolog.Ctx(ctx)
 

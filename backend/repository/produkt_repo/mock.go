@@ -59,7 +59,7 @@ func (m *mockRepo) UpdateProdukt(ctx context.Context, t produkt.Produkt) error {
 }
 
 // VerschiebeProdukt reicht nur den Fehler durch: Die Reihenfolge liegt allein
-// in der Persistenz, das Domain-Modell traegt sie nicht. Den Tausch deckt der
+// in der Persistenz, das Domain-Modell trägt sie nicht. Den Tausch deckt der
 // Integrationstest des Repositories ab.
 func (m *mockRepo) VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error {
 	return m.err

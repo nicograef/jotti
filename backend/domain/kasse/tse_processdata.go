@@ -11,8 +11,8 @@ import (
 const zahlungsartBar = "Bar"
 
 // BuildKassenbelegProcessData erzeugt Kassenbeleg-V1-processData nach
-// DSFinV-K Anhang I: Bruttobetraege je Steuersatz plus Zahlungsteil. faktor -1
-// stellt Stornierungen dar: alle Steuerbetraege werden negiert.
+// DSFinV-K Anhang I: Bruttobeträge je Steuersatz plus Zahlungsteil. faktor -1
+// stellt Stornierungen dar: alle Steuerbeträge werden negiert.
 func BuildKassenbelegProcessData(positionen []Position, zahlbetragCents int, faktor int) (string, error) {
 	if faktor != 1 && faktor != -1 {
 		return "", fmt.Errorf("invalid faktor %d", faktor)

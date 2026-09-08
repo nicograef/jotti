@@ -133,11 +133,11 @@ const (
 	BelegStatusAusstehend BelegStatus = "ausstehend"
 )
 
-// tseAbschnittFuerBeleg loest den TSE-Abschnitt eines Belegs über die
+// tseAbschnittFuerBeleg löst den TSE-Abschnitt eines Belegs über die
 // Signaturstatus-Funktion auf — die einzige Implementierung des
 // Ausfallbegriffs. Vier Ergebnisarten: Signatur vorhanden (Abschnitt aus den
 // Signaturspalten des Auftrags), vorhanden mit Nachsigniert-Kennzeichen
-// (verspaetete Signatur), Ausfall mit belegbarem Grund (Beleg ohne TSE-Daten,
+// (verspätete Signatur), Ausfall mit belegbarem Grund (Beleg ohne TSE-Daten,
 // aber mit Ausfallvermerk) oder ausstehend (kein Druckauftrag, die UI fasst
 // nach). Kein Auftrag heisst: nicht signaturpflichtig, Beleg ohne
 // TSE-Abschnitt und ohne Vermerk.
@@ -171,10 +171,10 @@ func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventID int) (abschn
 	}
 }
 
-// vermerkFuerAusfall waehlt den Beleg-Hinweis nach dem Ausfallgrund: fehlende
-// TSE-Konfiguration (endgueltiger Auftragsstatus oder keine_konfiguration-
-// Stoerung) traegt „keine TSE konfiguriert" und wird nicht nachsigniert; jeder
-// andere Ausfall (voruebergehende Nichterreichbarkeit) wird nachsigniert.
+// vermerkFuerAusfall wählt den Beleg-Hinweis nach dem Ausfallgrund: fehlende
+// TSE-Konfiguration (endgültiger Auftragsstatus oder keine_konfiguration-
+// Störung) trägt „keine TSE konfiguriert" und wird nicht nachsigniert; jeder
+// andere Ausfall (vorübergehende Nichterreichbarkeit) wird nachsigniert.
 func vermerkFuerAusfall(ausfallGrund string) escpos.TSEBelegvermerk {
 	if ausfallGrund == tse.StatusTSENichtKonfiguriert || ausfallGrund == tse.StoerungGrundKeineKonfiguration {
 		return escpos.TSEVermerkKeineKonfiguration

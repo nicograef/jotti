@@ -30,7 +30,7 @@ const druckQuittungNach = 4 * time.Second
 // relayAbholFenster: Jüngere Aufträge hat das Relay noch nicht abgeholt — sie bleiben offen.
 const relayAbholFenster = 15 * time.Minute
 
-// druckauftragZeile ist die zu persistierende Zeile der druckauftraege-Tabelle.
+// druckauftragZeile ist die zu persistierende Zeile der druckaufträge-Tabelle.
 type druckauftragZeile struct {
 	ZielIP        string
 	Payload       string // Base64-kodierte ESC/POS-Bytes

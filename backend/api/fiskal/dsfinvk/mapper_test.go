@@ -23,7 +23,7 @@ const (
 )
 
 // testSignatur baut die quittierte Signatur eines Signaturauftrags, wie sie der
-// Export je Event-ID erhaelt.
+// Export je Event-ID erhält.
 func testSignatur(t *testing.T, txNr, sigZaehler int, start, ende, signatur string) *tse.Signatur {
 	t.Helper()
 	logStart, err := time.Parse(time.RFC3339, start)
@@ -1605,7 +1605,7 @@ func TestMapEmptySessionIsError(t *testing.T) {
 }
 
 // TestBuildCashregisterVersionAusSnapshot belegt, dass KASSE_SW_VERSION aus dem
-// Snapshot kommt und nicht aus einer hardcodierten Konstante. Der Test schlaegt
+// Snapshot kommt und nicht aus einer hardcodierten Konstante. Der Test schlägt
 // fehl, wenn die Version hartcodiert wird oder der Snapshot-Wert ignoriert wird.
 func TestBuildCashregisterVersionAusSnapshot(t *testing.T) {
 	const wantVersion = "1.2.3-test"

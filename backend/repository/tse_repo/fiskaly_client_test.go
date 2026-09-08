@@ -284,7 +284,7 @@ func TestFiskalyClient_RetriesOnRetryableErrors(t *testing.T) {
 }
 
 // TestFiskalyClient_RetrieveTransaction bildet den Kontrakt von "Retrieve a
-// transaction" ab: GET auf den UUID-Transaktionspfad, Antwort enthaelt state
+// transaction" ab: GET auf den UUID-Transaktionspfad, Antwort enthält state
 // und dieselben Signaturfelder wie ein Finish-Response.
 func TestFiskalyClient_RetrieveTransaction(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -440,7 +440,7 @@ func TestFiskalyClient_RetrieveTransaction_TSSNichtGefundenBleibtFehler(t *testi
 
 // TestKlassifiziereSignierFehler bildet die Fehlertaxonomie ab:
 // auftragsspezifische Ablehnungen (400/409/422) werden als tse.AuftragsFehler
-// gekennzeichnet, TSS-Zustandscodes und alle uebrigen Fehler bleiben TSE-weit.
+// gekennzeichnet, TSS-Zustandscodes und alle übrigen Fehler bleiben TSE-weit.
 func TestKlassifiziereSignierFehler(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -528,7 +528,7 @@ func TestFiskalyClient_FinishTransaction_AblehnungAlsAuftragsFehler(t *testing.T
 
 // TestFiskalyClient_TestConnection bildet den Kontrakt des Verbindungstests ab:
 // neben dem TSS-Zustand wird auch der Client abgefragt, und dessen state sowie
-// serial_number landen aufgeschluesselt im VerbindungStatus.
+// serial_number landen aufgeschlüsselt im VerbindungStatus.
 func TestFiskalyClient_TestConnection(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {

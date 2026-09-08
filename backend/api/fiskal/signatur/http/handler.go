@@ -61,7 +61,7 @@ type getStoerungenResponse struct {
 	Stoerungen []stoerungDTO `json:"stoerungen"`
 }
 
-// POST /admin/get-tse-stoerungen (Stoerungsprotokoll / Ausfalldokumentation)
+// POST /admin/get-tse-störungen (Störungsprotokoll / Ausfalldokumentation)
 func (h *QueryHandler) GetTSEStoerungenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		stoerungen, err := h.Query.GetTSEStoerungen(r.Context())

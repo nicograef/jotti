@@ -11,7 +11,7 @@ type RegistrierterClient struct {
 }
 
 // ReaktivierterClient hält die Argumente eines ReaktiviereClient-Aufrufs fest.
-// Eine Reaktivierung traegt keine serial_number — sie aktiviert den vorhandenen
+// Eine Reaktivierung trägt keine serial_number — sie aktiviert den vorhandenen
 // Client unter seiner ID wieder.
 type ReaktivierterClient struct {
 	TssID    string

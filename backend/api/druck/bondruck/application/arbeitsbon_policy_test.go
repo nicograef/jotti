@@ -270,8 +270,8 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProPosition(t *testing.
 	}
 }
 
-// Bonmodus pro_stueck der Abholbon-Station erzeugt einen Abholbon je Einheit; jeder Bon
-// traegt eine Positions-Kopie mit Menge 1.
+// Bonmodus pro_stück der Abholbon-Station erzeugt einen Abholbon je Einheit; jeder Bon
+// trägt eine Positions-Kopie mit Menge 1.
 func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck(t *testing.T) {
 	positionen := []kasse.Position{
 		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 3},
