@@ -545,17 +545,17 @@ func abrechnungskreis(subject string, tischnamen map[int]string) string {
 
 // --- Stammdatenmodul ---
 
-// truncate schneidet wert auf höchstens maxLength Zeichen. Der Schnitt läuft über
+// truncateRunes schneidet wert auf höchstens maxLength Zeichen. Der Schnitt läuft über
 // []rune, damit ein Umlaut nicht mitten in seiner UTF-8-Folge zerfällt und das
 // Feld gültig bleibt. Die Längen kommen aus domain/betreiber, das jedes Feld
 // beim Schreiben in derselben Einheit begrenzt (NAME 60, STRASSE 60, PLZ 10,
 // ORT 62 laut index.xml). Zu kürzen gibt es damit nur an Bestandswerten, die
-// vor dieser Grenze in die TEXT-Spalten gelangt sind.
+// diese Grenze nie durchlaufen haben — die Spalten selbst sind TEXT.
 //
 // Gekürzt werden allein die vier Adressfelder. Steuernummer und USt-IdNr.
 // bleiben ungekürzt: Eine abgeschnittene Nummer ist keine kürzere, sondern eine
 // falsche.
-func truncate(wert string, maxLength int) string {
+func truncateRunes(wert string, maxLength int) string {
 	runen := []rune(wert)
 	if len(runen) <= maxLength {
 		return wert
@@ -583,8 +583,8 @@ func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table 
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 		"", Version,
 		belege[0].bonID, belege[len(belege)-1].bonID,
-		truncate(s.Betreiber.Vereinsname, betreiber.MaxLengthVereinsname), truncate(s.Betreiber.Strasse, betreiber.MaxLengthStrasse),
-		truncate(s.Betreiber.Plz, betreiber.MaxLengthPlz), truncate(s.Betreiber.Ort, betreiber.MaxLengthOrt), land,
+		truncateRunes(s.Betreiber.Vereinsname, betreiber.MaxLengthVereinsname), truncateRunes(s.Betreiber.Strasse, betreiber.MaxLengthStrasse),
+		truncateRunes(s.Betreiber.Plz, betreiber.MaxLengthPlz), truncateRunes(s.Betreiber.Ort, betreiber.MaxLengthOrt), land,
 		ptr(s.Betreiber.Steuernummer), ptr(s.Betreiber.UstID),
 		formatAmount(bar), formatAmount(bar),
 	}
@@ -607,8 +607,8 @@ var locationColumns = []column{
 func buildLocation(s Snapshot, erstellung string) Table {
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-		truncate(s.Betreiber.Vereinsname, betreiber.MaxLengthVereinsname), truncate(s.Betreiber.Strasse, betreiber.MaxLengthStrasse),
-		truncate(s.Betreiber.Plz, betreiber.MaxLengthPlz), truncate(s.Betreiber.Ort, betreiber.MaxLengthOrt),
+		truncateRunes(s.Betreiber.Vereinsname, betreiber.MaxLengthVereinsname), truncateRunes(s.Betreiber.Strasse, betreiber.MaxLengthStrasse),
+		truncateRunes(s.Betreiber.Plz, betreiber.MaxLengthPlz), truncateRunes(s.Betreiber.Ort, betreiber.MaxLengthOrt),
 		land, ptr(s.Betreiber.UstID),
 	}
 
