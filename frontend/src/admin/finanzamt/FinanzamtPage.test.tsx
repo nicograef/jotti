@@ -130,6 +130,19 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     ).toHaveAttribute('href', '/admin/tse-einrichtung')
   })
 
+  it('bietet den Wizard-Link auch bei aktiver TSE an (Wechsel TEST → LIVE)', () => {
+    hookState.betreiber = makeBetreiber()
+    hookState.tseStatus = { umgebung: 'TEST', istKonfiguriert: true }
+    hookState.kassenidentitaet = kassenidentitaet
+    render(<FinanzamtPage />)
+
+    // Ohne diesen Link gäbe es nach der TEST-Einrichtung keinen Einstieg mehr
+    // in den Assistenten — der Leitfaden nennt genau diesen Pfad.
+    expect(
+      screen.getByRole('link', { name: 'TSE einrichten' }),
+    ).toHaveAttribute('href', '/admin/tse-einrichtung')
+  })
+
   it('zeigt einen Ladefehler statt der leeren Checkliste, wenn die Betreiber-Query fehlschlägt', async () => {
     hookState.betreiberError = true
     hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }

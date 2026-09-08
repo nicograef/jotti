@@ -185,6 +185,14 @@ export function EinrichtungSection() {
               <span className="text-sm leading-relaxed text-muted-foreground">
                 {`Cloud-TSE verbunden${tseStatus?.umgebung ? ` (Umgebung ${tseStatus.umgebung})` : ''}. Signiert jeden Vorgang automatisch.`}
               </span>
+              {/* Auch bei aktiver TSE der einzige Einstieg in den Assistenten —
+                  ohne ihn käme man von TEST nicht mehr nach LIVE. */}
+              <NavLink
+                to="/admin/tse-einrichtung"
+                className="w-fit text-sm font-medium text-primary hover:underline"
+              >
+                TSE einrichten
+              </NavLink>
             </SchrittKarte>
           ) : (
             <WarnKarte title="2 · TSE aktiv">

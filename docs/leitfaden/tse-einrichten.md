@@ -25,7 +25,7 @@ Mehr ist im Dashboard nicht nötig. Die TSS (so heißt eure TSE im fiskaly-Konto
 
 ## Schritt 2: Geführter Assistent in jotti
 
-1. Im Admin-Bereich „Finanzamt" öffnen, im Kasten „TSE-Anbindung" auf „Einrichten oder ändern" klicken.
+1. Im Admin-Bereich „Finanzamt & TSE" öffnen, in der Schrittkarte „2 · TSE aktiv" auf „TSE einrichten" klicken.
 2. API-Key und API-Secret eingeben und auf „fiskaly-Konto prüfen" klicken. Die Prüfung legt nichts an, sie liest nur. jotti zeigt danach die Umgebung an (TEST grau, LIVE rot) und listet die gefundenen TSS auf.
 3. Ist das Konto leer, bietet jotti „TSE einrichten" an: Es legt eine neue TSS an, initialisiert sie und registriert diese Kasse als Client. In LIVE müsst ihr erst das Wort „LIVE" eintippen.
 4. jotti zeigt danach genau einmal den **Admin-PUK** und die **Admin-PIN** an. Notiert beide sofort und verwahrt sie außerhalb von jotti (siehe unten). Erst nach dem Häkchen „Ich habe Admin-PUK und Admin-PIN sicher verwahrt" geht es weiter.
