@@ -250,23 +250,23 @@ verworfen. Die `.cmd`-Skripte gehören Phase 11.
 
 ### Acceptance criteria
 
-- [ ] `docs/leitfaden/tse-einrichten.md` Schritt 2 beschreibt den realen Pfad
+- [x] `docs/leitfaden/tse-einrichten.md` Schritt 2 beschreibt den realen Pfad
       („Finanzamt & TSE" → Schrittkarte „2 · TSE aktiv" → „TSE einrichten"), und
       `EinrichtungSection.tsx — EinrichtungSection()` bietet den Link auf
       `/admin/tse-einrichtung` auch im `tseOk`-Zweig an; `FinanzamtPage.test.tsx` prüft
       beide Zweige. Befund: docs/leitfaden/tse-einrichten.md:26-32
-- [ ] `escpos/formatter.go` lädt `Europe/Berlin` einmal als Paket-Variable und formatiert
+- [x] `escpos/formatter.go` lädt `Europe/Berlin` einmal als Paket-Variable und formatiert
       jeden Zeitpunkt als `zeitpunkt.In(berlin)`; ein Unit-Test mit
       `2026-07-01T23:30:00Z` erwartet auf Kassenbeleg und Arbeitsbon den
       02.07.2026, 01:30. Befund: backend/api/druck/bondruck/application/escpos/formatter.go:113-259,
       :113-305
-- [ ] `produkt_repo/batch.go — GetVariantenByIDs()` liefert `produkt_id` mit, und
+- [x] `produkt_repo/batch.go — GetVariantenByIDs()` liefert `produkt_id` mit, und
       `enrichment.go — EnrichPositionen()` lehnt eine Variante, die nicht zum
       mitgesendeten Produkt gehört, vor dem Aktiv-Check mit `ErrProduktNotFound` ab;
       `produkt_repo/mock.go` und ein Integrationstest „fremde Variante wird abgelehnt"
       ziehen nach. Befund: backend/api/kasse/enrichment/enrichment.go:76-99, :72-99,
       backend/repository/produkt_repo/batch.go:16-63
-- [ ] Die Mengen-Obergrenze 999 gilt ausschließlich auf der Eingabeseite.
+- [x] Die Mengen-Obergrenze 999 gilt ausschließlich auf der Eingabeseite.
       Befund: backend/domain/kasse/bestellung.go:97-106
 
   - `domain/kasse` erhält `PositionEingabeSchema` mit `GTE(1).LTE(999)`.
@@ -281,22 +281,22 @@ verworfen. Die `.cmd`-Skripte gehören Phase 11.
   - Je ein Test lehnt 1000 auf beiden Eingabepfaden ab.
   - Ein Test liest ein persistiertes Event mit Menge 1000 und storniert es erfolgreich.
 
-- [ ] `DeactivateUserHandler()` und der Rollenwechsel in `UpdateUserHandler()` lehnen die
+- [x] `DeactivateUserHandler()` und der Rollenwechsel in `UpdateUserHandler()` lehnen die
       eigene Benutzer-ID mit `cannot_deactivate_self` bzw. `cannot_demote_self` ab (wie
       `DeleteUserHandler()`), `UserRow.tsx — UserRow()` sperrt Status-Switch und Rollenfeld
       bei `isSelf`, und `commonErrorMessages` kennt beide Codes.
       Befund: backend/api/stammdaten/user/http/command_handler.go:166-219, :166-183,
       frontend/src/admin/users/UserRow.tsx:69-84
-- [ ] `BestellungAbschluss.tsx` erneuert `bestellungId`, sobald sich Positionen oder
+- [x] `BestellungAbschluss.tsx` erneuert `bestellungId`, sobald sich Positionen oder
       Kommentar gegenüber dem letzten Absendeversuch unterscheiden, und
       `GeldtransitDialog.tsx` erneuert `geldtransitId` im Öffnen-Effekt neben
       `form.reset`; je ein Vitest-Fall erzwingt den neuen Schlüssel.
       Befund: frontend/src/service/components/table/BestellungAbschluss.tsx:50-81,
       frontend/src/admin/kasse/GeldtransitDialog.tsx:50-70
-- [ ] `scripts/prod-backup.sh` setzt `umask 077` vor `mkdir -p "$BACKUP_DIR"`, erzwingt
+- [x] `scripts/prod-backup.sh` setzt `umask 077` vor `mkdir -p "$BACKUP_DIR"`, erzwingt
       `chmod 700` auf dem Verzeichnis und `chmod 600` auf jedem Dump, und prüft den Modus
       der erzeugten Datei vor der Erfolgsmeldung. Befund: scripts/prod-backup.sh:66-94
-- [ ] `packaging/windows/KURZANLEITUNG.md` Abschnitt „jotti aktualisieren" meldet den
+- [x] `packaging/windows/KURZANLEITUNG.md` Abschnitt „jotti aktualisieren" meldet den
       Restore-Erfolg getrennt vom Stackstart und nennt das vorherige Release-ZIP als
       Rückweg. Die `.cmd`-Skripte selbst ändert Kriterium 11.1.
       Befund: packaging/windows/jotti-restore.cmd:31-37
