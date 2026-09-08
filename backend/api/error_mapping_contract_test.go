@@ -14,8 +14,8 @@ package api
 // layer names, and fails on a sentinel that appears in neither. A sentinel counts
 // as named when a non-test file in an api/**/http package references it inside a
 // helper.MapError call or an errors.Is guard — the two shapes the error contract
-// takes here. Sentinels that carry no code on purpose are listed in
-// mappingExceptions with the reason.
+// takes here. A sentinel the HTTP layer names nowhere belongs in
+// mappingExceptions, with the reason it needs no code of its own.
 
 import (
 	"go/ast"
@@ -37,15 +37,14 @@ const apiImportPrefix = "github.com/nicograef/jotti/backend/api/"
 // frontend shows the generic server-error message with the log reference.
 const errDatabaseName = "ErrDatabase"
 
-// mappingException records a sentinel no HTTP file names, with the reason 500 is
-// the right answer for it. sentinel holds a sentinelKey value.
+// mappingException records a sentinel no HTTP file names, with the reason it
+// needs no error code of its own. sentinel holds a sentinelKey value.
 type mappingException struct {
 	sentinel string
 	reason   string
 }
 
-// mappingExceptions holds the sentinels this contract deliberately lets fall
-// into MapError's fallback.
+// mappingExceptions holds the sentinels the HTTP layer names nowhere.
 var mappingExceptions = []mappingException{
 	{
 		sentinel: "auth/application.ErrTokenGeneration",
@@ -62,8 +61,8 @@ var mappingExceptions = []mappingException{
 }
 
 // TestErrorMappingContract fails when an application sentinel reaches no error
-// code. Adding a sentinel therefore forces a decision: map it in the handler, or
-// document in mappingExceptions why 500 is the right answer.
+// code. Adding a sentinel therefore forces a decision: name it in the handler, or
+// document in mappingExceptions why it needs no code.
 func TestErrorMappingContract(t *testing.T) {
 	declared := collectDeclaredSentinels(t)
 	named := collectNamedSentinels(t)
