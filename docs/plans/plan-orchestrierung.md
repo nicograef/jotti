@@ -7,21 +7,23 @@
 ## Goal
 
 Eine einzige Lead-Session orchestriert alles autonom: Plan 2 umsetzen, jede Datei in jotti
-mit Fable-Reviewern und den Cleanup-Kriterien prüfen, die Befunde in einem
-selbsttragenden Findings-Dokument konsolidieren, daraus einen Fix-Plan erzeugen, ihn mit
-Opus und Sonnet umsetzen und jede Phase von Fable reviewen lassen. Die Lead-Session
-reviewt und implementiert nichts selbst.
+nach einem Fable-Sweep mit Opus-Reviewern und den Cleanup-Kriterien prüfen, die Befunde in
+einem selbsttragenden Findings-Dokument konsolidieren, daraus einen Fix-Plan erzeugen, ihn
+mit Opus und Sonnet umsetzen und jede Phase nach einem Fable-Sweep von Opus reviewen lassen.
+Die Lead-Session reviewt und implementiert nichts selbst.
 
 ## Architectural decisions
 
 - **Rollen und Modelle**: Lead-Session = Fable 5.1, nur Orchestrierung (Workflows starten,
-  Ergebnisse lesen, Plan-Dateien pflegen, Commits landen). Reviewer und Skeptiker = Fable 5.1.
+  Ergebnisse lesen, Plan-Dateien pflegen, Commits landen). Sweep = Fable 5.1: je Bereich
+  bzw. je Diff ein kurzer, flacher Durchgang, der Hotspots und Fragen an die Reviewer
+  übergibt. Reviewer, Skeptiker und Plan-Kritik = Opus 5.
   Implementierer = Opus 5 (Implementierung, Debugging, Migrationen, Architektur) und
-  Sonnet 5 (mechanische Fixes, Umbenennungen, Doku-Sweeps, Formatierung). Planer = Opus 5,
-  Plan-Kritik = Fable 5.1.
+  Sonnet 5 (mechanische Fixes, Umbenennungen, Doku-Sweeps, Formatierung). Planer = Opus 5.
 - **Fable-Ausnahme**: `CLAUDE.md` untersagt Fable für Subagenten aus Kostengründen. Für diesen
-  Plan hat der Eigentümer Fable als Reviewer ausdrücklich freigegeben. Die Regel in
-  `CLAUDE.md` bleibt unverändert; die Ausnahme gilt nur für die hier genannten Rollen.
+  Plan hat der Eigentümer Fable nur für den Sweep freigegeben; der Preis rechtfertigt keine
+  Fable-Reviewer. Die Regel in `CLAUDE.md` bleibt unverändert; die Ausnahme gilt nur für
+  den Sweep.
 - **Werkzeuge**: `implement-plan` (Worktrees, Commit je Kriterium, Fold, Landen),
   `create-plan`, `cleanup` (Kriterien-Dateien), Workflow-Tool für Fan-out und
   adversariale Verifikation. Der Audit-Workflow liegt als benannter Workflow in
@@ -65,16 +67,21 @@ reviewt und implementiert nichts selbst.
   Testfehler nach Debugging, nötiger Force-Push, Löschen fremder Worktrees. Dann
   Übergabe an den Menschen, nicht raten.
 
+- Phase A: Kriterium 1 bleibt offen, bis der Eigentümer nach dem Merge Plan 2 Phase 0
+  Kriterium 5 (Dependabot-PRs) und Phase 10 Kriterium 4 (#111) abhakt; alle übrigen
+  Kriterien der Phasen 0–10 sind abgehakt.
+
 ## Open questions / Risks
 
-- Dauer und Kosten: das Audit hat rund 80 Fable-Reviewer plus Skeptiker je Befund; ein
-  Vorlauf mit 268 Agenten brauchte 3,3 Stunden. Rechne mit einem Tag Laufzeit für Phase B
-  und einem weiteren für Phase D.
+- Dauer und Kosten: das Audit hat sechs Fable-Sweeps, rund 80 Opus-Reviewer und Skeptiker
+  je Befund; ein Vorlauf mit 268 Agenten brauchte 3,3 Stunden. Rechne mit einem Tag
+  Laufzeit für Phase B und einem weiteren für Phase D.
 - Zwei Vereine setzen jotti ab Ende September produktiv ein. Phase A muss vorher landen;
   Phasen B–D dürfen v1.0.0 nicht über diesen Termin hinaus verzögern, sonst v1.0.0 mit
   Stand nach Phase A taggen und den Rest in v1.1 planen.
-- Der Audit-Workflow läuft im Parallelitätslimit der Session (max. 16 Agenten gleichzeitig).
-  Kein zweiter großer Workflow parallel starten.
+- Das Parallelitätslimit je Workflow ist CPUs − 2 (in der Cloud-Session 2 Agenten). Der
+  Audit läuft deshalb im Split-Modus des Workflows: sechs Bereichs-Läufe parallel
+  (`area`, `sectionsDir`), danach ein Assemble-Lauf (`assembleFrom`).
 
 ---
 
@@ -92,7 +99,7 @@ reviewt und implementiert nichts selbst.
 
 Die Lead-Session führt `implement-plan` für Plan 2 aus, Phasen 0–10. Parallelgruppen nach
 den „Depends on"-Zeilen. Implementierer je Phase: Opus für 0, 4, 5, 7, 8, 10; Sonnet für
-1, 2, 3, 6, 9. Nach jeder Phase ein Fable-Review des Diffs (Korrektheit, Konventionen,
+1, 2, 3, 6, 9. Nach jeder Phase ein Review des Diffs (Korrektheit, Konventionen,
 Cleanup-Kriterien); Defekte gehen per `SendMessage` an den Phasen-Worker zurück, nie an
 einen neuen Fixer. Gate je Phase: `make check`, für Schema-Phasen `make verify` und der
 CI-Job `upgrade-path`, für Website-Phasen `make website-check`, für Phase 4
@@ -102,9 +109,9 @@ CI-Job `upgrade-path`, für Website-Phasen `make website-check`, für Phase 4
 
 - [ ] Alle Kriterien der Phasen 0–10 in `plan-praxis-feedback.md` abgehakt, je Kriterium
       ein Commit mit Trailer `Plan: praxis-feedback phase <N> criterion <M>`
-- [ ] Je Phase ein Fable-Review-Protokoll mit „keine offenen Defekte" vor dem Fold
-- [ ] `plan/praxis-feedback` auf den Feature-Branch gelandet, alle Worktrees entfernt
-- [ ] `make verify`, `make website-check`, `make test-e2e` auf dem gelandeten Stand grün
+- [x] Je Phase ein Review-Protokoll mit „keine offenen Defekte" vor dem Fold
+- [x] `plan/praxis-feedback` auf den Feature-Branch gelandet, alle Worktrees entfernt
+- [x] `make verify`, `make website-check`, `make test-e2e` auf dem gelandeten Stand grün
 
 ---
 
@@ -120,7 +127,8 @@ CI-Job `upgrade-path`, für Website-Phasen `make website-check`, für Phase 4
 ### What to build
 
 `Workflow({ name: 'jotti-full-audit', args: { date: '<heute>' } })` auf dem gelandeten
-Stand nach Phase A. Ergebnis ist `docs/plans/findings-jotti-audit.md`. Die Lead-Session
+Stand nach Phase A; auf kleinen Maschinen im Split-Modus (sechs Läufe mit `area` und
+`sectionsDir`, dann ein Lauf mit `assembleFrom`). Ergebnis ist `docs/plans/findings-jotti-audit.md`. Die Lead-Session
 liest nur die Kennzahlen und committet die Datei. Meldet der Workflow Reviewer ohne
 Ergebnis oder eine Kappung, wird das im Dokument-Kopf sichtbar; ein Nachlauf nur für die
 fehlenden Einheiten ist über `resumeFromRunId` möglich.
@@ -152,7 +160,8 @@ Ein Opus-Planer erzeugt `docs/plans/plan-jotti-audit-fixes.md` nach `create-plan
 Phasen als vertikale Schnitte je Defektklasse oder Bereich, Gates zuerst (Lint, CI-grep,
 Test), dann Blocker, Major, Minor; große Refactorings als eigene Entscheidungsphase.
 Jede Phase nennt Implementierer-Modell (Opus/Sonnet), Review-Tier und Gate-Befehl. Ein
-Fable-Kritiker prüft den Plan gegen das Findings-Dokument (Vollständigkeit, keine
+Fable-Sweep übergibt an drei Opus-Kritiker, die den Plan gegen das Findings-Dokument
+prüfen (Vollständigkeit, keine
 Verhaltensänderung bei Cleanup, Freeze-Disziplin, Rule 18); der Planer arbeitet die Kritik
 ein. Das Ask-Gate wird durchlaufen; verbleibende Fragen stehen als „Open questions" im
 Plan, die Lead-Session entscheidet sie nach `question-rules.md` oder stoppt.
@@ -162,7 +171,7 @@ Plan, die Lead-Session entscheidet sie nach `question-rules.md` oder stoppt.
 - [ ] `docs/plans/plan-jotti-audit-fixes.md` deckt jeden bestätigten Blocker/Major-Befund
       und jede Defektklasse ab; nicht übernommene Befunde stehen mit Begründung darin
 - [ ] Jede Phase hat `Depends on`, Modell, Review-Tier, Gate-Befehl und testbare Kriterien
-- [ ] Fable-Kritik dokumentiert und eingearbeitet
+- [ ] Kritik (Fable-Sweep, Opus-Kritiker) dokumentiert und eingearbeitet
 - [ ] Datei committet
 
 ---
@@ -178,8 +187,9 @@ Plan, die Lead-Session entscheidet sie nach `question-rules.md` oder stoppt.
 
 ### What to build
 
-`implement-plan` für den Fix-Plan, Modell je Phase wie im Plan festgelegt, Fable-Review je
-Phase mit Rückgabe an den Worker. Gates wie in Phase A. Neue Gates aus den Defektklassen
+`implement-plan` für den Fix-Plan, Modell je Phase wie im Plan festgelegt, je Phase ein
+Fable-Sweep und ein Opus-Review mit Rückgabe an den Worker. Gates wie in Phase A. Neue
+Gates aus den Defektklassen
 werden vor den Einzelfixes gelandet, damit sie die Fixes prüfen. Stopp-Bedingungen aus
 `implement-plan` gelten unverändert.
 
