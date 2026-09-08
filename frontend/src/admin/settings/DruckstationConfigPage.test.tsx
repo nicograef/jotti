@@ -312,8 +312,7 @@ describe('DruckstationConfigPage — Stationskarten', () => {
 
     await user.click(screen.getByRole('button', { name: 'Drucker zuweisen' }))
 
-    // Nach dem Aufklappen sind die IP-Felder der unkonfigurierten Stationen
-    // editierbar.
+    // Nach dem Aufklappen sind die IP-Felder der unkonfigurierten Stationen editierbar.
     expect(screen.getAllByLabelText('Drucker-IP').length).toBe(3)
   })
 })

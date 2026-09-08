@@ -264,11 +264,11 @@
   }
 }
 
-/* Zentrales Animations-Inventar. Keyframes global,
-   Utilities über @utility — Einsatzstellen konsumieren nur die benannten
-   Klassen, keine Ad-hoc-Animationen pro Stelle. Dauern/Easings sind die
-   kanonischen Werte des Inventars; Stellen mit variabler Dauer (Listen-Stagger,
-   Login-Glows) setzen die Dauer je Instanz zusätzlich. */
+/* Zentrales Animations-Inventar. Keyframes global, Utilities über @utility —
+   Einsatzstellen konsumieren nur die benannten Klassen, keine Ad-hoc-
+   Animationen pro Stelle. Dauern/Easings sind die kanonischen Werte des
+   Inventars; Stellen mit variabler Dauer (Listen-Stagger, Login-Glows)
+   setzen die Dauer je Instanz zusätzlich. */
 @keyframes shimmer {
   0% {
     background-position: 150% 0;

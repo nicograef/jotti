@@ -41,7 +41,7 @@ function Kennzahl({ label, wert }: { label: string; wert: string }) {
 }
 
 // Aufklappbarer Detailblock: der Trigger zeigt das Label mit Pfeil, der Inhalt
-// erscheint darunter. Ersetzt die früheren separaten Signatur-/Störungs-Karten.
+// erscheint darunter.
 function DetailCollapsible({
   label,
   children,

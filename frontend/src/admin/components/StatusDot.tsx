@@ -12,9 +12,9 @@ const zustandKlasse: Record<StatusDotZustand, string> = {
 }
 
 // 7-px-Punkt. label wird als aria-label gesetzt, damit der Zustand auch ohne
-// Sichtkontakt lesbar ist. role="img"
-// statt role="status": Der Punkt trägt Bedeutung (roter Punkt = Problem), soll
-// aber nicht als Live-Region bei jedem Refetch neu vorgelesen werden.
+// Sichtkontakt lesbar ist. role="img" statt role="status": Der Punkt trägt
+// Bedeutung (roter Punkt = Problem), soll aber nicht als Live-Region bei jedem
+// Refetch neu vorgelesen werden.
 //
 // puls: weicher Ring-Puls (Keyframe pulsedot, 2,4 s), signalisiert einen
 // „lebenden" Zustand. Bewusst nur an zwei Stellen gesetzt (Kassentag-Chip bei
