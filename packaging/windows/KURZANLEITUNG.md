@@ -120,17 +120,25 @@ sichert er die Datenbank **vor** der Aktualisierung automatisch. Geht beim Updat
 etwas schief, spielt **`jotti-restore.cmd`** (Doppelklick) das letzte dieser
 Backups zurück — seit dem Backup erfasste Daten gehen dabei verloren.
 
-Das Skript erledigt zwei Schritte, die einzeln gelingen oder scheitern:
+Das Skript meldet jeden seiner Schritte mit einer eigenen Zeile:
 
-1. **Backup einspielen** — danach steht die Datenbank wieder auf dem Stand vor
-   dem Update.
-2. **jotti starten** — das Skript fährt den Stack anschließend selbst hoch.
+1. `Starte die Datenbank ...`
+2. `Stoppe die Anwendung waehrend der Wiederherstellung ...`
+3. `Spiele das letzte Backup ein ...`
+4. `Starte jotti neu ...`
 
-Bei „FEHLER bei der Wiederherstellung" verrät die Ausgabe darüber, welcher der
-beiden Schritte gescheitert ist. Kam der Fehler erst beim Starten, ist das
-Backup trotzdem eingespielt: Entpackt dann das **vorherige Release-ZIP** und
-startet `jotti-start.exe` daraus. Diese Version passt zur zurückgespielten
-Datenbank.
+Bricht einer davon ab, endet die Ausgabe mit „FEHLER bei der Wiederherstellung".
+Die letzte Zeile darüber zeigt, wie weit das Skript kam — und daran hängt, was
+zu tun ist:
+
+- **`Starte jotti neu ...` fehlt:** Das Backup ist nicht oder nur zum Teil
+  eingespielt. Behebt die Ursache (läuft Docker? sind die Ports frei?) und
+  startet `jotti-restore.cmd` erneut; der zweite Lauf spielt dasselbe Backup
+  vollständig ein.
+- **`Starte jotti neu ...` steht da, der Fehler kam erst danach:** Das Backup
+  ist eingespielt, nur der Start hakt. Entpackt dann das **vorherige
+  Release-ZIP** und startet `jotti-start.exe` daraus. Diese Version passt zur
+  zurückgespielten Datenbank.
 
 > 🔁 **Nur vorwärts, kein Downgrade.** Spielt **keine ältere Version** über eine
 > neuere. Updates verändern die Datenbank und lassen sich nicht zurücknehmen;
