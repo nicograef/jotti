@@ -341,36 +341,36 @@ derselben Phase grün gemacht. Danach bedeutet „make check grün" dasselbe wie
 
 ### Acceptance criteria
 
-- [ ] `frontend/package.json` trennt `"lint": "eslint --max-warnings=0 ."` von
+- [x] `frontend/package.json` trennt `"lint": "eslint --max-warnings=0 ."` von
       `"lint:fix": "eslint --fix --max-warnings=0 ."`, `make fmt-frontend` ruft
       `pnpm format && pnpm lint:fix`, und `make lint-frontend` bleibt der Gate-Aufruf.
       Befund: frontend/package.json:14
-- [ ] `Makefile — lint-backend` verwendet denselben Exit-Guard wie `check-backend`
+- [x] `Makefile — lint-backend` verwendet denselben Exit-Guard wie `check-backend`
       (`if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then goimports -l .; exit 1; fi`).
       Befund: Makefile:78-79
-- [ ] `scripts/check-build-tags.sh` fordert für jede `backend/**/*_test.go` genau eine
+- [x] `scripts/check-build-tags.sh` fordert für jede `backend/**/*_test.go` genau eine
       `//go:build`-Zeile mit `unit` oder `integration`. `make check` ruft das Skript mit,
       bis `make check-repo` in Kriterium 3.2 entsteht. `escpos/formatter_test.go` erhält
       `//go:build unit`; `api/health/health_integration_test.go` wird zu einem `unit`-Test
       umbenannt.
-- [ ] `backend/.golangci.yml`, `Makefile — lint-backend-full`/`check-backend` und der
+- [x] `backend/.golangci.yml`, `Makefile — lint-backend-full`/`check-backend` und der
       CI-Job `backend-golangci` linten zusätzlich mit `--build-tags=unit`.
-- [ ] Eine Root-`.prettierrc` und `.prettierignore` gelten für `ts, tsx, js, mjs, cjs,
+- [x] Eine Root-`.prettierrc` und `.prettierignore` gelten für `ts, tsx, js, mjs, cjs,
 json, css, md` im ganzen Repo. Ausgenommen sind `node_modules`, `dist`, Lockfiles,
       `backend/sqlc/dbgen`, `docs/rechtsquellen`, `docs/plans`,
       `frontend/src/components/ui`, `frontend/src/hooks/use-mobile.ts` und `*.astro`.
       `make check-format` prüft, ein einmaliger `--write`-Lauf macht den Baum grün.
       `frontend/.prettierrc` und `website/.prettierrc` entfallen; `check-frontend` und der
       CI-Job `frontend-ci` rufen `make check-format`.
-- [ ] `.github/workflows/ci.yml` führt `shellcheck -x scripts/*.sh` aus. Die tautologische
+- [x] `.github/workflows/ci.yml` führt `shellcheck -x scripts/*.sh` aus. Die tautologische
       `if`-Bedingung am `e2e`-Job ist gelöscht; `changes` und `e2e` laufen ohne Bedingung.
       Jede verbleibende Job-Bedingung enthält `|| needs.changes.outputs.ci == 'true'`.
-- [ ] `scripts/setup-dev-tools.sh` vergleicht zusätzlich die Go-Version, mit der die
+- [x] `scripts/setup-dev-tools.sh` vergleicht zusätzlich die Go-Version, mit der die
       vorhandene `golangci-lint`-Binary gebaut wurde (`go version -m`), gegen
       `backend/go.mod`, und baut bei Abweichung neu.
-- [ ] (Opus 5) Die durch Kriterium 2.1 sichtbaren ESLint-Verstöße sind behoben. Bei mehr
+- [x] (Opus 5) Die durch Kriterium 2.1 sichtbaren ESLint-Verstöße sind behoben. Bei mehr
       als 50 Verstößen bricht der Worker ab und meldet Anzahl und Regelverteilung.
-- [ ] (Opus 5) Die durch Kriterium 2.4 sichtbaren `unit`-Tag-Verstöße sind behoben. Bei
+- [x] (Opus 5) Die durch Kriterium 2.4 sichtbaren `unit`-Tag-Verstöße sind behoben. Bei
       mehr als 50 Verstößen bricht der Worker ab und meldet Anzahl und Regelverteilung.
 
 ---
