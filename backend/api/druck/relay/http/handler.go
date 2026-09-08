@@ -36,7 +36,7 @@ type Handler struct {
 
 // POST /relay/poll
 // Request:  {"token": "..."}
-// Response: {"aufträge": [...]}
+// Response: {"auftraege": [...]}
 type pollRequest struct {
 	Token string `json:"token"`
 }

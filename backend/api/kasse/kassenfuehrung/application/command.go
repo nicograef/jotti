@@ -253,7 +253,7 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 // Differenzbuchung (bei Differenz ungleich Null) und Tagesabschluss.
 //
 // Feste Schreibreihenfolge:
-//  1. kassensturz-durchgeführt:v1 (entfällt im Wiederanlauf, wenn bereits vorhanden)
+//  1. kassensturz-durchgefuehrt:v1 (entfällt im Wiederanlauf, wenn bereits vorhanden)
 //  2. differenz-soll-ist-gebucht:v1 (nur bei Differenz ungleich Null, signiert)
 //  3. tagesabschluss-erstellt:v1 (signiert, schließt die Kassensitzung)
 //
@@ -471,7 +471,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 }
 
 // findeVorhandenenKassensturz liefert die Daten eines bereits im Journal
-// stehenden kassensturz-durchgeführt-Events des Kassensitzungs-Streams (oder
+// stehenden kassensturz-durchgefuehrt-Events des Kassensitzungs-Streams (oder
 // nil, wenn keiner existiert) sowie die Information, ob nach diesem Kassensturz
 // eine Zwischenbuchung im Stream liegt. Grundlage der Wiederanlauf-Erkennung des
 // Kassenabschlusses: Ein Kassensturz aus einem abgebrochenen vorherigen Versuch

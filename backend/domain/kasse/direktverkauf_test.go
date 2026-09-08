@@ -10,7 +10,7 @@ import (
 )
 
 // verkaufPositionen extracts the fat positions (incl. server-generated PositionIDs) from a
-// getätigt event, so tests can build fat storno positions that reference real positions.
+// getaetigt event, so tests can build fat storno positions that reference real positions.
 func verkaufPositionen(t *testing.T, evt e.Event) []Position {
 	t.Helper()
 	data := DirektverkaufGetaetigtV1Data{}

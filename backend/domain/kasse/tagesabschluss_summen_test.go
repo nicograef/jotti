@@ -252,7 +252,7 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		makeAbschlussEvent(EventTypeStornierungErteiltV1, map[string]int{"gesamtStornierungCents": 1455}),
 		// bestellung-korrigiert: kj_extract_korrektur_cents → gesamtCents
 		makeAbschlussEvent(EventTypeBestellungKorrigiertV1, map[string]int{"gesamtCents": 200}),
-		// direktverkauf-getätigt: kj_extract_direktverkauf_cents → gesamtbetragCents
+		// direktverkauf-getaetigt: kj_extract_direktverkauf_cents → gesamtbetragCents
 		makeAbschlussEvent(EventTypeDirektverkaufGetaetigtV1, map[string]int{"gesamtbetragCents": 880}),
 		// direktverkauf-storniert: kj_extract_direktverkauf_storno_cents → gesamtStornierungCents
 		makeAbschlussEvent(EventTypeDirektverkaufStorniertV1, map[string]int{"gesamtStornierungCents": 335}),

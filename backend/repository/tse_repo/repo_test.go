@@ -311,7 +311,7 @@ func TestTSESignaturauftragFehlversuch_SekundenKurveEndetVorRueckstandsSchwelle(
 }
 
 // backoffBis misst den von der Fehlversuchs-Query gesetzten Backoff
-// (nächster_versuch_am − NOW()).
+// (naechster_versuch_am − NOW()).
 func backoffBis(t *testing.T, db *sql.DB, auftragID int) time.Duration {
 	t.Helper()
 	var sekunden float64

@@ -23,7 +23,7 @@ type AbschlussSummen struct {
 //	Geldtransit   = Einlagen − Entnahmen
 //
 // Summen-wirksam: zahlung-kassiert, stornierung-erteilt, bestellung-korrigiert,
-// direktverkauf-getätigt, direktverkauf-storniert, geldtransit-gebucht.
+// direktverkauf-getaetigt, direktverkauf-storniert, geldtransit-gebucht.
 // Alle übrigen Typen (Bestellung, Umbuchung, Kassensturz, Differenzbuchung,
 // Eröffnung, …) sind summen-neutral.
 // Ein nicht parsebares Event eines summen-wirksamen Typs wird als Fehler gemeldet

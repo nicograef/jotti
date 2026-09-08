@@ -1,6 +1,6 @@
 // Package enrichment turns thin position inputs (Produkt/Variante IDs + Menge) into
 // fat kasse.Position values by batch-loading the referenced Produkte and Varianten.
-// It is the single shared implementation used by both the tischgeschäft
+// It is the single shared implementation used by both the tischgeschaeft
 // (BestellungAufnehmen) and direktverkauf (DirektverkaufTaetigen) command paths.
 package enrichment
 

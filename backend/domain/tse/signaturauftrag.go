@@ -3,7 +3,7 @@ package tse
 import "time"
 
 // Status eines Signaturauftrags (CHECK-Constraint der Tabelle
-// tse_signaturaufträge).
+// tse_signaturauftraege).
 const (
 	StatusOffen                = "offen"
 	StatusErledigt             = "erledigt"

@@ -96,7 +96,7 @@ const ustNichtSteuerbar = 5
 // ustSchluessel bildet einen jotti-Steuersatz auf den DSFinV-K-Umsatzsteuer-
 // schlüssel (Anlage 2) ab: 1 = Regelsteuersatz (19 %), 2 = ermäßigter Satz
 // (7 %), 6 = umsatzsteuerfrei (0 %, z. B. Zweckbetrieb § 67a AO). Die
-// Steueraufteilung entfaltet kombi vorab in regel und ermäßigt, daher kommt hier
+// Steueraufteilung entfaltet kombi vorab in regel und ermaessigt, daher kommt hier
 // nie KombiSteuersatz an.
 //
 // Die Schlüssel 5 und 6 sind gegen die DFKA-Taxonomie Kassendaten (Quelle der

@@ -86,7 +86,7 @@ func ausfallFensterAus(s szenario, jetzt time.Time) []ausfallFenster {
 	return fenster
 }
 
-// stoerungZeile ist die zu persistierende Zeile der tse_störungen-Tabelle
+// stoerungZeile ist die zu persistierende Zeile der tse_stoerungen-Tabelle
 // (Störungsprotokoll).
 type stoerungZeile struct {
 	Beginn     time.Time
@@ -116,7 +116,7 @@ func stoerungszeitraeumeAus(fenster []ausfallFenster) []stoerungZeile {
 	return zeilen
 }
 
-// signaturauftragZeile ist die zu persistierende Zeile der tse_signaturaufträge-Tabelle:
+// signaturauftragZeile ist die zu persistierende Zeile der tse_signaturauftraege-Tabelle:
 // genau ein Auftrag je fiskalischem Event, die Signatur direkt am Auftrag (NULL bis zur
 // Quittierung).
 type signaturauftragZeile struct {

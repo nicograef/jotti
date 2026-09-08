@@ -7,7 +7,7 @@ import (
 )
 
 // Kategorie unterscheidet die fünf Druckstationen: die drei Produktkategorien
-// (essen, getränk, sonstiges) sowie die Sonderstationen Kassenbeleg und Abholbon.
+// (essen, getraenk, sonstiges) sowie die Sonderstationen Kassenbeleg und Abholbon.
 type Kategorie string
 
 const (
@@ -19,7 +19,7 @@ const (
 )
 
 // HatBonmodus meldet, ob die Station überhaupt einen Bonmodus trägt: die drei
-// Produktkategorien (essen, getränk, sonstiges) und der Abholbon tragen einen,
+// Produktkategorien (essen, getraenk, sonstiges) und der Abholbon tragen einen,
 // nur der Kassenbeleg (ein einzelner Zahlungsbeleg) nicht. Welche Modi die
 // Station im Einzelnen zulässt, sagt ErlaubtBonmodus.
 func (k Kategorie) HatBonmodus() bool {

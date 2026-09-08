@@ -41,7 +41,7 @@ const latenzBurstGroesse = 24
 //
 //   - Während des Ausfalls bleiben Vorgänge buchbar (Buchen wartet nie auf die
 //     TSE) und der Signaturauftrag bleibt offen.
-//   - Das Störungsprotokoll (tse_störungen) erfasst den Zeitraum mit Grund
+//   - Das Störungsprotokoll (tse_stoerungen) erfasst den Zeitraum mit Grund
 //     tse_fehler.
 //   - Das Abschluss-Gate lässt während des dokumentierten Ausfalls durch und
 //     weist den Ausfall-Rest in der Abschlussmeldung aus.
@@ -371,7 +371,7 @@ func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int
 	warteAufSignatur(t, u.db, verkaufEventID)
 }
 
-// pruefeStoerungsprotokoll prüft, dass das Störungsprotokoll (tse_störungen)
+// pruefeStoerungsprotokoll prüft, dass das Störungsprotokoll (tse_stoerungen)
 // den Ausfallzeitraum dokumentiert: mindestens ein tse_fehler-Zeitraum mit
 // gesetztem Beginn, gesetztem Ende und nicht-leerem Fehlertext (Grund).
 func pruefeStoerungsprotokoll(t *testing.T, db *sql.DB) {

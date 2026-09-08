@@ -118,7 +118,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 }
 
 // kassensturzDataJSON deserialisiert die für den Berichtskopf benötigte
-// Kassensturz-Differenz aus dem kassensturz-durchgeführt:v1-Event.
+// Kassensturz-Differenz aus dem kassensturz-durchgefuehrt:v1-Event.
 type kassensturzDataJSON struct {
 	DifferenzCents int `json:"differenzCents"`
 }

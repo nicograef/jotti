@@ -47,7 +47,7 @@ func countJournalEvents(t *testing.T, db *sql.DB, eventType string) int {
 // Abschluss-Versuch schreibt den Kassensturz und scheitert an der
 // Differenzbuchung (Teilfehler). Der Wiederanlauf erkennt den vorhandenen
 // Kassensturz, überspringt Schritt 1 und schließt ab — im Journal steht
-// genau ein kassensturz-durchgeführt:v1.
+// genau ein kassensturz-durchgefuehrt:v1.
 func TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz(t *testing.T) {
 	ctx, _, db, userID := setupKassenfuehrungIntegration(t)
 

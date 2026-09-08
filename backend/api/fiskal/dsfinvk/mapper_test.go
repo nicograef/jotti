@@ -819,8 +819,8 @@ func kombiZahlungEvent(t *testing.T) event.Event {
 }
 
 // TestMapKombiSteuerSplit belegt die Entfaltung einer kombi-Position in 70 % zu
-// 7 % und 30 % zu 19 %. lines_vat folgt der Aufteilen-Reihenfolge (ermäßigt,
-// regel), transactions_vat der Steuermatrix-Reihenfolge (regel, ermäßigt).
+// 7 % und 30 % zu 19 %. lines_vat folgt der Aufteilen-Reihenfolge (ermaessigt,
+// regel), transactions_vat der Steuermatrix-Reihenfolge (regel, ermaessigt).
 func TestMapKombiSteuerSplit(t *testing.T) {
 	signaturen := map[int]tse.EventSignatur{
 		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4800, 20, "2026-06-16T12:30:00Z", "2026-06-16T12:30:01Z", "KOMBISIG==")},

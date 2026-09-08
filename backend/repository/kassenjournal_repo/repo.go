@@ -262,7 +262,7 @@ func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e ev
 }
 
 // handleKassensitzungEvent handles kassensitzung events by updating the kassensitzungen CRUD entity.
-// Note: For kassensitzung-eröffnet:v1, the kassensitzungen row is created by the application layer
+// Note: For kassensitzung-eroeffnet:v1, the kassensitzungen row is created by the application layer
 // BEFORE calling WriteEvent (required because kassenjournal has a FK to kassensitzungen).
 // The repo only handles tagesabschluss-erstellt:v1 (setting status to 'abgeschlossen').
 func (r Repository) handleKassensitzungEvent(ctx context.Context, qtx *dbgen.Queries, e event.Event, kassensitzungNr int) error {
@@ -277,7 +277,7 @@ func (r Repository) handleKassensitzungEvent(ctx context.Context, qtx *dbgen.Que
 		}
 
 	default:
-		// Other kassensitzung events (eröffnet, anfangsbestand, kassenbewegung, kassensturz, differenz)
+		// Other kassensitzung events (eroeffnet, anfangsbestand, kassenbewegung, kassensturz, differenz)
 		// don't change the CRUD entity — only the kassenjournal entry is written.
 	}
 
@@ -562,7 +562,7 @@ func (r Repository) ReadEventsBySubject(ctx context.Context, subject string) ([]
 	return events, nil
 }
 
-// ReadDirektverkaufEvents retrieves all Direktverkauf events (getätigt + storniert) of the given
+// ReadDirektverkaufEvents retrieves all Direktverkauf events (getaetigt + storniert) of the given
 // Kassensitzung across all verkauf streams, ordered by ID ascending.
 func (r Repository) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error) {
 	rows, err := r.q.ReadDirektverkaufEvents(ctx, kassensitzungNr)

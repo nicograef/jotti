@@ -13,7 +13,7 @@ import (
 )
 
 // positionenMitKommentarData spiegelt die benötigten Felder von
-// bestellung-aufgenommen:v1 und direktverkauf-getätigt:v1.
+// bestellung-aufgenommen:v1 und direktverkauf-getaetigt:v1.
 // Keine Schema-Validierung nötig, da die Daten beim Event-Write validiert wurden.
 type positionenMitKommentarData struct {
 	Positionen []kasse.Position `json:"positionen"`
@@ -23,13 +23,13 @@ type positionenMitKommentarData struct {
 // CreateArbeitsbonAuftraegeFromEvent erzeugt Druckaufträge aus einem Bestell- oder
 // Direktverkauf-Event anhand der konfigurierten Druckstationen.
 //   - bestellung-aufgenommen: Arbeitsbons an die Produktstationen je Kategorie.
-//   - direktverkauf-getätigt (Ableitungsregel): ist die Abholbon-Station konfiguriert,
+//   - direktverkauf-getaetigt (Ableitungsregel): ist die Abholbon-Station konfiguriert,
 //     entstehen Abholbon(s) an dieser Station gemäß ihrem Bonmodus; sonst Arbeitsbons
 //     an die Produktstationen; ohne konfigurierte Stationen entstehen keine Aufträge.
 //
 // Bonmodus pro_position (Standard) erzeugt einen Bon je Position, pro_bestellung einen
 // Sammelbon je Kategorie bzw. einen Sammel-Abholbon. Der Abholbon kennt zusätzlich
-// pro_stück: je Einheit einer Position einen eigenen Bon.
+// pro_stueck: je Einheit einer Position einen eigenen Bon.
 func CreateArbeitsbonAuftraegeFromEvent(
 	evt event.Event,
 	druckstationen map[string]druckstation.Druckstation,
@@ -66,7 +66,7 @@ func createDirektverkaufAuftraege(
 
 // createAbholbonAuftraege erzeugt Abholbons für einen Direktverkauf gemäß Bonmodus:
 // pro_bestellung = ein Sammel-Abholbon, pro_position = ein Abholbon je Position,
-// pro_stück = ein Abholbon je Einheit (eine Positions-Kopie mit Menge 1 je Bon).
+// pro_stueck = ein Abholbon je Einheit (eine Positions-Kopie mit Menge 1 je Bon).
 func createAbholbonAuftraege(
 	evt event.Event,
 	data positionenMitKommentarData,

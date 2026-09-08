@@ -3,7 +3,7 @@ package tse
 import "time"
 
 // Grund-Art eines Störungszeitraums (CHECK-Constraint der Tabelle
-// tse_störungen). Jeder Schreiber des Störungsprotokolls schließt nur
+// tse_stoerungen). Jeder Schreiber des Störungsprotokolls schließt nur
 // Zeiträume seiner Grund-Art.
 const (
 	StoerungGrundTSEFehler          = "tse_fehler"

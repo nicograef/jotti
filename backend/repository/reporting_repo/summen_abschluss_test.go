@@ -76,7 +76,7 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		}},
 	}, ksNr)
 
-	// direktverkauf-getätigt: kj_extract_direktverkauf_cents → gesamtbetragCents
+	// direktverkauf-getaetigt: kj_extract_direktverkauf_cents → gesamtbetragCents
 	insertEvent(t, db, userID, "testuser", "direktverkauf-getaetigt:v1", dvSubject, 1, map[string]any{
 		"verkaufId":         "d1",
 		"gesamtbetragCents": 880,

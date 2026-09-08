@@ -85,7 +85,7 @@ var updateDruckstationenSchema = z.Struct(z.Shape{
 		return false
 	}
 	// Welcher Bonmodus zu welcher Station passt, entscheidet die Domain:
-	// pro_stück nur am Abholbon, gar kein Bonmodus am Kassenbeleg.
+	// pro_stueck nur am Abholbon, gar kein Bonmodus am Kassenbeleg.
 	return druckstation.Kategorie(body.Kategorie).ErlaubtBonmodus(druckstation.Bonmodus(body.Bonmodus))
 }, z.Message("Bonmodus passt nicht zu dieser Druckstation"))
 

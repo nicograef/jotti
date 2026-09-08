@@ -152,7 +152,7 @@ func korrekturData(positionIDs []string, betragCents int, kommentar string) map[
 	}
 }
 
-// direktverkaufData baut ein direktverkauf-getätigt:v1-Event-Data. Die
+// direktverkaufData baut ein direktverkauf-getaetigt:v1-Event-Data. Die
 // verkaufId ist der Verweis, über den ein späterer Storno seinen Verkäufer findet.
 func direktverkaufData(verkaufID string, gesamtCents int) map[string]any {
 	return map[string]any{
@@ -525,7 +525,7 @@ func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
 // TestGetReporting_MetadatenAusJournalEvents verifiziert, dass der Berichtskopf
 // seine Metadaten rein aus den Journal-Events projiziert: Eröffnungs- und
 // Abschlusszeitpunkt, den abschließenden Benutzer (eingefrorener user_name) und
-// die Kassensturz-Differenz aus dem kassensturz-durchgeführt:v1-Event.
+// die Kassensturz-Differenz aus dem kassensturz-durchgefuehrt:v1-Event.
 func TestGetReporting_MetadatenAusJournalEvents(t *testing.T) {
 	db := dbpkg.OpenTestDatabase()
 	defer func() { _ = db.Close() }()

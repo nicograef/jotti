@@ -18,7 +18,7 @@ import (
 )
 
 // setup gibt ein Command mit echten Repos, das offene sql.DB (für direkte
-// Assertions gegen druckaufträge) und ein Teardown zurück. Die Druckstationen
+// Assertions gegen druckauftraege) und ein Teardown zurück. Die Druckstationen
 // werden auf den Default (leere IP) zurückgesetzt und die Outbox geleert.
 func setup(t *testing.T) (application.Command, *sql.DB, func()) {
 	t.Helper()
