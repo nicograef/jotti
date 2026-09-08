@@ -28,7 +28,8 @@ import { join } from 'node:path'
 // seinem Text (z. B. in Prosa-Kommentaren) als Ganzes, statt dass die
 // Skript-Alternative dort fälschlich zu greifen beginnt. Skript-Körper können
 // laut HTML kein `</script>` enthalten, daher ist der nicht-gierige Body sicher.
-const COMMENT_OR_SCRIPT_RE = /<!--[\s\S]*?-->|<script\b([^>]*)>([\s\S]*?)<\/script>/gi
+const COMMENT_OR_SCRIPT_RE =
+  /<!--[\s\S]*?-->|<script\b([^>]*)>([\s\S]*?)<\/script>/gi
 
 // Nur klassische und Modul-Skripte sind ausführbar und CSP-relevant. Fehlt das
 // type-Attribut oder ist es leer, gilt das Skript als klassisches JS.
@@ -86,7 +87,10 @@ export function externalizeInlineScripts(): AstroIntegration {
               if (body === undefined || body.trim() === '') return match
               if (!isExecutableScript(attrs)) return match
 
-              const hash = createHash('sha256').update(body).digest('hex').slice(0, 16)
+              const hash = createHash('sha256')
+                .update(body)
+                .digest('hex')
+                .slice(0, 16)
               scripts.set(hash, body)
               changed = true
               externalized++
@@ -104,7 +108,9 @@ export function externalizeInlineScripts(): AstroIntegration {
           ),
         )
 
-        logger.info(`${externalized} Inline-Skript(e) externalisiert (CSP: kein inline script).`)
+        logger.info(
+          `${externalized} Inline-Skript(e) externalisiert (CSP: kein inline script).`,
+        )
       },
     },
   }

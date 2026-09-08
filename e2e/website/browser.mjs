@@ -14,7 +14,8 @@ export async function launchBrowser() {
   } catch (err) {
     // Fall back to the preinstalled browser build if the pinned one is missing.
     const fallback = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
-    if (!executablePath) return await chromium.launch({ executablePath: fallback })
+    if (!executablePath)
+      return await chromium.launch({ executablePath: fallback })
     throw err
   }
 }

@@ -44,7 +44,9 @@ export default function ThemeToggle() {
   }
 
   const label =
-    theme === 'dark' ? 'Zu hellem Design wechseln' : 'Zu dunklem Design wechseln'
+    theme === 'dark'
+      ? 'Zu hellem Design wechseln'
+      : 'Zu dunklem Design wechseln'
 
   return (
     <button

@@ -29,7 +29,9 @@ test.describe('Tischübersicht bei Serverfehler und Netzabbruch', () => {
     // Ein stiller Leer-Default ohne jeden Hinweis gälte als Fehlschlag —
     // erwartet wird ein sichtbarer Fehlerhinweis (Toast).
     await expect(
-      page.getByText('Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.'),
+      page.getByText(
+        'Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.',
+      ),
     ).toBeVisible()
   })
 
@@ -47,7 +49,9 @@ test.describe('Tischübersicht bei Serverfehler und Netzabbruch', () => {
     await page.goto('/service/tische')
 
     await expect(
-      page.getByText('Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.'),
+      page.getByText(
+        'Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.',
+      ),
     ).toBeVisible()
   })
 })
@@ -68,7 +72,9 @@ test.describe('Tischübersicht (Alle-Tische-Drawer) bei Serverfehler und Netzabb
     await page.getByRole('button', { name: 'Alle Tische' }).click()
 
     await expect(
-      page.getByText('Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.'),
+      page.getByText(
+        'Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.',
+      ),
     ).toBeVisible()
   })
 
@@ -87,7 +93,9 @@ test.describe('Tischübersicht (Alle-Tische-Drawer) bei Serverfehler und Netzabb
     await page.getByRole('button', { name: 'Alle Tische' }).click()
 
     await expect(
-      page.getByText('Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.'),
+      page.getByText(
+        'Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.',
+      ),
     ).toBeVisible()
   })
 })

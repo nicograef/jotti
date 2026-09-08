@@ -29,7 +29,7 @@ eigenes Signal.
 Erwogene Alternativen:
 
 1. **Bei `destructive` (Rot) bleiben** — überlädt Rot mit zwei Bedeutungen
-   (gefährlich *und* irreversibel-routine) und lässt beide ununterscheidbar.
+   (gefährlich _und_ irreversibel-routine) und lässt beide ununterscheidbar.
 2. **Primär-Grün verwenden** — nivelliert den Kassenabschluss zu einer
    beliebigen Bestätigung; das gewünschte Innehalten geht verloren.
 3. **Eigenes Warn-Treatment (Amber)** — ein drittes, distinktes Aktions-Signal
@@ -70,5 +70,5 @@ vorbehalten.
   (`e2e/tests/admin-kontrast-axe.spec.ts`) deckt den Kassenabschluss-Screen in
   Light und Dark ab und sichert damit den AA-Kontrast des Warn-Buttons mit ab.
 - Das Warn-Token ist bewusst nur für Aktionsflächen (Buttons) gedacht; die
-  Warn-*Hinweiskarten* (`WarnKarte`) bleiben unberührt und tragen weiter ihre
+  Warn-_Hinweiskarten_ (`WarnKarte`) bleiben unberührt und tragen weiter ihre
   eigene, in Phase 8 auf AA gebrachte Einfärbung.

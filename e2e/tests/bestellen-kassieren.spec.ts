@@ -2,7 +2,11 @@ import { expect, test } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
-import { bestellePosition, oeffneTisch, zeileMit } from '../support/servicekraft'
+import {
+  bestellePosition,
+  oeffneTisch,
+  zeileMit,
+} from '../support/servicekraft'
 
 // Tracer-Bullet-Spec: der Kernpfad einer Servicekraft am Tisch — anmelden,
 // eine Bestellung aufnehmen, kassieren und den sichtbaren Betrag prüfen. Läuft
@@ -39,7 +43,11 @@ test.describe('Servicekraft nimmt eine Bestellung auf und kassiert', () => {
     // Auf den Kassieren-Tab wechseln und die eben bestellte Position auswählen.
     await page.getByRole('tab', { name: 'Kassieren' }).click()
 
-    const position = zeileMit(page, `${PRODUKT} ${VARIANTE}`, 'Produkt hinzufügen')
+    const position = zeileMit(
+      page,
+      `${PRODUKT} ${VARIANTE}`,
+      'Produkt hinzufügen',
+    )
     await expect(position).toBeVisible()
     await position.getByRole('button', { name: 'Produkt hinzufügen' }).click()
 
@@ -50,7 +58,9 @@ test.describe('Servicekraft nimmt eine Bestellung auf und kassiert', () => {
 
     // Der Zahlungs-Drawer bestätigt den sichtbaren Betrag …
     const drawer = page.getByRole('dialog')
-    await expect(drawer.getByText(new RegExp(`${PREIS}\\s*€`)).first()).toBeVisible()
+    await expect(
+      drawer.getByText(new RegExp(`${PREIS}\\s*€`)).first(),
+    ).toBeVisible()
 
     // … und die Zahlung wird kassiert.
     await drawer.getByRole('button', { name: 'Kassieren' }).click()

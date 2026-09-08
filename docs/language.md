@@ -157,8 +157,8 @@ Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt.
 
 Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einzelpreis. Alle Felder werden als Fat Event eingefroren.
 
-| Go-Struct  | TS-Typ     | JSON-Keys (Schlüsselfelder)                                                                                  |
-| ---------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
+| Go-Struct  | TS-Typ     | JSON-Keys (Schlüsselfelder)                                                                                       |
+| ---------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | `Position` | `Position` | `positionId`, `varianteId`, `produktName`, `varianteName`, `kategorie`, `steuersatz`, `einzelpreisCents`, `menge` |
 
 #### Besteller (bestellende Servicekraft)
@@ -232,16 +232,16 @@ Go-Funktion: `GetHistorieFromEvents()` · Application-Query: `GetTischHistorie()
 
 #### Weitere Typen und Felder (Kasse)
 
-| Begriff              | Bedeutung                                                                 | Code-Mapping                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Kommentar            | Freitextnotiz; Pflicht bei Warenrücknahme (kassenwirksamer Storno), sonst optional. Bei der Umbuchung der serverseitige Richtungs-Autotext | Go `Kommentar` · JSON/TS `kommentar`                                                                  |
-| BenutzerKommentar    | Optionaler Freitext der Servicekraft bei der Umbuchung (neben dem Richtungs-Autotext `Kommentar`) | Go `BenutzerKommentar` · JSON/TS `benutzerKommentar`                                                  |
-| Menge                | Anzahl einer Produktvariante innerhalb einer Position                     | Go `Menge` · JSON/TS `menge`                                                                                   |
-| PositionRef          | Referenz auf eine Position (ID + Menge) für Zahlung, Stornierung, Umbuchung | Go/TS `PositionRef` · JSON `positionId`, `menge`                                                             |
-| HistorieEintrag      | Eintrag der Tisch-Historie, typisiert nach Art                            | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `umbuchung`              |
-| EigeneUebersicht     | KPI-Read-Model einer Servicekraft: eigene Bestellungen und Zahlungen      | Go/TS `EigeneUebersicht` · JSON `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` |
-| AktiverTisch         | Kompakte Tisch-Darstellung mit Saldo für die Tischübersicht (Read Model)  | Go `AktiverTisch` · TS `AktiverTischMitFavorit` (mit `istFavorit`)                                             |
-| BestellPositionInput | Frontend-Eingabetyp einer Bestellposition (Produkt + Variante + Menge)    | TS `BestellPositionInput` · JSON `produktId`, `varianteId`, `menge`                                            |
+| Begriff              | Bedeutung                                                                                                                                  | Code-Mapping                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Kommentar            | Freitextnotiz; Pflicht bei Warenrücknahme (kassenwirksamer Storno), sonst optional. Bei der Umbuchung der serverseitige Richtungs-Autotext | Go `Kommentar` · JSON/TS `kommentar`                                                                           |
+| BenutzerKommentar    | Optionaler Freitext der Servicekraft bei der Umbuchung (neben dem Richtungs-Autotext `Kommentar`)                                          | Go `BenutzerKommentar` · JSON/TS `benutzerKommentar`                                                           |
+| Menge                | Anzahl einer Produktvariante innerhalb einer Position                                                                                      | Go `Menge` · JSON/TS `menge`                                                                                   |
+| PositionRef          | Referenz auf eine Position (ID + Menge) für Zahlung, Stornierung, Umbuchung                                                                | Go/TS `PositionRef` · JSON `positionId`, `menge`                                                               |
+| HistorieEintrag      | Eintrag der Tisch-Historie, typisiert nach Art                                                                                             | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `umbuchung`                         |
+| EigeneUebersicht     | KPI-Read-Model einer Servicekraft: eigene Bestellungen und Zahlungen                                                                       | Go/TS `EigeneUebersicht` · JSON `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` |
+| AktiverTisch         | Kompakte Tisch-Darstellung mit Saldo für die Tischübersicht (Read Model)                                                                   | Go `AktiverTisch` · TS `AktiverTischMitFavorit` (mit `istFavorit`)                                             |
+| BestellPositionInput | Frontend-Eingabetyp einer Bestellposition (Produkt + Variante + Menge)                                                                     | TS `BestellPositionInput` · JSON `produktId`, `varianteId`, `menge`                                            |
 
 ---
 
@@ -253,9 +253,9 @@ Kassensitzung-Events werden unter dem Subject `kassensitzung-{nr}` im Kassenjour
 
 Global nummerierter Betriebstag, der einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Maximal eine Kassensitzung ist gleichzeitig `offen`; ohne offene Kassensitzung ist der Kassenbetrieb gesperrt. Lifecycle und `z_nr`-Regeln → [handbuch.md §3.5](handbuch.md#35-kassensitzung-lifecycle).
 
-| Go-Struct            | DB-Tabelle        | Subject-Format       | Eröffnungs-Event             |
-| -------------------- | ----------------- | -------------------- | ---------------------------- |
-| `Kassensitzung`      | `kassensitzungen` | `kassensitzung-{nr}` | `kassensitzung-eroeffnet:v1` |
+| Go-Struct       | DB-Tabelle        | Subject-Format       | Eröffnungs-Event             |
+| --------------- | ----------------- | -------------------- | ---------------------------- |
+| `Kassensitzung` | `kassensitzungen` | `kassensitzung-{nr}` | `kassensitzung-eroeffnet:v1` |
 
 #### Bezeichnung
 
@@ -311,8 +311,8 @@ Automatisch erzeugtes Event (`differenz-soll-ist-gebucht:v1`) beim Kassensturz, 
 
 Formeller Tagesabschluss: aggregiert die Kassensitzung und schließt sie ab (Status → `abgeschlossen`). Kein Report, sondern das abschließende Event des Kassenabschlusses (→ [handbuch.md §3.11](handbuch.md#311-tagesabschluss-z-bon)).
 
-| Event-Typ                    | DB-Feld                | JSON-Keys (Auszug)                                                                                                    |
-| ---------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Event-Typ                    | DB-Feld                | JSON-Keys (Auszug)                                                                               |
+| ---------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
 | `tagesabschluss-erstellt:v1` | `kassensitzungen.z_nr` | `zNr`, `zeitraumVon`, `zeitraumBis`, `umsatzGesamtCents`, `stornierungCents`, `geldtransitCents` |
 
 #### X-Bon
@@ -373,18 +373,18 @@ Go-Package: `repository/favorit_repo/` · DB-Tabelle: `tisch_favoriten` · TS: `
 
 Reporting-Daten werden on-demand per SQL-Aggregation aus dem Kassenjournal berechnet. Kein eigener Event Stream, reines Read Model. Alle Typen existieren spiegelbildlich als Go-Struct (`domain/reporting/`) und TS-Typ.
 
-| Begriff             | Bedeutung                                                                                                  |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| ReportingData       | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen + ProduktStatistik |
-| Summary             | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen)                |
-| Breakdowns          | Aufschlüsselung je Servicekraft: `AbrechnungProServicekraft []AbrechnungServicekraft`                       |
+| Begriff                | Bedeutung                                                                                                                                                                                                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ReportingData          | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen + ProduktStatistik                                                                                                                                                                                   |
+| Summary                | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen)                                                                                                                                                                                                      |
+| Breakdowns             | Aufschlüsselung je Servicekraft: `AbrechnungProServicekraft []AbrechnungServicekraft`                                                                                                                                                                                                            |
 | AbrechnungServicekraft | Bargeld-Abrechnung des Tischservice einer Servicekraft: `kassiertCents` − `ruecknahmenCents` = `abzugebenCents`, dazu `anzahlZahlungen` und `anzahlStornierungen` (kombinierter Zähler über beide Tisch-Storno-Arten). Stornos zählen nach Storno-Zuordnung, Direktverkäufe sind nicht enthalten |
-| StornierungDetail   | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, `akteur`, `betroffene`, Betrag, Kommentar, Positionen); `barRueckgabe` markiert die kassenwirksame Warenrücknahme gegenüber der geldneutralen Korrektur, `betroffene` trägt die Storno-Zuordnung |
-| ServicekraftRef     | Geteilte Servicekraft-Referenz einer Reporting-Zeile: `userId`, `userName` (eingefroren), `name` (live aufgelöster Klarname); trägt `akteur` und `betroffene` der StornierungDetail |
-| StornierungPosition | Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis)                |
-| ProduktStatistik    | Verkäufe eines Produkts einer Kassensitzung, gruppiert nach Kategorie, mit Zwischensumme über `Varianten []VarianteStatistik` (ausgegebene Menge und Umsatz). Teil von `ReportingData` und `LiveReportingData` (`produktStatistik`) |
-| VarianteStatistik   | Verkaufs-Kennzahl einer Variante: `varianteId`, `varianteName`, `ausgegebeneMenge` (Bestellung − Korrektur + Direktverkauf) und `umsatzCents` (Kassiert + Direktverkauf − Warenrücknahme/Storno) — zwei bewusst getrennte Grundlagen |
-| ProduktStatistikZeile | Flache Repo-Ausgabezeile je Variante (SQL `GetProduktStatistik`), Eingabe der Gruppierung; erscheint nie in einer Response                                 |
+| StornierungDetail      | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, `akteur`, `betroffene`, Betrag, Kommentar, Positionen); `barRueckgabe` markiert die kassenwirksame Warenrücknahme gegenüber der geldneutralen Korrektur, `betroffene` trägt die Storno-Zuordnung                                            |
+| ServicekraftRef        | Geteilte Servicekraft-Referenz einer Reporting-Zeile: `userId`, `userName` (eingefroren), `name` (live aufgelöster Klarname); trägt `akteur` und `betroffene` der StornierungDetail                                                                                                              |
+| StornierungPosition    | Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis)                                                                                                                                                                                                      |
+| ProduktStatistik       | Verkäufe eines Produkts einer Kassensitzung, gruppiert nach Kategorie, mit Zwischensumme über `Varianten []VarianteStatistik` (ausgegebene Menge und Umsatz). Teil von `ReportingData` und `LiveReportingData` (`produktStatistik`)                                                              |
+| VarianteStatistik      | Verkaufs-Kennzahl einer Variante: `varianteId`, `varianteName`, `ausgegebeneMenge` (Bestellung − Korrektur + Direktverkauf) und `umsatzCents` (Kassiert + Direktverkauf − Warenrücknahme/Storno) — zwei bewusst getrennte Grundlagen                                                             |
+| ProduktStatistikZeile  | Flache Repo-Ausgabezeile je Variante (SQL `GetProduktStatistik`), Eingabe der Gruppierung; erscheint nie in einer Response                                                                                                                                                                       |
 
 ---
 
@@ -485,18 +485,18 @@ Je ein Satz, Pflichten und Details: [compliance.md §2](compliance.md#2-rechtlic
 #### Steuern
 
 | Begriff                    | Bedeutung                                                                                                                                                                                          |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Steuersatz                 | Steuerklasse eines Produkts. Enum: `regel` (19 %), `ermaessigt` (7 %), `befreit` (0 %), `kombi` (70/30-Aufteilung). Go: `domain/steuer` · DB: `produkte.steuersatz` · JSON-Key: `steuersatz`       |
 | Steuerbetrag / Nettobetrag | Pro Steuersatz berechnete Beträge (`steuer.Aufteilung`: Brutto, Netto, Steuer), immer in Cent. Auf dem Kassenbeleg als Steueraufteilung ausgewiesen. Fachregeln → [steuerrecht.md](steuerrecht.md) |
 
 #### Export & Meldung
 
-| Begriff                | Bedeutung                                                                                                                                                      |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DSFinV-K               | „Digitale Schnittstelle der Finanzverwaltung für Kassensysteme", standardisiertes CSV-ZIP-Exportformat (Version 2.4) für Betriebsprüfungen. Umgesetzt (→ F-04). |
-| TAR-Archiv             | Gesetzlich vorgeschriebenes Dateiformat für den Export der rohen, kryptografisch gesicherten TSE-Log-Nachrichten.                                              |
-| Kassenmeldung / ELSTER | Pflicht nach § 146a Abs. 4 AO: Meldung jeder jotti-Instanz innerhalb eines Monats nach Inbetriebnahme über das ELSTER-Portal (→ F-05).                         |
-| ERiC                   | „ELSTER Rich Client", Programmierschnittstelle für die automatisierte ELSTER-Kommunikation. Nicht-Ziel: die Kassenmeldung erfolgt manuell über das ELSTER-Portal (F-05).                                                           |
+| Begriff                | Bedeutung                                                                                                                                                                                                                                                                           |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DSFinV-K               | „Digitale Schnittstelle der Finanzverwaltung für Kassensysteme", standardisiertes CSV-ZIP-Exportformat (Version 2.4) für Betriebsprüfungen. Umgesetzt (→ F-04).                                                                                                                     |
+| TAR-Archiv             | Gesetzlich vorgeschriebenes Dateiformat für den Export der rohen, kryptografisch gesicherten TSE-Log-Nachrichten.                                                                                                                                                                   |
+| Kassenmeldung / ELSTER | Pflicht nach § 146a Abs. 4 AO: Meldung jeder jotti-Instanz innerhalb eines Monats nach Inbetriebnahme über das ELSTER-Portal (→ F-05).                                                                                                                                              |
+| ERiC                   | „ELSTER Rich Client", Programmierschnittstelle für die automatisierte ELSTER-Kommunikation. Nicht-Ziel: die Kassenmeldung erfolgt manuell über das ELSTER-Portal (F-05).                                                                                                            |
 | ElsterGemeldetAm       | Datum der erfolgten ELSTER-Kassenmeldung (§ 146a Abs. 4 AO) oder leer, solange nicht gemeldet. Vom Admin nach der Portal-Meldung gesetzt (korrigierbar). Go: `betreiber.ElsterGemeldetAm` · DB: `betreiber.elster_gemeldet_am` (DATE) · JSON-Key: `elsterGemeldetAm` (`YYYY-MM-DD`) |
 
 ---

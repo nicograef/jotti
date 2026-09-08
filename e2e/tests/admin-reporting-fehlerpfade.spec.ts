@@ -24,7 +24,9 @@ test.describe('Admin-Dashboard bei Serverfehler und Netzabbruch', () => {
     await page.goto('/admin/auswertung')
 
     await expect(
-      page.getByText('Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.'),
+      page.getByText(
+        'Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.',
+      ),
     ).toBeVisible()
   })
 
@@ -35,11 +37,15 @@ test.describe('Admin-Dashboard bei Serverfehler und Netzabbruch', () => {
     const zugangsdaten = await resetAndSeed(request)
     await anmelden(page, zugangsdaten.admin)
 
-    await simuliereNetzabbruch(page, ['admin/get-abgeschlossene-kassensitzungen'])
+    await simuliereNetzabbruch(page, [
+      'admin/get-abgeschlossene-kassensitzungen',
+    ])
     await page.goto('/admin/kassenberichte')
 
     await expect(
-      page.getByText('Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.'),
+      page.getByText(
+        'Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.',
+      ),
     ).toBeVisible()
   })
 })

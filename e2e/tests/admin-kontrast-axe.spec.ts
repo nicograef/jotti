@@ -74,7 +74,10 @@ const loeschDialoge: {
       await neuerDialog.getByLabel('Name').fill('Tisch 99')
       await neuerDialog.getByRole('button', { name: 'Tisch anlegen' }).click()
       await page.getByText('Tisch "Tisch 99" wurde angelegt.').waitFor()
-      await page.getByRole('button', { name: /Tisch 99/ }).getByText('Tisch 99').click()
+      await page
+        .getByRole('button', { name: /Tisch 99/ })
+        .getByText('Tisch 99')
+        .click()
       await page
         .getByRole('dialog')
         .getByRole('button', { name: 'Tisch löschen' })

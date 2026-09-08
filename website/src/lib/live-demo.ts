@@ -94,9 +94,7 @@ export function formatEuro(cents: number): string {
 // ---- Auto-Demo als deterministische Schrittfolge ----
 
 export type DemoStep =
-  | { action: 'add'; variantId: number }
-  | { action: 'pay' }
-  | { action: 'reset' }
+  { action: 'add'; variantId: number } | { action: 'pay' } | { action: 'reset' }
 
 // Handoff-Ablauf: Bratwurst, 2× Bier 0,5 l, Pommes -> Kassieren -> Reset.
 // Endsumme vor dem Kassieren: 350 + 400 + 400 + 300 = 1450 Cent = 14,50 €.

@@ -60,7 +60,9 @@ test.describe('Kein horizontaler Überlauf der Servicekraft-Screens bei 390px', 
     // Tischauswahl: die Karten-Grids (Noch offen / Erledigt) am schmalen
     // Viewport. Der zuvor bestellte Tisch erscheint hier als eigene Karte.
     await page.goto('/service/tische')
-    await expect(page.getByRole('button', { name: 'Alle Tische' })).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Alle Tische' }),
+    ).toBeVisible()
     await erwarteKeinenHorizontalenUeberlauf(page, 'Tischauswahl')
   })
 
@@ -87,7 +89,9 @@ test.describe('Kein horizontaler Überlauf der Servicekraft-Screens bei 390px', 
 
     // Direktverkauf-Historie: die Verkaufs-Liste (DirektverkaufHistorie-Grid).
     await page.getByRole('tab', { name: 'Historie' }).click()
-    await expect(page.getByRole('button', { name: /Verkauf.*8,00/ })).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: /Verkauf.*8,00/ }),
+    ).toBeVisible()
     await erwarteKeinenHorizontalenUeberlauf(page, 'Direktverkauf-Historie')
   })
 })

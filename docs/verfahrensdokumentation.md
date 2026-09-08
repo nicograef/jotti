@@ -17,23 +17,23 @@ Rechtliche Grundlagen im Detail: [compliance.md](compliance.md). Technische Arch
 
 ## 1. Stammdaten der Instanz (vom Betreiber auszufüllen)
 
-| Angabe | Wert |
-| --- | --- |
-| Betreiber (Verein) | «Vereinsname e.V.» |
-| Anschrift der Betriebsstätte | «Straße, PLZ, Ort» |
-| Steuernummer | «Steuernummer» |
-| USt-IdNr. (falls vorhanden) | «USt-IdNr. oder „nicht vorhanden"» |
-| Kassen-Seriennummer (jotti-Kassen-UUID) | «UUID aus dem Admin-Bereich → Finanzamt» |
-| Softwarename / Hersteller | jotti |
-| Eingesetzte jotti-Version | «z. B. v0.2.0» |
-| Inbetriebnahmedatum | «TT.MM.JJJJ» |
-| ELSTER-Meldung erfolgt am | «TT.MM.JJJJ» |
-| TSE-Anbieter | «z. B. fiskaly (SIGN DE), Cloud-TSE» |
-| TSE-Zertifizierungs-ID | «Format BSI-K-TR-nnnn-yyyy» |
-| TSE-Seriennummer | «64-stelliger Hexadezimalstring» |
-| Betriebsumgebung | «z. B. Windows-Rechner im Vereinsheim (lokales WLAN) / eigener VPS mit Domain» |
-| Verantwortlich für die Kasse | «Name, Rolle im Verein, z. B. Schatzmeister» |
-| Stand dieser Dokumentation | «TT.MM.JJJJ» |
+| Angabe                                  | Wert                                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| Betreiber (Verein)                      | «Vereinsname e.V.»                                                             |
+| Anschrift der Betriebsstätte            | «Straße, PLZ, Ort»                                                             |
+| Steuernummer                            | «Steuernummer»                                                                 |
+| USt-IdNr. (falls vorhanden)             | «USt-IdNr. oder „nicht vorhanden"»                                             |
+| Kassen-Seriennummer (jotti-Kassen-UUID) | «UUID aus dem Admin-Bereich → Finanzamt»                                       |
+| Softwarename / Hersteller               | jotti                                                                          |
+| Eingesetzte jotti-Version               | «z. B. v0.2.0»                                                                 |
+| Inbetriebnahmedatum                     | «TT.MM.JJJJ»                                                                   |
+| ELSTER-Meldung erfolgt am               | «TT.MM.JJJJ»                                                                   |
+| TSE-Anbieter                            | «z. B. fiskaly (SIGN DE), Cloud-TSE»                                           |
+| TSE-Zertifizierungs-ID                  | «Format BSI-K-TR-nnnn-yyyy»                                                    |
+| TSE-Seriennummer                        | «64-stelliger Hexadezimalstring»                                               |
+| Betriebsumgebung                        | «z. B. Windows-Rechner im Vereinsheim (lokales WLAN) / eigener VPS mit Domain» |
+| Verantwortlich für die Kasse            | «Name, Rolle im Verein, z. B. Schatzmeister»                                   |
+| Stand dieser Dokumentation              | «TT.MM.JJJJ»                                                                   |
 
 ---
 
@@ -45,11 +45,11 @@ jotti ist ein self-hosted Kassensystem (mobile Point of Sale) für Vereinsfeste.
 
 **Bounded Contexts:** Das System ist in drei fachliche Bereiche gegliedert.
 
-| Bereich | Aufgabe | Persistenz |
-| --- | --- | --- |
-| Kasse | Alle finanziellen Geschäftsvorfälle: Bestellen, Ausgeben, Kassieren, Stornieren, Umbuchen, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal) |
-| Stammdaten | Produkte, Tische, Benutzer, Betreiber-Stammdaten | CRUD mit Soft-Delete |
-| Auth | Login, Logout, Passwort, Token | Infrastruktur |
+| Bereich    | Aufgabe                                                                                                                                  | Persistenz                     |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Kasse      | Alle finanziellen Geschäftsvorfälle: Bestellen, Ausgeben, Kassieren, Stornieren, Umbuchen, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal) |
+| Stammdaten | Produkte, Tische, Benutzer, Betreiber-Stammdaten                                                                                         | CRUD mit Soft-Delete           |
+| Auth       | Login, Logout, Passwort, Token                                                                                                           | Infrastruktur                  |
 
 **Betriebsumgebung dieser Instanz:** «Beschreibt hier, wo jotti läuft. Beispiel Standardweg: ein Windows-Rechner im Vereinsheim wird zum Kassenrechner, die Helfer bedienen jotti im selben WLAN. Beispiel Experten-Weg: jotti läuft auf einem VPS bei «Anbieter» unter der Domain «kasse-musterverein.de» mit HTTPS.»
 
@@ -81,11 +81,11 @@ jotti unterliegt nach § 146a AO der Pflicht, jeden Geschäftsvorfall durch eine
 
 **Absicherung jedes Vorgangs:** Jeder relevante Vorgang wird über das anbieter-agnostische `TSEClient`-Interface signiert. jotti folgt dem atomaren Festzelt-Muster: Jeder Vorgang ist eine eigene, sofort geschlossene TSE-Transaktion. Die Zuordnung der TSE-Vorgangsarten:
 
-| jotti-Vorgang | TSE-Vorgangsart (processType) |
-| --- | --- |
-| Bestellung aufnehmen, geldneutrale Korrektur, Umbuchung | `Bestellung-V1` |
-| Zahlung, Warenrücknahme (kassenwirksamer Storno), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) | `Kassenbeleg-V1` |
-| Tagesabschluss (Z-Bon) | `SonstigerVorgang` |
+| jotti-Vorgang                                                                                                | TSE-Vorgangsart (processType) |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------- |
+| Bestellung aufnehmen, geldneutrale Korrektur, Umbuchung                                                      | `Bestellung-V1`               |
+| Zahlung, Warenrücknahme (kassenwirksamer Storno), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) | `Kassenbeleg-V1`              |
+| Tagesabschluss (Z-Bon)                                                                                       | `SonstigerVorgang`            |
 
 **Signaturablauf und Persistenz:** Die Signierung ist vom Kassiervorgang entkoppelt, das Buchen wartet nie auf die TSE. Jeder signaturpflichtige Vorgang schreibt im selben Datenbank-Commit wie das Ereignis genau einen Signaturauftrag (transaktionale Outbox `tse_signaturauftraege`); ein Signatur-Worker signiert asynchron über das `TSEClient`-Interface und speichert die von der TSE gelieferten Signaturdaten (Transaktionsnummer, Signaturzähler, Signatur, Zeitstempel, Seriennummer) direkt am Auftrag. Beleg und DSFinV-K-Export lesen genau diese eine Quelle. Im Regelbetrieb liegt die Signatur binnen Sekunden vor (angestrebte Latenz: p95 unter fünf Sekunden). Eine Live-Messung gegen die fiskaly-TEST-TSS bestätigt die Zusage für den Regelbetrieb (verteilt anfallende Vorgänge): p50 rund 0,3 s, p95 rund 0,3 s je Signatur (Stand 2026-07-09). Der Signatur-Worker signiert seriell; liegen viele Vorgänge gleichzeitig an, staut sich die Warteschlange und die Ende-zu-Ende-Dauer der zuletzt eingereihten Signaturen steigt entsprechend (im gemessenen Burst von 24 gleichzeitigen Aufträgen p95 rund 7 s bei rund 0,3 s Signierdauer je Auftrag). Der Rückstand baut sich mit dieser Rate wieder ab und hält den Betrieb nicht auf.
 
@@ -119,20 +119,20 @@ Format- und Felddetails: [compliance.md §6](compliance.md#6-dsfinv-k-export-sch
 
 **Drei Rollen mit abgestuften Rechten:**
 
-| Rolle | Berechtigung |
-| --- | --- |
-| `admin` | Voller Zugriff: Stammdaten, Kasse, Kassensitzung, Auswertungen, Export, Finanzamt-Daten |
-| `serviceleitung` | Kasse einschließlich Stornierung |
-| `service` | Kasse ohne Stornierung |
+| Rolle            | Berechtigung                                                                            |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| `admin`          | Voller Zugriff: Stammdaten, Kasse, Kassensitzung, Auswertungen, Export, Finanzamt-Daten |
+| `serviceleitung` | Kasse einschließlich Stornierung                                                        |
+| `service`        | Kasse ohne Stornierung                                                                  |
 
 Stornierungen sind ausschließlich `serviceleitung` und `admin` vorbehalten; die Kassensitzung (Eröffnen, Kassensturz, Tagesabschluss) und alle Stammdaten- und Auswertungsfunktionen sind dem `admin` vorbehalten. Die vollständige Berechtigungsmatrix steht in [handbuch.md §5.1](handbuch.md#51-rollen-und-berechtigungsmatrix).
 
 **Rollenvergabe in diesem Verein (auszufüllen):**
 
-| Person | jotti-Benutzer | Rolle |
-| --- | --- | --- |
+| Person | jotti-Benutzer | Rolle                              |
+| ------ | -------------- | ---------------------------------- |
 | «Name» | «Benutzername» | «admin / serviceleitung / service» |
-| «Name» | «Benutzername» | «…» |
+| «Name» | «Benutzername» | «…»                                |
 
 «Beschreibt hier kurz, wer die Admin-Rolle hält (üblicherweise Vorstand oder Schatzmeister) und nach welchem Verfahren neue Servicekräfte angelegt und nach dem Fest wieder deaktiviert werden.»
 
@@ -144,13 +144,13 @@ Stornierungen sind ausschließlich `serviceleitung` und `admin` vorbehalten; die
 
 Alle steuerlich relevanten Daten sind 10 Jahre vollständig, jederzeit verfügbar, lesbar und unveränderbar aufzubewahren (§§ 146, 147 AO). jotti stellt die Daten in offenen, ohne Spezialsoftware lesbaren Formaten bereit; die sichere Aufbewahrung selbst ist Betreiberpflicht.
 
-| Artefakt | Quelle | Aufbewahrung |
-| --- | --- | --- |
-| DSFinV-K-Export je Kassensitzung | Admin-Bereich → Auswertungen | 10 Jahre, an mindestens zwei getrennten Orten |
-| Datenbank-Backup (rohes Kassenjournal samt TSE-Signaturen und Stammdaten) | automatisches Backup; `make prod-backup` auf dem Server | 10 Jahre |
-| Z-Bons (Tagesabschlüsse) | im Kassenjournal und DSFinV-K-Export enthalten | 10 Jahre |
-| Zählprotokolle (Kassensturz) | manuell beim Kassensturz | 10 Jahre |
-| Kassen-Seriennummer | Admin-Bereich; im DB-Backup enthalten | dauerhaft |
+| Artefakt                                                                  | Quelle                                                  | Aufbewahrung                                  |
+| ------------------------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------- |
+| DSFinV-K-Export je Kassensitzung                                          | Admin-Bereich → Auswertungen                            | 10 Jahre, an mindestens zwei getrennten Orten |
+| Datenbank-Backup (rohes Kassenjournal samt TSE-Signaturen und Stammdaten) | automatisches Backup; `make prod-backup` auf dem Server | 10 Jahre                                      |
+| Z-Bons (Tagesabschlüsse)                                                  | im Kassenjournal und DSFinV-K-Export enthalten          | 10 Jahre                                      |
+| Zählprotokolle (Kassensturz)                                              | manuell beim Kassensturz                                | 10 Jahre                                      |
+| Kassen-Seriennummer                                                       | Admin-Bereich; im DB-Backup enthalten                   | dauerhaft                                     |
 
 **Aufbewahrung in diesem Verein (auszufüllen):** «Beschreibt, wo und wie ihr archiviert. Beispiel: Nach jedem Veranstaltungstag exportieren wir die DSFinV-K-ZIP und legen sie auf einem USB-Stick im Vereinssafe sowie zusätzlich in «Cloud-Speicher» ab. Tägliche Datenbank-Backups laufen «automatisch über … / manuell durch …». Verantwortlich: «Name».»
 
@@ -178,14 +178,14 @@ Die Unveränderbarkeit und Nachvollziehbarkeit nach GoBD wird auf drei Ebenen si
 
 **Verantwortlichkeiten:**
 
-| Aufgabe | Verantwortliche Person |
-| --- | --- |
-| Kassensitzung eröffnen und abschließen | «Name» |
-| Kassensturz und Differenzbuchung | «Name» |
-| DSFinV-K-Export und Archivierung | «Name» |
-| Datenbank-Backups | «Name» |
-| TSE-Verwaltung (PUK/PIN-Verwahrung) | «Name» |
-| ELSTER-Meldung und Stammdatenpflege | «Name» |
+| Aufgabe                                | Verantwortliche Person |
+| -------------------------------------- | ---------------------- |
+| Kassensitzung eröffnen und abschließen | «Name»                 |
+| Kassensturz und Differenzbuchung       | «Name»                 |
+| DSFinV-K-Export und Archivierung       | «Name»                 |
+| Datenbank-Backups                      | «Name»                 |
+| TSE-Verwaltung (PUK/PIN-Verwahrung)    | «Name»                 |
+| ELSTER-Meldung und Stammdatenpflege    | «Name»                 |
 
 Betreiberpflichten vollständig: [compliance.md §8](compliance.md#8-betreiberpflichten); Praxis-Checkliste: [Leitfaden, Checkliste](leitfaden/checkliste.md).
 
@@ -193,10 +193,10 @@ Betreiberpflichten vollständig: [compliance.md §8](compliance.md#8-betreiberpf
 
 ## 10. Änderungshistorie dieser Dokumentation (vom Betreiber zu führen)
 
-| Version | Datum | Änderung | Bearbeiter |
-| --- | --- | --- | --- |
-| 1.0 | «TT.MM.JJJJ» | Erstfassung auf Basis der jotti-Muster-Verfahrensdokumentation | «Name» |
-| «…» | «…» | «z. B. jotti-Update auf v…, Wechsel des TSE-Anbieters» | «…» |
+| Version | Datum        | Änderung                                                       | Bearbeiter |
+| ------- | ------------ | -------------------------------------------------------------- | ---------- |
+| 1.0     | «TT.MM.JJJJ» | Erstfassung auf Basis der jotti-Muster-Verfahrensdokumentation | «Name»     |
+| «…»     | «…»          | «z. B. jotti-Update auf v…, Wechsel des TSE-Anbieters»         | «…»        |
 
 ---
 

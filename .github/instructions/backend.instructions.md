@@ -1,6 +1,6 @@
 ---
-description: "Use when working on Go backend code, API handlers, middleware, repositories, domain models, or application services."
-applyTo: "backend/**"
+description: 'Use when working on Go backend code, API handlers, middleware, repositories, domain models, or application services.'
+applyTo: 'backend/**'
 ---
 
 > **Referenz:** Für Ubiquitous Language und Namenskonventionen pro Schicht → `docs/language.md`. Für Architektur, Invarianten und Schichtenarchitektur → `docs/handbuch.md` §6.

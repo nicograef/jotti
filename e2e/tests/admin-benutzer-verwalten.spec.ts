@@ -35,15 +35,18 @@ test.describe('Admin verwaltet Helfer', () => {
       hasText: 'Helfer wurde angelegt!',
     })
     await expect(createdDialog).toBeVisible()
-    await expect(createdDialog.getByText('petra', { exact: true })).toBeVisible()
+    await expect(
+      createdDialog.getByText('petra', { exact: true }),
+    ).toBeVisible()
     const code = await createdDialog
       .getByTestId('onetime-password')
       .textContent()
     // Das Einmalpasswort ist ein sechsstelliger Zifferncode (siehe
     // ADMIN-EINMALPASSWORT-Format); die Assertion prüft genau dieses Format.
-    expect(code?.trim(), 'Einmalpasswort muss sechsstelliger Zifferncode sein').toMatch(
-      /^\d{6}$/,
-    )
+    expect(
+      code?.trim(),
+      'Einmalpasswort muss sechsstelliger Zifferncode sein',
+    ).toMatch(/^\d{6}$/)
     await createdDialog.getByRole('button', { name: 'Okay' }).click()
 
     // Neue Helfer starten inaktiv (Passwort noch nicht gesetzt): erst

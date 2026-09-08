@@ -1,6 +1,6 @@
 ---
-description: "Use when working on React frontend code, components, pages, hooks, styling, or TypeScript types."
-applyTo: "frontend/**"
+description: 'Use when working on React frontend code, components, pages, hooks, styling, or TypeScript types.'
+applyTo: 'frontend/**'
 ---
 
 > **Referenz:** Für Ubiquitous Language, Namenskonventionen und Ist/Soll-Abweichungen (Rename-Status) → `docs/language.md`. Für Frontend-Architektur → `docs/handbuch.md` §6.3.
@@ -64,14 +64,14 @@ frontend/
 Pattern: Zod-Schema für Request definieren → `BackendClient.post()` aufrufen → Response mit Zod validieren.
 
 ```typescript
-import { z } from "zod";
-import type { BackendClient } from "@/lib/Backend";
-import { type Produkt, ProduktIdSchema, ProduktSchema } from "./Produkt";
+import { z } from 'zod'
+import type { BackendClient } from '@/lib/Backend'
+import { type Produkt, ProduktIdSchema, ProduktSchema } from './Produkt'
 
 export const CreateProduktSchema = ProduktSchema.pick({
   name: true,
   kategorie: true,
-});
+})
 
 export class ProduktBackend {
   constructor(private readonly backend: BackendClient) {}
@@ -79,22 +79,22 @@ export class ProduktBackend {
   async createProdukt(
     newProdukt: z.infer<typeof CreateProduktSchema>,
   ): Promise<number> {
-    const body = CreateProduktSchema.parse(newProdukt);
+    const body = CreateProduktSchema.parse(newProdukt)
     const { id } = await this.backend.post(
-      "admin/create-produkt",
+      'admin/create-produkt',
       body,
       z.object({ id: ProduktIdSchema }),
-    );
-    return id;
+    )
+    return id
   }
 
   async getAllProdukte(): Promise<Produkt[]> {
     const { produkte } = await this.backend.post(
-      "admin/get-all-produkte",
+      'admin/get-all-produkte',
       {},
       z.object({ produkte: z.array(ProduktSchema) }),
-    );
-    return produkte;
+    )
+    return produkte
   }
 }
 ```
@@ -107,62 +107,62 @@ Lesezugriffe nutzen `useQuery`, Schreibzugriffe `useMutation` bzw.
 Mutationen gezielt invalidieren können. Das Lade-Flag heißt einheitlich `isPending`.
 
 ```typescript
-import { useQuery } from "@tanstack/react-query";
-import { BackendSingleton } from "@/lib/Backend";
-import type { Produkt } from "./Produkt";
-import { ProduktBackend } from "./ProduktBackend";
+import { useQuery } from '@tanstack/react-query'
+import { BackendSingleton } from '@/lib/Backend'
+import type { Produkt } from './Produkt'
+import { ProduktBackend } from './ProduktBackend'
 
-const produktBackend = new ProduktBackend(BackendSingleton);
+const produktBackend = new ProduktBackend(BackendSingleton)
 
-export const ALLE_PRODUKTE_KEY = "alle-produkte";
+export const ALLE_PRODUKTE_KEY = 'alle-produkte'
 
 export function useAllProdukte() {
   const { data: produkte = [] as Produkt[], isPending } = useQuery({
     queryKey: [ALLE_PRODUKTE_KEY],
     queryFn: () => produktBackend.getAllProdukte(),
-  });
-  return { produkte, isPending };
+  })
+  return { produkte, isPending }
 }
 ```
 
 Schreibzugriffe invalidieren den betroffenen Query-Key, damit Reads neu laden:
 
 ```typescript
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-const queryClient = useQueryClient();
+const queryClient = useQueryClient()
 
 const loeschenMutation = useMutation({
   mutationFn: (produktId: number) => produktBackend.deleteProdukt(produktId),
   onSuccess: () =>
     queryClient.invalidateQueries({ queryKey: [ALLE_PRODUKTE_KEY] }),
-  onError: () => toast.error("Produkt konnte nicht gelöscht werden."),
-});
+  onError: () => toast.error('Produkt konnte nicht gelöscht werden.'),
+})
 ```
 
 ### Zod-Schema
 
 ```typescript
-import { z } from "zod";
+import { z } from 'zod'
 
-export const ProduktIdSchema = z.number().int().min(1);
+export const ProduktIdSchema = z.number().int().min(1)
 
 const NameSchema = z
   .string()
-  .min(3, { message: "Das sieht nicht nach einem echten Namen aus." })
-  .max(100, { message: "Der Name ist zu lang." });
+  .min(3, { message: 'Das sieht nicht nach einem echten Namen aus.' })
+  .max(100, { message: 'Der Name ist zu lang.' })
 
 const PreisCentsSchema = z
   .number()
   .int()
-  .min(0, { message: "Preis muss mindestens 0 Cent sein." });
+  .min(0, { message: 'Preis muss mindestens 0 Cent sein.' })
 
 export const ProduktSchema = z.object({
   id: ProduktIdSchema,
   name: NameSchema,
-  kategorie: z.enum(["essen", "getraenk", "sonstiges"]),
+  kategorie: z.enum(['essen', 'getraenk', 'sonstiges']),
   varianten: z.array(VarianteSchema),
   createdAt: DateStringSchema,
-});
-export type Produkt = z.infer<typeof ProduktSchema>;
+})
+export type Produkt = z.infer<typeof ProduktSchema>
 ```

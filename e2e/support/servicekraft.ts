@@ -141,18 +141,20 @@ export async function bestellePosition(
 // waehleVariante jede Zeile ohne Mehrdeutigkeit trifft. Teils lange Namen
 // (z. B. „Fr: Schnitzel mit Pommes") füllen die Kassieren- und Historien-Listen
 // mit genug nicht-umbrechendem Text für Drawer-Footer- und Überlauf-Regressionen.
-export const LANGE_BESTELLUNG_POSITIONEN: [produkt: string, variante: string][] =
-  [
-    ['Bratwurst', 'Normal'],
-    ['Bratwurst', 'XXL'],
-    ['Bratwurst', 'Currywurst'],
-    ['Pommes', 'Klein'],
-    ['Pommes', 'Groß'],
-    ['Flammkuchen', 'Classic'],
-    ['Flammkuchen', 'Speck & Zwiebel'],
-    ['Flammkuchen', 'Mediterran'],
-    ['Tagesgericht', 'Fr: Schnitzel mit Pommes'],
-  ]
+export const LANGE_BESTELLUNG_POSITIONEN: [
+  produkt: string,
+  variante: string,
+][] = [
+  ['Bratwurst', 'Normal'],
+  ['Bratwurst', 'XXL'],
+  ['Bratwurst', 'Currywurst'],
+  ['Pommes', 'Klein'],
+  ['Pommes', 'Groß'],
+  ['Flammkuchen', 'Classic'],
+  ['Flammkuchen', 'Speck & Zwiebel'],
+  ['Flammkuchen', 'Mediterran'],
+  ['Tagesgericht', 'Fr: Schnitzel mit Pommes'],
+]
 
 // nimmLangeBestellungAuf nimmt auf dem aktuell offenen Tisch eine Bestellung mit
 // allen LANGE_BESTELLUNG_POSITIONEN in einem Vorgang auf — Grundlage für die
@@ -304,9 +306,7 @@ export async function settleAlleOffenenTische(page: Page): Promise<void> {
       await page.getByRole('button', { name: /Kassieren/ }).click()
       const drawer = page.getByRole('dialog')
       await drawer.getByRole('button', { name: 'Kassieren' }).click()
-      await expect(
-        page.getByText('Zahlung erfolgreich.').first(),
-      ).toBeVisible()
+      await expect(page.getByText('Zahlung erfolgreich.').first()).toBeVisible()
     }
   }
 }

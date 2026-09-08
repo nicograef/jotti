@@ -1,17 +1,31 @@
 export const meta = {
   name: 'review-phase',
-  description: 'Review of one implement-plan phase diff: one Fable sweep hands hotspots to Opus probes (criterion audit + correctness/conventions + cleanup lens), then Opus skeptics refute blocker/major findings',
+  description:
+    'Review of one implement-plan phase diff: one Fable sweep hands hotspots to Opus probes (criterion audit + correctness/conventions + cleanup lens), then Opus skeptics refute blocker/major findings',
   phases: [
-    { title: 'Sweep', detail: 'one Fable sweep of the diff → hand-over brief', model: 'fable' },
-    { title: 'Probe', detail: 'read-only Opus probes over the phase diff', model: 'opus' },
-    { title: 'Refute', detail: 'one skeptic per blocker/major finding', model: 'opus' },
+    {
+      title: 'Sweep',
+      detail: 'one Fable sweep of the diff → hand-over brief',
+      model: 'fable',
+    },
+    {
+      title: 'Probe',
+      detail: 'read-only Opus probes over the phase diff',
+      model: 'opus',
+    },
+    {
+      title: 'Refute',
+      detail: 'one skeptic per blocker/major finding',
+      model: 'opus',
+    },
   ],
 }
 
 // args: { phase, worktree, branch, base, planPath, repo, handbook, gateSummary, extraLens, slug }
 // slug = the plan slug used in the commit trailer "Plan: <slug> phase <N> criterion <M>" (required)
 const A = args || {}
-for (const k of ['phase', 'worktree', 'branch', 'base', 'planPath', 'slug']) if (!A[k]) throw new Error(`review-phase: Argument ${k} fehlt`)
+for (const k of ['phase', 'worktree', 'branch', 'base', 'planPath', 'slug'])
+  if (!A[k]) throw new Error(`review-phase: Argument ${k} fehlt`)
 const SLUG = A.slug
 const REPO = A.repo || '/home/user/jotti'
 const HANDBOOK = A.handbook || '/home/user/handbook/.claude/skills'
@@ -36,27 +50,54 @@ const FINDINGS = {
         type: 'object',
         properties: {
           severity: { type: 'string', enum: ['blocker', 'major', 'minor'] },
-          category: { type: 'string', description: 'correctness | criterion | convention | rule18 | naming | security | readability | principle | code-smell | architecture | docs-accuracy | test-quality' },
+          category: {
+            type: 'string',
+            description:
+              'correctness | criterion | convention | rule18 | naming | security | readability | principle | code-smell | architecture | docs-accuracy | test-quality',
+          },
           file: { type: 'string' },
           lines: { type: 'string' },
           what: { type: 'string' },
           why: { type: 'string' },
-          suggestion: { type: 'string', description: 'concrete minimal change' },
+          suggestion: {
+            type: 'string',
+            description: 'concrete minimal change',
+          },
           proof: { type: 'string' },
         },
-        required: ['severity', 'category', 'file', 'lines', 'what', 'why', 'suggestion', 'proof'],
+        required: [
+          'severity',
+          'category',
+          'file',
+          'lines',
+          'what',
+          'why',
+          'suggestion',
+          'proof',
+        ],
       },
     },
     criteria: {
       type: 'array',
-      description: 'one entry per acceptance criterion of the phase, in plan order',
+      description:
+        'one entry per acceptance criterion of the phase, in plan order',
       items: {
         type: 'object',
         properties: {
           index: { type: 'integer' },
-          text: { type: 'string', description: 'first 80 chars of the criterion' },
-          status: { type: 'string', enum: ['verified', 'failed', 'not-verifiable-here'] },
-          evidence: { type: 'string', description: 'command + output excerpt, or why it cannot be verified in this session' },
+          text: {
+            type: 'string',
+            description: 'first 80 chars of the criterion',
+          },
+          status: {
+            type: 'string',
+            enum: ['verified', 'failed', 'not-verifiable-here'],
+          },
+          evidence: {
+            type: 'string',
+            description:
+              'command + output excerpt, or why it cannot be verified in this session',
+          },
         },
         required: ['index', 'text', 'status', 'evidence'],
       },
@@ -80,40 +121,84 @@ const LENSES = [
 if (A.extraLens) LENSES.push({ key: 'extra', prompt: A.extraLens })
 
 phase('Sweep')
-const SWEEP = { type: 'object', properties: { hotspots: { type: 'array', items: { type: 'string' } }, criteriaAtRisk: { type: 'array', items: { type: 'string' } }, questionsForProbes: { type: 'array', items: { type: 'string' } }, summary: { type: 'string' } }, required: ['hotspots', 'criteriaAtRisk', 'questionsForProbes', 'summary'] }
-const sweep = await agent(`${COMMON}\n\nYou are the SWEEPER (fast, shallow; cap yourself at about 25 tool calls). Read the diff once (${DIFF}) and the phase's acceptance criteria. Do not produce findings; produce a hand-over brief for the Opus probes: hotspots (file:line ranges that look wrong, non-minimal, behaviour-changing, rule-18-relevant or untested), criteriaAtRisk (criteria whose evidence in the diff looks thin), questionsForProbes (what to verify with which command). One line each.`, {
-  label: 'sweep', phase: 'Sweep', schema: SWEEP, model: 'fable', effort: 'medium',
-})
-const sweepText = sweep ? `HAND-OVER BRIEF from the Fable sweep (prioritise with it, then still do the full lens):\n${JSON.stringify(sweep, null, 0)}` : 'No sweep brief (sweep failed); probe from scratch.'
+const SWEEP = {
+  type: 'object',
+  properties: {
+    hotspots: { type: 'array', items: { type: 'string' } },
+    criteriaAtRisk: { type: 'array', items: { type: 'string' } },
+    questionsForProbes: { type: 'array', items: { type: 'string' } },
+    summary: { type: 'string' },
+  },
+  required: ['hotspots', 'criteriaAtRisk', 'questionsForProbes', 'summary'],
+}
+const sweep = await agent(
+  `${COMMON}\n\nYou are the SWEEPER (fast, shallow; cap yourself at about 25 tool calls). Read the diff once (${DIFF}) and the phase's acceptance criteria. Do not produce findings; produce a hand-over brief for the Opus probes: hotspots (file:line ranges that look wrong, non-minimal, behaviour-changing, rule-18-relevant or untested), criteriaAtRisk (criteria whose evidence in the diff looks thin), questionsForProbes (what to verify with which command). One line each.`,
+  {
+    label: 'sweep',
+    phase: 'Sweep',
+    schema: SWEEP,
+    model: 'fable',
+    effort: 'medium',
+  },
+)
+const sweepText = sweep
+  ? `HAND-OVER BRIEF from the Fable sweep (prioritise with it, then still do the full lens):\n${JSON.stringify(sweep, null, 0)}`
+  : 'No sweep brief (sweep failed); probe from scratch.'
 
 phase('Probe')
-log(`Phase ${A.phase}: Fable-Sweep, dann ${LENSES.length} Opus-Proben über ${A.branch}`)
+log(
+  `Phase ${A.phase}: Fable-Sweep, dann ${LENSES.length} Opus-Proben über ${A.branch}`,
+)
 const probes = await parallel(
-  LENSES.map((l) => () =>
-    agent(`${COMMON}\n\n${l.prompt}\n\n${sweepText}\n\nReturn findings for this lens only; the criteria list is required from every lens (re-verify independently).`, {
-      label: `probe:${l.key}`, phase: 'Probe', schema: FINDINGS, model: 'opus', effort: 'xhigh',
-    }),
+  LENSES.map(
+    (l) => () =>
+      agent(
+        `${COMMON}\n\n${l.prompt}\n\n${sweepText}\n\nReturn findings for this lens only; the criteria list is required from every lens (re-verify independently).`,
+        {
+          label: `probe:${l.key}`,
+          phase: 'Probe',
+          schema: FINDINGS,
+          model: 'opus',
+          effort: 'xhigh',
+        },
+      ),
   ),
 )
 const ok = probes.filter(Boolean)
 const raw = []
-probes.forEach((p, i) => { if (p) p.findings.forEach((f) => raw.push({ ...f, lens: LENSES[i].key })) })
+probes.forEach((p, i) => {
+  if (p) p.findings.forEach((f) => raw.push({ ...f, lens: LENSES[i].key }))
+})
 const seen = new Map()
 for (const f of raw) {
   const key = `${f.file}:${String(f.lines).split(/[-–,]/)[0].trim()}:${f.what.toLowerCase().slice(0, 40)}`
   if (!seen.has(key)) seen.set(key, f)
 }
 const deduped = [...seen.values()]
-log(`Proben: ${ok.length}/${LENSES.length} geantwortet, ${raw.length} Rohbefunde, ${deduped.length} nach Dedupe`)
+log(
+  `Proben: ${ok.length}/${LENSES.length} geantwortet, ${raw.length} Rohbefunde, ${deduped.length} nach Dedupe`,
+)
 
 phase('Refute')
-const VERDICT = { type: 'object', properties: { refuted: { type: 'boolean' }, reason: { type: 'string' } }, required: ['refuted', 'reason'] }
+const VERDICT = {
+  type: 'object',
+  properties: { refuted: { type: 'boolean' }, reason: { type: 'string' } },
+  required: ['refuted', 'reason'],
+}
 const toRefute = deduped.filter((f) => f.severity !== 'minor')
 const verdicts = await parallel(
-  toRefute.map((f, i) => () =>
-    agent(`${COMMON}\n\nYou are a SKEPTIC. A reviewer (lens ${f.lens}) claims:\nFILE: ${f.file}:${f.lines}\nSEVERITY: ${f.severity} (${f.category})\nWHAT: ${f.what}\nWHY: ${f.why}\nSUGGESTION: ${f.suggestion}\nPROOF: ${f.proof}\n\nTry to REFUTE it: re-read the exact lines and surrounding code/docs; is the claim literally true at that location, is it reachable or a real reader confusion, is the suggestion minimal, behaviour-preserving (for cleanup) or correct (for defects), and within the phase's scope and AGENTS.md rules? Default to refuted=true when uncertain or when it is cosmetic taste rather than a rule or defect.`, {
-      label: `refute:${i}`, phase: 'Refute', schema: VERDICT, model: 'opus', effort: 'high',
-    }),
+  toRefute.map(
+    (f, i) => () =>
+      agent(
+        `${COMMON}\n\nYou are a SKEPTIC. A reviewer (lens ${f.lens}) claims:\nFILE: ${f.file}:${f.lines}\nSEVERITY: ${f.severity} (${f.category})\nWHAT: ${f.what}\nWHY: ${f.why}\nSUGGESTION: ${f.suggestion}\nPROOF: ${f.proof}\n\nTry to REFUTE it: re-read the exact lines and surrounding code/docs; is the claim literally true at that location, is it reachable or a real reader confusion, is the suggestion minimal, behaviour-preserving (for cleanup) or correct (for defects), and within the phase's scope and AGENTS.md rules? Default to refuted=true when uncertain or when it is cosmetic taste rather than a rule or defect.`,
+        {
+          label: `refute:${i}`,
+          phase: 'Refute',
+          schema: VERDICT,
+          model: 'opus',
+          effort: 'high',
+        },
+      ),
   ),
 )
 const confirmed = []
@@ -121,10 +206,18 @@ const dropped = []
 toRefute.forEach((f, i) => {
   const v = verdicts[i]
   if (v && v.refuted) dropped.push({ ...f, reason: v.reason })
-  else confirmed.push({ ...f, skeptic: v ? v.reason : 'kein Urteil (Agent ohne Ergebnis) — bleibt bestehen' })
+  else
+    confirmed.push({
+      ...f,
+      skeptic: v
+        ? v.reason
+        : 'kein Urteil (Agent ohne Ergebnis) — bleibt bestehen',
+    })
 })
 const minors = deduped.filter((f) => f.severity === 'minor')
-log(`Refutation: ${confirmed.length} bestätigt, ${dropped.length} verworfen, ${minors.length} Minor ungeprüft`)
+log(
+  `Refutation: ${confirmed.length} bestätigt, ${dropped.length} verworfen, ${minors.length} Minor ungeprüft`,
+)
 
 return {
   phase: A.phase,

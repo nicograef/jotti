@@ -38,7 +38,9 @@ test.describe('Drawer-Sticky-Footer bei langer Positionsliste', () => {
     }
     await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()
     const bestellDrawer = page.getByRole('dialog')
-    await expect(bestellDrawer.getByText('Flammkuchen Mediterran')).toBeVisible()
+    await expect(
+      bestellDrawer.getByText('Flammkuchen Mediterran'),
+    ).toBeVisible()
     await expect(bestellDrawer.getByText('Gesamt')).toBeInViewport()
     const aufnehmen = bestellDrawer.getByRole('button', {
       name: 'Bestellung aufnehmen',

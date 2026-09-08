@@ -43,7 +43,9 @@ test.describe('Finanzamt-Einrichtung bleibt bei jeder Breite bedienbar', () => {
     await anmelden(page, zugangsdaten.admin)
     await page.goto('/admin/finanzamt')
 
-    const markieren = page.getByRole('button', { name: 'Als erledigt markieren' })
+    const markieren = page.getByRole('button', {
+      name: 'Als erledigt markieren',
+    })
     const seriennummerFeld = page.getByText(
       'Seriennummer des elektronischen Aufzeichnungssystems',
     )

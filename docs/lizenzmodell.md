@@ -36,25 +36,25 @@ Alles andere (Installation, Deployment, Hosting, Ausführung, Kopieren, Modifizi
 
 Kostenlose Nutzungsvereinbarungen erhalten ausschließlich eingetragene Organisationen ohne Gewinnerzielungsabsicht (verbindlich: [TERMS.md § 2](../TERMS.md)):
 
-| Organisationsform                         | Voraussetzung                                                        |
-| ----------------------------------------- | -------------------------------------------------------------------- |
-| Eingetragene Vereine (e.V.)               | Eintragung im Vereinsregister gemäß §§ 21 ff. BGB                    |
-| Eingetragene gemeinnützige Stiftungen     | Stiftungsregister + Anerkennung der Gemeinnützigkeit                 |
-| Gemeinnützige GmbH / UG (gGmbH, gUG)       | Handelsregister + steuerliche Anerkennung der Gemeinnützigkeit       |
-| Sonstige eingetragene NGOs / NPOs         | Registereintragung und fehlende Gewinnerzielungsabsicht              |
+| Organisationsform                     | Voraussetzung                                                  |
+| ------------------------------------- | -------------------------------------------------------------- |
+| Eingetragene Vereine (e.V.)           | Eintragung im Vereinsregister gemäß §§ 21 ff. BGB              |
+| Eingetragene gemeinnützige Stiftungen | Stiftungsregister + Anerkennung der Gemeinnützigkeit           |
+| Gemeinnützige GmbH / UG (gGmbH, gUG)  | Handelsregister + steuerliche Anerkennung der Gemeinnützigkeit |
+| Sonstige eingetragene NGOs / NPOs     | Registereintragung und fehlende Gewinnerzielungsabsicht        |
 
 Keine kostenlose Vereinbarung erhalten gewerbliche Unternehmen, Organisationen ohne gemeinnützigen Status, gewerblich nutzende Einzelpersonen und Dritte, die jotti als Dienstleistung betreiben wollen (SaaS). Sie benötigen eine kostenpflichtige kommerzielle Lizenz (→ [Abschnitt 5](#5-kommerzialisierung-und-dual-licensing)). Entfallen die Voraussetzungen, endet die kostenlose Nutzungslizenz automatisch ([TERMS.md § 2 Abs. 3](../TERMS.md)).
 
 ## 4. Forks, Modifikation und Weitergabe
 
-| Aktivität                                                    | Erlaubt?          |
-| ------------------------------------------------------------ | ----------------- |
-| Quellcode auf GitHub lesen                                   | ✅ Ja             |
-| Repository forken, um einen Pull Request einzureichen        | ✅ Ja (unter CLA) |
-| Repository forken für eigene Nutzung                         | ❌ Nein           |
-| Code modifizieren (außer für PR an das offizielle Repo)      | ❌ Nein           |
-| Code weitergeben, veröffentlichen oder einbinden             | ❌ Nein           |
-| Code als eigenständige Software betreiben                    | ❌ Nein           |
+| Aktivität                                               | Erlaubt?          |
+| ------------------------------------------------------- | ----------------- |
+| Quellcode auf GitHub lesen                              | ✅ Ja             |
+| Repository forken, um einen Pull Request einzureichen   | ✅ Ja (unter CLA) |
+| Repository forken für eigene Nutzung                    | ❌ Nein           |
+| Code modifizieren (außer für PR an das offizielle Repo) | ❌ Nein           |
+| Code weitergeben, veröffentlichen oder einbinden        | ❌ Nein           |
+| Code als eigenständige Software betreiben               | ❌ Nein           |
 
 Diese Restriktionen schützen das geistige Eigentum, halten das Dual-Licensing-Modell offen und sichern die Kontrolle über Verbreitung und Haftungssituation des Autors.
 

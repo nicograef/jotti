@@ -7,7 +7,11 @@ import {
 } from '../helpers/fehlerpfade'
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
-import { bestellePosition, oeffneTisch, zeileMit } from '../support/servicekraft'
+import {
+  bestellePosition,
+  oeffneTisch,
+  zeileMit,
+} from '../support/servicekraft'
 
 // Kassieren-Drawer (ZahlungDrawer) meldet Fehler über useActionSubmit als
 // Toast (siehe frontend/src/hooks/use-action-submit.ts + lib/errorMessages.ts)
@@ -70,7 +74,11 @@ async function zumTischMitOffenerPosition(page: Page) {
 async function kassiereEinePosition(page: Page) {
   await page.getByRole('tab', { name: 'Kassieren' }).click()
 
-  const position = zeileMit(page, `${PRODUKT} ${VARIANTE}`, 'Produkt hinzufügen')
+  const position = zeileMit(
+    page,
+    `${PRODUKT} ${VARIANTE}`,
+    'Produkt hinzufügen',
+  )
   await expect(position).toBeVisible()
   await position.getByRole('button', { name: 'Produkt hinzufügen' }).click()
 

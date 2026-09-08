@@ -25,9 +25,7 @@ test.describe('Admin lädt den DSFinV-K-Export herunter', () => {
     // Eine abgeschlossene Kassensitzung wählen (Seed: Freitag/Samstag sind
     // abgeschlossen, Sonntag ist die laufende Sitzung). Die Sitzungsliste ist
     // eine Spalte wählbarer Karten.
-    await page
-      .getByRole('button', { name: /Sommerfest 26 Samstag/ })
-      .click()
+    await page.getByRole('button', { name: /Sommerfest 26 Samstag/ }).click()
 
     const downloadPromise = page.waitForEvent('download')
     await page
@@ -35,10 +33,15 @@ test.describe('Admin lädt den DSFinV-K-Export herunter', () => {
       .click()
     const download = await downloadPromise
 
-    await expect(page.getByText('DSFinV-K-Archiv heruntergeladen.')).toBeVisible()
+    await expect(
+      page.getByText('DSFinV-K-Archiv heruntergeladen.'),
+    ).toBeVisible()
 
     const downloadPath = await download.path()
-    expect(downloadPath, 'Download muss eine lokale Datei erzeugen').toBeTruthy()
+    expect(
+      downloadPath,
+      'Download muss eine lokale Datei erzeugen',
+    ).toBeTruthy()
     const stats = await stat(downloadPath ?? '')
     expect(stats.size, 'ZIP-Datei darf nicht leer sein').toBeGreaterThan(0)
     expect(download.suggestedFilename()).toMatch(/\.zip$/)

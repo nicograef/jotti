@@ -32,8 +32,12 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
     await page.getByRole('button', { name: 'Neues Produkt' }).click()
     const newProductDialog = page.getByRole('dialog')
     await newProductDialog.getByLabel('Name').fill('Eistee')
-    await newProductDialog.getByRole('button', { name: 'Produkt anlegen' }).click()
-    await expect(page.getByText('Produkt "Eistee" wurde angelegt.')).toBeVisible()
+    await newProductDialog
+      .getByRole('button', { name: 'Produkt anlegen' })
+      .click()
+    await expect(
+      page.getByText('Produkt "Eistee" wurde angelegt.'),
+    ).toBeVisible()
 
     // Die Produktzeile über den Namen und ihren Bearbeiten-Button auflösen und
     // eine Variante anlegen (der gestrichelte „Variante"-Button je Zeile).
@@ -42,13 +46,19 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
       .filter({ has: page.getByRole('button', { name: 'Produkt bearbeiten' }) })
       .filter({ hasText: 'Eistee' })
       .last()
-    await produktItem.getByRole('button', { name: 'Variante', exact: true }).click()
+    await produktItem
+      .getByRole('button', { name: 'Variante', exact: true })
+      .click()
 
     const newVariantDialog = page.getByRole('dialog')
     await newVariantDialog.getByLabel('Name').fill('0,5l')
     await newVariantDialog.getByLabel('Preis').fill('2,80')
-    await newVariantDialog.getByRole('button', { name: 'Variante anlegen' }).click()
-    await expect(page.getByText('Variante "0,5l" wurde angelegt.')).toBeVisible()
+    await newVariantDialog
+      .getByRole('button', { name: 'Variante anlegen' })
+      .click()
+    await expect(
+      page.getByText('Variante "0,5l" wurde angelegt.'),
+    ).toBeVisible()
 
     // Die neue Variante ist zunächst deaktiviert: Preis-Chip sichtbar, Switch
     // aus und die „aus"-Markierung gesetzt.
@@ -115,11 +125,9 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
       .getByRole('button', { name: 'Variante „XXL" nach vorne' })
       .click()
 
-    await expect.poll(variantenReihenfolge).toEqual([
-      'XXL',
-      'Normal',
-      'Currywurst',
-    ])
+    await expect
+      .poll(variantenReihenfolge)
+      .toEqual(['XXL', 'Normal', 'Currywurst'])
 
     // Produkte verschieben sich innerhalb ihrer Kategorie.
     const produktReihenfolge = async () =>
@@ -138,7 +146,9 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
       'Flammkuchen',
     ])
 
-    await page.getByRole('button', { name: 'Produkt „Pommes" nach oben' }).click()
+    await page
+      .getByRole('button', { name: 'Produkt „Pommes" nach oben' })
+      .click()
 
     await expect
       .poll(async () => (await produktReihenfolge()).slice(0, 3))

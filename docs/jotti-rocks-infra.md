@@ -9,10 +9,10 @@ jotti-Installationen echte Let's-Encrypt-Zertifikate für
 
 Zwei Services im rocks-Stack (`docker-compose.rocks.yml`):
 
-| Service    | Zone                | Erreichbarkeit                                          |
-| ---------- | ------------------- | ------------------------------------------------------- |
-| `resolver` | `lokal.jotti.rocks` | öffentlich, Port 53 UDP+TCP (einziger Prozess auf :53)   |
-| `acme-dns` | `auth.jotti.rocks`  | nur Docker-intern (DNS via resolver, API via nginx)      |
+| Service    | Zone                | Erreichbarkeit                                         |
+| ---------- | ------------------- | ------------------------------------------------------ |
+| `resolver` | `lokal.jotti.rocks` | öffentlich, Port 53 UDP+TCP (einziger Prozess auf :53) |
+| `acme-dns` | `auth.jotti.rocks`  | nur Docker-intern (DNS via resolver, API via nginx)    |
 
 Der resolver beantwortet A-Records und `_acme-challenge`-CNAMEs zustandslos und rein
 rechnerisch aus dem angefragten Namen (TTL 86400, Mapping Name → IP unveränderlich).

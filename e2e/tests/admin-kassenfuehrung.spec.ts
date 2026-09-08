@@ -27,7 +27,9 @@ test.describe('Admin führt die Kasse', () => {
     await page.getByRole('button', { name: 'Geld einlegen' }).click()
     const geldtransitDialog = page.getByRole('dialog')
     await geldtransitDialog.getByLabel('Betrag').fill('25,00')
-    await geldtransitDialog.getByLabel('Kommentar').fill('Zusätzliches Wechselgeld')
+    await geldtransitDialog
+      .getByLabel('Kommentar')
+      .fill('Zusätzliches Wechselgeld')
     await geldtransitDialog
       .getByRole('button', { name: 'Geld einlegen' })
       .click()

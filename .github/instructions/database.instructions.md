@@ -1,6 +1,6 @@
 ---
-description: "Use when working on database migrations, SQL queries, sqlc configuration, schema changes, or data model design."
-applyTo: "database/**,backend/sqlc/**,backend/sqlc.yaml"
+description: 'Use when working on database migrations, SQL queries, sqlc configuration, schema changes, or data model design.'
+applyTo: 'database/**,backend/sqlc/**,backend/sqlc.yaml'
 ---
 
 > **Referenz:** Tabellen-Schemata stehen kanonisch in `database/migrations/01_initial.up.sql`. Für Architektur und Invarianten → `docs/handbuch.md` §3.2 (Kassenjournal) und §4 (Stammdaten). Für DB-Spalten-Konventionen → `docs/language.md`.
