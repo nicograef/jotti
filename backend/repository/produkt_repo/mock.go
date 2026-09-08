@@ -123,14 +123,14 @@ func (m *mockRepo) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, er
 	return produkte, m.err
 }
 
-func (m *mockRepo) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error) {
+func (m *mockRepo) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
-	result := make(map[int]produkt.Variante, len(ids))
+	result := make(map[int]produkt.VarianteMitProdukt, len(ids))
 	for _, id := range ids {
 		if vp, ok := m.varianten[id]; ok {
-			result[id] = vp.variante
+			result[id] = produkt.VarianteMitProdukt{Variante: vp.variante, ProduktID: vp.produktID}
 		}
 	}
 	return result, nil

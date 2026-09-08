@@ -41,7 +41,7 @@ type kassensitzungenRepo interface {
 }
 
 type produktRepo interface {
-	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error)
+	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error)
 	GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
 }
 

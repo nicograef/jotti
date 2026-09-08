@@ -25,7 +25,7 @@ type PositionInput struct {
 
 // produktRepo is the narrow read side enrichment needs: the two batch lookups.
 type produktRepo interface {
-	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error)
+	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error)
 	GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
 }
 
@@ -70,7 +70,7 @@ func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionIn
 
 	positionen := make([]kasse.Position, 0, len(inputs))
 	for _, input := range inputs {
-		variant, ok := variantenByID[input.VarianteID]
+		varianteMitProdukt, ok := variantenByID[input.VarianteID]
 		if !ok {
 			log.Error().Int("variante_id", input.VarianteID).Msg("Variant not found in batch result")
 			return nil, ErrProduktNotFound
@@ -81,9 +81,18 @@ func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionIn
 			return nil, ErrProduktNotFound
 		}
 
+		// Die Paarung Produkt/Variante kommt vom Client und wird nicht geglaubt:
+		// Ohne diese Prüfung erbte die Position Kategorie und Steuersatz eines
+		// fremden Produkts, während der Preis von der Variante käme.
+		if varianteMitProdukt.ProduktID != input.ProduktID {
+			log.Error().Int("variante_id", input.VarianteID).Int("produkt_id", input.ProduktID).Msg("Variant does not belong to the referenced product")
+			return nil, ErrProduktNotFound
+		}
+		variante := varianteMitProdukt.Variante
+
 		// Defense-in-Depth: deaktivierte (inactive) Varianten/Produkte tauchen im
 		// Menü nicht auf, könnten aber per direktem POST referenziert werden.
-		if variant.Status != produkt.ActiveStatus || prod.Status != produkt.ActiveStatus {
+		if variante.Status != produkt.ActiveStatus || prod.Status != produkt.ActiveStatus {
 			log.Warn().Int("variante_id", input.VarianteID).Int("produkt_id", input.ProduktID).Msg("Variant or product not active")
 			return nil, ErrVarianteNichtAktiv
 		}
@@ -91,10 +100,10 @@ func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionIn
 		positionen = append(positionen, kasse.Position{
 			VarianteID:       input.VarianteID,
 			ProduktName:      prod.Name,
-			VarianteName:     variant.Name,
+			VarianteName:     variante.Name,
 			Kategorie:        string(prod.Kategorie),
 			Steuersatz:       string(prod.Steuersatz),
-			EinzelpreisCents: variant.PreisCents,
+			EinzelpreisCents: variante.PreisCents,
 			Menge:            input.Menge,
 		})
 	}

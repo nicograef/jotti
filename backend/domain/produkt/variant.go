@@ -28,6 +28,15 @@ type Variante struct {
 	UpdatedAt  time.Time
 }
 
+// VarianteMitProdukt verbindet eine Variante mit der ID ihres Produkts. Der
+// Batch-Lesepfad der Anreicherung liefert sie, damit die vom Client gesendete
+// Paarung Produkt/Variante gegen die Datenbank geprüft wird, statt sie zu
+// glauben. Die Zuordnung ist reine Persistenz und darum kein Feld von Variante.
+type VarianteMitProdukt struct {
+	Variante  Variante
+	ProduktID int
+}
+
 // PreisCentsSchema defines the schema for a product variant's gross price in cents.
 // A price is required and must be at least 1 cent (0-cent variants are disallowed).
 // The schema is required by definition, so call sites use it directly and must not
