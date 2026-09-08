@@ -1,19 +1,19 @@
 export const meta = {
   name: 'jotti-full-audit',
-  description: 'Full-repo multi-expert review of jotti (every code, doc and config file) with Fable reviewers, cleanup criteria, adversarial verification and a consolidated findings document',
+  description: 'Full-repo multi-expert review of jotti (every code, doc and config file): one Fable sweep per area hands over to Opus reviewers, adversarial Opus verification and a consolidated findings document',
   phases: [
-    { title: 'Review', detail: '22 units × 3 lenses + 8 cross-layer flows', model: 'fable' },
-    { title: 'Verify', detail: 'refuters for blocker/major findings', model: 'fable' },
-    { title: 'Consolidate', detail: 'per-area consolidation and findings document' },
+    { title: 'Sweep', detail: 'one Fable sweep per area → hand-over brief', model: 'fable' },
+    { title: 'Review', detail: '22 units × 3 lenses + 8 cross-layer flows', model: 'opus' },
+    { title: 'Verify', detail: 'refuters for blocker/major findings', model: 'opus' },
+    { title: 'Consolidate', detail: 'per-area consolidation and findings document', model: 'opus' },
   ],
 }
 
 // Reusable named workflow: Workflow({ name: 'jotti-full-audit', args: { date: 'YYYY-MM-DD' } })
 // Optional args: repo (default /home/user/jotti), handbook (cleanup skill dir), outFile,
 // rev (short sha of the audited checkout), branch (name shown in the header).
-// Model policy of the orchestrator plan: reviewers and skeptics run on Fable 5.1 (explicit
-// owner decision for the audit, overriding the general "no Fable" rule in CLAUDE.md);
-// the assembler is mechanical and runs on Opus.
+// Model policy (owner decision): Fable only sweeps each area once and hands a brief to Opus;
+// Opus reviews, verifies, consolidates and assembles.
 const A = args || {}
 const REPO = A.repo || '/home/user/jotti'
 const HANDBOOK = A.handbook || '/home/user/handbook/.claude/skills/cleanup'
@@ -58,6 +58,16 @@ const FLOWS = [
   'Release- und Update-Pfad: Makefile release targets → .github/workflows/release.yml → Images/ZIP → prod-update script → PREVIOUS_VERSION upgrade-path gate → migrations README rules',
 ]
 
+const AREAS = {
+  Backend: ['api-kasse', 'api-fiskal', 'api-druck', 'api-stammdaten', 'api-core', 'domain-kasse', 'domain-rest', 'repo-fiscal', 'repo-stammdaten', 'backend-infra'],
+  Frontend: ['fe-service-components', 'fe-service-rest', 'fe-admin-fiscal', 'fe-admin-stammdaten', 'fe-shared'],
+  'Website und E2E': ['website', 'e2e'],
+  'Windows, Edge und Ops': ['windows', 'edge', 'ops'],
+  Dokumentation: ['docs-user', 'docs-internal'],
+  'Cross-Layer-Flüsse': FLOWS.map((_, i) => `flow-${i + 1}`),
+}
+const areaOfUnit = (key) => Object.keys(AREAS).find((a) => AREAS[a].includes(key))
+
 const COMMON = `
 Context: jotti (${REPO}) is a German mobile POS for club festivals: Go backend (stdlib net/http, pgx, sqlc, zog), React/TypeScript frontend, Astro website, Windows starter/relay in Go, Docker Compose, PostgreSQL, fiskaly cloud TSE, DSFinV-K export. Read ${REPO}/AGENTS.md first (rules, quality metrics, ubiquitous language, freeze discipline, rule 18 current-state-only docs). Consult ${REPO}/docs/language.md for naming and ${REPO}/docs/handbuch.md for architecture when judging boundaries.
 You are a REVIEWER at the highest rigor. Do NOT modify any file in ${REPO}. Read the actual files completely (use git ls-files with the given path globs to enumerate; skip generated code under backend/sqlc/dbgen and lockfiles). Every finding must be anchored to file path and exact line range and hold on re-read; drop anything you cannot anchor. Prefer fewer, true findings over many weak ones. "No issues" is a valid result for a file. Never propose functionality changes disguised as cleanup; flag large refactors as such (effort L, category large-refactor) and move on.`
@@ -89,22 +99,55 @@ const FINDINGS = {
   required: ['findings', 'filesReviewed', 'summary'],
 }
 
+const BRIEF = {
+  type: 'object',
+  properties: {
+    hotspots: { type: 'array', items: { type: 'object', properties: { file: { type: 'string' }, why: { type: 'string' }, lens: { type: 'string', description: 'cleanup | correctness | conventions | cross-layer' } }, required: ['file', 'why', 'lens'] } },
+    suspectedDefectClasses: { type: 'array', items: { type: 'string' } },
+    readingOrder: { type: 'array', items: { type: 'string' }, description: 'files or directories the deep reviewers should read first' },
+    questionsForReviewers: { type: 'array', items: { type: 'string' } },
+    filesSkimmed: { type: 'integer' },
+    summary: { type: 'string' },
+  },
+  required: ['hotspots', 'suspectedDefectClasses', 'readingOrder', 'questionsForReviewers', 'filesSkimmed', 'summary'],
+}
+
 const LENSES = {
   cleanup: (u) => `Lens: CLEANUP (repo-wide scope mode of the cleanup skill). Read the reference files ${HANDBOOK}/readability.md, ${u.kind === 'md' ? HANDBOOK + '/readability-de.md (for German prose),' : ''} ${HANDBOOK}/principles.md, ${HANDBOOK}/code-smells.md, ${HANDBOOK}/architecture.md and apply their passes to every file in scope: readability & clarity (incl. AI-slop), principles (SOLID, DRY, KISS, YAGNI), code smells (code and config), architecture & boundaries (service/domain/handler/repository layers, dependency direction), test readability for test files. Report each issue once under the most specific pass, with the reference file and rule name in "what". Never change functionality; large refactors are flagged, not designed.`,
   correctness: (u) => `Lens: CORRECTNESS AND SECURITY. Hunt real defects: logic errors, off-by-one, nil/undefined handling, error swallowing, races and transaction boundaries, money not in cents, timezone/date handling, input validation at edges (HTTP handlers, CLI flags, env, files), authz gaps (role guards, IDOR), injection (SQL via sqlc params only?, shell in scripts, path traversal in starter/relay), secrets handling, TLS/cert handling in reverse-proxy/resolver/starter, event-sourcing invariants (append-only journal, projections in same transaction, frozen event contracts), fiscal rules (TSE signing outbox, Belegpflichtangaben, DSFinV-K fields) against docs/compliance.md and docs/rechtsquellen where a claim needs the primary text. For docs units: factual errors versus the code (commands, paths, flags, behaviour), broken or misleading instructions. Give proof by quoting code. Run cheap checks where useful (go vet on a package, grep for patterns) but do not build the whole project.`,
   conventions: (u) => `Lens: CONVENTIONS, DOCS AND CONSISTENCY. Check against AGENTS.md rules 1–18, docs/language.md naming per layer (Go, TS, JSON, DB), docs/handbuch.md, README single-source rule, version consistency (Go, Node, pnpm, TypeScript versions across go.mod, Dockerfiles, CI, AGENTS.md, docs), rule 18 (no dated change entries, no "früher/bisher", no deprecation notes outside CHANGELOG/ADRs), dead links and stale paths in Markdown and comments, German user-visible strings, English infrastructure code, comments that describe a state the code no longer has, duplicated content across files, TODO/FIXME left behind, test naming and coverage gaps for public behaviour. For ops units: Makefile targets vs docs, compose files consistency, CI workflow correctness and pinning, script safety (set -euo pipefail, quoting), packaging text accuracy.`,
 }
 
+const briefText = (b) => b
+  ? `HAND-OVER BRIEF from the Fable sweep of this area (use it to prioritise, then still read every file in scope):\n${JSON.stringify(b, null, 0)}`
+  : 'No sweep brief available for this area (sweep failed); review from scratch.'
+
+phase('Sweep')
+log(`Sweep: ${Object.keys(AREAS).length} Fable-Sweeps (je Bereich), dann Übergabe an Opus`)
+const briefs = {}
+const sweepResults = await parallel(
+  Object.entries(AREAS).map(([area, units]) => () => {
+    const scope = area === 'Cross-Layer-Flüsse'
+      ? `the eight cross-layer flows:\n${FLOWS.map((f, i) => `${i + 1}. ${f}`).join('\n')}`
+      : `paths (git ls-files globs, relative to ${REPO}): ${UNITS.filter((u) => units.includes(u.key)).flatMap((u) => u.paths).join(', ')}`
+    return agent(
+      `${COMMON}\n\nYou are the SWEEPER for the area "${area}" — a fast, shallow pass that hands over to deep Opus reviewers. Scope: ${scope}.\nSkim, do not deep-read: enumerate the files, open each once briefly (head, grep for patterns: TODO/FIXME, nolint, panic(, fmt.Print, console.log, any, as unknown, eslint-disable, float, time.Now, os.Exit, exec.Command, "früher", "bisher", "deprecated"), note anything that smells or contradicts AGENTS.md, docs/language.md or docs/handbuch.md. Cap yourself at about 40 tool calls. Do NOT produce findings; produce the hand-over brief: hotspots (file + one-line why + lens), suspected defect classes, the reading order for deep reviewers, and questions the reviewers must answer. Reference ${HANDBOOK}/*.md only by rule name where a smell maps to one.`,
+      { label: `sweep:${area}`, phase: 'Sweep', schema: BRIEF, model: 'fable', effort: 'medium' },
+    ).then((b) => { briefs[area] = b; return b })
+  }),
+)
+log(`Sweep fertig: ${sweepResults.filter(Boolean).length}/${Object.keys(AREAS).length} Briefs`)
+
 phase('Review')
-log(`Review: ${UNITS.length} Einheiten × 3 Linsen + ${FLOWS.length} Cross-Layer-Flüsse (Fable)`)
+log(`Review: ${UNITS.length} Einheiten × 3 Linsen + ${FLOWS.length} Cross-Layer-Flüsse (Opus)`)
 const reviewItems = []
 for (const u of UNITS) for (const lens of Object.keys(LENSES)) reviewItems.push({ u, lens })
 
 const reviews = await parallel(
   reviewItems.map(({ u, lens }) => () =>
     agent(
-      `${COMMON}\n\nUNIT "${u.key}" — scope (git ls-files globs, relative to ${REPO}): ${u.paths.join(', ')}. Enumerate the files first, read all of them, then review.\n\n${LENSES[lens](u)}\n\nReturn findings for this unit only. Set filesReviewed to the number of files you actually read.`,
-      { label: `review:${u.key}:${lens}`, phase: 'Review', schema: FINDINGS, model: 'fable' },
+      `${COMMON}\n\nUNIT "${u.key}" — scope (git ls-files globs, relative to ${REPO}): ${u.paths.join(', ')}. Enumerate the files first, read all of them, then review.\n\n${briefText(briefs[areaOfUnit(u.key)])}\n\n${LENSES[lens](u)}\n\nReturn findings for this unit only. Set filesReviewed to the number of files you actually read.`,
+      { label: `review:${u.key}:${lens}`, phase: 'Review', schema: FINDINGS, model: 'opus', effort: 'high' },
     ),
   ),
 )
@@ -112,8 +155,8 @@ const reviews = await parallel(
 const flows = await parallel(
   FLOWS.map((flow, i) => () =>
     agent(
-      `${COMMON}\n\nLens: CROSS-LAYER TRACE (cleanup skill repo-wide mode, read ${HANDBOOK}/cross-layer.md first). Trace this flow end to end through every layer and file it touches:\n${flow}\n\nLook for shape and validation mismatches between layers (DTO vs domain vs DB vs frontend schema), inconsistent naming for the same concept across layers, error paths that lose information or leave state inconsistent, missing tests for the flow's invariants, and docs (handbuch, language, leitfaden) that describe the flow differently from the code. Cite every file:line.`,
-      { label: `flow:${i + 1}`, phase: 'Review', schema: FINDINGS, model: 'fable' },
+      `${COMMON}\n\nLens: CROSS-LAYER TRACE (cleanup skill repo-wide mode, read ${HANDBOOK}/cross-layer.md first). Trace this flow end to end through every layer and file it touches:\n${flow}\n\n${briefText(briefs['Cross-Layer-Flüsse'])}\n\nLook for shape and validation mismatches between layers (DTO vs domain vs DB vs frontend schema), inconsistent naming for the same concept across layers, error paths that lose information or leave state inconsistent, missing tests for the flow's invariants, and docs (handbuch, language, leitfaden) that describe the flow differently from the code. Cite every file:line.`,
+      { label: `flow:${i + 1}`, phase: 'Review', schema: FINDINGS, model: 'opus', effort: 'high' },
     ),
   ),
 )
@@ -123,6 +166,7 @@ reviews.forEach((r, i) => { if (r) r.findings.forEach((f) => raw.push({ ...f, un
 flows.forEach((r, i) => { if (r) r.findings.forEach((f) => raw.push({ ...f, unit: `flow-${i + 1}`, lens: 'cross-layer' })) })
 const filesReviewed = reviews.filter(Boolean).reduce((a, r) => a + (r.filesReviewed || 0), 0)
 const failedReviewers = reviews.filter((r) => !r).length + flows.filter((r) => !r).length
+const failedUnits = reviewItems.filter((_, i) => !reviews[i]).map(({ u, lens }) => `${u.key}:${lens}`).concat(flows.map((r, i) => (r ? null : `flow-${i + 1}`)).filter(Boolean))
 
 // dedupe by file + first line + severity-insensitive what prefix
 const seen = new Map()
@@ -137,7 +181,7 @@ for (const f of raw) {
   }
 }
 const deduped = [...seen.values()]
-log(`Review fertig: ${raw.length} Rohbefunde, ${deduped.length} nach Dedupe, ${filesReviewed} Dateien gelesen, ${failedReviewers} Reviewer ohne Ergebnis`)
+log(`Review fertig: ${raw.length} Rohbefunde, ${deduped.length} nach Dedupe, ${filesReviewed} Dateien gelesen, ${failedReviewers} Reviewer ohne Ergebnis${failedUnits.length ? ` (${failedUnits.join(', ')})` : ''}`)
 
 phase('Verify')
 const VERDICT = { type: 'object', properties: { refuted: { type: 'boolean' }, reason: { type: 'string' } }, required: ['refuted', 'reason'] }
@@ -154,7 +198,7 @@ const verified = await parallel(
       modes.map((mode) => () =>
         agent(
           `${COMMON}\n\nYou are a SKEPTIC (${mode}). A reviewer (unit ${f.unit}, lens ${f.lens}) claims:\nFILE: ${f.file}:${f.lines}\nSEVERITY: ${f.severity} (${f.category})\nWHAT: ${f.what}\nWHY: ${f.why}\nSUGGESTION: ${f.suggestion}\nPROOF: ${f.proof}\n\nTry to REFUTE it by ${mode === 'source' ? 're-reading the exact lines and surrounding code/docs: is the claim literally true at that location?' : mode === 'consequence' ? 'asking whether it matters: is there a reachable path, a real reader confusion, or a real maintenance cost? Is the suggestion minimal and behaviour-preserving (for cleanup) or correct (for defects)?' : 'checking the suggestion against AGENTS.md, freeze discipline, rule 18, naming conventions and the product conservatism: would applying it break a rule or widen scope?'}\nDefault to refuted=true when uncertain or when the issue is cosmetic taste rather than a rule or defect.`,
-          { label: `verify:${idx}:${mode}`, phase: 'Verify', schema: VERDICT, model: 'fable' },
+          { label: `verify:${idx}:${mode}`, phase: 'Verify', schema: VERDICT, model: 'opus', effort: 'high' },
         ),
       ),
     ).then((votes) => {
@@ -175,21 +219,13 @@ const dropped = verified.filter(Boolean).filter((f) => f.verified === 'verworfen
 log(`Verifikation: ${verified.filter(Boolean).length} geprüft, ${dropped.length} verworfen, ${finalFindings.length} Befunde bleiben`)
 
 phase('Consolidate')
-const AREAS = {
-  Backend: ['api-kasse', 'api-fiskal', 'api-druck', 'api-stammdaten', 'api-core', 'domain-kasse', 'domain-rest', 'repo-fiscal', 'repo-stammdaten', 'backend-infra'],
-  Frontend: ['fe-service-components', 'fe-service-rest', 'fe-admin-fiscal', 'fe-admin-stammdaten', 'fe-shared'],
-  'Website und E2E': ['website', 'e2e'],
-  'Windows, Edge und Ops': ['windows', 'edge', 'ops'],
-  Dokumentation: ['docs-user', 'docs-internal'],
-  'Cross-Layer-Flüsse': FLOWS.map((_, i) => `flow-${i + 1}`),
-}
 const SECTION = { type: 'object', properties: { markdown: { type: 'string' }, defectClasses: { type: 'array', items: { type: 'string' } }, top: { type: 'array', items: { type: 'string' } } }, required: ['markdown', 'defectClasses', 'top'] }
 const sections = await parallel(
   Object.entries(AREAS).map(([area, units]) => () => {
     const fs = finalFindings.filter((f) => units.includes(f.unit))
     return agent(
       `${COMMON}\n\nYou are the CONSOLIDATOR for the area "${area}". Input: ${fs.length} findings (JSON below). Produce a German Markdown section for a self-contained findings document: heading "## ${area}", one-line scope, a severity count line, then findings grouped by file (sorted by severity: blocker, major, minor), each in this exact shape:\n\n**[What]** (Kategorie, Referenz)\nDatei: pfad:zeilen\nWarum: <ein Satz>\nVorschlag: <konkrete minimale Änderung>\nAufwand: S|M|L · Status: bestätigt | unverifiziert (minor) | unverifiziert (Kappung)\n\nMerge near-duplicates that survived dedupe, keep the stronger proof, never invent findings, never drop a 'bestätigt' finding. Sentences ≤ 20 words. Also return defectClasses (recurring classes that deserve a lint/gate, one line each) and top (up to 5 highest-impact items for this area as one-liners with file refs).\n\nFINDINGS:\n${JSON.stringify(fs.map(({ votes, alsoFrom, ...rest }) => rest), null, 0)}`,
-      { label: `consolidate:${area}`, phase: 'Consolidate', schema: SECTION, model: 'fable' },
+      { label: `consolidate:${area}`, phase: 'Consolidate', schema: SECTION, model: 'opus', effort: 'high' },
     )
   }),
 )
@@ -200,9 +236,9 @@ const header = `# Findings: Vollreview jotti (${DATE})
 
 > Quelle: Multi-Experten-Review aller Dateien des Repos (Stand \`${BRANCH}\` @ ${REV}),
 > ${UNITS.length} Einheiten × 3 Linsen (Cleanup-Skill, Korrektheit/Security, Konventionen/Doku) plus
-> ${FLOWS.length} Cross-Layer-Flüsse; Reviewer und Prüfer: Fable 5.1. Jeder Blocker/Major-Befund wurde von
-> ${'2–3'} unabhängigen Skeptikern gegengeprüft${capped ? ` (gekappt auf ${CAP} Befunde, Blocker zuerst)` : ''}; Minor-Befunde sind ungeprüft.
-> Ausgeschlossen: \`backend/sqlc/dbgen/\`, Lockfiles, Binärdateien, \`docs/rechtsquellen/\`.
+> ${FLOWS.length} Cross-Layer-Flüsse; je Bereich ein Fable-Sweep als Übergabe, Reviewer und Prüfer: Opus 5.
+> Jeder Blocker/Major-Befund wurde von ${'2–3'} unabhängigen Skeptikern gegengeprüft${capped ? ` (gekappt auf ${CAP} Befunde, Blocker zuerst)` : ''}; Minor-Befunde sind ungeprüft.
+> Ausgeschlossen: \`backend/sqlc/dbgen/\`, Lockfiles, Binärdateien, \`docs/rechtsquellen/\`.${failedUnits.length ? `\n> Ohne Ergebnis: ${failedUnits.join(', ')}.` : ''}
 > Dieses Dokument ist die Eingabe für \`plan-jotti-audit-fixes.md\` (create-plan). Es enthält keine Personendaten.
 
 ## Zahlen
@@ -223,4 +259,4 @@ const assembled = await agent(
   { label: 'assemble', phase: 'Consolidate', model: 'opus' },
 )
 
-return { filesReviewed, raw: raw.length, deduped: deduped.length, verified: verified.filter(Boolean).length, dropped: dropped.length, remaining: finalFindings.length, counts, failedReviewers, capped, outFile: OUT, assembled }
+return { filesReviewed, raw: raw.length, deduped: deduped.length, verified: verified.filter(Boolean).length, dropped: dropped.length, remaining: finalFindings.length, counts, failedReviewers, failedUnits, capped, outFile: OUT, assembled }
