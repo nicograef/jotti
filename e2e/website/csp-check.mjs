@@ -2,8 +2,7 @@
 //
 // Serves the artefact behind the production CSP (see `csp-server.mjs`) and drives
 // headless Chromium over the landing page and two docs pages, capturing every
-// `securitypolicyviolation` DOM event. Exits non-zero on any violation, so it can
-// gate each phase of the website redesign (`docs/plans/plan-website-redesign.md`).
+// `securitypolicyviolation` DOM event. Exits non-zero on any violation.
 //
 // Uses Playwright from the e2e package. If the pinned Playwright build mismatches
 // the preinstalled browser, set CHROMIUM_EXECUTABLE to a chrome binary.

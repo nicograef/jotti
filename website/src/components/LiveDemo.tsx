@@ -18,7 +18,7 @@ import {
   type DemoState,
 } from '../lib/live-demo'
 
-// Live-Demo-Island (Handoff-Prototyp, PRD docs/prds/prd-website-redesign.md, #demo).
+// Live-Demo-Island (#demo).
 // Der einzige UI-Nachbau der App auf der ganzen Seite. Die gesamte Logik
 // (Warenkorb, Summen in Cent, Auto-Skript, Stopp, Reset) liegt UI-frei in
 // src/lib/live-demo.ts; diese Komponente rendert nur den Zustand und liefert

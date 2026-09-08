@@ -20,9 +20,9 @@ const { title, description } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href
 const ogImageUrl = new URL(ogImage.src, Astro.site).href
 
-// Header-Navigation (Handoff): Anker-Links plus Leitfaden. Der `#faq`-Link ist
-// seit Phase 7 mit seiner Sektion eingehängt. Eine Quelle für Desktop-Nav und
-// die MobileNav-Island, damit die Liste nicht auseinanderläuft.
+// Header-Navigation: Anker-Links plus Leitfaden. Der `#faq`-Link führt zu
+// seiner Sektion. Eine Quelle für Desktop-Nav und die MobileNav-Island,
+// damit die Liste nicht auseinanderläuft.
 const navLinks = [
   { href: '/#features', label: 'Funktionen' },
   { href: '/#ablauf', label: 'Ablauf' },

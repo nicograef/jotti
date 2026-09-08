@@ -12,10 +12,10 @@ import {
 } from '../lib/anfrage-mailto'
 import { installationUrl } from '../lib/links'
 
-// AnfrageFormular-Island der Seite /fuer-vereine (Handoff-Prototyp,
-// PRD docs/prds/prd-website-redesign.md, data-vereine-Formular). Rendert die
-// Handoff-Felder, validiert clientseitig über src/lib/anfrage-mailto.ts, öffnet
-// bei gültigem Absenden den vorbefüllten mailto-Entwurf per JS-Navigation
+// AnfrageFormular-Island der Seite /fuer-vereine (data-vereine-Formular).
+// Rendert die Formularfelder, validiert clientseitig über
+// src/lib/anfrage-mailto.ts, öffnet bei gültigem Absenden den vorbefüllten
+// mailto-Entwurf per JS-Navigation
 // (window.location.href — bewusst kein natives <form action="mailto:">, das
 // die Produktiv-CSP form-action 'self' blockt) und wechselt in einen ehrlichen
 // Erfolgs-State: der Entwurf ist geöffnet und muss noch gesendet werden. Der

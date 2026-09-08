@@ -5,9 +5,6 @@
 // Abhängigkeit — die LiveDemo-Island (src/components/LiveDemo.tsx) rendert
 // diesen Zustand und liefert Timing (setTimeout) und Viewport-Trigger.
 //
-// Menü, Preise (in Cent), Auto-Skript und Timings stammen aus dem Handoff-
-// Prototyp (PRD docs/prds/prd-website-redesign.md).
-//
 // Geldregel des Projekts: Beträge sind immer int in Cent, niemals Floats.
 
 export interface DemoVariant {

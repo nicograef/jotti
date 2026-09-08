@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 
-// Regression für NEU14: Der Theme-Umschalter in der Admin-Sidebar hat ein
+// Regression: Der Theme-Umschalter in der Admin-Sidebar hat ein
 // stabiles Label (unabhängig vom aktiven Design) und bleibt nach einem
 // Maus-Klick nicht mit haftendem Fokus/Highlight zurück, das im Dark Mode wie
 // die aktive Navigations-Seite aussieht. Tastaturbedienung behält den Fokus.

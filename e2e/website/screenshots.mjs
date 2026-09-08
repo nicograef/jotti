@@ -11,8 +11,8 @@
 //
 // Die App folgt der Systempräferenz (Theme-Default „system", siehe
 // frontend `theme-provider.tsx`): Playwrights `emulateMedia({ colorScheme })`
-// kippt `data-theme` auf `<html>` — ein eigener Theme-Schalter-State ist NICHT
-// nötig (offene Frage aus Phase 9 verifiziert).
+// löst die `light`/`dark`-Klasse auf `<html>` aus — ein eigener
+// Theme-Schalter-State ist nicht nötig.
 //
 // BASE-URL-agnostisch über E2E_BASE_URL (wie die e2e-Suite, siehe
 // `e2e/playwright.config.ts`): Default ist der Compose-Stack auf

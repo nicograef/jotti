@@ -5,10 +5,10 @@ import { expect, test } from '@playwright/test'
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 
-// WCAG-AA-Kontrast-Gate (Phase 8) für die Recovery- und Compliance-Screens.
+// WCAG-AA-Kontrast-Gate für die Recovery- und Compliance-Screens.
 // axe-core prüft das Kriterium 1.4.3 (Kontrast, AA) über den gerenderten DOM;
-// wir fahren gezielt nur die Regel `color-contrast`, weil dies der Kontrast-
-// Check ist, den diese Phase besitzt (übrige a11y-Regeln gehören nicht hierher).
+// wir fahren gezielt nur die Regel `color-contrast`, weil dieser Test nur den
+// Kontrast abdeckt (übrige a11y-Regeln gehören nicht hierher).
 // Beide Themes werden geprüft: die Recovery-Screens werden bei Außeneinsatz
 // (BYOD) auch im Dark Mode bedient.
 //
@@ -17,7 +17,7 @@ import { resetAndSeed } from '../support/seed'
 // die Token-Werte (`--input`/`--border`) abgesichert, nicht über dieses Gate.
 
 // Die drei Screens tragen die Grün-Aktionen, Outline-Buttons, Drucker-IP-Felder
-// und WarnKarten, um die es in Muster 05 geht.
+// und WarnKarten, deren Kontrast dieser Test prüft.
 const screens = [
   { url: '/admin/druckstationen', sichtbar: /Bondrucker/ },
   { url: '/admin/finanzamt', sichtbar: /Finanzamt/ },

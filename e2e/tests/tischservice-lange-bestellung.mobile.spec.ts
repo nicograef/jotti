@@ -15,8 +15,7 @@ import {
 // Positionsliste (der DrawerBody scrollt) müssen Gesamtsumme, das jeweilige
 // Pflichtfeld und die Primäraktion ohne Scrollen gleichzeitig sichtbar bleiben —
 // sie liegen im nicht-scrollenden DrawerFooter, nur die Positionsliste (Body)
-// scrollt. Ursprung: Bug 2 aus dem Praxistest 2026-07-09 (Bestellen/Kassieren),
-// mit der UI-Politur (Phase 1) auf Stornierung und Umbuchung ausgeweitet.
+// scrollt. Gilt für Bestellen, Kassieren, Stornieren und Umbuchen.
 
 test.describe('Drawer-Sticky-Footer bei langer Positionsliste', () => {
   // „Tisch 1" startet im Demo-Drehbuch ausgeglichen (Saldo 0,00 €) und ohne

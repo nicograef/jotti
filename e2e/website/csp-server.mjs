@@ -4,9 +4,9 @@
 // the jotti.rocks block from `reverse-proxy/nginx.rocks.conf`. The CSP is parsed
 // from that file at runtime, so it can never silently drift from production.
 //
-// Shared by two consumers (see `docs/plans/plan-website-redesign.md`):
-//   - the per-phase CSP verification (`csp-check.mjs`),
-//   - the Phase-9 OG-image screenshot mode.
+// Shared by two consumers:
+//   - the CSP verification (`csp-check.mjs`),
+//   - the OG-image screenshot mode (`screenshots.mjs`).
 //
 // No external dependencies — plain `node:http`/`node:fs`, runnable with any Node.
 

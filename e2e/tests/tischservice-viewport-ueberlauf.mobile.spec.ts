@@ -9,7 +9,7 @@ import {
 } from '../support/servicekraft'
 import { erwarteKeinenHorizontalenUeberlauf } from '../support/viewport'
 
-// Viewport-Regression für den Raster-Basisspalten-Sweep (Phase 2). Die Listen
+// Viewport-Regression für den Raster-Basisspalten-Sweep. Die Listen
 // der Servicekraft-Screens nutzen Grids, deren Spalten erst am Breakpoint (lg/
 // 2xl) greifen; ohne Basis-Track (`grid-cols-1`) sizen die impliziten Grid-Tracks
 // am Handy auf max-content und lange, nicht umbrechende Inhalte (Titel mit

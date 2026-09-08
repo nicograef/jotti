@@ -8,7 +8,7 @@
 //
 // Pfade sind relativ zu `docs/`.
 export const publishedDocs = [
-  // Leitfaden (aus `docs/leitfaden.md` aufgeteilt in Schritt-Seiten).
+  // Leitfaden: eine Schritt-Seite je Datei unter docs/leitfaden/.
   'leitfaden/was-ist-jotti.md',
   'leitfaden/betriebsarten.md',
   'leitfaden/installation.md',
