@@ -1,11 +1,11 @@
 # golangci-lint config format version
 version: "2"
 
-# `run.build-tags` accepts one tag set per invocation, so `make
-# check-backend` / `make lint-backend-full` and the CI job `backend-golangci`
-# all run golangci-lint twice: once with --build-tags=integration (this
-# default, so a bare `golangci-lint run` also covers //go:build integration
-# files) and once with --build-tags=unit, to also lint //go:build unit files.
+# `make check-backend` / `make lint-backend-full` and the CI job
+# `backend-golangci` run golangci-lint twice. The CLI's --build-tags is
+# merged with this default, so the second pass loads [integration unit] — a
+# superset of the first. The integration-only pass is kept because
+# whole-program linters (e.g. unused) judge each file set on its own.
 run:
   build-tags:
     - integration

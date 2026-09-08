@@ -118,9 +118,10 @@ jobs:
       # Version pinned to the local toolchain (scripts/setup-dev-tools.sh) so a
       # green CI and a green `make verify` mean the same thing (D13). Two
       # passes, matching `make check-backend` / `make lint-backend-full`:
-      # backend/.golangci.yml's build-tags default covers //go:build
-      # integration files; the second pass's --build-tags=unit covers
-      # //go:build unit files.
+      # --build-tags=unit is merged with backend/.golangci.yml's default, so
+      # the second pass loads [integration unit] — a superset of the first.
+      # The integration-only pass is kept because whole-program linters (e.g.
+      # unused) judge each file set on its own.
       - name: golangci-lint (integration)
         uses: golangci/golangci-lint-action@v9
         with:
