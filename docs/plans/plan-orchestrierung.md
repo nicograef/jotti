@@ -213,11 +213,11 @@ rules.md` oder stoppt.
 
 ### Acceptance criteria
 
-- [ ] `docs/plans/plan-jotti-audit-fixes.md` deckt jeden bestätigten Blocker/Major-Befund
+- [x] `docs/plans/plan-jotti-audit-fixes.md` deckt jeden bestätigten Blocker/Major-Befund
       und jede Defektklasse ab; nicht übernommene Befunde stehen mit Begründung darin
-- [ ] Jede Phase hat `Depends on`, Modell, Review-Tier, Gate-Befehl und testbare Kriterien
-- [ ] Kritik (Fable-Sweep, Opus-Kritiker) dokumentiert und eingearbeitet
-- [ ] Datei committet
+- [x] Jede Phase hat `Depends on`, Modell, Review-Tier, Gate-Befehl und testbare Kriterien
+- [x] Kritik (Fable-Sweep, Opus-Kritiker) dokumentiert und eingearbeitet
+- [x] Datei committet
 
 ---
 
