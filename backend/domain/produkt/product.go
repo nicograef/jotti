@@ -2,6 +2,7 @@ package produkt
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	z "github.com/Oudwins/zog"
@@ -45,8 +46,13 @@ type Produkt struct {
 	UpdatedAt  time.Time
 }
 
-// IDSchema defines the schema for a product ID.
-var IDSchema = z.Int().GTE(1, z.Message("Ungültige Produkt-ID"))
+// IDSchema defines the schema for a product ID, bounded at both ends. The upper
+// bound is the largest value the int4 column holds: a request carrying more can
+// only be wrong, and the schema answers 400 instead of letting it fail inside
+// the driver.
+var IDSchema = z.Int().
+	GTE(1, z.Message("Ungültige Produkt-ID")).
+	LTE(math.MaxInt32, z.Message("Ungültige Produkt-ID"))
 
 // NameSchema defines the schema for a product's name.
 var NameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(100, z.Message("Name zu lang"))

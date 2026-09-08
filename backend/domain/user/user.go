@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 	"time"
@@ -52,7 +53,12 @@ type User struct {
 // Einmalpasswort ungültig wird.
 const MaxOnetimePasswordAttempts = 5
 
-var IDSchema = z.Int().GTE(1, z.Message("Ungültige Benutzer-ID"))
+// IDSchema bounds a user ID at both ends. The upper bound is the largest value
+// the int4 column holds: a request carrying more can only be wrong, and the
+// schema answers 400 instead of letting it fail inside the driver.
+var IDSchema = z.Int().
+	GTE(1, z.Message("Ungültige Benutzer-ID")).
+	LTE(math.MaxInt32, z.Message("Ungültige Benutzer-ID"))
 
 var NameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(50, z.Message("Name zu lang"))
 

@@ -5,9 +5,9 @@ package api
 // An exported *Schema variable under backend/domain is the bound of a persisted
 // field: handlers and constructors validate every input against it before the
 // value reaches a table or an event. A field schema without an upper bound lets
-// the Kasse store a value that no Beleg and no DSFinV-K export can render — and
-// the schema is the only place that bound exists, because the columns are TEXT
-// and INT without a length or range of their own.
+// the Kasse accept a value that no Beleg and no DSFinV-K export can render, or
+// one no column can hold: the TEXT columns carry no length of their own, and an
+// int4 column rejects anything past its range deep inside the driver.
 //
 // This test pins both ends. The table names, per field schema, the value at each
 // bound the schema must accept and the value just outside it must reject; a new
@@ -74,25 +74,23 @@ var lengthCases = []lengthCase{
 
 // valueCase pins a number schema to its two value bounds. smallest and largest
 // are the values it must accept; one less than smallest and one more than largest
-// must be rejected. An ID is assigned by the database and never built from an
-// input, so it deliberately carries no upper bound: its row sets largest to
-// maxInt4 and unbounded, which drops the rejection above.
+// must be rejected. An ID schema also validates the IDs a request body carries,
+// so its upper bound is maxInt4 — the largest value its column holds.
 type valueCase struct {
-	schema    string
-	smallest  int
-	largest   int
-	unbounded bool
-	accepts   func(wert int) bool
+	schema   string
+	smallest int
+	largest  int
+	accepts  func(wert int) bool
 }
 
 // valueCases holds one row per exported number field schema under
 // backend/domain.
 var valueCases = []valueCase{
 	{schema: "kasse.PositionEingabeSchema", smallest: 1, largest: 999, accepts: acceptsNumber(kasse.PositionEingabeSchema)},
-	{schema: "produkt.IDSchema", smallest: 1, largest: maxInt4, unbounded: true, accepts: acceptsNumber(produkt.IDSchema)},
+	{schema: "produkt.IDSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(produkt.IDSchema)},
 	{schema: "produkt.PreisCentsSchema", smallest: 1, largest: 99999, accepts: acceptsNumber(produkt.PreisCentsSchema)},
-	{schema: "tisch.TischIDSchema", smallest: 1, largest: maxInt4, unbounded: true, accepts: acceptsNumber(tisch.TischIDSchema)},
-	{schema: "user.IDSchema", smallest: 1, largest: maxInt4, unbounded: true, accepts: acceptsNumber(user.IDSchema)},
+	{schema: "tisch.TischIDSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(tisch.TischIDSchema)},
+	{schema: "user.IDSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(user.IDSchema)},
 }
 
 // schemaException records an exported schema the table needs no row for, with the
@@ -196,9 +194,6 @@ func checkValueBounds(t *testing.T, testCase valueCase) {
 	}
 	if testCase.accepts(testCase.smallest - 1) {
 		t.Errorf("%s accepts %d, one below its minimum %d", testCase.schema, testCase.smallest-1, testCase.smallest)
-	}
-	if testCase.unbounded {
-		return
 	}
 	if testCase.accepts(testCase.largest + 1) {
 		t.Errorf("%s accepts %d, one above its maximum %d — a persisted field needs an upper bound", testCase.schema, testCase.largest+1, testCase.largest)

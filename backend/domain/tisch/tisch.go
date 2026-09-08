@@ -3,6 +3,7 @@ package tisch
 import (
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	z "github.com/Oudwins/zog"
@@ -42,7 +43,12 @@ type AktiverTischMitFavorit struct {
 	IstFavorit bool
 }
 
-var TischIDSchema = z.Int().GTE(1, z.Message("Ungültige Tisch-ID"))
+// TischIDSchema bounds a Tisch ID at both ends. The upper bound is the largest
+// value the int4 column holds: a request carrying more can only be wrong, and
+// the schema answers 400 instead of letting it fail inside the driver.
+var TischIDSchema = z.Int().
+	GTE(1, z.Message("Ungültige Tisch-ID")).
+	LTE(math.MaxInt32, z.Message("Ungültige Tisch-ID"))
 
 var TischNameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(100, z.Message("Name zu lang"))
 
