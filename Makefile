@@ -76,7 +76,7 @@ fuzz: ## Fuzz-Targets länger laufen lassen (je Target 90s; kein CI-Dauerlauf)
 # ──────────────────────────────────────────────
 
 lint-backend: ## Backend Linting (go vet + goimports)
-	cd backend && go vet ./... && goimports -l .
+	cd backend && go vet ./... && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then goimports -l .; exit 1; fi
 
 lint-backend-full: ## Backend Linting mit golangci-lint (inkl. Integrationstest-Dateien)
 	cd backend && golangci-lint run --build-tags=integration
