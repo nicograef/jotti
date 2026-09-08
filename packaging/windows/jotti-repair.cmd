@@ -1,11 +1,11 @@
 @echo off
-REM jotti reparieren — das Datenbank-Passwort an den Install-Schluessel angleichen.
+REM jotti reparieren - das Datenbank-Passwort an den Install-Schluessel angleichen.
 REM
 REM Fuer den Fall "die Daten sind da, aber jotti kommt nicht mehr hinein": Nach
 REM einem Upgrade von einer sehr alten Version kann das in der Datenbank
 REM gespeicherte Passwort vom aktuellen Install-Schluessel abweichen (migrate oder
 REM backend melden dann Authentifizierungsfehler). Dieses Skript gleicht das
-REM Datenbank-Passwort datenerhaltend an den aktuellen Install-Schluessel an — ueber
+REM Datenbank-Passwort datenerhaltend an den aktuellen Install-Schluessel an - ueber
 REM den lokalen Trust-Zugang im postgres-Container, ohne das alte Passwort zu
 REM kennen. Es veraendert KEINE Daten (nur das Rollen-Passwort) und fasst keine
 REM anderen Volumes an. Mehrfaches Ausfuehren ist gefahrlos (idempotent).
@@ -48,7 +48,7 @@ if errorlevel 1 goto :error
 
 echo.
 echo Reparatur abgeschlossen. jotti laeuft wieder.
-echo Hinweis: Bitte einmal neu anmelden — bereits ausgestellte Anmeldungen koennen
+echo Hinweis: Bitte einmal neu anmelden - bereits ausgestellte Anmeldungen koennen
 echo durch einen zwischenzeitlich erneuerten Schluessel ungueltig geworden sein.
 goto :end
 

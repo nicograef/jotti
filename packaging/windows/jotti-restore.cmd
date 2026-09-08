@@ -3,7 +3,7 @@ REM jotti aus dem letzten automatischen Backup wiederherstellen.
 REM
 REM Vor jedem Update sichert jotti-start.exe die Datenbank automatisch in das
 REM jotti-backups-Volume. Dieses Skript spielt das NEUESTE dieser Backups zurueck
-REM — z. B. wenn ein Update fehlgeschlagen ist. Daten, die seit dem Backup
+REM - z. B. wenn ein Update fehlgeschlagen ist. Daten, die seit dem Backup
 REM erfasst wurden, gehen dabei verloren.
 setlocal
 cd /d "%~dp0"

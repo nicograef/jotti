@@ -1,5 +1,5 @@
 @echo off
-REM jotti sauber beenden — Doppelklick stoppt alle Container.
+REM jotti sauber beenden - Doppelklick stoppt alle Container.
 REM Daten und Caddy-Zertifikate bleiben in den Docker-Volumes erhalten.
 setlocal
 cd /d "%~dp0"
