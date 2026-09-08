@@ -145,7 +145,7 @@ func main() {
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
-		log.Printf("TLS-Zertifikatsprüfung deaktiviert (selbstsigniert)")
+		log.Printf("TLS-Zertifikatspruefung deaktiviert (selbstsigniert)")
 	}
 
 	quit := make(chan os.Signal, 1)

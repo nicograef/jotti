@@ -81,7 +81,7 @@ func envSearchDirs(goos, programData, exeDir, wd string) []string {
 // Programmdatei.
 func envHinweis() string {
 	if runtime.GOOS == "windows" {
-		return "Bitte zuerst jotti-start.exe ausfuehren — sie erzeugt die Zugangsdaten."
+		return "Bitte zuerst jotti-start.exe ausfuehren - sie erzeugt die Zugangsdaten."
 	}
 	return "Bitte RELAY_AUTH_TOKEN in der .env-Datei neben jotti-relay.exe setzen."
 }

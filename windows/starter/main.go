@@ -235,7 +235,7 @@ func fileExists(path string) (bool, error) {
 // Sicherheitswarnung.
 func printSuccess() {
 	fmt.Println()
-	fmt.Printf("jotti Starter %s — jotti laeuft.\n\n", version)
+	fmt.Printf("jotti Starter %s - jotti laeuft.\n\n", version)
 	fmt.Println("Status & Zugangsadresse: http://localhost:8484")
 	fmt.Println("  Dort stehen die Zugangsadresse fuers WLAN und ein QR-Code fuer die Helfer-Handys.")
 	if runtime.GOOS == "windows" {

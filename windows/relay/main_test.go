@@ -356,7 +356,7 @@ func TestFuehreZyklusAusOhneAuftraegeMeldetNicht(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if called {
-		t.Fatalf("melde wurde ohne Aufträge aufgerufen")
+		t.Fatalf("melde wurde ohne Auftraege aufgerufen")
 	}
 	if len(ergebnis.gedruckteIDs) != 0 || len(ergebnis.fehlversuche) != 0 {
 		t.Fatalf("Ergebnis nicht leer: %+v", ergebnis)
