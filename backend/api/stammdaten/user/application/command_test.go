@@ -4,6 +4,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"regexp"
 	"testing"
 
@@ -38,7 +39,7 @@ func TestCreateUser_Error(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
-	if err != ErrDatabase {
+	if !errors.Is(err, ErrDatabase) {
 		t.Errorf("expected error %v, got %v", ErrDatabase, err)
 	}
 }
@@ -60,7 +61,7 @@ func TestUpdateUser_Error(t *testing.T) {
 
 	err := userCommand.UpdateUser(context.Background(), 1, "Updated User", "updateduser", user.AdminRole)
 
-	if err != ErrDatabase {
+	if !errors.Is(err, ErrDatabase) {
 		t.Fatalf("expected database error, got %v", err)
 	}
 

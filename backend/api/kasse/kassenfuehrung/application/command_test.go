@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -108,7 +109,7 @@ func TestKassensitzungEroeffnen_BetreiberNichtKonfiguriert(t *testing.T) {
 	}
 
 	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
-	if err != ErrBetreiberNichtKonfiguriert {
+	if !errors.Is(err, ErrBetreiberNichtKonfiguriert) {
 		t.Fatalf("expected ErrBetreiberNichtKonfiguriert, got %v", err)
 	}
 }
@@ -122,7 +123,7 @@ func TestKassensitzungEroeffnen_BetreiberDatabaseError(t *testing.T) {
 	}
 
 	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
-	if err != ErrDatabase {
+	if !errors.Is(err, ErrDatabase) {
 		t.Fatalf("expected ErrDatabase, got %v", err)
 	}
 }
@@ -132,7 +133,7 @@ func TestKassensitzungEroeffnen_AlreadyOpen(t *testing.T) {
 	cmd := newTestCommand(testOpenKS)
 
 	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
-	if err != ErrKasseAlreadyOpen {
+	if !errors.Is(err, ErrKasseAlreadyOpen) {
 		t.Fatalf("expected ErrKasseAlreadyOpen, got %v", err)
 	}
 }
@@ -390,7 +391,7 @@ func TestKasseAbschliessen_TischSaldoSperre(t *testing.T) {
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
-	if err != ErrTischeSaldoOffen {
+	if !errors.Is(err, ErrTischeSaldoOffen) {
 		t.Fatalf("expected ErrTischeSaldoOffen, got %v", err)
 	}
 
@@ -408,7 +409,7 @@ func TestKasseAbschliessen_KasseNichtGeoeffnet(t *testing.T) {
 	cmd := newTestCommand(nil)
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
-	if err != ErrKasseNichtGeoeffnet {
+	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
@@ -478,7 +479,7 @@ func TestKasseAbschliessen_KonfliktSetztStatusNichtZurueck(t *testing.T) {
 		TSERepo: tseGateMock{},
 	}
 
-	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrConflict {
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 	if sitzungMock.OffenCalls != 0 {
@@ -500,7 +501,7 @@ func TestKasseAbschliessen_DeadlockMapsToKonflikt(t *testing.T) {
 		TSERepo: tseGateMock{},
 	}
 
-	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != ErrConflict {
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
@@ -639,7 +640,7 @@ func TestKasseAbschliessen_WiederanlaufMitZwischenbuchungBrichtAb(t *testing.T) 
 		TSERepo:             tseGateMock{},
 	}
 
-	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500); err != ErrBuchungenNachKassensturz {
+	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500); !errors.Is(err, ErrBuchungenNachKassensturz) {
 		t.Fatalf("expected ErrBuchungenNachKassensturz, got %v", err)
 	}
 
@@ -661,7 +662,7 @@ func TestGeldtransitBuchen_WirdAbgeschlossen(t *testing.T) {
 	cmd := newTestCommand(imAbschluss)
 
 	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "einlage", 1000, "Wechselgeld")
-	if err != ErrKasseWirdAbgeschlossen {
+	if !errors.Is(err, ErrKasseWirdAbgeschlossen) {
 		t.Fatalf("expected ErrKasseWirdAbgeschlossen, got %v", err)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -717,7 +718,7 @@ func TestKassenbelegDrucken_ZahlungNichtGefunden(t *testing.T) {
 	}
 
 	_, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: "11111111-1111-1111-1111-111111111111"})
-	if err != ErrZahlungNichtGefunden {
+	if !errors.Is(err, ErrZahlungNichtGefunden) {
 		t.Fatalf("expected ErrZahlungNichtGefunden, got %v", err)
 	}
 }
@@ -760,7 +761,7 @@ func TestKassenbelegDrucken_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID}); err != ErrKassenbelegDruckerNichtKonfiguriert {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID}); !errors.Is(err, ErrKassenbelegDruckerNichtKonfiguriert) {
 		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
 	}
 }
@@ -842,7 +843,7 @@ func TestKassenbelegDrucken_Direktverkauf_NichtGefunden(t *testing.T) {
 	}
 
 	_, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: uuid.New().String()})
-	if err != ErrVerkaufNichtGefunden {
+	if !errors.Is(err, ErrVerkaufNichtGefunden) {
 		t.Fatalf("expected ErrVerkaufNichtGefunden, got %v", err)
 	}
 }
@@ -878,7 +879,7 @@ func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t 
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID}); err != ErrKassenbelegDruckerNichtKonfiguriert {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID}); !errors.Is(err, ErrKassenbelegDruckerNichtKonfiguriert) {
 		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
 	}
 }
@@ -1203,7 +1204,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_NichtGefunden(t *testing.T) {
 	}
 
 	_, err = command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID, StornierungID: uuid.New().String()})
-	if err != ErrStornierungNichtGefunden {
+	if !errors.Is(err, ErrStornierungNichtGefunden) {
 		t.Fatalf("expected ErrStornierungNichtGefunden, got %v", err)
 	}
 }

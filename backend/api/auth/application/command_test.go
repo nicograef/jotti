@@ -4,6 +4,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/nicograef/jotti/backend/api/auth/throttle"
@@ -18,7 +19,7 @@ func TestGenerateJWTToken_NotFound(t *testing.T) {
 
 	_, err := command.GenerateJWTToken(context.Background(), "nonexistent", "password")
 
-	if err != ErrUserNotFound {
+	if !errors.Is(err, ErrUserNotFound) {
 		t.Fatalf("expected user not found error, got %v", err)
 	}
 }
@@ -43,7 +44,7 @@ func TestGenerateJWTToken_InvalidPassword(t *testing.T) {
 
 	_, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword")
 
-	if err != ErrInvalidPassword {
+	if !errors.Is(err, ErrInvalidPassword) {
 		t.Fatalf("expected invalid password error, got %v", err)
 	}
 }
@@ -54,7 +55,7 @@ func TestGenerateJWTToken_HashError(t *testing.T) {
 
 	_, err := command.GenerateJWTToken(context.Background(), "testuser", "somepassword")
 
-	if err != ErrTokenGeneration {
+	if !errors.Is(err, ErrTokenGeneration) {
 		t.Fatalf("expected token generation error, got %v", err)
 	}
 }
@@ -65,7 +66,7 @@ func TestGenerateJWTToken_UserInactive(t *testing.T) {
 
 	_, err := command.GenerateJWTToken(context.Background(), "testuser", "testpassword")
 
-	if err != ErrNotActive {
+	if !errors.Is(err, ErrNotActive) {
 		t.Fatalf("expected user not active error, got %v", err)
 	}
 }
@@ -80,13 +81,13 @@ func TestGenerateJWTToken_ThrottledAfterRepeatedFailures(t *testing.T) {
 
 	// Die Standardschwelle ist 5: fünf Fehlversuche liefern noch invalid_password ...
 	for i := 0; i < 5; i++ {
-		if _, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword"); err != ErrInvalidPassword {
+		if _, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword"); !errors.Is(err, ErrInvalidPassword) {
 			t.Fatalf("Versuch %d: expected ErrInvalidPassword, got %v", i+1, err)
 		}
 	}
 
 	// ... der nächste Versuch ist gedrosselt (nicht mehr invalid_password).
-	if _, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword"); err != ErrLoginThrottled {
+	if _, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword"); !errors.Is(err, ErrLoginThrottled) {
 		t.Fatalf("expected ErrLoginThrottled after threshold, got %v", err)
 	}
 }
@@ -106,7 +107,7 @@ func TestGenerateJWTToken_SuccessResetsThrottle(t *testing.T) {
 
 	// Vier weitere Fehlversuche dürfen dank Reset noch nicht drosseln.
 	for i := 0; i < 4; i++ {
-		if _, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword"); err != ErrInvalidPassword {
+		if _, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword"); !errors.Is(err, ErrInvalidPassword) {
 			t.Fatalf("nach Reset, Versuch %d: expected ErrInvalidPassword, got %v", i+1, err)
 		}
 	}
@@ -122,7 +123,7 @@ func TestGenerateJWTToken_ThrottleIsPerAccount(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		_, _ = command.GenerateJWTToken(context.Background(), "opfer", "wrongpassword")
 	}
-	if _, err := command.GenerateJWTToken(context.Background(), "opfer", "wrongpassword"); err != ErrLoginThrottled {
+	if _, err := command.GenerateJWTToken(context.Background(), "opfer", "wrongpassword"); !errors.Is(err, ErrLoginThrottled) {
 		t.Fatalf("expected 'opfer' to be throttled, got %v", err)
 	}
 

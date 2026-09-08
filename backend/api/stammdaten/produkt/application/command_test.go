@@ -4,6 +4,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -42,7 +43,7 @@ func TestCreateProdukt_AlreadyExists(t *testing.T) {
 	cmd := Command{ProduktRepo: repo}
 
 	_, err := cmd.CreateProdukt(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
-	if err != ErrProduktAlreadyExists {
+	if !errors.Is(err, ErrProduktAlreadyExists) {
 		t.Fatalf("expected ErrProduktAlreadyExists, got %v", err)
 	}
 }
@@ -70,7 +71,7 @@ func TestUpdateProdukt_NotFound(t *testing.T) {
 	cmd := Command{ProduktRepo: repo}
 
 	err := cmd.UpdateProdukt(context.Background(), 999, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
-	if err != ErrProduktNotFound {
+	if !errors.Is(err, ErrProduktNotFound) {
 		t.Fatalf("expected ErrProduktNotFound, got %v", err)
 	}
 }
@@ -80,7 +81,7 @@ func TestVerschiebeProdukt_NotFound(t *testing.T) {
 	cmd := Command{ProduktRepo: repo}
 
 	err := cmd.VerschiebeProdukt(context.Background(), 999, produkt.RichtungHoch)
-	if err != ErrProduktNotFound {
+	if !errors.Is(err, ErrProduktNotFound) {
 		t.Fatalf("expected ErrProduktNotFound, got %v", err)
 	}
 }
@@ -90,7 +91,7 @@ func TestVerschiebeVariante_NotFound(t *testing.T) {
 	cmd := Command{ProduktRepo: repo}
 
 	err := cmd.VerschiebeVariante(context.Background(), 999, produkt.RichtungRunter)
-	if err != ErrVarianteNotFound {
+	if !errors.Is(err, ErrVarianteNotFound) {
 		t.Fatalf("expected ErrVarianteNotFound, got %v", err)
 	}
 }

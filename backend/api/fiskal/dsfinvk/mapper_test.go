@@ -4,6 +4,7 @@ package dsfinvk
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 	"strconv"
 	"strings"
@@ -1598,7 +1599,7 @@ func TestMapEmptySessionIsError(t *testing.T) {
 	}
 
 	_, err := Map(testSnapshot(), []event.Event{eroeffnet}, nil)
-	if err != ErrKeineVorgaenge {
+	if !errors.Is(err, ErrKeineVorgaenge) {
 		t.Fatalf("Map() error = %v, want ErrKeineVorgaenge", err)
 	}
 }

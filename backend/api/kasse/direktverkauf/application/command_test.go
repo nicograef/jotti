@@ -5,6 +5,7 @@ package application
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -134,7 +135,7 @@ func TestDirektverkaufTaetigen_KasseNichtGeoeffnet(t *testing.T) {
 	command := newCommand(&spyEventRepo{}, nil)
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
-	if err != ErrKasseNichtGeoeffnet {
+	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
@@ -205,7 +206,7 @@ func TestDirektverkaufTaetigen_InactiveVariante(t *testing.T) {
 	}
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", inputs, "")
-	if err != enrichment.ErrVarianteNichtAktiv {
+	if !errors.Is(err, enrichment.ErrVarianteNichtAktiv) {
 		t.Fatalf("expected ErrVarianteNichtAktiv, got %v", err)
 	}
 	if len(spy.written) != 0 {
@@ -222,7 +223,7 @@ func TestDirektverkaufTaetigen_ProduktNotFound(t *testing.T) {
 	}
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
-	if err != enrichment.ErrProduktNotFound {
+	if !errors.Is(err, enrichment.ErrProduktNotFound) {
 		t.Fatalf("expected ErrProduktNotFound, got %v", err)
 	}
 	if len(spy.written) != 0 {
@@ -235,7 +236,7 @@ func TestDirektverkaufTaetigen_Conflict(t *testing.T) {
 	command := newCommand(spy, testOpenKS)
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
-	if err != ErrConflict {
+	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
@@ -245,7 +246,7 @@ func TestDirektverkaufTaetigen_DeadlockMapsToConflict(t *testing.T) {
 	command := newCommand(spy, testOpenKS)
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
-	if err != ErrConflict {
+	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
@@ -340,7 +341,7 @@ func TestDirektverkaufStornieren_KasseNichtGeoeffnet(t *testing.T) {
 	command := newCommand(&spyEventRepo{}, nil)
 
 	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
-	if err != ErrKasseNichtGeoeffnet {
+	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
@@ -350,7 +351,7 @@ func TestDirektverkaufStornieren_VerkaufNichtGefunden(t *testing.T) {
 	command := newCommand(spy, testOpenKS)
 
 	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
-	if err != ErrVerkaufNichtGefunden {
+	if !errors.Is(err, ErrVerkaufNichtGefunden) {
 		t.Fatalf("expected ErrVerkaufNichtGefunden, got %v", err)
 	}
 	if len(spy.written) != 0 {
@@ -364,7 +365,7 @@ func TestDirektverkaufStornieren_UeberVerfuegbareMenge(t *testing.T) {
 	command := newCommand(spy, testOpenKS)
 
 	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 3}}, "Zu viel")
-	if err != ErrPositionNichtStornierbar {
+	if !errors.Is(err, ErrPositionNichtStornierbar) {
 		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
 	if len(spy.written) != 0 {
@@ -385,7 +386,7 @@ func TestDirektverkaufStornieren_DuplikatPositionRefs(t *testing.T) {
 			{PositionID: positionID, Menge: menge},
 		}
 		err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, refs, "Duplikat")
-		if err != ErrPositionNichtStornierbar {
+		if !errors.Is(err, ErrPositionNichtStornierbar) {
 			t.Fatalf("menge %d: expected ErrPositionNichtStornierbar, got %v", menge, err)
 		}
 		if len(spy.written) != 0 {
@@ -436,7 +437,7 @@ func TestDirektverkaufStornieren_Conflict(t *testing.T) {
 	command := newCommand(spy, testOpenKS)
 
 	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
-	if err != ErrConflict {
+	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }

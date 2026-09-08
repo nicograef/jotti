@@ -5,6 +5,7 @@ package dsfinvk
 import (
 	"archive/zip"
 	"bytes"
+	"errors"
 	"sort"
 	"testing"
 
@@ -62,7 +63,7 @@ func TestBuildArchiveContents(t *testing.T) {
 
 func TestBuildArchiveEmptySession(t *testing.T) {
 	_, err := BuildArchive(testSnapshot(), nil, nil)
-	if err != ErrKeineVorgaenge {
+	if !errors.Is(err, ErrKeineVorgaenge) {
 		t.Fatalf("BuildArchive() error = %v, want ErrKeineVorgaenge", err)
 	}
 }

@@ -4,6 +4,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -75,7 +76,7 @@ func TestTischAktualisieren_NotFound(t *testing.T) {
 	command := Command{TischRepo: repo}
 
 	err := command.TischAktualisieren(context.Background(), 999, "New Name")
-	if err != ErrTischNotFound {
+	if !errors.Is(err, ErrTischNotFound) {
 		t.Fatalf("expected ErrTischNotFound, got %v", err)
 	}
 }
@@ -103,7 +104,7 @@ func TestTischAktivieren_NotFound(t *testing.T) {
 	command := Command{TischRepo: repo}
 
 	err := command.TischAktivieren(context.Background(), 999)
-	if err != ErrTischNotFound {
+	if !errors.Is(err, ErrTischNotFound) {
 		t.Fatalf("expected ErrTischNotFound, got %v", err)
 	}
 }
@@ -131,7 +132,7 @@ func TestTischDeaktivieren_NotFound(t *testing.T) {
 	command := Command{TischRepo: repo}
 
 	err := command.TischDeaktivieren(context.Background(), 999)
-	if err != ErrTischNotFound {
+	if !errors.Is(err, ErrTischNotFound) {
 		t.Fatalf("expected ErrTischNotFound, got %v", err)
 	}
 }
@@ -142,7 +143,7 @@ func TestTischDeaktivieren_SaldoOffen(t *testing.T) {
 	command := Command{TischRepo: repo}
 
 	err := command.TischDeaktivieren(context.Background(), 1)
-	if err != ErrTischSaldoOffen {
+	if !errors.Is(err, ErrTischSaldoOffen) {
 		t.Fatalf("expected ErrTischSaldoOffen, got %v", err)
 	}
 
@@ -232,7 +233,7 @@ func TestTischLoeschen_FavoritenCleanupFehlschlag(t *testing.T) {
 	repo.SetFavoritenCleanup(favoriten.RemoveByTisch)
 	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
-	if err := command.TischLoeschen(context.Background(), 1); err != ErrDatabase {
+	if err := command.TischLoeschen(context.Background(), 1); !errors.Is(err, ErrDatabase) {
 		t.Fatalf("expected ErrDatabase, got %v", err)
 	}
 
@@ -252,7 +253,7 @@ func TestTischLoeschen_SaldoOffen(t *testing.T) {
 	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
 	err := command.TischLoeschen(context.Background(), 1)
-	if err != ErrTischSaldoOffen {
+	if !errors.Is(err, ErrTischSaldoOffen) {
 		t.Fatalf("expected ErrTischSaldoOffen, got %v", err)
 	}
 

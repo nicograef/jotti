@@ -5,6 +5,7 @@ package application
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -164,7 +165,7 @@ func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 	}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
-	if err != ErrKasseNichtGeoeffnet {
+	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
@@ -235,7 +236,7 @@ func TestBestellungAufnehmen_Conflict(t *testing.T) {
 	}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
-	if err != ErrConflict {
+	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
@@ -253,7 +254,7 @@ func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
 	}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
-	if err != ErrConflict {
+	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
@@ -272,7 +273,7 @@ func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {
 	}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInactiveTisch.ID, inputs, "")
-	if err != ErrTischNotActive {
+	if !errors.Is(err, ErrTischNotActive) {
 		t.Fatalf("expected ErrTischNotActive, got %v", err)
 	}
 }
@@ -297,7 +298,7 @@ func TestBestellungAufnehmen_InactiveVariante(t *testing.T) {
 	}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testActiveTisch.ID, inputs, "")
-	if err != enrichment.ErrVarianteNichtAktiv {
+	if !errors.Is(err, enrichment.ErrVarianteNichtAktiv) {
 		t.Fatalf("expected ErrVarianteNichtAktiv, got %v", err)
 	}
 }
@@ -312,7 +313,7 @@ func TestZahlungKassieren_NonOrderedPosition(t *testing.T) {
 	}
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "")
-	if err != ErrPositionNichtBezahlbar {
+	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
@@ -339,7 +340,7 @@ func TestZahlungKassieren_DoublePayment(t *testing.T) {
 
 	// Try to pay again — should fail
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
-	if err != ErrPositionNichtBezahlbar {
+	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
@@ -388,7 +389,7 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 
 	err = command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
 		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
-	if err != ErrConflict {
+	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
@@ -533,7 +534,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 	refs := []kasse.PositionRef{{PositionID: posID, Menge: 1}}
 
 	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
-	if err != ErrPositionNichtStornierbar {
+	if !errors.Is(err, ErrPositionNichtStornierbar) {
 		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
 }
@@ -561,7 +562,7 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 	}
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
-	if err != ErrPositionNichtBezahlbar {
+	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
@@ -594,7 +595,7 @@ func TestZahlungKassieren_DuplikatPositionRefs(t *testing.T) {
 	}
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, duplikatRefs, "")
-	if err != ErrPositionNichtBezahlbar {
+	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
@@ -635,7 +636,7 @@ func TestStornierungErteilen_DuplikatPositionRefs(t *testing.T) {
 	}
 
 	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "Duplikat")
-	if err != ErrPositionNichtStornierbar {
+	if !errors.Is(err, ErrPositionNichtStornierbar) {
 		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
 }
@@ -839,14 +840,14 @@ func TestBestellungUmbuchen_PositionNichtUmbuchbar(t *testing.T) {
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
-	if err != ErrPositionNichtUmbuchbar {
+	if !errors.Is(err, ErrPositionNichtUmbuchbar) {
 		t.Fatalf("expected ErrPositionNichtUmbuchbar, got %v", err)
 	}
 }
 
 func TestBestellungUmbuchen_GleicherTisch(t *testing.T) {
 	err := Command{}.BestellungUmbuchen(context.Background(), 1, "Test User", 3, 3, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
-	if err != ErrUmbuchungGleicherTisch {
+	if !errors.Is(err, ErrUmbuchungGleicherTisch) {
 		t.Fatalf("expected ErrUmbuchungGleicherTisch, got %v", err)
 	}
 }
@@ -863,7 +864,7 @@ func TestBestellungUmbuchen_ZielTischNotActive(t *testing.T) {
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
-	if err != ErrTischNotActive {
+	if !errors.Is(err, ErrTischNotActive) {
 		t.Fatalf("expected ErrTischNotActive, got %v", err)
 	}
 }
@@ -881,7 +882,7 @@ func TestBestellungUmbuchen_ZielTischNotFound(t *testing.T) {
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, 99, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
-	if err != ErrTischNotFound {
+	if !errors.Is(err, ErrTischNotFound) {
 		t.Fatalf("expected ErrTischNotFound, got %v", err)
 	}
 }
@@ -895,7 +896,7 @@ func TestBestellungUmbuchen_KasseNichtGeoeffnet(t *testing.T) {
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", 1, 2, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
-	if err != ErrKasseNichtGeoeffnet {
+	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
@@ -927,7 +928,7 @@ func TestBestellungUmbuchen_Conflict(t *testing.T) {
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
-	if err != ErrConflict {
+	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
