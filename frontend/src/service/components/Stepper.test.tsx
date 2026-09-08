@@ -25,8 +25,8 @@ describe('Stepper', () => {
     const minus = screen.getByRole('button', { name: 'entfernen' })
     // Regulär deaktiviert (nicht antippbar) statt geisterhaft-gestrichelt.
     expect(minus).toBeDisabled()
-    // Die frühere „Ghost"-Darstellung (voll deckend + gestrichelt) ließ den
-    // deaktivierten Button antippbar wirken — sie darf nicht zurückkehren.
+    // Nicht als „Ghost"-Darstellung (voll deckend + gestrichelt): das würde
+    // den deaktivierten Button antippbar wirken lassen.
     expect(minus.className).not.toContain('border-dashed')
     expect(minus.className).not.toContain('opacity-100')
 

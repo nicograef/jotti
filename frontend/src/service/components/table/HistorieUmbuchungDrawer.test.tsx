@@ -201,8 +201,7 @@ describe('HistorieUmbuchungDrawer', () => {
     )
   })
 
-  // A2: Der Erfolg meldet den Namen des Ziel-Tischs für den Erfolgs-Pop; der
-  // frühere „Bestellung umgebucht."-Toast entfällt.
+  // A2: Der Erfolg meldet den Namen des Ziel-Tischs für den Erfolgs-Pop.
   it('meldet den Ziel-Tischnamen an den Aufrufer und zeigt keinen Toast', async () => {
     const user = userEvent.setup()
     const onBestellungUmgebucht = vi.fn()
