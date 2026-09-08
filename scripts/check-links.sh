@@ -53,11 +53,10 @@ for file in "${files[@]}"; do
   is_allowed_file "$file" && continue
   dir="$(dirname "$file")"
   while IFS=: read -r lineno raw; do
-    # Drop a leading "@" (CLAUDE.md's `@AGENTS.md` import syntax), a
-    # trailing markdown anchor, and stray sentence punctuation.
+    # Drop a leading "@" (CLAUDE.md's `@AGENTS.md` import syntax). LINK_RE
+    # already stops the match at ".md", so raw never carries a trailing
+    # anchor or sentence punctuation to strip.
     link="${raw#@}"
-    link="${link%%#*}"
-    link="${link%[.,;:]}"
     [ -z "$link" ] && continue
     case "$link" in
     //* | http:* | https:* | \$\{*) continue ;; # a URL or a runtime-built path, not a repo path

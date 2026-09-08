@@ -27,7 +27,6 @@ jobs:
       windows: ${{ steps.changes.outputs.windows }}
       website: ${{ steps.changes.outputs.website }}
       scripts: ${{ steps.changes.outputs.scripts }}
-      docs: ${{ steps.changes.outputs.docs }}
       ci: ${{ steps.changes.outputs.ci }}
     steps:
       - uses: actions/checkout@v7
@@ -52,11 +51,6 @@ jobs:
               - 'website/**'
             scripts:
               - 'scripts/**'
-            docs:
-              - 'docs/**'
-              - '**/*.md'
-              - 'AGENTS.md'
-              - 'README.md'
             ci:
               - '.github/workflows/ci.yml'
 
@@ -363,15 +357,19 @@ jobs:
         run: shellcheck -x scripts/*.sh
 
   # Repo-wide gates that don't belong to a single component: the check-*.sh
-  # scripts (prose, links, build tags) and the repo-wide Prettier check,
-  # which otherwise only runs inside frontend-ci and so never runs on a
-  # docs-only pull request.
+  # scripts (build tags, language, prose, links) and the repo-wide Prettier
+  # check, which otherwise only runs inside frontend-ci and so never runs on
+  # a docs-only pull request. Runs unconditionally — every gate here reads
+  # the whole tree, so no path filter narrows it correctly.
   repo-checks:
-    needs: changes
-    if: ${{ (needs.changes.outputs.docs == 'true') || (needs.changes.outputs.scripts == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: 1.27.1
+          cache-dependency-path: backend/go.sum
 
       - uses: pnpm/action-setup@v6
         with:
