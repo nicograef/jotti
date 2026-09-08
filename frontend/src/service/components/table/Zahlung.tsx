@@ -37,7 +37,7 @@ interface ZahlungProps {
   // Menge), von TablePage gehoben, damit sie den Tab-Wechsel überlebt.
   mengenSteuerung: MengenSteuerung<string>
   // Meldet die erfolgreiche Zahlung samt Bestätigungstext an die Seite, die den
-  // Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
+  // Erfolgs-Pop hostet.
   onErfolg: (nachricht: string) => void
 }
 

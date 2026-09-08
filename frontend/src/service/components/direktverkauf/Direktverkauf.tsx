@@ -14,7 +14,7 @@ interface DirektverkaufProps {
   products: Produkt[]
   productsLoading: boolean
   // Meldet den abgeschlossenen Verkauf samt Bestätigungstext an die Seite, die
-  // den Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
+  // den Erfolgs-Pop hostet.
   onErfolg?: (nachricht: string) => void
 }
 

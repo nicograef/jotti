@@ -24,8 +24,8 @@ const tischBackend = new TischBackend(BackendSingleton)
 
 // Reihenfolge im Alle-Tische-Drawer: durchgehend nach Tischname mit
 // numerischem Vergleich („Tisch 2" vor „Tisch 10"). Favoriten und Saldo
-// werden pro Zeile weiter angezeigt, aber nicht mehr zur Sortierung genutzt —
-// so bleibt die Reihenfolge stabil und vorhersehbar. Reine Darstellungs-
+// werden pro Zeile angezeigt, fließen aber nicht in die Sortierung ein — so
+// bleibt die Reihenfolge stabil und vorhersehbar. Reine Darstellungs-
 // sortierung bereits vollständig geladener Daten.
 function sortiereTische(
   a: AktiverTischMitFavorit,
@@ -50,8 +50,8 @@ export function TischAuswahlDrawer({
     actionLabel: 'Favorit ändern',
   })
 
-  // Reine Durchblätter-/Favorisier-Liste — die Suche über alle Tische liegt
-  // jetzt auf der Hauptseite (TableSelectionPage), kein zweites Suchfeld hier.
+  // Reine Durchblätter-/Favorisier-Liste — die Suche über alle Tische ist Teil
+  // der Hauptseite (TableSelectionPage), kein zweites Suchfeld hier.
   const sortierteTische = [...tische].sort(sortiereTische)
 
   const toggleFavorit = async (tisch: AktiverTischMitFavorit) => {

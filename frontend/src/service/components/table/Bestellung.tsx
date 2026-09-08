@@ -19,7 +19,7 @@ interface BestellungProps {
   // Auswahl das Aus- und Wiedereinhängen der Tab-Inhalte überlebt.
   mengenSteuerung: MengenSteuerung<number>
   // Meldet die erfolgreiche Buchung samt Bestätigungstext an die Seite, die den
-  // Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
+  // Erfolgs-Pop hostet.
   onErfolg: (nachricht: string) => void
 }
 

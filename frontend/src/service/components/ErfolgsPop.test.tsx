@@ -77,7 +77,7 @@ describe('ErfolgsPop', () => {
 
     fireEvent.click(screen.getByRole('status'))
 
-    // Ein Tap schließt den Pop früher als der Auto-Dismiss-Timer.
+    // Ein Tap schließt den Pop sofort, unabhängig vom Auto-Dismiss-Timer.
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 

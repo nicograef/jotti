@@ -2,7 +2,7 @@ import { Check } from 'lucide-react'
 import { useEffect } from 'react'
 
 // Anzeigedauer bis zum automatischen Schließen (Motion-Inventar „Erfolgs-Pop",
-// ~1,4 s). Ein Tap schließt jederzeit früher.
+// ~1,4 s). Ein Tap schließt jederzeit sofort.
 const ANZEIGE_DAUER_MS = 1400
 
 interface ErfolgsPopProps {
