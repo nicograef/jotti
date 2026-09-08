@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 
 // Statuszelle der Übersicht: im Normalzustand neutral gerahmt, im Fehlerfall rot
 // (Rahmen destructive/40, Fläche destructive/4) mit „Beheben"-Button zur
-// zuständigen Admin-Seite. Ersetzt die früheren Alert-Banner (Design-Handoff 1a).
+// zuständigen Admin-Seite.
 function StatusZelle({
   icon,
   titel,

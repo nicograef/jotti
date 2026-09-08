@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 
-// Die zwei Panels neben der Benutzertabelle (Design-Handoff 1e). Links die
-// Tabelle, rechts das Onboarding-Verfahren und die Rechte-Erklärung — beide mit
-// der Copy aus dem Handoff. Schlichte Karten im Stil der übrigen Admin-Seiten.
+// Die zwei Panels neben der Benutzertabelle: links die Tabelle, rechts das
+// Onboarding-Verfahren und die Rechte-Erklärung. Schlichte Karten im Stil der
+// übrigen Admin-Seiten.
 function OnboardingSchritt({
   nummer,
   children,

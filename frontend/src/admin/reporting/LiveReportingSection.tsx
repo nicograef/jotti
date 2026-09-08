@@ -34,7 +34,7 @@ import { formatDatum, formatServicekraft, formatStand } from './utils'
 import { VerkaufStatistik } from './VerkaufStatistik'
 
 // Nach fünf Einträgen wird die Liste offener Tische gekürzt; „Alle n anzeigen"
-// blendet den Rest ein (Design-Handoff 1a).
+// blendet den Rest ein.
 const OFFENE_TISCHE_VORSCHAU = 5
 
 export function LiveReportingSection({

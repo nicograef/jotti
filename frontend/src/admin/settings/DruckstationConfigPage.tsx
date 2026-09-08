@@ -455,7 +455,7 @@ function AlarmKarte() {
 
   // Der Warntext folgt der tatsächlichen Bon-Art: nur Arbeitsbons landen in der
   // Küche/an der Theke; ein Kassenbeleg (Gäste-Beleg) oder Testbon darf nicht
-  // als Küchenproblem beschrieben werden (NEU02).
+  // als Küchenproblem beschrieben werden.
   const anzahl = druckauftraege.length
   const { singular, plural, kuecheBetroffen } = beschreibeFehlBons(
     druckauftraege.map((auftrag) => auftrag.bonArt),

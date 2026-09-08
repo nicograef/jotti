@@ -83,7 +83,7 @@ describe('EuroInput', () => {
 
     fireEvent.change(input, { target: { value: '1' } })
 
-    // Über eine Sekunde warten: früher hätte der Debounce hier zu „1,00" umformatiert.
+    // Über eine Sekunde warten: ohne den Debounce-Guard würde hier zu „1,00" umformatiert.
     act(() => {
       vi.advanceTimersByTime(1500)
     })

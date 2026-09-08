@@ -11,7 +11,7 @@ interface TischItemProps {
   onDeactivate: (tischId: number) => Promise<void>
 }
 
-// Kompakte Tisch-Kachel (Design-Handoff 1d): Name, Mini-Switch und Statustext.
+// Kompakte Tisch-Kachel: Name, Mini-Switch und Statustext.
 // Ein offener Saldo zeigt den Betrag statt „aktiv“ und sperrt den Switch — das
 // Backend erzwingt den Schutz zusätzlich als Single Source of Truth. Die
 // Begründung steht als stets sichtbare Zeile (kein Hover-Tooltip: die

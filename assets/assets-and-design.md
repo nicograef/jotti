@@ -286,7 +286,7 @@ Das Manifest liegt unter `frontend/public/manifest.webmanifest`:
 | PWA Startbildschirm-Icon          | `jotti-logo-icon-light.png`               | `/icons/jotti-logo-icon-light.png` |
 | Apple Touch Icon                  | `jotti-logo-icon-light.png`               | `/icons/jotti-logo-icon-light.png` |
 
-**Hinweis:** `jotti-logo-full-*.png` und `jotti-symbol.png` sind bisher nicht in `public/` kopiert. Sie werden erst benötigt, wenn die Logo-Komponente im Frontend implementiert wird (z. B. in `AdminSidebar.tsx` oder `LoginPage.tsx`).
+**Hinweis:** `jotti-logo-full-*.png` und `jotti-symbol.png` sind noch nicht in `public/` kopiert. Sie werden erst benötigt, wenn die Logo-Komponente im Frontend implementiert wird (z. B. in `AdminSidebar.tsx` oder `LoginPage.tsx`).
 
 ---
 

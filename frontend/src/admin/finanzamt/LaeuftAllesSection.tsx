@@ -137,7 +137,7 @@ function StoerungPanel({ stoerungen }: { stoerungen: TSEStoerung[] }) {
   const anzahl = stoerungen.length
   const klartext =
     anzahl === 0
-      ? 'Keine dokumentierte Störung — die TSE-Signierung lief bisher ohne Ausfall.'
+      ? 'Keine dokumentierte Störung — die TSE-Signierung läuft ohne Ausfall.'
       : `${String(anzahl)} dokumentierte ${anzahl === 1 ? 'Störung' : 'Störungen'}. Wird automatisch für die gesetzliche Ausfalldokumentation geführt.`
 
   return (

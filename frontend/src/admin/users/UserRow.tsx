@@ -37,7 +37,7 @@ interface UserRowProps {
   onDelete: (userId: number) => Promise<void>
 }
 
-// Eine Zeile der Benutzertabelle (Design-Handoff 1e): Name mit Login (und beim
+// Eine Zeile der Benutzertabelle: Name mit Login (und beim
 // eigenen Konto der „das bist du“-Badge), Rollen-Badge, Status-Switch und die
 // Aktionen (Bearbeiten plus „···“-Menü mit Passwort-Zurücksetzen und Löschen).
 // Am eigenen Konto sind Löschen und Status-Switch gesperrt; die Backend-Schutze

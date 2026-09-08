@@ -42,7 +42,7 @@ export function AdminDashboardPage() {
 
   const druckFehler = druckauftraege.length > 0
   // Substantiv folgt der Bon-Art: „Bon" nur für Arbeitsbons, sonst „Kassenbeleg"
-  // bzw. „Testbon"; gemischt bleibt es der neutrale Oberbegriff (NEU02).
+  // bzw. „Testbon"; gemischt bleibt es der neutrale Oberbegriff.
   const { singular: druckSingular, plural: druckPlural } = beschreibeFehlBons(
     druckauftraege.map((auftrag) => auftrag.bonArt),
   )

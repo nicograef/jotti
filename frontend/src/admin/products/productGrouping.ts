@@ -13,7 +13,7 @@ export const KATEGORIE_ORDER: Kategorie[] = [
   Kategorie.SONSTIGES,
 ]
 
-// Deutsche Abschnitts-Überschriften je Kategorie (Design-Handoff 1c).
+// Deutsche Abschnitts-Überschriften je Kategorie.
 export const KATEGORIE_LABEL: Record<Kategorie, string> = {
   essen: 'Essen',
   getraenk: 'Getränke',

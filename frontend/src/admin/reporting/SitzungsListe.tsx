@@ -9,7 +9,7 @@ import { formatDatumKurz } from './utils'
 // SitzungsListe ist die linke Spalte der Kassenberichte: die offene Sitzung als
 // nicht wählbarer Hinweis, der zur Übersicht führt, darunter die abgeschlossenen
 // Sitzungen als wählbare Karten (Datum, Nr., Bezeichnung, Gesamtumsatz). Status-
-// Emojis entfallen; der Auswahl-Zustand folgt dem Design-Handoff (Abschnitt 1b).
+// Emojis entfallen; der Auswahl-Zustand zeigt sich über Rahmen und Fläche.
 export function SitzungsListe({
   sitzungen,
   offeneSitzung,

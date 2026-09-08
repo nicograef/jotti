@@ -11,8 +11,7 @@ const buttonVariants = cva(
       variant: {
         // Deaktivierte Primäraktionen nutzen das dedizierte Disabled-Token
         // (neutrale Fläche + AA-Text in Light und Dark) statt einer opacity-50-
-        // Abblendung des Grüns, die im Dark Mode unter AA fällt. Phase 9
-        // verdrahtet dieses Treatment an die übrigen Primäraktions-Call-Sites.
+        // Abblendung des Grüns, die im Dark Mode unter AA fällt.
         default:
           "bg-primary text-primary-foreground shadow-xs hover:bg-primary/80 disabled:bg-disabled disabled:text-disabled-foreground",
         outline:

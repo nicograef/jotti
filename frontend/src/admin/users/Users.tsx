@@ -19,8 +19,7 @@ interface UsersProps {
   onDeleted: (userId: number) => void
 }
 
-// Benutzer als Tabelle (Design-Handoff 1e): Spalten Name·Login, Rolle, Status
-// und Aktionen. Ersetzt das frühere Kachel-Grid.
+// Benutzer als Tabelle: Spalten Name·Login, Rolle, Status und Aktionen.
 export function Users(props: UsersProps) {
   const { loading: activateLoading, run: runActivate } = useActionSubmit({
     actionLabel: 'Helfer aktivieren',
