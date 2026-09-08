@@ -27,6 +27,7 @@ jobs:
       windows: ${{ steps.changes.outputs.windows }}
       website: ${{ steps.changes.outputs.website }}
       scripts: ${{ steps.changes.outputs.scripts }}
+      docs: ${{ steps.changes.outputs.docs }}
       ci: ${{ steps.changes.outputs.ci }}
     steps:
       - uses: actions/checkout@v7
@@ -51,6 +52,11 @@ jobs:
               - 'website/**'
             scripts:
               - 'scripts/**'
+            docs:
+              - 'docs/**'
+              - '**/*.md'
+              - 'AGENTS.md'
+              - 'README.md'
             ci:
               - '.github/workflows/ci.yml'
 
@@ -355,6 +361,38 @@ jobs:
 
       - name: Run shellcheck
         run: shellcheck -x scripts/*.sh
+
+  # Repo-wide gates that don't belong to a single component: the check-*.sh
+  # scripts (prose, links, build tags) and the repo-wide Prettier check,
+  # which otherwise only runs inside frontend-ci and so never runs on a
+  # docs-only pull request.
+  repo-checks:
+    needs: changes
+    if: ${{ (needs.changes.outputs.docs == 'true') || (needs.changes.outputs.scripts == 'true') || (needs.changes.outputs.ci == 'true') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.6.0
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run repo checks
+        run: make check-repo
+
+      - name: Check formatting
+        run: make check-format
 
   backend-integration-tests:
     needs: changes
