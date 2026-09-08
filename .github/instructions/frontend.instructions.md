@@ -145,12 +145,12 @@ const loeschenMutation = useMutation({
 ```typescript
 import { z } from 'zod'
 
+import { createNameSchema } from '@/lib/nameSchema'
+
 export const ProduktIdSchema = z.number().int().min(1)
 
-const NameSchema = z
-  .string()
-  .min(3, { message: 'Das sieht nicht nach einem echten Namen aus.' })
-  .max(100, { message: 'Der Name ist zu lang.' })
+// Namen kommen aus der gemeinsamen Quelle; nur die Obergrenze ist bereichsspezifisch.
+const NameSchema = createNameSchema(100)
 
 const PreisCentsSchema = z
   .number()
