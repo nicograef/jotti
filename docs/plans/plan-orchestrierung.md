@@ -185,12 +185,12 @@ Workflow-Tool-Option `resumeFromRunId` fortgesetzt.
 
 ### Acceptance criteria
 
-- [ ] `docs/plans/findings-jotti-audit.md` existiert, enthält Zahlen, Top 10,
+- [x] `docs/plans/findings-jotti-audit.md` existiert, enthält Zahlen, Top 10,
       Defektklassen, Befunde je Bereich, verworfene Befunde
-- [ ] Kein Befund ohne Datei und Zeilenbereich; jeder Blocker/Major trägt einen
+- [x] Kein Befund ohne Datei und Zeilenbereich; jeder Blocker/Major trägt einen
       Verifikationsstatus
-- [ ] „Reviewer ohne Ergebnis" ist 0 oder die fehlenden Einheiten sind im Kopf benannt
-- [ ] Datei committet; Leak-Check auf Personendaten negativ
+- [x] „Reviewer ohne Ergebnis" ist 0 oder die fehlenden Einheiten sind im Kopf benannt
+- [x] Datei committet; Leak-Check auf Personendaten negativ
 
 ---
 
