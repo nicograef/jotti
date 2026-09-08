@@ -3,3 +3,7 @@ website/src/lib/published-docs.ts  # Pfade sind laut Moduldoc relativ zu docs/, 
 website/src/lib/link-rewriter.ts  # JSDoc-Beispielfragmente der Link-Rewriter-Eingabe, keine echten Repo-Pfade
 website/src/lib/link-rewriter.test.ts  # Test-Fixtures für den Link-Rewriter, docs/-relative Beispielziele ohne Präfix
 website/src/content.config.ts  # 'lizenzmodell.md' im Kommentar folgt der docs/-relativen Konvention aus published-docs.ts
+scripts/check-links.sh  # eigene Regex-Definition und Fehlermeldung enthalten '.md'-Fragmente, keine echten Pfade
+scripts/check-links.allow  # diese Datei selbst: Erklärtexte nennen 'lizenzmodell.md' als Beispielpfad
+docs/leitfaden/datenaufbewahrung.md  # 'KURZANLEITUNG.md im ZIP' nennt die shipped Datei ohne Pfad, siehe packaging/windows/KURZANLEITUNG.md
+docs/leitfaden/installation.md  # 'KURZANLEITUNG.md im ZIP' nennt die shipped Datei ohne Pfad, siehe packaging/windows/KURZANLEITUNG.md

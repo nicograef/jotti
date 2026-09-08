@@ -231,7 +231,7 @@ rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (SSL bleibt e
 # Lokaler Betrieb (LAN, HTTPS via Caddy)
 # ──────────────────────────────────────────────
 
-local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS via lokal.jotti.rocks + interner CA-Fallback) — siehe docs/leitfaden.md
+local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS via lokal.jotti.rocks + interner CA-Fallback) — siehe docs/leitfaden/betriebsarten.md
 	@LAN_IP="$$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($$i == "src") { print $$(i + 1); exit }}')"; \
 	echo "Host-LAN-IP: $${LAN_IP:-<nicht erkannt>}"; \
 	LAN_IP="$$LAN_IP" docker compose -f docker-compose.local.yml up -d --build; \

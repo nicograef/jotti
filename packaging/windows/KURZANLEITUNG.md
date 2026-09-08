@@ -157,7 +157,7 @@ Schlüssel. Zwei datenerhaltende Wege zurück:
 1. **`jotti-repair.cmd`** doppelklicken. Es gleicht das Datenbank-Passwort an den
    aktuellen Installations-Schlüssel an und startet jotti neu — ohne eure Daten zu
    verändern. Mehrfaches Ausführen schadet nicht. Danach einmal **neu anmelden**.
-2. Habt ihr noch die **`.env` aus der alten Installation** (lag früher im
+2. Habt ihr noch die **`.env` aus der alten Installation** (liegt ggf. im
    Programmordner neben `jotti-start.exe`): kopiert sie nach
    **`%PROGRAMDATA%\jotti\.env`** und startet `jotti-start.exe` erneut — dann
    verwendet jotti wieder den ursprünglichen Schlüssel.

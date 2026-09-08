@@ -62,7 +62,7 @@ des laufenden Betriebs sein, haltet euch an diese Reihenfolge.
 ## Danach: die Geräte laden sich von selbst neu
 
 Handys und Rechner behalten die alte Bedienoberfläche im Speicher, bis die Seite
-einmal neu geladen wird. **Seit Version 0.17.3 erledigt jotti das allein.** Jedes
+einmal neu geladen wird. **Jotti erledigt das automatisch.** Jedes
 geöffnete jotti fragt im Hintergrund alle halbe Minute nach, welche Version auf
 dem Rechner läuft — und zusätzlich immer dann, wenn ein weggelegtes Handy wieder
 hervorgeholt wird. Weicht die Version ab, lädt sich die Seite selbst neu: im

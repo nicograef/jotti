@@ -31,7 +31,7 @@ set -euo pipefail
 # and the login rate limit (429 after repeated bad logins).
 #
 # Host provisioning and the TLS/certificate acceptance stay manual (see
-# docs/leitfaden.md); this script only drives the already-provisioned host.
+# docs/leitfaden/self-hosting.md); this script only drives the already-provisioned host.
 #
 # NEVER runs prod-restore.sh, `docker compose down -v`, or deletes volumes —
 # no destructive step is part of any mode.

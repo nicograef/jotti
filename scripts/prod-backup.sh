@@ -142,4 +142,4 @@ if [[ -n "$BACKUP_PING_URL" ]]; then
 fi
 
 echo ""
-info "Done. Copy backups off this server regularly (10-year retention; see docs/leitfaden.md)."
+info "Done. Copy backups off this server regularly (10-year retention; see docs/leitfaden/datenaufbewahrung.md)."
