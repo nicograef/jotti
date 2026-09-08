@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	z "github.com/Oudwins/zog"
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/tisch"
@@ -57,6 +58,12 @@ type lengthCase struct {
 // lengthCases holds one row per exported string field schema under
 // backend/domain.
 var lengthCases = []lengthCase{
+	{schema: "betreiber.OrtSchema", shortest: 1, longest: 62, filler: 'a', accepts: acceptsString(betreiber.OrtSchema)},
+	{schema: "betreiber.PlzSchema", shortest: 1, longest: 10, filler: '1', accepts: acceptsString(betreiber.PlzSchema)},
+	{schema: "betreiber.SteuernummerSchema", shortest: 0, longest: 20, filler: '1', accepts: acceptsString(betreiber.SteuernummerSchema)},
+	{schema: "betreiber.StrasseSchema", shortest: 1, longest: 60, filler: 'a', accepts: acceptsString(betreiber.StrasseSchema)},
+	{schema: "betreiber.UstIDSchema", shortest: 0, longest: 15, filler: '1', accepts: acceptsString(betreiber.UstIDSchema)},
+	{schema: "betreiber.VereinsnameSchema", shortest: 1, longest: 60, filler: 'a', accepts: acceptsString(betreiber.VereinsnameSchema)},
 	{schema: "produkt.NameSchema", shortest: 3, longest: 100, filler: 'a', accepts: acceptsString(produkt.NameSchema)},
 	{schema: "tisch.TischNameSchema", shortest: 3, longest: 100, filler: 'a', accepts: acceptsString(tisch.TischNameSchema)},
 	{schema: "user.NameSchema", shortest: 3, longest: 50, filler: 'a', accepts: acceptsString(user.NameSchema)},
