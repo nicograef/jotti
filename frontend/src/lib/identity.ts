@@ -5,8 +5,9 @@ import { z } from 'zod'
 // the rules can never drift between the two areas. Each schema mirrors its zog
 // counterpart in the backend (domain/user), trim included: username 3–20
 // lowercase-alphanumeric, password 6–72, one-time password exactly 6 digits.
-// Without the trim a pasted value with surrounding spaces fails here while the
-// backend accepts it.
+// The trim matters because the backend stores the trimmed value: without it a
+// pasted credential with surrounding spaces either fails here, or reaches the
+// backend in a shape that no longer matches what was stored.
 
 export const UsernameSchema = z
   .string()
