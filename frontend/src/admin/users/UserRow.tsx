@@ -40,8 +40,9 @@ interface UserRowProps {
 // Eine Zeile der Benutzertabelle (Design-Handoff 1e): Name mit Login (und beim
 // eigenen Konto der „das bist du“-Badge), Rollen-Badge, Status-Switch und die
 // Aktionen (Bearbeiten plus „···“-Menü mit Passwort-Zurücksetzen und Löschen).
-// Am eigenen Konto wird kein Löschen angeboten; der Backend-Schutz
-// `cannot_delete_self` bleibt die zweite Verteidigung.
+// Am eigenen Konto sind Löschen und Status-Switch gesperrt; die Backend-Schutze
+// `cannot_delete_self` und `cannot_deactivate_self` bleiben die zweite
+// Verteidigung.
 export function UserRow(props: UserRowProps) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const isActive = props.user.status === UserStatus.ACTIVE
@@ -70,7 +71,7 @@ export function UserRow(props: UserRowProps) {
         <Switch
           className="cursor-pointer"
           aria-label={isActive ? 'Helfer deaktivieren' : 'Helfer aktivieren'}
-          disabled={props.loading}
+          disabled={props.loading || props.isSelf}
           checked={isActive}
           onCheckedChange={(checked) => {
             if (checked) {

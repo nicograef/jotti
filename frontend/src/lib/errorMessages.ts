@@ -20,8 +20,12 @@ const commonErrorMessages: Record<string, string> = {
     'Die Betreiberdaten sind unvollständig. Bitte im Bereich Finanzamt vervollständigen und erneut versuchen.',
   buchungen_nach_kassensturz:
     'Nach dem Kassensturz wurden noch Buchungen erfasst. Der Abschluss kann so nicht wiederholt werden. Bitte den Administrator kontaktieren.',
+  cannot_deactivate_self:
+    'Der aktuell angemeldete Benutzer kann nicht deaktiviert werden. Bitte einen anderen Benutzer wählen.',
   cannot_delete_self:
     'Der aktuell angemeldete Benutzer kann nicht gelöscht werden. Bitte einen anderen Benutzer wählen.',
+  cannot_demote_self:
+    'Die eigene Rolle kann nicht geändert werden. Bitte einen anderen Administrator darum bitten.',
   druckstation_nicht_konfiguriert:
     'Für diese Station ist kein Drucker konfiguriert. Bitte zuerst eine Drucker-IP eintragen, dann den Testbon senden.',
   conflict:

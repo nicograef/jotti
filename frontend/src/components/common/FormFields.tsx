@@ -223,7 +223,8 @@ export function RoleField<AllFormFields extends FieldValues>({
   form,
   withLabel,
   placeholder,
-}: FieldProps<{ role: UserRole } & AllFormFields>) {
+  disabled,
+}: FieldProps<{ role: UserRole } & AllFormFields> & { disabled?: boolean }) {
   const id = useId()
   return (
     <Controller
@@ -251,6 +252,7 @@ export function RoleField<AllFormFields extends FieldValues>({
             name={field.name}
             value={field.value}
             onValueChange={field.onChange}
+            disabled={disabled}
           >
             <SelectTrigger id={id} aria-invalid={fieldState.invalid}>
               <SelectValue placeholder={placeholder ?? 'Auswählen'} />
