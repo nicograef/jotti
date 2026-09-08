@@ -65,6 +65,11 @@ updates:
       frontend-npm:
         patterns:
           - "*"
+    # TypeScript bleibt auf 6.x, bis typescript-eslint TypeScript 7 unterstuetzt
+    # (typescript-eslint#10940). Minor/Patch bleiben erlaubt.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/website"
@@ -74,6 +79,11 @@ updates:
       website-npm:
         patterns:
           - "*"
+    # TypeScript bleibt auf 6.x, bis typescript-eslint TypeScript 7 unterstuetzt
+    # (typescript-eslint#10940). Minor/Patch bleiben erlaubt.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/e2e"
