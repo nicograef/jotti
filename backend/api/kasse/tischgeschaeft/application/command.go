@@ -129,15 +129,18 @@ func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.E
 }
 
 // persistTischEvent writes a tisch-session event with OCC against expectedVersion
-// (die Version des gelesenen Zustands, gegen den validiert wurde). An OCC conflict
-// maps to ErrConflict, any other write error to ErrDatabase. aktion is the success
-// log message.
+// (die Version des gelesenen Zustands, gegen den validiert wurde). ErrConflict (OCC)
+// and ErrKasseNichtGeoeffnet pass through, any other write error becomes ErrDatabase.
+// aktion is the success log message.
 func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
 	log := zerolog.Ctx(ctx)
 
 	if err := writeEvent(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
-		if errors.Is(err, ErrConflict) {
-			return ErrConflict
+		// Beides sind fachliche Antworten, die der Handler auf 409 abbildet: der
+		// OCC-Konflikt und die Kassensitzung, die zwischen Lesen und Schreiben
+		// geschlossen wurde. Im ErrDatabase-Fallback würden sie zu 500.
+		if errors.Is(err, ErrConflict) || errors.Is(err, ErrKasseNichtGeoeffnet) {
+			return err
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write event to database")
 		return ErrDatabase
@@ -241,6 +244,11 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 				return nil
 			}
 			return ErrConflict
+		}
+		// Die Kassensitzung wurde zwischen Lesen und Schreiben geschlossen — 409,
+		// kein Datenbankfehler.
+		if errors.Is(err, ErrKasseNichtGeoeffnet) {
+			return err
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung aufgenommen event to database")
 		return ErrDatabase

@@ -170,6 +170,62 @@ func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 	}
 }
 
+// Schließt die Kassensitzung zwischen dem Lesen und dem Schreiben, lehnt der
+// Trigger des Kassenjournals den Write mit ErrKassensitzungNichtOffen ab. Der
+// Command muss daraus ErrKasseNichtGeoeffnet machen, damit der Handler 409
+// kasse_nicht_geoeffnet liefert statt eines 500.
+func TestBestellungAufnehmen_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
+	ctx := context.Background()
+	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock.AddVariante(testProduct.ID, testVariant)
+	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, kassenjournal_repo.ErrKassensitzungNichtOffen)
+	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct}, eventMock)
+	command.ProduktRepo = productMock
+
+	inputs := []enrichment.PositionInput{
+		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
+	}
+
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
+	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
+		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+	}
+}
+
+// Derselbe Wettlauf auf dem Weg über persistTischEvent.
+func TestZahlungKassieren_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, kassenjournal_repo.ErrKassensitzungNichtOffen)
+	eventMock.SetTischSession(subject, kasse.TischSession{
+		SaldoCents: 350,
+		UnbezahltePositionen: []kasse.Position{{
+			PositionID:       "22222222-2222-4222-8222-222222222222",
+			VarianteID:       1,
+			ProduktName:      "Cola",
+			VarianteName:     "0,5l",
+			Kategorie:        "getraenk",
+			Steuersatz:       "regel",
+			EinzelpreisCents: 350,
+			Menge:            1,
+		}},
+		LastEventVersion: 1,
+	})
+
+	command := Command{
+		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
+	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
+		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+	}
+}
+
 func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 	ctx := context.Background()
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
