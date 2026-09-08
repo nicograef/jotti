@@ -21,8 +21,7 @@ import (
 //   - code "validation_error": zog issues as map[field][]message
 //     (see ReadAndValidateBody)
 //   - code "signaturen_ausstehend" (Kassenabschluss-Gate): structured object
-//     with the number of pending signatures and the age of the oldest
-//     (see SendConflictDetails)
+//     with the number of pending signatures (see SendConflictDetails)
 //
 // Everywhere else, details is at most a short English diagnostic string for
 // operators and logs — never localized, never parsed by clients.
@@ -88,7 +87,7 @@ func SendTooManyRequests(w http.ResponseWriter, code string) {
 
 // SendConflictDetails sends a 409 Conflict response with an error code and
 // structured details (e.g. the Kassenabschluss-Gate reports the number of
-// pending signatures and the age of the oldest).
+// pending signatures).
 func SendConflictDetails(w http.ResponseWriter, code string, details any) {
 	SendJSONResponse(w, errorResponse{Code: code, Details: details}, http.StatusConflict)
 }
