@@ -131,7 +131,7 @@ Eingearbeitet aus der Opus-Dreifachkritik am Entwurf:
 - **`import/no-restricted-paths`**: 10.9 nutzt die Kernregel `no-restricted-imports`.
 - **ESLint in `e2e/`**: 13.5 ersetzt es durch `scripts/check-e2e-assertions.sh`.
 - **`PasswordSchema` am Login**: 8.1 normalisiert nur, statt die Policy zu verraten.
-- **`JOTTI_DOMAIN` erzwingen**: neue Open question 2 (Regel 16, Docker-Konfiguration).
+- **`JOTTI_DOMAIN` erzwingen**: als Regel-16-Frage dem Eigentümer vorgelegt, mit A entschieden.
 - **Betreiber-Grenzen nur beim Schreiben**: 6.5 kürzt zusätzlich im DSFinV-K-Mapper.
 - **`MapError`-Umbau war Scope**: 5.7 trägt ihn eigenständig, mit Begründung.
 - **Zeitzone nur im Druckpfad**: 8.8 und 8.9 ergänzen ELSTER-Datum und Exportnamen.
@@ -150,8 +150,8 @@ Eingearbeitet aus der Opus-Dreifachkritik am Entwurf:
 - **Restmengen-Zusage war falsch**: eine sechste Klasse führt die offenen Korrektheits-Minors.
 - **`caddyfile.go`-Kollision**: Phase 3 lässt die Datei, Phase 11 schreibt sie.
 - **Falsche Zahl „28 Markdown-Dateien"**: gemessen sind es 29 außerhalb `docs/plans/`.
-- **Herkunft der TERMS-Frage**: Open question 1 nennt sie als Drift ohne Audit-Befund.
-- **Open question 1 ohne Rückfall**: 12.14 setzt Option A um.
+- **Herkunft der TERMS-Frage**: als Drift ohne Audit-Befund ausgewiesen, vom Eigentümer entschieden.
+- **TERMS-Frage ohne Rückfall**: 12.14 setzt Option A um.
 - **`AlleKategorien()` existiert nicht**: 13.2 legt die Funktion an.
 - **Tautologische `e2e`-Bedingung**: 2.6 sagt, welche Jobs ohne Bedingung laufen.
 - **`isError`-Gate herabgestuft**: die Begründung steht in den Resolved decisions.
@@ -172,34 +172,15 @@ Nachprüfung (Opus, gleicher Tag):
 
 ## Open questions / Risks
 
-### 1. TERMS.md „setzt um" — Formulierung der Compliance-Zusage
+Keine offenen Fragen. Der Eigentümer hat am 2026-09-08 entschieden:
 
-Herkunft: bekannte Drift aus `plan-orchestrierung.md:88`, kein Audit-Befund. Fundstelle ist
-`TERMS.md` § 8 Abs. 2: „Die Software setzt die deutsche Kassensicherungsverordnung
-(KassenSichV) um."
-
-| Option                                                                                    | Folge                                                                |
-| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| A (empfohlen) — Formulierung entschärfen: „unterstützt die Anforderungen aus … technisch" | Zusage deckt sich mit `docs/compliance.md` und der Betreiberpflicht  |
-| B — „setzt um" beibehalten                                                                | Rechtliche Zusage bleibt stärker als die Herstellerdokumentation     |
-| C — Satz streichen                                                                        | Verliert einen für Vereine wichtigen Hinweis auf die TSE-Integration |
-
-Kriterium 12.14 setzt A um. Bei B wird es ersatzlos gestrichen, bei C auf Streichen
-umgestellt. Die Phase bleibt in jedem Fall abschließbar.
-
-### 2. `JOTTI_DOMAIN` im Produktions-Stack erzwingen
-
-Ein leeres `JOTTI_DOMAIN` startet den Public-Stack still im LAN-Modus. Eine Pflichtvariable
-in `docker-compose.prod.yml` ist eine Docker-Änderung nach AGENTS.md Regel 16.
-
-| Option                                                               | Folge                                                                  |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| A (empfohlen) — `${JOTTI_DOMAIN:?…}` in `docker-compose.prod.yml`    | Bestehende Instanzen ohne Variable starten nach dem Update nicht mehr  |
-| B — nur `loadConfig` verweigert den LAN-Modus ohne State-Verzeichnis | Compose bleibt unverändert; der Container startet und endet mit Fehler |
-| C — nur eine Warnung loggen                                          | Der stille Modus-Wechsel bleibt möglich                                |
-
-Entscheidung des Eigentümers. Kriterium 11.5 ist auf B formuliert und wird bei A um die
-Compose-Zeile erweitert; bei C entfällt der `loadConfig`-Teil.
+- **TERMS.md § 8 Abs. 2 (Option A)**: die Zusage lautet „unterstützt die Anforderungen der
+  deutschen Kassensicherungsverordnung (KassenSichV) technisch". Kriterium 12.14 setzt das
+  um. Das Versionsdatum von `TERMS.md` bleibt unverändert; der Eigentümer prüft es beim
+  Merge zusammen mit dem Diff.
+- **`JOTTI_DOMAIN` (Option A)**: `docker-compose.prod.yml` erzwingt die Variable mit
+  `${JOTTI_DOMAIN:?…}`, zusätzlich zum `loadConfig`-Guard. Die Regel-16-Rückfrage ist
+  damit beantwortet. Kriterium 11.5 setzt beides um.
 
 ### Risiken
 
@@ -1057,9 +1038,11 @@ Produktion.
       sind zugleich von der Historien-Prosa befreit.
       Befund: reverse-proxy/caddyfile.go:5-8; reverse-proxy/nginx.rocks.conf:142-143
 - [ ] `loadConfig` verweigert den LAN-Modus ohne State-Verzeichnis, sodass ein leeres
-      `JOTTI_DOMAIN` den Public-Stack nicht mehr still in den LAN-Modus fallen lässt. Ob
-      `docker-compose.prod.yml` die Variable zusätzlich erzwingt, entscheidet Open
-      question 2. Befund: reverse-proxy/main.go:78-86
+      `JOTTI_DOMAIN` den Public-Stack nicht mehr still in den LAN-Modus fallen lässt, und
+      `docker-compose.prod.yml` erzwingt die Variable am `reverse-proxy`-Service mit
+      `${JOTTI_DOMAIN:?JOTTI_DOMAIN ist im Public-Stack Pflicht}` (Eigentümer-Entscheidung,
+      Regel 16). Ein Test in `package main` deckt den `loadConfig`-Fall ab.
+      Befund: reverse-proxy/main.go:78-86
 - [ ] Die Status-Seite wiederholt `ensureState` im Hintergrund und rendert nach Erfolg neu
       — oder ihr Hinweistext nennt „jotti neu starten"; der Text und das Verhalten stimmen
       überein. Befund: reverse-proxy/main.go:134-158
@@ -1195,8 +1178,9 @@ Phasen 7, 8 und 11.
       interne CA und die DNS-01-Wildcard.
       Befund: docs/prds/prd-windows-nativ-ohne-docker.md:3-9,35,76-81
 - [ ] `TERMS.md` § 8 Abs. 2 lautet „unterstützt die Anforderungen der deutschen
-      Kassensicherungsverordnung (KassenSichV) technisch" (Open question 1, Option A). Bei
-      Option B entfällt dieses Kriterium ersatzlos, bei Option C wird der Satz gestrichen.
+      Kassensicherungsverordnung (KassenSichV) technisch" (Eigentümer-Entscheidung, Option
+      A). Das Versionsdatum von `TERMS.md` und `website/src/lib/anfrage-mailto.ts` bleibt
+      unverändert.
 
 ---
 
@@ -1491,25 +1475,25 @@ Selektoren-Kommentar (13.10).
 
 ### Einzelne Befunde
 
-| Befund                                                                  | Grund                                                                                              |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `docs/plans/review-externe-prs.md:40-49`                                | Datei ist in dieser Session gelöscht (Commit 88d047b)                                              |
-| `docs/plans/guide-manuelle-qa-v1.0.0.md:14,59,71`                       | Gehört zur Release-Phase E (Plan 2 Phase 11)                                                       |
-| `docs/plans/plan-orchestrierung.md:17-26`                               | Plan-Datei ist transient; die Lead-Session fährt bereits auf Opus 5                                |
-| `.github/workflows/ci.yml:406-417`, `database/migrations/README.md:44`  | `PREVIOUS_VERSION` wird nach dem Tag gesetzt — Phase E                                             |
-| `e2e/package.json:17-22` (TypeScript 7.0.2)                             | Versions-Bump; die Dependency-Session übernimmt ihn                                                |
-| `website/pnpm-workspace.yaml:4-5` (`minimumReleaseAgeExclude`)          | Hängt an der Astro-Version; gehört zur Dependency-Session                                          |
-| `frontend/eslint.config.js:17` (`src/components/ui` ausgenommen)        | shadcn-Fremdcode bleibt ausgenommen (Resolved decisions)                                           |
-| `frontend/src/lib/Backend.ts:134-138` (Redirect im HTTP-Client)         | Verhaltensändernd; gehört in einen eigenen, geplanten Change                                       |
-| `backend/api/middleware/middleware.go:199-203` (POST-only-Ausnahme)     | Regel 1 in `AGENTS.md` bleibt unangetastet; `/health` ist im Handbuch dokumentiert                 |
-| `backend/sqlc/queries/produkte.sql:10-96` (View für die Varianten-JSON) | Bräuchte eine Migration ohne fachlichen Anlass — Freeze-Disziplin                                  |
-| `docs/adrs/05_spektral-branding-website.md:4-6`                         | ADRs sind von Regel 18 ausgenommen und werden nie umgeschrieben                                    |
-| `scripts/generate-spektral-logos.py`                                    | Einmal-Generator ohne Konsument; Löschen oder Behalten ist eine Eigentümerfrage ohne Release-Bezug |
-| `website/src/components/Hero.astro:42` („Beta 1.0" dreimal hartkodiert) | Release-Statustext; gehört zur Release-Phase E, nicht zu einem Fix-Plan                            |
-| `website/astro.config.mjs:54-142` (Sidebar-Slugs vs. `publishedDocs`)   | Ein Vergleichstest bräuchte einen Astro-Testlauf; Nutzen deckt den Aufbau nicht                    |
-| `website/src/lib/anfrage-mailto.ts:77-91` (TERMS-Datum hartkodiert)     | Hängt an Open question 1; wird mit der TERMS-Entscheidung nachgezogen                              |
-| `website/nginx.conf:33-43` („content-hashed")                           | Kommentar-Zusage ohne Verhaltensfehler; Caching bleibt korrekt                                     |
-| `e2e/helpers/fehlerpfade.ts:3-6` (POST-Filter-Zusage)                   | Der Helfer filtert absichtlich nach Pfad; der Kommentar wird beim nächsten Change gerade gezogen   |
+| Befund                                                                  | Grund                                                                                                  |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `docs/plans/review-externe-prs.md:40-49`                                | Datei ist in dieser Session gelöscht (Commit 88d047b)                                                  |
+| `docs/plans/guide-manuelle-qa-v1.0.0.md:14,59,71`                       | Gehört zur Release-Phase E (Plan 2 Phase 11)                                                           |
+| `docs/plans/plan-orchestrierung.md:17-26`                               | Plan-Datei ist transient; die Lead-Session fährt bereits auf Opus 5                                    |
+| `.github/workflows/ci.yml:406-417`, `database/migrations/README.md:44`  | `PREVIOUS_VERSION` wird nach dem Tag gesetzt — Phase E                                                 |
+| `e2e/package.json:17-22` (TypeScript 7.0.2)                             | Versions-Bump; die Dependency-Session übernimmt ihn                                                    |
+| `website/pnpm-workspace.yaml:4-5` (`minimumReleaseAgeExclude`)          | Hängt an der Astro-Version; gehört zur Dependency-Session                                              |
+| `frontend/eslint.config.js:17` (`src/components/ui` ausgenommen)        | shadcn-Fremdcode bleibt ausgenommen (Resolved decisions)                                               |
+| `frontend/src/lib/Backend.ts:134-138` (Redirect im HTTP-Client)         | Verhaltensändernd; gehört in einen eigenen, geplanten Change                                           |
+| `backend/api/middleware/middleware.go:199-203` (POST-only-Ausnahme)     | Regel 1 in `AGENTS.md` bleibt unangetastet; `/health` ist im Handbuch dokumentiert                     |
+| `backend/sqlc/queries/produkte.sql:10-96` (View für die Varianten-JSON) | Bräuchte eine Migration ohne fachlichen Anlass — Freeze-Disziplin                                      |
+| `docs/adrs/05_spektral-branding-website.md:4-6`                         | ADRs sind von Regel 18 ausgenommen und werden nie umgeschrieben                                        |
+| `scripts/generate-spektral-logos.py`                                    | Einmal-Generator ohne Konsument; Löschen oder Behalten ist eine Eigentümerfrage ohne Release-Bezug     |
+| `website/src/components/Hero.astro:42` („Beta 1.0" dreimal hartkodiert) | Release-Statustext; gehört zur Release-Phase E, nicht zu einem Fix-Plan                                |
+| `website/astro.config.mjs:54-142` (Sidebar-Slugs vs. `publishedDocs`)   | Ein Vergleichstest bräuchte einen Astro-Testlauf; Nutzen deckt den Aufbau nicht                        |
+| `website/src/lib/anfrage-mailto.ts:77-91` (TERMS-Datum hartkodiert)     | Option A ändert nur den Wortlaut von § 8; das Versionsdatum bleibt, der Eigentümer prüft es beim Merge |
+| `website/nginx.conf:33-43` („content-hashed")                           | Kommentar-Zusage ohne Verhaltensfehler; Caching bleibt korrekt                                         |
+| `e2e/helpers/fehlerpfade.ts:3-6` (POST-Filter-Zusage)                   | Der Helfer filtert absichtlich nach Pfad; der Kommentar wird beim nächsten Change gerade gezogen       |
 
 ### Ganze Klassen
 
