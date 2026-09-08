@@ -237,10 +237,9 @@ function HistorieDetail({
   const { loading: belegDruckenLoading, run: runBelegDrucken } =
     useActionSubmit({
       actionLabel: 'Kassenbeleg drucken',
+      // Nur Codes ohne zentrale Meldung stehen hier; alles andere kommt aus
+      // commonErrorMessages.
       byCode: {
-        kassenbeleg_drucker_nicht_konfiguriert:
-          'Kein Kassenbeleg-Drucker konfiguriert. Bitte in den Admin-Einstellungen hinterlegen.',
-        zahlung_not_found: 'Die ausgewählte Zahlung wurde nicht gefunden.',
         stornierung_not_found: 'Die Stornierung wurde nicht gefunden.',
       },
     })

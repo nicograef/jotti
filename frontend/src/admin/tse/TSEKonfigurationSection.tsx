@@ -67,8 +67,6 @@ function TSEKonfigurationForm({
     byCode: {
       tse_nicht_konfiguriert:
         'Bitte zuerst eine vollständige TSE-Konfiguration speichern.',
-      tse_verbindung_fehlgeschlagen:
-        'Verbindung zur TSE fehlgeschlagen. Bitte Zugangsdaten und TSS prüfen.',
     },
   })
 

@@ -80,10 +80,6 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Zahlung kassieren',
-    byCode: {
-      position_nicht_bezahlbar:
-        'Mindestens eine Position ist nicht mehr bezahlbar. Bitte Auswahl aktualisieren.',
-    },
     onSuccess: () => {
       setErhaltenEuro('')
       setZielbetragEuro('')

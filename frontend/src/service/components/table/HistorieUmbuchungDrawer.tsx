@@ -116,10 +116,6 @@ export function HistorieUmbuchungDrawer({
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Umbuchung ausführen',
-    byCode: {
-      position_nicht_umbuchbar:
-        'Mindestens eine Position ist nicht mehr umbuchbar. Bitte Auswahl aktualisieren.',
-    },
     onSuccess: () => {
       const zielName =
         zielTische.find((candidate) => candidate.id === zielTischId)?.name ?? ''

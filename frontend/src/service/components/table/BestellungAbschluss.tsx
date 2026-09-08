@@ -64,10 +64,6 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Bestellung aufnehmen',
-    byCode: {
-      produkt_not_found:
-        'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
-    },
     onSuccess: () => {
       setKommentar('')
       props.bestellungAufgenommen()
