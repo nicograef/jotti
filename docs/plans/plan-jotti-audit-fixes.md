@@ -594,44 +594,44 @@ Fehler-Logs, die ihren Fehler mitführen.
 
 ### Acceptance criteria
 
-- [ ] `backend/api/error_mapping_contract_test.go` (`//go:build unit`) parst per
+- [x] `backend/api/error_mapping_contract_test.go` (`//go:build unit`) parst per
       `go/parser` alle exportierten `Err*`-Sentinels unter `backend/api/**` — auch
       `enrichment.go`, `export.go`, `mapper.go` und `query.go` — und alle
       `helper.MapError`-Karten in `api/**/http/*.go`. Der Test schlägt fehl, sobald ein
       Sentinel in keiner Karte und in keiner im Test dokumentierten Ausnahmeliste steht.
-- [ ] `TischAktualisierenHandler` mappt `application.ErrTischAlreadyExists` auf
+- [x] `TischAktualisierenHandler` mappt `application.ErrTischAlreadyExists` auf
       `tisch_already_exists`, und ein Handler-Test sichert 400 samt Code zu.
       Befund: backend/api/stammdaten/tisch/http/command_handler.go:77-84, :78-84
-- [ ] `produkt/application/command.go — UpdateProdukt()` bildet `db.ErrAlreadyExists` auf
+- [x] `produkt/application/command.go — UpdateProdukt()` bildet `db.ErrAlreadyExists` auf
       `ErrProduktAlreadyExists` ab, der Handler mappt auf `produkt_already_exists`, und
       ein Test sichert den Weg bis zum Code zu.
       Befund: backend/api/stammdaten/produkt/application/command.go:76-80, :76-80
-- [ ] `tischgeschaeft/application/command.go` reicht `ErrKasseNichtGeoeffnet` in
+- [x] `tischgeschaeft/application/command.go` reicht `ErrKasseNichtGeoeffnet` in
       `persistTischEvent()` und `BestellungAufnehmen()` vor dem `ErrDatabase`-Fallback
       durch, sodass der Handler 409 `kasse_nicht_geoeffnet` liefert; ein Test deckt beide
       Pfade. Befund: backend/api/kasse/tischgeschaeft/application/command.go:135-147
-- [ ] Der 409-Doc-Kommentar in `helper/http.go — SendConflictDetails()` nennt nur noch die
+- [x] Der 409-Doc-Kommentar in `helper/http.go — SendConflictDetails()` nennt nur noch die
       Anzahl ausstehender Signaturen, kein Alter.
       Befund: backend/api/helper/http.go:23-25
-- [ ] `commonErrorMessages` enthält deutsche Texte für `login_throttled` und
+- [x] `commonErrorMessages` enthält deutsche Texte für `login_throttled` und
       `invalid_kassensitzung`, der tote Eintrag `kassensturz_erforderlich` ist samt
       Testzeile gelöscht, und `errorMessages.test.ts` iteriert über
       `Object.entries(commonErrorMessages)` statt über eine zweite Liste.
-- [ ] `helper.MapError()` nimmt eine geordnete `{error, code}`-Liste entgegen (erster
+- [x] `helper.MapError()` nimmt eine geordnete `{error, code}`-Liste entgegen (erster
       Treffer gewinnt) und hat Unit-Tests für Treffer, Nicht-Treffer und gewrappte Fehler.
       Die Änderung ist verhaltensneutral: heute matcht in keiner der 34 Karten mehr als ein
       Sentinel. Die geordnete Liste hält das konstruktiv fest.
-- [ ] `produkt/application/command.go — DeleteVariante()` prüft, dass die geladene Variante
+- [x] `produkt/application/command.go — DeleteVariante()` prüft, dass die geladene Variante
       zum geladenen Produkt gehört, und lehnt sonst mit `ErrVarianteNotFound` ab; ein Test
       „fremde Variante wird nicht gelöscht" sichert das zu.
       Befund: backend/api/stammdaten/produkt/application/command.go:245-278
-- [ ] `backend/api/log_error_contract_test.go` (`//go:build unit`) schlägt per `go/parser`
+- [x] `backend/api/log_error_contract_test.go` (`//go:build unit`) schlägt per `go/parser`
       fehl, sobald eine `log.Error()`-Kette in einem `if err != nil`-Block kein `.Err(`
       trägt. Die 20 heutigen Fundstellen in `user/application/command.go`,
       `produkt/application/command.go`, `produkt/application/query.go`,
       `auth/application/command.go` und `fiskal/setup/application/setup.go` sind ergänzt.
       Befund: backend/api/stammdaten/produkt/application/command.go:49
-- [ ] `byCode` ersetzt die zentrale Meldung (`getActionErrorMessage`). Darum bleibt ein
+- [x] `byCode` ersetzt die zentrale Meldung (`getActionErrorMessage`). Darum bleibt ein
       `byCode`-Eintrag nur, wenn der Code keine zentrale Meldung hat oder der Kontext
       der Stelle eine andere Handlungsanweisung verlangt; reine Umformulierungen
       entfallen in `DirektverkaufAbschluss.tsx`, `DirektverkaufStornoDrawer.tsx`,
