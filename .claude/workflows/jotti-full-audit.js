@@ -10,7 +10,8 @@ export const meta = {
 }
 
 // Reusable named workflow: Workflow({ name: 'jotti-full-audit', args: { date: 'YYYY-MM-DD' } })
-// Optional args: repo (default /home/user/jotti), handbook (cleanup skill dir), outFile,
+// Optional args: repo (default /home/user/jotti), handbook (skills root, its cleanup/ dir is used) or
+// cleanupDir (the cleanup skill dir directly), outFile,
 // rev (short sha of the audited checkout), branch (name shown in the header).
 // Split mode for small machines (the per-workflow agent cap is CPUs - 2): run one workflow per
 // area with { area: '<area name>', sectionsDir: '<dir>' } — each writes its consolidated
@@ -20,7 +21,7 @@ export const meta = {
 // Opus reviews, verifies, consolidates and assembles.
 const A = args || {}
 const REPO = A.repo || '/home/user/jotti'
-const HANDBOOK = A.handbook || '/home/user/handbook/.claude/skills/cleanup'
+const HANDBOOK = A.cleanupDir || (A.handbook ? `${A.handbook}/cleanup` : '/home/user/handbook/.claude/skills/cleanup')
 const OUT = A.outFile || `${REPO}/docs/plans/findings-jotti-audit.md`
 const DATE = A.date || 'unbekannt'
 const REV = A.rev || 'unbekannt'
@@ -77,6 +78,7 @@ const AREA_ORDER = Object.keys(ALL_AREAS)
 const slug = (area) => area.toLowerCase().replace(/ä/g, 'ae').replace(/ü/g, 'ue').replace(/ö/g, 'oe').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 if (ONLY_AREA && !ALL_AREAS[ONLY_AREA]) throw new Error(`Unbekannter Bereich: ${ONLY_AREA} (erlaubt: ${AREA_ORDER.join(', ')})`)
+if (SECTIONS_DIR && !ONLY_AREA) throw new Error('sectionsDir verlangt area: die Sektionsdatei trägt die Statistik eines Bereichs')
 const AREAS = ONLY_AREA ? { [ONLY_AREA]: ALL_AREAS[ONLY_AREA] } : ALL_AREAS
 const UNITS = ALL_UNITS.filter((u) => Object.values(AREAS).some((units) => units.includes(u.key)))
 const FLOWS = !ONLY_AREA || ONLY_AREA === 'Cross-Layer-Flüsse' ? ALL_FLOWS : []
@@ -159,9 +161,9 @@ const headerText = (stats) => `# Findings: Vollreview jotti (${DATE})
 if (ASSEMBLE_FROM) {
   phase('Consolidate')
   log(`Assemble: Bereichsdateien aus ${ASSEMBLE_FROM}`)
-  const placeholder = { capped: false, failedUnits: [], filesReviewed: '{{filesReviewed}}', raw: '{{raw}}', deduped: '{{deduped}}', verified: '{{verified}}', dropped: '{{dropped}}', remaining: '{{remaining}}', counts: { blocker: '{{blocker}}', major: '{{major}}', minor: '{{minor}}' }, failedReviewers: '{{failedReviewers}}' }
+  const placeholder = { capped: true, failedUnits: ['{{failedUnits}}'], filesReviewed: '{{filesReviewed}}', raw: '{{raw}}', deduped: '{{deduped}}', verified: '{{verified}}', dropped: '{{dropped}}', remaining: '{{remaining}}', counts: { blocker: '{{blocker}}', major: '{{major}}', minor: '{{minor}}' }, failedReviewers: '{{failedReviewers}}' }
   const assembled = await agent(
-    `You are the ASSEMBLER (mechanical). Inputs are files in ${ASSEMBLE_FROM}: for each area one <slug>.json (stats: filesReviewed, raw, deduped, verified, dropped, remaining, counts{blocker,major,minor}, failedReviewers, failedUnits[], capped, defectClasses[], top[], droppedList[]) and one <slug>.md (the area's Markdown section). Area order: ${AREA_ORDER.map((a) => `${a} (${slug(a)})`).join(', ')}. Read every file.\nWrite the file ${OUT} with exactly this content, in this order, nothing else:\n1. The header block below with every {{placeholder}} replaced by the sum over all area JSON files (counts summed per severity; "capped" line kept only if any area has capped=true; the "Ohne Ergebnis" line listing the union of failedUnits, omitted when empty).\n2. A section "## Top 10 repo-weit" — pick the 10 highest-impact items from the areas' top lists (prefer confirmed blockers, then majors, then defect classes), one bullet each with file reference.\n3. A section "## Defektklassen und vorgeschlagene Gates" — merge the areas' defectClasses, one bullet each, with a concrete gate proposal (lint rule, grep in CI, test).\n4. The per-area Markdown sections verbatim, in the area order.\n5. A section "## Verworfene Befunde" listing the union of droppedList as one-liners (file: claim), so they are not re-raised.\nThen run: cd ${REPO}/frontend && npx --no-install prettier --write ${OUT} ; and return the final line count of the file and the summed numbers you inserted.\n\nHEADER TEMPLATE:\n${headerText(placeholder)}`,
+    `You are the ASSEMBLER (mechanical). Inputs are files in ${ASSEMBLE_FROM}: for each area one <slug>.json (stats: filesReviewed, raw, deduped, verified, dropped, remaining, counts{blocker,major,minor}, failedReviewers, failedUnits[], capped, defectClasses[], top[], droppedList[]) and one <slug>.md (the area's Markdown section). Area order: ${AREA_ORDER.map((a) => `${a} (${slug(a)})`).join(', ')}. Read every file.\nWrite the file ${OUT} with exactly this content, in this order, nothing else:\n1. The header block below with every {{placeholder}} replaced by the sum over all area JSON files (counts summed per severity). The template shows the "(gekappt, Blocker zuerst)" clause and the "Ohne Ergebnis" line in their maximal form: delete the clause unless at least one area has capped=true, and replace {{failedUnits}} with the comma-separated union of all failedUnits, deleting the whole "Ohne Ergebnis" line when the union is empty.\n2. A section "## Top 10 repo-weit" — pick the 10 highest-impact items from the areas' top lists (prefer confirmed blockers, then majors, then defect classes), one bullet each with file reference.\n3. A section "## Defektklassen und vorgeschlagene Gates" — merge the areas' defectClasses, one bullet each, with a concrete gate proposal (lint rule, grep in CI, test).\n4. The per-area Markdown sections verbatim, in the area order.\n5. A section "## Verworfene Befunde" listing the union of droppedList as one-liners (file: claim), so they are not re-raised.\nThen run: cd ${REPO}/frontend && npx --no-install prettier --write ${OUT} ; and return the final line count of the file and the summed numbers you inserted.\n\nHEADER TEMPLATE:\n${headerText(placeholder)}`,
     { label: 'assemble', phase: 'Consolidate', model: 'opus' },
   )
   return { assembled, outFile: OUT }
@@ -213,7 +215,7 @@ const flows = await parallel(
 const raw = []
 reviews.forEach((r, i) => { if (r) r.findings.forEach((f) => raw.push({ ...f, unit: reviewItems[i].u.key, lens: reviewItems[i].lens })) })
 flows.forEach((r, i) => { if (r) r.findings.forEach((f) => raw.push({ ...f, unit: `flow-${i + 1}`, lens: 'cross-layer' })) })
-const filesReviewed = reviews.filter(Boolean).reduce((a, r) => a + (r.filesReviewed || 0), 0)
+const filesReviewed = [...reviews, ...flows].filter(Boolean).reduce((a, r) => a + (r.filesReviewed || 0), 0)
 const failedReviewers = reviews.filter((r) => !r).length + flows.filter((r) => !r).length
 const failedUnits = reviewItems.filter((_, i) => !reviews[i]).map(({ u, lens }) => `${u.key}:${lens}`).concat(flows.map((r, i) => (r ? null : `flow-${i + 1}`)).filter(Boolean))
 

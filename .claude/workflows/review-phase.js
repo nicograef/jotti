@@ -9,9 +9,10 @@ export const meta = {
 }
 
 // args: { phase, worktree, branch, base, planPath, repo, handbook, gateSummary, extraLens, slug }
-// slug = the plan slug used in the commit trailer "Plan: <slug> phase <N> criterion <M>" (default praxis-feedback)
-const A = args
-const SLUG = A.slug || 'praxis-feedback'
+// slug = the plan slug used in the commit trailer "Plan: <slug> phase <N> criterion <M>" (required)
+const A = args || {}
+for (const k of ['phase', 'worktree', 'branch', 'base', 'planPath', 'slug']) if (!A[k]) throw new Error(`review-phase: Argument ${k} fehlt`)
+const SLUG = A.slug
 const REPO = A.repo || '/home/user/jotti'
 const HANDBOOK = A.handbook || '/home/user/handbook/.claude/skills'
 const DIFF = `git -C ${A.worktree} diff ${A.base}...${A.branch}`
@@ -96,7 +97,7 @@ const probes = await parallel(
 )
 const ok = probes.filter(Boolean)
 const raw = []
-ok.forEach((p, i) => p.findings.forEach((f) => raw.push({ ...f, lens: LENSES[i] ? LENSES[i].key : 'n/a' })))
+probes.forEach((p, i) => { if (p) p.findings.forEach((f) => raw.push({ ...f, lens: LENSES[i].key })) })
 const seen = new Map()
 for (const f of raw) {
   const key = `${f.file}:${String(f.lines).split(/[-–,]/)[0].trim()}:${f.what.toLowerCase().slice(0, 40)}`
