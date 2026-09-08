@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { EntityStatusSchema } from '@/lib/entityStatus'
+import { createNameSchema } from '@/lib/nameSchema'
 import { DateStringSchema } from '@/lib/utils'
 
 export const Kategorie = {
@@ -45,11 +46,7 @@ export const ProduktIdSchema = z.number().int().min(1)
 export const VarianteIdSchema = z.number().int().min(1)
 export const RichtungSchema = z.enum([Richtung.HOCH, Richtung.RUNTER])
 
-const NameSchema = z
-  .string()
-  .trim()
-  .min(3, { message: 'Das sieht nicht nach einem echten Namen aus.' })
-  .max(100, { message: 'Der Name ist zu lang.' })
+const NameSchema = createNameSchema(100)
 const PreisCentsSchema = z
   .number()
   .int()

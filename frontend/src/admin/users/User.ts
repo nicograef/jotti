@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { UsernameSchema } from '@/lib/identity'
+import { createNameSchema } from '@/lib/nameSchema'
 import { DateStringSchema } from '@/lib/utils'
 
 export const UserRole = {
@@ -28,10 +29,7 @@ export const UserStatus = {
 export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus]
 
 export const UserIdSchema = z.number().int().min(1)
-const NameSchema = z
-  .string()
-  .min(3, { message: 'Das sieht nicht nach einem echten Namen aus.' })
-  .max(50, { message: 'Der Name ist zu lang.' })
+const NameSchema = createNameSchema(50)
 const RoleSchema = z.enum(UserRole)
 const UserStatusSchema = z.enum(UserStatus)
 
