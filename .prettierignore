@@ -1,0 +1,24 @@
+# Ignore artifacts:
+node_modules
+dist
+
+# Ignore lock files
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Generated / vendored, not owned by this repo's style
+backend/sqlc/dbgen
+docs/rechtsquellen
+
+# Plan files are transient and owned by the plan's Lead session; a --write
+# run here would collide with a worker's tick commit.
+docs/plans
+
+# shadcn/ui generated files
+frontend/src/components/ui
+frontend/src/hooks/use-mobile.ts
+
+# Astro components: prettier-plugin-astro would be a new dependency;
+# `astro check` covers these instead.
+*.astro

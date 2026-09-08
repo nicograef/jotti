@@ -306,8 +306,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Root-level check: `make check-format` covers the whole repo, not
+      # just frontend/, so it runs from $GITHUB_WORKSPACE rather than this
+      # job's default ./frontend working directory.
       - name: Check formatting
-        run: pnpm run format:check
+        run: cd "$GITHUB_WORKSPACE" && make check-format
 
       - name: Run lint
         run: pnpm run lint

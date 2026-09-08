@@ -12,7 +12,7 @@
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
-       check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-build-tags check-integration check check-full verify \
+       check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-format check-build-tags check-integration check check-full verify \
        website-dev website-build website-test website-check website-screenshots \
        help
 
@@ -290,8 +290,12 @@ check-resolver: ## DNS-Resolver komplett prüfen (Deps, Format, Lint, Vet, Test,
 check-local-proxy: ## Lokales Proxy-Entrypoint-Binary komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd reverse-proxy && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
+check-format: ## Repo-weite Prettier-Formatierung prüfen (ts, tsx, js, mjs, cjs, json, css, md)
+	frontend/node_modules/.bin/prettier --check "**/*.{ts,tsx,js,mjs,cjs,json,css,md}"
+
 check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
-	cd frontend && pnpm format:check && pnpm lint && pnpm test && pnpm build
+	$(MAKE) check-format
+	cd frontend && pnpm lint && pnpm test && pnpm build
 
 check-build-tags: ## Backend-Testdateien auf genau ein //go:build-Tag (unit/integration) prüfen
 	./scripts/check-build-tags.sh
