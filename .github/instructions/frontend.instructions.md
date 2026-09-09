@@ -77,10 +77,10 @@ import {
   ProduktSchema,
 } from '@/lib/produktSchemas'
 
-import { ProduktNameSchema } from './Produkt'
+import { NameEingabeSchema } from './Produkt'
 
 export const CreateProduktSchema = z.object({
-  name: ProduktNameSchema,
+  name: NameEingabeSchema,
   kategorie: KategorieSchema,
 })
 
@@ -159,16 +159,33 @@ Response-Schemas einer Entität, die Admin- und Service-Bereich lesen, liegen in
 liefert. Formular- und Eingaberegeln — engere Grenzen samt Meldung — bleiben im
 Bereich, der das Formular besitzt.
 
+Ein Response-Schema, wie es in `src/lib/produktSchemas.ts` steht:
+
 ```typescript
 import { z } from 'zod'
 
 import { createNameSchema } from '@/lib/nameSchema'
+import { DateStringSchema } from '@/lib/utils'
+
+export const Kategorie = {
+  ESSEN: 'essen',
+  GETRAENK: 'getraenk',
+  SONSTIGES: 'sonstiges',
+} as const
+export type Kategorie = (typeof Kategorie)[keyof typeof Kategorie]
+export const KategorieSchema = z.enum([
+  Kategorie.ESSEN,
+  Kategorie.GETRAENK,
+  Kategorie.SONSTIGES,
+])
 
 export const ProduktIdSchema = z.number().int().min(1)
 
 // Namen kommen aus der gemeinsamen Quelle; nur die Obergrenze ist bereichsspezifisch.
 const NameSchema = createNameSchema(100)
 
+// Gelesene Preise decken den persistierten Bereich ab (DB-CHECK
+// `preis_cents >= 0`), nicht die engere Formulargrenze.
 const PreisCentsSchema = z.number().int().min(0)
 
 export const ProduktSchema = z.object({
@@ -179,4 +196,15 @@ export const ProduktSchema = z.object({
   createdAt: DateStringSchema,
 })
 export type Produkt = z.infer<typeof ProduktSchema>
+```
+
+Die Eingaberegel desselben Felds, wie sie in `src/admin/products/Produkt.ts`
+steht — engere Grenze, eigene Meldung:
+
+```typescript
+export const PreisCentsEingabeSchema = z
+  .number()
+  .int()
+  .min(1, { message: 'Preis muss mindestens 1 Cent betragen.' })
+  .max(99999, { message: 'Preis darf maximal 999,99 € betragen.' })
 ```

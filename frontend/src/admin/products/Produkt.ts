@@ -33,8 +33,9 @@ export const RichtungSchema = z.enum([Richtung.HOCH, Richtung.RUNTER])
 
 // Eingaberegeln der Anlege- und Bearbeiten-Formulare, gespiegelt an den
 // zog-Grenzen des Backends (Regel 5): so nennt das Formular die Grenze, statt
-// einen anonymen validation_error abzuwarten.
-export const ProduktNameSchema = createNameSchema(100)
+// einen anonymen validation_error abzuwarten. Produkt- und Variantenname teilen
+// dieselbe Regel — wie das eine `NameSchema` in domain/produkt.
+export const NameEingabeSchema = createNameSchema(100)
 export const PreisCentsEingabeSchema = z
   .number()
   .int()

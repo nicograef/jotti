@@ -11,14 +11,14 @@ import {
 } from '@/lib/produktSchemas'
 
 import {
+  NameEingabeSchema,
   PreisCentsEingabeSchema,
-  ProduktNameSchema,
   type Richtung,
   RichtungSchema,
 } from './Produkt'
 
 export const CreateProduktSchema = z.object({
-  name: ProduktNameSchema,
+  name: NameEingabeSchema,
   kategorie: KategorieSchema,
   steuersatz: SteuersatzSchema,
 })
@@ -34,13 +34,13 @@ export const VerschiebeProduktSchema = z.object({
 
 export const CreateVarianteSchema = z.object({
   produktId: ProduktIdSchema,
-  name: ProduktNameSchema,
+  name: NameEingabeSchema,
   preisCents: PreisCentsEingabeSchema,
 })
 
 export const UpdateVarianteSchema = z.object({
   id: VarianteIdSchema,
-  name: ProduktNameSchema,
+  name: NameEingabeSchema,
   preisCents: PreisCentsEingabeSchema,
 })
 
