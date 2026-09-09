@@ -549,13 +549,13 @@ func abrechnungskreis(subject string, tischnamen map[int]string) string {
 
 // --- Stammdatenmodul ---
 
-var cashpointclosingColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("Z_BUCHUNGSTAG"), col("TAXONOMIE_VERSION"),
-	col("Z_START_ID"), col("Z_ENDE_ID"),
-	col("NAME"), col("STRASSE"), col("PLZ"), col("ORT"), col("LAND"),
-	col("STNR"), col("USTID"),
-	col("Z_SE_ZAHLUNGEN"), col("Z_SE_BARZAHLUNGEN"),
+var cashpointclosingColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"Z_BUCHUNGSTAG", "TAXONOMIE_VERSION",
+	"Z_START_ID", "Z_ENDE_ID",
+	"NAME", "STRASSE", "PLZ", "ORT", "LAND",
+	"STNR", "USTID",
+	"Z_SE_ZAHLUNGEN", "Z_SE_BARZAHLUNGEN",
 }
 
 func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table {
@@ -583,10 +583,10 @@ func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table 
 	}
 }
 
-var locationColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("LOC_NAME"), col("LOC_STRASSE"), col("LOC_PLZ"), col("LOC_ORT"),
-	col("LOC_LAND"), col("LOC_USTID"),
+var locationColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"LOC_NAME", "LOC_STRASSE", "LOC_PLZ", "LOC_ORT",
+	"LOC_LAND", "LOC_USTID",
 }
 
 func buildLocation(s Snapshot, erstellung string) Table {
@@ -606,11 +606,11 @@ func buildLocation(s Snapshot, erstellung string) Table {
 	}
 }
 
-var cashregisterColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("KASSE_BRAND"), col("KASSE_MODELL"), col("KASSE_SERIENNR"),
-	col("KASSE_SW_BRAND"), col("KASSE_SW_VERSION"),
-	col("KASSE_BASISWAEH_CODE"), col("KEINE_UST_ZUORDNUNG"),
+var cashregisterColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"KASSE_BRAND", "KASSE_MODELL", "KASSE_SERIENNR",
+	"KASSE_SW_BRAND", "KASSE_SW_VERSION",
+	"KASSE_BASISWAEH_CODE", "KEINE_UST_ZUORDNUNG",
 }
 
 func buildCashregister(s Snapshot, erstellung string) Table {
@@ -630,9 +630,9 @@ func buildCashregister(s Snapshot, erstellung string) Table {
 	}
 }
 
-var vatColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("UST_SCHLUESSEL"), col("UST_SATZ"), col("UST_BESCHR"),
+var vatColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"UST_SCHLUESSEL", "UST_SATZ", "UST_BESCHR",
 }
 
 // buildVat deklariert die in der Sitzung tatsächlich verwendeten Steuersätze,
@@ -670,11 +670,11 @@ func buildVat(s Snapshot, erstellung string, _ []beleg) Table {
 	}
 }
 
-var tseColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("TSE_ID"), col("TSE_SERIAL"), col("TSE_SIG_ALGO"),
-	col("TSE_ZEITFORMAT"), col("TSE_PD_ENCODING"), col("TSE_PUBLIC_KEY"),
-	col("TSE_ZERTIFIKAT_I"), col("TSE_ZERTIFIKAT_II"),
+var tseColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"TSE_ID", "TSE_SERIAL", "TSE_SIG_ALGO",
+	"TSE_ZEITFORMAT", "TSE_PD_ENCODING", "TSE_PUBLIC_KEY",
+	"TSE_ZERTIFIKAT_I", "TSE_ZERTIFIKAT_II",
 }
 
 func buildTSE(s Snapshot, erstellung string, belege []beleg) Table {
@@ -706,14 +706,14 @@ func buildTSE(s Snapshot, erstellung string, belege []beleg) Table {
 
 // --- Einzelaufzeichnungsmodul ---
 
-var transactionsColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("BON_ID"), col("BON_NR"), col("BON_TYP"), col("BON_NAME"),
-	col("TERMINAL_ID"), col("BON_STORNO"), col("BON_START"), col("BON_ENDE"),
-	col("BEDIENER_ID"), col("BEDIENER_NAME"), col("UMS_BRUTTO"),
-	col("KUNDE_NAME"), col("KUNDE_ID"), col("KUNDE_TYP"), col("KUNDE_STRASSE"),
-	col("KUNDE_PLZ"), col("KUNDE_ORT"), col("KUNDE_LAND"), col("KUNDE_USTID"),
-	col("BON_NOTIZ"),
+var transactionsColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"BON_ID", "BON_NR", "BON_TYP", "BON_NAME",
+	"TERMINAL_ID", "BON_STORNO", "BON_START", "BON_ENDE",
+	"BEDIENER_ID", "BEDIENER_NAME", "UMS_BRUTTO",
+	"KUNDE_NAME", "KUNDE_ID", "KUNDE_TYP", "KUNDE_STRASSE",
+	"KUNDE_PLZ", "KUNDE_ORT", "KUNDE_LAND", "KUNDE_USTID",
+	"BON_NOTIZ",
 }
 
 func buildTransactions(s Snapshot, erstellung string, belege []beleg) Table {
@@ -750,9 +750,9 @@ func buildTransactions(s Snapshot, erstellung string, belege []beleg) Table {
 	}
 }
 
-var allocationGroupsColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("BON_ID"), col("ABRECHNUNGSKREIS"),
+var allocationGroupsColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"BON_ID", "ABRECHNUNGSKREIS",
 }
 
 // buildAllocationGroups ordnet jeden Bon mit Tischbezug seinem ABRECHNUNGSKREIS
@@ -780,10 +780,10 @@ func buildAllocationGroups(s Snapshot, erstellung string, belege []beleg) Table 
 	}
 }
 
-var transactionsVatColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("BON_ID"), col("UST_SCHLUESSEL"),
-	col("BON_BRUTTO"), col("BON_NETTO"), col("BON_UST"),
+var transactionsVatColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"BON_ID", "UST_SCHLUESSEL",
+	"BON_BRUTTO", "BON_NETTO", "BON_UST",
 }
 
 func buildTransactionsVat(s Snapshot, erstellung string, belege []beleg) Table {
@@ -811,10 +811,10 @@ func buildTransactionsVat(s Snapshot, erstellung string, belege []beleg) Table {
 	}
 }
 
-var datapaymentColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("BON_ID"), col("ZAHLART_TYP"), col("ZAHLART_NAME"),
-	col("ZAHLWAEH_CODE"), col("ZAHLWAEH_BETRAG"), col("BASISWAEH_BETRAG"),
+var datapaymentColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"BON_ID", "ZAHLART_TYP", "ZAHLART_NAME",
+	"ZAHLWAEH_CODE", "ZAHLWAEH_BETRAG", "BASISWAEH_BETRAG",
 }
 
 func buildDatapayment(s Snapshot, erstellung string, belege []beleg) Table {
@@ -840,10 +840,10 @@ func buildDatapayment(s Snapshot, erstellung string, belege []beleg) Table {
 	}
 }
 
-var referencesColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("BON_ID"), col("POS_ZEILE"), col("REF_TYP"), col("REF_NAME"),
-	col("REF_DATUM"), col("REF_Z_KASSE_ID"), col("REF_Z_NR"), col("REF_BON_ID"),
+var referencesColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"BON_ID", "POS_ZEILE", "REF_TYP", "REF_NAME",
+	"REF_DATUM", "REF_Z_KASSE_ID", "REF_Z_NR", "REF_BON_ID",
 }
 
 // buildReferences verkettet referenzierende Belege mit ihrem Ursprungsvorgang: den
@@ -875,13 +875,13 @@ func buildReferences(s Snapshot, erstellung string, belege []beleg) Table {
 	}
 }
 
-var linesColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("BON_ID"), col("POS_ZEILE"), col("GUTSCHEIN_NR"), col("ARTIKELTEXT"),
-	col("POS_TERMINAL_ID"), col("GV_TYP"), col("GV_NAME"), col("INHAUS"),
-	col("P_STORNO"), col("AGENTUR_ID"), col("ART_NR"), col("GTIN"),
-	col("WARENGR_ID"), col("WARENGR"), col("MENGE"), col("FAKTOR"),
-	col("EINHEIT"), col("STK_BR"),
+var linesColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"BON_ID", "POS_ZEILE", "GUTSCHEIN_NR", "ARTIKELTEXT",
+	"POS_TERMINAL_ID", "GV_TYP", "GV_NAME", "INHAUS",
+	"P_STORNO", "AGENTUR_ID", "ART_NR", "GTIN",
+	"WARENGR_ID", "WARENGR", "MENGE", "FAKTOR",
+	"EINHEIT", "STK_BR",
 }
 
 func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
@@ -929,10 +929,10 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 	}
 }
 
-var linesVatColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("BON_ID"), col("POS_ZEILE"), col("UST_SCHLUESSEL"),
-	col("POS_BRUTTO"), col("POS_NETTO"), col("POS_UST"),
+var linesVatColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"BON_ID", "POS_ZEILE", "UST_SCHLUESSEL",
+	"POS_BRUTTO", "POS_NETTO", "POS_UST",
 }
 
 func buildLinesVat(s Snapshot, erstellung string, belege []beleg) Table {
@@ -976,44 +976,44 @@ func buildLinesVat(s Snapshot, erstellung string, belege []beleg) Table {
 // deklariert und Prüfsoftware deren Existenz erwartet. jotti hat keine
 // Terminal-Kassen (slaves), kein Agenturgeschäft (pa), keine Preisfindung
 // (itemamounts) und keine Positions-Zusatzinfos wie Pfand (subitems).
-var slavesColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("TERMINAL_ID"), col("TERMINAL_BRAND"), col("TERMINAL_MODELL"),
-	col("TERMINAL_SERIENNR"), col("TERMINAL_SW_BRAND"), col("TERMINAL_SW_VERSION"),
+var slavesColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"TERMINAL_ID", "TERMINAL_BRAND", "TERMINAL_MODELL",
+	"TERMINAL_SERIENNR", "TERMINAL_SW_BRAND", "TERMINAL_SW_VERSION",
 }
 
-var paColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("AGENTUR_ID"), col("AGENTUR_NAME"), col("AGENTUR_STRASSE"),
-	col("AGENTUR_PLZ"), col("AGENTUR_ORT"), col("AGENTUR_LAND"),
-	col("AGENTUR_STNR"), col("AGENTUR_USTID"),
+var paColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"AGENTUR_ID", "AGENTUR_NAME", "AGENTUR_STRASSE",
+	"AGENTUR_PLZ", "AGENTUR_ORT", "AGENTUR_LAND",
+	"AGENTUR_STNR", "AGENTUR_USTID",
 }
 
-var itemamountsColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("BON_ID"), col("POS_ZEILE"), col("TYP"),
-	col("UST_SCHLUESSEL"), col("PF_BRUTTO"), col("PF_NETTO"), col("PF_UST"),
+var itemamountsColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"BON_ID", "POS_ZEILE", "TYP",
+	"UST_SCHLUESSEL", "PF_BRUTTO", "PF_NETTO", "PF_UST",
 }
 
-var subitemsColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("BON_ID"), col("POS_ZEILE"), col("ZI_ART_NR"),
-	col("ZI_GTIN"), col("ZI_NAME"), col("ZI_WARENGR_ID"),
-	col("ZI_WARENGR"), col("ZI_MENGE"), col("ZI_FAKTOR"),
-	col("ZI_EINHEIT"), col("ZI_UST_SCHLUESSEL"),
-	col("ZI_BASISPREIS_BRUTTO"), col("ZI_BASISPREIS_NETTO"), col("ZI_BASISPREIS_UST"),
+var subitemsColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"BON_ID", "POS_ZEILE", "ZI_ART_NR",
+	"ZI_GTIN", "ZI_NAME", "ZI_WARENGR_ID",
+	"ZI_WARENGR", "ZI_MENGE", "ZI_FAKTOR",
+	"ZI_EINHEIT", "ZI_UST_SCHLUESSEL",
+	"ZI_BASISPREIS_BRUTTO", "ZI_BASISPREIS_NETTO", "ZI_BASISPREIS_UST",
 }
 
-func headerOnlyTable(file, logicalName, description string, columns []column) Table {
+func headerOnlyTable(file, logicalName, description string, columns []string) Table {
 	return Table{File: file, LogicalName: logicalName, Description: description, Columns: columns, Records: nil}
 }
 
-var transactionsTSEColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("BON_ID"), col("TSE_ID"), col("TSE_TANR"),
-	col("TSE_TA_START"), col("TSE_TA_ENDE"), col("TSE_TA_VORGANGSART"),
-	col("TSE_TA_SIGZ"), col("TSE_TA_SIG"), col("TSE_TA_FEHLER"),
-	col("TSE_VORGANGSDATEN"),
+var transactionsTSEColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"BON_ID", "TSE_ID", "TSE_TANR",
+	"TSE_TA_START", "TSE_TA_ENDE", "TSE_TA_VORGANGSART",
+	"TSE_TA_SIGZ", "TSE_TA_SIG", "TSE_TA_FEHLER",
+	"TSE_VORGANGSDATEN",
 }
 
 func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
@@ -1060,10 +1060,10 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 
 // --- Kassenabschlussmodul ---
 
-var businesscasesColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("GV_TYP"), col("GV_NAME"), col("AGENTUR_ID"), col("UST_SCHLUESSEL"),
-	col("Z_UMS_BRUTTO"), col("Z_UMS_NETTO"), col("Z_UST"),
+var businesscasesColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"GV_TYP", "GV_NAME", "AGENTUR_ID", "UST_SCHLUESSEL",
+	"Z_UMS_BRUTTO", "Z_UMS_NETTO", "Z_UST",
 }
 
 // gvTypReihenfolge ordnet die Geschäftsvorfalltypen für eine stabile Ausgabe der
@@ -1137,9 +1137,9 @@ func buildBusinesscases(s Snapshot, erstellung string, belege []beleg) Table {
 	}
 }
 
-var paymentColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("ZAHLART_TYP"), col("ZAHLART_NAME"), col("Z_ZAHLART_BETRAG"),
+var paymentColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"ZAHLART_TYP", "ZAHLART_NAME", "Z_ZAHLART_BETRAG",
 }
 
 // zahlartReihenfolge ordnet die Zahlarten der payment.csv. jotti kassiert
@@ -1189,9 +1189,9 @@ func buildPayment(s Snapshot, erstellung string, belege []beleg) Table {
 	}
 }
 
-var cashPerCurrencyColumns = []column{
-	col("Z_KASSE_ID"), col("Z_ERSTELLUNG"), col("Z_NR"),
-	col("ZAHLART_WAEH"), col("ZAHLART_BETRAG_WAEH"),
+var cashPerCurrencyColumns = []string{
+	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
+	"ZAHLART_WAEH", "ZAHLART_BETRAG_WAEH",
 }
 
 // buildCashPerCurrency weist den Bargeldbestand zum Abschluss je Währung aus.

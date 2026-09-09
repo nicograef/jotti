@@ -1387,7 +1387,7 @@ func centsAus(t *testing.T, s string) int {
 func hatSignatur(table Table, sig string) bool {
 	for row := range table.Records {
 		for i, c := range table.Columns {
-			if c.name == "TSE_TA_SIG" && table.Records[row][i] == sig {
+			if c == "TSE_TA_SIG" && table.Records[row][i] == sig {
 				return true
 			}
 		}
@@ -1668,7 +1668,7 @@ func tableByFile(t *testing.T, a Archive, file string) Table {
 func field(t *testing.T, table Table, row int, name string) string {
 	t.Helper()
 	for i, c := range table.Columns {
-		if c.name == name {
+		if c == name {
 			return table.Records[row][i]
 		}
 	}

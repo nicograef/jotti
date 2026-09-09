@@ -10,35 +10,21 @@ const (
 	csvTextEncapsulator = `"`
 )
 
-// column beschreibt ein CSV-Feld über seinen Namen, die Spaltenüberschrift.
-// Feldtyp und Nachkommastellen stehen nicht hier: das Archiv liefert die
-// eingebettete amtliche index.xml unverändert mit (amtlicheIndexXML) und
-// erzeugt keine eigene Felddeklaration.
-type column struct {
-	name string
-}
-
-func col(name string) column { return column{name: name} }
-
 // Table ist eine serialisierbare DSFinV-K-CSV-Datei: offizieller Dateiname,
-// logische (deutsche) Bezeichnung, Spaltenbeschreibung und die bereits als
-// Strings formatierten Datenzeilen.
+// logische (deutsche) Bezeichnung, Spaltenüberschriften und die bereits als
+// Strings formatierten Datenzeilen. Feldtyp und Nachkommastellen stehen nicht
+// dabei: das Archiv liefert die eingebettete amtliche index.xml unverändert mit
+// (amtlicheIndexXML) und erzeugt keine eigene Felddeklaration.
 type Table struct {
 	File        string
 	LogicalName string
 	Description string
-	Columns     []column
+	Columns     []string
 	Records     [][]string
 }
 
 // header liefert die Spaltennamen in Reihenfolge.
-func (t Table) header() []string {
-	names := make([]string, len(t.Columns))
-	for i, c := range t.Columns {
-		names[i] = c.name
-	}
-	return names
-}
+func (t Table) header() []string { return t.Columns }
 
 // serializeCSV rendert eine Tabelle als DSFinV-K-konforme CSV-Bytes: eine
 // Header-Zeile mit den Spaltennamen, dann je Datensatz eine Zeile, Felder per

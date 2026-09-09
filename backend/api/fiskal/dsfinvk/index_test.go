@@ -60,8 +60,8 @@ func TestArchivEntsprichtAmtlicherIndexXML(t *testing.T) {
 			continue
 		}
 		for c, declCol := range decl.VariableLength.Columns {
-			if tbl.Columns[c].name != declCol.Name {
-				t.Errorf("%s Spalte %d: %q, amtlich deklariert %q", tbl.File, c, tbl.Columns[c].name, declCol.Name)
+			if tbl.Columns[c] != declCol.Name {
+				t.Errorf("%s Spalte %d: %q, amtlich deklariert %q", tbl.File, c, tbl.Columns[c], declCol.Name)
 			}
 		}
 	}
