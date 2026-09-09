@@ -12,19 +12,19 @@ Entscheidung, Konsequenzen).
   Arbeit bindet oder eine bewusste Ausnahme von einer Repo-Regel
   darstellt.
 
-| Nr. | Titel                                                                                   | Status     |
-| --- | --------------------------------------------------------------------------------------- | ---------- |
-| 01  | [Ausgabe-Bestätigung entfernen](01_ausgabe-bestaetigen.md)                              | akzeptiert |
-| 02  | [Umsatz pro Tisch entfernen](02_umsatz-pro-tisch-entfernen.md)                          | akzeptiert |
-| 03  | [Drawer auf Radix Dialog statt vaul](03_drawer-radix-statt-vaul.md)                     | akzeptiert |
-| 04  | [Warn-Bestätigung für irreversible Routine-Aktionen](04_warn-bestaetigung.md)           | akzeptiert |
-| 05  | [Spektral-Branding auf der Website](05_spektral-branding-website.md)                    | akzeptiert |
-| 06  | [Spektral-Branding im App-Frontend](06_spektral-branding-app.md)                        | akzeptiert |
-| 07  | [Einheitliche Desktop-Schwelle bei lg (1024px)](07_desktop-breakpoint-lg.md)            | akzeptiert |
-| 08  | [Zweispaltiges Service-Layout ab lg](08_service-split-screen.md)                        | akzeptiert |
-| 09  | [Cloud-TSE bei fiskaly behalten, keine Hardware-TSE](09_tse-kosten-und-hardware-tse.md) | akzeptiert |
-| 10  | [Keine Produktebene über der Variantenliste im Service](10_produktebene-service.md)     | akzeptiert |
-| 11  | [TSE-Einrichtungs-Wizard bleibt eine Datei](11_tse-wizard-aufteilung.md)                | akzeptiert |
-| 12  | [Sprachschnitt der Bezeichner](12_sprachschnitt-bezeichner.md)                          | akzeptiert |
-| 13  | [Go-Modul-Prüfungen und Compose-Stacks bleiben getrennt](13_pipeline-vervielfachung.md) | akzeptiert |
-| 14  | [Ein Demo-Drehbuch für die E2E-Suite](14_e2e-seed-variante.md)                          | akzeptiert |
+| Nr. | Titel                                                                                                        | Status     |
+| --- | ------------------------------------------------------------------------------------------------------------ | ---------- |
+| 01  | [Ausgabe-Bestätigung entfernen](01_ausgabe-bestaetigen.md)                                                   | akzeptiert |
+| 02  | [Umsatz pro Tisch entfernen](02_umsatz-pro-tisch-entfernen.md)                                               | akzeptiert |
+| 03  | [Drawer auf Radix Dialog statt vaul](03_drawer-radix-statt-vaul.md)                                          | akzeptiert |
+| 04  | [Warn-Bestätigung für irreversible Routine-Aktionen](04_warn-bestaetigung.md)                                | akzeptiert |
+| 05  | [Spektral-Branding auf der Website](05_spektral-branding-website.md)                                         | akzeptiert |
+| 06  | [Spektral-Branding im App-Frontend](06_spektral-branding-app.md)                                             | akzeptiert |
+| 07  | [Einheitliche Desktop-Schwelle bei lg (1024px)](07_desktop-breakpoint-lg.md)                                 | akzeptiert |
+| 08  | [Zweispaltiges Service-Layout ab lg](08_service-split-screen.md)                                             | akzeptiert |
+| 09  | [Cloud-TSE bei fiskaly behalten, keine Hardware-TSE](09_tse-kosten-und-hardware-tse.md)                      | akzeptiert |
+| 10  | [Keine Produktebene über der Variantenliste im Service](10_produktebene-service.md)                          | akzeptiert |
+| 11  | [TSE-Einrichtungs-Wizard bleibt eine Datei](11_tse-wizard-aufteilung.md)                                     | akzeptiert |
+| 12  | [Frontend-Bezeichner werden deutsch, Endpunkte und Website bleiben englisch](12_sprachschnitt-bezeichner.md) | akzeptiert |
+| 13  | [Go-Modul-Prüfungen und Compose-Stacks bleiben getrennt](13_pipeline-vervielfachung.md)                      | akzeptiert |
+| 14  | [Ein Demo-Drehbuch für die E2E-Suite](14_e2e-seed-variante.md)                                               | akzeptiert |

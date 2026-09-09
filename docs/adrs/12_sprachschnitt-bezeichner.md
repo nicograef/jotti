@@ -1,4 +1,4 @@
-# ADR 12: Sprachschnitt der Bezeichner
+# ADR 12: Frontend-Bezeichner werden deutsch, Endpunkte und Website bleiben englisch
 
 - **Status:** akzeptiert (2026-09-09)
 - **Kontext-Dokumente:** `docs/plans/plan-jotti-audit-fixes.md` Phase 14 (nach
@@ -21,7 +21,7 @@ diese Entscheidung maßgeblich:
 
 ### Endpunkt-Verben
 
-`RegisterAdminRoutes()` registriert 56 Routen. 15 tragen ein deutsches Verb, 41
+`NewAdminApi()` (`backend/api/admin.go:30`) registriert 56 Routen. 15 tragen ein deutsches Verb, 41
 ein englisches. Nach dem Prinzip aus Regel 5 sortiert sich das so:
 
 | Gruppe                          | Verb     | Beispiel (Zeile)               | Anzahl |
@@ -57,8 +57,9 @@ englisch benannte Stammdaten-CRUD.
 ### Frontend-Bezeichner
 
 Hier gilt Regel 1 ohne Einschränkung, und hier wird sie verletzt. In
-`frontend/src` (ohne `components/ui`) stehen 18 englische Bezeichner für
-Domänenbegriffe mit 114 Vorkommen in 26 Dateien:
+`frontend/src` (ohne `components/ui`) tragen 29 Bezeichner auf Modulebene —
+Komponenten, Typen, Seiten und ein Route-Guard — einen englischen
+Domänennamen, mit 184 Vorkommen in 42 Dateien:
 
 | Bezeichner                                                                       | Domänenbegriff        |
 | -------------------------------------------------------------------------------- | --------------------- |
@@ -67,13 +68,26 @@ Domänenbegriffe mit 114 Vorkommen in 26 Dateien:
 | `ProductList`, `ProductListSkeleton`, `ProductListComponentProps`                | Produktliste          |
 | `VariantChip`, `VariantChipProps`, `VariantRow`, `VariantNamePreis`              | Variante              |
 | `EditProductDialog`, `NewProductDialog`, `EditVariantDialog`, `NewVariantDialog` | Produkt, Variante     |
+| die vier zugehörigen `…DialogProps`-Typen                                        | Produkt, Variante     |
 | `HistoryRow`                                                                     | Historie              |
+| `TablePage`, `TableSelectionPage`, `ServiceTableGuard`                           | Tisch                 |
+| `AdminProductsPage`, `AdminTablesPage`                                           | Produkt, Tisch        |
+| `PriceField`, `CategoryField`                                                    | Preis, Kategorie      |
 
-15 Dateinamen tragen denselben Schnitt (`admin/products/Products.tsx`,
-`ProductItem.tsx`, `productGrouping.ts`, `service/components/table/Receipt.tsx`,
-`ProductList.tsx`, `components/common/VariantNamePreis.tsx` und weitere), dazu
-fünf Verzeichnisse: `admin/products`, `admin/tables`, `service/product`,
-`service/table`, `service/components/table`.
+Darunter liegt eine zweite Schicht: 28 Props, Handler und lokale Bezeichner mit
+englischen Domänennamen, 144 Vorkommen in 19 Dateien — `onVariantCreated`,
+`onVariantStatusChange`, `onTableDetail`, `handleMoveProduct`,
+`runSortVariants`, `moveVariantLoading`, `renderProducts`, `toReceiptItems`,
+`totalPrice` und weitere desselben Musters. Zusammen sind es 57 Bezeichner mit
+328 Vorkommen in 49 Dateien.
+
+20 Dateinamen tragen denselben Schnitt (`admin/products/Products.tsx`,
+`ProductItem.tsx`, `productGrouping.ts`, `admin/tables/AdminTablesPage.tsx`,
+`service/TablePage.tsx`, `service/TableSelectionPage.tsx`,
+`service/components/table/Receipt.tsx`, `ProductList.tsx`,
+`components/common/VariantNamePreis.tsx` und weitere), dazu fünf Verzeichnisse:
+`admin/products`, `admin/tables`, `service/product`, `service/table`,
+`service/components/table`.
 
 Die englischen Namen stehen neben ihren deutschen Gegenstücken in derselben
 Datei: `VariantRow` (`service/components/table/ProductList.tsx:122`) rendert
@@ -83,11 +97,13 @@ die Felder `einzelpreisCents` und `menge`, und `Receipt` nimmt die Props
 `/admin/produkte` (`AdminSidebar.tsx:136`) lädt `admin/products/AdminProductsPage`
 (`routes.ts:108`).
 
-Zwei Verzeichnisse sind nur außen englisch: `admin/tables` enthält
-`Tisch.ts`, `Tische.tsx`, `TischItem.tsx`, `tischGrouping.ts`; `service/table`
-enthält `Bestellung.ts`, `Stornierung.ts`, `Umbuchung.ts`, `Zahlung.ts`.
-`admin/users` bleibt englisch — `User` ist die dokumentierte Ausnahme aus
-Regel 2.
+`service/table` ist als einziges Verzeichnis nur außen englisch: darin stehen
+`Bestellung.ts`, `Stornierung.ts`, `Tisch.ts`, `Umbuchung.ts`, `Zahlung.ts`.
+`admin/tables` ist es nicht — neben `Tisch.ts`, `Tische.tsx`, `TischItem.tsx`
+und `tischGrouping.ts` liegt dort `AdminTablesPage.tsx`. Die beiden
+Tisch-Seiten des Service (`TablePage.tsx`, `TableSelectionPage.tsx`) liegen
+ohnehin direkt unter `service/`. `admin/users` bleibt englisch — `User` ist die
+dokumentierte Ausnahme aus Regel 2.
 
 ### Website
 
@@ -101,26 +117,29 @@ Stelle.
 
 ### Reichweite einer Umbenennung
 
-| Fläche                        | Vorkommen                                  |
-| ----------------------------- | ------------------------------------------ |
-| Frontend-Bezeichner           | 114 in 26 Dateien, davon 15 Dateinamen     |
-| Frontend-Routen               | keine — die Routen sind bereits deutsch    |
-| E2E-Selektoren                | keine                                      |
-| E2E-Kommentare                | 5 Zeilen in 3 Spec-Dateien                 |
-| Anwender- und Architekturdoku | keine                                      |
-| ADR 10                        | 5 Zeilen (`ProductList.tsx`, `VariantRow`) |
+| Fläche                        | Vorkommen                                         |
+| ----------------------------- | ------------------------------------------------- |
+| Frontend-Bezeichner           | 328 in 49 Dateien, davon 20 Dateinamen            |
+| Frontend-Routen               | keine — die Routen sind bereits deutsch           |
+| E2E-Selektoren                | keine                                             |
+| E2E-Kommentare                | 5 Zeilen in 3 Spec-Dateien                        |
+| Anwender- und Architekturdoku | keine                                             |
+| ADR 10                        | 5 Zeilen (`ProductList.tsx`, `VariantRow`)        |
+| `docs/plans/**`               | 18 Zeilen in `plan-praxis-feedback.md`, transient |
 
-Die E2E-Suite verankert ihre Selektoren an gerenderten deutschen Texten, nicht
-an Komponentennamen; die fünf Treffer in `variantenname-umbruch.mobile.spec.ts`,
+Plandateien zählen nicht zur Fläche: sie sind transient und werden nach dem
+Merge gelöscht (Resolved decision des Audit-Plans). Die E2E-Suite verankert
+ihre Selektoren an gerenderten deutschen Texten, nicht an Komponentennamen; die fünf Treffer in `variantenname-umbruch.mobile.spec.ts`,
 `tischservice-viewport-ueberlauf.mobile.spec.ts` und
 `produktliste-sticky-split.spec.ts` stehen ausschließlich in Kommentaren.
 
 ### Erwogene Alternativen
 
-1. **Alles umbenennen — Endpunkte und Frontend.** Trifft 16 Command-Routen, die
-   nach Regel 5 richtig heißen, und ändert damit einen Vertrag ohne Regelbezug.
+1. **Alles umbenennen — Endpunkte und Frontend.** Trifft die 22 Command-Routen
+   mit englischem Verb — 16 nach Regel 5, sechs nach Regel 2 — und ändert damit
+   einen Vertrag ohne Regelbezug.
 2. **Nichts umbenennen, alles als Ausnahme in `docs/language.md` schreiben.**
-   Schreibt 18 Bezeichner als Ausnahme fest und schwächt Regel 1 an ihrer
+   Schreibt 57 Bezeichner als Ausnahme fest und schwächt Regel 1 an ihrer
    Kernstelle. Präzedenz dagegen: `tisch_repo` wurde umbenannt statt
    dokumentiert.
 3. **Nur die Frontend-Bezeichner umbenennen, Endpunkte lassen, Website
@@ -141,7 +160,7 @@ Website wird ausgenommen** (Alternative 3).
   `Variante`n) zwingen zur Übersetzung beim Lesen. Ein Vokabular ist einfacher.
   Die Endpunkte tragen kein zweites Vokabular: sie folgen einer Regel, die
   Verb und Nomen bewusst trennt.
-- **Konsistenz:** Regel 1 gilt für Code ohne Einschränkung; 18 Bezeichner
+- **Konsistenz:** Regel 1 gilt für Code ohne Einschränkung; 57 Bezeichner
   verletzen sie. Die Endpunkte erfüllen Regel 5 und die Schichtentabelle: jeder
   Vorgang, den ein Kassenwart benennt, hat einen deutschen Pfad.
 - **Produkt-Konservatismus:** Die Umbenennung ist kein Feature und ändert kein
@@ -155,13 +174,15 @@ Website wird ausgenommen** (Alternative 3).
 
 - Die Umbenennung landet als ein einzelner Change, der nichts anderes tut. Sein
   Diff besteht aus Bezeichnern, Dateinamen und Importpfaden.
-- `docs/language.md` bekommt mit dieser Entscheidung den Geltungsbereich-Hinweis:
-  die Konventionen gelten für Backend, Frontend und Datenbank, nicht für das
-  Website-Paket. `live-demo.ts` bleibt englisch.
-- Die 16 Command-Routen mit englischem Verb bleiben, ebenso `/favorit-hinzufuegen`
-  und `/favorit-entfernen`. Wer den Ausreißer auflösen will, braucht ein eigenes
-  ADR; er betrifft eine Service-Route, nicht die Admin-Endpunkte dieser
-  Entscheidung.
+- `docs/language.md` bekommt mit dieser Entscheidung den Ausnahme-Hinweis: das
+  Website-Paket ist von den Konventionen ausgenommen. `live-demo.ts` bleibt
+  englisch.
+- Die 16 nach Regel 5 englisch benannten Stammdaten- und
+  Konfigurations-Commands bleiben, ebenso die sechs Benutzer-Routen nach
+  Regel 2 — zusammen die 22 Command-Routen mit englischem Verb. Auch
+  `/favorit-hinzufuegen` und `/favorit-entfernen` bleiben; wer den Ausreißer
+  auflösen will, braucht ein eigenes ADR, denn er betrifft eine Service-Route,
+  nicht die Admin-Endpunkte dieser Entscheidung.
 - ADR 10 nennt `ProductList.tsx`, `ProductListSkeleton` und `VariantRow`. ADRs
   werden nicht umgeschrieben; diese fünf Zeilen zeigen nach der Umbenennung auf
   Namen, die es nicht mehr gibt. Das ist der Preis und kein Grund gegen die
@@ -172,4 +193,4 @@ Website wird ausgenommen** (Alternative 3).
   separat, weil der Diff ohnehin gelesen wird.
 - **Zurücknehmen, wenn** `docs/language.md` Regel 1 auf Domänen-_Typen_ verengt
   wird und Komponentennamen ausnimmt. Dann fällt die Grundlage weg, und es
-  bleibt nur der Geltungsbereich-Hinweis für die Website.
+  bleibt nur der Ausnahme-Hinweis für die Website.
