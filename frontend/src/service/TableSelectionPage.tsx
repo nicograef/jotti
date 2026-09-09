@@ -81,8 +81,9 @@ export function TableSelectionPage() {
   )
 
   // Expliziter Fehlerzustand statt der Leer-Defaults (Übersicht 0,00 €, keine
-  // markierten Tische) — sonst wirkt der Dienst bei Netzabbruch abgerechnet.
-  // Die Fußleiste bleibt stehen, damit der Alle-Tische-Drawer erreichbar ist.
+  // markierten Tische) — sonst sieht der eigene Dienst bei Netzabbruch wie ein
+  // Tag ohne Bestellung aus. Die Fußleiste bleibt stehen, damit der
+  // Alle-Tische-Drawer erreichbar ist.
   const inhalt = ladefehler ? (
     <LadefehlerAlert
       titel="Tischübersicht konnte nicht geladen werden"
