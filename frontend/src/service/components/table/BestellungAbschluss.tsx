@@ -1,18 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import {
-  DrawerBody,
-  DrawerClose,
-  DrawerContent,
-  DrawerFooter,
-} from '@/components/ui/drawer'
+import { DrawerBody, DrawerClose, DrawerFooter } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import type { BestellPositionInput } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import { AbschlussContainer } from './AbschlussContainer'
 import { AbschlussHeader } from './AbschlussHeader'
 import { AbschlussLeer } from './AbschlussLeer'
 import { KommentarField } from './CommentField'
@@ -141,19 +137,9 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
     </>
   )
 
-  if (props.variant === 'sheet') {
-    return <DrawerContent pending={loading}>{inhalt}</DrawerContent>
-  }
-
-  // Feste Spalte: dieselben Body/Footer-Primitive wie im Sheet, nur in einem
-  // eigenen, unabhängig scrollenden Container. group/drawer-content +
-  // data-pending übernehmen das Body-Dimming des Drawers während des Submits.
   return (
-    <aside
-      data-pending={loading || undefined}
-      className="group/drawer-content flex min-h-0 flex-col overflow-hidden rounded-xl border bg-popover text-sm text-popover-foreground"
-    >
+    <AbschlussContainer variant={props.variant} pending={loading}>
       {inhalt}
-    </aside>
+    </AbschlussContainer>
   )
 }

@@ -1,24 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { EuroInput } from '@/components/common/EuroInput'
 import { Button } from '@/components/ui/button'
-import {
-  DrawerBody,
-  DrawerClose,
-  DrawerContent,
-  DrawerFooter,
-} from '@/components/ui/drawer'
-import { Label } from '@/components/ui/label'
+import { DrawerBody, DrawerClose, DrawerFooter } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { formatEuro, parseCents } from '@/lib/utils'
+import { parseCents } from '@/lib/utils'
 
 import type { Position } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import { AbschlussContainer } from './AbschlussContainer'
 import { AbschlussHeader } from './AbschlussHeader'
 import { AbschlussLeer } from './AbschlussLeer'
-import { AufrundenChips } from './AufrundenChips'
+import { BarzahlungFelder } from './BarzahlungFelder'
 import { KommentarField } from './CommentField'
 import {
   calculateZahlungsbetraege,
@@ -116,46 +110,17 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
               positionen={toReceiptItems(props.positionenToPay)}
               totalPrice={props.totalCents}
             />
-            <div className="px-4 pt-3 flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="erhalten">Erhalten</Label>
-                <EuroInput
-                  id="erhalten"
-                  value={erhaltenEuro}
-                  onValueChange={setErhaltenEuro}
-                  className="w-28"
-                />
-              </div>
-              <AufrundenChips
-                gesamtCents={props.totalCents}
-                zielbetragEuro={zielbetragEuro}
-                onZielbetragEuroChange={setZielbetragEuro}
-                andererAktiv={andererAktiv}
-                onAndererAktivChange={setAndererAktiv}
-              />
-              {rueckgeldCents !== null && (
-                <div className="flex items-baseline justify-between pt-1">
-                  <div className="text-[15px] font-semibold">Rückgeld</div>
-                  <div className="text-xl font-bold tabular-nums">
-                    {formatEuro(rueckgeldCents)}
-                  </div>
-                </div>
-              )}
-              {trinkgeldCents !== null && (
-                <>
-                  <div className="flex justify-between font-medium">
-                    <div>Trinkgeld</div>
-                    <div className="tabular-nums">
-                      {formatEuro(trinkgeldCents)}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Trinkgeld wird nicht als Kasseneinnahme gebucht und gehört
-                    nicht in die Kassenlade.
-                  </p>
-                </>
-              )}
-            </div>
+            <BarzahlungFelder
+              gesamtCents={props.totalCents}
+              erhaltenEuro={erhaltenEuro}
+              onErhaltenEuroChange={setErhaltenEuro}
+              zielbetragEuro={zielbetragEuro}
+              onZielbetragEuroChange={setZielbetragEuro}
+              andererAktiv={andererAktiv}
+              onAndererAktivChange={setAndererAktiv}
+              rueckgeldCents={rueckgeldCents}
+              trinkgeldCents={trinkgeldCents}
+            />
             <div className="px-4 pt-3">
               <KommentarField
                 value={kommentar}
@@ -190,19 +155,9 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
     </>
   )
 
-  if (props.variant === 'sheet') {
-    return <DrawerContent pending={loading}>{inhalt}</DrawerContent>
-  }
-
-  // Feste Spalte: dieselben Body/Footer-Primitive wie im Sheet, nur in einem
-  // eigenen, unabhängig scrollenden Container. group/drawer-content +
-  // data-pending übernehmen das Body-Dimming des Drawers während des Submits.
   return (
-    <aside
-      data-pending={loading || undefined}
-      className="group/drawer-content flex min-h-0 flex-col overflow-hidden rounded-xl border bg-popover text-sm text-popover-foreground"
-    >
+    <AbschlussContainer variant={props.variant} pending={loading}>
       {inhalt}
-    </aside>
+    </AbschlussContainer>
   )
 }
