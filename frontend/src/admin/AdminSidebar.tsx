@@ -37,7 +37,7 @@ import { useVersion } from '@/hooks/use-version'
 import { AuthSingleton } from '@/lib/Auth'
 
 import { StatusDot, type StatusDotZustand } from './components/StatusDot'
-import { useOffeneKassensitzung } from './kasse/hooks'
+import { useAktiveKassensitzung } from './kasse/hooks'
 
 interface NavItem {
   title: string
@@ -92,7 +92,7 @@ export function AdminSidebar() {
   const version = useVersion()
   const { isDark, setTheme } = useTheme()
 
-  const { kassensitzung } = useOffeneKassensitzung()
+  const { kassensitzung } = useAktiveKassensitzung()
   const { druckauftraege } = useFehlgeschlageneDruckauftraege()
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
   const { queue } = useTSESignaturQueue()

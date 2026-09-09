@@ -13,11 +13,11 @@ import { EroeffnenSection } from './EroeffnenSection'
 import {
   GELDTRANSIT_LISTE_KEY,
   KASSENBESTAND_KEY,
+  useAktiveKassensitzung,
   useKassenbestand,
-  useOffeneKassensitzung,
 } from './hooks'
 import { KasseAbschliessenSection } from './KasseAbschliessenSection'
-import type { OffeneKassensitzung } from './KasseBackend'
+import type { AktiveKassensitzung } from './KasseBackend'
 import { KassensitzungStatus } from './Kassensitzung'
 import { LaufenderBetriebSection } from './LaufenderBetriebSection'
 
@@ -92,7 +92,7 @@ function EroeffnetKarte({
   anfangsbestandCents,
   animieren,
 }: {
-  kassensitzung: OffeneKassensitzung
+  kassensitzung: AktiveKassensitzung
   anfangsbestandCents: number | null
   // Lässt die Karte einmalig mit fadeUp eintreten, wenn sie gerade durch das
   // Eröffnen erscheint (nicht beim Laden einer bereits offenen Kasse).
@@ -127,7 +127,7 @@ function EroeffnetKarte({
 
 export function KassensitzungPage() {
   const { kassensitzung, isPending, isError, refetch } =
-    useOffeneKassensitzung()
+    useAktiveKassensitzung()
   // Kassenbestand-Aufschlüsselung für Schritt 1 (Anfangsbestand); TanStack Query
   // dedupliziert mit dem Abruf innerhalb von LaufenderBetriebSection.
   const { kassenbestand } = useKassenbestand(kassensitzung?.zNr ?? null)

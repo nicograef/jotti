@@ -2,7 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { OffeneKassensitzung } from '@/admin/kasse/KasseBackend'
+import type { AktiveKassensitzung } from '@/admin/kasse/KasseBackend'
 
 import { KassenberichtePage } from './KassenberichtePage'
 import type { AbgeschlosseneSitzung, ReportingData } from './types'
@@ -16,7 +16,7 @@ vi.mock('react-router', () => ({
 const hookState = vi.hoisted(() => ({
   kassensitzungen: [] as AbgeschlosseneSitzung[],
   listLoading: false,
-  offeneSitzung: null as OffeneKassensitzung | null,
+  aktiveSitzung: null as AktiveKassensitzung | null,
   report: null as ReportingData | null,
   reportLoading: false,
 }))
@@ -34,8 +34,8 @@ vi.mock('./hooks', () => ({
 }))
 
 vi.mock('@/admin/kasse/hooks', () => ({
-  useOffeneKassensitzung: () => ({
-    kassensitzung: hookState.offeneSitzung,
+  useAktiveKassensitzung: () => ({
+    kassensitzung: hookState.aktiveSitzung,
     isPending: false,
     isError: false,
     refetch: vi.fn(),
@@ -74,7 +74,7 @@ afterEach(() => {
   cleanup()
   hookState.kassensitzungen = []
   hookState.listLoading = false
-  hookState.offeneSitzung = null
+  hookState.aktiveSitzung = null
   hookState.report = null
   hookState.reportLoading = false
 })
@@ -145,7 +145,7 @@ describe('KassenberichtePage', () => {
       },
     ]
     hookState.report = makeReport(11)
-    hookState.offeneSitzung = {
+    hookState.aktiveSitzung = {
       zNr: 12,
       datum: '2026-07-06',
       bezeichnung: 'Sommerfest Tag 2',

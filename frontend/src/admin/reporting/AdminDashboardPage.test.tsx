@@ -32,7 +32,7 @@ vi.mock('./hooks', () => ({
 }))
 
 vi.mock('@/admin/kasse/hooks', () => ({
-  useOffeneKassensitzung: () => ({
+  useAktiveKassensitzung: () => ({
     kassensitzung:
       liveState.data === null
         ? null

@@ -1,4 +1,4 @@
-import { useKassenbestand, useOffeneKassensitzung } from '@/admin/kasse/hooks'
+import { useAktiveKassensitzung, useKassenbestand } from '@/admin/kasse/hooks'
 import { beschreibeFehlBons } from '@/admin/settings/DruckstationBackend'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
@@ -17,7 +17,7 @@ export function AdminDashboardPage() {
     dataUpdatedAt,
     refetch,
   } = useLiveReporting()
-  const { kassensitzung } = useOffeneKassensitzung()
+  const { kassensitzung } = useAktiveKassensitzung()
   const { kassenbestand } = useKassenbestand(kassensitzung?.zNr ?? null)
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
   const { queue } = useTSESignaturQueue()

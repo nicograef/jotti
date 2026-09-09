@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
 
-import { KasseBackend, type OffeneKassensitzung } from './KasseBackend'
+import { type AktiveKassensitzung, KasseBackend } from './KasseBackend'
 
 export const kasseBackend = new KasseBackend(BackendSingleton)
 
@@ -11,14 +11,14 @@ export const kasseBackend = new KasseBackend(BackendSingleton)
 export const KASSENBESTAND_KEY = 'kassenbestand'
 export const GELDTRANSIT_LISTE_KEY = 'geldtransit-liste'
 
-export function useOffeneKassensitzung() {
+export function useAktiveKassensitzung() {
   const {
-    data = null as OffeneKassensitzung | null,
+    data = null as AktiveKassensitzung | null,
     isPending,
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['offene-kassensitzung'],
+    queryKey: ['aktive-kassensitzung'],
     queryFn: () => kasseBackend.getAktiveKassensitzung(),
   })
   return { kassensitzung: data, isPending, isError, refetch }

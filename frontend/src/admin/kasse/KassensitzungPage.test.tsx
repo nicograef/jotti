@@ -43,7 +43,7 @@ const { kasseAbschliessen, kassensitzungEroeffnen, geldtransitBuchen } =
       .mockResolvedValue(undefined),
   }))
 
-type OffeneKassensitzungMock = {
+type AktiveKassensitzungMock = {
   zNr: number
   datum: string
   bezeichnung: string
@@ -51,8 +51,8 @@ type OffeneKassensitzungMock = {
   eroeffnetAm: string
 } | null
 
-const offeneKassensitzungState = vi.hoisted(
-  (): { isError: boolean; kassensitzung: OffeneKassensitzungMock } => ({
+const aktiveKassensitzungState = vi.hoisted(
+  (): { isError: boolean; kassensitzung: AktiveKassensitzungMock } => ({
     isError: false,
     kassensitzung: null,
   }),
@@ -81,10 +81,10 @@ vi.mock('./hooks', () => ({
     dataUpdatedAt: 0,
   }),
   useGeldtransitListe: () => ({ buchungen: geldtransitListeState.buchungen }),
-  useOffeneKassensitzung: () => ({
-    kassensitzung: offeneKassensitzungState.kassensitzung,
+  useAktiveKassensitzung: () => ({
+    kassensitzung: aktiveKassensitzungState.kassensitzung,
     isPending: false,
-    isError: offeneKassensitzungState.isError,
+    isError: aktiveKassensitzungState.isError,
     refetch: () => Promise.resolve(),
   }),
 }))
@@ -143,8 +143,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
-  offeneKassensitzungState.isError = false
-  offeneKassensitzungState.kassensitzung = null
+  aktiveKassensitzungState.isError = false
+  aktiveKassensitzungState.kassensitzung = null
   geldtransitListeState.buchungen = []
   liveReportingState.offeneTische = []
   liveReportingState.offeneSaldiCents = 0
@@ -152,7 +152,7 @@ afterEach(() => {
 
 describe('KassensitzungPage', () => {
   it('zeigt bei Query-Fehler einen Fehlerzustand statt des Steppers', () => {
-    offeneKassensitzungState.isError = true
+    aktiveKassensitzungState.isError = true
     renderPage()
 
     expect(
@@ -167,7 +167,7 @@ describe('KassensitzungPage', () => {
   })
 
   it('zeigt im Leerzustand Schritt 1 als aktives Eröffnen-Formular, Schritte 2–3 ausgegraut', () => {
-    offeneKassensitzungState.kassensitzung = null
+    aktiveKassensitzungState.kassensitzung = null
     renderPage()
 
     // Schritt 1 ist das Eröffnen-Formular.
@@ -186,7 +186,7 @@ describe('KassensitzungPage', () => {
   })
 
   it('zeigt bei offener Sitzung den Stepper mit Titel, Soll-Bestand-Aufschlüsselung und Bewegungsliste', () => {
-    offeneKassensitzungState.kassensitzung = {
+    aktiveKassensitzungState.kassensitzung = {
       zNr: 12,
       datum: '2026-07-11',
       bezeichnung: 'Sommerfest Tag 2',
@@ -235,7 +235,7 @@ describe('KassensitzungPage', () => {
   })
 
   it('zeigt im Barrierestatus Schritt 3 mit dem Hinweis auf den unterbrochenen Abschluss', () => {
-    offeneKassensitzungState.kassensitzung = {
+    aktiveKassensitzungState.kassensitzung = {
       zNr: 12,
       datum: '2026-07-11',
       bezeichnung: 'Sommerfest Tag 2',
@@ -257,7 +257,7 @@ describe('KassensitzungPage', () => {
   })
 
   it('öffnet über „Geld entnehmen" den Dialog mit vorbelegter Richtung und bucht', async () => {
-    offeneKassensitzungState.kassensitzung = {
+    aktiveKassensitzungState.kassensitzung = {
       zNr: 12,
       datum: '2026-07-11',
       bezeichnung: 'Sommerfest Tag 2',
@@ -517,7 +517,7 @@ describe('KasseAbschliessenSection', () => {
 
 describe('GeldtransitDialog im Vorgangs-Register', () => {
   it('meldet das angefangene Formular und gibt es beim Schließen frei', async () => {
-    offeneKassensitzungState.kassensitzung = {
+    aktiveKassensitzungState.kassensitzung = {
       zNr: 12,
       datum: '2026-07-11',
       bezeichnung: 'Sommerfest Tag 2',
