@@ -8,7 +8,7 @@ import (
 )
 
 type tischQueryRepo interface {
-	GetAllTables(ctx context.Context) ([]t.Tisch, error)
+	GetAlleTische(ctx context.Context) ([]t.Tisch, error)
 	GetTischSaldiOffeneSitzung(ctx context.Context) (map[int]int, error)
 }
 
@@ -28,7 +28,7 @@ type TischMitSaldo struct {
 func (q Query) GetAllTische(ctx context.Context) ([]TischMitSaldo, error) {
 	log := zerolog.Ctx(ctx)
 
-	tische, err := q.TischRepo.GetAllTables(ctx)
+	tische, err := q.TischRepo.GetAlleTische(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve all tische")
 		return nil, ErrDatabase

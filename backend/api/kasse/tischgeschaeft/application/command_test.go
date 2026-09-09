@@ -114,11 +114,11 @@ type bestellungUmgebuchtData struct {
 	BenutzerKommentar string                  `json:"benutzerKommentar,omitempty"`
 }
 
-type umbuchungTableRepoMock struct {
+type umbuchungTischRepoMock struct {
 	tables map[int]tisch.Tisch
 }
 
-func (m *umbuchungTableRepoMock) GetTable(_ context.Context, id int) (tisch.Tisch, error) {
+func (m *umbuchungTischRepoMock) GetTisch(_ context.Context, id int) (tisch.Tisch, error) {
 	entry, ok := m.tables[id]
 	if !ok {
 		return tisch.Tisch{}, db.ErrNotFound
@@ -126,23 +126,23 @@ func (m *umbuchungTableRepoMock) GetTable(_ context.Context, id int) (tisch.Tisc
 	return entry, nil
 }
 
-func (m *umbuchungTableRepoMock) CreateTable(_ context.Context, _ tisch.Tisch) (int, error) {
+func (m *umbuchungTischRepoMock) CreateTisch(_ context.Context, _ tisch.Tisch) (int, error) {
 	return 0, nil
 }
 
-func (m *umbuchungTableRepoMock) UpdateTable(_ context.Context, _ tisch.Tisch) error {
+func (m *umbuchungTischRepoMock) UpdateTisch(_ context.Context, _ tisch.Tisch) error {
 	return nil
 }
 
-func (m *umbuchungTableRepoMock) GetAllTables(_ context.Context) ([]tisch.Tisch, error) {
+func (m *umbuchungTischRepoMock) GetAlleTische(_ context.Context) ([]tisch.Tisch, error) {
 	return nil, nil
 }
 
-func (m *umbuchungTableRepoMock) GetActiveTables(_ context.Context, _ int) ([]tisch.AktiverTisch, error) {
+func (m *umbuchungTischRepoMock) GetAktiveTische(_ context.Context, _ int) ([]tisch.AktiverTisch, error) {
 	return nil, nil
 }
 
-func (m *umbuchungTableRepoMock) GetActiveTablesWithFavorites(_ context.Context, _, _ int) ([]tisch.AktiverTischMitFavorit, error) {
+func (m *umbuchungTischRepoMock) GetAktiveTischeMitFavoriten(_ context.Context, _, _ int) ([]tisch.AktiverTischMitFavorit, error) {
 	return nil, nil
 }
 
@@ -932,7 +932,7 @@ func TestBestellungUmbuchen_ZielTischNotFound(t *testing.T) {
 	quellTisch := tisch.Tisch{ID: 1, Name: "Tisch Quelle", Status: tisch.ActiveStatus}
 
 	command := Command{
-		TischRepo: &umbuchungTableRepoMock{tables: map[int]tisch.Tisch{
+		TischRepo: &umbuchungTischRepoMock{tables: map[int]tisch.Tisch{
 			quellTisch.ID: quellTisch,
 		}},
 		EventRepo:           kassenjournal_repo.NewMock(nil, nil),

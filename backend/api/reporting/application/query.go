@@ -33,7 +33,7 @@ type tischSessionRepo interface {
 }
 
 type tischRepo interface {
-	GetAllTables(ctx context.Context) ([]tisch.Tisch, error)
+	GetAlleTische(ctx context.Context) ([]tisch.Tisch, error)
 }
 
 type Query struct {
@@ -328,7 +328,7 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 		return nil, ErrDatabase
 	}
 
-	tische, err := q.TischRepo.GetAllTables(ctx)
+	tische, err := q.TischRepo.GetAlleTische(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get tische for live reporting")
 		return nil, ErrDatabase

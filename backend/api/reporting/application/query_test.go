@@ -52,7 +52,7 @@ type mockTischRepo struct {
 	err    error
 }
 
-func (m mockTischRepo) GetAllTables(_ context.Context) ([]tisch.Tisch, error) {
+func (m mockTischRepo) GetAlleTische(_ context.Context) ([]tisch.Tisch, error) {
 	return m.tische, m.err
 }
 

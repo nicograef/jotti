@@ -8,11 +8,11 @@ import (
 )
 
 type tischRepo interface {
-	GetTable(ctx context.Context, id int) (tisch.Tisch, error)
-	CreateTable(ctx context.Context, t tisch.Tisch) (int, error)
-	UpdateTable(ctx context.Context, t tisch.Tisch) error
-	DeleteTableMitFavoriten(ctx context.Context, t tisch.Tisch) error
-	GetAllTables(ctx context.Context) ([]tisch.Tisch, error)
+	GetTisch(ctx context.Context, id int) (tisch.Tisch, error)
+	CreateTisch(ctx context.Context, t tisch.Tisch) (int, error)
+	UpdateTisch(ctx context.Context, t tisch.Tisch) error
+	DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) error
+	GetAlleTische(ctx context.Context) ([]tisch.Tisch, error)
 	TischHatOffenenSaldo(ctx context.Context, tischID int) (bool, error)
 }
 
@@ -29,7 +29,7 @@ type Command struct {
 func (c Command) FavoritHinzufuegen(ctx context.Context, userID, tischID int) error {
 	log := zerolog.Ctx(ctx)
 
-	t, err := c.TischRepo.GetTable(ctx, tischID)
+	t, err := c.TischRepo.GetTisch(ctx, tischID)
 	if err != nil {
 		return fromRepositoryError(err, log, tischID)
 	}
@@ -69,7 +69,7 @@ func (c Command) TischErstellen(ctx context.Context, name string) (int, error) {
 		return 0, ErrInvalidTischData
 	}
 
-	id, err := c.TischRepo.CreateTable(ctx, tisch)
+	id, err := c.TischRepo.CreateTisch(ctx, tisch)
 	if err != nil {
 		return 0, fromRepositoryError(err, log, 0)
 	}
@@ -81,7 +81,7 @@ func (c Command) TischErstellen(ctx context.Context, name string) (int, error) {
 func (c Command) TischAktualisieren(ctx context.Context, id int, name string) error {
 	log := zerolog.Ctx(ctx)
 
-	tisch, err := c.TischRepo.GetTable(ctx, id)
+	tisch, err := c.TischRepo.GetTisch(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
@@ -92,7 +92,7 @@ func (c Command) TischAktualisieren(ctx context.Context, id int, name string) er
 		return ErrInvalidTischData
 	}
 
-	err = c.TischRepo.UpdateTable(ctx, tisch)
+	err = c.TischRepo.UpdateTisch(ctx, tisch)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
@@ -122,7 +122,7 @@ func (c Command) TischLoeschen(ctx context.Context, id int) error {
 func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo bool, successMsg string, action func(*tisch.Tisch)) error {
 	log := zerolog.Ctx(ctx)
 
-	t, err := c.TischRepo.GetTable(ctx, id)
+	t, err := c.TischRepo.GetTisch(ctx, id)
 	if err != nil {
 		return fromRepositoryError(err, log, id)
 	}
@@ -148,9 +148,9 @@ func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo 
 	// halb ausgeführtes Löschen hinterlässt sonst genau diese unsichtbaren
 	// Markierungen. Ein deaktivierter Tisch bleibt bewusst markiert; er kommt
 	// wieder.
-	persist := c.TischRepo.UpdateTable
+	persist := c.TischRepo.UpdateTisch
 	if t.Status == tisch.DeletedStatus {
-		persist = c.TischRepo.DeleteTableMitFavoriten
+		persist = c.TischRepo.DeleteTischMitFavoriten
 	}
 
 	if err := persist(ctx, t); err != nil {

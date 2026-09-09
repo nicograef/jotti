@@ -48,10 +48,10 @@ type tseRepo interface {
 }
 
 type tischRepo interface {
-	// GetAllTableNames muss auch gelöschte Tische liefern: der Export benennt die
+	// GetAlleTischNamen muss auch gelöschte Tische liefern: der Export benennt die
 	// Abrechnungskreise vergangener Kassensitzungen, und ein Tisch darf nach dem
 	// Tagesabschluss gelöscht werden.
-	GetAllTableNames(ctx context.Context) (map[int]string, error)
+	GetAlleTischNamen(ctx context.Context) (map[int]string, error)
 }
 
 // Export ist der App-Service, der das DSFinV-K-Archiv einer Kassensitzung
@@ -183,7 +183,7 @@ func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung
 		log.Error().Err(err).Msg("Failed to get tse stammdaten")
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
-	tischnamen, err := e.TischRepo.GetAllTableNames(ctx)
+	tischnamen, err := e.TischRepo.GetAlleTischNamen(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get tischnamen")
 		return dsfinvk.Snapshot{}, ErrDatabase

@@ -34,7 +34,7 @@ func TestTischErstellen(t *testing.T) {
 		t.Errorf("expected tisch ID 1, got %d", tischId)
 	}
 
-	tisch, err := command.TischRepo.GetTable(ctx, tischId)
+	tisch, err := command.TischRepo.GetTisch(ctx, tischId)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -62,7 +62,7 @@ func TestTischAktualisieren(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	tisch, err := command.TischRepo.GetTable(context.Background(), 1)
+	tisch, err := command.TischRepo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -90,7 +90,7 @@ func TestTischAktivieren(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -118,7 +118,7 @@ func TestTischDeaktivieren(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -147,7 +147,7 @@ func TestTischDeaktivieren_SaldoOffen(t *testing.T) {
 		t.Fatalf("expected ErrTischSaldoOffen, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -165,7 +165,7 @@ func TestTischLoeschen_OhneSaldo(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -237,7 +237,7 @@ func TestTischLoeschen_FavoritenCleanupFehlschlag(t *testing.T) {
 		t.Fatalf("expected ErrDatabase, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -257,7 +257,7 @@ func TestTischLoeschen_SaldoOffen(t *testing.T) {
 		t.Fatalf("expected ErrTischSaldoOffen, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -285,7 +285,7 @@ func TestTischDeaktivieren_OhneOffeneSitzung(t *testing.T) {
 		t.Fatalf("expected no error without open session, got %v", err)
 	}
 
-	tbl, _ := repo.GetTable(context.Background(), 1)
+	tbl, _ := repo.GetTisch(context.Background(), 1)
 	if tbl.Status != tisch.InactiveStatus {
 		t.Errorf("expected tisch status to be Inactive, got %v", tbl.Status)
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-func (r Repository) GetTable(ctx context.Context, id int) (tisch.Tisch, error) {
+func (r Repository) GetTisch(ctx context.Context, id int) (tisch.Tisch, error) {
 	row, err := r.q.GetTisch(ctx, id)
 	if err != nil {
 		return tisch.Tisch{}, db.Error(err)
@@ -17,7 +17,7 @@ func (r Repository) GetTable(ctx context.Context, id int) (tisch.Tisch, error) {
 	return tischRowToDomain(row), nil
 }
 
-func (r Repository) GetAllTables(ctx context.Context) ([]tisch.Tisch, error) {
+func (r Repository) GetAlleTische(ctx context.Context) ([]tisch.Tisch, error) {
 	rows, err := r.q.GetAlleTische(ctx)
 	if err != nil {
 		return nil, db.Error(err)
@@ -31,11 +31,11 @@ func (r Repository) GetAllTables(ctx context.Context) ([]tisch.Tisch, error) {
 	return tables, nil
 }
 
-// GetAllTableNames liefert die Namen ALLER Tische als Map tischID → Name,
+// GetAlleTischNamen liefert die Namen ALLER Tische als Map tischID → Name,
 // inklusive gelöschter. Für die historische Namensauflösung (DSFinV-K-Export
-// vergangener Kassensitzungen), wo GetAllTables den gelöschten Tisch verschweigt
+// vergangener Kassensitzungen), wo GetAlleTische den gelöschten Tisch verschweigt
 // und der Aufrufer sonst auf die Tisch-ID zurückfallen müsste.
-func (r Repository) GetAllTableNames(ctx context.Context) (map[int]string, error) {
+func (r Repository) GetAlleTischNamen(ctx context.Context) (map[int]string, error) {
 	rows, err := r.q.GetAlleTischNamen(ctx)
 	if err != nil {
 		return nil, db.Error(err)
@@ -77,7 +77,7 @@ func (r Repository) TischHatOffenenSaldo(ctx context.Context, tischID int) (bool
 	return hat, nil
 }
 
-func (r Repository) GetActiveTables(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error) {
+func (r Repository) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error) {
 	rows, err := r.q.GetAktiveTische(ctx, kassensitzungNr)
 	if err != nil {
 		return nil, db.Error(err)
@@ -95,7 +95,7 @@ func (r Repository) GetActiveTables(ctx context.Context, kassensitzungNr int) ([
 	return tables, nil
 }
 
-func (r Repository) GetActiveTablesWithFavorites(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error) {
+func (r Repository) GetAktiveTischeMitFavoriten(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error) {
 	rows, err := r.q.GetAktiveTischeMitFavoriten(ctx, dbgen.GetAktiveTischeMitFavoritenParams{
 		UserID:          userID,
 		KassensitzungNr: kassensitzungNr,
@@ -117,7 +117,7 @@ func (r Repository) GetActiveTablesWithFavorites(ctx context.Context, userID int
 	return tables, nil
 }
 
-func (r Repository) CreateTable(ctx context.Context, t tisch.Tisch) (int, error) {
+func (r Repository) CreateTisch(ctx context.Context, t tisch.Tisch) (int, error) {
 	id, err := r.q.CreateTisch(ctx, dbgen.CreateTischParams{
 		Name:      t.Name,
 		Status:    dbgen.Entitystatus(t.Status),
@@ -131,7 +131,7 @@ func (r Repository) CreateTable(ctx context.Context, t tisch.Tisch) (int, error)
 	return id, nil
 }
 
-func (r Repository) UpdateTable(ctx context.Context, t tisch.Tisch) error {
+func (r Repository) UpdateTisch(ctx context.Context, t tisch.Tisch) error {
 	result, err := r.q.UpdateTisch(ctx, dbgen.UpdateTischParams{
 		Name:      t.Name,
 		Status:    dbgen.Entitystatus(t.Status),
@@ -145,7 +145,7 @@ func (r Repository) UpdateTable(ctx context.Context, t tisch.Tisch) error {
 	return db.ResultError(result)
 }
 
-// DeleteTableMitFavoriten persists the soft-delete of a tisch together with the
+// DeleteTischMitFavoriten persists the soft-delete of a tisch together with the
 // removal of every service user's favourite marking for it, in a single
 // transaction. The caller passes the tisch with Delete() already applied; this
 // method only writes. Because both writes share one db.WithTx, a mid-operation
@@ -153,7 +153,7 @@ func (r Repository) UpdateTable(ctx context.Context, t tisch.Tisch) error {
 // rows left behind (they would be invisible and unremovable, since a deleted
 // tisch no longer appears in the table picker), and never orphaned removals on
 // a tisch that stayed active.
-func (r Repository) DeleteTableMitFavoriten(ctx context.Context, t tisch.Tisch) error {
+func (r Repository) DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		if err := qtx.RemoveFavoritenByTisch(ctx, t.ID); err != nil {
 			return db.Error(err)

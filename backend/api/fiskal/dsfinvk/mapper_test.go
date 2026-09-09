@@ -463,7 +463,7 @@ func TestAbrechnungskreisKuerztAufAmtlicheMaxLength(t *testing.T) {
 
 // TestAbrechnungskreisFallback synthetisiert "Tisch N" als letzte Rückfallebene,
 // wenn der Tisch überhaupt nicht in den Stammdaten steht. Gelöschte Tische
-// gehören nicht dazu: der Export liefert deren Namen mit (GetAllTableNames).
+// gehören nicht dazu: der Export liefert deren Namen mit (GetAlleTischNamen).
 func TestAbrechnungskreisFallback(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = nil // kein Tischname bekannt

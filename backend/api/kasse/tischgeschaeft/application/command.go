@@ -19,9 +19,9 @@ import (
 )
 
 type tischRepo interface {
-	GetTable(ctx context.Context, id int) (tisch.Tisch, error)
-	GetActiveTables(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error)
-	GetActiveTablesWithFavorites(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error)
+	GetTisch(ctx context.Context, id int) (tisch.Tisch, error)
+	GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error)
+	GetAktiveTischeMitFavoriten(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error)
 }
 
 type eventRepo interface {
@@ -161,7 +161,7 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 		return "", 0, "", kasse.TischSession{}, err
 	}
 
-	t, err := c.TischRepo.GetTable(ctx, tischID)
+	t, err := c.TischRepo.GetTisch(ctx, tischID)
 	if err != nil {
 		return "", 0, "", kasse.TischSession{}, fromRepositoryError(err, log, tischID)
 	}
@@ -304,7 +304,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return err
 	}
 
-	quellTisch, err := c.TischRepo.GetTable(ctx, quellTischID)
+	quellTisch, err := c.TischRepo.GetTisch(ctx, quellTischID)
 	if err != nil {
 		return fromRepositoryError(err, log, quellTischID)
 	}
@@ -313,7 +313,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return ErrTischNotActive
 	}
 
-	zielTisch, err := c.TischRepo.GetTable(ctx, zielTischID)
+	zielTisch, err := c.TischRepo.GetTisch(ctx, zielTischID)
 	if err != nil {
 		return fromRepositoryError(err, log, zielTischID)
 	}
