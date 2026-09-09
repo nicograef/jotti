@@ -12,7 +12,7 @@ import "testing"
 func TestKassenbestand_SollBestandOhneDifferenzCents(t *testing.T) {
 	cases := []struct {
 		name string
-		// bestand traegt in beiden Faellen dieselben vier Komponenten; nur
+		// bestand trägt in beiden Fällen dieselben vier Komponenten; nur
 		// SollBestandCents unterscheidet sich um die gebuchte Differenz.
 		bestand Kassenbestand
 		want    int
@@ -35,8 +35,8 @@ func TestKassenbestand_SollBestandOhneDifferenzCents(t *testing.T) {
 		{
 			name: "mit gebuchter Differenz bleibt der Bestand der Buchungen",
 			bestand: Kassenbestand{
-				// Fehlbetrag von 500 gebucht: SollBestandCents ist an den gezaehlten
-				// Ist-Bestand angeglichen, die vier Komponenten sind unberuehrt.
+				// Fehlbetrag von 500 gebucht: SollBestandCents ist an den gezählten
+				// Ist-Bestand angeglichen, die vier Komponenten sind unberührt.
 				SollBestandCents:    33500,
 				AnfangsbestandCents: 15000,
 				BareinnahmenCents:   17000,
