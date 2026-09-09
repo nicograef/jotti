@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 // TestLoadConfigModes pinnt die Modus-Entscheidung aus der Umgebung, samt der
 // Zusage, dass der LAN-Modus ohne gemountetes State-Verzeichnis kein Modus mehr
@@ -68,6 +72,55 @@ func TestLoadConfigModes(t *testing.T) {
 			}
 			if cfg.statePath != defaultStatePath {
 				t.Errorf("statePath = %q, want %q", cfg.statePath, defaultStatePath)
+			}
+		})
+	}
+}
+
+// TestWriteCaddyfileIsOwnerOnly prüft den Modus der erzeugten Datei — beide
+// Fälle: neu angelegt und über eine bereits vorhandene Datei geschrieben. Die
+// LAN-Caddyfile trägt die acme-dns-Zugangsdaten, wie install.json.
+func TestWriteCaddyfileIsOwnerOnly(t *testing.T) {
+	tests := []struct {
+		name    string
+		prepare func(t *testing.T, path string)
+	}{
+		{name: "neue Datei", prepare: func(*testing.T, string) {}},
+		{
+			name: "vorhandene Datei mit weiterem Modus",
+			prepare: func(t *testing.T, path string) {
+				if err := os.WriteFile(path, []byte("# alt"), 0o644); err != nil {
+					t.Fatalf("Vorbereitung: %v", err)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "Caddyfile")
+			tt.prepare(t, path)
+
+			if err := writeCaddyfile(path, "# gerendert"); err != nil {
+				t.Fatalf("writeCaddyfile: %v", err)
+			}
+
+			info, err := os.Stat(path)
+			if err != nil {
+				t.Fatalf("Stat: %v", err)
+			}
+			// Bewusst der Literalwert statt caddyfileMode: ein Vergleich der
+			// Konstante mit sich selbst würde jede Änderung durchlassen.
+			if got := info.Mode().Perm(); got != 0o600 {
+				t.Errorf("Modus = %04o, want 0600", got)
+			}
+
+			content, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("ReadFile: %v", err)
+			}
+			if string(content) != "# gerendert" {
+				t.Errorf("Inhalt = %q, want %q", content, "# gerendert")
 			}
 		})
 	}

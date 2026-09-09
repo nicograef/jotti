@@ -133,9 +133,7 @@ func runPublicMode(cfg config) {
 		wwwRedirect: cfg.wwwRedirect,
 		leStaging:   cfg.leStaging,
 	})
-	if err := os.WriteFile(cfg.caddyfilePath, []byte(caddyfile), 0o644); err != nil {
-		log.Fatalf("Caddyfile schreiben: %v", err)
-	}
+	writeCaddyfileOrExit(cfg.caddyfilePath, caddyfile)
 
 	runCaddyOrExit(cfg)
 }
@@ -147,9 +145,7 @@ func runHTTPOnlyMode(cfg config) {
 	log.Printf("HTTP-Only-Mode aktiv (nur E2E) | Zugangsadresse: http://<host>")
 
 	caddyfile := renderHTTPOnlyCaddyfile()
-	if err := os.WriteFile(cfg.caddyfilePath, []byte(caddyfile), 0o644); err != nil {
-		log.Fatalf("Caddyfile schreiben: %v", err)
-	}
+	writeCaddyfileOrExit(cfg.caddyfilePath, caddyfile)
 
 	runCaddyOrExit(cfg)
 }
@@ -193,9 +189,7 @@ func runLANMode(cfg config) {
 		acmeDNSURL: cfg.acmeDNSURL,
 		leStaging:  cfg.leStaging,
 	})
-	if err := os.WriteFile(cfg.caddyfilePath, []byte(caddyfile), 0o644); err != nil {
-		log.Fatalf("Caddyfile schreiben: %v", err)
-	}
+	writeCaddyfileOrExit(cfg.caddyfilePath, caddyfile)
 
 	// Status-Seite parallel zu Caddy bereitstellen (im Compose nur an 127.0.0.1
 	// gemappt). Sie probt laufend Zertifikat und Rebind und wechselt von der
@@ -216,6 +210,29 @@ func runLANMode(cfg config) {
 	log.Printf("Status & Zugangsadresse: http://localhost:8484")
 
 	runCaddyOrExit(cfg)
+}
+
+// caddyfileMode ist der Dateimodus der erzeugten Caddyfile: nur für den
+// Eigentümer lesbar, wie install.json (ensureState). Die Caddyfile des LAN-Mode
+// trägt die acme-dns-Zugangsdaten im Klartext.
+const caddyfileMode = 0o600
+
+// writeCaddyfileOrExit schreibt die gerenderte Caddyfile und bricht bei einem
+// Fehler ab — ohne Konfiguration hat der Start keinen Sinn. Der Chmod ist
+// nötig, weil os.WriteFile den Modus nur beim Anlegen setzt: eine am Zielpfad
+// bereits liegende Datei würde sie nur kürzen und deren Modus behalten.
+func writeCaddyfileOrExit(path, caddyfile string) {
+	if err := writeCaddyfile(path, caddyfile); err != nil {
+		log.Fatalf("Caddyfile schreiben: %v", err)
+	}
+}
+
+// writeCaddyfile ist der testbare Kern von writeCaddyfileOrExit.
+func writeCaddyfile(path, caddyfile string) error {
+	if err := os.WriteFile(path, []byte(caddyfile), caddyfileMode); err != nil {
+		return err
+	}
+	return os.Chmod(path, caddyfileMode)
 }
 
 // runCaddyOrExit startet Caddy als Vordergrundprozess und spiegelt dessen
