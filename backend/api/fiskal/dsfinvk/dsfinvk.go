@@ -16,9 +16,9 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// Version ist der deklarierte DSFinV-K-Versionsstring. Konfigurierbar gehalten,
-// da die Tabellenstruktur seit v2.0 stabil ist; aktuell verbindlich ist v2.4
-// (Stand Dezember 2023).
+// Version ist der deklarierte DSFinV-K-Versionsstring, absichtlich an genau
+// einer Stelle gehalten, da die Tabellenstruktur seit v2.0 stabil ist;
+// aktuell verbindlich ist v2.4 (Stand Dezember 2023).
 const Version = "2.4"
 
 // Snapshot ist der lesende Stammdaten-Eingang des Mappers: alles, was der Export
