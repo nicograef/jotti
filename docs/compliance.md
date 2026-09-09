@@ -134,7 +134,7 @@ Im Festzelt-Betrieb laufen an einem Tisch über Stunden Bestellrunden und Teilza
 | 20:00 | Teilzahlung 14,00 € bar (2 Gäste) | `Kassenbeleg-V1` (Nr. 1003) |
 | 21:00 | Restzahlung 18,00 € bar (2 Gäste) | `Kassenbeleg-V1` (Nr. 1004) |
 
-Jeder Zahlungsbeleg trägt zusätzlich den Startzeitpunkt der ersten Bestellung in Klarschrift (Durchbedienen-Pflicht → §5.3). Setzt sich eine neue Gästegruppe an denselben Tisch, beginnt ein neuer Abrechnungskreis (z. B. `Tisch 42-B`). Der Betriebsprüfer rekonstruiert den vollständigen Tischverlauf über den gemeinsamen `ABRECHNUNGSKREIS`.
+Jeder Zahlungsbeleg trägt zusätzlich den Startzeitpunkt der ersten Bestellung in Klarschrift (Durchbedienen-Pflicht → §5.3). Der Betriebsprüfer rekonstruiert den vollständigen Tischverlauf über den gemeinsamen `ABRECHNUNGSKREIS` (Vergabe und Verhalten bei mehreren Gästegruppen am selben Tisch → §6.5).
 
 ### 3.7 Seriennummer-Generierung bei Self-hosted Docker-Instanzen
 
@@ -293,7 +293,7 @@ Die Servicekräfte nutzen private Smartphones ohne mobile Bondrucker; die Belega
 
 ### 6.1 Übersicht
 
-Bei Kassen-Nachschau oder Betriebsprüfung verlangt die Finanzverwaltung einen genormten Export nach DSFinV-K (aktuell verbindlich: v2.4, Stand Dezember 2023), lesbar durch die Prüfsoftware IDEA. [5] Die Tabellenstruktur ist seit v2.0 stabil; v2.4 brachte gegenüber v2.3 keine inhaltlichen Änderungen (nur AEAO-redaktionell). Ein v3.0-Diskussionsentwurf ist in Konsultation, aber noch nicht verbindlich. jotti hält den Versionsstring deshalb konfigurierbar.
+Bei Kassen-Nachschau oder Betriebsprüfung verlangt die Finanzverwaltung einen genormten Export nach DSFinV-K (aktuell verbindlich: v2.4, Stand Dezember 2023), lesbar durch die Prüfsoftware IDEA. [5] Die Tabellenstruktur ist seit v2.0 stabil; v2.4 brachte gegenüber v2.3 keine inhaltlichen Änderungen (nur AEAO-redaktionell). Ein v3.0-Diskussionsentwurf ist in Konsultation, aber noch nicht verbindlich. jotti hält den Versionsstring deshalb als eine einzige Konstante (`dsfinvk.Version`) fest, die sich bei einer künftigen DSFinV-K-Version an einer Stelle im Code ändern lässt.
 
 ### 6.2 Dateiformat und Grundregeln
 
