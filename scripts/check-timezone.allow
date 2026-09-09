@@ -1,8 +1,8 @@
 # scripts/check-timezone.sh allowlist — one path per line, then a code fragment
 # without spaces, then the reason after "#".
-backend/api/fiskal/dsfinvk/mapper.go snapshot.Erstellung.UTC().Format(time.RFC3339)  # Z_ERSTELLUNG steht als ISO 8601 mit Offset im Archiv: die Zone gehört zum Wert (hier "Z")
-backend/api/fiskal/dsfinvk/mapper.go ev.Time.UTC().Format(time.RFC3339)  # BON_START/BON_ENDE stehen als ISO 8601 mit Offset im Archiv, siehe docs/compliance.md § 6
-backend/api/fiskal/dsfinvk/mapper.go t.UTC().Format("2006-01-02T15:04:05.000Z07:00")  # die amtliche Feldbeschreibung von TSE_TA_START/ENDE verlangt "YYYY-MM-DDThh:mm:ss.fffZ", also UTC
+backend/api/fiskal/dsfinvk/mapper.go snapshot.Erstellung.UTC().Format(time.RFC3339)  # Z_ERSTELLUNG verlangt ISO 8601 und RFC3339 und nennt die "Z"-Form ausdrücklich als Beispiel (Feldbeschreibung Stamm_Abschluss/cashpointclosing.csv in docs/rechtsquellen/technik-spezifikationen/DSFinV-K-2.4/20231215_DSFinV_K_2_4.pdf)
+backend/api/fiskal/dsfinvk/mapper.go ev.Time.UTC().Format(time.RFC3339)  # BON_START/BON_ENDE sind laut Feldbeschreibung "i. d. R. lokale Zeit"; ISO 8601 und RFC3339 lassen den Offset zu, das "Z" ist zulässig und eindeutig (Einzelaufzeichnungsmodul, transactions.csv in docs/rechtsquellen/technik-spezifikationen/DSFinV-K-2.4/20231215_DSFinV_K_2_4.pdf)
+backend/api/fiskal/dsfinvk/mapper.go t.UTC().Format("2006-01-02T15:04:05.000Z07:00")  # TSE_TA_START/ENDE sind "nach den Vorgaben nach ISO 8601 im Format YYYY-MM-DDThh:mm:ss.fffZ darzustellen", also UTC (Feldbeschreibung transactions_tse.csv in docs/rechtsquellen/technik-spezifikationen/DSFinV-K-2.4/20231215_DSFinV_K_2_4.pdf)
 backend/api/fiskal/signatur/tse_signatur_worker.go w.stoerungNaechsterVersuch.Format(time.RFC3339)  # Diagnosetext einer Störungsmeldung im Log, kein ausgelieferter Zeitstempel
 backend/api/reporting/http/query_handler.go k.Datum.Format("2006-01-02")  # kassensitzungen.datum ist eine DATE-Spalte: der Betriebstag trägt keine Uhrzeit und keine Zone
 backend/api/reporting/http/query_handler.go d.Datum.Format("2006-01-02")  # dieselbe DATE-Spalte in der Tagesliste der Abrechnung
