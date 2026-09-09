@@ -160,7 +160,7 @@ func noticeText(n notice) (headline, body string) {
 			"Der Router beantwortet den Namen nicht mit der lokalen IP, deshalb ist die vertrauenswürdige Adresse im WLAN nicht erreichbar. Trage lokal.jotti.rocks als Ausnahme im Rebind-Schutz des Routers ein oder nutze die Fallback-Adresse:"
 	default: // noticeNoGreen
 		return "Vertrauenswürdige Adresse noch nicht verfügbar",
-			"Die einmalige Registrierung oder die LAN-IP fehlt; beide ermittelt jotti nur beim Start. Bis dahin die Fallback-Adresse nutzen. Danach mit Internet und im Vereins-WLAN jotti neu starten."
+			"Die einmalige Registrierung oder die LAN-IP fehlt; beide ermittelt jotti nur beim Start. Mit Internet und im Vereins-WLAN jotti neu starten; bis dahin die Fallback-Adresse nutzen."
 	}
 }
 
