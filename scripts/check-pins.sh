@@ -1,23 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# jotti — one pinned version per third-party image, across every stack and every
-# test harness. Two stacks on different versions of the same image behave
-# differently while claiming to be the same deployment, and a harness that
-# starts another version tests something no stack ever runs.
+# jotti — one pinned version per third-party image across the stacks. Two stacks
+# on different versions of the same image behave differently while claiming to
+# be the same deployment.
 #
-# Scanned are the tracked places that pin a version:
+# Scanned are exactly three tracked sources:
 #   - `image:` lines in docker-compose*.yml
 #   - `FROM` lines in every Dockerfile
 #   - the `packageManager` fields of frontend, website and e2e
+# Everything else stays outside this gate, the harness scripts
+# (scripts/test-integration.sh, scripts/test-tse-live.sh) included: they start
+# their container with a `docker run`, which this gate does not read.
+#
 # jotti's own images (ghcr.io/nicograef/jotti-*) are exempt: their tag is a
 # variable on purpose, so every stack follows the release it was shipped with.
+# A `FROM` is skipped when it names `scratch`, interpolates a variable, or
+# refers to a build stage that the same Dockerfile declared with `AS`.
 #
 # Compared is, per image name, the version part of the tag up to the first "-":
-# caddy:2.11.4-builder and caddy:2.11.4 are the same version. Two versions for
-# one name are an error unless scripts/check-pins.allow names the image with a
-# reason; an entry that matches nothing turns the gate red and is to be deleted.
-# The packageManager fields must match literally, sha512 hash included.
+# caddy:2.11.4-builder and caddy:2.11.4 are the same version. A digest pin
+# (`name@sha256:…`) counts as its own version, so it collides with a tag pin of
+# the same image. Two versions for one name are an error unless
+# scripts/check-pins.allow names the image with a reason; an entry that matches
+# nothing turns the gate red and is to be deleted. The packageManager fields
+# must match literally, sha512 hash included.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -66,13 +73,20 @@ collect_pins() {
       }
     ' "$file"
   done
+  # One awk process per file, so `stages` never leaks into the next Dockerfile.
   for file in "${dockerfiles[@]+"${dockerfiles[@]}"}"; do
     awk -v file="$file" '
       toupper($1) == "FROM" {
         ref = $2
         if (ref ~ /^--/) ref = $3
-        gsub(/["'\'']/, "", ref)
-        if (ref != "") print ref "\t" file ":" FNR
+        gsub(/["'"'"']/, "", ref)
+        # Not a pinned third-party image: the empty base image, a ref built from
+        # a variable, or an earlier build stage of this same file.
+        skip = (ref == "" || tolower(ref) == "scratch" || ref ~ /\$/ || tolower(ref) in stages)
+        for (i = 3; i < NF; i++) {
+          if (toupper($i) == "AS") stages[tolower($(i + 1))] = 1
+        }
+        if (!skip) print ref "\t" file ":" FNR
       }
     ' "$file"
   done
@@ -88,15 +102,39 @@ while IFS=$'\t' read -r ref loc; do
     "$OWN_IMAGE_PREFIX"*) continue ;;
   esac
 
-  name="${ref%:*}"
-  tag="${ref##*:}"
-  if [ "$name" = "$ref" ]; then
+  # A digest pin carries its version after the "@"; what precedes it may still
+  # carry a tag. Split the tag off the last path segment only, so the port of a
+  # registry host (`registry:5000/image`) is not mistaken for one.
+  digest=""
+  base="$ref"
+  case "$ref" in
+    *@*)
+      digest="${ref#*@}"
+      base="${ref%%@*}"
+      ;;
+  esac
+
+  segment="${base##*/}"
+  case "$segment" in
+    *:*)
+      tag="${segment##*:}"
+      name="${base%:"$tag"}"
+      ;;
+    *)
+      tag=""
+      name="$base"
+      ;;
+  esac
+
+  if [ -n "$digest" ]; then
+    version="$digest"
+  elif [ -z "$tag" ]; then
     error "$loc: image without a pinned tag: $ref"
     violations=$((violations + 1))
     continue
+  else
+    version="${tag%%-*}"
   fi
-
-  version="${tag%%-*}"
   key="$name"$'\t'"$version"
   if [ -z "${version_seen[$key]:-}" ]; then
     version_seen["$key"]=1
@@ -105,8 +143,12 @@ while IFS=$'\t' read -r ref loc; do
   fi
 done < <(collect_pins)
 
-# Sorted, so the report is the same on every run.
-mapfile -t names < <(printf '%s\n' "${!version_count[@]}" | sort)
+# Sorted, so the report is the same on every run. The guard matters: printf
+# without arguments would emit one empty line and turn it into an empty name.
+names=()
+if [ "${#version_count[@]}" -gt 0 ]; then
+  mapfile -t names < <(printf '%s\n' "${!version_count[@]}" | sort)
+fi
 
 for name in "${names[@]+"${names[@]}"}"; do
   [ "${version_count[$name]}" -le 1 ] && continue
