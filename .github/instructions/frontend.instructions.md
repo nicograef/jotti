@@ -31,9 +31,9 @@ frontend/
   src/components/common/        # Gemeinsame Komponenten
 ```
 
-`src/components/`, `src/lib/` und `src/hooks/` importieren nicht aufwärts in
-`src/admin/` oder `src/service/` (ESLint `no-restricted-imports`). Ein Baustein,
-der Bereichswissen braucht, gehört in den Bereich.
+`src/components/`, `src/lib/` und `src/hooks/` importieren nichts aus
+`@/admin/*` oder `@/service/*` (ESLint `no-restricted-imports`). Ein Baustein,
+der einen Bereichsimport braucht, gehört in den Bereich.
 
 ## UI-Bibliotheken
 

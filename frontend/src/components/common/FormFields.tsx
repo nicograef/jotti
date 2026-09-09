@@ -40,9 +40,7 @@ import { formatCents, parseCents } from '@/lib/utils'
 
 import { EuroInput } from './EuroInput'
 
-// Auch von den bereichseigenen Feldern genutzt (admin/users/RoleField,
-// admin/products/SteuersatzField), damit alle Formularfelder dieselbe
-// Prop-Form tragen.
+// Geteilte Prop-Form jedes Formularfelds, auch der bereichseigenen.
 export interface FieldProps<TField extends FieldValues> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<TField, any, TField>
