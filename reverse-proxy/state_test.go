@@ -138,7 +138,7 @@ func TestEnsureStateRejectsIncompleteRegistration(t *testing.T) {
 	}
 }
 
-func TestInstallStateValidChecksSubdomain(t *testing.T) {
+func TestInstallStateValidateChecksSubdomain(t *testing.T) {
 	tests := []struct {
 		name      string
 		subdomain string
@@ -155,8 +155,9 @@ func TestInstallStateValidChecksSubdomain(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			state := InstallState{Username: "u", Password: "p", Subdomain: tt.subdomain}
-			if got := state.valid(); got != tt.want {
-				t.Errorf("valid() mit Subdomain %q = %v, want %v", tt.subdomain, got, tt.want)
+			err := state.validate()
+			if (err == nil) != tt.want {
+				t.Errorf("validate() mit Subdomain %q = %v, want valid %v", tt.subdomain, err, tt.want)
 			}
 		})
 	}

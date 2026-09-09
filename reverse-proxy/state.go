@@ -26,10 +26,17 @@ type InstallState struct {
 	Subdomain string `json:"subdomain"`
 }
 
-// valid meldet, ob alle Credentials vorhanden und die Subdomain ein einzelnes
-// DNS-Label ist (siehe subdomainPattern).
-func (s InstallState) valid() bool {
-	return s.Username != "" && s.Password != "" && subdomainPattern.MatchString(s.Subdomain)
+// validate meldet, warum der State unbrauchbar ist, oder nil. Der Grund wandert
+// in die Fehlermeldung: eine abgelehnte Subdomain ist etwas anderes als ein
+// fehlendes Passwort, und der Betreiber liest nur die Meldung.
+func (s InstallState) validate() error {
+	if s.Username == "" || s.Password == "" {
+		return errors.New("unvollständige Credentials")
+	}
+	if !subdomainPattern.MatchString(s.Subdomain) {
+		return fmt.Errorf("die Subdomain %q ist kein einzelnes DNS-Label", s.Subdomain)
+	}
+	return nil
 }
 
 // stateDeps bündelt die injizierbaren Abhängigkeiten von ensureState, damit die
@@ -65,8 +72,8 @@ func ensureState(deps stateDeps) (InstallState, error) {
 	if err != nil {
 		return InstallState{}, fmt.Errorf("acme-dns-Registrierung: %w", err)
 	}
-	if !state.valid() {
-		return InstallState{}, errors.New("acme-dns lieferte unvollständige Credentials")
+	if err := state.validate(); err != nil {
+		return InstallState{}, fmt.Errorf("acme-dns lieferte einen unbrauchbaren State: %w", err)
 	}
 
 	encoded, err := json.MarshalIndent(state, "", "  ")
@@ -85,8 +92,8 @@ func parseState(data []byte) (InstallState, error) {
 	if err := json.Unmarshal(data, &state); err != nil {
 		return InstallState{}, fmt.Errorf("JSON-Decode: %w", err)
 	}
-	if !state.valid() {
-		return InstallState{}, errors.New("unvollständige Credentials")
+	if err := state.validate(); err != nil {
+		return InstallState{}, err
 	}
 	return state, nil
 }
