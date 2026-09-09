@@ -245,6 +245,58 @@ describe('FinanzamtPage — Läuft-alles-Ampel', () => {
   })
 })
 
+describe('FinanzamtPage — Signatur-Warteschlange', () => {
+  it('meldet fehlgeschlagene Signaturen zuerst, auch ohne offene Aufträge', () => {
+    hookState.betreiber = makeBetreiber()
+    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
+    hookState.queue = {
+      ...normaleQueue(),
+      offeneAuftraege: 0,
+      rueckstandSekunden: 0,
+      fehlgeschlageneAuftraege: 2,
+      letzterFehler: 'TSE nicht erreichbar',
+    }
+    render(<FinanzamtPage />)
+
+    expect(
+      screen.getByText(
+        '2 Vorgänge sind fehlgeschlagen. Keine Vorgänge in der Warteschlange.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('beruhigt nicht mehr, wenn der Rückstand die Warnschwelle erreicht', () => {
+    hookState.betreiber = makeBetreiber()
+    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
+    hookState.queue = { ...normaleQueue(), rueckstandSekunden: 90 }
+    render(<FinanzamtPage />)
+
+    expect(screen.getByText(/der Rückstand ist zu groß/)).toBeInTheDocument()
+    expect(
+      screen.queryByText(/normal bei vollem Betrieb/),
+    ).not.toBeInTheDocument()
+  })
+
+  it('führt Fehler-Zähler und letzten Fehlertext in den Roh-Metriken', async () => {
+    hookState.betreiber = makeBetreiber()
+    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
+    hookState.queue = {
+      ...normaleQueue(),
+      fehlgeschlageneAuftraege: 2,
+      letzterFehler: 'TSE nicht erreichbar',
+    }
+    render(<FinanzamtPage />)
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /Technische Details/ }),
+    )
+
+    expect(screen.getByText('Fehlgeschlagen')).toBeInTheDocument()
+    expect(screen.getByText('Letzter Fehler')).toBeInTheDocument()
+    expect(screen.getByText('TSE nicht erreichbar')).toBeInTheDocument()
+  })
+})
+
 describe('FinanzamtPage — Collapsibles', () => {
   it('blendet die Roh-Metriken erst nach Klick auf „Technische Details" ein', async () => {
     hookState.betreiber = makeBetreiber()
