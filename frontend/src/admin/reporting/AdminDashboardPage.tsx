@@ -1,4 +1,5 @@
 import { useAktiveKassensitzung, useKassenbestand } from '@/admin/kasse/hooks'
+import { KassensitzungStatus } from '@/admin/kasse/Kassensitzung'
 import { beschreibeFehlBons } from '@/admin/settings/DruckstationBackend'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
@@ -53,16 +54,26 @@ export function AdminDashboardPage() {
     : 'Drucker bereit'
   const druckText = druckFehler ? 'Drucker prüfen' : 'Alle Bons gedruckt'
 
-  // „seit HH:MM" aus dem Eröffnungszeitpunkt plus Soll-Bestand der offenen
-  // Sitzung. Beide Angaben stammen aus eigenen Queries und können noch fehlen;
-  // fehlt die eine, entfällt nur ihr Teil (kein hängendes „seit " ohne Zeit).
+  // „Kassentag seit HH:MM" aus dem Eröffnungszeitpunkt plus Soll-Bestand der
+  // aktiven Sitzung. Beide Angaben stammen aus eigenen Queries und können noch
+  // fehlen; fehlt die eine, entfällt nur ihr Teil (kein hängendes „seit " ohne
+  // Zeit).
   const kasseTeile = [
     kassensitzung &&
-      `seit ${formatStand(new Date(kassensitzung.eroeffnetAm).getTime())}`,
+      `Kassentag seit ${formatStand(new Date(kassensitzung.eroeffnetAm).getTime())}`,
     kassenbestand !== null &&
       `Soll-Bestand ${formatEuro(kassenbestand.sollBestandCents)}`,
   ].filter((teil): teil is string => typeof teil === 'string')
   const kasseText = kasseTeile.length > 0 ? kasseTeile.join(' · ') : 'geöffnet'
+
+  // Der Barrierestatus ist kein laufender Betrieb: Die Zelle benennt den
+  // unterbrochenen Abschluss wie der Chip in der Navigation und führt über
+  // „Beheben" auf die Kassentag-Seite, die ihn wiederholt.
+  const abschlussUnterbrochen =
+    kassensitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
+  const kasseTitel = abschlussUnterbrochen
+    ? 'Abschluss unterbrochen'
+    : 'Kasse offen'
 
   return (
     <LiveReportingSection
@@ -73,6 +84,8 @@ export function AdminDashboardPage() {
       statusZeile={
         liveData !== null && (
           <UebersichtStatusZeile
+            kasseTitel={kasseTitel}
+            kasseFehler={abschlussUnterbrochen}
             kasseText={kasseText}
             tseFehler={tseFehler}
             tseText={tseText}

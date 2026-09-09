@@ -21,6 +21,9 @@ const tseState = vi.hoisted(() => ({
   rueckstandSekunden: 0,
 }))
 const druckState = vi.hoisted(() => ({ anzahl: 0 }))
+const kasseState = vi.hoisted(
+  (): { status: 'offen' | 'wird_abgeschlossen' } => ({ status: 'offen' }),
+)
 
 vi.mock('./hooks', () => ({
   useLiveReporting: () => ({
@@ -36,7 +39,11 @@ vi.mock('@/admin/kasse/hooks', () => ({
     kassensitzung:
       liveState.data === null
         ? null
-        : { zNr: 1, eroeffnetAm: '2026-06-18T08:02:00Z' },
+        : {
+            zNr: 1,
+            eroeffnetAm: '2026-06-18T08:02:00Z',
+            status: kasseState.status,
+          },
   }),
   useKassenbestand: () => ({ kassenbestand: { sollBestandCents: 123450 } }),
 }))
@@ -96,6 +103,7 @@ afterEach(() => {
   tseState.fehlgeschlageneAuftraege = 0
   tseState.rueckstandSekunden = 0
   druckState.anzahl = 0
+  kasseState.status = 'offen'
 })
 
 describe('AdminDashboardPage Status-Zeile', () => {
@@ -124,6 +132,17 @@ describe('AdminDashboardPage Status-Zeile', () => {
     expect(
       screen.queryByRole('link', { name: 'Beheben' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('zeigt im Barrierestatus die Kassenzelle als unterbrochenen Abschluss mit Beheben-Link', () => {
+    liveState.data = makeLiveData()
+    kasseState.status = 'wird_abgeschlossen'
+    render(<AdminDashboardPage />)
+
+    expect(screen.getByText('Abschluss unterbrochen')).toBeInTheDocument()
+    expect(screen.queryByText('Kasse offen')).not.toBeInTheDocument()
+    const beheben = screen.getByRole('link', { name: 'Beheben' })
+    expect(beheben).toHaveAttribute('href', '/admin/kasse')
   })
 
   it('zeigt bei nicht konfigurierter TSE die Fehlerzelle mit Beheben-Link zum Finanzamt', () => {

@@ -155,10 +155,34 @@ describe('KassenberichtePage', () => {
     render(<KassenberichtePage />)
 
     expect(screen.getByText(/läuft — siehe Übersicht/)).toBeInTheDocument()
-    // Die offene Sitzung ist kein Button (nicht wählbar), sondern ein Link zur Übersicht.
+    // Die aktive Sitzung ist kein Button (nicht wählbar), sondern ein Link zur Übersicht.
     const links = screen.getAllByRole('link')
     expect(
       links.some((l) => l.getAttribute('href') === '/admin/auswertung'),
     ).toBe(true)
+  })
+
+  it('weist die aktive Sitzung im Barrierestatus als unterbrochenen Abschluss aus', () => {
+    hookState.kassensitzungen = [
+      {
+        zNr: 11,
+        datum: '2026-07-05',
+        bezeichnung: 'Sommerfest Tag 1',
+        umsatzGesamtCents: 341200,
+        abgeschlossenAm: '2026-07-05T21:12:00Z',
+      },
+    ]
+    hookState.report = makeReport(11)
+    hookState.aktiveSitzung = {
+      zNr: 12,
+      datum: '2026-07-06',
+      bezeichnung: 'Sommerfest Tag 2',
+      status: 'wird_abgeschlossen',
+      eroeffnetAm: '2026-07-06T08:00:00Z',
+    }
+    render(<KassenberichtePage />)
+
+    expect(screen.getByText('Abschluss unterbrochen')).toBeInTheDocument()
+    expect(screen.queryByText(/läuft/)).not.toBeInTheDocument()
   })
 })

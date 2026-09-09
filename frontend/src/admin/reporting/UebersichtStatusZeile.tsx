@@ -60,6 +60,8 @@ function StatusZelle({
 // Übersicht. Die Fehlerlogik und die Schwellen liegen im Aufrufer
 // (AdminDashboardPage), diese Komponente ist reine Darstellung.
 export function UebersichtStatusZeile({
+  kasseTitel,
+  kasseFehler,
   kasseText,
   tseFehler,
   tseText,
@@ -67,6 +69,8 @@ export function UebersichtStatusZeile({
   druckTitel,
   druckText,
 }: {
+  kasseTitel: string
+  kasseFehler: boolean
   kasseText: string
   tseFehler: boolean
   tseText: string
@@ -77,9 +81,17 @@ export function UebersichtStatusZeile({
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <StatusZelle
-        icon={<CheckCircle2 className="size-4 text-primary" />}
-        titel="Kasse offen"
+        icon={
+          kasseFehler ? (
+            <TriangleAlert className="size-4" />
+          ) : (
+            <CheckCircle2 className="size-4 text-primary" />
+          )
+        }
+        titel={kasseTitel}
         text={kasseText}
+        fehler={kasseFehler}
+        behebenHref="/admin/kasse"
       />
       <StatusZelle
         icon={

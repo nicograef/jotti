@@ -38,6 +38,7 @@ import { AuthSingleton } from '@/lib/Auth'
 
 import { StatusDot, type StatusDotZustand } from './components/StatusDot'
 import { useAktiveKassensitzung } from './kasse/hooks'
+import { KassensitzungStatus } from './kasse/Kassensitzung'
 
 interface NavItem {
   title: string
@@ -97,7 +98,19 @@ export function AdminSidebar() {
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
   const { queue } = useTSESignaturQueue()
 
-  const kasseOffen = kassensitzung !== null
+  // Der Barrierestatus ist kein laufender Betrieb: Ein unterbrochener Abschluss
+  // bekommt dieselbe Ansage wie auf der Kassentag-Seite, nicht das grüne
+  // „Kasse offen". Punkt und Beschriftung entstehen in einer Ableitung, damit
+  // Menüpunkt und Kopf-Chip nie auseinanderlaufen.
+  const kasseAktiv = kassensitzung !== null
+  const abschlussUnterbrochen =
+    kassensitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
+  const kasseStatus: { zustand: StatusDotZustand; label: string } =
+    abschlussUnterbrochen
+      ? { zustand: 'fehler', label: 'Abschluss unterbrochen' }
+      : kasseAktiv
+        ? { zustand: 'ok', label: 'Kasse offen' }
+        : { zustand: 'neutral', label: 'Kasse geschlossen' }
   const bondruckerFehler = druckauftraege.length > 0
   // Finanzamt & TSE ist kritisch nach derselben Regel wie die „Läuft alles?"-
   // Karte: tseAmpel ist die Single Source of Truth für den TSE-Fehlerzustand.
@@ -113,7 +126,7 @@ export function AdminSidebar() {
       title: 'Kassentag',
       url: '/admin/kasse',
       icon: Wallet,
-      status: kasseOffen ? { zustand: 'ok', label: 'Kasse offen' } : undefined,
+      status: kasseAktiv ? kasseStatus : undefined,
     },
   ]
 
@@ -167,11 +180,13 @@ export function AdminSidebar() {
     },
   ]
 
-  const kasseStatusText = kasseOffen
-    ? `Kasse offen · seit ${new Date(
-        kassensitzung.eroeffnetAm,
-      ).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
-    : 'Kasse geschlossen'
+  const kasseStatusText = abschlussUnterbrochen
+    ? 'Abschluss unterbrochen — erneut abschließen'
+    : kasseAktiv
+      ? `Kasse offen · seit ${new Date(
+          kassensitzung.eroeffnetAm,
+        ).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
+      : 'Kasse geschlossen'
 
   const toggleTheme = (event: MouseEvent<HTMLButtonElement>) => {
     setTheme(isDark ? 'light' : 'dark')
@@ -201,9 +216,9 @@ export function AdminSidebar() {
           </span>
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <StatusDot
-              zustand={kasseOffen ? 'ok' : 'neutral'}
-              label={kasseOffen ? 'Kasse offen' : 'Kasse geschlossen'}
-              puls={kasseOffen}
+              zustand={kasseStatus.zustand}
+              label={kasseStatus.label}
+              puls={kasseStatus.zustand === 'ok'}
             />
             {kasseStatusText}
           </span>

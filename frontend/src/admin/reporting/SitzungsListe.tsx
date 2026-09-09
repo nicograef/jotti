@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router'
 
 import type { AktiveKassensitzung } from '@/admin/kasse/KasseBackend'
+import { KassensitzungStatus } from '@/admin/kasse/Kassensitzung'
 import { cn, formatEuro } from '@/lib/utils'
 
 import type { AbgeschlosseneSitzung } from './types'
@@ -21,6 +22,11 @@ export function SitzungsListe({
   selectedNr: number | null
   onSelect: (nr: number) => void
 }) {
+  // Der Barrierestatus ist kein laufender Betrieb: Ein unterbrochener Abschluss
+  // trägt dieselbe Ansage wie der Chip in der Navigation und der Hinweis auf der
+  // Kassentag-Seite.
+  const abschlussUnterbrochen =
+    aktiveSitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
   return (
     <div className="flex flex-col gap-2">
       {aktiveSitzung && (
@@ -32,13 +38,26 @@ export function SitzungsListe({
             <span className="text-sm font-semibold">
               Nr. {aktiveSitzung.zNr}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
-              <span className="size-1.5 rounded-full bg-primary" />
-              offen
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 text-xs font-medium',
+                abschlussUnterbrochen ? 'text-destructive' : 'text-primary',
+              )}
+            >
+              <span
+                className={cn(
+                  'size-1.5 rounded-full',
+                  abschlussUnterbrochen ? 'bg-destructive' : 'bg-primary',
+                )}
+              />
+              {abschlussUnterbrochen ? 'Abschluss unterbrochen' : 'offen'}
             </span>
           </div>
           <span className="text-xs text-muted-foreground">
-            {aktiveSitzung.bezeichnung} · läuft — siehe Übersicht
+            {aktiveSitzung.bezeichnung} ·{' '}
+            {abschlussUnterbrochen
+              ? 'siehe Übersicht'
+              : 'läuft — siehe Übersicht'}
           </span>
         </NavLink>
       )}

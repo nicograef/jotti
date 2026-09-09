@@ -160,6 +160,23 @@ describe('AdminSidebar', () => {
     ).toBeGreaterThanOrEqual(1)
   })
 
+  it('zeigt im Barrierestatus den unterbrochenen Abschluss statt „Kasse offen"', () => {
+    kasseState.kassensitzung = {
+      ...aktiveSitzung,
+      status: 'wird_abgeschlossen',
+    }
+    renderSidebar()
+
+    expect(
+      screen.getByText('Abschluss unterbrochen — erneut abschließen'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Kasse offen/)).not.toBeInTheDocument()
+    // Menüpunkt und Kopf-Chip tragen denselben Statuspunkt.
+    expect(
+      screen.getAllByRole('img', { name: 'Abschluss unterbrochen' }).length,
+    ).toBe(2)
+  })
+
   it('markiert Bondrucker bei fehlgeschlagenen Druckaufträgen', () => {
     druckState.anzahl = 2
     renderSidebar()
