@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/domain/betreiber"
+	"github.com/nicograef/jotti/backend/internal/zeit"
 	"github.com/rs/zerolog"
 )
 
@@ -38,23 +39,10 @@ func (c Command) UpdateBetreiber(ctx context.Context, b betreiber.Betreiber) err
 	return nil
 }
 
-// berlin ist die Zeitzone des ELSTER-Meldedatums: der Admin hakt die Meldung an
-// dem Tag ab, den er am Wandkalender liest. tzdata ist ins Binary eingebettet
-// (backend/main.go), das Laden schlägt nur bei kaputtem Build fehl.
-var berlin = mustLoadBerlin()
-
-func mustLoadBerlin() *time.Location {
-	ort, err := time.LoadLocation("Europe/Berlin")
-	if err != nil {
-		panic("betreiber: Zeitzone Europe/Berlin nicht ladbar: " + err.Error())
-	}
-	return ort
-}
-
 // meldedatum liefert den Berliner Kalendertag des Zeitpunkts als Mitternacht UTC,
 // passend zur DATE-Spalte.
 func meldedatum(zeitpunkt time.Time) time.Time {
-	jahr, monat, tag := zeitpunkt.In(berlin).Date()
+	jahr, monat, tag := zeitpunkt.In(zeit.Berlin).Date()
 	return time.Date(jahr, monat, tag, 0, 0, 0, 0, time.UTC)
 }
 

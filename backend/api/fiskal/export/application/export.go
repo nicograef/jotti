@@ -15,6 +15,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/internal/zeit"
 	"github.com/rs/zerolog"
 )
 
@@ -199,22 +200,9 @@ func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung
 	}, nil
 }
 
-// berlin ist die Zeitzone im Archivnamen: der Betreiber ordnet die Datei dem
-// Tag zu, den er am Wandkalender liest. tzdata ist ins Binary eingebettet
-// (backend/main.go), das Laden schlägt nur bei kaputtem Build fehl.
-var berlin = mustLoadBerlin()
-
-func mustLoadBerlin() *time.Location {
-	ort, err := time.LoadLocation("Europe/Berlin")
-	if err != nil {
-		panic("export: Zeitzone Europe/Berlin nicht ladbar: " + err.Error())
-	}
-	return ort
-}
-
 // dateiname baut den sprechenden Archivnamen aus Seriennummer, Kassensitzung
 // und Zeitstempel. Der Zeitstempel kommt als UTC aus der Datenbank und steht im
 // Namen als deutsche Ortszeit; abends wäre es sonst der Vortag.
 func dateiname(seriennummer string, nr int, zeitpunkt time.Time) string {
-	return fmt.Sprintf("dsfinvk_%s_kassensitzung-%d_%s.zip", seriennummer, nr, zeitpunkt.In(berlin).Format("20060102-150405"))
+	return fmt.Sprintf("dsfinvk_%s_kassensitzung-%d_%s.zip", seriennummer, nr, zeitpunkt.In(zeit.Berlin).Format("20060102-150405"))
 }
