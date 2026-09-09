@@ -262,7 +262,7 @@ rebuild-projections: ## table_state-Projektionen aus Events neu aufbauen
 # Aufräumen                                     
 # ──────────────────────────────────────────────
 
-clean: down ## Dev-Stack stoppen und Volumes entfernen
+clean: ## Dev-Stack stoppen und Volumes entfernen
 	docker compose down -v
 
 # ──────────────────────────────────────────────
@@ -270,7 +270,7 @@ clean: down ## Dev-Stack stoppen und Volumes entfernen
 # ──────────────────────────────────────────────
 
 check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
-	@for tool in golangci-lint goimports pnpm; do \
+	@for tool in golangci-lint goimports pnpm migrate docker; do \
 		if ! command -v $$tool >/dev/null 2>&1; then \
 			echo "Fehlendes Tool: $$tool"; \
 			echo "Installiere es mit scripts/setup-dev-tools.sh oder folge der README-Anleitung."; \
@@ -313,7 +313,7 @@ check: check-tools check-backend check-relay check-starter check-resolver check-
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 
-verify: check-tools check-full ## Alias für vollständige Repo-Prüfung
+verify: check-full ## Alias für vollständige Repo-Prüfung
 
 # ──────────────────────────────────────────────
 # Website (Astro + Starlight, website/)
