@@ -4,17 +4,25 @@ import { expect } from '@playwright/test'
 // erwarteKeinenHorizontalenUeberlauf misst am gerenderten DOM, ob die Seite
 // horizontal überläuft: scrollWidth des Scroll-Wurzelelements gegen die
 // Viewport-Breite (innerWidth). Verhaltensbasiert statt Klassennamen-Prüfung.
+// scrollWidth kommt roh aus der Messung (kein "?? 0"): fehlt
+// document.scrollingElement, wäre eine stillschweigende 0 kleiner als jede
+// innerWidth und ließe die fehlgeschlagene Messung als "kein Überlauf"
+// durchgehen. Die Vorbedingung toBeGreaterThan(0) deckt genau das auf.
 export async function erwarteKeinenHorizontalenUeberlauf(
   page: Page,
   screen: string,
 ): Promise<void> {
   const { scrollWidth, innerWidth } = await page.evaluate(() => ({
-    scrollWidth: document.scrollingElement?.scrollWidth ?? 0,
+    scrollWidth: document.scrollingElement?.scrollWidth,
     innerWidth: window.innerWidth,
   }))
   expect(
     scrollWidth,
-    `${screen}: scrollWidth ${scrollWidth.toString()} darf innerWidth ${innerWidth.toString()} nicht überschreiten`,
+    `${screen}: Vorbedingung — document.scrollingElement muss existieren und eine scrollWidth tragen, sonst ist die Überlauf-Prüfung nicht aussagekräftig`,
+  ).toBeGreaterThan(0)
+  expect(
+    scrollWidth,
+    `${screen}: scrollWidth ${String(scrollWidth)} darf innerWidth ${innerWidth.toString()} nicht überschreiten`,
   ).toBeLessThanOrEqual(innerWidth)
 }
 

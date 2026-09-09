@@ -7,6 +7,7 @@ import {
   nimmLangeBestellungAuf,
   oeffneHistorienDetail,
   oeffneTisch,
+  tischSaldo,
   waehleAlleVollAus,
   waehleVariante,
 } from '../support/servicekraft'
@@ -79,9 +80,8 @@ test.describe('Drawer-Sticky-Footer bei langer Positionsliste', () => {
     await kassieren.click()
     await expect(page.getByText('Zahlung erfolgreich.').first()).toBeVisible()
 
-    // Tisch ist danach wieder ausgeglichen (Saldo-Element im Tisch-Header).
-    const tischSaldo = page.locator('[data-slot="tisch-saldo"]')
-    await expect(tischSaldo).toHaveText('0,00 €')
+    // Tisch ist danach wieder ausgeglichen (Saldo im Tisch-Header).
+    await expect(tischSaldo(page)).toHaveText('0,00 €')
   })
 
   // „Tisch 15" ist im Demo-Drehbuch unbenutzt; Storno ist nur der Serviceleitung

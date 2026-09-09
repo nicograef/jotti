@@ -162,8 +162,11 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
     })
     const box = await chevron.boundingBox()
     expect(box).not.toBeNull()
-    expect(box?.width).toBeGreaterThanOrEqual(32)
-    expect(box?.height).toBeGreaterThanOrEqual(32)
+    // box ist ab hier nicht mehr null — die Assertion oben hätte sonst schon
+    // fehlgeschlagen; die "!" ersetzt ein "?? 0", das eine fehlgeschlagene
+    // Messung stillschweigend auf Koordinate 0 gezogen hätte.
+    expect(box!.width).toBeGreaterThanOrEqual(32)
+    expect(box!.height).toBeGreaterThanOrEqual(32)
 
     const treffer = await page.evaluate(
       ({ x, y }) =>
@@ -171,7 +174,7 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
           .elementFromPoint(x, y)
           ?.closest('button')
           ?.getAttribute('aria-label') ?? '',
-      { x: (box?.x ?? 0) + 1, y: (box?.y ?? 0) + (box?.height ?? 0) / 2 },
+      { x: box!.x + 1, y: box!.y + box!.height / 2 },
     )
     expect(treffer).toBe('Variante „XXL" nach hinten')
   })

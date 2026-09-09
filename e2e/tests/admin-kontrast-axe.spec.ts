@@ -17,11 +17,22 @@ import { resetAndSeed } from '../support/seed'
 // die Token-Werte (`--input`/`--border`) abgesichert, nicht über dieses Gate.
 
 // Die drei Screens tragen die Grün-Aktionen, Outline-Buttons, Drucker-IP-Felder
-// und WarnKarten, deren Kontrast dieser Test prüft.
+// und WarnKarten, deren Kontrast dieser Test prüft. ladeText ist der
+// Ladeplatzhalter, den die jeweilige Seite zeigt, während ihre Abfrage noch
+// läuft (siehe pruefeKontrast) — verschwindet er, ist der destruktive Inhalt
+// gemountet.
 const screens = [
-  { url: '/admin/druckstationen', sichtbar: /Bondrucker/ },
-  { url: '/admin/finanzamt', sichtbar: /Finanzamt/ },
-  { url: '/admin/kasse', sichtbar: /Kassentag/ },
+  {
+    url: '/admin/druckstationen',
+    sichtbar: /Bondrucker/,
+    ladeText: 'Lade Druckstationen…',
+  },
+  {
+    url: '/admin/finanzamt',
+    sichtbar: /Finanzamt/,
+    ladeText: 'Lade Einrichtung…',
+  },
+  { url: '/admin/kasse', sichtbar: /Kassentag/, ladeText: 'Laden…' },
 ]
 
 // Die vier per Seed erreichbaren Lösch-Bestätigungen tragen den soliden
@@ -37,11 +48,11 @@ const loeschDialoge: {
     oeffne: async (page) => {
       await page.goto('/admin/produkte')
       await page.getByRole('heading', { name: 'Produkte & Preise' }).waitFor()
-      await page.waitForLoadState('networkidle')
-      await page
+      const weitereAktionen = page
         .getByRole('button', { name: 'Weitere Aktionen' })
         .first()
-        .click()
+      await weitereAktionen.waitFor()
+      await weitereAktionen.click()
       await page.getByRole('menuitem', { name: /Löschen/ }).click()
     },
   },
@@ -50,13 +61,13 @@ const loeschDialoge: {
     oeffne: async (page) => {
       await page.goto('/admin/produkte')
       await page.getByRole('heading', { name: 'Produkte & Preise' }).waitFor()
-      await page.waitForLoadState('networkidle')
       // Ersten Varianten-Chip öffnen (Bearbeiten-Dialog), dann darin den
       // Lösch-Einstieg tippen, der die Bestätigung einblendet.
-      await page
+      const varianteChip = page
         .getByRole('button', { name: /^Variante „.+" bearbeiten$/ })
         .first()
-        .click()
+      await varianteChip.waitFor()
+      await varianteChip.click()
       await page.getByRole('button', { name: 'Variante löschen' }).click()
     },
   },
@@ -65,11 +76,12 @@ const loeschDialoge: {
     oeffne: async (page) => {
       await page.goto('/admin/tische')
       await page.getByRole('heading', { name: 'Tische' }).waitFor()
-      await page.waitForLoadState('networkidle')
       // Ein frisch angelegter Tisch trägt keinen Saldo — nur dann bietet der
       // Bearbeiten-Dialog den aktiven Lösch-Einstieg (statt der gesperrten
       // Variante bei offenem Saldo).
-      await page.getByRole('button', { name: 'Neuer Tisch' }).click()
+      const neuerTisch = page.getByRole('button', { name: 'Neuer Tisch' })
+      await neuerTisch.waitFor()
+      await neuerTisch.click()
       const neuerDialog = page.getByRole('dialog')
       await neuerDialog.getByLabel('Name').fill('Tisch 99')
       await neuerDialog.getByRole('button', { name: 'Tisch anlegen' }).click()
@@ -89,10 +101,12 @@ const loeschDialoge: {
     oeffne: async (page) => {
       await page.goto('/admin/benutzer')
       await page.getByRole('heading', { name: 'Helfer & Zugänge' }).waitFor()
-      await page.waitForLoadState('networkidle')
       // Das eigene Konto bietet kein Löschen — die „···"-Menüs durchgehen, bis
-      // eines den Lösch-Eintrag zeigt (ein fremder Helfer).
+      // eines den Lösch-Eintrag zeigt (ein fremder Helfer). Auf das erste
+      // Menü warten, bevor gezählt wird — sonst läuft count() gegen die noch
+      // leere Liste, während die Helferabfrage noch lädt.
       const menues = page.getByRole('button', { name: 'Weitere Aktionen' })
+      await menues.first().waitFor()
       const anzahl = await menues.count()
       for (let i = 0; i < anzahl; i++) {
         await menues.nth(i).click()
@@ -117,6 +131,7 @@ async function pruefeKontrast(
   theme: 'light' | 'dark',
   url: string,
   sichtbar: RegExp,
+  ladeText: string,
 ): Promise<void> {
   await page.evaluate((t) => {
     localStorage.setItem('vite-ui-theme', t)
@@ -124,9 +139,9 @@ async function pruefeKontrast(
   await page.goto(url)
   await page.getByText(sichtbar).first().waitFor()
   // Die geprüften destructive-Inhalte (WarnKarten, Fehlertexte) hängen an
-  // asynchronen Queries. networkidle stellt sicher, dass sie gemountet sind,
-  // bevor axe misst — der synchron gerenderte Header allein garantiert das nicht.
-  await page.waitForLoadState('networkidle')
+  // asynchronen Queries; der synchron gerenderte Header allein garantiert ihr
+  // Mounten nicht. Bis der Ladeplatzhalter verschwindet, misst axe zu früh.
+  await page.getByText(ladeText).waitFor({ state: 'hidden' })
 
   const ergebnis = await new AxeBuilder({ page })
     .withRules(['color-contrast'])
@@ -190,8 +205,8 @@ test.describe('WCAG-AA-Kontrast auf Recovery-/Compliance-Screens', () => {
       const zugangsdaten = await resetAndSeed(request)
       await anmelden(page, zugangsdaten.admin)
 
-      for (const { url, sichtbar } of screens) {
-        await pruefeKontrast(page, theme, url, sichtbar)
+      for (const { url, sichtbar, ladeText } of screens) {
+        await pruefeKontrast(page, theme, url, sichtbar, ladeText)
       }
 
       for (const { name, oeffne } of loeschDialoge) {

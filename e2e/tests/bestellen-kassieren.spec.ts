@@ -5,6 +5,7 @@ import { resetAndSeed } from '../support/seed'
 import {
   bestellePosition,
   oeffneTisch,
+  tischSaldo,
   zeileMit,
 } from '../support/servicekraft'
 
@@ -67,10 +68,9 @@ test.describe('Servicekraft nimmt eine Bestellung auf und kassiert', () => {
 
     await expect(page.getByText('Zahlung erfolgreich.')).toBeVisible()
 
-    // Nach dem Kassieren ist der Tisch wieder ausgeglichen. Auf das Saldo-Element
-    // im Tisch-Header gescopt ([data-slot="tisch-saldo"], siehe TablePage) statt
-    // auf ein beliebiges „0,00 €" irgendwo auf der Seite.
-    const tischSaldo = page.locator('[data-slot="tisch-saldo"]')
-    await expect(tischSaldo).toHaveText('0,00 €')
+    // Nach dem Kassieren ist der Tisch wieder ausgeglichen. Auf das
+    // Saldo-Element im Tisch-Header gescopt (tischSaldo, siehe TablePage)
+    // statt auf ein beliebiges „0,00 €" irgendwo auf der Seite.
+    await expect(tischSaldo(page)).toHaveText('0,00 €')
   })
 })

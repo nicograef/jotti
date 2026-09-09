@@ -251,7 +251,9 @@ function vollePositionsZeilen(page: Page): Locator {
 // (X == Y). Anders als der „Alle auswählen"-Button, der nur eigene Positionen
 // erfasst, gleicht diese Funktion jede sichtbare Zeile aus (auch fremde, sofern
 // zuvor über zeigeAlleAn aufgeklappt). Eine Obergrenze pro Zeile verhindert eine
-// Endlosschleife, falls die Vollauswahl-Formulierung unerwartet nie erscheint.
+// Endlosschleife, falls die Vollauswahl-Formulierung unerwartet nie erscheint;
+// die Nachbedingung wird danach mit demselben Auswahl-Zähler hart geprüft —
+// ohne sie liefe die Funktion nach 50 erfolglosen Klicks stillschweigend weiter.
 export async function waehleAlleVollAus(page: Page): Promise<void> {
   const zeilen = vollePositionsZeilen(page)
   const anzahlZeilen = await zeilen.count()
@@ -263,19 +265,33 @@ export async function waehleAlleVollAus(page: Page): Promise<void> {
       if (treffer && treffer[1] === treffer[2]) break
       await zeile.getByRole('button', { name: 'Produkt hinzufügen' }).click()
     }
+
+    const text = (await zeile.textContent()) ?? ''
+    const treffer = /(\d+) von (\d+) ausgewählt/.exec(text)
+    expect(
+      treffer,
+      `Zeile ${String(i)}: kein „N von N ausgewählt"-Text gefunden (Text: „${text}")`,
+    ).not.toBeNull()
+    expect(
+      treffer?.[1],
+      `Zeile ${String(i)}: nach 50 Klicks nicht voll ausgewählt (Text: „${text}")`,
+    ).toBe(treffer?.[2])
   }
+}
+
+// tischSaldo liefert den Saldo im Tisch-Header (siehe TablePage) — die eine
+// Stelle für den data-slot-Selektor statt einer Kopie je Spec.
+export function tischSaldo(page: Page): Locator {
+  return page.locator('[data-slot="tisch-saldo"]')
 }
 
 // warteAufTischGeladen wartet, bis der State-Fetch des Tisches fertig ist:
 // TablePage zeigt den Header-Saldo während des Ladens als Skeleton-Platzhalter
-// und rendert erst danach [data-slot="tisch-saldo"] mit dem Euro-Betrag (z. B.
-// „0,00 €"). Das ist ein deterministisches Ready-Signal — erst danach ist der
-// Tab-Inhalt gerendert und Prüfungen auf Buttons/Positionszeilen lesen den
-// fertigen DOM.
+// und rendert erst danach tischSaldo mit dem Euro-Betrag (z. B. „0,00 €"). Das
+// ist ein deterministisches Ready-Signal — erst danach ist der Tab-Inhalt
+// gerendert und Prüfungen auf Buttons/Positionszeilen lesen den fertigen DOM.
 async function warteAufTischGeladen(page: Page): Promise<void> {
-  await expect(page.locator('[data-slot="tisch-saldo"]')).toHaveText(
-    /\d,\d{2}\s*€/,
-  )
+  await expect(tischSaldo(page)).toHaveText(/\d,\d{2}\s*€/)
 }
 
 // settleAlleOffenenTische gleicht jeden Tisch mit offenem Saldo vollständig

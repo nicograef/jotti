@@ -300,7 +300,7 @@ check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
 	$(MAKE) check-format
 	cd frontend && pnpm lint && pnpm test && pnpm build
 
-check-repo: ## Alle scripts/check-*.sh-Gates ausführen (Build-Tags, Sprache, Prosa, Verweise, Zeitzonen, Versions-Pins, UI-Labels, Domain-Enums)
+check-repo: ## Alle scripts/check-*.sh-Gates ausführen (Build-Tags, Sprache, Prosa, Verweise, Zeitzonen, Versions-Pins, UI-Labels, Domain-Enums, E2E-Assertions)
 	@for script in scripts/check-*.sh; do \
 		echo "→ $$script"; \
 		bash "$$script" || exit 1; \
