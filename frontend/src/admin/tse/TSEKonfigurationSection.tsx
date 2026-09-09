@@ -20,6 +20,12 @@ import {
   verbindungIstSigniertfaehig,
 } from './TSEBackend'
 
+// Speichern und Leeren scheitern am selben Guard; die Begründung steht deshalb
+// einmal. „aktiv" deckt beide Status, die das Backend ablehnt: die offene
+// Kassensitzung und den unterbrochenen Abschluss.
+const KASSENSITZUNG_AKTIV_GRUND =
+  'solange eine Kassensitzung aktiv ist (offen oder Abschluss unterbrochen). Bitte zuerst den Kassenabschluss durchführen bzw. wiederholen.'
+
 const emptyTSEKonfiguration: TSEKonfigurationSpeichern = {
   apiKey: '',
   apiSecret: '',
@@ -54,16 +60,14 @@ function TSEKonfigurationForm({
       validation_error:
         'Bitte alle vier Felder ausfüllen und auf gültige Länge prüfen.',
       // Ohne zentrale Meldung.
-      tse_konfiguration_kassensitzung_offen:
-        'Die TSE-Konfiguration kann nicht geändert werden, solange eine Kassensitzung offen ist. Bitte zuerst den Kassenabschluss durchführen.',
+      tse_konfiguration_kassensitzung_offen: `Die TSE-Konfiguration kann nicht geändert werden, ${KASSENSITZUNG_AKTIV_GRUND}`,
     },
   })
   const { loading: clearing, run: runClear } = useActionSubmit({
     actionLabel: 'TSE-Konfiguration leeren',
     byCode: {
       // Ohne zentrale Meldung.
-      tse_konfiguration_kassensitzung_offen:
-        'Die TSE-Konfiguration kann nicht geleert werden, solange eine Kassensitzung offen ist. Bitte zuerst den Kassenabschluss durchführen.',
+      tse_konfiguration_kassensitzung_offen: `Die TSE-Konfiguration kann nicht geleert werden, ${KASSENSITZUNG_AKTIV_GRUND}`,
     },
   })
   const { loading: testing, run: runTestConnection } = useActionSubmit({

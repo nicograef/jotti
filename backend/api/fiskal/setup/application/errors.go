@@ -11,10 +11,10 @@ var ErrNotFound = db.ErrNotFound
 var ErrTSENichtKonfiguriert = errors.New("tse_not_configured")
 
 // ErrTSEKonfigurationKassensitzungOffen zeigt an, dass eine Änderung der
-// TSE-Konfiguration abgelehnt wurde, weil eine Kassensitzung aktiv ist — offen
-// oder wird_abgeschlossen. Das
-// Signaturgeraet darf nicht mitten in einem laufenden Kassentag wechseln — der
-// Admin schließt die Kassensitzung und wiederholt die Änderung.
+// TSE-Konfiguration abgelehnt wurde, weil eine Kassensitzung aktiv ist — offen oder
+// wird_abgeschlossen. Das Signaturgeraet darf nicht mitten in einem laufenden
+// Kassentag wechseln — der Admin schließt die Kassensitzung und wiederholt die
+// Änderung.
 var ErrTSEKonfigurationKassensitzungOffen = errors.New("tse_konfiguration_kassensitzung_offen")
 var ErrTSEVerbindungFehlgeschlagen = errors.New("tse_connection_failed")
 var ErrTSESetupZugangsdaten = errors.New("tse_setup_credentials_invalid")
