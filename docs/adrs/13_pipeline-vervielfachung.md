@@ -27,8 +27,11 @@ einer Ausnahme:
 | `check-resolver`    | 303   | ein Lauf                                       | `go build -o /dev/null` |
 | `check-local-proxy` | 306   | ein Lauf                                       | `go build -o /dev/null` |
 
-`check-backend` testet zusätzlich mit `-tags=unit`. `check-starter` legt als
-einziges der vier Nicht-Backend-Ziele ein Binary im Arbeitsbaum ab.
+`check-backend` testet zusätzlich mit `-tags=unit`. Die Build-Abweichung bei
+`check-starter` hat einen Grund: `windows/starter` besteht aus zwei Paketen
+(`main` und `core`), und `go build` verwirft das Ergebnis, sobald es mehr als
+ein Paket übersetzt. Die anderen drei Module sind Einzelpaket-Module — dort
+verhindert `-o /dev/null`, dass ein Binary im Arbeitsbaum landet.
 
 In der CI stehen fünf Jobs für dieselben fünf Module: `backend-ci` (57),
 `backend-golangci` (104), `resolver-ci` (138), `local-proxy-ci` (185) und
@@ -110,10 +113,10 @@ den Image-Tag (152). Auf sie zeigen ein kompiliertes Binary
 1. **Eine Matrix über alle Nicht-Backend-Module in der CI.** Kostet entweder die
    Pfadfilter (jeder PR baut alle Module) oder eine im `changes`-Job berechnete
    `fromJSON`-Matrix.
-2. **Ein generisches `check-%`-Ziel im `Makefile`.** Die vier Ziele sind nicht
+2. **Ein generisches `check-%`-Ziel im `Makefile`.** Die fünf Ziele sind nicht
    gleich: `check-backend` hat zwei Lint-Läufe und einen Test-Build-Tag,
-   `check-starter` baut ohne `-o /dev/null`. Ein Muster mit vier
-   Sonderfall-Variablen ist länger und schwerer zu lesen als vier Zeilen.
+   `check-starter` baut ohne `-o /dev/null`. Ein Muster mit Sonderfall-Variablen
+   für beide ist länger und schwerer zu lesen als fünf Zeilen.
 3. **Basisdatei plus Overrides für alle Stacks.** Nur ein Paar ist ein
    Zwillingspaar; die übrigen unterscheiden sich in 117 bis 243 Zeilen.
 4. **Basisdatei nur für `local` und `release`.** Technisch volume-sicher: bleibt
@@ -151,9 +154,6 @@ bleiben getrennt** (Alternative 5).
   eines vorhandenen Moduls teilt, wie `windows/relay` und `windows/starter`.
 - Eine Änderung an der Prüfkette (etwa eine neue `goimports`-Version) trifft
   fünf `Makefile`-Zeilen und fünf CI-Jobs. Das ist der bewusst getragene Preis.
-- Die Abweichung in `check-starter` (`go build ./...` statt
-  `go build -o /dev/null ./...`) bleibt bestehen und ist ein eigener kleiner
-  Fix, keine Folge dieser Entscheidung.
 - Jede neue Compose-Datei trägt ein ausdrückliches `name:`. Ohne die Zeile
   leitet Docker den Projektnamen aus dem Verzeichnisnamen ab, und die Volumes
   eines Betreibers hängen dann daran, wie sein Ordner heißt.
