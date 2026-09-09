@@ -17,15 +17,9 @@ type betreiberCommandRepo interface {
 
 type Command struct {
 	BetreiberRepo betreiberCommandRepo
-	// clock ist die Uhr des Meldedatums. Leer bedeutet time.Now; Tests setzen sie.
-	clock func() time.Time
-}
-
-func (c Command) now() time.Time {
-	if c.clock == nil {
-		return time.Now()
-	}
-	return c.clock()
+	// now ist die Uhr des Meldedatums. Im Produktivpfad bleibt sie leer (api/admin.go
+	// baut das Command als Literal) und steht dann für time.Now; Tests setzen sie.
+	now func() time.Time
 }
 
 func (c Command) UpdateBetreiber(ctx context.Context, b betreiber.Betreiber) error {
@@ -52,7 +46,12 @@ func meldedatum(zeitpunkt time.Time) time.Time {
 func (c Command) SetzeElsterMeldung(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 
-	gemeldetAm := meldedatum(c.now())
+	now := c.now
+	if now == nil {
+		now = time.Now
+	}
+
+	gemeldetAm := meldedatum(now())
 	if err := c.BetreiberRepo.SetElsterGemeldetAm(ctx, gemeldetAm); err != nil {
 		log.Error().Err(err).Msg("Failed to set elster meldung")
 		return ErrDatabase

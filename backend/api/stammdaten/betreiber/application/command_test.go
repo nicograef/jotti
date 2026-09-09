@@ -33,7 +33,7 @@ func TestSetzeElsterMeldung_MeldedatumInBerlinerZeit(t *testing.T) {
 	repo := &spyBetreiberRepo{}
 	command := Command{
 		BetreiberRepo: repo,
-		clock:         func() time.Time { return time.Date(2026, 7, 1, 23, 30, 0, 0, time.UTC) },
+		now:           func() time.Time { return time.Date(2026, 7, 1, 23, 30, 0, 0, time.UTC) },
 	}
 
 	if err := command.SetzeElsterMeldung(context.Background()); err != nil {
