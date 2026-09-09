@@ -71,7 +71,7 @@ Zugangsdaten überbrückt drei typisierte Weitergaben.
    Vorschlag). Die 13 Komponenten müssten exportiert werden; aus einer privaten
    Datei würde eine Modulgrenze mit öffentlicher Oberfläche.
 2. **Nur die Dateien aufteilen, Props behalten.** Kostet dieselben Exporte,
-   spart keine Zeile und verteilt einen linearen Ablauf auf sechs Dateien.
+   spart keine Zeile und verteilt einen linearen Ablauf auf mehrere Dateien.
 3. **Alles lassen.** Ein linearer Ablauf steht in Leserichtung in einer Datei;
    der Einstieg ist die exportierte Wurzel oben.
 
@@ -85,7 +85,7 @@ Zugangsdaten überbrückt drei typisierte Weitergaben.
   Context-Provider bricht zur Laufzeit.
 - **Einfachheit:** Ein Context tauscht drei sichtbare Weitergaben gegen eine
   unsichtbare Kopplung. Wer heute liest, wer den API-Key sieht, folgt sechs
-  Props-Zeilen; danach müsste er jede Komponente auf `use(...)` prüfen.
+  Props-Deklarationen; danach müsste er jede Komponente auf `use(...)` prüfen.
 - **Konsistenz:** Die beiden vorhandenen Contexts lösen Probleme, für die Props
   nicht reichen. Ein dritter für einen Wert, der drei Ebenen tief reicht, setzt
   eine andere Regel.
