@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	"golang.org/x/sync/errgroup"
 
@@ -145,7 +146,7 @@ func toMetadaten(row dbgen.GetKassensitzungMetadatenRow) (reporting.Metadaten, e
 	// Pointer-Ziel deserialisiert das zu nil und lässt das Feld sauber leer.
 	var data *kassensturzDataJSON
 	if err := json.Unmarshal(row.KassensturzData, &data); err != nil {
-		return reporting.Metadaten{}, err
+		return reporting.Metadaten{}, fmt.Errorf("unmarshal kassensturz data: %w", err)
 	}
 	if data != nil {
 		differenzCents := data.DifferenzCents
@@ -276,7 +277,7 @@ func toAbrechnungServicekraft(rows []dbgen.GetKassiertProServicekraftRow) []repo
 func toBetroffene(raw json.RawMessage) ([]reporting.ServicekraftRef, error) {
 	var refs []servicekraftRefJSON
 	if err := json.Unmarshal(raw, &refs); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal betroffene: %w", err)
 	}
 	out := make([]reporting.ServicekraftRef, len(refs))
 	for i, ref := range refs {
@@ -294,7 +295,7 @@ func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungD
 	for i, row := range rows {
 		var data stornierungEventData
 		if err := json.Unmarshal(row.Data, &data); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unmarshal stornierung data: %w", err)
 		}
 		betroffene, err := toBetroffene(row.Betroffene)
 		if err != nil {
