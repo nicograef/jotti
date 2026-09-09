@@ -146,6 +146,11 @@ css, md` im ganzen Repo ab. Grund: 29 Markdown-Dateien außerhalb `docs/plans/` 
   Consumer-Interfaces in vier Paketen (`stammdaten/tisch` trägt Command- und Query-Interface);
   JSON-Decode-Fehler der Repositories tragen Kontext per `fmt.Errorf`, nur DB-Fehler laufen
   durch `db.Error`.
+- **Nachträge aus dem Review der Phase 10** (Lead): das geteilte Produkt-Antwortschema in
+  `src/lib/produktSchemas.ts` begrenzt den Preis nur nach unten (`min(0)`, wie der
+  DB-Check), die Eingaberegel `1..99999` samt Meldungen bleibt im Admin-Formular — der
+  Lesepfad bleibt schrankenfrei wie bei den Betreiber-Schemas. Die Service-Hooks geben
+  neben `isError` auch `refetch` heraus, weil `LadefehlerAlert` den erneuten Versuch anbietet.
 
 ### Kritik (2026-09-08)
 
@@ -993,42 +998,42 @@ doppelten Schemas und Bausteine und eine Import-Regel, die die Schichtrichtung f
 
 ### Acceptance criteria
 
-- [ ] Die Service-Hooks in `service/table/hooks.ts`, `service/direktverkauf/hooks.ts` und
+- [x] Die Service-Hooks in `service/table/hooks.ts`, `service/direktverkauf/hooks.ts` und
       `service/product/hooks.ts` geben `isError` heraus, und `TableSelectionPage` sowie
       die weiteren Konsumenten rendern `LadefehlerAlert` statt Nullwerten; ein Vitest je
       Seite sichert zu, dass eine Fehlladung keine „0,00 €" zeigt.
       Befund: frontend/src/service/table/hooks.ts:56-90
-- [ ] `ReportingResults.tsx` zeigt die Kassensturz-Differenz in derselben Perspektive wie
+- [x] `ReportingResults.tsx` zeigt die Kassensturz-Differenz in derselben Perspektive wie
       der Abschluss-Bildschirm (Ist − Soll, `formatEuroMitVorzeichen`), und der Test in
       `ReportingResults.test.tsx` prüft das Vorzeichen eines Fehlbetrags.
       Befund: frontend/src/admin/reporting/ReportingResults.tsx:35-39
-- [ ] `LaeuftAllesSection.tsx` meldet fehlgeschlagene Signaturen unabhängig von `offene`
+- [x] `LaeuftAllesSection.tsx` meldet fehlgeschlagene Signaturen unabhängig von `offene`
       zuerst, führt `letzterFehler` und einen Fehler-Zähler in den Kennzahlen und
       beruhigt nur unterhalb von `RUECKSTAND_WARN_SEKUNDEN`; ein Vitest deckt den
       Fehlerfall ab. Befund: frontend/src/admin/finanzamt/LaeuftAllesSection.tsx:65-110
-- [ ] `components/ui/sonner.tsx` bezieht das Theme aus `@/components/theme-provider`.
+- [x] `components/ui/sonner.tsx` bezieht das Theme aus `@/components/theme-provider`.
       Befund: frontend/src/components/ui/sonner.tsx:1-8
-- [ ] `frontend/src/test/input-otp.ts` ist gelöscht, und die `afterEach`-Aufrufe in
+- [x] `frontend/src/test/input-otp.ts` ist gelöscht, und die `afterEach`-Aufrufe in
       `OTPField.test.tsx` und `PasswordForm.test.tsx` sind entfernt.
       Befund: frontend/src/test/input-otp.ts:1-16
-- [ ] Produkt, Variante, Kategorie, Steuersatz und `EntityStatus` haben je ein
+- [x] Produkt, Variante, Kategorie, Steuersatz und `EntityStatus` haben je ein
       Response-Schema in einem geteilten Modul, das Admin- und Service-Bereich
       importieren; Formular- und Eingaberegeln bleiben im Admin-Formular.
       Befund: frontend/src/service/product/Produkt.ts:24-55
-- [ ] `AbschlussContainer` und `BarzahlungFelder` existieren als geteilte Komponenten und
+- [x] `AbschlussContainer` und `BarzahlungFelder` existieren als geteilte Komponenten und
       werden aus `BestellungAbschluss.tsx`, `ZahlungAbschluss.tsx` und
       `DirektverkaufAbschluss.tsx` gerendert; das Markup bleibt unverändert.
       Befund: frontend/src/service/components/table/BestellungAbschluss.tsx:129-143,
       frontend/src/service/components/table/ZahlungAbschluss.tsx:123-170
-- [ ] `TSEEinrichtungWizard.test.tsx` deckt die LIVE-Sperren ab: Button gesperrt bis
+- [x] `TSEEinrichtungWizard.test.tsx` deckt die LIVE-Sperren ab: Button gesperrt bis
       `tippBestaetigung === 'LIVE'`, `tse_setup_pin_unbekannt`, `istEinsatzbereit` ohne
       PIN und `nurDisabledOderLeer`.
       Befund: frontend/src/admin/tse/TSEEinrichtungWizard.test.tsx:77-167
-- [ ] `frontend/eslint.config.js` verbietet mit der Kernregel `no-restricted-imports`
+- [x] `frontend/eslint.config.js` verbietet mit der Kernregel `no-restricted-imports`
       (`patterns: ['@/admin/*', '@/service/*']`) im `files`-Override für
       `src/components/**`, `src/lib/**` und `src/hooks/**` den Aufwärts-Import. Keine neue
       Abhängigkeit. `FormFields.tsx` ist die einzige heutige Verletzung und aufgelöst.
-- [ ] `next-themes`, `@base-ui/react`, `cmdk`, `date-fns`, `embla-carousel-react`,
+- [x] `next-themes`, `@base-ui/react`, `cmdk`, `date-fns`, `embla-carousel-react`,
       `react-day-picker`, `react-resizable-panels` und `recharts` sind aus
       `frontend/package.json` und dem Lockfile entfernt.
       Befund: frontend/package.json:21-43
