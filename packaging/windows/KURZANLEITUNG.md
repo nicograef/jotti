@@ -90,8 +90,8 @@ for %f in ("%PROGRAMDATA%\jotti\backups\manuell-*.sql") do @echo %~zf Bytes  %~n
 
 - Zeile 1 legt den Ordner an, falls er fehlt; `2>nul` schluckt die Meldung, wenn
   er schon da ist.
-- Zeile 2 schreibt die Sicherung. Das Datum steckt im Dateinamen, damit eine
-  zweite Sicherung die erste nicht überschreibt.
+- Zeile 2 schreibt die Sicherung. Das Datum steckt im Dateinamen, damit die
+  Sicherung eines anderen Tages die erste nicht überschreibt.
 - Zeile 3 listet jede vorhandene Sicherung mit ihrer Größe. Erscheint keine
   Zeile oder **0 Bytes**, ist die Sicherung fehlgeschlagen — dann lief jotti
   nicht. Löscht die leere Datei und versucht es erneut.
