@@ -57,7 +57,7 @@ Kasse ist Core Domain, weil alle übrigen Kontexte von ihr abhängen oder sie un
 | Auth          | Kasse          | Open Host Service             | Token mit Benutzer-ID und Rolle                                                                                                                 |
 | Auth          | Stammdaten     | Open Host Service             | Token mit Benutzer-ID und Rolle                                                                                                                 |
 
-Der Kasse-Kontext schützt sich über eine Anti-Corruption Layer (ACL) vor Stammdaten-Änderungen: Bestellungs-Events enthalten alle relevanten Produktdaten zum Zeitpunkt der Bestellung (Fat Events). Spätere Preis- oder Stammdaten-Änderungen haben keinen Einfluss auf historische Bestellungen und wirken erst in künftigen Bestellungen (Steuersatz-Änderungen erfordern zuvor einen Kassenabschluss, der den Stammdaten-Snapshot einfriert → [3.11](#311-tagesabschluss-z-bon)). Reporting aggregiert direkt über das Kassenjournal; dafür ist keine Cross-Context-Kommunikation nötig. Eine bewusste read-only Rückkante Kasse→Stammdaten besteht dagegen für den Tisch-Saldo: Die Admin-Tischliste liest die `tisch_sessions`-Projektion der offenen Kassensitzung (Saldo-Anzeige) und verhindert das Löschen oder Deaktivieren eines Tischs mit offenem Saldo, damit kein Geld auf einem nicht mehr kassier-/stornier-/umbuchbaren Tisch strandet. Die Query liest ausschließlich Projektionsspalten, nie Event-Payloads.
+Der Kasse-Kontext schützt sich über eine Anti-Corruption Layer (ACL) vor Stammdaten-Änderungen: Bestellungs-Events enthalten alle relevanten Produktdaten zum Zeitpunkt der Bestellung (Fat Events). Spätere Preis- oder Stammdaten-Änderungen haben keinen Einfluss auf historische Bestellungen und wirken sofort in künftigen Bestellungen, ohne vorherigen Kassenabschluss (→ [3.11](#311-tagesabschluss-z-bon)). Reporting aggregiert direkt über das Kassenjournal; dafür ist keine Cross-Context-Kommunikation nötig. Eine bewusste read-only Rückkante Kasse→Stammdaten besteht dagegen für den Tisch-Saldo: Die Admin-Tischliste liest die `tisch_sessions`-Projektion der offenen Kassensitzung (Saldo-Anzeige) und verhindert das Löschen oder Deaktivieren eines Tischs mit offenem Saldo, damit kein Geld auf einem nicht mehr kassier-/stornier-/umbuchbaren Tisch strandet. Die Query liest ausschließlich Projektionsspalten, nie Event-Payloads.
 
 ---
 
@@ -213,7 +213,7 @@ Der Z-Bon ist das Ergebnis des `tagesabschluss-erstellt:v1`-Events, er aggregier
 
 **Invarianten:** `z_nr` fortlaufend und strikt aufsteigend, technische Lücken durch Fehlversuche möglich. Voraussetzung: Kassensturz durchgeführt + alle Tisch-Sessions Saldo = 0 (→ [3.7](#37-invarianten)). Das Event schließt die KS (→ Status `abgeschlossen`).
 
-**Stammdaten-Snapshot:** Zu jedem Abschluss müssen die aktuell gültigen Stammdaten (Steuersätze, TSE-Zertifikate, Kassen-IDs) eingefroren werden, vor jeder Stammdaten-Änderung zunächst Kassenabschluss durchführen.
+**Kein Stammdaten-Snapshot beim Abschluss:** Steuersätze frieren bereits pro Position zum Bestellzeitpunkt im Fat Event ein (→ [2.2](#22-beziehungen-zwischen-kontexten)); eine spätere Steuersatz-Änderung an den Produkt-Stammdaten wirkt nie auf historische Bestellungen. Betreiber- und TSE-Stammdaten liest der DSFinV-K-Export erst beim Export selbst live, nicht als beim Tagesabschluss eingefrorenen Snapshot (→ [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle)).
 
 Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, Aufbewahrung) → [compliance.md §8](compliance.md#8-betreiberpflichten).
 
@@ -359,10 +359,12 @@ Die Rollenhierarchie ist inklusiv: Admin kann alles, was Serviceleitung kann. Se
 
 ### 5.2 Onboarding-Ablauf
 
-Neue Benutzer durchlaufen einen zweistufigen Onboarding-Prozess, der sicherstellt, dass nur der Benutzer sein eigenes Passwort kennt:
+Neue Benutzer durchlaufen einen vierstufigen Onboarding-Prozess, der sicherstellt, dass nur der Benutzer sein eigenes Passwort kennt:
 
 1. **Benutzer anlegen:** Admin erstellt Benutzer (Name, Benutzername, Rolle, Status `inactive`). System generiert ein Einmalpasswort aus genau 6 Ziffern, das der Admin dem Benutzer mitteilt.
-2. **Erstanmeldung + Passwort setzen:** Benutzer meldet sich mit Einmalpasswort an. System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL` den Onboarding-Status und leitet zur Passwort-Vergabe weiter (min. 6 Zeichen, Argon2id-Hash). Danach reguläre Anmeldung.
+2. **„Neues Passwort festlegen":** Benutzer meldet sich mit Einmalpasswort an. System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL` den Onboarding-Status und leitet zur Passwort-Vergabe weiter (Argon2id-Hash). Der Status bleibt `inactive`; regulär anmelden kann sich der Benutzer erst nach Schritt 3.
+3. **Admin aktiviert:** Erst ein expliziter Admin-Klick setzt den Status auf `active` (`ActivateUser`); ohne aktiven Status weist eine reguläre Anmeldung `ErrNotActive` zurück, auch mit gesetztem Passwort.
+4. **Regulärer Login:** Mit Benutzername und selbst gesetztem Passwort.
 
 **Passwort-Reset:** Admin-Reset generiert neues Einmalpasswort, leert `passwort_hash` → Benutzer durchläuft Onboarding erneut.
 
