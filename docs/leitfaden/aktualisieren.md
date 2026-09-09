@@ -208,6 +208,5 @@ Sehr selten passt nach einem Update das in der Datenbank gespeicherte Passwort
 nicht mehr zum Installations-Schlüssel; jotti startet dann, aber das Anmelden
 schlägt fehl. Eure Daten sind dabei nicht verloren. **`jotti-repair.cmd`**
 doppelklicken gleicht beides datenerhaltend wieder an; danach `jotti-start.exe`
-doppelklicken und einmal neu anmelden. Mehrfaches Ausführen schadet nicht. Mehr
-dazu unter
-[Fehlersuche](fehlersuche.md#nach-einem-update-klappt-das-anmelden-nicht).
+doppelklicken und einmal neu anmelden. Mehrfaches Ausführen schadet nicht. Mehr dazu
+unter [Fehlersuche](fehlersuche.md#nach-einem-update-klappt-das-anmelden-nicht).
