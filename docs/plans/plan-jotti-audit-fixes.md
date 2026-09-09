@@ -170,6 +170,18 @@ css, md` im ganzen Repo ab. Grund: 29 Markdown-Dateien außerhalb `docs/plans/` 
   Abgleich gegen gerenderte Texte, den es nicht gibt (Übergabe-Notiz). Der Exportpfad heißt
   überall „Berichte & Export" → „Archiv herunterladen (ZIP)"; „Stammdaten-Snapshot" ist aus
   README und Produktbeschreibung getilgt.
+- **Nachträge aus dem Review der Phase 13** (Lead): `check-domain-enums.sh` prüft
+  Produktionscode außerhalb `backend/domain/**` und `backend/sqlc/dbgen/**`; Testfixtures
+  dürfen Literale tragen. `check-e2e-assertions.sh` prüft `e2e/tests/**` und
+  `e2e/support/**`; die Website-Smoke-Skripte unter `e2e/website/` sind keine
+  Playwright-Specs. Die toten Sentinels aus 13.1 fielen bereits in Phase 5.
+  `check-domain-enums.sh` meldet jedes Literal der Domänenmengen in Nicht-Domain-Code
+  dateiweise (mit Allowlist für den Rechtschreib-Katalog des Sprachprüfers); die Bon-Art
+  `kassenbeleg` liest die Domänenkonstante. `useAktiveTische` behält `refetch`: der
+  Ladefehler-Wiederholen-Knopf aus Phase 10 nutzt es — der Punkt in 13.4 ist hinfällig.
+  `make check-tools` prüft die Lint-Werkzeuge; `migrate` und `docker` prüft
+  `check-tools-integration` vor den Integrationstests, damit `make check` ohne Docker läuft.
+  Die Stations-Karte heißt `STATION_KATEGORIE_LABEL`; sie ist keine Kopie der Produkt-Karte.
 
 ### Kritik (2026-09-08)
 
@@ -1304,25 +1316,24 @@ Produktionsverhalten.
 
 ### Acceptance criteria
 
-- [ ] Tote Sentinels und Konfigurationszweige sind entfernt:
+- [x] Tote Sentinels und Konfigurationszweige sind entfernt:
       `ErrKasseAlreadyAbgeschlossen`, `ErrNoPassword` und `ErrNoOnetimePassword` in
       `stammdaten/user/application/errors.go`, sowie der unerreichbare `log.Fatalf`-Zweig
       in `config.go — parseEnvString()`.
-- [ ] `domain/druckstation` erhält `AlleKategorien()` als einzige Quelle, aus der beide
+- [x] `domain/druckstation` erhält `AlleKategorien()` als einzige Quelle, aus der beide
       `OneOf`-Aufrufe in `api/druck/station/http/handler.go:73,117` lesen. Die
       Kategorie-Literale in `arbeitsbon_policy.go` sind durch die Domänenkonstanten
       ersetzt, und die Event-Konstruktoren in `domain/kasse` teilen einen
       `validateEventData`-Helfer. `scripts/check-domain-enums.sh` schlägt fehl, sobald ein
       Kategorie- oder Steuersatz-Literal außerhalb `backend/domain/**` steht.
-- [ ] Die Repository-Mocks verhalten sich wie die Produktion: `produkt_repo`, `tisch_repo`
+- [x] Die Repository-Mocks verhalten sich wie die Produktion: `produkt_repo`, `tisch_repo`
       und `user_repo` liefern `db.ErrNotFound` statt `nil`, `GetActiveProdukte` filtert wie
       der INNER JOIN, und `kassenjournal_repo/mock.go` vergibt neue IDs als
       `max(vorhandene)+1`.
-- [ ] Toter Code in den Frontend-Hooks und im Reporting ist entfernt: `refetch` aus
-      `useAktiveTische`, die `loading`-Prop samt Spinner-Zweig in `ReportingResults.tsx`,
+- [x] Toter Code in den Frontend-Hooks und im Reporting ist entfernt: die `loading`-Prop samt Spinner-Zweig in `ReportingResults.tsx`,
       der unerreichbare Fallback in `TischHistorie.tsx — Details` und `unbezahlteMengen`
       in `Zahlung.tsx`.
-- [ ] Die E2E-Suite scheitert bei fehlgeschlagener Messung.
+- [x] Die E2E-Suite scheitert bei fehlgeschlagener Messung.
 
   - `viewport.ts` gibt den Rohwert zurück und prüft `toBeGreaterThan(0)`.
   - `waehleAlleVollAus` sichert seine Nachbedingung mit dem Auswahl-Zähler zu.
@@ -1331,20 +1342,20 @@ Produktionsverhalten.
   - `scripts/check-e2e-assertions.sh` verbietet `networkidle` und `?? 0` unter `e2e/`.
   - Das Skript läuft über `make check-repo`; kein ESLint-Setup, keine neue Abhängigkeit.
 
-- [ ] Die Shell-Duplikate sind auf eine Quelle gezogen: `parse_semver`,
+- [x] Die Shell-Duplikate sind auf eine Quelle gezogen: `parse_semver`,
       `require_docker_stack`, `resolve_backup_dir`, `select_dump` und `decompress` liegen
       in `scripts/lib.sh`, und alle sechs Skripte lesen von dort.
-- [ ] Toter Backend-Code außerhalb der Sentinels ist entfernt: `Area.Name` in
+- [x] Toter Backend-Code außerhalb der Sentinels ist entfernt: `Area.Name` in
       `app/routes.go`, `zahlartReihenfolge` in `dsfinvk/mapper.go`, der Kombi-Zweig in
       `steuerMatrixLabel`, die zwei unerreichbaren Zweige im Umbuchungs-Kommentarbau sowie
       der ungelesene JWT-Claim `username` samt zweitem Rückgabewert von
       `ParseAndValidateJWTToken` (der Kontext-Name kommt seit 8.2 aus dem Datensatz).
-- [ ] Doppelte Frontend-Konstanten sind entfernt: die Re-Exports in
+- [x] Doppelte Frontend-Konstanten sind entfernt: die Re-Exports in
       `KassensitzungPage.tsx`, die zweite `KATEGORIE_LABEL`-Definition und die dreifache
       Backend-Client-Instanz.
-- [ ] `make check-tools` prüft zusätzlich `migrate` und `docker`, und die redundanten
+- [x] `make check-tools-integration` prüft `migrate` und `docker` vor den Integrationstests, und die redundanten
       Makefile-Prerequisites (`clean`, `verify`) sind entfernt.
-- [ ] Der Dateikommentar in `e2e/support/servicekraft.ts` beschreibt den Ist-Stand: die
+- [x] Der Dateikommentar in `e2e/support/servicekraft.ts` beschreibt den Ist-Stand: die
       Datei nutzt überwiegend zugängliche Selektoren und für Zeile und Saldo die
       `data-slot`-Attribute. Befund: e2e/support/servicekraft.ts:4-6
 
