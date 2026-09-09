@@ -101,8 +101,9 @@ Zugangsdaten überbrückt drei typisierte Weitergaben.
   Zusage, dass sie beliebig wachsen darf — die Auslöser unten setzen die Grenze.
 - Neue Schritte kommen als weitere Komponente in dieselbe Datei, unterhalb der
   Wurzel und oberhalb der Hilfsfunktionen.
-- Die 13 Komponenten bleiben privat. Kein anderes Modul kann einen Schritt
-  einzeln rendern, und keiner ist an eine fremde Stelle koppelbar.
+- Die zwölf Schritt-Komponenten bleiben privat; exportiert ist allein die
+  Wurzel. Kein anderes Modul kann einen Schritt einzeln rendern, und keiner ist
+  an eine fremde Stelle koppelbar.
 - **Wieder aufgreifen, wenn** einer von drei Fällen eintritt: die Zugangsdaten
   erreichen eine vierte Weitergabe-Ebene; ein zweiter TSE-Anbieter bringt einen
   parallelen Zweig mit eigenen Schritten; oder ein Schritt wird außerhalb des
