@@ -279,7 +279,7 @@ JSON-Keys: `sollBestandCents`, `anfangsbestandCents`, `bareinnahmenCents`, `einl
 
 #### Geldtransit (Kassenbewegung)
 
-Bargeld-Bewegung außerhalb des Tisch-Verkehrs: Einlage (z. B. Wechselgeld nachfüllen, erhöht den Soll-Bestand) oder Entnahme (z. B. Abschöpfung in Bank/Tresor, reduziert ihn). `Kommentar` ist Pflichtfeld. DSFinV-K-Geschäftsvorfalltyp: `Geldtransit`.
+Bargeld-Bewegung außerhalb des Tisch-Verkehrs: Einlage (z. B. Wechselgeld nachfüllen, erhöht den Soll-Bestand) oder Entnahme (z. B. Abschöpfung in Bank/Tresor, reduziert ihn). `Kommentar` ist Pflichtfeld. DSFinV-K-Geschäftsvorfalltyp: `Geldtransit`. Es gibt keine eigenen Geschäftsvorfalltypen für Privatentnahme/Privateinlage (Bewegungen in den/aus dem privaten Bereich des Vereins); jede Bargeld-Bewegung wird als `Geldtransit` gebucht.
 
 | Event-Typ                | JSON-Key `richtung`     | API-Pfad                    |
 | ------------------------ | ----------------------- | --------------------------- |
@@ -510,12 +510,3 @@ Kurzdefinitionen, die kanonische Architektur-Erklärung steht im [handbuch.md](h
 - **Anti-Corruption Layer (ACL):** Eingefrorene Stammdaten entkoppeln den Kassenbetrieb von späteren Produkt-Änderungen (→ handbuch.md §2.2).
 - **Append-only:** Events werden nie geändert oder gelöscht; Korrekturen sind kompensierende Events. Entspricht dem GoBD-Radierverbot (→ handbuch.md §3.2).
 - **Synchrone Projektion:** Der Tisch-Zustand wird als `tisch_sessions`-Zeile in derselben Transaktion wie das Event geschrieben (→ handbuch.md §3.8).
-
----
-
-## Geplant (nicht implementiert)
-
-Die folgenden Begriffe sind definiert, aber noch nicht im Code implementiert. Details und Priorisierung in `docs/anforderungen.md`.
-
-- **Stornoquote:** Verhältnis Stornierungsbetrag zu Bestellsumme.
-- **Privatentnahme / Privateinlage:** eigene DSFinV-K-Geschäftsvorfalltypen für Bewegungen in den/aus dem privaten Bereich des Vereins (neben dem → Geldtransit); aktuell wird jede Bargeld-Bewegung als Geldtransit gebucht.

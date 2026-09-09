@@ -43,13 +43,16 @@ jotti ist ein self-hosted Kassensystem (mobile Point of Sale) für Vereinsfeste.
 
 **Rolle der Smartphones:** Die Geräte der Servicekräfte sind reine Eingabegeräte mit sofortiger Weiterleitung an das Backend. Sie erfassen keine Zahlungen eigenständig und offline; jeder Vorgang ist ein synchroner Backend-Request, ohne Verbindung ist keine Erfassung möglich (kein Service Worker, kein Offline-Speicher). TSE-Absicherung, Protokollierung und DSFinV-K-Speicherung erfolgen ausschließlich zentral im Backend. Die Smartphones sind deshalb nicht meldepflichtig ([compliance.md §7.5](compliance.md#75-byod-smartphones-keine-meldepflicht)).
 
-**Bounded Contexts:** Das System ist in drei fachliche Bereiche gegliedert.
+**Bounded Contexts:** Das System ist in sechs fachliche Bereiche gegliedert (Details → [handbuch.md §2](handbuch.md#2-bounded-contexts)).
 
-| Bereich    | Aufgabe                                                                                                                                  | Persistenz                     |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Kasse      | Alle finanziellen Geschäftsvorfälle: Bestellen, Ausgeben, Kassieren, Stornieren, Umbuchen, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal) |
-| Stammdaten | Produkte, Tische, Benutzer, Betreiber-Stammdaten                                                                                         | CRUD mit Soft-Delete           |
-| Auth       | Login, Logout, Passwort, Token                                                                                                           | Infrastruktur                  |
+| Bereich        | Aufgabe                                                                                                                                 | Persistenz                     |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Kasse          | Alle finanziellen Geschäftsvorfälle: Bestellen, Bezahlen/Kassieren, Stornieren, Umbuchen, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal) |
+| Fiskalisierung | TSE-Signierung, DSFinV-K-Export, TSE-Einrichtung und Kassenidentität                                                                    | Outbox + CRUD                  |
+| Druck/Ausgabe  | Arbeitsbons und Kassenbelege drucken, Druckstationen konfigurieren                                                                      | Outbox (Druckaufträge) + CRUD  |
+| Stammdaten     | Produkte, Tische, Benutzer, Betreiber-Stammdaten                                                                                        | CRUD mit Soft-Delete           |
+| Reporting      | Live-Auswertung und Abrechnung, direkt aus dem Kassenjournal aggregiert                                                                 | kein eigener Store             |
+| Auth           | Login, Logout, Passwort, Token                                                                                                          | Infrastruktur                  |
 
 **Betriebsumgebung dieser Instanz:** «Beschreibt hier, wo jotti läuft. Beispiel Standardweg: ein Windows-Rechner im Vereinsheim wird zum Kassenrechner, die Helfer bedienen jotti im selben WLAN. Beispiel Experten-Weg: jotti läuft auf einem VPS bei «Anbieter» unter der Domain «kasse-musterverein.de» mit HTTPS.»
 
