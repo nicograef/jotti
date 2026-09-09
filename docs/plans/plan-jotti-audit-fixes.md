@@ -138,6 +138,14 @@ css, md` im ganzen Repo ab. Grund: 29 Markdown-Dateien außerhalb `docs/plans/` 
   Zeile gegen das Segment seit dem vorigen und weist Allowlist-Einträge zurück, deren
   Codefragment ein Leerzeichen enthält. Der ungelesene JWT-Claim `username` samt zweitem
   Rückgabewert von `ParseAndValidateJWTToken` wandert in Kriterium 13.7.
+  Nachtrag aus der CI: das Paket `backend/internal/zeit` importiert `time/tzdata` selbst,
+  weil der Abhängigkeitsgraph die Registrierung der eingebetteten Zonen vor dem Init des
+  Pakets nur so garantiert (das Alpine-Image trägt keine zoneinfo; der Blank-Import in
+  `main.go` ordnete nichts).
+- **Nachträge aus dem Review der Phase 9** (Lead): `tisch_repo` hat fünf
+  Consumer-Interfaces in vier Paketen (`stammdaten/tisch` trägt Command- und Query-Interface);
+  JSON-Decode-Fehler der Repositories tragen Kontext per `fmt.Errorf`, nur DB-Fehler laufen
+  durch `db.Error`.
 
 ### Kritik (2026-09-08)
 
@@ -937,16 +945,16 @@ bleibt gleich; die vorhandenen Integrationstests sind der Beweis.
 
 ### Acceptance criteria
 
-- [ ] `user_repo/types.go` behält einen Row-Mapper, die Aufrufer konvertieren am
+- [x] `user_repo/types.go` behält einen Row-Mapper, die Aufrufer konvertieren am
       Aufrufort, und kein Lesepfad verliert dadurch ein Feld.
       Befund: backend/repository/user_repo/types.go:19-62
-- [ ] `produkt_repo` besitzt eine `produktRowToDomain`-Abbildung in `types.go`, aus der
+- [x] `produkt_repo` besitzt eine `produktRowToDomain`-Abbildung in `types.go`, aus der
       alle drei Lesepfade lesen. Befund: backend/repository/produkt_repo/repo.go:38-92
-- [ ] Die öffentlichen Methoden von `tisch_repo` tragen deutsche Domänen-Nomen
+- [x] Die öffentlichen Methoden von `tisch_repo` tragen deutsche Domänen-Nomen
       (`GetTisch`, `GetAlleTische`, `CreateTisch`, `UpdateTisch`, `DeleteTischMitFavoriten`
-      …), und die vier Consumer-Interfaces sind mitgezogen.
+      …), und die fünf Consumer-Interfaces sind mitgezogen.
       Befund: backend/repository/tisch_repo/repo.go:11-146
-- [ ] `reporting_repo/repo.go` normalisiert jeden Rückgabefehler mit `db.Error(err)` wie
+- [x] `reporting_repo/repo.go` normalisiert jeden Rückgabefehler mit `db.Error(err)` wie
       die sechs Schwester-Repositories.
 
 ---
