@@ -45,11 +45,14 @@ violations=0
 for file in "${files[@]}"; do
   # Strip a leading "> " blockquote marker per line, drop fenced code
   # blocks, then squeeze the whole file (including every line break) to a
-  # single space-separated line — awk/tr rather than perl or python, so the
-  # gate stays free of new dependencies (Architectural decisions).
+  # single space-separated line — awk/tr rather than perl or python, so this
+  # gate needs no interpreter beyond the bash/awk its sibling
+  # scripts/check-*.sh gates already depend on. A fence may sit inside a
+  # list item, indented past column 1 (docs/leitfaden/*.md fences all do),
+  # so the marker is matched after optional leading whitespace.
   joined="$(
     awk '
-      /^```/ { infence = !infence; next }
+      /^[[:space:]]*```/ { infence = !infence; next }
       infence { next }
       { sub(/^>[[:space:]]?/, ""); printf "%s ", $0 }
     ' "$file" | tr -s '[:space:]' ' '
