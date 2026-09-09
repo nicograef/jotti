@@ -9,7 +9,8 @@ set -euo pipefail
 # (the dumps use --clean --if-exists, so objects are dropped and re-created).
 # Application services are stopped during the restore so no writes interfere.
 # Steps:
-#   1. Validate prerequisites and pick the dump (argument or newest in BACKUP_DIR)
+#   1. Validate prerequisites, pick the dump (argument or newest in BACKUP_DIR)
+#      and test a gzip-compressed dump for integrity
 #   2. Confirm the destructive action
 #   3. Stop app services, restore via psql, restart the stack
 #
@@ -34,7 +35,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # ---------------------------------------------------------------------------
-# Step 1 — Validate prerequisites and select the dump
+# Step 1 — Validate prerequisites, select the dump and test the archive
 # ---------------------------------------------------------------------------
 if ! command -v docker &>/dev/null; then
   fatal "docker is not installed or not on PATH."
@@ -74,6 +75,16 @@ if (( ${#dumps[@]} > 0 )); then
   for d in "${dumps[@]}"; do
     echo "    $d"
   done
+fi
+
+# A corrupt or truncated archive only surfaces mid-restore — after --clean has
+# already dropped the objects. Test it while the database is still intact; the
+# same check guards the write side in prod-backup.sh.
+if [[ "$SELECTED" == *.gz ]]; then
+  info "Checking the archive (gzip -t) ..."
+  if ! gzip -t "$SELECTED"; then
+    fatal "Integrity check failed (gzip -t): $SELECTED is corrupt. Nothing was changed."
+  fi
 fi
 
 # ---------------------------------------------------------------------------
