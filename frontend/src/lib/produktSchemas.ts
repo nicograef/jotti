@@ -21,6 +21,21 @@ export const KategorieSchema = z.enum([
   Kategorie.SONSTIGES,
 ])
 
+// Deutsche Anzeigenamen und die feste Anzeigereihenfolge der Kategorien — je
+// Kategorie eine Quelle für Produktliste, Preisliste und Verkaufsstatistik. Der
+// Stationsname eines Bondruckers weicht bewusst ab (Singular „Getränk") und
+// steht bei der Druckstation.
+export const KATEGORIE_LABEL: Record<Kategorie, string> = {
+  essen: 'Essen',
+  getraenk: 'Getränke',
+  sonstiges: 'Sonstiges',
+}
+export const KATEGORIE_ORDER: Kategorie[] = [
+  Kategorie.ESSEN,
+  Kategorie.GETRAENK,
+  Kategorie.SONSTIGES,
+]
+
 export const Steuersatz = {
   REGEL: 'regel',
   ERMAESSIGT: 'ermaessigt',
