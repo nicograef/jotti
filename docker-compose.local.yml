@@ -12,8 +12,9 @@
 # Start:  docker compose -f docker-compose.local.yml up -d --build
 # Stop:   docker compose -f docker-compose.local.yml down
 #
-# SECURITY: Caddy's internal CA encrypts transport on the local network (browser warning
-# on first access). Never expose this stack to the public internet (no port forwarding).
+# SECURITY: TLS on both addresses — the trusted Let's Encrypt certificate on the primary
+# hostname, Caddy's internal CA on the IP fallback (browser warning on first access).
+# Never expose this stack to the public internet (no port forwarding).
 
 name: jotti-local
 
