@@ -254,6 +254,16 @@ describe('KassensitzungPage', () => {
     expect(
       screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
     ).toBeInTheDocument()
+    // Buchen ist hinter der Barriere gesperrt (das Backend lehnt jede Buchung
+    // ab), Soll-Bestand und Bewegungsliste bleiben aber sichtbar.
+    expect(
+      screen.queryByRole('button', { name: 'Geld einlegen' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Geld entnehmen' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText('Soll-Bestand')).toBeInTheDocument()
+    expect(screen.getByText('Heutige Kassenbewegungen')).toBeInTheDocument()
   })
 
   it('öffnet über „Geld entnehmen" den Dialog mit vorbelegter Richtung und bucht', async () => {

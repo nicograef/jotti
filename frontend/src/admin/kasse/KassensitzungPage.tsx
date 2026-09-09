@@ -149,6 +149,11 @@ export function KassensitzungPage() {
     }
   }, [isPending, istOffen])
 
+  // Hinter der Barriere lehnt das Backend jede Buchung ab (kasse_wird_abgeschlossen):
+  // Schritt 2 bietet dann kein Einlegen/Entnehmen an, Schritt 3 sagt, was zu tun ist.
+  const abschlussUnterbrochen =
+    kassensitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
+
   const titel = kassensitzung
     ? `Kassentag Nr. ${String(kassensitzung.zNr)} — ${kassensitzung.bezeichnung}`
     : 'Kassentag'
@@ -221,6 +226,7 @@ export function KassensitzungPage() {
                 <CardContent>
                   <LaufenderBetriebSection
                     kassensitzungNr={kassensitzung.zNr}
+                    buchenMoeglich={!abschlussUnterbrochen}
                     onBuchung={invalidateKasse}
                   />
                 </CardContent>
@@ -238,8 +244,7 @@ export function KassensitzungPage() {
                   {/* Bleibt die Sitzung im Barrierestatus stehen, ist ein
                       Abschluss unterwegs abgebrochen. Der Hinweis sagt, dass
                       genau dieser Schritt zu wiederholen ist. */}
-                  {kassensitzung.status ===
-                    KassensitzungStatus.WIRD_ABGESCHLOSSEN && (
+                  {abschlussUnterbrochen && (
                     <WarnKarte className="mb-4">
                       Abschluss unterbrochen — erneut abschließen
                     </WarnKarte>

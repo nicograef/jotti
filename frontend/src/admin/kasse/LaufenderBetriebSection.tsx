@@ -50,12 +50,16 @@ function BewegungZeile({ buchung }: { buchung: GeldtransitBuchung }) {
 
 // LaufenderBetriebSection ist der Inhalt von Schritt 2 des Kassentag-Steppers:
 // der Soll-Bestand groß mit Stand-Zeit, die vier Aufschlüsselungs-Kacheln und die
-// Liste der heutigen Kassenbewegungen mit Einlegen-/Entnehmen-Buttons.
+// Liste der heutigen Kassenbewegungen. Die Einlegen-/Entnehmen-Buttons erscheinen
+// nur, solange gebucht werden darf (buchenMoeglich); Bestand und Liste bleiben in
+// jedem Fall sichtbar.
 export function LaufenderBetriebSection({
   kassensitzungNr,
+  buchenMoeglich,
   onBuchung,
 }: {
   kassensitzungNr: number
+  buchenMoeglich: boolean
   onBuchung: () => void
 }) {
   const { kassenbestand, dataUpdatedAt } = useKassenbestand(kassensitzungNr)
@@ -108,30 +112,32 @@ export function LaufenderBetriebSection({
           <span className="text-sm font-semibold">
             Heutige Kassenbewegungen
           </span>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setDialogRichtung('einlage')
-              }}
-            >
-              <PlusCircle />
-              Geld einlegen
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setDialogRichtung('entnahme')
-              }}
-            >
-              <MinusCircle />
-              Geld entnehmen
-            </Button>
-          </div>
+          {buchenMoeglich && (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setDialogRichtung('einlage')
+                }}
+              >
+                <PlusCircle />
+                Geld einlegen
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setDialogRichtung('entnahme')
+                }}
+              >
+                <MinusCircle />
+                Geld entnehmen
+              </Button>
+            </div>
+          )}
         </div>
         {buchungen.length > 0 ? (
           <div className="divide-y overflow-hidden rounded-lg border">
