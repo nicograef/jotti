@@ -1,4 +1,6 @@
-// Command jotti-reverse-proxy ist der Caddy-Container-Entrypoint für zwei Modi:
+// Command jotti-reverse-proxy ist der Caddy-Container-Entrypoint für drei Modi.
+// Welcher gilt, entscheidet die Umgebung (loadConfig, main): PROXY_HTTP_ONLY vor
+// JOTTI_DOMAIN, sonst LAN-Mode.
 //
 // LAN-Mode (docker-compose.local.yml / release): Installations-State sicherstellen
 // (Install-ID + acme-dns-Credentials, einmalige Registrierung) → LAN-IP bestimmen
@@ -11,6 +13,10 @@
 // Let's-Encrypt-Zertifikat) und startet Caddy — ohne State, acme-dns oder
 // Status-Seite. Die jotti.rocks-Demo bleibt auf nginx und nutzt dieses Programm
 // nicht.
+//
+// HTTP-Only-Mode (docker-compose.e2e.yml): ist PROXY_HTTP_ONLY gesetzt, rendert
+// der Entrypoint eine Klartext-HTTP-Site auf :80 — ohne TLS, ACME, State oder
+// Status-Seite. Nur für die E2E-Testumgebung.
 package main
 
 import (
