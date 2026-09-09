@@ -4,11 +4,17 @@
 // Prüfung sie am Wandkalender lesen.
 package zeit
 
-import "time"
+import (
+	"time"
+	// Die eingebettete Zonendatenbank muss registriert sein, bevor der init
+	// dieses Pakets die Zone lädt. Nur ein Import hier erzwingt diese
+	// Reihenfolge: die Init-Reihenfolge folgt dem Abhängigkeitsgraphen, und ein
+	// Blank-Import in main.go steht in keiner Abhängigkeit zu diesem Paket.
+	_ "time/tzdata"
+)
 
-// Berlin ist die Zone dieser Umrechnung, einmal beim Start geladen. tzdata ist
-// ins Binary eingebettet (backend/main.go), das Laden schlägt nur bei kaputtem
-// Build fehl.
+// Berlin ist die Zone dieser Umrechnung, einmal beim Start geladen. Die
+// Zonendatenbank liegt im Binary, das Laden schlägt nur bei kaputtem Build fehl.
 var Berlin = mustLoad("Europe/Berlin")
 
 func mustLoad(name string) *time.Location {
