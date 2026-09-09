@@ -1,8 +1,9 @@
 import { ChevronRight, Lamp, Search, TableIcon } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { EmptyState } from '@/components/common/EmptyState'
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,12 +25,33 @@ const fussleisteFreiraum = 'pb-[calc(6rem+env(safe-area-inset-bottom,0px))]'
 export function TableSelectionPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [suche, setSuche] = useState('')
-  const { tische, isPending: tischeLoading } = useMeineTischeState()
+  const {
+    tische,
+    isPending: tischeLoading,
+    isError: tischeError,
+    refetch: reloadTische,
+  } = useMeineTischeState()
   // Die Suche greift über alle aktiven Tische, nicht nur die favorisierten
   // „Meine Tische" — so findet der Nutzer auch einen nicht markierten Tisch und
   // öffnet ihn per Treffer direkt.
-  const { tische: alleTische } = useAktiveTischeMitFavoriten()
-  const { uebersicht, isPending: uebersichtLoading } = useEigeneUebersicht()
+  const {
+    tische: alleTische,
+    isError: alleTischeError,
+    refetch: reloadAlleTische,
+  } = useAktiveTischeMitFavoriten()
+  const {
+    uebersicht,
+    isPending: uebersichtLoading,
+    isError: uebersichtError,
+    refetch: reloadUebersicht,
+  } = useEigeneUebersicht()
+
+  const ladefehler = tischeError || alleTischeError || uebersichtError
+  const reload = useCallback(() => {
+    void reloadTische()
+    void reloadAlleTische()
+    void reloadUebersicht()
+  }, [reloadTische, reloadAlleTische, reloadUebersicht])
 
   const sucheGetrimmt = suche.trim()
   const sucheAktiv = sucheGetrimmt.length > 0
@@ -58,8 +80,16 @@ export function TableSelectionPage() {
     !tischeLoading && !sucheAktiv && tische.length > 0,
   )
 
-  return (
-    <div className={fussleisteFreiraum}>
+  // Expliziter Fehlerzustand statt der Leer-Defaults (Übersicht 0,00 €, keine
+  // markierten Tische) — sonst wirkt der Dienst bei Netzabbruch abgerechnet.
+  // Die Fußleiste bleibt stehen, damit der Alle-Tische-Drawer erreichbar ist.
+  const inhalt = ladefehler ? (
+    <LadefehlerAlert
+      titel="Tischübersicht konnte nicht geladen werden"
+      onErneutVersuchen={reload}
+    />
+  ) : (
+    <>
       <EigeneUebersichtKarten
         uebersicht={uebersicht}
         loading={uebersichtLoading}
@@ -123,6 +153,12 @@ export function TableSelectionPage() {
           )}
         </div>
       )}
+    </>
+  )
+
+  return (
+    <div className={fussleisteFreiraum}>
+      {inhalt}
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
         <div className="mx-auto w-full max-w-md">

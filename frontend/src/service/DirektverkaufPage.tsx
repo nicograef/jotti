@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { BackendSingleton } from '@/lib/Backend'
@@ -16,10 +17,16 @@ const direktverkaufBackend = new DirektverkaufBackend(BackendSingleton)
 
 export function DirektverkaufPage() {
   const isMobile = useIsMobile()
-  const { produkte, isPending } = useAktiveProdukte()
+  const {
+    produkte,
+    isPending,
+    isError: produkteError,
+    refetch: reloadProdukte,
+  } = useAktiveProdukte()
   const {
     historie,
     isPending: historieLoading,
+    isError: historieError,
     refetch: reloadHistorie,
   } = useDirektverkaufHistorie()
 
@@ -46,7 +53,17 @@ export function DirektverkaufPage() {
     </TabsList>
   )
 
-  const verkaufenInhalt = (
+  // Beide Reiter tragen ihren Ladefehler selbst: eine leere Produktliste sähe
+  // sonst wie ein leeres Sortiment aus, eine leere Historie wie ein Tag ohne
+  // Verkäufe.
+  const verkaufenInhalt = produkteError ? (
+    <LadefehlerAlert
+      titel="Produkte konnten nicht geladen werden"
+      onErneutVersuchen={() => {
+        void reloadProdukte()
+      }}
+    />
+  ) : (
     <Direktverkauf
       backend={direktverkaufBackend}
       products={produkte}
@@ -54,7 +71,14 @@ export function DirektverkaufPage() {
       onErfolg={zeigeErfolg}
     />
   )
-  const historieInhalt = (
+  const historieInhalt = historieError ? (
+    <LadefehlerAlert
+      titel="Historie konnte nicht geladen werden"
+      onErneutVersuchen={() => {
+        void reloadHistorie()
+      }}
+    />
+  ) : (
     <DirektverkaufHistorie
       historie={historie}
       historieLoading={historieLoading}

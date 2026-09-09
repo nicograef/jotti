@@ -49,6 +49,7 @@ const testProdukt: Produkt = {
 const testState = vi.hoisted(() => ({
   tischId: '1',
   produkte: [] as Produkt[],
+  produkteError: false,
 }))
 
 vi.mock('react-router', () => ({
@@ -77,7 +78,12 @@ vi.mock('@/lib/Auth', () => ({
 }))
 
 vi.mock('./product/hooks', () => ({
-  useAktiveProdukte: () => ({ produkte: testState.produkte, isPending: false }),
+  useAktiveProdukte: () => ({
+    produkte: testState.produkte,
+    isPending: false,
+    isError: testState.produkteError,
+    refetch: vi.fn(),
+  }),
 }))
 
 const { getTischState, getTischHistorie, stornierungErteilen } = vi.hoisted(
@@ -115,6 +121,7 @@ afterEach(() => {
   vi.clearAllMocks()
   testState.tischId = '1'
   testState.produkte = []
+  testState.produkteError = false
 })
 
 function renderPage() {
@@ -140,6 +147,20 @@ describe('TablePage', () => {
     // Der Leer-Default (Saldo 0,00 €) darf bei einem Fehler nicht erscheinen —
     // der Tisch wirkt sonst fälschlich abgerechnet.
     expect(screen.queryByText('0,00 €')).not.toBeInTheDocument()
+  })
+
+  it('zeigt bei Produkt-Fehler den Bestellen-Tab als Fehlerzustand statt leerer Liste', async () => {
+    testState.produkteError = true
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    renderPage()
+
+    expect(
+      await screen.findByText('Produkte konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    // Die Leer-Defaults des Bestellen-Tabs (Korb-Summe 0,00 €) dürfen bei
+    // einem Fehler nicht erscheinen — das Sortiment wirkt sonst leer.
+    expect(screen.queryByText(/0,00 €/)).not.toBeInTheDocument()
   })
 
   it('lädt die Tischdaten über „Erneut versuchen" nach einem Fehler neu', async () => {

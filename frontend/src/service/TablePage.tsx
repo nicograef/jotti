@@ -94,7 +94,12 @@ export function TablePage() {
     isError: stateError,
     refetch: reloadState,
   } = useTischState(Number(tischId))
-  const { isPending: produkteLoading, produkte } = useAktiveProdukte()
+  const {
+    isPending: produkteLoading,
+    isError: produkteError,
+    produkte,
+    refetch: reloadProdukte,
+  } = useAktiveProdukte()
   const {
     isPending: historieLoading,
     isError: historieError,
@@ -240,16 +245,28 @@ export function TablePage() {
     </TabsList>
   )
 
-  const bestellenInhalt = !stateLoading && (
-    <Bestellung
-      backend={tischBackend}
-      tisch={tisch}
-      products={produkte}
-      productsLoading={produkteLoading}
-      mengenSteuerung={bestellKorb}
-      onErfolg={zeigeErfolg}
-    />
-  )
+  // Produkte tragen nur den Bestellen-Tab; ihr Ladefehler bleibt deshalb dort,
+  // statt die ganze Seite zu ersetzen. Ohne ihn wirkte die leere Produktliste
+  // wie ein leeres Sortiment.
+  const bestellenInhalt =
+    !stateLoading &&
+    (produkteError ? (
+      <LadefehlerAlert
+        titel="Produkte konnten nicht geladen werden"
+        onErneutVersuchen={() => {
+          void reloadProdukte()
+        }}
+      />
+    ) : (
+      <Bestellung
+        backend={tischBackend}
+        tisch={tisch}
+        products={produkte}
+        productsLoading={produkteLoading}
+        mengenSteuerung={bestellKorb}
+        onErfolg={zeigeErfolg}
+      />
+    ))
   const kassierenInhalt = !stateLoading && (
     <Zahlung
       backend={tischBackend}

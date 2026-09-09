@@ -1,6 +1,7 @@
 import { CircleCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -61,7 +62,12 @@ export function HistorieUmbuchungDrawer({
   const positionen = quelle.umbuchbarePositionen
   const [zielTischId, setZielTischId] = useState<number | null>(null)
   const [kommentar, setKommentar] = useState('')
-  const { tische, isPending: tischeLoading } = useAktiveTische()
+  const {
+    tische,
+    isPending: tischeLoading,
+    isError: tischeError,
+    refetch: reloadTische,
+  } = useAktiveTische()
 
   const umbuchbareMengen = useMemo(
     () => createDefaultMengen(positionen),
@@ -187,28 +193,39 @@ export function HistorieUmbuchungDrawer({
           )}
           <div className="space-y-1">
             <p className="text-sm font-medium">Ziel-Tisch</p>
-            <NativeSelect
-              className="w-full"
-              value={zielTischId === null ? '' : String(zielTischId)}
-              onChange={(event) => {
-                setZielTischId(Number(event.target.value))
-              }}
-              disabled={loading || tischeLoading || keinZielTischVerfuegbar}
-            >
-              <NativeSelectOption value="" disabled>
-                {keinZielTischVerfuegbar
-                  ? 'Kein aktiver Ziel-Tisch verfügbar'
-                  : 'Ziel-Tisch wählen…'}
-              </NativeSelectOption>
-              {zielTische.map((candidate) => (
-                <NativeSelectOption
-                  key={candidate.id}
-                  value={String(candidate.id)}
-                >
-                  {candidate.name}
+            {/* Expliziter Fehlerzustand statt der leeren Auswahl — sonst läse
+                sich der Ladefehler als „kein Ziel-Tisch vorhanden". */}
+            {tischeError ? (
+              <LadefehlerAlert
+                titel="Ziel-Tische konnten nicht geladen werden"
+                onErneutVersuchen={() => {
+                  void reloadTische()
+                }}
+              />
+            ) : (
+              <NativeSelect
+                className="w-full"
+                value={zielTischId === null ? '' : String(zielTischId)}
+                onChange={(event) => {
+                  setZielTischId(Number(event.target.value))
+                }}
+                disabled={loading || tischeLoading || keinZielTischVerfuegbar}
+              >
+                <NativeSelectOption value="" disabled>
+                  {keinZielTischVerfuegbar
+                    ? 'Kein aktiver Ziel-Tisch verfügbar'
+                    : 'Ziel-Tisch wählen…'}
                 </NativeSelectOption>
-              ))}
-            </NativeSelect>
+                {zielTische.map((candidate) => (
+                  <NativeSelectOption
+                    key={candidate.id}
+                    value={String(candidate.id)}
+                  >
+                    {candidate.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            )}
           </div>
           <ActionHint reason={disabledReason} />
           <Button
