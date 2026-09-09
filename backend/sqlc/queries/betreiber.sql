@@ -15,9 +15,11 @@ ON CONFLICT (id) DO UPDATE SET
     ust_id       = EXCLUDED.ust_id,
     updated_at   = EXCLUDED.updated_at;
 
+-- Das Meldedatum kommt aus der Anwendung: CURRENT_DATE wäre das Datum der
+-- DB-Sitzung, und die Container laufen in UTC.
 -- name: SetElsterGemeldetAm :exec
 UPDATE betreiber
-SET elster_gemeldet_am = CURRENT_DATE,
+SET elster_gemeldet_am = sqlc.arg(gemeldet_am),
     updated_at         = NOW()
 WHERE id = 1;
 

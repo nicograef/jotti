@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"time"
 
 	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/rs/zerolog"
@@ -9,12 +10,41 @@ import (
 
 type betreiberCommandRepo interface {
 	UpsertBetreiber(ctx context.Context, b betreiber.Betreiber) error
-	SetElsterGemeldetAm(ctx context.Context) error
+	SetElsterGemeldetAm(ctx context.Context, gemeldetAm time.Time) error
 	ClearElsterGemeldetAm(ctx context.Context) error
 }
 
 type Command struct {
 	BetreiberRepo betreiberCommandRepo
+	// clock ist die Uhr des Meldedatums. Leer bedeutet time.Now; Tests setzen sie.
+	clock func() time.Time
+}
+
+func (c Command) now() time.Time {
+	if c.clock == nil {
+		return time.Now()
+	}
+	return c.clock()
+}
+
+// berlin ist die Zeitzone des ELSTER-Meldedatums: der Admin hakt die Meldung an
+// dem Tag ab, den er am Wandkalender liest. tzdata ist ins Binary eingebettet
+// (backend/main.go), das Laden schlägt nur bei kaputtem Build fehl.
+var berlin = mustLoadBerlin()
+
+func mustLoadBerlin() *time.Location {
+	ort, err := time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		panic("betreiber: Zeitzone Europe/Berlin nicht ladbar: " + err.Error())
+	}
+	return ort
+}
+
+// meldedatum liefert den Berliner Kalendertag des Zeitpunkts als Mitternacht UTC,
+// passend zur DATE-Spalte.
+func meldedatum(zeitpunkt time.Time) time.Time {
+	jahr, monat, tag := zeitpunkt.In(berlin).Date()
+	return time.Date(jahr, monat, tag, 0, 0, 0, 0, time.UTC)
 }
 
 func (c Command) UpdateBetreiber(ctx context.Context, b betreiber.Betreiber) error {
@@ -29,15 +59,17 @@ func (c Command) UpdateBetreiber(ctx context.Context, b betreiber.Betreiber) err
 }
 
 // SetzeElsterMeldung markiert die ELSTER-Kassenmeldung als erledigt (serverseitig
-// auf das aktuelle Datum, § 146a Abs. 4 AO).
+// auf das aktuelle Datum, § 146a Abs. 4 AO). Das Datum ist der Berliner
+// Kalendertag: die Container laufen in UTC und lägen abends einen Tag zurück.
 func (c Command) SetzeElsterMeldung(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 
-	if err := c.BetreiberRepo.SetElsterGemeldetAm(ctx); err != nil {
+	gemeldetAm := meldedatum(c.now())
+	if err := c.BetreiberRepo.SetElsterGemeldetAm(ctx, gemeldetAm); err != nil {
 		log.Error().Err(err).Msg("Failed to set elster meldung")
 		return ErrDatabase
 	}
-	log.Info().Msg("Elster meldung marked as done")
+	log.Info().Str("gemeldet_am", gemeldetAm.Format(time.DateOnly)).Msg("Elster meldung marked as done")
 	return nil
 }
 
