@@ -31,10 +31,10 @@ docker run -d \
   --health-interval 2s \
   --health-timeout 5s \
   --health-retries 10 \
-  postgres:17
+  postgres:17.8
 
 echo "⏳ Waiting for PostgreSQL to accept real connections..."
-# pg_isready alone is not enough: during initialization postgres:17 runs a
+# pg_isready alone is not enough: during initialization the postgres image runs a
 # temporary socket-only server that is restarted afterwards; pg_isready reports
 # that server as ready while migrate then fails with "connection reset by
 # peer". Only a real query over TCP proves the final server is up.
