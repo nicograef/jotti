@@ -27,6 +27,17 @@ func (c Command) now() time.Time {
 	return c.clock()
 }
 
+func (c Command) UpdateBetreiber(ctx context.Context, b betreiber.Betreiber) error {
+	log := zerolog.Ctx(ctx)
+
+	if err := c.BetreiberRepo.UpsertBetreiber(ctx, b); err != nil {
+		log.Error().Err(err).Msg("Failed to save betreiber")
+		return ErrDatabase
+	}
+	log.Info().Str("vereinsname", b.Vereinsname).Msg("Betreiber saved")
+	return nil
+}
+
 // berlin ist die Zeitzone des ELSTER-Meldedatums: der Admin hakt die Meldung an
 // dem Tag ab, den er am Wandkalender liest. tzdata ist ins Binary eingebettet
 // (backend/main.go), das Laden schlägt nur bei kaputtem Build fehl.
@@ -47,17 +58,6 @@ func meldedatum(zeitpunkt time.Time) time.Time {
 	return time.Date(jahr, monat, tag, 0, 0, 0, 0, time.UTC)
 }
 
-func (c Command) UpdateBetreiber(ctx context.Context, b betreiber.Betreiber) error {
-	log := zerolog.Ctx(ctx)
-
-	if err := c.BetreiberRepo.UpsertBetreiber(ctx, b); err != nil {
-		log.Error().Err(err).Msg("Failed to save betreiber")
-		return ErrDatabase
-	}
-	log.Info().Str("vereinsname", b.Vereinsname).Msg("Betreiber saved")
-	return nil
-}
-
 // SetzeElsterMeldung markiert die ELSTER-Kassenmeldung als erledigt (serverseitig
 // auf das aktuelle Datum, § 146a Abs. 4 AO). Das Datum ist der Berliner
 // Kalendertag: die Container laufen in UTC und lägen abends einen Tag zurück.
@@ -69,7 +69,7 @@ func (c Command) SetzeElsterMeldung(ctx context.Context) error {
 		log.Error().Err(err).Msg("Failed to set elster meldung")
 		return ErrDatabase
 	}
-	log.Info().Str("gemeldet_am", gemeldetAm.Format(time.DateOnly)).Msg("Elster meldung marked as done")
+	log.Info().Str("gemeldet_am", gemeldetAm.Format("2006-01-02")).Msg("Elster meldung marked as done")
 	return nil
 }
 
