@@ -1580,17 +1580,6 @@ func TestWriteEvent_TagesabschlussErstellt(t *testing.T) {
 	}
 }
 
-func TestGetOffeneKassensitzung_NoneOpen(t *testing.T) {
-	_, ksNr, repo, teardown := setup(t)
-	defer teardown(t)
-
-	// Close the kassensitzung created by setup
-	_, err := repo.db.Exec("UPDATE kassensitzungen SET status = $1 WHERE z_nr = $2", kasse.KassensitzungAbgeschlossen, ksNr)
-	if err != nil {
-		t.Fatalf("Failed to close kassensitzung: %v", err)
-	}
-}
-
 // --- Projection rebuild integration tests ---
 
 func TestRebuildAllProjections_EmptyDB(t *testing.T) {

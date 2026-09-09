@@ -35,7 +35,7 @@ func NewRepository(database *sql.DB) Repository {
 // WriteEvent stores a new event in the kassenjournal and synchronously updates
 // the appropriate projection within the same transaction.
 // Routing by streamType:
-//   - "kassensitzung" → INSERT/UPDATE kassensitzungen (CRUD entity)
+//   - "kassensitzung" → UPDATE kassensitzungen (CRUD entity)
 //   - "tisch-session" → UPSERT tisch_sessions (synchronous projection)
 //   - "direktverkauf" → kassenjournal only (no projection)
 func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
@@ -262,8 +262,8 @@ func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e ev
 }
 
 // handleKassensitzungEvent handles kassensitzung events by updating the kassensitzungen CRUD entity.
-// Note: For kassensitzung-eroeffnet:v1, the kassensitzungen row is created by the application layer
-// BEFORE calling WriteEvent (required because kassenjournal has a FK to kassensitzungen).
+// Note: kassensitzung-eroeffnet:v1 finds its row already there — EroeffneKassensitzung inserts it
+// in the same transaction, before writing the event (kassenjournal has a FK to kassensitzungen).
 // The repo only handles tagesabschluss-erstellt:v1 (setting status to 'abgeschlossen').
 func (r Repository) handleKassensitzungEvent(ctx context.Context, qtx *dbgen.Queries, e event.Event, kassensitzungNr int) error {
 	switch e.Type {
