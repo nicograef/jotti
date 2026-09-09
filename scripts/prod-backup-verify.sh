@@ -37,7 +37,7 @@ cd "$PROJECT_ROOT"
 # ---------------------------------------------------------------------------
 # Step 1 — Validate prerequisites and select the dump
 # ---------------------------------------------------------------------------
-# No --no-compose-cli requirement here: this script drives a throwaway
+# No docker-compose CLI needed here: this script drives a throwaway
 # container via `docker run`/`docker exec`, never `docker compose`.
 require_docker_stack "$COMPOSE_FILE" --no-compose-cli
 
