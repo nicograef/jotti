@@ -21,9 +21,6 @@ import type { AktiveKassensitzung } from './KasseBackend'
 import { KassensitzungStatus } from './Kassensitzung'
 import { LaufenderBetriebSection } from './LaufenderBetriebSection'
 
-export { EroeffnenSection } from './EroeffnenSection'
-export { KasseAbschliessenSection } from './KasseAbschliessenSection'
-
 type StepState = 'done' | 'active' | 'inactive'
 
 // ErledigtHaekchen rendert das Häkchen des erledigten Schritts. Es poppt

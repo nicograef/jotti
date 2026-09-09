@@ -9,7 +9,6 @@ import { useCountUp } from '@/hooks/use-count-up'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { BackendSingleton } from '@/lib/Backend'
 import { formatEuro } from '@/lib/utils'
 
 import { ErfolgsPop } from './components/ErfolgsPop'
@@ -18,10 +17,7 @@ import { Bestellung } from './components/table/Bestellung'
 import { TischHistorie } from './components/table/TischHistorie'
 import { Zahlung } from './components/table/Zahlung'
 import { useAktiveProdukte } from './product/hooks'
-import { useTischHistorie, useTischState } from './table/hooks'
-import { TischBackend } from './table/TischBackend'
-
-const tischBackend = new TischBackend(BackendSingleton)
+import { tischBackend, useTischHistorie, useTischState } from './table/hooks'
 
 // Deckelt die gehobene Kassieren-Auswahl auf die noch unbezahlte Menge je
 // Position: Einträge über ihrer Obergrenze sinken auf die Obergrenze, Einträge

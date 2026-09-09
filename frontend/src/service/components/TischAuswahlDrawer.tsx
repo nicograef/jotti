@@ -10,18 +10,15 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { BackendSingleton } from '@/lib/Backend'
 import { formatEuro } from '@/lib/utils'
 
 import {
   AKTIVE_TISCHE_MIT_FAVORITEN_KEY,
   MEINE_TISCHE_STATE_KEY,
+  tischBackend,
   useAktiveTischeMitFavoriten,
 } from '../table/hooks'
 import type { AktiverTischMitFavorit } from '../table/Tisch'
-import { TischBackend } from '../table/TischBackend'
-
-const tischBackend = new TischBackend(BackendSingleton)
 
 // Reihenfolge im Alle-Tische-Drawer: durchgehend nach Tischname mit
 // numerischem Vergleich („Tisch 2" vor „Tisch 10"). Favoriten und Saldo

@@ -7,12 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BackendError } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
+import { EroeffnenSection } from './EroeffnenSection'
+import { KasseAbschliessenSection } from './KasseAbschliessenSection'
 import type { GeldtransitBuchung } from './Kassensitzung'
-import {
-  EroeffnenSection,
-  KasseAbschliessenSection,
-  KassensitzungPage,
-} from './KassensitzungPage'
+import { KassensitzungPage } from './KassensitzungPage'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },

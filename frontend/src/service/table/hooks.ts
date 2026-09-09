@@ -5,7 +5,10 @@ import { BackendSingleton } from '@/lib/Backend'
 import type { EigeneUebersicht, TischSession } from './Tisch'
 import { TischBackend } from './TischBackend'
 
-const tischBackend = new TischBackend(BackendSingleton)
+// Eine Instanz für den ganzen Service-Bereich (TablePage, TischAuswahlDrawer
+// und diese Hooks teilen sie) — TischBackend trägt keinen eigenen Zustand,
+// eine geteilte Instanz spart nur die wiederholte Konstruktion.
+export const tischBackend = new TischBackend(BackendSingleton)
 
 export function useAktiveTische() {
   const {
