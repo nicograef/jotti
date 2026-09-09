@@ -130,6 +130,14 @@ css, md` im ganzen Repo ab. Grund: 29 Markdown-Dateien außerhalb `docs/plans/` 
   beide Zustände. Das Decode-Gate akzeptiert beide Vertragsfamilien (`…EventData` und
   `…V<n>Data`). `GetOffeneKassensitzungNr` in `GetEigeneUebersicht` bleibt wie im
   Kriterium ausgenommen und steht in den Übergabe-Notizen.
+- **Nachträge aus dem Review der Phase 8** (Lead): `Europe/Berlin` wird einmal im
+  Blattpaket `backend/internal/zeit` geladen; escpos, Export und Betreiber importieren es
+  (die Zeile zu 1.2 „lädt einmal" meint: nicht pro Aufruf — ein geteiltes Paket erfüllt
+  das). `dsfinvk/table.go` führt die Spalten als `[]string`, weil eine Struktur mit einem
+  einzigen Feld nichts trägt. `scripts/check-timezone.sh` prüft jedes `.Format(` einer
+  Zeile gegen das Segment seit dem vorigen und weist Allowlist-Einträge zurück, deren
+  Codefragment ein Leerzeichen enthält. Der ungelesene JWT-Claim `username` samt zweitem
+  Rückgabewert von `ParseAndValidateJWTToken` wandert in Kriterium 13.7.
 
 ### Kritik (2026-09-08)
 
@@ -861,39 +869,39 @@ Test, der ihn festhält.
 
 ### Acceptance criteria
 
-- [ ] Das Login normalisiert das Passwort wie das Setzen: `loginSchema` verwendet
+- [x] Das Login normalisiert das Passwort wie das Setzen: `loginSchema` verwendet
       `z.String().Trim().Min(1, …).Required()`. Die Längenregeln des `PasswordSchema`
       bleiben draußen, damit der Login-Endpunkt die Passwort-Policy nicht verrät. Ein Test
       setzt ein Passwort mit umgebenden Leerzeichen und meldet sich damit an.
       Befund: backend/domain/user/user.go:202-228, :202-228
-- [ ] `middleware.go` legt `u.Username` aus dem geladenen Datensatz in den Context, und
+- [x] `middleware.go` legt `u.Username` aus dem geladenen Datensatz in den Context, und
       `middleware_test.go` sichert zu, dass ein veralteter Claim-Name nicht mehr ins
       Kassenjournal gelangt. Befund: backend/api/middleware/middleware.go:269-304
-- [ ] `buildUmbuchungKommentar()` kürzt byteweise auf die Schemagrenze, das eingefrorene
+- [x] `buildUmbuchungKommentar()` kürzt byteweise auf die Schemagrenze, das eingefrorene
       Event-Schema bleibt unverändert, und ein Test bucht einen Tisch mit Umlaut-Namen an
       der Grenze um. Befund: backend/domain/kasse/tisch_session_events.go:118-128
-- [ ] `abrechnungskreis()` kürzt runensicher auf 50 Zeichen, und ein Mapper-Test prüft
+- [x] `abrechnungskreis()` kürzt runensicher auf 50 Zeichen, und ein Mapper-Test prüft
       einen 100-Zeichen-Tischnamen gegen die amtliche MaxLength.
       Befund: backend/api/fiskal/dsfinvk/mapper.go:535-544
-- [ ] `dsfinvk/table.go — column` trägt nur noch `name`, die Zuweisungen in den
-      `build*`-Funktionen sind entfernt, und der Doc-Kommentar beschreibt die eingebettete
-      amtliche `index.xml` statt einer Erzeugung.
+- [x] `dsfinvk/table.go` führt die Spalten einer Tabelle als `[]string` (die Struktur
+      `column` samt `typ`/`accuracy` und `col()` ist entfernt), und der Doc-Kommentar
+      beschreibt die eingebettete amtliche `index.xml` statt einer Erzeugung.
       Befund: backend/api/fiskal/dsfinvk/table.go:13-34
-- [ ] Der Doc-Kommentar in `kassenjournal_repo/repo.go` beschreibt den echten Ablauf
+- [x] Der Doc-Kommentar in `kassenjournal_repo/repo.go` beschreibt den echten Ablauf
       (`EroeffneKassensitzung` schreibt in derselben Transaktion), die Routing-Zeile nennt
       `UPDATE`, und `repo_test.go` verliert den zusicherungsfreien
       `TestGetOffeneKassensitzung_NoneOpen`; die Zusicherung wandert nach
       `kassensitzungen_repo`. Befund: backend/repository/kassenjournal_repo/repo.go:264-267,
       backend/repository/kassenjournal_repo/repo_test.go:1583-1592
-- [ ] Der Doc-Kommentar zu den Z-Bon-Summen in
+- [x] Der Doc-Kommentar zu den Z-Bon-Summen in
       `kassenfuehrung/application/command.go` nennt `kasse.ComputeAbschlussSummen` und den
       Äquivalenz-Guard `reporting_repo/summen_abschluss_test.go`.
       Befund: backend/api/kasse/kassenfuehrung/application/command.go:260-261
-- [ ] Das ELSTER-Meldedatum entsteht in `Europe/Berlin` statt aus `CURRENT_DATE` der
+- [x] Das ELSTER-Meldedatum entsteht in `Europe/Berlin` statt aus `CURRENT_DATE` der
       DB-Sitzung: die Anwendungsschicht übergibt das Datum, die Query nimmt es als
       Parameter. Ein Test mit `2026-07-01T23:30:00Z` erwartet den 02.07.2026.
       Befund: backend/api/stammdaten/betreiber/application/command.go:31-42
-- [ ] `scripts/check-timezone.sh` schlägt fehl, sobald in `backend/api/druck/**`,
+- [x] `scripts/check-timezone.sh` schlägt fehl, sobald in `backend/api/druck/**`,
       `backend/api/fiskal/**` oder `backend/api/reporting/**` ein `.Format(` steht, dessen
       Empfänger nicht durch `.In(` läuft. Eine versionierte Allowlist nennt jede Ausnahme
       mit Grund. `export.go — dateiname()` formatiert den ZIP-Namen als
@@ -1296,7 +1304,9 @@ Produktionsverhalten.
       in `scripts/lib.sh`, und alle sechs Skripte lesen von dort.
 - [ ] Toter Backend-Code außerhalb der Sentinels ist entfernt: `Area.Name` in
       `app/routes.go`, `zahlartReihenfolge` in `dsfinvk/mapper.go`, der Kombi-Zweig in
-      `steuerMatrixLabel` und die zwei unerreichbaren Zweige im Umbuchungs-Kommentarbau.
+      `steuerMatrixLabel`, die zwei unerreichbaren Zweige im Umbuchungs-Kommentarbau sowie
+      der ungelesene JWT-Claim `username` samt zweitem Rückgabewert von
+      `ParseAndValidateJWTToken` (der Kontext-Name kommt seit 8.2 aus dem Datensatz).
 - [ ] Doppelte Frontend-Konstanten sind entfernt: die Re-Exports in
       `KassensitzungPage.tsx`, die zweite `KATEGORIE_LABEL`-Definition und die dreifache
       Backend-Client-Instanz.
