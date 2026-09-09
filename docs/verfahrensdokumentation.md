@@ -71,7 +71,7 @@ Vollständige Architektur-Referenz: [handbuch.md §1 und §2](handbuch.md#1-übe
 
 **Stammdaten:** Produkte, Tische und Benutzer werden klassisch verwaltet (CRUD). Gelöscht wird nie physisch, sondern per Soft-Delete (Status `deleted`); die referenzielle Integrität und die historische Nachvollziehbarkeit bleiben dadurch erhalten.
 
-Datenmodell-Referenz: [handbuch.md §3](handbuch.md#3-kasse-core-domain); Schema: `database/migrations/01_initial.up.sql`.
+Datenmodell-Referenz: [handbuch.md §3](handbuch.md#3-kasse-core-domain); Schema: die SQL-Migrationen unter `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge).
 
 ---
 

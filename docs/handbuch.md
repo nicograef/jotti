@@ -78,7 +78,7 @@ Die Kassensitzung ist der Container, der Abrechnungskreis (= Tisch-Session) ist 
 
 Das Kassenjournal (Tabelle `kassenjournal`) ist die zentrale, append-only Tabelle für alle finanziellen Geschäftsvorfälle, chronologische, vollständige, unveränderbare Aufzeichnung im Sinne von § 146 AO. Ein Immutabilitäts-Trigger verhindert UPDATE und DELETE.
 
-Architektonisch tragende Spalten: `subject` (Stream-Schlüssel, → [3.3](#33-subject-design-hierarchische-subjects)), `version` (aufsteigend pro Subject; der Constraint `UNIQUE(subject, version)` realisiert OCC, → [6.6](#66-mehrbenutzerfähigkeit-occ)), `type` (Event-Typ, z. B. `bestellung-aufgenommen:v1`), `data` (JSONB), `user_id`/`user_name` (Fat Event: Name zum Zeitpunkt der Aktion) und `kassensitzung_nr`. Dieses Feld ermöglicht robuste Cross-Stream-Aggregationen (Reporting, Kassenbestand) ohne fragile LIKE-Patterns auf Subjects. Vollständiges Schema: `database/migrations/01_initial.up.sql`.
+Architektonisch tragende Spalten: `subject` (Stream-Schlüssel, → [3.3](#33-subject-design-hierarchische-subjects)), `version` (aufsteigend pro Subject; der Constraint `UNIQUE(subject, version)` realisiert OCC, → [6.6](#66-mehrbenutzerfähigkeit-occ)), `type` (Event-Typ, z. B. `bestellung-aufgenommen:v1`), `data` (JSONB), `user_id`/`user_name` (Fat Event: Name zum Zeitpunkt der Aktion) und `kassensitzung_nr`. Dieses Feld ermöglicht robuste Cross-Stream-Aggregationen (Reporting, Kassenbestand) ohne fragile LIKE-Patterns auf Subjects. Vollständiges Schema: die SQL-Migrationen unter `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge).
 
 ### 3.3 Subject-Design: Hierarchische Subjects
 
@@ -262,7 +262,7 @@ WHERE status = 'fehlgeschlagen';
 
 ## 4. Stammdaten
 
-Alle Stammdaten verwenden Soft-Delete via `status = 'deleted'`. Datensätze werden nie physisch gelöscht, referenzielle Integrität und historische Nachvollziehbarkeit (Fat Events im Kassenjournal) erfordern dies. Tabellen-Schemata: `database/migrations/01_initial.up.sql`.
+Alle Stammdaten verwenden Soft-Delete via `status = 'deleted'`. Datensätze werden nie physisch gelöscht, referenzielle Integrität und historische Nachvollziehbarkeit (Fat Events im Kassenjournal) erfordern dies. Tabellen-Schemata: die SQL-Migrationen unter `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge).
 
 ### 4.1 Produkt-Aggregat
 

@@ -3,7 +3,7 @@ description: 'Use when working on database migrations, SQL queries, sqlc configu
 applyTo: 'database/**,backend/sqlc/**,backend/sqlc.yaml'
 ---
 
-> **Referenz:** Tabellen-Schemata stehen kanonisch in `database/migrations/01_initial.up.sql`. Für Architektur und Invarianten → `docs/handbuch.md` §3.2 (Kassenjournal) und §4 (Stammdaten). Für DB-Spalten-Konventionen → `docs/language.md`.
+> **Referenz:** Tabellen-Schemata stehen kanonisch in den SQL-Migrationen unter `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge, forward-only, siehe „Freeze-Disziplin" unten). Für Architektur und Invarianten → `docs/handbuch.md` §3.2 (Kassenjournal) und §4 (Stammdaten). Für DB-Spalten-Konventionen → `docs/language.md`.
 
 Repo-weite Regeln und Guardrails stehen kanonisch in `AGENTS.md`. Diese Datei ergänzt nur datenbankspezifische Konventionen für `database/**`, `backend/sqlc/**` und `backend/sqlc.yaml`.
 

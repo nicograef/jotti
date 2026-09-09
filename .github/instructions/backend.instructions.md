@@ -46,8 +46,8 @@ Alle Fehler-Responses: `{"code": "<string>", "details": "<optional>"}` (siehe `a
 
 ## Auth
 
-- JWT HS256, 12h Gültigkeit, Claims: `sub` (userID), `role` (admin|serviceleitung|service)
-- Middleware extrahiert `userID` und `role` aus JWT in Request-Context
+- JWT HS256, 12h Gültigkeit, Claims: `iss`, `iat`, `exp`, `sub` (userID), `username`, `role` (admin|serviceleitung|service)
+- Middleware validiert aus dem Token nur `sub`; Autorisierung prüft die Rolle live aus dem Benutzer-Datensatz, nicht aus dem Token-Claim (eine Rollenänderung wirkt sofort). Request-Context trägt `UserIDKey` und `UserNameKey` (Name ebenfalls aus dem Datensatz); keine Rolle im Context.
 - Passwörter: Argon2id-Hashing (`domain/user/password.go`)
 
 ## Schichtentrennung: Domain vs. HTTP
