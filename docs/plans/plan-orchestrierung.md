@@ -239,10 +239,10 @@ prüfen. Stopp-Bedingungen aus `implement-plan` gelten unverändert.
 
 ### Acceptance criteria
 
-- [ ] Alle Kriterien des Fix-Plans abgehakt und gelandet; Plan-Datei danach gelöscht
-- [ ] Jede Defektklasse hat ein Gate in CI oder Lint, das auf dem gelandeten Stand grün ist
-- [ ] `make verify`, `make website-check`, `make test-e2e` grün
-- [ ] `docs/plans/findings-jotti-audit.md` gelöscht oder auf die offenen Reste reduziert
+- [x] Alle Kriterien des Fix-Plans abgehakt und gelandet; Plan-Datei danach gelöscht
+- [x] Jede Defektklasse hat ein Gate in CI oder Lint, das auf dem gelandeten Stand grün ist
+- [x] `make verify`, `make website-check`, `make test-e2e` grün
+- [x] `docs/plans/findings-jotti-audit.md` gelöscht oder auf die offenen Reste reduziert
 
 ---
 
