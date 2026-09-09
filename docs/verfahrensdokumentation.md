@@ -23,7 +23,7 @@ Rechtliche Grundlagen im Detail: [compliance.md](compliance.md). Technische Arch
 | Anschrift der Betriebsstätte            | «Straße, PLZ, Ort»                                                             |
 | Steuernummer                            | «Steuernummer»                                                                 |
 | USt-IdNr. (falls vorhanden)             | «USt-IdNr. oder „nicht vorhanden"»                                             |
-| Kassen-Seriennummer (jotti-Kassen-UUID) | «UUID aus dem Admin-Bereich → Finanzamt»                                       |
+| Kassen-Seriennummer (jotti-Kassen-UUID) | «UUID aus dem Admin-Bereich → „Finanzamt & TSE"»                               |
 | Softwarename / Hersteller               | jotti                                                                          |
 | Eingesetzte jotti-Version               | «z. B. v0.2.0»                                                                 |
 | Inbetriebnahmedatum                     | «TT.MM.JJJJ»                                                                   |
@@ -108,7 +108,7 @@ Rechtliche und technische Details: [compliance.md §3](compliance.md#3-tse-integ
 
 **Inhalt:** Stammdatenmodul (Kassen-, Standort-, Steuersatz- und TSE-Daten), Einzelaufzeichnungsmodul (jeder einzelne Bon mit Positionen, Zahlarten, Referenzen und TSE-Signaturen) und Kassenabschlussmodul (aggregierter Z-Bon je Betriebstag). Bestellungen und Zahlungen eines Tisches sind über einen gemeinsamen `ABRECHNUNGSKREIS` verknüpft.
 
-**Auslösung:** Der Admin erzeugt den Export im Admin-Bereich unter „Auswertungen" für die gewählte Kassensitzung (üblicherweise nach dem Tagesabschluss; auch offene Sitzungen sind exportierbar). Er ist mit jeder Tabellenkalkulation und mit der Prüfsoftware IDEA lesbar.
+**Auslösung:** Der Admin erzeugt den Export im Admin-Bereich unter „Berichte & Export" für die gewählte, abgeschlossene Kassensitzung über den Button „Archiv herunterladen (ZIP)" (üblicherweise nach dem Tagesabschluss). Er ist mit jeder Tabellenkalkulation und mit der Prüfsoftware IDEA lesbar.
 
 Format- und Felddetails: [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 
@@ -122,11 +122,11 @@ Format- und Felddetails: [compliance.md §6](compliance.md#6-dsfinv-k-export-sch
 
 **Drei Rollen mit abgestuften Rechten:**
 
-| Rolle            | Berechtigung                                                                            |
-| ---------------- | --------------------------------------------------------------------------------------- |
-| `admin`          | Voller Zugriff: Stammdaten, Kasse, Kassensitzung, Auswertungen, Export, Finanzamt-Daten |
-| `serviceleitung` | Kasse einschließlich Stornierung                                                        |
-| `service`        | Kasse ohne Stornierung                                                                  |
+| Rolle            | Berechtigung                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| `admin`          | Voller Zugriff: Stammdaten, Kasse, Kassensitzung, Übersicht, Berichte & Export, Finanzamt & TSE |
+| `serviceleitung` | Kasse einschließlich Stornierung                                                                |
+| `service`        | Kasse ohne Stornierung                                                                          |
 
 Stornierungen sind ausschließlich `serviceleitung` und `admin` vorbehalten; die Kassensitzung (Eröffnen, Kassensturz, Tagesabschluss) und alle Stammdaten- und Auswertungsfunktionen sind dem `admin` vorbehalten. Die vollständige Berechtigungsmatrix steht in [handbuch.md §5.1](handbuch.md#51-rollen-und-berechtigungsmatrix).
 
@@ -149,7 +149,7 @@ Alle steuerlich relevanten Daten sind 10 Jahre vollständig, jederzeit verfügba
 
 | Artefakt                                                                  | Quelle                                                  | Aufbewahrung                                  |
 | ------------------------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------- |
-| DSFinV-K-Export je Kassensitzung                                          | Admin-Bereich → Auswertungen                            | 10 Jahre, an mindestens zwei getrennten Orten |
+| DSFinV-K-Export je Kassensitzung                                          | Admin-Bereich → „Berichte & Export"                     | 10 Jahre, an mindestens zwei getrennten Orten |
 | Datenbank-Backup (rohes Kassenjournal samt TSE-Signaturen und Stammdaten) | automatisches Backup; `make prod-backup` auf dem Server | 10 Jahre                                      |
 | Z-Bons (Tagesabschlüsse)                                                  | im Kassenjournal und DSFinV-K-Export enthalten          | 10 Jahre                                      |
 | Zählprotokolle (Kassensturz)                                              | manuell beim Kassensturz                                | 10 Jahre                                      |
