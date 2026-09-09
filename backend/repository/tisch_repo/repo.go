@@ -23,12 +23,12 @@ func (r Repository) GetAlleTische(ctx context.Context) ([]tisch.Tisch, error) {
 		return nil, db.Error(err)
 	}
 
-	tables := make([]tisch.Tisch, 0, len(rows))
+	tische := make([]tisch.Tisch, 0, len(rows))
 	for _, row := range rows {
-		tables = append(tables, tischRowToDomain(row))
+		tische = append(tische, tischRowToDomain(row))
 	}
 
-	return tables, nil
+	return tische, nil
 }
 
 // GetAlleTischNamen liefert die Namen ALLER Tische als Map tischID → Name,
@@ -83,16 +83,16 @@ func (r Repository) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([
 		return nil, db.Error(err)
 	}
 
-	tables := make([]tisch.AktiverTisch, 0, len(rows))
+	tische := make([]tisch.AktiverTisch, 0, len(rows))
 	for _, row := range rows {
-		tables = append(tables, tisch.AktiverTisch{
+		tische = append(tische, tisch.AktiverTisch{
 			ID:         row.ID,
 			Name:       row.Name,
 			SaldoCents: row.SaldoCents,
 		})
 	}
 
-	return tables, nil
+	return tische, nil
 }
 
 func (r Repository) GetAktiveTischeMitFavoriten(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error) {
@@ -104,9 +104,9 @@ func (r Repository) GetAktiveTischeMitFavoriten(ctx context.Context, userID int,
 		return nil, db.Error(err)
 	}
 
-	tables := make([]tisch.AktiverTischMitFavorit, 0, len(rows))
+	tische := make([]tisch.AktiverTischMitFavorit, 0, len(rows))
 	for _, row := range rows {
-		tables = append(tables, tisch.AktiverTischMitFavorit{
+		tische = append(tische, tisch.AktiverTischMitFavorit{
 			ID:         row.ID,
 			Name:       row.Name,
 			SaldoCents: row.SaldoCents,
@@ -114,7 +114,7 @@ func (r Repository) GetAktiveTischeMitFavoriten(ctx context.Context, userID int,
 		})
 	}
 
-	return tables, nil
+	return tische, nil
 }
 
 func (r Repository) CreateTisch(ctx context.Context, t tisch.Tisch) (int, error) {

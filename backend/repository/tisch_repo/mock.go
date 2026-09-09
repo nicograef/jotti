@@ -8,22 +8,22 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tisch"
 )
 
-// NewMock creates a new mock repository with the given tables and error.
-func NewMock(tables []tisch.Tisch, err error) *mockRepo {
-	tableMap := make(map[int]tisch.Tisch)
-	for _, t := range tables {
-		tableMap[t.ID] = t
+// NewMock creates a new mock repository with the given tische and error.
+func NewMock(tische []tisch.Tisch, err error) *mockRepo {
+	tischMap := make(map[int]tisch.Tisch)
+	for _, t := range tische {
+		tischMap[t.ID] = t
 	}
 
 	return &mockRepo{
-		tables:      tableMap,
+		tische:      tischMap,
 		offeneSaldi: make(map[int]int),
 		err:         err,
 	}
 }
 
 type mockRepo struct {
-	tables map[int]tisch.Tisch
+	tische map[int]tisch.Tisch
 	// offeneSaldi enthält die offenen Saldi (tischID → saldoCents) der offenen
 	// Kassensitzung — für die saldoCents-Projektion und den Schutz-Guard.
 	offeneSaldi map[int]int
@@ -66,7 +66,7 @@ func (m *mockRepo) TischHatOffenenSaldo(ctx context.Context, tischID int) (bool,
 }
 
 func (m mockRepo) GetTisch(ctx context.Context, id int) (tisch.Tisch, error) {
-	t, ok := m.tables[id]
+	t, ok := m.tische[id]
 	if !ok {
 		return tisch.Tisch{}, m.err
 	}
@@ -75,7 +75,7 @@ func (m mockRepo) GetTisch(ctx context.Context, id int) (tisch.Tisch, error) {
 
 func (m mockRepo) GetAlleTische(ctx context.Context) ([]tisch.Tisch, error) {
 	var result []tisch.Tisch
-	for _, t := range m.tables {
+	for _, t := range m.tische {
 		result = append(result, t)
 	}
 	return result, m.err
@@ -83,7 +83,7 @@ func (m mockRepo) GetAlleTische(ctx context.Context) ([]tisch.Tisch, error) {
 
 func (m mockRepo) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error) {
 	var result []tisch.AktiverTisch
-	for _, t := range m.tables {
+	for _, t := range m.tische {
 		if t.Status == tisch.ActiveStatus {
 			result = append(result, tisch.AktiverTisch{ID: t.ID, Name: t.Name, SaldoCents: 0})
 		}
@@ -92,14 +92,14 @@ func (m mockRepo) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]t
 }
 
 func (m mockRepo) CreateTisch(ctx context.Context, t tisch.Tisch) (int, error) {
-	newID := len(m.tables) + 1
+	newID := len(m.tische) + 1
 	t.ID = newID
-	m.tables[newID] = t
+	m.tische[newID] = t
 	return newID, m.err
 }
 
 func (m mockRepo) UpdateTisch(ctx context.Context, t tisch.Tisch) error {
-	m.tables[t.ID] = t
+	m.tische[t.ID] = t
 	return m.err
 }
 
@@ -112,7 +112,7 @@ func (m mockRepo) DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) er
 			return err
 		}
 	}
-	m.tables[t.ID] = t
+	m.tische[t.ID] = t
 	return nil
 }
 
