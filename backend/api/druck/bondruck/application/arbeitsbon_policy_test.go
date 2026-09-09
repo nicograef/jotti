@@ -4,54 +4,73 @@ package application
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
-func makeBestellungEvent(id int, subject string, positionen []kasse.Position, kommentar string) event.Event {
-	data, _ := json.Marshal(positionenMitKommentarData{
-		Positionen: positionen,
-		Kommentar:  kommentar,
-	})
-	return event.Event{
-		ID:       id,
-		Type:     string(kasse.EventTypeBestellungAufgenommenV1),
-		UserName: "Maria",
-		Subject:  subject,
-		Time:     time.Date(2026, 3, 17, 19, 34, 0, 0, time.UTC),
-		Data:     data,
+// bonZeitpunkt ist der auf jedem Bon gedruckte Zeitpunkt. Die Konstruktoren setzen
+// die Event-Zeit auf jetzt; die Tests stempeln sie fest, damit die Byte-Vergleiche
+// gegen den Formatter reproduzierbar sind.
+var bonZeitpunkt = time.Date(2026, 3, 17, 19, 34, 0, 0, time.UTC)
+
+// position baut eine vollständig gefüllte Position. Die Event-Konstruktoren
+// validieren jedes Feld gegen das Positions-Schema, deshalb tragen die Fixtures
+// auch die Felder, die kein Arbeitsbon zeigt (VarianteID, Steuersatz, Preis).
+func position(produktName, varianteName, kategorie string, menge int) kasse.Position {
+	return kasse.Position{
+		VarianteID:       1,
+		ProduktName:      produktName,
+		VarianteName:     varianteName,
+		Kategorie:        kategorie,
+		Steuersatz:       string(steuer.RegelSteuersatz),
+		EinzelpreisCents: 450,
+		Menge:            menge,
 	}
 }
 
-func makeDirektverkaufEvent(id int, positionen []kasse.Position, kommentar string) event.Event {
-	data, _ := json.Marshal(positionenMitKommentarData{
-		Positionen: positionen,
-		Kommentar:  kommentar,
-	})
-
-	return event.Event{
-		ID:       id,
-		Type:     string(kasse.EventTypeDirektverkaufGetaetigtV1),
-		UserName: "Maria",
-		Subject:  fmt.Sprintf("kassensitzung-1/direktverkauf-%d", id),
-		Time:     time.Date(2026, 3, 17, 19, 34, 0, 0, time.UTC),
-		Data:     data,
+// makeBestellungEvent baut ein echtes bestellung-aufgenommen:v1-Event über den
+// Domänen-Konstruktor: Der Test dekodiert damit dieselbe Event-Form, die im
+// Kassenjournal steht — samt der dort erzeugten PositionIDs.
+func makeBestellungEvent(t *testing.T, id int, subject string, positionen []kasse.Position, kommentar string) event.Event {
+	t.Helper()
+	evt, err := kasse.NewBestellungAufgenommenEvent(subject, 3, "Maria", uuid.NewString(), positionen, kommentar)
+	if err != nil {
+		t.Fatalf("bestellung-aufgenommen bauen: %v", err)
 	}
+	evt.ID = id
+	evt.Time = bonZeitpunkt
+	return evt
+}
+
+// makeDirektverkaufEvent baut ein echtes direktverkauf-getaetigt:v1-Event über den
+// Domänen-Konstruktor, aus demselben Grund wie makeBestellungEvent.
+func makeDirektverkaufEvent(t *testing.T, id int, positionen []kasse.Position, kommentar string) event.Event {
+	t.Helper()
+	verkaufID := uuid.NewString()
+	subject := fmt.Sprintf("kassensitzung-1/direktverkauf-%s", verkaufID)
+	evt, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 3, "Maria", positionen, kommentar)
+	if err != nil {
+		t.Fatalf("direktverkauf-getaetigt bauen: %v", err)
+	}
+	evt.ID = id
+	evt.Time = bonZeitpunkt
+	return evt
 }
 
 func TestCreateArbeitsbonAuftraege_ProPosition(t *testing.T) {
 	positionen := []kasse.Position{
-		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 2},
-		{ProduktName: "Bratwurst", VarianteName: "mit Brot", Kategorie: "essen", Menge: 1},
+		position("Pommes", "gross", "essen", 2),
+		position("Bratwurst", "mit Brot", "essen", 1),
 	}
-	evt := makeBestellungEvent(1, "kassensitzung-1/tisch-7", positionen, "ohne Ketchup")
+	evt := makeBestellungEvent(t, 1, "kassensitzung-1/tisch-7", positionen, "ohne Ketchup")
 	konfig := map[string]druckstation.Druckstation{
 		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
@@ -76,10 +95,10 @@ func TestCreateArbeitsbonAuftraege_ProPosition(t *testing.T) {
 
 func TestCreateArbeitsbonAuftraege_ProBestellung(t *testing.T) {
 	positionen := []kasse.Position{
-		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1},
-		{ProduktName: "Schnitzel", VarianteName: "mit Salat", Kategorie: "essen", Menge: 1},
+		position("Pommes", "gross", "essen", 1),
+		position("Schnitzel", "mit Salat", "essen", 1),
 	}
-	evt := makeBestellungEvent(2, "kassensitzung-1/tisch-5", positionen, "")
+	evt := makeBestellungEvent(t, 2, "kassensitzung-1/tisch-5", positionen, "")
 	konfig := map[string]druckstation.Druckstation{
 		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_bestellung"},
 	}
@@ -96,9 +115,9 @@ func TestCreateArbeitsbonAuftraege_ProBestellung(t *testing.T) {
 
 func TestCreateArbeitsbonAuftraege_NoDruckerFuerKategorie(t *testing.T) {
 	positionen := []kasse.Position{
-		{ProduktName: "Kaffee", VarianteName: "klein", Kategorie: "sonstiges", Menge: 1},
+		position("Kaffee", "klein", "sonstiges", 1),
 	}
-	evt := makeBestellungEvent(3, "kassensitzung-1/tisch-2", positionen, "")
+	evt := makeBestellungEvent(t, 3, "kassensitzung-1/tisch-2", positionen, "")
 	konfig := map[string]druckstation.Druckstation{
 		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
@@ -112,10 +131,10 @@ func TestCreateArbeitsbonAuftraege_NoDruckerFuerKategorie(t *testing.T) {
 
 func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *testing.T) {
 	positionen := []kasse.Position{
-		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 2},
-		{ProduktName: "Bratwurst", VarianteName: "mit Brot", Kategorie: "essen", Menge: 1},
+		position("Pommes", "gross", "essen", 2),
+		position("Bratwurst", "mit Brot", "essen", 1),
 	}
-	evt := makeBestellungEvent(10, "kassensitzung-1/tisch-7", positionen, "ohne Ketchup")
+	evt := makeBestellungEvent(t, 10, "kassensitzung-1/tisch-7", positionen, "ohne Ketchup")
 	konfig := map[string]druckstation.Druckstation{
 		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
@@ -155,10 +174,10 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 // tischName auf dem Bon stehen — nicht die ID aus dem Subject.
 func TestCreateArbeitsbonAuftraege_TischNameStattID(t *testing.T) {
 	positionen := []kasse.Position{
-		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1},
+		position("Pommes", "gross", "essen", 1),
 	}
 	// tisch-18 in der DB, aber der Name ist "Tisch 15"
-	evt := makeBestellungEvent(42, "kassensitzung-1/tisch-18", positionen, "")
+	evt := makeBestellungEvent(t, 42, "kassensitzung-1/tisch-18", positionen, "")
 	konfig := map[string]druckstation.Druckstation{
 		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
@@ -186,10 +205,10 @@ func TestCreateArbeitsbonAuftraege_TischNameStattID(t *testing.T) {
 // an die Produktstationen je Kategorie.
 func TestCreateArbeitsbonAuftraege_DirektverkaufAnProduktstationen(t *testing.T) {
 	positionen := []kasse.Position{
-		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1},
-		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 2},
+		position("Pommes", "gross", "essen", 1),
+		position("Bier", "0,5l", "getraenk", 2),
 	}
-	evt := makeDirektverkaufEvent(20, positionen, "schnell")
+	evt := makeDirektverkaufEvent(t, 20, positionen, "schnell")
 	stationen := map[string]druckstation.Druckstation{
 		"essen":    {DruckerIP: "192.168.1.51", Bonmodus: "pro_bestellung"},
 		"getraenk": {DruckerIP: "192.168.1.52", Bonmodus: "pro_bestellung"},
@@ -213,10 +232,10 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAnProduktstationen(t *testing.T)
 // Ist die Abholbon-Station konfiguriert, hat sie Vorrang vor den Produktstationen.
 func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProBestellung(t *testing.T) {
 	positionen := []kasse.Position{
-		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 2},
-		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
+		position("Pommes", "gross", "essen", 2),
+		position("Bier", "0,5l", "getraenk", 1),
 	}
-	evt := makeDirektverkaufEvent(21, positionen, "ohne Senf")
+	evt := makeDirektverkaufEvent(t, 21, positionen, "ohne Senf")
 	stationen := map[string]druckstation.Druckstation{
 		"essen":    {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 		"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_bestellung"},
@@ -246,10 +265,10 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProBestellung(t *testin
 // Bonmodus pro_position der Abholbon-Station erzeugt einen Abholbon je Position.
 func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProPosition(t *testing.T) {
 	positionen := []kasse.Position{
-		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 2},
-		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 1},
+		position("Pommes", "gross", "essen", 2),
+		position("Bier", "0,5l", "getraenk", 1),
 	}
-	evt := makeDirektverkaufEvent(22, positionen, "")
+	evt := makeDirektverkaufEvent(t, 22, positionen, "")
 	stationen := map[string]druckstation.Druckstation{
 		"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_position"},
 	}
@@ -274,10 +293,10 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProPosition(t *testing.
 // trägt eine Positions-Kopie mit Menge 1.
 func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck(t *testing.T) {
 	positionen := []kasse.Position{
-		{ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Menge: 3},
-		{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1},
+		position("Bier", "0,5l", "getraenk", 3),
+		position("Pommes", "gross", "essen", 1),
 	}
-	evt := makeDirektverkaufEvent(24, positionen, "")
+	evt := makeDirektverkaufEvent(t, 24, positionen, "")
 	stationen := map[string]druckstation.Druckstation{
 		"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_stueck"},
 	}
@@ -314,7 +333,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck(t *testing.T)
 
 // Ohne konfigurierte Druckstationen entstehen für einen Direktverkauf keine Aufträge.
 func TestCreateArbeitsbonAuftraege_DirektverkaufOhneStationen(t *testing.T) {
-	evt := makeDirektverkaufEvent(23, []kasse.Position{{ProduktName: "Pommes", VarianteName: "gross", Kategorie: "essen", Menge: 1}}, "")
+	evt := makeDirektverkaufEvent(t, 23, []kasse.Position{position("Pommes", "gross", "essen", 1)}, "")
 
 	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]druckstation.Druckstation{}, "")
 

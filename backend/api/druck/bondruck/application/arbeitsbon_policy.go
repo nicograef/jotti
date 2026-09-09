@@ -12,12 +12,19 @@ import (
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
-// positionenMitKommentarData spiegelt die benötigten Felder von
-// bestellung-aufgenommen:v1 und direktverkauf-getaetigt:v1.
+// positionenMitKommentarEventData spiegelt die benötigten Felder von
+// bestellung-aufgenommen:v1 und direktverkauf-getaetigt:v1 in ihrer Event-Form.
 // Keine Schema-Validierung nötig, da die Daten beim Event-Write validiert wurden.
-type positionenMitKommentarData struct {
-	Positionen []kasse.Position `json:"positionen"`
-	Kommentar  string           `json:"kommentar"`
+type positionenMitKommentarEventData struct {
+	Positionen []kasse.PositionEventData `json:"positionen"`
+	Kommentar  string                    `json:"kommentar"`
+}
+
+// arbeitsbonDaten sind dieselben Felder in der Domänenform, wie die Formatter sie
+// erwarten.
+type arbeitsbonDaten struct {
+	Positionen []kasse.Position
+	Kommentar  string
 }
 
 // CreateArbeitsbonAuftraegeFromEvent erzeugt Druckaufträge aus einem Bestell- oder
@@ -69,7 +76,7 @@ func createDirektverkaufAuftraege(
 // pro_stueck = ein Abholbon je Einheit (eine Positions-Kopie mit Menge 1 je Bon).
 func createAbholbonAuftraege(
 	evt event.Event,
-	data positionenMitKommentarData,
+	data arbeitsbonDaten,
 	station druckstation.Druckstation,
 	referenz string,
 ) []druckauftrag_repo.NeuerDruckauftrag {
@@ -123,7 +130,7 @@ func createStationsAuftraege(
 
 func createStationsAuftraegeFromData(
 	evt event.Event,
-	data positionenMitKommentarData,
+	data arbeitsbonDaten,
 	druckstationen map[string]druckstation.Druckstation,
 	kontextName string,
 	referenz string,
@@ -183,11 +190,16 @@ func createStationsAuftraegeFromData(
 	return auftraege
 }
 
-func unmarshalPositionenMitKommentar(evt event.Event) (positionenMitKommentarData, bool) {
-	var data positionenMitKommentarData
+func unmarshalPositionenMitKommentar(evt event.Event) (arbeitsbonDaten, bool) {
+	var data positionenMitKommentarEventData
 	if err := json.Unmarshal(evt.Data, &data); err != nil {
-		return positionenMitKommentarData{}, false
+		return arbeitsbonDaten{}, false
 	}
 
-	return data, true
+	positionen := make([]kasse.Position, 0, len(data.Positionen))
+	for _, pos := range data.Positionen {
+		positionen = append(positionen, kasse.PositionFromEventData(pos))
+	}
+
+	return arbeitsbonDaten{Positionen: positionen, Kommentar: data.Kommentar}, true
 }
