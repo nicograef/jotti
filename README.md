@@ -33,7 +33,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, kassieren 
 - 📊 **Kassenbestand** — Soll-Bestand jederzeit einsehen, aufgeschlüsselt nach Komponenten
 - 🔃 **Kassenbewegungen** — Einlagen und Entnahmen (Geldtransit) buchen
 - ✅ **Kassensturz** — Ist-Bestand eingeben, Differenz berechnen, Abweichung automatisch buchen
-- 📄 **Tagesabschluss (Z-Bon)** — formaler Abschluss mit fortlaufender Nummer und Stammdaten-Snapshot
+- 📄 **Tagesabschluss (Z-Bon)** — formaler Abschluss mit fortlaufender Nummer und Umsatzaggregation
 
 ### Abrechnung & Reporting
 

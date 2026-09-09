@@ -91,7 +91,7 @@ Status pro Anforderung: [anforderungen.md](anforderungen.md).
 | Anfangsbestand & Kassenbestand | Wechselgeld erfassen; Soll-Bestand jederzeit nach Komponenten aufgeschlüsselt abrufen                                                        |
 | Kassenbewegungen               | Geldtransit (Einlage und Entnahme) buchen                                                                                                    |
 | Kassensturz                    | Ist-Bestand eingeben, Differenz berechnen, Abweichung automatisch buchen                                                                     |
-| Tagesabschluss (Z-Bon)         | Formaler Abschluss mit fortlaufender Nummer, Umsatzaggregation und Stammdaten-Snapshot                                                       |
+| Tagesabschluss (Z-Bon)         | Formaler Abschluss mit fortlaufender Nummer und Umsatzaggregation                                                                            |
 | Abrechnung                     | Tagesabrechnung nach Steuersatz und pro Servicekraft                                                                                         |
 | Produktumsatz-Reporting        | Verkaufte Mengen, Ranking und Gesamteinnahmen pro Variante                                                                                   |
 | DSFinV-K-Export                | Maschinenlesbarer Export nach DSFinV-K v2.4 als ZIP-Archiv                                                                                   |
