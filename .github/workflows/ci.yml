@@ -357,7 +357,7 @@ jobs:
         run: shellcheck -x scripts/*.sh
 
   # Repo-wide gates that don't belong to a single component: the check-*.sh
-  # scripts (build tags, language, prose, links) and the repo-wide Prettier
+  # scripts (build tags, language, prose, links, time zones) and the repo-wide Prettier
   # check, which otherwise only runs inside frontend-ci and so never runs on
   # a docs-only pull request. Runs unconditionally — every gate here reads
   # the whole tree, so no path filter narrows it correctly.
