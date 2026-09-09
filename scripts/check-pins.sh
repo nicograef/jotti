@@ -79,6 +79,7 @@ collect_pins() {
 }
 
 declare -A version_count=()
+declare -A version_seen=()
 declare -A version_detail=()
 violations=0
 
@@ -96,9 +97,11 @@ while IFS=$'\t' read -r ref loc; do
   fi
 
   version="${tag%%-*}"
-  if [ -z "${version_detail[$name$'\t'$version]:-}" ]; then
-    version_detail["$name"$'\t'"$version"]="$loc"
+  key="$name"$'\t'"$version"
+  if [ -z "${version_seen[$key]:-}" ]; then
+    version_seen["$key"]=1
     version_count["$name"]=$(( ${version_count[$name]:-0} + 1 ))
+    version_detail["$name"]="${version_detail[$name]:-}"$'\n'"  $version at $loc"
   fi
 done < <(collect_pins)
 
@@ -121,10 +124,11 @@ for name in "${names[@]+"${names[@]}"}"; do
   [ "$exempt" -eq 1 ] && continue
 
   error "$name is pinned to ${version_count[$name]} versions (allow it in $ALLOWLIST):"
-  mapfile -t keys < <(printf '%s\n' "${!version_detail[@]}" | grep -F "$name"$'\t' | sort)
-  for key in "${keys[@]}"; do
-    error "  ${key#*$'\t'} at ${version_detail[$key]}"
-  done
+  # The detail lines are collected in the order the sources were read, so the
+  # report names the first location of every version exactly once.
+  while IFS= read -r line; do
+    [ -n "$line" ] && error "$line"
+  done <<<"${version_detail[$name]}"
   violations=$((violations + 1))
 done
 
