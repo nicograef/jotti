@@ -12,7 +12,7 @@
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
-       check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-format check-repo check-integration check check-full verify \
+       check-tools check-tools-integration check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-format check-repo check-integration check check-full verify \
        website-dev website-build website-test website-check website-screenshots \
        help
 
@@ -270,13 +270,25 @@ clean: ## Dev-Stack stoppen und Volumes entfernen
 # ──────────────────────────────────────────────
 
 check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
-	@for tool in golangci-lint goimports pnpm migrate docker; do \
+	@for tool in golangci-lint goimports pnpm; do \
 		if ! command -v $$tool >/dev/null 2>&1; then \
 			echo "Fehlendes Tool: $$tool"; \
 			echo "Installiere es mit scripts/setup-dev-tools.sh oder folge der README-Anleitung."; \
 			exit 1; \
 		fi; \
 	done
+
+check-tools-integration: ## Prüfen, ob migrate und Docker für Integrationstests verfügbar sind
+	@if ! command -v migrate >/dev/null 2>&1; then \
+		echo "Fehlendes Tool: migrate"; \
+		echo "Installiere es mit scripts/setup-dev-tools.sh oder folge der README-Anleitung."; \
+		exit 1; \
+	fi
+	@if ! command -v docker >/dev/null 2>&1; then \
+		echo "Fehlendes Tool: docker"; \
+		echo "Docker Engine manuell installieren (scripts/setup-dev-tools.sh installiert es nicht)."; \
+		exit 1; \
+	fi
 
 check-backend: ## Backend komplett prüfen (Deps, Format, Lint inkl. Integration- und Unit-Tag, Test, Build)
 	cd backend && go mod tidy -diff && golangci-lint run --build-tags=integration && golangci-lint run --build-tags=unit && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -tags=unit -count=1 -race ./... && go build ./...
@@ -306,7 +318,7 @@ check-repo: ## Alle scripts/check-*.sh-Gates ausführen (Build-Tags, Sprache, Pr
 		bash "$$script" || exit 1; \
 	done
 
-check-integration: ## Integrationstests gegen echte Datenbank ausführen
+check-integration: check-tools-integration ## Integrationstests gegen echte Datenbank ausführen
 	./scripts/test-integration.sh
 
 check: check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-repo ## Schnelle Komplettprüfung ohne DB-Integration
