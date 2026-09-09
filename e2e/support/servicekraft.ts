@@ -1,9 +1,11 @@
 import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
-// Wiederverwendbare Helfer für die Servicekraft-Flows (Tischservice). Jede
-// Funktion nutzt ausschließlich zugängliche Selektoren (Rolle, Platzhalter,
-// Beschriftung) statt Test-IDs, passend zum Muster der Tracer-Bullet-Spec.
+// Wiederverwendbare Helfer für die Servicekraft-Flows (Tischservice). Die
+// Datei nutzt überwiegend zugängliche Selektoren (Rolle, Platzhalter,
+// Beschriftung) statt Test-IDs, passend zum Muster der Tracer-Bullet-Spec —
+// für Zeile (vollePositionsZeilen) und Saldo (tischSaldo) die data-slot-
+// Attribute, weil beide keine zugängliche Alternative tragen.
 
 // zeileMit liefert die innerste Zeile (div), die sowohl den gegebenen Text als
 // auch einen Button mit dem gegebenen Namen enthält. So lassen sich einzelne
