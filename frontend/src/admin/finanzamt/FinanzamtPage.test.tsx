@@ -130,6 +130,19 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     ).toHaveAttribute('href', '/admin/tse-einrichtung')
   })
 
+  it('bietet den Wizard-Link auch bei aktiver TSE an (Wechsel TEST → LIVE)', () => {
+    hookState.betreiber = makeBetreiber()
+    hookState.tseStatus = { umgebung: 'TEST', istKonfiguriert: true }
+    hookState.kassenidentitaet = kassenidentitaet
+    render(<FinanzamtPage />)
+
+    // Ohne diesen Link gäbe es nach der TEST-Einrichtung keinen Einstieg mehr
+    // in den Assistenten — der Leitfaden nennt genau diesen Pfad.
+    expect(
+      screen.getByRole('link', { name: 'TSE einrichten' }),
+    ).toHaveAttribute('href', '/admin/tse-einrichtung')
+  })
+
   it('zeigt einen Ladefehler statt der leeren Checkliste, wenn die Betreiber-Query fehlschlägt', async () => {
     hookState.betreiberError = true
     hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
@@ -229,6 +242,75 @@ describe('FinanzamtPage — Läuft-alles-Ampel', () => {
     render(<FinanzamtPage />)
 
     expect(screen.getByText('TSE braucht Aufmerksamkeit')).toBeInTheDocument()
+  })
+})
+
+describe('FinanzamtPage — Signatur-Warteschlange', () => {
+  it('meldet fehlgeschlagene Signaturen zuerst, auch ohne offene Aufträge', () => {
+    hookState.betreiber = makeBetreiber()
+    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
+    hookState.queue = {
+      ...normaleQueue(),
+      offeneAuftraege: 0,
+      rueckstandSekunden: 0,
+      fehlgeschlageneAuftraege: 2,
+      letzterFehler: 'TSE nicht erreichbar',
+    }
+    render(<FinanzamtPage />)
+
+    expect(
+      screen.getByText(
+        '2 Vorgänge sind fehlgeschlagen. Keine Vorgänge in der Warteschlange.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('beruhigt nicht, wenn neben einem kleinen Rückstand ein Vorgang fehlgeschlagen ist', () => {
+    hookState.betreiber = makeBetreiber()
+    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
+    // normaleQueue: 3 offene Aufträge, Rückstand 12 s — unter der Warnschwelle.
+    hookState.queue = { ...normaleQueue(), fehlgeschlageneAuftraege: 2 }
+    render(<FinanzamtPage />)
+
+    expect(
+      screen.getByText(
+        '2 Vorgänge sind fehlgeschlagen. 3 Vorgänge warten (ältester 12 s).',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/normal bei vollem Betrieb/),
+    ).not.toBeInTheDocument()
+  })
+
+  it('beruhigt nicht mehr, wenn der Rückstand die Warnschwelle erreicht', () => {
+    hookState.betreiber = makeBetreiber()
+    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
+    hookState.queue = { ...normaleQueue(), rueckstandSekunden: 90 }
+    render(<FinanzamtPage />)
+
+    expect(screen.getByText(/der Rückstand ist zu groß/)).toBeInTheDocument()
+    expect(
+      screen.queryByText(/normal bei vollem Betrieb/),
+    ).not.toBeInTheDocument()
+  })
+
+  it('führt Fehler-Zähler und letzten Fehlertext in den Roh-Metriken', async () => {
+    hookState.betreiber = makeBetreiber()
+    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
+    hookState.queue = {
+      ...normaleQueue(),
+      fehlgeschlageneAuftraege: 2,
+      letzterFehler: 'TSE nicht erreichbar',
+    }
+    render(<FinanzamtPage />)
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /Technische Details/ }),
+    )
+
+    expect(screen.getByText('Fehlgeschlagen')).toBeInTheDocument()
+    expect(screen.getByText('Letzter Fehler')).toBeInTheDocument()
+    expect(screen.getByText('TSE nicht erreichbar')).toBeInTheDocument()
   })
 })
 

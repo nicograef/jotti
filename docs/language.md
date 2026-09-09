@@ -14,7 +14,7 @@ Die Ubiquitous Language ist ein Living Document: Sie wird fortlaufend aktualisie
 
 4. **Commits sind auf Englisch.** Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`) mit englischen Nachrichten.
 
-5. **Verben folgen dem Command/Query + Schicht-Prinzip.** Zustandsändernde Domänen-Commands (Vorgänge, die das Fiskalrecht oder ein Kassenwart benennt) tragen deutsche Fachverben: `BestellungAufnehmen`, `ZahlungKassieren`, `KasseAbschliessen`, `GeldtransitBuchen`. Queries, Derivationen, Persistence und Infrastruktur tragen englische Verben: `ComputeAbschlussSummen`, `DetermineSignaturstatus`, `GetHistorieFromEvents`, `SetKassensitzungOffen`. Neue Kombinationen aus englischem Verb und deutschem Nomen sind der Normalfall (`ComputeAbschlussSummen`, `ensureKeineOffeneKassensitzung`). Ausnahme: `QuittiereTSESignaturauftrag` bleibt deutsch, weil „quittieren" der in diesem Glossar dokumentierte Domänenbegriff für das Zurückschreiben der Signatur an den Auftrag ist und kein passendes englisches Einwort-Äquivalent existiert. Ebenso deutsch bleiben die Reihenfolge-Operationen `VerschiebeProdukt` und `VerschiebeVariante` (Repository), `SortiereVariantenAlphabetisch` (Repository und sqlc) sowie `NormalisiereProduktReihenfolge` und `NormalisiereVarianteReihenfolge` (sqlc), weil Verschieben und Sortieren die unter „Reihenfolge" definierten Admin-Vorgänge sind.
+5. **Verben folgen dem Command/Query + Schicht-Prinzip.** Zustandsändernde Domänen-Commands (Vorgänge, die das Fiskalrecht oder ein Kassenwart benennt) tragen deutsche Fachverben: `BestellungAufnehmen`, `ZahlungKassieren`, `KasseAbschliessen`, `GeldtransitBuchen`. Queries, Derivationen, Persistence und Infrastruktur tragen englische Verben: `ComputeAbschlussSummen`, `DetermineSignaturstatus`, `GetHistorieFromEvents`, `SetKassensitzungOffen`. Neue Kombinationen aus englischem Verb und deutschem Nomen sind der Normalfall (`ComputeAbschlussSummen`, `ensureKeineAktiveKassensitzung`). Ausnahme: `QuittiereTSESignaturauftrag` bleibt deutsch, weil „quittieren" der in diesem Glossar dokumentierte Domänenbegriff für das Zurückschreiben der Signatur an den Auftrag ist und kein passendes englisches Einwort-Äquivalent existiert. Ebenso deutsch bleiben die Reihenfolge-Operationen `VerschiebeProdukt` und `VerschiebeVariante` (Repository), `SortiereVariantenAlphabetisch` (Repository und sqlc) sowie `NormalisiereProduktReihenfolge` und `NormalisiereVarianteReihenfolge` (sqlc), weil Verschieben und Sortieren die unter „Reihenfolge" definierten Admin-Vorgänge sind.
 
 ## Namenskonventionen pro Schicht
 
@@ -35,6 +35,8 @@ Die Ubiquitous Language ist ein Living Document: Sie wird fortlaufend aktualisie
 > **Pfadkonvention:** Dateipfade sind relativ angegeben, `domain/…` und `api/…` liegen unter `backend/`, `src/…` unter `frontend/`, `migrations/…` unter `database/`.
 
 > **Go-Paketnamens-Konvention:** Fachmodule tragen deutsche Namen (`kasse`, `tisch`, `produkt`, `betreiber`, `druckstation`, `steuer`). Infrastruktur-Pakete bleiben englisch (`event`, `jwt`, `db`, `config`, `middleware`, `helper`). `user` ist eine dokumentierte Ausnahme: der Begriff ist im Deutschen mehrdeutig, das Paket deckt Auth-nahe Infrastruktur ab und bleibt englisch. Die API-Kontext-Ordner folgen demselben Muster: `kasse`, `fiskal`, `druck`, `stammdaten`, `reporting` (Fach), `auth`, `health`, `helper`, `middleware` (Infra).
+
+> **Ausnahme Website:** Ausgenommen von diesen Konventionen ist das Website-Paket (`website/`, `@jotti/website`): es ist eine eigenständige Codebasis ohne Import aus dem Frontend, und seine Bezeichner sind englisch, auch wo sie Domänenbegriffe abbilden (`website/src/lib/live-demo.ts`: `DemoProduct`, `Cart`, `addVariant`). Benutzer-sichtbare Strings der Website sind deutsch wie überall sonst (Regel 3).
 
 ## Begriffsdefinitionen
 
@@ -157,8 +159,8 @@ Ein Vorgang, bei dem eine Servicekraft Positionen für einen Tisch aufnimmt.
 
 Ein einzelner Posten innerhalb einer Bestellung: Produktvariante + Menge + Einzelpreis. Alle Felder werden als Fat Event eingefroren.
 
-| Go-Struct  | TS-Typ     | JSON-Keys (Schlüsselfelder)                                                                                  |
-| ---------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
+| Go-Struct  | TS-Typ     | JSON-Keys (Schlüsselfelder)                                                                                       |
+| ---------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | `Position` | `Position` | `positionId`, `varianteId`, `produktName`, `varianteName`, `kategorie`, `steuersatz`, `einzelpreisCents`, `menge` |
 
 #### Besteller (bestellende Servicekraft)
@@ -232,16 +234,16 @@ Go-Funktion: `GetHistorieFromEvents()` · Application-Query: `GetTischHistorie()
 
 #### Weitere Typen und Felder (Kasse)
 
-| Begriff              | Bedeutung                                                                 | Code-Mapping                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Kommentar            | Freitextnotiz; Pflicht bei Warenrücknahme (kassenwirksamer Storno), sonst optional. Bei der Umbuchung der serverseitige Richtungs-Autotext | Go `Kommentar` · JSON/TS `kommentar`                                                                  |
-| BenutzerKommentar    | Optionaler Freitext der Servicekraft bei der Umbuchung (neben dem Richtungs-Autotext `Kommentar`) | Go `BenutzerKommentar` · JSON/TS `benutzerKommentar`                                                  |
-| Menge                | Anzahl einer Produktvariante innerhalb einer Position                     | Go `Menge` · JSON/TS `menge`                                                                                   |
-| PositionRef          | Referenz auf eine Position (ID + Menge) für Zahlung, Stornierung, Umbuchung | Go/TS `PositionRef` · JSON `positionId`, `menge`                                                             |
-| HistorieEintrag      | Eintrag der Tisch-Historie, typisiert nach Art                            | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `umbuchung`              |
-| EigeneUebersicht     | KPI-Read-Model einer Servicekraft: eigene Bestellungen und Zahlungen      | Go/TS `EigeneUebersicht` · JSON `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` |
-| AktiverTisch         | Kompakte Tisch-Darstellung mit Saldo für die Tischübersicht (Read Model)  | Go `AktiverTisch` · TS `AktiverTischMitFavorit` (mit `istFavorit`)                                             |
-| BestellPositionInput | Frontend-Eingabetyp einer Bestellposition (Produkt + Variante + Menge)    | TS `BestellPositionInput` · JSON `produktId`, `varianteId`, `menge`                                            |
+| Begriff              | Bedeutung                                                                                                                                  | Code-Mapping                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Kommentar            | Freitextnotiz; Pflicht bei Warenrücknahme (kassenwirksamer Storno), sonst optional. Bei der Umbuchung der serverseitige Richtungs-Autotext | Go `Kommentar` · JSON/TS `kommentar`                                                                           |
+| BenutzerKommentar    | Optionaler Freitext der Servicekraft bei der Umbuchung (neben dem Richtungs-Autotext `Kommentar`)                                          | Go `BenutzerKommentar` · JSON/TS `benutzerKommentar`                                                           |
+| Menge                | Anzahl einer Produktvariante innerhalb einer Position                                                                                      | Go `Menge` · JSON/TS `menge`                                                                                   |
+| PositionRef          | Referenz auf eine Position (ID + Menge) für Zahlung, Stornierung, Umbuchung                                                                | Go/TS `PositionRef` · JSON `positionId`, `menge`                                                               |
+| HistorieEintrag      | Eintrag der Tisch-Historie, typisiert nach Art                                                                                             | Go `HistorieEintrag` · Enum `Art`: `bestellung`, `zahlung`, `stornierung`, `umbuchung`                         |
+| EigeneUebersicht     | KPI-Read-Model einer Servicekraft: eigene Bestellungen und Zahlungen                                                                       | Go/TS `EigeneUebersicht` · JSON `anzahlBestellungen`, `bestellungenCents`, `anzahlZahlungen`, `zahlungenCents` |
+| AktiverTisch         | Kompakte Tisch-Darstellung mit Saldo für die Tischübersicht (Read Model)                                                                   | Go `AktiverTisch` · TS `AktiverTischMitFavorit` (mit `istFavorit`)                                             |
+| BestellPositionInput | Frontend-Eingabetyp einer Bestellposition (Produkt + Variante + Menge)                                                                     | TS `BestellPositionInput` · JSON `produktId`, `varianteId`, `menge`                                            |
 
 ---
 
@@ -253,9 +255,9 @@ Kassensitzung-Events werden unter dem Subject `kassensitzung-{nr}` im Kassenjour
 
 Global nummerierter Betriebstag, der einen Abrechnungszeitraum (typischerweise einen Veranstaltungstag) abgrenzt. Maximal eine Kassensitzung ist gleichzeitig `offen`; ohne offene Kassensitzung ist der Kassenbetrieb gesperrt. Lifecycle und `z_nr`-Regeln → [handbuch.md §3.5](handbuch.md#35-kassensitzung-lifecycle).
 
-| Go-Struct            | DB-Tabelle        | Subject-Format       | Eröffnungs-Event             |
-| -------------------- | ----------------- | -------------------- | ---------------------------- |
-| `Kassensitzung`      | `kassensitzungen` | `kassensitzung-{nr}` | `kassensitzung-eroeffnet:v1` |
+| Go-Struct       | DB-Tabelle        | Subject-Format       | Eröffnungs-Event             |
+| --------------- | ----------------- | -------------------- | ---------------------------- |
+| `Kassensitzung` | `kassensitzungen` | `kassensitzung-{nr}` | `kassensitzung-eroeffnet:v1` |
 
 #### Bezeichnung
 
@@ -279,7 +281,7 @@ JSON-Keys: `sollBestandCents`, `anfangsbestandCents`, `bareinnahmenCents`, `einl
 
 #### Geldtransit (Kassenbewegung)
 
-Bargeld-Bewegung außerhalb des Tisch-Verkehrs: Einlage (z. B. Wechselgeld nachfüllen, erhöht den Soll-Bestand) oder Entnahme (z. B. Abschöpfung in Bank/Tresor, reduziert ihn). `Kommentar` ist Pflichtfeld. DSFinV-K-Geschäftsvorfalltyp: `Geldtransit`.
+Bargeld-Bewegung außerhalb des Tisch-Verkehrs: Einlage (z. B. Wechselgeld nachfüllen, erhöht den Soll-Bestand) oder Entnahme (z. B. Abschöpfung in Bank/Tresor, reduziert ihn). `Kommentar` ist Pflichtfeld. DSFinV-K-Geschäftsvorfalltyp: `Geldtransit`. Es gibt keine eigenen Geschäftsvorfalltypen für Privatentnahme/Privateinlage (Bewegungen in den/aus dem privaten Bereich des Vereins); jede Bargeld-Bewegung wird als `Geldtransit` gebucht.
 
 | Event-Typ                | JSON-Key `richtung`     | API-Pfad                    |
 | ------------------------ | ----------------------- | --------------------------- |
@@ -311,8 +313,8 @@ Automatisch erzeugtes Event (`differenz-soll-ist-gebucht:v1`) beim Kassensturz, 
 
 Formeller Tagesabschluss: aggregiert die Kassensitzung und schließt sie ab (Status → `abgeschlossen`). Kein Report, sondern das abschließende Event des Kassenabschlusses (→ [handbuch.md §3.11](handbuch.md#311-tagesabschluss-z-bon)).
 
-| Event-Typ                    | DB-Feld                | JSON-Keys (Auszug)                                                                                                    |
-| ---------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Event-Typ                    | DB-Feld                | JSON-Keys (Auszug)                                                                               |
+| ---------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
 | `tagesabschluss-erstellt:v1` | `kassensitzungen.z_nr` | `zNr`, `zeitraumVon`, `zeitraumBis`, `umsatzGesamtCents`, `stornierungCents`, `geldtransitCents` |
 
 #### X-Bon
@@ -373,18 +375,18 @@ Go-Package: `repository/favorit_repo/` · DB-Tabelle: `tisch_favoriten` · TS: `
 
 Reporting-Daten werden on-demand per SQL-Aggregation aus dem Kassenjournal berechnet. Kein eigener Event Stream, reines Read Model. Alle Typen existieren spiegelbildlich als Go-Struct (`domain/reporting/`) und TS-Typ.
 
-| Begriff             | Bedeutung                                                                                                  |
-| ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| ReportingData       | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen + ProduktStatistik |
-| Summary             | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen)                |
-| Breakdowns          | Aufschlüsselung je Servicekraft: `AbrechnungProServicekraft []AbrechnungServicekraft`                       |
+| Begriff                | Bedeutung                                                                                                                                                                                                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ReportingData          | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen + ProduktStatistik                                                                                                                                                                                   |
+| Summary                | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Stornierungen, offene Salden, Anzahlen)                                                                                                                                                                                                      |
+| Breakdowns             | Aufschlüsselung je Servicekraft: `AbrechnungProServicekraft []AbrechnungServicekraft`                                                                                                                                                                                                            |
 | AbrechnungServicekraft | Bargeld-Abrechnung des Tischservice einer Servicekraft: `kassiertCents` − `ruecknahmenCents` = `abzugebenCents`, dazu `anzahlZahlungen` und `anzahlStornierungen` (kombinierter Zähler über beide Tisch-Storno-Arten). Stornos zählen nach Storno-Zuordnung, Direktverkäufe sind nicht enthalten |
-| StornierungDetail   | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, `akteur`, `betroffene`, Betrag, Kommentar, Positionen); `barRueckgabe` markiert die kassenwirksame Warenrücknahme gegenüber der geldneutralen Korrektur, `betroffene` trägt die Storno-Zuordnung |
-| ServicekraftRef     | Geteilte Servicekraft-Referenz einer Reporting-Zeile: `userId`, `userName` (eingefroren), `name` (live aufgelöster Klarname); trägt `akteur` und `betroffene` der StornierungDetail |
-| StornierungPosition | Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis)                |
-| ProduktStatistik    | Verkäufe eines Produkts einer Kassensitzung, gruppiert nach Kategorie, mit Zwischensumme über `Varianten []VarianteStatistik` (ausgegebene Menge und Umsatz). Teil von `ReportingData` und `LiveReportingData` (`produktStatistik`) |
-| VarianteStatistik   | Verkaufs-Kennzahl einer Variante: `varianteId`, `varianteName`, `ausgegebeneMenge` (Bestellung − Korrektur + Direktverkauf) und `umsatzCents` (Kassiert + Direktverkauf − Warenrücknahme/Storno) — zwei bewusst getrennte Grundlagen |
-| ProduktStatistikZeile | Flache Repo-Ausgabezeile je Variante (SQL `GetProduktStatistik`), Eingabe der Gruppierung; erscheint nie in einer Response                                 |
+| StornierungDetail      | Einzelne Stornierung im Reporting (Zeitpunkt, Tisch, `akteur`, `betroffene`, Betrag, Kommentar, Positionen); `barRueckgabe` markiert die kassenwirksame Warenrücknahme gegenüber der geldneutralen Korrektur, `betroffene` trägt die Storno-Zuordnung                                            |
+| ServicekraftRef        | Geteilte Servicekraft-Referenz einer Reporting-Zeile: `userId`, `userName` (eingefroren), `name` (live aufgelöster Klarname); trägt `akteur` und `betroffene` der StornierungDetail                                                                                                              |
+| StornierungPosition    | Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis)                                                                                                                                                                                                      |
+| ProduktStatistik       | Verkäufe eines Produkts einer Kassensitzung, gruppiert nach Kategorie, mit Zwischensumme über `Varianten []VarianteStatistik` (ausgegebene Menge und Umsatz). Teil von `ReportingData` und `LiveReportingData` (`produktStatistik`)                                                              |
+| VarianteStatistik      | Verkaufs-Kennzahl einer Variante: `varianteId`, `varianteName`, `ausgegebeneMenge` (Bestellung − Korrektur + Direktverkauf) und `umsatzCents` (Kassiert + Direktverkauf − Warenrücknahme/Storno) — zwei bewusst getrennte Grundlagen                                                             |
+| ProduktStatistikZeile  | Flache Repo-Ausgabezeile je Variante (SQL `GetProduktStatistik`), Eingabe der Gruppierung; erscheint nie in einer Response                                                                                                                                                                       |
 
 ---
 
@@ -422,7 +424,7 @@ DB-Werte (TEXT + CHECK): `'pro_position'`, `'pro_bestellung'`, `'pro_stueck'` (n
 
 Konkreter Druckjob in der Outbox, Single Source of Truth für alle Druckjobs, Arbeitsbon und Kassenbeleg. Das Backend reiht ein, das Relay leert.
 
-DB-Tabelle: `druckauftraege` · Spalten u. a.: `ziel_ip`, `payload` (Base64-ESC/POS), `bon_art` (`'arbeitsbon'` | `'kassenbeleg'` | `'testbon'`), `referenz`, `status` (`offen` → `gedruckt`; nach 3 Fehlversuchen `fehlgeschlagen` → `verworfen` oder zurück auf `offen`)
+DB-Tabelle: `druckauftraege` · Spalten u. a.: `ziel_ip`, `payload` (Base64-ESC/POS), `bon_art` (`'arbeitsbon'` | `'kassenbeleg'` | `'testbon'`), `referenz`, `status` (`offen` → `gedruckt`; nach 6 Fehlversuchen mit wachsendem Backoff (5 s, 15 s, 30 s, 60 s, 180 s) `fehlgeschlagen` → `verworfen` oder zurück auf `offen`)
 
 #### Relay
 
@@ -465,7 +467,7 @@ Je ein Satz, Pflichten und Details: [compliance.md §2](compliance.md#2-rechtlic
 - **Signatur-Worker:** Einziger Sprecher für TSE-Signaturtransaktionen (`backend/api/fiskal/signatur/tse_signatur_worker.go`). Arbeitet die offenen Aufträge FIFO ab, wird nach jedem Commit sofort angestoßen (Polling-Tick als Fallback), heilt per Ist-Abfrage und quittiert mit einem einzelnen Update am Auftrag. Ein session-gebundener Advisory Lock sichert die Single-Prozess-Annahme.
 - **Signaturstatus:** Zustandslose Funktion (`domain/tse/signaturstatus.go`, `DetermineSignaturstatus`) mit genau vier Ergebnissen: Signatur vorhanden, vorhanden mit Nachsigniert-Kennzeichen, Ausfall mit Grund, Signatur ausstehend. Einzige Implementierung des Ausfallbegriffs; Beleg-Abruf und Kassenabschluss-Gate urteilen über sie.
 - **Signatur ausstehend:** Der Auftrag ist offen und keine Störung dokumentiert; die Signatur wird in Kürze erwartet. Der Beleg-Abruf antwortet mit Status `ausstehend` (kein Druckauftrag, die UI fasst nach), der Kassenabschluss blockiert.
-- **Nachsigniert:** Kennzeichen einer verspäteten Signatur (Signatur später als rund eine Minute nach Auftragserstellung, Konstante `NachsigniertSchwelle`). Der Kassenbeleg druckt „Nachsigniert am …", weil die TSE-Zeitpunkte dann sichtbar vom Belegdatum abweichen. Ersetzt den früheren Begriff „Nachsignierung".
+- **Nachsigniert:** Kennzeichen einer verspäteten Signatur (Signatur später als rund eine Minute nach Auftragserstellung, Konstante `NachsigniertSchwelle`). Der Kassenbeleg druckt „Nachsigniert am …", weil die TSE-Zeitpunkte dann sichtbar vom Belegdatum abweichen.
 - **Störungsprotokoll:** Aufbewahrungspflichtige Tabelle `tse_stoerungen` der TSE-weiten Signierstörungen; je Störung ein Störungszeitraum, höchstens einer aktiv, kein DELETE.
 - **Störungszeitraum:** Zeitraum im Störungsprotokoll (Beginn, Ende, Fehlertext; Ende NULL solange aktiv). Grund-Arten: `tse_fehler` (TSE-weiter Fehler), `rueckstand` (Signatur-Rückstand über der Schwelle), `keine_konfiguration` (keine TSE eingerichtet). Ein offener Auftrag während eines aktiven Zeitraums gilt als Ausfall.
 - **Rückstands-Ausfall:** Offener Auftrag während eines aktiven `rueckstand`-Störungszeitraums. Ein Rückstands-Watchdog (`backend/api/fiskal/signatur/tse_rueckstand_watchdog.go`) öffnet den Zeitraum, sobald der älteste offene Auftrag die Zwei-Minuten-Schwelle (`RueckstandSchwelle`) überschreitet, und schließt ihn beim Unterschreiten.
@@ -485,18 +487,18 @@ Je ein Satz, Pflichten und Details: [compliance.md §2](compliance.md#2-rechtlic
 #### Steuern
 
 | Begriff                    | Bedeutung                                                                                                                                                                                          |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Steuersatz                 | Steuerklasse eines Produkts. Enum: `regel` (19 %), `ermaessigt` (7 %), `befreit` (0 %), `kombi` (70/30-Aufteilung). Go: `domain/steuer` · DB: `produkte.steuersatz` · JSON-Key: `steuersatz`       |
 | Steuerbetrag / Nettobetrag | Pro Steuersatz berechnete Beträge (`steuer.Aufteilung`: Brutto, Netto, Steuer), immer in Cent. Auf dem Kassenbeleg als Steueraufteilung ausgewiesen. Fachregeln → [steuerrecht.md](steuerrecht.md) |
 
 #### Export & Meldung
 
-| Begriff                | Bedeutung                                                                                                                                                      |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DSFinV-K               | „Digitale Schnittstelle der Finanzverwaltung für Kassensysteme", standardisiertes CSV-ZIP-Exportformat (Version 2.4) für Betriebsprüfungen. Umgesetzt (→ F-04). |
-| TAR-Archiv             | Gesetzlich vorgeschriebenes Dateiformat für den Export der rohen, kryptografisch gesicherten TSE-Log-Nachrichten.                                              |
-| Kassenmeldung / ELSTER | Pflicht nach § 146a Abs. 4 AO: Meldung jeder jotti-Instanz innerhalb eines Monats nach Inbetriebnahme über das ELSTER-Portal (→ F-05).                         |
-| ERiC                   | „ELSTER Rich Client", Programmierschnittstelle für die automatisierte ELSTER-Kommunikation. Nicht-Ziel: die Kassenmeldung erfolgt manuell über das ELSTER-Portal (F-05).                                                           |
+| Begriff                | Bedeutung                                                                                                                                                                                                                                                                           |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DSFinV-K               | „Digitale Schnittstelle der Finanzverwaltung für Kassensysteme", standardisiertes CSV-ZIP-Exportformat (Version 2.4) für Betriebsprüfungen. Umgesetzt (→ F-04).                                                                                                                     |
+| TAR-Archiv             | Gesetzlich vorgeschriebenes Dateiformat für den Export der rohen, kryptografisch gesicherten TSE-Log-Nachrichten.                                                                                                                                                                   |
+| Kassenmeldung / ELSTER | Pflicht nach § 146a Abs. 4 AO: Meldung jeder jotti-Instanz innerhalb eines Monats nach Inbetriebnahme über das ELSTER-Portal (→ F-05).                                                                                                                                              |
+| ERiC                   | „ELSTER Rich Client", Programmierschnittstelle für die automatisierte ELSTER-Kommunikation. Nicht-Ziel: die Kassenmeldung erfolgt manuell über das ELSTER-Portal (F-05).                                                                                                            |
 | ElsterGemeldetAm       | Datum der erfolgten ELSTER-Kassenmeldung (§ 146a Abs. 4 AO) oder leer, solange nicht gemeldet. Vom Admin nach der Portal-Meldung gesetzt (korrigierbar). Go: `betreiber.ElsterGemeldetAm` · DB: `betreiber.elster_gemeldet_am` (DATE) · JSON-Key: `elsterGemeldetAm` (`YYYY-MM-DD`) |
 
 ---
@@ -510,12 +512,3 @@ Kurzdefinitionen, die kanonische Architektur-Erklärung steht im [handbuch.md](h
 - **Anti-Corruption Layer (ACL):** Eingefrorene Stammdaten entkoppeln den Kassenbetrieb von späteren Produkt-Änderungen (→ handbuch.md §2.2).
 - **Append-only:** Events werden nie geändert oder gelöscht; Korrekturen sind kompensierende Events. Entspricht dem GoBD-Radierverbot (→ handbuch.md §3.2).
 - **Synchrone Projektion:** Der Tisch-Zustand wird als `tisch_sessions`-Zeile in derselben Transaktion wie das Event geschrieben (→ handbuch.md §3.8).
-
----
-
-## Geplant (nicht implementiert)
-
-Die folgenden Begriffe sind definiert, aber noch nicht im Code implementiert. Details und Priorisierung in `docs/anforderungen.md`.
-
-- **Stornoquote:** Verhältnis Stornierungsbetrag zu Bestellsumme.
-- **Privatentnahme / Privateinlage:** eigene DSFinV-K-Geschäftsvorfalltypen für Bewegungen in den/aus dem privaten Bereich des Vereins (neben dem → Geldtransit); aktuell wird jede Bargeld-Bewegung als Geldtransit gebucht.

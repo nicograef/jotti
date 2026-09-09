@@ -15,6 +15,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/internal/zeit"
 	"github.com/rs/zerolog"
 )
 
@@ -28,7 +29,7 @@ var (
 
 type kassenjournalRepo interface {
 	// ReadEventsByKassensitzung liefert die Events samt Signatur-Stand je Event
-	// (LEFT JOIN auf die Signaturauftraege: kein Eintrag = nicht signaturpflichtig).
+	// (LEFT JOIN auf die Signaturaufträge: kein Eintrag = nicht signaturpflichtig).
 	ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, map[int]tse.EventSignatur, error)
 }
 
@@ -47,10 +48,10 @@ type tseRepo interface {
 }
 
 type tischRepo interface {
-	// GetAllTableNames muss auch gelöschte Tische liefern: der Export benennt die
+	// GetAlleTischNamen muss auch gelöschte Tische liefern: der Export benennt die
 	// Abrechnungskreise vergangener Kassensitzungen, und ein Tisch darf nach dem
 	// Tagesabschluss gelöscht werden.
-	GetAllTableNames(ctx context.Context) (map[int]string, error)
+	GetAlleTischNamen(ctx context.Context) (map[int]string, error)
 }
 
 // Export ist der App-Service, der das DSFinV-K-Archiv einer Kassensitzung
@@ -138,7 +139,9 @@ func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassens
 		return kasse.Kassensitzung{}, ErrKassensitzungNichtGefunden
 	}
 
-	offen, err := e.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	// Der Export will genau die offene Sitzung; eine Sitzung im Barrierestatus
+	// erreicht denselben Export über den Zweig der jüngsten Sitzung darunter.
+	offen, err := e.KassensitzungenRepo.GetOffeneKassensitzung(ctx) //nolint:forbidigo
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get offene kassensitzung")
 		return kasse.Kassensitzung{}, ErrDatabase
@@ -180,7 +183,7 @@ func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung
 		log.Error().Err(err).Msg("Failed to get tse stammdaten")
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
-	tischnamen, err := e.TischRepo.GetAllTableNames(ctx)
+	tischnamen, err := e.TischRepo.GetAlleTischNamen(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get tischnamen")
 		return dsfinvk.Snapshot{}, ErrDatabase
@@ -198,7 +201,8 @@ func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung
 }
 
 // dateiname baut den sprechenden Archivnamen aus Seriennummer, Kassensitzung
-// und Zeitstempel.
+// und Zeitstempel. Der Zeitstempel kommt als UTC aus der Datenbank und steht im
+// Namen als deutsche Ortszeit; abends wäre es sonst der Vortag.
 func dateiname(seriennummer string, nr int, zeitpunkt time.Time) string {
-	return fmt.Sprintf("dsfinvk_%s_kassensitzung-%d_%s.zip", seriennummer, nr, zeitpunkt.Format("20060102-150405"))
+	return fmt.Sprintf("dsfinvk_%s_kassensitzung-%d_%s.zip", seriennummer, nr, zeitpunkt.In(zeit.Berlin).Format("20060102-150405"))
 }

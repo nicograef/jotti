@@ -10,48 +10,21 @@ const (
 	csvTextEncapsulator = `"`
 )
 
-// columnType unterscheidet die beiden für jotti relevanten DSFinV-K-Feldtypen.
-// Date kommt nicht vor — Zeitstempel werden als Zeichen (ISO 8601) geführt.
-type columnType int
-
-const (
-	alphaNumeric columnType = iota
-	numeric
-)
-
-// column beschreibt ein CSV-Feld: Name (Spaltenüberschrift), Typ und — bei
-// numerischen Feldern — die Anzahl Nachkommastellen für die index.xml.
-type column struct {
-	name     string
-	typ      columnType
-	accuracy int
-}
-
-func alpha(name string) column { return column{name: name, typ: alphaNumeric} }
-
-func num(name string, accuracy int) column {
-	return column{name: name, typ: numeric, accuracy: accuracy}
-}
-
 // Table ist eine serialisierbare DSFinV-K-CSV-Datei: offizieller Dateiname,
-// logische (deutsche) Bezeichnung, Spaltenbeschreibung und die bereits als
-// Strings formatierten Datenzeilen.
+// logische (deutsche) Bezeichnung, Spaltenüberschriften und die bereits als
+// Strings formatierten Datenzeilen. Feldtyp und Nachkommastellen stehen nicht
+// dabei: das Archiv liefert die eingebettete amtliche index.xml unverändert mit
+// (amtlicheIndexXML) und erzeugt keine eigene Felddeklaration.
 type Table struct {
 	File        string
 	LogicalName string
 	Description string
-	Columns     []column
+	Columns     []string
 	Records     [][]string
 }
 
 // header liefert die Spaltennamen in Reihenfolge.
-func (t Table) header() []string {
-	names := make([]string, len(t.Columns))
-	for i, c := range t.Columns {
-		names[i] = c.name
-	}
-	return names
-}
+func (t Table) header() []string { return t.Columns }
 
 // serializeCSV rendert eine Tabelle als DSFinV-K-konforme CSV-Bytes: eine
 // Header-Zeile mit den Spaltennamen, dann je Datensatz eine Zeile, Felder per

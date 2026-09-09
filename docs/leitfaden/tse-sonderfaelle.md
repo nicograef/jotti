@@ -45,10 +45,10 @@ TSE-Assistenten erneut durch („TSE übernehmen", siehe oben) — dabei zieht j
 die Seriennummer nach; es entsteht keine zweite TSS.
 
 **Manuelle Konfiguration (Experten).** Habt ihr eine TSS samt Client bereits
-außerhalb von jotti angelegt, öffnet ihr im Admin-Bereich „Finanzamt", klickt im
-Kasten „TSE-Anbindung" auf „Einrichten oder ändern" und tragt im Kasten „Manuelle
-Konfiguration (Experten)" API-Key, API-Secret, TSS-ID und Client-ID direkt ein
-(alle vier sind Pflicht), speichert und klickt „Verbindung testen". Der Client muss bei
+außerhalb von jotti angelegt, öffnet ihr im Admin-Bereich „Finanzamt & TSE" den
+Assistenten über „TSE einrichten" und tragt im Kasten „Manuelle Konfiguration
+(Experten)" API-Key, API-Secret, TSS-ID und Client-ID direkt ein (alle vier
+sind Pflicht), speichert und klickt „Verbindung testen". Der Client muss bei
 fiskaly mit der Kassen-Seriennummer aus jottis Kassenidentität registriert sein,
 sonst meldet der Test einen Fehler. Mit „Alle Felder leeren" entfernt ihr die
 Konfiguration wieder, etwa zur Schlüsselrotation.

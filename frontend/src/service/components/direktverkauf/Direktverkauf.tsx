@@ -1,8 +1,8 @@
 import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
+import type { Produkt } from '@/lib/produktSchemas'
 
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
-import type { Produkt } from '../../product/Produkt'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { calculateTotalPrice, toBestellungData } from '../table/drawerUtils'
 import { ProductList, ProductListSkeleton } from '../table/ProductList'
@@ -14,7 +14,7 @@ interface DirektverkaufProps {
   products: Produkt[]
   productsLoading: boolean
   // Meldet den abgeschlossenen Verkauf samt Bestätigungstext an die Seite, die
-  // den Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
+  // den Erfolgs-Pop hostet.
   onErfolg?: (nachricht: string) => void
 }
 

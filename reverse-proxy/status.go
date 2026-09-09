@@ -49,10 +49,15 @@ type statusView struct {
 // bewusst: ohne grünen Namen gibt es nur den Fallback; ein blockierender
 // Rebind-Schutz macht die grüne Adresse auch mit gültigem Zertifikat
 // unerreichbar und hat darum Vorrang vor der Zertifikatslage.
+//
+// Ohne grünen Namen aktualisiert sich die Seite nicht selbst: Install-State und
+// LAN-IP entstehen einmal beim Start (runLANMode), und die Wildcard-Site steht
+// nur im dort gerenderten Caddyfile. Ein Selbst-Refresh würde eine Änderung
+// versprechen, die erst ein Neustart bringt — der Hinweistext nennt ihn.
 func decideStatus(in statusInputs) statusView {
 	switch {
 	case in.greenURL == "":
-		return statusView{primaryURL: in.fallbackURL, refresh: true, notice: noticeNoGreen}
+		return statusView{primaryURL: in.fallbackURL, notice: noticeNoGreen}
 	case !in.rebindOK:
 		return statusView{primaryURL: in.fallbackURL, refresh: true, notice: noticeRebind}
 	case in.cert == certValid:

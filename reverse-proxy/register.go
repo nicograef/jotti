@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -28,8 +27,8 @@ func registerWithACMEDNS(client *http.Client, baseURL string) (InstallState, err
 	if err := json.NewDecoder(resp.Body).Decode(&state); err != nil {
 		return InstallState{}, fmt.Errorf("JSON-Decode der Registrierung: %w", err)
 	}
-	if !state.valid() {
-		return InstallState{}, errors.New("acme-dns-Antwort ohne vollständige Credentials")
+	if err := state.validate(); err != nil {
+		return InstallState{}, fmt.Errorf("acme-dns-Antwort unbrauchbar: %w", err)
 	}
 	return state, nil
 }

@@ -1452,7 +1452,7 @@ func TestWriteEvent_MultipleEvents_ProjectionCorrect(t *testing.T) {
 		t.Fatalf("Expected no error reading tisch session, got %v", err)
 	}
 
-	// Saldo ist 350 (700 abzueglich 350 gezahlt)
+	// Saldo ist 350 (700 abzüglich 350 gezahlt)
 	if state.SaldoCents != 350 {
 		t.Fatalf("Expected SaldoCents 350, got %d", state.SaldoCents)
 	}
@@ -1577,17 +1577,6 @@ func TestWriteEvent_TagesabschlussErstellt(t *testing.T) {
 	}
 	if status != string(kasse.KassensitzungAbgeschlossen) {
 		t.Fatalf("Expected status 'abgeschlossen', got %s", status)
-	}
-}
-
-func TestGetOffeneKassensitzung_NoneOpen(t *testing.T) {
-	_, ksNr, repo, teardown := setup(t)
-	defer teardown(t)
-
-	// Close the kassensitzung created by setup
-	_, err := repo.db.Exec("UPDATE kassensitzungen SET status = $1 WHERE z_nr = $2", kasse.KassensitzungAbgeschlossen, ksNr)
-	if err != nil {
-		t.Fatalf("Failed to close kassensitzung: %v", err)
 	}
 }
 

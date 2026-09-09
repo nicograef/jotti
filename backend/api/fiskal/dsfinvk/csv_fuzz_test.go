@@ -31,7 +31,7 @@ func FuzzSerializeCSV(f *testing.F) {
 	f.Add("Ümläüte €", "-12,34", "")
 
 	f.Fuzz(func(t *testing.T, a, b, c string) {
-		cols := []column{alpha("A"), num("B", 2), alpha("C")}
+		cols := []string{"A", "B", "C"}
 		table := Table{Columns: cols, Records: [][]string{{a, b, c}}}
 		out := string(serializeCSV(table))
 

@@ -2,7 +2,7 @@ import { Building2, Download, FileText, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink } from 'react-router'
 
-import { useOffeneKassensitzung } from '@/admin/kasse/hooks'
+import { useAktiveKassensitzung } from '@/admin/kasse/hooks'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -56,14 +56,14 @@ function ExportBlock({ kassensitzungNr }: { kassensitzungNr: number }) {
 }
 
 // Kassenberichte zeigen die historische Auswertung abgeschlossener
-// Kassensitzungen: links die Sitzungsliste (offene Sitzung als Hinweis, darunter
+// Kassensitzungen: links die Sitzungsliste (aktive Sitzung als Hinweis, darunter
 // die abgeschlossenen als wählbare Karten), rechts der vollständige Tagesbericht
 // mit Steuersatz-Tabelle und DSFinV-K-Export. Laufende Sitzungen werden nur auf
 // dem Live-Dashboard ausgewertet.
 export function KassenberichtePage() {
   const { kassensitzungen, isPending: listLoading } =
     useAbgeschlosseneKassensitzungen()
-  const { kassensitzung: offeneSitzung } = useOffeneKassensitzung()
+  const { kassensitzung: aktiveSitzung } = useAktiveKassensitzung()
   const [selectedNr, setSelectedNr] = useState<number | null>(null)
 
   const effectiveNr = selectedNr ?? kassensitzungen.at(0)?.zNr ?? null
@@ -106,7 +106,7 @@ export function KassenberichtePage() {
           <div className="print:hidden">
             <SitzungsListe
               sitzungen={kassensitzungen}
-              offeneSitzung={offeneSitzung}
+              aktiveSitzung={aktiveSitzung}
               selectedNr={effectiveNr}
               onSelect={setSelectedNr}
             />
@@ -119,11 +119,7 @@ export function KassenberichtePage() {
               </div>
             ) : (
               <>
-                <ReportingResults
-                  result={result}
-                  sitzung={selectedSitzung}
-                  loading={false}
-                />
+                <ReportingResults result={result} sitzung={selectedSitzung} />
                 {effectiveNr !== null && (
                   <ExportBlock kassensitzungNr={effectiveNr} />
                 )}

@@ -12,17 +12,19 @@ type Query struct {
 	KassensitzungenRepo kassensitzungenRepo
 }
 
-// GetOffeneKassensitzung returns the currently open Kassensitzung or nil if none exists.
-func (q Query) GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error) {
+// GetAktiveKassensitzung returns the active Kassensitzung — status 'offen' or
+// 'wird_abgeschlossen' — or nil if none exists. The barrier status belongs here so
+// the Kassentag page shows an interrupted Kassenabschluss instead of a closed Kasse.
+func (q Query) GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error) {
 	log := zerolog.Ctx(ctx)
 
-	ks, err := q.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get offene Kassensitzung")
+		log.Error().Err(err).Msg("Failed to get aktive Kassensitzung")
 		return nil, ErrDatabase
 	}
 
-	log.Debug().Msg("Retrieved offene Kassensitzung")
+	log.Debug().Msg("Retrieved aktive Kassensitzung")
 	return ks, nil
 }
 

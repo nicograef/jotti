@@ -20,8 +20,8 @@ import { seiteNeuLaden } from '@/lib/reload'
  * laufenden Vorgangs und darf die Bedienung, die dafür nötig ist, nicht
  * blockieren.
  *
- * Er steht deshalb wie sein Vorgänger im Fluss über dem Seitenlayout und
- * schwebt nicht als fixierte Leiste: Am unteren Rand läge er über dem
+ * Er steht deshalb im Fluss über dem Seitenlayout und schwebt nicht als
+ * fixierte Leiste: Am unteren Rand läge er über dem
  * ServiceDock und der Fußleiste der Tischauswahl, am oberen über den fixierten
  * Kopfleisten — überall dort sitzen Bedienelemente. Im Fluss verdrängt er sie,
  * statt sie zu verdecken.

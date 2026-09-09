@@ -72,7 +72,7 @@ func SetupRoutes(cfg config.Config, db *sql.DB, version string) http.Handler {
 	// Wrap the entire router with middleware chain
 	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by the reverse proxy (Caddy)
 	// Recovery liegt innen (nach Logging): Ein Panic in einem Handler wird zu 500,
-	// der Request wird trotzdem regulaer geloggt.
+	// der Request wird trotzdem regulär geloggt.
 	var handler http.Handler = r
 	handler = middleware.RecoveryMiddleware(handler)
 	handler = middleware.PostMethodOnlyMiddleware(handler)

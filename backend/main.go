@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	_ "time/tzdata"
 
 	"database/sql"
 
@@ -25,7 +24,7 @@ import (
 )
 
 // version wird per ldflags einkompiliert (-X main.version=<tag>); der
-// Release-Workflow befuellt sie ueber das Docker-Build-Argument VERSION.
+// Release-Workflow befüllt sie über das Docker-Build-Argument VERSION.
 var version = "dev"
 
 func main() {

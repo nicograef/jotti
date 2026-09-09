@@ -5,6 +5,7 @@ package dsfinvk
 import (
 	"archive/zip"
 	"bytes"
+	"errors"
 	"sort"
 	"testing"
 
@@ -53,7 +54,9 @@ func TestBuildArchiveContents(t *testing.T) {
 		if _, err := buf.ReadFrom(rc); err != nil {
 			t.Fatalf("read index.xml: %v", err)
 		}
-		rc.Close()
+		if err := rc.Close(); err != nil {
+			t.Fatalf("close index.xml: %v", err)
+		}
 		if !bytes.Equal(buf.Bytes(), amtlicheIndexXML) {
 			t.Error("index.xml im Archiv weicht von der amtlichen Vorlage ab")
 		}
@@ -62,7 +65,7 @@ func TestBuildArchiveContents(t *testing.T) {
 
 func TestBuildArchiveEmptySession(t *testing.T) {
 	_, err := BuildArchive(testSnapshot(), nil, nil)
-	if err != ErrKeineVorgaenge {
+	if !errors.Is(err, ErrKeineVorgaenge) {
 		t.Fatalf("BuildArchive() error = %v, want ErrKeineVorgaenge", err)
 	}
 }

@@ -58,13 +58,15 @@ func (q *Queries) GetBetreiber(ctx context.Context) (GetBetreiberRow, error) {
 
 const setElsterGemeldetAm = `-- name: SetElsterGemeldetAm :exec
 UPDATE betreiber
-SET elster_gemeldet_am = CURRENT_DATE,
+SET elster_gemeldet_am = $1,
     updated_at         = NOW()
 WHERE id = 1
 `
 
-func (q *Queries) SetElsterGemeldetAm(ctx context.Context) error {
-	_, err := q.db.ExecContext(ctx, setElsterGemeldetAm)
+// Das Meldedatum kommt aus der Anwendung: CURRENT_DATE wäre das Datum der
+// DB-Sitzung, und die Container laufen in UTC.
+func (q *Queries) SetElsterGemeldetAm(ctx context.Context, gemeldetAm sql.NullTime) error {
+	_, err := q.db.ExecContext(ctx, setElsterGemeldetAm, gemeldetAm)
 	return err
 }
 

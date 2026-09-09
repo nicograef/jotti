@@ -49,7 +49,7 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 			log.Warn().Str("username", username).Msg("User not found during login")
 			return "", ErrUserNotFound
 		}
-		log.Error().Str("username", username).Msg("Failed to retrieve user ID")
+		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve user ID")
 		return "", ErrDatabase
 	}
 
@@ -71,7 +71,7 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 		}
 	}
 
-	token, err := jwt.GenerateJWTTokenForUser(u.ID, u.Username, string(u.Role), c.JWTSecret)
+	token, err := jwt.GenerateJWTTokenForUser(u.ID, string(u.Role), c.JWTSecret)
 	if err != nil {
 		log.Error().Err(err).Str("username", username).Msg("Failed to generate JWT token")
 		return "", ErrTokenGeneration

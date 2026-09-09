@@ -94,6 +94,18 @@ func PositionFromEventData(p PositionEventData) Position {
 	}
 }
 
+// PositionEingabeSchema begrenzt die Menge einer Position auf dem Eingabeweg.
+// Die Obergrenze schützt `EinzelpreisCents * Menge` vor dem int-Überlauf, der
+// auf einen plausiblen Kleinbetrag zurückwickelt. Sie gilt nur beim Annehmen
+// einer Eingabe: `positionSchema` validiert auch jedes gelesene Event, eine
+// Grenze dort machte bestehende Events unlesbar. Das Schema ist per Definition
+// required — Aufrufstellen nutzen es direkt und rufen `.Required()` nie erneut
+// auf (zog mutiert den Empfänger in place).
+var PositionEingabeSchema = z.Int().
+	GTE(1, z.Message("Menge muss mindestens 1 betragen")).
+	LTE(999, z.Message("Menge zu hoch")).
+	Required(z.Message("Menge muss mindestens 1 betragen"))
+
 var positionSchema = z.Struct(z.Shape{
 	"PositionID":       z.String().UUID().Required(),
 	"VarianteID":       produkt.IDSchema.Required(),

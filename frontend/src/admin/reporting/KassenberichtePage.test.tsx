@@ -2,7 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { OffeneKassensitzung } from '@/admin/kasse/KasseBackend'
+import type { AktiveKassensitzung } from '@/admin/kasse/KasseBackend'
 
 import { KassenberichtePage } from './KassenberichtePage'
 import type { AbgeschlosseneSitzung, ReportingData } from './types'
@@ -16,7 +16,7 @@ vi.mock('react-router', () => ({
 const hookState = vi.hoisted(() => ({
   kassensitzungen: [] as AbgeschlosseneSitzung[],
   listLoading: false,
-  offeneSitzung: null as OffeneKassensitzung | null,
+  aktiveSitzung: null as AktiveKassensitzung | null,
   report: null as ReportingData | null,
   reportLoading: false,
 }))
@@ -34,8 +34,8 @@ vi.mock('./hooks', () => ({
 }))
 
 vi.mock('@/admin/kasse/hooks', () => ({
-  useOffeneKassensitzung: () => ({
-    kassensitzung: hookState.offeneSitzung,
+  useAktiveKassensitzung: () => ({
+    kassensitzung: hookState.aktiveSitzung,
     isPending: false,
     isError: false,
     refetch: vi.fn(),
@@ -74,7 +74,7 @@ afterEach(() => {
   cleanup()
   hookState.kassensitzungen = []
   hookState.listLoading = false
-  hookState.offeneSitzung = null
+  hookState.aktiveSitzung = null
   hookState.report = null
   hookState.reportLoading = false
 })
@@ -145,7 +145,7 @@ describe('KassenberichtePage', () => {
       },
     ]
     hookState.report = makeReport(11)
-    hookState.offeneSitzung = {
+    hookState.aktiveSitzung = {
       zNr: 12,
       datum: '2026-07-06',
       bezeichnung: 'Sommerfest Tag 2',
@@ -155,10 +155,34 @@ describe('KassenberichtePage', () => {
     render(<KassenberichtePage />)
 
     expect(screen.getByText(/läuft — siehe Übersicht/)).toBeInTheDocument()
-    // Die offene Sitzung ist kein Button (nicht wählbar), sondern ein Link zur Übersicht.
+    // Die aktive Sitzung ist kein Button (nicht wählbar), sondern ein Link zur Übersicht.
     const links = screen.getAllByRole('link')
     expect(
       links.some((l) => l.getAttribute('href') === '/admin/auswertung'),
     ).toBe(true)
+  })
+
+  it('weist die aktive Sitzung im Barrierestatus als unterbrochenen Abschluss aus', () => {
+    hookState.kassensitzungen = [
+      {
+        zNr: 11,
+        datum: '2026-07-05',
+        bezeichnung: 'Sommerfest Tag 1',
+        umsatzGesamtCents: 341200,
+        abgeschlossenAm: '2026-07-05T21:12:00Z',
+      },
+    ]
+    hookState.report = makeReport(11)
+    hookState.aktiveSitzung = {
+      zNr: 12,
+      datum: '2026-07-06',
+      bezeichnung: 'Sommerfest Tag 2',
+      status: 'wird_abgeschlossen',
+      eroeffnetAm: '2026-07-06T08:00:00Z',
+    }
+    render(<KassenberichtePage />)
+
+    expect(screen.getByText('Abschluss unterbrochen')).toBeInTheDocument()
+    expect(screen.queryByText(/läuft/)).not.toBeInTheDocument()
   })
 })

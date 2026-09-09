@@ -147,8 +147,8 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 		case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/v2/tss/") && strings.Contains(r.URL.Path, "/client/"):
 			_ = json.NewEncoder(w).Encode(map[string]any{"_id": "client-1", "serial_number": body["serial_number"], "state": "REGISTERED"})
 		case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/v2/tss/"):
-			// fiskaly waehlt die TSS-ID nicht selbst — der Client erzeugt sie als
-			// UUID und PUTtet sie. Der Server spiegelt sie in _id zurueck.
+			// fiskaly wählt die TSS-ID nicht selbst — der Client erzeugt sie als
+			// UUID und PUTtet sie. Der Server spiegelt sie in _id zurück.
 			id := strings.TrimPrefix(r.URL.Path, "/api/v2/tss/")
 			_ = json.NewEncoder(w).Encode(map[string]any{"_id": id, "admin_puk": "puk-xyz", "state": "CREATED"})
 		case r.Method == http.MethodPatch, r.Method == http.MethodPost:
@@ -193,8 +193,8 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	// assertCall sucht einen Aufruf, der Methode, Pfad und alle erwarteten
-	// Body-Felder erfuellt. Mehrere PATCH-Aufrufe treffen denselben TSS-Pfad
-	// (UNINITIALIZED, INITIALIZED) — daher muss der Body mitgeprueft werden.
+	// Body-Felder erfüllt. Mehrere PATCH-Aufrufe treffen denselben TSS-Pfad
+	// (UNINITIALIZED, INITIALIZED) — daher muss der Body mitgeprüft werden.
 	assertCall := func(method, pathSuffix string, wantBody map[string]any) {
 		for _, c := range calls {
 			if c.method != method || !strings.HasSuffix(c.path, pathSuffix) {
@@ -273,10 +273,10 @@ func TestFiskalySetupClient_ReaktiviereClient(t *testing.T) {
 }
 
 // TestFiskalySetupClient_RetrieveTSSStammdaten bildet den Kontrakt der
-// Stammdaten-Leseoperation fuer den DSFinV-K-Export ab: ein GET auf die
+// Stammdaten-Leseoperation für den DSFinV-K-Export ab: ein GET auf die
 // TSS-Ressource liest serial_number, signature_algorithm, public_key,
 // certificate und signature_timestamp_format (Log-Time-Format) — und sendet
-// ausschliesslich Auth- und GET-Requests.
+// ausschließlich Auth- und GET-Requests.
 func TestFiskalySetupClient_RetrieveTSSStammdaten(t *testing.T) {
 	var (
 		mu    sync.Mutex
@@ -340,7 +340,7 @@ func TestFiskalySetupClient_RetrieveTSSStammdaten(t *testing.T) {
 	}
 }
 
-// bodyMatcht meldet, ob jedes erwartete Feld im tatsaechlichen Body steht.
+// bodyMatcht meldet, ob jedes erwartete Feld im tatsächlichen Body steht.
 func bodyMatcht(body, want map[string]any) bool {
 	for k, v := range want {
 		if body[k] != v {
@@ -378,9 +378,9 @@ func TestFiskalySetupClient_AuthFailure(t *testing.T) {
 	}
 }
 
-// TestFiskalySetupClient_AdminPINBlocked sichert, dass eine nach fuenf
+// TestFiskalySetupClient_AdminPINBlocked sichert, dass eine nach fünf
 // Fehlversuchen gesperrte Admin-PIN (fiskaly: Status 423, Code E_ADMIN_PIN_BLOCKED)
-// als ErrSetupAuthFehlgeschlagen gemeldet wird. So laeuft die Uebernahme in die
+// als ErrSetupAuthFehlgeschlagen gemeldet wird. So läuft die Übernahme in die
 // PIN-Sackgasse (mit PUK-Reset als Ausweg) statt in einen technischen Fehler.
 func TestFiskalySetupClient_AdminPINBlocked(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

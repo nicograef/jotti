@@ -1,8 +1,8 @@
-import { Loader2, Printer } from 'lucide-react'
+import { Printer } from 'lucide-react'
 
 import { STEUERSATZ_LABEL } from '@/admin/products/Produkt'
 import { Button } from '@/components/ui/button'
-import { formatEuro } from '@/lib/utils'
+import { formatEuro, formatEuroMitVorzeichen } from '@/lib/utils'
 
 import { StornoItem } from './StornoItem'
 import { StornoMarker } from './StornoServicekraft'
@@ -33,8 +33,11 @@ function BerichtsMeta({
     )
   }
   if (metadaten.kassensturzDifferenzCents !== null) {
+    // Das Event trägt Soll − Ist (siehe kassensitzung_events.go); angezeigt
+    // wird die Kassenperspektive Ist − Soll wie im Abschluss-Bildschirm:
+    // negativ = Fehlbetrag, positiv = Überschuss.
     teile.push(
-      `Kassensturz-Differenz ${formatEuro(metadaten.kassensturzDifferenzCents)}`,
+      `Kassensturz-Differenz ${formatEuroMitVorzeichen(-metadaten.kassensturzDifferenzCents)}`,
     )
   }
   return (
@@ -70,22 +73,12 @@ function Kennzahl({
 export function ReportingResults({
   result,
   sitzung,
-  loading,
 }: {
   result: ReportingData
   sitzung: AbgeschlosseneSitzung
-  loading: boolean
 }) {
   const summary = result.summary
   const abrechnung = result.breakdowns.abrechnungProServicekraft
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border p-5">

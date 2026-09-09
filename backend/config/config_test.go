@@ -12,7 +12,7 @@ import (
 const (
 	validJWTSecret  = "test-jwt-secret-0123456789"
 	validRelayToken = "test-relay-token-0123456789"
-	validPGPassword = "test-postgres-password-1234"
+	validPGPassword = "test-postgres-password-1234" //nolint:gosec // test placeholder, not a real secret
 )
 
 func setValidSecrets(t *testing.T) {
@@ -47,7 +47,7 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Postgres.User != "admin" {
 		t.Errorf("expected default Postgres user 'admin', got %s", cfg.Postgres.User)
 	}
-	// POSTGRES_PASSWORD has no default anymore; it comes from the environment.
+	// POSTGRES_PASSWORD is required; it comes from the environment, not a default.
 	if cfg.Postgres.Password != validPGPassword {
 		t.Errorf("expected Postgres password %q, got %s", validPGPassword, cfg.Postgres.Password)
 	}
@@ -175,7 +175,7 @@ func TestValidateSecrets_Rejects(t *testing.T) {
 		{"placeholder JWT_SECRET", func(c *Config) { c.JWTSecret = "your-256-bit-secret-replace-this-in-production" }, "JWT_SECRET"},
 		{"placeholder RELAY_AUTH_TOKEN", func(c *Config) { c.RelayToken = "your-relay-auth-token-replace-this-in-production" }, "RELAY_AUTH_TOKEN"},
 		{"placeholder POSTGRES_PASSWORD", func(c *Config) { c.Postgres.Password = "your-secure-password-here" }, "POSTGRES_PASSWORD"},
-		{"old admin default POSTGRES_PASSWORD", func(c *Config) { c.Postgres.Password = "admin" }, "POSTGRES_PASSWORD"},
+		{"guessable POSTGRES_PASSWORD", func(c *Config) { c.Postgres.Password = "admin" }, "POSTGRES_PASSWORD"},
 		{"short JWT_SECRET", func(c *Config) { c.JWTSecret = "short" }, "JWT_SECRET"},
 		{"short RELAY_AUTH_TOKEN", func(c *Config) { c.RelayToken = "short" }, "RELAY_AUTH_TOKEN"},
 		{"short POSTGRES_PASSWORD", func(c *Config) { c.Postgres.Password = "short" }, "POSTGRES_PASSWORD"},

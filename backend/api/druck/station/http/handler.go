@@ -71,7 +71,7 @@ type updateDruckstationenRequest struct {
 
 var updateDruckstationenSchema = z.Struct(z.Shape{
 	"Kategorie": z.String().OneOf(
-		[]string{"essen", "getraenk", "sonstiges", "kassenbeleg", "abholbon"},
+		druckstation.AlleKategorien(),
 		z.Message("Ungültige Kategorie"),
 	).Required(),
 	"DruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
@@ -99,8 +99,8 @@ func (h *CommandHandler) UpdateDruckstationenHandler() http.HandlerFunc {
 
 		err := h.Command.UpsertDruckstation(r.Context(), body.Kategorie, body.DruckerIP, body.Bonmodus)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUngueltigeDruckstation: "validation_error",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUngueltigeDruckstation, Code: "validation_error"},
 			})
 			return
 		}
@@ -115,7 +115,7 @@ type testbonDruckenRequest struct {
 
 var testbonDruckenSchema = z.Struct(z.Shape{
 	"Kategorie": z.String().OneOf(
-		[]string{"essen", "getraenk", "sonstiges", "kassenbeleg", "abholbon"},
+		druckstation.AlleKategorien(),
 		z.Message("Ungültige Kategorie"),
 	).Required(),
 })
@@ -130,8 +130,8 @@ func (h *CommandHandler) TestbonDruckenHandler() http.HandlerFunc {
 
 		err := h.Command.TestbonDrucken(r.Context(), body.Kategorie)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrDruckstationNichtKonfiguriert: "druckstation_nicht_konfiguriert",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrDruckstationNichtKonfiguriert, Code: "druckstation_nicht_konfiguriert"},
 			})
 			return
 		}

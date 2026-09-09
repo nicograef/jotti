@@ -1,12 +1,25 @@
 export const meta = {
   name: 'plan-audit-fixes',
-  description: 'Phase C: Opus planner writes plan-jotti-audit-fixes.md from the findings document per create-plan; one Fable sweep hands hotspots to three Opus critics; the planner incorporates the critique; an Opus recheck confirms; open questions are returned to the lead',
+  description:
+    'Phase C: Opus planner writes plan-jotti-audit-fixes.md from the findings document per create-plan; one Fable sweep hands hotspots to three Opus critics; the planner incorporates the critique; an Opus recheck confirms; open questions are returned to the lead',
   phases: [
     { title: 'Plan', detail: 'Opus planner, create-plan skill', model: 'opus' },
-    { title: 'Sweep', detail: 'one Fable sweep of plan vs findings → hand-over', model: 'fable' },
+    {
+      title: 'Sweep',
+      detail: 'one Fable sweep of plan vs findings → hand-over',
+      model: 'fable',
+    },
     { title: 'Critique', detail: 'three Opus lenses', model: 'opus' },
-    { title: 'Revise', detail: 'Opus planner incorporates the critique', model: 'opus' },
-    { title: 'Recheck', detail: 'Opus confirms the incorporation', model: 'opus' },
+    {
+      title: 'Revise',
+      detail: 'Opus planner incorporates the critique',
+      model: 'opus',
+    },
+    {
+      title: 'Recheck',
+      detail: 'Opus confirms the incorporation',
+      model: 'opus',
+    },
   ],
 }
 
@@ -51,11 +64,20 @@ const CRITIQUE = {
         type: 'object',
         properties: {
           severity: { type: 'string', enum: ['blocker', 'major', 'minor'] },
-          where: { type: 'string', description: 'plan section / phase / criterion, or "Abdeckung"' },
+          where: {
+            type: 'string',
+            description: 'plan section / phase / criterion, or "Abdeckung"',
+          },
           what: { type: 'string' },
           why: { type: 'string' },
-          fix: { type: 'string', description: 'concrete change to the plan text' },
-          proof: { type: 'string', description: 'quoted plan/findings/code lines' },
+          fix: {
+            type: 'string',
+            description: 'concrete change to the plan text',
+          },
+          proof: {
+            type: 'string',
+            description: 'quoted plan/findings/code lines',
+          },
         },
         required: ['severity', 'where', 'what', 'why', 'fix', 'proof'],
       },
@@ -67,44 +89,112 @@ const CRITIQUE = {
 
 phase('Plan')
 log('Opus-Planer schreibt plan-jotti-audit-fixes.md')
-const draft = await agent(`${COMMON}\n\n${PLANNER_BRIEF}\n\nReturn: the plan's phase list (number, title, Modell, Gate, criteria count), the Abdeckung counts (blocker/major covered vs. total in the findings), the list of Open questions verbatim, and the final line count of ${PLAN}.`, {
-  label: 'plan:draft', phase: 'Plan', model: 'opus', effort: 'xhigh',
-})
+const draft = await agent(
+  `${COMMON}\n\n${PLANNER_BRIEF}\n\nReturn: the plan's phase list (number, title, Modell, Gate, criteria count), the Abdeckung counts (blocker/major covered vs. total in the findings), the list of Open questions verbatim, and the final line count of ${PLAN}.`,
+  {
+    label: 'plan:draft',
+    phase: 'Plan',
+    model: 'opus',
+    effort: 'xhigh',
+  },
+)
 
 phase('Sweep')
-const SWEEP = { type: 'object', properties: { hotspots: { type: 'array', items: { type: 'string' } }, suspectedGaps: { type: 'array', items: { type: 'string' } }, questionsForCritics: { type: 'array', items: { type: 'string' } }, summary: { type: 'string' } }, required: ['hotspots', 'suspectedGaps', 'questionsForCritics', 'summary'] }
-const sweep = await agent(`${COMMON}\n\nYou are the SWEEPER (fast, shallow; cap yourself at about 30 tool calls). Read ${PLAN} once and skim ${FINDINGS} (Zahlen, Top 10, Defektklassen, per-area headings, Abdeckung of the plan). Do not produce findings; produce a hand-over brief for three Opus critics: hotspots (plan phases/criteria that look risky, non-minimal, behaviour-changing or vague), suspectedGaps (findings or defect classes that appear uncovered or dropped without reason), questionsForCritics (what each critic must verify in the repo). One line each.`, {
-  label: 'sweep', phase: 'Sweep', schema: SWEEP, model: 'fable', effort: 'medium',
-})
-const sweepText = sweep ? `HAND-OVER BRIEF from the Fable sweep (prioritise with it, then still do the full check):\n${JSON.stringify(sweep, null, 0)}` : 'No sweep brief (sweep failed); critique from scratch.'
+const SWEEP = {
+  type: 'object',
+  properties: {
+    hotspots: { type: 'array', items: { type: 'string' } },
+    suspectedGaps: { type: 'array', items: { type: 'string' } },
+    questionsForCritics: { type: 'array', items: { type: 'string' } },
+    summary: { type: 'string' },
+  },
+  required: ['hotspots', 'suspectedGaps', 'questionsForCritics', 'summary'],
+}
+const sweep = await agent(
+  `${COMMON}\n\nYou are the SWEEPER (fast, shallow; cap yourself at about 30 tool calls). Read ${PLAN} once and skim ${FINDINGS} (Zahlen, Top 10, Defektklassen, per-area headings, Abdeckung of the plan). Do not produce findings; produce a hand-over brief for three Opus critics: hotspots (plan phases/criteria that look risky, non-minimal, behaviour-changing or vague), suspectedGaps (findings or defect classes that appear uncovered or dropped without reason), questionsForCritics (what each critic must verify in the repo). One line each.`,
+  {
+    label: 'sweep',
+    phase: 'Sweep',
+    schema: SWEEP,
+    model: 'fable',
+    effort: 'medium',
+  },
+)
+const sweepText = sweep
+  ? `HAND-OVER BRIEF from the Fable sweep (prioritise with it, then still do the full check):\n${JSON.stringify(sweep, null, 0)}`
+  : 'No sweep brief (sweep failed); critique from scratch.'
 
 phase('Critique')
 const critiques = await parallel(
-  Object.entries(CRITIC_LENSES).map(([lens, text]) => () =>
-    agent(`${COMMON}\n\nYou are a CRITIC (read-only, highest rigor). Plan under review: ${PLAN}. Findings document: ${FINDINGS}. Praxis plan already implemented: ${PRAXIS}.\n${text}\n\n${sweepText}\n\nSeverity: blocker = a confirmed blocker/major finding or defect class is uncovered, or a criterion would break freeze discipline/behaviour; major = wrong or non-minimal fix, missing gate, unexecutable criterion, missing Depends on/Modell/Gate; minor = wording, ordering, style. "No issues" is a valid result. Never manufacture findings.`, {
-      label: `critique:${lens}`, phase: 'Critique', schema: CRITIQUE, model: 'opus', effort: 'xhigh',
-    }),
+  Object.entries(CRITIC_LENSES).map(
+    ([lens, text]) =>
+      () =>
+        agent(
+          `${COMMON}\n\nYou are a CRITIC (read-only, highest rigor). Plan under review: ${PLAN}. Findings document: ${FINDINGS}. Praxis plan already implemented: ${PRAXIS}.\n${text}\n\n${sweepText}\n\nSeverity: blocker = a confirmed blocker/major finding or defect class is uncovered, or a criterion would break freeze discipline/behaviour; major = wrong or non-minimal fix, missing gate, unexecutable criterion, missing Depends on/Modell/Gate; minor = wording, ordering, style. "No issues" is a valid result. Never manufacture findings.`,
+          {
+            label: `critique:${lens}`,
+            phase: 'Critique',
+            schema: CRITIQUE,
+            model: 'opus',
+            effort: 'xhigh',
+          },
+        ),
   ),
 )
-const all = critiques.flatMap((c, i) => (c ? c.findings.map((f) => ({ ...f, lens: Object.keys(CRITIC_LENSES)[i] })) : []))
+const all = critiques.flatMap((c, i) =>
+  c
+    ? c.findings.map((f) => ({ ...f, lens: Object.keys(CRITIC_LENSES)[i] }))
+    : [],
+)
 const counts = { blocker: 0, major: 0, minor: 0 }
-all.forEach((f) => { counts[f.severity]++ })
-log(`Kritik: ${all.length} Befunde (Blocker ${counts.blocker}, Major ${counts.major}, Minor ${counts.minor}), ${critiques.filter((c) => !c).length} Kritiker ohne Ergebnis`)
+all.forEach((f) => {
+  counts[f.severity]++
+})
+log(
+  `Kritik: ${all.length} Befunde (Blocker ${counts.blocker}, Major ${counts.major}, Minor ${counts.minor}), ${critiques.filter((c) => !c).length} Kritiker ohne Ergebnis`,
+)
 
 phase('Revise')
 let revision = null
 if (all.length > 0) {
-  revision = await agent(`${COMMON}\n\nYou are the PLANNER (Opus) revising ${PLAN}. Three Opus critics reviewed your draft; incorporate every blocker and major finding and every minor you agree with (state which minors you reject and why — only for a verifiable reason). Keep the create-plan template and the orchestration requirements (gates first, Depends on/Modell/Review-Tier/Gate per phase, Abdeckung table, Nicht übernommene Befunde, Open questions per ask gate). Verify each critic claim against the files before acting (rule 11). Append under "## Resolved decisions" a bullet list "Kritik (${DATE})" naming what was incorporated in one line each (this is the required documentation of the critique). Run prettier as before. Return: per critique item, "eingearbeitet" or "abgelehnt: <reason>", plus the updated Open questions verbatim and the final line count.\n\nCRITIQUE:\n${JSON.stringify(all, null, 0)}`, {
-    label: 'plan:revise', phase: 'Revise', model: 'opus', effort: 'xhigh',
-  })
+  revision = await agent(
+    `${COMMON}\n\nYou are the PLANNER (Opus) revising ${PLAN}. Three Opus critics reviewed your draft; incorporate every blocker and major finding and every minor you agree with (state which minors you reject and why — only for a verifiable reason). Keep the create-plan template and the orchestration requirements (gates first, Depends on/Modell/Review-Tier/Gate per phase, Abdeckung table, Nicht übernommene Befunde, Open questions per ask gate). Verify each critic claim against the files before acting (rule 11). Append under "## Resolved decisions" a bullet list "Kritik (${DATE})" naming what was incorporated in one line each (this is the required documentation of the critique). Run prettier as before. Return: per critique item, "eingearbeitet" or "abgelehnt: <reason>", plus the updated Open questions verbatim and the final line count.\n\nCRITIQUE:\n${JSON.stringify(all, null, 0)}`,
+    {
+      label: 'plan:revise',
+      phase: 'Revise',
+      model: 'opus',
+      effort: 'xhigh',
+    },
+  )
 } else {
   log('Keine Kritikpunkte — keine Überarbeitung nötig')
 }
 
 phase('Recheck')
-const RECHECK = { type: 'object', properties: { ok: { type: 'boolean' }, remaining: { type: 'array', items: { type: 'string' } }, openQuestions: { type: 'array', items: { type: 'string' } }, coverage: { type: 'string' }, summary: { type: 'string' } }, required: ['ok', 'remaining', 'openQuestions', 'coverage', 'summary'] }
-const recheck = await agent(`${COMMON}\n\nYou are the RECHECKER (read-only). Plan: ${PLAN}; findings: ${FINDINGS}. Confirm: (1) every blocker/major critique item below is incorporated in the plan text (quote the line) or rejected with a verifiable reason; (2) the Abdeckung table matches the phases and covers every confirmed blocker/major in the findings (count both sides); (3) every phase carries Depends on, Modell, Review-Tier, Gate and ≥1 testable criterion; (4) no placeholder markers; (5) the "Kritik" bullet list exists under Resolved decisions. Return ok=true only if all five hold; list what remains; copy the Open questions verbatim into openQuestions; put the coverage counts in coverage.\n\nCRITIQUE ITEMS:\n${JSON.stringify(all.filter((f) => f.severity !== 'minor'), null, 0)}\n\nPLANNER RESPONSE:\n${revision || '(no revision needed: zero critique items)'}`, {
-  label: 'recheck', phase: 'Recheck', schema: RECHECK, model: 'opus', effort: 'high',
-})
+const RECHECK = {
+  type: 'object',
+  properties: {
+    ok: { type: 'boolean' },
+    remaining: { type: 'array', items: { type: 'string' } },
+    openQuestions: { type: 'array', items: { type: 'string' } },
+    coverage: { type: 'string' },
+    summary: { type: 'string' },
+  },
+  required: ['ok', 'remaining', 'openQuestions', 'coverage', 'summary'],
+}
+const recheck = await agent(
+  `${COMMON}\n\nYou are the RECHECKER (read-only). Plan: ${PLAN}; findings: ${FINDINGS}. Confirm: (1) every blocker/major critique item below is incorporated in the plan text (quote the line) or rejected with a verifiable reason; (2) the Abdeckung table matches the phases and covers every confirmed blocker/major in the findings (count both sides); (3) every phase carries Depends on, Modell, Review-Tier, Gate and ≥1 testable criterion; (4) no placeholder markers; (5) the "Kritik" bullet list exists under Resolved decisions. Return ok=true only if all five hold; list what remains; copy the Open questions verbatim into openQuestions; put the coverage counts in coverage.\n\nCRITIQUE ITEMS:\n${JSON.stringify(
+    all.filter((f) => f.severity !== 'minor'),
+    null,
+    0,
+  )}\n\nPLANNER RESPONSE:\n${revision || '(no revision needed: zero critique items)'}`,
+  {
+    label: 'recheck',
+    phase: 'Recheck',
+    schema: RECHECK,
+    model: 'opus',
+    effort: 'high',
+  },
+)
 
 return { draft, sweep, critique: { counts, items: all }, revision, recheck }

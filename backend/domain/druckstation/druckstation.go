@@ -18,6 +18,20 @@ const (
 	KategorieAbholbon    Kategorie = "abholbon"
 )
 
+// AlleKategorien liefert alle fünf Druckstations-Kategorien als Strings. Sie
+// ist die einzige Quelle der Wertemenge; die OneOf-Validierung in
+// api/druck/station/http/handler.go liest von hier statt eigene Literale zu
+// führen.
+func AlleKategorien() []string {
+	return []string{
+		string(KategorieEssen),
+		string(KategorieGetraenk),
+		string(KategorieSonstiges),
+		string(KategorieKassenbeleg),
+		string(KategorieAbholbon),
+	}
+}
+
 // HatBonmodus meldet, ob die Station überhaupt einen Bonmodus trägt: die drei
 // Produktkategorien (essen, getraenk, sonstiges) und der Abholbon tragen einen,
 // nur der Kassenbeleg (ein einzelner Zahlungsbeleg) nicht. Welche Modi die

@@ -2,12 +2,11 @@ import type { ReactNode } from 'react'
 
 import { HeaderGlow, type SpektralFarbe } from './HeaderGlow'
 
-// Einheitlicher Seitenkopf aller acht Admin-Seiten (Design-Handoff, Abschnitte
-// 1a–1h): H1 24 px/700, darunter eine erklärende Unterzeile 14 px in
-// muted-foreground und rechts ein Aktions-Slot (etwa der Anlegen-Button).
-// Ersetzt die früheren losen H1 der einzelnen Seiten und den fixierten FAB.
-// Dahinter ein dekorativer Spektral-Glow (HeaderGlow); das optionale Farbpaar
-// variiert ihn je Seite, Default teal+violett.
+// Einheitlicher Seitenkopf aller acht Admin-Seiten: H1 24 px/700, darunter eine
+// erklärende Unterzeile 14 px in muted-foreground und rechts ein Aktions-Slot
+// (etwa der Anlegen-Button). Dahinter ein dekorativer Spektral-Glow
+// (HeaderGlow); das optionale Farbpaar variiert ihn je Seite, Default
+// teal+violett.
 export function AdminPageHeader({
   titel,
   unterzeile,

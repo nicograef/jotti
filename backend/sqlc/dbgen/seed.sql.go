@@ -224,8 +224,8 @@ type SeedInsertTSEStoerungParams struct {
 	Fehlertext string
 }
 
-// SeedInsertTSEStoerung schreibt einen abgeschlossenen Stoerungszeitraum des
-// Demo-Szenarios (aufgeloestes Ausfallfenster) ins Stoerungsprotokoll.
+// SeedInsertTSEStoerung schreibt einen abgeschlossenen Störungszeitraum des
+// Demo-Szenarios (aufgelöstes Ausfallfenster) ins Störungsprotokoll.
 func (q *Queries) SeedInsertTSEStoerung(ctx context.Context, arg SeedInsertTSEStoerungParams) error {
 	_, err := q.db.ExecContext(ctx, seedInsertTSEStoerung,
 		arg.Beginn,
@@ -395,12 +395,12 @@ RESTART IDENTITY CASCADE
 `
 
 // SeedTruncateAll leert alle Daten-Tabellen (Kassenjournal, Projektionen,
-// Stammdaten, TSE-Zustand) und setzt die IDENTITY-Sequenzen zurueck. Nur fuer
+// Stammdaten, TSE-Zustand) und setzt die IDENTITY-Sequenzen zurück. Nur für
 // den Test-Reset-Endpoint (POST /test/reset-and-seed); danach schreibt der
-// Seeder den Demo-Zustand neu. CASCADE loest die Fremdschluessel-Reihenfolge auf.
-// kassenidentitaet bleibt bewusst aussen vor: sie ist die einmalig bei der
-// DB-Migration eingebrannte Install-Identitaet (kein Demo-Datum, insert-once)
-// und wird ausserhalb der Migration nie neu geschrieben.
+// Seeder den Demo-Zustand neu. CASCADE löst die Fremdschlüssel-Reihenfolge auf.
+// kassenidentitaet bleibt bewusst außen vor: sie ist die einmalig bei der
+// DB-Migration eingebrannte Install-Identität (kein Demo-Datum, insert-once)
+// und wird außerhalb der Migration nie neu geschrieben.
 func (q *Queries) SeedTruncateAll(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, seedTruncateAll)
 	return err

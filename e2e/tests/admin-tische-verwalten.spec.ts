@@ -20,7 +20,9 @@ test.describe('Admin verwaltet Tische', () => {
     const newDialog = page.getByRole('dialog')
     await newDialog.getByLabel('Name').fill('Tisch 99')
     await newDialog.getByRole('button', { name: 'Tisch anlegen' }).click()
-    await expect(page.getByText('Tisch "Tisch 99" wurde angelegt.')).toBeVisible()
+    await expect(
+      page.getByText('Tisch "Tisch 99" wurde angelegt.'),
+    ).toBeVisible()
 
     // Die Kachel öffnet per Klick den Bearbeiten-Dialog.
     const tischKachel = page.getByRole('button', { name: /Tisch 99/ })

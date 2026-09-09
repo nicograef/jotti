@@ -38,7 +38,7 @@ export function DockActionButton({
         <span className="flex items-center gap-2">
           {/* Die Mengen-Pill poppt bei jeder Mengenänderung: der key-Wechsel
               remountet den Span, wodurch die pop-Animation neu startet. 250 ms
-              statt der kanonischen 350 ms gemäß Handoff-Delta. */}
+              statt der kanonischen 350 ms. */}
           <span
             key={anzahl}
             className="animate-pop rounded-full bg-primary-foreground/20 px-2 py-0.5 text-sm font-semibold tabular-nums [animation-duration:250ms]"

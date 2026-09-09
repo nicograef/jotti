@@ -1,12 +1,10 @@
 import { z } from 'zod'
 
+import { createNameSchema } from '@/lib/nameSchema'
 import { DateStringSchema } from '@/lib/utils'
 
 export const TischIdSchema = z.number().int().min(1)
-const TischNameSchema = z
-  .string()
-  .min(3, { message: 'Das sieht nicht nach einem echten Namen aus.' })
-  .max(100, { message: 'Der Name ist zu lang.' })
+const TischNameSchema = createNameSchema(100)
 
 export const TischStatus = {
   ACTIVE: 'active',

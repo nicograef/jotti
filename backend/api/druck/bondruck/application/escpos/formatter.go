@@ -9,6 +9,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/steuer"
+	"github.com/nicograef/jotti/backend/internal/zeit"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/charmap"
 )
@@ -44,7 +45,7 @@ const (
 	// TSEVermerkVoruebergehend: die TSE war bei der Erfassung nicht erreichbar;
 	// der Vorgang wird automatisch nachsigniert.
 	TSEVermerkVoruebergehend
-	// TSEVermerkKeineKonfiguration: fuer den Vorgang war keine TSE konfiguriert;
+	// TSEVermerkKeineKonfiguration: für den Vorgang war keine TSE konfiguriert;
 	// er wird nicht nachsigniert.
 	TSEVermerkKeineKonfiguration
 )
@@ -63,7 +64,7 @@ type TSEAbschnitt struct {
 	Nachsigniert bool
 }
 
-// FormatPositionBon generiert einen Bon fuer eine einzelne Position (Standard-Bonmodus).
+// FormatPositionBon generiert einen Bon für eine einzelne Position (Standard-Bonmodus).
 func FormatPositionBon(
 	pos kasse.Position,
 	tischName string,
@@ -89,14 +90,14 @@ func FormatPositionBon(
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
-	// Position - doppelte Hoehe, fett, zentriert
+	// Position - doppelte Höhe, fett, zentriert
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
 	buf.WriteString(toWPC1252(fmt.Sprintf("%dx %s\n", pos.Menge, pos.Bezeichnung())))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
-	// Kommentar (optional) - fett, linksbuendig
+	// Kommentar (optional) - fett, linksbündig
 	if kommentar != "" {
 		buf.WriteString("\n")
 		buf.WriteString(AlignLeft)
@@ -110,16 +111,16 @@ func FormatPositionBon(
 	buf.WriteString(AlignLeft)
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
-	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n", zeitpunkt.Format("15:04"), truncate(userName, 24))))
+	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n", zeitpunkt.In(zeit.Berlin).Format("15:04"), truncate(userName, 24))))
 
-	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm ueber dem Druckkopf)
+	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm über dem Druckkopf)
 	buf.WriteString(strings.Repeat("\n", 5))
 	buf.WriteString(CutPaper)
 
 	return buf.Bytes()
 }
 
-// FormatSammelBon generiert einen Bon fuer alle Positionen einer Kategorie (optionaler Bonmodus).
+// FormatSammelBon generiert einen Bon für alle Positionen einer Kategorie (optionaler Bonmodus).
 func FormatSammelBon(
 	positionen []kasse.Position,
 	tischName string,
@@ -145,7 +146,7 @@ func FormatSammelBon(
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
-	// Positionen - doppelte Hoehe, fett, linksbuendig
+	// Positionen - doppelte Höhe, fett, linksbündig
 	buf.WriteString(AlignLeft)
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
@@ -170,7 +171,7 @@ func FormatSammelBon(
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
 	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n",
-		zeitpunkt.Format("15:04"),
+		zeitpunkt.In(zeit.Berlin).Format("15:04"),
 		truncate(userName, 24),
 	)))
 
@@ -211,7 +212,7 @@ func FormatTestbon(stationsName string, zeitpunkt time.Time) []byte {
 	buf.WriteString("\n")
 
 	buf.WriteString(toWPC1252(fmt.Sprintf("Station: %s\n", stationsName)))
-	buf.WriteString(toWPC1252(fmt.Sprintf("%s\n", zeitpunkt.Format("02.01.2006 15:04:05"))))
+	buf.WriteString(toWPC1252(fmt.Sprintf("%s\n", zeitpunkt.In(zeit.Berlin).Format("02.01.2006 15:04:05"))))
 	buf.WriteString("\n")
 	buf.WriteString(toWPC1252("Drucker und Netzwerk funktionieren.\n"))
 
@@ -248,14 +249,14 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString("\n")
 
 	buf.WriteString(AlignLeft)
-	fmt.Fprintf(&buf, "Datum: %s\n", data.Zeitpunkt.Format("02.01.2006 15:04"))
+	fmt.Fprintf(&buf, "Datum: %s\n", data.Zeitpunkt.In(zeit.Berlin).Format("02.01.2006 15:04"))
 	fmt.Fprintf(&buf, "Bon-Nr: %s\n", data.Belegnummer)
 	if data.StornoZuBelegnummer != "" {
 		fmt.Fprintf(&buf, "Storno zu Bon-Nr: %s\n", data.StornoZuBelegnummer)
 	}
 	fmt.Fprintf(&buf, "Kassen-ID: %s\n", data.KassenSeriennummer)
 	if data.ErsteBestellungZeitpunkt != nil {
-		fmt.Fprintf(&buf, "Erste Bestellung: %s\n", data.ErsteBestellungZeitpunkt.Format("02.01.2006 15:04:05"))
+		fmt.Fprintf(&buf, "Erste Bestellung: %s\n", data.ErsteBestellungZeitpunkt.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
 	}
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
@@ -295,13 +296,13 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		fmt.Fprintf(&buf, "  TSE-Transaktion: %d\n", data.TSE.TransaktionNr)
 		fmt.Fprintf(&buf, "  Signaturzaehler: %d\n", data.TSE.Signaturzaehler)
 		fmt.Fprintf(&buf, "  TSE-Seriennummer: %s\n", data.TSE.TSESeriennummer)
-		fmt.Fprintf(&buf, "  TSE-Start: %s\n", data.TSE.ZeitpunktBeginn.Format("02.01.2006 15:04:05"))
-		fmt.Fprintf(&buf, "  TSE-Ende: %s\n", data.TSE.ZeitpunktEnde.Format("02.01.2006 15:04:05"))
+		fmt.Fprintf(&buf, "  TSE-Start: %s\n", data.TSE.ZeitpunktBeginn.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
+		fmt.Fprintf(&buf, "  TSE-Ende: %s\n", data.TSE.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
 		buf.WriteString(toWPC1252("  Signatur: "))
 		buf.WriteString(toWPC1252(wrapLine(data.TSE.Signatur, lineWidth-2)))
 		buf.WriteByte('\n')
 		if data.TSE.Nachsigniert {
-			fmt.Fprintf(&buf, toWPC1252("  Nachsigniert am %s\n"), data.TSE.ZeitpunktEnde.Format("02.01.2006 15:04:05"))
+			fmt.Fprintf(&buf, toWPC1252("  Nachsigniert am %s\n"), data.TSE.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
 			buf.WriteString(toWPC1252("  (TSE war bei der Erfassung nicht erreichbar)\n"))
 		}
 
@@ -373,7 +374,7 @@ func toWPC1252(s string) string {
 	return encoded
 }
 
-// truncate kuerzt einen String auf maxLen Runen (inkl. Auslassungszeichen)
+// truncate kürzt einen String auf maxLen Runen (inkl. Auslassungszeichen)
 // und schneidet dabei nie mitten in einer Rune.
 func truncate(s string, maxLen int) string {
 	runes := []rune(s)
@@ -438,11 +439,13 @@ func steuerKennzeichenAusSatz(satz steuer.Steuersatz) string {
 	}
 }
 
-// steuerMatrixLabel gibt die Bezeichnung fuer eine Steuermatrix-Zeile mit
-// Prozentsatz bzw. Befreiungshinweis gemaess KassenSichV § 6 Satz 1 Nr. 5
+// steuerMatrixLabel gibt die Bezeichnung für eine Steuermatrix-Zeile mit
+// Prozentsatz bzw. Befreiungshinweis gemäß KassenSichV § 6 Satz 1 Nr. 5
 // ("den anzuwendenden Steuersatz oder im Fall einer Steuerbefreiung einen
-// Hinweis darauf, dass fuer die Lieferung oder sonstige Leistung eine
-// Steuerbefreiung gilt").
+// Hinweis darauf, dass für die Lieferung oder sonstige Leistung eine
+// Steuerbefreiung gilt"). steuer.Steuermatrix() teilt jede Kombi-Position
+// bereits in ihre Regel-/Ermaessigt-Anteile auf, bevor sie summiert — eine
+// Zeile mit Satz Kombi erreicht diese Funktion nie.
 func steuerMatrixLabel(satz steuer.Steuersatz) string {
 	switch satz {
 	case steuer.RegelSteuersatz:
@@ -451,8 +454,6 @@ func steuerMatrixLabel(satz steuer.Steuersatz) string {
 		return "B (7 %)"
 	case steuer.BefreitSteuersatz:
 		return "C (umsatzsteuerfrei)"
-	case steuer.KombiSteuersatz:
-		return "A/B"
 	default:
 		return "?"
 	}

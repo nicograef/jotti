@@ -33,7 +33,7 @@ e) das Recht, den Beitrag in **abgeleitete Werke** einzubeziehen und diese unter
 ### 2. Urheberrecht
 
 a) Die beitragende Person **behält das Urheberrecht** an ihrem Beitrag.
-b) Die der beitragenden Person gewährten Rechte nach Abschnitt 1 sind **unwiderruflich** und können nicht zurückgenommen werden.
+b) Die dem Autor nach Abschnitt 1 gewährten Rechte sind **unwiderruflich** und können von der beitragenden Person nicht zurückgenommen werden.
 c) Die beitragende Person verzichtet — soweit gesetzlich zulässig — auf die Geltendmachung von **Urheberpersönlichkeitsrechten** gegenüber dem Autor in Bezug auf den Beitrag.
 
 ### 3. Zusicherungen der beitragenden Person

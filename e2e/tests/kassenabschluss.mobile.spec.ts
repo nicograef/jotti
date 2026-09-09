@@ -8,6 +8,7 @@ import {
   kassierePosition,
   oeffneTisch,
   settleAlleOffenenTische,
+  tischSaldo,
 } from '../support/servicekraft'
 
 // Kassenabschluss: die Spec erzeugt selbst einen frischen Umsatz (Bestellung,
@@ -42,11 +43,9 @@ test.describe('Kassenabschluss beendet die laufende Kassensitzung', () => {
     await oeffneTisch(page, TISCH)
     await bestellePosition(page, 'Kaffee', 'Tasse') // 2,00 €
     await kassierePosition(page, 'Kaffee Tasse')
-    // Saldo-Element im Tisch-Header ([data-slot="tisch-saldo"], siehe
-    // TablePage): der Tisch ist nach dem Kassieren ausgeglichen.
-    await expect(page.locator('[data-slot="tisch-saldo"]')).toHaveText(
-      '0,00 €',
-    )
+    // Saldo im Tisch-Header (tischSaldo, siehe TablePage): der Tisch ist
+    // nach dem Kassieren ausgeglichen.
+    await expect(tischSaldo(page)).toHaveText('0,00 €')
 
     // Alle übrigen, vom Drehbuch offen gelassenen Tische ausgleichen, damit
     // der Kassenabschluss nicht am „tische_saldo_offen"-Gate scheitert.

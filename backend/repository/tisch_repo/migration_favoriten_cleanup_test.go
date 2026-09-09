@@ -21,7 +21,7 @@ func erstelleTisch(t *testing.T, repo Repository, name string, status tisch.Stat
 	t.Helper()
 
 	now := time.Now().UTC()
-	id, err := repo.CreateTable(context.Background(), tisch.Tisch{
+	id, err := repo.CreateTisch(context.Background(), tisch.Tisch{
 		Name: name, Status: status, CreatedAt: now, UpdatedAt: now,
 	})
 	if err != nil {

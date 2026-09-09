@@ -31,40 +31,40 @@ import {
   formatDruckfehler,
   hatBonmodus,
   type Kategorie,
-  KATEGORIE_LABEL,
+  STATION_KATEGORIE_LABEL,
   validateDruckerIp,
 } from './DruckstationBackend'
 import { useDruckstationen, useFehlgeschlageneDruckauftraege } from './hooks'
 
-// Kurzbeschreibung und Label je Station (Handoff 1g); das Label kommt aus dem
-// geteilten KATEGORIE_LABEL des Backends (Single Source of Truth).
+// Kurzbeschreibung und Label je Station; das Label kommt aus dem
+// geteilten STATION_KATEGORIE_LABEL des Backends (Single Source of Truth).
 const KATEGORIE_INFO: Record<
   Kategorie,
   { label: string; beschreibung: string }
 > = {
   essen: {
-    label: KATEGORIE_LABEL.essen,
+    label: STATION_KATEGORIE_LABEL.essen,
     beschreibung: 'Bons für die Essensausgabe',
   },
   getraenk: {
-    label: KATEGORIE_LABEL.getraenk,
+    label: STATION_KATEGORIE_LABEL.getraenk,
     beschreibung: 'Bons für den Ausschank',
   },
   sonstiges: {
-    label: KATEGORIE_LABEL.sonstiges,
+    label: STATION_KATEGORIE_LABEL.sonstiges,
     beschreibung: 'Bons für sonstige Positionen',
   },
   kassenbeleg: {
-    label: KATEGORIE_LABEL.kassenbeleg,
+    label: STATION_KATEGORIE_LABEL.kassenbeleg,
     beschreibung: 'Beleg für Gäste',
   },
   abholbon: {
-    label: KATEGORIE_LABEL.abholbon,
+    label: STATION_KATEGORIE_LABEL.abholbon,
     beschreibung: 'Abholnummern beim Direktverkauf',
   },
 }
 
-// Die Bonmodus-Optionen mit erklärendem Untertitel (Handoff 1g). „Pro Stück"
+// Die Bonmodus-Optionen mit erklärendem Untertitel. „Pro Stück"
 // erscheint nur am Abholbon (siehe erlaubtBonmodus) und füllt dort als dritte
 // Kachel die zweite Zeile des Rasters.
 const BONMODUS_OPTIONEN: { wert: Bonmodus; titel: string; hinweis: string }[] =
@@ -455,7 +455,7 @@ function AlarmKarte() {
 
   // Der Warntext folgt der tatsächlichen Bon-Art: nur Arbeitsbons landen in der
   // Küche/an der Theke; ein Kassenbeleg (Gäste-Beleg) oder Testbon darf nicht
-  // als Küchenproblem beschrieben werden (NEU02).
+  // als Küchenproblem beschrieben werden.
   const anzahl = druckauftraege.length
   const { singular, plural, kuecheBetroffen } = beschreibeFehlBons(
     druckauftraege.map((auftrag) => auftrag.bonArt),

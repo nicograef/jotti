@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import {
   Drawer,
   DrawerBody,
@@ -9,23 +10,20 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { BackendSingleton } from '@/lib/Backend'
 import { formatEuro } from '@/lib/utils'
 
 import {
   AKTIVE_TISCHE_MIT_FAVORITEN_KEY,
   MEINE_TISCHE_STATE_KEY,
+  tischBackend,
   useAktiveTischeMitFavoriten,
 } from '../table/hooks'
 import type { AktiverTischMitFavorit } from '../table/Tisch'
-import { TischBackend } from '../table/TischBackend'
-
-const tischBackend = new TischBackend(BackendSingleton)
 
 // Reihenfolge im Alle-Tische-Drawer: durchgehend nach Tischname mit
 // numerischem Vergleich („Tisch 2" vor „Tisch 10"). Favoriten und Saldo
-// werden pro Zeile weiter angezeigt, aber nicht mehr zur Sortierung genutzt —
-// so bleibt die Reihenfolge stabil und vorhersehbar. Reine Darstellungs-
+// werden pro Zeile angezeigt, fließen aber nicht in die Sortierung ein — so
+// bleibt die Reihenfolge stabil und vorhersehbar. Reine Darstellungs-
 // sortierung bereits vollständig geladener Daten.
 function sortiereTische(
   a: AktiverTischMitFavorit,
@@ -45,13 +43,13 @@ export function TischAuswahlDrawer({
 }: TischAuswahlDrawerProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { tische } = useAktiveTischeMitFavoriten()
+  const { tische, isError, refetch } = useAktiveTischeMitFavoriten()
   const { loading: favoritLoading, run: runToggleFavorit } = useActionSubmit({
     actionLabel: 'Favorit ändern',
   })
 
-  // Reine Durchblätter-/Favorisier-Liste — die Suche über alle Tische liegt
-  // jetzt auf der Hauptseite (TableSelectionPage), kein zweites Suchfeld hier.
+  // Reine Durchblätter-/Favorisier-Liste — die Suche über alle Tische ist Teil
+  // der Hauptseite (TableSelectionPage), kein zweites Suchfeld hier.
   const sortierteTische = [...tische].sort(sortiereTische)
 
   const toggleFavorit = async (tisch: AktiverTischMitFavorit) => {
@@ -80,6 +78,16 @@ export function TischAuswahlDrawer({
           <DrawerTitle>Alle Tische</DrawerTitle>
         </DrawerHeader>
         <DrawerBody className="flex flex-col gap-0 px-4 pb-6">
+          {/* Expliziter Fehlerzustand statt der leeren Liste — sonst wirkt es,
+              als gäbe es keinen aktiven Tisch. */}
+          {isError && (
+            <LadefehlerAlert
+              titel="Tische konnten nicht geladen werden"
+              onErneutVersuchen={() => {
+                void refetch()
+              }}
+            />
+          )}
           {sortierteTische.map((tisch) => (
             <div
               key={tisch.id}

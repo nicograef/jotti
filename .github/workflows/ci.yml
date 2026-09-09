@@ -56,7 +56,7 @@ jobs:
 
   backend-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.backend == 'true' }}
+    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -103,7 +103,7 @@ jobs:
 
   backend-golangci:
     needs: changes
-    if: ${{ needs.changes.outputs.backend == 'true' }}
+    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -116,16 +116,28 @@ jobs:
           cache-dependency-path: backend/go.sum
 
       # Version pinned to the local toolchain (scripts/setup-dev-tools.sh) so a
-      # green CI and a green `make verify` mean the same thing (D13).
-      - name: golangci-lint
+      # green CI and a green `make verify` mean the same thing (D13). Two
+      # passes, matching `make check-backend` / `make lint-backend-full`:
+      # --build-tags=unit is merged with backend/.golangci.yml's default, so
+      # the second pass loads [integration unit] — a superset of the first.
+      # The integration-only pass is kept because whole-program linters (e.g.
+      # unused) judge each file set on its own.
+      - name: golangci-lint (integration)
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.13.0
           working-directory: ./backend
 
+      - name: golangci-lint (unit)
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.13.0
+          working-directory: ./backend
+          args: --build-tags=unit
+
   resolver-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.resolver == 'true' }}
+    if: ${{ (needs.changes.outputs.resolver == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -172,7 +184,7 @@ jobs:
 
   local-proxy-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.proxy == 'true' }}
+    if: ${{ (needs.changes.outputs.proxy == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -219,7 +231,7 @@ jobs:
 
   windows-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.windows == 'true' }}
+    if: ${{ (needs.changes.outputs.windows == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -273,7 +285,7 @@ jobs:
 
   frontend-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    if: ${{ (needs.changes.outputs.frontend == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -295,8 +307,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # `make check-format` covers the whole repo, not just frontend/.
       - name: Check formatting
-        run: pnpm run format:check
+        working-directory: ${{ github.workspace }}
+        run: make check-format
 
       - name: Run lint
         run: pnpm run lint
@@ -309,7 +323,7 @@ jobs:
 
   website-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.website == 'true' }}
+    if: ${{ (needs.changes.outputs.website == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -334,17 +348,54 @@ jobs:
 
   shellcheck-ci:
     needs: changes
-    if: ${{ needs.changes.outputs.scripts == 'true' }}
+    if: ${{ (needs.changes.outputs.scripts == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
       - name: Run shellcheck
-        run: shellcheck scripts/*.sh
+        run: shellcheck -x scripts/*.sh
+
+  # Repo-wide gates that don't belong to a single component: the check-*.sh
+  # scripts (build tags, language, prose, links, time zones) and the
+  # repo-wide Prettier check, which otherwise only runs inside frontend-ci
+  # and so never runs on a docs-only pull request. Runs unconditionally —
+  # every gate here reads the whole tree, so no path filter narrows it
+  # correctly.
+  repo-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: 1.27.1
+          cache-dependency-path: backend/go.sum
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.6.0
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run repo checks
+        run: make check-repo
+
+      - name: Check formatting
+        run: make check-format
 
   backend-integration-tests:
     needs: changes
-    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') }}
+    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -356,7 +407,7 @@ jobs:
         ports:
           - 5432:5432
         # Health check over TCP instead of the unix socket: during initialization
-        # postgres:17 runs a temporary socket-only server that is restarted
+        # the postgres image runs a temporary socket-only server that is restarted
         # afterwards; only the final server accepts TCP connections. Matches the
         # startup-race hardening in scripts/test-integration.sh.
         options: >-
@@ -510,7 +561,6 @@ jobs:
   # every push to main; on failure, traces and screenshots are uploaded as
   # artefacts.
   e2e:
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

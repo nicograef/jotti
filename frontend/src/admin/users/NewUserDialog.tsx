@@ -4,11 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import {
-  NameField,
-  RoleField,
-  UsernameField,
-} from '@/components/common/FormFields'
+import { NameField, UsernameField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,6 +21,7 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
+import { RoleField } from './RoleField'
 import { type User, UserRole } from './User'
 import { CreateUserSchema, UserBackend } from './UserBackend'
 

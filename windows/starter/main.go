@@ -86,7 +86,7 @@ func run() int {
 		ensureFirewall()
 	} else {
 		// Linux-Dev-Lauf: ohne Docker-Daemon-Garantie und ohne Volume bleibt die
-		// .env ordnerlokal und wird nur erzeugt, wenn sie fehlt (wie bisher).
+		// .env ordnerlokal und wird nur erzeugt, wenn sie fehlt.
 		created, err := core.MaterializeEnv(envPath, fileExists, writeEnvFile)
 		if err != nil {
 			fmt.Printf("Konfiguration (.env) konnte nicht erstellt werden: %v\n", err)
@@ -235,7 +235,7 @@ func fileExists(path string) (bool, error) {
 // Sicherheitswarnung.
 func printSuccess() {
 	fmt.Println()
-	fmt.Printf("jotti Starter %s — jotti laeuft.\n\n", version)
+	fmt.Printf("jotti Starter %s - jotti laeuft.\n\n", version)
 	fmt.Println("Status & Zugangsadresse: http://localhost:8484")
 	fmt.Println("  Dort stehen die Zugangsadresse fuers WLAN und ein QR-Code fuer die Helfer-Handys.")
 	if runtime.GOOS == "windows" {

@@ -55,7 +55,7 @@ func ensureDocker() string {
 	}
 
 	if osType == "windows" {
-		fmt.Println("Docker laeuft im Windows-Container-Modus — schalte auf Linux-Container um ...")
+		fmt.Println("Docker laeuft im Windows-Container-Modus - schalte auf Linux-Container um ...")
 		if err := switchToLinuxEngine(); err != nil {
 			return core.DiagnoseEngineSwitchFehlgeschlagen
 		}
@@ -111,7 +111,7 @@ func switchToLinuxEngine() error {
 // — wenn ermittelbar — exaktem Verursacher.
 func checkPorts(composePath string) string {
 	if reverseProxyRunning(composePath) {
-		fmt.Println("Der jotti-Stack laeuft bereits — Start ist idempotent.")
+		fmt.Println("Der jotti-Stack laeuft bereits - Start ist idempotent.")
 		return ""
 	}
 
@@ -248,7 +248,7 @@ func addFirewallRule() error {
 func detectLANIP() string {
 	ip, err := core.SelectLANIP(outboundIP(), localInterfaces())
 	if err != nil {
-		fmt.Printf("Hinweis: LAN-IP konnte nicht ermittelt werden (%v) — die Zugangsadresse fuers WLAN "+
+		fmt.Printf("Hinweis: LAN-IP konnte nicht ermittelt werden (%v) - die Zugangsadresse fuers WLAN "+
 			"erscheint erst, sobald eine LAN-IP erkannt wird.\n", err)
 		return ""
 	}

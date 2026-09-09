@@ -11,8 +11,8 @@
 //
 // Die App folgt der Systempräferenz (Theme-Default „system", siehe
 // frontend `theme-provider.tsx`): Playwrights `emulateMedia({ colorScheme })`
-// kippt `data-theme` auf `<html>` — ein eigener Theme-Schalter-State ist NICHT
-// nötig (offene Frage aus Phase 9 verifiziert).
+// löst die `light`/`dark`-Klasse auf `<html>` aus — ein eigener
+// Theme-Schalter-State ist nicht nötig.
 //
 // BASE-URL-agnostisch über E2E_BASE_URL (wie die e2e-Suite, siehe
 // `e2e/playwright.config.ts`): Default ist der Compose-Stack auf
@@ -49,9 +49,11 @@ import {
 const repoRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)))
 const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:8080'
 const SHOT_OUT =
-  process.env.SHOT_OUT ?? join(repoRoot, 'website', 'src', 'assets', 'screenshots')
+  process.env.SHOT_OUT ??
+  join(repoRoot, 'website', 'src', 'assets', 'screenshots')
 const OG_OUT =
-  process.env.OG_OUT ?? join(repoRoot, 'website', 'src', 'assets', 'og-startseite.png')
+  process.env.OG_OUT ??
+  join(repoRoot, 'website', 'src', 'assets', 'og-startseite.png')
 
 const mode = process.argv[2] ?? 'all'
 
@@ -88,7 +90,10 @@ async function login(context, zugangsdaten) {
 // Direktverkauf und das Sidebar-Layout der Admin-Motive. Damit zeigen `produkte`
 // (Tablet) und `produktverwaltung` (Desktop) bewusst dasselbe Design auf zwei
 // Geräteklassen.
-const tabletLandscape = { viewport: { width: 1194, height: 834 }, deviceScaleFactor: 2 }
+const tabletLandscape = {
+  viewport: { width: 1194, height: 834 },
+  deviceScaleFactor: 2,
+}
 
 async function captureApp() {
   mkdirSync(SHOT_OUT, { recursive: true })
@@ -99,7 +104,10 @@ async function captureApp() {
     await apiContext.close()
 
     // ---- Service-Motive (Handy, Servicekraft „maria") ----
-    const phone = await browser.newContext({ baseURL: BASE, ...devices['Pixel 7'] })
+    const phone = await browser.newContext({
+      baseURL: BASE,
+      ...devices['Pixel 7'],
+    })
     const p = await login(phone, zugangsdaten.service)
 
     // Tischübersicht („Meine Tische")
@@ -120,7 +128,8 @@ async function captureApp() {
     await oeffneTisch(p, 'Tisch 2')
     await p.getByRole('tab', { name: 'Kassieren' }).click()
     const vonAnderen = p.getByRole('button', { name: /^Von anderen ·/ })
-    if (await vonAnderen.isVisible().catch(() => false)) await vonAnderen.click()
+    if (await vonAnderen.isVisible().catch(() => false))
+      await vonAnderen.click()
     await waehleAlleVollAus(p)
     await p.getByRole('button', { name: /Kassieren/ }).click()
     const zahlungDrawer = p.getByRole('dialog')
@@ -132,7 +141,10 @@ async function captureApp() {
     // ---- Direktverkauf (Querformat-Tablet, Split-Screen, Servicekraft „maria") ----
     // Ab lg (1024 px) rendert der Service-Bereich zweispaltig (ADR 08): links die
     // Produktauswahl, rechts die dauerhaft sichtbare Beleg-/Kassieren-Spalte.
-    const tabletService = await browser.newContext({ baseURL: BASE, ...tabletLandscape })
+    const tabletService = await browser.newContext({
+      baseURL: BASE,
+      ...tabletLandscape,
+    })
     const dv = await login(tabletService, zugangsdaten.service)
     await dv.goto('/service/direktverkauf')
     await dv.getByRole('tab', { name: 'Verkaufen' }).waitFor()
@@ -144,7 +156,10 @@ async function captureApp() {
     await tabletService.close()
 
     // ---- Stornierung (Handy, Serviceleitung „felix") ----
-    const phoneSL = await browser.newContext({ baseURL: BASE, ...devices['Pixel 7'] })
+    const phoneSL = await browser.newContext({
+      baseURL: BASE,
+      ...devices['Pixel 7'],
+    })
     const sl = await login(phoneSL, zugangsdaten.serviceleitung)
     // „Tisch 15" ist im Sonntags-Drehbuch unbenutzt (wie in der Storno-Spec).
     await oeffneTisch(sl, 'Tisch 15')
@@ -170,7 +185,10 @@ async function captureApp() {
     await phoneSL.close()
 
     // ---- Admin-Motive (Querformat-Tablet, Admin „thomas") ----
-    const tabletAdmin = await browser.newContext({ baseURL: BASE, ...tabletLandscape })
+    const tabletAdmin = await browser.newContext({
+      baseURL: BASE,
+      ...tabletLandscape,
+    })
     const pa = await login(tabletAdmin, zugangsdaten.admin)
 
     await pa.goto('/admin/produkte')
@@ -221,7 +239,10 @@ async function captureApp() {
 async function captureOg() {
   // Website bauen, damit dist/ den neuen Hero mit den echten Screenshots enthält.
   console.log('Baue Website (make website-build) …')
-  const build = spawnSync('make', ['website-build'], { cwd: repoRoot, stdio: 'inherit' })
+  const build = spawnSync('make', ['website-build'], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+  })
   if (build.status !== 0) throw new Error('make website-build fehlgeschlagen')
 
   const { startStaticServer } = await import('./csp-server.mjs')

@@ -65,7 +65,7 @@ describe('LiveReportingSection — Übersicht', () => {
       screen.getByText('bereits bezahlt, Stornos abgezogen'),
     ).toBeInTheDocument()
 
-    // Nebenkarten mit Handoff-Unterzeilen.
+    // Nebenkarten mit erklärenden Unterzeilen.
     expect(screen.getByText('Noch offen')).toBeInTheDocument()
     expect(screen.getByText('Bestellt gesamt')).toBeInTheDocument()
     expect(screen.getByText('bezahlt + offen zusammen')).toBeInTheDocument()

@@ -20,13 +20,14 @@ export const KassensitzungEroeffnenSchema = z.object({
   betragCents: BetragCentsSchema,
 })
 
-// Die offene Kassensitzung liefert zusätzlich den Eröffnungszeitpunkt
-// (eroeffnetAm, RFC-3339), den die abgeschlossenen Sitzungen im Reporting nicht
-// mitgeben — daher eine eigene Erweiterung der kanonischen KassensitzungSchema.
-export const OffeneKassensitzungSchema = KassensitzungSchema.extend({
+// Die aktive Kassensitzung (offen oder wird_abgeschlossen) liefert zusätzlich den
+// Eröffnungszeitpunkt (eroeffnetAm, RFC-3339), den die abgeschlossenen Sitzungen
+// im Reporting nicht mitgeben — daher eine eigene Erweiterung der kanonischen
+// KassensitzungSchema.
+export const AktiveKassensitzungSchema = KassensitzungSchema.extend({
   eroeffnetAm: z.string(),
 })
-export type OffeneKassensitzung = z.infer<typeof OffeneKassensitzungSchema>
+export type AktiveKassensitzung = z.infer<typeof AktiveKassensitzungSchema>
 
 export const GeldtransitBuchenSchema = z.object({
   geldtransitId: z.uuid(),
@@ -108,11 +109,11 @@ export class KasseBackend {
     )
   }
 
-  async getOffeneKassensitzung(): Promise<OffeneKassensitzung | null> {
+  async getAktiveKassensitzung(): Promise<AktiveKassensitzung | null> {
     const data = await this.backend.post(
-      'admin/get-offene-kassensitzung',
+      'admin/get-aktive-kassensitzung',
       {},
-      OffeneKassensitzungSchema.nullable(),
+      AktiveKassensitzungSchema.nullable(),
     )
     return data
   }

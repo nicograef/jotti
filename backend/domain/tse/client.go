@@ -23,10 +23,10 @@ var ErrTransactionNichtGefunden = errors.New("tse transaction not found")
 
 // AuftragsFehler kennzeichnet einen auftragsspezifischen Signierfehler: Die
 // TSE arbeitet, nur dieser eine Vorgang wird abgelehnt (etwa von fiskaly
-// zurueckgewiesene processData). Der Signatur-Worker verbucht dafuer einen
-// Fehlversuch am Auftrag und ueberspringt ihn — ein Gift-Auftrag staut nie
+// zurückgewiesene processData). Der Signatur-Worker verbucht dafür einen
+// Fehlversuch am Auftrag und überspringt ihn — ein Gift-Auftrag staut nie
 // die Queue. Jeder nicht so gekennzeichnete Fehler gilt als TSE-weit: Er
-// bricht den Durchlauf ab und schaltet den Worker in den Stoerungszustand.
+// bricht den Durchlauf ab und schaltet den Worker in den Störungszustand.
 type AuftragsFehler struct {
 	Err error
 }
@@ -62,18 +62,18 @@ func (c Credentials) Validate() error {
 	return nil
 }
 
-// TSEClient bildet das atomare Transaktionsmuster ab: Start eroeffnet die
+// TSEClient bildet das atomare Transaktionsmuster ab: Start eröffnet die
 // Transaktion (processType/processData sind laut DSFinV-K bei Start immer
-// leer), Finish schliesst sie mit dem finalen Schema ab. Beide Aufrufe
-// adressieren die Transaktion ueber die von jotti erzeugte tx-ID (UUIDv4).
+// leer), Finish schließt sie mit dem finalen Schema ab. Beide Aufrufe
+// adressieren die Transaktion über die von jotti erzeugte tx-ID (UUIDv4).
 type TSEClient interface {
 	StartTransaction(ctx context.Context, txID string) (StartResult, error)
 	FinishTransaction(ctx context.Context, txID string, processType string, processData string) (FinishResult, error)
 }
 
-// ConnectionTester prueft eine konfigurierte TSE. TestConnection ist die volle
+// ConnectionTester prüft eine konfigurierte TSE. TestConnection ist die volle
 // Diagnose (TSS- und Client-Abruf, Seriennummer); Umgebung ist der leichte Pfad
-// fuer reine Statusanzeigen und kommt allein aus dem Auth-Token, ohne TSS-/
+// für reine Statusanzeigen und kommt allein aus dem Auth-Token, ohne TSS-/
 // Client-Abruf.
 type ConnectionTester interface {
 	TestConnection(ctx context.Context) (VerbindungStatus, error)
@@ -122,7 +122,7 @@ type FinishResult struct {
 
 // VerbindungStatus ist das Ergebnis des Verbindungstests. Umgebung, TSSState,
 // ClientState und ClientSerialNumber werden von der Repository-Schicht aus den
-// fiskaly-Antworten befuellt. SeriennummerKorrekt setzt die Application-Schicht,
+// fiskaly-Antworten befüllt. SeriennummerKorrekt setzt die Application-Schicht,
 // die die jotti-Kassen-Seriennummer kennt und sie mit der Client-serial_number
 // abgleicht.
 type VerbindungStatus struct {

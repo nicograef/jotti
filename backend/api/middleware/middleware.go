@@ -77,9 +77,9 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// RecoveryMiddleware faengt Panics aus Handlern ab: Der Request endet mit 500
+// RecoveryMiddleware fängt Panics aus Handlern ab: Der Request endet mit 500
 // im bestehenden Fehler-Response-Format statt mit einer abgerissenen Verbindung
-// (net/http wuerde nur die Verbindung schliessen), der Stack landet im Log.
+// (net/http würde nur die Verbindung schließen), der Stack landet im Log.
 // http.ErrAbortHandler wird durchgereicht — das ist das idiomatische Signal von
 // net/http, eine Response bewusst abzubrechen.
 func RecoveryMiddleware(next http.Handler) http.Handler {
@@ -224,13 +224,13 @@ func (rw *responseWriter) WriteHeader(code int) {
 }
 
 // Unwrap gibt den umschlossenen ResponseWriter frei. http.ResponseController
-// sucht genau diese Methode, um an die Faehigkeiten des echten
+// sucht genau diese Methode, um an die Fähigkeiten des echten
 // net/http-ResponseWriters zu kommen (SetWriteDeadline, SetReadDeadline,
 // Flush): Das eingebettete Interface allein reicht sie NICHT weiter, weil sie
-// nicht zum Methodenset von http.ResponseWriter gehoeren. Ohne Unwrap
+// nicht zum Methodenset von http.ResponseWriter gehören. Ohne Unwrap
 // scheitert hinter dieser Middleware jeder Controller-Aufruf mit "feature not
-// supported" — und da LoggingMiddleware die gesamte Routenkette umschliesst
-// (backend/app/app.go), betraefe das jeden Handler.
+// supported" — und da LoggingMiddleware die gesamte Routenkette umschließt
+// (backend/app/app.go), beträfe das jeden Handler.
 func (rw *responseWriter) Unwrap() http.ResponseWriter {
 	return rw.ResponseWriter
 }
@@ -266,7 +266,7 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 				return
 			}
 			token = token[len(bearerPrefix):]
-			userID, userName, _, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
+			userID, _, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
 			if err != nil {
 				logger.Error().Err(err).Msg("Invalid JWT token")
 				helper.SendUnauthorized(w, "invalid_jwt")
@@ -298,9 +298,11 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 				return
 			}
 
+			// Der Name im Context stammt aus dem Datensatz, nicht aus dem Token-Claim:
+			// ein umbenannter Benutzer erscheint im Kassenjournal unter dem heutigen Namen.
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, UserIDKey, userID)
-			ctx = context.WithValue(ctx, UserNameKey, userName)
+			ctx = context.WithValue(ctx, UserNameKey, u.Username)
 			h.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

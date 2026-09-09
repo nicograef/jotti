@@ -5,7 +5,7 @@
 INSERT INTO tse_signaturauftraege (event_id, tx_id, process_type, process_data, status, naechster_versuch_am, erstellt_am)
 VALUES ($1, $2, $3, $4, 'offen', NOW(), NOW());
 
--- GetOffeneTSESignaturauftraege liefert die faelligen offenen Auftraege in
+-- GetOffeneTSESignaturauftraege liefert die fälligen offenen Aufträge in
 -- Einreihungs-Reihenfolge (FIFO als Soll-Eigenschaft).
 -- name: GetOffeneTSESignaturauftraege :many
 SELECT id, tx_id, process_type, process_data
@@ -16,7 +16,7 @@ ORDER BY id ASC
 LIMIT $1;
 
 -- QuittiereTSESignaturauftrag schreibt die Signatur als einzelnes Update an den
--- Auftrag: Signaturspalten fuellen, Status erledigt. Der Status-Guard macht die
+-- Auftrag: Signaturspalten füllen, Status erledigt. Der Status-Guard macht die
 -- Quittierung idempotent (Signaturspalten werden genau einmal beschrieben).
 -- name: QuittiereTSESignaturauftrag :exec
 UPDATE tse_signaturauftraege
@@ -35,7 +35,7 @@ WHERE id = @id AND status = 'offen';
 -- Fehlversuch mit Sekunden-Backoff (5 * 3^versuche: 5, 15, 45 s). Beim
 -- max_versuche-ten Fehlversuch wechselt der Auftrag auf fehlgeschlagen und
 -- wird nicht mehr automatisch versucht — die Kurve endet bewusst unter der
--- Rueckstands-Schwelle, TSE-weite Fehler zaehlen nie auf den Auftrag.
+-- Rückstands-Schwelle, TSE-weite Fehler zählen nie auf den Auftrag.
 -- name: TSESignaturauftragFehlversuch :exec
 UPDATE tse_signaturauftraege
 SET versuche = versuche + 1,
@@ -45,24 +45,24 @@ SET versuche = versuche + 1,
 WHERE id = @id AND status = 'offen';
 
 -- MarkOffeneTSESignaturauftraegeNichtKonfiguriert markiert alle offenen
--- Auftraege endgueltig als tse_nicht_konfiguriert: ohne vorhandene
+-- Aufträge endgültig als tse_nicht_konfiguriert: ohne vorhandene
 -- TSE-Konfiguration gibt es keine Signatur, ein Nachsignieren ist ausgeschlossen
 -- (keine Fehlversuche, keine automatische Wiederaufnahme). Der Status-Guard
--- laesst bereits endgueltig markierte Auftraege unberuehrt. Zwei Schreiber: der
+-- lässt bereits endgültig markierte Aufträge unberührt. Zwei Schreiber: der
 -- Signatur-Worker (Dauerzustand ohne Konfiguration) und der Einrichtungs-Sweep
--- (Uebergang zu konfiguriert, in derselben Transaktion wie das Speichern).
+-- (Übergang zu konfiguriert, in derselben Transaktion wie das Speichern).
 -- name: MarkOffeneTSESignaturauftraegeNichtKonfiguriert :execrows
 UPDATE tse_signaturauftraege
 SET status = 'tse_nicht_konfiguriert'
 WHERE status = 'offen';
 
 -- GetTSESignaturQueueZustand berechnet den Zustand der Signatur-Queue in einem
--- Durchlauf: offene Auftraege, das Alter des aeltesten offenen Auftrags
--- (Rueckstand) sowie Durchsatz (Signaturen pro Minute) und Latenz (Signierdauer
--- p95, erstellt_am -> TSE-logTime) ueber ein gleitendes 15-Minuten-Fenster —
--- diese Kennzahlen global. Die fehlgeschlagenen Auftraege dagegen zaehlen nur
+-- Durchlauf: offene Aufträge, das Alter des ältesten offenen Auftrags
+-- (Rückstand) sowie Durchsatz (Signaturen pro Minute) und Latenz (Signierdauer
+-- p95, erstellt_am -> TSE-logTime) über ein gleitendes 15-Minuten-Fenster —
+-- diese Kennzahlen global. Die fehlgeschlagenen Aufträge dagegen zählen nur
 -- die der aktiven Kassensitzung (Status offen oder wird_abgeschlossen), und
--- letzter_fehler traegt den Fehlertext des juengsten davon. Ohne aktive Sitzung
+-- letzter_fehler trägt den Fehlertext des jüngsten davon. Ohne aktive Sitzung
 -- ist beides leer — der Kassenabschluss weist die Ausfall-Reste aus und
 -- quittiert damit die Warnung. On demand aus den Auftrags- und Signaturzeiten,
 -- kein Metrik-Subsystem und kein In-Memory-Zustand.
@@ -85,8 +85,8 @@ SELECT
 FROM tse_signaturauftraege;
 
 -- GetAeltesterOffenerTSESignaturauftrag liefert den Erstellungszeitpunkt des
--- aeltesten offenen Auftrags — der Rueckstands-Watchdog bemisst daran den
--- Signatur-Rueckstand.
+-- ältesten offenen Auftrags — der Rückstands-Watchdog bemisst daran den
+-- Signatur-Rückstand.
 -- name: GetAeltesterOffenerTSESignaturauftrag :one
 SELECT erstellt_am
 FROM tse_signaturauftraege
@@ -94,17 +94,17 @@ WHERE status = 'offen'
 ORDER BY erstellt_am ASC
 LIMIT 1;
 
--- GetTSESignaturauftragZuEvent liefert den Signatur-Stand eines Events fuer den
--- Beleg-Abruf: Status plus Signaturspalten (gefuellt sobald quittiert).
--- Kein Treffer heisst: Das Event ist nicht signaturpflichtig.
+-- GetTSESignaturauftragZuEvent liefert den Signatur-Stand eines Events für den
+-- Beleg-Abruf: Status plus Signaturspalten (gefüllt sobald quittiert).
+-- Kein Treffer heißt: Das Event ist nicht signaturpflichtig.
 -- name: GetTSESignaturauftragZuEvent :one
 SELECT status, erstellt_am, transaktion_nummer, signatur_zaehler, tse_seriennummer, log_time_start, log_time_end, signatur, qr_code_data
 FROM tse_signaturauftraege
 WHERE event_id = $1;
 
--- GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Staende
--- aller noch nicht erledigten Signaturauftraege einer Kassensitzung — die
--- Grundlage des Kassenabschluss-Gates. Erledigte Auftraege sind irrelevant
+-- GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Stände
+-- aller noch nicht erledigten Signaturaufträge einer Kassensitzung — die
+-- Grundlage des Kassenabschluss-Gates. Erledigte Aufträge sind irrelevant
 -- (bereits signiert); die vier nicht-erledigten Status ordnet
 -- DetermineSignaturstatus in ausstehend (blockiert) bzw. Ausfall (Rest) ein.
 -- name: GetOffeneSignaturauftragStaendeFuerKassensitzung :many

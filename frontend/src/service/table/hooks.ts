@@ -5,18 +5,22 @@ import { BackendSingleton } from '@/lib/Backend'
 import type { EigeneUebersicht, TischSession } from './Tisch'
 import { TischBackend } from './TischBackend'
 
-const tischBackend = new TischBackend(BackendSingleton)
+// Eine Instanz für den ganzen Service-Bereich (TablePage, TischAuswahlDrawer
+// und diese Hooks teilen sie) — TischBackend trägt keinen eigenen Zustand,
+// eine geteilte Instanz spart nur die wiederholte Konstruktion.
+export const tischBackend = new TischBackend(BackendSingleton)
 
 export function useAktiveTische() {
   const {
     data: tische = [],
     isPending,
+    isError,
     refetch,
   } = useQuery({
     queryKey: ['aktive-tische'],
     queryFn: () => tischBackend.getAktiveTische(),
   })
-  return { tische, isPending, refetch }
+  return { tische, isPending, isError, refetch }
 }
 
 export function useTischHistorie(tischId: number) {
@@ -55,20 +59,29 @@ export function useTischState(tischId: number) {
 
 export const AKTIVE_TISCHE_MIT_FAVORITEN_KEY = 'aktive-tische-mit-favoriten'
 export function useAktiveTischeMitFavoriten() {
-  const { data: tische = [] } = useQuery({
+  const {
+    data: tische = [],
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
     queryFn: () => tischBackend.getAktiveTischeMitFavoriten(),
   })
-  return { tische }
+  return { tische, isError, refetch }
 }
 
 export const MEINE_TISCHE_STATE_KEY = 'meine-tische-state'
 export function useMeineTischeState() {
-  const { data: tische = [], isPending } = useQuery({
+  const {
+    data: tische = [],
+    isPending,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: [MEINE_TISCHE_STATE_KEY],
     queryFn: () => tischBackend.getMeineTischeState(),
   })
-  return { tische, isPending }
+  return { tische, isPending, isError, refetch }
 }
 
 const DEFAULT_EIGENE_UEBERSICHT: EigeneUebersicht = {
@@ -82,9 +95,14 @@ const DEFAULT_EIGENE_UEBERSICHT: EigeneUebersicht = {
 }
 
 export function useEigeneUebersicht() {
-  const { data: uebersicht = DEFAULT_EIGENE_UEBERSICHT, isPending } = useQuery({
+  const {
+    data: uebersicht = DEFAULT_EIGENE_UEBERSICHT,
+    isPending,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['eigene-uebersicht'],
     queryFn: () => tischBackend.getEigeneUebersicht(),
   })
-  return { uebersicht, isPending }
+  return { uebersicht, isPending, isError, refetch }
 }

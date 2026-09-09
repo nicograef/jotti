@@ -7,6 +7,7 @@ import {
   nimmLangeBestellungAuf,
   oeffneHistorienDetail,
   oeffneTisch,
+  tischSaldo,
   waehleAlleVollAus,
   waehleVariante,
 } from '../support/servicekraft'
@@ -15,8 +16,7 @@ import {
 // Positionsliste (der DrawerBody scrollt) müssen Gesamtsumme, das jeweilige
 // Pflichtfeld und die Primäraktion ohne Scrollen gleichzeitig sichtbar bleiben —
 // sie liegen im nicht-scrollenden DrawerFooter, nur die Positionsliste (Body)
-// scrollt. Ursprung: Bug 2 aus dem Praxistest 2026-07-09 (Bestellen/Kassieren),
-// mit der UI-Politur (Phase 1) auf Stornierung und Umbuchung ausgeweitet.
+// scrollt. Gilt für Bestellen, Kassieren, Stornieren und Umbuchen.
 
 test.describe('Drawer-Sticky-Footer bei langer Positionsliste', () => {
   // „Tisch 1" startet im Demo-Drehbuch ausgeglichen (Saldo 0,00 €) und ohne
@@ -38,7 +38,9 @@ test.describe('Drawer-Sticky-Footer bei langer Positionsliste', () => {
     }
     await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()
     const bestellDrawer = page.getByRole('dialog')
-    await expect(bestellDrawer.getByText('Flammkuchen Mediterran')).toBeVisible()
+    await expect(
+      bestellDrawer.getByText('Flammkuchen Mediterran'),
+    ).toBeVisible()
     await expect(bestellDrawer.getByText('Gesamt')).toBeInViewport()
     const aufnehmen = bestellDrawer.getByRole('button', {
       name: 'Bestellung aufnehmen',
@@ -78,9 +80,8 @@ test.describe('Drawer-Sticky-Footer bei langer Positionsliste', () => {
     await kassieren.click()
     await expect(page.getByText('Zahlung erfolgreich.').first()).toBeVisible()
 
-    // Tisch ist danach wieder ausgeglichen (Saldo-Element im Tisch-Header).
-    const tischSaldo = page.locator('[data-slot="tisch-saldo"]')
-    await expect(tischSaldo).toHaveText('0,00 €')
+    // Tisch ist danach wieder ausgeglichen (Saldo im Tisch-Header).
+    await expect(tischSaldo(page)).toHaveText('0,00 €')
   })
 
   // „Tisch 15" ist im Demo-Drehbuch unbenutzt; Storno ist nur der Serviceleitung

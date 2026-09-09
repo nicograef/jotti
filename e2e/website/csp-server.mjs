@@ -4,9 +4,9 @@
 // the jotti.rocks block from `reverse-proxy/nginx.rocks.conf`. The CSP is parsed
 // from that file at runtime, so it can never silently drift from production.
 //
-// Shared by two consumers (see `docs/plans/plan-website-redesign.md`):
-//   - the per-phase CSP verification (`csp-check.mjs`),
-//   - the Phase-9 OG-image screenshot mode.
+// Shared by two consumers:
+//   - the CSP verification (`csp-check.mjs`),
+//   - the OG-image screenshot mode (`screenshots.mjs`).
 //
 // No external dependencies — plain `node:http`/`node:fs`, runnable with any Node.
 
@@ -42,8 +42,12 @@ const CONTENT_TYPES = {
 // uniquely identifies it among the server blocks in the file.
 export async function readProductionCsp() {
   const conf = await readFile(nginxConf, 'utf8')
-  const matches = [...conf.matchAll(/add_header\s+Content-Security-Policy\s+"([^"]+)"/g)]
-  const csp = matches.map((m) => m[1]).find((value) => value.includes("'wasm-unsafe-eval'"))
+  const matches = [
+    ...conf.matchAll(/add_header\s+Content-Security-Policy\s+"([^"]+)"/g),
+  ]
+  const csp = matches
+    .map((m) => m[1])
+    .find((value) => value.includes("'wasm-unsafe-eval'"))
   if (!csp) {
     throw new Error(`jotti.rocks CSP not found in ${nginxConf}`)
   }
@@ -51,13 +55,18 @@ export async function readProductionCsp() {
 }
 
 // Start a static server for `distDir`. Resolves with { url, port, close() }.
-export async function startStaticServer(distDir, { csp, host = '127.0.0.1' } = {}) {
+export async function startStaticServer(
+  distDir,
+  { csp, host = '127.0.0.1' } = {},
+) {
   const root = resolve(distDir)
   const cspHeader = csp ?? (await readProductionCsp())
 
   const server = createServer(async (req, res) => {
     try {
-      const urlPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname)
+      const urlPath = decodeURIComponent(
+        new URL(req.url, 'http://localhost').pathname,
+      )
       let filePath = normalize(join(root, urlPath))
       if (!filePath.startsWith(root)) {
         res.writeHead(403).end('Forbidden')
@@ -75,12 +84,15 @@ export async function startStaticServer(distDir, { csp, host = '127.0.0.1' } = {
         if (info) filePath = fallback
       }
       if (!info) {
-        res.writeHead(404, { 'Content-Security-Policy': cspHeader }).end('Not found')
+        res
+          .writeHead(404, { 'Content-Security-Policy': cspHeader })
+          .end('Not found')
         return
       }
       const body = await readFile(filePath)
       res.writeHead(200, {
-        'Content-Type': CONTENT_TYPES[extname(filePath)] ?? 'application/octet-stream',
+        'Content-Type':
+          CONTENT_TYPES[extname(filePath)] ?? 'application/octet-stream',
         'Content-Security-Policy': cspHeader,
       })
       res.end(body)

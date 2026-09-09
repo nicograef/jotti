@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -81,7 +82,7 @@ func (m *mockSettingsRepo) GetBetreiber(_ context.Context) (betreiber.Betreiber,
 }
 
 // mockTSEAuftragRepo liefert den Signaturauftrags-Stand je Event-ID, den
-// aktiven Stoerungszeitraum und die Kassenidentitaet; Events ohne Eintrag gelten
+// aktiven Störungszeitraum und die Kassenidentitaet; Events ohne Eintrag gelten
 // als nicht signaturpflichtig (db.ErrNotFound).
 type mockTSEAuftragRepo struct {
 	staende     map[int]tse.SignaturauftragStand
@@ -355,8 +356,8 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 		"TSE-Transaktion: 3001",
 		"Signaturzaehler: 77",
 		"TSE-Seriennummer: SW-TSE-SN-0042",
-		"TSE-Start: 10.06.2026 18:00:01",
-		"TSE-Ende: 10.06.2026 18:00:03",
+		"TSE-Start: 10.06.2026 20:00:01",
+		"TSE-Ende: 10.06.2026 20:00:03",
 		"Signatur: SIG-XYZ",
 	}
 
@@ -439,7 +440,7 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 	}
 
 	got := string(payload)
-	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 18:01:00") {
+	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 20:01:00") {
 		t.Fatalf("expected first order klartext in table receipt, got:\n%q", got)
 	}
 }
@@ -621,7 +622,7 @@ func TestKassenbelegDrucken_VerspaeteteSignatur_TraegtNachsigniertVermerk(t *tes
 	if !strings.Contains(got, "TSE-Daten:") {
 		t.Fatalf("expected TSE block on nachsignierter beleg, got:\n%q", got)
 	}
-	if !strings.Contains(got, "Nachsigniert am 10.06.2026 18:07:03") {
+	if !strings.Contains(got, "Nachsigniert am 10.06.2026 20:07:03") {
 		t.Fatalf("expected Nachsigniert-Vermerk, got:\n%q", got)
 	}
 }
@@ -717,7 +718,7 @@ func TestKassenbelegDrucken_ZahlungNichtGefunden(t *testing.T) {
 	}
 
 	_, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: "11111111-1111-1111-1111-111111111111"})
-	if err != ErrZahlungNichtGefunden {
+	if !errors.Is(err, ErrZahlungNichtGefunden) {
 		t.Fatalf("expected ErrZahlungNichtGefunden, got %v", err)
 	}
 }
@@ -760,7 +761,7 @@ func TestKassenbelegDrucken_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID}); err != ErrKassenbelegDruckerNichtKonfiguriert {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID}); !errors.Is(err, ErrKassenbelegDruckerNichtKonfiguriert) {
 		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
 	}
 }
@@ -842,7 +843,7 @@ func TestKassenbelegDrucken_Direktverkauf_NichtGefunden(t *testing.T) {
 	}
 
 	_, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: uuid.New().String()})
-	if err != ErrVerkaufNichtGefunden {
+	if !errors.Is(err, ErrVerkaufNichtGefunden) {
 		t.Fatalf("expected ErrVerkaufNichtGefunden, got %v", err)
 	}
 }
@@ -878,7 +879,7 @@ func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t 
 		TSERepo:             &mockTSEAuftragRepo{},
 	}
 
-	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID}); err != ErrKassenbelegDruckerNichtKonfiguriert {
+	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID}); !errors.Is(err, ErrKassenbelegDruckerNichtKonfiguriert) {
 		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
 	}
 }
@@ -1203,7 +1204,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_NichtGefunden(t *testing.T) {
 	}
 
 	_, err = command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID, StornierungID: uuid.New().String()})
-	if err != ErrStornierungNichtGefunden {
+	if !errors.Is(err, ErrStornierungNichtGefunden) {
 		t.Fatalf("expected ErrStornierungNichtGefunden, got %v", err)
 	}
 }

@@ -11,8 +11,8 @@ import (
 const zahlungsartBar = "Bar"
 
 // BuildKassenbelegProcessData erzeugt Kassenbeleg-V1-processData nach
-// DSFinV-K Anhang I: Bruttobetraege je Steuersatz plus Zahlungsteil. faktor -1
-// stellt Stornierungen dar: alle Steuerbetraege werden negiert.
+// DSFinV-K Anhang I: Bruttobeträge je Steuersatz plus Zahlungsteil. faktor -1
+// stellt Stornierungen dar: alle Steuerbeträge werden negiert.
 func BuildKassenbelegProcessData(positionen []Position, zahlbetragCents int, faktor int) (string, error) {
 	if faktor != 1 && faktor != -1 {
 		return "", fmt.Errorf("invalid faktor %d", faktor)
@@ -122,7 +122,7 @@ func BuildEigenbelegProcessData(zahlbetragCents int) string {
 	return fmt.Sprintf("Beleg^0.00_0.00_0.00_0.00_%s^%s", betragString(zahlbetragCents), zahlungen)
 }
 
-// BuildTagesabschlussProcessData erzeugt SonstigerVorgang-processData fuer den
+// BuildTagesabschlussProcessData erzeugt SonstigerVorgang-processData für den
 // Tagesabschluss (Z-Bon): Z-Nummer plus Abschlusszeitraum.
 func BuildTagesabschlussProcessData(zNr int, zeitraumVon time.Time, zeitraumBis time.Time) string {
 	return fmt.Sprintf(

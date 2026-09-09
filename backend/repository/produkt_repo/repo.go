@@ -3,12 +3,10 @@ package produkt_repo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/produkt"
-	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
@@ -18,21 +16,7 @@ func (r Repository) GetProdukt(ctx context.Context, id int) (produkt.Produkt, er
 		return produkt.Produkt{}, db.Error(err)
 	}
 
-	varianten, err := parseVariantenJSON(row.Varianten)
-	if err != nil {
-		return produkt.Produkt{}, fmt.Errorf("unmarshal varianten: %w", err)
-	}
-
-	return produkt.Produkt{
-		ID:         row.ID,
-		Name:       row.Name,
-		Kategorie:  produkt.Kategorie(row.Kategorie),
-		Steuersatz: steuer.Steuersatz(row.Steuersatz),
-		Status:     produkt.Status(row.Status),
-		Varianten:  varianten,
-		CreatedAt:  row.CreatedAt,
-		UpdatedAt:  row.UpdatedAt,
-	}, nil
+	return produktRowToDomain(row)
 }
 
 func (r Repository) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error) {
@@ -43,21 +27,11 @@ func (r Repository) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, erro
 
 	produkte := make([]produkt.Produkt, 0, len(rows))
 	for i := range rows {
-		varianten, err := parseVariantenJSON(rows[i].Varianten)
+		p, err := produktRowToDomain(dbgen.GetProduktRow(rows[i]))
 		if err != nil {
-			return nil, fmt.Errorf("unmarshal varianten: %w", err)
+			return nil, err
 		}
-
-		produkte = append(produkte, produkt.Produkt{
-			ID:         rows[i].ID,
-			Name:       rows[i].Name,
-			Kategorie:  produkt.Kategorie(rows[i].Kategorie),
-			Steuersatz: steuer.Steuersatz(rows[i].Steuersatz),
-			Status:     produkt.Status(rows[i].Status),
-			Varianten:  varianten,
-			CreatedAt:  rows[i].CreatedAt,
-			UpdatedAt:  rows[i].UpdatedAt,
-		})
+		produkte = append(produkte, p)
 	}
 
 	return produkte, nil
@@ -71,21 +45,11 @@ func (r Repository) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, e
 
 	produkte := make([]produkt.Produkt, 0, len(rows))
 	for i := range rows {
-		varianten, err := parseVariantenJSON(rows[i].Varianten)
+		p, err := produktRowToDomain(dbgen.GetProduktRow(rows[i]))
 		if err != nil {
-			return nil, fmt.Errorf("unmarshal varianten: %w", err)
+			return nil, err
 		}
-
-		produkte = append(produkte, produkt.Produkt{
-			ID:         rows[i].ID,
-			Name:       rows[i].Name,
-			Kategorie:  produkt.Kategorie(rows[i].Kategorie),
-			Steuersatz: steuer.Steuersatz(rows[i].Steuersatz),
-			Status:     produkt.Status(rows[i].Status),
-			Varianten:  varianten,
-			CreatedAt:  rows[i].CreatedAt,
-			UpdatedAt:  rows[i].UpdatedAt,
-		})
+		produkte = append(produkte, p)
 	}
 
 	return produkte, nil
@@ -328,7 +292,7 @@ func (r Repository) DeleteProduktMitVarianten(ctx context.Context, p produkt.Pro
 }
 
 // SortiereVariantenAlphabetisch vergibt die Reihenfolge aller Varianten eines
-// Produkts alphabetisch neu. Eine einzelne UPDATE-Anweisung genuegt und ist von
+// Produkts alphabetisch neu. Eine einzelne UPDATE-Anweisung genügt und ist von
 // sich aus atomar, deshalb ohne explizite Transaktion. Ein Produkt ohne
 // Varianten ist kein Fehler, sondern schlicht wirkungslos.
 func (r Repository) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {

@@ -1,6 +1,6 @@
 ---
-description: "Use when working on React frontend code, components, pages, hooks, styling, or TypeScript types."
-applyTo: "frontend/**"
+description: 'Use when working on React frontend code, components, pages, hooks, styling, or TypeScript types.'
+applyTo: 'frontend/**'
 ---
 
 > **Referenz:** Für Ubiquitous Language, Namenskonventionen und Ist/Soll-Abweichungen (Rename-Status) → `docs/language.md`. Für Frontend-Architektur → `docs/handbuch.md` §6.3.
@@ -30,6 +30,10 @@ frontend/
   src/components/ui/            # shadcn/ui-Komponenten
   src/components/common/        # Gemeinsame Komponenten
 ```
+
+`src/components/`, `src/lib/` und `src/hooks/` importieren nichts aus
+`@/admin/*` oder `@/service/*` (ESLint `no-restricted-imports`). Ein Baustein,
+der einen Bereichsimport braucht, gehört in den Bereich.
 
 ## UI-Bibliotheken
 
@@ -64,14 +68,21 @@ frontend/
 Pattern: Zod-Schema für Request definieren → `BackendClient.post()` aufrufen → Response mit Zod validieren.
 
 ```typescript
-import { z } from "zod";
-import type { BackendClient } from "@/lib/Backend";
-import { type Produkt, ProduktIdSchema, ProduktSchema } from "./Produkt";
+import { z } from 'zod'
+import type { BackendClient } from '@/lib/Backend'
+import {
+  KategorieSchema,
+  type Produkt,
+  ProduktIdSchema,
+  ProduktSchema,
+} from '@/lib/produktSchemas'
 
-export const CreateProduktSchema = ProduktSchema.pick({
-  name: true,
-  kategorie: true,
-});
+import { NameEingabeSchema } from './Produkt'
+
+export const CreateProduktSchema = z.object({
+  name: NameEingabeSchema,
+  kategorie: KategorieSchema,
+})
 
 export class ProduktBackend {
   constructor(private readonly backend: BackendClient) {}
@@ -79,22 +90,22 @@ export class ProduktBackend {
   async createProdukt(
     newProdukt: z.infer<typeof CreateProduktSchema>,
   ): Promise<number> {
-    const body = CreateProduktSchema.parse(newProdukt);
+    const body = CreateProduktSchema.parse(newProdukt)
     const { id } = await this.backend.post(
-      "admin/create-produkt",
+      'admin/create-produkt',
       body,
       z.object({ id: ProduktIdSchema }),
-    );
-    return id;
+    )
+    return id
   }
 
   async getAllProdukte(): Promise<Produkt[]> {
     const { produkte } = await this.backend.post(
-      "admin/get-all-produkte",
+      'admin/get-all-produkte',
       {},
       z.object({ produkte: z.array(ProduktSchema) }),
-    );
-    return produkte;
+    )
+    return produkte
   }
 }
 ```
@@ -107,62 +118,93 @@ Lesezugriffe nutzen `useQuery`, Schreibzugriffe `useMutation` bzw.
 Mutationen gezielt invalidieren können. Das Lade-Flag heißt einheitlich `isPending`.
 
 ```typescript
-import { useQuery } from "@tanstack/react-query";
-import { BackendSingleton } from "@/lib/Backend";
-import type { Produkt } from "./Produkt";
-import { ProduktBackend } from "./ProduktBackend";
+import { useQuery } from '@tanstack/react-query'
+import { BackendSingleton } from '@/lib/Backend'
+import type { Produkt } from './Produkt'
+import { ProduktBackend } from './ProduktBackend'
 
-const produktBackend = new ProduktBackend(BackendSingleton);
+const produktBackend = new ProduktBackend(BackendSingleton)
 
-export const ALLE_PRODUKTE_KEY = "alle-produkte";
+export const ALLE_PRODUKTE_KEY = 'alle-produkte'
 
 export function useAllProdukte() {
   const { data: produkte = [] as Produkt[], isPending } = useQuery({
     queryKey: [ALLE_PRODUKTE_KEY],
     queryFn: () => produktBackend.getAllProdukte(),
-  });
-  return { produkte, isPending };
+  })
+  return { produkte, isPending }
 }
 ```
 
 Schreibzugriffe invalidieren den betroffenen Query-Key, damit Reads neu laden:
 
 ```typescript
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-const queryClient = useQueryClient();
+const queryClient = useQueryClient()
 
 const loeschenMutation = useMutation({
   mutationFn: (produktId: number) => produktBackend.deleteProdukt(produktId),
   onSuccess: () =>
     queryClient.invalidateQueries({ queryKey: [ALLE_PRODUKTE_KEY] }),
-  onError: () => toast.error("Produkt konnte nicht gelöscht werden."),
-});
+  onError: () => toast.error('Produkt konnte nicht gelöscht werden.'),
+})
 ```
 
 ### Zod-Schema
 
+Response-Schemas einer Entität, die Admin- und Service-Bereich lesen, liegen in
+`src/lib/` (Produkt, Variante, Kategorie, Steuersatz, EntityStatus:
+`src/lib/produktSchemas.ts`). Sie decken den Bereich ab, den das Backend
+liefert. Formular- und Eingaberegeln — engere Grenzen samt Meldung — bleiben im
+Bereich, der das Formular besitzt.
+
+Ein Response-Schema, wie es in `src/lib/produktSchemas.ts` steht:
+
 ```typescript
-import { z } from "zod";
+import { z } from 'zod'
 
-export const ProduktIdSchema = z.number().int().min(1);
+import { createNameSchema } from '@/lib/nameSchema'
+import { DateStringSchema } from '@/lib/utils'
 
-const NameSchema = z
-  .string()
-  .min(3, { message: "Das sieht nicht nach einem echten Namen aus." })
-  .max(100, { message: "Der Name ist zu lang." });
+export const Kategorie = {
+  ESSEN: 'essen',
+  GETRAENK: 'getraenk',
+  SONSTIGES: 'sonstiges',
+} as const
+export type Kategorie = (typeof Kategorie)[keyof typeof Kategorie]
+export const KategorieSchema = z.enum([
+  Kategorie.ESSEN,
+  Kategorie.GETRAENK,
+  Kategorie.SONSTIGES,
+])
 
-const PreisCentsSchema = z
-  .number()
-  .int()
-  .min(0, { message: "Preis muss mindestens 0 Cent sein." });
+export const ProduktIdSchema = z.number().int().min(1)
+
+// Namen kommen aus der gemeinsamen Quelle; nur die Obergrenze ist bereichsspezifisch.
+const NameSchema = createNameSchema(100)
+
+// Gelesene Preise decken den persistierten Bereich ab (DB-CHECK
+// `preis_cents >= 0`), nicht die engere Formulargrenze.
+const PreisCentsSchema = z.number().int().min(0)
 
 export const ProduktSchema = z.object({
   id: ProduktIdSchema,
   name: NameSchema,
-  kategorie: z.enum(["essen", "getraenk", "sonstiges"]),
+  kategorie: KategorieSchema,
   varianten: z.array(VarianteSchema),
   createdAt: DateStringSchema,
-});
-export type Produkt = z.infer<typeof ProduktSchema>;
+})
+export type Produkt = z.infer<typeof ProduktSchema>
+```
+
+Die Eingaberegel desselben Felds, wie sie in `src/admin/products/Produkt.ts`
+steht — engere Grenze, eigene Meldung:
+
+```typescript
+export const PreisCentsEingabeSchema = z
+  .number()
+  .int()
+  .min(1, { message: 'Preis muss mindestens 1 Cent betragen.' })
+  .max(99999, { message: 'Preis darf maximal 999,99 € betragen.' })
 ```

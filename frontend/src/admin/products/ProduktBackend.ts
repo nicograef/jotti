@@ -1,28 +1,30 @@
 import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
-
 import {
+  KategorieSchema,
   type Produkt,
   ProduktIdSchema,
   ProduktSchema,
+  SteuersatzSchema,
+  VarianteIdSchema,
+} from '@/lib/produktSchemas'
+
+import {
+  NameEingabeSchema,
+  PreisCentsEingabeSchema,
   type Richtung,
   RichtungSchema,
-  VarianteIdSchema,
-  VarianteSchema,
 } from './Produkt'
 
-export const CreateProduktSchema = ProduktSchema.pick({
-  name: true,
-  kategorie: true,
-  steuersatz: true,
+export const CreateProduktSchema = z.object({
+  name: NameEingabeSchema,
+  kategorie: KategorieSchema,
+  steuersatz: SteuersatzSchema,
 })
 
-export const UpdateProduktSchema = ProduktSchema.pick({
-  id: true,
-  name: true,
-  kategorie: true,
-  steuersatz: true,
+export const UpdateProduktSchema = CreateProduktSchema.extend({
+  id: ProduktIdSchema,
 })
 
 export const VerschiebeProduktSchema = z.object({
@@ -32,14 +34,14 @@ export const VerschiebeProduktSchema = z.object({
 
 export const CreateVarianteSchema = z.object({
   produktId: ProduktIdSchema,
-  name: VarianteSchema.shape.name,
-  preisCents: VarianteSchema.shape.preisCents,
+  name: NameEingabeSchema,
+  preisCents: PreisCentsEingabeSchema,
 })
 
-export const UpdateVarianteSchema = VarianteSchema.pick({
-  id: true,
-  name: true,
-  preisCents: true,
+export const UpdateVarianteSchema = z.object({
+  id: VarianteIdSchema,
+  name: NameEingabeSchema,
+  preisCents: PreisCentsEingabeSchema,
 })
 
 export const VerschiebeVarianteSchema = z.object({

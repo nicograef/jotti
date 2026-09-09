@@ -10,9 +10,9 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
-import type { Produkt } from '../product/Produkt'
 import { Direktverkauf } from './direktverkauf/Direktverkauf'
 import { ErfolgsPop } from './ErfolgsPop'
 import { ServiceDock } from './ServiceDock'
@@ -77,7 +77,7 @@ describe('ErfolgsPop', () => {
 
     fireEvent.click(screen.getByRole('status'))
 
-    // Ein Tap schließt den Pop früher als der Auto-Dismiss-Timer.
+    // Ein Tap schließt den Pop sofort, unabhängig vom Auto-Dismiss-Timer.
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 
@@ -94,6 +94,7 @@ const testProdukt: Produkt = {
   id: 1,
   name: 'Bratwurst',
   kategorie: 'essen',
+  steuersatz: 'ermaessigt',
   status: 'active',
   varianten: [
     {

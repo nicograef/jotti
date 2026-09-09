@@ -128,3 +128,23 @@ func TestGetAbgeschlosseneKassensitzungen_MitUmsatzUndAbschlusszeit(t *testing.T
 		t.Errorf("unexpected second entry: %+v", sitzungen[1])
 	}
 }
+
+// GetOffeneKassensitzung liefert nil, wenn keine Sitzung offen ist: eine
+// abgeschlossene Sitzung ist keine offene.
+func TestGetOffeneKassensitzung_KeineOffene(t *testing.T) {
+	db := dbpkg.OpenTestDatabase()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	createKassensitzung(t, db, "2026-05-01", "Maihock", "abgeschlossen")
+
+	ks, err := repo.GetOffeneKassensitzung(context.Background())
+	if err != nil {
+		t.Fatalf("GetOffeneKassensitzung failed: %v", err)
+	}
+	if ks != nil {
+		t.Errorf("expected no open Kassensitzung, got %+v", ks)
+	}
+}

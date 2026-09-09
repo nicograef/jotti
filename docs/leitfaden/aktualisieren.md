@@ -19,7 +19,10 @@ bleiben dabei erhalten.
 3. **`jotti-start.exe`** im neuen Ordner doppelklicken und die UAC-Abfrage mit
    „Ja" bestätigen.
 
-Den alten Programmordner könnt ihr danach gefahrlos löschen.
+Den alten Programmordner erst löschen, wenn das nächste Fest gelaufen ist: bis
+dahin liegt darin die `jotti-start.exe` des vorherigen Release — der Rückweg,
+falls das Update Ärger macht (siehe [Der Weg
+zurück](#der-weg-zurück-wenn-das-update-schiefgeht)).
 
 > ⛔ **Während eines Updates keine TSE-Einrichtung starten.** Die Einrichtung legt
 > bei fiskaly eine TSE an — in LIVE eine kostenpflichtige, in TEST eine kostenlose —
@@ -62,7 +65,7 @@ des laufenden Betriebs sein, haltet euch an diese Reihenfolge.
 ## Danach: die Geräte laden sich von selbst neu
 
 Handys und Rechner behalten die alte Bedienoberfläche im Speicher, bis die Seite
-einmal neu geladen wird. **Seit Version 0.17.3 erledigt jotti das allein.** Jedes
+einmal neu geladen wird. **jotti erledigt das automatisch.** Jedes
 geöffnete jotti fragt im Hintergrund alle halbe Minute nach, welche Version auf
 dem Rechner läuft — und zusätzlich immer dann, wenn ein weggelegtes Handy wieder
 hervorgeholt wird. Weicht die Version ab, lädt sich die Seite selbst neu: im
@@ -115,8 +118,8 @@ tippt erneut.
 ## Das Print-Relay bleibt bei Version 0.17.3, wie es ist
 
 Das Print-Relay (`jotti-relay.exe`, das Fenster, das die Bons an die Drucker
-schickt) ist seit Version 0.17.1 unverändert, und auch die Verständigung
-zwischen jotti und dem Relay hat sich nicht geändert. **Das laufende Relay darf
+schickt) ist unverändert, und auch die Verständigung zwischen jotti und dem
+Relay hat sich nicht geändert. **Das laufende Relay darf
 einfach weiterlaufen** — ihr müsst es weder beenden noch ersetzen. Im
 Release-ZIP liegt trotzdem eine `jotti-relay.exe`; sie ist funktional identisch
 mit der laufenden. Ob ihr sie tauscht oder nicht, macht keinen Unterschied.
@@ -162,9 +165,11 @@ Update etwas schief, ist dieses Backup euer Rückweg — wie ihr es einspielt, s
 unter [Der Weg zurück](#der-weg-zurück-wenn-das-update-schiefgeht).
 
 > 🔁 **Nur vorwärts, kein Downgrade.** Spielt keine ältere Version über eine
-> neuere. Updates verändern die Datenbank; eine alte Version kann mit den neuen
-> Daten nicht mehr starten. Der Starter verweigert einen solchen Rückschritt
-> selbst.
+> neuere Datenbank. Updates verändern die Datenbank; eine alte Version kann mit
+> den neuen Daten nicht mehr starten, und der Starter verweigert einen solchen
+> Rückschritt selbst. Nach einer Wiederherstellung gilt das nicht — dann steht
+> die Datenbank selbst wieder auf dem alten Stand (siehe [Der Weg
+> zurück](#der-weg-zurück-wenn-das-update-schiefgeht)).
 
 > ⛔ **Niemals `docker compose down -v` ausführen.** Das `-v` löscht alle
 > Docker-Volumes und damit Daten, Installations-Schlüssel und Zertifikat
@@ -173,20 +178,28 @@ unter [Der Weg zurück](#der-weg-zurück-wenn-das-update-schiefgeht).
 
 ## Der Weg zurück, wenn das Update schiefgeht
 
-Der Rückweg ist **nicht**, einfach das alte ZIP wieder auszupacken. Das
-funktioniert nicht: `jotti-start.exe` verweigert den Start einer älteren Version
-mit der Meldung „Start verweigert: Diese Version … ist aelter als die zuletzt
-gestartete …". Updates verändern die Datenbank, und diese Änderung wird nicht
-zurückgenommen.
+Der Rückweg ist **nicht**, einfach das alte ZIP wieder auszupacken: die Daten
+bleiben dabei auf dem neuen Stand. Updates verändern die Datenbank, und diese
+Änderung wird nicht zurückgenommen.
 
 Der Rückweg ist das automatische Backup von vor dem Update:
 
 1. **`jotti-restore.cmd`** doppelklicken (liegt im entpackten Release-Ordner,
    neben `jotti-start.exe`).
 2. Die Rückfrage **`Fortfahren? (j/N)`** mit **`j`** beantworten.
-3. Das Skript startet die Datenbank, hält die Anwendung währenddessen an, spielt
-   das neueste automatische Backup ein und startet jotti wieder. Am Ende meldet
-   es „Wiederherstellung abgeschlossen. jotti laeuft wieder."
+3. Das Skript startet die Datenbank, hält die Anwendung währenddessen an und
+   spielt das neueste automatische Backup ein. Am Ende meldet es
+   „Wiederherstellung abgeschlossen." — jotti läuft dann noch nicht.
+4. **`jotti-start.exe`** des **vorherigen** Release doppelklicken — aus dem alten
+   Programmordner, oder aus dem erneut geladenen ZIP
+   (<https://github.com/nicograef/jotti/releases>). Nur der Starter gibt dem
+   Reverse-Proxy die Netzwerk-Adresse des Rechners mit, und zur zurückgespielten
+   Datenbank passt die Version von vor dem Update.
+
+> ℹ️ **Verweigert der Starter den Start** („Diese Version … ist aelter als die
+> zuletzt gestartete …"), lief die neue Version schon einmal vollständig. Nehmt
+> dann `jotti-start.exe` aus dem **neuen** ZIP; es aktualisiert die
+> zurückgespielte Datenbank wieder auf seinen Stand.
 
 > ⚠️ **Alles seit dem Backup ist danach weg.** Das Backup entsteht unmittelbar
 > vor dem Update. Aktualisiert ihr mitten im Fest, verliert ihr also jede
@@ -199,6 +212,6 @@ Der Rückweg ist das automatische Backup von vor dem Update:
 Sehr selten passt nach einem Update das in der Datenbank gespeicherte Passwort
 nicht mehr zum Installations-Schlüssel; jotti startet dann, aber das Anmelden
 schlägt fehl. Eure Daten sind dabei nicht verloren. **`jotti-repair.cmd`**
-doppelklicken gleicht beides datenerhaltend wieder an und startet jotti neu;
-danach einmal neu anmelden. Mehrfaches Ausführen schadet nicht. Mehr dazu unter
-[Fehlersuche](fehlersuche.md#nach-einem-update-klappt-das-anmelden-nicht).
+doppelklicken gleicht beides datenerhaltend wieder an; danach `jotti-start.exe`
+doppelklicken und einmal neu anmelden. Mehrfaches Ausführen schadet nicht. Mehr dazu
+unter [Fehlersuche](fehlersuche.md#nach-einem-update-klappt-das-anmelden-nicht).

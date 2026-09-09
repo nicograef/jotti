@@ -5,7 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"regexp"
 )
+
+// subdomainPattern begrenzt die von acme-dns vergebene Subdomain auf ein
+// einzelnes DNS-Label (acme-dns vergibt eine UUID). Die Subdomain landet
+// ungequotet in der Site-Adresse `*.<subdomain>.<zone>` des gerenderten
+// Caddyfiles (wildcardSite): ein Leerzeichen oder eine geschweifte Klammer
+// darin wäre eine zusätzliche Caddy-Direktive. Ein Site-Adress-Token lässt
+// sich nicht quoten, also muss der Wert selbst eng sein.
+var subdomainPattern = regexp.MustCompile(`^[a-z0-9-]{1,63}$`)
 
 // InstallState ist der persistente Zustand einer Installation: die bei acme-dns
 // registrierten Credentials. Die Install-ID ist die von acme-dns vergebene
@@ -17,9 +26,17 @@ type InstallState struct {
 	Subdomain string `json:"subdomain"`
 }
 
-// valid meldet, ob alle Credentials vorhanden sind.
-func (s InstallState) valid() bool {
-	return s.Username != "" && s.Password != "" && s.Subdomain != ""
+// validate meldet, warum der State unbrauchbar ist, oder nil. Der Grund wandert
+// in die Fehlermeldung: eine abgelehnte Subdomain ist etwas anderes als ein
+// fehlendes Passwort, und der Betreiber liest nur die Meldung.
+func (s InstallState) validate() error {
+	if s.Username == "" || s.Password == "" {
+		return errors.New("unvollständige Credentials")
+	}
+	if !subdomainPattern.MatchString(s.Subdomain) {
+		return fmt.Errorf("die Subdomain %q ist kein einzelnes DNS-Label", s.Subdomain)
+	}
+	return nil
 }
 
 // stateDeps bündelt die injizierbaren Abhängigkeiten von ensureState, damit die
@@ -55,8 +72,8 @@ func ensureState(deps stateDeps) (InstallState, error) {
 	if err != nil {
 		return InstallState{}, fmt.Errorf("acme-dns-Registrierung: %w", err)
 	}
-	if !state.valid() {
-		return InstallState{}, errors.New("acme-dns lieferte unvollständige Credentials")
+	if err := state.validate(); err != nil {
+		return InstallState{}, fmt.Errorf("acme-dns lieferte einen unbrauchbaren State: %w", err)
 	}
 
 	encoded, err := json.MarshalIndent(state, "", "  ")
@@ -75,8 +92,8 @@ func parseState(data []byte) (InstallState, error) {
 	if err := json.Unmarshal(data, &state); err != nil {
 		return InstallState{}, fmt.Errorf("JSON-Decode: %w", err)
 	}
-	if !state.valid() {
-		return InstallState{}, errors.New("unvollständige Credentials")
+	if err := state.validate(); err != nil {
+		return InstallState{}, err
 	}
 	return state, nil
 }

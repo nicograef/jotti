@@ -4,6 +4,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/nicograef/jotti/backend/db"
@@ -32,7 +33,7 @@ func TestGetAllUsers_Error(t *testing.T) {
 
 	_, err := Query{UserRepo: repo}.GetAllUsers(context.Background())
 
-	if err != ErrDatabase {
+	if !errors.Is(err, ErrDatabase) {
 		t.Fatalf("expected database error, got %v", err)
 	}
 }

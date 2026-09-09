@@ -14,7 +14,7 @@ import (
 
 // stubCommandRepo erfasst die gespeicherte Konfiguration und liefert eine feste
 // Kassenidentitaet, damit die Orchestrator-Tests Seriennummer und Speicherung
-// pruefen koennen.
+// prüfen können.
 type stubCommandRepo struct {
 	identitaet             tse.Kassenidentitaet
 	gespeichert            *tse.Konfiguration
@@ -43,15 +43,15 @@ func (s *stubCommandRepo) UpsertTSEStammdaten(_ context.Context, st tse.Stammdat
 	return nil
 }
 
-// stubKassensitzungReader liefert die offene Kassensitzung fuer den
-// Konfigurations-Guard; nil (Default) heisst: keine offen.
+// stubKassensitzungReader liefert die aktive Kassensitzung für den
+// Konfigurations-Guard; nil (Default) heisst: keine aktiv.
 type stubKassensitzungReader struct {
-	offene *kasse.Kassensitzung
+	aktive *kasse.Kassensitzung
 	err    error
 }
 
-func (s stubKassensitzungReader) GetOffeneKassensitzung(context.Context) (*kasse.Kassensitzung, error) {
-	return s.offene, s.err
+func (s stubKassensitzungReader) GetAktiveKassensitzung(context.Context) (*kasse.Kassensitzung, error) {
+	return s.aktive, s.err
 }
 
 func commandMit(repo *stubCommandRepo, client *tse.FakeSetupClient) Command {
@@ -70,8 +70,8 @@ func zugangsdaten() tse.SetupCredentials {
 
 // TestRichteTSEEin_LeeresKonto sichert den Voll-Durchlauf: aus einem leeren
 // Konto entsteht eine initialisierte TSS mit registriertem Client, dessen
-// serial_number die Kassen-Seriennummer ist; PUK und PIN werden zurueckgegeben
-// und die vollstaendige Konfiguration gespeichert.
+// serial_number die Kassen-Seriennummer ist; PUK und PIN werden zurückgegeben
+// und die vollständige Konfiguration gespeichert.
 func TestRichteTSEEin_LeeresKonto(t *testing.T) {
 	seriennummer := uuid.New()
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
@@ -180,7 +180,7 @@ func TestRichteTSEEin_VorhandeneAktiveTSS(t *testing.T) {
 	}
 }
 
-// TestRichteTSEEin_DeaktivierteTSSBlocktNicht sichert, dass eine ausschliesslich
+// TestRichteTSEEin_DeaktivierteTSSBlocktNicht sichert, dass eine ausschließlich
 // deaktivierte (DISABLED) TSS die Neuanlage nicht blockiert.
 func TestRichteTSEEin_DeaktivierteTSSBlocktNicht(t *testing.T) {
 	seriennummer := uuid.New()
@@ -200,7 +200,7 @@ func TestRichteTSEEin_DeaktivierteTSSBlocktNicht(t *testing.T) {
 	}
 }
 
-// TestRichteTSEEin_AbbruchSpeichertNicht sichert die Atomaritaet: bricht ein
+// TestRichteTSEEin_AbbruchSpeichertNicht sichert die Atomarität: bricht ein
 // Lebenszyklus-Schritt ab, bleibt keine halbe Konfiguration in der DB.
 func TestRichteTSEEin_AbbruchSpeichertNicht(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
@@ -220,7 +220,7 @@ func TestRichteTSEEin_AbbruchSpeichertNicht(t *testing.T) {
 }
 
 // TestRichteTSEEin_FalscheZugangsdaten sichert, dass ein Auth-Fehler in eine
-// verstaendliche Zugangsdaten-Meldung uebersetzt wird.
+// verständliche Zugangsdaten-Meldung übersetzt wird.
 func TestRichteTSEEin_FalscheZugangsdaten(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{TSSErr: tse.ErrSetupAuthFehlgeschlagen}
@@ -236,7 +236,7 @@ func TestRichteTSEEin_FalscheZugangsdaten(t *testing.T) {
 
 // TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInTest sichert F2: in TEST darf der
 // Admin trotz vorhandener (hier INITIALIZED) TSS bewusst eine zweite, frische
-// TSE anlegen, wenn er die Sperre per Flag uebergeht.
+// TSE anlegen, wenn er die Sperre per Flag übergeht.
 func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInTest(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
@@ -279,7 +279,7 @@ func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInLiveVerweigert(t *testing.T) {
 }
 
 // TestRichteTSEEin_TSSLimitErreicht sichert, dass das fiskaly-TSS-Limit (in TEST
-// fuenf aktive TSS) als verstaendliche Meldung statt als technischer Fehler
+// fünf aktive TSS) als verständliche Meldung statt als technischer Fehler
 // durchgereicht wird.
 func TestRichteTSEEin_TSSLimitErreicht(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
@@ -367,7 +367,7 @@ func TestUebernimmTSE_WiederaufnahmeUninitialized(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSE_InitialisiertOhneClient sichert die Uebernahme einer bereits
+// TestUebernimmTSE_InitialisiertOhneClient sichert die Übernahme einer bereits
 // initialisierten TSS, die noch keinen Client hat: mit PIN wird nur noch der
 // Client registriert.
 func TestUebernimmTSE_InitialisiertOhneClient(t *testing.T) {
@@ -391,7 +391,7 @@ func TestUebernimmTSE_InitialisiertOhneClient(t *testing.T) {
 }
 
 // TestUebernimmTSE_VorhandenerPassenderClient sichert, dass ein bereits passender
-// Client uebernommen und kein neuer registriert wird.
+// Client übernommen und kein neuer registriert wird.
 func TestUebernimmTSE_VorhandenerPassenderClient(t *testing.T) {
 	seriennummer := uuid.New()
 	vorhandenerClient := uuid.NewString()
@@ -417,7 +417,7 @@ func TestUebernimmTSE_VorhandenerPassenderClient(t *testing.T) {
 }
 
 // TestUebernimmTSE_EinsatzbereitOhnePIN sichert F8: eine INITIALIZED TSS mit
-// bereits REGISTERED Client ist einsatzbereit. Die Uebernahme gelingt mit leerer
+// bereits REGISTERED Client ist einsatzbereit. Die Übernahme gelingt mit leerer
 // PIN, ohne dass AuthentifiziereAdmin aufgerufen wird (keine fiskaly-Mutation);
 // es wird nur die Konfiguration gespeichert.
 func TestUebernimmTSE_EinsatzbereitOhnePIN(t *testing.T) {
@@ -528,7 +528,7 @@ func TestUebernimmTSE_InitialisiertOhneClientBrauchtPIN(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSE_PINErforderlich sichert, dass die Uebernahme ab UNINITIALIZED
+// TestUebernimmTSE_PINErforderlich sichert, dass die Übernahme ab UNINITIALIZED
 // ohne PIN klar als fehlende PIN gemeldet wird — vor jeder Schreiboperation.
 func TestUebernimmTSE_PINErforderlich(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
@@ -547,7 +547,7 @@ func TestUebernimmTSE_PINErforderlich(t *testing.T) {
 }
 
 // TestUebernimmTSE_UnbekanntePIN sichert, dass eine von fiskaly abgelehnte PIN in
-// eine verstaendliche Sackgassen-Meldung uebersetzt wird, nicht in einen
+// eine verständliche Sackgassen-Meldung übersetzt wird, nicht in einen
 // technischen Fehler.
 func TestUebernimmTSE_UnbekanntePIN(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
@@ -567,9 +567,9 @@ func TestUebernimmTSE_UnbekanntePIN(t *testing.T) {
 }
 
 // TestUebernimmTSE_PINResetPerPUK sichert den PUK-Reset: mit dem verwahrten
-// Admin-PUK setzt jotti eine frische Zufalls-PIN, schliesst damit die Uebernahme
+// Admin-PUK setzt jotti eine frische Zufalls-PIN, schließt damit die Übernahme
 // ab und zeigt die neue PIN einmalig an. Der PUK wird dabei verwendet, bleibt
-// aber unveraendert und wird nicht erneut zurueckgegeben.
+// aber unverändert und wird nicht erneut zurückgegeben.
 func TestUebernimmTSE_PINResetPerPUK(t *testing.T) {
 	seriennummer := uuid.New()
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
@@ -588,11 +588,11 @@ func TestUebernimmTSE_PINResetPerPUK(t *testing.T) {
 	if ergebnis.AdminPIN == "" || ergebnis.AdminPIN != client.GesetzteAdminPIN {
 		t.Fatalf("expected a fresh pin to be set and returned, got result %q set %q", ergebnis.AdminPIN, client.GesetzteAdminPIN)
 	}
-	// Der PUK aendert sich beim Reset nicht und wird nicht erneut angezeigt.
+	// Der PUK ändert sich beim Reset nicht und wird nicht erneut angezeigt.
 	if ergebnis.PUK != "" {
 		t.Fatalf("expected no puk to be returned on a reset, got %q", ergebnis.PUK)
 	}
-	// Die frische PIN treibt den Rest der Uebernahme (Admin-Auth + Client).
+	// Die frische PIN treibt den Rest der Übernahme (Admin-Auth + Client).
 	if client.AuthentifiziertePIN != ergebnis.AdminPIN {
 		t.Fatalf("expected the fresh pin to be used for admin auth, got %q", client.AuthentifiziertePIN)
 	}
@@ -606,7 +606,7 @@ func TestUebernimmTSE_PINResetPerPUK(t *testing.T) {
 
 // TestUebernimmTSE_PINResetPerPUKInLive sichert, dass der PUK-Reset auch in LIVE
 // funktioniert (keine neue, kostenpflichtige TSS) — hier aus UNINITIALIZED, sodass
-// zusaetzlich initialisiert wird.
+// zusätzlich initialisiert wird.
 func TestUebernimmTSE_PINResetPerPUKInLive(t *testing.T) {
 	seriennummer := uuid.New()
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
@@ -651,7 +651,7 @@ func TestUebernimmTSE_PINResetFalscherPUK(t *testing.T) {
 }
 
 // TestUebernimmTSE_UmgebungAbweichung sichert, dass der LIVE-Schutz auch bei der
-// Uebernahme greift: weicht die tatsaechliche Umgebung von der bestaetigten ab,
+// Übernahme greift: weicht die tatsächliche Umgebung von der bestaetigten ab,
 // bricht der Flow vor jeder Operation ab.
 func TestUebernimmTSE_UmgebungAbweichung(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
@@ -682,7 +682,7 @@ func TestUebernimmTSE_TSSNichtGefunden(t *testing.T) {
 }
 
 // TestUebernimmTSE_DeaktivierteTSS sichert, dass eine deaktivierte TSS nicht
-// uebernommen werden kann.
+// übernommen werden kann.
 func TestUebernimmTSE_DeaktivierteTSS(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
@@ -699,7 +699,7 @@ func TestUebernimmTSE_DeaktivierteTSS(t *testing.T) {
 	}
 }
 
-// stammdatenAntwort ist die fiskaly-Stammdaten-Antwort fuer die
+// stammdatenAntwort ist die fiskaly-Stammdaten-Antwort für die
 // Persistenz-Tests des DSFinV-K-Exports.
 func stammdatenAntwort() tse.TSSStammdaten {
 	return tse.TSSStammdaten{
@@ -729,7 +729,7 @@ func checkStammdaten(t *testing.T, gespeichert *tse.Stammdaten, erwartet tse.TSS
 
 // TestRichteTSEEin_PersistiertStammdaten sichert, dass nach erfolgreicher
 // Neuanlage die fiskalischen TSS-Stammdaten (Algorithmus, Public Key, Zertifikat,
-// Log-Time-Format) fuer den DSFinV-K-Export gespeichert werden.
+// Log-Time-Format) für den DSFinV-K-Export gespeichert werden.
 func TestRichteTSEEin_PersistiertStammdaten(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
@@ -749,8 +749,8 @@ func TestRichteTSEEin_PersistiertStammdaten(t *testing.T) {
 }
 
 // TestUebernimmTSE_EinsatzbereitPersistiertStammdaten sichert, dass die
-// Stammdaten-Persistenz am gemeinsamen Speicher-Schritt haengt, nicht am
-// Anlage-Lebenszyklus: selbst die F8-Uebernahme einer einsatzbereiten TSS (ohne
+// Stammdaten-Persistenz am gemeinsamen Speicher-Schritt hängt, nicht am
+// Anlage-Lebenszyklus: selbst die F8-Übernahme einer einsatzbereiten TSS (ohne
 // jede privilegierte fiskaly-Operation) zieht die Stammdaten nach.
 func TestUebernimmTSE_EinsatzbereitPersistiertStammdaten(t *testing.T) {
 	seriennummer := uuid.New()
@@ -796,7 +796,7 @@ func TestUebernimmTSE_PINResetPersistiertStammdaten(t *testing.T) {
 }
 
 // TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup sichert, dass ein
-// Stammdaten-Abruffehler die Einrichtung fehlschlagen laesst. Die
+// Stammdaten-Abruffehler die Einrichtung fehlschlagen lässt. Die
 // TSS-Seriennummer (TSE_SERIAL im DSFinV-K-Export) ist aus den Signaturen nicht
 // rekonstruierbar; daher ist ein Fehler beim Stammdaten-Abruf hart.
 func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup(t *testing.T) {
@@ -813,22 +813,23 @@ func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup(t *testing.T) {
 	}
 }
 
-// commandMitOffenerKassensitzung baut ein Command, dessen Konfigurations-Guard
-// eine offene Kassensitzung sieht. Der Setup-Client wuerde beim Aufruf failen —
-// so belegt der Test, dass der Guard vor jeder fiskaly-Arbeit greift.
-func commandMitOffenerKassensitzung(repo *stubCommandRepo) Command {
+// commandMitAktiverKassensitzung baut ein Command, dessen Konfigurations-Guard
+// eine aktive Kassensitzung im übergebenen Status sieht. Der Setup-Client würde
+// beim Aufruf failen — so belegt der Test, dass der Guard vor jeder
+// fiskaly-Arbeit greift.
+func commandMitAktiverKassensitzung(repo *stubCommandRepo, status kasse.KassensitzungStatus) Command {
 	return Command{
 		TSERepo:             repo,
-		KassensitzungenRepo: stubKassensitzungReader{offene: &kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}},
+		KassensitzungenRepo: stubKassensitzungReader{aktive: &kasse.Kassensitzung{ZNr: 1, Status: status}},
 		NewTSESetupClient: func(tse.SetupCredentials) (tse.SetupClient, error) {
-			return nil, errors.New("setup client must not be created while a Kassensitzung is open")
+			return nil, errors.New("setup client must not be created while a Kassensitzung is active")
 		},
 	}
 }
 
-// TSE-Konfigurationsaenderungen sind bei offener Kassensitzung nicht erlaubt:
+// TSE-Konfigurationsänderungen sind bei offener Kassensitzung nicht erlaubt:
 // Das Signaturgeraet darf nicht mitten in einem laufenden Kassentag wechseln.
-// Alle drei Aenderungspfade lehnen mit ErrTSEKonfigurationKassensitzungOffen ab
+// Alle drei Änderungspfade lehnen mit ErrTSEKonfigurationKassensitzungOffen ab
 // und schreiben nichts.
 func TestUpdateTSEKonfiguration_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 	repo := &stubCommandRepo{}
@@ -837,7 +838,26 @@ func TestUpdateTSEKonfiguration_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 		t.Fatalf("unexpected error building konfiguration: %v", err)
 	}
 
-	err = commandMitOffenerKassensitzung(repo).UpdateTSEKonfiguration(context.Background(), conf)
+	err = commandMitAktiverKassensitzung(repo, kasse.KassensitzungOffen).UpdateTSEKonfiguration(context.Background(), conf)
+	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
+		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
+	}
+	if repo.gespeichert != nil {
+		t.Fatalf("expected no configuration to be saved, got %+v", repo.gespeichert)
+	}
+}
+
+// Der Barrierestatus zählt wie eine offene Kassensitzung: Solange der Abschluss
+// läuft, darf die TSS nicht wechseln.
+func TestUpdateTSEKonfiguration_ImBarrierestatusAbgelehnt(t *testing.T) {
+	repo := &stubCommandRepo{}
+	conf, err := tse.NewKonfiguration("api-key", "api-secret", "tss-1", "client-1")
+	if err != nil {
+		t.Fatalf("unexpected error building konfiguration: %v", err)
+	}
+
+	err = commandMitAktiverKassensitzung(repo, kasse.KassensitzungWirdAbgeschlossen).
+		UpdateTSEKonfiguration(context.Background(), conf)
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
 		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
 	}
@@ -849,7 +869,7 @@ func TestUpdateTSEKonfiguration_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 func TestRichteTSEEin_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 
-	_, err := commandMitOffenerKassensitzung(repo).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
+	_, err := commandMitAktiverKassensitzung(repo, kasse.KassensitzungOffen).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
 		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
 	}
@@ -861,7 +881,7 @@ func TestRichteTSEEin_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 func TestUebernimmTSE_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 
-	_, err := commandMitOffenerKassensitzung(repo).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-1", "", "")
+	_, err := commandMitAktiverKassensitzung(repo, kasse.KassensitzungOffen).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-1", "", "")
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
 		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
 	}

@@ -61,7 +61,7 @@ const nachsignierVerzoegerung = 5 * time.Second
 // stoerungFehlertext ist der Fehlertext der geseedeten tse_fehler-Störungszeiträume.
 const stoerungFehlertext = "Cloud-TSE nicht erreichbar (HTTP 503)"
 
-// ausfallFenster ist ein TSE-Ausfallfenster mit absoluten Zeiten. aufgeloest steuert, ob die
+// ausfallFenster ist ein TSE-Ausfallfenster mit absoluten Zeiten. aufgelöst steuert, ob die
 // Signaturaufträge als vom Worker nachsigniert gelten (abgeschlossene Sitzung) oder offen
 // bleiben (offene Sitzung).
 type ausfallFenster struct {

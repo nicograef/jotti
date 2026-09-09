@@ -12,23 +12,30 @@ import (
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
-// positionenMitKommentarData spiegelt die benoetigten Felder von
-// bestellung-aufgenommen:v1 und direktverkauf-getaetigt:v1.
-// Keine Schema-Validierung noetig, da die Daten beim Event-Write validiert wurden.
-type positionenMitKommentarData struct {
-	Positionen []kasse.Position `json:"positionen"`
-	Kommentar  string           `json:"kommentar"`
+// positionenMitKommentarEventData spiegelt die benötigten Felder von
+// bestellung-aufgenommen:v1 und direktverkauf-getaetigt:v1 in ihrer Event-Form.
+// Keine Schema-Validierung nötig, da die Daten beim Event-Write validiert wurden.
+type positionenMitKommentarEventData struct {
+	Positionen []kasse.PositionEventData `json:"positionen"`
+	Kommentar  string                    `json:"kommentar"`
 }
 
-// CreateArbeitsbonAuftraegeFromEvent erzeugt Druckauftraege aus einem Bestell- oder
+// arbeitsbonDaten sind dieselben Felder in der Domänenform, wie die Formatter sie
+// erwarten.
+type arbeitsbonDaten struct {
+	Positionen []kasse.Position
+	Kommentar  string
+}
+
+// CreateArbeitsbonAuftraegeFromEvent erzeugt Druckaufträge aus einem Bestell- oder
 // Direktverkauf-Event anhand der konfigurierten Druckstationen.
 //   - bestellung-aufgenommen: Arbeitsbons an die Produktstationen je Kategorie.
 //   - direktverkauf-getaetigt (Ableitungsregel): ist die Abholbon-Station konfiguriert,
-//     entstehen Abholbon(s) an dieser Station gemaess ihrem Bonmodus; sonst Arbeitsbons
-//     an die Produktstationen; ohne konfigurierte Stationen entstehen keine Auftraege.
+//     entstehen Abholbon(s) an dieser Station gemäß ihrem Bonmodus; sonst Arbeitsbons
+//     an die Produktstationen; ohne konfigurierte Stationen entstehen keine Aufträge.
 //
 // Bonmodus pro_position (Standard) erzeugt einen Bon je Position, pro_bestellung einen
-// Sammelbon je Kategorie bzw. einen Sammel-Abholbon. Der Abholbon kennt zusaetzlich
+// Sammelbon je Kategorie bzw. einen Sammel-Abholbon. Der Abholbon kennt zusätzlich
 // pro_stueck: je Einheit einer Position einen eigenen Bon.
 func CreateArbeitsbonAuftraegeFromEvent(
 	evt event.Event,
@@ -57,19 +64,19 @@ func createDirektverkaufAuftraege(
 	referenz := fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
 
 	// Ableitungsregel: Abholbon-Station konfiguriert -> Abholbon(s), sonst Produktstationen.
-	if abholbon, ok := druckstationen["abholbon"]; ok && abholbon.DruckerIP != "" {
+	if abholbon, ok := druckstationen[string(druckstation.KategorieAbholbon)]; ok && abholbon.DruckerIP != "" {
 		return createAbholbonAuftraege(evt, data, abholbon, referenz)
 	}
 
 	return createStationsAuftraegeFromData(evt, data, druckstationen, "Direktverkauf", referenz)
 }
 
-// createAbholbonAuftraege erzeugt Abholbons fuer einen Direktverkauf gemaess Bonmodus:
+// createAbholbonAuftraege erzeugt Abholbons für einen Direktverkauf gemäß Bonmodus:
 // pro_bestellung = ein Sammel-Abholbon, pro_position = ein Abholbon je Position,
 // pro_stueck = ein Abholbon je Einheit (eine Positions-Kopie mit Menge 1 je Bon).
 func createAbholbonAuftraege(
 	evt event.Event,
-	data positionenMitKommentarData,
+	data arbeitsbonDaten,
 	station druckstation.Druckstation,
 	referenz string,
 ) []druckauftrag_repo.NeuerDruckauftrag {
@@ -98,7 +105,7 @@ func createAbholbonAuftraege(
 		}
 		return auftraege
 
-	default: // BonmodusProPosition, zugleich Rueckfall fuer unbekannte Werte
+	default: // BonmodusProPosition, zugleich Rückfall für unbekannte Werte
 		auftraege := make([]druckauftrag_repo.NeuerDruckauftrag, 0, len(data.Positionen))
 		for _, pos := range data.Positionen {
 			auftraege = append(auftraege, abholbon([]kasse.Position{pos}))
@@ -123,7 +130,7 @@ func createStationsAuftraege(
 
 func createStationsAuftraegeFromData(
 	evt event.Event,
-	data positionenMitKommentarData,
+	data arbeitsbonDaten,
 	druckstationen map[string]druckstation.Druckstation,
 	kontextName string,
 	referenz string,
@@ -141,7 +148,7 @@ func createStationsAuftraegeFromData(
 			continue
 		}
 
-		withBeep := kategorie == "essen"
+		withBeep := kategorie == string(druckstation.KategorieEssen)
 
 		if konfig.Bonmodus == druckstation.BonmodusProBestellung {
 			payload := escpos.FormatSammelBon(
@@ -183,11 +190,16 @@ func createStationsAuftraegeFromData(
 	return auftraege
 }
 
-func unmarshalPositionenMitKommentar(evt event.Event) (positionenMitKommentarData, bool) {
-	var data positionenMitKommentarData
+func unmarshalPositionenMitKommentar(evt event.Event) (arbeitsbonDaten, bool) {
+	var data positionenMitKommentarEventData
 	if err := json.Unmarshal(evt.Data, &data); err != nil {
-		return positionenMitKommentarData{}, false
+		return arbeitsbonDaten{}, false
 	}
 
-	return data, true
+	positionen := make([]kasse.Position, 0, len(data.Positionen))
+	for _, pos := range data.Positionen {
+		positionen = append(positionen, kasse.PositionFromEventData(pos))
+	}
+
+	return arbeitsbonDaten{Positionen: positionen, Kommentar: data.Kommentar}, true
 }

@@ -50,8 +50,8 @@ func (h CommandHandler) CreateUserHandler() http.HandlerFunc {
 
 		userID, onetimePassword, err := h.Command.CreateUser(r.Context(), body.Name, body.Username, body.Role)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUsernameAlreadyExists: "username_already_exists",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUsernameAlreadyExists, Code: "username_already_exists"},
 			})
 			return
 		}
@@ -81,11 +81,24 @@ func (h CommandHandler) UpdateUserHandler() http.HandlerFunc {
 			return
 		}
 
+		currentUserID, _, ok := middleware.UserFromContext(r.Context())
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+		// Diese Route liegt hinter /admin und ist damit nur für die Rolle admin
+		// erreichbar: Eine andere Rolle am eigenen Konto ist immer eine
+		// Herabstufung, die die Instanz ohne Datenbankzugriff aussperrt.
+		if body.ID == currentUserID && body.Role != user.AdminRole {
+			helper.SendClientError(w, "cannot_demote_self", nil)
+			return
+		}
+
 		err := h.Command.UpdateUser(r.Context(), body.ID, body.Name, body.Username, body.Role)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUserNotFound:          "user_not_found",
-				application.ErrUsernameAlreadyExists: "username_already_exists",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUserNotFound, Code: "user_not_found"},
+				{Err: application.ErrUsernameAlreadyExists, Code: "username_already_exists"},
 			})
 			return
 		}
@@ -116,8 +129,8 @@ func (h CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 
 		onetimePassword, err := h.Command.ResetPassword(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUserNotFound: "user_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUserNotFound, Code: "user_not_found"},
 			})
 			return
 		}
@@ -144,8 +157,8 @@ func (h CommandHandler) ActivateUserHandler() http.HandlerFunc {
 
 		err := h.Command.ActivateUser(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUserNotFound: "user_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUserNotFound, Code: "user_not_found"},
 			})
 			return
 		}
@@ -170,10 +183,22 @@ func (h CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 			return
 		}
 
+		currentUserID, _, ok := middleware.UserFromContext(r.Context())
+		if !ok {
+			helper.SendServerError(w)
+			return
+		}
+		// Wie beim Löschen: Der eigene Zugang bleibt aktiv, sonst sperrt sich der
+		// letzte Admin dauerhaft aus.
+		if body.ID == currentUserID {
+			helper.SendClientError(w, "cannot_deactivate_self", nil)
+			return
+		}
+
 		err := h.Command.DeactivateUser(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUserNotFound: "user_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUserNotFound, Code: "user_not_found"},
 			})
 			return
 		}
@@ -209,8 +234,8 @@ func (h CommandHandler) DeleteUserHandler() http.HandlerFunc {
 
 		err := h.Command.DeleteUser(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrUserNotFound: "user_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrUserNotFound, Code: "user_not_found"},
 			})
 			return
 		}

@@ -1,8 +1,9 @@
 import { ChevronRight, Lamp, Search, TableIcon } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 
 import { EmptyState } from '@/components/common/EmptyState'
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,15 +25,40 @@ const fussleisteFreiraum = 'pb-[calc(6rem+env(safe-area-inset-bottom,0px))]'
 export function TableSelectionPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [suche, setSuche] = useState('')
-  const { tische, isPending: tischeLoading } = useMeineTischeState()
+  const {
+    tische,
+    isPending: tischeLoading,
+    isError: tischeError,
+    refetch: reloadTische,
+  } = useMeineTischeState()
   // Die Suche greift über alle aktiven Tische, nicht nur die favorisierten
   // „Meine Tische" — so findet der Nutzer auch einen nicht markierten Tisch und
   // öffnet ihn per Treffer direkt.
-  const { tische: alleTische } = useAktiveTischeMitFavoriten()
-  const { uebersicht, isPending: uebersichtLoading } = useEigeneUebersicht()
+  const {
+    tische: alleTische,
+    isError: alleTischeError,
+    refetch: reloadAlleTische,
+  } = useAktiveTischeMitFavoriten()
+  const {
+    uebersicht,
+    isPending: uebersichtLoading,
+    isError: uebersichtError,
+    refetch: reloadUebersicht,
+  } = useEigeneUebersicht()
+
+  // Nur die beiden Queries, die den Seiteninhalt tragen. Die Suche hängt allein
+  // an alleTische und meldet ihren Ladefehler in ihrem eigenen Block, damit eine
+  // gescheiterte Suchliste nicht die geladenen Tische verdeckt.
+  const ladefehler = tischeError || uebersichtError
+  const reload = useCallback(() => {
+    void reloadTische()
+    void reloadUebersicht()
+  }, [reloadTische, reloadUebersicht])
 
   const sucheGetrimmt = suche.trim()
-  const sucheAktiv = sucheGetrimmt.length > 0
+  // Ohne geladene Tischliste kann die Suche nichts treffen; statt eines leeren
+  // Treffer-Ergebnisses zeigt der Suchblock dann den Ladefehler.
+  const sucheAktiv = !alleTischeError && sucheGetrimmt.length > 0
 
   const offeneTische = tische.filter(
     (state) => state.unbezahltePositionen.length > 0,
@@ -58,26 +84,50 @@ export function TableSelectionPage() {
     !tischeLoading && !sucheAktiv && tische.length > 0,
   )
 
-  return (
-    <div className={fussleisteFreiraum}>
+  // Suchblock: Eingabefeld, sobald es Tische gibt — bei Ladefehler stattdessen
+  // der Hinweis, weil ein stilles Suchfeld ohne Trefferliste wie „kein Tisch
+  // passt" aussähe.
+  const suchblock = alleTischeError ? (
+    <LadefehlerAlert
+      className="mb-4"
+      titel="Tischsuche konnte nicht geladen werden"
+      onErneutVersuchen={() => {
+        void reloadAlleTische()
+      }}
+    />
+  ) : (
+    alleTische.length > 0 && (
+      <div className="relative mb-4">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="h-11 pl-9"
+          placeholder="Tisch suchen — Name oder Nummer"
+          value={suche}
+          onChange={(e) => {
+            setSuche(e.target.value)
+          }}
+        />
+      </div>
+    )
+  )
+
+  // Expliziter Fehlerzustand statt der Leer-Defaults (Übersicht 0,00 €, keine
+  // markierten Tische) — sonst sieht der eigene Dienst bei Netzabbruch wie ein
+  // Tag ohne Bestellung aus. Die Fußleiste bleibt stehen, damit der
+  // Alle-Tische-Drawer erreichbar ist.
+  const inhalt = ladefehler ? (
+    <LadefehlerAlert
+      titel="Tischübersicht konnte nicht geladen werden"
+      onErneutVersuchen={reload}
+    />
+  ) : (
+    <>
       <EigeneUebersichtKarten
         uebersicht={uebersicht}
         loading={uebersichtLoading}
       />
 
-      {alleTische.length > 0 && (
-        <div className="relative mb-4">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="h-11 pl-9"
-            placeholder="Tisch suchen — Name oder Nummer"
-            value={suche}
-            onChange={(e) => {
-              setSuche(e.target.value)
-            }}
-          />
-        </div>
-      )}
+      {suchblock}
 
       {sucheAktiv ? (
         suchTreffer.length === 0 ? (
@@ -123,6 +173,12 @@ export function TableSelectionPage() {
           )}
         </div>
       )}
+    </>
+  )
+
+  return (
+    <div className={fussleisteFreiraum}>
+      {inhalt}
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
         <div className="mx-auto w-full max-w-md">

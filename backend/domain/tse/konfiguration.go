@@ -27,7 +27,7 @@ func (t Konfiguration) Credentials() Credentials {
 }
 
 func (t Konfiguration) Validate() error {
-	// Sonderfall: komplett leer ist gueltig (TSE schlicht nicht konfiguriert).
+	// Sonderfall: komplett leer ist gültig (TSE schlicht nicht konfiguriert).
 	// Sind Felder gesetzt, gilt die kanonische Vier-Felder-Regel aus
 	// Credentials (alle oder keines).
 	if !t.leer() {

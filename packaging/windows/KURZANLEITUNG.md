@@ -79,16 +79,26 @@ Zertifikat, also **keine neue Warnung**.
 ## Daten nach dem Fest sichern (optional)
 
 Wollt ihr die Kassendaten zusätzlich extern sichern (z. B. auf einen
-**USB-Stick**), erstellt mit einem Befehl eine Sicherungsdatei. Dazu die
-**Eingabeaufforderung** (cmd) öffnen und diese Zeile hineinkopieren:
+**USB-Stick**), erstellt eine Sicherungsdatei. jotti muss dazu laufen. Die
+**Eingabeaufforderung** (cmd) öffnen und diese drei Zeilen hineinkopieren:
 
 ```
-docker exec jotti-postgres-local pg_dump --clean --if-exists -U admin -d jotti > "%PROGRAMDATA%\jotti\backups\manuell.sql"
+md "%PROGRAMDATA%\jotti\backups" 2>nul
+docker exec jotti-postgres-local pg_dump --clean --if-exists -U admin -d jotti > "%PROGRAMDATA%\jotti\backups\manuell-%DATE:~-4%%DATE:~-7,2%%DATE:~-10,2%.sql"
+for %f in ("%PROGRAMDATA%\jotti\backups\manuell-*.sql") do @echo %~zf Bytes  %~nxf
 ```
 
-Die Datei liegt danach im Ordner `%PROGRAMDATA%\jotti\backups`. In denselben
-Ordner spiegelt jotti auch die **automatischen Backups vor jedem Update**. Diesen
-Ordner könnt ihr komplett auf einen USB-Stick oder in eine Cloud kopieren.
+- Zeile 1 legt den Ordner an, falls er fehlt; `2>nul` schluckt die Meldung, wenn
+  er schon da ist.
+- Zeile 2 schreibt die Sicherung. Das Datum steckt im Dateinamen, damit die
+  Sicherung eines anderen Tages die erste nicht überschreibt.
+- Zeile 3 listet jede vorhandene Sicherung mit ihrer Größe. Erscheint keine
+  Zeile oder **0 Bytes**, ist die Sicherung fehlgeschlagen — dann lief jotti
+  nicht. Löscht die leere Datei und versucht es erneut.
+
+Die Dateien liegen im Ordner `%PROGRAMDATA%\jotti\backups`. In denselben Ordner
+spiegelt jotti auch die **automatischen Backups vor jedem Update**. Diesen Ordner
+könnt ihr komplett auf einen USB-Stick oder in eine Cloud kopieren.
 
 ## jotti aktualisieren
 
@@ -106,8 +116,9 @@ Download-Link, so aktualisiert ihr jotti in drei Schritten:
 **Eure Daten bleiben erhalten:** Bestellungen, Benutzer, Produkte, der
 Installations-Schlüssel und das grüne Zertifikat liegen geschützt außerhalb des
 Programmordners (in Docker-Volumes). Egal wohin ihr entpackt — der Schlüssel folgt
-den Daten, jotti findet beides beim Start wieder. Den alten Ordner könnt ihr danach
-gefahrlos löschen.
+den Daten, jotti findet beides beim Start wieder. Den alten Ordner erst löschen,
+wenn das nächste Fest gelaufen ist: bis dahin liegt darin die `jotti-start.exe` des
+vorherigen Release — der Rückweg, falls das Update Ärger macht.
 
 > ⛔ **Niemals `docker compose down -v` ausführen.** Das `-v` löscht **alle**
 > Docker-Volumes — und damit **Daten, Installations-Schlüssel und das grüne
@@ -117,12 +128,40 @@ gefahrlos löschen.
 
 **Automatisches Backup vor dem Update.** Erkennt der Starter eine neue Version,
 sichert er die Datenbank **vor** der Aktualisierung automatisch. Geht beim Update
-etwas schief, stellt **`jotti-restore.cmd`** (Doppelklick) das letzte dieser
-Backups wieder her — seit dem Backup erfasste Daten gehen dabei verloren.
+etwas schief, spielt **`jotti-restore.cmd`** (Doppelklick) das letzte dieser
+Backups zurück — seit dem Backup erfasste Daten gehen dabei verloren.
+
+Das Skript fragt zuerst zurück: **`Fortfahren? (j/N)`** — mit **`j`**
+beantworten. Danach meldet es jeden seiner drei Schritte mit einer eigenen Zeile:
+
+1. `Starte die Datenbank ...`
+2. `Stoppe die Anwendung waehrend der Wiederherstellung ...`
+3. `Spiele das letzte Backup ein ...`
+
+Am Ende meldet es „Wiederherstellung abgeschlossen." und dass jotti noch nicht
+läuft. Das Skript startet jotti **nicht** selbst: nur `jotti-start.exe` gibt dem
+Reverse-Proxy die Netzwerk-Adresse des Rechners mit, ohne die es keine
+Zugangsadresse für die Handys gibt.
+
+Bricht einer der drei Schritte ab, endet die Ausgabe mit „FEHLER bei der
+Wiederherstellung". Behebt die Ursache (läuft Docker Desktop?) und startet
+`jotti-restore.cmd` erneut; der zweite Lauf spielt dasselbe Backup vollständig
+ein.
+
+**Danach starten — mit dem vorherigen Release.** Die Datenbank steht wieder auf
+dem Stand von vor dem Update, und dazu passt die Version von vor dem Update.
+Startet also `jotti-start.exe` des **vorherigen Release** — aus dem alten
+Programmordner, oder aus dem erneut geladenen ZIP
+(<https://github.com/nicograef/jotti/releases>).
 
 > 🔁 **Nur vorwärts, kein Downgrade.** Spielt **keine ältere Version** über eine
-> neuere. Updates verändern die Datenbank und lassen sich nicht zurücknehmen;
-> eine alte Version kann mit den neuen Daten nicht mehr starten.
+> neuere Datenbank: Updates verändern die Datenbank und lassen sich nicht
+> zurücknehmen. Nach einer Wiederherstellung gilt das nicht — die Datenbank ist
+> dann selbst wieder auf dem alten Stand. Verweigert der Starter den Start
+> trotzdem („Diese Version … ist aelter als die zuletzt gestartete …"), dann lief
+> die neue Version schon einmal vollständig: nehmt dann `jotti-start.exe` aus dem
+> **neuen** ZIP, es aktualisiert die zurückgespielte Datenbank wieder auf seinen
+> Stand.
 
 ## Wenn nach einem Update niemand mehr hineinkommt
 
@@ -133,9 +172,10 @@ Installations-Schlüssel. jotti startet dann zwar, aber das Anmelden schlägt fe
 Schlüssel. Zwei datenerhaltende Wege zurück:
 
 1. **`jotti-repair.cmd`** doppelklicken. Es gleicht das Datenbank-Passwort an den
-   aktuellen Installations-Schlüssel an und startet jotti neu — ohne eure Daten zu
-   verändern. Mehrfaches Ausführen schadet nicht. Danach einmal **neu anmelden**.
-2. Habt ihr noch die **`.env` aus der alten Installation** (lag früher im
+   aktuellen Installations-Schlüssel an, ohne eure Daten zu verändern, und endet
+   mit dem Hinweis, `jotti-start.exe` zu doppelklicken. Mehrfaches Ausführen
+   schadet nicht. Danach einmal **neu anmelden**.
+2. Habt ihr noch die **`.env` aus der alten Installation** (liegt ggf. im
    Programmordner neben `jotti-start.exe`): kopiert sie nach
    **`%PROGRAMDATA%\jotti\.env`** und startet `jotti-start.exe` erneut — dann
    verwendet jotti wieder den ursprünglichen Schlüssel.

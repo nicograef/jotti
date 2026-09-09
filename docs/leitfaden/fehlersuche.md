@@ -94,8 +94,9 @@ startet dann zwar, aber das Anmelden schlägt fehl. Eure Daten sind dabei nicht
 verloren. Es gibt zwei datenerhaltende Wege zurück:
 
 1. **`jotti-repair.cmd`** doppelklicken. Es gleicht das Datenbank-Passwort an den
-   aktuellen Installations-Schlüssel an und startet jotti neu, ohne eure Daten zu
-   verändern. Mehrfaches Ausführen schadet nicht. Danach einmal neu anmelden.
+   aktuellen Installations-Schlüssel an, ohne eure Daten zu verändern, und endet
+   mit dem Hinweis, `jotti-start.exe` zu doppelklicken. Mehrfaches Ausführen
+   schadet nicht. Danach einmal neu anmelden.
 2. Habt ihr noch die **`.env` aus der alten Installation**, kopiert ihr sie nach
    `C:\ProgramData\jotti\.env` und startet `jotti-start.exe` erneut. Dann verwendet
    jotti wieder den ursprünglichen Schlüssel.

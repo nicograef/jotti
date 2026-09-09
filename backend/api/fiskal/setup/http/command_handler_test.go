@@ -121,7 +121,7 @@ func TestUpdateTSEKonfigurationHandler_PartialValuesRejected(t *testing.T) {
 
 // TestUpdateTSEKonfigurationHandler_LaeuftBereits sichert, dass auch der
 // manuelle Zugangsdaten-Pfad als 409 ankommt: Er teilt sich das Schloss auf der
-// TSE-Konfiguration mit Neuanlage und Uebernahme, und die Seite bietet ihn
+// TSE-Konfiguration mit Neuanlage und Übernahme, und die Seite bietet ihn
 // direkt unter dem Wizard an.
 func TestUpdateTSEKonfigurationHandler_LaeuftBereits(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{err: application.ErrTSESetupLaeuftBereits}}
@@ -219,8 +219,8 @@ func TestRichteTSEEinHandler_BereitsEingerichtet(t *testing.T) {
 }
 
 // TestRichteTSEEinHandler_LaeuftBereits sichert, dass ein zweiter Versuch
-// waehrend einer laufenden Einrichtung als 409 mit eigenem Code ankommt: Die
-// Anfrage war in Ordnung, nur der Zustand ist voruebergehend — der Admin soll
+// während einer laufenden Einrichtung als 409 mit eigenem Code ankommt: Die
+// Anfrage war in Ordnung, nur der Zustand ist vorübergehend — der Admin soll
 // warten statt eine zweite, bezahlte TSS anzulegen.
 func TestRichteTSEEinHandler_LaeuftBereits(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{einrichtErr: application.ErrTSESetupLaeuftBereits}}
@@ -240,8 +240,8 @@ func TestRichteTSEEinHandler_LaeuftBereits(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSEHandler_LaeuftBereits sichert dieselbe Abbildung fuer die
-// Uebernahme — sie teilt sich das Schloss mit der Neuanlage.
+// TestUebernimmTSEHandler_LaeuftBereits sichert dieselbe Abbildung für die
+// Übernahme — sie teilt sich das Schloss mit der Neuanlage.
 func TestUebernimmTSEHandler_LaeuftBereits(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupLaeuftBereits}}
 
@@ -260,8 +260,8 @@ func TestUebernimmTSEHandler_LaeuftBereits(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSEHandler_Success sichert, dass die Uebernahme die TSS-ID
-// entgegennimmt und das Ergebnis (inkl. ggf. neuer Geheimnisse) zurueckgibt.
+// TestUebernimmTSEHandler_Success sichert, dass die Übernahme die TSS-ID
+// entgegennimmt und das Ergebnis (inkl. ggf. neuer Geheimnisse) zurückgibt.
 func TestUebernimmTSEHandler_Success(t *testing.T) {
 	mock := &mockSettingsCommand{uebernehmen: application.TSESetupErgebnis{
 		TssID:    "tss-halb",
@@ -287,7 +287,7 @@ func TestUebernimmTSEHandler_Success(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSEHandler_FehlendeTssID sichert, dass die Uebernahme ohne TSS-ID
+// TestUebernimmTSEHandler_FehlendeTssID sichert, dass die Übernahme ohne TSS-ID
 // abgewiesen wird, ohne den Orchestrator aufzurufen.
 func TestUebernimmTSEHandler_FehlendeTssID(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{}}
@@ -304,8 +304,8 @@ func TestUebernimmTSEHandler_FehlendeTssID(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSEHandler_UnbekanntePIN sichert die Uebersetzung der
-// Sackgassen-Meldung in den verstaendlichen Fehlercode fuer die UI.
+// TestUebernimmTSEHandler_UnbekanntePIN sichert die Übersetzung der
+// Sackgassen-Meldung in den verständlichen Fehlercode für die UI.
 func TestUebernimmTSEHandler_UnbekanntePIN(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupPINUnbekannt}}
 
@@ -324,8 +324,8 @@ func TestUebernimmTSEHandler_UnbekanntePIN(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSEHandler_UnbekannterPUK sichert die Uebersetzung des
-// PUK-Reset-Fehlers in den verstaendlichen Fehlercode fuer die UI.
+// TestUebernimmTSEHandler_UnbekannterPUK sichert die Übersetzung des
+// PUK-Reset-Fehlers in den verständlichen Fehlercode für die UI.
 func TestUebernimmTSEHandler_UnbekannterPUK(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupPUKUnbekannt}}
 

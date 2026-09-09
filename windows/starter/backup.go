@@ -64,9 +64,9 @@ func maybeBackupBeforeUpdate(composePath, envPath, stateDir string) error {
 	}
 
 	if lastVersion == "" {
-		fmt.Printf("Erstes Upgrade erkannt (auf %s) — sichere die Daten vor dem Update ...\n", version)
+		fmt.Printf("Erstes Upgrade erkannt (auf %s) - sichere die Daten vor dem Update ...\n", version)
 	} else {
-		fmt.Printf("Versionswechsel erkannt (%s → %s) — sichere die Daten vor dem Update ...\n", lastVersion, version)
+		fmt.Printf("Versionswechsel erkannt (%s -> %s) - sichere die Daten vor dem Update ...\n", lastVersion, version)
 	}
 	if err := runCompose(os.Environ(), composePath, envPath, "up", "-d", "--wait", "postgres"); err != nil {
 		return fmt.Errorf("postgres fuer das Backup hochfahren fehlgeschlagen: %w", err)

@@ -144,7 +144,7 @@ type geldtransit struct {
 	Kommentar   string
 }
 
-// kassensturz zählt die Kasse: Die Engine berechnet den Soll-Bestand aus den bisherigen
+// kassensturz zählt die Kasse: Die Engine berechnet den Soll-Bestand aus den aufgelaufenen
 // Events, der Ist-Bestand ergibt sich als Soll − DifferenzCents. Bei Differenz ≠ 0 folgt
 // die Differenz-Buchung (Zwei-Event-Muster wie im Produktivbetrieb).
 type kassensturz struct {

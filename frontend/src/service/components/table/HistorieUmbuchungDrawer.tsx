@@ -1,6 +1,7 @@
 import { CircleCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Button } from '@/components/ui/button'
 import {
   Drawer,
@@ -61,7 +62,12 @@ export function HistorieUmbuchungDrawer({
   const positionen = quelle.umbuchbarePositionen
   const [zielTischId, setZielTischId] = useState<number | null>(null)
   const [kommentar, setKommentar] = useState('')
-  const { tische, isPending: tischeLoading } = useAktiveTische()
+  const {
+    tische,
+    isPending: tischeLoading,
+    isError: tischeError,
+    refetch: reloadTische,
+  } = useAktiveTische()
 
   const umbuchbareMengen = useMemo(
     () => createDefaultMengen(positionen),
@@ -89,8 +95,9 @@ export function HistorieUmbuchungDrawer({
   const noPositionenSelected = selectedPositionen.length === 0
   const keinZielTischVerfuegbar = zielTische.length === 0
   // Grund am Button nur für die behebbaren Bedingungen: Fehlt gänzlich ein
-  // Ziel-Tisch, nennt bereits der Select-Platzhalter den Grund — ein zweiter
-  // Hinweis wäre redundant (gleiche Dedup wie in HistorieStornierungDrawer).
+  // Ziel-Tisch, nennt bereits der Select-Platzhalter den Grund — und im
+  // Ladefehler der LadefehlerAlert an seiner Stelle. Ein zweiter Hinweis wäre
+  // redundant (gleiche Dedup wie in HistorieStornierungDrawer).
   const disabledReason = noPositionenSelected
     ? 'Positionen auswählen'
     : keinZielTischVerfuegbar
@@ -116,10 +123,6 @@ export function HistorieUmbuchungDrawer({
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Umbuchung ausführen',
-    byCode: {
-      position_nicht_umbuchbar:
-        'Mindestens eine Position ist nicht mehr umbuchbar. Bitte Auswahl aktualisieren.',
-    },
     onSuccess: () => {
       const zielName =
         zielTische.find((candidate) => candidate.id === zielTischId)?.name ?? ''
@@ -191,28 +194,39 @@ export function HistorieUmbuchungDrawer({
           )}
           <div className="space-y-1">
             <p className="text-sm font-medium">Ziel-Tisch</p>
-            <NativeSelect
-              className="w-full"
-              value={zielTischId === null ? '' : String(zielTischId)}
-              onChange={(event) => {
-                setZielTischId(Number(event.target.value))
-              }}
-              disabled={loading || tischeLoading || keinZielTischVerfuegbar}
-            >
-              <NativeSelectOption value="" disabled>
-                {keinZielTischVerfuegbar
-                  ? 'Kein aktiver Ziel-Tisch verfügbar'
-                  : 'Ziel-Tisch wählen…'}
-              </NativeSelectOption>
-              {zielTische.map((candidate) => (
-                <NativeSelectOption
-                  key={candidate.id}
-                  value={String(candidate.id)}
-                >
-                  {candidate.name}
+            {/* Expliziter Fehlerzustand statt der leeren Auswahl — sonst läse
+                sich der Ladefehler als „kein Ziel-Tisch vorhanden". */}
+            {tischeError ? (
+              <LadefehlerAlert
+                titel="Ziel-Tische konnten nicht geladen werden"
+                onErneutVersuchen={() => {
+                  void reloadTische()
+                }}
+              />
+            ) : (
+              <NativeSelect
+                className="w-full"
+                value={zielTischId === null ? '' : String(zielTischId)}
+                onChange={(event) => {
+                  setZielTischId(Number(event.target.value))
+                }}
+                disabled={loading || tischeLoading || keinZielTischVerfuegbar}
+              >
+                <NativeSelectOption value="" disabled>
+                  {keinZielTischVerfuegbar
+                    ? 'Kein aktiver Ziel-Tisch verfügbar'
+                    : 'Ziel-Tisch wählen…'}
                 </NativeSelectOption>
-              ))}
-            </NativeSelect>
+                {zielTische.map((candidate) => (
+                  <NativeSelectOption
+                    key={candidate.id}
+                    value={String(candidate.id)}
+                  >
+                    {candidate.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            )}
           </div>
           <ActionHint reason={disabledReason} />
           <Button

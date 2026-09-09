@@ -1,18 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import {
-  DrawerBody,
-  DrawerClose,
-  DrawerContent,
-  DrawerFooter,
-} from '@/components/ui/drawer'
+import { DrawerBody, DrawerClose, DrawerFooter } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import type { BestellPositionInput } from '../../table/Bestellung'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
+import { AbschlussContainer } from './AbschlussContainer'
 import { AbschlussHeader } from './AbschlussHeader'
 import { AbschlussLeer } from './AbschlussLeer'
 import { KommentarField } from './CommentField'
@@ -49,20 +45,21 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
   // Spalte nichts aus einem abgebrochenen Vorgang übertragen wird.
   const [bestellungId, setBestellungId] = useState(() => crypto.randomUUID())
   const warLeerRef = useRef(noPositionenSelected)
+  // Inhalt des letzten Absendeversuchs. Nach einem Fehlversuch mit geändertem
+  // Inhalt ist der Schlüssel verbraucht: Das Backend erkennt ihn als Duplikat
+  // und verwürfe die geänderte Bestellung stillschweigend.
+  const letzterVersuchRef = useRef<string | null>(null)
   useEffect(() => {
     if (warLeerRef.current && !noPositionenSelected) {
       setBestellungId(crypto.randomUUID())
       setKommentar('')
+      letzterVersuchRef.current = null
     }
     warLeerRef.current = noPositionenSelected
   }, [noPositionenSelected])
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Bestellung aufnehmen',
-    byCode: {
-      produkt_not_found:
-        'Ein ausgewähltes Produkt ist nicht mehr verfügbar. Bitte Auswahl aktualisieren.',
-    },
     onSuccess: () => {
       setKommentar('')
       props.bestellungAufgenommen()
@@ -70,9 +67,23 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
   })
 
   const onSubmit = async () => {
+    const versuchsInhalt = JSON.stringify({
+      positionen: props.positionen,
+      kommentar,
+    })
+    let schluessel = bestellungId
+    if (
+      letzterVersuchRef.current !== null &&
+      letzterVersuchRef.current !== versuchsInhalt
+    ) {
+      schluessel = crypto.randomUUID()
+      setBestellungId(schluessel)
+    }
+    letzterVersuchRef.current = versuchsInhalt
+
     await run(async () => {
       await props.backend.bestellungAufnehmen({
-        bestellungId,
+        bestellungId: schluessel,
         tischId: props.tisch.id,
         positionen: props.positionen,
         kommentar,
@@ -126,19 +137,9 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
     </>
   )
 
-  if (props.variant === 'sheet') {
-    return <DrawerContent pending={loading}>{inhalt}</DrawerContent>
-  }
-
-  // Feste Spalte: dieselben Body/Footer-Primitive wie im Sheet, nur in einem
-  // eigenen, unabhängig scrollenden Container. group/drawer-content +
-  // data-pending übernehmen das Body-Dimming des Drawers während des Submits.
   return (
-    <aside
-      data-pending={loading || undefined}
-      className="group/drawer-content flex min-h-0 flex-col overflow-hidden rounded-xl border bg-popover text-sm text-popover-foreground"
-    >
+    <AbschlussContainer variant={props.variant} pending={loading}>
       {inhalt}
-    </aside>
+    </AbschlussContainer>
   )
 }

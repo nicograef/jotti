@@ -12,10 +12,10 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// blockierenderSetupClient haelt einen laufenden Lebenszyklus in ListTSS fest —
+// blockierenderSetupClient hält einen laufenden Lebenszyklus in ListTSS fest —
 // genau an der Stelle, an der ein zweiter Lauf ohne Schloss noch das leere Konto
-// saehe und eine zweite, bezahlte TSS anlegte. gestartet meldet, dass der Lauf
-// steht; weiter laesst ihn zu Ende laufen.
+// sähe und eine zweite, bezahlte TSS anlegte. gestartet meldet, dass der Lauf
+// steht; weiter lässt ihn zu Ende laufen.
 type blockierenderSetupClient struct {
 	*tse.FakeSetupClient
 	gestartet chan struct{}
@@ -29,7 +29,7 @@ func (c *blockierenderSetupClient) ListTSS(ctx context.Context) (tse.Umgebung, [
 }
 
 // laufendeEinrichtung ist eine gestartete Einrichtung, die in ListTSS steht und
-// dabei das Schloss haelt. freigeben laesst sie zu Ende laufen, fertig liefert
+// dabei das Schloss hält. freigeben lässt sie zu Ende laufen, fertig liefert
 // danach ihr Ergebnis.
 type laufendeEinrichtung struct {
 	repo      *stubCommandRepo
@@ -38,18 +38,18 @@ type laufendeEinrichtung struct {
 	freigeben func()
 }
 
-// starteBlockierteEinrichtung startet eine Einrichtung und kehrt zurueck, sobald
+// starteBlockierteEinrichtung startet eine Einrichtung und kehrt zurück, sobald
 // sie in ListTSS steht.
 //
-// Die Freigabe haengt zusaetzlich in t.Cleanup: Ein t.Fatalf zwischen Start und
+// Die Freigabe hängt zusätzlich in t.Cleanup: Ein t.Fatalf zwischen Start und
 // Freigabe beendet die Test-Goroutine per runtime.Goexit, der blockierte Lauf
-// haenge sonst fuer immer und hielte das paketweite Schloss — jeder folgende
-// Test des Pakets schluege dann mit ErrTSESetupLaeuftBereits fehl und
+// hänge sonst für immer und hielte das paketweite Schloss — jeder folgende
+// Test des Pakets schlüge dann mit ErrTSESetupLaeuftBereits fehl und
 // verschleierte die eigentliche Ursache. sync.OnceFunc macht den doppelten
-// Aufruf (regulaer im Test und aus dem Cleanup) unschaedlich; der Cleanup wartet
+// Aufruf (regulär im Test und aus dem Cleanup) unschädlich; der Cleanup wartet
 // danach das Ende des Laufs ab, damit dessen eigenes defer freigeben()
 // (setup.go) nicht in einen Folgetest hineinreicht und dort das frisch genommene
-// Schloss loest. Das Zuruecksetzen des Schlosses bleibt als letztes
+// Schloss löst. Das Zurücksetzen des Schlosses bleibt als letztes
 // Sicherheitsnetz stehen — es ist als zuerst registrierter Cleanup der zuletzt
 // laufende.
 func starteBlockierteEinrichtung(t *testing.T) *laufendeEinrichtung {
@@ -79,8 +79,8 @@ func starteBlockierteEinrichtung(t *testing.T) *laufendeEinrichtung {
 
 	fertig := make(chan error, 1)
 	go func() {
-		// beendet schliesst erst, nachdem RichteTSEEin samt seinem
-		// defer freigeben() zurueck ist — darauf wartet der Cleanup.
+		// beendet schließt erst, nachdem RichteTSEEin samt seinem
+		// defer freigeben() zurück ist — darauf wartet der Cleanup.
 		defer close(beendet)
 		_, err := erster.RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 		fertig <- err
@@ -90,18 +90,18 @@ func starteBlockierteEinrichtung(t *testing.T) *laufendeEinrichtung {
 	return &laufendeEinrichtung{repo: repo, client: blockiert, fertig: fertig, freigeben: freigeben}
 }
 
-// Seit der Lebenszyklus vom Client-Abbruch entkoppelt ist, laeuft er nach einem
+// Seit der Lebenszyklus vom Client-Abbruch entkoppelt ist, läuft er nach einem
 // Abbruch im Hintergrund weiter — der Admin sieht derweil eine Fehlermeldung und
 // kann sofort erneut starten. Der zweite Aufruf muss deshalb sofort abgelehnt
-// werden, ohne fiskaly auch nur anzusprechen: Sonst entstuende eine zweite,
+// werden, ohne fiskaly auch nur anzusprechen: Sonst entstünde eine zweite,
 // bezahlte TSS, und die zuletzt gespeicherte Konfiguration passte nicht mehr zu
-// den angezeigten PUK/PIN. Neuanlage und Uebernahme teilen sich das Schloss.
+// den angezeigten PUK/PIN. Neuanlage und Übernahme teilen sich das Schloss.
 func TestEinrichtung_ZweiterAufrufWaehrendLaufendemErstenAbgelehnt(t *testing.T) {
 	lauf := starteBlockierteEinrichtung(t)
 
-	// Der zweite Lauf darf fiskaly nicht einmal ansprechen. Die Fabrik zaehlt
+	// Der zweite Lauf darf fiskaly nicht einmal ansprechen. Die Fabrik zählt
 	// jeden Versuch, einen Setup-Client zu bauen — der erste Schritt jeder
-	// fiskaly-Sequenz und damit der schaerfste Nachweis.
+	// fiskaly-Sequenz und damit der schärfste Nachweis.
 	fabrikAufrufe := 0
 	zweiterClient := &tse.FakeSetupClient{
 		UmgebungResponse:  tse.UmgebungTest,
@@ -145,11 +145,11 @@ func TestEinrichtung_ZweiterAufrufWaehrendLaufendemErstenAbgelehnt(t *testing.T)
 	}
 }
 
-// Der manuelle Zugangsdaten-Wechsel schreibt ueber denselben SaveEinrichtung wie
-// die Einrichtung und liegt in der Oberflaeche direkt unter dem Wizard. Er muss
-// deshalb dasselbe Schloss nehmen: Sonst speicherte der Admin waehrend eines
-// laufenden Einrichtungslaufs von Hand eine Konfiguration, der spaetere
-// Schreiber gewaenne, und die Instanz signierte anschliessend gegen eine
+// Der manuelle Zugangsdaten-Wechsel schreibt über denselben SaveEinrichtung wie
+// die Einrichtung und liegt in der Oberfläche direkt unter dem Wizard. Er muss
+// deshalb dasselbe Schloss nehmen: Sonst speicherte der Admin während eines
+// laufenden Einrichtungslaufs von Hand eine Konfiguration, der spätere
+// Schreiber gewänne, und die Instanz signierte anschließend gegen eine
 // TSS/Client-Kombination, die nicht die eingerichtete ist.
 func TestUpdateTSEKonfiguration_WaehrendLaufenderEinrichtungAbgelehnt(t *testing.T) {
 	lauf := starteBlockierteEinrichtung(t)
@@ -185,9 +185,9 @@ func TestUpdateTSEKonfiguration_WaehrendLaufenderEinrichtungAbgelehnt(t *testing
 	}
 }
 
-// Das Schloss darf keinen Pfad ueberdauern: Nach einem gescheiterten wie nach
-// einem erfolgreichen Lauf muss die naechste Einrichtung wieder starten koennen.
-// Sonst waere ein einziger fiskaly-Aussetzer eine dauerhafte Sperre.
+// Das Schloss darf keinen Pfad überdauern: Nach einem gescheiterten wie nach
+// einem erfolgreichen Lauf muss die nächste Einrichtung wieder starten können.
+// Sonst wäre ein einziger fiskaly-Aussetzer eine dauerhafte Sperre.
 func TestEinrichtung_SchlossIstNachFehlerUndNachErfolgWiederFrei(t *testing.T) {
 	t.Cleanup(func() { einrichtungLaeuft.Store(false) })
 

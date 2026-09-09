@@ -54,7 +54,7 @@ func TestSetupRoutes_HealthAllowsGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create test db handle: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	handler := SetupRoutes(cfg, db, "v9.9.9")
 
@@ -88,7 +88,7 @@ func TestSetupRoutes_NonHealthRejectsGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create test db handle: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	handler := SetupRoutes(cfg, db, "dev")
 
@@ -143,7 +143,7 @@ func TestSetupRoutes_ResetSeedRouteGuardedByEnv(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create test db handle: %v", err)
 		}
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		handler := SetupRoutes(cfg, db, "dev")
 

@@ -4,7 +4,7 @@ import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 import { oeffneTisch, waehleVariante } from '../support/servicekraft'
 
-// Regression für NEU13: Bei offenem Service-Drawer (Radix-Dialog, modal) darf die
+// Regression: Bei offenem Service-Drawer (Radix-Dialog, modal) darf die
 // Tab-Leiste des ServiceDock nicht mehr interaktiv oder per Tastatur erreichbar
 // sein. Radix macht die Umgebung des Dialogs per aria-hidden + Fokus-Falle inert;
 // dieser Test hält das Verhalten fest, damit es nicht unbemerkt zerbricht.

@@ -9,7 +9,8 @@ set -euo pipefail
 # (the dumps use --clean --if-exists, so objects are dropped and re-created).
 # Application services are stopped during the restore so no writes interfere.
 # Steps:
-#   1. Validate prerequisites and pick the dump (argument or newest in BACKUP_DIR)
+#   1. Validate prerequisites, pick the dump (argument or newest in BACKUP_DIR)
+#      and test a gzip-compressed dump for integrity
 #   2. Confirm the destructive action
 #   3. Stop app services, restore via psql, restart the stack
 #
@@ -34,46 +35,28 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # ---------------------------------------------------------------------------
-# Step 1 — Validate prerequisites and select the dump
+# Step 1 — Validate prerequisites, select the dump and test the archive
 # ---------------------------------------------------------------------------
-if ! command -v docker &>/dev/null; then
-  fatal "docker is not installed or not on PATH."
-fi
-if ! docker compose version &>/dev/null; then
-  fatal "docker compose (v2) is not available."
-fi
-if [[ ! -f "$COMPOSE_FILE" ]]; then
-  fatal "Missing compose file: $COMPOSE_FILE"
-fi
-if [[ ! -f .env ]]; then
-  fatal ".env file not found. Run 'make init' first."
-fi
+require_docker_stack "$COMPOSE_FILE"
 
-BACKUP_DIR="${BACKUP_DIR:-$(read_env BACKUP_DIR)}"
-[[ -n "$BACKUP_DIR" ]] || BACKUP_DIR="./backups"
+resolve_backup_dir
+select_dump "$BACKUP_DIR" "${1:-}"
 
-mapfile -t dumps < <(find "$BACKUP_DIR" -maxdepth 1 -type f \
-  \( -name 'jotti-*.sql' -o -name 'jotti-*.sql.gz' \) -printf '%f\n' 2>/dev/null | sort)
-
-TARGET="${1:-}"
-if [[ -n "$TARGET" ]]; then
-  if [[ -f "$TARGET" ]]; then
-    SELECTED="$TARGET"
-  elif [[ -f "$BACKUP_DIR/$TARGET" ]]; then
-    SELECTED="$BACKUP_DIR/$TARGET"
-  else
-    fatal "Backup not found: $TARGET"
-  fi
-else
-  (( ${#dumps[@]} > 0 )) || fatal "No backups found in $BACKUP_DIR. Pass a dump file explicitly."
-  SELECTED="$BACKUP_DIR/${dumps[-1]}"
-fi
-
-if (( ${#dumps[@]} > 0 )); then
+if (( ${#DUMPS_FOUND[@]} > 0 )); then
   info "Available backups in $BACKUP_DIR:"
-  for d in "${dumps[@]}"; do
+  for d in "${DUMPS_FOUND[@]}"; do
     echo "    $d"
   done
+fi
+
+# A corrupt or truncated archive only surfaces mid-restore — after --clean has
+# already dropped the objects. Test it while the database is still intact; the
+# same check guards the write side in prod-backup.sh.
+if [[ "$SELECTED" == *.gz ]]; then
+  info "Checking the archive (gzip -t) ..."
+  if ! gzip -t "$SELECTED"; then
+    fatal "Integrity check failed (gzip -t): $SELECTED is corrupt. Nothing was changed."
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -96,17 +79,10 @@ docker compose -f "$COMPOSE_FILE" up -d --wait "$PG_SERVICE"
 info "Stopping application services during the restore ..."
 docker compose -f "$COMPOSE_FILE" stop backend frontend reverse-proxy
 
-# Stream the dump (decompressing on the fly when gzip-compressed) into psql. The
-# postgres role comes from the container's own POSTGRES_USER env; ON_ERROR_STOP
-# aborts on the first SQL error instead of limping on with a half-restored DB.
-decompress() {
-  if [[ "$SELECTED" == *.gz ]]; then
-    gzip -dc "$SELECTED"
-  else
-    cat "$SELECTED"
-  fi
-}
-
+# Stream the dump (decompressing on the fly when gzip-compressed, see
+# lib.sh's decompress) into psql. The postgres role comes from the container's
+# own POSTGRES_USER env; ON_ERROR_STOP aborts on the first SQL error instead
+# of limping on with a half-restored DB.
 info "Restoring $SELECTED ..."
 if ! decompress | docker compose -f "$COMPOSE_FILE" exec -T "$PG_SERVICE" \
        sh -c 'psql -U "$POSTGRES_USER" -d jotti -v ON_ERROR_STOP=1'; then

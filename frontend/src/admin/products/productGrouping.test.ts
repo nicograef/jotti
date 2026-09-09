@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import type { Produkt } from '@/lib/produktSchemas'
+
 import type { DruckstationConfig } from '../settings/DruckstationBackend'
 import {
   gemeinsamerSteuersatz,
@@ -7,7 +9,6 @@ import {
   kategorieZusatz,
   produktUnterzeile,
 } from './productGrouping'
-import type { Produkt } from './Produkt'
 
 function produkt(overrides: Partial<Produkt>): Produkt {
   return {

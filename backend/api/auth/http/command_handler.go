@@ -25,9 +25,12 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
+// loginSchema trimmt das Passwort wie PasswordSchema beim Setzen, damit beide
+// Wege dasselbe Geheimnis prüfen. Die Längenregeln des PasswordSchema bleiben
+// draußen, damit der Login-Endpunkt die Passwort-Policy nicht verrät.
 var loginSchema = z.Struct(z.Shape{
 	"Username": z.String().Trim().Min(1, z.Message("Benutzername ist erforderlich")).Required(),
-	"Password": z.String().Min(1, z.Message("Passwort ist erforderlich")).Required(),
+	"Password": z.String().Trim().Min(1, z.Message("Passwort ist erforderlich")).Required(),
 })
 
 type loginResponse struct {

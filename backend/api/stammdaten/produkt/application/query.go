@@ -21,7 +21,7 @@ func (q Query) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 
 	produkte, err := q.ProduktRepo.GetAllProdukte(ctx)
 	if err != nil {
-		log.Error().Msg("Failed to retrieve all produkte")
+		log.Error().Err(err).Msg("Failed to retrieve all produkte")
 		return nil, ErrDatabase
 	}
 
@@ -34,7 +34,7 @@ func (q Query) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error)
 
 	produkte, err := q.ProduktRepo.GetActiveProdukte(ctx)
 	if err != nil {
-		log.Error().Msg("Failed to retrieve active produkte")
+		log.Error().Err(err).Msg("Failed to retrieve active produkte")
 		return nil, ErrDatabase
 	}
 

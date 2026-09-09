@@ -129,6 +129,18 @@ var bestellungUmgebuchtV1DataSchema = z.Struct(z.Shape{
 
 // --- Event-Erstellungsfunktionen ---
 
+// validateEventData validiert Event-Daten gegen ihr Schema und verpackt einen
+// Fehlschlag als Konstruktionsfehler ("<label> data validation failed: …").
+// Teilt sich jeder New...Event-Konstruktor im Paket kasse (diese Datei,
+// kassensitzung_events.go, direktverkauf_events.go).
+func validateEventData[T any](schema *z.StructSchema, data *T, label string) error {
+	if err := schema.Validate(data); err != nil {
+		issues := z.Issues.FlattenAndCollect(err)
+		return fmt.Errorf("%s data validation failed: %v", label, issues)
+	}
+	return nil
+}
+
 func NewBestellungAufgenommenEvent(subject string, userID int, userName string, bestellungID string, positionen []Position, kommentar string) (e.Event, error) {
 	// Generate PositionIDs for each position (on a copy, so the caller's slice stays untouched)
 	positionen = slices.Clone(positionen)
@@ -148,9 +160,8 @@ func NewBestellungAufgenommenEvent(subject string, userID int, userName string, 
 		Kommentar:        kommentar,
 	}
 
-	if err := bestellungAufgenommenV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("bestellung aufgenommen data validation failed: %v", issues)
+	if err := validateEventData(bestellungAufgenommenV1DataSchema, &data, "bestellung aufgenommen"); err != nil {
+		return e.Event{}, err
 	}
 
 	return e.New(userID, userName, string(EventTypeBestellungAufgenommenV1), subject, data)
@@ -164,9 +175,8 @@ func NewZahlungKassiertEvent(subject string, userID int, userName string, positi
 		Kommentar:          kommentar,
 	}
 
-	if err := zahlungKassiertV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("zahlung kassiert data validation failed: %v", issues)
+	if err := validateEventData(zahlungKassiertV1DataSchema, &data, "zahlung kassiert"); err != nil {
+		return e.Event{}, err
 	}
 
 	return e.New(userID, userName, string(EventTypeZahlungKassiertV1), subject, data)
@@ -181,9 +191,8 @@ func NewStornierungErteiltEvent(subject string, userID int, userName string, zah
 		Kommentar:              kommentar,
 	}
 
-	if err := stornierungErteiltV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("stornierung erteilt data validation failed: %v", issues)
+	if err := validateEventData(stornierungErteiltV1DataSchema, &data, "stornierung erteilt"); err != nil {
+		return e.Event{}, err
 	}
 
 	return e.New(userID, userName, string(EventTypeStornierungErteiltV1), subject, data)
@@ -197,9 +206,8 @@ func NewBestellungKorrigiertEvent(subject string, userID int, userName string, p
 		Kommentar:   kommentar,
 	}
 
-	if err := bestellungKorrigiertV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("bestellung korrigiert data validation failed: %v", issues)
+	if err := validateEventData(bestellungKorrigiertV1DataSchema, &data, "bestellung korrigiert"); err != nil {
+		return e.Event{}, err
 	}
 
 	return e.New(userID, userName, string(EventTypeBestellungKorrigiertV1), subject, data)
@@ -231,13 +239,11 @@ func NewBestellungUmgebuchtEvents(zNr int, quellTischID int, zielTischID int, us
 	zielData.Positionen = toPositionenEventData(zielPositionen)
 	zielData.Kommentar = zielKommentar
 
-	if err := bestellungUmgebuchtV1DataSchema.Validate(&quellData); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, e.Event{}, fmt.Errorf("bestellung umgebucht (quelle) data validation failed: %v", issues)
+	if err := validateEventData(bestellungUmgebuchtV1DataSchema, &quellData, "bestellung umgebucht (quelle)"); err != nil {
+		return e.Event{}, e.Event{}, err
 	}
-	if err := bestellungUmgebuchtV1DataSchema.Validate(&zielData); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, e.Event{}, fmt.Errorf("bestellung umgebucht (ziel) data validation failed: %v", issues)
+	if err := validateEventData(bestellungUmgebuchtV1DataSchema, &zielData, "bestellung umgebucht (ziel)"); err != nil {
+		return e.Event{}, e.Event{}, err
 	}
 
 	quellEvent, err := e.New(userID, userName, string(EventTypeBestellungUmgebuchtV1), TischSessionSubject(zNr, quellTischID), quellData)

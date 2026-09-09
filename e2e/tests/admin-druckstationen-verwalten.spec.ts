@@ -12,7 +12,9 @@ test.describe('Admin verwaltet Druckstationen', () => {
     await anmelden(page, zugangsdaten.admin)
 
     await page.goto('/admin/druckstationen')
-    await expect(page.getByRole('heading', { name: 'Bondrucker' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Bondrucker' }),
+    ).toBeVisible()
 
     // Die Essen-Station ist per Seed-Drehbuch mit 192.168.8.51 konfiguriert.
     const essenCard = page

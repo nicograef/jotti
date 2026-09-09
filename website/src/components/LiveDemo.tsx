@@ -18,14 +18,14 @@ import {
   type DemoState,
 } from '../lib/live-demo'
 
-// Live-Demo-Island (Handoff-Prototyp, PRD docs/prds/prd-website-redesign.md, #demo).
+// Live-Demo-Island (#demo).
 // Der einzige UI-Nachbau der App auf der ganzen Seite. Die gesamte Logik
 // (Warenkorb, Summen in Cent, Auto-Skript, Stopp, Reset) liegt UI-frei in
 // src/lib/live-demo.ts; diese Komponente rendert nur den Zustand und liefert
 // Timing (setTimeout) und Viewport-Trigger (IntersectionObserver, 25 %).
 //
-// Auto-Demo: startet einmalig beim Hereinscrollen, läuft mit den Handoff-Timings
-// und stoppt dauerhaft bei jeder manuellen Interaktion. Unter
+// Auto-Demo: startet einmalig beim Hereinscrollen, läuft mit den Timings aus
+// live-demo.ts und stoppt dauerhaft bei jeder manuellen Interaktion. Unter
 // prefers-reduced-motion startet keine Auto-Demo und es laufen keine
 // Animationen — die manuelle Bedienung bleibt voll funktionsfähig.
 //
@@ -91,7 +91,7 @@ export default function LiveDemo() {
   }, [reducedMotion])
 
   // Treibt den laufenden Auto-Ablauf: pro (autoStatus, step) genau ein Timer mit
-  // der Handoff-Wartezeit; runNextStep ist no-op, falls inzwischen gestoppt.
+  // der Schritt-Wartezeit; runNextStep ist no-op, falls inzwischen gestoppt.
   useEffect(() => {
     if (reducedMotion || state.autoStatus !== 'running') return
     const timer = setTimeout(() => {

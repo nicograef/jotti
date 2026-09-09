@@ -26,16 +26,6 @@ type MockRepo struct {
 	OffenCalls             int
 }
 
-func (m *MockRepo) GetOffeneKassensitzung(_ context.Context) (*kasse.Kassensitzung, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-	if m.offeneKS != nil && m.offeneKS.Status != kasse.KassensitzungOffen {
-		return nil, nil
-	}
-	return m.offeneKS, nil
-}
-
 // GetAktiveKassensitzung returns the mock Kassensitzung when it is 'offen' or 'wird_abgeschlossen'
 // (both count as active) and nil when it is closed.
 func (m *MockRepo) GetAktiveKassensitzung(_ context.Context) (*kasse.Kassensitzung, error) {

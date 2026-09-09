@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { useIsMobile } from '@/hooks/use-mobile'
+import type { Produkt } from '@/lib/produktSchemas'
 
-import type { Produkt } from '../../product/Produkt'
 import { ServiceDock } from '../ServiceDock'
 import { Direktverkauf } from './Direktverkauf'
 
@@ -28,6 +28,7 @@ const testProdukt: Produkt = {
   id: 1,
   name: 'Bratwurst',
   kategorie: 'essen',
+  steuersatz: 'ermaessigt',
   status: 'active',
   varianten: [
     {

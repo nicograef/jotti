@@ -11,16 +11,18 @@ import (
 
 // GetVariantenByIDs fetches multiple varianten in a single query.
 // Returns a map keyed by variante ID for O(1) lookup during Bestellung enrichment.
+// Each entry carries its produkt_id, so enrichment can verify the Produkt/Variante
+// pairing sent by the client instead of trusting it.
 // Uses ANY($1) with a []int32 parameter; pgx v5 encodes Go slices as PostgreSQL arrays
 // natively, so no dynamic SQL building is required.
-func (r Repository) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error) {
+func (r Repository) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error) {
 	if len(ids) == 0 {
-		return make(map[int]produkt.Variante), nil
+		return make(map[int]produkt.VarianteMitProdukt), nil
 	}
 
 	ids32 := toInt32Slice(ids)
 
-	const query = `SELECT id, name, preis_cents, status, created_at, updated_at
+	const query = `SELECT id, produkt_id, name, preis_cents, status, created_at, updated_at
 		FROM produkt_varianten
 		WHERE id = ANY($1) AND status != 'deleted'`
 
@@ -30,26 +32,30 @@ func (r Repository) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]p
 	}
 	defer rows.Close() //nolint:errcheck // explicit Close with error check below
 
-	result := make(map[int]produkt.Variante, len(ids))
+	result := make(map[int]produkt.VarianteMitProdukt, len(ids))
 	for rows.Next() {
 		var (
 			id         int
+			produktID  int
 			name       string
 			preisCents int
 			status     string
 			createdAt  time.Time
 			updatedAt  time.Time
 		)
-		if err := rows.Scan(&id, &name, &preisCents, &status, &createdAt, &updatedAt); err != nil {
+		if err := rows.Scan(&id, &produktID, &name, &preisCents, &status, &createdAt, &updatedAt); err != nil {
 			return nil, db.Error(err)
 		}
-		result[id] = produkt.Variante{
-			ID:         id,
-			Name:       name,
-			PreisCents: preisCents,
-			Status:     produkt.Status(status),
-			CreatedAt:  createdAt,
-			UpdatedAt:  updatedAt,
+		result[id] = produkt.VarianteMitProdukt{
+			Variante: produkt.Variante{
+				ID:         id,
+				Name:       name,
+				PreisCents: preisCents,
+				Status:     produkt.Status(status),
+				CreatedAt:  createdAt,
+				UpdatedAt:  updatedAt,
+			},
+			ProduktID: produktID,
 		}
 	}
 	if err := rows.Close(); err != nil {

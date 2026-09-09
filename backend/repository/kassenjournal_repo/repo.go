@@ -35,7 +35,7 @@ func NewRepository(database *sql.DB) Repository {
 // WriteEvent stores a new event in the kassenjournal and synchronously updates
 // the appropriate projection within the same transaction.
 // Routing by streamType:
-//   - "kassensitzung" → INSERT/UPDATE kassensitzungen (CRUD entity)
+//   - "kassensitzung" → UPDATE kassensitzungen (CRUD entity)
 //   - "tisch-session" → UPSERT tisch_sessions (synchronous projection)
 //   - "direktverkauf" → kassenjournal only (no projection)
 func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
@@ -262,8 +262,8 @@ func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e ev
 }
 
 // handleKassensitzungEvent handles kassensitzung events by updating the kassensitzungen CRUD entity.
-// Note: For kassensitzung-eroeffnet:v1, the kassensitzungen row is created by the application layer
-// BEFORE calling WriteEvent (required because kassenjournal has a FK to kassensitzungen).
+// Note: kassensitzung-eroeffnet:v1 finds its row already there — EroeffneKassensitzung inserts it
+// in the same transaction, before writing the event (kassenjournal has a FK to kassensitzungen).
 // The repo only handles tagesabschluss-erstellt:v1 (setting status to 'abgeschlossen').
 func (r Repository) handleKassensitzungEvent(ctx context.Context, qtx *dbgen.Queries, e event.Event, kassensitzungNr int) error {
 	switch e.Type {
@@ -356,10 +356,10 @@ type TischNameUndSession struct {
 
 // ReadFavoritenTischStates liest Name und projizierte Session für die gegebenen Tisch-IDs
 // einer Kassensitzung in einer einzigen Query (JOIN tische × tisch_sessions), keyed nach
-// Tisch-ID. Das ersetzt das N+1 aus GetTable + ReadTischSession je Favorit.
+// Tisch-ID. Das ersetzt das N+1 aus GetTisch + ReadTischSession je Favorit.
 //
 // Ein Favorit ohne Session (noch keine Events) erhält eine Null-TischSession (LEFT JOIN);
-// eine Tisch-ID ohne (nicht gelöschte) tische-Zeile fehlt in der Map — genau wie GetTable,
+// eine Tisch-ID ohne (nicht gelöschte) tische-Zeile fehlt in der Map — genau wie GetTisch,
 // das für einen gelöschten/unbekannten Tisch ErrNotFound liefert. Uses ANY($1) mit einem
 // []int32-Parameter (siehe produkt_repo.GetVariantenByIDs).
 func (r Repository) ReadFavoritenTischStates(ctx context.Context, tischIDs []int, kassensitzungNr int) (map[int]TischNameUndSession, error) {

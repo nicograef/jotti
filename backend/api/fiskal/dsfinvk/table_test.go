@@ -6,7 +6,7 @@ import "testing"
 
 func TestSerializeCSVFormat(t *testing.T) {
 	table := Table{
-		Columns: []column{alpha("TEXT"), num("BETRAG", 2), alpha("MENGE")},
+		Columns: []string{"TEXT", "BETRAG", "MENGE"},
 		Records: [][]string{
 			{"plain", "5.00", "ok"},
 			{"semi;colon", "1.50", `inner"quote`},

@@ -16,8 +16,6 @@ import (
 // Weil jeder Bereich seine erlaubten Rollen (oder bewusst kein JWT) deklarieren
 // MUSS, kann keine Route ohne Rollenentscheidung existieren.
 type Area struct {
-	// Name ist ein sprechender Bezeichner für Logs und Tests.
-	Name string
 	// Prefix ist das URL-Präfix des Bereichs (z. B. "/admin"). Beim Mounten
 	// wird es per http.StripPrefix entfernt, die Bereichs-Handler sehen den
 	// Restpfad (z. B. "/create-user").
@@ -30,15 +28,14 @@ type Area struct {
 	// Handler (Relay-Token) bzw. entfällt (Login).
 	RequiresAuth bool
 	// RateLimited == true ⇒ zusätzlich IP-Rate-Limit (Login/Relay gegen
-	// Brute-Force). Der Wert 5 bildet das bisherige Verhalten ab.
+	// Brute-Force) mit 5 Anfragen pro Sekunde (siehe mountArea).
 	RateLimited bool
 	// build konstruiert den Bereichs-Handler und liefert dessen registrierte
 	// Pfade zurück; die Pfade sind die Zeilen der Berechtigungs-Matrix.
 	build func(cfg config.Config, deps api.Deps) (http.Handler, []string)
 }
 
-// Rollen-Mengen als Konstanten, damit Tabelle und Matrix-Test denselben Bezug
-// haben (bislang als String-Literale in SetupRoutes verstreut).
+// Rollen-Mengen als Konstanten, damit Tabelle und Matrix-Test denselben Bezug haben.
 var (
 	rolesAdmin          = []string{"admin"}
 	rolesService        = []string{"admin", "serviceleitung", "service"}
@@ -46,18 +43,15 @@ var (
 )
 
 // Areas ist die deklarative Routentabelle — die einzige Registrierungsquelle.
-// Verhalten identisch zur früheren imperativen Registrierung in SetupRoutes.
 func Areas() []Area {
 	return []Area{
 		{
-			Name:         "auth",
 			Prefix:       "/auth",
 			RequiresAuth: false,
 			RateLimited:  true,
 			build:        api.NewAuthApi,
 		},
 		{
-			Name:         "admin",
 			Prefix:       "/admin",
 			AllowedRoles: rolesAdmin,
 			RequiresAuth: true,
@@ -66,7 +60,6 @@ func Areas() []Area {
 			},
 		},
 		{
-			Name:         "service",
 			Prefix:       "/service",
 			AllowedRoles: rolesService,
 			RequiresAuth: true,
@@ -75,7 +68,6 @@ func Areas() []Area {
 			},
 		},
 		{
-			Name:         "serviceleitung",
 			Prefix:       "/serviceleitung",
 			AllowedRoles: rolesServiceleitung,
 			RequiresAuth: true,
@@ -84,7 +76,6 @@ func Areas() []Area {
 			},
 		},
 		{
-			Name:         "relay",
 			Prefix:       "/relay",
 			RequiresAuth: false,
 			RateLimited:  true,
@@ -126,7 +117,6 @@ func mountArea(r *http.ServeMux, area Area, cfg config.Config, deps api.Deps) {
 // mountArea-Verdrahtung gemountet.
 func testResetArea(db *sql.DB) Area {
 	return Area{
-		Name:         "test",
 		Prefix:       "/test",
 		RequiresAuth: false,
 		RateLimited:  true,

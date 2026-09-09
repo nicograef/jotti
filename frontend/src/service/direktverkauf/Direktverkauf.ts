@@ -1,16 +1,16 @@
 import { z } from 'zod'
 
-import { KategorieSchema } from '../product/Produkt'
-import {
-  DateStringSchema,
-  PositionRefSchema,
-  SteuersatzSchema,
-} from '../schemas'
+import { KategorieSchema, SteuersatzSchema } from '@/lib/produktSchemas'
 
+import { DateStringSchema, PositionRefSchema } from '../schemas'
+
+// max(999) spiegelt kasse.PositionEingabeSchema im Backend; siehe
+// BestellPositionInputSchema: die Grenze gilt nur auf dem Eingabeweg, die
+// gelesene VerkaufPositionSchema bleibt offen.
 export const VerkaufPositionInputSchema = z.object({
   produktId: z.number().int().min(1),
   varianteId: z.number().int().min(1),
-  menge: z.number().int().min(1),
+  menge: z.number().int().min(1).max(999),
 })
 export type VerkaufPositionInput = z.infer<typeof VerkaufPositionInputSchema>
 

@@ -66,7 +66,7 @@ func setupFavoritenUser(t *testing.T, repo Repository) int {
 	return userID
 }
 
-// tischStatus liest den Status direkt aus der Tabelle — GetTable filtert
+// tischStatus liest den Status direkt aus der Tabelle — GetTisch filtert
 // 'deleted' weg und taugt deshalb nicht, um ein Soft-Delete nachzuweisen.
 func tischStatus(t *testing.T, repo Repository, tischID int) string {
 	t.Helper()
@@ -116,20 +116,20 @@ func favoritenVonUser(t *testing.T, repo Repository, userID int) []int {
 // Ein gelöschter Tisch verschwindet aus der Tischauswahl; seine Markierungen
 // müssen mit ihm gehen, sonst hängen sie unabwählbar in der Tischübersicht der
 // betroffenen Servicekräfte. Markierungen anderer Tische bleiben unberührt.
-func TestDeleteTableMitFavoritenDB(t *testing.T) {
+func TestDeleteTischMitFavoritenDB(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	geloeschtID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Favorit Loeschen", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
-	bleibtID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Favorit Bleibt", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	geloeschtID, _ := repo.CreateTisch(ctx, tisch.Tisch{Name: "Favorit Loeschen", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	bleibtID, _ := repo.CreateTisch(ctx, tisch.Tisch{Name: "Favorit Bleibt", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
 	userID := setupFavoritenUser(t, repo)
 	markiereFavorit(t, repo, userID, geloeschtID)
 	markiereFavorit(t, repo, userID, bleibtID)
 
-	err := repo.DeleteTableMitFavoriten(ctx, tisch.Tisch{
+	err := repo.DeleteTischMitFavoriten(ctx, tisch.Tisch{
 		ID: geloeschtID, Name: "Favorit Loeschen", Status: tisch.DeletedStatus, CreatedAt: now, UpdatedAt: now,
 	})
 	if err != nil {
@@ -153,19 +153,19 @@ func TestDeleteTableMitFavoritenDB(t *testing.T) {
 // partiellen Unique-Index auf dem Tischnamen erzwungen (idx_tische_name_active),
 // weil das der einzige Weg ist, den zweiten Schreibvorgang scheitern zu lassen,
 // nachdem der erste Zeilen entfernt hat.
-func TestDeleteTableMitFavoritenDB_RollbackBeiSchreibfehler(t *testing.T) {
+func TestDeleteTischMitFavoritenDB_RollbackBeiSchreibfehler(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	tischID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Rollback Quelle", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
-	_, _ = repo.CreateTable(ctx, tisch.Tisch{Name: "Rollback Kollision", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	tischID, _ := repo.CreateTisch(ctx, tisch.Tisch{Name: "Rollback Quelle", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	_, _ = repo.CreateTisch(ctx, tisch.Tisch{Name: "Rollback Kollision", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
 	userID := setupFavoritenUser(t, repo)
 	markiereFavorit(t, repo, userID, tischID)
 
-	err := repo.DeleteTableMitFavoriten(ctx, tisch.Tisch{
+	err := repo.DeleteTischMitFavoriten(ctx, tisch.Tisch{
 		ID: tischID, Name: "Rollback Kollision", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now,
 	})
 	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
@@ -177,7 +177,7 @@ func TestDeleteTableMitFavoritenDB_RollbackBeiSchreibfehler(t *testing.T) {
 		t.Errorf("favoriten must be rolled back with the failed write, got %v", favoriten)
 	}
 
-	unveraendert, err := repo.GetTable(ctx, tischID)
+	unveraendert, err := repo.GetTisch(ctx, tischID)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -186,16 +186,16 @@ func TestDeleteTableMitFavoritenDB_RollbackBeiSchreibfehler(t *testing.T) {
 	}
 }
 
-func TestGetAllTablesDB(t *testing.T) {
+func TestGetAlleTischeDB(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	_, _ = repo.CreateTable(ctx, tisch.Tisch{Name: "GetAll Test 1", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
-	_, _ = repo.CreateTable(ctx, tisch.Tisch{Name: "GetAll Test 2", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	_, _ = repo.CreateTisch(ctx, tisch.Tisch{Name: "GetAll Test 1", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	_, _ = repo.CreateTisch(ctx, tisch.Tisch{Name: "GetAll Test 2", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
-	tables, err := repo.GetAllTables(ctx)
+	tables, err := repo.GetAlleTische(ctx)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -206,18 +206,18 @@ func TestGetAllTablesDB(t *testing.T) {
 
 // Regression: Der DSFinV-K-Export benennt Abrechnungskreise vergangener
 // Kassensitzungen. Ein nach dem Tagesabschluss gelöschter Tisch muss dort
-// weiterhin seinen Namen tragen — GetAllTableNames darf 'deleted' nicht
+// weiterhin seinen Namen tragen — GetAlleTischNamen darf 'deleted' nicht
 // wegfiltern, sonst fällt der Export auf "Tisch <ID>" zurück.
-func TestGetAllTableNamesDB_EnthaeltGeloeschteTische(t *testing.T) {
+func TestGetAlleTischNamenDB_EnthaeltGeloeschteTische(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	aktivID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Zelt A1", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
-	geloeschtID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Stehtisch Bar", Status: tisch.DeletedStatus, CreatedAt: now, UpdatedAt: now})
+	aktivID, _ := repo.CreateTisch(ctx, tisch.Tisch{Name: "Zelt A1", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	geloeschtID, _ := repo.CreateTisch(ctx, tisch.Tisch{Name: "Stehtisch Bar", Status: tisch.DeletedStatus, CreatedAt: now, UpdatedAt: now})
 
-	namen, err := repo.GetAllTableNames(ctx)
+	namen, err := repo.GetAlleTischNamen(ctx)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -229,16 +229,16 @@ func TestGetAllTableNamesDB_EnthaeltGeloeschteTische(t *testing.T) {
 	}
 }
 
-func TestGetActiveTablesDB(t *testing.T) {
+func TestGetAktiveTischeDB(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	_, _ = repo.CreateTable(ctx, tisch.Tisch{Name: "GetAll Test 1", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
-	_, _ = repo.CreateTable(ctx, tisch.Tisch{Name: "GetAll Test 2", Status: tisch.InactiveStatus, CreatedAt: now, UpdatedAt: now})
+	_, _ = repo.CreateTisch(ctx, tisch.Tisch{Name: "GetAll Test 1", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	_, _ = repo.CreateTisch(ctx, tisch.Tisch{Name: "GetAll Test 2", Status: tisch.InactiveStatus, CreatedAt: now, UpdatedAt: now})
 
-	tables, err := repo.GetActiveTables(ctx, 0)
+	tables, err := repo.GetAktiveTische(ctx, 0)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -247,13 +247,13 @@ func TestGetActiveTablesDB(t *testing.T) {
 	}
 }
 
-func TestCreateTableInDB(t *testing.T) {
+func TestCreateTischInDB(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	tableID, err := repo.CreateTable(ctx, tisch.Tisch{Name: "Integration Test Table", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	tableID, err := repo.CreateTisch(ctx, tisch.Tisch{Name: "Integration Test Table", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -262,20 +262,20 @@ func TestCreateTableInDB(t *testing.T) {
 	}
 }
 
-func TestUpdateTableDB(t *testing.T) {
+func TestUpdateTischDB(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	tableID, _ := repo.CreateTable(ctx, tisch.Tisch{Name: "Update Test Table", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	tableID, _ := repo.CreateTisch(ctx, tisch.Tisch{Name: "Update Test Table", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
-	err := repo.UpdateTable(ctx, tisch.Tisch{ID: tableID, Name: "Updated Table Name", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	err := repo.UpdateTisch(ctx, tisch.Tisch{ID: tableID, Name: "Updated Table Name", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	tables, err := repo.GetAllTables(ctx)
+	tables, err := repo.GetAlleTische(ctx)
 	if err != nil {
 		t.Fatalf("expected no error getting table, got %v", err)
 	}
@@ -284,13 +284,13 @@ func TestUpdateTableDB(t *testing.T) {
 	}
 }
 
-func TestUpdateTableDB_NotFound(t *testing.T) {
+func TestUpdateTischDB_NotFound(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
 	ctx := context.Background()
 	now := time.Now().UTC()
-	err := repo.UpdateTable(ctx, tisch.Tisch{ID: 999999, Name: "New Name", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
+	err := repo.UpdateTisch(ctx, tisch.Tisch{ID: 999999, Name: "New Name", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
 	if !errors.Is(err, dbpkg.ErrNotFound) {
 		t.Fatalf("expected table not found error, got %v", err)
@@ -399,11 +399,11 @@ func TestGetTischSaldiOffeneSitzungDB(t *testing.T) {
 	defer teardown()
 	ctx := context.Background()
 
-	tischMitSaldo, err := repo.CreateTable(ctx, tisch.Tisch{Name: "Tisch mit Saldo", Status: tisch.ActiveStatus, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()})
+	tischMitSaldo, err := repo.CreateTisch(ctx, tisch.Tisch{Name: "Tisch mit Saldo", Status: tisch.ActiveStatus, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()})
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
-	tischOhneSaldo, err := repo.CreateTable(ctx, tisch.Tisch{Name: "Tisch ohne Saldo", Status: tisch.ActiveStatus, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()})
+	tischOhneSaldo, err := repo.CreateTisch(ctx, tisch.Tisch{Name: "Tisch ohne Saldo", Status: tisch.ActiveStatus, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()})
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
@@ -441,11 +441,11 @@ func TestTischHatOffenenSaldoDB(t *testing.T) {
 	defer teardown()
 	ctx := context.Background()
 
-	tischMitSaldo, err := repo.CreateTable(ctx, tisch.Tisch{Name: "Tisch mit Saldo", Status: tisch.ActiveStatus, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()})
+	tischMitSaldo, err := repo.CreateTisch(ctx, tisch.Tisch{Name: "Tisch mit Saldo", Status: tisch.ActiveStatus, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()})
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
-	tischOhneSaldo, err := repo.CreateTable(ctx, tisch.Tisch{Name: "Tisch ohne Saldo", Status: tisch.ActiveStatus, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()})
+	tischOhneSaldo, err := repo.CreateTisch(ctx, tisch.Tisch{Name: "Tisch ohne Saldo", Status: tisch.ActiveStatus, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()})
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}

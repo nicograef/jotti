@@ -20,9 +20,9 @@ const { title, description } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href
 const ogImageUrl = new URL(ogImage.src, Astro.site).href
 
-// Header-Navigation (Handoff): Anker-Links plus Leitfaden. Der `#faq`-Link ist
-// seit Phase 7 mit seiner Sektion eingehängt. Eine Quelle für Desktop-Nav und
-// die MobileNav-Island, damit die Liste nicht auseinanderläuft.
+// Header-Navigation: Anker-Links plus Leitfaden. Der `#faq`-Link führt zu
+// seiner Sektion. Eine Quelle für Desktop-Nav und die MobileNav-Island,
+// damit die Liste nicht auseinanderläuft.
 const navLinks = [
   { href: '/#features', label: 'Funktionen' },
   { href: '/#ablauf', label: 'Ablauf' },
@@ -33,10 +33,10 @@ const navLinks = [
   { href: leitfadenUrl, label: 'Leitfaden' },
 ]
 
-// Footer-Spalten (Handoff-Prototyp): Produkt, Ressourcen, Rechtliches. Anker
-// zeigen absolut auf die Landing (`/#...`), damit sie auch von den Rechtsseiten
-// aus funktionieren. Unter Rechtliches die neuen Seiten plus die erhaltenen
-// Links auf Nutzungsbedingungen (TERMS.md) und Lizenz (LICENSE).
+// Footer-Spalten: Produkt, Ressourcen, Rechtliches. Anker zeigen absolut auf
+// die Landing (`/#...`), damit sie auch von den Rechtsseiten aus
+// funktionieren. Rechtliches verlinkt Impressum, Datenschutz sowie
+// Nutzungsbedingungen (TERMS.md) und Lizenz (LICENSE) auf GitHub.
 const footerSpalten = [
   {
     titel: 'Produkt',

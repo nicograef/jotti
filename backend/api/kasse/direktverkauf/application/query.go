@@ -18,14 +18,15 @@ type Query struct {
 	KassensitzungenRepo kassensitzungenRepo
 }
 
-// GetDirektverkaufHistorie returns the compact Direktverkauf history of the open Kassensitzung —
-// one entry per Verkauf, most recent first. Returns an empty slice when no Kassensitzung is open.
+// GetDirektverkaufHistorie returns the compact Direktverkauf history of the active
+// Kassensitzung — one entry per Verkauf, most recent first. Returns an empty slice
+// when no Kassensitzung is active.
 func (q Query) GetDirektverkaufHistorie(ctx context.Context) ([]kasse.DirektverkaufHistorieEintrag, error) {
 	log := zerolog.Ctx(ctx)
 
-	ks, err := q.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load open Kassensitzung for direktverkauf historie")
+		log.Error().Err(err).Msg("Failed to load aktive Kassensitzung for direktverkauf historie")
 		return nil, ErrDatabase
 	}
 	if ks == nil {

@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { VariantNamePreis } from '@/components/common/VariantNamePreis'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import type { Variante } from '@/lib/produktSchemas'
 import { cn } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'
-import { Richtung, type Variante, VarianteStatus } from './Produkt'
+import { Richtung, VarianteStatus } from './Produkt'
 import type { ProduktBackend } from './ProduktBackend'
 
 interface VariantChipProps {
@@ -24,8 +25,8 @@ interface VariantChipProps {
   onDeleted: () => void
 }
 
-// Varianten-Chip der Preisliste (Design-Handoff 1c): Name und Preis öffnen per
-// Klick den Bearbeiten-Dialog, der Mini-Switch schaltet die Variante direkt
+// Varianten-Chip der Preisliste: Name und Preis öffnen per Klick den
+// Bearbeiten-Dialog, der Mini-Switch schaltet die Variante direkt
 // (aktiv/inaktiv) ohne Dialog. Inaktive Chips sind gedämpft und mit „aus"
 // markiert.
 //

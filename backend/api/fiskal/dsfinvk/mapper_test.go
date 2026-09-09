@@ -4,11 +4,13 @@ package dsfinvk
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/event"
@@ -22,7 +24,7 @@ const (
 )
 
 // testSignatur baut die quittierte Signatur eines Signaturauftrags, wie sie der
-// Export je Event-ID erhaelt.
+// Export je Event-ID erhält.
 func testSignatur(t *testing.T, txNr, sigZaehler int, start, ende, signatur string) *tse.Signatur {
 	t.Helper()
 	logStart, err := time.Parse(time.RFC3339, start)
@@ -414,9 +416,54 @@ func TestAbrechnungskreisNutztTischnamen(t *testing.T) {
 	}
 }
 
+// Ein Tischname darf länger sein als das amtliche Feld ABRECHNUNGSKREIS. Der
+// Mapper kürzt ihn auf dessen MaxLength aus der eingebetteten index.xml, ohne
+// einen Umlaut zu zerschneiden.
+func TestAbrechnungskreisKuerztAufAmtlicheMaxLength(t *testing.T) {
+	maxLength := amtlicheMaxLength(t, "allocation_groups.csv", "ABRECHNUNGSKREIS")
+
+	faelle := []struct {
+		name      string
+		tischname string
+	}{
+		{"hundert Zeichen", strings.Repeat("A", 100)},
+		// "Tä" wechselt zwischen ein- und zweibytigen Runen: der Schnitt trifft
+		// eine UTF-8-Folge, gleich ob die Feldlänge gerade oder ungerade ist.
+		{"Umlaute", strings.Repeat("Tä", 33) + "T"},
+	}
+	for _, f := range faelle {
+		t.Run(f.name, func(t *testing.T) {
+			if utf8.RuneCountInString(f.tischname) <= maxLength {
+				t.Fatalf("Tischname hat %d Zeichen, muss die Feldlänge %d überschreiten", utf8.RuneCountInString(f.tischname), maxLength)
+			}
+
+			snapshot := testSnapshot()
+			snapshot.Tischnamen = map[int]string{42: f.tischname}
+
+			archive, err := Map(snapshot, []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
+			if err != nil {
+				t.Fatalf("Map() error = %v", err)
+			}
+
+			groups := tableByFile(t, archive, "allocation_groups.csv")
+			got := field(t, groups, 0, "ABRECHNUNGSKREIS")
+
+			if !utf8.ValidString(got) {
+				t.Errorf("ABRECHNUNGSKREIS = %q, eine UTF-8-Folge ist zerschnitten", got)
+			}
+			if anzahl := utf8.RuneCountInString(got); anzahl != maxLength {
+				t.Errorf("ABRECHNUNGSKREIS hat %d Zeichen, amtlich sind %d erlaubt: %q", anzahl, maxLength, got)
+			}
+			if !strings.HasPrefix(f.tischname, got) {
+				t.Errorf("ABRECHNUNGSKREIS = %q ist kein Anfang des Tischnamens %q", got, f.tischname)
+			}
+		})
+	}
+}
+
 // TestAbrechnungskreisFallback synthetisiert "Tisch N" als letzte Rückfallebene,
 // wenn der Tisch überhaupt nicht in den Stammdaten steht. Gelöschte Tische
-// gehören nicht dazu: der Export liefert deren Namen mit (GetAllTableNames).
+// gehören nicht dazu: der Export liefert deren Namen mit (GetAlleTischNamen).
 func TestAbrechnungskreisFallback(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = nil // kein Tischname bekannt
@@ -746,8 +793,8 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 			t.Errorf("umbuchung[%d] UMS_BRUTTO = %q, want 0.00", row, got)
 		}
 	}
-	// Ohne Benutzerkommentar ist BON_NOTIZ allein der Richtungs-Autotext
-	// (byte-identisch zum bisherigen Export).
+	// Ohne Benutzerkommentar ist BON_NOTIZ allein der unveränderte
+	// Richtungs-Autotext.
 	if got := field(t, transactions, 0, "BON_NOTIZ"); got != "Umbuchung auf Tisch Tisch 7" {
 		t.Errorf("abgang BON_NOTIZ = %q, want Autotext", got)
 	}
@@ -818,8 +865,8 @@ func kombiZahlungEvent(t *testing.T) event.Event {
 }
 
 // TestMapKombiSteuerSplit belegt die Entfaltung einer kombi-Position in 70 % zu
-// 7 % und 30 % zu 19 %. lines_vat folgt der Aufteilen-Reihenfolge (ermäßigt,
-// regel), transactions_vat der Steuermatrix-Reihenfolge (regel, ermäßigt).
+// 7 % und 30 % zu 19 %. lines_vat folgt der Aufteilen-Reihenfolge (ermaessigt,
+// regel), transactions_vat der Steuermatrix-Reihenfolge (regel, ermaessigt).
 func TestMapKombiSteuerSplit(t *testing.T) {
 	signaturen := map[int]tse.EventSignatur{
 		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4800, 20, "2026-06-16T12:30:00Z", "2026-06-16T12:30:01Z", "KOMBISIG==")},
@@ -1354,7 +1401,7 @@ func centsAus(t *testing.T, s string) int {
 func hatSignatur(table Table, sig string) bool {
 	for row := range table.Records {
 		for i, c := range table.Columns {
-			if c.name == "TSE_TA_SIG" && table.Records[row][i] == sig {
+			if c == "TSE_TA_SIG" && table.Records[row][i] == sig {
 				return true
 			}
 		}
@@ -1598,13 +1645,13 @@ func TestMapEmptySessionIsError(t *testing.T) {
 	}
 
 	_, err := Map(testSnapshot(), []event.Event{eroeffnet}, nil)
-	if err != ErrKeineVorgaenge {
+	if !errors.Is(err, ErrKeineVorgaenge) {
 		t.Fatalf("Map() error = %v, want ErrKeineVorgaenge", err)
 	}
 }
 
 // TestBuildCashregisterVersionAusSnapshot belegt, dass KASSE_SW_VERSION aus dem
-// Snapshot kommt und nicht aus einer hardcodierten Konstante. Der Test schlaegt
+// Snapshot kommt und nicht aus einer hardcodierten Konstante. Der Test schlägt
 // fehl, wenn die Version hartcodiert wird oder der Snapshot-Wert ignoriert wird.
 func TestBuildCashregisterVersionAusSnapshot(t *testing.T) {
 	const wantVersion = "1.2.3-test"
@@ -1635,7 +1682,7 @@ func tableByFile(t *testing.T, a Archive, file string) Table {
 func field(t *testing.T, table Table, row int, name string) string {
 	t.Helper()
 	for i, c := range table.Columns {
-		if c.name == name {
+		if c == name {
 			return table.Records[row][i]
 		}
 	}
@@ -1653,4 +1700,39 @@ func tseRowByBonID(t *testing.T, table Table, bonID string) int {
 	}
 	t.Fatalf("keine transactions_tse-Zeile für BON_ID %q", bonID)
 	return -1
+}
+
+// Die Betreiber-Spalten sind TEXT: Ein Bestandswert kann länger sein als die
+// amtliche MaxLength der Stammdatenzeilen. Der Mapper kürzt ihn runensicher, hier
+// geprüft an einem 70-Zeichen-Vereinsnamen aus Umlauten (NAME/LOC_NAME: 60).
+func TestMapKuerztZuLangeBetreiberStammdaten(t *testing.T) {
+	snapshot := testSnapshot()
+	snapshot.Betreiber.Vereinsname = strings.Repeat("ä", 70)
+	snapshot.Betreiber.Ort = strings.Repeat("ö", 65)
+
+	archive, err := Map(snapshot, []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	closing := tableByFile(t, archive, "cashpointclosing.csv")
+	location := tableByFile(t, archive, "location.csv")
+	wantName := strings.Repeat("ä", 60)
+	wantOrt := strings.Repeat("ö", 62)
+
+	for _, fall := range []struct {
+		table  Table
+		spalte string
+		want   string
+	}{
+		{table: closing, spalte: "NAME", want: wantName},
+		{table: closing, spalte: "ORT", want: wantOrt},
+		{table: location, spalte: "LOC_NAME", want: wantName},
+		{table: location, spalte: "LOC_ORT", want: wantOrt},
+	} {
+		got := field(t, fall.table, 0, fall.spalte)
+		if got != fall.want {
+			t.Errorf("%s %s hat %d Zeichen (%q), erwartet %d", fall.table.File, fall.spalte, len([]rune(got)), got, len([]rune(fall.want)))
+		}
+	}
 }

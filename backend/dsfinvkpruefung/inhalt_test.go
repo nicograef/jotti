@@ -223,7 +223,7 @@ func TestInhalt_StornoMitLeeremRefBonID(t *testing.T) {
 
 func TestInhalt_StornoMitBonStornoKennzeichen(t *testing.T) {
 	// BON_STORNO = 1 auf dem Negativbeleg: jotti nutzt die Negativdarstellung,
-	// nie die Vorgangsaufhebung (compliance.md 6.6).
+	// nie die Vorgangsaufhebung (docs/compliance.md Abschnitt 6.6).
 	kaputt := strings.Replace(gutTransactionsCSV, "storno-1;Beleg;;0;", "storno-1;Beleg;;1;", 1)
 	d := ersetze(gutesInhaltArchiv(), "transactions.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))

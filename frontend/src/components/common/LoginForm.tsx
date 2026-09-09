@@ -50,10 +50,12 @@ export function LoginForm(props: LoginFormProps) {
           actionLabel: 'Anmeldung',
           error,
           byCode: {
+            // Ohne zentrale Meldung.
             invalid_credentials: 'Benutzername oder Passwort ungültig.',
+            // Die zentrale Meldung fordert zum Vergeben eines Passworts auf —
+            // das kann nur ein Admin, nicht der Anmeldende selbst.
             no_password_set:
               'Für dieses Konto wurde noch kein Passwort festgelegt.',
-            user_inactive: 'Dieses Konto ist deaktiviert.',
           },
         }),
       })

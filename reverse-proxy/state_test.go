@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io/fs"
+	"strings"
 	"testing"
 )
 
@@ -134,5 +135,30 @@ func TestEnsureStateRejectsIncompleteRegistration(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("erwartete Fehler bei unvollständigen Credentials, bekam nil")
+	}
+}
+
+func TestInstallStateValidateChecksSubdomain(t *testing.T) {
+	tests := []struct {
+		name      string
+		subdomain string
+		want      bool
+	}{
+		{name: "acme-dns-UUID", subdomain: "8f14e45f-ceea-467a-9575-1b0f1a51ba2f", want: true},
+		{name: "leer", subdomain: "", want: false},
+		{name: "Leerzeichen hängt ein zweites Site-Adress-Token an", subdomain: "sub id", want: false},
+		{name: "geschweifte Klammer eröffnet einen Caddy-Block", subdomain: "sub{", want: false},
+		{name: "Punkt macht aus einem Label zwei", subdomain: "sub.id", want: false},
+		{name: "länger als ein DNS-Label", subdomain: strings.Repeat("a", 64), want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			state := InstallState{Username: "u", Password: "p", Subdomain: tt.subdomain}
+			err := state.validate()
+			if (err == nil) != tt.want {
+				t.Errorf("validate() mit Subdomain %q = %v, want valid %v", tt.subdomain, err, tt.want)
+			}
+		})
 	}
 }

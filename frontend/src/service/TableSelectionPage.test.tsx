@@ -14,10 +14,28 @@ vi.mock('react-router', () => ({
 
 let meineTische: TischSession[] = []
 let alleTische: AktiverTischMitFavorit[] = []
+// Je Query steuerbar: die drei Lesepfade der Seite scheitern unabhängig.
+const fehler = { meineTische: false, alleTische: false, uebersicht: false }
+const { reloadMeineTische, reloadAlleTische, reloadUebersicht } = vi.hoisted(
+  () => ({
+    reloadMeineTische: vi.fn(),
+    reloadAlleTische: vi.fn(),
+    reloadUebersicht: vi.fn(),
+  }),
+)
 
 vi.mock('./table/hooks', () => ({
-  useMeineTischeState: () => ({ tische: meineTische, isPending: false }),
-  useAktiveTischeMitFavoriten: () => ({ tische: alleTische }),
+  useMeineTischeState: () => ({
+    tische: meineTische,
+    isPending: false,
+    isError: fehler.meineTische,
+    refetch: reloadMeineTische,
+  }),
+  useAktiveTischeMitFavoriten: () => ({
+    tische: alleTische,
+    isError: fehler.alleTische,
+    refetch: reloadAlleTische,
+  }),
   useEigeneUebersicht: () => ({
     uebersicht: {
       anzahlBestellungen: 0,
@@ -29,14 +47,14 @@ vi.mock('./table/hooks', () => ({
       abzugebenCents: 0,
     },
     isPending: false,
+    isError: fehler.uebersicht,
+    refetch: reloadUebersicht,
   }),
 }))
 
 // Kindkomponenten auf Stubs reduzieren: der Test prüft die Such-/Favoriten-Logik
-// der Seite, nicht das Rendern der Karten oder des Drawers.
-vi.mock('./components/EigeneUebersicht', () => ({
-  EigeneUebersichtKarten: () => null,
-}))
+// der Seite, nicht das Rendern der Karten oder des Drawers. Die Übersichtskarten
+// bleiben echt, damit der Fehlerfall ihre Null-Beträge nachweislich unterdrückt.
 vi.mock('./components/MeinTischCard', () => ({
   MeinTischCard: ({ state }: { state: TischSession }) => (
     <div>{state.tischName}</div>
@@ -72,6 +90,9 @@ afterEach(() => {
   vi.clearAllMocks()
   meineTische = []
   alleTische = []
+  fehler.meineTische = false
+  fehler.alleTische = false
+  fehler.uebersicht = false
 })
 
 describe('TableSelectionPage', () => {
@@ -125,6 +146,72 @@ describe('TableSelectionPage', () => {
     )
 
     expect(screen.getByText(/Kein aktiver Tisch passt zu/)).toBeInTheDocument()
+  })
+})
+
+describe('TableSelectionPage bei Ladefehler', () => {
+  it('zeigt einen Fehlerzustand statt der Leer-Defaults', () => {
+    fehler.meineTische = true
+    fehler.alleTische = true
+    fehler.uebersicht = true
+    render(<TableSelectionPage />)
+
+    expect(
+      screen.getByText('Tischübersicht konnte nicht geladen werden'),
+    ).toBeInTheDocument()
+    // Der Leer-Default (Übersicht 0,00 €) darf bei einem Fehler nicht
+    // erscheinen — der Dienst wirkt sonst fälschlich abgerechnet.
+    expect(screen.queryByText(/0,00 €/)).not.toBeInTheDocument()
+    // Der Alle-Tische-Drawer bleibt erreichbar.
+    expect(
+      screen.getByRole('button', { name: 'Alle Tische' }),
+    ).toBeInTheDocument()
+  })
+
+  it('lädt über „Erneut versuchen" neu', async () => {
+    fehler.meineTische = true
+    fehler.uebersicht = true
+    const user = userEvent.setup()
+    render(<TableSelectionPage />)
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+
+    expect(reloadMeineTische).toHaveBeenCalled()
+    expect(reloadUebersicht).toHaveBeenCalled()
+  })
+
+  // Die Suche liest eine eigene Query. Scheitert nur sie, bleiben „Meine
+  // Tische" und die Übersicht stehen — sonst wäre bei einem Suchlisten-Fehler
+  // kein Tisch mehr erreichbar.
+  it('lässt Meine Tische stehen, wenn nur die Suchliste scheitert', () => {
+    fehler.alleTische = true
+    meineTische = [tischSession(1, 'Stammtisch', true)]
+    render(<TableSelectionPage />)
+
+    expect(screen.getByText('Noch offen · 1')).toBeInTheDocument()
+    expect(screen.getByText('Stammtisch')).toBeInTheDocument()
+    expect(
+      screen.getByText('Tischsuche konnte nicht geladen werden'),
+    ).toBeInTheDocument()
+    // Kein stilles Suchfeld ohne Trefferliste.
+    expect(
+      screen.queryByPlaceholderText(/Tisch suchen/),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Tischübersicht konnte nicht geladen werden'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('lädt nur die Suchliste nach, wenn nur sie scheitert', async () => {
+    fehler.alleTische = true
+    meineTische = [tischSession(1, 'Stammtisch', true)]
+    const user = userEvent.setup()
+    render(<TableSelectionPage />)
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+
+    expect(reloadAlleTische).toHaveBeenCalled()
+    expect(reloadMeineTische).not.toHaveBeenCalled()
   })
 })
 

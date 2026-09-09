@@ -1,14 +1,14 @@
 //go:build integration
 
-// Package tse_live ist die TSE-Live-Suite: Sie loest jeden signaturpflichtigen
-// Geschaeftsvorfall ueber die echten Anwendungsdienste aus, laesst ihn vom
-// echten Signatur-Worker gegen die fiskaly-TEST-TSS real signieren und prueft
+// Package tse_live ist die TSE-Live-Suite: Sie löst jeden signaturpflichtigen
+// Geschäftsvorfall über die echten Anwendungsdienste aus, lässt ihn vom
+// echten Signatur-Worker gegen die fiskaly-TEST-TSS real signieren und prüft
 // je Vorfall den abgeschlossenen Signaturauftrag, die Signaturdaten im
 // Kassenjournal-Outbox-Eintrag und das processType-Mapping.
 //
 // Live-Guard nach dem Muster von repository/tse_repo/fiskaly_client_live_test.go:
 // Ohne FISKALY_TEST_*-Credentials skippt die Suite; die Verbindung wird zu
-// Beginn gegen tse.UmgebungTest geprueft und bricht bei jeder Nicht-TEST-
+// Beginn gegen tse.UmgebungTest geprüft und bricht bei jeder Nicht-TEST-
 // Umgebung hart ab, damit nie gegen eine LIVE-TSS signiert wird.
 //
 //	make test-tse-live   # Wegwerf-Postgres + Migrationen + .env.fiskaly-test
@@ -42,11 +42,11 @@ import (
 )
 
 // signaturWartefrist begrenzt, wie lange auf die Quittierung eines Auftrags
-// durch den Signatur-Worker gewartet wird. Grosszuegig gewaehlt: ein realer
-// fiskaly-Roundtrip inkl. moeglichem 429-Backoff des Workers dauert Sekunden.
+// durch den Signatur-Worker gewartet wird. Großzügig gewählt: ein realer
+// fiskaly-Roundtrip inkl. möglichem 429-Backoff des Workers dauert Sekunden.
 const signaturWartefrist = 90 * time.Second
 
-// liveTestUmgebung buendelt die reale Umgebung eines Live-Laufs: DB, die
+// liveTestUmgebung bündelt die reale Umgebung eines Live-Laufs: DB, die
 // verdrahteten Anwendungsdienste und die Stammdaten-IDs.
 type liveTestUmgebung struct {
 	db       *sql.DB
@@ -116,8 +116,8 @@ func pruefeTestUmgebungOderAbbruch(t *testing.T, credentials tse.Credentials) {
 	}
 }
 
-// cleanLiveDB raeumt alle im Lauf beschriebenen Tabellen ab. Das Kassenjournal
-// ist append-only (Loesch-Trigger); fuer den Test-Reset wird der Trigger
+// cleanLiveDB räumt alle im Lauf beschriebenen Tabellen ab. Das Kassenjournal
+// ist append-only (Lösch-Trigger); für den Test-Reset wird der Trigger
 // kurzzeitig ausgesetzt.
 func cleanLiveDB(t *testing.T, db *sql.DB) {
 	t.Helper()
@@ -144,7 +144,7 @@ func cleanLiveDB(t *testing.T, db *sql.DB) {
 	}
 }
 
-// setupLiveUmgebung faehrt die volle reale Umgebung hoch: DB reinigen, die
+// setupLiveUmgebung fährt die volle reale Umgebung hoch: DB reinigen, die
 // echten TEST-Credentials in tse_konfiguration schreiben (damit der Worker sie
 // liest), Stammdaten anlegen und die Anwendungsdienste verdrahten.
 func setupLiveUmgebung(t *testing.T, credentials tse.Credentials) *liveTestUmgebung {
@@ -251,7 +251,7 @@ func starteWorker(t *testing.T, db *sql.DB) {
 }
 
 // signaturZeile ist der quittierte Zustand eines Signaturauftrags samt seinem
-// Kassenjournal-Event: alles, was ein Vorfall zur Pruefung braucht.
+// Kassenjournal-Event: alles, was ein Vorfall zur Prüfung braucht.
 type signaturZeile struct {
 	status          string
 	processType     string
@@ -267,7 +267,7 @@ type signaturZeile struct {
 }
 
 // warteAufSignatur pollt den Auftrag des Events, bis er 'erledigt' ist, und
-// gibt seine Signaturdaten zurueck. Ein fehlgeschlagener Auftrag bricht sofort
+// gibt seine Signaturdaten zurück. Ein fehlgeschlagener Auftrag bricht sofort
 // ab (kein Warten bis zum Timeout).
 func warteAufSignatur(t *testing.T, db *sql.DB, eventID int) signaturZeile {
 	t.Helper()
@@ -303,10 +303,10 @@ func warteAufSignatur(t *testing.T, db *sql.DB, eventID int) signaturZeile {
 	}
 }
 
-// pruefeSignatur prueft die Vollstaendigkeit der Signaturdaten eines erledigten
+// pruefeSignatur prüft die Vollständigkeit der Signaturdaten eines erledigten
 // Auftrags und den erwarteten processType. processType/processData werden von
 // der fiskalischen Projektion (domain/kasse/fiskalische_projektion.go) nach
-// DSFinV-K 2.4 Anhang I gesetzt; die Suite prueft den quittierten Snapshot.
+// DSFinV-K 2.4 Anhang I gesetzt; die Suite prüft den quittierten Snapshot.
 func pruefeSignatur(t *testing.T, vorfall string, z signaturZeile, erwarteterProcessType string) {
 	t.Helper()
 	if z.processType != erwarteterProcessType {
@@ -351,7 +351,7 @@ func eventIDByType(t *testing.T, db *sql.DB, eventType, subject string) int {
 }
 
 // positionRefsAusSession liest die aktuell unbezahlten Positionen eines Tischs
-// und baut PositionRefs ueber genau menge Stueck der ersten Position.
+// und baut PositionRefs über genau menge Stück der ersten Position.
 func positionRefsAusSession(t *testing.T, u *liveTestUmgebung, ksNr, tischID, menge int) []kasse.PositionRef {
 	t.Helper()
 	session, err := kassenjournal_repo.NewRepository(u.db).ReadTischSession(context.Background(), kasse.TischSessionSubject(ksNr, tischID))
@@ -385,10 +385,10 @@ func restBezahlen(t *testing.T, u *liveTestUmgebung, ksNr, tischID int) {
 	}
 }
 
-// TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten loest jeden
-// signaturpflichtigen Geschaeftsvorfall ueber die Anwendungsdienste aus, laesst
-// ihn real signieren und prueft Signatur, Kassenjournal-Outbox und
-// processType-Mapping. Am Ende wird die Vollstaendigkeit der persistierten
+// TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten löst jeden
+// signaturpflichtigen Geschäftsvorfall über die Anwendungsdienste aus, lässt
+// ihn real signieren und prüft Signatur, Kassenjournal-Outbox und
+// processType-Mapping. Am Ende wird die Vollständigkeit der persistierten
 // TSE-Stammdaten explizit assertet.
 func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	credentials := credentialsOderSkip(t)
@@ -401,7 +401,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	db := u.db
 
 	// signiereUndPruefe wartet auf die Signatur des letzten Events dieses Typs
-	// und prueft sie gegen den erwarteten processType.
+	// und prüft sie gegen den erwarteten processType.
 	signiereUndPruefe := func(vorfall, eventType, subject, erwarteterProcessType string) {
 		id := eventIDByType(t, db, eventType, subject)
 		z := warteAufSignatur(t, db, id)
@@ -540,8 +540,8 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 
 	// Stammdaten-Vollständigkeit: die fiskalischen TSS-Stammdaten (DSFinV-K
 	// tse.csv) müssen von der TSS-Ressource lesbar sein. serial_number liegt auf
-	// der TSS-Ressource selbst (nicht tss_serial_number) — Lektion aus einem
-	// früheren Bug. Wir lesen sie über den Setup-Client und persistieren sie.
+	// der TSS-Ressource selbst (nicht tss_serial_number). Wir lesen sie über den
+	// Setup-Client und persistieren sie.
 	pruefeStammdatenVollstaendigkeit(t, u, credentials)
 }
 

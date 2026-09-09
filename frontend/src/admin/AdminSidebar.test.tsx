@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SidebarProvider } from '@/components/ui/sidebar'
 
 import { AdminSidebar } from './AdminSidebar'
-import type { OffeneKassensitzung } from './kasse/KasseBackend'
+import type { AktiveKassensitzung } from './kasse/KasseBackend'
 
 const themeState = vi.hoisted<{
   isDark: boolean
@@ -34,13 +34,13 @@ vi.mock('@/hooks/use-version', () => ({
 }))
 
 const kasseState = vi.hoisted<{
-  kassensitzung: OffeneKassensitzung | null
+  kassensitzung: AktiveKassensitzung | null
 }>(() => ({
   kassensitzung: null,
 }))
 
 vi.mock('./kasse/hooks', () => ({
-  useOffeneKassensitzung: () => ({ kassensitzung: kasseState.kassensitzung }),
+  useAktiveKassensitzung: () => ({ kassensitzung: kasseState.kassensitzung }),
 }))
 
 const druckState = vi.hoisted<{ anzahl: number }>(() => ({ anzahl: 0 }))
@@ -85,7 +85,7 @@ function renderSidebar() {
   )
 }
 
-const offeneSitzung: OffeneKassensitzung = {
+const aktiveSitzung: AktiveKassensitzung = {
   zNr: 1,
   datum: '2026-07-12',
   bezeichnung: 'Sommerfest Tag 2',
@@ -95,7 +95,7 @@ const offeneSitzung: OffeneKassensitzung = {
 
 // Erwartete Uhrzeit im Chip ("seit HH:MM") — aus derselben Quelle abgeleitet,
 // damit die Assertion unabhängig von der Test-Zeitzone bleibt.
-const erwarteteUhrzeit = new Date(offeneSitzung.eroeffnetAm).toLocaleTimeString(
+const erwarteteUhrzeit = new Date(aktiveSitzung.eroeffnetAm).toLocaleTimeString(
   'de-DE',
   { hour: '2-digit', minute: '2-digit' },
 )
@@ -147,7 +147,7 @@ describe('AdminSidebar', () => {
   })
 
   it('zeigt bei offener Kasse Bezeichnung, Status und Eröffnungszeit im Chip', () => {
-    kasseState.kassensitzung = offeneSitzung
+    kasseState.kassensitzung = aktiveSitzung
     renderSidebar()
 
     expect(screen.getByText('Sommerfest Tag 2')).toBeInTheDocument()
@@ -158,6 +158,23 @@ describe('AdminSidebar', () => {
     expect(
       screen.getAllByRole('img', { name: 'Kasse offen' }).length,
     ).toBeGreaterThanOrEqual(1)
+  })
+
+  it('zeigt im Barrierestatus den unterbrochenen Abschluss statt „Kasse offen"', () => {
+    kasseState.kassensitzung = {
+      ...aktiveSitzung,
+      status: 'wird_abgeschlossen',
+    }
+    renderSidebar()
+
+    expect(
+      screen.getByText('Abschluss unterbrochen — erneut abschließen'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Kasse offen/)).not.toBeInTheDocument()
+    // Menüpunkt und Kopf-Chip tragen denselben Statuspunkt.
+    expect(
+      screen.getAllByRole('img', { name: 'Abschluss unterbrochen' }).length,
+    ).toBe(2)
   })
 
   it('markiert Bondrucker bei fehlgeschlagenen Druckaufträgen', () => {

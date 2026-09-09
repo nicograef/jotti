@@ -5,10 +5,10 @@ package application
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
-	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
@@ -114,11 +114,11 @@ type bestellungUmgebuchtData struct {
 	BenutzerKommentar string                  `json:"benutzerKommentar,omitempty"`
 }
 
-type umbuchungTableRepoMock struct {
+type umbuchungTischRepoMock struct {
 	tables map[int]tisch.Tisch
 }
 
-func (m *umbuchungTableRepoMock) GetTable(_ context.Context, id int) (tisch.Tisch, error) {
+func (m *umbuchungTischRepoMock) GetTisch(_ context.Context, id int) (tisch.Tisch, error) {
 	entry, ok := m.tables[id]
 	if !ok {
 		return tisch.Tisch{}, db.ErrNotFound
@@ -126,23 +126,23 @@ func (m *umbuchungTableRepoMock) GetTable(_ context.Context, id int) (tisch.Tisc
 	return entry, nil
 }
 
-func (m *umbuchungTableRepoMock) CreateTable(_ context.Context, _ tisch.Tisch) (int, error) {
+func (m *umbuchungTischRepoMock) CreateTisch(_ context.Context, _ tisch.Tisch) (int, error) {
 	return 0, nil
 }
 
-func (m *umbuchungTableRepoMock) UpdateTable(_ context.Context, _ tisch.Tisch) error {
+func (m *umbuchungTischRepoMock) UpdateTisch(_ context.Context, _ tisch.Tisch) error {
 	return nil
 }
 
-func (m *umbuchungTableRepoMock) GetAllTables(_ context.Context) ([]tisch.Tisch, error) {
+func (m *umbuchungTischRepoMock) GetAlleTische(_ context.Context) ([]tisch.Tisch, error) {
 	return nil, nil
 }
 
-func (m *umbuchungTableRepoMock) GetActiveTables(_ context.Context, _ int) ([]tisch.AktiverTisch, error) {
+func (m *umbuchungTischRepoMock) GetAktiveTische(_ context.Context, _ int) ([]tisch.AktiverTisch, error) {
 	return nil, nil
 }
 
-func (m *umbuchungTableRepoMock) GetActiveTablesWithFavorites(_ context.Context, _, _ int) ([]tisch.AktiverTischMitFavorit, error) {
+func (m *umbuchungTischRepoMock) GetAktiveTischeMitFavoriten(_ context.Context, _, _ int) ([]tisch.AktiverTischMitFavorit, error) {
 	return nil, nil
 }
 
@@ -164,7 +164,63 @@ func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 	}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
-	if err != ErrKasseNichtGeoeffnet {
+	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
+		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+	}
+}
+
+// Schließt die Kassensitzung zwischen dem Lesen und dem Schreiben, lehnt der
+// Trigger des Kassenjournals den Write mit ErrKassensitzungNichtOffen ab. Der
+// Command muss daraus ErrKasseNichtGeoeffnet machen, damit der Handler 409
+// kasse_nicht_geoeffnet liefert statt eines 500.
+func TestBestellungAufnehmen_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
+	ctx := context.Background()
+	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock.AddVariante(testProduct.ID, testVariant)
+	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, kassenjournal_repo.ErrKassensitzungNichtOffen)
+	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct}, eventMock)
+	command.ProduktRepo = productMock
+
+	inputs := []enrichment.PositionInput{
+		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
+	}
+
+	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
+	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
+		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+	}
+}
+
+// Derselbe Wettlauf auf dem Weg über persistTischEvent.
+func TestZahlungKassieren_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, kassenjournal_repo.ErrKassensitzungNichtOffen)
+	eventMock.SetTischSession(subject, kasse.TischSession{
+		SaldoCents: 350,
+		UnbezahltePositionen: []kasse.Position{{
+			PositionID:       "22222222-2222-4222-8222-222222222222",
+			VarianteID:       1,
+			ProduktName:      "Cola",
+			VarianteName:     "0,5l",
+			Kategorie:        "getraenk",
+			Steuersatz:       "regel",
+			EinzelpreisCents: 350,
+			Menge:            1,
+		}},
+		LastEventVersion: 1,
+	})
+
+	command := Command{
+		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+	}
+
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
+	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
@@ -235,7 +291,7 @@ func TestBestellungAufnehmen_Conflict(t *testing.T) {
 	}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
-	if err != ErrConflict {
+	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
@@ -253,7 +309,7 @@ func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
 	}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
-	if err != ErrConflict {
+	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
@@ -272,7 +328,7 @@ func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {
 	}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInactiveTisch.ID, inputs, "")
-	if err != ErrTischNotActive {
+	if !errors.Is(err, ErrTischNotActive) {
 		t.Fatalf("expected ErrTischNotActive, got %v", err)
 	}
 }
@@ -297,7 +353,7 @@ func TestBestellungAufnehmen_InactiveVariante(t *testing.T) {
 	}
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testActiveTisch.ID, inputs, "")
-	if err != enrichment.ErrVarianteNichtAktiv {
+	if !errors.Is(err, enrichment.ErrVarianteNichtAktiv) {
 		t.Fatalf("expected ErrVarianteNichtAktiv, got %v", err)
 	}
 }
@@ -312,7 +368,7 @@ func TestZahlungKassieren_NonOrderedPosition(t *testing.T) {
 	}
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "")
-	if err != ErrPositionNichtBezahlbar {
+	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
@@ -339,7 +395,7 @@ func TestZahlungKassieren_DoublePayment(t *testing.T) {
 
 	// Try to pay again — should fail
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
-	if err != ErrPositionNichtBezahlbar {
+	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
@@ -388,7 +444,7 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 
 	err = command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
 		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
-	if err != ErrConflict {
+	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }
@@ -533,7 +589,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 	refs := []kasse.PositionRef{{PositionID: posID, Menge: 1}}
 
 	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
-	if err != ErrPositionNichtStornierbar {
+	if !errors.Is(err, ErrPositionNichtStornierbar) {
 		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
 }
@@ -561,7 +617,7 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 	}
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
-	if err != ErrPositionNichtBezahlbar {
+	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
@@ -594,7 +650,7 @@ func TestZahlungKassieren_DuplikatPositionRefs(t *testing.T) {
 	}
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, duplikatRefs, "")
-	if err != ErrPositionNichtBezahlbar {
+	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
@@ -635,7 +691,7 @@ func TestStornierungErteilen_DuplikatPositionRefs(t *testing.T) {
 	}
 
 	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "Duplikat")
-	if err != ErrPositionNichtStornierbar {
+	if !errors.Is(err, ErrPositionNichtStornierbar) {
 		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
 }
@@ -754,10 +810,14 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	}
 }
 
+// Der Kommentar wird auf die Schemagrenze von 100 Bytes gekürzt (zogs Max zählt
+// Bytes). Beide Tischnamen tragen Umlaute: der Zielname endet auf einer
+// Runengrenze, der Quellname erzwingt den Rückschritt um ein Byte, damit keine
+// UTF-8-Folge zerfällt.
 func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 	ctx := context.Background()
-	quellTisch := tisch.Tisch{ID: 1, Name: strings.Repeat("Q", 100), Status: tisch.ActiveStatus}
-	zielTisch := tisch.Tisch{ID: 2, Name: strings.Repeat("Z", 100), Status: tisch.ActiveStatus}
+	quellTisch := tisch.Tisch{ID: 1, Name: "T" + strings.Repeat("ä", 49), Status: tisch.ActiveStatus}
+	zielTisch := tisch.Tisch{ID: 2, Name: strings.Repeat("Ä", 50), Status: tisch.ActiveStatus}
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
@@ -799,17 +859,16 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 		t.Fatalf("expected no unmarshal error for target umbuchung data, got %v", err)
 	}
 
-	if utf8.RuneCountInString(quellData.Kommentar) > 100 {
-		t.Fatalf("expected source comment length <= 100 runes, got %d", utf8.RuneCountInString(quellData.Kommentar))
+	// 14 Byte Präfix + 43 mal "Ä" (2 Byte) füllen die Grenze genau aus.
+	wantQuell := "Umbuchung auf " + strings.Repeat("Ä", 43)
+	if quellData.Kommentar != wantQuell {
+		t.Fatalf("expected source comment %q, got %q", wantQuell, quellData.Kommentar)
 	}
-	if utf8.RuneCountInString(zielData.Kommentar) > 100 {
-		t.Fatalf("expected target comment length <= 100 runes, got %d", utf8.RuneCountInString(zielData.Kommentar))
-	}
-	if !strings.HasPrefix(quellData.Kommentar, "Umbuchung auf ") {
-		t.Fatalf("expected source comment prefix, got %q", quellData.Kommentar)
-	}
-	if !strings.HasPrefix(zielData.Kommentar, "Umbuchung von ") {
-		t.Fatalf("expected target comment prefix, got %q", zielData.Kommentar)
+	// 14 Byte Präfix + "T" + 42 mal "ä" sind 99 Bytes; das 100. Byte gehört zur
+	// nächsten UTF-8-Folge und fällt mit ihr weg.
+	wantZiel := "Umbuchung von T" + strings.Repeat("ä", 42)
+	if zielData.Kommentar != wantZiel {
+		t.Fatalf("expected target comment %q, got %q", wantZiel, zielData.Kommentar)
 	}
 }
 
@@ -839,14 +898,14 @@ func TestBestellungUmbuchen_PositionNichtUmbuchbar(t *testing.T) {
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
-	if err != ErrPositionNichtUmbuchbar {
+	if !errors.Is(err, ErrPositionNichtUmbuchbar) {
 		t.Fatalf("expected ErrPositionNichtUmbuchbar, got %v", err)
 	}
 }
 
 func TestBestellungUmbuchen_GleicherTisch(t *testing.T) {
 	err := Command{}.BestellungUmbuchen(context.Background(), 1, "Test User", 3, 3, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
-	if err != ErrUmbuchungGleicherTisch {
+	if !errors.Is(err, ErrUmbuchungGleicherTisch) {
 		t.Fatalf("expected ErrUmbuchungGleicherTisch, got %v", err)
 	}
 }
@@ -863,7 +922,7 @@ func TestBestellungUmbuchen_ZielTischNotActive(t *testing.T) {
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
-	if err != ErrTischNotActive {
+	if !errors.Is(err, ErrTischNotActive) {
 		t.Fatalf("expected ErrTischNotActive, got %v", err)
 	}
 }
@@ -873,7 +932,7 @@ func TestBestellungUmbuchen_ZielTischNotFound(t *testing.T) {
 	quellTisch := tisch.Tisch{ID: 1, Name: "Tisch Quelle", Status: tisch.ActiveStatus}
 
 	command := Command{
-		TischRepo: &umbuchungTableRepoMock{tables: map[int]tisch.Tisch{
+		TischRepo: &umbuchungTischRepoMock{tables: map[int]tisch.Tisch{
 			quellTisch.ID: quellTisch,
 		}},
 		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
@@ -881,7 +940,7 @@ func TestBestellungUmbuchen_ZielTischNotFound(t *testing.T) {
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, 99, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
-	if err != ErrTischNotFound {
+	if !errors.Is(err, ErrTischNotFound) {
 		t.Fatalf("expected ErrTischNotFound, got %v", err)
 	}
 }
@@ -895,7 +954,7 @@ func TestBestellungUmbuchen_KasseNichtGeoeffnet(t *testing.T) {
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", 1, 2, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
-	if err != ErrKasseNichtGeoeffnet {
+	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
 		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
@@ -927,7 +986,7 @@ func TestBestellungUmbuchen_Conflict(t *testing.T) {
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
-	if err != ErrConflict {
+	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
 }

@@ -2,8 +2,7 @@
 //
 // Serves the artefact behind the production CSP (see `csp-server.mjs`) and drives
 // headless Chromium over the landing page and two docs pages, capturing every
-// `securitypolicyviolation` DOM event. Exits non-zero on any violation, so it can
-// gate each phase of the website redesign (`docs/plans/plan-website-redesign.md`).
+// `securitypolicyviolation` DOM event. Exits non-zero on any violation.
 //
 // Uses Playwright from the e2e package. If the pinned Playwright build mismatches
 // the preinstalled browser, set CHROMIUM_EXECUTABLE to a chrome binary.
@@ -21,7 +20,11 @@ const distDir = process.argv[2] ?? join(repoRoot, 'website', 'dist')
 
 // Landing plus two docs pages — enough to cover the Starlight shell (theme init,
 // search, sidebar) under CSP without walking the whole doc tree.
-const PATHS = ['/', '/docs/leitfaden/was-ist-jotti/', '/docs/leitfaden/installation/']
+const PATHS = [
+  '/',
+  '/docs/leitfaden/was-ist-jotti/',
+  '/docs/leitfaden/installation/',
+]
 
 const COLLECT_VIOLATIONS = `
   window.__cspViolations = [];
@@ -52,7 +55,9 @@ try {
       failed = true
       console.error(`\n✗ ${path} — ${violations.length} CSP violation(s):`)
       for (const v of violations) {
-        console.error(`    [${v.directive}] blocked=${v.blockedURI} @ ${v.source}${v.sample ? ` sample="${v.sample}"` : ''}`)
+        console.error(
+          `    [${v.directive}] blocked=${v.blockedURI} @ ${v.source}${v.sample ? ` sample="${v.sample}"` : ''}`,
+        )
       }
     } else {
       console.log(`✓ ${path} — no CSP violations`)

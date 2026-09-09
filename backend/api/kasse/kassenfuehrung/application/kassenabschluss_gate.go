@@ -8,9 +8,9 @@ import (
 )
 
 // SignaturenAusstehendError blockiert den Kassenabschluss: Mindestens ein
-// Signaturauftrag der Kassensitzung ist noch offen und keine Stoerung erklaert
+// Signaturauftrag der Kassensitzung ist noch offen und keine Störung erklärt
 // den Ausfall (Ergebnis ausstehend der Signaturstatus-Funktion). Die TSE holt
-// in Kuerze auf; die Abschluss-Operation wird unveraendert erneut angefordert.
+// in Kürze auf; die Abschluss-Operation wird unverändert erneut angefordert.
 type SignaturenAusstehendError struct {
 	Anzahl int
 }
@@ -23,17 +23,17 @@ func (e *SignaturenAusstehendError) Error() string {
 // Sie blockieren den Abschluss nicht (die Signaturstatus-Funktion rechnet sie
 // dem Ausfall zu), werden aber in der Abschlussmeldung ausgewiesen.
 type KassenabschlussErgebnis struct {
-	// AusfallResteAnzahl: endgueltig fehlgeschlagene Auftraege sowie offene
-	// Auftraege waehrend eines aktiven Stoerungszeitraums; werden nach Rueckkehr
+	// AusfallResteAnzahl: endgültig fehlgeschlagene Aufträge sowie offene
+	// Aufträge während eines aktiven Störungszeitraums; werden nach Rückkehr
 	// der TSE nachsigniert.
 	AusfallResteAnzahl int
-	// OhneKonfigurationAnzahl: Vorgaenge ohne TSE-Signatur, weil keine TSE
+	// OhneKonfigurationAnzahl: Vorgänge ohne TSE-Signatur, weil keine TSE
 	// konfiguriert ist (tse_nicht_konfiguriert); werden nicht nachsigniert.
 	OhneKonfigurationAnzahl int
 }
 
-// signaturGate ist das interne Urteil des Gates ueber die noch nicht erledigten
-// Signaturauftraege der Kassensitzung.
+// signaturGate ist das interne Urteil des Gates über die noch nicht erledigten
+// Signaturaufträge der Kassensitzung.
 type signaturGate struct {
 	ausstehendAnzahl        int
 	ausfallResteAnzahl      int
@@ -41,9 +41,9 @@ type signaturGate struct {
 }
 
 // checkSignaturGate klassifiziert jeden noch nicht erledigten Signaturauftrag
-// der Kassensitzung ueber die Signaturstatus-Funktion — dieselbe Zurechnung wie
+// der Kassensitzung über die Signaturstatus-Funktion — dieselbe Zurechnung wie
 // beim Beleg-Abruf, kein zweiter Zurechnungspfad. Ergebnis ausstehend blockiert
-// (frischer offener Auftrag ohne Stoerung), Ausfall laesst durch und wird in der
+// (frischer offener Auftrag ohne Störung), Ausfall lässt durch und wird in der
 // Abschlussmeldung ausgewiesen (Ausfall-Rest bzw. fehlende TSE-Konfiguration).
 func (c Command) checkSignaturGate(ctx context.Context, kassensitzungNr int) (signaturGate, error) {
 	log := zerolog.Ctx(ctx)

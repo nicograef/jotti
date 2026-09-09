@@ -16,7 +16,7 @@ ORDER BY id ASC;
 -- name: ReadEventsByKassensitzung :many
 -- Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session- und
 -- Direktverkauf-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.
--- Der LEFT JOIN auf die Signaturauftraege liefert je Event den Signatur-Stand:
+-- Der LEFT JOIN auf die Signaturaufträge liefert je Event den Signatur-Stand:
 -- kein Auftrag = nicht signaturpflichtig (keine Projektion zur Lesezeit).
 SELECT k.id, k.user_id, k.user_name, k.version, k.type, k.subject, k.data, k.timestamp,
        a.process_type, a.transaktion_nummer, a.signatur_zaehler, a.tse_seriennummer,
@@ -27,7 +27,7 @@ WHERE k.kassensitzung_nr = $1 ORDER BY k.id ASC;
 
 -- name: ReadKassensitzungEvents :many
 -- Alle Events einer Kassensitzung ohne Signatur-JOIN: der events-only-Leseweg
--- fuer die Tagesabschluss-Aggregation (Signaturen braucht nur der Export).
+-- für die Tagesabschluss-Aggregation (Signaturen braucht nur der Export).
 SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM kassenjournal
 WHERE kassensitzung_nr = $1
@@ -37,5 +37,5 @@ ORDER BY id ASC;
 SELECT COALESCE(MAX(version), 0)::int AS version FROM kassenjournal WHERE subject = $1;
 
 -- name: GetDistinctTischSessionSubjects :many
--- Nur Tisch-Session-Subjects (enthalten "/tisch-"); Filterung in SQL fuer RebuildAllProjections.
+-- Nur Tisch-Session-Subjects (enthalten "/tisch-"); Filterung in SQL für RebuildAllProjections.
 SELECT DISTINCT subject FROM kassenjournal WHERE subject LIKE '%/tisch-%' ORDER BY subject ASC;

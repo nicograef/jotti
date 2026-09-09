@@ -14,11 +14,12 @@ type tseCommandRepo interface {
 	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
 }
 
-// kassensitzungReader meldet, ob gerade eine Kassensitzung offen ist. Aenderungen
-// der TSE-Konfiguration sind nur ohne offene Kassensitzung erlaubt: Das
-// Signaturgeraet darf nicht mitten in einem laufenden Kassentag wechseln.
+// kassensitzungReader meldet, ob gerade eine Kassensitzung aktiv ist — offen oder
+// wird_abgeschlossen. Änderungen der TSE-Konfiguration sind nur ohne aktive
+// Kassensitzung erlaubt: Das Signaturgeraet darf nicht mitten in einem laufenden
+// Kassentag wechseln.
 type kassensitzungReader interface {
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
 type Command struct {
@@ -27,28 +28,30 @@ type Command struct {
 	NewTSESetupClient   NewTSESetupClient
 }
 
-// ensureKeineOffeneKassensitzung lehnt eine TSE-Konfigurationsaenderung ab,
-// solange eine Kassensitzung offen ist (gemeinsamer Guard aller drei
-// Aenderungspfade: Neuanlage, Uebernahme, Zugangsdaten-Wechsel).
-func (c Command) ensureKeineOffeneKassensitzung(ctx context.Context) error {
+// ensureKeineAktiveKassensitzung lehnt eine TSE-Konfigurationsänderung ab,
+// solange eine Kassensitzung aktiv ist — offen oder wird_abgeschlossen
+// (gemeinsamer Guard aller drei Änderungspfade: Neuanlage, Übernahme,
+// Zugangsdaten-Wechsel). Der Barrierestatus zählt mit: Ein Abschluss, der noch
+// signiert, gehört zur alten TSS.
+func (c Command) ensureKeineAktiveKassensitzung(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 
-	offene, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	aktive, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to check for offene Kassensitzung before TSE config change")
+		log.Error().Err(err).Msg("Failed to check for aktive Kassensitzung before TSE config change")
 		return ErrDatabase
 	}
-	if offene != nil {
+	if aktive != nil {
 		return ErrTSEKonfigurationKassensitzungOffen
 	}
 	return nil
 }
 
 // UpdateTSEKonfiguration speichert eine von Hand eingetragene TSE-Konfiguration.
-// Sie nimmt dasselbe Schloss wie Neuanlage und Uebernahme (einrichtungLaeuft in
-// setup.go): Alle drei schreiben ueber SaveEinrichtung dieselbe Konfiguration,
-// und in der Oberflaeche liegt dieser Pfad direkt unter dem Einrichtungs-Wizard.
-// Ohne das Schloss gewaenne der letzte Schreiber, und die Instanz signierte
+// Sie nimmt dasselbe Schloss wie Neuanlage und Übernahme (einrichtungLaeuft in
+// setup.go): Alle drei schreiben über SaveEinrichtung dieselbe Konfiguration,
+// und in der Oberfläche liegt dieser Pfad direkt unter dem Einrichtungs-Wizard.
+// Ohne das Schloss gewänne der letzte Schreiber, und die Instanz signierte
 // danach gegen eine TSS/Client-Kombination, die nicht die eingerichtete ist.
 func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfiguration) error {
 	log := zerolog.Ctx(ctx)
@@ -59,14 +62,14 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfigurat
 	}
 	defer freigeben()
 
-	if err := c.ensureKeineOffeneKassensitzung(ctx); err != nil {
+	if err := c.ensureKeineAktiveKassensitzung(ctx); err != nil {
 		return err
 	}
 
-	// Auch der direkte Zugangsdaten-Pfad speichert ueber SaveEinrichtung:
-	// Fuehrt er den Uebergang zu konfiguriert aus, laufen Einrichtungs-Sweep und
-	// das Schliessen des keine_konfiguration-Stoerungszeitraums in derselben
-	// Transaktion — sonst bliebe der Zeitraum fuer immer offen.
+	// Auch der direkte Zugangsdaten-Pfad speichert über SaveEinrichtung:
+	// Führt er den Übergang zu konfiguriert aus, laufen Einrichtungs-Sweep und
+	// das Schließen des keine_konfiguration-Störungszeitraums in derselben
+	// Transaktion — sonst bliebe der Zeitraum für immer offen.
 	if err := c.TSERepo.SaveEinrichtung(ctx, conf); err != nil {
 		log.Error().Err(err).Msg("Failed to save tse_konfiguration")
 		return ErrDatabase

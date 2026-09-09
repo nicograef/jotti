@@ -3,9 +3,9 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
-import type { Produkt } from './product/Produkt'
 import type { Position } from './table/Bestellung'
 import type { TischSession } from './table/Tisch'
 import { TablePage } from './TablePage'
@@ -29,6 +29,7 @@ const testProdukt: Produkt = {
   id: 1,
   name: 'Bratwurst',
   kategorie: 'essen',
+  steuersatz: 'ermaessigt',
   status: 'active',
   varianten: [
     {
@@ -49,6 +50,7 @@ const testProdukt: Produkt = {
 const testState = vi.hoisted(() => ({
   tischId: '1',
   produkte: [] as Produkt[],
+  produkteError: false,
 }))
 
 vi.mock('react-router', () => ({
@@ -77,7 +79,12 @@ vi.mock('@/lib/Auth', () => ({
 }))
 
 vi.mock('./product/hooks', () => ({
-  useAktiveProdukte: () => ({ produkte: testState.produkte, isPending: false }),
+  useAktiveProdukte: () => ({
+    produkte: testState.produkte,
+    isPending: false,
+    isError: testState.produkteError,
+    refetch: vi.fn(),
+  }),
 }))
 
 const { getTischState, getTischHistorie, stornierungErteilen } = vi.hoisted(
@@ -115,6 +122,7 @@ afterEach(() => {
   vi.clearAllMocks()
   testState.tischId = '1'
   testState.produkte = []
+  testState.produkteError = false
 })
 
 function renderPage() {
@@ -140,6 +148,20 @@ describe('TablePage', () => {
     // Der Leer-Default (Saldo 0,00 €) darf bei einem Fehler nicht erscheinen —
     // der Tisch wirkt sonst fälschlich abgerechnet.
     expect(screen.queryByText('0,00 €')).not.toBeInTheDocument()
+  })
+
+  it('zeigt bei Produkt-Fehler den Bestellen-Tab als Fehlerzustand statt leerer Liste', async () => {
+    testState.produkteError = true
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    renderPage()
+
+    expect(
+      await screen.findByText('Produkte konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    // Die Leer-Defaults des Bestellen-Tabs (Korb-Summe 0,00 €) dürfen bei
+    // einem Fehler nicht erscheinen — das Sortiment wirkt sonst leer.
+    expect(screen.queryByText(/0,00 €/)).not.toBeInTheDocument()
   })
 
   it('lädt die Tischdaten über „Erneut versuchen" nach einem Fehler neu', async () => {

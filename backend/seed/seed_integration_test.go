@@ -67,8 +67,8 @@ func cleanSeedDB(t *testing.T, db *sql.DB) {
 		"DELETE FROM betreiber",
 		"DELETE FROM users",
 		// tse_konfiguration auf die leere Singleton-Zeile der Migration
-		// normalisieren, damit der Ausgangszustand unabhaengig davon ist, ob
-		// zuvor ein Reset (der die Tabelle leert und neu befuellt) lief.
+		// normalisieren, damit der Ausgangszustand unabhängig davon ist, ob
+		// zuvor ein Reset (der die Tabelle leert und neu befüllt) lief.
 		"INSERT INTO tse_konfiguration (id, api_key, api_secret, tss_id, client_id, updated_at) VALUES (1, '', '', '', '', NOW()) ON CONFLICT (id) DO UPDATE SET api_key = '', api_secret = '', tss_id = '', client_id = ''",
 	}
 	for _, stmt := range stmts {
@@ -129,7 +129,7 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 	}
 
 	// Produkte und Varianten tragen ihre Reihenfolge (= ID). Auf DEFAULT 0
-	// waere das Verschieben in Demo, Staging und der e2e-Suite wirkungslos.
+	// wäre das Verschieben in Demo, Staging und der e2e-Suite wirkungslos.
 	var produkteOhneReihenfolge, variantenOhneReihenfolge int
 	if err := db.QueryRow("SELECT COUNT(*) FROM produkte WHERE reihenfolge <> id").Scan(&produkteOhneReihenfolge); err != nil {
 		t.Fatalf("Produkt-Reihenfolge abfragen: %v", err)

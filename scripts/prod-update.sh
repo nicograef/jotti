@@ -31,17 +31,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 . "$SCRIPT_DIR/lib.sh"
 
-# parse_semver "v1.2.3" — echoes "1 2 3" and returns 0, or returns 1 when the
-# value is not a plain vMAJOR.MINOR.PATCH (e.g. "latest", "dev"). A pre-release
-# or build suffix ("1.2.3-rc1", "1.2.3+meta") is trimmed before parsing. Mirrors
-# core.parseSemver (windows/starter/core/update.go).
-parse_semver() {
-  local s="${1#v}"
-  s="${s%%[-+]*}"
-  [[ "$s" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] || return 1
-  printf '%s %s %s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
-}
-
 # is_downgrade TARGET RUNNING — returns 0 when TARGET is a strictly older semver
 # than RUNNING. Returns 1 when it is not older OR when either side is not semver
 # (then ordering is unknown, so we do not block — downgrade protection needs
@@ -67,18 +56,7 @@ cd "$PROJECT_ROOT"
 # ---------------------------------------------------------------------------
 # Step 1 — Validate prerequisites
 # ---------------------------------------------------------------------------
-if ! command -v docker &>/dev/null; then
-  fatal "docker is not installed or not on PATH."
-fi
-if ! docker compose version &>/dev/null; then
-  fatal "docker compose (v2) is not available."
-fi
-if [[ ! -f "$COMPOSE_PROD" ]]; then
-  fatal "Missing compose file: $COMPOSE_PROD"
-fi
-if [[ ! -f .env ]]; then
-  fatal ".env file not found. Run 'make init' first."
-fi
+require_docker_stack "$COMPOSE_PROD"
 
 # ---------------------------------------------------------------------------
 # Step 2 — Determine running vs. target version and guard against downgrades
@@ -108,7 +86,7 @@ if [[ "$TARGET_VERSION" == "$RUNNING_VERSION" ]]; then
 elif is_downgrade "$TARGET_VERSION" "$RUNNING_VERSION"; then
   error "Downgrade refused: JOTTI_VERSION ($TARGET_VERSION) is older than the running version ($RUNNING_VERSION)."
   error "Updates change the database and cannot be undone by downgrading; an older version cannot start on newer data."
-  fatal "To go back, restore a backup instead (see docs/leitfaden.md)."
+  fatal "To go back, restore a backup instead (see docs/leitfaden/aktualisieren-backups.md)."
 else
   info "Updating: $RUNNING_VERSION -> $TARGET_VERSION"
 fi

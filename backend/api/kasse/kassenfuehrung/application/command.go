@@ -29,7 +29,6 @@ type kassenjournalRepo interface {
 }
 
 type kassensitzungenRepo interface {
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 	SetKassensitzungWirdAbgeschlossen(ctx context.Context, zNr int) (int64, error)
 	SetKassensitzungOffen(ctx context.Context, zNr int) (int64, error)
@@ -39,19 +38,19 @@ type betreiberRepo interface {
 	GetBetreiber(ctx context.Context) (betreiber.Betreiber, error)
 }
 
-// tseGateRepo liefert dem Kassenabschluss-Gate die Signatur-Staende der
-// Kassensitzung und den aktiven Stoerungszeitraum (beide fuettern
+// tseGateRepo liefert dem Kassenabschluss-Gate die Signatur-Stände der
+// Kassensitzung und den aktiven Störungszeitraum (beide füttern
 // tse.DetermineSignaturstatus — dieselbe Zurechnung wie beim Beleg-Abruf) sowie
-// die TSE-Konfiguration fuer die Eroeffnungs-Warnung ohne konfigurierte TSE.
+// die TSE-Konfiguration für die Eröffnungs-Warnung ohne konfigurierte TSE.
 type tseGateRepo interface {
 	GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]tse.SignaturauftragStand, error)
 	GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error)
 	GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error)
 }
 
-// druckauftragCleaner raeumt beim Tagesabschluss die technische Druck-Outbox auf:
-// verbliebene fehlgeschlagene Auftraege (z. B. veraltete Arbeitsbons einer
-// unbemerkten Drucker-Stoerung) werden verworfen, damit die Liste zum naechsten
+// druckauftragCleaner räumt beim Tagesabschluss die technische Druck-Outbox auf:
+// verbliebene fehlgeschlagene Aufträge (z. B. veraltete Arbeitsbons einer
+// unbemerkten Drucker-Störung) werden verworfen, damit die Liste zum nächsten
 // Einsatz leer startet. Best effort, siehe KasseAbschliessen.
 type druckauftragCleaner interface {
 	DiscardAlleFehlgeschlagenen(ctx context.Context) (int64, error)
@@ -258,12 +257,14 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 //  3. tagesabschluss-erstellt:v1 (signiert, schließt die Kassensitzung)
 //
 // Invariante: Tisch-Saldo-Sperre — alle Tisch-Sessions müssen saldo_cents = 0
-// haben. Die Tagessummen des Z-Bons kommen aus GetReporting.
+// haben. Die Tagessummen des Z-Bons berechnet kasse.ComputeAbschlussSummen aus
+// den Events der Sitzung; dass diese Aggregation nicht von der SQL-Auswertung
+// abweicht, sichert reporting_repo/summen_abschluss_test.go zu.
 //
 // Zweiphasig über die Barriere: Als erste Handlung setzt die Sitzung auf
 // 'wird_abgeschlossen'. Ab diesem Commit lehnt der Status-Guard alle Buchungs-Events ab;
-// erst danach laufen Saldo-Prüfung, Reporting und TSE-Signierungen auf einem eingefrorenen
-// Datenstand. Schlägt danach etwas fehl, wird die Sitzung best effort auf 'offen'
+// erst danach laufen Saldo-Prüfung, ComputeAbschlussSummen und TSE-Signierungen auf einem
+// eingefrorenen Datenstand. Schlägt danach etwas fehl, wird die Sitzung best effort auf 'offen'
 // zurückgesetzt; unabhängig davon setzt ein erneuter Aufruf im Zwischenstatus fort.
 //
 // Teilfehler: Schlägt ein Schreibvorgang nach dem ersten Event fehl, kann der Abschluss
@@ -310,8 +311,8 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		OhneKonfigurationAnzahl: gate.ohneKonfigurationAnzahl,
 	}
 
-	// Phase 1: Barriere setzen. Der UPDATE wartet auf noch laufende Buchungen (FOR SHARE);
-	// danach lehnt der Status-Guard alle weiteren Buchungs-Events ab. Idempotent, damit ein
+	// Barriere setzen: Der UPDATE wartet auf noch laufende Buchungen (FOR SHARE); danach
+	// lehnt der Status-Guard alle weiteren Buchungs-Events ab. Idempotent, damit ein
 	// Wiederholungs-Aufruf im Zwischenstatus fortsetzt.
 	rows, err := c.KassensitzungenRepo.SetKassensitzungWirdAbgeschlossen(ctx, ks.ZNr)
 	if err != nil {
@@ -352,15 +353,17 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	}
 	sollBestandCents := kassenbestand.SollBestandCents
 
-	// Wiederanlauf-Erkennung: Ein früherer Abschluss-Versuch kann den Kassensturz bereits
+	// Wiederanlauf-Erkennung: Ein vorheriger Abschluss-Versuch kann den Kassensturz bereits
 	// geschrieben haben (Teilfehler nach Schritt 1). Der dokumentierte Kassensturz zählt —
 	// Schritt 1 wird übersprungen und der damals erfasste Ist-Bestand bleibt maßgeblich,
 	// damit die Differenzbuchung zum protokollierten Zählergebnis passt.
 	//
 	// Zwischenbuchungen brechen den Wiederanlauf ab: Setzt der defer die Sitzung nach einem
 	// Teilfehler zurück auf 'offen', können danach neue Buchungen entstehen. Der alte Ist-Bestand
-	// wäre dann veraltet und würde legitime Umsätze als Soll-Ist-Differenz verbuchen. Liegt eine
-	// solche Buchung nach dem Kassensturz im Stream, bricht der Abschluss mit einem klaren Fehler ab.
+	// wäre dann veraltet und würde legitime Umsätze als Soll-Ist-Differenz verbuchen. Zwei
+	// Signale brechen ab: eine Buchung nach dem Kassensturz im Kassensitzungs-Stream und ein
+	// seither veränderter Soll-Bestand (Tischzahlung, Warenrücknahme, Direktverkauf — sie
+	// liegen in eigenen Sub-Streams, die dieser Stream nicht sieht).
 	vorhandenerSturz, buchungenNachSturz, err := c.findeVorhandenenKassensturz(ctx, subject)
 	if err != nil {
 		return KassenabschlussErgebnis{}, err
@@ -370,6 +373,18 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		return KassenabschlussErgebnis{}, ErrBuchungenNachKassensturz
 	}
 	if vorhandenerSturz != nil {
+		// Verglichen wird ohne die abschluss-eigene Differenzbuchung: Steht sie schon,
+		// entspricht sollBestandCents dem gezählten Ist-Bestand und verdeckte jede
+		// Zwischenbuchung. Der Kassensturz protokolliert seinen Soll-Bestand ebenfalls
+		// ohne Differenz — beide Werte sind damit vergleichbar.
+		sollOhneDifferenzCents := kassenbestand.SollBestandOhneDifferenzCents()
+		if sollOhneDifferenzCents != vorhandenerSturz.SollBestandCents {
+			log.Warn().Int("z_nr", ks.ZNr).
+				Int("soll_kassensturz_cents", vorhandenerSturz.SollBestandCents).
+				Int("soll_ohne_differenz_cents", sollOhneDifferenzCents).
+				Msg("Kassenabschluss-Wiederanlauf abgebrochen: Soll-Bestand seit dem Kassensturz veraendert")
+			return KassenabschlussErgebnis{}, ErrBuchungenNachKassensturz
+		}
 		log.Info().Int("z_nr", ks.ZNr).Msg("Kassenabschluss-Wiederanlauf: Kassensturz bereits vorhanden, Schritt 1 wird uebersprungen")
 		istBestandCents = vorhandenerSturz.IstBestandCents
 	}
@@ -445,12 +460,12 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		return KassenabschlussErgebnis{}, err
 	}
 
-	// Aufraeumen der technischen Druck-Outbox: Mit dem committeten Tagesabschluss ist
-	// die Sitzung fiskalisch geschlossen. Verbliebene fehlgeschlagene Druckauftraege
-	// werden verworfen, damit die Liste zum naechsten Fest leer startet. Best effort:
-	// ein Fehler hier darf den bereits gueltigen Abschluss nicht scheitern lassen — es
-	// wird NICHT der benannte Return err gesetzt (sonst wuerde der defer-Reset die
-	// geschlossene Sitzung faelschlich auf 'offen' zuruecksetzen). Die Cleaner-Abhaengigkeit
+	// Aufräumen der technischen Druck-Outbox: Mit dem committeten Tagesabschluss ist
+	// die Sitzung fiskalisch geschlossen. Verbliebene fehlgeschlagene Druckaufträge
+	// werden verworfen, damit die Liste zum nächsten Fest leer startet. Best effort:
+	// ein Fehler hier darf den bereits gültigen Abschluss nicht scheitern lassen — es
+	// wird NICHT der benannte Return err gesetzt (sonst würde der defer-Reset die
+	// geschlossene Sitzung fälschlich auf 'offen' zurücksetzen). Die Cleaner-Abhängigkeit
 	// ist optional (nil-guard), damit bestehende Command-Konstruktionen ohne sie weiter laufen.
 	if c.DruckauftragRepo != nil {
 		if verworfen, cleanupErr := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx); cleanupErr != nil {
@@ -474,7 +489,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 // stehenden kassensturz-durchgefuehrt-Events des Kassensitzungs-Streams (oder
 // nil, wenn keiner existiert) sowie die Information, ob nach diesem Kassensturz
 // eine Zwischenbuchung im Stream liegt. Grundlage der Wiederanlauf-Erkennung des
-// Kassenabschlusses: Ein Kassensturz aus einem abgebrochenen früheren Versuch
+// Kassenabschlusses: Ein Kassensturz aus einem abgebrochenen vorherigen Versuch
 // darf nicht noch einmal geschrieben werden, und sein alter Ist-Bestand bleibt
 // nur maßgeblich, wenn seither keine neue Buchung erfolgt ist.
 //

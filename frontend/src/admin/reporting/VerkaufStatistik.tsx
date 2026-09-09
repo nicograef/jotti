@@ -1,17 +1,17 @@
 import { Fragment } from 'react'
 
+import { KATEGORIE_LABEL } from '@/lib/produktSchemas'
 import { formatEuro, formatPositionName } from '@/lib/utils'
 
 import type { ProduktStatistik } from './types'
 
-const KATEGORIE_LABEL: Record<string, string> = {
-  essen: 'Essen',
-  getraenk: 'Getränke',
-  sonstiges: 'Sonstiges',
-}
+// Die Reporting-Antwort trägt die Kategorie als freien String (auch ein Wert,
+// den dieses Frontend noch nicht kennt), deshalb der Nachschlag über eine
+// String-Sicht auf die geteilten Labels und der Rückfall auf den Rohwert.
+const labels: Record<string, string> = KATEGORIE_LABEL
 
 function kategorieLabel(kategorie: string): string {
-  return KATEGORIE_LABEL[kategorie] ?? kategorie
+  return labels[kategorie] ?? kategorie
 }
 
 // StatistikZeile ist eine Tabellenzeile des Verkaufsabschnitts: Beschriftung,

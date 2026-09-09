@@ -2,9 +2,8 @@ import { createContext, use, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 // ServiceDock ist die eine opake Bodenfläche des Service-Bereichs: oben ein
-// Aktions-Slot (Button, in Phase 3 zusätzlich die Restbetrag-Zeile), darunter
-// die Tab-Leiste in voller Breite. Es ersetzt die zwei früher übereinander
-// schwebenden Leisten und gilt auf allen Viewports.
+// Aktions-Slot (Button, ggf. mit Restbetrag-Zeile), darunter die Tab-Leiste
+// in voller Breite. Gilt auf allen Viewports.
 //
 // Der Aktionsinhalt bleibt in den Drawer-Komponenten (er braucht deren
 // Mengen-State und den Radix-DrawerTrigger-Kontext) und rendert über

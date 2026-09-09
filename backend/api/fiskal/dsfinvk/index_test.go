@@ -14,7 +14,8 @@ type amtlicheTabelle struct {
 	URL            string `xml:"URL"`
 	VariableLength struct {
 		Columns []struct {
-			Name string `xml:"Name"`
+			Name      string `xml:"Name"`
+			MaxLength int    `xml:"MaxLength"`
 		} `xml:"VariableColumn"`
 	} `xml:"VariableLength"`
 }
@@ -59,8 +60,8 @@ func TestArchivEntsprichtAmtlicherIndexXML(t *testing.T) {
 			continue
 		}
 		for c, declCol := range decl.VariableLength.Columns {
-			if tbl.Columns[c].name != declCol.Name {
-				t.Errorf("%s Spalte %d: %q, amtlich deklariert %q", tbl.File, c, tbl.Columns[c].name, declCol.Name)
+			if tbl.Columns[c] != declCol.Name {
+				t.Errorf("%s Spalte %d: %q, amtlich deklariert %q", tbl.File, c, tbl.Columns[c], declCol.Name)
 			}
 		}
 	}
@@ -75,4 +76,33 @@ func TestZahlenformateNutzenKommaAlsDezimalsymbol(t *testing.T) {
 	if got := formatQuantity(2); got != "2,000" {
 		t.Errorf("formatQuantity(2) = %q, want 2,000", got)
 	}
+}
+
+// amtlicheMaxLength liest die MaxLength einer Spalte aus der eingebetteten
+// amtlichen index.xml. Sie ist die Feldlänge, gegen die der Mapper kürzt.
+func amtlicheMaxLength(t *testing.T, datei string, spalte string) int {
+	t.Helper()
+
+	var amtlich amtlicherIndex
+	if err := xml.Unmarshal(amtlicheIndexXML, &amtlich); err != nil {
+		t.Fatalf("amtliche index.xml nicht parsebar: %v", err)
+	}
+
+	for _, tbl := range amtlich.Media.Tables {
+		if tbl.URL != datei {
+			continue
+		}
+		for _, deklariert := range tbl.VariableLength.Columns {
+			if deklariert.Name != spalte {
+				continue
+			}
+			if deklariert.MaxLength <= 0 {
+				t.Fatalf("Spalte %s/%s deklariert keine MaxLength", datei, spalte)
+			}
+			return deklariert.MaxLength
+		}
+	}
+
+	t.Fatalf("Spalte %s/%s fehlt in der amtlichen index.xml", datei, spalte)
+	return 0
 }

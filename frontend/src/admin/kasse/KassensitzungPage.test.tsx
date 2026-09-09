@@ -7,12 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BackendError } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
+import { EroeffnenSection } from './EroeffnenSection'
+import { KasseAbschliessenSection } from './KasseAbschliessenSection'
 import type { GeldtransitBuchung } from './Kassensitzung'
-import {
-  EroeffnenSection,
-  KasseAbschliessenSection,
-  KassensitzungPage,
-} from './KassensitzungPage'
+import { KassensitzungPage } from './KassensitzungPage'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
@@ -43,16 +41,16 @@ const { kasseAbschliessen, kassensitzungEroeffnen, geldtransitBuchen } =
       .mockResolvedValue(undefined),
   }))
 
-type OffeneKassensitzungMock = {
+type AktiveKassensitzungMock = {
   zNr: number
   datum: string
   bezeichnung: string
-  status: 'offen'
+  status: 'offen' | 'wird_abgeschlossen'
   eroeffnetAm: string
 } | null
 
-const offeneKassensitzungState = vi.hoisted(
-  (): { isError: boolean; kassensitzung: OffeneKassensitzungMock } => ({
+const aktiveKassensitzungState = vi.hoisted(
+  (): { isError: boolean; kassensitzung: AktiveKassensitzungMock } => ({
     isError: false,
     kassensitzung: null,
   }),
@@ -81,10 +79,10 @@ vi.mock('./hooks', () => ({
     dataUpdatedAt: 0,
   }),
   useGeldtransitListe: () => ({ buchungen: geldtransitListeState.buchungen }),
-  useOffeneKassensitzung: () => ({
-    kassensitzung: offeneKassensitzungState.kassensitzung,
+  useAktiveKassensitzung: () => ({
+    kassensitzung: aktiveKassensitzungState.kassensitzung,
     isPending: false,
-    isError: offeneKassensitzungState.isError,
+    isError: aktiveKassensitzungState.isError,
     refetch: () => Promise.resolve(),
   }),
 }))
@@ -143,8 +141,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
-  offeneKassensitzungState.isError = false
-  offeneKassensitzungState.kassensitzung = null
+  aktiveKassensitzungState.isError = false
+  aktiveKassensitzungState.kassensitzung = null
   geldtransitListeState.buchungen = []
   liveReportingState.offeneTische = []
   liveReportingState.offeneSaldiCents = 0
@@ -152,7 +150,7 @@ afterEach(() => {
 
 describe('KassensitzungPage', () => {
   it('zeigt bei Query-Fehler einen Fehlerzustand statt des Steppers', () => {
-    offeneKassensitzungState.isError = true
+    aktiveKassensitzungState.isError = true
     renderPage()
 
     expect(
@@ -167,7 +165,7 @@ describe('KassensitzungPage', () => {
   })
 
   it('zeigt im Leerzustand Schritt 1 als aktives Eröffnen-Formular, Schritte 2–3 ausgegraut', () => {
-    offeneKassensitzungState.kassensitzung = null
+    aktiveKassensitzungState.kassensitzung = null
     renderPage()
 
     // Schritt 1 ist das Eröffnen-Formular.
@@ -186,7 +184,7 @@ describe('KassensitzungPage', () => {
   })
 
   it('zeigt bei offener Sitzung den Stepper mit Titel, Soll-Bestand-Aufschlüsselung und Bewegungsliste', () => {
-    offeneKassensitzungState.kassensitzung = {
+    aktiveKassensitzungState.kassensitzung = {
       zNr: 12,
       datum: '2026-07-11',
       bezeichnung: 'Sommerfest Tag 2',
@@ -234,8 +232,40 @@ describe('KassensitzungPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('zeigt im Barrierestatus Schritt 3 mit dem Hinweis auf den unterbrochenen Abschluss', () => {
+    aktiveKassensitzungState.kassensitzung = {
+      zNr: 12,
+      datum: '2026-07-11',
+      bezeichnung: 'Sommerfest Tag 2',
+      status: 'wird_abgeschlossen',
+      eroeffnetAm: '2026-07-11T08:02:00Z',
+    }
+    renderPage()
+
+    expect(
+      screen.getByText('Abschluss unterbrochen — erneut abschließen'),
+    ).toBeInTheDocument()
+    // Statt des Eröffnen-Formulars steht der Abschluss zur Wiederholung bereit.
+    expect(
+      screen.queryByRole('button', { name: 'Kassensitzung eröffnen' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
+    ).toBeInTheDocument()
+    // Buchen ist hinter der Barriere gesperrt (das Backend lehnt jede Buchung
+    // ab), Soll-Bestand und Bewegungsliste bleiben aber sichtbar.
+    expect(
+      screen.queryByRole('button', { name: 'Geld einlegen' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Geld entnehmen' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText('Soll-Bestand')).toBeInTheDocument()
+    expect(screen.getByText('Heutige Kassenbewegungen')).toBeInTheDocument()
+  })
+
   it('öffnet über „Geld entnehmen" den Dialog mit vorbelegter Richtung und bucht', async () => {
-    offeneKassensitzungState.kassensitzung = {
+    aktiveKassensitzungState.kassensitzung = {
       zNr: 12,
       datum: '2026-07-11',
       bezeichnung: 'Sommerfest Tag 2',
@@ -495,7 +525,7 @@ describe('KasseAbschliessenSection', () => {
 
 describe('GeldtransitDialog im Vorgangs-Register', () => {
   it('meldet das angefangene Formular und gibt es beim Schließen frei', async () => {
-    offeneKassensitzungState.kassensitzung = {
+    aktiveKassensitzungState.kassensitzung = {
       zNr: 12,
       datum: '2026-07-11',
       bezeichnung: 'Sommerfest Tag 2',

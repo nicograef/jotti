@@ -42,8 +42,8 @@ func cleanSeedDB(t *testing.T, db *sql.DB) {
 		"DELETE FROM betreiber",
 		"DELETE FROM users",
 		// tse_konfiguration auf die leere Singleton-Zeile der Migration
-		// normalisieren, damit der Ausgangszustand unabhaengig davon ist, ob
-		// zuvor ein Reset (der die Tabelle leert und neu befuellt) lief.
+		// normalisieren, damit der Ausgangszustand unabhängig davon ist, ob
+		// zuvor ein Reset (der die Tabelle leert und neu befüllt) lief.
 		"INSERT INTO tse_konfiguration (id, api_key, api_secret, tss_id, client_id, updated_at) VALUES (1, '', '', '', '', NOW()) ON CONFLICT (id) DO UPDATE SET api_key = '', api_secret = '', tss_id = '', client_id = ''",
 	}
 	for _, stmt := range stmts {

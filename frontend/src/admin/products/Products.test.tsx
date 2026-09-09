@@ -22,9 +22,10 @@ beforeAll(() => {
   vi.stubGlobal('ResizeObserver', ResizeObserverStub)
 })
 
+import type { Produkt } from '@/lib/produktSchemas'
+
 import type { DruckstationConfig } from '../settings/DruckstationBackend'
 import { Products } from './Products'
-import type { Produkt } from './Produkt'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 

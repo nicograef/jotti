@@ -18,8 +18,8 @@ import (
 type mockService struct {
 	archiv application.Archiv
 	err    error
-	// beiErstellen laeuft, waehrend der Archivbau simuliert wird — der Test
-	// kann damit den Zustand des ResponseWriters zu diesem Zeitpunkt pruefen.
+	// beiErstellen läuft, während der Archivbau simuliert wird — der Test
+	// kann damit den Zustand des ResponseWriters zu diesem Zeitpunkt prüfen.
 	beiErstellen func()
 }
 
@@ -45,8 +45,8 @@ func performRequest(t *testing.T, handler http.HandlerFunc, w http.ResponseWrite
 // SetWriteDeadline interface http.ResponseController looks for, so the test
 // can observe how many times — and when relative to the first write — the
 // handler extends the write deadline. deadlineCountBeforeWrite stops counting
-// with the first write: Nur die Aufrufe DAVOR koennen der Antwort ein Budget
-// geben, spaetere waeren wirkungslos.
+// with the first write: Nur die Aufrufe DAVOR können der Antwort ein Budget
+// geben, spätere wären wirkungslos.
 type deadlineCapturingWriter struct {
 	*httptest.ResponseRecorder
 	deadline                 time.Time
@@ -78,9 +78,9 @@ func (w *deadlineCapturingWriter) Write(b []byte) (int, error) {
 	return w.ResponseRecorder.Write(b)
 }
 
-// Der Export laeuft gegen die eigene, verlaengerte Schreibfrist statt gegen
-// die globale 10-Sekunden-Frist des Servers: Sonst wird ein laenger als zehn
-// Sekunden dauernder Export stillschweigend abgeschnitten (Phase 8).
+// Der Export läuft gegen die eigene, verlängerte Schreibfrist statt gegen
+// die globale 10-Sekunden-Frist des Servers: Sonst wird ein länger als zehn
+// Sekunden dauernder Export stillschweigend abgeschnitten.
 func TestExportHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing.T) {
 	svc := &mockService{archiv: application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")}}
 	h := &Handler{Service: svc}
@@ -106,12 +106,12 @@ func TestExportHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing
 	}
 }
 
-// In Produktion laeuft der Handler nie nackt: LoggingMiddleware umschliesst die
+// In Produktion läuft der Handler nie nackt: LoggingMiddleware umschließt die
 // gesamte Routenkette (backend/app/app.go) und reicht den Handlern ihren
 // eigenen ResponseWriter-Wrapper. Die Frist muss auch durch diesen Wrapper
 // hindurch beim echten ResponseWriter ankommen — sonst bleibt die globale
 // 10-Sekunden-Frist wirksam und ein grosses DSFinV-K-Archiv reisst mitten im
-// ZIP ab. Der Test oben trifft den Handler direkt und wuerde das uebersehen.
+// ZIP ab. Der Test oben trifft den Handler direkt und würde das übersehen.
 func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing.T) {
 	svc := &mockService{archiv: application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")}}
 	h := &Handler{Service: svc}
@@ -138,10 +138,10 @@ func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing
 }
 
 // Die erste Setzung sitzt am Handler-Eingang, vor jeder Arbeit: Sie gilt den
-// fruehen Fehlerpfaden, die vor Erstellen() antworten (unlesbarer Body,
+// frühen Fehlerpfaden, die vor Erstellen() antworten (unlesbarer Body,
 // invalid_kassensitzung). Die Antwort nach einem langen Archivbau deckt sie
-// nicht — dafuer steht die zweite Setzung, die auch der Fehlerzweig hier
-// durchlaeuft.
+// nicht — dafür steht die zweite Setzung, die auch der Fehlerzweig hier
+// durchläuft.
 func TestExportHandler_VerlaengertSchreibfristVorDemArchivbau(t *testing.T) {
 	w := newDeadlineCapturingWriter()
 	fristStandBeimArchivbau := false
@@ -166,11 +166,11 @@ func TestExportHandler_VerlaengertSchreibfristVorDemArchivbau(t *testing.T) {
 	}
 }
 
-// Die Frist ist eine absolute Zeit ab Request-Start, kein Budget fuer den
-// Schreibvorgang: Nach einem Archivbau von 5 Minuten waere die am
-// Handler-Eingang gesetzte Frist genau abgelaufen, wenn die Uebertragung
+// Die Frist ist eine absolute Zeit ab Request-Start, kein Budget für den
+// Schreibvorgang: Nach einem Archivbau von 5 Minuten wäre die am
+// Handler-Eingang gesetzte Frist genau abgelaufen, wenn die Übertragung
 // beginnt. Deshalb wird sie ein zweites Mal gesetzt, unmittelbar bevor
-// geschrieben wird — erst dieser Aufruf gibt der Uebertragung ein eigenes
+// geschrieben wird — erst dieser Aufruf gibt der Übertragung ein eigenes
 // Budget.
 func TestExportHandler_SetztSchreibfristVorDemSchreibenErneut(t *testing.T) {
 	w := newDeadlineCapturingWriter()
@@ -186,16 +186,16 @@ func TestExportHandler_SetztSchreibfristVorDemSchreibenErneut(t *testing.T) {
 	if fristenBeimArchivbau != 1 {
 		t.Fatalf("expected exactly one write deadline before the archive is built, got %d", fristenBeimArchivbau)
 	}
-	// Gezaehlt wird bis zum ersten Schreibvorgang: Ein Aufruf hinter dem
-	// Schreiben kaeme fuer diese Antwort zu spaet und darf nicht mitzaehlen.
+	// Gezählt wird bis zum ersten Schreibvorgang: Ein Aufruf hinter dem
+	// Schreiben käme für diese Antwort zu spät und darf nicht mitzählen.
 	if w.deadlineCountBeforeWrite != 2 {
 		t.Fatalf("expected the write deadline to be set again after the archive is built and before writing, got %d of %d calls", w.deadlineCountBeforeWrite, w.deadlineCount)
 	}
 }
 
-// Unterstuetzt der ResponseWriter SetWriteDeadline nicht (wie
-// httptest.ResponseRecorder), wird das protokolliert; der Export laeuft mit
-// der globalen Frist unveraendert weiter und liefert eine korrekte Antwort.
+// Unterstützt der ResponseWriter SetWriteDeadline nicht (wie
+// httptest.ResponseRecorder), wird das protokolliert; der Export läuft mit
+// der globalen Frist unverändert weiter und liefert eine korrekte Antwort.
 func TestExportHandler_LaeuftWeiterWennFristNichtSetzbar(t *testing.T) {
 	svc := &mockService{archiv: application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")}}
 	h := &Handler{Service: svc}

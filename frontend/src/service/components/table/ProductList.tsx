@@ -3,15 +3,15 @@ import { useState } from 'react'
 
 import { EmptyState } from '@/components/common/EmptyState'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn, formatEuro } from '@/lib/utils'
-
 import {
   type Kategorie,
-  KategorieLabels,
-  KategorieOrder,
+  KATEGORIE_LABEL,
+  KATEGORIE_ORDER,
   type Produkt,
   type Variante,
-} from '../../product/Produkt'
+} from '@/lib/produktSchemas'
+import { cn, formatEuro } from '@/lib/utils'
+
 import { Stepper } from '../Stepper'
 
 interface ProductListComponentProps {
@@ -22,7 +22,7 @@ interface ProductListComponentProps {
 }
 
 function belegteKategorien(products: Produkt[]): Kategorie[] {
-  return KategorieOrder.filter((kategorie) =>
+  return KATEGORIE_ORDER.filter((kategorie) =>
     products.some((p) => p.kategorie === kategorie),
   )
 }
@@ -72,7 +72,7 @@ export function ProductList(props: ProductListComponentProps) {
                       : 'border text-foreground',
                   )}
                 >
-                  {KategorieLabels[kategorie]}
+                  {KATEGORIE_LABEL[kategorie]}
                 </button>
               )
             })}

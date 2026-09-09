@@ -14,10 +14,13 @@
 // switch stay in sync.
 window.StarlightThemeProvider = (() => {
   const storedTheme =
-    typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme')
+    typeof localStorage !== 'undefined' &&
+    localStorage.getItem('starlight-theme')
   const theme =
     storedTheme ||
-    (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+    (window.matchMedia('(prefers-color-scheme: light)').matches
+      ? 'light'
+      : 'dark')
   document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark'
   return {
     updatePickers(theme = storedTheme || 'auto') {

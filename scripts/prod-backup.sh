@@ -38,22 +38,9 @@ cd "$PROJECT_ROOT"
 # ---------------------------------------------------------------------------
 # Step 1 — Validate prerequisites and resolve configuration
 # ---------------------------------------------------------------------------
-if ! command -v docker &>/dev/null; then
-  fatal "docker is not installed or not on PATH."
-fi
-if ! docker compose version &>/dev/null; then
-  fatal "docker compose (v2) is not available."
-fi
-if [[ ! -f "$COMPOSE_FILE" ]]; then
-  fatal "Missing compose file: $COMPOSE_FILE"
-fi
-if [[ ! -f .env ]]; then
-  fatal ".env file not found. Run 'make init' first."
-fi
+require_docker_stack "$COMPOSE_FILE"
 
-# Environment wins, then .env, then the built-in default.
-BACKUP_DIR="${BACKUP_DIR:-$(read_env BACKUP_DIR)}"
-[[ -n "$BACKUP_DIR" ]] || BACKUP_DIR="./backups"
+resolve_backup_dir
 BACKUP_KEEP="${BACKUP_KEEP:-$(read_env BACKUP_KEEP)}"
 [[ -n "$BACKUP_KEEP" ]] || BACKUP_KEEP="14"
 
@@ -63,7 +50,12 @@ fi
 
 BACKUP_PING_URL="${BACKUP_PING_URL:-$(read_env BACKUP_PING_URL)}"
 
+# A dump holds every cash-register record in clear text, so it stays readable by
+# its owner alone. umask covers everything created from here on (directory, dump,
+# .partial); chmod pulls an already existing, too permissive directory in line.
+umask 077
 mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR" || fatal "Cannot set mode 700 on $BACKUP_DIR (owner or filesystem?)."
 
 # ---------------------------------------------------------------------------
 # Step 2 — Dump the database
@@ -92,6 +84,14 @@ if ! gzip -t "$TMPFILE"; then
   fatal "Integrity check failed (gzip -t): the dump is corrupt and was discarded."
 fi
 mv "$TMPFILE" "$OUTFILE"
+chmod 600 "$OUTFILE"
+
+# The success message must not cover a world-readable dump: a target filesystem
+# without Unix modes (exFAT, a CIFS mount with fmask) ignores chmod silently.
+OUTFILE_MODE="$(stat -c '%a' "$OUTFILE")"
+if [[ "$OUTFILE_MODE" != "600" ]]; then
+  fatal "Backup file mode is $OUTFILE_MODE, expected 600: $OUTFILE"
+fi
 
 info "Backup created: $OUTFILE ($(du -h "$OUTFILE" | cut -f1))"
 
@@ -129,4 +129,4 @@ if [[ -n "$BACKUP_PING_URL" ]]; then
 fi
 
 echo ""
-info "Done. Copy backups off this server regularly (10-year retention; see docs/leitfaden.md)."
+info "Done. Copy backups off this server regularly (10-year retention; see docs/leitfaden/datenaufbewahrung.md)."

@@ -134,6 +134,13 @@ describe('Users', () => {
     expect(onResetPassword).toHaveBeenCalledWith(5)
   })
 
+  it('locks the status switch on the own account', () => {
+    // id 1 ist laut gemocktem Auth-Singleton der eigene Account.
+    renderUsers([user({ id: 1, name: 'Ich Selbst', role: 'admin' })])
+
+    expect(screen.getByRole('switch', { name: /deaktivieren/i })).toBeDisabled()
+  })
+
   it('deactivates a user via the status switch', async () => {
     const u = userEvent.setup()
     const { be } = renderUsers([

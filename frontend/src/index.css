@@ -264,11 +264,11 @@
   }
 }
 
-/* Zentrales Animations-Inventar (Handoff „Motion-Inventar"). Keyframes global,
-   Utilities über @utility — Einsatzstellen konsumieren nur die benannten
-   Klassen, keine Ad-hoc-Animationen pro Stelle. Dauern/Easings sind die
-   kanonischen Werte des Inventars; Stellen mit variabler Dauer (Listen-Stagger,
-   Login-Glows) setzen die Dauer je Instanz zusätzlich. */
+/* Zentrales Animations-Inventar. Keyframes global, Utilities über @utility —
+   Einsatzstellen konsumieren nur die benannten Klassen, keine Ad-hoc-
+   Animationen pro Stelle. Dauern/Easings sind die kanonischen Werte des
+   Inventars; Stellen mit variabler Dauer (Listen-Stagger, Login-Glows)
+   setzen die Dauer je Instanz zusätzlich. */
 @keyframes shimmer {
   0% {
     background-position: 150% 0;
@@ -304,7 +304,7 @@
 }
 
 @keyframes pulsedot {
-  /* Ring-Farbe aus --primary abgeleitet (nicht die Handoff-Festfarbe
+  /* Ring-Farbe aus --primary abgeleitet (nicht die feste Farbe
      rgb(16 185 129)), damit der Puls in Hell und Dunkel zum grünen
      StatusDot (bg-primary) passt — die Festfarbe entspricht nur dem
      Dark-Primary. */
@@ -345,8 +345,7 @@
   animation: drift 18s ease-in-out infinite alternate;
 }
 
-/* Skeleton-Shimmer: Muted-Verlauf mit leichter Teal-/Violett-Tönung
-   (Handoff-Rezept), löst den früheren grauen Puls-Platzhalter ab. */
+/* Skeleton-Shimmer: Muted-Verlauf mit leichter Teal-/Violett-Tönung. */
 @utility skeleton-shimmer {
   /* Solider Fallback zuerst: Browser ohne color-mix()-Support (iOS Safari
      16.0–16.1) verwerfen die Gradient-Deklaration und behalten diese muted

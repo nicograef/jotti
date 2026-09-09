@@ -20,8 +20,8 @@ LIMIT 1
 `
 
 // GetAeltesterOffenerTSESignaturauftrag liefert den Erstellungszeitpunkt des
-// aeltesten offenen Auftrags — der Rueckstands-Watchdog bemisst daran den
-// Signatur-Rueckstand.
+// ältesten offenen Auftrags — der Rückstands-Watchdog bemisst daran den
+// Signatur-Rückstand.
 func (q *Queries) GetAeltesterOffenerTSESignaturauftrag(ctx context.Context) (time.Time, error) {
 	row := q.db.QueryRowContext(ctx, getAeltesterOffenerTSESignaturauftrag)
 	var erstellt_am time.Time
@@ -42,9 +42,9 @@ type GetOffeneSignaturauftragStaendeFuerKassensitzungRow struct {
 	ErstelltAm time.Time
 }
 
-// GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Staende
-// aller noch nicht erledigten Signaturauftraege einer Kassensitzung — die
-// Grundlage des Kassenabschluss-Gates. Erledigte Auftraege sind irrelevant
+// GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Stände
+// aller noch nicht erledigten Signaturaufträge einer Kassensitzung — die
+// Grundlage des Kassenabschluss-Gates. Erledigte Aufträge sind irrelevant
 // (bereits signiert); die vier nicht-erledigten Status ordnet
 // DetermineSignaturstatus in ausstehend (blockiert) bzw. Ausfall (Rest) ein.
 func (q *Queries) GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]GetOffeneSignaturauftragStaendeFuerKassensitzungRow, error) {
@@ -86,7 +86,7 @@ type GetOffeneTSESignaturauftraegeRow struct {
 	ProcessData string
 }
 
-// GetOffeneTSESignaturauftraege liefert die faelligen offenen Auftraege in
+// GetOffeneTSESignaturauftraege liefert die fälligen offenen Aufträge in
 // Einreihungs-Reihenfolge (FIFO als Soll-Eigenschaft).
 func (q *Queries) GetOffeneTSESignaturauftraege(ctx context.Context, limit int32) ([]GetOffeneTSESignaturauftraegeRow, error) {
 	rows, err := q.db.QueryContext(ctx, getOffeneTSESignaturauftraege, limit)
@@ -145,12 +145,12 @@ type GetTSESignaturQueueZustandRow struct {
 }
 
 // GetTSESignaturQueueZustand berechnet den Zustand der Signatur-Queue in einem
-// Durchlauf: offene Auftraege, das Alter des aeltesten offenen Auftrags
-// (Rueckstand) sowie Durchsatz (Signaturen pro Minute) und Latenz (Signierdauer
-// p95, erstellt_am -> TSE-logTime) ueber ein gleitendes 15-Minuten-Fenster —
-// diese Kennzahlen global. Die fehlgeschlagenen Auftraege dagegen zaehlen nur
+// Durchlauf: offene Aufträge, das Alter des ältesten offenen Auftrags
+// (Rückstand) sowie Durchsatz (Signaturen pro Minute) und Latenz (Signierdauer
+// p95, erstellt_am -> TSE-logTime) über ein gleitendes 15-Minuten-Fenster —
+// diese Kennzahlen global. Die fehlgeschlagenen Aufträge dagegen zählen nur
 // die der aktiven Kassensitzung (Status offen oder wird_abgeschlossen), und
-// letzter_fehler traegt den Fehlertext des juengsten davon. Ohne aktive Sitzung
+// letzter_fehler trägt den Fehlertext des jüngsten davon. Ohne aktive Sitzung
 // ist beides leer — der Kassenabschluss weist die Ausfall-Reste aus und
 // quittiert damit die Warnung. On demand aus den Auftrags- und Signaturzeiten,
 // kein Metrik-Subsystem und kein In-Memory-Zustand.
@@ -186,9 +186,9 @@ type GetTSESignaturauftragZuEventRow struct {
 	QrCodeData        sql.NullString
 }
 
-// GetTSESignaturauftragZuEvent liefert den Signatur-Stand eines Events fuer den
-// Beleg-Abruf: Status plus Signaturspalten (gefuellt sobald quittiert).
-// Kein Treffer heisst: Das Event ist nicht signaturpflichtig.
+// GetTSESignaturauftragZuEvent liefert den Signatur-Stand eines Events für den
+// Beleg-Abruf: Status plus Signaturspalten (gefüllt sobald quittiert).
+// Kein Treffer heißt: Das Event ist nicht signaturpflichtig.
 func (q *Queries) GetTSESignaturauftragZuEvent(ctx context.Context, eventID int) (GetTSESignaturauftragZuEventRow, error) {
 	row := q.db.QueryRowContext(ctx, getTSESignaturauftragZuEvent, eventID)
 	var i GetTSESignaturauftragZuEventRow
@@ -238,12 +238,12 @@ WHERE status = 'offen'
 `
 
 // MarkOffeneTSESignaturauftraegeNichtKonfiguriert markiert alle offenen
-// Auftraege endgueltig als tse_nicht_konfiguriert: ohne vorhandene
+// Aufträge endgültig als tse_nicht_konfiguriert: ohne vorhandene
 // TSE-Konfiguration gibt es keine Signatur, ein Nachsignieren ist ausgeschlossen
 // (keine Fehlversuche, keine automatische Wiederaufnahme). Der Status-Guard
-// laesst bereits endgueltig markierte Auftraege unberuehrt. Zwei Schreiber: der
+// lässt bereits endgültig markierte Aufträge unberührt. Zwei Schreiber: der
 // Signatur-Worker (Dauerzustand ohne Konfiguration) und der Einrichtungs-Sweep
-// (Uebergang zu konfiguriert, in derselben Transaktion wie das Speichern).
+// (Übergang zu konfiguriert, in derselben Transaktion wie das Speichern).
 func (q *Queries) MarkOffeneTSESignaturauftraegeNichtKonfiguriert(ctx context.Context) (int64, error) {
 	result, err := q.db.ExecContext(ctx, markOffeneTSESignaturauftraegeNichtKonfiguriert)
 	if err != nil {
@@ -278,7 +278,7 @@ type QuittiereTSESignaturauftragParams struct {
 }
 
 // QuittiereTSESignaturauftrag schreibt die Signatur als einzelnes Update an den
-// Auftrag: Signaturspalten fuellen, Status erledigt. Der Status-Guard macht die
+// Auftrag: Signaturspalten füllen, Status erledigt. Der Status-Guard macht die
 // Quittierung idempotent (Signaturspalten werden genau einmal beschrieben).
 func (q *Queries) QuittiereTSESignaturauftrag(ctx context.Context, arg QuittiereTSESignaturauftragParams) error {
 	_, err := q.db.ExecContext(ctx, quittiereTSESignaturauftrag,
@@ -313,7 +313,7 @@ type TSESignaturauftragFehlversuchParams struct {
 // Fehlversuch mit Sekunden-Backoff (5 * 3^versuche: 5, 15, 45 s). Beim
 // max_versuche-ten Fehlversuch wechselt der Auftrag auf fehlgeschlagen und
 // wird nicht mehr automatisch versucht — die Kurve endet bewusst unter der
-// Rueckstands-Schwelle, TSE-weite Fehler zaehlen nie auf den Auftrag.
+// Rückstands-Schwelle, TSE-weite Fehler zählen nie auf den Auftrag.
 func (q *Queries) TSESignaturauftragFehlversuch(ctx context.Context, arg TSESignaturauftragFehlversuchParams) error {
 	_, err := q.db.ExecContext(ctx, tSESignaturauftragFehlversuch, arg.LetzterFehler, arg.MaxVersuche, arg.ID)
 	return err

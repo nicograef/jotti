@@ -36,8 +36,8 @@ const (
 	DiagnoseSecretFehltMitDaten = "Es sind bereits jotti-Daten vorhanden, aber es wurden keine Zugangsdaten (.env) gefunden. " +
 		"jotti startet NICHT, um die vorhandenen Daten nicht mit neuen, falschen Zugangsdaten auszusperren.\n" +
 		"Gesucht wurde im jotti-Datentresor, unter \"%PROGRAMDATA%\\jotti\\.env\" und neben jotti-start.exe.\n" +
-		"Bitte die .env aus der vorherigen jotti-Installation (frueher im Programmordner neben jotti-start.exe) " +
-		"nach \"%PROGRAMDATA%\\jotti\\.env\" kopieren und jotti erneut starten."
+		"Eine .env einer anderen jotti-Installation nach \"%PROGRAMDATA%\\jotti\\.env\" " +
+		"kopieren und jotti erneut starten."
 )
 
 // typischePortVerursacher nennt haeufige Beleger von 80/443 fuer den Fall, dass

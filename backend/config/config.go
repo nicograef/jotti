@@ -21,7 +21,7 @@ type Config struct {
 	Postgres       postgresConfig
 	JWTSecret      string // Secret key for JWT signing
 	RelayToken     string // Statischer Token für das Print-Relay
-	FiskalyBaseURL string // Basis-URL fuer fiskaly SIGN-DE Middleware API
+	FiskalyBaseURL string // Basis-URL für fiskaly SIGN-DE Middleware API
 	EnableTestApi  bool   // Schaltet den HTTP-Test-Reset-Endpoint frei (nur E2E, JOTTI_ENABLE_TEST_API=1)
 }
 
@@ -31,9 +31,9 @@ type Config struct {
 const MinSecretLength = 16
 
 // placeholderSecrets sind die im Repo öffentlich stehenden Beispielwerte aus
-// .env.example sowie der frühere POSTGRES_PASSWORD-Default. Ein solcher Wert in
-// einer laufenden Instanz bedeutet ein bekanntes Secret (JWT-Forgery = Auth-Bypass)
-// und wird deshalb hart abgelehnt.
+// .env.example sowie das leicht erratbare Postgres-Passwort "admin". Ein
+// solcher Wert in einer laufenden Instanz bedeutet ein bekanntes Secret
+// (JWT-Forgery = Auth-Bypass) und wird deshalb hart abgelehnt.
 var placeholderSecrets = map[string]bool{
 	"your-256-bit-secret-replace-this-in-production":   true,
 	"your-relay-auth-token-replace-this-in-production": true,
@@ -105,15 +105,11 @@ func validateSecret(name, value string) error {
 
 // parseEnvString reads an environment variable by name and returns its value, or the provided default if unset.
 func parseEnvString(name, defaultValue string) string {
-	v := os.Getenv(name)
-	if v == "" && defaultValue != "" {
-		return defaultValue
-	}
-	if v == "" {
-		log.Fatalf("%s is not set and has no default value\n", name)
+	if v := os.Getenv(name); v != "" {
+		return v
 	}
 
-	return v
+	return defaultValue
 }
 
 // parseEnvInt reads an environment variable by name and converts it to int.

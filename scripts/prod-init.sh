@@ -24,17 +24,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 . "$SCRIPT_DIR/lib.sh"
 
-# parse_semver "v1.2.3" — echoes "1 2 3" and returns 0, or returns 1 when the
-# value is not a plain vMAJOR.MINOR.PATCH (e.g. "latest", "dev"). A pre-release
-# or build suffix ("1.2.3-rc1", "1.2.3+meta") is trimmed before parsing. Mirrors
-# core.parseSemver (windows/starter/core/update.go); kept as a standalone copy.
-parse_semver() {
-  local s="${1#v}"
-  s="${s%%[-+]*}"
-  [[ "$s" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] || return 1
-  printf '%s %s %s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
-}
-
 # Minimum length for secrets; mirrors backend/config.MinSecretLength.
 MIN_SECRET_LENGTH=16
 
@@ -70,21 +59,7 @@ info "Project root: $PROJECT_ROOT"
 # ---------------------------------------------------------------------------
 info "Checking prerequisites..."
 
-if [[ ! -f .env ]]; then
-  fatal ".env file not found. Run 'make init' first."
-fi
-
-if ! command -v docker &>/dev/null; then
-  fatal "docker is not installed or not on PATH."
-fi
-
-if ! docker compose version &>/dev/null; then
-  fatal "docker compose (v2) is not available."
-fi
-
-if [[ ! -f "$COMPOSE_PROD" ]]; then
-  fatal "Missing compose file: $COMPOSE_PROD"
-fi
+require_docker_stack "$COMPOSE_PROD"
 
 if ! command -v host &>/dev/null && ! command -v dig &>/dev/null; then
   fatal "Neither 'host' nor 'dig' found. Install one (e.g. dnsutils / bind-tools) for the DNS preflight."

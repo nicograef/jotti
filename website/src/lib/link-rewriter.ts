@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path/posix'
 
-// Reine Kernlogik der Querverweis-Auflösung (PRD: „remark-Link-Rewriter").
+// Reine Kernlogik der Querverweis-Auflösung.
 //
 // Autoren und Agenten schreiben in `docs/` weiter normale repo-relative
 // Markdown-Links (`[x.md](x.md)`, auch mit `#anker`), damit die Vorschau auf

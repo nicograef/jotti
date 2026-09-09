@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"unicode/utf8"
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/druck/bondruck/application"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
@@ -18,9 +19,9 @@ import (
 )
 
 type tischRepo interface {
-	GetTable(ctx context.Context, id int) (tisch.Tisch, error)
-	GetActiveTables(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error)
-	GetActiveTablesWithFavorites(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error)
+	GetTisch(ctx context.Context, id int) (tisch.Tisch, error)
+	GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error)
+	GetAktiveTischeMitFavoriten(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error)
 }
 
 type eventRepo interface {
@@ -36,12 +37,11 @@ type eventRepo interface {
 }
 
 type kassensitzungenRepo interface {
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
 type produktRepo interface {
-	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error)
+	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error)
 	GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
 }
 
@@ -129,15 +129,18 @@ func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.E
 }
 
 // persistTischEvent writes a tisch-session event with OCC against expectedVersion
-// (die Version des gelesenen Zustands, gegen den validiert wurde). An OCC conflict
-// maps to ErrConflict, any other write error to ErrDatabase. aktion is the success
-// log message.
+// (die Version des gelesenen Zustands, gegen den validiert wurde). ErrConflict (OCC)
+// and ErrKasseNichtGeoeffnet pass through, any other write error becomes ErrDatabase.
+// aktion is the success log message.
 func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
 	log := zerolog.Ctx(ctx)
 
 	if err := writeEvent(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
-		if errors.Is(err, ErrConflict) {
-			return ErrConflict
+		// Beides sind fachliche Antworten, die der Handler auf 409 abbildet: der
+		// OCC-Konflikt und die Kassensitzung, die zwischen Lesen und Schreiben
+		// geschlossen wurde. Im ErrDatabase-Fallback würden sie zu 500.
+		if errors.Is(err, ErrConflict) || errors.Is(err, ErrKasseNichtGeoeffnet) {
+			return err
 		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write event to database")
 		return ErrDatabase
@@ -158,7 +161,7 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 		return "", 0, "", kasse.TischSession{}, err
 	}
 
-	t, err := c.TischRepo.GetTable(ctx, tischID)
+	t, err := c.TischRepo.GetTisch(ctx, tischID)
 	if err != nil {
 		return "", 0, "", kasse.TischSession{}, fromRepositoryError(err, log, tischID)
 	}
@@ -242,6 +245,11 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 			}
 			return ErrConflict
 		}
+		// Die Kassensitzung wurde zwischen Lesen und Schreiben geschlossen — 409,
+		// kein Datenbankfehler.
+		if errors.Is(err, ErrKasseNichtGeoeffnet) {
+			return err
+		}
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung aufgenommen event to database")
 		return ErrDatabase
 	}
@@ -250,29 +258,30 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	return nil
 }
 
-const maxUmbuchungKommentarRunes = 100
+// maxUmbuchungKommentarBytes ist die Grenze des Kommentars im eingefrorenen
+// Event-Schema (bestellungUmgebuchtV1DataSchema); zogs Max zählt Bytes.
+const maxUmbuchungKommentarBytes = 100
 
-func truncateRunes(s string, max int) string {
-	if max <= 0 {
-		return ""
-	}
-
-	runes := []rune(s)
-	if len(runes) <= max {
+// truncateBytes schneidet s auf höchstens max Bytes. Der Schnitt wandert bis zum
+// Anfang der angeschnittenen UTF-8-Folge zurück, damit kein Umlaut zerfällt.
+func truncateBytes(s string, maxBytes int) string {
+	if len(s) <= maxBytes {
 		return s
 	}
 
-	return string(runes[:max])
-}
-
-func buildUmbuchungKommentar(prefix string, tischName string) string {
-	prefixRunes := len([]rune(prefix))
-	if prefixRunes >= maxUmbuchungKommentarRunes {
-		return truncateRunes(prefix, maxUmbuchungKommentarRunes)
+	cut := maxBytes
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
 	}
 
-	maxTischNameRunes := maxUmbuchungKommentarRunes - prefixRunes
-	return prefix + truncateRunes(tischName, maxTischNameRunes)
+	return s[:cut]
+}
+
+// buildUmbuchungKommentar setzt den Richtungs-Autotext aus Präfix und Tischname
+// zusammen. Der Tischname darf 100 Bytes lang sein, mit dem Präfix reißt das
+// Paar die Schemagrenze — der Name wird gekürzt, das Präfix bleibt ganz.
+func buildUmbuchungKommentar(prefix string, tischName string) string {
+	return prefix + truncateBytes(tischName, maxUmbuchungKommentarBytes-len(prefix))
 }
 
 func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
@@ -288,7 +297,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return err
 	}
 
-	quellTisch, err := c.TischRepo.GetTable(ctx, quellTischID)
+	quellTisch, err := c.TischRepo.GetTisch(ctx, quellTischID)
 	if err != nil {
 		return fromRepositoryError(err, log, quellTischID)
 	}
@@ -297,7 +306,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return ErrTischNotActive
 	}
 
-	zielTisch, err := c.TischRepo.GetTable(ctx, zielTischID)
+	zielTisch, err := c.TischRepo.GetTisch(ctx, zielTischID)
 	if err != nil {
 		return fromRepositoryError(err, log, zielTischID)
 	}

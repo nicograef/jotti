@@ -11,7 +11,9 @@ export function appendReferenz(message: string, referenz?: string): string {
   return referenz ? `${message} Referenz: ${referenz}` : message
 }
 
-const commonErrorMessages: Record<string, string> = {
+// commonErrorMessages ist die zentrale Meldung je Backend-Fehlercode. Der Test
+// iteriert darüber, deshalb ist die Karte exportiert.
+export const commonErrorMessages: Record<string, string> = {
   onetime_password_locked:
     'Das Einmalpasswort wurde nach zu vielen Fehlversuchen gesperrt. Bitte einen Admin um ein neues Einmalpasswort.',
   already_has_password:
@@ -20,14 +22,20 @@ const commonErrorMessages: Record<string, string> = {
     'Die Betreiberdaten sind unvollständig. Bitte im Bereich Finanzamt vervollständigen und erneut versuchen.',
   buchungen_nach_kassensturz:
     'Nach dem Kassensturz wurden noch Buchungen erfasst. Der Abschluss kann so nicht wiederholt werden. Bitte den Administrator kontaktieren.',
+  cannot_deactivate_self:
+    'Der aktuell angemeldete Benutzer kann nicht deaktiviert werden. Bitte einen anderen Benutzer wählen.',
   cannot_delete_self:
     'Der aktuell angemeldete Benutzer kann nicht gelöscht werden. Bitte einen anderen Benutzer wählen.',
+  cannot_demote_self:
+    'Die eigene Rolle kann nicht geändert werden. Bitte einen anderen Administrator darum bitten.',
   druckstation_nicht_konfiguriert:
     'Für diese Station ist kein Drucker konfiguriert. Bitte zuerst eine Drucker-IP eintragen, dann den Testbon senden.',
   conflict:
     'Die Daten wurden gerade von jemand anderem geändert. Bitte aktualisieren und erneut versuchen.',
   invalid_json:
     'Die Anfrage konnte nicht verarbeitet werden. Bitte Eingaben prüfen und erneut versuchen.',
+  invalid_kassensitzung:
+    'Die gewählte Kassensitzung ist ungültig. Bitte neu auswählen und erneut versuchen.',
   invalid_kassensitzung_nr:
     'Die Kassensitzung konnte nicht gefunden werden. Bitte neu auswählen und erneut versuchen.',
   invalid_produkt_data:
@@ -48,18 +56,20 @@ const commonErrorMessages: Record<string, string> = {
     'Die Kasse wird gerade abgeschlossen. Bitte warten, bis der Abschluss fertig ist, und dann erneut versuchen.',
   kasse_bereits_geoeffnet:
     'Es gibt bereits eine offene Kassensitzung. Bitte zuerst die aktuelle Kassensitzung abschließen.',
-  kassensturz_erforderlich:
-    'Vor dem Tagesabschluss muss ein Kassensturz durchgeführt werden.',
   kassenbeleg_drucker_nicht_konfiguriert:
     'Für Kassenbelege ist kein Drucker konfiguriert. Bitte die Druckstation-Einstellungen prüfen.',
+  login_throttled:
+    'Zu viele Fehlversuche. Bitte kurz warten und dann erneut anmelden.',
   no_password_set:
     'Für diesen Benutzer wurde noch kein Passwort gesetzt. Bitte zuerst ein Passwort vergeben.',
   password_too_weak:
     'Das Passwort ist zu schwach. Bitte ein stärkeres Passwort verwenden.',
   position_nicht_bezahlbar:
     'Mindestens eine Position ist nicht mehr bezahlbar. Bitte Tischstatus aktualisieren und erneut versuchen.',
+  // Kontextneutral: den Code liefern der Tischstorno und der
+  // Direktverkauf-Storno, und der Direktverkauf hat keinen Tisch.
   position_nicht_stornierbar:
-    'Mindestens eine Position kann nicht storniert werden. Bitte Tischstatus aktualisieren und erneut versuchen.',
+    'Mindestens eine Position kann nicht storniert werden. Bitte Ansicht aktualisieren und erneut versuchen.',
   position_nicht_umbuchbar:
     'Mindestens eine Position kann nicht umgebucht werden. Bitte Tischstatus aktualisieren und erneut versuchen.',
   produkt_already_exists:

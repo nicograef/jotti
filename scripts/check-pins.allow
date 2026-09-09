@@ -1,0 +1,2 @@
+# scripts/check-pins.sh allowlist — one image name per line, reason after "#".
+nginx  # 1.27-alpine in docker-compose.initial-cert.yml und docker-compose.rocks.yml gegen 1.31-alpine in frontend/Dockerfile und website/Dockerfile; Versions-Bumps laufen über die Dependency-Aktualisierung, nicht über diesen Guard

@@ -1,20 +1,13 @@
-/* jotti-Marke — gemeinsames Token-Set für Landing und Doku.
-   Quelle der Markenwerte: der Design-Handoff, zusammengefasst im
-   PRD docs/prds/prd-website-redesign.md. Light-Palette auf :root,
-   Dark-Palette auf [data-theme='dark'] (nicht mehr prefers-color-scheme); dazu
-   die acht Spektral-Tokens, die Spektral-Verläufe, Radien, Schatten und die
-   Typo-Skala. Selbst gehostete Variable-Fonts: Space Grotesk (Headings/
-   Wortmarke) und Inter (Body/UI).
+/* jotti-Marke — gemeinsames Token-Set für Landing und Doku. Light-Palette auf
+   :root, Dark-Palette auf [data-theme='dark'] (attributgesteuert, nicht per
+   prefers-color-scheme); dazu die acht Spektral-Tokens, die
+   Spektral-Verläufe, Radien, Schatten und die Typo-Skala. Selbst gehostete
+   Variable-Fonts: Space Grotesk (Headings/Wortmarke) und Inter (Body/UI).
    Landing nutzt diese Tokens direkt; das Starlight-Theme bezieht sie in
    starlight.css über dessen CSS-Custom-Properties.
 
-   Übergangsregel (Plan Phase 1): Der Umbau läuft sektionsweise. Die alten
-   Token-Namen (--brand-*) und Komponentenklassen (.btn) bleiben als Aliase auf
-   die neuen Werte erhalten, bis die konsumierende Sektion in ihrer Phase neu
-   gebaut wird — dann fallen Alias und Sektion gemeinsam weg (so bereits
-   geschehen für .card, .icon-box, die .spectrum-edge- und .carousel-Klassen
-   sowie --brand-spectrum mit den Sektionen #service, #bereit, #einblicke und
-   dem Footer). */
+   --brand-green* sind theme-unabhängige Festwerte für gefüllte Buttons;
+   starlight.css und landing.css beziehen sie über diese Namen. */
 
 @font-face {
   font-family: 'Inter';
@@ -33,7 +26,7 @@
 }
 
 :root {
-  /* --- Farben: Light (Handoff) --- */
+  /* --- Farben: Light --- */
   --bg: #ffffff;
   --fg: #0c0c09;
   --card: #ffffff;
@@ -92,14 +85,14 @@
   --fs-h1: clamp(40px, 5.4vw, 68px);
   --fs-h2: clamp(30px, 3.7vw, 46px);
 
-  /* --- Radien (Handoff) --- */
+  /* --- Radien --- */
   --radius-sm: 11px; /* Pills, kleine Buttons */
   --radius-md: 13px; /* Buttons, CTAs */
   --radius-lg: 16px; /* Kacheln */
   --radius-xl: 20px; /* Karten */
   --radius-2xl: 26px; /* große CTA-Karte */
 
-  /* --- Übergangs-Aliase auf die neuen Werte (siehe Kopf) --- */
+  /* --- Feste Marken-Grüntöne für gefüllte Buttons --- */
   /* Konstant, damit gefüllte Buttons (weißer Text) in beiden Modi tragen. */
   --brand-green: #007a55;
   --brand-green-hover: #00694a;
@@ -108,7 +101,7 @@
 }
 
 [data-theme='dark'] {
-  /* --- Farben: Dark (Handoff) --- */
+  /* --- Farben: Dark --- */
   --bg: #0c0c09;
   --fg: #fbfbf9;
   --card: #1d1d16;

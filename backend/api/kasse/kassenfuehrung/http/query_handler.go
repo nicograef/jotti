@@ -10,7 +10,7 @@ import (
 )
 
 type query interface {
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 	GetKassenbestand(ctx context.Context, kassensitzungNr int) (kasse.Kassenbestand, error)
 	GetGeldtransitListe(ctx context.Context, kassensitzungNr int) ([]kasse.Geldtransit, error)
 }
@@ -21,7 +21,7 @@ type QueryHandler struct {
 
 // --- Request / Response DTOs ---
 
-type offeneKassensitzungResponse struct {
+type aktiveKassensitzungResponse struct {
 	ZNr         int    `json:"zNr"`
 	Datum       string `json:"datum"`
 	Bezeichnung string `json:"bezeichnung"`
@@ -57,9 +57,9 @@ type geldtransitItemResponse struct {
 
 // --- Handlers ---
 
-func (h *QueryHandler) GetOffeneKassensitzungHandler() http.HandlerFunc {
+func (h *QueryHandler) GetAktiveKassensitzungHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ks, err := h.Query.GetOffeneKassensitzung(r.Context())
+		ks, err := h.Query.GetAktiveKassensitzung(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return
@@ -70,7 +70,7 @@ func (h *QueryHandler) GetOffeneKassensitzungHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, offeneKassensitzungResponse{
+		helper.SendResponse(w, aktiveKassensitzungResponse{
 			ZNr:         ks.ZNr,
 			Datum:       ks.Datum.Format("2006-01-02"),
 			Bezeichnung: ks.Bezeichnung,

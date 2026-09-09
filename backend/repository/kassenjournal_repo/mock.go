@@ -64,6 +64,19 @@ func (m *MockRepo) versionConflict(e event.Event) bool {
 	return false
 }
 
+// nextEventID mirrors the DB sequence: the next id is max(vorhandene)+1, not
+// len(events)+1 — a mock seeded via NewMock with non-contiguous or non-1-based
+// event IDs would otherwise assign a colliding or already-used id.
+func (m *MockRepo) nextEventID() int {
+	maxID := 0
+	for id := range m.events {
+		if id > maxID {
+			maxID = id
+		}
+	}
+	return maxID + 1
+}
+
 // EroeffneKassensitzung mirrors the atomic open: assigns the next z_nr, runs build,
 // and stores the event. NextZNr configures the assigned number (default 1).
 func (m *MockRepo) EroeffneKassensitzung(ctx context.Context, _ time.Time, _ string, build func(zNr int) (event.Event, error)) (int, error) {
@@ -94,7 +107,7 @@ func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamTy
 	if m.versionConflict(e) {
 		return 0, db.ErrAlreadyExists
 	}
-	newID := len(m.events) + 1
+	newID := m.nextEventID()
 	e.ID = newID
 	m.events[newID] = e
 	return newID, nil
@@ -122,7 +135,7 @@ func (m *MockRepo) WriteTischSessionEventsAtomic(_ context.Context, events []eve
 		if m.versionConflict(evt) {
 			return db.ErrAlreadyExists
 		}
-		newID := len(m.events) + 1
+		newID := m.nextEventID()
 		evt.ID = newID
 		m.events[newID] = evt
 	}
@@ -225,9 +238,10 @@ func (m *MockRepo) GetKassenbestand(_ context.Context, _ int) (kasse.Kassenbesta
 	if m.err != nil {
 		return kasse.Kassenbestand{}, m.err
 	}
-	// Der Kassenabschluss nutzt nur SollBestandCents; die Aufschlüsselung ist für
-	// die Kommando-Tests nicht relevant.
-	return kasse.Kassenbestand{SollBestandCents: m.kassenbestand}, nil
+	// Der Soll-Bestand ist der einzige Eingabewert des Mocks. Die Aufschlüsselung
+	// liest der Kassenabschluss ebenfalls (Soll ohne gebuchte Differenz), deshalb
+	// steht der ganze Betrag in den Bareinnahmen: der Stand ohne Differenzbuchung.
+	return kasse.Kassenbestand{SollBestandCents: m.kassenbestand, BareinnahmenCents: m.kassenbestand}, nil
 }
 
 // SetKassenbestand sets the Soll-Bestand return value for GetKassenbestand.
@@ -244,7 +258,7 @@ func (m *MockRepo) GetGeldtransitListe(_ context.Context, _ int) ([]kasse.Geldtr
 
 // AddEvent adds an event to the mock for ReadEventsBySubject.
 func (m *MockRepo) AddEvent(e event.Event) {
-	newID := len(m.events) + 1
+	newID := m.nextEventID()
 	e.ID = newID
 	m.events[newID] = e
 }

@@ -1,12 +1,13 @@
 import { Package } from 'lucide-react'
 
 import { EmptyState } from '@/components/common/EmptyState'
+import type { Produkt, Variante } from '@/lib/produktSchemas'
 
 import { HinweisKarte } from '../components/HinweisKarte'
 import type { DruckstationConfig } from '../settings/DruckstationBackend'
 import { groupProdukteByKategorie, kategorieZusatz } from './productGrouping'
 import { ProductItem } from './ProductItem'
-import { type Produkt, type Variante, VarianteStatus } from './Produkt'
+import { VarianteStatus } from './Produkt'
 import { type ProduktBackend } from './ProduktBackend'
 
 interface ProductsProps {

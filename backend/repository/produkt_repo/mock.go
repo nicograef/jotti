@@ -5,6 +5,7 @@ package produkt_repo
 import (
 	"context"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 )
 
@@ -28,9 +29,16 @@ type varianteWithProdukt struct {
 }
 
 type mockRepo struct {
-	produkte  map[int]produkt.Produkt
-	varianten map[int]varianteWithProdukt
-	err       error
+	produkte         map[int]produkt.Produkt
+	varianten        map[int]varianteWithProdukt
+	err              error
+	updateProduktErr error
+}
+
+// SetUpdateProduktError makes UpdateProdukt fail with err while the reads keep
+// succeeding — the shape of a UNIQUE violation on the produkt name.
+func (m *mockRepo) SetUpdateProduktError(err error) {
+	m.updateProduktErr = err
 }
 
 // AddVariante adds a variante to the mock repository, associated with a produkt.
@@ -39,11 +47,14 @@ func (m *mockRepo) AddVariante(produktID int, v produkt.Variante) {
 }
 
 func (m *mockRepo) GetProdukt(ctx context.Context, id int) (produkt.Produkt, error) {
-	t, ok := m.produkte[id]
-	if !ok {
+	if m.err != nil {
 		return produkt.Produkt{}, m.err
 	}
-	return t, m.err
+	t, ok := m.produkte[id]
+	if !ok {
+		return produkt.Produkt{}, db.ErrNotFound
+	}
+	return t, nil
 }
 
 func (m *mockRepo) CreateProdukt(ctx context.Context, t produkt.Produkt) (int, error) {
@@ -54,23 +65,29 @@ func (m *mockRepo) CreateProdukt(ctx context.Context, t produkt.Produkt) (int, e
 }
 
 func (m *mockRepo) UpdateProdukt(ctx context.Context, t produkt.Produkt) error {
+	if m.updateProduktErr != nil {
+		return m.updateProduktErr
+	}
 	m.produkte[t.ID] = t
 	return m.err
 }
 
 // VerschiebeProdukt reicht nur den Fehler durch: Die Reihenfolge liegt allein
-// in der Persistenz, das Domain-Modell traegt sie nicht. Den Tausch deckt der
+// in der Persistenz, das Domain-Modell trägt sie nicht. Den Tausch deckt der
 // Integrationstest des Repositories ab.
 func (m *mockRepo) VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error {
 	return m.err
 }
 
 func (m *mockRepo) GetVariante(ctx context.Context, varianteID int) (produkt.Variante, error) {
-	vp, ok := m.varianten[varianteID]
-	if !ok {
+	if m.err != nil {
 		return produkt.Variante{}, m.err
 	}
-	return vp.variante, m.err
+	vp, ok := m.varianten[varianteID]
+	if !ok {
+		return produkt.Variante{}, db.ErrNotFound
+	}
+	return vp.variante, nil
 }
 
 func (m *mockRepo) CreateVariante(ctx context.Context, produktID int, v produkt.Variante) (int, error) {
@@ -113,24 +130,46 @@ func (m *mockRepo) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error
 	return produkte, m.err
 }
 
+// GetActiveProdukte spiegelt den INNER JOIN der Query GetAktiveProdukte
+// (sqlc/queries/produkte.sql): ein aktives Produkt ohne aktive Variante ist
+// nicht bestellbar und fällt raus. Die zurückgegebenen Varianten sind ebenso
+// gefiltert wie in der Query (WHERE status = 'active' in varianten_json) —
+// nicht-aktive Varianten eines sonst passenden Produkts fehlen.
 func (m *mockRepo) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 	produkte := make([]produkt.Produkt, 0)
 	for i := range m.produkte {
-		if m.produkte[i].Status == produkt.ActiveStatus {
-			produkte = append(produkte, m.produkte[i])
+		p := m.produkte[i]
+		if p.Status != produkt.ActiveStatus {
+			continue
 		}
+		aktive := aktiveVarianten(p.Varianten)
+		if len(aktive) == 0 {
+			continue
+		}
+		p.Varianten = aktive
+		produkte = append(produkte, p)
 	}
 	return produkte, m.err
 }
 
-func (m *mockRepo) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.Variante, error) {
+func aktiveVarianten(varianten []produkt.Variante) []produkt.Variante {
+	aktive := make([]produkt.Variante, 0, len(varianten))
+	for _, v := range varianten {
+		if v.Status == produkt.ActiveStatus {
+			aktive = append(aktive, v)
+		}
+	}
+	return aktive
+}
+
+func (m *mockRepo) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
-	result := make(map[int]produkt.Variante, len(ids))
+	result := make(map[int]produkt.VarianteMitProdukt, len(ids))
 	for _, id := range ids {
 		if vp, ok := m.varianten[id]; ok {
-			result[id] = vp.variante
+			result[id] = produkt.VarianteMitProdukt{Variante: vp.variante, ProduktID: vp.produktID}
 		}
 	}
 	return result, nil

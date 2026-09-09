@@ -123,7 +123,9 @@ describe('ZahlungDrawer', () => {
 
     // Pending-Zustand: Drawer markiert, Spinner sichtbar, Buttons deaktiviert.
     expect(dialog).toHaveAttribute('data-pending')
-    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('status', { name: 'Wird geladen' }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Abbrechen' })).toBeDisabled()
 
     await user.keyboard('{Escape}')

@@ -58,7 +58,9 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
       .click()
 
     // Optionales Benutzerkommentar erfassen (ergänzt den Richtungs-Autotext).
-    await drawer.getByPlaceholder('Kommentar (optional)').fill('Gast gewechselt')
+    await drawer
+      .getByPlaceholder('Kommentar (optional)')
+      .fill('Gast gewechselt')
 
     // Auch mit gewählten Positionen bleibt gesperrt, bis der Ziel-Tisch steht.
     await expect(ausfuehren).toBeDisabled()
@@ -67,9 +69,7 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
     await ausfuehren.click()
     // Die Umbuchung bestätigt über den Erfolgs-Pop mit dem Ziel-Tischnamen
     // (statt eines Toasts); der Refetch folgt beim Schließen des Pops.
-    await expect(
-      page.getByText(`Auf ${ZIEL_TISCH} umgebucht.`),
-    ).toBeVisible()
+    await expect(page.getByText(`Auf ${ZIEL_TISCH} umgebucht.`)).toBeVisible()
 
     // Der Quelltisch ist danach ausgeglichen …
     await expect(page.getByText('0,00 €').first()).toBeVisible()

@@ -10,14 +10,14 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-// Interaktiver Feature-Explorer (Handoff-Prototyp, PRD docs/prds/prd-website-redesign.md).
+// Interaktiver Feature-Explorer.
 // Sechs Bereichs-Tiles mit je eigenem Spektral-Akzent; ein Bereich ist aktiv und
 // füllt die sticky Detail-Karte. Umsetzung nach dem WAI-ARIA-Tabs-Pattern:
 // role=tablist/tab/tabpanel, roving tabindex, Pfeiltasten + Home/End, automatische
 // Aktivierung (Auswahl folgt dem Fokus). Statischer Sektionskopf (Eyebrow, H2,
 // Intro) liegt in Features.astro; nur das interaktive Raster ist eine Island.
 //
-// Icon-Bedeutungen bewusst nach Handoff-Vorgabe (README): Bestellung = Beleg,
+// Icon-Bedeutungen bewusst gewählt: Bestellung = Beleg,
 // Zahlung = Geldbörse (NICHT Kartenterminal), Direktverkauf = Einkaufstasche,
 // Küche = Drucker, Kasse = Registrierkasse, Reporting = Balkendiagramm.
 //

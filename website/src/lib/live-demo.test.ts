@@ -65,7 +65,7 @@ describe('formatEuro', () => {
 })
 
 describe('Auto-Skriptablauf', () => {
-  it('durchläuft das Handoff-Skript bis zur Endsumme 14,50\u00A0€ und schließt ab', () => {
+  it('durchläuft das Auto-Skript bis zur Endsumme 14,50\u00A0€ und schließt ab', () => {
     let state = startAuto(initialDemoState)
     expect(state.autoStatus).toBe('running')
 
@@ -96,7 +96,7 @@ describe('Auto-Skriptablauf', () => {
     expect(state.autoStatus).toBe('done')
   })
 
-  it('liefert die Handoff-Timings je Schritt', () => {
+  it('liefert die Timings je Schritt', () => {
     expect(demoScript).toHaveLength(6)
     expect(stepDelayMs(0)).toBe(700)
     expect(stepDelayMs(1)).toBe(820)

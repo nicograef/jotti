@@ -13,6 +13,10 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+// Steuerbarer Ladezustand der Ziel-Tisch-Liste.
+const tischeState = { fehler: false }
+const reloadTische = vi.hoisted(() => vi.fn())
+
 vi.mock('../../table/hooks', () => ({
   useAktiveTische: () => ({
     tische: [
@@ -20,6 +24,8 @@ vi.mock('../../table/hooks', () => ({
       { id: 2, name: 'Nebentisch', saldoCents: 0 },
     ],
     isPending: false,
+    isError: tischeState.fehler,
+    refetch: reloadTische,
   }),
 }))
 
@@ -29,6 +35,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  vi.clearAllMocks()
+  tischeState.fehler = false
 })
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
@@ -201,8 +209,7 @@ describe('HistorieUmbuchungDrawer', () => {
     )
   })
 
-  // A2: Der Erfolg meldet den Namen des Ziel-Tischs für den Erfolgs-Pop; der
-  // frühere „Bestellung umgebucht."-Toast entfällt.
+  // A2: Der Erfolg meldet den Namen des Ziel-Tischs für den Erfolgs-Pop.
   it('meldet den Ziel-Tischnamen an den Aufrufer und zeigt keinen Toast', async () => {
     const user = userEvent.setup()
     const onBestellungUmgebucht = vi.fn()
@@ -251,6 +258,29 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(
       screen.getByRole('button', { name: /^Alle 2 Positionen auswählen/ }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('HistorieUmbuchungDrawer bei Ladefehler der Ziel-Tische', () => {
+  it('zeigt den Hinweis statt einer leeren Auswahl', () => {
+    tischeState.fehler = true
+    renderDrawer()
+
+    expect(
+      screen.getByText('Ziel-Tische konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    // Keine Auswahl, die „kein aktiver Ziel-Tisch verfügbar" behaupten würde.
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+  })
+
+  it('lädt die Ziel-Tische über „Erneut versuchen" neu', async () => {
+    tischeState.fehler = true
+    const user = userEvent.setup()
+    renderDrawer()
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+
+    expect(reloadTische).toHaveBeenCalled()
   })
 })
 

@@ -7,9 +7,6 @@
 // natives <form action="mailto:">, das die Produktiv-CSP form-action 'self'
 // blockt) und zeigt Empfänger, Betreff und Text nach dem Absenden zusätzlich
 // zum Kopieren an.
-//
-// Feldnamen und Rechtsform-Labels stammen aus dem Handoff-Prototyp
-// (PRD docs/prds/prd-website-redesign.md).
 
 import { betreiberEmail, githubUrl } from './links'
 

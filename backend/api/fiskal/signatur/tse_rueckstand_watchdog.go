@@ -10,8 +10,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// rueckstandFehlertext beschreibt den Rueckstands-Stoerungszeitraum im
-// Stoerungsprotokoll.
+// rueckstandFehlertext beschreibt den Rückstands-Störungszeitraum im
+// Störungsprotokoll.
 const rueckstandFehlertext = "Signaturaufträge im Rückstand: der älteste offene Auftrag wartet länger als die Rückstands-Schwelle auf die TSE-Signatur"
 
 type rueckstandStore interface {
@@ -20,21 +20,21 @@ type rueckstandStore interface {
 	CloseTSEStoerung(ctx context.Context, grundArt string) error
 }
 
-// tseRueckstandWatchdog dokumentiert Signatur-Rueckstaende im
-// Stoerungsprotokoll: Er prueft im Tick-Intervall das Alter des aeltesten
-// offenen Signaturauftrags, oeffnet ab der Rueckstands-Schwelle einen
-// Rueckstands-Zeitraum und schliesst ihn beim Unterschreiten. Als eigener
-// Ticker neben dem Signatur-Worker dokumentiert er auch einen haengenden
-// Worker und haengt nicht am Leser-Traffic.
+// tseRueckstandWatchdog dokumentiert Signatur-Rückstände im
+// Störungsprotokoll: Er prüft im Tick-Intervall das Alter des ältesten
+// offenen Signaturauftrags, öffnet ab der Rückstands-Schwelle einen
+// Rückstands-Zeitraum und schließt ihn beim Unterschreiten. Als eigener
+// Ticker neben dem Signatur-Worker dokumentiert er auch einen hängenden
+// Worker und hängt nicht am Leser-Traffic.
 type tseRueckstandWatchdog struct {
 	store rueckstandStore
-	// tickInterval ist der Pruef-Takt; 0 (Zero Value in Tests) faellt auf
-	// tse.WatchdogTickIntervall zurueck.
+	// tickInterval ist der Prüf-Takt; 0 (Zero Value in Tests) fällt auf
+	// tse.WatchdogTickIntervall zurück.
 	tickInterval time.Duration
 	now          func() time.Time
 }
 
-// NewTSERueckstandWatchdog erstellt den Rueckstands-Watchdog.
+// NewTSERueckstandWatchdog erstellt den Rückstands-Watchdog.
 func NewTSERueckstandWatchdog(database *sql.DB) Runner {
 	return &tseRueckstandWatchdog{
 		store: tse_repo.NewRepository(database),
@@ -62,8 +62,8 @@ func (w *tseRueckstandWatchdog) Run(ctx context.Context) {
 	}
 }
 
-// tick fuehrt eine Loop-Iteration aus. Ein Panic wird abgefangen und geloggt
-// statt den Run-Loop zu beenden — die Ueberwachung laeuft am naechsten Tick
+// tick führt eine Loop-Iteration aus. Ein Panic wird abgefangen und geloggt
+// statt den Run-Loop zu beenden — die Überwachung läuft am nächsten Tick
 // weiter.
 func (w *tseRueckstandWatchdog) tick(ctx context.Context) {
 	defer recoverPanic("TSE-Rückstands-Watchdog")
@@ -73,10 +73,10 @@ func (w *tseRueckstandWatchdog) tick(ctx context.Context) {
 	}
 }
 
-// checkRueckstand oeffnet den Rueckstands-Zeitraum, sobald der aelteste
-// offene Auftrag die Rueckstands-Schwelle erreicht, und schliesst ihn, sobald
-// der Rueckstand abgebaut ist. Beide Schritte sind idempotent; der Watchdog
-// schliesst nur Zeitraeume seiner Grund-Art.
+// checkRueckstand öffnet den Rückstands-Zeitraum, sobald der älteste
+// offene Auftrag die Rückstands-Schwelle erreicht, und schließt ihn, sobald
+// der Rückstand abgebaut ist. Beide Schritte sind idempotent; der Watchdog
+// schließt nur Zeiträume seiner Grund-Art.
 func (w *tseRueckstandWatchdog) checkRueckstand(ctx context.Context) error {
 	aeltester, err := w.store.GetAeltesterOffenerTSESignaturauftrag(ctx)
 	if err != nil {

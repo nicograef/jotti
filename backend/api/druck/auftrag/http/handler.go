@@ -119,7 +119,7 @@ type discardAlleResponse struct {
 	Verworfen int64 `json:"verworfen"`
 }
 
-// POST /admin/druckauftraege-verwerfen — verwirft alle fehlgeschlagenen Auftraege.
+// POST /admin/druckauftraege-verwerfen — verwirft alle fehlgeschlagenen Aufträge.
 func (h *CommandHandler) DiscardAlleFehlgeschlagenenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		n, err := h.Command.DiscardAlleFehlgeschlagenen(r.Context())

@@ -102,7 +102,7 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/kasse-abschliessen", kc.KasseAbschliessenHandler())
 
 	kq := kasseHTTP.QueryHandler{Query: kasseApp.Query{KassenjournalRepo: deps.KassenjournalRepo, KassensitzungenRepo: deps.KassensitzungenRepo}}
-	r.HandleFunc("/get-offene-kassensitzung", kq.GetOffeneKassensitzungHandler())
+	r.HandleFunc("/get-aktive-kassensitzung", kq.GetAktiveKassensitzungHandler())
 	r.HandleFunc("/get-kassenbestand", kq.GetKassenbestandHandler())
 	r.HandleFunc("/get-geldtransit-liste", kq.GetGeldtransitListeHandler())
 

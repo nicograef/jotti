@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { AuthSingleton } from '@/lib/Auth'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditUserDialog } from './EditUserDialog'
@@ -49,8 +50,8 @@ export function AdminUsersPage() {
   const invalidateUsers = () =>
     void queryClient.invalidateQueries({ queryKey: [ALLE_USERS_KEY] })
 
-  // Passwort-Reset direkt aus dem Zeilen-Menü (Design-Handoff 1e): setzt das
-  // Passwort zurück und zeigt das neue Einmalpasswort im bestehenden Dialog.
+  // Passwort-Reset direkt aus dem Zeilen-Menü: setzt das Passwort zurück und
+  // zeigt das neue Einmalpasswort im bestehenden Dialog.
   const resetPassword = async (userId: number) => {
     const user = users.find((u) => u.id === userId)
     if (!user) return
@@ -88,6 +89,7 @@ export function AdminUsersPage() {
           backend={userBackend}
           open={editState.open}
           user={editState.user}
+          isSelf={editState.user.id === AuthSingleton.userId}
           updated={() => {
             invalidateUsers()
           }}

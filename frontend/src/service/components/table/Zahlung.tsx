@@ -37,7 +37,7 @@ interface ZahlungProps {
   // Menge), von TablePage gehoben, damit sie den Tab-Wechsel überlebt.
   mengenSteuerung: MengenSteuerung<string>
   // Meldet die erfolgreiche Zahlung samt Bestätigungstext an die Seite, die den
-  // Erfolgs-Pop hostet (früher ein toast.success plus direkter Refetch).
+  // Erfolgs-Pop hostet.
   onErfolg: (nachricht: string) => void
 }
 
@@ -53,11 +53,6 @@ export function Zahlung({
   // Positionen treten nur beim ersten Aufbau gestaffelt ein; nach einer Zahlung
   // (Refetch) bleiben die verbleibenden Zeilen unbewegt.
   const erstAufbau = useErstAufbau(true)
-
-  const unbezahlteMengen: Record<string, number> = {}
-  positionen.forEach((position) => {
-    unbezahlteMengen[position.positionId] = position.menge
-  })
 
   const {
     mengen,
@@ -136,7 +131,7 @@ export function Zahlung({
       position={position}
       showBesteller={showBesteller}
       menge={mengen[position.positionId] || 0}
-      unbezahlteMenge={unbezahlteMengen[position.positionId] || 0}
+      unbezahlteMenge={position.menge}
       eintrittIndex={eintrittIndex}
       onAdd={() => {
         onAdd(position.positionId)
@@ -285,8 +280,8 @@ function PositionItem({
     <Item
       key={position.positionId}
       variant="outline"
-      // Listen-Eintritt (Handoff): fadeUp 450 ms, 60 ms Stagger, weiche Kurve,
-      // nur beim ersten Aufbau. Verzögerung dynamisch → inline.
+      // Listen-Eintritt: fadeUp 450 ms, 60 ms Stagger, weiche Kurve, nur beim
+      // ersten Aufbau. Verzögerung dynamisch → inline.
       style={
         eintritt === undefined
           ? undefined

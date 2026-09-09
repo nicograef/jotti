@@ -46,7 +46,7 @@ Der Regelsteuersatz gilt für die Abgabe von Getränken, ebenfalls unabhängig v
 | Reine Kuhmilch                                  | 7 %        | Grundnahrungsmittel (Anlage 2 zum UStG)                                        |
 | Milchmixgetränke (z. B. Latte Macchiato)        | 7 % / 19 % | 7 % nur bei ≥ 75 % Kuhmilch-Anteil; sonst 19 %                                 |
 | Vegane Milchalternativen (Hafer, Soja etc.)     | 19 %       | Gelten rechtlich nicht als Milch, nie begünstigt                               |
-| Smoothies (püriertes Obst)                      | 7 %        | Gelten als Speise (feste Nahrung püriert)                                       |
+| Smoothies (püriertes Obst)                      | 7 %        | Gelten als Speise (feste Nahrung püriert)                                      |
 | Fruchtsäfte                                     | 19 %       | Gelten als Getränk                                                             |
 
 **Praxishinweis Milchmixgetränke:** Ein Cappuccino oder Latte Macchiato mit Kuhmilch darf mit 7 % abgerechnet werden, wenn der Kuhmilch-Anteil am Gesamtgetränk mindestens 75 % beträgt.
@@ -77,11 +77,11 @@ Der Unternehmer kann zwischen den sachgerechten Methoden wählen.
 
 Menü-Pauschalpreis: 15,00 € brutto
 
-| Anteil          |      Brutto |       Netto | USt-Betrag | Satz |
-| --------------- | ----------: | ----------: | ---------: | ---- |
-| Speisen (70 %)  |     10,50 € |      9,81 € |     0,69 € | 7 %  |
-| Getränke (30 %) |      4,50 € |      3,78 € |     0,72 € | 19 % |
-| Gesamt          |     15,00 € |     13,59 € |     1,41 € |      |
+| Anteil          |  Brutto |   Netto | USt-Betrag | Satz |
+| --------------- | ------: | ------: | ---------: | ---- |
+| Speisen (70 %)  | 10,50 € |  9,81 € |     0,69 € | 7 %  |
+| Getränke (30 %) |  4,50 € |  3,78 € |     0,72 € | 19 % |
+| Gesamt          | 15,00 € | 13,59 € |     1,41 € |      |
 
 Formel: Netto = Brutto / (1 + Satz); USt = Brutto − Netto.
 

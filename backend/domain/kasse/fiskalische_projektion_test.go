@@ -33,10 +33,10 @@ func testPositionen() []PositionEventData {
 	}}
 }
 
-// TestFiskalischeProjektion prueft tabellengetrieben je Event-Typ: signaturpflichtig
-// ja/nein, processType und processData inklusive Vorzeichen-/Faktor-Faellen
-// (Storno, Korrektur, Umbuchungs-Seiten, Differenz) und der datenabhaengigen
-// Sitzungseroeffnung (mit/ohne Anfangsbestand).
+// TestFiskalischeProjektion prüft tabellengetrieben je Event-Typ: signaturpflichtig
+// ja/nein, processType und processData inklusive Vorzeichen-/Faktor-Fällen
+// (Storno, Korrektur, Umbuchungs-Seiten, Differenz) und der datenabhängigen
+// Sitzungseröffnung (mit/ohne Anfangsbestand).
 func TestFiskalischeProjektion(t *testing.T) {
 	tischSubject := "kassensitzung-1/tisch-7"
 
@@ -221,7 +221,7 @@ func TestFiskalischeProjektion_UnbekannterTypIstFehler(t *testing.T) {
 	}
 }
 
-// Nicht parsebare Event-Daten sind ein Fehler (kein stilles Ueberspringen).
+// Nicht parsebare Event-Daten sind ein Fehler (kein stilles Überspringen).
 func TestFiskalischeProjektion_KaputteDatenSindFehler(t *testing.T) {
 	evt := e.Event{Type: string(EventTypeZahlungKassiertV1), Subject: "kassensitzung-1/tisch-1", Version: 1, Data: []byte(`{invalid`)}
 	if _, _, err := FiskalischeProjektion(evt); err == nil {

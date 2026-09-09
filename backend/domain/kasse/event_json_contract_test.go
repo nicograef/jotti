@@ -272,7 +272,7 @@ func TestEventContract_BestellungKorrigiertV1(t *testing.T) {
 }
 
 func TestEventContract_BestellungUmgebuchtV1(t *testing.T) {
-	// Alt-Event ohne benutzerKommentar (Format vor Phase 6): parst mit Leerstring.
+	// Alt-Event ohne benutzerKommentar: parst mit Leerstring.
 	const lit = `{
 		"umbuchungId":  "55555555-5555-4555-8555-555555555555",
 		"quellTischId": 3,

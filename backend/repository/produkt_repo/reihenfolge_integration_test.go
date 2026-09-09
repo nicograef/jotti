@@ -28,7 +28,7 @@ func variantenNamen(t *testing.T, repo Repository, produktID int) []string {
 
 // produktReihenfolge liest die persistierte Reihenfolge eines Produkts. Die
 // Spalte taucht in keiner Response auf; nur direkt gelesen belegt sie, dass ein
-// Tausch tatsaechlich stattgefunden hat.
+// Tausch tatsächlich stattgefunden hat.
 func produktReihenfolge(t *testing.T, repo Repository, produktID int) int {
 	t.Helper()
 	var wert int
@@ -39,8 +39,8 @@ func produktReihenfolge(t *testing.T, repo Repository, produktID int) int {
 }
 
 // setzeProduktReihenfolge erzwingt einen Wert direkt in der Datenbank.
-// Gleichstaende entstehen in echten Instanzen durch Bestandsdaten und alte
-// Seeds, ueber das Repository sind sie nicht mehr herstellbar.
+// Gleichstände entstehen in echten Instanzen durch Bestandsdaten und alte
+// Seeds, über das Repository sind sie nicht mehr herstellbar.
 func setzeProduktReihenfolge(t *testing.T, repo Repository, produktID int, wert int) {
 	t.Helper()
 	if _, err := repo.db.Exec("UPDATE produkte SET reihenfolge = $1 WHERE id = $2", wert, produktID); err != nil {
@@ -72,8 +72,8 @@ func produktNamen(t *testing.T, repo Repository) []string {
 	return namen
 }
 
-// Neue Varianten haengen sich hinten an, und ein Tausch mit dem Nachbarn
-// vertauscht genau zwei Eintraege - der Rest der Liste bleibt stehen.
+// Neue Varianten hängen sich hinten an, und ein Tausch mit dem Nachbarn
+// vertauscht genau zwei Einträge - der Rest der Liste bleibt stehen.
 func TestVerschiebeVariante_TauschtMitNachbar(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
@@ -126,8 +126,8 @@ func TestVerschiebeVariante_AmRandWirkungslos(t *testing.T) {
 }
 
 // Produkte tauschen nur innerhalb ihrer Kategorie: Bier steht am Ende der
-// Getraenke und hat einen Nachfolger nur in der Kategorie Essen. Die
-// Nachbarkategorie traegt dazu bewusst einen hoeheren, eigenen Wert — faellt
+// Getränke und hat einen Nachfolger nur in der Kategorie Essen. Die
+// Nachbarkategorie trägt dazu bewusst einen höheren, eigenen Wert — fällt
 // der Kategoriefilter aus der Nachbarsuche, wandern die Reihenfolge-Werte
 // sichtbar.
 func TestVerschiebeProdukt_BleibtInSeinerKategorie(t *testing.T) {
@@ -158,10 +158,10 @@ func TestVerschiebeProdukt_BleibtInSeinerKategorie(t *testing.T) {
 
 // Die alphabetische Sortierung ordnet nach deutschen Regeln: Umlaute und
 // Akzente reihen sich bei ihrem Grundbuchstaben ein, nicht dahinter. Beide
-// Akzentzeichen stehen am Wortanfang, weil nur dort die Collation ueber die
-// Position entscheidet. Auf einem Cluster mit der Locale "C" ergaebe dieselbe
-// Liste [Banane Zitrone Äpfel Éclair]; die COLLATE-Klausel haelt die deutsche
-// Reihenfolge unabhaengig von der Cluster-Locale.
+// Akzentzeichen stehen am Wortanfang, weil nur dort die Collation über die
+// Position entscheidet. Auf einem Cluster mit der Locale "C" ergäbe dieselbe
+// Liste [Banane Zitrone Äpfel Éclair]; die COLLATE-Klausel hält die deutsche
+// Reihenfolge unabhängig von der Cluster-Locale.
 func TestSortiereVariantenAlphabetisch_DeutscheCollation(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
@@ -183,8 +183,8 @@ func TestSortiereVariantenAlphabetisch_DeutscheCollation(t *testing.T) {
 	}
 }
 
-// Zwei Zeilen derselben Kategorie koennen denselben Reihenfolge-Wert tragen.
-// Getauscht werden trotzdem die Raenge: das Verschieben ist kein stiller No-Op.
+// Zwei Zeilen derselben Kategorie können denselben Reihenfolge-Wert tragen.
+// Getauscht werden trotzdem die Ränge: das Verschieben ist kein stiller No-Op.
 func TestVerschiebeProdukt_TauschtBeiGleichemWert(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
@@ -207,7 +207,7 @@ func TestVerschiebeProdukt_TauschtBeiGleichemWert(t *testing.T) {
 	}
 }
 
-// Derselbe Gleichstand bei Varianten: auch dort tauscht das Verschieben Raenge.
+// Derselbe Gleichstand bei Varianten: auch dort tauscht das Verschieben Ränge.
 func TestVerschiebeVariante_TauschtBeiGleichemWert(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
@@ -228,9 +228,9 @@ func TestVerschiebeVariante_TauschtBeiGleichemWert(t *testing.T) {
 	}
 }
 
-// Ein Produkt, das die Kategorie wechselt, haengt sich ans Ende der neuen
-// Kategorie und laesst sich dort sofort weiterverschieben. Behielte es seinen
-// alten Wert, traefe es dort auf einen bestehenden und bliebe stecken.
+// Ein Produkt, das die Kategorie wechselt, hängt sich ans Ende der neuen
+// Kategorie und lässt sich dort sofort weiterverschieben. Behielte es seinen
+// alten Wert, träfe es dort auf einen bestehenden und bliebe stecken.
 func TestVerschiebeProdukt_NachKategoriewechsel(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)

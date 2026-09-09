@@ -80,10 +80,6 @@ branch, assembleFrom } })`; `rev` und `branch` stempeln den Dokument-Kopf.
 - **Release**: v1.0.0 erst nach Abschluss von Phase D, kein Tag und kein Zwischen-Release
   vorher; die Vereine bleiben bis dahin auf v0.17.3. Zielrahmen des Eigentümers: Mitte
   September.
-- **Offene Eigentümer-Punkte nach dem Merge**: Plan 2 Phase 0 Kriterium 5 (Dependabot-PRs
-  geschlossen) und Phase 10 Kriterium 4 (#111 geschlossen) abhaken; danach Phase A
-  Kriterium 1 abhaken. `docs/plans/review-externe-prs.md` löschen, sobald #109, #110 und
-  #111 geschlossen sind.
 - **Bekannte Drift für den Fix-Plan** (aus Phase A gesammelt, im Findings-Dokument
   gegenzuprüfen): handbuch.md nennt „drei“ Fehlversuche, Code (`MaxDruckversuche = 6`) und
   README „sechs“; `DruckerConfigPage` in handbuch.md;
@@ -154,7 +150,7 @@ CI-Job `upgrade-path`, für Website-Phasen `make website-check`, für Phase 4
 
 ### Acceptance criteria
 
-- [ ] Alle Kriterien der Phasen 0–10 in `plan-praxis-feedback.md` abgehakt; in diesem Lauf
+- [x] Alle Kriterien der Phasen 0–10 in `plan-praxis-feedback.md` abgehakt; in diesem Lauf
       geschriebene Änderungen tragen den Trailer
       `Plan: praxis-feedback phase <N> criterion <M>`; Cherry-Picks aus #109/#110 behalten
       ihre Original-Messages; reine Gate-Kriterien (grün gelaufene Befehle) brauchen
@@ -217,11 +213,11 @@ rules.md` oder stoppt.
 
 ### Acceptance criteria
 
-- [ ] `docs/plans/plan-jotti-audit-fixes.md` deckt jeden bestätigten Blocker/Major-Befund
+- [x] `docs/plans/plan-jotti-audit-fixes.md` deckt jeden bestätigten Blocker/Major-Befund
       und jede Defektklasse ab; nicht übernommene Befunde stehen mit Begründung darin
-- [ ] Jede Phase hat `Depends on`, Modell, Review-Tier, Gate-Befehl und testbare Kriterien
-- [ ] Kritik (Fable-Sweep, Opus-Kritiker) dokumentiert und eingearbeitet
-- [ ] Datei committet
+- [x] Jede Phase hat `Depends on`, Modell, Review-Tier, Gate-Befehl und testbare Kriterien
+- [x] Kritik (Fable-Sweep, Opus-Kritiker) dokumentiert und eingearbeitet
+- [x] Datei committet
 
 ---
 
@@ -243,10 +239,10 @@ prüfen. Stopp-Bedingungen aus `implement-plan` gelten unverändert.
 
 ### Acceptance criteria
 
-- [ ] Alle Kriterien des Fix-Plans abgehakt und gelandet; Plan-Datei danach gelöscht
-- [ ] Jede Defektklasse hat ein Gate in CI oder Lint, das auf dem gelandeten Stand grün ist
-- [ ] `make verify`, `make website-check`, `make test-e2e` grün
-- [ ] `docs/plans/findings-jotti-audit.md` gelöscht oder auf die offenen Reste reduziert
+- [x] Alle Kriterien des Fix-Plans abgehakt und gelandet; Plan-Datei danach gelöscht
+- [x] Jede Defektklasse hat ein Gate in CI oder Lint, das auf dem gelandeten Stand grün ist
+- [x] `make verify`, `make website-check`, `make test-e2e` grün
+- [x] `docs/plans/findings-jotti-audit.md` gelöscht oder auf die offenen Reste reduziert
 
 ---
 
@@ -270,7 +266,7 @@ durch den Eigentümer nach dem Tag.
 
 ### Acceptance criteria
 
-- [ ] Plan 2 Phase 11: QA-Guide ohne offene automatisierbare Punkte, toter Verweis entfernt,
+- [x] Plan 2 Phase 11: QA-Guide ohne offene automatisierbare Punkte, toter Verweis entfernt,
       `CHANGELOG.md` `[1.0.0]` und Release-Notes vorbereitet
 - [ ] Übergabe an den Eigentümer: Tag `v1.0.0`, GitHub-Release, `PREVIOUS_VERSION`-Bump
       (eigener Commit nach dem Tag), danach `plan-praxis-feedback.md` und dieser Plan

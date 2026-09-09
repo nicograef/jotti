@@ -43,7 +43,7 @@
   /* Headings/Wortmarke: Space Grotesk über die Utility `font-brand`. */
   --font-brand: var(--font-heading);
 
-  /* Header-Breakpoint aus dem Handoff (860px): Desktop-Nav ab `nav:`,
+  /* Header-Breakpoint bei 860px: Desktop-Nav ab `nav:`,
      Burger-Menü darunter (`max-nav:`/`nav:hidden`). */
   --breakpoint-nav: 53.75rem;
 
@@ -65,8 +65,8 @@
   --color-brand-solid-hover: var(--brand-green-hover);
 }
 
-/* ============ Spektral-Grundelemente (Handoff, Phase 3) ============
-   Wiederverwendbare Bewegungs- und Verlaufs-Bausteine für alle Folgephasen.
+/* ============ Spektral-Grundelemente ============
+   Wiederverwendbare Bewegungs- und Verlaufs-Bausteine für die ganze Website.
    Keyframes stehen außerhalb der Layer (globaler Namespace); die Klassen
    liegen in der Component-Schicht. Ablösung von „Spektrum nur dekorativ":
    siehe docs/adrs/05_spektral-branding-website.md. Bewegung ist durchgehend
@@ -279,7 +279,7 @@
 
   /* Direktes Kind: nur der randlose Hero-Screenshot füllt den Rahmen.
      Nicht als Nachfahren-Selektor — sonst würde das kleine jotti-Logo im
-     Kopf der Live-Demo (Phase 5) mitgedehnt. */
+     Kopf der Live-Demo mitgedehnt. */
   .hero-phone-screen > img {
     display: block;
     height: 100%;
@@ -323,8 +323,8 @@
     object-position: top;
   }
 
-  /* Live-Demo (Phase 5) verwendet denselben Telefonrahmen, hält ihn aber ruhig:
-     ein schwebendes Telefon wäre bei antippbaren Steppern ein bewegtes Ziel. */
+  /* Live-Demo verwendet denselben Telefonrahmen, hält ihn aber ruhig: ein
+     schwebendes Telefon wäre bei antippbaren Steppern ein bewegtes Ziel. */
   .demo-phone {
     animation: none;
   }
@@ -379,7 +379,7 @@
   }
 }
 
-/* ============ Screenshots: „Jedes Gerät" und Galerie (Phase 9) ============
+/* ============ Screenshots: „Jedes Gerät" und Galerie ============
    Theme-abhängige Bildpaare und reine CSS-Geräterahmen (Browser, Telefon).
    Kein JS-Island: die zum aktiven Theme passende Bildvariante wird per
    `data-theme`-Selektor ein-/ausgeblendet. Ohne `data-theme` (No-JS/auto vor

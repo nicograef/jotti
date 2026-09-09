@@ -1,24 +1,13 @@
-import type { DruckstationConfig } from '../settings/DruckstationBackend'
 import {
-  Kategorie,
+  type Kategorie,
+  KATEGORIE_LABEL,
+  KATEGORIE_ORDER,
   type Produkt,
   type Steuersatz,
-  STEUERSATZ_LABEL,
-} from './Produkt'
+} from '@/lib/produktSchemas'
 
-// Feste Anzeigereihenfolge der Kategorie-Abschnitte in der Preisliste.
-export const KATEGORIE_ORDER: Kategorie[] = [
-  Kategorie.ESSEN,
-  Kategorie.GETRAENK,
-  Kategorie.SONSTIGES,
-]
-
-// Deutsche Abschnitts-Überschriften je Kategorie (Design-Handoff 1c).
-export const KATEGORIE_LABEL: Record<Kategorie, string> = {
-  essen: 'Essen',
-  getraenk: 'Getränke',
-  sonstiges: 'Sonstiges',
-}
+import type { DruckstationConfig } from '../settings/DruckstationBackend'
+import { STEUERSATZ_LABEL } from './Produkt'
 
 // Stationsname je Kategorie für den Zusatz „Bons an Station …". Die
 // Druckstation trägt dieselbe Kategorie wie das Produkt; nur der Anzeigename

@@ -1,10 +1,10 @@
-// Dekorativer Seitenkopf-Glow (Handoff „Glow-Rezept"): zwei überlagerte,
-// stark geblurte Ellipsen-Gradients aus einem Spektral-Farbpaar hinter dem
-// AdminPageHeader. Rein dekorativ — für Screenreader unsichtbar (aria-hidden),
-// klickdurchlässig (pointer-events-none) und im Druck ausgeblendet
-// (print:hidden). Der äußere Container clippt den Überhang (overflow-hidden),
-// damit kein horizontaler Scrollbalken entsteht; das Farbpaar ist die einzige
-// Stellschraube, Default teal+violett.
+// Dekorativer Seitenkopf-Glow: zwei überlagerte, stark geblurte Ellipsen-
+// Gradients aus einem Spektral-Farbpaar hinter dem AdminPageHeader. Rein
+// dekorativ — für Screenreader unsichtbar (aria-hidden), klickdurchlässig
+// (pointer-events-none) und im Druck ausgeblendet (print:hidden). Der äußere
+// Container clippt den Überhang (overflow-hidden), damit kein horizontaler
+// Scrollbalken entsteht; das Farbpaar ist die einzige Stellschraube, Default
+// teal+violett.
 export type SpektralFarbe =
   'red' | 'orange' | 'green' | 'teal' | 'blue' | 'violet'
 

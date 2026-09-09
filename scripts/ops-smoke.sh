@@ -31,7 +31,7 @@ set -euo pipefail
 # and the login rate limit (429 after repeated bad logins).
 #
 # Host provisioning and the TLS/certificate acceptance stay manual (see
-# docs/leitfaden.md); this script only drives the already-provisioned host.
+# docs/leitfaden/self-hosting.md); this script only drives the already-provisioned host.
 #
 # NEVER runs prod-restore.sh, `docker compose down -v`, or deletes volumes —
 # no destructive step is part of any mode.
@@ -163,22 +163,7 @@ esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-if ! command -v docker &>/dev/null; then
-  error "docker is not installed or not on PATH."
-  exit 1
-fi
-if ! docker compose version &>/dev/null; then
-  error "docker compose (v2) is not available."
-  exit 1
-fi
-if [[ ! -f "$COMPOSE_PROD" ]]; then
-  error "Missing compose file: $COMPOSE_PROD"
-  exit 1
-fi
-if [[ ! -f .env ]]; then
-  error ".env file not found. Run 'make init' first."
-  exit 1
-fi
+require_docker_stack "$COMPOSE_PROD"
 
 DOMAIN="$(read_env JOTTI_DOMAIN)"
 BASE_URL="${JOTTI_BASE_URL:-https://$DOMAIN}"

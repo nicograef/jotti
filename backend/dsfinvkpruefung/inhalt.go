@@ -154,7 +154,7 @@ func pruefeStornoReferenzen(daten map[string]tabellendaten) []Befund {
 		}
 
 		// (a) BON_STORNO muss "0" sein: jotti nutzt die Negativdarstellung, nie die
-		// Vorgangsaufhebung (compliance.md 6.6).
+		// Vorgangsaufhebung (docs/compliance.md Abschnitt 6.6).
 		if bonStorno := transactions.wert(zeile, "BON_STORNO"); bonStorno != bonStornoKein {
 			befunde = append(befunde, Befund{
 				Datei:   "transactions.csv",

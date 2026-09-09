@@ -2,6 +2,7 @@ import { ChevronDown } from 'lucide-react'
 
 import { StatusDot } from '@/admin/components/StatusDot'
 import {
+  RUECKSTAND_WARN_SEKUNDEN,
   useTSESignaturQueue,
   useTSEStatus,
   useTSEStoerungen,
@@ -31,17 +32,39 @@ const STOERUNG_GRUND_LABEL: Record<TSEStoerung['grundArt'], string> = {
   keine_konfiguration: 'TSE nicht konfiguriert',
 }
 
-function Kennzahl({ label, wert }: { label: string; wert: string }) {
+// Kachel einer Roh-Metrik. `breit` ist für Fließtext gedacht (Fehlertext): über
+// beide Spalten, kleiner gesetzt und umbrechend statt einstellig-groß.
+function Kennzahl({
+  label,
+  wert,
+  breit,
+}: {
+  label: string
+  wert: string
+  breit?: boolean
+}) {
   return (
-    <div className="flex flex-col rounded-md border p-3">
+    <div
+      className={cn(
+        'flex flex-col rounded-md border p-3',
+        breit && 'col-span-2',
+      )}
+    >
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-lg font-semibold tabular-nums">{wert}</span>
+      <span
+        className={cn(
+          'font-semibold',
+          breit ? 'text-sm break-words' : 'text-lg tabular-nums',
+        )}
+      >
+        {wert}
+      </span>
     </div>
   )
 }
 
 // Aufklappbarer Detailblock: der Trigger zeigt das Label mit Pfeil, der Inhalt
-// erscheint darunter. Ersetzt die früheren separaten Signatur-/Störungs-Karten.
+// erscheint darunter.
 function DetailCollapsible({
   label,
   children,
@@ -60,18 +83,41 @@ function DetailCollapsible({
   )
 }
 
-// Klartext-Zusammenfassung der Signatur-Warteschlange plus die vier Roh-Metriken
-// als aufklappbare technische Details.
+// Klartext-Zusammenfassung der Signatur-Warteschlange plus die Roh-Metriken als
+// aufklappbare technische Details. Fehlgeschlagene Signaturen stehen vorn: sie
+// bleiben unabhängig von der Warteschlange liegen, bis der Kassenabschluss sie
+// als Ausfall ausweist.
 function SignaturPanel({ queue }: { queue: TSESignaturQueue | undefined }) {
   const offene = queue?.offeneAuftraege ?? 0
   const fehlgeschlagen = queue?.fehlgeschlageneAuftraege ?? 0
-  const klartext =
-    offene === 0
-      ? 'Keine Vorgänge in der Warteschlange.'
-      : `${String(offene)} Vorgänge warten (ältester ${formatDauer(queue?.rueckstandSekunden ?? 0)}) — normal bei vollem Betrieb.` +
-        (fehlgeschlagen === 0
-          ? ' Kein Vorgang fehlgeschlagen.'
-          : ` ${String(fehlgeschlagen)} fehlgeschlagen.`)
+  const rueckstandSekunden = queue?.rueckstandSekunden ?? 0
+
+  const saetze: string[] = []
+  if (fehlgeschlagen > 0) {
+    saetze.push(
+      `${String(fehlgeschlagen)} ${fehlgeschlagen === 1 ? 'Vorgang ist' : 'Vorgänge sind'} fehlgeschlagen.`,
+    )
+  }
+  if (offene === 0) {
+    saetze.push('Keine Vorgänge in der Warteschlange.')
+  } else {
+    const warten = `${String(offene)} ${offene === 1 ? 'Vorgang wartet' : 'Vorgänge warten'} (ältester ${formatDauer(rueckstandSekunden)})`
+    if (rueckstandSekunden >= RUECKSTAND_WARN_SEKUNDEN) {
+      // Über der Warnschwelle ist der Rückstand derselbe Fehlerzustand, den die
+      // Ampel oben rot meldet.
+      saetze.push(`${warten} — der Rückstand ist zu groß.`)
+    } else if (fehlgeschlagen === 0) {
+      // Beruhigt wird nur, wenn nichts fehlgeschlagen ist: neben einem
+      // gemeldeten Fehler wäre „normal" ein Widerspruch.
+      saetze.push(`${warten} — normal bei vollem Betrieb.`)
+    } else {
+      saetze.push(`${warten}.`)
+    }
+  }
+  if (fehlgeschlagen === 0) {
+    saetze.push('Kein Vorgang fehlgeschlagen.')
+  }
+  const klartext = saetze.join(' ')
 
   return (
     <div className="flex flex-col gap-1 rounded-lg border p-4">
@@ -101,6 +147,15 @@ function SignaturPanel({ queue }: { queue: TSESignaturQueue | undefined }) {
             <Kennzahl
               label="Signierdauer p95"
               wert={`${queue.signierdauerP95Sekunden.toFixed(1)} s`}
+            />
+            <Kennzahl
+              label="Fehlgeschlagen"
+              wert={String(queue.fehlgeschlageneAuftraege)}
+            />
+            <Kennzahl
+              label="Letzter Fehler"
+              wert={queue.letzterFehler === '' ? '—' : queue.letzterFehler}
+              breit
             />
           </div>
         </DetailCollapsible>
@@ -137,7 +192,7 @@ function StoerungPanel({ stoerungen }: { stoerungen: TSEStoerung[] }) {
   const anzahl = stoerungen.length
   const klartext =
     anzahl === 0
-      ? 'Keine dokumentierte Störung — die TSE-Signierung lief bisher ohne Ausfall.'
+      ? 'Keine dokumentierte Störung — die TSE-Signierung läuft ohne Ausfall.'
       : `${String(anzahl)} dokumentierte ${anzahl === 1 ? 'Störung' : 'Störungen'}. Wird automatisch für die gesetzliche Ausfalldokumentation geführt.`
 
   return (

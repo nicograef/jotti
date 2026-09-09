@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { SteuersatzSchema } from '@/lib/produktSchemas'
+
 export const SummarySchema = z.object({
   gesamtUmsatzCents: z.number().int(),
   gesamtBestellungenCents: z.number().int(),
@@ -64,7 +66,7 @@ export const StornierungDetailSchema = z.object({
 export type StornierungDetail = z.infer<typeof StornierungDetailSchema>
 
 export const UmsatzSteuersatzSchema = z.object({
-  satz: z.enum(['regel', 'ermaessigt', 'befreit', 'kombi']),
+  satz: SteuersatzSchema,
   bruttoCents: z.number().int(),
   nettoCents: z.number().int(),
   steuerCents: z.number().int(),

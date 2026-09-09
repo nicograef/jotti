@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
-import { KategorieSchema } from '../product/Produkt'
-import { DateStringSchema, SteuersatzSchema } from '../schemas'
+import { KategorieSchema, SteuersatzSchema } from '@/lib/produktSchemas'
+
+import { DateStringSchema } from '../schemas'
 
 export const PositionSchema = z.object({
   positionId: z.uuid(),
@@ -19,10 +20,14 @@ export const PositionSchema = z.object({
 })
 export type Position = z.infer<typeof PositionSchema>
 
+// max(999) spiegelt kasse.PositionEingabeSchema im Backend: die Grenze schützt
+// die Preissumme vor dem Überlauf. Sie gilt nur auf dem Eingabeweg — die
+// gelesene PositionSchema bleibt offen, sonst wären bestehende Bestellungen
+// mit größerer Menge nicht mehr darstellbar.
 export const BestellPositionInputSchema = z.object({
   produktId: z.number().int().min(1),
   varianteId: z.number().int().min(1),
-  menge: z.number().int().min(1),
+  menge: z.number().int().min(1).max(999),
 })
 export type BestellPositionInput = z.infer<typeof BestellPositionInputSchema>
 

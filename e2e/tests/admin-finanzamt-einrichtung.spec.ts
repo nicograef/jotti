@@ -5,8 +5,8 @@ import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 import { erwarteKeinenHorizontalenUeberlauf } from '../support/viewport'
 
-// Layout-Regression für die Finanzamt-Einrichtung (Phase 3, Befund #1). Die
-// drei Einrichtungsschritte lagen in einem lg:grid-cols-3, das im max-w-4xl-
+// Layout-Regression für die Finanzamt-Einrichtung. Die drei
+// Einrichtungsschritte lagen in einem lg:grid-cols-3, das im max-w-4xl-
 // Container zwischen 1024 und 1440px zu schmal wurde: die Aktion „Als erledigt
 // markieren" und die ELSTER-Seriennummer wurden abgeschnitten. Jetzt greifen
 // die drei Spalten erst ab xl (~1280px) und stapeln darunter vertikal, die
@@ -43,7 +43,9 @@ test.describe('Finanzamt-Einrichtung bleibt bei jeder Breite bedienbar', () => {
     await anmelden(page, zugangsdaten.admin)
     await page.goto('/admin/finanzamt')
 
-    const markieren = page.getByRole('button', { name: 'Als erledigt markieren' })
+    const markieren = page.getByRole('button', {
+      name: 'Als erledigt markieren',
+    })
     const seriennummerFeld = page.getByText(
       'Seriennummer des elektronischen Aufzeichnungssystems',
     )

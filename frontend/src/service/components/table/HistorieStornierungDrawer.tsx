@@ -66,10 +66,6 @@ export function HistorieStornierungDrawer({
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Stornierung ausführen',
-    byCode: {
-      position_nicht_stornierbar:
-        'Mindestens eine Position ist nicht mehr stornierbar. Bitte Auswahl aktualisieren.',
-    },
     onSuccess: () => {
       onStornierungErteilt()
     },

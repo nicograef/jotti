@@ -22,6 +22,7 @@ jotti fährt **forward-only: keine Down-Migrationen.** Neue Änderungen kommen a
 
    - `migrate … force <vorherige Version>` — die Version, auf der das Schema tatsächlich steht, **nicht** die fehlgeschlagene Zielversion. Das löscht das `dirty`-Flag; danach die Migration korrigieren und `up` wiederholen. `force` fasst nur `schema_migrations` an, nie das Schema.
    - Ist das Schema in einem unklaren Zustand (Migration ohne `BEGIN/COMMIT`, die teilweise durchlief), ist der Rückweg der Backup-Restore statt `force`: beim Betreiber `jotti-restore.cmd` (Doppelklick, spielt das automatische Backup von vor dem Update zurück), im Repo `make prod-restore`.
+
 4. Event-JSON-Contracts sind eingefroren (Guard: `backend/domain/kasse/event_json_contract_test.go`); Event-Änderungen additiv als neue Version (`:vN`), nie in-place.
 5. Nach jeder Migration muss `make rebuild-projections` fehlerfrei durchlaufen (Projektionen werden aus Events neu gebaut).
 

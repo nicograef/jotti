@@ -25,7 +25,7 @@ type reportingRepo interface {
 type kassensitzungenRepo interface {
 	GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]reporting.AbgeschlosseneSitzung, error)
 	GetOffeneKassensitzungNr(ctx context.Context) (int, error)
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
 type tischSessionRepo interface {
@@ -33,7 +33,7 @@ type tischSessionRepo interface {
 }
 
 type tischRepo interface {
-	GetAllTables(ctx context.Context) ([]tisch.Tisch, error)
+	GetAlleTische(ctx context.Context) ([]tisch.Tisch, error)
 }
 
 type Query struct {
@@ -304,9 +304,9 @@ func (q Query) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.E
 func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingData, error) {
 	log := zerolog.Ctx(ctx)
 
-	ks, err := q.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get offene kassensitzung")
+		log.Error().Err(err).Msg("Failed to get aktive kassensitzung")
 		return nil, ErrDatabase
 	}
 	if ks == nil {
@@ -328,7 +328,7 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 		return nil, ErrDatabase
 	}
 
-	tische, err := q.TischRepo.GetAllTables(ctx)
+	tische, err := q.TischRepo.GetAlleTische(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get tische for live reporting")
 		return nil, ErrDatabase

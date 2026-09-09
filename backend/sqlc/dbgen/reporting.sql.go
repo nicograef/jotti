@@ -170,11 +170,11 @@ type GetKassiertProServicekraftRow struct {
 }
 
 // Tagesabrechnung: kassierte Zahlungen gruppiert nach Servicekraft pro Kassensitzung — die
-// Kassiert-Seite der Abrechnung pro Servicekraft (die zugeordneten Ruecknahmen kommen aus den
+// Kassiert-Seite der Abrechnung pro Servicekraft (die zugeordneten Rücknahmen kommen aus den
 // Storno-Detailzeilen und werden in der Anwendungsschicht gegengerechnet).
-// Tischservice-Umsatz (Direktverkaeufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
+// Tischservice-Umsatz (Direktverkäufe haben keine Tischzuordnung und sind hier bewusst nicht enthalten).
 // MAX(user_name) nimmt den lexikographisch letzten eingefrorenen Username; name ist der live aus users
-// aufgeloeste Klarname (bleibt auch fuer soft-geloeschte Benutzer verfuegbar, leer wenn der Benutzer fehlt).
+// aufgelöste Klarname (bleibt auch für soft-gelöschte Benutzer verfügbar, leer wenn der Benutzer fehlt).
 func (q *Queries) GetKassiertProServicekraft(ctx context.Context, kassensitzungNr int) ([]GetKassiertProServicekraftRow, error) {
 	rows, err := q.db.QueryContext(ctx, getKassiertProServicekraft, kassensitzungNr)
 	if err != nil {
@@ -392,7 +392,7 @@ type GetReportingStatsRow struct {
 	DirektverkaufUmsatzCents int
 }
 
-// Reporting: Aggregierte Kennzahlen fuer eine Kassensitzung.
+// Reporting: Aggregierte Kennzahlen für eine Kassensitzung.
 func (q *Queries) GetReportingStats(ctx context.Context, kassensitzungNr int) (GetReportingStatsRow, error) {
 	row := q.db.QueryRowContext(ctx, getReportingStats, kassensitzungNr)
 	var i GetReportingStatsRow

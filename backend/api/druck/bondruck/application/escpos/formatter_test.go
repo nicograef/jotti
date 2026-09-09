@@ -1,3 +1,5 @@
+//go:build unit
+
 package escpos_test
 
 import (
@@ -51,7 +53,7 @@ func TestFormatPositionBon_ContainsBedienung(t *testing.T) {
 func TestFormatPositionBon_ContainsZeit(t *testing.T) {
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
 	got := string(payload)
-	if !strings.Contains(got, "19:34") {
+	if !strings.Contains(got, "21:34") {
 		t.Errorf("Bon enthaelt nicht Zeitstempel; got:\n%q", got)
 	}
 }
@@ -445,8 +447,8 @@ func TestFormatKassenbeleg_WithTSE_ContainsTSEPflichtfelder(t *testing.T) {
 		"TSE-Transaktion: 1003",
 		"Signaturzaehler: 5871",
 		"TSE-Seriennummer: SW-TSE-SN-0042",
-		"TSE-Start: 01.05.2026 20:00:12",
-		"TSE-Ende: 01.05.2026 20:00:14",
+		"TSE-Start: 01.05.2026 22:00:12",
+		"TSE-Ende: 01.05.2026 22:00:14",
 		"Signatur: ABCDEF0123456789",
 	}
 
@@ -535,7 +537,7 @@ func TestFormatKassenbeleg_WithErsteBestellungZeitpunkt_ContainsKlartext(t *test
 	})
 
 	got := string(payload)
-	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 18:01:00") {
+	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 20:01:00") {
 		t.Fatalf("Kassenbeleg mit erster Bestellung muss Klarschrift enthalten; got:\n%q", got)
 	}
 }
@@ -548,7 +550,7 @@ func TestFormatPositionBon_SetsWPC1252CodepageAfterInit(t *testing.T) {
 		t.Fatal("Bon setzt nicht die WPC1252-Codepage (ESC t 6)")
 	}
 
-	// ESC @ (Init) setzt die Codepage zurueck; sie muss danach gesetzt werden.
+	// ESC @ (Init) setzt die Codepage zurück; sie muss danach gesetzt werden.
 	initIdx := strings.Index(payload, escpos.Init)
 	if initIdx < 0 || cpIdx < initIdx {
 		t.Errorf("WPC1252-Codepage muss nach Init gesetzt werden; initIdx=%d cpIdx=%d", initIdx, cpIdx)
@@ -556,7 +558,7 @@ func TestFormatPositionBon_SetsWPC1252CodepageAfterInit(t *testing.T) {
 }
 
 func TestFormatPositionBon_TranscodesUmlautsAndEuroToWPC1252(t *testing.T) {
-	// Umlaute und Euro stehen im Kommentar und muessen als WPC1252-Einzelbytes erscheinen.
+	// Umlaute und Euro stehen im Kommentar und müssen als WPC1252-Einzelbytes erscheinen.
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "äöüÄÖÜß 1€", false)
 
 	// WPC1252 (Windows-1252): ä=0xE4 ö=0xF6 ü=0xFC Ä=0xC4 Ö=0xD6 Ü=0xDC ß=0xDF €=0x80
@@ -567,16 +569,16 @@ func TestFormatPositionBon_TranscodesUmlautsAndEuroToWPC1252(t *testing.T) {
 		}
 	}
 
-	// Die UTF-8-Sequenz fuer ä (0xC3 0xA4) darf nach Transkodierung nicht mehr vorkommen.
+	// Die UTF-8-Sequenz für ä (0xC3 0xA4) darf nach Transkodierung nicht mehr vorkommen.
 	if bytes.Contains(payload, []byte{0xC3, 0xA4}) {
 		t.Error("Bon enthaelt rohe UTF-8-Bytes statt WPC1252 (Transkodierung fehlt)")
 	}
 }
 
-// TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis prueft,
-// dass der Beleg fuer den 0%-Satz den Befreiungshinweis gemaess
+// TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis prüft,
+// dass der Beleg für den 0%-Satz den Befreiungshinweis gemäß
 // KassenSichV § 6 Satz 1 Nr. 5 ("Hinweis darauf, dass eine Steuerbefreiung gilt")
-// traegt.
+// trägt.
 func TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis(t *testing.T) {
 	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
 		Vereinsname:        "SV Musterstadt",
@@ -602,9 +604,9 @@ func TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis(t *tes
 	}
 }
 
-// TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots prueft,
+// TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots prüft,
 // dass ein 500-Byte-QR-Payload (oberhalb des typischen fiskaly-Bereichs von 350-470 Byte)
-// mit Modulgroesse 6 innerhalb der druckbaren 576 Dots bleibt.
+// mit Modulgröße 6 innerhalb der druckbaren 576 Dots bleibt.
 // Rechnung: QR-Version 17 (ECL M: bis 507 Byte), Matrix 85 Module + 8 Ruhezone = 93 Module,
 // 93 * 6 = 558 Dots <= 576 Dots.
 func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *testing.T) {
@@ -633,8 +635,8 @@ func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *
 		},
 	})
 
-	// Modulgroesse-Befehl: QRCodeModuleSizeCmdPrefix (7 Byte) + Groessenbyte.
-	// Fuer 500 Byte (V17, 93 Module): erwartete Groesse = 6 (558 Dots <= 576).
+	// Modulgröße-Befehl: QRCodeModuleSizeCmdPrefix (7 Byte) + Größenbyte.
+	// Für 500 Byte (V17, 93 Module): erwartete Größe = 6 (558 Dots <= 576).
 	cmdPrefix := []byte(escpos.QRCodeModuleSizeCmdPrefix)
 	idx := bytes.Index(bon, cmdPrefix)
 	if idx < 0 || idx+len(cmdPrefix) >= len(bon) {
@@ -652,5 +654,60 @@ func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *
 	if dotsWide > maxDots {
 		t.Errorf("QR-Breite fuer 500-Byte-Payload: %d Module * %d = %d Dots > %d",
 			totalModules, moduleSize, dotsWide, maxDots)
+	}
+}
+
+// 2026-07-01T23:30:00Z ist in Europe/Berlin (Sommerzeit, UTC+2) bereits der
+// 02.07.2026, 01:30. Zeitpunkte kommen als UTC herein; gedruckt wird die
+// deutsche Ortszeit, sonst weist der Beleg das falsche Datum aus.
+func TestFormatKassenbeleg_ZeitpunkteInDeutscherOrtszeit(t *testing.T) {
+	utcNacht := time.Date(2026, 7, 1, 23, 30, 0, 0, time.UTC)
+	ersteBestellung := time.Date(2026, 7, 1, 22, 5, 9, 0, time.UTC)
+
+	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+		Vereinsname:              "SV Musterstadt",
+		Strasse:                  "Musterstrasse 1",
+		Plz:                      "12345",
+		Ort:                      "Musterstadt",
+		KassenSeriennummer:       "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+		Belegnummer:              "77",
+		Zeitpunkt:                utcNacht,
+		ErsteBestellungZeitpunkt: &ersteBestellung,
+		Positionen:               []kasse.Position{testPos},
+		GesamtbetragCents:        900,
+		Zahlungsart:              "bar",
+		TSE: &escpos.TSEAbschnitt{
+			TransaktionNr:   77,
+			Signaturzaehler: 12,
+			TSESeriennummer: "SW-TSE-SN-0042",
+			ZeitpunktBeginn: utcNacht,
+			ZeitpunktEnde:   utcNacht,
+			Signatur:        "ABCDEF0123456789",
+		},
+	})
+	got := string(payload)
+
+	checks := []string{
+		"Datum: 02.07.2026 01:30",
+		"Erste Bestellung: 02.07.2026 00:05:09",
+		"TSE-Start: 02.07.2026 01:30:00",
+		"TSE-Ende: 02.07.2026 01:30:00",
+	}
+
+	for _, check := range checks {
+		if !strings.Contains(got, check) {
+			t.Errorf("Kassenbeleg enthaelt %q nicht; got:\n%q", check, got)
+		}
+	}
+}
+
+func TestFormatPositionBon_ZeitpunktInDeutscherOrtszeit(t *testing.T) {
+	utcNacht := time.Date(2026, 7, 1, 23, 30, 0, 0, time.UTC)
+
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", utcNacht, "", false)
+	got := string(payload)
+
+	if !strings.Contains(got, "01:30") {
+		t.Errorf("Arbeitsbon zeigt nicht die deutsche Ortszeit 01:30; got:\n%q", got)
 	}
 }

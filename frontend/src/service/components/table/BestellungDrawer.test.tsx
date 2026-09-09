@@ -2,7 +2,8 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { Produkt } from '../../product/Produkt'
+import type { Produkt } from '@/lib/produktSchemas'
+
 import type { Tisch } from '../../table/Tisch'
 import { ServiceDock } from '../ServiceDock'
 import { BestellungDrawer } from './BestellungDrawer'
@@ -21,6 +22,7 @@ const testProdukt: Produkt = {
   id: 1,
   name: 'Bratwurst',
   kategorie: 'essen',
+  steuersatz: 'ermaessigt',
   status: 'active',
   varianten: [
     {

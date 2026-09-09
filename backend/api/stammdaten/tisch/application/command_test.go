@@ -4,6 +4,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -33,7 +34,7 @@ func TestTischErstellen(t *testing.T) {
 		t.Errorf("expected tisch ID 1, got %d", tischId)
 	}
 
-	tisch, err := command.TischRepo.GetTable(ctx, tischId)
+	tisch, err := command.TischRepo.GetTisch(ctx, tischId)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -61,7 +62,7 @@ func TestTischAktualisieren(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	tisch, err := command.TischRepo.GetTable(context.Background(), 1)
+	tisch, err := command.TischRepo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -75,7 +76,7 @@ func TestTischAktualisieren_NotFound(t *testing.T) {
 	command := Command{TischRepo: repo}
 
 	err := command.TischAktualisieren(context.Background(), 999, "New Name")
-	if err != ErrTischNotFound {
+	if !errors.Is(err, ErrTischNotFound) {
 		t.Fatalf("expected ErrTischNotFound, got %v", err)
 	}
 }
@@ -89,7 +90,7 @@ func TestTischAktivieren(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -103,7 +104,7 @@ func TestTischAktivieren_NotFound(t *testing.T) {
 	command := Command{TischRepo: repo}
 
 	err := command.TischAktivieren(context.Background(), 999)
-	if err != ErrTischNotFound {
+	if !errors.Is(err, ErrTischNotFound) {
 		t.Fatalf("expected ErrTischNotFound, got %v", err)
 	}
 }
@@ -117,7 +118,7 @@ func TestTischDeaktivieren(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -131,7 +132,7 @@ func TestTischDeaktivieren_NotFound(t *testing.T) {
 	command := Command{TischRepo: repo}
 
 	err := command.TischDeaktivieren(context.Background(), 999)
-	if err != ErrTischNotFound {
+	if !errors.Is(err, ErrTischNotFound) {
 		t.Fatalf("expected ErrTischNotFound, got %v", err)
 	}
 }
@@ -142,11 +143,11 @@ func TestTischDeaktivieren_SaldoOffen(t *testing.T) {
 	command := Command{TischRepo: repo}
 
 	err := command.TischDeaktivieren(context.Background(), 1)
-	if err != ErrTischSaldoOffen {
+	if !errors.Is(err, ErrTischSaldoOffen) {
 		t.Fatalf("expected ErrTischSaldoOffen, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -164,7 +165,7 @@ func TestTischLoeschen_OhneSaldo(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -232,11 +233,11 @@ func TestTischLoeschen_FavoritenCleanupFehlschlag(t *testing.T) {
 	repo.SetFavoritenCleanup(favoriten.RemoveByTisch)
 	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
-	if err := command.TischLoeschen(context.Background(), 1); err != ErrDatabase {
+	if err := command.TischLoeschen(context.Background(), 1); !errors.Is(err, ErrDatabase) {
 		t.Fatalf("expected ErrDatabase, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -252,11 +253,11 @@ func TestTischLoeschen_SaldoOffen(t *testing.T) {
 	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
 	err := command.TischLoeschen(context.Background(), 1)
-	if err != ErrTischSaldoOffen {
+	if !errors.Is(err, ErrTischSaldoOffen) {
 		t.Fatalf("expected ErrTischSaldoOffen, got %v", err)
 	}
 
-	tbl, err := repo.GetTable(context.Background(), 1)
+	tbl, err := repo.GetTisch(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected no error retrieving tisch, got %v", err)
 	}
@@ -284,7 +285,7 @@ func TestTischDeaktivieren_OhneOffeneSitzung(t *testing.T) {
 		t.Fatalf("expected no error without open session, got %v", err)
 	}
 
-	tbl, _ := repo.GetTable(context.Background(), 1)
+	tbl, _ := repo.GetTisch(context.Background(), 1)
 	if tbl.Status != tisch.InactiveStatus {
 		t.Errorf("expected tisch status to be Inactive, got %v", tbl.Status)
 	}

@@ -31,7 +31,9 @@ test.describe('Admin sieht das Live-Dashboard', () => {
     await expect(liveSection.getByText('Bestellt gesamt')).toBeVisible()
 
     // Aktualitäts-Anzeige und manueller Refresh sind vorhanden.
-    await expect(liveSection.getByText(/aktualisiert \d{2}:\d{2}/)).toBeVisible()
+    await expect(
+      liveSection.getByText(/aktualisiert \d{2}:\d{2}/),
+    ).toBeVisible()
     await expect(
       liveSection.getByRole('button', { name: 'Aktualisieren' }),
     ).toBeVisible()

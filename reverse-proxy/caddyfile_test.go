@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -188,5 +189,19 @@ func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
 		if strings.Contains(out, unwanted) {
 			t.Errorf("HTTP-Only-Caddyfile darf %q nicht enthalten\n---\n%s", unwanted, out)
 		}
+	}
+}
+
+// TestNginxRocksConfCarriesSameCSP hält die zwei Kopien der CSP zusammen: die
+// Konstante contentSecurityPolicy, die alle Caddy-Sites tragen, und die
+// demo-Site in nginx.rocks.conf. Ohne diesen Test driftet ein Edit an einer der
+// beiden Stellen still auseinander.
+func TestNginxRocksConfCarriesSameCSP(t *testing.T) {
+	conf, err := os.ReadFile("nginx.rocks.conf")
+	if err != nil {
+		t.Fatalf("nginx.rocks.conf lesen: %v", err)
+	}
+	if !strings.Contains(string(conf), contentSecurityPolicy) {
+		t.Errorf("nginx.rocks.conf trägt die CSP nicht wörtlich; erwartet:\n%s", contentSecurityPolicy)
 	}
 }

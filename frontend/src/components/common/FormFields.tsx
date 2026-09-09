@@ -11,12 +11,6 @@ import {
   type UseFormReturn,
 } from 'react-hook-form'
 
-import {
-  type Kategorie,
-  type Steuersatz,
-  STEUERSATZ_LABEL,
-} from '@/admin/products/Produkt'
-import { toUsername, UserRole } from '@/admin/users/User'
 import { Button } from '@/components/ui/button'
 import {
   Field,
@@ -40,11 +34,14 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { toUsername } from '@/lib/identity'
+import type { Kategorie } from '@/lib/produktSchemas'
 import { formatCents, parseCents } from '@/lib/utils'
 
 import { EuroInput } from './EuroInput'
 
-interface FieldProps<TField extends FieldValues> {
+// Geteilte Prop-Form jedes Formularfelds, auch der bereichseigenen.
+export interface FieldProps<TField extends FieldValues> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<TField, any, TField>
   withLabel?: boolean
@@ -213,55 +210,6 @@ export function OTPField<AllFormFields extends FieldValues>({
           <FieldDescription className="text-center">
             Gib deinen Code ein.
           </FieldDescription>
-        </Field>
-      )}
-    />
-  )
-}
-
-export function RoleField<AllFormFields extends FieldValues>({
-  form,
-  withLabel,
-  placeholder,
-}: FieldProps<{ role: UserRole } & AllFormFields>) {
-  const id = useId()
-  return (
-    <Controller
-      name={'role' as Path<{ role: UserRole } & AllFormFields>}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && <FieldLabel htmlFor={id}>Rolle</FieldLabel>}
-          {field.value === 'admin' && (
-            <FieldDescription>
-              Administratoren können alle Funktionen nutzen.
-            </FieldDescription>
-          )}
-          {field.value === 'serviceleitung' && (
-            <FieldDescription>
-              Serviceleitung kann bestellen, kassieren und stornieren.
-            </FieldDescription>
-          )}
-          {field.value === 'service' && (
-            <FieldDescription>
-              Servicekräfte können bestellen, liefern und kassieren.
-            </FieldDescription>
-          )}
-          <Select
-            name={field.name}
-            value={field.value}
-            onValueChange={field.onChange}
-          >
-            <SelectTrigger id={id} aria-invalid={fieldState.invalid}>
-              <SelectValue placeholder={placeholder ?? 'Auswählen'} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="admin">Administrator</SelectItem>
-              <SelectItem value="serviceleitung">Serviceleitung</SelectItem>
-              <SelectItem value="service">Service</SelectItem>
-            </SelectContent>
-          </Select>
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
         </Field>
       )}
     />
@@ -475,45 +423,6 @@ export function CategoryField<AllFormFields extends FieldValues>({
               <SelectItem value="essen">Essen</SelectItem>
               <SelectItem value="getraenk">Getränk</SelectItem>
               <SelectItem value="sonstiges">Sonstiges</SelectItem>
-            </SelectContent>
-          </Select>
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  )
-}
-
-export function SteuersatzField<AllFormFields extends FieldValues>({
-  form,
-  withLabel,
-  placeholder,
-}: FieldProps<{ steuersatz: Steuersatz } & AllFormFields>) {
-  const id = useId()
-  return (
-    <Controller
-      name={'steuersatz' as Path<{ steuersatz: Steuersatz } & AllFormFields>}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && <FieldLabel htmlFor={id}>Steuersatz</FieldLabel>}
-          <Select
-            name={field.name}
-            value={field.value}
-            onValueChange={field.onChange}
-          >
-            <SelectTrigger id={id} aria-invalid={fieldState.invalid}>
-              <SelectValue placeholder={placeholder ?? 'Auswählen'} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="regel">{STEUERSATZ_LABEL.regel}</SelectItem>
-              <SelectItem value="ermaessigt">
-                {STEUERSATZ_LABEL.ermaessigt}
-              </SelectItem>
-              <SelectItem value="befreit">
-                {STEUERSATZ_LABEL.befreit}
-              </SelectItem>
-              <SelectItem value="kombi">{STEUERSATZ_LABEL.kombi}</SelectItem>
             </SelectContent>
           </Select>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

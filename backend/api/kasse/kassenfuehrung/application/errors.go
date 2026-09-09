@@ -18,9 +18,6 @@ var ErrKasseNichtGeoeffnet = errors.New("kasse nicht geoeffnet")
 // the transient 'wird_abgeschlossen' status (the Kassenabschluss barrier is active).
 var ErrKasseWirdAbgeschlossen = errors.New("kasse wird gerade abgeschlossen")
 
-// ErrKasseAlreadyAbgeschlossen is returned when a Kassensitzung is already closed.
-var ErrKasseAlreadyAbgeschlossen = errors.New("kasse bereits abgeschlossen")
-
 // ErrConflict is returned on a concurrent write conflict.
 // Deliberately per-context, not a shared kernel: errors.Is against this exact sentinel is what the
 // HTTP layer relies on to map the error to 409; a shared sentinel across bounded contexts would

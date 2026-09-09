@@ -66,10 +66,9 @@ export function DirektverkaufHistorie({
   const { loading: belegDruckenLoading, run: runBelegDrucken } =
     useActionSubmit({
       actionLabel: 'Kassenbeleg drucken',
+      // Nur Codes ohne zentrale Meldung stehen hier; alles andere kommt aus
+      // commonErrorMessages.
       byCode: {
-        kassenbeleg_drucker_nicht_konfiguriert:
-          'Kein Kassenbeleg-Drucker konfiguriert. Bitte in den Admin-Einstellungen hinterlegen.',
-        verkauf_not_found: 'Der Verkauf wurde nicht gefunden.',
         stornierung_not_found: 'Die Stornierung wurde nicht gefunden.',
       },
     })

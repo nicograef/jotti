@@ -3,7 +3,7 @@
 .PHONY: init dev dev-up down restart logs status \
        test test-frontend test-integration test-all test-e2e test-tse-live test-tse-live-setup fuzz \
        lint-backend lint-backend-full lint-frontend lint \
-       fmt-backend fmt-frontend fmt \
+       fmt-backend fmt-frontend fmt-repo fmt \
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
        build-starter-windows build-relay-windows starter-syso release-windows \
        sqlc \
@@ -12,7 +12,7 @@
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
-       check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-integration check check-full verify \
+       check-tools check-tools-integration check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-format check-repo check-integration check check-full verify \
        website-dev website-build website-test website-check website-screenshots \
        help
 
@@ -76,10 +76,10 @@ fuzz: ## Fuzz-Targets länger laufen lassen (je Target 90s; kein CI-Dauerlauf)
 # ──────────────────────────────────────────────
 
 lint-backend: ## Backend Linting (go vet + goimports)
-	cd backend && go vet ./... && goimports -l .
+	cd backend && go vet ./... && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then goimports -l .; exit 1; fi
 
-lint-backend-full: ## Backend Linting mit golangci-lint (inkl. Integrationstest-Dateien)
-	cd backend && golangci-lint run --build-tags=integration
+lint-backend-full: ## Backend Linting mit golangci-lint (Integration- und Unit-Tag-Dateien)
+	cd backend && golangci-lint run --build-tags=integration && golangci-lint run --build-tags=unit
 
 lint-frontend: ## Frontend Linting (ESLint)
 	cd frontend && pnpm lint
@@ -93,10 +93,13 @@ lint: lint-backend lint-frontend ## Backend + Frontend Linting
 fmt-backend: ## Backend Code formatieren (goimports)
 	cd backend && goimports -w .
 
-fmt-frontend: ## Frontend Code formatieren (Prettier)
-	cd frontend && pnpm format
+fmt-frontend: ## Frontend Code formatieren (Prettier + ESLint --fix)
+	cd frontend && pnpm format && pnpm lint:fix
 
-fmt: fmt-backend fmt-frontend ## Backend + Frontend formatieren
+fmt-repo: ## Repo-weite Prettier-Formatierung schreiben (Gegenstück zu check-format)
+	frontend/node_modules/.bin/prettier --write "**/*.{ts,tsx,js,mjs,cjs,json,css,md}"
+
+fmt: fmt-backend fmt-frontend fmt-repo ## Backend, Frontend und Repo-Prettier formatieren
 
 # ──────────────────────────────────────────────
 # Build
@@ -228,7 +231,7 @@ rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (SSL bleibt e
 # Lokaler Betrieb (LAN, HTTPS via Caddy)
 # ──────────────────────────────────────────────
 
-local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS via lokal.jotti.rocks + interner CA-Fallback) — siehe docs/leitfaden.md
+local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS via lokal.jotti.rocks + interner CA-Fallback) — siehe docs/leitfaden/installation.md
 	@LAN_IP="$$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($$i == "src") { print $$(i + 1); exit }}')"; \
 	echo "Host-LAN-IP: $${LAN_IP:-<nicht erkannt>}"; \
 	LAN_IP="$$LAN_IP" docker compose -f docker-compose.local.yml up -d --build; \
@@ -259,7 +262,7 @@ rebuild-projections: ## table_state-Projektionen aus Events neu aufbauen
 # Aufräumen                                     
 # ──────────────────────────────────────────────
 
-clean: down ## Dev-Stack stoppen und Volumes entfernen
+clean: ## Dev-Stack stoppen und Volumes entfernen
 	docker compose down -v
 
 # ──────────────────────────────────────────────
@@ -275,8 +278,20 @@ check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
 		fi; \
 	done
 
-check-backend: ## Backend komplett prüfen (Deps, Format, Lint inkl. Integration-Tag, Test, Build)
-	cd backend && go mod tidy -diff && golangci-lint run --build-tags=integration && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -tags=unit -count=1 -race ./... && go build ./...
+check-tools-integration: ## Prüfen, ob migrate und Docker für Integrationstests verfügbar sind
+	@if ! command -v migrate >/dev/null 2>&1; then \
+		echo "Fehlendes Tool: migrate"; \
+		echo "Installiere es mit scripts/setup-dev-tools.sh oder folge der README-Anleitung."; \
+		exit 1; \
+	fi
+	@if ! command -v docker >/dev/null 2>&1; then \
+		echo "Fehlendes Tool: docker"; \
+		echo "Docker Engine manuell installieren (scripts/setup-dev-tools.sh installiert es nicht)."; \
+		exit 1; \
+	fi
+
+check-backend: ## Backend komplett prüfen (Deps, Format, Lint inkl. Integration- und Unit-Tag, Test, Build)
+	cd backend && go mod tidy -diff && golangci-lint run --build-tags=integration && golangci-lint run --build-tags=unit && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -tags=unit -count=1 -race ./... && go build ./...
 
 check-relay: ## Print-Relay komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd windows/relay && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
@@ -290,17 +305,27 @@ check-resolver: ## DNS-Resolver komplett prüfen (Deps, Format, Lint, Vet, Test,
 check-local-proxy: ## Lokales Proxy-Entrypoint-Binary komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd reverse-proxy && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
-check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
-	cd frontend && pnpm format:check && pnpm lint && pnpm test && pnpm build
+check-format: ## Repo-weite Prettier-Formatierung prüfen (ts, tsx, js, mjs, cjs, json, css, md)
+	frontend/node_modules/.bin/prettier --check "**/*.{ts,tsx,js,mjs,cjs,json,css,md}"
 
-check-integration: ## Integrationstests gegen echte Datenbank ausführen
+check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
+	$(MAKE) check-format
+	cd frontend && pnpm lint && pnpm test && pnpm build
+
+check-repo: ## Alle scripts/check-*.sh-Gates ausführen (Build-Tags, Sprache, Prosa, Verweise, Zeitzonen, Versions-Pins, UI-Labels, Domain-Enums, E2E-Assertions)
+	@for script in scripts/check-*.sh; do \
+		echo "→ $$script"; \
+		bash "$$script" || exit 1; \
+	done
+
+check-integration: check-tools-integration ## Integrationstests gegen echte Datenbank ausführen
 	./scripts/test-integration.sh
 
-check: check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend ## Schnelle Komplettprüfung ohne DB-Integration
+check: check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-repo ## Schnelle Komplettprüfung ohne DB-Integration
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 
-verify: check-tools check-full ## Alias für vollständige Repo-Prüfung
+verify: check-full ## Alias für vollständige Repo-Prüfung
 
 # ──────────────────────────────────────────────
 # Website (Astro + Starlight, website/)

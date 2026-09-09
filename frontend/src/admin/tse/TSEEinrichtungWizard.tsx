@@ -66,7 +66,7 @@ const SETUP_FEHLER = {
   tse_setup_umgebung_abweichung:
     'Die Umgebung der Zugangsdaten hat sich geändert. Bitte das Konto erneut prüfen.',
   tse_konfiguration_kassensitzung_offen:
-    'Die TSE kann nicht geändert werden, solange eine Kassensitzung offen ist. Bitte zuerst den Kassenabschluss durchführen.',
+    'Die TSE kann nicht geändert werden, solange eine Kassensitzung aktiv ist (offen oder Abschluss unterbrochen). Bitte zuerst den Kassenabschluss durchführen bzw. wiederholen.',
 }
 
 export function TSEEinrichtungWizard() {

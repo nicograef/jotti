@@ -9,7 +9,6 @@ import { useCountUp } from '@/hooks/use-count-up'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { BackendSingleton } from '@/lib/Backend'
 import { formatEuro } from '@/lib/utils'
 
 import { ErfolgsPop } from './components/ErfolgsPop'
@@ -18,10 +17,7 @@ import { Bestellung } from './components/table/Bestellung'
 import { TischHistorie } from './components/table/TischHistorie'
 import { Zahlung } from './components/table/Zahlung'
 import { useAktiveProdukte } from './product/hooks'
-import { useTischHistorie, useTischState } from './table/hooks'
-import { TischBackend } from './table/TischBackend'
-
-const tischBackend = new TischBackend(BackendSingleton)
+import { tischBackend, useTischHistorie, useTischState } from './table/hooks'
 
 // Deckelt die gehobene Kassieren-Auswahl auf die noch unbezahlte Menge je
 // Position: Einträge über ihrer Obergrenze sinken auf die Obergrenze, Einträge
@@ -94,7 +90,12 @@ export function TablePage() {
     isError: stateError,
     refetch: reloadState,
   } = useTischState(Number(tischId))
-  const { isPending: produkteLoading, produkte } = useAktiveProdukte()
+  const {
+    isPending: produkteLoading,
+    isError: produkteError,
+    produkte,
+    refetch: reloadProdukte,
+  } = useAktiveProdukte()
   const {
     isPending: historieLoading,
     isError: historieError,
@@ -240,16 +241,28 @@ export function TablePage() {
     </TabsList>
   )
 
-  const bestellenInhalt = !stateLoading && (
-    <Bestellung
-      backend={tischBackend}
-      tisch={tisch}
-      products={produkte}
-      productsLoading={produkteLoading}
-      mengenSteuerung={bestellKorb}
-      onErfolg={zeigeErfolg}
-    />
-  )
+  // Produkte tragen nur den Bestellen-Tab; ihr Ladefehler bleibt deshalb dort,
+  // statt die ganze Seite zu ersetzen. Ohne ihn wirkte die leere Produktliste
+  // wie ein leeres Sortiment.
+  const bestellenInhalt =
+    !stateLoading &&
+    (produkteError ? (
+      <LadefehlerAlert
+        titel="Produkte konnten nicht geladen werden"
+        onErneutVersuchen={() => {
+          void reloadProdukte()
+        }}
+      />
+    ) : (
+      <Bestellung
+        backend={tischBackend}
+        tisch={tisch}
+        products={produkte}
+        productsLoading={produkteLoading}
+        mengenSteuerung={bestellKorb}
+        onErfolg={zeigeErfolg}
+      />
+    ))
   const kassierenInhalt = !stateLoading && (
     <Zahlung
       backend={tischBackend}

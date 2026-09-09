@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -34,8 +34,8 @@ import {
 
 // GeldtransitDialog bucht eine einzelne Bargeldbewegung mit fest vorgegebener
 // Richtung (die Buttons „+ Geld einlegen" / „− Geld entnehmen" wählen sie). Die
-// Richtung wird nicht mehr im Formular gewählt — das ist der Unterschied zur
-// früheren GeldtransitSection mit Richtungs-Umschalter.
+// Richtung wird nicht im Formular gewählt, sondern über die aufrufenden
+// Buttons vorgegeben.
 export function GeldtransitDialog({
   open,
   onOpenChange,
@@ -47,8 +47,12 @@ export function GeldtransitDialog({
   richtung: GeldtransitRichtung | null
   onSuccess: () => void
 }) {
-  // geldtransitId pro logischem Vorgang (nicht pro Retry). Neue ID nach Erfolg.
-  const [geldtransitId, setGeldtransitId] = useState(() => crypto.randomUUID())
+  // geldtransitId pro logischem Vorgang (nicht pro Retry). Der Öffnen-Effekt
+  // vergibt ihn, weil das Öffnen zugleich das Formular leert; ohne den Wechsel
+  // trüge eine Buchung nach einem Fehlversuch den verbrauchten Schlüssel, und
+  // das Backend verwürfe sie als Duplikat. Als Ref, weil der Schlüssel nichts
+  // rendert. Gebucht wird nur im offenen Dialog, der Effekt läuft also vorher.
+  const geldtransitIdRef = useRef('')
 
   const FormDataSchema = z.object({
     betragCents: BetragCentsSchema.gte(1, {
@@ -64,9 +68,13 @@ export function GeldtransitDialog({
     mode: 'onTouched',
   })
 
-  // Bei jedem Öffnen ein sauberes Formular (Betrag/Kommentar leer).
+  // Bei jedem Öffnen ein sauberes Formular (Betrag/Kommentar leer) und ein
+  // frischer Idempotenz-Schlüssel für den neuen Vorgang.
   useEffect(() => {
-    if (open) form.reset({ betragCents: 0, kommentar: '' })
+    if (open) {
+      form.reset({ betragCents: 0, kommentar: '' })
+      geldtransitIdRef.current = crypto.randomUUID()
+    }
   }, [open, form])
 
   // Ein angefangenes Formular ist ein offener Vorgang — aber nur im offenen
@@ -86,13 +94,12 @@ export function GeldtransitDialog({
     if (richtung === null) return
     await run(async () => {
       await kasseBackend.geldtransitBuchen(
-        geldtransitId,
+        geldtransitIdRef.current,
         richtung,
         data.betragCents,
         data.kommentar,
       )
       toast.success('Kassenbewegung gebucht.')
-      setGeldtransitId(crypto.randomUUID())
       onOpenChange(false)
       onSuccess()
     })

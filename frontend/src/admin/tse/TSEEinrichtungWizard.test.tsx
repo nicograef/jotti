@@ -2,6 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { BackendError } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import type {
@@ -38,6 +39,24 @@ const uebernehmbarerBefund: TSESetupBefund = {
       id: 'tss-1',
       state: 'UNINITIALIZED',
       passenderClient: null,
+    },
+  ],
+}
+
+// Eine TSE, in der diese Kasse schon angemeldet ist: INITIALIZED plus
+// REGISTERED Client — einsatzbereit ohne privilegierte fiskaly-Operation und
+// damit ohne Admin-PIN.
+const einsatzbereiterBefund: TSESetupBefund = {
+  umgebung: 'TEST',
+  vorhandeneTss: [
+    {
+      id: 'tss-1',
+      state: 'INITIALIZED',
+      passenderClient: {
+        id: 'client-1',
+        serialNumber: 'jotti-1',
+        state: 'REGISTERED',
+      },
     },
   ],
 }
@@ -164,5 +183,63 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
     // die Zugangsdaten frei, die nach der Einrichtung niemand mehr braucht.
     await user.click(screen.getByRole('button', { name: 'Fertig' }))
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+  })
+})
+
+describe('TSEEinrichtungWizard — Sperren der Einrichtung', () => {
+  it('sperrt die LIVE-Anlage, bis „LIVE" abgetippt ist', async () => {
+    const user = userEvent.setup()
+    await bisZumBefund(user, { umgebung: 'LIVE', vorhandeneTss: [] })
+
+    const einrichten = screen.getByRole('button', { name: 'TSE einrichten' })
+    expect(einrichten).toBeDisabled()
+
+    // Ein anderes Wort gibt nicht frei.
+    await user.type(screen.getByLabelText(/Zur Bestätigung/), 'TEST')
+    expect(einrichten).toBeDisabled()
+
+    await user.clear(screen.getByLabelText(/Zur Bestätigung/))
+    await user.type(screen.getByLabelText(/Zur Bestätigung/), 'LIVE')
+    expect(einrichten).toBeEnabled()
+  })
+
+  it('meldet eine abgelehnte Admin-PIN als bleibenden Hinweis', async () => {
+    const user = userEvent.setup()
+    uebernimmTSE.mockRejectedValue(
+      new BackendError(409, 'tse_setup_pin_unbekannt'),
+    )
+    await bisZumBefund(user, uebernehmbarerBefund)
+
+    await user.type(screen.getByLabelText('Admin-PIN'), '99999')
+    await user.click(screen.getByRole('button', { name: 'TSE übernehmen' }))
+
+    expect(
+      await screen.findByText('Admin-PIN nicht akzeptiert'),
+    ).toBeInTheDocument()
+  })
+
+  it('verlangt für eine einsatzbereite TSE keine Admin-PIN', async () => {
+    const user = userEvent.setup()
+    await bisZumBefund(user, einsatzbereiterBefund)
+
+    expect(screen.queryByLabelText('Admin-PIN')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'TSE übernehmen' })).toBeEnabled()
+  })
+
+  it('bietet bei ausschließlich deaktivierten TSE die Neuanlage an', async () => {
+    const user = userEvent.setup()
+    await bisZumBefund(user, {
+      umgebung: 'TEST',
+      vorhandeneTss: [
+        { id: 'tss-alt', state: 'DISABLED', passenderClient: null },
+      ],
+    })
+
+    expect(
+      screen.getByRole('button', { name: 'TSE einrichten' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('TSE in nicht übernehmbarem Zustand'),
+    ).not.toBeInTheDocument()
   })
 })

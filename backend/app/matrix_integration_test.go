@@ -49,7 +49,7 @@ func setupMatrix(t *testing.T) (http.Handler, map[user.Role]string, func()) {
 		if err != nil {
 			t.Fatalf("CreateUser(%s): %v", role, err)
 		}
-		token, err := jwt.GenerateJWTTokenForUser(id, u.Username, string(role), jwtSecret)
+		token, err := jwt.GenerateJWTTokenForUser(id, string(role), jwtSecret)
 		if err != nil {
 			t.Fatalf("Token(%s): %v", role, err)
 		}

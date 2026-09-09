@@ -9,7 +9,7 @@ import {
 } from '../support/servicekraft'
 import { erwarteKeinenHorizontalenUeberlauf } from '../support/viewport'
 
-// Viewport-Regression für den Raster-Basisspalten-Sweep (Phase 2). Die Listen
+// Viewport-Regression für den Raster-Basisspalten-Sweep. Die Listen
 // der Servicekraft-Screens nutzen Grids, deren Spalten erst am Breakpoint (lg/
 // 2xl) greifen; ohne Basis-Track (`grid-cols-1`) sizen die impliziten Grid-Tracks
 // am Handy auf max-content und lange, nicht umbrechende Inhalte (Titel mit
@@ -60,7 +60,9 @@ test.describe('Kein horizontaler Überlauf der Servicekraft-Screens bei 390px', 
     // Tischauswahl: die Karten-Grids (Noch offen / Erledigt) am schmalen
     // Viewport. Der zuvor bestellte Tisch erscheint hier als eigene Karte.
     await page.goto('/service/tische')
-    await expect(page.getByRole('button', { name: 'Alle Tische' })).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Alle Tische' }),
+    ).toBeVisible()
     await erwarteKeinenHorizontalenUeberlauf(page, 'Tischauswahl')
   })
 
@@ -87,7 +89,9 @@ test.describe('Kein horizontaler Überlauf der Servicekraft-Screens bei 390px', 
 
     // Direktverkauf-Historie: die Verkaufs-Liste (DirektverkaufHistorie-Grid).
     await page.getByRole('tab', { name: 'Historie' }).click()
-    await expect(page.getByRole('button', { name: /Verkauf.*8,00/ })).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: /Verkauf.*8,00/ }),
+    ).toBeVisible()
     await erwarteKeinenHorizontalenUeberlauf(page, 'Direktverkauf-Historie')
   })
 })

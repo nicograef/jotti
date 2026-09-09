@@ -10,16 +10,16 @@ import (
 
 // FiskalischerVorgang ist das Ergebnis der fiskalischen Projektion eines
 // signaturpflichtigen Events: processType und processData (DSFinV-K Anhang I)
-// als Snapshot fuer den Signaturauftrag.
+// als Snapshot für den Signaturauftrag.
 type FiskalischerVorgang struct {
 	ProcessType string
 	ProcessData string
 }
 
 // FiskalischeProjektion bildet ein Event auf (signaturpflichtig, processType,
-// processData) ab. Sie ist die einzige Stelle, die ueber Signaturpflicht
-// entscheidet, und auch datenabhaengig: Die Sitzungseroeffnung ist nur bei
-// Anfangsbestand > 0 ein Geschaeftsvorfall (Bareinlage, AEAO 2.2.3.6.1).
+// processData) ab. Sie ist die einzige Stelle, die über Signaturpflicht
+// entscheidet, und auch datenabhängig: Die Sitzungseröffnung ist nur bei
+// Anfangsbestand > 0 ein Geschäftsvorfall (Bareinlage, AEAO 2.2.3.6.1).
 // Unbekannte Event-Typen sind ein Fehler, damit ein neuer Event-Typ ohne
 // Projektions-Eintrag nicht still unsigniert bleibt.
 func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
@@ -32,7 +32,7 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		return bestellungVorgang(fromPositionenEventData(data.Positionen), 1)
 
 	case EventTypeBestellungKorrigiertV1:
-		// Geldneutrale Korrektur: negative Mengen (Anhang I), damit die Ruecknahme
+		// Geldneutrale Korrektur: negative Mengen (Anhang I), damit die Rücknahme
 		// TSE-seitig von einer Neubestellung unterscheidbar ist.
 		data, err := parseProjektionsData[BestellungKorrigiertV1Data](evt)
 		if err != nil {
@@ -111,8 +111,8 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		return FiskalischerVorgang{ProcessType: tse.ProcessTypeKassenbelegV1, ProcessData: processData}, true, nil
 
 	case EventTypeDifferenzSollIstGebuchtV1:
-		// BetragCents = Soll − Ist. Die tatsaechliche Bargeldbewegung ist Ist − Soll:
-		// ein Fehlbetrag (Soll > Ist) mindert den Bestand, ein Ueberschuss mehrt ihn.
+		// BetragCents = Soll − Ist. Die tatsächliche Bargeldbewegung ist Ist − Soll:
+		// ein Fehlbetrag (Soll > Ist) mindert den Bestand, ein Überschuss mehrt ihn.
 		data, err := parseProjektionsData[DifferenzSollIstGebuchtV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err

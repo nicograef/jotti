@@ -9,8 +9,8 @@
  *
  * Angemeldet wird ausschließlich über `useOffenerVorgang`, das sich im
  * Effekt-Cleanup wieder abmeldet; gelesen wird über `useAnzahlOffeneVorgaenge`.
- * Ein von Hand gehaltenes Paar aus An- und Abmeldung leckt früher oder später,
- * und ein geleckter Zähler blockiert den Reload dauerhaft, ohne dass es
+ * Ein von Hand gehaltenes Paar aus An- und Abmeldung leckt über kurz oder
+ * lang, und ein geleckter Zähler blockiert den Reload dauerhaft, ohne dass es
  * jemandem auffällt.
  */
 class VorgangsRegister {

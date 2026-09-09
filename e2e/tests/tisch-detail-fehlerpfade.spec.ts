@@ -30,7 +30,9 @@ test.describe('Tisch-Detail bei Serverfehler und Netzabbruch', () => {
     await expect(
       page.getByText('Tischdaten konnten nicht geladen werden'),
     ).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Erneut versuchen' })).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Erneut versuchen' }),
+    ).toBeVisible()
     // Kein stiller Leer-Default: der ausgeglichene Saldo darf nicht als
     // scheinbar echtes Ergebnis erscheinen.
     await expect(page.getByText('0,00 €')).not.toBeVisible()
@@ -49,6 +51,8 @@ test.describe('Tisch-Detail bei Serverfehler und Netzabbruch', () => {
     await expect(
       page.getByText('Tischdaten konnten nicht geladen werden'),
     ).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Erneut versuchen' })).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Erneut versuchen' }),
+    ).toBeVisible()
   })
 })

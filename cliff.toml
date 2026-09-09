@@ -1,7 +1,6 @@
 # git-cliff configuration — generates jotti's GitHub release notes from
 # Conventional Commits. Only user-relevant types (feat, fix) are shown;
-# the `website` scope and all other types are filtered out. See
-# docs/plans/plan-changelog-git-cliff.md for the rationale.
+# the `website` scope and all other types are filtered out.
 
 [changelog]
 header = ""

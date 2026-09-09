@@ -1,4 +1,6 @@
-// Command jotti-reverse-proxy ist der Caddy-Container-Entrypoint für zwei Modi:
+// Command jotti-reverse-proxy ist der Caddy-Container-Entrypoint für drei Modi.
+// Welcher gilt, entscheidet die Umgebung (loadConfig, main): PROXY_HTTP_ONLY vor
+// JOTTI_DOMAIN, sonst LAN-Mode.
 //
 // LAN-Mode (docker-compose.local.yml / release): Installations-State sicherstellen
 // (Install-ID + acme-dns-Credentials, einmalige Registrierung) → LAN-IP bestimmen
@@ -11,15 +13,21 @@
 // Let's-Encrypt-Zertifikat) und startet Caddy — ohne State, acme-dns oder
 // Status-Seite. Die jotti.rocks-Demo bleibt auf nginx und nutzt dieses Programm
 // nicht.
+//
+// HTTP-Only-Mode (docker-compose.e2e.yml): ist PROXY_HTTP_ONLY gesetzt, rendert
+// der Entrypoint eine Klartext-HTTP-Site auf :80 — ohne TLS, ACME, State oder
+// Status-Seite. Nur für die E2E-Testumgebung.
 package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -50,8 +58,14 @@ type config struct {
 	leStaging     bool
 }
 
-func loadConfig(getenv func(string) string) config {
-	return config{
+// loadConfig liest die Umgebung und legt damit den Modus fest. dirExists prüft,
+// ob das Verzeichnis des State-Pfads gemountet ist; nur die LAN-Stacks mounten
+// es (proxy-state:/state). Fehlt es und ist auch JOTTI_DOMAIN leer, bleibt kein
+// gültiger Modus übrig: Der Public-Stack würde sonst still in den LAN-Modus
+// fallen und für jede SNI ein Zertifikat der internen CA ausstellen, während
+// der HTTP-Healthcheck weiter grün bleibt.
+func loadConfig(getenv func(string) string, dirExists func(string) bool) (config, error) {
+	cfg := config{
 		domain:        strings.TrimSpace(getenv("JOTTI_DOMAIN")),
 		httpOnly:      parseBool(getenv("PROXY_HTTP_ONLY")),
 		email:         strings.TrimSpace(getenv("LETSENCRYPT_EMAIL")),
@@ -64,10 +78,27 @@ func loadConfig(getenv func(string) string) config {
 		caddyBin:      valueOrDefault(getenv("PROXY_CADDY_BIN"), defaultCaddyBin),
 		leStaging:     parseBool(getenv("PROXY_LE_STAGING")),
 	}
+
+	if !cfg.httpOnly && cfg.domain == "" {
+		if stateDir := filepath.Dir(cfg.statePath); !dirExists(stateDir) {
+			return config{}, fmt.Errorf("kein Modus bestimmbar: JOTTI_DOMAIN ist leer und das State-Verzeichnis %s des LAN-Modus fehlt", stateDir)
+		}
+	}
+
+	return cfg, nil
+}
+
+// dirExists meldet, ob path ein vorhandenes Verzeichnis ist.
+func dirExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
 }
 
 func main() {
-	cfg := loadConfig(os.Getenv)
+	cfg, err := loadConfig(os.Getenv, dirExists)
+	if err != nil {
+		log.Fatalf("Konfiguration: %v", err)
+	}
 
 	// PROXY_HTTP_ONLY gesetzt ⇒ Klartext-HTTP-Stack ohne TLS/ACME (nur E2E).
 	if cfg.httpOnly {
@@ -108,9 +139,7 @@ func runPublicMode(cfg config) {
 		wwwRedirect: cfg.wwwRedirect,
 		leStaging:   cfg.leStaging,
 	})
-	if err := os.WriteFile(cfg.caddyfilePath, []byte(caddyfile), 0o644); err != nil {
-		log.Fatalf("Caddyfile schreiben: %v", err)
-	}
+	writeCaddyfileOrExit(cfg.caddyfilePath, caddyfile)
 
 	runCaddyOrExit(cfg)
 }
@@ -122,9 +151,7 @@ func runHTTPOnlyMode(cfg config) {
 	log.Printf("HTTP-Only-Mode aktiv (nur E2E) | Zugangsadresse: http://<host>")
 
 	caddyfile := renderHTTPOnlyCaddyfile()
-	if err := os.WriteFile(cfg.caddyfilePath, []byte(caddyfile), 0o644); err != nil {
-		log.Fatalf("Caddyfile schreiben: %v", err)
-	}
+	writeCaddyfileOrExit(cfg.caddyfilePath, caddyfile)
 
 	runCaddyOrExit(cfg)
 }
@@ -144,7 +171,7 @@ func runLANMode(cfg config) {
 	if hasState {
 		log.Printf("Installations-State geladen | Install-ID: %s", state.Subdomain)
 	} else {
-		log.Printf("Kein nutzbarer Installations-State (%v) — Start nur mit der Fallback-Adresse; die grüne Adresse wird aktiv, sobald wieder ein gültiger State vorliegt", err)
+		log.Printf("Kein nutzbarer Installations-State (%v) — Start nur mit der Fallback-Adresse; die grüne Adresse entsteht erst bei einem Neustart mit gültigem State", err)
 	}
 
 	lanIP, lanOK := resolveLANIP(cfg.lanIPEnv)
@@ -154,7 +181,7 @@ func runLANMode(cfg config) {
 		}
 		log.Printf("Fallback-Adresse: https://%s", lanIP)
 	} else {
-		log.Printf("LAN-IP unbekannt (LAN_IP nicht gesetzt) — Zugangsadresse erst sichtbar, sobald die IP übergeben wird")
+		log.Printf("LAN-IP unbekannt (LAN_IP nicht gesetzt) — eine Zugangsadresse entsteht erst bei einem Neustart mit gesetztem LAN_IP")
 	}
 
 	if cfg.leStaging {
@@ -168,9 +195,7 @@ func runLANMode(cfg config) {
 		acmeDNSURL: cfg.acmeDNSURL,
 		leStaging:  cfg.leStaging,
 	})
-	if err := os.WriteFile(cfg.caddyfilePath, []byte(caddyfile), 0o644); err != nil {
-		log.Fatalf("Caddyfile schreiben: %v", err)
-	}
+	writeCaddyfileOrExit(cfg.caddyfilePath, caddyfile)
 
 	// Status-Seite parallel zu Caddy bereitstellen (im Compose nur an 127.0.0.1
 	// gemappt). Sie probt laufend Zertifikat und Rebind und wechselt von der
@@ -191,6 +216,29 @@ func runLANMode(cfg config) {
 	log.Printf("Status & Zugangsadresse: http://localhost:8484")
 
 	runCaddyOrExit(cfg)
+}
+
+// caddyfileMode ist der Dateimodus der erzeugten Caddyfile: nur für den
+// Eigentümer lesbar, wie install.json (ensureState). Die Caddyfile des LAN-Mode
+// trägt die acme-dns-Zugangsdaten im Klartext.
+const caddyfileMode = 0o600
+
+// writeCaddyfileOrExit schreibt die gerenderte Caddyfile und bricht bei einem
+// Fehler ab — ohne Konfiguration hat der Start keinen Sinn. Der Chmod ist
+// nötig, weil os.WriteFile den Modus nur beim Anlegen setzt: eine am Zielpfad
+// bereits liegende Datei würde sie nur kürzen und deren Modus behalten.
+func writeCaddyfileOrExit(path, caddyfile string) {
+	if err := writeCaddyfile(path, caddyfile); err != nil {
+		log.Fatalf("Caddyfile schreiben: %v", err)
+	}
+}
+
+// writeCaddyfile ist der testbare Kern von writeCaddyfileOrExit.
+func writeCaddyfile(path, caddyfile string) error {
+	if err := os.WriteFile(path, []byte(caddyfile), caddyfileMode); err != nil {
+		return err
+	}
+	return os.Chmod(path, caddyfileMode)
 }
 
 // runCaddyOrExit startet Caddy als Vordergrundprozess und spiegelt dessen

@@ -11,7 +11,7 @@ import (
 // Damit entfaellt die fehleranfaellige "ueber denselben Ordner entpacken"-Regel:
 // der Zustand lebt an einem festen Ort, die Programmdateien duerfen irgendwo
 // liegen. Sonst (Linux-Dev oder Windows ohne gesetztes PROGRAMDATA) bleibt der
-// Zustand ordnerlokal im uebergebenen fallback — wie bisher.
+// Zustand ordnerlokal im uebergebenen fallback.
 func StateDir(goos, programData, fallback string) string {
 	if goos == "windows" && programData != "" {
 		return filepath.Join(programData, "jotti")
@@ -85,7 +85,7 @@ type EnvResolution struct {
 // Fail-Safe: existieren bereits Daten, wird abgebrochen (Abort), statt frische
 // Secrets neben vorhandene Daten zu erzeugen und damit das alte Passwort
 // auszusperren. Nur bei echter Erstinstallation (keine Daten) werden frische
-// Secrets erzeugt (Seed true) — wie bisher.
+// Secrets erzeugt (Seed true).
 func ResolveEnv(volumeContent string, localCandidates []string, postgresDataExists bool) EnvResolution {
 	if strings.TrimSpace(volumeContent) != "" {
 		return EnvResolution{Content: volumeContent, Seed: false}

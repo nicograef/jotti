@@ -3,6 +3,7 @@ import { Check } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 
 import { AdminPageHeader } from '@/admin/components/AdminPageHeader'
+import { WarnKarte } from '@/admin/components/WarnKarte'
 import { formatDatumLang } from '@/admin/reporting/utils'
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,15 +13,13 @@ import { EroeffnenSection } from './EroeffnenSection'
 import {
   GELDTRANSIT_LISTE_KEY,
   KASSENBESTAND_KEY,
+  useAktiveKassensitzung,
   useKassenbestand,
-  useOffeneKassensitzung,
 } from './hooks'
 import { KasseAbschliessenSection } from './KasseAbschliessenSection'
-import type { OffeneKassensitzung } from './KasseBackend'
+import type { AktiveKassensitzung } from './KasseBackend'
+import { KassensitzungStatus } from './Kassensitzung'
 import { LaufenderBetriebSection } from './LaufenderBetriebSection'
-
-export { EroeffnenSection } from './EroeffnenSection'
-export { KasseAbschliessenSection } from './KasseAbschliessenSection'
 
 type StepState = 'done' | 'active' | 'inactive'
 
@@ -90,7 +89,7 @@ function EroeffnetKarte({
   anfangsbestandCents,
   animieren,
 }: {
-  kassensitzung: OffeneKassensitzung
+  kassensitzung: AktiveKassensitzung
   anfangsbestandCents: number | null
   // Lässt die Karte einmalig mit fadeUp eintreten, wenn sie gerade durch das
   // Eröffnen erscheint (nicht beim Laden einer bereits offenen Kasse).
@@ -125,7 +124,7 @@ function EroeffnetKarte({
 
 export function KassensitzungPage() {
   const { kassensitzung, isPending, isError, refetch } =
-    useOffeneKassensitzung()
+    useAktiveKassensitzung()
   // Kassenbestand-Aufschlüsselung für Schritt 1 (Anfangsbestand); TanStack Query
   // dedupliziert mit dem Abruf innerhalb von LaufenderBetriebSection.
   const { kassenbestand } = useKassenbestand(kassensitzung?.zNr ?? null)
@@ -146,6 +145,11 @@ export function KassensitzungPage() {
       zuletztOffenRef.current = istOffen
     }
   }, [isPending, istOffen])
+
+  // Hinter der Barriere lehnt das Backend jede Buchung ab (kasse_wird_abgeschlossen):
+  // Schritt 2 bietet dann kein Einlegen/Entnehmen an, Schritt 3 sagt, was zu tun ist.
+  const abschlussUnterbrochen =
+    kassensitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
 
   const titel = kassensitzung
     ? `Kassentag Nr. ${String(kassensitzung.zNr)} — ${kassensitzung.bezeichnung}`
@@ -219,6 +223,7 @@ export function KassensitzungPage() {
                 <CardContent>
                   <LaufenderBetriebSection
                     kassensitzungNr={kassensitzung.zNr}
+                    buchenMoeglich={!abschlussUnterbrochen}
                     onBuchung={invalidateKasse}
                   />
                 </CardContent>
@@ -233,6 +238,14 @@ export function KassensitzungPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* Bleibt die Sitzung im Barrierestatus stehen, ist ein
+                      Abschluss unterwegs abgebrochen. Der Hinweis sagt, dass
+                      genau dieser Schritt zu wiederholen ist. */}
+                  {abschlussUnterbrochen && (
+                    <WarnKarte className="mb-4">
+                      Abschluss unterbrochen — erneut abschließen
+                    </WarnKarte>
+                  )}
                   <KasseAbschliessenSection
                     kassensitzungNr={kassensitzung.zNr}
                     onSuccess={() => void refetch()}

@@ -1,0 +1,24 @@
+# scripts/check-ui-labels.sh allowlist — one non-UI "…" citation per line
+# (text exactly as it reads after line-wrap joining), then the reason and
+# real source after "#". An entry that matches no citation any more turns
+# the gate red and is to be deleted.
+
+Trotzdem ausführen  # Windows-SmartScreen-Dialog, außerhalb von jotti
+Weitere Informationen  # Windows-SmartScreen-Dialog, außerhalb von jotti
+DNS-Rebind-Schutz  # Fritz!Box-Router-Oberfläche (Heimnetz > Netzwerk > Netzwerkeinstellungen), außerhalb von jotti
+Diese Domain(s) ausnehmen  # Fritz!Box-Router-Oberfläche, Feld im DNS-Rebind-Schutz-Abschnitt, außerhalb von jotti
+Weitere Einstellungen  # Fritz!Box-Router-Oberfläche, Pfad zum DNS-Rebind-Schutz, außerhalb von jotti
+Automatisch  # Android-Systemeinstellung "Privates DNS" auf dem Handy, außerhalb von jotti
+Source code (zip)  # GitHub-Releases-Seite, außerhalb von jotti
+Mitteilung über elektronische Aufzeichnungssysteme  # Formularname im ELSTER-Portal, außerhalb von jotti
+Verkauf an eine Vielzahl nicht bekannter Personen  # UStAE-Wortlaut zu § 146a Abs. 2 Satz 2 AO, docs/rechtsquellen/verwaltung-bmf/UStAE-konsolidiert-2026-06-02.pdf
+öffentlicher Name zeigt auf eine private IP  # eigene Umschreibung der DNS-Rebind-Bedingung, kein zitiertes Bedienelement
+auf Handy A geht, auf Handy B aber nicht  # eigene Umschreibung eines Symptoms, kein zitiertes Bedienelement
+Nachsigniert am …  # Text auf dem gedruckten Kassenbeleg, backend/api/druck/bondruck/application/escpos/formatter.go:305
+Neue Version verfügbar  # Starter-Konsolenausgabe (paraphrasiert; ASCII-Original "verfuegbar"), windows/starter/update.go:36
+jotti laeuft  # Starter-Konsolenausgabe, windows/starter/main.go:238
+Wiederherstellung abgeschlossen.  # Konsolenausgabe von packaging/windows/jotti-restore.cmd:40
+Diese Version … ist aelter als die zuletzt gestartete …  # Starter-Konsolenausgabe, windows/starter/main.go:104
+Zwei Minuten Pause, bitte keine neue Bestellung anfangen.  # Vorschlag für eine mündliche Ansage an die Servicekräfte, kein zitiertes Bedienelement
+Bondruck einrichten  # eigene Abschnittsüberschrift weiter unten in derselben Datei, kein zitiertes Bedienelement
+elektronisches Aufzeichnungssystem  # Gesetzesbegriff § 1 KassenSichV, kein zitiertes Bedienelement

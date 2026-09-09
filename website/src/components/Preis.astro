@@ -1,17 +1,12 @@
 ---
 import { Check, ShieldCheck, Server, ArrowRight } from '@lucide/astro'
 
-// Preis-Sektion der Landing (Handoff-Prototyp, #preis). Statische Astro-Sektion:
-// die „Kostenlos. Punkt."-Karte mit Leistungs-Checkliste plus eine ehrliche
-// Fremdkosten-Karte. Icons über @lucide/astro (build-time SVG, kein Client-JS).
+// Preis-Sektion der Landing (#preis). Statische Astro-Sektion: die „Kostenlos.
+// Punkt."-Karte mit Leistungs-Checkliste plus eine ehrliche Fremdkosten-Karte.
+// Icons über @lucide/astro (build-time SVG, kein Client-JS).
 //
-// Erhaltene Inhalte (PRD + Übergangsregel): Die Checkliste trägt „Keine Werbung,
-// kein Tracking"; die laufenden Fremdkosten übernehmen die konkreten Zahlen aus
-// der abgelösten #technik-Kostenliste (jotti-Software 0 €, Cloud-TSE Preis auf
-// Anfrage, Server optional ca. 5 €/Monat) — keine Kostenaussage geht verloren.
-//
-// CTA „Kostenlose Nutzungsvereinbarung anfragen" führt seit Phase 8 auf die
-// Anfrage-Seite /fuer-vereine (wie Header- und Hero-CTA; Prototyp: goVereine).
+// CTA „Kostenlose Nutzungsvereinbarung anfragen" führt auf die Anfrage-Seite
+// /fuer-vereine (wie Header- und Hero-CTA).
 
 const leistungen = [
   'Alle Kassenfunktionen',

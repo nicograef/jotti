@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 
-// FAQ-Accordion der Landing (Handoff-Prototyp, PRD docs/prds/prd-website-redesign.md, #faq).
+// FAQ-Accordion der Landing (#faq).
 // Neun Items, single-open: das Öffnen eines Items schließt das zuvor offene.
 // Disclosure-Pattern nach WAI-ARIA — jede Frage ist ein <button> mit
 // aria-expanded und aria-controls, das Antwort-Panel eine per aria-labelledby
@@ -10,14 +10,9 @@ import { Plus } from 'lucide-react'
 // × (transform: rotate(45deg)). Statischer Sektionskopf liegt in Faq.astro; nur
 // die Liste ist eine Island.
 //
-// Sieben Items aus dem Prototyp, ergänzt um zwei aus dem Plan (Phase 7):
-//  - das Service-Item (bezahlte Unterstützung auf Anfrage) — Copy aus der
-//    abgelösten #service-Sektion, als kostenpflichtig benannt (PRD).
-//  - das Alternativen-Vergleichs-Item („Warum nicht Excel oder eine
-//    Profi-Kasse?") — Kernaussage der abgelösten Vergleichstabelle.
 // Die Installations-Antwort ist auf die reale Auslieferung abgestimmt (ZIP mit
 // Starter + Docker Desktop, Leitfaden führt durch) — konsistent mit dem
-// Download-Bereich, nicht mit dem im Prototyp versprochenen Doppelklick-Release.
+// Download-Bereich.
 
 interface FaqItem {
   q: string

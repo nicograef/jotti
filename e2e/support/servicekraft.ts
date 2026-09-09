@@ -1,9 +1,11 @@
 import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
-// Wiederverwendbare Helfer für die Servicekraft-Flows (Tischservice). Jede
-// Funktion nutzt ausschließlich zugängliche Selektoren (Rolle, Platzhalter,
-// Beschriftung) statt Test-IDs, passend zum Muster der Tracer-Bullet-Spec.
+// Wiederverwendbare Helfer für die Servicekraft-Flows (Tischservice). Die
+// Datei nutzt überwiegend zugängliche Selektoren (Rolle, Platzhalter,
+// Beschriftung) statt Test-IDs, passend zum Muster der Tracer-Bullet-Spec —
+// für Zeile (vollePositionsZeilen) und Saldo (tischSaldo) die data-slot-
+// Attribute, weil beide keine zugängliche Alternative tragen.
 
 // zeileMit liefert die innerste Zeile (div), die sowohl den gegebenen Text als
 // auch einen Button mit dem gegebenen Namen enthält. So lassen sich einzelne
@@ -141,18 +143,20 @@ export async function bestellePosition(
 // waehleVariante jede Zeile ohne Mehrdeutigkeit trifft. Teils lange Namen
 // (z. B. „Fr: Schnitzel mit Pommes") füllen die Kassieren- und Historien-Listen
 // mit genug nicht-umbrechendem Text für Drawer-Footer- und Überlauf-Regressionen.
-export const LANGE_BESTELLUNG_POSITIONEN: [produkt: string, variante: string][] =
-  [
-    ['Bratwurst', 'Normal'],
-    ['Bratwurst', 'XXL'],
-    ['Bratwurst', 'Currywurst'],
-    ['Pommes', 'Klein'],
-    ['Pommes', 'Groß'],
-    ['Flammkuchen', 'Classic'],
-    ['Flammkuchen', 'Speck & Zwiebel'],
-    ['Flammkuchen', 'Mediterran'],
-    ['Tagesgericht', 'Fr: Schnitzel mit Pommes'],
-  ]
+export const LANGE_BESTELLUNG_POSITIONEN: [
+  produkt: string,
+  variante: string,
+][] = [
+  ['Bratwurst', 'Normal'],
+  ['Bratwurst', 'XXL'],
+  ['Bratwurst', 'Currywurst'],
+  ['Pommes', 'Klein'],
+  ['Pommes', 'Groß'],
+  ['Flammkuchen', 'Classic'],
+  ['Flammkuchen', 'Speck & Zwiebel'],
+  ['Flammkuchen', 'Mediterran'],
+  ['Tagesgericht', 'Fr: Schnitzel mit Pommes'],
+]
 
 // nimmLangeBestellungAuf nimmt auf dem aktuell offenen Tisch eine Bestellung mit
 // allen LANGE_BESTELLUNG_POSITIONEN in einem Vorgang auf — Grundlage für die
@@ -244,36 +248,61 @@ function vollePositionsZeilen(page: Page): Locator {
   })
 }
 
+// leseAuswahlZaehler liest die Unterzeile „N von N ausgewählt" einer
+// Positions-Zeile — die eine Stelle für Text und Regex, die waehleAlleVollAus
+// sowohl im Klick-Loop als auch für die Nachbedingung braucht.
+async function leseAuswahlZaehler(
+  zeile: Locator,
+): Promise<{ text: string; treffer: RegExpExecArray | null }> {
+  const text = (await zeile.textContent()) ?? ''
+  const treffer = /(\d+) von (\d+) ausgewählt/.exec(text)
+  return { text, treffer }
+}
+
 // waehleAlleVollAus klickt in jeder Positions-Zeile so oft auf „+", bis die
 // Zeile voll ausgewählt ist — erkennbar an der Unterzeile „N von N ausgewählt"
 // (X == Y). Anders als der „Alle auswählen"-Button, der nur eigene Positionen
 // erfasst, gleicht diese Funktion jede sichtbare Zeile aus (auch fremde, sofern
 // zuvor über zeigeAlleAn aufgeklappt). Eine Obergrenze pro Zeile verhindert eine
-// Endlosschleife, falls die Vollauswahl-Formulierung unerwartet nie erscheint.
+// Endlosschleife, falls die Vollauswahl-Formulierung unerwartet nie erscheint;
+// die Nachbedingung wird danach mit demselben Auswahl-Zähler hart geprüft —
+// ohne sie liefe die Funktion nach 50 erfolglosen Klicks stillschweigend weiter.
 export async function waehleAlleVollAus(page: Page): Promise<void> {
   const zeilen = vollePositionsZeilen(page)
   const anzahlZeilen = await zeilen.count()
   for (let i = 0; i < anzahlZeilen; i++) {
     const zeile = zeilen.nth(i)
     for (let klick = 0; klick < 50; klick++) {
-      const text = (await zeile.textContent()) ?? ''
-      const treffer = /(\d+) von (\d+) ausgewählt/.exec(text)
+      const { treffer } = await leseAuswahlZaehler(zeile)
       if (treffer && treffer[1] === treffer[2]) break
       await zeile.getByRole('button', { name: 'Produkt hinzufügen' }).click()
     }
+
+    const { text, treffer } = await leseAuswahlZaehler(zeile)
+    expect(
+      treffer,
+      `Zeile ${String(i)}: kein „N von N ausgewählt"-Text gefunden (Text: „${text}")`,
+    ).not.toBeNull()
+    expect(
+      treffer?.[1],
+      `Zeile ${String(i)}: nach 50 Klicks nicht voll ausgewählt (Text: „${text}")`,
+    ).toBe(treffer?.[2])
   }
+}
+
+// tischSaldo liefert den Saldo im Tisch-Header (siehe TablePage) — die eine
+// Stelle für den data-slot-Selektor statt einer Kopie je Spec.
+export function tischSaldo(page: Page): Locator {
+  return page.locator('[data-slot="tisch-saldo"]')
 }
 
 // warteAufTischGeladen wartet, bis der State-Fetch des Tisches fertig ist:
 // TablePage zeigt den Header-Saldo während des Ladens als Skeleton-Platzhalter
-// und rendert erst danach [data-slot="tisch-saldo"] mit dem Euro-Betrag (z. B.
-// „0,00 €"). Das ist ein deterministisches Ready-Signal — erst danach ist der
-// Tab-Inhalt gerendert und Prüfungen auf Buttons/Positionszeilen lesen den
-// fertigen DOM.
+// und rendert erst danach tischSaldo mit dem Euro-Betrag (z. B. „0,00 €"). Das
+// ist ein deterministisches Ready-Signal — erst danach ist der Tab-Inhalt
+// gerendert und Prüfungen auf Buttons/Positionszeilen lesen den fertigen DOM.
 async function warteAufTischGeladen(page: Page): Promise<void> {
-  await expect(page.locator('[data-slot="tisch-saldo"]')).toHaveText(
-    /\d,\d{2}\s*€/,
-  )
+  await expect(tischSaldo(page)).toHaveText(/\d,\d{2}\s*€/)
 }
 
 // settleAlleOffenenTische gleicht jeden Tisch mit offenem Saldo vollständig
@@ -304,9 +333,7 @@ export async function settleAlleOffenenTische(page: Page): Promise<void> {
       await page.getByRole('button', { name: /Kassieren/ }).click()
       const drawer = page.getByRole('dialog')
       await drawer.getByRole('button', { name: 'Kassieren' }).click()
-      await expect(
-        page.getByText('Zahlung erfolgreich.').first(),
-      ).toBeVisible()
+      await expect(page.getByText('Zahlung erfolgreich.').first()).toBeVisible()
     }
   }
 }

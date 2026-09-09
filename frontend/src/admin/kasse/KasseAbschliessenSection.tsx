@@ -120,8 +120,8 @@ export function KasseAbschliessenSection({
   })
   // Anzeige-Differenz als Ist − Soll (Kassenperspektive): negativ = Fehlbetrag
   // (fehlendes Geld, in Rot hervorgehoben), positiv = Überschuss. Das
-  // gebuchte Event trägt Soll − Ist (siehe kassensitzung_events.go); hier zählt
-  // nur die Anzeige, deren Vorzeichen dem Design-Handoff folgt.
+  // gebuchte Event trägt Soll − Ist (siehe kassensitzung_events.go); nur das
+  // Anzeige-Vorzeichen ist gedreht.
   const liveDifferenzCents =
     sollBestandCents === null ? null : gezaehltCents - sollBestandCents
 
@@ -198,7 +198,7 @@ export function KasseAbschliessenSection({
 
       {/* €-Eingabe, Soll/Gezählt/Differenz und die Bestätigung sitzen in einer
           gemeinsamen Gruppe, damit die Bestätigung direkt neben den Zahlen
-          steht, die sie bucht (NEU07). */}
+          steht, die sie bucht. */}
       <form
         onSubmit={(e) => {
           e.preventDefault()

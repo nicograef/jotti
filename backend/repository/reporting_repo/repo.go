@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
@@ -82,7 +84,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	})
 
 	if err := g.Wait(); err != nil {
-		return reporting.ReportingData{}, err
+		return reporting.ReportingData{}, db.Error(err)
 	}
 
 	stornierungen, err := toStornierungen(stornoRows)
@@ -144,7 +146,7 @@ func toMetadaten(row dbgen.GetKassensitzungMetadatenRow) (reporting.Metadaten, e
 	// Pointer-Ziel deserialisiert das zu nil und lässt das Feld sauber leer.
 	var data *kassensturzDataJSON
 	if err := json.Unmarshal(row.KassensturzData, &data); err != nil {
-		return reporting.Metadaten{}, err
+		return reporting.Metadaten{}, fmt.Errorf("unmarshal kassensturz data: %w", err)
 	}
 	if data != nil {
 		differenzCents := data.DifferenzCents
@@ -192,7 +194,7 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 	})
 
 	if err := g.Wait(); err != nil {
-		return reporting.LiveReportingData{}, err
+		return reporting.LiveReportingData{}, db.Error(err)
 	}
 
 	offeneTische := make([]reporting.OffenerTisch, len(offeneTischeRows))
@@ -275,7 +277,7 @@ func toAbrechnungServicekraft(rows []dbgen.GetKassiertProServicekraftRow) []repo
 func toBetroffene(raw json.RawMessage) ([]reporting.ServicekraftRef, error) {
 	var refs []servicekraftRefJSON
 	if err := json.Unmarshal(raw, &refs); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal betroffene: %w", err)
 	}
 	out := make([]reporting.ServicekraftRef, len(refs))
 	for i, ref := range refs {
@@ -293,7 +295,7 @@ func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungD
 	for i, row := range rows {
 		var data stornierungEventData
 		if err := json.Unmarshal(row.Data, &data); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unmarshal stornierung data: %w", err)
 		}
 		betroffene, err := toBetroffene(row.Betroffene)
 		if err != nil {
@@ -328,7 +330,7 @@ func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungD
 func (r Repository) GetProduktStatistik(ctx context.Context, kassensitzungNr int) ([]reporting.ProduktStatistikZeile, error) {
 	rows, err := r.q.GetProduktStatistik(ctx, kassensitzungNr)
 	if err != nil {
-		return nil, err
+		return nil, db.Error(err)
 	}
 
 	zeilen := make([]reporting.ProduktStatistikZeile, len(rows))
@@ -351,7 +353,7 @@ func (r Repository) GetEigeneUebersicht(ctx context.Context, userID int, kassens
 		KassensitzungNr: kassensitzungNr,
 	})
 	if err != nil {
-		return reporting.EigeneUebersicht{}, err
+		return reporting.EigeneUebersicht{}, db.Error(err)
 	}
 
 	return reporting.EigeneUebersicht{

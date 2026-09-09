@@ -55,7 +55,7 @@ function ZaehlhilfeInhalt({
     // Nur nicht-negative Ganzzahlen; leeres Feld ergibt 0 (kein Eintrag).
     const anzahl = Number.parseInt(roh, 10)
     const bereinigt = Number.isNaN(anzahl) || anzahl <= 0 ? 0 : anzahl
-    setStueckzahlen((bisher) => ({ ...bisher, [nennwert]: bereinigt }))
+    setStueckzahlen((prev) => ({ ...prev, [nennwert]: bereinigt }))
   }
 
   return (

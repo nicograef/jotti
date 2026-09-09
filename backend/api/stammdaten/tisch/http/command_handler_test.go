@@ -133,6 +133,24 @@ func TestTischAktualisierenHandler_NotFound(t *testing.T) {
 	}
 }
 
+func TestTischAktualisierenHandler_AlreadyExists(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischAlreadyExists}}
+
+	body := `{"id":1,"name":"Bereits vergebener Name"}`
+	req := httptest.NewRequest(http.MethodPost, "/update-tisch", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.TischAktualisierenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", rec.Code)
+	}
+	if code := decodeErrorCode(t, rec); code != "tisch_already_exists" {
+		t.Errorf("expected code tisch_already_exists, got %s", code)
+	}
+}
+
 func TestTischAktualisierenHandler_InvalidInput(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 

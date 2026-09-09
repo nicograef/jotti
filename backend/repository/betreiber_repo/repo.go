@@ -3,6 +3,7 @@ package betreiber_repo
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/betreiber"
@@ -26,9 +27,10 @@ func (r Repository) GetBetreiber(ctx context.Context) (betreiber.Betreiber, erro
 	return toDomain(row), nil
 }
 
-// SetElsterGemeldetAm marks the ELSTER report as done today (CURRENT_DATE).
-func (r Repository) SetElsterGemeldetAm(ctx context.Context) error {
-	if err := r.q.SetElsterGemeldetAm(ctx); err != nil {
+// SetElsterGemeldetAm marks the ELSTER report as done on the given date. The
+// caller owns the date: the application layer derives it in Europe/Berlin.
+func (r Repository) SetElsterGemeldetAm(ctx context.Context, gemeldetAm time.Time) error {
+	if err := r.q.SetElsterGemeldetAm(ctx, sql.NullTime{Time: gemeldetAm, Valid: true}); err != nil {
 		return db.Error(err)
 	}
 	return nil

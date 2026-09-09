@@ -46,9 +46,9 @@ func (h *CommandHandler) TischErstellenHandler() http.HandlerFunc {
 
 		id, err := h.Command.TischErstellen(r.Context(), body.Name)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrTischAlreadyExists: "tisch_already_exists",
-				application.ErrInvalidTischData:   "invalid_tisch_data",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrTischAlreadyExists, Code: "tisch_already_exists"},
+				{Err: application.ErrInvalidTischData, Code: "invalid_tisch_data"},
 			})
 			return
 		}
@@ -76,9 +76,10 @@ func (h *CommandHandler) TischAktualisierenHandler() http.HandlerFunc {
 
 		err := h.Command.TischAktualisieren(r.Context(), body.ID, body.Name)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrTischNotFound:    "tisch_not_found",
-				application.ErrInvalidTischData: "invalid_tisch_data",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+				{Err: application.ErrTischAlreadyExists, Code: "tisch_already_exists"},
+				{Err: application.ErrInvalidTischData, Code: "invalid_tisch_data"},
 			})
 			return
 		}
@@ -110,9 +111,9 @@ func (h *CommandHandler) FavoritHinzufuegenHandler() http.HandlerFunc {
 
 		err := h.Command.FavoritHinzufuegen(r.Context(), userID, body.TischID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrTischNotFound:  "tisch_not_found",
-				application.ErrTischNotActive: "tisch_not_active",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+				{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
 			})
 			return
 		}
@@ -161,8 +162,8 @@ func (h *CommandHandler) TischAktivierenHandler() http.HandlerFunc {
 
 		err := h.Command.TischAktivieren(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrTischNotFound: "tisch_not_found",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
 			})
 			return
 		}
@@ -188,9 +189,9 @@ func (h *CommandHandler) TischDeaktivierenHandler() http.HandlerFunc {
 
 		err := h.Command.TischDeaktivieren(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrTischNotFound:   "tisch_not_found",
-				application.ErrTischSaldoOffen: "tisch_saldo_offen",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+				{Err: application.ErrTischSaldoOffen, Code: "tisch_saldo_offen"},
 			})
 			return
 		}
@@ -216,9 +217,9 @@ func (h *CommandHandler) TischLoeschenHandler() http.HandlerFunc {
 
 		err := h.Command.TischLoeschen(r.Context(), body.ID)
 		if err != nil {
-			helper.MapError(w, err, map[error]string{
-				application.ErrTischNotFound:   "tisch_not_found",
-				application.ErrTischSaldoOffen: "tisch_saldo_offen",
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+				{Err: application.ErrTischSaldoOffen, Code: "tisch_saldo_offen"},
 			})
 			return
 		}
