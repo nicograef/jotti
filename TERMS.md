@@ -46,7 +46,7 @@ Diese Nutzungsbedingungen regeln die kostenlose Nutzung der Software „jotti" d
 
 (1) Die Organisation ist allein verantwortlich für die Einhaltung der gesetzlichen Vorschriften beim Betrieb eines elektronischen Aufzeichnungssystems — insbesondere KassenSichV und § 146a AO (TSE-Pflicht, Belegausgabe, Kassenmeldung), GoBD, DSFinV-K und DSGVO. Sie prüft die Software vor dem produktiven Einsatz eigenständig auf Eignung, im Zweifel mit steuerlicher Beratung. Der Autor implementiert technische Schnittstellen zur Unterstützung der Compliance, garantiert jedoch nicht deren Vollständigkeit oder Eignung.
 
-(2) Die Software setzt die deutsche Kassensicherungsverordnung (KassenSichV) um. Für Österreich (Registrierkassensicherheitsverordnung, RKSV) und die Schweiz ist keine Anbindung vorgesehen. Die Nutzung außerhalb Deutschlands ist zulässig; die Konformität mit dem dort geltenden Recht liegt allein bei der Organisation.
+(2) Die Software unterstützt die Anforderungen der deutschen Kassensicherungsverordnung (KassenSichV) technisch. Für Österreich (Registrierkassensicherheitsverordnung, RKSV) und die Schweiz ist keine Anbindung vorgesehen. Die Nutzung außerhalb Deutschlands ist zulässig; die Konformität mit dem dort geltenden Recht liegt allein bei der Organisation.
 
 ---
 
