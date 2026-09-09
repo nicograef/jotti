@@ -58,7 +58,7 @@ englisch benannte Stammdaten-CRUD.
 
 Hier gilt Regel 1 ohne Einschränkung, und hier wird sie verletzt. In
 `frontend/src` (ohne `components/ui`) stehen 18 englische Bezeichner für
-Domänenbegriffe mit 114 Vorkommen in 22 Dateien:
+Domänenbegriffe mit 114 Vorkommen in 26 Dateien:
 
 | Bezeichner                                                                       | Domänenbegriff        |
 | -------------------------------------------------------------------------------- | --------------------- |
@@ -103,7 +103,7 @@ Stelle.
 
 | Fläche                        | Vorkommen                                  |
 | ----------------------------- | ------------------------------------------ |
-| Frontend-Bezeichner           | 114 in 22 Dateien, davon 15 Dateinamen     |
+| Frontend-Bezeichner           | 114 in 26 Dateien, davon 15 Dateinamen     |
 | Frontend-Routen               | keine — die Routen sind bereits deutsch    |
 | E2E-Selektoren                | keine                                      |
 | E2E-Kommentare                | 5 Zeilen in 3 Spec-Dateien                 |
