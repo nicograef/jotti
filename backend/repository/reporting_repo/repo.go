@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
@@ -82,7 +83,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	})
 
 	if err := g.Wait(); err != nil {
-		return reporting.ReportingData{}, err
+		return reporting.ReportingData{}, db.Error(err)
 	}
 
 	stornierungen, err := toStornierungen(stornoRows)
@@ -192,7 +193,7 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 	})
 
 	if err := g.Wait(); err != nil {
-		return reporting.LiveReportingData{}, err
+		return reporting.LiveReportingData{}, db.Error(err)
 	}
 
 	offeneTische := make([]reporting.OffenerTisch, len(offeneTischeRows))
@@ -328,7 +329,7 @@ func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungD
 func (r Repository) GetProduktStatistik(ctx context.Context, kassensitzungNr int) ([]reporting.ProduktStatistikZeile, error) {
 	rows, err := r.q.GetProduktStatistik(ctx, kassensitzungNr)
 	if err != nil {
-		return nil, err
+		return nil, db.Error(err)
 	}
 
 	zeilen := make([]reporting.ProduktStatistikZeile, len(rows))
@@ -351,7 +352,7 @@ func (r Repository) GetEigeneUebersicht(ctx context.Context, userID int, kassens
 		KassensitzungNr: kassensitzungNr,
 	})
 	if err != nil {
-		return reporting.EigeneUebersicht{}, err
+		return reporting.EigeneUebersicht{}, db.Error(err)
 	}
 
 	return reporting.EigeneUebersicht{
