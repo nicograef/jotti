@@ -39,7 +39,7 @@ type Kassenbestand struct {
 // SollBestandOhneDifferenzCents ist die Summe der vier Komponenten und damit der
 // Soll-Bestand ohne eine gebuchte Differenz. SollBestandCents zieht eine gebuchte
 // Differenz ab (sie gleicht den Soll- an den gezählten Ist-Bestand an); dieser Wert
-// bleibt der Bestand, den allein die Buchungen der Kassensitzung ergeben.
+// bleibt der Bestand aus Anfangsbestand, Bareinnahmen und Geldtransits.
 func (k Kassenbestand) SollBestandOhneDifferenzCents() int {
 	return k.AnfangsbestandCents + k.BareinnahmenCents + k.EinlagenCents - k.EntnahmenCents
 }
