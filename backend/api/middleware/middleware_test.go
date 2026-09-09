@@ -510,17 +510,19 @@ func TestServiceleitungRole_AllowedForCancelEndpoint(t *testing.T) {
 	}
 }
 
-func TestJwtMiddleware_SetsUserNameInContext(t *testing.T) {
+// Der Name im Context stammt aus dem geladenen Datensatz. Ein umbenannter
+// Benutzer trägt sonst seinen alten Namen bis zum Tokenablauf ins Kassenjournal.
+func TestJwtMiddleware_SetsStoredUserNameInContext(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(1, "admin", "admin", secret)
+	token, err := jwt.GenerateJWTTokenForUser(1, "altername", "admin", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		username, ok := r.Context().Value(UserNameKey).(string)
-		if !ok || username != "admin" {
-			t.Errorf("expected UserNameKey 'admin' in context, got '%s'", username)
+		if !ok || username != "neuername" {
+			t.Errorf("expected UserNameKey 'neuername' in context, got '%s'", username)
 		}
 		userID, ok := r.Context().Value(UserIDKey).(int)
 		if !ok || userID != 1 {
@@ -529,7 +531,8 @@ func TestJwtMiddleware_SetsUserNameInContext(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUser(user.AdminRole))(handler)
+	renamedUser := stubUsers{user: user.User{ID: 1, Username: "neuername", Role: user.AdminRole, Status: user.ActiveStatus}}
+	middleware := NewJwtMiddleware(secret, []string{"admin"}, renamedUser)(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()

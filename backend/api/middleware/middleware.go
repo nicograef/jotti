@@ -266,7 +266,7 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 				return
 			}
 			token = token[len(bearerPrefix):]
-			userID, userName, _, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
+			userID, _, _, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
 			if err != nil {
 				logger.Error().Err(err).Msg("Invalid JWT token")
 				helper.SendUnauthorized(w, "invalid_jwt")
@@ -298,9 +298,11 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 				return
 			}
 
+			// Der Name im Context stammt aus dem Datensatz, nicht aus dem Token-Claim:
+			// ein umbenannter Benutzer erscheint im Kassenjournal unter dem heutigen Namen.
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, UserIDKey, userID)
-			ctx = context.WithValue(ctx, UserNameKey, userName)
+			ctx = context.WithValue(ctx, UserNameKey, u.Username)
 			h.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
