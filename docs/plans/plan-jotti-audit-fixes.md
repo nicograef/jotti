@@ -120,6 +120,16 @@ css, md` im ganzen Repo ab. Grund: 29 Markdown-Dateien außerhalb `docs/plans/` 
   eine abgeschnittene Nummer ist eine falsche, keine kürzere. Die drei ID-Schemas tragen
   den int4-Bereich als Obergrenze, damit 6.1 ohne Ausnahme gilt. Die übrigen Domänen-
   Schemas behalten zogs Byte-Zählung; die eingefrorenen Event-Schemas prüfen Bytes.
+- **Nachträge aus dem Review der Phase 7** (Lead): das forbidigo-Muster endet auf `$`
+  statt `\(`, weil forbidigo den Selektor-Text ohne Aufrufklammer vergleicht (das
+  wörtliche Muster fand keine der zehn Aufrufstellen); `analyze-types` bleibt ungesetzt.
+  Die verbreiterte Leseroute zieht die Frontend-Bezeichner (`AktiveKassensitzung`,
+  `useAktiveKassensitzung`) und alle benutzersichtbaren Statusworte mit: Sidebar,
+  Dashboard und Sitzungsliste nennen `wird_abgeschlossen` „Abschluss unterbrochen", die
+  Kassentag-Seite bietet dort keine Geldtransit-Aktionen an, die TSE-Meldungen nennen
+  beide Zustände. Das Decode-Gate akzeptiert beide Vertragsfamilien (`…EventData` und
+  `…V<n>Data`). `GetOffeneKassensitzungNr` in `GetEigeneUebersicht` bleibt wie im
+  Kriterium ausgenommen und steht in den Übergabe-Notizen.
 
 ### Kritik (2026-09-08)
 
@@ -756,8 +766,8 @@ bekommen ein Gate, das den Rückfall meldet.
 
 ### Acceptance criteria
 
-- [ ] `backend/.golangci.yml` verbietet per `forbidigo` das verankerte Muster
-      `KassensitzungenRepo\.GetOffeneKassensitzung\(`. Es trifft weder
+- [x] `backend/.golangci.yml` verbietet per `forbidigo` das verankerte Muster
+      `KassensitzungenRepo\.GetOffeneKassensitzung$`. Es trifft weder
       `GetOffeneKassensitzungNr` noch den repository-internen Aufruf. Diese Aufrufe
       wechseln auf `GetAktiveKassensitzung`:
 
@@ -771,7 +781,7 @@ bekommen ein Gate, das den Rückfall meldet.
   `reporting/application/query.go:288` nutzt `GetOffeneKassensitzungNr` und bleibt
   vom Muster unberührt.
 
-- [ ] `kassenfuehrung/application/query.go` liest über `GetAktiveKassensitzung`, und die
+- [x] `kassenfuehrung/application/query.go` liest über `GetAktiveKassensitzung`, und die
       Anwendungsmethode trägt denselben Namen. Umbenannt werden:
 
   - Interface und Handler in `kassenfuehrung/http/query_handler.go`
@@ -785,11 +795,11 @@ bekommen ein Gate, das den Rückfall meldet.
   Eröffnen-Formulars; ein Integrationstest und ein Vitest decken den Fall ab.
   Befund: backend/api/kasse/kassenfuehrung/application/query.go:14-24
 
-- [ ] `fiskal/setup/application/command.go` prüft den TSE-Konfigurationsguard gegen
+- [x] `fiskal/setup/application/command.go` prüft den TSE-Konfigurationsguard gegen
       `GetAktiveKassensitzung`, und der Kommentar nennt „offen oder wird_abgeschlossen";
       ein Test lehnt den TSS-Wechsel im Barrierestatus ab.
       Befund: backend/api/fiskal/setup/application/command.go:17-44
-- [ ] `kassenfuehrung/application/command.go` erkennt Zwischenbuchungen nach dem
+- [x] `kassenfuehrung/application/command.go` erkennt Zwischenbuchungen nach dem
       protokollierten Kassensturz auch dann, wenn die Differenzbuchung bereits geschrieben
       ist. Verglichen wird der Soll-Bestand **ohne** die abschluss-eigene Differenzbuchung
       gegen `sturz.SollBestandCents`; bei Abweichung bricht der Abschluss mit
@@ -799,7 +809,7 @@ bekommen ein Gate, das den Rückfall meldet.
   - Integrationstest: eine Tischzahlung nach dem Kassensturz bricht den Wiederanlauf ab.
   - Integrationstest: ein Wiederanlauf nach geschriebener Differenzbuchung läuft durch.
 
-- [ ] `arbeitsbon_policy.go` dekodiert in `[]kasse.PositionEventData` und wandelt über
+- [x] `arbeitsbon_policy.go` dekodiert in `[]kasse.PositionEventData` und wandelt über
       `kasse.PositionFromEventData`, `arbeitsbon_policy_test.go` baut seine Events mit
       `kasse.NewBestellungAufgenommenEvent` bzw. `kasse.NewDirektverkaufGetaetigtEvent`,
       und `backend/api/event_decode_contract_test.go` (`//go:build unit`) schlägt per
