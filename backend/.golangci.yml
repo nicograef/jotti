@@ -36,8 +36,16 @@ linters:
     forbidigo:
       # The barrier status wird_abgeschlossen is not a closed Kasse: read paths and
       # guards ask GetAktiveKassensitzung, which sees 'offen' and 'wird_abgeschlossen'.
-      # The pattern ends at the method name, so GetOffeneKassensitzungNr and the
-      # repository-internal r.GetOffeneKassensitzung call stay allowed.
+      #
+      # The pattern is matched against the selector as it stands in the source
+      # (q.KassensitzungenRepo.GetOffeneKassensitzung); the call parenthesis is not
+      # part of that text. The $ anchor is therefore what keeps
+      # GetOffeneKassensitzungNr and the repository-internal
+      # r.GetOffeneKassensitzung call allowed.
+      #
+      # analyze-types stays unset: with it the matched text becomes
+      # <package>.<Interface>.<Method>, which this pattern misses — the rule then
+      # reports nothing at all.
       forbid:
         - pattern: 'KassensitzungenRepo\.GetOffeneKassensitzung$'
           msg: call KassensitzungenRepo.GetAktiveKassensitzung instead; GetOffeneKassensitzung misses the barrier status wird_abgeschlossen
