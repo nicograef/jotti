@@ -7,15 +7,15 @@ Am Veranstaltungstag arbeitet ihr mit einer Kassensitzung: Sie beginnt mit dem
 gezählten Anfangsbestand, hält alle Verkäufe und Bargeldbewegungen zusammen und
 endet mit dem Tagesabschluss. Die Servicekräfte nehmen währenddessen ganz normal
 auf ihren Handys Bestellungen auf, geben aus und kassieren. Die folgenden Schritte
-macht ein Admin im Admin-Bereich unter „Kasse".
+macht ein Admin im Admin-Bereich unter „Kassentag".
 
 An der Theke läuft der Verkauf statt über Tische im Direktverkauf; wann welcher
 Arbeitsmodus passt, steht unter [Welcher Modus passt?](betriebsarten.md).
 
 ## Vor dem ersten Verkauf: Kassensitzung eröffnen
 
-Zählt das Wechselgeld in der Kasse und öffnet im Admin-Bereich unter „Kasse" die
-Sitzung über „Kassensitzung eröffnen". Tragt den gezählten Betrag als Anfangsbestand
+Zählt das Wechselgeld in der Kasse und öffnet im Admin-Bereich unter „Kassentag"
+die Sitzung über „Kassensitzung eröffnen". Tragt den gezählten Betrag als Anfangsbestand
 ein. Ohne offene Kassensitzung nimmt jotti keine Zahlungen an, öffnet sie also vor
 dem ersten Verkauf. Ab jetzt rechnet jotti alle Ein- und Auszahlungen gegen diesen
 Startwert.
@@ -23,9 +23,10 @@ Startwert.
 ## Während des Fests: Wechselgeld und Entnahmen buchen
 
 Braucht die Kasse zwischendurch mehr Wechselgeld oder nehmt ihr Bargeld heraus,
-bucht das unter „Geldtransit buchen": zusätzliches Wechselgeld als Einlage,
-herausgenommenes Bargeld als Entnahme. So bleibt der erwartete Kassenbestand
-(Soll-Bestand) korrekt, und der Kassensturz am Abend geht auf.
+bucht ihr das über die Buttons „Geld einlegen" und „Geld entnehmen":
+zusätzliches Wechselgeld als Einlage, herausgenommenes Bargeld als Entnahme. So
+bleibt der erwartete Kassenbestand (Soll-Bestand) korrekt, und der
+Kassensturz am Abend geht auf.
 
 > 💡 **Trinkgeld gehört nicht in die Kasse.** jotti zeigt Trinkgeld beim Kassieren
 > nur zur Info an und bucht es nicht. Landet es trotzdem in der Kassenlade, geht
@@ -33,8 +34,8 @@ herausgenommenes Bargeld als Entnahme. So bleibt der erwartete Kassenbestand
 
 ## Nach dem Fest: Kasse abschließen
 
-Zählt am Ende das gesamte Bargeld in der Kasse und öffnet unter „Kasse" den Bereich
-„Kasse abschließen". Tragt den gezählten Ist-Bestand ein: jotti erstellt Kassensturz
+Zählt am Ende das gesamte Bargeld in der Kasse und öffnet unter „Kassentag" den
+Bereich „Kasse abschließen". Tragt den gezählten Ist-Bestand ein: jotti erstellt Kassensturz
 und Tagesabschluss (Z-Bon) in einem Schritt und zeigt vorab, ob Soll- und
 Ist-Bestand übereinstimmen. Eine Differenz ist kein Fehler, sondern wird als
 Kassendifferenz festgehalten.

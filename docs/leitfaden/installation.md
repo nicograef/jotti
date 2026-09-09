@@ -62,7 +62,7 @@ dokumentiert, vor dem Kauf prüfen). Stand der Recherche: 07.09.2026.
 
 Die Einrichtung hat zwei Teile:
 
-1. **Druckstationen im Admin-Bereich anlegen.** Unter „Druckstationen" je
+1. **Druckstationen im Admin-Bereich anlegen.** Unter „Bondrucker" je
    Produktkategorie die „Drucker-IP" und den „Bonmodus" eintragen. Ohne
    konfigurierte Station wird nichts gedruckt.
 2. **Drucker-Programm starten.** Auf dem Kassenrechner zusätzlich `jotti-relay.exe`
