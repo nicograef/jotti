@@ -1,4 +1,4 @@
-import { Loader2, Printer } from 'lucide-react'
+import { Printer } from 'lucide-react'
 
 import { STEUERSATZ_LABEL } from '@/admin/products/Produkt'
 import { Button } from '@/components/ui/button'
@@ -73,22 +73,12 @@ function Kennzahl({
 export function ReportingResults({
   result,
   sitzung,
-  loading,
 }: {
   result: ReportingData
   sitzung: AbgeschlosseneSitzung
-  loading: boolean
 }) {
   const summary = result.summary
   const abrechnung = result.breakdowns.abrechnungProServicekraft
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border p-5">

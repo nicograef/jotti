@@ -402,8 +402,8 @@ function Details({
   userName: string
   tischName: string
   kommentar: string
-  positionen?: ReceiptPosition[]
-  totalPrice?: number
+  positionen: ReceiptPosition[]
+  totalPrice: number
   primaryAction?: PrimaryAction
   onStornieren?: () => void
   onUmbuchen?: () => void
@@ -432,15 +432,7 @@ function Details({
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">
-          {positionen ? (
-            <Receipt positionen={positionen} totalPrice={totalPrice} />
-          ) : (
-            totalPrice !== undefined && (
-              <div className="px-4 py-2">
-                <p className="font-bold">{formatEuro(totalPrice)}</p>
-              </div>
-            )
-          )}
+          <Receipt positionen={positionen} totalPrice={totalPrice} />
           {kommentar && (
             <div className="px-4">
               <Kommentar value={kommentar} />

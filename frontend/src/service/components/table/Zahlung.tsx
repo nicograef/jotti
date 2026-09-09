@@ -54,11 +54,6 @@ export function Zahlung({
   // (Refetch) bleiben die verbleibenden Zeilen unbewegt.
   const erstAufbau = useErstAufbau(true)
 
-  const unbezahlteMengen: Record<string, number> = {}
-  positionen.forEach((position) => {
-    unbezahlteMengen[position.positionId] = position.menge
-  })
-
   const {
     mengen,
     add: onAdd,
@@ -136,7 +131,7 @@ export function Zahlung({
       position={position}
       showBesteller={showBesteller}
       menge={mengen[position.positionId] || 0}
-      unbezahlteMenge={unbezahlteMengen[position.positionId] || 0}
+      unbezahlteMenge={position.menge}
       eintrittIndex={eintrittIndex}
       onAdd={() => {
         onAdd(position.positionId)

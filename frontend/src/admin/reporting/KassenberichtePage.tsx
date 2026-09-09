@@ -119,11 +119,7 @@ export function KassenberichtePage() {
               </div>
             ) : (
               <>
-                <ReportingResults
-                  result={result}
-                  sitzung={selectedSitzung}
-                  loading={false}
-                />
+                <ReportingResults result={result} sitzung={selectedSitzung} />
                 {effectiveNr !== null && (
                   <ExportBlock kassensitzungNr={effectiveNr} />
                 )}

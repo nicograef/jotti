@@ -110,13 +110,7 @@ afterEach(() => {
 
 describe('ReportingResults', () => {
   it('zeigt den formalen Berichtskopf mit Nr., Bezeichnung und Metadaten', () => {
-    render(
-      <ReportingResults
-        result={reportingResult}
-        sitzung={sitzung}
-        loading={false}
-      />,
-    )
+    render(<ReportingResults result={reportingResult} sitzung={sitzung} />)
 
     expect(
       screen.getByRole('heading', {
@@ -144,7 +138,6 @@ describe('ReportingResults', () => {
           },
         }}
         sitzung={sitzung}
-        loading={false}
       />,
     )
 
@@ -154,13 +147,7 @@ describe('ReportingResults', () => {
   })
 
   it('zeigt die vier Kennzahl-Kacheln', () => {
-    render(
-      <ReportingResults
-        result={reportingResult}
-        sitzung={sitzung}
-        loading={false}
-      />,
-    )
+    render(<ReportingResults result={reportingResult} sitzung={sitzung} />)
 
     expect(screen.getByText('Kassierter Umsatz')).toBeInTheDocument()
     expect(screen.getByText('Bestellungen')).toBeInTheDocument()
@@ -170,13 +157,7 @@ describe('ReportingResults', () => {
   })
 
   it('zeigt Steuersatz-Tabelle, Servicekräfte und Stornierungen ohne Tabs untereinander', () => {
-    render(
-      <ReportingResults
-        result={reportingResult}
-        sitzung={sitzung}
-        loading={false}
-      />,
-    )
+    render(<ReportingResults result={reportingResult} sitzung={sitzung} />)
 
     // Keine Tabs mehr: alle Abschnitte gleichzeitig sichtbar.
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
@@ -187,13 +168,7 @@ describe('ReportingResults', () => {
   })
 
   it('zeigt pro Servicekraft „Abzugeben" als Hauptzahl mit Kassiert und Rücknahmen darunter', () => {
-    render(
-      <ReportingResults
-        result={reportingResult}
-        sitzung={sitzung}
-        loading={false}
-      />,
-    )
+    render(<ReportingResults result={reportingResult} sitzung={sitzung} />)
 
     // Hauptzahl: Abzugeben (67,89 € kassiert − 3,00 € Rücknahmen).
     expect(screen.getByText('64,89 €')).toBeInTheDocument()
@@ -240,7 +215,6 @@ describe('ReportingResults', () => {
           },
         }}
         sitzung={sitzung}
-        loading={false}
       />,
     )
 
@@ -253,13 +227,7 @@ describe('ReportingResults', () => {
   })
 
   it('zeigt den Abschnitt „Verkäufe pro Produkt" mit Kategorien, Zwischensumme und Ein-Varianten-Zeile', () => {
-    render(
-      <ReportingResults
-        result={reportingResult}
-        sitzung={sitzung}
-        loading={false}
-      />,
-    )
+    render(<ReportingResults result={reportingResult} sitzung={sitzung} />)
 
     expect(screen.getByText('Verkäufe pro Produkt')).toBeInTheDocument()
     // Kategorie-Überschriften.
@@ -282,7 +250,6 @@ describe('ReportingResults', () => {
       <ReportingResults
         result={{ ...reportingResult, produktStatistik: [] }}
         sitzung={sitzung}
-        loading={false}
       />,
     )
 
@@ -292,13 +259,7 @@ describe('ReportingResults', () => {
   })
 
   it('nennt in der Storno-Zeile die betroffene Servicekraft ohne Akteurs-Zusatz, wenn sie selbst storniert hat', () => {
-    render(
-      <ReportingResults
-        result={reportingResult}
-        sitzung={sitzung}
-        loading={false}
-      />,
-    )
+    render(<ReportingResults result={reportingResult} sitzung={sitzung} />)
 
     expect(screen.getByText('Tisch 4 · Bea (Bea B.)')).toBeInTheDocument()
     expect(screen.queryByText(/storniert von/)).not.toBeInTheDocument()
@@ -321,7 +282,6 @@ describe('ReportingResults', () => {
           ],
         }}
         sitzung={sitzung}
-        loading={false}
       />,
     )
 
@@ -335,13 +295,7 @@ describe('ReportingResults', () => {
     const printSpy = vi.spyOn(window, 'print').mockImplementation(vi.fn())
     const { default: userEvent } = await import('@testing-library/user-event')
     const user = userEvent.setup()
-    render(
-      <ReportingResults
-        result={reportingResult}
-        sitzung={sitzung}
-        loading={false}
-      />,
-    )
+    render(<ReportingResults result={reportingResult} sitzung={sitzung} />)
 
     await user.click(screen.getByRole('button', { name: 'Drucken' }))
     expect(printSpy).toHaveBeenCalledOnce()
