@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
@@ -811,10 +810,14 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	}
 }
 
+// Der Kommentar wird auf die Schemagrenze von 100 Bytes gekürzt (zogs Max zählt
+// Bytes). Beide Tischnamen tragen Umlaute: der Zielname endet auf einer
+// Runengrenze, der Quellname erzwingt den Rückschritt um ein Byte, damit keine
+// UTF-8-Folge zerfällt.
 func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 	ctx := context.Background()
-	quellTisch := tisch.Tisch{ID: 1, Name: strings.Repeat("Q", 100), Status: tisch.ActiveStatus}
-	zielTisch := tisch.Tisch{ID: 2, Name: strings.Repeat("Z", 100), Status: tisch.ActiveStatus}
+	quellTisch := tisch.Tisch{ID: 1, Name: "T" + strings.Repeat("ä", 49), Status: tisch.ActiveStatus}
+	zielTisch := tisch.Tisch{ID: 2, Name: strings.Repeat("Ä", 50), Status: tisch.ActiveStatus}
 
 	eventMock := kassenjournal_repo.NewMock(nil, nil)
 	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
@@ -856,17 +859,16 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 		t.Fatalf("expected no unmarshal error for target umbuchung data, got %v", err)
 	}
 
-	if utf8.RuneCountInString(quellData.Kommentar) > 100 {
-		t.Fatalf("expected source comment length <= 100 runes, got %d", utf8.RuneCountInString(quellData.Kommentar))
+	// 14 Byte Präfix + 43 mal "Ä" (2 Byte) füllen die Grenze genau aus.
+	wantQuell := "Umbuchung auf " + strings.Repeat("Ä", 43)
+	if quellData.Kommentar != wantQuell {
+		t.Fatalf("expected source comment %q, got %q", wantQuell, quellData.Kommentar)
 	}
-	if utf8.RuneCountInString(zielData.Kommentar) > 100 {
-		t.Fatalf("expected target comment length <= 100 runes, got %d", utf8.RuneCountInString(zielData.Kommentar))
-	}
-	if !strings.HasPrefix(quellData.Kommentar, "Umbuchung auf ") {
-		t.Fatalf("expected source comment prefix, got %q", quellData.Kommentar)
-	}
-	if !strings.HasPrefix(zielData.Kommentar, "Umbuchung von ") {
-		t.Fatalf("expected target comment prefix, got %q", zielData.Kommentar)
+	// 14 Byte Präfix + "T" + 42 mal "ä" sind 99 Bytes; das 100. Byte gehört zur
+	// nächsten UTF-8-Folge und fällt mit ihr weg.
+	wantZiel := "Umbuchung von T" + strings.Repeat("ä", 42)
+	if zielData.Kommentar != wantZiel {
+		t.Fatalf("expected target comment %q, got %q", wantZiel, zielData.Kommentar)
 	}
 }
 

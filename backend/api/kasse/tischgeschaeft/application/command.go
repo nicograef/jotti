@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"unicode/utf8"
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/druck/bondruck/application"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
@@ -257,29 +258,37 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	return nil
 }
 
-const maxUmbuchungKommentarRunes = 100
+// maxUmbuchungKommentarBytes ist die Grenze des Kommentars im eingefrorenen
+// Event-Schema (bestellungUmgebuchtV1DataSchema); zogs Max zählt Bytes.
+const maxUmbuchungKommentarBytes = 100
 
-func truncateRunes(s string, max int) string {
+// truncateBytes schneidet s auf höchstens max Bytes. Der Schnitt wandert bis zum
+// Anfang der angeschnittenen UTF-8-Folge zurück, damit kein Umlaut zerfällt.
+func truncateBytes(s string, max int) string {
 	if max <= 0 {
 		return ""
 	}
-
-	runes := []rune(s)
-	if len(runes) <= max {
+	if len(s) <= max {
 		return s
 	}
 
-	return string(runes[:max])
-}
-
-func buildUmbuchungKommentar(prefix string, tischName string) string {
-	prefixRunes := len([]rune(prefix))
-	if prefixRunes >= maxUmbuchungKommentarRunes {
-		return truncateRunes(prefix, maxUmbuchungKommentarRunes)
+	cut := max
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
 	}
 
-	maxTischNameRunes := maxUmbuchungKommentarRunes - prefixRunes
-	return prefix + truncateRunes(tischName, maxTischNameRunes)
+	return s[:cut]
+}
+
+// buildUmbuchungKommentar setzt den Richtungs-Autotext aus Präfix und Tischname
+// zusammen. Der Tischname darf 100 Bytes lang sein, mit dem Präfix reißt das
+// Paar die Schemagrenze — der Name wird gekürzt, das Präfix bleibt ganz.
+func buildUmbuchungKommentar(prefix string, tischName string) string {
+	if len(prefix) >= maxUmbuchungKommentarBytes {
+		return truncateBytes(prefix, maxUmbuchungKommentarBytes)
+	}
+
+	return prefix + truncateBytes(tischName, maxUmbuchungKommentarBytes-len(prefix))
 }
 
 func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
