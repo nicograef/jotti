@@ -19,7 +19,10 @@ bleiben dabei erhalten.
 3. **`jotti-start.exe`** im neuen Ordner doppelklicken und die UAC-Abfrage mit
    „Ja" bestätigen.
 
-Den alten Programmordner könnt ihr danach gefahrlos löschen.
+Den alten Programmordner erst löschen, wenn das nächste Fest gelaufen ist: bis
+dahin liegt darin die `jotti-start.exe` des vorherigen Release — der Rückweg,
+falls das Update Ärger macht (siehe [Der Weg
+zurück](#der-weg-zurück-wenn-das-update-schiefgeht)).
 
 > ⛔ **Während eines Updates keine TSE-Einrichtung starten.** Die Einrichtung legt
 > bei fiskaly eine TSE an — in LIVE eine kostenpflichtige, in TEST eine kostenlose —
@@ -187,9 +190,11 @@ Der Rückweg ist das automatische Backup von vor dem Update:
 3. Das Skript startet die Datenbank, hält die Anwendung währenddessen an und
    spielt das neueste automatische Backup ein. Am Ende meldet es
    „Wiederherstellung abgeschlossen." — jotti läuft dann noch nicht.
-4. **`jotti-start.exe`** aus dem **vorherigen** Release-ZIP doppelklicken. Nur
-   der Starter gibt dem Reverse-Proxy die Netzwerk-Adresse des Rechners mit, und
-   zur zurückgespielten Datenbank passt die Version von vor dem Update.
+4. **`jotti-start.exe`** des **vorherigen** Release doppelklicken — aus dem alten
+   Programmordner, oder aus dem erneut geladenen ZIP
+   (<https://github.com/nicograef/jotti/releases>). Nur der Starter gibt dem
+   Reverse-Proxy die Netzwerk-Adresse des Rechners mit, und zur zurückgespielten
+   Datenbank passt die Version von vor dem Update.
 
 > ℹ️ **Verweigert der Starter den Start** („Diese Version … ist aelter als die
 > zuletzt gestartete …"), lief die neue Version schon einmal vollständig. Nehmt

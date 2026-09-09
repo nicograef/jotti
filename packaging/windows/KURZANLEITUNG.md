@@ -116,8 +116,9 @@ Download-Link, so aktualisiert ihr jotti in drei Schritten:
 **Eure Daten bleiben erhalten:** Bestellungen, Benutzer, Produkte, der
 Installations-Schlüssel und das grüne Zertifikat liegen geschützt außerhalb des
 Programmordners (in Docker-Volumes). Egal wohin ihr entpackt — der Schlüssel folgt
-den Daten, jotti findet beides beim Start wieder. Den alten Ordner könnt ihr danach
-gefahrlos löschen.
+den Daten, jotti findet beides beim Start wieder. Den alten Ordner erst löschen,
+wenn das nächste Fest gelaufen ist: bis dahin liegt darin die `jotti-start.exe` des
+vorherigen Release — der Rückweg, falls das Update Ärger macht.
 
 > ⛔ **Niemals `docker compose down -v` ausführen.** Das `-v` löscht **alle**
 > Docker-Volumes — und damit **Daten, Installations-Schlüssel und das grüne
@@ -130,25 +131,28 @@ sichert er die Datenbank **vor** der Aktualisierung automatisch. Geht beim Updat
 etwas schief, spielt **`jotti-restore.cmd`** (Doppelklick) das letzte dieser
 Backups zurück — seit dem Backup erfasste Daten gehen dabei verloren.
 
-Das Skript meldet jeden seiner drei Schritte mit einer eigenen Zeile:
+Das Skript fragt zuerst zurück: **`Fortfahren? (j/N)`** — mit **`j`**
+beantworten. Danach meldet es jeden seiner drei Schritte mit einer eigenen Zeile:
 
 1. `Starte die Datenbank ...`
 2. `Stoppe die Anwendung waehrend der Wiederherstellung ...`
 3. `Spiele das letzte Backup ein ...`
 
-Danach meldet es „Wiederherstellung abgeschlossen." und dass jotti noch nicht
+Am Ende meldet es „Wiederherstellung abgeschlossen." und dass jotti noch nicht
 läuft. Das Skript startet jotti **nicht** selbst: nur `jotti-start.exe` gibt dem
 Reverse-Proxy die Netzwerk-Adresse des Rechners mit, ohne die es keine
 Zugangsadresse für die Handys gibt.
 
-Bricht das Skript ab, endet die Ausgabe mit „FEHLER bei der Wiederherstellung".
-Behebt die Ursache (läuft Docker? sind die Ports frei?) und startet
+Bricht einer der drei Schritte ab, endet die Ausgabe mit „FEHLER bei der
+Wiederherstellung". Behebt die Ursache (läuft Docker Desktop?) und startet
 `jotti-restore.cmd` erneut; der zweite Lauf spielt dasselbe Backup vollständig
 ein.
 
 **Danach starten — mit dem vorherigen Release.** Die Datenbank steht wieder auf
 dem Stand von vor dem Update, und dazu passt die Version von vor dem Update.
-Entpackt also das **vorherige Release-ZIP** und startet `jotti-start.exe` daraus.
+Startet also `jotti-start.exe` des **vorherigen Release** — aus dem alten
+Programmordner, oder aus dem erneut geladenen ZIP
+(<https://github.com/nicograef/jotti/releases>).
 
 > 🔁 **Nur vorwärts, kein Downgrade.** Spielt **keine ältere Version** über eine
 > neuere Datenbank: Updates verändern die Datenbank und lassen sich nicht
