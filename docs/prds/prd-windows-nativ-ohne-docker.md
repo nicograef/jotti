@@ -1,10 +1,10 @@
-# PRD: Native Windows-Verpackung ohne Docker (Phase C, Ziel)
+# PRD: Native Windows-Verpackung ohne Docker
 
-> Vorgänger: die frühere Docker-basierte Windows-Verpackung (Release-ZIP
-> mit Starter/Relay). Diese PRD ersetzt langfristig deren
-> Laufzeitbasis (Docker Desktop) für den lokalen Windows-Betrieb und
-> übernimmt deren Bedien-Erkenntnisse (`.env`-Vertrag, Health-Check,
-> Zugriffs-URL, Relay per Doppelklick, kein Autostart).
+> Heutiger Stand: die Docker-basierte Windows-Verpackung (Release-ZIP mit
+> Starter/Relay). Diese PRD ersetzt langfristig deren Laufzeitbasis (Docker
+> Desktop) für den lokalen Windows-Betrieb und übernimmt deren
+> Bedien-Erkenntnisse (`.env`-Vertrag, Health-Check, Zugriffs-URL, Relay per
+> Doppelklick, kein Autostart).
 > Status: Ziel-Architektur, spätere Ausarbeitung. Es gibt noch keinen
 > Umsetzungsplan; User Stories und Entscheidungen sind bewusst grob.
 
@@ -32,8 +32,7 @@ Eine einzige native `jotti.exe` plus Installer, ganz ohne Docker:
 
 1. **Eine Binärdatei:** Das Go-Backend bettet das gebaute Frontend per
    `go:embed` ein und übernimmt TLS-Terminierung und statische Auslieferung
-   selbst, nginx entfällt im lokalen Modus (die frühere „Phase B" geht hierin
-   auf).
+   selbst, nginx entfällt im lokalen Modus.
 2. **Gebündelte PostgreSQL:** Die offiziellen PostgreSQL-Windows-Binaries
    liegen im Installationsverzeichnis; jotti startet die Datenbank als
    Kindprozess über `pg_ctl` und beendet sie beim Herunterfahren sauber.
@@ -73,12 +72,13 @@ Compose-Drift, keine vEthernet-Adapter, kein UAC-Dialog im Tagesbetrieb.
 
 ## Open Questions
 
-- **TLS ohne nginx:** Option 2 (selbstsigniert) erzeugt das Zertifikat heute im
-  reverse-proxy-Entrypoint, diese Logik wandert in die `jotti.exe`. Synergie
-  mit Option 3 (vertrauenswürdiges lokales TLS): deren
-  Caddy-Baustein ließe sich durch die CertMagic-Go-Library (Caddys
-  ACME-Engine) direkt im Backend ersetzen, acme-dns/DNS-01 in-process, ein
-  Baustein weniger.
+- **TLS ohne nginx:** Der Fallback-Modus (Caddys interne CA über `on_demand` +
+  `sign_with_root`, siehe `reverse-proxy/caddyfile.go`) erzeugt das Zertifikat
+  heute im reverse-proxy-Entrypoint, diese Logik wandert in die `jotti.exe`.
+  Synergie mit dem vertrauenswürdigen Wildcard-Modus (echtes
+  Let's-Encrypt-Zertifikat über DNS-01 gegen acme-dns): dessen Caddy-Baustein
+  ließe sich durch die CertMagic-Go-Library (Caddys ACME-Engine) direkt im
+  Backend ersetzen, acme-dns/DNS-01 in-process, ein Baustein weniger.
 - **PostgreSQL-Lebenszyklus:** Ort des Datenverzeichnisses, `initdb` beim
   ersten Start, Major-Upgrades (pg_upgrade beim jotti-Update?), Backups,
   Verantwortung wandert vom Docker-Volume zu jotti selbst.
@@ -95,8 +95,8 @@ Compose-Drift, keine vEthernet-Adapter, kein UAC-Dialog im Tagesbetrieb.
 
 - Ablösung von Docker/Compose auf den Server-Deployments (rocks/prod).
 - macOS-/Linux-Pakete.
-- **Autostart / Windows-Dienst:** wie in der Vorgänger-PRD bewusst abgelehnt
-  (eintägige Feste, lange Pausen; täglicher manueller Start gewollt).
+- **Autostart / Windows-Dienst:** bewusst abgelehnt (eintägige Feste, lange
+  Pausen; täglicher manueller Start gewollt).
 - Änderungen an POST-only, Event-Sourcing oder Datenmodell.
 - Wechsel des Datenbanksystems (es bleibt PostgreSQL, nur gebündelt statt
   containerisiert).
