@@ -422,7 +422,7 @@ DB-Werte (TEXT + CHECK): `'pro_position'`, `'pro_bestellung'`, `'pro_stueck'` (n
 
 Konkreter Druckjob in der Outbox, Single Source of Truth für alle Druckjobs, Arbeitsbon und Kassenbeleg. Das Backend reiht ein, das Relay leert.
 
-DB-Tabelle: `druckauftraege` · Spalten u. a.: `ziel_ip`, `payload` (Base64-ESC/POS), `bon_art` (`'arbeitsbon'` | `'kassenbeleg'` | `'testbon'`), `referenz`, `status` (`offen` → `gedruckt`; nach 3 Fehlversuchen `fehlgeschlagen` → `verworfen` oder zurück auf `offen`)
+DB-Tabelle: `druckauftraege` · Spalten u. a.: `ziel_ip`, `payload` (Base64-ESC/POS), `bon_art` (`'arbeitsbon'` | `'kassenbeleg'` | `'testbon'`), `referenz`, `status` (`offen` → `gedruckt`; nach 6 Fehlversuchen mit wachsendem Backoff (5 s, 15 s, 30 s, 60 s, 180 s) `fehlgeschlagen` → `verworfen` oder zurück auf `offen`)
 
 #### Relay
 
