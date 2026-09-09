@@ -5,7 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"regexp"
 )
+
+// subdomainPattern begrenzt die von acme-dns vergebene Subdomain auf ein
+// einzelnes DNS-Label (acme-dns vergibt eine UUID). Die Subdomain landet
+// ungequotet in der Site-Adresse `*.<subdomain>.<zone>` des gerenderten
+// Caddyfiles (wildcardSite): ein Leerzeichen oder eine geschweifte Klammer
+// darin wäre eine zusätzliche Caddy-Direktive. Ein Site-Adress-Token lässt
+// sich nicht quoten, also muss der Wert selbst eng sein.
+var subdomainPattern = regexp.MustCompile(`^[a-z0-9-]{1,63}$`)
 
 // InstallState ist der persistente Zustand einer Installation: die bei acme-dns
 // registrierten Credentials. Die Install-ID ist die von acme-dns vergebene
@@ -17,9 +26,10 @@ type InstallState struct {
 	Subdomain string `json:"subdomain"`
 }
 
-// valid meldet, ob alle Credentials vorhanden sind.
+// valid meldet, ob alle Credentials vorhanden und die Subdomain ein einzelnes
+// DNS-Label ist (siehe subdomainPattern).
 func (s InstallState) valid() bool {
-	return s.Username != "" && s.Password != "" && s.Subdomain != ""
+	return s.Username != "" && s.Password != "" && subdomainPattern.MatchString(s.Subdomain)
 }
 
 // stateDeps bündelt die injizierbaren Abhängigkeiten von ensureState, damit die
