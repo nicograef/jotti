@@ -248,6 +248,17 @@ function vollePositionsZeilen(page: Page): Locator {
   })
 }
 
+// leseAuswahlZaehler liest die Unterzeile „N von N ausgewählt" einer
+// Positions-Zeile — die eine Stelle für Text und Regex, die waehleAlleVollAus
+// sowohl im Klick-Loop als auch für die Nachbedingung braucht.
+async function leseAuswahlZaehler(
+  zeile: Locator,
+): Promise<{ text: string; treffer: RegExpExecArray | null }> {
+  const text = (await zeile.textContent()) ?? ''
+  const treffer = /(\d+) von (\d+) ausgewählt/.exec(text)
+  return { text, treffer }
+}
+
 // waehleAlleVollAus klickt in jeder Positions-Zeile so oft auf „+", bis die
 // Zeile voll ausgewählt ist — erkennbar an der Unterzeile „N von N ausgewählt"
 // (X == Y). Anders als der „Alle auswählen"-Button, der nur eigene Positionen
@@ -262,14 +273,12 @@ export async function waehleAlleVollAus(page: Page): Promise<void> {
   for (let i = 0; i < anzahlZeilen; i++) {
     const zeile = zeilen.nth(i)
     for (let klick = 0; klick < 50; klick++) {
-      const text = (await zeile.textContent()) ?? ''
-      const treffer = /(\d+) von (\d+) ausgewählt/.exec(text)
+      const { treffer } = await leseAuswahlZaehler(zeile)
       if (treffer && treffer[1] === treffer[2]) break
       await zeile.getByRole('button', { name: 'Produkt hinzufügen' }).click()
     }
 
-    const text = (await zeile.textContent()) ?? ''
-    const treffer = /(\d+) von (\d+) ausgewählt/.exec(text)
+    const { text, treffer } = await leseAuswahlZaehler(zeile)
     expect(
       treffer,
       `Zeile ${String(i)}: kein „N von N ausgewählt"-Text gefunden (Text: „${text}")`,
