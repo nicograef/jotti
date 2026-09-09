@@ -367,7 +367,7 @@ Stornierungen erzeugen immer neue Datensätze (GoBD-Radierverbot), nie Änderung
 ### 6.7 Architektonische Anforderungen an jotti
 
 1. CSV-Generator aus Event-Store- und Stammdaten (offizielle englische Dateinamen)
-2. `index.xml`- und `gdpdu-01-09-2004.dtd`-Generator (deklariert nur vorhandene Tabellen)
+2. Amtliche `index.xml` und `gdpdu-01-09-2004.dtd` eingebettet und unverändert ins Archiv gelegt (Prüfsoftware validiert gegen genau diese Dateien)
 3. Z-Bon-Logik (Tagessummen aggregieren)
 4. Abrechnungskreis-Verwaltung (Tisch-Session-ID in allen zugehörigen Bons)
 5. Admin-Endpunkt zum Auslösen des Exports
