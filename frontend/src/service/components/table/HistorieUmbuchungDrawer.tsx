@@ -95,8 +95,9 @@ export function HistorieUmbuchungDrawer({
   const noPositionenSelected = selectedPositionen.length === 0
   const keinZielTischVerfuegbar = zielTische.length === 0
   // Grund am Button nur für die behebbaren Bedingungen: Fehlt gänzlich ein
-  // Ziel-Tisch, nennt bereits der Select-Platzhalter den Grund — ein zweiter
-  // Hinweis wäre redundant (gleiche Dedup wie in HistorieStornierungDrawer).
+  // Ziel-Tisch, nennt bereits der Select-Platzhalter den Grund — und im
+  // Ladefehler der LadefehlerAlert an seiner Stelle. Ein zweiter Hinweis wäre
+  // redundant (gleiche Dedup wie in HistorieStornierungDrawer).
   const disabledReason = noPositionenSelected
     ? 'Positionen auswählen'
     : keinZielTischVerfuegbar

@@ -31,18 +31,27 @@ vi.mock('../table/TischBackend', () => ({
 let mockTische = [
   { id: 1, name: 'Stammtisch', istFavorit: false, saldoCents: 0 },
 ]
+// Steuerbarer Ladezustand der Tischliste.
+const tischeState = { fehler: false }
+const reloadTische = vi.hoisted(() => vi.fn())
 
 vi.mock('../table/hooks', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../table/hooks')>()
   return {
     ...actual,
-    useAktiveTischeMitFavoriten: () => ({ tische: mockTische }),
+    useAktiveTischeMitFavoriten: () => ({
+      tische: mockTische,
+      isError: tischeState.fehler,
+      refetch: reloadTische,
+    }),
   }
 })
 
 afterEach(() => {
   cleanup()
+  vi.clearAllMocks()
   mockTische = [{ id: 1, name: 'Stammtisch', istFavorit: false, saldoCents: 0 }]
+  tischeState.fehler = false
 })
 
 function renderDrawer() {
@@ -125,5 +134,28 @@ describe('TischAuswahlDrawer', () => {
     // Saldo pro Zeile bleibt sichtbar.
     expect(screen.getByText(/1,00\s*€/)).toBeInTheDocument()
     expect(screen.getByText(/5,00\s*€/)).toBeInTheDocument()
+  })
+})
+
+describe('TischAuswahlDrawer bei Ladefehler', () => {
+  it('zeigt den Hinweis statt einer leeren Liste', () => {
+    tischeState.fehler = true
+    mockTische = []
+    renderDrawer()
+
+    expect(
+      screen.getByText('Tische konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+  })
+
+  it('lädt die Tische über „Erneut versuchen" neu', async () => {
+    tischeState.fehler = true
+    mockTische = []
+    const user = userEvent.setup()
+    renderDrawer()
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+
+    expect(reloadTische).toHaveBeenCalled()
   })
 })
