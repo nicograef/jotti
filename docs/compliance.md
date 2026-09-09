@@ -277,7 +277,7 @@ Die TSE-Daten können platzsparend als QR-Code auf den Beleg, das Format muss de
 
 ### 5.5 Architektonische Anforderungen an jotti
 
-1. **Beleg-Generator:** Bereits implementiert, `POST /service/beleg-drucken` akzeptiert `verkaufId` (Direktverkauf), `tischId` + `zahlungId` (Tisch-Zahlung) oder `verkaufId` + `stornierungId` (Direktverkauf-Storno-Beleg) und erzeugt einen ESC/POS-Druckauftrag an den Kassenbeleg-Drucker.
+1. **Beleg-Generator:** Bereits implementiert, `POST /service/beleg-drucken` akzeptiert vier Body-Formen — `verkaufId` (Direktverkauf), `tischId` + `zahlungId` (Tisch-Zahlung), `tischId` + `stornierungId` (Tisch-Storno-Beleg, Warenrücknahme) und `verkaufId` + `stornierungId` (Direktverkauf-Storno-Beleg) — und erzeugt einen ESC/POS-Druckauftrag an den Kassenbeleg-Drucker.
 2. TSE-Daten auf dem Beleg andrucken: umgesetzt. `FormatKassenbeleg` druckt den TSE-Abschnitt (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Start- und Endzeitpunkt, Signatur); bei einem Ausfall ohne Signatur einen Ausfallvermerk.
 3. **Erste-Bestellung-Zeitstempel:** umgesetzt. Die `logTime` der ersten `Bestellung-V1` hält die Tisch-Session-Projektion vor und der Tisch-Beleg druckt sie an (nur Tisch-Belege, Direktverkäufe haben keine vorgelagerte Bestellung).
 4. QR-Code-Generierung im DSFinV-K-Format: umgesetzt. Der von fiskaly gelieferte `qr_code_data`-String wird als nativer ESC/POS-QR-Code gedruckt.
