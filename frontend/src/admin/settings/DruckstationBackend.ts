@@ -101,7 +101,7 @@ const REFERENZ_PRAEFIX_LABEL: Record<string, string> = {
 // Fachlicher Anzeigename je Kategorie, geteilt von der Referenz-Anzeige
 // fehlgeschlagener Druckaufträge (unten) und den Stationsköpfen der
 // Bondrucker-Seite. Testbons tragen als Referenz "testdruck:<kategorie>".
-export const KATEGORIE_LABEL: Record<string, string> = {
+export const STATION_KATEGORIE_LABEL: Record<string, string> = {
   essen: 'Essen',
   getraenk: 'Getränk',
   sonstiges: 'Sonstiges',
@@ -123,7 +123,7 @@ export function formatDruckauftragReferenz(referenz: string): string {
     return referenz
   }
   if (praefix === 'testdruck') {
-    return `Testbon ${KATEGORIE_LABEL[rest] ?? rest}`
+    return `Testbon ${STATION_KATEGORIE_LABEL[rest] ?? rest}`
   }
   const label = REFERENZ_PRAEFIX_LABEL[praefix] ?? ''
   if (label === '') {

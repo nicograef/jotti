@@ -31,35 +31,35 @@ import {
   formatDruckfehler,
   hatBonmodus,
   type Kategorie,
-  KATEGORIE_LABEL,
+  STATION_KATEGORIE_LABEL,
   validateDruckerIp,
 } from './DruckstationBackend'
 import { useDruckstationen, useFehlgeschlageneDruckauftraege } from './hooks'
 
 // Kurzbeschreibung und Label je Station; das Label kommt aus dem
-// geteilten KATEGORIE_LABEL des Backends (Single Source of Truth).
+// geteilten STATION_KATEGORIE_LABEL des Backends (Single Source of Truth).
 const KATEGORIE_INFO: Record<
   Kategorie,
   { label: string; beschreibung: string }
 > = {
   essen: {
-    label: KATEGORIE_LABEL.essen,
+    label: STATION_KATEGORIE_LABEL.essen,
     beschreibung: 'Bons für die Essensausgabe',
   },
   getraenk: {
-    label: KATEGORIE_LABEL.getraenk,
+    label: STATION_KATEGORIE_LABEL.getraenk,
     beschreibung: 'Bons für den Ausschank',
   },
   sonstiges: {
-    label: KATEGORIE_LABEL.sonstiges,
+    label: STATION_KATEGORIE_LABEL.sonstiges,
     beschreibung: 'Bons für sonstige Positionen',
   },
   kassenbeleg: {
-    label: KATEGORIE_LABEL.kassenbeleg,
+    label: STATION_KATEGORIE_LABEL.kassenbeleg,
     beschreibung: 'Beleg für Gäste',
   },
   abholbon: {
-    label: KATEGORIE_LABEL.abholbon,
+    label: STATION_KATEGORIE_LABEL.abholbon,
     beschreibung: 'Abholnummern beim Direktverkauf',
   },
 }
