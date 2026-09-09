@@ -509,8 +509,8 @@ func TestServiceleitungRole_AllowedForCancelEndpoint(t *testing.T) {
 	}
 }
 
-// Der Name im Context stammt aus dem geladenen Datensatz. Ein umbenannter
-// Benutzer trägt sonst seinen alten Namen bis zum Tokenablauf ins Kassenjournal.
+// Der Name im Context stammt aus dem geladenen Datensatz: Eine Umbenennung
+// wirkt im Kassenjournal sofort, nicht erst nach Tokenablauf.
 func TestJwtMiddleware_SetsStoredUserNameInContext(t *testing.T) {
 	secret := "test-secret"
 	token, err := jwt.GenerateJWTTokenForUser(1, "admin", secret)
