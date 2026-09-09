@@ -257,7 +257,9 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 //  3. tagesabschluss-erstellt:v1 (signiert, schließt die Kassensitzung)
 //
 // Invariante: Tisch-Saldo-Sperre — alle Tisch-Sessions müssen saldo_cents = 0
-// haben. Die Tagessummen des Z-Bons kommen aus GetReporting.
+// haben. Die Tagessummen des Z-Bons berechnet kasse.ComputeAbschlussSummen aus
+// den Events der Sitzung; dass diese Aggregation nicht von der SQL-Auswertung
+// abweicht, sichert reporting_repo/summen_abschluss_test.go zu.
 //
 // Zweiphasig über die Barriere: Als erste Handlung setzt die Sitzung auf
 // 'wird_abgeschlossen'. Ab diesem Commit lehnt der Status-Guard alle Buchungs-Events ab;
