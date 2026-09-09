@@ -116,18 +116,26 @@ func TestStatusPageWithoutGreenNameAsksForRestart(t *testing.T) {
 		lanOK:    true,
 	})
 
-	body := render(t, s)
+	page := render(t, s)
+	headline, notice := noticeText(noticeNoGreen)
 
-	if !strings.Contains(body, "jotti neu starten") {
-		t.Error("Hinweis auf den Neustart fehlt")
+	// Die Zusage am Hinweistext selbst prüfen, nicht an der Seite: „jotti neu
+	// starten" steht auch in der Ersteinrichtungs-Karte, die immer mitgerendert
+	// wird — eine Suche auf der Seite ginge deshalb nie rot.
+	if !strings.Contains(notice, "jotti neu starten") {
+		t.Errorf("der noGreen-Hinweis nennt den Neustart nicht: %q", notice)
 	}
-	if strings.Contains(body, "aktualisiert sich automatisch") {
-		t.Error("die Seite verspricht eine Selbstaktualisierung, die nichts ändern kann")
+	if strings.Contains(notice, "aktualisiert sich automatisch") {
+		t.Errorf("der noGreen-Hinweis verspricht eine Selbstaktualisierung: %q", notice)
 	}
-	if strings.Contains(body, "http-equiv=\"refresh\"") {
+	// Und die Seite zeigt wirklich diesen Hinweis, keinen anderen.
+	if !strings.Contains(page, headline) || !strings.Contains(page, notice) {
+		t.Errorf("die Seite zeigt den noGreen-Hinweis nicht:\n%s", page)
+	}
+	if strings.Contains(page, "http-equiv=\"refresh\"") {
 		t.Error("ohne grünen Namen darf sich die Seite nicht selbst aktualisieren")
 	}
-	if !strings.Contains(body, "https://192.168.1.50") {
+	if !strings.Contains(page, "https://192.168.1.50") {
 		t.Error("Fallback-Adresse fehlt")
 	}
 }
