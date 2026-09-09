@@ -31,36 +31,6 @@ func userRowToDomain(row dbgen.GetUserRow) user.User {
 	}
 }
 
-func userByUsernameForUpdateRowToDomain(row dbgen.GetUserByUsernameForUpdateRow) user.User {
-	return user.User{
-		ID:                      row.ID,
-		Name:                    row.Name,
-		Username:                row.Username,
-		Role:                    user.Role(row.Role),
-		Status:                  user.Status(row.Status),
-		PasswordHash:            row.PasswordHash.String,
-		OnetimePasswordHash:     row.OnetimePasswordHash.String,
-		OnetimePasswordAttempts: int(row.OnetimePasswordAttempts),
-		CreatedAt:               row.CreatedAt,
-		UpdatedAt:               row.UpdatedAt,
-	}
-}
-
-func userByUsernameRowToDomain(row dbgen.GetUserByUsernameRow) user.User {
-	return user.User{
-		ID:                      row.ID,
-		Name:                    row.Name,
-		Username:                row.Username,
-		Role:                    user.Role(row.Role),
-		Status:                  user.Status(row.Status),
-		PasswordHash:            row.PasswordHash.String,
-		OnetimePasswordHash:     row.OnetimePasswordHash.String,
-		OnetimePasswordAttempts: int(row.OnetimePasswordAttempts),
-		CreatedAt:               row.CreatedAt,
-		UpdatedAt:               row.UpdatedAt,
-	}
-}
-
 func allUsersRowToDomain(row dbgen.GetAllUsersRow) user.User {
 	return user.User{
 		ID:        row.ID,

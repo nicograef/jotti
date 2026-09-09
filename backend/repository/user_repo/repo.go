@@ -24,7 +24,7 @@ func (r Repository) GetUserByUsername(ctx context.Context, username string) (use
 		return user.User{}, db.Error(err)
 	}
 
-	return userByUsernameRowToDomain(row), nil
+	return userRowToDomain(dbgen.GetUserRow(row)), nil
 }
 
 func (r Repository) GetAllUsers(ctx context.Context) ([]user.User, error) {
@@ -114,7 +114,7 @@ func (r Repository) SetPasswordTx(ctx context.Context, username string, apply fu
 			return db.Error(err)
 		}
 
-		u := userByUsernameForUpdateRowToDomain(row)
+		u := userRowToDomain(dbgen.GetUserRow(row))
 		applyErr = apply(&u)
 
 		if _, err := qtx.UpdateUser(ctx, updateUserParams(u)); err != nil {
