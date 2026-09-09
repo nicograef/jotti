@@ -225,9 +225,10 @@ func (m *MockRepo) GetKassenbestand(_ context.Context, _ int) (kasse.Kassenbesta
 	if m.err != nil {
 		return kasse.Kassenbestand{}, m.err
 	}
-	// Der Kassenabschluss nutzt nur SollBestandCents; die Aufschlüsselung ist für
-	// die Kommando-Tests nicht relevant.
-	return kasse.Kassenbestand{SollBestandCents: m.kassenbestand}, nil
+	// Der Soll-Bestand ist der einzige Eingabewert des Mocks. Die Aufschlüsselung
+	// liest der Kassenabschluss ebenfalls (Soll ohne gebuchte Differenz), deshalb
+	// steht der ganze Betrag in den Bareinnahmen: der Stand ohne Differenzbuchung.
+	return kasse.Kassenbestand{SollBestandCents: m.kassenbestand, BareinnahmenCents: m.kassenbestand}, nil
 }
 
 // SetKassenbestand sets the Soll-Bestand return value for GetKassenbestand.
