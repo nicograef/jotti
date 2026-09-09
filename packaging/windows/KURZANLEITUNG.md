@@ -79,16 +79,26 @@ Zertifikat, also **keine neue Warnung**.
 ## Daten nach dem Fest sichern (optional)
 
 Wollt ihr die Kassendaten zusätzlich extern sichern (z. B. auf einen
-**USB-Stick**), erstellt mit einem Befehl eine Sicherungsdatei. Dazu die
-**Eingabeaufforderung** (cmd) öffnen und diese Zeile hineinkopieren:
+**USB-Stick**), erstellt eine Sicherungsdatei. jotti muss dazu laufen. Die
+**Eingabeaufforderung** (cmd) öffnen und diese drei Zeilen hineinkopieren:
 
 ```
-docker exec jotti-postgres-local pg_dump --clean --if-exists -U admin -d jotti > "%PROGRAMDATA%\jotti\backups\manuell.sql"
+md "%PROGRAMDATA%\jotti\backups" 2>nul
+docker exec jotti-postgres-local pg_dump --clean --if-exists -U admin -d jotti > "%PROGRAMDATA%\jotti\backups\manuell-%DATE:~-4%%DATE:~-7,2%%DATE:~-10,2%.sql"
+for %f in ("%PROGRAMDATA%\jotti\backups\manuell-*.sql") do @echo %~zf Bytes  %~nxf
 ```
 
-Die Datei liegt danach im Ordner `%PROGRAMDATA%\jotti\backups`. In denselben
-Ordner spiegelt jotti auch die **automatischen Backups vor jedem Update**. Diesen
-Ordner könnt ihr komplett auf einen USB-Stick oder in eine Cloud kopieren.
+- Zeile 1 legt den Ordner an, falls er fehlt; `2>nul` schluckt die Meldung, wenn
+  er schon da ist.
+- Zeile 2 schreibt die Sicherung. Das Datum steckt im Dateinamen, damit eine
+  zweite Sicherung die erste nicht überschreibt.
+- Zeile 3 listet jede vorhandene Sicherung mit ihrer Größe. Erscheint keine
+  Zeile oder **0 Bytes**, ist die Sicherung fehlgeschlagen — dann lief jotti
+  nicht. Löscht die leere Datei und versucht es erneut.
+
+Die Dateien liegen im Ordner `%PROGRAMDATA%\jotti\backups`. In denselben Ordner
+spiegelt jotti auch die **automatischen Backups vor jedem Update**. Diesen Ordner
+könnt ihr komplett auf einen USB-Stick oder in eine Cloud kopieren.
 
 ## jotti aktualisieren
 

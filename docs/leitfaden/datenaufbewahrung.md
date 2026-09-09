@@ -30,7 +30,7 @@ ist deshalb der DSFinV-K-Export oben. Wer zusätzlich die Rohdaten außer Haus s
 will, braucht dafür nicht zwingend einen Server: Auf dem Windows-Rechner könnt ihr
 den Ordner `C:\ProgramData\jotti\backups` komplett auf einen USB-Stick oder in eine
 Cloud kopieren; dorthin spiegelt jotti die automatischen Pre-Update-Backups, und die
-`KURZANLEITUNG.md` im ZIP zeigt einen Befehl für ein weiteres Backup auf Wunsch. Wer
+`KURZANLEITUNG.md` im ZIP zeigt die Befehle für ein weiteres Backup auf Wunsch. Wer
 die Rohdaten laufend automatisch außer Haus sichern will, betreibt jotti auf einem
 Server (siehe [Backups](aktualisieren-backups.md#backups) im Experten-Weg).
 
