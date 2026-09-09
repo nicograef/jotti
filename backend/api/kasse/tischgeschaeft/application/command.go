@@ -36,7 +36,6 @@ type eventRepo interface {
 }
 
 type kassensitzungenRepo interface {
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 

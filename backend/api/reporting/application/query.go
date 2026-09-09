@@ -25,7 +25,7 @@ type reportingRepo interface {
 type kassensitzungenRepo interface {
 	GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]reporting.AbgeschlosseneSitzung, error)
 	GetOffeneKassensitzungNr(ctx context.Context) (int, error)
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
 type tischSessionRepo interface {
@@ -304,9 +304,9 @@ func (q Query) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.E
 func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingData, error) {
 	log := zerolog.Ctx(ctx)
 
-	ks, err := q.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get offene kassensitzung")
+		log.Error().Err(err).Msg("Failed to get aktive kassensitzung")
 		return nil, ErrDatabase
 	}
 	if ks == nil {

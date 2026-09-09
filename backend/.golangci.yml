@@ -22,6 +22,7 @@ linters:
     - errorlint # Enforces correct error wrapping and comparison (errors.Is/As)
     - gocritic # Opinionated linter with diagnostic and performance checks
     - nilerr # Detects returning nil instead of the actual error in error branches
+    - forbidigo # Rejects the call patterns listed under settings.forbidigo
   disable:
     - wsl # Whitespace linter — too opinionated on blank line placement
     - exhaustive # Requires exhaustive switch statements on enums — not needed here
@@ -32,6 +33,14 @@ linters:
         - G115 # Suppress integer overflow conversion warnings (false positives on safe casts)
         - G117 # Suppress implicit memory aliasing in for loops (resolved in Go 1.22+)
         - G704 # SSRF-Taint auf die fiskaly-Basis-URL: sie stammt aus der Konfiguration (FiskalyBaseURL), nie aus Request-Daten — false positive
+    forbidigo:
+      # The barrier status wird_abgeschlossen is not a closed Kasse: read paths and
+      # guards ask GetAktiveKassensitzung, which sees 'offen' and 'wird_abgeschlossen'.
+      # The pattern ends at the method name, so GetOffeneKassensitzungNr and the
+      # repository-internal r.GetOffeneKassensitzung call stay allowed.
+      forbid:
+        - pattern: 'KassensitzungenRepo\.GetOffeneKassensitzung$'
+          msg: call KassensitzungenRepo.GetAktiveKassensitzung instead; GetOffeneKassensitzung misses the barrier status wird_abgeschlossen
     gocritic:
       enabled-tags:
         - diagnostic # Catch common bugs and suspicious code patterns

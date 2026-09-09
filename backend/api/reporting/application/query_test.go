@@ -70,7 +70,7 @@ func (m mockKasseRepo) GetAbgeschlosseneKassensitzungen(_ context.Context) ([]re
 	return nil, m.err
 }
 
-func (m mockKasseRepo) GetOffeneKassensitzung(_ context.Context) (*kasse.Kassensitzung, error) {
+func (m mockKasseRepo) GetAktiveKassensitzung(_ context.Context) (*kasse.Kassensitzung, error) {
 	return m.kassensitzung, m.err
 }
 
