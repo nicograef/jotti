@@ -2,9 +2,10 @@ package main
 
 import "fmt"
 
-// contentSecurityPolicy ist die CSP aller Caddy-Sites — LAN- und Public-Mode
-// teilen sie über proxySnippet, unverändert aus dem früheren nginx-/Caddy-Setup
-// übernommen (Parität). Muss identisch zur CSP in nginx.rocks.conf (demo) bleiben.
+// contentSecurityPolicy ist die CSP aller Caddy-Sites: LAN-, Public- und
+// HTTP-Only-Mode teilen sie über proxySnippet. Die demo-Site in
+// nginx.rocks.conf trägt denselben Wert wörtlich;
+// TestNginxRocksConfCarriesSameCSP hält beide Kopien zusammen.
 const contentSecurityPolicy = "default-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self' blob:; media-src 'self'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests"
 
 // hstsLAN ist der HSTS-Wert des LAN-Stacks (lokal/release): nur max-age, da der
