@@ -41,12 +41,12 @@ In der CI stehen fünf Jobs für dieselben fünf Module: `backend-ci` (57),
 Jeder Job trägt eine eigene Auslösebedingung, gebunden an einen eigenen
 Pfadfilter des `changes`-Jobs (Filter in den Zeilen 38–55):
 
-| Job              | `if:` (Zeile) | Filter             |
-| ---------------- | ------------- | ------------------ |
-| `backend-ci`     | 59            | `backend/**`       |
-| `resolver-ci`    | 140           | `resolver/**`      |
-| `local-proxy-ci` | 187           | `reverse-proxy/**` |
-| `windows-ci`     | 234           | `windows/**`       |
+| Job              | `if:` (Zeile) | Filter             | `working-directory`                           |
+| ---------------- | ------------- | ------------------ | --------------------------------------------- |
+| `backend-ci`     | 59            | `backend/**`       | `./backend` (63)                              |
+| `resolver-ci`    | 140           | `resolver/**`      | `./resolver` (144)                            |
+| `local-proxy-ci` | 187           | `reverse-proxy/**` | `./reverse-proxy` (191)                       |
+| `windows-ci`     | 234           | `windows/**`       | `./windows/${{ matrix.module }}` (je Schritt) |
 
 `windows-ci` kann eine Matrix sein, weil beide Module unter demselben
 Pfadfilter liegen. `resolver` und `reverse-proxy` haben je einen eigenen.
@@ -119,10 +119,13 @@ den Image-Tag (152). Auf sie zeigen ein kompiliertes Binary
    für beide ist länger und schwerer zu lesen als fünf Zeilen.
 3. **Basisdatei plus Overrides für alle Stacks.** Nur ein Paar ist ein
    Zwillingspaar; die übrigen unterscheiden sich in 117 bis 243 Zeilen.
-4. **Basisdatei nur für `local` und `release`.** Technisch volume-sicher: bleibt
-   `name: jotti-local` in beiden Overrides stehen, heißen die Volumes weiter
-   `jotti-local_postgres-data` und so fort. Aber das Release-ZIP müsste zwei
-   Dateien ausliefern, und Binary plus drei `.cmd` müssten die zweite kennen.
+4. **Basisdatei nur für `local` und `release`.** Technisch volume-sicher:
+   bleibt `name: jotti-local` in beiden Overrides stehen, behalten alle fünf
+   Volumes ihre realen Namen — `jotti-local_postgres-data`,
+   `jotti-local_caddy-data`, `jotti-local_proxy-state`,
+   `jotti-local_jotti-config`, `jotti-local_jotti-backups`. Aber das
+   Release-ZIP müsste zwei Dateien ausliefern, und das Binary plus die drei
+   `.cmd` müssten die zweite kennen.
 5. **Alles lassen.**
 
 ## Entscheidung
