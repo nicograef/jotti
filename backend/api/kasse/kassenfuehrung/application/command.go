@@ -29,7 +29,6 @@ type kassenjournalRepo interface {
 }
 
 type kassensitzungenRepo interface {
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 	SetKassensitzungWirdAbgeschlossen(ctx context.Context, zNr int) (int64, error)
 	SetKassensitzungOffen(ctx context.Context, zNr int) (int64, error)

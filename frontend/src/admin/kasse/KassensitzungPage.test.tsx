@@ -47,7 +47,7 @@ type OffeneKassensitzungMock = {
   zNr: number
   datum: string
   bezeichnung: string
-  status: 'offen'
+  status: 'offen' | 'wird_abgeschlossen'
   eroeffnetAm: string
 } | null
 
@@ -231,6 +231,28 @@ describe('KassensitzungPage', () => {
     ).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Geld entnehmen' }),
+    ).toBeInTheDocument()
+  })
+
+  it('zeigt im Barrierestatus Schritt 3 mit dem Hinweis auf den unterbrochenen Abschluss', () => {
+    offeneKassensitzungState.kassensitzung = {
+      zNr: 12,
+      datum: '2026-07-11',
+      bezeichnung: 'Sommerfest Tag 2',
+      status: 'wird_abgeschlossen',
+      eroeffnetAm: '2026-07-11T08:02:00Z',
+    }
+    renderPage()
+
+    expect(
+      screen.getByText('Abschluss unterbrochen — erneut abschließen'),
+    ).toBeInTheDocument()
+    // Statt des Eröffnen-Formulars steht der Abschluss zur Wiederholung bereit.
+    expect(
+      screen.queryByRole('button', { name: 'Kassensitzung eröffnen' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
     ).toBeInTheDocument()
   })
 

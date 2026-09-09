@@ -22,7 +22,7 @@ type mockQuery struct {
 	err           error
 }
 
-func (m *mockQuery) GetOffeneKassensitzung(_ context.Context) (*kasse.Kassensitzung, error) {
+func (m *mockQuery) GetAktiveKassensitzung(_ context.Context) (*kasse.Kassensitzung, error) {
 	return m.kassensitzung, m.err
 }
 
@@ -34,42 +34,42 @@ func (m *mockQuery) GetGeldtransitListe(_ context.Context, _ int) ([]kasse.Geldt
 	return m.geldtransit, m.err
 }
 
-// GetOffeneKassensitzung
+// GetAktiveKassensitzung
 
-func TestGetOffeneKassensitzungHandler_Success(t *testing.T) {
+func TestGetAktiveKassensitzungHandler_Success(t *testing.T) {
 	ks := &kasse.Kassensitzung{ZNr: 1, Bezeichnung: "Maihock", Status: kasse.KassensitzungOffen}
 	handler := &QueryHandler{Query: &mockQuery{kassensitzung: ks}}
 
-	req := httptest.NewRequest(http.MethodPost, "/get-offene-kassensitzung", nil)
+	req := httptest.NewRequest(http.MethodPost, "/get-aktive-kassensitzung", nil)
 	rec := httptest.NewRecorder()
 
-	handler.GetOffeneKassensitzungHandler().ServeHTTP(rec, req)
+	handler.GetAktiveKassensitzungHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rec.Code)
 	}
 }
 
-func TestGetOffeneKassensitzungHandler_NoneOpen(t *testing.T) {
+func TestGetAktiveKassensitzungHandler_NoneActive(t *testing.T) {
 	handler := &QueryHandler{Query: &mockQuery{kassensitzung: nil}}
 
-	req := httptest.NewRequest(http.MethodPost, "/get-offene-kassensitzung", nil)
+	req := httptest.NewRequest(http.MethodPost, "/get-aktive-kassensitzung", nil)
 	rec := httptest.NewRecorder()
 
-	handler.GetOffeneKassensitzungHandler().ServeHTTP(rec, req)
+	handler.GetAktiveKassensitzungHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", rec.Code)
 	}
 }
 
-func TestGetOffeneKassensitzungHandler_DBError(t *testing.T) {
+func TestGetAktiveKassensitzungHandler_DBError(t *testing.T) {
 	handler := &QueryHandler{Query: &mockQuery{err: errDB}}
 
-	req := httptest.NewRequest(http.MethodPost, "/get-offene-kassensitzung", nil)
+	req := httptest.NewRequest(http.MethodPost, "/get-aktive-kassensitzung", nil)
 	rec := httptest.NewRecorder()
 
-	handler.GetOffeneKassensitzungHandler().ServeHTTP(rec, req)
+	handler.GetAktiveKassensitzungHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Errorf("expected 500, got %d", rec.Code)

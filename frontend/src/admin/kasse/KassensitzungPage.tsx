@@ -3,6 +3,7 @@ import { Check } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 
 import { AdminPageHeader } from '@/admin/components/AdminPageHeader'
+import { WarnKarte } from '@/admin/components/WarnKarte'
 import { formatDatumLang } from '@/admin/reporting/utils'
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,6 +18,7 @@ import {
 } from './hooks'
 import { KasseAbschliessenSection } from './KasseAbschliessenSection'
 import type { OffeneKassensitzung } from './KasseBackend'
+import { KassensitzungStatus } from './Kassensitzung'
 import { LaufenderBetriebSection } from './LaufenderBetriebSection'
 
 export { EroeffnenSection } from './EroeffnenSection'
@@ -233,6 +235,15 @@ export function KassensitzungPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* Bleibt die Sitzung im Barrierestatus stehen, ist ein
+                      Abschluss unterwegs abgebrochen. Der Hinweis sagt, dass
+                      genau dieser Schritt zu wiederholen ist. */}
+                  {kassensitzung.status ===
+                    KassensitzungStatus.WIRD_ABGESCHLOSSEN && (
+                    <WarnKarte className="mb-4">
+                      Abschluss unterbrochen — erneut abschließen
+                    </WarnKarte>
+                  )}
                   <KasseAbschliessenSection
                     kassensitzungNr={kassensitzung.zNr}
                     onSuccess={() => void refetch()}

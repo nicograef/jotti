@@ -108,9 +108,9 @@ export class KasseBackend {
     )
   }
 
-  async getOffeneKassensitzung(): Promise<OffeneKassensitzung | null> {
+  async getAktiveKassensitzung(): Promise<OffeneKassensitzung | null> {
     const data = await this.backend.post(
-      'admin/get-offene-kassensitzung',
+      'admin/get-aktive-kassensitzung',
       {},
       OffeneKassensitzungSchema.nullable(),
     )

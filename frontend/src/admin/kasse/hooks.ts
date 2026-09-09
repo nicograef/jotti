@@ -19,7 +19,7 @@ export function useOffeneKassensitzung() {
     refetch,
   } = useQuery({
     queryKey: ['offene-kassensitzung'],
-    queryFn: () => kasseBackend.getOffeneKassensitzung(),
+    queryFn: () => kasseBackend.getAktiveKassensitzung(),
   })
   return { kassensitzung: data, isPending, isError, refetch }
 }
