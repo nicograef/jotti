@@ -36,6 +36,8 @@ Die Ubiquitous Language ist ein Living Document: Sie wird fortlaufend aktualisie
 
 > **Go-Paketnamens-Konvention:** Fachmodule tragen deutsche Namen (`kasse`, `tisch`, `produkt`, `betreiber`, `druckstation`, `steuer`). Infrastruktur-Pakete bleiben englisch (`event`, `jwt`, `db`, `config`, `middleware`, `helper`). `user` ist eine dokumentierte Ausnahme: der Begriff ist im Deutschen mehrdeutig, das Paket deckt Auth-nahe Infrastruktur ab und bleibt englisch. Die API-Kontext-Ordner folgen demselben Muster: `kasse`, `fiskal`, `druck`, `stammdaten`, `reporting` (Fach), `auth`, `health`, `helper`, `middleware` (Infra).
 
+> **Geltungsbereich:** Diese Konventionen gelten für Backend, Frontend und Datenbank. Das Website-Paket (`website/`, `@jotti/website`) ist davon ausgenommen: es ist eine eigenständige Codebasis ohne Import aus dem Frontend, und seine Bezeichner sind englisch, auch wo sie Domänenbegriffe abbilden (`website/src/lib/live-demo.ts`: `DemoProduct`, `Cart`, `addVariant`). Benutzer-sichtbare Strings der Website sind deutsch wie überall sonst (Regel 3).
+
 ## Begriffsdefinitionen
 
 ### Vereinswesen & Steuerliche Sphären
