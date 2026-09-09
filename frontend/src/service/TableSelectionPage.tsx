@@ -46,15 +46,19 @@ export function TableSelectionPage() {
     refetch: reloadUebersicht,
   } = useEigeneUebersicht()
 
-  const ladefehler = tischeError || alleTischeError || uebersichtError
+  // Nur die beiden Queries, die den Seiteninhalt tragen. Die Suche hängt allein
+  // an alleTische und meldet ihren Ladefehler in ihrem eigenen Block, damit eine
+  // gescheiterte Suchliste nicht die geladenen Tische verdeckt.
+  const ladefehler = tischeError || uebersichtError
   const reload = useCallback(() => {
     void reloadTische()
-    void reloadAlleTische()
     void reloadUebersicht()
-  }, [reloadTische, reloadAlleTische, reloadUebersicht])
+  }, [reloadTische, reloadUebersicht])
 
   const sucheGetrimmt = suche.trim()
-  const sucheAktiv = sucheGetrimmt.length > 0
+  // Ohne geladene Tischliste kann die Suche nichts treffen; statt eines leeren
+  // Treffer-Ergebnisses zeigt der Suchblock dann den Ladefehler.
+  const sucheAktiv = !alleTischeError && sucheGetrimmt.length > 0
 
   const offeneTische = tische.filter(
     (state) => state.unbezahltePositionen.length > 0,
@@ -80,6 +84,33 @@ export function TableSelectionPage() {
     !tischeLoading && !sucheAktiv && tische.length > 0,
   )
 
+  // Suchblock: Eingabefeld, sobald es Tische gibt — bei Ladefehler stattdessen
+  // der Hinweis, weil ein stilles Suchfeld ohne Trefferliste wie „kein Tisch
+  // passt" aussähe.
+  const suchblock = alleTischeError ? (
+    <LadefehlerAlert
+      className="mb-4"
+      titel="Tischsuche konnte nicht geladen werden"
+      onErneutVersuchen={() => {
+        void reloadAlleTische()
+      }}
+    />
+  ) : (
+    alleTische.length > 0 && (
+      <div className="relative mb-4">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="h-11 pl-9"
+          placeholder="Tisch suchen — Name oder Nummer"
+          value={suche}
+          onChange={(e) => {
+            setSuche(e.target.value)
+          }}
+        />
+      </div>
+    )
+  )
+
   // Expliziter Fehlerzustand statt der Leer-Defaults (Übersicht 0,00 €, keine
   // markierten Tische) — sonst sieht der eigene Dienst bei Netzabbruch wie ein
   // Tag ohne Bestellung aus. Die Fußleiste bleibt stehen, damit der
@@ -96,19 +127,7 @@ export function TableSelectionPage() {
         loading={uebersichtLoading}
       />
 
-      {alleTische.length > 0 && (
-        <div className="relative mb-4">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="h-11 pl-9"
-            placeholder="Tisch suchen — Name oder Nummer"
-            value={suche}
-            onChange={(e) => {
-              setSuche(e.target.value)
-            }}
-          />
-        </div>
-      )}
+      {suchblock}
 
       {sucheAktiv ? (
         suchTreffer.length === 0 ? (

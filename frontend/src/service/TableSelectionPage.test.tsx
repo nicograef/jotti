@@ -14,20 +14,27 @@ vi.mock('react-router', () => ({
 
 let meineTische: TischSession[] = []
 let alleTische: AktiverTischMitFavorit[] = []
-let ladefehler = false
-const reloadUebersicht = vi.fn()
+// Je Query steuerbar: die drei Lesepfade der Seite scheitern unabhängig.
+const fehler = { meineTische: false, alleTische: false, uebersicht: false }
+const { reloadMeineTische, reloadAlleTische, reloadUebersicht } = vi.hoisted(
+  () => ({
+    reloadMeineTische: vi.fn(),
+    reloadAlleTische: vi.fn(),
+    reloadUebersicht: vi.fn(),
+  }),
+)
 
 vi.mock('./table/hooks', () => ({
   useMeineTischeState: () => ({
     tische: meineTische,
     isPending: false,
-    isError: ladefehler,
-    refetch: vi.fn(),
+    isError: fehler.meineTische,
+    refetch: reloadMeineTische,
   }),
   useAktiveTischeMitFavoriten: () => ({
     tische: alleTische,
-    isError: ladefehler,
-    refetch: vi.fn(),
+    isError: fehler.alleTische,
+    refetch: reloadAlleTische,
   }),
   useEigeneUebersicht: () => ({
     uebersicht: {
@@ -40,7 +47,7 @@ vi.mock('./table/hooks', () => ({
       abzugebenCents: 0,
     },
     isPending: false,
-    isError: ladefehler,
+    isError: fehler.uebersicht,
     refetch: reloadUebersicht,
   }),
 }))
@@ -83,7 +90,9 @@ afterEach(() => {
   vi.clearAllMocks()
   meineTische = []
   alleTische = []
-  ladefehler = false
+  fehler.meineTische = false
+  fehler.alleTische = false
+  fehler.uebersicht = false
 })
 
 describe('TableSelectionPage', () => {
@@ -142,7 +151,9 @@ describe('TableSelectionPage', () => {
 
 describe('TableSelectionPage bei Ladefehler', () => {
   it('zeigt einen Fehlerzustand statt der Leer-Defaults', () => {
-    ladefehler = true
+    fehler.meineTische = true
+    fehler.alleTische = true
+    fehler.uebersicht = true
     render(<TableSelectionPage />)
 
     expect(
@@ -158,13 +169,49 @@ describe('TableSelectionPage bei Ladefehler', () => {
   })
 
   it('lädt über „Erneut versuchen" neu', async () => {
-    ladefehler = true
+    fehler.meineTische = true
+    fehler.uebersicht = true
     const user = userEvent.setup()
     render(<TableSelectionPage />)
 
     await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
 
+    expect(reloadMeineTische).toHaveBeenCalled()
     expect(reloadUebersicht).toHaveBeenCalled()
+  })
+
+  // Die Suche liest eine eigene Query. Scheitert nur sie, bleiben „Meine
+  // Tische" und die Übersicht stehen — sonst wäre bei einem Suchlisten-Fehler
+  // kein Tisch mehr erreichbar.
+  it('lässt Meine Tische stehen, wenn nur die Suchliste scheitert', () => {
+    fehler.alleTische = true
+    meineTische = [tischSession(1, 'Stammtisch', true)]
+    render(<TableSelectionPage />)
+
+    expect(screen.getByText('Noch offen · 1')).toBeInTheDocument()
+    expect(screen.getByText('Stammtisch')).toBeInTheDocument()
+    expect(
+      screen.getByText('Tischsuche konnte nicht geladen werden'),
+    ).toBeInTheDocument()
+    // Kein stilles Suchfeld ohne Trefferliste.
+    expect(
+      screen.queryByPlaceholderText(/Tisch suchen/),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Tischübersicht konnte nicht geladen werden'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('lädt nur die Suchliste nach, wenn nur sie scheitert', async () => {
+    fehler.alleTische = true
+    meineTische = [tischSession(1, 'Stammtisch', true)]
+    const user = userEvent.setup()
+    render(<TableSelectionPage />)
+
+    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+
+    expect(reloadAlleTische).toHaveBeenCalled()
+    expect(reloadMeineTische).not.toHaveBeenCalled()
   })
 })
 
