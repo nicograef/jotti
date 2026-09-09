@@ -407,7 +407,7 @@ jobs:
         ports:
           - 5432:5432
         # Health check over TCP instead of the unix socket: during initialization
-        # postgres:17 runs a temporary socket-only server that is restarted
+        # the postgres image runs a temporary socket-only server that is restarted
         # afterwards; only the final server accepts TCP connections. Matches the
         # startup-race hardening in scripts/test-integration.sh.
         options: >-
