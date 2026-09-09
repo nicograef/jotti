@@ -9,10 +9,12 @@ set -euo pipefail
 # assertion instead of failing it — see e2e/support/viewport.ts's
 # erwarteKeinenHorizontalenUeberlauf, the case this gate was written for).
 #
-# Scanned are the tracked TypeScript files under e2e/tests and e2e/support —
-# the Playwright specs and their shared helpers. e2e/website/**(*.mjs) is out
-# of scope: those are static-site smoke scripts (CSP check, screenshots) for
-# the marketing site, not app specs, and a different concern than this gate.
+# Scanned are the tracked TypeScript files under e2e/tests, e2e/support and
+# e2e/helpers — the Playwright specs and their shared helpers (e2e/helpers/
+# fehlerpfade.ts, imported by four specs, lives outside e2e/support). e2e/
+# website/**(*.mjs) is out of scope: those are static-site smoke scripts
+# (CSP check, screenshots) for the marketing site, not app specs, and a
+# different concern than this gate.
 # A pure `//` comment line is skipped, so a line documenting the forbidden
 # pattern (as this file's own header, or a fix's explanatory comment, does)
 # does not trip the gate itself.
@@ -27,7 +29,8 @@ cd "$PROJECT_ROOT"
 # `:(glob)` makes `/**/` mean "zero or more directories" for git pathspecs.
 mapfile -t files < <(git ls-files \
   ':(glob)e2e/tests/**/*.ts' \
-  ':(glob)e2e/support/**/*.ts')
+  ':(glob)e2e/support/**/*.ts' \
+  ':(glob)e2e/helpers/**/*.ts')
 
 violations=0
 for file in "${files[@]}"; do
@@ -44,7 +47,7 @@ for file in "${files[@]}"; do
 done
 
 if [ "$violations" -gt 0 ]; then
-  fatal "$violations weak e2e assertion(s) found (networkidle or \`?? 0\`) under e2e/tests and e2e/support."
+  fatal "$violations weak e2e assertion(s) found (networkidle or \`?? 0\`) under e2e/tests, e2e/support and e2e/helpers."
 fi
 
-info "No networkidle wait or \`?? 0\` fallback in e2e/tests or e2e/support."
+info "No networkidle wait or \`?? 0\` fallback in e2e/tests, e2e/support or e2e/helpers."
