@@ -160,6 +160,16 @@ css, md` im ganzen Repo ab. Grund: 29 Markdown-Dateien außerhalb `docs/plans/` 
   `packageManager`); Stage-Namen, `scratch` und Build-Args gelten nicht als ungepinnt,
   Digest-Pins zählen als Version. Folge der Eigentümer-Entscheidung zu `JOTTI_DOMAIN`:
   jeder Compose-Befehl des Public-Stacks verlangt die Variable, auch `make prod-down`.
+- **Nachträge aus dem Review der Phase 12** (Lead): der KassenSichV-Satz steht in
+  `TERMS.md` § 5 Abs. 2 (Compliance-Verantwortung), nicht in § 8; die Website-Kopie in
+  `website/src/pages/fuer-vereine.astro` trägt denselben Wortlaut. Die Aussage „`01_initial.up.sql`
+  ist kanonisch" war auch in `docs/handbuch.md` und `docs/verfahrensdokumentation.md` zu
+  tilgen; der Steuersatz liegt am Produkt, nicht an der Variante.
+  Das UI-Label-Gate prüft, wie das Kriterium sagt, das Vorkommen in `frontend/src`; ein
+  Zitat, das als Bezeichner oder Kommentar vorkommt, läuft durch — schärfer wäre nur ein
+  Abgleich gegen gerenderte Texte, den es nicht gibt (Übergabe-Notiz). Der Exportpfad heißt
+  überall „Berichte & Export" → „Archiv herunterladen (ZIP)"; „Stammdaten-Snapshot" ist aus
+  README und Produktbeschreibung getilgt.
 
 ### Kritik (2026-09-08)
 
@@ -226,7 +236,7 @@ Nachprüfung (Opus, gleicher Tag):
 
 Keine offenen Fragen. Der Eigentümer hat am 2026-09-08 entschieden:
 
-- **TERMS.md § 8 Abs. 2 (Option A)**: die Zusage lautet „unterstützt die Anforderungen der
+- **TERMS.md § 5 Abs. 2 (Option A)**: die Zusage lautet „unterstützt die Anforderungen der
   deutschen Kassensicherungsverordnung (KassenSichV) technisch". Kriterium 12.14 setzt das
   um. Das Versionsdatum von `TERMS.md` bleibt unverändert; der Eigentümer prüft es beim
   Merge zusammen mit dem Diff.
@@ -1176,7 +1186,7 @@ Phase grün; gelandet wird nur der grüne Endstand.
   Body-Formen
 - `.github/instructions/backend.instructions.md — Abschnitt JWT` — Rolle liegt nie im
   Context; `username` fehlt in der Claim-Liste
-- `TERMS.md § 8 Abs. 2` — „Die Software setzt die deutsche Kassensicherungsverordnung
+- `TERMS.md § 5 Abs. 2` — „Die Software setzt die deutsche Kassensicherungsverordnung
   (KassenSichV) um."
 
 ### What to build
@@ -1187,7 +1197,7 @@ Phasen 7, 8 und 11.
 
 ### Acceptance criteria
 
-- [ ] `scripts/check-ui-labels.sh` sammelt die in `docs/leitfaden/**` in „…" zitierten
+- [x] `scripts/check-ui-labels.sh` sammelt die in `docs/leitfaden/**` in „…" zitierten
       Bedienelemente und schlägt fehl, sobald eines in `frontend/src` nicht vorkommt. Es
       zieht über Zeilenumbrüche verteilte Zitate vorher zusammen. Eine versionierte
       Allowlist-Datei nennt jedes Nicht-UI-Zitat mit seiner Quelle — mindestens Windows
@@ -1195,7 +1205,7 @@ Phasen 7, 8 und 11.
       „Diese Domain(s) ausnehmen", „Automatisch", „Weitere Einstellungen"), GitHub
       („Source code (zip)"), ELSTER („Mitteilung über elektronische Aufzeichnungssysteme")
       und den UStAE-Wortlaut („Verkauf an eine Vielzahl nicht bekannter Personen").
-- [ ] Die Bedienpfade der Anwenderdoku stimmen mit `AdminSidebar.tsx` überein:
+- [x] Die Bedienpfade der Anwenderdoku stimmen mit `AdminSidebar.tsx` überein:
       `tse-sonderfaelle.md` und `tse-einrichten.md` auf „Finanzamt & TSE" → „TSE
       einrichten", `datenaufbewahrung.md` auf „Berichte & Export" → „Archiv herunterladen
       (ZIP)", `veranstaltungstag.md` auf „Kassentag" und „Geld einlegen"/„Geld entnehmen",
@@ -1206,47 +1216,47 @@ Phasen 7, 8 und 11.
       oder stehen mit Quelle in der Allowlist.
       Befund: docs/leitfaden/tse-sonderfaelle.md:47-53, docs/leitfaden/datenaufbewahrung.md:15-17,
       docs/leitfaden/veranstaltungstag.md:10-36, docs/leitfaden/installation.md:65-67
-- [ ] `README.md` nennt für den Relay-Schnelltest `400` mit `{"code":"unauthorized"}` und
+- [x] `README.md` nennt für den Relay-Schnelltest `400` mit `{"code":"unauthorized"}` und
       den Menüpunkt „Bondrucker". Befund: README.md:78
-- [ ] `docs/handbuch.md` beschreibt die neun registrierten Admin-Seiten mit
+- [x] `docs/handbuch.md` beschreibt die neun registrierten Admin-Seiten mit
       `DruckstationConfigPage`, ergänzt die Service-Zeile um den Direktverkauf und kürzt
       die Tischdetail-Tabs auf „Bestellen, Kassieren, Historie".
       Befund: docs/handbuch.md:417-421, :481
-- [ ] `docs/handbuch.md` §4.6 und `docs/compliance.md` nennen alle vier Body-Formen des
+- [x] `docs/handbuch.md` §4.6 und `docs/compliance.md` nennen alle vier Body-Formen des
       Kassenbelegs (`tischId`+`zahlungId`, `tischId`+`stornierungId`, `verkaufId`,
       `verkaufId`+`stornierungId`) samt Stornobeleg-Familie.
       Befund: docs/handbuch.md:306, :306
-- [ ] `docs/handbuch.md` und `docs/language.md` nennen sechs Fehlversuche bis
+- [x] `docs/handbuch.md` und `docs/language.md` nennen sechs Fehlversuche bis
       `fehlgeschlagen` und das Backoff-Schema 5 s/15 s/30 s/60 s/180 s.
       Befund: backend/repository/druckauftrag_repo/repo.go:14-16, docs/handbuch.md:308
-- [ ] `docs/handbuch.md` §3.11/§2.2 beschreibt den Ist-Stand ohne Stammdaten-Snapshot
+- [x] `docs/handbuch.md` §3.11/§2.2 beschreibt den Ist-Stand ohne Stammdaten-Snapshot
       (Positions-Steuersätze eingefroren, Stammdaten beim Export gelesen), und §5.2
       beschreibt den realen Onboarding-Ablauf in vier Schritten (anlegen als `inactive`,
       „Neues Passwort festlegen", Admin aktiviert, regulärer Login).
       Befund: docs/handbuch.md:216, :364-367
-- [ ] `docs/compliance.md` streicht die Abrechnungskreis-Zusage „Tisch 42-B" (§6.5 bleibt
+- [x] `docs/compliance.md` streicht die Abrechnungskreis-Zusage „Tisch 42-B" (§6.5 bleibt
       die einzige Aussage) und beschreibt den DSFinV-K-Versionsstring als Konstante
       `dsfinvk.Version`. Befund: docs/compliance.md:137, :296
-- [ ] `.github/instructions/backend.instructions.md` nennt die echten Claims (`iss`, `iat`,
+- [x] `.github/instructions/backend.instructions.md` nennt die echten Claims (`iss`, `iat`,
       `exp`, `sub`, `username`, `role`), die Context-Keys `UserIDKey`/`UserNameKey` und die
       Rolle aus dem Datensatz; `.github/instructions/database.instructions.md` nennt als
       kanonisches Schema alle `*.up.sql` in Reihenfolge.
       Befund: .github/instructions/backend.instructions.md:49-50,
       .github/instructions/database.instructions.md:6
-- [ ] `docs/produktbeschreibung.md` beschränkt die Plattformaussage auf x86-64 (Resolved
+- [x] `docs/produktbeschreibung.md` beschränkt die Plattformaussage auf x86-64 (Resolved
       decisions) und beschreibt die Steuersätze auf Produktebene inklusive `kombi`
       (70/30). Befund: docs/produktbeschreibung.md:154,184, :138
-- [ ] `docs/verfahrensdokumentation.md` listet die sechs Bounded Contexts aus
+- [x] `docs/verfahrensdokumentation.md` listet die sechs Bounded Contexts aus
       `docs/handbuch.md` ohne den entfernten Vorgang „Ausgeben", und `docs/language.md`
       verliert den Abschnitt „Geplant"; der Geldtransit-Hinweis wandert an dessen
       Glossareintrag. Befund: docs/verfahrensdokumentation.md:46-52, docs/language.md:516-521
-- [ ] `CLA.md` § 2 b) benennt die dem Autor gewährten Rechte als unwiderruflich, in
+- [x] `CLA.md` § 2 b) benennt die dem Autor gewährten Rechte als unwiderruflich, in
       Übereinstimmung mit Abschnitt 1 und `LICENSE:112-113`. Befund: CLA.md:36
-- [ ] `docs/prds/prd-windows-nativ-ohne-docker.md` beschreibt den Docker-Weg im Präsens,
+- [x] `docs/prds/prd-windows-nativ-ohne-docker.md` beschreibt den Docker-Weg im Präsens,
       ohne Verweise auf „Phase B" und eine Vorgänger-PRD, und die TLS-Aussage nennt Caddys
       interne CA und die DNS-01-Wildcard.
       Befund: docs/prds/prd-windows-nativ-ohne-docker.md:3-9,35,76-81
-- [ ] `TERMS.md` § 8 Abs. 2 lautet „unterstützt die Anforderungen der deutschen
+- [x] `TERMS.md` § 5 Abs. 2 lautet „unterstützt die Anforderungen der deutschen
       Kassensicherungsverordnung (KassenSichV) technisch" (Eigentümer-Entscheidung, Option
       A). Das Versionsdatum von `TERMS.md` und `website/src/lib/anfrage-mailto.ts` bleibt
       unverändert.
