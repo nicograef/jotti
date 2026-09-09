@@ -169,7 +169,7 @@ func runLANMode(cfg config) {
 	if hasState {
 		log.Printf("Installations-State geladen | Install-ID: %s", state.Subdomain)
 	} else {
-		log.Printf("Kein nutzbarer Installations-State (%v) — Start nur mit der Fallback-Adresse; die grüne Adresse wird aktiv, sobald wieder ein gültiger State vorliegt", err)
+		log.Printf("Kein nutzbarer Installations-State (%v) — Start nur mit der Fallback-Adresse; die grüne Adresse entsteht erst bei einem Neustart mit gültigem State", err)
 	}
 
 	lanIP, lanOK := resolveLANIP(cfg.lanIPEnv)
@@ -179,7 +179,7 @@ func runLANMode(cfg config) {
 		}
 		log.Printf("Fallback-Adresse: https://%s", lanIP)
 	} else {
-		log.Printf("LAN-IP unbekannt (LAN_IP nicht gesetzt) — Zugangsadresse erst sichtbar, sobald die IP übergeben wird")
+		log.Printf("LAN-IP unbekannt (LAN_IP nicht gesetzt) — eine Zugangsadresse entsteht erst bei einem Neustart mit gesetztem LAN_IP")
 	}
 
 	if cfg.leStaging {

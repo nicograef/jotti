@@ -38,8 +38,10 @@ type statusConfig struct {
 
 // statusServer serviert die lokale Status-Seite. greenURL/fallbackURL stehen beim
 // Start fest; Zertifikat und Rebind werden bei jedem Seitenaufruf frisch geprüft,
-// damit die Seite ohne Neustart von „Fallback" auf „grün" wechselt. probeCert und
-// checkRebind sind Felder, damit Tests sie ohne echtes Netz ersetzen können.
+// damit die Seite ohne Neustart von „Fallback" auf „grün" wechselt. Fehlt der
+// grüne Name selbst (kein State, keine LAN-IP), hilft nur ein Neustart —
+// darauf verweist der Hinweistext. probeCert und checkRebind sind Felder, damit
+// Tests sie ohne echtes Netz ersetzen können.
 type statusServer struct {
 	greenURL    string
 	fallbackURL string
@@ -157,8 +159,8 @@ func noticeText(n notice) (headline, body string) {
 		return "DNS-Rebind-Schutz erkannt",
 			"Der Router beantwortet den Namen nicht mit der lokalen IP, deshalb ist die vertrauenswürdige Adresse im WLAN nicht erreichbar. Trage lokal.jotti.rocks als Ausnahme im Rebind-Schutz des Routers ein oder nutze die Fallback-Adresse:"
 	default: // noticeNoGreen
-		return "Warte auf Registrierung und Netzwerk …",
-			"Die einmalige Registrierung oder die LAN-IP fehlt noch. Bis dahin die Fallback-Adresse nutzen. Diese Seite aktualisiert sich automatisch."
+		return "Vertrauenswürdige Adresse noch nicht verfügbar",
+			"Die einmalige Registrierung oder die LAN-IP fehlt; beide ermittelt jotti nur beim Start. Bis dahin die Fallback-Adresse nutzen. Danach mit Internet und im Vereins-WLAN jotti neu starten."
 	}
 }
 

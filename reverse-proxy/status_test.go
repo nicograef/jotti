@@ -36,9 +36,9 @@ func TestDecideStatus(t *testing.T) {
 			wantPrimary: fallback, wantNotice: noticeRebind, wantQR: false, wantGreen: false, wantRefresh: true,
 		},
 		{
-			name:        "keine grüne Adresse möglich (kein State/keine IP) → Fallback",
+			name:        "keine grüne Adresse möglich (kein State/keine IP) → Fallback ohne Refresh",
 			in:          statusInputs{greenURL: "", fallbackURL: fallback},
-			wantPrimary: fallback, wantNotice: noticeNoGreen, wantQR: false, wantGreen: false, wantRefresh: true,
+			wantPrimary: fallback, wantNotice: noticeNoGreen, wantQR: false, wantGreen: false, wantRefresh: false,
 		},
 	}
 

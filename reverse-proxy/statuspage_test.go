@@ -104,3 +104,30 @@ func TestQRDataURI(t *testing.T) {
 		t.Errorf("QR-Daten-URI verdächtig kurz: %d Zeichen", len(uri))
 	}
 }
+
+// TestStatusPageWithoutGreenNameAsksForRestart hält Text und Verhalten des
+// noGreen-Zustands zusammen: Install-State und LAN-IP entstehen nur beim Start,
+// also nennt die Seite den Neustart und verspricht keine Selbstaktualisierung.
+func TestStatusPageWithoutGreenNameAsksForRestart(t *testing.T) {
+	s := newStatusServer(statusConfig{
+		zone:     "lokal.jotti.rocks",
+		hasState: false,
+		lanIP:    netip.MustParseAddr("192.168.1.50"),
+		lanOK:    true,
+	})
+
+	body := render(t, s)
+
+	if !strings.Contains(body, "jotti neu starten") {
+		t.Error("Hinweis auf den Neustart fehlt")
+	}
+	if strings.Contains(body, "aktualisiert sich automatisch") {
+		t.Error("die Seite verspricht eine Selbstaktualisierung, die nichts ändern kann")
+	}
+	if strings.Contains(body, "http-equiv=\"refresh\"") {
+		t.Error("ohne grünen Namen darf sich die Seite nicht selbst aktualisieren")
+	}
+	if !strings.Contains(body, "https://192.168.1.50") {
+		t.Error("Fallback-Adresse fehlt")
+	}
+}
