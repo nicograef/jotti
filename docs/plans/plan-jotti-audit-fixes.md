@@ -182,6 +182,10 @@ css, md` im ganzen Repo ab. Grund: 29 Markdown-Dateien außerhalb `docs/plans/` 
   `make check-tools` prüft die Lint-Werkzeuge; `migrate` und `docker` prüft
   `check-tools-integration` vor den Integrationstests, damit `make check` ohne Docker läuft.
   Die Stations-Karte heißt `STATION_KATEGORIE_LABEL`; sie ist keine Kopie der Produkt-Karte.
+- **Nachträge aus dem Review der Phase 14** (Lead): die Admin-Routen registriert
+  `NewAdminApi()` in `backend/api/admin.go`, nicht eine Funktion `RegisterAdminRoutes()`;
+  die ADRs 11–14 tragen die nachgezählten Zahlen (13 Wizard-Komponenten, drei
+  Weitergaben der Zugangsdaten, sieben Compose-Dateien mit fünf vollen Service-Graphen).
 
 ### Kritik (2026-09-08)
 
@@ -1378,7 +1382,7 @@ Produktionsverhalten.
 
 - `frontend/src/admin/tse/TSEEinrichtungWizard.tsx` — 934 Zeilen, 14 Komponenten,
   Zugangsdaten über fünf Prop-Ebenen
-- `backend/api/admin.go — RegisterAdminRoutes()`,
+- `backend/api/admin.go — NewAdminApi()`,
   `frontend/src/admin/products/Products.tsx`, `website/src/lib/live-demo.ts` — englische
   Bezeichner in deutscher Domäne
 - `Makefile — go-Modul-Ziele` und `.github/workflows/ci.yml — Go-Modul-Jobs` — fünffach
@@ -1394,19 +1398,19 @@ Einfachheit, Konsistenz und Produkt-Konservatismus.
 
 ### Acceptance criteria
 
-- [ ] `docs/adrs/` enthält eine Entscheidung zur Aufteilung des TSE-Einrichtungs-Wizards
+- [x] `docs/adrs/` enthält eine Entscheidung zur Aufteilung des TSE-Einrichtungs-Wizards
       (je Schritt eine Datei, Zugangsdaten über einen lokalen Context) mit Empfehlung und
       Begründung.
-- [ ] `docs/adrs/` enthält eine Entscheidung zum Sprachschnitt der Bezeichner:
+- [x] `docs/adrs/` enthält eine Entscheidung zum Sprachschnitt der Bezeichner:
       Endpunkt-Verben in `api/admin.go`, `admin/products`, `Receipt`/`HistoryRow` und
       `live-demo.ts` — entweder Umbenennung als eigener Change oder die Ausnahme
       ausdrücklich in `docs/language.md`.
-- [ ] `docs/adrs/` enthält eine Entscheidung zu den vervielfachten Pipelines: Go-Modul-Jobs
+- [x] `docs/adrs/` enthält eine Entscheidung zu den vervielfachten Pipelines: Go-Modul-Jobs
       in `Makefile` und CI als Matrix, und die vier Compose-Kopien als Basisdatei mit
       Overrides — inklusive der Risiken für Projektnamen und Volume-Identitäten.
-- [ ] `docs/adrs/` enthält eine Entscheidung zur E2E-Seed-Variante mit ausgeglichenen
+- [x] `docs/adrs/` enthält eine Entscheidung zur E2E-Seed-Variante mit ausgeglichenen
       Tischen für `kassenabschluss.mobile.spec.ts` statt der 120-s-Klickstrecke.
-- [ ] `docs/adrs/README.md` listet die neuen ADRs, und keine der Entscheidungen hat Code
+- [x] `docs/adrs/README.md` listet die neuen ADRs, und keine der Entscheidungen hat Code
       geändert.
 
 ---
