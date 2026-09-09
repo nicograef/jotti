@@ -132,24 +132,34 @@ func (m *mockRepo) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error
 
 // GetActiveProdukte spiegelt den INNER JOIN der Query GetAktiveProdukte
 // (sqlc/queries/produkte.sql): ein aktives Produkt ohne aktive Variante ist
-// nicht bestellbar und fällt raus.
+// nicht bestellbar und fällt raus. Die zurückgegebenen Varianten sind ebenso
+// gefiltert wie in der Query (WHERE status = 'active' in varianten_json) —
+// nicht-aktive Varianten eines sonst passenden Produkts fehlen.
 func (m *mockRepo) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 	produkte := make([]produkt.Produkt, 0)
 	for i := range m.produkte {
-		if m.produkte[i].Status == produkt.ActiveStatus && hatAktiveVariante(m.produkte[i].Varianten) {
-			produkte = append(produkte, m.produkte[i])
+		p := m.produkte[i]
+		if p.Status != produkt.ActiveStatus {
+			continue
 		}
+		aktive := aktiveVarianten(p.Varianten)
+		if len(aktive) == 0 {
+			continue
+		}
+		p.Varianten = aktive
+		produkte = append(produkte, p)
 	}
 	return produkte, m.err
 }
 
-func hatAktiveVariante(varianten []produkt.Variante) bool {
+func aktiveVarianten(varianten []produkt.Variante) []produkt.Variante {
+	aktive := make([]produkt.Variante, 0, len(varianten))
 	for _, v := range varianten {
 		if v.Status == produkt.ActiveStatus {
-			return true
+			aktive = append(aktive, v)
 		}
 	}
-	return false
+	return aktive
 }
 
 func (m *mockRepo) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error) {
