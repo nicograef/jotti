@@ -15,11 +15,13 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -50,8 +52,14 @@ type config struct {
 	leStaging     bool
 }
 
-func loadConfig(getenv func(string) string) config {
-	return config{
+// loadConfig liest die Umgebung und legt damit den Modus fest. dirExists prüft,
+// ob das Verzeichnis des State-Pfads gemountet ist; nur die LAN-Stacks mounten
+// es (proxy-state:/state). Fehlt es und ist auch JOTTI_DOMAIN leer, bleibt kein
+// gültiger Modus übrig: Der Public-Stack würde sonst still in den LAN-Modus
+// fallen und für jede SNI ein Zertifikat der internen CA ausstellen, während
+// der HTTP-Healthcheck weiter grün bleibt.
+func loadConfig(getenv func(string) string, dirExists func(string) bool) (config, error) {
+	cfg := config{
 		domain:        strings.TrimSpace(getenv("JOTTI_DOMAIN")),
 		httpOnly:      parseBool(getenv("PROXY_HTTP_ONLY")),
 		email:         strings.TrimSpace(getenv("LETSENCRYPT_EMAIL")),
@@ -64,10 +72,27 @@ func loadConfig(getenv func(string) string) config {
 		caddyBin:      valueOrDefault(getenv("PROXY_CADDY_BIN"), defaultCaddyBin),
 		leStaging:     parseBool(getenv("PROXY_LE_STAGING")),
 	}
+
+	if !cfg.httpOnly && cfg.domain == "" {
+		if stateDir := filepath.Dir(cfg.statePath); !dirExists(stateDir) {
+			return config{}, fmt.Errorf("kein Modus bestimmbar: JOTTI_DOMAIN ist leer und das State-Verzeichnis %s des LAN-Modus fehlt", stateDir)
+		}
+	}
+
+	return cfg, nil
+}
+
+// dirExists meldet, ob path ein vorhandenes Verzeichnis ist.
+func dirExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
 }
 
 func main() {
-	cfg := loadConfig(os.Getenv)
+	cfg, err := loadConfig(os.Getenv, dirExists)
+	if err != nil {
+		log.Fatalf("Konfiguration: %v", err)
+	}
 
 	// PROXY_HTTP_ONLY gesetzt ⇒ Klartext-HTTP-Stack ohne TLS/ACME (nur E2E).
 	if cfg.httpOnly {

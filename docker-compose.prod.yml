@@ -136,8 +136,10 @@ services:
     logging: *default-logging
     environment:
       # JOTTI_DOMAIN switches the image into public mode: one site for this
-      # domain with an automatic Let's Encrypt certificate.
-      JOTTI_DOMAIN: ${JOTTI_DOMAIN:-}
+      # domain with an automatic Let's Encrypt certificate. Required, with no
+      # default: an empty value leaves the image no mode at all, because it
+      # refuses LAN mode without the state directory this stack never mounts.
+      JOTTI_DOMAIN: ${JOTTI_DOMAIN:?JOTTI_DOMAIN ist im Public-Stack Pflicht}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-}
       # Optional: redirect www.<domain> to <domain> (needs www DNS to point here).
       JOTTI_WWW_REDIRECT: ${JOTTI_WWW_REDIRECT:-}
