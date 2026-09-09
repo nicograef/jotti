@@ -14,9 +14,10 @@ set -euo pipefail
 # would pass unnoticed. Pure comment lines (leading //) are skipped.
 #
 # Exceptions live in scripts/check-timezone.allow: per line the path, then a
-# fragment of the exempt code line (no spaces), then "# reason". An exception
-# applies only to lines containing that fragment; one that matches nothing turns
-# the gate red and is to be deleted.
+# fragment of the exempt code line (no spaces — the reason must be the third
+# field and start with "#"), then "# reason". An exception applies only to lines
+# containing that fragment; one that matches nothing turns the gate red and is
+# to be deleted.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -37,8 +38,14 @@ allow_hits=()
 for entry in "${allow_entries[@]+"${allow_entries[@]}"}"; do
   path="$(printf '%s\n' "$entry" | awk '{print $1}')"
   needle="$(printf '%s\n' "$entry" | awk '{print $2}')"
+  reason="$(printf '%s\n' "$entry" | awk '{print $3}')"
   if [ -z "$needle" ] || [ "${needle:0:1}" = "#" ]; then
     fatal "$ALLOWLIST: entry without a code fragment: $entry"
+  fi
+  # Without this the awk split would silently cut a fragment at its first space
+  # and exempt more lines than the entry names.
+  if [ "${reason:0:1}" != "#" ]; then
+    fatal "$ALLOWLIST: code fragment with a space, or reason missing: $entry"
   fi
   allow_paths+=("$path")
   allow_needles+=("$needle")
