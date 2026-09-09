@@ -8,7 +8,7 @@
 ## Kontext
 
 `TSEEinrichtungWizard.tsx` ist mit 934 Zeilen die größte Datei unter
-`frontend/src` (ohne `components/ui`). Die zweitgrößte,
+`frontend/src` (ohne `components/ui`). Die nächstgrößte Produktivdatei,
 `admin/settings/DruckstationConfigPage.tsx`, hat 557 Zeilen. Die Datei trägt 17
 Funktionen auf oberster Ebene: 13 Komponenten und vier Hilfsfunktionen
 (`istUebernehmbar`, `istEinsatzbereit`, `brauchtPin`, `tssZustandKlartext`,
