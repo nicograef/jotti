@@ -14,11 +14,12 @@ type tseCommandRepo interface {
 	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
 }
 
-// kassensitzungReader meldet, ob gerade eine Kassensitzung offen ist. Änderungen
-// der TSE-Konfiguration sind nur ohne offene Kassensitzung erlaubt: Das
-// Signaturgeraet darf nicht mitten in einem laufenden Kassentag wechseln.
+// kassensitzungReader meldet, ob gerade eine Kassensitzung aktiv ist — offen oder
+// wird_abgeschlossen. Änderungen der TSE-Konfiguration sind nur ohne aktive
+// Kassensitzung erlaubt: Das Signaturgeraet darf nicht mitten in einem laufenden
+// Kassentag wechseln.
 type kassensitzungReader interface {
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
 
 type Command struct {
@@ -27,18 +28,20 @@ type Command struct {
 	NewTSESetupClient   NewTSESetupClient
 }
 
-// ensureKeineOffeneKassensitzung lehnt eine TSE-Konfigurationsänderung ab,
-// solange eine Kassensitzung offen ist (gemeinsamer Guard aller drei
-// Änderungspfade: Neuanlage, Übernahme, Zugangsdaten-Wechsel).
-func (c Command) ensureKeineOffeneKassensitzung(ctx context.Context) error {
+// ensureKeineAktiveKassensitzung lehnt eine TSE-Konfigurationsänderung ab,
+// solange eine Kassensitzung aktiv ist — offen oder wird_abgeschlossen
+// (gemeinsamer Guard aller drei Änderungspfade: Neuanlage, Übernahme,
+// Zugangsdaten-Wechsel). Der Barrierestatus zählt mit: Ein Abschluss, der noch
+// signiert, gehört zur alten TSS.
+func (c Command) ensureKeineAktiveKassensitzung(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 
-	offene, err := c.KassensitzungenRepo.GetOffeneKassensitzung(ctx)
+	aktive, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to check for offene Kassensitzung before TSE config change")
+		log.Error().Err(err).Msg("Failed to check for aktive Kassensitzung before TSE config change")
 		return ErrDatabase
 	}
-	if offene != nil {
+	if aktive != nil {
 		return ErrTSEKonfigurationKassensitzungOffen
 	}
 	return nil
@@ -59,7 +62,7 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfigurat
 	}
 	defer freigeben()
 
-	if err := c.ensureKeineOffeneKassensitzung(ctx); err != nil {
+	if err := c.ensureKeineAktiveKassensitzung(ctx); err != nil {
 		return err
 	}
 

@@ -43,15 +43,15 @@ func (s *stubCommandRepo) UpsertTSEStammdaten(_ context.Context, st tse.Stammdat
 	return nil
 }
 
-// stubKassensitzungReader liefert die offene Kassensitzung für den
-// Konfigurations-Guard; nil (Default) heisst: keine offen.
+// stubKassensitzungReader liefert die aktive Kassensitzung für den
+// Konfigurations-Guard; nil (Default) heisst: keine aktiv.
 type stubKassensitzungReader struct {
-	offene *kasse.Kassensitzung
+	aktive *kasse.Kassensitzung
 	err    error
 }
 
-func (s stubKassensitzungReader) GetOffeneKassensitzung(context.Context) (*kasse.Kassensitzung, error) {
-	return s.offene, s.err
+func (s stubKassensitzungReader) GetAktiveKassensitzung(context.Context) (*kasse.Kassensitzung, error) {
+	return s.aktive, s.err
 }
 
 func commandMit(repo *stubCommandRepo, client *tse.FakeSetupClient) Command {
@@ -813,15 +813,16 @@ func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup(t *testing.T) {
 	}
 }
 
-// commandMitOffenerKassensitzung baut ein Command, dessen Konfigurations-Guard
-// eine offene Kassensitzung sieht. Der Setup-Client würde beim Aufruf failen —
-// so belegt der Test, dass der Guard vor jeder fiskaly-Arbeit greift.
-func commandMitOffenerKassensitzung(repo *stubCommandRepo) Command {
+// commandMitAktiverKassensitzung baut ein Command, dessen Konfigurations-Guard
+// eine aktive Kassensitzung im übergebenen Status sieht. Der Setup-Client würde
+// beim Aufruf failen — so belegt der Test, dass der Guard vor jeder
+// fiskaly-Arbeit greift.
+func commandMitAktiverKassensitzung(repo *stubCommandRepo, status kasse.KassensitzungStatus) Command {
 	return Command{
 		TSERepo:             repo,
-		KassensitzungenRepo: stubKassensitzungReader{offene: &kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}},
+		KassensitzungenRepo: stubKassensitzungReader{aktive: &kasse.Kassensitzung{ZNr: 1, Status: status}},
 		NewTSESetupClient: func(tse.SetupCredentials) (tse.SetupClient, error) {
-			return nil, errors.New("setup client must not be created while a Kassensitzung is open")
+			return nil, errors.New("setup client must not be created while a Kassensitzung is active")
 		},
 	}
 }
@@ -837,7 +838,26 @@ func TestUpdateTSEKonfiguration_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 		t.Fatalf("unexpected error building konfiguration: %v", err)
 	}
 
-	err = commandMitOffenerKassensitzung(repo).UpdateTSEKonfiguration(context.Background(), conf)
+	err = commandMitAktiverKassensitzung(repo, kasse.KassensitzungOffen).UpdateTSEKonfiguration(context.Background(), conf)
+	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
+		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
+	}
+	if repo.gespeichert != nil {
+		t.Fatalf("expected no configuration to be saved, got %+v", repo.gespeichert)
+	}
+}
+
+// Der Barrierestatus zählt wie eine offene Kassensitzung: Solange der Abschluss
+// läuft, darf die TSS nicht wechseln.
+func TestUpdateTSEKonfiguration_ImBarrierestatusAbgelehnt(t *testing.T) {
+	repo := &stubCommandRepo{}
+	conf, err := tse.NewKonfiguration("api-key", "api-secret", "tss-1", "client-1")
+	if err != nil {
+		t.Fatalf("unexpected error building konfiguration: %v", err)
+	}
+
+	err = commandMitAktiverKassensitzung(repo, kasse.KassensitzungWirdAbgeschlossen).
+		UpdateTSEKonfiguration(context.Background(), conf)
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
 		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
 	}
@@ -849,7 +869,7 @@ func TestUpdateTSEKonfiguration_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 func TestRichteTSEEin_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 
-	_, err := commandMitOffenerKassensitzung(repo).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
+	_, err := commandMitAktiverKassensitzung(repo, kasse.KassensitzungOffen).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
 		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
 	}
@@ -861,7 +881,7 @@ func TestRichteTSEEin_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 func TestUebernimmTSE_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 
-	_, err := commandMitOffenerKassensitzung(repo).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-1", "", "")
+	_, err := commandMitAktiverKassensitzung(repo, kasse.KassensitzungOffen).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-1", "", "")
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
 		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
 	}

@@ -106,7 +106,7 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	if bestaetigteUmgebung != tse.UmgebungTest && bestaetigteUmgebung != tse.UmgebungLive {
 		return TSESetupErgebnis{}, ErrTSESetupUmgebungAbweichung
 	}
-	if err := c.ensureKeineOffeneKassensitzung(ctx); err != nil {
+	if err := c.ensureKeineAktiveKassensitzung(ctx); err != nil {
 		return TSESetupErgebnis{}, err
 	}
 
@@ -246,7 +246,7 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	if tssID == "" {
 		return TSESetupErgebnis{}, ErrTSESetupTSSNichtGefunden
 	}
-	if err := c.ensureKeineOffeneKassensitzung(ctx); err != nil {
+	if err := c.ensureKeineAktiveKassensitzung(ctx); err != nil {
 		return TSESetupErgebnis{}, err
 	}
 
