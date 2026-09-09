@@ -68,8 +68,8 @@ Zugangsdaten überbrückt drei typisierte Weitergaben.
 ### Erwogene Alternativen
 
 1. **Je Schritt eine Datei plus lokaler Context für die Zugangsdaten** (der
-   Vorschlag). Die 13 Komponenten müssten exportiert werden; aus einer privaten
-   Datei würde eine Modulgrenze mit öffentlicher Oberfläche.
+   Vorschlag). Die zwölf heute privaten Komponenten müssten exportiert werden;
+   aus einer privaten Datei würde eine Modulgrenze mit öffentlicher Oberfläche.
 2. **Nur die Dateien aufteilen, Props behalten.** Kostet dieselben Exporte,
    spart keine Zeile und verteilt einen linearen Ablauf auf mehrere Dateien.
 3. **Alles lassen.** Ein linearer Ablauf steht in Leserichtung in einer Datei;
