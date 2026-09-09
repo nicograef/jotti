@@ -50,7 +50,7 @@ Dasselbe Bild in den übrigen Routendateien: `api/service.go` führt
 `/login` und `/set-password` (17–18).
 
 Ein Ausreißer bleibt: `/favorit-hinzufuegen` und `/favorit-entfernen`
-(`api/service.go:52-53`) sind deutsch, obwohl `docs/language.md:364` den
+(`api/service.go:52-53`) sind deutsch, obwohl `docs/language.md:366` den
 Favoriten als „einfache CRUD-Relation" führt — dieselbe Kategorie wie das
 englisch benannte Stammdaten-CRUD.
 
