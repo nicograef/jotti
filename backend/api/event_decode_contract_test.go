@@ -3,27 +3,35 @@
 package api
 
 // Event-JSON is decoded through the event contract types only: a decode target
-// names kasse.PositionEventData, never kasse.Position. The domain type carries no
-// json tags (AGENTS.md rule 10) and matches the stored keys by accident — Go's
+// names kasse.PositionEventData or a payload type such as
+// kasse.BestellungAufgenommenV1Data, never kasse.Position. The domain type carries
+// no json tags (AGENTS.md rule 10) and matches the stored keys by accident — Go's
 // decoder compares field names case-insensitively. A renamed domain field or a
 // field the projection adds for display would then silently decode to its zero
 // value, and a wrong Arbeitsbon is the first place that shows.
 //
 // This test parses every non-test file below backend/api and fails when a struct
-// with json tags carries a field of a domain/kasse type without the EventData
-// suffix. The same boundary keeps rule 10: a domain struct is never serialized as
-// an API response either.
+// with json tags carries a field of a domain/kasse type that is not an event
+// contract type: those end in EventData (a nested part of a payload) or in V<n>Data
+// (a whole event payload). The same boundary keeps rule 10: a domain struct is
+// never serialized as an API response either.
 
 import (
 	"go/ast"
 	"go/token"
+	"regexp"
 	"strings"
 	"testing"
 )
 
-// kassePackagePath is the domain package whose event contract types end in
-// EventData; the walk resolves it to the name each file binds it to.
+// kassePackagePath is the domain package that holds the event contract types; the
+// walk resolves it to the name each file binds it to.
 const kassePackagePath = "github.com/nicograef/jotti/backend/domain/kasse"
+
+// eventVertragTyp matches the two event contract families of domain/kasse: a
+// payload part (PositionEventData) and a whole event payload
+// (BestellungAufgenommenV1Data).
+var eventVertragTyp = regexp.MustCompile(`(EventData|V[0-9]+Data)$`)
 
 // TestDecodeTargetsUseEventDataTypes fails when a JSON struct below backend/api
 // names a domain/kasse type that is not an event contract type.
@@ -44,12 +52,12 @@ func TestDecodeTargetsUseEventDataTypes(t *testing.T) {
 
 			for _, field := range structType.Fields.List {
 				for _, named := range packageTypeNames(field.Type, kasseName) {
-					if strings.HasSuffix(named, "EventData") {
+					if eventVertragTyp.MatchString(named) {
 						continue
 					}
 					t.Errorf(
-						"%s: json struct field of type %s.%s — decode event JSON into %s.%sEventData and convert it",
-						fset.Position(field.Pos()), kasseName, named, kasseName, named,
+						"%s: json struct field of type %s.%s is no event contract type — decode event JSON into a type ending in EventData or V<n>Data and convert it",
+						fset.Position(field.Pos()), kasseName, named,
 					)
 				}
 			}
