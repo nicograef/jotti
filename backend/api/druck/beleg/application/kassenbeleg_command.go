@@ -310,7 +310,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 	auftrag := druckauftrag_repo.NeuerDruckauftrag{
 		ZielIP:   kassenbelegStation.DruckerIP,
 		Payload:  base64.StdEncoding.EncodeToString(payload),
-		BonArt:   "kassenbeleg",
+		BonArt:   string(druckstation.KategorieKassenbeleg),
 		Referenz: quelle.Referenz,
 	}
 

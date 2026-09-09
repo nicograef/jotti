@@ -258,7 +258,7 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 	z := druckauftragZeile{
 		ZielIP:     b.stationen[string(druckstation.KategorieKassenbeleg)].DruckerIP,
 		Payload:    base64.StdEncoding.EncodeToString(payload),
-		BonArt:     "kassenbeleg",
+		BonArt:     string(druckstation.KategorieKassenbeleg),
 		Referenz:   referenz,
 		ErstelltAm: signatur.LogTimeEnd.Add(belegVerlangtNach),
 	}

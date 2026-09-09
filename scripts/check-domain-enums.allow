@@ -1,0 +1,7 @@
+# scripts/check-domain-enums.sh allowlist — one exception per line: the
+# tracked path, then a code fragment (no spaces — the fragment is matched as
+# a substring of the violating line, and the third field must start with
+# "#"), then "# " and the reason. An entry that matches no violation any
+# more turns the gate red and is to be deleted.
+
+backend/internal/tools/checklanguage/main.go "getraenk": #Rechtschreib-Korrekturkarte (Wortstamm -> Umlaut-Form), keine Kategorie
