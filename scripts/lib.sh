@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# jotti — shared shell helpers for scripts/*.sh: color vars, log helpers and
-# .env reading. Source, don't execute:
+# jotti — shared shell helpers for scripts/*.sh: color vars, log helpers,
+# .env reading, semver parsing, the docker/compose/.env preflight, and
+# backup selection/decompression for the prod-*.sh scripts. Source, don't
+# execute:
 #
 #   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #   # shellcheck source=scripts/lib.sh
