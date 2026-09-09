@@ -1142,12 +1142,6 @@ var paymentColumns = []string{
 	"ZAHLART_TYP", "ZAHLART_NAME", "Z_ZAHLART_BETRAG",
 }
 
-// zahlartReihenfolge ordnet die Zahlarten der payment.csv. jotti kassiert
-// ausschließlich bar; die Map hält die Sortierung offen für künftige Zahlarten.
-var zahlartReihenfolge = map[string]int{
-	zahlartBar: 0,
-}
-
 // buildPayment aggregiert die Beträge je Zahlart (DSFinV-K Anhang D). jotti
 // kennt nur Bar; die geldneutrale AVBestellung trägt keine Zahlart bei.
 func buildPayment(s Snapshot, erstellung string, belege []beleg) Table {
@@ -1160,17 +1154,13 @@ func buildPayment(s Snapshot, erstellung string, belege []beleg) Table {
 		summen[b.zahlart] += b.sign() * b.bruttoCents
 	}
 
+	// Stabile Ausgabe für eine reproduzierbare payment.csv; eine Reihenfolge
+	// nach Zahlart-Bedeutung erübrigt sich, da jotti nur Bar kennt.
 	zahlarten := make([]string, 0, len(summen))
 	for z := range summen {
 		zahlarten = append(zahlarten, z)
 	}
-	sort.Slice(zahlarten, func(i, j int) bool {
-		oi, oj := ordnung(zahlartReihenfolge, zahlarten[i]), ordnung(zahlartReihenfolge, zahlarten[j])
-		if oi != oj {
-			return oi < oj
-		}
-		return zahlarten[i] < zahlarten[j]
-	})
+	sort.Strings(zahlarten)
 
 	records := make([][]string, 0, len(zahlarten))
 	for _, z := range zahlarten {

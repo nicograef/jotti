@@ -249,7 +249,7 @@ func TestRateLimitMiddleware_GleicheIPWechselndePortsTeilenLimiter(t *testing.T)
 
 func TestJwtMiddleware_ValidToken(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(1, "admin", "admin", secret)
+	token, err := jwt.GenerateJWTTokenForUser(1, "admin", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -296,7 +296,7 @@ func TestJwtMiddleware_InvalidToken(t *testing.T) {
 		token func(t *testing.T) string
 	}{
 		{"wrong secret", func(t *testing.T) string {
-			token, err := jwt.GenerateJWTTokenForUser(1, "admin", "admin", "other-secret")
+			token, err := jwt.GenerateJWTTokenForUser(1, "admin", "other-secret")
 			if err != nil {
 				t.Fatalf("failed to generate token: %v", err)
 			}
@@ -331,12 +331,11 @@ func TestJwtMiddleware_InvalidToken(t *testing.T) {
 func expiredToken(t *testing.T, secret string) string {
 	t.Helper()
 	claims := gojwt.MapClaims{
-		"iss":      "jotti",
-		"iat":      gojwt.NewNumericDate(time.Now().UTC().Add(-13 * time.Hour)),
-		"exp":      gojwt.NewNumericDate(time.Now().UTC().Add(-1 * time.Hour)),
-		"sub":      1,
-		"username": "admin",
-		"role":     "admin",
+		"iss":  "jotti",
+		"iat":  gojwt.NewNumericDate(time.Now().UTC().Add(-13 * time.Hour)),
+		"exp":  gojwt.NewNumericDate(time.Now().UTC().Add(-1 * time.Hour)),
+		"sub":  1,
+		"role": "admin",
 	}
 	token, err := gojwt.NewWithClaims(gojwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 	if err != nil {
@@ -380,7 +379,7 @@ func TestJwtMiddleware_InvalidBearerFormat(t *testing.T) {
 // kein Auto-Logout, die Sitzung bleibt bestehen.
 func TestJwtMiddleware_ServiceRole(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(2, "service", "service", secret)
+	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -419,7 +418,7 @@ func TestJwtMiddleware_RollenwechselWirktSofort(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			token, err := jwt.GenerateJWTTokenForUser(1, "someone", tc.tokenRole, secret)
+			token, err := jwt.GenerateJWTTokenForUser(1, tc.tokenRole, secret)
 			if err != nil {
 				t.Fatalf("failed to generate token: %v", err)
 			}
@@ -443,7 +442,7 @@ func TestJwtMiddleware_RollenwechselWirktSofort(t *testing.T) {
 
 func TestServiceMiddleware_ValidToken(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(2, "service", "service", secret)
+	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -466,7 +465,7 @@ func TestServiceMiddleware_ValidToken(t *testing.T) {
 
 func TestServiceleitungRole_AllowedForServiceEndpoints(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(3, "serviceleitung", "serviceleitung", secret)
+	token, err := jwt.GenerateJWTTokenForUser(3, "serviceleitung", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -489,7 +488,7 @@ func TestServiceleitungRole_AllowedForServiceEndpoints(t *testing.T) {
 
 func TestServiceleitungRole_AllowedForCancelEndpoint(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(3, "serviceleitung", "serviceleitung", secret)
+	token, err := jwt.GenerateJWTTokenForUser(3, "serviceleitung", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -514,7 +513,7 @@ func TestServiceleitungRole_AllowedForCancelEndpoint(t *testing.T) {
 // Benutzer trägt sonst seinen alten Namen bis zum Tokenablauf ins Kassenjournal.
 func TestJwtMiddleware_SetsStoredUserNameInContext(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(1, "altername", "admin", secret)
+	token, err := jwt.GenerateJWTTokenForUser(1, "admin", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -548,7 +547,7 @@ func TestJwtMiddleware_SetsStoredUserNameInContext(t *testing.T) {
 // nicht erst beim Ablauf ihres Tokens.
 func TestJwtMiddleware_UserStatusCheck(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(1, "admin", "admin", secret)
+	token, err := jwt.GenerateJWTTokenForUser(1, "admin", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}
@@ -585,7 +584,7 @@ func TestJwtMiddleware_UserStatusCheck(t *testing.T) {
 
 func TestServiceRole_DeniedForCancelEndpoint(t *testing.T) {
 	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(2, "service", "service", secret)
+	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)
 	}

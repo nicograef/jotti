@@ -265,9 +265,6 @@ const maxUmbuchungKommentarBytes = 100
 // truncateBytes schneidet s auf höchstens max Bytes. Der Schnitt wandert bis zum
 // Anfang der angeschnittenen UTF-8-Folge zurück, damit kein Umlaut zerfällt.
 func truncateBytes(s string, maxBytes int) string {
-	if maxBytes <= 0 {
-		return ""
-	}
 	if len(s) <= maxBytes {
 		return s
 	}
@@ -284,10 +281,6 @@ func truncateBytes(s string, maxBytes int) string {
 // zusammen. Der Tischname darf 100 Bytes lang sein, mit dem Präfix reißt das
 // Paar die Schemagrenze — der Name wird gekürzt, das Präfix bleibt ganz.
 func buildUmbuchungKommentar(prefix string, tischName string) string {
-	if len(prefix) >= maxUmbuchungKommentarBytes {
-		return truncateBytes(prefix, maxUmbuchungKommentarBytes)
-	}
-
 	return prefix + truncateBytes(tischName, maxUmbuchungKommentarBytes-len(prefix))
 }
 

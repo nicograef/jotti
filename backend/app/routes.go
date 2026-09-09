@@ -16,8 +16,6 @@ import (
 // Weil jeder Bereich seine erlaubten Rollen (oder bewusst kein JWT) deklarieren
 // MUSS, kann keine Route ohne Rollenentscheidung existieren.
 type Area struct {
-	// Name ist ein sprechender Bezeichner für Logs und Tests.
-	Name string
 	// Prefix ist das URL-Präfix des Bereichs (z. B. "/admin"). Beim Mounten
 	// wird es per http.StripPrefix entfernt, die Bereichs-Handler sehen den
 	// Restpfad (z. B. "/create-user").
@@ -48,14 +46,12 @@ var (
 func Areas() []Area {
 	return []Area{
 		{
-			Name:         "auth",
 			Prefix:       "/auth",
 			RequiresAuth: false,
 			RateLimited:  true,
 			build:        api.NewAuthApi,
 		},
 		{
-			Name:         "admin",
 			Prefix:       "/admin",
 			AllowedRoles: rolesAdmin,
 			RequiresAuth: true,
@@ -64,7 +60,6 @@ func Areas() []Area {
 			},
 		},
 		{
-			Name:         "service",
 			Prefix:       "/service",
 			AllowedRoles: rolesService,
 			RequiresAuth: true,
@@ -73,7 +68,6 @@ func Areas() []Area {
 			},
 		},
 		{
-			Name:         "serviceleitung",
 			Prefix:       "/serviceleitung",
 			AllowedRoles: rolesServiceleitung,
 			RequiresAuth: true,
@@ -82,7 +76,6 @@ func Areas() []Area {
 			},
 		},
 		{
-			Name:         "relay",
 			Prefix:       "/relay",
 			RequiresAuth: false,
 			RateLimited:  true,
@@ -124,7 +117,6 @@ func mountArea(r *http.ServeMux, area Area, cfg config.Config, deps api.Deps) {
 // mountArea-Verdrahtung gemountet.
 func testResetArea(db *sql.DB) Area {
 	return Area{
-		Name:         "test",
 		Prefix:       "/test",
 		RequiresAuth: false,
 		RateLimited:  true,

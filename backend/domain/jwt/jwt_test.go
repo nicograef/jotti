@@ -10,7 +10,7 @@ import (
 )
 
 func TestGenerateJWTTokenForUser(t *testing.T) {
-	token, err := GenerateJWTTokenForUser(1, "admin", "admin", "test_secret")
+	token, err := GenerateJWTTokenForUser(1, "admin", "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
@@ -27,9 +27,6 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 	if int(claims["sub"].(float64)) != 1 {
 		t.Errorf("Expected subject '1', got '%v'", int(claims["sub"].(float64)))
 	}
-	if claims["username"].(string) != "admin" {
-		t.Errorf("Expected username 'admin', got '%v'", claims["username"])
-	}
 	if claims["role"].(string) != "admin" {
 		t.Errorf("Expected role '%s', got '%v'", "admin", claims["role"])
 	}
@@ -39,21 +36,18 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 }
 
 func TestParseAndValidateJWTToken(t *testing.T) {
-	token, err := GenerateJWTTokenForUser(2, "service", "service", "test_secret")
+	token, err := GenerateJWTTokenForUser(2, "service", "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
 
-	userID, username, userRole, err := ParseAndValidateJWTToken(token, "test_secret")
+	userID, userRole, err := ParseAndValidateJWTToken(token, "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to parse and validate JWT token: %v", err)
 	}
 
 	if userID != 2 {
 		t.Errorf("Expected UserID '%d', got '%d'", 2, userID)
-	}
-	if username != "service" {
-		t.Errorf("Expected username '%s', got '%s'", "service", username)
 	}
 	if userRole != "service" {
 		t.Errorf("Expected Role '%s', got '%s'", "service", userRole)
@@ -68,12 +62,11 @@ func makeTokenWithClaims(claims jwt.MapClaims) string {
 
 func baseClaims() jwt.MapClaims {
 	return jwt.MapClaims{
-		"iss":      issuer,
-		"iat":      jwt.NewNumericDate(time.Now().UTC()),
-		"exp":      jwt.NewNumericDate(time.Now().UTC().Add(1 * time.Hour)),
-		"sub":      float64(1),
-		"username": "testuser",
-		"role":     "admin",
+		"iss":  issuer,
+		"iat":  jwt.NewNumericDate(time.Now().UTC()),
+		"exp":  jwt.NewNumericDate(time.Now().UTC().Add(1 * time.Hour)),
+		"sub":  float64(1),
+		"role": "admin",
 	}
 }
 
@@ -81,7 +74,7 @@ func TestParseAndValidateJWTToken_MalformedClaims(t *testing.T) {
 	t.Run("sub missing", func(t *testing.T) {
 		c := baseClaims()
 		delete(c, "sub")
-		_, _, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
+		_, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
 		if err == nil {
 			t.Error("expected error for missing sub, got nil")
 		}
@@ -90,7 +83,7 @@ func TestParseAndValidateJWTToken_MalformedClaims(t *testing.T) {
 	t.Run("sub wrong type", func(t *testing.T) {
 		c := baseClaims()
 		c["sub"] = "not-a-number"
-		_, _, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
+		_, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
 		if err == nil {
 			t.Error("expected error for string sub, got nil")
 		}
@@ -99,7 +92,7 @@ func TestParseAndValidateJWTToken_MalformedClaims(t *testing.T) {
 	t.Run("sub negative", func(t *testing.T) {
 		c := baseClaims()
 		c["sub"] = float64(-1)
-		_, _, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
+		_, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
 		if err == nil {
 			t.Error("expected error for negative sub, got nil")
 		}
@@ -108,7 +101,7 @@ func TestParseAndValidateJWTToken_MalformedClaims(t *testing.T) {
 	t.Run("role missing", func(t *testing.T) {
 		c := baseClaims()
 		delete(c, "role")
-		_, _, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
+		_, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
 		if err == nil {
 			t.Error("expected error for missing role, got nil")
 		}
@@ -117,7 +110,7 @@ func TestParseAndValidateJWTToken_MalformedClaims(t *testing.T) {
 	t.Run("role wrong type", func(t *testing.T) {
 		c := baseClaims()
 		c["role"] = float64(42)
-		_, _, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
+		_, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
 		if err == nil {
 			t.Error("expected error for numeric role, got nil")
 		}

@@ -266,7 +266,7 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 				return
 			}
 			token = token[len(bearerPrefix):]
-			userID, _, _, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
+			userID, _, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
 			if err != nil {
 				logger.Error().Err(err).Msg("Invalid JWT token")
 				helper.SendUnauthorized(w, "invalid_jwt")

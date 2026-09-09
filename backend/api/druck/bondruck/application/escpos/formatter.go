@@ -443,7 +443,9 @@ func steuerKennzeichenAusSatz(satz steuer.Steuersatz) string {
 // Prozentsatz bzw. Befreiungshinweis gemäß KassenSichV § 6 Satz 1 Nr. 5
 // ("den anzuwendenden Steuersatz oder im Fall einer Steuerbefreiung einen
 // Hinweis darauf, dass für die Lieferung oder sonstige Leistung eine
-// Steuerbefreiung gilt").
+// Steuerbefreiung gilt"). steuer.Steuermatrix() teilt jede Kombi-Position
+// bereits in ihre Regel-/Ermaessigt-Anteile auf, bevor sie summiert — eine
+// Zeile mit Satz Kombi erreicht diese Funktion nie.
 func steuerMatrixLabel(satz steuer.Steuersatz) string {
 	switch satz {
 	case steuer.RegelSteuersatz:
@@ -452,8 +454,6 @@ func steuerMatrixLabel(satz steuer.Steuersatz) string {
 		return "B (7 %)"
 	case steuer.BefreitSteuersatz:
 		return "C (umsatzsteuerfrei)"
-	case steuer.KombiSteuersatz:
-		return "A/B"
 	default:
 		return "?"
 	}
