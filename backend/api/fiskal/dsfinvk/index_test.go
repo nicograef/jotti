@@ -92,14 +92,14 @@ func amtlicheMaxLength(t *testing.T, datei string, spalte string) int {
 		if tbl.URL != datei {
 			continue
 		}
-		for _, col := range tbl.VariableLength.Columns {
-			if col.Name != spalte {
+		for _, deklariert := range tbl.VariableLength.Columns {
+			if deklariert.Name != spalte {
 				continue
 			}
-			if col.MaxLength <= 0 {
+			if deklariert.MaxLength <= 0 {
 				t.Fatalf("Spalte %s/%s deklariert keine MaxLength", datei, spalte)
 			}
-			return col.MaxLength
+			return deklariert.MaxLength
 		}
 	}
 
