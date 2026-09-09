@@ -3,9 +3,11 @@ package produkt_repo
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/produkt"
+	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
@@ -50,6 +52,28 @@ func parseVariantenJSON(data json.RawMessage) ([]produkt.Variante, error) {
 	}
 
 	return result, nil
+}
+
+// produktRowToDomain baut ein Produkt aus einer Produkt-Zeile samt ihrer
+// Varianten-JSON-Spalte. GetProduktRow, GetAlleProdukteRow und
+// GetAktiveProdukteRow sind feldgleich (dieselben sqlc-Query-Spalten), deshalb
+// konvertiert jeder Aufrufer seine Zeile per Typkonvertierung auf GetProduktRow.
+func produktRowToDomain(row dbgen.GetProduktRow) (produkt.Produkt, error) {
+	varianten, err := parseVariantenJSON(row.Varianten)
+	if err != nil {
+		return produkt.Produkt{}, fmt.Errorf("unmarshal varianten: %w", err)
+	}
+
+	return produkt.Produkt{
+		ID:         row.ID,
+		Name:       row.Name,
+		Kategorie:  produkt.Kategorie(row.Kategorie),
+		Steuersatz: steuer.Steuersatz(row.Steuersatz),
+		Status:     produkt.Status(row.Status),
+		Varianten:  varianten,
+		CreatedAt:  row.CreatedAt,
+		UpdatedAt:  row.UpdatedAt,
+	}, nil
 }
 
 func varianteRowToDomain(row dbgen.GetVarianteRow) produkt.Variante {
