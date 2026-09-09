@@ -5,6 +5,7 @@ package produkt_repo
 import (
 	"context"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 )
 
@@ -46,11 +47,14 @@ func (m *mockRepo) AddVariante(produktID int, v produkt.Variante) {
 }
 
 func (m *mockRepo) GetProdukt(ctx context.Context, id int) (produkt.Produkt, error) {
-	t, ok := m.produkte[id]
-	if !ok {
+	if m.err != nil {
 		return produkt.Produkt{}, m.err
 	}
-	return t, m.err
+	t, ok := m.produkte[id]
+	if !ok {
+		return produkt.Produkt{}, db.ErrNotFound
+	}
+	return t, nil
 }
 
 func (m *mockRepo) CreateProdukt(ctx context.Context, t produkt.Produkt) (int, error) {
@@ -76,11 +80,14 @@ func (m *mockRepo) VerschiebeProdukt(ctx context.Context, produktID int, hoch bo
 }
 
 func (m *mockRepo) GetVariante(ctx context.Context, varianteID int) (produkt.Variante, error) {
-	vp, ok := m.varianten[varianteID]
-	if !ok {
+	if m.err != nil {
 		return produkt.Variante{}, m.err
 	}
-	return vp.variante, m.err
+	vp, ok := m.varianten[varianteID]
+	if !ok {
+		return produkt.Variante{}, db.ErrNotFound
+	}
+	return vp.variante, nil
 }
 
 func (m *mockRepo) CreateVariante(ctx context.Context, produktID int, v produkt.Variante) (int, error) {
@@ -123,14 +130,26 @@ func (m *mockRepo) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error
 	return produkte, m.err
 }
 
+// GetActiveProdukte spiegelt den INNER JOIN der Query GetAktiveProdukte
+// (sqlc/queries/produkte.sql): ein aktives Produkt ohne aktive Variante ist
+// nicht bestellbar und fällt raus.
 func (m *mockRepo) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 	produkte := make([]produkt.Produkt, 0)
 	for i := range m.produkte {
-		if m.produkte[i].Status == produkt.ActiveStatus {
+		if m.produkte[i].Status == produkt.ActiveStatus && hatAktiveVariante(m.produkte[i].Varianten) {
 			produkte = append(produkte, m.produkte[i])
 		}
 	}
 	return produkte, m.err
+}
+
+func hatAktiveVariante(varianten []produkt.Variante) bool {
+	for _, v := range varianten {
+		if v.Status == produkt.ActiveStatus {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *mockRepo) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error) {

@@ -5,6 +5,7 @@ package tisch_repo
 import (
 	"context"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/tisch"
 )
 
@@ -66,11 +67,14 @@ func (m *mockRepo) TischHatOffenenSaldo(ctx context.Context, tischID int) (bool,
 }
 
 func (m mockRepo) GetTisch(ctx context.Context, id int) (tisch.Tisch, error) {
-	t, ok := m.tische[id]
-	if !ok {
+	if m.err != nil {
 		return tisch.Tisch{}, m.err
 	}
-	return t, m.err
+	t, ok := m.tische[id]
+	if !ok {
+		return tisch.Tisch{}, db.ErrNotFound
+	}
+	return t, nil
 }
 
 func (m mockRepo) GetAlleTische(ctx context.Context) ([]tisch.Tisch, error) {

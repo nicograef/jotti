@@ -27,20 +27,26 @@ type mockRepo struct {
 }
 
 func (m mockRepo) GetUser(ctx context.Context, id int) (user.User, error) {
-	t, ok := m.user[id]
-	if !ok {
+	if m.err != nil {
 		return user.User{}, m.err
 	}
-	return t, m.err
+	t, ok := m.user[id]
+	if !ok {
+		return user.User{}, db.ErrNotFound
+	}
+	return t, nil
 }
 
 func (m mockRepo) GetUserByUsername(ctx context.Context, username string) (user.User, error) {
+	if m.err != nil {
+		return user.User{}, m.err
+	}
 	for _, u := range m.user { //nolint:gocritic // iterating small map for lookup
 		if u.Username == username {
-			return u, m.err
+			return u, nil
 		}
 	}
-	return user.User{}, m.err
+	return user.User{}, db.ErrNotFound
 }
 
 func (m mockRepo) GetAllUsers(ctx context.Context) ([]user.User, error) {
