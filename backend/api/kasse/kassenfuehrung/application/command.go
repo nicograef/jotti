@@ -358,8 +358,10 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	//
 	// Zwischenbuchungen brechen den Wiederanlauf ab: Setzt der defer die Sitzung nach einem
 	// Teilfehler zurück auf 'offen', können danach neue Buchungen entstehen. Der alte Ist-Bestand
-	// wäre dann veraltet und würde legitime Umsätze als Soll-Ist-Differenz verbuchen. Liegt eine
-	// solche Buchung nach dem Kassensturz im Stream, bricht der Abschluss mit einem klaren Fehler ab.
+	// wäre dann veraltet und würde legitime Umsätze als Soll-Ist-Differenz verbuchen. Zwei
+	// Signale brechen ab: eine Buchung nach dem Kassensturz im Kassensitzungs-Stream und ein
+	// seither veränderter Soll-Bestand (Tischzahlung, Warenrücknahme, Direktverkauf — sie
+	// liegen in eigenen Sub-Streams, die dieser Stream nicht sieht).
 	vorhandenerSturz, buchungenNachSturz, err := c.findeVorhandenenKassensturz(ctx, subject)
 	if err != nil {
 		return KassenabschlussErgebnis{}, err
@@ -369,6 +371,18 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		return KassenabschlussErgebnis{}, ErrBuchungenNachKassensturz
 	}
 	if vorhandenerSturz != nil {
+		// Verglichen wird ohne die abschluss-eigene Differenzbuchung: Steht sie schon,
+		// entspricht sollBestandCents dem gezählten Ist-Bestand und verdeckte jede
+		// Zwischenbuchung. Der Kassensturz protokolliert seinen Soll-Bestand ebenfalls
+		// ohne Differenz — beide Werte sind damit vergleichbar.
+		sollOhneDifferenzCents := kassenbestand.SollBestandOhneDifferenzCents()
+		if sollOhneDifferenzCents != vorhandenerSturz.SollBestandCents {
+			log.Warn().Int("z_nr", ks.ZNr).
+				Int("soll_kassensturz_cents", vorhandenerSturz.SollBestandCents).
+				Int("soll_ohne_differenz_cents", sollOhneDifferenzCents).
+				Msg("Kassenabschluss-Wiederanlauf abgebrochen: Soll-Bestand seit dem Kassensturz veraendert")
+			return KassenabschlussErgebnis{}, ErrBuchungenNachKassensturz
+		}
 		log.Info().Int("z_nr", ks.ZNr).Msg("Kassenabschluss-Wiederanlauf: Kassensturz bereits vorhanden, Schritt 1 wird uebersprungen")
 		istBestandCents = vorhandenerSturz.IstBestandCents
 	}

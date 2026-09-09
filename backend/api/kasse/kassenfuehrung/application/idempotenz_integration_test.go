@@ -21,6 +21,7 @@ func cleanKassenfuehrungDB(t *testing.T, db *sql.DB) {
 		"DELETE FROM tse_stoerungen",
 		"DELETE FROM druckauftraege",
 		"DELETE FROM tisch_sessions",
+		"DELETE FROM tische",
 		"ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete",
 		"DELETE FROM kassenjournal",
 		"ALTER TABLE kassenjournal ENABLE TRIGGER kassenjournal_no_delete",

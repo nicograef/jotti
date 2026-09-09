@@ -36,6 +36,14 @@ type Kassenbestand struct {
 	EntnahmenCents      int
 }
 
+// SollBestandOhneDifferenzCents ist die Summe der vier Komponenten und damit der
+// Soll-Bestand ohne eine gebuchte Differenz. SollBestandCents zieht eine gebuchte
+// Differenz ab (sie gleicht den Soll- an den gezählten Ist-Bestand an); dieser Wert
+// bleibt der Bestand, den allein die Buchungen der Kassensitzung ergeben.
+func (k Kassenbestand) SollBestandOhneDifferenzCents() int {
+	return k.AnfangsbestandCents + k.BareinnahmenCents + k.EinlagenCents - k.EntnahmenCents
+}
+
 // Geldtransit ist eine einzelne, gebuchte Bargeldbewegung (Einlage/Entnahme)
 // einer Kassensitzung — die Anzeigeform der geldtransit-gebucht:v1-Events für die
 // Bewegungsliste. GebuchtVon ist der eingefrorene Anzeigename aus dem Kassenjournal.
