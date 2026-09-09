@@ -1,7 +1,6 @@
 package kasse
 
 import (
-	"fmt"
 	"time"
 
 	z "github.com/Oudwins/zog"
@@ -127,9 +126,8 @@ func NewKassensitzungEroeffnetEvent(subject string, userID int, userName string,
 		EroeffnetVon: userID,
 	}
 
-	if err := kassensitzungEroeffnetV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("kassensitzung eroeffnet data validation failed: %v", issues)
+	if err := validateEventData(kassensitzungEroeffnetV1DataSchema, &data, "kassensitzung eroeffnet"); err != nil {
+		return e.Event{}, err
 	}
 
 	return e.New(userID, userName, string(EventTypeKassensitzungEroeffnetV1), subject, data)
@@ -144,9 +142,8 @@ func NewGeldtransitGebuchtEvent(subject string, userID int, userName string, gel
 		GebuchtVon:    userID,
 	}
 
-	if err := geldtransitGebuchtV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("geldtransit gebucht data validation failed: %v", issues)
+	if err := validateEventData(geldtransitGebuchtV1DataSchema, &data, "geldtransit gebucht"); err != nil {
+		return e.Event{}, err
 	}
 
 	return e.New(userID, userName, string(EventTypeGeldtransitGebuchtV1), subject, data)
@@ -160,9 +157,8 @@ func NewKassensturzDurchgefuehrtEvent(subject string, userID int, userName strin
 		DurchgefuehrtVon: userID,
 	}
 
-	if err := kassensturzDurchgefuehrtV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("kassensturz durchgefuehrt data validation failed: %v", issues)
+	if err := validateEventData(kassensturzDurchgefuehrtV1DataSchema, &data, "kassensturz durchgefuehrt"); err != nil {
+		return e.Event{}, err
 	}
 
 	return e.New(userID, userName, string(EventTypeKassensturzDurchgefuehrtV1), subject, data)
@@ -174,9 +170,8 @@ func NewDifferenzSollIstGebuchtEvent(subject string, userID int, userName string
 		GebuchtVon:  userID,
 	}
 
-	if err := differenzSollIstGebuchtV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("differenz soll-ist gebucht data validation failed: %v", issues)
+	if err := validateEventData(differenzSollIstGebuchtV1DataSchema, &data, "differenz soll-ist gebucht"); err != nil {
+		return e.Event{}, err
 	}
 
 	return e.New(userID, userName, string(EventTypeDifferenzSollIstGebuchtV1), subject, data)
@@ -193,9 +188,8 @@ func NewTagesabschlussErstelltEvent(subject string, userID int, userName string,
 		ErstelltVon:       userID,
 	}
 
-	if err := tagesabschlussErstelltV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("tagesabschluss erstellt data validation failed: %v", issues)
+	if err := validateEventData(tagesabschlussErstelltV1DataSchema, &data, "tagesabschluss erstellt"); err != nil {
+		return e.Event{}, err
 	}
 
 	return e.New(userID, userName, string(EventTypeTagesabschlussErstelltV1), subject, data)

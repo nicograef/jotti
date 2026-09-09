@@ -64,7 +64,7 @@ func createDirektverkaufAuftraege(
 	referenz := fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
 
 	// Ableitungsregel: Abholbon-Station konfiguriert -> Abholbon(s), sonst Produktstationen.
-	if abholbon, ok := druckstationen["abholbon"]; ok && abholbon.DruckerIP != "" {
+	if abholbon, ok := druckstationen[string(druckstation.KategorieAbholbon)]; ok && abholbon.DruckerIP != "" {
 		return createAbholbonAuftraege(evt, data, abholbon, referenz)
 	}
 
@@ -148,7 +148,7 @@ func createStationsAuftraegeFromData(
 			continue
 		}
 
-		withBeep := kategorie == "essen"
+		withBeep := kategorie == string(druckstation.KategorieEssen)
 
 		if konfig.Bonmodus == druckstation.BonmodusProBestellung {
 			payload := escpos.FormatSammelBon(

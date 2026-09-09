@@ -1,7 +1,6 @@
 package kasse
 
 import (
-	"fmt"
 	"slices"
 
 	z "github.com/Oudwins/zog"
@@ -72,9 +71,8 @@ func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 		Kommentar:         kommentar,
 	}
 
-	if err := direktverkaufGetaetigtV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("direktverkauf getaetigt data validation failed: %v", issues)
+	if err := validateEventData(direktverkaufGetaetigtV1DataSchema, &data, "direktverkauf getaetigt"); err != nil {
+		return e.Event{}, err
 	}
 
 	return e.New(userID, userName, string(EventTypeDirektverkaufGetaetigtV1), subject, data)
@@ -93,9 +91,8 @@ func NewDirektverkaufStorniertEvent(subject string, verkaufID string, userID int
 		Kommentar:              kommentar,
 	}
 
-	if err := direktverkaufStorniertV1DataSchema.Validate(&data); err != nil {
-		issues := z.Issues.FlattenAndCollect(err)
-		return e.Event{}, fmt.Errorf("direktverkauf storniert data validation failed: %v", issues)
+	if err := validateEventData(direktverkaufStorniertV1DataSchema, &data, "direktverkauf storniert"); err != nil {
+		return e.Event{}, err
 	}
 
 	return e.New(userID, userName, string(EventTypeDirektverkaufStorniertV1), subject, data)

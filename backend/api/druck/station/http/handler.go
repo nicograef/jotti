@@ -71,7 +71,7 @@ type updateDruckstationenRequest struct {
 
 var updateDruckstationenSchema = z.Struct(z.Shape{
 	"Kategorie": z.String().OneOf(
-		[]string{"essen", "getraenk", "sonstiges", "kassenbeleg", "abholbon"},
+		druckstation.AlleKategorien(),
 		z.Message("Ungültige Kategorie"),
 	).Required(),
 	"DruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
@@ -115,7 +115,7 @@ type testbonDruckenRequest struct {
 
 var testbonDruckenSchema = z.Struct(z.Shape{
 	"Kategorie": z.String().OneOf(
-		[]string{"essen", "getraenk", "sonstiges", "kassenbeleg", "abholbon"},
+		druckstation.AlleKategorien(),
 		z.Message("Ungültige Kategorie"),
 	).Required(),
 })
