@@ -46,7 +46,7 @@ docker exec jotti-postgres-local psql -U admin -d jotti -v ON_ERROR_STOP=1 -c "A
 if errorlevel 1 goto :error
 
 echo.
-echo Reparatur abgeschlossen. jotti laeuft noch nicht.
+echo Reparatur abgeschlossen. jotti wurde nicht neu gestartet.
 echo Jetzt jotti-start.exe doppelklicken.
 echo Hinweis: Bitte einmal neu anmelden - bereits ausgestellte Anmeldungen koennen
 echo durch einen zwischenzeitlich erneuerten Schluessel ungueltig geworden sein.
