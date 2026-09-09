@@ -38,22 +38,9 @@ cd "$PROJECT_ROOT"
 # ---------------------------------------------------------------------------
 # Step 1 — Validate prerequisites and resolve configuration
 # ---------------------------------------------------------------------------
-if ! command -v docker &>/dev/null; then
-  fatal "docker is not installed or not on PATH."
-fi
-if ! docker compose version &>/dev/null; then
-  fatal "docker compose (v2) is not available."
-fi
-if [[ ! -f "$COMPOSE_FILE" ]]; then
-  fatal "Missing compose file: $COMPOSE_FILE"
-fi
-if [[ ! -f .env ]]; then
-  fatal ".env file not found. Run 'make init' first."
-fi
+require_docker_stack "$COMPOSE_FILE"
 
-# Environment wins, then .env, then the built-in default.
-BACKUP_DIR="${BACKUP_DIR:-$(read_env BACKUP_DIR)}"
-[[ -n "$BACKUP_DIR" ]] || BACKUP_DIR="./backups"
+resolve_backup_dir
 BACKUP_KEEP="${BACKUP_KEEP:-$(read_env BACKUP_KEEP)}"
 [[ -n "$BACKUP_KEEP" ]] || BACKUP_KEEP="14"
 
