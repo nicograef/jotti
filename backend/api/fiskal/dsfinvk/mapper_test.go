@@ -415,6 +415,38 @@ func TestAbrechnungskreisNutztTischnamen(t *testing.T) {
 	}
 }
 
+// Ein Tischname darf länger sein als das amtliche Feld ABRECHNUNGSKREIS. Der
+// Mapper kürzt ihn auf dessen MaxLength aus der eingebetteten index.xml, ohne
+// einen Umlaut zu zerschneiden.
+func TestAbrechnungskreisKuerztAufAmtlicheMaxLength(t *testing.T) {
+	maxLength := amtlicheMaxLength(t, "allocation_groups.csv", "ABRECHNUNGSKREIS")
+
+	faelle := []struct {
+		name      string
+		tischname string
+		erwartet  string
+	}{
+		{"hundert Zeichen", strings.Repeat("A", 100), strings.Repeat("A", maxLength)},
+		{"Umlaute", strings.Repeat("Tä", 33) + "T", strings.Repeat("Tä", maxLength/2)},
+	}
+	for _, f := range faelle {
+		t.Run(f.name, func(t *testing.T) {
+			snapshot := testSnapshot()
+			snapshot.Tischnamen = map[int]string{42: f.tischname}
+
+			archive, err := Map(snapshot, []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
+			if err != nil {
+				t.Fatalf("Map() error = %v", err)
+			}
+
+			groups := tableByFile(t, archive, "allocation_groups.csv")
+			if got := field(t, groups, 0, "ABRECHNUNGSKREIS"); got != f.erwartet {
+				t.Errorf("ABRECHNUNGSKREIS = %q, want %q", got, f.erwartet)
+			}
+		})
+	}
+}
+
 // TestAbrechnungskreisFallback synthetisiert "Tisch N" als letzte Rückfallebene,
 // wenn der Tisch überhaupt nicht in den Stammdaten steht. Gelöschte Tische
 // gehören nicht dazu: der Export liefert deren Namen mit (GetAllTableNames).

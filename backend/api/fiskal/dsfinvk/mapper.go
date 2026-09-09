@@ -39,10 +39,13 @@ const (
 	tsePDEncoding         = "UTF-8"            // Encoding der ProcessData
 	zertifikatChunk       = 1000               // max. Zeichen je TSE_ZERTIFIKAT-Feld (amtlich: zwei Felder)
 	zertifikatSpalten     = 2                  // TSE_ZERTIFIKAT_I/_II — amtliches Schema der DSFinV-K
-	defaultTSEZeitformat  = "unixTime"         // fiskaly liefert unixTime; Fallback ohne Stammdaten
-	kasseBrand            = "jotti"
-	kasseModell           = "jotti mPOS"
-	kasseSoftware         = "jotti"
+	// maxLengthAbrechnungskreis ist die amtliche Feldlänge von ABRECHNUNGSKREIS
+	// in allocation_groups.csv (index.xml). Sie zählt Zeichen.
+	maxLengthAbrechnungskreis = 50
+	defaultTSEZeitformat      = "unixTime" // fiskaly liefert unixTime; Fallback ohne Stammdaten
+	kasseBrand                = "jotti"
+	kasseModell               = "jotti mPOS"
+	kasseSoftware             = "jotti"
 )
 
 // Archive hält die typisierten Zeilen-Kollektionen eines DSFinV-K-Exports, eine
@@ -527,7 +530,8 @@ func Erstellungszeitpunkt(events []event.Event, fallback time.Time) time.Time {
 
 // abrechnungskreis leitet den ABRECHNUNGSKREIS aus dem Subject ab: jede
 // Tisch-Session ist ein Abrechnungskreis (F-06). Der Name stammt aus den
-// Tisch-Stammdaten, die auch gelöschte Tische enthalten (Snapshot.Tischnamen).
+// Tisch-Stammdaten, die auch gelöschte Tische enthalten (Snapshot.Tischnamen);
+// er darf länger sein als das amtliche Feld und wird darauf gekürzt.
 // Fehlt er dennoch, wird als letzte Rückfallebene "Tisch N" synthetisiert — das
 // ist ein Notnagel, kein echter Name: er stimmt nur, solange Tisch-ID und
 // Tisch-Name zufällig zusammenfallen.
@@ -538,31 +542,12 @@ func abrechnungskreis(subject string, tischnamen map[int]string) string {
 		return ""
 	}
 	if name, ok := tischnamen[tischID]; ok {
-		return name
+		return truncateRunes(name, maxLengthAbrechnungskreis)
 	}
 	return fmt.Sprintf("Tisch %d", tischID)
 }
 
 // --- Stammdatenmodul ---
-
-// truncateRunes schneidet wert auf höchstens maxLength Zeichen. Der Schnitt läuft über
-// []rune, damit ein Umlaut nicht mitten in seiner UTF-8-Folge zerfällt und das
-// Feld gültig bleibt. Die Längen kommen aus domain/betreiber, das jedes Feld
-// beim Schreiben in derselben Einheit begrenzt (NAME 60, STRASSE 60, PLZ 10,
-// ORT 62 laut index.xml). Zu kürzen gibt es damit nur an Bestandswerten, die
-// diese Grenze nie durchlaufen haben — die Spalten selbst sind TEXT.
-//
-// Gekürzt werden allein die vier Adressfelder. Steuernummer und USt-IdNr.
-// bleiben ungekürzt: Eine abgeschnittene Nummer ist keine kürzere, sondern eine
-// falsche.
-func truncateRunes(wert string, maxLength int) string {
-	runen := []rune(wert)
-	if len(runen) <= maxLength {
-		return wert
-	}
-
-	return string(runen[:maxLength])
-}
 
 var cashpointclosingColumns = []column{
 	alpha("Z_KASSE_ID"), alpha("Z_ERSTELLUNG"), num("Z_NR", 0),
@@ -1228,6 +1213,27 @@ func buildCashPerCurrency(s Snapshot, erstellung string, belege []beleg) Table {
 }
 
 // --- Hilfsfunktionen ---
+
+// truncateRunes schneidet wert auf höchstens maxLength Zeichen. Der Schnitt läuft
+// über []rune, damit ein Umlaut nicht mitten in seiner UTF-8-Folge zerfällt und
+// das Feld gültig bleibt; die amtlichen Feldlängen zählen Zeichen.
+//
+// Die vier Adressfelder messen mit den Konstanten aus domain/betreiber (NAME 60,
+// STRASSE 60, PLZ 10, ORT 62 laut index.xml). Dort begrenzt schon das Schema
+// beim Schreiben; zu kürzen gibt es nur an Bestandswerten, die diese Grenze nie
+// durchlaufen haben — die Spalten selbst sind TEXT. Der ABRECHNUNGSKREIS misst
+// mit maxLengthAbrechnungskreis.
+//
+// Steuernummer und USt-IdNr. bleiben ungekürzt: Eine abgeschnittene Nummer ist
+// keine kürzere, sondern eine falsche.
+func truncateRunes(wert string, maxLength int) string {
+	runen := []rune(wert)
+	if len(runen) <= maxLength {
+		return wert
+	}
+
+	return string(runen[:maxLength])
+}
 
 // barbestand summiert die baren Belege (vorzeichenbehaftet): Bareinnahmen und
 // Anfangsbestand mehren, Geldtransit-Entnahmen und Warenrücknahmen mindern
