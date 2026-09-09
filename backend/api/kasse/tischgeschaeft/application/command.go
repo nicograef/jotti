@@ -264,15 +264,15 @@ const maxUmbuchungKommentarBytes = 100
 
 // truncateBytes schneidet s auf höchstens max Bytes. Der Schnitt wandert bis zum
 // Anfang der angeschnittenen UTF-8-Folge zurück, damit kein Umlaut zerfällt.
-func truncateBytes(s string, max int) string {
-	if max <= 0 {
+func truncateBytes(s string, maxBytes int) string {
+	if maxBytes <= 0 {
 		return ""
 	}
-	if len(s) <= max {
+	if len(s) <= maxBytes {
 		return s
 	}
 
-	cut := max
+	cut := maxBytes
 	for cut > 0 && !utf8.RuneStart(s[cut]) {
 		cut--
 	}
