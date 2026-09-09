@@ -263,8 +263,8 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 //
 // Zweiphasig über die Barriere: Als erste Handlung setzt die Sitzung auf
 // 'wird_abgeschlossen'. Ab diesem Commit lehnt der Status-Guard alle Buchungs-Events ab;
-// erst danach laufen Saldo-Prüfung, Reporting und TSE-Signierungen auf einem eingefrorenen
-// Datenstand. Schlägt danach etwas fehl, wird die Sitzung best effort auf 'offen'
+// erst danach laufen Saldo-Prüfung, ComputeAbschlussSummen und TSE-Signierungen auf einem
+// eingefrorenen Datenstand. Schlägt danach etwas fehl, wird die Sitzung best effort auf 'offen'
 // zurückgesetzt; unabhängig davon setzt ein erneuter Aufruf im Zwischenstatus fort.
 //
 // Teilfehler: Schlägt ein Schreibvorgang nach dem ersten Event fehl, kann der Abschluss
