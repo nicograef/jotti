@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/event"
@@ -424,13 +425,18 @@ func TestAbrechnungskreisKuerztAufAmtlicheMaxLength(t *testing.T) {
 	faelle := []struct {
 		name      string
 		tischname string
-		erwartet  string
 	}{
-		{"hundert Zeichen", strings.Repeat("A", 100), strings.Repeat("A", maxLength)},
-		{"Umlaute", strings.Repeat("Tä", 33) + "T", strings.Repeat("Tä", maxLength/2)},
+		{"hundert Zeichen", strings.Repeat("A", 100)},
+		// "Tä" wechselt zwischen ein- und zweibytigen Runen: der Schnitt trifft
+		// eine UTF-8-Folge, gleich ob die Feldlänge gerade oder ungerade ist.
+		{"Umlaute", strings.Repeat("Tä", 33) + "T"},
 	}
 	for _, f := range faelle {
 		t.Run(f.name, func(t *testing.T) {
+			if utf8.RuneCountInString(f.tischname) <= maxLength {
+				t.Fatalf("Tischname hat %d Zeichen, muss die Feldlänge %d überschreiten", utf8.RuneCountInString(f.tischname), maxLength)
+			}
+
 			snapshot := testSnapshot()
 			snapshot.Tischnamen = map[int]string{42: f.tischname}
 
@@ -440,8 +446,16 @@ func TestAbrechnungskreisKuerztAufAmtlicheMaxLength(t *testing.T) {
 			}
 
 			groups := tableByFile(t, archive, "allocation_groups.csv")
-			if got := field(t, groups, 0, "ABRECHNUNGSKREIS"); got != f.erwartet {
-				t.Errorf("ABRECHNUNGSKREIS = %q, want %q", got, f.erwartet)
+			got := field(t, groups, 0, "ABRECHNUNGSKREIS")
+
+			if !utf8.ValidString(got) {
+				t.Errorf("ABRECHNUNGSKREIS = %q, eine UTF-8-Folge ist zerschnitten", got)
+			}
+			if anzahl := utf8.RuneCountInString(got); anzahl != maxLength {
+				t.Errorf("ABRECHNUNGSKREIS hat %d Zeichen, amtlich sind %d erlaubt: %q", anzahl, maxLength, got)
+			}
+			if !strings.HasPrefix(f.tischname, got) {
+				t.Errorf("ABRECHNUNGSKREIS = %q ist kein Anfang des Tischnamens %q", got, f.tischname)
 			}
 		})
 	}
