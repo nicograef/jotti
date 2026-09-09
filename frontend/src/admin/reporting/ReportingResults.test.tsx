@@ -125,6 +125,29 @@ describe('ReportingResults', () => {
     ).toBeInTheDocument()
     // Metadaten-Zeile: abschließender Benutzer und Kassensturz-Differenz.
     expect(screen.getByText(/von nico/)).toBeInTheDocument()
+    // Das Event trägt Soll − Ist (-150 = Überschuss); der Bericht zeigt die
+    // Kassenperspektive Ist − Soll.
+    expect(
+      screen.getByText(/Kassensturz-Differenz \+1,50 €/),
+    ).toBeInTheDocument()
+  })
+
+  it('zeigt einen Fehlbetrag mit negativem Vorzeichen', () => {
+    render(
+      <ReportingResults
+        result={{
+          ...reportingResult,
+          metadaten: {
+            ...reportingResult.metadaten,
+            // Soll − Ist = +150: es fehlen 1,50 € in der Kasse.
+            kassensturzDifferenzCents: 150,
+          },
+        }}
+        sitzung={sitzung}
+        loading={false}
+      />,
+    )
+
     expect(
       screen.getByText(/Kassensturz-Differenz -1,50 €/),
     ).toBeInTheDocument()

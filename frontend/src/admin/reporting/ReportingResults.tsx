@@ -2,7 +2,7 @@ import { Loader2, Printer } from 'lucide-react'
 
 import { STEUERSATZ_LABEL } from '@/admin/products/Produkt'
 import { Button } from '@/components/ui/button'
-import { formatEuro } from '@/lib/utils'
+import { formatEuro, formatEuroMitVorzeichen } from '@/lib/utils'
 
 import { StornoItem } from './StornoItem'
 import { StornoMarker } from './StornoServicekraft'
@@ -33,8 +33,11 @@ function BerichtsMeta({
     )
   }
   if (metadaten.kassensturzDifferenzCents !== null) {
+    // Das Event trägt Soll − Ist (siehe kassensitzung_events.go); angezeigt
+    // wird die Kassenperspektive Ist − Soll wie im Abschluss-Bildschirm:
+    // negativ = Fehlbetrag, positiv = Überschuss.
     teile.push(
-      `Kassensturz-Differenz ${formatEuro(metadaten.kassensturzDifferenzCents)}`,
+      `Kassensturz-Differenz ${formatEuroMitVorzeichen(-metadaten.kassensturzDifferenzCents)}`,
     )
   }
   return (
