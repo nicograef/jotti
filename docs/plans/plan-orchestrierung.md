@@ -266,7 +266,7 @@ durch den Eigentümer nach dem Tag.
 
 ### Acceptance criteria
 
-- [ ] Plan 2 Phase 11: QA-Guide ohne offene automatisierbare Punkte, toter Verweis entfernt,
+- [x] Plan 2 Phase 11: QA-Guide ohne offene automatisierbare Punkte, toter Verweis entfernt,
       `CHANGELOG.md` `[1.0.0]` und Release-Notes vorbereitet
 - [ ] Übergabe an den Eigentümer: Tag `v1.0.0`, GitHub-Release, `PREVIOUS_VERSION`-Bump
       (eigener Commit nach dem Tag), danach `plan-praxis-feedback.md` und dieser Plan
