@@ -66,11 +66,18 @@ Pattern: Zod-Schema für Request definieren → `BackendClient.post()` aufrufen 
 ```typescript
 import { z } from 'zod'
 import type { BackendClient } from '@/lib/Backend'
-import { type Produkt, ProduktIdSchema, ProduktSchema } from './Produkt'
+import {
+  KategorieSchema,
+  type Produkt,
+  ProduktIdSchema,
+  ProduktSchema,
+} from '@/lib/produktSchemas'
 
-export const CreateProduktSchema = ProduktSchema.pick({
-  name: true,
-  kategorie: true,
+import { ProduktNameSchema } from './Produkt'
+
+export const CreateProduktSchema = z.object({
+  name: ProduktNameSchema,
+  kategorie: KategorieSchema,
 })
 
 export class ProduktBackend {
@@ -142,6 +149,12 @@ const loeschenMutation = useMutation({
 
 ### Zod-Schema
 
+Response-Schemas einer Entität, die Admin- und Service-Bereich lesen, liegen in
+`src/lib/` (Produkt, Variante, Kategorie, Steuersatz, EntityStatus:
+`src/lib/produktSchemas.ts`). Sie decken den Bereich ab, den das Backend
+liefert. Formular- und Eingaberegeln — engere Grenzen samt Meldung — bleiben im
+Bereich, der das Formular besitzt.
+
 ```typescript
 import { z } from 'zod'
 
@@ -152,15 +165,12 @@ export const ProduktIdSchema = z.number().int().min(1)
 // Namen kommen aus der gemeinsamen Quelle; nur die Obergrenze ist bereichsspezifisch.
 const NameSchema = createNameSchema(100)
 
-const PreisCentsSchema = z
-  .number()
-  .int()
-  .min(0, { message: 'Preis muss mindestens 0 Cent sein.' })
+const PreisCentsSchema = z.number().int().min(0)
 
 export const ProduktSchema = z.object({
   id: ProduktIdSchema,
   name: NameSchema,
-  kategorie: z.enum(['essen', 'getraenk', 'sonstiges']),
+  kategorie: KategorieSchema,
   varianten: z.array(VarianteSchema),
   createdAt: DateStringSchema,
 })

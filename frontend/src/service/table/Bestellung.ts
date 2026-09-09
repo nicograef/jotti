@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
-import { KategorieSchema } from '../product/Produkt'
-import { DateStringSchema, SteuersatzSchema } from '../schemas'
+import { KategorieSchema, SteuersatzSchema } from '@/lib/produktSchemas'
+
+import { DateStringSchema } from '../schemas'
 
 export const PositionSchema = z.object({
   positionId: z.uuid(),

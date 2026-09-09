@@ -1,11 +1,8 @@
 import { z } from 'zod'
 
-import { KategorieSchema } from '../product/Produkt'
-import {
-  DateStringSchema,
-  PositionRefSchema,
-  SteuersatzSchema,
-} from '../schemas'
+import { KategorieSchema, SteuersatzSchema } from '@/lib/produktSchemas'
+
+import { DateStringSchema, PositionRefSchema } from '../schemas'
 
 // max(999) spiegelt kasse.PositionEingabeSchema im Backend; siehe
 // BestellPositionInputSchema: die Grenze gilt nur auf dem Eingabeweg, die

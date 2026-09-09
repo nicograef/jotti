@@ -11,11 +11,7 @@ import {
   type UseFormReturn,
 } from 'react-hook-form'
 
-import {
-  type Kategorie,
-  type Steuersatz,
-  STEUERSATZ_LABEL,
-} from '@/admin/products/Produkt'
+import { STEUERSATZ_LABEL } from '@/admin/products/Produkt'
 import { toUsername, UserRole } from '@/admin/users/User'
 import { Button } from '@/components/ui/button'
 import {
@@ -40,6 +36,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import type { Kategorie, Steuersatz } from '@/lib/produktSchemas'
 import { formatCents, parseCents } from '@/lib/utils'
 
 import { EuroInput } from './EuroInput'

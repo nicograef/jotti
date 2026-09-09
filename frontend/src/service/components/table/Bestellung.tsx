@@ -1,7 +1,7 @@
 import type { MengenSteuerung } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
+import type { Produkt } from '@/lib/produktSchemas'
 
-import type { Produkt } from '../../product/Produkt'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'

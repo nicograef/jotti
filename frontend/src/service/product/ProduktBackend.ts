@@ -1,8 +1,7 @@
 import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
-
-import { type Produkt, ProduktSchema } from './Produkt'
+import { type Produkt, ProduktSchema } from '@/lib/produktSchemas'
 
 export class ProduktBackend {
   private readonly backend: BackendClient

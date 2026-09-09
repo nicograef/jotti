@@ -1,23 +1,11 @@
 import { z } from 'zod'
 
-import { EntityStatusSchema } from '@/lib/entityStatus'
 import { createNameSchema } from '@/lib/nameSchema'
-import { DateStringSchema } from '@/lib/utils'
+import { Kategorie, Steuersatz } from '@/lib/produktSchemas'
 
-export const Kategorie = {
-  ESSEN: 'essen',
-  GETRAENK: 'getraenk',
-  SONSTIGES: 'sonstiges',
-} as const
-export type Kategorie = (typeof Kategorie)[keyof typeof Kategorie]
-
-export const Steuersatz = {
-  REGEL: 'regel',
-  ERMAESSIGT: 'ermaessigt',
-  BEFREIT: 'befreit',
-  KOMBI: 'kombi',
-} as const
-export type Steuersatz = (typeof Steuersatz)[keyof typeof Steuersatz]
+// Bereichsspezifische Ergänzungen zum geteilten Produkt-Response-Vertrag
+// (@/lib/produktSchemas): die Eingaberegeln der Admin-Formulare, die
+// Anzeige-Labels und die nur hier erreichbaren Vorgänge.
 
 export const STEUERSATZ_LABEL: Record<Steuersatz, string> = {
   regel: 'Regelsteuersatz (19 %)',
@@ -41,19 +29,17 @@ export const Richtung = {
   RUNTER: 'runter',
 } as const
 export type Richtung = (typeof Richtung)[keyof typeof Richtung]
-
-export const ProduktIdSchema = z.number().int().min(1)
-export const VarianteIdSchema = z.number().int().min(1)
 export const RichtungSchema = z.enum([Richtung.HOCH, Richtung.RUNTER])
 
-const NameSchema = createNameSchema(100)
-const PreisCentsSchema = z
+// Eingaberegeln der Anlege- und Bearbeiten-Formulare, gespiegelt an den
+// zog-Grenzen des Backends (Regel 5): so nennt das Formular die Grenze, statt
+// einen anonymen validation_error abzuwarten.
+export const ProduktNameSchema = createNameSchema(100)
+export const PreisCentsEingabeSchema = z
   .number()
   .int()
   .min(1, { message: 'Preis muss mindestens 1 Cent betragen.' })
   .max(99999, { message: 'Preis darf maximal 999,99 € betragen.' })
-const KategorieSchema = z.enum(['essen', 'getraenk', 'sonstiges'])
-const SteuersatzSchema = z.enum(['regel', 'ermaessigt', 'befreit', 'kombi'])
 
 export function defaultSteuersatzByKategorie(kategorie: Kategorie): Steuersatz {
   if (kategorie === Kategorie.ESSEN) {
@@ -62,25 +48,3 @@ export function defaultSteuersatzByKategorie(kategorie: Kategorie): Steuersatz {
 
   return Steuersatz.REGEL
 }
-
-export const VarianteSchema = z.object({
-  id: VarianteIdSchema,
-  name: NameSchema,
-  preisCents: PreisCentsSchema,
-  status: EntityStatusSchema,
-  createdAt: DateStringSchema,
-  updatedAt: DateStringSchema,
-})
-export type Variante = z.infer<typeof VarianteSchema>
-
-export const ProduktSchema = z.object({
-  id: ProduktIdSchema,
-  name: NameSchema,
-  kategorie: KategorieSchema,
-  steuersatz: SteuersatzSchema,
-  status: EntityStatusSchema,
-  varianten: z.array(VarianteSchema),
-  createdAt: DateStringSchema,
-  updatedAt: DateStringSchema,
-})
-export type Produkt = z.infer<typeof ProduktSchema>

@@ -24,12 +24,9 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
+import { Kategorie, type Produkt } from '@/lib/produktSchemas'
 
-import {
-  defaultSteuersatzByKategorie,
-  Kategorie,
-  type Produkt,
-} from './Produkt'
+import { defaultSteuersatzByKategorie } from './Produkt'
 import { CreateProduktSchema, ProduktBackend } from './ProduktBackend'
 
 const FormDataSchema = CreateProduktSchema

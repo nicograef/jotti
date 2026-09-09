@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { VariantNamePreis } from '@/components/common/VariantNamePreis'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import type { Variante } from '@/lib/produktSchemas'
 import { cn } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'
-import { Richtung, type Variante, VarianteStatus } from './Produkt'
+import { Richtung, VarianteStatus } from './Produkt'
 import type { ProduktBackend } from './ProduktBackend'
 
 interface VariantChipProps {

@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
+import type { Produkt } from '@/lib/produktSchemas'
 
-import type { Produkt } from './Produkt'
 import { ProduktBackend } from './ProduktBackend'
 
 export const produktBackend = new ProduktBackend(BackendSingleton)

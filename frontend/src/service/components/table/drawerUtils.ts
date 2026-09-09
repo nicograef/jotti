@@ -1,6 +1,6 @@
+import type { Produkt } from '@/lib/produktSchemas'
 import { formatPositionName } from '@/lib/utils'
 
-import type { Produkt } from '../../product/Produkt'
 import type { PositionRef } from '../../schemas'
 import type {
   BestellPositionInput,

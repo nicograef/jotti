@@ -1,10 +1,7 @@
+import { Kategorie, type Produkt, type Steuersatz } from '@/lib/produktSchemas'
+
 import type { DruckstationConfig } from '../settings/DruckstationBackend'
-import {
-  Kategorie,
-  type Produkt,
-  type Steuersatz,
-  STEUERSATZ_LABEL,
-} from './Produkt'
+import { STEUERSATZ_LABEL } from './Produkt'
 
 // Feste Anzeigereihenfolge der Kategorie-Abschnitte in der Preisliste.
 export const KATEGORIE_ORDER: Kategorie[] = [

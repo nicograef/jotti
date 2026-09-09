@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Produkt } from '@/service/product/Produkt'
+import type { Produkt } from '@/lib/produktSchemas'
 import type { Position } from '@/service/table/Bestellung'
 
 import {
@@ -203,6 +203,7 @@ describe('toBestellungData', () => {
     id: 1,
     name: 'Pommes',
     kategorie: 'essen',
+    steuersatz: 'ermaessigt',
     status: 'active',
     varianten: [
       {

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
 import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
+import type { Produkt } from '@/lib/produktSchemas'
 
-import type { Produkt } from '../../product/Produkt'
 import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { BestellungAbschluss } from './BestellungAbschluss'

@@ -34,14 +34,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import type { Produkt, Variante } from '@/lib/produktSchemas'
 
 import { NewVariantDialog } from './NewVariantDialog'
-import {
-  type Produkt,
-  Richtung,
-  type Variante,
-  VarianteStatus,
-} from './Produkt'
+import { Richtung, VarianteStatus } from './Produkt'
 import type { ProduktBackend } from './ProduktBackend'
 import { VariantChip } from './VariantChip'
 

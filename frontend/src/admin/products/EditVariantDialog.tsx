@@ -30,8 +30,8 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
+import type { Variante } from '@/lib/produktSchemas'
 
-import type { Variante } from './Produkt'
 import { type ProduktBackend, UpdateVarianteSchema } from './ProduktBackend'
 
 const FormDataSchema = UpdateVarianteSchema.omit({ id: true })

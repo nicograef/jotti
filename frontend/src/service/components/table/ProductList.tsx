@@ -3,16 +3,19 @@ import { useState } from 'react'
 
 import { EmptyState } from '@/components/common/EmptyState'
 import { Skeleton } from '@/components/ui/skeleton'
+import type { Kategorie, Produkt, Variante } from '@/lib/produktSchemas'
 import { cn, formatEuro } from '@/lib/utils'
 
-import {
-  type Kategorie,
-  KategorieLabels,
-  KategorieOrder,
-  type Produkt,
-  type Variante,
-} from '../../product/Produkt'
 import { Stepper } from '../Stepper'
+
+// Deutsche Labels und feste Anzeigereihenfolge der Kategorie-Abschnitte dieser
+// Liste.
+const KategorieLabels: Record<Kategorie, string> = {
+  essen: 'Essen',
+  getraenk: 'Getränke',
+  sonstiges: 'Sonstiges',
+}
+const KategorieOrder: Kategorie[] = ['essen', 'getraenk', 'sonstiges']
 
 interface ProductListComponentProps {
   products: Produkt[]

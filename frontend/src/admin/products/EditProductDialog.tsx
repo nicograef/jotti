@@ -22,8 +22,9 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
+import type { Produkt } from '@/lib/produktSchemas'
 
-import { defaultSteuersatzByKategorie, type Produkt } from './Produkt'
+import { defaultSteuersatzByKategorie } from './Produkt'
 import { ProduktBackend, UpdateProduktSchema } from './ProduktBackend'
 
 const FormDataSchema = UpdateProduktSchema.omit({ id: true })

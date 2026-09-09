@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
+import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
-import type { Produkt } from '../../product/Produkt'
 import type { Tisch } from '../../table/Tisch'
 import { ServiceDock } from '../ServiceDock'
 import { Bestellung } from './Bestellung'
@@ -47,6 +47,7 @@ const testProdukt: Produkt = {
   id: 1,
   name: 'Bratwurst',
   kategorie: 'essen',
+  steuersatz: 'ermaessigt',
   status: 'active',
   varianten: [
     {

@@ -19,8 +19,9 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
+import type { Variante } from '@/lib/produktSchemas'
 
-import { type Variante, VarianteStatus } from './Produkt'
+import { VarianteStatus } from './Produkt'
 import { CreateVarianteSchema, type ProduktBackend } from './ProduktBackend'
 
 const FormDataSchema = CreateVarianteSchema.omit({ produktId: true })
