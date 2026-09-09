@@ -362,7 +362,7 @@ Die Rollenhierarchie ist inklusiv: Admin kann alles, was Serviceleitung kann. Se
 Neue Benutzer durchlaufen einen vierstufigen Onboarding-Prozess, der sicherstellt, dass nur der Benutzer sein eigenes Passwort kennt:
 
 1. **Benutzer anlegen:** Admin erstellt Benutzer (Name, Benutzername, Rolle, Status `inactive`). System generiert ein Einmalpasswort aus genau 6 Ziffern, das der Admin dem Benutzer mitteilt.
-2. **„Neues Passwort festlegen":** Benutzer meldet sich mit Einmalpasswort an. System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL` den Onboarding-Status und leitet zur Passwort-Vergabe weiter (Argon2id-Hash). Der Status bleibt `inactive`; regulär anmelden kann sich der Benutzer erst nach Schritt 3.
+2. **„Neues Passwort festlegen":** Benutzer meldet sich mit Einmalpasswort an. System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL` den Onboarding-Status und leitet zur Passwort-Vergabe weiter (min. 6 Zeichen, Argon2id-Hash). Der Status bleibt `inactive`; regulär anmelden kann sich der Benutzer erst nach Schritt 3.
 3. **Admin aktiviert:** Erst ein expliziter Admin-Klick setzt den Status auf `active` (`ActivateUser`); ohne aktiven Status weist eine reguläre Anmeldung `ErrNotActive` zurück, auch mit gesetztem Passwort.
 4. **Regulärer Login:** Mit Benutzername und selbst gesetztem Passwort.
 
