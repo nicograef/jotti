@@ -113,6 +113,13 @@ css, md` im ganzen Repo ab. Grund: 29 Markdown-Dateien außerhalb `docs/plans/` 
   3.6 zeigen auf die Seite, die das jeweilige Thema behandelt (Server-Restore, Domain und
   Zertifikat, LAN-Stack); der Sprachprüfer liegt als Paket im Backend-Modul und prüft
   Wortstämme samt Flexionen, damit „durchgängig echte Umlaute" in 4.4 auch stimmt.
+- **Nachträge aus dem Review der Phase 6** (Lead): die sechs Betreiber-Schemas zählen
+  Zeichen (Runen), nicht Bytes — zogs `Max` zählt Bytes, die DSFinV-K und Zod zählen
+  Zeichen; die amtlichen Längen stehen einmal als Konstanten in `domain/betreiber`, der
+  Mapper liest sie von dort. Steuernummer und USt-IdNr. werden im Export nicht gekürzt:
+  eine abgeschnittene Nummer ist eine falsche, keine kürzere. Die drei ID-Schemas tragen
+  den int4-Bereich als Obergrenze, damit 6.1 ohne Ausnahme gilt. Die übrigen Domänen-
+  Schemas behalten zogs Byte-Zählung; die eingefrorenen Event-Schemas prüfen Bytes.
 
 ### Kritik (2026-09-08)
 
@@ -681,24 +688,25 @@ Regel 5 es fordert. Der Exportrand kürzt, was Bestandsdaten mitbringen.
 
 ### Acceptance criteria
 
-- [ ] `backend/api/schema_grenzen_test.go` (`//go:build unit`, Paket `api`) führt eine
+- [x] `backend/api/schema_grenzen_test.go` (`//go:build unit`, Paket `api`) führt eine
       Tabelle aller persistierten Feld-Schemas mit erwarteter Unter- und Obergrenze und
       prüft je Eintrag Annahme und Ablehnung. Er ermittelt per `go/parser` alle
       exportierten `*Schema`-Variablen unter `backend/domain/**`; ein fehlender
       Tabelleneintrag macht ihn rot. Enum- und Struct-Schemas stehen in einer im Test
       dokumentierten Ausnahmeliste, ebenso der Alias `produkt.SteuersatzSchema`.
-- [ ] `domain/betreiber/betreiber.go` begrenzt Vereinsname und Straße auf 60, PLZ auf 10,
+- [x] `domain/betreiber/betreiber.go` begrenzt Vereinsname und Straße auf 60, PLZ auf 10,
       Ort auf 62, Steuernummer auf 20 und USt-IdNr. auf 15 Zeichen und trimmt jedes Feld;
       ein Test lehnt einen 61-Zeichen-Namen ab. Befund: backend/domain/betreiber/betreiber.go:24-32
-- [ ] `betreiber/http/command_handler.go` baut `updateBetreiberSchema` aus den
+- [x] `betreiber/http/command_handler.go` baut `updateBetreiberSchema` aus den
       exportierten Feld-Schemas von `domain/betreiber` (wie user/tisch/produkt), und der
       `NewBetreiber`-Fehlerzweig liefert 400 statt 500.
       Befund: backend/api/stammdaten/betreiber/http/command_handler.go:31-51
-- [ ] Die Zod-Schemas in `admin/tables/Tisch.ts`, `admin/users/User.ts`,
+- [x] Die Zod-Schemas in `admin/tables/Tisch.ts`, `admin/users/User.ts`,
       `lib/identity.ts` und `admin/finanzamt/BetreiberBackend.ts` trimmen und begrenzen
       dieselben Felder wie ihre zog-Gegenstücke. Eine gemeinsame Namensschema-Quelle
-      ersetzt die drei Kopien derselben Meldung; ein Vitest prüft deren Grenzen.
-- [ ] `dsfinvk/mapper.go` kürzt Vereinsname, Straße, PLZ und Ort runensicher auf die
+      ersetzt die fünf Kopien derselben Meldung (auch in `admin/products/Produkt.ts`,
+      `service/product/Produkt.ts`, `service/table/Tisch.ts`); ein Vitest prüft deren Grenzen.
+- [x] `dsfinvk/mapper.go` kürzt Vereinsname, Straße, PLZ und Ort runensicher auf die
       amtlichen Längen, bevor sie in die Stammdatenzeile gehen; ein Mapper-Test prüft einen
       70-Zeichen-Vereinsnamen. Bestandsdaten bleiben in der Datenbank unverändert.
 
