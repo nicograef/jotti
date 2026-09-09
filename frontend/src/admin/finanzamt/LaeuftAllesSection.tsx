@@ -102,13 +102,17 @@ function SignaturPanel({ queue }: { queue: TSESignaturQueue | undefined }) {
     saetze.push('Keine Vorgänge in der Warteschlange.')
   } else {
     const warten = `${String(offene)} ${offene === 1 ? 'Vorgang wartet' : 'Vorgänge warten'} (ältester ${formatDauer(rueckstandSekunden)})`
-    // Beruhigt wird nur unterhalb der Warnschwelle; darüber ist der Rückstand
-    // derselbe Fehlerzustand, den die Ampel oben rot meldet.
-    saetze.push(
-      rueckstandSekunden < RUECKSTAND_WARN_SEKUNDEN
-        ? `${warten} — normal bei vollem Betrieb.`
-        : `${warten} — der Rückstand ist zu groß.`,
-    )
+    if (rueckstandSekunden >= RUECKSTAND_WARN_SEKUNDEN) {
+      // Über der Warnschwelle ist der Rückstand derselbe Fehlerzustand, den die
+      // Ampel oben rot meldet.
+      saetze.push(`${warten} — der Rückstand ist zu groß.`)
+    } else if (fehlgeschlagen === 0) {
+      // Beruhigt wird nur, wenn nichts fehlgeschlagen ist: neben einem
+      // gemeldeten Fehler wäre „normal" ein Widerspruch.
+      saetze.push(`${warten} — normal bei vollem Betrieb.`)
+    } else {
+      saetze.push(`${warten}.`)
+    }
   }
   if (fehlgeschlagen === 0) {
     saetze.push('Kein Vorgang fehlgeschlagen.')

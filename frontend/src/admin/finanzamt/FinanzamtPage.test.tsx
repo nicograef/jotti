@@ -265,6 +265,23 @@ describe('FinanzamtPage — Signatur-Warteschlange', () => {
     ).toBeInTheDocument()
   })
 
+  it('beruhigt nicht, wenn neben einem kleinen Rückstand ein Vorgang fehlgeschlagen ist', () => {
+    hookState.betreiber = makeBetreiber()
+    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
+    // normaleQueue: 3 offene Aufträge, Rückstand 12 s — unter der Warnschwelle.
+    hookState.queue = { ...normaleQueue(), fehlgeschlageneAuftraege: 2 }
+    render(<FinanzamtPage />)
+
+    expect(
+      screen.getByText(
+        '2 Vorgänge sind fehlgeschlagen. 3 Vorgänge warten (ältester 12 s).',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/normal bei vollem Betrieb/),
+    ).not.toBeInTheDocument()
+  })
+
   it('beruhigt nicht mehr, wenn der Rückstand die Warnschwelle erreicht', () => {
     hookState.betreiber = makeBetreiber()
     hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
