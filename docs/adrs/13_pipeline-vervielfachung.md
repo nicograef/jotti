@@ -82,9 +82,13 @@ Zwei Kopplungen laufen ausschließlich über den Projektnamen:
   `docker-compose.local.yml`, damit ein ZIP-Upgrade dieselben Volumes
   weiterbenutzt — der Dateikopf sagt das ausdrücklich („Same project name
   (jotti-local) and named volumes as the local file on purpose").
-- `docker-compose.initial-cert.yml` heißt `jotti`, damit
-  `jotti_certbot-challenges` und `jotti_letsencrypt` aus dem Bootstrap in den
-  Rocks-Stack übergehen (`scripts/rocks-init.sh:27`).
+- `docker-compose.initial-cert.yml` und `docker-compose.rocks.yml` heißen beide
+  `jotti` (je Zeile 1), damit `jotti_certbot-challenges` und
+  `jotti_letsencrypt` aus dem Bootstrap in den Rocks-Stack übergehen.
+  `scripts/rocks-init.sh` fährt den Bootstrap hoch (119), holt das Zertifikat
+  (127), fährt ihn mit `down` ohne `-v` wieder herunter (142) — die Volumes
+  bleiben also stehen — und startet danach den Rocks-Stack (148, mit
+  `COMPOSE_PROD=(-f docker-compose.rocks.yml)` aus Zeile 28).
 
 Wie ähnlich sich die Dateien wirklich sind, sagt `diff`:
 
@@ -113,10 +117,10 @@ den Image-Tag (152). Auf sie zeigen ein kompiliertes Binary
 1. **Eine Matrix über alle Nicht-Backend-Module in der CI.** Kostet entweder die
    Pfadfilter (jeder PR baut alle Module) oder eine im `changes`-Job berechnete
    `fromJSON`-Matrix.
-2. **Ein generisches `check-%`-Ziel im `Makefile`.** Die fünf Ziele sind nicht
-   gleich: `check-backend` hat zwei Lint-Läufe und einen Test-Build-Tag,
-   `check-starter` baut ohne `-o /dev/null`. Ein Muster mit Sonderfall-Variablen
-   für beide ist länger und schwerer zu lesen als fünf Zeilen.
+2. **Ein generisches `check-%`-Ziel im `Makefile`.** `check-backend` passt
+   nicht ins Muster: zwei Lint-Läufe und ein Test-Build-Tag. Ein Muster plus
+   Sonderfall-Variablen für dieses eine Ziel ist länger und schwerer zu lesen
+   als fünf Zeilen.
 3. **Basisdatei plus Overrides für alle Stacks.** Nur ein Paar ist ein
    Zwillingspaar; die übrigen unterscheiden sich in 117 bis 243 Zeilen.
 4. **Basisdatei nur für `local` und `release`.** Technisch volume-sicher:
@@ -143,7 +147,8 @@ bleiben getrennt** (Alternative 5).
   Merge-Regeln kennen, um zu wissen, was läuft. Für Betreiber, die den Stack
   einmal im Jahr anfassen, ist das die teurere Form.
 - **Konsistenz:** Sieben Dateien in einer Form schlagen fünf in einer und zwei
-  in einer anderen. Die vier `check-*`-Ziele sind bereits gleich gebaut.
+  in einer anderen. Die vier Nicht-Backend-Ziele unterscheiden sich schon heute
+  nur im Verzeichnis und in der Build-Flagge von `check-starter`.
 - **Produkt-Konservatismus:** Die betroffene Fläche ist die
   Installations-Infrastruktur echter Instanzen mit aufbewahrungspflichtigen
   Daten. Eine Entdopplung ohne Nutzerwirkung rechtfertigt dort kein Risiko.
