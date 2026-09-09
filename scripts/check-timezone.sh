@@ -6,10 +6,12 @@ set -euo pipefail
 # not pass through .In(zone) shifts receipts, work slips, file names and reports
 # by up to two hours — and late in the evening by a day.
 #
-# Scanned are all Go files under backend/api/druck, backend/api/fiskal and
-# backend/api/reporting. A line containing .Format() passes when the same line
-# carries .In( before it. The check is line-based: no call chain there spans two
-# lines. Pure comment lines (leading //) are skipped.
+# Scanned are the tracked Go files (test files included, untracked files not)
+# under backend/api/druck, backend/api/fiskal and backend/api/reporting. Every
+# .Format() on a line is checked against the text since the previous .Format()
+# on that line, so a zone on the first call cannot shield a second one. The
+# check is line-based: no call chain there spans two lines, and one that did
+# would pass unnoticed. Pure comment lines (leading //) are skipped.
 #
 # Exceptions live in scripts/check-timezone.allow: per line the path, then a
 # fragment of the exempt code line (no spaces), then "# reason". An exception
@@ -52,16 +54,21 @@ mapfile -t files < <(git ls-files \
 
 violations=0
 for file in "${files[@]}"; do
-  # awk rather than grep: the decision needs the order of .In( and .Format( in
-  # the same line, not just their presence.
+  # awk rather than grep: the decision needs the position of every .In( relative
+  # to every .Format( on the line, not just their presence. A line is reported
+  # once, at its first unzoned .Format().
   hits="$(awk '
     /^[[:space:]]*\/\// { next }
     {
-      pos = index($0, ".Format(")
-      if (pos == 0) next
-      zone = index($0, ".In(")
-      if (zone > 0 && zone < pos) next
-      printf "%d:%s\n", FNR, $0
+      start = 1
+      while ((offset = index(substr($0, start), ".Format(")) > 0) {
+        call = start + offset - 1
+        if (index(substr($0, start, call - start), ".In(") == 0) {
+          printf "%d:%s\n", FNR, $0
+          break
+        }
+        start = call + length(".Format(")
+      }
     }
   ' "$file")"
   [ -z "$hits" ] && continue
