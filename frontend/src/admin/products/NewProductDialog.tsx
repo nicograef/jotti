@@ -4,11 +4,7 @@ import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
-import {
-  CategoryField,
-  NameField,
-  SteuersatzField,
-} from '@/components/common/FormFields'
+import { CategoryField, NameField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -28,6 +24,7 @@ import { Kategorie, type Produkt } from '@/lib/produktSchemas'
 
 import { defaultSteuersatzByKategorie } from './Produkt'
 import { CreateProduktSchema, ProduktBackend } from './ProduktBackend'
+import { SteuersatzField } from './SteuersatzField'
 
 const FormDataSchema = CreateProduktSchema
 type FormData = z.infer<typeof FormDataSchema>

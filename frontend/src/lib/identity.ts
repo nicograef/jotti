@@ -30,3 +30,18 @@ export const OnetimePasswordSchema = z
   .regex(/^\d{6}$/, {
     message: 'Das Einmalpasswort besteht aus genau 6 Ziffern.',
   })
+
+// Normalisiert eine freie Eingabe zu einem gültigen Benutzernamen: klein
+// geschrieben, ohne Leerzeichen, Umlaute ausgeschrieben, alles Übrige entfernt.
+// Damit trifft das Eingabefeld die Regel von UsernameSchema, statt sie erst im
+// Fehlerfall zu nennen.
+export function toUsername(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]/g, '')
+}

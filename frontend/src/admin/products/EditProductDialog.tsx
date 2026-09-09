@@ -3,11 +3,7 @@ import { useEffect, useRef } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
-import {
-  CategoryField,
-  NameField,
-  SteuersatzField,
-} from '@/components/common/FormFields'
+import { CategoryField, NameField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -26,6 +22,7 @@ import type { Produkt } from '@/lib/produktSchemas'
 
 import { defaultSteuersatzByKategorie } from './Produkt'
 import { ProduktBackend, UpdateProduktSchema } from './ProduktBackend'
+import { SteuersatzField } from './SteuersatzField'
 
 const FormDataSchema = UpdateProduktSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>

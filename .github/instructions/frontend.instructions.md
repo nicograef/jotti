@@ -31,6 +31,10 @@ frontend/
   src/components/common/        # Gemeinsame Komponenten
 ```
 
+`src/components/`, `src/lib/` und `src/hooks/` importieren nicht aufwärts in
+`src/admin/` oder `src/service/` (ESLint `no-restricted-imports`). Ein Baustein,
+der Bereichswissen braucht, gehört in den Bereich.
+
 ## UI-Bibliotheken
 
 - **shadcn/ui** (Stil: `radix-vega`, Radix-basiert)

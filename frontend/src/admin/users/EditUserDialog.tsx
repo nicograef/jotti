@@ -2,11 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import {
-  NameField,
-  RoleField,
-  UsernameField,
-} from '@/components/common/FormFields'
+import { NameField, UsernameField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -22,6 +18,7 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
+import { RoleField } from './RoleField'
 import { type User, UserSchema } from './User'
 import type { UserBackend } from './UserBackend'
 

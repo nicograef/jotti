@@ -44,6 +44,18 @@ export default defineConfig([
     },
   },
   {
+    // Geteilte Schichten importieren nicht aufwärts in einen Bereich: components,
+    // lib und hooks müssen ohne Admin- und Service-Code tragfähig bleiben. Ein
+    // bereichsspezifischer Baustein gehört nach admin/ bzw. service/.
+    files: ['src/components/**', 'src/lib/**', 'src/hooks/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: ['@/admin/*', '@/service/*'] },
+      ],
+    },
+  },
+  {
     files: ['**/*.test.{ts,tsx}'],
     plugins: { vitest },
     rules: {
