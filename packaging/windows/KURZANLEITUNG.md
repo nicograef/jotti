@@ -120,31 +120,34 @@ sichert er die Datenbank **vor** der Aktualisierung automatisch. Geht beim Updat
 etwas schief, spielt **`jotti-restore.cmd`** (Doppelklick) das letzte dieser
 Backups zurück — seit dem Backup erfasste Daten gehen dabei verloren.
 
-Das Skript meldet jeden seiner Schritte mit einer eigenen Zeile:
+Das Skript meldet jeden seiner drei Schritte mit einer eigenen Zeile:
 
 1. `Starte die Datenbank ...`
 2. `Stoppe die Anwendung waehrend der Wiederherstellung ...`
 3. `Spiele das letzte Backup ein ...`
-4. `Starte jotti neu ...`
 
-Bricht einer davon ab, endet die Ausgabe mit „FEHLER bei der Wiederherstellung".
-Die letzte Zeile darüber zeigt, wie weit das Skript kam — und daran hängt, was
-zu tun ist:
+Danach meldet es „Wiederherstellung abgeschlossen." und dass jotti noch nicht
+läuft. Das Skript startet jotti **nicht** selbst: nur `jotti-start.exe` gibt dem
+Reverse-Proxy die Netzwerk-Adresse des Rechners mit, ohne die es keine
+Zugangsadresse für die Handys gibt.
 
-- **`Starte jotti neu ...` fehlt:** Das Backup ist nicht oder nur zum Teil
-  eingespielt. Behebt die Ursache (läuft Docker? sind die Ports frei?) und
-  startet `jotti-restore.cmd` erneut; der zweite Lauf spielt dasselbe Backup
-  vollständig ein.
-- **`Starte jotti neu ...` steht da, der Fehler kam erst danach:** Das Backup
-  ist eingespielt, nur der Start hakt. Entpackt dann das **vorherige
-  Release-ZIP** und startet `jotti-start.exe` daraus. Diese Version passt zur
-  zurückgespielten Datenbank.
+Bricht das Skript ab, endet die Ausgabe mit „FEHLER bei der Wiederherstellung".
+Behebt die Ursache (läuft Docker? sind die Ports frei?) und startet
+`jotti-restore.cmd` erneut; der zweite Lauf spielt dasselbe Backup vollständig
+ein.
+
+**Danach starten — mit dem vorherigen Release.** Die Datenbank steht wieder auf
+dem Stand von vor dem Update, und dazu passt die Version von vor dem Update.
+Entpackt also das **vorherige Release-ZIP** und startet `jotti-start.exe` daraus.
 
 > 🔁 **Nur vorwärts, kein Downgrade.** Spielt **keine ältere Version** über eine
-> neuere. Updates verändern die Datenbank und lassen sich nicht zurücknehmen;
-> eine alte Version kann mit den neuen Daten nicht mehr starten. Einzige
-> Ausnahme ist der Rückweg oben: Nach dem Restore ist die Datenbank wieder auf
-> dem alten Stand, und das vorherige Release passt dazu.
+> neuere Datenbank: Updates verändern die Datenbank und lassen sich nicht
+> zurücknehmen. Nach einer Wiederherstellung gilt das nicht — die Datenbank ist
+> dann selbst wieder auf dem alten Stand. Verweigert der Starter den Start
+> trotzdem („Diese Version … ist aelter als die zuletzt gestartete …"), dann lief
+> die neue Version schon einmal vollständig: nehmt dann `jotti-start.exe` aus dem
+> **neuen** ZIP, es aktualisiert die zurückgespielte Datenbank wieder auf seinen
+> Stand.
 
 ## Wenn nach einem Update niemand mehr hineinkommt
 
@@ -155,8 +158,9 @@ Installations-Schlüssel. jotti startet dann zwar, aber das Anmelden schlägt fe
 Schlüssel. Zwei datenerhaltende Wege zurück:
 
 1. **`jotti-repair.cmd`** doppelklicken. Es gleicht das Datenbank-Passwort an den
-   aktuellen Installations-Schlüssel an und startet jotti neu — ohne eure Daten zu
-   verändern. Mehrfaches Ausführen schadet nicht. Danach einmal **neu anmelden**.
+   aktuellen Installations-Schlüssel an, ohne eure Daten zu verändern, und endet
+   mit dem Hinweis, `jotti-start.exe` zu doppelklicken. Mehrfaches Ausführen
+   schadet nicht. Danach einmal **neu anmelden**.
 2. Habt ihr noch die **`.env` aus der alten Installation** (liegt ggf. im
    Programmordner neben `jotti-start.exe`): kopiert sie nach
    **`%PROGRAMDATA%\jotti\.env`** und startet `jotti-start.exe` erneut — dann

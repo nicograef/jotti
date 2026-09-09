@@ -5,6 +5,10 @@ REM Vor jedem Update sichert jotti-start.exe die Datenbank automatisch in das
 REM jotti-backups-Volume. Dieses Skript spielt das NEUESTE dieser Backups zurueck
 REM - z. B. wenn ein Update fehlgeschlagen ist. Daten, die seit dem Backup
 REM erfasst wurden, gehen dabei verloren.
+REM
+REM Das Skript startet jotti nicht selbst: nur jotti-start.exe uebergibt dem
+REM Reverse-Proxy die LAN-Adresse des Rechners. Zur zurueckgespielten Datenbank
+REM passt das vorherige Release.
 setlocal
 cd /d "%~dp0"
 set ENVFILE=%PROGRAMDATA%\jotti\.env
@@ -32,12 +36,12 @@ echo Spiele das letzte Backup ein ...
 docker exec jotti-postgres-local sh -c "set -e; F=$(ls -1 /jotti-backups/jotti-*.sql 2>/dev/null | tail -n 1); if [ -z \"$F\" ]; then echo 'Kein Backup gefunden.'; exit 1; fi; echo \"Verwende $F\"; psql -U admin -d jotti -v ON_ERROR_STOP=1 -f \"$F\""
 if errorlevel 1 goto :error
 
-echo Starte jotti neu ...
-%COMPOSE% up -d
-if errorlevel 1 goto :error
-
 echo.
-echo Wiederherstellung abgeschlossen. jotti laeuft wieder.
+echo Wiederherstellung abgeschlossen. Die Daten stehen wieder auf dem Stand von
+echo vor dem Update. jotti laeuft noch nicht.
+echo.
+echo Jetzt jotti-start.exe doppelklicken - und zwar aus dem vorherigen
+echo Release-ZIP: diese Version passt zur zurueckgespielten Datenbank.
 goto :end
 
 :noenv

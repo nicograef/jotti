@@ -162,9 +162,11 @@ Update etwas schief, ist dieses Backup euer Rückweg — wie ihr es einspielt, s
 unter [Der Weg zurück](#der-weg-zurück-wenn-das-update-schiefgeht).
 
 > 🔁 **Nur vorwärts, kein Downgrade.** Spielt keine ältere Version über eine
-> neuere. Updates verändern die Datenbank; eine alte Version kann mit den neuen
-> Daten nicht mehr starten. Der Starter verweigert einen solchen Rückschritt
-> selbst.
+> neuere Datenbank. Updates verändern die Datenbank; eine alte Version kann mit
+> den neuen Daten nicht mehr starten, und der Starter verweigert einen solchen
+> Rückschritt selbst. Nach einer Wiederherstellung gilt das nicht — dann steht
+> die Datenbank selbst wieder auf dem alten Stand (siehe [Der Weg
+> zurück](#der-weg-zurück-wenn-das-update-schiefgeht)).
 
 > ⛔ **Niemals `docker compose down -v` ausführen.** Das `-v` löscht alle
 > Docker-Volumes und damit Daten, Installations-Schlüssel und Zertifikat
@@ -173,20 +175,26 @@ unter [Der Weg zurück](#der-weg-zurück-wenn-das-update-schiefgeht).
 
 ## Der Weg zurück, wenn das Update schiefgeht
 
-Der Rückweg ist **nicht**, einfach das alte ZIP wieder auszupacken. Lief die
-neue Version schon einmal, verweigert `jotti-start.exe` den Start einer älteren
-mit der Meldung „Start verweigert: Diese Version … ist aelter als die zuletzt
-gestartete …". Updates verändern die Datenbank, und diese Änderung wird nicht
-zurückgenommen.
+Der Rückweg ist **nicht**, einfach das alte ZIP wieder auszupacken: die Daten
+bleiben dabei auf dem neuen Stand. Updates verändern die Datenbank, und diese
+Änderung wird nicht zurückgenommen.
 
 Der Rückweg ist das automatische Backup von vor dem Update:
 
 1. **`jotti-restore.cmd`** doppelklicken (liegt im entpackten Release-Ordner,
    neben `jotti-start.exe`).
 2. Die Rückfrage **`Fortfahren? (j/N)`** mit **`j`** beantworten.
-3. Das Skript startet die Datenbank, hält die Anwendung währenddessen an, spielt
-   das neueste automatische Backup ein und startet jotti wieder. Am Ende meldet
-   es „Wiederherstellung abgeschlossen. jotti laeuft wieder."
+3. Das Skript startet die Datenbank, hält die Anwendung währenddessen an und
+   spielt das neueste automatische Backup ein. Am Ende meldet es
+   „Wiederherstellung abgeschlossen." — jotti läuft dann noch nicht.
+4. **`jotti-start.exe`** aus dem **vorherigen** Release-ZIP doppelklicken. Nur
+   der Starter gibt dem Reverse-Proxy die Netzwerk-Adresse des Rechners mit, und
+   zur zurückgespielten Datenbank passt die Version von vor dem Update.
+
+> ℹ️ **Verweigert der Starter den Start** („Diese Version … ist aelter als die
+> zuletzt gestartete …"), lief die neue Version schon einmal vollständig. Nehmt
+> dann `jotti-start.exe` aus dem **neuen** ZIP; es aktualisiert die
+> zurückgespielte Datenbank wieder auf seinen Stand.
 
 > ⚠️ **Alles seit dem Backup ist danach weg.** Das Backup entsteht unmittelbar
 > vor dem Update. Aktualisiert ihr mitten im Fest, verliert ihr also jede
@@ -199,6 +207,7 @@ Der Rückweg ist das automatische Backup von vor dem Update:
 Sehr selten passt nach einem Update das in der Datenbank gespeicherte Passwort
 nicht mehr zum Installations-Schlüssel; jotti startet dann, aber das Anmelden
 schlägt fehl. Eure Daten sind dabei nicht verloren. **`jotti-repair.cmd`**
-doppelklicken gleicht beides datenerhaltend wieder an und startet jotti neu;
-danach einmal neu anmelden. Mehrfaches Ausführen schadet nicht. Mehr dazu unter
+doppelklicken gleicht beides datenerhaltend wieder an; danach `jotti-start.exe`
+doppelklicken und einmal neu anmelden. Mehrfaches Ausführen schadet nicht. Mehr
+dazu unter
 [Fehlersuche](fehlersuche.md#nach-einem-update-klappt-das-anmelden-nicht).

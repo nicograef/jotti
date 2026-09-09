@@ -9,6 +9,9 @@ REM Datenbank-Passwort datenerhaltend an den aktuellen Install-Schluessel an - u
 REM den lokalen Trust-Zugang im postgres-Container, ohne das alte Passwort zu
 REM kennen. Es veraendert KEINE Daten (nur das Rollen-Passwort) und fasst keine
 REM anderen Volumes an. Mehrfaches Ausfuehren ist gefahrlos (idempotent).
+REM
+REM Das Skript startet jotti nicht selbst: nur jotti-start.exe uebergibt dem
+REM Reverse-Proxy die LAN-Adresse des Rechners.
 setlocal
 cd /d "%~dp0"
 set ENVFILE=%PROGRAMDATA%\jotti\.env
@@ -42,12 +45,9 @@ echo Gleiche das Datenbank-Passwort an den Installations-Schluessel an ...
 docker exec jotti-postgres-local psql -U admin -d jotti -v ON_ERROR_STOP=1 -c "ALTER USER admin PASSWORD '%DBPASS%'"
 if errorlevel 1 goto :error
 
-echo Starte jotti neu ...
-%COMPOSE% up -d
-if errorlevel 1 goto :error
-
 echo.
-echo Reparatur abgeschlossen. jotti laeuft wieder.
+echo Reparatur abgeschlossen. jotti laeuft noch nicht.
+echo Jetzt jotti-start.exe doppelklicken.
 echo Hinweis: Bitte einmal neu anmelden - bereits ausgestellte Anmeldungen koennen
 echo durch einen zwischenzeitlich erneuerten Schluessel ungueltig geworden sein.
 goto :end
