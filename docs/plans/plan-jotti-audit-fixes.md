@@ -151,6 +151,15 @@ css, md` im ganzen Repo ab. Grund: 29 Markdown-Dateien außerhalb `docs/plans/` 
   DB-Check), die Eingaberegel `1..99999` samt Meldungen bleibt im Admin-Formular — der
   Lesepfad bleibt schrankenfrei wie bei den Betreiber-Schemas. Die Service-Hooks geben
   neben `isError` auch `refetch` heraus, weil `LadefehlerAlert` den erneuten Versuch anbietet.
+- **Nachträge aus dem Review der Phase 11** (Lead): die Status-Seite des Reverse-Proxys
+  nennt „jotti neu starten" und lädt sich nicht mehr selbst neu (die Wildcard-Site entsteht
+  einmal beim Start; ein später Erfolg von `ensureState` brächte keine grüne Adresse).
+  Die Caddyfile bekommt zusätzlich `chmod 0o600`, weil `os.WriteFile` den Modus einer
+  vorhandenen Datei behält. `loadConfig` liefert `(config, error)`; `main` bricht ab.
+  `check-pins.sh` prüft nur die drei im Kriterium genannten Quellen (Compose, Dockerfiles,
+  `packageManager`); Stage-Namen, `scratch` und Build-Args gelten nicht als ungepinnt,
+  Digest-Pins zählen als Version. Folge der Eigentümer-Entscheidung zu `JOTTI_DOMAIN`:
+  jeder Compose-Befehl des Public-Stacks verlangt die Variable, auch `make prod-down`.
 
 ### Kritik (2026-09-08)
 
@@ -1079,37 +1088,37 @@ Produktion.
 
 ### Acceptance criteria
 
-- [ ] `jotti-restore.cmd` und `jotti-repair.cmd` starten den Stack nicht mehr selbst,
+- [x] `jotti-restore.cmd` und `jotti-repair.cmd` starten den Stack nicht mehr selbst,
       sondern enden nach der Datenbankarbeit mit dem Verweis auf `jotti-start.exe`. Die
       `KURZANLEITUNG.md` beschreibt diesen Ablauf und löst den Widerspruch zu „Nur
       vorwärts, kein Downgrade" auf: nach einem Restore ist das vorherige Release der
       richtige Stand.
       Befund: packaging/windows/jotti-restore.cmd:36-37, packaging/windows/jotti-repair.cmd:15,46
-- [ ] Der dokumentierte manuelle Backup-Befehl in `KURZANLEITUNG.md` legt
+- [x] Der dokumentierte manuelle Backup-Befehl in `KURZANLEITUNG.md` legt
       `%PROGRAMDATA%\jotti\backups` mit `md … 2>nul` an, trägt einen Zeitstempel im
       Dateinamen und prüft auf eine nicht leere Datei.
       Befund: packaging/windows/KURZANLEITUNG.md:83-91, :85-91
-- [ ] `InstallState.valid()` akzeptiert die acme-dns-Subdomain nur gegen
+- [x] `InstallState.valid()` akzeptiert die acme-dns-Subdomain nur gegen
       `^[a-z0-9-]{1,63}$`, und ein Test lehnt eine Subdomain mit Leerzeichen oder
       geschweifter Klammer ab. Befund: reverse-proxy/caddyfile.go:201-221
-- [ ] Ein Test in `package main` liest `reverse-proxy/nginx.rocks.conf` und sichert zu,
+- [x] Ein Test in `package main` liest `reverse-proxy/nginx.rocks.conf` und sichert zu,
       dass sie die Konstante `contentSecurityPolicy` wörtlich enthält. Die beiden
       Prosakommentare in `caddyfile.go` und `nginx.rocks.conf` verweisen auf den Test und
       sind zugleich von der Historien-Prosa befreit.
       Befund: reverse-proxy/caddyfile.go:5-8; reverse-proxy/nginx.rocks.conf:142-143
-- [ ] `loadConfig` verweigert den LAN-Modus ohne State-Verzeichnis, sodass ein leeres
+- [x] `loadConfig` verweigert den LAN-Modus ohne State-Verzeichnis, sodass ein leeres
       `JOTTI_DOMAIN` den Public-Stack nicht mehr still in den LAN-Modus fallen lässt, und
       `docker-compose.prod.yml` erzwingt die Variable am `reverse-proxy`-Service mit
       `${JOTTI_DOMAIN:?JOTTI_DOMAIN ist im Public-Stack Pflicht}` (Eigentümer-Entscheidung,
       Regel 16). Ein Test in `package main` deckt den `loadConfig`-Fall ab.
       Befund: reverse-proxy/main.go:78-86
-- [ ] Die Status-Seite wiederholt `ensureState` im Hintergrund und rendert nach Erfolg neu
+- [x] Die Status-Seite wiederholt `ensureState` im Hintergrund und rendert nach Erfolg neu
       — oder ihr Hinweistext nennt „jotti neu starten"; der Text und das Verhalten stimmen
       überein. Befund: reverse-proxy/main.go:134-158
-- [ ] `scripts/prod-restore.sh` prüft ein `*.gz`-Archiv vor der Bestätigungsabfrage mit
+- [x] `scripts/prod-restore.sh` prüft ein `*.gz`-Archiv vor der Bestätigungsabfrage mit
       `gzip -t` und bricht bei Fehler ab, bevor Objekte gedroppt werden.
       Befund: scripts/prod-restore.sh:99-116
-- [ ] `scripts/check-pins.sh` prüft die Versions-Pins und landet grün.
+- [x] `scripts/check-pins.sh` prüft die Versions-Pins und landet grün.
       Befund: scripts/test-integration.sh:34; scripts/test-tse-live.sh:51
 
   - Quelle sind nur `image:`-Zeilen in `docker-compose*.yml`, `FROM`-Zeilen in jedem
@@ -1125,11 +1134,11 @@ Produktion.
   - `scripts/test-integration.sh` und `scripts/test-tse-live.sh` starten `postgres:17.8`.
   - `e2e/package.json` trägt denselben `packageManager`-Wert samt sha512-Hash.
 
-- [ ] Der SECURITY-Absatz in `docker-compose.local.yml` widerspricht dem Dateikopf nicht
+- [x] Der SECURITY-Absatz in `docker-compose.local.yml` widerspricht dem Dateikopf nicht
       mehr: Let's Encrypt bleibt der Primärpfad, die interne CA der Fallback, und die
       Warnung vor der Internet-Exposition bleibt stehen.
       Befund: docker-compose.local.yml:15-16
-- [ ] `reverse-proxy/main.go` schreibt die Caddyfile an allen drei Stellen mit `0o600` wie
+- [x] `reverse-proxy/main.go` schreibt die Caddyfile an allen drei Stellen mit `0o600` wie
       `install.json`; ein Test prüft den Modus der erzeugten Datei. Sie trägt die
       acme-dns-Zugangsdaten. Befund: reverse-proxy/main.go:111,125,171-173
 
