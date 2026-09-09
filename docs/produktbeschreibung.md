@@ -129,29 +129,29 @@ Diese bewusste Reduktion ist ein Feature, kein Mangel: Jedes zusätzliche Featur
 
 jotti ist ein elektronisches Aufzeichnungssystem im Sinne von § 1 KassenSichV und erfüllt die TSE-Pflicht nach § 146a AO, unabhängig von der Rechtsform des Betreibers (e.V., gGmbH, Stiftung) oder dem temporären Charakter einer Veranstaltung.
 
-| Anforderung           | Umsetzung in jotti                                                            |
-| --------------------- | ----------------------------------------------------------------------------- |
-| Unveränderbarkeit     | Event-Sourcing (Append-Only); jeder Geschäftsvorfall zusätzlich TSE-signiert  |
-| Kassenjournal         | Lückenlose, chronologische Transaktionshistorie                               |
-| TSE-Signatur          | Integrierte Cloud-TSE-Schnittstelle (fiskaly); jeder Vorgang wird signiert    |
-| Belegausgabe          | Belege mit Pflichtfeldern nach § 6 KassenSichV inkl. TSE-Signatur und QR-Code |
-| Steuersätze           | 19 % (Standard), 7 % (ermäßigt), 0 %, konfigurierbar pro Produktvariante      |
-| Abrechnungskreis      | Fortlaufend nummerierte Kassensitzungen mit Tagesabschluss (Z-Bon)            |
-| DSFinV-K-Export       | Vollständiger Export als ZIP (CSV + index.xml) nach DSFinV-K v2.4             |
-| Seriennummer / ELSTER | UUID beim ersten Start; ELSTER-Meldeanleitung                                 |
+| Anforderung           | Umsetzung in jotti                                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Unveränderbarkeit     | Event-Sourcing (Append-Only); jeder Geschäftsvorfall zusätzlich TSE-signiert                                      |
+| Kassenjournal         | Lückenlose, chronologische Transaktionshistorie                                                                   |
+| TSE-Signatur          | Integrierte Cloud-TSE-Schnittstelle (fiskaly); jeder Vorgang wird signiert                                        |
+| Belegausgabe          | Belege mit Pflichtfeldern nach § 6 KassenSichV inkl. TSE-Signatur und QR-Code                                     |
+| Steuersätze           | 19 % (Standard), 7 % (ermäßigt), 0 %, Kombi (70/30-Pauschalierung für Speise+Getränk), konfigurierbar pro Produkt |
+| Abrechnungskreis      | Fortlaufend nummerierte Kassensitzungen mit Tagesabschluss (Z-Bon)                                                |
+| DSFinV-K-Export       | Vollständiger Export als ZIP (CSV + index.xml) nach DSFinV-K v2.4                                                 |
+| Seriennummer / ELSTER | UUID beim ersten Start; ELSTER-Meldeanleitung                                                                     |
 
 **Architekturprinzip:** Die Smartphones der Servicekräfte sind reine Eingabegeräte: TSE-Anbindung, Protokollierung und DSFinV-K-Persistenz laufen zentral im Backend; jeder Vorgang ist ein synchroner Backend-Request, ohne Verbindung ist kein Kassieren möglich (keine Offline-Erfassung). Da jotti self-hosted läuft, schließen Betreiber den Cloud-TSE-Vertrag selbst ab und hinterlegen die API-Schlüssel (Bring Your Own TSE); ohne TSE-Konfiguration bleiben Buchungen unsigniert, was nur für Test und Entwicklung gedacht und für echte Verkäufe nicht konform ist (§ 379 AO). Rechtliche Grundlagen und Betreiberpflichten (ELSTER-Meldung, Datensicherung, 10-jährige GoBD-konforme Aufbewahrung): [compliance.md](compliance.md).
 
 ### 6.4 Einsatzprofil
 
-| Kriterium                | jotti geeignet für                            | jotti NICHT geeignet für             |
-| ------------------------ | --------------------------------------------- | ------------------------------------ |
-| Betriebsart              | Temporäre Veranstaltungen (1–3 Tage)          | Dauerbetrieb (Restaurant, Café)      |
-| Organisation             | Vereine, gemeinnützige Orgs, NPOs             | Kommerzielle Gastro-Betriebe         |
-| Zahlungsart              | Bargeld                                       | Kartenzahlung, NFC, Online           |
-| Team                     | Ehrenamtliche Helfer (5–30 Personen)          | Professionelles Gastro-Personal      |
-| Veranstaltungsgröße      | Klein bis mittel (5–50 Tische)                | Großveranstaltungen mit 100+ Tischen |
-| Technische Infrastruktur | WLAN + ein Server (auch Raspberry Pi möglich) | Kein Server oder kein WLAN verfügbar |
+| Kriterium                | jotti geeignet für                   | jotti NICHT geeignet für             |
+| ------------------------ | ------------------------------------ | ------------------------------------ |
+| Betriebsart              | Temporäre Veranstaltungen (1–3 Tage) | Dauerbetrieb (Restaurant, Café)      |
+| Organisation             | Vereine, gemeinnützige Orgs, NPOs    | Kommerzielle Gastro-Betriebe         |
+| Zahlungsart              | Bargeld                              | Kartenzahlung, NFC, Online           |
+| Team                     | Ehrenamtliche Helfer (5–30 Personen) | Professionelles Gastro-Personal      |
+| Veranstaltungsgröße      | Klein bis mittel (5–50 Tische)       | Großveranstaltungen mit 100+ Tischen |
+| Technische Infrastruktur | WLAN + ein x86-64-Server             | Kein Server oder kein WLAN verfügbar |
 
 ---
 
@@ -181,7 +181,6 @@ jotti steht unter einer proprietären Source-Available-Lizenz: Der Quellcode ist
 | Kostenart                   | Geschätzte Kosten                       |
 | --------------------------- | --------------------------------------- |
 | VPS (z. B. Hetzner, Netcup) | ~3–5 €/Monat                            |
-| Raspberry Pi (selbst)       | ~50 € einmalig                          |
 | Vereinseigener Server       | 0 € (bereits vorhanden)                 |
 | Cloud-TSE von fiskaly       | Abhängig vom Anbieter (eigener Vertrag) |
 
