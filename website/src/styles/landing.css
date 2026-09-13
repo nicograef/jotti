@@ -69,7 +69,7 @@
    Wiederverwendbare Bewegungs- und Verlaufs-Bausteine für die ganze Website.
    Keyframes stehen außerhalb der Layer (globaler Namespace); die Klassen
    liegen in der Component-Schicht. Ablösung von „Spektrum nur dekorativ":
-   siehe docs/adrs/05_spektral-branding-website.md. Bewegung ist durchgehend
+   siehe docs/decisions.md D05. Bewegung ist durchgehend
    Progressive Enhancement — prefers-reduced-motion neutralisiert alles am
    Dateiende. */
 

@@ -2,7 +2,7 @@
 
 **Stand: 7. September 2026**
 
-Diese Nutzungsbedingungen regeln die kostenlose Nutzung der Software „jotti" durch gemeinnützige Organisationen. Die Nutzungsvereinbarung kommt durch eine einzige E-Mail an den Autor zustande — kein Formular, keine Unterschrift, kein Nachweis, keine Bestätigung durch den Autor. Der Ablauf und eine fertige E-Mail-Vorlage stehen am Ende dieses Dokuments.
+Diese Nutzungsbedingungen regeln die kostenlose Nutzung der Software „jotti" durch gemeinnützige Organisationen. Die Nutzungsvereinbarung kommt durch eine einzige E-Mail an den Autor zustande.
 
 > Autor: Nico Gräf, Freiburg im Breisgau, Deutschland — graef.nico@gmail.com
 
@@ -46,7 +46,7 @@ Diese Nutzungsbedingungen regeln die kostenlose Nutzung der Software „jotti" d
 
 (1) Die Organisation ist allein verantwortlich für die Einhaltung der gesetzlichen Vorschriften beim Betrieb eines elektronischen Aufzeichnungssystems — insbesondere KassenSichV und § 146a AO (TSE-Pflicht, Belegausgabe, Kassenmeldung), GoBD, DSFinV-K und DSGVO. Sie prüft die Software vor dem produktiven Einsatz eigenständig auf Eignung, im Zweifel mit steuerlicher Beratung. Der Autor implementiert technische Schnittstellen zur Unterstützung der Compliance, garantiert jedoch nicht deren Vollständigkeit oder Eignung.
 
-(2) Die Software unterstützt die Anforderungen der deutschen Kassensicherungsverordnung (KassenSichV) technisch. Für Österreich (Registrierkassensicherheitsverordnung, RKSV) und die Schweiz ist keine Anbindung vorgesehen. Die Nutzung außerhalb Deutschlands ist zulässig; die Konformität mit dem dort geltenden Recht liegt allein bei der Organisation.
+(2) Die Software unterstützt die Anforderungen der deutschen Kassensicherungsverordnung (KassenSichV) technisch. Für Österreich (Registrierkassensicherheitsverordnung, RKSV) und die Schweiz gibt es keine Anbindung. Die Nutzung außerhalb Deutschlands ist zulässig; die Konformität mit dem dort geltenden Recht liegt allein bei der Organisation.
 
 ---
 

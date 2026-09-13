@@ -1,32 +1,12 @@
 # Entwickler-Handbuch: jotti
 
-> **Zweck:** Architektur-Referenz: Bounded Contexts, Aggregate, Invarianten und Design-Entscheidungen. Feld-Schemata und Implementierungsdetails stehen kanonisch im Code (`backend/domain/`, `database/migrations/`); Start und Betrieb im [README](../README.md) und im [Leitfaden](leitfaden/was-ist-jotti.md).
+> **Zweck:** Architektur-Referenz: Bounded Contexts, Aggregate, Invarianten und Design-Entscheidungen. Feld-Schemata und Implementierungsdetails stehen kanonisch im Code (`backend/domain/`, `database/migrations/`); Start und Betrieb im [README](../README.md) und im [Leitfaden](leitfaden/was-ist-jotti.md). Fachbegriffe mit Code-Mapping je Schicht: [language.md](language.md); Anforderungs-IDs und Nicht-Ziele: [anforderungen.md](anforderungen.md); bindende Entscheidungen: [decisions.md](decisions.md).
 
 ## 1. Überblick
 
-### 1.1 Systemvision
-
-jotti ist ein self-hosted mPOS-System (Go-Backend, React-Frontend, PostgreSQL, Docker Compose). Servicekräfte nutzen ihre eigenen Smartphones (BYOD) im Browser. Das Kassenjournal basiert auf Event-Sourcing; Stammdaten sind CRUD. Produktvision, Zielgruppe und Positionierung: siehe [produktbeschreibung.md](produktbeschreibung.md).
-
-### 1.2 Designziele
-
-| Ziel                    | Bedeutung                                                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Radikale Einfachheit    | Minimaler Funktionsumfang, der genau das abdeckt, was ein Vereinsfest braucht, nicht mehr.                               |
-| Mobile-first            | Alle Interaktionen sind für Smartphone-Browser und Touch-Bedienung optimiert.                                            |
-| Lückenlose Transparenz  | Jede Transaktion ist unveränderlich protokolliert. Kein Datenverlust, keine Manipulation.                                |
-| Null Softwarekosten     | Keine Lizenzgebühr, kein Abo für jotti; laufende Kosten nur für die vorgeschriebene Cloud-TSE und optional einen Server. |
-| Volle Datenhoheit       | Self-hosted, alle Daten auf dem eigenen Server.                                                                          |
-| Niedrige Einstiegshürde | Keine Schulung, keine App-Installation. Browser öffnen, einloggen, loslegen.                                             |
-| Nachvollziehbarkeit     | Event-Sourcing im Kassenjournal: Jede Bestellung, Zahlung, Stornierung und Kassenbewegung ist jederzeit nachvollziehbar. |
-
-### 1.3 Bewusste Abgrenzung
-
-Kartenzahlung, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, CRM und Kiosk-Modus sind bewusst ausgeschlossen. Vollständige Liste mit Begründung: siehe [produktbeschreibung.md §6.2](produktbeschreibung.md#62-was-jotti-bewusst-nicht-ist).
+jotti ist ein self-hosted mPOS-System (Go-Backend, React-Frontend, PostgreSQL, Docker Compose). Servicekräfte nutzen ihre eigenen Smartphones (BYOD) im Browser. Das Kassenjournal basiert auf Event-Sourcing; Stammdaten sind CRUD. Die bewusst ausgeschlossenen Funktionen mit Begründung: [produktbeschreibung.md §6.2](produktbeschreibung.md#62-was-jotti-bewusst-nicht-ist).
 
 > **TSE / KassenSichV:** jotti unterliegt der TSE-Pflicht nach § 146a AO (umgesetzt): siehe [anforderungen.md](anforderungen.md) und [compliance.md](compliance.md).
-
----
 
 ## 2. Bounded Contexts
 
@@ -40,8 +20,6 @@ Kartenzahlung, Reservierungen, Warenwirtschaft, Lieferservice, Multi-Standort, C
 | Stammdaten     | Supporting Sub-Domain | Verwaltung von Produkten, Tischen, Benutzern, Betreiber-Stammdaten (CRUD)                                                              | CRUD                                                                                               |
 | Reporting      | Supporting Sub-Domain | Live-Reporting und Abrechnung: on-demand SQL-Aggregation über das Kassenjournal                                                        | kein eigener Store (reines Read Model)                                                             |
 | Auth           | Generic Sub-Domain    | Login, Logout, Passwort-Management, Token-Verwaltung                                                                                   | Infrastruktur                                                                                      |
-
-Kasse ist Core Domain, weil alle übrigen Kontexte von ihr abhängen oder sie unterstützen. Fiskalisierung, Druck/Ausgabe, Stammdaten und Reporting sind Supporting, weil sie fachlich notwendig, aber nicht Kernkompetenz sind. Auth ist Generic, weil sie keine jotti-spezifische Fachlogik enthält.
 
 > Der Druck/Ausgabe-Kontext ist eigenständig: Die Bondruck-Policy im Kasse-Context (→ [3.12 Policies](#312-policies)) schreibt nur in die `druckauftraege`-Outbox; Formatierung, Outbox-Verwaltung und Relay-Transport liegen vollständig im Druck-Kontext.
 
@@ -59,11 +37,7 @@ Kasse ist Core Domain, weil alle übrigen Kontexte von ihr abhängen oder sie un
 
 Der Kasse-Kontext schützt sich über eine Anti-Corruption Layer (ACL) vor Stammdaten-Änderungen: Bestellungs-Events enthalten alle relevanten Produktdaten zum Zeitpunkt der Bestellung (Fat Events). Spätere Preis- oder Stammdaten-Änderungen haben keinen Einfluss auf historische Bestellungen und wirken sofort in künftigen Bestellungen, ohne vorherigen Kassenabschluss (→ [3.11](#311-tagesabschluss-z-bon)). Reporting aggregiert direkt über das Kassenjournal; dafür ist keine Cross-Context-Kommunikation nötig. Eine bewusste read-only Rückkante Kasse→Stammdaten besteht dagegen für den Tisch-Saldo: Die Admin-Tischliste liest die `tisch_sessions`-Projektion der offenen Kassensitzung (Saldo-Anzeige) und verhindert das Löschen oder Deaktivieren eines Tischs mit offenem Saldo, damit kein Geld auf einem nicht mehr kassier-/stornier-/umbuchbaren Tisch strandet. Die Query liest ausschließlich Projektionsspalten, nie Event-Payloads.
 
----
-
 ## 3. Kasse (Core Domain)
-
-Der Kasse-Kontext vereint alle finanziellen Geschäftsvorfälle mit Event-Sourcing über das Kassenjournal: tischbezogene Vorgänge (Bestellen, Bezahlen/Kassieren, Stornieren, Umbuchen) und kassenführungsbezogene Vorgänge (Kassensitzung eröffnen, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss).
 
 ### 3.1 Kassensitzung und Abrechnungskreis
 
@@ -72,13 +46,11 @@ Der Kasse-Kontext vereint alle finanziellen Geschäftsvorfälle mit Event-Sourci
 | Kassensitzung    | Global, 1× pro Veranstaltungstag | `Z_NR` (Kassenabschlussnummer) | Der administrative Rahmen: Eröffnung durch Admin, Anfangsbestand, Kassenbewegungen, Kassensturz, Tagesabschluss (Z-Bon).               |
 | Abrechnungskreis | Pro Tisch pro Kassensitzung      | `ABRECHNUNGSKREIS`             | Die buchhalterische Einheit: Alle Bestellungen, Zahlungen, Stornierungen und Umbuchungen an einem Tisch innerhalb einer Kassensitzung. |
 
-Die Kassensitzung ist der Container, der Abrechnungskreis (= Tisch-Session) ist der Inhalt. Der `ABRECHNUNGSKREIS` ist pro Tisch pro Tag (DSFinV-K).
-
 ### 3.2 Kassenjournal (Event Store)
 
 Das Kassenjournal (Tabelle `kassenjournal`) ist die zentrale, append-only Tabelle für alle finanziellen Geschäftsvorfälle, chronologische, vollständige, unveränderbare Aufzeichnung im Sinne von § 146 AO. Ein Immutabilitäts-Trigger verhindert UPDATE und DELETE.
 
-Architektonisch tragende Spalten: `subject` (Stream-Schlüssel, → [3.3](#33-subject-design-hierarchische-subjects)), `version` (aufsteigend pro Subject; der Constraint `UNIQUE(subject, version)` realisiert OCC, → [6.6](#66-mehrbenutzerfähigkeit-occ)), `type` (Event-Typ, z. B. `bestellung-aufgenommen:v1`), `data` (JSONB), `user_id`/`user_name` (Fat Event: Name zum Zeitpunkt der Aktion) und `kassensitzung_nr`. Dieses Feld ermöglicht robuste Cross-Stream-Aggregationen (Reporting, Kassenbestand) ohne fragile LIKE-Patterns auf Subjects. Vollständiges Schema: die SQL-Migrationen unter `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge).
+Architektonisch tragende Spalten: `subject` (Stream-Schlüssel, → [3.3](#33-subject-design-hierarchische-subjects)), `version` (aufsteigend pro Subject; der Constraint `UNIQUE(subject, version)` realisiert OCC, → [6.6](#66-mehrbenutzerfähigkeit-occ)), `type` (Event-Typ, z. B. `bestellung-aufgenommen:v1`), `data` (JSONB), `user_id`/`user_name` (Fat Event: Name zum Zeitpunkt der Aktion) und `kassensitzung_nr`, das die Cross-Stream-Aggregationen (Reporting, Kassenbestand) ohne LIKE-Patterns auf Subjects trägt. Vollständiges Schema: die SQL-Migrationen unter `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge).
 
 ### 3.3 Subject-Design: Hierarchische Subjects
 
@@ -185,7 +157,7 @@ Eine synchrone Projektion (`tisch_sessions`) + eine CRUD-Entität (`kassensitzun
 | `"tisch-session"` | ✅                   | —                 | ✅ UPSERT            |
 | `"direktverkauf"` | ✅                   | —                 | — (keine Projektion) |
 
-Die Zustandsberechnung (`ApplyEvent()` in `backend/domain/kasse/tisch_session.go`) ist eine reine Funktion der Domain-Schicht (kein DB-Zugriff): Sie nimmt `TischSession` + `Event` entgegen und schreibt pro Event-Typ Saldo und Positionslisten fort.
+Die Zustandsberechnung (`ApplyEvent()` in `backend/domain/kasse/tisch_session.go`) ist eine reine Funktion der Domain-Schicht (kein DB-Zugriff): Sie nimmt `TischSession` + `Event` entgegen und schreibt pro Event-Typ die Positionslisten fort. `SaldoCents` wird danach einmal aus `UnbezahltePositionen` abgeleitet (Σ Einzelpreis × Menge) statt in jedem Zweig getrennt fortgeschrieben; `GesamtZahlungenCents` bleibt ein echter Akkumulator und wird je Event-Typ fortgeschrieben.
 
 **`kassensitzungen` (CRUD-Entität, Hot-Path):** hält nur `z_nr`, `datum` und `status` und wird bei jedem Tisch-Schreibvorgang gelesen (Kassensitzung-Sperre). Alle weiteren KS-Daten (Anfangsbestand, Bezeichnung, Kassenbewegungen) werden bei Bedarf per In-Memory-Replay der wenigen KS-Events berechnet.
 
@@ -233,7 +205,7 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 
 **Signaturauftrag (transaktionale Outbox):** Das Buchen blockiert nie auf die TSE. Jeder signaturpflichtige Vorgang schreibt im selben Commit wie das Event genau einen Signaturauftrag (`tse_signaturauftraege`, `event_id` UNIQUE), auch ohne TSE-Konfiguration und immer als `offen`. Der Auftrag trägt einen processData-Snapshot und ist zugleich der einzige Signatur-Store: Die Signaturspalten (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, logTime Start/Ende, Signatur, QR-Code-Daten) bleiben NULL bis zur Quittierung und werden dann genau einmal beschrieben. Kein Auftrag zu einem Event heißt nicht signaturpflichtig. Status: `offen`, `erledigt`, `fehlgeschlagen`, `tse_nicht_konfiguriert`; die beiden Ausfall-Endstatus sind `fehlgeschlagen` (jotti-Bug, nach den Auftragsversuchen) und `tse_nicht_konfiguriert`. Die Tabelle ist aufbewahrungspflichtig, es gibt kein DELETE (GoBD, AEAO zu § 146a, 1.14.1).
 
-**Signatur-Worker:** Einziger Sprecher für Signaturtransaktionen (`backend/api/fiskal/signatur/tse_signatur_worker.go`). Er wird nach jedem Commit sofort angestoßen (In-Process-Trigger, Polling-Tick als Fallback für verlorene Trigger), arbeitet die offenen Aufträge FIFO ab, heilt hängende Transaktionen per Ist-Abfrage und quittiert mit einem einzelnen Update am Auftrag. Ein session-gebundener Advisory Lock auf einer gepinnten Connection sichert die Single-Prozess-Annahme (eine zweite Instanz wartet mit Warnung statt Fail-Fast). Eine Fehlertaxonomie trennt auftragsspezifische Fehler (Fehlversuch am Auftrag, Backoff, nach drei Versuchen endgültig `fehlgeschlagen`) von TSE-weiten Fehlern, die den Worker in einen Störungszustand mit eigenem Backoff und Half-Open-Wiedereinstieg schalten, ohne Auftrags-Fehlversuche zu zählen.
+**Signatur-Worker:** Einziger Sprecher für Signaturtransaktionen (`backend/api/fiskal/signatur/tse_signatur_worker.go`). Er wird nach jedem Commit sofort angestoßen (In-Process-Trigger, Polling-Tick als Fallback für verlorene Trigger), arbeitet die offenen Aufträge FIFO ab, heilt hängende Transaktionen per Ist-Abfrage und quittiert mit einem einzelnen Update am Auftrag. Ein session-gebundener Advisory Lock auf einer gepinnten Connection sichert die Single-Prozess-Annahme (eine zweite Instanz wartet mit Warnung statt Fail-Fast). Eine Fehlertaxonomie trennt auftragsspezifische Fehler (Fehlversuch am Auftrag, Backoff, nach drei Versuchen endgültig `fehlgeschlagen`) von TSE-weiten Fehlern, die den Worker in einen Störungszustand mit eigenem Backoff und Half-Open-Wiedereinstieg schalten, ohne Auftrags-Fehlversuche zu zählen. Der Worker signiert seriell: Eine Live-Messung gegen die fiskaly-TEST-TSS ergab p50 rund 0,3 s und p95 rund 0,3 s je Signatur (2026-07-09), im gemessenen Burst von 24 gleichzeitigen Aufträgen dagegen p95 rund 7 s Ende-zu-Ende bei unverändert rund 0,3 s Signierdauer je Auftrag.
 
 **Störungsprotokoll und Signaturstatus:** Ein Störungsprotokoll (`tse_stoerungen`) bildet den Ausfall ab: je Störung ein Störungszeitraum (Beginn, Ende, Grund-Art `tse_fehler`/`rueckstand`/`keine_konfiguration`), höchstens einer aktiv, kein DELETE. Schreiber sind der Worker (TSE-weiter Fehler, erste erfolgreiche Signatur; ohne TSE-Konfiguration öffnet er beim endgültigen Markieren den `keine_konfiguration`-Zeitraum), ein Rückstands-Watchdog (`backend/api/fiskal/signatur/tse_rueckstand_watchdog.go`, öffnet ab zwei Minuten Alter des ältesten offenen Auftrags) und die Einrichtung (schließt den `keine_konfiguration`-Zeitraum beim Übergang zu konfiguriert). Die zustandslose Signaturstatus-Funktion (`backend/domain/tse/signaturstatus.go`) ist die einzige Implementierung des Ausfallbegriffs und liefert genau eines von vier Ergebnissen: Signatur vorhanden, vorhanden mit Nachsigniert-Kennzeichen, Ausfall mit Grund (Endstatus oder offener Auftrag bei aktivem Störungszeitraum) oder Signatur ausstehend.
 
@@ -257,8 +229,6 @@ WHERE status = 'fehlgeschlagen';
 **Vorgang → processType:** Bestellung aufnehmen, geldneutrale Korrektur (`bestellung-korrigiert`), Umbuchung (`bestellung-umgebucht`) → `Bestellung-V1`; Zahlung, kassenwirksame Warenrücknahme (`stornierung-erteilt`), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) → `Kassenbeleg-V1`; Tagesabschluss (Z-Bon) → `SonstigerVorgang`. Alle Transaktionen eines Tisches teilen denselben `ABRECHNUNGSKREIS`. Eigenbeleg- und Storno-Details im Export (BON_STORNO, REF_BON_ID, AEAO 2.2.3.6.1) → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 
 **Anbieter- und Meldeweg-Entscheidungen:** TSE-Anbieter (fiskaly als Zielanbieter; anbieter-agnostisches `TSEClient`-Interface gegen Vendor-Lock-in) und Kassenmeldungs-Weg (manuell über das ELSTER-Portal; eine programmatische Übermittlung via ERiC/API ist ausdrücklich Nicht-Ziel) sind mitsamt Begründung und Abwägung in [compliance.md §3.5](compliance.md#35-tse-varianten-und-anbieter-entscheidung) und [§7](compliance.md#7-elektronische-meldepflicht-elster) dokumentiert.
-
----
 
 ## 4. Stammdaten
 
@@ -288,10 +258,6 @@ Das Benutzer-Aggregat verwaltet Zugangsdaten und Rollen (`admin`, `serviceleitun
 
 Tisch-Favoriten sind eine CRUD-Relation Benutzer ↔ Tisch und steuern, welche Tische auf dem Service-Dashboard als „Meine Tische" angezeigt werden. Kein Aggregat, keine Events; Operationen idempotent (`ON CONFLICT DO NOTHING`), nur aktive Tische erlaubt.
 
-### 4.5 Persistenz (CRUD)
-
-Stammdaten (Produkte, Tische, Benutzer) werden mit klassischem CRUD verwaltet. Event-Sourcing ist hier nicht nötig, die historischen Daten stecken bereits in den Fat Events des Kasse-Context. Alle Stammdaten tragen `erstellt_am` und `aktualisiert_am` Zeitstempel.
-
 ### 4.6 Bondruck: Arbeitsbon und Kassenbeleg (K-12)
 
 Bondruck umfasst zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druck-Infrastruktur. Sie teilen keinen Auslöser, Inhalt oder Rechtsstatus, nur die Druckauftrags-Outbox (`druckauftraege`) als Transport.
@@ -311,13 +277,11 @@ Bondruck umfasst zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druc
 
 **Relay = Transport:** Das Print-Relay (`windows/relay/main.go`) holt offene Aufträge via `POST /relay/poll`, druckt sie und meldet das Ergebnis via `POST /relay/ergebnis` (gedruckte IDs und Fehlversuche); das Backend setzt die Status entsprechend. Das Relay formatiert nichts, kennt keine Kategorien und führt keinen Cursor, der DB-Status ist autoritativ; noch offene Aufträge liefert der nächste Poll erneut (beim nicht-fiskalischen Arbeitsbon unkritisch). Start und Konfiguration → [README §Print-Relay](../README.md#print-relay).
 
----
-
 ## 5. Auth und Rollen
 
 ### 5.1 Rollen und Berechtigungsmatrix
 
-jotti kennt drei Rollen mit abgestuften Berechtigungen. Die Rollenprüfung erfolgt serverseitig anhand des JWT.
+Die Autorisierung liest die Rolle live aus dem Benutzer-Datensatz, nicht aus dem Token-Claim — eine Rollenänderung wirkt ab dem nächsten Request.
 
 | Rolle          | Code-Bezeichnung | Beschreibung                                                         |
 | -------------- | ---------------- | -------------------------------------------------------------------- |
@@ -342,6 +306,10 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen. Die Rollenprüfung erfol
 | Bestellung umbuchen            |   ✔   |       ✔        |      ✔       |
 | Tischübersicht einsehen        |   ✔   |       ✔        |      ✔       |
 | Kassenjournal einsehen         |   ✔   |       ✔        |      ✔       |
+| Tisch-Favoriten setzen         |   ✔   |       ✔        |      ✔       |
+| _Kasse: Direktverkauf_         |       |                |              |
+| Direktverkauf tätigen          |   ✔   |       ✔        |      ✔       |
+| Direktverkauf stornieren       |   ✔   |       ✔        |              |
 | _Kasse: Kassensitzung_         |       |                |              |
 | Kassensitzung eröffnen         |   ✔   |                |              |
 | Anfangsbestand setzen          |   ✔   |                |              |
@@ -352,14 +320,14 @@ jotti kennt drei Rollen mit abgestuften Berechtigungen. Die Rollenprüfung erfol
 | _Abrechnung_                   |       |                |              |
 | Tagesabrechnung einsehen       |   ✔   |                |              |
 | Datenexport                    |   ✔   |                |              |
+| Eigene Übersicht einsehen      |   ✔   |       ✔        |      ✔       |
 | _Allgemein_                    |       |                |              |
+| Kassenbeleg drucken            |   ✔   |       ✔        |      ✔       |
 | Abmelden                       |   ✔   |       ✔        |      ✔       |
-
-Die Rollenhierarchie ist inklusiv: Admin kann alles, was Serviceleitung kann. Serviceleitung kann alles, was Servicekraft kann, plus Stornierung.
 
 ### 5.2 Onboarding-Ablauf
 
-Neue Benutzer durchlaufen einen vierstufigen Onboarding-Prozess, der sicherstellt, dass nur der Benutzer sein eigenes Passwort kennt:
+Onboarding in vier Schritten; am Ende kennt nur der Benutzer sein Passwort:
 
 1. **Benutzer anlegen:** Admin erstellt Benutzer (Name, Benutzername, Rolle, Status `inactive`). System generiert ein Einmalpasswort aus genau 6 Ziffern, das der Admin dem Benutzer mitteilt.
 2. **„Neues Passwort festlegen":** Benutzer meldet sich mit Einmalpasswort an. System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL` den Onboarding-Status und leitet zur Passwort-Vergabe weiter (min. 6 Zeichen, Argon2id-Hash). Der Status bleibt `inactive`; regulär anmelden kann sich der Benutzer erst nach Schritt 3.
@@ -368,15 +336,17 @@ Neue Benutzer durchlaufen einen vierstufigen Onboarding-Prozess, der sicherstell
 
 **Passwort-Reset:** Admin-Reset generiert neues Einmalpasswort, leert `passwort_hash` → Benutzer durchläuft Onboarding erneut.
 
+**Sperre des Einmalpassworts:** Nach fünf Fehlversuchen wird das Einmalpasswort ungültig (`MaxOnetimePasswordAttempts`, `backend/domain/user/user.go`); der Admin muss ein neues erzeugen.
+
 **Initial-Admin:** Der erste Admin ist nicht fest in der Migration hinterlegt. Beim Backend-Start legt das System den Benutzer `admin` an (aktiv, ohne Passwort) und erzeugt ein Einmalpasswort aus 6 Ziffern, das es in den Startlog schreibt, sichtbar in der Startkonsole des Windows-Starters bzw. in der `make prod-init`-Ausgabe. Solange kein Passwort gesetzt ist, rotiert das Einmalpasswort bei jedem Neustart; nach dem Setzen unterbleibt der Eingriff. Es gibt kein festes Vorgabepasswort.
 
----
+**Login-Fehlermeldungen (bewusste Abwägung):** Der Login unterscheidet die Fälle „kein Passwort gesetzt" (`no_password_set`) und „Benutzer inaktiv" (`user_inactive`) vom allgemeinen „Benutzername oder Passwort falsch" (`invalid_credentials`). Ein Angreifer kann daraus im Einzelfall ablesen, dass ein Benutzerkonto existiert (Enumerationsrisiko). Die Abwägung ist bewusst getroffen: Die Zielgruppe sind nicht-technische, ehrenamtliche Helfer, die mit einer klaren Fehlermeldung ihr Anmeldeproblem selbst lösen; eine serverseitige Anmeldedrosselung begrenzt automatisiertes Durchprobieren.
 
 ## 6. Architekturprinzipien
 
 ### 6.1 Schichtenarchitektur
 
-Das Backend ist in vier Schichten gegliedert: HTTP → Application → Domain → Repository/Infra. Die `api/`-Schicht ist nach Kontexten unterteilt: `kasse` (tischgeschaeft, kassenfuehrung, direktverkauf), `fiskal` (signatur, setup, export, dsfinvk), `druck` (bondruck, beleg, auftrag, station, relay), `stammdaten` (produkt, tisch, user, betreiber), `reporting`. Die `domain/`-Schicht trägt die fachlichen Pakete: `kasse`, `tisch`, `produkt`, `betreiber`, `druckstation`, `steuer`, `tse`, `reporting`, `event` (plus Infra: `jwt`, `user`).
+Das Backend ist in vier Schichten gegliedert: HTTP → Application → Domain → Repository/Infra. `api/` ist nach Kontexten unterteilt, `domain/` trägt die fachlichen Pakete.
 
 - **HTTP-Schicht:** Request-Parsing, Response-Serialisierung, eigene DTOs mit `json`-Tags. Domain-Modelle nie direkt serialisiert, dedizierte Mapper. Keine Business-Logik.
 - **Application-Schicht:** Use-Case-Koordination: fachliche Validierung (zog), Aggregat-State laden, Domain-Logik aufrufen, persistieren. Übersetzt Domain-Fehler in Fehlercodes.
@@ -393,7 +363,7 @@ Das Backend ist in vier Schichten gegliedert: HTTP → Application → Domain �
 
 **Authentifizierung:** Jeder Endpunkt (außer `/auth/*`) erwartet ein gültiges JWT im `Authorization: Bearer <token>`-Header. Die Middleware prüft Signatur und Gültigkeit.
 
-**Fehlerformat:** `{ "code": "<string>", "details": "<optional>" }`. HTTP-Statuscodes: `400` Client-Fehler, `401` fehlende/ungültige Auth, `403` unzureichende Rechte, `500` Server-Fehler.
+**Fehlerformat:** `{ "code": "<string>", "details": <optional> }`. `code` ist ein stabiler, maschinenlesbarer Schlüssel (snake_case); `details` ist typlos (`any`) und nur in zwei Fällen Vertragsbestandteil, die das Frontend parst: bei `validation_error` die zog-Issues als `map[feld][]meldung`, bei `signaturen_ausstehend` ein Objekt mit der Zahl der offenen Signaturen. Sonst höchstens ein kurzer englischer Diagnosetext für Betrieb und Logs. HTTP-Statuscodes: `400` Client-Fehler, `401` fehlende/ungültige Auth, `403` unzureichende Rechte, `500` Server-Fehler.
 
 **Bereichsgliederung:**
 
@@ -422,7 +392,9 @@ Nicht autorisierte Zugriffe werden auf `/login` umgeleitet.
 | Admin     | Übersicht (Dashboard) · Kassentag (Kassensitzung führen) · Produkte & Preise · Tische · Helfer & Zugänge · Bondrucker (`DruckstationConfigPage`, IP und Bonmodus pro Kategorie konfigurieren) · Berichte & Export · Finanzamt & TSE · TSE einrichten (Assistent, von Finanzamt & TSE verlinkt) |
 | Allgemein | Login · Passwort setzen (Erstanmeldung)                                                                                                                                                                                                                                                        |
 
-**UI-Patterns:** Karten für Tische, Zeilenliste für die Varianten im Bestellen-Tab und im Direktverkauf (Name umbrechend, Preis darunter, Mengensteuerung in einem Slot fester Breite), Drawer (Bottom-Sheet) für Bestell-/Bezahl-/Storno-Bestätigung, Tab-Navigation im Tisch-Detail, Plus/Minus-Buttons für Mengenauswahl (Touch-optimiert).
+**UI-Patterns:** Karten für Tische, Zeilenliste für die Varianten im Bestellen-Tab und im Direktverkauf (Name umbrechend, Preis darunter, Mengensteuerung in einem Slot fester Breite), Tab-Navigation im Tisch-Detail, Plus/Minus-Buttons für Mengenauswahl (Touch-optimiert).
+
+**Ein Breakpoint, zwei Darstellungen:** `useIsMobile` (`hooks/use-mobile.ts`, `MOBILE_BREAKPOINT = 1024`) ist die einzige Desktop-Schwelle. Unter `lg` tragen das fixierte Service-Dock (Aktionsbutton plus Tab-Leiste) und Drawer (Bottom-Sheets) den Abschluss von Bestellen, Kassieren und Direktverkauf; ab `lg` mountet stattdessen `ServiceSplitLayout` mit dauerhaft sichtbarer Abschluss-Spalte (Historie und Tischauswahl behalten volle Breite), und der Drawer wird zum mittig zentrierten Dialog. Je Fläche existiert genau eine darstellungsneutrale Abschluss-Komponente; `useIsMobile()` entscheidet, welcher Container sie mountet — nie beide. Begründung: [decisions.md](decisions.md), D07 und D08.
 
 **BackendClient:** Das Frontend kommuniziert ausschließlich über Backend-Klassen, die das `BackendClient`-Interface verwenden. Direktes `fetch()` ist verboten.
 
@@ -436,28 +408,11 @@ Alle Geldbeträge sind ganzzahlige Cent-Werte (`int` / `INTEGER` / JSON-Zahl), d
 
 ### 6.6 Mehrbenutzerfähigkeit (OCC)
 
-Das System verwendet zwei Persistenzstrategien:
-
-| Bereich                               | Strategie      | Begründung                                                                |
-| ------------------------------------- | -------------- | ------------------------------------------------------------------------- |
-| Kasse (Tisch-Session + Kassensitzung) | Event-Sourcing | Geschichte ist fachlich relevant (Kassenjournal, Buchhaltung, Compliance) |
-| Stammdaten (Produkt, Tisch, Benutzer) | CRUD           | Nur aktueller Zustand benötigt; Fat Events decken historische Daten ab    |
-
-Mehrere Servicekräfte arbeiten gleichzeitig, auch am selben Tisch. Schreibkonflikte werden über Optimistic Concurrency Control gelöst (Subject- und OCC-Modell → [3.3](#33-subject-design-hierarchische-subjects)). Für den Mehrbenutzerbetrieb relevant ist der Retry: Jeder Schreibvorgang sendet die erwartete `event_version` mit; bei einem Konflikt lädt die Anwendungsschicht den Tischzustand neu und wiederholt den Vorgang.
+Kasse ist event-sourced, weil die Geschichte fachlich relevant ist (Kassenjournal, Buchhaltung, Compliance); Stammdaten sind CRUD, weil nur ihr aktueller Zustand gebraucht wird und die Fat Events die historischen Daten abdecken. Mehrere Servicekräfte arbeiten gleichzeitig, auch am selben Tisch. Schreibkonflikte werden über Optimistic Concurrency Control gelöst (Subject- und OCC-Modell → [3.3](#33-subject-design-hierarchische-subjects)). Für den Mehrbenutzerbetrieb relevant ist der Retry: Jeder Schreibvorgang sendet die erwartete `event_version` mit; bei einem Konflikt lädt die Anwendungsschicht den Tischzustand neu und wiederholt den Vorgang.
 
 ### 6.7 Sicherheit
 
-| Maßnahme                   | Umsetzung                                                                                                                    | Anforderung |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| HTTPS / TLS                | Caddy terminiert TLS, Let's Encrypt-Zertifikat, automatischer HTTP → HTTPS-Redirect (nginx nur im jotti.rocks-Demo-Stack)    | Q-06        |
-| Rate Limiting              | Login-Endpunkt ist durch Rate Limiting geschützt (Brute-Force-Schutz)                                                        | Q-07        |
-| Security Headers           | Reverse Proxy setzt HSTS, X-Frame-Options, X-Content-Type-Options, CSP                                                       | Q-08        |
-| Input-Validierung          | Frontend (Zod) + Backend (zog), beide Seiten unabhängig voneinander                                                          | Q-03        |
-| Passwort-Hashing           | Argon2id mit zufälligem Salt                                                                                                 | A-01        |
-| Generische Fehlermeldungen | Fehlgeschlagene Logins geben keine Auskunft, ob Benutzer oder Passwort falsch war                                            | A-01        |
-| Keine Secrets im Code      | Alle Secrets (JWT-Schlüssel, DB-Passwort, `RELAY_AUTH_TOKEN`) werden über Umgebungsvariablen konfiguriert                    | —           |
-| JWT-Gültigkeit             | Tokens sind 12 Stunden gültig, kurze Lebensdauer begrenzt den Schaden bei Verlust                                            | A-01        |
-| Relay-Token                | Statischer Token für `POST /relay/poll` und `POST /relay/ergebnis`, kein JWT, kein Benutzerkontext. Relay ist kein Benutzer. | K-12        |
+Maßnahmen mit Anforderungs-ID → [anforderungen.md](anforderungen.md): HTTPS/TLS (Q-06), Rate Limiting am Login (Q-07), Security Headers (Q-08), Validierung auf beiden Seiten (Q-03), Login mit JWT und Argon2id (A-01). Nur hier: Alle Secrets (JWT-Schlüssel, DB-Passwort, `RELAY_AUTH_TOKEN`) werden über Umgebungsvariablen konfiguriert, nie im Code.
 
 ### 6.8 Versions-Handshake (erzwungenes Neuladen)
 
@@ -469,11 +424,7 @@ Frontend und Backend werden gemeinsam ausgeliefert; ein Client mit altem Bundle 
 - **Schleifenbremse:** Vor dem Reload vermerkt der Guard die Zielversion unter `JOTTI_RELOAD_ZIELVERSION` im `sessionStorage`. Trägt der Client danach immer noch nicht diese Version, unterbleibt jeder weitere Reload; der Hinweis bietet stattdessen „Jetzt neu laden" an. Nötig, weil `docker-compose.prod.yml` das Backend per `depends_on` vor dem Frontend startet: Im Update-Fenster meldet das neue Backend bereits die neue Version, während der alte Frontend-Container weiter das alte Bundle ausliefert — ohne Bremse liefe jedes Gerät in eine Endlosschleife. Der Vermerk wird bei Einigkeit mit dem Server gelöscht, gleich welche Version dort steht.
 - **Clientversion:** `CLIENT_VERSION` (`lib/version.ts`) wird zur Bauzeit eingebrannt. Die Kette ist `.github/workflows/release.yml` (`--build-arg VERSION=$VERSION`) → `frontend/Dockerfile` (`ARG VERSION=dev`, im `RUN` konsumiert, damit ein Versionswechsel die Build-Schicht invalidiert) → `frontend/vite.config.ts` (`__CLIENT_VERSION__`). Fällt das Build-Arg irgendwo aus der Kette, meldet der Client `dev`, `istVersionsabweichung` liefert für jedes Paar `false` und der Handshake ist lautlos tot — ohne Fehler und ohne roten Test, denn `frontend/vitest.config.ts` setzt `__CLIENT_VERSION__` fest auf `dev`.
 
----
-
 ## 7. Read Models
-
-Read Models sind aufbereitete Lese-Ansichten, reine Projektionen über vorhandene Daten (Events, Projektionstabelle oder Stammdaten). Sie werden nicht direkt geschrieben, sondern durch Events oder CRUD-Operationen aktualisiert.
 
 ### 7.1 Service-Ansichten
 
@@ -507,15 +458,3 @@ Read-Model-Regel dahinter: Ein Storno wird nicht dem Akteur zugerechnet, sondern
 Eine Servicekraft erscheint, sobald sie kassiert hat, ihr ein Tisch-Storno zugeordnet ist oder (im Live-Dashboard) offene Arbeit besteht; sortiert wird nach `abzugebenCents` absteigend. `abzugebenCents` ist nie negativ: Eine Rücknahme kann nur Positionen der referenzierten Zahlung zurücknehmen (FIFO-Aufteilung, `domain/kasse/storno_aufteilung.go`), und beide Seiten werden demselben Kassierer zugeordnet. Weil die Zuordnung zur Lesezeit entsteht, gilt sie rückwirkend auch für abgeschlossene Kassensitzungen; Kassenjournal, TSE-Signatur und DSFinV-K-Export bleiben davon unberührt und führen weiterhin den Akteur als erfassende Person.
 
 `produktStatistik` (R-05) ist in beiden Antworten identisch: die Verkäufe je Produkt und Variante der Kassensitzung, aus den eingefrorenen Fat-Event-Positionen aggregiert (kein Stammdaten-Join). Read-Model-Typen `ProduktStatistik` (Produkt mit Zwischensumme, Feld `varianten`) und `VarianteStatistik` (`varianteId`, `varianteName`, `ausgegebeneMenge`, `umsatzCents`) — zwei bewusst getrennte Zahlen: ausgegebene Menge (Bestellung − Korrektur + Direktverkauf) und Umsatz (Kassiert + Direktverkauf − Warenrücknahme/Storno). Die Anwendungsschicht gruppiert die flachen SQL-Zeilen zu Kategorie-Abschnitten (Essen → Getränke → Sonstiges) und sortiert je Kategorie nach Menge absteigend; die Umsatzsumme deckt sich mit `umsatzProSteuersatz` (dieselbe Positions-/Vorzeichenbasis).
-
-### 7.3 Ausgabe-Ansichten
-
-Der Relay-Poll-Endpunkt (`POST /relay/poll`) liefert die offenen Druckaufträge aus der `druckauftraege`-Outbox an das Print-Relay (reiner Transport, → [4.6 Bondruck](#46-bondruck-arbeitsbon-und-kassenbeleg-k-12)).
-
----
-
-## 8. Ubiquitous Language
-
-Alle Fachbegriffe, Namenskonventionen pro Schicht, Code-Mappings und Ist-vs-Soll-Abweichungen: siehe [Ubiquitous Language (language.md)](language.md).
-
-Anforderungen mit Priorisierung (Must/Should/Nice-to-have) und Akzeptanzkriterien: siehe [anforderungen.md](anforderungen.md).

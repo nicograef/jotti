@@ -1,9 +1,9 @@
 // Bottom-Sheet auf Radix Dialog — bewusst ohne vaul, dessen Scroll-Lock das
 // Layout der installierten iOS-PWA bricht (Praxistest 09.07.2026, vaul#505).
 // Der Handy-Layout-Vertrag (85dvh statt vh, Safe-Area-Padding, ein Scrollbereich,
-// kein Drag-Handle) ist unter lg bindend: docs/adrs/03_drawer-radix-statt-vaul.md
+// kein Drag-Handle) ist unter lg bindend: docs/decisions.md D03
 //
-// Responsive Präsentation (ADR 08, docs/adrs/08_service-split-screen.md): unter
+// Responsive Präsentation (docs/decisions.md D08): unter
 // lg unverändert Bottom-Sheet, ab lg mittig zentrierter Modal-Dialog (analog
 // dialog.tsx). Ein Drawer-System, kein Fork — die Umschaltung ist reines CSS
 // über lg:-Overrides in DrawerContent. Die installierte iOS-PWA läuft nur auf

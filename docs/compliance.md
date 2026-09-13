@@ -3,13 +3,7 @@ title: Compliance-Anforderungen
 description: 'Fiskalische Grundlagen für jotti: KassenSichV, TSE, GoBD, DSFinV-K und ELSTER mit Rechtsnormen sowie Entwickler- und Betreiberpflichten.'
 ---
 
-> **Betrifft:** KassenSichV, TSE, GoBD, Belegausgabepflicht, DSFinV-K, ELSTER
-
-## 1. Einleitung
-
-jotti ist ein elektronisches Aufzeichnungssystem (§ 1 KassenSichV) und unterliegt nach § 146a AO der TSE-Pflicht, unabhängig von Rechtsform, Gemeinnützigkeit oder Veranstaltungsdauer. Dieses Dokument beschreibt die Rechtsnormen, Entwickler- und Betreiberpflichten sowie die Compliance-Architektur. Technische Umsetzung phasenweise: siehe [anforderungen.md](anforderungen.md); Architektur-Entscheidungen: siehe [handbuch.md §3.13](handbuch.md#313-tse-architektur).
-
----
+jotti ist ein elektronisches Aufzeichnungssystem (§ 1 KassenSichV) und unterliegt nach § 146a AO der TSE-Pflicht, unabhängig von Rechtsform, Gemeinnützigkeit oder Veranstaltungsdauer. Technische Umsetzung phasenweise: siehe [anforderungen.md](anforderungen.md); Architektur-Entscheidungen: siehe [handbuch.md §3.13](handbuch.md#313-tse-architektur).
 
 ## 2. Rechtliche Grundlagen
 
@@ -38,7 +32,7 @@ Die GoBD (BMF-Schreiben 28.11.2019) fordern Nachvollziehbarkeit, Vollständigkei
 
 ### 2.5 DSFinV-K
 
-§ 4 KassenSichV verlangt eine einheitliche digitale Schnittstelle für den Datenexport an die Finanzverwaltung. Die DSFinV-K (aktuell verbindlich: Version 2.4, Stand Dezember 2023) definiert das Format: CSV-Dateien mit fest vorgeschriebenen (englischen, kleingeschriebenen) Dateinamen, Semikolon-Trennung, `index.xml` und der zugehörigen `gdpdu-01-09-2004.dtd`, verpackt als ZIP. [5] Details: Abschnitt 6.
+§ 4 KassenSichV verlangt eine einheitliche digitale Schnittstelle für den Datenexport an die Finanzverwaltung; die DSFinV-K definiert das Format. [5] Verbindliche Version, Dateiaufbau und Felder: Abschnitt 6.
 
 ### 2.6 Elektronische Kassenmeldepflicht (§ 146a Abs. 4 AO)
 
@@ -56,8 +50,6 @@ jotti ist kein SaaS: Der Code ist öffentlich auf GitHub, die Vereine betreiben 
 - Eine Muster-Verfahrensdokumentation liegt im Repository bereit ([verfahrensdokumentation.md](verfahrensdokumentation.md)): eine anpassbare Vorlage zu Architektur, Datenmodell, TSE-Anbindung und Aufbewahrung, die der Verein an seine Instanz anpasst und Betriebsprüfern vorlegt.
 
 **Pflichten der Betreiber:** → Abschnitt 8.
-
----
 
 ## 3. TSE-Integration (Technische Sicherheitseinrichtung)
 
@@ -103,7 +95,6 @@ Das vollständige Mapping aller jotti-Vorgänge (inkl. Geldtransit, Kassendiffer
 
 - **Encoding:** UTF-8 oder ASCII, kein BOM
 - **Dezimaltrennzeichen:** ausschließlich Punkt (`.`); keine Tausendertrennzeichen, keine Exponentialschreibweise, kein `+`; mindestens eine Stelle vor dem Punkt (`0.5`, nicht `.5`)
-- **Bei `StartTransaction`:** `processType` und `processData` sind immer leer, beide werden erst bei `FinishTransaction` übergeben (DSFinV-K Anhang I)
 - **Format `Kassenbeleg-V1`:** `Beleg^<Betraege>^<Zahlungen>`. Die fünf Brutto-Steuerbeträge sind `_`-getrennt in fester Reihenfolge: 1. Allgemeiner Steuersatz (19 %) · 2. Ermäßigter Steuersatz (7 %) · 3.–4. land-/forstwirtschaftliche Durchschnittssätze nach § 24 Abs. 1 Nr. 3 und Nr. 1 UStG [17] · 5. 0 %. jotti belegt nur die Positionen 1, 2 und 5; die Durchschnittssatz-Positionen bleiben stets `0.00`. Mehrere Zahlungen ebenfalls `_`-getrennt als `<Betrag>:<Zahlungsart>`; Zahlungen von `0.00` entfallen.
   > **Kombi-Positionen (70/30):** Speisen-Anteil (70 %) → Position 2 (ermäßigt), Getränke-Anteil (30 %) → Position 1 (allgemein); steuerbefreite Positionen → Position 5 (0 %).
 - **Format `Bestellung-V1`:** CSV-Darstellung, pro Position eine Zeile `<Menge>;"<Bezeichnung>";<Brutto-Einzelpreis>`, Zeilentrenner `\r` (U+000D), Bezeichnung in Anführungszeichen (innere `"` werden verdoppelt), Preis mit exakt 2 Nachkommastellen. Beispiel aus DSFinV-K Anhang I: `2;"Eisbecher ""Himbeere""";3.99`
@@ -115,7 +106,7 @@ Das vollständige Mapping aller jotti-Vorgänge (inkl. Geldtransit, Kassendiffer
 | Hardware-TSE | Physisches Gerät (USB-Stick, microSD-/SD-Karte)    | Swissbit, Epson, cryptovision (für D-Trust)         |
 | Cloud-TSE    | TSE als Cloud-Service, Kommunikation via HTTPS-API | fiskaly, Deutsche Fiskal, Swissbit, Diebold Nixdorf |
 
-Für jotti ist die Cloud-TSE gesetzt; eine Hardware-TSE wird nicht angebunden ([ADR 09](adrs/09_tse-kosten-und-hardware-tse.md)). Die Gründe sind technisch: das Backend läuft im Linux-Container, ein USB-Gerät am Windows-Host bräuchte eine Durchreichung; die Hersteller-Bibliothek ist proprietär und hat keine offizielle Go-Bindung; die Zertifikatslaufzeit beginnt mit der Fertigung, nicht mit der ersten Nutzung. Gewählter Zielanbieter: fiskaly (API-first, BSI-zertifiziert nach TR-03153, unterstützt alle drei processTypes). Anbieter ohne einsehbare API-Spezifikation werden nicht integriert. Das Backend-Interface `TSEClient` bleibt anbieter-agnostisch (Adapter-Pattern); `Credentials` und die Einrichtung sind auf fiskaly zugeschnitten, ein zweiter Anbieter wäre mehr als ein Adapter-Austausch (ADR 09).
+Für jotti ist die Cloud-TSE gesetzt; eine Hardware-TSE wird nicht angebunden, und Anbieter ohne einsehbare API-Spezifikation werden nicht integriert (Begründung: [decisions.md, D09](decisions.md)). Gewählter Zielanbieter: fiskaly (API-first, BSI-zertifiziert nach TR-03153, unterstützt alle drei processTypes). Das Backend-Interface `TSEClient` bleibt anbieter-agnostisch (Adapter-Pattern); `Credentials` und die Einrichtung sind auf fiskaly zugeschnitten, ein zweiter Anbieter wäre mehr als ein Adapter-Austausch.
 
 ### 3.6 Das Festzelt-Muster: Atomare TSE-Transaktionen
 
@@ -141,7 +132,7 @@ Jeder Zahlungsbeleg trägt zusätzlich den Startzeitpunkt der ersten Bestellung 
 Ohne physische Kassenhardware gibt es kein Typenschild, die gesetzlich geforderte eindeutige Seriennummer (§ 146a AO, § 6 KassenSichV, DSFinV-K) wird softwareseitig erfüllt:
 
 - Beim allerersten Start (Datenbank-Initialisierung) generiert jotti eine UUID als Kassen-Seriennummer (herstellerunabhängig, weltweit eindeutig, keine zentrale Registrierung nötig), speichert sie dauerhaft und überschreibt sie nie, auch nicht bei Updates oder Neustarts.
-- Die Seriennummer wird im Admin-Dashboard angezeigt (für ELSTER-Meldung und DSFinV-K-Export).
+- Die Seriennummer wird im Admin-Bereich unter „Finanzamt & TSE" angezeigt (für ELSTER-Meldung und DSFinV-K-Export).
 - **Disaster Recovery:** Geht die Datenbank ohne Backup verloren, muss die alte Seriennummer beim Finanzamt abgemeldet und die neue Instanz neu angemeldet werden, Datenbank-Backups sichern die Seriennummern-Kontinuität.
 
 | Verwendungsort                               | Feld / Kontext                                             |
@@ -153,35 +144,31 @@ Ohne physische Kassenhardware gibt es kein Typenschild, die gesetzlich gefordert
 
 ### 3.8 Asynchrone Signierung (Outbox und Signatur-Worker)
 
-Die TSE-Signierung ist vom Kassier-Pfad entkoppelt, das Buchen wartet nie auf die TSE. Jeder signaturpflichtige Vorgang schreibt im selben Commit wie das Kassenjournal-Event genau einen Signaturauftrag (transaktionale Outbox `tse_signaturauftraege`); ein Signatur-Worker ist der einzige Sprecher zur TSE und quittiert die Signatur (Start/Finish, §3.2) direkt am Auftrag. Der Auftrag ist der einzige Signatur-Store, Beleg und DSFinV-K-Export lesen genau diese eine Quelle. Architekturdetails → [handbuch.md §3.13](handbuch.md#313-tse-architektur).
+Die TSE-Signierung ist vom Kassier-Pfad entkoppelt, das Buchen wartet nie auf die TSE; die Mechanik (transaktionale Outbox `tse_signaturauftraege`, Signatur-Worker, Störungsprotokoll, Abschluss-Gate) steht in [handbuch.md §3.13](handbuch.md#313-tse-architektur).
 
 Konformitätsbedingungen dieses Pfades:
 
-- **Keine still unsignierten Vorgänge:** Der Auftrag entsteht atomar mit dem Event, auch ohne TSE-Konfiguration. Ein Vorgang ohne Signatur ist immer ein offener oder endgültig markierter Auftrag, nie ein verlorener.
-- **Typische Latenz gering, Verzögerung möglich:** Im Regelbetrieb signiert der Worker binnen Sekunden (Ziel: p95 unter fünf Sekunden). Bei TSE-Ausfall, Signatur-Rückstand oder fehlender Konfiguration verzögert sich die Signatur; der Vorgang bleibt gebucht.
+- **Keine still unsignierten Vorgänge:** Der Auftrag entsteht atomar mit dem Event, auch ohne TSE-Konfiguration. Ein Vorgang ohne Signatur ist immer ein offener oder endgültig markierter Auftrag, nie ein verlorener. Bei TSE-Ausfall, Signatur-Rückstand oder fehlender Konfiguration verzögert sich die Signatur; der Vorgang bleibt gebucht.
 - **Ausfalldokumentation:** Das Störungsprotokoll (`tse_stoerungen`) dokumentiert jede TSE-weite Störung als Zeitraum mit Grund (AEAO zu § 146a, 1.14.1); die Auftragstabelle hält den Status jedes einzelnen Vorgangs.
 - **Belegausweisung:** Ein nach dem Ausfall nachsignierter Beleg trägt den Vermerk „Nachsigniert am …" (die TSE-Zeitpunkte weichen dann vom Belegdatum ab), ein Vorgang ohne konfigurierte TSE den Vermerk „keine TSE konfiguriert". Im DSFinV-K-Export erhalten noch unsignierte Vorgänge eine `TSE_TA_FEHLER`-Zeile.
-- **Kassenabschluss:** Der Abschluss blockiert nur bei frisch ausstehenden Signaturen (409 mit ihrer Anzahl); dokumentierte Ausfälle und fehlende Konfiguration lassen ihn zu und werden in der Abschlussmeldung ausgewiesen.
 
-Einordnung zur Protokollierungspflicht (AEAO zu § 146a, Nr. 2.2.2): Die Norm verlangt, die Protokollierung „unmittelbar mit Beginn des aufzuzeichnenden Vorgangs" in der TSE zu starten. jotti startet die TSE-Transaktion nicht im Kassier-Request, sondern wenige Sekunden später über den Signatur-Worker (Start und Finish unmittelbar nacheinander, §3.2). Diese Entkopplung ist eine bewusste Architekturentscheidung: Der Vorgang selbst ist ab dem Commit unveränderlich erfasst (Kassenjournal und Signaturauftrag in einer Datenbanktransaktion), das Buchen hängt nicht an der Verfügbarkeit der Cloud-TSE, und jede Verzögerung ist nachweisbar statt verdeckt: Störungszeiträume im Störungsprotokoll, verspätete Signaturen mit Nachsigniert-Vermerk auf dem Beleg, unsignierte Vorgänge mit `TSE_TA_FEHLER`-Zeile im Export. Die typische Latenz liegt im Sekundenbereich (Ziel: p95 unter fünf Sekunden) und wird in der [Verfahrensdokumentation §4](verfahrensdokumentation.md) als Teil der Herstellerdokumentation ausgewiesen.
-
----
+Einordnung zur Protokollierungspflicht (AEAO zu § 146a, Nr. 2.2.2): Die Norm verlangt, die Protokollierung „unmittelbar mit Beginn des aufzuzeichnenden Vorgangs" in der TSE zu starten. jotti startet die TSE-Transaktion nicht im Kassier-Request, sondern wenige Sekunden später über den Signatur-Worker (Start und Finish unmittelbar nacheinander, §3.2). Diese Entkopplung ist eine bewusste Architekturentscheidung: Der Vorgang selbst ist ab dem Commit unveränderlich erfasst (Kassenjournal und Signaturauftrag in einer Datenbanktransaktion), das Buchen hängt nicht an der Verfügbarkeit der Cloud-TSE, und jede Verzögerung ist nachweisbar statt verdeckt: Störungszeiträume im Störungsprotokoll, verspätete Signaturen mit Nachsigniert-Vermerk auf dem Beleg, unsignierte Vorgänge mit `TSE_TA_FEHLER`-Zeile im Export. Die typische Latenz liegt im Sekundenbereich (Ziel: p95 unter fünf Sekunden); die gemessenen Werte stehen in [handbuch.md §3.13](handbuch.md#313-tse-architektur).
 
 ## 4. GoBD-Konformität
 
-### 4.1 Aktueller Stand
+### 4.1 Umsetzung der GoBD-Grundsätze
 
-jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grundsätze:
+Die Event-Sourcing-Architektur erfüllt die GoBD-Grundsätze:
 
-| GoBD-Grundsatz             | Aktueller Status  | Anmerkung                                                                                                                                                                     |
-| -------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unveränderbarkeit          | ✅ Erfüllt        | Kassenjournal ist append-only, kein UPDATE/DELETE                                                                                                                             |
-| Nachvollziehbarkeit        | ✅ Erfüllt        | Lückenloses Kassenjournal pro Tisch-Session                                                                                                                                   |
-| Vollständigkeit            | ✅ Erfüllt        | Jeder Geschäftsvorfall wird als Event erfasst                                                                                                                                 |
-| Zeitgerechte Buchung       | ✅ Erfüllt        | Events mit Echtzeit-Zeitstempel                                                                                                                                               |
-| Ordnungsmäßigkeit          | ✅ Erfüllt        | Strukturiertes Datenmodell, typisierte Events                                                                                                                                 |
-| Kryptografische Verkettung | ✅ Erfüllt        | TSE-Signatur (fiskaly Cloud-TSE) für alle Geschäftsvorfälle; Signaturdaten am Signaturauftrag (Outbox `tse_signaturauftraege`), Ausfälle dokumentiert und nachsigniert (§3.8) |
-| 10-Jahres-Aufbewahrung     | ✅ Erfüllt (F-10) | DSFinV-K-Export (F-04) und DB-Backup decken die Daten ab; Aufbewahrungsstrategie in §4.4 dokumentiert. Die Aufbewahrung selbst ist Betreiberpflicht (§8)                      |
+| GoBD-Grundsatz             | Umsetzung in jotti                                                                                                                                                            |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unveränderbarkeit          | Kassenjournal ist append-only, kein UPDATE/DELETE                                                                                                                             |
+| Nachvollziehbarkeit        | Lückenloses Kassenjournal pro Tisch-Session                                                                                                                                   |
+| Vollständigkeit            | Jeder Geschäftsvorfall wird als Event erfasst                                                                                                                                 |
+| Zeitgerechte Buchung       | Events mit Echtzeit-Zeitstempel                                                                                                                                               |
+| Ordnungsmäßigkeit          | Strukturiertes Datenmodell, typisierte Events                                                                                                                                 |
+| Kryptografische Verkettung | TSE-Signatur (fiskaly Cloud-TSE) für alle Geschäftsvorfälle; Signaturdaten am Signaturauftrag (Outbox `tse_signaturauftraege`), Ausfälle dokumentiert und nachsigniert (§3.8) |
+| 10-Jahres-Aufbewahrung     | DSFinV-K-Export (F-04) und DB-Backup decken die Daten ab (F-10); Aufbewahrungsstrategie in §4.4. Die Aufbewahrung selbst ist Betreiberpflicht (§8)                            |
 
 ### 4.2 Anforderungen gemäß §§ 146, 147 AO und GoBD
 
@@ -189,12 +176,6 @@ jotti erfüllt durch die Event-Sourcing-Architektur bereits mehrere GoBD-Grunds�
 - **Elektronisches Radierverbot:** Kein `UPDATE` oder `DELETE` nach der Erfassung.
 - **Stornierungen:** Immer als neue Buchungssätze (neuer Zeitstempel, neue TSE-Signatur), die den alten Wert ausgleichen.
 - **Verfahrensdokumentation:** Wie das System Daten erzeugt, verarbeitet und archiviert, muss dokumentiert sein. [4] jotti stellt dafür eine anpassbare Muster-Verfahrensdokumentation bereit ([verfahrensdokumentation.md](verfahrensdokumentation.md), F-11); das Führen und Anpassen der eigenen Verfahrensdokumentation bleibt Betreiberpflicht (§8).
-
-### 4.3 Handlungsbedarf
-
-- 10-Jahres-Archivierung: erledigt. Aufbewahrungsstrategie in §4.4 dokumentiert; die Daten decken DSFinV-K-Export (F-04) und DB-Backup ab (→ [anforderungen.md F-10](anforderungen.md))
-- Muster-Verfahrensdokumentation: erledigt. Anpassbare Vorlage liegt im Repository ([verfahrensdokumentation.md](verfahrensdokumentation.md), → [anforderungen.md F-11](anforderungen.md)); Anpassen und Führen bleibt Betreiberpflicht (§8)
-- Soft-Delete bei Stammdaten: umgesetzt (Status `deleted` statt Hard-Delete; Verkaufspreise werden pro Event festgeschrieben, historische Buchungen bleiben dadurch unberührt)
 
 ### 4.4 Aufbewahrungsstrategie (F-10)
 
@@ -210,8 +191,6 @@ Die aufzubewahrenden Daten entstehen in offenen, ohne proprietäre Software lesb
 
 Laienverständliche Anleitung für Vereine: [Leitfaden, Datenaufbewahrung](leitfaden/datenaufbewahrung.md).
 
----
-
 ## 5. Belegausgabepflicht
 
 ### 5.1 Gesetzliche Grundlage
@@ -224,7 +203,7 @@ Gemäß § 146a Abs. 2 AO und § 6 KassenSichV muss für jeden Kassiervorgang ei
 > - Sie wird nicht automatisch gewährt: schriftlicher Antrag beim Finanzamt, widerruflich.
 > - Verlangt ein Gast einen Beleg, ist er auszuhändigen.
 >
-> jotti erstellt den Kassenbeleg deshalb auf Anforderung (→ [anforderungen.md F-03](anforderungen.md)) statt nach jeder Zahlung automatisch zu drucken.
+> Ohne bewilligte Befreiung muss der Verein für jeden Kassiervorgang einen Beleg erstellen und ihn dem Gast anbieten; erst mit bewilligter Befreiung genügt der Druck auf Verlangen. jotti druckt den Kassenbeleg deshalb nicht automatisch, sondern auf Anforderung (→ [anforderungen.md F-03](anforderungen.md)); erstellbar ist er jederzeit.
 
 > **Arbeitsbon ≠ Kassenbeleg:** Der automatische Arbeitsbon (Küche/Theke, ohne Preise) ist rein operativ, kein Beleg i. S. v. § 146a AO, keine TSE-Transaktion. Nur der Kassenbeleg (auf Anforderung pro Kassiervorgang) ist der fiskalische Beleg mit den Pflichtangaben aus §5.2. Details: [handbuch.md §4.6](handbuch.md#46-bondruck-arbeitsbon-und-kassenbeleg-k-12).
 
@@ -245,6 +224,9 @@ Gemäß § 146a Abs. 2 AO und § 6 KassenSichV muss für jeden Kassiervorgang ei
 - Zeitpunkt des Vorgangsbeginns und der Vorgangsbeendigung (TSE-`logTime` aus Start/Finish)
 - Seriennummer des Aufzeichnungssystems (Kassen-ID) und der TSE
 - TSE-Transaktionsnummer, Signaturzähler, kryptografischer Prüfwert (Signatur)
+- Die TSE-Daten dürfen platzsparend als QR-Code aufgedruckt werden; das Format muss der DSFinV-K (Anhang I) entsprechen.
+
+**Beleg-Archivierung:** Die fiskalischen Daten liegen im Kassenjournal (Event samt TSE-Signatur) und im DSFinV-K-Export; der Beleg ist daraus jederzeit reproduzierbar.
 
 ### 5.3 Besondere Anforderung beim Festzelt-Muster (Durchbedienen)
 
@@ -271,29 +253,15 @@ TSE-Nr.: 1003, Signatur-Zähler: 5871
 [QR-Code mit TSE-Daten]
 ```
 
-### 5.4 QR-Code-Format
-
-Die TSE-Daten können platzsparend als QR-Code auf den Beleg, das Format muss der DSFinV-K (Anhang I) entsprechen.
-
-### 5.5 Architektonische Anforderungen an jotti
-
-1. **Beleg-Generator:** Bereits implementiert, `POST /service/beleg-drucken` akzeptiert vier Body-Formen — `verkaufId` (Direktverkauf), `tischId` + `zahlungId` (Tisch-Zahlung), `tischId` + `stornierungId` (Tisch-Storno-Beleg, Warenrücknahme) und `verkaufId` + `stornierungId` (Direktverkauf-Storno-Beleg) — und erzeugt einen ESC/POS-Druckauftrag an den Kassenbeleg-Drucker.
-2. TSE-Daten auf dem Beleg andrucken: umgesetzt. `FormatKassenbeleg` druckt den TSE-Abschnitt (Transaktionsnummer, Signaturzähler, TSE-Seriennummer, Start- und Endzeitpunkt, Signatur); bei einem Ausfall ohne Signatur einen Ausfallvermerk.
-3. **Erste-Bestellung-Zeitstempel:** umgesetzt. Die `logTime` der ersten `Bestellung-V1` hält die Tisch-Session-Projektion vor und der Tisch-Beleg druckt sie an (nur Tisch-Belege, Direktverkäufe haben keine vorgelagerte Bestellung).
-4. QR-Code-Generierung im DSFinV-K-Format: umgesetzt. Der von fiskaly gelieferte `qr_code_data`-String wird als nativer ESC/POS-QR-Code gedruckt.
-5. Beleg-Archivierung: Die fiskalischen Daten liegen im Kassenjournal (Event samt TSE-Signatur) und im DSFinV-K-Export; der Beleg ist daraus jederzeit reproduzierbar.
-
-### 5.6 Umsetzung der Belegausgabe im BYOD-Setup
+### 5.4 Umsetzung der Belegausgabe im BYOD-Setup
 
 Die Servicekräfte nutzen private Smartphones ohne mobile Bondrucker; die Belegausgabe läuft über einen zentralen Bondrucker an der Theke: Die Servicekraft kassiert auf dem Smartphone; erst nach erfolgreichem TSE-Abschluss (`FinishTransaction`) sendet das Backend den Druckbefehl an den stationären Bondrucker, die Reihenfolge TSE-Abschluss vor Druck ist rechtlich zwingend, da erst dann die Prüfwerte feststehen. Die Servicekraft bietet dem Gast den Bon an. Lehnt der Gast ab, ist die Pflicht dennoch erfüllt, § 146a Abs. 2 AO verlangt das „Ausstellen und Zur-Verfügung-Stellen", nicht die Annahme.
 
----
-
 ## 6. DSFinV-K Export-Schnittstelle
 
-### 6.1 Übersicht
+### 6.1 Verbindliche Version und Prüfsoftware
 
-Bei Kassen-Nachschau oder Betriebsprüfung verlangt die Finanzverwaltung einen genormten Export nach DSFinV-K (aktuell verbindlich: v2.4, Stand Dezember 2023), lesbar durch die Prüfsoftware IDEA. [5] Die Tabellenstruktur ist seit v2.0 stabil; v2.4 brachte gegenüber v2.3 keine inhaltlichen Änderungen (nur AEAO-redaktionell). Ein v3.0-Diskussionsentwurf ist in Konsultation, aber noch nicht verbindlich. jotti hält den Versionsstring deshalb als eine einzige Konstante (`dsfinvk.Version`) fest, die sich bei einer künftigen DSFinV-K-Version an einer Stelle im Code ändern lässt.
+Bei Kassen-Nachschau oder Betriebsprüfung verlangt die Finanzverwaltung einen genormten Export nach DSFinV-K (aktuell verbindlich: v2.4, Stand Dezember 2023), lesbar durch die Prüfsoftware IDEA. [5] jotti hält den Versionsstring deshalb als eine einzige Konstante (`dsfinvk.Version`) fest, die sich bei einer künftigen DSFinV-K-Version an einer Stelle im Code ändern lässt.
 
 ### 6.2 Dateiformat und Grundregeln
 
@@ -351,9 +319,9 @@ Der Bonkopf (`transactions.csv`) führt zusätzlich `BEDIENER_ID` und `BEDIENER_
 
 Das Feld `ABRECHNUNGSKREIS` (in `allocation_groups.csv`, je `BON_ID`) verknüpft Bestellungen und Zahlungen eines Tisches zu einer logischen Einheit, Beispieltabelle und Ablauf: → [§3.6](#36-das-festzelt-muster-atomare-tse-transaktionen).
 
-- **Vergabe (✅ umgesetzt):** pro Tisch und Kassensitzung, Wert = Tischname (z. B. `Tisch 42`; das Format erlaubt beliebige Strings bis 40 Zeichen, `Tisch {Name}` ist eine jotti-interne Konvention); intern Subject `kassensitzung-{nr}/tisch-{id}`. Jeder Tisch erhält seinen eigenen Abrechnungskreis, ein Gesamt-Schlüssel für alle Tische verstieße gegen die GoBD-Nachvollziehbarkeit. Der Tagesabschluss schließt die Kassensitzung und damit alle Tisch-Sessions.
+- **Vergabe:** pro Tisch und Kassensitzung, Wert = Tischname (z. B. `Tisch 42`; das Format erlaubt beliebige Strings bis 40 Zeichen, `Tisch {Name}` ist eine jotti-interne Konvention); intern Subject `kassensitzung-{nr}/tisch-{id}`. Jeder Tisch erhält seinen eigenen Abrechnungskreis, ein Gesamt-Schlüssel für alle Tische verstieße gegen die GoBD-Nachvollziehbarkeit. Der Tagesabschluss schließt die Kassensitzung und damit alle Tisch-Sessions.
 - **Mehrere Gästegruppen am selben Tisch:** teilen sich einen Abrechnungskreis — zulässig, solange alle Bons korrekt verknüpft sind.
-- **Direktverkauf:** sofort geschlossene Transaktion ohne Tisch, im Export ohne `ABRECHNUNGSKREIS` (Feld ist optional) oder per Konvention `Theke`; Entscheidung bei Implementierung des Exporters. Keine `Bestellung-V1` nötig, direkt als `Kassenbeleg-V1` abgesichert.
+- **Direktverkauf:** sofort geschlossene Transaktion ohne Tisch, im Export ohne `ABRECHNUNGSKREIS` (das Feld ist optional). Keine `Bestellung-V1` nötig, direkt als `Kassenbeleg-V1` abgesichert.
 
 ### 6.6 Storno-Handling in DSFinV-K
 
@@ -362,20 +330,11 @@ Stornierungen erzeugen immer neue Datensätze (GoBD-Radierverbot), nie Änderung
 - **Positions-Storno (vor Zahlung):** neuer Bon mit negativer Menge, `REF_BON_ID` in `references.csv` auf den Ursprungsbon, eigene TSE-Signatur, gleicher `ABRECHNUNGSKREIS`.
 - **Bon-Storno (nach Zahlung):** neuer Bon mit negativem Gesamtbetrag, `REF_BON_ID` auf den Original-Zahlungsbeleg, eigene `Kassenbeleg-V1`-Transaktion.
 - **`BON_STORNO`:** bleibt in allen Fällen `0`. jotti nutzt die zulässige Negativ-Darstellung, das Vorzeichen des neuen Bons trägt die Korrektur. `BON_STORNO = 1` kennzeichnet die vollständige Aufhebung eines ganzen Belegs; diesen Vorgang gibt es in jotti nicht.
-- **Direktverkauf:** `direktverkauf-getaetigt:v1` (positiver Geschäftsvorfall) und `direktverkauf-storniert:v1` (negativer Geschäftsvorfall) sind je eigene Belegvorgänge; Zielbild ist ein 1:1-Mapping je Event mit `REF_BON_ID`-Referenz.
+- **Direktverkauf:** `direktverkauf-getaetigt:v1` (positiver Geschäftsvorfall) und `direktverkauf-storniert:v1` (negativer Geschäftsvorfall) sind je eigene Belegvorgänge; jedes Event wird 1:1 auf einen Belegvorgang abgebildet, der Storno verweist per `REF_BON_ID` auf den Ursprungsverkauf.
 
-### 6.7 Architektonische Anforderungen an jotti
+### 6.7 Steuersatz-Verwaltung
 
-1. CSV-Generator aus Event-Store- und Stammdaten (offizielle englische Dateinamen)
-2. Amtliche `index.xml` und `gdpdu-01-09-2004.dtd` eingebettet und unverändert ins Archiv gelegt (Prüfsoftware validiert gegen genau diese Dateien)
-3. Z-Bon-Logik (Tagessummen aggregieren)
-4. Abrechnungskreis-Verwaltung (Tisch-Session-ID in allen zugehörigen Bons)
-5. Admin-Endpunkt zum Auslösen des Exports
-6. ZIP-Generierung
-7. TSE-Stammdaten-Persistenz: Signaturalgorithmus, Public Key und Zertifikat werden beim TSE-Setup gespeichert (aktuell nicht abfragbar vorhanden) und speisen `tse.csv`
-8. **Steuersatz-Verwaltung:** USt-Sätze als Stammdaten: 19 % (Regelsteuersatz, z. B. Getränke), 7 % (ermäßigt, z. B. Speisen), 0 % / steuerbefreit (Zweckbetrieb nach § 67a AO), Kombi 70/30 (Kombinationsangebote nach Abschn. 10.1 Abs. 12 UStAE) [18]. Produkte erhalten einen konfigurierbaren Steuersatz-Schlüssel. Bei `kombi`-Positionen entfaltet der Export den Pauschalpreis in zwei Steueranteile (70 % → 7 %, 30 % → 19 %): zwei VAT-Einträge in `lines_vat.csv`, beide Anteile in `transactions_vat.csv`. Steuerregeln: [steuerrecht.md](steuerrecht.md).
-
----
+USt-Sätze als Stammdaten: 19 % (Regelsteuersatz, z. B. Getränke), 7 % (ermäßigt, z. B. Speisen), 0 % / steuerbefreit (Zweckbetrieb nach § 67a AO), Kombi 70/30 (Kombinationsangebote nach Abschn. 10.1 Abs. 12 UStAE) [18]. Produkte erhalten einen konfigurierbaren Steuersatz-Schlüssel. Bei `kombi`-Positionen entfaltet der Export den Pauschalpreis in zwei Steueranteile (70 % → 7 %, 30 % → 19 %): zwei VAT-Einträge in `lines_vat.csv`, beide Anteile in `transactions_vat.csv`. Steuerregeln: [steuerrecht.md](steuerrecht.md).
 
 ## 7. Elektronische Meldepflicht (ELSTER)
 
@@ -408,21 +367,17 @@ Das Gesetz kennt drei Übermittlungswege: Direkteingabe im ELSTER-Portal (manuel
 - Anschaffungs- bzw. Inbetriebnahmedatum
 - Betriebsstättenadresse
 
-### 7.4 Architektonische Anforderungen an jotti
+### 7.4 Meldestatus
 
-1. **Konfiguration:** Vereinsdaten, Betriebsstätte, Steuernummer als Stammdaten
-2. **Admin-Datenanzeige:** alle meldepflichtigen Felder strukturiert anzeigen, inkl. der generierten Kassen-Seriennummer (→ §3.7); kein API-Aufruf
-3. **Meldestatus:** manuell setzbarer Status („ausstehend / gemeldet am TT.MM.JJJJ"), persistiert in den Stammdaten
+Der Meldestatus ist manuell setzbar („ausstehend / gemeldet am TT.MM.JJJJ") und in den Stammdaten persistiert.
 
 ### 7.5 BYOD-Smartphones: keine Meldepflicht
 
 Die Smartphones der Servicekräfte müssen nicht gemeldet werden. Der AEAO zu § 146a AO stellt klar: Bei Systemen ohne eigene Kassenfunktion (Eingabegeräte), die mit einem Aufzeichnungssystem mit Kassenfunktion verbunden sind, ist nur das Hauptsystem mitteilungspflichtig, Vereine melden ausschließlich ihre jotti-Instanz, nicht die Handys der Helfer. [15] Die vollständige Pflichtenverteilung Entwickler/Betreiber: → Abschnitt 8.
 
----
-
 ## 8. Betreiberpflichten
 
-Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung für ihre jotti-Instanz. Laienverständliche Anleitung: [Leitfaden](leitfaden/was-ist-jotti.md); die TSE-Einrichtung Schritt für Schritt (fiskaly-Konto, Wizard, PUK/PIN-Verwahrung, TEST→LIVE) im Abschnitt [TSE einrichten](leitfaden/tse-einrichten.md).
+Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortung für ihre jotti-Instanz. Laienverständliche Anleitung: [Leitfaden](leitfaden/was-ist-jotti.md); die TSE-Einrichtung Schritt für Schritt (fiskaly-Konto, Wizard, PUK/PIN-Verwahrung, TEST→LIVE) im Abschnitt [TSE einrichten](leitfaden/tse-einrichten.md); die abhakbare Praxisliste im [Leitfaden, Checkliste](leitfaden/checkliste.md).
 
 **Pflichtenverteilung Entwickler / Betreiber:**
 
@@ -439,30 +394,12 @@ Die Vereine tragen als Betreiber die volle operative und rechtliche Verantwortun
 | Server-Betrieb und Datensicherung        | —                         | ✅ Pflicht                                                                       |
 | AVV mit dem Hoster (Art. 28 DSGVO)       | —                         | ✅ Pflicht (nur bei gemietetem Server, → [Leitfaden](leitfaden/self-hosting.md)) |
 
-**Vor dem ersten Einsatz:**
+Zwei Betreiberpflichten, die sich aus jottis Bauweise ergeben:
 
-1. **Cloud-TSE-Vertrag:** Vertrag mit der Cloud-TSE von fiskaly abschließen; API-Key und Secret über den geführten Einrichtungs-Assistenten im Admin-Bereich hinterlegen. Beide liegen danach in der Datenbank und sind über die API nicht auslesbar; ihr Schutz hängt am Zugriffsschutz für Server und Backups (Betreiberpflicht, siehe unten). jotti legt TSS und Client selbst an, das Anbieter-Dashboard kann das nicht (→ [TSE einrichten](leitfaden/tse-einrichten.md)).
-2. **ELSTER-Meldung:** Innerhalb von einem Monat nach Inbetriebnahme die Instanz über [ELSTER](https://www.elster.de) anmelden. Benötigt: Kassen-Seriennummer (Admin-Dashboard), Softwarename „jotti", Inbetriebnahmedatum (→ §7.3).
-3. **Seriennummer sichern:** Die Kassen-UUID ist die rechtliche Identität der Kasse (→ §3.7), das Datenbank-Backup muss sie enthalten. Bei Verlust: alte Nummer abmelden, neue Instanz anmelden.
-4. **Verfahrensdokumentation anpassen:** Die Muster-Verfahrensdokumentation ([verfahrensdokumentation.md](verfahrensdokumentation.md)) an die eigene Instanz anpassen (Vereinsname, TSE-Anbieter, Betriebsumgebung, Verantwortliche) und für die Betriebsprüfung bereithalten.
-
-**Laufend:**
-
+- **TSE-Zugangsdaten:** API-Key und Secret werden über den geführten Einrichtungs-Assistenten im Admin-Bereich hinterlegt; beide liegen danach in der Datenbank und sind über die API nicht auslesbar, ihr Schutz hängt am Zugriffsschutz für Server und Backups. jotti legt TSS und Client selbst an, das Anbieter-Dashboard kann das nicht (→ [TSE einrichten](leitfaden/tse-einrichten.md)).
 - **Kassensturz und Z-Bon:** Beim Kassensturz den gezählten Ist-Bestand in einem Zählprotokoll festhalten; nach jedem Veranstaltungstag einen Z-Bon erstellen (ein X-Bon/Zwischenbericht ersetzt ihn rechtlich nicht). Differenzen ehrlich buchen, eine Kasse, die „immer auf den Cent genau stimmt", gilt der Finanzverwaltung als manipulationsverdächtig (IDEA-Prüfung). Z-Bons und Zählprotokolle fallen unter die 10-Jahres-Aufbewahrung.
-- **10-Jahres-Aufbewahrung:** Kassenjournal und DSFinV-K-Exporte GoBD-konform und jederzeit lesbar aufbewahren (§§ 146, 147 AO).
-- **Tägliche Backups:** für die Aufbewahrung und die Seriennummern-Kontinuität.
-- **Server-Betrieb:** Verfügbarkeit, Zugriffsschutz, Datensicherung.
-- Außerbetriebnahme innerhalb eines Monats bei ELSTER melden.
 
----
-
-## 9. Architekturprinzipien
-
-→ **[handbuch.md §3.13: TSE-Architektur](handbuch.md#313-tse-architektur)**: vollständiges Transaktions-Mapping (Atomares Modell), TSE-Datenpersistenz im Event Store, DSFinV-K-Exporter-Übersicht. Interface-Definition: `backend/domain/tse/client.go`. Anbieter- und Meldeweg-Entscheidungen: §3.5 und §7 in diesem Dokument.
-
----
-
-## 10. Quellenverzeichnis
+## 9. Quellenverzeichnis
 
 Verweise im Text (z. B. [1]) beziehen sich auf die Nummern dieser Liste.
 

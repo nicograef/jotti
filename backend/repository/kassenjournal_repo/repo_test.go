@@ -1825,7 +1825,7 @@ func TestWriteEvent_KassensitzungOtherEvent_NoCRUDChange(t *testing.T) {
 // deaktiviertem Delete-Trigger tut — läuft RebuildAllProjections fehlerfrei durch und
 // die Tisch-Zustände (Saldo, unbezahlte Positionen) sind korrekt. Der
 // Append-only-Schutz besteht danach unverändert (siehe
-// docs/adrs/01_ausgabe-bestaetigen.md).
+// docs/decisions.md D01).
 func TestMigration03_AusgabeEntfernen(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)

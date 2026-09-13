@@ -6,7 +6,7 @@ description: 'Die rechtlichen und steuerlichen Pflichten beim Kassenbetrieb im �
 Die rechtlichen Grundlagen im Detail stehen in den
 [Compliance-Anforderungen](../compliance.md) (KassenSichV, GoBD, DSFinV-K, ELSTER)
 und die Steuersätze unter [Steuerrecht Gastronomie](../steuerrecht.md). Hier die
-drei Pflichten in der Praxis:
+vier Pflichten in der Praxis:
 
 - [Kasse beim Finanzamt anmelden](finanzamt-anmelden.md)
 - [Belege und Steuersätze](belege-steuersaetze.md)

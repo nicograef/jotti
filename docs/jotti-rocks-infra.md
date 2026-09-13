@@ -1,11 +1,10 @@
 # DNS-Infrastruktur für vertrauenswürdiges lokales TLS (jotti.rocks)
 
-Maintainer-Runbook für die zentrale `jotti.rocks`-Infrastruktur, nicht für Vereine.
-Es beschreibt Einrichtung, Verifikation und Betrieb der DNS-Dienste, über die lokale
-jotti-Installationen echte Let's-Encrypt-Zertifikate für
+Maintainer-Runbook für die zentrale `jotti.rocks`-Infrastruktur, nicht für Vereine: die
+DNS-Dienste, über die lokale jotti-Installationen echte Let's-Encrypt-Zertifikate für
 `*.<install-id>.lokal.jotti.rocks` beziehen.
 
-## 1. Überblick
+## 1. Services
 
 Zwei Services im rocks-Stack (`docker-compose.rocks.yml`):
 
@@ -15,7 +14,7 @@ Zwei Services im rocks-Stack (`docker-compose.rocks.yml`):
 | `acme-dns` | `auth.jotti.rocks`  | nur Docker-intern (DNS via resolver, API via nginx)    |
 
 Der resolver beantwortet A-Records und `_acme-challenge`-CNAMEs zustandslos und rein
-rechnerisch aus dem angefragten Namen (TTL 86400, Mapping Name → IP unveränderlich).
+rechnerisch aus dem angefragten Namen (Mapping Name → IP unveränderlich).
 Anfragen für `auth.jotti.rocks` reicht er Docker-intern an acme-dns weiter.
 
 acme-dns verwaltet die TXT-Records der DNS-01-Challenges. Seine HTTP-API (`/register`,
@@ -63,16 +62,9 @@ NS-A-Record, acme-dns als Zone-Apex-A-Record):
 VPS_PUBLIC_IP=<öffentliche IPv4 des VPS>
 ```
 
-Bestehendes Deployment nachrüsten:
-
-```bash
-git pull
-make rocks-up
-```
-
-Damit laufen resolver und acme-dns. `auth.jotti.rocks` ist aber erst im Zertifikat,
-sobald die DNS-Hoster-Einträge (Abschnitt 3) aktiv sind; dann das Zertifikat erweitern
-und nginx neu laden:
+Nach `make rocks-up` laufen resolver und acme-dns. `auth.jotti.rocks` ist aber erst im
+Zertifikat, sobald die DNS-Hoster-Einträge (Abschnitt 3) aktiv sind; dann das Zertifikat
+erweitern und nginx neu laden:
 
 ```bash
 docker compose -f docker-compose.rocks.yml \
@@ -106,7 +98,8 @@ dig +short CAA jotti.rocks                       # → 0 issue "letsencrypt.org"
 ```
 
 Registrierung (liefert `username`, `password`, `subdomain`, `fulldomain`, für die
-folgenden Schritte aufheben). Mehrere schnelle Aufrufe müssen HTTP 429 liefern:
+folgenden Schritte aufheben). Ab dem fünften Aufruf in schneller Folge muss HTTP 429
+kommen (Rate 1/min, Burst 3):
 
 ```bash
 curl -s -X POST https://auth.jotti.rocks/register
@@ -154,8 +147,6 @@ Backups: Das Volume `acme-dns-data` enthält die Zuordnung Account ↔ Subdomain
 verloren, werden die Credentials aller bestehenden Installationen ungültig und ihre
 Zertifikats-Erneuerungen schlagen fehl (Abhilfe je Installation: lokalen State löschen, neu
 registrieren, neue Install-ID, neue Adresse). Deshalb in die VPS-Backup-Routine aufnehmen.
-
-Logs: `make rocks-logs` zeigt resolver- und acme-dns-Logs mit an.
 
 AVV (Datenschutz): Für den VPS besteht eine Vereinbarung zur Auftragsverarbeitung nach
 Art. 28 DSGVO mit netcup (abgeschlossen 2026-07-14). Kopien liegen im netcup-CCP

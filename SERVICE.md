@@ -2,7 +2,7 @@
 
 **Stand: 25. Juni 2026**
 
-Diese Leistungsbedingungen regeln entgeltliche Unterstützungsleistungen des Autors rund um die Software „jotti" (Einrichtung, Hosting-Hilfe, Support, Schulung). Sie gelten ergänzend und gesondert zur kostenlosen Überlassung der Software; für die Software selbst gelten ausschließlich die [Nutzungsbedingungen (TERMS.md)](TERMS.md) und die [LICENSE](LICENSE). Der Abschluss eines Auftrags erfolgt in Textform per E-Mail (§ 126b BGB). Der Prozess und eine fertige E-Mail-Vorlage befinden sich am Ende dieses Dokuments.
+Diese Leistungsbedingungen regeln entgeltliche Unterstützungsleistungen des Autors rund um die Software „jotti" (Einrichtung, Hosting-Hilfe, Support, Schulung). Sie gelten ergänzend und gesondert zur kostenlosen Überlassung der Software; für die Software selbst gelten ausschließlich die [Nutzungsbedingungen (TERMS.md)](TERMS.md) und die [LICENSE](LICENSE). Der Abschluss eines Auftrags erfolgt in Textform per E-Mail (§ 126b BGB).
 
 > Autor: Nico Gräf, Freiburg im Breisgau, Deutschland — graef.nico@gmail.com
 
@@ -37,7 +37,7 @@ d) Schulung: Einweisung der Helferinnen und Helfer des Auftraggebers in die Bedi
 
 (2) Der Autor schuldet insbesondere nicht die Herstellung eines gesetzeskonformen, betriebsprüfungssicheren oder „finanzamtssicheren" Kassensystems. Einrichtung, TSE-Anbindung, Konfiguration und Schulung erfolgen unterstützend; die Verantwortung für die Einhaltung der gesetzlichen Vorschriften (insbesondere KassenSichV, § 146a AO, GoBD, DSFinV-K, DSGVO) verbleibt beim Auftraggeber.
 
-(3) Eine Gewähr für Fehlerfreiheit, Vollständigkeit, Verfügbarkeit oder Eignung der Software für einen bestimmten Zweck wird nicht übernommen; insoweit gilt § 6 der Nutzungsbedingungen.
+(3) Eine Gewähr für Fehlerfreiheit, Vollständigkeit, Verfügbarkeit oder Eignung der Software für einen bestimmten Zweck wird nicht übernommen; insoweit gilt § 6 (Gewährleistung, Haftung und Freistellung) der [Nutzungsbedingungen](TERMS.md).
 
 ---
 

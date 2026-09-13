@@ -14,8 +14,6 @@ jotti ist das alleinige geistige Eigentum von **Nico Gräf** („Autor"). Die So
 
 Dieses CLA gilt für **alle Beiträge** (Pull Requests, Patches, Code-Einreichungen, Dokumentationsänderungen und sonstige Inhalte), die dem offiziellen Repository unter https://github.com/nicograef/jotti eingereicht werden.
 
-**Durch das Einreichen eines Beitrags erklärt sich die beitragende Person mit den folgenden Bedingungen einverstanden.**
-
 ---
 
 ## Bedingungen
@@ -72,7 +70,4 @@ Die Zustimmung zu diesem CLA erfolgt **konkludent** durch das Einreichen eines P
 
 ## Kontakt
 
-Bei Fragen zu diesem CLA:
-
-- Repository: https://github.com/nicograef/jotti
-- Autor: Nico Gräf, Freiburg im Breisgau, Deutschland
+Autor: Nico Gräf, Freiburg im Breisgau, Deutschland — graef.nico@gmail.com

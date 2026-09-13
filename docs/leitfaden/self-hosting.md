@@ -13,12 +13,14 @@ kleinen Server, einem VPS. Dann erreichen alle Helfer jotti über eine
 Internet-Adresse (Domain) mit Verschlüsselung (HTTPS).
 
 jotti ist genügsam: Schon der kleinste VPS (1 vCPU, 2 GB RAM, 20 GB SSD, Linux)
-reicht für ein durchschnittliches Vereinsfest. Typisches Angebot: netcup VPS 200
-oder vergleichbar (ca. 5 €/Monat). Zusätzlich braucht ihr eine Domain, die per
-DNS auf den Server zeigt, sowie ein TLS-Zertifikat. Das Zertifikat holt jotti
-automatisch: Die Produktions-Konfiguration (`docker-compose.prod.yml`) bringt einen
-Caddy-Reverse-Proxy mit, der es beim ersten Start selbst bei Let's Encrypt
-anfordert und danach erneuert.
+reicht für ein durchschnittliches Vereinsfest. Der Prozessor muss x86-64 sein
+(amd64): Die veröffentlichten Images gibt es nur für diese Architektur, auf
+ARM-Servern (etwa Raspberry Pi oder ARM-VPS) laufen sie nicht. Typisches
+Angebot: netcup VPS 200 oder vergleichbar (ca. 5 €/Monat). Zusätzlich braucht
+ihr eine Domain, die per DNS auf den Server zeigt, sowie ein TLS-Zertifikat.
+Das Zertifikat holt jotti automatisch: Die Produktions-Konfiguration
+(`docker-compose.prod.yml`) bringt einen Caddy-Reverse-Proxy mit, der es beim
+ersten Start selbst bei Let's Encrypt anfordert und danach erneuert.
 
 Ein gemieteter Server bedeutet auch: Der Hoster verarbeitet personenbezogene Daten
 für euren Verein, denn jotti speichert unter anderem die Namen der Helfer. Schließt

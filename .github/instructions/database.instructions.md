@@ -3,34 +3,6 @@ description: 'Use when working on database migrations, SQL queries, sqlc configu
 applyTo: 'database/**,backend/sqlc/**,backend/sqlc.yaml'
 ---
 
-> **Referenz:** Tabellen-Schemata stehen kanonisch in den SQL-Migrationen unter `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge, forward-only, siehe „Freeze-Disziplin" unten). Für Architektur und Invarianten → `docs/handbuch.md` §3.2 (Kassenjournal) und §4 (Stammdaten). Für DB-Spalten-Konventionen → `docs/language.md`.
+Repo-weite Regeln und Guardrails: `AGENTS.md` (Freeze-Disziplin). Das Schema steht kanonisch in `database/migrations/*.up.sql`. Architektur und Invarianten: [docs/handbuch.md](../../docs/handbuch.md) §3.2 (Kassenjournal) und §4 (Stammdaten).
 
-Repo-weite Regeln und Guardrails stehen kanonisch in `AGENTS.md`. Diese Datei ergänzt nur datenbankspezifische Konventionen für `database/**`, `backend/sqlc/**` und `backend/sqlc.yaml`.
-
-# Datenbank-Konventionen
-
-## Befehle
-
-- **sqlc generieren:** `make sqlc` (nach Query-Änderungen)
-- **Dev-DB starten:** `make dev` (startet PostgreSQL im Docker-Stack)
-- **DB-Shell öffnen:** `make db-shell`
-
-## Schema
-
-Domain-Tabellen: `tische`, `produkte`, `produkt_varianten` (deutsch, snake_case).
-Infrastruktur-Tabellen: `users` (englisch, snake_case).
-Kasse-Tabellen: `kassenjournal` (append-only Event Store), `tisch_sessions` (Tisch-Projektion), `kassensitzungen` (Kassensitzung-Entität, CRUD).
-
-Domain-Spalten sind deutsch (`kategorie`, `preis_cents`, `produkt_id`), technische Spalten englisch (`created_at`, `updated_at`, `status`, `id`).
-
-Aktuelles Schema: siehe SQL-Migrationen in `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge).
-
-## Schema-Änderungen
-
-Die repo-weite Schema-Policy ist in `AGENTS.md` unter „Freeze-Disziplin" kanonisch beschrieben (neue Migrationen: `database/migrations/README.md`). Diese Datei ergänzt nur die DB-spezifischen Arbeitsschritte: Dev-DB bei Bedarf mit `make down && make dev` neu aufsetzen und nach Query-Änderungen `make sqlc` ausführen.
-
-## sqlc
-
-- Konfiguration: `backend/sqlc.yaml`
-- Queries: `backend/sqlc/queries/<domain>.sql`
-- Generierter Code: `backend/sqlc/dbgen/`
+Neue Migrationen folgen [database/migrations/README.md](../../database/migrations/README.md) (forward-only, additiv, `01_initial.up.sql` eingefroren). DB-Spalten-Konventionen: [docs/language.md](../../docs/language.md).

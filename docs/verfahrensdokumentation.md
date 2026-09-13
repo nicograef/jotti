@@ -5,15 +5,13 @@ description: 'Muster-Verfahrensdokumentation für die Kassenführung mit jotti: 
 
 > ⚠️ **Dies ist eine Vorlage.** jotti stellt diese Muster-Verfahrensdokumentation als Hersteller bereit ([compliance.md §2.7](compliance.md#27-sonderfall-source-available-self-hosted-pflichten-des-entwicklers)). Der Betreiber (Verein) passt sie an seine Instanz an, ergänzt die betrieblichen Angaben und legt sie bei einer Kassen-Nachschau oder Betriebsprüfung vor. Die Verfahrensdokumentation selbst ist eine Betreiberpflicht nach GoBD ([compliance.md §4.2](compliance.md#42-anforderungen-gemäß--146-147-ao-und-gobd)).
 >
-> **So benutzt ihr die Vorlage:** Alle vom Betreiber auszufüllenden Stellen sind mit Guillemets markiert, zum Beispiel «Vereinsname». Ersetzt jede solche Stelle durch eure konkreten Angaben und entfernt anschließend diesen Hinweiskasten. Die technischen Abschnitt 2 bis 8 beschreiben jotti und gelten für jede Instanz; prüft sie auf Aktualität gegen eure jotti-Version und passt nur die mit «…» markierten Stellen an.
+> **So benutzt ihr die Vorlage:** Alle vom Betreiber auszufüllenden Stellen sind mit Guillemets markiert, zum Beispiel «Vereinsname». Ersetzt jede solche Stelle durch eure konkreten Angaben und entfernt anschließend diesen Hinweiskasten. Die technischen Abschnitte 2 bis 8 beschreiben jotti und gelten für jede Instanz; prüft sie auf Aktualität gegen eure jotti-Version und passt nur die mit «…» markierten Stellen an.
 
 ## Was eine Verfahrensdokumentation leistet
 
 Die GoBD (BMF-Schreiben vom 28.11.2019) verlangen vom Betreiber eines elektronischen Kassensystems eine Verfahrensdokumentation: eine nachvollziehbare Beschreibung, wie das System steuerlich relevante Daten erzeugt, verarbeitet, sichert und aufbewahrt. Sie versetzt einen sachverständigen Dritten (Betriebsprüfer) in die Lage, den Kassenprozess in angemessener Zeit zu verstehen und zu prüfen. Dieses Dokument erfüllt diese Pflicht für die Kassenführung mit jotti.
 
 Rechtliche Grundlagen im Detail: [compliance.md](compliance.md). Technische Architektur: [handbuch.md](handbuch.md). Betreiber-Anleitung in laienverständlicher Form: [Leitfaden](leitfaden/was-ist-jotti.md).
-
----
 
 ## 1. Stammdaten der Instanz (vom Betreiber auszufüllen)
 
@@ -25,7 +23,7 @@ Rechtliche Grundlagen im Detail: [compliance.md](compliance.md). Technische Arch
 | USt-IdNr. (falls vorhanden)             | «USt-IdNr. oder „nicht vorhanden"»                                             |
 | Kassen-Seriennummer (jotti-Kassen-UUID) | «UUID aus dem Admin-Bereich → „Finanzamt & TSE"»                               |
 | Softwarename / Hersteller               | jotti                                                                          |
-| Eingesetzte jotti-Version               | «z. B. v0.2.0»                                                                 |
+| Eingesetzte jotti-Version               | «z. B. v1.0.0»                                                                 |
 | Inbetriebnahmedatum                     | «TT.MM.JJJJ»                                                                   |
 | ELSTER-Meldung erfolgt am               | «TT.MM.JJJJ»                                                                   |
 | TSE-Anbieter                            | «z. B. fiskaly (SIGN DE), Cloud-TSE»                                           |
@@ -34,8 +32,6 @@ Rechtliche Grundlagen im Detail: [compliance.md](compliance.md). Technische Arch
 | Betriebsumgebung                        | «z. B. Windows-Rechner im Vereinsheim (lokales WLAN) / eigener VPS mit Domain» |
 | Verantwortlich für die Kasse            | «Name, Rolle im Verein, z. B. Schatzmeister»                                   |
 | Stand dieser Dokumentation              | «TT.MM.JJJJ»                                                                   |
-
----
 
 ## 2. Systemüberblick und Architektur
 
@@ -58,8 +54,6 @@ jotti ist ein self-hosted Kassensystem (mobile Point of Sale) für Vereinsfeste.
 
 Vollständige Architektur-Referenz: [handbuch.md §1 und §2](handbuch.md#1-überblick).
 
----
-
 ## 3. Datenmodell und Event-Sourcing
 
 **Kassenjournal als unveränderliche Aufzeichnung:** Alle finanziellen Geschäftsvorfälle werden in der Tabelle `kassenjournal` festgehalten, einer chronologischen, vollständigen und append-only geführten Aufzeichnung im Sinne von § 146 AO. Ein Datenbank-Trigger verhindert nachträgliches Ändern und Löschen (`UPDATE` und `DELETE` sind technisch gesperrt). Das Kassenjournal ist die alleinige Quelle der Wahrheit; alle Auswertungen und Exporte werden aus ihm abgeleitet.
@@ -76,8 +70,6 @@ Vollständige Architektur-Referenz: [handbuch.md §1 und §2](handbuch.md#1-übe
 
 Datenmodell-Referenz: [handbuch.md §3](handbuch.md#3-kasse-core-domain); Schema: die SQL-Migrationen unter `database/migrations/` (alle `*.up.sql`-Dateien in Reihenfolge).
 
----
-
 ## 4. TSE-Anbindung
 
 jotti unterliegt nach § 146a AO der Pflicht, jeden Geschäftsvorfall durch eine zertifizierte Technische Sicherheitseinrichtung (TSE) abzusichern. Diese Instanz nutzt die Cloud-TSE von «TSE-Anbieter», angebunden über eine HTTPS-API.
@@ -90,15 +82,13 @@ jotti unterliegt nach § 146a AO der Pflicht, jeden Geschäftsvorfall durch eine
 | Zahlung, Warenrücknahme (kassenwirksamer Storno), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) | `Kassenbeleg-V1`              |
 | Tagesabschluss (Z-Bon)                                                                                       | `SonstigerVorgang`            |
 
-**Signaturablauf und Persistenz:** Die Signierung ist vom Kassiervorgang entkoppelt, das Buchen wartet nie auf die TSE. Jeder signaturpflichtige Vorgang schreibt im selben Datenbank-Commit wie das Ereignis genau einen Signaturauftrag (transaktionale Outbox `tse_signaturauftraege`); ein Signatur-Worker signiert asynchron über das `TSEClient`-Interface und speichert die von der TSE gelieferten Signaturdaten (Transaktionsnummer, Signaturzähler, Signatur, Zeitstempel, Seriennummer) direkt am Auftrag. Beleg und DSFinV-K-Export lesen genau diese eine Quelle. Im Regelbetrieb liegt die Signatur binnen Sekunden vor (angestrebte Latenz: p95 unter fünf Sekunden). Eine Live-Messung gegen die fiskaly-TEST-TSS bestätigt die Zusage für den Regelbetrieb (verteilt anfallende Vorgänge): p50 rund 0,3 s, p95 rund 0,3 s je Signatur (Stand 2026-07-09). Der Signatur-Worker signiert seriell; liegen viele Vorgänge gleichzeitig an, staut sich die Warteschlange und die Ende-zu-Ende-Dauer der zuletzt eingereihten Signaturen steigt entsprechend (im gemessenen Burst von 24 gleichzeitigen Aufträgen p95 rund 7 s bei rund 0,3 s Signierdauer je Auftrag). Der Rückstand baut sich mit dieser Rate wieder ab und hält den Betrieb nicht auf.
+**Signaturablauf und Persistenz:** Die Signierung ist vom Kassiervorgang entkoppelt, das Buchen wartet nie auf die TSE. Jeder signaturpflichtige Vorgang schreibt im selben Datenbank-Commit wie das Ereignis genau einen Signaturauftrag (transaktionale Outbox `tse_signaturauftraege`); ein Signatur-Worker signiert asynchron über das `TSEClient`-Interface und speichert die von der TSE gelieferten Signaturdaten (Transaktionsnummer, Signaturzähler, Signatur, Zeitstempel, Seriennummer) direkt am Auftrag. Beleg und DSFinV-K-Export lesen genau diese eine Quelle. Im Regelbetrieb liegt die Signatur binnen Sekunden vor (angestrebte Latenz: p95 unter fünf Sekunden). Der Signatur-Worker signiert seriell; ein Rückstand baut sich mit derselben Rate wieder ab und hält den Betrieb nicht auf.
 
 **Ausfallpfad und mögliche Verzögerungen:** Weil das Buchen nie auf die TSE wartet, kann sich die Signatur verzögern, ohne den Vorgang aufzuhalten; Ursachen sind ein TSE-Ausfall oder eine Zeitüberschreitung, ein Signatur-Rückstand unter Last oder eine fehlende TSE-Konfiguration. Es gibt keine still unsignierten Geschäftsvorfälle: Jeder Vorgang ist ein offener oder ein endgültig markierter Auftrag, nie ein verlorener. Das Störungsprotokoll (`tse_stoerungen`) dokumentiert jede TSE-weite Störung als Zeitraum mit Grund und dient zusammen mit der Auftragstabelle als Ausfalldokumentation (AEAO zu § 146a, 1.14.1). Ein nach der Störung nachsignierter Kassenbeleg weist die nachträgliche Signierung mit dem Vermerk „Nachsigniert am …" aus, da die TSE-Zeitpunkte dann vom Belegdatum abweichen; ein Vorgang ohne konfigurierte TSE trägt den Vermerk „keine TSE konfiguriert"; im DSFinV-K-Export erhalten noch unsignierte Vorgänge aller Vorgangsarten eine `TSE_TA_FEHLER`-Zeile.
 
 **TSE-Stammdaten dieser Instanz:** Anbieter «TSE-Anbieter», Zertifizierungs-ID «BSI-K-TR-nnnn-yyyy», TSE-Seriennummer «Hexadezimalstring». Die Einrichtung (fiskaly-Konto, geführter Assistent, Verwahrung von Admin-PUK und Admin-PIN, Wechsel von TEST zu LIVE) ist im [Leitfaden, Abschnitt „TSE einrichten"](leitfaden/tse-einrichten.md) dokumentiert.
 
 Rechtliche und technische Details: [compliance.md §3](compliance.md#3-tse-integration-technische-sicherheitseinrichtung) und [handbuch.md §3.13](handbuch.md#313-tse-architektur).
-
----
 
 ## 5. DSFinV-K-Export
 
@@ -112,13 +102,9 @@ Rechtliche und technische Details: [compliance.md §3](compliance.md#3-tse-integ
 
 Format- und Felddetails: [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 
----
-
 ## 6. Rollen- und Zugriffskonzept
 
 **Authentifizierung:** Jeder Benutzer meldet sich mit Benutzername und Passwort an und erhält ein zeitlich begrenztes Token (JWT, 12 Stunden gültig). Passwörter werden ausschließlich als Argon2id-Hash gespeichert, niemals im Klartext. Die Rechteprüfung erfolgt serverseitig: Das Token weist den Benutzer aus, Rolle und Status werden bei jedem Request gegen die Benutzerdatenbank geprüft. Rollenänderungen und Deaktivierungen wirken damit sofort, nicht erst beim Ablauf des Tokens.
-
-**Login-Fehlermeldungen (bewusste Abwägung):** Der Login unterscheidet in seinen Fehlermeldungen die Fälle „kein Passwort gesetzt" und „Benutzer inaktiv" vom allgemeinen „Benutzername oder Passwort falsch". Ein Angreifer kann daraus im Einzelfall ablesen, dass ein Benutzerkonto existiert (Enumerationsrisiko). Diese Abwägung ist bewusst getroffen: Die Zielgruppe sind nicht-technische, ehrenamtliche Helfer, die mit einer klaren Fehlermeldung ihr Anmeldeproblem selbst lösen können; eine serverseitige Anmeldedrosselung begrenzt automatisiertes Durchprobieren.
 
 **Drei Rollen mit abgestuften Rechten:**
 
@@ -141,8 +127,6 @@ Stornierungen sind ausschließlich `serviceleitung` und `admin` vorbehalten; die
 
 **Bedienerzuordnung:** Jede Kassenaktion hält im Kassenjournal und im DSFinV-K-Export die stabile Benutzer-ID (`BEDIENER_ID`) und den zum Zeitpunkt der Aktion eingefrorenen Benutzernamen (`BEDIENER_NAME`) fest, nicht den bürgerlichen Klarnamen. Die Benutzerverwaltung (`users.name`) hält die Zuordnung Benutzername → Person und dient damit als Bedienerliste für die Betriebsprüfung; die obige Tabelle bildet dieselbe Zuordnung dokumentiert ab. Benutzernamen sind dauerhaft eindeutig und werden nie neu vergeben, sodass ein eingefrorener Name über die gesamte Aufbewahrungsfrist genau einer Person zugeordnet bleibt. Für gute Lesbarkeit empfiehlt sich eine Konvention wie Vorname plus Initial des Nachnamens (z. B. `annak`); jotti erzwingt sie nicht.
 
----
-
 ## 7. Archivierung und Aufbewahrung
 
 Alle steuerlich relevanten Daten sind 10 Jahre vollständig, jederzeit verfügbar, lesbar und unveränderbar aufzubewahren (§§ 146, 147 AO). jotti stellt die Daten in offenen, ohne Spezialsoftware lesbaren Formaten bereit; die sichere Aufbewahrung selbst ist Betreiberpflicht.
@@ -159,8 +143,6 @@ Alle steuerlich relevanten Daten sind 10 Jahre vollständig, jederzeit verfügba
 
 Strategie im Detail: [compliance.md §4.4](compliance.md#44-aufbewahrungsstrategie-f-10). Laienverständliche Anleitung: [Leitfaden, Datenaufbewahrung](leitfaden/datenaufbewahrung.md).
 
----
-
 ## 8. Nachvollziehbarkeit von Änderungen
 
 Die Unveränderbarkeit und Nachvollziehbarkeit nach GoBD wird auf drei Ebenen sichergestellt.
@@ -170,8 +152,6 @@ Die Unveränderbarkeit und Nachvollziehbarkeit nach GoBD wird auf drei Ebenen si
 **Stammdaten:** Produkte, Tische und Benutzer werden nur per Soft-Delete entfernt (Status `deleted`), nie physisch gelöscht. Verkaufspreise und Steuersätze sind zum Zeitpunkt jeder Buchung in den Ereignissen eingefroren, sodass spätere Stammdaten-Änderungen historische Buchungen nicht verändern. Vor einer Stammdaten-Änderung mit fiskaler Wirkung (Preise, Steuersätze) ist der Tagesabschluss durchzuführen.
 
 **Software- und Konfigurationsstände:** Die eingesetzte jotti-Version ist im Admin-Bereich (Fußzeile der Seitenleiste) ersichtlich und im DSFinV-K-Export hinterlegt. Updates verändern die Datenbank nur vorwärts (kein Downgrade); vor jedem Update zieht jotti automatisch ein Backup. Wesentliche betriebliche Änderungen (Versions-Updates, Wechsel des TSE-Anbieters, Änderung der Betriebsumgebung) trägt der Betreiber in die Änderungshistorie am Ende dieses Dokuments ein.
-
----
 
 ## 9. Betrieb und Verantwortlichkeiten (vom Betreiber auszufüllen)
 
@@ -192,15 +172,9 @@ Die Unveränderbarkeit und Nachvollziehbarkeit nach GoBD wird auf drei Ebenen si
 
 Betreiberpflichten vollständig: [compliance.md §8](compliance.md#8-betreiberpflichten); Praxis-Checkliste: [Leitfaden, Checkliste](leitfaden/checkliste.md).
 
----
-
 ## 10. Änderungshistorie dieser Dokumentation (vom Betreiber zu führen)
 
 | Version | Datum        | Änderung                                                       | Bearbeiter |
 | ------- | ------------ | -------------------------------------------------------------- | ---------- |
 | 1.0     | «TT.MM.JJJJ» | Erstfassung auf Basis der jotti-Muster-Verfahrensdokumentation | «Name»     |
 | «…»     | «…»          | «z. B. jotti-Update auf v…, Wechsel des TSE-Anbieters»         | «…»        |
-
----
-
-> Diese Vorlage basiert auf den jotti-Compliance-Grundlagen ([compliance.md](compliance.md)) und der Architektur-Referenz ([handbuch.md](handbuch.md)). Bei einem jotti-Update prüft der Betreiber, ob die technischen Abschnitte 2 bis 8 noch zur eingesetzten Version passen, und vermerkt Änderungen in Abschnitt 10.
