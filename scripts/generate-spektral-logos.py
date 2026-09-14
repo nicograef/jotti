@@ -1,35 +1,19 @@
 #!/usr/bin/env python3
 """Spektral-Generator für die jotti-Logo-Master.
 
-Liest die 12 grünen Master aus assets/ und erzeugt den kompletten Satz mit
-kontinuierlichem Spektral-Verlauf (Rot → Violett) in einen Staging-Ordner.
-Die Master werden nie direkt überschrieben; der Austausch erfolgt erst nach
+Erzeugt aus den 12 grünen Mastern in assets/ den kompletten Satz mit
+kontinuierlichem Spektral-Verlauf (Rot → Violett) in einen Staging-Ordner. Die
+Master werden nie direkt überschrieben; der Austausch erfolgt erst nach
 visueller Freigabe von Hand.
 
-Farbmodell:
-- Pixel werden im OKLCH-Raum klassifiziert. Markenpixel sind alle Pixel mit
-  Chroma >= 0.02 und Hue im Grün-Fenster [100°, 230°]; das erfasst das J
-  inklusive Antialiasing-Säumen. Hintergründe (Slate, Weiß) und der
-  Schriftzug liegen außerhalb (chroma-arm oder Blau ~260°) und bleiben
-  byte-identisch erhalten.
-- Der Ziel-Hue wandert linear entlang der Verlaufsachse über der Bounding-Box
-  der Markenpixel (Standard: oben Rot 25° → unten Violett 305°, Grün 165°
-  liegt in der Mitte). Helligkeit und Chroma stammen aus dem Master; Chroma
-  wird bei Bedarf ans sRGB-Gamut geklemmt. Alpha bleibt unverändert.
-
-Eingebaute Checks (brechen mit Fehler ab):
-- alle 12 Varianten erzeugt
-- Alpha-Kanal byte-identisch
-- Nicht-Markenpixel (Neutraltöne, Hintergründe, Text) byte-identisch
-- Hue-Spannweite der Markenpixel deckt das Spektrum ab (Rot bis Violett)
-- Dateigrößen in der Größenordnung der bestehenden Assets (Faktor 0.25–4)
-
-Zusätzlich entstehen Abnahme-Previews in <out>/preview/: Graustufen-Proben
-aller Varianten (Druck-Check) und 16-fach vergrößerte 16px-Favicons.
-
-Verwendung:
-    python3 scripts/generate-spektral-logos.py
-    python3 scripts/generate-spektral-logos.py --axis-angle 45   # Diagonale
+Markenpixel sind im OKLCH-Raum alle Pixel mit Chroma >= 0.02 und Hue im
+Grün-Fenster [100°, 230°]; das erfasst das J inklusive Antialiasing-Säumen,
+während Hintergründe (Slate, Weiß) und der Schriftzug (chroma-arm oder Blau
+~260°) außerhalb liegen und byte-identisch erhalten bleiben. Ihr Ziel-Hue
+wandert linear entlang der Verlaufsachse über der Bounding-Box der Markenpixel
+(Standard: oben Rot 25° → unten Violett 305°, Grün 165° in der Mitte);
+Helligkeit und Chroma stammen aus dem Master, Chroma wird bei Bedarf ans
+sRGB-Gamut geklemmt, Alpha bleibt unverändert.
 """
 
 import argparse
@@ -135,7 +119,6 @@ def spektralisiere(
             oklch_cache[key] = rgb8_to_oklch(r, g, b)
         return oklch_cache[key]
 
-    # Durchgang 1: Markenpixel finden und Projektion auf die Achse bestimmen
     dx, dy = math.cos(math.radians(axis_angle)), math.sin(math.radians(axis_angle))
     mask = [False] * len(src)
     proj_min, proj_max = math.inf, -math.inf
@@ -149,7 +132,6 @@ def spektralisiere(
     if proj_min >= proj_max:
         raise SystemExit("FEHLER: keine Markenpixel gefunden")
 
-    # Durchgang 2: Hue positionsabhängig neu zuordnen
     out = list(src)
     span = proj_max - proj_min
     for i, (r, g, b, a) in enumerate(src):
@@ -168,7 +150,6 @@ def spektralisiere(
 def check_variante(
     name: str, src: Image.Image, out_path: Path, mask: list[bool], src_size: int
 ) -> list[str]:
-    """Prüft die geschriebene Datei gegen den Master; gibt Fehlerliste zurück."""
     errors = []
     out = Image.open(out_path)
     if out.size != src.size or out.mode != src.mode:

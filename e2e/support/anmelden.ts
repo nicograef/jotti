@@ -3,10 +3,8 @@ import { expect } from '@playwright/test'
 
 import type { Zugangsdaten } from './seed'
 
-// anmelden meldet einen Benutzer über das Anmeldeformular an. Es nutzt
-// zugängliche Selektoren (Platzhalter, Button-Beschriftung) statt Test-IDs und
-// wartet auf die rollenabhängige Weiterleitung nach erfolgreicher Anmeldung:
-// Admins landen unter /admin, Servicekräfte unter /service.
+// Wartet auf die rollenabhängige Weiterleitung: Admin → /admin,
+// Servicekraft → /service.
 export async function anmelden(
   page: Page,
   zugangsdaten: Zugangsdaten,
@@ -18,7 +16,5 @@ export async function anmelden(
 
   await page.getByRole('button', { name: 'Anmelden' }).click()
 
-  // Die Anmeldung leitet weg von /login (auf /admin bzw. /service) — darauf
-  // wartet Playwright ohne feste Verzögerung.
   await expect(page).not.toHaveURL(/\/login$/)
 }

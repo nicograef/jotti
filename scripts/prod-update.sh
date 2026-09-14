@@ -1,40 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# =============================================================================
-# jotti — Safe Update (self-hosted production, Weg B)
-#
-# Updates the pinned production stack to the JOTTI_VERSION currently set in .env.
-# Mirrors the Windows starter's update flow (windows/starter/main.go): refuse
-# downgrades, take a pre-update backup BEFORE any migration runs, pull, apply,
-# then verify health. If the new version does not come up healthy, the operator
-# gets a clear, copy-pasteable rollback path and the script aborts non-zero —
-# no data created before the update is lost. Steps:
-#   1. Validate prerequisites (Docker, Compose, .env)
-#   2. Determine the running vs. target version; refuse downgrades
-#   3. Pre-update backup (calls prod-backup.sh)
-#   4. Pull the pinned images and apply (runs migrations)
-#   5. Wait for health; on failure print rollback guidance and abort
-#
-# Update workflow: bump JOTTI_VERSION in .env, then run `make prod-update`.
-#
-# Usage: ./scripts/prod-update.sh  (or `make prod-update`)
-# =============================================================================
+# jotti — safe update of the self-hosted production stack to the JOTTI_VERSION
+# set in .env. Mirrors the Windows starter's update flow
+# (windows/starter/main.go): refuse downgrades, take a backup BEFORE any
+# migration runs, pull, apply, verify health. If the new version does not come up
+# healthy, the operator gets a copy-pasteable rollback path and the script aborts
+# non-zero — no data created before the update is lost.
 
 COMPOSE_PROD="docker-compose.prod.yml"
 BACKEND_CONTAINER="jotti-backend"
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 . "$SCRIPT_DIR/lib.sh"
 
-# is_downgrade TARGET RUNNING — returns 0 when TARGET is a strictly older semver
-# than RUNNING. Returns 1 when it is not older OR when either side is not semver
-# (then ordering is unknown, so we do not block — downgrade protection needs
-# pinned semver versions, not "latest").
+# is_downgrade TARGET RUNNING — 0 when TARGET is a strictly older semver than
+# RUNNING. Either side not semver returns 1: the ordering is unknown then, and
+# downgrade protection needs pinned semver versions, not "latest".
 is_downgrade() {
   local t r ta tb tc ra rb rc
   t="$(parse_semver "$1")" || return 1
@@ -47,25 +30,15 @@ is_downgrade() {
   return 1
 }
 
-# ---------------------------------------------------------------------------
-# Step 0 — Change to project root (script may be called from anywhere)
-# ---------------------------------------------------------------------------
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# ---------------------------------------------------------------------------
-# Step 1 — Validate prerequisites
-# ---------------------------------------------------------------------------
 require_docker_stack "$COMPOSE_PROD"
 
-# ---------------------------------------------------------------------------
-# Step 2 — Determine running vs. target version and guard against downgrades
-# ---------------------------------------------------------------------------
-# Target comes from .env (the version the operator bumped to). Only a pinned
-# release tag (vMAJOR.MINOR.PATCH) is accepted; "latest" or an empty value would
-# silently track a moving image and defeat the downgrade guard. Compose references
-# the tag as a bare ${JOTTI_VERSION} with no default, so an empty value aborts the
-# stack; this check turns that into an early, actionable error.
+# Only a pinned release tag (vMAJOR.MINOR.PATCH) is accepted: compose references
+# the tag as a bare ${JOTTI_VERSION} with no default, so "latest" would track a
+# moving image and defeat the downgrade guard, and an empty value would abort the
+# stack.
 TARGET_VERSION="$(read_env JOTTI_VERSION)"
 if ! parse_semver "$TARGET_VERSION" >/dev/null; then
   error "JOTTI_VERSION in .env is not a pinned release tag (found: '${TARGET_VERSION:-<empty>}')."
@@ -73,8 +46,6 @@ if ! parse_semver "$TARGET_VERSION" >/dev/null; then
   fatal "Refusing to update against an unpinned version ('latest' and empty are not allowed)."
 fi
 
-# Running version is the tag the backend container was created from. Absence of
-# the container means there is nothing to update yet.
 RUNNING_IMAGE="$(docker inspect -f '{{.Config.Image}}' "$BACKEND_CONTAINER" 2>/dev/null || true)"
 if [[ -z "$RUNNING_IMAGE" ]]; then
   fatal "No running jotti stack found (container '$BACKEND_CONTAINER' is absent). Use 'make prod-init' for the first deploy."
@@ -91,9 +62,6 @@ else
   info "Updating: $RUNNING_VERSION -> $TARGET_VERSION"
 fi
 
-# ---------------------------------------------------------------------------
-# Step 3 — Pre-update backup (before any migration runs)
-# ---------------------------------------------------------------------------
 # Resolve BACKUP_DIR exactly like prod-backup.sh so we can locate the dump it
 # just wrote and offer it for rollback.
 BACKUP_DIR="${BACKUP_DIR:-$(read_env BACKUP_DIR)}"
@@ -109,7 +77,6 @@ fi
 PRE_UPDATE_DUMP="$BACKUP_DIR/$NEWEST_DUMP"
 info "Pre-update backup ready: $PRE_UPDATE_DUMP"
 
-# rollback_guidance prints the copy-pasteable path back to the previous version.
 rollback_guidance() {
   echo "" >&2
   error "Update failed: the stack did not come up healthy."
@@ -125,9 +92,6 @@ rollback_guidance() {
   warn "No data created before the update is lost — it is in the backup above."
 }
 
-# ---------------------------------------------------------------------------
-# Step 4 — Pull the pinned images and apply the update
-# ---------------------------------------------------------------------------
 info "Pulling pinned images for $TARGET_VERSION..."
 if ! docker compose -f "$COMPOSE_PROD" pull; then
   fatal "docker compose pull failed. Nothing was changed; the previous version is still running."
@@ -139,9 +103,6 @@ if ! docker compose -f "$COMPOSE_PROD" up -d; then
   exit 1
 fi
 
-# ---------------------------------------------------------------------------
-# Step 5 — Wait for the backend to become healthy, then verify HTTPS
-# ---------------------------------------------------------------------------
 info "Waiting for the backend to become healthy..."
 backend_healthy=false
 for _ in $(seq 1 30); do
@@ -159,8 +120,6 @@ if [[ "$backend_healthy" != true ]]; then
 fi
 info "Backend healthy."
 
-# Best-effort public health check (the certificate already exists from the
-# previous deploy, so this should pass quickly).
 DOMAIN="$(read_env JOTTI_DOMAIN)"
 https_ok=false
 if [[ -n "$DOMAIN" ]]; then
@@ -175,9 +134,6 @@ if [[ -n "$DOMAIN" ]]; then
   done
 fi
 
-# ---------------------------------------------------------------------------
-# Summary
-# ---------------------------------------------------------------------------
 echo ""
 echo "=========================================="
 printf "${GREEN} %s${NC}\n" "jotti — Update Complete"

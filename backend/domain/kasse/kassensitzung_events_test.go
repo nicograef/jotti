@@ -7,9 +7,8 @@ import (
 	"testing"
 )
 
-// Regression: zog wertet den Zero-Value 0 bei Required() als fehlend. Ein
-// Anfangsbestand von 0 Cent ist fachlich gültig und darf die Event-Erstellung
-// nicht ablehnen (die HTTP-Schicht erlaubt 0 via Ptr+NotNil ausdrücklich).
+// zog wertet den Zero-Value 0 bei Required() als fehlend; ein Anfangsbestand von 0 Cent
+// ist fachlich gültig (die HTTP-Schicht erlaubt 0 via Ptr+NotNil).
 func TestNewKassensitzungEroeffnetEvent_ErlaubtNullBetrag(t *testing.T) {
 	event, err := NewKassensitzungEroeffnetEvent(KassensitzungSubject(1), 1, "TestUser", "2026-07-09", "ops-smoke", 0)
 	if err != nil {
@@ -30,8 +29,7 @@ func TestNewKassensitzungEroeffnetEvent_LehntNegativenBetragAb(t *testing.T) {
 	}
 }
 
-// Regression: eine leer gezählte Kasse (Ist-Bestand 0 Cent) ist ein gültiger
-// Kassensturz.
+// Eine leer gezählte Kasse (Ist-Bestand 0 Cent) ist ein gültiger Kassensturz.
 func TestNewKassensturzDurchgefuehrtEvent_ErlaubtNullIstBestand(t *testing.T) {
 	event, err := NewKassensturzDurchgefuehrtEvent(KassensitzungSubject(1), 1, "TestUser", 0, 0, 0)
 	if err != nil {

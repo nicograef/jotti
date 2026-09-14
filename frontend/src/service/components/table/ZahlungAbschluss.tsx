@@ -25,24 +25,17 @@ import { RestbetragZeile } from './RestbetragZeile'
 interface ZahlungAbschlussProps {
   backend: Pick<TischBackend, 'zahlungKassieren'>
   tisch: Tisch
-  // Die ausgewählten, zu kassierenden Positionen (mit Auswahl-Menge).
+  // Zu kassierende Positionen; `menge` ist die Auswahl-Menge, nicht die volle Position.
   positionenToPay: Position[]
   totalCents: number
   restNachZahlungCents: number
   zahlungKassiert: () => void
-  // 'sheet' rendert den Bottom-Sheet-Drawer-Inhalt (Handy), 'spalte' die feste
-  // Abschluss-Spalte (ab lg). Einzige Quelle des Abschluss-Inhalts; die beiden
-  // Varianten unterscheiden sich nur im umschließenden Container.
   variant: 'sheet' | 'spalte'
 }
 
-// Presentation-neutraler Abschluss-Inhalt des Tisch-Kassierens (Beleg, Erhalten,
-// Zielbetrag inkl. Trinkgeld, Rückgeld, Trinkgeld-Hinweis, Kommentar,
-// „Kassieren"). Trägt den vollständigen Eingabe-State und das Submit-/Fehler-/
-// Retry-Verhalten und wird sowohl im Handy-Drawer als auch in der festen Spalte
-// gerendert. Kein Client-Idempotenz-Schlüssel: die Idempotenz ist zustandsbasiert
-// (bereits bezahlte Positionen → position_nicht_bezahlbar), und der
-// Loading-Guard verhindert den Doppel-Submit.
+// Kein Client-Idempotenz-Schlüssel: die Idempotenz ist zustandsbasiert (bereits
+// bezahlte Positionen → position_nicht_bezahlbar), und der Loading-Guard
+// verhindert den Doppel-Submit.
 export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
   const [kommentar, setKommentar] = useState('')
   const [erhaltenEuro, setErhaltenEuro] = useState('')
@@ -51,10 +44,9 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
 
   const noPositionenSelected = props.positionenToPay.length === 0
 
-  // In der dauerhaften Spalte überlebt der Eingabe-State sonst über einen
-  // Auswahl-Reset hinweg. Beim Beginn einer neuen Zusammenstellung (aus dem
-  // Leerzustand) starten die Eingaben deshalb leer, damit nichts aus einer
-  // abgebrochenen Zahlung übertragen wird.
+  // In der dauerhaften Spalte überlebt der Eingabe-State sonst einen
+  // Auswahl-Reset; eine neue Zusammenstellung startet deshalb mit leeren
+  // Eingaben.
   const warLeerRef = useRef(noPositionenSelected)
   useEffect(() => {
     if (warLeerRef.current && !noPositionenSelected) {

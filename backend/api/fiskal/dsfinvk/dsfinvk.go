@@ -1,9 +1,6 @@
-// Package dsfinvk transformiert die Events und Stammdaten einer Kassensitzung
-// seiteneffektfrei in ein DSFinV-K-Archiv (CSV-Dateien, index.xml und die
-// gdpdu-01-09-2004.dtd). Der fiskalisch heikle Teil — GV-Typ-/Beleg-Mapping,
-// Steueraufteilung, TSE-Daten — liegt vollständig hier und ist über
-// Golden-File-Tests prüfbar. Das Paket kennt kein I/O: der Orchestrator lädt die
-// Daten und reicht sie als Snapshot plus Event-Liste herein.
+// Package dsfinvk transformiert Events und Stammdaten einer Kassensitzung
+// seiteneffektfrei in ein DSFinV-K-Archiv (CSVs, index.xml, DTD). Kein I/O: der
+// Orchestrator lädt die Daten und reicht sie als Snapshot plus Event-Liste herein.
 package dsfinvk
 
 import (
@@ -21,9 +18,7 @@ import (
 // aktuell verbindlich ist v2.4 (Stand Dezember 2023).
 const Version = "2.4"
 
-// Snapshot ist der lesende Stammdaten-Eingang des Mappers: alles, was der Export
-// neben den Events selbst braucht. Der Orchestrator lädt ihn; der Mapper bleibt
-// rein.
+// Snapshot sind die Stammdaten, die der Export neben den Events braucht.
 type Snapshot struct {
 	// KasseSeriennummer speist Z_KASSE_ID und KASSE_SERIENNR (UUID der Kasse).
 	KasseSeriennummer string
@@ -39,16 +34,13 @@ type Snapshot struct {
 	// Sie wird per ldflags zur Build-Zeit gesetzt ("dev" im Entwicklungsmodus).
 	SoftwareVersion string
 	// Tischnamen bildet Tisch-IDs auf ihren Namen ab (Quelle des
-	// ABRECHNUNGSKREIS). Fehlt ein Tisch (gelöscht), synthetisiert der Mapper
-	// "Tisch N".
+	// ABRECHNUNGSKREIS), gelöschte Tische eingeschlossen; fehlt ein Tisch,
+	// synthetisiert der Mapper "Tisch N".
 	Tischnamen map[int]string
 }
 
-// itoa formatiert eine Ganzzahl dezimal; ein kurzer Alias hält die dichten
-// Zeilen-Literale der Tabellen lesbar.
 func itoa(n int) string { return strconv.Itoa(n) }
 
-// abs liefert den Betrag einer Ganzzahl (positive Magnitude).
 func abs(n int) int {
 	if n < 0 {
 		return -n
@@ -56,7 +48,6 @@ func abs(n int) int {
 	return n
 }
 
-// ptr liefert den Wert eines optionalen Strings oder "" bei nil.
 func ptr(s *string) string {
 	if s == nil {
 		return ""
@@ -94,15 +85,11 @@ func formatQuantity(menge int) string {
 const ustNichtSteuerbar = 5
 
 // ustSchluessel bildet einen jotti-Steuersatz auf den DSFinV-K-Umsatzsteuer-
-// schlüssel (Anlage 2) ab: 1 = Regelsteuersatz (19 %), 2 = ermäßigter Satz
-// (7 %), 6 = umsatzsteuerfrei (0 %, z. B. Zweckbetrieb § 67a AO). Die
-// Steueraufteilung entfaltet kombi vorab in regel und ermaessigt, daher kommt hier
-// nie KombiSteuersatz an.
-//
-// Die Schlüssel 5 und 6 sind gegen die DFKA-Taxonomie Kassendaten (Quelle der
-// DSFinV-K-Anlage 2) bestätigt: ID 5 = "Nicht Steuerbar" (0,00 %), ID 6 =
-// "Umsatzsteuerfrei" (0,00 %). ID 7 (Umsatzsteuer nicht ermittelbar) dient nur
-// der Forderungsauflösung und entfällt in jottis Revenue-at-payment-Modell.
+// schlüssel (Anlage 2) ab: 1 = Regelsteuersatz (19 %), 2 = ermäßigter Satz (7 %),
+// 6 = umsatzsteuerfrei (0 %, z. B. Zweckbetrieb § 67a AO). ID 7 (Umsatzsteuer
+// nicht ermittelbar) dient nur der Forderungsauflösung und entfällt in jottis
+// Revenue-at-payment-Modell. Die Steueraufteilung entfaltet kombi vorab, daher
+// kommt hier nie KombiSteuersatz an.
 func ustSchluessel(satz steuer.Steuersatz) int {
 	switch satz {
 	case steuer.RegelSteuersatz:

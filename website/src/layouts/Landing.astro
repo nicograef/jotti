@@ -3,8 +3,7 @@ import { Image } from 'astro:assets'
 
 import '../styles/landing.css'
 import jottiSymbol from '../assets/jotti-symbol.png'
-// OG-Bild: 1200×630-Aufnahme des neuen Hero (hell), reproduzierbar erzeugt vom
-// Screenshot-Skript (e2e/website/screenshots.mjs, Modus „og").
+// OG-Bild (1200×630) erzeugt e2e/website/screenshots.mjs im Modus „og".
 import ogImage from '../assets/og-startseite.png'
 import { githubUrl, leitfadenUrl } from '../lib/links'
 import ThemeToggle from '../components/ThemeToggle.tsx'
@@ -20,9 +19,6 @@ const { title, description } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href
 const ogImageUrl = new URL(ogImage.src, Astro.site).href
 
-// Header-Navigation: Anker-Links plus Leitfaden. Der `#faq`-Link führt zu
-// seiner Sektion. Eine Quelle für Desktop-Nav und die MobileNav-Island,
-// damit die Liste nicht auseinanderläuft.
 const navLinks = [
   { href: '/#features', label: 'Funktionen' },
   { href: '/#ablauf', label: 'Ablauf' },
@@ -33,10 +29,7 @@ const navLinks = [
   { href: leitfadenUrl, label: 'Leitfaden' },
 ]
 
-// Footer-Spalten: Produkt, Ressourcen, Rechtliches. Anker zeigen absolut auf
-// die Landing (`/#...`), damit sie auch von den Rechtsseiten aus
-// funktionieren. Rechtliches verlinkt Impressum, Datenschutz sowie
-// Nutzungsbedingungen (TERMS.md) und Lizenz (LICENSE) auf GitHub.
+// Anker absolut (`/#…`), damit sie auch von den Rechtsseiten aus funktionieren.
 const footerSpalten = [
   {
     titel: 'Produkt',
@@ -84,18 +77,12 @@ const footerSpalten = [
     <meta name="author" content="Nico Gräf" />
     <meta name="robots" content="index, follow" />
 
-    <!--
-      Theme vor dem ersten Paint setzen: externe, klassisch-synchrone Datei aus
-      public/ (kein type=module/defer/async), damit unter der Produktiv-CSP kein
-      Inline-Skript nötig ist und kein falsches Theme aufblitzt. Liest denselben
-      Starlight-Speicher wie der Doku-Schalter (siehe public/theme-init.js).
-    -->
+    <!-- Extern und synchron wegen der CSP, siehe public/theme-init.js. -->
     <script is:inline src="/theme-init.js"></script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
 
-    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -104,13 +91,11 @@ const footerSpalten = [
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImageUrl} />
 
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
 
-    <!-- Favicons -->
     <link
       rel="icon"
       type="image/png"
@@ -143,7 +128,6 @@ const footerSpalten = [
       media="(prefers-color-scheme: dark)"
     />
 
-    <!-- Schrift vorladen: selbst gehostete Variable-Fonts -->
     <link
       rel="preload"
       href="/fonts/Inter-Variable.woff2"

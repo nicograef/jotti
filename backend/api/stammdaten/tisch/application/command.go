@@ -113,12 +113,9 @@ func (c Command) TischLoeschen(ctx context.Context, id int) error {
 	return c.applyTischStatusChange(ctx, id, true, "Tisch deleted", func(t *tisch.Tisch) { t.Delete() })
 }
 
-// applyTischStatusChange lädt den Tisch, wendet action an und persistiert das
-// Ergebnis. Ist guardSaldo gesetzt (Deaktivieren, Löschen), wird ein Tisch mit
-// offenem Saldo in der offenen Kassensitzung abgelehnt — das Backend erzwingt
-// den Schutz als Single Source of Truth, unabhängig davon, was das Frontend
-// anbietet. Führt action den Tisch in den Status 'deleted', werden zusätzlich
-// seine Favoriten-Markierungen entfernt.
+// applyTischStatusChange lehnt bei guardSaldo (Deaktivieren, Löschen) einen
+// Tisch mit offenem Saldo in der offenen Kassensitzung ab — das Backend erzwingt
+// den Schutz unabhängig davon, was das Frontend anbietet.
 func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo bool, successMsg string, action func(*tisch.Tisch)) error {
 	log := zerolog.Ctx(ctx)
 
@@ -141,13 +138,10 @@ func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo 
 
 	action(&t)
 
-	// Ein gelöschter Tisch erscheint nicht mehr in der Tischauswahl; eine
-	// zurückbleibende Markierung wäre für die betroffene Servicekraft weder
-	// sichtbar noch abwählbar und hinge dauerhaft in ihrer Tischübersicht.
-	// Statuswechsel und Cleanup laufen deshalb in einer Transaktion — ein
-	// halb ausgeführtes Löschen hinterlässt sonst genau diese unsichtbaren
-	// Markierungen. Ein deaktivierter Tisch bleibt bewusst markiert; er kommt
-	// wieder.
+	// Ein gelöschter Tisch verschwindet aus der Tischauswahl; eine zurückbleibende
+	// Markierung hinge unsichtbar und unabwählbar in der Tischübersicht der
+	// betroffenen Servicekraft. Statuswechsel und Cleanup laufen deshalb in einer
+	// Transaktion. Ein deaktivierter Tisch bleibt bewusst markiert; er kommt wieder.
 	persist := c.TischRepo.UpdateTisch
 	if t.Status == tisch.DeletedStatus {
 		persist = c.TischRepo.DeleteTischMitFavoriten

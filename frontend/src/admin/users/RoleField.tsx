@@ -18,8 +18,6 @@ import {
 
 import type { UserRole } from './User'
 
-// Rollen-Auswahl der Benutzer-Formulare. Liegt bei der Benutzerverwaltung, weil
-// nur sie die Rollen und ihre Beschreibungen kennt.
 export function RoleField<AllFormFields extends FieldValues>({
   form,
   withLabel,

@@ -28,11 +28,9 @@ type Command struct {
 	NewTSESetupClient   NewTSESetupClient
 }
 
-// ensureKeineAktiveKassensitzung lehnt eine TSE-Konfigurationsänderung ab,
-// solange eine Kassensitzung aktiv ist — offen oder wird_abgeschlossen
-// (gemeinsamer Guard aller drei Änderungspfade: Neuanlage, Übernahme,
-// Zugangsdaten-Wechsel). Der Barrierestatus zählt mit: Ein Abschluss, der noch
-// signiert, gehört zur alten TSS.
+// ensureKeineAktiveKassensitzung ist der gemeinsame Guard aller drei
+// Änderungspfade (Neuanlage, Übernahme, Zugangsdaten-Wechsel). Der Barrierestatus
+// zählt mit: Ein Abschluss, der noch signiert, gehört zur alten TSS.
 func (c Command) ensureKeineAktiveKassensitzung(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 

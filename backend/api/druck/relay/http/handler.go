@@ -8,22 +8,19 @@ import (
 	"github.com/nicograef/jotti/backend/api/helper"
 )
 
-// druckauftragRepo ist die Repository-Schnittstelle, die das Relay-API direkt
-// nutzt. Zwischen Handler und Repository liegt bewusst keine reine
-// Durchreich-Schicht; die Verdrahtung erfolgt im Composition Root (api/relay.go).
+// druckauftragRepo: zwischen Handler und Repository liegt bewusst keine reine
+// Durchreich-Schicht; verdrahtet wird im Composition Root (api/relay.go).
 type druckauftragRepo interface {
 	GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruckauftrag, error)
 	ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error
 }
 
-// OffenerDruckauftrag ist ein offener Druckauftrag, wie ihn das Relay pollt.
 type OffenerDruckauftrag struct {
 	ID      int
 	ZielIP  string
 	Payload string
 }
 
-// Fehlversuch meldet einen fehlgeschlagenen Zustellversuch eines Druckauftrags.
 type Fehlversuch struct {
 	ID     int
 	Fehler string
@@ -34,9 +31,6 @@ type Handler struct {
 	RelayToken string
 }
 
-// POST /relay/poll
-// Request:  {"token": "..."}
-// Response: {"auftraege": [...]}
 type pollRequest struct {
 	Token string `json:"token"`
 }
@@ -51,9 +45,6 @@ type druckAuftragDTO struct {
 	Payload string `json:"payload"` // Base64 ESC/POS
 }
 
-// POST /relay/ergebnis
-// Request:  {"token": "...", "gedruckteIds": [1,2,3], "fehlversuche": [{"id": 4, "fehler": "..."}]}
-// Response: {}
 type ergebnisRequest struct {
 	Token        string           `json:"token"`
 	GedruckteIDs []int            `json:"gedruckteIds"`

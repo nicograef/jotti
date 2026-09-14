@@ -20,10 +20,8 @@ export const KassensitzungEroeffnenSchema = z.object({
   betragCents: BetragCentsSchema,
 })
 
-// Die aktive Kassensitzung (offen oder wird_abgeschlossen) liefert zusätzlich den
-// Eröffnungszeitpunkt (eroeffnetAm, RFC-3339), den die abgeschlossenen Sitzungen
-// im Reporting nicht mitgeben — daher eine eigene Erweiterung der kanonischen
-// KassensitzungSchema.
+// Nur die aktive Sitzung liefert den Eröffnungszeitpunkt (RFC-3339); die
+// abgeschlossenen Sitzungen im Reporting geben ihn nicht mit.
 export const AktiveKassensitzungSchema = KassensitzungSchema.extend({
   eroeffnetAm: z.string(),
 })
@@ -43,9 +41,8 @@ export const KasseAbschliessenSchema = z.object({
   istBestandCents: BetragCentsSchema,
 })
 
-// KassenabschlussErgebnis weist die beim Abschluss verbliebenen Ausfall-Reste
-// aus: Vorgänge, die die TSE noch nachsigniert, und Vorgänge ohne Signatur
-// mangels TSE-Konfiguration.
+// ausfallResteAnzahl: Vorgänge, die die TSE noch nachsigniert.
+// ohneKonfigurationAnzahl: Vorgänge ohne Signatur mangels TSE-Konfiguration.
 export const KassenabschlussErgebnisSchema = z.object({
   ausfallResteAnzahl: z.number().int(),
   ohneKonfigurationAnzahl: z.number().int(),
@@ -54,8 +51,7 @@ export type KassenabschlussErgebnis = z.infer<
   typeof KassenabschlussErgebnisSchema
 >
 
-// SignaturenAusstehendDetails sind die 409-Details des Kassenabschluss-Gates:
-// wie viele Signaturen noch ausstehen.
+// 409-Details des Kassenabschluss-Gates: wie viele Signaturen noch ausstehen.
 export const SignaturenAusstehendDetailsSchema = z.object({
   anzahl: z.number().int(),
 })

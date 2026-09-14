@@ -182,8 +182,6 @@ func (q Query) CheckTSESetup(ctx context.Context, credentials tse.SetupCredentia
 	return befund, nil
 }
 
-// passenderClient liefert den Client einer TSS, dessen serial_number der
-// Kassen-Seriennummer entspricht — oder nil, wenn es keinen gibt.
 func passenderClient(clients []tse.ClientInfo, seriennummer string) *ClientBefund {
 	for _, c := range clients {
 		if c.SerialNumber == seriennummer {

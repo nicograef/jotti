@@ -12,21 +12,15 @@ import (
 )
 
 const (
-	// statusListenAddr ist die Adresse der Status-Seite im Container. Im Compose
-	// wird sie nur an 127.0.0.1 des Hosts gemappt — sichtbar nur am Kassenrechner,
-	// nicht aus dem WLAN.
+	// statusListenAddr: im Compose nur an 127.0.0.1 gemappt — sichtbar nur am
+	// Kassenrechner, nicht aus dem WLAN.
 	statusListenAddr = ":8484"
-	// caddyHTTPSAddr ist der lokale HTTPS-Endpunkt des eigenen Caddy, gegen den
-	// die Zertifikats-Probe ihren Handshake fährt.
-	caddyHTTPSAddr = "127.0.0.1:443"
-	// rebindGuideURL verweist auf die Router-Anleitung zum DNS-Rebind-Schutz in
-	// der Projekt-Doku.
-	rebindGuideURL = "https://jotti.rocks/docs/leitfaden/fehlersuche/"
+	caddyHTTPSAddr   = "127.0.0.1:443"
+	rebindGuideURL   = "https://jotti.rocks/docs/leitfaden/fehlersuche/"
 )
 
-// statusConfig bündelt die Startwerte, aus denen die Status-Seite ihre festen
-// Adressen ableitet (LAN-IP und Install-ID ändern sich über die Prozesslaufzeit
-// nicht).
+// statusConfig bündelt die Startwerte; LAN-IP und Install-ID ändern sich über die
+// Prozesslaufzeit nicht.
 type statusConfig struct {
 	zone      string
 	state     InstallState
@@ -37,11 +31,9 @@ type statusConfig struct {
 }
 
 // statusServer serviert die lokale Status-Seite. greenURL/fallbackURL stehen beim
-// Start fest; Zertifikat und Rebind werden bei jedem Seitenaufruf frisch geprüft,
-// damit die Seite ohne Neustart von „Fallback" auf „grün" wechselt. Fehlt der
-// grüne Name selbst (kein State, keine LAN-IP), hilft nur ein Neustart —
-// darauf verweist der Hinweistext. probeCert und checkRebind sind Felder, damit
-// Tests sie ohne echtes Netz ersetzen können.
+// Start fest; Zertifikat und Rebind werden pro Aufruf frisch geprüft, damit die
+// Seite ohne Neustart von „Fallback" auf „grün" wechselt. probeCert und checkRebind
+// sind Felder, damit Tests sie ohne echtes Netz ersetzen können.
 type statusServer struct {
 	greenURL    string
 	fallbackURL string
@@ -50,9 +42,8 @@ type statusServer struct {
 	checkRebind func() bool
 }
 
-// newStatusServer leitet die Adressen aus der Config ab und verdrahtet die echten
-// Proben gegen den eigenen Caddy bzw. den System-Resolver. Ohne LAN-IP gibt es
-// keine Adresse, ohne State keinen grünen Hostnamen.
+// newStatusServer leitet die Adressen aus der Config ab: ohne LAN-IP keine Adresse,
+// ohne State kein grüner Hostname.
 func newStatusServer(cfg statusConfig) *statusServer {
 	var greenURL, fallbackURL, hostname string
 	if cfg.lanOK {
@@ -71,8 +62,8 @@ func newStatusServer(cfg statusConfig) *statusServer {
 	}
 }
 
-// listenAndServe startet den HTTP-Server der Status-Seite. Blockiert bis zum
-// Fehler; der Aufrufer betreibt ihn neben Caddy in einer eigenen Goroutine.
+// listenAndServe blockiert bis zum Fehler; der Aufrufer betreibt ihn in einer
+// eigenen Goroutine.
 func (s *statusServer) listenAndServe() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handle)
@@ -84,8 +75,6 @@ func (s *statusServer) listenAndServe() error {
 	return srv.ListenAndServe()
 }
 
-// currentView prüft Zertifikat und Rebind (nur wenn überhaupt eine grüne Adresse
-// möglich ist) und entscheidet die Anzeige.
 func (s *statusServer) currentView() statusView {
 	in := statusInputs{greenURL: s.greenURL, fallbackURL: s.fallbackURL}
 	if s.greenURL != "" {
@@ -107,7 +96,6 @@ func (s *statusServer) handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// pageData ist das Template-Modell der Status-Seite.
 type pageData struct {
 	Headline    string
 	Body        string
@@ -142,8 +130,6 @@ func (s *statusServer) pageData(view statusView) pageData {
 	return d
 }
 
-// noticeText liefert Überschrift und Fließtext zum Hinweis (deutschsprachig wie
-// die übrige Vereins-Doku).
 func noticeText(n notice) (headline, body string) {
 	switch n {
 	case noticeGreen:
@@ -164,9 +150,8 @@ func noticeText(n notice) (headline, body string) {
 	}
 }
 
-// qrDataURI kodiert text als QR-Code-PNG und liefert eine data:-URI zum direkten
-// Einbetten in ein <img>-Tag. Ein Kodierfehler (zu langer Text) ⇒ leere URI; die
-// Seite zeigt dann eben keinen Code.
+// qrDataURI liefert eine data:-URI zum Einbetten in <img>; ein Kodierfehler ⇒ leere
+// URI, die Seite zeigt dann keinen Code.
 func qrDataURI(text string) template.URL {
 	code, err := qr.Encode(text, qr.M)
 	if err != nil {

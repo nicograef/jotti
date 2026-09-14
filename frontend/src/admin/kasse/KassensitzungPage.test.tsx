@@ -156,8 +156,6 @@ describe('KassensitzungPage', () => {
     expect(
       screen.getByText('Kassendaten konnten nicht geladen werden'),
     ).toBeInTheDocument()
-    // Der Stepper darf bei einem Fehler nicht erscheinen — die Kasse wirkt sonst
-    // fälschlich geschlossen.
     expect(screen.queryByText('2 · Laufender Betrieb')).not.toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Erneut versuchen' }),
@@ -168,12 +166,9 @@ describe('KassensitzungPage', () => {
     aktiveKassensitzungState.kassensitzung = null
     renderPage()
 
-    // Schritt 1 ist das Eröffnen-Formular.
     expect(
       screen.getByRole('button', { name: 'Kassensitzung eröffnen' }),
     ).toBeInTheDocument()
-    // Schritte 2 und 3 sind als ausgegraute Platzhalter da (kein Soll-Bestand,
-    // kein Abschluss-Button).
     expect(screen.getByText('2 · Laufender Betrieb')).toBeInTheDocument()
     expect(
       screen.getByText('3 · Am Ende des Tages: Kasse abschließen'),
@@ -209,21 +204,17 @@ describe('KassensitzungPage', () => {
     ]
     renderPage()
 
-    // Dynamischer Titel.
     expect(
       screen.getByText('Kassentag Nr. 12 — Sommerfest Tag 2'),
     ).toBeInTheDocument()
-    // Soll-Bestand groß und die vier Aufschlüsselungs-Kacheln. 340,00 € steht in
-    // Schritt 2 (Soll-Bestand groß) und in der Live-Rechnung von Schritt 3.
+    // 340,00 € steht in Schritt 2 und in der Live-Rechnung von Schritt 3.
     expect(screen.getAllByText('340,00 €').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Anfangsbestand')).toBeInTheDocument()
     expect(screen.getByText('+ Bareinnahmen')).toBeInTheDocument()
     expect(screen.getByText('+ Einlagen')).toBeInTheDocument()
     expect(screen.getByText('− Entnahmen')).toBeInTheDocument()
-    // Bewegungsliste mit beiden Buchungen.
     expect(screen.getByText(/Abschöpfung in den Tresor/)).toBeInTheDocument()
     expect(screen.getByText(/Wechselgeld Nachschub/)).toBeInTheDocument()
-    // Buttons zum Buchen mit vorbelegter Richtung.
     expect(
       screen.getByRole('button', { name: 'Geld einlegen' }),
     ).toBeInTheDocument()
@@ -245,15 +236,12 @@ describe('KassensitzungPage', () => {
     expect(
       screen.getByText('Abschluss unterbrochen — erneut abschließen'),
     ).toBeInTheDocument()
-    // Statt des Eröffnen-Formulars steht der Abschluss zur Wiederholung bereit.
     expect(
       screen.queryByRole('button', { name: 'Kassensitzung eröffnen' }),
     ).not.toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
     ).toBeInTheDocument()
-    // Buchen ist hinter der Barriere gesperrt (das Backend lehnt jede Buchung
-    // ab), Soll-Bestand und Bewegungsliste bleiben aber sichtbar.
     expect(
       screen.queryByRole('button', { name: 'Geld einlegen' }),
     ).not.toBeInTheDocument()
@@ -277,7 +265,6 @@ describe('KassensitzungPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Geld entnehmen' }))
 
-    // Der Dialog trägt die Entnahme-Richtung im Titel.
     expect(
       screen.getByRole('heading', { name: 'Geld entnehmen' }),
     ).toBeInTheDocument()
@@ -290,8 +277,6 @@ describe('KassensitzungPage', () => {
     await user.click(dialogButtons[dialogButtons.length - 1])
 
     expect(geldtransitBuchen).toHaveBeenCalledTimes(1)
-    // Argumente: (geldtransitId, richtung, betragCents, kommentar). Die Richtung
-    // ist durch den Button vorbelegt, der Betrag in Cent, der Kommentar wörtlich.
     const [geldtransitId, richtung, betragCents, kommentar] =
       geldtransitBuchen.mock.calls[0]
     expect(typeof geldtransitId).toBe('string')
@@ -361,20 +346,17 @@ describe('EroeffnenSection', () => {
   })
 
   it('akzeptiert Standardwert 0 € (leeres Betrag-Feld) ohne Validierungsfehler', async () => {
-    // 0 € Anfangsbestand ist gültig — leeres EuroInput-Feld ergibt den Standardwert 0.
-    // Negativwerte kann EuroInput strukturell nicht erzeugen; deren Schema-Absicherung
-    // wird direkt in KasseBackend.test.ts geprüft.
+    // Negativwerte kann EuroInput strukturell nicht erzeugen; deren
+    // Schema-Absicherung prüft KasseBackend.test.ts.
     tseState.istKonfiguriert = true
     const user = userEvent.setup()
     render(<EroeffnenSection onSuccess={vi.fn()} />)
 
     await user.type(screen.getByLabelText('Bezeichnung'), 'Sommerfest')
-    // Kein Betrag eingetragen — Formular-Standardwert ist 0, der jetzt gültig ist.
     await user.click(
       screen.getByRole('button', { name: 'Kassensitzung eröffnen' }),
     )
 
-    // Mit dem Standardwert 0 soll kein Validierungsfehler erscheinen.
     expect(
       screen.queryByText('Betrag muss mindestens 0 Cent sein.'),
     ).not.toBeInTheDocument()
@@ -387,14 +369,12 @@ describe('KasseAbschliessenSection', () => {
     const user = userEvent.setup()
     render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
 
-    // Soll ist 340,00 € (aus dem Kassenbestand-Mock). Ohne Eingabe: Gezählt
-    // 0,00 €, Differenz −340,00 € (Ist − Soll) als kompletter Fehlbetrag, rot.
+    // Soll ist 340,00 € aus dem Kassenbestand-Mock.
     expect(screen.getByText('340,00 €')).toBeInTheDocument()
     expect(screen.getByText('0,00 €')).toBeInTheDocument()
     const leerDifferenz = screen.getByText('-340,00 €')
     expect(leerDifferenz).toHaveClass('text-destructive')
 
-    // 337,50 € gezählt → Differenz −2,50 € (Fehlbetrag, fehlendes Geld), rot.
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '337,50')
     const fehlbetrag = screen.getByText('-2,50 €')
     expect(fehlbetrag).toBeInTheDocument()
@@ -405,10 +385,7 @@ describe('KasseAbschliessenSection', () => {
     const user = userEvent.setup()
     render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
 
-    // 342,50 € gezählt bei Soll 340,00 € → Differenz +2,50 € (Überschuss),
-    // nicht rot.
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
-    // Überschuss trägt das Plus-Vorzeichen (+2,50 €), bleibt aber ohne Rot.
     const ueberschuss = screen.getByText('+2,50 €')
     expect(ueberschuss).toBeInTheDocument()
     expect(ueberschuss).not.toHaveClass('text-destructive')
@@ -443,10 +420,8 @@ describe('KasseAbschliessenSection', () => {
     )
 
     expect(screen.getByText('Kasse abschließen?')).toBeInTheDocument()
-    // Ist-Bestand steht in der Live-Rechnung (Gezählt) und im Dialog (Ist-Bestand
-    // gezählt) — also mindestens zweimal.
+    // Der Ist-Bestand steht in der Live-Rechnung und im Dialog — zweimal.
     expect(screen.getAllByText('342,50 €').length).toBeGreaterThanOrEqual(2)
-    // Der Bestätigungs-Button trägt weiterhin „Kasse abschließen".
     expect(
       screen.getByRole('button', { name: 'Kasse abschließen' }),
     ).toBeInTheDocument()
@@ -518,7 +493,6 @@ describe('KasseAbschliessenSection', () => {
     expect(toast.warning).toHaveBeenCalledWith(
       expect.stringContaining('2 Vorgänge sind noch nicht signiert'),
     )
-    // Dialog bleibt offen: der Abschluss kann erneut angefordert werden.
     expect(screen.getByText('Kasse abschließen?')).toBeInTheDocument()
   })
 })
@@ -536,14 +510,13 @@ describe('GeldtransitDialog im Vorgangs-Register', () => {
     renderPage()
 
     await user.click(screen.getByRole('button', { name: 'Geld einlegen' }))
-    // Das frisch geöffnete, leere Formular ist noch kein offener Vorgang.
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
 
     await user.type(screen.getByLabelText('Kommentar'), 'Wechselgeld')
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
 
-    // Beim Schließen bleiben die Werte im Formular stehen, werden aber beim
-    // nächsten Öffnen verworfen — der Vorgang ist damit erledigt.
+    // Beim Schließen bleiben die Werte stehen, das nächste Öffnen verwirft sie
+    // — der Vorgang ist damit erledigt.
     await user.click(screen.getByRole('button', { name: 'Abbrechen' }))
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })

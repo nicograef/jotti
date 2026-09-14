@@ -14,23 +14,17 @@ import (
 type Role string
 
 const (
-	// AdminRole: can do everything.
-	AdminRole Role = "admin"
-	// ServiceleitungRole: same as service, but can also cancel orders.
+	AdminRole          Role = "admin"
 	ServiceleitungRole Role = "serviceleitung"
-	// ServiceRole: can only see active tables and products.
-	ServiceRole Role = "service"
+	ServiceRole        Role = "service"
 )
 
 type Status string
 
 const (
-	// ActiveStatus: user can authenticate and use the system.
-	ActiveStatus Status = "active"
-	// InactiveStatus: user is disabled and cannot authenticate.
+	ActiveStatus   Status = "active"
 	InactiveStatus Status = "inactive"
-	// DeletedStatus: user has been soft-deleted.
-	DeletedStatus Status = "deleted"
+	DeletedStatus  Status = "deleted"
 )
 
 type User struct {
@@ -41,16 +35,13 @@ type User struct {
 	Status              Status
 	PasswordHash        string
 	OnetimePasswordHash string
-	// OnetimePasswordAttempts zählt Fehlversuche gegen das aktuelle Einmalpasswort.
-	// Nach MaxOnetimePasswordAttempts Fehlversuchen wird es ungültig (Brute-Force-Schutz);
-	// der Admin muss ein neues erzeugen.
+	// OnetimePasswordAttempts: nach MaxOnetimePasswordAttempts Fehlversuchen wird das
+	// Einmalpasswort ungültig (Brute-Force-Schutz), der Admin muss ein neues erzeugen.
 	OnetimePasswordAttempts int
 	CreatedAt               time.Time
 	UpdatedAt               time.Time
 }
 
-// MaxOnetimePasswordAttempts ist die Zahl der Fehlversuche, nach der ein
-// Einmalpasswort ungültig wird.
 const MaxOnetimePasswordAttempts = 5
 
 // IDSchema bounds a user ID at both ends. The upper bound is the largest value
@@ -181,17 +172,15 @@ func (u *User) ResetPassword() (string, error) {
 	return onetimePassword, nil
 }
 
-// SetPassword setzt das Passwort gegen Vorlage des Einmalpassworts. Jeder
-// Fehlversuch erhöht den Zähler; nach MaxOnetimePasswordAttempts Fehlversuchen
-// wird das Einmalpasswort ungültig — der Aufrufer muss den geänderten Zähler
-// persistieren, damit die Sperre wirkt.
+// SetPassword setzt das Passwort gegen Vorlage des Einmalpassworts. Der Aufrufer
+// muss den geänderten Fehlversuchszähler persistieren, sonst wirkt die Sperre
+// nicht.
 func (u *User) SetPassword(onetimePassword, newPassword string) error {
 	if u.OnetimePasswordHash == "" {
 		return ErrNoPassword
 	}
 
-	// Das Einmalpasswort besteht aus reinen Ziffern; nur umgebende Leerzeichen
-	// werden getrimmt (keine Groß-/Kleinschreibungs-Toleranz nötig).
+	// Das Einmalpasswort ist rein numerisch; nur umgebende Leerzeichen werden getrimmt.
 	onetimePassword = strings.TrimSpace(onetimePassword)
 
 	if err := verifyPassword(u.OnetimePasswordHash, onetimePassword); err != nil {

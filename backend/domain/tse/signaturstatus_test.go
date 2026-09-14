@@ -9,8 +9,6 @@ import (
 
 var statusTestErstellt = time.Date(2026, 6, 10, 18, 0, 0, 0, time.UTC)
 
-// signaturNach liefert eine quittierte Signatur, deren TSE-logTime um delay
-// nach der Auftragserstellung liegt.
 func signaturNach(delay time.Duration) *Signatur {
 	return &Signatur{
 		TransaktionNummer: 41,
@@ -75,23 +73,16 @@ func TestDetermineSignaturstatus(t *testing.T) {
 			wantAusfallGrund: StatusTSENichtKonfiguriert,
 		},
 		{
-			// Fehlversuche unterhalb der Maximalzahl zählen nicht: Ein
-			// Gift-Auftrag ist bis zum endgültigen Fehlschlag ausstehend.
 			name:       "offen ohne Stoerung -> ausstehend (bloße Latenz ist kein Ausfall)",
 			auftrag:    SignaturauftragStand{Status: StatusOffen, ErstelltAm: statusTestErstellt},
 			wantStatus: SignaturstatusAusstehend,
 		},
 		{
-			// Geschlossene Zeiträume zählen nicht: Der Aufrufer reicht nur
-			// den aktiven Zeitraum herein; ohne aktiven bleibt es ausstehend.
 			name:       "offen nach geschlossener Stoerung -> ausstehend",
 			auftrag:    SignaturauftragStand{Status: StatusOffen, ErstelltAm: statusTestErstellt.Add(-10 * time.Minute)},
 			wantStatus: SignaturstatusAusstehend,
 		},
 		{
-			// Am Watchdog-Tick öffnet die Schwellen-Überschreitung den
-			// Rückstands-Zeitraum — dasselbe offene Event kippt von
-			// ausstehend in Ausfall.
 			name:             "offen bei aktivem Rueckstands-Zeitraum -> Ausfall mit Grund-Art",
 			auftrag:          SignaturauftragStand{Status: StatusOffen, ErstelltAm: statusTestErstellt},
 			aktiveStoerung:   aktiveRueckstandStoerung,

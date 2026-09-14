@@ -10,20 +10,10 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-// Interaktiver Feature-Explorer.
-// Sechs Bereichs-Tiles mit je eigenem Spektral-Akzent; ein Bereich ist aktiv und
-// füllt die sticky Detail-Karte. Umsetzung nach dem WAI-ARIA-Tabs-Pattern:
-// role=tablist/tab/tabpanel, roving tabindex, Pfeiltasten + Home/End, automatische
-// Aktivierung (Auswahl folgt dem Fokus). Statischer Sektionskopf (Eyebrow, H2,
-// Intro) liegt in Features.astro; nur das interaktive Raster ist eine Island.
+// Zahlung = Geldbörse, nie ein Kartenterminal: jotti kann keine Kartenzahlung.
 //
-// Icon-Bedeutungen bewusst gewählt: Bestellung = Beleg,
-// Zahlung = Geldbörse (NICHT Kartenterminal), Direktverkauf = Einkaufstasche,
-// Küche = Drucker, Kasse = Registrierkasse, Reporting = Balkendiagramm.
-//
-// Copy gegen docs/anforderungen.md geprüft: Im Reporting-Bereich entfällt die
-// „Abrechnung pro Tisch" (R-03 per ADR 02 ersatzlos entfernt) zugunsten von
-// „pro Servicekraft" (R-04); keine „In Entwicklung"-Markierungen.
+// Reporting-Copy nennt „pro Servicekraft" (R-04), nie eine Abrechnung pro Tisch
+// — siehe docs/decisions.md D02.
 
 interface Feature {
   Icon: LucideIcon
@@ -109,7 +99,7 @@ export default function FeatureExplorer() {
     tabRefs.current[next]?.focus()
   }
 
-  // Pfeiltasten (beide Achsen, da 2×3-Raster), Home/End; Auswahl folgt dem Fokus.
+  // Beide Achsen, da 2×3-Raster; Auswahl folgt dem Fokus.
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     switch (event.key) {
       case 'ArrowRight':

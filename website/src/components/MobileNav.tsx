@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Menu, X } from 'lucide-react'
 
-// Mobile Navigation als Burger-Menü unter 860px (Sichtbarkeit per CSS: der
-// Wrapper trägt `nav:hidden`, ist also nur unterhalb des Breakpoints da).
-// Interaktionsmuster: `aria-expanded`, Escape schließt und gibt den Fokus
-// zurück, Klick auf einen Link schließt.
+// Burger-Menü unter 860px (Breakpoint `nav`, siehe landing.css).
 
 interface NavLink {
   href: string

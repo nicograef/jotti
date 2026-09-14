@@ -1,21 +1,17 @@
 package escpos
 
-// Initialisierung
 const Init = "\x1B\x40"
 
-// Zeichentabelle (ESC t n)
-// SetCodepageWPC1252 wählt am MUNBYN ITPP047P die Codepage 6 (WPC1252 / Windows-1252,
-// "West Europe" mit Euro-Zeichen). Die MUNBYN-Nummerierung folgt NICHT dem Epson-Standard
-// (dort wäre WPC1252 = 16); die Liste steht auf der Selbsttest-Seite des Druckers.
-// WPC1252 deckt die deutschen Umlaute (ae/oe/ue/Ae/Oe/Ue/ss) und das Euro-Zeichen ab.
-// Wird von ESC @ (Init) zurückgesetzt und muss daher nach Init gesendet werden.
+// Zeichentabelle (ESC t n): Codepage 6 ist am MUNBYN ITPP047P WPC1252
+// (Windows-1252, deutsche Umlaute und Euro-Zeichen); die MUNBYN-Nummerierung
+// folgt NICHT Epson (dort wäre WPC1252 = 16), die Liste steht auf der
+// Selbsttest-Seite des Druckers. ESC @ (Init) setzt die Codepage zurück — daher
+// immer NACH Init senden.
 const SetCodepageWPC1252 = "\x1B\x74\x06" // ESC t 6
 
-// Ausrichtung
 const AlignLeft = "\x1B\x61\x00"
 const AlignCenter = "\x1B\x61\x01"
 
-// Schrift
 const BoldOn = "\x1B\x45\x01"
 const BoldOff = "\x1B\x45\x00"
 
@@ -34,6 +30,5 @@ const QRCodeModuleSizeCmdPrefix = "\x1D\x28\x6B\x03\x00\x31\x43"
 const QRCodeErrorCorrectionM = "\x1D\x28\x6B\x03\x00\x31\x45\x31"
 const QRCodePrint = "\x1D\x28\x6B\x03\x00\x31\x51\x30"
 
-// Hardware
 const CutPaper = "\x1D\x56\x42\x00" // Partial Cut (GS V B 0)
 const Beep = "\x1B\x42\x03\x02"     // 3 Piepser, Dauer 2 (ESC B n1 n2)

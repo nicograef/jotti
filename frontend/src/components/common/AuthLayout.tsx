@@ -1,14 +1,10 @@
 import type { ReactNode } from 'react'
 
-// Login-Glows: drei stark geblurte, dekorative Farbkreise
-// hinter der Karte. Rein dekorativ (aria-hidden, pointer-events-none) und im
-// Druck ausgeblendet. Das Clipping des Überhangs liegt in einer eigenen absolut
-// positionierten Ebene (inset-0 overflow-hidden -z-10), damit der äußere
-// Container normalen Überlauf behält und hohe Karten (Passwort setzen) auf
-// kurzen/Landscape-Viewports scrollbar bleiben. isolate hält die Glows über dem
-// Hintergrund und hinter der Karte. Die langsame Drift ist je Kreis in Dauer und
-// Delay versetzt (Inline-Override der animate-drift-Dauer), damit sich die Kreise
-// unabhängig bewegen — die zentrale Reduced-Motion-Regel stoppt sie.
+// Login-Glows: rein dekorativ (aria-hidden, pointer-events-none), im Druck
+// ausgeblendet. Das Clipping liegt in einer eigenen absolut positionierten Ebene
+// (inset-0 overflow-hidden -z-10), damit der äußere Container normalen Überlauf
+// behält und hohe Karten auf kurzen/Landscape-Viewports scrollbar bleiben.
+// `isolate` hält diese Ebene über dem Hintergrund und hinter der Karte.
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="relative isolate flex flex-col min-h-screen items-center justify-start pt-16 sm:justify-center sm:pt-4 p-4 bg-primary/5">

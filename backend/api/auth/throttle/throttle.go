@@ -1,9 +1,7 @@
-// Package throttle bietet eine In-Memory-Drosselung fehlgeschlagener Anmeldungen
-// pro Konto. Sie ist ein Soft-Throttle: kein dauerhaftes Sperren eines Kontos
-// (das wäre für nicht-technische Vereinshelfer im Event-Betrieb ein Footgun),
-// sondern ein automatisch ablaufender, exponentiell wachsender Cooldown. Kein
-// Schema, keine persistente Sicherheits-Statushaltung — gespiegelt am In-Memory-
-// Muster von middleware.RateLimitMiddleware.
+// Package throttle drosselt fehlgeschlagene Anmeldungen pro Konto im Speicher.
+// Soft-Throttle: kein dauerhaftes Sperren (für ehrenamtliche Helfer im
+// Event-Betrieb ein Footgun), sondern ein automatisch ablaufender, exponentiell
+// wachsender Cooldown.
 package throttle
 
 import (
@@ -12,28 +10,20 @@ import (
 )
 
 const (
-	// defaultThreshold: so viele aufeinanderfolgende Fehlversuche sind erlaubt,
-	// bevor der Cooldown greift.
 	defaultThreshold = 5
-	// defaultBase: Cooldown nach dem ersten Überschreiten der Schwelle. Danach
-	// verdoppelt sich der Cooldown je weiterem Fehlversuch (exponentieller Backoff).
-	defaultBase = 1 * time.Second
-	// defaultMax: Obergrenze für den Cooldown.
-	defaultMax = 15 * time.Minute
-	// defaultTTL: nach so langer Inaktivität wird ein Eintrag verworfen, damit die
-	// Map nicht unbegrenzt wächst und ein Konto irgendwann wieder frisch startet.
+	defaultBase      = 1 * time.Second
+	defaultMax       = 15 * time.Minute
+	// defaultTTL: Inaktivitätsfrist eines Eintrags — die Map darf nicht unbegrenzt wachsen.
 	defaultTTL = 1 * time.Hour
 )
 
-// entry hält den Drosselungszustand eines einzelnen Kontos.
 type entry struct {
 	failures      int
 	cooldownUntil time.Time
 	lastSeen      time.Time
 }
 
-// LoginThrottle drosselt Anmeldeversuche pro Benutzername. Alle Methoden sind
-// nebenläufig sicher (mutex-geschützt).
+// LoginThrottle ist nebenläufig sicher: alle Methoden sind mutex-geschützt.
 type LoginThrottle struct {
 	mu      sync.Mutex
 	entries map[string]*entry
@@ -45,16 +35,16 @@ type LoginThrottle struct {
 	ttl       time.Duration
 }
 
-// NewLoginThrottle erzeugt eine gebrauchsfertige Drosselung mit den Standardwerten
-// und startet die Aufräum-Goroutine, die verwaiste Einträge periodisch entfernt.
+// NewLoginThrottle startet zusätzlich die Aufräum-Goroutine, die für die
+// Prozesslebensdauer läuft.
 func NewLoginThrottle() *LoginThrottle {
 	t := newLoginThrottle(defaultThreshold, defaultBase, defaultMax, defaultTTL)
 	go t.cleanupLoop()
 	return t
 }
 
-// newLoginThrottle baut die Drosselung OHNE Aufräum-Goroutine — für Tests, die
-// die Uhr (now) kontrollieren, ohne mit der Goroutine um das now-Feld zu rennen.
+// newLoginThrottle lässt die Aufräum-Goroutine weg: Tests steuern now, ohne mit
+// ihr um das Feld zu rennen.
 func newLoginThrottle(threshold int, base, max, ttl time.Duration) *LoginThrottle {
 	return &LoginThrottle{
 		entries:   make(map[string]*entry),
@@ -66,9 +56,6 @@ func newLoginThrottle(threshold int, base, max, ttl time.Duration) *LoginThrottl
 	}
 }
 
-// Allow meldet, ob für username gerade ein Anmeldeversuch erlaubt ist. Ein Konto
-// ohne Eintrag ist immer erlaubt; ein verwaister Eintrag wird verworfen (frischer
-// Start). Während eines aktiven Cooldowns liefert Allow false.
 func (t *LoginThrottle) Allow(username string) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -88,8 +75,6 @@ func (t *LoginThrottle) Allow(username string) bool {
 	return !now.Before(e.cooldownUntil)
 }
 
-// RecordFailure verbucht einen Fehlversuch für username und setzt ab der Schwelle
-// einen exponentiell wachsenden Cooldown.
 func (t *LoginThrottle) RecordFailure(username string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -108,8 +93,6 @@ func (t *LoginThrottle) RecordFailure(username string) {
 	}
 }
 
-// Reset löscht den Drosselungszustand eines Kontos — aufzurufen nach einer
-// erfolgreichen Anmeldung.
 func (t *LoginThrottle) Reset(username string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -117,8 +100,6 @@ func (t *LoginThrottle) Reset(username string) {
 	delete(t.entries, username)
 }
 
-// backoff liefert den Cooldown für die gegebene Fehlversuchszahl: base verdoppelt
-// je Fehlversuch über der Schwelle, gedeckelt auf max.
 func (t *LoginThrottle) backoff(failures int) time.Duration {
 	shift := failures - t.threshold
 	if shift < 0 {
@@ -134,8 +115,6 @@ func (t *LoginThrottle) backoff(failures int) time.Duration {
 	return d
 }
 
-// cleanupLoop entfernt periodisch Einträge, die länger als ttl nicht gesehen
-// wurden. Läuft für die Lebensdauer der Anwendung (Singleton).
 func (t *LoginThrottle) cleanupLoop() {
 	for {
 		time.Sleep(t.ttl)

@@ -43,8 +43,7 @@ export const BestellungSchema = z.object({
   art: z.literal('bestellung'),
   id: z.uuid(),
   userId: z.number().int().min(1),
-  // Eingefrorener Name der bestellenden Servicekraft, beschriftet die Bestellung
-  // in der Storno-/Umbuch-Historie.
+  // Eingefrorener Name der bestellenden Servicekraft.
   userName: z.string().min(1),
   tischId: z.number().int().min(1),
   positionen: PositionSchema.array().min(1),

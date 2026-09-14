@@ -1,17 +1,9 @@
-// Pre-paint theme initialisation — shared by the landing (loaded from
-// Landing.astro) and the docs (loaded from the ThemeProvider override).
-//
-// Deliberately a real file in public/ referenced via a classic, synchronous
-// `<script is:inline src="/theme-init.js">` (no type=module/defer/async): the
-// production CSP (`script-src 'self'`) blocks inline scripts, and a module
-// script would run only after first paint and flash the wrong theme.
-//
-// Reads Starlight's own store (localStorage key `starlight-theme`, values
-// light/dark or empty/absent = follow system) and sets `data-theme` on <html>
-// before anything renders. Also defines `window.StarlightThemeProvider` so the
-// docs theme picker keeps working — same key, same semantics as Starlight's
-// default ThemeProvider (which we override for CSP), so the landing and the docs
-// switch stay in sync.
+// Pre-paint theme init, loaded from public/ via a classic synchronous
+// `<script is:inline src>` (no type=module/defer/async): the production CSP
+// (`script-src 'self'`) blocks inline scripts, and a module script would run
+// only after first paint and flash the wrong theme. Reads Starlight's own store
+// (localStorage `starlight-theme`: light/dark, empty = follow system) and
+// defines `window.StarlightThemeProvider`, which the docs theme picker expects.
 window.StarlightThemeProvider = (() => {
   const storedTheme =
     typeof localStorage !== 'undefined' &&

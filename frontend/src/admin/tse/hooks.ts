@@ -15,16 +15,13 @@ import {
 
 const tseBackend = new TSEBackend(BackendSingleton)
 
-// Query-Keys der TSE-Ansichten. Nach Speichern/Leeren/Einrichten werden
-// Konfiguration und Status über diese Keys invalidiert.
 export const TSE_KONFIGURATION_KEY = 'tse-konfiguration'
 export const TSE_STATUS_KEY = 'tse-status'
 export const TSE_SIGNATUR_QUEUE_KEY = 'tse-signatur-queue'
 export const TSE_STOERUNGEN_KEY = 'tse-stoerungen'
 
-// Ab rund einer Minute Signatur-Rückstand gilt der TSE-Signatur-Rückstand als
-// kritisch (deckt sich mit der Nachsigniert-Schwelle im Backend). Dashboard und
-// Sidebar teilen sich diese Schwelle.
+// Deckt sich mit der Nachsigniert-Schwelle im Backend; Dashboard und Sidebar
+// teilen diese Schwelle.
 export const RUECKSTAND_WARN_SEKUNDEN = 60
 
 export function useTSEKonfiguration() {
@@ -74,7 +71,6 @@ export function useTSEEinrichtung() {
     eingabe: TSEEinrichten,
   ): Promise<TSEEinrichtenErgebnis> => {
     const ergebnis = await tseBackend.richteTSEEin(eingabe)
-    // Die Konfiguration ist jetzt gespeichert — abhängige Ansichten neu laden.
     await queryClient.invalidateQueries({ queryKey: [TSE_KONFIGURATION_KEY] })
     await queryClient.invalidateQueries({ queryKey: [TSE_STATUS_KEY] })
     return ergebnis

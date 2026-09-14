@@ -1,13 +1,3 @@
-// UI-freies Logik-Modul des Anfrage-Formulars (/fuer-vereine).
-// Baut aus den Feldwerten die Annahme-E-Mail (Empfänger ist die
-// Betreiber-Adresse aus links.ts, Betreff und Body nach der TERMS.md-Vorlage)
-// und validiert die Pflichtfelder. Kein DOM, keine React-Abhängigkeit — die
-// AnfrageFormular-Island (src/components/AnfrageFormular.tsx) rendert die
-// Felder, ruft dieses Modul auf, öffnet die URL per JS-Navigation (kein
-// natives <form action="mailto:">, das die Produktiv-CSP form-action 'self'
-// blockt) und zeigt Empfänger, Betreff und Text nach dem Absenden zusätzlich
-// zum Kopieren an.
-
 import { betreiberEmail, githubUrl } from './links'
 
 export interface AnfrageFelder {
@@ -18,9 +8,7 @@ export interface AnfrageFelder {
   message: string
 }
 
-// Rechtsform-Auswahl mit den vollen Prototyp-Labels. Einzige Quelle für das
-// Select der Island und den Body der mailto-URL, damit beide nicht auseinander
-// laufen. Das erste Label ist der Vorgabewert des Selects.
+// Das erste Label ist der Vorgabewert des Selects (AnfrageFormular.tsx).
 export const artOptionen = [
   'Eingetragener Verein (e.V.)',
   'Gemeinnützige Stiftung',
@@ -28,13 +16,11 @@ export const artOptionen = [
   'Sonstige gemeinnützige Organisation',
 ] as const
 
-// Fehler je Pflichtfeld (verein, name, email); die Werte sind
-// benutzer-sichtbare deutsche Meldungen. art hat als Select immer einen Wert,
-// message ist optional — beide brauchen keine Validierung.
+// art hat als Select immer einen Wert, message ist optional — beide werden
+// nicht validiert.
 export type AnfrageFehler = Partial<Record<'verein' | 'name' | 'email', string>>
 
-// Einfacher Format-Check (etwas@etwas.tld); die eigentliche Zustellbarkeit
-// prüft erst das Mailprogramm.
+// Nur Format (etwas@etwas.tld) — Zustellbarkeit prüft erst das Mailprogramm.
 const emailMuster = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function validateAnfrage(felder: AnfrageFelder): AnfrageFehler {
@@ -62,20 +48,16 @@ export function hatFehler(fehler: AnfrageFehler): boolean {
   return Object.keys(fehler).length > 0
 }
 
-// Empfänger, Betreff und Text der Annahme-E-Mail, getrennt und unencodiert.
-// Einzige Quelle sowohl für die mailto-URL (buildMailtoUrl) als auch für die
-// Anzeige zum Kopieren im Erfolgs-State, damit beide nicht auseinanderlaufen.
+// Unencodiert: Quelle für buildMailtoUrl und für die Anzeige zum Kopieren.
 export interface AnfrageMail {
   empfaenger: string
   betreff: string
   text: string
 }
 
-// Baut Betreff und Text nach der E-Mail-Vorlage aus TERMS.md: Die
-// Nutzungsvereinbarung kommt durch diese eine Annahme-E-Mail zustande,
-// deshalb enthält der Text den wörtlichen Annahmesatz mit Fassungsbezug
-// (7. September 2026) und der TERMS-URL neben den Kontaktfeldern. Der
-// optionale Nachrichten-Block entfällt, wenn keine Nachricht eingegeben wurde.
+// Vorlage aus TERMS.md: Die Nutzungsvereinbarung kommt allein durch diese
+// Annahme-E-Mail zustande, deshalb der wörtliche Annahmesatz mit Fassungsbezug
+// (7. September 2026) und der TERMS-URL.
 export function buildAnfrageMail(felder: AnfrageFelder): AnfrageMail {
   const verein = felder.verein.trim()
   const betreff = `Nutzungsvereinbarung jotti — ${verein}`
@@ -101,9 +83,6 @@ export function buildAnfrageMail(felder: AnfrageFelder): AnfrageMail {
   return { empfaenger: betreiberEmail, betreff, text: zeilen.join('\n') }
 }
 
-// Baut aus buildAnfrageMail die mailto-URL: Empfänger als roher addr-spec im
-// Pfad, Betreff und Text per encodeURIComponent (encodiert Umlaute,
-// Zeilenumbrüche als %0A, Leerzeichen als %20 und Sonderzeichen wie & ? = +).
 export function buildMailtoUrl(felder: AnfrageFelder): string {
   const { empfaenger, betreff, text } = buildAnfrageMail(felder)
 

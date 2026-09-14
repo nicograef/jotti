@@ -15,7 +15,6 @@ func TestSelectLANIPPrefersPrivateOutbound(t *testing.T) {
 }
 
 func TestSelectLANIPIgnoresPublicOutboundAndPicksLAN(t *testing.T) {
-	// Oeffentliche Outbound-IP -> Fallback ueber die Interfaces.
 	ip, err := SelectLANIP("203.0.113.7", []NetInterface{
 		{Name: "vEthernet (WSL)", IPs: []string{"172.20.0.1"}},
 		{Name: "WLAN", IPs: []string{"192.168.178.42"}},
@@ -29,8 +28,7 @@ func TestSelectLANIPIgnoresPublicOutboundAndPicksLAN(t *testing.T) {
 }
 
 func TestSelectLANIP192BeatsDockerBridge(t *testing.T) {
-	// Kein/Loopback-Outbound -> Interface-Heuristik; der vEthernet-172.x-Adapter
-	// darf nie gegen ein echtes 192.168-WLAN gewinnen.
+	// Der vEthernet-172.x-Adapter darf nie gegen ein echtes 192.168-WLAN gewinnen.
 	ip, err := SelectLANIP("127.0.0.1", []NetInterface{
 		{Name: "vEthernet (Default Switch)", IPs: []string{"172.18.32.1"}},
 		{Name: "Ethernet", IPs: []string{"10.0.0.5"}},

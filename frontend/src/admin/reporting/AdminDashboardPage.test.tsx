@@ -119,16 +119,13 @@ describe('AdminDashboardPage Status-Zeile', () => {
     liveState.data = makeLiveData()
     render(<AdminDashboardPage />)
 
-    // Kasse: seit HH:MM plus Soll-Bestand (1234,50 €).
     expect(
       screen.getByText(/seit \d{2}:\d{2} · Soll-Bestand 1234,50 €/),
     ).toBeInTheDocument()
-    // TSE normal: Warteschlangen-Text.
     expect(
       screen.getByText('3 Vorgänge in Warteschlange (normal)'),
     ).toBeInTheDocument()
     expect(screen.getByText('Drucker bereit')).toBeInTheDocument()
-    // Keine Beheben-Buttons im Normalzustand.
     expect(
       screen.queryByRole('link', { name: 'Beheben' }),
     ).not.toBeInTheDocument()

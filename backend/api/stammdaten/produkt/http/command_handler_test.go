@@ -15,7 +15,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
-// decodeErrorCode liest den Client-Fehlercode aus der JSON-Antwort.
 func decodeErrorCode(t *testing.T, rec *httptest.ResponseRecorder) string {
 	t.Helper()
 	var body struct {

@@ -62,9 +62,7 @@ type Command struct {
 	DruckstationRepo    druckstationRepo
 }
 
-// getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung for a booking.
-// Returns ErrKasseNichtGeoeffnet (HTTP 409) when none is active and ErrKasseWirdAbgeschlossen while
-// the Kassensitzung is being closed (barrier active), rejecting the booking before any TSE roundtrip.
+// getOffeneKassensitzungOderFehler rejects the booking before any TSE roundtrip when no Kassensitzung is open or the barrier is active.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
@@ -79,13 +77,10 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
-// writeEventOCC writes the event with version expectedVersion+1, mapping a version
-// conflict (UNIQUE violation) to ErrConflict.
-//
-// expectedVersion muss die Version des Zustands sein, gegen den der Command validiert
-// hat (Projektion bzw. Replay) — nicht ein frisches GetMaxVersion zum Schreibzeitpunkt.
-// Nur so erkennt der UNIQUE(subject, version)-Constraint, dass sich der Stream seit dem
-// Lesen geändert hat, und verhindert Doppel-Writes auf Basis veralteter Validierung.
+// writeEventOCC schreibt mit Version expectedVersion+1 und bildet den UNIQUE-Verstoß auf ErrConflict ab.
+// expectedVersion muss die Version des Zustands sein, gegen den der Command validiert hat (Projektion
+// bzw. Replay) — nicht ein frisches GetMaxVersion zum Schreibzeitpunkt. Nur so erkennt
+// UNIQUE(subject, version) eine Stream-Änderung seit dem Lesen und verhindert Doppel-Writes.
 func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) error {
 	e.Version = expectedVersion + 1
 
@@ -111,34 +106,27 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 	return nil
 }
 
-// writeEvent writes an event with optimistic concurrency control against
-// expectedVersion. Returns ErrConflict on a version conflict.
 func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int) error {
 	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEvent(ctx, versioned, streamType, kassensitzungNr)
 	})
 }
 
-// writeEventWithDruckauftraege writes an event and the Druckaufträge derived from it
-// (built from the stored event including its generated ID) in a single transaction
-// (transactional outbox). Returns ErrConflict on a version conflict.
+// writeEventWithDruckauftraege writes the event and the Druckaufträge built from it in one
+// transaction (transactional outbox); buildAuftraege sees the stored event with its generated ID.
 func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
 	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return repo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
 	})
 }
 
-// persistTischEvent writes a tisch-session event with OCC against expectedVersion
-// (die Version des gelesenen Zustands, gegen den validiert wurde). ErrConflict (OCC)
-// and ErrKasseNichtGeoeffnet pass through, any other write error becomes ErrDatabase.
-// aktion is the success log message.
+// persistTischEvent writes the tisch-session event with OCC; aktion is the success log message.
 func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
 	log := zerolog.Ctx(ctx)
 
 	if err := writeEvent(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
-		// Beides sind fachliche Antworten, die der Handler auf 409 abbildet: der
-		// OCC-Konflikt und die Kassensitzung, die zwischen Lesen und Schreiben
-		// geschlossen wurde. Im ErrDatabase-Fallback würden sie zu 500.
+		// Beides sind fachliche 409-Antworten (OCC-Konflikt; Kassensitzung zwischen Lesen und
+		// Schreiben geschlossen) — im ErrDatabase-Fallback würden sie zu 500.
 		if errors.Is(err, ErrConflict) || errors.Is(err, ErrKasseNichtGeoeffnet) {
 			return err
 		}
@@ -149,10 +137,7 @@ func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject
 	return nil
 }
 
-// loadTischState loads and validates the Tisch, then reads its projected TischSession.
-// Returns the subject, kassensitzungNr, tisch name, and TischSession state. Returns
-// ErrKasseNichtGeoeffnet if no open Kassensitzung exists, ErrTischNotFound if the
-// Tisch doesn't exist and ErrTischNotActive if it is not active.
+// loadTischState returns subject, kassensitzungNr, tisch name and the projected TischSession.
 func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, string, kasse.TischSession, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -182,15 +167,13 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 	return subject, ks.ZNr, t.Name, state, nil
 }
 
-// BestellungAufnehmen nimmt eine Bestellung für einen Tisch auf.
-// bestellungID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel). Bei
-// UniqueViolation (Duplikat-Einreichung) wird per bestellungId nachgeschlagen:
-// Treffer = idempotente Erfolgsantwort; kein Treffer = echter OCC-Konflikt (409).
-// Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht verglichen.
+// BestellungAufnehmen ist über bestellungID idempotent (client-seitig erzeugte UUID): Bei
+// OCC-Konflikt entscheidet die Suche nach der bestellungId — Treffer = idempotente Erfolgsantwort,
+// kein Treffer = echter Konflikt (409). Gleiche ID bedeutet denselben Vorgang, der Payload wird
+// nicht verglichen.
 func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, inputs []enrichment.PositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	// Tisch-Existenz, Status prüfen und KS + Subject bestimmen
 	subject, kassensitzungNr, tischName, _, err := c.loadTischState(ctx, tischID)
 	if err != nil {
 		return err
@@ -213,16 +196,13 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return ErrDatabase
 	}
 
-	// Build the Druckaufträge from the stored event (with its generated ID) so the
-	// event and its print jobs are written in one transaction (transactional outbox).
 	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
 		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, tischName)
 	}
 
-	// Bestellungen validieren keinen Stream-Zustand (reines Anhängen); die Version wird
-	// deshalb erst unmittelbar vor dem Schreiben bestimmt. Bumpt eine Bestellung die
-	// Version zwischen Lesen und Schreiben eines validierenden Commands (Zahlung,
-	// Storno, …), läuft dieser korrekt in den OCC-Konflikt.
+	// Bestellungen validieren keinen Stream-Zustand (reines Anhängen); die Version wird deshalb erst
+	// unmittelbar vor dem Schreiben bestimmt. Bumpt sie dabei die Version eines parallel
+	// validierenden Commands (Zahlung, Storno), läuft dieser korrekt in den OCC-Konflikt.
 	expectedVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to load max version for bestellung")
@@ -232,8 +212,6 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
 	if err != nil {
 		if errors.Is(err, ErrConflict) {
-			// Idempotenz-Check: Ist der Konflikt eine Duplikat-Einreichung (gleiche bestellungId)
-			// oder ein echter OCC-Konflikt?
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeBestellungAufgenommenV1), bestellungID, "bestellungId")
 			if lookupErr != nil {
 				log.Error().Err(lookupErr).Str("bestellung_id", bestellungID).Msg("Failed to lookup bestellung idempotency")
@@ -245,8 +223,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 			}
 			return ErrConflict
 		}
-		// Die Kassensitzung wurde zwischen Lesen und Schreiben geschlossen — 409,
-		// kein Datenbankfehler.
+		// Kassensitzung zwischen Lesen und Schreiben geschlossen — 409, kein Datenbankfehler.
 		if errors.Is(err, ErrKasseNichtGeoeffnet) {
 			return err
 		}
@@ -262,8 +239,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 // Event-Schema (bestellungUmgebuchtV1DataSchema); zogs Max zählt Bytes.
 const maxUmbuchungKommentarBytes = 100
 
-// truncateBytes schneidet s auf höchstens max Bytes. Der Schnitt wandert bis zum
-// Anfang der angeschnittenen UTF-8-Folge zurück, damit kein Umlaut zerfällt.
+// truncateBytes kürzt auf höchstens maxBytes und rückt bis zum Anfang der angeschnittenen UTF-8-Folge zurück, damit kein Umlaut zerfällt.
 func truncateBytes(s string, maxBytes int) string {
 	if len(s) <= maxBytes {
 		return s
@@ -277,9 +253,8 @@ func truncateBytes(s string, maxBytes int) string {
 	return s[:cut]
 }
 
-// buildUmbuchungKommentar setzt den Richtungs-Autotext aus Präfix und Tischname
-// zusammen. Der Tischname darf 100 Bytes lang sein, mit dem Präfix reißt das
-// Paar die Schemagrenze — der Name wird gekürzt, das Präfix bleibt ganz.
+// buildUmbuchungKommentar: Tischname (bis 100 Bytes) plus Präfix reißt die Schemagrenze — gekürzt
+// wird der Name, das Präfix bleibt ganz.
 func buildUmbuchungKommentar(prefix string, tischName string) string {
 	return prefix + truncateBytes(tischName, maxUmbuchungKommentarBytes-len(prefix))
 }
@@ -340,10 +315,9 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return err
 	}
 
-	// Quelle: OCC gegen den validierten Zustand (die Umbuchbarkeit wurde gegen die
-	// Quell-Projektion geprüft). Ziel: dort wird kein Zustand validiert (reines
-	// Anhängen), die Version kommt erst unmittelbar vor dem Schreiben. Beide Seiten
-	// erhalten ihren Signaturauftrag im selben Commit (fiskalische Projektion).
+	// Quelle: OCC gegen den validierten Zustand. Ziel: kein Zustand validiert (reines Anhängen), die
+	// Version kommt erst unmittelbar vor dem Schreiben. Beide Seiten erhalten ihren Signaturauftrag
+	// im selben Commit (fiskalische Projektion).
 	zielMaxVersion, err := c.EventRepo.GetMaxVersion(ctx, zielSubject)
 	if err != nil {
 		log.Error().Err(err).Int("ziel_tisch_id", zielTischID).Msg("Failed to load max version for target subject")
@@ -380,13 +354,11 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	// Tisch-Existenz, Status und State laden
 	subject, kassensitzungNr, _, state, err := c.loadTischState(ctx, tischID)
 	if err != nil {
 		return err
 	}
 
-	// Bezahl-Invariante: nur unbezahlte Positionen können bezahlt werden
 	if !kasse.ValidatePositionRefs(state.UnbezahltePositionen, positionen) {
 		log.Warn().Int("tisch_id", tischID).Msg("Bezahl-Invariante verletzt: angeforderte Positionen nicht verfügbar")
 		return ErrPositionNichtBezahlbar
@@ -400,21 +372,17 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		return err
 	}
 
-	// OCC gegen den validierten Zustand: Hat sich der Stream seit dem Lesen geändert
-	// (z. B. eine parallele Zahlung), schlägt der Write mit 409 fehl.
 	return c.persistTischEvent(ctx, evt, subject, state.LastEventVersion, kassensitzungNr, tischID, "Zahlung kassiert")
 }
 
-// StornierungErteilen führt eine „Stornieren"-Aktion aus und teilt sie serverseitig
-// nach Bezahlstatus auf: unbezahlte Mengen werden geldneutral korrigiert
-// (ein bestellung-korrigiert), bezahlte Mengen werden ihren begleichenden Zahlungen
-// FIFO zugeordnet und je Zahlung als kassenwirksame Warenrücknahme zurückgenommen
-// (ein stornierung-erteilt mit genau einer ZahlungID). Jedes entstehende Event trägt
-// eine eigene TSE-Transaktion; alle werden atomar geschrieben (alles-oder-nichts).
+// StornierungErteilen teilt die Stornierung nach Bezahlstatus auf: unbezahlte Mengen werden
+// geldneutral korrigiert (ein bestellung-korrigiert), bezahlte Mengen FIFO ihren Zahlungen
+// zugeordnet und je Zahlung als kassenwirksame Warenrücknahme zurückgenommen (ein
+// stornierung-erteilt mit genau einer ZahlungID). Jedes Event trägt eine eigene TSE-Transaktion,
+// alle werden atomar geschrieben.
 func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
-	// Tisch-Existenz und Status prüfen, Subject und KS-Nr bestimmen
 	subject, kassensitzungNr, _, _, err := c.loadTischState(ctx, tischID)
 	if err != nil {
 		return err
@@ -426,8 +394,7 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		return ErrDatabase
 	}
 
-	// Routing nach Bezahlstatus (FIFO je Zahlung). false = angeforderte Menge übersteigt
-	// die noch stornierbare Menge.
+	// false = angeforderte Menge übersteigt die noch stornierbare Menge.
 	aufteilung, ok := kasse.ComputeStornoAufteilung(events, positionen)
 	if !ok {
 		log.Warn().Int("tisch_id", tischID).Msg("Stornierungsinvariante verletzt: angeforderte Positionen nicht stornierbar")
@@ -439,8 +406,6 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		return err
 	}
 
-	// OCC gegen den validierten Zustand: Basis ist die höchste Version des Replays,
-	// gegen den die Storno-Aufteilung berechnet wurde.
 	expectedVersion := 0
 	if len(events) > 0 {
 		expectedVersion = events[len(events)-1].Version
@@ -449,10 +414,6 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 	return c.persistStornoEvents(ctx, stornoEvents, subject, expectedVersion, kassensitzungNr, tischID)
 }
 
-// buildStornoEvents erzeugt die Events einer aufgeteilten Storno-Aktion in
-// Schreibreihenfolge: zuerst die geldneutrale Korrektur (falls unbezahlte Mengen
-// vorliegen), dann je betroffener Zahlung eine kassenwirksame Warenrücknahme.
-// Jedes Event erhält beim Schreiben seinen eigenen Signaturauftrag.
 func buildStornoEvents(ctx context.Context, subject string, userID int, userName string, aufteilung kasse.StornoAufteilung, kommentar string) ([]event.Event, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -479,9 +440,6 @@ func buildStornoEvents(ctx context.Context, subject string, userID int, userName
 	return events, nil
 }
 
-// persistStornoEvents weist den Storno-Events fortlaufende Versionen ab der
-// erwarteten Version (Stand des validierten Replays) zu und schreibt sie atomar
-// (je Event mit seinem Signaturauftrag). Ein OCC-Konflikt wird zu ErrConflict.
 func (c Command) persistStornoEvents(ctx context.Context, stornoEvents []event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int) error {
 	log := zerolog.Ctx(ctx)
 

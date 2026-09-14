@@ -14,87 +14,62 @@ import (
 
 // tseSetupWriteTimeout ersetzt für die beiden schreibenden TSE-Endpunkte die
 // globale 10-Sekunden-Schreibfrist des Servers (backend/app/app.go). Beide
-// sprechen synchron mit fiskaly: Die Neuanlage setzt im schlimmsten Fall zehn
-// HTTP-Sequenzen nacheinander ab (Auth, ListTSS, CreateTSS, personalisieren,
-// PIN setzen, zweimal Admin-Auth, initialisieren, Client registrieren,
-// Stammdaten), jede mit 10 s Zeitlimit und bis zu vier Versuchen
+// sprechen synchron mit fiskaly: Die Neuanlage setzt bis zu zehn HTTP-Sequenzen
+// nacheinander ab, jede mit 10 s Zeitlimit und bis zu vier Versuchen
 // (defaultHTTPTimeout, defaultRetryAttempts = 3 in
-// backend/repository/tse_repo/fiskaly_client.go) mit Backoff. Zwei Minuten
+// backend/repository/tse_repo/fiskaly_client.go) samt Backoff. Zwei Minuten
 // decken den realistischen Verlauf ab; der Wert ist aus den Timeout- und
 // Retry-Budgets abgeleitet, nicht gemessen.
 //
-// Die Frist begrenzt allein den Schreibvorgang der Antwort. Sie bricht keinen
-// Handler ab: Läuft sie ab, scheitert nur ein gerade laufender Schreibvorgang,
-// die Arbeit im Handler läuft davon unberührt weiter. Der einzige
-// serverseitige Aufgabepunkt der beiden schreibenden Endpunkte ist der
-// Leck-Wächter unten.
-//
-// Ein Zeitlimit des Clients gibt es nicht, gegen das hier zu rechnen wäre —
-// frontend/src/lib/Backend.ts setzt keines, der Browser wartet auf die Antwort.
-// Die Frist muss allein gross genug sein, damit eine fertig erarbeitete Antwort
-// noch geschrieben werden kann: Bei der Einrichtung trägt sie PUK und
-// Admin-PIN, die genau einmal ausgeliefert und nirgends persistiert werden.
+// Die Frist begrenzt allein den Schreibvorgang der Antwort und bricht keinen
+// Handler ab. Ein Client-Zeitlimit gibt es nicht, gegen das zu rechnen wäre
+// (frontend/src/lib/Backend.ts setzt keines). Sie muss nur groß genug sein, damit
+// die fertige Antwort noch geschrieben wird: Bei der Einrichtung trägt sie PUK
+// und Admin-PIN, die genau einmal ausgeliefert und nirgends persistiert werden.
 const tseSetupWriteTimeout = 2 * time.Minute
 
 // tseSetupLebenszyklusTimeout ist der Leck-Wächter um den fiskaly-Lebenszyklus
-// der beiden schreibenden Endpunkte — KEIN Reaktionszeit-Budget. Er begrenzt
-// nicht, wie lange der Admin auf eine Antwort wartet, sondern verhindert
+// der beiden schreibenden Endpunkte — KEIN Reaktionszeit-Budget. Er verhindert
 // ausschließlich, dass eine hängende fiskaly-Verbindung den vom Request
 // abgekoppelten Lebenszyklus dauerhaft offenhält.
 //
-// Der Wert liegt deshalb weit über dem Worst Case: Die Übernahme setzt bis zu
-// elf HTTP-Sequenzen nacheinander ab (Auth, ListTSS, ListClients, PUK beziehen
-// bzw. PIN setzen, personalisieren, PIN setzen, zweimal Admin-Auth,
-// initialisieren, Client registrieren, Stammdaten). Jede davon hat 10 s
-// HTTP-Zeitlimit und bis zu vier Versuche (defaultRetryAttempts = 3) mit
-// Backoff von 0,2 + 0,4 + 0,8 s — also rund 41 s, in Summe rund 7,5 Minuten.
-// Zehn Minuten liegen darüber. Zu knapp gewählt wäre dieser Wächter der
-// Blocker in neuer Form: Er schnitte einen laufenden Lebenszyklus mittendrin
-// ab.
+// Der Wert liegt weit über dem Worst Case: Die Übernahme setzt bis zu elf
+// HTTP-Sequenzen ab, jede mit 10 s Zeitlimit und bis zu vier Versuchen
+// (defaultRetryAttempts = 3) mit Backoff von 0,2 + 0,4 + 0,8 s — rund 41 s, in
+// Summe rund 7,5 Minuten. Zu knapp gewählt schnitte dieser Wächter einen
+// laufenden Lebenszyklus mittendrin ab.
 //
 // Bekannte Lücke: Ein von fiskaly geliefertes Retry-After übernimmt
 // parseRetryAfter ungedeckelt (retryDelay in
-// backend/repository/tse_repo/fiskaly_client.go). Ein unbeschränkter Wert
-// lässt sich durch keinen festen Abstand decken — er sprengt die Rechnung
-// oben. Was ihn begrenzt, ist dieser Wächter selbst: Das Warten hängt am
-// Kontext (sleepWithContext) und endet mit ihm, dann allerdings mitten im
-// Lebenszyklus.
+// backend/repository/tse_repo/fiskaly_client.go) und sprengt die Rechnung oben.
+// Begrenzt wird es nur durch diesen Wächter selbst: Das Warten hängt am Kontext
+// (sleepWithContext) und endet mit ihm — dann mitten im Lebenszyklus.
 const tseSetupLebenszyklusTimeout = 10 * time.Minute
 
 // lebenszyklusKontext liefert den Kontext, unter dem die beiden schreibenden
 // TSE-Endpunkte ihren fiskaly-Lebenszyklus fahren. Er ist bewusst vom
-// Request-Kontext abgekoppelt: Schließt der Client die Verbindung — Tab zu,
-// Seite neu geladen, WLAN weg —, storniert net/http r.Context(), und der
-// Lebenszyklus bräche mitten in der fiskaly-Sequenz ab. Zurück bliebe eine
-// bezahlte, halbfertige TSS: hatAktiveTSS blockiert den zweiten
-// Einrichtungsversuch mit tse_bereits_eingerichtet, und die Übernahme
-// scheitert an der Admin-PIN, die es nur in der verlorenen Antwort gab (PUK und
-// Admin-PIN werden nirgends persistiert, siehe
-// backend/api/fiskal/setup/application/setup.go). Der Lebenszyklus muss also
-// auch ohne Zuhörer zu Ende laufen und speichern — erst saveEinrichtung
-// schreibt tssId, clientId und Zugangsdaten und macht die Instanz
-// betriebsfähig.
+// Request-Kontext abgekoppelt: Schließt der Client die Verbindung, storniert
+// net/http r.Context(), und der Lebenszyklus bräche mitten in der
+// fiskaly-Sequenz ab. Zurück bliebe eine bezahlte, halbfertige TSS —
+// hatAktiveTSS blockiert den zweiten Versuch mit tse_bereits_eingerichtet, und
+// die Übernahme scheitert an der Admin-PIN, die es nur in der verlorenen Antwort
+// gab (PUK und Admin-PIN werden nirgends persistiert). Erst saveEinrichtung macht
+// die Instanz betriebsfähig, der Lebenszyklus muss also auch ohne Zuhörer zu Ende
+// laufen.
 //
-// context.WithoutCancel erhält die Kontext-Werte (Korrelations-ID aus
-// CorrelationIDMiddleware, zerolog-Logger aus LoggingMiddleware) und nimmt nur
-// die Stornierung weg; darüber liegt tseSetupLebenszyklusTimeout als
-// Leck-Wächter.
+// context.WithoutCancel erhält die Kontext-Werte (Korrelations-ID, zerolog-Logger)
+// und nimmt nur die Stornierung weg; darüber liegt tseSetupLebenszyklusTimeout.
+// Abgekoppelt ist der Kontext, nicht der Ablauf: Der Handler fährt den
+// Lebenszyklus synchron und kehrt erst mit ihm zurück.
 //
-// Abgekoppelt ist der Kontext, nicht der Ablauf: Der Handler startet keine
-// Goroutine, sondern fährt den Lebenszyklus synchron und kehrt erst mit ihm
-// zurück.
+// Die Zusage gilt dem Client-Abbruch, nicht einem Prozessende: Ein Neustart
+// wartet über http.Server.Shutdown bis zu 30 s (backend/app/app.go), danach wird
+// ein laufender Lebenszyklus mitgerissen und der Endzustand ist wieder die
+// bezahlte, blockierende TSS. Während einer laufenden TSE-Einrichtung darf
+// deshalb kein Deploy und kein Neustart erfolgen.
 //
-// Die Zusage gilt deshalb genau für den Client-Abbruch, nicht für ein
-// Prozessende: Ein Deploy oder Neustart wartet über http.Server.Shutdown bis zu
-// 30 s auf den noch laufenden Handler (backend/app/app.go); erst ein danach
-// immer noch laufender Lebenszyklus wird mit dem Prozess mitgerissen, und der
-// Endzustand ist wieder der Blocker — bezahlte TSS, hatAktiveTSS sperrt, die
-// Übernahme scheitert an der fehlenden PIN. Während einer laufenden
-// TSE-Einrichtung darf deshalb kein Deploy und kein Neustart erfolgen.
-//
-// Die beiden lesenden Endpunkte (TestTSEVerbindung, CheckTSESetup in
-// query_handler.go) behalten r.Context(): Sie sind idempotent und jederzeit
-// wiederholbar, ein Abbruch hinterlässt dort nichts.
+// Die beiden lesenden Endpunkte (query_handler.go) behalten r.Context(): Sie sind
+// idempotent, ein Abbruch hinterlässt dort nichts.
 func lebenszyklusKontext(r *http.Request) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.WithoutCancel(r.Context()), tseSetupLebenszyklusTimeout)
 }
@@ -130,9 +105,9 @@ type tseEinrichtenRequest struct {
 	NeuAnlegenTrotzVorhandener bool   `json:"neuAnlegenTrotzVorhandener"`
 }
 
-// NeuAnlegenTrotzVorhandener ist optional (Default false). Nur in TEST und nur
-// als bewusste Sekundäraktion übergeht das Backend damit die Sperre gegen eine
-// zweite TSS (F2); LIVE bleibt hart gesperrt.
+// NeuAnlegenTrotzVorhandener ist optional (Default false). Nur in TEST und nur als
+// bewusste Sekundäraktion übergeht das Backend damit die Sperre gegen eine zweite
+// TSS; LIVE bleibt hart gesperrt.
 var tseEinrichtenSchema = z.Struct(z.Shape{
 	"ApiKey":                     z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
 	"ApiSecret":                  z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
@@ -203,11 +178,9 @@ func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
 	}
 }
 
-// RichteTSEEinHandler legt eine neue TSS an und führt sie bis zum
-// registrierten Client. Der Lebenszyklus läuft unter lebenszyklusKontext und
-// damit unabhängig davon, ob der Client noch zuhört: Ein Abbruch mittendrin
-// hinterliesse eine bezahlte, halbfertige TSS, deren PUK und Admin-PIN es nur
-// in dieser einen Antwort gibt.
+// RichteTSEEinHandler legt eine neue TSS an und führt sie bis zum registrierten
+// Client. Der Lebenszyklus läuft unter lebenszyklusKontext, also unabhängig davon,
+// ob der Client noch zuhört.
 func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)

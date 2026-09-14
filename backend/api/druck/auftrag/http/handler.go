@@ -11,8 +11,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
-// --- Query Handler ---
-
 type druckauftragQuery interface {
 	GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]druckstation.FehlgeschlagenerDruckauftrag, error)
 }
@@ -35,7 +33,6 @@ type getFehlgeschlageneResponse struct {
 	Druckauftraege []fehlgeschlagenerDruckauftragDTO `json:"druckauftraege"`
 }
 
-// POST /admin/get-fehlgeschlagene-druckauftraege
 func (h *QueryHandler) GetFehlgeschlageneDruckauftraegeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		auftraege, err := h.Query.GetFehlgeschlageneDruckauftraege(r.Context())
@@ -61,8 +58,6 @@ func (h *QueryHandler) GetFehlgeschlageneDruckauftraegeHandler() http.HandlerFun
 	}
 }
 
-// --- Command Handler ---
-
 type druckauftragCommand interface {
 	RetryDruckauftrag(ctx context.Context, id int) error
 	DiscardDruckauftrag(ctx context.Context, id int) error
@@ -81,7 +76,6 @@ var druckauftragSchema = z.Struct(z.Shape{
 	"ID": z.Int().GTE(1, z.Message("Ungültige Druckauftrag-ID")).Required(),
 })
 
-// POST /admin/druckauftrag-erneut-versuchen
 func (h *CommandHandler) RetryDruckauftragHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body druckauftragRequest
@@ -98,7 +92,6 @@ func (h *CommandHandler) RetryDruckauftragHandler() http.HandlerFunc {
 	}
 }
 
-// POST /admin/druckauftrag-verwerfen
 func (h *CommandHandler) DiscardDruckauftragHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body druckauftragRequest
@@ -119,7 +112,6 @@ type discardAlleResponse struct {
 	Verworfen int64 `json:"verworfen"`
 }
 
-// POST /admin/druckauftraege-verwerfen — verwirft alle fehlgeschlagenen Aufträge.
 func (h *CommandHandler) DiscardAlleFehlgeschlagenenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		n, err := h.Command.DiscardAlleFehlgeschlagenen(r.Context())

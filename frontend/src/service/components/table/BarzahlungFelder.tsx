@@ -12,15 +12,13 @@ interface BarzahlungFelderProps {
   onZielbetragEuroChange: (wert: string) => void
   andererAktiv: boolean
   onAndererAktivChange: (aktiv: boolean) => void
-  // Aus Erhalten und Zielbetrag berechnet (calculateZahlungsbetraege); `null`
-  // heißt: noch nichts anzuzeigen.
+  // Aus Erhalten und Zielbetrag berechnet; `null` heißt: noch nichts anzuzeigen.
   rueckgeldCents: number | null
   trinkgeldCents: number | null
 }
 
-// Bargeld-Eingaben eines Abschlusses: Erhalten, Aufrunden-Chips, Rückgeld und
-// der Trinkgeld-Hinweis. Geteilt von Tisch-Kassieren und Direktverkauf, die
-// beide bar kassieren; der Zustand liegt beim jeweiligen Abschluss.
+// Geteilt von Tisch-Kassieren und Direktverkauf; der Zustand liegt beim
+// jeweiligen Abschluss.
 export function BarzahlungFelder({
   gesamtCents,
   erhaltenEuro,

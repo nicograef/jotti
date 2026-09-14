@@ -10,39 +10,30 @@ import (
 	"github.com/nicograef/jotti/backend/config"
 )
 
-// Area beschreibt einen zusammenhängenden Routen-Bereich als einzige Quelle
-// seiner Zugriffsregeln. Aus dieser Tabelle registriert SetupRoutes alle Routen;
-// die Berechtigungs-Matrix (matrix_integration_test.go) liest dieselbe Tabelle.
-// Weil jeder Bereich seine erlaubten Rollen (oder bewusst kein JWT) deklarieren
-// MUSS, kann keine Route ohne Rollenentscheidung existieren.
+// Area deklariert die Zugriffsregeln eines Routen-Bereichs. SetupRoutes
+// registriert daraus alle Routen; die Berechtigungs-Matrix
+// (matrix_integration_test.go) liest dieselbe Tabelle. Jeder Bereich muss Rollen
+// oder bewusst kein JWT deklarieren — keine Route ohne Rollenentscheidung.
 type Area struct {
-	// Prefix ist das URL-Präfix des Bereichs (z. B. "/admin"). Beim Mounten
-	// wird es per http.StripPrefix entfernt, die Bereichs-Handler sehen den
-	// Restpfad (z. B. "/create-user").
+	// Prefix ist das URL-Präfix (z. B. "/admin"); beim Mounten per StripPrefix entfernt.
 	Prefix string
-	// AllowedRoles sind die Rollen, die diesen Bereich aufrufen dürfen. Leer nur
-	// bei RequiresAuth == false (öffentliche Bereiche: auth, relay).
+	// AllowedRoles ist leer nur bei RequiresAuth == false (auth, relay).
 	AllowedRoles []string
-	// RequiresAuth == true ⇒ Bereich wird mit der JWT-Middleware geschützt.
-	// false ⇒ bewusst ohne JWT (health/auth/relay); die Prüfung liegt dann im
-	// Handler (Relay-Token) bzw. entfällt (Login).
+	// RequiresAuth false ⇒ bewusst ohne JWT (auth/relay); die Prüfung liegt dann
+	// im Handler (Relay-Token) bzw. entfällt (Login).
 	RequiresAuth bool
-	// RateLimited == true ⇒ zusätzlich IP-Rate-Limit (Login/Relay gegen
-	// Brute-Force) mit 5 Anfragen pro Sekunde (siehe mountArea).
+	// RateLimited ⇒ zusätzlich IP-Rate-Limit (Login/Relay gegen Brute-Force, siehe mountArea).
 	RateLimited bool
-	// build konstruiert den Bereichs-Handler und liefert dessen registrierte
-	// Pfade zurück; die Pfade sind die Zeilen der Berechtigungs-Matrix.
+	// build liefert den Bereichs-Handler und seine Pfade — die Zeilen der Berechtigungs-Matrix.
 	build func(cfg config.Config, deps api.Deps) (http.Handler, []string)
 }
 
-// Rollen-Mengen als Konstanten, damit Tabelle und Matrix-Test denselben Bezug haben.
 var (
 	rolesAdmin          = []string{"admin"}
 	rolesService        = []string{"admin", "serviceleitung", "service"}
 	rolesServiceleitung = []string{"admin", "serviceleitung"}
 )
 
-// Areas ist die deklarative Routentabelle — die einzige Registrierungsquelle.
 func Areas() []Area {
 	return []Area{
 		{
@@ -86,9 +77,6 @@ func Areas() []Area {
 	}
 }
 
-// mountArea registriert einen Bereich am Router gemäß seiner Deklaration:
-// JWT-Middleware (falls RequiresAuth), Rate-Limit (falls RateLimited),
-// Prefix-Strip.
 func mountArea(r *http.ServeMux, area Area, cfg config.Config, deps api.Deps) {
 	handler, _ := area.build(cfg, deps)
 
@@ -108,13 +96,9 @@ func mountArea(r *http.ServeMux, area Area, cfg config.Config, deps api.Deps) {
 	r.Handle(area.Prefix+"/", handler)
 }
 
-// testResetArea liefert den Test-Bereich (POST /test/reset-and-seed) als
-// deklarative Area. Er wird nur bei JOTTI_ENABLE_TEST_API=1 an Areas angehängt und
-// läuft — wie auth/relay — bewusst ohne JWT: der Endpunkt setzt die Datenbank
-// auf den Test-Zustand zurück und ist ausschließlich in der E2E-Umgebung
-// registriert. Er ist wie auth/relay rate-limitet, damit ein voller Truncate +
-// Reseed nicht als DoS-Vektor missbraucht werden kann, und wird über dieselbe
-// mountArea-Verdrahtung gemountet.
+// testResetArea ist der Test-Bereich (POST /test/reset-and-seed): nur bei
+// JOTTI_ENABLE_TEST_API=1 an Areas angehängt, bewusst ohne JWT wie auth/relay
+// und rate-limitet, damit Truncate + Reseed kein DoS-Vektor wird.
 func testResetArea(db *sql.DB) Area {
 	return Area{
 		Prefix:       "/test",

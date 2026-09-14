@@ -11,19 +11,14 @@ import (
 )
 
 const (
-	// certProbeTimeout begrenzt den TLS-Handshake der Zertifikats-Probe.
-	certProbeTimeout = 4 * time.Second
-	// rebindLookupTimeout begrenzt die DNS-Auflösung der Rebind-Prüfung.
+	certProbeTimeout    = 4 * time.Second
 	rebindLookupTimeout = 3 * time.Second
 )
 
-// probeCert öffnet einen TLS-Handshake zum eigenen Caddy (addr, z. B.
-// 127.0.0.1:443) und setzt serverName als SNI, sodass Caddy das
-// Wildcard-Zertifikat ausliefert. Verifiziert wird gegen die System-Roots: Nur
-// eine öffentlich vertrauenswürdige Let's-Encrypt-Kette gilt als „grün"; ein
-// abgelaufenes Zertifikat wird als solches erkannt, alles andere (interne CA,
-// noch nicht ausgestellt, kein Handshake) ⇒ certNone. Bewusst nicht
-// unit-getestet — Ausstellung/Erneuerung ist Integrations-/Betriebsebene.
+// probeCert öffnet einen TLS-Handshake zum eigenen Caddy und setzt serverName als
+// SNI, sodass Caddy das Wildcard-Zertifikat ausliefert. Verifiziert wird gegen die
+// System-Roots: nur eine öffentlich vertrauenswürdige Kette gilt als „grün"; ein
+// abgelaufenes Zertifikat wird als solches erkannt, alles andere ⇒ certNone.
 func probeCert(addr, serverName string) certState {
 	dialer := &net.Dialer{Timeout: certProbeTimeout}
 	conn, err := tls.DialWithDialer(dialer, "tcp", addr, &tls.Config{ServerName: serverName})
@@ -34,9 +29,6 @@ func probeCert(addr, serverName string) certState {
 	return certValid
 }
 
-// classifyHandshakeError unterscheidet ein abgelaufenes Zertifikat von allen
-// übrigen Handshake-Fehlern (unbekannte/interne CA, noch nicht ausgestellt,
-// Verbindungsfehler).
 func classifyHandshakeError(err error) certState {
 	var invalid x509.CertificateInvalidError
 	if errors.As(err, &invalid) && invalid.Reason == x509.Expired {
@@ -46,10 +38,8 @@ func classifyHandshakeError(err error) certState {
 }
 
 // checkRebind meldet, ob der eigene Hostname über den System-Resolver (= Router)
-// auf die eigene LAN-IP auflöst. Tut er das nicht (oder gar nicht), greift
-// vermutlich der DNS-Rebind-Schutz des Routers — dann ist die grüne Adresse aus
-// dem WLAN unerreichbar und der Fallback übernimmt. Der Resolver ist injizierbar,
-// damit die Vergleichslogik ohne echtes DNS testbar ist.
+// auf die eigene LAN-IP auflöst. Tut er das nicht, greift vermutlich der
+// DNS-Rebind-Schutz des Routers — dann ist die grüne Adresse im WLAN unerreichbar.
 func checkRebind(hostname string, lanIP netip.Addr, lookup func(context.Context, string) ([]netip.Addr, error)) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), rebindLookupTimeout)
 	defer cancel()

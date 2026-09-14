@@ -4,26 +4,20 @@ import { toast } from 'sonner'
 import { BackendError, ResponseBodyError } from './Backend'
 import { appendReferenz } from './errorMessages'
 
-// Höchstens zwei Wiederholungen: Danach ist die Störung dauerhaft genug, um sie
-// der Helferin zu melden, statt sie weiter warten zu lassen. Der Abstand
-// zwischen den Versuchen wächst (exponentieller Standard-Backoff von
-// react-query).
+// Danach ist die Störung dauerhaft genug, um sie der Helferin zu melden.
 const MAX_WIEDERHOLUNGEN = 2
 
 const queryFehlerMeldung =
   'Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.'
 
 // Als `meta` einer Query gesetzt, unterdrückt dieses Flag den globalen
-// Fehler-Toast. Gedacht für Hintergrundabfragen, die dauerhaft weiterlaufen
-// (Versionsabfrage): Im Funkloch würden sie sonst alle 30 Sekunden eine rote
-// Meldung werfen, ohne dass die Helferin etwas tun könnte.
+// Fehler-Toast: Eine dauerhaft weiterlaufende Hintergrundabfrage würde im
+// Funkloch sonst alle 30 Sekunden melden, ohne dass jemand reagieren kann.
 export const OHNE_FEHLER_TOAST = { ohneFehlerToast: true }
 
-// sollWiederholen wiederholt nur, was beim nächsten Versuch anders ausgehen
-// kann: Netzfehler und Serverfehler ab Status 500. Ein BackendError mit 4xx
-// (Validierung, fehlende Berechtigung, Konflikt) und ein ResponseBodyError
-// (Antwort verletzt das Schema) stehen schon beim ersten Versuch fest und
-// würden die Meldung nur verzögern.
+// Wiederholt nur, was beim nächsten Versuch anders ausgehen kann: Netzfehler
+// und Serverfehler ab 500. Ein 4xx (Validierung, Berechtigung, Konflikt) und
+// ein ResponseBodyError stehen schon beim ersten Versuch fest.
 function sollWiederholen(
   bisherigeWiederholungen: number,
   error: unknown,
@@ -45,17 +39,14 @@ function sollWiederholen(
   return true
 }
 
-// createQueryClient baut den globalen QueryClient mit zentralem Fehler-Handling:
-// Ohne diesen Handler verschwinden Query-Fehler stumm und die Seiten zeigen
-// Leer-Defaults (z. B. Saldo 0,00 €). Die feste Toast-ID sorgt dafür, dass
-// mehrere gleichzeitig fehlschlagende Queries (z. B. bei Netzabbruch) nur
-// einen Toast erzeugen.
+// Ohne diesen Fehler-Handler verschwinden Query-Fehler stumm und die Seiten
+// zeigen Leer-Defaults (z. B. Saldo 0,00 €). Die feste Toast-ID bündelt
+// mehrere gleichzeitig fehlschlagende Queries zu einem Toast.
 export function createQueryClient(): QueryClient {
   return new QueryClient({
-    // Die Wiederholungen gelten ausdrücklich nur für Lese-Queries. Für
-    // Mutations wird bewusst nichts gesetzt: Ein wiederholter Schreibvorgang
-    // würde doppelt buchen. Buchungen laufen ohnehin über useActionSubmit an
-    // react-query vorbei; einzige Mutation ist der DSFinV-K-Export.
+    // Nur für Lese-Queries: Ein wiederholter Schreibvorgang würde doppelt
+    // buchen. Buchungen laufen über useActionSubmit an react-query vorbei;
+    // einzige Mutation ist der DSFinV-K-Export.
     defaultOptions: {
       queries: {
         retry: sollWiederholen,

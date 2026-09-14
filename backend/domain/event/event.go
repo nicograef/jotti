@@ -12,27 +12,21 @@ import (
 
 // Event represents a CNCF Cloudevent with additional fields for user association.
 type Event struct {
-	// Identifies the event. Must be unique within the scope of the producer/source.
-	ID int
-	// The ID of the user associated with the event.
-	UserID int
-	// The name of the user who triggered the event.
+	ID       int
+	UserID   int
 	UserName string
-	// The type of event related to the source system and subject. E.g. bestellung-aufgenommen:v1
+	// Event type incl. version, e.g. bestellung-aufgenommen:v1
 	Type string
-	// The timestamp of when the event occurred.
 	Time time.Time
-	// The subject of the event in the context of the event producer, i.e. the entity to which the event is primarily related. E.g. kassensitzung-1/tisch-42
+	// The entity the event belongs to, e.g. kassensitzung-1/tisch-42
 	Subject string
 	// The version of the event for optimistic concurrency control.
 	Version int
-	// The event payload.
-	Data json.RawMessage
+	Data    json.RawMessage
 }
 
-// New creates a new Event with the given parameters and automatically sets the Time field.
-// Version is NOT set here — it is assigned by the OCC mechanism in the application layer.
-// It returns an error if any of the required fields are invalid.
+// New sets Time; Version is NOT set here — the OCC mechanism in the application
+// layer assigns it.
 func New(userID int, userName string, eventType string, subject string, data any) (Event, error) {
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
@@ -55,10 +49,8 @@ func New(userID int, userName string, eventType string, subject string, data any
 	return event, nil
 }
 
-// validateFields checks the fields shared by New and Validate (user, type,
-// subject, data). Time and Version are validated only by Validate: New has not
-// assigned them yet (Version comes from the OCC mechanism, Time is set on
-// construction).
+// validateFields checks the fields shared by New and Validate. Time and Version
+// are validated only by Validate: New has not assigned them yet.
 func validateFields(userID int, userName, eventType, subject string, data json.RawMessage) error {
 	if userID <= 0 {
 		return errors.New("user ID must be a positive integer")
@@ -78,7 +70,6 @@ func validateFields(userID int, userName, eventType, subject string, data json.R
 	return nil
 }
 
-// Validate checks the Event fields for validity according to the CNCF Cloudevents specification.
 func (e *Event) Validate() error {
 	if err := validateFields(e.UserID, e.UserName, e.Type, e.Subject, e.Data); err != nil {
 		return err

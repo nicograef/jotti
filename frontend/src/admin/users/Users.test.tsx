@@ -4,8 +4,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
-// Der eigene Account (für den „das bist du“-Fall) wird über das Auth-Singleton
-// aufgelöst; im Test wird die userId fest auf 1 gesetzt.
+// Der eigene Account kommt aus dem Auth-Singleton; im Test ist die userId 1.
 vi.mock('@/lib/Auth', () => ({
   AuthSingleton: {
     get userId() {
@@ -14,8 +13,7 @@ vi.mock('@/lib/Auth', () => ({
   },
 }))
 
-// Radix DropdownMenu misst seinen Anker über ResizeObserver, den jsdom nicht
-// kennt. Ein No-op-Stub reicht für den Test.
+// Radix DropdownMenu misst seinen Anker über ResizeObserver, den jsdom nicht kennt.
 class ResizeObserverStub {
   observe(): void {
     // no-op
@@ -94,7 +92,6 @@ describe('Users', () => {
 
   it('marks the own account with "das bist du" and offers no delete in its menu', async () => {
     const u = userEvent.setup()
-    // id 1 ist laut gemocktem Auth-Singleton der eigene Account.
     renderUsers([user({ id: 1, name: 'Ich Selbst', role: 'admin' })])
 
     expect(screen.getByText('das bist du')).toBeInTheDocument()
@@ -135,7 +132,6 @@ describe('Users', () => {
   })
 
   it('locks the status switch on the own account', () => {
-    // id 1 ist laut gemocktem Auth-Singleton der eigene Account.
     renderUsers([user({ id: 1, name: 'Ich Selbst', role: 'admin' })])
 
     expect(screen.getByRole('switch', { name: /deaktivieren/i })).toBeDisabled()

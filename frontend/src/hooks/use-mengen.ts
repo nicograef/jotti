@@ -2,11 +2,6 @@ import { useState } from 'react'
 
 import { useOffenerVorgang } from './use-offener-vorgang'
 
-/**
- * Return shape of {@link useMengen}. Exposed so callers can lift the selection
- * state and pass the whole controller down as a single prop (e.g. TablePage
- * hoists the order cart and payment selection so they survive tab switches).
- */
 export interface MengenSteuerung<K extends string | number> {
   mengen: Record<K, number>
   add: (key: K) => void
@@ -16,12 +11,8 @@ export interface MengenSteuerung<K extends string | number> {
 }
 
 /**
- * Quantity-selector state keyed by id (variant id for ordering/direct sale,
- * position id for payment). `add` increments, `remove` decrements but never
- * below zero, `reset` clears the whole selection, `setAll` replaces the whole
- * selection with the given quantities (without applying `max` — the caller is
- * responsible for staying within the cap). Pass `max` to cap a key's quantity
- * on `add` (e.g. the still-unpaid amount of a position).
+ * Quantity-selector state keyed by id. `setAll` bypasses `max` — the caller
+ * must stay within the cap. Pass `max` to cap a key's quantity on `add`.
  */
 export function useMengen<K extends string | number>(
   max?: (key: K) => number,
@@ -31,8 +22,7 @@ export function useMengen<K extends string | number>(
   )
 
   // Any selected quantity is work that a forced reload would throw away.
-  // Reported centrally here rather than at the six call sites, each of which
-  // decides "not empty" its own way.
+  // Reported centrally here rather than at the six call sites.
   useOffenerVorgang(Object.values<number>(mengen).some((menge) => menge > 0))
 
   const add = (key: K) => {

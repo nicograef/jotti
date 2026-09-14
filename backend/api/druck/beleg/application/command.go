@@ -28,11 +28,6 @@ type druckauftragRepo interface {
 	EnqueueDruckauftraege(ctx context.Context, auftraege []druckauftrag_repo.NeuerDruckauftrag) error
 }
 
-// tseAuftragRepo liefert den Signatur-Stand eines Events aus der
-// Signaturauftrags-Tabelle und den aktiven Störungszeitraum aus dem
-// Störungsprotokoll — die beiden Eingaben der Signaturstatus-Funktion
-// (Beleg-Abruf liest genau eine Signaturquelle) — sowie die Kassenidentitaet
-// (Seriennummer) für den Beleg-Kopf.
 type tseAuftragRepo interface {
 	GetSignaturauftragZuEvent(ctx context.Context, eventID int) (tse.SignaturauftragStand, error)
 	GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error)
@@ -52,11 +47,10 @@ type Command struct {
 	TSERepo             tseAuftragRepo
 }
 
-// getOffeneKassensitzungOderFehler retrieves the currently open Kassensitzung for the Beleg-Abruf.
-// Returns ErrKasseNichtGeoeffnet (HTTP 409) when none is active and ErrKasseWirdAbgeschlossen while
-// the Kassensitzung is being closed (barrier active). Eigene Kopie samt kassensitzungenRepo-Interface
-// (dasselbe Muster wie in kassenfuehrung und direktverkauf) — bewusst kein shared kernel: jeder
-// Bounded Context bekommt sein eigenes minimales Repo-Interface statt einer geteilten Abhängigkeit.
+// getOffeneKassensitzungOderFehler ist eine eigene Kopie samt
+// kassensitzungenRepo-Interface (wie in kassenfuehrung und direktverkauf) —
+// bewusst kein shared kernel: jeder Bounded Context bekommt sein eigenes
+// minimales Repo-Interface.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {

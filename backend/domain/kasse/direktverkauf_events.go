@@ -21,17 +21,14 @@ type DirektverkaufGetaetigtV1Data struct {
 }
 
 var direktverkaufGetaetigtV1DataSchema = z.Struct(z.Shape{
-	"VerkaufID":  z.String().UUID().Required(),
-	"Positionen": z.Slice(positionSchema).Min(1).Required(),
-	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
-	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"VerkaufID":         z.String().UUID().Required(),
+	"Positionen":        z.Slice(positionSchema).Min(1).Required(),
 	"GesamtbetragCents": z.Int().GTE(1).Required(),
 	"Kommentar":         z.String().Max(100),
 })
 
-// DirektverkaufStorniertV1Data stores the cancelled positions as fat positions — self-contained
-// for reporting, consistent with the Tisch-Storno (stornierung-erteilt:v1).
-// The json-keys are stable and must not be changed (immutable events).
+// DirektverkaufStorniertV1Data stores the cancelled positions as fat positions
+// (self-contained for reporting). The json keys are frozen — immutable events.
 type DirektverkaufStorniertV1Data struct {
 	StornierungID          string              `json:"stornierungId"`
 	VerkaufID              string              `json:"verkaufId"`
@@ -41,19 +38,15 @@ type DirektverkaufStorniertV1Data struct {
 }
 
 var direktverkaufStorniertV1DataSchema = z.Struct(z.Shape{
-	"StornierungID": z.String().UUID().Required(),
-	"VerkaufID":     z.String().UUID().Required(),
-	"Positionen":    z.Slice(positionSchema).Min(1).Required(),
-	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
-	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"StornierungID":          z.String().UUID().Required(),
+	"VerkaufID":              z.String().UUID().Required(),
+	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(1).Required(),
 	"Kommentar":              z.String().Min(3).Max(100).Required(),
 })
 
-// NewDirektverkaufGetaetigtEvent creates the single event for a completed Direktverkauf.
-// PositionIDs are generated server-side and GesamtbetragCents is derived from the positions.
 func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int, userName string, positionen []Position, kommentar string) (e.Event, error) {
-	// Generate PositionIDs for each position (on a copy, so the caller's slice stays untouched)
+	// On a copy, so the caller's slice stays untouched.
 	positionen = slices.Clone(positionen)
 	for i := range positionen {
 		positionen[i].PositionID = uuid.New().String()
@@ -78,10 +71,8 @@ func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 	return e.New(userID, userName, string(EventTypeDirektverkaufGetaetigtV1), subject, data)
 }
 
-// NewDirektverkaufStorniertEvent creates a position-precise cancellation event for a Direktverkauf.
-// It stores the cancelled positions as fat positions (self-contained, like the Tisch-Storno); the
-// monetary impact is carried by gesamtStornierungCents, which the command computes from the
-// not-yet-cancelled positions. StornierungID is generated server-side.
+// NewDirektverkaufStorniertEvent: gesamtStornierungCents is computed by the caller from
+// the not-yet-cancelled positions.
 func NewDirektverkaufStorniertEvent(subject string, verkaufID string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
 	data := DirektverkaufStorniertV1Data{
 		StornierungID:          uuid.New().String(),

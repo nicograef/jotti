@@ -7,9 +7,6 @@ import (
 	"testing"
 )
 
-// 0-Cent-Preise sind fachlich unzulässig: ein Produkt/eine Variante muss
-// mindestens 1 Cent kosten. PreisCentsSchema ist per Definition Required und
-// GTE(1); die Prüfung erfolgt daher konsistent an allen Aufrufstellen.
 func TestNewVariante_RejectsZeroPrice(t *testing.T) {
 	_, err := NewVariante("Bier", 0)
 	if err == nil {
@@ -66,9 +63,7 @@ func TestUpdateDetails_RejectsZeroPrice(t *testing.T) {
 	}
 }
 
-// PreisCentsSchema lehnt den Zero-Value 0 direkt als Validierungsissue ab
-// (nicht still akzeptiert): GTE(1) allein würde 0 überspringen, .Required()
-// fängt den Zero-Value ab.
+// GTE(1) allein würde den Zero-Value 0 überspringen; .Required() fängt ihn ab.
 func TestPreisCentsSchema_RejectsZeroValue(t *testing.T) {
 	zero := 0
 	issues := PreisCentsSchema.Validate(&zero)

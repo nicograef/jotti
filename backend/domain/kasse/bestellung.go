@@ -18,23 +18,20 @@ type Position struct {
 	Steuersatz       string
 	EinzelpreisCents int
 	Menge            int
-	// BestellerUserID und BestellerName sind reine Projektions-/Anzeigefelder:
-	// die Servicekraft, die die Bestellung aufgenommen hat. Sie werden beim
-	// Anwenden des bestellung-aufgenommen-Events aus dem Event-Umschlag getagt
-	// (eingefrorener Username) und nicht in der Event-Form serialisiert.
+	// BestellerUserID und BestellerName sind reine Projektionsfelder: beim Anwenden des
+	// bestellung-aufgenommen-Events aus dem Event-Umschlag getagt, nie mitserialisiert.
 	BestellerUserID int
 	BestellerName   string
 }
 
-// Bezeichnung is the canonical position name: product name and variant name
-// joined by a single space, trimmed at the edges. No brackets, no dedup —
-// the single place in the backend that composes these two fields.
+// Bezeichnung is the canonical position name (product + variant, single space, trimmed) —
+// the single place in the backend that composes these two fields. No brackets, no dedup.
 func (p Position) Bezeichnung() string {
 	return strings.TrimSpace(p.ProduktName + " " + p.VarianteName)
 }
 
-// PositionEventData is the serialization-friendly representation of Position for the event store.
-// The json-keys are stable and must not be changed (immutable events).
+// PositionEventData is the event-store form of Position. The json keys are frozen —
+// immutable events.
 type PositionEventData struct {
 	PositionID       string `json:"positionId"`
 	VarianteID       int    `json:"varianteId"`
@@ -46,9 +43,8 @@ type PositionEventData struct {
 	Menge            int    `json:"menge"`
 }
 
-// toPositionenEventData maps projection positions to their event form. The
-// Besteller fields live only in the projection and are deliberately dropped here
-// (the besteller is already recorded in the event envelope's UserID/UserName).
+// toPositionenEventData drops the Besteller fields deliberately — the besteller is already
+// recorded in the event envelope's UserID/UserName.
 func toPositionenEventData(positionen []Position) []PositionEventData {
 	out := make([]PositionEventData, len(positionen))
 	for i, p := range positionen {
@@ -66,8 +62,7 @@ func toPositionenEventData(positionen []Position) []PositionEventData {
 	return out
 }
 
-// fromPositionenEventData maps event-form positions back to projection positions.
-// The Besteller fields are left zero here; they are tagged from the event
+// fromPositionenEventData leaves the Besteller fields zero; they are tagged from the event
 // envelope when the bestellung-aufgenommen event is applied.
 func fromPositionenEventData(positionen []PositionEventData) []Position {
 	out := make([]Position, len(positionen))
@@ -77,10 +72,8 @@ func fromPositionenEventData(positionen []PositionEventData) []Position {
 	return out
 }
 
-// PositionFromEventData maps a single event-form position to a projection
-// position. The Besteller fields are left zero (the event form carries no
-// besteller); it is the single source of truth for this mapping, used both
-// inside the projection and by callers that read raw event positions.
+// PositionFromEventData is the single source of truth for this mapping; the Besteller
+// fields stay zero (the event form carries no besteller).
 func PositionFromEventData(p PositionEventData) Position {
 	return Position{
 		PositionID:       p.PositionID,
@@ -94,13 +87,11 @@ func PositionFromEventData(p PositionEventData) Position {
 	}
 }
 
-// PositionEingabeSchema begrenzt die Menge einer Position auf dem Eingabeweg.
-// Die Obergrenze schützt `EinzelpreisCents * Menge` vor dem int-Überlauf, der
-// auf einen plausiblen Kleinbetrag zurückwickelt. Sie gilt nur beim Annehmen
-// einer Eingabe: `positionSchema` validiert auch jedes gelesene Event, eine
-// Grenze dort machte bestehende Events unlesbar. Das Schema ist per Definition
-// required — Aufrufstellen nutzen es direkt und rufen `.Required()` nie erneut
-// auf (zog mutiert den Empfänger in place).
+// PositionEingabeSchema begrenzt die Menge nur auf dem Eingabeweg: Die Obergrenze schützt
+// `EinzelpreisCents * Menge` vor dem int-Überlauf, der auf einen plausiblen Kleinbetrag
+// zurückwickelt. In `positionSchema`, das auch jedes gelesene Event validiert, machte eine
+// Grenze bestehende Events unlesbar. Das Schema ist per Definition required — nie erneut
+// `.Required()` aufrufen (zog mutiert den Empfänger in place).
 var PositionEingabeSchema = z.Int().
 	GTE(1, z.Message("Menge muss mindestens 1 betragen")).
 	LTE(999, z.Message("Menge zu hoch")).
@@ -117,8 +108,8 @@ var positionSchema = z.Struct(z.Shape{
 	"Menge":            z.Int().GTE(1, z.Message("Menge muss mindestens 1 betragen")).Required(),
 })
 
-// PositionRef is a lightweight reference used in API request commands for payment/delivery/cancellation.
-// Enriched to Position (fat) in the command layer before being stored in events.
+// PositionRef is the lightweight request-side reference, enriched to a fat Position in the
+// command layer before it is stored in an event.
 type PositionRef struct {
 	PositionID string
 	Menge      int
@@ -127,10 +118,8 @@ type PositionRef struct {
 type Bestellung struct {
 	ID     string
 	UserID int
-	// UserName ist der eingefrorene Username der bestellenden Servicekraft aus
-	// dem Event-Umschlag. Er beschriftet die Bestellung in der Storno-/Umbuch-
-	// Historie, damit die Serviceleitung fremde Bestellungen ohne zusätzlichen
-	// Klick findet. Spätere Umbenennungen ändern alte Einträge nicht.
+	// UserName ist der eingefrorene Username der bestellenden Servicekraft aus dem
+	// Event-Umschlag; spätere Umbenennungen ändern alte Einträge nicht.
 	UserName         string
 	TischID          int
 	Positionen       []Position
@@ -140,13 +129,11 @@ type Bestellung struct {
 }
 
 var bestellungSchema = z.Struct(z.Shape{
-	"ID":         z.String().UUID().Required(),
-	"UserID":     z.Int().GTE(1).Required(),
-	"UserName":   z.String().Min(1).Required(),
-	"TischID":    z.Int().GTE(1).Required(),
-	"Positionen": z.Slice(positionSchema).Min(1).Required(),
-	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
-	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"ID":               z.String().UUID().Required(),
+	"UserID":           z.Int().GTE(1).Required(),
+	"UserName":         z.String().Min(1).Required(),
+	"TischID":          z.Int().GTE(1).Required(),
+	"Positionen":       z.Slice(positionSchema).Min(1).Required(),
 	"GesamtPreisCents": z.Int().GTE(1).Required(),
 	"Kommentar":        z.String().Max(100),
 	"AufgenommenAm":    z.Time().Required(),

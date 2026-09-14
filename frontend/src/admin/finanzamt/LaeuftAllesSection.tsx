@@ -32,8 +32,6 @@ const STOERUNG_GRUND_LABEL: Record<TSEStoerung['grundArt'], string> = {
   keine_konfiguration: 'TSE nicht konfiguriert',
 }
 
-// Kachel einer Roh-Metrik. `breit` ist für Fließtext gedacht (Fehlertext): über
-// beide Spalten, kleiner gesetzt und umbrechend statt einstellig-groß.
 function Kennzahl({
   label,
   wert,
@@ -63,8 +61,6 @@ function Kennzahl({
   )
 }
 
-// Aufklappbarer Detailblock: der Trigger zeigt das Label mit Pfeil, der Inhalt
-// erscheint darunter.
 function DetailCollapsible({
   label,
   children,
@@ -83,10 +79,8 @@ function DetailCollapsible({
   )
 }
 
-// Klartext-Zusammenfassung der Signatur-Warteschlange plus die Roh-Metriken als
-// aufklappbare technische Details. Fehlgeschlagene Signaturen stehen vorn: sie
-// bleiben unabhängig von der Warteschlange liegen, bis der Kassenabschluss sie
-// als Ausfall ausweist.
+// Fehlgeschlagene Signaturen stehen vorn: sie bleiben unabhängig von der
+// Warteschlange liegen, bis der Kassenabschluss sie als Ausfall ausweist.
 function SignaturPanel({ queue }: { queue: TSESignaturQueue | undefined }) {
   const offene = queue?.offeneAuftraege ?? 0
   const fehlgeschlagen = queue?.fehlgeschlageneAuftraege ?? 0
@@ -103,12 +97,10 @@ function SignaturPanel({ queue }: { queue: TSESignaturQueue | undefined }) {
   } else {
     const warten = `${String(offene)} ${offene === 1 ? 'Vorgang wartet' : 'Vorgänge warten'} (ältester ${formatDauer(rueckstandSekunden)})`
     if (rueckstandSekunden >= RUECKSTAND_WARN_SEKUNDEN) {
-      // Über der Warnschwelle ist der Rückstand derselbe Fehlerzustand, den die
-      // Ampel oben rot meldet.
       saetze.push(`${warten} — der Rückstand ist zu groß.`)
     } else if (fehlgeschlagen === 0) {
-      // Beruhigt wird nur, wenn nichts fehlgeschlagen ist: neben einem
-      // gemeldeten Fehler wäre „normal" ein Widerspruch.
+      // „normal" nur, wenn nichts fehlgeschlagen ist — neben einem gemeldeten
+      // Fehler wäre es ein Widerspruch.
       saetze.push(`${warten} — normal bei vollem Betrieb.`)
     } else {
       saetze.push(`${warten}.`)
@@ -186,8 +178,6 @@ function StoerungRow({ stoerung }: { stoerung: TSEStoerung }) {
   )
 }
 
-// Klartext-Zusammenfassung des Störungsprotokolls plus die vollständige
-// Störungsliste als aufklappbares Protokoll.
 function StoerungPanel({ stoerungen }: { stoerungen: TSEStoerung[] }) {
   const anzahl = stoerungen.length
   const klartext =

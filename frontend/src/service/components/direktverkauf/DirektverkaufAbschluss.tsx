@@ -22,19 +22,10 @@ interface DirektverkaufAbschlussProps {
   receiptItems: ReceiptPosition[]
   positionen: VerkaufPositionInput[]
   totalCents: number
-  // Nach erfolgreichem Verkauf: Auswahl zurücksetzen und Erfolgs-Pop auslösen
-  // (im Handy-Container zusätzlich den Drawer schließen).
   verkaufAbgeschlossen: () => void
-  // 'sheet' rendert den Bottom-Sheet-Drawer-Inhalt (Handy), 'spalte' die feste
-  // Abschluss-Spalte (ab lg). Einzige Quelle des Abschluss-Inhalts; die beiden
-  // Varianten unterscheiden sich nur im umschließenden Container.
   variant: 'sheet' | 'spalte'
 }
 
-// Presentation-neutraler Abschluss-Inhalt des Direktverkaufs (Beleg,
-// Erhalten/Rückgeld, Kommentar, „Verkauf abschließen"). Trägt den vollständigen
-// Zustand samt verkaufId-Lebenszyklus und Submit-/Fehler-/Retry-Verhalten und
-// wird sowohl im Handy-Drawer als auch in der festen Spalte gerendert.
 export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
   const [erhaltenEuro, setErhaltenEuro] = useState('')
   const [zielbetragEuro, setZielbetragEuro] = useState('')
@@ -44,13 +35,10 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
   const noPositionenSelected = props.positionen.length === 0
 
   // verkaufId je logischem Vorgang: neu, sobald eine Zusammenstellung aus dem
-  // Leerzustand beginnt, und — weil ein erfolgreicher Abschluss die Auswahl leert
-  // — erneut beim nächsten Aufbau. Ein Retry desselben Vorgangs behält seinen
-  // Schlüssel, weil die Auswahl dabei nicht leer wird. Mit dem neuen Schlüssel
-  // starten auch die Eingaben leer: In der dauerhaften Spalte überlebt der State
-  // sonst über einen Auswahl-Reset hinweg und würde Erhalten/Kommentar eines
-  // abgebrochenen Vorgangs in den nächsten tragen (der Idempotenz-Schlüssel und
-  // die Eingaben bleiben so an derselben Vorgangsgrenze konsistent).
+  // Leerzustand beginnt (ein erfolgreicher Abschluss leert die Auswahl). Ein
+  // Retry desselben Vorgangs behält seinen Schlüssel; mit dem neuen Schlüssel
+  // starten auch die Eingaben leer, damit in der dauerhaften Spalte nichts aus
+  // einem abgebrochenen Vorgang übertragen wird.
   const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
   const warLeerRef = useRef(noPositionenSelected)
   useEffect(() => {

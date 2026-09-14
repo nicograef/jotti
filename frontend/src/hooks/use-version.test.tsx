@@ -60,10 +60,8 @@ describe('useVersion', () => {
     expect(health.getVersion).toHaveBeenCalledTimes(3)
   })
 
-  // Im Funkloch schlägt die Abfrage dauerhaft fehl. Ein Toast alle 30 Sekunden
-  // wäre eine Verschlechterung: Niemand kann darauf reagieren. Der 4xx-Fehler
-  // steht schon beim ersten Versuch fest — die Wiederholungspolitik ist hier
-  // nicht der Gegenstand.
+  // Im Funkloch schlägt die Abfrage dauerhaft fehl; ein Toast alle 30 Sekunden
+  // wäre eine Verschlechterung, niemand kann darauf reagieren.
   it('erzeugt bei einem Fehlschlag keinen Fehler-Toast', async () => {
     health.getVersion.mockRejectedValue(new BackendError(400, 'bad_request'))
 

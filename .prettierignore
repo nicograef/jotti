@@ -1,8 +1,6 @@
-# Ignore artifacts:
 node_modules
 dist
 
-# Ignore lock files
 pnpm-lock.yaml
 yarn.lock
 package-lock.json
@@ -11,8 +9,7 @@ package-lock.json
 backend/sqlc/dbgen
 docs/rechtsquellen
 
-# Plan files are transient and edited by hand while a plan is running
-# (AGENTS.md, Git-Workflow).
+# Plan files are transient and hand-edited while a plan runs (AGENTS.md).
 docs/plans
 
 # shadcn/ui generated files

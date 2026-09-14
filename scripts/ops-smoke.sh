@@ -1,59 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# =============================================================================
-# jotti — Ops Smoke Test (self-hosted production, Weg B)
+# jotti — ops smoke test (self-hosted production): drives the production scripts
+# (prod-init.sh, prod-update.sh, prod-backup.sh, prod-backup-verify.sh) end to
+# end and logs every step machine-readably on stdout, and to LOG_FILE when set:
+#   <unix_ts>\t<step>\t<status: ok|fail>\t<duration_seconds>\t<detail>
+# The first failed step aborts the run.
 #
-# Drives the orchestrated production scripts (prod-init.sh, prod-update.sh,
-# prod-backup.sh, prod-backup-verify.sh) end-to-end and machine-readably logs
-# every step, so the installation/update path is verified repeatedly instead
-# of once by hand. No real run happens in this phase (a throwaway host run
-# follows later) — this script is reviewed statically here.
+#   ./scripts/ops-smoke.sh install          # prod-init, set-password, login
+#   ./scripts/ops-smoke.sh ops              # backup, backup-verify, update
+#   ./scripts/ops-smoke.sh release VERSION  # install plus sale, receipt, export
 #
-# Modes:
-#   install   prod-init, then set-password with the parsed ADMIN-EINMALPASSWORT
-#             one-time code, then login — proves the first-boot roundtrip.
-#             Requires a FRESH host (no admin password set yet): prod-init only
-#             issues a new one-time password on first bootstrap, so a rerun
-#             against an already-initialized host fails at parse-admin-otp.
-#   ops       prod-backup, prod-backup-verify, then a prod-update roundtrip
-#             (re-applies the pinned JOTTI_VERSION) against a running stack.
-#   release   like install, plus one Direktverkauf, one Kassenbeleg and one
-#             DSFinV-K-Export via the API, against a pinned VERSION argument.
-#             Also requires a FRESH host, for the same reason as "install".
-#             Configures a dummy Kassenbeleg-Druckstation (TEST-NET-1 IP, never
-#             a real printer) so beleg-drucken can enqueue a Druckauftrag, and
-#             polls it until the async TSE-Signatur-Worker reports "eingereiht"
-#             (an "ausstehend" 200 alone does not prove a receipt was queued).
-#
-# Every mode additionally checks the reverse proxy in front of the deployed
-# stack: security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
-# and the login rate limit (429 after repeated bad logins).
-#
-# Host provisioning and the TLS/certificate acceptance stay manual (see
-# docs/leitfaden/self-hosting.md); this script only drives the already-provisioned host.
-#
-# NEVER runs prod-restore.sh, `docker compose down -v`, or deletes volumes —
-# no destructive step is part of any mode.
-#
-# Machine-readable log: one TSV line per step on stdout —
-#   <unix_ts>\t<step>\t<status>\t<duration_seconds>\t<detail>
-# status is one of: ok, fail. The script aborts (set -e discipline: every
-# failing step calls `fail_step` which exits 1) at the first failed step.
-#
-# Configuration:
-#   JOTTI_BASE_URL   base URL of the deployed stack (default: https://$JOTTI_DOMAIN,
-#                    JOTTI_DOMAIN read from .env)
-#   ADMIN_PASSWORD   password to set for the initial admin during "install"/
-#                    "release" (default: a generated throwaway password)
-#   LOG_FILE         optional path to also append the TSV log to (default: none,
-#                    stdout only)
-#
-# Usage:
-#   ./scripts/ops-smoke.sh install             # needs a fresh host
-#   ./scripts/ops-smoke.sh ops
-#   ./scripts/ops-smoke.sh release VERSION      # e.g. v0.14.0, needs a fresh host
-# =============================================================================
+# install and release need a FRESH host: prod-init only issues a one-time admin
+# password on first bootstrap, so a rerun fails at parse-admin-otp. Every mode
+# also checks the reverse proxy's security headers and login rate limit.
+# Host provisioning and the TLS/certificate acceptance stay manual
+# (docs/leitfaden/self-hosting.md).
+# NEVER runs prod-restore.sh, `docker compose down -v`, or deletes a volume —
+# no mode has a destructive step.
 
 COMPOSE_PROD="docker-compose.prod.yml"
 
@@ -63,15 +27,10 @@ COMPOSE_PROD="docker-compose.prod.yml"
 SMOKE_TMP="$(mktemp -d "${TMPDIR:-/tmp}/ops-smoke.XXXXXX")"
 trap 'rm -rf "$SMOKE_TMP"' EXIT
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 . "$SCRIPT_DIR/lib.sh"
 
-# log_line STEP STATUS DURATION DETAIL — emits one TSV line (and appends to
-# LOG_FILE if set). This is the single source of the machine-readable protocol.
 log_line() {
   local step="$1" status="$2" duration="$3" detail="${4:-}"
   local line
@@ -82,9 +41,7 @@ log_line() {
   fi
 }
 
-# run_step STEP CMD... — runs CMD, times it, logs ok/fail, and aborts the whole
-# script on failure (no destructive cleanup is ever needed: the steps here
-# never touch volumes or run prod-restore.sh).
+# run_step STEP CMD... — times CMD, logs ok or fail, and aborts on failure.
 run_step() {
   local step="$1"
   shift
@@ -104,8 +61,7 @@ run_step() {
   exit 1
 }
 
-# fail_step STEP DETAIL — logs a fail line for a check done inline (not via
-# run_step, e.g. an HTTP assertion) and aborts.
+# fail_step STEP DETAIL — logs a fail line for an inline check and aborts.
 fail_step() {
   local step="$1" detail="${2:-}"
   log_line "$step" fail 0 "$detail"
@@ -113,40 +69,33 @@ fail_step() {
   exit 1
 }
 
-# ok_step STEP DURATION DETAIL — logs a successful inline check.
 ok_step() {
   local step="$1" duration="$2" detail="${3:-}"
   log_line "$step" ok "$duration" "$detail"
 }
 
-# http_post_status URL DATA — POST-only API (see AGENTS.md); returns the HTTP
-# status code, body written to $SMOKE_TMP/body.json. Every caller passes the
-# request body explicitly (empty payloads as '{}').
+# http_post_status URL DATA — echoes the HTTP status code; the response body
+# lands in $SMOKE_TMP/body.json.
 http_post_status() {
   local url="$1" data="$2"
   curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
     -X POST -H 'Content-Type: application/json' -d "$data" "$url" 2>"$SMOKE_TMP/curl.log" || echo 000
 }
 
-# json_field FIELD — extracts a top-level string/number field from
-# $SMOKE_TMP/body.json without a jq dependency (values here are always
-# simple scalars: token, id, zNr).
+# json_field FIELD — extracts a top-level field from $SMOKE_TMP/body.json
+# without a jq dependency; every value read here is a simple scalar.
 json_field() {
   local field="$1"
   grep -oE "\"${field}\"[[:space:]]*:[[:space:]]*\"?[^,}\"]*\"?" "$SMOKE_TMP/body.json" \
     | head -n1 | sed -E "s/\"${field}\"[[:space:]]*:[[:space:]]*//; s/^\"//; s/\"\$//"
 }
 
-# redacted_body — dumps $SMOKE_TMP/body.json for a failure message with any
-# "token" field masked, so a JWT never lands in stderr/CI logs (e.g. if the
-# login step gets a non-200 status but the body still echoes a token field).
+# redacted_body — dumps $SMOKE_TMP/body.json with any "token" field masked, so a
+# JWT never lands in stderr or a CI log.
 redacted_body() {
   sed -E 's/("token"[[:space:]]*:[[:space:]]*)"[^"]*"/\1"[redacted]"/' "$SMOKE_TMP/body.json" 2>/dev/null
 }
 
-# ---------------------------------------------------------------------------
-# Step 0 — Arguments, project root, prerequisites
-# ---------------------------------------------------------------------------
 MODE="${1:-}"
 case "$MODE" in
   install|ops) ;;
@@ -172,23 +121,15 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-Sm0ke-Test-$(date +%s)!}"
 info "Mode: $MODE"
 info "Base URL: $BASE_URL"
 
-# ---------------------------------------------------------------------------
-# Reusable blocks
-# ---------------------------------------------------------------------------
-
-# step_install — prod-init, set-password with the parsed OTP, then login.
-# prod-init.sh already waits for the backend health check and HTTPS itself, so
-# this step only needs to add the login roundtrip on top.
+# step_install — prod-init already waits for backend health and HTTPS, so this
+# step only adds the OTP parse, set-password and login roundtrip.
 step_install() {
-  # Recorded before prod-init runs so the OTP grep below only sees log lines
-  # from this run: on a non-fresh host, bootstrap skips re-issuing a one-time
-  # password (ActionSkip), and an unscoped grep would otherwise pick up a
-  # stale, already-consumed code from a previous run.
-  # Trailing Z: docker compose logs --since interprets a zone-less timestamp
-  # as the CLIENT's local time, not UTC. On a host with TZ ahead of UTC (e.g.
-  # Europe/Berlin, the usual setup for German VPS), an unzoned value would
-  # make --since point 1-2h into the future (in UTC), filtering out the
-  # ADMIN-EINMALPASSWORT line prod-init just emitted.
+  # Recorded before prod-init runs so the OTP grep below only sees this run's
+  # log lines: on a non-fresh host bootstrap skips re-issuing a one-time
+  # password, and an unscoped grep would pick up a stale, consumed code.
+  # Trailing Z matters: `docker compose logs --since` reads a zone-less
+  # timestamp as the CLIENT's local time, so on a host ahead of UTC the filter
+  # would point into the future and drop the line prod-init just emitted.
   local since
   since="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
@@ -231,7 +172,6 @@ step_install() {
   ok_step "login" "$duration"
 }
 
-# step_ops — prod-backup, prod-backup-verify, prod-update roundtrip.
 step_ops() {
   run_step "prod-backup" "$SCRIPT_DIR/prod-backup.sh"
   run_step "prod-backup-verify" "$SCRIPT_DIR/prod-backup-verify.sh"
@@ -332,11 +272,9 @@ step_sale_receipt_export() {
   fi
   ok_step "direktverkauf-taetigen" "$duration" "verkaufId=$verkauf_id"
 
-  # beleg-drucken meldet "ausstehend" (200, kein Druckauftrag), solange die
-  # TSE-Signatur des Verkaufs noch nicht vom asynchronen Signatur-Worker
-  # quittiert wurde; die UI ruft in diesem Fall denselben Endpunkt erneut auf.
-  # Nur "eingereiht" beweist einen tatsächlich angelegten Druckauftrag, daher
-  # hier auf "eingereiht" pollen statt ein beliebiges 200 zu akzeptieren.
+  # beleg-drucken meldet "ausstehend" (200, kein Druckauftrag), solange der
+  # asynchrone Signatur-Worker die TSE-Signatur nicht quittiert hat. Nur
+  # "eingereiht" beweist einen angelegten Druckauftrag, daher darauf pollen.
   local beleg_status="" attempt
   start="$(date +%s)"
   for attempt in $(seq 1 20); do
@@ -369,8 +307,6 @@ step_sale_receipt_export() {
   ok_step "export-dsfinvk" "$duration" "bytes=$(wc -c <"$SMOKE_TMP/export.zip")"
 }
 
-# step_security_headers — CSP, HSTS, X-Frame-Options, X-Content-Type-Options
-# on the deployed reverse proxy (Caddy).
 step_security_headers() {
   local start end duration headers
   start="$(date +%s)"
@@ -390,8 +326,6 @@ step_security_headers() {
   ok_step "security-headers" "$duration"
 }
 
-# step_login_rate_limit — hammers /api/auth/login with bad credentials until
-# the reverse proxy (or the app-level throttle) answers 429.
 step_login_rate_limit() {
   local start end duration status got_429=false
   start="$(date +%s)"
@@ -410,9 +344,6 @@ step_login_rate_limit() {
   ok_step "login-rate-limit" "$duration"
 }
 
-# ---------------------------------------------------------------------------
-# Run the selected mode
-# ---------------------------------------------------------------------------
 case "$MODE" in
   install)
     step_install
@@ -430,10 +361,8 @@ case "$MODE" in
     # side effect on the host's configuration.
     PREVIOUS_JOTTI_VERSION="$(read_env JOTTI_VERSION)"
     restore_jotti_version() {
-      # Always rewrite the line, even when the previous value was empty: an
-      # unconditional restore keeps no lasting release pin in .env. If there was
-      # no JOTTI_VERSION line to begin with, the pinning sed was a no-op too, so
-      # this substitution simply matches nothing.
+      # Always rewrite the line, even when the previous value was empty: if
+      # there was no JOTTI_VERSION line, the pinning sed matched nothing either.
       sed -i.bak "s/^JOTTI_VERSION=.*/JOTTI_VERSION=$PREVIOUS_JOTTI_VERSION/" .env && rm -f .env.bak
       rm -rf "$SMOKE_TMP"
     }

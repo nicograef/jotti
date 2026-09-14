@@ -63,10 +63,9 @@ func BuildKassenbelegProcessData(positionen []Position, zahlbetragCents int, fak
 // BuildBestellungProcessData erzeugt die CSV-Darstellung nach
 // DSFinV-K Anhang I: pro Position `<Menge>;"<Bezeichnung>";<Brutto-Einzelpreis>`,
 // Zeilentrenner \r, Anführungszeichen in der Bezeichnung werden verdoppelt.
-// faktor -1 stellt Rücknahmen dar (geldneutrale Korrektur, Abgang einer
-// Umbuchung) — DSFinV-K Anhang I sieht für Bestell-Storni negative Mengen
-// vor. Ohne Vorzeichen wäre eine Rücknahme TSE-seitig von einer zusätzlichen
-// Neubestellung nicht unterscheidbar.
+// faktor -1 stellt Rücknahmen dar (geldneutrale Korrektur, Umbuchungs-Abgang): DSFinV-K
+// Anhang I sieht für Bestell-Storni negative Mengen vor — ohne Vorzeichen wäre eine
+// Rücknahme TSE-seitig nicht von einer Neubestellung unterscheidbar.
 func BuildBestellungProcessData(positionen []Position, faktor int) (string, error) {
 	if len(positionen) == 0 {
 		return "", fmt.Errorf("bestellung processData requires at least one position")
@@ -77,8 +76,7 @@ func BuildBestellungProcessData(positionen []Position, faktor int) (string, erro
 
 	zeilen := make([]string, 0, len(positionen))
 	for _, pos := range positionen {
-		// Eine nicht-positive Menge wäre das Symptom eines Fehlers im Aufrufer —
-		// hart melden statt still zu verschlucken (Vollständigkeit der Absicherung).
+		// Eine nicht-positive Menge wäre ein Aufrufer-Fehler: hart melden statt still verschlucken.
 		if pos.Menge <= 0 {
 			return "", fmt.Errorf("bestellung processData requires positive quantities, got %d for %q", pos.Menge, pos.Bezeichnung())
 		}
@@ -95,8 +93,6 @@ func BuildBestellungProcessData(positionen []Position, faktor int) (string, erro
 	return strings.Join(zeilen, "\r"), nil
 }
 
-// BuildGeldtransitProcessData bildet Einlage/Entnahme als Eigenbeleg ab:
-// Einlagen mit positivem, Entnahmen mit negativem Zahlbetrag.
 func BuildGeldtransitProcessData(richtung string, betragCents int) (string, error) {
 	switch richtung {
 	case GeldtransitRichtungEinlage:
@@ -122,8 +118,7 @@ func BuildEigenbelegProcessData(zahlbetragCents int) string {
 	return fmt.Sprintf("Beleg^0.00_0.00_0.00_0.00_%s^%s", betragString(zahlbetragCents), zahlungen)
 }
 
-// BuildTagesabschlussProcessData erzeugt SonstigerVorgang-processData für den
-// Tagesabschluss (Z-Bon): Z-Nummer plus Abschlusszeitraum.
+// BuildTagesabschlussProcessData erzeugt die SonstigerVorgang-processData des Z-Bons.
 func BuildTagesabschlussProcessData(zNr int, zeitraumVon time.Time, zeitraumBis time.Time) string {
 	return fmt.Sprintf(
 		"Tagesabschluss^ZNr:%d^Von:%s^Bis:%s",

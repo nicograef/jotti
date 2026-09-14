@@ -37,7 +37,6 @@ describe('ZaehlhilfeDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Übernehmen' }))
 
     expect(onUebernehmen).toHaveBeenCalledWith(10700)
-    // Nach der Übernahme schließt der Dialog.
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
@@ -54,8 +53,8 @@ describe('ZaehlhilfeDialog', () => {
       <ZaehlhilfeDialog open onOpenChange={vi.fn()} onUebernehmen={vi.fn()} />,
     )
 
-    // type="number" zeigt native Spinner-Pfeile; die Stückzahl-Felder sind
-    // deshalb konsistente Text-Felder mit numerischer Tastatur (wie EuroInput).
+    // type="number" zeigt native Spinner-Pfeile; deshalb Text-Feld mit
+    // numerischer Tastatur (wie EuroInput).
     const feld = screen.getByLabelText('50 €')
     expect(feld).toHaveAttribute('type', 'text')
     expect(feld).toHaveAttribute('inputmode', 'numeric')

@@ -29,8 +29,6 @@ type CommandHandler struct {
 	Command command
 }
 
-// Produkt handlers
-
 type createProduktRequest struct {
 	Name       string            `json:"name"`
 	Kategorie  dom.Kategorie     `json:"kategorie"`
@@ -130,8 +128,6 @@ func (h *CommandHandler) VerschiebeProduktHandler() http.HandlerFunc {
 		helper.SendEmptyResponse(w)
 	}
 }
-
-// Variante handlers
 
 type createVarianteRequest struct {
 	ProduktID  int    `json:"produktId"`

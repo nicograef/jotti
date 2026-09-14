@@ -3,16 +3,13 @@ import { BackendError } from './Backend'
 const serverErrorMessage =
   'Es ist ein unerwarteter Serverfehler aufgetreten. Bitte Seite neu laden oder den Administrator kontaktieren.'
 
-// appendReferenz hängt die Korrelations-ID der Backend-Antwort an eine Meldung
-// an, damit ein gemeldeter Fehler im Server-Log auffindbar ist. Ohne Referenz
-// bleibt die Meldung unverändert. Geteilt mit dem zentralen Query-Fehler-Toast
-// (queryClient.ts), damit die Referenz überall gleich formuliert ist.
+// Die Korrelations-ID der Backend-Antwort macht einen gemeldeten Fehler im
+// Server-Log auffindbar; ohne Referenz bleibt die Meldung unverändert.
 export function appendReferenz(message: string, referenz?: string): string {
   return referenz ? `${message} Referenz: ${referenz}` : message
 }
 
-// commonErrorMessages ist die zentrale Meldung je Backend-Fehlercode. Der Test
-// iteriert darüber, deshalb ist die Karte exportiert.
+// Zentrale Meldung je Backend-Fehlercode; exportiert, weil der Test iteriert.
 export const commonErrorMessages: Record<string, string> = {
   onetime_password_locked:
     'Das Einmalpasswort wurde nach zu vielen Fehlversuchen gesperrt. Bitte einen Admin um ein neues Einmalpasswort.',
@@ -66,8 +63,7 @@ export const commonErrorMessages: Record<string, string> = {
     'Das Passwort ist zu schwach. Bitte ein stärkeres Passwort verwenden.',
   position_nicht_bezahlbar:
     'Mindestens eine Position ist nicht mehr bezahlbar. Bitte Tischstatus aktualisieren und erneut versuchen.',
-  // Kontextneutral: den Code liefern der Tischstorno und der
-  // Direktverkauf-Storno, und der Direktverkauf hat keinen Tisch.
+  // Kontextneutral: Den Code liefert auch der Direktverkauf, der keinen Tisch hat.
   position_nicht_stornierbar:
     'Mindestens eine Position kann nicht storniert werden. Bitte Ansicht aktualisieren und erneut versuchen.',
   position_nicht_umbuchbar:

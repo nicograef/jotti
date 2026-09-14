@@ -1,38 +1,28 @@
 import { createContext, use, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-// ServiceDock ist die eine opake Bodenfläche des Service-Bereichs: oben ein
-// Aktions-Slot (Button, ggf. mit Restbetrag-Zeile), darunter die Tab-Leiste
-// in voller Breite. Gilt auf allen Viewports.
-//
 // Der Aktionsinhalt bleibt in den Drawer-Komponenten (er braucht deren
 // Mengen-State und den Radix-DrawerTrigger-Kontext) und rendert über
-// DockActionSlot per Portal in den hier bereitgestellten Slot. React-Context —
-// und damit der DrawerTrigger — bleibt über das Portal hinweg erhalten. Der
-// Kontext umschließt sowohl den Seiteninhalt (die Aktions-Quelle) als auch das
-// Dock (das Slot-Ziel), damit das Portal aus dem Tab-Inhalt heraus funktioniert.
+// DockActionSlot per Portal in den Slot des Docks; React-Context bleibt über das
+// Portal hinweg erhalten. Der Kontext umschließt Seiteninhalt und Dock, damit
+// das Portal aus dem Tab-Inhalt heraus funktioniert.
 
 const DockSlotContext = createContext<HTMLElement | null>(null)
 
-// DockActionSlot rendert seine Kinder per Portal in den Aktions-Slot des Docks.
-// Solange der Slot noch nicht gemountet ist (erster Render), rendert es nichts.
 export function DockActionSlot({ children }: { children: React.ReactNode }) {
   const slot = use(DockSlotContext)
   if (slot === null) return null
   return createPortal(children, slot)
 }
 
-// Unterer Freiraum der Tab-Inhalte in Dock-Höhe (Aktionsbutton plus TabsList plus
-// Innenabstände), damit die letzte Zeile über dem fixierten Dock endet und
-// antippbar bleibt. Nur im Handy-Layout (unter lg) relevant; ab lg trägt die
-// Abschluss-Spalte den Button selbst.
+// Unterer Freiraum der Tab-Inhalte in Dock-Höhe, damit die letzte Zeile über dem
+// fixierten Dock endet und antippbar bleibt. Nur unter lg relevant.
 export const dockFreiraum = 'pb-[calc(9rem+env(safe-area-inset-bottom,0px))]'
 
 interface ServiceDockProps {
   // Seiteninhalt oberhalb des Docks (Tab-Inhalte). Er muss innerhalb des
   // Kontexts liegen, damit DockActionSlot aus ihm heraus portalen kann.
   children: React.ReactNode
-  // Inhalt der unteren Dock-Zeile (die TabsList); steht unter dem Aktions-Slot.
   leiste: React.ReactNode
 }
 

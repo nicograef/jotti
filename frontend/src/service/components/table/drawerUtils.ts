@@ -11,16 +11,12 @@ import type { Umbuchung } from '../../table/Umbuchung'
 import type { AuswahlPosition } from '../PositionAuswahlListe'
 import type { ReceiptPosition } from './Receipt'
 
-// quelleTitel liefert den menschenlesbaren Vorgangstitel für die Folge-Drawer
-// (Stornieren/Umbuchen): „Bestellung" bzw. für einen Umbuchungs-Zugang den
-// Richtungs-Autotext („Umbuchung von Tisch X"), wie in der Historien-Zeile.
+// Bei einem Umbuchungs-Zugang ist `kommentar` der Richtungs-Autotext
+// („Umbuchung von Tisch X") und damit der Vorgangstitel.
 export function quelleTitel(quelle: Bestellung | Umbuchung): string {
   return quelle.art === 'bestellung' ? 'Bestellung' : quelle.kommentar
 }
 
-// quelleZeitpunkt liefert den Erfassungszeitpunkt des Vorgangs für die
-// Folge-Drawer (Stornieren/Umbuchen): den Bestellzeitpunkt einer Bestellung
-// bzw. den Umbuchungszeitpunkt eines Umbuchungs-Zugangs.
 export function quelleZeitpunkt(quelle: Bestellung | Umbuchung): string {
   return quelle.art === 'bestellung' ? quelle.aufgenommenAm : quelle.umgebuchtAm
 }
@@ -35,8 +31,7 @@ interface AuswaehlbarePosition {
   menge: number
 }
 
-// toAuswahlPositionen bringt fachliche Positionen in die von PositionAuswahlListe
-// erwartete Form: die vorhandene Menge wird zur auswählbaren Obergrenze.
+// Die vorhandene Menge wird zur auswählbaren Obergrenze (maxMenge).
 export function toAuswahlPositionen(
   positionen: AuswaehlbarePosition[],
 ): AuswahlPosition[] {
@@ -70,13 +65,10 @@ export function calculateTotalPrice(
 }
 
 /**
- * Derives the cash change (Rückgeld) and tip (Trinkgeld) for a payment.
- *
- * The effective target amount is `zielbetragCents` when a Zielbetrag was
- * entered (> 0), otherwise the order total `gesamtCents`. Both values are only
- * returned when `gesamtCents <= effektiverZielbetrag <= erhaltenCents`;
- * otherwise (negative tip or too little cash) both are `null` so the caller
- * hides them. Trinkgeld is only reported when a Zielbetrag was entered.
+ * Effective target: `zielbetragCents` when entered (> 0), else `gesamtCents`.
+ * Both values are `null` (caller hides them) unless `erhaltenCents > 0` and
+ * `gesamtCents <= effektiverZielbetrag <= erhaltenCents`; Trinkgeld stays
+ * `null` without a Zielbetrag.
  */
 export function calculateZahlungsbetraege(
   gesamtCents: number,
@@ -102,10 +94,8 @@ export function calculateZahlungsbetraege(
 }
 
 /**
- * Two round-up suggestions (in cents) strictly above the order total, for the
- * tip chips: the smallest whole-Euro multiple and the smallest 5-Euro multiple
- * above `gesamtCents`. When both coincide (e.g. 4,50 € → both 5 €), the next
- * 5-Euro multiple replaces the duplicate so the two chips always differ.
+ * Two round-up suggestions above `gesamtCents`: the next whole Euro and the
+ * next 5 Euro; when both coincide the 5-Euro one advances so the chips differ.
  * Examples: 1230 → [1300, 1500]; 1300 → [1400, 1500]; 450 → [500, 1000].
  */
 export function aufrundenVorschlaege(gesamtCents: number): number[] {

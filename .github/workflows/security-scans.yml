@@ -27,15 +27,13 @@ on:
       - "go.work.sum"
       - ".github/workflows/security-scans.yml"
   schedule:
-    # Mondays 04:00 UTC, so new advisories are caught even without code
-    # changes touching the modules above.
+    # Mondays 04:00 UTC.
     - cron: "0 4 * * 1"
 
 # Least-privilege token; a job that needs more requests its scopes at job level.
 permissions:
   contents: read
 
-# Cancel superseded runs on rapid pushes to the same ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -58,10 +56,8 @@ jobs:
 
       - name: govulncheck
         working-directory: ./${{ matrix.module }}
-        # Fails (non-zero exit) when govulncheck finds vulnerabilities that
-        # are actually reachable from this module's code, matching the
-        # required "red on reachable findings" behaviour. Version pinned for
-        # reproducibility (same discipline as goimports/golangci-lint in ci.yml).
+        # govulncheck fails only on vulnerabilities reachable from this module's
+        # code; version pinned for reproducibility, like goimports in ci.yml.
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.5.0 ./...
 
   # windows/relay and windows/starter have zero dependencies (no go.sum), so
@@ -84,10 +80,8 @@ jobs:
 
       - name: govulncheck
         working-directory: ./${{ matrix.module }}
-        # Fails (non-zero exit) when govulncheck finds vulnerabilities that
-        # are actually reachable from this module's code, matching the
-        # required "red on reachable findings" behaviour. Version pinned for
-        # reproducibility (same discipline as goimports/golangci-lint in ci.yml).
+        # govulncheck fails only on vulnerabilities reachable from this module's
+        # code; version pinned for reproducibility, like goimports in ci.yml.
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.5.0 ./...
 
   vuln-scan-npm:
@@ -117,11 +111,8 @@ jobs:
       - name: pnpm audit (prod, high and above)
         run: pnpm audit --prod --audit-level high
 
-      # Informational only: full audit including dev dependencies (build
-      # tooling, test runners). Findings here never fail the job, but stay
-      # visible in the log so new advisories are noticed even though they
-      # don't block (e.g. shadcn CLI's transitive hono dependency, or
-      # jsdom/vitest's transitive undici dependency).
+      # Informational only: the full audit including dev dependencies never
+      # fails the job, but keeps new advisories visible in the log.
       - name: pnpm audit (full, informational)
         if: always()
         run: pnpm audit --audit-level high || true

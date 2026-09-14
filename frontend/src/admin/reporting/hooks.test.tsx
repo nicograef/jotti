@@ -19,8 +19,7 @@ const { exportDsfinvk } = vi.hoisted(() => ({
   exportDsfinvk: vi.fn<() => Promise<{ blob: Blob; filename: string }>>(),
 }))
 
-// hooks.ts baut sein Backend beim Import (`new ReportingBackend(...)`) — der
-// Ersatz muss deshalb konstruierbar sein.
+// hooks.ts baut sein Backend beim Import — der Ersatz muss konstruierbar sein.
 vi.mock('./ReportingBackend', () => ({
   ReportingBackend: class {
     exportDsfinvk = exportDsfinvk

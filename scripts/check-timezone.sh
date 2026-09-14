@@ -2,22 +2,11 @@
 set -euo pipefail
 
 # jotti — every printed, exported or served timestamp carries a deliberately
-# chosen zone. The containers run in UTC: a .Format() on a time value that does
-# not pass through .In(zone) shifts receipts, work slips, file names and reports
-# by up to two hours — and late in the evening by a day.
-#
-# Scanned are the tracked Go files (test files included, untracked files not)
-# under backend/api/druck, backend/api/fiskal and backend/api/reporting. Every
-# .Format() on a line is checked against the text since the previous .Format()
-# on that line, so a zone on the first call cannot shield a second one. The
-# check is line-based: no call chain there spans two lines, and one that did
-# would pass unnoticed. Pure comment lines (leading //) are skipped.
-#
-# Exceptions live in scripts/check-timezone.allow: per line the path, then a
-# fragment of the exempt code line (no spaces — the reason must be the third
-# field and start with "#"), then "# reason". An exception applies only to lines
-# containing that fragment; one that matches nothing turns the gate red and is
-# to be deleted.
+# chosen zone. The containers run in UTC: a .Format() that does not pass through
+# .In(zone) shifts receipts, work slips, file names and reports by up to two
+# hours — late in the evening by a day. The check is line-based: a zone on an
+# earlier .Format() of the same line does not shield a later one, but a call
+# chain spanning two lines would pass unnoticed. Pure comment lines are skipped.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -62,8 +51,7 @@ mapfile -t files < <(git ls-files \
 violations=0
 for file in "${files[@]}"; do
   # awk rather than grep: the decision needs the position of every .In( relative
-  # to every .Format( on the line, not just their presence. A line is reported
-  # once, at its first unzoned .Format().
+  # to every .Format( on the line. A line is reported at its first unzoned call.
   hits="$(awk '
     /^[[:space:]]*\/\// { next }
     {

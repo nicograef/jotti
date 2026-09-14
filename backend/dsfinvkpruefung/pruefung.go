@@ -1,18 +1,10 @@
-// Package dsfinvkpruefung prüft ein DSFinV-K-Export-ZIP eigenständig gegen die
-// Struktur- und Inhaltsregeln der DSFinV-K 2.4 und liefert eine Befundliste. Es
-// ist der Gegenspieler des Erzeugers (backend/api/fiskal/dsfinvk): der Erzeuger
-// baut das Archiv, diese Prüfung liest es zurück und stellt sicher, dass Paket,
-// Dateinamen, CSV-Format und index.xml/DTD-Struktur der Spezifikation entsprechen
-// und dass die Tabellen inhaltlich konsistent zusammenspielen (inhalt.go:
-// Storno-Referenzen, Kombi-Steueraufteilung, Bediener-, TSE- und
-// Abrechnungskreis-Felder).
+// Package dsfinvkpruefung prüft ein DSFinV-K-Export-ZIP gegen die Struktur- und
+// Inhaltsregeln der DSFinV-K 2.4 und liefert eine Befundliste.
 //
-// Die Prüfung ist bewusst unabhängig vom Erzeuger implementiert (eigener CSV- und
-// index.xml-Parser, eigene DTD-Regeln), damit ein Formatfehler im Erzeuger auch
-// dann auffällt, wenn beide dieselbe Konstante teilten. Sie führt keine
-// betragsmäßige Plausibilisierung durch — das leisten die Golden-File-Tests des
-// Erzeugers —, sondern die formale Paket- und Strukturkonformität sowie die
-// fachliche Konsistenz zwischen den Tabellen.
+// Bewusst unabhängig vom Erzeuger (backend/api/fiskal/dsfinvk) implementiert — eigener
+// CSV- und index.xml-Parser, eigene DTD-Regeln —, damit ein Formatfehler im Erzeuger
+// auch dann auffällt, wenn beide dieselbe Konstante teilten. Keine betragsmäßige
+// Plausibilisierung; die leisten die Golden-File-Tests des Erzeugers.
 //
 // Referenz: DSFinV-K 2.4 (docs/rechtsquellen/technik-spezifikationen/DSFinV-K-2.4).
 package dsfinvkpruefung
@@ -25,9 +17,8 @@ import (
 	"sort"
 )
 
-// Befund ist ein einzelner Struktur- oder Inhaltsverstoß. Datei ist die betroffene
-// Archivdatei (leer für paketweite Befunde), Regel benennt die verletzte Regel und
-// Meldung beschreibt den konkreten Verstoß.
+// Befund ist ein einzelner Struktur- oder Inhaltsverstoß; Datei ist die betroffene
+// Archivdatei und bleibt leer für paketweite Befunde.
 type Befund struct {
 	Datei   string
 	Regel   string
@@ -41,11 +32,9 @@ func (b Befund) String() string {
 	return fmt.Sprintf("[%s] %s: %s", b.Regel, b.Datei, b.Meldung)
 }
 
-// Prüfen liest das DSFinV-K-Export-ZIP (io.ReaderAt plus Größe) und prüft es
-// gegen die Struktur- und Inhaltsregeln der DSFinV-K 2.4. Rückgabe ist die
-// Befundliste; ein befundfreies (leeres) Ergebnis bedeutet: strukturell und
-// inhaltlich konform. Ein Fehler wird nur zurückgegeben, wenn das ZIP selbst
-// nicht lesbar ist (kein gültiges Archiv).
+// Pruefen prüft ein DSFinV-K-Export-ZIP (io.ReaderAt plus Größe) gegen die DSFinV-K 2.4.
+// Eine leere Befundliste bedeutet konform; einen Fehler gibt es nur, wenn das ZIP selbst
+// nicht lesbar ist.
 func Pruefen(r io.ReaderAt, size int64) ([]Befund, error) {
 	zr, err := zip.NewReader(r, size)
 	if err != nil {
@@ -54,15 +43,11 @@ func Pruefen(r io.ReaderAt, size int64) ([]Befund, error) {
 	return pruefeArchiv(zr)
 }
 
-// PruefenBytes ist der bequeme Einstieg für ein vollständig im Speicher liegendes
-// Archiv (der Regelfall in jotti: der Export erzeugt []byte). Delegiert an Prüfen.
+// PruefenBytes prüft ein im Speicher liegendes Archiv (der Export erzeugt []byte).
 func PruefenBytes(archiv []byte) ([]Befund, error) {
 	return Pruefen(bytes.NewReader(archiv), int64(len(archiv)))
 }
 
-// pruefeArchiv wendet alle Strukturregeln auf ein bereits geöffnetes Archiv an
-// und sammelt die Befunde. Reihenfolge: Paket (vorhandene Dateien, Dateinamen),
-// dann index.xml/DTD, dann je Tabelle die CSV-Struktur.
 func pruefeArchiv(zr *zip.Reader) ([]Befund, error) {
 	dateien := dateiInhalte(zr)
 
@@ -70,27 +55,18 @@ func pruefeArchiv(zr *zip.Reader) ([]Befund, error) {
 	befunde = append(befunde, pruefeDateinamen(dateien)...)
 	befunde = append(befunde, pruefePaketpflichtdateien(dateien)...)
 
-	// index.xml ist die deklarative Beschreibung; ihre DTD-Struktur bestimmt, welche
-	// Tabellen mit welchen Spalten das Archiv enthält. Ohne lesbare index.xml sind
-	// die CSV-Prüfungen gegenstandslos.
 	tabellen, indexBefunde := pruefeIndexXML(dateien[indexDatei])
 	befunde = append(befunde, indexBefunde...)
 
 	befunde = append(befunde, pruefeTabellenGegenIndex(dateien, tabellen)...)
 
-	// Nach der Struktur folgt die fachliche Inhaltsprüfung (inhalt.go): sie setzt
-	// auf denselben index.xml-getriebenen Tabellenschnitt und prüft das
-	// Zusammenspiel der Tabellen (Storno-Referenzen, Steueraufteilung, Bediener-,
-	// TSE- und Abrechnungskreis-Felder).
 	befunde = append(befunde, pruefeInhalt(dateien, tabellen)...)
 
 	return befunde, nil
 }
 
-// dateiInhalte liest alle regulären Archivdateien in eine Map Name -> Inhalt.
-// Verzeichniseinträge werden übersprungen. Ein Lesefehler einer einzelnen Datei
-// wird als leerer Inhalt geführt; die nachgelagerten Regeln melden dann den
-// strukturellen Mangel.
+// dateiInhalte liest alle regulären Archivdateien in eine Map Name -> Inhalt; ein
+// Lesefehler wird als leerer Inhalt geführt, die nachgelagerten Regeln melden den Mangel.
 func dateiInhalte(zr *zip.Reader) map[string][]byte {
 	out := make(map[string][]byte, len(zr.File))
 	for _, f := range zr.File {
@@ -105,8 +81,6 @@ func dateiInhalte(zr *zip.Reader) map[string][]byte {
 		data, err := io.ReadAll(rc)
 		_ = rc.Close()
 		if err != nil {
-			// Lesefehler (z. B. CRC-Fehler): keine partiell gelesenen Bytes
-			// führen, sondern wie ein fehlender Inhalt behandeln.
 			out[f.Name] = nil
 			continue
 		}
@@ -115,8 +89,7 @@ func dateiInhalte(zr *zip.Reader) map[string][]byte {
 	return out
 }
 
-// sortierteNamen liefert die Dateinamen einer Map in deterministischer Reihenfolge
-// (für stabile, reproduzierbare Befundlisten).
+// sortierteNamen sortiert die Dateinamen deterministisch (stabile Befundlisten).
 func sortierteNamen(dateien map[string][]byte) []string {
 	namen := make([]string, 0, len(dateien))
 	for name := range dateien {

@@ -8,9 +8,8 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-// ComputeNichtStornierteVerkaufPositionen replays a single Direktverkauf stream to compute all
-// positions that were sold but not yet cancelled. Used on-demand for stornierung validation
-// (there is no projection for Direktverkauf).
+// ComputeNichtStornierteVerkaufPositionen replays a single Direktverkauf stream on demand
+// (there is no projection for Direktverkauf) to the positions sold but not yet cancelled.
 func ComputeNichtStornierteVerkaufPositionen(events []e.Event) ([]Position, error) {
 	var nichtStorniert []Position
 
@@ -38,9 +37,8 @@ func ComputeNichtStornierteVerkaufPositionen(events []e.Event) ([]Position, erro
 	return nichtStorniert, nil
 }
 
-// DirektverkaufHistorieEintrag is the compact history of a single Direktverkauf (one row per sale),
-// derived by replaying the verkauf stream. OffenePositionen are the not-yet-cancelled positions
-// (the candidates for a stornierung); GesamtStorniertCents is the sum of all cancellations.
+// DirektverkaufHistorieEintrag is one Direktverkauf replayed from its stream.
+// OffenePositionen are the not-yet-cancelled positions — the candidates for a stornierung.
 type DirektverkaufHistorieEintrag struct {
 	VerkaufID            string
 	UserID               int
@@ -54,16 +52,14 @@ type DirektverkaufHistorieEintrag struct {
 	Stornierungen        []DirektverkaufStornierung
 }
 
-// DirektverkaufStornierung is one cancellation within a Direktverkauf, referenced by its
-// StornierungID so a Stornobeleg can be printed for it.
+// DirektverkaufStornierung is one cancellation within a Direktverkauf; its StornierungID
+// identifies the Stornobeleg that can be printed for it.
 type DirektverkaufStornierung struct {
 	StornierungID          string
 	StorniertAm            time.Time
 	GesamtStornierungCents int
 }
 
-// BuildDirektverkaufHistorieEintrag replays a single Direktverkauf stream (getaetigt + stornos)
-// into a compact history entry.
 func BuildDirektverkaufHistorieEintrag(events []e.Event) (DirektverkaufHistorieEintrag, error) {
 	eintrag := DirektverkaufHistorieEintrag{}
 

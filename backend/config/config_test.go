@@ -37,7 +37,6 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Port != 3000 {
 		t.Errorf("expected default port 3000, got %d", cfg.Port)
 	}
-	// Postgres defaults
 	if cfg.Postgres.Host != "localhost" {
 		t.Errorf("expected default Postgres host 'localhost', got %s", cfg.Postgres.Host)
 	}
@@ -47,7 +46,6 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Postgres.User != "admin" {
 		t.Errorf("expected default Postgres user 'admin', got %s", cfg.Postgres.User)
 	}
-	// POSTGRES_PASSWORD is required; it comes from the environment, not a default.
 	if cfg.Postgres.Password != validPGPassword {
 		t.Errorf("expected Postgres password %q, got %s", validPGPassword, cfg.Postgres.Password)
 	}
@@ -141,14 +139,11 @@ func TestLoad_NegativeValues(t *testing.T) {
 
 	cfg := Load()
 
-	// Should fallback to defaults due to validation (must be at least 1)
 	if cfg.Port != 3000 {
 		t.Errorf("expected fallback port 3000 for negative value, got %d", cfg.Port)
 	}
 }
 
-// baseValidConfig returns a Config whose secrets all pass validation, so a single
-// field can be perturbed per case.
 func baseValidConfig() Config {
 	return Config{
 		JWTSecret:  validJWTSecret,
@@ -167,7 +162,7 @@ func TestValidateSecrets_Rejects(t *testing.T) {
 	cases := []struct {
 		name    string
 		mutate  func(*Config)
-		wantVar string // error must name this variable
+		wantVar string
 	}{
 		{"empty JWT_SECRET", func(c *Config) { c.JWTSecret = "" }, "JWT_SECRET"},
 		{"empty RELAY_AUTH_TOKEN", func(c *Config) { c.RelayToken = "" }, "RELAY_AUTH_TOKEN"},
@@ -196,7 +191,6 @@ func TestValidateSecrets_Rejects(t *testing.T) {
 	}
 }
 
-// A secret exactly at the minimum length passes; one char shorter fails.
 func TestValidateSecrets_LengthBoundary(t *testing.T) {
 	atMin := strings.Repeat("x", MinSecretLength)
 	cfg := baseValidConfig()

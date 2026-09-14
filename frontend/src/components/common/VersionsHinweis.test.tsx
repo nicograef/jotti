@@ -18,11 +18,9 @@ vi.mock('@/hooks/use-versions-guard', () => ({
 
 vi.mock('@/lib/reload', () => ({ seiteNeuLaden: vi.fn() }))
 
-// Vitest verarbeitet kein CSS, Tailwind-Klassen bleiben im Test also
-// wirkungslos. Ohne diese eine Deklaration — genau die, die Tailwind für
-// `pointer-events-auto` erzeugt — könnte kein Test sehen, ob der Hinweis neben
-// einem offenen Modal noch bedienbar ist. Die Stapelreihenfolge selbst ist in
-// jsdom nicht prüfbar (kein Layout, kein Malen).
+// Vitest verarbeitet kein CSS. Ohne genau diese eine Deklaration — die, die
+// Tailwind für `pointer-events-auto` erzeugt — könnte kein Test sehen, ob der
+// Hinweis neben einem offenen Modal bedienbar bleibt.
 const tailwindErsatz = document.createElement('style')
 tailwindErsatz.textContent = '.pointer-events-auto { pointer-events: auto }'
 document.head.append(tailwindErsatz)
@@ -43,8 +41,6 @@ describe('VersionsHinweis', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  // Der Regelfall des Handshakes ist unsichtbar: Bei leerem Vorgangs-Register
-  // lädt die Seite sofort neu, und bis zum Entladen gibt es nichts zu erklären.
   it('bleibt während des Reloads aus', () => {
     guardState.versionsZustand = 'laedt'
 
@@ -61,13 +57,11 @@ describe('VersionsHinweis', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Der Server läuft mit einer anderen Version als diese Seite. Bitte den laufenden Vorgang abschließen oder verwerfen — danach lädt sich die Seite von selbst neu.',
     )
-    // Im Regelfall lädt die Seite von selbst; eine Schaltfläche wäre hier nur
-    // ignorierbar und damit wertlos.
+    // Eine Schaltfläche wäre hier wertlos: Die Seite lädt von selbst neu.
     expect(screen.queryByRole('button')).toBeNull()
   })
 
-  // Gebremst lädt dieser Client nicht mehr von selbst. Die Zusage „es lädt
-  // gleich von selbst neu" wäre dann schlicht gelogen.
+  // Gebremst lädt dieser Client nicht mehr von selbst; die Zusage wäre gelogen.
   it('verspricht gebremst kein automatisches Neuladen mehr', () => {
     guardState.versionsZustand = 'gebremst'
 
@@ -89,8 +83,7 @@ describe('VersionsHinweis', () => {
     expect(seiteNeuLaden).toHaveBeenCalledTimes(1)
   })
 
-  // Der Hinweis wartet auf das Abschließen oder Verwerfen des laufenden
-  // Vorgangs. Wäre er ein modaler Dialog, sperrte er genau die Bedienung aus,
+  // Wäre der Hinweis ein modaler Dialog, sperrte er genau die Bedienung aus,
   // auf die er wartet.
   it('lässt den laufenden Vorgang weiter bedienen und ist nicht wegklickbar', async () => {
     guardState.versionsZustand = 'wartet'
@@ -110,13 +103,10 @@ describe('VersionsHinweis', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument()
   })
 
-  // Mehrere der meldenden Vorgänge leben nur, solange ein Dialog oder Drawer
-  // offen ist — der Hinweis erscheint dort also zwangsläufig neben einem
-  // offenen Modal. Radix legt dann die ganze Seite außerhalb des Portals stumm
-  // (`body { pointer-events: none }`); ohne eigenen Stapelplatz wäre der
-  // einzige Ausweg aus dem gebremsten Zustand nicht zu treffen. Die Rollen-
-  // Abfrage braucht `hidden`, weil Radix denselben Teilbaum zusätzlich
-  // `aria-hidden` setzt.
+  // Der Hinweis erscheint zwangsläufig neben einem offenen Modal; Radix legt
+  // dann die Seite außerhalb des Portals still (`body { pointer-events: none }`).
+  // Die Rollen-Abfrage braucht `hidden`, weil Radix denselben Teilbaum
+  // zusätzlich `aria-hidden` setzt.
   it('bleibt gebremst auch neben einem offenen Modal bedienbar', async () => {
     guardState.versionsZustand = 'gebremst'
 

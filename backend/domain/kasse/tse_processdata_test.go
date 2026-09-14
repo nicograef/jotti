@@ -112,9 +112,8 @@ func TestBuildBestellungProcessData_CSVFormat(t *testing.T) {
 	}
 }
 
-// Rücknahmen (geldneutrale Korrektur, Umbuchungs-Abgang) tragen negative Mengen
-// (DSFinV-K Anhang I) — sonst wäre die Rücknahme TSE-seitig von einer
-// Neubestellung nicht unterscheidbar.
+// Rücknahmen (geldneutrale Korrektur, Umbuchungs-Abgang) tragen negative Mengen (DSFinV-K
+// Anhang I) — sonst wäre die Rücknahme TSE-seitig nicht von einer Neubestellung trennbar.
 func TestBuildBestellungProcessData_NegativeMengen(t *testing.T) {
 	positionen := []Position{
 		{ProduktName: "Bier", VarianteName: "0,5l", EinzelpreisCents: 450, Menge: 2},
@@ -132,8 +131,7 @@ func TestBuildBestellungProcessData_NegativeMengen(t *testing.T) {
 	}
 }
 
-// Nicht-positive Mengen sind ein Aufrufer-Fehler und werden hart gemeldet statt
-// still verschluckt (Vollständigkeit der TSE-Absicherung).
+// Nicht-positive Mengen sind ein Aufrufer-Fehler und werden hart gemeldet.
 func TestBuildBestellungProcessData_LehntNichtPositiveMengenAb(t *testing.T) {
 	positionen := []Position{
 		{ProduktName: "Bier", EinzelpreisCents: 450, Menge: 0},
@@ -163,7 +161,6 @@ func TestBuildGeldtransitProcessData_Einlage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	// Feld 5 (0 %, nicht steuerbar) trägt den Betrag und gleicht die Bar-Zahlung aus.
 	want := "Beleg^0.00_0.00_0.00_0.00_12.34^12.34:Bar"
 	if got != want {
 		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
@@ -198,7 +195,6 @@ func TestBuildEigenbelegProcessData(t *testing.T) {
 		{name: "negativer betrag", zahlbetragCents: -250, expected: "Beleg^0.00_0.00_0.00_0.00_-2.50^-2.50:Bar"},
 		{name: "zahlung 0.00 entfaellt", zahlbetragCents: 0, expected: "Beleg^0.00_0.00_0.00_0.00_0.00^"},
 		// Kassendifferenz: der Aufrufer übergibt die Bargeldbewegung (Ist − Soll).
-		// Ein Fehlbetrag mindert den Bestand (negativ), ein Überschuss mehrt ihn.
 		{name: "kassendifferenz fehlbetrag", zahlbetragCents: -100, expected: "Beleg^0.00_0.00_0.00_0.00_-1.00^-1.00:Bar"},
 		{name: "kassendifferenz ueberschuss", zahlbetragCents: 100, expected: "Beleg^0.00_0.00_0.00_0.00_1.00^1.00:Bar"},
 	}

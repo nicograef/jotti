@@ -33,8 +33,6 @@ import type { LiveReportingData } from './types'
 import { formatDatum, formatServicekraft, formatStand } from './utils'
 import { VerkaufStatistik } from './VerkaufStatistik'
 
-// Nach fünf Einträgen wird die Liste offener Tische gekürzt; „Alle n anzeigen"
-// blendet den Rest ein.
 const OFFENE_TISCHE_VORSCHAU = 5
 
 export function LiveReportingSection({
@@ -51,8 +49,8 @@ export function LiveReportingSection({
   statusZeile?: ReactNode
 }) {
   const [tischeAusgeklappt, setTischeAusgeklappt] = useState(false)
-  // Hero-Kennzahl zählt bei Refetch animiert; vor dem Laden fehlt liveData, der
-  // Hook startet dann bei 0 (Hook-Aufruf muss vor den frühen Returns stehen).
+  // Der Hook muss vor den frühen Returns stehen; vor dem Laden fehlt liveData,
+  // der Zähler startet dann bei 0.
   const heroUmsatz = useCountUp(liveData?.summary.gesamtUmsatzCents ?? 0)
 
   if (loading) {
@@ -83,8 +81,6 @@ export function LiveReportingSection({
 
   const summary = liveData.summary
   const servicekraefte = liveData.breakdowns.servicekraefte
-  // Storno-Aggregat der eingeklappten Storno-Zeile: dieselbe Team-Liste,
-  // beschränkt auf die Servicekräfte mit mindestens einem zugeordneten Storno.
   const stornoBetroffene = servicekraefte.filter(
     (sk) => sk.anzahlStornierungen > 0,
   )
@@ -120,10 +116,8 @@ export function LiveReportingSection({
 
       {statusZeile}
 
-      {/* Kennzahlen: Hero-Karte „Kassierter Umsatz" plus vier Nebenkarten */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
         <div className="relative flex flex-col gap-1.5 overflow-hidden rounded-xl bg-card p-5 shadow-xs ring-1 ring-foreground/10 col-span-2 lg:col-span-1">
-          {/* Dekorative Spektral-Kante als oberste Linie der Hero-Karte. */}
           <span
             aria-hidden
             className="absolute inset-x-0 top-0 h-0.5 bg-[image:var(--spectral)] opacity-60"
@@ -160,7 +154,6 @@ export function LiveReportingSection({
         />
       </div>
 
-      {/* Offene Tische und Team nebeneinander */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-xl border p-5">
           <div className="mb-3 flex items-baseline justify-between">
@@ -244,9 +237,6 @@ export function LiveReportingSection({
                           {tischNamen && ` (${tischNamen})`}
                         </span>
                       )}
-                      {/* Die Rücknahmen erklären den Abzug — eingeblendet nur,
-                          wenn es welche gibt, damit die mobile Zeile schlank
-                          bleibt. */}
                       {sk.ruecknahmenCents !== 0 && (
                         <span className="text-xs text-muted-foreground">
                           Kassiert {formatEuro(sk.kassiertCents)} · Rücknahmen{' '}
@@ -268,8 +258,7 @@ export function LiveReportingSection({
         </div>
       </div>
 
-      {/* Stornierungen: eingeklappte Zeile, Aufklappen zeigt die Detail-Liste.
-          Bewusst über der Produktstatistik — Stornos sind das Kontroll-Signal,
+      {/* Bewusst über der Produktstatistik: Stornos sind das Kontroll-Signal,
           das zuerst auffallen soll. */}
       {liveData.stornierungen.length > 0 && (
         <Collapsible>
@@ -313,7 +302,6 @@ export function LiveReportingSection({
         </Collapsible>
       )}
 
-      {/* Verkäufe pro Produkt: dieselbe Aufbereitung wie in der Abrechnung */}
       <div className="rounded-xl border p-5">
         <VerkaufStatistik produktStatistik={liveData.produktStatistik} />
       </div>

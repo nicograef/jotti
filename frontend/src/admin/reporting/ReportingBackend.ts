@@ -45,7 +45,6 @@ export class ReportingBackend {
     return response.kassensitzungen
   }
 
-  // exportDsfinvk lädt das DSFinV-K-Archiv der gewählten Kassensitzung herunter.
   // Ohne Nummer wählt das Backend die Standard-Sitzung.
   public async exportDsfinvk(
     kassensitzungNr: number | null,

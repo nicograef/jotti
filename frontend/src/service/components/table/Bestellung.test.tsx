@@ -12,8 +12,8 @@ import type { Tisch } from '../../table/Tisch'
 import { ServiceDock } from '../ServiceDock'
 import { Bestellung } from './Bestellung'
 
-// Der Bestell-Korb liegt seit A1 in TablePage; für die isolierten Komponenten-
-// Tests stellt dieser Harness die gehobene Steuerung bereit.
+// Der Bestell-Korb liegt in TablePage; für die isolierten Komponenten-Tests
+// stellt dieser Harness die gehobene Steuerung bereit.
 function BestellungHarness(
   props: Omit<ComponentProps<typeof Bestellung>, 'mengenSteuerung'>,
 ) {
@@ -123,11 +123,9 @@ describe('Bestellung Aktionsleiste', () => {
   })
 })
 
-// Der Wechsel zwischen Drawer- und Spaltenlayout ist einer der beiden realen
-// Auslöser für ein Zähler-Leck im Vorgangs-Register: Der harte
-// if(!isMobile)-Zweig tauscht ganze Teilbäume aus. Der Korb selbst liegt
-// darüber (in TablePage bzw. hier im Harness) und bleibt derselbe Vorgang — er
-// darf sich beim Wechsel weder ein zweites Mal melden noch stehen bleiben.
+// Der Layout-Wechsel tauscht über den harten if(!isMobile)-Zweig ganze Teilbäume
+// aus. Der Korb liegt darüber und bleibt derselbe Vorgang — er darf sich im
+// Vorgangs-Register weder ein zweites Mal melden noch stehen bleiben.
 describe('Bestellung im Vorgangs-Register', () => {
   it('meldet den Korb über einen Layout-Wechsel hinweg genau einmal', async () => {
     const user = userEvent.setup()
@@ -154,8 +152,6 @@ describe('Bestellung im Vorgangs-Register', () => {
     vi.mocked(useIsMobile).mockReturnValue(false)
     rerender(renderUi())
 
-    // Der Teilbaum ist getauscht (feste Abschluss-Spalte statt Drawer), der
-    // Korb steht weiterhin.
     expect(
       screen.getByRole('button', { name: 'Bestellung aufnehmen' }),
     ).toBeEnabled()

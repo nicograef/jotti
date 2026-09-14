@@ -31,8 +31,7 @@ const (
 	CorrelationIDKey ContextKey = "correlation_id"
 )
 
-// UserFromContext returns the authenticated user's ID and name from the request
-// context, as populated by NewJwtMiddleware. ok is false when no user ID is present.
+// UserFromContext reads what NewJwtMiddleware put into the request context.
 func UserFromContext(ctx context.Context) (userID int, userName string, ok bool) {
 	userID, ok = ctx.Value(UserIDKey).(int)
 	if !ok {
@@ -42,12 +41,11 @@ func UserFromContext(ctx context.Context) (userID int, userName string, ok bool)
 	return userID, userName, true
 }
 
-// CorrelationIDMiddleware adds a correlation ID to each request for tracing
 func CorrelationIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		correlationID := r.Header.Get("X-Correlation-ID")
 		if correlationID == "" {
-			correlationID = uuid.NewString()[:8] // Shorten UUID for brevity
+			correlationID = uuid.NewString()[:8]
 		}
 
 		w.Header().Set("X-Correlation-ID", correlationID)
@@ -57,7 +55,6 @@ func CorrelationIDMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// LoggingMiddleware logs HTTP requests with correlation ID
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now().UTC()
@@ -77,11 +74,10 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// RecoveryMiddleware fängt Panics aus Handlern ab: Der Request endet mit 500
-// im bestehenden Fehler-Response-Format statt mit einer abgerissenen Verbindung
-// (net/http würde nur die Verbindung schließen), der Stack landet im Log.
-// http.ErrAbortHandler wird durchgereicht — das ist das idiomatische Signal von
-// net/http, eine Response bewusst abzubrechen.
+// RecoveryMiddleware beendet einen Handler-Panic mit 500 im bestehenden
+// Fehler-Response-Format statt mit einer abgerissenen Verbindung (net/http würde
+// nur schließen). http.ErrAbortHandler wird durchgereicht — das ist net/https
+// idiomatisches Signal, eine Response bewusst abzubrechen.
 func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -104,20 +100,17 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// limiterEntry wraps a rate limiter with a last-seen timestamp for cleanup.
 type limiterEntry struct {
 	limiter  *rate.Limiter
 	lastSeen time.Time
 }
 
-// RateLimitMiddleware limits requests per IP address
 func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler {
 	var mu sync.Mutex
 	limiters := make(map[string]*limiterEntry)
 
-	// cleanup removes entries not seen for 10+ minutes. A panic is caught
-	// and logged instead of tearing down the process; the loop continues at
-	// the next interval.
+	// A panic here must not tear down the process; the loop continues at the next
+	// interval.
 	cleanup := func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -169,19 +162,17 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 	}
 }
 
-// clientIP bestimmt die Client-IP für das Rate-Limiting. jotti läuft produktiv
-// hinter dem eigenen Reverse-Proxy (Caddy), der die echte Client-IP als LETZTEN
-// Eintrag an X-Forwarded-For anhängt. Der ganze Header ist als Limiter-Key
-// ungeeignet: Ein Client kann beliebige eigene Einträge voranstellen und so für
-// jeden Request einen frischen Key erzeugen — nur der letzte (vom eigenen Proxy
-// gesetzte) Eintrag ist vertrauenswürdig. Ohne Header zählt RemoteAddr.
+// clientIP liefert den Limiter-Key. jotti läuft hinter dem eigenen
+// Reverse-Proxy (Caddy), der die echte Client-IP als LETZTEN X-Forwarded-For-
+// Eintrag anhängt; nur dieser ist vertrauenswürdig — ein Client kann eigene
+// Einträge voranstellen und sich so je Request einen frischen Key erzeugen.
+// Ohne Header zählt RemoteAddr.
 func clientIP(r *http.Request) string {
 	xff := r.Header.Get("X-Forwarded-For")
 	if xff == "" {
-		// RemoteAddr ist "IP:Port". Der ephemere Port wechselt je Verbindung und
-		// gehört NICHT in den Limiter-Key: sonst bekäme jede Verbindung desselben
-		// Clients einen frischen Limiter (das Limit greift nie, die Map wächst
-		// unbegrenzt). Nur die reine IP ist stabil.
+		// RemoteAddr ist "IP:Port": Der ephemere Port wechselt je Verbindung und
+		// gehört NICHT in den Limiter-Key — sonst greift das Limit nie und die Map
+		// wächst unbegrenzt.
 		if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 			return host
 		}
@@ -191,7 +182,6 @@ func clientIP(r *http.Request) string {
 	return strings.TrimSpace(parts[len(parts)-1])
 }
 
-// PostMethodOnlyMiddleware middleware ensures the request method is POST
 func PostMethodOnlyMiddleware(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := zerolog.Ctx(r.Context())
@@ -212,7 +202,6 @@ func PostMethodOnlyMiddleware(next http.Handler) http.HandlerFunc {
 	})
 }
 
-// responseWriter wraps http.ResponseWriter to capture status code
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
@@ -223,30 +212,23 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-// Unwrap gibt den umschlossenen ResponseWriter frei. http.ResponseController
-// sucht genau diese Methode, um an die Fähigkeiten des echten
-// net/http-ResponseWriters zu kommen (SetWriteDeadline, SetReadDeadline,
-// Flush): Das eingebettete Interface allein reicht sie NICHT weiter, weil sie
-// nicht zum Methodenset von http.ResponseWriter gehören. Ohne Unwrap
-// scheitert hinter dieser Middleware jeder Controller-Aufruf mit "feature not
-// supported" — und da LoggingMiddleware die gesamte Routenkette umschließt
-// (backend/app/app.go), beträfe das jeden Handler.
+// Unwrap gibt den umschlossenen ResponseWriter frei: http.ResponseController
+// sucht genau diese Methode, um an SetWriteDeadline, SetReadDeadline und Flush
+// des echten Writers zu kommen. Ohne Unwrap scheitert hinter dieser Middleware
+// jeder Controller-Aufruf mit "feature not supported" — und LoggingMiddleware
+// umschließt die gesamte Routenkette (backend/app/app.go).
 func (rw *responseWriter) Unwrap() http.ResponseWriter {
 	return rw.ResponseWriter
 }
 
-// UserGetter loads a user by ID; the JWT middleware uses it to verify that the
-// account behind a valid token is still active.
 type UserGetter interface {
 	GetUser(ctx context.Context, id int) (user.User, error)
 }
 
-// NewJwtMiddleware validates the JWT Token in the Authorization header.
-// If valid, it loads the user from the database and verifies status and role
-// against that fresh record: deactivated users lose access immediately and
-// role changes take effect on the next request, not at token expiry.
-// Authentication failures yield 401 (the frontend auto-logs-out on 401),
-// a valid but insufficiently privileged user yields 403.
+// NewJwtMiddleware validates the JWT and checks status and role against a fresh
+// database record: deactivated users lose access immediately, role changes take
+// effect on the next request instead of at token expiry. Authentication failures
+// yield 401, insufficient privileges 403.
 func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter) func(http.Handler) http.HandlerFunc {
 	return func(h http.Handler) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -290,8 +272,6 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 				return
 			}
 
-			// Authorization uses the role from the database record, not the token
-			// claim: a role change by an admin takes effect on the next request.
 			if !slices.Contains(allowedRoles, string(u.Role)) {
 				logger.Warn().Str("role", string(u.Role)).Msg("Insufficient permissions")
 				helper.SendForbidden(w, "insufficient_permissions", fmt.Sprintf("role %s is not allowed for this endpoint", u.Role))

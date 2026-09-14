@@ -1,9 +1,7 @@
 name: Fuzz
 
-# Runs the fuzz targets beyond their seed corpora (Makefile `fuzz`, 90s each).
-# Scheduled instead of per-PR: fuzzing is a background correctness net, not a
-# merge gate. workflow_dispatch allows an on-demand run (e.g. after touching
-# a fuzzed target).
+# Fuzz targets beyond their seed corpora (`make fuzz`, 90 s each). Scheduled,
+# not per-PR: fuzzing is a background correctness net, not a merge gate.
 on:
   schedule:
     - cron: "0 3 * * 1" # Weekly, Monday 03:00 UTC

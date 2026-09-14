@@ -12,23 +12,6 @@ import {
 } from '../lib/anfrage-mailto'
 import { installationUrl } from '../lib/links'
 
-// AnfrageFormular-Island der Seite /fuer-vereine (data-vereine-Formular).
-// Rendert die Formularfelder, validiert clientseitig über
-// src/lib/anfrage-mailto.ts, öffnet bei gültigem Absenden den vorbefüllten
-// mailto-Entwurf per JS-Navigation
-// (window.location.href — bewusst kein natives <form action="mailto:">, das
-// die Produktiv-CSP form-action 'self' blockt) und wechselt in einen ehrlichen
-// Erfolgs-State: der Entwurf ist geöffnet und muss noch gesendet werden. Der
-// Erfolgs-State zeigt zusätzlich Empfänger, Betreff und den vollen Mailtext
-// (aus buildAnfrageMail) in einem readOnly-Textfeld mit Kopieren-Button — für
-// Geräte ohne Mailprogramm oder wenn sich kein Entwurf öffnet.
-//
-// Fehler sind programmatisch verknüpft (aria-invalid + aria-describedby am
-// Feld) und werden zusätzlich über eine assertive Live-Region angekündigt. Die
-// Erfolgs-Animation nutzt die geteilte .demo-pop-Klasse aus landing.css, die
-// unter prefers-reduced-motion neutralisiert ist.
-
-// Gemeinsame Feld-Optik: Höhe, Radius, Rahmen, Fokus-Ring.
 const feldKlassen =
   'w-full rounded-[11px] border border-card-border bg-background px-3.5 text-[15px] text-foreground outline-none transition-colors focus:border-brand focus:ring-[3px] focus:ring-[color:var(--ring)]'
 
@@ -44,16 +27,12 @@ export default function AnfrageFormular() {
   const [felder, setFelder] = useState<AnfrageFelder>(leereFelder)
   const [fehler, setFehler] = useState<AnfrageFehler>({})
   const [gesendet, setGesendet] = useState(false)
-  // Text der Live-Region; bei fehlgeschlagenem Absenden angekündigt.
   const [ankuendigung, setAnkuendigung] = useState('')
-  // Zustand des Kopieren-Buttons im Erfolgs-State.
   const [kopieren, setKopieren] = useState<'idle' | 'kopiert' | 'fehler'>(
     'idle',
   )
 
   const formRef = useRef<HTMLFormElement>(null)
-  // Eindeutige Präfixe, damit mehrere Instanzen kollisionsfrei blieben und die
-  // aria-describedby-Verweise stabil sind.
   const uid = useId()
 
   function setFeld<K extends keyof AnfrageFelder>(
@@ -61,7 +40,6 @@ export default function AnfrageFormular() {
     value: AnfrageFelder[K],
   ) {
     setFelder((current) => ({ ...current, [key]: value }))
-    // Fehler des gerade bearbeiteten Felds sofort aufheben.
     if (key in fehler) {
       setFehler((current) => {
         const next = { ...current }
@@ -79,7 +57,6 @@ export default function AnfrageFormular() {
       setAnkuendigung(
         'Der E-Mail-Entwurf konnte nicht geöffnet werden. Bitte fülle die markierten Pflichtfelder aus.',
       )
-      // Fokus auf das erste fehlerhafte Feld.
       const erstesFeld = (['verein', 'name', 'email'] as const).find(
         (key) => gefunden[key],
       )
@@ -91,7 +68,8 @@ export default function AnfrageFormular() {
       return
     }
     setAnkuendigung('')
-    // JS-Navigation zum vorbefüllten Entwurf (kein form-action-Verstoß).
+    // JS-Navigation statt eines nativen <form action="mailto:">, das die
+    // Produktiv-CSP (form-action 'self') blockt.
     window.location.href = buildMailtoUrl(felder)
     setKopieren('idle')
     setGesendet(true)
@@ -230,7 +208,6 @@ export default function AnfrageFormular() {
         aria-hidden="true"
       ></div>
 
-      {/* Assertive Live-Region: kündigt fehlgeschlagenes Absenden an. */}
       <div role="alert" className="sr-only">
         {ankuendigung}
       </div>

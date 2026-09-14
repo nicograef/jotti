@@ -30,9 +30,8 @@ export function DirektverkaufPage() {
     refetch: reloadHistorie,
   } = useDirektverkaufHistorie()
 
-  // Erfolgs-Pop: Der abgeschlossene Verkauf und der Storno öffnen ihn mit ihrer
-  // Meldung (statt eines Erfolgs-Toasts). Der Refetch der Historie läuft erst
-  // beim Schließen, damit die Änderung dem Pop folgt.
+  // Der Refetch der Historie läuft erst beim Schließen des Pops, damit die
+  // Änderung dem Pop folgt.
   const [erfolg, setErfolg] = useState({ open: false, text: '' })
   const zeigeErfolg = useCallback((nachricht: string) => {
     setErfolg({ open: true, text: nachricht })
@@ -53,9 +52,8 @@ export function DirektverkaufPage() {
     </TabsList>
   )
 
-  // Beide Reiter tragen ihren Ladefehler selbst: eine leere Produktliste sähe
-  // sonst wie ein leeres Sortiment aus, eine leere Historie wie ein Tag ohne
-  // Verkäufe.
+  // Ladefehler je Reiter: eine leere Produktliste sähe wie ein leeres Sortiment
+  // aus, eine leere Historie wie ein Tag ohne Verkäufe.
   const verkaufenInhalt = produkteError ? (
     <LadefehlerAlert
       titel="Produkte konnten nicht geladen werden"
@@ -100,9 +98,8 @@ export function DirektverkaufPage() {
             </TabsContent>
           </ServiceDock>
         ) : (
-          // Höhenbegrenzte Flex-Spalte (Viewport minus Header und Content-
-          // Padding aus ServiceLayout); die Reiter-Höhe ergibt sich per Flex,
-          // der Split füllt via h-full den Rest und scrollt in seinen Spalten.
+          // Höhenbegrenzte Flex-Spalte: Viewport minus Header und Content-
+          // Padding aus ServiceLayout; der Split füllt via h-full den Rest.
           <div className="flex h-[calc(100dvh-5.5rem)] flex-col xl:h-[calc(100dvh-6.5rem)]">
             <div className="mb-4 max-w-md">{tabTrigger}</div>
             <TabsContent value="verkaufen" className="min-h-0 flex-1">

@@ -7,13 +7,11 @@ export const CLIENT_VERSION = __CLIENT_VERSION__
 const RELEASE_MUSTER = /^v[0-9]+\.[0-9]+\.[0-9]+([.+-].*)?$/
 
 /**
- * Meldet eine Versionsabweichung genau dann, wenn beide Seiten echte
- * Release-Versionen sind und sich unterscheiden.
- *
- * Alles andere schaltet den Vergleich still ab: In Dev, in E2E und in Tests
- * steht auf beiden Seiten der Default `dev` (oder `dev-<sha>`), und ein Client,
- * der gegen einen ungetaggten Server läuft, soll nicht dauernd melden, er sei
- * veraltet.
+ * Abweichung genau dann, wenn beide Seiten echte Release-Versionen sind und
+ * sich unterscheiden. Alles andere schaltet den Vergleich still ab: In Dev,
+ * E2E und Tests steht auf beiden Seiten der Default `dev` (oder `dev-<sha>`),
+ * und ein Client gegen einen ungetaggten Server soll sich nicht als veraltet
+ * melden.
  */
 export function istVersionsabweichung(
   clientVersion: string,

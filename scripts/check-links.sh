@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# jotti — every relative *.md path mentioned anywhere in the tracked tree
-# (a markdown link, a backtick code span, a plain path in a script or config
-# comment) must resolve to a real tracked file. Checked both relative to the
-# mentioning file and relative to the repo root, since docs cross-reference
-# each other by sibling path and ops scripts reference docs/ from the root.
+# jotti — every relative *.md path mentioned anywhere in the tracked tree must
+# resolve to a real tracked file. Checked both relative to the mentioning file
+# and to the repo root: docs cross-reference each other by sibling path, ops
+# scripts reference docs/ from the root.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -22,7 +21,6 @@ LINK_RE='[^]"'"'"'`()<>[*[:space:]]+\.md'
 # Same source and exceptions as scripts/check-prose.sh.
 mapfile -t files < <(git ls-files \
   ':(glob,exclude)CHANGELOG.md' \
-  ':(glob,exclude)docs/adrs/**' \
   ':(glob,exclude)docs/plans/**' \
   ':(glob,exclude)docs/rechtsquellen/**' \
   ':(glob,exclude)database/migrations/**' \
@@ -35,8 +33,8 @@ mapfile -t files < <(git ls-files \
   ':(glob,exclude)**/pnpm-lock.yaml' \
   ':(glob,exclude)**/go.sum')
 
-# Allowlist: one path per line, an optional trailing "# reason". A listed
-# file is skipped entirely (same granularity as scripts/check-prose.allow).
+# Allowlist: one path per line, an optional trailing "# reason"; a listed file is
+# skipped entirely.
 mapfile -t allowed < <(
   [ -f "$ALLOWLIST" ] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST" | awk '{print $1}'
 )
@@ -53,9 +51,8 @@ for file in "${files[@]}"; do
   is_allowed_file "$file" && continue
   dir="$(dirname "$file")"
   while IFS=: read -r lineno raw; do
-    # Drop a leading "@" (CLAUDE.md's `@AGENTS.md` import syntax). LINK_RE
-    # already stops the match at ".md", so raw never carries a trailing
-    # anchor or sentence punctuation to strip.
+    # Drop a leading "@" (CLAUDE.md's `@AGENTS.md` import syntax). LINK_RE stops
+    # the match at ".md", so nothing trailing needs stripping.
     link="${raw#@}"
     [ -z "$link" ] && continue
     case "$link" in

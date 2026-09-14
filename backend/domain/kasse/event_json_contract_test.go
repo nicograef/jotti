@@ -7,19 +7,16 @@ import (
 	"testing"
 )
 
-// The event payloads are stored as JSONB and the reporting layer reads individual
-// keys straight from that JSON — see the kj_extract_* SQL functions in
-// database/migrations/01_initial.up.sql, sqlc/queries/reporting.sql, and the
-// position parsing in repository/reporting_repo. A struct-tag rename here would
-// break those queries silently (no compile error), so these tests pin both the
-// JSON keys and specific field values for every event type.
+// Event payloads are stored as JSONB and the reporting layer reads single keys straight from
+// that JSON — the kj_extract_* SQL functions in database/migrations/01_initial.up.sql,
+// sqlc/queries/reporting.sql, and the position parsing in repository/reporting_repo. A
+// struct-tag rename would break those queries silently (no compile error), so these tests
+// pin the JSON keys and field values of every event type.
 //
-// Obligation: whenever a new EventType constant is added, (1) add it to
-// allEventTypes below, (2) write a TestEventContract_* function for it, and
-// (3) add it to contractedTypes in TestEventContract_AllTypesPinned.
+// A new EventType needs an entry in allEventTypes, a TestEventContract_* function, and an
+// entry in contractedTypes in TestEventContract_AllTypesPinned.
 
-// allEventTypes is the canonical list of all event types in the domain.
-// Must be kept in sync with the EventType constants across *_events.go files.
+// allEventTypes must stay in sync with the EventType constants across the *_events.go files.
 var allEventTypes = []EventType{
 	EventTypeBestellungAufgenommenV1,
 	EventTypeZahlungKassiertV1,
@@ -35,8 +32,7 @@ var allEventTypes = []EventType{
 	EventTypeDirektverkaufStorniertV1,
 }
 
-// TestEventContract_AllTypesPinned ensures every known event type has a frozen
-// JSON contract test. Fails when a new EventType is added without an entry here.
+// Fails when a new EventType is added without a frozen contract test.
 func TestEventContract_AllTypesPinned(t *testing.T) {
 	contractedTypes := map[EventType]bool{
 		EventTypeBestellungAufgenommenV1:    true,
@@ -63,9 +59,8 @@ func TestEventContract_AllTypesPinned(t *testing.T) {
 	}
 }
 
-// TestEventContract_SQLLiterals verifies that the EventType Go constants match the
-// SQL string literals used in the kj_extract_* functions in 01_initial.up.sql.
-// A mismatch would make the SQL silently return NULL instead of the expected amount.
+// The EventType constants must match the SQL literals in the kj_extract_* functions
+// (01_initial.up.sql); a mismatch makes the SQL silently return NULL.
 func TestEventContract_SQLLiterals(t *testing.T) {
 	checks := []struct {
 		constant EventType
@@ -88,10 +83,9 @@ func TestEventContract_SQLLiterals(t *testing.T) {
 	}
 }
 
-// TestEventContract_GeldtransitRichtung pins the "einlage"/"entnahme" string
-// literals used by kj_extract_geldtransit_cents in 01_initial.up.sql (D10).
-// Prüft sowohl den JSON-Key-Namen als auch den exakten Wert gegenüber den
-// Domain-Konstanten, damit Wert-Drift gegenüber den SQL-Literalen auffällt.
+// Pins the "einlage"/"entnahme" literals used by kj_extract_geldtransit_cents in
+// 01_initial.up.sql — both the JSON key and the exact value, so value drift against the SQL
+// literals shows up.
 func TestEventContract_GeldtransitRichtung(t *testing.T) {
 	for _, richtung := range []string{GeldtransitRichtungEinlage, GeldtransitRichtungEntnahme} {
 		d := GeldtransitGebuchtV1Data{Richtung: richtung}
@@ -118,8 +112,6 @@ func TestEventContract_GeldtransitRichtung(t *testing.T) {
 	}
 }
 
-// --- helpers ---
-
 func unmarshalJSON(t *testing.T, src string, dst any) {
 	t.Helper()
 	if err := json.Unmarshal([]byte(src), dst); err != nil {
@@ -134,9 +126,8 @@ func assertField(t *testing.T, label string, got, want any) {
 	}
 }
 
-// assertJSONKeyPresent marshals v and checks that jsonKey is present in the output.
-// Schützt gegen stille Tag-Umbenennung bei Feldern, die im Literal mit Zero-Value
-// gepinnt sind (z. B. kommentar: "") — ein fehlendes JSON-Tag wäre sonst unsichtbar.
+// assertJSONKeyPresent guards against a silent tag rename on fields pinned with a zero value
+// (e.g. kommentar: "") — a missing json tag would otherwise be invisible.
 func assertJSONKeyPresent(t *testing.T, v any, jsonKey string) {
 	t.Helper()
 	raw, err := json.Marshal(v)
@@ -152,10 +143,8 @@ func assertJSONKeyPresent(t *testing.T, v any, jsonKey string) {
 	}
 }
 
-// assertJSONKeyAbsent marshals v and checks that jsonKey is NOT present in the
-// output. Sichert die Byte-Identität eines additiven omitempty-Feldes ab: ein Event
-// ohne Benutzerkommentar darf den Key nicht enthalten, sonst wiche es vom heutigen
-// Format ab.
+// assertJSONKeyAbsent secures the byte identity of the additive omitempty field: an event
+// without benutzerKommentar must not carry the key.
 func assertJSONKeyAbsent(t *testing.T, v any, jsonKey string) {
 	t.Helper()
 	raw, err := json.Marshal(v)
@@ -171,8 +160,8 @@ func assertJSONKeyAbsent(t *testing.T, v any, jsonKey string) {
 	}
 }
 
-// positionLiteral is the frozen position JSON used by each event contract test.
-// Changing any key here means the corresponding SQL or frontend schema must also change.
+// positionLiteral is the frozen position JSON. Changing a key here means changing the
+// corresponding SQL and frontend schema too.
 const positionLiteral = `{
 	"positionId":       "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 	"varianteId":       7,
@@ -194,8 +183,6 @@ func assertPosition(t *testing.T, p PositionEventData) {
 	assertField(t, "produktName", p.ProduktName, "Cola")
 	assertField(t, "varianteName", p.VarianteName, "0,5l")
 }
-
-// --- frozen contract tests per event type ---
 
 func TestEventContract_BestellungAufgenommenV1(t *testing.T) {
 	const lit = `{
@@ -301,8 +288,7 @@ func TestEventContract_BestellungUmgebuchtV1(t *testing.T) {
 		t.Errorf("alt event without benutzerKommentar rejected by schema: %v", err)
 	}
 
-	// Ein Alt-Event (ohne benutzerKommentar) serialisiert byte-identisch zum
-	// heutigen Format: omitempty lässt den Key bei Leerstring weg.
+	// Ohne benutzerKommentar bleibt die Serialisierung byte-identisch (omitempty).
 	altData := BestellungUmgebuchtV1Data{
 		UmbuchungID:  "55555555-5555-4555-8555-555555555555",
 		QuellTischID: 3,
@@ -313,7 +299,6 @@ func TestEventContract_BestellungUmgebuchtV1(t *testing.T) {
 	}
 	assertJSONKeyAbsent(t, altData, "benutzerKommentar")
 
-	// Ein Event mit benutzerKommentar pinnt das additive Feld unter seinem JSON-Key.
 	const litMitBenutzer = `{
 		"umbuchungId":       "55555555-5555-4555-8555-555555555555",
 		"quellTischId":      3,

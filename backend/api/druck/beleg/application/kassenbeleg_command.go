@@ -133,14 +133,9 @@ const (
 	BelegStatusAusstehend BelegStatus = "ausstehend"
 )
 
-// tseAbschnittFuerBeleg löst den TSE-Abschnitt eines Belegs über die
-// Signaturstatus-Funktion auf — die einzige Implementierung des
-// Ausfallbegriffs. Vier Ergebnisarten: Signatur vorhanden (Abschnitt aus den
-// Signaturspalten des Auftrags), vorhanden mit Nachsigniert-Kennzeichen
-// (verspätete Signatur), Ausfall mit belegbarem Grund (Beleg ohne TSE-Daten,
-// aber mit Ausfallvermerk) oder ausstehend (kein Druckauftrag, die UI fasst
-// nach). Kein Auftrag heisst: nicht signaturpflichtig, Beleg ohne
-// TSE-Abschnitt und ohne Vermerk.
+// tseAbschnittFuerBeleg löst den TSE-Abschnitt über tse.DetermineSignaturstatus
+// auf — die einzige Implementierung des Ausfallbegriffs. Kein Signaturauftrag
+// heisst: nicht signaturpflichtig, Beleg ohne TSE-Abschnitt und ohne Vermerk.
 func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventID int) (abschnitt *escpos.TSEAbschnitt, vermerk escpos.TSEBelegvermerk, ausstehend bool, err error) {
 	stand, err := c.TSERepo.GetSignaturauftragZuEvent(ctx, eventID)
 	if errors.Is(err, db.ErrNotFound) {
@@ -171,10 +166,9 @@ func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventID int) (abschn
 	}
 }
 
-// vermerkFuerAusfall wählt den Beleg-Hinweis nach dem Ausfallgrund: fehlende
-// TSE-Konfiguration (endgültiger Auftragsstatus oder keine_konfiguration-
-// Störung) trägt „keine TSE konfiguriert" und wird nicht nachsigniert; jeder
-// andere Ausfall (vorübergehende Nichterreichbarkeit) wird nachsigniert.
+// vermerkFuerAusfall: fehlende TSE-Konfiguration wird nicht nachsigniert und
+// trägt „keine TSE konfiguriert"; jeder andere Ausfall (vorübergehende
+// Nichterreichbarkeit) wird nachsigniert.
 func vermerkFuerAusfall(ausfallGrund string) escpos.TSEBelegvermerk {
 	if ausfallGrund == tse.StatusTSENichtKonfiguriert || ausfallGrund == tse.StoerungGrundKeineKonfiguration {
 		return escpos.TSEVermerkKeineKonfiguration
@@ -182,7 +176,6 @@ func vermerkFuerAusfall(ausfallGrund string) escpos.TSEBelegvermerk {
 	return escpos.TSEVermerkVoruebergehend
 }
 
-// negierePositionen flips the EinzelpreisCents sign so a Stornobeleg shows negative amounts.
 func negierePositionen(positionen []kasse.Position) []kasse.Position {
 	out := make([]kasse.Position, 0, len(positionen))
 	for _, pos := range positionen {
@@ -192,9 +185,8 @@ func negierePositionen(positionen []kasse.Position) []kasse.Position {
 	return out
 }
 
-// negiereAufteilungen flips the sign of all Steuermatrix amounts for a Stornobeleg.
-// steuer.Aufteilen ignores negative Brutto, so the matrix is computed from the positive
-// amounts and negated afterwards (same approach as the faktor in the TSE-processData).
+// steuer.Aufteilen ignores negative Brutto: the matrix is computed from the
+// positive amounts and negated afterwards (like the faktor in the TSE-processData).
 func negiereAufteilungen(aufteilungen []steuer.Aufteilung) []steuer.Aufteilung {
 	out := make([]steuer.Aufteilung, 0, len(aufteilungen))
 	for _, aufteilung := range aufteilungen {
@@ -206,11 +198,6 @@ func negiereAufteilungen(aufteilungen []steuer.Aufteilung) []steuer.Aufteilung {
 	return out
 }
 
-// KassenbelegDruckenCommand ist die typisierte Beleg-Anforderung. Aus den
-// gesetzten Feldern leitet KassenbelegDrucken die vier Beleg-Body-Formen ab
-// (Tisch-Zahlung, Tisch-Warenrücknahme, Direktverkauf, Direktverkauf-Storno) —
-// diese Auswahl liegt damit allein in der Application-Schicht; der HTTP-Handler
-// liest und validiert die Anfrage nur noch und delegiert.
 type KassenbelegDruckenCommand struct {
 	TischID       int
 	ZahlungID     string
@@ -218,9 +205,6 @@ type KassenbelegDruckenCommand struct {
 	StornierungID string
 }
 
-// belegQuelle bündelt die aus dem Quell-Event aufgelösten Beleg-Daten, die
-// KassenbelegDrucken für TSE-Auflösung, Formatierung und Enqueue braucht.
-// Genau eine resolve…-Funktion je Beleg-Form füllt das Struct.
 type belegQuelle struct {
 	Event                    event.Event
 	Positionen               []kasse.Position
@@ -244,11 +228,6 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 		return "", err
 	}
 
-	// Sofortantwort statt Warten: Liegt die Signatur des Vorgangs noch nicht am
-	// Auftrag und ist kein Ausfall dokumentiert, entsteht kein Druckauftrag —
-	// die UI fasst über denselben Endpunkt nach, bis der Signatur-Worker
-	// quittiert hat. Bei dokumentiertem Ausfall entsteht der Beleg ohne
-	// TSE-Daten, weist den Ausfall aber aus.
 	tseAbschnitt, tseVermerk, ausstehend, err := c.tseAbschnittFuerBeleg(ctx, quelle.Event.ID)
 	if err != nil {
 		log.Error().Err(err).Int("event_id", quelle.Event.ID).Msg("Failed to resolve TSE section for kassenbeleg")
@@ -323,9 +302,6 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 	return BelegStatusEingereiht, nil
 }
 
-// resolveBelegQuelle wählt anhand der gesetzten Command-Felder die Beleg-Form
-// und delegiert an die passende resolve…-Funktion (Direktverkauf-Storno,
-// Tisch-Storno, Direktverkauf, Tisch-Zahlung).
 func (c Command) resolveBelegQuelle(ctx context.Context, ks *kasse.Kassensitzung, cmd KassenbelegDruckenCommand) (belegQuelle, error) {
 	switch {
 	case cmd.VerkaufID != "" && cmd.StornierungID != "":
@@ -339,9 +315,6 @@ func (c Command) resolveBelegQuelle(ctx context.Context, ks *kasse.Kassensitzung
 	}
 }
 
-// resolveDirektverkaufStornobeleg löst den Stornobeleg eines Direktverkaufs auf:
-// negativer Betrag, Referenz auf das Storno-Event, StornoZuBelegnummer auf den
-// ursprünglichen Verkaufsbeleg.
 func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, verkaufID, stornierungID string) (belegQuelle, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -382,9 +355,7 @@ func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.
 	}, nil
 }
 
-// resolveTischStornobeleg löst den Tisch-Storno-Beleg (Warenrücknahme) auf:
-// negativer Betrag, Referenz auf das Storno-Event, StornoZuBelegnummer auf den
-// ursprünglichen Zahlungsbeleg — analog zum Direktverkauf-Storno-Beleg.
+// resolveTischStornobeleg löst den Tisch-Storno-Beleg (Warenrücknahme) auf.
 func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, tischID int, stornierungID string) (belegQuelle, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -425,7 +396,6 @@ func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensi
 	}, nil
 }
 
-// resolveDirektverkaufBeleg löst den Kassenbeleg eines Direktverkaufs auf.
 func (c Command) resolveDirektverkaufBeleg(ctx context.Context, ks *kasse.Kassensitzung, verkaufID string) (belegQuelle, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -454,8 +424,6 @@ func (c Command) resolveDirektverkaufBeleg(ctx context.Context, ks *kasse.Kassen
 	}, nil
 }
 
-// resolveTischZahlungsbeleg löst den Kassenbeleg einer Tisch-Zahlung auf und
-// trägt zusätzlich den Zeitpunkt der ersten Bestellung aus der Projektion.
 func (c Command) resolveTischZahlungsbeleg(ctx context.Context, ks *kasse.Kassensitzung, tischID int, zahlungID string) (belegQuelle, error) {
 	log := zerolog.Ctx(ctx)
 

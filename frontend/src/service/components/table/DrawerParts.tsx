@@ -11,9 +11,7 @@ import type { Bestellung } from '../../table/Bestellung'
 import type { Umbuchung } from '../../table/Umbuchung'
 import { quelleTitel, quelleZeitpunkt } from './drawerUtils'
 
-// QuelleDrawerHeader rendert den gemeinsamen Kopf der Folge-Drawer
-// (Stornieren/Umbuchen): Vorgangstitel · Zeitpunkt · Benutzer. Die
-// drawer-spezifische Beschreibung kommt als children.
+// children ist die drawer-spezifische Beschreibung unter dem Kopf.
 export function QuelleDrawerHeader({
   quelle,
   children,
@@ -32,8 +30,7 @@ export function QuelleDrawerHeader({
   )
 }
 
-// GesamtZeile rendert die fette Summenzeile mit Trennlinie am Fuß der
-// Abschluss-/Folge-Drawer. betrag ist in Cent.
+// betrag ist in Cent.
 export function GesamtZeile({
   label,
   betrag,

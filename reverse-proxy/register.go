@@ -7,10 +7,9 @@ import (
 	"strings"
 )
 
-// registerWithACMEDNS registriert eine neue Installation bei acme-dns
-// (POST <baseURL>/register) und liefert die ausgegebenen Credentials. acme-dns
-// vergibt dabei eine zufällige UUID-Subdomain — sie wird zur Install-ID. Der
-// Aufruf ist offen (kein Auth); die Antwort wird einmalig persistiert.
+// registerWithACMEDNS registriert eine Installation bei acme-dns
+// (POST <baseURL>/register). Die vergebene UUID-Subdomain wird zur Install-ID; der
+// Aufruf ist offen (kein Auth).
 func registerWithACMEDNS(client *http.Client, baseURL string) (InstallState, error) {
 	url := strings.TrimRight(strings.TrimSpace(baseURL), "/") + "/register"
 	resp, err := client.Post(url, "application/json", nil)

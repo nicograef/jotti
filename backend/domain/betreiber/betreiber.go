@@ -15,17 +15,15 @@ type Betreiber struct {
 	Ort          string
 	Steuernummer *string
 	UstID        *string
-	// ElsterGemeldetAm ist das Datum der ELSTER-Kassenmeldung (§ 146a Abs. 4 AO)
-	// oder nil, solange die Kasse noch nicht gemeldet wurde. Es wird nicht über
-	// den Konstruktor gesetzt, sondern über die dedizierten Meldungs-Befehle.
+	// ElsterGemeldetAm ist das Datum der ELSTER-Kassenmeldung (§ 146a Abs. 4 AO),
+	// nil solange ungemeldet; gesetzt nur über die Meldungs-Befehle, nie im Konstruktor.
 	ElsterGemeldetAm *time.Time
 	UpdatedAt        time.Time
 }
 
-// Die amtlichen Maximallängen der Betreiber-Felder in den DSFinV-K-Stammdaten
-// (2.4, index.xml: NAME 60, STRASSE 60, PLZ 10, ORT 62, STNR 20, USTID 15). Sie
-// zählen Zeichen, nicht Bytes; der Export in api/fiskal/dsfinvk misst mit
-// denselben Konstanten.
+// Amtliche Maximallängen der Betreiber-Felder in den DSFinV-K-Stammdaten (2.4,
+// index.xml: NAME 60, STRASSE 60, PLZ 10, ORT 62, STNR 20, USTID 15). Sie zählen
+// Zeichen, nicht Bytes; api/fiskal/dsfinvk misst mit denselben Konstanten.
 const (
 	MaxLengthVereinsname  = 60
 	MaxLengthStrasse      = 60
@@ -53,11 +51,10 @@ func maxRunes(n int) z.BoolTFunc[*string] {
 	}
 }
 
-// Jedes Feld-Schema trimmt; danach fängt Min(1) einen Wert aus reinen
-// Leerzeichen, Required das leere Feld (zog prüft Required vor den
-// Transformationen). Die vier Pflichtfelder sind per Definition required —
-// Aufrufstellen nutzen sie direkt und rufen `.Required()` nie erneut auf (zog
-// mutiert den Empfänger in place).
+// Jedes Feld-Schema trimmt; Min(1) fängt reine Leerzeichen, Required das leere
+// Feld (zog prüft Required vor den Transformationen). Aufrufstellen nutzen die
+// Schemas direkt und rufen `.Required()` nie erneut auf — zog mutiert den
+// Empfänger in place.
 var VereinsnameSchema = z.String().Trim().
 	Min(1, z.Message(vereinsnameErforderlich)).
 	TestFunc(maxRunes(MaxLengthVereinsname), z.Message("Vereinsname zu lang")).
@@ -86,12 +83,11 @@ var SteuernummerSchema = z.String().Trim().
 var UstIDSchema = z.String().Trim().
 	TestFunc(maxRunes(MaxLengthUstID), z.Message("USt-IdNr. zu lang"))
 
-// betreiberSchema prüft ausschließlich, ob die Stammdaten gefüllt sind: Validate
-// läuft über Daten aus der Datenbank und ist das Gate vor dem Eröffnen einer
-// Kassensitzung. Darum trägt es keine Obergrenzen — die Spalten sind TEXT, ein
-// Bestandswert kann länger sein als die amtliche Maximallänge, und eine Grenze
-// hier sperrte die Kasse. Die Grenzen gelten auf dem Schreibweg (NewBetreiber);
-// der DSFinV-K-Export kürzt, was Bestandsdaten mitbringen.
+// betreiberSchema prüft nur, ob die Stammdaten gefüllt sind: es ist das Gate vor
+// dem Eröffnen einer Kassensitzung und läuft über Datenbankwerte. Keine
+// Obergrenzen — die Spalten sind TEXT, ein zu langer Bestandswert sperrte sonst
+// die Kasse. Grenzen gelten auf dem Schreibweg (NewBetreiber), der
+// DSFinV-K-Export kürzt.
 var betreiberSchema = z.Struct(z.Shape{
 	"Vereinsname":  z.String().Min(1, z.Message(vereinsnameErforderlich)).Required(),
 	"Strasse":      z.String().Min(1, z.Message(strasseErforderlich)).Required(),
@@ -111,10 +107,9 @@ func (b Betreiber) Validate() error {
 }
 
 func NewBetreiber(vereinsname, strasse, plz, ort string, steuernummer, ustId *string) (Betreiber, error) {
-	// Jedes Feld wird einzeln gegen sein Schema geprüft: Das trimmt den Wert in
-	// der lokalen Variablen, bevor er in die Struktur geht (zog schreibt die
-	// Transformation über den Zeiger zurück). Die optionalen Felder werden über
-	// eine Kopie geprüft, damit der Wert des Aufrufers unverändert bleibt.
+	// zog schreibt die Trim-Transformation über den Zeiger zurück; die optionalen
+	// Felder werden darum über eine Kopie geprüft, damit der Wert des Aufrufers
+	// unverändert bleibt.
 	if issue := VereinsnameSchema.Validate(&vereinsname); issue != nil {
 		return Betreiber{}, fmt.Errorf("invalid vereinsname")
 	}

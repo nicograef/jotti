@@ -119,10 +119,8 @@ func TestUpdateTSEKonfigurationHandler_PartialValuesRejected(t *testing.T) {
 	}
 }
 
-// TestUpdateTSEKonfigurationHandler_LaeuftBereits sichert, dass auch der
-// manuelle Zugangsdaten-Pfad als 409 ankommt: Er teilt sich das Schloss auf der
-// TSE-Konfiguration mit Neuanlage und Übernahme, und die Seite bietet ihn
-// direkt unter dem Wizard an.
+// Auch der manuelle Zugangsdaten-Pfad kommt als 409 an: Er teilt sich das Schloss
+// auf der TSE-Konfiguration mit Neuanlage und Übernahme.
 func TestUpdateTSEKonfigurationHandler_LaeuftBereits(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{err: application.ErrTSESetupLaeuftBereits}}
 
@@ -198,8 +196,6 @@ func TestRichteTSEEinHandler_InvalidUmgebung(t *testing.T) {
 	}
 }
 
-// TestRichteTSEEinHandler_BereitsEingerichtet sichert die Übersetzung des
-// Sentinels in den verständlichen Fehlercode für die UI.
 func TestRichteTSEEinHandler_BereitsEingerichtet(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{einrichtErr: application.ErrTSEBereitsEingerichtet}}
 
@@ -304,8 +300,6 @@ func TestUebernimmTSEHandler_FehlendeTssID(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSEHandler_UnbekanntePIN sichert die Übersetzung der
-// Sackgassen-Meldung in den verständlichen Fehlercode für die UI.
 func TestUebernimmTSEHandler_UnbekanntePIN(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupPINUnbekannt}}
 
@@ -324,8 +318,6 @@ func TestUebernimmTSEHandler_UnbekanntePIN(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSEHandler_UnbekannterPUK sichert die Übersetzung des
-// PUK-Reset-Fehlers in den verständlichen Fehlercode für die UI.
 func TestUebernimmTSEHandler_UnbekannterPUK(t *testing.T) {
 	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupPUKUnbekannt}}
 

@@ -2,9 +2,8 @@ package tse
 
 import "time"
 
-// Signatur ist die abgeschlossene TSE-Signatur eines Vorgangs, wie sie der
-// Signatur-Worker am Signaturauftrag quittiert. Beleg und DSFinV-K-Export
-// lesen genau diese eine Quelle.
+// Signatur ist die abgeschlossene TSE-Signatur, die der Signatur-Worker am
+// Signaturauftrag quittiert. Beleg und DSFinV-K-Export lesen nur diese Quelle.
 type Signatur struct {
 	TransaktionNummer int
 	SignaturZaehler   int

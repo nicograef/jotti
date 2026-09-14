@@ -234,9 +234,8 @@ func TestRichteTSEEin_FalscheZugangsdaten(t *testing.T) {
 	}
 }
 
-// TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInTest sichert F2: in TEST darf der
-// Admin trotz vorhandener (hier INITIALIZED) TSS bewusst eine zweite, frische
-// TSE anlegen, wenn er die Sperre per Flag übergeht.
+// In TEST darf der Admin trotz vorhandener (hier INITIALIZED) TSS bewusst eine
+// zweite, frische TSE anlegen, wenn er die Sperre per Flag übergeht.
 func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInTest(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
@@ -416,10 +415,9 @@ func TestUebernimmTSE_VorhandenerPassenderClient(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSE_EinsatzbereitOhnePIN sichert F8: eine INITIALIZED TSS mit
-// bereits REGISTERED Client ist einsatzbereit. Die Übernahme gelingt mit leerer
-// PIN, ohne dass AuthentifiziereAdmin aufgerufen wird (keine fiskaly-Mutation);
-// es wird nur die Konfiguration gespeichert.
+// Eine INITIALIZED TSS mit bereits REGISTERED Client ist einsatzbereit: die
+// Übernahme gelingt mit leerer PIN, ohne AuthentifiziereAdmin (keine
+// fiskaly-Mutation); gespeichert wird nur die Konfiguration.
 func TestUebernimmTSE_EinsatzbereitOhnePIN(t *testing.T) {
 	seriennummer := uuid.New()
 	vorhandenerClient := uuid.NewString()
@@ -453,8 +451,7 @@ func TestUebernimmTSE_EinsatzbereitOhnePIN(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSE_DeregistrierterClientReaktiviert sichert die F7-Heilung: ein
-// passender, aber DEREGISTERED Client wird mit der PIN reaktiviert (derselbe
+// Ein passender, aber DEREGISTERED Client wird mit der PIN reaktiviert (derselbe
 // client_id, kein neuer Client) statt still als fertig gewertet zu werden.
 func TestUebernimmTSE_DeregistrierterClientReaktiviert(t *testing.T) {
 	seriennummer := uuid.New()
@@ -509,9 +506,8 @@ func TestUebernimmTSE_DeregistrierterClientBrauchtPIN(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSE_InitialisiertOhneClientBrauchtPIN sichert, dass eine
-// INITIALIZED TSS ohne passenden Client weiterhin die PIN verlangt (Registrierung
-// ist privilegiert) — die F8-Lockerung greift nur bei fertigem Client.
+// Eine INITIALIZED TSS ohne passenden Client verlangt weiterhin die PIN
+// (Registrierung ist privilegiert) — die Lockerung greift nur bei fertigem Client.
 func TestUebernimmTSE_InitialisiertOhneClientBrauchtPIN(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{
@@ -699,8 +695,6 @@ func TestUebernimmTSE_DeaktivierteTSS(t *testing.T) {
 	}
 }
 
-// stammdatenAntwort ist die fiskaly-Stammdaten-Antwort für die
-// Persistenz-Tests des DSFinV-K-Exports.
 func stammdatenAntwort() tse.TSSStammdaten {
 	return tse.TSSStammdaten{
 		Seriennummer:        "abcdef1234567890abcdef1234567890",
@@ -748,10 +742,9 @@ func TestRichteTSEEin_PersistiertStammdaten(t *testing.T) {
 	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
 }
 
-// TestUebernimmTSE_EinsatzbereitPersistiertStammdaten sichert, dass die
-// Stammdaten-Persistenz am gemeinsamen Speicher-Schritt hängt, nicht am
-// Anlage-Lebenszyklus: selbst die F8-Übernahme einer einsatzbereiten TSS (ohne
-// jede privilegierte fiskaly-Operation) zieht die Stammdaten nach.
+// Die Stammdaten-Persistenz hängt am gemeinsamen Speicher-Schritt, nicht am
+// Anlage-Lebenszyklus: selbst die Übernahme einer einsatzbereiten TSS (ohne jede
+// privilegierte fiskaly-Operation) zieht die Stammdaten nach.
 func TestUebernimmTSE_EinsatzbereitPersistiertStammdaten(t *testing.T) {
 	seriennummer := uuid.New()
 	vorhandenerClient := uuid.NewString()

@@ -120,15 +120,9 @@ export function EditTischDialog(props: EditTischDialogProps) {
 
         <DialogFooter className="mt-4 sm:justify-between">
           {hatSaldo ? (
-            // Löschen ist gesperrt, solange der Tisch einen offenen Saldo trägt
-            // (das Backend erzwingt es zusätzlich als Single Source of Truth).
-            // Die Begründung steht als stets sichtbare Zeile — auf den
-            // Touch-Handys gibt es kein Hover für einen Tooltip.
+            // Löschen ist gesperrt, solange der Tisch einen offenen Saldo
+            // trägt; das Backend erzwingt es zusätzlich.
             <div className="space-y-1">
-              {/* Dauerhaft deaktiviert: nutzt das gemeinsame Disabled-Token der
-                  Primäraktion (neutrale Fläche + AA-Text) statt einer
-                  hand-gerollten text-destructive-Abblendung. Der aktive
-                  Löschen-Einstieg (rot) steht im else-Zweig. */}
               <Button className="w-full sm:w-auto" disabled>
                 <Trash2 /> Tisch löschen
               </Button>

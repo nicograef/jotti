@@ -1,19 +1,6 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 
-// FAQ-Accordion der Landing (#faq).
-// Neun Items, single-open: das Öffnen eines Items schließt das zuvor offene.
-// Disclosure-Pattern nach WAI-ARIA — jede Frage ist ein <button> mit
-// aria-expanded und aria-controls, das Antwort-Panel eine per aria-labelledby
-// benannte Region, im geschlossenen Zustand über das hidden-Attribut aus dem
-// Accessibility-Baum genommen. Das Plus-Icon rotiert im offenen Zustand zu einem
-// × (transform: rotate(45deg)). Statischer Sektionskopf liegt in Faq.astro; nur
-// die Liste ist eine Island.
-//
-// Die Installations-Antwort ist auf die reale Auslieferung abgestimmt (ZIP mit
-// Starter + Docker Desktop, Leitfaden führt durch) — konsistent mit dem
-// Download-Bereich.
-
 interface FaqItem {
   q: string
   a: string
@@ -59,9 +46,8 @@ const faqs: FaqItem[] = [
 ]
 
 export default function FaqAccordion() {
-  // Single-open: Index des offenen Items, -1 wenn alle geschlossen. Standard
-  // offen ist das erste Item (Referenz 09-light/04-dark) — im SSR-HTML ist so
-  // die erste Antwort auch ohne JavaScript sichtbar.
+  // Index des offenen Items, -1 = alle geschlossen. Das erste ist offen, damit
+  // die erste Antwort im SSR-HTML auch ohne JavaScript sichtbar ist.
   const [open, setOpen] = useState(0)
 
   return (

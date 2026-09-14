@@ -18,21 +18,6 @@ import {
   type DemoState,
 } from '../lib/live-demo'
 
-// Live-Demo-Island (#demo).
-// Der einzige UI-Nachbau der App auf der ganzen Seite. Die gesamte Logik
-// (Warenkorb, Summen in Cent, Auto-Skript, Stopp, Reset) liegt UI-frei in
-// src/lib/live-demo.ts; diese Komponente rendert nur den Zustand und liefert
-// Timing (setTimeout) und Viewport-Trigger (IntersectionObserver, 25 %).
-//
-// Auto-Demo: startet einmalig beim Hereinscrollen, läuft mit den Timings aus
-// live-demo.ts und stoppt dauerhaft bei jeder manuellen Interaktion. Unter
-// prefers-reduced-motion startet keine Auto-Demo und es laufen keine
-// Animationen — die manuelle Bedienung bleibt voll funktionsfähig.
-//
-// Phone-Rahmen: wiederverwendete Phase-3-Klassen (.hero-phone / -notch /
-// -screen); .demo-phone hält das Telefon ruhig (siehe landing.css).
-
-// Nummerierte Erklärschritte der linken Spalte (rein statisch, dekorativ).
 const explainSteps: { accent: string; title: string; text: string }[] = [
   {
     accent: 'var(--sp-red)',
@@ -69,8 +54,8 @@ export default function LiveDemo() {
   const phoneRef = useRef<HTMLDivElement>(null)
   const startedRef = useRef(false)
 
-  // Auto-Demo startet einmalig, sobald das Telefon zu 25 % im Viewport ist.
-  // Unter reduced-motion wird kein Observer angelegt — keine Auto-Demo.
+  // Startet einmalig ab 25 % Sichtbarkeit; unter reduced-motion kein Observer
+  // und damit keine Auto-Demo.
   useEffect(() => {
     if (reducedMotion) return
     const element = phoneRef.current
@@ -90,8 +75,8 @@ export default function LiveDemo() {
     return () => observer.disconnect()
   }, [reducedMotion])
 
-  // Treibt den laufenden Auto-Ablauf: pro (autoStatus, step) genau ein Timer mit
-  // der Schritt-Wartezeit; runNextStep ist no-op, falls inzwischen gestoppt.
+  // Pro (autoStatus, step) genau ein Timer; runNextStep ist no-op, falls
+  // inzwischen gestoppt.
   useEffect(() => {
     if (reducedMotion || state.autoStatus !== 'running') return
     const timer = setTimeout(() => {
@@ -112,7 +97,6 @@ export default function LiveDemo() {
 
   return (
     <div className="grid items-center gap-14 nav:grid-cols-2">
-      {/* Textspalte */}
       <div>
         <p className="eyebrow">Live-Demo</p>
         <h2 className="font-brand mt-3 text-[length:var(--fs-h2)] leading-[1.06] font-bold tracking-[-0.025em]">
@@ -159,12 +143,10 @@ export default function LiveDemo() {
         </button>
       </div>
 
-      {/* Telefonspalte */}
       <div className="flex justify-center">
         <div ref={phoneRef} className="hero-phone demo-phone">
           <div className="hero-phone-notch" aria-hidden="true"></div>
           <div className="hero-phone-screen flex flex-col">
-            {/* App-Kopf */}
             <div className="flex shrink-0 items-center justify-between gap-2.5 border-b border-card-border bg-background px-[18px] pt-4 pb-3">
               <div className="flex min-w-0 items-center gap-2.5">
                 <img
@@ -193,7 +175,6 @@ export default function LiveDemo() {
               </div>
             </div>
 
-            {/* Kategorie-Pills (dekorativ) */}
             <div
               className="flex shrink-0 gap-2 px-[18px] pt-3 pb-1.5"
               aria-hidden="true"
@@ -206,7 +187,6 @@ export default function LiveDemo() {
               </span>
             </div>
 
-            {/* Produktliste */}
             <div className="flex-1 overflow-y-auto px-[18px] pt-2 pb-3.5">
               {demoMenu.map((product) => (
                 <div key={product.name} className="mt-3">
@@ -272,7 +252,6 @@ export default function LiveDemo() {
               ))}
             </div>
 
-            {/* Warenkorb-Leiste */}
             <div className="shrink-0 border-t border-card-border bg-background px-4 pt-3 pb-4">
               <button
                 type="button"
@@ -288,7 +267,6 @@ export default function LiveDemo() {
               </button>
             </div>
 
-            {/* Kassieren-Overlay mit Erfolgsanimation */}
             {state.paid && (
               <div
                 role="status"

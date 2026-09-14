@@ -8,8 +8,8 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-// TischSession represents the projected state of a table session, derived from applying events.
-// Zero-value represents a table session with no events (Saldo 0, empty lists).
+// TischSession is the projected state of a table session; the zero value is a session
+// without events (Saldo 0, empty lists).
 type TischSession struct {
 	Subject                string
 	TischID                int
@@ -22,7 +22,6 @@ type TischSession struct {
 	LastEventVersion       int
 }
 
-// ApplyEvent applies a single domain event to the current TischSession and returns the new state.
 func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 	switch evt.Type {
 	case string(EventTypeBestellungAufgenommenV1):
@@ -48,9 +47,8 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		state.UnbezahltePositionen = unbezahlt
 
 	case string(EventTypeStornierungErteiltV1):
-		// Kassenwirksame Warenrücknahme bezahlter Positionen: der offene Betrag bleibt
-		// unverändert (die Positionen waren bereits bezahlt, also nicht Teil des Saldos),
-		// die Bar-Rückgabe mindert die am Tisch vereinnahmten Zahlungen.
+		// Warenrücknahme bezahlter Positionen: der offene Betrag bleibt unverändert (sie
+		// waren bereits bezahlt), die Bar-Rückgabe mindert die vereinnahmten Zahlungen.
 		var data StornierungErteiltV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal stornierung data: %w", err)
@@ -58,8 +56,6 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		state.GesamtZahlungenCents -= data.GesamtStornierungCents
 
 	case string(EventTypeBestellungKorrigiertV1):
-		// Geldneutrale Korrektur unbezahlter Positionen: reduziert den offenen Betrag
-		// und nimmt die Positionen aus Unbezahlt.
 		var data BestellungKorrigiertV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal korrektur data: %w", err)
@@ -81,16 +77,14 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		}
 		positionen := fromPositionenEventData(data.Positionen)
 		if tischID == data.QuellTischID {
-			// Abgang: die Positionen verlassen den Quelltisch (geldneutral je System,
-			// der Quell-Saldo sinkt).
+			// Abgang: die Positionen verlassen den Quelltisch.
 			unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, positionen)
 			if err != nil {
 				return state, fmt.Errorf("umbuchung %s: %w", evt.Subject, err)
 			}
 			state.UnbezahltePositionen = unbezahlt
 		} else {
-			// Zugang: die Positionen kommen auf den Zieltisch, wie eine frische
-			// Bestellung (Saldo steigt, Positionen sind unbezahlt).
+			// Zugang: wie eine frische Bestellung auf dem Zieltisch.
 			neuePositionen := tagBesteller(positionen, evt.UserID, evt.UserName)
 			state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, neuePositionen)
 
@@ -101,13 +95,10 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		return state, fmt.Errorf("unknown event type: %s", evt.Type)
 	}
 
-	// SaldoCents ist der noch offene Betrag am Tisch und damit vollständig aus
-	// UnbezahltePositionen abgeleitet (Σ EinzelpreisCents × Menge). Statt ihn in
-	// jedem positions-ändernden Arm getrennt fortzuschreiben, wird er hier einmal
-	// aus den Positionen berechnet — die einzige Quelle der Wahrheit. Arme, die die
-	// Positionen unverändert lassen (z. B. Stornierung), lassen den Saldo damit
-	// unverändert. GesamtZahlungenCents bleibt ein echter Akkumulator (nicht
-	// ableitbar) und wird oben je Arm fortgeschrieben.
+	// SaldoCents ist vollständig aus UnbezahltePositionen abgeleitet (Σ EinzelpreisCents ×
+	// Menge) und wird deshalb hier einmal berechnet statt in jedem Arm fortgeschrieben.
+	// GesamtZahlungenCents ist ein echter Akkumulator (nicht ableitbar) und wird oben je
+	// Arm fortgeschrieben.
 	state.SaldoCents = saldoAusPositionen(state.UnbezahltePositionen)
 
 	state.LastEventID = evt.ID
@@ -116,8 +107,6 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 	return state, nil
 }
 
-// saldoAusPositionen berechnet den offenen Saldo als Summe aus EinzelpreisCents ×
-// Menge über alle unbezahlten Positionen.
 func saldoAusPositionen(positionen []Position) int {
 	saldo := 0
 	for _, pos := range positionen {
@@ -126,10 +115,9 @@ func saldoAusPositionen(positionen []Position) int {
 	return saldo
 }
 
-// setErsteBestellungLogTime stempelt den Zeitpunkt der ersten Bestellung auf den
-// Tisch, sofern noch nicht gesetzt. AEAO 1.14.3: Das Aufzeichnungssystem stellt
-// den Zeitpunkt (die TSE-Signatur entsteht asynchron über den Signaturauftrag).
-// Eine Umbuchung auf einen leeren Zieltisch zählt wie eine erste Bestellung.
+// setErsteBestellungLogTime stempelt den Zeitpunkt der ersten Bestellung, sofern noch nicht
+// gesetzt (AEAO 1.14.3: Das Aufzeichnungssystem stellt den Zeitpunkt, die TSE-Signatur
+// entsteht asynchron). Eine Umbuchung auf einen leeren Zieltisch zählt als erste Bestellung.
 func setErsteBestellungLogTime(state *TischSession, eventTime time.Time) {
 	if state.ErsteBestellungLogTime != nil {
 		return
@@ -139,9 +127,8 @@ func setErsteBestellungLogTime(state *TischSession, eventTime time.Time) {
 	state.ErsteBestellungLogTime = &logTime
 }
 
-// ComputeNichtStorniertePositionen replays events to compute all positions that were ordered
-// but not yet cancelled. It is a seed helper: its only non-test caller is the seed engine,
-// which uses the list to pick realistic positions to storniere.
+// ComputeNichtStorniertePositionen replays events to the positions that were ordered but
+// not yet cancelled. Seed helper: its only non-test caller is the seed engine.
 func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 	var nichtStorniert []Position
 
@@ -169,9 +156,6 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 			nichtStorniert = reduceByPosition(nichtStorniert, fromPositionenEventData(data.Positionen))
 
 		case string(EventTypeBestellungUmgebuchtV1):
-			// Abgang entfernt die umgebuchten Positionen vom Quelltisch, Zugang fügt
-			// sie dem Zieltisch hinzu — wie eine Bestellung. Welche Seite hier vorliegt,
-			// folgt aus dem Tisch des Subjects.
 			var data BestellungUmgebuchtV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal umbuchung data: %w", err)
@@ -198,10 +182,8 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 	return nichtStorniert, nil
 }
 
-// tagBesteller stamps the ordering Servicekraft (from the event envelope) onto
-// each freshly ordered position. Payment/cancellation keep the tag via the
-// position ID in reduceByPositionStrict.
-// Returns a copy — the caller's slice is not modified.
+// tagBesteller stamps the ordering Servicekraft (from the event envelope) onto each freshly
+// ordered position. Returns a copy — the caller's slice is not modified.
 func tagBesteller(positionen []Position, userID int, userName string) []Position {
 	out := make([]Position, len(positionen))
 	copy(out, positionen)
@@ -233,10 +215,9 @@ func accumulatePositionen(list []Position, positionen []Position) []Position {
 	return out
 }
 
-// reduceByPosition subtracts positions from a list, removing entries when quantity reaches zero.
-// Fehlende Positionen und Überreduktionen werden toleriert — nur für Listen verwenden, in denen
-// das fachlich vorkommt (die On-Demand-Rücknahmeliste in ComputeNichtStorniertePositionen:
-// eine Position kann bereits umgebucht worden sein).
+// reduceByPosition subtracts positions from a list, removing entries at quantity zero.
+// Missing positions and over-reductions are tolerated — only use it where that is legitimate
+// (ComputeNichtStorniertePositionen: a position may already have been moved away).
 // Works on a clone of list so the caller's backing array is never modified.
 func reduceByPosition(list []Position, reductions []Position) []Position {
 	out := make([]Position, len(list))
@@ -256,10 +237,9 @@ func reduceByPosition(list []Position, reductions []Position) []Position {
 	return out
 }
 
-// reduceByPositionStrict subtracts positions from a list and fails on inconsistencies:
-// Eine Reduktion, die keine Position trifft oder die verfügbare Menge übersteigt, meldet
-// einen Fehler statt still zu kappen — sie wäre das Symptom eines durchgerutschten
-// Doppel-Writes (OCC-Verletzung) und darf die Projektion nicht unbemerkt verfälschen.
+// reduceByPositionStrict subtracts positions and fails on inconsistencies: a reduction that
+// hits no position or exceeds the available Menge is the symptom of a slipped double write
+// (OCC violation) and must not silently falsify the projection.
 // Works on a clone of list so the caller's backing array is never modified.
 func reduceByPositionStrict(list []Position, reductions []Position) ([]Position, error) {
 	out := make([]Position, len(list))

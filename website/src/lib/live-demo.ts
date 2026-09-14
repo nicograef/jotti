@@ -1,11 +1,7 @@
-// UI-freies Logik-Modul der Live-Demo (#demo) der Landing.
-// Kapselt Warenkorb (Menge je Variante), Summenbildung in Cent, den
-// Auto-Demo-Ablauf als deterministische Schrittfolge, den permanenten Stopp
-// bei manueller Interaktion und den Reset. Kein DOM, keine Timer, keine React-
-// Abhängigkeit — die LiveDemo-Island (src/components/LiveDemo.tsx) rendert
-// diesen Zustand und liefert Timing (setTimeout) und Viewport-Trigger.
-//
-// Geldregel des Projekts: Beträge sind immer int in Cent, niemals Floats.
+// UI-freie Logik der Live-Demo (#demo). Kein DOM, keine Timer, keine
+// React-Abhängigkeit — Timing und Viewport-Trigger liefert
+// src/components/LiveDemo.tsx.
+// Beträge sind immer int in Cent, niemals Floats (Projektregel).
 
 export interface DemoVariant {
   id: number
@@ -18,7 +14,6 @@ export interface DemoProduct {
   variants: DemoVariant[]
 }
 
-// Demo-Menü: Bier 0,5 l / 0,3 l, Weinschorle, Bratwurst, Pommes.
 export const demoMenu: readonly DemoProduct[] = [
   {
     name: 'Bier',
@@ -51,8 +46,7 @@ export function variantPriceCents(id: number): number {
   return priceByVariantId.get(id) ?? 0
 }
 
-// ---- Warenkorb (Menge je Variante) ----
-
+// Menge je Varianten-Id.
 export type Cart = Readonly<Record<number, number>>
 
 export const emptyCart: Cart = {}
@@ -81,19 +75,15 @@ export function cartCount(cart: Cart): number {
   return Object.values(cart).reduce((sum, qty) => sum + qty, 0)
 }
 
-// Deutsche Betragsformatierung aus Cent, z. B. 1450 -> "14,50 €" (geschütztes
-// Leerzeichen vor dem Euro-Zeichen wie im Prototyp, damit Betrag und Zeichen
-// nicht umbrechen).
+// Cent → „14,50 €" mit geschütztem Leerzeichen, damit Betrag und Zeichen nicht
+// umbrechen.
 export function formatEuro(cents: number): string {
   return `${(cents / 100).toFixed(2).replace('.', ',')}\u00A0€`
 }
 
-// ---- Auto-Demo als deterministische Schrittfolge ----
-
 export type DemoStep =
   { action: 'add'; variantId: number } | { action: 'pay' } | { action: 'reset' }
 
-// Auto-Ablauf: Bratwurst, 2× Bier 0,5 l, Pommes -> Kassieren -> Reset.
 // Endsumme vor dem Kassieren: 350 + 400 + 400 + 300 = 1450 Cent = 14,50 €.
 export const demoScript: readonly DemoStep[] = [
   { action: 'add', variantId: 4 },
@@ -113,10 +103,7 @@ export function stepDelayMs(index: number): number {
   return index === 0 ? 700 : 820
 }
 
-// ---- Zustandsautomat der gesamten Demo ----
-
-// idle: noch nicht gestartet · running: Auto-Demo läuft · stopped: dauerhaft
-// aus (manuelle Interaktion) · done: Skript vollständig abgespielt.
+// stopped = dauerhaft aus nach manueller Interaktion; done = Skript abgespielt.
 export type AutoStatus = 'idle' | 'running' | 'stopped' | 'done'
 
 export interface DemoState {
@@ -148,17 +135,15 @@ function applyStep(state: DemoState, step: DemoStep): DemoState {
   }
 }
 
-// Startet die Auto-Demo nur aus dem Ruhezustand. Nach manuellem Stopp
-// (stopped) oder Abschluss (done) bleibt sie dauerhaft aus — auch wenn die
-// Sektion erneut in den Viewport scrollt.
+// Nur aus `idle`: nach Stopp oder Abschluss startet auch ein erneuter
+// Viewport-Trigger nichts.
 export function startAuto(state: DemoState): DemoState {
   if (state.autoStatus !== 'idle') return state
   return { ...state, autoStatus: 'running', step: 0 }
 }
 
-// Führt den nächsten Auto-Schritt aus. No-op, wenn die Auto-Demo nicht läuft
-// (spiegelt den `if (!demoAuto) return`-Guard des Prototyps): ein noch
-// ausstehender Timer richtet nach einem manuellen Stopp keinen Schaden an.
+// No-op, wenn die Demo nicht läuft: ein noch ausstehender Timer richtet nach
+// einem manuellen Stopp keinen Schaden an.
 export function runNextStep(state: DemoState): DemoState {
   if (state.autoStatus !== 'running') return state
   const step = demoScript[state.step]
@@ -171,7 +156,6 @@ export function runNextStep(state: DemoState): DemoState {
   }
 }
 
-// Manuelle Interaktionen stoppen die Auto-Demo dauerhaft.
 export function manualAdd(state: DemoState, id: number): DemoState {
   return {
     ...state,
@@ -193,8 +177,7 @@ export function manualPay(state: DemoState): DemoState {
   return { ...state, paid: true, autoStatus: 'stopped' }
 }
 
-// „Demo neu abspielen": setzt den Warenkorb zurück und startet die Auto-Demo
-// erneut — der einzige Weg zurück in den running-Zustand nach einem Stopp.
+// Einziger Weg zurück in `running` nach einem Stopp.
 export function replay(): DemoState {
   return { cart: emptyCart, paid: false, autoStatus: 'running', step: 0 }
 }

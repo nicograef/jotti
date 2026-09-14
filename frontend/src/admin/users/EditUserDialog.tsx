@@ -33,9 +33,8 @@ interface EditUserDialogProps {
   backend: Pick<UserBackend, 'updateUser'>
   open: boolean
   user: User
-  // Das eigene Konto: Die Rolle bleibt dann gesperrt, weil eine Herabstufung
-  // den letzten Admin ohne Datenbankzugriff aussperrt. Das Backend lehnt sie
-  // zusätzlich mit `cannot_demote_self` ab.
+  // Beim eigenen Konto bleibt die Rolle gesperrt: eine Herabstufung sperrte den
+  // letzten Admin aus. Das Backend lehnt sie zusätzlich mit cannot_demote_self ab.
   isSelf: boolean
   updated: (user: User) => void
   close: () => void

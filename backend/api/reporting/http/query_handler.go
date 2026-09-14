@@ -79,10 +79,8 @@ type breakdownsResponse struct {
 	AbrechnungProServicekraft []abrechnungServicekraft `json:"abrechnungProServicekraft"`
 }
 
-// abrechnungServicekraft ist die Bargeld-Abrechnung des Tischservice pro
-// Servicekraft: kassiert, die ihr zugeordneten Rücknahmen und der daraus
-// folgende Abzugeben-Saldo, dazu der kombinierte Storno-Zähler über beide
-// Tisch-Storno-Arten. Direktverkäufe sind nicht enthalten.
+// abrechnungServicekraft ist die Bargeld-Abrechnung des Tischservice ohne Direktverkäufe;
+// AnzahlStornierungen zählt beide Tisch-Storno-Arten zusammen.
 type abrechnungServicekraft struct {
 	UserID              int    `json:"userId"`
 	UserName            string `json:"userName"`
@@ -101,8 +99,6 @@ type umsatzSteuersatzResponse struct {
 	SteuerCents int    `json:"steuerCents"`
 }
 
-// varianteStatistikResponse und produktStatistikResponse tragen die gruppierte
-// Verkaufsstatistik der Response; die flachen Repo-Zeilen erscheinen nie hier.
 type varianteStatistikResponse struct {
 	VarianteID       int    `json:"varianteId"`
 	VarianteName     string `json:"varianteName"`
@@ -125,17 +121,15 @@ type stornierungPosition struct {
 	EinzelpreisCents int    `json:"einzelpreisCents"`
 }
 
-// servicekraftRef ist die geteilte Servicekraft-Referenz der Storno-Detailzeile:
-// Benutzer-ID, eingefrorener Username und live aufgelöster Klarname.
+// servicekraftRef: userName ist der im Event eingefrorene, name der live aufgelöste Klarname.
 type servicekraftRef struct {
 	UserID   int    `json:"userId"`
 	UserName string `json:"userName"`
 	Name     string `json:"name"`
 }
 
-// stornierungDetail trennt die zwei Rollen eines Stornos: akteur hat ihn
-// ausgelöst, betroffene sind die Servicekräfte, deren Vorgang er rückgängig
-// macht (Storno-Zuordnung). betroffene ist nie leer.
+// stornierungDetail trennt zwei Rollen: akteur hat den Storno ausgelöst, betroffene sind die
+// Servicekräfte, deren Vorgang er rückgängig macht (nie leer).
 type stornierungDetail struct {
 	Zeitpunkt    time.Time             `json:"zeitpunkt"`
 	Quelle       string                `json:"quelle"`
@@ -375,17 +369,12 @@ type offenerTischResponse struct {
 	SaldoCents int    `json:"saldoCents"`
 }
 
-// offeneArbeitTischLiveResponse ist die schlanke Tisch-Zeile der Live-Sicht: nur
-// der Tisch-Name für die Inline-Anzeige. Der offene Betrag wird auf
-// Servicekraft-Ebene (servicekraftLiveResponse.OffenCents) aggregiert.
+// offeneArbeitTischLiveResponse trägt keinen Betrag — der wird auf Servicekraft-Ebene (offenCents) aggregiert.
 type offeneArbeitTischLiveResponse struct {
 	TischID   int    `json:"tischId"`
 	TischName string `json:"tischName"`
 }
 
-// servicekraftLiveResponse ist die Live-Sicht pro Servicekraft: ihre Abrechnung
-// (Kassiert, Rücknahmen, Abzugeben, Storno-Zähler) zusammengeführt mit der
-// offenen eigenen Arbeit.
 type servicekraftLiveResponse struct {
 	UserID              int                             `json:"userId"`
 	UserName            string                          `json:"userName"`
@@ -399,9 +388,6 @@ type servicekraftLiveResponse struct {
 	Erledigt            bool                            `json:"erledigt"`
 }
 
-// liveBreakdownsResponse trägt im Live-Dashboard die zusammengeführte
-// Servicekraft-Sicht: dieselbe Abrechnung wie in der Reporting-Response, ergänzt
-// um die offene eigene Arbeit.
 type liveBreakdownsResponse struct {
 	Servicekraefte []servicekraftLiveResponse `json:"servicekraefte"`
 }

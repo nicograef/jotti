@@ -38,10 +38,8 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := zerolog.Ctx(r.Context())
 
-		// Erste Setzung, am Handler-Eingang: Sie gilt den frühen Fehlerpfaden,
-		// die vor Erstellen() antworten (unlesbarer Body, invalid_kassensitzung).
-		// Die Antwort nach einem langen Archivbau deckt sie nicht — dafür steht
-		// die zweite Setzung unten.
+		// Erste Setzung am Handler-Eingang: Sie gilt den frühen Fehlerpfaden, die vor
+		// Erstellen() antworten (unlesbarer Body, invalid_kassensitzung).
 		helper.ExtendWriteDeadline(w, r, exportWriteTimeout)
 
 		body := exportRequest{}

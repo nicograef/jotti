@@ -6,8 +6,7 @@ import { type AktiveKassensitzung, KasseBackend } from './KasseBackend'
 
 export const kasseBackend = new KasseBackend(BackendSingleton)
 
-// Query-Keys der Kassentag-Seite. Nach einer Geldtransit-Buchung werden
-// Kassenbestand und Bewegungsliste über diese Präfixe invalidiert.
+// Präfixe für die Invalidierung nach einer Geldtransit-Buchung.
 export const KASSENBESTAND_KEY = 'kassenbestand'
 export const GELDTRANSIT_LISTE_KEY = 'geldtransit-liste'
 

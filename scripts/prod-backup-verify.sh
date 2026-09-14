@@ -1,49 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# =============================================================================
-# jotti — Backup Verify (self-hosted production, Weg B)
+# jotti — backup verify (self-hosted production).
 #
-# Proves that a pg_dump created by prod-backup.sh is actually recoverable by
-# restoring it into a THROWAWAY postgres container and checking that the
-# restored database has tables. It never touches the running stack: the
-# container runs via `docker run --rm` on the default bridge (no stack network,
-# no stack volumes) and is discarded on exit. Steps:
-#   1. Validate prerequisites and pick the dump (argument or newest in BACKUP_DIR)
-#   2. Start a throwaway postgres (same pinned version as the stack) and wait
-#   3. Stream the dump into psql (ON_ERROR_STOP) and count the restored tables
-#   4. Print a short summary (dump, table count, result) and exit accordingly
-#
-# Configuration:
-#   BACKUP_DIR    directory to read dumps from (default: ./backups)
-#   COMPOSE_FILE  compose file the postgres version is read from
-#                 (default: docker-compose.prod.yml)
-#
-# Usage: ./scripts/prod-backup-verify.sh [DUMP_FILE]  (or `make prod-backup-verify`)
-#   DUMP_FILE  optional path or filename in BACKUP_DIR; defaults to the newest.
-# =============================================================================
+# Proves that a pg_dump from prod-backup.sh is restorable: it replays the dump
+# into a THROWAWAY postgres container (`docker run --rm`, no stack network, no
+# stack volumes) and checks that the restored database has tables. The running
+# stack is never touched.
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 
-# ---------------------------------------------------------------------------
-# Step 0 — Change to project root (script may be called from anywhere)
-# ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 . "$SCRIPT_DIR/lib.sh"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# ---------------------------------------------------------------------------
-# Step 1 — Validate prerequisites and select the dump
-# ---------------------------------------------------------------------------
 # No docker-compose CLI needed here: this script drives a throwaway
 # container via `docker run`/`docker exec`, never `docker compose`.
 require_docker_stack "$COMPOSE_FILE" --no-compose-cli
 
 # The throwaway postgres uses the same role the dump was created with, so its
-# ownership statements (ALTER ... OWNER TO) resolve. Env wins, then .env, then
-# the shipped default.
+# ownership statements (ALTER ... OWNER TO) resolve.
 PG_USER="${POSTGRES_USER:-$(read_env POSTGRES_USER)}"
 [[ -n "$PG_USER" ]] || PG_USER="admin"
 
@@ -55,13 +33,9 @@ PG_IMAGE="$(grep -oE 'postgres:[0-9][0-9.]*' "$COMPOSE_FILE" | head -n1)"
 resolve_backup_dir
 select_dump "$BACKUP_DIR" "${1:-}"
 
-# ---------------------------------------------------------------------------
-# Step 2 — Start a throwaway postgres (isolated from the running stack)
-# ---------------------------------------------------------------------------
 # --rm plus no --network and no -p: the container shares no network with the
 # stack and publishes no port. -fv on removal takes its anonymous data volume
-# (the image declares one) with it, so `docker volume ls` stays unchanged.
-# Nothing about the live stack is touched.
+# with it, so `docker volume ls` stays unchanged.
 CONTAINER="jotti-backup-verify-$$"
 cleanup() { docker rm -fv "$CONTAINER" &>/dev/null || true; }
 trap cleanup EXIT
@@ -87,10 +61,6 @@ for ((i = 0; i < 30; i++)); do
 done
 [[ -n "$ready" ]] || fatal "Throwaway postgres did not become ready in time."
 
-# ---------------------------------------------------------------------------
-# Step 3 — Restore the dump and count the tables
-# ---------------------------------------------------------------------------
-# decompress (lib.sh) streams SELECTED, gunzipping on the fly when compressed.
 info "Restoring $SELECTED into the throwaway database ..."
 if ! decompress | docker exec -i "$CONTAINER" \
        psql -U "$PG_USER" -d jotti -q -v ON_ERROR_STOP=1 >/dev/null; then
@@ -105,9 +75,6 @@ if ! [[ "$TABLE_COUNT" =~ ^[0-9]+$ ]] || (( TABLE_COUNT <= 0 )); then
   fatal "Verify failed: the restored database has no tables (count: ${TABLE_COUNT:-unknown})."
 fi
 
-# ---------------------------------------------------------------------------
-# Step 4 — Summary
-# ---------------------------------------------------------------------------
 echo ""
 info "Verify OK — the dump is restorable."
 info "  Dump:   $SELECTED"

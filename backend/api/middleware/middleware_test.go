@@ -17,7 +17,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/user"
 )
 
-// stubUsers satisfies UserGetter with a fixed user and error.
 type stubUsers struct {
 	user user.User
 	err  error
@@ -27,7 +26,6 @@ func (s stubUsers) GetUser(context.Context, int) (user.User, error) {
 	return s.user, s.err
 }
 
-// activeUser returns a UserGetter whose user is active and has the given role.
 // The middleware authorizes against this DB role, not the token claim.
 func activeUser(role user.Role) stubUsers {
 	return stubUsers{user: user.User{ID: 1, Role: role, Status: user.ActiveStatus}}
@@ -117,14 +115,12 @@ func TestRateLimitMiddleware_BlocksExceedingLimit(t *testing.T) {
 
 	middleware := RateLimitMiddleware(1)(handler)
 
-	// Fill the limiter
 	for range 10 {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		rec := httptest.NewRecorder()
 		middleware.ServeHTTP(rec, req)
 	}
 
-	// This request should be rate limited
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	rec := httptest.NewRecorder()
 	middleware.ServeHTTP(rec, req)

@@ -13,8 +13,6 @@ interface DirektverkaufProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
   products: Produkt[]
   productsLoading: boolean
-  // Meldet den abgeschlossenen Verkauf samt Bestätigungstext an die Seite, die
-  // den Erfolgs-Pop hostet.
   onErfolg?: (nachricht: string) => void
 }
 
@@ -49,8 +47,7 @@ export function Direktverkauf({
     />
   )
 
-  // Ab lg: feste Abschluss-Spalte rechts, Produkte links. Der extrahierte
-  // Abschluss-Inhalt mountet genau einmal (isMobile entscheidet den Zweig).
+  // Ab lg feste Abschluss-Spalte: der Abschluss-Inhalt mountet genau einmal.
   if (!isMobile) {
     return (
       <ServiceSplitLayout
@@ -69,7 +66,6 @@ export function Direktverkauf({
     )
   }
 
-  // Unter lg: unverändert Dock-Aktionsbutton plus Bottom-Sheet-Drawer.
   return (
     <>
       <DirektverkaufDrawer

@@ -93,8 +93,7 @@ const aktiveSitzung: AktiveKassensitzung = {
   eroeffnetAm: '2026-07-12T14:05:00+02:00',
 }
 
-// Erwartete Uhrzeit im Chip ("seit HH:MM") — aus derselben Quelle abgeleitet,
-// damit die Assertion unabhängig von der Test-Zeitzone bleibt.
+// Aus derselben Quelle abgeleitet, damit die Assertion zeitzonenunabhängig bleibt.
 const erwarteteUhrzeit = new Date(aktiveSitzung.eroeffnetAm).toLocaleTimeString(
   'de-DE',
   { hour: '2-digit', minute: '2-digit' },
@@ -154,7 +153,6 @@ describe('AdminSidebar', () => {
     expect(
       screen.getByText(`Kasse offen · seit ${erwarteteUhrzeit}`),
     ).toBeInTheDocument()
-    // Der Kassentag-Menüpunkt bekommt zusätzlich einen grünen Statuspunkt.
     expect(
       screen.getAllByRole('img', { name: 'Kasse offen' }).length,
     ).toBeGreaterThanOrEqual(1)
@@ -218,7 +216,6 @@ describe('AdminSidebar', () => {
     expect(
       screen.getByRole('button', { name: 'Design wechseln' }),
     ).toBeInTheDocument()
-    // Kein aus isDark abgeleitetes „Helles/Dunkles Design" mehr.
     expect(screen.queryByText(/Helles Design|Dunkles Design/)).toBeNull()
 
     cleanup()

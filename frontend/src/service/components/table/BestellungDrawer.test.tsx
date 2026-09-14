@@ -59,8 +59,7 @@ describe('BestellungDrawer', () => {
     const user = userEvent.setup()
     renderDrawer({})
 
-    // Ohne Auswahl ist der Trigger-Button deaktiviert; ein Klick darf den
-    // Drawer nicht öffnen (der onOpenChange-Guard sichert zusätzlich ab).
+    // Zusätzlich zum deaktivierten Trigger sichert der onOpenChange-Guard ab.
     const trigger = screen.getByRole('button', {
       name: /Bestellung überprüfen/,
     })
@@ -84,7 +83,6 @@ describe('BestellungDrawer', () => {
     expect(body).not.toBeNull()
     expect(footer).not.toBeNull()
     expect(body).toContainElement(screen.getByText(/Bratwurst/))
-    // Die Gesamtsumme steht im nicht-scrollenden Footer, nicht im Body.
     const gesamt = screen.getByText('Gesamt')
     expect(footer).toContainElement(gesamt)
     expect(body).not.toContainElement(gesamt)

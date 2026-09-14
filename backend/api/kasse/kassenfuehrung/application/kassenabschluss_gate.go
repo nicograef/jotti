@@ -7,10 +7,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// SignaturenAusstehendError blockiert den Kassenabschluss: Mindestens ein
-// Signaturauftrag der Kassensitzung ist noch offen und keine Störung erklärt
-// den Ausfall (Ergebnis ausstehend der Signaturstatus-Funktion). Die TSE holt
-// in Kürze auf; die Abschluss-Operation wird unverändert erneut angefordert.
+// SignaturenAusstehendError blockiert den Kassenabschluss: mindestens ein Signaturauftrag ist offen
+// und keine Störung erklärt den Ausfall. Die Operation wird unverändert erneut angefordert.
 type SignaturenAusstehendError struct {
 	Anzahl int
 }
@@ -19,32 +17,26 @@ func (e *SignaturenAusstehendError) Error() string {
 	return "signaturen ausstehend"
 }
 
-// KassenabschlussErgebnis meldet die beim Abschluss verbliebenen Ausfall-Reste.
-// Sie blockieren den Abschluss nicht (die Signaturstatus-Funktion rechnet sie
-// dem Ausfall zu), werden aber in der Abschlussmeldung ausgewiesen.
+// KassenabschlussErgebnis meldet die verbliebenen Ausfall-Reste; sie blockieren den Abschluss nicht,
+// werden aber in der Abschlussmeldung ausgewiesen.
 type KassenabschlussErgebnis struct {
-	// AusfallResteAnzahl: endgültig fehlgeschlagene Aufträge sowie offene
-	// Aufträge während eines aktiven Störungszeitraums; werden nach Rückkehr
-	// der TSE nachsigniert.
+	// AusfallResteAnzahl: endgültig fehlgeschlagene sowie während eines Störungszeitraums offene
+	// Aufträge; werden nach Rückkehr der TSE nachsigniert.
 	AusfallResteAnzahl int
-	// OhneKonfigurationAnzahl: Vorgänge ohne TSE-Signatur, weil keine TSE
-	// konfiguriert ist (tse_nicht_konfiguriert); werden nicht nachsigniert.
+	// OhneKonfigurationAnzahl: Vorgänge ohne Signatur mangels TSE-Konfiguration
+	// (tse_nicht_konfiguriert); werden nicht nachsigniert.
 	OhneKonfigurationAnzahl int
 }
 
-// signaturGate ist das interne Urteil des Gates über die noch nicht erledigten
-// Signaturaufträge der Kassensitzung.
 type signaturGate struct {
 	ausstehendAnzahl        int
 	ausfallResteAnzahl      int
 	ohneKonfigurationAnzahl int
 }
 
-// checkSignaturGate klassifiziert jeden noch nicht erledigten Signaturauftrag
-// der Kassensitzung über die Signaturstatus-Funktion — dieselbe Zurechnung wie
-// beim Beleg-Abruf, kein zweiter Zurechnungspfad. Ergebnis ausstehend blockiert
-// (frischer offener Auftrag ohne Störung), Ausfall lässt durch und wird in der
-// Abschlussmeldung ausgewiesen (Ausfall-Rest bzw. fehlende TSE-Konfiguration).
+// checkSignaturGate klassifiziert jeden offenen Signaturauftrag über dieselbe
+// Signaturstatus-Funktion wie der Beleg-Abruf — kein zweiter Zurechnungspfad. Ausstehend blockiert,
+// Ausfall lässt durch und wird in der Abschlussmeldung ausgewiesen.
 func (c Command) checkSignaturGate(ctx context.Context, kassensitzungNr int) (signaturGate, error) {
 	log := zerolog.Ctx(ctx)
 

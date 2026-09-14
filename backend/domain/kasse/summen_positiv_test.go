@@ -12,21 +12,14 @@ import (
 	"github.com/google/uuid"
 )
 
-// Alle Geldsummen-Felder der Kasse-Events und -Projektionen müssen positiv sein:
-// eine Summe wird über Positionen mit Preis >= 1 Cent gebildet, 0-Cent-Positionen
-// sind nicht zulässig. Die Felder sind daher GTE(1).Required(): zog wertet den
-// Zero-Value 0 bei Required() als fehlend und lehnt ihn ab, GTE(1) lehnt negative
-// Werte ab (der GTE-Validator selbst wird beim Zero-Value übersprungen, deshalb ist
-// Required() für die 0-Ablehnung nötig).
+// Alle Geldsummen-Felder der Kasse-Events und -Projektionen müssen positiv sein: eine Summe
+// wird über Positionen mit Preis >= 1 Cent gebildet, 0-Cent-Positionen sind nicht zulässig.
+// Die Felder sind daher GTE(1).Required(): zog überspringt den GTE-Validator beim
+// Zero-Value, erst Required() lehnt die 0 ab.
 //
-// Für jedes Feld wird geprüft: 0 wird als Validierungsfehler abgelehnt, der das Feld
-// benennt (kein Panic), ein negativer Wert ebenso, und ein positiver Wert (1) ist
-// gültig.
-//
-// Fünf Felder werden über die echten Event-Konstruktoren geprüft (die Summe ist
-// dort ein Parameter). Die übrigen sechs Summen leiten die Konstruktoren selbst
-// aus den Positionen ab; sie werden direkt gegen ihr Schema validiert, mit
-// gültigen Positionen und der Summe als Testwert.
+// Fünf Felder werden über die echten Event-Konstruktoren geprüft (die Summe ist dort ein
+// Parameter); die übrigen sechs leiten die Konstruktoren aus den Positionen ab und werden
+// direkt gegen ihr Schema validiert.
 
 func validEventPositionen() []PositionEventData {
 	return []PositionEventData{{
@@ -54,8 +47,7 @@ func validProjektionsPositionen() []Position {
 	}}
 }
 
-// validateSchema spiegelt das Fehler-Wrapping der Event-Konstruktoren, damit
-// direkte Schema-Prüfungen dieselbe Fehlerform (mit Feldname) liefern.
+// validateSchema spiegelt das Fehler-Wrapping der Konstruktoren (Fehlerform mit Feldname).
 func validateSchema[T any](schema *z.StructSchema, value *T) error {
 	if errs := schema.Validate(value); errs != nil {
 		return fmt.Errorf("%v", z.Issues.FlattenAndCollect(errs))
@@ -65,18 +57,15 @@ func validateSchema[T any](schema *z.StructSchema, value *T) error {
 
 func TestGeldsummen_MussPositiv(t *testing.T) {
 	subject := TischSessionSubject(1, 1)
-	// Positionen mit gesetzter PositionID: die Storno-/Zahlungs-/Umbuchungs-
-	// Konstruktoren generieren keine IDs (anders als Bestellung/Direktverkauf).
+	// Die Storno-/Zahlungs-/Umbuchungs-Konstruktoren generieren keine PositionIDs.
 	positionen := validProjektionsPositionen()
 	zahlungID := uuid.New().String()
 
 	cases := []struct {
 		name  string
 		field string
-		// run erzeugt den Validierungspfad des Feldes mit der übergebenen Summe.
-		run func(summe int) error
+		run   func(summe int) error
 	}{
-		// --- Über die echten Konstruktoren (Summe ist Parameter) ---
 		{
 			name:  "ZahlungKassiert.GesamtZahlungCents",
 			field: "GesamtZahlungCents",
@@ -117,7 +106,6 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 				return err
 			},
 		},
-		// --- Direkt gegen das Schema (Konstruktor leitet die Summe aus den Positionen ab) ---
 		{
 			name:  "BestellungAufgenommen.GesamtPreisCents (event)",
 			field: "GesamtPreisCents",

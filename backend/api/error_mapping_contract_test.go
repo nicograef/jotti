@@ -3,19 +3,11 @@
 package api
 
 // An exported Err* variable under backend/api is an application sentinel: the
-// application layer returns it, and the HTTP layer turns it into a stable error
-// code that frontend/src/lib/errorMessages.ts renders as a German message. A
-// sentinel the HTTP layer never names — and whose alias it never names either —
-// falls into MapError's fallback and reaches the client as a bare 500: the user
-// sees the generic server-error text for a failure the backend understood exactly.
-//
-// This test parses the tree instead of relying on review: it collects every
-// exported Err* variable declared below backend/api and every sentinel the HTTP
-// layer names, and fails on a sentinel that appears in neither. A sentinel counts
-// as named when a non-test file in an api/**/http package references it inside a
-// helper.MapError call or an errors.Is guard — the two shapes the error contract
-// takes here. A sentinel the HTTP layer names nowhere belongs in
-// mappingExceptions, with the reason it needs no code of its own.
+// application layer returns it, the HTTP layer turns it into a stable error code
+// that frontend/src/lib/errorMessages.ts renders as a German message. A sentinel
+// the HTTP layer never names (nor its alias) falls into MapError's fallback and
+// reaches the client as a bare 500 — the generic server-error text for a failure
+// the backend understood exactly.
 
 import (
 	"go/ast"
@@ -27,24 +19,19 @@ import (
 	"testing"
 )
 
-// apiImportPrefix is the import path of this package. Only imports below it can
-// carry an application sentinel, so only they need alias resolution.
+// Only imports below this prefix can carry an application sentinel.
 const apiImportPrefix = "github.com/nicograef/jotti/backend/api/"
 
-// errDatabaseName is the sentinel every application package aliases from
-// db.ErrDatabase. It deliberately carries no error code: a database failure is
-// nothing the client can act on, so MapError's fallback answers 500 and the
-// frontend shows the generic server-error message with the log reference.
+// errDatabaseName deliberately carries no error code: a database failure is
+// nothing the client can act on, so MapError's fallback answers 500.
 const errDatabaseName = "ErrDatabase"
 
-// mappingException records a sentinel no HTTP file names, with the reason it
-// needs no error code of its own. sentinel holds a sentinelKey value.
+// sentinel holds a sentinelKey value.
 type mappingException struct {
 	sentinel string
 	reason   string
 }
 
-// mappingExceptions holds the sentinels the HTTP layer names nowhere.
 var mappingExceptions = []mappingException{
 	{
 		sentinel: "auth/application.ErrTokenGeneration",
@@ -60,9 +47,8 @@ var mappingExceptions = []mappingException{
 	},
 }
 
-// TestErrorMappingContract fails when an application sentinel reaches no error
-// code. Adding a sentinel therefore forces a decision: name it in the handler, or
-// document in mappingExceptions why it needs no code.
+// TestErrorMappingContract forces a decision on every new sentinel: name it in
+// the handler, or document in mappingExceptions why it needs no code.
 func TestErrorMappingContract(t *testing.T) {
 	declared := collectDeclaredSentinels(t)
 	named := collectNamedSentinels(t)
@@ -93,7 +79,6 @@ func TestErrorMappingContract(t *testing.T) {
 	}
 }
 
-// isExcepted reports whether mappingExceptions covers the sentinel named by key.
 func isExcepted(key string) bool {
 	for _, exception := range mappingExceptions {
 		if exception.sentinel == key {
@@ -104,9 +89,6 @@ func isExcepted(key string) bool {
 	return false
 }
 
-// collectDeclaredSentinels returns every exported Err* variable declared in a
-// non-test file below this package, keyed by sentinelKey and valued by the
-// position of its declaration.
 func collectDeclaredSentinels(t *testing.T) map[string]token.Position {
 	t.Helper()
 
@@ -134,9 +116,8 @@ func collectDeclaredSentinels(t *testing.T) map[string]token.Position {
 	return declared
 }
 
-// collectNamedSentinels returns the sentinels the HTTP layer names, as the set of
-// sentinelKey values referenced inside a helper.MapError call or an errors.Is
-// guard in a non-test file of an api/**/http package.
+// A sentinel counts as named when a non-test file of an api/**/http package
+// references it inside a helper.MapError call or an errors.Is guard.
 func collectNamedSentinels(t *testing.T) map[string]bool {
 	t.Helper()
 
@@ -170,9 +151,6 @@ func collectNamedSentinels(t *testing.T) map[string]bool {
 	return named
 }
 
-// sentinelRefs returns the sentinelKey of every sentinel referenced in expr,
-// resolving a qualified reference through the file's import aliases and an
-// unqualified one against the referencing package itself.
 func sentinelRefs(expr ast.Expr, aliases map[string]string, pkgDir string) []string {
 	keys := []string{}
 	ast.Inspect(expr, func(node ast.Node) bool {
@@ -199,9 +177,8 @@ func sentinelRefs(expr ast.Expr, aliases map[string]string, pkgDir string) []str
 	return keys
 }
 
-// forEachSourceFile parses every non-test Go file below this package and calls
-// visit with the file and its package directory, relative to backend/api and
-// slash-separated.
+// forEachSourceFile parses every non-test Go file below this package; pkgDir is
+// relative to backend/api and slash-separated.
 func forEachSourceFile(t *testing.T, visit func(fset *token.FileSet, file *ast.File, pkgDir string)) {
 	t.Helper()
 
@@ -259,8 +236,6 @@ func isQualifiedCall(call *ast.CallExpr, qualifier string, name string) bool {
 	return ok && ident.Name == qualifier
 }
 
-// isSentinelName reports whether name is that of an application sentinel:
-// exported and prefixed Err, with something following the prefix.
 func isSentinelName(name string) bool {
 	return strings.HasPrefix(name, "Err") && len(name) > len("Err")
 }

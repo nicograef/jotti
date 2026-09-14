@@ -27,8 +27,7 @@ export function useFormActionSubmit<TFieldValues extends FieldValues>({
   const [loading, setLoading] = useState(false)
 
   // Ein laufender Submit ist ein offener Vorgang: Ein Reload mitten im Flug
-  // ließe das Formular ohne Antwort zurück. Das `finally` unten gibt ihn nach
-  // Erfolg wie nach Fehlschlag wieder frei.
+  // ließe das Formular ohne Antwort zurück.
   useOffenerVorgang(loading)
 
   const run = async (fn: () => Promise<void>) => {

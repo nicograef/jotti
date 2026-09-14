@@ -1,17 +1,13 @@
 import type { Page, Route } from '@playwright/test'
 
-// Hilfsfunktionen zur Simulation von Serverfehlern (5xx) und Netzabbrüchen per
-// Playwright-Route-Interception. Sie fangen ausschließlich POST-Aufrufe an die
-// Backend-API (/api/<endpoint>) ab — das Frontend selbst (HTML/JS/CSS) bleibt
-// unangetastet, damit die Seite normal rendert und nur die Datenantwort fehlt.
+// Simuliert Serverfehler (500) und Netzabbrüche per Route-Interception. Nur
+// Anfragen an /api/** werden abgefangen — das Frontend selbst rendert normal,
+// nur die Datenantwort fehlt.
 
-// EndpointMatcher entscheidet anhand des Endpunkt-Pfads (ohne führendes /api/),
-// ob eine Anfrage abgefangen wird. So lassen sich gezielt einzelne Endpunkte
-// simulieren (z. B. nur „get-tisch-state", nicht „zahlung-kassieren").
+// Vergleicht den Endpunkt-Pfad ohne führendes /api/, z. B. „get-tisch-state".
 export type EndpointMatcher = string | RegExp
 
 function matches(pathname: string, endpoint: EndpointMatcher): boolean {
-  // pathname enthält das führende „/api/"; der Endpunkt-Name selbst nicht.
   const endpointPath = pathname.replace(/^\/api\//, '')
   return typeof endpoint === 'string'
     ? endpointPath === endpoint
@@ -27,9 +23,6 @@ async function fulfillServerError(route: Route): Promise<void> {
   })
 }
 
-// simuliereServerfehler lässt jede POST-Anfrage an einen der angegebenen
-// Endpunkte mit HTTP 500 (inkl. Correlation-ID) fehlschlagen — wie ein echter
-// Backend-Fehler.
 export async function simuliereServerfehler(
   page: Page,
   endpoints: EndpointMatcher[],
@@ -44,9 +37,8 @@ export async function simuliereServerfehler(
   })
 }
 
-// simuliereNetzabbruch lässt jede POST-Anfrage an einen der angegebenen
-// Endpunkte abbrechen (wie ein Verbindungsabbruch, bevor eine Antwort
-// ankommt) — das Frontend erhält keinen HTTP-Status, sondern einen fetch-Fehler.
+// Bricht ab, bevor eine Antwort ankommt: das Frontend sieht einen fetch-Fehler,
+// keinen HTTP-Status.
 export async function simuliereNetzabbruch(
   page: Page,
   endpoints: EndpointMatcher[],

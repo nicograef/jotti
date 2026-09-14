@@ -61,12 +61,10 @@ type liveTestUmgebung struct {
 	variante int
 }
 
-// credentialsOderSkip verlangt das explizite Opt-in JOTTI_TSE_LIVE=1 und liest
-// dann die fiskaly-TEST-Credentials aus der Umgebung; fehlt eines von beidem,
-// wird die Suite geskippt (gleiche Guard-Schwelle wie im
-// fiskaly_client_live_test.go). Das Opt-in hält normale Integrationsläufe
-// (scripts/test-integration.sh) hermetisch, auch wenn FISKALY_TEST_*-Variablen
-// in der Shell exportiert sind.
+// credentialsOderSkip verlangt das Opt-in JOTTI_TSE_LIVE=1 und liest dann die
+// fiskaly-TEST-Credentials; fehlt eines von beidem, wird die Suite geskippt. Das
+// Opt-in hält normale Integrationsläufe (scripts/test-integration.sh) hermetisch,
+// auch wenn FISKALY_TEST_*-Variablen in der Shell exportiert sind.
 func credentialsOderSkip(t *testing.T) tse.Credentials {
 	t.Helper()
 	if os.Getenv("JOTTI_TSE_LIVE") != "1" {
@@ -516,10 +514,8 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	restBezahlen(t, u, ksNr, u.tischID)
 	restBezahlen(t, u, ksNr, u.tischID2)
 
-	// Vor dem Kassenabschluss müssen alle offenen Aufträge signiert sein: das
-	// Signatur-Gate blockiert sonst mit *SignaturenAusstehendError. Alle
-	// obigen Vorfälle wurden bereits einzeln bis 'erledigt' abgewartet;
-	// zur Sicherheit prüfen, dass kein Auftrag mehr offen ist.
+	// Vor dem Kassenabschluss müssen alle Aufträge signiert sein, sonst blockiert
+	// das Signatur-Gate mit *SignaturenAusstehendError.
 	warteBisKeineOffenenAuftraege(t, db)
 
 	// (11) Kassenabschluss in einem Schritt: Kassensturz (nicht signaturpflichtig),
@@ -566,7 +562,6 @@ func warteBisKeineOffenenAuftraege(t *testing.T, db *sql.DB) {
 	}
 }
 
-// aktuellerSollBestand liest den Soll-Kassenbestand der Sitzung.
 func aktuellerSollBestand(t *testing.T, db *sql.DB, ksNr int) int {
 	t.Helper()
 	bestand, err := kassenjournal_repo.NewRepository(db).GetKassenbestand(context.Background(), ksNr)

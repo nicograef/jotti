@@ -18,8 +18,6 @@ interface BestellungProps {
   // Bestell-Korb (Variante-ID → Menge), von TablePage gehoben, damit die
   // Auswahl das Aus- und Wiedereinhängen der Tab-Inhalte überlebt.
   mengenSteuerung: MengenSteuerung<number>
-  // Meldet die erfolgreiche Buchung samt Bestätigungstext an die Seite, die den
-  // Erfolgs-Pop hostet.
   onErfolg: (nachricht: string) => void
 }
 
@@ -52,8 +50,7 @@ export function Bestellung({
     />
   )
 
-  // Ab lg: feste Abschluss-Spalte rechts, Produkte links. Der extrahierte
-  // Abschluss-Inhalt mountet genau einmal (isMobile entscheidet den Zweig).
+  // Ab lg feste Abschluss-Spalte: der Abschluss-Inhalt mountet genau einmal.
   if (!isMobile) {
     const { receiptItems, inputItems } = toBestellungData(products, mengen)
     return (
@@ -74,7 +71,6 @@ export function Bestellung({
     )
   }
 
-  // Unter lg: unverändert Dock-Aktionsbutton plus Bottom-Sheet-Drawer.
   return (
     <>
       <BestellungDrawer

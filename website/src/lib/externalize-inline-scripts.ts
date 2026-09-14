@@ -1,21 +1,14 @@
-// Astro-Integration: löst nach dem Build alle verbliebenen ausführbaren
-// Inline-Skripte im gebauten HTML in externe Dateien auf.
+// Astro-Integration: löst nach dem Build alle ausführbaren Inline-Skripte im
+// gebauten HTML in externe Dateien auf. Die Produktiv-CSP
+// (reverse-proxy/nginx.rocks.conf, jotti.rocks-Block) erlaubt nur
+// `script-src 'self'` ohne `'unsafe-inline'`; Starlight liefert für
+// Theme-Picker, Suche und Sidebar-Persistenz `is:inline`-Skripte aus. Die
+// Integration externalisiert sie generisch — Inhalt, Attribute und Reihenfolge
+// bleiben erhalten — statt jede Starlight-Komponente zu überschreiben.
 //
-// Warum: Die Produktiv-CSP (reverse-proxy/nginx.rocks.conf, jotti.rocks-Block)
-// erlaubt nur `script-src 'self'` ohne `'unsafe-inline'`. Kein einziges
-// Inline-Skript darf ausgeliefert werden (Plan: „CSP-Externalisierung"). Die
-// eigenen Skripte folgen bereits dem public/-Muster; Starlight liefert für
-// Theme-Picker, Suche und Sidebar-Persistenz aber `is:inline`-Skripte aus, die
-// sonst blockiert würden. Diese Integration externalisiert sie generisch —
-// verbatim, Attribute und Reihenfolge bleiben erhalten — statt jede
-// Starlight-Komponente einzeln zu überschreiben.
-//
-// Unangetastet bleiben: bereits externe Skripte (`<script ... src=...>`, u. a.
-// der Theme-Init-Loader), leere Tags und nicht-ausführbare Skripttypen
-// (`application/json`, `application/ld+json`, `importmap`, `speculationrules`):
-// Deren Inhalt ist kein JS und würde als externe .js-Datei nie geladen bzw.
-// nicht ausgeführt — die CSP blockiert sie ohnehin nicht. Der Skriptinhalt
-// bleibt unverändert, nur der Auslieferungsweg wechselt von inline zu extern.
+// Unangetastet bleiben bereits externe Skripte, leere Tags und nicht-ausführbare
+// Skripttypen (`application/json`, `application/ld+json`, `importmap`,
+// `speculationrules`): kein JS, von der CSP ohnehin nicht blockiert.
 
 import type { AstroIntegration } from 'astro'
 import { createHash } from 'node:crypto'
@@ -23,11 +16,10 @@ import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 
-// Ein HTML-Kommentar ODER ein Skript-Element. Der Kommentar steht bewusst als
-// erste Alternative: So verschluckt er ein etwaiges wörtliches `<script>` in
-// seinem Text (z. B. in Prosa-Kommentaren) als Ganzes, statt dass die
-// Skript-Alternative dort fälschlich zu greifen beginnt. Skript-Körper können
-// laut HTML kein `</script>` enthalten, daher ist der nicht-gierige Body sicher.
+// Kommentar ODER Skript-Element. Der Kommentar steht zuerst, damit ein
+// wörtliches `<script>` in einem HTML-Kommentar als Ganzes verschluckt wird.
+// Skript-Körper können laut HTML kein `</script>` enthalten — der nicht-gierige
+// Body ist daher sicher.
 const COMMENT_OR_SCRIPT_RE =
   /<!--[\s\S]*?-->|<script\b([^>]*)>([\s\S]*?)<\/script>/gi
 
@@ -81,8 +73,6 @@ export function externalizeInlineScripts(): AstroIntegration {
             (match, attrs?: string, body?: string) => {
               // Kommentar-Alternative: unverändert lassen (attrs/body undefined).
               if (attrs === undefined) return match
-              // Bereits externe Skripte, leere Tags und nicht-ausführbare
-              // Skripttypen unangetastet lassen.
               if (/\ssrc\s*=/.test(attrs)) return match
               if (body === undefined || body.trim() === '') return match
               if (!isExecutableScript(attrs)) return match
@@ -94,7 +84,6 @@ export function externalizeInlineScripts(): AstroIntegration {
               scripts.set(hash, body)
               changed = true
               externalized++
-              // Attribute (type=module, aria-hidden, …) erhalten, Body entfernen.
               return `<script${attrs} src="/_astro/inline-${hash}.js"></script>`
             },
           )

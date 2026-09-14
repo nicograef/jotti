@@ -1,30 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# jotti — one pinned version per third-party image across the stacks. Two stacks
-# on different versions of the same image behave differently while claiming to
-# be the same deployment.
-#
-# Scanned are exactly three tracked sources:
-#   - `image:` lines in docker-compose*.yml
-#   - `FROM` lines in every Dockerfile
-#   - the `packageManager` fields of frontend, website and e2e
-# Everything else stays outside this gate, the harness scripts
-# (scripts/test-integration.sh, scripts/test-tse-live.sh) included: they start
-# their container with a `docker run`, which this gate does not read.
-#
-# jotti's own images (ghcr.io/nicograef/jotti-*) are exempt: their tag is a
-# variable on purpose, so every stack follows the release it was shipped with.
-# A `FROM` is skipped when it names `scratch`, interpolates a variable, or
-# refers to a build stage that the same Dockerfile declared with `AS`.
-#
-# Compared is, per image name, the version part of the tag up to the first "-":
-# caddy:2.11.4-builder and caddy:2.11.4 are the same version. A digest pin
-# (`name@sha256:…`) counts as its own version, so it collides with a tag pin of
-# the same image. Two versions for one name are an error unless
-# scripts/check-pins.allow names the image with a reason; an entry that matches
-# nothing turns the gate red and is to be deleted. The packageManager fields
-# must match literally, sha512 hash included.
+# jotti — one pinned version per third-party image across the stacks: two stacks
+# on different versions of the same image behave differently while claiming to be
+# the same deployment. Read are `image:` lines in docker-compose*.yml, `FROM`
+# lines in every Dockerfile and the packageManager fields of frontend, website
+# and e2e — not the `docker run` calls of scripts/test-integration.sh and
+# scripts/test-tse-live.sh. jotti's own images (ghcr.io/nicograef/jotti-*) are
+# exempt: their tag is a variable on purpose, so every stack follows the release
+# it was shipped with. Compared per image name is the tag up to the first "-", so
+# caddy:2.11.4-builder and caddy:2.11.4 are one version; a digest pin counts as
+# its own version and collides with a tag pin of the same image.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -166,8 +152,6 @@ for name in "${names[@]+"${names[@]}"}"; do
   [ "$exempt" -eq 1 ] && continue
 
   error "$name is pinned to ${version_count[$name]} versions (allow it in $ALLOWLIST):"
-  # The detail lines are collected in the order the sources were read, so the
-  # report names the first location of every version exactly once.
   while IFS= read -r line; do
     [ -n "$line" ] && error "$line"
   done <<<"${version_detail[$name]}"

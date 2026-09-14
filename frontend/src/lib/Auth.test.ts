@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthSingleton } from './Auth'
 
-// Helper to create a valid JWT-like token (header.payload.signature)
 function createMockToken(payload: Record<string, unknown>): string {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
   const body = btoa(JSON.stringify(payload))
@@ -13,7 +12,7 @@ function createMockToken(payload: Record<string, unknown>): string {
 function validTokenPayload(overrides: Record<string, unknown> = {}) {
   return {
     iss: 'jotti',
-    exp: Math.floor(Date.now() / 1000) + 3600, // 1h from now
+    exp: Math.floor(Date.now() / 1000) + 3600,
     iat: Math.floor(Date.now() / 1000),
     sub: 1,
     role: 'admin',
@@ -154,11 +153,9 @@ describe('Auth', () => {
     it('loads token from localStorage if not cached', () => {
       const token = createMockToken(validTokenPayload())
 
-      // Clear internal state, then put token in localStorage
       AuthSingleton.logout()
       localStorage.setItem('JOTTI_TOKEN', token)
 
-      // getToken should read from localStorage
       const result = AuthSingleton.getToken()
       expect(result).toBe(token)
     })

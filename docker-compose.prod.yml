@@ -1,23 +1,13 @@
 name: jotti
 
-# Self-hosted production stack for a single public domain.
-#
-# Runs entirely from pinned GHCR images (no build from source on the server) and
-# terminates TLS with Caddy in public mode: set JOTTI_DOMAIN + LETSENCRYPT_EMAIL
-# in .env and Caddy obtains and renews a Let's Encrypt certificate automatically
-# (HTTP-01/TLS-ALPN). No certbot, no manual certificate choreography, no editing
-# of tracked files. See docs/leitfaden/self-hosting.md (Experten-Weg, eigener Server).
-#
-# Image versions are pinned via ${JOTTI_VERSION} (required; set in .env — no default).
-#
-# First deploy:  make prod-init     (validates .env/DNS, pulls, starts, verifies)
-# Update:        make prod-update    (pre-update backup, pull, migrate, verify)
-# Logs:          make prod-logs
-#
-# The jotti.rocks demo uses docker-compose.rocks.yml instead (nginx + certbot).
+# Self-hosted production stack for a single public domain: pinned GHCR images
+# (nothing is built on the server), TLS terminated by Caddy in public mode —
+# JOTTI_DOMAIN + LETSENCRYPT_EMAIL in .env, certificate obtained and renewed
+# automatically (HTTP-01/TLS-ALPN), no certbot. ${JOTTI_VERSION} is required and
+# has no default. See docs/leitfaden/self-hosting.md; the jotti.rocks demo uses
+# docker-compose.rocks.yml instead.
 
-# Log rotation for every long-running service: json-file capped at a small size
-# and a few files, so it takes effect on any host without daemon configuration.
+# Log rotation that needs no daemon configuration, so it applies on any host.
 x-logging: &default-logging
   driver: json-file
   options:
@@ -100,7 +90,6 @@ services:
         limits:
           memory: 384M
           cpus: "1.5"
-    # No exposed ports; reachable only via reverse proxy
 
   frontend:
     image: ghcr.io/nicograef/jotti-frontend:${JOTTI_VERSION}
@@ -127,7 +116,6 @@ services:
         limits:
           memory: 128M
           cpus: "0.5"
-    # No exposed ports; served via reverse proxy
 
   reverse-proxy:
     image: ghcr.io/nicograef/jotti-reverse-proxy:${JOTTI_VERSION}

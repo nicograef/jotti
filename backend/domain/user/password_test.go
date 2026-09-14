@@ -8,7 +8,6 @@ import (
 )
 
 func TestGenerateOnetimePassword(t *testing.T) {
-	// Genau 6 Ziffern.
 	valid := regexp.MustCompile(`^\d{6}$`)
 
 	for range 50 {

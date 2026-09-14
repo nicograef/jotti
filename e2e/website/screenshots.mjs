@@ -1,31 +1,20 @@
-// App-Screenshots und OG-Bild für die Marketing-Website (`website/`).
+// App-Screenshots und OG-Bild für die Marketing-Website.
 //
-// Zwei Modi (Standard: beide nacheinander):
-//   app  — fährt gegen den e2e-Stack (JOTTI_ENABLE_TEST_API=1), setzt den Seed
-//          zurück, meldet sich an und nimmt jedes Website-Motiv deterministisch
-//          in Hell UND Dunkel auf. Ziel: `website/src/assets/screenshots/`.
-//   og   — baut die Website (`make website-build`), serviert `dist/` hinter
-//          demselben lokalen Static-Server wie die CSP-Verifikation
-//          (`csp-server.mjs`) und nimmt den neuen Hero (hell) als 1200×630-OG-
-//          Bild auf. Ziel: `website/src/assets/og-startseite.png`.
+// Modi (Standard: beide nacheinander):
+//   app  — gegen den e2e-Stack (JOTTI_ENABLE_TEST_API=1): Seed zurücksetzen,
+//          anmelden, jedes Motiv in Hell UND Dunkel aufnehmen. Ziel:
+//          `website/src/assets/screenshots/`.
+//   og   — `make website-build`, `dist/` hinter dem Static-Server aus
+//          `csp-server.mjs` servieren und den Hero (hell) als 1200×630-Bild
+//          aufnehmen. Ziel: `website/src/assets/og-startseite.png`.
 //
-// Die App folgt der Systempräferenz (Theme-Default „system", siehe
-// frontend `theme-provider.tsx`): Playwrights `emulateMedia({ colorScheme })`
-// löst die `light`/`dark`-Klasse auf `<html>` aus — ein eigener
-// Theme-Schalter-State ist nicht nötig.
+// Die App folgt der Systempräferenz (Theme-Default „system"), daher genügt
+// Playwrights `emulateMedia({ colorScheme })` — kein Theme-Schalter-State.
 //
-// BASE-URL-agnostisch über E2E_BASE_URL (wie die e2e-Suite, siehe
-// `e2e/playwright.config.ts`): Default ist der Compose-Stack auf
-// http://localhost:8080 (E2E_HTTP_PORT-Default). Beispiel gegen einen anderen
-// Port:  E2E_BASE_URL=http://localhost:8081 node e2e/website/screenshots.mjs
-//
-// Seed- und Login-Logik werden aus der e2e-Suite wiederverwendet
-// (`support/seed.ts`, `support/anmelden.ts`, `support/servicekraft.ts`); daher
-// läuft das Skript mit `node --experimental-strip-types` (siehe Make-Target
+// E2E_BASE_URL überschreibt den Compose-Default http://localhost:8080.
+// Seed- und Login-Helfer kommen aus der e2e-Suite (`support/*.ts`); deshalb
+// läuft das Skript mit `node --experimental-strip-types` (Make-Target
 // `website-screenshots`).
-//
-// Falls der gepinnte Playwright-Build den vorinstallierten Browser verfehlt,
-// zeigt CHROMIUM_EXECUTABLE auf ein Chrome-Binary.
 
 import { spawnSync } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
@@ -57,19 +46,15 @@ const OG_OUT =
 
 const mode = process.argv[2] ?? 'all'
 
-// settle wartet auf Fonts und einen Repaint nach dem Theme-Wechsel, damit die
-// Aufnahme nicht mitten im Übergang entsteht. Zusätzlich wird der Fokus vom
-// aktiven Element genommen, damit kein Fokus-Ring auf autofokussierten
-// Dialog-Feldern in die Marketing-Aufnahme gebrannt wird (harmlos, wenn nichts
-// fokussiert ist).
+// Wartet auf Fonts und einen Repaint nach dem Theme-Wechsel und nimmt den Fokus
+// vom aktiven Element, damit kein Fokus-Ring in die Aufnahme gebrannt wird.
 async function settle(page) {
   await page.evaluate(() => document.fonts.ready)
   await page.evaluate(() => document.activeElement?.blur?.())
   await page.waitForTimeout(450)
 }
 
-// captureLightDark nimmt den aktuellen Zustand einer Seite in Hell und Dunkel
-// auf (gleicher DOM-Zustand, nur `prefers-color-scheme` gekippt).
+// Gleicher DOM-Zustand, nur `prefers-color-scheme` gekippt.
 async function captureLightDark(page, name) {
   for (const scheme of ['light', 'dark']) {
     await page.emulateMedia({ colorScheme: scheme })
@@ -85,11 +70,10 @@ async function login(context, zugangsdaten) {
   return page
 }
 
-// Querformat-Tablet (≥ 1024 px, eigener deviceScaleFactor): löst das
-// zweispaltige Layout ab `lg` aus — den Service-Split-Screen (ADR 08) für den
-// Direktverkauf und das Sidebar-Layout der Admin-Motive. Damit zeigen `produkte`
-// (Tablet) und `produktverwaltung` (Desktop) bewusst dasselbe Design auf zwei
-// Geräteklassen.
+// Querformat-Tablet (≥ 1024 px): löst das zweispaltige Layout ab `lg` aus — den
+// Service-Split-Screen (siehe docs/decisions.md D08) und das Sidebar-Layout der
+// Admin-Motive. `produkte` (Tablet) und `produktverwaltung` (Desktop) zeigen
+// deshalb bewusst dasselbe Design auf zwei Geräteklassen.
 const tabletLandscape = {
   viewport: { width: 1194, height: 834 },
   deviceScaleFactor: 2,
@@ -110,13 +94,12 @@ async function captureApp() {
     })
     const p = await login(phone, zugangsdaten.service)
 
-    // Tischübersicht („Meine Tische")
     await p.goto('/service/tische')
     await p.getByText('Meine Tische').first().waitFor()
     await p.getByText('Noch offen', { exact: false }).first().waitFor()
     await captureLightDark(p, 'tischuebersicht')
 
-    // Bestellansicht (Hero): lokaler Warenkorb, noch nicht abgeschickt.
+    // Lokaler Warenkorb, noch nicht abgeschickt.
     await oeffneTisch(p, 'Tisch 1')
     await p.getByRole('tab', { name: 'Bestellen' }).click()
     await waehleVariante(p, 'Bratwurst', 'Normal', 2)
@@ -124,7 +107,6 @@ async function captureApp() {
     await p.getByRole('button', { name: /Bestellung überprüfen/ }).waitFor()
     await captureLightDark(p, 'bestellansicht')
 
-    // Zahlung: Kassieren-Drawer eines Tisches mit offenen Positionen.
     await oeffneTisch(p, 'Tisch 2')
     await p.getByRole('tab', { name: 'Kassieren' }).click()
     const vonAnderen = p.getByRole('button', { name: /^Von anderen ·/ })
@@ -139,8 +121,6 @@ async function captureApp() {
     await phone.close()
 
     // ---- Direktverkauf (Querformat-Tablet, Split-Screen, Servicekraft „maria") ----
-    // Ab lg (1024 px) rendert der Service-Bereich zweispaltig (ADR 08): links die
-    // Produktauswahl, rechts die dauerhaft sichtbare Beleg-/Kassieren-Spalte.
     const tabletService = await browser.newContext({
       baseURL: BASE,
       ...tabletLandscape,
@@ -199,10 +179,8 @@ async function captureApp() {
     await pa.getByText('Helfer & Zugänge').first().waitFor()
     await captureLightDark(pa, 'benutzer')
 
-    // Geldtransit: „Geld einlegen"-Formular der offenen Kassensitzung mit
-    // ausgefülltem, gültigem Beleg. Der Betrag ist ein Pflichtfeld: das
-    // Ausfüllen zeigt einen realistischen Vorgang und verhindert, dass die
-    // Blur-Validierung (settle) einen Fehlerzustand in die Aufnahme brennt.
+    // Der Betrag ist Pflichtfeld: ausgefüllt, damit die Blur-Validierung in
+    // settle keinen Fehlerzustand in die Aufnahme brennt.
     await pa.goto('/admin/kasse')
     await pa.getByRole('button', { name: 'Geld einlegen' }).click()
     await pa.getByRole('dialog').waitFor()
@@ -237,7 +215,6 @@ async function captureApp() {
 }
 
 async function captureOg() {
-  // Website bauen, damit dist/ den neuen Hero mit den echten Screenshots enthält.
   console.log('Baue Website (make website-build) …')
   const build = spawnSync('make', ['website-build'], {
     cwd: repoRoot,
@@ -250,7 +227,6 @@ async function captureOg() {
   const server = await startStaticServer(distDir)
   const browser = await launchBrowser()
   try {
-    // OG-Format ist fix 1200×630; Hero hell aufnehmen.
     const context = await browser.newContext({
       viewport: { width: 1200, height: 630 },
       deviceScaleFactor: 1,

@@ -62,7 +62,6 @@ func TestTestbonDrucken_ReihtAuftragEin(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Station „Essen" mit Drucker-IP konfigurieren.
 	if err := druckstation_repo.NewRepository(db).UpsertDruckstation(ctx, druckstation.Druckstation{
 		Kategorie: druckstation.KategorieEssen,
 		DruckerIP: "192.168.1.50",
@@ -106,7 +105,6 @@ func TestTestbonDrucken_OhneIPWirdAbgelehnt(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Keine Station konfiguriert -> Fehler, kein Auftrag.
 	err := cmd.TestbonDrucken(ctx, "essen")
 	if !errors.Is(err, application.ErrDruckstationNichtKonfiguriert) {
 		t.Fatalf("Expected ErrDruckstationNichtKonfiguriert, got %v", err)

@@ -124,7 +124,6 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     expect(
       screen.getByText('Einrichtung — 0 von 3 Schritten erledigt'),
     ).toBeInTheDocument()
-    // Schritt 2 unerledigt bietet den Wizard-Link an.
     expect(
       screen.getByRole('link', { name: 'TSE einrichten' }),
     ).toHaveAttribute('href', '/admin/tse-einrichtung')
@@ -136,8 +135,6 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     hookState.kassenidentitaet = kassenidentitaet
     render(<FinanzamtPage />)
 
-    // Ohne diesen Link gäbe es nach der TEST-Einrichtung keinen Einstieg mehr
-    // in den Assistenten — der Leitfaden nennt genau diesen Pfad.
     expect(
       screen.getByRole('link', { name: 'TSE einrichten' }),
     ).toHaveAttribute('href', '/admin/tse-einrichtung')
@@ -151,7 +148,6 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     expect(
       screen.getByText('Vereinsdaten konnten nicht geladen werden'),
     ).toBeInTheDocument()
-    // Kein irreführender „0 von 3"-Leerstand bei einem Ladefehler.
     expect(
       screen.queryByText(/von 3 Schritten erledigt/),
     ).not.toBeInTheDocument()
@@ -171,8 +167,6 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     expect(
       screen.getByText('Einrichtung — 2 von 3 Schritten erledigt'),
     ).toBeInTheDocument()
-    // Offene Meldung: Fristtext mit Paragraf und die vollständige Seriennummer
-    // in einem eigenen, beschrifteten Feld (abtippbar für ELSTER).
     expect(screen.getByText(/§ 146a Abs\. 4 AO/)).toBeInTheDocument()
     expect(
       screen.getByText('Seriennummer des elektronischen Aufzeichnungssystems'),
@@ -196,7 +190,6 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     expect(
       screen.getByRole('button', { name: 'Zurücknehmen' }),
     ).toBeInTheDocument()
-    // Kein Fristtext mehr, wenn erledigt.
     expect(screen.queryByText(/Noch offen — Frist/)).not.toBeInTheDocument()
   })
 
@@ -268,7 +261,6 @@ describe('FinanzamtPage — Signatur-Warteschlange', () => {
   it('beruhigt nicht, wenn neben einem kleinen Rückstand ein Vorgang fehlgeschlagen ist', () => {
     hookState.betreiber = makeBetreiber()
     hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    // normaleQueue: 3 offene Aufträge, Rückstand 12 s — unter der Warnschwelle.
     hookState.queue = { ...normaleQueue(), fehlgeschlageneAuftraege: 2 }
     render(<FinanzamtPage />)
 
@@ -321,7 +313,6 @@ describe('FinanzamtPage — Collapsibles', () => {
     hookState.queue = normaleQueue()
     render(<FinanzamtPage />)
 
-    // Vor dem Aufklappen ist die Roh-Metrik „Signaturen/Minute" nicht sichtbar.
     expect(screen.queryByText('Signaturen/Minute')).not.toBeInTheDocument()
 
     await userEvent.click(
@@ -346,7 +337,6 @@ describe('FinanzamtPage — Collapsibles', () => {
     ]
     render(<FinanzamtPage />)
 
-    // Vor dem Aufklappen ist die Detailzeile (Fehlertext) nicht sichtbar.
     expect(screen.getByText(/1 dokumentierte Störung/)).toBeInTheDocument()
     expect(
       screen.queryByText('Nachsigniert nach kurzem Rückstand'),

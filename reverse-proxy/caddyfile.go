@@ -2,42 +2,31 @@ package main
 
 import "fmt"
 
-// contentSecurityPolicy ist die CSP aller Caddy-Sites: LAN-, Public- und
-// HTTP-Only-Mode teilen sie über proxySnippet. Die demo-Site in
-// nginx.rocks.conf trägt denselben Wert wörtlich;
-// TestNginxRocksConfCarriesSameCSP hält beide Kopien zusammen.
+// contentSecurityPolicy gilt für alle Caddy-Sites (über proxySnippet) und wörtlich
+// auch für die demo-Site in nginx.rocks.conf; TestNginxRocksConfCarriesSameCSP hält
+// beide Kopien zusammen.
 const contentSecurityPolicy = "default-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self' blob:; media-src 'self'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests"
 
-// hstsLAN ist der HSTS-Wert des LAN-Stacks (lokal/release): nur max-age, da der
-// Zugriff auch über die rohe LAN-IP (Fallback-Site) läuft, für die
-// includeSubDomains/preload nicht zutreffen.
-//
-// hstsPublic ist der stärkere Public-Wert (Parität zur prod-nginx): zwei Jahre
-// inklusive Subdomains und Preload — eine bewusste Zusage für die öffentliche
-// Domain des Self-Hosters.
+// hstsLAN trägt nur max-age: der Zugriff läuft auch über die rohe LAN-IP
+// (Fallback-Site), für die includeSubDomains/preload nicht zutreffen. hstsPublic ist
+// der stärkere Wert für die öffentliche Domain (Parität zur prod-nginx).
 const (
 	hstsLAN    = "max-age=31536000"
 	hstsPublic = "max-age=63072000; includeSubDomains; preload"
 )
 
-// leStagingCA ist das ACME-Verzeichnis der Let's-Encrypt-Staging-Umgebung.
-// Entwicklung und Tests nutzen es, um die Rate-Limits der echten Zone zu
-// schonen (Schalter PROXY_LE_STAGING).
+// leStagingCA: Entwicklung und Tests nutzen die LE-Staging-Umgebung
+// (PROXY_LE_STAGING), um die Rate-Limits der echten Zone zu schonen.
 const leStagingCA = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
-// challengeResolvers sind die rekursiven DNS-Resolver, die Caddy für die
-// DNS-01-Propagation-Prüfung verwendet — bewusst öffentliche Resolver statt des
-// LAN-Resolvers. Viele Heimrouter (empirisch z. B. Telekom Speedport →
-// Telekom-Upstream) negativ-cachen die kurzlebigen acme-dns-TXT-Records
-// (`<install-id>.auth.jotti.rocks`, TTL 1) aggressiv und liefern danach
-// NXDOMAIN. Caddys Propagation-Prüfung läuft sonst über genau diesen
-// LAN-Resolver und läuft in einen Timeout, obwohl der Record real ausgestellt
-// ist und Let's Encrypt ihn über die eigenen Resolver sieht. Öffentliche
-// Resolver lösen den CNAME→TXT-Pfad (`_acme-challenge` → `…auth.jotti.rocks`)
-// zuverlässig auf und entkoppeln die Ausstellung vom Router des Vereins-WLANs.
+// challengeResolvers sind die Resolver für Caddys DNS-01-Propagation-Prüfung —
+// bewusst öffentliche statt des LAN-Resolvers. Viele Heimrouter (empirisch Telekom
+// Speedport → Telekom-Upstream) negativ-cachen die kurzlebigen acme-dns-TXT-Records
+// (`<install-id>.auth.jotti.rocks`, TTL 1) aggressiv und liefern danach NXDOMAIN;
+// die Prüfung liefe sonst über genau diesen Resolver in einen Timeout, obwohl Let's
+// Encrypt den Record über eigene Resolver sieht.
 const challengeResolvers = "1.1.1.1 8.8.8.8"
 
-// caddyfileInput beschreibt, woraus der Caddyfile gerendert wird.
 type caddyfileInput struct {
 	state      InstallState // acme-dns-Credentials für die Wildcard-Site
 	hasState   bool         // false ⇒ nur die Fallback-Site rendern
@@ -46,11 +35,8 @@ type caddyfileInput struct {
 	leStaging  bool         // true ⇒ Zertifikate über die LE-Staging-CA holen
 }
 
-// renderCaddyfile erzeugt den vollständigen Caddyfile des lokalen Stacks: die
-// vertrauenswürdige Wildcard-Site (Let's Encrypt via DNS-01 über acme-dns, nur
-// wenn Credentials vorliegen) und immer die Fallback-Site mit Caddys interner CA
-// (eingebauter Option-2-Ersatz). Beide Sites proxyen identisch über ein
-// gemeinsames Snippet. Reine Funktion ohne I/O.
+// renderCaddyfile erzeugt den Caddyfile des lokalen Stacks: die Wildcard-Site (nur
+// mit acme-dns-Credentials) und immer die Fallback-Site mit Caddys interner CA.
 func renderCaddyfile(in caddyfileInput) string {
 	wildcard := ""
 	if in.hasState {
@@ -85,15 +71,11 @@ http:// {
 `, proxySnippet(hstsLAN, false), wildcard)
 }
 
-// proxySnippet rendert das gemeinsame `(jotti_proxy)`-Snippet (Security-Header,
-// CSP, API-Proxy, SPA-Proxy), das LAN- und Public-Mode teilen, damit Header und
-// CSP über beide Modi identisch bleiben. hsts ist der Strict-Transport-Security-
-// Wert (im Public-Mode stärker); rateLimited schaltet das /api/-Rate-Limit zu.
-//
-// Das Rate-Limit bildet die prod-nginx-Vorgabe (10r/s, burst 20) ab: Caddys
-// caddy-ratelimit-Modul nutzt ein gleitendes Fenster ohne separaten Burst-
-// Begriff, daher entspricht der Spitzenwert von nginx (rate + burst, durch
-// `nodelay` sofort bedient) hier `events 30` pro `window 1s`.
+// proxySnippet rendert das gemeinsame `(jotti_proxy)`-Snippet, damit Header und CSP
+// über alle Modi identisch bleiben. Das Rate-Limit bildet die prod-nginx-Vorgabe
+// (10r/s, burst 20) ab: caddy-ratelimit nutzt ein gleitendes Fenster ohne separaten
+// Burst-Begriff, daher entspricht der nginx-Spitzenwert (durch `nodelay` sofort
+// bedient) hier `events 30` pro `window 1s`.
 func proxySnippet(hsts string, rateLimited bool) string {
 	rateLimit := ""
 	if rateLimited {
@@ -130,9 +112,6 @@ func proxySnippet(hsts string, rateLimited bool) string {
 }`, hsts, contentSecurityPolicy, rateLimit)
 }
 
-// publicInput beschreibt, woraus der Public-Mode-Caddyfile gerendert wird: eine
-// einzige öffentliche Site mit automatischem Let's-Encrypt-Zertifikat
-// (HTTP-01/TLS-ALPN). Den Modus nutzt der Self-Hoster-prod-Stack.
 type publicInput struct {
 	domain      string // öffentliche Domain, z. B. "jotti.meinverein.de"
 	email       string // Kontakt-E-Mail für den ACME-Account
@@ -140,12 +119,9 @@ type publicInput struct {
 	leStaging   bool   // true ⇒ Zertifikate über die LE-Staging-CA holen (Tests)
 }
 
-// renderPublicCaddyfile erzeugt den Caddyfile des Self-Hoster-prod-Stacks: eine
-// öffentliche Site für die Domain mit automatischem Let's-Encrypt-Zertifikat.
-// Sie proxyt über dasselbe `(jotti_proxy)`-Snippet wie der LAN-Mode (gleiche
-// Security-Header und CSP), setzt aber den stärkeren HSTS-Wert und das
-// /api/-Rate-Limit. Caddy leitet HTTP automatisch auf HTTPS um. Reine Funktion
-// ohne I/O.
+// renderPublicCaddyfile erzeugt den Caddyfile des Self-Hoster-prod-Stacks: dasselbe
+// `(jotti_proxy)`-Snippet wie der LAN-Mode, aber stärkeres HSTS und das
+// /api/-Rate-Limit.
 func renderPublicCaddyfile(in publicInput) string {
 	staging := ""
 	if in.leStaging {
@@ -172,14 +148,10 @@ func renderPublicCaddyfile(in publicInput) string {
 `, in.email, staging, proxySnippet(hstsPublic, true), in.domain, www)
 }
 
-// renderHTTPOnlyCaddyfile erzeugt einen Caddyfile, der ausschließlich Klartext-
-// HTTP auf :80 bedient — ohne TLS, ACME oder Zertifikate. Er proxyt über
-// dasselbe `(jotti_proxy)`-Snippet wie LAN- und Public-Mode, sodass API-Routing
-// (/api/*) und CSP identisch bleiben. Ausschließlich für die E2E-Testumgebung
-// (docker-compose.e2e.yml, PROXY_HTTP_ONLY=1) gedacht: dort ist der Stack nur
-// lokal erreichbar und Zertifikate wären reiner Ballast. Das /api/-Rate-Limit
-// bleibt aus, damit Test-Suiten nicht künstlich gedrosselt werden. Reine
-// Funktion ohne I/O.
+// renderHTTPOnlyCaddyfile bedient ausschließlich Klartext-HTTP auf :80 — nur für
+// die E2E-Testumgebung (docker-compose.e2e.yml, PROXY_HTTP_ONLY=1), wo der Stack
+// lokal bleibt. Das /api/-Rate-Limit bleibt aus, damit Test-Suiten nicht gedrosselt
+// werden.
 func renderHTTPOnlyCaddyfile() string {
 	return fmt.Sprintf(`# Generiert vom jotti-reverse-proxy beim Start — nicht von Hand bearbeiten.
 {
@@ -196,9 +168,8 @@ http:// {
 `, proxySnippet(hstsLAN, false))
 }
 
-// wildcardSite rendert die vertrauenswürdige Site `*.<install-id>.<zone>` mit
-// DNS-01-Challenge über acme-dns. Caddy holt und erneuert das Zertifikat
-// automatisch im Hintergrund; bis dahin (oder offline) trägt die Fallback-Site.
+// wildcardSite rendert `*.<install-id>.<zone>` mit DNS-01-Challenge über acme-dns;
+// bis Caddy ausgestellt hat (oder offline) trägt die Fallback-Site.
 func wildcardSite(in caddyfileInput) string {
 	caBlock := ""
 	if in.leStaging {

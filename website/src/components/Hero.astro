@@ -8,21 +8,9 @@ import bestellansichtDark from '../assets/screenshots/bestellansicht-dark.png'
 import zahlungLight from '../assets/screenshots/zahlung-light.png'
 import zahlungDark from '../assets/screenshots/zahlung-dark.png'
 
-// Hero der Landing.
-// Statische Astro-Sektion ohne client:-Direktive. Der Spektral-Verlauf ist
-// tragendes Markenelement (ADR 05); Bewegung ist Progressive Enhancement und
-// unter prefers-reduced-motion neutralisiert (siehe landing.css).
-//
-// Beta-Kommunikation: übernimmt das Beta-Badge vom entfernten Header-Banner.
-//
-// CTAs: primär „Für Verein anfragen" (Ziel /fuer-vereine) und sekundär
-// „Live-Demo ansehen" (Ziel #demo).
-//
-// Phone-Screen: geloopter CSS-Crossfade aus drei gestapelten Service-Screenshots
-// (Meine Tische → Bestellen → Kassieren), theme-abhängig hell/dunkel (CSS-only
-// über ThemeImage), aufgenommen per e2e/website/screenshots.mjs. Rein CSS
-// (gestaffelte Opacity-Keyframes, keine Hydration-Island); unter
-// prefers-reduced-motion steht nur das erste Bild ohne Blende (siehe landing.css).
+// Der Spektral-Verlauf ist tragendes Markenelement, Bewegung ist Progressive
+// Enhancement — siehe docs/decisions.md D05 und landing.css. Die Screenshots des
+// Crossfades erzeugt e2e/website/screenshots.mjs.
 ---
 
 <section class="relative overflow-hidden">

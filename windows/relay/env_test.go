@@ -93,7 +93,6 @@ func TestEnvSearchDirsWindowsPrefersProgramData(t *testing.T) {
 }
 
 func TestEnvSearchDirsLinuxSkipsProgramData(t *testing.T) {
-	// Unter Linux (Server/Dev) wird PROGRAMDATA ignoriert, selbst wenn gesetzt.
 	got := envSearchDirs("linux", "/ignored", "/opt/relay", "/work")
 	want := []string{"/opt/relay", "/work"}
 	if !reflect.DeepEqual(got, want) {

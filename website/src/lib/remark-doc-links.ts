@@ -3,10 +3,7 @@ import { relative } from 'node:path'
 import { rewriteDocLink } from './link-rewriter'
 import { publishedDocs } from './published-docs'
 
-// remark-Plugin im Astro-Build: schreibt repo-relative Markdown-Links in den
-// veröffentlichten `docs/`-Dateien auf Website-Routen bzw. GitHub-URLs um. Die
-// eigentliche Logik steckt in `rewriteDocLink` (rein, isoliert getestet); dieses
-// Plugin ist nur der mdast-Adapter, der Quellpfad und Link-Knoten beistellt.
+// mdast-Adapter für `rewriteDocLink`: stellt Quellpfad und Link-Knoten bei.
 
 export interface RemarkDocLinksOptions {
   /** Absoluter Pfad zum top-level `docs/`-Verzeichnis. */
@@ -50,8 +47,7 @@ export function remarkDocLinks({
   }
 }
 
-// Inline-/Referenz-Links tragen ihr Ziel in `url`; ein kleiner rekursiver
-// Walk genügt und spart eine Abhängigkeit auf `unist-util-visit`.
+// Eigener Walk statt `unist-util-visit`: spart eine Abhängigkeit.
 function visitLinks(node: MdastNode, fn: (node: MdastNode) => void): void {
   if (node.type === 'link' || node.type === 'definition') fn(node)
   for (const child of node.children ?? []) visitLinks(child, fn)

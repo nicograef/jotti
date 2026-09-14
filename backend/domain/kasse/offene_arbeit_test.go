@@ -38,8 +38,7 @@ func TestComputeEigeneArbeitAnTisch(t *testing.T) {
 			wantErledigt: true,
 		},
 		{
-			// Schichtübergabe: eine Kollegin hat die eigenen Positionen kassiert,
-			// sie sind aus der Unbezahlt-Liste verschwunden.
+			// Schichtübergabe: eine Kollegin hat die eigenen Positionen kassiert.
 			name:         "schichtübergabe erledigt",
 			session:      TischSession{UnbezahltePositionen: nil},
 			userID:       7,
@@ -153,7 +152,6 @@ func TestComputeOffeneArbeitRollup(t *testing.T) {
 }
 
 func TestComputeOffeneArbeitRollup_AllesErledigt(t *testing.T) {
-	// Nur fremde Positionen -> die Servicekraft ist überall fertig.
 	sessions := []TischSession{
 		{TischID: 1, UnbezahltePositionen: []Position{pos("p1", 8, "Bert")}},
 	}

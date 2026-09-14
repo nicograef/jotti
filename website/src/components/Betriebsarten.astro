@@ -2,23 +2,12 @@
 import { ConciergeBell, Store, Check, ArrowRight, CircleUser } from '@lucide/astro'
 import ThemeImage from './ThemeImage.astro'
 
-// Betriebsarten-Sektion der Landing (#betriebsarten): stellt die beiden
-// gleichwertigen Arbeitsmodi nebeneinander — Tischservice am Handy, Direktverkauf
-// am Tablet — mit je einer knappen „wofür"-Erklärung, einer Entscheidungshilfe
-// (Frage → Antwort) und dem Hinweis, dass der Modus pro Gerät wählbar ist.
-// Statische Astro-Sektion ohne client:-Direktive. Icons über @lucide/astro
-// (build-time SVG, kein Client-JS). Scroll-Reveal (.reveal) ist Progressive
-// Enhancement; unter prefers-reduced-motion bleibt alles statisch (landing.css).
-//
-// Der Direktverkauf ist personalbedient (eine Helfer:in bedient das Tablet an
-// der Theke) — bewusst kein Kiosk, keine Gäste-Selbstbedienung am Gerät.
+// Direktverkauf ist personalbedient — bewusst kein Kiosk, keine
+// Gäste-Selbstbedienung.
 
-// Linke Spalte: Tischservice am Handy. Regulärer Handy-Service-Screenshot.
 import tischuebersichtLight from '../assets/screenshots/tischuebersicht-light.png'
 import tischuebersichtDark from '../assets/screenshots/tischuebersicht-dark.png'
 
-// Rechte Spalte: Direktverkauf am Tablet — dieselbe Split-Screen-Aufnahme wie
-// in der Sektion „Ein Design. Jedes Gerät.".
 import direktverkaufLight from '../assets/screenshots/direktverkauf-light.png'
 import direktverkaufDark from '../assets/screenshots/direktverkauf-dark.png'
 
@@ -54,7 +43,6 @@ const direktverkaufPunkte = [
   </div>
 
   <div class="reveal mt-11 grid items-start gap-6 md:grid-cols-2">
-    {/* Tischservice — Handy */}
     <div
       class="flex flex-col rounded-[20px] border border-card-border bg-card p-[30px] shadow-[var(--shadow)]"
     >
@@ -104,7 +92,6 @@ const direktverkaufPunkte = [
       </ul>
     </div>
 
-    {/* Direktverkauf — Tablet */}
     <div
       class="flex flex-col rounded-[20px] border border-card-border bg-card p-[30px] shadow-[var(--shadow)]"
     >
@@ -155,7 +142,6 @@ const direktverkaufPunkte = [
     </div>
   </div>
 
-  {/* Entscheidungshilfe: Frage → Antwort, plus Hinweiszeile. */}
   <div
     class="reveal mt-8 rounded-[20px] border border-card-border bg-surface-alt p-[30px]"
   >

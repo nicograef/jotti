@@ -11,31 +11,24 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// ErrorCode represents a PostgreSQL error code.
 // https://www.postgresql.org/docs/17/errcodes-appendix.html
 type ErrorCode string
 
 const (
-	// UniqueViolation indicates a violation of a unique constraint.
-	ErrorCodeUniqueViolation ErrorCode = "23505"
-	// DeadlockDetected indicates the transaction was aborted as a deadlock victim.
+	ErrorCodeUniqueViolation  ErrorCode = "23505"
 	ErrorCodeDeadlockDetected ErrorCode = "40P01"
 )
 
-// ErrNotFound is returned when a record is not found.
 var ErrNotFound = errors.New("not found")
 
-// ErrAlreadyExists is returned when a record already exists.
 var ErrAlreadyExists = errors.New("already exists")
 
 // ErrConflict is returned when a transaction was aborted because of a
 // concurrent transaction (deadlock victim); the request can be retried.
 var ErrConflict = errors.New("transaction conflict")
 
-// ErrDatabase is returned when there is a database error.
 var ErrDatabase = errors.New("database error")
 
-// Error maps a database error to a more specific error.
 func Error(err error) error {
 	if err == nil {
 		return nil
@@ -57,7 +50,6 @@ func Error(err error) error {
 	return ErrDatabase
 }
 
-// ResultError checks the result of a SQL operation and returns an appropriate error.
 func ResultError(res sql.Result) error {
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
@@ -71,9 +63,7 @@ func ResultError(res sql.Result) error {
 	return nil
 }
 
-// WithTx runs fn within a single transaction: it begins the tx, rolls back on
-// any error (a rollback after commit is a no-op), and commits otherwise. fn
-// receives the transaction-bound queries and owns its own error wrapping; only
+// WithTx runs fn in one transaction. fn owns its own error wrapping; only
 // begin/commit failures are normalized via Error.
 func WithTx(ctx context.Context, database *sql.DB, fn func(*dbgen.Queries) error) error {
 	tx, err := database.BeginTx(ctx, nil)
@@ -89,12 +79,10 @@ func WithTx(ctx context.Context, database *sql.DB, fn func(*dbgen.Queries) error
 	return Error(tx.Commit())
 }
 
-// PingWithRetry calls ping repeatedly until it succeeds or the time budget is
-// exhausted (budget/interval attempts, at least one). Every failed attempt is
-// logged so a delayed database is visible in the boot log; the caller decides
-// what a returned error means (the backend still refuses to start without a
-// database). ping and sleep are injected so the retry decision can be
-// unit-tested without a real database or real waiting.
+// PingWithRetry calls ping until it succeeds or the budget is exhausted
+// (budget/interval attempts, at least one), logging every failed attempt so a
+// delayed database is visible in the boot log. ping and sleep are injected for
+// tests.
 func PingWithRetry(ping func() error, budget, interval time.Duration, sleep func(time.Duration)) error {
 	attempts := int(budget / interval)
 	if attempts < 1 {

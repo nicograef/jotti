@@ -8,27 +8,21 @@ import (
 	"regexp"
 )
 
-// subdomainPattern begrenzt die von acme-dns vergebene Subdomain auf ein
-// einzelnes DNS-Label (acme-dns vergibt eine UUID). Die Subdomain landet
-// ungequotet in der Site-Adresse `*.<subdomain>.<zone>` des gerenderten
-// Caddyfiles (wildcardSite): ein Leerzeichen oder eine geschweifte Klammer
-// darin wäre eine zusätzliche Caddy-Direktive. Ein Site-Adress-Token lässt
-// sich nicht quoten, also muss der Wert selbst eng sein.
+// subdomainPattern begrenzt die acme-dns-Subdomain auf ein einzelnes DNS-Label. Sie
+// landet ungequotet in der Site-Adresse `*.<subdomain>.<zone>` (wildcardSite) — ein
+// Leerzeichen oder eine geschweifte Klammer wäre dort eine zusätzliche
+// Caddy-Direktive, und ein Site-Adress-Token lässt sich nicht quoten.
 var subdomainPattern = regexp.MustCompile(`^[a-z0-9-]{1,63}$`)
 
-// InstallState ist der persistente Zustand einer Installation: die bei acme-dns
-// registrierten Credentials. Die Install-ID ist die von acme-dns vergebene
-// Subdomain — sie taucht zugleich im Hostnamen (`*.<subdomain>.lokal…`) und in
-// der Challenge-Delegation auf. Keine personenbezogenen Daten.
+// InstallState ist der persistente Zustand einer Installation: die acme-dns-
+// Credentials. Die Subdomain ist zugleich die Install-ID im Hostnamen und in der
+// Challenge-Delegation. Keine personenbezogenen Daten.
 type InstallState struct {
 	Username  string `json:"username"`
 	Password  string `json:"password"`
 	Subdomain string `json:"subdomain"`
 }
 
-// validate meldet, warum der State unbrauchbar ist, oder nil. Der Grund wandert
-// in die Fehlermeldung: eine abgelehnte Subdomain ist etwas anderes als ein
-// fehlendes Passwort, und der Betreiber liest nur die Meldung.
 func (s InstallState) validate() error {
 	if s.Username == "" || s.Password == "" {
 		return errors.New("unvollständige Credentials")
@@ -39,8 +33,8 @@ func (s InstallState) validate() error {
 	return nil
 }
 
-// stateDeps bündelt die injizierbaren Abhängigkeiten von ensureState, damit die
-// Idempotenz ohne echten Dateizugriff und ohne echtes acme-dns testbar ist.
+// stateDeps bündelt die injizierbaren Abhängigkeiten von ensureState (Tests ohne
+// Dateisystem und ohne acme-dns).
 type stateDeps struct {
 	path      string
 	readFile  func(string) ([]byte, error)
@@ -48,12 +42,10 @@ type stateDeps struct {
 	register  func() (InstallState, error)
 }
 
-// ensureState lädt den Installations-State oder registriert — falls noch keiner
-// existiert — genau einmal bei acme-dns und persistiert das Ergebnis. Ein
-// vorhandener, gültiger State wird nie überschrieben und nie neu registriert
-// (Idempotenz über Neustarts). Ein vorhandener, aber beschädigter State ist ein
-// Fehler statt eines stillen Überschreibens — sonst gingen gültige Credentials
-// (und das daran hängende Zertifikat) verloren.
+// ensureState lädt den Installations-State oder registriert genau einmal bei
+// acme-dns. Ein gültiger State wird nie überschrieben (Idempotenz über Neustarts);
+// ein beschädigter ist ein Fehler statt eines stillen Überschreibens — sonst gingen
+// gültige Credentials und das daran hängende Zertifikat verloren.
 func ensureState(deps stateDeps) (InstallState, error) {
 	data, err := deps.readFile(deps.path)
 	switch {
@@ -67,7 +59,6 @@ func ensureState(deps stateDeps) (InstallState, error) {
 		return InstallState{}, fmt.Errorf("state lesen: %w", err)
 	}
 
-	// Kein State vorhanden: einmalig registrieren und persistieren.
 	state, err := deps.register()
 	if err != nil {
 		return InstallState{}, fmt.Errorf("acme-dns-Registrierung: %w", err)
@@ -86,7 +77,6 @@ func ensureState(deps stateDeps) (InstallState, error) {
 	return state, nil
 }
 
-// parseState liest und validiert den persistierten State.
 func parseState(data []byte) (InstallState, error) {
 	var state InstallState
 	if err := json.Unmarshal(data, &state); err != nil {

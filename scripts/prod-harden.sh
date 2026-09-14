@@ -1,31 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# =============================================================================
-# jotti — Optional Server Hardening (self-hosted production, Weg B)
-#
-# Opt-in, idempotent host hardening for a public VPS running jotti. Configures a
-# ufw firewall that allows only SSH plus the jotti web ports (80/443), denies
-# everything else inbound, and optionally enables fail2ban's sshd jail. This is
-# NOT part of prod-init.sh — run it deliberately, after the stack is up. Steps:
-#   1. Require root (or sudo) and detect the SSH port (never lock yourself out)
-#   2. ufw: allow SSH FIRST, then 80/443(+udp), default-deny inbound, enable
-#   3. Optional fail2ban sshd jail (skip with SKIP_FAIL2BAN=1)
-#   4. Reminder about unattended-upgrades (printed, not installed)
-#
-# Postgres is never exposed: docker-compose.prod.yml only publishes 80/443 on
-# the host, so the database stays on the internal Docker network.
-#
-# Configuration (environment):
-#   SSH_PORT        SSH port to keep open (default: auto-detected, then 22)
-#   SKIP_FAIL2BAN   set to 1 to skip the fail2ban step
-#
-# Usage: sudo ./scripts/prod-harden.sh  (or `make prod-harden`)
-# =============================================================================
+# jotti — optional, idempotent hardening of a public VPS host (self-hosted
+# production): a ufw firewall that allows only SSH and the jotti web ports
+# (80/443) and denies everything else inbound, plus an optional fail2ban sshd
+# jail (SKIP_FAIL2BAN=1 skips it). NOT part of prod-init.sh — run it
+# deliberately, after the stack is up. Postgres is never exposed:
+# docker-compose.prod.yml publishes only 80/443 on the host, so the database
+# stays on the internal Docker network.
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 . "$SCRIPT_DIR/lib.sh"
@@ -37,9 +20,6 @@ apt_install() {
   $SUDO apt-get update -qq && $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y "$1"
 }
 
-# ---------------------------------------------------------------------------
-# Step 1 — Require root (or sudo) and detect the SSH port
-# ---------------------------------------------------------------------------
 # Every privileged command is prefixed with $SUDO so the script works both as
 # root (SUDO empty) and as a sudo-capable user.
 SUDO=""
@@ -77,9 +57,6 @@ warn "  allow $SSH_PORT/tcp (SSH), 80/tcp, 443/tcp, 443/udp; deny all other inbo
 read -r -p "Continue? Type 'yes' to proceed: " answer
 [[ "$answer" == "yes" ]] || fatal "Aborted by user. Nothing was changed."
 
-# ---------------------------------------------------------------------------
-# Step 2 — ufw firewall (SSH allowed before enable; idempotent rules)
-# ---------------------------------------------------------------------------
 if ! command -v ufw &>/dev/null; then
   info "ufw not found, installing..."
   apt_install ufw || fatal "Could not install ufw automatically. Install it, then re-run: sudo apt-get install -y ufw"
@@ -97,9 +74,6 @@ $SUDO ufw default allow outgoing
 $SUDO ufw --force enable
 info "ufw active (SSH + 80/443 allowed, everything else denied inbound)."
 
-# ---------------------------------------------------------------------------
-# Step 3 — fail2ban sshd jail (optional)
-# ---------------------------------------------------------------------------
 configure_fail2ban() {
   $SUDO mkdir -p /etc/fail2ban/jail.d
   $SUDO tee /etc/fail2ban/jail.d/jotti-sshd.local >/dev/null <<EOF
@@ -131,17 +105,11 @@ else
   fi
 fi
 
-# ---------------------------------------------------------------------------
-# Step 4 — unattended-upgrades reminder (printed, not installed)
-# ---------------------------------------------------------------------------
 echo ""
 info "Recommended: enable automatic security updates (this script does NOT install them):"
 echo "    sudo apt-get install -y unattended-upgrades"
 echo "    sudo dpkg-reconfigure -plow unattended-upgrades"
 
-# ---------------------------------------------------------------------------
-# Summary
-# ---------------------------------------------------------------------------
 echo ""
 echo "=========================================="
 printf "${GREEN} %s${NC}\n" "jotti — Server Hardening Complete"

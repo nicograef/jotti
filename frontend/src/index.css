@@ -56,7 +56,6 @@
 
 :root {
   --radius: 0.45rem;
-  /* Light theme (olive base, emerald primary, zinc secondary) */
   --background: oklch(1 0 0);
   /* white */
   --foreground: oklch(0.153 0.006 107.1);
@@ -95,7 +94,7 @@
   /* olive-700, WCAG-AA-Text (4,5:1) auf der Disabled-Flaeche */
   --warn: oklch(0.769 0.188 70.08);
   /* amber-500, Warn-Flaeche fuer irreversible Routine-Bestaetigungen —
-     distinkt von destruktiv-Rot und primaer-Gruen (ADR 04) */
+     distinkt von destruktiv-Rot und primaer-Gruen (docs/decisions.md D04) */
   --warn-foreground: oklch(0.279 0.077 45.635);
   /* amber-950, dunkler Text auf der Warn-Flaeche: 7:1, WCAG AA/AAA */
   --border: oklch(0.93 0.007 106.5);
@@ -104,7 +103,6 @@
   /* olive-500, Formularrahmen mit WCAG-AA-Nicht-Text-Kontrast */
   --ring: oklch(0.62 0.031 106.9);
   /* olive-600, Fokusindikator mit WCAG-AA-Nicht-Text-Kontrast */
-  /* Suggested chart palette */
   --chart-1: oklch(0.845 0.143 164.978);
   /* emerald-300 */
   --chart-2: oklch(0.696 0.17 162.48);
@@ -131,10 +129,9 @@
   --sidebar-ring: oklch(0.62 0.031 106.9);
   /* olive-600, wie --ring */
 
-  /* Spektral-Marke (Light) — wertidentisch aus website/src/styles/brand.css.
-     Erscheint nur an den vier erlaubten Stellen (Wortmarke, Glows, Skeletons,
-     Hairlines); --spectral-v und die --sp-*-text-Varianten der Website werden
-     nicht übernommen (kein Konsument in der App). */
+  /* Spektral-Marke (Light) — wertidentisch aus website/src/styles/brand.css,
+     nur für Wortmarke, Glows, Skeletons und Hairlines. --spectral-v und die
+     --sp-*-text-Varianten der Website haben in der App keinen Konsumenten. */
   --sp-red: #d24a2a;
   --sp-orange: #c8781e;
   --sp-yellow: #8f9a2c;
@@ -230,10 +227,9 @@
   --sidebar-ring: oklch(0.58 0.031 107.3);
   /* olive-500 */
 
-  /* Spektral-Marke (Dark) — wertidentisch aus website/src/styles/brand.css.
-     Die Website überschreibt im Dunkeln nur fünf Töne (red, green, teal, blue,
-     violet); der Dark-Verlauf ist aus den effektiven Dark-Tönen rekomponiert
-     (Orange bleibt der Light-Ton). */
+  /* Spektral-Marke (Dark) — wertidentisch aus website/src/styles/brand.css: Die
+     Website überschreibt im Dunkeln nur red, green, teal, blue und violet, der
+     Dark-Verlauf ist daraus rekomponiert (Orange bleibt der Light-Ton). */
   --sp-red: #e2603f;
   --sp-green: #5fb045;
   --sp-teal: #28b8a3;
@@ -264,11 +260,9 @@
   }
 }
 
-/* Zentrales Animations-Inventar. Keyframes global, Utilities über @utility —
-   Einsatzstellen konsumieren nur die benannten Klassen, keine Ad-hoc-
-   Animationen pro Stelle. Dauern/Easings sind die kanonischen Werte des
-   Inventars; Stellen mit variabler Dauer (Listen-Stagger, Login-Glows)
-   setzen die Dauer je Instanz zusätzlich. */
+/* Zentrales Animations-Inventar: Einsatzstellen konsumieren nur die benannten
+   Klassen, keine Ad-hoc-Animationen. Stellen mit variabler Dauer
+   (Listen-Stagger, Login-Glows) setzen die Dauer je Instanz zusätzlich. */
 @keyframes shimmer {
   0% {
     background-position: 150% 0;
@@ -304,10 +298,9 @@
 }
 
 @keyframes pulsedot {
-  /* Ring-Farbe aus --primary abgeleitet (nicht die feste Farbe
-     rgb(16 185 129)), damit der Puls in Hell und Dunkel zum grünen
-     StatusDot (bg-primary) passt — die Festfarbe entspricht nur dem
-     Dark-Primary. */
+  /* Ring-Farbe aus --primary abgeleitet statt fest rgb(16 185 129): Die
+     Festfarbe entspricht nur dem Dark-Primary und passt im Hellen nicht zum
+     grünen StatusDot (bg-primary). */
   0% {
     box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 50%, transparent);
   }
@@ -345,11 +338,9 @@
   animation: drift 18s ease-in-out infinite alternate;
 }
 
-/* Skeleton-Shimmer: Muted-Verlauf mit leichter Teal-/Violett-Tönung. */
 @utility skeleton-shimmer {
-  /* Solider Fallback zuerst: Browser ohne color-mix()-Support (iOS Safari
-     16.0–16.1) verwerfen die Gradient-Deklaration und behalten diese muted
-     Fläche statt transparent zu rendern. Der Shimmer bleibt, wo unterstützt. */
+  /* Solider Fallback zuerst: Browser ohne color-mix() (iOS Safari 16.0–16.1)
+     verwerfen die Gradient-Deklaration und behalten diese muted Fläche. */
   background: var(--muted);
   background: linear-gradient(
     90deg,

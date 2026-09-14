@@ -1,43 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# =============================================================================
-# jotti — Database Backup (self-hosted production, Weg B)
+# jotti — database backup (self-hosted production).
 #
-# Pulls a full pg_dump from the running production postgres into a timestamped,
-# gzip-compressed file in a host directory and rotates old dumps. Mirrors the
-# Windows pre-update backup (windows/starter/backup.go): same --clean --if-exists
-# dump and same "keep newest N" rotation, so a later restore re-creates the
-# objects cleanly. Steps:
-#   1. Validate prerequisites (Docker, Compose, .env)
-#   2. pg_dump the running stack into BACKUP_DIR/jotti-YYYYMMDD-HHMMSS.sql.gz
-#   3. Rotate to the newest BACKUP_KEEP dumps
-#
-# Configuration (environment overrides .env, which overrides the defaults):
-#   BACKUP_DIR       target directory on the host (default: ./backups)
-#   BACKUP_KEEP      number of dumps to retain (default: 14; <=0 keeps all)
-#   COMPOSE_FILE     compose file to dump from (default: docker-compose.prod.yml)
-#   BACKUP_PING_URL  optional URL pinged after a successful backup (dead man's
-#                    switch); a failed ping is a warning, never an error
-#
-# Usage: ./scripts/prod-backup.sh  (or `make prod-backup`)
-# =============================================================================
+# Dumps the running production postgres into a timestamped, gzip-compressed file
+# in BACKUP_DIR and rotates to the newest BACKUP_KEEP dumps. Mirrors the Windows
+# pre-update backup (windows/starter/backup.go): same --clean --if-exists dump
+# and same "keep newest N" rotation, so a later restore re-creates the objects
+# cleanly.
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 PG_SERVICE="postgres"
 
-# ---------------------------------------------------------------------------
-# Step 0 — Change to project root (script may be called from anywhere)
-# ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 . "$SCRIPT_DIR/lib.sh"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# ---------------------------------------------------------------------------
-# Step 1 — Validate prerequisites and resolve configuration
-# ---------------------------------------------------------------------------
 require_docker_stack "$COMPOSE_FILE"
 
 resolve_backup_dir
@@ -57,9 +37,6 @@ umask 077
 mkdir -p "$BACKUP_DIR"
 chmod 700 "$BACKUP_DIR" || fatal "Cannot set mode 700 on $BACKUP_DIR (owner or filesystem?)."
 
-# ---------------------------------------------------------------------------
-# Step 2 — Dump the database
-# ---------------------------------------------------------------------------
 # The postgres role lives in the container's own POSTGRES_USER env, so the dump
 # never drifts from whatever .env configured. Local socket connections inside
 # the container are trust-authenticated, so no password is needed.
@@ -95,9 +72,6 @@ fi
 
 info "Backup created: $OUTFILE ($(du -h "$OUTFILE" | cut -f1))"
 
-# ---------------------------------------------------------------------------
-# Step 3 — Rotate old dumps (keep the newest BACKUP_KEEP)
-# ---------------------------------------------------------------------------
 # Timestamped names sort lexicographically == chronologically, so the oldest
 # beyond BACKUP_KEEP are the leading entries. A non-positive keep deletes
 # nothing — a misconfiguration must never wipe all backups.
@@ -114,9 +88,6 @@ else
   fi
 fi
 
-# ---------------------------------------------------------------------------
-# Step 4 — Success ping (dead man's switch)
-# ---------------------------------------------------------------------------
 # Only after a fully successful, integrity-checked dump: ping an optional
 # monitor so it can alarm when the ping ever stops arriving. A failed ping is a
 # warning, never a script error — the backup itself already succeeded.

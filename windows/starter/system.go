@@ -15,21 +15,16 @@ import (
 	"github.com/nicograef/jotti/windows/starter/core"
 )
 
-// DockerCliPath ist die Docker-Desktop-CLI fuer den Engine-Wechsel; sie liegt am
-// Standardpfad neben "Docker Desktop.exe" (core.DockerDesktopPath).
 const DockerCliPath = `C:\Program Files\Docker\Docker\DockerCli.exe`
 
-// Timeouts fuer die Auto-Fix- und Health-Schleifen; grosszuegig fuer den
-// WSL2-/VM-Kaltstart und die Erst-Migrationen auf Altgeraeten.
+// Grosszuegig fuer den WSL2-/VM-Kaltstart und die Erst-Migrationen auf Altgeraeten.
 const (
 	dockerStartTimeout = 120 * time.Second
 	healthTimeout      = 120 * time.Second
 )
 
-// ensureDocker stellt sicher, dass der Docker-Daemon im Linux-Container-Modus
-// antwortet, und repariert die haeufigen Stoerungen selbst (Admin-Rechte
-// vorausgesetzt). Rueckgabe: leerer String bei Erfolg, sonst eine deutsche
-// Diagnose mit Handlungshinweis.
+// ensureDocker stellt den Docker-Daemon im Linux-Container-Modus sicher und
+// repariert haeufige Stoerungen selbst. Leerer String = Erfolg, sonst die Diagnose.
 func ensureDocker() string {
 	if _, err := exec.LookPath("docker"); err != nil {
 		return core.DiagnoseDockerCLIFehlt
@@ -37,7 +32,6 @@ func ensureDocker() string {
 
 	osType, err := dockerOSType()
 	if err != nil {
-		// Daemon antwortet nicht — Docker Desktop selbst starten, falls installiert.
 		if ok, _ := fileExists(core.DockerDesktopPath); !ok {
 			return core.DiagnoseDockerNichtInstalliert
 		}
@@ -67,8 +61,6 @@ func ensureDocker() string {
 	return ""
 }
 
-// dockerOSType liefert den Container-Modus des Daemons ("linux"/"windows"); ein
-// Fehler bedeutet, dass der Daemon (noch) nicht antwortet.
 func dockerOSType() (string, error) {
 	out, err := exec.Command("docker", "info", "-f", "{{.OSType}}").Output()
 	if err != nil {
@@ -77,14 +69,10 @@ func dockerOSType() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// startDockerDesktop startet die GUI-Anwendung detached; sie faehrt den Daemon
-// im Hintergrund hoch.
 func startDockerDesktop() error {
 	return exec.Command(core.DockerDesktopPath).Start()
 }
 
-// waitForDockerDaemon pollt "docker info" mit Fortschrittsanzeige, bis der Daemon
-// antwortet oder timeout ablaeuft.
 func waitForDockerDaemon(timeout time.Duration) bool {
 	fmt.Print("Warte auf den Docker-Daemon ")
 	deadline := time.Now().Add(timeout)
@@ -100,15 +88,12 @@ func waitForDockerDaemon(timeout time.Duration) bool {
 	return false
 }
 
-// switchToLinuxEngine schaltet Docker Desktop auf Linux-Container um.
 func switchToLinuxEngine() error {
 	return exec.Command(DockerCliPath, "-SwitchLinuxEngine").Run()
 }
 
-// checkPorts prueft, ob 80/443 frei sind. Laeuft der eigene reverse-proxy bereits
-// (Day-2-Pfad), ist die Belegung der Erfolgs-Fall und kein Fehlalarm. Rueckgabe:
-// leerer String wenn frei (oder eigener Stack), sonst die Belegt-Diagnose mit
-// — wenn ermittelbar — exaktem Verursacher.
+// checkPorts prueft, ob 80/443 frei sind; leerer String = frei. Laeuft der eigene
+// reverse-proxy schon, ist die Belegung der Erfolgs-Fall und kein Fehlalarm.
 func checkPorts(composePath string) string {
 	if reverseProxyRunning(composePath) {
 		fmt.Println("Der jotti-Stack laeuft bereits - Start ist idempotent.")
@@ -125,7 +110,6 @@ func checkPorts(composePath string) string {
 	return ""
 }
 
-// reverseProxyRunning meldet, ob der eigene reverse-proxy-Container schon laeuft.
 func reverseProxyRunning(composePath string) bool {
 	out, err := exec.Command("docker", "compose", "-f", composePath, "ps", "-q", "--status", "running", "reverse-proxy").Output()
 	if err != nil {
@@ -134,9 +118,6 @@ func reverseProxyRunning(composePath string) bool {
 	return strings.TrimSpace(string(out)) != ""
 }
 
-// backendContainerID liefert die Container-ID des backend-Service aus dem
-// Compose-Projekt (Service heisst in Release- wie Local-Compose "backend"). Leerer
-// String, wenn kein Container existiert/laeuft oder docker nicht verfuegbar ist.
 func backendContainerID(composePath string) string {
 	out, err := exec.Command("docker", "compose", "-f", composePath, "ps", "-q", "backend").Output()
 	if err != nil {
@@ -145,8 +126,6 @@ func backendContainerID(composePath string) string {
 	return strings.TrimSpace(string(out))
 }
 
-// containerStartedAt liefert den Startzeitpunkt (RFC3339) des Containers. Leerer
-// String bei Fehler.
 func containerStartedAt(cid string) string {
 	out, err := exec.Command("docker", "inspect", "--format", "{{.State.StartedAt}}", cid).Output()
 	if err != nil {
@@ -155,21 +134,18 @@ func containerStartedAt(cid string) string {
 	return strings.TrimSpace(string(out))
 }
 
-// containerLogsSince liest die Container-Logs ab startedAt. Die Markerzeile steht
-// auf stdout; CombinedOutput fasst stdout und stderr zusammen, damit der Grep
-// unabhaengig vom Stream greift. Ein Fehler ergibt (moeglicherweise leere) Ausgabe,
-// die die Suche dann als "kein Code" wertet.
+// containerLogsSince liest die Container-Logs ab startedAt. CombinedOutput, damit
+// der Grep unabhaengig vom Stream greift; ein Fehler ergibt die (moeglicherweise
+// leere) Ausgabe.
 func containerLogsSince(cid, startedAt string) string {
 	out, _ := exec.Command("docker", "logs", "--since", startedAt, cid).CombinedOutput()
 	return string(out)
 }
 
-// readAdminOTP verkettet die Docker-Abfragen und liefert den Klartext-Code des
-// Initial-Admins aus den Backend-Logs SEIT dem aktuellen Container-Start. Jeder
-// Fehler (kein Docker, kein Container, leere Ausgabe) ergibt ("", false) und ist nie
-// fatal. Die Beschraenkung auf StartedAt sorgt dafuer, dass ein veralteter Marker aus
-// einem frueheren Boot nach abgeschlossener Einrichtung (Container neu erstellt) nicht
-// mehr erscheint.
+// readAdminOTP liefert den Klartext-Code des Initial-Admins aus den Backend-Logs
+// SEIT dem aktuellen Container-Start — so verschwindet ein veralteter Marker, sobald
+// der Container nach abgeschlossener Einrichtung neu erstellt wurde. Jeder Fehler
+// ergibt ("", false) und ist nie fatal.
 func readAdminOTP(composePath string) (string, bool) {
 	cid := backendContainerID(composePath)
 	if cid == "" {
@@ -182,15 +158,11 @@ func readAdminOTP(composePath string) (string, bool) {
 	return core.ParseAdminOTP(containerLogsSince(cid, startedAt))
 }
 
-// printAdminCode zeigt die Ersteinrichtungs-Anleitung mit dem aktuellen
-// Initial-Admin-Code (bzw. die Neustart-Meldung, wenn im aktuellen Boot kein Code
-// vorliegt). Non-fatal — der Start laeuft unabhaengig davon weiter.
 func printAdminCode(composePath string) {
 	fmt.Println()
 	fmt.Println(core.AdminCodeHinweis(readAdminOTP(composePath)))
 }
 
-// portAvailable prueft per net.Listen, ob der TCP-Port frei ist.
 func portAvailable(port int) bool {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -200,9 +172,8 @@ func portAvailable(port int) bool {
 	return true
 }
 
-// lookupPortOwners ermittelt per Get-NetTCPConnection (JSON) den haltenden
-// Prozess eines belegten Ports. Schlaegt der Lookup oder das Parsen fehl, liefert
-// die Funktion nil — die Diagnose faellt dann auf den generischen Fallback zurueck.
+// lookupPortOwners ermittelt per Get-NetTCPConnection den haltenden Prozess eines
+// belegten Ports; nil bei Fehlschlag — dann greift die generische Diagnose.
 func lookupPortOwners(port int) []core.PortOwner {
 	script := fmt.Sprintf(
 		"Get-NetTCPConnection -State Listen -LocalPort %d -ErrorAction SilentlyContinue | "+
@@ -219,9 +190,8 @@ func lookupPortOwners(port int) []core.PortOwner {
 	return owners
 }
 
-// ensureFirewall setzt idempotent die eingehende Freigabe fuer TCP 80/443 (aufs
-// lokale Subnetz beschraenkt, profilunabhaengig). Ein Fehlschlag ist kein
-// Abbruchgrund — nur eine Warnung mit manuellem Hinweis.
+// ensureFirewall setzt idempotent die eingehende Freigabe fuer TCP 80/443. Ein
+// Fehlschlag ist kein Abbruchgrund — nur eine Warnung mit manuellem Hinweis.
 func ensureFirewall() {
 	if firewallRuleExists() {
 		return
@@ -242,9 +212,8 @@ func addFirewallRule() error {
 		"localport=80,443", "remoteip=localsubnet", "profile=any").Run()
 }
 
-// detectLANIP ermittelt die LAN-IP fuer die LAN_IP-Env des Caddy-Containers.
-// Schlaegt die Erkennung fehl, laeuft der Start trotzdem weiter — Caddy rendert
-// dann nur die Fallback-Site.
+// detectLANIP ermittelt die LAN-IP fuer die LAN_IP-Env des Caddy-Containers; ohne
+// sie laeuft der Start weiter, Caddy rendert dann nur die Fallback-Site.
 func detectLANIP() string {
 	ip, err := core.SelectLANIP(outboundIP(), localInterfaces())
 	if err != nil {
@@ -257,7 +226,7 @@ func detectLANIP() string {
 }
 
 // outboundIP liefert die IP des Default-Route-Interfaces ueber einen UDP-"Connect"
-// (es wird kein Paket gesendet). Leerer String, wenn keine Route existiert.
+// (es wird kein Paket gesendet).
 func outboundIP() string {
 	conn, err := net.Dial("udp", "1.1.1.1:80")
 	if err != nil {
@@ -270,8 +239,6 @@ func outboundIP() string {
 	return ""
 }
 
-// localInterfaces sammelt die IPv4-Adressen aller Interfaces fuer die
-// Fallback-Heuristik in core.SelectLANIP.
 func localInterfaces() []core.NetInterface {
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -298,38 +265,29 @@ func localInterfaces() []core.NetInterface {
 	return result
 }
 
-// configVolume ist das von Compose verwaltete jotti-config-Volume. Compose
-// stellt benannten Volumes den Projektnamen (jotti-local) voran, daher lautet der
-// Host-Name, den der Starter ansprechen muss, "jotti-local_jotti-config". Das
-// Volume ist in der Compose read-only in postgres gemountet — das bindet seinen
-// Lebenszyklus an die Daten: `docker compose down -v` entfernt beide zusammen, das
-// Secret kann die Daten, die es entsperrt, also nie ueberleben (kein Lockout).
+// configVolume ist das von Compose verwaltete jotti-config-Volume. Compose stellt
+// benannten Volumes den Projektnamen (jotti-local) voran, daher lautet der Name,
+// den der Starter ansprechen muss, "jotti-local_jotti-config".
 const configVolume = "jotti-local_jotti-config"
 
-// configVolumePath ist der Pfad der gespiegelten .env im Volume.
 const configVolumePath = "/config/.env"
 
-// configHelperImage liest/schreibt das Volume in einem Wegwerf-Container. Es ist
-// bewusst dasselbe postgres-Image wie im Stack (keine zusaetzliche Abhaengigkeit,
-// nach dem ersten `up` ohnehin lokal vorhanden) — beim Bump in den Compose-Dateien
-// hier mitziehen, sonst wird ein zweites Image gezogen.
+// configHelperImage liest/schreibt das Volume in einem Wegwerf-Container: bewusst
+// dasselbe postgres-Image wie im Stack — beim Bump in den Compose-Dateien hier
+// mitziehen, sonst wird ein zweites Image gezogen.
 const configHelperImage = "postgres:17.8"
 
 // errSecretFehltMitDaten signalisiert den Fail-Safe-Abbruch: vorhandene Daten, aber
-// nirgends ein Secret. run() erkennt den Sentinel und gibt dafuer die ausfuehrliche
-// Anleitung (core.DiagnoseSecretFehltMitDaten) ohne Fehlerpraefix aus statt der
-// kurzen Sentinel-Meldung — wie bei den uebrigen Preflight-Schritten liegt die
-// Ausgabe in run().
+// nirgends ein Secret. run() gibt dafuer core.DiagnoseSecretFehltMitDaten aus statt
+// der Sentinel-Meldung.
 var errSecretFehltMitDaten = errors.New("start abgebrochen: keine Zugangsdaten zu vorhandenen Daten gefunden")
 
 // materializeEnvFromVolume macht das jotti-config-Volume zur Quelle der Wahrheit
-// fuers Install-Secret und schreibt den Host-.env-Spiegel, den `compose
-// --env-file` und das Relay lesen. Laeuft nur unter Windows und nach ensureDocker
-// (der Volume-Read braucht einen laufenden Daemon). Das Secret wird in fester
-// Reihenfolge gesucht (Volume → ordnerlokale Kandidaten in localDirs); ein adoptierter
-// Treffer wird ins Volume geschrieben. Wird nichts gefunden, obwohl bereits Daten
-// existieren, bricht der Start ab (Fail-Safe), statt frische Secrets neben die Daten
-// zu erzeugen und sie damit auszusperren.
+// fuers Install-Secret und schreibt den Host-.env-Spiegel fuer `compose --env-file`
+// und das Relay. Nur nach ensureDocker aufrufen — der Volume-Read braucht einen
+// laufenden Daemon. Suchreihenfolge: Volume, dann localDirs; ein adoptierter Treffer
+// wird ins Volume geschrieben. Daten ohne Secret brechen den Start ab, statt sie
+// auszusperren.
 func materializeEnvFromVolume(envPath string, localDirs []string) error {
 	volumeContent, err := readConfigVolume()
 	if err != nil {
@@ -352,9 +310,6 @@ func materializeEnvFromVolume(envPath string, localDirs []string) error {
 	return writeEnvFile(envPath, []byte(res.Content))
 }
 
-// readEnvCandidates liest den .env-Inhalt aus jedem Kandidatenverzeichnis in
-// Reihenfolge. Ein fehlender oder unlesbarer Eintrag liefert leeren Inhalt — leere
-// Kandidaten ueberspringt die Auswahl in core.ResolveEnv.
 func readEnvCandidates(dirs []string) []string {
 	candidates := make([]string, 0, len(dirs))
 	for _, dir := range dirs {
@@ -364,10 +319,8 @@ func readEnvCandidates(dirs []string) []string {
 	return candidates
 }
 
-// readConfigVolume liest die gespiegelte .env aus dem jotti-config-Volume ueber
-// einen Wegwerf-Container. Ein leerer String bedeutet "kein Secret vorhanden":
-// entweder fehlt das Volume (Erststart) oder es existiert, enthaelt aber noch
-// keine .env. Nur ein echter Docker-Fehler (Daemon/Image) wird durchgereicht.
+// readConfigVolume liest die gespiegelte .env aus dem jotti-config-Volume. Leerer
+// String = kein Secret vorhanden; nur ein echter Docker-Fehler wird durchgereicht.
 func readConfigVolume() (string, error) {
 	exists, err := volumeExists(configVolume)
 	if err != nil {
@@ -388,16 +341,12 @@ func readConfigVolume() (string, error) {
 	return string(out), nil
 }
 
-// ensureConfigVolume legt das jotti-config-Volume — falls es fehlt — explizit mit
-// den Compose-Labels an, bevor zum ersten Mal hineingeschrieben wird. Ohne diese
-// Labels wuerde Compose das spaeter per `docker run -v` implizit angelegte Volume
-// bei jedem Start als fremd melden ("volume ... not created by Docker Compose") —
-// schlechte UX fuer nicht-technische Helfer. Mit den Labels erkennt Compose es als
-// eigenes Volume des Projekts (jotti-local, Volume-Schluessel jotti-config, vgl.
-// configVolume), und `down -v` entfernt es weiterhin zusammen mit den Daten. Kein
-// `external: true`: das wuerde `down -v` daran hindern und die Lockout-Garantie
-// brechen, dass das Secret die Daten nie ueberlebt. Idempotent: ein vorhandenes
-// Volume wird nicht neu erzeugt (Labels sind nach dem Anlegen ohnehin unveraenderlich).
+// ensureConfigVolume legt das jotti-config-Volume — falls es fehlt — mit den
+// Compose-Labels an, bevor zum ersten Mal hineingeschrieben wird. Ohne sie meldet
+// Compose das per `docker run -v` angelegte Volume bei jedem Start als fremd
+// ("volume ... not created by Docker Compose"). Kein `external: true`: das wuerde
+// `down -v` verhindern und die Garantie brechen, dass das Secret die Daten nie
+// ueberlebt. Idempotent — Labels sind nach dem Anlegen unveraenderlich.
 func ensureConfigVolume() error {
 	exists, err := volumeExists(configVolume)
 	if err != nil {
@@ -416,9 +365,6 @@ func ensureConfigVolume() error {
 	return nil
 }
 
-// writeConfigVolume schreibt content in die .env des jotti-config-Volumes. Das
-// Volume wird zuvor (falls fehlend) gelabelt angelegt, damit Compose es als eigenes
-// erkennt; das `docker run -v` greift danach auf dasselbe Volume zu (gleicher Name).
 func writeConfigVolume(content string) error {
 	if err := ensureConfigVolume(); err != nil {
 		return err
@@ -432,10 +378,8 @@ func writeConfigVolume(content string) error {
 	return nil
 }
 
-// composeUp faehrt den Stack hoch und reicht die Ausgabe live durch (der Pull
-// bleibt sichtbar). LAN_IP wird nur gesetzt, wenn es erkannt wurde — ohne LAN_IP
-// rendert Caddy nur die Fallback-Site. Der Proxy wird danach neu erzeugt, weil
-// das Caddyfile nur im Entrypoint aus LAN_IP gerendert wird (wie make local-up).
+// composeUp faehrt den Stack hoch und reicht die Ausgabe live durch. Der Proxy wird
+// danach neu erzeugt, weil das Caddyfile nur im Entrypoint aus LAN_IP gerendert wird.
 func composeUp(composePath, envPath, lanIP string) error {
 	env := os.Environ()
 	if lanIP != "" {
@@ -447,10 +391,8 @@ func composeUp(composePath, envPath, lanIP string) error {
 	return runCompose(env, composePath, envPath, "up", "-d", "--no-deps", "--force-recreate", "reverse-proxy")
 }
 
-// runCompose ruft `docker compose` mit explizitem --env-file auf den Host-Spiegel
-// auf. Nach der UAC-Elevation ist das Arbeitsverzeichnis System32, deshalb wird
-// die .env-Quelle fuer die ${...}-Interpolation explizit benannt statt implizit
-// aus dem Projektverzeichnis geladen.
+// runCompose benennt die .env-Quelle explizit per --env-file: nach der
+// UAC-Elevation ist das Arbeitsverzeichnis System32, nicht das Projektverzeichnis.
 func runCompose(env []string, composePath, envPath string, args ...string) error {
 	full := append([]string{"compose", "-f", composePath, "--env-file", envPath}, args...)
 	cmd := exec.Command("docker", full...)

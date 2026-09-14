@@ -29,8 +29,8 @@ func anyContains(hits []string, substr string) bool {
 
 func TestCheckWindowsStrings_ReportsNormalAndRawStringLiterals(t *testing.T) {
 	src := "package p\n\n" +
-		"const Normal = \"café\"\n" + // normal string literal
-		"const Raw = `weiß`\n" // raw string literal
+		"const Normal = \"café\"\n" +
+		"const Raw = `weiß`\n"
 
 	path := writeTemp(t, "strings.go", src)
 	hits, err := checkWindowsStrings([]string{path})
@@ -89,11 +89,9 @@ func TestCheckBackendComments_ReportsStemInCommentOnly(t *testing.T) {
 }
 
 func TestCheckBackendComments_ProtectsOnlyDocHeaderName(t *testing.T) {
-	// "Störung" opens its own doc comment (Go doc convention: a type's
-	// comment starts with the type's exact name) and must be protected
-	// there even when the file is checked without being one of its own
-	// protection sources — the configuration the gate uses for this
-	// package. The same word later in the very same sentence is ordinary
+	// "Stoerung" opens its own doc comment and must be protected there even when
+	// the file is not one of its own protection sources — the configuration the
+	// gate uses for this package. The same word later in the sentence is ordinary
 	// prose and must still be flagged.
 	src := "package p\n\n" +
 		"// Stoerung beschreibt eine Stoerung im System.\n" +
@@ -113,10 +111,9 @@ func TestCheckBackendComments_ProtectsOnlyDocHeaderName(t *testing.T) {
 }
 
 func TestCheckBackendComments_ProtectsMidSentenceIdentifierReference(t *testing.T) {
-	// A comment naming a function of another package, which this file
-	// neither declares nor lists as a protection source: "Eroeffne" opens
-	// the name with a stem, so hasInternalCapital is the only rule that
-	// can keep it out of the hits.
+	// A comment naming a function of another package, neither declared here nor
+	// listed as a protection source: "Eroeffne" opens the name with a stem, so
+	// hasInternalCapital is the only rule that can keep it out of the hits.
 	src := "package p\n\n" +
 		"// Legt die Sitzung an, wie EroeffneKassensitzung es tut.\n" +
 		"func Foo() {}\n"
@@ -131,9 +128,8 @@ func TestCheckBackendComments_ProtectsMidSentenceIdentifierReference(t *testing.
 	}
 }
 
-// TestCheckBackendComments_ProtectsCodeSpellings covers one comment per
-// class of name a backend comment quotes. Every fixture is its own
-// protection source unless the case says otherwise, exactly as the gate
+// Covers one comment per class of name a backend comment quotes. Every fixture is
+// its own protection source unless the case says otherwise, exactly as the gate
 // passes the backend's files.
 func TestCheckBackendComments_ProtectsCodeSpellings(t *testing.T) {
 	tests := []struct {

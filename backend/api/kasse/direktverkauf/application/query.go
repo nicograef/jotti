@@ -18,9 +18,8 @@ type Query struct {
 	KassensitzungenRepo kassensitzungenRepo
 }
 
-// GetDirektverkaufHistorie returns the compact Direktverkauf history of the active
-// Kassensitzung — one entry per Verkauf, most recent first. Returns an empty slice
-// when no Kassensitzung is active.
+// GetDirektverkaufHistorie returns one entry per Verkauf of the active Kassensitzung, most recent
+// first; an empty slice when no Kassensitzung is active.
 func (q Query) GetDirektverkaufHistorie(ctx context.Context) ([]kasse.DirektverkaufHistorieEintrag, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -49,8 +48,6 @@ func (q Query) GetDirektverkaufHistorie(ctx context.Context) ([]kasse.Direktverk
 	return historie, nil
 }
 
-// buildHistorie groups the flat event list by verkauf stream (subject) and builds one compact
-// entry per Verkauf, ordered most recent first.
 func buildHistorie(events []event.Event) ([]kasse.DirektverkaufHistorieEintrag, error) {
 	subjectOrder := []string{}
 	eventsBySubject := map[string][]event.Event{}

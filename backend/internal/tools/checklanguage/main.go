@@ -1,38 +1,16 @@
-// Command checklanguage implements the three rules behind
-// scripts/check-language.sh's language-and-character gate:
+// Command checklanguage implements the three rules of scripts/check-language.sh:
 //
-//   - windows-strings: every Go string literal (not a comment) under
-//     windows/** must be pure ASCII — the starter and relay print these
-//     straight to a Windows console, which mangles non-ASCII bytes.
-//   - cmd-ascii: a packaging/**/*.cmd file must be pure ASCII throughout,
-//     comments included — a Windows batch file has no separate
-//     doc-comment channel the way Go does.
-//   - backend-comments: a Go comment line under backend/** must not carry
-//     a German word stem spelled with the two-letter ASCII stand-in for
-//     ä/ö/ü (see the stems map below for the exact list) where a real
-//     umlaut belongs. It never touches string literals.
+//   - windows-strings: Go string literals (not comments) under windows/** must be
+//     pure ASCII — the starter and relay print them straight to a Windows
+//     console, which mangles non-ASCII bytes.
+//   - cmd-ascii: packaging/**/*.cmd must be pure ASCII throughout, comments
+//     included — a batch file has no separate doc-comment channel.
+//   - backend-comments: a Go comment under backend/** must not spell a German
+//     word stem with the ASCII stand-in for ä/ö/ü (stems map below). String
+//     literals are never touched; matches that name code are skipped
+//     (isReference, docHeaders).
 //
-// The backend-comments rule protects every spelling the code itself uses,
-// because a comment quoting a route, an event type, a table or column, an
-// enum value or a package name must repeat that name byte for byte —
-// identifiers never carry umlauts, and they never change. A match is
-// therefore not reported when it is
-//
-//   - a word in the protected set: the name of any package or identifier
-//     the backend declares or references, or the whole text of any Go
-//     string literal there — read from the protection sources the caller
-//     passes after "--";
-//   - part of a token held together by "/", "_", "-", ":" or "." — a route
-//     path, a column name, an event type, a qualified name;
-//   - inside double quotes or backticks in the comment;
-//   - the name after "Package" in a package doc header;
-//   - carrying an upper-case letter past its first rune, which German
-//     spelling never does but a Go identifier routinely does;
-//   - a doc comment's own opening word, naming the declaration below it.
-//
-// Exit code 0 means no violations, 1 means violations were found and
-// printed, 2 means the tool itself failed (bad arguments, a file that
-// doesn't parse, an I/O error).
+// Exit codes: 0 clean, 1 violations printed, 2 the tool itself failed.
 package main
 
 import (
@@ -47,17 +25,13 @@ import (
 	"unicode"
 )
 
-// stems maps each ASCII-transliterated German word stem to its correctly
-// spelled form. Matching is by stem, not whole word (see stemPattern), so
-// one entry catches every inflected ending of that stem. A prefixed
-// compound needs its own separate entry: the match is anchored to a
-// word's start (\b), and German prefixes attach directly with no
-// separator, so the bare stem does not match once a prefix is glued on
-// the front. The map is per-stem, not a blanket character substitution,
-// because German orthography turns a transliterated double-s into "ß" in
-// some of these words (schließen, gemäß, größe, mäßig) and keeps it a
-// plain double-s in others (müssen) — that distinction exists per word,
-// not per character.
+// stems maps each ASCII-transliterated German word stem to its correct spelling.
+// Matching is by stem (see stemPattern), so one entry catches every inflection; a
+// prefixed compound needs its own entry, because the match is anchored at a
+// word's start (\b) and German prefixes attach with no separator. Per-stem rather
+// than a blanket character substitution: a transliterated double-s becomes "ß" in
+// some words (schließen, gemäß, größe, mäßig) and stays a double-s in others
+// (müssen).
 var stems = map[string]string{
 	"fuer":              "für",
 	"ueber":             "über",
@@ -199,11 +173,9 @@ var stems = map[string]string{
 	"schaerf":           "schärf",
 }
 
-// stemPattern matches a known stem at a word's start, case-insensitively,
-// followed by whatever inflection continues the word. Longer stems are
-// tried first (see stemKeys), so a more specific prefixed-compound entry
-// wins over a shorter stem that would otherwise also match at the same
-// starting position.
+// stemPattern matches a known stem at a word's start, case-insensitively, plus
+// the inflection that follows. Longer stems are tried first (see stemKeys), so a
+// prefixed compound wins over a shorter stem at the same position.
 var stemPattern = regexp.MustCompile(`(?i)\b(` + strings.Join(stemKeys(), "|") + `)(\w*)`)
 
 func stemKeys() []string {
@@ -224,10 +196,9 @@ func isAllCaps(s string) bool {
 	return s == strings.ToUpper(s) && s != strings.ToLower(s)
 }
 
-// hint proposes the correctly spelled word for a stemPart+suffix match. It
-// returns ok=false for an all-caps match: re-casing German's "ß" to
-// uppercase has no single correct ASCII answer (it can be "SS" or "ẞ"
-// depending on convention), so guessing one is worse than not hinting.
+// hint proposes the correct spelling for a stemPart+suffix match. ok=false for an
+// all-caps match: upper-casing "ß" has no single correct answer ("SS" or "ẞ"), so
+// guessing one is worse than not hinting.
 func hint(stemPart, suffix string) (string, bool) {
 	whole := stemPart + suffix
 	if isAllCaps(whole) {
@@ -289,10 +260,9 @@ func hasNonASCII(s string) bool {
 	return false
 }
 
-// checkWindowsStrings reports non-ASCII bytes in Go string literals (BasicLit
-// of kind STRING) — normal ("...") and raw (`...`) alike. Comments are never
-// visited because ast.Inspect walks the syntax tree, not the token stream —
-// they are excluded by construction.
+// checkWindowsStrings reports non-ASCII bytes in Go string literals, normal and
+// raw alike. Comments are excluded by construction: ast.Inspect walks the syntax
+// tree, not the token stream.
 func checkWindowsStrings(files []string) ([]string, error) {
 	fset := token.NewFileSet()
 	var hits []string
@@ -316,12 +286,9 @@ func checkWindowsStrings(files []string) ([]string, error) {
 	return hits, nil
 }
 
-// checkCmdASCII reports non-ASCII bytes anywhere in a .cmd file, including
-// REM comment lines: Windows batch files carry no doc-comment convention
-// that jotti's German prose could live in instead, and the printed jotti
-// console output stays ASCII throughout, so the whole file stays ASCII.
-// CRLF-safe: the trailing "\r" a CRLF line leaves after splitting on "\n"
-// is itself ASCII, so it never trips hasNonASCII.
+// checkCmdASCII reports non-ASCII bytes anywhere in a .cmd file, REM comments
+// included: a batch file has no doc-comment channel for German prose, and the
+// printed console output stays ASCII. CRLF-safe — the trailing "\r" is ASCII.
 func checkCmdASCII(files []string) ([]string, error) {
 	var hits []string
 	for _, path := range files {
@@ -339,22 +306,18 @@ func checkCmdASCII(files []string) ([]string, error) {
 	return hits, nil
 }
 
-// isDirectiveLine reports whether a line-comment line is a compiler
-// directive (//go:build, //go:generate, ...): the "//" is followed
-// immediately by "go:", with no space. Directive lines are structural, not
-// prose, and are skipped before the stem scan.
+// isDirectiveLine reports whether a line comment is a compiler directive ("//"
+// followed by "go:", no space). Directives are structural, not prose, and are
+// skipped before the stem scan.
 func isDirectiveLine(line string) bool {
 	return strings.HasPrefix(strings.TrimSpace(line), "//go:")
 }
 
-// docHeaders maps a doc *ast.CommentGroup to the exact identifier name it
-// documents, for every declaration in the given files that has one: a
-// func, a type, a single-name var/const, or a single-name struct field or
-// interface method. Go doc convention has such a comment open with that
-// exact name; checkBackendComments protects only that opening word (see
-// startsAtFirstWord), not every other occurrence of the same text — a
-// type's own doc header aside, its name is an ordinary word in prose
-// everywhere else and still needs a real umlaut when one is missing.
+// docHeaders maps each doc comment to the identifier name it documents (func,
+// type, single-name var/const, struct field, interface method). Go doc convention
+// opens such a comment with that exact name; only that opening word is protected
+// (see startsAtFirstWord) — everywhere else the same word is ordinary prose and
+// still needs its umlaut.
 func docHeaders(files []*ast.File) map[*ast.CommentGroup]string {
 	headers := make(map[*ast.CommentGroup]string)
 	add := func(doc *ast.CommentGroup, name string) {
@@ -378,8 +341,7 @@ func docHeaders(files []*ast.File) map[*ast.CommentGroup]string {
 					add(d.Doc, d.Names[0].Name)
 				}
 			case *ast.GenDecl:
-				// A single-spec block ("// Foo counts widgets.\nvar Foo int")
-				// carries its doc on the GenDecl, not the spec.
+				// A single-spec block carries its doc on the GenDecl, not on the spec.
 				if len(d.Specs) == 1 {
 					switch s := d.Specs[0].(type) {
 					case *ast.TypeSpec:
@@ -397,22 +359,16 @@ func docHeaders(files []*ast.File) map[*ast.CommentGroup]string {
 	return headers
 }
 
-// startsAtFirstWord reports whether the text before matchStart in line is
-// only a comment marker ("//", "/*", " * " on a block-comment continuation
-// line) and whitespace — i.e. the match is the very first word of the
-// line, the position Go doc convention puts a declaration's name in.
+// startsAtFirstWord reports whether only a comment marker and whitespace precede
+// matchStart — the position Go doc convention puts a declaration's name in.
 func startsAtFirstWord(line string, matchStart int) bool {
 	return strings.Trim(line[:matchStart], "/* \t") == ""
 }
 
-// hasInternalCapital reports whether s has an uppercase letter anywhere
-// after its first rune. German capitalizes only the first letter of a
-// word, compound nouns included (Störungsprotokoll, not
-// StörungsProtokoll), so a word with a capital further in is structurally
-// a multi-part Go identifier (WriteEventWithDruckauftraege), never plain
-// prose — that holds regardless of where in a comment it appears, unlike
-// the doc-header check, which only covers a declaration's own opening
-// word.
+// hasInternalCapital reports whether s has an uppercase letter after its first
+// rune. German capitalizes only a word's first letter, compound nouns included
+// (Störungsprotokoll, not StörungsProtokoll), so an inner capital marks a Go
+// identifier (WriteEventWithDruckauftraege), never prose — anywhere in a comment.
 func hasInternalCapital(s string) bool {
 	r := []rune(s)
 	for i := 1; i < len(r); i++ {
@@ -423,12 +379,10 @@ func hasInternalCapital(s string) bool {
 	return false
 }
 
-// splitAtDoubleDash splits an argument list at the first "--": the files
-// to check come first, the files that make up the protected word set come
-// after. The two lists differ at both ends — backend/sqlc/dbgen/** is
-// generated and never checked, yet its queries carry the column names
-// comments quote; this tool's own package is checked but must never
-// protect, because its stems map is a list of misspellings, not of names.
+// splitAtDoubleDash splits the argument list at the first "--": files to check
+// first, protection sources after. The two differ — backend/sqlc/dbgen/** is never
+// checked but holds column names comments quote; this package is checked but must
+// never protect, its stems map being a list of misspellings.
 func splitAtDoubleDash(args []string) (checked, protection []string) {
 	for i, a := range args {
 		if a == "--" {
@@ -438,28 +392,23 @@ func splitAtDoubleDash(args []string) (checked, protection []string) {
 	return args, nil
 }
 
-// isWordRune reports whether r is a word character, matching what "\w"
-// means to Go's regexp package: ASCII letters, digits and "_".
+// isWordRune matches what "\w" means to Go's regexp: ASCII letters, digits, "_".
 func isWordRune(r rune) bool {
 	return r == '_' || r >= '0' && r <= '9' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z'
 }
 
 // tokenSeparators hold a word together with its neighbours into one
-// identifier-shaped token instead of leaving it a word of prose: a route
-// path (/admin/get-tse-stoerungen), a table or column name
-// (naechster_versuch_am), an enum value (pro_stueck), an event type
-// (kassensitzung-eroeffnet:v1) or a qualified name (kasse.Stoerung).
+// identifier-shaped token: /admin/get-tse-stoerungen, naechster_versuch_am,
+// pro_stueck, kassensitzung-eroeffnet:v1, kasse.Stoerung.
 const tokenSeparators = "/_-:."
 
 func isTokenByte(b byte) bool {
 	return isWordRune(rune(b)) || strings.IndexByte(tokenSeparators, b) >= 0
 }
 
-// enclosingToken returns the token around the match at [start,end): the
-// surrounding run of word characters and tokenSeparators, with leading
-// and trailing separators trimmed. A sentence's closing full stop is
-// therefore not part of the token, while the "/" and "-" of a route path
-// are.
+// enclosingToken returns the run of word characters and tokenSeparators around
+// [start,end), leading and trailing separators trimmed — a closing full stop is
+// not part of the token, the "/" and "-" of a route path are.
 func enclosingToken(line string, start, end int) string {
 	for start > 0 && isTokenByte(line[start-1]) {
 		start--
@@ -470,17 +419,13 @@ func enclosingToken(line string, start, end int) string {
 	return strings.Trim(line[start:end], tokenSeparators)
 }
 
-// protectedWords collects every spelling the backend's own code uses: the
-// name of every package and of every declared or referenced identifier,
-// plus the whole text of every Go string literal. Comments quote these
-// names verbatim — a route, an event type, a table, a column, an enum
-// value — and no declaration spells one with an umlaut, so a comment word
-// that matches one is a reference and not misspelled prose. A literal
-// contributes its text as one word and is never split into parts: a part
-// of a compound name ("pruefen" out of "/admin/tse-setup-pruefen") is an
-// ordinary German word on its own, and a comment that means the compound
-// writes it whole, where enclosingToken already protects it. Keys are
-// lower-cased, and so must lookups be.
+// protectedWords collects every spelling the backend's own code uses: package
+// names, declared or referenced identifiers, and the whole text of every string
+// literal. A comment quoting such a name repeats it verbatim, and no declaration
+// spells one with an umlaut. A literal contributes its text as one word and is
+// never split: a part of a compound ("pruefen" out of "/admin/tse-setup-pruefen")
+// is an ordinary German word, and enclosingToken already protects the compound.
+// Keys are lower-cased, and so must lookups be.
 func protectedWords(files []*ast.File) map[string]bool {
 	protected := make(map[string]bool)
 	for _, f := range files {
@@ -500,11 +445,9 @@ func protectedWords(files []*ast.File) map[string]bool {
 	return protected
 }
 
-// inQuotes reports whether the match at [start,end) sits between a pair
-// of double quotes or of backticks on the comment line — how a comment
-// marks a value it quotes ("pro_stueck", `regel`). German prose quotes
-// with the typographic „…" pair instead, which this deliberately leaves
-// unprotected.
+// inQuotes reports whether the match sits between a pair of double quotes or
+// backticks on the line — how a comment marks a value ("pro_stueck", `regel`).
+// German prose quotes with „…" instead, deliberately left unprotected.
 func inQuotes(line string, start, end int) bool {
 	for _, quote := range []byte{'"', '`'} {
 		open := -1
@@ -525,21 +468,13 @@ func inQuotes(line string, start, end int) bool {
 	return false
 }
 
-// isPackageDocName reports whether the match opens a package doc header
-// ("// Package dsfinvkpruefung prüft ..."), the one position Go doc
-// convention puts a package's own name in.
+// isPackageDocName reports whether the match opens a package doc header, the one
+// position Go doc convention puts a package's own name in.
 func isPackageDocName(line string, matchStart int) bool {
 	prefix := strings.Trim(line[:matchStart], "/* \t")
 	return prefix == "Package" || prefix == "package"
 }
 
-// isReference reports whether the stem match at [start,end) spells a name
-// the code itself uses, which a comment has to repeat byte for byte: a
-// word the backend declares or writes in a string literal, a word inside
-// an identifier-shaped token, a quoted value, a package doc's own package
-// name, or a word with an inner capital that German spelling never
-// produces (WriteEventWithDruckauftraege) but a Go identifier routinely
-// does.
 func isReference(line string, start, end int, protected map[string]bool) bool {
 	word := line[start:end]
 	return protected[strings.ToLower(word)] ||
@@ -554,13 +489,11 @@ type parsedFile struct {
 	file *ast.File
 }
 
-// checkBackendComments reports transliterated word stems on the comment
-// lines of files, skipping every match that names code rather than
-// misspelling prose (isReference) and every doc comment's own opening
-// word (docHeaders). The protected word set comes from protectionSources
-// alone; their own comments are never checked. A block comment's
-// ast.Comment.Text carries embedded "\n"s, so the reported line is the
-// comment's start line plus the newline count before the match.
+// checkBackendComments reports transliterated stems on comment lines, skipping
+// matches that name code (isReference) and each doc comment's own opening word
+// (docHeaders). The protected word set comes from protectionSources alone; their
+// own comments are never checked. A block comment's Text carries embedded "\n"s,
+// so the reported line is the comment's start line plus the newlines before it.
 func checkBackendComments(files, protectionSources []string) ([]string, error) {
 	fset := token.NewFileSet()
 	parsed := make([]parsedFile, 0, len(files))

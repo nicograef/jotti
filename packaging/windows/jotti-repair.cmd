@@ -1,14 +1,11 @@
 @echo off
 REM jotti reparieren - das Datenbank-Passwort an den Install-Schluessel angleichen.
 REM
-REM Fuer den Fall "die Daten sind da, aber jotti kommt nicht mehr hinein": Nach
-REM einem Upgrade von einer sehr alten Version kann das in der Datenbank
-REM gespeicherte Passwort vom aktuellen Install-Schluessel abweichen (migrate oder
-REM backend melden dann Authentifizierungsfehler). Dieses Skript gleicht das
-REM Datenbank-Passwort datenerhaltend an den aktuellen Install-Schluessel an - ueber
-REM den lokalen Trust-Zugang im postgres-Container, ohne das alte Passwort zu
-REM kennen. Es veraendert KEINE Daten (nur das Rollen-Passwort) und fasst keine
-REM anderen Volumes an. Mehrfaches Ausfuehren ist gefahrlos (idempotent).
+REM Fuer den Fall "die Daten sind da, aber jotti kommt nicht mehr hinein": Weicht das
+REM in der Datenbank gespeicherte Passwort vom aktuellen Install-Schluessel ab
+REM (migrate oder backend melden Authentifizierungsfehler), gleicht dieses Skript es
+REM ueber den lokalen Trust-Zugang im postgres-Container an - ohne das alte Passwort
+REM zu kennen. Es veraendert KEINE Daten (nur das Rollen-Passwort) und ist idempotent.
 REM
 REM Das Skript startet jotti nicht selbst: nur jotti-start.exe uebergibt dem
 REM Reverse-Proxy die LAN-Adresse des Rechners.
@@ -19,11 +16,9 @@ set COMPOSE=docker compose -f docker-compose.release.yml --env-file "%ENVFILE%"
 
 if not exist "%ENVFILE%" goto :noenv
 
-REM Das Passwort des Install-Schluessels aus der .env lesen. Die Kommentarzeile
-REM beginnt mit '#' und wird per eol uebersprungen; der Wert ist reines Hex (keine
-REM Sonderzeichen), daher ist das Durchreichen unproblematisch. Der Rollenname ist
-REM fest "admin" (wie core.PostgresUser / .env.example) und wird darum nicht aus
-REM der .env gelesen.
+REM Passwort aus der .env lesen: eol=# ueberspringt die Kommentarzeile, der Wert ist
+REM reines Hex (keine Sonderzeichen). Der Rollenname ist fest "admin" (wie
+REM core.PostgresUser / .env.example) und wird nicht aus der .env gelesen.
 set DBPASS=
 for /f "usebackq eol=# tokens=1,* delims==" %%a in ("%ENVFILE%") do (
   if /i "%%a"=="POSTGRES_PASSWORD" set DBPASS=%%b

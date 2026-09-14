@@ -9,29 +9,21 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
-// Kategorie represents the category of a product.
 type Kategorie string
 
 const (
-	// EssenKategorie indicates the product belongs to the food category.
-	EssenKategorie Kategorie = "essen"
-	// GetraenkKategorie indicates the product belongs to the beverage category.
-	GetraenkKategorie Kategorie = "getraenk"
-	// SonstigesKategorie indicates the product belongs to the other category.
+	EssenKategorie     Kategorie = "essen"
+	GetraenkKategorie  Kategorie = "getraenk"
 	SonstigesKategorie Kategorie = "sonstiges"
 )
 
-// Richtung beschreibt, wohin ein Produkt oder eine Variante in der
-// Anzeigereihenfolge verschoben wird: hoch zum Listenanfang, runter zum
-// Listenende. Die Reihenfolge selbst bleibt reine Persistenz — das Aggregat
-// trägt kein Feld dafür und keine Response liefert sie; das Backend gibt die
-// fertig sortierte Liste aus, das Frontend zeigt sie nur an.
+// Richtung ist die Verschieberichtung in der Anzeigereihenfolge. Die Reihenfolge
+// selbst bleibt reine Persistenz: kein Feld am Aggregat, keine Response liefert
+// sie — das Backend gibt die fertig sortierte Liste aus.
 type Richtung string
 
 const (
-	// RichtungHoch verschiebt in Richtung Listenanfang.
-	RichtungHoch Richtung = "hoch"
-	// RichtungRunter verschiebt in Richtung Listenende.
+	RichtungHoch   Richtung = "hoch"
 	RichtungRunter Richtung = "runter"
 )
 
@@ -46,24 +38,20 @@ type Produkt struct {
 	UpdatedAt  time.Time
 }
 
-// IDSchema defines the schema for a product ID, bounded at both ends. The upper
-// bound is the largest value the int4 column holds: a request carrying more can
-// only be wrong, and the schema answers 400 instead of letting it fail inside
-// the driver.
+// IDSchema is bounded at both ends. The upper bound is the largest value the
+// int4 column holds: a request carrying more can only be wrong, and the schema
+// answers 400 instead of letting it fail inside the driver.
 var IDSchema = z.Int().
 	GTE(1, z.Message("Ungültige Produkt-ID")).
 	LTE(math.MaxInt32, z.Message("Ungültige Produkt-ID"))
 
-// NameSchema defines the schema for a product's name.
 var NameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(100, z.Message("Name zu lang"))
 
-// KategorieSchema defines the schema for a product category.
 var KategorieSchema = z.StringLike[Kategorie]().OneOf(
 	[]Kategorie{EssenKategorie, GetraenkKategorie, SonstigesKategorie},
 	z.Message("Ungültige Kategorie"),
 )
 
-// RichtungSchema defines the schema for a move direction.
 var RichtungSchema = z.StringLike[Richtung]().OneOf(
 	[]Richtung{RichtungHoch, RichtungRunter},
 	z.Message("Ungültige Richtung"),
@@ -90,8 +78,7 @@ func (p Produkt) Validate() error {
 	return nil
 }
 
-// NewProdukt creates a new Produkt instance after validating the input parameters.
-// The new Produkt does not have an ID assigned; it is expected to be set by the persistence layer.
+// NewProdukt assigns no ID; the persistence layer sets it.
 func NewProdukt(name string, kategorie Kategorie, steuersatz steuer.Steuersatz) (Produkt, error) {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return Produkt{}, fmt.Errorf("invalid name")

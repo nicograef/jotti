@@ -12,14 +12,10 @@ import (
 
 type commandUserRepo interface {
 	GetUserByUsername(ctx context.Context, username string) (user.User, error)
-	// SetPasswordTx lädt den Benutzer mit Zeilensperre, führt apply aus und
-	// persistiert das Ergebnis in EINER Transaktion (siehe Repository).
+	// SetPasswordTx sperrt die User-Zeile, führt apply aus und persistiert in EINER Transaktion.
 	SetPasswordTx(ctx context.Context, username string, apply func(*user.User) error) error
 }
 
-// loginThrottle drosselt Fehlanmeldungen pro Konto (In-Memory-Infrastruktur, kein
-// Domain-State). Injiziert wie das Repository; die konkrete Implementierung ist
-// throttle.LoginThrottle.
 type loginThrottle interface {
 	Allow(username string) bool
 	RecordFailure(username string)
@@ -35,8 +31,6 @@ type Command struct {
 func (c Command) GenerateJWTToken(ctx context.Context, username, password string) (string, error) {
 	log := zerolog.Ctx(ctx)
 
-	// Kontobezogener Soft-Throttle VOR der Passwortprüfung: zu viele Fehlversuche
-	// drosseln den nächsten Versuch kurz (läuft von selbst ab).
 	if !c.Throttle.Allow(username) {
 		log.Warn().Str("username", username).Msg("Login throttled after repeated failures")
 		return "", ErrLoginThrottled
@@ -85,10 +79,9 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 func (c Command) SetNewPassword(ctx context.Context, username, newPassword, onetimePassword string) error {
 	log := zerolog.Ctx(ctx)
 
-	// Read-modify-write in EINER Transaktion mit Zeilensperre: SetPasswordTx sperrt
-	// die User-Zeile (FOR UPDATE), führt SetPassword aus (das den Fehlversuchszähler
-	// hochzählt) und persistiert das Ergebnis im selben Commit. So können sich
-	// nebenläufige Set-Password-Versuche nicht überholen und der Zähler unterzählen.
+	// SetPasswordTx sperrt die User-Zeile (FOR UPDATE) und persistiert das Ergebnis
+	// im selben Commit; sonst könnten nebenläufige Versuche den Fehlversuchszähler
+	// unterzählen.
 	err := c.UserRepo.SetPasswordTx(ctx, username, func(u *user.User) error {
 		return u.SetPassword(onetimePassword, newPassword)
 	})

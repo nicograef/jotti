@@ -23,26 +23,19 @@ interface BestellungAbschlussProps {
   positionen: BestellPositionInput[]
   totalCents: number
   bestellungAufgenommen: () => void
-  // 'sheet' rendert den Bottom-Sheet-Drawer-Inhalt (Handy), 'spalte' die feste
-  // Abschluss-Spalte (ab lg). Einzige Quelle des Abschluss-Inhalts; die beiden
-  // Varianten unterscheiden sich nur im umschließenden Container.
   variant: 'sheet' | 'spalte'
 }
 
-// Presentation-neutraler Abschluss-Inhalt des Tisch-Bestellens (Beleg,
-// Kommentar, Gesamt, „Bestellung aufnehmen"). Trägt den vollständigen Zustand
-// samt bestellungId-Lebenszyklus und Submit-/Fehler-/Retry-Verhalten und wird
-// sowohl im Handy-Drawer als auch in der festen Spalte gerendert.
 export function BestellungAbschluss(props: BestellungAbschlussProps) {
   const [kommentar, setKommentar] = useState('')
 
   const noPositionenSelected = props.positionen.length === 0
 
   // bestellungId je logischem Vorgang: neu, sobald eine Zusammenstellung aus dem
-  // Leerzustand beginnt, und erneut nach jedem erfolgreichen Abschluss (der die
-  // Auswahl leert). Ein Retry desselben Vorgangs behält seinen Schlüssel. Mit dem
-  // neuen Schlüssel startet auch der Kommentar leer, damit in der dauerhaften
-  // Spalte nichts aus einem abgebrochenen Vorgang übertragen wird.
+  // Leerzustand beginnt (ein erfolgreicher Abschluss leert die Auswahl). Ein
+  // Retry desselben Vorgangs behält seinen Schlüssel; mit dem neuen Schlüssel
+  // startet auch der Kommentar leer, damit in der dauerhaften Spalte nichts aus
+  // einem abgebrochenen Vorgang übertragen wird.
   const [bestellungId, setBestellungId] = useState(() => crypto.randomUUID())
   const warLeerRef = useRef(noPositionenSelected)
   // Inhalt des letzten Absendeversuchs. Nach einem Fehlversuch mit geändertem

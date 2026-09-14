@@ -78,8 +78,7 @@ func TestResolveEnvVolumeWins(t *testing.T) {
 }
 
 func TestResolveEnvAdoptsFirstNonEmptyCandidate(t *testing.T) {
-	// Volume leer, erster Kandidat (Host-Spiegel) leer → der zweite (ordnerlokal
-	// neben der Exe) gewinnt und muss ins Volume.
+	// Erster Kandidat ist der Host-Spiegel, zweiter die .env neben der Exe.
 	res := ResolveEnv("   \n", []string{"  \n", "POSTGRES_PASSWORD=lokal\n"}, true)
 	if !res.Seed {
 		t.Fatal("Seed: got false, want true (adoptierter Inhalt muss ins Volume)")
@@ -93,7 +92,6 @@ func TestResolveEnvAdoptsFirstNonEmptyCandidate(t *testing.T) {
 }
 
 func TestResolveEnvAbortsWhenDataButNoSecret(t *testing.T) {
-	// Daten vorhanden, aber nirgends ein Secret → abbrechen, nicht neu erzeugen.
 	res := ResolveEnv("", []string{"", "   "}, true)
 	if !res.Abort {
 		t.Fatal("Abort: got false, want true (Fail-Safe: Daten ohne Secret)")
@@ -104,7 +102,6 @@ func TestResolveEnvAbortsWhenDataButNoSecret(t *testing.T) {
 }
 
 func TestResolveEnvGeneratesFreshOnFirstInstall(t *testing.T) {
-	// Keine Daten, kein Secret → echte Erstinstallation, frische Secrets ins Volume.
 	res := ResolveEnv("", nil, false)
 	if !res.Seed {
 		t.Fatal("Seed: got false, want true (frische Secrets muessen ins Volume)")
@@ -128,8 +125,6 @@ func TestStateDirWindowsUsesProgramData(t *testing.T) {
 }
 
 func TestStateDirFallsBackWhenNoProgramData(t *testing.T) {
-	// Linux-Dev (kein PROGRAMDATA) sowie Windows ohne gesetztes PROGRAMDATA
-	// bleiben ordnerlokal.
 	for _, goos := range []string{"linux", "windows"} {
 		if got := StateDir(goos, "", "/opt/jotti"); got != "/opt/jotti" {
 			t.Fatalf("%s ohne PROGRAMDATA: got %q, want /opt/jotti", goos, got)

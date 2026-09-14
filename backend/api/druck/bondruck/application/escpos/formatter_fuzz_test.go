@@ -11,17 +11,12 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
-// FuzzFormatKassenbeleg wirft beliebige (auch bösartige) Freitextinhalte in den
-// ESC/POS-Encoder eines fiskalischen Kassenbelegs: Vereinsdaten, Artikeltexte und
-// vor allem die TSE-QR-Payload, deren Länge in ein GS ( k Store-Kommando
-// hineincodiert wird. Zu haltende Eigenschaften:
-//   - kein Panic bei irgendeinem Eingabe-String;
-//   - keine kaputte Steuersequenz: jedes GS ( k Store-Kommando deklariert in
-//     seinen pL/pH-Bytes exakt die Zahl der nachfolgenden Nutzbytes, und diese
-//     Bytes sind auch tatsächlich vorhanden (kein abgeschnittenes Kommando).
-//
-// Ein längenfehlerhaftes GS ( k würde den Drucker aus dem Tritt bringen und den
-// Rest des Belegs als Rohbytes ausgeben.
+// FuzzFormatKassenbeleg wirft beliebige Freitexte in den ESC/POS-Encoder, vor
+// allem die TSE-QR-Payload, deren Länge in ein GS ( k Store-Kommando codiert
+// wird. Zu halten: kein Panic bei irgendeinem Eingabe-String, und jedes GS ( k
+// Store-Kommando deklariert in pL/pH exakt die Zahl der nachfolgenden, auch
+// tatsächlich vorhandenen Nutzbytes. Ein längenfehlerhaftes GS ( k brächte den
+// Drucker aus dem Tritt und gäbe den Rest des Belegs als Rohbytes aus.
 func FuzzFormatKassenbeleg(f *testing.F) {
 	f.Add("Musterverein e.V.", "Cola", "https://finanzamt.example/verify?d=abc", int64(350), false)
 	f.Add("", "", "", int64(0), true)
@@ -66,10 +61,9 @@ func FuzzFormatKassenbeleg(f *testing.F) {
 	})
 }
 
-// TestAssertQRCommandLengths_PayloadMitPrefix ist die Regressionsprobe zum
-// Befund N7: Eine QR-Payload, die selbst mit den GS ( k Prefix-Bytes beginnt,
-// darf die Längenprüfung nicht fehlleiten. Der Beleg ist strukturell korrekt;
-// assertQRCommandLengths muss ihn ohne Fehlalarm passieren lassen.
+// Eine QR-Payload, die selbst mit den GS ( k Prefix-Bytes beginnt, darf die
+// Längenprüfung nicht fehlleiten: Der Beleg ist strukturell korrekt und muss
+// assertQRCommandLengths ohne Fehlalarm passieren.
 func TestAssertQRCommandLengths_PayloadMitPrefix(t *testing.T) {
 	// Payload beginnt mit GS ( k und enthält den Prefix auch in der Mitte.
 	qr := "\x1D\x28\x6B" + "V0;kasse:1;" + "\x1D\x28\x6B" + "x"
@@ -122,7 +116,6 @@ type qrAsserter interface {
 	Fatalf(format string, args ...any)
 }
 
-// fatalRecorder fängt Fatalf-Aufrufe ab, statt den Test zu beenden.
 type fatalRecorder struct {
 	failed bool
 }
@@ -149,18 +142,8 @@ func verstuemmeleStoreLaenge(out []byte) []byte {
 
 // assertQRCommandLengths läuft den ESC/POS-Bytestrom ab und prüft für jedes
 // GS ( k Kommando (GS 28 6B, pL, pH, cn, fn, ...), dass die in pL/pH deklarierte
-// Nutzlast vollständig im Puffer liegt. Store-Kommandos (Funktion 80/0x50)
-// tragen die eigentliche QR-Payload; ein Längenfehler dort verschöbe alle
-// folgenden Bytes.
-//
-// Wichtig: Die QR-Payload selbst kann die Prefix-Bytes GS ( k enthalten (z. B.
-// eine QR-Payload, die mit "\x1D\x28\x6B" beginnt). Ein reiner Prefix-Match
-// würde solche Payload-Bytes fälschlich als eigenes Kommando lesen. Deshalb
-// prüft der Parser die Kommandostruktur: Ein echtes GS ( k trägt an cn stets
-// 0x31 (alle von jotti emittierten QR-Kommandos nutzen cn=49). Passt cn nicht,
-// liegt der Prefix in Nutzdaten und wird byteweise übersprungen. Bei einem
-// echten Kommando springt der Parser über die komplette (Store-)Nutzlast, sodass
-// dort eingebettete Prefix-Bytes nie erneut als Kommando gelesen werden.
+// Nutzlast vollständig im Puffer liegt; ein Längenfehler im Store-Kommando
+// (Funktion 0x50, es trägt die QR-Payload) verschöbe alle folgenden Bytes.
 func assertQRCommandLengths(t qrAsserter, out []byte) {
 	t.Helper()
 	prefix := []byte{0x1D, 0x28, 0x6B} // GS ( k

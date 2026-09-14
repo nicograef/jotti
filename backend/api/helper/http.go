@@ -11,20 +11,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// errorResponse is the uniform error body of the HTTP API.
-//
-// Code is a stable, machine-readable error code (snake_case); the frontend
-// maps it to a German user-facing message.
-//
-// Details is an optional diagnostic field. Its shape is part of the API
-// contract in exactly two cases, which the frontend parses:
-//   - code "validation_error": zog issues as map[field][]message
-//     (see ReadAndValidateBody)
-//   - code "signaturen_ausstehend" (Kassenabschluss-Gate): structured object
-//     with the number of pending signatures (see SendConflictDetails)
-//
-// Everywhere else, details is at most a short English diagnostic string for
-// operators and logs — never localized, never parsed by clients.
+// errorResponse is the uniform error body of the HTTP API. Code is a stable
+// snake_case code the frontend maps to a German message. Details is parsed by
+// the frontend in exactly two cases: "validation_error" carries zog issues as
+// map[field][]message (see ReadAndValidateBody), "signaturen_ausstehend"
+// (Kassenabschluss-Gate) a structured object with the number of pending
+// signatures (see SendConflictDetails). Everywhere else it is at most a short
+// English diagnostic for operators and logs — never localized, never parsed.
 type errorResponse struct {
 	Code    string `json:"code"`
 	Details any    `json:"details,omitempty"`
@@ -54,40 +47,29 @@ func SendConflictError(w http.ResponseWriter) {
 	SendConflict(w, "conflict")
 }
 
-// SendNotFound sends a 404 Not Found response with the given error code.
 func SendNotFound(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusNotFound)
 }
 
-// SendUnauthorized sends a 401 Unauthorized response with the given error code.
 // The frontend logs the user out and redirects to the login page on 401.
 func SendUnauthorized(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusUnauthorized)
 }
 
-// SendForbidden sends a 403 Forbidden response with the given error code and
-// an optional short English diagnostic. Used when the authenticated user's
-// role lacks permission; the frontend keeps the session (auto-logout is bound
-// to 401).
+// SendForbidden is for an authenticated user whose role lacks permission; the
+// frontend keeps the session (auto-logout is bound to 401).
 func SendForbidden(w http.ResponseWriter, code string, details any) {
 	SendJSONResponse(w, errorResponse{Code: code, Details: details}, http.StatusForbidden)
 }
 
-// SendConflict sends a 409 Conflict response with the given error code.
 func SendConflict(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusConflict)
 }
 
-// SendTooManyRequests sends a 429 Too Many Requests response with the given error
-// code — used e.g. by the per-account login throttle so the client sees a clear
-// "throttled" signal instead of "invalid credentials".
 func SendTooManyRequests(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusTooManyRequests)
 }
 
-// SendConflictDetails sends a 409 Conflict response with an error code and
-// structured details (e.g. the Kassenabschluss-Gate reports the number of
-// pending signatures).
 func SendConflictDetails(w http.ResponseWriter, code string, details any) {
 	SendJSONResponse(w, errorResponse{Code: code, Details: details}, http.StatusConflict)
 }
@@ -96,14 +78,13 @@ func SendServerError(w http.ResponseWriter) {
 	SendJSONResponse(w, errorResponse{Code: "internal_server_error"}, http.StatusInternalServerError)
 }
 
-// ReadBody reads the JSON request body into the provided struct
 func ReadBody[T any](w http.ResponseWriter, r *http.Request, body *T) bool {
 	log := zerolog.Ctx(r.Context())
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB
 
 	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields() // Disallow unknown fields for strict matching
+	decoder.DisallowUnknownFields()
 
 	err := decoder.Decode(body)
 	if err != nil {
@@ -120,7 +101,6 @@ func ReadBody[T any](w http.ResponseWriter, r *http.Request, body *T) bool {
 	return true
 }
 
-// ReadAndValidateBody reads the JSON request body and validates it against a zog struct schema.
 func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T, schema *z.StructSchema) bool {
 	if !ReadBody(w, r, body) {
 		return false
@@ -133,48 +113,40 @@ func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T,
 	return true
 }
 
-// ExtendWriteDeadline verlängert die Schreibfrist der Verbindung auf jetzt +
-// timeout und ersetzt damit für diesen einen Request die globale
-// Schreibfrist des Servers (WriteTimeout: 10s, backend/app/app.go).
+// ExtendWriteDeadline setzt die Schreibfrist der Verbindung auf jetzt + timeout
+// und ersetzt damit für diesen Request die globale Frist des Servers
+// (WriteTimeout: 10s, backend/app/app.go).
 //
-// Entscheidend ist: Die Frist ist eine ABSOLUTE Zeit, keine Stoppuhr für den
-// Schreibvorgang. net/http setzt sie beim Lesen der Request-Header auf jetzt +
-// WriteTimeout; sie läuft also während der gesamten Handler-Laufzeit weiter,
-// und dieser Aufruf setzt sie ebenso auf eine neue absolute Zeit. Ein Handler,
-// der länger arbeitet als sein timeout, schreibt danach in eine bereits
-// abgelaufene Frist: Die Arbeit war erfolgreich, das Ergebnis erreicht den
-// Client trotzdem nie. Bei der TSE-Einrichtung wären PUK und Admin-PIN damit
-// unwiederbringlich verloren, weil sie genau einmal ausgeliefert und nirgends
-// persistiert werden.
+// Die Frist ist eine ABSOLUTE Zeit, keine Stoppuhr für den Schreibvorgang:
+// net/http setzt sie beim Lesen der Request-Header auf jetzt + WriteTimeout, sie
+// läuft also während der gesamten Handler-Laufzeit weiter. Ein Handler, der
+// länger arbeitet als sein timeout, schreibt danach in eine abgelaufene Frist —
+// die Arbeit war erfolgreich, das Ergebnis erreicht den Client nie. Bei der
+// TSE-Einrichtung wären PUK und Admin-PIN damit verloren: Sie werden genau
+// einmal ausgeliefert und nirgends persistiert.
 //
-// Deshalb ruft ein langlaufender Handler diese Funktion ZWEIMAL auf:
-//
-//   - einmal als erste Anweisung: Sie gibt allem, was vor der langen Arbeit
-//     antwortet (ungültiger Body, fachliche Ablehnung), dasselbe Budget statt
-//     der globalen 10 Sekunden;
-//   - einmal unmittelbar vor dem Schreiben der Antwort, damit der
-//     Schreibvorgang ein eigenes Budget bekommt, unabhängig davon, wie lange
-//     der Handler zuvor gearbeitet hat.
+// Ein langlaufender Handler ruft die Funktion deshalb ZWEIMAL auf: als erste
+// Anweisung, damit auch alles, was vor der langen Arbeit antwortet (ungültiger
+// Body, fachliche Ablehnung), dieses Budget statt der globalen 10 Sekunden
+// bekommt; und unmittelbar vor dem Schreiben der Antwort, damit der
+// Schreibvorgang ein eigenes Budget hat.
 //
 // Lässt sich die Frist nicht setzen (ResponseWriter ohne Unterstützung, z. B.
-// httptest.ResponseRecorder), wird gewarnt und weitergearbeitet: Die
-// Verlängerung ist eine Verbesserung, kein Abbruchgrund.
+// httptest.ResponseRecorder), wird nur gewarnt: Die Verlängerung ist eine
+// Verbesserung, kein Abbruchgrund.
 func ExtendWriteDeadline(w http.ResponseWriter, r *http.Request, timeout time.Duration) {
 	if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(timeout)); err != nil {
 		zerolog.Ctx(r.Context()).Warn().Err(err).Dur("timeout", timeout).Msg("Failed to extend write deadline; falling back to server default")
 	}
 }
 
-// ErrorCode assigns a client error code to an application sentinel.
 type ErrorCode struct {
 	Err  error
 	Code string
 }
 
-// MapError maps a domain/application error to an HTTP error response. It walks
-// codes in order and answers 400 with the code of the first entry the error
-// matches (errors.Is), so an error that matches two entries gets the code of the
-// earlier one. Without a match it answers 500.
+// MapError answers 400 with the code of the first entry the error matches
+// (errors.Is) — the order of codes decides — and 500 without a match.
 func MapError(w http.ResponseWriter, err error, codes []ErrorCode) {
 	for _, entry := range codes {
 		if errors.Is(err, entry.Err) {

@@ -8,8 +8,6 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import { type BetreiberEingabe } from './BetreiberBackend'
 
-// Formular für die Betreiber-Stammdaten (Adresse). Wird in der
-// Einrichtungs-Checkliste unter „Bearbeiten" ausgeklappt.
 export function BetreiberForm({
   initial,
   onSave,

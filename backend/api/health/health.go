@@ -13,20 +13,17 @@ type database interface {
 	PingContext(ctx context.Context) error
 }
 
-// HealthCheck provides health check functionality with database connectivity testing.
 type HealthCheck struct {
 	DB      database
 	Version string
 }
 
-// HealthResponse represents the health check response structure.
 type HealthResponse struct {
 	Status    string `json:"status"`
 	Timestamp string `json:"timestamp"`
 	Version   string `json:"version"`
 }
 
-// Handler returns an HTTP handler for the enhanced health check endpoint with database ping.
 func (h *HealthCheck) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := zerolog.Ctx(r.Context())

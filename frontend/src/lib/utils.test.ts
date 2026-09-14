@@ -86,7 +86,6 @@ describe('formatPositionName', () => {
 })
 
 describe('formatRelativeTime', () => {
-  // Fester Bezugspunkt für deterministische Grenzfälle.
   const now = new Date('2026-07-12T18:42:00')
 
   function vor(msVor: number): string {

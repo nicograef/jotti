@@ -15,10 +15,9 @@ export type Kategorie = z.infer<typeof KategorieSchema>
 const BonmodusSchema = z.enum(['pro_position', 'pro_bestellung', 'pro_stueck'])
 export type Bonmodus = z.infer<typeof BonmodusSchema>
 
-// Kategorieregel für einen gesetzten Bonmodus: pro Stück (je Einheit ein Bon)
-// nur am Abholbon (Backend: Kategorie.ErlaubtBonmodus). Ob eine Station
-// überhaupt einen Bonmodus trägt, sagt hatBonmodus. Eine Quelle für das Schema
-// unten und die Auswahl in der Oberfläche.
+// Pro Stück (je Einheit ein Bon) nur am Abholbon — spiegelt
+// Kategorie.ErlaubtBonmodus im Backend. Ob eine Station überhaupt einen
+// Bonmodus trägt, sagt hatBonmodus.
 export function erlaubtBonmodus(
   kategorie: Kategorie,
   bonmodus: Bonmodus,
@@ -48,8 +47,6 @@ export const DruckstationConfigSchema = z
   })
 export type DruckstationConfig = z.infer<typeof DruckstationConfigSchema>
 
-// Stationen mit Bonmodus: die drei Produktkategorien und der Abholbon tragen
-// einen, nur der Kassenbeleg nicht.
 const KATEGORIEN_MIT_BONMODUS: Kategorie[] = [
   'essen',
   'getraenk',
@@ -61,9 +58,7 @@ export function hatBonmodus(kategorie: Kategorie): boolean {
   return KATEGORIEN_MIT_BONMODUS.includes(kategorie)
 }
 
-// Fehlgeschlagener Druckauftrag: nach mehreren Fehlversuchen (rund 5 Minuten)
-// aufgegeben. Wird auf der Druckstationen-Seite zur Verwaltung (erneut
-// versuchen / verwerfen) angezeigt.
+// Nach mehreren Fehlversuchen (rund 5 Minuten) aufgegeben.
 export const FehlgeschlagenerDruckauftragSchema = z.object({
   id: z.number(),
   bonArt: z.string(),
@@ -77,9 +72,6 @@ export type FehlgeschlagenerDruckauftrag = z.infer<
   typeof FehlgeschlagenerDruckauftragSchema
 >
 
-// validateDruckerIp prüft eine Drucker-IP für die Inline-Feldvalidierung.
-// Leer ist erlaubt (kein Drucker); andernfalls muss es eine IPv4-Adresse sein.
-// Gibt eine Fehlermeldung zurück oder null, wenn gültig.
 export function validateDruckerIp(druckerIp: string): string | null {
   if (druckerIp === '') {
     return null
@@ -87,9 +79,9 @@ export function validateDruckerIp(druckerIp: string): string | null {
   return z.ipv4().safeParse(druckerIp).success ? null : 'Ungültige IPv4-Adresse'
 }
 
-// Referenz-Formate aus dem Backend (unverändert, siehe arbeitsbon_policy.go,
-// kassenbeleg_command.go und station/application/command.go):
-// "<technischer-event-name>:<eventId>" bzw. für Testbons "testdruck:<kategorie>".
+// Referenz-Formate aus dem Backend (arbeitsbon_policy.go,
+// kassenbeleg_command.go, station/application/command.go):
+// "<technischer-event-name>:<eventId>", für Testbons "testdruck:<kategorie>".
 const REFERENZ_PRAEFIX_LABEL: Record<string, string> = {
   'bestellung-aufgenommen': 'Bestellung',
   'zahlung-kassiert': 'Zahlung',
@@ -98,9 +90,8 @@ const REFERENZ_PRAEFIX_LABEL: Record<string, string> = {
   'stornierung-erteilt': 'Stornierung',
 }
 
-// Fachlicher Anzeigename je Kategorie, geteilt von der Referenz-Anzeige
-// fehlgeschlagener Druckaufträge (unten) und den Stationsköpfen der
-// Bondrucker-Seite. Testbons tragen als Referenz "testdruck:<kategorie>".
+// Anzeigename je Kategorie, geteilt von der Referenz-Anzeige unten und den
+// Stationsköpfen der Bondrucker-Seite.
 export const STATION_KATEGORIE_LABEL: Record<string, string> = {
   essen: 'Essen',
   getraenk: 'Getränk',
@@ -109,9 +100,6 @@ export const STATION_KATEGORIE_LABEL: Record<string, string> = {
   abholbon: 'Abholbon',
 }
 
-// formatDruckauftragReferenz übersetzt die rohe Referenz eines fehlgeschlagenen
-// Druckauftrags in einen fachlichen Text. Unbekannte Formate fallen auf den
-// Rohwert zurück (z. B. bei künftigen, hier noch nicht gepflegten Event-Typen).
 export function formatDruckauftragReferenz(referenz: string): string {
   const trennerIndex = referenz.indexOf(':')
   if (trennerIndex === -1) {
@@ -132,8 +120,7 @@ export function formatDruckauftragReferenz(referenz: string): string {
   return `${label} Nr. ${rest}`
 }
 
-// Substantiv (Singular/Plural) je Bon-Art für die Fehl-Bon-Meldungen. „Bon"
-// bleibt dem operativen Arbeitsbon vorbehalten; der Gäste-Beleg ist der
+// „Bon" bleibt dem operativen Arbeitsbon vorbehalten; der Gäste-Beleg ist der
 // „Kassenbeleg", der Prüf-Bon der „Testbon" (siehe docs/language.md).
 const BON_ART_SUBSTANTIV: Record<string, { singular: string; plural: string }> =
   {
@@ -145,15 +132,11 @@ const BON_ART_SUBSTANTIV: Record<string, { singular: string; plural: string }> =
 export interface FehlBonBeschreibung {
   singular: string
   plural: string
-  // Nur eine reine Arbeitsbon-Menge ist tatsächlich an einer Ausgabestation
-  // (Küche/Theke) gelandet; nur dann trifft die Küchen-Formulierung zu.
+  // Nur eine reine Arbeitsbon-Menge landet an einer Ausgabestation
+  // (Küche/Theke); nur dann trifft die Küchen-Formulierung zu.
   kuecheBetroffen: boolean
 }
 
-// beschreibeFehlBons leitet aus den Bon-Arten fehlgeschlagener Druckaufträge das
-// passende Substantiv und die Frage ab, ob die Küchen-Formulierung passt. Eine
-// gemischte Menge (oder eine unbekannte Bon-Art) fällt auf den neutralen
-// Oberbegriff „Bon" ohne Küchen-Behauptung zurück.
 export function beschreibeFehlBons(bonArten: string[]): FehlBonBeschreibung {
   const eindeutigeArten = new Set(bonArten)
   const art = bonArten[0]
@@ -166,9 +149,8 @@ export function beschreibeFehlBons(bonArten: string[]): FehlBonBeschreibung {
   return { singular: 'Bon', plural: 'Bons', kuecheBetroffen: false }
 }
 
-// Bekannte Symptome roher Relay-Fehlertexte (Go-Fehlerketten mit IP, Status-Hex,
-// „dial tcp"). Reihenfolge = Priorität. Übersetzt in eine knappe, für
-// ehrenamtliche Helfer verständliche Meldung.
+// Bekannte Symptome roher Relay-Fehlertexte (Go-Fehlerketten mit IP,
+// Status-Hex, „dial tcp"). Die Reihenfolge ist die Priorität.
 const DRUCKFEHLER_MELDUNGEN: { schluessel: string; meldung: string }[] = [
   { schluessel: 'papier', meldung: 'Papier leer' },
   { schluessel: 'abdeckung', meldung: 'Abdeckung offen' },
@@ -181,9 +163,7 @@ const DRUCKFEHLER_MELDUNGEN: { schluessel: string; meldung: string }[] = [
 
 const DRUCKFEHLER_FALLBACK = 'Druckfehler'
 
-// formatDruckfehler übersetzt den rohen letzterFehler eines fehlgeschlagenen
-// Druckauftrags in eine einheitliche, laienverständliche Meldung. Unbekannte
-// Texte fallen auf eine neutrale Sammelmeldung zurück, nie auf den Rohtext.
+// Unbekannte Texte fallen auf eine Sammelmeldung zurück, nie auf den Rohtext.
 export function formatDruckfehler(letzterFehler: string): string {
   const text = letzterFehler.toLowerCase()
   const treffer = DRUCKFEHLER_MELDUNGEN.find((eintrag) =>
@@ -212,9 +192,8 @@ export class DruckstationBackend {
     await this.backend.post('admin/update-druckstationen', config)
   }
 
-  // Reiht einen Testbon (Stationsname + Zeitstempel) für die Kategorie in die
-  // Druck-Warteschlange ein. Ohne konfigurierten Drucker antwortet das Backend
-  // mit dem Fehlercode druckstation_nicht_konfiguriert.
+  // Ohne konfigurierten Drucker antwortet das Backend mit dem Fehlercode
+  // druckstation_nicht_konfiguriert.
   public async testbonDrucken(kategorie: Kategorie): Promise<void> {
     await this.backend.post('admin/testbon-drucken', { kategorie })
   }
@@ -240,8 +219,6 @@ export class DruckstationBackend {
     await this.backend.post('admin/druckauftrag-verwerfen', { id })
   }
 
-  // Verwirft alle fehlgeschlagenen Druckaufträge und gibt die Anzahl der
-  // verworfenen Aufträge zurück (für die Rückmeldung im Toast).
   public async druckauftraegeVerwerfen(): Promise<number> {
     const { verworfen } = await this.backend.post(
       'admin/druckauftraege-verwerfen',

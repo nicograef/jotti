@@ -16,14 +16,12 @@ import (
 	"github.com/nicograef/jotti/backend/config"
 )
 
-// App represents the application with its configuration, router, server, and database connection.
 type App struct {
 	Server *http.Server
 	Config config.Config
 	DB     *sql.DB
 }
 
-// NewApp creates a new application instance
 func NewApp(cfg config.Config, db *sql.DB, version string) *App {
 	router := SetupRoutes(cfg, db, version)
 	server := &http.Server{
@@ -41,11 +39,9 @@ func NewApp(cfg config.Config, db *sql.DB, version string) *App {
 	}
 }
 
-// SetupRoutes configures HTTP routes. Alle bereichsgebundenen Routen werden aus
-// der deklarativen Routentabelle (Areas) registriert — sie ist die einzige
-// Registrierungsquelle und deklariert je Bereich die erlaubten Rollen bzw.
-// bewusst kein JWT (auth/relay). /health ist der einzige Sonderfall außerhalb
-// der Tabelle (GET-probebar, kein Präfix).
+// SetupRoutes registriert alle bereichsgebundenen Routen aus der Routentabelle
+// (Areas) — der einzigen Registrierungsquelle. /health ist der einzige Sonderfall
+// außerhalb der Tabelle (GET-probebar, kein Präfix).
 func SetupRoutes(cfg config.Config, db *sql.DB, version string) http.Handler {
 	r := http.NewServeMux()
 
@@ -57,10 +53,6 @@ func SetupRoutes(cfg config.Config, db *sql.DB, version string) http.Handler {
 
 	areas := Areas()
 
-	// Test-Reset — nur in der E2E-Umgebung (JOTTI_ENABLE_TEST_API=1), über
-	// cfg.EnableTestApi statt direktem os.Getenv. Der Bereich wird über dieselbe
-	// deklarative Area-Struktur (mountArea) verdrahtet: bewusst ohne JWT wie
-	// auth/relay, aber rate-limitet. In Produktion existiert die Route nicht.
 	if cfg.EnableTestApi {
 		areas = append(areas, testResetArea(db))
 	}
@@ -69,10 +61,8 @@ func SetupRoutes(cfg config.Config, db *sql.DB, version string) http.Handler {
 		mountArea(r, area, cfg, deps)
 	}
 
-	// Wrap the entire router with middleware chain
-	// Note: Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by the reverse proxy (Caddy)
-	// Recovery liegt innen (nach Logging): Ein Panic in einem Handler wird zu 500,
-	// der Request wird trotzdem regulär geloggt.
+	// Security headers (HSTS, CSP, X-Frame-Options, etc.) are set by the reverse proxy (Caddy).
+	// Recovery liegt innen (nach Logging): Ein Panic wird zu 500, der Request wird trotzdem geloggt.
 	var handler http.Handler = r
 	handler = middleware.RecoveryMiddleware(handler)
 	handler = middleware.PostMethodOnlyMiddleware(handler)
@@ -82,7 +72,6 @@ func SetupRoutes(cfg config.Config, db *sql.DB, version string) http.Handler {
 	return handler
 }
 
-// Run starts the application with graceful shutdown
 func (app *App) Run(ctx context.Context) error {
 	worker := signatur.NewTSESignaturWorker(app.Config.FiskalyBaseURL, app.DB)
 	go worker.Run(ctx)
@@ -107,7 +96,6 @@ func (app *App) Run(ctx context.Context) error {
 	}
 }
 
-// Shutdown gracefully stops the application
 func (app *App) Shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

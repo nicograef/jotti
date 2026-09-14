@@ -23,8 +23,7 @@ const positionen = [{ produktId: 1, varianteId: 1, menge: 2 }]
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 // Die feste Spalte (variant="spalte") ist container-neutral testbar: kein
-// Drawer, kein Dock. Sie ist im Leerzustand deaktiviert, rechnet Rückgeld und
-// ruft das Backend genau einmal mit stabilem verkaufId je Vorgang auf.
+// Drawer, kein Dock.
 function renderSpalte(
   direktverkaufTaetigen: () => Promise<void> = vi
     .fn()

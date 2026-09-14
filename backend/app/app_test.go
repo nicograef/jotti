@@ -115,10 +115,6 @@ func TestSetupRoutes_NonHealthRejectsGet(t *testing.T) {
 	}
 }
 
-// TestSetupRoutes_ResetSeedRouteGuardedByEnv stellt sicher, dass der
-// Test-Reset-Endpoint nur bei JOTTI_ENABLE_TEST_API=1 registriert wird: ohne das
-// Flag existiert die Route nicht (404), mit dem Flag ist sie erreichbar (kein
-// 404). So bleibt der Endpunkt in Produktion unerreichbar.
 func TestSetupRoutes_ResetSeedRouteGuardedByEnv(t *testing.T) {
 	setRequiredConfigEnv(t)
 
@@ -172,22 +168,17 @@ func TestRun_ContextCancellation(t *testing.T) {
 	cfg := config.Load()
 	app := NewApp(cfg, &sql.DB{}, "dev")
 
-	// Create a cancellable context
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Run the app in a separate goroutine
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- app.Run(ctx)
 	}()
 
-	// Give the server a moment to start
 	time.Sleep(100 * time.Millisecond)
 
-	// Cancel the context to trigger shutdown
 	cancel()
 
-	// Wait for Run to return
 	if err := <-errChan; err != nil {
 		t.Errorf("Run() returned error: %v", err)
 	}

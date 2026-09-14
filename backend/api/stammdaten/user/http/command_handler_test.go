@@ -56,7 +56,6 @@ func TestDeleteUserHandler_CannotDeleteSelf(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/admin/delete-user", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	// Set the current user ID in context to match the delete target
 	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 42)
 	req = req.WithContext(ctx)
 
@@ -82,7 +81,6 @@ func TestDeleteUserHandler_DeleteOtherUser(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/admin/delete-user", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	// Set the current user ID in context to a different user
 	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 99)
 	req = req.WithContext(ctx)
 

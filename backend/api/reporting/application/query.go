@@ -68,18 +68,10 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 	return data, nil
 }
 
-// aggregateAbrechnungProServicekraft führt die kassierten Tischzahlungen (nach
-// Akteur) mit den Storno-Detailzeilen (nach Storno-Zuordnung) zur Abrechnung pro
-// Servicekraft zusammen: Eine Rücknahme mindert das Abzugeben der Servicekraft,
-// die die zurückgenommene Zahlung kassiert hat; eine geldneutrale Korrektur
-// erhöht nur den Storno-Zähler ihrer Besteller. Direktverkauf-Stornos bleiben
-// außen vor — der Direktverkauf hat eine eigene Kasse (die Kassiert-Zeilen
-// enthalten ihn ebenfalls nicht).
-//
-// Eine Servicekraft erscheint, sobald sie kassiert hat oder ihr ein Tisch-Storno
-// zugeordnet ist. Sortiert nach Abzugeben absteigend; bei Gleichstand bleibt die
-// Eingabereihenfolge erhalten (Kassiert absteigend, danach die reinen
-// Storno-Zeilen in Reihenfolge der Detail-Liste).
+// aggregateAbrechnungProServicekraft führt die kassierten Tischzahlungen (nach Akteur) mit den
+// Storno-Detailzeilen (nach Storno-Zuordnung) zusammen: Eine Rücknahme mindert das Abzugeben der
+// Servicekraft, die die Zahlung kassiert hat; eine geldneutrale Korrektur erhöht nur den
+// Storno-Zähler. Direktverkauf-Stornos bleiben außen vor — eigene Kasse, wie in den Kassiert-Zeilen.
 func aggregateAbrechnungProServicekraft(
 	kassiert []reporting.AbrechnungServicekraft,
 	stornierungen []reporting.StornierungDetail,
@@ -107,9 +99,8 @@ func aggregateAbrechnungProServicekraft(
 				})
 			}
 			out[idx].AnzahlStornierungen++
-			// Nur die kassenwirksame Warenrücknahme trägt einen Betrag. Sie ist
-			// über ihre zahlungId einwertig zugeordnet, der Betrag wird also
-			// genau einer Servicekraft angerechnet.
+			// Nur die kassenwirksame Warenrücknahme trägt einen Betrag; über ihre zahlungId ist sie
+			// genau einer Servicekraft zugeordnet.
 			if s.BarRueckgabe {
 				out[idx].RuecknahmenCents += s.BetragCents
 			}
@@ -127,12 +118,10 @@ func aggregateAbrechnungProServicekraft(
 	return out
 }
 
-// computeUmsatzProSteuersatz aggregiert die USt-Aufschlüsselung aus den
-// unaggregierten Brutto-Positionszeilen — auf derselben Basis wie Beleg,
-// TSE-processData und DSFinV-K-Export: steuer.Aufteilen je Positionszeile,
-// danach Aggregation je Steuersatz. Warenrücknahmen kommen als negative
-// Zeilen; wie beim Stornobeleg wird die positive Magnitude aufgeteilt und
-// das Vorzeichen danach angewendet (steuer.Aufteilen ignoriert Negatives).
+// computeUmsatzProSteuersatz teilt je Brutto-Positionszeile per steuer.Aufteilen auf und aggregiert
+// danach je Steuersatz — dieselbe Basis wie Beleg, TSE-processData und DSFinV-K-Export.
+// Warenrücknahmen kommen als negative Zeilen: aufgeteilt wird die positive Magnitude, das Vorzeichen
+// danach angewendet (steuer.Aufteilen ignoriert Negatives).
 func computeUmsatzProSteuersatz(bruttoZeilen []reporting.UmsatzSteuersatz) []reporting.UmsatzSteuersatz {
 	aggregiert := make(map[steuer.Steuersatz]reporting.UmsatzSteuersatz, 3)
 	for _, zeile := range bruttoZeilen {
@@ -188,9 +177,6 @@ func computeUmsatzProSteuersatz(bruttoZeilen []reporting.UmsatzSteuersatz) []rep
 	return out
 }
 
-// kategorieRang legt die feste Reihenfolge der Kategorie-Abschnitte fest:
-// Essen → Getränke → Sonstiges. Unbekannte Kategorien (theoretischer Randfall)
-// sortieren dahinter und werden untereinander alphabetisch geordnet.
 func kategorieRang(kategorie string) int {
 	switch kategorie {
 	case string(produkt.EssenKategorie):
@@ -204,16 +190,11 @@ func kategorieRang(kategorie string) int {
 	}
 }
 
-// gruppiereProduktStatistik baut aus den flachen Varianten-Zeilen die
-// Produkt-Hierarchie für den Report: je Produkt eine Gruppe mit Zwischensumme
-// über ihre Varianten, in Kategorie-Abschnitte gegliedert. Sortierung:
-// Kategorien fest (Essen → Getränke → Sonstiges), Produkte je Kategorie und
-// Varianten je Produkt nach ausgegebener Menge absteigend, Name als stabiler
-// Tiebreaker. Reine Funktion — das Backend liefert die Liste fertig sortiert,
-// die Ein-Varianten-Zusammenfassung bleibt reine Präsentation im Frontend.
+// gruppiereProduktStatistik gruppiert die flachen Varianten-Zeilen je Produkt mit Zwischensumme und
+// liefert sie fertig sortiert; das Frontend fasst nur noch Ein-Varianten-Produkte zusammen.
 func gruppiereProduktStatistik(zeilen []reporting.ProduktStatistikZeile) []reporting.ProduktStatistik {
-	// Produkte per (Kategorie, ProduktName) sammeln; ein Produkt liegt je Sitzung
-	// in genau einer Kategorie, der Produktname ist innerhalb der Sitzung eindeutig.
+	// Schlüssel (Kategorie, ProduktName): ein Produkt liegt je Sitzung in genau einer Kategorie, der
+	// Produktname ist innerhalb der Sitzung eindeutig.
 	type produktKey struct {
 		kategorie   string
 		produktName string
@@ -354,10 +335,9 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 	return &data, nil
 }
 
-// mergeServicekraefteLive führt die Abrechnung pro Servicekraft mit der offenen
-// eigenen Arbeit aus den Tisch-Sessions per user_id zusammen. Servicekräfte mit
-// eigener Abrechnungszeile erscheinen zuerst (in Abrechnungs-Reihenfolge),
-// danach Personen mit ausschließlich offener Arbeit (aufsteigend nach UserID).
+// mergeServicekraefteLive führt Abrechnung und offene eigene Arbeit per user_id zusammen:
+// Servicekräfte mit Abrechnungszeile zuerst (in deren Reihenfolge), danach Personen mit
+// ausschließlich offener Arbeit (aufsteigend nach UserID).
 func mergeServicekraefteLive(
 	abrechnung []reporting.AbrechnungServicekraft,
 	sessions []kasse.TischSession,

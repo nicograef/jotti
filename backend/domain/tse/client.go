@@ -21,12 +21,11 @@ var ErrUnvollstaendigeCredentials = errors.New("tse credentials are incomplete")
 // (noch) nicht existiert — der Signatur-Worker startet sie dann neu.
 var ErrTransactionNichtGefunden = errors.New("tse transaction not found")
 
-// AuftragsFehler kennzeichnet einen auftragsspezifischen Signierfehler: Die
-// TSE arbeitet, nur dieser eine Vorgang wird abgelehnt (etwa von fiskaly
-// zurückgewiesene processData). Der Signatur-Worker verbucht dafür einen
-// Fehlversuch am Auftrag und überspringt ihn — ein Gift-Auftrag staut nie
-// die Queue. Jeder nicht so gekennzeichnete Fehler gilt als TSE-weit: Er
-// bricht den Durchlauf ab und schaltet den Worker in den Störungszustand.
+// AuftragsFehler kennzeichnet einen auftragsspezifischen Signierfehler (etwa von
+// fiskaly zurückgewiesene processData): der Worker verbucht einen Fehlversuch und
+// überspringt den Auftrag, ein Gift-Auftrag staut nie die Queue. Jeder nicht so
+// gekennzeichnete Fehler gilt als TSE-weit, bricht den Durchlauf ab und schaltet
+// den Worker in den Störungszustand.
 type AuftragsFehler struct {
 	Err error
 }
@@ -35,8 +34,6 @@ func (e AuftragsFehler) Error() string { return e.Err.Error() }
 
 func (e AuftragsFehler) Unwrap() error { return e.Err }
 
-// IstAuftragsFehler meldet, ob err als auftragsspezifischer Signierfehler
-// gekennzeichnet ist.
 func IstAuftragsFehler(err error) bool {
 	var auftragsFehler AuftragsFehler
 	return errors.As(err, &auftragsFehler)
@@ -71,10 +68,8 @@ type TSEClient interface {
 	FinishTransaction(ctx context.Context, txID string, processType string, processData string) (FinishResult, error)
 }
 
-// ConnectionTester prüft eine konfigurierte TSE. TestConnection ist die volle
-// Diagnose (TSS- und Client-Abruf, Seriennummer); Umgebung ist der leichte Pfad
-// für reine Statusanzeigen und kommt allein aus dem Auth-Token, ohne TSS-/
-// Client-Abruf.
+// ConnectionTester: TestConnection ist die volle Diagnose (TSS- und Client-Abruf,
+// Seriennummer), Umgebung der leichte Pfad allein aus dem Auth-Token.
 type ConnectionTester interface {
 	TestConnection(ctx context.Context) (VerbindungStatus, error)
 	Umgebung(ctx context.Context) (Umgebung, error)
@@ -94,9 +89,8 @@ const (
 	TransactionStateCancelled TransactionState = "CANCELLED"
 )
 
-// RetrieveResult ist der bei der TSE gespeicherte Stand einer Transaktion:
-// ihr Zustand plus — bei abgeschlossenen Transaktionen — die Signaturdaten
-// in derselben Form wie ein FinishResult.
+// RetrieveResult ist der bei der TSE gespeicherte Stand einer Transaktion; die
+// Signaturdaten trägt es nur bei abgeschlossenen Transaktionen.
 type RetrieveResult struct {
 	State TransactionState
 	FinishResult
@@ -120,11 +114,10 @@ type FinishResult struct {
 	QRCodeData        string
 }
 
-// VerbindungStatus ist das Ergebnis des Verbindungstests. Umgebung, TSSState,
-// ClientState und ClientSerialNumber werden von der Repository-Schicht aus den
-// fiskaly-Antworten befüllt. SeriennummerKorrekt setzt die Application-Schicht,
-// die die jotti-Kassen-Seriennummer kennt und sie mit der Client-serial_number
-// abgleicht.
+// VerbindungStatus: Umgebung, TSSState, ClientState und ClientSerialNumber füllt
+// die Repository-Schicht aus den fiskaly-Antworten; SeriennummerKorrekt setzt die
+// Application-Schicht, die die jotti-Kassen-Seriennummer mit der
+// Client-serial_number abgleicht.
 type VerbindungStatus struct {
 	Umgebung            Umgebung
 	TSSState            string

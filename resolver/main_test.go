@@ -116,8 +116,6 @@ func TestLoadConfigFromEnv(t *testing.T) {
 	}
 }
 
-// startTestServer startet den Resolver mit UDP- und TCP-Listener auf
-// zufälligen Ports und liefert beide Adressen.
 func startTestServer(t *testing.T, h dns.Handler) (udpAddr, tcpAddr string) {
 	t.Helper()
 
@@ -218,7 +216,6 @@ func TestIntegrationNXDomainUndApex(t *testing.T) {
 }
 
 func TestIntegrationForwardingZurAuthZone(t *testing.T) {
-	// Fake-acme-dns: beantwortet TXT-Anfragen mit einem festen Token.
 	fakeAuth := dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
 		msg := new(dns.Msg)
 		msg.SetReply(req)

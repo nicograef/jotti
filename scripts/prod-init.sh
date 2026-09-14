@@ -1,25 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# =============================================================================
-# jotti — First-Deploy Automation (self-hosted production, Weg B)
-#
-# Reads the domain and email from .env (no hardcoding), validates the host, then
-# starts the pinned production stack. Caddy obtains the Let's Encrypt certificate
-# automatically (HTTP-01/TLS-ALPN) — no certbot step. Steps:
-#   1. Validate prerequisites (Docker, Compose, .env, JOTTI_DOMAIN/LETSENCRYPT_EMAIL/JOTTI_VERSION)
-#   2. Check that the domain resolves (and ideally points to this server)
-#   3. Pull the pinned images and start the stack
-#   4. Wait for the backend to be healthy and verify HTTPS
-#
-# Usage: ./scripts/prod-init.sh  (or `make prod-init`)
-# =============================================================================
+# jotti — first deploy of the self-hosted production stack: validates .env and
+# DNS, then starts the pinned stack. Caddy obtains the Let's Encrypt certificate
+# itself (HTTP-01/TLS-ALPN) — there is no certbot step.
 
 COMPOSE_PROD="docker-compose.prod.yml"
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 . "$SCRIPT_DIR/lib.sh"
@@ -27,9 +14,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Minimum length for secrets; mirrors backend/config.MinSecretLength.
 MIN_SECRET_LENGTH=16
 
-# validate_secret KEY — read KEY from .env and fatal unless it is set, not a known
-# .env.example placeholder, and at least MIN_SECRET_LENGTH chars. Mirrors
-# backend/config.ValidateSecrets so a weak secret fails before the stack starts.
+# validate_secret KEY — mirrors backend/config.ValidateSecrets, so a weak or
+# placeholder secret fails before the stack starts.
 validate_secret() {
   local key="$1"
   local value
@@ -46,17 +32,11 @@ validate_secret() {
   fi
 }
 
-# ---------------------------------------------------------------------------
-# Step 0 — Change to project root (script may be called from anywhere)
-# ---------------------------------------------------------------------------
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 info "Project root: $PROJECT_ROOT"
 
-# ---------------------------------------------------------------------------
-# Step 1 — Validate prerequisites
-# ---------------------------------------------------------------------------
 info "Checking prerequisites..."
 
 require_docker_stack "$COMPOSE_PROD"
@@ -85,17 +65,13 @@ if ! parse_semver "$VERSION" >/dev/null; then
   fatal "Refusing to deploy an unpinned version ('latest' and empty are not allowed)."
 fi
 
-# Reject weak or placeholder secrets before starting the stack (mirrors the
-# backend startup validation; a known secret means a full auth bypass).
+# A known or placeholder secret means a full auth bypass.
 validate_secret JWT_SECRET
 validate_secret RELAY_AUTH_TOKEN
 validate_secret POSTGRES_PASSWORD
 
 info "Prerequisites OK (domain: $DOMAIN, email: $EMAIL, version: $VERSION)."
 
-# ---------------------------------------------------------------------------
-# Step 2 — Check DNS resolution and that it points to this server
-# ---------------------------------------------------------------------------
 info "Checking DNS resolution for $DOMAIN..."
 
 resolve_a() {
@@ -112,26 +88,20 @@ if [[ -z "$DOMAIN_IP" ]]; then
 fi
 info "DNS resolution for $DOMAIN: OK ($DOMAIN_IP)"
 
-# Best-effort: warn (not fatal) if the domain does not resolve to this server's
-# public IP. Detecting the own public IP needs an outbound call and may fail.
+# Best-effort: detecting the own public IP needs an outbound call, so a mismatch
+# warns instead of aborting.
 SERVER_IP="$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)"
 if [[ -n "$SERVER_IP" && "$SERVER_IP" != "$DOMAIN_IP" ]]; then
   warn "$DOMAIN resolves to $DOMAIN_IP but this server appears to be $SERVER_IP."
   warn "Let's Encrypt issuance will fail unless the domain points to this server."
 fi
 
-# ---------------------------------------------------------------------------
-# Step 3 — Pull pinned images and start the stack
-# ---------------------------------------------------------------------------
 info "Pulling pinned images..."
 docker compose -f "$COMPOSE_PROD" pull
 
 info "Starting production stack..."
 docker compose -f "$COMPOSE_PROD" up -d
 
-# ---------------------------------------------------------------------------
-# Step 4 — Wait for the backend, then verify HTTPS
-# ---------------------------------------------------------------------------
 info "Waiting for the backend to become healthy..."
 backend_healthy=false
 for _ in $(seq 1 30); do
@@ -160,12 +130,8 @@ for _ in $(seq 1 30); do
   sleep 3
 done
 
-# HTTP→HTTPS redirect check (informational).
 HTTP_STATUS="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://$DOMAIN" 2>/dev/null || echo 000)"
 
-# ---------------------------------------------------------------------------
-# Summary
-# ---------------------------------------------------------------------------
 echo ""
 echo "=========================================="
 printf "${GREEN} %s${NC}\n" "jotti — Deployment Complete"
@@ -189,9 +155,8 @@ echo "    make prod-up     — Restart the stack"
 echo "    make prod-down   — Stop all services"
 echo "    make prod-logs   — Follow logs"
 echo ""
-# First-time setup: grep the admin one-time login code straight from the backend
-# logs (analogous to the Windows starter). ANSI-tolerant: match the marker
-# substring and extract the 6-digit code; the newest match wins.
+# Admin one-time login code from the backend logs (like the Windows starter).
+# ANSI-tolerant: match the marker substring, newest match wins.
 otp_code="$(docker compose -f "$COMPOSE_PROD" logs backend 2>/dev/null \
   | grep -a "ADMIN-EINMALPASSWORT" \
   | grep -aoE 'code=[0-9]{6}' \

@@ -1,25 +1,14 @@
-# Local / LAN deployment for jotti — Caddy reverse proxy, no manual domain setup.
-#
-# Runs jotti on a single PC or laptop (Windows/macOS with Docker Desktop, or Linux
-# with Docker Engine) and makes it reachable from tablets/phones in the same WLAN.
-# Primary address is the trusted hostname <lan-ip>.<install-id>.lokal.jotti.rocks
-# (real Let's Encrypt certificate, green padlock); the host's local IP — e.g.
-# https://192.168.1.50 — stays available as a fallback (Caddy internal CA).
-#
-# Intended for the smallest setup: a single direct-sales till on one device, cash only,
-# no receipt printing. See docs/leitfaden/installation.md (Standardweg, Einzelgerät im WLAN).
-#
-# Start:  docker compose -f docker-compose.local.yml up -d --build
-# Stop:   docker compose -f docker-compose.local.yml down
-#
-# SECURITY: TLS on both addresses — the trusted Let's Encrypt certificate on the primary
-# hostname, Caddy's internal CA on the IP fallback (browser warning on first access).
-# Never expose this stack to the public internet (no port forwarding).
+# Local / LAN deployment — reachable from phones in the same WLAN under the
+# trusted hostname <lan-ip>.<install-id>.lokal.jotti.rocks (real Let's Encrypt
+# certificate); the host's local IP stays a fallback on Caddy's internal CA
+# (browser warning on first access). Intended for the smallest setup: one
+# direct-sales till, cash only, no receipt printing
+# (docs/leitfaden/installation.md).
+# SECURITY: never expose this stack to the public internet (no port forwarding).
 
 name: jotti-local
 
-# Log rotation for every long-running service: json-file capped at a small size
-# and a few files, so it takes effect on any host without daemon configuration.
+# Log rotation that needs no daemon configuration, so it applies on any host.
 x-logging: &default-logging
   driver: json-file
   options:
@@ -38,16 +27,14 @@ services:
       POSTGRES_DB: jotti
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      # jotti-config holds the install secret (.env mirror), written by the
-      # starter before the stack comes up. It is mounted read-only here only to
-      # bind its lifecycle to the data: `docker compose down -v` then removes the
-      # secret together with the database, so a stale secret can never outlive —
-      # or lock you out of — the data it unlocks. Postgres itself never reads it.
+      # jotti-config holds the install secret (.env mirror) the starter writes
+      # before the stack comes up. Mounted read-only only to bind its lifecycle
+      # to the data: `down -v` removes secret and database together, so a stale
+      # secret cannot lock you out. Postgres never reads it.
       - jotti-config:/jotti-config:ro
-      # jotti-backups holds the timestamped pre-update pg_dumps that the starter
-      # writes (via `docker exec`) before running migrations on a new version.
-      # Mounted rw so the dump lands straight in the volume; its lifecycle is
-      # likewise bound to the data (`down -v` removes both).
+      # jotti-backups holds the timestamped pre-update pg_dumps the starter
+      # writes before migrating a new version; rw so the dump lands straight in
+      # the volume, lifecycle bound to the data like jotti-config.
       - jotti-backups:/jotti-backups
     networks:
       - db-network
@@ -110,7 +97,6 @@ services:
       timeout: 3s
       retries: 5
       start_period: 5s
-    # No exposed ports; reachable only via reverse proxy
 
   frontend:
     build:
@@ -134,7 +120,6 @@ services:
       timeout: 3s
       retries: 5
       start_period: 5s
-    # No exposed ports; served via reverse proxy
 
   reverse-proxy:
     build:
@@ -190,7 +175,5 @@ volumes:
   postgres-data:
   caddy-data:
   proxy-state:
-  # Source of truth for the install secret; see the postgres mount above.
   jotti-config:
-  # Timestamped pre-update database dumps; see the postgres mount above.
   jotti-backups:

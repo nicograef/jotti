@@ -9,8 +9,7 @@ vi.mock('sonner', () => ({
   toast: { error: vi.fn() },
 }))
 
-// Buchung, die erst auf Kommando endet: Nur so lässt sich der Zwischenstand
-// „läuft noch" prüfen.
+// Buchung, die erst auf Kommando endet — nur so ist „läuft noch" prüfbar.
 function steuerbareBuchung() {
   let abschliessen!: () => void
   let scheitern!: (fehler: Error) => void
@@ -23,8 +22,7 @@ function steuerbareBuchung() {
 
 beforeEach(() => {
   VorgangsRegisterSingleton.zuruecksetzen()
-  // Die Fehlschlag-Pfade protokollieren den Fehler; das gehört nicht in die
-  // Testausgabe.
+  // Die Fehlschlag-Pfade protokollieren; das gehört nicht in die Testausgabe.
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
 })
 

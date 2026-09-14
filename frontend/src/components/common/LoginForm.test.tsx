@@ -7,8 +7,7 @@ import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import { LoginForm } from './LoginForm'
 
-// AuthSingleton dekodiert echte JWTs; im Happy-Path-Test wird der Token-Schritt
-// neutralisiert, damit der Test nur den Formular-Submit prüft.
+// AuthSingleton dekodiert echte JWTs; der Mock hält den Test beim Formular.
 const authState = vi.hoisted<{ isAdmin: boolean }>(() => ({ isAdmin: false }))
 
 vi.mock('@/lib/Auth', () => ({
@@ -93,8 +92,7 @@ describe('LoginForm', () => {
 })
 
 describe('LoginForm im Vorgangs-Register', () => {
-  // Bewusst gepinnt: Das Anmeldeformular meldet nichts, obwohl es seinen
-  // Submit-Zustand von Hand hält. Meldete es sich, wartete der erzwungene
+  // Bewusst gepinnt: Meldete sich das Anmeldeformular, wartete der erzwungene
   // Reload bis nach der Anmeldung und feuerte genau dort, wo er am meisten
   // stört; ohne Meldung greift er beim Aufschlagen der Anmeldeseite.
   it('meldet weder getippte Zugangsdaten noch den laufenden Login', async () => {

@@ -19,7 +19,6 @@ import (
 // verständlich, statt ein defektes Archiv zu liefern.
 var ErrKeineVorgaenge = errors.New("kassensitzung enthält keine vorgänge")
 
-// Feste DSFinV-K-Ausprägungen und jotti-Kassenidentität.
 const (
 	bonTypBeleg      = "Beleg"        // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
 	bonTypBestellung = "AVBestellung" // Anhang B: Bestellung als anderer Vorgang, geldneutral
@@ -49,14 +48,11 @@ const (
 )
 
 // Archive hält die typisierten Zeilen-Kollektionen eines DSFinV-K-Exports, eine
-// Table je CSV-Datei in kanonischer Reihenfolge. Für jotti gegenstandslose
-// Tabellen (slaves.csv, pa.csv) fehlen und werden daher auch nicht in der
-// index.xml deklariert.
+// Table je CSV-Datei in der Reihenfolge der amtlichen index.xml.
 type Archive struct {
 	tables []Table
 }
 
-// Tables liefert die enthaltenen Tabellen in kanonischer Reihenfolge.
 func (a Archive) Tables() []Table { return a.tables }
 
 // beleg ist die belegbezogene Zwischensicht, aus der mehrere Tabellen abgeleitet
@@ -86,13 +82,11 @@ type beleg struct {
 	notiz            string
 }
 
-// sign liefert das Vorzeichen der Beträge eines Belegs: +1 im Regelfall, -1 für
-// einen Negativ-Beleg (Warenrücknahme bezahlter bzw. Korrektur unbezahlter Positionen,
-// DSFinV-K Tz. 4.2.5, „Vorzeichen umkehren“) und für einen Bar-Abfluss
-// (Geldtransit-Entnahme, Kassenfehlbetrag).
-// Beträge liegen im beleg stets als positive Magnitude vor; das Vorzeichen wird
-// erst beim Serialisieren der Zeilen gesetzt (die Steueraufteilung rechnet
-// ausschließlich mit nicht-negativen Beträgen).
+// sign liefert das Vorzeichen der Beträge eines Belegs: -1 für einen
+// Negativ-Beleg (Warenrücknahme bezahlter bzw. Korrektur unbezahlter Positionen,
+// DSFinV-K Tz. 4.2.5, „Vorzeichen umkehren“) und für einen Bar-Abfluss, sonst +1.
+// Im beleg liegen Beträge stets als positive Magnitude; das Vorzeichen setzt erst
+// das Serialisieren der Zeilen (die Steueraufteilung rechnet nicht-negativ).
 func (b *beleg) sign() int {
 	if b.storno || b.barabfluss {
 		return -1
@@ -128,18 +122,9 @@ func (b *beleg) ustAufteilung() []ustBetrag {
 
 // Map transformiert Snapshot und Events einer Kassensitzung in das typisierte
 // Archiv. Reine Funktion ohne I/O. Der Umsatz entsteht bei der Zahlung
-// (Revenue-at-payment, DSFinV-K Tz. 2.7.2) und wird durch eine Warenrücknahme negativ
-// gemindert: `zahlung-kassiert` (positiv) und `stornierung-erteilt` (negativer Bar-Beleg
-// mit Referenz auf die Zahlung) sind die umsatzwirksamen Belege. `bestellung-aufgenommen`,
-// `bestellung-korrigiert` und `bestellung-umgebucht` werden geldneutrale
-// `AVBestellung`-Vorgänge (TSE-gesichert, informative Positionen, aber ohne
-// Umsatz/USt/Zahlart); Korrektur und Umbuchungs-Zugang tragen zusätzlich eine Referenz
-// auf den Ursprung. Hinzu kommen die Direktverkauf-Vorgänge sowie die
-// Bargeldbewegungen (Anfangsbestand, Geldtransit, Kassendifferenz).
-// Das Kassenabschlussmodul (businesscases, payment, cash_per_currency) aggregiert
-// dieselben Belege je GV-Typ und Zahlart.
-// signaturen ist der Signatur-Stand je Event-ID aus der Signaturauftrags-Tabelle
-// (die einzige Signaturquelle); Events ohne Eintrag sind nicht signaturpflichtig.
+// (Revenue-at-payment, DSFinV-K Tz. 2.7.2) und wird durch eine Warenrücknahme
+// negativ gemindert. signaturen ist der Signatur-Stand je Event-ID aus der
+// Signaturauftrags-Tabelle; Events ohne Eintrag sind nicht signaturpflichtig.
 func Map(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSignatur) (Archive, error) {
 	erstellung := snapshot.Erstellung.UTC().Format(time.RFC3339)
 
@@ -179,18 +164,10 @@ func Map(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSi
 	return Archive{tables: tables}, nil
 }
 
-// belegeFromEvents leitet die Belege aus den Events ab (nach `id` geordnet, daher
-// liegt ein Ursprungsbon stets vor seinem Storno). Eine `bestellung-aufgenommen`
-// wird zur geldneutralen `AVBestellung` (TSE-gesichert, noch kein Umsatz), eine
-// `zahlung-kassiert` zur Umsatzrealisierung. Eine `stornierung-erteilt` ist die
-// kassenwirksame Warenrücknahme bezahlter Positionen: ein negativer Bar-Beleg mit
-// Referenz auf die Zahlung. Eine `bestellung-korrigiert` ist die geldneutrale
-// Stornierung unbezahlter Positionen und verweist auf die Ursprungsbestellung.
-// Direktverkäufe sind eigenständige Barbelege ohne Tischbezug, ihr Storno ein
-// Negativ-Beleg mit Referenz auf den Ursprungsverkauf. Der `tagesabschluss-erstellt`
-// wird ein geldneutraler `AVSonstige`-Bon, der allein seine TSE-Signatur in den Export
-// trägt. BON_NR wird fortlaufend vergeben; BON_ID ist die jeweilige Vorgangs-ID.
-// Jeder Beleg erhält den TSE-Stand seines Events aus signaturen (Signaturauftrag).
+// belegeFromEvents leitet die Belege aus den nach `id` geordneten Events ab, daher
+// liegt ein Ursprungsbon stets vor seinem Storno. BON_NR wird fortlaufend
+// vergeben, BON_ID ist die jeweilige Vorgangs-ID. Jeder Beleg erhält den
+// TSE-Stand seines Events aus signaturen.
 func belegeFromEvents(events []event.Event, tischnamen map[int]string, signaturen map[int]tse.EventSignatur) ([]beleg, error) {
 	var belege []beleg
 	bonNr := 0
@@ -514,11 +491,9 @@ func zeit(ev event.Event) string { return ev.Time.UTC().Format(time.RFC3339) }
 // fiskaly liefert Sekundenauflösung, die Millisekunden sind daher stets .000.
 func isoZeit(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z07:00") }
 
-// Erstellungszeitpunkt liefert den Z_ERSTELLUNG-Zeitpunkt der Sitzung: bei einer
-// abgeschlossenen Sitzung die Zeit des `tagesabschluss-erstellt`-Events, sonst
-// fallback (der Exportzeitpunkt einer noch offenen Sitzung). Der Orchestrator
-// ruft die Funktion mit den geladenen Events und reicht das Ergebnis als
-// Snapshot.Erstellung weiter.
+// Erstellungszeitpunkt liefert Z_ERSTELLUNG: bei einer abgeschlossenen Sitzung
+// die Zeit des `tagesabschluss-erstellt`-Events, sonst fallback (der
+// Exportzeitpunkt einer offenen Sitzung).
 func Erstellungszeitpunkt(events []event.Event, fallback time.Time) time.Time {
 	for _, ev := range events {
 		if ev.Type == string(kasse.EventTypeTagesabschlussErstelltV1) {
@@ -530,11 +505,9 @@ func Erstellungszeitpunkt(events []event.Event, fallback time.Time) time.Time {
 
 // abrechnungskreis leitet den ABRECHNUNGSKREIS aus dem Subject ab: jede
 // Tisch-Session ist ein Abrechnungskreis (F-06). Der Name stammt aus den
-// Tisch-Stammdaten, die auch gelöschte Tische enthalten (Snapshot.Tischnamen);
-// er darf länger sein als das amtliche Feld und wird darauf gekürzt.
-// Fehlt er dennoch, wird als letzte Rückfallebene "Tisch N" synthetisiert — das
-// ist ein Notnagel, kein echter Name: er stimmt nur, solange Tisch-ID und
-// Tisch-Name zufällig zusammenfallen.
+// Tisch-Stammdaten (Snapshot.Tischnamen, gelöschte Tische eingeschlossen) und
+// wird auf die amtliche Feldlänge gekürzt. Fehlt er, ist "Tisch N" ein Notnagel:
+// er stimmt nur, solange Tisch-ID und Tisch-Name zufällig zusammenfallen.
 // Subjects ohne Tischbezug (Direktverkauf) tragen keinen Abrechnungskreis.
 func abrechnungskreis(subject string, tischnamen map[int]string) string {
 	tischID, err := kasse.ParseTischIDFromSubject(subject)
@@ -561,9 +534,9 @@ var cashpointclosingColumns = []string{
 func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table {
 	bar := barbestand(belege)
 
-	// Z_BUCHUNGSTAG bleibt leer: Das Feld ist amtlich nur für einen vom
-	// Erstellungstag abweichenden Buchungstag vorgesehen; jotti bucht am
-	// Erstellungstag (Z_ERSTELLUNG), es gibt keinen abweichenden (B4).
+	// Z_BUCHUNGSTAG bleibt leer: amtlich nur für einen vom Erstellungstag
+	// abweichenden Buchungstag vorgesehen, und jotti bucht am Erstellungstag
+	// (Z_ERSTELLUNG).
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 		"", Version,
@@ -635,9 +608,6 @@ var vatColumns = []string{
 	"UST_SCHLUESSEL", "UST_SATZ", "UST_BESCHR",
 }
 
-// buildVat deklariert die in der Sitzung tatsächlich verwendeten Steuersätze,
-// aufsteigend nach Umsatzsteuerschlüssel. Nicht-steuerbare Bargeldbewegungen
-// führen den Schlüssel 5 (0 %).
 func buildVat(s Snapshot, erstellung string, _ []beleg) Table {
 	// Die DSFinV-K-Anlage 2 definiert die USt-Schlüssel 1-7 fest; die vat.csv
 	// führt alle vordefinierten Schlüssel auf (nicht nur die in der Sitzung
@@ -1022,9 +992,9 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 		b := &belege[bi]
 		switch {
 		case b.tse != nil:
-			// TSE_VORGANGSDATEN bleibt leer: Das Feld ist amtlich optional und die
-			// signierte processData wird hier nicht rekonstruiert (B2).
-			// TSE_TA_START/ENDE sind amtlich als ISO 8601 vorgegeben.
+			// TSE_VORGANGSDATEN bleibt leer: amtlich optional, und die signierte
+			// processData wird hier nicht rekonstruiert. TSE_TA_START/ENDE sind
+			// amtlich als ISO 8601 vorgegeben.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, tseReferenzID, itoa(b.tse.TransaktionNummer),
@@ -1033,12 +1003,10 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 				"",
 			})
 		case b.tsePflichtig:
-			// Unsignierter, signaturpflichtiger Vorgang (Auftrag noch offen,
-			// fehlgeschlagen oder tse_nicht_konfiguriert): Statt zu fehlen trägt er eine
-			// Fehlerzeile — TSE_TA_FEHLER gesetzt, alle Transaktionsfelder leer
-			// (es gab keine abgeschlossene TSE-Transaktion) —, damit jeder
-			// Bonkopf eine TSE-Zeile hat. Nicht signaturpflichtige Vorgänge
-			// (kein Auftrag) erhalten keine Zeile.
+			// Unsignierter, signaturpflichtiger Vorgang (Auftrag offen, fehlgeschlagen
+			// oder tse_nicht_konfiguriert): Statt zu fehlen trägt er eine Fehlerzeile mit
+			// TSE_TA_FEHLER und leeren Transaktionsfeldern, damit jeder Bonkopf eine
+			// TSE-Zeile hat. Nicht signaturpflichtige Vorgänge erhalten keine Zeile.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, tseReferenzID, "",
@@ -1205,14 +1173,10 @@ func buildCashPerCurrency(s Snapshot, erstellung string, belege []beleg) Table {
 // --- Hilfsfunktionen ---
 
 // truncateRunes schneidet wert auf höchstens maxLength Zeichen. Der Schnitt läuft
-// über []rune, damit ein Umlaut nicht mitten in seiner UTF-8-Folge zerfällt und
-// das Feld gültig bleibt; die amtlichen Feldlängen zählen Zeichen.
-//
-// Die vier Adressfelder messen mit den Konstanten aus domain/betreiber (NAME 60,
-// STRASSE 60, PLZ 10, ORT 62 laut index.xml). Dort begrenzt schon das Schema
-// beim Schreiben; zu kürzen gibt es nur an Bestandswerten, die diese Grenze nie
-// durchlaufen haben — die Spalten selbst sind TEXT. Der ABRECHNUNGSKREIS misst
-// mit maxLengthAbrechnungskreis.
+// über []rune, damit ein Umlaut nicht mitten in seiner UTF-8-Folge zerfällt; die
+// amtlichen Feldlängen zählen Zeichen. Zu kürzen gibt es nur an Bestandswerten,
+// die die Schema-Grenze beim Schreiben nie durchlaufen haben — die Spalten selbst
+// sind TEXT.
 //
 // Steuernummer und USt-IdNr. bleiben ungekürzt: Eine abgeschnittene Nummer ist
 // keine kürzere, sondern eine falsche.
@@ -1270,13 +1234,11 @@ func ZertifikatZuLang(cert string) bool {
 	return len(cert) > zertifikatSpalten*zertifikatChunk
 }
 
-// certChunk liefert den index-ten 1000-Zeichen-Block des base64-Zertifikats
-// (für TSE_ZERTIFIKAT_I und _II). Base64 ist ASCII, daher ist Byte-Slicing sicher.
-//
+// certChunk liefert den index-ten 1000-Zeichen-Block des base64-Zertifikats (für
+// TSE_ZERTIFIKAT_I und _II); Base64 ist ASCII, daher ist Byte-Slicing sicher.
 // Passt das Zertifikat nicht in die zwei amtlichen Felder (> 2000 Zeichen, z. B.
-// eine ganze Kette), bleiben beide Felder leer statt ein abgeschnittenes — und
-// damit wertloses — Zertifikat zu exportieren: Das vollständige Zertifikat liegt
-// in den TSE-Stammdaten (DB-Backup) und im TSE-Export des Anbieters vor.
+// eine ganze Kette), bleiben beide leer statt ein abgeschnittenes und damit
+// wertloses Zertifikat zu exportieren.
 func certChunk(cert string, index int) string {
 	if ZertifikatZuLang(cert) {
 		return ""
@@ -1302,8 +1264,6 @@ func bonName(b *beleg) string {
 	return ""
 }
 
-// positionText ist die kanonische Artikelbezeichnung: Produkt- und Variantenname
-// mit einem Leerzeichen verbunden.
 func positionText(p kasse.PositionEventData) string {
 	return kasse.PositionFromEventData(p).Bezeichnung()
 }

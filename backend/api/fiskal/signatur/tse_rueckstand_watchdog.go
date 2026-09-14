@@ -10,8 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// rueckstandFehlertext beschreibt den Rückstands-Störungszeitraum im
-// Störungsprotokoll.
 const rueckstandFehlertext = "Signaturaufträge im Rückstand: der älteste offene Auftrag wartet länger als die Rückstands-Schwelle auf die TSE-Signatur"
 
 type rueckstandStore interface {
@@ -34,7 +32,6 @@ type tseRueckstandWatchdog struct {
 	now          func() time.Time
 }
 
-// NewTSERueckstandWatchdog erstellt den Rückstands-Watchdog.
 func NewTSERueckstandWatchdog(database *sql.DB) Runner {
 	return &tseRueckstandWatchdog{
 		store: tse_repo.NewRepository(database),

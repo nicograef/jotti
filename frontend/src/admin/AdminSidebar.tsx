@@ -61,8 +61,6 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild isActive={istAktiv}>
                   <NavLink to={item.url} className="relative">
-                    {/* Dekorativer Spektral-Marker am linken Rand des aktiven
-                        Eintrags, zusätzlich zum bestehenden bg-sidebar-accent. */}
                     {istAktiv && (
                       <span
                         aria-hidden
@@ -98,10 +96,6 @@ export function AdminSidebar() {
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
   const { queue } = useTSESignaturQueue()
 
-  // Der Barrierestatus ist kein laufender Betrieb: Ein unterbrochener Abschluss
-  // bekommt dieselbe Ansage wie auf der Kassentag-Seite, nicht das grüne
-  // „Kasse offen". Punkt und Beschriftung entstehen in einer Ableitung, damit
-  // Menüpunkt und Kopf-Chip nie auseinanderlaufen.
   const kasseAktiv = kassensitzung !== null
   const abschlussUnterbrochen =
     kassensitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
@@ -112,8 +106,7 @@ export function AdminSidebar() {
         ? { zustand: 'ok', label: 'Kasse offen' }
         : { zustand: 'neutral', label: 'Kasse geschlossen' }
   const bondruckerFehler = druckauftraege.length > 0
-  // Finanzamt & TSE ist kritisch nach derselben Regel wie die „Läuft alles?"-
-  // Karte: tseAmpel ist die Single Source of Truth für den TSE-Fehlerzustand.
+  // tseAmpel ist die Single Source of Truth für den TSE-Fehlerzustand.
   const finanzamtFehler = tseAmpel(tseStatus, tseLoading, queue).fehler
 
   const heuteItems: NavItem[] = [
@@ -190,11 +183,9 @@ export function AdminSidebar() {
 
   const toggleTheme = (event: MouseEvent<HTMLButtonElement>) => {
     setTheme(isDark ? 'light' : 'dark')
-    // Nach einem Maus-Klick den Fokus lösen: sonst bliebe der Umschalter
-    // engagiert und seine Hover-/Fokus-Fläche (bg-sidebar-accent) läse sich im
-    // Dark Mode wie das Active-Page-Highlight der Navigation. Tastaturbedienung
-    // (event.detail === 0) behält den Fokus, damit die Orientierung erhalten
-    // bleibt.
+    // Maus-Klick löst den Fokus: die Fokus-Fläche (bg-sidebar-accent) läse sich
+    // im Dark Mode wie das Active-Page-Highlight der Navigation. Tastatur
+    // (event.detail === 0) behält den Fokus.
     if (event.detail !== 0) event.currentTarget.blur()
   }
 

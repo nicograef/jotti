@@ -19,9 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { AuthSingleton } from '@/lib/Auth'
 
-// Wechsel-Eintrag für den Service-Bereich, abgeleitet aus der aktuellen Route.
-// Außerhalb von /service erscheint kein Eintrag. Die Geräte-Präferenz wird vom
-// Loader der Zielroute geschrieben, nicht hier.
+// Die Geräte-Präferenz schreibt der Loader der Zielroute, nicht dieser Eintrag.
 // eslint-disable-next-line react-refresh/only-export-components
 export function moduswechselEintrag(
   pathname: string,

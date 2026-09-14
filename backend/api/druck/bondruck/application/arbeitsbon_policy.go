@@ -20,23 +20,18 @@ type positionenMitKommentarEventData struct {
 	Kommentar  string                    `json:"kommentar"`
 }
 
-// arbeitsbonDaten sind dieselben Felder in der Domänenform, wie die Formatter sie
-// erwarten.
 type arbeitsbonDaten struct {
 	Positionen []kasse.Position
 	Kommentar  string
 }
 
-// CreateArbeitsbonAuftraegeFromEvent erzeugt Druckaufträge aus einem Bestell- oder
-// Direktverkauf-Event anhand der konfigurierten Druckstationen.
-//   - bestellung-aufgenommen: Arbeitsbons an die Produktstationen je Kategorie.
-//   - direktverkauf-getaetigt (Ableitungsregel): ist die Abholbon-Station konfiguriert,
-//     entstehen Abholbon(s) an dieser Station gemäß ihrem Bonmodus; sonst Arbeitsbons
-//     an die Produktstationen; ohne konfigurierte Stationen entstehen keine Aufträge.
-//
-// Bonmodus pro_position (Standard) erzeugt einen Bon je Position, pro_bestellung einen
-// Sammelbon je Kategorie bzw. einen Sammel-Abholbon. Der Abholbon kennt zusätzlich
-// pro_stueck: je Einheit einer Position einen eigenen Bon.
+// CreateArbeitsbonAuftraegeFromEvent erzeugt Druckaufträge anhand der
+// konfigurierten Druckstationen: bestellung-aufgenommen geht als Arbeitsbon je
+// Kategorie an die Produktstationen; direktverkauf-getaetigt an die
+// Abholbon-Station, wenn sie konfiguriert ist, sonst an die Produktstationen —
+// ohne konfigurierte Station entsteht kein Auftrag. Bonmodus: pro_position
+// (Standard) ein Bon je Position, pro_bestellung ein Sammelbon, am Abholbon
+// zusätzlich pro_stueck je Einheit.
 func CreateArbeitsbonAuftraegeFromEvent(
 	evt event.Event,
 	druckstationen map[string]druckstation.Druckstation,
@@ -63,7 +58,6 @@ func createDirektverkaufAuftraege(
 
 	referenz := fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
 
-	// Ableitungsregel: Abholbon-Station konfiguriert -> Abholbon(s), sonst Produktstationen.
 	if abholbon, ok := druckstationen[string(druckstation.KategorieAbholbon)]; ok && abholbon.DruckerIP != "" {
 		return createAbholbonAuftraege(evt, data, abholbon, referenz)
 	}
@@ -71,9 +65,6 @@ func createDirektverkaufAuftraege(
 	return createStationsAuftraegeFromData(evt, data, druckstationen, "Direktverkauf", referenz)
 }
 
-// createAbholbonAuftraege erzeugt Abholbons für einen Direktverkauf gemäß Bonmodus:
-// pro_bestellung = ein Sammel-Abholbon, pro_position = ein Abholbon je Position,
-// pro_stueck = ein Abholbon je Einheit (eine Positions-Kopie mit Menge 1 je Bon).
 func createAbholbonAuftraege(
 	evt event.Event,
 	data arbeitsbonDaten,

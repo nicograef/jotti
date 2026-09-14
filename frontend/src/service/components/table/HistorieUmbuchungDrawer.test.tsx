@@ -13,7 +13,6 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
-// Steuerbarer Ladezustand der Ziel-Tisch-Liste.
 const tischeState = { fehler: false }
 const reloadTische = vi.hoisted(() => vi.fn())
 
@@ -93,7 +92,6 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(body).not.toBeNull()
     expect(footer).not.toBeNull()
     expect(body).toContainElement(screen.getByText(/Bratwurst/))
-    // Die Ziel-Tisch-Auswahl (Pflichtfeld) steht im nicht-scrollenden Footer.
     const select = screen.getByRole('combobox')
     expect(footer).toContainElement(select)
     expect(body).not.toContainElement(select)
@@ -111,16 +109,13 @@ describe('HistorieUmbuchungDrawer', () => {
 
     const button = screen.getByRole('button', { name: 'Umbuchung ausführen' })
 
-    // Ohne Wahl steht der Placeholder, nicht ein vorbelegter Tisch.
     const select = screen.getByRole('combobox')
     expect(select).toHaveValue('')
     expect(screen.getByText('Ziel-Tisch wählen…')).toBeInTheDocument()
 
-    // Ziel-Tisch allein reicht nicht: ohne ausgewählte Positionen bleibt gesperrt.
     await user.selectOptions(select, 'Nebentisch')
     expect(button).toBeDisabled()
 
-    // „Alle auswählen" wählt die volle umbuchbare Menge und gibt den Button frei.
     await user.click(
       screen.getByRole('button', { name: /^1 Position auswählen/ }),
     )
@@ -166,11 +161,9 @@ describe('HistorieUmbuchungDrawer', () => {
 
     const button = screen.getByRole('button', { name: 'Umbuchung ausführen' })
 
-    // Ohne Auswahl: der Grund nennt die fehlende Positionswahl.
     expect(button).toBeDisabled()
     expect(screen.getByText('Positionen auswählen')).toBeVisible()
 
-    // Positionen gewählt, aber Ziel-Tisch fehlt: der Grund wechselt.
     await user.click(
       screen.getByRole('button', { name: /^1 Position auswählen/ }),
     )
@@ -178,7 +171,6 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(screen.getByText('Ziel-Tisch wählen')).toBeVisible()
     expect(button).toBeDisabled()
 
-    // Ziel-Tisch gewählt: der Grund verschwindet, die Aktion wird frei.
     await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
     expect(screen.queryByText('Ziel-Tisch wählen')).not.toBeInTheDocument()
     expect(button).toBeEnabled()
@@ -209,7 +201,6 @@ describe('HistorieUmbuchungDrawer', () => {
     )
   })
 
-  // A2: Der Erfolg meldet den Namen des Ziel-Tischs für den Erfolgs-Pop.
   it('meldet den Ziel-Tischnamen an den Aufrufer und zeigt keinen Toast', async () => {
     const user = userEvent.setup()
     const onBestellungUmgebucht = vi.fn()

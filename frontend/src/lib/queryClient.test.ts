@@ -17,9 +17,8 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-// zaehleVersuche führt eine Lese-Query mit den echten Client-Defaults aus und
-// meldet, wie oft die Query-Funktion dabei aufgerufen wurde. `retryDelay: 0`
-// überschreibt nur die Wartezeit zwischen den Versuchen, nicht die Politik.
+// Führt eine Lese-Query mit den echten Client-Defaults aus und zählt die
+// Aufrufe. `retryDelay: 0` kürzt nur die Wartezeit, nicht die Politik.
 async function zaehleVersuche(fehler: Error): Promise<number> {
   let versuche = 0
 
@@ -38,8 +37,7 @@ async function zaehleVersuche(fehler: Error): Promise<number> {
 }
 
 describe('createQueryClient Wiederholungen', () => {
-  // Eine abgelehnte Buchung oder eine fehlende Berechtigung steht schon beim
-  // ersten Versuch fest — die Helferin soll die Meldung sofort sehen.
+  // Steht schon beim ersten Versuch fest — die Meldung soll sofort kommen.
   it('wiederholt einen 4xx-Fehler nicht', async () => {
     expect(await zaehleVersuche(new BackendError(409, 'conflict'))).toBe(1)
   })
@@ -50,8 +48,7 @@ describe('createQueryClient Wiederholungen', () => {
     )
   })
 
-  // Ein abgebrochener fetch wirft einen nackten TypeError; im Vereins-WLAN ist
-  // das meist vorübergehend.
+  // Ein abgebrochener fetch wirft einen nackten TypeError.
   it('wiederholt einen Netzfehler zweimal', async () => {
     expect(await zaehleVersuche(new TypeError('Failed to fetch'))).toBe(3)
   })
@@ -62,9 +59,8 @@ describe('createQueryClient Wiederholungen', () => {
     ).toBe(3)
   })
 
-  // Buchungen laufen über useActionSubmit an react-query vorbei, der
-  // DSFinV-K-Export als einzige Mutation bleibt bei den Bibliotheks-Defaults:
-  // Ein automatisch wiederholter Schreibvorgang würde doppelt buchen.
+  // Ein automatisch wiederholter Schreibvorgang würde doppelt buchen; Buchungen
+  // laufen ohnehin über useActionSubmit an react-query vorbei.
   it('setzt keine Politik für Mutations', () => {
     expect(createQueryClient().getDefaultOptions().mutations).toBeUndefined()
   })

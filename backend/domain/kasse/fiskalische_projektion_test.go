@@ -11,7 +11,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// projektionsEvent baut ein Event mit dem gegebenen Typ, Subject und JSON-serialisierten Daten.
 func projektionsEvent(t *testing.T, typ EventType, subject string, data any) e.Event {
 	t.Helper()
 	payload, err := json.Marshal(data)
@@ -21,8 +20,7 @@ func projektionsEvent(t *testing.T, typ EventType, subject string, data any) e.E
 	return e.Event{Type: string(typ), Subject: subject, Version: 1, Data: payload}
 }
 
-// testPositionen ist die Standard-Position der Projektions-Tests:
-// 2 × 5,00 € zum Regelsteuersatz — Brutto 10,00 €.
+// testPositionen: 2 × 5,00 € zum Regelsteuersatz — Brutto 10,00 €.
 func testPositionen() []PositionEventData {
 	return []PositionEventData{{
 		PositionID:       "0f0e0d0c-0b0a-4908-8706-050403020100",
@@ -33,10 +31,6 @@ func testPositionen() []PositionEventData {
 	}}
 }
 
-// TestFiskalischeProjektion prüft tabellengetrieben je Event-Typ: signaturpflichtig
-// ja/nein, processType und processData inklusive Vorzeichen-/Faktor-Fällen
-// (Storno, Korrektur, Umbuchungs-Seiten, Differenz) und der datenabhängigen
-// Sitzungseröffnung (mit/ohne Anfangsbestand).
 func TestFiskalischeProjektion(t *testing.T) {
 	tischSubject := "kassensitzung-1/tisch-7"
 
@@ -212,8 +206,7 @@ func TestFiskalischeProjektion(t *testing.T) {
 	}
 }
 
-// Ein unbekannter Event-Typ ist ein Fehler: Ein neuer Event-Typ ohne
-// Projektions-Eintrag darf nicht still unsigniert bleiben.
+// Ein neuer Event-Typ ohne Projektions-Eintrag darf nicht still unsigniert bleiben.
 func TestFiskalischeProjektion_UnbekannterTypIstFehler(t *testing.T) {
 	evt := e.Event{Type: "unbekannt:v1", Subject: "kassensitzung-1", Version: 1, Data: []byte(`{}`)}
 	if _, _, err := FiskalischeProjektion(evt); err == nil {

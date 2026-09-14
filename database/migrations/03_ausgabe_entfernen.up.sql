@@ -1,6 +1,6 @@
 -- Entfernt die Ausgabe-Bestätigung (Event ausgabe-bestaetigt:v1) vollständig aus
 -- dem Datenbestand. Begründung und einmalige Ausnahme vom Append-only-Prinzip des
--- Kassenjournals: siehe docs/adrs/01_ausgabe-bestaetigen.md.
+-- Kassenjournals: siehe docs/decisions.md D01.
 --
 -- Die Event-Lesepfade sind exklusiv (unbekannter Event-Typ → Fehler) und die
 -- tisch_sessions-Projektion wird beim Backend-Start vollständig aus dem Journal neu

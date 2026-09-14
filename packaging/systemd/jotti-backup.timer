@@ -1,5 +1,5 @@
-# jotti — schedule for the daily database backup. See jotti-backup.service for
-# the install steps. Persistent=true catches up a missed run after downtime.
+# jotti — schedule for the daily database backup. Install steps:
+# jotti-backup.service.
 
 [Unit]
 Description=Run jotti database backup daily

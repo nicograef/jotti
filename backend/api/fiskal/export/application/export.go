@@ -20,11 +20,9 @@ import (
 )
 
 var (
-	ErrDatabase = db.ErrDatabase
-	// ErrKassensitzungNichtGefunden meldet eine unbekannte Kassensitzung (404).
+	ErrDatabase                   = db.ErrDatabase
 	ErrKassensitzungNichtGefunden = errors.New("kassensitzung nicht gefunden")
-	// ErrLeereKassensitzung meldet eine Sitzung ohne abrechenbare Vorgänge (400).
-	ErrLeereKassensitzung = dsfinvk.ErrKeineVorgaenge
+	ErrLeereKassensitzung         = dsfinvk.ErrKeineVorgaenge
 )
 
 type kassenjournalRepo interface {
@@ -54,8 +52,6 @@ type tischRepo interface {
 	GetAlleTischNamen(ctx context.Context) (map[int]string, error)
 }
 
-// Export ist der App-Service, der das DSFinV-K-Archiv einer Kassensitzung
-// erzeugt.
 type Export struct {
 	KassenjournalRepo   kassenjournalRepo
 	KassensitzungenRepo kassensitzungenRepo
@@ -68,7 +64,6 @@ type Export struct {
 	Version string
 }
 
-// Archiv ist das fertige DSFinV-K-ZIP samt sprechendem Dateinamen.
 type Archiv struct {
 	Dateiname string
 	Inhalt    []byte
@@ -120,8 +115,6 @@ func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 	}, nil
 }
 
-// resolveKassensitzung wählt die zu exportierende Sitzung. Eine explizit
-// angeforderte Nummer muss existieren, sonst ErrKassensitzungNichtGefunden.
 func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassensitzung, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -162,9 +155,6 @@ func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassens
 	return alle[0], nil
 }
 
-// snapshot lädt die Stammdaten für den Export. erstellung ist Z_ERSTELLUNG: bei
-// einer abgeschlossenen Sitzung die Zeit des Tagesabschluss-Events, bei einer
-// offenen der Exportzeitpunkt.
 func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung time.Time) (dsfinvk.Snapshot, error) {
 	log := zerolog.Ctx(ctx)
 

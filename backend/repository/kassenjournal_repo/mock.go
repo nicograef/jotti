@@ -15,7 +15,6 @@ import (
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
-// NewMock creates a new mock repository with the given events and error.
 func NewMock(events []event.Event, err error) *MockRepo {
 	eventMap := make(map[int]event.Event)
 	for _, e := range events {
@@ -28,7 +27,6 @@ func NewMock(events []event.Event, err error) *MockRepo {
 	}
 }
 
-// NewMockWithWriteErr creates a mock that always returns writeErr on WriteEvent calls.
 func NewMockWithWriteErr(events []event.Event, writeErr error) *MockRepo {
 	eventMap := make(map[int]event.Event)
 	for _, e := range events {
@@ -45,13 +43,13 @@ type MockRepo struct {
 	NextZNr                int // z_nr, die EroeffneKassensitzung vergibt (0 → 1)
 	events                 map[int]event.Event
 	err                    error
-	writeErr               error // separate error for WriteEvent
-	kassensitzungEventsErr error // returned only by ReadKassensitzungEvents
+	writeErr               error
+	kassensitzungEventsErr error
 	tischSessions          map[string]kasse.TischSession
-	tischNames             map[int]string // Tischnamen für ReadFavoritenTischStates
+	tischNames             map[int]string
 	tischSessionErr        error
-	kassenbestand          int                                   // configurable return value for GetKassenbestand
-	druckauftraege         []druckauftrag_repo.NeuerDruckauftrag // captured via WriteEventWithDruckauftraege
+	kassenbestand          int
+	druckauftraege         []druckauftrag_repo.NeuerDruckauftrag
 }
 
 // versionConflict mirrors the UNIQUE(subject, version) constraint of the kassenjournal.
@@ -64,9 +62,8 @@ func (m *MockRepo) versionConflict(e event.Event) bool {
 	return false
 }
 
-// nextEventID mirrors the DB sequence: the next id is max(vorhandene)+1, not
-// len(events)+1 — a mock seeded via NewMock with non-contiguous or non-1-based
-// event IDs would otherwise assign a colliding or already-used id.
+// nextEventID mirrors the DB sequence: max(existing)+1, not len+1 — a mock seeded
+// with non-contiguous IDs would otherwise reuse an id.
 func (m *MockRepo) nextEventID() int {
 	maxID := 0
 	for id := range m.events {
@@ -77,8 +74,6 @@ func (m *MockRepo) nextEventID() int {
 	return maxID + 1
 }
 
-// EroeffneKassensitzung mirrors the atomic open: assigns the next z_nr, runs build,
-// and stores the event. NextZNr configures the assigned number (default 1).
 func (m *MockRepo) EroeffneKassensitzung(ctx context.Context, _ time.Time, _ string, build func(zNr int) (event.Event, error)) (int, error) {
 	if m.err != nil {
 		return 0, m.err
@@ -147,7 +142,6 @@ func (m *MockRepo) WriteUmbuchung(ctx context.Context, quellEvent event.Event, z
 	return m.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
 }
 
-// CapturedDruckauftraege returns the print jobs produced via WriteEventWithDruckauftraege.
 func (m *MockRepo) CapturedDruckauftraege() []druckauftrag_repo.NeuerDruckauftrag {
 	return m.druckauftraege
 }
@@ -193,7 +187,6 @@ func (m *MockRepo) ReadTischSession(_ context.Context, subject string) (kasse.Ti
 	return kasse.TischSession{}, nil
 }
 
-// SetTischSession sets the projected state for a given subject in the mock.
 func (m *MockRepo) SetTischSession(subject string, state kasse.TischSession) {
 	if m.tischSessions == nil {
 		m.tischSessions = make(map[string]kasse.TischSession)
@@ -201,8 +194,7 @@ func (m *MockRepo) SetTischSession(subject string, state kasse.TischSession) {
 	m.tischSessions[subject] = state
 }
 
-// SetTischName registers a tisch name so ReadFavoritenTischStates returns the tisch.
-// A tisch id without a registered name is treated as missing (deleted/unknown).
+// A tisch id without a registered name counts as deleted/unknown in ReadFavoritenTischStates.
 func (m *MockRepo) SetTischName(tischID int, name string) {
 	if m.tischNames == nil {
 		m.tischNames = make(map[int]string)
@@ -210,9 +202,6 @@ func (m *MockRepo) SetTischName(tischID int, name string) {
 	m.tischNames[tischID] = name
 }
 
-// ReadFavoritenTischStates mirrors the batch join: a tisch id with a registered
-// name maps to its name plus the projected session (zero-value when none exists);
-// an id without a name is absent from the map (like a deleted/unknown tisch).
 func (m *MockRepo) ReadFavoritenTischStates(_ context.Context, tischIDs []int, kassensitzungNr int) (map[int]TischNameUndSession, error) {
 	if m.err != nil {
 		return nil, m.err
@@ -238,13 +227,11 @@ func (m *MockRepo) GetKassenbestand(_ context.Context, _ int) (kasse.Kassenbesta
 	if m.err != nil {
 		return kasse.Kassenbestand{}, m.err
 	}
-	// Der Soll-Bestand ist der einzige Eingabewert des Mocks. Die Aufschlüsselung
-	// liest der Kassenabschluss ebenfalls (Soll ohne gebuchte Differenz), deshalb
-	// steht der ganze Betrag in den Bareinnahmen: der Stand ohne Differenzbuchung.
+	// Der Kassenabschluss liest auch die Aufschlüsselung; deshalb steht der ganze
+	// Soll-Betrag in den Bareinnahmen (Stand ohne Differenzbuchung).
 	return kasse.Kassenbestand{SollBestandCents: m.kassenbestand, BareinnahmenCents: m.kassenbestand}, nil
 }
 
-// SetKassenbestand sets the Soll-Bestand return value for GetKassenbestand.
 func (m *MockRepo) SetKassenbestand(cents int) {
 	m.kassenbestand = cents
 }
@@ -256,7 +243,6 @@ func (m *MockRepo) GetGeldtransitListe(_ context.Context, _ int) ([]kasse.Geldtr
 	return nil, nil
 }
 
-// AddEvent adds an event to the mock for ReadEventsBySubject.
 func (m *MockRepo) AddEvent(e event.Event) {
 	newID := m.nextEventID()
 	e.ID = newID
@@ -276,14 +262,12 @@ func (m *MockRepo) GetTischSessionsByKassensitzungNr(_ context.Context, kassensi
 	return sessions, nil
 }
 
-// SetReadKassensitzungEventsErr configures an error returned only by ReadKassensitzungEvents.
-// Use to trigger a post-barrier failure without affecting other journal operations.
+// SetReadKassensitzungEventsErr triggers a post-barrier failure without affecting other
+// journal operations.
 func (m *MockRepo) SetReadKassensitzungEventsErr(err error) {
 	m.kassensitzungEventsErr = err
 }
 
-// EventExistsByTypeAndVorgangsID prüft, ob im Mock ein gespeichertes Event des
-// gegebenen Typs existiert, bei dem data[jsonKey] == vorgangsID.
 func (m *MockRepo) EventExistsByTypeAndVorgangsID(_ context.Context, eventType, vorgangsID, jsonKey string) (bool, error) {
 	if m.err != nil {
 		return false, m.err
@@ -311,8 +295,6 @@ func (m *MockRepo) EventExistsByTypeAndVorgangsID(_ context.Context, eventType, 
 	return false, nil
 }
 
-// ReadKassensitzungEvents returns all events whose subject belongs to the given
-// Kassensitzung (exact match or prefix "kassensitzung-N/"), ordered by ID ascending.
 func (m *MockRepo) ReadKassensitzungEvents(_ context.Context, kassensitzungNr int) ([]event.Event, error) {
 	if m.kassensitzungEventsErr != nil {
 		return nil, m.kassensitzungEventsErr

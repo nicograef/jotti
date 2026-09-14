@@ -10,11 +10,9 @@ var ErrDatabase = db.ErrDatabase
 var ErrNotFound = db.ErrNotFound
 var ErrTSENichtKonfiguriert = errors.New("tse_not_configured")
 
-// ErrTSEKonfigurationKassensitzungOffen zeigt an, dass eine Änderung der
-// TSE-Konfiguration abgelehnt wurde, weil eine Kassensitzung aktiv ist — offen oder
-// wird_abgeschlossen. Das Signaturgeraet darf nicht mitten in einem laufenden
-// Kassentag wechseln — der Admin schließt die Kassensitzung und wiederholt die
-// Änderung.
+// ErrTSEKonfigurationKassensitzungOffen: Änderung abgelehnt, weil eine
+// Kassensitzung aktiv ist (offen oder wird_abgeschlossen). Das Signaturgerät darf
+// nicht mitten im Kassentag wechseln.
 var ErrTSEKonfigurationKassensitzungOffen = errors.New("tse_konfiguration_kassensitzung_offen")
 var ErrTSEVerbindungFehlgeschlagen = errors.New("tse_connection_failed")
 var ErrTSESetupZugangsdaten = errors.New("tse_setup_credentials_invalid")
@@ -29,27 +27,21 @@ var ErrTSESetupUmgebungAbweichung = errors.New("tse_setup_umgebung_abweichung")
 // lässt sich stattdessen übernehmen (UebernimmTSE).
 var ErrTSEBereitsEingerichtet = errors.New("tse_bereits_eingerichtet")
 
-// ErrTSESetupLaeuftBereits zeigt an, dass bereits jemand an der
-// TSE-Konfiguration schreibt (Neuanlage, Übernahme oder manueller
-// Zugangsdaten-Wechsel) und der Aufruf deshalb gar nicht erst gestartet wurde.
-// Zwei überlappende Schreiber würden eine zweite, bezahlte TSS anlegen bzw.
-// die Konfiguration des jeweils anderen überschreiben — siehe
-// einrichtungLaeuft in setup.go.
+// ErrTSESetupLaeuftBereits: es schreibt bereits jemand an der TSE-Konfiguration,
+// der Aufruf startet gar nicht erst. Zwei überlappende Schreiber legten eine
+// zweite, bezahlte TSS an bzw. überschrieben einander — siehe einrichtungLaeuft
+// in setup.go.
 var ErrTSESetupLaeuftBereits = errors.New("tse_setup_laeuft_bereits")
 
 // ErrTSEEinrichtung zeigt einen Fehler während des fiskaly-Lebenszyklus an
 // (Anlage, Initialisierung oder Client-Registrierung).
 var ErrTSEEinrichtung = errors.New("tse_einrichtung_fehlgeschlagen")
 
-// ErrTSESetupTSSLimitErreicht zeigt an, dass das fiskaly-TEST-Konto die
-// Obergrenze von fünf aktiven TSS erreicht hat (E_TSS_LIMIT_REACHED). Alte
-// TEST-TSS werden von fiskaly bei Inaktivität automatisch bereinigt; jotti
-// kann sie ohne Admin-PIN nicht stilllegen. Verständliche Meldung statt
-// technischem Fehler.
+// ErrTSESetupTSSLimitErreicht: das fiskaly-TEST-Konto hat die Obergrenze von fünf
+// aktiven TSS erreicht (E_TSS_LIMIT_REACHED). fiskaly bereinigt alte TEST-TSS bei
+// Inaktivität; jotti kann sie ohne Admin-PIN nicht stilllegen.
 var ErrTSESetupTSSLimitErreicht = errors.New("tse_setup_tss_limit_erreicht")
 
-// ErrTSESetupTSSNichtGefunden zeigt an, dass die zur Übernahme gewählte TSS im
-// fiskaly-Konto nicht (mehr) existiert.
 var ErrTSESetupTSSNichtGefunden = errors.New("tse_setup_tss_nicht_gefunden")
 
 // ErrTSESetupPINErforderlich zeigt an, dass die Übernahme einer bereits

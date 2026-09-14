@@ -7,21 +7,16 @@ import (
 	"testing"
 )
 
-// FuzzSerializeCSV prüft den DSFinV-K-CSV-Encoder gegen beliebige Feldinhalte
-// (Semikolon, Anführungszeichen, CR, LF, Unicode, Steuerzeichen). Zu haltende
-// CSV-Invarianten:
-//   - kein Panic;
-//   - jede erzeugte Zeile hat exakt so viele Felder wie der Header (kein Feld
-//     zerbricht durch ein rohes Trennzeichen in mehrere Spalten);
-//   - jedes Feld übersteht einen Roundtrip durch einen RFC-4180-Parser (des hier
-//     verwendeten Semikolon-Dialekts) unverändert (korrektes Quoting/Escaping).
+// FuzzSerializeCSV prüft den CSV-Encoder gegen beliebige Feldinhalte (Semikolon,
+// Anführungszeichen, CR, LF, Unicode, Steuerzeichen). Invarianten: kein Panic;
+// jede Zeile hat exakt so viele Felder wie der Header (kein Feld zerbricht an
+// einem rohen Trennzeichen); jedes Feld übersteht einen Roundtrip durch einen
+// RFC-4180-Parser unverändert. Ein defekter Encoder zerstörte die
+// Spaltenzuordnung einer amtlichen DSFinV-K-Datei und machte den Export bei der
+// Kassennachschau unbrauchbar.
 //
-// Ein defekter Encoder würde die Spaltenzuordnung einer amtlichen DSFinV-K-Datei
-// zerstören und den gesamten Export bei der Kassennachschau unbrauchbar machen.
-//
-// Der Roundtrip nutzt einen eigenen, deterministischen Parser statt encoding/csv:
-// Go's csv-Reader normalisiert CR/LF innerhalb von Feldern eigenmächtig, was den
-// Encoder nicht betrifft, aber den Wertvergleich verfälschen würde.
+// Der Roundtrip nutzt einen eigenen Parser statt encoding/csv: Go's csv-Reader
+// normalisiert CR/LF innerhalb von Feldern und verfälschte damit den Vergleich.
 func FuzzSerializeCSV(f *testing.F) {
 	// Seeds aus dem echten Testfall in table_test.go plus Sonderzeichen-Kanten.
 	f.Add("plain", "5.00", "ok")

@@ -7,10 +7,9 @@ import (
 	"strings"
 )
 
-// ParseLatestRelease zieht den tag_name aus der Antwort der GitHub-Releases-API
-// (/releases/latest). Nur dieses Feld interessiert; alles andere wird ignoriert.
-// Ein leerer oder fehlender tag_name gilt als Fehler, damit der Aufrufer nicht auf
-// einen leeren Versions-String hin "neue Version" meldet.
+// ParseLatestRelease zieht den tag_name aus der GitHub-Releases-Antwort. Ein leerer
+// oder fehlender tag_name gilt als Fehler, damit der Aufrufer nicht auf einen leeren
+// Versions-String hin "neue Version" meldet.
 func ParseLatestRelease(data []byte) (string, error) {
 	var release struct {
 		TagName string `json:"tag_name"`
@@ -24,11 +23,9 @@ func ParseLatestRelease(data []byte) (string, error) {
 	return release.TagName, nil
 }
 
-// IsNewerVersion meldet, ob latest eine echte, hoehere Release-Version als current
-// ist. Beide werden als vMAJOR.MINOR.PATCH gelesen (fuehrendes "v" optional,
-// Vorabversions-/Build-Suffixe werden abgeschnitten). Laesst sich eine Seite nicht
-// als Semver lesen — etwa der Dev-Build "dev" oder "dev-<sha>" —, wird bewusst
-// nichts gemeldet: Entwickler-Builds sollen keinen Update-Hinweis ausloesen.
+// IsNewerVersion meldet, ob latest hoeher als current ist (vMAJOR.MINOR.PATCH, "v"
+// optional, Suffixe abgeschnitten). Ist eine Seite kein Semver — etwa der Dev-Build
+// "dev" —, wird bewusst nichts gemeldet.
 func IsNewerVersion(current, latest string) bool {
 	c, okc := parseSemver(current)
 	l, okl := parseSemver(latest)
@@ -43,11 +40,10 @@ func IsNewerVersion(current, latest string) bool {
 	return false
 }
 
-// IsDowngrade meldet, ob exeVersion eine streng aeltere Version als dataVersion
-// ist. Schlaegt die Semver-Aufloesung einer Seite fehl (z. B. "dev", "latest",
-// leerer String beim Erststart), gilt die Downgrade-Sperre nicht — ohne
-// gepinntes Semver ist die Reihenfolge unbekannt. Spiegelt die
-// is_downgrade-Logik aus scripts/prod-update.sh.
+// IsDowngrade meldet, ob exeVersion streng aelter als dataVersion ist. Ohne Semver
+// auf einer Seite ("dev", "latest", leer beim Erststart) greift die Sperre nicht —
+// die Reihenfolge ist dann unbekannt. Spiegelt is_downgrade aus
+// scripts/prod-update.sh.
 func IsDowngrade(exeVersion, dataVersion string) bool {
 	e, oke := parseSemver(exeVersion)
 	d, okd := parseSemver(dataVersion)
@@ -59,13 +55,9 @@ func IsDowngrade(exeVersion, dataVersion string) bool {
 			return e[i] < d[i]
 		}
 	}
-	return false // gleich ist kein Downgrade
+	return false
 }
 
-// parseSemver liest "v1.2.3" (oder "1.2.3") in [major, minor, patch]. Ein
-// Vorabversions- oder Build-Suffix ("1.2.3-rc1", "1.2.3+meta") wird vor dem Parsen
-// abgeschnitten. Fehlt eine der drei Komponenten oder ist sie nicht numerisch,
-// schlaegt das Parsen fehl (ok == false).
 func parseSemver(s string) ([3]int, bool) {
 	s = strings.TrimSpace(s)
 	s = strings.TrimPrefix(s, "v")

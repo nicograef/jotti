@@ -8,29 +8,22 @@ import (
 
 var ErrDatabase = db.ErrDatabase
 
-// ErrKasseAlreadyOpen is returned when trying to open a Kassensitzung but one is already open.
 var ErrKasseAlreadyOpen = errors.New("kasse bereits geoeffnet")
 
-// ErrKasseNichtGeoeffnet is returned when an operation requires an open Kassensitzung but none exists.
 var ErrKasseNichtGeoeffnet = errors.New("kasse nicht geoeffnet")
 
-// ErrKasseWirdAbgeschlossen is returned when a booking is attempted while the Kassensitzung is in
-// the transient 'wird_abgeschlossen' status (the Kassenabschluss barrier is active).
+// ErrKasseWirdAbgeschlossen signals the transient status 'wird_abgeschlossen' — the Kassenabschluss barrier is active.
 var ErrKasseWirdAbgeschlossen = errors.New("kasse wird gerade abgeschlossen")
 
-// ErrConflict is returned on a concurrent write conflict.
-// Deliberately per-context, not a shared kernel: errors.Is against this exact sentinel is what the
-// HTTP layer relies on to map the error to 409; a shared sentinel across bounded contexts would
-// couple them and risk a silent 409-to-500 regression (2026-07-17 multi-expert review).
+// ErrConflict is deliberately per-context, not a shared kernel: the HTTP layer maps 409 via
+// errors.Is against this exact sentinel, and one sentinel shared across bounded contexts would
+// couple them and risk a silent 409-to-500 regression.
 var ErrConflict = errors.New("conflict")
 
-// ErrTischeSaldoOffen is returned when a Kassenabschluss is attempted but tisch sessions have non-zero saldi.
 var ErrTischeSaldoOffen = errors.New("tische mit offenem saldo")
 
-// ErrBetreiberNichtKonfiguriert is returned when a Kassensitzung is opened but betreiber data is incomplete.
 var ErrBetreiberNichtKonfiguriert = errors.New("betreiber nicht konfiguriert")
 
-// ErrBuchungenNachKassensturz is returned when a Kassenabschluss retry finds bookings that were
-// recorded after the already-persisted Kassensturz. Reusing the stale Ist-Bestand would book those
-// legitimate turnovers as a fake Soll-Ist-Differenz, so the retry aborts instead.
+// ErrBuchungenNachKassensturz: ein Kassenabschluss-Wiederanlauf fand Buchungen nach dem bereits
+// persistierten Kassensturz — der veraltete Ist-Bestand würde sie als Soll-Ist-Differenz verbuchen.
 var ErrBuchungenNachKassensturz = errors.New("buchungen nach kassensturz")

@@ -11,14 +11,9 @@ interface DockActionButtonProps extends React.ComponentProps<'button'> {
 }
 
 /**
- * Primäraktion des Service-Docks. Sie rendert per Portal in den Aktions-Slot
- * von ServiceDock (DockActionSlot); die Positionierung liegt beim Dock, nicht
- * hier.
- *
- * Der Button folgt dem bestehenden DrawerTrigger-Muster: `DrawerTrigger asChild`
- * legt Ref und Click-Handler via `...props` auf diesen Button (React 19 reicht
- * `ref` als reguläre Prop durch). Radix-Context — und damit der Trigger — bleibt
- * über das Portal hinweg erhalten. Das Öffnen bei leerer Auswahl fängt das
+ * `DrawerTrigger asChild` legt Ref und Click-Handler via `...props` auf diesen
+ * Button; Radix-Context — und damit der Trigger — bleibt über das Portal in den
+ * Dock-Slot hinweg erhalten. Das Öffnen bei leerer Auswahl fängt das
  * `onOpenChange` des Drawers ab (Guard), nicht dieser Button.
  */
 export function DockActionButton({
@@ -36,9 +31,8 @@ export function DockActionButton({
         {...props}
       >
         <span className="flex items-center gap-2">
-          {/* Die Mengen-Pill poppt bei jeder Mengenänderung: der key-Wechsel
-              remountet den Span, wodurch die pop-Animation neu startet. 250 ms
-              statt der kanonischen 350 ms. */}
+          {/* Der key-Wechsel remountet den Span und startet die pop-Animation
+              neu. */}
           <span
             key={anzahl}
             className="animate-pop rounded-full bg-primary-foreground/20 px-2 py-0.5 text-sm font-semibold tabular-nums [animation-duration:250ms]"

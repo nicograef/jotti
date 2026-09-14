@@ -9,7 +9,6 @@ import {
 } from './anfrage-mailto'
 import { betreiberEmail } from './links'
 
-// Vollständig ausgefüllte Basis; einzelne Felder werden je Fall überschrieben.
 function felder(overrides: Partial<AnfrageFelder> = {}): AnfrageFelder {
   return {
     verein: 'TSV Musterhausen e.V.',
@@ -126,10 +125,8 @@ describe('buildMailtoUrl', () => {
 
   it('encodiert Umlaute prozentual (äöüß)', () => {
     const url = buildMailtoUrl(felder({ verein: 'Schützenverein Grünäöüß' }))
-    // ä ö ü ß dürfen nicht roh in der URL stehen, sondern als %C3%…
     expect(url).not.toContain('Grünäöüß')
     expect(url).toContain(encodeURIComponent('Schützenverein Grünäöüß'))
-    // Round-trip: decodiert steht der Originaltext wieder im Betreff.
     const subject = new URLSearchParams(new URL(url).search).get('subject')
     expect(subject).toBe('Nutzungsvereinbarung jotti — Schützenverein Grünäöüß')
   })
@@ -143,7 +140,6 @@ describe('buildMailtoUrl', () => {
 
   it('encodiert Sonderzeichen (& ? = + und Leerzeichen)', () => {
     const url = buildMailtoUrl(felder({ message: 'a & b ? c = d + e' }))
-    // Kein rohes Sonderzeichen im Query-Teil außer den Trennern der mailto-URL.
     expect(url).toContain('%26') // &
     expect(url).toContain('%3F') // ?
     expect(url).toContain('%3D') // =

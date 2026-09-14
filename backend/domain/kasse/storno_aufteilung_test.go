@@ -9,7 +9,6 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-// zahlungIDFromEvent liest die generierte ZahlungID eines zahlung-kassiert-Events.
 func zahlungIDFromEvent(t *testing.T, evt e.Event) string {
 	t.Helper()
 	var data ZahlungKassiertV1Data
@@ -51,8 +50,7 @@ func TestComputeStornoAufteilung_DuplikatRefs(t *testing.T) {
 	order := mustCreateOrderEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)})
 	posID := posIDFromOrder(t, order)
 
-	// Duplikate sind per se ungültig — auch wenn die Summe der Mengen (1+1) die
-	// stornierbare Menge (3) nicht übersteigt.
+	// Duplikate sind per se ungültig, auch wenn 1+1 die stornierbare Menge 3 nicht übersteigt.
 	refs := []PositionRef{{PositionID: posID, Menge: 1}, {PositionID: posID, Menge: 1}}
 	if _, ok := ComputeStornoAufteilung([]e.Event{order}, refs); ok {
 		t.Fatal("expected ok=false for duplicate refs")

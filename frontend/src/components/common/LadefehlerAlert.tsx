@@ -9,9 +9,8 @@ interface LadefehlerAlertProps {
   className?: string
 }
 
-// LadefehlerAlert zeigt einen destruktiven Fehlerhinweis mit Titel und einem
-// „Erneut versuchen“-Button an. Genutzt, wenn eine Query fehlschlägt und ein
-// leerer Standardzustand irreführend wäre (z. B. Tisch scheinbar abgerechnet).
+// Für eine fehlgeschlagene Query, deren leerer Standardzustand irreführend wäre
+// (z. B. Tisch scheinbar abgerechnet).
 export function LadefehlerAlert({
   titel,
   onErneutVersuchen,

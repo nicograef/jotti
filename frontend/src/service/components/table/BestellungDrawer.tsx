@@ -17,9 +17,8 @@ interface BestellungDrawerProps {
   bestellungAufgenommen: () => void
 }
 
-// Handy-Container (unter lg): Dock-Aktionsbutton als Trigger plus
-// Bottom-Sheet-Drawer, der den gemeinsamen Abschluss-Inhalt trägt. Ab lg rendert
-// die Fläche stattdessen die feste Abschluss-Spalte (siehe Bestellung).
+// Handy-Container (unter lg); ab lg rendert Bestellung stattdessen die feste
+// Abschluss-Spalte.
 export function BestellungDrawer(props: BestellungDrawerProps) {
   const [open, setOpen] = useState(false)
   const { receiptItems, inputItems } = toBestellungData(

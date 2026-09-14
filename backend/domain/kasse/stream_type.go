@@ -1,6 +1,5 @@
 package kasse
 
-// StreamType identifies the type of event stream for routing writes to the correct projection.
 type StreamType string
 
 const (

@@ -21,18 +21,12 @@ import {
   summeAusStueckzahlen,
 } from './zaehlhilfe'
 
-// nennwertLabel beschriftet einen Nennwert menschenlesbar: Münzen unter 1 €
-// als „X ct", ab 1 € als „X €" (ohne Nachkommastellen, weil alle Nennwerte
-// glatt sind).
 function nennwertLabel(nennwert: Nennwert): string {
   return nennwert < 100
     ? `${String(nennwert)} ct`
     : `${String(nennwert / 100)} €`
 }
 
-// ZaehlhilfeInhalt hält die Zählung. Er wird beim Öffnen frisch gemountet
-// (bedingt gerendert am Aufrufer), damit jede Zählung leer startet — ohne
-// setState im Effekt.
 function ZaehlhilfeInhalt({
   onOpenChange,
   onUebernehmen,
@@ -47,12 +41,10 @@ function ZaehlhilfeInhalt({
   const summeCents = summeAusStueckzahlen(stueckzahlen)
 
   // Eine begonnene Zählung liegt nur hier; ein Reload hieße, das Bargeld noch
-  // einmal zu zählen. Die Summe ist genau dann über null, wenn schon eine
-  // Stückzahl eingetragen ist.
+  // einmal zu zählen.
   useOffenerVorgang(summeCents > 0)
 
   const setAnzahl = (nennwert: Nennwert, roh: string) => {
-    // Nur nicht-negative Ganzzahlen; leeres Feld ergibt 0 (kein Eintrag).
     const anzahl = Number.parseInt(roh, 10)
     const bereinigt = Number.isNaN(anzahl) || anzahl <= 0 ? 0 : anzahl
     setStueckzahlen((prev) => ({ ...prev, [nennwert]: bereinigt }))

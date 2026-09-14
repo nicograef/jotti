@@ -215,7 +215,7 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 }
 
 // TestFiskalySetupClient_ReaktiviereClient bildet den Kontrakt der
-// Client-Reaktivierung (F7) ab: ein DEREGISTERED Client wird per PATCH mit
+// Client-Reaktivierung ab: ein DEREGISTERED Client wird per PATCH mit
 // state=REGISTERED auf demselben Client-Pfad reaktiviert (kein neuer Client),
 // mit anliegendem Admin-Token (Bearer).
 func TestFiskalySetupClient_ReaktiviereClient(t *testing.T) {

@@ -6,10 +6,6 @@ import (
 	"testing"
 )
 
-// TestLoadConfigModes pinnt die Modus-Entscheidung aus der Umgebung, samt der
-// Zusage, dass der LAN-Modus ohne gemountetes State-Verzeichnis kein Modus mehr
-// ist: ein leeres (oder nur aus Leerzeichen bestehendes) JOTTI_DOMAIN im
-// Public-Stack bricht damit ab, statt still auf die interne CA auszuweichen.
 func TestLoadConfigModes(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -77,9 +73,6 @@ func TestLoadConfigModes(t *testing.T) {
 	}
 }
 
-// TestWriteCaddyfileIsOwnerOnly prüft den Modus der erzeugten Datei — beide
-// Fälle: neu angelegt und über eine bereits vorhandene Datei geschrieben. Die
-// LAN-Caddyfile trägt die acme-dns-Zugangsdaten, wie install.json.
 func TestWriteCaddyfileIsOwnerOnly(t *testing.T) {
 	tests := []struct {
 		name    string

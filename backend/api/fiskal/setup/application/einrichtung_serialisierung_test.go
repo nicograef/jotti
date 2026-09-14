@@ -90,12 +90,11 @@ func starteBlockierteEinrichtung(t *testing.T) *laufendeEinrichtung {
 	return &laufendeEinrichtung{repo: repo, client: blockiert, fertig: fertig, freigeben: freigeben}
 }
 
-// Seit der Lebenszyklus vom Client-Abbruch entkoppelt ist, läuft er nach einem
-// Abbruch im Hintergrund weiter — der Admin sieht derweil eine Fehlermeldung und
-// kann sofort erneut starten. Der zweite Aufruf muss deshalb sofort abgelehnt
-// werden, ohne fiskaly auch nur anzusprechen: Sonst entstünde eine zweite,
-// bezahlte TSS, und die zuletzt gespeicherte Konfiguration passte nicht mehr zu
-// den angezeigten PUK/PIN. Neuanlage und Übernahme teilen sich das Schloss.
+// Der Lebenszyklus läuft nach einem Client-Abbruch im Hintergrund weiter — der
+// Admin sieht derweil eine Fehlermeldung und kann sofort erneut starten. Der
+// zweite Aufruf muss deshalb abgelehnt werden, ohne fiskaly anzusprechen: sonst
+// entstünde eine zweite, bezahlte TSS, und die zuletzt gespeicherte Konfiguration
+// passte nicht zu den angezeigten PUK/PIN.
 func TestEinrichtung_ZweiterAufrufWaehrendLaufendemErstenAbgelehnt(t *testing.T) {
 	lauf := starteBlockierteEinrichtung(t)
 
@@ -145,12 +144,10 @@ func TestEinrichtung_ZweiterAufrufWaehrendLaufendemErstenAbgelehnt(t *testing.T)
 	}
 }
 
-// Der manuelle Zugangsdaten-Wechsel schreibt über denselben SaveEinrichtung wie
-// die Einrichtung und liegt in der Oberfläche direkt unter dem Wizard. Er muss
-// deshalb dasselbe Schloss nehmen: Sonst speicherte der Admin während eines
-// laufenden Einrichtungslaufs von Hand eine Konfiguration, der spätere
-// Schreiber gewänne, und die Instanz signierte anschließend gegen eine
-// TSS/Client-Kombination, die nicht die eingerichtete ist.
+// Der manuelle Zugangsdaten-Wechsel schreibt über denselben SaveEinrichtung und
+// liegt in der Oberfläche direkt unter dem Wizard. Er muss dasselbe Schloss
+// nehmen: sonst gewänne der spätere Schreiber, und die Instanz signierte gegen
+// eine TSS/Client-Kombination, die nicht die eingerichtete ist.
 func TestUpdateTSEKonfiguration_WaehrendLaufenderEinrichtungAbgelehnt(t *testing.T) {
 	lauf := starteBlockierteEinrichtung(t)
 

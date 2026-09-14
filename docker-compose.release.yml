@@ -1,27 +1,15 @@
-# Release variant of the local / LAN stack — runs entirely from pre-built images.
-#
-# This file ships inside the Windows release ZIP and is what jotti-start.exe runs.
-# It is identical in shape to docker-compose.local.yml, but the four buildable
-# services (migrate, backend, frontend, reverse-proxy) pull pre-built images from
-# GHCR instead of building from source — the ZIP contains no source tree, so a
-# `--build` would have nothing to build.
-#
-# The image tag `RELEASE_VERSION` is a placeholder. The release workflow pins it
-# to the exact version (e.g. v0.1.0) before the ZIP is assembled; this committed
-# file therefore stays a template and is never runnable as-is.
-#
-# Same project name (jotti-local) and named volumes as the local file on purpose:
-# a ZIP upgrade reuses the same volumes, so data AND Caddy certificates survive.
-#
-# Start:  docker compose -f docker-compose.release.yml up -d
-# Stop:   docker compose -f docker-compose.release.yml down  (or jotti-stop.cmd)
-#
-# SECURITY: Never expose this stack to the public internet (no port forwarding).
+# Release variant of the LAN stack: ships inside the Windows release ZIP and is
+# what jotti-start.exe runs. Same shape as docker-compose.local.yml, but the four
+# buildable services pull pre-built GHCR images — the ZIP carries no source tree.
+# The tag `RELEASE_VERSION` is a placeholder that the release workflow pins before
+# the ZIP is assembled, so this committed file is a template, never runnable as-is.
+# Project name and volume names match the local file on purpose: a ZIP upgrade
+# reuses the volumes, so data AND Caddy certificates survive.
+# SECURITY: never expose this stack to the public internet (no port forwarding).
 
 name: jotti-local
 
-# Log rotation for every long-running service: json-file capped at a small size
-# and a few files, so it takes effect on any host without daemon configuration.
+# Log rotation that needs no daemon configuration, so it applies on any host.
 x-logging: &default-logging
   driver: json-file
   options:
@@ -40,16 +28,14 @@ services:
       POSTGRES_DB: jotti
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      # jotti-config holds the install secret (.env mirror), written by the
-      # starter before the stack comes up. It is mounted read-only here only to
-      # bind its lifecycle to the data: `docker compose down -v` then removes the
-      # secret together with the database, so a stale secret can never outlive —
-      # or lock you out of — the data it unlocks. Postgres itself never reads it.
+      # jotti-config holds the install secret (.env mirror) the starter writes
+      # before the stack comes up. Mounted read-only only to bind its lifecycle
+      # to the data: `down -v` removes secret and database together, so a stale
+      # secret cannot lock you out. Postgres never reads it.
       - jotti-config:/jotti-config:ro
-      # jotti-backups holds the timestamped pre-update pg_dumps that the starter
-      # writes (via `docker exec`) before running migrations on a new version.
-      # Mounted rw so the dump lands straight in the volume; its lifecycle is
-      # likewise bound to the data (`down -v` removes both).
+      # jotti-backups holds the timestamped pre-update pg_dumps the starter
+      # writes before migrating a new version; rw so the dump lands straight in
+      # the volume, lifecycle bound to the data like jotti-config.
       - jotti-backups:/jotti-backups
     networks:
       - db-network
@@ -67,9 +53,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     networks:
       - db-network
-    # No migrations bind mount: the migrations are baked into the jotti-migrate
-    # image (COPY), so the stack is self-contained — the release ZIP no longer
-    # needs the database/migrations folder.
+    # No migrations bind mount: they are baked into the jotti-migrate image, so
+    # the ZIP needs no database/migrations folder.
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,7 +91,6 @@ services:
       timeout: 3s
       retries: 5
       start_period: 5s
-    # No exposed ports; reachable only via reverse proxy
 
   frontend:
     image: ghcr.io/nicograef/jotti-frontend:RELEASE_VERSION
@@ -128,7 +112,6 @@ services:
       timeout: 3s
       retries: 5
       start_period: 5s
-    # No exposed ports; served via reverse proxy
 
   reverse-proxy:
     image: ghcr.io/nicograef/jotti-reverse-proxy:RELEASE_VERSION
@@ -182,7 +165,5 @@ volumes:
   postgres-data:
   caddy-data:
   proxy-state:
-  # Source of truth for the install secret; see the postgres mount above.
   jotti-config:
-  # Timestamped pre-update database dumps; see the postgres mount above.
   jotti-backups:

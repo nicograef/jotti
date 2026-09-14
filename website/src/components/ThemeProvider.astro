@@ -1,16 +1,9 @@
 ---
 /*
-  Override für Starlights ThemeProvider
-  (`@astrojs/starlight/components/ThemeProvider.astro`).
-
-  Starlights Original initialisiert das Theme über ein Inline-Skript im <head>.
-  Die Produktiv-CSP (`script-src 'self'`, kein `unsafe-inline`) blockiert
-  Inline-Skripte — der Doku-Theme-Schalter wäre damit tot. Dieser Override lädt
-  stattdessen dieselbe Logik als externe, klassisch-synchrone Datei
-  (`/theme-init.js`), die auch die Landing im <head> verwendet. Gleicher
-  Speicher-Key (`starlight-theme`), gleiche Semantik, gleiches
-  `window.StarlightThemeProvider`-Global (das ThemeSelect nutzt) — nur
-  CSP-konform und ohne FOUC.
+  Override für Starlights ThemeProvider: dessen Inline-Theme-Init blockt die
+  Produktiv-CSP (`script-src 'self'`, kein `unsafe-inline`). Lädt stattdessen
+  /theme-init.js — gleicher Speicher-Key, gleiche Semantik, gleiches
+  `window.StarlightThemeProvider`-Global, nur CSP-konform und ohne FOUC.
 */
 import { Icon } from '@astrojs/starlight/components'
 ---

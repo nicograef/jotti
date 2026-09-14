@@ -36,8 +36,6 @@ import {
 } from './DruckstationBackend'
 import { useDruckstationen, useFehlgeschlageneDruckauftraege } from './hooks'
 
-// Kurzbeschreibung und Label je Station; das Label kommt aus dem
-// geteilten STATION_KATEGORIE_LABEL des Backends (Single Source of Truth).
 const KATEGORIE_INFO: Record<
   Kategorie,
   { label: string; beschreibung: string }
@@ -64,9 +62,7 @@ const KATEGORIE_INFO: Record<
   },
 }
 
-// Die Bonmodus-Optionen mit erklärendem Untertitel. „Pro Stück"
-// erscheint nur am Abholbon (siehe erlaubtBonmodus) und füllt dort als dritte
-// Kachel die zweite Zeile des Rasters.
+// „Pro Stück" erscheint nur am Abholbon (siehe erlaubtBonmodus).
 const BONMODUS_OPTIONEN: { wert: Bonmodus; titel: string; hinweis: string }[] =
   [
     {
@@ -158,8 +154,8 @@ function DruckstationCard({
     actionLabel: 'Bonmodus speichern',
   })
 
-  // Speichert die Drucker-IP nur, wenn sie sich geändert und die Validierung
-  // besteht. Wird on-blur und per Enter ausgelöst (kein Speichern-Button).
+  // Speichert nur bei Änderung; ausgelöst on-blur und per Enter (kein
+  // Speichern-Button).
   const speichereIp = async () => {
     if (druckerIp === config.druckerIp) {
       setIpError(null)
@@ -174,8 +170,6 @@ function DruckstationCard({
     await runSave(async () => {
       await onUpdate({ ...config, druckerIp })
       toast.success(`Drucker-IP für „${info.label}“ gespeichert.`)
-      // Kurze Inline-Bestätigung am Feld für ~2 Sekunden (Muster der TSE-
-      // Kopier-Bestätigung); der Toast bleibt zusätzlich bestehen.
       setIpGespeichert(true)
       setTimeout(() => {
         setIpGespeichert(false)
@@ -453,9 +447,6 @@ function AlarmKarte() {
     return null
   }
 
-  // Der Warntext folgt der tatsächlichen Bon-Art: nur Arbeitsbons landen in der
-  // Küche/an der Theke; ein Kassenbeleg (Gäste-Beleg) oder Testbon darf nicht
-  // als Küchenproblem beschrieben werden.
   const anzahl = druckauftraege.length
   const { singular, plural, kuecheBetroffen } = beschreibeFehlBons(
     druckauftraege.map((auftrag) => auftrag.bonArt),
@@ -472,9 +463,8 @@ function AlarmKarte() {
 
   return (
     <WarnKarte title={titel} className="mb-6">
-      {/* Höhenbegrenzt und scrollbar, damit die Stationskonfiguration darunter
-          auch bei vielen Fehl-Bons ohne langes Scrollen erreichbar bleibt.
-          Der Cap greift erst über der Schwelle; wenige Einträge bleiben kompakt. */}
+      {/* Höhenbegrenzt, damit die Stationskonfiguration darunter auch bei
+          vielen Fehl-Bons erreichbar bleibt. */}
       <div className="mt-2 flex max-h-80 flex-col gap-2 overflow-y-auto">
         {druckauftraege.map((auftrag) => (
           <FehlgeschlagenerDruckauftragRow

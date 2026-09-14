@@ -123,7 +123,6 @@ func TestSetPassword_TrimmtEingabe(t *testing.T) {
 		t.Fatalf("NewUser: %v", err)
 	}
 
-	// Umgebende Leerzeichen werden getrimmt; sonst keine Normalisierung.
 	err = u.SetPassword("  "+onetimePassword+" ", "newSecurePass123")
 	if err != nil {
 		t.Fatalf("SetPassword mit getrimmter Eingabe: %v", err)
@@ -146,7 +145,6 @@ func TestSetPassword_SperrtNachFuenfFehlversuchen(t *testing.T) {
 		}
 	}
 
-	// Der fünfte Fehlversuch sperrt: Einmalpasswort wird ungültig.
 	err = u.SetPassword("falsch99", "newSecurePass123")
 	if !errors.Is(err, ErrOnetimePasswordLocked) {
 		t.Fatalf("expected ErrOnetimePasswordLocked, got %v", err)
@@ -155,13 +153,11 @@ func TestSetPassword_SperrtNachFuenfFehlversuchen(t *testing.T) {
 		t.Error("expected OnetimePasswordHash to be invalidated after lockout")
 	}
 
-	// Auch das korrekte Einmalpasswort funktioniert danach nicht mehr.
 	err = u.SetPassword(onetimePassword, "newSecurePass123")
 	if !errors.Is(err, ErrNoPassword) {
 		t.Fatalf("expected ErrNoPassword after lockout, got %v", err)
 	}
 
-	// Admin-Reset erzeugt ein frisches Einmalpasswort und setzt den Zähler zurück.
 	neues, err := u.ResetPassword()
 	if err != nil {
 		t.Fatalf("ResetPassword: %v", err)

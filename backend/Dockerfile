@@ -1,4 +1,3 @@
-# --- Build Stage ---
 FROM golang:1.27.1-alpine AS builder
 
 WORKDIR /src
@@ -8,16 +7,13 @@ RUN go mod download && go mod verify
 
 COPY . .
 
-# Version per ldflags einkompiliert (Default dev). Der Release-Workflow
-# uebergibt den Tag per --build-arg VERSION=<tag>.
+# Der Release-Workflow uebergibt den Tag per --build-arg VERSION=<tag>.
 ARG VERSION=dev
 RUN go build -ldflags "-X main.version=${VERSION}" -o /go/bin/jotti ./main.go
 
-# --- Deploy Stage ---
 FROM alpine:3.24
 
-# Unprivilegierter Benutzer: das Backend schreibt nicht ins Dateisystem und
-# lauscht auf 3000 (>1024), braucht also keine root-Rechte.
+# Unprivilegiert: das Backend schreibt nicht ins Dateisystem und lauscht auf 3000 (>1024).
 RUN addgroup -S jotti && adduser -S -G jotti jotti
 
 COPY --from=builder /go/bin/jotti /usr/local/bin/jotti

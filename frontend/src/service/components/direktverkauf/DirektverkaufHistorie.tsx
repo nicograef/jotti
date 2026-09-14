@@ -47,8 +47,6 @@ interface DirektverkaufHistorieProps {
     DirektverkaufBackend,
     'direktverkaufStornieren' | 'kassenbelegDrucken'
   >
-  // Storno-Erfolg meldet der Aufrufer über den Erfolgs-Pop; der nachgelagerte
-  // Refetch läuft dort beim Schließen.
   onErfolg: (nachricht: string) => void
 }
 

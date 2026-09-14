@@ -2,24 +2,12 @@
 set -euo pipefail
 
 # jotti — Kategorie (backend/domain/druckstation, backend/domain/produkt) and
-# Steuersatz (backend/domain/steuer) are closed value sets; the domain
-# constants are their one source. A hand-written literal outside the domain
-# packages drifts silently the moment a value is renamed or a station added.
-#
-# The check derives the literal set from the const blocks in
-# backend/domain/druckstation/druckstation.go and backend/domain/steuer/steuer.go
-# (druckstation's five Kategorie values are a superset of produkt's three),
-# then scans every tracked non-test *.go file under backend/ outside
-# backend/domain/** and the generated backend/sqlc/dbgen/** for a Go string
-# literal equal to one of those values, on any line, standalone — no
-# co-occurring "Kategorie"/"Steuersatz" identifier is required, so a bare map
-# key (druckstationen["abholbon"]) or a value split across lines from its
-# OneOf( call is caught the same as an inline literal.
-#
-# scripts/check-domain-enums.allow lists exceptions: a value that
-# legitimately shares text with a Kategorie/Steuersatz literal without being
-# one (e.g. a spelling-correction word list). An entry that matches nothing
-# turns the gate red and is to be deleted.
+# Steuersatz (backend/domain/steuer) are closed value sets owned by the domain
+# constants; a literal copied elsewhere drifts silently the moment a value is
+# renamed or a station added. druckstation's five Kategorie values are a superset
+# of produkt's three, so druckstation.go alone defines the set. A match needs no
+# co-occurring "Kategorie"/"Steuersatz" identifier, so a bare map key is caught
+# like an inline literal.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -53,7 +41,6 @@ literal_pattern="$(
   } | paste -sd '|' -
 )"
 
-# Allowlist: path, then a space-free code fragment, then "#" and the reason.
 mapfile -t allow_entries < <(
   [ -f "$ALLOWLIST" ] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
 )

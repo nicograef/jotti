@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# jotti — every backend/**/*_test.go must declare exactly one //go:build tag,
-# either "unit" or "integration". Without this, a file without a tag runs
-# under every build (both `go test -tags=unit` and `-tags=integration`), and
-# a file with the wrong tag silently skips golangci-lint or `make test`.
+# jotti — every backend/**/*_test.go declares exactly one //go:build tag, "unit"
+# or "integration": an untagged file runs under both builds, a mistagged one
+# silently skips golangci-lint or `make test`.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -15,9 +14,8 @@ cd "$PROJECT_ROOT"
 
 violations=0
 
-# `:(glob)` makes `/**/` mean "zero or more directories". Without the magic
-# git matches `**` like a plain `*`, which needs at least one directory and
-# so skips a test file lying directly in backend/.
+# `:(glob)` makes `/**/` mean "zero or more directories"; without it git matches
+# `**` like `*`, which needs one directory and skips a test file in backend/.
 while IFS= read -r file; do
   count="$(grep -c '^//go:build' "$file" || true)"
   if [ "$count" -ne 1 ]; then

@@ -51,15 +51,13 @@ export function ServiceTableGuard({ params }: LoaderFunctionArgs) {
   setArbeitsmodus('tischservice')
 }
 
-// Service-Einstieg: in den zuletzt genutzten Modus weiterleiten.
 export function ServiceIndexRedirect() {
   return redirect(
     getArbeitsmodus() === 'direktverkauf' ? 'direktverkauf' : 'tische',
   )
 }
 
-// Beim Besuch einer Modus-Route den zugehörigen Modus persistieren
-// (auch Deep-Links und Lesezeichen zählen so als „zuletzt genutzt").
+// Deep-Links und Lesezeichen zählen so als „zuletzt genutzt".
 export function ServiceTischauswahlLoader() {
   setArbeitsmodus('tischservice')
   return null

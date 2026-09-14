@@ -10,8 +10,7 @@ interface FehlerAnzeigeProps {
   text: string
 }
 
-// Gemeinsames Layout für die 404-Route und die Router-ErrorBoundary,
-// damit kein "Unexpected Application Error!"-Rohbildschirm mehr erreichbar ist.
+// Verhindert React Routers rohen "Unexpected Application Error!"-Bildschirm.
 function FehlerAnzeige({ titel, text }: FehlerAnzeigeProps) {
   const navigate = useNavigate()
 
@@ -35,7 +34,6 @@ function FehlerAnzeige({ titel, text }: FehlerAnzeigeProps) {
   )
 }
 
-// Fängt Render-/Loader-Fehler der Root-Route ab (ErrorBoundary).
 export function ErrorPage() {
   const error = useRouteError()
   const istUnbekannterPfad = isRouteErrorResponse(error) && error.status === 404

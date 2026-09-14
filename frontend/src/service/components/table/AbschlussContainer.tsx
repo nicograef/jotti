@@ -1,18 +1,14 @@
 import { DrawerContent } from '@/components/ui/drawer'
 
 interface AbschlussContainerProps {
-  // 'sheet' rendert den Bottom-Sheet-Drawer-Inhalt (Handy), 'spalte' die feste
-  // Abschluss-Spalte (ab lg).
+  // 'sheet' = Bottom-Sheet-Drawer (Handy), 'spalte' = feste Abschluss-Spalte (ab lg).
   variant: 'sheet' | 'spalte'
   pending: boolean
   children: React.ReactNode
 }
 
-// Umschließender Container eines Abschluss-Inhalts (Bestellung, Zahlung,
-// Direktverkauf). Die feste Spalte nutzt dieselben Header/Body/Footer-Primitive
-// wie das Sheet, nur in einem eigenen, unabhängig scrollenden Container.
-// group/drawer-content + data-pending übernehmen dort das Body-Dimming des
-// Drawers während des Submits.
+// group/drawer-content + data-pending übernehmen in der Spalte das Body-Dimming
+// des Drawers während des Submits.
 export function AbschlussContainer({
   variant,
   pending,

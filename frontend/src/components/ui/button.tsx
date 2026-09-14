@@ -30,13 +30,13 @@ const buttonVariants = cva(
         // Warn: solide Amber-Fläche für die Bestätigung irreversibler, aber
         // routinemäßiger Aktionen (z. B. Kasse abschließen). Signalisiert
         // „irreversibel", nicht „gefährlich" — distinkt von destructive-Rot und
-        // primär-Grün. Verbindliches Muster: ADR 04.
+        // primär-Grün. Verbindliches Muster: docs/decisions.md D04.
         warn: "bg-warn text-warn-foreground shadow-xs hover:bg-warn/90 disabled:opacity-50",
         // Destructive-solid: solide destruktive Fläche für die Bestätigung
         // irreversibler Lösch-Aktionen im AlertDialog. Die Textfarbe trägt das
         // Token --destructive-solid-foreground ihren AA-Kontrast selbst (Light:
         // Weiß auf der dunklen Fläche; Dark: red-950 auf der aufgehellten
-        // Fläche) — analog zum warn-Muster (ADR 04).
+        // Fläche) — analog zum warn-Muster (docs/decisions.md D04).
         "destructive-solid":
           "bg-destructive text-destructive-solid-foreground shadow-xs hover:bg-destructive/90 disabled:opacity-50",
         link: "text-primary underline-offset-4 hover:underline disabled:opacity-50",

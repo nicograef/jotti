@@ -19,13 +19,11 @@ var (
 	errSecond = errors.New("second")
 )
 
-// mapErrorCodes is the ordered list under test: errFirst before errSecond.
 var mapErrorCodes = []ErrorCode{
 	{Err: errFirst, Code: "first_code"},
 	{Err: errSecond, Code: "second_code"},
 }
 
-// assertMappedError checks status and error code of a MapError response.
 func assertMappedError(t *testing.T, err error, wantStatus int, wantCode string) {
 	t.Helper()
 
@@ -137,7 +135,6 @@ func TestReadBody_TooLarge(t *testing.T) {
 		Foo string
 	}
 
-	// Create a body larger than 1 MB
 	largeBody := `{"Foo":"` + strings.Repeat("x", 1<<20+1) + `"}`
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(largeBody))
 	var dest testStruct

@@ -2,12 +2,9 @@ import { Input } from '@/components/ui/input'
 import { cn, formatCents, parseCents } from '@/lib/utils'
 
 /**
- * Keeps only digits and a single decimal separator so the field can never hold
- * an invalid amount. A typed `.` counts as decimal separator (manche
- * Tastatur-Layouts liefern trotz `inputMode="decimal"` einen Punkt statt des
- * Kommas — `4.5` muss 4,50 € ergeben, nicht 45,00 €); everything after the
- * first separator is treated as decimals, additional separators are dropped,
- * and decimals are capped at two (parseCents rejects over-precise input).
+ * Keeps only digits and a single decimal separator. A typed `.` counts as
+ * decimal separator: some keyboard layouts deliver a dot despite
+ * `inputMode="decimal"`, and `4.5` must yield 4,50 €, not 45,00 €.
  */
 const cleanInput = (input: string): string => {
   const normalized = input.replace(/\./g, ',').replace(/[^0-9,]/g, '')
@@ -16,14 +13,12 @@ const cleanInput = (input: string): string => {
   return ganze + ',' + rest.join('').slice(0, 2)
 }
 
-/** Normalises a raw Euro string to the canonical `12,50` form, or empty when there is no amount. */
 const formatBlur = (raw: string): string => {
   const cents = parseCents(raw)
   return cents > 0 ? formatCents(cents) : ''
 }
 
 interface EuroInputProps {
-  /** The raw, user-facing string (e.g. `12,50`). */
   value: string
   /** Receives the sanitised string on every change and the canonical string on blur. */
   onValueChange: (value: string) => void
@@ -35,12 +30,7 @@ interface EuroInputProps {
   'aria-invalid'?: boolean
 }
 
-/**
- * The canonical money input: a `€` sign inside the field, the decimal
- * keypad on mobile, input sanitised to digits and a comma, and normalisation to
- * two decimals on blur. String in, string out — wrap it in a form field for
- * cents-based state.
- */
+/** String in, string out — wrap it in a form field for cents-based state. */
 export function EuroInput({
   value,
   onValueChange,

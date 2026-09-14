@@ -34,9 +34,6 @@ func TestRenderCaddyfileWithState(t *testing.T) {
 		"https:// {",
 		"on_demand",
 		"redir https://{host}{uri} permanent",
-		// Security-Header liegen beim Reverse-Proxy: alle vier müssen im
-		// generierten Caddyfile vorkommen (CSP, HSTS, X-Frame-Options,
-		// X-Content-Type-Options).
 		`Strict-Transport-Security "` + hstsLAN + `"`,
 		`X-Content-Type-Options "nosniff"`,
 		`X-Frame-Options "DENY"`,
@@ -50,7 +47,6 @@ func TestRenderCaddyfileWithState(t *testing.T) {
 	if strings.Contains(out, leStagingCA) {
 		t.Errorf("ohne Staging-Schalter darf die Staging-CA nicht vorkommen")
 	}
-	// Rate-Limit und der stärkere Public-HSTS gehören nur in den Public-Mode.
 	if strings.Contains(out, "rate_limit") {
 		t.Errorf("LAN-Mode darf kein Rate-Limit rendern\n---\n%s", out)
 	}
@@ -124,7 +120,6 @@ func TestRenderPublicCaddyfile(t *testing.T) {
 		}
 	}
 
-	// Public-Mode kennt weder die LAN-Fallback-Site noch acme-dns/Staging.
 	for _, unwanted := range []string{"acmedns", "on_demand", "https:// {", leStagingCA} {
 		if strings.Contains(out, unwanted) {
 			t.Errorf("Public-Caddyfile darf %q nicht enthalten\n---\n%s", unwanted, out)
@@ -170,9 +165,6 @@ func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
 		"handle_path /api/* {",
 		"reverse_proxy backend:3000",
 		"reverse_proxy frontend:80",
-		// Security-Header liegen beim Reverse-Proxy: alle vier müssen im
-		// generierten Caddyfile vorkommen (CSP, HSTS, X-Frame-Options,
-		// X-Content-Type-Options). Der HTTP-Only-Mode nutzt den LAN-HSTS-Wert.
 		`Strict-Transport-Security "` + hstsLAN + `"`,
 		`X-Content-Type-Options "nosniff"`,
 		`X-Frame-Options "DENY"`,
@@ -184,7 +176,6 @@ func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
 		}
 	}
 
-	// Kein TLS, kein ACME, kein Rate-Limit im HTTP-Only-Mode.
 	for _, unwanted := range []string{"acmedns", "on_demand", "https:// {", "tls {", "rate_limit {"} {
 		if strings.Contains(out, unwanted) {
 			t.Errorf("HTTP-Only-Caddyfile darf %q nicht enthalten\n---\n%s", unwanted, out)
@@ -192,10 +183,8 @@ func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
 	}
 }
 
-// TestNginxRocksConfCarriesSameCSP hält die zwei Kopien der CSP zusammen: die
-// Konstante contentSecurityPolicy, die alle Caddy-Sites tragen, und die
-// demo-Site in nginx.rocks.conf. Ohne diesen Test driftet ein Edit an einer der
-// beiden Stellen still auseinander.
+// TestNginxRocksConfCarriesSameCSP hält die zwei Kopien der CSP zusammen:
+// contentSecurityPolicy und die demo-Site in nginx.rocks.conf.
 func TestNginxRocksConfCarriesSameCSP(t *testing.T) {
 	conf, err := os.ReadFile("nginx.rocks.conf")
 	if err != nil {

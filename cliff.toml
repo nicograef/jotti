@@ -1,6 +1,5 @@
-# git-cliff configuration — generates jotti's GitHub release notes from
-# Conventional Commits. Only user-relevant types (feat, fix) are shown;
-# the `website` scope and all other types are filtered out.
+# git-cliff configuration — jotti's GitHub release notes from Conventional
+# Commits; only feat and fix are shown (see commit_parsers).
 
 [changelog]
 header = ""
@@ -16,10 +15,9 @@ body = """
 **Full Changelog**: https://github.com/nicograef/jotti/compare/{{ previous.version }}...{{ version }}
 {% endif %}
 """
-# Der Compare-Link steht bewusst am Body-Ende statt im `footer`-Template:
-# `version`/`previous` sind reine Release-Variablen und im `footer`-Kontext
-# nicht verfügbar. Da je Lauf genau ein Release gerendert wird (--latest oder
-# ein Tag-Range), erscheint der Link wie gewünscht ganz unten.
+# Compare-Link am Body-Ende statt im `footer`: `version`/`previous` sind im
+# `footer`-Kontext nicht verfügbar, und je Lauf wird genau ein Release
+# gerendert, also steht der Link ohnehin unten.
 trim = true
 
 [git]
@@ -27,16 +25,12 @@ conventional_commits = true
 filter_unconventional = true
 filter_commits = true
 # Reihenfolge zählt — der erste passende Parser gewinnt:
-#   1. `scope = website` zuerst, sonst greifen feat/fix davor und die
-#      Website-Commits landen trotzdem im Changelog. Scope wird über
-#      `field`/`pattern` gematcht (ein blankes `scope =` setzt nur den
-#      Output-Scope, es filtert nicht).
+#   1. `scope = website` zuerst, sonst greifen feat/fix davor. Scope wird über
+#      `field`/`pattern` gematcht; ein blankes `scope =` filtert nicht.
 #   2. Breaking vor feat/fix, sonst landen feat!/fix! in feat/fix. Das
-#      `breaking`-Flag deckt beide Auslöser ab — `typ!:` und den
-#      `BREAKING CHANGE`-Footer (Letzterer steht nach dem Conventional-
-#      Parsing nicht mehr im Body, daher kein `body`-Match).
-# Das <!-- N -->-Präfix steuert die Gruppen-Sortierung und wird per
-# `striptags` aus dem Output entfernt.
+#      `breaking`-Flag deckt `typ!:` und den `BREAKING CHANGE`-Footer ab.
+# Das <!-- N -->-Präfix steuert die Gruppen-Sortierung und wird per `striptags`
+# entfernt.
 commit_parsers = [
   { field = "scope", pattern = "website", skip = true },
   { field = "breaking", pattern = "true", group = "<!-- 0 -->⚠️ Breaking Changes" },

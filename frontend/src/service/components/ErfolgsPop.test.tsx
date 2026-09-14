@@ -17,8 +17,8 @@ import { Direktverkauf } from './direktverkauf/Direktverkauf'
 import { ErfolgsPop } from './ErfolgsPop'
 import { ServiceDock } from './ServiceDock'
 
-// toast wird über useActionSubmit (Fehlerpfad) importiert; die Erfolgs-Flows
-// dürfen ihn nicht mehr aufrufen, was der Flow-Test unten prüft.
+// toast kommt über den Fehlerpfad von useActionSubmit; die Erfolgs-Flows dürfen
+// ihn nicht aufrufen (prüft der Flow-Test unten).
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
@@ -77,7 +77,6 @@ describe('ErfolgsPop', () => {
 
     fireEvent.click(screen.getByRole('status'))
 
-    // Ein Tap schließt den Pop sofort, unabhängig vom Auto-Dismiss-Timer.
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 
@@ -110,9 +109,8 @@ const testProdukt: Produkt = {
   updatedAt: '2025-01-01T00:00:00Z',
 }
 
-// Spiegelt die Verdrahtung der Buchungsseiten wider: Der Erfolg öffnet den Pop
-// (statt eines Toasts), und der nachgelagerte Refetch (hier `reload`) läuft erst
-// beim Schließen.
+// Spiegelt die Verdrahtung der Buchungsseiten: Der Erfolg öffnet den Pop, der
+// Refetch (hier `reload`) läuft erst beim Schließen.
 function DirektverkaufMitPop({
   direktverkaufTaetigen,
   reload,
@@ -169,14 +167,10 @@ describe('Erfolgs-Pop im Buchungsflow', () => {
       screen.getByRole('button', { name: 'Verkauf abschließen' }),
     )
 
-    // Der Pop erscheint mit der Bestätigung; der Refetch läuft noch nicht und es
-    // gibt keinen Erfolgs-Toast mehr.
     await screen.findByText('Verkauf abgeschlossen.')
     expect(reload).not.toHaveBeenCalled()
     expect(toast.success).not.toHaveBeenCalled()
 
-    // Der Auto-Dismiss-Timer schließt den Pop und löst erst dann den
-    // nachgelagerten Refetch aus.
     await waitFor(
       () => {
         expect(

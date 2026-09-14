@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-// fakeFS ist ein In-Memory-Dateisystem für die injizierten Dateizugriffe von
-// ensureState.
 type fakeFS struct {
 	files map[string][]byte
 }
@@ -28,8 +26,6 @@ func (f *fakeFS) write(path string, data []byte, _ fs.FileMode) error {
 	return nil
 }
 
-// failWrite liefert eine writeFile-Funktion, die den Test fehlschlagen lässt,
-// sobald sie aufgerufen wird — für Fälle, in denen nichts geschrieben werden darf.
 func failWrite(t *testing.T) func(string, []byte, fs.FileMode) error {
 	t.Helper()
 	return func(string, []byte, fs.FileMode) error {
@@ -66,7 +62,6 @@ func TestEnsureStateRegistersOnceAndPersists(t *testing.T) {
 		t.Fatalf("State wurde nicht persistiert")
 	}
 
-	// Zweiter Lauf: State liegt vor → keine erneute Registrierung, unverändert.
 	second, err := ensureState(deps)
 	if err != nil {
 		t.Fatalf("zweiter Lauf: unerwarteter Fehler: %v", err)

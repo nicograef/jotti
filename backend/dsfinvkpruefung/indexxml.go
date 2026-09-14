@@ -6,7 +6,6 @@ import (
 	"fmt"
 )
 
-// Regel-Kennungen der index.xml-/DTD-Prüfung.
 const (
 	regelIndexParsbar    = "index-parsbar"
 	regelIndexWurzel     = "index-wurzel"
@@ -17,24 +16,20 @@ const (
 	regelIndexFormat     = "index-format"
 	regelIndexKopfzeile  = "index-kopfzeile-range"
 	regelIndexDoctype    = "index-doctype"
-	dtdDecimalSymbol     = ","      // DSFinV-K: Dezimal-KOMMA (index.xml DecimalSymbol)
-	dtdColumnDelimiter   = ";"      // Semikolon als Spaltentrenner
-	dtdRecordDelimiterCR = "\r"     // CR ist Teil des Zeilentrenners (CRLF)
-	dtdRecordDelimiterLF = "\n"     // LF ist Teil des Zeilentrenners (CRLF)
-	dtdKopfzeileFrom     = "2"      // Range/From = 2: Datenzeilen ab Zeile 2 (Zeile 1 = Header)
-	dtdTextEncapsulator  = "\""     // Doublequote als Text-Begrenzer
-	doctypeMarker        = dtdDatei // die index.xml referenziert die GDPdU-DTD im DOCTYPE
+	dtdDecimalSymbol     = ","
+	dtdColumnDelimiter   = ";"
+	dtdRecordDelimiterCR = "\r"
+	dtdRecordDelimiterLF = "\n"
+	dtdKopfzeileFrom     = "2"
+	dtdTextEncapsulator  = "\""
+	doctypeMarker        = dtdDatei
 )
 
-// indexSpalte ist eine geparste VariableColumn-Deklaration der index.xml.
 type indexSpalte struct {
 	Name    string
 	Numeric bool // AlphaNumeric vs. Numeric (bestimmt das Dezimalformat der CSV)
 }
 
-// indexTabelle ist eine geparste Table-Deklaration: die referenzierte CSV-Datei,
-// ihre Spalten in deklarierter Reihenfolge und die für die CSV-Prüfung relevanten
-// Formatangaben.
 type indexTabelle struct {
 	URL             string
 	Name            string
@@ -46,8 +41,6 @@ type indexTabelle struct {
 	textEncap       string
 	utf8            bool
 }
-
-// --- XML-Bindings (spiegeln die DTD-Struktur der index.xml) ---
 
 type xmlDataSet struct {
 	XMLName xml.Name
@@ -80,17 +73,12 @@ type xmlColumn struct {
 	Numeric      *struct{} `xml:"Numeric"`
 }
 
-// pruefeIndexXML parst die index.xml und wendet die DTD-Strukturregeln als eigene
-// Prüfungen an (kein Fremd-Parser, keine libxml-Bindung). Rückgabe sind die
-// erfolgreich geparsten Tabellen (für die nachgelagerte CSV-Prüfung) und die
-// dabei gefundenen Befunde.
+// pruefeIndexXML parst die index.xml und prüft die DTD-Struktur- und DSFinV-K-
+// Formatregeln selbst (kein Fremd-Parser). Rückgabe: die geparsten Tabellen für die
+// CSV-Prüfung plus die Befunde.
 //
-// Referenz: gdpdu-01-09-2004.dtd (im Archiv beiliegend) für die Element- und
-// Reihenfolge-Regeln (DataSet → Version, Media+; Media → Name, Table*; Table →
-// URL, Name?, …, VariableLength; VariableLength → VariableColumn+) sowie
-// DSFinV-K 2.4 Tz. 1 „Erstellung der index.xml“ für die Formatvorgaben (UTF-8,
-// Dezimal-Komma, Semikolon-Spaltentrenner, CRLF-Zeilentrenner, Header in Zeile 1
-// ⇒ Range/From = 2).
+// Referenz: gdpdu-01-09-2004.dtd (im Archiv beiliegend) und DSFinV-K 2.4 Tz. 1
+// „Erstellung der index.xml“.
 func pruefeIndexXML(inhalt []byte) ([]indexTabelle, []Befund) {
 	if inhalt == nil {
 		// Fehlende index.xml meldet bereits pruefePaketpflichtdateien.
@@ -99,8 +87,7 @@ func pruefeIndexXML(inhalt []byte) ([]indexTabelle, []Befund) {
 
 	var befunde []Befund
 
-	// DTD-Referenz: die index.xml muss die beiliegende DTD im DOCTYPE referenzieren
-	// (SYSTEM "gdpdu-01-09-2004.dtd"), sonst ist die Beschreibung nicht an ihre
+	// Ohne DOCTYPE-Referenz auf die beiliegende DTD ist die Beschreibung nicht an ihre
 	// Grammatik gebunden.
 	if !bytes.Contains(inhalt, []byte(doctypeMarker)) {
 		befunde = append(befunde, Befund{
@@ -157,9 +144,6 @@ func pruefeIndexXML(inhalt []byte) ([]indexTabelle, []Befund) {
 	return tabellen, befunde
 }
 
-// pruefeTabelleDeklaration prüft eine einzelne <Table>-Deklaration gegen die
-// DTD-Pflichtstruktur und die DSFinV-K-Formatvorgaben und liefert die geparste
-// Tabelle für die CSV-Prüfung.
 func pruefeTabelleDeklaration(t *xmlTable) (indexTabelle, []Befund) {
 	var befunde []Befund
 
@@ -219,9 +203,7 @@ func pruefeTabelleDeklaration(t *xmlTable) (indexTabelle, []Befund) {
 	return tab, befunde
 }
 
-// pruefeTabelleFormat prüft die DSFinV-K-Formatvorgaben einer Tabellendeklaration:
-// UTF-8, Dezimal-Komma, Semikolon-Spaltentrenner, CRLF-Zeilentrenner, Range/From=2
-// und Doublequote-Text-Begrenzer.
+// pruefeTabelleFormat prüft die DSFinV-K-Formatvorgaben einer Tabellendeklaration.
 //
 // Referenz: DSFinV-K 2.4 Tz. 1 „Erstellung der index.xml“ und die amtliche index.xml
 // (docs/rechtsquellen/…/DSFinV-K-2.4/02_index.xml): DecimalSymbol „,“,

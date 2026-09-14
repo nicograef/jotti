@@ -1,22 +1,8 @@
-// Command jotti-reverse-proxy ist der Caddy-Container-Entrypoint für drei Modi.
-// Welcher gilt, entscheidet die Umgebung (loadConfig, main): PROXY_HTTP_ONLY vor
-// JOTTI_DOMAIN, sonst LAN-Mode.
-//
-// LAN-Mode (docker-compose.local.yml / release): Installations-State sicherstellen
-// (Install-ID + acme-dns-Credentials, einmalige Registrierung) → LAN-IP bestimmen
-// → Caddyfile rendern → Status-Seite starten → Caddy als Kindprozess starten.
-// Caddy holt und erneuert das vertrauenswürdige Wildcard-Zertifikat asynchron;
-// bis dahin (und offline) trägt die Fallback-Site mit interner CA.
-//
-// Public-Mode (docker-compose.prod.yml, Self-Hoster): ist JOTTI_DOMAIN gesetzt,
-// rendert der Entrypoint einen Public-Caddyfile (eine Site mit automatischem
-// Let's-Encrypt-Zertifikat) und startet Caddy — ohne State, acme-dns oder
-// Status-Seite. Die jotti.rocks-Demo bleibt auf nginx und nutzt dieses Programm
-// nicht.
-//
-// HTTP-Only-Mode (docker-compose.e2e.yml): ist PROXY_HTTP_ONLY gesetzt, rendert
-// der Entrypoint eine Klartext-HTTP-Site auf :80 — ohne TLS, ACME, State oder
-// Status-Seite. Nur für die E2E-Testumgebung.
+// Command jotti-reverse-proxy ist der Caddy-Container-Entrypoint für drei Modi, die
+// die Umgebung wählt: PROXY_HTTP_ONLY (E2E, Klartext-HTTP auf :80) vor JOTTI_DOMAIN
+// (Public, eine Site mit Let's-Encrypt-Zertifikat), sonst LAN-Mode (Install-State,
+// LAN-IP, Wildcard- plus Fallback-Site, Status-Seite).
+// Die jotti.rocks-Demo bleibt auf nginx und nutzt dieses Programm nicht.
 package main
 
 import (
@@ -58,12 +44,11 @@ type config struct {
 	leStaging     bool
 }
 
-// loadConfig liest die Umgebung und legt damit den Modus fest. dirExists prüft,
-// ob das Verzeichnis des State-Pfads gemountet ist; nur die LAN-Stacks mounten
-// es (proxy-state:/state). Fehlt es und ist auch JOTTI_DOMAIN leer, bleibt kein
-// gültiger Modus übrig: Der Public-Stack würde sonst still in den LAN-Modus
-// fallen und für jede SNI ein Zertifikat der internen CA ausstellen, während
-// der HTTP-Healthcheck weiter grün bleibt.
+// loadConfig legt den Modus fest. dirExists prüft, ob das State-Verzeichnis
+// gemountet ist (nur die LAN-Stacks mounten proxy-state:/state); fehlt es und ist
+// JOTTI_DOMAIN leer, bleibt kein gültiger Modus übrig — sonst fiele der
+// Public-Stack still in den LAN-Modus und stellte für jede SNI ein Zertifikat der
+// internen CA aus, während der Healthcheck grün bleibt.
 func loadConfig(getenv func(string) string, dirExists func(string) bool) (config, error) {
 	cfg := config{
 		domain:        strings.TrimSpace(getenv("JOTTI_DOMAIN")),
@@ -88,7 +73,6 @@ func loadConfig(getenv func(string) string, dirExists func(string) bool) (config
 	return cfg, nil
 }
 
-// dirExists meldet, ob path ein vorhandenes Verzeichnis ist.
 func dirExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.IsDir()
@@ -100,14 +84,11 @@ func main() {
 		log.Fatalf("Konfiguration: %v", err)
 	}
 
-	// PROXY_HTTP_ONLY gesetzt ⇒ Klartext-HTTP-Stack ohne TLS/ACME (nur E2E).
 	if cfg.httpOnly {
 		runHTTPOnlyMode(cfg)
 		return
 	}
 
-	// JOTTI_DOMAIN gesetzt ⇒ öffentlicher Self-Hoster-Stack (keine acme-dns-
-	// Registrierung, keine Status-Seite, Public-Caddyfile).
 	if cfg.domain != "" {
 		runPublicMode(cfg)
 		return
@@ -117,9 +98,7 @@ func main() {
 }
 
 // runPublicMode rendert und startet Caddy für den öffentlichen Self-Hoster-Stack:
-// eine Site für JOTTI_DOMAIN mit automatischem Let's-Encrypt-Zertifikat. Eine
-// fehlende E-Mail ist ein Konfigurationsfehler und bricht früh mit klarer Meldung
-// ab.
+// eine Site für JOTTI_DOMAIN mit automatischem Let's-Encrypt-Zertifikat.
 func runPublicMode(cfg config) {
 	if cfg.email == "" {
 		log.Fatalf("Public-Mode (JOTTI_DOMAIN=%s): LETSENCRYPT_EMAIL muss gesetzt sein", cfg.domain)
@@ -144,9 +123,8 @@ func runPublicMode(cfg config) {
 	runCaddyOrExit(cfg)
 }
 
-// runHTTPOnlyMode rendert und startet Caddy für die E2E-Testumgebung: eine
-// Klartext-HTTP-Site auf :80 ohne TLS, ACME oder Status-Seite. Das API-Routing
-// und die CSP teilen sich dasselbe Snippet wie die anderen Modi.
+// runHTTPOnlyMode rendert und startet Caddy für die E2E-Testumgebung: Klartext-HTTP
+// auf :80, ohne TLS, ACME oder Status-Seite.
 func runHTTPOnlyMode(cfg config) {
 	log.Printf("HTTP-Only-Mode aktiv (nur E2E) | Zugangsadresse: http://<host>")
 
@@ -156,8 +134,6 @@ func runHTTPOnlyMode(cfg config) {
 	runCaddyOrExit(cfg)
 }
 
-// runLANMode ist der lokale/Release-Ablauf: Installations-State, LAN-IP,
-// Wildcard- plus Fallback-Site und die Status-Seite.
 func runLANMode(cfg config) {
 	state, err := ensureState(stateDeps{
 		path:      cfg.statePath,
@@ -197,9 +173,7 @@ func runLANMode(cfg config) {
 	})
 	writeCaddyfileOrExit(cfg.caddyfilePath, caddyfile)
 
-	// Status-Seite parallel zu Caddy bereitstellen (im Compose nur an 127.0.0.1
-	// gemappt). Sie probt laufend Zertifikat und Rebind und wechselt von der
-	// Fallback- auf die grüne Adresse, sobald Caddy ausgestellt hat.
+	// Status-Seite parallel zu Caddy (im Compose nur an 127.0.0.1 gemappt).
 	status := newStatusServer(statusConfig{
 		zone:      cfg.zone,
 		state:     state,
@@ -218,22 +192,20 @@ func runLANMode(cfg config) {
 	runCaddyOrExit(cfg)
 }
 
-// caddyfileMode ist der Dateimodus der erzeugten Caddyfile: nur für den
-// Eigentümer lesbar, wie install.json (ensureState). Die Caddyfile des LAN-Mode
-// trägt die acme-dns-Zugangsdaten im Klartext.
+// caddyfileMode: nur für den Eigentümer lesbar — die LAN-Caddyfile trägt die
+// acme-dns-Zugangsdaten im Klartext.
 const caddyfileMode = 0o600
 
-// writeCaddyfileOrExit schreibt die gerenderte Caddyfile und bricht bei einem
-// Fehler ab — ohne Konfiguration hat der Start keinen Sinn. Der Chmod ist
-// nötig, weil os.WriteFile den Modus nur beim Anlegen setzt: eine am Zielpfad
-// bereits liegende Datei würde sie nur kürzen und deren Modus behalten.
+// writeCaddyfileOrExit bricht bei einem Fehler ab — ohne Konfiguration hat der
+// Start keinen Sinn.
 func writeCaddyfileOrExit(path, caddyfile string) {
 	if err := writeCaddyfile(path, caddyfile); err != nil {
 		log.Fatalf("Caddyfile schreiben: %v", err)
 	}
 }
 
-// writeCaddyfile ist der testbare Kern von writeCaddyfileOrExit.
+// writeCaddyfile chmodded explizit: os.WriteFile setzt den Modus nur beim Anlegen,
+// eine bereits vorhandene Datei behielte ihren.
 func writeCaddyfile(path, caddyfile string) error {
 	if err := os.WriteFile(path, []byte(caddyfile), caddyfileMode); err != nil {
 		return err
@@ -241,8 +213,6 @@ func writeCaddyfile(path, caddyfile string) error {
 	return os.Chmod(path, caddyfileMode)
 }
 
-// runCaddyOrExit startet Caddy als Vordergrundprozess und spiegelt dessen
-// Exit-Status. Gemeinsamer Abschluss von LAN- und Public-Mode.
 func runCaddyOrExit(cfg config) {
 	if err := runCaddy(cfg.caddyBin, cfg.caddyfilePath); err != nil {
 		var exitErr *exec.ExitError
@@ -253,9 +223,8 @@ func runCaddyOrExit(cfg config) {
 	}
 }
 
-// runCaddy startet Caddy als Kindprozess, reicht Terminationssignale durch und
-// blockiert bis Caddy endet — Caddy ist der lang laufende Vordergrundprozess des
-// Containers. Der Exit-Status wird vom Aufrufer gespiegelt.
+// runCaddy startet Caddy als Kindprozess und reicht Terminationssignale durch;
+// Caddy ist der lang laufende Vordergrundprozess des Containers.
 func runCaddy(bin, configPath string) error {
 	cmd := exec.Command(bin, "run", "--config", configPath, "--adapter", "caddyfile")
 	cmd.Stdout = os.Stdout

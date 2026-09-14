@@ -164,7 +164,6 @@ func TestGetHistorieFromEvents_ReversesOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	// First item should be payment (last event), second should be order (first event)
 	if history[0].Art != HistorieEintragZahlung || history[0].Zahlung == nil {
 		t.Fatalf("expected first item to be Zahlung, got kind %q", history[0].Art)
 	}

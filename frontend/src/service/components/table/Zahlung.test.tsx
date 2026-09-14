@@ -11,9 +11,8 @@ import type { Tisch } from '../../table/Tisch'
 import { ServiceDock } from '../ServiceDock'
 import { Zahlung } from './Zahlung'
 
-// Die Kassieren-Auswahl liegt seit A1 in TablePage; für die isolierten
-// Komponenten-Tests stellt dieser Harness die gehobene Steuerung inklusive der
-// Deckelung auf die unbezahlte Menge bereit.
+// Die Kassieren-Auswahl liegt in TablePage; dieser Harness stellt die gehobene
+// Steuerung inklusive der Deckelung auf die unbezahlte Menge bereit.
 function ZahlungHarness(
   props: Omit<ComponentProps<typeof Zahlung>, 'mengenSteuerung'>,
 ) {
@@ -106,12 +105,10 @@ describe('Zahlung feste Spalte (ab lg)', () => {
     )
 
     expect(screen.getByText('Bratwurst Normal')).toBeInTheDocument()
-    // Restbetrag steht in der Spalte (nicht im Dock-Slot).
     expect(screen.getByText('Nach dieser Zahlung noch offen')).toBeVisible()
     const button = screen.getByRole('button', { name: 'Kassieren' })
     expect(button).toBeDisabled()
 
-    // Auswahl links aktiviert den Kassieren-Button rechts.
     await user.click(screen.getByRole('button', { name: 'Produkt hinzufügen' }))
     expect(screen.getByRole('button', { name: 'Kassieren' })).toBeEnabled()
   })
@@ -138,8 +135,6 @@ describe('Zahlung Positionsgruppen', () => {
     renderZahlung([position, fremdePosition])
 
     expect(screen.getByText('Bratwurst Normal')).toBeInTheDocument()
-    // Eingeklappt: Summen-/Namenszeile statt einzelner Positionsstepper; die
-    // Besteller-Angabe „von Kollegin" erscheint erst nach dem Aufklappen.
     expect(screen.getByText(/Pommes Normal · 2,50/)).toBeInTheDocument()
     expect(screen.queryByText('von Kollegin')).not.toBeInTheDocument()
 
@@ -188,11 +183,9 @@ describe('Zahlung „Meine auswählen"', () => {
     const user = userEvent.setup()
     renderZahlung([position, fremdePosition])
 
-    // Ausgangszustand: nichts ausgewählt, Restbetrag = voller Saldo.
     expect(screen.getByText('2 unbezahlt · 7,00 €')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Kassieren/ })).toBeDisabled()
 
-    // Erster Tap: eigene Position (2× 3,50 €) voll ausgewählt, fremde nicht.
     // Genau eine eigene Position → Singular „Meine Position auswählen".
     await user.click(
       screen.getByRole('button', {
@@ -204,7 +197,6 @@ describe('Zahlung „Meine auswählen"', () => {
     expect(bar).toBeEnabled()
     expect(bar).toHaveTextContent('7,00')
 
-    // Zweiter Tap: Button heißt jetzt „Auswahl aufheben" und leert alles.
     await user.click(screen.getByRole('button', { name: 'Auswahl aufheben' }))
     expect(screen.getByText('2 unbezahlt · 7,00 €')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Kassieren/ })).toBeDisabled()

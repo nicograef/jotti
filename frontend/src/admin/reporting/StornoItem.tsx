@@ -5,12 +5,8 @@ import { formatEuro, formatPositionName } from '@/lib/utils'
 import type { StornierungDetail } from './types'
 import { formatLocalTime, formatServicekraft } from './utils'
 
-// StornoItem rendert einen einzelnen Stornierungs-Eintrag einheitlich für das
-// Live-Dashboard und die Kassenberichte: Tisch/Direktverkauf + die betroffenen
-// Servicekräfte, Uhrzeit (HH:MM), Bar-Rückgabe-Status, Betrag und die
-// stornierten Positionen. Genannt wird zuerst, wen der Storno betrifft (wessen
-// Vorgang er rückgängig macht); wer ihn ausgelöst hat, folgt nur als gedämpfter
-// Zusatz, wenn er nicht selbst betroffen ist.
+// Genannt wird zuerst, wen der Storno betrifft; wer ihn ausgelöst hat, folgt
+// nur als gedämpfter Zusatz, wenn er nicht selbst betroffen ist.
 export function StornoItem({ storno }: { storno: StornierungDetail }) {
   const betroffene = storno.betroffene
     .map((b) => formatServicekraft(b.userName, b.name))

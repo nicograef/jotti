@@ -1,14 +1,11 @@
 name: Release
 
-# Produktweite SemVer-Tags (v0.X.Y) auf main sind der einzige Publish-Mechanismus.
-# Tag-Push  → baut, smoke-testet, pusht Images nach GHCR und veröffentlicht das
-#             Windows-ZIP als GitHub-Release.
-# Dispatch  → Dry-Run: baut und smoke-testet alles, publiziert aber nichts
-#             (Version dev-<shortsha>).
-#
-# Kein Test-Rerun: bei trunk-based Development war die CI auf dem getaggten Commit
-# bereits grün. Dieser Workflow prüft nur, was die CI nicht abdeckt — den Stack
-# aus docker-compose.release.yml hochfahren und /api/health abfragen.
+# Produktweite SemVer-Tags (v0.X.Y) auf main sind der einzige Publish-Mechanismus:
+# Tag-Push baut, smoke-testet, pusht die Images nach GHCR und veröffentlicht das
+# Windows-ZIP; Dispatch ist ein Dry-Run (Version dev-<shortsha>) ohne Publish.
+# Kein Test-Rerun: die CI war auf dem getaggten Commit bereits grün; geprüft wird
+# nur, was sie nicht abdeckt — der Stack aus docker-compose.release.yml und
+# /api/health.
 
 on:
   push:
@@ -54,9 +51,8 @@ jobs:
             echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Release-Notes aus den Conventional Commits seit dem letzten Tag rendern.
-      # Läuft in beiden Pfaden: beim Tag-Push wird das Ergebnis an das Release
-      # gehängt, beim Dispatch dient es nur als Vorschau (siehe Job-Summary).
+      # Release-Notes aus den Conventional Commits seit dem letzten Tag. Läuft in
+      # beiden Pfaden; beim Dispatch nur als Vorschau in der Job-Summary.
       - name: Changelog generieren
         id: changelog
         uses: orhun/git-cliff-action@v4
@@ -72,9 +68,8 @@ jobs:
             cat "${{ steps.changelog.outputs.changelog }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Alle vier Images lokal bauen und in den Docker-Store laden (--load), damit
-      # der Smoke-Test sie ohne Registry-Push verwenden kann. Push erst nach
-      # bestandenem Smoke-Test.
+      # --load, damit der Smoke-Test die Images ohne Registry-Push nutzen kann;
+      # gepusht wird erst nach bestandenem Smoke-Test.
       - name: Images bauen (--load)
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -131,11 +126,10 @@ jobs:
           echo "Smoke-Test fehlgeschlagen: /api/health wurde nicht healthy."
           exit 1
 
-      # Backup- und Verify-Pfad Ende-zu-Ende gegen den laufenden Release-Stack.
-      # Schlägt einer fehl, ist das Release rot (der Restore-Pfad bleibt bewusst
-      # unautomatisiert — sein psql-Kern ist mit dem Verify identisch).
-      # Der Verify bekommt den soeben erzeugten Dump explizit übergeben statt
-      # sich auf „neuester im Verzeichnis" zu verlassen.
+      # Backup- und Verify-Pfad Ende-zu-Ende gegen den laufenden Release-Stack;
+      # der Restore-Pfad bleibt bewusst unautomatisiert (sein psql-Kern ist mit
+      # dem Verify identisch). Der Verify bekommt den Dump explizit übergeben,
+      # nicht „neuester im Verzeichnis".
       - name: Smoke-Test — Backup ziehen
         id: backup
         run: |
@@ -155,8 +149,7 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.release.yml down -v
 
-      # Ab hier nur beim echten Release (Tag-Push) — der Dry-Run endet nach dem
-      # Smoke-Test.
+      # Ab hier nur beim echten Release (Tag-Push); der Dry-Run endet hier.
       - name: GHCR-Login
         if: steps.version.outputs.publish == 'true'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin

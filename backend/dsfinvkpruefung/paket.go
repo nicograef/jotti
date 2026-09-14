@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// Regel-Kennungen der Paket- und Dateinamensprüfung.
 const (
 	regelDateiname            = "dateiname"
 	regelPaketpflicht         = "paket-pflichtdatei"
@@ -16,13 +15,10 @@ const (
 	regelDateinameFremdformat = "dateiname-fremdformat"
 )
 
-// pruefePaketpflichtdateien stellt sicher, dass die beiden zwingenden
-// Beschreibungsdateien des Datenträgers vorhanden sind: die beschreibende
-// index.xml und die referenzierte GDPdU-DTD.
+// pruefePaketpflichtdateien: index.xml und die referenzierte GDPdU-DTD sind zwingend.
 //
-// Referenz: DSFinV-K 2.4 Tz. 1 „Erstellung der index.xml“ sowie die GoBD-Anlage
-// „Ergänzende Informationen zur Datenträgerüberlassung“ (Beschreibungsstandard):
-// der Datenträger enthält eine index.xml, die die zugehörige DTD referenziert.
+// Referenz: DSFinV-K 2.4 Tz. 1 „Erstellung der index.xml“ und die GoBD-Anlage
+// „Ergänzende Informationen zur Datenträgerüberlassung“ (Beschreibungsstandard).
 func pruefePaketpflichtdateien(dateien map[string][]byte) []Befund {
 	var befunde []Befund
 	if _, ok := dateien[indexDatei]; !ok {
@@ -40,17 +36,12 @@ func pruefePaketpflichtdateien(dateien map[string][]byte) []Befund {
 	return befunde
 }
 
-// pruefeDateinamen prüft die Dateinamensregeln des Datenträgers:
-//   - Die CSV-Dateinamen der DSFinV-K sind englisch und kleingeschrieben und liegen
-//     flach im Wurzelverzeichnis (kein Pfad-Anteil).
-//   - Es dürfen keine unerwarteten Fremdformate enthalten sein (nur index.xml, die
-//     DTD und *.csv).
+// pruefeDateinamen: DSFinV-K-CSVs sind englisch, kleingeschrieben und liegen flach im
+// Wurzelverzeichnis; außer index.xml, DTD und *.csv gehört nichts ins Archiv.
 //
-// Referenz: DSFinV-K 2.4 Anhänge A–E und die Dateiübersicht (Tz. 6, Auflistung der
-// csv-Dateinamen wie cashpointclosing.csv, transactions.csv …); die amtlichen
-// Dateinamen sind durchgängig kleingeschrieben und einheitlich englisch. Die GDPdU-
-// URL-Regel (gdpdu-01-09-2004.dtd, Element URL) lässt nur relative Namen zu — hier
-// als flache Wurzeldatei geprüft.
+// Referenz: DSFinV-K 2.4 Anhänge A–E und die Dateiübersicht (Tz. 6, csv-Dateinamen wie
+// cashpointclosing.csv, transactions.csv …), durchgängig kleingeschrieben und englisch.
+// Die GDPdU-URL-Regel lässt nur relative Namen zu — hier als flache Wurzeldatei geprüft.
 func pruefeDateinamen(dateien map[string][]byte) []Befund {
 	var befunde []Befund
 	for _, name := range sortierteNamen(dateien) {
@@ -86,9 +77,8 @@ func pruefeDateinamen(dateien map[string][]byte) []Befund {
 	return befunde
 }
 
-// istKleingeschrieben meldet, ob der Name keine Großbuchstaben enthält (ASCII).
-// Die amtlichen Dateinamen bestehen ausschließlich aus Kleinbuchstaben, Ziffern,
-// Unterstrich und dem Punkt der Endung.
+// istKleingeschrieben prüft auf ASCII-Großbuchstaben; die amtlichen Dateinamen bestehen
+// nur aus Kleinbuchstaben, Ziffern, Unterstrich und dem Punkt der Endung.
 func istKleingeschrieben(name string) bool {
 	for i := 0; i < len(name); i++ {
 		if name[i] >= 'A' && name[i] <= 'Z' {

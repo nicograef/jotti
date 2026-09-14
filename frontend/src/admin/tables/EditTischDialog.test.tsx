@@ -48,7 +48,6 @@ describe('EditTischDialog', () => {
 
     const deleteButton = screen.getByRole('button', { name: /Tisch löschen/i })
     expect(deleteButton).toBeDisabled()
-    // Die Begründung mit dem offenen Betrag steht als stets sichtbare Zeile.
     expect(
       screen.getByText(/Offener Saldo: 98,50 € — erst abrechnen/),
     ).toBeInTheDocument()
@@ -58,7 +57,6 @@ describe('EditTischDialog', () => {
     const user = userEvent.setup()
     const be = renderDialog(tisch({ id: 7, saldoCents: 0 }))
 
-    // Ohne Saldo öffnet der Löschen-Button den Bestätigungsdialog.
     await user.click(screen.getByRole('button', { name: /Tisch löschen/i }))
     await user.click(screen.getByRole('button', { name: 'Löschen' }))
 

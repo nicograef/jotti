@@ -42,7 +42,6 @@ describe('PositionAuswahlListe', () => {
       />,
     )
 
-    // Cola steht auf 2, Pommes auf 0.
     expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.getByText('0')).toBeInTheDocument()
   })
@@ -100,10 +99,9 @@ describe('PositionAuswahlListe', () => {
       />,
     )
 
-    // Der Name steht vollständig im DOM und wird nicht gekürzt: Zwei Varianten
-    // desselben Produkts dürfen in der Storno-/Umbuchungsauswahl nie gleich
-    // aussehen. Die tatsächliche Breite ist in jsdom nicht messbar — geprüft
-    // wird die Umbruch-Regel des Namens-Knotens.
+    // Zwei Varianten desselben Produkts dürfen in der Storno-/Umbuchungsauswahl
+    // nie gleich aussehen. Die Breite ist in jsdom nicht messbar — geprüft wird
+    // die Umbruch-Regel des Namens-Knotens.
     const name = screen.getByText(langerName)
     expect(name.className).toContain('break-words')
     expect(name.className).not.toContain('truncate')

@@ -14,7 +14,6 @@ vi.mock('react-router', () => ({
 
 let meineTische: TischSession[] = []
 let alleTische: AktiverTischMitFavorit[] = []
-// Je Query steuerbar: die drei Lesepfade der Seite scheitern unabhängig.
 const fehler = { meineTische: false, alleTische: false, uebersicht: false }
 const { reloadMeineTische, reloadAlleTische, reloadUebersicht } = vi.hoisted(
   () => ({
@@ -106,7 +105,6 @@ describe('TableSelectionPage', () => {
 
     expect(screen.getByText('Noch offen · 1')).toBeInTheDocument()
     expect(screen.getByText('Stammtisch')).toBeInTheDocument()
-    // Nicht favorisierte Tische erscheinen ohne Suche nicht.
     expect(screen.queryByText('Bar')).not.toBeInTheDocument()
   })
 
@@ -119,15 +117,13 @@ describe('TableSelectionPage', () => {
     const user = userEvent.setup()
     render(<TableSelectionPage />)
 
-    // Suchfeld und Treffer werden genau so angesprochen wie im e2e-Helper
-    // (support/servicekraft.ts oeffneTisch): Platzhalter-Teilstring plus
+    // Suchfeld und Treffer werden wie im e2e-Helper angesprochen
+    // (e2e/support/servicekraft.ts, oeffneTisch): Platzhalter-Teilstring plus
     // Button-Name „<Name> … <Saldo> €".
     await user.type(screen.getByPlaceholderText(/Tisch suchen/), 'Bar')
 
-    // Der nicht favorisierte Tisch erscheint als Treffer …
     const treffer = screen.getByRole('button', { name: /^Bar\b.*€/ })
     expect(treffer).toBeInTheDocument()
-    // … und ein Treffer öffnet den Tisch direkt.
     await user.click(treffer)
     expect(navigate).toHaveBeenCalledWith('/service/tische/2')
   })
@@ -162,7 +158,6 @@ describe('TableSelectionPage bei Ladefehler', () => {
     // Der Leer-Default (Übersicht 0,00 €) darf bei einem Fehler nicht
     // erscheinen — der Dienst wirkt sonst fälschlich abgerechnet.
     expect(screen.queryByText(/0,00 €/)).not.toBeInTheDocument()
-    // Der Alle-Tische-Drawer bleibt erreichbar.
     expect(
       screen.getByRole('button', { name: 'Alle Tische' }),
     ).toBeInTheDocument()
@@ -180,9 +175,7 @@ describe('TableSelectionPage bei Ladefehler', () => {
     expect(reloadUebersicht).toHaveBeenCalled()
   })
 
-  // Die Suche liest eine eigene Query. Scheitert nur sie, bleiben „Meine
-  // Tische" und die Übersicht stehen — sonst wäre bei einem Suchlisten-Fehler
-  // kein Tisch mehr erreichbar.
+  // Scheitert nur die Suchliste, wäre sonst kein Tisch mehr erreichbar.
   it('lässt Meine Tische stehen, wenn nur die Suchliste scheitert', () => {
     fehler.alleTische = true
     meineTische = [tischSession(1, 'Stammtisch', true)]
@@ -193,7 +186,6 @@ describe('TableSelectionPage bei Ladefehler', () => {
     expect(
       screen.getByText('Tischsuche konnte nicht geladen werden'),
     ).toBeInTheDocument()
-    // Kein stilles Suchfeld ohne Trefferliste.
     expect(
       screen.queryByPlaceholderText(/Tisch suchen/),
     ).not.toBeInTheDocument()

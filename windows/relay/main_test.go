@@ -208,8 +208,6 @@ func TestLoadConfigFromEnv(t *testing.T) {
 	}
 }
 
-// fakePrinter ist eine injizierbare Druck-Funktion, die je Ziel-IP die
-// Aufruf-Reihenfolge protokolliert und für vorgegebene IDs einen Fehler liefert.
 type fakePrinter struct {
 	mu        sync.Mutex
 	callsByIP map[string][]int
@@ -277,7 +275,6 @@ func TestVerarbeiteZyklusSkipNachErstfehler(t *testing.T) {
 	if want := []fehlversuch{{ID: 1, Fehler: "nicht erreichbar"}}; !reflect.DeepEqual(ergebnis.fehlversuche, want) {
 		t.Fatalf("fehlversuche: got %v, want %v", ergebnis.fehlversuche, want)
 	}
-	// Nach dem Erstfehler von IP1 darf nur Auftrag 1 versucht worden sein.
 	if want := []int{1}; !reflect.DeepEqual(printer.callsByIP["10.0.0.1"], want) {
 		t.Fatalf("IP1-Versuche: got %v, want %v", printer.callsByIP["10.0.0.1"], want)
 	}
@@ -303,7 +300,6 @@ func TestVerarbeiteGruppeFehlerInMitteUeberspringtRest(t *testing.T) {
 	if fehler == nil || fehler.ID != 2 || fehler.Fehler != "senden fehlgeschlagen" {
 		t.Fatalf("fehler: got %+v, want {2 senden fehlgeschlagen}", fehler)
 	}
-	// Auftrag 3 darf nach dem Fehler bei 2 nicht mehr versucht worden sein.
 	if want := []int{1, 2}; !reflect.DeepEqual(printer.callsByIP["10.0.0.1"], want) {
 		t.Fatalf("Versuche: got %v, want %v", printer.callsByIP["10.0.0.1"], want)
 	}

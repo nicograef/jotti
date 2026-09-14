@@ -25,8 +25,7 @@ type betreiberResponse struct {
 	Ort          string  `json:"ort"`
 	Steuernummer *string `json:"steuernummer"`
 	UstID        *string `json:"ustId"`
-	// ElsterGemeldetAm ist das Datum der ELSTER-Kassenmeldung als YYYY-MM-DD
-	// oder null, solange die Kasse noch nicht gemeldet wurde.
+	// ElsterGemeldetAm ist YYYY-MM-DD oder null, solange die Kasse nicht gemeldet ist.
 	ElsterGemeldetAm *string `json:"elsterGemeldetAm"`
 }
 

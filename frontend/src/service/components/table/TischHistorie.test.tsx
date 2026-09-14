@@ -176,7 +176,6 @@ describe('TischHistorie', () => {
 
     expect(screen.getByText('Bestellung')).toBeInTheDocument()
     expect(screen.getByText('+3,50 €')).toBeInTheDocument()
-    // Keine Inline-Aktionen mehr in der Zeile.
     expect(
       screen.queryByRole('button', { name: 'Stornieren' }),
     ).not.toBeInTheDocument()
@@ -227,7 +226,6 @@ describe('TischHistorie', () => {
       }),
     ])
 
-    // In der Liste gibt es keine destruktiven Aktionen.
     expect(
       screen.queryByRole('button', { name: /Stornieren/ }),
     ).not.toBeInTheDocument()
@@ -276,15 +274,12 @@ describe('TischHistorie', () => {
       { stornobelegDrucken },
     )
 
-    // Stornobeleg-Button ist vor dem Öffnen des Drawers nicht sichtbar
     expect(
       screen.queryByRole('button', { name: 'Stornobeleg drucken' }),
     ).not.toBeInTheDocument()
 
-    // Drawer der Warenrücknahme (erster Eintrag) öffnen
     fireEvent.click(screen.getByText('Warenrücknahme'))
 
-    // Stornobeleg-Button im Drawer sichtbar und auslösbar
     const belegButton = screen.getByRole('button', {
       name: 'Stornobeleg drucken',
     })
@@ -306,7 +301,7 @@ describe('TischHistorie', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Zahlung/ }))
 
-    // Der Gäste-Beleg heißt „Kassenbeleg", nicht generisch „Beleg" (#7).
+    // Der Gäste-Beleg heißt „Kassenbeleg", nicht generisch „Beleg".
     const belegButton = screen.getByRole('button', {
       name: 'Kassenbeleg drucken',
     })
@@ -329,7 +324,6 @@ describe('TischHistorie', () => {
       }),
     ])
 
-    // Zeile: Autotext als Titel, Zugang mit +-Betrag.
     expect(screen.getByText('Umbuchung von Tisch 2')).toBeInTheDocument()
     expect(screen.getByText('+3,50 €')).toBeInTheDocument()
 
@@ -337,8 +331,6 @@ describe('TischHistorie', () => {
       screen.getByRole('button', { name: /Umbuchung von Tisch 2/ }),
     )
 
-    // Detail: Titel ist der Autotext (nicht generisch „Umbuchung"); der Autotext
-    // erscheint nicht als Kommentar-Textfeld.
     const dialog = screen.getByRole('dialog')
     expect(
       within(dialog).getByText(/^Umbuchung von Tisch 2 ·/),
@@ -357,7 +349,6 @@ describe('TischHistorie', () => {
       }),
     ])
 
-    // Zeile: Autotext als Titel, Benutzerkommentar in Anführungszeichen in der Unterzeile.
     expect(screen.getByText('Umbuchung von Tisch 2')).toBeInTheDocument()
     expect(screen.getByText(/„Gast gewechselt“/)).toBeInTheDocument()
 
@@ -365,7 +356,6 @@ describe('TischHistorie', () => {
       screen.getByRole('button', { name: /Umbuchung von Tisch 2/ }),
     )
 
-    // Detail: Titel weiterhin der Autotext, Benutzerkommentar im Kommentarfeld.
     const dialog = screen.getByRole('dialog')
     expect(
       within(dialog).getByText(/^Umbuchung von Tisch 2 ·/),
@@ -397,9 +387,8 @@ describe('TischHistorie', () => {
     ).toBeInTheDocument()
   })
 
-  // A2: Storno und Umbuchung bestätigen über den Erfolgs-Pop (Text an den
-  // Aufrufer), nicht mehr per Toast oder kommentarlosem Schließen. Der Drawer
-  // schließt beim Erfolg; der Refetch läuft beim Pop-Schließen (TablePage).
+  // Storno und Umbuchung melden den Erfolg als Pop-Text an den Aufrufer; der
+  // Drawer schließt, der Refetch läuft beim Pop-Schließen in TablePage.
   it('meldet den Storno-Erfolg über den Pop-Text und schließt den Drawer', async () => {
     const user = userEvent.setup()
     const onErfolg = vi.fn()
@@ -474,7 +463,6 @@ describe('TischHistorie', () => {
 
     expect(screen.getByText('Korrektur')).toBeInTheDocument()
 
-    // Drawer öffnen: auch dort kein Stornobeleg-Button für eine Korrektur
     fireEvent.click(screen.getByText('Korrektur'))
     expect(
       screen.queryByRole('button', { name: 'Stornobeleg drucken' }),

@@ -21,8 +21,6 @@ import {
 import { ReportingResults } from './ReportingResults'
 import { SitzungsListe } from './SitzungsListe'
 
-// Export-Block „Für Steuerberater & Finanzamt": erklärt das DSFinV-K-Archiv im
-// Klartext und lädt es über den bestehenden useDsfinvkExport herunter.
 function ExportBlock({ kassensitzungNr }: { kassensitzungNr: number }) {
   const { exportieren, isPending } = useDsfinvkExport()
 
@@ -55,11 +53,6 @@ function ExportBlock({ kassensitzungNr }: { kassensitzungNr: number }) {
   )
 }
 
-// Kassenberichte zeigen die historische Auswertung abgeschlossener
-// Kassensitzungen: links die Sitzungsliste (aktive Sitzung als Hinweis, darunter
-// die abgeschlossenen als wählbare Karten), rechts der vollständige Tagesbericht
-// mit Steuersatz-Tabelle und DSFinV-K-Export. Laufende Sitzungen werden nur auf
-// dem Live-Dashboard ausgewertet.
 export function KassenberichtePage() {
   const { kassensitzungen, isPending: listLoading } =
     useAbgeschlosseneKassensitzungen()
@@ -73,8 +66,7 @@ export function KassenberichtePage() {
 
   return (
     <>
-      {/* Generischer Seitenkopf gehört nicht auf den gedruckten Z-Bon —
-          gedruckt wird nur die Berichtsspalte mit ihrem formalen Kopf. */}
+      {/* Der generische Seitenkopf gehört nicht auf den gedruckten Z-Bon. */}
       <div className="print:hidden">
         <AdminPageHeader
           titel="Berichte & Export"

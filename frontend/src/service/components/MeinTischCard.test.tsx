@@ -56,7 +56,6 @@ describe('MeinTischCard', () => {
   it('zählt offene (unbezahlte) Positionen und hebt die eigenen hervor', () => {
     const state = tischSession({
       saldoCents: 1050,
-      // p1 und p3 von mir, p2 von Kollegin.
       unbezahltePositionen: [
         position('p1', 1),
         position('p2', 2),
@@ -67,10 +66,8 @@ describe('MeinTischCard', () => {
 
     render(<MeinTischCard state={state} />)
 
-    // p1, p2, p3 = 3 offen, davon p1 und p3 von mir = 2.
     expect(screen.getByText('3 offen · 2 von dir')).toBeInTheDocument()
     expect(screen.queryByText('Alles bezahlt')).not.toBeInTheDocument()
-    // Saldo trägt das "Offen"-Label über dem Betrag.
     expect(screen.getByText('Offen')).toBeInTheDocument()
     expect(screen.getByText(/10,50\s*€/)).toBeInTheDocument()
   })

@@ -1,15 +1,9 @@
 import { formatEuro } from '@/lib/utils'
 
-// VariantNamePreis ist das Name/Preis-Paar der Admin-Produkt-Chips; VariantChip
-// ist sein einziger Consumer. Es MUSS in einem Flex-Container stehen: der Name
-// wächst und kürzt sich bei Überlänge (min-w-0 flex-1 truncate) und schiebt den
-// Preis an die feste Spaltenposition am rechten Rand; der Preis bleibt
-// inhaltsbreit und dadurch unverdrängbar (shrink-0, tabular-nums für gleich
-// breite Ziffern). Die Basis-Schriftgröße liefert der aufrufende Container; die
-// Aktion des Chips (Switch) steht neben diesem Container, nicht im Paar.
-// Die Bestellliste des Service nutzt das Paar bewusst nicht: dort bricht der
-// Variantenname um, statt zu kürzen, weil zwei gekürzte Namen desselben
-// Produkts gleich aussehen können (ProductList).
+// MUSS in einem Flex-Container stehen: Der Name wächst und kürzt sich
+// (min-w-0 flex-1 truncate), der Preis bleibt inhaltsbreit (shrink-0).
+// Die Bestellliste des Service nutzt das Paar nicht: Dort bricht der
+// Variantenname um, weil zwei gekürzte Namen gleich aussehen können.
 export function VariantNamePreis({
   name,
   preisCents,

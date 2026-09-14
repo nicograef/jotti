@@ -693,7 +693,7 @@ func TestBetriebstag_NachMitternachtOrtszeit(t *testing.T) {
 	}
 }
 
-// Eröffnen ohne konfigurierte TSE wird nicht gesperrt, aber im Log vermerkt (F6).
+// Eröffnen ohne konfigurierte TSE wird nicht gesperrt, aber im Log vermerkt.
 func TestKassensitzungEroeffnen_OhneTSE_LoggtWarnung(t *testing.T) {
 	var logbuf bytes.Buffer
 	ctx := zerolog.New(&logbuf).WithContext(context.Background())

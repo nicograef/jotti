@@ -1,20 +1,12 @@
 import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 
-// Wiederverwendbare Helfer für die Servicekraft-Flows (Tischservice). Die
-// Datei nutzt überwiegend zugängliche Selektoren (Rolle, Platzhalter,
-// Beschriftung) statt Test-IDs, passend zum Muster der Tracer-Bullet-Spec —
-// für Zeile (vollePositionsZeilen) und Saldo (tischSaldo) die data-slot-
-// Attribute, weil beide keine zugängliche Alternative tragen.
+// Zugängliche Selektoren statt Test-IDs; Ausnahme sind vollePositionsZeilen und
+// tischSaldo, die keine zugängliche Alternative tragen (data-slot).
 
-// zeileMit liefert die innerste Zeile (div), die sowohl den gegebenen Text als
-// auch einen Button mit dem gegebenen Namen enthält. So lassen sich einzelne
-// Varianten-/Positions-Zeilen ohne Test-IDs und ohne Index eindeutig treffen.
-// scope ist wahlweise die ganze Seite oder ein bereits eingegrenzter Bereich
-// (z. B. ein Drawer), damit sich Zeilen auch innerhalb eines Dialogs isolieren
-// lassen. Der „has"-Filter wird bewusst von der Seite aus gebaut (nicht vom
-// scope aus) — verkettet man ihn stattdessen vom selben scope, matcht
-// Playwright das Filter-Locator nicht zuverlässig gegen die Kandidaten.
+// Innerste Zeile (div) mit dem Text und einem Button dieses Namens; scope ist
+// die Seite oder ein Drawer. Der „has"-Filter wird bewusst von der Seite aus
+// gebaut: vom selben scope verkettet, matcht Playwright ihn nicht zuverlässig.
 export function zeileMit(
   scope: Page | Locator,
   text: string,
@@ -28,11 +20,9 @@ export function zeileMit(
     .last()
 }
 
-// oeffneHistorienDetail tippt die Historien-Zeile an, deren Beschriftung den
-// gegebenen Text enthält (z. B. „Bestellung … +2,50 €"). Historien-Zeilen sind
-// seit dem Redesign selbst Buttons ohne Inline-Aktionen — die ganze Zeile öffnet
-// den Detail-Drawer, in dem Umbuchen/Stornieren/Drucken liegen. Der Text muss die
-// Zeile eindeutig treffen (in den Specs über den Betrag).
+// Tippt die Historien-Zeile mit diesem Text an (z. B. „Bestellung … +2,50 €").
+// Die ganze Zeile ist ein Button und öffnet den Detail-Drawer mit
+// Umbuchen/Stornieren/Drucken; der Text muss sie eindeutig treffen (Betrag).
 export async function oeffneHistorienDetail(
   page: Page,
   text: string | RegExp,
@@ -43,10 +33,8 @@ export async function oeffneHistorienDetail(
   return drawer
 }
 
-// oeffneTisch navigiert von der Tischauswahl zur Detailseite eines Tisches
-// über die Hauptsuche, die über alle aktiven Tische greift und einen Treffer
-// direkt öffnet (funktioniert unabhängig davon, ob der Tisch bereits in
-// „Meine Tische" markiert ist).
+// Über die Hauptsuche, die alle aktiven Tische erfasst — unabhängig davon, ob
+// der Tisch schon in „Meine Tische" steht.
 export async function oeffneTisch(page: Page, tisch: string): Promise<void> {
   await page.goto('/service/tische')
   await page.getByPlaceholder('Tisch suchen').fill(tisch)
@@ -56,18 +44,12 @@ export async function oeffneTisch(page: Page, tisch: string): Promise<void> {
   await expect(page.getByRole('tab', { name: 'Bestellen' })).toBeVisible()
 }
 
-// Kategorie-Chips filtern die flache Variantenliste: nur die aktive Kategorie
-// steht im DOM. Der erste Chip (Essen) ist per Default aktiv; Getränke- oder
-// Sonstiges-Varianten erscheinen erst nach Klick auf den passenden Chip. Die
-// Chips fehlen, wenn nur eine Kategorie belegt ist — daher jeder Wechsel
-// tolerant (Chip nur klicken, wenn vorhanden).
+// Nur die aktive Kategorie steht im DOM; Essen ist per Default aktiv. Die Chips
+// fehlen, wenn nur eine Kategorie belegt ist — daher jeder Wechsel tolerant.
 const KATEGORIE_CHIPS = ['Essen', 'Getränke', 'Sonstiges']
 
-// produktGruppe grenzt die Zeilen eines Produkts ein: der innerste Container,
-// der sowohl den Gruppenkopf (Überschrift) als auch eine Variantenzeile trägt.
 // Variantennamen („Normal", „Klein") kommen in mehreren Produkten vor und stehen
-// in der flachen Liste alle gleichzeitig im DOM — erst die Gruppe macht eine
-// Zeile eindeutig.
+// gleichzeitig im DOM — erst die Gruppe macht eine Zeile eindeutig.
 export function produktGruppe(page: Page, produkt: string): Locator {
   return page
     .locator('div')
@@ -76,11 +58,7 @@ export function produktGruppe(page: Page, produkt: string): Locator {
     .last()
 }
 
-// waehleVariante fügt auf dem Bestellen-Tab eine Variante zur gewünschten
-// Menge der aktuellen Auswahl hinzu, ohne die Bestellung abzuschicken —
-// Baustein für Bestellungen mit mehreren Positionen. Die Zeile wird über
-// produktGruppe eingegrenzt, damit gleichnamige Varianten anderer Produkte sie
-// nicht mehrdeutig machen.
+// Fügt die Variante zur Auswahl hinzu, ohne die Bestellung abzuschicken.
 export async function waehleVariante(
   page: Page,
   produkt: string,
@@ -92,10 +70,8 @@ export async function waehleVariante(
     variante,
     'Variante hinzufügen',
   )
-  // Flache Liste: Varianten anderer Kategorien sind nach dem Chip-Filter nicht
-  // im DOM. Ist die Zeile nicht sichtbar, den passenden Kategorie-Chip
-  // aktivieren — der Produktname allein verrät die Kategorie nicht, daher
-  // reihum jeden vorhandenen Chip probieren, bis die Zeile erscheint.
+  // Der Produktname verrät die Kategorie nicht — reihum jeden Chip probieren,
+  // bis die Zeile im DOM erscheint.
   if (!(await variantenZeile.isVisible().catch(() => false))) {
     for (const label of KATEGORIE_CHIPS) {
       const chip = page.getByRole('button', { name: label, exact: true })
@@ -114,9 +90,7 @@ export async function waehleVariante(
   }
 }
 
-// bestellePosition nimmt auf dem aktuell offenen Tisch eine Bestellung über
-// den Bestellen-Tab auf: Variante zur gewünschten Menge hinzufügen (bei Bedarf
-// über den Kategorie-Chip), Bestellung im Drawer bestätigen.
+// Setzt einen offenen Tisch voraus; bestätigt die Bestellung im Drawer.
 export async function bestellePosition(
   page: Page,
   produkt: string,
@@ -137,12 +111,9 @@ export async function bestellePosition(
   ).toBeVisible()
 }
 
-// LANGE_BESTELLUNG_POSITIONEN ist eine lange, gemischte Bestellung: neun
-// unterschiedliche Varianten → neun Positionen im Beleg (Summe 52,00 €). Die
-// Variantennamen sind über alle gewählten Produkte hinweg eindeutig, damit
-// waehleVariante jede Zeile ohne Mehrdeutigkeit trifft. Teils lange Namen
-// (z. B. „Fr: Schnitzel mit Pommes") füllen die Kassieren- und Historien-Listen
-// mit genug nicht-umbrechendem Text für Drawer-Footer- und Überlauf-Regressionen.
+// Neun Varianten → neun Positionen, Summe 52,00 €. Die Namen sind über alle
+// Produkte hinweg eindeutig; die langen darunter („Fr: Schnitzel mit Pommes")
+// liefern den nicht-umbrechenden Text für Footer- und Überlauf-Regressionen.
 export const LANGE_BESTELLUNG_POSITIONEN: [
   produkt: string,
   variante: string,
@@ -158,9 +129,6 @@ export const LANGE_BESTELLUNG_POSITIONEN: [
   ['Tagesgericht', 'Fr: Schnitzel mit Pommes'],
 ]
 
-// nimmLangeBestellungAuf nimmt auf dem aktuell offenen Tisch eine Bestellung mit
-// allen LANGE_BESTELLUNG_POSITIONEN in einem Vorgang auf — Grundlage für die
-// langen Listen in den Drawern und den Servicekraft-Listen.
 export async function nimmLangeBestellungAuf(page: Page): Promise<void> {
   await page.getByRole('tab', { name: 'Bestellen' }).click()
   for (const [produkt, variante] of LANGE_BESTELLUNG_POSITIONEN) {
@@ -178,8 +146,6 @@ export async function nimmLangeBestellungAuf(page: Page): Promise<void> {
   ).toBeVisible()
 }
 
-// kassierePosition wechselt auf den Kassieren-Tab, wählt die Position mit dem
-// angegebenen Namen zur gewünschten Menge aus und schließt die Zahlung ab.
 export async function kassierePosition(
   page: Page,
   positionName: string,
@@ -200,14 +166,10 @@ export async function kassierePosition(
   await expect(page.getByText('Zahlung erfolgreich.').first()).toBeVisible()
 }
 
-// offeneTischNamen liest über den „Alle Tische"-Drawer alle Tische mit einem
-// Saldo ungleich 0,00 € aus. Der Kassenabschluss verlangt, dass jeder Tisch
-// ausgeglichen ist — das Demo-Drehbuch des laufenden Tages lässt bewusst
-// mehrere Tische in unterschiedlichen offenen Zuständen zurück (teilbezahlt,
-// teilgeliefert, frisch bestellt, …). Name und Saldo stehen im DOM als eigene
-// <span>-Kinder ohne Trennzeichen dazwischen (z. B. „Tisch 10,00 €" für
-// „Tisch 1" mit Saldo „0,00 €") — deshalb werden sie über je einen eigenen
-// <span> ausgelesen statt über den zusammengesetzten Button-Text.
+// Alle Tische mit Saldo ungleich 0,00 € aus dem „Alle Tische"-Drawer. Name und
+// Saldo stehen als eigene <span>-Kinder ohne Trennzeichen (z. B. „Tisch 10,00 €"
+// für „Tisch 1" mit Saldo „0,00 €") — deshalb je ein eigener <span> statt des
+// zusammengesetzten Button-Textes.
 async function offeneTischNamen(page: Page): Promise<string[]> {
   await page.goto('/service/tische')
   await page.getByRole('button', { name: 'Alle Tische' }).click()
@@ -227,10 +189,8 @@ async function offeneTischNamen(page: Page): Promise<string[]> {
   return namen
 }
 
-// zeigeAlleAn klappt — falls vorhanden — die Gruppe „Von anderen" auf, die die
-// Positionen anderer Servicekräfte standardmäßig eingeklappt hält. Der
-// Gruppenkopf trägt die Anzahl („Von anderen · 2"); nur klicken, wenn er
-// vorhanden ist (fehlt, sobald keine fremden Positionen offen sind).
+// Klappt die Gruppe „Von anderen" auf (Positionen fremder Servicekräfte, per
+// Default eingeklappt). Der Kopf fehlt, wenn keine fremden Positionen offen sind.
 async function zeigeAlleAn(page: Page): Promise<void> {
   const vonAnderenKopf = page.getByRole('button', { name: /^Von anderen ·/ })
   if (await vonAnderenKopf.isVisible().catch(() => false)) {
@@ -238,19 +198,14 @@ async function zeigeAlleAn(page: Page): Promise<void> {
   }
 }
 
-// vollePositionsZeilen liefert alle Positions-Zeilen (shadcn Item,
-// [data-slot="item"]) mit einem „Produkt hinzufügen"-Button — das grenzt sie
-// eindeutig von der umschließenden ItemGroup ab, die ebenfalls alle Buttons
-// enthält.
+// Der Button-Filter grenzt die Zeilen von der umschließenden ItemGroup ab, die
+// ebenfalls alle Buttons enthält.
 function vollePositionsZeilen(page: Page): Locator {
   return page.locator('[data-slot="item"]').filter({
     has: page.getByRole('button', { name: 'Produkt hinzufügen' }),
   })
 }
 
-// leseAuswahlZaehler liest die Unterzeile „N von N ausgewählt" einer
-// Positions-Zeile — die eine Stelle für Text und Regex, die waehleAlleVollAus
-// sowohl im Klick-Loop als auch für die Nachbedingung braucht.
 async function leseAuswahlZaehler(
   zeile: Locator,
 ): Promise<{ text: string; treffer: RegExpExecArray | null }> {
@@ -259,14 +214,10 @@ async function leseAuswahlZaehler(
   return { text, treffer }
 }
 
-// waehleAlleVollAus klickt in jeder Positions-Zeile so oft auf „+", bis die
-// Zeile voll ausgewählt ist — erkennbar an der Unterzeile „N von N ausgewählt"
-// (X == Y). Anders als der „Alle auswählen"-Button, der nur eigene Positionen
-// erfasst, gleicht diese Funktion jede sichtbare Zeile aus (auch fremde, sofern
-// zuvor über zeigeAlleAn aufgeklappt). Eine Obergrenze pro Zeile verhindert eine
-// Endlosschleife, falls die Vollauswahl-Formulierung unerwartet nie erscheint;
-// die Nachbedingung wird danach mit demselben Auswahl-Zähler hart geprüft —
-// ohne sie liefe die Funktion nach 50 erfolglosen Klicks stillschweigend weiter.
+// Klickt jede Zeile voll aus („N von N ausgewählt"). Anders als „Alle
+// auswählen" erfasst das auch fremde Zeilen (sofern über zeigeAlleAn
+// aufgeklappt). Die Obergrenze verhindert eine Endlosschleife; die harte
+// Nachbedingung verhindert, dass 50 erfolglose Klicks stillschweigend durchgehen.
 export async function waehleAlleVollAus(page: Page): Promise<void> {
   const zeilen = vollePositionsZeilen(page)
   const anzahlZeilen = await zeilen.count()
@@ -290,42 +241,31 @@ export async function waehleAlleVollAus(page: Page): Promise<void> {
   }
 }
 
-// tischSaldo liefert den Saldo im Tisch-Header (siehe TablePage) — die eine
-// Stelle für den data-slot-Selektor statt einer Kopie je Spec.
+// Saldo im Tisch-Header (siehe TablePage).
 export function tischSaldo(page: Page): Locator {
   return page.locator('[data-slot="tisch-saldo"]')
 }
 
-// warteAufTischGeladen wartet, bis der State-Fetch des Tisches fertig ist:
-// TablePage zeigt den Header-Saldo während des Ladens als Skeleton-Platzhalter
-// und rendert erst danach tischSaldo mit dem Euro-Betrag (z. B. „0,00 €"). Das
-// ist ein deterministisches Ready-Signal — erst danach ist der Tab-Inhalt
-// gerendert und Prüfungen auf Buttons/Positionszeilen lesen den fertigen DOM.
+// Ready-Signal: TablePage zeigt den Header-Saldo bis zum Ende des State-Fetch
+// als Skeleton; erst danach ist der Tab-Inhalt gerendert.
 async function warteAufTischGeladen(page: Page): Promise<void> {
   await expect(tischSaldo(page)).toHaveText(/\d,\d{2}\s*€/)
 }
 
-// settleAlleOffenenTische gleicht jeden Tisch mit offenem Saldo vollständig
-// aus: alle unbezahlten Positionen kassieren. Nötig, bevor der Kassenabschluss
-// angefordert werden kann (jeder Tisch muss ausgeglichen sein). Positionen
-// anderer Servicekräfte stehen in der eingeklappten Gruppe „Von anderen" — die
-// wird vor jeder Zählung/Auswahl aufgeklappt, sonst übersieht die Funktion
-// Positionen und bricht die Schleife vorzeitig ab.
+// Kassiert jeden Tisch mit offenem Saldo leer — nötig, bevor der Kassenabschluss
+// zulässig ist. Die Gruppe „Von anderen" wird vor jeder Zählung aufgeklappt,
+// sonst bleiben fremde Positionen unbemerkt offen.
 export async function settleAlleOffenenTische(page: Page): Promise<void> {
   const namen = await offeneTischNamen(page)
   for (const tisch of namen) {
     await oeffneTisch(page, tisch)
 
-    // Auf das Fertigladen des Tisches warten, bevor auf Buttons/Zeilen geprüft
-    // wird: TablePage rendert die Tab-Inhalte erst nach dem State-Fetch und zeigt
-    // den Header-Saldo bis dahin als Skeleton-Platzhalter. Ohne dieses
-    // Ready-Signal würden die isVisible()/count()-Prüfungen unten den noch leeren
-    // DOM lesen und den Kassieren-Zweig stumm überspringen (Fetch-Race).
+    // Ohne dieses Ready-Signal läsen die Prüfungen unten den noch leeren DOM und
+    // übersprängen den Kassieren-Zweig stumm (Fetch-Race).
     await warteAufTischGeladen(page)
 
-    // Alle unbezahlten Positionen kassieren (falls welche vorhanden sind). Der
-    // „Kassieren"-Button ist immer im DOM (nur deaktiviert bei leerer Auswahl)
-    // — ob es überhaupt unbezahlte Positionen gibt, zeigt die Positionsliste.
+    // Der „Kassieren"-Button ist immer im DOM (nur deaktiviert) — ob unbezahlte
+    // Positionen existieren, zeigt allein die Positionsliste.
     await page.getByRole('tab', { name: 'Kassieren' }).click()
     await zeigeAlleAn(page)
     if ((await vollePositionsZeilen(page).count()) > 0) {
@@ -338,9 +278,6 @@ export async function settleAlleOffenenTische(page: Page): Promise<void> {
   }
 }
 
-// abmelden meldet den aktuell eingeloggten Benutzer über das Benutzermenü ab
-// und wartet auf die Weiterleitung zur Login-Seite — zum Rollenwechsel
-// innerhalb einer Spec (z. B. Service → Serviceleitung → Admin).
 export async function abmelden(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Benutzermenü' }).click()
   await page.getByRole('menuitem', { name: 'Abmelden' }).click()

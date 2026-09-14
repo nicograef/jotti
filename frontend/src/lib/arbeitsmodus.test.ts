@@ -20,7 +20,6 @@ describe('arbeitsmodus', () => {
   it('liefert den gesetzten Modus zurück und persistiert ihn', () => {
     setArbeitsmodus('direktverkauf')
 
-    // Von außen beobachtbar: der Wert überlebt ein erneutes Lesen.
     expect(getArbeitsmodus()).toBe('direktverkauf')
     expect(localStorage.getItem('jotti-arbeitsmodus')).toBe('direktverkauf')
   })

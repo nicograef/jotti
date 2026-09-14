@@ -19,8 +19,6 @@ const (
 	EventTypeBestellungUmgebuchtV1   EventType = "bestellung-umgebucht:v1"
 )
 
-// --- Event-Data-Structs ---
-
 type BestellungAufgenommenV1Data struct {
 	BestellungID     string              `json:"bestellungId"`
 	Positionen       []PositionEventData `json:"positionen"`
@@ -29,10 +27,8 @@ type BestellungAufgenommenV1Data struct {
 }
 
 var bestellungAufgenommenV1DataSchema = z.Struct(z.Shape{
-	"BestellungID": z.String().UUID().Required(),
-	"Positionen":   z.Slice(positionSchema).Min(1).Required(),
-	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
-	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"BestellungID":     z.String().UUID().Required(),
+	"Positionen":       z.Slice(positionSchema).Min(1).Required(),
 	"GesamtPreisCents": z.Int().GTE(1).Required(),
 	"Kommentar":        z.String().Max(100),
 })
@@ -45,10 +41,8 @@ type ZahlungKassiertV1Data struct {
 }
 
 var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
-	"ZahlungID":  z.String().UUID().Required(),
-	"Positionen": z.Slice(positionSchema).Min(1).Required(),
-	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
-	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"ZahlungID":          z.String().UUID().Required(),
+	"Positionen":         z.Slice(positionSchema).Min(1).Required(),
 	"GesamtZahlungCents": z.Int().GTE(1).Required(),
 	"Kommentar":          z.String().Max(100),
 })
@@ -67,19 +61,16 @@ type StornierungErteiltV1Data struct {
 }
 
 var stornierungErteiltV1DataSchema = z.Struct(z.Shape{
-	"StornierungID": z.String().UUID().Required(),
-	"ZahlungID":     z.String().UUID().Required(),
-	"Positionen":    z.Slice(positionSchema).Min(1).Required(),
-	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
-	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"StornierungID":          z.String().UUID().Required(),
+	"ZahlungID":              z.String().UUID().Required(),
+	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(1).Required(),
 	"Kommentar":              z.String().Min(3).Max(100).Required(),
 })
 
-// BestellungKorrigiertV1Data ist die geldneutrale Stornierung noch unbezahlter
-// Positionen: eine reine Auftragskorrektur ohne Geld- und Umsatzwirkung, signiert als
-// Bestellung-V1 (ohne Zahlungszeile). Sie reduziert den offenen Betrag und nimmt die
-// Positionen aus den aktiven Listen.
+// BestellungKorrigiertV1Data ist die geldneutrale Stornierung noch unbezahlter Positionen:
+// reine Auftragskorrektur ohne Geld- und Umsatzwirkung, signiert als Bestellung-V1 (ohne
+// Zahlungszeile).
 type BestellungKorrigiertV1Data struct {
 	KorrekturID string              `json:"korrekturId"`
 	Positionen  []PositionEventData `json:"positionen"`
@@ -90,49 +81,39 @@ type BestellungKorrigiertV1Data struct {
 var bestellungKorrigiertV1DataSchema = z.Struct(z.Shape{
 	"KorrekturID": z.String().UUID().Required(),
 	"Positionen":  z.Slice(positionSchema).Min(1).Required(),
-	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
-	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
 	"GesamtCents": z.Int().GTE(1).Required(),
 	"Kommentar":   z.String().Max(100),
 })
 
-// BestellungUmgebuchtV1Data ist die geldneutrale Umbuchung unbezahlter Positionen
-// zwischen zwei Tischen. Quell- und Zielstrom erhalten je ein Event mit derselben
-// UmbuchungID; das Event auf dem Quelltisch trägt die ursprünglichen PositionIDs
-// (Abgang), das auf dem Zieltisch frische (Zugang). Die Projektion unterscheidet die
-// Richtung über den Tisch des Event-Subjects (QuellTischID vs. ZielTischID).
+// BestellungUmgebuchtV1Data ist die geldneutrale Umbuchung unbezahlter Positionen. Quell-
+// und Zielstrom erhalten je ein Event mit derselben UmbuchungID; der Abgang trägt die
+// ursprünglichen PositionIDs, der Zugang frische. Die Richtung folgt aus dem Tisch des
+// Event-Subjects (QuellTischID vs. ZielTischID).
 type BestellungUmgebuchtV1Data struct {
 	UmbuchungID  string              `json:"umbuchungId"`
 	QuellTischID int                 `json:"quellTischId"`
 	ZielTischID  int                 `json:"zielTischId"`
 	Positionen   []PositionEventData `json:"positionen"`
 	GesamtCents  int                 `json:"gesamtCents"`
-	// Kommentar trägt den Richtungs-Autotext ("Umbuchung auf/von Tisch X") und ist
-	// stets gesetzt. BenutzerKommentar ist der optionale, frei eingegebene Text; er
-	// fehlt im JSON, wenn leer (omitempty), damit Events ohne Benutzertext
-	// byte-identisch zum ursprünglichen Format bleiben.
+	// Kommentar trägt den Richtungs-Autotext ("Umbuchung auf/von Tisch X") und ist stets
+	// gesetzt. BenutzerKommentar ist optional und fehlt bei Leerstring im JSON (omitempty),
+	// damit Events ohne Benutzertext byte-identisch zum bestehenden Format bleiben.
 	Kommentar         string `json:"kommentar"`
 	BenutzerKommentar string `json:"benutzerKommentar,omitempty"`
 }
 
 var bestellungUmgebuchtV1DataSchema = z.Struct(z.Shape{
-	"UmbuchungID":  z.String().UUID().Required(),
-	"QuellTischID": z.Int().GTE(1).Required(),
-	"ZielTischID":  z.Int().GTE(1).Required(),
-	"Positionen":   z.Slice(positionSchema).Min(1).Required(),
-	// Muss positiv: eine Summe wird über Positionen mit Preis >= 1 Cent gebildet;
-	// 0 ist keine gültige Summe (0-Cent-Positionen sind nicht zulässig).
+	"UmbuchungID":       z.String().UUID().Required(),
+	"QuellTischID":      z.Int().GTE(1).Required(),
+	"ZielTischID":       z.Int().GTE(1).Required(),
+	"Positionen":        z.Slice(positionSchema).Min(1).Required(),
 	"GesamtCents":       z.Int().GTE(1).Required(),
 	"Kommentar":         z.String().Max(100),
 	"BenutzerKommentar": z.String().Max(100),
 })
 
-// --- Event-Erstellungsfunktionen ---
-
-// validateEventData validiert Event-Daten gegen ihr Schema und verpackt einen
-// Fehlschlag als Konstruktionsfehler ("<label> data validation failed: …").
-// Teilt sich jeder New...Event-Konstruktor im Paket kasse (diese Datei,
-// kassensitzung_events.go, direktverkauf_events.go).
+// validateEventData verpackt einen Schema-Fehlschlag als Konstruktionsfehler
+// ("<label> data validation failed: …").
 func validateEventData[T any](schema *z.StructSchema, data *T, label string) error {
 	if err := schema.Validate(data); err != nil {
 		issues := z.Issues.FlattenAndCollect(err)
@@ -142,7 +123,7 @@ func validateEventData[T any](schema *z.StructSchema, data *T, label string) err
 }
 
 func NewBestellungAufgenommenEvent(subject string, userID int, userName string, bestellungID string, positionen []Position, kommentar string) (e.Event, error) {
-	// Generate PositionIDs for each position (on a copy, so the caller's slice stays untouched)
+	// On a copy, so the caller's slice stays untouched.
 	positionen = slices.Clone(positionen)
 	for i := range positionen {
 		positionen[i].PositionID = uuid.New().String()
@@ -213,11 +194,8 @@ func NewBestellungKorrigiertEvent(subject string, userID int, userName string, p
 	return e.New(userID, userName, string(EventTypeBestellungKorrigiertV1), subject, data)
 }
 
-// NewBestellungUmgebuchtEvents erzeugt das verknüpfte Event-Paar einer Umbuchung:
-// ein Abgang auf dem Quelltisch (mit den übergebenen, ursprünglichen Positionen) und
-// ein Zugang auf dem Zieltisch (mit frischen PositionIDs, damit die Positionen dort
-// eigenständig weiterverarbeitet werden können). Beide teilen sich eine UmbuchungID
-// und werden vom Aufrufer atomar geschrieben.
+// NewBestellungUmgebuchtEvents erzeugt das Event-Paar einer Umbuchung (Abgang/Zugang).
+// Beide müssen vom Aufrufer atomar geschrieben werden.
 func NewBestellungUmgebuchtEvents(zNr int, quellTischID int, zielTischID int, userID int, userName string, quellPositionen []Position, gesamtCents int, quellKommentar string, zielKommentar string, benutzerKommentar string) (e.Event, e.Event, error) {
 	umbuchungID := uuid.New().String()
 
@@ -257,8 +235,6 @@ func NewBestellungUmgebuchtEvents(zNr int, quellTischID int, zielTischID int, us
 
 	return quellEvent, zielEvent, nil
 }
-
-// --- Build-from-Event-Funktionen ---
 
 func buildBestellungFromEvent(event e.Event) (Bestellung, error) {
 	if event.Type != string(EventTypeBestellungAufgenommenV1) {
@@ -366,12 +342,10 @@ func buildStornierungFromEvent(event e.Event) (Stornierung, error) {
 	return stornierung, nil
 }
 
-// buildKorrekturFromEvent baut die geldneutrale Korrektur als Stornierung auf. In
-// Historie und UI erscheinen beide Storno-Arten (kassenwirksame Warenrücknahme und
-// geldneutrale Korrektur) als „Stornierung", werden aber über das abgeleitete Feld
-// BarRueckgabe (hier false) sichtbar unterschieden. Die Daten wurden bei der
-// Event-Erstellung validiert, daher keine erneute Schema-Prüfung (der Kommentar ist
-// hier optional, anders als bei der Warenrücknahme).
+// buildKorrekturFromEvent baut die geldneutrale Korrektur als Stornierung mit
+// BarRueckgabe = false. Keine erneute Schema-Prüfung: die Daten wurden bei der
+// Event-Erstellung validiert, und der Kommentar ist hier optional (anders als bei der
+// Warenrücknahme).
 func buildKorrekturFromEvent(event e.Event) (Stornierung, error) {
 	if event.Type != string(EventTypeBestellungKorrigiertV1) {
 		return Stornierung{}, fmt.Errorf("unsupported event type: %s", event.Type)

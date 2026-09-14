@@ -1,14 +1,13 @@
 @echo off
 REM jotti aus dem letzten automatischen Backup wiederherstellen.
 REM
-REM Vor jedem Update sichert jotti-start.exe die Datenbank automatisch in das
-REM jotti-backups-Volume. Dieses Skript spielt das NEUESTE dieser Backups zurueck
-REM - z. B. wenn ein Update fehlgeschlagen ist. Daten, die seit dem Backup
-REM erfasst wurden, gehen dabei verloren.
+REM Vor jedem Update sichert jotti-start.exe die Datenbank ins jotti-backups-Volume.
+REM Dieses Skript spielt das NEUESTE dieser Backups zurueck; seit dem Backup erfasste
+REM Daten gehen dabei verloren.
 REM
 REM Das Skript startet jotti nicht selbst: nur jotti-start.exe uebergibt dem
-REM Reverse-Proxy die LAN-Adresse des Rechners. Zur zurueckgespielten Datenbank
-REM passt das vorherige Release.
+REM Reverse-Proxy die LAN-Adresse des Rechners. Zur zurueckgespielten Datenbank passt
+REM das vorherige Release.
 setlocal
 cd /d "%~dp0"
 set ENVFILE=%PROGRAMDATA%\jotti\.env

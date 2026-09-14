@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { DirektverkaufPage } from './DirektverkaufPage'
 
-// Steuerbarer Testzustand der beiden Lese-Hooks der Seite.
 const testState = vi.hoisted(() => ({
   produkteError: false,
   historieError: false,

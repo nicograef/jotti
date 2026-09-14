@@ -1,14 +1,6 @@
-// Einzige Quelle der Wahrheit für die Veröffentlichungs-Auswahl.
-//
-// Diese Liste bestimmt an *einer* Stelle, welche Dateien aus dem top-level
-// `docs/` als Website-Doku erscheinen. Sie wird von zwei Stellen gelesen:
-//   - der Content-Collection (Glob-Loader in `content.config.ts`),
-//   - dem Link-Rewriter (`link-rewriter.ts` / `remark-doc-links.ts`), der
-//     repo-relative Markdown-Links auf `/docs/<slug>/`-Routen abbildet.
-//
-// Pfade sind relativ zu `docs/`.
+// Pfade relativ zu `docs/`. Gelesen vom Glob-Loader (`content.config.ts`) und
+// vom Link-Rewriter (`link-rewriter.ts`), der auf `/docs/<slug>/` abbildet.
 export const publishedDocs = [
-  // Leitfaden: eine Schritt-Seite je Datei unter docs/leitfaden/.
   'leitfaden/was-ist-jotti.md',
   'leitfaden/betriebsarten.md',
   'leitfaden/installation.md',
@@ -25,7 +17,6 @@ export const publishedDocs = [
   'leitfaden/tse-sonderfaelle.md',
   'leitfaden/fehlersuche.md',
   'leitfaden/haeufige-fragen.md',
-  // Flache Referenzdokumente.
   'compliance.md',
   'steuerrecht.md',
   'verfahrensdokumentation.md',

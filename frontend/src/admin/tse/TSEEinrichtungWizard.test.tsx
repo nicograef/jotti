@@ -30,8 +30,7 @@ vi.mock('./hooks', () => ({
   useTSEKonfiguration: () => ({ testTSEVerbindung }),
 }))
 
-// Eine bereits eingerichtete TSE, die jotti übernehmen kann — der Weg, auf dem
-// Admin-PIN und Admin-PUK abgefragt werden.
+// UNINITIALIZED: übernehmbar, aber nur mit Admin-PIN bzw. Admin-PUK.
 const uebernehmbarerBefund: TSESetupBefund = {
   umgebung: 'TEST',
   vorhandeneTss: [
@@ -43,9 +42,7 @@ const uebernehmbarerBefund: TSESetupBefund = {
   ],
 }
 
-// Eine TSE, in der diese Kasse schon angemeldet ist: INITIALIZED plus
-// REGISTERED Client — einsatzbereit ohne privilegierte fiskaly-Operation und
-// damit ohne Admin-PIN.
+// INITIALIZED plus REGISTERED Client: einsatzbereit ohne Admin-PIN.
 const einsatzbereiterBefund: TSESetupBefund = {
   umgebung: 'TEST',
   vorhandeneTss: [
@@ -78,7 +75,6 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-// Führt den Wizard bis zum Befund-Schritt: Zugangsdaten eintippen und prüfen.
 async function bisZumBefund(
   user: ReturnType<typeof userEvent.setup>,
   befund: TSESetupBefund,
@@ -165,7 +161,6 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
     const vorZurAnlage = VorgangsRegisterSingleton.anzahlOffen()
 
     await user.click(screen.getByRole('button', { name: 'TSE einrichten' }))
-    // PUK und Admin-PIN stehen jetzt genau einmal auf dem Schirm.
     await screen.findByText('PUK-123456')
     const mitGeheimnissen = VorgangsRegisterSingleton.anzahlOffen()
     expect(mitGeheimnissen).toBe(vorZurAnlage + 1)
@@ -179,8 +174,7 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
     await screen.findByText('Verbindung bestätigt')
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(mitGeheimnissen)
 
-    // Erst „Fertig" verlässt den Schritt — und gibt mit den Geheimnissen auch
-    // die Zugangsdaten frei, die nach der Einrichtung niemand mehr braucht.
+    // Erst „Fertig" gibt Geheimnisse und Zugangsdaten frei.
     await user.click(screen.getByRole('button', { name: 'Fertig' }))
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })

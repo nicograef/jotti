@@ -25,30 +25,18 @@ interface VariantChipProps {
   onDeleted: () => void
 }
 
-// Varianten-Chip der Preisliste: Name und Preis öffnen per Klick den
-// Bearbeiten-Dialog, der Mini-Switch schaltet die Variante direkt
-// (aktiv/inaktiv) ohne Dialog. Inaktive Chips sind gedämpft und mit „aus"
-// markiert.
-//
-// Die Chevrons an den Chip-Rändern verschieben die Variante innerhalb ihres
-// Produkts. Sie zeigen nach links und rechts, weil die Chips horizontal
+// Die Chevrons zeigen nach links und rechts, weil die Chips horizontal
 // umbrechen — die Pfeilrichtung folgt der sichtbaren Anordnung, nicht der
-// Richtungs-Benennung der API. Bei nur einer Variante gibt es nichts zu
-// tauschen; dann trägt der Chip die Pfeile gar nicht erst.
+// Richtungs-Benennung der API.
 export function VariantChip(props: VariantChipProps) {
   const [editOpen, setEditOpen] = useState(false)
   const isActive = props.variant.status === VarianteStatus.ACTIVE
   const verschiebbar = !(props.isFirst && props.isLast)
 
-  // 32-px-Ziele wie die Produkt-Pfeile in ProductItem. Das negative my hält den
-  // Chip auf seiner Höhe, obwohl der Button höher ist als sein Inhalt.
-  //
-  // `relative z-10` ist Pflicht, nicht Kosmetik: Der Switch bringt eine
-  // unsichtbare Trefferflächen-Erweiterung mit (after:-inset-x-3, 12 px je
-  // Seite) und liegt als positioniertes Element über allen unpositionierten
-  // Geschwistern. Ohne den eigenen Stapelkontext verschluckt sie die dem
-  // Switch zugewandte Kante von Pfeil und Name-Button — ein Tipp dort schaltet
-  // die Variante, statt sie zu verschieben oder zu öffnen.
+  // `relative z-10` ist Pflicht: Der Switch bringt eine unsichtbare
+  // Trefferflächen-Erweiterung mit (after:-inset-x-3, 12 px je Seite) und liegt
+  // sonst über den unpositionierten Geschwistern — ein Tipp auf die zugewandte
+  // Kante von Pfeil oder Name-Button schaltete dann die Variante.
   const chevronClass =
     'relative z-10 -my-1 shrink-0 cursor-pointer rounded-full'
 

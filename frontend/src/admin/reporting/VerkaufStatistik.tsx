@@ -5,18 +5,15 @@ import { formatEuro, formatPositionName } from '@/lib/utils'
 
 import type { ProduktStatistik } from './types'
 
-// Die Reporting-Antwort trägt die Kategorie als freien String (auch ein Wert,
-// den dieses Frontend noch nicht kennt), deshalb der Nachschlag über eine
-// String-Sicht auf die geteilten Labels und der Rückfall auf den Rohwert.
+// Die Reporting-Antwort trägt die Kategorie als freien String — auch einen, den
+// dieses Frontend nicht kennt. Daher die String-Sicht auf die geteilten Labels
+// und der Rückfall auf den Rohwert.
 const labels: Record<string, string> = KATEGORIE_LABEL
 
 function kategorieLabel(kategorie: string): string {
   return labels[kategorie] ?? kategorie
 }
 
-// StatistikZeile ist eine Tabellenzeile des Verkaufsabschnitts: Beschriftung,
-// ausgegebene Menge (ganze Portionen) und Umsatz. `bold` hebt die
-// Produkt-Zwischensumme hervor, `indent` rückt Variantenzeilen darunter ein.
 function StatistikZeile({
   label,
   ausgegebeneMenge,
@@ -48,14 +45,8 @@ function StatistikZeile({
   )
 }
 
-// VerkaufStatistik zeigt die Verkäufe je Produkt und Variante einer
-// Kassensitzung, in Kategorie-Abschnitte (Essen → Getränke → Sonstiges)
-// gegliedert. Beide Zahlen ruhen auf den aufgenommenen Bestellungen: die
-// ausgegebene Menge und der Umsatz (Bestellwert derselben Portionen zu
-// Bestellzeit-Preisen). Ein-Varianten-Produkte erscheinen als eine Zeile; sonst
-// Produkt-Zwischensumme mit eingerückten Varianten. Das Backend liefert die
-// Liste fertig gruppiert und sortiert. Bei vielen Produkten scrollt die Liste
-// innerhalb eines gedeckelten Bereichs, statt die Seite zu überlängen.
+// Der Umsatz ist der Bestellwert der ausgegebenen Portionen zu
+// Bestellzeit-Preisen; das Backend liefert die Liste gruppiert und sortiert.
 export function VerkaufStatistik({
   produktStatistik,
 }: {

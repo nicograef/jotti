@@ -1,14 +1,8 @@
 name: jotti-e2e
 
-# Selbststaendiger E2E-Test-Stack: baut die ECHTEN Images aus dem Checkout
-# (Backend, Frontend-nginx, Migrate, Reverse-Proxy) — dieselben Dockerfiles wie
-# der prod-Stack, aber ohne .env-Datei. Alle Secrets stehen fest und inline
-# (nur Testwerte), JOTTI_ENABLE_TEST_API=1 schaltet den HTTP-Reset-Endpoint frei,
-# und der Reverse-Proxy laeuft im Klartext-HTTP-Mode (PROXY_HTTP_ONLY=1) ohne
-# TLS/ACME und ist nur an 127.0.0.1 gebunden.
-#
-# Der oeffentliche HTTP-Port ist ueber E2E_HTTP_PORT parametrierbar (Default
-# 8080), damit parallele Laeufe sich nicht in die Quere kommen. Start:
+# Selbststaendiger E2E-Stack: dieselben Dockerfiles wie der prod-Stack, aber ohne
+# .env — alle Secrets fest und inline (nur Testwerte). E2E_HTTP_PORT (Default
+# 8080) und ein eigener Projektname halten parallele Laeufe auseinander:
 #
 #   E2E_HTTP_PORT=8081 docker compose -p jotti-e2e-p1 -f docker-compose.e2e.yml up -d --build
 #   E2E_BASE_URL=http://localhost:8081 pnpm --dir e2e test

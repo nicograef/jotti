@@ -6,19 +6,16 @@ import (
 	"strings"
 )
 
-// NetInterface beschreibt ein Netzwerk-Interface mit seinen IPv4-Adressen.
 type NetInterface struct {
 	Name string
 	IPs  []string
 }
 
-// SelectLANIP waehlt die LAN-IPv4 fuer die LAN_IP-Env des Caddy-Containers.
-// Bevorzugt wird die Outbound-Route-IP, sofern sie privat (RFC 1918) ist — auf
-// Windows-Rechnern mit Docker Desktop tragen vEthernet-/WSL-Adapter eigene
-// private 172.x-Adressen, die Smartphones nicht erreichen, weshalb "erste
-// private IPv4" falsch waere. Schlaegt das fehl, greift eine Heuristik ueber die
-// Interfaces mit Praeferenz 192.168.x > 10.x > 172.16-31.x. Loopback (127.x) und
-// Link-Local (169.254.x) werden ignoriert.
+// SelectLANIP waehlt die LAN-IPv4 fuer die LAN_IP-Env des Caddy-Containers:
+// bevorzugt die Outbound-Route-IP, sofern privat (RFC 1918). Auf Rechnern mit
+// Docker Desktop tragen vEthernet-/WSL-Adapter eigene private 172.x-Adressen, die
+// Smartphones nicht erreichen — "erste private IPv4" waere also falsch. Sonst greift
+// die Heuristik 192.168.x > 10.x > 172.16-31.x; Loopback und Link-Local zaehlen nie.
 func SelectLANIP(outboundIP string, interfaces []NetInterface) (string, error) {
 	if privateRank(outboundIP) >= 0 {
 		return strings.TrimSpace(outboundIP), nil
@@ -46,9 +43,6 @@ func SelectLANIP(outboundIP string, interfaces []NetInterface) (string, error) {
 	return best, nil
 }
 
-// privateRank bewertet eine IPv4 nach LAN-Eignung (kleiner = besser): 0 fuer
-// 192.168.x, 1 fuer 10.x, 2 fuer 172.16-31.x. -1 fuer alles andere, inklusive
-// Loopback, Link-Local, oeffentliche und IPv6-Adressen.
 func privateRank(raw string) int {
 	ip := net.ParseIP(strings.TrimSpace(raw))
 	if ip == nil {

@@ -1,23 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# jotti — every "…" (German low-high opening quote „, ASCII closing quote ")
-# citation of a UI control in docs/leitfaden/** must exist verbatim in
-# frontend/src: a citation that used to match a button, menu item or heading
-# has to be corrected the moment the frontend text changes underneath it.
-#
-# Not every "…" citation in the guide is a UI control, though — Windows
-# dialogs, a router's own web UI, GitHub, ELSTER, printed receipts and legal
-# wording get quoted too. scripts/check-ui-labels.allow names each of those
-# with its real source; an entry that no longer matches any citation turns
-# the gate red and is to be deleted.
-#
-# A citation broken across a line wrap (Markdown prose reflow, or a ">"
-# blockquote continuation) is joined into one string before matching: a
-# leading ">" blockquote marker is stripped from every line, fenced code
-# blocks are dropped (quoted console output inside one is not a UI
-# citation), and all whitespace — including the wrap itself — collapses to
-# single spaces.
+# jotti — every „…" citation of a UI control in docs/leitfaden/** must exist
+# verbatim in frontend/src, so a citation is corrected the moment the frontend
+# text changes underneath it. Citations of something else (Windows dialogs, a
+# router's web UI, GitHub, ELSTER, printed receipts, legal wording) are named
+# with their real source in scripts/check-ui-labels.allow; an entry that matches
+# no citation any more turns the gate red.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -28,8 +17,7 @@ cd "$PROJECT_ROOT"
 
 ALLOWLIST="scripts/check-ui-labels.allow"
 
-# Allowlist: one non-UI quote per line, then "# " and its source. Blank
-# lines and full-line comments are ignored.
+# Allowlist: one non-UI quote per line, then "# " and its source.
 mapfile -t allow_quotes < <(
   [ -f "$ALLOWLIST" ] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST" |
     sed -E 's/[[:space:]]*#.*$//; s/[[:space:]]+$//'
@@ -43,13 +31,12 @@ mapfile -t files < <(git ls-files ':(glob)docs/leitfaden/**/*.md')
 
 violations=0
 for file in "${files[@]}"; do
-  # Strip a leading "> " blockquote marker per line, drop fenced code
-  # blocks, then squeeze the whole file (including every line break) to a
-  # single space-separated line — awk/tr rather than perl or python, so this
-  # gate needs no interpreter beyond the bash/awk its sibling
-  # scripts/check-*.sh gates already depend on. A fence may sit inside a
-  # list item, indented past column 1 (docs/leitfaden/*.md fences all do),
-  # so the marker is matched after optional leading whitespace.
+  # Strip a leading "> " blockquote marker, drop fenced code blocks (quoted
+  # console output is not a UI citation), then squeeze the file including every
+  # line break to single spaces, so a citation broken across a line wrap still
+  # matches — awk/tr, so this gate needs no interpreter its siblings don't.
+  # Fences here sit indented inside list items, so the marker is matched after
+  # optional leading whitespace.
   joined="$(
     awk '
       /^[[:space:]]*```/ { infence = !infence; next }

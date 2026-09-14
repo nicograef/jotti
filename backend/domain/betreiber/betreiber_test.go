@@ -16,8 +16,7 @@ func TestNewBetreiber_LehntZuLangenVereinsnamenAb(t *testing.T) {
 	}
 }
 
-// Die amtliche MaxLength zählt Zeichen: Ein Vereinsname aus 60 Umlauten belegt
-// 120 Bytes und muss trotzdem durchgehen, 61 Zeichen nicht mehr.
+// Ein Vereinsname aus 60 Umlauten belegt 120 Bytes und muss durchgehen, 61 Zeichen nicht.
 func TestNewBetreiber_ZaehltZeichenNichtBytes(t *testing.T) {
 	anDerGrenze := strings.Repeat("ä", MaxLengthVereinsname)
 	darueber := strings.Repeat("ä", MaxLengthVereinsname+1)

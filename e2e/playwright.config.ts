@@ -1,26 +1,20 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// E2E_BASE_URL ist BASE_URL-agnostisch: Default ist der lokale Dev-Stack
-// (http://localhost, Frontend :80). Die CI und der eigene E2E-Stack setzen die
-// Variable auf die jeweils gemappte Adresse (z. B. http://localhost:8081).
+// Default ist der lokale Dev-Stack; CI und E2E-Stack setzen E2E_BASE_URL auf
+// ihre gemappte Adresse (z. B. http://localhost:8081).
 const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost'
 
-// isCI schaltet nur den Reporter (github statt list) und forbidOnly um. Die
-// Robustheits-Einstellungen (retries: 0, Trace/Screenshots nur bei Fehlversuch)
-// gelten dagegen global — auch lokal soll Flakiness sichtbar bleiben und sollen
-// die Artefakte klein bleiben.
+// isCI schaltet nur Reporter und forbidOnly um; retries: 0 gilt auch lokal,
+// damit Flakiness sichtbar bleibt.
 const isCI = !!process.env.CI
 
 export default defineConfig({
   testDir: './tests',
-  // Keine festen Wartezeiten in Specs: großzügige, aber endliche Timeouts, die
-  // Playwrights Auto-Waiting den Vortritt lassen.
+  // Keine festen Wartezeiten in Specs — Auto-Waiting hat Vorrang.
   timeout: 60_000,
   expect: { timeout: 15_000 },
-  // POST /api/test/reset-and-seed setzt globalen DB-Zustand zurück — Spec-Dateien
-  // dürfen sich deshalb nicht überlappen. fullyParallel bliebe nur unschädlich,
-  // solange jede Datei exklusiv auf ihrem eigenen Zustand arbeitet; da der Reset
-  // aber die gesamte DB betrifft, laufen Dateien seriell (ein Worker).
+  // POST /api/test/reset-and-seed setzt globalen DB-Zustand zurück: Spec-Dateien
+  // dürfen sich nicht überlappen, daher seriell mit einem Worker.
   fullyParallel: false,
   workers: 1,
   forbidOnly: isCI,
@@ -36,17 +30,14 @@ export default defineConfig({
   },
   projects: [
     {
-      // Admin arbeitet am Desktop (großer Viewport). Nur die Admin-Specs
-      // laufen hier — die mobile-service-Specs würden sonst zusätzlich im
-      // Desktop-Viewport doppelt ausgeführt.
+      // Nur Admin-Specs: sonst liefen die Service-Specs zusätzlich im
+      // Desktop-Viewport.
       name: 'desktop-admin',
       use: { ...devices['Desktop Chrome'] },
       testMatch: /admin-.*\.spec\.ts$/,
     },
     {
-      // Servicekräfte arbeiten mobil (BYOD-Smartphone, Hochkant-Viewport).
-      // Admin-Verwaltungsseiten sind Desktop-only und laufen daher nur im
-      // desktop-admin-Projekt.
+      // Servicekräfte arbeiten mobil (BYOD); Admin-Seiten sind Desktop-only.
       name: 'mobile-service',
       use: { ...devices['Pixel 7'] },
       testIgnore: /admin-.*\.spec\.ts$/,

@@ -18,8 +18,7 @@ function createFormMock() {
   } as unknown as UseFormReturn
 }
 
-// Submit, der erst auf Kommando endet: Nur so lässt sich der Zwischenstand
-// „läuft noch" prüfen.
+// Submit, der erst auf Kommando endet — nur so ist „läuft noch" prüfbar.
 function steuerbarerSubmit() {
   let scheitern!: (fehler: Error) => void
   const lauf = new Promise<void>((_resolve, reject) => {

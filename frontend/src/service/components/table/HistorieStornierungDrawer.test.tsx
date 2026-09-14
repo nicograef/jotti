@@ -67,7 +67,6 @@ describe('HistorieStornierungDrawer', () => {
     expect(body).not.toBeNull()
     expect(footer).not.toBeNull()
     expect(body).toContainElement(screen.getByText(/Bratwurst/))
-    // Das Pflichtfeld steht im nicht-scrollenden Footer, nicht im Body.
     const kommentar = screen.getByPlaceholderText('Kommentar (erforderlich)')
     expect(footer).toContainElement(kommentar)
     expect(body).not.toContainElement(kommentar)
@@ -110,18 +109,14 @@ describe('HistorieStornierungDrawer', () => {
 
     const button = screen.getByRole('button', { name: 'Stornierung erteilen' })
 
-    // Ohne Auswahl: der Grund nennt die fehlende Positionswahl, die Aktion sperrt.
     expect(button).toBeDisabled()
     expect(screen.getByText('Positionen auswählen')).toBeVisible()
 
-    // Position gewählt, aber Kommentar fehlt noch: Der Positions-Grund
-    // verschwindet, die Kommentar-Pflicht bleibt am Feld genannt.
     await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
     expect(screen.queryByText('Positionen auswählen')).not.toBeInTheDocument()
     expect(screen.getByText(/Kommentar ist erforderlich/)).toBeVisible()
     expect(button).toBeDisabled()
 
-    // Gültiger Kommentar: die Aktion wird frei.
     await user.type(
       screen.getByPlaceholderText('Kommentar (erforderlich)'),
       'Falsch bestellt',

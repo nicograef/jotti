@@ -33,9 +33,6 @@ import {
 import { BetragCentsSchema } from './Kassensitzung'
 import { ZaehlhilfeDialog } from './ZaehlhilfeDialog'
 
-// abschlussErfolgMeldung ergänzt die Erfolgsmeldung um die verbliebenen
-// Ausfall-Reste: Vorgänge, die die TSE noch nachsigniert, und Vorgänge ohne
-// Signatur mangels TSE-Konfiguration (Tag ohne TSE deutlich ausgewiesen).
 function abschlussErfolgMeldung(ergebnis: KassenabschlussErgebnis): string {
   const hinweise: string[] = []
   if (ergebnis.ausfallResteAnzahl > 0) {
@@ -57,8 +54,6 @@ function abschlussErfolgMeldung(ergebnis: KassenabschlussErgebnis): string {
     : 'Kasse abgeschlossen.'
 }
 
-// signaturenAusstehendMeldung erklärt den Gate-Block: Signaturen stehen noch
-// aus, die TSE holt auf, der Abschluss wird gleich erneut angefordert.
 function signaturenAusstehendMeldung(anzahl: number): string {
   const kern =
     anzahl <= 0
@@ -69,8 +64,6 @@ function signaturenAusstehendMeldung(anzahl: number): string {
   return `Der Abschluss wartet: ${kern}. Die TSE holt gerade auf – bitte gleich erneut abschließen.`
 }
 
-// offeneTischeWarnung fasst die noch offenen Tische zusammen: Anzahl und
-// Gesamtbetrag aus dem Live-Reporting. Null, wenn kein Tisch offen ist.
 function offeneTischeWarnung(
   anzahl: number,
   saldoCents: number,
@@ -105,28 +98,23 @@ export function KasseAbschliessenSection({
     mode: 'onTouched',
   })
 
-  // Dieser Abschnitt hält seinen Submit-Zustand von Hand und läuft damit an den
-  // generischen Trägern vorbei: Der eingetippte Ist-Bestand, die offene
-  // Rückfrage und der laufende Abschluss melden sich hier selbst.
+  // Submit-Zustand von Hand: Ist-Bestand, offene Rückfrage und laufender
+  // Abschluss laufen an den generischen Trägern vorbei.
   useOffenerVorgang(form.formState.isDirty || dialogOpen || loading)
 
   const sollBestandCents = kassenbestand?.sollBestandCents ?? null
-  // Live-Rechnung: der aktuell eingetippte Ist-Bestand (bei jeder Eingabe neu),
-  // nicht erst der beim Absenden festgehaltene Wert. useWatch ist memoisierbar
+  // Live-Rechnung mit dem aktuell eingetippten Wert; useWatch ist memoisierbar
   // (anders als form.watch).
   const gezaehltCents = useWatch({
     control: form.control,
     name: 'istBestandCents',
   })
-  // Anzeige-Differenz als Ist − Soll (Kassenperspektive): negativ = Fehlbetrag
-  // (fehlendes Geld, in Rot hervorgehoben), positiv = Überschuss. Das
-  // gebuchte Event trägt Soll − Ist (siehe kassensitzung_events.go); nur das
-  // Anzeige-Vorzeichen ist gedreht.
+  // Anzeige-Differenz als Ist − Soll: negativ = Fehlbetrag, positiv =
+  // Überschuss. Das gebuchte Event trägt Soll − Ist (siehe
+  // kassensitzung_events.go); nur das Anzeige-Vorzeichen ist gedreht.
   const liveDifferenzCents =
     sollBestandCents === null ? null : gezaehltCents - sollBestandCents
 
-  // Differenz für die Dialog-Vorschau (aus dem beim Absenden festgehaltenen
-  // Ist-Bestand), gleiche Ist − Soll-Perspektive wie die Live-Anzeige.
   const differenzCents =
     sollBestandCents === null || istBestandCents === null
       ? null
@@ -153,8 +141,8 @@ export function KasseAbschliessenSection({
       setIstBestandCents(null)
       onSuccess()
     } catch (error: unknown) {
-      // Das Gate blockiert bei noch ausstehenden Signaturen (409). Der Dialog
-      // bleibt offen; derselbe Button fordert den Abschluss erneut an.
+      // Gate-Block bei noch ausstehenden Signaturen (409): der Dialog bleibt
+      // offen, derselbe Button fordert den Abschluss erneut an.
       if (
         error instanceof BackendError &&
         error.code === 'signaturen_ausstehend'
@@ -196,9 +184,6 @@ export function KasseAbschliessenSection({
         </WarnKarte>
       )}
 
-      {/* €-Eingabe, Soll/Gezählt/Differenz und die Bestätigung sitzen in einer
-          gemeinsamen Gruppe, damit die Bestätigung direkt neben den Zahlen
-          steht, die sie bucht. */}
       <form
         onSubmit={(e) => {
           e.preventDefault()

@@ -3,10 +3,9 @@ import { z } from 'zod'
 import type { BackendClient } from '@/lib/Backend'
 import { DateStringSchema } from '@/lib/utils'
 
-// Die Adressfelder des Betreibers (Eingabe beim Speichern). Sie erscheinen auf
-// jedem Kassenbeleg (§ 6 KassenSichV). Grenzen und Trim spiegeln das zog-Schema
-// in domain/betreiber (Regel 5): die amtlichen Maximallängen der
-// DSFinV-K-Stammdaten.
+// Die Adressfelder erscheinen auf jedem Kassenbeleg (§ 6 KassenSichV). Grenzen
+// und Trim spiegeln das zog-Schema in domain/betreiber (Regel 5): die amtlichen
+// Maximallängen der DSFinV-K-Stammdaten.
 export const BetreiberEingabeSchema = z.object({
   vereinsname: z
     .string()
@@ -41,11 +40,10 @@ export const BetreiberEingabeSchema = z.object({
 })
 export type BetreiberEingabe = z.infer<typeof BetreiberEingabeSchema>
 
-// Der Betreiber wie ihn die Query liefert: Adressfelder plus der Status der
-// ELSTER-Kassenmeldung (Datum als YYYY-MM-DD oder null, solange noch nicht
-// gemeldet, § 146a Abs. 4 AO). Die Felder tragen hier keine Grenzen: Vor der
-// Einrichtung liefert die Query leere Felder, und ein Bestandswert kann länger
-// sein als die amtliche Maximallänge — der DSFinV-K-Export kürzt ihn.
+// elsterGemeldetAm ist das Datum der ELSTER-Kassenmeldung (§ 146a Abs. 4 AO),
+// null solange nicht gemeldet. Ohne Längengrenzen: vor der Einrichtung liefert
+// die Query leere Felder, und ein Bestandswert kann die amtliche Maximallänge
+// überschreiten — der DSFinV-K-Export kürzt ihn.
 export const BetreiberSchema = z.object({
   vereinsname: z.string(),
   strasse: z.string(),

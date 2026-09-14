@@ -1,15 +1,13 @@
 // Package zeit hält die Zeitzone, in der jotti Zeitpunkte anzeigt, druckt und
-// benennt. Ein Zeitpunkt liegt als UTC in der Datenbank; Beleg, Arbeitsbon,
-// Archivname und Meldedatum tragen deutsche Ortszeit, weil Gast, Betreiber und
-// Prüfung sie am Wandkalender lesen.
+// benennt: Die Datenbank speichert UTC, Beleg, Arbeitsbon, Archivname und
+// Meldedatum tragen deutsche Ortszeit.
 package zeit
 
 import (
 	"time"
-	// Die eingebettete Zonendatenbank muss registriert sein, bevor der init
-	// dieses Pakets die Zone lädt. Nur ein Import hier erzwingt diese
-	// Reihenfolge: die Init-Reihenfolge folgt dem Abhängigkeitsgraphen, und ein
-	// Blank-Import in main.go steht in keiner Abhängigkeit zu diesem Paket.
+	// Die eingebettete Zonendatenbank muss registriert sein, bevor der init dieses
+	// Pakets die Zone lädt; nur ein Import hier erzwingt diese Reihenfolge (ein
+	// Blank-Import in main.go steht in keiner Abhängigkeit zu diesem Paket).
 	_ "time/tzdata"
 )
 

@@ -63,7 +63,6 @@ func TestValidate_Errors(t *testing.T) {
 				Version:  1,
 				Data:     json.RawMessage(`{"k": "v"}`),
 			}
-			// mutate to make invalid
 			tc.mutate(e)
 			if err := e.Validate(); err == nil || err.Error() != tc.expected {
 				t.Fatalf("expected error %q, got %v", tc.expected, err)

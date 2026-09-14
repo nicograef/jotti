@@ -45,8 +45,7 @@ const testProdukt: Produkt = {
   updatedAt: '2025-01-01T00:00:00Z',
 }
 
-// Steuerbarer Testzustand: `tischId` bildet den :tischId-Param nach (Tischwechsel
-// ohne Remount), `produkte` speist die Bestell-Tab-Auswahl.
+// `tischId` bildet den :tischId-Param nach — Tischwechsel ohne Remount.
 const testState = vi.hoisted(() => ({
   tischId: '1',
   produkte: [] as Produkt[],
@@ -61,9 +60,8 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
-// Diese Suite prüft Kopfbereich und Fehlerzustand (identisch in beiden
-// Layouts). Auf dem Handy-Pfad trägt nur der Kopf den Tischnamen; ab lg zeigt
-// ihn zusätzlich die Abschluss-Spalte — der Split selbst ist manuelle Abnahme.
+// Handy-Pfad: Kopfbereich und Fehlerzustand sind in beiden Layouts gleich; der
+// Split selbst ist manuelle Abnahme.
 vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: () => true,
 }))
@@ -211,14 +209,13 @@ describe('TablePage', () => {
 
     const badge = await screen.findByText('2 unbezahlt')
     expect(screen.queryByText('Alles bezahlt')).not.toBeInTheDocument()
-    // "Unbezahlt" wartet auf die Servicekraft, ist aber kein Gefahrenzustand:
-    // Amber-Warn-Variante statt des Gefahren-Rots (destructive).
+    // „Unbezahlt" wartet auf die Servicekraft, ist kein Gefahrenzustand: Warn-Amber
+    // statt destructive.
     expect(badge).toHaveAttribute('data-variant', 'warn')
   })
 
-  // A1: Der gehobene Auswahl-State überlebt das Aus- und Wiedereinhängen der
-  // Radix-Tab-Inhalte (inaktive Tabs werden ausgehängt). Ohne das Heben nach
-  // TablePage ginge die Auswahl beim Tab-Wechsel verloren.
+  // Radix hängt inaktive Tab-Inhalte aus; ohne den nach TablePage gehobenen
+  // State ginge die Auswahl beim Tab-Wechsel verloren.
   it('behält den Bestell-Korb über einen Tab-Wechsel hinweg', async () => {
     testState.produkte = [testProdukt]
     getTischState.mockResolvedValue(stammtisch)
@@ -227,7 +224,6 @@ describe('TablePage', () => {
     renderPage()
 
     await screen.findByText('Stammtisch')
-    // Bestellen ist der Default-Tab: eine Variante in den Korb legen.
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )
@@ -235,7 +231,6 @@ describe('TablePage', () => {
       screen.getByRole('button', { name: /Bestellung überprüfen/ }),
     ).toHaveTextContent('3,50')
 
-    // Zur Historie und zurück — der Bestellen-Tab wird zwischenzeitlich ausgehängt.
     await user.click(screen.getByRole('tab', { name: 'Historie' }))
     await user.click(screen.getByRole('tab', { name: 'Bestellen' }))
 
@@ -255,7 +250,6 @@ describe('TablePage', () => {
 
     await screen.findByText('Stammtisch')
     await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
-    // Die eigene Position auswählen (Auth-userId 1).
     await user.click(screen.getByRole('button', { name: 'Produkt hinzufügen' }))
     expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
       '3,50',
@@ -269,10 +263,9 @@ describe('TablePage', () => {
     )
   })
 
-  // A1: Der useMengen-`max` deckelt nur beim `add`. Schrumpft die unbezahlte
-  // Menge einer bereits ausgewählten Position (Storno-Refetch, der erst beim
-  // Schließen des Erfolgs-Pops eintrifft), muss die gehobene Auswahl auf die
-  // neue Obergrenze sinken; eine verschwundene Position fällt heraus.
+  // Der useMengen-`max` deckelt nur beim `add`: schrumpft die unbezahlte Menge
+  // einer ausgewählten Position (Storno-Refetch beim Schließen des Erfolgs-Pops),
+  // muss die gehobene Auswahl sinken; eine verschwundene Position fällt heraus.
   it('deckelt die Kassieren-Auswahl, wenn ein Refetch kleinere unbezahlte Mengen liefert', async () => {
     const posMehr = { ...position('p1'), menge: 2 }
     const posWeg = position('p2')
@@ -306,7 +299,6 @@ describe('TablePage', () => {
 
     await screen.findByText('Stammtisch')
 
-    // Kassieren: p1 voll (2 von 2) und p2 (1 von 1) auswählen.
     await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
     await user.click(
       screen.getAllByRole('button', { name: 'Produkt hinzufügen' })[0],
@@ -321,7 +313,6 @@ describe('TablePage', () => {
       '10,50',
     )
 
-    // Storno auf der Historie; der Refetch läuft erst beim Schließen des Pops.
     await user.click(screen.getByRole('tab', { name: 'Historie' }))
     await user.click(screen.getByRole('button', { name: /Bestellung/ }))
     await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
@@ -336,8 +327,7 @@ describe('TablePage', () => {
     await screen.findByText('Stornierung gebucht.')
     await user.click(screen.getByRole('status'))
 
-    // Zurück auf Kassieren: p1 ist auf die neue Obergrenze (1) gedeckelt statt
-    // der kaputten Über-Deckelung „2 von 1", p2 ist ganz verschwunden.
+    // p1 ist auf die neue Obergrenze (1) gedeckelt, p2 ist verschwunden.
     await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
     expect(await screen.findByText(/1 von 1 ausgewählt/)).toBeInTheDocument()
     expect(screen.queryByText(/2 von 1 ausgewählt/)).not.toBeInTheDocument()
@@ -379,7 +369,6 @@ describe('TablePage', () => {
     testState.tischId = '2'
     rerender(renderUi())
 
-    // Nach dem Laden des neuen Tisches ist der Korb leer (Aktionsbutton deaktiviert).
     await waitFor(() => {
       expect(
         screen.getByRole('button', { name: /Bestellung überprüfen/ }),
@@ -387,10 +376,8 @@ describe('TablePage', () => {
     })
   })
 
-  // Der Tischwechsel ist einer der beiden realen Auslöser für ein Zähler-Leck
-  // im Vorgangs-Register: TablePage bleibt gemountet und setzt den Korb nur
-  // zurück. Ein stehen gebliebener Vorgang blockierte den erzwungenen Reload
-  // dauerhaft, ohne dass es jemandem auffiele.
+  // Tischwechsel: TablePage bleibt gemountet und setzt den Korb nur zurück. Ein
+  // stehen gebliebener Vorgang blockierte den erzwungenen Reload dauerhaft.
   it('gibt den Bestell-Korb beim Tischwechsel im Vorgangs-Register frei', async () => {
     testState.produkte = [testProdukt]
     getTischState.mockResolvedValue(stammtisch)
@@ -417,13 +404,11 @@ describe('TablePage', () => {
     rerender(renderUi())
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
 
-    // Und auch das Verlassen der Seite hinterlässt keinen offenen Vorgang.
     unmount()
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 
-  // A2: Eine Stornierung bestätigt über den Erfolgs-Pop; der Refetch des
-  // Tisch-States läuft erst beim Schließen des Pops, nicht schon beim Erfolg.
+  // Der Refetch des Tisch-States läuft erst beim Schließen des Pops.
   it('zeigt nach der Stornierung den Erfolgs-Pop und lädt erst beim Schließen neu', async () => {
     getTischState.mockResolvedValue(stammtisch)
     getTischHistorie.mockResolvedValue([
@@ -460,11 +445,9 @@ describe('TablePage', () => {
       screen.getByRole('button', { name: 'Stornierung erteilen' }),
     )
 
-    // Der Pop erscheint; bis zum Schließen läuft kein Refetch des Tisch-States.
     await screen.findByText('Stornierung gebucht.')
     expect(getTischState.mock.calls.length).toBe(ladeCalls)
 
-    // Pop schließen (Tap auf das Overlay) → jetzt lädt der Tisch-State neu.
     await user.click(screen.getByRole('status'))
     await waitFor(() => {
       expect(getTischState.mock.calls.length).toBeGreaterThan(ladeCalls)

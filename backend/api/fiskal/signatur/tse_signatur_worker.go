@@ -52,8 +52,6 @@ type tseSignaturStore interface {
 	CloseTSEStoerung(ctx context.Context, grundArt string) error
 }
 
-// tseWorkerClient beschreibt, was der Signatur-Worker von der TSE braucht:
-// signieren und den Ist-Zustand einer Transaktion abfragen.
 type tseWorkerClient interface {
 	tse.TSEClient
 	tse.TransactionRetriever
@@ -83,13 +81,11 @@ type tseSignaturWorker struct {
 	lockConn *sql.Conn
 	lockHeld bool
 
-	// Störungszustand nach einem TSE-weiten Fehler — kein Zustandsautomat,
-	// nur zwei Werte: Bis stoerungNaechsterVersuch lässt der Worker fiskaly
-	// in Ruhe, stoerungSerie zählt die Fehlerserie für den wachsenden
-	// Backoff. Die Half-Open-Probe ist schlicht der erste Auftrag des
-	// nächsten Durchlaufs: Scheitert er TSE-weit, bricht der Durchlauf
-	// erneut ab und der Backoff wächst; gelingt er, läuft die volle
-	// Aufarbeitung und die erste erfolgreiche Signatur beendet die Störung.
+	// Störungszustand nach einem TSE-weiten Fehler: Bis stoerungNaechsterVersuch
+	// lässt der Worker fiskaly in Ruhe, stoerungSerie zählt die Fehlerserie für den
+	// wachsenden Backoff. Die Half-Open-Probe ist der erste Auftrag des nächsten
+	// Durchlaufs: Scheitert er TSE-weit, wächst der Backoff; gelingt er, läuft die
+	// volle Aufarbeitung und die erste Signatur beendet die Störung.
 	stoerungNaechsterVersuch time.Time
 	stoerungSerie            int
 
@@ -99,8 +95,6 @@ type tseSignaturWorker struct {
 	clientCreds tse.Credentials
 }
 
-// Runner ist das einzige Interface, das Aufrufer (app.go) von den Workers
-// benötigen: einmal starten und auf ctx.Done() warten.
 type Runner interface {
 	Run(ctx context.Context)
 }
@@ -236,7 +230,6 @@ func (w *tseSignaturWorker) processOnce(ctx context.Context) error {
 	conf, err := w.settingsRepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			// Fehlende Konfiguration: offene Aufträge endgültig markieren.
 			return w.markiereNichtKonfiguriert(ctx)
 		}
 		// Nicht lesbare Konfiguration (echter DB-Fehler): nichts markieren, es
@@ -358,8 +351,6 @@ func tseStoerungBackoff(serie int) time.Duration {
 	return min(backoff, tseStoerungBackoffDeckel)
 }
 
-// clientFor liefert den über Durchläufe hinweg wiederverwendeten TSE-Client
-// (samt Auth-Token); neu gebaut wird nur bei geänderten Zugangsdaten.
 func (w *tseSignaturWorker) clientFor(creds tse.Credentials) (tseWorkerClient, error) {
 	if w.client != nil && w.clientCreds == creds {
 		return w.client, nil

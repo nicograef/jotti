@@ -101,7 +101,6 @@ describe('Direktverkauf', () => {
       }),
     )
 
-    // Nach Erfolg schließt der Drawer und die Auswahl ist zurückgesetzt.
     await waitFor(() => {
       expect(dialog).not.toBeInTheDocument()
     })
@@ -122,8 +121,6 @@ describe('Direktverkauf', () => {
     )
 
     expect(screen.getByText('Bratwurst')).toBeInTheDocument()
-    // Der Aktionsbutton der Spalte ist ohne Auswahl deaktiviert; es gibt keinen
-    // Dock-„Kassieren"-Button.
     const button = screen.getByRole('button', { name: 'Verkauf abschließen' })
     expect(button).toBeDisabled()
     expect(

@@ -117,7 +117,6 @@ describe('ReportingResults', () => {
         name: 'Tagesbericht Nr. 11 — Sommerfest Tag 1',
       }),
     ).toBeInTheDocument()
-    // Metadaten-Zeile: abschließender Benutzer und Kassensturz-Differenz.
     expect(screen.getByText(/von nico/)).toBeInTheDocument()
     // Das Event trägt Soll − Ist (-150 = Überschuss); der Bericht zeigt die
     // Kassenperspektive Ist − Soll.
@@ -159,7 +158,6 @@ describe('ReportingResults', () => {
   it('zeigt Steuersatz-Tabelle, Servicekräfte und Stornierungen ohne Tabs untereinander', () => {
     render(<ReportingResults result={reportingResult} sitzung={sitzung} />)
 
-    // Keine Tabs mehr: alle Abschnitte gleichzeitig sichtbar.
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
     expect(screen.getByText('Umsatz nach Steuersatz')).toBeInTheDocument()
     expect(screen.getByText('Regelsteuersatz (19 %)')).toBeInTheDocument()
@@ -172,11 +170,9 @@ describe('ReportingResults', () => {
 
     // Hauptzahl: Abzugeben (67,89 € kassiert − 3,00 € Rücknahmen).
     expect(screen.getByText('64,89 €')).toBeInTheDocument()
-    // Nebenzeile: die Herleitung des Abzugs.
     expect(
       screen.getByText('Kassiert 67,89 € · Rücknahmen 3,00 €'),
     ).toBeInTheDocument()
-    // Die Unterzeile grenzt den Direktverkauf aus.
     expect(
       screen.getByText(/Direktverkäufe sind nicht enthalten/),
     ).toBeInTheDocument()
@@ -220,7 +216,6 @@ describe('ReportingResults', () => {
 
     const marker = screen.getByText('1 Storno')
     expect(marker).toBeInTheDocument()
-    // Der Marker steht in der Zeile von Bea, nicht in der von Lena.
     const zeile = marker.closest('div')
     expect(zeile).toHaveTextContent('Bea (Bea B.)')
     expect(zeile).not.toHaveTextContent('lena')
@@ -230,17 +225,13 @@ describe('ReportingResults', () => {
     render(<ReportingResults result={reportingResult} sitzung={sitzung} />)
 
     expect(screen.getByText('Verkäufe pro Produkt')).toBeInTheDocument()
-    // Kategorie-Überschriften.
     expect(screen.getByText('Essen')).toBeInTheDocument()
     expect(screen.getByText('Getränke')).toBeInTheDocument()
-    // Mehr-Varianten-Produkt: Produktzeile plus zwei Variantenzeilen.
     expect(screen.getByText('Pommes')).toBeInTheDocument()
     expect(screen.getByText('groß')).toBeInTheDocument()
     expect(screen.getByText('klein')).toBeInTheDocument()
-    // Ein-Varianten-Produkt zu einer Zeile zusammengefasst (produktName ==
-    // varianteName erscheint genau einmal).
+    // Ein-Varianten-Produkt zu einer Zeile zusammengefasst: Name genau einmal.
     expect(screen.getByText('Cola 0,5 l')).toBeInTheDocument()
-    // Spaltenüberschriften und ein Umsatzwert.
     expect(screen.getByText('Ausgegeben')).toBeInTheDocument()
     expect(screen.getByText('25,00 €')).toBeInTheDocument()
   })

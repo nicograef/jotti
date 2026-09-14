@@ -33,17 +33,15 @@ import {
 
 type Umgebung = 'TEST' | 'LIVE'
 
-// Zustände, aus denen jotti eine vorhandene TSS übernehmen bzw. die Einrichtung
-// wiederaufnehmen kann. Ab UNINITIALIZED ist die Admin-PIN nötig.
+// Ab UNINITIALIZED verlangt die Übernahme die Admin-PIN (siehe brauchtPin).
 const UEBERNEHMBARE_ZUSTAENDE = ['CREATED', 'UNINITIALIZED', 'INITIALIZED']
 
 function istUebernehmbar(tss: TSSBefund): boolean {
   return UEBERNEHMBARE_ZUSTAENDE.includes(tss.state.toUpperCase())
 }
 
-// Einsatzbereit ohne Arbeit: eine INITIALIZED TSS mit bereits registriertem
-// (REGISTERED) Client braucht keine privilegierte fiskaly-Operation und damit
-// keine Admin-PIN (F8). jotti speichert dann nur noch die Konfiguration.
+// Eine INITIALIZED TSS mit registriertem (REGISTERED) Client braucht keine
+// privilegierte fiskaly-Operation und damit keine Admin-PIN.
 function istEinsatzbereit(tss: TSSBefund): boolean {
   return (
     tss.state.toUpperCase() === 'INITIALIZED' &&
@@ -55,8 +53,6 @@ function brauchtPin(tss: TSSBefund): boolean {
   return tss.state.toUpperCase() !== 'CREATED' && !istEinsatzbereit(tss)
 }
 
-// Fehlertexte, die mehrere Setup-Schritte teilen — einmal zentral, damit sie
-// nicht zwischen den Schritten auseinanderlaufen.
 const ZUGANGSDATEN_FEHLER = {
   tse_setup_zugangsdaten_ungueltig:
     'API-Key oder API-Secret ist ungültig. Bitte Zugangsdaten prüfen.',
@@ -94,9 +90,8 @@ export function TSEEinrichtungWizard() {
     })
   }
 
-  // Leert die Zugangsdaten mit: Nach „Fertig" sind sie im Backend hinterlegt,
-  // nach „Andere Zugangsdaten" sollen sie gerade ersetzt werden. Blieben sie
-  // stehen, meldete der Wizard oben einen offenen Vorgang, den es nicht gibt.
+  // Leert die Zugangsdaten mit: blieben sie stehen, meldete der Wizard oben
+  // einen offenen Vorgang, den es nicht gibt.
   const zurueckZuZugangsdaten = () => {
     setApiKey('')
     setApiSecret('')
@@ -411,10 +406,8 @@ function UebernahmeSchritt({
   )
 }
 
-// Auch wenn das PIN-Feld leer ist (Button deaktiviert), braucht der Admin einen
-// sichtbaren Ausweg statt einer Sackgasse. Dieser aufklappbare Hinweis nennt die
-// Wege, wenn die bei der Ersteinrichtung verwahrte Admin-PIN nicht vorliegt: den
-// PUK-Reset („Ich habe den Admin-PUK"), den fiskaly-Support und – in TEST – die
+// Sichtbarer Ausweg statt Sackgasse, wenn die verwahrte Admin-PIN fehlt: der
+// PUK-Reset („Ich habe den Admin-PUK"), der fiskaly-Support und – in TEST – die
 // Sekundäraktion „Stattdessen neue TSE anlegen".
 function PinFehltHinweis({ umgebung }: { umgebung: Umgebung }) {
   const [offen, setOffen] = useState(false)
@@ -445,11 +438,9 @@ function PinFehltHinweis({ umgebung }: { umgebung: Umgebung }) {
   )
 }
 
-// Wenn die Admin-PIN verloren oder nach fünf Fehlversuchen gesperrt ist, der
-// Admin aber den Admin-PUK verwahrt hat, setzt jotti damit eine frische PIN und
-// schließt die Übernahme ab – ohne neue, kostenpflichtige TSS. Gilt in TEST und
-// LIVE. Erfolg endet wie die übrigen Wege im ErgebnisSchritt (mit einmaliger
-// Anzeige der neuen PIN); ein falscher PUK bleibt als Meldung mit Ausweg stehen.
+// Ist die Admin-PIN verloren oder nach fünf Fehlversuchen gesperrt, setzt jotti
+// mit dem verwahrten Admin-PUK eine frische PIN und schließt die Übernahme ab —
+// ohne neue, kostenpflichtige TSS. Gilt in TEST und LIVE.
 function PukReset({
   apiKey,
   apiSecret,
@@ -562,9 +553,8 @@ function PukReset({
   )
 }
 
-// In TEST darf der Admin trotz vorhandener (ggf. PIN-loser, nicht übernehmbarer)
-// TSS bewusst eine neue, frische Test-TSE anlegen (F2). Klar untergeordnet als
-// aufklappbare Sekundäraktion, damit die Übernahme der Normalweg bleibt.
+// Nur in TEST: eine neue, frische Test-TSE trotz vorhandener TSS. Bewusst als
+// untergeordnete Sekundäraktion, damit die Übernahme der Normalweg bleibt.
 function NeueTseTrotzdemAnlegen({
   apiKey,
   apiSecret,
@@ -714,18 +704,16 @@ function ErgebnisSchritt({
     },
   })
 
-  // Welche Geheimnisse neu sind, steuert die Anzeige: eine Neu-Anlage liefert
-  // PUK und PIN, ein PUK-Reset nur eine neue PIN (der PUK bleibt unverändert),
-  // eine reine Übernahme keine — dann entfällt die Verwahr-Bestätigung.
+  // Eine Neu-Anlage liefert PUK und PIN, ein PUK-Reset nur eine neue PIN, eine
+  // reine Übernahme keine — dann entfällt die Verwahr-Bestätigung.
   const hatNeuenPuk = ergebnis.puk !== ''
   const hatNeuePin = ergebnis.adminPin !== ''
   const hatNeueGeheimnisse = hatNeuenPuk || hatNeuePin
   const abschlussFreigegeben = !hatNeueGeheimnisse || verwahrt
 
-  // Neue Geheimnisse stehen hier genau einmal auf dem Schirm und sind nirgends
+  // Die neuen Geheimnisse stehen genau einmal auf dem Schirm und sind nirgends
   // gespeichert — ein Reload macht sie unwiederbringlich. Der Haken „verwahrt"
-  // gibt den Vorgang bewusst nicht frei: Bis der Schritt verlassen wird, liest
-  // der Admin PUK und PIN womöglich noch einmal gegen seine Notiz.
+  // gibt den Vorgang bewusst nicht frei, bis der Schritt verlassen wird.
   useOffenerVorgang(hatNeueGeheimnisse)
 
   const handleAbschluss = async () => {
@@ -878,7 +866,6 @@ function UmgebungAnzeige({ umgebung }: { umgebung: Umgebung }) {
   )
 }
 
-// Übersetzt den technischen fiskaly-Zustand in eine laienverständliche Angabe.
 // Der rohe Zustand bleibt daneben als Kennung für den Support sichtbar.
 function tssZustandKlartext(state: string): string {
   switch (state.toUpperCase()) {

@@ -105,9 +105,6 @@ func TestQRDataURI(t *testing.T) {
 	}
 }
 
-// TestStatusPageWithoutGreenNameAsksForRestart hält Text und Verhalten des
-// noGreen-Zustands zusammen: Install-State und LAN-IP entstehen nur beim Start,
-// also nennt die Seite den Neustart und verspricht keine Selbstaktualisierung.
 func TestStatusPageWithoutGreenNameAsksForRestart(t *testing.T) {
 	s := newStatusServer(statusConfig{
 		zone:     "lokal.jotti.rocks",
@@ -128,7 +125,6 @@ func TestStatusPageWithoutGreenNameAsksForRestart(t *testing.T) {
 	if strings.Contains(notice, "aktualisiert sich automatisch") {
 		t.Errorf("der noGreen-Hinweis verspricht eine Selbstaktualisierung: %q", notice)
 	}
-	// Und die Seite zeigt wirklich diesen Hinweis, keinen anderen.
 	if !strings.Contains(page, headline) || !strings.Contains(page, notice) {
 		t.Errorf("die Seite zeigt den noGreen-Hinweis nicht:\n%s", page)
 	}

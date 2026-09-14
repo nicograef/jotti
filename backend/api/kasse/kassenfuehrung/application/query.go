@@ -12,9 +12,8 @@ type Query struct {
 	KassensitzungenRepo kassensitzungenRepo
 }
 
-// GetAktiveKassensitzung returns the active Kassensitzung — status 'offen' or
-// 'wird_abgeschlossen' — or nil if none exists. The barrier status belongs here so
-// the Kassentag page shows an interrupted Kassenabschluss instead of a closed Kasse.
+// GetAktiveKassensitzung returns the Kassensitzung in status 'offen' or 'wird_abgeschlossen', nil if
+// none — the barrier included, so an interrupted Kassenabschluss does not read as a closed Kasse.
 func (q Query) GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -28,8 +27,6 @@ func (q Query) GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung
 	return ks, nil
 }
 
-// GetKassenbestand returns the Soll-Kassenbestand for the given Kassensitzung
-// together with its four components (Anfangsbestand, Bareinnahmen, Einlagen, Entnahmen).
 func (q Query) GetKassenbestand(ctx context.Context, kassensitzungNr int) (kasse.Kassenbestand, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -43,8 +40,7 @@ func (q Query) GetKassenbestand(ctx context.Context, kassensitzungNr int) (kasse
 	return bestand, nil
 }
 
-// GetGeldtransitListe returns all Geldbewegungen (Einlagen/Entnahmen) of the given
-// Kassensitzung, newest first — a pure projection of the geldtransit-gebucht:v1 events.
+// GetGeldtransitListe returns the Einlagen/Entnahmen of the Kassensitzung, newest first.
 func (q Query) GetGeldtransitListe(ctx context.Context, kassensitzungNr int) ([]kasse.Geldtransit, error) {
 	log := zerolog.Ctx(ctx)
 

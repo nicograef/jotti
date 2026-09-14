@@ -45,8 +45,7 @@ var kommentarTestPositionen = []Position{
 	},
 }
 
-// kommentarTestPositionenMitID is for events whose schema requires a PositionID
-// (Zahlung, Stornierung) — unlike Bestellung, which generates the IDs itself.
+// For events whose schema requires a PositionID — Bestellung generates the IDs itself.
 var kommentarTestPositionenMitID = []Position{
 	{
 		PositionID:       "a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c",
@@ -59,8 +58,6 @@ var kommentarTestPositionenMitID = []Position{
 		Menge:            1,
 	},
 }
-
-// --- Stornierung: Kommentar ist Pflichtfeld (min 3 Zeichen) ---
 
 func TestNewStornierungErteiltEvent_Kommentar(t *testing.T) {
 	for _, tt := range kommentarTests {
@@ -76,8 +73,6 @@ func TestNewStornierungErteiltEvent_Kommentar(t *testing.T) {
 	}
 }
 
-// --- Bestellung: Kommentar ist optional ---
-
 func TestNewBestellungAufgenommenEvent_Kommentar(t *testing.T) {
 	for _, tt := range optionalKommentarTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -91,8 +86,6 @@ func TestNewBestellungAufgenommenEvent_Kommentar(t *testing.T) {
 		})
 	}
 }
-
-// --- Zahlung: Kommentar ist optional ---
 
 func TestNewZahlungKassiertEvent_Kommentar(t *testing.T) {
 	for _, tt := range optionalKommentarTests {

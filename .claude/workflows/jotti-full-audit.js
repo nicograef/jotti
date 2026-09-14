@@ -26,16 +26,13 @@ export const meta = {
   ],
 }
 
-// Reusable named workflow: Workflow({ name: 'jotti-full-audit', args: { date: 'YYYY-MM-DD' } })
-// Optional args: repo (default /home/user/jotti), handbook (skills root, its cleanup/ dir is used) or
-// cleanupDir (the cleanup skill dir directly), outFile,
-// rev (short sha of the audited checkout), branch (name shown in the header).
-// Split mode for small machines (the per-workflow agent cap is CPUs - 2): run one workflow per
-// area with { area: '<area name>', sectionsDir: '<dir>' } — each writes its consolidated
-// section and stats into sectionsDir — then one run with { assembleFrom: '<dir>' } assembles
-// the findings document from those files.
-// Model policy (owner decision): Fable only sweeps each area once and hands a brief to Opus;
-// Opus reviews, verifies, consolidates and assembles.
+// Workflow({ name: 'jotti-full-audit', args: { date: 'YYYY-MM-DD' } }); the
+// optional args and their defaults are read directly below.
+// Split mode for small machines (agent cap is CPUs - 2): one run per area with
+// { area, sectionsDir }, each writing its consolidated section there, then one
+// run with { assembleFrom } to assemble the findings document.
+// Model policy (owner decision): Fable only sweeps each area once and hands a
+// brief to Opus; Opus reviews, verifies, consolidates and assembles.
 const A = args || {}
 const REPO = A.repo || '/home/user/jotti'
 const HANDBOOK =
@@ -237,8 +234,7 @@ const ALL_UNITS = [
     kind: 'md',
     paths: [
       'docs/*.md',
-      'docs/adrs',
-      'docs/prds',
+      'docs/decisions.md',
       'docs/plans',
       'AGENTS.md',
       'CLAUDE.md',
@@ -429,7 +425,7 @@ const headerText = (stats) => `# Findings: Vollreview jotti (${DATE})
 > ${ALL_FLOWS.length} Cross-Layer-Flüsse; je Bereich ein Fable-Sweep als Übergabe, Reviewer und Prüfer: Opus 5.
 > Jeder Blocker/Major-Befund wurde von 2–3 unabhängigen Skeptikern gegengeprüft${stats.capped ? ` (gekappt, Blocker zuerst)` : ''}; Minor-Befunde sind ungeprüft.
 > Ausgeschlossen: \`backend/sqlc/dbgen/\`, Lockfiles, Binärdateien, \`docs/rechtsquellen/\`.${stats.failedUnits.length ? `\n> Ohne Ergebnis: ${stats.failedUnits.join(', ')}.` : ''}
-> Dieses Dokument ist die Eingabe für \`plan-jotti-audit-fixes.md\` (create-plan). Es enthält keine Personendaten.
+> Es enthält keine Personendaten.
 
 ## Zahlen
 

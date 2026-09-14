@@ -6,29 +6,26 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-// StornoWarenruecknahme ist der kassenwirksame Teil eines Stornos für genau eine
-// begleichende Zahlung: die zurückzunehmenden (bezahlten) Positionen und ihr
-// Gesamtbetrag. Je Eintrag entsteht ein stornierung-erteilt-Event mit genau dieser
-// ZahlungID.
+// StornoWarenruecknahme ist der kassenwirksame Teil eines Stornos für genau eine Zahlung:
+// die zurückzunehmenden Positionen und ihr Gesamtbetrag. Je Eintrag entsteht ein
+// stornierung-erteilt-Event mit dieser ZahlungID.
 type StornoWarenruecknahme struct {
 	ZahlungID   string
 	Positionen  []Position
 	GesamtCents int
 }
 
-// StornoAufteilung ist das Ergebnis des Storno-Routings einer „Stornieren"-Aktion:
-// die geldneutrale Korrektur noch unbezahlter Positionen (ein bestellung-korrigiert,
-// evtl. leer) und je betroffener Zahlung eine kassenwirksame Warenrücknahme
-// (ein stornierung-erteilt, FIFO nach Zahlung — älteste zuerst).
+// StornoAufteilung ist das Ergebnis des Storno-Routings: die geldneutrale Korrektur
+// unbezahlter Positionen (ein bestellung-korrigiert, evtl. leer) und je betroffener
+// Zahlung eine Warenrücknahme (ein stornierung-erteilt, FIFO — älteste Zahlung zuerst).
 type StornoAufteilung struct {
 	Korrektur        []Position
 	KorrekturCents   int
 	Warenruecknahmen []StornoWarenruecknahme
 }
 
-// zahlungRest hält je Zahlung (in Reihenfolge ihres Auftretens, FIFO) die noch
-// zurücknehmbaren bezahlten Mengen je PositionID sowie die der Zahlung zugeordneten
-// Storno-Positionen während der Aufteilung.
+// zahlungRest hält je Zahlung (FIFO in der Reihenfolge ihres Auftretens) die noch
+// zurücknehmbaren bezahlten Mengen je PositionID und die zugeordneten Storno-Positionen.
 type zahlungRest struct {
 	id       string
 	rest     map[string]int
@@ -37,13 +34,10 @@ type zahlungRest struct {
 }
 
 // ComputeStornoAufteilung spielt die Events einer Tisch-Session nach und teilt eine
-// Storno-Anforderung nach Bezahlstatus auf: unbezahlte Mengen werden geldneutral
-// korrigiert, bezahlte Mengen werden ihren begleichenden Zahlungen FIFO (älteste
-// Zahlung zuerst) zugeordnet und je Zahlung als Warenrücknahme zurückgenommen. Pro
-// Position wird zuerst die unbezahlte Menge korrigiert, der Rest aus den Zahlungen
-// genommen. Der zweite Rückgabewert ist false, wenn eine angeforderte Menge die noch
-// stornierbare (bestellte, nicht bereits zurückgenommene) Menge übersteigt oder eine
-// PositionID mehrfach referenziert wird (kein legitimer Client sendet Duplikate).
+// Storno-Anforderung nach Bezahlstatus auf: je Position zuerst die unbezahlte Menge
+// (geldneutrale Korrektur), der Rest FIFO aus den begleichenden Zahlungen. Der zweite
+// Rückgabewert ist false, wenn eine Menge die noch stornierbare übersteigt oder eine
+// PositionID mehrfach referenziert wird.
 func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAufteilung, bool) {
 	details := map[string]Position{}
 	unbezahlt := map[string]int{}
@@ -123,9 +117,7 @@ func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAuftei
 			}
 
 		default:
-			// Defense-in-depth: ein unbekannter Event-Typ im Journal darf keine
-			// stille Fehlaufteilung ergeben. Wie die übrigen Fehlerpfade dieser
-			// Funktion verweigern wir mit false statt zu raten.
+			// Unbekannter Event-Typ: verweigern statt raten — eine stille Fehlaufteilung wäre schlimmer.
 			return StornoAufteilung{}, false
 		}
 	}
@@ -144,7 +136,6 @@ func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAuftei
 		}
 		offen := ref.Menge
 
-		// 1. Unbezahlte Menge geldneutral korrigieren.
 		if frei := unbezahlt[ref.PositionID]; frei > 0 {
 			take := min(offen, frei)
 			unbezahlt[ref.PositionID] -= take
@@ -153,7 +144,6 @@ func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAuftei
 			aufteilung.KorrekturCents += det.EinzelpreisCents * take
 		}
 
-		// 2. Bezahlte Menge FIFO je Zahlung als Warenrücknahme zurücknehmen.
 		for _, z := range zahlungen {
 			if offen == 0 {
 				break
@@ -188,7 +178,6 @@ func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAuftei
 	return aufteilung, true
 }
 
-// mitMenge liefert eine Kopie der Positions-Vorlage mit der angegebenen Menge.
 func mitMenge(vorlage Position, menge int) Position {
 	vorlage.Menge = menge
 	return vorlage

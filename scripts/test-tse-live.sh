@@ -1,15 +1,11 @@
 #!/bin/bash
 
-# Faehrt die TSE-Live-Suite: Wegwerf-Postgres hochziehen, Migrationen
-# einspielen, .env.fiskaly-test laden und die Live-Tests (Live-Guard, echte
-# fiskaly-TEST-TSS) ausfuehren, danach aufraeumen. Ohne .env.fiskaly-test bricht
-# das Skript ab; ohne Credentials skippen die Tests selbst (Guard im Testcode).
-#
-# Eigener Container/Port, damit die Suite parallel zur normalen
-# Integrationstest-DB (scripts/test-integration.sh, Port 5432) laufen kann.
+# Faehrt die TSE-Live-Suite gegen die fiskaly-TEST-TSS. Eigener Container und
+# Port, damit sie parallel zur Integrationstest-DB (scripts/test-integration.sh,
+# Port 5432) laufen kann. Ohne Credentials skippen die Tests (Guard im Testcode).
 #
 # ACHTUNG: legt KEINE TSS an. Der TSS-anlegende Setup-Durchlauf lebt
-# ausschliesslich im separaten Opt-in-Target `make test-tse-live-setup`.
+# ausschliesslich im Opt-in-Target `make test-tse-live-setup`.
 
 set -euo pipefail
 
@@ -77,12 +73,10 @@ set -a
 . "$ROOT_DIR/.env.fiskaly-test"
 set +a
 
-# -run 'LiveSigniert|LiveSuite' schliesst den TSS-anlegenden Setup-Durchlauf
-# (TestFiskalySetup_LiveVollerDurchlauf) bewusst aus: Der bleibt allein im
-# separaten Target `make test-tse-live-setup`.
-# JOTTI_TSE_LIVE=1 ist das explizite Opt-in der Live-Guards: nur dieses Skript
-# (und test-tse-live-setup) setzt es; normale Integrationslaeufe skippen die
-# Live-Tests damit auch bei in der Shell exportierten Credentials.
+# -run klammert den TSS-anlegenden Setup-Durchlauf
+# (TestFiskalySetup_LiveVollerDurchlauf) aus. JOTTI_TSE_LIVE=1 ist das Opt-in der
+# Live-Guards: normale Integrationslaeufe skippen die Live-Tests damit auch bei
+# in der Shell exportierten Credentials.
 JOTTI_TSE_LIVE=1 \
 POSTGRES_HOST=localhost \
 POSTGRES_PORT=${PGPORT} \

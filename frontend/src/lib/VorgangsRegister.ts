@@ -1,25 +1,18 @@
 /**
- * Zählt die gerade offenen Vorgänge und benachrichtigt Interessenten bei jeder
- * Änderung.
+ * Zählt die gerade offenen Vorgänge und benachrichtigt Interessenten.
  *
  * „Offen" heißt: etwas, dessen Verlust eine Helferin ärgern würde — ein
  * gefüllter Korb, eine getroffene Auswahl, eine laufende Buchung, ein
  * angefangenes Formular. Der erzwungene Reload wartet, solange der Zähler nicht
- * null ist.
- *
- * Angemeldet wird ausschließlich über `useOffenerVorgang`, das sich im
- * Effekt-Cleanup wieder abmeldet; gelesen wird über `useAnzahlOffeneVorgaenge`.
- * Ein von Hand gehaltenes Paar aus An- und Abmeldung leckt über kurz oder
- * lang, und ein geleckter Zähler blockiert den Reload dauerhaft, ohne dass es
- * jemandem auffällt.
+ * null ist. Angemeldet wird ausschließlich über `useOffenerVorgang`: Ein von
+ * Hand gehaltenes Paar leckt, und ein geleckter Zähler blockiert den Reload.
  */
 class VorgangsRegister {
   private offen = 0
   private interessenten = new Set<() => void>()
 
   // Alle öffentlichen Methoden sind Pfeilfunktionen: `useSyncExternalStore`
-  // nimmt `abonnieren` und `anzahlOffen` als lose Referenzen entgegen (ohne
-  // `this`) und muss bei jedem Rendern dieselbe Referenz sehen.
+  // nimmt sie ohne `this` entgegen und muss dieselbe Referenz wiedersehen.
   public anmelden = (): void => {
     this.offen += 1
     this.benachrichtigen()
@@ -32,7 +25,6 @@ class VorgangsRegister {
 
   public anzahlOffen = (): number => this.offen
 
-  /** Meldet jede Änderung des Zählers; das Ergebnis beendet das Abo. */
   public abonnieren = (interessent: () => void): (() => void) => {
     this.interessenten.add(interessent)
     return () => {

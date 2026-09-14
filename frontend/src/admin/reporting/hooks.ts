@@ -15,7 +15,6 @@ import type {
 
 const reportingBackend = new ReportingBackend(BackendSingleton)
 
-// Query-Keys der Reporting-Ansichten.
 export const ABGESCHLOSSENE_KASSENSITZUNGEN_KEY =
   'abgeschlossene-kassensitzungen'
 export const REPORT_KEY = 'report'
@@ -48,8 +47,7 @@ export function useLiveReporting() {
   } = useQuery({
     queryKey: [LIVE_REPORTING_KEY],
     queryFn: () => reportingBackend.getLiveReporting(),
-    // Auto-Refresh: das Live-Dashboard aktualisiert sich alle 30 s ohne
-    // Interaktion (lokaler Server, eine Admin-Session).
+    // 30 s Auto-Refresh ist vertretbar: lokaler Server, eine Admin-Session.
     refetchInterval: 30_000,
   })
   return { liveData, isPending, dataUpdatedAt, refetch }
@@ -79,9 +77,8 @@ export function useDsfinvkExport() {
     },
   })
 
-  // Der Export läuft über useMutation und damit an den generischen Trägern
-  // vorbei. Ein Reload mitten im Lauf bräche das Archiv ab, bevor es der
-  // Browser als Download übernimmt.
+  // Ein Reload mitten im Lauf bräche das Archiv ab, bevor der Browser es als
+  // Download übernimmt.
   useOffenerVorgang(mutation.isPending)
 
   return { exportieren: mutation.mutate, isPending: mutation.isPending }

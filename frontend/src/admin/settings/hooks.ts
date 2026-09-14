@@ -10,8 +10,6 @@ import {
 
 const druckstationBackend = new DruckstationBackend(BackendSingleton)
 
-// Query-Keys der Druckstation-Ansichten. Nach Konfigurations- und
-// Druckauftrag-Aktionen werden die Listen über diese Keys invalidiert.
 export const DRUCKSTATIONEN_KEY = 'druckstationen'
 export const FEHLGESCHLAGENE_DRUCKAUFTRAEGE_KEY =
   'fehlgeschlagene-druckauftraege'

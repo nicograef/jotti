@@ -1,18 +1,9 @@
 // Command jotti-start ist der klickbare Windows-Starter fuer den lokalen
-// jotti-Betrieb. Ein Doppelklick (mit Administratorrechten, requireAdministrator-
-// Manifest) raeumt zuerst die Docker-Voraussetzungen aus (Daemon-Start,
-// Linux-Engine), holt das Install-Secret aus dem jotti-config-Volume (oder erzeugt
-// es beim Erststart) und spiegelt es in die .env. Danach prueft er die Ports, gibt
-// die Firewall frei und faehrt den Compose-Stack hoch. Zuletzt wartet er, bis jotti
-// unter /api/health bereit ist, und weist (non-fatal, online) auf eine neuere
-// Version hin.
-//
+// jotti-Betrieb (requireAdministrator-Manifest, eine UAC-Abfrage pro Start).
 // Host-Zustand (.env-Spiegel, last-version-Marker) liegt unter Windows kanonisch in
 // %PROGRAMDATA%\jotti — unabhaengig vom Entpack-Ort. Die reine Logik liegt in
-// windows/starter/core; diese Datei verbindet sie mit den echten Seiteneffekten. Alle
-// Windows-spezifischen Schritte laufen nur unter runtime.GOOS == "windows" — der
-// Repo-Dev-Lauf unter Linux ueberspringt sie und haelt den Zustand weiterhin
-// ordnerlokal.
+// windows/starter/core; die Windows-Schritte laufen nur unter GOOS == "windows",
+// der Repo-Dev-Lauf unter Linux ueberspringt sie und bleibt ordnerlokal.
 package main
 
 import (
@@ -42,8 +33,6 @@ func main() {
 	os.Exit(code)
 }
 
-// run fuehrt den gesamten Startablauf aus und liefert den Exit-Code (0 = Erfolg,
-// 1 = Preflight- oder Health-Fehler).
 func run() int {
 	fmt.Printf("jotti Starter %s\n\n", version)
 
@@ -70,8 +59,6 @@ func run() int {
 			return 1
 		}
 		if err := materializeEnvFromVolume(envPath, envCandidateDirs(stateDir, filepath.Dir(composePath))); err != nil {
-			// Wie bei den uebrigen Preflight-Schritten gibt run() die Meldung aus: der
-			// Fail-Safe-Abbruch zeigt die ausfuehrliche Anleitung, echte Fehler ein Praefix.
 			if errors.Is(err, errSecretFehltMitDaten) {
 				fmt.Println(core.DiagnoseSecretFehltMitDaten)
 			} else {
@@ -85,8 +72,7 @@ func run() int {
 		}
 		ensureFirewall()
 	} else {
-		// Linux-Dev-Lauf: ohne Docker-Daemon-Garantie und ohne Volume bleibt die
-		// .env ordnerlokal und wird nur erzeugt, wenn sie fehlt.
+		// Linux-Dev-Lauf: ohne Daemon-Garantie und ohne Volume bleibt die .env ordnerlokal.
 		created, err := core.MaterializeEnv(envPath, fileExists, writeEnvFile)
 		if err != nil {
 			fmt.Printf("Konfiguration (.env) konnte nicht erstellt werden: %v\n", err)
@@ -98,8 +84,6 @@ func run() int {
 	}
 
 	// Downgrade verweigern: eine aeltere Exe darf nicht gegen neuere Daten starten.
-	// readLastVersion liefert "" beim Erststart — dann greift die Sperre nicht
-	// (IsDowngrade gibt false zurueck, wenn eine Seite kein Semver ist).
 	if lv := readLastVersion(stateDir); core.IsDowngrade(version, lv) {
 		fmt.Printf("Start verweigert: Diese Version (%s) ist aelter als die zuletzt gestartete (%s).\n", version, lv)
 		fmt.Println("  Neuere Daten lassen sich nicht auf aeltere Versionen zurueckrollen.")
@@ -107,9 +91,8 @@ func run() int {
 		return 1
 	}
 
-	// Vor dem vollen `up` (das die Migrationen anstoesst) bei einem
-	// Versionswechsel automatisch die Daten sichern — der Sicherungspunkt
-	// entsteht so vor jeder schemaveraendernden Migration.
+	// Vor dem vollen `up` sichern: der Sicherungspunkt muss vor jeder
+	// schemaveraendernden Migration entstehen.
 	if err := maybeBackupBeforeUpdate(composePath, envPath, stateDir); err != nil {
 		fmt.Printf("Automatisches Pre-Update-Backup fehlgeschlagen: %v\n", err)
 		return 1
@@ -126,34 +109,22 @@ func run() int {
 		return 1
 	}
 
-	// Erst nach gesundem Stack festhalten, welche Version zuletzt lief — der
-	// Marker steuert das automatische Pre-Update-Backup beim naechsten Start
-	// (siehe core.ShouldBackup).
+	// Erst nach gesundem Stack festhalten — der Marker steuert das Pre-Update-Backup
+	// beim naechsten Start (siehe core.ShouldBackup).
 	if err := writeLastVersion(stateDir); err != nil {
 		fmt.Printf("Hinweis: Versionsmarker konnte nicht geschrieben werden (%v).\n", err)
 	}
 
 	printSuccess()
 
-	// Direkt nach dem Erfolg den Ersteinrichtungs-Code aus den Backend-Logs seit dem
-	// aktuellen Container-Start anzeigen. Non-fatal: fehlt der Marker (Einrichtung
-	// abgeschlossen) oder scheitert das Lesen, erscheint nur die Neustart-Meldung.
 	printAdminCode(composePath)
 
-	// Nach gesundem Start kurz online pruefen, ob eine neuere Version vorliegt, und
-	// nur darauf hinweisen. Non-fatal: offline/Timeout/Fehler ueberspringen still.
 	notifyIfUpdateAvailable()
 	return 0
 }
 
-// lastVersionFile haelt im Zustandsverzeichnis fest, welche jotti-Version zuletzt
-// gesund gestartet ist.
 const lastVersionFile = "last-version"
 
-// resolveStateDir bestimmt das Host-Zustandsverzeichnis und legt es an. Unter
-// Windows ist das %PROGRAMDATA%\jotti, das nicht zwangslaeufig existiert; unter
-// Linux-Dev ist es der bereits vorhandene ordnerlokale fallback (MkdirAll ist
-// dann ein No-op).
 func resolveStateDir(fallback string) (string, error) {
 	dir := core.StateDir(runtime.GOOS, os.Getenv("PROGRAMDATA"), fallback)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -162,19 +133,13 @@ func resolveStateDir(fallback string) (string, error) {
 	return dir, nil
 }
 
-// writeLastVersion schreibt die aktuelle Version in den last-version-Marker. Der
-// naechste Start vergleicht ihn mit der eigenen Version und zieht bei einem
-// Wechsel vor den Migrationen automatisch ein Backup. Ein Schreibfehler ist
-// nicht fatal: er kostet hoechstens dieses Backup, nie den laufenden Start.
 func writeLastVersion(stateDir string) error {
 	return os.WriteFile(filepath.Join(stateDir, lastVersionFile), []byte(version+"\n"), 0o644)
 }
 
-// envCandidateDirs liefert die Verzeichnisse, in denen materializeEnvFromVolume nach
-// einer bestehenden .env sucht (Reihenfolge: kanonisches Zustandsverzeichnis, Ordner
-// der Compose-Datei, Ordner der Programmdatei). Bewusst NICHT das Arbeitsverzeichnis:
-// nach der UAC-Elevation ist das C:\Windows\System32 (vgl. resolveComposeFile) — die
-// alte ordnerlokale .env liegt neben Compose/Exe, nicht dort.
+// envCandidateDirs liefert die .env-Suchverzeichnisse: Zustandsverzeichnis, Ordner
+// der Compose-Datei, Ordner der Programmdatei. Bewusst NICHT das Arbeitsverzeichnis
+// — nach der UAC-Elevation ist das C:\Windows\System32.
 func envCandidateDirs(stateDir, composeDir string) []string {
 	dirs := []string{stateDir, composeDir}
 	if exe, err := os.Executable(); err == nil {
@@ -183,10 +148,9 @@ func envCandidateDirs(stateDir, composeDir string) []string {
 	return dirs
 }
 
-// resolveComposeFile sucht die Compose-Datei immer relativ zur Programmdatei —
-// nach der UAC-Elevation ist das Arbeitsverzeichnis C:\Windows\System32, nicht
-// der Programmordner. Im Release-ZIP liegt docker-compose.release.yml neben der
-// Exe; im Repo-Dev-Lauf (go run) faellt die Suche aufs Arbeitsverzeichnis zurueck.
+// resolveComposeFile sucht die Compose-Datei relativ zur Programmdatei — nach der
+// UAC-Elevation ist das Arbeitsverzeichnis C:\Windows\System32. Im Repo-Dev-Lauf
+// faellt die Suche aufs Arbeitsverzeichnis zurueck.
 func resolveComposeFile() (string, error) {
 	var dirs []string
 	if exe, err := os.Executable(); err == nil {
@@ -210,14 +174,12 @@ func resolveComposeFile() (string, error) {
 		releaseComposeFile, localComposeFile)
 }
 
-// writeEnvFile passt os.WriteFile an die von core.MaterializeEnv erwartete
-// Signatur an und schreibt die Secrets nur fuer den Eigentuemer lesbar.
 func writeEnvFile(path string, data []byte) error {
 	return os.WriteFile(path, data, 0o600)
 }
 
-// fileExists meldet, ob path existiert; ein echter Stat-Fehler (z. B. fehlende
-// Rechte) wird durchgereicht, damit MaterializeEnv ihn nicht als "fehlt" wertet.
+// fileExists meldet, ob path existiert; ein echter Stat-Fehler wird durchgereicht,
+// damit er nicht als "fehlt" gewertet wird.
 func fileExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -229,10 +191,8 @@ func fileExists(path string) (bool, error) {
 	return false, err
 }
 
-// printSuccess gibt die Erfolgsmeldung aus: Version, Verweis auf die Status-Seite
-// (dort stehen die gruene Adresse und der QR-Code — der Starter kennt die
-// Install-ID nicht und baut keine eigene URL), Firewall-Bestaetigung und die
-// Sicherheitswarnung.
+// printSuccess verweist auf die Status-Seite statt auf eine eigene URL: der Starter
+// kennt die Install-ID nicht.
 func printSuccess() {
 	fmt.Println()
 	fmt.Printf("jotti Starter %s - jotti laeuft.\n\n", version)
@@ -245,7 +205,6 @@ func printSuccess() {
 	fmt.Println("SICHERHEIT: jotti niemals ins Internet oeffnen (keine Port-Weiterleitung im Router).")
 }
 
-// waitForEnter haelt das Doppelklick-Fenster offen, bis der Nutzer Enter drueckt.
 func waitForEnter() {
 	fmt.Print("\nEnter druecken zum Schliessen ...")
 	_, _ = bufio.NewReader(os.Stdin).ReadString('\n')

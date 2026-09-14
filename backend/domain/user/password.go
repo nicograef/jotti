@@ -16,9 +16,8 @@ import (
 
 var PasswordSchema = z.String().Trim().Min(6, z.Message("Passwort zu kurz")).Max(72, z.Message("Passwort zu lang"))
 
-// OnetimePasswordSchema ist die kanonische Formatregel des Einmalpassworts: genau
-// 6 Ziffern. Einzige Backend-Quelle dieser Regel (verwendet vom Passwort-Setzen-
-// Handler); umgebende Leerzeichen werden zuvor getrimmt.
+// OnetimePasswordSchema ist die einzige Backend-Quelle der Formatregel des
+// Einmalpassworts: genau 6 Ziffern, umgebende Leerzeichen zuvor getrimmt.
 var OnetimePasswordSchema = z.String().Trim().Match(
 	regexp.MustCompile(`^\d{6}$`),
 	z.Message("Das Einmalpasswort besteht aus genau 6 Ziffern"),
@@ -30,8 +29,6 @@ var ErrInvalidPassword = errors.New("invalid password")
 
 var ErrNoPassword = errors.New("no password set")
 
-// ErrOnetimePasswordLocked: das Einmalpasswort wurde nach zu vielen Fehlversuchen
-// ungültig; der Admin muss ein neues erzeugen.
 var ErrOnetimePasswordLocked = errors.New("onetime password locked after too many attempts")
 
 type argon2Configuration struct {
@@ -141,7 +138,6 @@ func verifyPassword(correctPasswordHash, userProvidedPassword string) error {
 		config.KeyLength,
 	)
 
-	// Perform constant-time comparison to prevent timing attacks
 	match := subtle.ConstantTimeCompare(config.HashRaw, computedHash) == 1
 	if !match {
 		return ErrInvalidPassword
@@ -152,10 +148,9 @@ func verifyPassword(correctPasswordHash, userProvidedPassword string) error {
 
 func generateOnetimePassword() (string, error) {
 	const passwordLength = 6
-	// Genau 6 gleichverteilte Ziffern (0–9), also 10^6 Kombinationen. Der kleine
-	// Coderaum ist unkritisch, weil das Einmalpasswort nur einmal gilt und nach
-	// MaxOnetimePasswordAttempts Fehlversuchen gesperrt wird (Brute-Force-Schutz).
-	// crypto/rand.Int zieht jede Ziffer gleichverteilt aus [0,10) — kein Modulo-Bias.
+	// 10^6 Kombinationen: unkritisch, weil das Einmalpasswort nur einmal gilt und
+	// nach MaxOnetimePasswordAttempts Fehlversuchen gesperrt wird. crypto/rand.Int
+	// zieht jede Ziffer gleichverteilt aus [0,10) — kein Modulo-Bias.
 	password := make([]byte, passwordLength)
 	for i := range passwordLength {
 		n, err := rand.Int(rand.Reader, big.NewInt(10))

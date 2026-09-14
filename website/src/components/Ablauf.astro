@@ -1,18 +1,8 @@
 ---
 import { Settings2, Smartphone, Euro, FileCheck } from '@lucide/astro'
 
-// Ablauf-Sektion der Landing (#ablauf).
-// Statische Astro-Sektion ohne client:-Direktive. Vier nummerierte Schritte vom
-// Einrichten bis zum Z-Bon, jeder mit eigenem Spektral-Akzent; im Desktop-Layout
-// verbindet eine spektrale Linie die Schritt-Icons. Icons über @lucide/astro
-// (build-time SVG, kein Client-JS) — der Plan verlangt die offiziellen
-// Lucide-Pakete statt eines Sprite-Nachbaus.
-//
-// Scroll-Reveal (.reveal) ist Progressive Enhancement; unter
-// prefers-reduced-motion bleibt alles statisch sichtbar (siehe landing.css).
-
-// accent färbt das Icon (Non-Text, 3:1 genügt); labelColor das Schritt-Label
-// als kleiner Text (AA 4,5:1 — Textvarianten, Violett besteht auch voll).
+// accent färbt das Icon (Non-Text, 3:1 genügt), labelColor den kleinen
+// Label-Text (AA 4,5:1).
 const schritte = [
   {
     Icon: Settings2,
@@ -66,7 +56,6 @@ const schritte = [
   <ol
     class="reveal relative mt-11 grid grid-cols-1 gap-8 min-[560px]:grid-cols-2 nav:grid-cols-4 nav:gap-5"
   >
-    {/* Spektrale Verbindungslinie hinter den Icons, nur im Vierspalter. */}
     <span
       class="absolute top-[31px] right-[8%] left-[8%] hidden h-[3px] rounded-sm opacity-50 nav:block"
       style="background: var(--spectral);"

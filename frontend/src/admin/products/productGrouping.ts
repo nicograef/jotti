@@ -9,9 +9,8 @@ import {
 import type { DruckstationConfig } from '../settings/DruckstationBackend'
 import { STEUERSATZ_LABEL } from './Produkt'
 
-// Stationsname je Kategorie für den Zusatz „Bons an Station …". Die
-// Druckstation trägt dieselbe Kategorie wie das Produkt; nur der Anzeigename
-// weicht leicht ab (Singular „Getränk").
+// Eigener Stationsname je Kategorie: nur der Anzeigename weicht vom
+// Produkt-Label ab (Singular „Getränk").
 const KATEGORIE_STATION_LABEL: Record<Kategorie, string> = {
   essen: 'Essen',
   getraenk: 'Getränk',
@@ -24,9 +23,8 @@ export interface ProduktGruppe {
   produkte: Produkt[]
 }
 
-// Gruppiert die Produkte in der festen Kategorie-Reihenfolge. Leere Kategorien
-// werden ausgelassen; die Produktreihenfolge innerhalb einer Gruppe bleibt
-// erhalten (Backend liefert nach Reihenfolge sortiert).
+// Leere Kategorien entfallen; die Produktreihenfolge liefert das Backend
+// bereits sortiert.
 export function groupProdukteByKategorie(produkte: Produkt[]): ProduktGruppe[] {
   return KATEGORIE_ORDER.map((kategorie) => ({
     kategorie,
@@ -35,9 +33,8 @@ export function groupProdukteByKategorie(produkte: Produkt[]): ProduktGruppe[] {
   })).filter((gruppe) => gruppe.produkte.length > 0)
 }
 
-// Einheitlicher Steuersatz einer Gruppe, sofern alle Produkte darin denselben
-// tragen — sonst null (dann wird der Steuersatz-Zusatz weggelassen, statt eine
-// falsche Sammelangabe zu machen).
+// null, sobald die Gruppe uneinheitlich ist — lieber kein Steuersatz-Zusatz als
+// eine falsche Sammelangabe.
 export function gemeinsamerSteuersatz(produkte: Produkt[]): Steuersatz | null {
   if (produkte.length === 0) {
     return null
@@ -46,9 +43,6 @@ export function gemeinsamerSteuersatz(produkte: Produkt[]): Steuersatz | null {
   return produkte.every((p) => p.steuersatz === erster) ? erster : null
 }
 
-// Zusatzzeile hinter der Kategorie-Überschrift: Steuersatz (wenn einheitlich)
-// und Stations-Hinweis (wenn für diese Kategorie ein Drucker konfiguriert ist).
-// Beide Teile sind optional; fehlen beide, ist die Zusatzzeile leer.
 export function kategorieZusatz(
   kategorie: Kategorie,
   produkte: Produkt[],
@@ -69,7 +63,6 @@ export function kategorieZusatz(
   return teile.join(' · ')
 }
 
-// Kopf-Unterzeile: „n Produkte · m Varianten · Änderungen wirken sofort …".
 // Nur nicht gelöschte Varianten zählen (Backend liefert bereits gefiltert).
 export function produktUnterzeile(produkte: Produkt[]): string {
   const anzahlProdukte = produkte.length

@@ -1,23 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# =============================================================================
-# jotti.rocks — First-Deploy Script for the project website
-#
-# Deploys the jotti.rocks setup:
-#   - https://jotti.rocks        → static landing page
-#   - https://demo.jotti.rocks   → demo app (frontend + backend API)
-#   - https://auth.jotti.rocks   → acme-dns API (trusted local TLS)
-#
-# Uses the standalone docker-compose.rocks.yml file.
-# Self-hosters should use scripts/prod-init.sh instead.
-#
-# Usage: ./scripts/rocks-init.sh
-# =============================================================================
+# jotti.rocks — first deploy of the project website stack
+# (docker-compose.rocks.yml). Self-hosters use scripts/prod-init.sh instead.
+#   https://jotti.rocks       → static landing page
+#   https://demo.jotti.rocks  → demo app (frontend + backend API)
+#   https://auth.jotti.rocks  → acme-dns API (trusted local TLS)
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
 DOMAIN="jotti.rocks"
 DOMAIN_WWW="www.jotti.rocks"
 DOMAIN_DEMO="demo.jotti.rocks"
@@ -27,9 +16,6 @@ EMAIL="graef.nico@gmail.com"
 COMPOSE_CERT="docker-compose.initial-cert.yml"
 COMPOSE_PROD=(-f docker-compose.rocks.yml)
 
-# ---------------------------------------------------------------------------
-# Step 0 — Change to project root
-# ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 . "$SCRIPT_DIR/lib.sh"
@@ -38,9 +24,6 @@ cd "$PROJECT_ROOT"
 
 info "Project root: $PROJECT_ROOT"
 
-# ---------------------------------------------------------------------------
-# Step 1 — Validate prerequisites
-# ---------------------------------------------------------------------------
 info "Checking prerequisites..."
 
 if [[ ! -f .env ]]; then
@@ -74,9 +57,6 @@ fi
 
 info "Prerequisites OK."
 
-# ---------------------------------------------------------------------------
-# Step 2 — Check DNS resolution
-# ---------------------------------------------------------------------------
 info "Checking DNS resolution for $DOMAIN..."
 
 if ! host "$DOMAIN" &>/dev/null && ! dig +short "$DOMAIN" 2>/dev/null | grep -q .; then
@@ -112,9 +92,6 @@ else
   warn "Expand the certificate after the stack is up — see docs/jotti-rocks-infra.md."
 fi
 
-# ---------------------------------------------------------------------------
-# Step 3 — Request initial Let's Encrypt certificate
-# ---------------------------------------------------------------------------
 info "Starting nginx for ACME challenge..."
 docker compose -f "$COMPOSE_CERT" up -d reverse-proxy
 
@@ -135,27 +112,17 @@ fi
 
 info "Certificate issued successfully."
 
-# ---------------------------------------------------------------------------
-# Step 4 — Stop initial-cert stack
-# ---------------------------------------------------------------------------
 info "Stopping initial certificate stack..."
 docker compose -f "$COMPOSE_CERT" down
 
-# ---------------------------------------------------------------------------
-# Step 5 — Start full production stack with jotti.rocks override
-# ---------------------------------------------------------------------------
 info "Building and starting production stack..."
 docker compose "${COMPOSE_PROD[@]}" up -d --build
 
 info "Waiting for services to start..."
 sleep 10
 
-# ---------------------------------------------------------------------------
-# Step 6 — Verify deployment
-# ---------------------------------------------------------------------------
 info "Verifying deployment..."
 
-# Check landing page
 HTTPS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN" 2>/dev/null || echo "000")
 
 if [[ "$HTTPS_STATUS" == "200" || "$HTTPS_STATUS" == "301" || "$HTTPS_STATUS" == "302" ]]; then
@@ -164,7 +131,6 @@ else
   warn "Landing page HTTPS check returned HTTP $HTTPS_STATUS — may not be fully ready yet."
 fi
 
-# Check demo app
 DEMO_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN_DEMO" 2>/dev/null || echo "000")
 
 if [[ "$DEMO_STATUS" == "200" || "$DEMO_STATUS" == "301" || "$DEMO_STATUS" == "302" ]]; then
@@ -173,7 +139,6 @@ else
   warn "Demo app HTTPS check returned HTTP $DEMO_STATUS — may not be fully ready yet."
 fi
 
-# Check acme-dns API
 AUTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN_AUTH/health" 2>/dev/null || echo "000")
 
 if [[ "$AUTH_STATUS" == "200" ]]; then
@@ -182,7 +147,6 @@ else
   warn "acme-dns API HTTPS check returned HTTP $AUTH_STATUS — expected if auth.jotti.rocks is not yet in the certificate (see docs/jotti-rocks-infra.md)."
 fi
 
-# Check HTTP→HTTPS redirect
 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "http://$DOMAIN" 2>/dev/null || echo "000")
 
 if [[ "$HTTP_STATUS" == "301" ]]; then
@@ -191,9 +155,6 @@ else
   warn "HTTP→HTTPS redirect returned HTTP $HTTP_STATUS (expected 301)"
 fi
 
-# ---------------------------------------------------------------------------
-# Summary
-# ---------------------------------------------------------------------------
 echo ""
 echo "=========================================="
 printf "${GREEN} %s${NC}\n" "jotti.rocks — Deployment Complete"

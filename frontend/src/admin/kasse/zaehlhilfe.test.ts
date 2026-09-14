@@ -26,8 +26,7 @@ describe('summeAusStueckzahlen', () => {
   })
 
   it('ignoriert negative, null- und nicht-ganze Stückzahlen', () => {
-    // Negative, 0- und Bruch-Stückzahlen sind strukturell number, werden aber
-    // als 0 gewertet; nur 4×10 ct (40) zählt.
+    // Nur 4×10 ct (40) zählt.
     expect(
       summeAusStueckzahlen({
         200: -3,

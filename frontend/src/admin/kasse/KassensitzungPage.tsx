@@ -23,19 +23,13 @@ import { LaufenderBetriebSection } from './LaufenderBetriebSection'
 
 type StepState = 'done' | 'active' | 'inactive'
 
-// ErledigtHaekchen rendert das Häkchen des erledigten Schritts. Es poppt
-// (Motion-Inventar „Statuswechsel", 350 ms), wenn der Schritt gerade auf
-// „erledigt" wechselt — nicht, wenn die Seite bereits erledigt lädt. Der
-// Pop-Zustand wird beim Mounten erfasst, damit ein späteres Neurendern (z. B.
-// eintreffender Kassenbestand) die Animation nicht abreißt.
+// Der Pop-Zustand wird beim Mounten erfasst, damit ein späteres Neurendern die
+// Animation nicht abreißt.
 function ErledigtHaekchen({ animiert }: { animiert: boolean }) {
   const [poppen] = useState(animiert)
   return <Check className={cn('size-4', poppen && 'animate-pop')} />
 }
 
-// StepperRow rendert die Nummern-Schiene (Kreis + Verbindungslinie) links und den
-// Schritt-Inhalt rechts. Der erledigte Schritt (done) bekommt ein Häkchen, der
-// aktive Schritt einen umrandeten Kreis, inaktive Schritte sind ausgegraut.
 function StepperRow({
   nummer,
   state,
@@ -46,8 +40,6 @@ function StepperRow({
   nummer: number
   state: StepState
   istLetzter?: boolean
-  // Lässt das erledigt-Häkchen einmalig poppen, wenn der Schritt gerade auf
-  // „erledigt" wechselt (nur Schritt 1 nach dem Eröffnen).
   markerAnimiert?: boolean
   children: ReactNode
 }) {
@@ -81,9 +73,6 @@ function StepperRow({
   )
 }
 
-// EroeffnetKarte ist die flache „Kasse eröffnet"-Karte (Schritt 1) bei laufender
-// Sitzung: Eröffnungszeitpunkt und Anfangsbestand als Einzeiler. Der
-// Anfangsbestand stammt aus der Kassenbestand-Aufschlüsselung.
 function EroeffnetKarte({
   kassensitzung,
   anfangsbestandCents,
@@ -91,8 +80,6 @@ function EroeffnetKarte({
 }: {
   kassensitzung: AktiveKassensitzung
   anfangsbestandCents: number | null
-  // Lässt die Karte einmalig mit fadeUp eintreten, wenn sie gerade durch das
-  // Eröffnen erscheint (nicht beim Laden einer bereits offenen Kasse).
   animieren: boolean
 }) {
   const eroeffnetAm = new Date(kassensitzung.eroeffnetAm).toLocaleString(
@@ -125,17 +112,15 @@ function EroeffnetKarte({
 export function KassensitzungPage() {
   const { kassensitzung, isPending, isError, refetch } =
     useAktiveKassensitzung()
-  // Kassenbestand-Aufschlüsselung für Schritt 1 (Anfangsbestand); TanStack Query
-  // dedupliziert mit dem Abruf innerhalb von LaufenderBetriebSection.
+  // Eigener Abruf für Schritt 1 (Anfangsbestand); TanStack Query dedupliziert
+  // ihn mit dem Abruf in LaufenderBetriebSection.
   const { kassenbestand } = useKassenbestand(kassensitzung?.zNr ?? null)
   const queryClient = useQueryClient()
 
-  // „Gerade eröffnet" erkennt den Wechsel von geschlossener zu offener Kasse,
-  // um die erledigt-Karte nur nach dem Eröffnen zu animieren — nicht beim Laden
-  // einer bereits offenen Kasse. Der Ref bleibt `null`, solange die erste
-  // Abfrage lädt (`isPending`), damit der Anfangszustand nicht als Wechsel gilt.
-  // Er liegt bewusst in einem Ref (kein zusätzliches Rendern, das die Animation
-  // abreißen würde); der Schreibzugriff erfolgt nur im Effekt.
+  // Erkennt den Wechsel von geschlossener zu offener Kasse, um nur nach dem
+  // Eröffnen zu animieren. Ref statt State (ein Rendern risse die Animation ab);
+  // bleibt null, solange die erste Abfrage lädt, sonst gälte der Anfangszustand
+  // als Wechsel.
   const istOffen = kassensitzung != null
   const zuletztOffenRef = useRef<boolean | null>(null)
   // eslint-disable-next-line react-hooks/refs
@@ -146,8 +131,7 @@ export function KassensitzungPage() {
     }
   }, [isPending, istOffen])
 
-  // Hinter der Barriere lehnt das Backend jede Buchung ab (kasse_wird_abgeschlossen):
-  // Schritt 2 bietet dann kein Einlegen/Entnehmen an, Schritt 3 sagt, was zu tun ist.
+  // Hinter der Barriere lehnt das Backend jede Buchung ab (kasse_wird_abgeschlossen).
   const abschlussUnterbrochen =
     kassensitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
 
@@ -190,7 +174,6 @@ export function KassensitzungPage() {
     )
   }
 
-  // Nach einer Geldtransit-Buchung Kassenbestand und Bewegungsliste neu laden.
   const invalidateKasse = () => {
     void queryClient.invalidateQueries({ queryKey: [KASSENBESTAND_KEY] })
     void queryClient.invalidateQueries({ queryKey: [GELDTRANSIT_LISTE_KEY] })
@@ -238,9 +221,6 @@ export function KassensitzungPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* Bleibt die Sitzung im Barrierestatus stehen, ist ein
-                      Abschluss unterwegs abgebrochen. Der Hinweis sagt, dass
-                      genau dieser Schritt zu wiederholen ist. */}
                   {abschlussUnterbrochen && (
                     <WarnKarte className="mb-4">
                       Abschluss unterbrochen — erneut abschließen

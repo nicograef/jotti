@@ -121,7 +121,6 @@ describe('DruckstationConfigPage — Alarm-Karte', () => {
       screen.getByText('1 Kassenbeleg konnte nicht gedruckt werden'),
     ).toBeInTheDocument()
     expect(screen.queryByText(/Küche/)).not.toBeInTheDocument()
-    // Roher Relay-Jargon („drucker nicht erreichbar") wird laienverständlich.
     expect(screen.getByText(/Drucker nicht erreichbar/)).toBeInTheDocument()
   })
 
@@ -154,7 +153,6 @@ describe('DruckstationConfigPage — Alarm-Karte', () => {
     )
     const { container } = render(<DruckstationConfigPage />)
 
-    // Genau ein Scrollbereich (die Liste selbst); höhenbegrenzt via max-h.
     const scrollbereiche = container.querySelectorAll(
       '[class*="overflow-y-auto"]',
     )
@@ -162,8 +160,6 @@ describe('DruckstationConfigPage — Alarm-Karte', () => {
     const liste = scrollbereiche[0]
     expect(liste.className).toMatch(/max-h-/)
 
-    // Alle Zeilen bleiben im DOM (nur visuell gekappt), und die
-    // Sammel-Aktion darunter ist weiterhin erreichbar.
     expect(
       screen.getAllByRole('button', { name: 'Nochmal drucken' }),
     ).toHaveLength(20)
@@ -239,7 +235,6 @@ describe('DruckstationConfigPage — Stationskarten', () => {
     await user.type(input, '192.168.1.99')
     await user.tab()
 
-    // Inline-Bestätigung am Feld zusätzlich zum Toast.
     expect(await screen.findByText('Gespeichert')).toBeInTheDocument()
 
     // Nach ~2 Sekunden verschwindet die Bestätigung wieder.

@@ -3,11 +3,9 @@ import { z } from 'zod'
 import { createNameSchema } from '@/lib/nameSchema'
 import { DateStringSchema } from '@/lib/utils'
 
-// Response-Vertrag der Produkt-Lesepfade — `admin/get-all-produkte` und
-// `service/get-aktive-produkte` liefern dasselbe DTO (backend
-// api/stammdaten/produkt/http/query_handler.go), deshalb liegen die Schemas
-// hier und nicht je Bereich. Formular- und Eingaberegeln der Admin-Formulare
-// (strengere Preisgrenze, eigene Meldungen) stehen in src/admin/products/.
+// Response-Vertrag beider Produkt-Lesepfade — `admin/get-all-produkte` und
+// `service/get-aktive-produkte` liefern dasselbe DTO, deshalb liegen die
+// Schemas hier; die Formularregeln stehen in src/admin/products/.
 
 export const Kategorie = {
   ESSEN: 'essen',
@@ -21,10 +19,8 @@ export const KategorieSchema = z.enum([
   Kategorie.SONSTIGES,
 ])
 
-// Deutsche Anzeigenamen und die feste Anzeigereihenfolge der Kategorien — je
-// Kategorie eine Quelle für Produktliste, Preisliste und Verkaufsstatistik. Der
-// Stationsname eines Bondruckers weicht bewusst ab (Singular „Getränk") und
-// steht bei der Druckstation.
+// Eine Quelle für Produktliste, Preisliste und Verkaufsstatistik. Der
+// Stationsname eines Bondruckers weicht bewusst ab (Singular „Getränk").
 export const KATEGORIE_LABEL: Record<Kategorie, string> = {
   essen: 'Essen',
   getraenk: 'Getränke',
@@ -50,9 +46,7 @@ export const SteuersatzSchema = z.enum([
   Steuersatz.KOMBI,
 ])
 
-// Status einer Stammdaten-Entität (Produkt, Variante), gespiegelt am
-// Backend-`produkt.Status` bzw. DB-Enum `EntityStatus`. Soft-gelöschte Entitäten
-// liefert das Backend nie an das Frontend aus (beide Lesepfade filtern
+// Soft-gelöschte Entitäten liefert das Backend nie aus (beide Lesepfade filtern
 // `status != 'deleted'`), daher nur die beiden im UI erreichbaren Werte.
 export const EntityStatusSchema = z.enum(['active', 'inactive'])
 export type EntityStatus = z.infer<typeof EntityStatusSchema>
@@ -63,8 +57,8 @@ export const VarianteIdSchema = z.number().int().min(1)
 const NameSchema = createNameSchema(100)
 
 // Gelesene Preise decken den persistierten Bereich ab (DB-CHECK
-// `preis_cents >= 0`); die engere Formulargrenze gehört ins Admin-Formular und
-// darf einen bestehenden Datensatz nicht unlesbar machen.
+// `preis_cents >= 0`); die engere Grenze gehört ins Admin-Formular und darf
+// einen bestehenden Datensatz nicht unlesbar machen.
 const PreisCentsSchema = z.number().int().min(0)
 
 export const VarianteSchema = z.object({

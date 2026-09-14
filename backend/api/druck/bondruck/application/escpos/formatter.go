@@ -64,7 +64,6 @@ type TSEAbschnitt struct {
 	Nachsigniert bool
 }
 
-// FormatPositionBon generiert einen Bon für eine einzelne Position (Standard-Bonmodus).
 func FormatPositionBon(
 	pos kasse.Position,
 	tischName string,
@@ -81,7 +80,6 @@ func FormatPositionBon(
 	buf.WriteString(Init)
 	buf.WriteString(SetCodepageWPC1252)
 
-	// Tisch - gross und fett, zentriert
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
@@ -90,14 +88,12 @@ func FormatPositionBon(
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
-	// Position - doppelte Höhe, fett, zentriert
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
 	buf.WriteString(toWPC1252(fmt.Sprintf("%dx %s\n", pos.Menge, pos.Bezeichnung())))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
-	// Kommentar (optional) - fett, linksbündig
 	if kommentar != "" {
 		buf.WriteString("\n")
 		buf.WriteString(AlignLeft)
@@ -107,7 +103,6 @@ func FormatPositionBon(
 		buf.WriteString(BoldOff)
 	}
 
-	// Trennlinie + Metadaten
 	buf.WriteString(AlignLeft)
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
@@ -120,7 +115,6 @@ func FormatPositionBon(
 	return buf.Bytes()
 }
 
-// FormatSammelBon generiert einen Bon für alle Positionen einer Kategorie (optionaler Bonmodus).
 func FormatSammelBon(
 	positionen []kasse.Position,
 	tischName string,
@@ -137,7 +131,6 @@ func FormatSammelBon(
 	buf.WriteString(Init)
 	buf.WriteString(SetCodepageWPC1252)
 
-	// Tisch - gross und fett, zentriert
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
@@ -146,7 +139,6 @@ func FormatSammelBon(
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
-	// Positionen - doppelte Höhe, fett, linksbündig
 	buf.WriteString(AlignLeft)
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
@@ -158,7 +150,6 @@ func FormatSammelBon(
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
-	// Kommentar (optional) - fett
 	if kommentar != "" {
 		buf.WriteString("\n")
 		buf.WriteString(BoldOn)
@@ -167,7 +158,6 @@ func FormatSammelBon(
 		buf.WriteString(BoldOff)
 	}
 
-	// Trennlinie + Metadaten
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
 	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n",
@@ -175,15 +165,14 @@ func FormatSammelBon(
 		truncate(userName, 24),
 	)))
 
-	// 5 Leerzeilen vor dem Schnitt
 	buf.WriteString(strings.Repeat("\n", 5))
 	buf.WriteString(CutPaper)
 
 	return buf.Bytes()
 }
 
-// FormatDirektverkaufAbholbon generates a single combined pickup ticket for a Direktverkauf.
-// The header label is fixed to "Direktverkauf" and, like all Arbeitsbons, contains no prices.
+// FormatDirektverkaufAbholbon carries no prices, like every Arbeitsbon; the
+// header label is fixed to "Direktverkauf".
 func FormatDirektverkaufAbholbon(
 	positionen []kasse.Position,
 	userName string,
@@ -193,10 +182,8 @@ func FormatDirektverkaufAbholbon(
 	return FormatSammelBon(positionen, "Direktverkauf", userName, zeitpunkt, kommentar, false)
 }
 
-// FormatTestbon generiert einen einfachen Testbon zum Prüfen von Drucker und
-// Netzwerk beim Aufbau. Er trägt nur Stationsname und Zeitstempel — kein
-// fiskalischer Inhalt, keine TSE-Daten. Der Testbon läuft wie jeder Bon über
-// die Outbox und schneidet das Papier am Ende.
+// FormatTestbon trägt nur Stationsname und Zeitstempel — kein fiskalischer
+// Inhalt, keine TSE-Daten.
 func FormatTestbon(stationsName string, zeitpunkt time.Time) []byte {
 	var buf bytes.Buffer
 
@@ -223,7 +210,6 @@ func FormatTestbon(stationsName string, zeitpunkt time.Time) []byte {
 	return buf.Bytes()
 }
 
-// FormatKassenbeleg generiert einen fiskalischen Kassenbeleg.
 func FormatKassenbeleg(data KassenbelegData) []byte {
 	var buf bytes.Buffer
 
@@ -331,9 +317,6 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	return buf.Bytes()
 }
 
-// appendNativeQRCode writes a printer-rendered QR code using ESC/POS GS ( k.
-// The module size is chosen dynamically so that the QR symbol plus the 4-module
-// quiet zone on each side fits within the printable width of 576 dots (80 mm).
 func appendNativeQRCode(buf *bytes.Buffer, qrCodeData string) {
 	data := strings.TrimSpace(qrCodeData)
 	if data == "" {
@@ -362,10 +345,9 @@ func appendNativeQRCode(buf *bytes.Buffer, qrCodeData string) {
 	buf.WriteString(AlignLeft)
 }
 
-// toWPC1252 transkodiert sichtbaren Text von UTF-8 in die Drucker-Codepage WPC1252
-// (Windows-1252), passend zu SetCodepageWPC1252 (ESC t 6 am MUNBYN ITPP047P).
-// Nicht abbildbare Zeichen werden ersetzt, damit ein einzelnes Sonderzeichen nicht
-// den ganzen Bon verwirft. ESC/POS-Steuerbytes werden nie hierdurch geschickt.
+// toWPC1252 transkodiert sichtbaren Text von UTF-8 in die Drucker-Codepage
+// WPC1252 (passend zu SetCodepageWPC1252); nicht abbildbare Zeichen werden
+// ersetzt, statt den ganzen Bon zu verwerfen. ESC/POS-Steuerbytes laufen nie hier durch.
 func toWPC1252(s string) string {
 	encoded, err := encoding.ReplaceUnsupported(charmap.Windows1252.NewEncoder()).String(s)
 	if err != nil {
@@ -384,7 +366,6 @@ func truncate(s string, maxLen int) string {
 	return string(runes[:maxLen-1]) + "…"
 }
 
-// wrapLine bricht einen langen String an Wortgrenzen um (runenbasierte Breite).
 func wrapLine(s string, width int) string {
 	if utf8.RuneCountInString(s) <= width {
 		return s
@@ -439,13 +420,10 @@ func steuerKennzeichenAusSatz(satz steuer.Steuersatz) string {
 	}
 }
 
-// steuerMatrixLabel gibt die Bezeichnung für eine Steuermatrix-Zeile mit
-// Prozentsatz bzw. Befreiungshinweis gemäß KassenSichV § 6 Satz 1 Nr. 5
-// ("den anzuwendenden Steuersatz oder im Fall einer Steuerbefreiung einen
-// Hinweis darauf, dass für die Lieferung oder sonstige Leistung eine
-// Steuerbefreiung gilt"). steuer.Steuermatrix() teilt jede Kombi-Position
-// bereits in ihre Regel-/Ermaessigt-Anteile auf, bevor sie summiert — eine
-// Zeile mit Satz Kombi erreicht diese Funktion nie.
+// steuerMatrixLabel gibt Prozentsatz bzw. Befreiungshinweis gemäß KassenSichV
+// § 6 Satz 1 Nr. 5 aus. steuer.Steuermatrix() teilt jede Kombi-Position bereits
+// in ihre Regel-/Ermaessigt-Anteile auf — eine Zeile mit Satz Kombi erreicht
+// diese Funktion nie.
 func steuerMatrixLabel(satz steuer.Steuersatz) string {
 	switch satz {
 	case steuer.RegelSteuersatz:
@@ -463,7 +441,6 @@ func steuerMatrixLabel(satz steuer.Steuersatz) string {
 // payloadLen bytes in byte mode at error correction level M.
 // Capacities from ISO/IEC 18004:2015 Table 7.
 func qrVersionForLengthM(payloadLen int) int {
-	// ECL M byte-mode capacities per version 1-40.
 	capacities := [40]int{
 		16, 28, 44, 64, 86, 108, 124, 154, 182, 216, // V1-V10
 		254, 290, 334, 365, 415, 453, 507, 563, 627, 669, // V11-V20

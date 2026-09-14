@@ -18,8 +18,8 @@ describe('useCountUp', () => {
   })
 
   it('liefert ohne Animationsumgebung bei Änderung sofort den Endwert', () => {
-    // jsdom kennt kein window.matchMedia — der Hook stuft die Umgebung als
-    // nicht animierbar ein und springt direkt auf den Zielwert.
+    // Das Test-Setup meldet `prefers-reduced-motion` als aktiv; der Hook stuft
+    // die Umgebung als nicht animierbar ein und springt auf den Zielwert.
     const { result, rerender } = renderHook(({ ziel }) => useCountUp(ziel), {
       initialProps: { ziel: 1250 },
     })
@@ -59,7 +59,6 @@ describe('useCountUp', () => {
       rerender({ ziel: 2001 })
     })
 
-    // Auf halber Strecke zählt der Hook, hat den Zielwert aber noch nicht erreicht.
     flush(350)
     expect(result.current).toBeGreaterThan(1000)
     expect(result.current).toBeLessThan(2001)

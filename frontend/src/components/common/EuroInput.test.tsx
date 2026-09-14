@@ -72,19 +72,16 @@ describe('EuroInput', () => {
   })
 
   it('formatiert während einer Tipp-Pause nicht um (kein Debounce-Reformat)', () => {
-    // Fake-Timer vor der Eingabe aktivieren, damit ein etwaiger Debounce-Timer
-    // aus onChange unter der Fake-Uhr geplant würde und vom advanceTimersByTime
-    // unten tatsächlich feuern könnte — sonst wäre der Test wirkungslos.
-    // fireEvent (synchron, ohne eigene Timer) statt userEvent, das unter
-    // Fake-Timern hängt.
+    // Fake-Timer vor der Eingabe, sonst würde ein Debounce-Timer aus onChange
+    // nicht unter der Fake-Uhr geplant und der Test liefe ins Leere. fireEvent
+    // statt userEvent, das unter Fake-Timern hängt.
     vi.useFakeTimers()
     render(<Harness />)
     const input = screen.getByPlaceholderText('0,00')
 
     fireEvent.change(input, { target: { value: '1' } })
 
-    // Über eine Sekunde warten: EuroInput formatiert nur beim Blur; ein laufender
-    // Timer darf nicht umformatieren, „1" bleibt stehen.
+    // EuroInput formatiert nur beim Blur, kein Timer darf umformatieren.
     act(() => {
       vi.advanceTimersByTime(1500)
     })

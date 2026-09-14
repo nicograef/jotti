@@ -2,18 +2,14 @@
 import Landing from '../layouts/Landing.astro'
 import { betreiberEmail } from '../lib/links'
 
-// Datenschutzerklärung. Statische Seite auf Basis des Landing-Layouts
-// (Header/Footer, eigene Meta über die Layout-Props). Jede Tatsachenaussage
-// hier ist gegen die Implementierung verifiziert und muss mit ihr synchron
-// bleiben: trackingfreie statische Seite (keine Cookies, keine externen
-// Einbindungen, selbst gehostete Fonts), Theme-Wahl in localStorage
-// (public/theme-init.js, Key `starlight-theme`), Sidebar-Zustand der Doku in
-// sessionStorage (Starlight, Key `sl-sidebar-state`), Anfrage-Formular
-// öffnet einen mailto-Entwurf und zeigt Empfänger, Betreff und Text zum
-// Kopieren an, beides ohne Serverkontakt (src/lib/anfrage-mailto.ts),
-// Server-Logs mit gekürzter IP und größenbegrenzter Rotation
-// (reverse-proxy/nginx.rocks.conf, docker-compose.rocks.yml), Hosting auf
-// einem netcup-VPS in Nürnberg.
+// Jede Tatsachenaussage hier ist gegen die Implementierung verifiziert und muss
+// mit ihr synchron bleiben: keine Cookies, keine externen Einbindungen, selbst
+// gehostete Fonts; Theme-Wahl in localStorage (public/theme-init.js, Key
+// `starlight-theme`), Sidebar-Zustand der Doku in sessionStorage (Starlight, Key
+// `sl-sidebar-state`); das Anfrage-Formular öffnet nur einen mailto-Entwurf ohne
+// Serverkontakt (src/lib/anfrage-mailto.ts); Server-Logs mit gekürzter IP und
+// größenbegrenzter Rotation (reverse-proxy/nginx.rocks.conf,
+// docker-compose.rocks.yml); Hosting auf einem netcup-VPS in Nürnberg.
 
 const title = 'Datenschutzerklärung – jotti'
 const description =

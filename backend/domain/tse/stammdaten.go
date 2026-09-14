@@ -5,11 +5,9 @@ import (
 	"time"
 )
 
-// Stammdaten sind die fiskalischen Stammdaten der TSS, die der DSFinV-K-Export
-// für die tse.csv braucht: Seriennummer, Signaturalgorithmus, Public Key,
-// Zertifikat und Log-Time-Format. Sie ändern sich über die Lebensdauer einer
-// TSS nicht und werden einmalig bei der Einrichtung von fiskaly gelesen und als
-// Singleton gespeichert.
+// Stammdaten sind die fiskalischen Stammdaten der TSS für die tse.csv des
+// DSFinV-K-Exports. Sie ändern sich über die Lebensdauer einer TSS nicht und
+// werden einmalig bei der Einrichtung gelesen und als Singleton gespeichert.
 type Stammdaten struct {
 	// Seriennummer ist die TSS-Seriennummer (fiskaly: serial_number der
 	// TSS-Ressource; SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld
@@ -22,9 +20,8 @@ type Stammdaten struct {
 	UpdatedAt           time.Time
 }
 
-// NewStammdaten baut die Stammdaten aus den von fiskaly gelesenen Feldern und
-// stempelt den Lesezeitpunkt. Validiert wird nicht: die Felder stammen aus der
-// vertrauenswürdigen TSS-Ressource, nicht aus Nutzereingaben.
+// NewStammdaten validiert nicht: die Felder stammen aus der TSS-Ressource, nicht
+// aus Nutzereingaben.
 func NewStammdaten(seriennummer, signaturAlgorithmus, publicKey, zertifikat, logTimeFormat string) Stammdaten {
 	return Stammdaten{
 		Seriennummer:        strings.TrimSpace(seriennummer),

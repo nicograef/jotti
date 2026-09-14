@@ -44,9 +44,7 @@ type Command struct {
 	DruckstationRepo    druckstationRepo
 }
 
-// getOffeneKassensitzungOderFehler retrieves the open Kassensitzung for a Direktverkauf. It returns
-// ErrKasseNichtGeoeffnet when none is active and ErrKasseWirdAbgeschlossen while the Kassensitzung is
-// being closed (barrier active), rejecting the Direktverkauf before any TSE roundtrip.
+// getOffeneKassensitzungOderFehler rejects the Direktverkauf before any TSE roundtrip when no Kassensitzung is open or the barrier is active.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
@@ -61,13 +59,11 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
-// DirektverkaufTaetigen records a Direktverkauf as a single immutable event in its own stream
-// (kassensitzung-{nr}/direktverkauf-{uuid}). It requires an open Kassensitzung and writes nothing
-// to any projection. Returns ErrKasseNichtGeoeffnet (HTTP 409) when no Kassensitzung is open.
-// verkaufID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel). Bei
-// UniqueViolation (Duplikat-Einreichung) wird per verkaufId nachgeschlagen:
-// Treffer = idempotente Erfolgsantwort; kein Treffer = echter OCC-Konflikt (409).
-// Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht verglichen.
+// DirektverkaufTaetigen schreibt ein einziges unveränderliches Event in den eigenen Stream des
+// Verkaufs und aktualisiert keine Projektion. verkaufID ist ein client-seitig erzeugter
+// Idempotenz-Schlüssel (UUID): Bei OCC-Konflikt entscheidet die Suche nach der verkaufId — Treffer
+// = idempotente Erfolgsantwort, kein Treffer = echter Konflikt (409). Gleiche ID bedeutet denselben
+// Vorgang, der Payload wird nicht verglichen.
 func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, inputs []enrichment.PositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -102,8 +98,6 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	// Frischer Stream (client-UUID): erwartete Version 0, das Event ist immer version = 1.
 	if err := c.persistVerkaufEvent(ctx, evt, subject, 0, ks.ZNr, buildAuftraege); err != nil {
 		if errors.Is(err, ErrConflict) {
-			// Idempotenz-Check: Ist der Konflikt eine Duplikat-Einreichung (gleiche verkaufId)
-			// oder ein echter OCC-Konflikt?
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufID, "verkaufId")
 			if lookupErr != nil {
 				log.Error().Err(lookupErr).Str("verkauf_id", verkaufID).Msg("Failed to lookup direktverkauf idempotency")
@@ -123,9 +117,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	return nil
 }
 
-// konfigurierteDruckstationen returns the configured Druckstationen, or an empty
-// map when no DruckstationRepo is wired (e.g. in tests). Without configured stations
-// the policy derives no print jobs.
+// konfigurierteDruckstationen returns nil when no DruckstationRepo is wired (tests); without stations no print jobs are derived.
 func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error) {
 	if c.DruckstationRepo == nil {
 		return nil, nil
@@ -133,12 +125,9 @@ func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]dr
 	return c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
 }
 
-// DirektverkaufStornieren records a position-precise cancellation of a Direktverkauf as an immutable
-// event appended to that verkauf's own stream (version = maxVersion + 1, OCC). The returned cash
-// reduces the Soll-Kassenbestand directly — there is no separate Auszahlung, because a Direktverkauf
-// has no open Saldo. Requires an open Kassensitzung (ErrKasseNichtGeoeffnet otherwise). Returns
-// ErrVerkaufNichtGefunden when the verkauf does not exist and ErrPositionNichtStornierbar when a
-// requested position is not (or no longer) cancellable.
+// DirektverkaufStornieren appends an immutable cancellation event to the verkauf's own stream. The
+// returned cash reduces the Soll-Kassenbestand directly — no separate Auszahlung, because a
+// Direktverkauf has no open Saldo.
 func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -177,8 +166,6 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return err
 	}
 
-	// OCC gegen den validierten Zustand: Basis ist die höchste Version des Replays,
-	// gegen den die Storno-Invariante geprüft wurde.
 	if err := c.persistVerkaufEvent(ctx, evt, subject, events[len(events)-1].Version, ks.ZNr, nil); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
@@ -191,7 +178,6 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 	return nil
 }
 
-// writeVersionedEvent writes the event with version expectedVersion+1 via write.
 // expectedVersion ist die Version des Zustands, gegen den der Command validiert hat
 // (1. Event eines frischen Streams: 0; Storno: höchste Version des Replays). Ein
 // UNIQUE(subject, version)-Konflikt — der Stream hat sich seit dem Lesen geändert —
@@ -218,10 +204,8 @@ func writeVersionedEvent(ctx context.Context, e event.Event, subject string, exp
 	return nil
 }
 
-// persistVerkaufEvent writes a Direktverkauf event with OCC against expectedVersion.
-// When buildAuftraege is non-nil the derived print jobs are written in the same
-// transaction; der Signaturauftrag des Events entsteht in jedem Fall im selben
-// Commit (fiskalische Projektion). Returns ErrConflict on a version conflict.
+// persistVerkaufEvent: mit nicht-nil buildAuftraege entstehen die Druckaufträge in derselben
+// Transaktion; der Signaturauftrag des Events entsteht in jedem Fall im selben Commit.
 func (c Command) persistVerkaufEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
 	if buildAuftraege != nil {
 		return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {

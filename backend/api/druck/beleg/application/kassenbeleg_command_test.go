@@ -50,8 +50,6 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 	return m.konfig, nil
 }
 
-// kassenbelegStationen ist die konfigurierte Kassenbeleg-Druckstation für die
-// KassenbelegDrucken-Tests (Ziel-IP des Kassenbeleg-Druckers).
 var kassenbelegStationen = map[string]druckstation.Druckstation{
 	"kassenbeleg": {DruckerIP: "192.168.1.80"},
 }

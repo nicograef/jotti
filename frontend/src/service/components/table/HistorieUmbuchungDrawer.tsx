@@ -40,11 +40,9 @@ interface HistorieUmbuchungDrawerProps {
   // werden; beschriftet den Drawer.
   quelle: Bestellung | Umbuchung
   onClose: () => void
-  // Meldet den Erfolg mit dem Namen des Ziel-Tischs für den Erfolgs-Pop.
   onBestellungUmgebucht: (zielName: string) => void
 }
 
-// Volle umbuchbare Menge je Position — Basis für den „Alle auswählen"-Button.
 function createDefaultMengen(positionen: Position[]): Record<string, number> {
   return positionen.reduce<Record<string, number>>((acc, position) => {
     acc[position.positionId] = position.menge
@@ -94,10 +92,8 @@ export function HistorieUmbuchungDrawer({
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
   const keinZielTischVerfuegbar = zielTische.length === 0
-  // Grund am Button nur für die behebbaren Bedingungen: Fehlt gänzlich ein
-  // Ziel-Tisch, nennt bereits der Select-Platzhalter den Grund — und im
-  // Ladefehler der LadefehlerAlert an seiner Stelle. Ein zweiter Hinweis wäre
-  // redundant (gleiche Dedup wie in HistorieStornierungDrawer).
+  // Grund am Button nur für die behebbaren Bedingungen: fehlt gänzlich ein
+  // Ziel-Tisch, nennt ihn bereits der Select-Platzhalter bzw. der LadefehlerAlert.
   const disabledReason = noPositionenSelected
     ? 'Positionen auswählen'
     : keinZielTischVerfuegbar

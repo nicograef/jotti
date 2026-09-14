@@ -7,10 +7,6 @@ import { cn, formatEuro } from '@/lib/utils'
 import type { AbgeschlosseneSitzung } from './types'
 import { formatDatumKurz } from './utils'
 
-// SitzungsListe ist die linke Spalte der Kassenberichte: die aktive Sitzung als
-// nicht wählbarer Hinweis, der zur Übersicht führt, darunter die abgeschlossenen
-// Sitzungen als wählbare Karten (Datum, Nr., Bezeichnung, Gesamtumsatz). Status-
-// Emojis entfallen; der Auswahl-Zustand zeigt sich über Rahmen und Fläche.
 export function SitzungsListe({
   sitzungen,
   aktiveSitzung,
@@ -22,9 +18,6 @@ export function SitzungsListe({
   selectedNr: number | null
   onSelect: (nr: number) => void
 }) {
-  // Der Barrierestatus ist kein laufender Betrieb: Ein unterbrochener Abschluss
-  // trägt dieselbe Ansage wie der Chip in der Navigation und der Hinweis auf der
-  // Kassentag-Seite.
   const abschlussUnterbrochen =
     aktiveSitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
   return (

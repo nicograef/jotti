@@ -17,8 +17,7 @@ const (
 	ttlNegative = 300
 )
 
-// zoneConfig beschreibt die Zonen, für die der Resolver zuständig ist.
-// Alle Namen sind kanonisch (kleingeschrieben, mit Punkt am Ende).
+// zoneConfig: alle Namen sind kanonisch (kleingeschrieben, mit Punkt am Ende).
 type zoneConfig struct {
 	zone     string     // autoritative Zone, z. B. "lokal.jotti.rocks."
 	authZone string     // acme-dns-Zone, z. B. "auth.jotti.rocks." (wird weitergeleitet)
@@ -39,7 +38,6 @@ const (
 	kindNXDomain                   // Name existiert nicht
 )
 
-// answer ist die berechnete Antwort-Entscheidung für eine DNS-Frage.
 type answer struct {
 	kind  answerKind
 	ip    netip.Addr // gesetzt für kindA
@@ -47,10 +45,9 @@ type answer struct {
 	ttl   uint32     // gesetzt für kindA und kindCNAME
 }
 
-// resolve entscheidet rein rechnerisch (ohne I/O und ohne Zustand), wie eine
-// DNS-Frage zu beantworten ist. Innerhalb der Zone gilt das Namensschema
-// `<lan-ip-mit-bindestrichen>.<install-id>.<zone>`; die Install-ID ist die bei
-// acme-dns registrierte Subdomain, deshalb ist auch der Challenge-CNAME
+// resolve entscheidet rein rechnerisch, wie eine DNS-Frage zu beantworten ist.
+// Namensschema: `<lan-ip-mit-bindestrichen>.<install-id>.<zone>`; die Install-ID ist
+// die bei acme-dns registrierte Subdomain, deshalb ist auch der Challenge-CNAME
 // `_acme-challenge.<install-id>.<zone>` → `<install-id>.<auth-zone>` berechenbar.
 func resolve(cfg zoneConfig, qname string, qtype uint16) answer {
 	name := dns.CanonicalName(qname)
@@ -87,7 +84,6 @@ func resolve(cfg zoneConfig, qname string, qtype uint16) answer {
 		return answer{kind: kindNXDomain}
 	}
 
-	// `_acme-challenge.<install-id>` → CNAME `<install-id>.<auth-zone>`.
 	// Ein CNAME gilt für jeden Anfrage-Typ, daher keine qtype-Prüfung.
 	if labels[0] == "_acme-challenge" {
 		return answer{kind: kindCNAME, cname: labels[1] + "." + cfg.authZone, ttl: ttlDefault}
@@ -103,9 +99,6 @@ func resolve(cfg zoneConfig, qname string, qtype uint16) answer {
 	return answer{kind: kindA, ip: ip, ttl: ttlA}
 }
 
-// apexAnswer beantwortet Fragen an den Zone-Apex: SOA und NS, damit die
-// Delegation funktioniert; für alle anderen Typen existiert der Name, hat
-// aber keine Records.
 func apexAnswer(qtype uint16) answer {
 	switch qtype {
 	case dns.TypeSOA:
@@ -117,11 +110,10 @@ func apexAnswer(qtype uint16) answer {
 	}
 }
 
-// parseDashedIPv4 liest eine IPv4-Adresse aus einem Label wie "192-168-1-50".
-// Auch private Adressen sind gültig — genau dafür existiert der Resolver.
-// netip.ParseAddr ist strikt und lehnt nicht-kanonische Labels (führende
-// Nullen, Vorzeichen, falsche Oktett-Anzahl) ab; dashedIPv4 im reverse-proxy
-// erzeugt nur kanonische Namen, der Round-Trip bleibt also unberührt.
+// parseDashedIPv4 liest eine IPv4 aus einem Label wie "192-168-1-50"; private
+// Adressen sind gültig — genau dafür existiert der Resolver. netip.ParseAddr lehnt
+// nicht-kanonische Labels (führende Nullen, falsche Oktett-Anzahl) ab; dashedIPv4 im
+// reverse-proxy erzeugt nur kanonische Namen.
 func parseDashedIPv4(label string) (netip.Addr, bool) {
 	ip, err := netip.ParseAddr(strings.ReplaceAll(label, "-", "."))
 	if err != nil || !ip.Is4() {
@@ -130,8 +122,6 @@ func parseDashedIPv4(label string) (netip.Addr, bool) {
 	return ip, true
 }
 
-// buildResponse baut aus der Antwort-Entscheidung die vollständige
-// DNS-Antwort. Ebenfalls rein — kindForward behandelt der Server selbst.
 func buildResponse(cfg zoneConfig, req *dns.Msg, ans answer) *dns.Msg {
 	msg := new(dns.Msg)
 	msg.SetReply(req)
@@ -167,8 +157,8 @@ func buildResponse(cfg zoneConfig, req *dns.Msg, ans answer) *dns.Msg {
 	return msg
 }
 
-// soaRecord liefert den SOA-Record der Zone. Die Serial ist konstant: Die
-// Zone ist rein rechnerisch, ändert sich nie und kennt keine Zonentransfers.
+// soaRecord: die Serial ist konstant — die Zone ist rein rechnerisch und kennt
+// keine Zonentransfers.
 func soaRecord(cfg zoneConfig, ttl uint32) *dns.SOA {
 	return &dns.SOA{
 		Hdr:     dns.RR_Header{Name: cfg.zone, Rrtype: dns.TypeSOA, Class: dns.ClassINET, Ttl: ttl},

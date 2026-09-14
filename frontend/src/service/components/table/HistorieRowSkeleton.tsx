@@ -1,7 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
-// Geteiltes Lade-Skeleton für eine Historien-Zeile — genutzt von der Tisch- und
-// der Direktverkauf-Historie.
 export function HistorieRowSkeleton() {
   return (
     <div className="flex items-center gap-3 rounded-md border px-3 py-3">

@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Moon, Sun } from 'lucide-react'
 
-// Hell/Dunkel-Umschalter der Landing. Schreibt in denselben Speicher wie der
-// Doku-Schalter (Starlight-Key `starlight-theme`, Werte `light`/`dark`) und
-// setzt `data-theme` auf <html> — identisch zur Pre-Paint-Logik in
-// public/theme-init.js. Dadurch bleiben Landing und Doku über Navigation hinweg
-// konsistent. `window.StarlightThemeProvider.updatePickers` hält den
-// Doku-Select synchron, wo er existiert.
+// Schreibt in denselben Speicher wie der Doku-Schalter (localStorage
+// `starlight-theme`) und setzt `data-theme` auf <html> — identisch zu
+// public/theme-init.js, damit Landing und Doku synchron bleiben.
 
 type Theme = 'light' | 'dark'
 
@@ -21,9 +18,8 @@ function readTheme(): Theme {
 }
 
 export default function ThemeToggle() {
-  // Vor der Hydration ist das Theme (aus localStorage/Systempräferenz) im
-  // Server-HTML nicht bekannt; `null` rendert einen Platzhalter gleicher Größe,
-  // sodass es weder Hydration-Mismatch noch Layout-Sprung gibt.
+  // Vor der Hydration ist das Theme unbekannt; `null` rendert einen Platzhalter
+  // gleicher Größe — kein Hydration-Mismatch, kein Layout-Sprung.
   const [theme, setTheme] = useState<Theme | null>(null)
 
   useEffect(() => {

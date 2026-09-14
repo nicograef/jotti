@@ -3,18 +3,16 @@ import { describe, expect, it } from 'vitest'
 import { CLIENT_VERSION, istVersionsabweichung } from './version'
 
 describe('CLIENT_VERSION', () => {
-  // Der `define`-Default aus vitest.config.ts. Zusammen mit der Tabelle unten
-  // ist damit gepinnt, dass der Versionsvergleich in Dev, E2E und Tests nie
-  // anschlägt — dort steht auf beiden Seiten `dev`.
+  // Gepinnt: Der Vergleich schlägt in Dev, E2E und Tests nie an, weil auf
+  // beiden Seiten der `define`-Default `dev` steht.
   it('ist ohne Build-Arg der Default dev', () => {
     expect(CLIENT_VERSION).toBe('dev')
   })
 })
 
 describe('istVersionsabweichung', () => {
-  // Nur zwei verschiedene echte Releases ergeben eine Abweichung. Jede Zeile
-  // mit `dev` auf einer Seite steht für Dev, E2E oder Test — dort schlägt der
-  // Vergleich per Konstruktion nie an.
+  // Nur zwei verschiedene echte Releases ergeben eine Abweichung; jede Zeile
+  // mit `dev` steht für Dev, E2E oder Test.
   const faelle: [string, string, boolean][] = [
     ['dev', 'dev', false],
     ['dev', 'v1.2.3', false],

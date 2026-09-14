@@ -10,20 +10,17 @@ import (
 )
 
 const (
-	// latestReleaseAPI liefert das neueste veroeffentlichte GitHub-Release als JSON.
 	latestReleaseAPI = "https://api.github.com/repos/nicograef/jotti/releases/latest"
-	// releasesPage ist die menschenlesbare Download-Seite fuer die Helfer.
-	releasesPage = "https://github.com/nicograef/jotti/releases/latest"
-	// updateCheckTimeout haelt den Online-Check kurz, damit ein Start (auch offline)
-	// nicht spuerbar verzoegert wird; der Timeout begrenzt den gesamten Request hart.
+	releasesPage     = "https://github.com/nicograef/jotti/releases/latest"
+	// updateCheckTimeout haelt den Online-Check kurz, damit ein Start auch offline
+	// nicht spuerbar verzoegert wird.
 	updateCheckTimeout = 3 * time.Second
 )
 
-// notifyIfUpdateAvailable fragt nach einem gesunden Start (kurzer Timeout,
-// non-fatal) das neueste GitHub-Release ab und weist auf eine neuere Version hin.
-// Jeder Fehler — offline, Timeout, unerwartete Antwort — wird still verschluckt:
-// der Check darf einen erfolgreichen Start nie stoeren. Bewusst wird nur
-// gemeldet, nie automatisch aktualisiert (kein Auto-Update einer laufenden Kasse).
+// notifyIfUpdateAvailable weist nach einem gesunden Start auf eine neuere Version
+// hin. Jeder Fehler wird still verschluckt — der Check darf den Start nie stoeren.
+// Bewusst nur melden, nie automatisch aktualisieren (kein Auto-Update einer
+// laufenden Kasse).
 func notifyIfUpdateAvailable() {
 	latest, err := fetchLatestRelease()
 	if err != nil {
@@ -37,9 +34,8 @@ func notifyIfUpdateAvailable() {
 	fmt.Println("  Zum Aktualisieren: jotti beenden, neues ZIP herunterladen und jotti erneut starten.")
 }
 
-// fetchLatestRelease holt den tag_name des neuesten Releases von der
-// GitHub-Releases-API. Der User-Agent ist Pflicht (GitHub lehnt Requests ohne ab);
-// der Client-Timeout begrenzt jede Verzoegerung, auch bei fehlender Verbindung.
+// fetchLatestRelease holt den tag_name des neuesten Releases. Der User-Agent ist
+// Pflicht — GitHub lehnt Requests ohne ab.
 func fetchLatestRelease() (string, error) {
 	req, err := http.NewRequest(http.MethodGet, latestReleaseAPI, nil)
 	if err != nil {

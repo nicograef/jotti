@@ -112,22 +112,18 @@ describe('LiveReportingSection — Übersicht', () => {
       />,
     )
 
-    // Keine Tabs mehr.
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
 
-    // Servicekraft mit offener Arbeit: Euro-Betrag (5,00 + 2,50 = 7,50 €) und
-    // die Tischnamen inline.
+    // 5,00 + 2,50 = 7,50 € offen, die Tischnamen inline.
     expect(screen.getByText('Anna (Anna A.)')).toBeInTheDocument()
     expect(screen.getByText('7,50 €')).toBeInTheDocument()
     expect(screen.getByText(/Tisch 3, Zelt A2/)).toBeInTheDocument()
 
-    // Fertige Servicekraft: Abrechnungs-Hinweis.
     expect(screen.getByText('Cleo')).toBeInTheDocument()
     expect(screen.getByText('Alles abgerechnet')).toBeInTheDocument()
 
     // Abzugeben ist die Hauptzahl; ohne Rücknahme entspricht sie dem Kassierten.
     expect(screen.getByText('15,00 €')).toBeInTheDocument()
-    // Ohne Rücknahme bleibt die Zeile schlank: keine Kassiert-Nebenzeile.
     expect(screen.queryByText(/Rücknahmen/)).not.toBeInTheDocument()
   })
 
@@ -166,7 +162,6 @@ describe('LiveReportingSection — Übersicht', () => {
       />,
     )
 
-    // Anna: Abzugeben als Hauptzahl, Rücknahmen erklären den Abzug.
     expect(screen.getByText('15,00 €')).toBeInTheDocument()
     expect(
       screen.getByText('Kassiert 20,00 € · Rücknahmen 5,00 €'),
@@ -198,11 +193,9 @@ describe('LiveReportingSection — Übersicht', () => {
       />,
     )
 
-    // Nur fünf Zeilen sichtbar, Tisch 6/7 verborgen.
     expect(screen.getByText('Tisch 5')).toBeInTheDocument()
     expect(screen.queryByText('Tisch 6')).not.toBeInTheDocument()
 
-    // „Alle 7 anzeigen" blendet den Rest ein.
     await user.click(screen.getByRole('button', { name: 'Alle 7 anzeigen' }))
     expect(screen.getByText('Tisch 6')).toBeInTheDocument()
     expect(screen.getByText('Tisch 7')).toBeInTheDocument()
@@ -264,12 +257,10 @@ describe('LiveReportingSection — Übersicht', () => {
       />,
     )
 
-    // Zusammenfassung sichtbar, Detail (Kommentar) zunächst verborgen.
     expect(screen.getByText('1 Stornierung')).toBeInTheDocument()
     expect(screen.queryByText('Falsch gebucht')).not.toBeInTheDocument()
 
-    // Aufklappen zeigt die bestehende Detail-Liste: zuerst die betroffene
-    // Servicekraft, der stellvertretende Akteur nur als Zusatz.
+    // Zuerst die betroffene Servicekraft, der Akteur nur als Zusatz.
     await user.click(screen.getByRole('button', { name: /Details/ }))
     expect(screen.getByText('Falsch gebucht')).toBeInTheDocument()
     expect(screen.getByText('Tisch 9 · felix (Felix W.)')).toBeInTheDocument()

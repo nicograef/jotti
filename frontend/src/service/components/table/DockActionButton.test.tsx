@@ -58,9 +58,8 @@ describe('DockActionButton', () => {
     expect(onClick).toHaveBeenCalledTimes(1)
   })
 
-  // Kernrisiko der Phase: Der DrawerTrigger klont den Button über die
-  // Portal-Grenze hinweg. Der Klick auf den im Dock gerenderten Button muss den
-  // Drawer öffnen (Radix-Context bleibt über das Portal erhalten).
+  // Der DrawerTrigger klont den Button über die Portal-Grenze hinweg: der Klick
+  // auf den im Dock gerenderten Button muss den Drawer öffnen.
   it('öffnet den Drawer über den Dock-Button (Portal + DrawerTrigger)', async () => {
     const user = userEvent.setup()
     render(

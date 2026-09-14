@@ -5,9 +5,8 @@ export interface TischGruppe {
   tische: Tisch[]
 }
 
-// Zerlegt einen Tischnamen in Präfix und abschließende Zahl. Präfix ist alles
-// vor der letzten Zahl, am Ende getrimmt ('Zelt 3' → { praefix: 'Zelt', nummer:
-// 3 }). Ohne abschließende Zahl gibt es keinen Präfix (nummer null).
+// 'Zelt 3' → { praefix: 'Zelt', nummer: 3 }; ohne abschließende Zahl gibt es
+// keinen Präfix (nummer null).
 function zerlegeNamen(name: string): {
   praefix: string
   nummer: number | null
@@ -19,12 +18,10 @@ function zerlegeNamen(name: string): {
   return { praefix: match[1].trim(), nummer: Number(match[2]) }
 }
 
-// Gruppiert Tische nach ihrem Namenspräfix (alles vor der abschließenden Zahl).
 // Tische ohne abschließende Zahl — oder mit leerem Präfix wie '12' — landen in
-// der Gruppe 'Weitere'. Innerhalb einer Gruppe sortiert nach abschließender
-// Zahl (numerisch), die Gruppen selbst nach erstem Auftreten in der Eingabe
-// (das Backend liefert nach ID aufsteigend). 'Weitere' steht immer zuletzt.
-// Reine Funktion ohne Seiteneffekte — isoliert getestet in tischGrouping.test.ts.
+// der Gruppe 'Weitere', die immer zuletzt steht. Innerhalb einer Gruppe
+// numerisch nach der abschließenden Zahl sortiert, die Gruppen nach erstem
+// Auftreten in der Eingabe (Backend liefert nach ID aufsteigend).
 export function gruppiereTische(tische: Tisch[]): TischGruppe[] {
   const gruppen = new Map<string, Tisch[]>()
 

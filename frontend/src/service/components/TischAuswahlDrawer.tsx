@@ -20,11 +20,6 @@ import {
 } from '../table/hooks'
 import type { AktiverTischMitFavorit } from '../table/Tisch'
 
-// Reihenfolge im Alle-Tische-Drawer: durchgehend nach Tischname mit
-// numerischem Vergleich („Tisch 2" vor „Tisch 10"). Favoriten und Saldo
-// werden pro Zeile angezeigt, fließen aber nicht in die Sortierung ein — so
-// bleibt die Reihenfolge stabil und vorhersehbar. Reine Darstellungs-
-// sortierung bereits vollständig geladener Daten.
 function sortiereTische(
   a: AktiverTischMitFavorit,
   b: AktiverTischMitFavorit,

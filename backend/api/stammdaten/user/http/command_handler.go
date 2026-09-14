@@ -86,9 +86,8 @@ func (h CommandHandler) UpdateUserHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		// Diese Route liegt hinter /admin und ist damit nur für die Rolle admin
-		// erreichbar: Eine andere Rolle am eigenen Konto ist immer eine
-		// Herabstufung, die die Instanz ohne Datenbankzugriff aussperrt.
+		// Diese Route liegt hinter /admin: Eine andere Rolle am eigenen Konto ist
+		// immer eine Herabstufung, die die Instanz ohne Datenbankzugriff aussperrt.
 		if body.ID == currentUserID && body.Role != user.AdminRole {
 			helper.SendClientError(w, "cannot_demote_self", nil)
 			return
@@ -119,7 +118,6 @@ type resetPasswordResponse struct {
 	OnetimePassword string `json:"onetimePassword"`
 }
 
-// ResetPasswordHandler handles requests to reset a user's password.
 func (h CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := resetPasswordRequest{}
@@ -147,7 +145,6 @@ var activateUserSchema = z.Struct(z.Shape{
 	"ID": user.IDSchema.Required(),
 })
 
-// ActivateUserHandler handles requests to activate a user.
 func (h CommandHandler) ActivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := activateUserRequest{}
@@ -175,7 +172,6 @@ var deactivateUserSchema = z.Struct(z.Shape{
 	"ID": user.IDSchema.Required(),
 })
 
-// DeactivateUserHandler handles requests to deactivate a user.
 func (h CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deactivateUserRequest{}
@@ -188,8 +184,7 @@ func (h CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		// Wie beim Löschen: Der eigene Zugang bleibt aktiv, sonst sperrt sich der
-		// letzte Admin dauerhaft aus.
+		// Der eigene Zugang bleibt aktiv, sonst sperrt sich der letzte Admin dauerhaft aus.
 		if body.ID == currentUserID {
 			helper.SendClientError(w, "cannot_deactivate_self", nil)
 			return

@@ -13,11 +13,9 @@ export const SummarySchema = z.object({
   direktverkaufUmsatzCents: z.number().int(),
 })
 
-// AbrechnungServicekraft ist die Bargeld-Abrechnung des Tischservice einer
-// Servicekraft: kassiert, die ihr zugeordneten Rücknahmen und der daraus
-// folgende Abzugeben-Saldo (kassiertCents − ruecknahmenCents).
-// anzahlStornierungen ist der kombinierte Kontroll-Zähler über beide
-// Tisch-Storno-Arten. Direktverkäufe sind nicht enthalten.
+// abzugebenCents = kassiertCents − ruecknahmenCents. anzahlStornierungen zählt
+// beide Tisch-Storno-Arten als Kontroll-Zähler. Direktverkäufe sind nicht
+// enthalten.
 export const AbrechnungServicekraftSchema = z.object({
   userId: z.number().int(),
   userName: z.string(),
@@ -32,8 +30,7 @@ export type AbrechnungServicekraft = z.infer<
   typeof AbrechnungServicekraftSchema
 >
 
-// ServicekraftRef ist die geteilte Servicekraft-Referenz der Storno-Detailzeile:
-// Benutzer-ID, eingefrorener Username und live aufgelöster Klarname.
+// userName ist der eingefrorene Username, name der live aufgelöste Klarname.
 export const ServicekraftRefSchema = z.object({
   userId: z.number().int(),
   userName: z.string(),
@@ -48,9 +45,9 @@ export const StornierungPositionSchema = z.object({
   einzelpreisCents: z.number().int(),
 })
 
-// StornierungDetail trennt die zwei Rollen eines Stornos: akteur hat ihn
-// ausgelöst, betroffene sind die Servicekräfte, deren Vorgang er rückgängig
-// macht (Storno-Zuordnung). betroffene liefert das Backend nie leer.
+// akteur hat den Storno ausgelöst; betroffene sind die Servicekräfte, deren
+// Vorgang er rückgängig macht (Storno-Zuordnung). betroffene liefert das
+// Backend nie leer.
 export const StornierungDetailSchema = z.object({
   zeitpunkt: z.string(),
   quelle: z.enum(['tisch', 'direktverkauf']),
@@ -73,8 +70,8 @@ export const UmsatzSteuersatzSchema = z.object({
 })
 export type UmsatzSteuersatz = z.infer<typeof UmsatzSteuersatzSchema>
 
-// VarianteStatistik: Verkaufs-Kennzahl einer Variante — ausgegebene Menge
-// (Produktion) und Umsatz (Einnahmen), bewusst getrennte Grundlagen.
+// ausgegebeneMenge (Produktion) und umsatzCents (Einnahmen) ruhen bewusst auf
+// getrennten Grundlagen.
 export const VarianteStatistikSchema = z.object({
   varianteId: z.number().int(),
   varianteName: z.string(),
@@ -83,9 +80,8 @@ export const VarianteStatistikSchema = z.object({
 })
 export type VarianteStatistik = z.infer<typeof VarianteStatistikSchema>
 
-// ProduktStatistik: ein Produkt mit Zwischensumme über seine Varianten,
-// eingeordnet in eine Kategorie (essen/getraenk/sonstiges). Vom Backend fertig
-// gruppiert und sortiert geliefert; Ein-Varianten-Produkte tragen eine Variante.
+// Vom Backend fertig gruppiert und sortiert; Ein-Varianten-Produkte tragen
+// genau eine Variante.
 export const ProduktStatistikSchema = z.object({
   kategorie: z.string(),
   produktName: z.string(),
@@ -95,9 +91,8 @@ export const ProduktStatistikSchema = z.object({
 })
 export type ProduktStatistik = z.infer<typeof ProduktStatistikSchema>
 
-// AbgeschlosseneSitzung ist ein Eintrag der Kassenberichte-Sitzungsliste: die
-// abgeschlossene Kassensitzung mit Gesamtumsatz und Abschlusszeitpunkt aus dem
-// Tagesabschluss-Event. Status entfällt (alle Einträge sind abgeschlossen).
+// Nur abgeschlossene Sitzungen; abgeschlossenAm stammt aus dem
+// Tagesabschluss-Event.
 export const AbgeschlosseneSitzungSchema = z.object({
   zNr: z.number().int(),
   datum: z.string(),
@@ -107,9 +102,8 @@ export const AbgeschlosseneSitzungSchema = z.object({
 })
 export type AbgeschlosseneSitzung = z.infer<typeof AbgeschlosseneSitzungSchema>
 
-// Metadaten sind die Kopfdaten des formalen Tagesberichts, rein aus den
-// Journal-Events projiziert. Alle Felder sind optional, solange die zugehörigen
-// Events fehlen (z. B. bei einer noch offenen Sitzung).
+// Aus den Journal-Events projiziert; die Felder bleiben leer, solange das
+// zugehörige Event fehlt (etwa bei einer offenen Sitzung).
 export const MetadatenSchema = z.object({
   eroeffnetAm: z.string().nullable(),
   abgeschlossenAm: z.string().nullable(),
@@ -125,18 +119,15 @@ export const OffenerTischSchema = z.object({
 })
 export type OffenerTisch = z.infer<typeof OffenerTischSchema>
 
-// OffeneArbeitTisch trägt nur den Tisch-Namen für die Inline-Anzeige der
-// offenen Tische einer Servicekraft; der offene Betrag wird auf
-// Servicekraft-Ebene (ServicekraftLive.offenCents) vom Backend aggregiert.
+// Ohne Betrag: der offene Saldo wird auf Servicekraft-Ebene aggregiert
+// (ServicekraftLive.offenCents).
 export const OffeneArbeitTischSchema = z.object({
   tischId: z.number().int(),
   tischName: z.string(),
 })
 export type OffeneArbeitTisch = z.infer<typeof OffeneArbeitTischSchema>
 
-// ServicekraftLive führt die Abrechnung einer Servicekraft mit ihrer offenen
-// eigenen Arbeit zusammen; erledigt ist true, wenn keine offene eigene Arbeit
-// mehr besteht.
+// erledigt ist true, wenn keine offene eigene Arbeit mehr besteht.
 export const ServicekraftLiveSchema = z.object({
   userId: z.number().int(),
   userName: z.string(),

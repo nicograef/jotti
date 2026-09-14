@@ -1,21 +1,13 @@
 name: jotti
 
-# Standalone Docker Compose file for the jotti.rocks project deployment.
-# Runs the full stack (postgres, backend, frontend, website) and the DNS
-# infrastructure for trusted local TLS (resolver + acme-dns). The reverse proxy
-# terminates TLS and routes jotti.rocks to the website container (Astro build)
-# and demo.jotti.rocks to the frontend; see docs/jotti-rocks-infra.md.
-#
-# Usage:
-#   docker compose -f docker-compose.rocks.yml up -d --build
-#
-# This file is NOT used by self-hosters — they use docker-compose.prod.yml alone.
-#
-# Requires VPS_PUBLIC_IP in .env (public IPv4 of this server) and
-# Docker Compose >= 2.23.1 (inline configs with interpolation).
+# Standalone stack for the jotti.rocks project deployment: app (postgres,
+# backend, frontend), the Astro website on jotti.rocks, demo.jotti.rocks on the
+# frontend, plus the DNS infrastructure for trusted local TLS (resolver +
+# acme-dns); see docs/jotti-rocks-infra.md. NOT used by self-hosters — they use
+# docker-compose.prod.yml alone. Requires VPS_PUBLIC_IP in .env (public IPv4 of
+# this server) and Docker Compose >= 2.23.1 (inline configs with interpolation).
 
-# Log rotation for every long-running service: json-file capped at a small size
-# and a few files, so it takes effect on any host without daemon configuration.
+# Log rotation that needs no daemon configuration, so it applies on any host.
 x-logging: &default-logging
   driver: json-file
   options:
@@ -105,7 +97,6 @@ services:
         limits:
           memory: 384M
           cpus: "1.5"
-    # No exposed ports; reachable only via reverse proxy
 
   frontend:
     build:
@@ -134,7 +125,6 @@ services:
         limits:
           memory: 128M
           cpus: "0.5"
-    # No exposed ports; served via reverse proxy
 
   # Marketing landing + docs (Astro + Starlight). The build context is the repo
   # root because Astro reads the published Markdown straight from docs/.
@@ -162,7 +152,6 @@ services:
         limits:
           memory: 128M
           cpus: "0.5"
-    # No exposed ports; served via reverse proxy
 
   reverse-proxy:
     image: nginx:1.27-alpine

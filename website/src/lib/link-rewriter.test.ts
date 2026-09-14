@@ -5,7 +5,6 @@ import { publishedDocs } from './published-docs'
 
 const repoBaseUrl = 'https://github.com/nicograef/jotti/blob/main'
 
-// Kleiner Wrapper: feste Map und Repo-Basis, damit die Fälle knapp bleiben.
 function rewrite(target: string, sourcePath = 'verfahrensdokumentation.md') {
   return rewriteDocLink({ target, sourcePath, publishedDocs, repoBaseUrl })
 }

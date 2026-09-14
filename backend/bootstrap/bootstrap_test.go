@@ -17,8 +17,6 @@ import (
 
 var sixDigits = regexp.MustCompile(`^\d{6}$`)
 
-// fakeRepo ist ein reines In-Memory-Repository, das bootstrap.Repository erfüllt —
-// ohne echte Datenbank, damit die Entscheidungslogik isoliert getestet werden kann.
 type fakeRepo struct {
 	users  map[int]user.User
 	nextID int
@@ -59,7 +57,6 @@ func (r *fakeRepo) UpdateUser(ctx context.Context, u user.User) error {
 	return nil
 }
 
-// byUsername liefert den (gespeicherten) Benutzer für Assertions.
 func (r *fakeRepo) byUsername(t *testing.T, username string) user.User {
 	t.Helper()
 	for _, u := range r.users {
@@ -71,8 +68,6 @@ func (r *fakeRepo) byUsername(t *testing.T, username string) user.User {
 	return user.User{}
 }
 
-// newAdminWithoutPassword baut einen aktiven admin ohne Passwort, aber mit
-// gesetztem Einmalpasswort-Hash (Ausgangszustand des Rotations-/Wiederherstellungsfalls).
 func newAdminWithoutPassword(t *testing.T) user.User {
 	t.Helper()
 	u, _, err := user.NewUser("Administrator", bootstrap.AdminUsername, user.AdminRole)
@@ -142,7 +137,6 @@ func TestEnsureInitialAdmin(t *testing.T) {
 			name: "single locked admin (empty OTP hash) rotates to fresh OTP",
 			setup: func(t *testing.T) *fakeRepo {
 				admin := newAdminWithoutPassword(t)
-				// Aussperrung: das OTP-Hash wurde nach zu vielen Fehlversuchen geleert.
 				admin.OnetimePasswordHash = ""
 				admin.OnetimePasswordAttempts = 0
 				return newFakeRepo(admin)
@@ -210,7 +204,6 @@ func TestEnsureInitialAdmin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := tt.setup(t)
 
-			// Alten OTP-Hash des Admins vor der Entscheidung merken (für Rotations-Assertion).
 			var oldAdminOTPHash string
 			if before, err := repo.GetUserByUsername(context.Background(), bootstrap.AdminUsername); err == nil {
 				oldAdminOTPHash = before.OnetimePasswordHash
@@ -236,8 +229,6 @@ func TestEnsureInitialAdmin(t *testing.T) {
 	}
 }
 
-// TestResultLog_MarkerSurvivesConsoleWriter belegt, dass der grep-stabile Präfix und
-// der Klartext-Code die zerolog-ConsoleWriter-Formatierung als Literal überstehen.
 func TestResultLog_MarkerSurvivesConsoleWriter(t *testing.T) {
 	var buf bytes.Buffer
 	logger := zerolog.New(zerolog.ConsoleWriter{Out: &buf, NoColor: true})
@@ -253,7 +244,6 @@ func TestResultLog_MarkerSurvivesConsoleWriter(t *testing.T) {
 	}
 }
 
-// TestResultLog_SkipWritesNothing: bei ActionSkip darf keine Zeile entstehen.
 func TestResultLog_SkipWritesNothing(t *testing.T) {
 	var buf bytes.Buffer
 	logger := zerolog.New(zerolog.ConsoleWriter{Out: &buf, NoColor: true})

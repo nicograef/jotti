@@ -51,18 +51,19 @@ Der gedruckte Kassenbeleg braucht einen Drucker (siehe
 <https://jotti.rocks/docs/leitfaden/haeufige-fragen/>). Für den Bondruck
 zusätzlich **`jotti-relay.exe`** doppelklicken. Es läuft ohne
 Administratorrechte und nimmt seine Zugangsdaten aus der `.env`, die
-`jotti-start.exe` angelegt hat (in `%PROGRAMDATA%\jotti`).
+`jotti-start.exe` angelegt hat (in `C:\ProgramData\jotti`).
 
 ## Probleme
 
-- **„Port 80/443 ist durch ‚X' (PID …) belegt":** Das genannte Programm beenden
-  (häufig Skype, IIS oder eine VM-Software) und `jotti-start.exe` erneut starten.
+- **„Port 80 ist durch ‚X' (PID …) belegt"** (oder Port 443): Das genannte
+  Programm beenden (häufig Skype, IIS oder eine VM-Software) und
+  `jotti-start.exe` erneut starten.
 - **Fenster schließt sich zu schnell:** Es bleibt bis zum Enter-Druck offen;
   steht oben eine Fehlermeldung, diese zuerst lesen.
 - **„volume ‚jotti-local_jotti-config' … not created by Docker Compose":** Eine
-  **harmlose** Warnung, die nur bei Installationen erscheint, die vor diesem Update
-  angelegt wurden — jotti läuft normal weiter. Sie verschwindet, sobald dieses
-  Volume einmal neu angelegt wird; neue Installationen zeigen sie gar nicht erst.
+  **harmlose** Warnung — jotti läuft normal weiter. Sie erscheint, wenn dieses
+  Volume ohne die Compose-Kennzeichnung angelegt wurde; nachträglich lässt sie
+  sich nicht setzen. Sie verschwindet, sobald das Volume einmal neu angelegt wird.
 
 ## Beenden
 
@@ -96,14 +97,11 @@ for %f in ("%PROGRAMDATA%\jotti\backups\manuell-*.sql") do @echo %~zf Bytes  %~n
   Zeile oder **0 Bytes**, ist die Sicherung fehlgeschlagen — dann lief jotti
   nicht. Löscht die leere Datei und versucht es erneut.
 
-Die Dateien liegen im Ordner `%PROGRAMDATA%\jotti\backups`. In denselben Ordner
+Die Dateien liegen im Ordner `C:\ProgramData\jotti\backups`. In denselben Ordner
 spiegelt jotti auch die **automatischen Backups vor jedem Update**. Diesen Ordner
 könnt ihr komplett auf einen USB-Stick oder in eine Cloud kopieren.
 
 ## jotti aktualisieren
-
-> ⚠️ **Updates zuhause mit Internet machen, nicht auf dem Fest.** Wie beim
-> Erststart lädt jotti dabei neue Programmteile herunter.
 
 Meldet der Starter beim Hochfahren „Neue Version verfügbar" mit einem
 Download-Link, so aktualisiert ihr jotti in drei Schritten:
@@ -126,42 +124,9 @@ vorherigen Release — der Rückweg, falls das Update Ärger macht.
 > Beenden immer **`jotti-stop.cmd`** verwenden: das stoppt nur die Container und
 > lässt alles erhalten.
 
-**Automatisches Backup vor dem Update.** Erkennt der Starter eine neue Version,
-sichert er die Datenbank **vor** der Aktualisierung automatisch. Geht beim Update
-etwas schief, spielt **`jotti-restore.cmd`** (Doppelklick) das letzte dieser
-Backups zurück — seit dem Backup erfasste Daten gehen dabei verloren.
-
-Das Skript fragt zuerst zurück: **`Fortfahren? (j/N)`** — mit **`j`**
-beantworten. Danach meldet es jeden seiner drei Schritte mit einer eigenen Zeile:
-
-1. `Starte die Datenbank ...`
-2. `Stoppe die Anwendung waehrend der Wiederherstellung ...`
-3. `Spiele das letzte Backup ein ...`
-
-Am Ende meldet es „Wiederherstellung abgeschlossen." und dass jotti noch nicht
-läuft. Das Skript startet jotti **nicht** selbst: nur `jotti-start.exe` gibt dem
-Reverse-Proxy die Netzwerk-Adresse des Rechners mit, ohne die es keine
-Zugangsadresse für die Handys gibt.
-
-Bricht einer der drei Schritte ab, endet die Ausgabe mit „FEHLER bei der
-Wiederherstellung". Behebt die Ursache (läuft Docker Desktop?) und startet
-`jotti-restore.cmd` erneut; der zweite Lauf spielt dasselbe Backup vollständig
-ein.
-
-**Danach starten — mit dem vorherigen Release.** Die Datenbank steht wieder auf
-dem Stand von vor dem Update, und dazu passt die Version von vor dem Update.
-Startet also `jotti-start.exe` des **vorherigen Release** — aus dem alten
-Programmordner, oder aus dem erneut geladenen ZIP
-(<https://github.com/nicograef/jotti/releases>).
-
-> 🔁 **Nur vorwärts, kein Downgrade.** Spielt **keine ältere Version** über eine
-> neuere Datenbank: Updates verändern die Datenbank und lassen sich nicht
-> zurücknehmen. Nach einer Wiederherstellung gilt das nicht — die Datenbank ist
-> dann selbst wieder auf dem alten Stand. Verweigert der Starter den Start
-> trotzdem („Diese Version … ist aelter als die zuletzt gestartete …"), dann lief
-> die neue Version schon einmal vollständig: nehmt dann `jotti-start.exe` aus dem
-> **neuen** ZIP, es aktualisiert die zurückgespielte Datenbank wieder auf seinen
-> Stand.
+**Geht beim Update etwas schief:** **`jotti-restore.cmd`** doppelklicken — es
+spielt das automatische Backup von vor dem Update zurück. Den vollständigen
+Ablauf beschreibt <https://jotti.rocks/docs/leitfaden/aktualisieren/>.
 
 ## Wenn nach einem Update niemand mehr hineinkommt
 
@@ -177,14 +142,9 @@ Schlüssel. Zwei datenerhaltende Wege zurück:
    schadet nicht. Danach einmal **neu anmelden**.
 2. Habt ihr noch die **`.env` aus der alten Installation** (liegt ggf. im
    Programmordner neben `jotti-start.exe`): kopiert sie nach
-   **`%PROGRAMDATA%\jotti\.env`** und startet `jotti-start.exe` erneut — dann
+   **`C:\ProgramData\jotti\.env`** und startet `jotti-start.exe` erneut — dann
    verwendet jotti wieder den ursprünglichen Schlüssel.
 
-Meldet der Starter beim Hochfahren ausdrücklich, es seien **„bereits jotti-Daten
-vorhanden, aber keine Zugangsdaten gefunden"**, dann hilft Weg 2: die alte `.env`
-an den genannten Ort legen und erneut starten.
-
----
-
-> 🔒 **Sicherheit:** jotti läuft nur im lokalen WLAN. Öffnet es **niemals** ins
-> Internet — richtet im Router **keine Port-Weiterleitung** auf den Kassenrechner ein.
+> 🔒 **Sicherheit:** Dieser Windows-Aufbau läuft nur im lokalen WLAN. Öffnet ihn
+> **niemals** ins Internet — richtet im Router **keine Port-Weiterleitung** auf
+> den Kassenrechner ein.

@@ -46,10 +46,8 @@ func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {
 
 		b, err := betreiber.NewBetreiber(body.Vereinsname, body.Strasse, body.Plz, body.Ort, body.Steuernummer, body.UstID)
 		if err != nil {
-			// Der Zweig ist defensiv: updateBetreiberSchema prüft dieselben
-			// Feld-Schemas, die der Konstruktor erneut prüft, also lehnt er einen
-			// angenommenen Body nicht ab. Lehnt er doch ab, liegt es an der
-			// Eingabe und nicht am Server — deshalb 400.
+			// Defensiv: updateBetreiberSchema prüft dieselben Feld-Schemas wie der
+			// Konstruktor. Lehnt er doch ab, liegt es an der Eingabe — deshalb 400.
 			helper.SendClientError(w, "validation_error", nil)
 			return
 		}
@@ -62,8 +60,6 @@ func (h *CommandHandler) UpdateBetreiberHandler() http.HandlerFunc {
 	}
 }
 
-// SetzeElsterMeldungHandler markiert die ELSTER-Kassenmeldung als erledigt
-// (serverseitig auf das aktuelle Datum). Kein Request-Body.
 func (h *CommandHandler) SetzeElsterMeldungHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := h.Command.SetzeElsterMeldung(r.Context()); err != nil {
@@ -74,8 +70,6 @@ func (h *CommandHandler) SetzeElsterMeldungHandler() http.HandlerFunc {
 	}
 }
 
-// NimmElsterMeldungZurueckHandler setzt die ELSTER-Kassenmeldung zurück (NULL),
-// damit ein Fehlklick korrigierbar bleibt. Kein Request-Body.
 func (h *CommandHandler) NimmElsterMeldungZurueckHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := h.Command.NimmElsterMeldungZurueck(r.Context()); err != nil {

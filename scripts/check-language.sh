@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# jotti — one decidable language rule per area: Windows console output
-# stays ASCII, backend Go comments carry real German umlauts, and
-# packaging/**/*.cmd stays ASCII throughout (Windows batch files have no
-# separate doc-comment channel). Identifiers never change here — only
-# string literals, comments and .cmd text.
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -14,22 +8,17 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$PROJECT_ROOT"
 
-# backend/internal/tools/checklanguage is a real package of the backend
-# module (golangci-lint, go vet and its own unit test cover it there).
-# Built once into a temp binary rather than run via `go run` each time:
-# `go run` collapses every non-zero exit code from the program it runs to
-# 1, which would make a real parse error (checklanguage's exit 2)
-# indistinguishable from "found violations" (its exit 1).
+# Built into a temp binary instead of `go run`: `go run` collapses every
+# non-zero exit code to 1, which would make a parse error (checklanguage's exit
+# 2) indistinguishable from "found violations" (exit 1).
 CHECKER_BIN="$(mktemp)"
 trap 'rm -f "$CHECKER_BIN"' EXIT
 (cd backend && go build -o "$CHECKER_BIN" ./internal/tools/checklanguage)
 
 violations=0
 
-# check_rule MODE FILE... — runs checklanguage in MODE, error()-prints each
-# hit and adds it to $violations. Runs in the current shell, not a
-# subshell, so fatal()'s exit actually stops the script instead of just a
-# command substitution.
+# check_rule MODE FILE... — collects checklanguage's hits into $violations. Runs
+# in the current shell, not a subshell, so fatal()'s exit stops the script.
 check_rule() {
   local mode="$1"
   shift
@@ -53,9 +42,8 @@ check_rule() {
   done <<<"$hits"
 }
 
-# Rule 1a: non-ASCII bytes in Go string literals under windows/**. Comments,
-# *.manifest and *.syso are excluded — they carry German prose and never
-# reach a Windows console.
+# Rule 1a: no non-ASCII in Go string literals under windows/**. Comments,
+# *.manifest and *.syso carry German prose and never reach a Windows console.
 mapfile -t windows_go_files < <(git ls-files ':(glob)windows/**/*.go')
 if [ "${#windows_go_files[@]}" -gt 0 ]; then
   check_rule windows-strings "${windows_go_files[@]}"
@@ -68,19 +56,15 @@ if [ "${#cmd_files[@]}" -gt 0 ]; then
   check_rule cmd-ascii "${cmd_files[@]}"
 fi
 
-# Rule 2: transliterated umlaut words (fuer, ueber, koennen, ...) as whole
-# words on Go comment lines under backend/**. Identifiers such as the
-# `auftraege` parameter in backend/seed are untouched — only *ast.Comment
-# text is scanned. backend/sqlc/dbgen/** is excluded from the check like
-# in check-prose.sh: it is generated code (AGENTS.md rule 14, "niemals
-# editieren") whose comments come from database/migrations/** (frozen) and
-# backend/sqlc/queries/**, not from hand-authored Go prose.
-#
-# The files after the "--" are the protected word set: every name the
-# backend declares or writes, which a comment quoting it must spell the
-# same way. dbgen belongs in there (its queries carry the table and column
-# names comments quote); the checker's own package does not, because its
-# stems map lists the very misspellings this rule hunts.
+# Rule 2: transliterated umlaut words (fuer, ueber, koennen, ...) as whole words
+# on Go comment lines under backend/**. Only *ast.Comment text is scanned, so
+# identifiers such as backend/seed's `auftraege` stay untouched; the generated
+# backend/sqlc/dbgen/** is excluded (AGENTS.md rule 14).
+# The files after the "--" are the protected word set: every name the backend
+# declares or writes, which a comment quoting it must spell the same way. dbgen
+# belongs in there (its queries carry the table and column names); the checker's
+# own package does not, because its stems map lists the misspellings this rule
+# hunts.
 mapfile -t backend_go_files < <(git ls-files ':(glob)backend/**/*.go' ':(glob,exclude)backend/sqlc/dbgen/**')
 mapfile -t protection_sources < <(git ls-files ':(glob)backend/**/*.go' ':(glob,exclude)backend/internal/tools/checklanguage/**')
 if [ "${#backend_go_files[@]}" -gt 0 ]; then

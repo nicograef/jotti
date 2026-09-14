@@ -29,8 +29,6 @@ type Command struct {
 	ProduktRepo produktRepo
 }
 
-// Produkt commands
-
 func (c Command) CreateProdukt(ctx context.Context, name string, kategorie produkt.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -106,12 +104,9 @@ func (c Command) VerschiebeProdukt(ctx context.Context, produktID int, richtung 
 	return nil
 }
 
-// Variante commands
-
 func (c Command) CreateVariante(ctx context.Context, produktID int, name string, preisCents int) (int, error) {
 	log := zerolog.Ctx(ctx)
 
-	// Verify produkt exists
 	_, err := c.ProduktRepo.GetProdukt(ctx, produktID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
@@ -269,9 +264,8 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID i
 		return ErrDatabase
 	}
 
-	// Die Variante muss zu diesem Produkt gehören: Der Aufruf nennt beide IDs,
-	// und ohne den Abgleich löscht eine fremde varianteId die Variante eines
-	// anderen Produkts.
+	// Ohne den Abgleich löscht eine fremde varianteId die Variante eines anderen
+	// Produkts.
 	gehoertZumProdukt := false
 	for i := range produkt.Varianten {
 		if produkt.Varianten[i].ID == variante.ID {

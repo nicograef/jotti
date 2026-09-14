@@ -45,8 +45,6 @@ type HistorieEintrag = Bestellung | Zahlung | Stornierung | Umbuchung
 // der Zugang einer Umbuchung. Nur diese tragen stornier-/umbuchbare Positionen.
 type Quelle = Bestellung | Umbuchung
 
-// Betragsfarbe: Zugänge (Bestellung, Umbuchungs-Zugang) emerald, kassenwirksame
-// Storni rot, Zahlung und Umbuchungs-Abgang neutral.
 type Betragsfarbe = 'zugang' | 'storno' | 'neutral'
 
 interface Zeilenmodell {
@@ -58,8 +56,6 @@ interface Zeilenmodell {
   date: string
   userName: string
   kommentar: string
-  // Beleg-Daten für den Detail-Drawer; jeder Eintrag wird hier einmalig
-  // gemappt (Zeile und Detail teilen dasselbe Modell).
   positionen: ReceiptPosition[]
   totalPrice: number
 }
@@ -136,8 +132,6 @@ interface TischHistorieProps {
     | 'belegDrucken'
     | 'stornobelegDrucken'
   >
-  // Buchungserfolg (Stornierung/Umbuchung) meldet der Aufrufer über den
-  // Erfolgs-Pop; der nachgelagerte Refetch läuft dort beim Schließen.
   onErfolg: (nachricht: string) => void
 }
 
@@ -213,10 +207,8 @@ export function TischHistorie({
   )
 }
 
-// HistorieDetail rendert den Detail-Drawer eines Historien-Eintrags: leitet die
-// Aktions-Berechtigungen intern ab und kümmert sich um den Belegdruck (Zahlung →
-// Kassenbeleg, Warenrücknahme → Stornobeleg). Das Zeilenmodell kommt vom
-// Aufrufer, damit Zeile und Detail denselben Eintrag genau einmal mappen.
+// Das Zeilenmodell kommt vom Aufrufer, damit Zeile und Detail denselben Eintrag
+// genau einmal mappen.
 function HistorieDetail({
   detail,
   zeile,

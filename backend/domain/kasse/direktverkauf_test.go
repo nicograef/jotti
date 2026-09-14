@@ -9,8 +9,7 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-// verkaufPositionen extracts the fat positions (incl. server-generated PositionIDs) from a
-// getaetigt event, so tests can build fat storno positions that reference real positions.
+// verkaufPositionen extracts the fat positions (incl. server-generated PositionIDs) from a getaetigt event.
 func verkaufPositionen(t *testing.T, evt e.Event) []Position {
 	t.Helper()
 	data := DirektverkaufGetaetigtV1Data{}
@@ -20,7 +19,6 @@ func verkaufPositionen(t *testing.T, evt e.Event) []Position {
 	return fromPositionenEventData(data.Positionen)
 }
 
-// stornoPosition copies a fat position with an overridden Menge for use in a storno event.
 func stornoPosition(p Position, menge int) Position {
 	p.Menge = menge
 	return p
@@ -113,7 +111,6 @@ func TestBuildDirektverkaufHistorieEintrag_AggregatesStornos(t *testing.T) {
 	if got := mengeOf(eintrag.OffenePositionen, beerID); got != 1 {
 		t.Errorf("expected 1 Beer in offene Positionen, got %d", got)
 	}
-	// The original positions must stay untouched by the storno reduction.
 	if got := mengeOf(eintrag.Positionen, beerID); got != 2 {
 		t.Errorf("expected original Positionen to keep 2 Beer, got %d", got)
 	}

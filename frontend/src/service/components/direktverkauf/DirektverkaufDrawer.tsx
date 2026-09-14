@@ -17,9 +17,8 @@ interface DirektverkaufDrawerProps {
   verkaufAbgeschlossen: () => void
 }
 
-// Handy-Container (unter lg): Dock-Aktionsbutton als Trigger plus
-// Bottom-Sheet-Drawer, der den gemeinsamen Abschluss-Inhalt trägt. Ab lg rendert
-// die Fläche stattdessen die feste Abschluss-Spalte (siehe Direktverkauf).
+// Handy-Container (unter lg); ab lg rendert Direktverkauf stattdessen die feste
+// Abschluss-Spalte.
 export function DirektverkaufDrawer(props: DirektverkaufDrawerProps) {
   const [open, setOpen] = useState(false)
   const noPositionenSelected = props.positionen.length === 0

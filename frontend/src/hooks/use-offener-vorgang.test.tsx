@@ -24,7 +24,6 @@ describe('useOffenerVorgang', () => {
     rerender({ offen: true })
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
 
-    // Erneutes Rendern mit unverändertem Zustand meldet nicht ein zweites Mal.
     rerender({ offen: true })
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
 

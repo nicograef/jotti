@@ -32,9 +32,8 @@ func TestPositionBezeichnung(t *testing.T) {
 	}
 }
 
-// Ein persistiertes Event mit Menge 1000 bleibt lesbar und stornierbar: Die
-// Obergrenze 999 gilt nur auf dem Eingabeweg (PositionEingabeSchema), während
-// positionSchema jedes gelesene Event validiert.
+// Ein persistiertes Event mit Menge 1000 bleibt lesbar und stornierbar: Die Obergrenze 999
+// gilt nur auf dem Eingabeweg (PositionEingabeSchema), nicht in positionSchema.
 func TestPersistiertesEventMitMenge1000_BleibtLesbarUndStornierbar(t *testing.T) {
 	const positionID = "22222222-2222-4222-8222-222222222222"
 	persisted := e.Event{

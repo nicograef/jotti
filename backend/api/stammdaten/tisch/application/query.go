@@ -16,10 +16,9 @@ type Query struct {
 	TischRepo tischQueryRepo
 }
 
-// TischMitSaldo ergänzt einen Tisch um den offenen Saldo der aktuell offenen
-// Kassensitzung (0 ohne offenen Saldo oder ohne offene Sitzung). Der Saldo ist
-// keine Domäneneigenschaft, sondern eine tisch_sessions-Projektion, und lebt
-// deshalb hier statt am Domain-Modell.
+// TischMitSaldo ergänzt den offenen Saldo der aktuell offenen Kassensitzung
+// (0 ohne offenen Saldo oder ohne offene Sitzung). Der Saldo ist keine
+// Domäneneigenschaft, sondern eine tisch_sessions-Projektion.
 type TischMitSaldo struct {
 	Tisch      t.Tisch
 	SaldoCents int

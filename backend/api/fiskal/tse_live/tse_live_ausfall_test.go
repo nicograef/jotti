@@ -1,15 +1,13 @@
 //go:build integration
 
-// Ausfall-, Nachsignierungs- und Latenzmessung der TSE-Live-Suite. Baut auf der
+// Ausfall-, Nachsignierungs- und Latenzmessung der TSE-Live-Suite; baut auf der
 // Infrastruktur von tse_live_suite_test.go auf (setupLiveUmgebung, starteWorker,
-// warteAufSignatur) und deckt den Testfall-Katalog aus Block 4 der manuellen
-// QA ab:
+// warteAufSignatur):
 //
-//   - Ausfall zur Laufzeit: Vorgänge bleiben buchbar, das Störungsprotokoll
-//     erfasst den Zeitraum mit Grund, nach Wiederherstellung läuft die
-//     Nachsignierung, und das Abschluss-Gate verhält sich in beiden Fällen
-//     korrekt (409 bei frisch ausstehenden Signaturen, erlaubt bei
-//     dokumentiertem Ausfall).
+//   - Ausfall zur Laufzeit: Vorgänge bleiben buchbar, das Störungsprotokoll erfasst
+//     den Zeitraum mit Grund, nach Wiederherstellung läuft die Nachsignierung, und
+//     das Abschluss-Gate verhält sich in beiden Fällen korrekt (409 bei frisch
+//     ausstehenden Signaturen, erlaubt bei dokumentiertem Ausfall).
 //   - Latenzmessung: ein Burst von Signaturaufträgen, Ausgabe von p50/p95 der
 //     realen Ende-zu-Ende-Signierdauer (erstellt_am -> erledigt_am).
 package tse_live
@@ -67,10 +65,9 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	ksSubject := kasse.KassensitzungSubject(ksNr)
 	warteAufSignatur(t, db, eventIDByType(t, db, string(kasse.EventTypeKassensitzungEroeffnetV1), ksSubject))
 
-	// Ausfall auslösen: gültige TssID/ClientID behalten, aber ein falsches
-	// ApiSecret schreiben. Der Worker liest die Konfiguration bei jedem Durchlauf
-	// neu, baut den Client mit den geänderten Zugangsdaten und scheitert beim
-	// Token-Abruf (HTTP 401) TSE-weit — genau der Ausfall, den Block 4 fordert.
+	// Ausfall auslösen: gültige TssID/ClientID behalten, aber ein falsches ApiSecret
+	// schreiben. Der Worker liest die Konfiguration bei jedem Durchlauf neu und
+	// scheitert beim Token-Abruf (HTTP 401) TSE-weit.
 	schreibeKonfiguration(t, tseRepo, tse.Credentials{
 		ApiKey:    credentials.ApiKey,
 		ApiSecret: credentials.ApiSecret + "-ungueltig",
@@ -122,15 +119,9 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	z := warteAufSignatur(t, db, ausfallEventID)
 	pruefeSignatur(t, "Nachsignierung nach Ausfall", z, tse.ProcessTypeBestellungV1)
 
-	// Die automatische Nachsignierung ist damit belegt: derselbe Auftrag, der
-	// während des Ausfalls offen blieb, trägt nach der Wiederherstellung eine
-	// vollständige Signatur (warteAufSignatur wartet auf status='erledigt').
-	// Wir werten zusätzlich die Signaturstatus-Funktion aus — dieselbe
-	// Zurechnung wie der Beleg-Abruf. Das Nachsigniert-Kennzeichen setzt eine
-	// Verspätung über tse.NachsigniertSchwelle (eine Minute) voraus; dieser
-	// Ausfall dauert nur den Worker-Backoff (Sekunden), also ist beides gültig:
-	// bei einem kurzen Ausfall 'vorhanden', bei einem Ausfall > 1 min
-	// 'nachsigniert'. Beide belegen die erfolgte Nachsignierung.
+	// Das Nachsigniert-Kennzeichen setzt eine Verspätung über
+	// tse.NachsigniertSchwelle (eine Minute) voraus; dieser Ausfall dauert nur den
+	// Worker-Backoff. Beide Stände belegen die Nachsignierung.
 	stand, err := tseRepo.GetSignaturauftragZuEvent(ctx, ausfallEventID)
 	if err != nil {
 		t.Fatalf("GetSignaturauftragZuEvent: %v", err)
@@ -156,26 +147,20 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	pruefeGateBlockiertOhneStoerung(t, u, ksNr)
 }
 
-// burstDeckelP95 ist die Obergrenze für die p95-Ende-zu-Ende-Dauer des
-// gleichzeitigen Bursts. Der Burst ist ein Worst-Case-Stresstest, kein
-// Regelbetrieb: latenzBurstGroesse Aufträge liegen gleichzeitig an, und der
-// serielle Worker (ein Sprecher, FIFO) arbeitet sie nacheinander ab, sodass der
-// letzte Auftrag hinter allen Vorgängern wartet. Gemessen wurden reproduzierbar
-// p50 ~4 s / p95 ~7 s (2026-07-09, fiskaly-TEST-TSS); der Deckel fängt eine
-// echte Regression der Signierrate ab, ohne die Regelbetriebs-Zusage auf den
-// Burst zu übertragen.
+// burstDeckelP95 ist die Obergrenze für die p95-Dauer des Bursts — ein
+// Worst-Case-Stresstest, kein Regelbetrieb: latenzBurstGroesse Aufträge liegen
+// gleichzeitig an, und der serielle Worker arbeitet sie nacheinander ab. Gemessen
+// wurden reproduzierbar p50 ~4 s / p95 ~7 s (2026-07-09, fiskaly-TEST-TSS); der
+// Deckel fängt eine Regression der Signierrate ab.
 const burstDeckelP95 = 12 * time.Second
 
 // TestTSELiveSuite_SignaturLatenz misst die reale Ende-zu-Ende-Signierdauer
-// (erstellt_am -> erledigt_am) in zwei Szenarien und gibt p50/p95 reproduzierbar
-// aus:
+// (erstellt_am -> erledigt_am) in zwei Szenarien und gibt p50/p95 aus:
 //
-//   - Regelbetrieb: Signaturaufträge einzeln nacheinander, jeder vor dem
-//     nächsten abgewartet. Das entspricht dem verteilten Anfall im Vereinsbetrieb
-//     und ist die Grundlage der Zusage der Verfahrensdokumentation (p95 < 5 s).
-//   - Burst: latenzBurstGroesse gleichzeitig anliegende Aufträge als
-//     Worst-Case-Stress; der serielle Worker staut sie, der Tail-Wert bildet die
-//     Warteschlangen-Tiefe ab (kein Regelbetrieb).
+//   - Regelbetrieb: Aufträge einzeln nacheinander, jeder vor dem nächsten
+//     abgewartet — Grundlage der Zusage der Verfahrensdokumentation (p95 < 5 s).
+//   - Burst: latenzBurstGroesse gleichzeitig anliegende Aufträge; der Tail-Wert
+//     bildet die Warteschlangen-Tiefe ab (kein Regelbetrieb).
 func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 	credentials := credentialsOderSkip(t)
 	pruefeTestUmgebungOderAbbruch(t, credentials)
@@ -236,8 +221,6 @@ func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 	}
 }
 
-// bucheDirektverkauf bucht einen Direktverkauf über die Standard-Variante und
-// liefert die kassenjournal-ID des erzeugten Events.
 func bucheDirektverkauf(t *testing.T, u *liveTestUmgebung, ksNr int) int {
 	t.Helper()
 	verkaufID := uuid.NewString()
@@ -284,7 +267,6 @@ func warteAufAktiveStoerung(t *testing.T, db *sql.DB, grundArt string) {
 	}
 }
 
-// auftragStatus liefert den aktuellen Status des Signaturauftrags eines Events.
 func auftragStatus(t *testing.T, db *sql.DB, eventID int) string {
 	t.Helper()
 	var status string
@@ -294,17 +276,14 @@ func auftragStatus(t *testing.T, db *sql.DB, eventID int) string {
 	return status
 }
 
-// gateStand bündelt die für Block 4 relevanten Kennzahlen des
-// Abschluss-Gates.
+// gateStand bündelt die Kennzahlen des Abschluss-Gates.
 type gateStand struct {
 	ausstehend   int
 	ausfallReste int
 }
 
-// ausfallGateStand klassifiziert die offenen Signaturaufträge der Sitzung mit
-// derselben Logik wie das Abschluss-Gate (GetOffeneSignaturauftragStaende +
-// GetAktiveTSEStoerung + DetermineSignaturstatus), ohne den Abschluss
-// auszuführen.
+// ausfallGateStand klassifiziert die offenen Signaturaufträge mit derselben Logik
+// wie das Abschluss-Gate, ohne den Abschluss auszuführen.
 func ausfallGateStand(t *testing.T, u *liveTestUmgebung, ksNr int) gateStand {
 	t.Helper()
 	ctx := context.Background()
@@ -338,10 +317,8 @@ func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int
 	t.Helper()
 	ctx := context.Background()
 
-	// Frischen signaturpflichtigen Vorgang buchen; ohne aktive Störung ist sein
-	// offener Auftrag ausstehend. Direkt danach den Abschluss versuchen, bevor der
-	// Worker signiert — deshalb genügt der erste Poll-Takt Vorlauf nicht, wir
-	// greifen sofort zu.
+	// Frischen Vorgang buchen; ohne aktive Störung ist sein offener Auftrag
+	// ausstehend. Der Abschluss muss sofort folgen, bevor der Worker signiert.
 	verkaufID := uuid.NewString()
 	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 1}}
 	if err := u.direkt.DirektverkaufTaetigen(ctx, u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
@@ -412,7 +389,6 @@ func signierDauer(t *testing.T, db *sql.DB, eventID int) time.Duration {
 	return time.Duration(sekunden * float64(time.Second))
 }
 
-// signierDauern liest die reale Signierdauer je Auftrag.
 func signierDauern(t *testing.T, db *sql.DB, eventIDs []int) []time.Duration {
 	t.Helper()
 	dauern := make([]time.Duration, 0, len(eventIDs))

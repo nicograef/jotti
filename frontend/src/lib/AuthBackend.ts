@@ -28,7 +28,6 @@ export class AuthBackend {
     this.backend = backend
   }
 
-  /** Sends a login request with the given username and password and returns the JWT token from the backend. */
   public async login(username: string, password: string): Promise<string> {
     const body = LoginSchema.parse({ username, password })
     const { token } = await this.backend.post(
@@ -39,7 +38,6 @@ export class AuthBackend {
     return token
   }
 
-  /** Sets the initial password for an account, authorized by its one-time password. */
   public async setPassword(
     username: string,
     password: string,

@@ -6,37 +6,24 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/** A string that parses to a valid date. */
 export const DateStringSchema = z
   .string()
   .refine((date) => !isNaN(Date.parse(date)), {
     message: 'Ungültiges Datumsformat',
   })
 
-/**
- * Formats a price in cents as a Euro string with comma decimal separator.
- * Example: 1250 → "12,50"
- */
 export function formatCents(cents: number): string {
   return (cents / 100).toFixed(2).replace('.', ',')
 }
 
-/**
- * Formats a price in cents as a Euro amount followed by the € sign, joined by a
- * non-breaking space (U+00A0) so amount and sign never wrap apart.
- * Example: 1250 → "12,50 €"
- */
+/** 1250 → "12,50 €", joined by NBSP (U+00A0) so it never wraps apart. */
 export function formatEuro(cents: number): string {
   return `${formatCents(cents)}\u00A0€`
 }
 
 /**
- * Label of the bulk-select button in Kassieren and Umbuchung: correct
- * grammatical number (singular one position, plural "N Positionen") plus the
- * selection sum. The variant chooses the leading word: `'alle'` (Umbuchung —
- * every position) says "Alle N Positionen auswählen" / "1 Position auswählen";
- * `'meine'` (Kassieren — only the caller's own positions) says "Meine N
- * Positionen auswählen" / "Meine Position auswählen".
+ * `'alle'` — Umbuchung (every position), `'meine'` — Kassieren (only the
+ * caller's own). Both with the correct grammatical number and the selection sum.
  */
 export function formatAlleAuswaehlenLabel(
   anzahl: number,
@@ -59,21 +46,13 @@ export function formatAlleAuswaehlenLabel(
 }
 
 /**
- * Like {@link formatEuro} but prefixes a "+" for a positive amount, so a surplus
- * reads as "+12,50 €". Zero stays "0,00 €" (no sign) and a negative amount keeps
- * the leading minus of the default formatting ("-3,50 €"). For difference
- * displays where a positive value means a surplus (e.g. the Kassensturz-Differenz
- * as Ist − Soll).
+ * Like {@link formatEuro} but prefixes "+" for a positive amount — for
+ * difference displays where positive means surplus (Kassensturz-Differenz).
  */
 export function formatEuroMitVorzeichen(cents: number): string {
   return cents > 0 ? `+${formatEuro(cents)}` : formatEuro(cents)
 }
 
-/**
- * Composes the canonical position name: product name and variant name joined by
- * a single space, trimmed at the edges. No brackets, no dedup.
- * Example: ("Pommes", "mit Ketchup") → "Pommes mit Ketchup"
- */
 export function formatPositionName(
   produktName: string,
   varianteName: string,
@@ -82,11 +61,9 @@ export function formatPositionName(
 }
 
 /**
- * Formats a timestamp relative to now, for scanning history lists: "gerade eben"
- * (< 1 min), "vor X min" (< 60 min), "vor X Std" (< 6 h), otherwise the absolute
- * clock time "18:42" (same day) or "11.7., 18:42" (earlier day). No live ticker —
- * the value only changes on re-render/refetch, which is accepted. The full
- * timestamp stays available in the detail drawer.
+ * Relative timestamp for history lists. No live ticker — the value only changes
+ * on re-render/refetch, which is accepted; the full timestamp stays in the
+ * detail drawer.
  */
 export function formatRelativeTime(
   date: string,
@@ -120,10 +97,9 @@ export function formatRelativeTime(
 }
 
 /**
- * Parses a Euro string (with comma or dot separator, at most two decimals) to
- * cents. String-based, no float arithmetic. Invalid or over-precise input
- * (more than two decimals, multiple separators) parses to 0.
- * Example: "12,50" → 1250, "12.50" → 1250, "12,505" → 0, "1,2,3" → 0
+ * Euro string (comma or dot, at most two decimals) to cents. String-based, no
+ * float arithmetic. Invalid or over-precise input parses to 0
+ * ("12,505" → 0, "1,2,3" → 0).
  */
 export function parseCents(euroInput: string): number {
   const match = /^(-?)(\d*)(?:[,.](\d{0,2}))?$/.exec(euroInput.trim())

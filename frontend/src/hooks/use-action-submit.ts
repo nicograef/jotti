@@ -19,8 +19,7 @@ export function useActionSubmit({
   const [loading, setLoading] = useState(false)
 
   // Eine laufende Buchung ist ein offener Vorgang: Ein Reload mitten im Flug
-  // ließe die Servicekraft ohne Antwort zurück. Das `finally` unten gibt ihn
-  // nach Erfolg wie nach Fehlschlag wieder frei.
+  // ließe die Servicekraft ohne Antwort zurück.
   useOffenerVorgang(loading)
 
   const run = async (fn: () => Promise<void>) => {

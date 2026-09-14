@@ -50,8 +50,6 @@ export function AdminUsersPage() {
   const invalidateUsers = () =>
     void queryClient.invalidateQueries({ queryKey: [ALLE_USERS_KEY] })
 
-  // Passwort-Reset direkt aus dem Zeilen-Menü: setzt das Passwort zurück und
-  // zeigt das neue Einmalpasswort im bestehenden Dialog.
   const resetPassword = async (userId: number) => {
     const user = users.find((u) => u.id === userId)
     if (!user) return

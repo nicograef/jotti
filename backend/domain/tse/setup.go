@@ -6,21 +6,17 @@ import (
 	"strings"
 )
 
-// ErrSetupAuthFehlgeschlagen zeigt an, dass sich die Setup-Operationen mit dem
-// übergebenen API-Key/-Secret nicht authentifizieren konnten — fast immer
-// falsche Zugangsdaten. Die Application-Schicht macht daraus eine
-// verständliche Meldung für den Admin.
+// ErrSetupAuthFehlgeschlagen: Authentifizierung mit API-Key/-Secret
+// fehlgeschlagen — fast immer falsche Zugangsdaten.
 var ErrSetupAuthFehlgeschlagen = errors.New("tse setup authentication failed")
 
-// ErrSetupTSSLimitErreicht zeigt an, dass das fiskaly-Konto die Obergrenze
-// aktiver TSS erreicht hat (in TEST fünf; fiskaly: E_TSS_LIMIT_REACHED) und
-// keine weitere TSS angelegt werden kann. Alte TEST-TSS werden von fiskaly bei
-// Inaktivität automatisch bereinigt.
+// ErrSetupTSSLimitErreicht: das fiskaly-Konto hat die Obergrenze aktiver TSS
+// erreicht (in TEST fünf; fiskaly: E_TSS_LIMIT_REACHED). Alte TEST-TSS räumt
+// fiskaly bei Inaktivität selbst ab.
 var ErrSetupTSSLimitErreicht = errors.New("tse setup tss limit reached")
 
-// SetupCredentials authentifiziert die geführte TSE-Einrichtung. Anders als
-// Credentials kommt das Setup ohne TSS-/Client-ID aus: beide entstehen erst im
-// Verlauf der Einrichtung.
+// SetupCredentials kommt ohne TSS-/Client-ID aus: beide entstehen erst im Verlauf
+// der Einrichtung.
 type SetupCredentials struct {
 	ApiKey    string
 	ApiSecret string
@@ -33,33 +29,28 @@ func (c SetupCredentials) Validate() error {
 	return nil
 }
 
-// TSSInfo ist der für die Einrichtung relevante Ausschnitt einer fiskaly-TSS.
 type TSSInfo struct {
 	ID    string
 	State string
 }
 
-// ClientInfo ist der für die Einrichtung relevante Ausschnitt eines
-// fiskaly-Clients einer TSS.
 type ClientInfo struct {
 	ID           string
 	SerialNumber string
 	State        string
 }
 
-// TSSErstellt ist das Ergebnis der TSS-Neuanlage: die ID der frisch erzeugten
-// TSS, ihr Zustand (CREATED) und der einmalig von fiskaly gelieferte Admin-PUK.
-// Der PUK wird nie persistiert oder geloggt — er fliesst nur durch bis in die
-// einmalige Anzeige an den Admin.
+// TSSErstellt ist das Ergebnis der TSS-Neuanlage (Zustand CREATED, einmaliger
+// Admin-PUK). Der PUK wird nie persistiert oder geloggt — er fließt nur bis in
+// die einmalige Anzeige an den Admin.
 type TSSErstellt struct {
 	ID    string
 	PUK   string
 	State string
 }
 
-// TSSStammdaten sind die fiskalischen Stammdaten der TSS-Ressource, die der
-// DSFinV-K-Export braucht: Seriennummer, Signaturalgorithmus, Public Key,
-// Zertifikat und Log-Time-Format (fiskaly: signature_timestamp_format). Sie
+// TSSStammdaten sind die fiskalischen Stammdaten der TSS-Ressource für den
+// DSFinV-K-Export (LogTimeFormat = fiskaly signature_timestamp_format). Sie
 // ändern sich über die Lebensdauer der TSS nicht.
 type TSSStammdaten struct {
 	// Seriennummer ist die TSS-Seriennummer (fiskaly: serial_number der
@@ -72,28 +63,20 @@ type TSSStammdaten struct {
 	LogTimeFormat       string
 }
 
-// SetupClient kapselt die fiskaly-Operationen der geführten TSE-Einrichtung:
-// die lesenden Operationen des Prüf-Schritts (ListTSS/ListClients) und die
-// schreibenden Lebenszyklus-Operationen, mit denen der Orchestrator eine TSS
-// von der Neuanlage bis zum registrierten Client treibt. ListTSS liefert die
-// Umgebung aus der fiskaly-Antwort mit, damit der Befund TEST/LIVE auch bei
-// leerem Konto anzeigen kann.
+// SetupClient kapselt die fiskaly-Operationen der geführten TSE-Einrichtung.
+// ListTSS liefert die Umgebung aus der fiskaly-Antwort mit, damit der Befund
+// TEST/LIVE auch bei leerem Konto anzeigen kann.
 type SetupClient interface {
 	ListTSS(ctx context.Context) (Umgebung, []TSSInfo, error)
 	ListClients(ctx context.Context, tssID string) ([]ClientInfo, error)
 
-	// RetrieveTSSStammdaten liest die fiskalischen Stammdaten der TSS-Ressource
-	// (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format) für den
-	// DSFinV-K-Export. Reine Leseoperation.
 	RetrieveTSSStammdaten(ctx context.Context, tssID string) (TSSStammdaten, error)
 
-	// CreateTSS legt eine neue TSS an (Zustand CREATED) und liefert deren
-	// einmaligen Admin-PUK zurück.
+	// CreateTSS legt eine neue TSS an (Zustand CREATED) mit einmaligem Admin-PUK.
 	CreateTSS(ctx context.Context) (TSSErstellt, error)
-	// GetAdminPUK liest den Admin-PUK einer TSS erneut aus. fiskaly liefert ihn
-	// nur, solange die TSS im Zustand CREATED ist (Admin-PIN noch nicht gesetzt);
-	// danach ist er nicht mehr abrufbar. Dient der Wiederaufnahme nach einem
-	// Abbruch im Zustand CREATED ohne erneute Nutzereingabe.
+	// GetAdminPUK liest den Admin-PUK erneut aus. fiskaly liefert ihn nur, solange
+	// die TSS im Zustand CREATED ist (Admin-PIN noch nicht gesetzt) — das trägt die
+	// Wiederaufnahme nach einem Abbruch ohne erneute Nutzereingabe.
 	GetAdminPUK(ctx context.Context, tssID string) (string, error)
 	// PersonalisiereTSS überführt die TSS von CREATED nach UNINITIALIZED.
 	PersonalisiereTSS(ctx context.Context, tssID string) error
@@ -106,12 +89,9 @@ type SetupClient interface {
 	AuthentifiziereAdmin(ctx context.Context, tssID, pin string) error
 	// InitialisiereTSS überführt die TSS nach INITIALIZED (signierbereit).
 	InitialisiereTSS(ctx context.Context, tssID string) error
-	// RegistriereClient registriert einen Client unter clientID mit der
-	// übergebenen serial_number.
 	RegistriereClient(ctx context.Context, tssID, clientID, serialNumber string) error
-	// ReaktiviereClient reaktiviert einen vorhandenen, aber DEREGISTERED Client
-	// per state=REGISTERED. Die serial_number ist je TSS eindeutig, daher wird
-	// kein neuer Client mit derselben Seriennummer angelegt — derselbe clientID
-	// wird wieder aktiviert. Setzt eine vorherige Admin-Authentifizierung voraus.
+	// ReaktiviereClient setzt einen DEREGISTERED Client auf state=REGISTERED. Die
+	// serial_number ist je TSS eindeutig, ein zweiter Client mit derselben
+	// Seriennummer entsteht darum nie. Setzt Admin-Authentifizierung voraus.
 	ReaktiviereClient(ctx context.Context, tssID, clientID string) error
 }

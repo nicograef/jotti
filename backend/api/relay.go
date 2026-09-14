@@ -8,8 +8,8 @@ import (
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
-// druckauftragRepoRelayAdapter mappt die Repository-Typen auf die Typen der
-// Relay-HTTP-Schicht, damit diese das Repository nicht direkt importiert.
+// druckauftragRepoRelayAdapter mappt Repository-Typen auf Relay-HTTP-Typen,
+// damit die HTTP-Schicht das Repository nicht importiert.
 type druckauftragRepoRelayAdapter struct {
 	repo druckauftrag_repo.Repository
 }

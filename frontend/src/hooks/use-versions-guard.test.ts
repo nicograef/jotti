@@ -19,9 +19,8 @@ vi.mock('@/hooks/use-version', () => ({
 
 vi.mock('@/lib/reload', () => ({ seiteNeuLaden: vi.fn() }))
 
-// Die Clientversion ist im Test der Default `dev` (define in vitest.config.ts)
-// und damit kein Release — ohne echte Release-Version auf beiden Seiten meldet
-// istVersionsabweichung grundsätzlich nichts.
+// Ohne echte Release-Version auf beiden Seiten meldet istVersionsabweichung
+// nichts; im Test ist die Clientversion der Default `dev`.
 vi.mock('@/lib/version', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/version')>()),
   CLIENT_VERSION: 'v1.2.3',
@@ -34,9 +33,8 @@ beforeEach(() => {
   vi.mocked(seiteNeuLaden).mockClear()
 })
 
-// Ohne `globals: true` registriert Testing Library sein Auto-Cleanup nicht.
-// Ein stehen gebliebener Hook bliebe am Vorgangs-Register abonniert und würde
-// beim nächsten Test mitentscheiden — samt eigenem Reload.
+// Ohne `globals: true` registriert Testing Library kein Auto-Cleanup. Ein
+// stehen gebliebener Hook bliebe am Vorgangs-Register abonniert.
 afterEach(() => {
   cleanup()
 })
@@ -60,8 +58,7 @@ describe('useVersionsGuard', () => {
     expect(result.current).toBe('aus')
   })
 
-  // Ein Serverneustart lässt die Abfrage scheitern; useVersion liefert dann
-  // undefined. Ein Ausfall ist kein Versionswechsel und darf nichts erzwingen.
+  // Ein Ausfall (useVersion liefert undefined) ist kein Versionswechsel.
   it('lädt ohne erfolgreich beantwortete Abfrage nicht neu', () => {
     const { result } = renderHook(() => useVersionsGuard())
 
@@ -98,10 +95,8 @@ describe('useVersionsGuard', () => {
     expect(seiteNeuLaden).toHaveBeenCalledTimes(1)
   })
 
-  // Zwischen dem Auslösen und dem tatsächlichen Entladen der Seite
-  // läuft die Anwendung weiter: Weitere Abfragen melden dieselbe Abweichung,
-  // und ein Vorgang kann noch aufgehen und wieder zugehen. Ein zweiter Reload
-  // darf daraus nicht folgen.
+  // Zwischen Auslösen und Entladen läuft die Anwendung weiter: Weitere
+  // Abfragen melden dieselbe Abweichung. Ein zweiter Reload darf nicht folgen.
   it('löst innerhalb eines Seitenlebens genau einen Reload aus', () => {
     versionState.version = 'v1.2.4'
 
@@ -127,8 +122,7 @@ describe('useVersionsGuard', () => {
 
     expect(seiteNeuLaden).not.toHaveBeenCalled()
     expect(result.current).toBe('gebremst')
-    // Der Vermerk bleibt stehen: Erst die Einigkeit mit dem Server löst ihn
-    // ein, und die gibt es hier gerade nicht.
+    // Erst die Einigkeit mit dem Server löst den Vermerk ein.
     expect(sessionStorage.getItem(RELOAD_VERMERK_SCHLUESSEL)).toBe('v1.2.4')
   })
 
@@ -142,10 +136,8 @@ describe('useVersionsGuard', () => {
     expect(result.current).toBe('gebremst')
   })
 
-  // Nach einem misslungenen Update rollt der Betreiber zurück oder korrigiert
-  // vorwärts — der Client trägt dann eine andere als die vermerkte
-  // Zielversion, ist mit dem Server aber einig. Bliebe der Vermerk liegen,
-  // wäre die Bremse für die restliche Lebensdauer des Tabs gezogen.
+  // Nach Rollback oder Vorwärts-Korrektur trägt der Client eine andere als die
+  // vermerkte Zielversion. Bliebe der Vermerk liegen, bliebe die Bremse gezogen.
   it('löst den Vermerk auch bei anderer Version ein, sobald Client und Server einig sind', () => {
     sessionStorage.setItem(RELOAD_VERMERK_SCHLUESSEL, 'v1.2.4')
     versionState.version = 'v1.2.3'

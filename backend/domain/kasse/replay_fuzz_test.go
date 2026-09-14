@@ -11,16 +11,13 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-// FuzzApplyEvent prüft die Replay-Kante des Kassenjournals: ApplyEvent verarbeitet
-// die persistierte Event-Data (JSONB) beim Wiederaufbau der tisch_sessions-Projektion.
-// Der Fuzzer wirft beliebige (auch defekte) JSON-Payloads gegen jeden Event-Typ. Die
-// zu haltende Eigenschaft ist Robustheit: kein Panic, egal wie kaputt das JSON ist —
-// ein Panic beim Replay würde den Projektions-Rebuild (make rebuild-projections) und
-// jede Sitzung mit diesem Event dauerhaft lahmlegen. Fachlich falsche, aber
-// wohlgeformte Payloads dürfen einen Fehler liefern; das ist der erwartete Pfad.
-//
-// Der Seed-Korpus stammt aus den echten, eingefrorenen Event-JSON-Contracts
-// (event_json_contract_test.go) je Event-Typ und läuft bei jedem `go test` mit.
+// FuzzApplyEvent prüft die Replay-Kante des Kassenjournals: ApplyEvent verarbeitet die
+// persistierte Event-Data (JSONB) beim Wiederaufbau der tisch_sessions-Projektion. Zu
+// halten ist Panic-Freiheit, egal wie kaputt das JSON ist — ein Panic legte den
+// Projektions-Rebuild (make rebuild-projections) und jede Sitzung mit diesem Event
+// dauerhaft lahm. Fachlich falsche, aber wohlgeformte Payloads dürfen einen Fehler liefern.
+// Der Seed-Korpus stammt aus den eingefrorenen Event-JSON-Contracts
+// (event_json_contract_test.go).
 func FuzzApplyEvent(f *testing.F) {
 	seeds := []struct {
 		typ  string
@@ -50,7 +47,6 @@ func FuzzApplyEvent(f *testing.F) {
 	for _, s := range seeds {
 		f.Add(s.typ, []byte(s.data))
 	}
-	// Zusätzliche Kanten: leeres Objekt, defektes JSON, unbekannter Typ.
 	f.Add(string(EventTypeBestellungAufgenommenV1), []byte(`{}`))
 	f.Add(string(EventTypeZahlungKassiertV1), []byte(`{"gesamtZahlungCents":-5}`))
 	f.Add("unbekannt:v1", []byte(`{"foo":"bar"}`))
@@ -58,10 +54,8 @@ func FuzzApplyEvent(f *testing.F) {
 	f.Fuzz(func(t *testing.T, typ string, data []byte) {
 		subject := TischSessionSubject(1, 1)
 
-		// Ausgangszustand: eine gültige Bestellung stellt einen realistischen,
-		// nicht-leeren Tisch her (Saldo 700, eine Position mit Menge 2). So testet
-		// der Fuzzer das folgende Event auf einem echten Vorzustand — nicht nur auf
-		// dem Nullwert — und die Invarianten haben einen Bezugspunkt.
+		// Ausgangszustand: eine gültige Bestellung (Saldo 700) — so trifft das Fuzz-Event
+		// einen echten Vorzustand statt nur den Nullwert.
 		basis, err := ApplyEvent(TischSession{Subject: subject}, e.Event{
 			ID: 1, UserID: 1, UserName: "fuzz", Version: 1,
 			Type:    string(EventTypeBestellungAufgenommenV1),
@@ -84,25 +78,16 @@ func FuzzApplyEvent(f *testing.F) {
 			Data:     json.RawMessage(data),
 		}
 
-		// Kein Panic: der Rückgabewert bei Fehler wird vom Aufrufer verworfen, daher
-		// prüfen wir bei Fehlern nur die Panic-Freiheit der Replay-Kante. Ein
-		// fachlich falsches, aber wohlgeformtes Event darf einen Fehler liefern.
+		// Bei Fehler zählt nur Panic-Freiheit; der Rückgabewert wird vom Aufrufer verworfen.
 		next, applyErr := ApplyEvent(basis, evt)
 		if applyErr != nil {
 			return
 		}
 
-		// Ab hier: das Event wurde erfolgreich angewendet. Die folgenden
-		// semantischen Invarianten müssen für jeden erfolgreichen Replay gelten.
-
-		// Invariante 1 — Positionsmengen konsistent: Reduzierungen und
-		// Akkumulationen halten jede projizierte Position bei einer echten,
-		// positiven Menge; eine Position mit Menge <= 0 wäre ein Projektionsfehler
-		// (nicht-entfernter Nulleintrag oder Vorzeichenfehler). Die Prüfung greift
-		// nur, wenn die Positionen des angewendeten Events selbst gültig sind
-		// (Menge > 0, gesetzte PositionID) — eine Menge-0-Position in der Payload
-		// liegt außerhalb des validierten Korpus und würde ihren Nulleintrag
-		// erwartungsgemäß durchreichen.
+		// Invariante 1 — jede projizierte Position hält eine positive Menge; Menge <= 0 wäre
+		// ein Projektionsfehler. Greift nur bei gültigen Eingabe-Positionen (Menge > 0,
+		// PositionID gesetzt) — eine Menge-0-Position liegt außerhalb des validierten Korpus
+		// und reicht ihren Nulleintrag erwartungsgemäß durch.
 		if eingabePositionenGueltig(evt.Data) {
 			for _, pos := range next.UnbezahltePositionen {
 				if pos.Menge <= 0 {
@@ -111,22 +96,15 @@ func FuzzApplyEvent(f *testing.F) {
 			}
 		}
 
-		// Invariante 2 — Saldo nie negativ: Der offene Betrag eines Tisches darf
-		// nicht unter 0 fallen. Saldo-mindernde Events (Zahlung/Korrektur/Umbuchung
-		// als Abgang) tragen einen validierten, nicht-negativen Betrag, der den
-		// offenen Betrag nicht übersteigt. Der Fuzzer speist jedoch beliebige
-		// Beträge ein: eine Minderung, die größer als der Vorzustands-Saldo ist,
-		// liegt außerhalb des validierten Korpus (im Betrieb kann nie mehr kassiert
-		// werden als offen ist) und wird von der Prüfung ausgenommen. Innerhalb des
-		// realistischen Rahmens muss der Saldo aber nicht-negativ bleiben.
+		// Invariante 2 — der offene Betrag darf nicht unter 0 fallen. Eine Minderung, die
+		// größer als der Vorzustands-Saldo ist, liegt außerhalb des validierten Korpus (im
+		// Betrieb kann nie mehr kassiert werden als offen ist) und ist ausgenommen.
 		if minderung := saldoMinderung(typ, evt.Data); minderung <= basis.SaldoCents && next.SaldoCents < 0 {
 			t.Fatalf("negativer Saldo %d nach %s (Basis %d, Minderung %d)", next.SaldoCents, typ, basis.SaldoCents, minderung)
 		}
 
-		// Invariante 3 — Saldo aus Positionen abgeleitet: SaldoCents ist der offene
-		// Betrag und damit stets die Summe aus EinzelpreisCents × Menge über die
-		// unbezahlten Positionen. Nach jedem erfolgreichen Replay muss diese
-		// Ableitung gelten — sie ist die einzige Quelle der Wahrheit für den Saldo.
+		// Invariante 3 — SaldoCents ist stets Σ(EinzelpreisCents × Menge) über die
+		// unbezahlten Positionen; diese Ableitung ist die einzige Quelle der Wahrheit.
 		var erwarteterSaldo int
 		for _, pos := range next.UnbezahltePositionen {
 			erwarteterSaldo += pos.EinzelpreisCents * pos.Menge
@@ -137,9 +115,8 @@ func FuzzApplyEvent(f *testing.F) {
 	})
 }
 
-// saldoMinderung liest den Saldo-mindernden Betrag eines Events aus der Payload,
-// um die Saldo-Invariante auf den realistischen Rahmen (Minderung <= offener
-// Betrag) einzugrenzen. Nicht-mindernde Events liefern 0.
+// saldoMinderung liest den Saldo-mindernden Betrag aus der Payload, um die Saldo-Invariante
+// auf den realistischen Rahmen einzugrenzen. Nicht-mindernde Events liefern 0.
 func saldoMinderung(typ string, data json.RawMessage) int {
 	switch typ {
 	case string(EventTypeZahlungKassiertV1):
@@ -162,10 +139,8 @@ func saldoMinderung(typ string, data json.RawMessage) int {
 	return 0
 }
 
-// eingabePositionenGueltig prüft, ob die Positionen in der Event-Payload einem
-// gültigen Vorgang entsprechen (jede Position hat eine PositionID und eine Menge
-// > 0). Nur dann greift die Positions-Mengen-Invariante; Menge-0- oder
-// PositionID-lose Positionen liegen außerhalb des validierten Schreibpfads.
+// eingabePositionenGueltig meldet, ob jede Position der Payload eine PositionID und eine
+// Menge > 0 hat; nur dann greift die Positions-Mengen-Invariante.
 func eingabePositionenGueltig(data json.RawMessage) bool {
 	var payload struct {
 		Positionen []PositionEventData `json:"positionen"`
@@ -181,21 +156,18 @@ func eingabePositionenGueltig(data json.RawMessage) bool {
 	return true
 }
 
-// FuzzPositionEventDataRoundtrip prüft die Persistenz-Roundtrip-Eigenschaft der
-// Positions-Payload: Eine PositionEventData, die serialisiert und wieder eingelesen
-// wird, muss feldgleich sein. Das JSONB der Positionen ist die Quelle sowohl für den
-// DSFinV-K-Export als auch für die SQL-Reporting-Extraktoren — ein stiller
-// Feldverlust hier verfälscht Bon-Summen und Steueraufteilung.
+// FuzzPositionEventDataRoundtrip prüft: Eine PositionEventData muss serialisiert und wieder
+// eingelesen feldgleich sein. Das Positions-JSONB speist DSFinV-K-Export und die
+// SQL-Reporting-Extraktoren — ein stiller Feldverlust verfälscht Bon- und Steuersummen.
 func FuzzPositionEventDataRoundtrip(f *testing.F) {
 	f.Add("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 7, "Cola", "0,5l", "getraenk", "regel", 350, 2)
 	f.Add("", 0, "", "", "", "", 0, 0)
 	f.Add("x", -1, "Ünïcödé \t\n", "\"quote;\"", "essen", "ermaessigt", -999, 1000000)
 
 	f.Fuzz(func(t *testing.T, posID string, varianteID int, produktName, varianteName, kategorie, steuersatz string, einzelpreis, menge int) {
-		// Persistierte Event-Strings sind stets gültiges UTF-8 (validierte Eingaben,
-		// UTF-8-JSONB in Postgres). Ungültige Byte-Folgen ersetzt json.Marshal durch
-		// U+FFFD — das ist stdlib-Verhalten, keine jotti-Eigenschaft, und außerhalb
-		// des realistischen Korpus. Solche Eingaben überspringen wir.
+		// Persistierte Event-Strings sind stets gültiges UTF-8. Ungültige Byte-Folgen ersetzt
+		// json.Marshal durch U+FFFD — stdlib-Verhalten, keine jotti-Eigenschaft, außerhalb
+		// des realistischen Korpus.
 		for _, s := range []string{posID, produktName, varianteName, kategorie, steuersatz} {
 			if !utf8.ValidString(s) {
 				t.Skip()

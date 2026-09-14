@@ -1,14 +1,9 @@
-// CSP verification for the built website (`website/dist`).
+// CSP verification for the built website: serves `website/dist` behind the
+// production CSP (`csp-server.mjs`) and drives headless Chromium over the
+// landing and two docs pages, capturing every `securitypolicyviolation` DOM
+// event. Exits non-zero on any violation.
 //
-// Serves the artefact behind the production CSP (see `csp-server.mjs`) and drives
-// headless Chromium over the landing page and two docs pages, capturing every
-// `securitypolicyviolation` DOM event. Exits non-zero on any violation.
-//
-// Uses Playwright from the e2e package. If the pinned Playwright build mismatches
-// the preinstalled browser, set CHROMIUM_EXECUTABLE to a chrome binary.
-//
-// Usage: node e2e/website/csp-check.mjs [distDir]
-//   distDir defaults to website/dist relative to the repo root.
+// Usage: node e2e/website/csp-check.mjs [distDir]   (default: website/dist)
 
 import { resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'

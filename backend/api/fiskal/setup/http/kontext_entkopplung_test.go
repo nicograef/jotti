@@ -65,13 +65,11 @@ func (q *abbruchQuery) CheckTSESetup(ctx context.Context, credentials tse.SetupC
 	return q.mockSettingsQuery.CheckTSESetup(ctx, credentials)
 }
 
-// Die beiden schreibenden Endpunkte fahren einen fiskaly-Lebenszyklus, der
-// nicht mittendrin abbrechen darf: Zurück bliebe eine bezahlte, halbfertige
-// TSS, deren PUK und Admin-PIN es nur in der verlorenen Antwort gab. Ein
-// Client-Abbruch storniert r.Context() — deshalb laufen sie unter einem davon
-// abgekoppelten Kontext (lebenszyklusKontext). Die beiden lesenden Endpunkte
-// sind idempotent und wiederholbar; sie behalten r.Context() und sollen mit dem
-// Client abbrechen, statt fiskaly ohne Zuhörer weiter zu befragen.
+// Die beiden schreibenden Endpunkte fahren einen fiskaly-Lebenszyklus, der nicht
+// mittendrin abbrechen darf: Zurück bliebe eine bezahlte, halbfertige TSS, deren
+// PUK und Admin-PIN es nur in der verlorenen Antwort gab. Sie laufen deshalb unter
+// einem vom Client-Abbruch abgekoppelten Kontext. Die lesenden Endpunkte sind
+// idempotent; sie behalten r.Context() und sollen mit dem Client abbrechen.
 func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing.T) {
 	faelle := []struct {
 		route            string

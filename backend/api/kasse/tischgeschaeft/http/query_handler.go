@@ -167,8 +167,7 @@ type stornierung struct {
 	GesamtStornierungCents int        `json:"gesamtStornierungCents"`
 	Kommentar              string     `json:"kommentar"`
 	StorniertAm            time.Time  `json:"storniertAm"`
-	// BarRueckgabe unterscheidet die kassenwirksame Warenrücknahme (true) von der
-	// geldneutralen Korrektur (false); abgeleitet aus dem Event-Typ.
+	// BarRueckgabe: true = kassenwirksame Warenrücknahme, false = geldneutrale Korrektur.
 	BarRueckgabe bool `json:"barRueckgabe"`
 }
 

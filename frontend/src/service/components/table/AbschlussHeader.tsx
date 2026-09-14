@@ -5,9 +5,8 @@ import {
 } from '@/components/ui/drawer'
 
 interface AbschlussHeaderProps {
-  // 'sheet' nutzt die Radix-Dialog-Primitive DrawerTitle/DrawerDescription (für
-  // die A11y des Bottom-Sheets nötig); 'spalte' rendert eine schlichte
-  // Überschrift, weil dort kein Dialog-Kontext existiert.
+  // 'sheet' braucht die Radix-Dialog-Primitive DrawerTitle/DrawerDescription für
+  // die A11y des Bottom-Sheets; in 'spalte' gibt es keinen Dialog-Kontext.
   variant: 'sheet' | 'spalte'
   eyebrow: string
   title: string
@@ -15,8 +14,6 @@ interface AbschlussHeaderProps {
   description: string
 }
 
-// Gemeinsamer Kopf der drei Abschluss-Flächen (Direktverkauf, Bestellen,
-// Kassieren): eine kleine Eyebrow-Zeile plus dominante Überschrift.
 export function AbschlussHeader({
   variant,
   eyebrow,

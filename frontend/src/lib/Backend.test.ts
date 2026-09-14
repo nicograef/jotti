@@ -15,8 +15,6 @@ function createClient() {
 }
 
 describe('Backend.post', () => {
-  // Ein abgelaufenes Token beantwortet das Backend mit 401 (invalid_jwt):
-  // Der Client meldet den Benutzer ab und leitet zur Login-Seite um.
   it('logs the user out on 401, e.g. for an expired token', async () => {
     // jsdom kann die Redirect-Navigation nicht ausführen und loggt einen Fehler.
     vi.spyOn(console, 'error').mockImplementation(() => undefined)

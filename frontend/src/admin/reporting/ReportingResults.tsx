@@ -10,8 +10,6 @@ import type { AbgeschlosseneSitzung, ReportingData } from './types'
 import { formatDatumLang, formatLocalTime, formatServicekraft } from './utils'
 import { VerkaufStatistik } from './VerkaufStatistik'
 
-// Berichtskopf-Zeile: Datum, Eröffnungs-/Abschlusszeit, abschließender Benutzer
-// und Kassensturz-Differenz — rein aus den vom Backend projizierten Metadaten.
 function BerichtsMeta({
   datum,
   result,
@@ -34,8 +32,7 @@ function BerichtsMeta({
   }
   if (metadaten.kassensturzDifferenzCents !== null) {
     // Das Event trägt Soll − Ist (siehe kassensitzung_events.go); angezeigt
-    // wird die Kassenperspektive Ist − Soll wie im Abschluss-Bildschirm:
-    // negativ = Fehlbetrag, positiv = Überschuss.
+    // wird die Kassenperspektive Ist − Soll: negativ = Fehlbetrag.
     teile.push(
       `Kassensturz-Differenz ${formatEuroMitVorzeichen(-metadaten.kassensturzDifferenzCents)}`,
     )
@@ -66,10 +63,6 @@ function Kennzahl({
   )
 }
 
-// ReportingResults ist der vollständige Tagesbericht ohne Tabs: formaler
-// Berichtskopf mit Metadaten und Drucken-Knopf, vier Kennzahl-Kacheln, die
-// Steuersatz-Tabelle und die zwei Mini-Listen (Abrechnung pro Servicekraft,
-// Stornierungen). Per Tailwind-print:-Klassen druckt nur diese Berichtsspalte.
 export function ReportingResults({
   result,
   sitzung,

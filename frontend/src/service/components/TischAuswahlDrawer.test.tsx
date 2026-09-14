@@ -31,7 +31,6 @@ vi.mock('../table/TischBackend', () => ({
 let mockTische = [
   { id: 1, name: 'Stammtisch', istFavorit: false, saldoCents: 0 },
 ]
-// Steuerbarer Ladezustand der Tischliste.
 const tischeState = { fehler: false }
 const reloadTische = vi.hoisted(() => vi.fn())
 
@@ -77,7 +76,7 @@ describe('TischAuswahlDrawer', () => {
     const body = dialog.querySelector('[data-slot="drawer-body"]')
     expect(body).not.toBeNull()
     expect(body).toContainElement(screen.getByText('Stammtisch'))
-    // Die Suche liegt jetzt auf der Hauptseite — der Drawer hat kein Suchfeld.
+    // Die Suche liegt auf der Hauptseite — der Drawer hat kein Suchfeld.
     expect(screen.queryByPlaceholderText('Tisch suchen...')).toBeNull()
   })
 
@@ -110,8 +109,7 @@ describe('TischAuswahlDrawer', () => {
     renderDrawer()
 
     const namen = screen.getAllByText(/^Tisch \d+$/).map((el) => el.textContent)
-    // „Tisch 2" vor „Tisch 10" (numerischer Vergleich); der Favorit „Tisch 2"
-    // wird nicht mehr an den Anfang gezogen.
+    // Numerischer Vergleich („Tisch 2" vor „Tisch 10"); Favoriten stehen nicht vorn.
     expect(namen).toEqual(['Tisch 1', 'Tisch 2', 'Tisch 10'])
   })
 
@@ -122,7 +120,6 @@ describe('TischAuswahlDrawer', () => {
     ]
     renderDrawer()
 
-    // Gefüllter Stern für den Favoriten, leerer für den Nicht-Favoriten.
     expect(
       screen.getByRole('button', { name: 'Tisch 2 aus Favoriten entfernen' }),
     ).toHaveTextContent('★')
@@ -131,7 +128,6 @@ describe('TischAuswahlDrawer', () => {
         name: 'Tisch 10 zu Favoriten hinzufügen',
       }),
     ).toHaveTextContent('☆')
-    // Saldo pro Zeile bleibt sichtbar.
     expect(screen.getByText(/1,00\s*€/)).toBeInTheDocument()
     expect(screen.getByText(/5,00\s*€/)).toBeInTheDocument()
   })

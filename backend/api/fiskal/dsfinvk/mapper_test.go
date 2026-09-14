@@ -23,8 +23,6 @@ const (
 	testBonID  = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 )
 
-// testSignatur baut die quittierte Signatur eines Signaturauftrags, wie sie der
-// Export je Event-ID erhält.
 func testSignatur(t *testing.T, txNr, sigZaehler int, start, ende, signatur string) *tse.Signatur {
 	t.Helper()
 	logStart, err := time.Parse(time.RFC3339, start)
@@ -104,8 +102,6 @@ func barverkaufEvent(t *testing.T) event.Event {
 	}
 }
 
-// barverkaufSignaturen ist der Signaturauftrags-Stand zum barverkaufEvent:
-// quittierte Kassenbeleg-V1-Signatur.
 func barverkaufSignaturen(t *testing.T) map[int]tse.EventSignatur {
 	t.Helper()
 	return map[int]tse.EventSignatur{
@@ -236,8 +232,6 @@ const (
 	zahlungBonID    = "22222222-2222-2222-2222-222222222222"
 )
 
-// bestellungEvent baut eine offene Bestellung (geldneutrale AVBestellung): ein
-// Bier, am Tisch 42 aufgenommen.
 func bestellungEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -266,8 +260,6 @@ func bestellungEvent(t *testing.T) event.Event {
 	}
 }
 
-// zahlungEvent baut die spätere Barzahlung desselben Tisches: der einzige
-// umsatzwirksame Beleg (Revenue-at-payment).
 func zahlungEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -296,8 +288,6 @@ func zahlungEvent(t *testing.T) event.Event {
 	}
 }
 
-// tischablaufSignaturen ist der Signaturauftrags-Stand zu bestellungEvent (ID 1)
-// und zahlungEvent (ID 2): je eine eigene quittierte TSE-Transaktion.
 func tischablaufSignaturen(t *testing.T) map[int]tse.EventSignatur {
 	t.Helper()
 	return map[int]tse.EventSignatur{
@@ -1112,12 +1102,10 @@ func tagesabschlussEvent(t *testing.T) event.Event {
 	}
 }
 
-// TestMapKassenabschlussGemischteSitzung belegt das Kassenabschlussmodul über eine
-// gemischte Sitzung: Anfangsbestand, eine geldneutrale Bestellung plus ihre
-// Zahlung (Umsatz), ein Direktverkauf (Umsatz) sowie Geldtransit und
-// Kassendifferenz. Der Umsatz entsteht nur bei den Zahlungen (Revenue-at-payment),
-// nicht bei der Bestellung. businesscases.csv und payment.csv lassen sich gegen die
-// Einzelbons abgleichen; cash_per_currency.csv weist den EUR-Bestand aus.
+// Kassenabschlussmodul über eine gemischte Sitzung: Anfangsbestand, geldneutrale
+// Bestellung plus Zahlung, Direktverkauf, Geldtransit und Kassendifferenz. Umsatz
+// entsteht nur bei den Zahlungen (Revenue-at-payment). businesscases.csv und
+// payment.csv lassen sich gegen die Einzelbons abgleichen.
 func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
@@ -1216,12 +1204,11 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 	}
 }
 
-// TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon belegt Finding 5: der
-// TSE-signierte Tagesabschluss erscheint als geldneutraler AVSonstige-Bon mit
-// eigener transactions_tse.csv-Zeile. Weil er geldneutral ist, bleiben die
-// Aggregate (businesscases, payment, cash_per_currency) und die Bar-Summen des
-// Kassenabschlusses unverändert; als letzter Vorgang der Sitzung wird er
-// zusätzlich Z_ENDE_ID, ohne die BON_NR der übrigen Belege zu verschieben.
+// Der TSE-signierte Tagesabschluss erscheint als geldneutraler AVSonstige-Bon mit
+// eigener transactions_tse.csv-Zeile. Geldneutral heißt: die Aggregate
+// (businesscases, payment, cash_per_currency) und die Bar-Summen bleiben
+// unverändert; als letzter Vorgang wird er zusätzlich Z_ENDE_ID, ohne die BON_NR
+// der übrigen Belege zu verschieben.
 func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 	const tagesabschlussBonID = "tagesabschluss-20"
 
@@ -1322,11 +1309,9 @@ func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 	}
 }
 
-// TestMapTagesabschlussAusfallTraegtFehlerzeile belegt: ein signaturpflichtiger,
-// (noch) unsignierter Tagesabschluss (Auftrag offen, fehlgeschlagen oder
-// tse_nicht_konfiguriert) fehlt nicht im Export, sondern trägt — wie jeder andere Vorgang —
-// eine TSE_TA_FEHLER-Zeile. So gilt die Invariante „jeder Bonkopf hat genau eine
-// TSE-Zeile“ auch für den AVSonstige-Bon.
+// Ein signaturpflichtiger, (noch) unsignierter Tagesabschluss fehlt nicht im
+// Export, sondern trägt eine TSE_TA_FEHLER-Zeile — die Invariante „jeder Bonkopf
+// hat genau eine TSE-Zeile“ gilt auch für den AVSonstige-Bon.
 func TestMapTagesabschlussAusfallTraegtFehlerzeile(t *testing.T) {
 	const tagesabschlussBonID = "tagesabschluss-20"
 
@@ -1361,7 +1346,6 @@ func TestMapTagesabschlussAusfallTraegtFehlerzeile(t *testing.T) {
 	}
 }
 
-// summe addiert eine Cent-Spalte (formatierte Beträge) über alle Zeilen.
 func summe(t *testing.T, a Archive, file, spalte string) int {
 	t.Helper()
 	table := tableByFile(t, a, file)
@@ -1397,7 +1381,6 @@ func centsAus(t *testing.T, s string) int {
 	return betrag
 }
 
-// hatSignatur prüft, ob eine TSE-Signatur in transactions_tse.csv vorkommt.
 func hatSignatur(table Table, sig string) bool {
 	for row := range table.Records {
 		for i, c := range table.Columns {
@@ -1409,7 +1392,6 @@ func hatSignatur(table Table, sig string) bool {
 	return false
 }
 
-// zahlungAm baut eine Barzahlung mit gegebener Event-ID und BON_ID.
 func zahlungAm(t *testing.T, id int, bonID string, ts time.Time) event.Event {
 	t.Helper()
 
@@ -1464,11 +1446,9 @@ func TestMapNachsigniertVorgang(t *testing.T) {
 	}
 }
 
-// TestMapAusfallOhneNachsignierungFehlerzeile belegt: ein signaturpflichtiger
-// Vorgang, dessen Auftrag (noch) keine Signatur trägt (offen, fehlgeschlagen
-// oder tse_nicht_konfiguriert), fehlt nicht in transactions_tse.csv, sondern trägt eine
-// Fehlerzeile mit gesetztem TSE_TA_FEHLER und leerer Signatur. So hat jeder
-// Bonkopf-Vorgang genau eine TSE-Zeile.
+// Ein signaturpflichtiger Vorgang ohne Signatur (offen, fehlgeschlagen oder
+// tse_nicht_konfiguriert) fehlt nicht in transactions_tse.csv, sondern trägt eine
+// Fehlerzeile mit TSE_TA_FEHLER und leerer Signatur.
 func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
 	signiert := zahlungAm(t, 1, nachsigniertSignedBonID, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
 	unsigniert := zahlungAm(t, 2, nachsigniertOutageBonID, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
@@ -1650,9 +1630,7 @@ func TestMapEmptySessionIsError(t *testing.T) {
 	}
 }
 
-// TestBuildCashregisterVersionAusSnapshot belegt, dass KASSE_SW_VERSION aus dem
-// Snapshot kommt und nicht aus einer hardcodierten Konstante. Der Test schlägt
-// fehl, wenn die Version hartcodiert wird oder der Snapshot-Wert ignoriert wird.
+// KASSE_SW_VERSION kommt aus dem Snapshot, nicht aus einer Konstante.
 func TestBuildCashregisterVersionAusSnapshot(t *testing.T) {
 	const wantVersion = "1.2.3-test"
 	snap := testSnapshot()
@@ -1690,7 +1668,6 @@ func field(t *testing.T, table Table, row int, name string) string {
 	return ""
 }
 
-// tseRowByBonID liefert den Zeilenindex der transactions_tse-Zeile eines Bons.
 func tseRowByBonID(t *testing.T, table Table, bonID string) int {
 	t.Helper()
 	for row := range table.Records {

@@ -17,8 +17,8 @@ type betreiberCommandRepo interface {
 
 type Command struct {
 	BetreiberRepo betreiberCommandRepo
-	// now ist die Uhr des Meldedatums. Im Produktivpfad bleibt sie leer (api/admin.go
-	// baut das Command als Literal) und steht dann für time.Now; Tests setzen sie.
+	// now ist die Uhr des Meldedatums: nil steht für time.Now (Produktivpfad),
+	// Tests setzen sie.
 	now func() time.Time
 }
 

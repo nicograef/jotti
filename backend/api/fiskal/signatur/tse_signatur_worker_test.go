@@ -692,7 +692,6 @@ func TestTSESignaturWorker_ProcessOnce_NichtLesbareKonfigurationMarkiertNichts(t
 	}
 }
 
-// runWorker startet den Run-Loop und liefert cancel + done für den Abbau.
 func runWorker(t *testing.T, worker *tseSignaturWorker) (context.CancelFunc, <-chan struct{}) {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())

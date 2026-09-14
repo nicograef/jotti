@@ -12,12 +12,9 @@ import (
 type Status string
 
 const (
-	// ActiveStatus: usable for service.
-	ActiveStatus Status = "active"
-	// InactiveStatus: not usable for service.
+	ActiveStatus   Status = "active"
 	InactiveStatus Status = "inactive"
-	// DeletedStatus: soft-deleted, not visible.
-	DeletedStatus Status = "deleted"
+	DeletedStatus  Status = "deleted"
 )
 
 type Tisch struct {
@@ -28,14 +25,12 @@ type Tisch struct {
 	UpdatedAt time.Time
 }
 
-// AktiverTisch is a lightweight read model combining table master data and current saldo.
 type AktiverTisch struct {
 	ID         int
 	Name       string
 	SaldoCents int
 }
 
-// AktiverTischMitFavorit extends AktiverTisch with the favorite status for a specific service user.
 type AktiverTischMitFavorit struct {
 	ID         int
 	Name       string

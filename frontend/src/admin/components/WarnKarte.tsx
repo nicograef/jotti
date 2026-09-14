@@ -3,9 +3,6 @@ import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 
-// Warnkarte für problematische Zustände (Rahmen destructive/40, Fläche
-// destructive/4, abgerundet, mit Warn-Icon). Ein optionaler Titel steht fett
-// über dem Fließtext.
 export function WarnKarte({
   title,
   children,

@@ -28,7 +28,6 @@ describe('EigeneUebersichtKarten', () => {
     expect(screen.getByText('Bestellungen')).toBeInTheDocument()
     expect(screen.getByText('Kassiert')).toBeInTheDocument()
     expect(screen.getByText('· 100,00 €')).toBeInTheDocument()
-    // Die Hinweiszeile bleibt aus — der Normalfall ist unverändert.
     expect(screen.queryByText(/Rücknahme/)).not.toBeInTheDocument()
     expect(screen.queryByText(/gibst/)).not.toBeInTheDocument()
   })

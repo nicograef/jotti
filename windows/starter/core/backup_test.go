@@ -32,8 +32,7 @@ func TestShouldBackupOnlyOnVersionChangeWithData(t *testing.T) {
 }
 
 func TestDumpsToDeleteKeepsNewest(t *testing.T) {
-	// Bewusst unsortiert uebergeben — die Funktion sortiert chronologisch und
-	// loescht die aeltesten ueber keep hinaus.
+	// Bewusst unsortiert uebergeben — die Funktion sortiert selbst.
 	names := []string{
 		"jotti-20260613-090000.sql",
 		"jotti-20260610-080000.sql",
@@ -65,8 +64,6 @@ func TestDumpsToDeleteGuardsAgainstZeroKeep(t *testing.T) {
 }
 
 func TestPlanBackupMirrorCopiesAndRotates(t *testing.T) {
-	// Host hat schon zwei aeltere Dumps; der neue kommt hinzu. Bei keep 2
-	// bleiben die neuesten zwei erhalten, der aelteste faellt weg.
 	host := []string{"jotti-20260610-080000.sql", "jotti-20260611-060000.sql"}
 	got := PlanBackupMirror("jotti-20260612-070000.sql", host, 2)
 	want := MirrorPlan{
@@ -79,8 +76,7 @@ func TestPlanBackupMirrorCopiesAndRotates(t *testing.T) {
 }
 
 func TestPlanBackupMirrorSkipsCopyWhenAlreadyOnHost(t *testing.T) {
-	// Liegt der Dump schon auf dem Host (Wiederholung im selben Sekundentakt),
-	// wird nicht erneut kopiert; die Gesamtmenge aendert sich nicht.
+	// Wiederholung im selben Sekundentakt: der Name liegt schon auf dem Host.
 	host := []string{"jotti-20260611-060000.sql", "jotti-20260612-070000.sql"}
 	got := PlanBackupMirror("jotti-20260612-070000.sql", host, 5)
 	if got.Copy != "" {
@@ -92,7 +88,6 @@ func TestPlanBackupMirrorSkipsCopyWhenAlreadyOnHost(t *testing.T) {
 }
 
 func TestPlanBackupMirrorKeepsWhenWithinLimit(t *testing.T) {
-	// Leerer Host, erster Spiegel: kopieren, nichts loeschen.
 	got := PlanBackupMirror("jotti-20260612-070000.sql", nil, 5)
 	if got.Copy != "jotti-20260612-070000.sql" {
 		t.Fatalf("erster Spiegel muss kopieren: got Copy %q", got.Copy)
@@ -103,7 +98,6 @@ func TestPlanBackupMirrorKeepsWhenWithinLimit(t *testing.T) {
 }
 
 func TestPlanBackupMirrorGuardsAgainstZeroKeep(t *testing.T) {
-	// keep <= 0 ist eine Fehlkonfiguration: kopieren ja, aber nie alles loeschen.
 	host := []string{"jotti-20260610-080000.sql", "jotti-20260611-060000.sql"}
 	got := PlanBackupMirror("jotti-20260612-070000.sql", host, 0)
 	if got.Copy != "jotti-20260612-070000.sql" {

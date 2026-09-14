@@ -14,9 +14,6 @@ type Konfiguration struct {
 	UpdatedAt time.Time
 }
 
-// Credentials bildet die TSE-Konfiguration auf die kanonische
-// Credentials-Form ab — die einzige Stelle, an der die vier Felder
-// gemappt werden.
 func (t Konfiguration) Credentials() Credentials {
 	return Credentials{
 		ApiKey:    t.ApiKey,
@@ -27,9 +24,8 @@ func (t Konfiguration) Credentials() Credentials {
 }
 
 func (t Konfiguration) Validate() error {
-	// Sonderfall: komplett leer ist gültig (TSE schlicht nicht konfiguriert).
-	// Sind Felder gesetzt, gilt die kanonische Vier-Felder-Regel aus
-	// Credentials (alle oder keines).
+	// Komplett leer ist gültig (TSE nicht konfiguriert); sind Felder gesetzt, gilt
+	// die Vier-Felder-Regel aus Credentials (alle oder keines).
 	if !t.leer() {
 		if err := t.Credentials().Validate(); err != nil {
 			return err

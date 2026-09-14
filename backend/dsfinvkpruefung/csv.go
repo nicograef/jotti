@@ -6,10 +6,9 @@ import (
 	"strings"
 )
 
-// Regel-Kennungen der CSV- und Deklarations-Abgleichprüfung.
 const (
-	regelIndexDatei     = "index-datei-fehlt"    // index.xml deklariert eine nicht vorhandene CSV
-	regelCsvUndeklar    = "csv-nicht-deklariert" // CSV im Archiv ohne index.xml-Deklaration
+	regelIndexDatei     = "index-datei-fehlt"
+	regelCsvUndeklar    = "csv-nicht-deklariert"
 	regelCsvLeer        = "csv-leer"
 	regelCsvCRLF        = "csv-crlf"
 	regelCsvKopfzeile   = "csv-kopfzeile"
@@ -18,15 +17,13 @@ const (
 	crlf                = "\r\n"
 )
 
-// pruefeTabellenGegenIndex verknüpft die index.xml-Deklaration mit den tatsächlich
-// vorhandenen CSV-Dateien: jede deklarierte Tabelle muss als Datei existieren, und
-// jede vorhandene CSV muss deklariert sein (die index.xml deklariert nur vorhandene
-// Tabellen). Für jede deklarierte-und-vorhandene CSV folgt die Strukturprüfung.
+// pruefeTabellenGegenIndex gleicht index.xml-Deklaration und vorhandene CSV-Dateien in
+// beide Richtungen ab.
 //
-// Referenz: DSFinV-K 2.4 Tz. 1 „Erstellung der index.xml“ (die index.xml beschreibt
-// den bereitgestellten Datenkranz) und die GoBD-Anlage „Ergänzende Informationen
-// zur Datenträgerüberlassung“ (Element URL je Table verweist auf eine vorhandene
-// Datei).
+// Referenz: DSFinV-K 2.4 Tz. 1 „Erstellung der index.xml“ (die index.xml beschreibt den
+// bereitgestellten Datenkranz — eine undeklarierte CSV ist deshalb ein Verstoß) und die
+// GoBD-Anlage „Ergänzende Informationen zur Datenträgerüberlassung“ (Element URL je Table
+// verweist auf eine vorhandene Datei).
 func pruefeTabellenGegenIndex(dateien map[string][]byte, tabellen []indexTabelle) []Befund {
 	var befunde []Befund
 
@@ -35,7 +32,6 @@ func pruefeTabellenGegenIndex(dateien map[string][]byte, tabellen []indexTabelle
 		deklariert[t.URL] = t
 	}
 
-	// (a) Jede deklarierte Tabelle muss als CSV vorhanden sein.
 	for _, t := range tabellen {
 		inhalt, ok := dateien[t.URL]
 		if !ok {
@@ -49,7 +45,6 @@ func pruefeTabellenGegenIndex(dateien map[string][]byte, tabellen []indexTabelle
 		befunde = append(befunde, pruefeCSV(t.URL, inhalt, t)...)
 	}
 
-	// (b) Jede vorhandene CSV muss in der index.xml deklariert sein.
 	for _, name := range sortierteNamen(dateien) {
 		if !strings.HasSuffix(name, csvEndung) {
 			continue
@@ -66,14 +61,12 @@ func pruefeTabellenGegenIndex(dateien map[string][]byte, tabellen []indexTabelle
 	return befunde
 }
 
-// pruefeCSV prüft eine einzelne CSV-Datei gegen ihre index.xml-Deklaration:
-// CRLF-Zeilenenden, Header-Zeile mit exakt der deklarierten Spaltenreihenfolge,
-// gleiche Feldanzahl je Datenzeile und Komma-Dezimaltrennung numerischer Felder.
+// pruefeCSV prüft eine CSV gegen ihre index.xml-Deklaration.
 //
-// Referenz: DSFinV-K 2.4 Tz. 1 „Erstellung der index.xml“ und die amtliche index.xml
-// (Range/From = 2 ⇒ Header in Zeile 1; ColumnDelimiter „;“; RecordDelimiter CRLF;
-// DecimalSymbol „,“). Die Spaltenreihenfolge folgt exakt der Reihenfolge der
-// <VariableColumn>-Elemente der jeweiligen Table (Anhänge A–E der DSFinV-K 2.4).
+// Referenz: DSFinV-K 2.4 Tz. 1 und die amtliche index.xml (Range/From = 2 ⇒ Header in
+// Zeile 1; ColumnDelimiter „;“; RecordDelimiter CRLF; DecimalSymbol „,“). Die
+// Spaltenreihenfolge folgt exakt der Reihenfolge der <VariableColumn>-Elemente der
+// jeweiligen Table (Anhänge A–E der DSFinV-K 2.4).
 func pruefeCSV(name string, inhalt []byte, tab indexTabelle) []Befund {
 	var befunde []Befund
 	add := func(regel, meldung string) {
@@ -87,8 +80,6 @@ func pruefeCSV(name string, inhalt []byte, tab indexTabelle) []Befund {
 
 	text := string(inhalt)
 
-	// CRLF-Zeilenenden: jedes LF muss von einem CR unmittelbar vorangegangen sein.
-	// Ein einzelnes LF (Unix-Zeilenende) verletzt die Vorgabe.
 	if verletztCRLF(text) {
 		add(regelCsvCRLF, "Zeilenenden sind nicht durchgängig CRLF (\\r\\n)")
 	}
@@ -99,7 +90,6 @@ func pruefeCSV(name string, inhalt []byte, tab indexTabelle) []Befund {
 		return befunde
 	}
 
-	// Kopfzeile: exakte Spaltennamen in exakter Reihenfolge.
 	header := splitFelder(zeilen[0])
 	erwartet := spaltenNamen(tab)
 	if !slices.Equal(header, erwartet) {
@@ -110,7 +100,6 @@ func pruefeCSV(name string, inhalt []byte, tab indexTabelle) []Befund {
 		return befunde
 	}
 
-	// Datenzeilen: gleiche Feldanzahl und Komma-Dezimalformat je numerischer Spalte.
 	for i := 1; i < len(zeilen); i++ {
 		felder := splitFelder(zeilen[i])
 		if len(felder) != len(erwartet) {
@@ -127,7 +116,6 @@ func pruefeCSV(name string, inhalt []byte, tab indexTabelle) []Befund {
 	return befunde
 }
 
-// spaltenNamen liefert die deklarierten Spaltennamen einer Tabelle in Reihenfolge.
 func spaltenNamen(tab indexTabelle) []string {
 	namen := make([]string, len(tab.Spalten))
 	for i, s := range tab.Spalten {
@@ -136,8 +124,6 @@ func spaltenNamen(tab indexTabelle) []string {
 	return namen
 }
 
-// verletztCRLF meldet, ob im Text ein LF ohne unmittelbar vorangehendes CR steht
-// (ein reines Unix-Zeilenende).
 func verletztCRLF(text string) bool {
 	for i := 0; i < len(text); i++ {
 		if text[i] == '\n' {
@@ -149,8 +135,7 @@ func verletztCRLF(text string) bool {
 	return false
 }
 
-// zerlegeCRLF zerlegt den Text an CRLF-Grenzen in Zeilen und verwirft eine leere
-// Schlusszeile nach dem finalen CRLF (jede CSV-Zeile endet auf CRLF).
+// zerlegeCRLF verwirft die leere Schlusszeile nach dem finalen CRLF (jede CSV-Zeile endet auf CRLF).
 func zerlegeCRLF(text string) []string {
 	zeilen := strings.Split(text, crlf)
 	if n := len(zeilen); n > 0 && zeilen[n-1] == "" {
@@ -159,9 +144,8 @@ func zerlegeCRLF(text string) []string {
 	return zeilen
 }
 
-// splitFelder zerlegt eine CSV-Zeile am Semikolon unter Beachtung des Doublequote-
-// Text-Begrenzers: ein Semikolon innerhalb von Anführungszeichen trennt nicht, ein
-// verdoppeltes Anführungszeichen ("") ist ein literales Zeichen im Feld.
+// splitFelder zerlegt am Semikolon mit Doublequote-Textbegrenzer: ein Semikolon in
+// Anführungszeichen trennt nicht, "" ist ein literales Anführungszeichen im Feld.
 func splitFelder(zeile string) []string {
 	var felder []string
 	var b strings.Builder
@@ -187,10 +171,9 @@ func splitFelder(zeile string) []string {
 	return felder
 }
 
-// verletztDezimalKomma meldet, ob ein numerisches Feld einen Punkt als Dezimal-
-// oder Gruppierungstrenner nutzt. DSFinV-K führt Zahlen mit Komma-Dezimaltrenner
-// und ohne Tausenderpunkt; ein Punkt im numerischen Feld ist daher ein Verstoß.
-// Ein leeres Feld ist zulässig (optionale numerische Angabe).
+// verletztDezimalKomma: DSFinV-K führt Zahlen mit Komma-Dezimaltrenner und ohne
+// Tausenderpunkt; ein Punkt im numerischen Feld ist daher ein Verstoß. Ein leeres Feld
+// ist zulässig.
 func verletztDezimalKomma(feld string) bool {
 	return strings.ContainsRune(feld, '.')
 }

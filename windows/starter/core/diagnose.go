@@ -5,17 +5,14 @@ import (
 	"strings"
 )
 
-// Standardpfade der Docker-Desktop-Installation unter Windows; die Diagnosen
-// nennen sie, der Shell-Layer (windows/starter, das ausfuehrbare main-Paket)
-// startet die Anwendung darueber.
+// Standardpfade der Docker-Desktop-Installation unter Windows.
 const (
 	DockerBinPath     = `C:\Program Files\Docker\Docker\resources\bin`
 	DockerDesktopPath = `C:\Program Files\Docker\Docker\Docker Desktop.exe`
 )
 
-// Statische Preflight-Diagnosen, deutsch und ASCII-transliteriert fuer die
-// Windows-Konsole (wie die Laufzeit-Strings in windows/relay). Jede nennt den
-// naechsten Handlungsschritt.
+// Preflight-Diagnosen, ASCII-transliteriert fuer die Windows-Konsole; jede nennt
+// den naechsten Handlungsschritt.
 const (
 	DiagnoseDockerCLIFehlt = "Docker wurde nicht gefunden. Bitte Docker Desktop installieren und sicherstellen, dass \"" +
 		DockerBinPath + "\" im PATH liegt, dann jotti erneut starten."
@@ -29,10 +26,9 @@ const (
 	DiagnoseEngineSwitchFehlgeschlagen = "Docker laeuft im Windows-Container-Modus und konnte nicht automatisch auf " +
 		"Linux-Container umgeschaltet werden. Bitte in Docker Desktop \"Switch to Linux containers\" waehlen und jotti erneut starten."
 
-	// DiagnoseSecretFehltMitDaten ist die Fail-Safe-Meldung: es gibt bereits Daten,
-	// aber an keinem Suchort ein Install-Secret. jotti bricht ab, statt frische
-	// Secrets neben die Daten zu erzeugen (das wuerde sie aussperren), und nennt
-	// die gesuchten Orte samt Rettungsweg (alte .env an den kanonischen Ort legen).
+	// DiagnoseSecretFehltMitDaten ist die Fail-Safe-Meldung: Daten ohne Secret. jotti
+	// bricht ab, statt frische Secrets neben die Daten zu erzeugen — das wuerde sie
+	// aussperren.
 	DiagnoseSecretFehltMitDaten = "Es sind bereits jotti-Daten vorhanden, aber es wurden keine Zugangsdaten (.env) gefunden. " +
 		"jotti startet NICHT, um die vorhandenen Daten nicht mit neuen, falschen Zugangsdaten auszusperren.\n" +
 		"Gesucht wurde im jotti-Datentresor, unter \"%PROGRAMDATA%\\jotti\\.env\" und neben jotti-start.exe.\n" +
@@ -40,13 +36,8 @@ const (
 		"kopieren und jotti erneut starten."
 )
 
-// typischePortVerursacher nennt haeufige Beleger von 80/443 fuer den Fall, dass
-// der genaue Verursacher nicht ermittelt werden konnte.
 const typischePortVerursacher = "z. B. VMware Workstation, IIS (World Wide Web Publishing Service) oder Skype"
 
-// PortBelegtDiagnose erzeugt die deutsche Diagnose fuer einen belegten Port.
-// Sind die Verursacher bekannt, werden Prozessname und PID genannt; sonst greift
-// der generische Fallback mit typischen Verursachern.
 func PortBelegtDiagnose(port int, owners []PortOwner) string {
 	if len(owners) == 0 {
 		return fmt.Sprintf(

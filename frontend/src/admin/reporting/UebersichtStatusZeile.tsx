@@ -5,9 +5,6 @@ import { NavLink } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-// Statuszelle der Übersicht: im Normalzustand neutral gerahmt, im Fehlerfall rot
-// (Rahmen destructive/40, Fläche destructive/4) mit „Beheben"-Button zur
-// zuständigen Admin-Seite.
 function StatusZelle({
   icon,
   titel,
@@ -56,9 +53,8 @@ function StatusZelle({
   )
 }
 
-// UebersichtStatusZeile bündelt die drei Statuszellen (Kasse, TSE, Drucker) der
-// Übersicht. Die Fehlerlogik und die Schwellen liegen im Aufrufer
-// (AdminDashboardPage), diese Komponente ist reine Darstellung.
+// Fehlerlogik und Schwellen liegen im Aufrufer (AdminDashboardPage); diese
+// Komponente ist reine Darstellung.
 export function UebersichtStatusZeile({
   kasseTitel,
   kasseFehler,

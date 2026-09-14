@@ -73,8 +73,6 @@ func valueOrDefault(raw, fallback string) string {
 	return fallback
 }
 
-// handler beantwortet DNS-Anfragen: berechnete Antworten für die eigene Zone,
-// Weiterleitung der auth-Zone an acme-dns.
 type handler struct {
 	cfg         zoneConfig
 	forwardAddr string
@@ -96,8 +94,6 @@ func (h *handler) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	_ = w.WriteMsg(buildResponse(h.cfg, req, ans))
 }
 
-// forward reicht die Anfrage unverändert an acme-dns weiter und gibt dessen
-// Antwort durch; scheitert die Weiterleitung, antwortet SERVFAIL.
 func (h *handler) forward(w dns.ResponseWriter, req *dns.Msg) {
 	client := &dns.Client{Net: w.RemoteAddr().Network(), Timeout: forwardTimeout}
 	resp, _, err := client.Exchange(req, h.forwardAddr)

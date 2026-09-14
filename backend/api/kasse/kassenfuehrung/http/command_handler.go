@@ -21,8 +21,6 @@ type CommandHandler struct {
 	Command command
 }
 
-// --- Request / Response DTOs ---
-
 type kassensitzungEroeffnenRequest struct {
 	Bezeichnung string `json:"bezeichnung"`
 	BetragCents *int   `json:"betragCents"`
@@ -62,21 +60,15 @@ var kasseAbschliessenSchema = z.Struct(z.Shape{
 	"IstBestandCents": z.Ptr(z.Int().GTE(0, z.Message("Ist-Bestand darf nicht negativ sein"))).NotNil(z.Message("Ist-Bestand ist erforderlich")),
 })
 
-// kasseAbschliessenResponse weist die beim Abschluss verbliebenen Ausfall-Reste
-// aus: Vorgänge, die die TSE noch nachsigniert (AusfallResteAnzahl) und
-// Vorgänge ohne Signatur mangels TSE-Konfiguration (OhneKonfigurationAnzahl).
+// kasseAbschliessenResponse: AusfallResteAnzahl wird von der TSE nachsigniert, OhneKonfigurationAnzahl nicht.
 type kasseAbschliessenResponse struct {
 	AusfallResteAnzahl      int `json:"ausfallResteAnzahl"`
 	OhneKonfigurationAnzahl int `json:"ohneKonfigurationAnzahl"`
 }
 
-// signaturenAusstehendDetails sind die strukturierten 409-Details des Gates:
-// wie viele Signaturen noch ausstehen.
 type signaturenAusstehendDetails struct {
 	Anzahl int `json:"anzahl"`
 }
-
-// --- Handlers ---
 
 func (h *CommandHandler) KassensitzungEroeffnenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

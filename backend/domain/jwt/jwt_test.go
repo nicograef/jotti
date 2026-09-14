@@ -15,7 +15,6 @@ func TestGenerateJWTTokenForUser(t *testing.T) {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
 
-	// Validate the token
 	claims := jwt.MapClaims{}
 	_, err = jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (any, error) {
 		return []byte("test_secret"), nil

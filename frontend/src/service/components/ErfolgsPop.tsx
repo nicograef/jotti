@@ -1,8 +1,6 @@
 import { Check } from 'lucide-react'
 import { useEffect } from 'react'
 
-// Anzeigedauer bis zum automatischen Schließen (Motion-Inventar „Erfolgs-Pop",
-// ~1,4 s). Ein Tap schließt den Pop sofort, unabhängig vom Timer.
 const ANZEIGE_DAUER_MS = 1400
 
 interface ErfolgsPopProps {
@@ -11,24 +9,15 @@ interface ErfolgsPopProps {
   onDismiss: () => void
 }
 
-// Vollbild-Overlay des sichtbaren Pops: solide Abdunklung als Fallback, darüber
-// die feinere color-mix-Tönung für moderne Browser (siehe style-Prop), Blur nur
-// dort, wo backdrop-filter unterstützt wird (analog zu dialog/drawer/sheet). Das
-// Overlay blockiert bewusst Interaktion, bis es sich schließt: Der nachgelagerte
-// Refetch (onDismiss in TablePage) soll greifen, bevor der nächste Tap ein noch
-// nicht aktualisiertes Bedienelement trifft.
+// Das Overlay blockiert bewusst Interaktion, bis es sich schließt: Der
+// nachgelagerte Refetch (onDismiss in TablePage) soll greifen, bevor der nächste
+// Tap ein noch nicht aktualisiertes Bedienelement trifft.
 const OVERLAY_CLASSES =
   'fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-[rgb(0_0_0/0.25)] supports-backdrop-filter:backdrop-blur-[6px]'
 
-// Unübersehbare Buchungsbestätigung im Service: Vollbild-Overlay mit geblurtem
-// Backdrop und Häkchen-Kreis in Primärgrün, das nach kurzer Zeit automatisch
-// wieder verschwindet. Wird in den drei Buchungsflows (Bestellen, Kassieren,
-// Direktverkauf) statt eines Toasts genutzt. Die role="status"-Live-Region ist
-// dauerhaft gemountet und wechselt nur ihren Textinhalt, damit Screenreader den
-// Erfolg zuverlässig ankündigen (eine frisch befüllt gemountete Region wird oft
-// verschluckt). Der Pop meldet das Schließen über onDismiss (Auto-Dismiss oder
-// Tap); der nachgelagerte Statuswechsel/Refetch folgt erst dann, sodass sichtbare
-// Änderungen dem Pop folgen.
+// Die role="status"-Live-Region bleibt dauerhaft gemountet und wechselt nur
+// ihren Textinhalt: eine frisch befüllt gemountete Region wird von Screenreadern
+// oft verschluckt.
 export function ErfolgsPop({ open, text, onDismiss }: ErfolgsPopProps) {
   useEffect(() => {
     if (!open) return

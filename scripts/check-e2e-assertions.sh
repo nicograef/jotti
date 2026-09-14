@@ -1,23 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# jotti — two weak-assertion patterns that let a failed e2e measurement pass
-# silently: `page.waitForLoadState('networkidle')` (Playwright itself marks
-# this DISCOURAGED — it waits for quiet network, not for the DOM state a spec
-# actually depends on) and a `?? 0` fallback on a measured value (a missing or
-# failed measurement then compares as 0, which usually satisfies the
-# assertion instead of failing it — see e2e/support/viewport.ts's
-# erwarteKeinenHorizontalenUeberlauf, the case this gate was written for).
-#
-# Scanned are the tracked TypeScript files under e2e/tests, e2e/support and
-# e2e/helpers — the Playwright specs and their shared helpers (e2e/helpers/
-# fehlerpfade.ts, imported by four specs, lives outside e2e/support). e2e/
-# website/**(*.mjs) is out of scope: those are static-site smoke scripts
-# (CSP check, screenshots) for the marketing site, not app specs, and a
-# different concern than this gate.
-# A pure `//` comment line is skipped, so a line documenting the forbidden
-# pattern (as this file's own header, or a fix's explanatory comment, does)
-# does not trip the gate itself.
+# jotti — two weak assertions that let a failed e2e measurement pass silently:
+# `page.waitForLoadState('networkidle')` (Playwright marks it DISCOURAGED — it
+# waits for a quiet network, not for the DOM state a spec depends on) and a
+# `?? 0` fallback on a measured value (a missing or failed measurement then
+# compares as 0 and satisfies the assertion instead of failing it, see
+# e2e/support/viewport.ts's erwarteKeinenHorizontalenUeberlauf). Pure `//`
+# comment lines are skipped, so documenting a forbidden pattern does not trip
+# the gate.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"

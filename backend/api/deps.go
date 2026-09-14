@@ -18,12 +18,8 @@ import (
 	"github.com/nicograef/jotti/backend/repository/user_repo"
 )
 
-// Deps bundles all repositories and shared builders for the API wiring layer.
-// It is constructed exactly once in app.SetupRoutes and passed to each area constructor.
 type Deps struct {
-	// Version ist die Build-Version der jotti-Software (gesetzt per ldflags,
-	// "dev" im Entwicklungsmodus). Sie wird als KASSE_SW_VERSION in den
-	// DSFinV-K-Export geschrieben.
+	// Version geht als KASSE_SW_VERSION in den DSFinV-K-Export; per ldflags gesetzt ("dev" in der Entwicklung).
 	Version             string
 	UserRepo            user_repo.Repository
 	ProduktRepo         produkt_repo.Repository
@@ -37,12 +33,10 @@ type Deps struct {
 	DruckstationRepo    druckstation_repo.Repository
 	DruckauftragRepo    druckauftrag_repo.Repository
 
-	// Fiskaly client factories — each closes over cfg.FiskalyBaseURL
 	NewTSEConnectionTester func(tse.Credentials) (tse.ConnectionTester, error)
 	NewTSESetupClient      func(tse.SetupCredentials) (tse.SetupClient, error)
 }
 
-// NewDeps constructs all repositories and shared builders exactly once.
 func NewDeps(cfg config.Config, db *sql.DB) Deps {
 	return Deps{
 		UserRepo:            user_repo.NewRepository(db),

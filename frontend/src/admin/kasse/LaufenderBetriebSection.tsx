@@ -48,11 +48,6 @@ function BewegungZeile({ buchung }: { buchung: GeldtransitBuchung }) {
   )
 }
 
-// LaufenderBetriebSection ist der Inhalt von Schritt 2 des Kassentag-Steppers:
-// der Soll-Bestand groß mit Stand-Zeit, die vier Aufschlüsselungs-Kacheln und die
-// Liste der heutigen Kassenbewegungen. Die Einlegen-/Entnehmen-Buttons erscheinen
-// nur, solange gebucht werden darf (buchenMoeglich); Bestand und Liste bleiben in
-// jedem Fall sichtbar.
 export function LaufenderBetriebSection({
   kassensitzungNr,
   buchenMoeglich,

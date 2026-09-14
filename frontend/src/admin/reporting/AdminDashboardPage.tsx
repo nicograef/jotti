@@ -24,8 +24,6 @@ export function AdminDashboardPage() {
   const { queue } = useTSESignaturQueue()
   const { druckauftraege } = useFehlgeschlageneDruckauftraege()
 
-  // TSE-Fehlerzustand aus der Single Source of Truth (tseAmpel); die Einzel-Flags
-  // bauen den ausführlichen Warteschlangen-Text der Übersichtszeile.
   const {
     fehler: tseFehler,
     nichtKonfiguriert: tseNichtKonfiguriert,
@@ -42,8 +40,6 @@ export function AdminDashboardPage() {
         : `${String(queue?.offeneAuftraege ?? 0)} Vorgänge in Warteschlange (normal)`
 
   const druckFehler = druckauftraege.length > 0
-  // Substantiv folgt der Bon-Art: „Bon" nur für Arbeitsbons, sonst „Kassenbeleg"
-  // bzw. „Testbon"; gemischt bleibt es der neutrale Oberbegriff.
   const { singular: druckSingular, plural: druckPlural } = beschreibeFehlBons(
     druckauftraege.map((auftrag) => auftrag.bonArt),
   )
@@ -54,10 +50,8 @@ export function AdminDashboardPage() {
     : 'Drucker bereit'
   const druckText = druckFehler ? 'Drucker prüfen' : 'Alle Bons gedruckt'
 
-  // „Kassentag seit HH:MM" aus dem Eröffnungszeitpunkt plus Soll-Bestand der
-  // aktiven Sitzung. Beide Angaben stammen aus eigenen Queries und können noch
-  // fehlen; fehlt die eine, entfällt nur ihr Teil (kein hängendes „seit " ohne
-  // Zeit).
+  // Beide Angaben stammen aus eigenen Queries; fehlt eine, entfällt nur ihr
+  // Teil (kein hängendes „seit " ohne Zeit).
   const kasseTeile = [
     kassensitzung &&
       `Kassentag seit ${formatStand(new Date(kassensitzung.eroeffnetAm).getTime())}`,
@@ -66,9 +60,6 @@ export function AdminDashboardPage() {
   ].filter((teil): teil is string => typeof teil === 'string')
   const kasseText = kasseTeile.length > 0 ? kasseTeile.join(' · ') : 'geöffnet'
 
-  // Der Barrierestatus ist kein laufender Betrieb: Die Zelle benennt den
-  // unterbrochenen Abschluss wie der Chip in der Navigation und führt über
-  // „Beheben" auf die Kassentag-Seite, die ihn wiederholt.
   const abschlussUnterbrochen =
     kassensitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
   const kasseTitel = abschlussUnterbrochen

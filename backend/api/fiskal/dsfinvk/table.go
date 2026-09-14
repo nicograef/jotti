@@ -10,11 +10,9 @@ const (
 	csvTextEncapsulator = `"`
 )
 
-// Table ist eine serialisierbare DSFinV-K-CSV-Datei: offizieller Dateiname,
-// logische (deutsche) Bezeichnung, Spaltenüberschriften und die bereits als
-// Strings formatierten Datenzeilen. Feldtyp und Nachkommastellen stehen nicht
-// dabei: das Archiv liefert die eingebettete amtliche index.xml unverändert mit
-// (amtlicheIndexXML) und erzeugt keine eigene Felddeklaration.
+// Table ist eine serialisierbare DSFinV-K-CSV-Datei. Feldtyp und
+// Nachkommastellen fehlen bewusst: das Archiv liefert die amtliche index.xml
+// unverändert mit (amtlicheIndexXML) und erzeugt keine eigene Felddeklaration.
 type Table struct {
 	File        string
 	LogicalName string
@@ -23,14 +21,10 @@ type Table struct {
 	Records     [][]string
 }
 
-// header liefert die Spaltennamen in Reihenfolge.
 func (t Table) header() []string { return t.Columns }
 
-// serializeCSV rendert eine Tabelle als DSFinV-K-konforme CSV-Bytes: eine
-// Header-Zeile mit den Spaltennamen, dann je Datensatz eine Zeile, Felder per
-// Semikolon getrennt, Zeilen per CRLF abgeschlossen, UTF-8. Felder mit
-// Trennzeichen, Anführungszeichen oder Zeilenumbruch werden in Doublequotes
-// gefasst (innere `"` verdoppelt).
+// serializeCSV rendert die Tabelle als DSFinV-K-CSV: eine Header-Zeile mit den
+// Spaltennamen, dann je Datensatz eine Zeile.
 func serializeCSV(t Table) []byte {
 	var b strings.Builder
 	writeCSVRow(&b, t.header())
@@ -50,8 +44,6 @@ func writeCSVRow(b *strings.Builder, fields []string) {
 	b.WriteString(csvNewline)
 }
 
-// escapeCSVField fasst ein Feld nur dann in Doublequotes, wenn es ein
-// Sonderzeichen (Trennzeichen, Anführungszeichen, CR, LF) enthält.
 func escapeCSVField(field string) string {
 	if !strings.ContainsAny(field, ";\"\r\n") {
 		return field

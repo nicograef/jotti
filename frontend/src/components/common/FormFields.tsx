@@ -40,7 +40,6 @@ import { formatCents, parseCents } from '@/lib/utils'
 
 import { EuroInput } from './EuroInput'
 
-// Geteilte Prop-Form jedes Formularfelds, auch der bereichseigenen.
 export interface FieldProps<TField extends FieldValues> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<TField, any, TField>
@@ -292,11 +291,7 @@ interface EuroFieldProps<TField extends FieldValues> {
   className?: string
 }
 
-/**
- * Form field for a Euro amount. Stores integer cents in the form while showing
- * the user-friendly Euro string via {@link EuroInput}. Use for any monetary
- * input bound to react-hook-form.
- */
+/** Euro amount field: the form value is integer cents, the display a Euro string. */
 export function EuroField<TField extends FieldValues>({
   form,
   name,

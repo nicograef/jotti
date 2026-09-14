@@ -25,18 +25,14 @@ var gdpduDTD []byte
 var amtlicheIndexXML []byte
 
 const (
-	// DTDFilename ist der unveränderliche Dateiname der GDPdU-DTD im Archiv.
-	DTDFilename = "gdpdu-01-09-2004.dtd"
-	// indexFilename ist der Beschreibungs-Index des Archivs.
+	DTDFilename   = "gdpdu-01-09-2004.dtd"
 	indexFilename = "index.xml"
 )
 
-// BuildArchive transformiert Snapshot und Events einer Kassensitzung in ein
-// vollständiges DSFinV-K-ZIP: die CSV-Dateien, die beschreibende index.xml und
-// die gdpdu-01-09-2004.dtd. Seiteneffektfrei — komponiert Mapper, CSV-Serializer
-// und ZIP-Packer; index.xml und DTD liegen eingebettet bei und wandern
-// unverändert ins Archiv. signaturen ist der Signatur-Stand je Event-ID aus der
-// Signaturauftrags-Tabelle (die einzige Signaturquelle).
+// BuildArchive packt Snapshot und Events einer Kassensitzung als DSFinV-K-ZIP:
+// CSV-Dateien plus die unverändert eingebettete index.xml und die
+// gdpdu-01-09-2004.dtd. signaturen ist der Signatur-Stand je Event-ID aus der
+// Signaturauftrags-Tabelle — die einzige Signaturquelle.
 func BuildArchive(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSignatur) ([]byte, error) {
 	archive, err := Map(snapshot, events, signaturen)
 	if err != nil {

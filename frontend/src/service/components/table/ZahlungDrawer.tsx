@@ -20,10 +20,8 @@ interface ZahlungDrawerProps {
   zahlungKassiert: () => void
 }
 
-// Handy-Container (unter lg): Dock-Aktionsbutton als Trigger, die Restbetrag-
-// Zeile im Dock-Slot plus Bottom-Sheet-Drawer mit dem gemeinsamen
-// Abschluss-Inhalt. Ab lg rendert die Fläche stattdessen die feste
-// Abschluss-Spalte (siehe Zahlung), die die Restbetrag-Zeile selbst trägt.
+// Handy-Container (unter lg): Dock-Aktionsbutton, Restbetrag-Zeile im Dock-Slot,
+// Bottom-Sheet-Drawer. Ab lg trägt die Abschluss-Spalte (siehe Zahlung) beides.
 export function ZahlungDrawer(props: ZahlungDrawerProps) {
   const [open, setOpen] = useState(false)
   const positionenToPay = selectPositionen(

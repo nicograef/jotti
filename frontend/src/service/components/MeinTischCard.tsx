@@ -9,8 +9,7 @@ import type { TischSession } from '../table/Tisch'
 
 interface MeinTischCardProps {
   state: TischSession
-  // Position in der Eintritts-Staffelung (0-basiert) oder `undefined`, wenn die
-  // Karte nicht animiert eintreten soll (z. B. nach einem Refetch).
+  // Position in der Eintritts-Staffelung; `undefined` = kein animierter Eintritt.
   eintrittIndex?: number
 }
 
@@ -40,9 +39,6 @@ export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
     <button
       type="button"
       onClick={handleClick}
-      // Listen-Eintritt: fadeUp 450 ms, 60 ms Stagger je Karte, nur
-      // beim ersten Aufbau. Der Verzögerungswert ist dynamisch und steht daher
-      // inline; die weiche Kurve überschreibt die kanonische 250-ms-ease-Utility.
       style={
         eintritt === undefined
           ? undefined
@@ -86,9 +82,6 @@ export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
   )
 }
 
-// countOffenePositionen zählt die noch offenen (unbezahlten) Positionen am Tisch
-// (je Position einmal über die positionId) und zusätzlich, wie viele davon von
-// der angemeldeten Servicekraft bestellt wurden.
 function countOffenePositionen(state: TischSession) {
   const myUserId = AuthSingleton.userId
   const offeneIds = new Set<string>()

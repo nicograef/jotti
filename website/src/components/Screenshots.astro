@@ -1,24 +1,9 @@
 ---
 import ThemeImage from './ThemeImage.astro'
 
-// Screenshots-Sektion der Landing (#screenshots): das
-// Statement „Ein Design. Jedes Gerät." zeigt drei Geräteklassen nebeneinander —
-// Desktop (Admin-Produktverwaltung im Browser-Rahmen), Tablet (Direktverkauf im
-// Split-Screen) und Handy (Tischservice) — plus eine kompakte Galerie der
-// übrigen Motive. Alle Bilder sind echte, per Skript reproduzierbare App-
-// Aufnahmen (e2e/website/screenshots.mjs, Make-Target website-screenshots).
-//
-// Alle Geräte-Rahmen und die Galerie folgen dem Seiten-Theme (theme-passende
-// Bildpaare über ThemeImage, rein CSS). Die Galerie mischt Geräteklassen
-// (Handy hochkant, Tablet/Desktop quer); das Masonry-Raster (CSS-Spalten) trägt
-// die gemischten Seitenverhältnisse unverzerrt und ohne horizontalen Scroll.
-
-// Desktop-Admin im Browser-Rahmen (theme-passend).
 import produktverwaltungLight from '../assets/screenshots/produktverwaltung-light.png'
 import produktverwaltungDark from '../assets/screenshots/produktverwaltung-dark.png'
 
-// Geräte-Motive (theme-passend). tischuebersicht und direktverkauf erscheinen
-// zusätzlich als feste Geräte im „Jedes Gerät"-Statement oben.
 import tischuebersichtLight from '../assets/screenshots/tischuebersicht-light.png'
 import tischuebersichtDark from '../assets/screenshots/tischuebersicht-dark.png'
 import zahlungLight from '../assets/screenshots/zahlung-light.png'
@@ -36,11 +21,6 @@ import geldtransitDark from '../assets/screenshots/geldtransit-dark.png'
 import auswertungLight from '../assets/screenshots/auswertung-light.png'
 import auswertungDark from '../assets/screenshots/auswertung-dark.png'
 
-// Acht Galerie-Motive nach Geräteklasse gemischt (Bestellansicht liegt im
-// Hero): Tischservice hochkant am Handy, Direktverkauf und Admin quer am
-// Tablet/Desktop. Tischübersicht und Direktverkauf erscheinen bewusst
-// zusätzlich als feste Geräte im Statement oben. Die alt-Texte nennen die
-// Geräteklasse passend zum Motiv.
 const galerie = [
   {
     light: tischuebersichtLight,
@@ -109,8 +89,6 @@ const galerie = [
       </p>
     </div>
 
-    {/* „Jedes Gerät": drei Geräteklassen nebeneinander — Desktop-Browser,
-        Tablet-Querformat (Direktverkauf-Split) und Handy (Tischservice). */}
     <div
       class="reveal mt-12 flex flex-wrap items-end justify-center gap-x-7 gap-y-8"
     >
@@ -174,9 +152,8 @@ const galerie = [
       </figure>
     </div>
 
-    {/* Galerie der Motive, theme-passend. CSS-Spalten-Masonry: trägt hochkant
-        (Handy) und quer (Tablet/Desktop) ohne Verzerren und ohne inkonsistente
-        Abstände; keine Zeilenkopplung wie im Raster. */}
+    {/* CSS-Spalten statt Raster: trägt hoch- und querformatige Motive ohne
+        Verzerren und ohne Zeilenkopplung. */}
     <ul
       class="reveal mt-14 columns-2 gap-x-5 sm:columns-4"
     >

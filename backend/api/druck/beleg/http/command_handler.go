@@ -66,9 +66,6 @@ var belegDruckenStornoSchema = z.Struct(z.Shape{
 
 const belegDruckenValidationMessage = "entweder tischId+zahlungId, tischId+stornierungId, verkaufId oder verkaufId+stornierungId senden"
 
-// belegDruckenResponse meldet den Beleg-Status: "eingereiht" (Druckauftrag
-// angelegt) oder "ausstehend" (TSE-Signatur liegt noch nicht vor; die UI ruft
-// denselben Endpunkt erneut auf).
 type belegDruckenResponse struct {
 	Status application.BelegStatus `json:"status"`
 }
@@ -104,12 +101,10 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 	}
 }
 
-// readKassenbelegCommand liest die Beleg-Anfrage, bestimmt anhand der gesetzten
-// Felder eine der vier gültigen Body-Formen und validiert deren Pflichtfelder.
-// Die eigentliche Auswahl, welcher Beleg daraus entsteht, liegt in der
-// Application-Schicht (KassenbelegDrucken). Bei ungültiger Kombination oder
-// ungültigen Feldern sendet die Funktion die Client-Fehlerantwort und liefert
-// ok=false.
+// readKassenbelegCommand validiert eine der vier gültigen Body-Formen; welcher
+// Beleg daraus entsteht, entscheidet die Application-Schicht
+// (KassenbelegDrucken). Bei ungültiger Eingabe sendet die Funktion die
+// Client-Fehlerantwort und liefert ok=false.
 func readKassenbelegCommand(w http.ResponseWriter, r *http.Request) (application.KassenbelegDruckenCommand, bool) {
 	body := belegDruckenRequest{}
 	if !helper.ReadBody(w, r, &body) {

@@ -11,12 +11,9 @@ interface TischItemProps {
   onDeactivate: (tischId: number) => Promise<void>
 }
 
-// Kompakte Tisch-Kachel: Name, Mini-Switch und Statustext.
-// Ein offener Saldo zeigt den Betrag statt „aktiv“ und sperrt den Switch — das
-// Backend erzwingt den Schutz zusätzlich als Single Source of Truth. Die
-// Begründung steht als stets sichtbare Zeile (kein Hover-Tooltip: die
-// Servicekräfte bedienen Touch-Handys). Klick auf die Kachel öffnet den
-// Bearbeiten-Dialog (Umbenennen, Löschen); der Switch stoppt die Propagierung.
+// Ein offener Saldo sperrt den Switch — das Backend erzwingt den Schutz
+// zusätzlich als Single Source of Truth. Die Begründung steht als sichtbare
+// Zeile: auf Touch-Handys gibt es kein Hover für einen Tooltip.
 export function TischItem(props: TischItemProps) {
   const isActive = props.tisch.status === TischStatus.ACTIVE
   const hatSaldo = props.tisch.saldoCents > 0
@@ -26,9 +23,8 @@ export function TischItem(props: TischItemProps) {
   }
 
   return (
-    // Die Kachel ist klickbar, enthält aber selbst einen Switch (interaktives
-    // Element). Ein <button> im <button> ist ungültiges HTML, deshalb ein
-    // role="button"-<div> mit Tastaturbedienung statt eines echten Buttons.
+    // Ein <button> im <button> ist ungültiges HTML, deshalb ein
+    // role="button"-<div> mit Tastaturbedienung.
     <div
       role="button"
       tabIndex={0}

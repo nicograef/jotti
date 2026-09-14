@@ -31,9 +31,8 @@ export function TableSelectionPage() {
     isError: tischeError,
     refetch: reloadTische,
   } = useMeineTischeState()
-  // Die Suche greift über alle aktiven Tische, nicht nur die favorisierten
-  // „Meine Tische" — so findet der Nutzer auch einen nicht markierten Tisch und
-  // öffnet ihn per Treffer direkt.
+  // Die Suche greift über alle aktiven Tische, nicht nur die favorisierten — so
+  // ist auch ein nicht markierter Tisch erreichbar.
   const {
     tische: alleTische,
     isError: alleTischeError,
@@ -46,9 +45,8 @@ export function TableSelectionPage() {
     refetch: reloadUebersicht,
   } = useEigeneUebersicht()
 
-  // Nur die beiden Queries, die den Seiteninhalt tragen. Die Suche hängt allein
-  // an alleTische und meldet ihren Ladefehler in ihrem eigenen Block, damit eine
-  // gescheiterte Suchliste nicht die geladenen Tische verdeckt.
+  // Nur die beiden Queries, die den Seiteninhalt tragen; die Suche meldet ihren
+  // Ladefehler im eigenen Block, statt die geladenen Tische zu verdecken.
   const ladefehler = tischeError || uebersichtError
   const reload = useCallback(() => {
     void reloadTische()
@@ -67,7 +65,6 @@ export function TableSelectionPage() {
     (state) => state.unbezahltePositionen.length === 0,
   )
 
-  // Treffer der Hauptsuche über alle aktiven Tische, nach Name sortiert.
   const suchTreffer = useMemo(() => {
     if (!sucheAktiv) return []
     const q = sucheGetrimmt.toLowerCase()
@@ -76,17 +73,12 @@ export function TableSelectionPage() {
       .sort((a, b) => a.name.localeCompare(b.name, 'de'))
   }, [alleTische, sucheAktiv, sucheGetrimmt])
 
-  // Der Listen-Eintritt staffelt nur beim ersten Aufbau der Favoritenliste mit
-  // Daten (nicht beim Skeleton, nicht bei späteren Refetches, nicht in der
-  // Suchtrefferliste). Beide Gruppen teilen sich eine fortlaufende Staffelung:
-  // „Erledigt" setzt hinter „Noch offen" fort.
   const erstAufbau = useErstAufbau(
     !tischeLoading && !sucheAktiv && tische.length > 0,
   )
 
-  // Suchblock: Eingabefeld, sobald es Tische gibt — bei Ladefehler stattdessen
-  // der Hinweis, weil ein stilles Suchfeld ohne Trefferliste wie „kein Tisch
-  // passt" aussähe.
+  // Bei Ladefehler statt des Suchfelds der Hinweis: ein stilles Suchfeld ohne
+  // Trefferliste sähe aus wie „kein Tisch passt".
   const suchblock = alleTischeError ? (
     <LadefehlerAlert
       className="mb-4"
@@ -111,10 +103,9 @@ export function TableSelectionPage() {
     )
   )
 
-  // Expliziter Fehlerzustand statt der Leer-Defaults (Übersicht 0,00 €, keine
-  // markierten Tische) — sonst sieht der eigene Dienst bei Netzabbruch wie ein
-  // Tag ohne Bestellung aus. Die Fußleiste bleibt stehen, damit der
-  // Alle-Tische-Drawer erreichbar ist.
+  // Expliziter Fehlerzustand statt der Leer-Defaults (0,00 €) — sonst sieht der
+  // eigene Dienst bei Netzabbruch wie ein Tag ohne Bestellung aus. Die Fußleiste
+  // bleibt stehen, damit der Alle-Tische-Drawer erreichbar ist.
   const inhalt = ladefehler ? (
     <LadefehlerAlert
       titel="Tischübersicht konnte nicht geladen werden"
@@ -200,8 +191,6 @@ export function TableSelectionPage() {
   )
 }
 
-// SuchTrefferListe zeigt die Treffer der Hauptsuche über alle aktiven Tische.
-// Ein Tippen öffnet den Tisch direkt — auch einen nicht favorisierten.
 function SuchTrefferListe({ treffer }: { treffer: AktiverTischMitFavorit[] }) {
   const navigate = useNavigate()
   return (
@@ -246,8 +235,7 @@ function TischGruppe({
 }: {
   titel: string
   tische: TischSession[]
-  // Start-Index der Eintritts-Staffelung oder `null`, wenn nicht animiert
-  // eingetreten werden soll.
+  // Start-Index der Eintritts-Staffelung; `null` = kein animierter Eintritt.
   eintrittAb: number | null
 }) {
   return (

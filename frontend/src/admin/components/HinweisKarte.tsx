@@ -3,9 +3,6 @@ import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 
-// Info-Karte für erklärende Hinweise (Fläche wie die Sidebar, dünner Rahmen,
-// abgerundet, mit Info-Icon). Ein optionaler Titel steht fett über dem
-// Fließtext; ohne Titel steht nur der Fließtext neben dem Icon.
 export function HinweisKarte({
   title,
   children,

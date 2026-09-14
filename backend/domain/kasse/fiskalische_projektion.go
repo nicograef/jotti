@@ -8,20 +8,17 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// FiskalischerVorgang ist das Ergebnis der fiskalischen Projektion eines
-// signaturpflichtigen Events: processType und processData (DSFinV-K Anhang I)
-// als Snapshot für den Signaturauftrag.
+// FiskalischerVorgang ist processType und processData (DSFinV-K Anhang I) eines
+// signaturpflichtigen Events — der Snapshot für den Signaturauftrag.
 type FiskalischerVorgang struct {
 	ProcessType string
 	ProcessData string
 }
 
-// FiskalischeProjektion bildet ein Event auf (signaturpflichtig, processType,
-// processData) ab. Sie ist die einzige Stelle, die über Signaturpflicht
-// entscheidet, und auch datenabhängig: Die Sitzungseröffnung ist nur bei
-// Anfangsbestand > 0 ein Geschäftsvorfall (Bareinlage, AEAO 2.2.3.6.1).
-// Unbekannte Event-Typen sind ein Fehler, damit ein neuer Event-Typ ohne
-// Projektions-Eintrag nicht still unsigniert bleibt.
+// FiskalischeProjektion ist die einzige Stelle, die über Signaturpflicht entscheidet, und
+// entscheidet datenabhängig: Die Sitzungseröffnung ist nur bei Anfangsbestand > 0 ein
+// Geschäftsvorfall (Bareinlage, AEAO 2.2.3.6.1). Ein unbekannter Event-Typ ist ein Fehler,
+// damit ein neuer Typ ohne Projektions-Eintrag nicht still unsigniert bleibt.
 func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 	switch EventType(evt.Type) {
 	case EventTypeBestellungAufgenommenV1:
@@ -32,8 +29,6 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		return bestellungVorgang(fromPositionenEventData(data.Positionen), 1)
 
 	case EventTypeBestellungKorrigiertV1:
-		// Geldneutrale Korrektur: negative Mengen (Anhang I), damit die Rücknahme
-		// TSE-seitig von einer Neubestellung unterscheidbar ist.
 		data, err := parseProjektionsData[BestellungKorrigiertV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
@@ -41,9 +36,8 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		return bestellungVorgang(fromPositionenEventData(data.Positionen), -1)
 
 	case EventTypeBestellungUmgebuchtV1:
-		// Der Abgang vom Quelltisch wird mit negativen Mengen signiert, der Zugang
-		// auf dem Zieltisch mit positiven — sonst erschiene die Ware TSE-seitig
-		// doppelt bestellt. Die Seite ergibt sich aus dem Tisch des Subjects.
+		// Abgang (Quelltisch) negativ, Zugang (Zieltisch) positiv — sonst erschiene die Ware
+		// TSE-seitig doppelt bestellt. Die Seite folgt aus dem Tisch des Subjects.
 		data, err := parseProjektionsData[BestellungUmgebuchtV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
@@ -111,8 +105,7 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		return FiskalischerVorgang{ProcessType: tse.ProcessTypeKassenbelegV1, ProcessData: processData}, true, nil
 
 	case EventTypeDifferenzSollIstGebuchtV1:
-		// BetragCents = Soll − Ist. Die tatsächliche Bargeldbewegung ist Ist − Soll:
-		// ein Fehlbetrag (Soll > Ist) mindert den Bestand, ein Überschuss mehrt ihn.
+		// BetragCents = Soll − Ist; die Bargeldbewegung ist Ist − Soll, daher negiert.
 		data, err := parseProjektionsData[DifferenzSollIstGebuchtV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err

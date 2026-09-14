@@ -105,7 +105,6 @@ describe('KassenberichtePage', () => {
     hookState.report = makeReport(11)
     render(<KassenberichtePage />)
 
-    // Sitzungslisten-Karte: Datum + Nr. und Umsatz, keine Status-Emojis.
     expect(
       screen.getByText((_content, el) => {
         const text = el?.textContent ?? ''
@@ -121,14 +120,12 @@ describe('KassenberichtePage', () => {
     expect(screen.queryByText('🟢')).not.toBeInTheDocument()
     expect(screen.queryByText('🔴')).not.toBeInTheDocument()
 
-    // Berichtskopf rechts.
     expect(
       screen.getByRole('heading', {
         name: 'Tagesbericht Nr. 11 — Sommerfest Tag 1',
       }),
     ).toBeInTheDocument()
 
-    // Export-Block.
     expect(
       screen.getByRole('button', { name: 'Archiv herunterladen (ZIP)' }),
     ).toBeInTheDocument()

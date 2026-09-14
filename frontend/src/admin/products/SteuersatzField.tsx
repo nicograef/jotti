@@ -14,8 +14,6 @@ import type { Steuersatz } from '@/lib/produktSchemas'
 
 import { STEUERSATZ_LABEL } from './Produkt'
 
-// Steuersatz-Auswahl der Produkt-Formulare. Liegt bei der Produktverwaltung,
-// weil sie die Steuersatz-Labels führt.
 export function SteuersatzField<AllFormFields extends FieldValues>({
   form,
   withLabel,

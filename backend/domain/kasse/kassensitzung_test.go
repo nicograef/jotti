@@ -5,19 +5,14 @@ package kasse
 import "testing"
 
 // Der Kassenabschluss vergleicht beim Wiederanlauf den Soll-Bestand ohne die
-// abschluss-eigene Differenzbuchung gegen den im Kassensturz protokollierten
-// Soll-Bestand. Die Ableitung muss deshalb genau die vier Komponenten summieren —
-// die Entnahme als einziger Abzug — und darf von SollBestandCents nur um eine
-// gebuchte Differenz abweichen.
+// abschluss-eigene Differenzbuchung gegen den im Kassensturz protokollierten Wert. Die
+// Ableitung muss deshalb genau die vier Komponenten summieren, die Entnahme als Abzug.
 func TestKassenbestand_SollBestandOhneDifferenzCents(t *testing.T) {
 	cases := []struct {
-		name string
-		// bestand trägt in beiden Fällen dieselben vier Komponenten; nur
-		// SollBestandCents unterscheidet sich um die gebuchte Differenz.
+		name    string
 		bestand Kassenbestand
 		want    int
-		// wantDifferenz ist die gebuchte Differenz (Soll − Ist), also der Abstand
-		// zwischen dem Bestand ohne sie und SollBestandCents.
+		// wantDifferenz ist die gebuchte Differenz (Soll − Ist).
 		wantDifferenz int
 	}{
 		{
@@ -35,8 +30,7 @@ func TestKassenbestand_SollBestandOhneDifferenzCents(t *testing.T) {
 		{
 			name: "mit gebuchter Differenz bleibt der Bestand der Buchungen",
 			bestand: Kassenbestand{
-				// Fehlbetrag von 500 gebucht: SollBestandCents ist an den gezählten
-				// Ist-Bestand angeglichen, die vier Komponenten sind unberührt.
+				// Fehlbetrag 500 gebucht: SollBestandCents ist an den Ist-Bestand angeglichen.
 				SollBestandCents:    33500,
 				AnfangsbestandCents: 15000,
 				BareinnahmenCents:   17000,

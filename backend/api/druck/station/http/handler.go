@@ -10,8 +10,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
-// --- Query Handler ---
-
 type druckstationQuery interface {
 	GetAlleDruckstationen(ctx context.Context) ([]druckstation.Druckstation, error)
 }
@@ -30,7 +28,6 @@ type getDruckstationenResponse struct {
 	Druckstationen []druckstationDTO `json:"druckstationen"`
 }
 
-// POST /admin/get-druckstationen
 func (h *QueryHandler) GetDruckstationenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		konfigs, err := h.Query.GetAlleDruckstationen(r.Context())
@@ -51,8 +48,6 @@ func (h *QueryHandler) GetDruckstationenHandler() http.HandlerFunc {
 		helper.SendResponse(w, getDruckstationenResponse{Druckstationen: dtos})
 	}
 }
-
-// --- Command Handler ---
 
 type druckstationCommand interface {
 	UpsertDruckstation(ctx context.Context, kategorie, druckerIP, bonmodus string) error
@@ -89,7 +84,6 @@ var updateDruckstationenSchema = z.Struct(z.Shape{
 	return druckstation.Kategorie(body.Kategorie).ErlaubtBonmodus(druckstation.Bonmodus(body.Bonmodus))
 }, z.Message("Bonmodus passt nicht zu dieser Druckstation"))
 
-// POST /admin/update-druckstationen
 func (h *CommandHandler) UpdateDruckstationenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body updateDruckstationenRequest
@@ -120,7 +114,6 @@ var testbonDruckenSchema = z.Struct(z.Shape{
 	).Required(),
 })
 
-// POST /admin/testbon-drucken
 func (h *CommandHandler) TestbonDruckenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body testbonDruckenRequest

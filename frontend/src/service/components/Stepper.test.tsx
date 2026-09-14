@@ -23,10 +23,9 @@ describe('Stepper', () => {
     )
 
     const minus = screen.getByRole('button', { name: 'entfernen' })
-    // Regulär deaktiviert (nicht antippbar) statt geisterhaft-gestrichelt.
     expect(minus).toBeDisabled()
-    // Nicht als „Ghost"-Darstellung (voll deckend + gestrichelt): das würde
-    // den deaktivierten Button antippbar wirken lassen.
+    // Keine „Ghost"-Darstellung (deckend + gestrichelt): sie ließe den
+    // deaktivierten Knopf antippbar wirken.
     expect(minus.className).not.toContain('border-dashed')
     expect(minus.className).not.toContain('opacity-100')
 
@@ -68,10 +67,9 @@ describe('Stepper', () => {
       />,
     )
 
-    // Bei Menge 0 sind Minus und Mengenanzeige gar nicht im DOM: kein
-    // dauerhaft deaktivierter Knopf je Zeile und nichts davon in der
-    // Tab-Reihenfolge. Die Breite reserviert der Aufrufort (ProductList,
-    // 8,25-rem-Slot); in jsdom ist sie nicht messbar und wird e2e geprüft.
+    // Bei Menge 0 sind Minus und Mengenanzeige gar nicht im DOM. Die Breite
+    // reserviert der Aufrufort (ProductList, 8,25-rem-Slot); in jsdom ist sie
+    // nicht messbar und wird e2e geprüft.
     expect(screen.queryByRole('button', { name: 'entfernen' })).toBeNull()
     expect(screen.queryByText('0')).toBeNull()
     expect(screen.getByRole('button', { name: 'hinzufügen' })).toBeEnabled()
@@ -87,7 +85,6 @@ describe('Stepper', () => {
       />,
     )
 
-    // Ab Menge 1 sind beide vorhanden und der Minus-Knopf ist bedienbar.
     const minus = screen.getByRole('button', { name: 'entfernen' })
     expect(minus).toBeEnabled()
     expect(screen.getByText('1')).toBeInTheDocument()

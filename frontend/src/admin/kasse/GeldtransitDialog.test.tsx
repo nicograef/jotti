@@ -67,9 +67,6 @@ describe('GeldtransitDialog', () => {
     })
     const ersterKey = geldtransitBuchen.mock.calls[0][0]
 
-    // Schließen und erneut öffnen ist ein neuer Vorgang: Das Formular startet
-    // leer, mit dem alten Schlüssel verwürfe das Backend die Buchung als
-    // Duplikat.
     rerender(
       <GeldtransitDialog
         open={false}

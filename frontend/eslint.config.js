@@ -8,9 +8,6 @@ import reactX from 'eslint-plugin-react-x'
 import reactDom from 'eslint-plugin-react-dom'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
 import vitest from '@vitest/eslint-plugin'
-// Note the `/flat` suffix here, the difference from default entry is that
-// `/flat` added `name` property to the exported object to improve
-// [config-inspector](https://eslint.org/blog/2024/04/eslint-config-inspector/) experience.
 import eslintConfigPrettier from 'eslint-config-prettier/flat'
 
 export default defineConfig([
@@ -44,8 +41,7 @@ export default defineConfig([
     },
   },
   {
-    // Geteilte Schichten importieren nicht aufwärts in einen Bereich: components,
-    // lib und hooks müssen ohne Admin- und Service-Code tragfähig bleiben. Ein
+    // Geteilte Schichten importieren nicht aufwärts in einen Bereich: Ein
     // bereichsspezifischer Baustein gehört nach admin/ bzw. service/.
     files: ['src/components/**', 'src/lib/**', 'src/hooks/**'],
     rules: {

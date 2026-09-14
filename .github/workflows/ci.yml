@@ -10,7 +10,6 @@ on:
 permissions:
   contents: read
 
-# Cancel superseded runs on rapid pushes to the same ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -116,12 +115,10 @@ jobs:
           cache-dependency-path: backend/go.sum
 
       # Version pinned to the local toolchain (scripts/setup-dev-tools.sh) so a
-      # green CI and a green `make verify` mean the same thing (D13). Two
-      # passes, matching `make check-backend` / `make lint-backend-full`:
-      # --build-tags=unit is merged with backend/.golangci.yml's default, so
-      # the second pass loads [integration unit] — a superset of the first.
-      # The integration-only pass is kept because whole-program linters (e.g.
-      # unused) judge each file set on its own.
+      # green CI and a green `make verify` mean the same thing (D13). Two passes:
+      # --build-tags=unit merges with backend/.golangci.yml's default, so the
+      # second pass loads [integration unit]; the integration-only pass stays
+      # because whole-program linters (unused) judge each file set on its own.
       - name: golangci-lint (integration)
         uses: golangci/golangci-lint-action@v9
         with:
@@ -356,12 +353,10 @@ jobs:
       - name: Run shellcheck
         run: shellcheck -x scripts/*.sh
 
-  # Repo-wide gates that don't belong to a single component: the check-*.sh
-  # scripts (build tags, language, prose, links, time zones) and the
-  # repo-wide Prettier check, which otherwise only runs inside frontend-ci
-  # and so never runs on a docs-only pull request. Runs unconditionally —
-  # every gate here reads the whole tree, so no path filter narrows it
-  # correctly.
+  # Repo-wide gates that belong to no single component: the check-*.sh scripts
+  # and the repo-wide Prettier check, which otherwise runs only inside
+  # frontend-ci and so never on a docs-only pull request. Unconditional: every
+  # gate reads the whole tree, so no path filter narrows it correctly.
   repo-checks:
     runs-on: ubuntu-latest
     steps:
@@ -451,17 +446,13 @@ jobs:
         # (e.g. user cleanup races kassenjournal inserts). Matches scripts/test-integration.sh.
         run: go test -tags=integration -count=1 -v -race -p 1 ./...
 
-  # Upgrade-path harness (release guide gate 4 (b), audit C10): a database
-  # migrated and filled with the PREVIOUS release's images must survive the
-  # upgrade to the current checkout: migrate up, boot, rebuild-projections.
-  # PREVIOUS_VERSION pins the previous version to the latest published release
-  # and is raised after every release; from the first 02_ migration on, this
-  # job is the mandatory gate for schema changes. Pinning plan:
+  # Upgrade-path harness: a database migrated and filled with the PREVIOUS
+  # release's images must survive the upgrade to the current checkout (migrate
+  # up, boot, rebuild-projections). PREVIOUS_VERSION is raised after every
+  # release; the job is the mandatory gate for schema changes. Details:
   # database/migrations/README.md.
   upgrade-path:
     needs: changes
-    # The job's whole harness lives in this workflow file, so changes to it
-    # must re-run the job as well.
     if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     env:
@@ -555,11 +546,9 @@ jobs:
       - name: Rebuild projections on previous version's data
         run: /tmp/jotti rebuild-projections
 
-  # End-to-End tests (Playwright) against the REAL stack: the prod images are
+  # End-to-end tests (Playwright) against the REAL stack: the prod images are
   # built from the checkout via docker-compose.e2e.yml (HTTP-only, fixed test
-  # secrets, JOTTI_ENABLE_TEST_API=1). The job runs on every pull request and
-  # every push to main; on failure, traces and screenshots are uploaded as
-  # artefacts.
+  # secrets, JOTTI_ENABLE_TEST_API=1).
   e2e:
     runs-on: ubuntu-latest
     steps:

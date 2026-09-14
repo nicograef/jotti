@@ -15,17 +15,16 @@ const (
 	EventTypeTagesabschlussErstelltV1   EventType = "tagesabschluss-erstellt:v1"
 )
 
-// GeldtransitRichtungEinlage und GeldtransitRichtungEntnahme sind die einzigen
-// erlaubten Werte für GeldtransitGebuchtV1Data.Richtung. Sie müssen mit den
-// SQL-Literalen in kj_extract_geldtransit_cents (01_initial.up.sql) übereinstimmen.
+// GeldtransitRichtungEinlage und GeldtransitRichtungEntnahme sind die einzigen erlaubten
+// Werte für GeldtransitGebuchtV1Data.Richtung und müssen mit den SQL-Literalen in
+// kj_extract_geldtransit_cents (01_initial.up.sql) übereinstimmen.
 const (
 	GeldtransitRichtungEinlage  = "einlage"
 	GeldtransitRichtungEntnahme = "entnahme"
 )
 
-// IsAbschlussEventType meldet, ob der Event-Typ eines der drei Abschluss-Events ist
-// (Kassensturz, Differenzbuchung, Tagesabschluss). Nur diese dürfen im Zwischenstatus
-// KassensitzungWirdAbgeschlossen noch in eine Kassensitzung geschrieben werden.
+// IsAbschlussEventType meldet die drei Abschluss-Events (Kassensturz, Differenzbuchung,
+// Tagesabschluss) — nur sie dürfen im Status wird_abgeschlossen noch geschrieben werden.
 func IsAbschlussEventType(eventType string) bool {
 	switch EventType(eventType) {
 	case EventTypeKassensturzDurchgefuehrtV1, EventTypeDifferenzSollIstGebuchtV1, EventTypeTagesabschlussErstelltV1:
@@ -34,8 +33,6 @@ func IsAbschlussEventType(eventType string) bool {
 		return false
 	}
 }
-
-// --- Event-Data-Structs ---
 
 type KassensitzungEroeffnetV1Data struct {
 	Datum        string `json:"datum"`
@@ -47,16 +44,15 @@ type KassensitzungEroeffnetV1Data struct {
 var kassensitzungEroeffnetV1DataSchema = z.Struct(z.Shape{
 	"Datum":       z.String().Min(8).Max(10).Required(),
 	"Bezeichnung": z.String().Min(1).Max(200).Required(),
-	// Kein Required(): zog wertet den Zero-Value 0 als fehlend, ein
-	// Anfangsbestand von 0 Cent ist aber gültig (Pflichtprüfung macht die
-	// HTTP-Schicht via Ptr+NotNil).
+	// Kein Required(): zog wertet den Zero-Value 0 als fehlend, ein Anfangsbestand von
+	// 0 Cent ist aber gültig (die Pflichtprüfung macht die HTTP-Schicht via Ptr+NotNil).
 	"BetragCents":  z.Int().GTE(0),
 	"EroeffnetVon": z.Int().GTE(1).Required(),
 })
 
 type GeldtransitGebuchtV1Data struct {
 	GeldtransitID string `json:"geldtransitId"`
-	Richtung      string `json:"richtung"` // "einlage" | "entnahme"
+	Richtung      string `json:"richtung"`
 	BetragCents   int    `json:"betragCents"`
 	Kommentar     string `json:"kommentar"`
 	GebuchtVon    int    `json:"gebuchtVon"`
@@ -115,8 +111,6 @@ var tagesabschlussErstelltV1DataSchema = z.Struct(z.Shape{
 	"GeldtransitCents":  z.Int(),
 	"ErstelltVon":       z.Int().GTE(1).Required(),
 })
-
-// --- Event-Erstellungsfunktionen ---
 
 func NewKassensitzungEroeffnetEvent(subject string, userID int, userName string, datum string, bezeichnung string, betragCents int) (e.Event, error) {
 	data := KassensitzungEroeffnetV1Data{

@@ -7,16 +7,12 @@ import (
 	z "github.com/Oudwins/zog"
 )
 
-// Status represents the status of a product or variant.
 type Status string
 
 const (
-	// ActiveStatus indicates the product or variant is active and usable for service.
-	ActiveStatus Status = "active"
-	// InactiveStatus indicates the product or variant is inactive and not currently in use.
+	ActiveStatus   Status = "active"
 	InactiveStatus Status = "inactive"
-	// DeletedStatus indicates the product or variant has been soft-deleted.
-	DeletedStatus Status = "deleted"
+	DeletedStatus  Status = "deleted"
 )
 
 type Variante struct {
@@ -28,26 +24,23 @@ type Variante struct {
 	UpdatedAt  time.Time
 }
 
-// VarianteMitProdukt verbindet eine Variante mit der ID ihres Produkts. Der
-// Batch-Lesepfad der Anreicherung liefert sie, damit die vom Client gesendete
-// Paarung Produkt/Variante gegen die Datenbank geprüft wird, statt sie zu
-// glauben. Die Zuordnung ist reine Persistenz und darum kein Feld von Variante.
+// VarianteMitProdukt verbindet eine Variante mit der ID ihres Produkts: die
+// Anreicherung prüft damit die vom Client gesendete Paarung gegen die Datenbank.
+// Die Zuordnung ist reine Persistenz und darum kein Feld von Variante.
 type VarianteMitProdukt struct {
 	Variante  Variante
 	ProduktID int
 }
 
-// PreisCentsSchema defines the schema for a product variant's gross price in cents.
-// A price is required and must be at least 1 cent (0-cent variants are disallowed).
-// The schema is required by definition, so call sites use it directly and must not
-// call .Required() again — zog's .Required() mutates the receiver in place, and
-// re-mutating a shared exported schema at struct-shape sites is a footgun.
+// PreisCentsSchema validates a variant's gross price in cents. It is required by
+// definition, so call sites use it directly and must not call .Required() again —
+// zog's .Required() mutates the receiver in place, and re-mutating a shared
+// exported schema is a footgun.
 var PreisCentsSchema = z.Int().
 	GTE(1, z.Message("Preis muss mindestens 1 Cent betragen")).
 	LTE(99999, z.Message("Preis zu hoch")).
 	Required(z.Message("Preis muss mindestens 1 Cent betragen"))
 
-// StatusSchema defines the schema for a product or variant status.
 var StatusSchema = z.StringLike[Status]().OneOf(
 	[]Status{ActiveStatus, InactiveStatus, DeletedStatus},
 	z.Message("Ungültiger Status"),
@@ -70,8 +63,7 @@ func (v Variante) Validate() error {
 	return nil
 }
 
-// NewVariante creates a new Variante instance after validating the input parameters.
-// The new Variante does not have an ID assigned; it is expected to be set by the persistence layer.
+// NewVariante assigns no ID; the persistence layer sets it.
 func NewVariante(name string, preisCents int) (Variante, error) {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return Variante{}, fmt.Errorf("invalid name")

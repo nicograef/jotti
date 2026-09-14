@@ -109,7 +109,6 @@ describe('DirektverkaufHistorie', () => {
       />,
     )
 
-    // Zeile antippen → Detail-Drawer, dort Stornieren…
     await user.click(screen.getByRole('button', { name: /Verkauf/ }))
     await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
     await user.click(

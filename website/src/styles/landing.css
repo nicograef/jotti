@@ -1,50 +1,35 @@
-/* Stil-Einstieg der Marketing-Landing: Tailwind 4 plus das gemeinsame
-   Marken-Token-Set. Die Markenwerte werden als Tailwind-Theme-Tokens
-   verfügbar gemacht (text-brand, bg-brand …). Eine kleine Component-Schicht
-   bündelt die mehrfach genutzten Muster (Button, Karte, Eyebrow). */
-
 @import 'tailwindcss';
 @import './brand.css';
 
-/* Semantische Farb-Tokens der Landing, auf das gemeinsame Marken-Token-Set aus
-   brand.css abgebildet. Hell/Dunkel folgen jetzt dem `data-theme`-Attribut
-   (gesetzt vom Pre-Paint-Skript und dem Doku-Schalter), nicht mehr
-   prefers-color-scheme. Die meisten Tokens erben die Umschaltung direkt aus den
-   Marken-Tokens (die auf [data-theme='dark'] kippen); nur die Grün-Akzente
-   brauchen einen eigenen Dark-Wert (unten). */
+/* Semantische Tokens der Landing, abgebildet auf die Marken-Tokens aus
+   brand.css. Hell/Dunkel folgen dem `data-theme`-Attribut; nur die Grün-Akzente
+   brauchen unten einen eigenen Dark-Wert. */
 :root {
   --c-background: var(--bg);
   --c-foreground: var(--fg);
   --c-card: var(--card);
   --c-card-border: var(--border);
-  /* Kante für Controls (Ghost-Button) und Chip-Haarlinien. */
   --c-control-border: var(--border);
-  /* Gepolsterter Rahmen hinter App-Screenshots (erdet sie gegen den Grund). */
   --c-screenshot-frame: var(--card2);
   --c-muted: var(--muted-fg);
   --c-surface-alt: var(--card2);
-  /* Akzent-Grün für Text/Icons; folgt --primary (hell #007a55 / dunkel #10b981). */
   --c-brand: var(--primary);
   --c-brand-hover: #00563c;
-  /* Dezenter Grün-Hintergrund (Icon-Boxen, Tags, Tabellen-Highlight). */
   --c-brand-tint: var(--brand-green-tint);
 }
 
-/* Dark-Werte, die nicht schon über die Marken-Tokens kippen. */
 :root[data-theme='dark'] {
   --c-brand-hover: #34d399;
   --c-brand-tint: rgba(16, 185, 129, 0.14);
 }
 
-/* `inline`: die Utilities referenzieren direkt die obigen, umschaltbaren
-   Variablen, sodass der Moduswechsel ohne Neudefinition der Tokens greift. */
+/* `inline`: die Utilities referenzieren die umschaltbaren Variablen direkt — der
+   Moduswechsel greift ohne Neudefinition der Tokens. */
 @theme inline {
   --font-sans: var(--font-body);
-  /* Headings/Wortmarke: Space Grotesk über die Utility `font-brand`. */
   --font-brand: var(--font-heading);
 
-  /* Header-Breakpoint bei 860px: Desktop-Nav ab `nav:`,
-     Burger-Menü darunter (`max-nav:`/`nav:hidden`). */
+  /* 860px: Desktop-Nav ab `nav:`, Burger-Menü darunter. */
   --breakpoint-nav: 53.75rem;
 
   --color-background: var(--c-background);
@@ -59,21 +44,14 @@
   --color-brand-hover: var(--c-brand-hover);
   --color-brand-tint: var(--c-brand-tint);
 
-  /* Konstantes Markengrün für gefüllte Flächen (Buttons, CTA, Zähler-Badges),
-     wo weißer Text in beiden Modi ausreichend Kontrast braucht. */
   --color-brand-solid: var(--brand-green);
   --color-brand-solid-hover: var(--brand-green-hover);
 }
 
-/* ============ Spektral-Grundelemente ============
-   Wiederverwendbare Bewegungs- und Verlaufs-Bausteine für die ganze Website.
-   Keyframes stehen außerhalb der Layer (globaler Namespace); die Klassen
-   liegen in der Component-Schicht. Ablösung von „Spektrum nur dekorativ":
-   siehe docs/decisions.md D05. Bewegung ist durchgehend
-   Progressive Enhancement — prefers-reduced-motion neutralisiert alles am
-   Dateiende. */
+/* Bewegungs- und Verlaufs-Bausteine (siehe docs/decisions.md D05). Keyframes
+   stehen außerhalb der Layer (globaler Namespace); prefers-reduced-motion
+   neutralisiert alle Animationen am Dateiende. */
 
-/* Wandernder Spektral-Verlauf im H1-Akzentwort. */
 @keyframes sheen {
   0% {
     background-position: -140% 0;
@@ -83,7 +61,6 @@
   }
 }
 
-/* Weiche, langsam schwebende Hintergrund-Blobs. */
 @keyframes orb {
   0%,
   100% {
@@ -94,7 +71,6 @@
   }
 }
 
-/* Leises Schweben des Hero-Telefons. */
 @keyframes jfloat {
   0%,
   100% {
@@ -105,7 +81,6 @@
   }
 }
 
-/* Scroll-Reveal: Einblenden beim Hereinscrollen. */
 @keyframes reveal {
   from {
     opacity: 0;
@@ -117,7 +92,6 @@
   }
 }
 
-/* Erfolgs-„Pop" des Häkchens im Kassieren-Overlay der Live-Demo. */
 @keyframes demo-pop {
   from {
     opacity: 0;
@@ -129,9 +103,8 @@
   }
 }
 
-/* Geloopter Hero-Crossfade: jedes der drei gestapelten Bilder blendet ein, hält
-   ein Drittel des Zyklus und blendet wieder aus. Die Frames sind per
-   animation-delay um ein Drittel versetzt, sodass sich die Blenden überlappen. */
+/* Drei gestapelte Bilder, je ein Drittel des Zyklus sichtbar; die Frames sind
+   per animation-delay um ein Drittel versetzt, sodass die Blenden überlappen. */
 @keyframes hero-crossfade {
   0% {
     opacity: 0;
@@ -151,8 +124,6 @@
 }
 
 @layer components {
-  /* Animiertes Spektral-Akzentwort (Hero-H1). Statisch zeigt es den Verlauf,
-     die Animation lässt ihn wandern (siehe reduced-motion am Dateiende). */
   .spectral-text {
     background: var(--spectral);
     background-size: 200% auto;
@@ -162,9 +133,7 @@
     animation: sheen 6s linear infinite;
   }
 
-  /* Scroll-Reveal-Utility, wiederverwendbar in allen Folgephasen. Standard:
-     vollständig sichtbar. Nur wo `animation-timeline: view()` unterstützt wird,
-     blendet der Inhalt beim Scrollen ein (Progressive Enhancement). */
+  /* Ohne `animation-timeline: view()` bleibt der Inhalt schlicht sichtbar. */
   @supports (animation-timeline: view()) {
     .reveal {
       animation: reveal 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
@@ -173,8 +142,6 @@
     }
   }
 
-  /* Weiche Spektral-Blobs: großflächiger, ruhender Grund-Schein hinter dem
-     Hero. Rein dekorativ, ohne Interaktion. */
   .hero-glow {
     position: absolute;
     inset: -10% -20% auto -20%;
@@ -195,7 +162,6 @@
     z-index: 0;
   }
 
-  /* Zwei schwebende Blobs hinter dem Hero-Telefon. */
   .hero-orb {
     position: absolute;
     border-radius: 50%;
@@ -224,7 +190,6 @@
     animation-direction: reverse;
   }
 
-  /* Dünne spektrale Bodenlinie unter dem Telefon. */
   .hero-floor {
     position: absolute;
     inset: auto 0 6% 0;
@@ -238,9 +203,6 @@
     pointer-events: none;
   }
 
-  /* Reiner CSS-Telefonrahmen mit Notch (kein Bild-Asset). Enthält einen echten
-     App-Screenshot. Bezel und Notch tragen dieselbe Farbe, der Screen erbt den
-     Seiten-Grund. */
   .hero-phone {
     position: relative;
     z-index: 1;
@@ -277,9 +239,8 @@
     background: var(--bg);
   }
 
-  /* Direktes Kind: nur der randlose Hero-Screenshot füllt den Rahmen.
-     Nicht als Nachfahren-Selektor — sonst würde das kleine jotti-Logo im
-     Kopf der Live-Demo mitgedehnt. */
+  /* Direktes Kind, kein Nachfahren-Selektor: sonst würde das kleine jotti-Logo
+     im Kopf der Live-Demo mitgedehnt. */
   .hero-phone-screen > img {
     display: block;
     height: 100%;
@@ -288,8 +249,6 @@
     object-position: top;
   }
 
-  /* Crossfade-Stapel im Hero-Telefon: drei deckungsgleiche Frames, jeweils ein
-     Drittel des Zyklus sichtbar, mit überlappenden Blenden. */
   .hero-crossfade {
     position: absolute;
     inset: 0;
@@ -323,13 +282,12 @@
     object-position: top;
   }
 
-  /* Live-Demo verwendet denselben Telefonrahmen, hält ihn aber ruhig: ein
-     schwebendes Telefon wäre bei antippbaren Steppern ein bewegtes Ziel. */
+  /* Ruhig gestellt: ein schwebendes Telefon wäre bei antippbaren Steppern ein
+     bewegtes Ziel. */
   .demo-phone {
     animation: none;
   }
 
-  /* Häkchen-Pop im Kassieren-Overlay (unter reduced-motion neutralisiert). */
   .demo-pop {
     animation: demo-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
   }
@@ -366,8 +324,6 @@
     @apply px-4 py-2 text-[0.8125rem];
   }
 
-  /* Sektions-Eyebrow: kleines, gesperrtes Label mit vorangestelltem Spektral-
-     Balken (::before). Einzige Quelle für alle Sektionsköpfe. */
   .eyebrow {
     @apply inline-flex items-center gap-2.5 text-[0.78rem] font-bold tracking-[0.14em] text-[var(--sp-teal-text)] uppercase;
   }
@@ -379,11 +335,8 @@
   }
 }
 
-/* ============ Screenshots: „Jedes Gerät" und Galerie ============
-   Theme-abhängige Bildpaare und reine CSS-Geräterahmen (Browser, Telefon).
-   Kein JS-Island: die zum aktiven Theme passende Bildvariante wird per
-   `data-theme`-Selektor ein-/ausgeblendet. Ohne `data-theme` (No-JS/auto vor
-   dem Init) bleibt die helle Variante sichtbar. */
+/* Ohne `data-theme` (No-JS oder vor dem Init) bleibt die helle Variante
+   sichtbar. */
 @layer components {
   .theme-light {
     display: block;
@@ -401,8 +354,6 @@
     display: block;
   }
 
-  /* Browser-Rahmen (Desktop-Admin): Titelleiste mit drei Punkten und einer
-     Adress-Pille, darunter der randlose Screenshot. */
   .device-browser {
     @apply overflow-hidden rounded-2xl border border-card-border bg-card shadow-2xl;
   }
@@ -415,8 +366,6 @@
     @apply h-[11px] w-[11px] rounded-full;
   }
 
-  /* Telefonrahmen (statisch, ohne Notch/Float — theme-passend über ThemeImage).
-     Der Screen erbt den Bild-Hintergrund. */
   .device-phone {
     @apply shrink-0 rounded-[2.25rem] p-2.5 shadow-2xl;
     background: #0a0a08;
@@ -433,9 +382,6 @@
     @apply h-auto w-full;
   }
 
-  /* Tablet-Rahmen (Querformat, statisch). Zeigt die Direktverkauf-Split-Screen-
-     Aufnahme; wie das Telefon theme-passend über ThemeImage. Die Bildhöhe folgt
-     dem Seitenverhältnis der Aufnahme, sodass Querformat unverzerrt bleibt. */
   .device-tablet {
     @apply shrink-0 rounded-[1.5rem] p-3 shadow-2xl;
     background: #0a0a08;
@@ -450,11 +396,7 @@
   }
 }
 
-/* ============ Reduzierte Bewegung ============
-   Neutralisiert die Spektral-Bewegung global: der H1-Verlauf, die Blobs und
-   das Hero-Telefon stehen still, das Scroll-Reveal blendet nicht ein. Alle
-   Inhalte bleiben statisch und vollständig sichtbar (Verlaufsfarben und Blobs
-   bleiben erkennbar, nur ohne Animation). */
+/* Bewegung aus; alle Inhalte bleiben statisch und vollständig sichtbar. */
 @media (prefers-reduced-motion: reduce) {
   .spectral-text,
   .hero-orb,
@@ -465,7 +407,6 @@
     animation: none !important;
   }
 
-  /* Kein Crossfade: nur das erste Service-Bild bleibt sichtbar. */
   .hero-frame-1 {
     opacity: 1;
   }

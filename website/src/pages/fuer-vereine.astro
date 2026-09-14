@@ -5,20 +5,10 @@ import Landing from '../layouts/Landing.astro'
 import AnfrageFormular from '../components/AnfrageFormular.tsx'
 import { betreiberEmail, installationUrl } from '../lib/links'
 
-// Seite „Für Vereine" (/fuer-vereine, data-vereine). Erklärt den Abschluss der
-// Nutzungsvereinbarung, benennt das freiwillige (kostenpflichtige) Service-
-// Angebot, trägt nahe dem Formular einen Beta-Hinweis (dritter Träger der Beta-
-// Kommunikation neben Hero-Badge und Download-Pill) und zeigt die Betreiber-
-// Mailadresse sichtbar als Fallback. Das Formular selbst ist die
-// AnfrageFormular-Island; Meta/Canonical/OG liefert das Landing-Layout je
-// Route.
-
 const title = 'Für Vereine – jotti'
 const description =
   'Kostenlose Nutzungsvereinbarung für jotti abschließen: Das Formular öffnet einen vorbefüllten E-Mail-Entwurf an den Betreiber — eine einzige E-Mail genügt. Für eingetragene Vereine, gemeinnützige Organisationen und NPOs.'
 
-// „Das ist drin": vier Punkte mit Spektral-Akzent, der vierte benennt
-// das freiwillige Service-Angebot.
 const leistungen = [
   {
     accent: 'var(--sp-green)',
@@ -42,7 +32,6 @@ const leistungen = [
   },
 ]
 
-// „So läuft's": drei nummerierte Schritte mit Spektral-Akzenten.
 const schritte = [
   {
     accent: 'var(--sp-red)',
@@ -81,7 +70,6 @@ const schritte = [
     <div
       class="mt-12 grid items-start gap-11 nav:mt-[52px] nav:grid-cols-[1fr_1.05fr]"
     >
-      {/* Linke Spalte: Das ist drin, So läuft's, E-Mail-Fallback */}
       <div class="reveal">
         <h2 class="font-brand text-[22px] font-bold tracking-[-0.02em]">
           Das ist drin
@@ -155,7 +143,6 @@ const schritte = [
         </p>
       </div>
 
-      {/* Rechte Spalte: Beta-Hinweis nahe dem Formular, dann die Island */}
       <div class="reveal flex flex-col gap-4">
         <div
           class="inline-flex items-center gap-2.5 self-start rounded-full border border-card-border bg-surface-alt px-3.5 py-[7px] text-[13px] text-muted"

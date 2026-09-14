@@ -154,7 +154,7 @@ func TestGetReporting_BerechnetUmsatzProSteuersatz(t *testing.T) {
 	}
 }
 
-// Zeilenbasis statt Aggregatbasis (B9): Zwei Kombi-Zeilen à 10,05 € runden je
+// Zeilenbasis statt Aggregatbasis: Zwei Kombi-Zeilen à 10,05 € runden je
 // Zeile (2 × 7,04 € ermäßigt = 14,08 €), nicht auf dem Aggregat (20,10 € →
 // 14,07 €). Warenrücknahmen kommen als negative Zeilen und mindern die
 // Aufschlüsselung, statt bei negativem Aggregat zu verschwinden.

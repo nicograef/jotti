@@ -15,25 +15,20 @@ type postgresConfig struct {
 	DBName   string
 }
 
-// Config holds application configuration values loaded from environment variables.
 type Config struct {
-	Port           int // Port for the HTTP server
+	Port           int
 	Postgres       postgresConfig
-	JWTSecret      string // Secret key for JWT signing
-	RelayToken     string // Statischer Token für das Print-Relay
-	FiskalyBaseURL string // Basis-URL für fiskaly SIGN-DE Middleware API
-	EnableTestApi  bool   // Schaltet den HTTP-Test-Reset-Endpoint frei (nur E2E, JOTTI_ENABLE_TEST_API=1)
+	JWTSecret      string
+	RelayToken     string
+	FiskalyBaseURL string
+	EnableTestApi  bool
 }
 
-// MinSecretLength ist die geforderte Mindestlänge für JWT_SECRET,
-// RELAY_AUTH_TOKEN und POSTGRES_PASSWORD. Kürzere Werte werden abgelehnt,
-// damit versehentliche Kurz-Secrets nicht in eine laufende Instanz gelangen.
 const MinSecretLength = 16
 
-// placeholderSecrets sind die im Repo öffentlich stehenden Beispielwerte aus
-// .env.example sowie das leicht erratbare Postgres-Passwort "admin". Ein
-// solcher Wert in einer laufenden Instanz bedeutet ein bekanntes Secret
-// (JWT-Forgery = Auth-Bypass) und wird deshalb hart abgelehnt.
+// placeholderSecrets sind die öffentlich im Repo stehenden Beispielwerte aus
+// .env.example plus das erratbare Postgres-Passwort "admin": ein bekanntes Secret
+// heißt JWT-Forgery und damit Auth-Bypass, deshalb harte Ablehnung.
 var placeholderSecrets = map[string]bool{
 	"your-256-bit-secret-replace-this-in-production":   true,
 	"your-relay-auth-token-replace-this-in-production": true,
@@ -41,10 +36,8 @@ var placeholderSecrets = map[string]bool{
 	"admin":                                            true,
 }
 
-// Load reads configuration from environment variables and returns a Config struct.
-// Defaults: PORT=3000, POSTGRES_HOST="localhost", POSTGRES_PORT=5432.
-// JWT_SECRET, RELAY_AUTH_TOKEN und POSTGRES_PASSWORD sind Pflicht und werden
-// validiert; fehlt oder verstößt ein Secret, bricht der Start hart ab.
+// Load bricht den Start hart ab, wenn ein Pflicht-Secret fehlt oder die Regeln
+// verletzt.
 func Load() Config {
 	port := parseEnvInt("PORT", 3000)
 	postgres := postgresConfig{
@@ -71,9 +64,6 @@ func Load() Config {
 	return cfg
 }
 
-// ValidateSecrets prüft die drei Pflicht-Secrets der Konfiguration. Die Funktion
-// ist rein (kein os.Exit), damit die Regeln testbar sind; Load ruft sie und bricht
-// bei einem Fehler hart ab.
 func ValidateSecrets(cfg Config) error {
 	if err := validateSecret("JWT_SECRET", cfg.JWTSecret); err != nil {
 		return err
@@ -87,9 +77,6 @@ func ValidateSecrets(cfg Config) error {
 	return nil
 }
 
-// validateSecret setzt die Regeln für ein einzelnes Secret durch: nicht leer,
-// kein bekannter Platzhalter, mindestens MinSecretLength Zeichen. Die Fehlermeldung
-// nennt immer die betroffene Variable.
 func validateSecret(name, value string) error {
 	if value == "" {
 		return fmt.Errorf("%s is not set", name)
@@ -103,7 +90,6 @@ func validateSecret(name, value string) error {
 	return nil
 }
 
-// parseEnvString reads an environment variable by name and returns its value, or the provided default if unset.
 func parseEnvString(name, defaultValue string) string {
 	if v := os.Getenv(name); v != "" {
 		return v
@@ -112,8 +98,6 @@ func parseEnvString(name, defaultValue string) string {
 	return defaultValue
 }
 
-// parseEnvInt reads an environment variable by name and converts it to int.
-// If conversion fails, logs an error and returns the provided default value.
 func parseEnvInt(name string, defaultValue int) int {
 	v := os.Getenv(name)
 	if v == "" {

@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-// Kategorie unterscheidet die fünf Druckstationen: die drei Produktkategorien
-// (essen, getraenk, sonstiges) sowie die Sonderstationen Kassenbeleg und Abholbon.
 type Kategorie string
 
 const (
@@ -18,10 +16,8 @@ const (
 	KategorieAbholbon    Kategorie = "abholbon"
 )
 
-// AlleKategorien liefert alle fünf Druckstations-Kategorien als Strings. Sie
-// ist die einzige Quelle der Wertemenge; die OneOf-Validierung in
-// api/druck/station/http/handler.go liest von hier statt eigene Literale zu
-// führen.
+// AlleKategorien ist die einzige Quelle der Wertemenge; die OneOf-Validierung in
+// api/druck/station/http/handler.go liest von hier.
 func AlleKategorien() []string {
 	return []string{
 		string(KategorieEssen),
@@ -32,10 +28,6 @@ func AlleKategorien() []string {
 	}
 }
 
-// HatBonmodus meldet, ob die Station überhaupt einen Bonmodus trägt: die drei
-// Produktkategorien (essen, getraenk, sonstiges) und der Abholbon tragen einen,
-// nur der Kassenbeleg (ein einzelner Zahlungsbeleg) nicht. Welche Modi die
-// Station im Einzelnen zulässt, sagt ErlaubtBonmodus.
 func (k Kategorie) HatBonmodus() bool {
 	switch k {
 	case KategorieEssen, KategorieGetraenk, KategorieSonstiges, KategorieAbholbon:
@@ -45,12 +37,9 @@ func (k Kategorie) HatBonmodus() bool {
 	}
 }
 
-// ErlaubtBonmodus meldet, ob der Bonmodus zu dieser Station passt. Die drei
-// Produktkategorien drucken pro Position oder pro Bestellung; der Abholbon
-// zusätzlich pro Stück (je Einheit einer Position ein eigener Bon), weil Gäste
-// im Direktverkauf mehrere Einheiten auf einmal kaufen und einzeln einlösen.
-// Der Kassenbeleg lässt nur den leeren Bonmodus zu. Die Methode ist die eine
-// Quelle dieser Regel für Validate und die vorgelagerten Schemas.
+// ErlaubtBonmodus ist die eine Quelle dieser Regel: der Abholbon darf zusätzlich
+// pro Stück drucken (je Einheit ein Bon), weil Gäste im Direktverkauf mehrere
+// Einheiten auf einmal kaufen und einzeln einlösen.
 func (k Kategorie) ErlaubtBonmodus(bonmodus Bonmodus) bool {
 	if !k.HatBonmodus() {
 		return bonmodus == ""
@@ -66,8 +55,6 @@ func (k Kategorie) ErlaubtBonmodus(bonmodus Bonmodus) bool {
 	}
 }
 
-// Anzeigename liefert die deutschsprachige Bezeichnung der Station (etwa für
-// den Testbon-Kopf). Für unbekannte Kategorien fällt sie auf den Rohwert zurück.
 func (k Kategorie) Anzeigename() string {
 	switch k {
 	case KategorieEssen:
@@ -94,9 +81,6 @@ func (k Kategorie) isValid() bool {
 	}
 }
 
-// Bonmodus bestimmt, wie die Bons einer Station gedruckt werden: ein Bon je
-// Position, ein Sammelbon je Bestellung oder — nur am Abholbon — ein Bon je
-// Einheit. Für die Station Kassenbeleg ist der Bonmodus leer.
 type Bonmodus string
 
 const (
@@ -130,9 +114,6 @@ func (d Druckstation) Validate() error {
 	return nil
 }
 
-// NewDruckstation erzeugt eine validierte Druckstation. Der Bonmodus ist für
-// alle Stationen außer dem Kassenbeleg verpflichtend; welche Werte je Station
-// zulässig sind, entscheidet Kategorie.ErlaubtBonmodus.
 func NewDruckstation(kategorie Kategorie, druckerIP string, bonmodus Bonmodus) (Druckstation, error) {
 	d := Druckstation{
 		Kategorie: kategorie,

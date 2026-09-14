@@ -17,12 +17,6 @@ ensure_cmd() {
   fi
 }
 
-# CI reference (.github/workflows/ci.yml):
-# - Go: 1.27.1
-# - Node: 24
-# - pnpm: 11
-# - golangci-lint: pinned, see GOLANGCI_LINT_VERSION below
-
 info "Project root: $PROJECT_ROOT"
 cd "$PROJECT_ROOT"
 

@@ -1,42 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# =============================================================================
-# jotti — Database Restore (self-hosted production, Weg B)
+# jotti — database restore (self-hosted production).
 #
-# Restores a pg_dump created by prod-backup.sh back into the production
-# database. DESTRUCTIVE: it overwrites the current data with the chosen dump
-# (the dumps use --clean --if-exists, so objects are dropped and re-created).
-# Application services are stopped during the restore so no writes interfere.
-# Steps:
-#   1. Validate prerequisites, pick the dump (argument or newest in BACKUP_DIR)
-#      and test a gzip-compressed dump for integrity
-#   2. Confirm the destructive action
-#   3. Stop app services, restore via psql, restart the stack
-#
-# Configuration:
-#   BACKUP_DIR    directory to read dumps from (default: ./backups)
-#   COMPOSE_FILE  compose file to restore into (default: docker-compose.prod.yml)
-#
-# Usage: ./scripts/prod-restore.sh [DUMP_FILE]  (or `make prod-restore`)
-#   DUMP_FILE  optional path or filename in BACKUP_DIR; defaults to the newest.
-# =============================================================================
+# Restores a pg_dump created by prod-backup.sh into the production database.
+# DESTRUCTIVE: the dumps use --clean --if-exists, so objects are dropped and
+# re-created; the application services are stopped during the restore.
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 PG_SERVICE="postgres"
 
-# ---------------------------------------------------------------------------
-# Step 0 — Change to project root (script may be called from anywhere)
-# ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
 . "$SCRIPT_DIR/lib.sh"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# ---------------------------------------------------------------------------
-# Step 1 — Validate prerequisites, select the dump and test the archive
-# ---------------------------------------------------------------------------
 require_docker_stack "$COMPOSE_FILE"
 
 resolve_backup_dir
@@ -59,9 +38,6 @@ if [[ "$SELECTED" == *.gz ]]; then
   fi
 fi
 
-# ---------------------------------------------------------------------------
-# Step 2 — Confirm the destructive action
-# ---------------------------------------------------------------------------
 echo ""
 warn "This will OVERWRITE the current jotti database with:"
 warn "  Dump:    $SELECTED"
@@ -70,19 +46,15 @@ warn "All data created since that backup will be lost."
 read -r -p "Continue? Type 'yes' to proceed: " answer
 [[ "$answer" == "yes" ]] || fatal "Aborted by user. Nothing was changed."
 
-# ---------------------------------------------------------------------------
-# Step 3 — Stop app services, restore, restart
-# ---------------------------------------------------------------------------
 info "Starting the database ..."
 docker compose -f "$COMPOSE_FILE" up -d --wait "$PG_SERVICE"
 
 info "Stopping application services during the restore ..."
 docker compose -f "$COMPOSE_FILE" stop backend frontend reverse-proxy
 
-# Stream the dump (decompressing on the fly when gzip-compressed, see
-# lib.sh's decompress) into psql. The postgres role comes from the container's
-# own POSTGRES_USER env; ON_ERROR_STOP aborts on the first SQL error instead
-# of limping on with a half-restored DB.
+# ON_ERROR_STOP aborts on the first SQL error instead of limping on with a
+# half-restored DB; the postgres role comes from the container's own
+# POSTGRES_USER.
 info "Restoring $SELECTED ..."
 if ! decompress | docker compose -f "$COMPOSE_FILE" exec -T "$PG_SERVICE" \
        sh -c 'psql -U "$POSTGRES_USER" -d jotti -v ON_ERROR_STOP=1'; then

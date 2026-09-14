@@ -20,7 +20,6 @@ import (
 	"time"
 )
 
-// DruckAuftrag ist das DTO vom jotti-Backend.
 type DruckAuftrag struct {
 	ID      int    `json:"id"`
 	ZielIP  string `json:"zielIp"`
@@ -40,34 +39,26 @@ const defaultPollSeconds = 2
 // version wird beim Release per -ldflags "-X main.version=vX.Y.Z" gesetzt.
 var version = "dev"
 
-// dialTimeout ist der kurze TCP-Timeout für genau einen Zustellversuch pro
-// Auftrag und Zyklus. Ein nicht erreichbarer Drucker verzögert seine eigene
-// IP-Gruppe nur um diese Spanne; andere Gruppen laufen parallel weiter.
+// dialTimeout ist der TCP-Timeout für genau einen Zustellversuch pro Auftrag und
+// Zyklus; ein nicht erreichbarer Drucker verzögert nur seine eigene IP-Gruppe.
 const dialTimeout = 2 * time.Second
 
-// readTimeout begrenzt das Warten auf die ESC/POS-Statusantwort des Druckers.
 const readTimeout = 2 * time.Second
 
-// writeTimeout begrenzt das Senden der Druckdaten an den Drucker.
 const writeTimeout = 10 * time.Second
 
-// druckFunc stellt einen einzelnen Auftrag zu und meldet einen Fehler, wenn der
-// Versuch scheitert. Injizierbar, damit die Zyklus-Logik ohne echte Drucker
-// testbar ist.
+// druckFunc stellt einen einzelnen Auftrag zu; injizierbar, damit die Zyklus-Logik
+// ohne echte Drucker testbar ist.
 type druckFunc func(a DruckAuftrag) error
 
-// meldeFunc meldet das Ergebnis eines Zyklus ans Backend. Injizierbar, damit die
-// Zyklus-Logik ohne HTTP-Backend testbar ist.
+// meldeFunc meldet das Ergebnis eines Zyklus ans Backend; injizierbar für Tests.
 type meldeFunc func(ergebnis zyklusErgebnis) error
 
-// fehlversuch beschreibt einen gescheiterten Zustellversuch eines Auftrags.
 type fehlversuch struct {
 	ID     int
 	Fehler string
 }
 
-// zyklusErgebnis fasst zusammen, was ein Poll-Zyklus zugestellt und welche
-// Aufträge dabei gescheitert sind.
 type zyklusErgebnis struct {
 	gedruckteIDs []int
 	fehlversuche []fehlversuch
@@ -183,7 +174,6 @@ func main() {
 			lastStatusLog = time.Now()
 		}
 
-		// Wartezeit bis zum nächsten Poll, unterbrechbar durch das Shutdown-Signal.
 		select {
 		case <-quit:
 			log.Printf("Shutdown-Signal empfangen. Beende.")
@@ -193,15 +183,11 @@ func main() {
 	}
 }
 
-// waitForEnter haelt das Doppelklick-Fenster offen, bis der Nutzer Enter drueckt
-// — sonst verschwindet eine Konfigurationsmeldung sofort beim Exit.
 func waitForEnter() {
 	fmt.Print("\nEnter druecken zum Schliessen ...")
 	_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
 }
 
-// fuehreZyklusAus verarbeitet alle Aufträge eines Polls und meldet das Ergebnis.
-// Verarbeitung und Meldung sind über druck/melde injizierbar.
 func fuehreZyklusAus(auftraege []DruckAuftrag, druck druckFunc, melde meldeFunc) (zyklusErgebnis, error) {
 	ergebnis := verarbeiteZyklus(auftraege, druck)
 	if len(ergebnis.gedruckteIDs) == 0 && len(ergebnis.fehlversuche) == 0 {
@@ -210,10 +196,9 @@ func fuehreZyklusAus(auftraege []DruckAuftrag, druck druckFunc, melde meldeFunc)
 	return ergebnis, melde(ergebnis)
 }
 
-// verarbeiteZyklus verarbeitet die Aufträge eines Polls: gruppiert nach Ziel-IP,
-// Gruppen laufen parallel (ein toter Drucker blockiert keinen anderen).
-// Innerhalb einer IP bleibt die ID-Reihenfolge erhalten und der erste Fehler
-// bricht die Gruppe ab. Die Resultate werden nach ID sortiert zurückgegeben.
+// verarbeiteZyklus gruppiert die Aufträge eines Polls nach Ziel-IP; die Gruppen
+// laufen parallel (ein toter Drucker blockiert keinen anderen), das Ergebnis ist
+// nach ID sortiert.
 func verarbeiteZyklus(auftraege []DruckAuftrag, druck druckFunc) zyklusErgebnis {
 	var (
 		mu       sync.Mutex
@@ -244,9 +229,8 @@ func verarbeiteZyklus(auftraege []DruckAuftrag, druck druckFunc) zyklusErgebnis 
 	return ergebnis
 }
 
-// verarbeiteGruppe stellt die Aufträge einer einzelnen Ziel-IP in ID-Reihenfolge
-// zu — genau ein Versuch pro Auftrag. Beim ersten Fehler bricht die Gruppe ab:
-// Dieser Auftrag wird als Fehlversuch gemeldet, die übrigen Aufträge dieser IP
+// verarbeiteGruppe stellt die Aufträge einer Ziel-IP in ID-Reihenfolge zu — genau
+// ein Versuch pro Auftrag. Beim ersten Fehler bricht die Gruppe ab: die übrigen
 // bleiben offen und werden im nächsten Zyklus erneut versucht.
 func verarbeiteGruppe(gruppe []DruckAuftrag, druck druckFunc) ([]int, *fehlversuch) {
 	var gedruckteIDs []int
@@ -259,8 +243,8 @@ func verarbeiteGruppe(gruppe []DruckAuftrag, druck druckFunc) ([]int, *fehlversu
 	return gedruckteIDs, nil
 }
 
-// gruppiereNachIP gruppiert Aufträge nach Ziel-IP. Innerhalb jeder Gruppe bleibt
-// die Eingabe-Reihenfolge (älteste ID zuerst) erhalten.
+// gruppiereNachIP gruppiert nach Ziel-IP; innerhalb einer Gruppe bleibt die
+// Eingabe-Reihenfolge (älteste ID zuerst) erhalten.
 func gruppiereNachIP(auftraege []DruckAuftrag) map[string][]DruckAuftrag {
 	gruppen := make(map[string][]DruckAuftrag)
 	for _, a := range auftraege {
@@ -269,8 +253,6 @@ func gruppiereNachIP(auftraege []DruckAuftrag) map[string][]DruckAuftrag {
 	return gruppen
 }
 
-// druckeAuftrag stellt einen Auftrag mit genau einem Versuch zu: Payload
-// dekodieren, Drucker prüfen, Daten senden.
 func druckeAuftrag(a DruckAuftrag) error {
 	escposData, err := base64.StdEncoding.DecodeString(a.Payload)
 	if err != nil {
@@ -308,9 +290,9 @@ func poll(client *http.Client, config RelayConfig) ([]DruckAuftrag, error) {
 	return result.Auftraege, nil
 }
 
-// meldeErgebnis meldet Erfolge und Fehlversuche eines Zyklus gesammelt in einem
-// Request an das Backend. Das Backend besitzt die Fehlversuchs-Logik (zählt
-// hoch und markiert nach sechs Versuchen als fehlgeschlagen).
+// meldeErgebnis meldet Erfolge und Fehlversuche eines Zyklus in einem Request. Die
+// Fehlversuchs-Logik liegt im Backend (zählt hoch, markiert nach sechs Versuchen als
+// fehlgeschlagen — druckauftrag_repo.MaxDruckversuche).
 func meldeErgebnis(client *http.Client, ergebnis zyklusErgebnis, config RelayConfig) error {
 	fehlversuche := make([]map[string]any, 0, len(ergebnis.fehlversuche))
 	for _, f := range ergebnis.fehlversuche {
@@ -339,10 +321,9 @@ func meldeErgebnis(client *http.Client, ergebnis zyklusErgebnis, config RelayCon
 	return pruefeRelayStatus(resp)
 }
 
-// pruefeRelayStatus übersetzt den HTTP-Status einer Relay-Antwort in einen Fehler.
-// Einen falschen Token meldet das Backend als 400 mit {"code":"unauthorized"} —
-// daraus wird ein klarer Hinweis, weil das die häufigste Fehlkonfiguration vor
-// Ort ist.
+// pruefeRelayStatus übersetzt den HTTP-Status in einen Fehler. Einen falschen Token
+// meldet das Backend als 400 mit {"code":"unauthorized"} — die häufigste
+// Fehlkonfiguration vor Ort, daher ein eigener Hinweis.
 func pruefeRelayStatus(resp *http.Response) error {
 	if resp.StatusCode == http.StatusOK {
 		return nil
@@ -372,11 +353,9 @@ func checkPrinter(ip string) error {
 	_ = conn.SetReadDeadline(time.Now().Add(readTimeout))
 	reply := make([]byte, 1)
 	if _, err := conn.Read(reply); err != nil {
-		// Nicht jeder Drucker beantwortet die DLE-EOT-Statusabfrage (manche
-		// ESC/POS-Modelle unterstützen sie schlicht nicht). Eine ausbleibende
-		// Antwort gilt daher als erreichbar-und-OK, nicht als Fehler: der TCP-
-		// Connect oben ist bereits erfolgreich, mehr lässt sich ohne Antwort
-		// nicht prüfen.
+		// Nicht jeder ESC/POS-Drucker beantwortet die DLE-EOT-Statusabfrage. Eine
+		// ausbleibende Antwort gilt daher als erreichbar-und-OK: der TCP-Connect oben
+		// war erfolgreich, mehr lässt sich ohne Antwort nicht prüfen.
 		return nil
 	}
 

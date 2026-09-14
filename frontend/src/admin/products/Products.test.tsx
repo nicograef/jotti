@@ -4,8 +4,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
 
-// Radix Popper (DropdownMenu-Positionierung) misst seinen Anker über
-// ResizeObserver, den jsdom nicht kennt. Ein No-op-Stub reicht für den Test.
+// Radix Popper misst seinen Anker über ResizeObserver, den jsdom nicht kennt.
 class ResizeObserverStub {
   observe(): void {
     // no-op
@@ -140,7 +139,6 @@ describe('Products', () => {
       produkt({ id: 2, name: 'Brezel' }),
     ])
 
-    // Das erste Produkt kann nicht höher, das letzte nicht tiefer.
     expect(
       screen.getByRole('button', { name: /Pommes.*nach oben/ }),
     ).toBeDisabled()

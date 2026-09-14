@@ -133,8 +133,7 @@ describe('ZahlungAbschluss (Spalte)', () => {
 
     const button = screen.getByRole('button', { name: 'Kassieren' })
     await user.click(button)
-    // Zweiter Klick während des laufenden Submits: der Loading-Guard
-    // deaktiviert den Button, es darf kein zweiter Aufruf entstehen.
+    // Der Loading-Guard deaktiviert den Button: kein zweiter Aufruf.
     await user.click(button)
     resolve()
 

@@ -14,9 +14,8 @@ export const GeldtransitRichtungSchema = z.enum([
 
 export const KassensitzungStatus = {
   OFFEN: 'offen',
-  // Transienter Barrierestatus, den KasseAbschliessen hält (Saldo-Prüfung,
-  // Reporting, TSE-Signierung). Ein eigenständiger Wert, nicht dasselbe wie
-  // abgeschlossen.
+  // Transienter Barrierestatus während des Abschlusses (Saldo-Prüfung,
+  // Reporting, TSE-Signierung) — nicht dasselbe wie abgeschlossen.
   WIRD_ABGESCHLOSSEN: 'wird_abgeschlossen',
   ABGESCHLOSSEN: 'abgeschlossen',
 } as const
@@ -38,8 +37,7 @@ export const KommentarSchema = z
   .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' })
   .max(200, { message: 'Kommentar darf maximal 200 Zeichen lang sein.' })
 
-// Canonical Kassensitzung record (zNr, datum, bezeichnung, status). Reporting
-// re-exports this so both areas share one definition.
+// Reporting re-exports this record so both areas share one definition.
 export const KassensitzungSchema = z.object({
   zNr: z.number().int(),
   datum: z.string(),
@@ -63,8 +61,7 @@ export const KassenbestandSchema = z.object({
 })
 export type Kassenbestand = z.infer<typeof KassenbestandSchema>
 
-// Eine einzelne gebuchte Bargeldbewegung (Einlage/Entnahme) für die
-// Bewegungsliste; gebuchtVon ist der eingefrorene Anzeigename aus dem Kassenjournal.
+// gebuchtVon ist der eingefrorene Anzeigename aus dem Kassenjournal.
 export const GeldtransitBuchungSchema = z.object({
   zeitpunkt: z.string(),
   richtung: GeldtransitRichtungSchema,

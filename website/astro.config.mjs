@@ -9,48 +9,36 @@ import { defineConfig } from 'astro/config'
 import { remarkDocLinks } from './src/lib/remark-doc-links.ts'
 import { externalizeInlineScripts } from './src/lib/externalize-inline-scripts.ts'
 
-// Querverweise: Autoren schreiben repo-relative Markdown-Links in `docs/`; der
-// remark-Link-Rewriter bildet sie auf Website-Routen bzw. GitHub-URLs ab.
 const docsDir = fileURLToPath(new URL('../docs', import.meta.url))
 const repoBaseUrl = 'https://github.com/nicograef/jotti/blob/main'
 
-// https://astro.build/config
 export default defineConfig({
   site: 'https://jotti.rocks',
   markdown: {
-    // Tupel-Form [attacher, options]: unified ruft remarkDocLinks(options) auf.
     processor: unified({
       remarkPlugins: [[remarkDocLinks, { docsDir, repoBaseUrl }]],
     }),
   },
   integrations: [
-    // React-Islands (ThemeToggle, MobileNav, …). Zusammen mit
-    // vite.build.assetsInlineLimit: 0 liefert Astro die Hydration-Skripte nativ
-    // als externe Dateien aus — kein Inline-Skript, das die Produktiv-CSP bräche.
     react(),
     starlight({
       title: 'jotti',
-      // ThemeProvider-Override: ersetzt Starlights Inline-Theme-Init durch das
-      // externe, CSP-konforme /theme-init.js (gleicher Speicher-Key und dieselbe
-      // Semantik wie die Landing). Siehe src/components/ThemeProvider.astro.
+      // Ersetzt Starlights Inline-Theme-Init durch das externe /theme-init.js
+      // (CSP). Siehe src/components/ThemeProvider.astro.
       components: {
         ThemeProvider: './src/components/ThemeProvider.astro',
       },
-      // Explizites Favicon: schließt die /favicon.svg-Lücke des Starlight-Defaults
-      // und zeigt in der Doku dieselbe Marke wie die Landing (Kopie in public/).
+      // Explizit, weil Starlights Default auf ein fehlendes /favicon.svg zeigt.
       favicon: '/icons/jotti-icon-light-32.png',
-      // Einsprachig deutsch: ein Locale `de` als Root, keine i18n-Routen.
-      // Dadurch sind auch die Framework-Texte (Suche, „Auf dieser Seite") deutsch.
+      // Locale `de` als Root statt i18n-Routen: so sind auch die Framework-Texte
+      // (Suche, „Auf dieser Seite") deutsch.
       defaultLocale: 'root',
       locales: {
         root: { label: 'Deutsch', lang: 'de' },
       },
-      // Marken-Token-Set speist das Doku-Theme.
       customCss: ['./src/styles/starlight.css'],
-      // Doku liegt vollständig unter /docs/ (siehe generateId in content.config.ts);
-      // die Landing auf / bleibt eine eigene Astro-Seite.
-      // Der Leitfaden (`docs/leitfaden/`) trennt Standardweg vom Experten-Weg
-      // und Technik vom Recht über die Sidebar-Gruppierung.
+      // Slugs liegen unter /docs/ (generateId in content.config.ts); / bleibt die
+      // Landing.
       sidebar: [
         {
           label: 'Erste Schritte',
@@ -141,15 +129,14 @@ export default defineConfig({
         },
       ],
     }),
-    // Externalisiert nach dem Build alle verbliebenen Inline-Skripte (v. a.
-    // Starlights is:inline-Skripte für Suche und Sidebar-Persistenz), damit die
-    // Produktiv-CSP (`script-src 'self'`) kein Skript blockt.
+    // Externalisiert nach dem Build Starlights verbliebene is:inline-Skripte
+    // (Produktiv-CSP `script-src 'self'`).
     externalizeInlineScripts(),
   ],
   vite: {
     plugins: [tailwindcss()],
-    // Kein Skript-Inlining: erzwingt externe Skript-Dateien, damit die
-    // Produktiv-CSP (`script-src 'self'`, kein `unsafe-inline`) greift.
+    // 0 erzwingt externe Skriptdateien, auch für die React-Hydration: die
+    // Produktiv-CSP (`script-src 'self'`) verbietet Inline-Skripte.
     build: { assetsInlineLimit: 0 },
   },
 })

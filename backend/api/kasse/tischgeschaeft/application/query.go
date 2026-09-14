@@ -10,15 +10,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// TischStateView combines a TischSession with the tisch name for display purposes.
 type TischStateView struct {
 	TischID              int
 	TischName            string
 	Subject              string
 	SaldoCents           int
 	UnbezahltePositionen []kasse.Position
-	// FuerMichErledigt ist true, wenn die anfragende Servicekraft an diesem Tisch
-	// keine eigenen unbezahlten Positionen mehr hat.
+	// FuerMichErledigt: die anfragende Servicekraft hat an diesem Tisch keine eigenen unbezahlten Positionen mehr.
 	FuerMichErledigt bool
 }
 
@@ -152,10 +150,8 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 	for _, tischID := range favoritIDs {
 		entry, ok := states[tischID]
 		if !ok {
-			// Kein Tisch (gelöscht/unbekannt): Der Favorit ist verwaist und wird
-			// übersprungen. Ein Abbruch würde die gesamte Tischübersicht der
-			// Servicekraft unbrauchbar machen — ein einziger gelöschter Tisch
-			// nähme ihr auch alle übrigen markierten Tische.
+			// Kein Tisch (gelöscht/unbekannt): verwaisten Favoriten überspringen. Ein Abbruch nähme
+			// der Servicekraft wegen eines einzigen gelöschten Tisches die gesamte Tischübersicht.
 			log.Warn().Int("tisch_id", tischID).Int("user_id", userID).Msg("Skipped favorit with unresolvable tisch")
 			continue
 		}

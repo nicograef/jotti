@@ -2,9 +2,7 @@ import { formatEuro } from '@/lib/utils'
 
 import { Stepper } from './Stepper'
 
-// AuswahlPosition ist die minimale Form, die PositionAuswahlListe braucht: ein
-// bereits formatierter Name, der Einzelpreis und die Obergrenze der auswählbaren
-// Menge (für die Anzeige „N Stück“).
+// maxMenge ist die Obergrenze der auswählbaren Menge (Anzeige „N Stück“).
 export interface AuswahlPosition {
   id: string
   name: string
@@ -19,14 +17,11 @@ interface PositionAuswahlListeProps {
   onRemove: (id: string) => void
 }
 
-// PositionAuswahlListe rendert eine Positionsliste mit Mengen-Steppern
-// (Minus/Anzahl/Plus). Sie ist controlled: die Mengenlogik (Grenzen,
-// Voll-Vorauswahl) bleibt im jeweiligen Drawer, hier liegt nur die Darstellung.
-// Die Liste scrollt nicht selbst — sie liegt im DrawerBody, dem einzigen
-// Scrollbereich des Drawers. Lange Namen brechen um, statt zu kürzen — wie in
-// der Bestellliste: Zwei gekürzte Varianten desselben Produkts sehen gleich
-// aus, und beim Stornieren oder Umbuchen ist der Griff zur falschen Position
-// teurer als beim Bestellen. Die Stepper-Spalte schrumpft dabei nicht.
+// Controlled: die Mengenlogik (Grenzen, Voll-Vorauswahl) bleibt im jeweiligen
+// Drawer. Die Liste scrollt nicht selbst — sie liegt im DrawerBody, dem einzigen
+// Scrollbereich des Drawers. Lange Namen brechen um statt zu kürzen: zwei
+// gekürzte Varianten desselben Produkts sehen gleich aus, und beim Stornieren
+// oder Umbuchen ist der Griff zur falschen Position teuer.
 export function PositionAuswahlListe({
   positionen,
   mengen,

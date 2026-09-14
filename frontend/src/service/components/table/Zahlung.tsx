@@ -36,8 +36,6 @@ interface ZahlungProps {
   // Kassieren-Auswahl (Position-ID → Menge, gedeckelt auf die unbezahlte
   // Menge), von TablePage gehoben, damit sie den Tab-Wechsel überlebt.
   mengenSteuerung: MengenSteuerung<string>
-  // Meldet die erfolgreiche Zahlung samt Bestätigungstext an die Seite, die den
-  // Erfolgs-Pop hostet.
   onErfolg: (nachricht: string) => void
 }
 
@@ -50,8 +48,6 @@ export function Zahlung({
 }: ZahlungProps) {
   const isMobile = useIsMobile()
   const [andereOffen, setAndereOffen] = useState(false)
-  // Positionen treten nur beim ersten Aufbau gestaffelt ein; nach einer Zahlung
-  // (Refetch) bleiben die verbleibenden Zeilen unbewegt.
   const erstAufbau = useErstAufbau(true)
 
   const {
@@ -75,8 +71,6 @@ export function Zahlung({
     0,
   )
   const restNachZahlung = tisch.saldoCents - auswahlSumme
-  // Die ausgewählten Positionen (Menge = Auswahl) für Beleg und Nutzlast der
-  // Abschluss-Spalte; auswahlSumme ist deren Gesamtsumme.
   const positionenToPay = selectPositionen(positionen, mengen)
 
   const alleEigenenVollAusgewaehlt =
@@ -211,8 +205,8 @@ export function Zahlung({
     </div>
   )
 
-  // Ab lg: offene Positionen links, Zahlungsübersicht rechts. Der extrahierte
-  // Abschluss-Inhalt mountet genau einmal (isMobile entscheidet den Zweig).
+  // Ab lg: offene Positionen links, Abschluss-Spalte rechts; der Abschluss-Inhalt
+  // mountet genau einmal.
   if (!isMobile) {
     return (
       <ServiceSplitLayout
@@ -232,8 +226,6 @@ export function Zahlung({
     )
   }
 
-  // Unter lg: unverändert Dock-Aktionsbutton (plus Restbetrag im Dock-Slot) und
-  // Bottom-Sheet-Drawer.
   return (
     <>
       <ZahlungDrawer
@@ -254,8 +246,7 @@ interface PositionItemProps {
   menge: number
   unbezahlteMenge: number
   showBesteller: boolean
-  // Position in der Eintritts-Staffelung (0-basiert) oder `undefined` ohne
-  // animierten Eintritt (z. B. Fremdpositionen oder nach einem Refetch).
+  // Position in der Eintritts-Staffelung; `undefined` = kein animierter Eintritt.
   eintrittIndex?: number
   onAdd: () => void
   onRemove: () => void
@@ -280,8 +271,6 @@ function PositionItem({
     <Item
       key={position.positionId}
       variant="outline"
-      // Listen-Eintritt: fadeUp 450 ms, 60 ms Stagger, weiche Kurve, nur beim
-      // ersten Aufbau. Verzögerung dynamisch → inline.
       style={
         eintritt === undefined
           ? undefined

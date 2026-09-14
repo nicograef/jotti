@@ -12,12 +12,10 @@ import (
 	"github.com/nicograef/jotti/backend/api/middleware"
 )
 
-// deadlineCapturingWriter implements the SetWriteDeadline interface
-// http.ResponseController looks for, so the test can observe how many times —
-// and when relative to the first write — the handler extends the write
-// deadline. deadlineCountBeforeWrite stops counting with the first write: Nur
-// die Aufrufe DAVOR können der Antwort ein Budget geben, spätere wären
-// wirkungslos.
+// deadlineCapturingWriter implementiert das SetWriteDeadline-Interface, das
+// http.ResponseController sucht, und zählt die Aufrufe. deadlineCountBeforeWrite
+// zählt nur bis zum ersten Schreibvorgang: Nur die Aufrufe DAVOR können der
+// Antwort ein Budget geben.
 type deadlineCapturingWriter struct {
 	*httptest.ResponseRecorder
 	deadline                 time.Time
@@ -49,19 +47,16 @@ func (w *deadlineCapturingWriter) Write(b []byte) (int, error) {
 	return w.ResponseRecorder.Write(b)
 }
 
-// Die beiden schreibenden TSE-Endpunkte fahren einen fiskaly-Lebenszyklus, der
-// die globale 10-Sekunden-Schreibfrist des Servers überschreiten kann. Ohne die
-// verlängerte Frist stirbt die Antwort auf der Verbindung — samt PUK und
-// Admin-PIN, die genau einmal ausgeliefert und nirgends persistiert werden. Der
-// Test läuft durch die LoggingMiddleware, weil sie in Produktion die gesamte
-// Routenkette umschließt (app/app.go) und die Frist auch durch ihren
-// ResponseWriter-Wrapper hindurch ankommen muss.
+// Die beiden schreibenden TSE-Endpunkte fahren einen fiskaly-Lebenszyklus, der die
+// globale 10-Sekunden-Schreibfrist überschreiten kann. Ohne verlängerte Frist
+// stirbt die Antwort auf der Verbindung — samt PUK und Admin-PIN, die genau einmal
+// ausgeliefert und nirgends persistiert werden. Der Test läuft durch die
+// LoggingMiddleware, weil sie in Produktion die gesamte Routenkette umschließt
+// (app/app.go) und die Frist auch durch ihren ResponseWriter-Wrapper ankommen muss.
 //
-// Die Frist muss dabei ZWEIMAL gesetzt werden: Sie ist eine absolute Zeit ab
-// Request-Start, kein Budget für den Schreibvorgang. Der Aufruf am
-// Handler-Eingang deckt die frühen Fehlerpfade ab, der Aufruf unmittelbar vor
-// dem Schreiben gibt der Antwort ein eigenes Budget — unabhängig davon, wie
-// lange der fiskaly-Lebenszyklus zuvor gedauert hat.
+// Die Frist muss ZWEIMAL gesetzt werden: Sie ist eine absolute Zeit ab
+// Request-Start. Der Aufruf am Handler-Eingang deckt die frühen Fehlerpfade ab,
+// der Aufruf vor dem Schreiben gibt der Antwort ein eigenes Budget.
 func TestTSESetupHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing.T) {
 	command := &CommandHandler{Command: &mockSettingsCommand{}}
 

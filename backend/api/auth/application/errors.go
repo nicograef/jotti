@@ -16,18 +16,14 @@ var ErrInvalidPassword = errors.New("invalid password")
 
 var ErrNoOnetimePassword = errors.New("no onetime password set")
 
-// ErrOnetimePasswordLocked: das Einmalpasswort wurde nach zu vielen Fehlversuchen
-// ungültig; der Admin muss ein neues erzeugen.
 var ErrOnetimePasswordLocked = errors.New("onetime password locked")
 
 var ErrPasswordTooWeak = errors.New("password too weak")
 
 var ErrTokenGeneration = errors.New("token generation failed")
 
-// ErrLoginThrottled: für dieses Konto sind zu viele Fehlanmeldungen aufgelaufen;
-// der nächste Versuch ist kurz gedrosselt (Soft-Throttle, läuft von selbst ab).
-// Bewusst getrennt von ErrInvalidPassword, damit der Handler eine klare Meldung
-// (HTTP 429) statt "ungültige Zugangsdaten" liefern kann.
+// ErrLoginThrottled ist bewusst von ErrInvalidPassword getrennt, damit der
+// Handler HTTP 429 statt "ungültige Zugangsdaten" liefern kann.
 var ErrLoginThrottled = errors.New("login throttled")
 
 var ErrDatabase = db.ErrDatabase

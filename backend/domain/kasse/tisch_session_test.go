@@ -48,7 +48,6 @@ func mustCreateKorrekturEvent(t *testing.T, subject string, userID int, position
 
 const testZahlungID = "11111111-1111-1111-1111-111111111111"
 
-// helper to create a test Position with fat event fields
 func testPosition(varianteID int, produktName, varianteName, kategorie string, einzelpreis, menge int) Position {
 	steuersatz := "regel"
 	switch kategorie {
@@ -72,7 +71,6 @@ func testPosition(varianteID int, produktName, varianteName, kategorie string, e
 	}
 }
 
-// positionsFromOrder extracts full Positions from an order event with adjusted menge
 func positionsFromOrder(t *testing.T, orderEvent e.Event, menge int) []Position {
 	t.Helper()
 	bestellung, err := buildBestellungFromEvent(orderEvent)
@@ -175,7 +173,6 @@ func TestApplyEvent_KorrekturReducesSaldoAndUnbezahlt(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// Geldneutrale Korrektur einer noch unbezahlten Position.
 	positions := positionsFromOrder(t, orderEvent, 1)
 	cancelEvent := mustCreateKorrekturEvent(t, testSubject, 1, positions, 500)
 	cancelEvent.ID = 2
@@ -251,7 +248,6 @@ func TestApplyEvent_UmbuchungMovesPositionsBetweenTische(t *testing.T) {
 	if zielState.ErsteBestellungLogTime == nil {
 		t.Fatal("expected target ErsteBestellungLogTime to be set by the zugang")
 	}
-	// Der Zugang trägt frische PositionIDs (eigenständig auf dem Zieltisch).
 	if zielState.UnbezahltePositionen[0].PositionID == quellState.UnbezahltePositionen[0].PositionID {
 		t.Fatal("expected target position to carry a fresh PositionID")
 	}
@@ -401,11 +397,8 @@ func TestApplyEvent_PaymentKeepsBestellerTag(t *testing.T) {
 	}
 }
 
-// TestApplyEvent_DoesNotMutateInputState belegt, dass ApplyEvent den übergebenen
-// State (inkl. seiner Position-Slices) nicht mutiert — kein Backing-Array-Alias.
-// Dieser Test schlägt ohne die Klon-Fixes in accumulatePositionen/
-// reduceByPositionStrict/tagBesteller fehl, weil die Helfer das Backing-Array der
-// Eingabe direkt modifizieren.
+// ApplyEvent darf den übergebenen State nicht mutieren: accumulatePositionen,
+// reduceByPositionStrict und tagBesteller arbeiten auf Klonen der Positions-Slices.
 func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)}
 	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
@@ -419,12 +412,10 @@ func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 		t.Fatalf("expected 1 unbezahlte position, got %d", len(state.UnbezahltePositionen))
 	}
 
-	// Menge und Länge vor dem zweiten ApplyEvent einfrieren.
 	wantMenge := state.UnbezahltePositionen[0].Menge // = 3
 	wantLen := len(state.UnbezahltePositionen)       // = 1
 
-	// Korrektur über 1 Einheit ruft reduceByPositionStrict (UnbezahltePositionen) auf.
-	// Ohne den make+copy-Klon würde der Helfer das Backing-Array des Input-State mutieren.
+	// Korrektur über 1 Einheit ruft reduceByPositionStrict auf UnbezahltePositionen auf.
 	korrekturPositionen := positionsFromOrder(t, orderEvent, 1)
 	korrekturEvent := mustCreateKorrekturEvent(t, testSubject, 1, korrekturPositionen, 500)
 	korrekturEvent.ID, korrekturEvent.Version = 2, 2
@@ -434,7 +425,6 @@ func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// Der ursprüngliche state darf nicht verändert worden sein.
 	if len(state.UnbezahltePositionen) != wantLen {
 		t.Errorf("original state UnbezahltePositionen length mutated: was %d, now %d",
 			wantLen, len(state.UnbezahltePositionen))
@@ -444,7 +434,6 @@ func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 			state.UnbezahltePositionen[0].Menge, wantMenge)
 	}
 
-	// Zur Sicherheit: state2 muss korrekte Werte haben.
 	if state2.UnbezahltePositionen[0].Menge != 2 {
 		t.Errorf("new state UnbezahltePositionen[0].Menge = %d, want 2", state2.UnbezahltePositionen[0].Menge)
 	}
@@ -464,9 +453,8 @@ func TestApplyEvent_UnknownEventType_ReturnsError(t *testing.T) {
 	}
 }
 
-// TestApplyEvent_WarenruecknahmeAfterPayment belegt, dass eine kassenwirksame
-// Warenrücknahme bezahlter Positionen den offenen Betrag nicht ins Minus dreht: der
-// Saldo bleibt 0 und die am Tisch vereinnahmten Zahlungen werden um die Rückgabe gemindert.
+// Eine kassenwirksame Warenrücknahme bezahlter Positionen dreht den offenen Betrag nicht
+// ins Minus: der Saldo bleibt 0, die vereinnahmten Zahlungen sinken um die Rückgabe.
 func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
@@ -517,9 +505,8 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 	}
 }
 
-// assertSaldoAbgeleitet prüft die Kern-Invariante von SaldoCents: der offene
-// Betrag ist stets die Summe aus EinzelpreisCents × Menge über die unbezahlten
-// Positionen — abgeleitet, nicht getrennt fortgeschrieben.
+// assertSaldoAbgeleitet prüft die Kern-Invariante: SaldoCents = Σ(EinzelpreisCents × Menge)
+// über die unbezahlten Positionen.
 func assertSaldoAbgeleitet(t *testing.T, state TischSession, nachEvent string) {
 	t.Helper()
 	erwartet := 0
@@ -531,9 +518,7 @@ func assertSaldoAbgeleitet(t *testing.T, state TischSession, nachEvent string) {
 	}
 }
 
-// TestApplyEvent_SaldoAbgeleitetNachJedemEventtyp pins the SaldoCents invariant
-// after every event type: after each applied event SaldoCents must equal
-// Σ(EinzelpreisCents × Menge) over UnbezahltePositionen.
+// Die Saldo-Ableitung muss nach jedem Event-Typ gelten.
 func TestApplyEvent_SaldoAbgeleitetNachJedemEventtyp(t *testing.T) {
 	const zNr = 1
 	const quellTischID = 42
@@ -582,8 +567,7 @@ func TestApplyEvent_SaldoAbgeleitetNachJedemEventtyp(t *testing.T) {
 	}
 	assertSaldoAbgeleitet(t, state, "bestellung-korrigiert")
 
-	// stornierung-erteilt: Warenrücknahme der bereits bezahlten Position; ändert
-	// UnbezahltePositionen nicht, der Saldo bleibt damit unverändert.
+	// stornierung-erteilt: Warenrücknahme der bezahlten Position; Unbezahlt bleibt gleich.
 	stornoPos := []Position{bestellung.Positionen[0]}
 	stornoPos[0].Menge = 1
 	stornoEvent := mustCreateCancelationEvent(t, quellSubject, 1, testZahlungID, stornoPos, 500)

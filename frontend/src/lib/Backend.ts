@@ -81,8 +81,6 @@ function parseJsonSafely(text: string): unknown {
   }
 }
 
-// DownloadResult is a binary response (e.g. a file download) together with the
-// filename the backend proposed via the Content-Disposition header.
 export interface DownloadResult {
   blob: Blob
   filename: string

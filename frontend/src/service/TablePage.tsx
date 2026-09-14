@@ -19,11 +19,8 @@ import { Zahlung } from './components/table/Zahlung'
 import { useAktiveProdukte } from './product/hooks'
 import { tischBackend, useTischHistorie, useTischState } from './table/hooks'
 
-// Deckelt die gehobene Kassieren-Auswahl auf die noch unbezahlte Menge je
-// Position: Einträge über ihrer Obergrenze sinken auf die Obergrenze, Einträge
-// für verschwundene Positionen (Obergrenze 0) fallen heraus. Gibt `null`
-// zurück, wenn nichts zu deckeln ist — damit der State-Abgleich im Render nur
-// bei echter Änderung ein setAll auslöst und keine Render-Schleife dreht.
+// Gibt `null` zurück, wenn nichts zu deckeln ist: der State-Abgleich im Render
+// löst sonst bei jedem Durchlauf ein setAll aus und dreht eine Render-Schleife.
 function deckeleAuswahl(
   auswahl: Record<string, number>,
   obergrenzen: Record<string, number>,
@@ -46,11 +43,8 @@ function deckeleAuswahl(
   return geaendert ? gedeckelt : null
 }
 
-// Das Status-Badge poppt bei jedem Wertwechsel (Motion-Inventar „Statuswechsel",
-// 350 ms), aber nicht beim ersten Aufbau. Der key-Wechsel auf den Zählwert
-// remountet StatusBadgeInhalt, das seine Pop-Entscheidung beim Mount erfasst:
-// Beim ersten Aufbau ist `animieren` noch false; nach dem ersten Aufbau mountet
-// jeder neue Wert mit true und poppt.
+// Der key-Wechsel remountet StatusBadgeInhalt, das seine Pop-Entscheidung beim
+// Mount einfriert: der erste Aufbau poppt nicht, jeder spätere Wert poppt.
 function TischStatusBadge({ anzahlUnbezahlt }: { anzahlUnbezahlt: number }) {
   const erstAufbau = useErstAufbau(true)
   return (
@@ -103,8 +97,6 @@ export function TablePage() {
     refetch: reloadHistorie,
   } = useTischHistorie(Number(tischId))
 
-  // Der Saldo zählt bei jeder Änderung animiert zum neuen Wert (u. a. nach dem
-  // Schließen des Erfolgs-Pops, wenn der Refetch den Tischzustand aktualisiert).
   const animierterSaldo = useCountUp(state.saldoCents)
 
   const reload = useCallback(() => {
@@ -112,10 +104,8 @@ export function TablePage() {
     void reloadHistorie()
   }, [reloadState, reloadHistorie])
 
-  // Erfolgs-Pop: Bestellen, Kassieren, Stornieren und Umbuchen öffnen ihn mit
-  // ihrer Meldung (statt eines Erfolgs-Toasts). Der nachgelagerte Refetch
-  // (reload) läuft erst beim Schließen, damit sichtbare Statuswechsel (Saldo,
-  // Badge, Listen) dem Pop folgen.
+  // Der nachgelagerte Refetch (reload) läuft erst beim Schließen des Pops, damit
+  // sichtbare Statuswechsel (Saldo, Badge, Listen) dem Pop folgen.
   const [erfolg, setErfolg] = useState({ open: false, text: '' })
   const zeigeErfolg = useCallback((nachricht: string) => {
     setErfolg({ open: true, text: nachricht })
@@ -125,10 +115,8 @@ export function TablePage() {
     reload()
   }, [reload])
 
-  // Bestell-Korb (Variante-ID → Menge) und Kassieren-Auswahl (Position-ID →
-  // Menge) liegen hier, damit sie das Aus- und Wiedereinhängen der Radix-Tab-
-  // Inhalte überstehen; ein Tab-Wechsel würde die Auswahl sonst verlieren. Die
-  // Kassieren-Auswahl ist auf die noch unbezahlte Menge je Position gedeckelt.
+  // Korb und Auswahl liegen hier, damit sie das Aus- und Wiedereinhängen der
+  // Radix-Tab-Inhalte überstehen; ein Tab-Wechsel verlöre sie sonst.
   const bestellKorb = useMengen<number>()
   const unbezahlteMengen: Record<string, number> = {}
   state.unbezahltePositionen.forEach((position) => {
@@ -138,9 +126,8 @@ export function TablePage() {
     (positionId) => unbezahlteMengen[positionId] || 0,
   )
 
-  // Beim Tischwechsel bleibt TablePage gemountet (nur der :tischId-Param
-  // ändert sich), daher wird die gehobene Auswahl pro Tisch zurückgesetzt.
-  // React-idiomatisches Zurücksetzen von State bei Prop-Wechsel im Render.
+  // Beim Tischwechsel bleibt TablePage gemountet (nur der :tischId-Param ändert
+  // sich), daher wird die gehobene Auswahl pro Tisch zurückgesetzt.
   const [aktiverTisch, setAktiverTisch] = useState(tischId)
   if (tischId !== aktiverTisch) {
     setAktiverTisch(tischId)
@@ -148,12 +135,9 @@ export function TablePage() {
     kassierenAuswahl.reset()
   }
 
-  // Der useMengen-`max` deckelt nur beim `add`, nicht die schon gespeicherte
-  // Auswahl. Schrumpft die unbezahlte Menge einer bereits ausgewählten Position,
-  // während die Auswahl bestehen bleibt (z. B. eine Stornierung auf der
-  // Historie, deren Refetch erst beim Schließen des Erfolgs-Pops eintrifft),
-  // wird die gespeicherte Auswahl beim Eintreffen der kleineren Obergrenzen im
-  // Render abgeglichen — React-idiomatischer State-Sync wie beim Tischwechsel.
+  // Der useMengen-`max` deckelt nur beim `add`, nicht die gespeicherte Auswahl:
+  // schrumpft die unbezahlte Menge einer ausgewählten Position (z. B. Storno-
+  // Refetch beim Schließen des Erfolgs-Pops), wird sie hier im Render abgeglichen.
   const gedeckelteAuswahl = deckeleAuswahl(
     kassierenAuswahl.mengen,
     unbezahlteMengen,
@@ -241,9 +225,8 @@ export function TablePage() {
     </TabsList>
   )
 
-  // Produkte tragen nur den Bestellen-Tab; ihr Ladefehler bleibt deshalb dort,
-  // statt die ganze Seite zu ersetzen. Ohne ihn wirkte die leere Produktliste
-  // wie ein leeres Sortiment.
+  // Ladefehler der Produkte bleibt im Bestellen-Tab: eine leere Produktliste
+  // wirkte sonst wie ein leeres Sortiment.
   const bestellenInhalt =
     !stateLoading &&
     (produkteError ? (
@@ -309,10 +292,8 @@ export function TablePage() {
           </Tabs>
         </>
       ) : (
-        // Höhenbegrenzte Flex-Spalte (Viewport minus Header und Content-Padding
-        // aus ServiceLayout); Kopf und Reiter-Zeile ergeben sich per Flex, der
-        // aktive Tab füllt via flex-1 den Rest und scrollt in sich bzw. seinen
-        // Spalten.
+        // Höhenbegrenzte Flex-Spalte: Viewport minus Header und Content-Padding
+        // aus ServiceLayout; der aktive Tab füllt via flex-1 den Rest.
         <Tabs
           defaultValue="order"
           className="flex h-[calc(100dvh-5.5rem)] flex-col xl:h-[calc(100dvh-6.5rem)]"

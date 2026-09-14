@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Resets the jotti.rocks demo stack's database volume, then recreates the stack
-# and seeds demo data via the `jotti seed` subcommand (guard and projection
-# rebuild included).
-#
-# Supported stack:
-#   rocks  — jotti.rocks demo/staging (docker-compose.rocks.yml). NOT for
-#            self-hosted production. The SSL volumes (letsencrypt,
-#            certbot-challenges) are NOT touched.
+# Resets the jotti.rocks demo stack's DB volume and re-seeds it.
+# NOT for self-hosted production.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -65,7 +59,6 @@ BACKEND_SERVICE="backend"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-# Every "-f <file>" entry in COMPOSE_FILES must exist.
 for i in "${!COMPOSE_FILES[@]}"; do
   [[ "${COMPOSE_FILES[$i]}" == "-f" ]] || continue
   compose_file="${COMPOSE_FILES[$((i + 1))]}"

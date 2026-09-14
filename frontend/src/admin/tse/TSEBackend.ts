@@ -21,9 +21,6 @@ export const TSEVerbindungStatusSchema = z.object({
 })
 export type TSEVerbindungStatus = z.infer<typeof TSEVerbindungStatusSchema>
 
-// Eine TSE ist signierfähig, wenn die TSS initialisiert, der Client registriert
-// und seine Seriennummer die Kassen-Seriennummer ist. Eine einzige Definition
-// für Wizard-Abschluss und manuellen Verbindungstest.
 export function verbindungIstSigniertfaehig(
   status: TSEVerbindungStatus,
 ): boolean {
@@ -76,9 +73,8 @@ export const TSESetupZugangsdatenSchema = z.object({
 })
 export type TSESetupZugangsdaten = z.infer<typeof TSESetupZugangsdatenSchema>
 
-// neuAnlegenTrotzVorhandener erzwingt in TEST bewusst eine zweite, frische TSE
-// trotz vorhandener TSS (F2). Optional und nur in TEST wirksam; LIVE bleibt im
-// Backend hart gesperrt.
+// neuAnlegenTrotzVorhandener erzwingt in TEST eine zweite, frische TSE trotz
+// vorhandener TSS; in LIVE ist das im Backend hart gesperrt.
 export const TSEEinrichtenSchema = z.object({
   apiKey: apiKeyField,
   apiSecret: apiSecretField,
@@ -87,11 +83,10 @@ export const TSEEinrichtenSchema = z.object({
 })
 export type TSEEinrichten = z.infer<typeof TSEEinrichtenSchema>
 
-// Übernahme einer vorhandenen TSS: tssId wählt die TSS aus dem Befund. pin trägt
-// ab Zustand UNINITIALIZED die vom Admin verwahrte Admin-PIN; bei CREATED bleibt
-// es leer (jotti bezieht PUK und PIN selbst). puk ist nur für den PIN-Reset
-// gesetzt: ist die PIN verloren oder gesperrt, setzt jotti mit dem PUK eine
-// frische PIN und übernimmt damit weiter.
+// pin trägt ab Zustand UNINITIALIZED die vom Admin verwahrte Admin-PIN; bei
+// CREATED bleibt es leer (jotti bezieht PUK und PIN selbst). puk ist nur für
+// den PIN-Reset gesetzt: ist die PIN verloren oder gesperrt, setzt jotti damit
+// eine frische PIN und übernimmt weiter.
 export const TSEUebernehmenSchema = z.object({
   apiKey: apiKeyField,
   apiSecret: apiSecretField,
@@ -109,8 +104,8 @@ export const TSEUebernehmenSchema = z.object({
 })
 export type TSEUebernehmen = z.infer<typeof TSEUebernehmenSchema>
 
-// PUK und Admin-PIN kommen genau einmal mit der Antwort und werden nie
-// gespeichert. Sie werden dem Admin einmalig zur externen Verwahrung gezeigt.
+// PUK und Admin-PIN kommen genau einmal mit der Antwort, werden nie gespeichert
+// und dem Admin einmalig zur externen Verwahrung gezeigt.
 export const TSEEinrichtenErgebnisSchema = z.object({
   tssId: z.string(),
   clientId: z.string(),
@@ -126,11 +121,10 @@ export const TSEStatusSchema = z.object({
 })
 export type TSEStatus = z.infer<typeof TSEStatusSchema>
 
-// Zustand der Signatur-Queue für das Admin-Monitoring: Rückstand (offene
-// Aufträge, Alter des ältesten) und Leistung über ein gleitendes
-// 15-Minuten-Fenster (Signaturen/Minute, Signierdauer p95). Fehlgeschlagene
-// Aufträge und letzterFehler sind sitzungsbezogen (nur die aktive
-// Kassensitzung); mit dem Kassenabschluss verschwindet die Warnung.
+// Rückstand: offene Aufträge und Alter des ältesten. Leistung über ein
+// gleitendes 15-Minuten-Fenster (Signaturen/Minute, Signierdauer p95).
+// fehlgeschlageneAuftraege und letzterFehler gelten nur für die aktive
+// Kassensitzung; mit dem Kassenabschluss verschwindet die Warnung.
 export const TSESignaturQueueSchema = z.object({
   offeneAuftraege: z.number().int(),
   fehlgeschlageneAuftraege: z.number().int(),
@@ -141,8 +135,8 @@ export const TSESignaturQueueSchema = z.object({
 })
 export type TSESignaturQueue = z.infer<typeof TSESignaturQueueSchema>
 
-// Störungszeitraum aus dem Störungsprotokoll (TSE-Ausfalldokumentation):
-// ein Zeitraum mit Beginn, Ende (null solange aktiv) und Grund-Art.
+// Störungsprotokoll (TSE-Ausfalldokumentation); ende ist null, solange die
+// Störung andauert.
 export const TSEStoerungSchema = z.object({
   id: z.number().int(),
   beginn: DateStringSchema,

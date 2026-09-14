@@ -19,8 +19,6 @@ type QueryHandler struct {
 	Query query
 }
 
-// --- Request / Response DTOs ---
-
 type aktiveKassensitzungResponse struct {
 	ZNr         int    `json:"zNr"`
 	Datum       string `json:"datum"`
@@ -33,7 +31,6 @@ type kassenbestandRequest struct {
 	KassensitzungNr int `json:"kassensitzungNr"`
 }
 
-// kassenbestandResponse weist den Soll-Bestand samt seiner vier Komponenten aus.
 // Invariante (vor Kassensturz): anfangsbestand + bareinnahmen + einlagen − entnahmen = sollBestand.
 type kassenbestandResponse struct {
 	SollBestandCents    int `json:"sollBestandCents"`
@@ -54,8 +51,6 @@ type geldtransitItemResponse struct {
 	Kommentar   string `json:"kommentar"`
 	GebuchtVon  string `json:"gebuchtVon"`
 }
-
-// --- Handlers ---
 
 func (h *QueryHandler) GetAktiveKassensitzungHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

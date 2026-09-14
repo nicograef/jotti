@@ -108,7 +108,6 @@ describe('Auto-Skriptablauf', () => {
 
   it('startet die Auto-Demo nur aus dem Ruhezustand', () => {
     const running = startAuto(initialDemoState)
-    // erneutes Starten im running-Zustand ändert nichts
     expect(startAuto(running)).toBe(running)
   })
 
@@ -123,7 +122,6 @@ describe('Permanenter Stopp bei manueller Interaktion', () => {
     state = runNextStep(state) // ein Auto-Schritt gelaufen
     expect(state.autoStatus).toBe('running')
 
-    // manuelle Interaktion
     state = manualAdd(state, 2)
     expect(state.autoStatus).toBe('stopped')
 

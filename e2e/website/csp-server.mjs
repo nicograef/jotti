@@ -1,14 +1,7 @@
-// Dependency-free static file server for the built website (`website/dist`).
-//
-// Serves the artefact with the EXACT production Content-Security-Policy header of
-// the jotti.rocks block from `reverse-proxy/nginx.rocks.conf`. The CSP is parsed
-// from that file at runtime, so it can never silently drift from production.
-//
-// Shared by two consumers:
-//   - the CSP verification (`csp-check.mjs`),
-//   - the OG-image screenshot mode (`screenshots.mjs`).
-//
-// No external dependencies — plain `node:http`/`node:fs`, runnable with any Node.
+// Dependency-free static file server for `website/dist`. Serves the artefact
+// with the EXACT production Content-Security-Policy of the jotti.rocks block in
+// `reverse-proxy/nginx.rocks.conf`, parsed from that file at runtime so it can
+// never silently drift from production.
 
 import { createServer } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
@@ -37,9 +30,8 @@ const CONTENT_TYPES = {
   '.map': 'application/json; charset=utf-8',
 }
 
-// Extract the production CSP verbatim. The jotti.rocks landing+docs block is the
-// only CSP header carrying the Pagefind `'wasm-unsafe-eval'` exception, which
-// uniquely identifies it among the server blocks in the file.
+// The jotti.rocks block is the only CSP header carrying the Pagefind
+// `'wasm-unsafe-eval'` exception — that is what identifies it in the file.
 export async function readProductionCsp() {
   const conf = await readFile(nginxConf, 'utf8')
   const matches = [
@@ -54,7 +46,7 @@ export async function readProductionCsp() {
   return csp
 }
 
-// Start a static server for `distDir`. Resolves with { url, port, close() }.
+// Resolves with { url, port, close() }.
 export async function startStaticServer(
   distDir,
   { csp, host = '127.0.0.1' } = {},

@@ -3,15 +3,13 @@ import { useEffect } from 'react'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 /**
- * Meldet einen offenen Vorgang, solange `offen` gilt, und gibt ihn wieder frei,
- * sobald `offen` entfällt oder die meldende Komponente ausgehängt wird. Der
- * einzige Weg, ins Vorgangs-Register zu schreiben.
+ * Der einzige Weg, ins Vorgangs-Register zu schreiben: meldet einen offenen
+ * Vorgang, solange `offen` gilt, und gibt ihn im Effekt-Cleanup wieder frei.
  *
- * Die Abmeldung gehört zwingend in den Effekt-Cleanup: Ein Tischwechsel setzt
- * nur Zustand zurück (die Seite bleibt gemountet), und der Wechsel zwischen
- * Drawer- und Spaltenlayout tauscht ganze Teilbäume aus — beides ohne Zutun der
- * meldenden Stelle. Bliebe eine Anmeldung dabei stehen, wartete der erzwungene
- * Reload für immer auf einen Vorgang, den es nicht mehr gibt.
+ * Das Cleanup ist zwingend: Ein Tischwechsel setzt nur Zustand zurück (die
+ * Seite bleibt gemountet), der Wechsel zwischen Drawer- und Spaltenlayout
+ * tauscht ganze Teilbäume aus. Eine stehen gebliebene Anmeldung ließe den
+ * erzwungenen Reload für immer auf einen Vorgang warten, den es nicht gibt.
  */
 export function useOffenerVorgang(offen: boolean): void {
   useEffect(() => {

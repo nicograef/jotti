@@ -100,7 +100,6 @@ describe('ZahlungDrawer', () => {
     expect(scrollContainers).toHaveLength(1)
     expect(scrollContainers[0]).toBe(body)
 
-    // Beleg scrollt im Body, Submit und Abbrechen bleiben außerhalb sichtbar.
     expect(body).toContainElement(screen.getByText(/Bratwurst/))
     const submit = screen.getByRole('button', { name: 'Kassieren' })
     const abbrechen = screen.getByRole('button', { name: 'Abbrechen' })
@@ -121,7 +120,6 @@ describe('ZahlungDrawer', () => {
     const dialog = await openDrawer(user)
     await user.click(screen.getByRole('button', { name: 'Kassieren' }))
 
-    // Pending-Zustand: Drawer markiert, Spinner sichtbar, Buttons deaktiviert.
     expect(dialog).toHaveAttribute('data-pending')
     expect(
       screen.getByRole('status', { name: 'Wird geladen' }),
@@ -156,8 +154,6 @@ describe('ZahlungDrawer', () => {
       screen.getByRole('heading', { name: tisch.name }),
     ).toBeInTheDocument()
 
-    // Erhalten bleibt ein Feld; der Zielbetrag wird über Chips gesetzt und das
-    // freie Feld erscheint erst hinter „Anderer …".
     expect(screen.getByLabelText('Erhalten')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /genau/ })).toBeInTheDocument()
     expect(

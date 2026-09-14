@@ -6,12 +6,6 @@ package api
 // wrong: the client gets a code, the operator gets the log. A chain without
 // .Err(err) drops the cause — the message then names the operation but never the
 // reason, and nilerr cannot see it because the error is still handled.
-//
-// This test parses every non-test file below backend/api and fails on a
-// log.Error() chain in a branch guarded by "<err> != nil" that carries no .Err(.
-// It recognizes a chain by its terminating .Msg/.Msgf call and reads the selector
-// names down the receiver chain, so it holds for zerolog.Ctx(ctx).Error() as well
-// as for a stored logger.
 
 import (
 	"go/ast"
@@ -20,8 +14,6 @@ import (
 	"testing"
 )
 
-// TestLogErrorCarriesTheError fails when an error branch logs at error level
-// without passing the error along.
 func TestLogErrorCarriesTheError(t *testing.T) {
 	checked := 0
 	forEachSourceFile(t, func(fset *token.FileSet, file *ast.File, _ string) {
@@ -54,8 +46,7 @@ func TestLogErrorCarriesTheError(t *testing.T) {
 	}
 }
 
-// isErrorBranch reports whether cond is "<something named …err> != nil". The name
-// is what separates an error branch from any other nil check.
+// The name is what separates an error branch from any other nil check.
 func isErrorBranch(cond ast.Expr) bool {
 	binary, ok := cond.(*ast.BinaryExpr)
 	if !ok || binary.Op != token.NEQ {
@@ -75,16 +66,13 @@ func isErrorBranch(cond ast.Expr) bool {
 	}
 }
 
-// isErrorName reports whether name is that of an error value: err, or a
-// qualified variant such as lookupErr or writeErr.
+// An error value is any name ending in err: err, lookupErr, writeErr.
 func isErrorName(name string) bool {
 	return strings.HasSuffix(strings.ToLower(name), "err")
 }
 
-// logChain returns the set of method names of the logging chain that call
-// terminates, and whether call terminates one at all. A chain ends in .Msg or
-// .Msgf; the names are collected down the receiver chain, so
-// log.Error().Err(err).Msg("…") yields {Msg, Err, Error}.
+// logChain collects the method names down the receiver chain of a call ending in
+// .Msg/.Msgf: log.Error().Err(err).Msg("…") yields {Msg, Err, Error}.
 func logChain(call *ast.CallExpr) (map[string]bool, bool) {
 	selector, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok || (selector.Sel.Name != "Msg" && selector.Sel.Name != "Msgf") {

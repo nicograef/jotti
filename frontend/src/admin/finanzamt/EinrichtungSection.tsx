@@ -17,9 +17,8 @@ import { useBetreiber, useKassenidentitaet } from './hooks'
 
 const LEITFADEN_URL = 'https://jotti.rocks/docs/leitfaden/finanzamt-anmelden/'
 
-// Vereinsdaten gelten als erledigt, wenn die Pflichtfelder der Betreiber-Query
-// (Vereinsname, Straße, PLZ, Ort — vgl. betreiberSchema im Backend) gefüllt
-// sind. Es gibt bewusst kein separates „vollständig"-Flag im Backend.
+// Kein „vollständig"-Flag im Backend: erledigt heißt, dass die Pflichtfelder
+// der Betreiber-Query gefüllt sind.
 function vereinsdatenErledigt(betreiber: {
   vereinsname: string
   strasse: string
@@ -34,9 +33,8 @@ function vereinsdatenErledigt(betreiber: {
   )
 }
 
-// Neutrale/erledigte Checklisten-Karte mit Nummer, Titel und Status-Icon. Der
-// Fehlerzustand eines Schritts wird stattdessen über die WarnKarte gerendert
-// (siehe Schritt 2/3), damit die Destructive-Token an einer Stelle wohnen.
+// Den Fehlerzustand eines Schritts rendert stattdessen die WarnKarte, damit die
+// Destructive-Token an einer Stelle wohnen.
 function SchrittKarte({
   nummer,
   titel,
@@ -156,8 +154,6 @@ export function EinrichtungSection() {
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3">
-        {/* 3 Spalten erst ab xl (~1280px), damit die Schritte im max-w-4xl-
-            Container nicht zu schmal werden; darunter stapeln sie vertikal. */}
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
           <SchrittKarte
             nummer={1}
@@ -185,8 +181,8 @@ export function EinrichtungSection() {
               <span className="text-sm leading-relaxed text-muted-foreground">
                 {`Cloud-TSE verbunden${tseStatus?.umgebung ? ` (Umgebung ${tseStatus.umgebung})` : ''}. Signiert jeden Vorgang automatisch.`}
               </span>
-              {/* Auch bei aktiver TSE der einzige Einstieg in den Assistenten —
-                  ohne ihn käme man von TEST nicht mehr nach LIVE. */}
+              {/* Einziger Einstieg in den Assistenten: ohne ihn käme man von
+                  TEST nicht nach LIVE. */}
               <NavLink
                 to="/admin/tse-einrichtung"
                 className="w-fit text-sm font-medium text-primary hover:underline"
@@ -234,9 +230,8 @@ export function EinrichtungSection() {
                   <span className="text-xs">(§ 146a Abs. 4 AO)</span>
                 </span>
                 {kassenidentitaet && (
-                  // Eigenes, vollbreites Feld statt truncated <code>: die
-                  // Seriennummer muss zum Abtippen in ELSTER vollständig lesbar
-                  // sein (break-all bricht die UUID um, statt sie zu kürzen).
+                  // Vollbreites Feld statt truncated <code>: die Seriennummer
+                  // muss zum Abtippen in ELSTER vollständig lesbar sein.
                   <div className="flex flex-col gap-1">
                     <span className="text-xs font-medium text-muted-foreground">
                       Seriennummer des elektronischen Aufzeichnungssystems

@@ -1,17 +1,14 @@
-// Zweispaltiges Service-Layout ab lg (1024px, ADR 07/08): links die Auswahl,
-// rechts die dauerhaft sichtbare Abschluss-Spalte. Beide Spalten scrollen
-// unabhängig. Die Höhe kommt über `h-full` vom höhenbegrenzten Flex-Container
-// der Seite (Viewport minus Header und Reiter-Zeile), statt aus einem fest
-// verdrahteten calc — so bleibt das Layout robust, wenn sich Header oder
-// Reiter-Höhe ändern. Nur ab lg gerendert: die aufrufende Fläche entscheidet
-// per useIsMobile, welcher Container mountet.
+// Zweispaltiges Service-Layout ab lg (1024 px, siehe docs/decisions.md D07/D08):
+// links die Auswahl, rechts die dauerhaft sichtbare Abschluss-Spalte. Die Höhe
+// kommt per `h-full` vom höhenbegrenzten Flex-Container der Seite statt aus einem
+// eigenen calc — so stimmt sie weiter, wenn Header- oder Reiter-Höhe sich ändern.
+// Nur ab lg gerendert; useIsMobile entscheidet im Aufrufer.
 export function ServiceSplitLayout({
   auswahl,
   abschluss,
 }: {
   auswahl: React.ReactNode
-  // Die Abschluss-Spalte selbst (ein <aside> aus der jeweiligen
-  // Abschluss-Inhaltskomponente, variant="spalte").
+  // Ein <aside> aus der jeweiligen Abschluss-Inhaltskomponente, variant="spalte".
   abschluss: React.ReactNode
 }) {
   return (

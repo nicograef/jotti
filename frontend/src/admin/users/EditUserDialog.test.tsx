@@ -46,8 +46,6 @@ describe('EditUserDialog', () => {
   })
 
   it('sperrt das Rollenfeld im eigenen Konto', () => {
-    // Ohne die Sperre stuft sich der letzte Admin selbst herab und sperrt die
-    // Instanz aus; das Backend lehnt das zusätzlich mit cannot_demote_self ab.
     renderDialog(true)
 
     expect(screen.getByRole('combobox', { name: /Rolle/ })).toBeDisabled()

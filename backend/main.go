@@ -23,8 +23,7 @@ import (
 	"github.com/nicograef/jotti/backend/seed"
 )
 
-// version wird per ldflags einkompiliert (-X main.version=<tag>); der
-// Release-Workflow befüllt sie über das Docker-Build-Argument VERSION.
+// version wird per ldflags einkompiliert (-X main.version=<tag>).
 var version = "dev"
 
 func main() {
@@ -43,8 +42,7 @@ func main() {
 	db.SetMaxOpenConns(50)
 	db.SetMaxIdleConns(10)
 
-	// Beim Start begrenzt auf die Datenbank warten (Boot-Reihenfolge nach
-	// Stromausfall), statt sofort zu sterben. Ohne Datenbank kein Start.
+	// Begrenzt auf die Datenbank warten (Boot-Reihenfolge nach Stromausfall), statt sofort zu sterben.
 	if err := dbpkg.PingWithRetry(db.Ping, 30*time.Second, time.Second, time.Sleep); err != nil {
 		log.Fatal().Err(err).Msg("Failed to ping Postgres")
 	}
@@ -85,9 +83,7 @@ func run(cfg config.Config, db *sql.DB) error {
 		}
 	}()
 
-	// Initial-Admin anlegen bzw. dessen Einmalpasswort rotieren, solange die
-	// Ersteinrichtung offen ist; der Klartext-Code landet im Log-Strom. Ein Fehler
-	// hier ist fatal (run() → main() → log.Fatal), der Container-Restart wiederholt.
+	// Der Klartext-Code des Einmalpassworts landet im Log-Strom.
 	repo := user_repo.NewRepository(db)
 	res, err := bootstrap.EnsureInitialAdmin(context.Background(), repo)
 	if err != nil {
@@ -97,7 +93,6 @@ func run(cfg config.Config, db *sql.DB) error {
 
 	a := app.NewApp(cfg, db, version)
 
-	// Set up signal handling
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

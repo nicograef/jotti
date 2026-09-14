@@ -12,47 +12,35 @@ import (
 	"github.com/nicograef/jotti/windows/starter/core"
 )
 
-// postgresContainer ist der feste container_name des postgres-Service (siehe
-// docker-compose.release.yml). pg_dump laeuft per `docker exec` direkt in diesem
-// Container: lokale Socket-Verbindungen sind dort trust-authentifiziert, sodass
-// fuer das Backup kein Passwort durchgereicht werden muss.
+// postgresContainer ist der feste container_name des postgres-Service. pg_dump
+// laeuft per `docker exec` darin: lokale Socket-Verbindungen sind dort
+// trust-authentifiziert, also braucht das Backup kein Passwort.
 const postgresContainer = "jotti-postgres-local"
 
-// postgresDataVolume ist das (projektpraefigierte) Daten-Volume. Sein Vorhandensein
-// entscheidet mit, ob es ueberhaupt Daten zu sichern gibt.
 const postgresDataVolume = "jotti-local_postgres-data"
 
 // backupDir ist der Mountpunkt des jotti-backups-Volumes im postgres-Container.
 const backupDir = "/jotti-backups"
 
-// keptBackups ist die Anzahl der vorgehaltenen Pre-Update-Dumps; aeltere werden
-// nach jedem neuen Dump rotiert, damit das Volume nicht unbegrenzt waechst.
 const keptBackups = 5
 
-// hostBackupDirName ist der Unterordner im Zustandsverzeichnis, in den jeder
-// Pre-Update-Dump zusaetzlich gespiegelt wird (unter Windows
-// %PROGRAMDATA%\jotti\backups). Anders als das Docker-Volume ueberlebt dieser
-// Ordner ein `docker compose down -v` — er ist die zweite, unabhaengige Kopie.
+// hostBackupDirName ist der Unterordner im Zustandsverzeichnis (unter Windows
+// %PROGRAMDATA%\jotti\backups), in den jeder Pre-Update-Dump gespiegelt wird. Er
+// ueberlebt ein `docker compose down -v` — die zweite, unabhaengige Kopie.
 const hostBackupDirName = "backups"
 
-// dumpPrefix und dumpSuffix umrahmen die zeitgestempelten Backup-Dateinamen
+// dumpPrefix und dumpSuffix umrahmen die zeitgestempelten Dateinamen
 // (jotti-YYYYMMDD-HHMMSS.sql). Erzeugung und Rotations-Filter teilen sie sich,
-// damit der Filter nicht still aufhoert zu greifen, sollte sich das Namensschema
-// einmal aendern.
+// damit der Filter nie still aufhoert zu greifen.
 const (
 	dumpPrefix = "jotti-"
 	dumpSuffix = ".sql"
 )
 
-// maybeBackupBeforeUpdate zieht vor dem vollen `up` (inkl. migrate) automatisch
-// einen pg_dump, sobald bereits Daten existieren und die laufende Version von der
-// zuletzt gesund gestarteten abweicht oder noch kein Marker vorliegt (Erst-Upgrade
-// von einer Version vor Einfuehrung des automatischen Pre-Update-Backups — siehe
-// core.ShouldBackup). Es faehrt dafuer nur
-// postgres hoch, wartet auf gesund, dumpt zeitgestempelt ins jotti-backups-Volume
-// und rotiert auf die neuesten keptBackups. Ein Fehler hier ist fatal fuer den
-// Start — lieber nicht migrieren als ohne Sicherungspunkt migrieren. Bei gleicher
-// Version, echter Erstinstallation oder Dev-Build kehrt die Funktion sofort zurueck.
+// maybeBackupBeforeUpdate zieht vor dem vollen `up` (inkl. migrate) einen pg_dump,
+// sobald core.ShouldBackup es verlangt: postgres hochfahren, zeitgestempelt ins
+// jotti-backups-Volume dumpen, auf keptBackups rotieren, auf den Host spiegeln.
+// Ein Fehler ist fatal — lieber nicht migrieren als ohne Sicherungspunkt migrieren.
 func maybeBackupBeforeUpdate(composePath, envPath, stateDir string) error {
 	lastVersion := readLastVersion(stateDir)
 	dataExists, err := volumeExists(postgresDataVolume)
@@ -83,10 +71,8 @@ func maybeBackupBeforeUpdate(composePath, envPath, stateDir string) error {
 		fmt.Printf("Hinweis: alte Backups konnten nicht rotiert werden (%v).\n", err)
 	}
 
-	// Den Dump zusaetzlich auf den Host spiegeln. Der Dump im Volume existiert
-	// bereits, daher ist ein Fehlschlag hier nur ein Hinweis, kein Startabbruch:
-	// so vernichtet ein spaeteres `docker compose down -v` nicht Daten und
-	// Backups zugleich.
+	// Fehlschlag ist nur ein Hinweis, kein Startabbruch: der Dump im Volume existiert
+	// bereits.
 	hostDir := filepath.Join(stateDir, hostBackupDirName)
 	if err := mirrorBackupToHost(name, hostDir); err != nil {
 		fmt.Printf("Hinweis: Backup konnte nicht nach %s gespiegelt werden (%v).\n", hostDir, err)
@@ -96,9 +82,8 @@ func maybeBackupBeforeUpdate(composePath, envPath, stateDir string) error {
 	return nil
 }
 
-// readLastVersion liest den last-version-Marker. Fehlt er oder ist er unlesbar,
-// gilt das als "keine bekannte Vorversion" (leerer String) — dann wird nicht
-// gesichert (Erststart).
+// readLastVersion liest den last-version-Marker; fehlt er oder ist er unlesbar,
+// gilt das als "keine bekannte Vorversion" (leerer String).
 func readLastVersion(stateDir string) string {
 	data, err := os.ReadFile(filepath.Join(stateDir, lastVersionFile))
 	if err != nil {
@@ -107,9 +92,9 @@ func readLastVersion(stateDir string) string {
 	return strings.TrimSpace(string(data))
 }
 
-// volumeExists meldet, ob ein benanntes Docker-Volume existiert. Nur ein echter
-// Docker-Fehler (Daemon nicht erreichbar o. Ae.) wird durchgereicht; ein fehlendes
-// Volume ist der regulaere "nein"-Fall.
+// volumeExists meldet, ob ein benanntes Docker-Volume existiert. Ein fehlendes
+// Volume ist der regulaere "nein"-Fall; nur ein echter Docker-Fehler wird
+// durchgereicht.
 func volumeExists(name string) (bool, error) {
 	err := exec.Command("docker", "volume", "inspect", name).Run()
 	if err == nil {
@@ -122,11 +107,10 @@ func volumeExists(name string) (bool, error) {
 	return false, fmt.Errorf("docker volume inspect fehlgeschlagen: %w", err)
 }
 
-// dumpDatabase schreibt einen vollstaendigen pg_dump per `docker exec` in das im
-// postgres-Container gemountete jotti-backups-Volume. --clean --if-exists setzt
-// DROP-Anweisungen voran, damit ein spaeterer Restore die Objekte sauber neu
-// aufsetzt. Die Rolle stammt aus core.PostgresUser — derselben Quelle, aus der
-// EnvContent POSTGRES_USER in die .env schreibt, damit beide nie auseinanderlaufen.
+// dumpDatabase schreibt einen pg_dump per `docker exec` ins jotti-backups-Volume.
+// --clean --if-exists setzt DROP-Anweisungen voran, damit ein Restore die Objekte
+// sauber neu aufsetzt; die Rolle kommt aus core.PostgresUser — derselben Quelle wie
+// POSTGRES_USER in der .env.
 func dumpDatabase(name string) error {
 	out, err := exec.Command("docker", "exec", postgresContainer,
 		"pg_dump", "--clean", "--if-exists", "-U", core.PostgresUser, "-d", "jotti",
@@ -137,9 +121,8 @@ func dumpDatabase(name string) error {
 	return nil
 }
 
-// rotateBackups loescht alle bis auf die neuesten keep Dumps im
-// jotti-backups-Volume. Gefiltert wird auf die zeitgestempelten jotti-*.sql-Dumps,
-// damit nichts anderes im Volume angetastet wird.
+// rotateBackups loescht alle bis auf die neuesten keep Dumps. Gefiltert wird auf
+// jotti-*.sql, damit nichts anderes im Volume angetastet wird.
 func rotateBackups(keep int) error {
 	out, err := exec.Command("docker", "exec", postgresContainer, "ls", "-1", backupDir).Output()
 	if err != nil {
@@ -160,11 +143,8 @@ func rotateBackups(keep int) error {
 	return nil
 }
 
-// mirrorBackupToHost kopiert den frisch erstellten Dump per `docker cp` aus dem
-// postgres-Container in hostDir und rotiert dort auf die neuesten keptBackups
-// Dateien. core.PlanBackupMirror entscheidet rein, was zu kopieren und zu
-// loeschen ist; diese Funktion fuehrt nur die Seiteneffekte aus. Der Aufrufer
-// behandelt einen Fehler hier als Hinweis, nicht als Startabbruch.
+// mirrorBackupToHost kopiert den frischen Dump per `docker cp` nach hostDir und
+// rotiert dort auf keptBackups Dateien.
 func mirrorBackupToHost(name, hostDir string) error {
 	if err := os.MkdirAll(hostDir, 0o755); err != nil {
 		return fmt.Errorf("Backup-Ordner %s anlegen fehlgeschlagen: %w", hostDir, err)
@@ -190,9 +170,8 @@ func mirrorBackupToHost(name, hostDir string) error {
 	return nil
 }
 
-// listHostBackups liefert die zeitgestempelten jotti-*.sql-Dumps in dir. Ein noch
-// fehlender Ordner gilt als leer (kein Fehler); alles ausserhalb des
-// Namensschemas bleibt unangetastet.
+// listHostBackups liefert die jotti-*.sql-Dumps in dir; ein fehlender Ordner gilt
+// als leer.
 func listHostBackups(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {

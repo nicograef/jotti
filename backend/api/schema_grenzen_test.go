@@ -8,12 +8,6 @@ package api
 // the Kasse accept a value that no Beleg and no DSFinV-K export can render, or
 // one no column can hold: the TEXT columns carry no length of their own, and an
 // int4 column rejects anything past its range deep inside the driver.
-//
-// This test pins both ends. The table names, per field schema, the value at each
-// bound the schema must accept and the value just outside it must reject; a new
-// exported schema without a row makes the test red. A schema that carries no
-// length or value bound at all — an enum, a struct schema, an alias — belongs in
-// schemaExceptions with the reason it needs no row.
 
 import (
 	"go/ast"
@@ -34,19 +28,16 @@ import (
 	"github.com/nicograef/jotti/backend/domain/user"
 )
 
-// domainSchemaDir is the tree the discovery walks, relative to this package.
 const domainSchemaDir = "../domain"
 
 // maxInt4 is the largest value a PostgreSQL int4 column holds, and therefore the
 // largest ID any row can carry.
 const maxInt4 = math.MaxInt32
 
-// lengthCase pins a string schema to its two length bounds. shortest and longest
-// are the lengths it must accept; one character less than shortest and one more
-// than longest must be rejected. filler is the character the test value is built
-// from — it has to satisfy the schema's format rule, if it has one. A shortest of
-// 0 marks an optional field: the empty value is accepted and there is no shorter
-// one to reject.
+// lengthCase pins a string schema to its two length bounds: shortest and longest
+// must be accepted, one character beyond either must be rejected. filler has to
+// satisfy the schema's format rule; shortest 0 marks an optional field with no
+// low side to check.
 type lengthCase struct {
 	schema   string
 	shortest int
@@ -55,8 +46,6 @@ type lengthCase struct {
 	accepts  func(wert string) bool
 }
 
-// lengthCases holds one row per exported string field schema under
-// backend/domain.
 var lengthCases = []lengthCase{
 	{schema: "betreiber.OrtSchema", shortest: 1, longest: 62, filler: 'ä', accepts: acceptsString(betreiber.OrtSchema)},
 	{schema: "betreiber.PlzSchema", shortest: 1, longest: 10, filler: 'ä', accepts: acceptsString(betreiber.PlzSchema)},
@@ -72,10 +61,9 @@ var lengthCases = []lengthCase{
 	{schema: "user.UsernameSchema", shortest: 3, longest: 20, filler: 'a', accepts: acceptsString(user.UsernameSchema)},
 }
 
-// valueCase pins a number schema to its two value bounds. smallest and largest
-// are the values it must accept; one less than smallest and one more than largest
-// must be rejected. An ID schema also validates the IDs a request body carries,
-// so its upper bound is maxInt4 — the largest value its column holds.
+// valueCase pins a number schema to its two value bounds: smallest and largest
+// must be accepted, one beyond either must be rejected. An ID schema bounds at
+// maxInt4, the largest value its column holds.
 type valueCase struct {
 	schema   string
 	smallest int
@@ -83,8 +71,6 @@ type valueCase struct {
 	accepts  func(wert int) bool
 }
 
-// valueCases holds one row per exported number field schema under
-// backend/domain.
 var valueCases = []valueCase{
 	{schema: "kasse.PositionEingabeSchema", smallest: 1, largest: 999, accepts: acceptsNumber(kasse.PositionEingabeSchema)},
 	{schema: "produkt.IDSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(produkt.IDSchema)},
@@ -93,15 +79,11 @@ var valueCases = []valueCase{
 	{schema: "user.IDSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(user.IDSchema)},
 }
 
-// schemaException records an exported schema the table needs no row for, with the
-// reason it carries no length or value bound.
 type schemaException struct {
 	schema string
 	reason string
 }
 
-// schemaExceptions holds the exported schemas that bound no field length or
-// value.
 var schemaExceptions = []schemaException{
 	{schema: "produkt.KategorieSchema", reason: "enum: OneOf over the three Kategorie values"},
 	{schema: "produkt.ProduktSchema", reason: "struct schema: composed of the field schemas that carry the bounds"},
@@ -117,10 +99,8 @@ var schemaExceptions = []schemaException{
 	{schema: "user.UserSchema", reason: "struct schema: composed of the field schemas that carry the bounds"},
 }
 
-// TestSchemaGrenzen fails when an exported schema under backend/domain reaches no
-// table row, and when a row's schema misses one of its bounds. Adding a field
-// schema therefore forces a decision: pin its bounds in the table, or document in
-// schemaExceptions why it bounds nothing.
+// TestSchemaGrenzen forces a decision on every new field schema: pin its bounds
+// in the table, or document in schemaExceptions why it bounds nothing.
 func TestSchemaGrenzen(t *testing.T) {
 	declared := declaredFieldSchemas(t)
 	if len(declared) == 0 {
@@ -160,8 +140,6 @@ func TestSchemaGrenzen(t *testing.T) {
 	}
 }
 
-// checkLengthBounds asserts that the schema accepts a value at each of its length
-// bounds and rejects one character beyond them.
 func checkLengthBounds(t *testing.T, testCase lengthCase) {
 	t.Helper()
 
@@ -171,8 +149,7 @@ func checkLengthBounds(t *testing.T, testCase lengthCase) {
 	if !testCase.accepts(fill(testCase.filler, testCase.longest)) {
 		t.Errorf("%s rejects length %d, its longest accepted one", testCase.schema, testCase.longest)
 	}
-	// Below the empty value there is nothing to reject, so only a field with a
-	// minimum length has a low side to check.
+	// Only a field with a minimum length has a low side to check.
 	if testCase.shortest > 0 && testCase.accepts(fill(testCase.filler, testCase.shortest-1)) {
 		t.Errorf("%s accepts length %d, one below its minimum %d", testCase.schema, testCase.shortest-1, testCase.shortest)
 	}
@@ -181,8 +158,6 @@ func checkLengthBounds(t *testing.T, testCase lengthCase) {
 	}
 }
 
-// checkValueBounds asserts that the schema accepts each of its value bounds and
-// rejects the value beyond them.
 func checkValueBounds(t *testing.T, testCase valueCase) {
 	t.Helper()
 
@@ -200,9 +175,8 @@ func checkValueBounds(t *testing.T, testCase valueCase) {
 	}
 }
 
-// acceptsString builds the check of a string schema. zog validates through a
-// pointer and its Trim transform writes back, so every check gets its own copy of
-// the value.
+// zog validates through a pointer and its Trim transform writes back, so every
+// check gets its own copy of the value.
 func acceptsString(schema *z.StringSchema[string]) func(string) bool {
 	return func(wert string) bool {
 		kopie := wert
@@ -210,7 +184,6 @@ func acceptsString(schema *z.StringSchema[string]) func(string) bool {
 	}
 }
 
-// acceptsNumber builds the check of a number schema.
 func acceptsNumber(schema *z.NumberSchema[int]) func(int) bool {
 	return func(wert int) bool {
 		kopie := wert
@@ -218,13 +191,10 @@ func acceptsNumber(schema *z.NumberSchema[int]) func(int) bool {
 	}
 }
 
-// fill returns a string of n filler characters.
 func fill(filler rune, n int) string {
 	return strings.Repeat(string(filler), n)
 }
 
-// exceptionReason returns the reason schemaExceptions gives for the schema, or an
-// empty string when it lists none.
 func exceptionReason(schema string) string {
 	for _, exception := range schemaExceptions {
 		if exception.schema == schema {
@@ -235,9 +205,8 @@ func exceptionReason(schema string) string {
 	return ""
 }
 
-// declaredFieldSchemas returns every exported *Schema variable declared in a
-// non-test file below backend/domain, keyed as "<package directory>.<identifier>"
-// and valued by the position of its declaration.
+// declaredFieldSchemas keys every exported *Schema below backend/domain as
+// "<package directory>.<identifier>".
 func declaredFieldSchemas(t *testing.T) map[string]token.Position {
 	t.Helper()
 
@@ -269,8 +238,6 @@ func declaredFieldSchemas(t *testing.T) map[string]token.Position {
 	return declared
 }
 
-// exportedSchemaNames returns the name of every exported variable in file whose
-// identifier ends in Schema.
 func exportedSchemaNames(file *ast.File) []*ast.Ident {
 	names := []*ast.Ident{}
 	for _, decl := range file.Decls {
@@ -294,14 +261,11 @@ func exportedSchemaNames(file *ast.File) []*ast.Ident {
 	return names
 }
 
-// isSchemaName reports whether name is that of an exported schema variable:
-// exported and suffixed Schema, with something before the suffix.
 func isSchemaName(name string) bool {
 	return token.IsExported(name) && strings.HasSuffix(name, "Schema") && len(name) > len("Schema")
 }
 
-// sortedKeys returns the keys of m in lexical order, so the test reports its
-// findings in the same order on every run.
+// sortedKeys keeps the findings in the same order on every run.
 func sortedKeys[V any](m map[string]V) []string {
 	keys := make([]string, 0, len(m))
 	for key := range m {

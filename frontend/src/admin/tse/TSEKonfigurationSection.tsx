@@ -20,9 +20,8 @@ import {
   verbindungIstSigniertfaehig,
 } from './TSEBackend'
 
-// Speichern und Leeren scheitern am selben Guard; die Begründung steht deshalb
-// einmal. „aktiv" deckt beide Status, die das Backend ablehnt: die offene
-// Kassensitzung und den unterbrochenen Abschluss.
+// Speichern und Leeren scheitern am selben Backend-Guard: offene Kassensitzung
+// oder unterbrochener Abschluss.
 const KASSENSITZUNG_AKTIV_GRUND =
   'solange eine Kassensitzung aktiv ist (offen oder Abschluss unterbrochen). Bitte zuerst den Kassenabschluss durchführen bzw. wiederholen.'
 

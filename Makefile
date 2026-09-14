@@ -16,9 +16,7 @@
        website-dev website-build website-test website-check website-screenshots \
        help
 
-# ──────────────────────────────────────────────
-# Development                                   
-# ──────────────────────────────────────────────
+# Development
 
 init: ## .env erzeugen (idempotent, sichere Secrets)
 	./scripts/init-env.sh
@@ -40,9 +38,7 @@ logs: ## Dev-Stack Logs folgen
 status: ## Status aller Dev-Container anzeigen
 	docker compose ps
 
-# ──────────────────────────────────────────────
-# Tests                                         
-# ──────────────────────────────────────────────
+# Tests
 
 test: ## Backend Unit-Tests ausführen
 	cd backend && go test -tags=unit -race ./...
@@ -71,9 +67,7 @@ fuzz: ## Fuzz-Targets länger laufen lassen (je Target 90s; kein CI-Dauerlauf)
 	cd backend && go test -tags=unit -run='^$$' -fuzz='FuzzSerializeCSV$$' -fuzztime=90s ./api/fiskal/dsfinvk/
 	cd backend && go test -tags=unit -run='^$$' -fuzz='FuzzFormatKassenbeleg$$' -fuzztime=90s ./api/druck/bondruck/application/escpos/
 
-# ──────────────────────────────────────────────
-# Linting                                       
-# ──────────────────────────────────────────────
+# Linting
 
 lint-backend: ## Backend Linting (go vet + goimports)
 	cd backend && go vet ./... && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then goimports -l .; exit 1; fi
@@ -86,9 +80,7 @@ lint-frontend: ## Frontend Linting (ESLint)
 
 lint: lint-backend lint-frontend ## Backend + Frontend Linting
 
-# ──────────────────────────────────────────────
-# Formatierung                                  
-# ──────────────────────────────────────────────
+# Formatierung
 
 fmt-backend: ## Backend Code formatieren (goimports)
 	cd backend && goimports -w .
@@ -101,15 +93,12 @@ fmt-repo: ## Repo-weite Prettier-Formatierung schreiben (Gegenstück zu check-fo
 
 fmt: fmt-backend fmt-frontend fmt-repo ## Backend, Frontend und Repo-Prettier formatieren
 
-# ──────────────────────────────────────────────
 # Build
-# ──────────────────────────────────────────────
 
 # Version-String fuer die Windows-Exes (per ldflags einkompiliert). Der
 # Release-Workflow ruft die Targets mit VERSION=<tag> auf.
 VERSION ?= dev
 
-# Verzeichnis-/Dateinamen des Release-ZIPs (dist/ ist gitignored).
 RELEASE_NAME := jotti-windows-$(VERSION)
 RELEASE_DIR := dist/$(RELEASE_NAME)
 
@@ -145,10 +134,9 @@ release-windows: build-starter-windows build-relay-windows ## Release-ZIP (Exes 
 	cp packaging/windows/KURZANLEITUNG.md "$(RELEASE_DIR)/"
 	cp .env.example "$(RELEASE_DIR)/"
 	cp docker-compose.release.yml "$(RELEASE_DIR)/"
-	# Migrationen werden NICHT mehr ins ZIP kopiert — sie sind ins
-	# jotti-migrate-Image gebacken (siehe database/migrate/Dockerfile).
-	# Image-Tag im gestageten Compose auf die konkrete Version pinnen (die
-	# eingecheckte Datei bleibt ein Template mit RELEASE_VERSION-Platzhalter).
+	# Migrationen liegen im jotti-migrate-Image (database/migrate/Dockerfile),
+	# nicht im ZIP.
+	# Das eingecheckte Compose bleibt Template; nur die gestagete Kopie wird gepinnt.
 	sed -i 's|:RELEASE_VERSION|:$(VERSION)|g' "$(RELEASE_DIR)/docker-compose.release.yml"
 	cd dist && zip -qr "$(RELEASE_NAME).zip" "$(RELEASE_NAME)"
 	@echo "Release-ZIP erstellt: dist/$(RELEASE_NAME).zip"
@@ -158,16 +146,12 @@ build-frontend: ## Frontend kompilieren
 
 build: build-backend build-frontend ## Backend + Frontend kompilieren
 
-# ──────────────────────────────────────────────
-# Code-Generierung                              
-# ──────────────────────────────────────────────
+# Code-Generierung
 
 sqlc: ## sqlc Code generieren (aus SQL-Queries)
 	cd backend && sqlc generate
 
-# ──────────────────────────────────────────────
-# Produktion                                    
-# ──────────────────────────────────────────────
+# Produktion
 
 prod-init: ## Ersteinrichtung Produktion (.env prüfen, Images ziehen, Caddy Auto-TLS, Stack)
 	./scripts/prod-init.sh
@@ -202,9 +186,7 @@ prod-backup-verify: ## Backup probeweise in Wegwerf-Postgres einspielen (prüft 
 prod-harden: ## Optionale Server-Härtung (ufw-Firewall, fail2ban) — opt-in, idempotent
 	./scripts/prod-harden.sh
 
-# ──────────────────────────────────────────────
 # jotti.rocks Deployment
-# ──────────────────────────────────────────────
 
 rocks-init: ## jotti.rocks Ersteinrichtung (Zertifikate für alle Domains, Stack)
 	./scripts/rocks-init.sh
@@ -227,9 +209,7 @@ rocks-reset-db: ## jotti.rocks-DB zurücksetzen (Zertifikate bleiben erhalten) �
 rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (SSL bleibt erhalten) — nur Demo/Staging
 	./scripts/reset-and-seed.sh rocks --yes
 
-# ──────────────────────────────────────────────
 # Lokaler Betrieb (LAN, HTTPS via Caddy)
-# ──────────────────────────────────────────────
 
 local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS via lokal.jotti.rocks + interner CA-Fallback) — siehe docs/leitfaden/installation.md
 	@LAN_IP="$$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($$i == "src") { print $$(i + 1); exit }}')"; \
@@ -244,9 +224,7 @@ local-down: ## Lokalen LAN-Stack stoppen
 local-logs: ## Lokalen LAN-Stack Logs folgen
 	docker compose -f docker-compose.local.yml logs -f
 
-# ──────────────────────────────────────────────
-# Datenbank                                     
-# ──────────────────────────────────────────────
+# Datenbank
 
 db-shell: ## psql-Shell im Dev-Postgres öffnen
 	docker exec -it jotti-postgres-dev psql -U $${POSTGRES_USER:-admin} -d jotti
@@ -258,16 +236,12 @@ seed: ## Demo-Daten per Seeder-Subkommando einspielen (Guard + Projektions-Rebui
 rebuild-projections: ## table_state-Projektionen aus Events neu aufbauen
 	docker exec $(BACKEND_CONTAINER) go run ./main.go rebuild-projections
 
-# ──────────────────────────────────────────────
-# Aufräumen                                     
-# ──────────────────────────────────────────────
+# Aufräumen
 
 clean: ## Dev-Stack stoppen und Volumes entfernen
 	docker compose down -v
 
-# ──────────────────────────────────────────────
-# Qualitätsprüfung (CI-nah)                     
-# ──────────────────────────────────────────────
+# Qualitätsprüfung (CI-nah)
 
 check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
 	@for tool in golangci-lint goimports pnpm; do \
@@ -327,9 +301,7 @@ check-full: check check-integration ## Vollständige Prüfung inkl. Integrations
 
 verify: check-full ## Alias für vollständige Repo-Prüfung
 
-# ──────────────────────────────────────────────
 # Website (Astro + Starlight, website/)
-# ──────────────────────────────────────────────
 # Setzt einmaliges `cd website && pnpm install` voraus.
 
 website-dev: ## Astro Dev-Server starten (http://localhost:4321), liest docs/ live
@@ -349,12 +321,9 @@ E2E_SCREENSHOT_PORT ?= 8080
 
 website-screenshots: ## App-Screenshots + OG-Bild reproduzierbar neu erzeugen (e2e-Stack)
 	@# Erzeugt jedes Website-Motiv hell+dunkel (website/src/assets/screenshots/)
-	@# und das OG-Bild (website/src/assets/og-startseite.png). Das Skript
-	@# (e2e/website/screenshots.mjs) läuft standardmäßig gegen einen eigens
-	@# gestarteten docker-compose.e2e.yml-Stack (JOTTI_ENABLE_TEST_API=1) auf
-	@# E2E_SCREENSHOT_PORT und räumt ihn danach wieder ab. Es ist BASE-URL-agnostisch
-	@# (E2E_BASE_URL wie die e2e-Suite): ist E2E_BASE_URL gesetzt, wird dieser
-	@# bereits laufende Stack genutzt und kein eigener gestartet.
+	@# und das OG-Bild (website/src/assets/og-startseite.png) via
+	@# e2e/website/screenshots.mjs; ohne E2E_BASE_URL gegen einen eigenen
+	@# docker-compose.e2e.yml-Stack (JOTTI_ENABLE_TEST_API=1), der danach abgeräumt wird.
 	cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install chromium
 	@if [ -n "$$E2E_BASE_URL" ]; then \
 	  echo "Nutze laufenden Stack: $$E2E_BASE_URL"; \
@@ -371,9 +340,7 @@ website-screenshots: ## App-Screenshots + OG-Bild reproduzierbar neu erzeugen (e
 	  E2E_BASE_URL=http://localhost:$(E2E_SCREENSHOT_PORT) node --experimental-strip-types e2e/website/screenshots.mjs; \
 	fi
 
-# ──────────────────────────────────────────────
 # Hilfe
-# ──────────────────────────────────────────────
 
 help: ## Alle verfügbaren Targets anzeigen
 	@echo ""

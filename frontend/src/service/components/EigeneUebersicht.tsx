@@ -48,9 +48,6 @@ export function EigeneUebersichtKarten({
   )
 }
 
-// RuecknahmeHinweis erklärt der Servicekraft eine Rücknahme, die auf ihre Kasse geht —
-// auch wenn Admin oder Serviceleitung sie stellvertretend gebucht haben. Erscheint nur
-// bei mindestens einer zugeordneten Rücknahme; sonst bleibt die Übersicht unverändert.
 function RuecknahmeHinweis({ uebersicht }: { uebersicht: EigeneUebersicht }) {
   const anzahl = uebersicht.anzahlRuecknahmen
   return (

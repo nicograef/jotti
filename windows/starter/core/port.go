@@ -6,20 +6,16 @@ import (
 	"fmt"
 )
 
-// PortOwner ordnet einem belegten lokalen Port den haltenden Prozess zu.
 type PortOwner struct {
 	LocalPort   int
 	PID         int
 	ProcessName string
 }
 
-// ParsePortOwners liest die JSON-Ausgabe von Get-NetTCPConnection (ueber
-// Select-Object/ConvertTo-Json) und ordnet jeden Listener seinem Prozess zu.
-// PowerShell liefert bei genau einem Treffer ein einzelnes Objekt, bei mehreren
-// ein Array; ein nicht aufloesbarer Prozessname (JSON null) wird zu "" und nicht
-// als Fehler behandelt. Leere Ausgabe ergibt eine leere Liste ohne Fehler;
-// unlesbares JSON ergibt einen Fehler — der Aufrufer faellt dann auf die
-// generische Port-Diagnose zurueck.
+// ParsePortOwners liest die JSON-Ausgabe von Get-NetTCPConnection. PowerShell
+// liefert bei genau einem Treffer ein Objekt, bei mehreren ein Array; ein nicht
+// aufloesbarer Prozessname (JSON null) wird zu "". Leere Ausgabe ergibt eine leere
+// Liste, unlesbares JSON einen Fehler — dann greift die generische Port-Diagnose.
 func ParsePortOwners(jsonOut []byte) ([]PortOwner, error) {
 	trimmed := bytes.TrimPrefix(bytes.TrimSpace(jsonOut), []byte("\xef\xbb\xbf"))
 	trimmed = bytes.TrimSpace(trimmed)
@@ -27,7 +23,6 @@ func ParsePortOwners(jsonOut []byte) ([]PortOwner, error) {
 		return nil, nil
 	}
 
-	// PowerShell-Feldnamen: LocalPort, OwningProcess (PID), ProcessName.
 	type rawOwner struct {
 		LocalPort     int    `json:"LocalPort"`
 		OwningProcess int    `json:"OwningProcess"`

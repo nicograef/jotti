@@ -41,12 +41,10 @@ func performRequest(t *testing.T, handler http.HandlerFunc, w http.ResponseWrite
 	handler(w, req)
 }
 
-// deadlineCapturingWriter wraps httptest.ResponseRecorder and implements the
-// SetWriteDeadline interface http.ResponseController looks for, so the test
-// can observe how many times — and when relative to the first write — the
-// handler extends the write deadline. deadlineCountBeforeWrite stops counting
-// with the first write: Nur die Aufrufe DAVOR können der Antwort ein Budget
-// geben, spätere wären wirkungslos.
+// deadlineCapturingWriter implementiert das SetWriteDeadline-Interface, das
+// http.ResponseController sucht, und zählt die Aufrufe. deadlineCountBeforeWrite
+// zählt nur bis zum ersten Schreibvorgang: Nur die Aufrufe DAVOR können der
+// Antwort ein Budget geben.
 type deadlineCapturingWriter struct {
 	*httptest.ResponseRecorder
 	deadline                 time.Time
@@ -137,11 +135,9 @@ func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing
 	}
 }
 
-// Die erste Setzung sitzt am Handler-Eingang, vor jeder Arbeit: Sie gilt den
-// frühen Fehlerpfaden, die vor Erstellen() antworten (unlesbarer Body,
-// invalid_kassensitzung). Die Antwort nach einem langen Archivbau deckt sie
-// nicht — dafür steht die zweite Setzung, die auch der Fehlerzweig hier
-// durchläuft.
+// Die erste Setzung sitzt am Handler-Eingang und gilt den frühen Fehlerpfaden
+// (unlesbarer Body, invalid_kassensitzung); die Antwort nach einem langen
+// Archivbau deckt erst die zweite ab, die auch dieser Fehlerzweig durchläuft.
 func TestExportHandler_VerlaengertSchreibfristVorDemArchivbau(t *testing.T) {
 	w := newDeadlineCapturingWriter()
 	fristStandBeimArchivbau := false
@@ -167,11 +163,9 @@ func TestExportHandler_VerlaengertSchreibfristVorDemArchivbau(t *testing.T) {
 }
 
 // Die Frist ist eine absolute Zeit ab Request-Start, kein Budget für den
-// Schreibvorgang: Nach einem Archivbau von 5 Minuten wäre die am
-// Handler-Eingang gesetzte Frist genau abgelaufen, wenn die Übertragung
-// beginnt. Deshalb wird sie ein zweites Mal gesetzt, unmittelbar bevor
-// geschrieben wird — erst dieser Aufruf gibt der Übertragung ein eigenes
-// Budget.
+// Schreibvorgang: Nach fünf Minuten Archivbau wäre die am Handler-Eingang gesetzte
+// Frist abgelaufen, wenn die Übertragung beginnt. Erst das zweite Setzen gibt ihr
+// ein eigenes Budget.
 func TestExportHandler_SetztSchreibfristVorDemSchreibenErneut(t *testing.T) {
 	w := newDeadlineCapturingWriter()
 	fristenBeimArchivbau := 0

@@ -1,7 +1,5 @@
-// Package enrichment turns thin position inputs (Produkt/Variante IDs + Menge) into
-// fat kasse.Position values by batch-loading the referenced Produkte and Varianten.
-// It is the single shared implementation used by both the tischgeschaeft
-// (BestellungAufnehmen) and direktverkauf (DirektverkaufTaetigen) command paths.
+// Package enrichment turns thin position inputs into fat kasse.Position values, shared by the
+// tischgeschaeft and direktverkauf command paths.
 package enrichment
 
 import (
@@ -13,31 +11,22 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// PositionInput is the thin input for a single Position: which Variante of which
-// Produkt, and how many. EnrichPositionen enriches it with Produkt/Variante
-// details (fat events).
 type PositionInput struct {
 	ProduktID  int
 	VarianteID int
 	Menge      int
 }
 
-// produktRepo is the narrow read side enrichment needs: the two batch lookups.
 type produktRepo interface {
 	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error)
 	GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
 }
 
-// ErrProduktNotFound is returned when a product or variant is not found during enrichment.
 var ErrProduktNotFound = errors.New("produkt not found")
 
-// ErrVarianteNichtAktiv is returned when a referenced variant or its product is
-// deactivated (inactive). Kept separate from ErrProduktNotFound, which covers
-// deleted or non-existent IDs.
+// ErrVarianteNichtAktiv covers a deactivated variant or product; ErrProduktNotFound covers deleted or unknown IDs.
 var ErrVarianteNichtAktiv = errors.New("variante nicht aktiv")
 
-// EnrichPositionen batch-fetches the referenced variants and products and turns the inputs
-// into fat Positions carrying name, category and price for the event store.
 func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionInput) ([]kasse.Position, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -80,9 +69,8 @@ func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionIn
 			return nil, ErrProduktNotFound
 		}
 
-		// Die Paarung Produkt/Variante kommt vom Client und wird nicht geglaubt:
-		// Ohne diese Prüfung erbte die Position Kategorie und Steuersatz eines
-		// fremden Produkts, während der Preis von der Variante käme.
+		// Die Paarung Produkt/Variante kommt vom Client: ohne diese Prüfung erbte die Position
+		// Kategorie und Steuersatz eines fremden Produkts, den Preis aber von der Variante.
 		if varianteMitProdukt.ProduktID != input.ProduktID {
 			log.Error().Int("variante_id", input.VarianteID).Int("produkt_id", input.ProduktID).Msg("Variant does not belong to the referenced product")
 			return nil, ErrProduktNotFound

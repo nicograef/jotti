@@ -23,12 +23,10 @@ type HistorieEintrag struct {
 	Stornierung *Stornierung
 	Umbuchung   *Umbuchung
 
-	// StornierbarePositionen and UmbuchbarePositionen are populated for the entries
-	// that introduce positions onto the table — a Bestellung or the incoming side
-	// (Zugang) of a Umbuchung. They carry, per still-actionable position, the
-	// quantity that remains: stornierbar = ordered − cancelled − moved away,
-	// umbuchbar = stornierbar − paid. Computed here so the backend stays the single
-	// source of truth for this filtering (no client-side replay of the history).
+	// StornierbarePositionen and UmbuchbarePositionen are set only on entries that put
+	// positions on the table (a Bestellung or the Zugang of a Umbuchung): per position the
+	// quantity that remains, stornierbar = ordered − cancelled − moved away,
+	// umbuchbar = stornierbar − paid.
 	StornierbarePositionen []Position
 	UmbuchbarePositionen   []Position
 }
@@ -58,9 +56,6 @@ func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 			history = append(history, HistorieEintrag{Art: HistorieEintragStornierung, Stornierung: &stornierung})
 
 		case string(EventTypeBestellungKorrigiertV1):
-			// Die geldneutrale Korrektur erscheint in Historie und UI ebenfalls als
-			// „Stornierung", trägt aber BarRueckgabe = false und wird darüber sichtbar
-			// von der kassenwirksamen Warenrücknahme unterschieden.
 			korrektur, err := buildKorrekturFromEvent(event)
 			if err != nil {
 				return nil, err
@@ -81,17 +76,15 @@ func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 
 	enrichBestellungenMitRestmengen(history)
 
-	// reverse the order of the array so that the most recent event is first
+	// Most recent first.
 	slices.Reverse(history)
 
 	return history, nil
 }
 
-// enrichBestellungenMitRestmengen annotates every position-introducing entry (a
-// Bestellung or the incoming side of a Umbuchung) with the positions that are still
-// stornierbar (ordered − cancelled − moved away) and umbuchbar (stornierbar − paid).
-// Position IDs are unique per introducing entry, so the totals cancelled/paid/moved
-// for a position only ever apply to its own source.
+// enrichBestellungenMitRestmengen fills StornierbarePositionen/UmbuchbarePositionen.
+// Position IDs are unique per introducing entry, so the cancelled/paid/moved totals of a
+// position only ever apply to its own source.
 func enrichBestellungenMitRestmengen(history []HistorieEintrag) {
 	storniert := map[string]int{}
 	bezahlt := map[string]int{}
@@ -111,8 +104,7 @@ func enrichBestellungenMitRestmengen(history []HistorieEintrag) {
 				}
 			}
 		case HistorieEintragUmbuchung:
-			// Nur der Abgang entfernt Positionen vom Tisch; der Zugang ist selbst eine
-			// Positionsquelle und wird unten angereichert.
+			// Nur der Abgang entfernt Positionen; der Zugang ist selbst eine Positionsquelle.
 			if eintrag.Umbuchung != nil && !eintrag.Umbuchung.IstZugang() {
 				for _, pos := range eintrag.Umbuchung.Positionen {
 					umgebucht[pos.PositionID] += pos.Menge
@@ -135,9 +127,6 @@ func enrichBestellungenMitRestmengen(history []HistorieEintrag) {
 	}
 }
 
-// positionsquelle liefert die Positionen eines Eintrags, der Positionen auf den
-// Tisch bringt (eine Bestellung oder der Zugang einer Umbuchung), und ob der
-// Eintrag eine solche Quelle ist.
 func positionsquelle(eintrag HistorieEintrag) ([]Position, bool) {
 	switch eintrag.Art {
 	case HistorieEintragBestellung:
@@ -152,8 +141,7 @@ func positionsquelle(eintrag HistorieEintrag) ([]Position, bool) {
 	return nil, false
 }
 
-// restmengen returns the positions whose remaining quantity (menge minus the
-// amount reported by abzug) is still positive, with menge set to that remainder.
+// restmengen returns the positions with a positive remainder, Menge set to that remainder.
 func restmengen(positionen []Position, abzug func(Position) int) []Position {
 	rest := []Position{}
 	for _, pos := range positionen {

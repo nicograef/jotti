@@ -9,10 +9,8 @@ import (
 	"strings"
 )
 
-// parseEnvFile liest eine .env im Key=Value-Format. Kommentare (# ...) und
-// Leerzeilen werden ignoriert; Whitespace, CR (CRLF von Notepad) und optionale
-// Anfuehrungszeichen um den Wert werden getrimmt; ein fuehrendes UTF-8-BOM wird
-// toleriert. Zeilen ohne '=' werden uebersprungen.
+// parseEnvFile liest eine .env im Key=Value-Format; CR (CRLF von Notepad),
+// optionale Anfuehrungszeichen und ein fuehrendes UTF-8-BOM werden toleriert.
 func parseEnvFile(data []byte) map[string]string {
 	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
 	values := make(map[string]string)
@@ -35,10 +33,8 @@ func parseEnvFile(data []byte) map[string]string {
 	return values
 }
 
-// loadEnvFile sucht die .env in den Verzeichnissen aus envSearchDirs und gibt die
-// geparsten Schluessel zurueck. Fehlt die Datei (oder ist sie nicht lesbar), kommt
-// eine leere Map zurueck — der Doppelklick-Fallback ist optional, im Server-Betrieb
-// zaehlen ohnehin die echten Env-Variablen.
+// loadEnvFile liest die erste .env aus envSearchDirs; fehlt sie, kommt eine leere
+// Map zurueck — der Datei-Fallback ist optional.
 func loadEnvFile() map[string]string {
 	exeDir := ""
 	if exe, err := os.Executable(); err == nil {
@@ -53,13 +49,10 @@ func loadEnvFile() map[string]string {
 	return map[string]string{}
 }
 
-// envSearchDirs liefert die .env-Suchverzeichnisse in Prioritaetsreihenfolge.
-// Unter Windows steht das kanonische %PROGRAMDATA%\jotti zuerst — dorthin schreibt
-// jotti-start.exe den .env-Spiegel, sodass das Relay die Zugangsdaten unabhaengig
-// vom eigenen Ordner findet (es laeuft nicht-eleviert und evtl. aus einem anderen
-// Verzeichnis). Danach (und unter Linux ausschliesslich) der eigene Programmordner
-// und das Arbeitsverzeichnis. Reine Funktion: die echten OS-Werte reicht
-// loadEnvFile ein, damit die Reihenfolge testbar bleibt.
+// envSearchDirs liefert die .env-Suchverzeichnisse in Prioritaetsreihenfolge. Unter
+// Windows zuerst %PROGRAMDATA%\jotti — dorthin schreibt jotti-start.exe den
+// .env-Spiegel, den das nicht-elevierte Relay aus einem anderen Verzeichnis sonst
+// nicht faende; danach Programm- und Arbeitsverzeichnis.
 func envSearchDirs(goos, programData, exeDir, wd string) []string {
 	var dirs []string
 	if goos == "windows" && programData != "" {
@@ -74,11 +67,6 @@ func envSearchDirs(goos, programData, exeDir, wd string) []string {
 	return dirs
 }
 
-// envHinweis liefert den OS-spezifischen Hinweis, woher die Zugangsdaten kommen,
-// wenn die Konfiguration fehlt. Unter Windows schreibt jotti-start.exe die .env
-// nach %PROGRAMDATA%\jotti; fehlt sie, lief der Starter schlicht noch nicht. Unter
-// Linux (Server/Dev) zaehlen echte Env-Variablen bzw. eine .env neben der
-// Programmdatei.
 func envHinweis() string {
 	if runtime.GOOS == "windows" {
 		return "Bitte zuerst jotti-start.exe ausfuehren - sie erzeugt die Zugangsdaten."
@@ -86,10 +74,6 @@ func envHinweis() string {
 	return "Bitte RELAY_AUTH_TOKEN in der .env-Datei neben jotti-relay.exe setzen."
 }
 
-// envWithFileFallback liefert eine getenv-Funktion, die echte Umgebungsvariablen
-// bevorzugt und nur fehlende Werte aus der .env-Datei nachreicht. So behalten
-// gesetzte Env-Variablen (Server-Betrieb via systemd o. Ae.) Vorrang vor der
-// Datei.
 func envWithFileFallback(fileValues map[string]string) func(string) string {
 	return func(key string) string {
 		if v := os.Getenv(key); v != "" {

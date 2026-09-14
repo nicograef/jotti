@@ -16,9 +16,8 @@ type Command struct {
 	DruckauftragRepo druckauftragCommandRepo
 }
 
-// RetryDruckauftrag reiht einen fehlgeschlagenen Auftrag wieder ein.
-// Der Status-Guard liegt im Repository: nur fehlgeschlagene Aufträge wechseln
-// zurück auf offen (versuche = 0), andere Status bleiben unberührt.
+// RetryDruckauftrag: Der Status-Guard liegt im Repository — nur fehlgeschlagene
+// Aufträge wechseln zurück auf offen (versuche = 0).
 func (c Command) RetryDruckauftrag(ctx context.Context, id int) error {
 	log := zerolog.Ctx(ctx)
 
@@ -31,8 +30,7 @@ func (c Command) RetryDruckauftrag(ctx context.Context, id int) error {
 	return nil
 }
 
-// DiscardDruckauftrag markiert einen fehlgeschlagenen Auftrag als verworfen.
-// Der Status-Guard liegt im Repository; der Eintrag bleibt erhalten.
+// DiscardDruckauftrag: Der Status-Guard liegt im Repository; der Eintrag bleibt erhalten.
 func (c Command) DiscardDruckauftrag(ctx context.Context, id int) error {
 	log := zerolog.Ctx(ctx)
 
@@ -45,8 +43,6 @@ func (c Command) DiscardDruckauftrag(ctx context.Context, id int) error {
 	return nil
 }
 
-// DiscardAlleFehlgeschlagenen verwirft alle fehlgeschlagenen Aufträge in einem
-// Schritt und liefert die Anzahl.
 func (c Command) DiscardAlleFehlgeschlagenen(ctx context.Context) (int64, error) {
 	log := zerolog.Ctx(ctx)
 	n, err := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx)

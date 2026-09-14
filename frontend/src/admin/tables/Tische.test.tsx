@@ -59,9 +59,7 @@ describe('Tische', () => {
     renderTische([tisch({ id: 1, name: 'Tisch 4', saldoCents: 9850 })])
 
     expect(screen.getByText('98,50 € offen')).toBeInTheDocument()
-    // Der Switch ist gesperrt (Backend erzwingt es zusätzlich als SSOT).
     expect(screen.getByRole('switch')).toBeDisabled()
-    // Die Begründung steht als stets sichtbare Zeile (kein Hover-Tooltip).
     expect(
       screen.getByText('Erst abrechnen, dann deaktivieren'),
     ).toBeInTheDocument()
@@ -92,11 +90,9 @@ describe('Tische', () => {
       />,
     )
 
-    // Klick auf den Kachel-Namen öffnet den Edit-Dialog.
     await user.click(screen.getByText('Tisch 3'))
     expect(onEdit).toHaveBeenCalledWith(3)
 
-    // Der Switch-Klick löst kein zusätzliches onEdit aus (stopPropagation).
     onEdit.mockClear()
     await user.click(screen.getByRole('switch'))
     expect(onEdit).not.toHaveBeenCalled()

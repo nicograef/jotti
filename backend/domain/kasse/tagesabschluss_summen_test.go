@@ -10,9 +10,8 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-// makeAbschlussEvent baut ein minimales Event mit dem angegebenen Typ und Data.
-// Bypasses die Konstruktor-Validatoren, da ComputeAbschlussSummen keine Schema-
-// Validierung durchführt — nur die summen-relevanten JSON-Felder zählen.
+// makeAbschlussEvent baut ein minimales Event ohne Konstruktor-Validierung —
+// ComputeAbschlussSummen liest nur die summen-relevanten JSON-Felder.
 func makeAbschlussEvent(typ EventType, data any) e.Event {
 	raw, err := json.Marshal(data)
 	if err != nil {
@@ -29,9 +28,8 @@ func makeAbschlussEvent(typ EventType, data any) e.Event {
 	}
 }
 
-// sqlReferenzSummen berechnet dieselben drei Summen wie reporting.sql:10-43,
-// indem es die JSON-Feldnamen direkt wie die kj_extract_*-SQL-Funktionen verwendet.
-// Damit ist der Test unabhängig von den Go-Struct-Tags in den Event-Data-Typen.
+// sqlReferenzSummen berechnet dieselben drei Summen wie reporting.sql:11-44 über die
+// JSON-Feldnamen der kj_extract_*-Funktionen — unabhängig von den Go-Struct-Tags.
 func sqlReferenzSummen(events []e.Event) AbschlussSummen {
 	var s AbschlussSummen
 	for _, evt := range events {
@@ -97,7 +95,6 @@ func sqlReferenzSummen(events []e.Event) AbschlussSummen {
 }
 
 func TestComputeAbschlussSummen(t *testing.T) {
-	// Shorthands für die sum-relevanten Event-Typen als Inline-Daten.
 	zahlung := func(cents int) e.Event {
 		return makeAbschlussEvent(EventTypeZahlungKassiertV1, map[string]int{"gesamtZahlungCents": cents})
 	}
@@ -191,9 +188,7 @@ func TestComputeAbschlussSummen(t *testing.T) {
 			wantUmsatz: 500,
 		},
 		{
-			name: "Wiederanlauf: doppelter Kassensturz und Differenz bleiben summen-neutral",
-			// Erster Abschlussversuch (gescheitert): Kassensturz + Differenz committed,
-			// zweiter Durchlauf liest alle Events einschließlich der ersten Abschluss-Events.
+			name:       "Wiederanlauf: doppelter Kassensturz und Differenz bleiben summen-neutral",
 			events:     []e.Event{zahlung(500), kassensturz, differenz, kassensturz, differenz},
 			wantUmsatz: 500,
 		},
@@ -237,26 +232,16 @@ func TestComputeAbschlussSummen(t *testing.T) {
 	}
 }
 
-// TestComputeAbschlussSummen_AequivalenzMitSQLReporting belegt, dass
-// ComputeAbschlussSummen für dieselbe Kassensitzung exakt dieselben drei
-// Summen liefert wie die kj_extract_*-Funktionen in reporting.sql:10-43.
-// sqlReferenzSummen liest die JSON-Felder direkt über die SQL-Feldnamen
-// (als raw JSON keys), unabhängig von den Go-Struct-Tags der Event-Data-Typen.
+// Belegt, dass ComputeAbschlussSummen exakt dieselben drei Summen liefert wie die
+// kj_extract_*-Funktionen in reporting.sql:11-44 (Referenz: sqlReferenzSummen).
 func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
-	// Szenario mit allen sechs summen-wirksamen Typen und neutralen Events.
 	events := []e.Event{
-		// zahlung-kassiert: kj_extract_zahlung_cents → gesamtZahlungCents
 		makeAbschlussEvent(EventTypeZahlungKassiertV1, map[string]int{"gesamtZahlungCents": 2238}),
 		makeAbschlussEvent(EventTypeZahlungKassiertV1, map[string]int{"gesamtZahlungCents": 1470}),
-		// stornierung-erteilt: kj_extract_stornierung_cents → gesamtStornierungCents
 		makeAbschlussEvent(EventTypeStornierungErteiltV1, map[string]int{"gesamtStornierungCents": 1455}),
-		// bestellung-korrigiert: kj_extract_korrektur_cents → gesamtCents
 		makeAbschlussEvent(EventTypeBestellungKorrigiertV1, map[string]int{"gesamtCents": 200}),
-		// direktverkauf-getaetigt: kj_extract_direktverkauf_cents → gesamtbetragCents
 		makeAbschlussEvent(EventTypeDirektverkaufGetaetigtV1, map[string]int{"gesamtbetragCents": 880}),
-		// direktverkauf-storniert: kj_extract_direktverkauf_storno_cents → gesamtStornierungCents
 		makeAbschlussEvent(EventTypeDirektverkaufStorniertV1, map[string]int{"gesamtStornierungCents": 335}),
-		// geldtransit-gebucht: kj_extract_geldtransit_cents → richtung + betragCents
 		makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]interface{}{"richtung": "einlage", "betragCents": 500}),
 		makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]interface{}{"richtung": "entnahme", "betragCents": 150}),
 		// summen-neutrale Events
@@ -292,10 +277,8 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 	}
 }
 
-// TestComputeAbschlussSummen_UnparsebaresEventGibtFehler prüft, dass ein
-// summen-wirksames Event mit korrupten JSON-Daten einen Fehler liefert statt
-// stillschweigend übersprungen zu werden. Jeder der sechs summen-wirksamen
-// Typen wird einzeln getestet.
+// Ein summen-wirksames Event mit korrupten JSON-Daten muss einen Fehler liefern statt still
+// übersprungen zu werden.
 func TestComputeAbschlussSummen_UnparsebaresEventGibtFehler(t *testing.T) {
 	corruptData := json.RawMessage(`{"fehlerhaft": true`) // ungültiges JSON
 
@@ -326,7 +309,6 @@ func TestComputeAbschlussSummen_UnparsebaresEventGibtFehler(t *testing.T) {
 		})
 	}
 
-	// Summen-neutrale Events mit korrupten Daten werden weiterhin übersprungen.
 	t.Run("summen-neutrale Events werden übersprungen", func(t *testing.T) {
 		evt := e.Event{
 			ID:      1,

@@ -7,8 +7,6 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-// AbschlussSummen enthält die drei Geldbetragsfelder des
-// tagesabschluss-erstellt:v1-Events.
 type AbschlussSummen struct {
 	UmsatzCents      int
 	StornierungCents int
@@ -16,20 +14,14 @@ type AbschlussSummen struct {
 }
 
 // ComputeAbschlussSummen aggregiert alle Events einer Kassensitzung zu den
-// drei Z-Bon-Summen gemäß reporting.sql:10-43:
+// drei Z-Bon-Summen gemäß reporting.sql:11-44:
 //
 //	Umsatz        = Zahlungen + Direktverkäufe − Direktverkauf-Storni − Warenrücknahmen
 //	Stornierungen = Warenrücknahmen + Korrekturen + Direktverkauf-Storni
 //	Geldtransit   = Einlagen − Entnahmen
 //
-// Summen-wirksam: zahlung-kassiert, stornierung-erteilt, bestellung-korrigiert,
-// direktverkauf-getaetigt, direktverkauf-storniert, geldtransit-gebucht.
-// Alle übrigen Typen (Bestellung, Umbuchung, Kassensturz, Differenzbuchung,
-// Eröffnung, …) sind summen-neutral.
-// Ein nicht parsebares Event eines summen-wirksamen Typs wird als Fehler gemeldet
-// und bricht die Berechnung ab — ein stiller falscher Z-Bon wäre schlimmer als
-// ein blockierter Abschluss (praktisch nur bei einem korrupten Store erreichbar).
-// Die Funktion hat keine Repository- oder Kontext-Abhängigkeiten.
+// Ein nicht parsebares Event eines summen-wirksamen Typs bricht die Berechnung ab:
+// ein stiller falscher Z-Bon wäre schlimmer als ein blockierter Abschluss.
 func ComputeAbschlussSummen(events []e.Event) (AbschlussSummen, error) {
 	var s AbschlussSummen
 	for _, evt := range events {

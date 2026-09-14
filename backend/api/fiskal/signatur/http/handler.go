@@ -9,8 +9,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// --- Query Handler ---
-
 type tseSignaturauftragQuery interface {
 	GetTSESignaturQueueZustand(ctx context.Context) (tse.SignaturQueueZustand, error)
 	GetTSEStoerungen(ctx context.Context) ([]tse.Stoerungszeitraum, error)
