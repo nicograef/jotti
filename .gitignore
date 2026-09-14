@@ -61,3 +61,4 @@ temp/
 
 # Python bytecode
 __pycache__/
+a.out
