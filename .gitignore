@@ -58,3 +58,6 @@ temp/
 
 # Playwright-MCP-Artefakte
 .playwright-mcp/
+
+# Python bytecode
+__pycache__/
