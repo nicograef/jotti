@@ -18,7 +18,6 @@ sRGB-Gamut geklemmt, Alpha bleibt unverändert.
 
 import argparse
 import math
-import sys
 from pathlib import Path
 
 from PIL import Image
@@ -221,14 +220,11 @@ def main() -> None:
         errors += check_variante(name, src, out_path, mask, src_path.stat().st_size)
         print(f"  {name}: {sum(mask)} Markenpixel umgefärbt")
 
-    produced = [n for n in MASTER_NAMES if (args.out / n).is_file()]
-    if len(produced) != len(MASTER_NAMES):
-        errors.append(f"nur {len(produced)}/{len(MASTER_NAMES)} Varianten erzeugt")
     if errors:
         raise SystemExit("CHECKS FEHLGESCHLAGEN:\n  " + "\n  ".join(errors))
 
     schreibe_previews(args.out)
-    print(f"\nOK: {len(produced)} Varianten in {args.out}, alle Checks bestanden.")
+    print(f"\nOK: {len(MASTER_NAMES)} Varianten in {args.out}, alle Checks bestanden.")
     print(f"Previews (Graustufen, 16px-Zoom) in {args.out / 'preview'}")
 
 

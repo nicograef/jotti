@@ -96,12 +96,8 @@ export function HistorieStornierungDrawer({
           <PositionAuswahlListe
             positionen={toAuswahlPositionen(positionen)}
             mengen={mengen}
-            onAdd={(id) => {
-              add(id)
-            }}
-            onRemove={(id) => {
-              remove(id)
-            }}
+            onAdd={add}
+            onRemove={remove}
           />
         </DrawerBody>
         <DrawerFooter className="mx-auto w-full max-w-sm">

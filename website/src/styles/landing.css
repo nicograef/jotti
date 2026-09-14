@@ -2,25 +2,30 @@
 @import './brand.css';
 
 /* Semantische Tokens der Landing, abgebildet auf die Marken-Tokens aus
-   brand.css. Hell/Dunkel folgen dem `data-theme`-Attribut; nur die Grün-Akzente
-   brauchen unten einen eigenen Dark-Wert. */
+   brand.css. Hell/Dunkel folgen dem `data-theme`-Attribut; nur der Grün-Tint
+   braucht unten einen eigenen Dark-Wert. */
 :root {
   --c-background: var(--bg);
   --c-foreground: var(--fg);
   --c-card: var(--card);
   --c-card-border: var(--border);
   --c-control-border: var(--border);
-  --c-screenshot-frame: var(--card2);
   --c-muted: var(--muted-fg);
   --c-surface-alt: var(--card2);
   --c-brand: var(--primary);
-  --c-brand-hover: #00563c;
   --c-brand-tint: var(--brand-green-tint);
 }
 
 :root[data-theme='dark'] {
-  --c-brand-hover: #34d399;
   --c-brand-tint: rgba(16, 185, 129, 0.14);
+}
+
+@theme {
+  --radius-sm: 11px; /* Pills, kleine Buttons */
+  --radius-md: 13px; /* Buttons, CTAs */
+  --radius-lg: 16px; /* Kacheln */
+  --radius-xl: 20px; /* Karten */
+  --radius-2xl: 26px; /* große CTA-Karte */
 }
 
 /* `inline`: die Utilities referenzieren die umschaltbaren Variablen direkt — der
@@ -37,11 +42,9 @@
   --color-card: var(--c-card);
   --color-card-border: var(--c-card-border);
   --color-control-border: var(--c-control-border);
-  --color-screenshot-frame: var(--c-screenshot-frame);
   --color-muted: var(--c-muted);
   --color-surface-alt: var(--c-surface-alt);
   --color-brand: var(--c-brand);
-  --color-brand-hover: var(--c-brand-hover);
   --color-brand-tint: var(--c-brand-tint);
 
   --color-brand-solid: var(--brand-green);

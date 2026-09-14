@@ -73,6 +73,11 @@ function offeneTischeWarnung(
   return `${String(anzahl)} ${tischWort} noch offen (${formatEuro(saldoCents)}).`
 }
 
+const FormDataSchema = z.object({
+  istBestandCents: BetragCentsSchema,
+})
+type FormData = z.infer<typeof FormDataSchema>
+
 export function KasseAbschliessenSection({
   kassensitzungNr,
   onSuccess,
@@ -86,11 +91,6 @@ export function KasseAbschliessenSection({
   const [zaehlhilfeOpen, setZaehlhilfeOpen] = useState(false)
   const [istBestandCents, setIstBestandCents] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
-
-  const FormDataSchema = z.object({
-    istBestandCents: BetragCentsSchema,
-  })
-  type FormData = z.infer<typeof FormDataSchema>
 
   const form = useForm<FormData>({
     defaultValues: { istBestandCents: 0 },

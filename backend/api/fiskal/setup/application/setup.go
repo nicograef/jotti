@@ -106,27 +106,9 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, err
 	}
 
-	client, err := c.NewTSESetupClient(credentials)
+	client, umgebung, tssListe, err := c.oeffneSetupClient(ctx, log, credentials, bestaetigteUmgebung, "setup")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create TSE setup client")
-		return TSESetupErgebnis{}, ErrTSEVerbindungFehlgeschlagen
-	}
-
-	umgebung, tssListe, err := client.ListTSS(ctx)
-	if err != nil {
-		if errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
-			return TSESetupErgebnis{}, ErrTSESetupZugangsdaten
-		}
-		log.Warn().Err(err).Msg("Failed to list TSS during setup")
-		return TSESetupErgebnis{}, ErrTSEVerbindungFehlgeschlagen
-	}
-
-	if umgebung != bestaetigteUmgebung {
-		log.Warn().
-			Str("bestaetigt", string(bestaetigteUmgebung)).
-			Str("tatsaechlich", string(umgebung)).
-			Msg("Confirmed TSE environment does not match actual environment")
-		return TSESetupErgebnis{}, ErrTSESetupUmgebungAbweichung
+		return TSESetupErgebnis{}, err
 	}
 
 	// In TEST darf der Admin die Sperre bewusst übergehen; in LIVE nie — eine zweite
@@ -239,26 +221,9 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, err
 	}
 
-	client, err := c.NewTSESetupClient(credentials)
+	client, umgebung, tssListe, err := c.oeffneSetupClient(ctx, log, credentials, bestaetigteUmgebung, "takeover")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create TSE setup client")
-		return TSESetupErgebnis{}, ErrTSEVerbindungFehlgeschlagen
-	}
-
-	umgebung, tssListe, err := client.ListTSS(ctx)
-	if err != nil {
-		if errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
-			return TSESetupErgebnis{}, ErrTSESetupZugangsdaten
-		}
-		log.Warn().Err(err).Msg("Failed to list TSS during takeover")
-		return TSESetupErgebnis{}, ErrTSEVerbindungFehlgeschlagen
-	}
-	if umgebung != bestaetigteUmgebung {
-		log.Warn().
-			Str("bestaetigt", string(bestaetigteUmgebung)).
-			Str("tatsaechlich", string(umgebung)).
-			Msg("Confirmed TSE environment does not match actual environment")
-		return TSESetupErgebnis{}, ErrTSESetupUmgebungAbweichung
+		return TSESetupErgebnis{}, err
 	}
 
 	ziel, gefunden := findTSS(tssListe, tssID)
@@ -356,6 +321,37 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	}, nil
 }
 
+// oeffneSetupClient baut den fiskaly-Setup-Client, liest die TSS-Liste und
+// hält den LIVE-Schutz: Weicht die tatsächliche Umgebung von der bestätigten
+// ab, endet der Aufruf vor jeder Schreiboperation. zweck geht allein in die
+// Log-Meldung ("setup" / "takeover").
+func (c Command) oeffneSetupClient(ctx context.Context, log *zerolog.Logger, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, zweck string) (tse.SetupClient, tse.Umgebung, []tse.TSSInfo, error) {
+	client, err := c.NewTSESetupClient(credentials)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create TSE setup client")
+		return nil, "", nil, ErrTSEVerbindungFehlgeschlagen
+	}
+
+	umgebung, tssListe, err := client.ListTSS(ctx)
+	if err != nil {
+		if errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
+			return nil, "", nil, ErrTSESetupZugangsdaten
+		}
+		log.Warn().Err(err).Msgf("Failed to list TSS during %s", zweck)
+		return nil, "", nil, ErrTSEVerbindungFehlgeschlagen
+	}
+
+	if umgebung != bestaetigteUmgebung {
+		log.Warn().
+			Str("bestaetigt", string(bestaetigteUmgebung)).
+			Str("tatsaechlich", string(umgebung)).
+			Msg("Confirmed TSE environment does not match actual environment")
+		return nil, "", nil, ErrTSESetupUmgebungAbweichung
+	}
+
+	return client, umgebung, tssListe, nil
+}
+
 // saveEinrichtung ist der gemeinsame Speicher-Schritt aller Einrichtungspfade:
 // nach erfolgreichem fiskaly-Lebenszyklus wird die TSE-Konfiguration atomar
 // gespeichert und die fiskalischen TSS-Stammdaten für den DSFinV-K-Export
@@ -378,10 +374,7 @@ func (c Command) saveEinrichtung(ctx context.Context, log *zerolog.Logger, clien
 		return ErrDatabase
 	}
 
-	if err := c.fetchTSEStammdaten(ctx, log, client, tssID); err != nil {
-		return err
-	}
-	return nil
+	return c.fetchTSEStammdaten(ctx, log, client, tssID)
 }
 
 // fetchTSEStammdaten liest die fiskalischen TSS-Stammdaten von fiskaly und
@@ -389,11 +382,10 @@ func (c Command) saveEinrichtung(ctx context.Context, log *zerolog.Logger, clien
 // TSS-Seriennummer (TSE_SERIAL in der DSFinV-K), die nicht aus den Signaturen
 // rekonstruierbar ist; daher ist ein Fehler hier ein harter Einrichtungsfehler.
 func (c Command) fetchTSEStammdaten(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, tssID string) error {
-	gelesen, err := client.RetrieveTSSStammdaten(ctx, tssID)
+	stammdaten, err := client.RetrieveTSSStammdaten(ctx, tssID)
 	if err != nil {
 		return einrichtungsFehler(log, err, "stammdaten abrufen", tssID)
 	}
-	stammdaten := tse.NewStammdaten(gelesen.Seriennummer, gelesen.SignaturAlgorithmus, gelesen.PublicKey, gelesen.Zertifikat, gelesen.LogTimeFormat)
 	if err := c.TSERepo.UpsertTSEStammdaten(ctx, stammdaten); err != nil {
 		log.Error().Err(err).Str("tss_id", tssID).Msg("Failed to save TSE Stammdaten after setup")
 		return ErrDatabase

@@ -222,7 +222,9 @@ export default function LiveDemo() {
                             <button
                               type="button"
                               onClick={() =>
-                                setState((s) => manualRemove(s, variant.id))
+                                setState((current) =>
+                                  manualRemove(current, variant.id),
+                                )
                               }
                               disabled={!active}
                               aria-label={`${product.name} ${variant.name} entfernen`}
@@ -236,7 +238,9 @@ export default function LiveDemo() {
                             <button
                               type="button"
                               onClick={() =>
-                                setState((s) => manualAdd(s, variant.id))
+                                setState((current) =>
+                                  manualAdd(current, variant.id),
+                                )
                               }
                               aria-label={`${product.name} ${variant.name} hinzufügen`}
                               className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-brand-solid text-white"
@@ -255,7 +259,7 @@ export default function LiveDemo() {
             <div className="shrink-0 border-t border-card-border bg-background px-4 pt-3 pb-4">
               <button
                 type="button"
-                onClick={() => setState((s) => manualPay(s))}
+                onClick={() => setState((current) => manualPay(current))}
                 disabled={!hasCart}
                 className="flex h-[50px] w-full items-center justify-between rounded-[13px] bg-brand-solid px-[18px] text-[15.5px] font-bold text-white transition-opacity disabled:opacity-45"
               >

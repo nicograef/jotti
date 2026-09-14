@@ -32,6 +32,14 @@ import {
   KommentarSchema,
 } from './Kassensitzung'
 
+const FormDataSchema = z.object({
+  betragCents: BetragCentsSchema.gte(1, {
+    message: 'Bitte einen Betrag größer als 0 eingeben.',
+  }),
+  kommentar: KommentarSchema,
+})
+type FormData = z.infer<typeof FormDataSchema>
+
 export function GeldtransitDialog({
   open,
   onOpenChange,
@@ -48,14 +56,6 @@ export function GeldtransitDialog({
   // verbrauchten Schlüssel, und das Backend verwürfe sie als Duplikat.
   // Gebucht wird nur im offenen Dialog, der Effekt läuft also vorher.
   const geldtransitIdRef = useRef('')
-
-  const FormDataSchema = z.object({
-    betragCents: BetragCentsSchema.gte(1, {
-      message: 'Bitte einen Betrag größer als 0 eingeben.',
-    }),
-    kommentar: KommentarSchema,
-  })
-  type FormData = z.infer<typeof FormDataSchema>
 
   const form = useForm<FormData>({
     defaultValues: { betragCents: 0, kommentar: '' },

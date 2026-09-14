@@ -180,23 +180,17 @@ func (c *FiskalyTSESetupClient) GetAdminPUK(ctx context.Context, tssID string) (
 // (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format) für den
 // DSFinV-K-Export. Reine Leseoperation auf derselben TSS-Ressource wie
 // GetAdminPUK.
-func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID string) (tse.TSSStammdaten, error) {
+func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID string) (tse.Stammdaten, error) {
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
-		return tse.TSSStammdaten{}, fmt.Errorf("tss id is required")
+		return tse.Stammdaten{}, fmt.Errorf("tss id is required")
 	}
 	resp := tssDetailResponse{}
 	path := fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(tssID))
 	if err := c.doJSONRequest(ctx, http.MethodGet, path, nil, nil, true, &resp); err != nil {
-		return tse.TSSStammdaten{}, mapSetupError(err)
+		return tse.Stammdaten{}, mapSetupError(err)
 	}
-	return tse.TSSStammdaten{
-		Seriennummer:        strings.TrimSpace(resp.TSSSerialNumber),
-		SignaturAlgorithmus: strings.TrimSpace(resp.SignatureAlgorithm),
-		PublicKey:           strings.TrimSpace(resp.PublicKey),
-		Zertifikat:          strings.TrimSpace(resp.Certificate),
-		LogTimeFormat:       strings.TrimSpace(resp.SignatureTimestampFormat),
-	}, nil
+	return tse.NewStammdaten(resp.TSSSerialNumber, resp.SignatureAlgorithm, resp.PublicKey, resp.Certificate, resp.SignatureTimestampFormat), nil
 }
 
 // PersonalisiereTSS überführt die TSS von CREATED nach UNINITIALIZED.

@@ -176,14 +176,6 @@ describe('Backend.post', () => {
       'Response of service/get-tisch-state is invalid: unbezahltePositionen[0].steuersatz (invalid_type)',
     )
 
-    let thrown: Error | null = null
-    try {
-      await request
-    } catch (e) {
-      thrown = e as Error
-    }
-
-    expect(thrown).not.toBeNull()
-    expect(thrown?.message).not.toContain('SECRET')
+    await expect(request).rejects.not.toThrow('SECRET')
   })
 })

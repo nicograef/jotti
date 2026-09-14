@@ -33,6 +33,26 @@ Ein **Kassenrechner** im WLAN, die Helfer bedienen jotti auf ihren **Handys**.
    `http://localhost:8484`. Diese im Browser am Kassenrechner öffnen — dort
    stehen die **Zugangsadresse** und ein **QR-Code** für die Helfer-Handys.
 
+## Erster Login
+
+Beim ersten Start legt jotti automatisch den Admin-Benutzer an und erzeugt
+einen einmaligen Anmelde-Code aus 6 Ziffern. Der Code steht in der
+Startkonsole (dem Fenster von `jotti-start.exe`). Ist die Konsole schon
+geschlossen, jotti einfach neu starten, dann wird ein neuer Code erzeugt und
+angezeigt.
+
+Die jotti-Oberfläche öffnen (die Zugangsadresse steht auf der Status-Seite
+`http://localhost:8484`) und **nicht** normal anmelden, sondern „Neues
+Passwort festlegen" wählen:
+
+- **Benutzername:** `admin`
+- **Einmalpasswort:** der 6-stellige Code aus der Startkonsole
+- **Neues Passwort:** ein eigenes, sicheres Passwort wählen
+
+Nach dem Speichern ist das Einmalpasswort ungültig und der Login mit dem neuen
+Passwort möglich. Dieser Schritt ist einmalig; alle weiteren Admin-Konten legt
+ihr danach selbst im Admin-Bereich an.
+
 ## Helfer-Handys verbinden
 
 - Handy ins **Vereins-WLAN** bringen (kein Mobilfunk, kein Gastnetz).

@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 )
@@ -38,7 +38,7 @@ func cleanKassenfuehrungDB(t *testing.T, db *sql.DB) {
 
 func setupKassenfuehrungIntegration(t *testing.T) (ctx context.Context, cmd Command, db *sql.DB, userID int) {
 	t.Helper()
-	db = dbpkg.OpenTestDatabase()
+	db = dbtest.Open()
 	cleanKassenfuehrungDB(t, db)
 	t.Cleanup(func() {
 		cleanKassenfuehrungDB(t, db)

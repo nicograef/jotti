@@ -92,10 +92,6 @@ func (h *QueryHandler) GetAllProdukteHandler() http.HandlerFunc {
 	}
 }
 
-type getActiveProdukteResponse struct {
-	Produkte []produkt `json:"produkte"`
-}
-
 func (h *QueryHandler) GetActiveProdukteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		produkte, err := h.Query.GetActiveProdukte(r.Context())
@@ -104,6 +100,6 @@ func (h *QueryHandler) GetActiveProdukteHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, getActiveProdukteResponse{Produkte: toProdukte(produkte)})
+		helper.SendResponse(w, getAllProdukteResponse{Produkte: toProdukte(produkte)})
 	}
 }

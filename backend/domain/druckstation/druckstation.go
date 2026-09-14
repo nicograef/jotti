@@ -3,6 +3,7 @@ package druckstation
 import (
 	"fmt"
 	"net/netip"
+	"slices"
 	"time"
 )
 
@@ -73,12 +74,7 @@ func (k Kategorie) Anzeigename() string {
 }
 
 func (k Kategorie) isValid() bool {
-	switch k {
-	case KategorieEssen, KategorieGetraenk, KategorieSonstiges, KategorieKassenbeleg, KategorieAbholbon:
-		return true
-	default:
-		return false
-	}
+	return slices.Contains(AlleKategorien(), string(k))
 }
 
 type Bonmodus string

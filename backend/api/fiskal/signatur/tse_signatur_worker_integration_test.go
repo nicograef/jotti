@@ -7,14 +7,14 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 )
 
 // Der Advisory Lock sichert die Single-Prozess-Annahme: Hält eine zweite
 // Session den Lock, bekommt der Worker ihn nicht (kein Fail-Fast, Retry am
 // nächsten Tick); nach der Freigabe erwirbt der Retry ihn.
 func TestTSESignaturWorker_AdvisoryLock_ZweiteSessionHaeltLock(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	t.Cleanup(func() { _ = db.Close() })
 	ctx := context.Background()
 

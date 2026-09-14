@@ -48,7 +48,7 @@ func abs(n int) int {
 	return n
 }
 
-func ptr(s *string) string {
+func derefOrEmpty(s *string) string {
 	if s == nil {
 		return ""
 	}

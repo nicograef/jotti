@@ -10,12 +10,13 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
 func setup(t *testing.T) (Repository, func(t *testing.T)) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 
 	// Clean up in correct order due to foreign key constraints
 	_, err := db.Exec("DELETE FROM produkt_varianten")

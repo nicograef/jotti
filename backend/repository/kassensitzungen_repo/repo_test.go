@@ -10,7 +10,7 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 )
 
 func cleanDB(t *testing.T, db *sql.DB) {
@@ -82,7 +82,7 @@ func insertEvent(t *testing.T, db *sql.DB, userID int, userName, eventType, subj
 // jeder Sitzungslisten-Eintrag den Gesamtumsatz und den Abschlusszeitpunkt aus dem
 // tagesabschluss-erstellt:v1-Event projiziert und die offene Sitzung ausblendet.
 func TestGetAbgeschlosseneKassensitzungen_MitUmsatzUndAbschlusszeit(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -93,15 +93,15 @@ func TestGetAbgeschlosseneKassensitzungen_MitUmsatzUndAbschlusszeit(t *testing.T
 	userID := createUser(t, db, "Nico Gräf", "nico")
 
 	// Zwei abgeschlossene Sitzungen mit Tagesabschluss-Event, eine offene ohne.
-	ks10 := createKassensitzung(t, db, "2026-05-01", "Maihock", "abgeschlossen")
+	ksMaihock := createKassensitzung(t, db, "2026-05-01", "Maihock", "abgeschlossen")
 	insertEvent(t, db, userID, "nico", "tagesabschluss-erstellt:v1", "kassensitzung-10", 1, map[string]any{
-		"zNr": ks10, "umsatzGesamtCents": 210850, "erstelltVon": userID,
-	}, ks10)
+		"zNr": ksMaihock, "umsatzGesamtCents": 210850, "erstelltVon": userID,
+	}, ksMaihock)
 
-	ks11 := createKassensitzung(t, db, "2026-07-05", "Sommerfest Tag 1", "abgeschlossen")
+	ksSommerfest := createKassensitzung(t, db, "2026-07-05", "Sommerfest Tag 1", "abgeschlossen")
 	insertEvent(t, db, userID, "nico", "tagesabschluss-erstellt:v1", "kassensitzung-11", 1, map[string]any{
-		"zNr": ks11, "umsatzGesamtCents": 341200, "erstelltVon": userID,
-	}, ks11)
+		"zNr": ksSommerfest, "umsatzGesamtCents": 341200, "erstelltVon": userID,
+	}, ksSommerfest)
 
 	ksOffen := createKassensitzung(t, db, "2026-07-06", "Sommerfest Tag 2", "offen")
 	insertEvent(t, db, userID, "nico", "kassensitzung-eroeffnet:v1", "kassensitzung-12", 1, map[string]any{
@@ -118,13 +118,13 @@ func TestGetAbgeschlosseneKassensitzungen_MitUmsatzUndAbschlusszeit(t *testing.T
 	}
 
 	// Sortierung: Datum DESC, also Sommerfest (07-05) vor Maihock (05-01).
-	if sitzungen[0].ZNr != ks11 || sitzungen[0].UmsatzGesamtCents != 341200 {
+	if sitzungen[0].ZNr != ksSommerfest || sitzungen[0].UmsatzGesamtCents != 341200 {
 		t.Errorf("unexpected first entry: %+v", sitzungen[0])
 	}
 	if sitzungen[0].AbgeschlossenAm == nil {
 		t.Error("expected abgeschlossenAm to be set for a closed session")
 	}
-	if sitzungen[1].ZNr != ks10 || sitzungen[1].UmsatzGesamtCents != 210850 {
+	if sitzungen[1].ZNr != ksMaihock || sitzungen[1].UmsatzGesamtCents != 210850 {
 		t.Errorf("unexpected second entry: %+v", sitzungen[1])
 	}
 }
@@ -132,7 +132,7 @@ func TestGetAbgeschlosseneKassensitzungen_MitUmsatzUndAbschlusszeit(t *testing.T
 // GetOffeneKassensitzung liefert nil, wenn keine Sitzung offen ist: eine
 // abgeschlossene Sitzung ist keine offene.
 func TestGetOffeneKassensitzung_KeineOffene(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)

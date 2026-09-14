@@ -10,10 +10,11 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/user"
 )
 
-func createTestUser(t *testing.T, repo Repository) (user.User, error) {
+func createTestUser(t *testing.T, repo Repository) user.User {
 	u, _, err := user.NewUser("nico", "nicousername", user.AdminRole)
 	if err != nil {
 		t.Fatalf("Failed to create user user object: %v", err)
@@ -26,11 +27,11 @@ func createTestUser(t *testing.T, repo Repository) (user.User, error) {
 
 	u.ID = userID
 
-	return u, nil
+	return u
 }
 
 func setup(t *testing.T) (user.User, Repository, func(t *testing.T)) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 
 	_, err := db.Exec("DELETE FROM users")
 	if err != nil {
@@ -38,10 +39,7 @@ func setup(t *testing.T) (user.User, Repository, func(t *testing.T)) {
 	}
 
 	repo := NewRepository(db)
-	user, err := createTestUser(t, repo)
-	if err != nil {
-		t.Fatalf("Failed to insert user: %v", err)
-	}
+	user := createTestUser(t, repo)
 
 	return user, repo, func(t *testing.T) {
 		_, err := db.Exec("DELETE FROM users")

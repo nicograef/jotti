@@ -66,7 +66,7 @@ func (m *mockRepo) TischHatOffenenSaldo(ctx context.Context, tischID int) (bool,
 	return m.offeneSaldi[tischID] > 0, nil
 }
 
-func (m mockRepo) GetTisch(ctx context.Context, id int) (tisch.Tisch, error) {
+func (m *mockRepo) GetTisch(ctx context.Context, id int) (tisch.Tisch, error) {
 	if m.err != nil {
 		return tisch.Tisch{}, m.err
 	}
@@ -77,7 +77,7 @@ func (m mockRepo) GetTisch(ctx context.Context, id int) (tisch.Tisch, error) {
 	return t, nil
 }
 
-func (m mockRepo) GetAlleTische(ctx context.Context) ([]tisch.Tisch, error) {
+func (m *mockRepo) GetAlleTische(ctx context.Context) ([]tisch.Tisch, error) {
 	var result []tisch.Tisch
 	for _, t := range m.tische {
 		result = append(result, t)
@@ -85,7 +85,7 @@ func (m mockRepo) GetAlleTische(ctx context.Context) ([]tisch.Tisch, error) {
 	return result, m.err
 }
 
-func (m mockRepo) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error) {
+func (m *mockRepo) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error) {
 	var result []tisch.AktiverTisch
 	for _, t := range m.tische {
 		if t.Status == tisch.ActiveStatus {
@@ -95,19 +95,19 @@ func (m mockRepo) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]t
 	return result, m.err
 }
 
-func (m mockRepo) CreateTisch(ctx context.Context, t tisch.Tisch) (int, error) {
+func (m *mockRepo) CreateTisch(ctx context.Context, t tisch.Tisch) (int, error) {
 	newID := len(m.tische) + 1
 	t.ID = newID
 	m.tische[newID] = t
 	return newID, m.err
 }
 
-func (m mockRepo) UpdateTisch(ctx context.Context, t tisch.Tisch) error {
+func (m *mockRepo) UpdateTisch(ctx context.Context, t tisch.Tisch) error {
 	m.tische[t.ID] = t
 	return m.err
 }
 
-func (m mockRepo) DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) error {
+func (m *mockRepo) DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -120,6 +120,6 @@ func (m mockRepo) DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) er
 	return nil
 }
 
-func (m mockRepo) GetAktiveTischeMitFavoriten(_ context.Context, _ int, _ int) ([]tisch.AktiverTischMitFavorit, error) {
+func (m *mockRepo) GetAktiveTischeMitFavoriten(_ context.Context, _ int, _ int) ([]tisch.AktiverTischMitFavorit, error) {
 	return nil, m.err
 }

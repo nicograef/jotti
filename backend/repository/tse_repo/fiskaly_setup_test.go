@@ -200,7 +200,7 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 			if c.method != method || !strings.HasSuffix(c.path, pathSuffix) {
 				continue
 			}
-			if bodyMatcht(c.body, wantBody) {
+			if bodyMatches(c.body, wantBody) {
 				return
 			}
 		}
@@ -320,12 +320,13 @@ func TestFiskalySetupClient_RetrieveTSSStammdaten(t *testing.T) {
 	if err != nil {
 		t.Fatalf("retrieve tss stammdaten failed: %v", err)
 	}
-	want := tse.TSSStammdaten{
+	want := tse.Stammdaten{
 		Seriennummer:        "tss-serial-1",
 		SignaturAlgorithmus: "ecdsa-plain-SHA256",
 		PublicKey:           "public-key-b64",
 		Zertifikat:          "certificate-b64",
 		LogTimeFormat:       "unixTime",
+		UpdatedAt:           stammdaten.UpdatedAt,
 	}
 	if stammdaten != want {
 		t.Fatalf("unexpected stammdaten, got %+v want %+v", stammdaten, want)
@@ -340,8 +341,8 @@ func TestFiskalySetupClient_RetrieveTSSStammdaten(t *testing.T) {
 	}
 }
 
-// bodyMatcht meldet, ob jedes erwartete Feld im tatsächlichen Body steht.
-func bodyMatcht(body, want map[string]any) bool {
+// bodyMatches meldet, ob jedes erwartete Feld im tatsächlichen Body steht.
+func bodyMatches(body, want map[string]any) bool {
 	for k, v := range want {
 		if body[k] != v {
 			return false

@@ -29,6 +29,7 @@ vi.mock('./product/hooks', () => ({
 }))
 
 vi.mock('./direktverkauf/hooks', () => ({
+  direktverkaufBackend: {},
   useDirektverkaufHistorie: () => ({
     historie: [],
     isPending: false,

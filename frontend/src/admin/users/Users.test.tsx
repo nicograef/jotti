@@ -2,6 +2,9 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
+import { type User } from './User'
+import { Users } from './Users'
+
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 // Der eigene Account kommt aus dem Auth-Singleton; im Test ist die userId 1.
@@ -29,9 +32,6 @@ class ResizeObserverStub {
 beforeAll(() => {
   vi.stubGlobal('ResizeObserver', ResizeObserverStub)
 })
-
-import { type User } from './User'
-import { Users } from './Users'
 
 function user(overrides: Partial<User> = {}): User {
   return {

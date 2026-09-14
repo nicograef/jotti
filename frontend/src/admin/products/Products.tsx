@@ -28,13 +28,9 @@ interface ProductsProps {
   onEdit: (produktId: number) => void
   onDelete: (produktId: number) => Promise<void>
   onMoved: () => void
-  onVariantCreated: (produktId: number, variante: Variante) => void
-  onVariantUpdated: (produktId: number, variante: Variante) => void
-  onVariantStatusChange: (
-    produktId: number,
-    varianteId: number,
-    status: VarianteStatus,
-  ) => void
+  onVariantCreated: (variante: Variante) => void
+  onVariantUpdated: (variante: Variante) => void
+  onVariantStatusChange: (varianteId: number, status: VarianteStatus) => void
   onVariantDeleted: () => void
 }
 
@@ -82,15 +78,9 @@ export function Products(props: ProductsProps) {
                   onEdit={props.onEdit}
                   onDelete={props.onDelete}
                   onMoved={props.onMoved}
-                  onVariantCreated={(variant) => {
-                    props.onVariantCreated(product.id, variant)
-                  }}
-                  onVariantUpdated={(variant) => {
-                    props.onVariantUpdated(product.id, variant)
-                  }}
-                  onVariantStatusChange={(variantId, status) => {
-                    props.onVariantStatusChange(product.id, variantId, status)
-                  }}
+                  onVariantCreated={props.onVariantCreated}
+                  onVariantUpdated={props.onVariantUpdated}
+                  onVariantStatusChange={props.onVariantStatusChange}
                   onVariantDeleted={props.onVariantDeleted}
                 />
               ))}

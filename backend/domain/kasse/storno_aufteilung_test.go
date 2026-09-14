@@ -18,7 +18,7 @@ func zahlungIDFromEvent(t *testing.T, evt e.Event) string {
 	return data.ZahlungID
 }
 
-func posIDFromOrder(t *testing.T, orderEvent e.Event) string {
+func positionIDAusBestellung(t *testing.T, orderEvent e.Event) string {
 	t.Helper()
 	bestellung, err := buildBestellungFromEvent(orderEvent)
 	if err != nil {
@@ -28,8 +28,8 @@ func posIDFromOrder(t *testing.T, orderEvent e.Event) string {
 }
 
 func TestComputeStornoAufteilung_PureUnpaid(t *testing.T) {
-	order := mustCreateOrderEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
-	posID := posIDFromOrder(t, order)
+	order := mustCreateBestellungEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
+	posID := positionIDAusBestellung(t, order)
 
 	aufteilung, ok := ComputeStornoAufteilung([]e.Event{order}, []PositionRef{{PositionID: posID, Menge: 1}})
 	if !ok {
@@ -47,8 +47,8 @@ func TestComputeStornoAufteilung_PureUnpaid(t *testing.T) {
 }
 
 func TestComputeStornoAufteilung_DuplikatRefs(t *testing.T) {
-	order := mustCreateOrderEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)})
-	posID := posIDFromOrder(t, order)
+	order := mustCreateBestellungEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)})
+	posID := positionIDAusBestellung(t, order)
 
 	// Duplikate sind per se ungültig, auch wenn 1+1 die stornierbare Menge 3 nicht übersteigt.
 	refs := []PositionRef{{PositionID: posID, Menge: 1}, {PositionID: posID, Menge: 1}}
@@ -58,9 +58,9 @@ func TestComputeStornoAufteilung_DuplikatRefs(t *testing.T) {
 }
 
 func TestComputeStornoAufteilung_PurePaidSingleZahlung(t *testing.T) {
-	order := mustCreateOrderEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
-	posID := posIDFromOrder(t, order)
-	pay := mustCreatePaymentEvent(t, testSubject, 1, positionsFromOrder(t, order, 2), 1000)
+	order := mustCreateBestellungEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
+	posID := positionIDAusBestellung(t, order)
+	pay := mustCreateZahlungEvent(t, testSubject, 1, positionenAusBestellung(t, order, 2), 1000)
 	zahlungID := zahlungIDFromEvent(t, pay)
 
 	aufteilung, ok := ComputeStornoAufteilung([]e.Event{order, pay}, []PositionRef{{PositionID: posID, Menge: 1}})
@@ -83,10 +83,10 @@ func TestComputeStornoAufteilung_PurePaidSingleZahlung(t *testing.T) {
 }
 
 func TestComputeStornoAufteilung_PaidAcrossTwoZahlungenFIFO(t *testing.T) {
-	order := mustCreateOrderEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 4)})
-	posID := posIDFromOrder(t, order)
-	payA := mustCreatePaymentEvent(t, testSubject, 1, positionsFromOrder(t, order, 3), 1500)
-	payB := mustCreatePaymentEvent(t, testSubject, 1, positionsFromOrder(t, order, 1), 500)
+	order := mustCreateBestellungEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 4)})
+	posID := positionIDAusBestellung(t, order)
+	payA := mustCreateZahlungEvent(t, testSubject, 1, positionenAusBestellung(t, order, 3), 1500)
+	payB := mustCreateZahlungEvent(t, testSubject, 1, positionenAusBestellung(t, order, 1), 500)
 	order.ID, payA.ID, payB.ID = 1, 2, 3
 
 	aufteilung, ok := ComputeStornoAufteilung([]e.Event{order, payA, payB}, []PositionRef{{PositionID: posID, Menge: 4}})
@@ -110,9 +110,9 @@ func TestComputeStornoAufteilung_PaidAcrossTwoZahlungenFIFO(t *testing.T) {
 
 func TestComputeStornoAufteilung_MixedPrefersKorrektur(t *testing.T) {
 	// Bestellt 3, bezahlt 1 → 2 unbezahlt. Storno 3 = 2 Korrektur (unbezahlt zuerst) + 1 Warenrücknahme.
-	order := mustCreateOrderEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)})
-	posID := posIDFromOrder(t, order)
-	pay := mustCreatePaymentEvent(t, testSubject, 1, positionsFromOrder(t, order, 1), 500)
+	order := mustCreateBestellungEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)})
+	posID := positionIDAusBestellung(t, order)
+	pay := mustCreateZahlungEvent(t, testSubject, 1, positionenAusBestellung(t, order, 1), 500)
 	order.ID, pay.ID = 1, 2
 
 	aufteilung, ok := ComputeStornoAufteilung([]e.Event{order, pay}, []PositionRef{{PositionID: posID, Menge: 3}})
@@ -128,8 +128,8 @@ func TestComputeStornoAufteilung_MixedPrefersKorrektur(t *testing.T) {
 }
 
 func TestComputeStornoAufteilung_ExceedsStornierbar(t *testing.T) {
-	order := mustCreateOrderEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
-	posID := posIDFromOrder(t, order)
+	order := mustCreateBestellungEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
+	posID := positionIDAusBestellung(t, order)
 
 	if _, ok := ComputeStornoAufteilung([]e.Event{order}, []PositionRef{{PositionID: posID, Menge: 3}}); ok {
 		t.Fatal("expected ok=false for over-request")
@@ -137,7 +137,7 @@ func TestComputeStornoAufteilung_ExceedsStornierbar(t *testing.T) {
 }
 
 func TestComputeStornoAufteilung_UnknownPosition(t *testing.T) {
-	order := mustCreateOrderEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
+	order := mustCreateBestellungEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
 
 	if _, ok := ComputeStornoAufteilung([]e.Event{order}, []PositionRef{{PositionID: "00000000-0000-0000-0000-000000000099", Menge: 1}}); ok {
 		t.Fatal("expected ok=false for unknown position")
@@ -145,9 +145,9 @@ func TestComputeStornoAufteilung_UnknownPosition(t *testing.T) {
 }
 
 func TestComputeStornoAufteilung_AlreadyCorrectedNotStornierbar(t *testing.T) {
-	order := mustCreateOrderEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)})
-	posID := posIDFromOrder(t, order)
-	korrektur := mustCreateKorrekturEvent(t, testSubject, 1, positionsFromOrder(t, order, 1), 500)
+	order := mustCreateBestellungEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1)})
+	posID := positionIDAusBestellung(t, order)
+	korrektur := mustCreateKorrekturEvent(t, testSubject, 1, positionenAusBestellung(t, order, 1), 500)
 	order.ID, korrektur.ID = 1, 2
 
 	if _, ok := ComputeStornoAufteilung([]e.Event{order, korrektur}, []PositionRef{{PositionID: posID, Menge: 1}}); ok {

@@ -92,32 +92,34 @@ async function captureApp() {
       baseURL: BASE,
       ...devices['Pixel 7'],
     })
-    const p = await login(phone, zugangsdaten.service)
+    const phonePage = await login(phone, zugangsdaten.service)
 
-    await p.goto('/service/tische')
-    await p.getByText('Meine Tische').first().waitFor()
-    await p.getByText('Noch offen', { exact: false }).first().waitFor()
-    await captureLightDark(p, 'tischuebersicht')
+    await phonePage.goto('/service/tische')
+    await phonePage.getByText('Meine Tische').first().waitFor()
+    await phonePage.getByText('Noch offen', { exact: false }).first().waitFor()
+    await captureLightDark(phonePage, 'tischuebersicht')
 
     // Lokaler Warenkorb, noch nicht abgeschickt.
-    await oeffneTisch(p, 'Tisch 1')
-    await p.getByRole('tab', { name: 'Bestellen' }).click()
-    await waehleVariante(p, 'Bratwurst', 'Normal', 2)
-    await waehleVariante(p, 'Pommes', 'Groß', 2)
-    await p.getByRole('button', { name: /Bestellung überprüfen/ }).waitFor()
-    await captureLightDark(p, 'bestellansicht')
+    await oeffneTisch(phonePage, 'Tisch 1')
+    await phonePage.getByRole('tab', { name: 'Bestellen' }).click()
+    await waehleVariante(phonePage, 'Bratwurst', 'Normal', 2)
+    await waehleVariante(phonePage, 'Pommes', 'Groß', 2)
+    await phonePage
+      .getByRole('button', { name: /Bestellung überprüfen/ })
+      .waitFor()
+    await captureLightDark(phonePage, 'bestellansicht')
 
-    await oeffneTisch(p, 'Tisch 2')
-    await p.getByRole('tab', { name: 'Kassieren' }).click()
-    const vonAnderen = p.getByRole('button', { name: /^Von anderen ·/ })
+    await oeffneTisch(phonePage, 'Tisch 2')
+    await phonePage.getByRole('tab', { name: 'Kassieren' }).click()
+    const vonAnderen = phonePage.getByRole('button', { name: /^Von anderen ·/ })
     if (await vonAnderen.isVisible().catch(() => false))
       await vonAnderen.click()
-    await waehleAlleVollAus(p)
-    await p.getByRole('button', { name: /Kassieren/ }).click()
-    const zahlungDrawer = p.getByRole('dialog')
+    await waehleAlleVollAus(phonePage)
+    await phonePage.getByRole('button', { name: /Kassieren/ }).click()
+    const zahlungDrawer = phonePage.getByRole('dialog')
     await zahlungDrawer.getByText(/€/).first().waitFor()
-    await captureLightDark(p, 'zahlung')
-    await p.keyboard.press('Escape')
+    await captureLightDark(phonePage, 'zahlung')
+    await phonePage.keyboard.press('Escape')
     await phone.close()
 
     // ---- Direktverkauf (Querformat-Tablet, Split-Screen, Servicekraft „maria") ----
@@ -125,14 +127,20 @@ async function captureApp() {
       baseURL: BASE,
       ...tabletLandscape,
     })
-    const dv = await login(tabletService, zugangsdaten.service)
-    await dv.goto('/service/direktverkauf')
-    await dv.getByRole('tab', { name: 'Verkaufen' }).waitFor()
-    const dvZeile = zeileMit(dv, 'Currywurst', 'Variante hinzufügen')
+    const tabletServicePage = await login(tabletService, zugangsdaten.service)
+    await tabletServicePage.goto('/service/direktverkauf')
+    await tabletServicePage.getByRole('tab', { name: 'Verkaufen' }).waitFor()
+    const dvZeile = zeileMit(
+      tabletServicePage,
+      'Currywurst',
+      'Variante hinzufügen',
+    )
     await dvZeile.getByRole('button', { name: 'Variante hinzufügen' }).click()
     await dvZeile.getByRole('button', { name: 'Variante hinzufügen' }).click()
-    await dv.getByRole('button', { name: 'Verkauf abschließen' }).waitFor()
-    await captureLightDark(dv, 'direktverkauf')
+    await tabletServicePage
+      .getByRole('button', { name: 'Verkauf abschließen' })
+      .waitFor()
+    await captureLightDark(tabletServicePage, 'direktverkauf')
     await tabletService.close()
 
     // ---- Stornierung (Handy, Serviceleitung „felix") ----
@@ -140,14 +148,17 @@ async function captureApp() {
       baseURL: BASE,
       ...devices['Pixel 7'],
     })
-    const sl = await login(phoneSL, zugangsdaten.serviceleitung)
+    const phoneSLPage = await login(phoneSL, zugangsdaten.serviceleitung)
     // „Tisch 15" ist im Sonntags-Drehbuch unbenutzt (wie in der Storno-Spec).
-    await oeffneTisch(sl, 'Tisch 15')
-    await bestellePosition(sl, 'Pommes', 'Klein')
-    await sl.getByRole('tab', { name: 'Historie' }).click()
-    const detail = await oeffneHistorienDetail(sl, /Bestellung.*\+2,50/)
+    await oeffneTisch(phoneSLPage, 'Tisch 15')
+    await bestellePosition(phoneSLPage, 'Pommes', 'Klein')
+    await phoneSLPage.getByRole('tab', { name: 'Historie' }).click()
+    const detail = await oeffneHistorienDetail(
+      phoneSLPage,
+      /Bestellung.*\+2,50/,
+    )
     await detail.getByRole('button', { name: /Stornieren…/ }).click()
-    const stornoDrawer = sl.getByRole('dialog')
+    const stornoDrawer = phoneSLPage.getByRole('dialog')
     await zeileMit(stornoDrawer, 'Pommes Klein', 'hinzufügen')
       .getByRole('button', { name: /hinzufügen/ })
       .click()
@@ -156,12 +167,12 @@ async function captureApp() {
       .fill('Falsch bestellt, storniert')
     // Den „Bestellung wurde aufgenommen."-Toast aus dem Bestellschritt abklingen
     // lassen, damit er nicht über der Storno-Aufnahme hängt.
-    await sl
+    await phoneSLPage
       .getByText('Bestellung wurde aufgenommen.')
       .first()
       .waitFor({ state: 'hidden' })
       .catch(() => {})
-    await captureLightDark(sl, 'stornierung')
+    await captureLightDark(phoneSLPage, 'stornierung')
     await phoneSL.close()
 
     // ---- Admin-Motive (Querformat-Tablet, Admin „thomas") ----
@@ -169,25 +180,25 @@ async function captureApp() {
       baseURL: BASE,
       ...tabletLandscape,
     })
-    const pa = await login(tabletAdmin, zugangsdaten.admin)
+    const tabletAdminPage = await login(tabletAdmin, zugangsdaten.admin)
 
-    await pa.goto('/admin/produkte')
-    await pa.getByText('Produkte & Preise').first().waitFor()
-    await captureLightDark(pa, 'produkte')
+    await tabletAdminPage.goto('/admin/produkte')
+    await tabletAdminPage.getByText('Produkte & Preise').first().waitFor()
+    await captureLightDark(tabletAdminPage, 'produkte')
 
-    await pa.goto('/admin/benutzer')
-    await pa.getByText('Helfer & Zugänge').first().waitFor()
-    await captureLightDark(pa, 'benutzer')
+    await tabletAdminPage.goto('/admin/benutzer')
+    await tabletAdminPage.getByText('Helfer & Zugänge').first().waitFor()
+    await captureLightDark(tabletAdminPage, 'benutzer')
 
     // Der Betrag ist Pflichtfeld: ausgefüllt, damit die Blur-Validierung in
     // settle keinen Fehlerzustand in die Aufnahme brennt.
-    await pa.goto('/admin/kasse')
-    await pa.getByRole('button', { name: 'Geld einlegen' }).click()
-    await pa.getByRole('dialog').waitFor()
-    await pa.getByLabel('Betrag').fill('50,00')
-    await pa.getByLabel('Kommentar').fill('Wechselgeld Nachschub')
-    await captureLightDark(pa, 'geldtransit')
-    await pa.keyboard.press('Escape')
+    await tabletAdminPage.goto('/admin/kasse')
+    await tabletAdminPage.getByRole('button', { name: 'Geld einlegen' }).click()
+    await tabletAdminPage.getByRole('dialog').waitFor()
+    await tabletAdminPage.getByLabel('Betrag').fill('50,00')
+    await tabletAdminPage.getByLabel('Kommentar').fill('Wechselgeld Nachschub')
+    await captureLightDark(tabletAdminPage, 'geldtransit')
+    await tabletAdminPage.keyboard.press('Escape')
     await tabletAdmin.close()
 
     // ---- Desktop-Motive (Browser-Rahmen, Admin „thomas") ----
@@ -196,17 +207,17 @@ async function captureApp() {
       viewport: { width: 1360, height: 850 },
       deviceScaleFactor: 2,
     })
-    const pd = await login(desktop, zugangsdaten.admin)
-    await pd.goto('/admin/produkte')
-    await pd.getByText('Produkte & Preise').first().waitFor()
-    await captureLightDark(pd, 'produktverwaltung')
+    const desktopPage = await login(desktop, zugangsdaten.admin)
+    await desktopPage.goto('/admin/produkte')
+    await desktopPage.getByText('Produkte & Preise').first().waitFor()
+    await captureLightDark(desktopPage, 'produktverwaltung')
 
     // Auswertung: historischer Tagesbericht (deterministisch Nr. 2 gewählt).
-    await pd.goto('/admin/kassenberichte')
-    await pd.getByText('Berichte & Export').first().waitFor()
-    await pd.getByText('Sommerfest 26 Samstag').first().click()
-    await pd.getByText('Umsatz nach Steuersatz').first().waitFor()
-    await captureLightDark(pd, 'auswertung')
+    await desktopPage.goto('/admin/kassenberichte')
+    await desktopPage.getByText('Berichte & Export').first().waitFor()
+    await desktopPage.getByText('Sommerfest 26 Samstag').first().click()
+    await desktopPage.getByText('Umsatz nach Steuersatz').first().waitFor()
+    await captureLightDark(desktopPage, 'auswertung')
     await desktop.close()
   } finally {
     await browser.close()

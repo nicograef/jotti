@@ -29,7 +29,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	kassenfuehrungApp "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
 	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/betreiber_repo"
@@ -49,16 +49,16 @@ const signaturWartefrist = 90 * time.Second
 // liveTestUmgebung bündelt die reale Umgebung eines Live-Laufs: DB, die
 // verdrahteten Anwendungsdienste und die Stammdaten-IDs.
 type liveTestUmgebung struct {
-	db       *sql.DB
-	tisch    tischgeschaeftApp.Command
-	direkt   direktverkaufApp.Command
-	kasse    kassenfuehrungApp.Command
-	tssID    string
-	userID   int
-	tischID  int
-	tischID2 int
-	produkt  int
-	variante int
+	db         *sql.DB
+	tisch      tischgeschaeftApp.Command
+	direkt     direktverkaufApp.Command
+	kasse      kassenfuehrungApp.Command
+	tssID      string
+	userID     int
+	tischID    int
+	tischID2   int
+	produktID  int
+	varianteID int
 }
 
 // credentialsOderSkip verlangt das Opt-in JOTTI_TSE_LIVE=1 und liest dann die
@@ -148,7 +148,7 @@ func cleanLiveDB(t *testing.T, db *sql.DB) {
 func setupLiveUmgebung(t *testing.T, credentials tse.Credentials) *liveTestUmgebung {
 	t.Helper()
 
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	cleanLiveDB(t, db)
 	t.Cleanup(func() {
 		cleanLiveDB(t, db)
@@ -192,13 +192,13 @@ func setupLiveUmgebung(t *testing.T, credentials tse.Credentials) *liveTestUmgeb
 	}
 	if err := db.QueryRow(
 		"INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at) VALUES ('Bier', 'getraenk', 'regel', 'active', now(), now()) RETURNING id",
-	).Scan(&u.produkt); err != nil {
+	).Scan(&u.produktID); err != nil {
 		t.Fatalf("create produkt: %v", err)
 	}
 	if err := db.QueryRow(
 		"INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at) VALUES ($1, '0.5L', 350, 'active', now(), now()) RETURNING id",
-		u.produkt,
-	).Scan(&u.variante); err != nil {
+		u.produktID,
+	).Scan(&u.varianteID); err != nil {
 		t.Fatalf("create variante: %v", err)
 	}
 
@@ -416,7 +416,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 
 	// (2) Bestellung → Bestellung-V1. 3 Stück, damit Teil-/Vollzahlung und Storno Mengen haben.
 	bestellungID := uuid.NewString()
-	inputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 3}}
+	inputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 3}}
 	if err := u.tisch.BestellungAufnehmen(ctx, u.userID, "test", bestellungID, u.tischID, inputs, ""); err != nil {
 		t.Fatalf("BestellungAufnehmen: %v", err)
 	}
@@ -478,7 +478,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 
 	// (8) Direktverkauf → Kassenbeleg-V1.
 	verkaufID := uuid.NewString()
-	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 2}}
+	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 2}}
 	if err := u.direkt.DirektverkaufTaetigen(ctx, u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
 		t.Fatalf("DirektverkaufTaetigen: %v", err)
 	}

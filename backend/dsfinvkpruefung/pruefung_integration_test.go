@@ -9,7 +9,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	exportApp "github.com/nicograef/jotti/backend/api/fiskal/export/application"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/dsfinvkpruefung"
 	"github.com/nicograef/jotti/backend/repository/betreiber_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -58,7 +58,7 @@ func cleanSeedDB(t *testing.T, db *sql.DB) {
 // erzeugte Archiv jeder Seed-Kassensitzung muss strukturell befundfrei sein.
 // Die Fake-TSE des Seeders liefert dabei realistische Signaturdaten.
 func TestSeedExportBefundfrei(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	cleanSeedDB(t, db)
 	t.Cleanup(func() { cleanSeedDB(t, db) })
 

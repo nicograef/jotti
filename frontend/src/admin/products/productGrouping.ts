@@ -6,16 +6,11 @@ import {
   type Steuersatz,
 } from '@/lib/produktSchemas'
 
-import type { DruckstationConfig } from '../settings/DruckstationBackend'
+import {
+  type DruckstationConfig,
+  STATION_KATEGORIE_LABEL,
+} from '../settings/DruckstationBackend'
 import { STEUERSATZ_LABEL } from './Produkt'
-
-// Eigener Stationsname je Kategorie: nur der Anzeigename weicht vom
-// Produkt-Label ab (Singular „Getränk").
-const KATEGORIE_STATION_LABEL: Record<Kategorie, string> = {
-  essen: 'Essen',
-  getraenk: 'Getränk',
-  sonstiges: 'Sonstiges',
-}
 
 export interface ProduktGruppe {
   kategorie: Kategorie
@@ -57,7 +52,7 @@ export function kategorieZusatz(
 
   const station = druckstationen.find((s) => s.kategorie === kategorie)
   if (station && station.druckerIp !== '') {
-    teile.push(`Bons an Station „${KATEGORIE_STATION_LABEL[kategorie]}"`)
+    teile.push(`Bons an Station „${STATION_KATEGORIE_LABEL[kategorie]}"`)
   }
 
   return teile.join(' · ')

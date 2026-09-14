@@ -63,14 +63,8 @@ func (r Repository) GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensi
 		return nil, db.Error(err)
 	}
 
-	return &kasse.Kassensitzung{
-		ZNr:         row.ZNr,
-		Datum:       row.Datum,
-		Bezeichnung: row.Bezeichnung,
-		Status:      kasse.KassensitzungStatus(row.Status),
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
-	}, nil
+	ks := kassensitzungRowToDomain(row)
+	return &ks, nil
 }
 
 // GetAktiveKassensitzung reads the active (not yet closed) Kassensitzung, i.e. one with status

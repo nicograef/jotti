@@ -14,7 +14,6 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   Field,
-  FieldContent,
   FieldDescription,
   FieldError,
   FieldLabel,
@@ -32,8 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
 import { toUsername } from '@/lib/identity'
 import type { Kategorie } from '@/lib/produktSchemas'
 import { formatCents, parseCents } from '@/lib/utils'
@@ -41,8 +38,7 @@ import { formatCents, parseCents } from '@/lib/utils'
 import { EuroInput } from './EuroInput'
 
 export interface FieldProps<TField extends FieldValues> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: UseFormReturn<TField, any, TField>
+  form: UseFormReturn<TField>
   withLabel?: boolean
   placeholder?: string
   description?: string
@@ -215,74 +211,11 @@ export function OTPField<AllFormFields extends FieldValues>({
   )
 }
 
-export function LockedField<AllFormFields extends FieldValues>({
-  form,
-  withLabel,
-  description,
-}: FieldProps<{ locked: boolean } & AllFormFields>) {
-  const id = useId()
-  return (
-    <Controller
-      name={'locked' as Path<{ locked: boolean } & AllFormFields>}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && <FieldLabel htmlFor={id}>Sperren?</FieldLabel>}
-          <FieldContent className="flex flex-row items-center">
-            <Switch
-              id={id}
-              aria-invalid={fieldState.invalid}
-              checked={field.value}
-              onCheckedChange={field.onChange}
-            />
-            {field.value && (
-              <FieldDescription className="ml-4">
-                {description ??
-                  'Wenn du diesen Benutzer sperrst, kann er sich nicht mehr anmelden.'}
-              </FieldDescription>
-            )}
-          </FieldContent>
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  )
-}
-
-export function DescriptionField<AllFormFields extends FieldValues>({
-  form,
-  withLabel,
-  placeholder,
-}: FieldProps<{ description: string } & AllFormFields>) {
-  const id = useId()
-  return (
-    <Controller
-      name={'description' as Path<{ description: string } & AllFormFields>}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && <FieldLabel htmlFor={id}>Beschreibung</FieldLabel>}
-          <Textarea
-            {...field}
-            id={id}
-            aria-invalid={fieldState.invalid}
-            placeholder={placeholder ?? 'Beschreibung eingeben (optional)'}
-            autoComplete="off"
-            rows={3}
-          />
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
-  )
-}
-
 const centsToDisplay = (value: unknown): string =>
   typeof value === 'number' && value > 0 ? formatCents(value) : ''
 
 interface EuroFieldProps<TField extends FieldValues> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: UseFormReturn<TField, any, TField>
+  form: UseFormReturn<TField>
   name: FieldPath<TField>
   label?: string
   withLabel?: boolean

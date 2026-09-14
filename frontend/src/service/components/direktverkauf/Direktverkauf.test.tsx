@@ -54,6 +54,7 @@ function renderDirektverkauf() {
         backend={{ direktverkaufTaetigen }}
         products={[testProdukt]}
         productsLoading={false}
+        onErfolg={vi.fn()}
       />
     </ServiceDock>,
   )
@@ -117,6 +118,7 @@ describe('Direktverkauf', () => {
         backend={{ direktverkaufTaetigen }}
         products={[testProdukt]}
         productsLoading={false}
+        onErfolg={vi.fn()}
       />,
     )
 

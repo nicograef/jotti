@@ -18,20 +18,7 @@ ALLOWLIST="scripts/check-links.allow"
 # A relative *.md path: no whitespace or markup delimiters, ending in ".md".
 LINK_RE='[^]"'"'"'`()<>[*[:space:]]+\.md'
 
-# Same source and exceptions as scripts/check-prose.sh.
-mapfile -t files < <(git ls-files \
-  ':(glob,exclude)CHANGELOG.md' \
-  ':(glob,exclude)docs/plans/**' \
-  ':(glob,exclude)docs/rechtsquellen/**' \
-  ':(glob,exclude)database/migrations/**' \
-  ':(glob,exclude)backend/sqlc/dbgen/**' \
-  ':(glob,exclude)AGENTS.md' \
-  ':(glob,exclude).github/copilot-instructions.md' \
-  ':(glob,exclude).github/instructions/**' \
-  ':(glob,exclude).claude/**' \
-  ':(glob,exclude)reverse-proxy/caddyfile.go' \
-  ':(glob,exclude)**/pnpm-lock.yaml' \
-  ':(glob,exclude)**/go.sum')
+mapfile -t files < <(tracked_text_files)
 
 # Allowlist: one path per line, an optional trailing "# reason"; a listed file is
 # skipped entirely.

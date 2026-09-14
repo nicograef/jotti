@@ -251,7 +251,8 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		artikel := fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung())
 		buf.WriteString(toWPC1252(wrapLine(artikel, lineWidth)))
 		buf.WriteByte('\n')
-		fmt.Fprintf(&buf, "  %s x %d = %s EUR (%s)\n", formatCents(pos.EinzelpreisCents), pos.Menge, formatCents(pos.EinzelpreisCents*pos.Menge), steuerKennzeichenAusPosition(pos.Steuersatz))
+		kennzeichen := steuerKennzeichenAusSatz(steuer.Steuersatz(pos.Steuersatz))
+		fmt.Fprintf(&buf, "  %s x %d = %s EUR (%s)\n", formatCents(pos.EinzelpreisCents), pos.Menge, formatCents(pos.EinzelpreisCents*pos.Menge), kennzeichen)
 	}
 
 	buf.WriteString(strings.Repeat("-", lineWidth))
@@ -288,7 +289,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		buf.WriteString(toWPC1252(wrapLine(data.TSE.Signatur, lineWidth-2)))
 		buf.WriteByte('\n')
 		if data.TSE.Nachsigniert {
-			fmt.Fprintf(&buf, toWPC1252("  Nachsigniert am %s\n"), data.TSE.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
+			buf.WriteString(toWPC1252(fmt.Sprintf("  Nachsigniert am %s\n", data.TSE.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05"))))
 			buf.WriteString(toWPC1252("  (TSE war bei der Erfassung nicht erreichbar)\n"))
 		}
 
@@ -374,17 +375,17 @@ func wrapLine(s string, width int) string {
 	words := strings.Fields(s)
 	line := ""
 	for _, w := range words {
-		if utf8.RuneCountInString(line)+1+utf8.RuneCountInString(w) > width && line != "" {
+		if line == "" {
+			line = w
+			continue
+		}
+		if utf8.RuneCountInString(line)+1+utf8.RuneCountInString(w) > width {
 			result.WriteString(line)
 			result.WriteByte('\n')
 			line = w
-		} else {
-			if line == "" {
-				line = w
-			} else {
-				line += " " + w
-			}
+			continue
 		}
+		line += " " + w
 	}
 	if line != "" {
 		result.WriteString(line)
@@ -399,10 +400,6 @@ func formatCents(cents int) string {
 		cents = -cents
 	}
 	return fmt.Sprintf("%s%d,%02d", sign, cents/100, cents%100)
-}
-
-func steuerKennzeichenAusPosition(satz string) string {
-	return steuerKennzeichenAusSatz(steuer.Steuersatz(satz))
 }
 
 func steuerKennzeichenAusSatz(satz steuer.Steuersatz) string {

@@ -48,7 +48,7 @@ done
 
 [[ -n "$STACK" ]] || { usage; fatal "Missing required stack argument (rocks)"; }
 
-COMPOSE_FILES=(-f docker-compose.rocks.yml)
+COMPOSE_FILE="docker-compose.rocks.yml"
 DB_VOLUME="jotti_postgres-data"
 STACK_LABEL="jotti.rocks demo"
 TLS_NOTE="SSL certificate volumes (letsencrypt, certbot-challenges) are NOT touched."
@@ -59,11 +59,7 @@ BACKEND_SERVICE="backend"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-for i in "${!COMPOSE_FILES[@]}"; do
-  [[ "${COMPOSE_FILES[$i]}" == "-f" ]] || continue
-  compose_file="${COMPOSE_FILES[$((i + 1))]}"
-  [[ -f "$compose_file" ]] || fatal "Missing compose file: $compose_file"
-done
+[[ -f "$COMPOSE_FILE" ]] || fatal "Missing compose file: $COMPOSE_FILE"
 
 command -v docker >/dev/null 2>&1 || fatal "docker not found in PATH"
 docker compose version >/dev/null 2>&1 || fatal "docker compose (v2) is not available"
@@ -77,7 +73,7 @@ if [[ "$ASSUME_YES" != "true" ]]; then
 fi
 
 info "Stopping $STACK_LABEL stack..."
-docker compose "${COMPOSE_FILES[@]}" down
+docker compose -f "$COMPOSE_FILE" down
 
 if docker volume inspect "$DB_VOLUME" >/dev/null 2>&1; then
   info "Removing database volume: $DB_VOLUME"
@@ -87,12 +83,12 @@ else
 fi
 
 info "Starting $STACK_LABEL stack..."
-docker compose "${COMPOSE_FILES[@]}" up -d --build
+docker compose -f "$COMPOSE_FILE" up -d --build
 
 info "Waiting for postgres service to become healthy..."
 status=""
 for _ in $(seq 1 60); do
-  status="$(docker compose "${COMPOSE_FILES[@]}" ps --format json "$PG_SERVICE" | sed -n 's/.*"Health":"\([^"]*\)".*/\1/p')"
+  status="$(docker compose -f "$COMPOSE_FILE" ps --format json "$PG_SERVICE" | sed -n 's/.*"Health":"\([^"]*\)".*/\1/p')"
   if [[ "$status" == "healthy" ]]; then
     break
   fi
@@ -102,7 +98,7 @@ done
 [[ "$status" == "healthy" ]] || fatal "Postgres is not healthy (status: ${status:-unknown})"
 
 info "Seeding demo data via seed subcommand (guard + projection rebuild included)..."
-docker compose "${COMPOSE_FILES[@]}" exec -T "$BACKEND_SERVICE" jotti seed
+docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SERVICE" jotti seed
 
 echo ""
 info "Done. $STACK_LABEL DB reset + seed completed."

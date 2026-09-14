@@ -9,13 +9,12 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/repository/favorit_repo"
 	"github.com/nicograef/jotti/backend/repository/tisch_repo"
 )
 
-func newTestCommand(tables []tisch.Tisch, _ []produkt.Produkt) Command {
+func newTestCommand(tables []tisch.Tisch) Command {
 	return Command{
 		TischRepo:   tisch_repo.NewMock(tables, nil),
 		FavoritRepo: favorit_repo.NewMock(nil, nil),
@@ -24,7 +23,7 @@ func newTestCommand(tables []tisch.Tisch, _ []produkt.Produkt) Command {
 
 func TestTischErstellen(t *testing.T) {
 	ctx := context.Background()
-	command := newTestCommand(nil, nil)
+	command := newTestCommand(nil)
 
 	tischId, err := command.TischErstellen(ctx, "Tisch 1")
 	if err != nil {

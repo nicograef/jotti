@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # Faehrt die TSE-Live-Suite gegen die fiskaly-TEST-TSS. Eigener Container und
 # Port, damit sie parallel zur Integrationstest-DB (scripts/test-integration.sh,
@@ -6,8 +7,6 @@
 #
 # ACHTUNG: legt KEINE TSS an. Der TSS-anlegende Setup-Durchlauf lebt
 # ausschliesslich im Opt-in-Target `make test-tse-live-setup`.
-
-set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTAINER_NAME="jotti-pg-tse-live"

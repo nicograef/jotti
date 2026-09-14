@@ -88,8 +88,10 @@ fmt-backend: ## Backend Code formatieren (goimports)
 fmt-frontend: ## Frontend Code formatieren (Prettier + ESLint --fix)
 	cd frontend && pnpm format && pnpm lint:fix
 
+PRETTIER_GLOB := "**/*.{ts,tsx,js,mjs,cjs,json,css,md}"
+
 fmt-repo: ## Repo-weite Prettier-Formatierung schreiben (Gegenstück zu check-format)
-	frontend/node_modules/.bin/prettier --write "**/*.{ts,tsx,js,mjs,cjs,json,css,md}"
+	frontend/node_modules/.bin/prettier --write $(PRETTIER_GLOB)
 
 fmt: fmt-backend fmt-frontend fmt-repo ## Backend, Frontend und Repo-Prettier formatieren
 
@@ -280,7 +282,7 @@ check-local-proxy: ## Lokales Proxy-Entrypoint-Binary komplett prüfen (Deps, Fo
 	cd reverse-proxy && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
 check-format: ## Repo-weite Prettier-Formatierung prüfen (ts, tsx, js, mjs, cjs, json, css, md)
-	frontend/node_modules/.bin/prettier --check "**/*.{ts,tsx,js,mjs,cjs,json,css,md}"
+	frontend/node_modules/.bin/prettier --check $(PRETTIER_GLOB)
 
 check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
 	$(MAKE) check-format

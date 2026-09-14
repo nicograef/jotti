@@ -7,22 +7,21 @@ import (
 )
 
 const (
-	regelIndexParsbar    = "index-parsbar"
-	regelIndexWurzel     = "index-wurzel"
-	regelIndexVersion    = "index-version"
-	regelIndexMedia      = "index-media"
-	regelIndexTabelle    = "index-tabelle"
-	regelIndexSpalte     = "index-spalte"
-	regelIndexFormat     = "index-format"
-	regelIndexKopfzeile  = "index-kopfzeile-range"
-	regelIndexDoctype    = "index-doctype"
-	dtdDecimalSymbol     = ","
-	dtdColumnDelimiter   = ";"
-	dtdRecordDelimiterCR = "\r"
-	dtdRecordDelimiterLF = "\n"
-	dtdKopfzeileFrom     = "2"
-	dtdTextEncapsulator  = "\""
-	doctypeMarker        = dtdDatei
+	regelIndexParsbar   = "index-parsbar"
+	regelIndexWurzel    = "index-wurzel"
+	regelIndexVersion   = "index-version"
+	regelIndexMedia     = "index-media"
+	regelIndexTabelle   = "index-tabelle"
+	regelIndexSpalte    = "index-spalte"
+	regelIndexFormat    = "index-format"
+	regelIndexKopfzeile = "index-kopfzeile-range"
+	regelIndexDoctype   = "index-doctype"
+	dtdDecimalSymbol    = ","
+	dtdColumnDelimiter  = ";"
+	dtdRecordDelimiter  = crlf
+	dtdKopfzeileFrom    = "2"
+	dtdTextEncapsulator = "\""
+	doctypeMarker       = dtdDatei
 )
 
 type indexSpalte struct {
@@ -32,7 +31,6 @@ type indexSpalte struct {
 
 type indexTabelle struct {
 	URL             string
-	Name            string
 	Spalten         []indexSpalte
 	columnDelimiter string
 	recordDelimiter string
@@ -159,7 +157,6 @@ func pruefeTabelleDeklaration(t *xmlTable) (indexTabelle, []Befund) {
 
 	tab := indexTabelle{
 		URL:             t.URL,
-		Name:            t.Name,
 		columnDelimiter: t.VariableLength.ColumnDelimiter,
 		recordDelimiter: t.VariableLength.RecordDelimiter,
 		decimalSymbol:   t.DecimalSymbol,
@@ -224,7 +221,7 @@ func pruefeTabelleFormat(tab indexTabelle) []Befund {
 	if tab.columnDelimiter != dtdColumnDelimiter {
 		add(regelIndexFormat, fmt.Sprintf("ColumnDelimiter = %q, erwartet %q (Semikolon)", tab.columnDelimiter, dtdColumnDelimiter))
 	}
-	if tab.recordDelimiter != dtdRecordDelimiterCR+dtdRecordDelimiterLF {
+	if tab.recordDelimiter != dtdRecordDelimiter {
 		add(regelIndexFormat, "RecordDelimiter ist nicht CRLF")
 	}
 	if tab.textEncap != dtdTextEncapsulator {

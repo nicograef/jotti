@@ -22,13 +22,13 @@ func TestGetHistorieFromEvents_ReturnsAllEventTypes(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
-	positions := positionsFromOrder(t, orderEvent, 1)
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
+	positions := positionenAusBestellung(t, orderEvent, 1)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreatePaymentEvent(t, testSubject, 1, positions, 500),
-		mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, positions, 500),
+		mustCreateZahlungEvent(t, testSubject, 1, positions, 500),
+		mustCreateStornierungEvent(t, testSubject, 1, testZahlungID, positions, 500),
 	}
 
 	history, err := GetHistorieFromEvents(events)
@@ -65,13 +65,13 @@ func TestGetHistorieFromEvents_EnrichesBestellungMitRestmengen(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
-	eine := positionsFromOrder(t, orderEvent, 1)
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
+	eine := positionenAusBestellung(t, orderEvent, 1)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, eine, 500),
-		mustCreatePaymentEvent(t, testSubject, 1, eine, 500),
+		mustCreateStornierungEvent(t, testSubject, 1, testZahlungID, eine, 500),
+		mustCreateZahlungEvent(t, testSubject, 1, eine, 500),
 	}
 
 	history, err := GetHistorieFromEvents(events)
@@ -99,12 +99,12 @@ func TestGetHistorieFromEvents_FullyConsumedBestellungHasNoRestmengen(t *testing
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
-	positions := positionsFromOrder(t, orderEvent, 1)
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
+	positions := positionenAusBestellung(t, orderEvent, 1)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, positions, 500),
+		mustCreateStornierungEvent(t, testSubject, 1, testZahlungID, positions, 500),
 	}
 
 	history, err := GetHistorieFromEvents(events)
@@ -125,10 +125,10 @@ func TestBuildStornierung_BarRueckgabeLeitetStornoArtAusEventTypAb(t *testing.T)
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
-	positions := positionsFromOrder(t, orderEvent, 1)
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
+	positions := positionenAusBestellung(t, orderEvent, 1)
 
-	warenruecknahme := mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, positions, 500)
+	warenruecknahme := mustCreateStornierungEvent(t, testSubject, 1, testZahlungID, positions, 500)
 	korrektur := mustCreateKorrekturEvent(t, testSubject, 1, positions, 500)
 
 	storno, err := buildStornierungFromEvent(warenruecknahme)
@@ -152,12 +152,12 @@ func TestGetHistorieFromEvents_ReversesOrder(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
 	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
-	positions := positionsFromOrder(t, orderEvent, 1)
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
+	positions := positionenAusBestellung(t, orderEvent, 1)
 
 	events := []e.Event{
 		orderEvent,
-		mustCreatePaymentEvent(t, testSubject, 1, positions, 500),
+		mustCreateZahlungEvent(t, testSubject, 1, positions, 500),
 	}
 
 	history, err := GetHistorieFromEvents(events)
@@ -179,8 +179,8 @@ func TestGetHistorieFromEvents_UmbuchungAbgangReduziertRestmengen(t *testing.T) 
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 	}
-	orderEvent := mustCreateOrderEvent(t, quellSubject, 1, products)
-	eine := positionsFromOrder(t, orderEvent, 1)
+	orderEvent := mustCreateBestellungEvent(t, quellSubject, 1, products)
+	eine := positionenAusBestellung(t, orderEvent, 1)
 
 	quellEvent, _, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", eine, 500, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle", "")
 	if err != nil {

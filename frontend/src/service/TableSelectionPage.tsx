@@ -77,6 +77,43 @@ export function TableSelectionPage() {
     !tischeLoading && !sucheAktiv && tische.length > 0,
   )
 
+  const tischListe = tischeLoading ? (
+    <TischListSkeleton />
+  ) : tische.length === 0 ? (
+    <EmptyState
+      icon={Lamp}
+      title="Keine Tische markiert"
+      description="Du hast noch keine Tische markiert. Wähle Tische aus, um sie hier zu sehen. Für den Direktverkauf an der Theke wechselst du den Arbeitsmodus im Benutzermenü oben rechts."
+      action={
+        <Button
+          variant="outline"
+          onClick={() => {
+            setDrawerOpen(true)
+          }}
+        >
+          Tische auswählen
+        </Button>
+      }
+    />
+  ) : (
+    <div className="space-y-6">
+      {offeneTische.length > 0 && (
+        <TischGruppe
+          titel="Noch offen"
+          tische={offeneTische}
+          eintrittAb={erstAufbau ? 0 : null}
+        />
+      )}
+      {erledigteTische.length > 0 && (
+        <TischGruppe
+          titel="Erledigt"
+          tische={erledigteTische}
+          eintrittAb={erstAufbau ? offeneTische.length : null}
+        />
+      )}
+    </div>
+  )
+
   // Bei Ladefehler statt des Suchfelds der Hinweis: ein stilles Suchfeld ohne
   // Trefferliste sähe aus wie „kein Tisch passt".
   const suchblock = alleTischeError ? (
@@ -128,41 +165,8 @@ export function TableSelectionPage() {
         ) : (
           <SuchTrefferListe treffer={suchTreffer} />
         )
-      ) : tischeLoading ? (
-        <TischListSkeleton />
-      ) : tische.length === 0 ? (
-        <EmptyState
-          icon={Lamp}
-          title="Keine Tische markiert"
-          description="Du hast noch keine Tische markiert. Wähle Tische aus, um sie hier zu sehen. Für den Direktverkauf an der Theke wechselst du den Arbeitsmodus im Benutzermenü oben rechts."
-          action={
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDrawerOpen(true)
-              }}
-            >
-              Tische auswählen
-            </Button>
-          }
-        />
       ) : (
-        <div className="space-y-6">
-          {offeneTische.length > 0 && (
-            <TischGruppe
-              titel="Noch offen"
-              tische={offeneTische}
-              eintrittAb={erstAufbau ? 0 : null}
-            />
-          )}
-          {erledigteTische.length > 0 && (
-            <TischGruppe
-              titel="Erledigt"
-              tische={erledigteTische}
-              eintrittAb={erstAufbau ? offeneTische.length : null}
-            />
-          )}
-        </div>
+        tischListe
       )}
     </>
   )

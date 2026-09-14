@@ -695,8 +695,8 @@ func TestUebernimmTSE_DeaktivierteTSS(t *testing.T) {
 	}
 }
 
-func stammdatenAntwort() tse.TSSStammdaten {
-	return tse.TSSStammdaten{
+func stammdatenAntwort() tse.Stammdaten {
+	return tse.Stammdaten{
 		Seriennummer:        "abcdef1234567890abcdef1234567890",
 		SignaturAlgorithmus: "ecdsa-plain-SHA256",
 		PublicKey:           "public-key-b64",
@@ -707,7 +707,7 @@ func stammdatenAntwort() tse.TSSStammdaten {
 
 // checkStammdaten vergleicht die gespeicherten Stammdaten mit der erwarteten
 // fiskaly-Antwort (ohne den serverseitig gesetzten Zeitstempel).
-func checkStammdaten(t *testing.T, gespeichert *tse.Stammdaten, erwartet tse.TSSStammdaten) {
+func checkStammdaten(t *testing.T, gespeichert *tse.Stammdaten, erwartet tse.Stammdaten) {
 	t.Helper()
 	if gespeichert == nil {
 		t.Fatal("expected the tse stammdaten to be persisted")

@@ -13,7 +13,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-type settingsQuery interface {
+type tseSetupQuery interface {
 	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
 	GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error)
 	TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, error)
@@ -22,7 +22,7 @@ type settingsQuery interface {
 }
 
 type QueryHandler struct {
-	Query settingsQuery
+	Query tseSetupQuery
 }
 
 type kassenidentitaetResponse struct {

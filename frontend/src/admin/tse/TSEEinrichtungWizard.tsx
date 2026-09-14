@@ -902,15 +902,11 @@ function TSSListe({ tssListe }: { tssListe: TSSBefund[] }) {
               {tss.state}
             </span>
           </div>
-          {tss.passenderClient ? (
-            <p className="text-muted-foreground">
-              Diese Kasse ist hier bereits angemeldet.
-            </p>
-          ) : (
-            <p className="text-muted-foreground">
-              Diese Kasse ist hier noch nicht angemeldet.
-            </p>
-          )}
+          <p className="text-muted-foreground">
+            {tss.passenderClient
+              ? 'Diese Kasse ist hier bereits angemeldet.'
+              : 'Diese Kasse ist hier noch nicht angemeldet.'}
+          </p>
           <p className="text-muted-foreground text-xs break-all">
             Technische Kennung: {tss.id}
           </p>

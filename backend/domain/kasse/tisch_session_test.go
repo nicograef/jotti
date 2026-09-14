@@ -10,7 +10,7 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-func mustCreateOrderEvent(t *testing.T, subject string, userID int, products []Position) e.Event {
+func mustCreateBestellungEvent(t *testing.T, subject string, userID int, products []Position) e.Event {
 	t.Helper()
 	event, err := NewBestellungAufgenommenEvent(subject, userID, "TestUser", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", products, "")
 	if err != nil {
@@ -19,7 +19,7 @@ func mustCreateOrderEvent(t *testing.T, subject string, userID int, products []P
 	return event
 }
 
-func mustCreatePaymentEvent(t *testing.T, subject string, userID int, positions []Position, gesamtZahlungCents int) e.Event {
+func mustCreateZahlungEvent(t *testing.T, subject string, userID int, positions []Position, gesamtZahlungCents int) e.Event {
 	t.Helper()
 	event, err := NewZahlungKassiertEvent(subject, userID, "TestUser", positions, gesamtZahlungCents, "")
 	if err != nil {
@@ -28,7 +28,7 @@ func mustCreatePaymentEvent(t *testing.T, subject string, userID int, positions 
 	return event
 }
 
-func mustCreateCancelationEvent(t *testing.T, subject string, userID int, zahlungID string, positions []Position, gesamtStornierungCents int) e.Event {
+func mustCreateStornierungEvent(t *testing.T, subject string, userID int, zahlungID string, positions []Position, gesamtStornierungCents int) e.Event {
 	t.Helper()
 	event, err := NewStornierungErteiltEvent(subject, userID, "TestUser", zahlungID, positions, gesamtStornierungCents, "Test")
 	if err != nil {
@@ -71,7 +71,7 @@ func testPosition(varianteID int, produktName, varianteName, kategorie string, e
 	}
 }
 
-func positionsFromOrder(t *testing.T, orderEvent e.Event, menge int) []Position {
+func positionenAusBestellung(t *testing.T, orderEvent e.Event, menge int) []Position {
 	t.Helper()
 	bestellung, err := buildBestellungFromEvent(orderEvent)
 	if err != nil {
@@ -91,7 +91,7 @@ func TestApplyEvent_BestellungOnEmptyTable(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
 	orderEvent.ID = 1
 	orderEvent.Version = 1
 
@@ -124,7 +124,7 @@ func TestApplyEvent_ZahlungReducesSaldoAndUnbezahlt(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
 	orderEvent.ID = 1
 	orderEvent.Version = 1
 
@@ -133,8 +133,8 @@ func TestApplyEvent_ZahlungReducesSaldoAndUnbezahlt(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	positions := positionsFromOrder(t, orderEvent, 1)
-	paymentEvent := mustCreatePaymentEvent(t, testSubject, 1, positions, 500)
+	positions := positionenAusBestellung(t, orderEvent, 1)
+	paymentEvent := mustCreateZahlungEvent(t, testSubject, 1, positions, 500)
 	paymentEvent.ID = 2
 	paymentEvent.Version = 2
 
@@ -164,7 +164,7 @@ func TestApplyEvent_KorrekturReducesSaldoAndUnbezahlt(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
 	orderEvent.ID = 1
 	orderEvent.Version = 1
 
@@ -173,7 +173,7 @@ func TestApplyEvent_KorrekturReducesSaldoAndUnbezahlt(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	positions := positionsFromOrder(t, orderEvent, 1)
+	positions := positionenAusBestellung(t, orderEvent, 1)
 	cancelEvent := mustCreateKorrekturEvent(t, testSubject, 1, positions, 500)
 	cancelEvent.ID = 2
 	cancelEvent.Version = 2
@@ -204,7 +204,7 @@ func TestApplyEvent_UmbuchungMovesPositionsBetweenTische(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
-	orderEvent := mustCreateOrderEvent(t, quellSubject, 1, products)
+	orderEvent := mustCreateBestellungEvent(t, quellSubject, 1, products)
 	orderEvent.ID = 1
 	orderEvent.Version = 1
 
@@ -214,7 +214,7 @@ func TestApplyEvent_UmbuchungMovesPositionsBetweenTische(t *testing.T) {
 	}
 
 	// Eine von zwei Positionen auf den Zieltisch umbuchen.
-	umbuchPositionen := positionsFromOrder(t, orderEvent, 1)
+	umbuchPositionen := positionenAusBestellung(t, orderEvent, 1)
 	quellEvent, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", umbuchPositionen, 500, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle", "")
 	if err != nil {
 		t.Fatalf("failed to create umbuchung events: %v", err)
@@ -258,7 +258,7 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 		testPosition(2, "Wurst", "Bratwurst", "essen", 400, 2),
 	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
 	orderEvent.ID = 1
 	orderEvent.Version = 1
 
@@ -279,7 +279,7 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 	// Pay for 1 beer (500)
 	beerPayPos := []Position{bestellung.Positionen[0]}
 	beerPayPos[0].Menge = 1
-	paymentEvent := mustCreatePaymentEvent(t, testSubject, 1, beerPayPos, 500)
+	paymentEvent := mustCreateZahlungEvent(t, testSubject, 1, beerPayPos, 500)
 	paymentEvent.ID = 2
 	paymentEvent.Version = 2
 
@@ -384,8 +384,8 @@ func TestApplyEvent_PaymentKeepsBestellerTag(t *testing.T) {
 	}
 
 	// A colleague (Bert) pays part of Anna's order — the besteller tag must survive.
-	payPos := positionsFromOrder(t, orderEvent, 1)
-	paymentEvent := mustCreatePaymentEvent(t, testSubject, 8, payPos, 500)
+	payPos := positionenAusBestellung(t, orderEvent, 1)
+	paymentEvent := mustCreateZahlungEvent(t, testSubject, 8, payPos, 500)
 	paymentEvent.ID, paymentEvent.Version = 2, 2
 	state, err = ApplyEvent(state, paymentEvent)
 	if err != nil {
@@ -401,7 +401,7 @@ func TestApplyEvent_PaymentKeepsBestellerTag(t *testing.T) {
 // reduceByPositionStrict und tagBesteller arbeiten auf Klonen der Positions-Slices.
 func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 	products := []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3)}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
 	orderEvent.ID, orderEvent.Version = 1, 1
 
 	state, err := ApplyEvent(TischSession{}, orderEvent)
@@ -416,7 +416,7 @@ func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 	wantLen := len(state.UnbezahltePositionen)       // = 1
 
 	// Korrektur über 1 Einheit ruft reduceByPositionStrict auf UnbezahltePositionen auf.
-	korrekturPositionen := positionsFromOrder(t, orderEvent, 1)
+	korrekturPositionen := positionenAusBestellung(t, orderEvent, 1)
 	korrekturEvent := mustCreateKorrekturEvent(t, testSubject, 1, korrekturPositionen, 500)
 	korrekturEvent.ID, korrekturEvent.Version = 2, 2
 
@@ -459,7 +459,7 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 	products := []Position{
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2),
 	}
-	orderEvent := mustCreateOrderEvent(t, testSubject, 1, products)
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
 	orderEvent.ID = 1
 	orderEvent.Version = 1
 
@@ -469,8 +469,8 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 	}
 
 	// Pay for all 2 beers
-	payPositions := positionsFromOrder(t, orderEvent, 2)
-	payEvent := mustCreatePaymentEvent(t, testSubject, 1, payPositions, 1000)
+	payPositions := positionenAusBestellung(t, orderEvent, 2)
+	payEvent := mustCreateZahlungEvent(t, testSubject, 1, payPositions, 1000)
 	payEvent.ID = 2
 	payEvent.Version = 2
 
@@ -483,8 +483,8 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 	}
 
 	// Warenrücknahme von 1 Bier nach der Zahlung — der offene Betrag bleibt 0.
-	cancelPositions := positionsFromOrder(t, orderEvent, 1)
-	cancelEvent := mustCreateCancelationEvent(t, testSubject, 1, testZahlungID, cancelPositions, 500)
+	cancelPositions := positionenAusBestellung(t, orderEvent, 1)
+	cancelEvent := mustCreateStornierungEvent(t, testSubject, 1, testZahlungID, cancelPositions, 500)
 	cancelEvent.ID = 3
 	cancelEvent.Version = 3
 
@@ -531,7 +531,7 @@ func TestApplyEvent_SaldoAbgeleitetNachJedemEventtyp(t *testing.T) {
 		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
 		testPosition(2, "Wurst", "Bratwurst", "essen", 400, 2),
 	}
-	orderEvent := mustCreateOrderEvent(t, quellSubject, 1, products)
+	orderEvent := mustCreateBestellungEvent(t, quellSubject, 1, products)
 	orderEvent.ID, orderEvent.Version = 1, 1
 
 	state, err := ApplyEvent(TischSession{Subject: quellSubject}, orderEvent)
@@ -548,7 +548,7 @@ func TestApplyEvent_SaldoAbgeleitetNachJedemEventtyp(t *testing.T) {
 	// zahlung-kassiert: ein Bier bezahlen, Saldo sinkt, Positionen schrumpfen.
 	beerPay := []Position{bestellung.Positionen[0]}
 	beerPay[0].Menge = 1
-	payEvent := mustCreatePaymentEvent(t, quellSubject, 1, beerPay, 500)
+	payEvent := mustCreateZahlungEvent(t, quellSubject, 1, beerPay, 500)
 	payEvent.ID, payEvent.Version = 2, 2
 	state, err = ApplyEvent(state, payEvent)
 	if err != nil {
@@ -570,7 +570,7 @@ func TestApplyEvent_SaldoAbgeleitetNachJedemEventtyp(t *testing.T) {
 	// stornierung-erteilt: Warenrücknahme der bezahlten Position; Unbezahlt bleibt gleich.
 	stornoPos := []Position{bestellung.Positionen[0]}
 	stornoPos[0].Menge = 1
-	stornoEvent := mustCreateCancelationEvent(t, quellSubject, 1, testZahlungID, stornoPos, 500)
+	stornoEvent := mustCreateStornierungEvent(t, quellSubject, 1, testZahlungID, stornoPos, 500)
 	stornoEvent.ID, stornoEvent.Version = 4, 4
 	state, err = ApplyEvent(state, stornoEvent)
 	if err != nil {
@@ -579,7 +579,7 @@ func TestApplyEvent_SaldoAbgeleitetNachJedemEventtyp(t *testing.T) {
 	assertSaldoAbgeleitet(t, state, "stornierung-erteilt")
 
 	// bestellung-umgebucht (Abgang): eine Bierposition verlässt den Quelltisch.
-	umbuchPositionen := positionsFromOrder(t, orderEvent, 1)
+	umbuchPositionen := positionenAusBestellung(t, orderEvent, 1)
 	umbuchPositionen = []Position{umbuchPositionen[0]}
 	quellEvent, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", umbuchPositionen, 500, "auf Ziel", "von Quelle", "")
 	if err != nil {

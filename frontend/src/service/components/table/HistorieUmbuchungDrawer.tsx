@@ -71,13 +71,9 @@ export function HistorieUmbuchungDrawer({
     () => createDefaultMengen(positionen),
     [positionen],
   )
-  const {
-    mengen,
-    add: onAdd,
-    remove: onRemove,
-    reset,
-    setAll,
-  } = useMengen<string>((positionId) => umbuchbareMengen[positionId] || 0)
+  const { mengen, add, remove, reset, setAll } = useMengen<string>(
+    (positionId) => umbuchbareMengen[positionId] || 0,
+  )
 
   // Die Positionsauswahl meldet bereits useMengen; der getippte Kommentar
   // kommt hinzu, weil er ein zweites Mal formuliert werden müsste.
@@ -173,8 +169,8 @@ export function HistorieUmbuchungDrawer({
           <PositionAuswahlListe
             positionen={toAuswahlPositionen(positionen)}
             mengen={mengen}
-            onAdd={onAdd}
-            onRemove={onRemove}
+            onAdd={add}
+            onRemove={remove}
           />
           <div className="px-4">
             <KommentarField

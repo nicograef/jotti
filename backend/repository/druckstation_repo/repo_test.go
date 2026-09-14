@@ -7,13 +7,13 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 func setup(t *testing.T) (Repository, func(t *testing.T)) {
 	t.Helper()
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 
 	reset := func() {
 		// Reset to default state: leere drucker_ip; Bonmodus pro_position für

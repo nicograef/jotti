@@ -7,7 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 
 export default function App() {
   return (
-    <ThemeProvider storageKey="vite-ui-theme">
+    <ThemeProvider>
       <TooltipProvider>
         <Toaster position="top-right" />
         <VersionsHinweis />

@@ -32,15 +32,15 @@ var testOpenKS = &kasse.Kassensitzung{
 	Status: kasse.KassensitzungOffen,
 }
 
-func newTestCommand(tables []tisch.Tisch, products []produkt.Produkt) Command {
-	return newTestCommandWithEventMock(tables, products, kassenjournal_repo.NewMock(nil, nil))
+func newTestCommand(tables []tisch.Tisch) Command {
+	return newTestCommandWithEventMock(tables, kassenjournal_repo.NewMock(nil, nil))
 }
 
-func newTestCommandWithEventMock(tables []tisch.Tisch, products []produkt.Produkt, eventMock *kassenjournal_repo.MockRepo) Command {
+func newTestCommandWithEventMock(tables []tisch.Tisch, eventMock *kassenjournal_repo.MockRepo) Command {
 	return Command{
 		TischRepo:           tisch_repo.NewMock(tables, nil),
 		EventRepo:           eventMock,
-		ProduktRepo:         produkt_repo.NewMock(products, db.ErrNotFound),
+		ProduktRepo:         produkt_repo.NewMock(nil, db.ErrNotFound),
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{},
 	}
@@ -92,26 +92,6 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 		return nil, m.err
 	}
 	return m.konfig, nil
-}
-
-type umbuchungPositionData struct {
-	PositionID       string `json:"positionId"`
-	VarianteID       int    `json:"varianteId"`
-	ProduktName      string `json:"produktName"`
-	VarianteName     string `json:"varianteName"`
-	Kategorie        string `json:"kategorie"`
-	EinzelpreisCents int    `json:"einzelpreisCents"`
-	Menge            int    `json:"menge"`
-}
-
-type bestellungUmgebuchtData struct {
-	UmbuchungID       string                  `json:"umbuchungId"`
-	QuellTischID      int                     `json:"quellTischId"`
-	ZielTischID       int                     `json:"zielTischId"`
-	Positionen        []umbuchungPositionData `json:"positionen"`
-	GesamtCents       int                     `json:"gesamtCents"`
-	Kommentar         string                  `json:"kommentar"`
-	BenutzerKommentar string                  `json:"benutzerKommentar,omitempty"`
 }
 
 type umbuchungTischRepoMock struct {
@@ -178,7 +158,7 @@ func TestBestellungAufnehmen_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
 	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, kassenjournal_repo.ErrKassensitzungNichtOffen)
-	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct}, eventMock)
+	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
 	command.ProduktRepo = productMock
 
 	inputs := []enrichment.PositionInput{
@@ -229,7 +209,7 @@ func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 	ctx := context.Background()
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
-	command := newTestCommand([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct})
+	command := newTestCommand([]tisch.Tisch{testActiveTisch})
 	command.ProduktRepo = productMock
 
 	inputs := []enrichment.PositionInput{
@@ -252,7 +232,7 @@ func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 		"getraenk": {DruckerIP: "192.168.1.50", Bonmodus: "pro_position"},
 	}}
 
-	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct}, eventMock)
+	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
 	command.ProduktRepo = productMock
 	command.DruckstationRepo = stationMock
 
@@ -283,7 +263,7 @@ func TestBestellungAufnehmen_Conflict(t *testing.T) {
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
 	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, db.ErrAlreadyExists)
-	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct}, eventMock)
+	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
 	command.ProduktRepo = productMock
 
 	inputs := []enrichment.PositionInput{
@@ -301,7 +281,7 @@ func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
 	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, db.ErrConflict)
-	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct}, eventMock)
+	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
 	command.ProduktRepo = productMock
 
 	inputs := []enrichment.PositionInput{
@@ -320,7 +300,7 @@ func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {
 	ctx := context.Background()
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
-	command := newTestCommand([]tisch.Tisch{testInactiveTisch}, []produkt.Produkt{testProduct})
+	command := newTestCommand([]tisch.Tisch{testInactiveTisch})
 	command.ProduktRepo = productMock
 
 	inputs := []enrichment.PositionInput{
@@ -345,7 +325,7 @@ func TestBestellungAufnehmen_InactiveVariante(t *testing.T) {
 	}
 	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, inactiveVariant)
-	command := newTestCommand([]tisch.Tisch{testActiveTisch}, []produkt.Produkt{testProduct})
+	command := newTestCommand([]tisch.Tisch{testActiveTisch})
 	command.ProduktRepo = productMock
 
 	inputs := []enrichment.PositionInput{
@@ -361,7 +341,7 @@ func TestBestellungAufnehmen_InactiveVariante(t *testing.T) {
 func TestZahlungKassieren_NonOrderedPosition(t *testing.T) {
 	ctx := context.Background()
 	// No order events exist — paying a non-existent position should fail
-	command := newTestCommand([]tisch.Tisch{testActiveTisch}, nil)
+	command := newTestCommand([]tisch.Tisch{testActiveTisch})
 
 	fakeRefs := []kasse.PositionRef{
 		{PositionID: "00000000-0000-0000-0000-000000000001", Menge: 1},
@@ -754,7 +734,7 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 		t.Fatalf("expected target event type %s, got %s", kasse.EventTypeBestellungUmgebuchtV1, zielEvents[0].Type)
 	}
 
-	var quellData bestellungUmgebuchtData
+	var quellData kasse.BestellungUmgebuchtV1Data
 	if err := json.Unmarshal(quellEvents[0].Data, &quellData); err != nil {
 		t.Fatalf("expected no unmarshal error for source umbuchung data, got %v", err)
 	}
@@ -781,7 +761,7 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 		t.Fatalf("expected source einzelpreis 350, got %d", quellData.Positionen[0].EinzelpreisCents)
 	}
 
-	var zielData bestellungUmgebuchtData
+	var zielData kasse.BestellungUmgebuchtV1Data
 	if err := json.Unmarshal(zielEvents[0].Data, &zielData); err != nil {
 		t.Fatalf("expected no unmarshal error for target umbuchung data, got %v", err)
 	}
@@ -850,11 +830,11 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 	quellEvents, _ := eventMock.ReadEventsBySubject(ctx, quellSubject)
 	zielEvents, _ := eventMock.ReadEventsBySubject(ctx, zielSubject)
 
-	var quellData bestellungUmgebuchtData
+	var quellData kasse.BestellungUmgebuchtV1Data
 	if err := json.Unmarshal(quellEvents[0].Data, &quellData); err != nil {
 		t.Fatalf("expected no unmarshal error for source umbuchung data, got %v", err)
 	}
-	var zielData bestellungUmgebuchtData
+	var zielData kasse.BestellungUmgebuchtV1Data
 	if err := json.Unmarshal(zielEvents[0].Data, &zielData); err != nil {
 		t.Fatalf("expected no unmarshal error for target umbuchung data, got %v", err)
 	}

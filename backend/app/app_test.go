@@ -158,9 +158,7 @@ func TestShutdown(t *testing.T) {
 	cfg := config.Load()
 	app := NewApp(cfg, &sql.DB{}, "dev")
 
-	if err := app.Shutdown(); err != nil {
-		t.Errorf("Shutdown() failed: %v", err)
-	}
+	app.Shutdown()
 }
 
 func TestRun_ContextCancellation(t *testing.T) {

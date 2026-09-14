@@ -74,14 +74,14 @@ func lebenszyklusKontext(r *http.Request) (context.Context, context.CancelFunc) 
 	return context.WithTimeout(context.WithoutCancel(r.Context()), tseSetupLebenszyklusTimeout)
 }
 
-type settingsCommand interface {
+type tseSetupCommand interface {
 	UpdateTSEKonfiguration(ctx context.Context, b tse.Konfiguration) error
 	RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, neuAnlegenTrotzVorhandener bool) (application.TSESetupErgebnis, error)
 	UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, tssID, pin, puk string) (application.TSESetupErgebnis, error)
 }
 
 type CommandHandler struct {
-	Command settingsCommand
+	Command tseSetupCommand
 }
 
 type updateTSEKonfigurationRequest struct {

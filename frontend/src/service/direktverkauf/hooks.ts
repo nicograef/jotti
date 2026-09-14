@@ -4,7 +4,7 @@ import { BackendSingleton } from '@/lib/Backend'
 
 import { DirektverkaufBackend } from './DirektverkaufBackend'
 
-const direktverkaufBackend = new DirektverkaufBackend(BackendSingleton)
+export const direktverkaufBackend = new DirektverkaufBackend(BackendSingleton)
 
 export function useDirektverkaufHistorie() {
   const {

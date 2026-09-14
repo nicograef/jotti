@@ -2,10 +2,10 @@ import { createContext, use, useEffect, useState } from 'react'
 
 type Theme = 'dark' | 'light' | 'system'
 
+const THEME_STORAGE_KEY = 'vite-ui-theme'
+
 interface ThemeProviderProps {
   children: React.ReactNode
-  defaultTheme?: Theme
-  storageKey?: string
 }
 
 interface ThemeProviderState {
@@ -22,14 +22,10 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
-export function ThemeProvider({
-  children,
-  defaultTheme = 'system',
-  storageKey = 'vite-ui-theme',
-}: ThemeProviderProps) {
+export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem(storageKey)
-    return (stored ?? defaultTheme) as Theme
+    const stored = localStorage.getItem(THEME_STORAGE_KEY)
+    return (stored ?? 'system') as Theme
   })
 
   const [prefersDark, setPrefersDark] = useState(
@@ -66,7 +62,7 @@ export function ThemeProvider({
     theme,
     isDark,
     setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
+      localStorage.setItem(THEME_STORAGE_KEY, theme)
       setTheme(theme)
     },
   }
@@ -75,7 +71,4 @@ export function ThemeProvider({
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useTheme = () => {
-  const context = use(ThemeProviderContext)
-  return context
-}
+export const useTheme = () => use(ThemeProviderContext)

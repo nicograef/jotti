@@ -41,7 +41,7 @@ type createUserResponse struct {
 	OnetimePassword string `json:"onetimePassword"`
 }
 
-func (h CommandHandler) CreateUserHandler() http.HandlerFunc {
+func (h *CommandHandler) CreateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := createUserRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, createUserSchema) {
@@ -74,7 +74,7 @@ var updateUserSchema = z.Struct(z.Shape{
 	"Role":     user.RoleSchema.Required(),
 })
 
-func (h CommandHandler) UpdateUserHandler() http.HandlerFunc {
+func (h *CommandHandler) UpdateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := updateUserRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, updateUserSchema) {
@@ -118,7 +118,7 @@ type resetPasswordResponse struct {
 	OnetimePassword string `json:"onetimePassword"`
 }
 
-func (h CommandHandler) ResetPasswordHandler() http.HandlerFunc {
+func (h *CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := resetPasswordRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, resetPasswordSchema) {
@@ -145,7 +145,7 @@ var activateUserSchema = z.Struct(z.Shape{
 	"ID": user.IDSchema.Required(),
 })
 
-func (h CommandHandler) ActivateUserHandler() http.HandlerFunc {
+func (h *CommandHandler) ActivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := activateUserRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, activateUserSchema) {
@@ -172,7 +172,7 @@ var deactivateUserSchema = z.Struct(z.Shape{
 	"ID": user.IDSchema.Required(),
 })
 
-func (h CommandHandler) DeactivateUserHandler() http.HandlerFunc {
+func (h *CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deactivateUserRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, deactivateUserSchema) {
@@ -210,7 +210,7 @@ var deleteUserSchema = z.Struct(z.Shape{
 	"ID": user.IDSchema.Required(),
 })
 
-func (h CommandHandler) DeleteUserHandler() http.HandlerFunc {
+func (h *CommandHandler) DeleteUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := deleteUserRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, deleteUserSchema) {

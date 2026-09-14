@@ -11,7 +11,7 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 )
 
@@ -233,7 +233,7 @@ func produktPosition(varianteID int, produktName, varianteName, kategorie string
 // vorhanden, dürfen den Produkt-Umsatz aber NICHT verändern: er ist der
 // Bestellwert der ausgegebenen Portionen, nicht der kassierte Umsatz.
 func TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -315,7 +315,7 @@ func TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis(t *testing.T) {
 // bestellung-umgebucht:v1 weder Menge noch Umsatz verändert (die Positionen sind
 // bereits bei der Bestellung erfasst).
 func TestGetProduktStatistik_UmbuchungZaehltNicht(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -353,7 +353,7 @@ func TestGetProduktStatistik_UmbuchungZaehltNicht(t *testing.T) {
 // resolves the current Klarname for both active and soft-deleted users, while the frozen
 // username stays the maßgebliche identity in the event rows.
 func TestGetReporting_ResolvesKlarnameIncludingSoftDeleted(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -417,7 +417,7 @@ func TestGetReporting_ResolvesKlarnameIncludingSoftDeleted(t *testing.T) {
 // Stornoquote count both storno kinds: the cash-relevant Warenrücknahme (stornierung-erteilt,
 // marked as Bar-Rückgabe) and the geldneutral Korrektur (bestellung-korrigiert).
 func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -480,7 +480,7 @@ func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
 // Geldneutrale Korrekturen bleiben außen vor (kein Umsatz). Das Repo liefert
 // unaggregierte Zeilen; die Aufschlüsselung rechnet die Anwendungsschicht.
 func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -527,7 +527,7 @@ func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
 // Abschlusszeitpunkt, den abschließenden Benutzer (eingefrorener user_name) und
 // die Kassensturz-Differenz aus dem kassensturz-durchgefuehrt:v1-Event.
 func TestGetReporting_MetadatenAusJournalEvents(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -574,7 +574,7 @@ func TestGetReporting_MetadatenAusJournalEvents(t *testing.T) {
 // Kassensturz/Tagesabschluss) die optionalen Metadaten sauber leer lässt statt
 // beim NULL-Scan zu scheitern.
 func TestGetReporting_MetadatenLeerOhneAbschlussEvents(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -620,7 +620,7 @@ func TestGetReporting_MetadatenLeerOhneAbschlussEvents(t *testing.T) {
 // stellvertretend eine von einer Servicekraft kassierte Zahlung zurück, ist die
 // Servicekraft die betroffene Person; die Serviceleitung bleibt der Akteur.
 func TestGetStornierungen_RuecknahmeTrifftDenKassierer(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -657,7 +657,7 @@ func TestGetStornierungen_RuecknahmeTrifftDenKassierer(t *testing.T) {
 // zwei Zahlungen verschiedener Kassierer erzeugt (FIFO je Zahlung) zwei Events —
 // jedes nennt seinen eigenen Kassierer, nicht beide zusammen.
 func TestGetStornierungen_JedeZahlungTrifftIhrenKassierer(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -692,7 +692,7 @@ func TestGetStornierungen_JedeZahlungTrifftIhrenKassierer(t *testing.T) {
 // über Positionen zweier Besteller listet beide als betroffen — jeden genau
 // einmal, auch wenn mehrere seiner Positionen betroffen sind.
 func TestGetStornierungen_KorrekturNenntAlleBesteller(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -732,7 +732,7 @@ func TestGetStornierungen_KorrekturNenntAlleBesteller(t *testing.T) {
 // Bestellungen darf die Person trotzdem nur einmal nennen — sonst zählt der
 // Storno-Marker sie doppelt.
 func TestGetStornierungen_UmbenannteServicekraftErscheintEinmal(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -774,7 +774,7 @@ func TestGetStornierungen_UmbenannteServicekraftErscheintEinmal(t *testing.T) {
 // solchen Position findet daher keinen Besteller und fällt — wie jeder nicht
 // auflösbare Verweis — auf den Akteur zurück, statt ohne Zuordnung zu bleiben.
 func TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)
@@ -823,7 +823,7 @@ func TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck(t *
 // Direktverkauf-Storno durch einen anderen Benutzer nennt den ursprünglichen
 // Verkäufer als betroffene Person.
 func TestGetStornierungen_DirektverkaufStornoNenntDenVerkaeufer(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)

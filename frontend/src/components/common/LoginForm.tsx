@@ -75,7 +75,6 @@ export function LoginForm(props: LoginFormProps) {
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
-            return false
           }}
         >
           <FieldGroup className="gap-2">

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
@@ -79,7 +79,7 @@ func cleanSeedDB(t *testing.T, db *sql.DB) {
 }
 
 func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	cleanSeedDB(t, db)
 	t.Cleanup(func() { cleanSeedDB(t, db) })
 
@@ -191,8 +191,7 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 		t.Errorf("%d nicht-fiskalische Events tragen einen Signaturauftrag", nichtFiskalischMitAuftrag)
 	}
 
-	// Signaturaufträge existieren in den drei verbleibenden Status (offen, erledigt,
-	// fehlgeschlagen); den Status verworfen gibt es nicht mehr.
+	// Die Signaturaufträge des Szenarios decken die Status offen, erledigt und fehlgeschlagen ab.
 	for status, mindestens := range map[string]int{"offen": 1, "erledigt": 2, "fehlgeschlagen": 1} {
 		var anzahl int
 		if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege WHERE status = $1", status).Scan(&anzahl); err != nil {
@@ -322,7 +321,7 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 // wiederholt und ohne am Kassenjournal-Guard zu scheitern (Grundlage des
 // Test-Reset-Endpoints POST /test/reset-and-seed).
 func TestResetAndSeed_LeertUndSeedetNeu(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	cleanSeedDB(t, db)
 	t.Cleanup(func() { cleanSeedDB(t, db) })
 

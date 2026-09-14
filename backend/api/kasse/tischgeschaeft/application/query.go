@@ -27,17 +27,24 @@ type Query struct {
 	KassensitzungenRepo kassensitzungenRepo
 }
 
+func (q Query) aktiveKassensitzungNr(ctx context.Context) (int, error) {
+	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if ks == nil {
+		return 0, nil
+	}
+	return ks.ZNr, nil
+}
+
 func (q Query) GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error) {
 	log := zerolog.Ctx(ctx)
 
-	kassensitzungNr := 0
-	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
+	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get aktive kassensitzung for active tische")
 		return nil, ErrDatabase
-	}
-	if ks != nil {
-		kassensitzungNr = ks.ZNr
 	}
 
 	tische, err := q.TischRepo.GetAktiveTische(ctx, kassensitzungNr)
@@ -63,14 +70,10 @@ func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (Tisc
 		return TischStateView{}, ErrDatabase
 	}
 
-	kassensitzungNr := 0
-	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
+	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to get aktive kassensitzung")
 		return TischStateView{}, ErrDatabase
-	}
-	if ks != nil {
-		kassensitzungNr = ks.ZNr
 	}
 
 	subject := kasse.TischSessionSubject(kassensitzungNr, tischID)
@@ -95,14 +98,10 @@ func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (Tisc
 func (q Query) GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]t.AktiverTischMitFavorit, error) {
 	log := zerolog.Ctx(ctx)
 
-	kassensitzungNr := 0
-	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
+	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
 	if err != nil {
 		log.Error().Err(err).Int("user_id", userID).Msg("Failed to get aktive kassensitzung")
 		return nil, ErrDatabase
-	}
-	if ks != nil {
-		kassensitzungNr = ks.ZNr
 	}
 
 	tische, err := q.TischRepo.GetAktiveTischeMitFavoriten(ctx, userID, kassensitzungNr)
@@ -129,14 +128,10 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 		return []TischStateView{}, nil
 	}
 
-	kassensitzungNr := 0
-	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
+	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
 	if err != nil {
 		log.Error().Err(err).Int("user_id", userID).Msg("Failed to get aktive kassensitzung")
 		return nil, ErrDatabase
-	}
-	if ks != nil {
-		kassensitzungNr = ks.ZNr
 	}
 
 	// Ein Batch statt N+1: Name + projizierte Session aller Favoriten in einer Query.
@@ -174,14 +169,10 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]kasse.HistorieEintrag, error) {
 	log := zerolog.Ctx(ctx)
 
-	kassensitzungNr := 0
-	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
+	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
 	if err != nil {
 		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to get aktive kassensitzung for historie")
 		return nil, ErrDatabase
-	}
-	if ks != nil {
-		kassensitzungNr = ks.ZNr
 	}
 
 	subject := kasse.TischSessionSubject(kassensitzungNr, tischID)

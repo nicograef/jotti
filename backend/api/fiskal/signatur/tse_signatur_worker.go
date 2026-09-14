@@ -176,14 +176,12 @@ func (w *tseSignaturWorker) ensureLock(ctx context.Context) bool {
 	}
 
 	if w.lockConn != nil {
-		if err := w.lockConn.PingContext(ctx); err == nil {
-			if w.lockHeld {
-				return true
-			}
-		} else {
+		if err := w.lockConn.PingContext(ctx); err != nil {
 			w.lockConn.Close() //nolint:errcheck,gosec // Connection ist bereits abgerissen
 			w.lockConn = nil
 			w.lockHeld = false
+		} else if w.lockHeld {
+			return true
 		}
 	}
 

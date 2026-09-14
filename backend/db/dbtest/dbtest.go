@@ -1,12 +1,19 @@
-package db
+// Package dbtest öffnet die Postgres-Testdatenbank der Integrationstests aus
+// den POSTGRES_*-Umgebungsvariablen (Vorgaben: localhost:5432, admin/admin, jotti).
+package dbtest
 
 import (
 	"database/sql"
 	"fmt"
 	"os"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func OpenTestDatabase() *sql.DB {
+// Open verbindet sich mit der Testdatenbank und beendet den Testprozess, wenn
+// keine Verbindung zustande kommt: ohne Datenbank ist kein Integrationstest
+// aussagekräftig.
+func Open() *sql.DB {
 	host := envOrDefault("POSTGRES_HOST", "localhost")
 	port := envOrDefault("POSTGRES_PORT", "5432")
 	user := envOrDefault("POSTGRES_USER", "admin")

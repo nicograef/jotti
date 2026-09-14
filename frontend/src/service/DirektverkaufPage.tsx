@@ -3,17 +3,16 @@ import { useCallback, useState } from 'react'
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { BackendSingleton } from '@/lib/Backend'
 
 import { Direktverkauf } from './components/direktverkauf/Direktverkauf'
 import { DirektverkaufHistorie } from './components/direktverkauf/DirektverkaufHistorie'
 import { ErfolgsPop } from './components/ErfolgsPop'
 import { dockFreiraum, ServiceDock } from './components/ServiceDock'
-import { DirektverkaufBackend } from './direktverkauf/DirektverkaufBackend'
-import { useDirektverkaufHistorie } from './direktverkauf/hooks'
+import {
+  direktverkaufBackend,
+  useDirektverkaufHistorie,
+} from './direktverkauf/hooks'
 import { useAktiveProdukte } from './product/hooks'
-
-const direktverkaufBackend = new DirektverkaufBackend(BackendSingleton)
 
 export function DirektverkaufPage() {
   const isMobile = useIsMobile()

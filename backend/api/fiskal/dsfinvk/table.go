@@ -21,13 +21,11 @@ type Table struct {
 	Records     [][]string
 }
 
-func (t Table) header() []string { return t.Columns }
-
 // serializeCSV rendert die Tabelle als DSFinV-K-CSV: eine Header-Zeile mit den
 // Spaltennamen, dann je Datensatz eine Zeile.
 func serializeCSV(t Table) []byte {
 	var b strings.Builder
-	writeCSVRow(&b, t.header())
+	writeCSVRow(&b, t.Columns)
 	for _, record := range t.Records {
 		writeCSVRow(&b, record)
 	}

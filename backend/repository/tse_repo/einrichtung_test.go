@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
@@ -25,7 +25,7 @@ type einrichtungsUmgebung struct {
 
 func setupEinrichtung(t *testing.T) (Repository, *einrichtungsUmgebung, func(t *testing.T)) {
 	t.Helper()
-	database := dbpkg.OpenTestDatabase()
+	database := dbtest.Open()
 
 	reset := func(t *testing.T) {
 		t.Helper()

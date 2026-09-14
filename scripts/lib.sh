@@ -53,6 +53,18 @@ require_docker_stack() {
   fi
 }
 
+# wait_for_healthy CONTAINER — polls the Docker healthcheck for up to 60 s;
+# returns 1 if the container is not healthy by then.
+wait_for_healthy() {
+  local container="$1" status
+  for _ in $(seq 1 30); do
+    status="$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || echo unknown)"
+    [[ "$status" == "healthy" ]] && return 0
+    sleep 2
+  done
+  return 1
+}
+
 resolve_backup_dir() {
   BACKUP_DIR="${BACKUP_DIR:-$(read_env BACKUP_DIR)}"
   [[ -n "$BACKUP_DIR" ]] || BACKUP_DIR="./backups"
@@ -88,4 +100,23 @@ decompress() {
   else
     cat "$SELECTED"
   fi
+}
+
+# tracked_text_files — the tracked corpus both repo-wide text gates police.
+# Excluded: paths frozen by the freeze discipline, rule texts that quote the
+# banned words themselves, and generated or vendored files.
+tracked_text_files() {
+  git ls-files \
+    ':(glob,exclude)CHANGELOG.md' \
+    ':(glob,exclude)docs/plans/**' \
+    ':(glob,exclude)docs/rechtsquellen/**' \
+    ':(glob,exclude)database/migrations/**' \
+    ':(glob,exclude)backend/sqlc/dbgen/**' \
+    ':(glob,exclude)AGENTS.md' \
+    ':(glob,exclude).github/copilot-instructions.md' \
+    ':(glob,exclude).github/instructions/**' \
+    ':(glob,exclude).claude/**' \
+    ':(glob,exclude)reverse-proxy/caddyfile.go' \
+    ':(glob,exclude)**/pnpm-lock.yaml' \
+    ':(glob,exclude)**/go.sum'
 }

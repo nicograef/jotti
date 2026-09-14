@@ -61,7 +61,7 @@ func TestMapError_WrappedError(t *testing.T) {
 	assertMappedError(t, fmt.Errorf("laden fehlgeschlagen: %w", errFirst), http.StatusBadRequest, "first_code")
 }
 
-func TestSendJSONResponse(t *testing.T) {
+func TestSendResponse(t *testing.T) {
 	rec := httptest.NewRecorder()
 	data := map[string]string{"foo": "bar"}
 	SendResponse(rec, data)

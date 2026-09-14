@@ -19,14 +19,10 @@ import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import { RoleField } from './RoleField'
-import { type User, UserSchema } from './User'
-import type { UserBackend } from './UserBackend'
+import type { User } from './User'
+import { UpdateUserSchema, type UserBackend } from './UserBackend'
 
-const FormDataSchema = UserSchema.pick({
-  name: true,
-  username: true,
-  role: true,
-})
+const FormDataSchema = UpdateUserSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface EditUserDialogProps {

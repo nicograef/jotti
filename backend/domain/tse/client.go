@@ -47,13 +47,10 @@ type Credentials struct {
 }
 
 func (c Credentials) Validate() error {
-	hasApiKey := strings.TrimSpace(c.ApiKey) != ""
-	hasApiSecret := strings.TrimSpace(c.ApiSecret) != ""
-	hasTssID := strings.TrimSpace(c.TssID) != ""
-	hasClientID := strings.TrimSpace(c.ClientID) != ""
-
-	hasAll := hasApiKey && hasApiSecret && hasTssID && hasClientID
-	if !hasAll {
+	if strings.TrimSpace(c.ApiKey) == "" ||
+		strings.TrimSpace(c.ApiSecret) == "" ||
+		strings.TrimSpace(c.TssID) == "" ||
+		strings.TrimSpace(c.ClientID) == "" {
 		return ErrUnvollstaendigeCredentials
 	}
 	return nil

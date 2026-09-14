@@ -18,19 +18,14 @@ func NewMock(produkte []produkt.Produkt, err error) *mockRepo {
 
 	return &mockRepo{
 		produkte:  produktMap,
-		varianten: make(map[int]varianteWithProdukt),
+		varianten: make(map[int]produkt.VarianteMitProdukt),
 		err:       err,
 	}
 }
 
-type varianteWithProdukt struct {
-	variante  produkt.Variante
-	produktID int
-}
-
 type mockRepo struct {
 	produkte         map[int]produkt.Produkt
-	varianten        map[int]varianteWithProdukt
+	varianten        map[int]produkt.VarianteMitProdukt
 	err              error
 	updateProduktErr error
 }
@@ -43,7 +38,7 @@ func (m *mockRepo) SetUpdateProduktError(err error) {
 
 // AddVariante adds a variante to the mock repository, associated with a produkt.
 func (m *mockRepo) AddVariante(produktID int, v produkt.Variante) {
-	m.varianten[v.ID] = varianteWithProdukt{variante: v, produktID: produktID}
+	m.varianten[v.ID] = produkt.VarianteMitProdukt{Variante: v, ProduktID: produktID}
 }
 
 func (m *mockRepo) GetProdukt(ctx context.Context, id int) (produkt.Produkt, error) {
@@ -87,19 +82,19 @@ func (m *mockRepo) GetVariante(ctx context.Context, varianteID int) (produkt.Var
 	if !ok {
 		return produkt.Variante{}, db.ErrNotFound
 	}
-	return vp.variante, nil
+	return vp.Variante, nil
 }
 
 func (m *mockRepo) CreateVariante(ctx context.Context, produktID int, v produkt.Variante) (int, error) {
 	newID := len(m.varianten) + 1
 	v.ID = newID
-	m.varianten[newID] = varianteWithProdukt{variante: v, produktID: produktID}
+	m.varianten[newID] = produkt.VarianteMitProdukt{Variante: v, ProduktID: produktID}
 	return newID, m.err
 }
 
 func (m *mockRepo) UpdateVariante(ctx context.Context, v produkt.Variante) error {
 	if vp, ok := m.varianten[v.ID]; ok {
-		m.varianten[v.ID] = varianteWithProdukt{variante: v, produktID: vp.produktID}
+		m.varianten[v.ID] = produkt.VarianteMitProdukt{Variante: v, ProduktID: vp.ProduktID}
 	}
 	return m.err
 }
@@ -116,7 +111,7 @@ func (m *mockRepo) DeleteProduktMitVarianten(ctx context.Context, p produkt.Prod
 	for i := range p.Varianten {
 		v := p.Varianten[i]
 		if vp, ok := m.varianten[v.ID]; ok {
-			m.varianten[v.ID] = varianteWithProdukt{variante: v, produktID: vp.produktID}
+			m.varianten[v.ID] = produkt.VarianteMitProdukt{Variante: v, ProduktID: vp.ProduktID}
 		}
 	}
 	return nil
@@ -169,7 +164,7 @@ func (m *mockRepo) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]pr
 	result := make(map[int]produkt.VarianteMitProdukt, len(ids))
 	for _, id := range ids {
 		if vp, ok := m.varianten[id]; ok {
-			result[id] = produkt.VarianteMitProdukt{Variante: vp.variante, ProduktID: vp.produktID}
+			result[id] = vp
 		}
 	}
 	return result, nil

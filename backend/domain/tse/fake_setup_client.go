@@ -1,3 +1,5 @@
+//go:build unit
+
 package tse
 
 import "context"
@@ -28,7 +30,7 @@ type FakeSetupClient struct {
 	CreateTSSErr        error
 	GetAdminPUKResponse string
 	GetAdminPUKErr      error
-	StammdatenResponse  TSSStammdaten
+	StammdatenResponse  Stammdaten
 	StammdatenErr       error
 	PersonalisiereErr   error
 	SetAdminPINErr      error
@@ -65,11 +67,11 @@ func (f *FakeSetupClient) ListClients(_ context.Context, tssID string) ([]Client
 	return f.ClientsByTSS[tssID], nil
 }
 
-func (f *FakeSetupClient) RetrieveTSSStammdaten(_ context.Context, tssID string) (TSSStammdaten, error) {
+func (f *FakeSetupClient) RetrieveTSSStammdaten(_ context.Context, tssID string) (Stammdaten, error) {
 	f.StammdatenCalls++
 	f.StammdatenTssID = tssID
 	if f.StammdatenErr != nil {
-		return TSSStammdaten{}, f.StammdatenErr
+		return Stammdaten{}, f.StammdatenErr
 	}
 	return f.StammdatenResponse, nil
 }

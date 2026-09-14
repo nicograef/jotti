@@ -160,6 +160,19 @@ func toAbrechnungProServicekraft(werte []reporting.AbrechnungServicekraft) []abr
 	return out
 }
 
+func toSummary(s reporting.Summary) summaryResponse {
+	return summaryResponse{
+		GesamtUmsatzCents:        s.GesamtUmsatzCents,
+		GesamtBestellungenCents:  s.GesamtBestellungenCents,
+		GesamtStornierungenCents: s.GesamtStornierungenCents,
+		GeldtransitCents:         s.GeldtransitCents,
+		AnzahlBestellungen:       s.AnzahlBestellungen,
+		AnzahlStornierungen:      s.AnzahlStornierungen,
+		AnzahlDirektverkaeufe:    s.AnzahlDirektverkaeufe,
+		DirektverkaufUmsatzCents: s.DirektverkaufUmsatzCents,
+	}
+}
+
 func toUmsatzSteuersatz(u reporting.UmsatzSteuersatz) umsatzSteuersatzResponse {
 	return umsatzSteuersatzResponse{
 		Satz:        string(u.Satz),
@@ -170,10 +183,6 @@ func toUmsatzSteuersatz(u reporting.UmsatzSteuersatz) umsatzSteuersatzResponse {
 }
 
 func toUmsatzSteuersatzList(werte []reporting.UmsatzSteuersatz) []umsatzSteuersatzResponse {
-	if len(werte) == 0 {
-		return []umsatzSteuersatzResponse{}
-	}
-
 	out := make([]umsatzSteuersatzResponse, len(werte))
 	for i := range werte {
 		out[i] = toUmsatzSteuersatz(werte[i])
@@ -273,16 +282,7 @@ func toReportingResponse(d reporting.ReportingData) reportingResponse {
 			AbgeschlossenVon:          d.Metadaten.AbgeschlossenVon,
 			KassensturzDifferenzCents: d.Metadaten.KassensturzDifferenzCents,
 		},
-		Summary: summaryResponse{
-			GesamtUmsatzCents:        d.Summary.GesamtUmsatzCents,
-			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
-			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
-			GeldtransitCents:         d.Summary.GeldtransitCents,
-			AnzahlBestellungen:       d.Summary.AnzahlBestellungen,
-			AnzahlStornierungen:      d.Summary.AnzahlStornierungen,
-			AnzahlDirektverkaeufe:    d.Summary.AnzahlDirektverkaeufe,
-			DirektverkaufUmsatzCents: d.Summary.DirektverkaufUmsatzCents,
-		},
+		Summary: toSummary(d.Summary),
 		Breakdowns: breakdownsResponse{
 			AbrechnungProServicekraft: toAbrechnungProServicekraft(d.Breakdowns.AbrechnungProServicekraft),
 		},
@@ -449,16 +449,7 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 		Datum:            d.Datum.Format("2006-01-02"),
 		OffeneTische:     offeneTische,
 		OffeneSaldiCents: d.OffeneSaldiCents,
-		Summary: summaryResponse{
-			GesamtUmsatzCents:        d.Summary.GesamtUmsatzCents,
-			GesamtBestellungenCents:  d.Summary.GesamtBestellungenCents,
-			GesamtStornierungenCents: d.Summary.GesamtStornierungenCents,
-			GeldtransitCents:         d.Summary.GeldtransitCents,
-			AnzahlBestellungen:       d.Summary.AnzahlBestellungen,
-			AnzahlStornierungen:      d.Summary.AnzahlStornierungen,
-			AnzahlDirektverkaeufe:    d.Summary.AnzahlDirektverkaeufe,
-			DirektverkaufUmsatzCents: d.Summary.DirektverkaufUmsatzCents,
-		},
+		Summary:          toSummary(d.Summary),
 		Breakdowns: liveBreakdownsResponse{
 			Servicekraefte: toServicekraefteLive(d.Servicekraefte),
 		},

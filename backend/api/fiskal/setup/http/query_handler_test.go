@@ -16,7 +16,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-type mockSettingsQuery struct {
+type mockTSESetupQuery struct {
 	tse              tse.Konfiguration
 	err              error
 	verbindungStatus tse.VerbindungStatus
@@ -27,32 +27,32 @@ type mockSettingsQuery struct {
 	tseStatusErr     error
 }
 
-func (m *mockSettingsQuery) GetKassenidentitaet(_ context.Context) (tse.Kassenidentitaet, error) {
+func (m *mockTSESetupQuery) GetKassenidentitaet(_ context.Context) (tse.Kassenidentitaet, error) {
 	return tse.Kassenidentitaet{}, errors.New("not implemented")
 }
 
-func (m *mockSettingsQuery) GetTSEKonfiguration(_ context.Context) (tse.Konfiguration, error) {
+func (m *mockTSESetupQuery) GetTSEKonfiguration(_ context.Context) (tse.Konfiguration, error) {
 	if m.err != nil {
 		return tse.Konfiguration{}, m.err
 	}
 	return m.tse, nil
 }
 
-func (m *mockSettingsQuery) TestTSEVerbindung(_ context.Context) (tse.VerbindungStatus, error) {
+func (m *mockTSESetupQuery) TestTSEVerbindung(_ context.Context) (tse.VerbindungStatus, error) {
 	if m.verbindungErr != nil {
 		return tse.VerbindungStatus{}, m.verbindungErr
 	}
 	return m.verbindungStatus, nil
 }
 
-func (m *mockSettingsQuery) CheckTSESetup(_ context.Context, _ tse.SetupCredentials) (application.TSESetupBefund, error) {
+func (m *mockTSESetupQuery) CheckTSESetup(_ context.Context, _ tse.SetupCredentials) (application.TSESetupBefund, error) {
 	if m.setupErr != nil {
 		return application.TSESetupBefund{}, m.setupErr
 	}
 	return m.setupBefund, nil
 }
 
-func (m *mockSettingsQuery) GetTSEStatus(_ context.Context) (application.TSEStatus, error) {
+func (m *mockTSESetupQuery) GetTSEStatus(_ context.Context) (application.TSEStatus, error) {
 	if m.tseStatusErr != nil {
 		return application.TSEStatus{}, m.tseStatusErr
 	}
@@ -60,7 +60,7 @@ func (m *mockSettingsQuery) GetTSEStatus(_ context.Context) (application.TSEStat
 }
 
 func TestGetTSEKonfigurationHandler_MaskedResponse(t *testing.T) {
-	h := &QueryHandler{Query: &mockSettingsQuery{tse: tse.Konfiguration{
+	h := &QueryHandler{Query: &mockTSESetupQuery{tse: tse.Konfiguration{
 		ApiKey:    "my-api-key",
 		ApiSecret: "my-api-secret",
 		TssID:     "tss-123",
@@ -106,7 +106,7 @@ func TestGetTSEKonfigurationHandler_MaskedResponse(t *testing.T) {
 }
 
 func TestGetTSEKonfigurationHandler_NotFoundReturnsEmpty(t *testing.T) {
-	h := &QueryHandler{Query: &mockSettingsQuery{err: application.ErrNotFound}}
+	h := &QueryHandler{Query: &mockTSESetupQuery{err: application.ErrNotFound}}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/get-tse-konfiguration", nil)
 	rec := httptest.NewRecorder()
@@ -137,7 +137,7 @@ func TestGetTSEKonfigurationHandler_NotFoundReturnsEmpty(t *testing.T) {
 }
 
 func TestTestTSEVerbindungHandler_Success(t *testing.T) {
-	h := &QueryHandler{Query: &mockSettingsQuery{verbindungStatus: tse.VerbindungStatus{
+	h := &QueryHandler{Query: &mockTSESetupQuery{verbindungStatus: tse.VerbindungStatus{
 		Umgebung:            tse.UmgebungTest,
 		TSSState:            "INITIALIZED",
 		ClientState:         "REGISTERED",
@@ -182,7 +182,7 @@ func TestTestTSEVerbindungHandler_Success(t *testing.T) {
 }
 
 func TestTestTSEVerbindungHandler_NotConfigured(t *testing.T) {
-	h := &QueryHandler{Query: &mockSettingsQuery{verbindungErr: application.ErrTSENichtKonfiguriert}}
+	h := &QueryHandler{Query: &mockTSESetupQuery{verbindungErr: application.ErrTSENichtKonfiguriert}}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/test-tse-verbindung", nil)
 	rec := httptest.NewRecorder()
@@ -205,7 +205,7 @@ func TestTestTSEVerbindungHandler_NotConfigured(t *testing.T) {
 }
 
 func TestTestTSEVerbindungHandler_VerbindungFehlgeschlagen(t *testing.T) {
-	h := &QueryHandler{Query: &mockSettingsQuery{verbindungErr: application.ErrTSEVerbindungFehlgeschlagen}}
+	h := &QueryHandler{Query: &mockTSESetupQuery{verbindungErr: application.ErrTSEVerbindungFehlgeschlagen}}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/test-tse-verbindung", nil)
 	rec := httptest.NewRecorder()
@@ -228,7 +228,7 @@ func TestTestTSEVerbindungHandler_VerbindungFehlgeschlagen(t *testing.T) {
 }
 
 func TestCheckTSESetupHandler_Success(t *testing.T) {
-	h := &QueryHandler{Query: &mockSettingsQuery{setupBefund: application.TSESetupBefund{
+	h := &QueryHandler{Query: &mockTSESetupQuery{setupBefund: application.TSESetupBefund{
 		Umgebung: "TEST",
 		VorhandeneTSS: []application.TSSBefund{
 			{
@@ -284,7 +284,7 @@ func TestCheckTSESetupHandler_Success(t *testing.T) {
 }
 
 func TestCheckTSESetupHandler_FalscheZugangsdaten(t *testing.T) {
-	h := &QueryHandler{Query: &mockSettingsQuery{setupErr: application.ErrTSESetupZugangsdaten}}
+	h := &QueryHandler{Query: &mockTSESetupQuery{setupErr: application.ErrTSESetupZugangsdaten}}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-setup-pruefen",
 		strings.NewReader(`{"apiKey":"wrong","apiSecret":"wrong"}`))
@@ -308,7 +308,7 @@ func TestCheckTSESetupHandler_FalscheZugangsdaten(t *testing.T) {
 }
 
 func TestCheckTSESetupHandler_ValidationError(t *testing.T) {
-	h := &QueryHandler{Query: &mockSettingsQuery{}}
+	h := &QueryHandler{Query: &mockTSESetupQuery{}}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-setup-pruefen",
 		strings.NewReader(`{"apiKey":"","apiSecret":""}`))
@@ -332,7 +332,7 @@ func TestCheckTSESetupHandler_ValidationError(t *testing.T) {
 }
 
 func TestGetTSEStatusHandler_Success(t *testing.T) {
-	h := &QueryHandler{Query: &mockSettingsQuery{tseStatus: application.TSEStatus{
+	h := &QueryHandler{Query: &mockTSESetupQuery{tseStatus: application.TSEStatus{
 		Umgebung:        "TEST",
 		IstKonfiguriert: true,
 	}}}

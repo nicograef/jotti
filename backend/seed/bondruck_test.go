@@ -64,11 +64,11 @@ func TestDemoSzenario_Druckstationen(t *testing.T) {
 	}
 }
 
-// TestBaueDruckauftraege_StatusVerteilung prüft die Status-Dramaturgie: alle vier Status in
+// TestBuildDruckauftraege_StatusVerteilung prüft die Status-Dramaturgie: alle vier Status in
 // beiden Bon-Arten plausibel befüllt — überwiegend gedruckt (Quittung nach der Erstellung),
 // offene nur im Relay-Abholfenster, fehlgeschlagene mit ausgeschöpften Versuchen und
 // Fehlertext in einem Drucker-Ausfallfenster, genau einer verworfen.
-func TestBaueDruckauftraege_StatusVerteilung(t *testing.T) {
+func TestBuildDruckauftraege_StatusVerteilung(t *testing.T) {
 	s, _, _, auftraege := buildDruckDaten(t)
 	fenster := druckerFensterAus(s, testJetzt)
 
@@ -141,12 +141,12 @@ func TestBaueDruckauftraege_StatusVerteilung(t *testing.T) {
 	}
 }
 
-// TestBaueDruckauftraege_ReferenzenUndPayloads prüft die fachliche Konsistenz: Jede Referenz
+// TestBuildDruckauftraege_ReferenzenUndPayloads prüft die fachliche Konsistenz: Jede Referenz
 // verweist auf das Event mit passendem Typ und passender ID, jede Bestellung und jeder
 // Direktverkauf hat Arbeits- bzw. Abholbons, und die Payloads sind echte ESC/POS-Bytes —
 // Kassenbelege inklusive Betreiber, Gesamtsumme und TSE-QR-Daten aus den Signaturspalten
 // des Auftrags. Vorgänge ohne quittierte Signatur erhalten keinen Kassenbeleg-Druckauftrag.
-func TestBaueDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
+func TestBuildDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 	s, daten, signaturen, auftraege := buildDruckDaten(t)
 
 	abholbonIP := ""

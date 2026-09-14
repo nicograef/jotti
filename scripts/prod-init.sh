@@ -103,17 +103,7 @@ info "Starting production stack..."
 docker compose -f "$COMPOSE_PROD" up -d
 
 info "Waiting for the backend to become healthy..."
-backend_healthy=false
-for _ in $(seq 1 30); do
-  status="$(docker inspect -f '{{.State.Health.Status}}' jotti-backend 2>/dev/null || echo unknown)"
-  if [[ "$status" == "healthy" ]]; then
-    backend_healthy=true
-    break
-  fi
-  sleep 2
-done
-
-if [[ "$backend_healthy" != true ]]; then
+if ! wait_for_healthy jotti-backend; then
   error "Backend did not become healthy in time."
   fatal "Check logs with: docker compose -f $COMPOSE_PROD logs -f"
 fi

@@ -236,9 +236,9 @@ Alle Stammdaten verwenden Soft-Delete via `status = 'deleted'`. Datensätze werd
 
 ### 4.1 Produkt-Aggregat
 
-Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produkt gehört zu einer Kategorie (`essen`, `getraenk`, `sonstiges`) und kann beliebig viele Varianten besitzen, jede Variante mit eigenem Namen und Preis (Cent, ≥ 0).
+Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produkt gehört zu einer Kategorie (`essen`, `getraenk`, `sonstiges`) und kann beliebig viele Varianten besitzen, jede Variante mit eigenem Namen und Preis (Cent, 1–99999).
 
-**Invarianten:** Produkt- und Variantennamen nicht leer; Kategorie gültig; Preis ≥ 0. Varianten können unabhängig vom Produkt deaktiviert werden (`inactive`) und erscheinen dann nicht im Service-Katalog.
+**Invarianten:** Produkt- und Variantennamen 3–100 Zeichen (getrimmt); Kategorie gültig; Preis 1–99999 Cent. Varianten können unabhängig vom Produkt deaktiviert werden (`inactive`) und erscheinen dann nicht im Service-Katalog.
 
 **Reihenfolge:** Produkte und Varianten tragen eine vom Admin gepflegte Anzeigereihenfolge (`reihenfolge`). Produkte sortieren nach `(Kategorie, Reihenfolge, ID)`, Varianten innerhalb ihres Produkts nach `(Reihenfolge, ID)`; die ID bleibt Tiebreaker. Neue Einträge landen am Ende ihres Geltungsbereichs, ein Kategoriewechsel setzt das Produkt ans Ende der Zielkategorie. Verschoben werden Ränge, nicht Werte: Der Geltungsbereich wird in derselben Transaktion dicht nummeriert, bevor die beiden Nachbarn tauschen — sonst bliebe ein Verschieben bei gleichen Werten wirkungslos. Die Reihenfolge ist reine Persistenz; das Backend liefert die fertig sortierte Liste.
 

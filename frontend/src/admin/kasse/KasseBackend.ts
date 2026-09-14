@@ -106,12 +106,11 @@ export class KasseBackend {
   }
 
   async getAktiveKassensitzung(): Promise<AktiveKassensitzung | null> {
-    const data = await this.backend.post(
+    return this.backend.post(
       'admin/get-aktive-kassensitzung',
       {},
       AktiveKassensitzungSchema.nullable(),
     )
-    return data
   }
 
   async getKassenbestand(kassensitzungNr: number): Promise<Kassenbestand> {

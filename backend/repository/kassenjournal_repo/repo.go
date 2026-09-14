@@ -446,22 +446,12 @@ func toNullTime(t *time.Time) sql.NullTime {
 	return sql.NullTime{Time: t.UTC(), Valid: true}
 }
 
+// eventFromReadRow baut ein Event aus einer Kassenjournal-Zeile.
+// ReadEventsBySubjectRow, ReadDirektverkaufEventsRow und
+// ReadKassensitzungEventsRow sind feldgleich (dieselben sqlc-Query-Spalten),
+// deshalb konvertiert jeder Aufrufer seine Zeile per Typkonvertierung auf
+// ReadEventsBySubjectRow.
 func eventFromReadRow(row dbgen.ReadEventsBySubjectRow) event.Event {
-	return event.Event{
-		ID:       row.ID,
-		UserID:   row.UserID,
-		UserName: row.UserName,
-		Version:  row.Version,
-		Type:     row.Type,
-		Subject:  row.Subject,
-		Data:     row.Data,
-		Time:     row.Timestamp,
-	}
-}
-
-// eventFromDirektverkaufRow: ReadDirektverkaufEvents selects the same columns as
-// ReadEventsBySubject, but sqlc emits a distinct row type.
-func eventFromDirektverkaufRow(row dbgen.ReadDirektverkaufEventsRow) event.Event {
 	return event.Event{
 		ID:       row.ID,
 		UserID:   row.UserID,
@@ -529,7 +519,7 @@ func (r Repository) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr
 
 	events := make([]event.Event, 0, len(rows))
 	for i := range rows {
-		events = append(events, eventFromDirektverkaufRow(rows[i]))
+		events = append(events, eventFromReadRow(dbgen.ReadEventsBySubjectRow(rows[i])))
 	}
 
 	return events, nil
@@ -556,19 +546,6 @@ func (r Repository) ReadEventsByKassensitzung(ctx context.Context, kassensitzung
 	return events, signaturen, nil
 }
 
-func eventFromKassensitzungEventsRow(row dbgen.ReadKassensitzungEventsRow) event.Event {
-	return event.Event{
-		ID:       row.ID,
-		UserID:   row.UserID,
-		UserName: row.UserName,
-		Version:  row.Version,
-		Type:     row.Type,
-		Subject:  row.Subject,
-		Data:     row.Data,
-		Time:     row.Timestamp,
-	}
-}
-
 // ReadKassensitzungEvents returns all events of the Kassensitzung ordered by ID
 // ascending, without the Signaturauftrag JOIN — only the DSFinV-K export
 // (ReadEventsByKassensitzung) needs it.
@@ -580,7 +557,7 @@ func (r Repository) ReadKassensitzungEvents(ctx context.Context, kassensitzungNr
 
 	events := make([]event.Event, 0, len(rows))
 	for i := range rows {
-		events = append(events, eventFromKassensitzungEventsRow(rows[i]))
+		events = append(events, eventFromReadRow(dbgen.ReadEventsBySubjectRow(rows[i])))
 	}
 
 	return events, nil

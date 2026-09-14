@@ -58,7 +58,7 @@ func (w *deadlineCapturingWriter) Write(b []byte) (int, error) {
 // Request-Start. Der Aufruf am Handler-Eingang deckt die frühen Fehlerpfade ab,
 // der Aufruf vor dem Schreiben gibt der Antwort ein eigenes Budget.
 func TestTSESetupHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing.T) {
-	command := &CommandHandler{Command: &mockSettingsCommand{}}
+	command := &CommandHandler{Command: &mockTSESetupCommand{}}
 
 	faelle := []struct {
 		route   string

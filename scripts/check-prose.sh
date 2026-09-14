@@ -16,21 +16,7 @@ ALLOWLIST="scripts/check-prose.allow"
 
 PATTERN='(bisher|bisherige[nrs]?|früher|frühere[nrs]?|frueher|fruehere[nrs]?|bislang|vormals|neuerdings|Phase [0-9]+|NEU[0-9]{2}|Muster [0-9]+|Befund #[0-9]*|Design-Handoff|design_handoff|Seit Version [0-9]+|Ab Version [0-9]+)'
 
-# Excluded: paths frozen by the freeze discipline, rule texts that quote the
-# banned words themselves, and generated or vendored files.
-mapfile -t files < <(git ls-files \
-  ':(glob,exclude)CHANGELOG.md' \
-  ':(glob,exclude)docs/plans/**' \
-  ':(glob,exclude)docs/rechtsquellen/**' \
-  ':(glob,exclude)database/migrations/**' \
-  ':(glob,exclude)backend/sqlc/dbgen/**' \
-  ':(glob,exclude)AGENTS.md' \
-  ':(glob,exclude).github/copilot-instructions.md' \
-  ':(glob,exclude).github/instructions/**' \
-  ':(glob,exclude).claude/**' \
-  ':(glob,exclude)reverse-proxy/caddyfile.go' \
-  ':(glob,exclude)**/pnpm-lock.yaml' \
-  ':(glob,exclude)**/go.sum')
+mapfile -t files < <(tracked_text_files)
 
 # Allowlist: one path per line, an optional trailing "# reason".
 mapfile -t allowed < <(

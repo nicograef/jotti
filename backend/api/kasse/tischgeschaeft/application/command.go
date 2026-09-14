@@ -106,25 +106,13 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 	return nil
 }
 
-func writeEvent(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int) error {
-	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
-		return repo.WriteEvent(ctx, versioned, streamType, kassensitzungNr)
-	})
-}
-
-// writeEventWithDruckauftraege writes the event and the Druckaufträge built from it in one
-// transaction (transactional outbox); buildAuftraege sees the stored event with its generated ID.
-func writeEventWithDruckauftraege(ctx context.Context, repo eventRepo, e event.Event, subject string, expectedVersion int, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
-	return writeEventOCC(ctx, e, subject, expectedVersion, func(versioned event.Event) (int, error) {
-		return repo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
-	})
-}
-
 // persistTischEvent writes the tisch-session event with OCC; aktion is the success log message.
 func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
 	log := zerolog.Ctx(ctx)
 
-	if err := writeEvent(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr); err != nil {
+	if err := writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
+		return c.EventRepo.WriteEvent(ctx, versioned, kasse.StreamTypeTischSession, kassensitzungNr)
+	}); err != nil {
 		// Beides sind fachliche 409-Antworten (OCC-Konflikt; Kassensitzung zwischen Lesen und
 		// Schreiben geschlossen) — im ErrDatabase-Fallback würden sie zu 500.
 		if errors.Is(err, ErrConflict) || errors.Is(err, ErrKasseNichtGeoeffnet) {
@@ -209,7 +197,11 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return ErrDatabase
 	}
 
-	err = writeEventWithDruckauftraege(ctx, c.EventRepo, evt, subject, expectedVersion, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
+	// Writes the event and the Druckaufträge built from it in one transaction
+	// (transactional outbox); buildAuftraege sees the stored event with its generated ID.
+	err = writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
+		return c.EventRepo.WriteEventWithDruckauftraege(ctx, versioned, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
+	})
 	if err != nil {
 		if errors.Is(err, ErrConflict) {
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeBestellungAufgenommenV1), bestellungID, "bestellungId")

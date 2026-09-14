@@ -6,11 +6,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strconv"
 	"testing"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tisch"
@@ -18,7 +20,7 @@ import (
 )
 
 func setup(t *testing.T) (Repository, func(t *testing.T)) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 
 	// tisch_favoriten trägt einen Fremdschlüssel auf tische und muss deshalb
 	// zuerst geleert werden.
@@ -304,7 +306,7 @@ func TestUpdateTischDB_NotFound(t *testing.T) {
 // drive the projection) and a freshly created user + offene Kassensitzung.
 func setupSaldo(t *testing.T) (Repository, kassenjournal_repo.Repository, *sql.DB, int, int, func()) {
 	t.Helper()
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 
 	cleanSaldo(t, db)
 
@@ -389,9 +391,9 @@ func writeBestellung(t *testing.T, kjRepo kassenjournal_repo.Repository, userID,
 }
 
 // itoaLast returns the last decimal digit of n as a string, keeping the fabricated
-// UUIDs above unique per tisch without pulling in strconv for a single digit.
+// UUIDs above unique per tisch.
 func itoaLast(n int) string {
-	return string(rune('0' + n%10))
+	return strconv.Itoa(n % 10)
 }
 
 func TestGetTischSaldiOffeneSitzungDB(t *testing.T) {

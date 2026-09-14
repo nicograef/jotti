@@ -21,7 +21,12 @@ import type { DirektverkaufHistorieEintrag } from '../../direktverkauf/Direktver
 import type { DirektverkaufBackend } from '../../direktverkauf/DirektverkaufBackend'
 import { PositionAuswahlListe } from '../PositionAuswahlListe'
 import { KommentarField } from '../table/CommentField'
-import { calculateTotalPrice, toAuswahlPositionen } from '../table/drawerUtils'
+import {
+  calculateTotalPrice,
+  selectPositionen,
+  toAuswahlPositionen,
+  toPositionRefs,
+} from '../table/drawerUtils'
 
 interface DirektverkaufStornoDrawerProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufStornieren'>
@@ -47,12 +52,7 @@ export function DirektverkaufStornoDrawer({
   // hinzu, weil er ein zweites Mal formuliert werden müsste.
   useOffenerVorgang(kommentar.trim() !== '')
 
-  const selectedPositionen = verkauf.offenePositionen
-    .map((position) => ({
-      ...position,
-      menge: mengen[position.positionId] || 0,
-    }))
-    .filter((position) => position.menge > 0)
+  const selectedPositionen = selectPositionen(verkauf.offenePositionen, mengen)
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
   const kommentarInvalid = kommentar.trim().length < 3
@@ -68,10 +68,7 @@ export function DirektverkaufStornoDrawer({
     await run(async () => {
       await backend.direktverkaufStornieren({
         verkaufId: verkauf.verkaufId,
-        positionen: selectedPositionen.map((position) => ({
-          positionId: position.positionId,
-          menge: position.menge,
-        })),
+        positionen: toPositionRefs(selectedPositionen),
         kommentar,
       })
     })
@@ -95,12 +92,8 @@ export function DirektverkaufStornoDrawer({
           <PositionAuswahlListe
             positionen={toAuswahlPositionen(verkauf.offenePositionen)}
             mengen={mengen}
-            onAdd={(id) => {
-              add(id)
-            }}
-            onRemove={(id) => {
-              remove(id)
-            }}
+            onAdd={add}
+            onRemove={remove}
           />
           {!noPositionenSelected && (
             <div className="flex justify-between font-bold px-4 pt-2 pb-2 border-t-2">

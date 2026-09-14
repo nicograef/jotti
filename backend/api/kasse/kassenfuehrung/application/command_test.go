@@ -155,8 +155,7 @@ func TestKasseAbschliessen_OhneDifferenz(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-
-		TSERepo: tseGateMock{},
+		TSERepo:             tseGateMock{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
@@ -186,8 +185,7 @@ func TestKasseAbschliessen_MitDifferenz(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-
-		TSERepo: tseGateMock{},
+		TSERepo:             tseGateMock{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500) // Ist = 495 EUR, Differenz = 500
@@ -386,8 +384,7 @@ func TestKasseAbschliessen_TischSaldoSperre(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
-
-		TSERepo: tseGateMock{},
+		TSERepo:             tseGateMock{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
@@ -424,8 +421,7 @@ func TestKasseAbschliessen_SetztBarriere(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
-
-		TSERepo: tseGateMock{},
+		TSERepo:             tseGateMock{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {
@@ -475,8 +471,7 @@ func TestKasseAbschliessen_KonfliktSetztStatusNichtZurueck(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
-
-		TSERepo: tseGateMock{},
+		TSERepo:             tseGateMock{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); !errors.Is(err, ErrConflict) {
@@ -497,8 +492,7 @@ func TestKasseAbschliessen_DeadlockMapsToKonflikt(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
-
-		TSERepo: tseGateMock{},
+		TSERepo:             tseGateMock{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); !errors.Is(err, ErrConflict) {
@@ -516,8 +510,7 @@ func TestKasseAbschliessen_WiederanlaufImZwischenstatus(t *testing.T) {
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: kassensitzungen_repo.NewMock(imAbschluss, nil),
-
-		TSERepo: tseGateMock{},
+		TSERepo:             tseGateMock{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {

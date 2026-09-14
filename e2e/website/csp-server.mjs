@@ -65,15 +65,10 @@ export async function startStaticServer(
         return
       }
       let info = await stat(filePath).catch(() => null)
+      // Astro emits pretty-URL directories; serve `<path>/index.html`.
       if (info?.isDirectory()) {
         filePath = join(filePath, 'index.html')
         info = await stat(filePath).catch(() => null)
-      }
-      if (!info) {
-        // Astro emits pretty-URL directories; fall back to `<path>/index.html`.
-        const fallback = join(root, urlPath, 'index.html')
-        info = await stat(fallback).catch(() => null)
-        if (info) filePath = fallback
       }
       if (!info) {
         res

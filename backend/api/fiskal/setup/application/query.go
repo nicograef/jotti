@@ -92,12 +92,7 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 		return tse.VerbindungStatus{}, ErrDatabase
 	}
 
-	credentials := tse.Credentials{
-		ApiKey:    conf.ApiKey,
-		ApiSecret: conf.ApiSecret,
-		TssID:     conf.TssID,
-		ClientID:  conf.ClientID,
-	}
+	credentials := conf.Credentials()
 	if err := credentials.Validate(); err != nil {
 		return tse.VerbindungStatus{}, ErrTSENichtKonfiguriert
 	}
@@ -213,12 +208,7 @@ func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
 		return status, nil
 	}
 
-	tester, err := q.NewTSEConnectionTester(tse.Credentials{
-		ApiKey:    conf.ApiKey,
-		ApiSecret: conf.ApiSecret,
-		TssID:     conf.TssID,
-		ClientID:  conf.ClientID,
-	})
+	tester, err := q.NewTSEConnectionTester(conf.Credentials())
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to create TSE connection tester for status")
 		return status, nil

@@ -76,7 +76,7 @@ export function AdminProductsPage() {
         onMoved={() => {
           invalidateProdukte()
         }}
-        onVariantCreated={(_produktId, variante) => {
+        onVariantCreated={(variante) => {
           invalidateProdukte()
           toast.success(`Variante "${variante.name}" wurde angelegt.`)
         }}

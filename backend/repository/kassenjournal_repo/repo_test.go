@@ -13,6 +13,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
@@ -229,7 +230,7 @@ func cleanDB(t *testing.T, db *sql.DB) {
 }
 
 func setup(t *testing.T) (int, int, Repository, func(t *testing.T)) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 
 	cleanDB(t, db)
 

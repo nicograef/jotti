@@ -12,8 +12,7 @@ import (
 func NewAuthApi(cfg config.Config, deps Deps) (http.Handler, []string) {
 	r := newRouteMux()
 
-	ah := authHTTP.CommandHandler{}
-	ah.Command = authApp.Command{UserRepo: deps.UserRepo, JWTSecret: cfg.JWTSecret, Throttle: throttle.NewLoginThrottle()}
+	ah := authHTTP.CommandHandler{Command: authApp.Command{UserRepo: deps.UserRepo, JWTSecret: cfg.JWTSecret, Throttle: throttle.NewLoginThrottle()}}
 	r.HandleFunc("/login", ah.LoginHandler())
 	r.HandleFunc("/set-password", ah.SetPasswordHandler())
 

@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
@@ -42,7 +42,7 @@ func cleanTischDB(t *testing.T, db *sql.DB) {
 
 func setupBestellungIntegration(t *testing.T) (ctx context.Context, cmd Command, db *sql.DB, userID, ksNr, tischID, produktID, varianteID int) {
 	t.Helper()
-	db = dbpkg.OpenTestDatabase()
+	db = dbtest.Open()
 	cleanTischDB(t, db)
 	t.Cleanup(func() {
 		cleanTischDB(t, db)

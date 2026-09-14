@@ -10,12 +10,12 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 )
 
 func setup(t *testing.T) (Repository, func(t *testing.T)) {
 	t.Helper()
-	database := dbpkg.OpenTestDatabase()
+	database := dbtest.Open()
 
 	_, err := database.Exec("DELETE FROM druckauftraege")
 	if err != nil {

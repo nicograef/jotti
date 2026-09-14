@@ -36,33 +36,33 @@ func (p *abbruchProbe) beobachte(ctx context.Context) {
 }
 
 type abbruchCommand struct {
-	*mockSettingsCommand
+	*mockTSESetupCommand
 	probe *abbruchProbe
 }
 
 func (c *abbruchCommand) RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, umgebung tse.Umgebung, neuAnlegen bool) (application.TSESetupErgebnis, error) {
 	c.probe.beobachte(ctx)
-	return c.mockSettingsCommand.RichteTSEEin(ctx, credentials, umgebung, neuAnlegen)
+	return c.mockTSESetupCommand.RichteTSEEin(ctx, credentials, umgebung, neuAnlegen)
 }
 
 func (c *abbruchCommand) UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, umgebung tse.Umgebung, tssID, pin, puk string) (application.TSESetupErgebnis, error) {
 	c.probe.beobachte(ctx)
-	return c.mockSettingsCommand.UebernimmTSE(ctx, credentials, umgebung, tssID, pin, puk)
+	return c.mockTSESetupCommand.UebernimmTSE(ctx, credentials, umgebung, tssID, pin, puk)
 }
 
 type abbruchQuery struct {
-	*mockSettingsQuery
+	*mockTSESetupQuery
 	probe *abbruchProbe
 }
 
 func (q *abbruchQuery) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, error) {
 	q.probe.beobachte(ctx)
-	return q.mockSettingsQuery.TestTSEVerbindung(ctx)
+	return q.mockTSESetupQuery.TestTSEVerbindung(ctx)
 }
 
 func (q *abbruchQuery) CheckTSESetup(ctx context.Context, credentials tse.SetupCredentials) (application.TSESetupBefund, error) {
 	q.probe.beobachte(ctx)
-	return q.mockSettingsQuery.CheckTSESetup(ctx, credentials)
+	return q.mockTSESetupQuery.CheckTSESetup(ctx, credentials)
 }
 
 // Die beiden schreibenden Endpunkte fahren einen fiskaly-Lebenszyklus, der nicht
@@ -81,7 +81,7 @@ func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing
 			route: "/admin/tse-einrichten",
 			body:  `{"apiKey":"key","apiSecret":"secret","umgebung":"TEST"}`,
 			handler: func(p *abbruchProbe) http.HandlerFunc {
-				h := &CommandHandler{Command: &abbruchCommand{mockSettingsCommand: &mockSettingsCommand{}, probe: p}}
+				h := &CommandHandler{Command: &abbruchCommand{mockTSESetupCommand: &mockTSESetupCommand{}, probe: p}}
 				return h.RichteTSEEinHandler()
 			},
 			erwarteStorniert: false,
@@ -90,7 +90,7 @@ func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing
 			route: "/admin/tse-uebernehmen",
 			body:  `{"apiKey":"key","apiSecret":"secret","umgebung":"TEST","tssId":"tss-123"}`,
 			handler: func(p *abbruchProbe) http.HandlerFunc {
-				h := &CommandHandler{Command: &abbruchCommand{mockSettingsCommand: &mockSettingsCommand{}, probe: p}}
+				h := &CommandHandler{Command: &abbruchCommand{mockTSESetupCommand: &mockTSESetupCommand{}, probe: p}}
 				return h.UebernimmTSEHandler()
 			},
 			erwarteStorniert: false,
@@ -99,7 +99,7 @@ func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing
 			route: "/admin/test-tse-verbindung",
 			body:  `{}`,
 			handler: func(p *abbruchProbe) http.HandlerFunc {
-				h := &QueryHandler{Query: &abbruchQuery{mockSettingsQuery: &mockSettingsQuery{}, probe: p}}
+				h := &QueryHandler{Query: &abbruchQuery{mockTSESetupQuery: &mockTSESetupQuery{}, probe: p}}
 				return h.TestTSEVerbindungHandler()
 			},
 			erwarteStorniert: true,
@@ -108,7 +108,7 @@ func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing
 			route: "/admin/tse-setup-pruefen",
 			body:  `{"apiKey":"key","apiSecret":"secret"}`,
 			handler: func(p *abbruchProbe) http.HandlerFunc {
-				h := &QueryHandler{Query: &abbruchQuery{mockSettingsQuery: &mockSettingsQuery{}, probe: p}}
+				h := &QueryHandler{Query: &abbruchQuery{mockTSESetupQuery: &mockTSESetupQuery{}, probe: p}}
 				return h.CheckTSESetupHandler()
 			},
 			erwarteStorniert: true,
@@ -151,7 +151,7 @@ func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing
 // (defer cancel) — abgekoppelt heisst nicht unsterblich.
 func TestTSESetupHandler_LebenszyklusKontextEndetMitDemHandler(t *testing.T) {
 	var erfasst context.Context
-	command := &kontextErfassendesCommand{mockSettingsCommand: &mockSettingsCommand{}, erfasst: &erfasst}
+	command := &kontextErfassendesCommand{mockTSESetupCommand: &mockTSESetupCommand{}, erfasst: &erfasst}
 	h := &CommandHandler{Command: command}
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-einrichten", strings.NewReader(`{"apiKey":"key","apiSecret":"secret","umgebung":"TEST"}`))
@@ -170,11 +170,11 @@ func TestTSESetupHandler_LebenszyklusKontextEndetMitDemHandler(t *testing.T) {
 }
 
 type kontextErfassendesCommand struct {
-	*mockSettingsCommand
+	*mockTSESetupCommand
 	erfasst *context.Context
 }
 
 func (c *kontextErfassendesCommand) RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, umgebung tse.Umgebung, neuAnlegen bool) (application.TSESetupErgebnis, error) {
 	*c.erfasst = ctx
-	return c.mockSettingsCommand.RichteTSEEin(ctx, credentials, umgebung, neuAnlegen)
+	return c.mockTSESetupCommand.RichteTSEEin(ctx, credentials, umgebung, neuAnlegen)
 }

@@ -111,10 +111,10 @@ func TestComputeAbschlussSummen(t *testing.T) {
 		return makeAbschlussEvent(EventTypeDirektverkaufStorniertV1, map[string]int{"gesamtStornierungCents": cents})
 	}
 	einlage := func(cents int) e.Event {
-		return makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]interface{}{"richtung": "einlage", "betragCents": cents})
+		return makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]any{"richtung": "einlage", "betragCents": cents})
 	}
 	entnahme := func(cents int) e.Event {
-		return makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]interface{}{"richtung": "entnahme", "betragCents": cents})
+		return makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]any{"richtung": "entnahme", "betragCents": cents})
 	}
 	// Summen-neutrale Events
 	bestellung := makeAbschlussEvent(EventTypeBestellungAufgenommenV1, map[string]int{"gesamtPreisCents": 500})
@@ -140,13 +140,13 @@ func TestComputeAbschlussSummen(t *testing.T) {
 			wantUmsatz: 800,
 		},
 		{
-			name:       "Warenruecknahme reduziert Umsatz und erhoet Stornierungen",
+			name:       "Warenruecknahme reduziert Umsatz und erhoeht Stornierungen",
 			events:     []e.Event{zahlung(500), warenruecknahme(300)},
 			wantUmsatz: 200,
 			wantStorno: 300,
 		},
 		{
-			name:       "Korrektur (geldneutral) erhoet Stornierungen ohne Umsatzwirkung",
+			name:       "Korrektur (geldneutral) erhoeht Stornierungen ohne Umsatzwirkung",
 			events:     []e.Event{zahlung(500), korrektur(200)},
 			wantUmsatz: 500,
 			wantStorno: 200,
@@ -157,18 +157,18 @@ func TestComputeAbschlussSummen(t *testing.T) {
 			wantUmsatz: 500,
 		},
 		{
-			name:       "Direktverkauf erhoet Umsatz",
+			name:       "Direktverkauf erhoeht Umsatz",
 			events:     []e.Event{direktverkauf(300)},
 			wantUmsatz: 300,
 		},
 		{
-			name:       "Direktverkauf-Storno reduziert Umsatz und erhoet Stornierungen",
+			name:       "Direktverkauf-Storno reduziert Umsatz und erhoeht Stornierungen",
 			events:     []e.Event{direktverkauf(500), dvStorno(250)},
 			wantUmsatz: 250,
 			wantStorno: 250,
 		},
 		{
-			name:        "Geldtransit Einlage erhoet Geldtransit",
+			name:        "Geldtransit Einlage erhoeht Geldtransit",
 			events:      []e.Event{einlage(1000)},
 			wantTransit: 1000,
 		},
@@ -242,8 +242,8 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		makeAbschlussEvent(EventTypeBestellungKorrigiertV1, map[string]int{"gesamtCents": 200}),
 		makeAbschlussEvent(EventTypeDirektverkaufGetaetigtV1, map[string]int{"gesamtbetragCents": 880}),
 		makeAbschlussEvent(EventTypeDirektverkaufStorniertV1, map[string]int{"gesamtStornierungCents": 335}),
-		makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]interface{}{"richtung": "einlage", "betragCents": 500}),
-		makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]interface{}{"richtung": "entnahme", "betragCents": 150}),
+		makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]any{"richtung": "einlage", "betragCents": 500}),
+		makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]any{"richtung": "entnahme", "betragCents": 150}),
 		// summen-neutrale Events
 		makeAbschlussEvent(EventTypeBestellungAufgenommenV1, map[string]int{"gesamtPreisCents": 999}),
 		makeAbschlussEvent(EventTypeKassensturzDurchgefuehrtV1, map[string]int{"sollBestandCents": 5000}),

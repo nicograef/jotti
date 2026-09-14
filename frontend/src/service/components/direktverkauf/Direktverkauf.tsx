@@ -13,7 +13,7 @@ interface DirektverkaufProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
   products: Produkt[]
   productsLoading: boolean
-  onErfolg?: (nachricht: string) => void
+  onErfolg: (nachricht: string) => void
 }
 
 export function Direktverkauf({
@@ -35,7 +35,7 @@ export function Direktverkauf({
 
   const verkaufAbgeschlossen = () => {
     reset()
-    onErfolg?.('Verkauf abgeschlossen.')
+    onErfolg('Verkauf abgeschlossen.')
   }
 
   const productList = (

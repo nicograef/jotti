@@ -31,8 +31,8 @@ const (
 	// aussperren.
 	DiagnoseSecretFehltMitDaten = "Es sind bereits jotti-Daten vorhanden, aber es wurden keine Zugangsdaten (.env) gefunden. " +
 		"jotti startet NICHT, um die vorhandenen Daten nicht mit neuen, falschen Zugangsdaten auszusperren.\n" +
-		"Gesucht wurde im jotti-Datentresor, unter \"%PROGRAMDATA%\\jotti\\.env\" und neben jotti-start.exe.\n" +
-		"Eine .env einer anderen jotti-Installation nach \"%PROGRAMDATA%\\jotti\\.env\" " +
+		"Gesucht wurde im jotti-Datentresor, unter \"C:\\ProgramData\\jotti\\.env\" und neben jotti-start.exe.\n" +
+		"Eine .env einer anderen jotti-Installation nach \"C:\\ProgramData\\jotti\\.env\" " +
 		"kopieren und jotti erneut starten."
 )
 

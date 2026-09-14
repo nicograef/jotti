@@ -14,7 +14,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-type mockSettingsCommand struct {
+type mockTSESetupCommand struct {
 	tse          tse.Konfiguration
 	err          error
 	einrichten   application.TSESetupErgebnis
@@ -23,7 +23,7 @@ type mockSettingsCommand struct {
 	uebernehmErr error
 }
 
-func (m *mockSettingsCommand) UpdateTSEKonfiguration(_ context.Context, b tse.Konfiguration) error {
+func (m *mockTSESetupCommand) UpdateTSEKonfiguration(_ context.Context, b tse.Konfiguration) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -31,14 +31,14 @@ func (m *mockSettingsCommand) UpdateTSEKonfiguration(_ context.Context, b tse.Ko
 	return nil
 }
 
-func (m *mockSettingsCommand) RichteTSEEin(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung, _ bool) (application.TSESetupErgebnis, error) {
+func (m *mockTSESetupCommand) RichteTSEEin(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung, _ bool) (application.TSESetupErgebnis, error) {
 	if m.einrichtErr != nil {
 		return application.TSESetupErgebnis{}, m.einrichtErr
 	}
 	return m.einrichten, nil
 }
 
-func (m *mockSettingsCommand) UebernimmTSE(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung, _, _, _ string) (application.TSESetupErgebnis, error) {
+func (m *mockTSESetupCommand) UebernimmTSE(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung, _, _, _ string) (application.TSESetupErgebnis, error) {
 	if m.uebernehmErr != nil {
 		return application.TSESetupErgebnis{}, m.uebernehmErr
 	}
@@ -46,7 +46,7 @@ func (m *mockSettingsCommand) UebernimmTSE(_ context.Context, _ tse.SetupCredent
 }
 
 func TestUpdateTSEKonfigurationHandler_Success(t *testing.T) {
-	mock := &mockSettingsCommand{}
+	mock := &mockTSESetupCommand{}
 	handler := &CommandHandler{Command: mock}
 
 	body := `{"apiKey":"my-key","apiSecret":"my-secret","tssId":"tss-123","clientId":"client-123"}`
@@ -74,7 +74,7 @@ func TestUpdateTSEKonfigurationHandler_Success(t *testing.T) {
 }
 
 func TestUpdateTSEKonfigurationHandler_ClearAllowed(t *testing.T) {
-	handler := &CommandHandler{Command: &mockSettingsCommand{}}
+	handler := &CommandHandler{Command: &mockTSESetupCommand{}}
 
 	body := `{"apiKey":"","apiSecret":"","tssId":"","clientId":""}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/update-tse-konfiguration", strings.NewReader(body))
@@ -89,7 +89,7 @@ func TestUpdateTSEKonfigurationHandler_ClearAllowed(t *testing.T) {
 }
 
 func TestUpdateTSEKonfigurationHandler_TooLongAPIKey(t *testing.T) {
-	handler := &CommandHandler{Command: &mockSettingsCommand{}}
+	handler := &CommandHandler{Command: &mockTSESetupCommand{}}
 
 	tooLong := strings.Repeat("a", 501)
 	body := `{"apiKey":"` + tooLong + `","apiSecret":"secret","tssId":"tss-1","clientId":"client-1"}`
@@ -105,7 +105,7 @@ func TestUpdateTSEKonfigurationHandler_TooLongAPIKey(t *testing.T) {
 }
 
 func TestUpdateTSEKonfigurationHandler_PartialValuesRejected(t *testing.T) {
-	handler := &CommandHandler{Command: &mockSettingsCommand{}}
+	handler := &CommandHandler{Command: &mockTSESetupCommand{}}
 
 	body := `{"apiKey":"my-key","apiSecret":"","tssId":"tss-1","clientId":"client-1"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/update-tse-konfiguration", strings.NewReader(body))
@@ -122,7 +122,7 @@ func TestUpdateTSEKonfigurationHandler_PartialValuesRejected(t *testing.T) {
 // Auch der manuelle Zugangsdaten-Pfad kommt als 409 an: Er teilt sich das Schloss
 // auf der TSE-Konfiguration mit Neuanlage und Übernahme.
 func TestUpdateTSEKonfigurationHandler_LaeuftBereits(t *testing.T) {
-	handler := &CommandHandler{Command: &mockSettingsCommand{err: application.ErrTSESetupLaeuftBereits}}
+	handler := &CommandHandler{Command: &mockTSESetupCommand{err: application.ErrTSESetupLaeuftBereits}}
 
 	body := `{"apiKey":"my-key","apiSecret":"my-secret","tssId":"tss-123","clientId":"client-123"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/update-tse-konfiguration", strings.NewReader(body))
@@ -142,7 +142,7 @@ func TestUpdateTSEKonfigurationHandler_LaeuftBereits(t *testing.T) {
 // TestRichteTSEEinHandler_Success sichert, dass PUK und Admin-PIN genau einmal
 // in der Antwort an die UI erscheinen.
 func TestRichteTSEEinHandler_Success(t *testing.T) {
-	mock := &mockSettingsCommand{einrichten: application.TSESetupErgebnis{
+	mock := &mockTSESetupCommand{einrichten: application.TSESetupErgebnis{
 		TssID:    "tss-neu",
 		ClientID: "kasse-serial",
 		PUK:      "puk-xyz",
@@ -182,7 +182,7 @@ func TestRichteTSEEinHandler_Success(t *testing.T) {
 // TestRichteTSEEinHandler_InvalidUmgebung sichert, dass eine ungültige Umgebung
 // abgewiesen wird, ohne den Orchestrator aufzurufen.
 func TestRichteTSEEinHandler_InvalidUmgebung(t *testing.T) {
-	handler := &CommandHandler{Command: &mockSettingsCommand{}}
+	handler := &CommandHandler{Command: &mockTSESetupCommand{}}
 
 	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"STAGING"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-einrichten", strings.NewReader(body))
@@ -197,7 +197,7 @@ func TestRichteTSEEinHandler_InvalidUmgebung(t *testing.T) {
 }
 
 func TestRichteTSEEinHandler_BereitsEingerichtet(t *testing.T) {
-	handler := &CommandHandler{Command: &mockSettingsCommand{einrichtErr: application.ErrTSEBereitsEingerichtet}}
+	handler := &CommandHandler{Command: &mockTSESetupCommand{einrichtErr: application.ErrTSEBereitsEingerichtet}}
 
 	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-einrichten", strings.NewReader(body))
@@ -219,7 +219,7 @@ func TestRichteTSEEinHandler_BereitsEingerichtet(t *testing.T) {
 // Anfrage war in Ordnung, nur der Zustand ist vorübergehend — der Admin soll
 // warten statt eine zweite, bezahlte TSS anzulegen.
 func TestRichteTSEEinHandler_LaeuftBereits(t *testing.T) {
-	handler := &CommandHandler{Command: &mockSettingsCommand{einrichtErr: application.ErrTSESetupLaeuftBereits}}
+	handler := &CommandHandler{Command: &mockTSESetupCommand{einrichtErr: application.ErrTSESetupLaeuftBereits}}
 
 	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-einrichten", strings.NewReader(body))
@@ -239,7 +239,7 @@ func TestRichteTSEEinHandler_LaeuftBereits(t *testing.T) {
 // TestUebernimmTSEHandler_LaeuftBereits sichert dieselbe Abbildung für die
 // Übernahme — sie teilt sich das Schloss mit der Neuanlage.
 func TestUebernimmTSEHandler_LaeuftBereits(t *testing.T) {
-	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupLaeuftBereits}}
+	handler := &CommandHandler{Command: &mockTSESetupCommand{uebernehmErr: application.ErrTSESetupLaeuftBereits}}
 
 	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST","tssId":"tss-halb"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-uebernehmen", strings.NewReader(body))
@@ -259,7 +259,7 @@ func TestUebernimmTSEHandler_LaeuftBereits(t *testing.T) {
 // TestUebernimmTSEHandler_Success sichert, dass die Übernahme die TSS-ID
 // entgegennimmt und das Ergebnis (inkl. ggf. neuer Geheimnisse) zurückgibt.
 func TestUebernimmTSEHandler_Success(t *testing.T) {
-	mock := &mockSettingsCommand{uebernehmen: application.TSESetupErgebnis{
+	mock := &mockTSESetupCommand{uebernehmen: application.TSESetupErgebnis{
 		TssID:    "tss-halb",
 		ClientID: "client-neu",
 		PUK:      "puk-refetch",
@@ -286,7 +286,7 @@ func TestUebernimmTSEHandler_Success(t *testing.T) {
 // TestUebernimmTSEHandler_FehlendeTssID sichert, dass die Übernahme ohne TSS-ID
 // abgewiesen wird, ohne den Orchestrator aufzurufen.
 func TestUebernimmTSEHandler_FehlendeTssID(t *testing.T) {
-	handler := &CommandHandler{Command: &mockSettingsCommand{}}
+	handler := &CommandHandler{Command: &mockTSESetupCommand{}}
 
 	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-uebernehmen", strings.NewReader(body))
@@ -301,7 +301,7 @@ func TestUebernimmTSEHandler_FehlendeTssID(t *testing.T) {
 }
 
 func TestUebernimmTSEHandler_UnbekanntePIN(t *testing.T) {
-	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupPINUnbekannt}}
+	handler := &CommandHandler{Command: &mockTSESetupCommand{uebernehmErr: application.ErrTSESetupPINUnbekannt}}
 
 	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST","tssId":"tss-init","pin":"0000000000"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-uebernehmen", strings.NewReader(body))
@@ -319,7 +319,7 @@ func TestUebernimmTSEHandler_UnbekanntePIN(t *testing.T) {
 }
 
 func TestUebernimmTSEHandler_UnbekannterPUK(t *testing.T) {
-	handler := &CommandHandler{Command: &mockSettingsCommand{uebernehmErr: application.ErrTSESetupPUKUnbekannt}}
+	handler := &CommandHandler{Command: &mockTSESetupCommand{uebernehmErr: application.ErrTSESetupPUKUnbekannt}}
 
 	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"TEST","tssId":"tss-init","puk":"falscher-puk"}`
 	req := httptest.NewRequest(http.MethodPost, "/admin/tse-uebernehmen", strings.NewReader(body))

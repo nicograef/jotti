@@ -25,7 +25,7 @@ import type { Tisch } from '../../table/Tisch'
 import type { TischBackend } from '../../table/TischBackend'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { Stepper } from '../Stepper'
-import { selectPositionen } from './drawerUtils'
+import { calculateTotalPrice, selectPositionen } from './drawerUtils'
 import { ZahlungAbschluss } from './ZahlungAbschluss'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
@@ -50,13 +50,7 @@ export function Zahlung({
   const [andereOffen, setAndereOffen] = useState(false)
   const erstAufbau = useErstAufbau(true)
 
-  const {
-    mengen,
-    add: onAdd,
-    remove: onRemove,
-    reset,
-    setAll,
-  } = mengenSteuerung
+  const { mengen, add, remove, reset, setAll } = mengenSteuerung
 
   const meinePositionen = positionen.filter(
     (position) => position.bestellerUserId === AuthSingleton.userId,
@@ -65,13 +59,9 @@ export function Zahlung({
     (position) => position.bestellerUserId !== AuthSingleton.userId,
   )
 
-  const auswahlSumme = positionen.reduce(
-    (summe, position) =>
-      summe + (mengen[position.positionId] || 0) * position.einzelpreisCents,
-    0,
-  )
-  const restNachZahlung = tisch.saldoCents - auswahlSumme
   const positionenToPay = selectPositionen(positionen, mengen)
+  const auswahlSumme = calculateTotalPrice(positionenToPay)
+  const restNachZahlung = tisch.saldoCents - auswahlSumme
 
   const alleEigenenVollAusgewaehlt =
     meinePositionen.length > 0 &&
@@ -128,10 +118,10 @@ export function Zahlung({
       unbezahlteMenge={position.menge}
       eintrittIndex={eintrittIndex}
       onAdd={() => {
-        onAdd(position.positionId)
+        add(position.positionId)
       }}
       onRemove={() => {
-        onRemove(position.positionId)
+        remove(position.positionId)
       }}
     />
   )

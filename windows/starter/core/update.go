@@ -45,17 +45,7 @@ func IsNewerVersion(current, latest string) bool {
 // die Reihenfolge ist dann unbekannt. Spiegelt is_downgrade aus
 // scripts/prod-update.sh.
 func IsDowngrade(exeVersion, dataVersion string) bool {
-	e, oke := parseSemver(exeVersion)
-	d, okd := parseSemver(dataVersion)
-	if !oke || !okd {
-		return false
-	}
-	for i := 0; i < 3; i++ {
-		if e[i] != d[i] {
-			return e[i] < d[i]
-		}
-	}
-	return false
+	return IsNewerVersion(exeVersion, dataVersion)
 }
 
 func parseSemver(s string) ([3]int, bool) {

@@ -68,11 +68,11 @@ func auftragProEventID(t *testing.T, auftraege []signaturauftragZeile) map[int]s
 	return auftragProEvent
 }
 
-// TestBaueSignaturauftraege_TypAbdeckung prüft die Paarigkeit von Events und Aufträgen:
+// TestBuildSignaturauftraege_TypAbdeckung prüft die Paarigkeit von Events und Aufträgen:
 // Genau die fiskalischen Event-Typen erhalten genau einen Auftrag mit korrektem processType
 // und Beginn = Event-Zeitstempel; nicht-fiskalische Typen erhalten keinen. Jeder fiskalische
 // Typ kommt im Szenario vor.
-func TestBaueSignaturauftraege_TypAbdeckung(t *testing.T) {
+func TestBuildSignaturauftraege_TypAbdeckung(t *testing.T) {
 	daten, _, auftraege := buildSignierteDaten(t)
 	auftragProEvent := auftragProEventID(t, auftraege)
 
@@ -114,11 +114,11 @@ func TestBaueSignaturauftraege_TypAbdeckung(t *testing.T) {
 	}
 }
 
-// TestBaueSignaturauftraege_MonotonieUndFormat prüft die Signaturen: global streng monotone,
+// TestBuildSignaturauftraege_MonotonieUndFormat prüft die Signaturen: global streng monotone,
 // lückenlose Transaktionsnummern und streng monotone Signaturzähler in Quittier-Reihenfolge,
 // die feste Seriennummer, das V0-QR-Format und plausible logTime-Paare. Erledigt und
 // Signatur bedingen einander.
-func TestBaueSignaturauftraege_MonotonieUndFormat(t *testing.T) {
+func TestBuildSignaturauftraege_MonotonieUndFormat(t *testing.T) {
 	_, _, auftraege := buildSignierteDaten(t)
 
 	vergeben := map[int]bool{}
@@ -164,13 +164,13 @@ func TestBaueSignaturauftraege_MonotonieUndFormat(t *testing.T) {
 	}
 }
 
-// TestBaueSignaturauftraege_Ausfallfenster prüft die Dramaturgie der Ausfallfenster: Events
+// TestBuildSignaturauftraege_Ausfallfenster prüft die Dramaturgie der Ausfallfenster: Events
 // außerhalb der Fenster werden prompt quittiert (logTime = Event-Zeit), Events in aufgelösten
 // Fenstern verspätet nach Fensterende (ohne Auftrags-Fehlversuche — TSE-weite Fehler zählen
 // nie auf den Auftrag), einzelne scheitern in der Aufholphase dauerhaft (fehlgeschlagen),
 // Events im offenen Fenster bleiben offen ohne Signatur. Die Statusverteilung stimmt
 // (überwiegend erledigt).
-func TestBaueSignaturauftraege_Ausfallfenster(t *testing.T) {
+func TestBuildSignaturauftraege_Ausfallfenster(t *testing.T) {
 	daten, fenster, auftraege := buildSignierteDaten(t)
 	auftragProEvent := auftragProEventID(t, auftraege)
 

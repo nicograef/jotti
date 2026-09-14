@@ -146,7 +146,7 @@ func TestGeldtransitBuchenHandler_Success(t *testing.T) {
 func TestGeldtransitBuchenHandler_MissingRichtung(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
-	req := requestWithUser(`{"richtung":"","betragCents":500}`)
+	req := requestWithUser(`{"geldtransitId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","richtung":"","betragCents":500,"kommentar":"Initialbestand"}`)
 	rec := httptest.NewRecorder()
 
 	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
@@ -159,7 +159,7 @@ func TestGeldtransitBuchenHandler_MissingRichtung(t *testing.T) {
 func TestGeldtransitBuchenHandler_InvalidKommentar(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
-	req := requestWithUser(`{"richtung":"einlage","betragCents":500,"kommentar":"ab"}`)
+	req := requestWithUser(`{"geldtransitId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","richtung":"einlage","betragCents":500,"kommentar":"ab"}`)
 	rec := httptest.NewRecorder()
 
 	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
@@ -172,7 +172,7 @@ func TestGeldtransitBuchenHandler_InvalidKommentar(t *testing.T) {
 func TestGeldtransitBuchenHandler_NullBetrag(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 
-	req := requestWithUser(`{"richtung":"einlage","betragCents":0,"kommentar":"Initialbestand"}`)
+	req := requestWithUser(`{"geldtransitId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","richtung":"einlage","betragCents":0,"kommentar":"Initialbestand"}`)
 	rec := httptest.NewRecorder()
 
 	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)

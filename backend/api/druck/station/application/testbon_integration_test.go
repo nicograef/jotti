@@ -11,7 +11,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/nicograef/jotti/backend/api/druck/station/application"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
@@ -22,7 +22,7 @@ import (
 // werden auf den Default (leere IP) zurückgesetzt und die Outbox geleert.
 func setup(t *testing.T) (application.Command, *sql.DB, func()) {
 	t.Helper()
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 
 	resetStationen := func() {
 		if _, err := db.Exec("UPDATE druckstationen SET drucker_ip = '', bonmodus = 'pro_position' WHERE kategorie IN ('essen', 'getraenk', 'sonstiges')"); err != nil {

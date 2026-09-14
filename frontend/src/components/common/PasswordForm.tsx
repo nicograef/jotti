@@ -72,7 +72,6 @@ export function PasswordForm(props: PasswordFormProps) {
           onSubmit={(e) => {
             e.preventDefault()
             void form.handleSubmit(onSubmit)()
-            return false
           }}
         >
           <FieldGroup className="gap-2">

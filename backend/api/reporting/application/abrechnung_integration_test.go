@@ -10,7 +10,7 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
 )
@@ -41,7 +41,7 @@ func cleanAbrechnungDB(t *testing.T, db *sql.DB) {
 // dem echten Reporting-Repository sowie die Nummer einer offenen Kassensitzung.
 func abrechnungSetup(t *testing.T) (*sql.DB, Query, int) {
 	t.Helper()
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	cleanAbrechnungDB(t, db)
 	t.Cleanup(func() {
 		cleanAbrechnungDB(t, db)

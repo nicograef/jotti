@@ -130,7 +130,7 @@
   /* olive-600, wie --ring */
 
   /* Spektral-Marke (Light) — wertidentisch aus website/src/styles/brand.css,
-     nur für Wortmarke, Glows, Skeletons und Hairlines. --spectral-v und die
+     nur für Wortmarke, Glows, Skeletons und Hairlines. Die
      --sp-*-text-Varianten der Website haben in der App keinen Konsumenten. */
   --sp-red: #d24a2a;
   --sp-orange: #c8781e;

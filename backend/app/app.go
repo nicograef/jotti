@@ -90,13 +90,14 @@ func (app *App) Run(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		log.Info().Msg("Shutdown signal received, gracefully stopping...")
-		return app.Shutdown()
+		app.Shutdown()
+		return nil
 	case err := <-errChan:
 		return fmt.Errorf("server error: %w", err)
 	}
 }
 
-func (app *App) Shutdown() error {
+func (app *App) Shutdown() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -105,5 +106,4 @@ func (app *App) Shutdown() error {
 	}
 
 	log.Info().Msg("Shutdown complete")
-	return nil
 }

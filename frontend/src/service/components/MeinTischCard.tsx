@@ -84,18 +84,11 @@ export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
 
 function countOffenePositionen(state: TischSession) {
   const myUserId = AuthSingleton.userId
-  const offeneIds = new Set<string>()
-  const eigeneOffeneIds = new Set<string>()
-
-  for (const position of state.unbezahltePositionen) {
-    offeneIds.add(position.positionId)
-    if (position.bestellerUserId === myUserId) {
-      eigeneOffeneIds.add(position.positionId)
-    }
-  }
 
   return {
-    anzahlOffen: offeneIds.size,
-    anzahlEigeneOffen: eigeneOffeneIds.size,
+    anzahlOffen: state.unbezahltePositionen.length,
+    anzahlEigeneOffen: state.unbezahltePositionen.filter(
+      (position) => position.bestellerUserId === myUserId,
+    ).length,
   }
 }

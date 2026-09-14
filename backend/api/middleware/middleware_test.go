@@ -436,7 +436,7 @@ func TestJwtMiddleware_RollenwechselWirktSofort(t *testing.T) {
 	}
 }
 
-func TestServiceMiddleware_ValidToken(t *testing.T) {
+func TestServiceRole_AllowedForServiceEndpoints(t *testing.T) {
 	secret := "test-secret"
 	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
 	if err != nil {

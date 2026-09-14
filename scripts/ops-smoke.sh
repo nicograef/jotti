@@ -74,12 +74,12 @@ ok_step() {
   log_line "$step" ok "$duration" "$detail"
 }
 
-# http_post_status URL DATA — echoes the HTTP status code; the response body
-# lands in $SMOKE_TMP/body.json.
+# http_post_status URL DATA [AUTH_HEADER] — echoes the HTTP status code; the
+# response body lands in $SMOKE_TMP/body.json.
 http_post_status() {
   local url="$1" data="$2"
   curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
-    -X POST -H 'Content-Type: application/json' -d "$data" "$url" 2>"$SMOKE_TMP/curl.log" || echo 000
+    -X POST -H 'Content-Type: application/json' ${3:+-H "$3"} -d "$data" "$url" 2>"$SMOKE_TMP/curl.log" || echo 000
 }
 
 # json_field FIELD — extracts a top-level field from $SMOKE_TMP/body.json
@@ -192,9 +192,8 @@ step_sale_receipt_export() {
   # Nur die Pflichtfelder (vereinsname, strasse, plz, ort); steuernummer/ustId
   # bleiben optional.
   start="$(date +%s)"
-  status="$(curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
-    -X POST -H 'Content-Type: application/json' -H "$auth_header" \
-    -d '{"vereinsname":"Ops-Smoke-Verein","strasse":"Teststraße 1","plz":"12345","ort":"Teststadt"}' "$BASE_URL/api/admin/update-betreiber" 2>"$SMOKE_TMP/curl.log" || echo 000)"
+  status="$(http_post_status "$BASE_URL/api/admin/update-betreiber" \
+    '{"vereinsname":"Ops-Smoke-Verein","strasse":"Teststraße 1","plz":"12345","ort":"Teststadt"}' "$auth_header")"
   end="$(date +%s)"; duration=$((end - start))
   if [[ "$status" != "200" ]]; then
     fail_step "update-betreiber" "expected 200, got $status: $(redacted_body)"
@@ -202,9 +201,8 @@ step_sale_receipt_export() {
   ok_step "update-betreiber" "$duration"
 
   start="$(date +%s)"
-  status="$(curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
-    -X POST -H 'Content-Type: application/json' -H "$auth_header" \
-    -d '{"bezeichnung":"ops-smoke","betragCents":0}' "$BASE_URL/api/admin/kassensitzung-eroeffnen" 2>"$SMOKE_TMP/curl.log" || echo 000)"
+  status="$(http_post_status "$BASE_URL/api/admin/kassensitzung-eroeffnen" \
+    '{"bezeichnung":"ops-smoke","betragCents":0}' "$auth_header")"
   end="$(date +%s)"; duration=$((end - start))
   if [[ "$status" != "200" ]]; then
     fail_step "kassensitzung-eroeffnen" "expected 200, got $status: $(redacted_body)"
@@ -212,9 +210,8 @@ step_sale_receipt_export() {
   ok_step "kassensitzung-eroeffnen" "$duration"
 
   start="$(date +%s)"
-  status="$(curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
-    -X POST -H 'Content-Type: application/json' -H "$auth_header" \
-    -d '{"name":"Ops-Smoke-Produkt","kategorie":"sonstiges","steuersatz":"regel"}' "$BASE_URL/api/admin/create-produkt" 2>"$SMOKE_TMP/curl.log" || echo 000)"
+  status="$(http_post_status "$BASE_URL/api/admin/create-produkt" \
+    '{"name":"Ops-Smoke-Produkt","kategorie":"sonstiges","steuersatz":"regel"}' "$auth_header")"
   end="$(date +%s)"; duration=$((end - start))
   if [[ "$status" != "200" ]]; then
     fail_step "create-produkt" "expected 200, got $status: $(redacted_body)"
@@ -224,9 +221,8 @@ step_sale_receipt_export() {
   ok_step "create-produkt" "$duration" "id=$produkt_id"
 
   start="$(date +%s)"
-  status="$(curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
-    -X POST -H 'Content-Type: application/json' -H "$auth_header" \
-    -d "$(printf '{"produktId":%s,"name":"Standard","preisCents":250}' "$produkt_id")" "$BASE_URL/api/admin/create-variante" 2>"$SMOKE_TMP/curl.log" || echo 000)"
+  status="$(http_post_status "$BASE_URL/api/admin/create-variante" \
+    "$(printf '{"produktId":%s,"name":"Standard","preisCents":250}' "$produkt_id")" "$auth_header")"
   end="$(date +%s)"; duration=$((end - start))
   if [[ "$status" != "200" ]]; then
     fail_step "create-variante" "expected 200, got $status: $(redacted_body)"
@@ -236,9 +232,8 @@ step_sale_receipt_export() {
   ok_step "create-variante" "$duration" "id=$variante_id"
 
   start="$(date +%s)"
-  status="$(curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
-    -X POST -H 'Content-Type: application/json' -H "$auth_header" \
-    -d "$(printf '{"id":%s}' "$variante_id")" "$BASE_URL/api/admin/activate-variante" 2>"$SMOKE_TMP/curl.log" || echo 000)"
+  status="$(http_post_status "$BASE_URL/api/admin/activate-variante" \
+    "$(printf '{"id":%s}' "$variante_id")" "$auth_header")"
   end="$(date +%s)"; duration=$((end - start))
   if [[ "$status" != "200" ]]; then
     fail_step "activate-variante" "expected 200, got $status: $(redacted_body)"
@@ -250,9 +245,8 @@ step_sale_receipt_export() {
   # Drucker — der Handler legt bei nicht-leerer druckerIp trotzdem einen
   # Druckauftrag in der DB an, ohne den Drucker tatsächlich zu erreichen.
   start="$(date +%s)"
-  status="$(curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
-    -X POST -H 'Content-Type: application/json' -H "$auth_header" \
-    -d '{"kategorie":"kassenbeleg","druckerIp":"192.0.2.1"}' "$BASE_URL/api/admin/update-druckstationen" 2>"$SMOKE_TMP/curl.log" || echo 000)"
+  status="$(http_post_status "$BASE_URL/api/admin/update-druckstationen" \
+    '{"kategorie":"kassenbeleg","druckerIp":"192.0.2.1"}' "$auth_header")"
   end="$(date +%s)"; duration=$((end - start))
   if [[ "$status" != "200" ]]; then
     fail_step "update-druckstationen" "expected 200, got $status: $(redacted_body)"
@@ -262,10 +256,8 @@ step_sale_receipt_export() {
   local verkauf_id
   verkauf_id="$(cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c 'import uuid; print(uuid.uuid4())')"
   start="$(date +%s)"
-  status="$(curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
-    -X POST -H 'Content-Type: application/json' -H "$auth_header" \
-    -d "$(printf '{"verkaufId":"%s","positionen":[{"produktId":%s,"varianteId":%s,"menge":1}],"kommentar":"ops-smoke"}' "$verkauf_id" "$produkt_id" "$variante_id")" \
-    "$BASE_URL/api/service/direktverkauf-taetigen" 2>"$SMOKE_TMP/curl.log" || echo 000)"
+  status="$(http_post_status "$BASE_URL/api/service/direktverkauf-taetigen" \
+    "$(printf '{"verkaufId":"%s","positionen":[{"produktId":%s,"varianteId":%s,"menge":1}],"kommentar":"ops-smoke"}' "$verkauf_id" "$produkt_id" "$variante_id")" "$auth_header")"
   end="$(date +%s)"; duration=$((end - start))
   if [[ "$status" != "200" ]]; then
     fail_step "direktverkauf-taetigen" "expected 200, got $status: $(redacted_body)"
@@ -278,9 +270,8 @@ step_sale_receipt_export() {
   local beleg_status="" attempt
   start="$(date +%s)"
   for attempt in $(seq 1 20); do
-    status="$(curl -sS -o "$SMOKE_TMP/body.json" -w '%{http_code}' --max-time 10 \
-      -X POST -H 'Content-Type: application/json' -H "$auth_header" \
-      -d "$(printf '{"verkaufId":"%s"}' "$verkauf_id")" "$BASE_URL/api/service/beleg-drucken" 2>"$SMOKE_TMP/curl.log" || echo 000)"
+    status="$(http_post_status "$BASE_URL/api/service/beleg-drucken" \
+      "$(printf '{"verkaufId":"%s"}' "$verkauf_id")" "$auth_header")"
     if [[ "$status" != "200" ]]; then
       fail_step "beleg-drucken" "expected 200, got $status: $(redacted_body)"
     fi

@@ -16,7 +16,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-import type { UserRole } from './User'
+import { UserRole } from './User'
+
+const ROLLE_BESCHREIBUNG: Record<UserRole, string> = {
+  [UserRole.ADMIN]: 'Administratoren können alle Funktionen nutzen.',
+  [UserRole.SERVICELEITUNG]:
+    'Serviceleitung kann bestellen, kassieren und stornieren.',
+  [UserRole.SERVICE]: 'Servicekräfte können bestellen, liefern und kassieren.',
+}
 
 export function RoleField<AllFormFields extends FieldValues>({
   form,
@@ -32,19 +39,9 @@ export function RoleField<AllFormFields extends FieldValues>({
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
           {withLabel && <FieldLabel htmlFor={id}>Rolle</FieldLabel>}
-          {field.value === 'admin' && (
+          {field.value && (
             <FieldDescription>
-              Administratoren können alle Funktionen nutzen.
-            </FieldDescription>
-          )}
-          {field.value === 'serviceleitung' && (
-            <FieldDescription>
-              Serviceleitung kann bestellen, kassieren und stornieren.
-            </FieldDescription>
-          )}
-          {field.value === 'service' && (
-            <FieldDescription>
-              Servicekräfte können bestellen, liefern und kassieren.
+              {ROLLE_BESCHREIBUNG[field.value]}
             </FieldDescription>
           )}
           <Select

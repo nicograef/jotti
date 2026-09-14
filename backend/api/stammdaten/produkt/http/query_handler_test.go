@@ -53,7 +53,7 @@ func (m *mockQuery) GetActiveProdukte(ctx context.Context) ([]dom.Produkt, error
 func TestGetAllProdukteHandler_Success(t *testing.T) {
 	handler := &QueryHandler{Query: &mockQuery{}}
 
-	req := httptest.NewRequest(http.MethodGet, "/get-all-produkte", nil)
+	req := httptest.NewRequest(http.MethodPost, "/get-all-produkte", nil)
 	rec := httptest.NewRecorder()
 
 	handler.GetAllProdukteHandler().ServeHTTP(rec, req)
@@ -89,7 +89,7 @@ func TestGetAllProdukteHandler_Success(t *testing.T) {
 func TestGetAllProdukteHandler_Failure(t *testing.T) {
 	handler := &QueryHandler{Query: &mockQuery{err: application.ErrDatabase}}
 
-	req := httptest.NewRequest(http.MethodGet, "/get-all-produkte", nil)
+	req := httptest.NewRequest(http.MethodPost, "/get-all-produkte", nil)
 	rec := httptest.NewRecorder()
 
 	handler.GetAllProdukteHandler().ServeHTTP(rec, req)

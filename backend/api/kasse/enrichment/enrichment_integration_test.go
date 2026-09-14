@@ -11,7 +11,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/repository/produkt_repo"
@@ -23,7 +23,7 @@ import (
 func katalog(t *testing.T) (repo produkt_repo.Repository, pommesID, pommesVarianteID, colaID, colaVarianteID int) {
 	t.Helper()
 
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	clean(t, db)
 	t.Cleanup(func() {
 		clean(t, db)

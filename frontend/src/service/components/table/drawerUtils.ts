@@ -2,11 +2,7 @@ import type { Produkt } from '@/lib/produktSchemas'
 import { formatPositionName } from '@/lib/utils'
 
 import type { PositionRef } from '../../schemas'
-import type {
-  BestellPositionInput,
-  Bestellung,
-  Position,
-} from '../../table/Bestellung'
+import type { BestellPositionInput, Bestellung } from '../../table/Bestellung'
 import type { Umbuchung } from '../../table/Umbuchung'
 import type { AuswahlPosition } from '../PositionAuswahlListe'
 import type { ReceiptPosition } from './Receipt'
@@ -43,10 +39,9 @@ export function toAuswahlPositionen(
   }))
 }
 
-export function selectPositionen(
-  positionen: Position[],
-  ausgewaehlteMengen: Record<string, number>,
-): Position[] {
+export function selectPositionen<
+  T extends { positionId: string; menge: number },
+>(positionen: T[], ausgewaehlteMengen: Record<string, number>): T[] {
   return positionen
     .map((position) => ({
       ...position,
@@ -150,7 +145,9 @@ export function toReceiptItems(
   }))
 }
 
-export function toPositionRefs(positionen: Position[]): PositionRef[] {
+export function toPositionRefs(
+  positionen: { positionId: string; menge: number }[],
+): PositionRef[] {
   return positionen.map((p) => ({
     positionId: p.positionId,
     menge: p.menge,

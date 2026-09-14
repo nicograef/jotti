@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -236,10 +237,10 @@ func TestResultLog_MarkerSurvivesConsoleWriter(t *testing.T) {
 	bootstrap.Result{Action: bootstrap.ActionCreate, OnetimePassword: "123456"}.Log(logger)
 
 	out := buf.String()
-	if !bytes.Contains([]byte(out), []byte("ADMIN-EINMALPASSWORT")) {
+	if !strings.Contains(out, "ADMIN-EINMALPASSWORT") {
 		t.Fatalf("expected grep-stable marker prefix in log output, got: %s", out)
 	}
-	if !bytes.Contains([]byte(out), []byte("123456")) {
+	if !strings.Contains(out, "123456") {
 		t.Fatalf("expected plaintext OTP in log output, got: %s", out)
 	}
 }

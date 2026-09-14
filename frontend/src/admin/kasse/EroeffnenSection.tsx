@@ -36,16 +36,16 @@ import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import { kasseBackend } from './hooks'
 import { BetragCentsSchema, BezeichnungSchema } from './Kassensitzung'
 
+const FormDataSchema = z.object({
+  bezeichnung: BezeichnungSchema,
+  betragCents: BetragCentsSchema,
+})
+type FormData = z.infer<typeof FormDataSchema>
+
 export function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
   const { tseKonfiguration } = useTSEKonfiguration()
   const [tseDialogOpen, setTseDialogOpen] = useState(false)
   const [pendingData, setPendingData] = useState<FormData | null>(null)
-
-  const FormDataSchema = z.object({
-    bezeichnung: BezeichnungSchema,
-    betragCents: BetragCentsSchema,
-  })
-  type FormData = z.infer<typeof FormDataSchema>
 
   const form = useForm<FormData>({
     defaultValues: {

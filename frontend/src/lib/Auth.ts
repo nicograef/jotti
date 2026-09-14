@@ -70,7 +70,7 @@ class Auth {
 
   public validateAndSetToken(tokenBase64: string): void {
     try {
-      const token = jwtDecode<JottiToken>(tokenBase64)
+      const token = jwtDecode(tokenBase64)
 
       const { error, data: parsedToken } = JottiTokenSchema.safeParse(token)
       if (error) {

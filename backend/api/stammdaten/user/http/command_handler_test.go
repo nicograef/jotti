@@ -14,15 +14,15 @@ import (
 )
 
 type mockCommand struct {
-	err           error
-	deletedID     int
-	deactivatedID int
-	updatedID     int
-	passwordHash  string
+	err             error
+	deletedID       int
+	deactivatedID   int
+	updatedID       int
+	onetimePassword string
 }
 
 func (m *mockCommand) CreateUser(ctx context.Context, name, username string, role user.Role) (int, string, error) {
-	return 1, m.passwordHash, m.err
+	return 1, m.onetimePassword, m.err
 }
 
 func (m *mockCommand) UpdateUser(ctx context.Context, id int, name, username string, role user.Role) error {
@@ -45,7 +45,7 @@ func (m *mockCommand) DeleteUser(ctx context.Context, id int) error {
 }
 
 func (m *mockCommand) ResetPassword(ctx context.Context, userID int) (string, error) {
-	return m.passwordHash, m.err
+	return m.onetimePassword, m.err
 }
 
 func TestDeleteUserHandler_CannotDeleteSelf(t *testing.T) {

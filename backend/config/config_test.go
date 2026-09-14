@@ -17,15 +17,9 @@ const (
 
 func setValidSecrets(t *testing.T) {
 	t.Helper()
-	if err := os.Setenv("JWT_SECRET", validJWTSecret); err != nil {
-		t.Fatalf("Failed to set JWT_SECRET: %v", err)
-	}
-	if err := os.Setenv("RELAY_AUTH_TOKEN", validRelayToken); err != nil {
-		t.Fatalf("Failed to set RELAY_AUTH_TOKEN: %v", err)
-	}
-	if err := os.Setenv("POSTGRES_PASSWORD", validPGPassword); err != nil {
-		t.Fatalf("Failed to set POSTGRES_PASSWORD: %v", err)
-	}
+	t.Setenv("JWT_SECRET", validJWTSecret)
+	t.Setenv("RELAY_AUTH_TOKEN", validRelayToken)
+	t.Setenv("POSTGRES_PASSWORD", validPGPassword)
 }
 
 func TestLoad_Defaults(t *testing.T) {
@@ -64,24 +58,12 @@ func TestLoad_EnvValues(t *testing.T) {
 	os.Clearenv()
 	setValidSecrets(t)
 
-	if err := os.Setenv("PORT", "8080"); err != nil {
-		t.Fatalf("Failed to set PORT: %v", err)
-	}
-	if err := os.Setenv("POSTGRES_USER", "testuser"); err != nil {
-		t.Fatalf("Failed to set POSTGRES_USER: %v", err)
-	}
-	if err := os.Setenv("POSTGRES_HOST", "db"); err != nil {
-		t.Fatalf("Failed to set POSTGRES_HOST: %v", err)
-	}
-	if err := os.Setenv("POSTGRES_PORT", "5433"); err != nil {
-		t.Fatalf("Failed to set POSTGRES_PORT: %v", err)
-	}
-	if err := os.Setenv("POSTGRES_DBNAME", "testdb"); err != nil {
-		t.Fatalf("Failed to set POSTGRES_DBNAME: %v", err)
-	}
-	if err := os.Setenv("FISKALY_BASE_URL", "https://example.invalid"); err != nil {
-		t.Fatalf("Failed to set FISKALY_BASE_URL: %v", err)
-	}
+	t.Setenv("PORT", "8080")
+	t.Setenv("POSTGRES_USER", "testuser")
+	t.Setenv("POSTGRES_HOST", "db")
+	t.Setenv("POSTGRES_PORT", "5433")
+	t.Setenv("POSTGRES_DBNAME", "testdb")
+	t.Setenv("FISKALY_BASE_URL", "https://example.invalid")
 
 	cfg := Load()
 
@@ -112,12 +94,8 @@ func TestLoad_InvalidIntAndLowValues(t *testing.T) {
 	os.Clearenv()
 	setValidSecrets(t)
 
-	if err := os.Setenv("PORT", "notanint"); err != nil {
-		t.Fatalf("Failed to set PORT: %v", err)
-	}
-	if err := os.Setenv("POSTGRES_PORT", "invalid"); err != nil {
-		t.Fatalf("Failed to set POSTGRES_PORT: %v", err)
-	}
+	t.Setenv("PORT", "notanint")
+	t.Setenv("POSTGRES_PORT", "invalid")
 
 	cfg := Load()
 
@@ -133,9 +111,7 @@ func TestLoad_NegativeValues(t *testing.T) {
 	os.Clearenv()
 	setValidSecrets(t)
 
-	if err := os.Setenv("PORT", "-1"); err != nil {
-		t.Fatalf("Failed to set PORT: %v", err)
-	}
+	t.Setenv("PORT", "-1")
 
 	cfg := Load()
 

@@ -120,32 +120,28 @@ func readKassenbelegCommand(w http.ResponseWriter, r *http.Request) (application
 	case hasVerkauf && !hasTisch && !hasZahlung:
 		if hasStornierung {
 			req := belegDruckenStornoRequest{VerkaufID: *body.VerkaufID, StornierungID: *body.StornierungID}
-			if issues := belegDruckenStornoSchema.Validate(&req); issues != nil {
-				helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+			if !validateBody(w, belegDruckenStornoSchema, &req) {
 				return application.KassenbelegDruckenCommand{}, false
 			}
 			return application.KassenbelegDruckenCommand{VerkaufID: req.VerkaufID, StornierungID: req.StornierungID}, true
 		}
 
 		req := belegDruckenVerkaufRequest{VerkaufID: *body.VerkaufID}
-		if issues := belegDruckenVerkaufSchema.Validate(&req); issues != nil {
-			helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+		if !validateBody(w, belegDruckenVerkaufSchema, &req) {
 			return application.KassenbelegDruckenCommand{}, false
 		}
 		return application.KassenbelegDruckenCommand{VerkaufID: req.VerkaufID}, true
 
 	case hasTisch && hasStornierung && !hasZahlung && !hasVerkauf:
 		req := belegDruckenTischStornoRequest{TischID: *body.TischID, StornierungID: *body.StornierungID}
-		if issues := belegDruckenTischStornoSchema.Validate(&req); issues != nil {
-			helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+		if !validateBody(w, belegDruckenTischStornoSchema, &req) {
 			return application.KassenbelegDruckenCommand{}, false
 		}
 		return application.KassenbelegDruckenCommand{TischID: req.TischID, StornierungID: req.StornierungID}, true
 
 	case hasTisch && hasZahlung && !hasStornierung && !hasVerkauf:
 		req := belegDruckenZahlungRequest{TischID: *body.TischID, ZahlungID: *body.ZahlungID}
-		if issues := belegDruckenZahlungSchema.Validate(&req); issues != nil {
-			helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+		if !validateBody(w, belegDruckenZahlungSchema, &req) {
 			return application.KassenbelegDruckenCommand{}, false
 		}
 		return application.KassenbelegDruckenCommand{TischID: req.TischID, ZahlungID: req.ZahlungID}, true
@@ -156,4 +152,12 @@ func readKassenbelegCommand(w http.ResponseWriter, r *http.Request) (application
 		})
 		return application.KassenbelegDruckenCommand{}, false
 	}
+}
+
+func validateBody(w http.ResponseWriter, schema *z.StructSchema, body any) bool {
+	if issues := schema.Validate(body); issues != nil {
+		helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+		return false
+	}
+	return true
 }

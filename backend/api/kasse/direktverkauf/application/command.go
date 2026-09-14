@@ -182,7 +182,7 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 // (1. Event eines frischen Streams: 0; Storno: höchste Version des Replays). Ein
 // UNIQUE(subject, version)-Konflikt — der Stream hat sich seit dem Lesen geändert —
 // wird zu ErrConflict.
-func writeVersionedEvent(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) error {
+func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) error {
 	e.Version = expectedVersion + 1
 
 	if _, err := write(e); err != nil {
@@ -208,11 +208,11 @@ func writeVersionedEvent(ctx context.Context, e event.Event, subject string, exp
 // Transaktion; der Signaturauftrag des Events entsteht in jedem Fall im selben Commit.
 func (c Command) persistVerkaufEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
 	if buildAuftraege != nil {
-		return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
+		return writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
 			return c.EventRepo.WriteEventWithDruckauftraege(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege)
 		})
 	}
-	return writeVersionedEvent(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
+	return writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return c.EventRepo.WriteEvent(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr)
 	})
 }

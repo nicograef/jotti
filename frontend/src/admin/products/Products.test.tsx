@@ -3,6 +3,10 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
+import type { Produkt } from '@/lib/produktSchemas'
+
+import type { DruckstationConfig } from '../settings/DruckstationBackend'
+import { Products } from './Products'
 
 // Radix Popper misst seinen Anker über ResizeObserver, den jsdom nicht kennt.
 class ResizeObserverStub {
@@ -20,11 +24,6 @@ class ResizeObserverStub {
 beforeAll(() => {
   vi.stubGlobal('ResizeObserver', ResizeObserverStub)
 })
-
-import type { Produkt } from '@/lib/produktSchemas'
-
-import type { DruckstationConfig } from '../settings/DruckstationBackend'
-import { Products } from './Products'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 

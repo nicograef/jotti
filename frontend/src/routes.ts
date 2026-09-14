@@ -16,13 +16,7 @@ import { PasswordPage } from './pages/PasswordPage'
 function AuthRedirect() {
   if (!AuthSingleton.isAuthenticated) return
 
-  if (AuthSingleton.isAdmin) {
-    return redirect('/admin')
-  }
-  if (AuthSingleton.isService || AuthSingleton.isServiceleitung) {
-    return redirect('/service')
-  }
-  return redirect('/')
+  return redirect(AuthSingleton.isAdmin ? '/admin' : '/service')
 }
 
 export function AdminGuard() {

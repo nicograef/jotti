@@ -90,9 +90,9 @@ const REFERENZ_PRAEFIX_LABEL: Record<string, string> = {
   'stornierung-erteilt': 'Stornierung',
 }
 
-// Anzeigename je Kategorie, geteilt von der Referenz-Anzeige unten und den
-// Stationsköpfen der Bondrucker-Seite.
-export const STATION_KATEGORIE_LABEL: Record<string, string> = {
+// Anzeigename je Kategorie für Stationsköpfe, Referenz-Anzeige und
+// Produktverwaltung; nur „Getränk" weicht (Singular) vom Produkt-Label ab.
+export const STATION_KATEGORIE_LABEL: Record<Kategorie, string> = {
   essen: 'Essen',
   getraenk: 'Getränk',
   sonstiges: 'Sonstiges',
@@ -111,7 +111,8 @@ export function formatDruckauftragReferenz(referenz: string): string {
     return referenz
   }
   if (praefix === 'testdruck') {
-    return `Testbon ${STATION_KATEGORIE_LABEL[rest] ?? rest}`
+    const kategorie = KategorieSchema.safeParse(rest)
+    return `Testbon ${kategorie.success ? STATION_KATEGORIE_LABEL[kategorie.data] : rest}`
   }
   const label = REFERENZ_PRAEFIX_LABEL[praefix] ?? ''
   if (label === '') {

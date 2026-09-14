@@ -79,7 +79,7 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	// muss ohne Warten auf die TSE zurückkehren (Buchen ist von der Signierung
 	// entkoppelt) — der Signaturauftrag bleibt offen.
 	bestellungID := uuid.NewString()
-	inputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 1}}
+	inputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 1}}
 	bucheStart := time.Now()
 	if err := u.tisch.BestellungAufnehmen(ctx, u.userID, "test", bestellungID, u.tischID, inputs, ""); err != nil {
 		t.Fatalf("BestellungAufnehmen waehrend Ausfall: %v", err)
@@ -224,7 +224,7 @@ func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 func bucheDirektverkauf(t *testing.T, u *liveTestUmgebung, ksNr int) int {
 	t.Helper()
 	verkaufID := uuid.NewString()
-	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 1}}
+	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 1}}
 	if err := u.direkt.DirektverkaufTaetigen(context.Background(), u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
 		t.Fatalf("DirektverkaufTaetigen: %v", err)
 	}
@@ -320,7 +320,7 @@ func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int
 	// Frischen Vorgang buchen; ohne aktive Störung ist sein offener Auftrag
 	// ausstehend. Der Abschluss muss sofort folgen, bevor der Worker signiert.
 	verkaufID := uuid.NewString()
-	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produkt, VarianteID: u.variante, Menge: 1}}
+	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 1}}
 	if err := u.direkt.DirektverkaufTaetigen(ctx, u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
 		t.Fatalf("DirektverkaufTaetigen fuer Gate-Blockade: %v", err)
 	}

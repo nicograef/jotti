@@ -120,8 +120,11 @@ func (r Repository) VerschiebeProdukt(ctx context.Context, produktID int, hoch b
 		}
 
 		nachbarID, nachbarReihenfolge, gefunden, err := produktNachbar(ctx, qtx, aktuell, hoch)
-		if err != nil || !gefunden {
+		if err != nil {
 			return err
+		}
+		if !gefunden {
+			return nil
 		}
 
 		now := time.Now().UTC()
@@ -153,8 +156,11 @@ func (r Repository) VerschiebeVariante(ctx context.Context, varianteID int, hoch
 		}
 
 		nachbarID, nachbarReihenfolge, gefunden, err := varianteNachbar(ctx, qtx, aktuell, hoch)
-		if err != nil || !gefunden {
+		if err != nil {
 			return err
+		}
+		if !gefunden {
+			return nil
 		}
 
 		now := time.Now().UTC()

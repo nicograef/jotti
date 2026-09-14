@@ -13,7 +13,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/api"
 	"github.com/nicograef/jotti/backend/config"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/jwt"
 	"github.com/nicograef/jotti/backend/domain/user"
 	"github.com/nicograef/jotti/backend/repository/user_repo"
@@ -25,7 +25,7 @@ var alleRollen = []user.Role{user.AdminRole, user.ServiceleitungRole, user.Servi
 
 func setupMatrix(t *testing.T) (http.Handler, map[user.Role]string, func()) {
 	t.Helper()
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 
 	if _, err := db.Exec("DELETE FROM users"); err != nil {
 		t.Fatalf("users bereinigen: %v", err)

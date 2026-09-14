@@ -17,13 +17,13 @@ func TestCreateUser(t *testing.T) {
 	repo := user_repo.NewMock([]user.User{}, nil)
 	userCommand := Command{UserRepo: repo}
 
-	userId, onetimePassword, err := userCommand.CreateUser(context.Background(), "Test User", "testuser", user.ServiceRole)
+	userID, onetimePassword, err := userCommand.CreateUser(context.Background(), "Test User", "testuser", user.ServiceRole)
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if userId != 1 {
-		t.Errorf("expected user ID 1, got %d", userId)
+	if userID != 1 {
+		t.Errorf("expected user ID 1, got %d", userID)
 	}
 	if !regexp.MustCompile(`^\d{6}$`).MatchString(onetimePassword) {
 		t.Fatalf("Expected exactly 6 digits, got %s", onetimePassword)
@@ -45,7 +45,7 @@ func TestCreateUser_Error(t *testing.T) {
 }
 
 func TestUpdateUser_Success(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{user.User{ID: 1}}, nil)
+	repo := user_repo.NewMock([]user.User{{ID: 1}}, nil)
 	userCommand := Command{UserRepo: repo}
 
 	err := userCommand.UpdateUser(context.Background(), 1, "Updated User", "updateduser", user.AdminRole)
@@ -64,5 +64,4 @@ func TestUpdateUser_Error(t *testing.T) {
 	if !errors.Is(err, ErrDatabase) {
 		t.Fatalf("expected database error, got %v", err)
 	}
-
 }

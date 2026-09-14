@@ -28,15 +28,9 @@ func NewMock(events []event.Event, err error) *MockRepo {
 }
 
 func NewMockWithWriteErr(events []event.Event, writeErr error) *MockRepo {
-	eventMap := make(map[int]event.Event)
-	for _, e := range events {
-		eventMap[e.ID] = e
-	}
-
-	return &MockRepo{
-		events:   eventMap,
-		writeErr: writeErr,
-	}
+	m := NewMock(events, nil)
+	m.writeErr = writeErr
+	return m
 }
 
 type MockRepo struct {

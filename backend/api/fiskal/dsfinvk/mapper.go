@@ -144,8 +144,8 @@ func Map(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSi
 		buildCashregister(snapshot, erstellung),
 		headerOnlyTable("slaves.csv", "Stamm_Terminals", "Terminal-Kassen (in jotti nicht vorhanden)", slavesColumns),
 		headerOnlyTable("pa.csv", "Stamm_Agenturen", "Agenturgeschäft (in jotti nicht vorhanden)", paColumns),
-		buildTSE(snapshot, erstellung, belege),
-		buildVat(snapshot, erstellung, belege),
+		buildTSE(snapshot, erstellung),
+		buildVat(snapshot, erstellung),
 		buildBusinesscases(snapshot, erstellung, belege),
 		buildPayment(snapshot, erstellung, belege),
 		buildCashPerCurrency(snapshot, erstellung, belege),
@@ -543,7 +543,7 @@ func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table 
 		belege[0].bonID, belege[len(belege)-1].bonID,
 		truncateRunes(s.Betreiber.Vereinsname, betreiber.MaxLengthVereinsname), truncateRunes(s.Betreiber.Strasse, betreiber.MaxLengthStrasse),
 		truncateRunes(s.Betreiber.Plz, betreiber.MaxLengthPlz), truncateRunes(s.Betreiber.Ort, betreiber.MaxLengthOrt), land,
-		ptr(s.Betreiber.Steuernummer), ptr(s.Betreiber.UstID),
+		derefOrEmpty(s.Betreiber.Steuernummer), derefOrEmpty(s.Betreiber.UstID),
 		formatAmount(bar), formatAmount(bar),
 	}
 
@@ -567,7 +567,7 @@ func buildLocation(s Snapshot, erstellung string) Table {
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 		truncateRunes(s.Betreiber.Vereinsname, betreiber.MaxLengthVereinsname), truncateRunes(s.Betreiber.Strasse, betreiber.MaxLengthStrasse),
 		truncateRunes(s.Betreiber.Plz, betreiber.MaxLengthPlz), truncateRunes(s.Betreiber.Ort, betreiber.MaxLengthOrt),
-		land, ptr(s.Betreiber.UstID),
+		land, derefOrEmpty(s.Betreiber.UstID),
 	}
 
 	return Table{
@@ -608,7 +608,7 @@ var vatColumns = []string{
 	"UST_SCHLUESSEL", "UST_SATZ", "UST_BESCHR",
 }
 
-func buildVat(s Snapshot, erstellung string, _ []beleg) Table {
+func buildVat(s Snapshot, erstellung string) Table {
 	// Die DSFinV-K-Anlage 2 definiert die USt-Schlüssel 1-7 fest; die vat.csv
 	// führt alle vordefinierten Schlüssel auf (nicht nur die in der Sitzung
 	// verwendeten), wie es Prüfsoftware erwartet. UST_SATZ je Schlüssel ist
@@ -647,7 +647,7 @@ var tseColumns = []string{
 	"TSE_ZERTIFIKAT_I", "TSE_ZERTIFIKAT_II",
 }
 
-func buildTSE(s Snapshot, erstellung string, belege []beleg) Table {
+func buildTSE(s Snapshot, erstellung string) Table {
 	// TSE_ZEITFORMAT deklariert das Log-Time-Format der TSE selbst (fiskaly:
 	// unixTime) und stammt aus den beim Setup gespeicherten TSE-Stammdaten.
 	// TSE_TA_START/ENDE sind davon unabhängig amtlich als ISO 8601 vorgegeben.

@@ -15,7 +15,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/app"
 	"github.com/nicograef/jotti/backend/config"
-	jottiDB "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/jwt"
 )
 
@@ -160,7 +160,7 @@ func setupTestEnv(t *testing.T) testEnv {
 	t.Setenv("JWT_SECRET", testJWTSecret)
 	t.Setenv("RELAY_AUTH_TOKEN", testRelayToken)
 
-	db := jottiDB.OpenTestDatabase()
+	db := dbtest.Open()
 	t.Cleanup(func() {
 		if err := db.Close(); err != nil {
 			t.Logf("Testdatenbank schließen: %v", err)
@@ -172,7 +172,7 @@ func setupTestEnv(t *testing.T) testEnv {
 	// The throwaway DB uses password "admin", which config.Load now rejects as a
 	// known placeholder. The DB handle is already open (and passed to SetupRoutes),
 	// so override the env with a valid value purely to satisfy config validation,
-	// then restore it so later tests' OpenTestDatabase still reaches the DB.
+	// then restore it so later tests' dbtest.Open still reaches the DB.
 	origPW := os.Getenv("POSTGRES_PASSWORD")
 	if err := os.Setenv("POSTGRES_PASSWORD", testDBPassword); err != nil {
 		t.Fatalf("POSTGRES_PASSWORD setzen: %v", err)

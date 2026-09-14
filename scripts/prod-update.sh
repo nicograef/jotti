@@ -62,10 +62,8 @@ else
   info "Updating: $RUNNING_VERSION -> $TARGET_VERSION"
 fi
 
-# Resolve BACKUP_DIR exactly like prod-backup.sh so we can locate the dump it
-# just wrote and offer it for rollback.
-BACKUP_DIR="${BACKUP_DIR:-$(read_env BACKUP_DIR)}"
-[[ -n "$BACKUP_DIR" ]] || BACKUP_DIR="./backups"
+# Locate the dump prod-backup.sh just wrote so it can be offered for rollback.
+resolve_backup_dir
 
 info "Taking a pre-update backup..."
 "$SCRIPT_DIR/prod-backup.sh"
@@ -104,17 +102,7 @@ if ! docker compose -f "$COMPOSE_PROD" up -d; then
 fi
 
 info "Waiting for the backend to become healthy..."
-backend_healthy=false
-for _ in $(seq 1 30); do
-  status="$(docker inspect -f '{{.State.Health.Status}}' "$BACKEND_CONTAINER" 2>/dev/null || echo unknown)"
-  if [[ "$status" == "healthy" ]]; then
-    backend_healthy=true
-    break
-  fi
-  sleep 2
-done
-
-if [[ "$backend_healthy" != true ]]; then
+if ! wait_for_healthy "$BACKEND_CONTAINER"; then
   rollback_guidance
   exit 1
 fi

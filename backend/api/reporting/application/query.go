@@ -155,23 +155,7 @@ func computeUmsatzProSteuersatz(bruttoZeilen []reporting.UmsatzSteuersatz) []rep
 	for _, satz := range orderedSaetze {
 		if eintrag, ok := aggregiert[satz]; ok {
 			out = append(out, eintrag)
-			delete(aggregiert, satz)
 		}
-	}
-
-	if len(aggregiert) == 0 {
-		return out
-	}
-
-	restSaetze := make([]steuer.Steuersatz, 0, len(aggregiert))
-	for satz := range aggregiert {
-		restSaetze = append(restSaetze, satz)
-	}
-	sort.Slice(restSaetze, func(i, j int) bool {
-		return restSaetze[i] < restSaetze[j]
-	})
-	for _, satz := range restSaetze {
-		out = append(out, aggregiert[satz])
 	}
 
 	return out

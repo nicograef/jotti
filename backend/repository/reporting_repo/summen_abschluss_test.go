@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
@@ -20,7 +20,7 @@ import (
 // mit dem Ergebnis von GetReportingStats. Damit wird sichergestellt, dass
 // Go-Aggregation und SQL-Aggregation nicht auseinanderlaufen können.
 func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
-	db := dbpkg.OpenTestDatabase()
+	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 	defer cleanDB(t, db)

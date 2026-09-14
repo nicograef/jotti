@@ -50,15 +50,6 @@
     #2f6fc4,
     #8b3fc0
   );
-  --spectral-v: linear-gradient(
-    180deg,
-    #d24a2a,
-    #c8781e,
-    #4f9636,
-    #1f9b8a,
-    #2f6fc4,
-    #8b3fc0
-  );
 
   /* Als kleiner Text unterschreiten Teal, Rot und Grün im Hellen die
      AA-Schwelle 4,5:1; diese abgedunkelten Varianten erfüllen sie auf Weiß,
@@ -72,12 +63,6 @@
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
   --fs-h1: clamp(40px, 5.4vw, 68px);
   --fs-h2: clamp(30px, 3.7vw, 46px);
-
-  --radius-sm: 11px; /* Pills, kleine Buttons */
-  --radius-md: 13px; /* Buttons, CTAs */
-  --radius-lg: 16px; /* Kacheln */
-  --radius-xl: 20px; /* Karten */
-  --radius-2xl: 26px; /* große CTA-Karte */
 
   --brand-green: #007a55;
   --brand-green-hover: #00694a;

@@ -49,20 +49,6 @@ type TSSErstellt struct {
 	State string
 }
 
-// TSSStammdaten sind die fiskalischen Stammdaten der TSS-Ressource für den
-// DSFinV-K-Export (LogTimeFormat = fiskaly signature_timestamp_format). Sie
-// ändern sich über die Lebensdauer der TSS nicht.
-type TSSStammdaten struct {
-	// Seriennummer ist die TSS-Seriennummer (fiskaly: serial_number der
-	// TSS-Ressource; SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld
-	// TSE_SERIAL.
-	Seriennummer        string
-	SignaturAlgorithmus string
-	PublicKey           string
-	Zertifikat          string
-	LogTimeFormat       string
-}
-
 // SetupClient kapselt die fiskaly-Operationen der geführten TSE-Einrichtung.
 // ListTSS liefert die Umgebung aus der fiskaly-Antwort mit, damit der Befund
 // TEST/LIVE auch bei leerem Konto anzeigen kann.
@@ -70,7 +56,7 @@ type SetupClient interface {
 	ListTSS(ctx context.Context) (Umgebung, []TSSInfo, error)
 	ListClients(ctx context.Context, tssID string) ([]ClientInfo, error)
 
-	RetrieveTSSStammdaten(ctx context.Context, tssID string) (TSSStammdaten, error)
+	RetrieveTSSStammdaten(ctx context.Context, tssID string) (Stammdaten, error)
 
 	// CreateTSS legt eine neue TSS an (Zustand CREATED) mit einmaligem Admin-PUK.
 	CreateTSS(ctx context.Context) (TSSErstellt, error)

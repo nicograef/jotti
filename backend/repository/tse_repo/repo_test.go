@@ -12,6 +12,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
@@ -27,7 +28,7 @@ type testUmgebung struct {
 
 func setupRepository(t *testing.T) (Repository, *testUmgebung, func(t *testing.T)) {
 	t.Helper()
-	database := dbpkg.OpenTestDatabase()
+	database := dbtest.Open()
 
 	reset := func(t *testing.T) {
 		t.Helper()
@@ -125,7 +126,7 @@ func (u *testUmgebung) closeKassensitzung(t *testing.T, ksNr int) {
 // markiereFehlgeschlagen lässt einen Auftrag über MaxSignaturVersuche
 // Fehlversuche endgültig fehlschlagen (Status fehlgeschlagen, letzter_fehler
 // gesetzt).
-func markiereFehlgeschlagen(t *testing.T, store Repository, ctx context.Context, auftragID int, fehler string) {
+func markiereFehlgeschlagen(ctx context.Context, t *testing.T, store Repository, auftragID int, fehler string) {
 	t.Helper()
 	for i := 0; i < MaxSignaturVersuche; i++ {
 		if err := store.TSESignaturauftragFehlversuch(ctx, auftragID, fehler); err != nil {
@@ -429,7 +430,7 @@ func TestGetTSESignaturQueueZustand(t *testing.T) {
 	// Ein offener und ein fehlgeschlagener Auftrag; ein erledigter im Fenster.
 	umgebung.insertAuftrag(t, "tx-offen")
 	fehlID, _ := umgebung.insertAuftrag(t, "tx-fehl")
-	markiereFehlgeschlagen(t, store, ctx, fehlID, "fiskaly down")
+	markiereFehlgeschlagen(ctx, t, store, fehlID, "fiskaly down")
 	erledigtID, _ := umgebung.insertAuftrag(t, "tx-erledigt")
 	if err := store.QuittiereTSESignaturauftrag(ctx, erledigtID, testSignatur(60)); err != nil {
 		t.Fatalf("Expected no quittierung error, got %v", err)
@@ -465,7 +466,7 @@ func TestGetTSESignaturQueueZustand_FehlgeschlagenSitzungsbezogen(t *testing.T) 
 
 	// Mit aktiver Sitzung: der fehlgeschlagene Auftrag zählt und trägt seinen Fehlertext.
 	fehlID, _ := umgebung.insertAuftrag(t, "tx-fehl-aktiv")
-	markiereFehlgeschlagen(t, store, ctx, fehlID, "fiskaly 503")
+	markiereFehlgeschlagen(ctx, t, store, fehlID, "fiskaly 503")
 
 	zustand, err := store.GetTSESignaturQueueZustand(ctx)
 	if err != nil {
@@ -490,7 +491,7 @@ func TestGetTSESignaturQueueZustand_FehlgeschlagenSitzungsbezogen(t *testing.T) 
 	// aus; der Vorfall der abgeschlossenen Sitzung zählt nicht mehr.
 	neueNr := umgebung.insertKassensitzung(t)
 	neuFehlID, _ := umgebung.insertAuftragFuerSitzung(t, "tx-fehl-neu", neueNr)
-	markiereFehlgeschlagen(t, store, ctx, neuFehlID, "fiskaly timeout")
+	markiereFehlgeschlagen(ctx, t, store, neuFehlID, "fiskaly timeout")
 
 	zustand, err = store.GetTSESignaturQueueZustand(ctx)
 	if err != nil {

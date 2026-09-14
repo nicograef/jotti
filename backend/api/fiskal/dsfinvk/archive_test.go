@@ -6,6 +6,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"errors"
+	"slices"
 	"sort"
 	"testing"
 
@@ -37,7 +38,7 @@ func TestBuildArchiveContents(t *testing.T) {
 		"subitems.csv", "transactions.csv", "transactions_tse.csv", "transactions_vat.csv",
 		"tse.csv", "vat.csv",
 	}
-	if !equalStrings(got, want) {
+	if !slices.Equal(got, want) {
 		t.Errorf("archive files = %v\nwant %v", got, want)
 	}
 
@@ -68,16 +69,4 @@ func TestBuildArchiveEmptySession(t *testing.T) {
 	if !errors.Is(err, ErrKeineVorgaenge) {
 		t.Fatalf("BuildArchive() error = %v, want ErrKeineVorgaenge", err)
 	}
-}
-
-func equalStrings(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }

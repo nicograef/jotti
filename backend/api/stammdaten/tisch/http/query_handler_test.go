@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
-	t "github.com/nicograef/jotti/backend/domain/tisch"
+	dom "github.com/nicograef/jotti/backend/domain/tisch"
 )
 
 type mockQuery struct {
@@ -19,8 +19,8 @@ type mockQuery struct {
 
 func (m mockQuery) GetAllTische(ctx context.Context) ([]application.TischMitSaldo, error) {
 	return []application.TischMitSaldo{
-		{Tisch: t.Tisch{ID: 1, Name: "Tisch 1", Status: t.ActiveStatus}, SaldoCents: 9850},
-		{Tisch: t.Tisch{ID: 2, Name: "Tisch 2", Status: t.ActiveStatus}, SaldoCents: 0},
+		{Tisch: dom.Tisch{ID: 1, Name: "Tisch 1", Status: dom.ActiveStatus}, SaldoCents: 9850},
+		{Tisch: dom.Tisch{ID: 2, Name: "Tisch 2", Status: dom.ActiveStatus}, SaldoCents: 0},
 	}, m.err
 }
 

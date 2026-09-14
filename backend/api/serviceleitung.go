@@ -12,23 +12,22 @@ import (
 func NewServiceleitungApi(deps Deps) (http.Handler, []string) {
 	r := newRouteMux()
 
-	tc := tischgeschaeftHTTP.CommandHandler{}
-	tc.Command = tischgeschaeftApp.Command{
+	tc := tischgeschaeftHTTP.CommandHandler{Command: tischgeschaeftApp.Command{
 		TischRepo:           deps.TischRepo,
 		EventRepo:           deps.KassenjournalRepo,
 		ProduktRepo:         deps.ProduktRepo,
 		FavoritRepo:         deps.FavoritRepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		DruckstationRepo:    deps.DruckstationRepo,
-	}
+	}}
 	r.HandleFunc("/stornierung-erteilen", tc.StornierungErteilenHandler())
 
-	dc := direktverkaufHTTP.CommandHandler{}
-	dc.Command = direktverkaufApp.Command{
+	dc := direktverkaufHTTP.CommandHandler{Command: direktverkaufApp.Command{
 		EventRepo:           deps.KassenjournalRepo,
 		ProduktRepo:         deps.ProduktRepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
-	}
+		DruckstationRepo:    deps.DruckstationRepo,
+	}}
 	r.HandleFunc("/direktverkauf-stornieren", dc.DirektverkaufStornierenHandler())
 
 	return r.Handler(), r.Paths()
