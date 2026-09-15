@@ -1,4 +1,5 @@
 -- name: GetProdukt :one
+-- Die varianten-Einträge liefert die View produkt_varianten_json (Migration 09).
 SELECT
     p.id,
     p.name,
@@ -8,18 +9,8 @@ SELECT
     p.created_at,
     p.updated_at,
     COALESCE(
-        (SELECT json_agg(
-            json_build_object(
-                'id', pv.id,
-                'name', pv.name,
-                'preisCents', pv.preis_cents,
-                'status', pv.status,
-                'createdAt', pv.created_at,
-                'updatedAt', pv.updated_at
-            )
-            ORDER BY pv.reihenfolge, pv.id
-        )
-        FROM produkt_varianten pv
+        (SELECT json_agg(pv.eintrag ORDER BY pv.reihenfolge, pv.id)
+        FROM produkt_varianten_json pv
         WHERE pv.produkt_id = p.id AND pv.status != 'deleted'),
         '[]'
     )::json AS varianten
@@ -28,20 +19,8 @@ WHERE p.id = $1 AND p.status != 'deleted';
 
 -- name: GetAlleProdukte :many
 WITH varianten_json AS (
-    SELECT
-        produkt_id,
-        json_agg(
-            json_build_object(
-                'id', id,
-                'name', name,
-                'preisCents', preis_cents,
-                'status', status,
-                'createdAt', created_at,
-                'updatedAt', updated_at
-            )
-            ORDER BY reihenfolge, id
-        ) AS varianten
-    FROM produkt_varianten
+    SELECT produkt_id, json_agg(eintrag ORDER BY reihenfolge, id) AS varianten
+    FROM produkt_varianten_json
     WHERE status != 'deleted'
     GROUP BY produkt_id
 )
@@ -64,20 +43,8 @@ ORDER BY p.kategorie, p.reihenfolge, p.id;
 -- Der INNER JOIN blendet aktive Produkte ohne aktive (bepreiste) Variante bewusst aus,
 -- da sie nicht bestellbar sind. Die Admin-Sicht (GetAlleProdukte) zeigt sie via LEFT JOIN.
 WITH varianten_json AS (
-    SELECT
-        produkt_id,
-        json_agg(
-            json_build_object(
-                'id', id,
-                'name', name,
-                'preisCents', preis_cents,
-                'status', status,
-                'createdAt', created_at,
-                'updatedAt', updated_at
-            )
-            ORDER BY reihenfolge, id
-        ) AS varianten
-    FROM produkt_varianten
+    SELECT produkt_id, json_agg(eintrag ORDER BY reihenfolge, id) AS varianten
+    FROM produkt_varianten_json
     WHERE status = 'active'
     GROUP BY produkt_id
 )

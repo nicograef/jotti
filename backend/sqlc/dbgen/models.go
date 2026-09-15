@@ -348,6 +348,14 @@ type ProduktVarianten struct {
 	Reihenfolge int
 }
 
+type ProduktVariantenJson struct {
+	ID          int
+	ProduktID   int
+	Status      Entitystatus
+	Reihenfolge int
+	Eintrag     json.RawMessage
+}
+
 // Produkte, die von Gästen bestellt werden können.
 type Produkte struct {
 	ID int

@@ -20,6 +20,8 @@ func NewRepository(db *sql.DB) Repository {
 	return Repository{db: db, q: dbgen.New(db)}
 }
 
+// jsonVariante spiegelt die Feldliste der View produkt_varianten_json
+// (database/migrations/09_produkt_varianten_json.up.sql).
 type jsonVariante struct {
 	ID         int         `json:"id"`
 	Name       string      `json:"name"`

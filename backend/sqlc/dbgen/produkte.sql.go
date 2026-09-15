@@ -77,20 +77,8 @@ func (q *Queries) CreateVariante(ctx context.Context, arg CreateVarianteParams) 
 
 const getAktiveProdukte = `-- name: GetAktiveProdukte :many
 WITH varianten_json AS (
-    SELECT
-        produkt_id,
-        json_agg(
-            json_build_object(
-                'id', id,
-                'name', name,
-                'preisCents', preis_cents,
-                'status', status,
-                'createdAt', created_at,
-                'updatedAt', updated_at
-            )
-            ORDER BY reihenfolge, id
-        ) AS varianten
-    FROM produkt_varianten
+    SELECT produkt_id, json_agg(eintrag ORDER BY reihenfolge, id) AS varianten
+    FROM produkt_varianten_json
     WHERE status = 'active'
     GROUP BY produkt_id
 )
@@ -157,20 +145,8 @@ func (q *Queries) GetAktiveProdukte(ctx context.Context) ([]GetAktiveProdukteRow
 
 const getAlleProdukte = `-- name: GetAlleProdukte :many
 WITH varianten_json AS (
-    SELECT
-        produkt_id,
-        json_agg(
-            json_build_object(
-                'id', id,
-                'name', name,
-                'preisCents', preis_cents,
-                'status', status,
-                'createdAt', created_at,
-                'updatedAt', updated_at
-            )
-            ORDER BY reihenfolge, id
-        ) AS varianten
-    FROM produkt_varianten
+    SELECT produkt_id, json_agg(eintrag ORDER BY reihenfolge, id) AS varianten
+    FROM produkt_varianten_json
     WHERE status != 'deleted'
     GROUP BY produkt_id
 )
@@ -242,18 +218,8 @@ SELECT
     p.created_at,
     p.updated_at,
     COALESCE(
-        (SELECT json_agg(
-            json_build_object(
-                'id', pv.id,
-                'name', pv.name,
-                'preisCents', pv.preis_cents,
-                'status', pv.status,
-                'createdAt', pv.created_at,
-                'updatedAt', pv.updated_at
-            )
-            ORDER BY pv.reihenfolge, pv.id
-        )
-        FROM produkt_varianten pv
+        (SELECT json_agg(pv.eintrag ORDER BY pv.reihenfolge, pv.id)
+        FROM produkt_varianten_json pv
         WHERE pv.produkt_id = p.id AND pv.status != 'deleted'),
         '[]'
     )::json AS varianten
@@ -272,6 +238,7 @@ type GetProduktRow struct {
 	Varianten  json.RawMessage
 }
 
+// Die varianten-Einträge liefert die View produkt_varianten_json (Migration 09).
 func (q *Queries) GetProdukt(ctx context.Context, id int) (GetProduktRow, error) {
 	row := q.db.QueryRowContext(ctx, getProdukt, id)
 	var i GetProduktRow
