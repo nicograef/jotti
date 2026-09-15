@@ -2,6 +2,7 @@ import { betreiberEmail, githubUrl } from './links'
 
 export interface AnfrageFelder {
   verein: string
+  sitz: string
   name: string
   email: string
   art: string
@@ -18,7 +19,9 @@ export const artOptionen = [
 
 // art hat als Select immer einen Wert, message ist optional — beide werden
 // nicht validiert.
-export type AnfrageFehler = Partial<Record<'verein' | 'name' | 'email', string>>
+export type AnfrageFehler = Partial<
+  Record<'verein' | 'sitz' | 'name' | 'email', string>
+>
 
 // Nur Format (etwas@etwas.tld) — Zustellbarkeit prüft erst das Mailprogramm.
 const emailMuster = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -29,6 +32,10 @@ export function validateAnfrage(felder: AnfrageFelder): AnfrageFehler {
   if (!felder.verein.trim()) {
     fehler.verein =
       'Bitte gib den Namen eures Vereins oder eurer Organisation an.'
+  }
+  // LICENSE verlangt den Sitz als Teil der Identifikation.
+  if (!felder.sitz.trim()) {
+    fehler.sitz = 'Bitte gib den Sitz eurer Organisation an.'
   }
   if (!felder.name.trim()) {
     fehler.name = 'Bitte gib eine:n Ansprechpartner:in an.'
@@ -70,6 +77,7 @@ export function buildAnfrageMail(felder: AnfrageFelder): AnfrageMail {
     `wir sind ${verein} und akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 7. September 2026 (${termsUrl}).`,
     '',
     `Rechtsform: ${felder.art.trim()}`,
+    `Sitz: ${felder.sitz.trim()}`,
     `Ansprechperson: ${felder.name.trim()}, ${felder.email.trim()}`,
   ]
 

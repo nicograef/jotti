@@ -12,6 +12,7 @@ import { betreiberEmail } from './links'
 function felder(overrides: Partial<AnfrageFelder> = {}): AnfrageFelder {
   return {
     verein: 'TSV Musterhausen e.V.',
+    sitz: 'Musterhausen',
     name: 'Erika Mustermann',
     email: 'vorstand@musterhausen.de',
     art: 'Eingetragener Verein (e.V.)',
@@ -27,9 +28,12 @@ describe('validateAnfrage', () => {
     expect(hatFehler(fehler)).toBe(false)
   })
 
-  it('meldet jedes leere Pflichtfeld (verein, name, email)', () => {
-    const fehler = validateAnfrage(felder({ verein: '', name: '', email: '' }))
+  it('meldet jedes leere Pflichtfeld (verein, sitz, name, email)', () => {
+    const fehler = validateAnfrage(
+      felder({ verein: '', sitz: '', name: '', email: '' }),
+    )
     expect(fehler.verein).toBeTruthy()
+    expect(fehler.sitz).toBeTruthy()
     expect(fehler.name).toBeTruthy()
     expect(fehler.email).toBeTruthy()
     expect(hatFehler(fehler)).toBe(true)
@@ -85,6 +89,7 @@ describe('buildMailtoUrl', () => {
     const body = params.get('body') ?? ''
     expect(body).toContain('wir sind TSV Musterhausen e.V.')
     expect(body).toContain('Rechtsform: Eingetragener Verein (e.V.)')
+    expect(body).toContain('Sitz: Musterhausen')
     expect(body).toContain(
       'Ansprechperson: Erika Mustermann, vorstand@musterhausen.de',
     )

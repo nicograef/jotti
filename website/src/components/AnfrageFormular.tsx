@@ -17,6 +17,7 @@ const feldKlassen =
 
 const leereFelder: AnfrageFelder = {
   verein: '',
+  sitz: '',
   name: '',
   email: '',
   art: artOptionen[0],
@@ -57,7 +58,7 @@ export default function AnfrageFormular() {
       setAnkuendigung(
         'Der E-Mail-Entwurf konnte nicht geöffnet werden. Bitte fülle die markierten Pflichtfelder aus.',
       )
-      const erstesFeld = (['verein', 'name', 'email'] as const).find(
+      const erstesFeld = (['verein', 'sitz', 'name', 'email'] as const).find(
         (key) => gefunden[key],
       )
       if (erstesFeld) {
@@ -242,6 +243,29 @@ export default function AnfrageFormular() {
               className="mt-1.5 text-[13px] text-[var(--sp-red-text)]"
             >
               {fehler.verein}
+            </p>
+          )}
+        </label>
+
+        <label className="block">
+          <span className="mb-1.5 block text-[13px] font-semibold">Sitz</span>
+          <input
+            name="sitz"
+            type="text"
+            value={felder.sitz}
+            onChange={(event) => setFeld('sitz', event.target.value)}
+            placeholder="Musterhausen"
+            required
+            aria-invalid={fehler.sitz ? true : undefined}
+            aria-describedby={fehler.sitz ? fehlerId('sitz') : undefined}
+            className={`${feldKlassen} h-[46px]`}
+          />
+          {fehler.sitz && (
+            <p
+              id={fehlerId('sitz')}
+              className="mt-1.5 text-[13px] text-[var(--sp-red-text)]"
+            >
+              {fehler.sitz}
             </p>
           )}
         </label>
