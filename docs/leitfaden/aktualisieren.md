@@ -59,8 +59,9 @@ des laufenden Betriebs sein, haltet euch an diese Reihenfolge.
    wieder läuft; rechnet mit einer halben Minute (siehe nächster Abschnitt).
 6. **Erst danach dem Team Bescheid geben**, dass es weitergeht. Ein Neuladen müsst
    ihr nicht ansagen — die Handys laden sich genauso von selbst neu. Einzige
-   Ausnahme ist das Update **auf** Version 0.17.3: Dabei muss jedes Gerät noch ein
-   letztes Mal von Hand neu geladen werden (siehe Kasten im nächsten Abschnitt).
+   Ausnahme ist das erste Update von einer Version **vor** 0.17.3: Dabei muss jedes
+   Gerät noch ein letztes Mal von Hand neu geladen werden (siehe Kasten im
+   nächsten Abschnitt).
 
 ## Danach: die Geräte laden sich von selbst neu
 
@@ -73,12 +74,12 @@ Browser am Handy, am Rechner und ebenso in der als App auf dem Startbildschirm
 installierten jotti. **Ihr müsst das Neuladen also nicht mehr ansagen**, und
 niemand muss eine App wegwischen.
 
-> ⚠️ **Beim Update auf 0.17.3 noch ein letztes Mal von Hand neu laden.** Das
-> automatische Neuladen steckt in der Bedienoberfläche selbst — und die alte
-> Bedienoberfläche, die auf den Geräten noch im Speicher liegt, kennt es nicht.
-> Bei genau diesem Update erneuert sich deshalb kein Gerät von allein, auch nicht
-> der Rechner, an dem ihr gleich den Rauchtest macht. Ladet einmal überall von Hand
-> neu:
+> ⚠️ **Beim Update von einer Version vor 0.17.3 noch ein letztes Mal von Hand neu
+> laden.** Das automatische Neuladen steckt in der Bedienoberfläche selbst — und
+> eine Bedienoberfläche älter als 0.17.3, die auf den Geräten noch im Speicher
+> liegt, kennt es nicht. Bei diesem Update erneuert sich deshalb kein Gerät von
+> allein, auch nicht der Rechner, an dem ihr gleich den Rauchtest macht. Ladet
+> einmal überall von Hand neu:
 >
 > - **Handy im Browser:** die Seite von ganz oben nach unten ziehen.
 > - **Rechner:** `Strg` + `F5`.
@@ -86,7 +87,7 @@ niemand muss eine App wegwischen.
 >   noch Neu-laden-Pfeil. Die App **ganz schließen** und aus der Übersicht der
 >   laufenden Apps wegwischen, dann neu öffnen.
 >
-> Beim nächsten Update, das dann von 0.17.3 aus startet, erledigt jotti es allein.
+> Jedes Update, das von 0.17.3 oder neuer aus startet, erledigt jotti allein.
 
 **Wer gerade mitten in etwas steckt, verliert nichts.** Solange ein angefangener
 Vorgang offen ist — ein gefüllter Bestellkorb, eine getroffene Auswahl beim
@@ -115,14 +116,15 @@ Dann genügt ein Antippen von **„Jetzt neu laden"**. Das kommt selten vor; ans
 müsst ihr dafür nichts. Kommt das Band danach noch einmal, wartet einen Moment und
 tippt erneut.
 
-## Das Print-Relay bleibt bei Version 0.17.3, wie es ist
+## Das Print-Relay darf weiterlaufen
 
 Das Print-Relay (`jotti-relay.exe`, das Fenster, das die Bons an die Drucker
-schickt) ist unverändert, und auch die Verständigung zwischen jotti und dem
-Relay hat sich nicht geändert. **Das laufende Relay darf
-einfach weiterlaufen** — ihr müsst es weder beenden noch ersetzen. Im
-Release-ZIP liegt trotzdem eine `jotti-relay.exe`; sie ist funktional identisch
-mit der laufenden. Ob ihr sie tauscht oder nicht, macht keinen Unterschied.
+schickt) ist in 0.17.1 und allen neueren Versionen funktional dasselbe, ebenso
+die Verständigung zwischen jotti und dem Relay. Läuft bei euch 0.17.1 oder neuer,
+gilt: **Das laufende Relay darf einfach weiterlaufen** — ihr müsst es weder
+beenden noch ersetzen. Im Release-ZIP liegt trotzdem eine `jotti-relay.exe`; sie
+ist funktional identisch mit der laufenden. Ob ihr sie tauscht oder nicht, macht
+keinen Unterschied.
 
 > ⚠️ **Beim nächsten Update nicht raten.** Ändert sich das Relay, muss das alte
 > Fenster **erst geschlossen** und dann die neue `jotti-relay.exe` gestartet

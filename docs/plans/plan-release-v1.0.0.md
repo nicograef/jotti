@@ -96,14 +96,14 @@ Setup-Wizard-Durchlauf oben.
 
 ## 2. Release schneiden (Block H, nur nach Go)
 
-- [ ] Beispielversion in `docs/leitfaden/self-hosting.md` (`JOTTI_VERSION=v0.14.0`) auf `v1.0.0`
+- [ ] Beispielversion in `docs/leitfaden/self-hosting.md` (`JOTTI_VERSION=v0.18.0`) auf `v1.0.0`
       heben. Nur diese Datei ist betroffen: `docker-compose.release.yml` ist ein
       `:RELEASE_VERSION`-Template (der Release-Workflow ersetzt den Platzhalter), `.env.example`
       hält `JOTTI_VERSION=` bewusst leer, die Verfahrensdokumentation trägt an dieser Stelle einen
       Betreiber-Platzhalter (`«z. B. v1.0.0»`) und `frontend/package.json` steht auf `0.0.0`, das
       nirgends im Build gelesen wird.
-- [ ] `docs/leitfaden/aktualisieren.md` prüfen: die Aussage zur Print-Relay-Version 0.17.3 gegen den
-      1.0.0-Stand halten
+- [ ] `docs/leitfaden/aktualisieren.md` prüfen: die Aussage, dass das Print-Relay in 0.17.1 und allen
+      neueren Versionen funktional dasselbe ist, gegen den 1.0.0-Stand halten
 - [ ] Release-Datum im Abschnitt `[1.0.0]` der `CHANGELOG.md` eintragen
 - [ ] CI auf dem Release-Commit in `main` grün: die Jobs `backend-ci`, `backend-golangci`,
       `repo-checks`, `frontend-ci`, `resolver-ci`, `local-proxy-ci`, `windows-ci`,

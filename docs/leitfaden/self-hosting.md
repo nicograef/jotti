@@ -49,7 +49,7 @@ lokalen WLAN stellt sich die Frage nicht, dort ist kein Hoster beteiligt.
    ```bash
    JOTTI_DOMAIN=kasse-musterverein.de
    LETSENCRYPT_EMAIL=vorstand@musterverein.de
-   JOTTI_VERSION=v0.14.0
+   JOTTI_VERSION=v0.18.0
    ```
 
    Die aktuelle Versionsnummer übernehmt ihr von der
