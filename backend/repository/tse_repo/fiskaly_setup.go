@@ -283,25 +283,29 @@ func (c *FiskalyTSESetupClient) ReaktiviereClient(ctx context.Context, tssID, cl
 }
 
 // mapSetupError übersetzt bekannte fiskaly-Fehler in Domain-Sentinels, damit
-// die Application-Schicht verständliche Meldungen erzeugen kann: einen
-// Auth-Fehler (falsche Zugangsdaten oder abgelehnte/gesperrte Admin-PIN) und das
-// Erreichen des TSS-Limits (E_TSS_LIMIT_REACHED, in TEST fünf aktive TSS). Eine
-// nach fünf Fehlversuchen gesperrte Admin-PIN (E_ADMIN_PIN_BLOCKED) liefert
-// fiskaly mit Status 423; sie wird hier ebenfalls als Auth-Fehler gemeldet, damit
-// die Übernahme in die PIN-Sackgasse (mit PUK-Reset als Ausweg) statt in einen
-// technischen Fehler läuft. Alle anderen Fehler bleiben unverändert.
+// die Application-Schicht verständliche Meldungen erzeugen kann: das Erreichen
+// des TSS-Limits (E_TSS_LIMIT_REACHED, in TEST fünf aktive TSS, und
+// E_TSS_LIMIT_PER_DAY_REACHED) und einen Auth-Fehler (falsche Zugangsdaten oder
+// abgelehnte/gesperrte Admin-PIN). Der Fehlercode wird vor dem HTTP-Status
+// geprüft, weil fiskaly die Limit-Codes mit Status 403 liefert (OpenAPI, PUT
+// /tss/{tss_id}). Eine nach fünf Fehlversuchen gesperrte Admin-PIN
+// (E_ADMIN_PIN_BLOCKED) liefert fiskaly mit Status 423; sie wird ebenfalls als
+// Auth-Fehler gemeldet, damit die Übernahme in die PIN-Sackgasse (mit PUK-Reset
+// als Ausweg) statt in einen technischen Fehler läuft. Alle anderen Fehler
+// bleiben unverändert.
 func mapSetupError(err error) error {
 	var apiErr apiError
-	if errors.As(err, &apiErr) {
-		if apiErr.StatusCode == http.StatusUnauthorized || apiErr.StatusCode == http.StatusForbidden {
-			return tse.ErrSetupAuthFehlgeschlagen
-		}
-		if apiErr.Code == "E_ADMIN_PIN_BLOCKED" {
-			return tse.ErrSetupAuthFehlgeschlagen
-		}
-		if apiErr.Code == "E_TSS_LIMIT_REACHED" {
-			return tse.ErrSetupTSSLimitErreicht
-		}
+	if !errors.As(err, &apiErr) {
+		return err
+	}
+	switch apiErr.Code {
+	case "E_TSS_LIMIT_REACHED", "E_TSS_LIMIT_PER_DAY_REACHED":
+		return tse.ErrSetupTSSLimitErreicht
+	case "E_ADMIN_PIN_BLOCKED":
+		return tse.ErrSetupAuthFehlgeschlagen
+	}
+	if apiErr.StatusCode == http.StatusUnauthorized || apiErr.StatusCode == http.StatusForbidden {
+		return tse.ErrSetupAuthFehlgeschlagen
 	}
 	return err
 }

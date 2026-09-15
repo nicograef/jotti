@@ -412,3 +412,30 @@ func TestFiskalySetupClient_AdminPINBlocked(t *testing.T) {
 		t.Fatalf("expected ErrSetupAuthFehlgeschlagen for a blocked admin pin, got %v", err)
 	}
 }
+
+// TestMapSetupError pinnt die Zuordnung der fiskaly-Fehler: die TSS-Limit-Codes
+// kommen mit Status 403 und dürfen nicht als Auth-Fehler enden.
+func TestMapSetupError(t *testing.T) {
+	andererFehler := errors.New("boom")
+	cases := []struct {
+		name string
+		err  error
+		want error
+	}{
+		{"tss limit mit 403", apiError{StatusCode: http.StatusForbidden, Code: "E_TSS_LIMIT_REACHED"}, tse.ErrSetupTSSLimitErreicht},
+		{"tss tageslimit mit 403", apiError{StatusCode: http.StatusForbidden, Code: "E_TSS_LIMIT_PER_DAY_REACHED"}, tse.ErrSetupTSSLimitErreicht},
+		{"admin pin gesperrt mit 423", apiError{StatusCode: http.StatusLocked, Code: "E_ADMIN_PIN_BLOCKED"}, tse.ErrSetupAuthFehlgeschlagen},
+		{"401 ohne code", apiError{StatusCode: http.StatusUnauthorized}, tse.ErrSetupAuthFehlgeschlagen},
+		{"403 mit fremdem code", apiError{StatusCode: http.StatusForbidden, Code: "E_OTHER"}, tse.ErrSetupAuthFehlgeschlagen},
+		{"500 bleibt unveraendert", apiError{StatusCode: http.StatusInternalServerError, Code: "E_INTERNAL"}, apiError{StatusCode: http.StatusInternalServerError, Code: "E_INTERNAL"}},
+		{"kein api error", andererFehler, andererFehler},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := mapSetupError(tc.err)
+			if !errors.Is(got, tc.want) {
+				t.Fatalf("mapSetupError(%v) = %v, want %v", tc.err, got, tc.want)
+			}
+		})
+	}
+}
