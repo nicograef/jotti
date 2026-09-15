@@ -542,7 +542,7 @@ func demoSzenario() szenario {
 	}
 }
 
-// freitagsAktionen ist der ruhige Eröffnungsabend (~160 Events): neun Tische mit
+// freitagsAktionen ist der ruhige Eröffnungsabend (~110 Events): neun Tische mit
 // Standard-Zyklen plus Direktverkaufsstand, abends der Kassensturz ohne Differenz.
 func freitagsAktionen() []aktion {
 	stammtisch := runden(1, maria, 8,
@@ -604,7 +604,7 @@ func freitagsAktionen() []aktion {
 	return append(tag, kassensturz{User: thomas})
 }
 
-// samstagsAktionen ist der Haupttag (~700 Events): voller Betrieb auf 16 Tischen mit
+// samstagsAktionen ist der Haupttag (~470 Events): voller Betrieb auf 16 Tischen mit
 // Geburtstagsfeier, Stornierungen durch die Serviceleitung (geldneutrale Korrektur und
 // kassenwirksame Warenrücknahme), Teil-Zahlung, Direktverkaufsstand mit
 // Storno, Geldtransit-Entnahme und Kassensturz mit kleiner Soll/Ist-Differenz.
@@ -745,7 +745,7 @@ func samstagsAktionen() []aktion {
 	)
 }
 
-// sonntagsAktionen ist der offene aktuelle Tag (~130 Events): Tische in allen Zuständen
+// sonntagsAktionen ist der offene aktuelle Tag (~90 Events): Tische in allen Zuständen
 // (leer, frisch bestellt, teilbezahlt, Warenrücknahme nach Bezahlung, abgeschlossen),
 // eine Umbuchung vom Stehtisch Eingang an den freien Tisch 4 und die Wechselgeld-Einlage.
 func sonntagsAktionen() []aktion {

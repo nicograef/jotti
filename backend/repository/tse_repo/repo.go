@@ -119,7 +119,7 @@ func (r Repository) GetTSESignaturQueueZustand(ctx context.Context) (tse.Signatu
 }
 
 // GetAlleTSEStoerungen liefert das Störungsprotokoll (Ausfalldokumentation):
-// alle Störungszeiträume, neueste zuerst.
+// die jüngsten 200 Störungszeiträume, neueste zuerst.
 func (r Repository) GetAlleTSEStoerungen(ctx context.Context) ([]tse.Stoerungszeitraum, error) {
 	rows, err := r.q.GetAlleTSEStoerungen(ctx)
 	if err != nil {

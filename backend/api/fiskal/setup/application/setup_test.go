@@ -790,8 +790,8 @@ func TestUebernimmTSE_PINResetPersistiertStammdaten(t *testing.T) {
 
 // TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup sichert, dass ein
 // Stammdaten-Abruffehler die Einrichtung fehlschlagen lässt. Die
-// TSS-Seriennummer (TSE_SERIAL im DSFinV-K-Export) ist aus den Signaturen nicht
-// rekonstruierbar; daher ist ein Fehler beim Stammdaten-Abruf hart.
+// TSS-Seriennummer (TSE_SERIAL im DSFinV-K-Export) liest der Export allein aus
+// tse_stammdaten; daher ist ein Fehler beim Stammdaten-Abruf hart.
 func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tse.FakeSetupClient{

@@ -2,8 +2,8 @@
 import { Download, BookOpen, Code, ArrowRight } from '@lucide/astro'
 import { githubUrl, leitfadenUrl } from '../lib/links'
 
-// Kein „.exe"- und kein „5 Minuten"-Versprechen, solange das native
-// Windows-Paket nicht existiert.
+// Kein „5 Minuten"-Versprechen: der Windows-Starter (jotti-start.exe) liegt im
+// Release-ZIP, sein erster Start lädt aber Programmteile nach und dauert länger.
 
 const releasesUrl = `${githubUrl}/releases`
 ---

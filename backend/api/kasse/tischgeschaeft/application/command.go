@@ -386,7 +386,8 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		return ErrDatabase
 	}
 
-	// false = angeforderte Menge übersteigt die noch stornierbare Menge.
+	// false = angeforderte Positionen sind nicht stornierbar: die Menge übersteigt die noch
+	// stornierbare Menge, oder eine PositionID ist doppelt referenziert.
 	aufteilung, ok := kasse.ComputeStornoAufteilung(events, positionen)
 	if !ok {
 		log.Warn().Int("tisch_id", tischID).Msg("Stornierungsinvariante verletzt: angeforderte Positionen nicht stornierbar")

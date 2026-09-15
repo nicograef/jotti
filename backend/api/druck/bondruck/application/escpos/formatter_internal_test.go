@@ -53,11 +53,11 @@ func TestQRVersionForLengthM_KnownCapacities(t *testing.T) {
 		payloadLen  int
 		wantVersion int
 	}{
-		{1, 1},    // V1 hält 16 Byte
-		{16, 1},   // V1 hält genau 16 Byte
-		{17, 2},   // V2 ab 17 Byte
-		{507, 17}, // V17 hält genau 507 Byte
-		{508, 18}, // V18 ab 508 Byte
+		{1, 1},    // V1: 16 Datencodewörter
+		{16, 1},   // V1: genau 16 Datencodewörter
+		{17, 2},   // V2 ab 17 Datencodewörtern
+		{507, 17}, // V17: genau 507 Datencodewörter
+		{508, 18}, // V18 ab 508 Datencodewörtern
 	}
 	for _, tc := range cases {
 		got := qrVersionForLengthM(tc.payloadLen)
@@ -68,7 +68,7 @@ func TestQRVersionForLengthM_KnownCapacities(t *testing.T) {
 }
 
 func TestQRModuleSizeByte_500BytePayload_UsesSize6(t *testing.T) {
-	// V17 (507-Byte-Kapazität): Matrix 85 Module + 8 Ruhezone = 93 Module.
+	// V17 (507 Datencodewörter): Matrix 85 Module + 8 Ruhezone = 93 Module.
 	// 93 * 6 = 558 Dots <= 576 Dots -> Modulgröße 6.
 	if got := qrModuleSizeByte(500); got != 6 {
 		t.Errorf("qrModuleSizeByte(500) = %d, want 6 (93 Module * 6 = 558 <= 576 Dots)", got)
@@ -76,7 +76,7 @@ func TestQRModuleSizeByte_500BytePayload_UsesSize6(t *testing.T) {
 }
 
 func TestQRModuleSizeByte_508BytePayload_UsesSize5(t *testing.T) {
-	// V18 (563-Byte-Kapazität): Matrix 89 Module + 8 Ruhezone = 97 Module.
+	// V18 (563 Datencodewörter): Matrix 89 Module + 8 Ruhezone = 97 Module.
 	// 97 * 6 = 582 Dots > 576 -> Modulgröße 5: 97 * 5 = 485 <= 576 Dots.
 	if got := qrModuleSizeByte(508); got != 5 {
 		t.Errorf("qrModuleSizeByte(508) = %d, want 5 (97 Module * 6 = 582 > 576; * 5 = 485 <= 576)", got)

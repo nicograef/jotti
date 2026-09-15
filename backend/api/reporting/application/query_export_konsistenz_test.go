@@ -72,7 +72,7 @@ func centsAusExportBetrag(t *testing.T, betrag string) int {
 	return cents
 }
 
-// Gemeinsamer Testfall für die B9-Invariante: Die USt-Aufschlüsselung des
+// Gemeinsamer Testfall für die Invariante: Die USt-Aufschlüsselung des
 // Reportings (computeUmsatzProSteuersatz auf den Brutto-Positionszeilen)
 // muss für dieselbe Sitzung exakt die Summen der businesscases.csv des
 // DSFinV-K-Exports ergeben — mit Kombi-Positionen, Warenrücknahme,

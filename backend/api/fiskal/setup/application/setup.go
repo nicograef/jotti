@@ -130,8 +130,8 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	// Ressourcen-ID (_id) angelegt — fiskaly-Konvention. Die Kassen-Seriennummer
 	// ist die fachliche serial_number (DSFinV-K KASSE_SERIENNR). So bleibt der
 	// technische Client-Identifikator von der fachlichen Seriennummer getrennt
-	// und konsistent mit der Übernahme einer bestehenden TSS (spätere Phase),
-	// bei der die vorgefundene Client-_id übernommen wird.
+	// und konsistent mit der Übernahme einer bestehenden TSS, bei der die
+	// vorgefundene Client-_id übernommen wird.
 	clientID := uuid.NewString()
 
 	pin, err := generateAdminPIN()
@@ -379,8 +379,9 @@ func (c Command) saveEinrichtung(ctx context.Context, log *zerolog.Logger, clien
 
 // fetchTSEStammdaten liest die fiskalischen TSS-Stammdaten von fiskaly und
 // speichert sie für den DSFinV-K-Export. Die Stammdaten enthalten die
-// TSS-Seriennummer (TSE_SERIAL in der DSFinV-K), die nicht aus den Signaturen
-// rekonstruierbar ist; daher ist ein Fehler hier ein harter Einrichtungsfehler.
+// TSS-Seriennummer (TSE_SERIAL in der DSFinV-K) sowie Public Key und Zertifikat,
+// die der Export allein aus tse_stammdaten liest; daher ist ein Fehler hier ein
+// harter Einrichtungsfehler.
 func (c Command) fetchTSEStammdaten(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, tssID string) error {
 	stammdaten, err := client.RetrieveTSSStammdaten(ctx, tssID)
 	if err != nil {
@@ -481,8 +482,8 @@ func einrichtungsFehler(log *zerolog.Logger, err error, schritt, tssID string) e
 	return ErrTSEEinrichtung
 }
 
-// hatAktiveTSS meldet, ob das Konto eine noch nutzbare TSS enthält. Deaktivierte
-// (DISABLED) TSS gelten als tot und blockieren die Neuanlage nicht.
+// hatAktiveTSS meldet, ob das Konto eine nicht deaktivierte TSS enthält. Nur
+// deaktivierte (DISABLED) TSS gelten als tot und blockieren die Neuanlage nicht.
 func hatAktiveTSS(tssListe []tse.TSSInfo) bool {
 	for _, t := range tssListe {
 		if !strings.EqualFold(strings.TrimSpace(t.State), "DISABLED") {

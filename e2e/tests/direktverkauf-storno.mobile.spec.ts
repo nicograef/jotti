@@ -31,7 +31,7 @@ test.describe('Servicekraft tätigt einen Direktverkauf und storniert ihn', () =
     await waehleVariante(page, 'Festbändchen', 'Erwachsene')
     await waehleVariante(page, 'Festbändchen', 'Kinder')
 
-    // Der Dock-Aktionsbutton trägt Anzahl, Label und Summe („2 · Kassieren ·
+    // Der Dock-Aktionsbutton trägt Anzahl, Label und Summe („2 Kassieren
     // 8,00 €") und öffnet den Kassieren-Drawer; „Verkauf abschließen" liegt dort.
     await page.getByRole('button', { name: /Kassieren.*8,00/ }).click()
     const kassierenDrawer = page.getByRole('dialog')

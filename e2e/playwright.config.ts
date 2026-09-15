@@ -37,7 +37,8 @@ export default defineConfig({
       testMatch: /admin-.*\.spec\.ts$/,
     },
     {
-      // Servicekräfte arbeiten mobil (BYOD); Admin-Seiten sind Desktop-only.
+      // Servicekräfte arbeiten mobil (BYOD); die Admin-Specs laufen im
+      // Desktop-Viewport.
       name: 'mobile-service',
       use: { ...devices['Pixel 7'] },
       testIgnore: /admin-.*\.spec\.ts$/,

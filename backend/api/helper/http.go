@@ -12,12 +12,13 @@ import (
 )
 
 // errorResponse is the uniform error body of the HTTP API. Code is a stable
-// snake_case code the frontend maps to a German message. Details is parsed by
-// the frontend in exactly two cases: "validation_error" carries zog issues as
+// snake_case code the frontend maps to a German message. Details is structured
+// in exactly two cases: "validation_error" carries zog issues as
 // map[field][]message (see ReadAndValidateBody), "signaturen_ausstehend"
 // (Kassenabschluss-Gate) a structured object with the number of pending
-// signatures (see SendConflictDetails). Everywhere else it is at most a short
-// English diagnostic for operators and logs — never localized, never parsed.
+// signatures (see SendConflictDetails) — the only one the frontend parses.
+// Everywhere else it is at most a short English diagnostic for operators and
+// logs — never localized, never parsed.
 type errorResponse struct {
 	Code    string `json:"code"`
 	Details any    `json:"details,omitempty"`

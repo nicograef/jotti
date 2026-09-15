@@ -975,7 +975,7 @@ func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahm
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	// Bestellt 3 Bier, davon 1 bezahlt → ein Storno von 3 spaltet in 2 Korrektur
+	// Bestellt 3 Cola, davon 1 bezahlt → ein Storno von 3 spaltet in 2 Korrektur
 	// (unbezahlt) und 1 Warenrücknahme (bezahlt).
 	orderEvent, _ := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", []kasse.Position{{
 		VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 3,

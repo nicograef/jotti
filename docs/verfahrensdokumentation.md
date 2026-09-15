@@ -11,6 +11,8 @@ description: 'Muster-Verfahrensdokumentation für die Kassenführung mit jotti: 
 
 Die GoBD (BMF-Schreiben vom 28.11.2019) verlangen vom Betreiber eines elektronischen Kassensystems eine Verfahrensdokumentation: eine nachvollziehbare Beschreibung, wie das System steuerlich relevante Daten erzeugt, verarbeitet, sichert und aufbewahrt. Sie versetzt einen sachverständigen Dritten (Betriebsprüfer) in die Lage, den Kassenprozess in angemessener Zeit zu verstehen und zu prüfen. Dieses Dokument erfüllt diese Pflicht für die Kassenführung mit jotti.
 
+Zugleich ist dieses Dokument die Herstellerdokumentation nach BSI TR-03153-1 Kap. 3.9.3: Abschnitt 2 beschreibt die Nutzung mehrerer Eingabegeräte an der TSE, Abschnitt 4 die Durchführungszeiten der Signaturerstellung und die möglichen Verzögerungen bei gleichzeitig abzusichernden Vorgängen.
+
 Rechtliche Grundlagen im Detail: [compliance.md](compliance.md). Technische Architektur: [handbuch.md](handbuch.md). Betreiber-Anleitung in laienverständlicher Form: [Leitfaden](leitfaden/was-ist-jotti.md).
 
 ## 1. Stammdaten der Instanz (vom Betreiber auszufüllen)
@@ -35,7 +37,7 @@ Rechtliche Grundlagen im Detail: [compliance.md](compliance.md). Technische Arch
 
 ## 2. Systemüberblick und Architektur
 
-jotti ist ein self-hosted Kassensystem (mobile Point of Sale) für Vereinsfeste. Das Backend ist in Go geschrieben, das Frontend in React, als Datenbank dient PostgreSQL, der Betrieb erfolgt über Docker Compose. Die Servicekräfte bedienen jotti im Browser auf ihren eigenen Smartphones (BYOD); ein gedrucktes Kassensystem oder eine installierte App gibt es nicht.
+jotti ist ein self-hosted Kassensystem (mobile Point of Sale) für Vereinsfeste. Das Backend ist in Go geschrieben, das Frontend in React, als Datenbank dient PostgreSQL, der Betrieb erfolgt über Docker Compose. Die Servicekräfte bedienen jotti im Browser auf ihren eigenen Smartphones (BYOD); ein gerätegebundenes Kassenterminal oder eine native App aus dem App-Store gibt es nicht.
 
 **Rolle der Smartphones:** Die Geräte der Servicekräfte sind reine Eingabegeräte mit sofortiger Weiterleitung an das Backend. Sie erfassen keine Zahlungen eigenständig und offline; jeder Vorgang ist ein synchroner Backend-Request, ohne Verbindung ist keine Erfassung möglich (kein Service Worker, kein Offline-Speicher). TSE-Absicherung, Protokollierung und DSFinV-K-Speicherung erfolgen ausschließlich zentral im Backend. Die Smartphones sind deshalb nicht meldepflichtig ([compliance.md §7.5](compliance.md#75-byod-smartphones-keine-meldepflicht)).
 
@@ -76,11 +78,11 @@ jotti unterliegt nach § 146a AO der Pflicht, jeden Geschäftsvorfall durch eine
 
 **Absicherung jedes Vorgangs:** Jeder relevante Vorgang wird über das anbieter-agnostische `TSEClient`-Interface signiert. jotti folgt dem atomaren Festzelt-Muster: Jeder Vorgang ist eine eigene, sofort geschlossene TSE-Transaktion. Die Zuordnung der TSE-Vorgangsarten:
 
-| jotti-Vorgang                                                                                                | TSE-Vorgangsart (processType) |
-| ------------------------------------------------------------------------------------------------------------ | ----------------------------- |
-| Bestellung aufnehmen, geldneutrale Korrektur, Umbuchung                                                      | `Bestellung-V1`               |
-| Zahlung, Warenrücknahme (kassenwirksamer Storno), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) | `Kassenbeleg-V1`              |
-| Tagesabschluss (Z-Bon)                                                                                       | `SonstigerVorgang`            |
+| jotti-Vorgang                                                                                                                                                                          | TSE-Vorgangsart (processType) |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| Bestellung aufnehmen, geldneutrale Korrektur, Umbuchung                                                                                                                                | `Bestellung-V1`               |
+| Zahlung, Warenrücknahme (kassenwirksamer Storno), Anfangsbestand bei Sitzungseröffnung (Bareinlage, entfällt bei Betrag 0), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) | `Kassenbeleg-V1`              |
+| Tagesabschluss (Z-Bon)                                                                                                                                                                 | `SonstigerVorgang`            |
 
 **Signaturablauf und Persistenz:** Die Signierung ist vom Kassiervorgang entkoppelt, das Buchen wartet nie auf die TSE. Jeder signaturpflichtige Vorgang schreibt im selben Datenbank-Commit wie das Ereignis genau einen Signaturauftrag (transaktionale Outbox `tse_signaturauftraege`); ein Signatur-Worker signiert asynchron über das `TSEClient`-Interface und speichert die von der TSE gelieferten Signaturdaten (Transaktionsnummer, Signaturzähler, Signatur, Zeitstempel, Seriennummer) direkt am Auftrag. Beleg und DSFinV-K-Export lesen genau diese eine Quelle. Im Regelbetrieb liegt die Signatur binnen Sekunden vor (angestrebte Latenz: p95 unter fünf Sekunden). Der Signatur-Worker signiert seriell; ein Rückstand baut sich mit derselben Rate wieder ab und hält den Betrieb nicht auf.
 
@@ -114,7 +116,7 @@ Format- und Felddetails: [compliance.md §6](compliance.md#6-dsfinv-k-export-sch
 | `serviceleitung` | Kasse einschließlich Stornierung                                                                |
 | `service`        | Kasse ohne Stornierung                                                                          |
 
-Stornierungen sind ausschließlich `serviceleitung` und `admin` vorbehalten; die Kassensitzung (Eröffnen, Kassensturz, Tagesabschluss) und alle Stammdaten- und Auswertungsfunktionen sind dem `admin` vorbehalten. Die vollständige Berechtigungsmatrix steht in [handbuch.md §5.1](handbuch.md#51-rollen-und-berechtigungsmatrix).
+Stornierungen sind ausschließlich `serviceleitung` und `admin` vorbehalten; die Kassensitzung (Eröffnen, Kassensturz, Tagesabschluss), alle Stammdatenfunktionen sowie Tagesabrechnung und Datenexport sind dem `admin` vorbehalten. Die vollständige Berechtigungsmatrix steht in [handbuch.md §5.1](handbuch.md#51-rollen-und-berechtigungsmatrix).
 
 **Rollenvergabe in diesem Verein (auszufüllen):**
 
@@ -141,7 +143,7 @@ Alle steuerlich relevanten Daten sind 10 Jahre vollständig, jederzeit verfügba
 
 **Aufbewahrung in diesem Verein (auszufüllen):** «Beschreibt, wo und wie ihr archiviert. Beispiel: Nach jedem Veranstaltungstag exportieren wir die DSFinV-K-ZIP und legen sie auf einem USB-Stick im Vereinssafe sowie zusätzlich in «Cloud-Speicher» ab. Tägliche Datenbank-Backups laufen «automatisch über … / manuell durch …». Verantwortlich: «Name».»
 
-Strategie im Detail: [compliance.md §4.4](compliance.md#44-aufbewahrungsstrategie-f-10). Laienverständliche Anleitung: [Leitfaden, Datenaufbewahrung](leitfaden/datenaufbewahrung.md).
+Strategie im Detail: [compliance.md §4.3](compliance.md#43-aufbewahrungsstrategie-f-10). Laienverständliche Anleitung: [Leitfaden, Datenaufbewahrung](leitfaden/datenaufbewahrung.md).
 
 ## 8. Nachvollziehbarkeit von Änderungen
 

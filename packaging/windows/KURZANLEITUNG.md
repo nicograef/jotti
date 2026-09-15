@@ -73,6 +73,10 @@ zusätzlich **`jotti-relay.exe`** doppelklicken. Es läuft ohne
 Administratorrechte und nimmt seine Zugangsdaten aus der `.env`, die
 `jotti-start.exe` angelegt hat (in `C:\ProgramData\jotti`).
 
+Außerdem im Admin-Bereich unter „Bondrucker" je Station die „Drucker-IP"
+eintragen — auch für den Kassenbeleg. Ohne konfigurierte Station wird nichts
+gedruckt.
+
 ## Probleme
 
 - **„Port 80 ist durch ‚X' (PID …) belegt"** (oder Port 443): Das genannte
@@ -94,8 +98,10 @@ Zertifikate bleiben erhalten** und stehen beim nächsten Start wieder bereit.
 
 Wieder dieselben zwei Doppelklicks (`jotti-start.exe`, bei Bedarf
 `jotti-relay.exe`) inklusive UAC-Bestätigung. Hat der Rechner eine neue
-Netzwerk-Adresse, **zeigt die Status-Seite sie erneut** — es gilt dasselbe
-Zertifikat, also **keine neue Warnung**.
+Netzwerk-Adresse, **zeigt die Status-Seite sie erneut** — für die grüne Adresse
+gilt weiterhin dasselbe Zertifikat, also **keine neue Warnung**. Auf der
+Fallback-Adresse bestätigt jedes Gerät die Browserwarnung für die neue Adresse
+einmal erneut.
 
 ## Daten nach dem Fest sichern (optional)
 
@@ -152,7 +158,7 @@ Ablauf beschreibt <https://jotti.rocks/docs/leitfaden/aktualisieren/>.
 
 Sehr selten — meist nach einem Update von einer **sehr alten** Version — passt das
 in der Datenbank gespeicherte Passwort nicht mehr zum aktuellen
-Installations-Schlüssel. jotti startet dann zwar, aber das Anmelden schlägt fehl.
+Installations-Schlüssel. jotti startet dann gar nicht mehr; der Starter bricht mit einer Fehlermeldung ab.
 **Eure Daten sind dabei nicht verloren** — nur das Schloss passt nicht zum
 Schlüssel. Zwei datenerhaltende Wege zurück:
 

@@ -86,7 +86,7 @@ const ustNichtSteuerbar = 5
 
 // ustSchluessel bildet einen jotti-Steuersatz auf den DSFinV-K-Umsatzsteuer-
 // schlüssel (Anlage 2) ab: 1 = Regelsteuersatz (19 %), 2 = ermäßigter Satz (7 %),
-// 6 = umsatzsteuerfrei (0 %, z. B. Zweckbetrieb § 67a AO). ID 7 (Umsatzsteuer
+// 6 = umsatzsteuerfrei (0 %, z. B. Kleinunternehmer § 19 UStG). ID 7 (Umsatzsteuer
 // nicht ermittelbar) dient nur der Forderungsauflösung und entfällt in jottis
 // Revenue-at-payment-Modell. Die Steueraufteilung entfaltet kombi vorab, daher
 // kommt hier nie KombiSteuersatz an.

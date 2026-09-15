@@ -12,8 +12,8 @@ import { resetAndSeed } from '../support/seed'
 // — diese Specs bestätigen, dass er bei Serverfehler und Netzabbruch greift und
 // den Tisch nicht als „Saldo 0,00 €" ausgibt.
 
-// „Tisch 3" hat im Demo-Drehbuch Historie, ist für diese Specs aber nur ein
-// beliebiger aktiver Tisch — der Zustand selbst wird ja abgefangen.
+// „Tisch 3" ist im Demo-Drehbuch des laufenden Tages unbenutzt und für diese
+// Specs nur ein beliebiger aktiver Tisch — der Zustand selbst wird ja abgefangen.
 const TISCH_ID = 3
 
 test.describe('Tisch-Detail bei Serverfehler und Netzabbruch', () => {

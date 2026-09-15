@@ -6,7 +6,7 @@
 //   - cmd-ascii: packaging/**/*.cmd must be pure ASCII throughout, comments
 //     included — a batch file has no separate doc-comment channel.
 //   - backend-comments: a Go comment under backend/** must not spell a German
-//     word stem with the ASCII stand-in for ä/ö/ü (stems map below). String
+//     word stem with the ASCII stand-in for ä/ö/ü/ß (stems map below). String
 //     literals are never touched; matches that name code are skipped
 //     (isReference, docHeaders).
 //
@@ -399,7 +399,7 @@ func isWordRune(r rune) bool {
 
 // tokenSeparators hold a word together with its neighbours into one
 // identifier-shaped token: /admin/get-tse-stoerungen, naechster_versuch_am,
-// pro_stueck, kassensitzung-eroeffnet:v1, kasse.Stoerung.
+// pro_stueck, kassensitzung-eroeffnet:v1, tse.Stoerung.
 const tokenSeparators = "/_-:."
 
 func isTokenByte(b byte) bool {

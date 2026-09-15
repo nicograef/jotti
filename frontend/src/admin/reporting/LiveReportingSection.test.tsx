@@ -114,7 +114,7 @@ describe('LiveReportingSection — Übersicht', () => {
 
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
 
-    // 5,00 + 2,50 = 7,50 € offen, die Tischnamen inline.
+    // 7,50 € offen auf zwei Tischen, die Tischnamen inline.
     expect(screen.getByText('Anna (Anna A.)')).toBeInTheDocument()
     expect(screen.getByText('7,50 €')).toBeInTheDocument()
     expect(screen.getByText(/Tisch 3, Zelt A2/)).toBeInTheDocument()
@@ -317,7 +317,7 @@ describe('LiveReportingSection — Verkäufe pro Produkt', () => {
             {
               kategorie: 'essen',
               produktName: 'Pommes',
-              // Bestellt/ausgegeben, aber noch nicht kassiert: Menge > 0, Umsatz 0.
+              // Fixture-Werte: geprüft werden nur Gruppierung und Beschriftung, nicht die Beträge.
               ausgegebeneMenge: 6,
               umsatzCents: 0,
               varianten: [

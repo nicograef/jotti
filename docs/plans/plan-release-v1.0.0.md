@@ -4,8 +4,7 @@
 die Nachlaufarbeiten erledigen.
 
 **Betroffene Dateien:** `CHANGELOG.md`, `docs/leitfaden/self-hosting.md`,
-`docs/leitfaden/aktualisieren.md`, `.github/workflows/ci.yml`, `database/migrations/README.md`,
-`docs/plans/`.
+`docs/leitfaden/aktualisieren.md`, `.github/workflows/ci.yml`, `docs/plans/`.
 
 **Reihenfolge = Abhängigkeit.** Die Abschnitte 4 und 5 sind kein Release-Blocker.
 
@@ -43,7 +42,7 @@ Usability mit echten Vereinshelfern und die Abnahme-Entscheidungen selbst.
 ### Block C: fiskaly-Konto und TSE-Inbetriebnahme
 
 - [ ] Setup-Wizard im Admin-Bereich real durchlaufen: TSS und Client von jotti anlegen lassen,
-      nicht im fiskaly-Dashboard.
+      nicht im fiskaly-HUB.
 - [ ] TEST→LIVE-Umschaltung im Wizard geprüft; PUK/PIN-Verwahrung dokumentiert
       (Betreiber-Leitfaden). PUK/PIN existieren nur im fiskaly-Konto, nicht in einer Suite
       reproduzierbar.
@@ -101,14 +100,15 @@ Setup-Wizard-Durchlauf oben.
       heben. Nur diese Datei ist betroffen: `docker-compose.release.yml` ist ein
       `:RELEASE_VERSION`-Template (der Release-Workflow ersetzt den Platzhalter), `.env.example`
       hält `JOTTI_VERSION=` bewusst leer, die Verfahrensdokumentation trägt an dieser Stelle einen
-      Betreiber-Platzhalter (`«z. B. v0.2.0»`) und `frontend/package.json` steht auf `0.0.0`, das
+      Betreiber-Platzhalter (`«z. B. v1.0.0»`) und `frontend/package.json` steht auf `0.0.0`, das
       nirgends im Build gelesen wird.
 - [ ] `docs/leitfaden/aktualisieren.md` prüfen: die Aussage zur Print-Relay-Version 0.17.3 gegen den
       1.0.0-Stand halten
 - [ ] Release-Datum im Abschnitt `[1.0.0]` der `CHANGELOG.md` eintragen
 - [ ] CI auf dem Release-Commit in `main` grün: die Jobs `backend-ci`, `backend-golangci`,
-      `repo-checks`, `frontend-ci`, `backend-integration-tests`, `e2e` und `upgrade-path` decken
-      `make verify` und `make lint-backend-full` ab.
+      `repo-checks`, `frontend-ci`, `resolver-ci`, `local-proxy-ci`, `windows-ci`,
+      `backend-integration-tests`, `e2e` und `upgrade-path` decken `make verify` und
+      `make lint-backend-full` ab.
 - [ ] Version-Bump auf 1.0.0 (Image-Tags/`JOTTI_VERSION`, `VERSION` für den Windows-Build,
       ldflags-Version) und Tag `v1.0.0` pushen — `release.yml` baut Images, Windows-ZIP und
       Release-Notes (git-cliff) und veröffentlicht das GitHub-Release.
@@ -120,8 +120,8 @@ Setup-Wizard-Durchlauf oben.
 
 ## 3. Nach dem Tag (eigener Commit)
 
-- [ ] `PREVIOUS_VERSION` in `.github/workflows/ci.yml` und `database/migrations/README.md` von
-      `v0.17.1` auf `v1.0.0` heben; Job `upgrade-path` grün
+- [ ] `PREVIOUS_VERSION` in `.github/workflows/ci.yml` von `v0.17.3` auf `v1.0.0` heben;
+      Job `upgrade-path` grün
 - [ ] Diesen Plan löschen, sobald alle Boxen abgehakt sind
 
 ## 4. Produktentscheidungen
@@ -138,7 +138,7 @@ Jeder Punkt braucht eine Entscheidung des Betreibers, keiner blockiert das Relea
       Übersicht der Servicekraft zeigt Nullen, solange die Kassensitzung `wird_abgeschlossen` ist.
       Auf `GetAktiveKassensitzung` umstellen oder die Nullen hinnehmen.
 - [ ] Zeichen gegen Bytes an Kommentar- und Tischnamen-Feldern: Zod zählt Code-Units, die
-      eingefrorenen Event-Schemas Bytes — ein Umlaut-Kommentar mit 100 Zeichen passiert das
+      zog-Schemas im Backend Bytes — ein Umlaut-Kommentar mit 100 Zeichen passiert das
       Frontend und bekommt 400. Betreiber-Felder zählen Zeichen. Frontend zählt Bytes
       (`TextEncoder`) oder die UI nennt die Einheit.
 - [ ] Login-Formular: `frontend/src/lib/AuthBackend.ts` nutzt für den Login das volle
@@ -162,8 +162,9 @@ Jeder Punkt braucht eine Entscheidung des Betreibers, keiner blockiert das Relea
 
 Ohne Release-Bezug, optional.
 
-- [ ] `reverse-proxy/caddyfile.go`: die Zeilen 14, 51, 69 und 92 tragen Historien-Prosa;
-      umschreiben, dann den Ausschluss in `scripts/check-prose.sh` streichen
+- [x] `reverse-proxy/caddyfile.go`: Zeile 56 trägt Historien-Prosa („wie das frühere
+      selbstsignierte Zertifikat“); umschreiben, dann den Ausschluss in `scripts/lib.sh`
+      (`tracked_text_files`) streichen
 - [ ] `export.go` liest die Kassensitzung mit `GetOffeneKassensitzung` und `//nolint:forbidigo`;
       wegen der Sortierung von `GetAllKassensitzungen` liefert `GetAktiveKassensitzung` dieselbe
       Sitzung — die Ausnahme kauft kein Verhalten. Auflösen und ersetzen.

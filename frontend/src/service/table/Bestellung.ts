@@ -51,7 +51,8 @@ export const BestellungSchema = z.object({
   kommentar: z.string().max(100),
   aufgenommenAm: DateStringSchema,
   // Backend-computed (single source of truth): positions of this order that are
-  // still stornierbar (ordered − cancelled) resp. umbuchbar (− paid as well).
+  // still stornierbar (ordered − cancelled − moved away) resp. umbuchbar
+  // (− paid as well).
   stornierbarePositionen: PositionSchema.array(),
   umbuchbarePositionen: PositionSchema.array(),
 })

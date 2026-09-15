@@ -8,7 +8,7 @@ Jede Änderung wird an **Korrektheit, Einfachheit, Codequalität und Konsistenz*
 
 ## Harte Guardrails
 
-1. **Alle API-Endpunkte sind POST-only.** Keine GET/PUT/DELETE.
+1. **Alle API-Endpunkte sind POST-only.** Keine GET/PUT/DELETE; einzige Ausnahme ist `GET /health`.
 2. **Geldbeträge immer in Cent (int).** Niemals Floats für Geld.
 3. **Event-Sourcing für Kasse-Operationen bleibt append-only.** Einträge im Kassenjournal werden nie aktualisiert oder gelöscht.
 4. **Domain-Modelle tragen keine `json`-Tags.** `json`-Tags gehören ausschließlich in Response-DTOs der HTTP-Schicht (`api/<domain>/http/`) und in Event-Data-Structs (Event-Store-Persistenz).

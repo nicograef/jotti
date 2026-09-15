@@ -333,9 +333,9 @@ func pruefeSignatur(t *testing.T, vorfall string, z signaturZeile, erwarteterPro
 	}
 }
 
-// eventIDByType liefert die kassenjournal-ID des (einzigen erwarteten) Events
-// eines Typs zum Subject. Die Suite erzeugt je Vorfall genau ein Event dieses
-// Typs, sodass die Zuordnung eindeutig ist.
+// eventIDByType liefert die kassenjournal-ID des jüngsten Events eines Typs zum
+// Subject. Mehrere Events desselben Typs auf einem Subject (etwa Teil- und
+// Vollzahlung) sind erlaubt; die Suite liest jeweils direkt nach dem Vorfall.
 func eventIDByType(t *testing.T, db *sql.DB, eventType, subject string) int {
 	t.Helper()
 	var id int

@@ -60,7 +60,8 @@ var kasseAbschliessenSchema = z.Struct(z.Shape{
 	"IstBestandCents": z.Ptr(z.Int().GTE(0, z.Message("Ist-Bestand darf nicht negativ sein"))).NotNil(z.Message("Ist-Bestand ist erforderlich")),
 })
 
-// kasseAbschliessenResponse: AusfallResteAnzahl wird von der TSE nachsigniert, OhneKonfigurationAnzahl nicht.
+// kasseAbschliessenResponse: Von den Ausfall-Resten signiert die TSE nur die offenen nach;
+// endgültig fehlgeschlagene und OhneKonfigurationAnzahl nicht.
 type kasseAbschliessenResponse struct {
 	AusfallResteAnzahl      int `json:"ausfallResteAnzahl"`
 	OhneKonfigurationAnzahl int `json:"ohneKonfigurationAnzahl"`

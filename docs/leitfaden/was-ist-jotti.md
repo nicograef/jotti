@@ -17,5 +17,5 @@ Danach müsst ihr als Verein drei Dinge selbst erledigen:
 2. Eure Kasse beim Finanzamt anmelden (online über ELSTER). Dafür braucht ihr die Seriennummer, die jotti euch im Admin-Bereich anzeigt.
 3. Alle Kassendaten 10 Jahre aufbewahren (regelmäßige Backups).
 
-**Was kostet uns das?** jotti selbst ist für euch kostenlos. Kosten
-entstehen nur für die TSE von fiskaly (den aktuellen Preis bei fiskaly erfragen), und ggf. für einen Server (ca. 5 € pro Monat).
+**Was kostet uns das?** jotti selbst ist für euch kostenlos. Laufende Kosten
+entstehen nur für die TSE von fiskaly (den aktuellen Preis bei fiskaly erfragen), und ggf. für einen Server (ca. 6 € pro Monat).

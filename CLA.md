@@ -41,7 +41,7 @@ Die beitragende Person sichert zu:
 a) dass der Beitrag ihre **eigene geistige Schöpfung** ist;
 b) dass sie **berechtigt** ist, die in Abschnitt 1 genannten Rechte zu gewähren;
 c) dass der Beitrag **keine Rechte Dritter** verletzt (insbesondere keine Urheber-, Patent- oder Markenrechte);
-d) dass der Beitrag **nicht** unter einer Lizenz steht, die mit der proprietären Lizenzierung durch den Autor unvereinbar wäre (z.B. GPL, LGPL, AGPL);
+d) dass der Beitrag **nicht** unter einer Lizenz steht, die mit der proprietären Lizenzierung durch den Autor unvereinbar wäre (z. B. GPL, LGPL, AGPL);
 e) dass — sofern die beitragende Person in einem Beschäftigungsverhältnis steht — der Arbeitgeber der Rechteeinräumung **zugestimmt hat** oder keine Rechte an dem Beitrag beansprucht.
 
 ### 4. Keine Vergütung

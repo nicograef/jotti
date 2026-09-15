@@ -53,7 +53,7 @@ func renderCaddyfile(in caddyfileInput) string {
 
 %s# Fallback-Site: Clients verbinden über die LAN-IP des Hosts. on_demand stellt
 # beim ersten TLS-Handshake ein internes Zertifikat aus; sign_with_root + 365d
-# halten die Browserwarnung einmalig (wie das frühere selbstsignierte Zertifikat).
+# halten die Browserwarnung einmalig.
 https:// {
 	tls {
 		issuer internal {

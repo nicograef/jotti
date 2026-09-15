@@ -8,8 +8,9 @@ Die folgenden Fälle braucht ihr nur, wenn etwas vom Normalfall abweicht.
 **Vorhandene TSS übernehmen.** Findet jotti im Konto bereits eine TSS, bietet es
 „TSE übernehmen" an, statt eine zweite anzulegen. Das schützt vor versehentlicher
 Doppel-Anlage und nimmt ein abgebrochenes Setup dort wieder auf, wo es stehen
-geblieben ist. Ist die TSS bereits personalisiert, fragt jotti nach der verwahrten
-Admin-PIN.
+geblieben ist. Ist die TSS bereits personalisiert und noch nicht einsatzbereit
+(nicht initialisiert oder diese Kasse dort nicht angemeldet), fragt jotti nach
+der verwahrten Admin-PIN.
 
 **Wiederaufnahme nach Abbruch.** Bricht die Einrichtung ab (Netzfehler, Browser
 geschlossen), startet ihr den Assistenten einfach erneut. jotti erkennt den

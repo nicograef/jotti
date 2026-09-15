@@ -15,7 +15,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, kassieren 
 - **Kassenbetrieb:** Bestellungen auf Tische buchen (Produkte, Varianten, Steuersätze, Kommentare), Zahlungen kassieren (Teilzahlungen, Rückgeldberechnung), stornieren (Admin und Serviceleitung, mit Pflichtkommentar), auf einen anderen Tisch umbuchen; Tisch-Übersicht mit offenem Saldo, Positionen und Bestellhistorie; Favoriten-Tische auf dem Dashboard; Direktverkauf ohne Tisch.
 - **Küche:** Bestell- und Küchenbons automatisch an zugeordnete Bondrucker, pro Kategorie konfigurierbar.
 - **Kassenführung:** fortlaufend nummerierte Kassensitzungen, Anfangsbestand, Soll-Bestand nach Komponenten, Einlagen und Entnahmen (Geldtransit), Kassensturz mit automatisch gebuchter Differenz, Tagesabschluss (Z-Bon) mit fortlaufender Nummer und Umsatzaggregation.
-- **Abrechnung und Reporting:** Tagesabrechnung nach Steuersatz, Abrechnung je Tisch und je Servicekraft, Produktumsatz-Reporting, DSFinV-K-Export als ZIP-Archiv (v2.4).
+- **Abrechnung und Reporting:** Tagesabrechnung nach Steuersatz, Abrechnung je Servicekraft, Produktumsatz-Reporting, DSFinV-K-Export als ZIP-Archiv (v2.4).
 - **Verwaltung und Sicherheit:** Admin-Bereich für Produkte (mit Varianten und Steuersätzen), Tische, Benutzer und Betreiber-Stammdaten; Rollen `admin`, `serviceleitung`, `service`; Onboarding per Einmalpasswort, Argon2id-Hashing, JWT-Auth.
 - **Fiskal:** Event-Sourcing für eine lückenlose, unveränderliche Bestellhistorie; integrierte Cloud-TSE von fiskaly mit Signatur jedes Vorgangs; Belegausgabe mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse.
 
@@ -73,7 +73,10 @@ Wo der Code steht, hängt vom Setup ab:
 - **Manuelles `docker compose` (Entwicklung/Self-Hosting):** aus dem Backend-Log lesen:
 
   ```bash
-  docker compose logs backend | grep ADMIN-EINMALPASSWORT
+  # Dev-Stack (make dev)
+  docker compose logs backend-dev | grep ADMIN-EINMALPASSWORT
+  # Self-Hosting (make prod-init / make prod-up)
+  docker compose -f docker-compose.prod.yml logs backend | grep ADMIN-EINMALPASSWORT
   ```
 
 Ausführliche Anleitung je nach Setup: [docs/leitfaden/installation.md](docs/leitfaden/installation.md) (Windows) und [docs/leitfaden/self-hosting.md](docs/leitfaden/self-hosting.md) (Server/VPS).

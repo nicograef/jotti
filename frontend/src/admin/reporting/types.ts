@@ -70,8 +70,8 @@ export const UmsatzSteuersatzSchema = z.object({
 })
 export type UmsatzSteuersatz = z.infer<typeof UmsatzSteuersatzSchema>
 
-// ausgegebeneMenge (Produktion) und umsatzCents (Einnahmen) ruhen bewusst auf
-// getrennten Grundlagen.
+// ausgegebeneMenge (Produktion) und umsatzCents (Bestellwert) ruhen auf derselben
+// Ereignismenge und Gewichtung; kassierte Zahlungen ändern den Umsatz nicht.
 export const VarianteStatistikSchema = z.object({
   varianteId: z.number().int(),
   varianteName: z.string(),

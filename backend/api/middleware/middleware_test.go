@@ -70,7 +70,7 @@ func TestCorrelationIDMiddleware_UsesExisting(t *testing.T) {
 	}
 }
 
-// Der reale 500-Fall aus dem PRD: Ein Panic im Handler muss trotzdem eine
+// Der reale 500-Fall: Ein Panic im Handler muss trotzdem einen
 // X-Correlation-ID-Antwortheader tragen, damit der Verein die Fehler-Referenz
 // im Toast melden kann und der Betreiber sie im Server-Log wiederfindet.
 func TestCorrelationIDMiddleware_PanicResponseHatCorrelationIDHeader(t *testing.T) {

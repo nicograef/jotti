@@ -36,9 +36,9 @@ Erste stabile Version von jotti, dem kostenlosen Kassensystem für Vereinsfeste.
 
 ### Abrechnung und Reporting
 
-- Tagesabrechnung über alle Umsätze, Zahlungen und offenen Beträge, nach Steuersatz aufgeschlüsselt.
-- Abrechnung je Tisch und je Servicekraft.
-- Produktumsatz-Reporting: meistverkaufte Varianten, Mengen und Einnahmen je Produkt.
+- Tagesabrechnung über alle Umsätze und Zahlungen, nach Steuersatz aufgeschlüsselt; die offenen Beträge zeigt die Übersicht-Seite live.
+- Abrechnung je Servicekraft.
+- Produktumsatz-Reporting: meistverkaufte Varianten, Mengen und Umsatz je Produkt.
 - DSFinV-K-Export als ZIP-Archiv (Version 2.4) für die Finanzverwaltung.
 
 ### Verwaltung, Sicherheit und Compliance

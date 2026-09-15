@@ -12,11 +12,12 @@ import {
 } from '../support/servicekraft'
 
 // Kassenabschluss: die Spec erzeugt selbst einen frischen Umsatz (Bestellung,
-// Kassieren) auf einem im Demo-Drehbuch unbenutzten Tisch, meldet sich
-// dann als Admin an und schließt die laufende Kassensitzung ab. Assertiert wird
-// ausschließlich die sichtbare Abschlussmeldung. Läuft im Handy-Viewport wie
-// die übrigen Service-Flows, obwohl „Kasse abschließen" eine Admin-Route ist
-// (/admin/kasse) — Admins bedienen die Kasse ebenfalls am Smartphone.
+// Kassieren) auf einem im Demo-Drehbuch des laufenden Tages unbenutzten Tisch,
+// meldet sich dann als Admin an und schließt die laufende Kassensitzung ab.
+// Assertiert wird ausschließlich die sichtbare Abschlussmeldung. Läuft im
+// Handy-Viewport wie die übrigen Service-Flows, obwohl „Kasse abschließen" eine
+// Admin-Route ist (/admin/kasse) — Admins bedienen die Kasse ebenfalls am
+// Smartphone.
 //
 // Der Kassenabschluss verlangt, dass jeder Tisch ausgeglichen ist
 // (tische_saldo_offen); das Demo-Drehbuch des laufenden Tages hinterlässt

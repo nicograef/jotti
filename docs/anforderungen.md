@@ -30,7 +30,7 @@ Bewusst nicht geplant.
 | K-07 | Kassenjournal           | Append-only Event-Tabelle als Single Source of Truth.                                                                                   |
 | K-09 | Bestellungen umbuchen   | Unbezahlte Bestellungen atomar zwischen Tischen umbuchen.                                                                               |
 | K-10 | Rückgeldberechnung      | Rückgeld und Trinkgeld clientseitig beim Kassieren.                                                                                     |
-| K-11 | Tisch-Schnellsuche      | Echtzeit-Filterung nach Tischname im Drawer.                                                                                            |
+| K-11 | Tisch-Schnellsuche      | Echtzeit-Filterung nach Tischname auf der Tischübersicht.                                                                               |
 | K-12 | Arbeitsbon              | Automatischer Bon ohne Preise an Druckstationen (nicht-fiskalisch).                                                                     |
 | K-14 | Tisch-Favoriten         | Serverseitige Favoriten pro Benutzer, Stern-Toggle.                                                                                     |
 | K-16 | Kassensitzung eröffnen  | Global nummerierter Betriebstag; Sperre ohne offene Sitzung.                                                                            |
@@ -62,7 +62,7 @@ Bewusst nicht geplant.
 
 ### Reporting
 
-Zeitraumbezogene Auswertungen beziehen sich je auf eine Kassensitzung (`kassensitzung_nr`); Standard ist die aktuelle.
+Zeitraumbezogene Auswertungen beziehen sich je auf eine Kassensitzung (`kassensitzung_nr`). Live-Dashboard (R-07) und eigene Übersicht (R-06) zeigen fest die offene Sitzung; die Tagesabrechnung (R-01) nur abgeschlossene, vorausgewählt die jüngste.
 
 | ID   | Titel                        | Beschreibung                                                                                                                                                                                                    |
 | ---- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -88,16 +88,16 @@ Zeitraumbezogene Auswertungen beziehen sich je auf eine Kassensitzung (`kassensi
 
 Rechtliche Grundlagen und Compliance-Entscheidungen: [compliance.md](compliance.md).
 
-| ID   | Titel                   | Beschreibung                                                      |
-| ---- | ----------------------- | ----------------------------------------------------------------- |
-| F-01 | Seriennummer            | Eindeutige Kassen- und Client-ID je Aufzeichnung.                 |
-| F-02 | TSE-Integration         | Signatur jedes Geschäftsvorfalls (fiskaly Cloud-TSE).             |
-| F-03 | Belegausgabepflicht     | Bondruck nach §146a AO.                                           |
-| F-04 | DSFinV-K Export         | Prüfdatensatz im DSFinV-K-Format.                                 |
-| F-05 | ELSTER-Meldung          | Manuelle Kassenmeldung im Mein-ELSTER-Portal (per Dokumentation). |
-| F-06 | Abrechnungskreis        | Pro Tisch und Kassensitzung.                                      |
-| F-07 | Steuersätze             | Korrekte USt-Sätze je Position.                                   |
-| F-10 | 10-Jahres-Archivierung  | Aufbewahrungskonzept (per Dokumentation).                         |
-| F-11 | Verfahrensdokumentation | Dokumentierte Kassenführung (per Dokumentation).                  |
-| F-13 | TSE-Inbetriebnahme      | Geführte Ersteinrichtung der TSE: Konfiguration, Test, Status.    |
-| F-14 | TSE-Ausfallsicherheit   | Nachsignierung bei TSE-Ausfall und Ausfalldokumentation.          |
+| ID   | Titel                   | Beschreibung                                                                                                                   |
+| ---- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| F-01 | Seriennummer            | Eindeutige Kassen- und Client-ID je Aufzeichnung.                                                                              |
+| F-02 | TSE-Integration         | Signatur jedes Geschäftsvorfalls (fiskaly Cloud-TSE).                                                                          |
+| F-03 | Belegausgabepflicht     | Bondruck nach §146a AO.                                                                                                        |
+| F-04 | DSFinV-K Export         | Prüfdatensatz im DSFinV-K-Format.                                                                                              |
+| F-05 | ELSTER-Meldung          | Manuelle Kassenmeldung im Mein-ELSTER-Portal; der Admin-Bereich zeigt die meldepflichtigen Daten und hält das Meldedatum fest. |
+| F-06 | Abrechnungskreis        | Pro Tisch und Kassensitzung.                                                                                                   |
+| F-07 | Steuersätze             | Korrekte USt-Sätze je Position.                                                                                                |
+| F-10 | 10-Jahres-Archivierung  | Aufbewahrungskonzept (per Dokumentation).                                                                                      |
+| F-11 | Verfahrensdokumentation | Dokumentierte Kassenführung (per Dokumentation).                                                                               |
+| F-13 | TSE-Inbetriebnahme      | Geführte Ersteinrichtung der TSE: Konfiguration, Test, Status.                                                                 |
+| F-14 | TSE-Ausfallsicherheit   | Nachsignierung bei TSE-Ausfall und Ausfalldokumentation.                                                                       |

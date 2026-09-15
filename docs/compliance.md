@@ -42,7 +42,7 @@ Seit dem 1. Januar 2025 müssen elektronische Aufzeichnungssysteme dem zuständi
 
 jotti ist kein SaaS: Der Code ist öffentlich auf GitHub, die Vereine betreiben das System eigenverantwortlich (VPS, Docker). Das trennt die Rechtspflichten von Entwickler (Hersteller) und Betreibern (Vereinen).
 
-**Pflichten des Entwicklers:** Nach § 146a Abs. 1 Satz 5 AO i.V.m. § 379 AO ist es verboten, Kassensoftware in Verkehr zu bringen, die nicht über die Möglichkeit verfügt, eine zertifizierte TSE anzubinden. Auch das kostenlose Bereitstellen von Code auf GitHub gilt als „In-Verkehr-Bringen". Daraus folgt:
+**Pflichten des Entwicklers:** Nach § 146a Abs. 1 Satz 5 AO i.V.m. § 379 Abs. 1 Nr. 6 AO ist es verboten, Kassensoftware, die nicht über die Möglichkeit verfügt, eine zertifizierte TSE anzubinden, gewerbsmäßig zu bewerben oder gewerbsmäßig in den Verkehr zu bringen. Vorsorglich behandelt jotti auch das kostenlose Bereitstellen des Codes auf GitHub wie ein In-Verkehr-Bringen. Daraus folgt:
 
 - TSE-Schnittstelle (`TSEClient`-Interface) und DSFinV-K-Export müssen im Code vorhanden und nutzbar sein.
 - Entscheidet ein Verein, keinen TSE-API-Key einzutragen, liegt das rechtliche Risiko ausschließlich beim Verein.
@@ -68,13 +68,13 @@ jotti nutzt das atomare Muster (→ §3.6): Jeder Vorgang wird mit `StartTransac
 
 ### 3.3 Offizielle processType-Werte
 
-Die `processType`-Werte sind im AEAO zu § 146a AO, Anhang I, festgelegt. Die -V1-Endung ist nur bei `Kassenbeleg-V1` und `Bestellung-V1` Bestandteil des offiziellen Strings, der dritte Typ heißt `SonstigerVorgang` (ohne Suffix).
+Die `processType`-Werte sind in der DSFinV-K, Anhang I, festgelegt; der AEAO zu § 146a, Nr. 2.2.3.6 verweist darauf. Die -V1-Endung ist nur bei `Kassenbeleg-V1` und `Bestellung-V1` Bestandteil des offiziellen Strings, der dritte Typ heißt `SonstigerVorgang` (ohne Suffix).
 
-| processType        | Verwendung                                                                                                                                               |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Kassenbeleg-V1`   | Zahlungsbeleg (Rechnung), der dem Kunden ausgehändigt wird; auch Eigenbelege über Ein-/Auszahlungen wie Geldtransit und Kassendifferenz (AEAO 2.2.3.6.1) |
-| `Bestellung-V1`    | Zwischenabsicherung einer Bestellung ohne sofortige Zahlung (Gastronomie)                                                                                |
-| `SonstigerVorgang` | Alle anderen abzusichernden Vorgänge (Tagesabschluss, TSE-Selbsttest, ...)                                                                               |
+| processType        | Verwendung                                                                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Kassenbeleg-V1`   | Zahlungsbeleg (Rechnung), der dem Kunden ausgehändigt wird; auch Eigenbelege über Ein-/Auszahlungen wie Geldtransit und Kassendifferenz (AEAO 2.2.3.6.1)   |
+| `Bestellung-V1`    | Zwischenabsicherung einer Bestellung ohne sofortige Zahlung (Gastronomie)                                                                                  |
+| `SonstigerVorgang` | Alle anderen abzusichernden Vorgänge, die weder belegartig noch TSE-Systemfunktion oder TSE-Audit-Ereignis sind, z. B. der Tagesabschluss (AEAO 2.2.3.6.3) |
 
 **Mapping auf jotti-Events:**
 
@@ -168,16 +168,16 @@ Die Event-Sourcing-Architektur erfüllt die GoBD-Grundsätze:
 | Zeitgerechte Buchung       | Events mit Echtzeit-Zeitstempel                                                                                                                                               |
 | Ordnungsmäßigkeit          | Strukturiertes Datenmodell, typisierte Events                                                                                                                                 |
 | Kryptografische Verkettung | TSE-Signatur (fiskaly Cloud-TSE) für alle Geschäftsvorfälle; Signaturdaten am Signaturauftrag (Outbox `tse_signaturauftraege`), Ausfälle dokumentiert und nachsigniert (§3.8) |
-| 10-Jahres-Aufbewahrung     | DSFinV-K-Export (F-04) und DB-Backup decken die Daten ab (F-10); Aufbewahrungsstrategie in §4.4. Die Aufbewahrung selbst ist Betreiberpflicht (§8)                            |
+| 10-Jahres-Aufbewahrung     | DSFinV-K-Export (F-04) und DB-Backup decken die Daten ab (F-10); Aufbewahrungsstrategie in §4.3. Die Aufbewahrung selbst ist Betreiberpflicht (§8)                            |
 
 ### 4.2 Anforderungen gemäß §§ 146, 147 AO und GoBD
 
-- **Aufbewahrungspflicht:** Alle steuerlich relevanten Daten 10 Jahre, jederzeit verfügbar, unverzüglich lesbar, vollständig, unveränderbar. [16]
+- **Aufbewahrungspflicht:** § 147 Abs. 3 AO staffelt die Fristen — zehn Jahre für Bücher und Aufzeichnungen (§ 147 Abs. 1 Nr. 1), acht Jahre für Buchungsbelege (Nr. 4), sechs Jahre für die sonstigen Unterlagen. Das Kassenjournal ist eine Aufzeichnung und fällt damit unter die Zehnjahresfrist, die jotti deshalb durchgehend ansetzt. Die Daten müssen jederzeit verfügbar, unverzüglich lesbar, vollständig und unveränderbar sein. [16]
 - **Elektronisches Radierverbot:** Kein `UPDATE` oder `DELETE` nach der Erfassung.
 - **Stornierungen:** Immer als neue Buchungssätze (neuer Zeitstempel, neue TSE-Signatur), die den alten Wert ausgleichen.
 - **Verfahrensdokumentation:** Wie das System Daten erzeugt, verarbeitet und archiviert, muss dokumentiert sein. [4] jotti stellt dafür eine anpassbare Muster-Verfahrensdokumentation bereit ([verfahrensdokumentation.md](verfahrensdokumentation.md), F-11); das Führen und Anpassen der eigenen Verfahrensdokumentation bleibt Betreiberpflicht (§8).
 
-### 4.4 Aufbewahrungsstrategie (F-10)
+### 4.3 Aufbewahrungsstrategie (F-10)
 
 Die aufzubewahrenden Daten entstehen in offenen, ohne proprietäre Software lesbaren Formaten; ein zusätzliches Roh-Exportformat ist nicht nötig. Der DSFinV-K-Export ist die maschinell auswertbare Standardform, das Datenbank-Backup enthält das vollständige Kassenjournal im Rohformat samt TSE-Signaturen und Stammdaten. Die Aufbewahrung selbst (Speicherung, Lesbarkeit über 10 Jahre, Zugriffsschutz) bleibt Betreiberpflicht (§8).
 
@@ -205,7 +205,7 @@ Gemäß § 146a Abs. 2 AO und § 6 KassenSichV muss für jeden Kassiervorgang ei
 >
 > Ohne bewilligte Befreiung muss der Verein für jeden Kassiervorgang einen Beleg erstellen und ihn dem Gast anbieten; erst mit bewilligter Befreiung genügt der Druck auf Verlangen. jotti druckt den Kassenbeleg deshalb nicht automatisch, sondern auf Anforderung (→ [anforderungen.md F-03](anforderungen.md)); erstellbar ist er jederzeit.
 
-> **Arbeitsbon ≠ Kassenbeleg:** Der automatische Arbeitsbon (Küche/Theke, ohne Preise) ist rein operativ, kein Beleg i. S. v. § 146a AO, keine TSE-Transaktion. Nur der Kassenbeleg (auf Anforderung pro Kassiervorgang) ist der fiskalische Beleg mit den Pflichtangaben aus §5.2. Details: [handbuch.md §4.6](handbuch.md#46-bondruck-arbeitsbon-und-kassenbeleg-k-12).
+> **Arbeitsbon ≠ Kassenbeleg:** Der automatische Arbeitsbon (Küche/Theke, ohne Preise) ist rein operativ, kein Beleg i. S. v. § 146a AO, keine TSE-Transaktion. Nur der Kassenbeleg (auf Anforderung pro Kassiervorgang) ist der fiskalische Beleg mit den Pflichtangaben aus §5.2. Details: [handbuch.md §4.5](handbuch.md#45-bondruck-arbeitsbon-und-kassenbeleg-k-12).
 
 ### 5.2 Pflichtangaben auf dem Beleg
 
@@ -215,7 +215,7 @@ Gemäß § 146a Abs. 2 AO und § 6 KassenSichV muss für jeden Kassiervorgang ei
 - Datum der Belegausgabe
 - Menge und Art der gelieferten Gegenstände / Umfang der Dienstleistung
 - Entgelt und darauf entfallender Steuerbetrag, oder Hinweis auf Steuerbefreiung
-- Transaktionsnummer (Bonnummer)
+- Bonnummer (fortlaufende Belegnummer des Kassensystems; die Transaktionsnummer nach § 6 Satz 1 Nr. 4 KassenSichV ist die TSE-Transaktionsnummer und steht unten bei den TSE-Pflichtdaten)
 - Pro Position: Steuerkennzeichen (z. B. `A` für 19 %, `B` für 7 %). Bei `kombi`-Positionen (70/30): zwei Teilzeilen oder gemeinsamer Positionstext mit Verweis auf die Steuermatrix.
 - Im Belegfuß, Steuermatrix: Brutto, Netto und Steuerbetrag je Steuersatz; `kombi`-Anteile fließen anteilig in die 7-%- und 19-%-Zeilen ein.
 
@@ -230,32 +230,44 @@ Gemäß § 146a Abs. 2 AO und § 6 KassenSichV muss für jeden Kassiervorgang ei
 
 ### 5.3 Besondere Anforderung beim Festzelt-Muster (Durchbedienen)
 
-Wurden Bestellungen mit `Bestellung-V1` abgesichert und erst später bezahlt (→ §3.6), gilt laut BMF-FAQ: „Zusätzlich ist auf den Bon der Startzeitpunkt der ersten Bestellung in Klarschrift aufzudrucken." [11, 13] Der Zahlungsbeleg trägt also zwei Zeitstempel: den TSE-`logTime` der aktuellen `Kassenbeleg-V1`-Transaktion und den `logTime` der ersten `Bestellung-V1` der Tisch-Session in Klarschrift.
+Wurden Bestellungen mit `Bestellung-V1` abgesichert und erst später bezahlt (→ §3.6), gilt laut BMF-FAQ: „Zusätzlich ist auf den Bon der Startzeitpunkt der ersten Bestellung in Klarschrift aufzudrucken." [11, 13] Der Zahlungsbeleg trägt also zwei Zeitstempel: den TSE-`logTime` der aktuellen `Kassenbeleg-V1`-Transaktion und den Erfassungszeitpunkt der ersten Bestellung der Tisch-Session (Event-Zeit, weil die TSE-Signatur asynchron entsteht) in Klarschrift.
 
 Beispiel (Tisch 42, Maihock):
 
 ```
+KASSENBELEG
+
 Volksverein Musterstadt e.V.
-Vereinsfest Maihock 2026
-Tisch: 42
-Erste Bestellung: 01.05.2026, 18:01 Uhr   ← Pflichtfeld beim Durchbedienen
-Bon-Nr.: 1003
+Musterstrasse 1
+79100 Musterstadt
+
+Datum: 01.05.2026 20:00
+Bon-Nr: 1003
+Kassen-ID: 7f3a9d12-...
+Erste Bestellung: 01.05.2026 18:01:07   ← Pflichtfeld beim Durchbedienen
 ---
-2x Maß Bier        14,00 €
+2x Maß Bier
+  7,00 x 2 = 14,00 EUR (A)
 ---
-Gesamt:            14,00 €
-Bar erhalten:      14,00 €
----
-TSE-Start: 01.05.2026, 20:00:12 Uhr
-TSE-Ende:  01.05.2026, 20:00:14 Uhr
-TSE-ID: SW-TSE-SN-0042
-TSE-Nr.: 1003, Signatur-Zähler: 5871
+GESAMT: 14,00 EUR
+Zahlungsart: bar
+
+Steueraufteilung:
+  A (19 %): Netto 11,76 EUR, Steuer 2,24 EUR, Brutto 14,00 EUR
+
+TSE-Daten:
+  TSE-Transaktion: 1003
+  Signaturzaehler: 5871
+  TSE-Seriennummer: 3b1f...
+  TSE-Start: 01.05.2026 20:00:12
+  TSE-Ende: 01.05.2026 20:00:14
+  Signatur: ...
 [QR-Code mit TSE-Daten]
 ```
 
 ### 5.4 Umsetzung der Belegausgabe im BYOD-Setup
 
-Die Servicekräfte nutzen private Smartphones ohne mobile Bondrucker; die Belegausgabe läuft über einen zentralen Bondrucker an der Theke: Die Servicekraft kassiert auf dem Smartphone; erst nach erfolgreichem TSE-Abschluss (`FinishTransaction`) sendet das Backend den Druckbefehl an den stationären Bondrucker, die Reihenfolge TSE-Abschluss vor Druck ist rechtlich zwingend, da erst dann die Prüfwerte feststehen. Die Servicekraft bietet dem Gast den Bon an. Lehnt der Gast ab, ist die Pflicht dennoch erfüllt, § 146a Abs. 2 AO verlangt das „Ausstellen und Zur-Verfügung-Stellen", nicht die Annahme.
+Die Servicekräfte nutzen private Smartphones ohne mobile Bondrucker; die Belegausgabe läuft über einen zentralen Bondrucker an der Theke: Die Servicekraft kassiert auf dem Smartphone; im Regelfall sendet das Backend den Druckbefehl erst nach erfolgreichem TSE-Abschluss (`FinishTransaction`), weil erst dann die Prüfwerte feststehen. Ist die Signatur noch ausstehend, wird der Druck zurückgestellt; in einem dokumentierten TSE-Ausfall wird der Beleg mit Ausfallvermerk statt TSE-Daten gedruckt, denn die Belegausgabepflicht bleibt vom Ausfall unberührt (AEAO zu § 146a, Nr. 1.14.2 f. → §3.8). Die Servicekraft bietet dem Gast den Bon an. Lehnt der Gast ab, ist die Pflicht dennoch erfüllt, § 146a Abs. 2 AO verlangt das „Ausstellen und Zur-Verfügung-Stellen", nicht die Annahme.
 
 ## 6. DSFinV-K Export-Schnittstelle
 
@@ -276,15 +288,15 @@ Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Beze
 
 #### A. Stammdatenmodul
 
-| Dateiname (offiziell)  | Logische Bezeichnung | Inhalt                                                                                                                 |
-| ---------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `cashpointclosing.csv` | Stamm_Abschluss      | Metadaten zum Z-Bon: Unternehmensname, Steuernummer, Start-/End-Zeitpunkt                                              |
-| `location.csv`         | Stamm_Orte           | Standortdaten der Betriebsstätte                                                                                       |
-| `cashregister.csv`     | Stamm_Kassen         | Kassendaten: Hersteller, Seriennummer, Software-Typ und -Version                                                       |
-| `slaves.csv`           | Stamm_Terminals      | Slave-/Terminal-Kassen. Für jotti gegenstandslos (eine Kasse), header-only exportiert                                  |
-| `pa.csv`               | Stamm_Agenturen      | Stammdaten bei Agenturgeschäft. Für jotti gegenstandslos, header-only exportiert                                       |
-| `vat.csv`              | Stamm_USt            | Stammdaten der verwendeten Steuersätze                                                                                 |
-| `tse.csv`              | Stamm_TSE            | TSE-Daten: Zertifikats-ID, Signaturalgorithmus, TSE-Seriennummer (64-stelliger Hexadezimalstring), Public Key (Base64) |
+| Dateiname (offiziell)  | Logische Bezeichnung | Inhalt                                                                                                                                                                         |
+| ---------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cashpointclosing.csv` | Stamm_Abschluss      | Metadaten zum Z-Bon: Unternehmensname, Steuernummer, Start-/End-Vorgangs-ID                                                                                                    |
+| `location.csv`         | Stamm_Orte           | Standortdaten der Betriebsstätte                                                                                                                                               |
+| `cashregister.csv`     | Stamm_Kassen         | Kassendaten: Hersteller, Seriennummer, Software-Typ und -Version                                                                                                               |
+| `slaves.csv`           | Stamm_Terminals      | Slave-/Terminal-Kassen. Für jotti gegenstandslos (eine Kasse), header-only exportiert                                                                                          |
+| `pa.csv`               | Stamm_Agenturen      | Stammdaten bei Agenturgeschäft. Für jotti gegenstandslos, header-only exportiert                                                                                               |
+| `vat.csv`              | Stamm_USt            | Stammdaten der verwendeten Steuersätze                                                                                                                                         |
+| `tse.csv`              | Stamm_TSE            | TSE-Daten: TSE-Referenz-ID (nur innerhalb eines Kassenabschlusses), Signaturalgorithmus, TSE-Seriennummer (64-stelliger Hexadezimalstring), Public Key und Zertifikat (Base64) |
 
 #### B. Einzelaufzeichnungsmodul (Bonmodul)
 
@@ -334,7 +346,7 @@ Stornierungen erzeugen immer neue Datensätze (GoBD-Radierverbot), nie Änderung
 
 ### 6.7 Steuersatz-Verwaltung
 
-USt-Sätze als Stammdaten: 19 % (Regelsteuersatz, z. B. Getränke), 7 % (ermäßigt, z. B. Speisen), 0 % / steuerbefreit (Zweckbetrieb nach § 67a AO), Kombi 70/30 (Kombinationsangebote nach Abschn. 10.1 Abs. 12 UStAE) [18]. Produkte erhalten einen konfigurierbaren Steuersatz-Schlüssel. Bei `kombi`-Positionen entfaltet der Export den Pauschalpreis in zwei Steueranteile (70 % → 7 %, 30 % → 19 %): zwei VAT-Einträge in `lines_vat.csv`, beide Anteile in `transactions_vat.csv`. Steuerregeln: [steuerrecht.md](steuerrecht.md).
+USt-Sätze als Stammdaten: 19 % (Regelsteuersatz, z. B. Getränke), 7 % (ermäßigt, z. B. Speisen), 0 % / steuerbefreit (Kleinunternehmer nach § 19 UStG), Kombi 70/30 (Kombinationsangebote nach Abschn. 10.1 Abs. 12 UStAE) [18]. Produkte erhalten einen konfigurierbaren Steuersatz-Schlüssel. Bei `kombi`-Positionen entfaltet der Export den Pauschalpreis in zwei Steueranteile (70 % → 7 %, 30 % → 19 %): zwei VAT-Einträge in `lines_vat.csv`, beide Anteile in `transactions_vat.csv`. Steuerregeln: [steuerrecht.md](steuerrecht.md).
 
 ## 7. Elektronische Meldepflicht (ELSTER)
 
@@ -351,7 +363,7 @@ Nach § 146a Abs. 4 AO müssen elektronische Aufzeichnungssysteme beim zuständi
 
 ### 7.2 Übermittlungswege und gewählter Ansatz
 
-Das Gesetz kennt drei Übermittlungswege: Direkteingabe im ELSTER-Portal (manuell), XML-Dateiupload (semi-automatisch) und programmatische Übermittlung über ERiC (ELSTER Rich Client, offizielle Komponente der Finanzverwaltung mit lokaler Vorab-Validierung und Bestätigungsprotokoll). [6]
+Die Finanzverwaltung stellt die Übermittlung über zwei Wege bereit (BMF-Schreiben vom 28.06.2024): die Direkteingabe im Portal „Mein ELSTER" (manuell) und die programmatische Übermittlung über ERiC (ELSTER Rich Client, offizielle Komponente der Finanzverwaltung mit lokaler Vorab-Validierung und Bestätigungsprotokoll). [6, 12]
 
 **Gewählter Ansatz für jotti** (Self-hosted, ehrenamtliche Betreiber): die manuelle Meldung über das ELSTER-Webportal (F-05). Der Admin-Bereich stellt dazu alle meldepflichtigen Daten strukturiert bereit; der Vorstand überträgt sie einmalig ins Portal.
 
@@ -362,6 +374,7 @@ Das Gesetz kennt drei Übermittlungswege: Direkteingabe im ELSTER-Portal (manuel
 - Name und Steuernummer des Steuerpflichtigen
 - Art des Kassensystems (Softwaretyp, Versionsnummer)
 - Seriennummer des Kassensystems
+- Anzahl der insgesamt je Betriebsstätte eingesetzten elektronischen Aufzeichnungssysteme (§ 146a Abs. 4 Satz 1 Nr. 5 AO, AEAO Nr. 1.16.2.4)
 - Zertifizierungs-ID der TSE (Format `BSI-K-TR-nnnn-yyyy`)
 - Seriennummer der TSE (64-stelliger Hexadezimalstring, 0–9/A–F, nicht zu verwechseln mit dem Base64-Public-Key in `tse.csv`)
 - Anschaffungs- bzw. Inbetriebnahmedatum
@@ -369,7 +382,7 @@ Das Gesetz kennt drei Übermittlungswege: Direkteingabe im ELSTER-Portal (manuel
 
 ### 7.4 Meldestatus
 
-Der Meldestatus ist manuell setzbar („ausstehend / gemeldet am TT.MM.JJJJ") und in den Stammdaten persistiert.
+Der Meldestatus ist manuell setzbar („Noch offen" / „Gemeldet am TT.MM.JJJJ") und in den Stammdaten persistiert.
 
 ### 7.5 BYOD-Smartphones: keine Meldepflicht
 
@@ -403,25 +416,25 @@ Zwei Betreiberpflichten, die sich aus jottis Bauweise ergeben:
 
 Verweise im Text (z. B. [1]) beziehen sich auf die Nummern dieser Liste.
 
-| #   | Quelle                                                                                                                  | URL                                                                                                                                                                   |
-| --- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | § 146a AO: Ordnungsvorschrift für die Buchführung und für Aufzeichnungen mittels elektronischer Aufzeichnungssysteme    | https://www.gesetze-im-internet.de/ao_1977/__146a.html                                                                                                                |
-| 2   | KassenSichV: Kassensicherungsverordnung                                                                                 | https://www.gesetze-im-internet.de/kassensichv/BJNR351500017.html                                                                                                     |
-| 3   | BSI TR-03153 (v1.1.1): Technische Richtlinie für Technische Sicherheitseinrichtungen                                    | https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/Technische-Richtlinien/TR-nach-Thema-sortiert/tr03153/tr03153_node.html |
-| 4   | GoBD: BMF-Schreiben zur ordnungsmäßigen Führung elektronischer Bücher                                                   | https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html                                    |
-| 5   | DSFinV-K: Digitale Schnittstelle der Finanzverwaltung für Kassensysteme (BZSt)                                          | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html                                                     |
-| 6   | ELSTER für Entwickler: Offizielle Entwickler-Dokumentation                                                              | https://www.elster.de/elsterweb/infoseite/entwickler                                                                                                                  |
-| 7   | § 14 AO: Wirtschaftlicher Geschäftsbetrieb                                                                              | https://www.gesetze-im-internet.de/ao_1977/__14.html                                                                                                                  |
-| 8   | § 64 AO: Steuerpflicht wirtschaftlicher Geschäftsbetriebe                                                               | https://www.gesetze-im-internet.de/ao_1977/__64.html                                                                                                                  |
-| 9   | § 67a AO: Sportliche Veranstaltungen (Zweckbetrieb)                                                                     | https://www.gesetze-im-internet.de/ao_1977/__67a.html                                                                                                                 |
-| 10  | § 19 UStG: Kleinunternehmerregelung                                                                                     | https://www.gesetze-im-internet.de/ustg_1980/__19.html                                                                                                                |
-| 11  | BMF-FAQ zu § 146a AO (Stand Januar 2026): Meldepflicht und processType-Erläuterungen                                    | https://www.bundesfinanzministerium.de/Content/DE/FAQ/FAQ-steuergerechtigkeit-belegpflicht.html                                                                       |
-| 12  | BMF-Schreiben 28. Juni 2024: Elektronische Kassenmeldepflicht nach § 146a Abs. 4 AO                                     | https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2024-06-28-mitteilungsverpflichtung-nach-AO.html        |
-| 13  | DSFinV-K Nr. 2.7 und Anhang H: Vereinfachungen für langanhaltende Bestellvorgänge (Festzelt-/Durchbedienen-Muster)      | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html                                                     |
-| 14  | § 379 AO: Steuergefährdung (bis 25.000 € Bußgeld)                                                                       | https://www.gesetze-im-internet.de/ao_1977/__379.html                                                                                                                 |
-| 15  | AEAO zu § 146a AO: Anwendungserlass zur Abgabenordnung, Klarstellungen zu Eingabegeräten, Meldepflicht und Seriennummer | https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/AO-Anwendungserlass/2023-06-30-AEAO-Par-146-AO.html     |
-| 16  | §§ 146, 147 AO: Ordnungsvorschriften für Aufzeichnungen; Aufbewahrungspflicht (10 Jahre), Datenzugriff, Radierverbot    | https://www.gesetze-im-internet.de/ao_1977/__147.html                                                                                                                 |
-| 17  | § 24 UStG: Durchschnittssätze für land- und forstwirtschaftliche Betriebe (processData-Positionen 3 und 4)              | https://www.gesetze-im-internet.de/ustg_1980/__24.html                                                                                                                |
-| 18  | Abschn. 10.1 Abs. 12 UStAE: 30/70-Pauschalierung für Kombinationsangebote (Kombi-Steuersatz)                            | https://www.bundesfinanzministerium.de/UStAE                                                                                                                          |
-| 19  | Art. 5 Abs. 1 lit. c DSGVO (VO (EU) 2016/679): Datenminimierung (Begründung BEDIENER_NAME statt Klarname)               | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32016R0679                                                                                                  |
-| 20  | GDPdU-Beschreibungsstandard (gdpdu-01-09-2004.dtd): DTD für die Datenträgerüberlassung im DSFinV-K-Export               | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html                                                     |
+| #   | Quelle                                                                                                                                                  | URL                                                                                                                                                                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | § 146a AO: Ordnungsvorschrift für die Buchführung und für Aufzeichnungen mittels elektronischer Aufzeichnungssysteme                                    | https://www.gesetze-im-internet.de/ao_1977/__146a.html                                                                                                                |
+| 2   | KassenSichV: Kassensicherungsverordnung                                                                                                                 | https://www.gesetze-im-internet.de/kassensichv/BJNR351500017.html                                                                                                     |
+| 3   | BSI TR-03153 (v1.1.1): Technische Richtlinie für Technische Sicherheitseinrichtungen                                                                    | https://www.bsi.bund.de/DE/Themen/Unternehmen-und-Organisationen/Standards-und-Zertifizierung/Technische-Richtlinien/TR-nach-Thema-sortiert/tr03153/tr03153_node.html |
+| 4   | GoBD: BMF-Schreiben zur ordnungsmäßigen Führung elektronischer Bücher                                                                                   | https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2019-11-28-GoBD.html                                    |
+| 5   | DSFinV-K: Digitale Schnittstelle der Finanzverwaltung für Kassensysteme (BZSt)                                                                          | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html                                                     |
+| 6   | ELSTER für Entwickler: Offizielle Entwickler-Dokumentation                                                                                              | https://www.elster.de/elsterweb/infoseite/entwickler                                                                                                                  |
+| 7   | § 14 AO: Wirtschaftlicher Geschäftsbetrieb                                                                                                              | https://www.gesetze-im-internet.de/ao_1977/__14.html                                                                                                                  |
+| 8   | § 64 AO: Steuerpflicht wirtschaftlicher Geschäftsbetriebe                                                                                               | https://www.gesetze-im-internet.de/ao_1977/__64.html                                                                                                                  |
+| 9   | § 67a AO: Sportliche Veranstaltungen (Zweckbetrieb)                                                                                                     | https://www.gesetze-im-internet.de/ao_1977/__67a.html                                                                                                                 |
+| 10  | § 19 UStG: Kleinunternehmerregelung                                                                                                                     | https://www.gesetze-im-internet.de/ustg_1980/__19.html                                                                                                                |
+| 11  | BMF-FAQ zu § 146a AO (Stand Januar 2026): Meldepflicht und processType-Erläuterungen                                                                    | https://www.bundesfinanzministerium.de/Content/DE/FAQ/FAQ-steuergerechtigkeit-belegpflicht.html                                                                       |
+| 12  | BMF-Schreiben 28. Juni 2024: Elektronische Kassenmeldepflicht nach § 146a Abs. 4 AO                                                                     | https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/2024-06-28-mitteilungsverpflichtung-nach-AO.html        |
+| 13  | DSFinV-K Nr. 2.7 und Anhang H: Vereinfachungen für langanhaltende Bestellvorgänge (Festzelt-/Durchbedienen-Muster)                                      | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html                                                     |
+| 14  | § 379 AO: Steuergefährdung (bis 25.000 € Bußgeld)                                                                                                       | https://www.gesetze-im-internet.de/ao_1977/__379.html                                                                                                                 |
+| 15  | AEAO zu § 146a AO: Anwendungserlass zur Abgabenordnung, Klarstellungen zu Eingabegeräten, Meldepflicht und Seriennummer                                 | https://www.bundesfinanzministerium.de/Content/DE/Downloads/BMF_Schreiben/Weitere_Steuerthemen/Abgabenordnung/AO-Anwendungserlass/2023-06-30-AEAO-Par-146-AO.html     |
+| 16  | §§ 146, 147 AO: Ordnungsvorschriften für Aufzeichnungen; Aufbewahrungspflicht (10/8/6 Jahre je Unterlagenart, § 147 Abs. 3), Datenzugriff, Radierverbot | https://www.gesetze-im-internet.de/ao_1977/__147.html                                                                                                                 |
+| 17  | § 24 UStG: Durchschnittssätze für land- und forstwirtschaftliche Betriebe (processData-Positionen 3 und 4)                                              | https://www.gesetze-im-internet.de/ustg_1980/__24.html                                                                                                                |
+| 18  | Abschn. 10.1 Abs. 12 UStAE: 30/70-Pauschalierung für Kombinationsangebote (Kombi-Steuersatz)                                                            | https://www.bundesfinanzministerium.de/UStAE                                                                                                                          |
+| 19  | Art. 5 Abs. 1 lit. c DSGVO (VO (EU) 2016/679): Datenminimierung (Begründung BEDIENER_NAME statt Klarname)                                               | https://eur-lex.europa.eu/legal-content/DE/TXT/?uri=CELEX:32016R0679                                                                                                  |
+| 20  | GDPdU-Beschreibungsstandard (gdpdu-01-09-2004.dtd): DTD für die Datenträgerüberlassung im DSFinV-K-Export                                               | https://www.bzst.de/DE/Unternehmen/Aussenpruefungen/DigitaleSchnittstelleFinV/digitaleschnittstellefinv_node.html                                                     |

@@ -350,7 +350,7 @@ func fakeSignatur(txID string, txNummer int) string {
 	return base64.StdEncoding.EncodeToString(sum[:])
 }
 
-// qrCodeData baut den KassenSichV-üblichen V0-String (BSI TR-03153-A), wie ihn fiskaly
+// qrCodeData baut den KassenSichV-üblichen V0-String (DSFinV-K Anhang I), wie ihn fiskaly
 // liefert; der Belegdruck rendert das Feld unverändert.
 func qrCodeData(processType, processData string, txNummer, sigZaehler int, logStart, logEnd time.Time, signatur string) string {
 	return strings.Join([]string{

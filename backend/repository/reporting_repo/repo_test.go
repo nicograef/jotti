@@ -365,7 +365,7 @@ func TestGetReporting_ResolvesKlarnameIncludingSoftDeleted(t *testing.T) {
 	bobID := createUser(t, db, "Bob Schmidt", "bob", "deleted")
 	ksNr := createKassensitzung(t, db)
 
-	// Anna gets more revenue so she sorts first (ORDER BY zahlungen_cents DESC).
+	// Anna gets more revenue so she sorts first (ORDER BY kassiert_cents DESC).
 	insertEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 1, zahlungData("z-anna", 2000), ksNr)
 	insertEvent(t, db, bobID, "bob", "zahlung-kassiert:v1", "kassensitzung-1/tisch-2", 1, zahlungData("z-bob", 1000), ksNr)
 

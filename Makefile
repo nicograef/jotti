@@ -235,7 +235,7 @@ BACKEND_CONTAINER ?= jotti-backend-dev
 seed: ## Demo-Daten per Seeder-Subkommando einspielen (Guard + Projektions-Rebuild inklusive)
 	docker exec $(BACKEND_CONTAINER) go run ./main.go seed
 
-rebuild-projections: ## table_state-Projektionen aus Events neu aufbauen
+rebuild-projections: ## tisch_sessions-Projektionen aus Events neu aufbauen
 	docker exec $(BACKEND_CONTAINER) go run ./main.go rebuild-projections
 
 # Aufräumen
@@ -249,7 +249,7 @@ check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
 	@for tool in golangci-lint goimports pnpm; do \
 		if ! command -v $$tool >/dev/null 2>&1; then \
 			echo "Fehlendes Tool: $$tool"; \
-			echo "Installiere es mit scripts/setup-dev-tools.sh oder folge der README-Anleitung."; \
+			echo "Installiere es mit scripts/setup-dev-tools.sh."; \
 			exit 1; \
 		fi; \
 	done
@@ -257,7 +257,7 @@ check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
 check-tools-integration: ## Prüfen, ob migrate und Docker für Integrationstests verfügbar sind
 	@if ! command -v migrate >/dev/null 2>&1; then \
 		echo "Fehlendes Tool: migrate"; \
-		echo "Installiere es mit scripts/setup-dev-tools.sh oder folge der README-Anleitung."; \
+		echo "Installiere es mit scripts/setup-dev-tools.sh."; \
 		exit 1; \
 	fi
 	@if ! command -v docker >/dev/null 2>&1; then \
@@ -312,7 +312,7 @@ website-dev: ## Astro Dev-Server starten (http://localhost:4321), liest docs/ li
 website-build: ## Website bauen (Astro Build → website/dist)
 	cd website && pnpm build
 
-website-test: ## Website Unit-Tests (Link-Rewriter, Vitest)
+website-test: ## Website Unit-Tests (Vitest)
 	cd website && pnpm test
 
 website-check: ## Website prüfen (Vitest + astro check + Build)

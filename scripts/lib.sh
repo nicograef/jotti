@@ -116,7 +116,6 @@ tracked_text_files() {
     ':(glob,exclude).github/copilot-instructions.md' \
     ':(glob,exclude).github/instructions/**' \
     ':(glob,exclude).claude/**' \
-    ':(glob,exclude)reverse-proxy/caddyfile.go' \
     ':(glob,exclude)**/pnpm-lock.yaml' \
     ':(glob,exclude)**/go.sum'
 }

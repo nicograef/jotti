@@ -14,7 +14,7 @@ import (
 // Run spielt das Demo-Szenario „3-Tage-Sommerfest TSV Musterstadt e.V." in die Datenbank ein:
 // Stammdaten mit Favoriten und Druckstations-Konfiguration, drei Kassensitzungen
 // (Freitag/Samstag abgeschlossen, Sonntag offen) und die zugehörigen Events — jedes
-// fiskalische davon mit genau einem Signaturauftrag (quittiert, nachsigniert oder offen,
+// fiskalische davon mit genau einem Signaturauftrag (quittiert, nachsigniert, offen oder dauerhaft fehlgeschlagen,
 // je nach Ausfallfenster) — plus die Druckauftrags-Historie zu Bestellungen,
 // Direktverkäufen und Kassenbelegen. Alles wird in einer Transaktion geschrieben;
 // anschließend wird die Tisch-Session-Projektion neu aufgebaut. Ein Guard verhindert das

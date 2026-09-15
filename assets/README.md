@@ -7,12 +7,12 @@ aktualisiert und danach die benötigten Größen in die Kopien übernommen.
 
 | Datei                                   | Darstellung                                               | Einsatz                                                                                 |
 | --------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `jotti-icon-dark-16.png`                | J-Symbol, transparent, Dark-Ausprägung                    | Favicon 16×16 im Dark Mode (`frontend/index.html`)                                      |
-| `jotti-icon-dark-32.png`                | J-Symbol, transparent, Dark-Ausprägung                    | Favicon 32×32 im Dark Mode (`frontend/index.html`, `website/src/layouts/Landing.astro`) |
-| `jotti-icon-dark-64.png`                | J-Symbol, transparent, Dark-Ausprägung                    | Master ohne Laufzeitkopie                                                               |
-| `jotti-icon-light-16.png`               | J-Symbol, transparent, Light-Ausprägung                   | Favicon 16×16 im Light Mode, PWA-Manifest                                               |
-| `jotti-icon-light-32.png`               | J-Symbol, transparent, Light-Ausprägung                   | Favicon 32×32 im Light Mode und Fallback-Favicon in App und Website, PWA-Manifest       |
-| `jotti-icon-light-64.png`               | J-Symbol, transparent, Light-Ausprägung                   | PWA-Manifest (64×64)                                                                    |
+| `jotti-icon-dark-16.png`                | J-Symbol auf Slate-950, abgerundete Ecken                 | Favicon 16×16 im Dark Mode (`frontend/index.html`)                                      |
+| `jotti-icon-dark-32.png`                | J-Symbol auf Slate-950, abgerundete Ecken                 | Favicon 32×32 im Dark Mode (`frontend/index.html`, `website/src/layouts/Landing.astro`) |
+| `jotti-icon-dark-64.png`                | J-Symbol auf Slate-950, abgerundete Ecken                 | Master ohne Laufzeitkopie                                                               |
+| `jotti-icon-light-16.png`               | J-Symbol auf Slate-50, abgerundete Ecken                  | Favicon 16×16 im Light Mode, PWA-Manifest                                               |
+| `jotti-icon-light-32.png`               | J-Symbol auf Slate-50, abgerundete Ecken                  | Favicon 32×32 im Light Mode und Fallback-Favicon in App und Website, PWA-Manifest       |
+| `jotti-icon-light-64.png`               | J-Symbol auf Slate-50, abgerundete Ecken                  | PWA-Manifest (64×64)                                                                    |
 | `jotti-logo-full-dark.png`              | J und Wortmarke auf Slate-950 (`#020617`)                 | Marketing und Druck; von keinem Build eingebunden                                       |
 | `jotti-logo-full-light-transparent.png` | J und Wortmarke, transparenter Hintergrund                | Marketing und Druck; von keinem Build eingebunden                                       |
 | `jotti-logo-full-light.png`             | J und Wortmarke auf Slate-50 (`#f8fafc`)                  | Marketing und Druck; von keinem Build eingebunden                                       |

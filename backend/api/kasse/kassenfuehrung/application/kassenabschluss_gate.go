@@ -21,7 +21,7 @@ func (e *SignaturenAusstehendError) Error() string {
 // werden aber in der Abschlussmeldung ausgewiesen.
 type KassenabschlussErgebnis struct {
 	// AusfallResteAnzahl: endgültig fehlgeschlagene sowie während eines Störungszeitraums offene
-	// Aufträge; werden nach Rückkehr der TSE nachsigniert.
+	// Aufträge; nur die offenen werden nach Rückkehr der TSE nachsigniert.
 	AusfallResteAnzahl int
 	// OhneKonfigurationAnzahl: Vorgänge ohne Signatur mangels TSE-Konfiguration
 	// (tse_nicht_konfiguriert); werden nicht nachsigniert.

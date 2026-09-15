@@ -39,7 +39,7 @@ func pruefePaketpflichtdateien(dateien map[string][]byte) []Befund {
 // pruefeDateinamen: DSFinV-K-CSVs sind englisch, kleingeschrieben und liegen flach im
 // Wurzelverzeichnis; außer index.xml, DTD und *.csv gehört nichts ins Archiv.
 //
-// Referenz: DSFinV-K 2.4 Anhänge A–E und die Dateiübersicht (Tz. 6, csv-Dateinamen wie
+// Referenz: DSFinV-K 2.4 Anhänge A–E, darunter die Dateiübersicht in Anhang E (csv-Dateinamen wie
 // cashpointclosing.csv, transactions.csv …), durchgängig kleingeschrieben und englisch.
 // Die GDPdU-URL-Regel lässt nur relative Namen zu — hier als flache Wurzeldatei geprüft.
 func pruefeDateinamen(dateien map[string][]byte) []Befund {

@@ -25,7 +25,7 @@ Für Windows gibt es einen Doppelklick-Starter, der die `.env` erzeugt, den Stac
 
 Den vollständigen Windows-Ablauf (SmartScreen, UAC, Beenden) beschreibt auch die `KURZANLEITUNG.md` im ZIP. Für gedruckte Bons folgt weiter unten der Abschnitt „Bondruck einrichten".
 
-> 🔒 **Grünes Schloss als Normalfall.** Für den lokalen Betrieb holt jotti automatisch ein echtes Zertifikat über die Adresse `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start ausgestellt und selbst erneuert. Dafür müsst ihr einmalig eine Ausnahme für den DNS-Rebind-Schutz an eurem Router eintragen ([Anleitung je Router](fehlersuche.md#router-hinweise)); bis dahin arbeitet ihr über die Fallback-Adresse ganz normal weiter. Welche Adresse gerade gilt, zeigt samt QR-Code die Status-Seite `http://localhost:8484` am Kassenrechner.
+> 🔒 **Grünes Schloss als Normalfall.** Für den lokalen Betrieb holt jotti automatisch ein echtes Zertifikat über die Adresse `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start ausgestellt und selbst erneuert. Blockiert euer Router den Namen (DNS-Rebind-Schutz), tragt ihr dafür einmalig eine Ausnahme am Router ein ([Anleitung je Router](fehlersuche.md#router-hinweise)); bis dahin arbeitet ihr über die Fallback-Adresse ganz normal weiter. Welche Adresse gerade gilt, zeigt samt QR-Code die Status-Seite `http://localhost:8484` am Kassenrechner.
 >
 > Greift die grüne Adresse nicht, springt ein Fallback `https://<LAN-IP>` mit selbstsigniertem Zertifikat ein (einmalige Browserwarnung pro Gerät, siehe [Fehlersuche](fehlersuche.md)).
 
@@ -71,7 +71,7 @@ Die Einrichtung hat zwei Teile:
 
 ## Aktualisieren
 
-Eine neue Version spielt ihr in drei Doppelklicks ein, eure Daten bleiben erhalten.
+Eine neue Version spielt ihr in drei Schritten ein, eure Daten bleiben erhalten.
 Den genauen Ablauf beschreibt [Aktualisieren](aktualisieren.md).
 
 ## Beenden

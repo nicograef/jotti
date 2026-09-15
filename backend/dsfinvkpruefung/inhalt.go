@@ -21,7 +21,7 @@ const (
 	regelAbrechnungskreis    = "abrechnungskreis-fehlt"
 )
 
-// Feste DSFinV-K-Werte, gegen die die Inhaltsregeln prüfen (Anhang B/E, Anlage 2).
+// Feste DSFinV-K-Werte, gegen die die Inhaltsregeln prüfen (Anhang B/C/E, Anlage 2).
 const (
 	bonTypBeleg             = "Beleg"          // Anhang B: abgeschlossener Kassenvorgang (Zahlung/Warenrücknahme)
 	bonTypSonstige          = "AVSonstige"     // Anhang B: sonstiger anderer Vorgang (Tagesabschluss)
@@ -39,8 +39,8 @@ const (
 // werden inhaltlich betrachtet (die Strukturprüfung hat Format-/Kopfzeilenfehler
 // bereits gemeldet). Ein leeres Ergebnis bedeutet: inhaltlich konsistent.
 //
-// Referenz: DSFinV-K 2.4 (Anhang B Vorgangstypen, Anhang E Referenzen, Anlage 2
-// USt-Schlüssel) sowie docs/compliance.md Abschnitt 6.4 (Bediener) und 6.6 (Storno).
+// Referenz: DSFinV-K 2.4 (Anhang B Vorgangstypen, Anhang C Geschäftsvorfalltypen,
+// Anhang E Referenzen, Anlage 2 USt-Schlüssel) sowie docs/compliance.md Abschnitt 6.4 (Bediener) und 6.6 (Storno).
 func pruefeInhalt(dateien map[string][]byte, tabellen []indexTabelle) []Befund {
 	daten := ladeTabellendaten(dateien, tabellen)
 
@@ -124,10 +124,11 @@ func ladeTabellendaten(dateien map[string][]byte, tabellen []indexTabelle) map[s
 // "Geldtransit"/"DifferenzSollIst" (nicht "Umsatz") und referenzieren zulässig
 // keinen Ursprungsbeleg. Die Regel grenzt darüber ab.
 //
-// Referenz: DSFinV-K 2.4 Feldbeschreibung BON_STORNO (Tz. 3.2.1, "zweiter Datensatz
-// mit umgekehrtem Vorzeichen"), Tz. 4.2.2/4.2.5 (Warenrücknahme als Negativbeleg),
-// Anhang E / Tz. 4.2.2 (Auflösung einer Forderung: REF_TYP "Transaktion",
-// REF_Z_NR, REF_Z_KASSE_ID, REF_BON_ID) und docs/compliance.md Abschnitt 6.6
+// Referenz: DSFinV-K 2.4 Feldbeschreibung BON_STORNO (Anhang E, Datei „Bonkopf“,
+// "zweiter Datensatz mit umgekehrtem Vorzeichen"), Tz. 4.2.2/4.2.5 (Warenrücknahme
+// als Negativbeleg), Anhang C GV_TYP „Forderungsaufloesung“ (Auflösung einer
+// Forderung: REF_TYP "Transaktion", REF_Z_NR, REF_Z_KASSE_ID, REF_BON_ID) und
+// docs/compliance.md Abschnitt 6.6
 // (BON_STORNO bleibt in allen Fällen 0, jotti kennt keine Vorgangsaufhebung).
 func pruefeStornoReferenzen(daten map[string]tabellendaten) []Befund {
 	transactions, ok := daten["transactions.csv"]
@@ -220,7 +221,7 @@ func hatTransaktionsReferenz(refs tabellendaten, zeilen [][]string) bool {
 // in transactions_vat.csv erscheinen (der Bonkopf darf die Positionsaufteilung nicht
 // zu einer Zeile verschmelzen).
 //
-// Referenz: DSFinV-K 2.4 Tz. 3.2.5/3.2.6 (Bonkopf_USt/Bonpos_USt: USt-Aufschlüsselung
+// Referenz: DSFinV-K 2.4 Tz. 3.1.2.1/3.1.1.1 (Bonkopf_USt/Bonpos_USt: USt-Aufschlüsselung
 // je Schlüssel), Anlage 2 (USt-Schlüssel 1 = 19 %, 2 = 7 %) und docs/steuerrecht.md
 // (Kombi-Splitting Gastronomie).
 func pruefeKombiSteueraufteilung(daten map[string]tabellendaten) []Befund {
@@ -274,8 +275,8 @@ func schluesselNachBonID(daten tabellendaten) map[string]map[string]bool {
 //
 // Referenz: DSFinV-K 2.4 Feldbeschreibung BEDIENER_ID ("unternehmensinterne
 // Kennung") und BEDIENER_NAME ("unternehmensinterner Name der Person, die den
-// Vorgang erfasst"), Tz. 3.2.1, sowie docs/compliance.md Abschnitt 6.4 (BEDIENER_ID
-// = user_id, BEDIENER_NAME = kassenjournal.user_name).
+// Vorgang erfasst"), Anhang E, Datei „Bonkopf“, sowie docs/compliance.md
+// Abschnitt 6.4 (BEDIENER_ID = user_id, BEDIENER_NAME = kassenjournal.user_name).
 func pruefeBedienerFelder(daten map[string]tabellendaten) []Befund {
 	transactions, ok := daten["transactions.csv"]
 	if !ok {

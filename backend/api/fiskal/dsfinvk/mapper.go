@@ -609,10 +609,11 @@ var vatColumns = []string{
 }
 
 func buildVat(s Snapshot, erstellung string) Table {
-	// Die DSFinV-K-Anlage 2 definiert die USt-Schlüssel 1-7 fest; die vat.csv
-	// führt alle vordefinierten Schlüssel auf (nicht nur die in der Sitzung
-	// verwendeten), wie es Prüfsoftware erwartet. UST_SATZ je Schlüssel ist
-	// amtlich vorgegeben.
+	// Die DSFinV-K-Anlage 2 definiert die USt-Schlüssel 1-8 sowie die
+	// historischen Sätze ab ID 11; die vat.csv führt die Schlüssel 1-7 auf
+	// (nicht nur die in der Sitzung verwendeten), wie es Prüfsoftware erwartet.
+	// UST_SATZ trägt für die IDs 1-4 den zum Erfassungszeitpunkt geltenden Satz,
+	// für 5-7 die amtlich festen 0,00 %.
 	amtlicheSchluessel := [][2]string{
 		{"19,00", "Allgemeiner Steuersatz"},
 		{"7,00", "Ermäßigter Steuersatz"},

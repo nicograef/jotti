@@ -28,7 +28,7 @@ Der rocks-Stack nutzt nginx als Reverse-Proxy, der Prod-Stack
 ## 2. Voraussetzungen
 
 1. Port 53 frei. Auf dem VPS prüfen, dass nichts öffentlich auf :53 lauscht
-   (systemd-resolved bindet nur `127.0.0.53`, unkritisch):
+   (systemd-resolved bindet nur Loopback: `127.0.0.53` und `127.0.0.54`, unkritisch):
 
    ```bash
    sudo ss -lnup 'sport = :53'

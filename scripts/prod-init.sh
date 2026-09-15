@@ -61,7 +61,7 @@ fi
 # check turns that into an early, actionable error before anything is pulled.
 if ! parse_semver "$VERSION" >/dev/null; then
   error "JOTTI_VERSION in .env is not a pinned release tag (found: '${VERSION:-<empty>}')."
-  error "Set it to a release tag like v0.3.1 from https://github.com/nicograef/jotti/releases."
+  error "Set it to a release tag like vX.Y.Z from https://github.com/nicograef/jotti/releases."
   fatal "Refusing to deploy an unpinned version ('latest' and empty are not allowed)."
 fi
 

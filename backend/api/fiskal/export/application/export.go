@@ -1,6 +1,6 @@
 // Package application orchestriert den DSFinV-K-Export: es lädt Events und
 // Stammdaten einer Kassensitzung und reicht sie an den reinen dsfinvk-Mapper
-// weiter. Die fiskalische Transformation selbst liegt im Domain-Paket dsfinvk.
+// weiter. Die fiskalische Transformation selbst liegt in backend/api/fiskal/dsfinvk.
 package application
 
 import (

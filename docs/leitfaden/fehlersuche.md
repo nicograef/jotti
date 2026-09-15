@@ -86,12 +86,12 @@ dabei automatisch dokumentiert; nachsignierte Belege tragen den Vermerk
 „Nachsigniert am …". Ihr müsst nichts weiter tun, nur die Internetverbindung
 wiederherstellen (Router prüfen, ggf. neu starten).
 
-## Nach einem Update klappt das Anmelden nicht
+## Nach einem Update startet jotti nicht mehr
 
 Sehr selten passt nach einem Update (meist von einer sehr alten Version) das in der
 Datenbank gespeicherte Passwort nicht mehr zum Installations-Schlüssel. jotti
-startet dann zwar, aber das Anmelden schlägt fehl. Eure Daten sind dabei nicht
-verloren. Es gibt zwei datenerhaltende Wege zurück:
+startet dann gar nicht mehr; der Starter bricht mit einer Fehlermeldung ab. Eure
+Daten sind dabei nicht verloren. Es gibt zwei datenerhaltende Wege zurück:
 
 1. **`jotti-repair.cmd`** doppelklicken. Es gleicht das Datenbank-Passwort an den
    aktuellen Installations-Schlüssel an, ohne eure Daten zu verändern, und endet

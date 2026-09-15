@@ -278,9 +278,9 @@ func TestKasseAbschliessen_CleanerFehlerBleibtBestEffort(t *testing.T) {
 	}
 
 	// Kern der Best-effort-Invariante: Der Cleaner-Fehler wird über eine lokale
-	// Variable geschluckt, nicht über den benannten Return err. Sonst würde der
-	// defer-Block die bereits geschlossene Sitzung fälschlich auf 'offen'
-	// zurücksetzen. Kein Reset ist der Beleg, dass der Abschluss endgültig bleibt.
+	// Variable geschluckt, nicht über den benannten Return err. Sonst riefe der
+	// defer-Block auf der bereits geschlossenen Sitzung einen Reset auf 'offen'
+	// auf. Kein Reset ist der Beleg, dass der Abschluss endgültig bleibt.
 	if sitzungMock.OffenCalls != 0 {
 		t.Fatalf("expected NO reset to offen after cleaner error (Abschluss ist endgueltig), got %d", sitzungMock.OffenCalls)
 	}
@@ -299,7 +299,7 @@ func TestKasseAbschliessen_CleanerFehlerBleibtBestEffort(t *testing.T) {
 
 // TestKasseAbschliessen_TagesabschlussMitEchtenSummen prüft, dass die drei Summen
 // im tagesabschluss-erstellt-Event aus den Journal-Events der Kassensitzung berechnet
-// werden (und nicht mehr aus einem separaten Reporting-Repository).
+// werden.
 // Der Journal-Mock liefert dabei auch die im selben Vorgang geschriebenen
 // Kassensturz-Events, da sie zum Lesezeitpunkt committed sind.
 func TestKasseAbschliessen_TagesabschlussMitEchtenSummen(t *testing.T) {

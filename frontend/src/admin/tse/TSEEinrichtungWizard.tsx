@@ -71,7 +71,7 @@ export function TSEEinrichtungWizard() {
   const [befund, setBefund] = useState<TSESetupBefund | null>(null)
   const [ergebnis, setErgebnis] = useState<TSEEinrichtenErgebnis | null>(null)
 
-  // Die Zugangsdaten sind aus dem fiskaly-Dashboard abgetippt und werden
+  // Die Zugangsdaten sind aus dem fiskaly-HUB abgetippt und werden
   // nirgends gespeichert; ein Reload verlangt den ganzen Weg dorthin erneut.
   useOffenerVorgang(apiKey.trim() !== '' || apiSecret.trim() !== '')
 
@@ -105,7 +105,7 @@ export function TSEEinrichtungWizard() {
         <CardTitle>Geführte Einrichtung</CardTitle>
         <CardDescription>
           jotti prüft dein fiskaly-Konto und richtet die TSE für dich ein. Du
-          brauchst nur den API-Key und das API-Secret aus dem fiskaly-Dashboard.
+          brauchst nur den API-Key und das API-Secret aus dem fiskaly-HUB.
         </CardDescription>
       </CardHeader>
       <CardContent>

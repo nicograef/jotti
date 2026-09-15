@@ -126,8 +126,8 @@ test.describe('Drawer-Sticky-Footer bei langer Positionsliste', () => {
     ).toBeInViewport()
   })
 
-  // „Tisch 3" (Quelle) und „Tisch 10" (Ziel) sind im Demo-Drehbuch unbenutzt;
-  // Umbuchen ist für jede Servicekraft erlaubt.
+  // „Tisch 3" (Quelle) und „Tisch 10" (Ziel) sind im Demo-Drehbuch des laufenden
+  // Tages unbenutzt; Umbuchen ist für jede Servicekraft erlaubt.
   test('Umbuchung: Summe, Ziel-Tisch und Aktion bleiben im Viewport', async ({
     page,
     request,

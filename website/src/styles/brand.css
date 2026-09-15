@@ -52,8 +52,8 @@
   );
 
   /* Als kleiner Text unterschreiten Teal, Rot und Grün im Hellen die
-     AA-Schwelle 4,5:1; diese abgedunkelten Varianten erfüllen sie auf Weiß,
-     Karten- und Muted-Grund. Die vollen --sp-*-Werte tragen Verlauf, Icons und
+     AA-Schwelle 4,5:1; diese abgedunkelten Varianten erfüllen sie auf Weiß- und
+     Karten-Grund. Die vollen --sp-*-Werte tragen Verlauf, Icons und
      Flächen (WCAG 1.4.11, 3:1). */
   --sp-teal-text: #177a6b;
   --sp-red-text: #c03f1c;

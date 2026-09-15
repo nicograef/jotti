@@ -18,8 +18,8 @@ import (
 // Transaktion über die frisch angelegte Konfiguration. Der Test läuft nur mit
 // explizitem Opt-in JOTTI_TSE_LIVE=1 und gesetzten FISKALY_TEST_API_KEY/SECRET.
 //
-// ACHTUNG: Jeder Lauf legt im TEST-Konto eine nicht löschbare TSS an. Bewusst
-// sparsam ausführen (siehe Plan, „TEST-Konto füllt sich").
+// ACHTUNG: Jeder Lauf legt im TEST-Konto eine nicht löschbare TSS an; das Konto
+// hat nur fünf aktive TSS. Bewusst sparsam ausführen.
 //
 //	make test-tse-live-setup   # lädt .env.fiskaly-test (Vorlage: .env.fiskaly-test.example)
 func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {

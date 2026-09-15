@@ -11,12 +11,12 @@ Die TSE (Technische Sicherheitseinrichtung) signiert jeden Kassenvorgang fälsch
 
 ## Schritt 1: fiskaly-Konto und API-Key
 
-1. Auf [dashboard.fiskaly.com](https://dashboard.fiskaly.com) registrieren und das
+1. Auf [hub.fiskaly.com](https://hub.fiskaly.com) registrieren und das
    Konto bestätigen.
-2. Im Dashboard einen API-Key erstellen. Ihr erhaltet zwei Werte: den **API-Key** (eine Art Benutzername) und das **API-Secret** (das Passwort, wird nur einmal angezeigt).
+2. Im HUB einen API-Key erstellen. Ihr erhaltet zwei Werte: den **API-Key** (eine Art Benutzername) und das **API-Secret** (das Passwort, wird nur einmal angezeigt).
 3. Beide Werte sicher notieren. Das Secret könnt ihr später nicht erneut einsehen, nur neu erzeugen.
 
-Mehr ist im Dashboard nicht nötig. Die TSS (so heißt eure TSE im fiskaly-Konto) anlegen, initialisieren und den Client registrieren übernimmt jottis Assistent.
+Mehr ist im HUB nicht nötig. Die TSS (so heißt eure TSE im fiskaly-Konto) anlegen, initialisieren und den Client registrieren übernimmt jottis Assistent.
 
 > 🔒 **API-Key und Secret sind geheim.** Sie gehören nicht in Chats, E-Mails oder
 > öffentliche Dokumente. Ihr tragt sie nur einmal im Assistenten ein; jotti
@@ -52,7 +52,7 @@ So verwahrt ihr richtig:
 
 Habt ihr in TEST geübt, richtet ihr für den Echtbetrieb eine LIVE-TSS ein:
 
-1. Im fiskaly-Dashboard einen API-Key für die LIVE-Umgebung erstellen. TEST- und
+1. Im fiskaly-HUB einen API-Key für die LIVE-Umgebung erstellen. TEST- und
    LIVE-Schlüssel sind getrennt.
 2. Im Assistenten diese LIVE-Zugangsdaten eingeben und prüfen. jotti zeigt jetzt
    die rote LIVE-Markierung.

@@ -42,7 +42,7 @@ require_docker_stack "$COMPOSE_PROD"
 TARGET_VERSION="$(read_env JOTTI_VERSION)"
 if ! parse_semver "$TARGET_VERSION" >/dev/null; then
   error "JOTTI_VERSION in .env is not a pinned release tag (found: '${TARGET_VERSION:-<empty>}')."
-  error "Set it to a release tag like v0.3.1 from https://github.com/nicograef/jotti/releases."
+  error "Set it to a release tag like vX.Y.Z from https://github.com/nicograef/jotti/releases."
   fatal "Refusing to update against an unpinned version ('latest' and empty are not allowed)."
 fi
 

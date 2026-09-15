@@ -17,9 +17,10 @@ import (
 // Die Felder sind daher GTE(1).Required(): zog überspringt den GTE-Validator beim
 // Zero-Value, erst Required() lehnt die 0 ab.
 //
-// Fünf Felder werden über die echten Event-Konstruktoren geprüft (die Summe ist dort ein
-// Parameter); die übrigen sechs leiten die Konstruktoren aus den Positionen ab und werden
-// direkt gegen ihr Schema validiert.
+// Fünf Felder werden über die echten Event-Konstruktoren geprüft: dort ist die Summe ein
+// Parameter. Die übrigen sechs kennen keinen Summen-Parameter und werden direkt gegen ihr
+// Schema validiert: die beiden Event-Konstruktoren rechnen die Summe aus den Positionen,
+// die vier Projektions-Builder übernehmen sie aus dem Event.
 
 func validEventPositionen() []PositionEventData {
 	return []PositionEventData{{

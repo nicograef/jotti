@@ -9,7 +9,7 @@ Neue Änderungen kommen als `NN_<name>.up.sql`, fortlaufend nummeriert, additiv 
 **Warum kein down:**
 
 - Das Kassenjournal ist fiskalisch append-only (Radierverbot, 10 Jahre Aufbewahrung). Ein `down`, das Spalten oder Tabellen mit Belegdaten droppt, zerstört aufbewahrungspflichtige Daten — auf Produktion ein Footgun.
-- Das echte Rollback ist der Backup-Restore. `make prod-update` zieht vor jeder Migration ein Backup; schlägt die Migration oder der Health-Check fehl, wird das Backup eingespielt. `migrate down` wird auf Produktion nie ausgeführt.
+- Das echte Rollback ist der Backup-Restore. `make prod-update` zieht vor jeder Migration ein Backup; schlägt die Migration oder der Health-Check fehl, bricht das Skript ab und gibt den Restore-Befehl für dieses Backup aus. `migrate down` wird auf Produktion nie ausgeführt.
 - `down`-Migrationen, die Daten verwandeln, sind ohnehin nicht ehrlich umkehrbar (die verworfenen Daten kommen nicht zurück). Forward-only gibt vor, was zutrifft.
 
 ## Regeln für neue Migrationen
@@ -30,7 +30,7 @@ Neue Änderungen kommen als `NN_<name>.up.sql`, fortlaufend nummeriert, additiv 
 jotti verwendet für Status- und Kategorie-Spalten TEXT+CHECK statt PostgreSQL-ENUMs. Begründung:
 
 - **ENUMs sind DDL-Objekte.** Eine neue Ausprägung erfordert `ALTER TYPE ... ADD VALUE`, das in PostgreSQL nur außerhalb einer Transaktion oder mit bestimmten Einschränkungen läuft. Damit ist eine rein transaktionale Migration nicht möglich (verstößt gegen Regel 3).
-- **Zwei-Migrations-Muster für ENUM-Erweiterungen** wäre nötig: (1) eine nicht-transaktionale Migration fügt den neuen Wert zum Typ hinzu, (2) eine zweite transaktionale Migration nutzt ihn. Das erhöht die Migrations-Komplexität und die Fehleranfälligkeit erheblich.
+- **Zwei-Migrations-Muster für ENUM-Erweiterungen** wäre nötig: (1) eine erste Migration fügt den neuen Wert zum Typ hinzu und muss committen, bevor er benutzbar ist, (2) eine zweite transaktionale Migration nutzt ihn. Das erhöht die Migrations-Komplexität und die Fehleranfälligkeit erheblich.
 - **TEXT+CHECK ist einfacher erweiterbar:** Neuer Wert = `ALTER TABLE ... DROP CONSTRAINT ..., ADD CONSTRAINT ... CHECK (... IN (..., 'neu'))` — vollständig transaktional in einer Migration.
 - **Ausnahmen** (`UserRole`, `EntityStatus`, `ProduktKategorie`, `Steuersatz`, `DruckstationKategorie`): Diese ENUMs existieren, weil sie bei Schema-Erstellung eingeführt wurden oder weil sqlc für ENUMs typsichere Go-Typen erzeugt (Compile-Zeit-Prüfung statt Laufzeit-String). Neue Status-/Kategorie-Spalten werden als TEXT+CHECK angelegt.
 

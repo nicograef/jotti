@@ -412,8 +412,9 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 
 	// Druck-Outbox aufräumen: mit dem committeten Tagesabschluss ist die Sitzung fiskalisch
 	// geschlossen. Best effort — der Fehler wird NICHT in den benannten Return err geschrieben,
-	// sonst setzte der defer-Reset die geschlossene Sitzung auf 'offen' zurück. Der Cleaner ist
-	// optional (nil-guard).
+	// sonst meldete der Abschluss einen Fehler, obwohl der Tagesabschluss committed ist; der
+	// defer-Reset selbst bliebe folgenlos, weil SetKassensitzungOffen nur in
+	// 'wird_abgeschlossen' greift. Der Cleaner ist optional (nil-guard).
 	if c.DruckauftragRepo != nil {
 		if verworfen, cleanupErr := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx); cleanupErr != nil {
 			log.Error().Err(cleanupErr).Int("z_nr", ks.ZNr).Msg("Failed to discard fehlgeschlagene Druckauftraege beim Tagesabschluss (Abschluss bleibt gueltig)")

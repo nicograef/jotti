@@ -59,7 +59,7 @@ type TSEAbschnitt struct {
 	Signatur        string
 	QRCodeData      string
 	// Nachsigniert: die Signatur entstand nach einem TSE-Ausfall nachträglich
-	// (Nachsignier-Worker). Der Beleg weist das aus, weil die TSE-Zeitpunkte
+	// (Signatur-Worker). Der Beleg weist das aus, weil die TSE-Zeitpunkte
 	// dann sichtbar vom Belegdatum abweichen.
 	Nachsigniert bool
 }
@@ -434,9 +434,10 @@ func steuerMatrixLabel(satz steuer.Steuersatz) string {
 	}
 }
 
-// qrVersionForLengthM returns the minimum QR version (1-40) required to encode
-// payloadLen bytes in byte mode at error correction level M.
-// Capacities from ISO/IEC 18004:2015 Table 7.
+// qrVersionForLengthM returns the smallest QR version (1-40) whose level-M
+// data-codeword count reaches payloadLen. Data codewords from ISO/IEC
+// 18004:2015 Table 7; the byte-mode capacity is 2 bytes (V1-V9) resp. 3 bytes
+// (V10-V40) lower.
 func qrVersionForLengthM(payloadLen int) int {
 	capacities := [40]int{
 		16, 28, 44, 64, 86, 108, 124, 154, 182, 216, // V1-V10

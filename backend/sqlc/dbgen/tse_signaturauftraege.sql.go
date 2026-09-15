@@ -45,7 +45,7 @@ type GetOffeneSignaturauftragStaendeFuerKassensitzungRow struct {
 // GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Stände
 // aller noch nicht erledigten Signaturaufträge einer Kassensitzung — die
 // Grundlage des Kassenabschluss-Gates. Erledigte Aufträge sind irrelevant
-// (bereits signiert); die vier nicht-erledigten Status ordnet
+// (bereits signiert); die drei nicht-erledigten Status ordnet
 // DetermineSignaturstatus in ausstehend (blockiert) bzw. Ausfall (Rest) ein.
 func (q *Queries) GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]GetOffeneSignaturauftragStaendeFuerKassensitzungRow, error) {
 	rows, err := q.db.QueryContext(ctx, getOffeneSignaturauftragStaendeFuerKassensitzung, kassensitzungNr)

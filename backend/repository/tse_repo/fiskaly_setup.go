@@ -12,9 +12,10 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// FiskalyTSESetupClient führt die lesenden Operationen der geführten
-// TSE-Einrichtung aus. Es teilt sich die HTTP-Maschinerie (Auth, Token-Cache,
-// Retry) mit dem Signier-Client, kommt aber ohne TSS-/Client-ID aus.
+// FiskalyTSESetupClient führt die Operationen der geführten TSE-Einrichtung aus —
+// die lesenden Prüf-Schritte wie die schreibenden Zustandsübergänge. Es teilt sich
+// die HTTP-Maschinerie (Auth, Token-Cache, Retry) mit dem Signier-Client, kommt
+// aber ohne TSS-/Client-ID aus.
 type FiskalyTSESetupClient struct {
 	*fiskalyClient
 }

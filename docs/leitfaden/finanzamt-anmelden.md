@@ -18,7 +18,7 @@ Was ihr braucht:
 
 So geht ihr vor: Im Mein-ELSTER-Portal ([elster.de](https://www.elster.de))
 anmelden, das Formular „Mitteilung über elektronische Aufzeichnungssysteme"
-ausfüllen, absenden und die Bestätigung aufbewahren. Kassen-Seriennummer, das
-Anlegedatum der Kassenidentität (es gilt als Inbetriebnahmedatum) und die
-Betreiberdaten stehen im jotti-Admin-Bereich; die Zertifizierungs-ID und die
-Seriennummer der TSE entnehmt ihr eurem fiskaly-Dashboard (bei eurer TSS).
+ausfüllen, absenden und die Bestätigung aufbewahren. Kassen-Seriennummer und die
+Betreiberdaten stehen im jotti-Admin-Bereich; als Inbetriebnahmedatum gilt der
+Tag, an dem ihr jotti das erste Mal gestartet habt; die Zertifizierungs-ID und
+die Seriennummer der TSE entnehmt ihr eurem fiskaly-HUB (bei eurer TSS).

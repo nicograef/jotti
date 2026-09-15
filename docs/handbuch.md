@@ -191,8 +191,8 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 
 ### 3.12 Policies
 
-- **Stornierungsberechtigung (K-04):** Nur `serviceleitung` und `admin` dürfen `StornierungErteilen`. Die Berechtigung wird in der Anwendungsschicht geprüft, bevor der Command an das Aggregat geht.
-- **Arbeitsbon-Druck nach Kategorie (K-12):** Jedes `bestellung-aufgenommen:v1`-Event löst im Backend die Arbeitsbon-Policy aus, die Druckaufträge in die Outbox einreiht (→ [4.6 Bondruck](#46-bondruck-arbeitsbon-und-kassenbeleg-k-12)).
+- **Stornierungsberechtigung (K-04):** Nur `serviceleitung` und `admin` dürfen `StornierungErteilen`. Die Berechtigung erzwingt die JWT-Rollen-Middleware des `/serviceleitung/*`-Bereichs (`rolesServiceleitung`, `backend/app/routes.go`), bevor der Request die Anwendungsschicht erreicht.
+- **Arbeitsbon-Druck nach Kategorie (K-12):** Jedes `bestellung-aufgenommen:v1`-Event löst im Backend die Arbeitsbon-Policy aus, die Druckaufträge in die Outbox einreiht (→ [4.5 Bondruck](#45-bondruck-arbeitsbon-und-kassenbeleg-k-12)).
 - **Umbuchung (K-09):** Verschiebt unbezahlte Positionen von Quell- auf Ziel-Tisch über ein geldneutrales `bestellung-umgebucht:v1` (Quell- und Zielstrom mit gemeinsamer `umbuchungId`). Cross-Aggregat-Transaktion, atomar geschrieben. Steht allen drei Rollen (`service`, `serviceleitung`, `admin`) zur Verfügung.
 
 ### 3.13 TSE-Architektur
@@ -226,7 +226,7 @@ SET status = 'offen',
 WHERE status = 'fehlgeschlagen';
 ```
 
-**Vorgang → processType:** Bestellung aufnehmen, geldneutrale Korrektur (`bestellung-korrigiert`), Umbuchung (`bestellung-umgebucht`) → `Bestellung-V1`; Zahlung, kassenwirksame Warenrücknahme (`stornierung-erteilt`), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) → `Kassenbeleg-V1`; Tagesabschluss (Z-Bon) → `SonstigerVorgang`. Alle Transaktionen eines Tisches teilen denselben `ABRECHNUNGSKREIS`. Eigenbeleg- und Storno-Details im Export (BON_STORNO, REF_BON_ID, AEAO 2.2.3.6.1) → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
+**Vorgang → processType:** Bestellung aufnehmen, geldneutrale Korrektur (`bestellung-korrigiert`), Umbuchung (`bestellung-umgebucht`) → `Bestellung-V1`; Zahlung, kassenwirksame Warenrücknahme (`stornierung-erteilt`), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) und die Sitzungseröffnung mit Anfangsbestand > 0 (Bareinlage als Eigenbeleg) → `Kassenbeleg-V1`; Tagesabschluss (Z-Bon) → `SonstigerVorgang`. Alle Transaktionen eines Tisches teilen denselben `ABRECHNUNGSKREIS`. Eigenbeleg- und Storno-Details im Export (BON_STORNO, REF_BON_ID, AEAO 2.2.3.6.1) → [compliance.md §6](compliance.md#6-dsfinv-k-export-schnittstelle).
 
 **Anbieter- und Meldeweg-Entscheidungen:** TSE-Anbieter (fiskaly als Zielanbieter; anbieter-agnostisches `TSEClient`-Interface gegen Vendor-Lock-in) und Kassenmeldungs-Weg (manuell über das ELSTER-Portal; eine programmatische Übermittlung via ERiC/API ist ausdrücklich Nicht-Ziel) sind mitsamt Begründung und Abwägung in [compliance.md §3.5](compliance.md#35-tse-varianten-und-anbieter-entscheidung) und [§7](compliance.md#7-elektronische-meldepflicht-elster) dokumentiert.
 
@@ -258,7 +258,7 @@ Das Benutzer-Aggregat verwaltet Zugangsdaten und Rollen (`admin`, `serviceleitun
 
 Tisch-Favoriten sind eine CRUD-Relation Benutzer ↔ Tisch und steuern, welche Tische auf dem Service-Dashboard als „Meine Tische" angezeigt werden. Kein Aggregat, keine Events; Operationen idempotent (`ON CONFLICT DO NOTHING`), nur aktive Tische erlaubt.
 
-### 4.6 Bondruck: Arbeitsbon und Kassenbeleg (K-12)
+### 4.5 Bondruck: Arbeitsbon und Kassenbeleg (K-12)
 
 Bondruck umfasst zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druck-Infrastruktur. Sie teilen keinen Auslöser, Inhalt oder Rechtsstatus, nur die Druckauftrags-Outbox (`druckauftraege`) als Transport.
 
@@ -330,11 +330,11 @@ Die Autorisierung liest die Rolle live aus dem Benutzer-Datensatz, nicht aus dem
 Onboarding in vier Schritten; am Ende kennt nur der Benutzer sein Passwort:
 
 1. **Benutzer anlegen:** Admin erstellt Benutzer (Name, Benutzername, Rolle, Status `inactive`). System generiert ein Einmalpasswort aus genau 6 Ziffern, das der Admin dem Benutzer mitteilt.
-2. **„Neues Passwort festlegen":** Benutzer meldet sich mit Einmalpasswort an. System erkennt am Zustand `einmalpasswort_hash ≠ NULL ∧ passwort_hash = NULL` den Onboarding-Status und leitet zur Passwort-Vergabe weiter (min. 6 Zeichen, Argon2id-Hash). Der Status bleibt `inactive`; regulär anmelden kann sich der Benutzer erst nach Schritt 3.
+2. **„Neues Passwort festlegen":** Benutzer öffnet über den Login-Link „Neues Passwort festlegen" die Seite `/set-password` und vergibt dort mit Benutzername und Einmalpasswort sein Passwort (min. 6 Zeichen, Argon2id-Hash). Der Status bleibt `inactive`; regulär anmelden kann sich der Benutzer erst nach Schritt 3.
 3. **Admin aktiviert:** Erst ein expliziter Admin-Klick setzt den Status auf `active` (`ActivateUser`); ohne aktiven Status weist eine reguläre Anmeldung `ErrNotActive` zurück, auch mit gesetztem Passwort.
 4. **Regulärer Login:** Mit Benutzername und selbst gesetztem Passwort.
 
-**Passwort-Reset:** Admin-Reset generiert neues Einmalpasswort, leert `passwort_hash` → Benutzer durchläuft Onboarding erneut.
+**Passwort-Reset:** Admin-Reset generiert neues Einmalpasswort, leert `password_hash` → Benutzer durchläuft Onboarding erneut.
 
 **Sperre des Einmalpassworts:** Nach fünf Fehlversuchen wird das Einmalpasswort ungültig (`MaxOnetimePasswordAttempts`, `backend/domain/user/user.go`); der Admin muss ein neues erzeugen.
 
@@ -361,9 +361,9 @@ Das Backend ist in vier Schichten gegliedert: HTTP → Application → Domain �
 
 **JSON:** Request- und Response-Bodies sind JSON.
 
-**Authentifizierung:** Jeder Endpunkt (außer `/auth/*`) erwartet ein gültiges JWT im `Authorization: Bearer <token>`-Header. Die Middleware prüft Signatur und Gültigkeit.
+**Authentifizierung:** Jeder Endpunkt außer `/auth/*`, `/relay/*` (statischer Token im Body) und `GET /health` erwartet ein gültiges JWT im `Authorization: Bearer <token>`-Header. Die Middleware prüft Signatur und Gültigkeit.
 
-**Fehlerformat:** `{ "code": "<string>", "details": <optional> }`. `code` ist ein stabiler, maschinenlesbarer Schlüssel (snake_case); `details` ist typlos (`any`) und nur in zwei Fällen Vertragsbestandteil, die das Frontend parst: bei `validation_error` die zog-Issues als `map[feld][]meldung`, bei `signaturen_ausstehend` ein Objekt mit der Zahl der offenen Signaturen. Sonst höchstens ein kurzer englischer Diagnosetext für Betrieb und Logs. HTTP-Statuscodes: `400` Client-Fehler, `401` fehlende/ungültige Auth, `403` unzureichende Rechte, `500` Server-Fehler.
+**Fehlerformat:** `{ "code": "<string>", "details": <optional> }`. `code` ist ein stabiler, maschinenlesbarer Schlüssel (snake_case); `details` ist typlos (`any`) und nur in zwei Fällen strukturiert: bei `validation_error` die zog-Issues als `map[feld][]meldung`, bei `signaturen_ausstehend` ein Objekt mit der Zahl der offenen Signaturen — nur dieses parst das Frontend. Sonst höchstens ein kurzer englischer Diagnosetext für Betrieb und Logs. HTTP-Statuscodes: `400` Client-Fehler, `401` fehlende/ungültige Auth, `403` unzureichende Rechte, `404` nicht gefunden, `409` fachlicher Konflikt (OCC, keine offene Kassensitzung, ausstehende Signaturen), `413` Request-Body zu groß, `429` Rate-Limit, `500` Server-Fehler.
 
 **Bereichsgliederung:**
 
@@ -404,11 +404,11 @@ Alle Eingaben werden auf beiden Seiten unabhängig validiert: Frontend (Zod, vor
 
 ### 6.5 Geldbeträge
 
-Alle Geldbeträge sind ganzzahlige Cent-Werte (`int` / `INTEGER` / JSON-Zahl), durchgehend von Datenbank über Backend und API bis Frontend und Events. Keine Fließkommazahlen. Darstellung als „3,50 €" erfolgt ausschließlich im Frontend (`formatCents()`).
+Alle Geldbeträge sind ganzzahlige Cent-Werte (`int` / `INTEGER` / JSON-Zahl), durchgehend von Datenbank über Backend und API bis Frontend und Events. Keine Fließkommazahlen. Darstellung als „3,50 €" erfolgt ausschließlich im Frontend (`formatEuro()`, das auf `formatCents()` aufsetzt).
 
 ### 6.6 Mehrbenutzerfähigkeit (OCC)
 
-Kasse ist event-sourced, weil die Geschichte fachlich relevant ist (Kassenjournal, Buchhaltung, Compliance); Stammdaten sind CRUD, weil nur ihr aktueller Zustand gebraucht wird und die Fat Events die historischen Daten abdecken. Mehrere Servicekräfte arbeiten gleichzeitig, auch am selben Tisch. Schreibkonflikte werden über Optimistic Concurrency Control gelöst (Subject- und OCC-Modell → [3.3](#33-subject-design-hierarchische-subjects)). Für den Mehrbenutzerbetrieb relevant ist der Retry: Jeder Schreibvorgang sendet die erwartete `event_version` mit; bei einem Konflikt lädt die Anwendungsschicht den Tischzustand neu und wiederholt den Vorgang.
+Kasse ist event-sourced, weil die Geschichte fachlich relevant ist (Kassenjournal, Buchhaltung, Compliance); Stammdaten sind CRUD, weil nur ihr aktueller Zustand gebraucht wird und die Fat Events die historischen Daten abdecken. Mehrere Servicekräfte arbeiten gleichzeitig, auch am selben Tisch. Schreibkonflikte werden über Optimistic Concurrency Control gelöst (Subject- und OCC-Modell → [3.3](#33-subject-design-hierarchische-subjects)). Für den Mehrbenutzerbetrieb relevant ist der Umgang mit dem Konflikt: Die erwartete Version bestimmt der Server — die Anwendungsschicht schreibt mit der Version des Zustands, gegen den sie validiert hat (`writeEventOCC`, `backend/api/kasse/tischgeschaeft/application/command.go`); der Client sendet keine Version mit. Ein OCC-Konflikt wird nicht serverseitig wiederholt, sondern als HTTP 409 mit Code `conflict` beantwortet; der Benutzer lädt neu und wiederholt den Vorgang.
 
 ### 6.7 Sicherheit
 

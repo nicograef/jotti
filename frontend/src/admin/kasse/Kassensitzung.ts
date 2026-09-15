@@ -37,7 +37,7 @@ export const KommentarSchema = z
   .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' })
   .max(200, { message: 'Kommentar darf maximal 200 Zeichen lang sein.' })
 
-// Reporting re-exports this record so both areas share one definition.
+// KasseBackend erweitert diesen Datensatz zu AktiveKassensitzung; das Reporting nutzt ihn über diesen Typ.
 export const KassensitzungSchema = z.object({
   zNr: z.number().int(),
   datum: z.string(),

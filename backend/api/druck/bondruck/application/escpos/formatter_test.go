@@ -607,7 +607,7 @@ func TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis(t *tes
 // TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots prüft,
 // dass ein 500-Byte-QR-Payload (oberhalb des typischen fiskaly-Bereichs von 350-470 Byte)
 // mit Modulgröße 6 innerhalb der druckbaren 576 Dots bleibt.
-// Rechnung: QR-Version 17 (ECL M: bis 507 Byte), Matrix 85 Module + 8 Ruhezone = 93 Module,
+// Rechnung: QR-Version 17 (ECL M: 507 Datencodewörter, Byte-Kapazität 504), Matrix 85 Module + 8 Ruhezone = 93 Module,
 // 93 * 6 = 558 Dots <= 576 Dots.
 func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *testing.T) {
 	// Realistischer fiskaly-Payload ist ~350-470 Byte; 500 Byte als obere Testgrenze.

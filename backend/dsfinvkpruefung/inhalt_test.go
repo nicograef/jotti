@@ -10,11 +10,11 @@ import (
 // --- Fixtures für die Inhaltsprüfung ---
 //
 // Anders als die Struktur-Fixture (gutesArchiv, minimal) deklariert dieses Archiv
-// alle Tabellen, die die Inhaltsregeln betrachten: transactions, references,
+// alle Tabellen, die die Inhaltsregeln betrachten: transactions, lines, references,
 // lines_vat, transactions_vat, tse und allocation_groups. Die kaputten Fixtures
 // mutieren gezielt einzelne Felder.
 
-// gutesInhaltIndexXML deklariert die sechs von den Inhaltsregeln geprüften Tabellen
+// gutesInhaltIndexXML deklariert die sieben von den Inhaltsregeln geprüften Tabellen
 // mit ihren realen Spalten (Reihenfolge wie im Erzeuger, api/fiskal/dsfinvk).
 const gutesInhaltIndexXML = `<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE DataSet SYSTEM "gdpdu-01-09-2004.dtd">
