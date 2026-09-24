@@ -314,11 +314,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # `make check-format` covers the whole repo, not just frontend/.
-      - name: Check formatting
-        working-directory: ${{ github.workspace }}
-        run: make check-format
-
       - name: Run lint
         run: pnpm run lint
 
@@ -364,9 +359,8 @@ jobs:
         run: shellcheck -x scripts/*.sh
 
   # Repo-wide gates that belong to no single component: the check-*.sh scripts
-  # and the repo-wide Prettier check, which otherwise runs only inside
-  # frontend-ci and so never on a docs-only pull request. Unconditional: every
-  # gate reads the whole tree, so no path filter narrows it correctly.
+  # and the repo-wide Prettier check. Unconditional: every gate reads the whole
+  # tree, so no path filter narrows it correctly.
   repo-checks:
     runs-on: ubuntu-latest
     steps:
