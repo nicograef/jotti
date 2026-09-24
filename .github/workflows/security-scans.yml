@@ -12,6 +12,7 @@ on:
       - "reverse-proxy/**"
       - "windows/**"
       - "frontend/**"
+      - "website/**"
       - "go.work"
       - "go.work.sum"
       - ".github/workflows/security-scans.yml"
@@ -23,6 +24,7 @@ on:
       - "reverse-proxy/**"
       - "windows/**"
       - "frontend/**"
+      - "website/**"
       - "go.work"
       - "go.work.sum"
       - ".github/workflows/security-scans.yml"
@@ -86,28 +88,35 @@ jobs:
 
   vuln-scan-npm:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - frontend
+          - website
     defaults:
       run:
-        working-directory: ./frontend
+        working-directory: ./${{ matrix.project }}
     steps:
       - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v6
         with:
-          package_json_file: frontend/package.json
+          package_json_file: ${{ matrix.project }}/package.json
           run_install: false
 
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: "pnpm"
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          cache-dependency-path: ${{ matrix.project }}/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Blocking: only production dependencies, red from "high" upward. This
-      # is what actually ships in the browser bundle.
+      # Blocking: only production dependencies, red from "high" upward. For
+      # frontend this is what ships in the browser bundle; for website it is
+      # the build chain of the static jotti.rocks site.
       - name: pnpm audit (prod, high and above)
         run: pnpm audit --prod --audit-level high
 
