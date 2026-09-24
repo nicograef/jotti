@@ -36,18 +36,28 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
+              - 'go.work'
+              - 'go.work.sum'
             frontend:
               - 'frontend/**'
             database:
               - 'database/**'
             resolver:
               - 'resolver/**'
+              - 'go.work'
+              - 'go.work.sum'
             proxy:
               - 'reverse-proxy/**'
+              - 'go.work'
+              - 'go.work.sum'
             windows:
               - 'windows/**'
+              - 'go.work'
+              - 'go.work.sum'
             website:
               - 'website/**'
+              - 'docs/**'
+              - 'Makefile'
             scripts:
               - 'scripts/**'
             ci:
