@@ -19,3 +19,7 @@ indent_style = tab
 # Markdown – trailing spaces can be intentional (line breaks)
 [*.md]
 trim_trailing_whitespace = false
+
+# Windows batch – CRLF, matching .gitattributes
+[*.cmd]
+end_of_line = crlf
