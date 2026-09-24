@@ -154,7 +154,7 @@ if ! command -v pnpm >/dev/null 2>&1; then
 fi
 
 info "Installing frontend dependencies..."
-cd "$PROJECT_ROOT/frontend" && pnpm install
+cd "$PROJECT_ROOT/frontend" && pnpm install --frozen-lockfile
 cd "$PROJECT_ROOT"
 
 info "Tool summary"
