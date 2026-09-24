@@ -55,7 +55,7 @@ run_step() {
   fi
   end="$(date +%s)"
   duration=$((end - start))
-  log_line "$step" fail "$duration" "see $SMOKE_TMP/step.log"
+  log_line "$step" fail "$duration" "output on stderr"
   error "Step '$step' failed after ${duration}s. Output:"
   cat "$SMOKE_TMP/step.log" >&2
   exit 1
