@@ -8,6 +8,8 @@ import (
 	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+
+	dbpkg "github.com/nicograef/jotti/backend/db"
 )
 
 // Open verbindet sich mit der Testdatenbank und beendet den Testprozess, wenn
@@ -20,16 +22,7 @@ func Open() *sql.DB {
 	password := envOrDefault("POSTGRES_PASSWORD", "admin")
 	dbName := envAnyOrDefault([]string{"POSTGRES_DBNAME", "POSTGRES_DB"}, "jotti")
 
-	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host,
-		port,
-		user,
-		password,
-		dbName,
-	)
-
-	db, err := sql.Open("pgx", dsn)
+	db, err := sql.Open("pgx", dbpkg.ConnString(host, port, user, password, dbName))
 	if err != nil {
 		fmt.Printf("Failed to connect to Postgres: %v\n", err)
 		os.Exit(1)

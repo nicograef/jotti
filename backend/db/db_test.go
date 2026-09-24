@@ -5,9 +5,11 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -109,4 +111,51 @@ func TestPingWithRetry(t *testing.T) {
 			t.Errorf("expected no sleeps, got %d", sleeps)
 		}
 	})
+}
+
+func TestConnString(t *testing.T) {
+	// An empty password would otherwise be looked up in the developer's ~/.pgpass.
+	t.Setenv("PGPASSFILE", filepath.Join(t.TempDir(), "missing"))
+
+	cases := []struct {
+		name     string
+		password string
+	}{
+		{"backslash", `ab\cd`},
+		{"single quote", `ab'cd`},
+		{"space", "ab cd"},
+		{"trailing backslash", `abcd\`},
+		{"equals sign", "ab=cd"},
+		{"plus sign", "ab+cd"},
+		{"hash sign", "ab#cd"},
+		{"empty", ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := pgx.ParseConfig(ConnString("db", "5433", "jotti_user", tc.password, "jotti_db"))
+			if err != nil {
+				t.Fatalf("ParseConfig failed: %v", err)
+			}
+
+			if cfg.Host != "db" {
+				t.Errorf("expected host %q, got %q", "db", cfg.Host)
+			}
+			if cfg.Port != 5433 {
+				t.Errorf("expected port 5433, got %d", cfg.Port)
+			}
+			if cfg.User != "jotti_user" {
+				t.Errorf("expected user %q, got %q", "jotti_user", cfg.User)
+			}
+			if cfg.Password != tc.password {
+				t.Errorf("expected password %q, got %q", tc.password, cfg.Password)
+			}
+			if cfg.Database != "jotti_db" {
+				t.Errorf("expected database %q, got %q", "jotti_db", cfg.Database)
+			}
+			if cfg.TLSConfig != nil {
+				t.Error("expected sslmode=disable (no TLS config)")
+			}
+		})
+	}
 }

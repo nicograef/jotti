@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -77,6 +79,24 @@ func WithTx(ctx context.Context, database *sql.DB, fn func(*dbgen.Queries) error
 	}
 
 	return Error(tx.Commit())
+}
+
+// connStringEscaper escapes the two characters with a meaning inside a quoted
+// keyword/value connection string value.
+var connStringEscaper = strings.NewReplacer(`\`, `\\`, `'`, `\'`)
+
+// ConnString builds the keyword/value connection string (libpq syntax,
+// sslmode=disable) for the pgx driver. An unquoted value ends at whitespace and
+// a backslash escapes the next character, so every value is single-quoted and
+// escaped: a password with spaces, quotes or backslashes reaches the server
+// unchanged.
+func ConnString(host, port, user, password, dbname string) string {
+	quote := func(value string) string {
+		return "'" + connStringEscaper.Replace(value) + "'"
+	}
+
+	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		quote(host), quote(port), quote(user), quote(password), quote(dbname))
 }
 
 // PingWithRetry calls ping until it succeeds or the budget is exhausted
