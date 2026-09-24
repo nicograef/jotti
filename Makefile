@@ -304,7 +304,7 @@ check-full: check check-integration ## Vollständige Prüfung inkl. Integrations
 verify: check-full ## Alias für vollständige Repo-Prüfung
 
 # Website (Astro + Starlight, website/)
-# Setzt einmaliges `cd website && pnpm install` voraus.
+# Setzt einmaliges `cd website && pnpm install --frozen-lockfile` voraus.
 
 website-dev: ## Astro Dev-Server starten (http://localhost:4321), liest docs/ live
 	cd website && pnpm dev
