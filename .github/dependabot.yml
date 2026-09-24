@@ -76,8 +76,8 @@ updates:
       website-npm:
         patterns:
           - "*"
-    # TypeScript bleibt auf 6.x, bis typescript-eslint TypeScript 7 unterstuetzt
-    # (typescript-eslint#10940). Minor/Patch bleiben erlaubt.
+    # TypeScript bleibt auf 6.x, bis @astrojs/check TypeScript 7 unterstuetzt
+    # (Peer typescript ^5.0.0 || ^6.0.0). Minor/Patch bleiben erlaubt.
     ignore:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
