@@ -115,7 +115,7 @@ jobs:
           cache-dependency-path: backend/go.sum
 
       # Version pinned to the local toolchain (scripts/setup-dev-tools.sh) so a
-      # green CI and a green `make verify` mean the same thing (D13). Two passes:
+      # green CI and a green `make verify` mean the same thing. Two passes:
       # --build-tags=unit merges with backend/.golangci.yml's default, so the
       # second pass loads [integration unit]; the integration-only pass stays
       # because whole-program linters (unused) judge each file set on its own.

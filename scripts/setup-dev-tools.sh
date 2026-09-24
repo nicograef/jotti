@@ -25,7 +25,7 @@ ensure_cmd go "Install Go >= 1.27.1 (CI uses 1.27.1)."
 ensure_cmd node "Install Node >= 24 (CI uses 24)."
 
 # Matches CI: .github/workflows/ci.yml pins goimports to this version in every
-# "Check format" step, so local formatting matches CI (D13). goimports across
+# "Check format" step, so local formatting matches CI. goimports across
 # versions can reformat imports differently, so @latest would drift from CI.
 GOIMPORTS_VERSION="v0.50.0"
 info "Ensuring goimports ($GOIMPORTS_VERSION) is available..."
@@ -43,7 +43,7 @@ if ! command -v goimports >/dev/null 2>&1; then
 fi
 
 # Matches CI: .github/workflows/ci.yml pins the golangci-lint action to this
-# version so a green CI and a green `make verify` mean the same thing (D13).
+# version so a green CI and a green `make verify` mean the same thing.
 GOLANGCI_LINT_VERSION="v2.14.0"
 info "Ensuring golangci-lint ($GOLANGCI_LINT_VERSION) is available..."
 
