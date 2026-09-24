@@ -27,7 +27,7 @@ ensure_cmd node "Install Node >= 24 (CI uses 24)."
 # Matches CI: .github/workflows/ci.yml pins goimports to this version in every
 # "Check format" step, so local formatting matches CI (D13). goimports across
 # versions can reformat imports differently, so @latest would drift from CI.
-GOIMPORTS_VERSION="v0.40.0"
+GOIMPORTS_VERSION="v0.50.0"
 info "Ensuring goimports ($GOIMPORTS_VERSION) is available..."
 if command -v goimports >/dev/null 2>&1; then
   info "goimports already installed: $(goimports -V 2>/dev/null || echo 'version unknown')"
@@ -44,7 +44,7 @@ fi
 
 # Matches CI: .github/workflows/ci.yml pins the golangci-lint action to this
 # version so a green CI and a green `make verify` mean the same thing (D13).
-GOLANGCI_LINT_VERSION="v2.13.0"
+GOLANGCI_LINT_VERSION="v2.14.0"
 info "Ensuring golangci-lint ($GOLANGCI_LINT_VERSION) is available..."
 
 # golangci-lint refuses to run when the Go it was built with is older than the
@@ -114,7 +114,7 @@ if ! command -v sqlc >/dev/null 2>&1; then
 fi
 
 # Matches CI: .github/workflows/ci.yml (Install golang-migrate step)
-MIGRATE_VERSION="v4.19.1"
+MIGRATE_VERSION="v4.20.1"
 info "Ensuring golang-migrate ($MIGRATE_VERSION) is available..."
 if command -v migrate >/dev/null 2>&1; then
   info "golang-migrate already installed: $(migrate -version 2>&1 || echo 'version unknown')"

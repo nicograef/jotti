@@ -1,6 +1,6 @@
 FROM alpine:3.24
 
-ARG MIGRATE_VERSION=v4.19.1
+ARG MIGRATE_VERSION=v4.20.1
 
 RUN apk add --no-cache curl \
     && curl -fsSL "https://github.com/golang-migrate/migrate/releases/download/${MIGRATE_VERSION}/migrate.linux-amd64.tar.gz" \

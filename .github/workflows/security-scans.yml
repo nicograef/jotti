@@ -58,7 +58,7 @@ jobs:
         working-directory: ./${{ matrix.module }}
         # govulncheck fails only on vulnerabilities reachable from this module's
         # code; version pinned for reproducibility, like goimports in ci.yml.
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.5.0 ./...
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
   # windows/relay and windows/starter have zero dependencies (no go.sum), so
   # module caching (cache-dependency-path) would fail to resolve a glob and
@@ -82,7 +82,7 @@ jobs:
         working-directory: ./${{ matrix.module }}
         # govulncheck fails only on vulnerabilities reachable from this module's
         # code; version pinned for reproducibility, like goimports in ci.yml.
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.5.0 ./...
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
   vuln-scan-npm:
     runs-on: ubuntu-latest
