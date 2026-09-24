@@ -9,8 +9,6 @@ sql:
         out: "sqlc/dbgen"
         sql_package: "database/sql"
         emit_json_tags: false
-        emit_result_struct_pointers: false
-        emit_params_struct_pointers: false
         emit_empty_slices: true
         overrides:
           - db_type: "pg_catalog.int4"
