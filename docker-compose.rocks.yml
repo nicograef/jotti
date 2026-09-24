@@ -154,7 +154,7 @@ services:
           cpus: "0.5"
 
   reverse-proxy:
-    image: nginx:1.27-alpine
+    image: nginx:1.31-alpine
     container_name: jotti-reverse-proxy
     restart: unless-stopped
     logging: *default-logging
@@ -200,7 +200,7 @@ services:
           cpus: "0.5"
 
   certbot:
-    image: certbot/certbot:v2.11.0
+    image: certbot/certbot:v5.8.0
     container_name: jotti-certbot
     restart: unless-stopped
     logging: *default-logging
