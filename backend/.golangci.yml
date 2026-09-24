@@ -21,15 +21,10 @@ linters:
     - gocritic
     - nilerr
     - forbidigo
-  disable:
-    - wsl
-    - exhaustive
-    - exhaustruct
   settings:
     gosec:
       excludes:
         - G115 # false positives on safe casts
-        - G117 # implicit memory aliasing in for loops — resolved in Go 1.22+
         - G704 # SSRF-Taint auf die fiskaly-Basis-URL: sie stammt aus der Konfiguration (FiskalyBaseURL), nie aus Request-Daten — false positive
     forbidigo:
       # The pattern matches the selector as it stands in the source
