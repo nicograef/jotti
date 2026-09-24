@@ -92,52 +92,21 @@ updates:
           - "*"
 
   - package-ecosystem: "docker"
-    directory: "/backend"
+    directories:
+      - "/backend"
+      - "/database/migrate"
+      - "/frontend"
+      - "/resolver"
+      - "/reverse-proxy"
+      - "/website"
     schedule:
       interval: "monthly"
+    # scripts/check-pins.sh verlangt je Image eine Version: group-by hebt ein Image
+    # in einem PR ueber alle Verzeichnisse an. Pins in den Compose-Dateien deckt
+    # dieser Eintrag nicht ab; sie von Hand mitziehen.
     groups:
-      backend-docker:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "docker"
-    directory: "/frontend"
-    schedule:
-      interval: "monthly"
-    groups:
-      frontend-docker:
-        patterns:
-          - "*"
-    # Node ist im Image nur Build-Tool; auf dem Active LTS (24) bleiben, bis die
-    # naechste LTS-Linie steht. Minor/Patch bleiben erlaubt.
-    ignore:
-      - dependency-name: "node"
-        update-types: ["version-update:semver-major"]
-
-  - package-ecosystem: "docker"
-    directory: "/database/migrate"
-    schedule:
-      interval: "monthly"
-    groups:
-      migrate-docker:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "docker"
-    directory: "/reverse-proxy"
-    schedule:
-      interval: "monthly"
-    groups:
-      reverse-proxy-docker:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "docker"
-    directory: "/website"
-    schedule:
-      interval: "monthly"
-    groups:
-      website-docker:
+      docker:
+        group-by: dependency-name
         patterns:
           - "*"
     # Node ist im Image nur Build-Tool; auf dem Active LTS (24) bleiben, bis die
