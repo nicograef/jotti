@@ -394,7 +394,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:17.8
+        image: postgres:17.11
         env:
           POSTGRES_USER: admin
           POSTGRES_PASSWORD: admin
@@ -469,7 +469,7 @@ jobs:
       DATABASE_URL: postgres://admin:upgrade-harness-postgres-password@localhost:5432/jotti?sslmode=disable
     services:
       postgres:
-        image: postgres:17.8
+        image: postgres:17.11
         env:
           POSTGRES_USER: admin
           # Must match the job-level POSTGRES_PASSWORD (services cannot
