@@ -11,4 +11,3 @@ package-lock.json
 
 # shadcn/ui generated files
 src/components/ui
-src/hooks/use-mobile.ts

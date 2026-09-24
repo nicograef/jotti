@@ -14,7 +14,6 @@ docs/plans
 
 # shadcn/ui generated files
 frontend/src/components/ui
-frontend/src/hooks/use-mobile.ts
 
 # Astro components: prettier-plugin-astro would be a new dependency;
 # `astro check` covers these instead.
