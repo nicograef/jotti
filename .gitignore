@@ -31,9 +31,13 @@ node_modules/
 windows/starter/jotti-start.exe
 windows/relay/jotti-relay.exe
 
+# Binaries von make build-relay / build-resolver / build-local-proxy
+/windows/relay/relay
+/resolver/resolver
+/reverse-proxy/reverse-proxy
+
 # ── Build artifacts ──────────────────────────────────────────────────────────
 dist/
-dist-ssr/
 build/
 
 # ── E2E (Playwright) / Website-Build ─────────────────────────────────────────
@@ -60,7 +64,6 @@ temp/
 # Claude Code personal settings
 .claude/settings.local.json
 .claude/worktrees/
-.claude/qa-*
 
 # Playwright-MCP-Artefakte
 .playwright-mcp/
