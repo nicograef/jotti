@@ -20,8 +20,7 @@ cd "$PROJECT_ROOT"
 # `:(glob)` makes `/**/` mean "zero or more directories" for git pathspecs.
 mapfile -t files < <(git ls-files \
   ':(glob)e2e/tests/**/*.ts' \
-  ':(glob)e2e/support/**/*.ts' \
-  ':(glob)e2e/helpers/**/*.ts')
+  ':(glob)e2e/support/**/*.ts')
 
 violations=0
 for file in "${files[@]}"; do
@@ -38,7 +37,7 @@ for file in "${files[@]}"; do
 done
 
 if [ "$violations" -gt 0 ]; then
-  fatal "$violations weak e2e assertion(s) found (networkidle or \`?? 0\`) under e2e/tests, e2e/support and e2e/helpers."
+  fatal "$violations weak e2e assertion(s) found (networkidle or \`?? 0\`) under e2e/tests and e2e/support."
 fi
 
-info "No networkidle wait or \`?? 0\` fallback in e2e/tests, e2e/support or e2e/helpers."
+info "No networkidle wait or \`?? 0\` fallback in e2e/tests or e2e/support."
