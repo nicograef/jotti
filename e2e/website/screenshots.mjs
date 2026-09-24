@@ -12,8 +12,8 @@
 // Playwrights `emulateMedia({ colorScheme })` — kein Theme-Schalter-State.
 //
 // E2E_BASE_URL überschreibt den Compose-Default http://localhost:8080.
-// Seed- und Login-Helfer kommen aus der e2e-Suite (`support/*.ts`); deshalb
-// läuft das Skript mit `node --experimental-strip-types` (Make-Target
+// Seed- und Login-Helfer kommen aus der e2e-Suite (`support/*.ts`); Node ≥ 24
+// entfernt deren Typannotationen beim Import selbst (Make-Target
 // `website-screenshots`).
 
 import { spawnSync } from 'node:child_process'
