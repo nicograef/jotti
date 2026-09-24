@@ -27,10 +27,6 @@ docker run -d \
   -e POSTGRES_PASSWORD=admin \
   -e POSTGRES_DB=jotti \
   -p 5432:5432 \
-  --health-cmd "pg_isready -U admin -d jotti" \
-  --health-interval 2s \
-  --health-timeout 5s \
-  --health-retries 10 \
   postgres:17.11
 
 echo "⏳ Waiting for PostgreSQL to accept real connections..."
@@ -38,10 +34,20 @@ echo "⏳ Waiting for PostgreSQL to accept real connections..."
 # temporary socket-only server that is restarted afterwards; pg_isready reports
 # that server as ready while migrate then fails with "connection reset by
 # peer". Only a real query over TCP proves the final server is up.
-until docker exec -e PGPASSWORD=admin "$CONTAINER_NAME" \
-  psql -h 127.0.0.1 -U admin -d jotti -c "SELECT 1" >/dev/null 2>&1; do
+ready=""
+for ((i = 0; i < 30; i++)); do
+  if docker exec -e PGPASSWORD=admin "$CONTAINER_NAME" \
+    psql -h 127.0.0.1 -U admin -d jotti -c "SELECT 1" >/dev/null 2>&1; then
+    ready=1
+    break
+  fi
   sleep 2
 done
+if [ -z "$ready" ]; then
+  echo "❌ PostgreSQL did not become ready in time. Container logs:"
+  docker logs "$CONTAINER_NAME"
+  exit 1
+fi
 
 echo "✅ PostgreSQL ready!"
 
