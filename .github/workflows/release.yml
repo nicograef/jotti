@@ -92,13 +92,13 @@ jobs:
           # bzw. Vite-define); migrate und reverse-proxy kennen kein
           # VERSION-Build-Arg.
           declare -A buildarg=(
-            [backend]="--build-arg VERSION=$VERSION"
-            [frontend]="--build-arg VERSION=$VERSION"
+            [backend]="VERSION=$VERSION"
+            [frontend]="VERSION=$VERSION"
           )
           for svc in $SERVICES; do
             docker buildx build --load \
               ${dockerfile[$svc]:+--file "${dockerfile[$svc]}"} \
-              ${buildarg[$svc]:-} \
+              ${buildarg[$svc]:+--build-arg "${buildarg[$svc]}"} \
               --tag "ghcr.io/nicograef/jotti-$svc:$VERSION" \
               --label "org.opencontainers.image.version=$VERSION" \
               "${ctx[$svc]}"
