@@ -139,9 +139,9 @@ Alle Beträge in Cent (Integer); der Saldo ist die Summe der noch offenen (beste
 | Einzigkeits-Invariante    | Maximal eine Kassensitzung darf `offen` sein.                                                                                                                         |
 | Nummern-Invariante        | `z_nr` ist fortlaufend und strikt aufsteigend (Identity-Sequenz beim INSERT in `kassensitzungen`); fehlgeschlagene Eröffnungen können technische Lücken hinterlassen. |
 | Anfangsbestand-Invariante | Anfangsbestand ist `betragCents` in `kassensitzung-eroeffnet:v1`, kein eigenes Event.                                                                                 |
-| Kassensturz-Reihenfolge   | `KassensturzDurchgefuehrt` ist Voraussetzung für `TagesabschlussErstellt`.                                                                                            |
-| Tisch-Saldo-Sperre        | `TagesabschlussErstellt` ist nur möglich, wenn alle Tisch-Sessions der Kassensitzung Saldo = 0 haben.                                                                 |
-| Abschluss-Invariante      | `TagesabschlussErstellt` schließt die KS → Status `abgeschlossen`. Danach keine Events mehr im Stream.                                                                |
+| Kassensturz-Reihenfolge   | `kassensturz-durchgefuehrt:v1` ist Voraussetzung für `tagesabschluss-erstellt:v1`.                                                                                    |
+| Tisch-Saldo-Sperre        | `tagesabschluss-erstellt:v1` ist nur möglich, wenn alle Tisch-Sessions der Kassensitzung Saldo = 0 haben.                                                             |
+| Abschluss-Invariante      | `tagesabschluss-erstellt:v1` schließt die KS → Status `abgeschlossen`. Danach keine Events mehr im Stream.                                                            |
 
 > **Keine Bewegungs-Invariante:** Kassenbewegungen werden ohne Prüfung des Soll-Bestands gebucht.
 

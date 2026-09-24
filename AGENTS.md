@@ -49,7 +49,7 @@ Alle Befehle laufen über das **Makefile**; `make help` listet sie. Einmalig `ba
 
 Es gibt produktive Instanzen mit aufbewahrungspflichtigen Daten. **Persistierte Daten (DB-Schema-Bestand, Event-JSON) sind unantastbar.**
 
-- **DB-Schema:** Änderungen ausschließlich als neue, additive Migration `NN_<name>.up.sql` (fortlaufend nummeriert, forward-only, keine Down-Migrationen). `01_initial.up.sql` wird nicht mehr editiert. Regeln und Begründung: `database/migrations/README.md`.
+- **DB-Schema:** Änderungen ausschließlich als neue, additive Migration `NN_<name>.up.sql` (fortlaufend nummeriert, forward-only, keine Down-Migrationen). `01_initial.up.sql` ist eingefroren. Regeln und Begründung: `database/migrations/README.md`.
 - **Event-Formate:** Event-JSON-Contracts sind eingefroren (Guard: `backend/domain/kasse/event_json_contract_test.go`). Änderungen additiv als neue Event-Version (`:vN`), nie in-place. Alte Events werden nicht migriert; bestehende Daten werden nie umgedeutet.
 - **Backend-API:** Endpunkte und Formate dürfen sich ändern, solange Frontend und Print-Relay im selben Release mitgezogen werden (sie werden bei jedem Update gemeinsam ausgetauscht). Keine API-Versionierung nötig.
 - **Frontend:** wird zusammen mit dem Backend ausgeliefert und direkt an geänderte Backend-Datenformate angepasst.

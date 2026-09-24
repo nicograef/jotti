@@ -1,9 +1,9 @@
 # Local / LAN deployment — reachable from phones in the same WLAN under the
 # trusted hostname <lan-ip>.<install-id>.lokal.jotti.rocks (real Let's Encrypt
 # certificate); the host's local IP stays a fallback on Caddy's internal CA
-# (browser warning on first access). Intended for the smallest setup: one
-# direct-sales till, cash only, no receipt printing
-# (docs/leitfaden/installation.md).
+# (browser warning on first access). Source-built twin of
+# docker-compose.release.yml (the stack jotti-start.exe runs): phones take
+# orders over the WLAN, jotti-relay prints (docs/leitfaden/installation.md).
 # SECURITY: never expose this stack to the public internet (no port forwarding).
 
 name: jotti-local
