@@ -21,7 +21,7 @@ const configVolumePath = "/config/.env"
 // configHelperImage liest/schreibt das Volume in einem Wegwerf-Container: bewusst
 // dasselbe postgres-Image wie im Stack — beim Bump in den Compose-Dateien hier
 // mitziehen, sonst wird ein zweites Image gezogen.
-const configHelperImage = "postgres:17.8"
+const configHelperImage = "postgres:17.11"
 
 // errSecretFehltMitDaten signalisiert den Fail-Safe-Abbruch: vorhandene Daten, aber
 // nirgends ein Secret. run() gibt dafuer core.DiagnoseSecretFehltMitDaten aus statt

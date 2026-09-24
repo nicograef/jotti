@@ -31,7 +31,7 @@ docker run -d \
   --health-interval 2s \
   --health-timeout 5s \
   --health-retries 10 \
-  postgres:17.8
+  postgres:17.11
 
 echo "⏳ Waiting for PostgreSQL to accept real connections..."
 # pg_isready alone is not enough: during initialization the postgres image runs a
