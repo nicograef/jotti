@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test'
 
+import { anmelden } from '../support/anmelden'
 import {
   simuliereNetzabbruch,
   simuliereServerfehler,
-} from '../helpers/fehlerpfade'
-import { anmelden } from '../support/anmelden'
+} from '../support/fehlerpfade'
 import { resetAndSeed } from '../support/seed'
 
 // Tisch-Detail (TablePage) hat einen expliziten Fehlerzustand für
