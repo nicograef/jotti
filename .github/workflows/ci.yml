@@ -78,7 +78,7 @@ jobs:
 
       - name: Check format
         run: |
-          go install golang.org/x/tools/cmd/goimports@v0.40.0
+          go install golang.org/x/tools/cmd/goimports@v0.50.0
           if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
             echo "Code is not properly formatted:"
             goimports -l .
@@ -122,13 +122,13 @@ jobs:
       - name: golangci-lint (integration)
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13.0
+          version: v2.14.0
           working-directory: ./backend
 
       - name: golangci-lint (unit)
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13.0
+          version: v2.14.0
           working-directory: ./backend
           args: --build-tags=unit
 
@@ -157,7 +157,7 @@ jobs:
 
       - name: Check format
         run: |
-          go install golang.org/x/tools/cmd/goimports@v0.40.0
+          go install golang.org/x/tools/cmd/goimports@v0.50.0
           if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
             echo "Code is not properly formatted:"
             goimports -l .
@@ -167,7 +167,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13.0
+          version: v2.14.0
           working-directory: ./resolver
 
       - name: Vet
@@ -204,7 +204,7 @@ jobs:
 
       - name: Check format
         run: |
-          go install golang.org/x/tools/cmd/goimports@v0.40.0
+          go install golang.org/x/tools/cmd/goimports@v0.50.0
           if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
             echo "Code is not properly formatted:"
             goimports -l .
@@ -214,7 +214,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13.0
+          version: v2.14.0
           working-directory: ./reverse-proxy
 
       - name: Vet
@@ -255,7 +255,7 @@ jobs:
       - name: Check format
         working-directory: ./windows/${{ matrix.module }}
         run: |
-          go install golang.org/x/tools/cmd/goimports@v0.40.0
+          go install golang.org/x/tools/cmd/goimports@v0.50.0
           if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
             echo "Code is not properly formatted:"
             goimports -l .
@@ -265,7 +265,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13.0
+          version: v2.14.0
           working-directory: ./windows/${{ matrix.module }}
 
       - name: Vet
@@ -425,7 +425,7 @@ jobs:
 
       - name: Install golang-migrate
         run: |
-          curl -fsSL "https://github.com/golang-migrate/migrate/releases/download/v4.19.1/migrate.linux-amd64.tar.gz" \
+          curl -fsSL "https://github.com/golang-migrate/migrate/releases/download/v4.20.1/migrate.linux-amd64.tar.gz" \
             | tar -xz -C /usr/local/bin
 
       - name: Run database migrations up
@@ -513,7 +513,7 @@ jobs:
 
       - name: Install golang-migrate
         run: |
-          curl -fsSL "https://github.com/golang-migrate/migrate/releases/download/v4.19.1/migrate.linux-amd64.tar.gz" \
+          curl -fsSL "https://github.com/golang-migrate/migrate/releases/download/v4.20.1/migrate.linux-amd64.tar.gz" \
             | tar -xz -C /usr/local/bin
 
       - name: Migrate to the current checkout's schema
