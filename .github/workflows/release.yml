@@ -45,7 +45,7 @@ jobs:
       - name: Version bestimmen
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
             echo "publish=true" >> "$GITHUB_OUTPUT"
           else
@@ -63,11 +63,13 @@ jobs:
           args: --latest --strip header
 
       - name: Changelog-Vorschau in die Job-Summary
+        env:
+          CHANGELOG_FILE: ${{ steps.changelog.outputs.changelog }}
         run: |
           {
             echo '## Changelog'
             echo
-            cat "${{ steps.changelog.outputs.changelog }}"
+            cat "$CHANGELOG_FILE"
           } >> "$GITHUB_STEP_SUMMARY"
 
       # --load, damit der Smoke-Test die Images ohne Registry-Push nutzen kann;
@@ -141,7 +143,9 @@ jobs:
           echo "dump=backups/$dump" >> "$GITHUB_OUTPUT"
 
       - name: Smoke-Test — Backup verifizieren
-        run: COMPOSE_FILE=docker-compose.release.yml ./scripts/prod-backup-verify.sh "${{ steps.backup.outputs.dump }}"
+        env:
+          DUMP: ${{ steps.backup.outputs.dump }}
+        run: COMPOSE_FILE=docker-compose.release.yml ./scripts/prod-backup-verify.sh "$DUMP"
 
       - name: Smoke-Test — Logs bei Fehler
         if: failure()
@@ -154,7 +158,9 @@ jobs:
       # Ab hier nur beim echten Release (Tag-Push); der Dry-Run endet hier.
       - name: GHCR-Login
         if: steps.version.outputs.publish == 'true'
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
       - name: Images pushen
         if: steps.version.outputs.publish == 'true'
@@ -168,7 +174,9 @@ jobs:
 
       - name: Windows-Release-ZIP bauen
         if: steps.version.outputs.publish == 'true'
-        run: make release-windows VERSION="${{ steps.version.outputs.version }}"
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: make release-windows VERSION="$VERSION"
 
       - name: GitHub-Release veröffentlichen
         if: steps.version.outputs.publish == 'true'
