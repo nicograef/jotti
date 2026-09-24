@@ -3,7 +3,8 @@
    theme-unabhängige Festwerte für gefüllte Buttons, damit weißer Text in beiden
    Modi trägt. */
 
-/* woff2-Dateien: Kopien von @fontsource-variable/inter bzw. space-grotesk (latin, wght, normal) in der Version aus frontend/package.json */
+/* woff2-Dateien: Kopien von @fontsource-variable/inter bzw. space-grotesk,
+   jeweils 5.3.0 (latin, wght, normal). */
 @font-face {
   font-family: 'Inter';
   src: url('/fonts/Inter-Variable.woff2') format('woff2');
