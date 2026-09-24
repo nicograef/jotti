@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -31,7 +32,7 @@ func main() {
 
 	cfg := config.Load()
 
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DBName)
+	psqlconn := dbpkg.ConnString(cfg.Postgres.Host, strconv.Itoa(cfg.Postgres.Port), cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DBName)
 
 	db, err := sql.Open("pgx", psqlconn)
 	if err != nil {
