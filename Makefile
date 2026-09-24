@@ -329,7 +329,7 @@ website-screenshots: ## App-Screenshots + OG-Bild reproduzierbar neu erzeugen (e
 	cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install chromium
 	@if [ -n "$$E2E_BASE_URL" ]; then \
 	  echo "Nutze laufenden Stack: $$E2E_BASE_URL"; \
-	  node --experimental-strip-types e2e/website/screenshots.mjs; \
+	  node e2e/website/screenshots.mjs; \
 	else \
 	  set -e; \
 	  trap 'docker compose -p jotti-screenshots -f docker-compose.e2e.yml down -v' EXIT; \
@@ -339,7 +339,7 @@ website-screenshots: ## App-Screenshots + OG-Bild reproduzierbar neu erzeugen (e
 	    if [ "$$code" = "200" ]; then echo "Stack ist bereit."; break; fi; \
 	    echo "warte auf Stack ($$i/60), Status $${code:-none} ..."; sleep 2; \
 	  done; \
-	  E2E_BASE_URL=http://localhost:$(E2E_SCREENSHOT_PORT) node --experimental-strip-types e2e/website/screenshots.mjs; \
+	  E2E_BASE_URL=http://localhost:$(E2E_SCREENSHOT_PORT) node e2e/website/screenshots.mjs; \
 	fi
 
 # Hilfe
