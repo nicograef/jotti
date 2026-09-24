@@ -24,20 +24,44 @@ info "Checking base runtimes..."
 ensure_cmd go "Install Go >= 1.27.1 (CI uses 1.27.1)."
 ensure_cmd node "Install Node >= 24 (CI uses 24)."
 
+GO_BIN_PATH="$(go env GOPATH)/bin"
+export PATH="$GO_BIN_PATH:$PATH"
+
+# Prebuilt GitHub release binaries are unreachable through the cloud-session
+# proxy, so every Go tool below is built with `go install` via the
+# (allowlisted) module proxy: the one method that works locally and in cloud.
+#
+# goimports and golangci-lint are built with the module's own toolchain
+# (backend/go.mod). CI builds goimports with that same Go, and golangci-lint
+# refuses to run when the Go it was built with is older than the version the
+# module targets.
+GO_TOOLCHAIN="$(cd "$PROJECT_ROOT/backend" && go env GOVERSION)"
+
+# Version of the module an installed Go tool was built from, read from its
+# build info (`go version -m`) rather than a tool flag: goimports has no
+# version flag, and a `go install`ed migrate reports "dev". Prints nothing
+# when the command is missing or was built from another module.
+installed_mod_version() {
+  local bin buildinfo
+  bin="$(command -v "$1")" || return 0
+  buildinfo="$(go version -m "$bin" 2>/dev/null)" || return 0
+  awk -v module="$2" '$1 == "mod" && $2 == module {print $3}' <<<"$buildinfo"
+}
+
 # Matches CI: .github/workflows/ci.yml pins goimports to this version in every
 # "Check format" step, so local formatting matches CI. goimports across
 # versions can reformat imports differently, so @latest would drift from CI.
 GOIMPORTS_VERSION="v0.50.0"
 info "Ensuring goimports ($GOIMPORTS_VERSION) is available..."
-if command -v goimports >/dev/null 2>&1; then
-  info "goimports already installed: $(goimports -V 2>/dev/null || echo 'version unknown')"
+INSTALLED_GOIMPORTS="$(installed_mod_version goimports golang.org/x/tools)"
+if [ "$INSTALLED_GOIMPORTS" = "$GOIMPORTS_VERSION" ]; then
+  info "goimports already installed: $INSTALLED_GOIMPORTS"
 else
-  info "Installing goimports via 'go install golang.org/x/tools/cmd/goimports@$GOIMPORTS_VERSION'"
-  go install "golang.org/x/tools/cmd/goimports@$GOIMPORTS_VERSION"
+  info "Building goimports $GOIMPORTS_VERSION with $GO_TOOLCHAIN into $GO_BIN_PATH (installed: ${INSTALLED_GOIMPORTS:-none})"
+  GOTOOLCHAIN="$GO_TOOLCHAIN" GOBIN="$GO_BIN_PATH" \
+    go install "golang.org/x/tools/cmd/goimports@$GOIMPORTS_VERSION"
 fi
 
-GO_BIN_PATH="$(go env GOPATH)/bin"
-export PATH="$GO_BIN_PATH:$PATH"
 if ! command -v goimports >/dev/null 2>&1; then
   fatal "goimports is still not on PATH. Add '$GO_BIN_PATH' to your PATH and rerun this script."
 fi
@@ -47,15 +71,8 @@ fi
 GOLANGCI_LINT_VERSION="v2.14.0"
 info "Ensuring golangci-lint ($GOLANGCI_LINT_VERSION) is available..."
 
-# golangci-lint refuses to run when the Go it was built with is older than the
-# version the module targets (backend/go.mod), so it must be built with the
-# module's own toolchain. Prebuilt GitHub release binaries are additionally
-# unreachable through the cloud-session proxy, so `go install` via the
-# (allowlisted) module proxy is the one method that works locally and in cloud.
-GO_TOOLCHAIN="$(cd "$PROJECT_ROOT/backend" && go env GOVERSION)"
-
-# So a version match alone is not enough: compare the Go version recorded in
-# the binary (`go version -m`) against $GO_TOOLCHAIN too.
+# A version match alone is not enough for golangci-lint: compare the Go version
+# recorded in the binary (`go version -m`) against $GO_TOOLCHAIN too.
 golangci_lint_built_with() {
   go version -m "$1" 2>/dev/null | awk 'NR==1 {print $2}'
 }
@@ -85,7 +102,7 @@ fi
 # The container is ephemeral, so point that copy at the pinned build too,
 # whenever its version or its build toolchain is out of date.
 if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] && [ -w /usr/local/bin/golangci-lint ]; then
-  SHADOW_GOLANGCI_VERSION="$(/usr/local/bin/golangci-lint version --short 2>/dev/null)"
+  SHADOW_GOLANGCI_VERSION="$(/usr/local/bin/golangci-lint version --short 2>/dev/null || echo unknown)"
   SHADOW_GOLANGCI_BUILT_WITH="$(golangci_lint_built_with /usr/local/bin/golangci-lint)"
   if [ "$SHADOW_GOLANGCI_VERSION" != "${GOLANGCI_LINT_VERSION#v}" ] || [ "$SHADOW_GOLANGCI_BUILT_WITH" != "$GO_TOOLCHAIN" ]; then
     info "Cloud session: replacing the base-image golangci-lint at /usr/local/bin with $GOLANGCI_LINT_VERSION"
@@ -102,34 +119,29 @@ fi
 # generated code and make `make sqlc` dirty the working tree.
 SQLC_VERSION="v1.31.1"
 info "Ensuring sqlc ($SQLC_VERSION) is available..."
-if command -v sqlc >/dev/null 2>&1; then
-  info "sqlc already installed: $(sqlc version)"
+INSTALLED_SQLC="$(installed_mod_version sqlc github.com/sqlc-dev/sqlc)"
+if [ "$INSTALLED_SQLC" = "$SQLC_VERSION" ]; then
+  info "sqlc already installed: $INSTALLED_SQLC"
 else
-  info "Installing sqlc via 'go install github.com/sqlc-dev/sqlc/cmd/sqlc@$SQLC_VERSION'"
-  go install "github.com/sqlc-dev/sqlc/cmd/sqlc@$SQLC_VERSION"
+  info "Installing sqlc $SQLC_VERSION into $GO_BIN_PATH (installed: ${INSTALLED_SQLC:-none})"
+  GOBIN="$GO_BIN_PATH" go install "github.com/sqlc-dev/sqlc/cmd/sqlc@$SQLC_VERSION"
 fi
 
 if ! command -v sqlc >/dev/null 2>&1; then
   fatal "sqlc installation failed. Ensure '$GO_BIN_PATH' is on PATH and rerun."
 fi
 
-# Matches CI: .github/workflows/ci.yml (Install golang-migrate step)
+# Matches CI's version: .github/workflows/ci.yml (Install golang-migrate
+# steps). The postgres build tag adds the one database driver jotti needs; the
+# file source behind `-path` is always built in.
 MIGRATE_VERSION="v4.20.1"
 info "Ensuring golang-migrate ($MIGRATE_VERSION) is available..."
-if command -v migrate >/dev/null 2>&1; then
-  info "golang-migrate already installed: $(migrate -version 2>&1 || echo 'version unknown')"
+INSTALLED_MIGRATE="$(installed_mod_version migrate github.com/golang-migrate/migrate/v4)"
+if [ "$INSTALLED_MIGRATE" = "$MIGRATE_VERSION" ]; then
+  info "golang-migrate already installed: $INSTALLED_MIGRATE"
 else
-  ensure_cmd curl "Install curl to bootstrap golang-migrate."
-  OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  ARCH="$(uname -m)"
-  case "$ARCH" in
-    x86_64)  ARCH="amd64" ;;
-    aarch64|arm64) ARCH="arm64" ;;
-    *) fatal "Unsupported architecture: $ARCH" ;;
-  esac
-  MIGRATE_URL="https://github.com/golang-migrate/migrate/releases/download/${MIGRATE_VERSION}/migrate.${OS}-${ARCH}.tar.gz"
-  info "Downloading golang-migrate from $MIGRATE_URL"
-  curl -fsSL "$MIGRATE_URL" | tar -xz -C "$GO_BIN_PATH" migrate
+  info "Installing golang-migrate $MIGRATE_VERSION into $GO_BIN_PATH (installed: ${INSTALLED_MIGRATE:-none})"
+  GOBIN="$GO_BIN_PATH" go install -tags postgres "github.com/golang-migrate/migrate/v4/cmd/migrate@$MIGRATE_VERSION"
 fi
 
 if ! command -v migrate >/dev/null 2>&1; then
@@ -161,10 +173,10 @@ info "Tool summary"
 echo "  go:             $(go version)"
 echo "  node:           $(node --version)"
 echo "  pnpm:           $(pnpm --version)"
-echo "  goimports:      $(goimports -V 2>/dev/null || echo 'version unknown')"
+echo "  goimports:      $(installed_mod_version goimports golang.org/x/tools)"
 echo "  golangci-lint:  $(golangci-lint --version | head -n 1)"
 echo "  sqlc:           $(sqlc version)"
-echo "  migrate:        $(migrate -version 2>&1 || echo 'version unknown')"
+echo "  migrate:        $(installed_mod_version migrate github.com/golang-migrate/migrate/v4)"
 
 info "All verify-relevant tools are available."
 info "Next step: make verify"
