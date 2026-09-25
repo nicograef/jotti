@@ -65,7 +65,7 @@ jobs:
 
   backend-ci:
     needs: changes
-    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.ci == 'true') }}
+    if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -94,6 +94,13 @@ jobs:
             goimports -l .
             exit 1
           fi
+
+      # sqlc reads the queries and database/migrations, so database/** changes
+      # run this job too. Same version as scripts/setup-dev-tools.sh.
+      - name: Check generated sqlc code
+        run: |
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
+          sqlc diff
 
       - name: Vet
         run: go vet ./...
