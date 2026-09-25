@@ -168,7 +168,7 @@ Ohne Release-Bezug, optional.
 - [ ] `export.go` liest die Kassensitzung mit `GetOffeneKassensitzung` und `//nolint:forbidigo`;
       wegen der Sortierung von `GetAllKassensitzungen` liefert `GetAktiveKassensitzung` dieselbe
       Sitzung — die Ausnahme kauft kein Verhalten. Auflösen und ersetzen.
-- [ ] `scripts/check-pins.sh` prüft Compose, Dockerfiles und `packageManager`; die Postgres-Pins in
+- [x] `scripts/check-pins.sh` prüft Compose, Dockerfiles und `packageManager`; die Postgres-Pins in
       `scripts/test-integration.sh`, `scripts/test-tse-live.sh` und den CI-Services liegen
       außerhalb. Prüfung darauf ausweiten.
 - [ ] `scripts/check-ui-labels.sh` prüft das Vorkommen zitierter Bedienelemente in `frontend/src`;
