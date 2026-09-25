@@ -106,8 +106,8 @@ Setup-Wizard-Durchlauf oben.
       neueren Versionen funktional dasselbe ist, gegen den 1.0.0-Stand halten
 - [ ] Release-Datum im Abschnitt `[1.0.0]` der `CHANGELOG.md` eintragen
 - [ ] CI auf dem Release-Commit in `main` grün: die Jobs `backend-ci`, `backend-golangci`,
-      `repo-checks`, `frontend-ci`, `resolver-ci`, `local-proxy-ci`, `windows-ci`,
-      `backend-integration-tests`, `e2e` und `upgrade-path` decken `make verify` und
+      `repo-checks`, `frontend-ci`, `website-ci`, `shellcheck-ci`, `resolver-ci`, `local-proxy-ci`,
+      `windows-ci`, `backend-integration-tests`, `e2e` und `upgrade-path` decken `make verify` und
       `make lint-backend-full` ab.
 - [ ] Version-Bump auf 1.0.0 (Image-Tags/`JOTTI_VERSION`, `VERSION` für den Windows-Build,
       ldflags-Version) und Tag `v1.0.0` pushen — `release.yml` baut Images, Windows-ZIP und
