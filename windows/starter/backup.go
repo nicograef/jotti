@@ -100,8 +100,7 @@ func volumeExists(name string) (bool, error) {
 	if err == nil {
 		return true, nil
 	}
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
+	if _, ok := errors.AsType[*exec.ExitError](err); ok {
 		return false, nil
 	}
 	return false, fmt.Errorf("docker volume inspect fehlgeschlagen: %w", err)
@@ -129,7 +128,7 @@ func rotateBackups(keep int) error {
 		return fmt.Errorf("auflisten der Backups fehlgeschlagen: %w", err)
 	}
 	var names []string
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(string(out)), "\n") {
 		name := strings.TrimSpace(line)
 		if strings.HasPrefix(name, dumpPrefix) && strings.HasSuffix(name, dumpSuffix) {
 			names = append(names, name)

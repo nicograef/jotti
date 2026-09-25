@@ -94,7 +94,7 @@ func TestReportDruckergebnis_QuittierenIstIdempotent(t *testing.T) {
 
 	id := enqueueOne(t, repo, "192.168.1.51")
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		if err := repo.ReportDruckergebnis(context.Background(), []int{id}, nil); err != nil {
 			t.Fatalf("Expected no ReportDruckergebnis error on call %d, got %v", i+1, err)
 		}
@@ -473,7 +473,7 @@ func TestDiscardAlleFehlgeschlagenen_NurFehlgeschlagene(t *testing.T) {
 // den Status fehlgeschlagen.
 func makeFehlgeschlagen(t *testing.T, repo Repository, id int, letzterFehler string) {
 	t.Helper()
-	for i := 0; i < MaxDruckversuche; i++ {
+	for range MaxDruckversuche {
 		if err := repo.ReportDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: letzterFehler}}); err != nil {
 			t.Fatalf("Failed to drive auftrag %d into fehlgeschlagen: %v", id, err)
 		}

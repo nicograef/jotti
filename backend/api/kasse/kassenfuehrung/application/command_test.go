@@ -327,7 +327,7 @@ func TestKasseAbschliessen_TagesabschlussMitEchtenSummen(t *testing.T) {
 		Data:     korrekturRaw,
 	})
 	// geldtransit einlage: geldtransit +400
-	transitRaw, _ := json.Marshal(map[string]interface{}{"richtung": "einlage", "betragCents": 400})
+	transitRaw, _ := json.Marshal(map[string]any{"richtung": "einlage", "betragCents": 400})
 	journalMock.AddEvent(e.Event{
 		UserID:   1,
 		UserName: "Test",
@@ -614,7 +614,7 @@ func TestKasseAbschliessen_WiederanlaufMitZwischenbuchungBrichtAb(t *testing.T) 
 		Data:     sturzRaw,
 	})
 	// Zwischenbuchung nach dem Kassensturz: ein Geldtransit im Kassensitzungs-Stream.
-	transitRaw, err := json.Marshal(map[string]interface{}{"richtung": "einlage", "betragCents": 400})
+	transitRaw, err := json.Marshal(map[string]any{"richtung": "einlage", "betragCents": 400})
 	if err != nil {
 		t.Fatalf("marshal geldtransit data: %v", err)
 	}
@@ -698,7 +698,7 @@ func TestKassensitzungEroeffnen_OhneTSE_LoggtWarnung(t *testing.T) {
 	}
 
 	var warnLine string
-	for _, line := range strings.Split(strings.TrimSpace(logbuf.String()), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(logbuf.String()), "\n") {
 		if strings.Contains(line, `"level":"warn"`) && strings.Contains(line, "ohne TSE-Konfiguration") {
 			warnLine = line
 		}

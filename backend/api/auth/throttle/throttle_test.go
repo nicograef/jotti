@@ -28,7 +28,7 @@ func TestLoginThrottle_FreshUserAllowed(t *testing.T) {
 func TestLoginThrottle_ThrottlesAfterThreshold(t *testing.T) {
 	th, _ := controllable(3, time.Second, time.Minute, time.Hour)
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if !th.Allow("angriff") {
 			t.Fatalf("Versuch %d sollte vor der Schwelle erlaubt sein", i+1)
 		}
@@ -43,7 +43,7 @@ func TestLoginThrottle_ThrottlesAfterThreshold(t *testing.T) {
 func TestLoginThrottle_SuccessResets(t *testing.T) {
 	th, _ := controllable(3, time.Second, time.Minute, time.Hour)
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		th.RecordFailure("konto")
 	}
 	if th.Allow("konto") {
@@ -60,7 +60,7 @@ func TestLoginThrottle_SuccessResets(t *testing.T) {
 func TestLoginThrottle_CooldownExpires(t *testing.T) {
 	th, clock := controllable(3, time.Second, time.Minute, time.Hour)
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		th.RecordFailure("konto")
 	}
 	if th.Allow("konto") {
@@ -77,7 +77,7 @@ func TestLoginThrottle_CooldownExpires(t *testing.T) {
 func TestLoginThrottle_IdleEntryEvicted(t *testing.T) {
 	th, clock := controllable(3, time.Second, time.Minute, time.Hour)
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		th.RecordFailure("konto")
 	}
 
@@ -114,7 +114,7 @@ func TestLoginThrottle_ExponentialBackoff(t *testing.T) {
 func TestLoginThrottle_PerAccount(t *testing.T) {
 	th, _ := controllable(3, time.Second, time.Minute, time.Hour)
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		th.RecordFailure("opfer")
 	}
 
@@ -131,7 +131,7 @@ func TestLoginThrottle_ConcurrentAccessRaceSafe(t *testing.T) {
 	th := newLoginThrottle(5, time.Millisecond, time.Second, time.Hour)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		wg.Add(1)
 		go func(n int) {
 			defer wg.Done()

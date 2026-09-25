@@ -89,8 +89,7 @@ func ReadBody[T any](w http.ResponseWriter, r *http.Request, body *T) bool {
 
 	err := decoder.Decode(body)
 	if err != nil {
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
+		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			SendJSONResponse(w, errorResponse{Code: "request_too_large"}, http.StatusRequestEntityTooLarge)
 			return false
 		}

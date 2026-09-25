@@ -4,6 +4,7 @@ package tisch_repo
 
 import (
 	"context"
+	"maps"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/tisch"
@@ -53,9 +54,7 @@ func (m *mockRepo) GetTischSaldiOffeneSitzung(ctx context.Context) (map[int]int,
 		return nil, m.err
 	}
 	result := make(map[int]int, len(m.offeneSaldi))
-	for id, saldo := range m.offeneSaldi {
-		result[id] = saldo
-	}
+	maps.Copy(result, m.offeneSaldi)
 	return result, nil
 }
 

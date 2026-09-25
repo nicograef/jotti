@@ -662,7 +662,7 @@ func buildTSE(s Snapshot, erstellung string) Table {
 		tseReferenzID, s.TSEStammdaten.Seriennummer, s.TSEStammdaten.SignaturAlgorithmus,
 		zeitformat, tsePDEncoding, s.TSEStammdaten.PublicKey,
 	}
-	for i := 0; i < zertifikatSpalten; i++ {
+	for i := range zertifikatSpalten {
 		record = append(record, certChunk(s.TSEStammdaten.Zertifikat, i))
 	}
 
@@ -1248,10 +1248,7 @@ func certChunk(cert string, index int) string {
 	if start >= len(cert) {
 		return ""
 	}
-	end := start + zertifikatChunk
-	if end > len(cert) {
-		end = len(cert)
-	}
+	end := min(start+zertifikatChunk, len(cert))
 	return cert[start:end]
 }
 

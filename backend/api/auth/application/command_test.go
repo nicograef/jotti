@@ -80,7 +80,7 @@ func TestGenerateJWTToken_ThrottledAfterRepeatedFailures(t *testing.T) {
 	command := Command{UserRepo: repo, JWTSecret: "test-secret", Throttle: throttle.NewLoginThrottle()}
 
 	// Die Standardschwelle ist 5: fünf Fehlversuche liefern noch invalid_password ...
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if _, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword"); !errors.Is(err, ErrInvalidPassword) {
 			t.Fatalf("Versuch %d: expected ErrInvalidPassword, got %v", i+1, err)
 		}
@@ -96,7 +96,7 @@ func TestGenerateJWTToken_SuccessResetsThrottle(t *testing.T) {
 	repo := user_repo.NewMock([]user.User{{ID: 1, Username: "testuser", Status: user.ActiveStatus, PasswordHash: testUserHash}}, nil)
 	command := Command{UserRepo: repo, JWTSecret: "test-secret", Throttle: throttle.NewLoginThrottle()}
 
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		_, _ = command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword")
 	}
 
@@ -106,7 +106,7 @@ func TestGenerateJWTToken_SuccessResetsThrottle(t *testing.T) {
 	}
 
 	// Vier weitere Fehlversuche dürfen dank Reset noch nicht drosseln.
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		if _, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword"); !errors.Is(err, ErrInvalidPassword) {
 			t.Fatalf("nach Reset, Versuch %d: expected ErrInvalidPassword, got %v", i+1, err)
 		}
@@ -120,7 +120,7 @@ func TestGenerateJWTToken_ThrottleIsPerAccount(t *testing.T) {
 	}, nil)
 	command := Command{UserRepo: repo, JWTSecret: "test-secret", Throttle: throttle.NewLoginThrottle()}
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		_, _ = command.GenerateJWTToken(context.Background(), "opfer", "wrongpassword")
 	}
 	if _, err := command.GenerateJWTToken(context.Background(), "opfer", "wrongpassword"); !errors.Is(err, ErrLoginThrottled) {

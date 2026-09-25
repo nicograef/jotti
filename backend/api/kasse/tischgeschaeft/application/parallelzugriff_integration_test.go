@@ -137,7 +137,7 @@ func TestParallelzugriff_ZweiClientsSelberTisch(t *testing.T) {
 // durch Interleaving übrig gebliebene Positionen. Alle Schreibzugriffe treffen
 // den geteilten Tisch-Stream; OCC-Konflikte werden per Retry aufgelöst.
 func bedieneTisch(ctx context.Context, cmd Command, subject string, userID int, userName string, produktID, tischID, varianteID, runden, menge int) error {
-	for r := 0; r < runden; r++ {
+	for range runden {
 		bestellungID := uuid.New().String()
 		inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: menge}}
 		if err := retryConflict(func() error {
@@ -190,7 +190,7 @@ func offeneRefsFuerVariante(ctx context.Context, cmd Command, subject string, va
 // Dauerfehler nicht zur Endlosschleife wird.
 func retryConflict(op func() error) error {
 	const maxVersuche = 500
-	for i := 0; i < maxVersuche; i++ {
+	for range maxVersuche {
 		err := op()
 		if err == nil {
 			return nil

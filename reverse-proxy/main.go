@@ -215,8 +215,7 @@ func writeCaddyfile(path, caddyfile string) error {
 
 func runCaddyOrExit(cfg config) {
 	if err := runCaddy(cfg.caddyBin, cfg.caddyfilePath); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			os.Exit(exitErr.ExitCode())
 		}
 		log.Fatalf("Caddy konnte nicht gestartet werden: %v", err)

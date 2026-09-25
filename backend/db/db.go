@@ -104,10 +104,7 @@ func ConnString(host, port, user, password, dbname string) string {
 // delayed database is visible in the boot log. ping and sleep are injected for
 // tests.
 func PingWithRetry(ping func() error, budget, interval time.Duration, sleep func(time.Duration)) error {
-	attempts := int(budget / interval)
-	if attempts < 1 {
-		attempts = 1
-	}
+	attempts := max(int(budget/interval), 1)
 
 	var err error
 	for attempt := 1; attempt <= attempts; attempt++ {

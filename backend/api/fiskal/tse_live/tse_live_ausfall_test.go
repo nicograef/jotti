@@ -16,7 +16,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"sort"
+	"slices"
 	"testing"
 	"time"
 
@@ -179,7 +179,7 @@ func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 	// Regelbetrieb: je Auftrag buchen, signieren lassen, abwarten — dann der
 	// nächste. Kein Rückstau, die Dauer ist die reine Signier-Round-Trip-Zeit.
 	regelDauern := make([]time.Duration, 0, latenzBurstGroesse)
-	for i := 0; i < latenzBurstGroesse; i++ {
+	for range latenzBurstGroesse {
 		id := bucheDirektverkauf(t, u, ksNr)
 		warteAufSignatur(t, db, id)
 		regelDauern = append(regelDauern, signierDauer(t, db, id))
@@ -198,7 +198,7 @@ func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 	// abwarten. Der Tail-Wert misst die Warteschlangen-Tiefe des seriellen Workers.
 	burstStart := time.Now()
 	burstIDs := make([]int, 0, latenzBurstGroesse)
-	for i := 0; i < latenzBurstGroesse; i++ {
+	for range latenzBurstGroesse {
 		burstIDs = append(burstIDs, bucheDirektverkauf(t, u, ksNr))
 	}
 	for _, id := range burstIDs {
@@ -406,7 +406,7 @@ func perzentil(dauern []time.Duration, p float64) time.Duration {
 	}
 	sortiert := make([]time.Duration, len(dauern))
 	copy(sortiert, dauern)
-	sort.Slice(sortiert, func(i, j int) bool { return sortiert[i] < sortiert[j] })
+	slices.Sort(sortiert)
 
 	rang := int(p * float64(len(sortiert)))
 	if rang >= len(sortiert) {

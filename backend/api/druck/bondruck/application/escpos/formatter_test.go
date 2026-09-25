@@ -98,10 +98,7 @@ func TestFormatPositionBon_HasFiveNewlinesBeforeCut(t *testing.T) {
 	}
 	before := got[:cutIdx]
 	if !strings.HasSuffix(before, "\n\n\n\n\n") {
-		start := len(before) - 10
-		if start < 0 {
-			start = 0
-		}
+		start := max(len(before)-10, 0)
 		t.Errorf("Erwartet 5 Leerzeilen vor CutPaper; suffix: %q", before[start:])
 	}
 }

@@ -78,8 +78,7 @@ func readConfigVolume() (string, error) {
 	out, err := exec.Command("docker", "run", "--rm", "--entrypoint", "cat",
 		"-v", configVolume+":/config", configHelperImage, configVolumePath).Output()
 	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if _, ok := errors.AsType[*exec.ExitError](err); ok {
 			return "", nil // Volume vorhanden, .env aber (noch) nicht geschrieben
 		}
 		return "", fmt.Errorf("lesen aus dem Datentresor fehlgeschlagen: %w", err)
