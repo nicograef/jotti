@@ -7,7 +7,6 @@ WORKDIR /app
 
 COPY website/package.json website/pnpm-lock.yaml website/pnpm-workspace.yaml ./
 RUN corepack enable \
-  && corepack prepare pnpm@11 --activate \
   && pnpm install --frozen-lockfile
 
 # Astro reads docs/ as ../docs relative to the project root (/app) — copy both
