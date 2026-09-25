@@ -97,13 +97,14 @@ image_name() {
 # collect_literal_pins prints the same lines for references in literal_files to
 # an image name that collect_pins found ($1: those names as one ERE
 # alternation). A match is the name, not preceded by a character that could
-# extend it, plus a tag that starts with a digit, optionally after "v".
+# extend it or by the "@" of a URL host (postgres://...@postgres:5432), plus a
+# tag that starts with a digit, optionally after "v".
 collect_literal_pins() {
   local file
   [ -n "$1" ] || return 0
   for file in "${literal_files[@]+"${literal_files[@]}"}"; do
     NAMES_RE="$1" awk -v file="$file" '
-      match($0, "(^|[^A-Za-z0-9./_-])(" ENVIRON["NAMES_RE"] "):v?[0-9][A-Za-z0-9._-]*") {
+      match($0, "(^|[^A-Za-z0-9./_@-])(" ENVIRON["NAMES_RE"] "):v?[0-9][A-Za-z0-9._-]*") {
         ref = substr($0, RSTART, RLENGTH)
         sub(/^[^A-Za-z0-9]/, "", ref)
         print ref "\t" file ":" FNR
