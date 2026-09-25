@@ -3,10 +3,11 @@ set -euo pipefail
 
 # jotti — one pinned version per third-party image across the stacks: two stacks
 # on different versions of the same image behave differently while claiming to be
-# the same deployment. Read are `image:` lines in docker-compose*.yml, `FROM`
-# lines in every Dockerfile and the packageManager fields of frontend, website
-# and e2e — not the `docker run` calls of scripts/test-integration.sh and
-# scripts/test-tse-live.sh. jotti's own images (ghcr.io/nicograef/jotti-*) are
+# the same deployment. Read are `image:` lines in docker-compose*.yml and
+# .github/workflows/*.yml, `FROM` lines in every Dockerfile, literal references
+# to one of those image names in scripts/*.sh and windows/**/*.go (the
+# `docker run` calls of the test scripts, the starter's helper image) and the
+# packageManager fields of frontend, website and e2e. jotti's own images (ghcr.io/nicograef/jotti-*) are
 # exempt: their tag is a variable on purpose, so every stack follows the release
 # it was shipped with. Compared per image name is the tag up to the first "-", so
 # caddy:2.11.4-builder and caddy:2.11.4 are one version; a digest pin counts as
@@ -45,11 +46,16 @@ done
 # repository root is matched as well.
 mapfile -t compose_files < <(git ls-files ':(glob)docker-compose*.yml')
 mapfile -t dockerfiles < <(git ls-files ':(glob)**/Dockerfile*')
+mapfile -t workflow_files < <(git ls-files ':(glob).github/workflows/*.yml')
+# This script names example images in its comments, so it does not scan itself.
+mapfile -t literal_files < <(
+  git ls-files ':(glob)scripts/*.sh' ':(glob)windows/**/*.go' | grep -vxF 'scripts/check-pins.sh'
+)
 
 # collect_pins prints one "<image reference><TAB><file>:<line>" per pinned image.
 collect_pins() {
   local file
-  for file in "${compose_files[@]+"${compose_files[@]}"}"; do
+  for file in "${compose_files[@]+"${compose_files[@]}"}" "${workflow_files[@]+"${workflow_files[@]}"}"; do
     awk -v file="$file" '
       match($0, /^[[:space:]]*image:[[:space:]]*/) {
         ref = substr($0, RSTART + RLENGTH)
@@ -77,6 +83,45 @@ collect_pins() {
     ' "$file"
   done
 }
+
+# image_name prints a reference without its digest and tag.
+image_name() {
+  local base="${1%%@*}" segment
+  segment="${base##*/}"
+  case "$segment" in
+    *:*) printf '%s\n' "${base%:"${segment##*:}"}" ;;
+    *) printf '%s\n' "$base" ;;
+  esac
+}
+
+# collect_literal_pins prints the same lines for references in literal_files to
+# an image name that collect_pins found ($1: those names as one ERE
+# alternation). A match is the name, not preceded by a character that could
+# extend it, plus a tag that starts with a digit, optionally after "v".
+collect_literal_pins() {
+  local file
+  [ -n "$1" ] || return 0
+  for file in "${literal_files[@]+"${literal_files[@]}"}"; do
+    NAMES_RE="$1" awk -v file="$file" '
+      match($0, "(^|[^A-Za-z0-9./_-])(" ENVIRON["NAMES_RE"] "):v?[0-9][A-Za-z0-9._-]*") {
+        ref = substr($0, RSTART, RLENGTH)
+        sub(/^[^A-Za-z0-9]/, "", ref)
+        print ref "\t" file ":" FNR
+      }
+    ' "$file"
+  done
+}
+
+mapfile -t pins < <(collect_pins)
+names_re="$(
+  for line in "${pins[@]+"${pins[@]}"}"; do
+    ref="${line%%$'\t'*}"
+    case "$ref" in
+      "$OWN_IMAGE_PREFIX"*) continue ;;
+    esac
+    image_name "$ref"
+  done | sort -u | sed 's/[.]/\\./g' | paste -sd '|' -
+)"
 
 declare -A version_count=()
 declare -A version_seen=()
@@ -127,7 +172,12 @@ while IFS=$'\t' read -r ref loc; do
     version_count["$name"]=$(( ${version_count[$name]:-0} + 1 ))
     version_detail["$name"]="${version_detail[$name]:-}"$'\n'"  $version at $loc"
   fi
-done < <(collect_pins)
+done < <(
+  if [ "${#pins[@]}" -gt 0 ]; then
+    printf '%s\n' "${pins[@]}"
+  fi
+  collect_literal_pins "$names_re"
+)
 
 # Sorted, so the report is the same on every run. The guard matters: printf
 # without arguments would emit one empty line and turn it into an empty name.
