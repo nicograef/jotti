@@ -24,6 +24,3 @@ Die Master hier und die Kopien unter `website/` tragen den Spektral-Verlauf, die
 `frontend/public/icons/` das grüne `J`. Die Vier-Stellen-Regel für Spektral im App-Frontend
 ([D06](../docs/decisions.md)) deckt Wortmarke, Glows, Skeletons und Hairlines ab, nicht die
 Icon-Assets — wer die Master ungeprüft in alle Kopien schiebt, tauscht das App-Favicon aus.
-
-Den Spektral-Verlauf erzeugt `scripts/generate-spektral-logos.py` (Farbmodell und Checks im
-Modul-Docstring); die Master werden nie direkt überschrieben.
