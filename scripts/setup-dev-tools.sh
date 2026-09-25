@@ -115,8 +115,9 @@ if ! command -v golangci-lint >/dev/null 2>&1; then
 fi
 
 # Pinned to the version that generated the checked-in backend/sqlc/dbgen/ (see
-# the "versions:" header in those files); a different sqlc can reformat the
-# generated code and make `make sqlc` dirty the working tree.
+# the "versions:" header in those files) and to the sqlc diff step in
+# .github/workflows/ci.yml; a different sqlc can reformat the generated code
+# and make `make sqlc` or `make check-sqlc` fail.
 SQLC_VERSION="v1.31.1"
 info "Ensuring sqlc ($SQLC_VERSION) is available..."
 INSTALLED_SQLC="$(installed_mod_version sqlc github.com/sqlc-dev/sqlc)"
@@ -148,6 +149,21 @@ if ! command -v migrate >/dev/null 2>&1; then
   fatal "golang-migrate installation failed. Ensure '$GO_BIN_PATH' is on PATH and rerun."
 fi
 
+# CI runs the shellcheck of the GitHub runner image, which is not pinned either,
+# so the distribution package is close enough; apt covers the devcontainer and
+# cloud sessions, other systems get the hint.
+info "Ensuring shellcheck is available..."
+if ! command -v shellcheck >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
+  sudo_cmd=()
+  if [ "$(id -u)" -ne 0 ]; then
+    sudo_cmd=(sudo)
+  fi
+  info "Installing shellcheck via apt-get"
+  "${sudo_cmd[@]+"${sudo_cmd[@]}"}" apt-get update -qq
+  "${sudo_cmd[@]+"${sudo_cmd[@]}"}" apt-get install -y -qq shellcheck
+fi
+ensure_cmd shellcheck "Install shellcheck with your package manager (apt-get install shellcheck, brew install shellcheck)."
+
 info "Ensuring pnpm (v11) is available..."
 if command -v pnpm >/dev/null 2>&1; then
   info "pnpm already installed: $(pnpm --version)"
@@ -165,9 +181,10 @@ if ! command -v pnpm >/dev/null 2>&1; then
   fatal "pnpm installation failed. Install pnpm v11 manually and rerun."
 fi
 
-info "Installing frontend dependencies..."
-cd "$PROJECT_ROOT/frontend" && pnpm install --frozen-lockfile
-cd "$PROJECT_ROOT"
+for project in frontend website e2e; do
+  info "Installing $project dependencies..."
+  (cd "$PROJECT_ROOT/$project" && pnpm install --frozen-lockfile)
+done
 
 info "Tool summary"
 echo "  go:             $(go version)"
@@ -177,6 +194,7 @@ echo "  goimports:      $(installed_mod_version goimports golang.org/x/tools)"
 echo "  golangci-lint:  $(golangci-lint --version | head -n 1)"
 echo "  sqlc:           $(sqlc version)"
 echo "  migrate:        $(installed_mod_version migrate github.com/golang-migrate/migrate/v4)"
+echo "  shellcheck:     $(shellcheck --version | awk '/^version:/ {print $2}')"
 
 info "All verify-relevant tools are available."
 info "Next step: make verify"

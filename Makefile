@@ -12,7 +12,7 @@
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
-       check-tools check-tools-integration check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-format check-repo check-integration check check-full verify \
+       check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend check-e2e-types check-shell check-format check-repo check-integration check check-full verify \
        website-dev website-build website-test website-check website-screenshots \
        help
 
@@ -246,7 +246,7 @@ clean: ## Dev-Stack stoppen und Volumes entfernen
 # Qualitätsprüfung (CI-nah)
 
 check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
-	@for tool in golangci-lint goimports pnpm; do \
+	@for tool in golangci-lint goimports sqlc shellcheck pnpm; do \
 		if ! command -v $$tool >/dev/null 2>&1; then \
 			echo "Fehlendes Tool: $$tool"; \
 			echo "Installiere es mit scripts/setup-dev-tools.sh."; \
@@ -269,6 +269,9 @@ check-tools-integration: ## Prüfen, ob migrate und Docker für Integrationstest
 check-backend: ## Backend komplett prüfen (Deps, Format, Lint inkl. Integration- und Unit-Tag, Test, Build)
 	cd backend && go mod tidy -diff && golangci-lint run --build-tags=integration && golangci-lint run --build-tags=unit && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -tags=unit -count=1 -race ./... && go build ./...
 
+check-sqlc: ## Prüfen, ob backend/sqlc/dbgen zu Queries und Migrationen passt (sqlc diff)
+	cd backend && sqlc diff
+
 check-relay: ## Print-Relay komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd windows/relay && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
@@ -288,6 +291,12 @@ check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
 	$(MAKE) check-format
 	cd frontend && pnpm lint && pnpm test && pnpm build
 
+check-e2e-types: ## E2E-Suite typprüfen (tsc, ohne Stack)
+	cd e2e && pnpm typecheck
+
+check-shell: ## Shell-Skripte mit shellcheck prüfen (wie CI)
+	shellcheck -x scripts/*.sh
+
 check-repo: ## Alle scripts/check-*.sh-Gates ausführen (Build-Tags, Sprache, Prosa, Verweise, Zeitzonen, Versions-Pins, UI-Labels, Domain-Enums, E2E-Assertions)
 	@for script in scripts/check-*.sh; do \
 		echo "→ $$script"; \
@@ -297,14 +306,14 @@ check-repo: ## Alle scripts/check-*.sh-Gates ausführen (Build-Tags, Sprache, Pr
 check-integration: check-tools-integration ## Integrationstests gegen echte Datenbank ausführen
 	./scripts/test-integration.sh
 
-check: check-tools check-backend check-relay check-starter check-resolver check-local-proxy check-frontend check-repo ## Schnelle Komplettprüfung ohne DB-Integration
+check: check-tools check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend website-check check-e2e-types check-shell check-repo ## Schnelle Komplettprüfung ohne DB-Integration
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 
 verify: check-full ## Alias für vollständige Repo-Prüfung
 
 # Website (Astro + Starlight, website/)
-# Setzt einmaliges `cd website && pnpm install --frozen-lockfile` voraus.
+# Die Abhängigkeiten installiert scripts/setup-dev-tools.sh.
 
 website-dev: ## Astro Dev-Server starten (http://localhost:4321), liest docs/ live
 	cd website && pnpm dev
