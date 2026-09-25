@@ -58,6 +58,7 @@ jobs:
               - 'website/**'
               - 'docs/**'
               - 'Makefile'
+              - '.dockerignore'
             scripts:
               - 'scripts/**'
             ci:
@@ -195,6 +196,11 @@ jobs:
 
       - name: Test
         run: go test -count=1 -v -race ./...
+
+      # docker-compose.rocks.yml builds this image on its host; no other job
+      # builds it.
+      - name: Build image
+        run: docker build .
 
   local-proxy-ci:
     needs: changes
@@ -354,6 +360,11 @@ jobs:
 
       - name: Website checks
         run: make website-check
+
+      # Like resolver-ci: only the jotti.rocks host builds this image. The
+      # build context is the repository root (website/Dockerfile, .dockerignore).
+      - name: Build image
+        run: docker build -f website/Dockerfile .
 
   shellcheck-ci:
     needs: changes
