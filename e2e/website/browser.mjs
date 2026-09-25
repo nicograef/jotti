@@ -1,6 +1,6 @@
-// Shared Chromium launcher for the website tooling (`csp-check.mjs`,
-// `screenshots.mjs`). Set CHROMIUM_EXECUTABLE to a chrome binary if the pinned
-// Playwright build mismatches the preinstalled browser.
+// Chromium launcher for the website tooling (`screenshots.mjs`). Set
+// CHROMIUM_EXECUTABLE to a chrome binary if the pinned Playwright build
+// mismatches the preinstalled browser.
 
 import { chromium } from '@playwright/test'
 
