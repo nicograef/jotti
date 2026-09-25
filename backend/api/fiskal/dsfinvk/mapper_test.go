@@ -772,7 +772,7 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 
 	// Beide Seiten sind AVBestellungen ohne Storno-Kennzeichen und ohne Umsatz.
 	transactions := tableByFile(t, archive, "transactions.csv")
-	for row := 0; row < 2; row++ {
+	for row := range 2 {
 		if got := field(t, transactions, row, "BON_TYP"); got != "AVBestellung" {
 			t.Errorf("umbuchung[%d] BON_TYP = %q, want AVBestellung", row, got)
 		}

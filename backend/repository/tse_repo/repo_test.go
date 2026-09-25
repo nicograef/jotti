@@ -128,7 +128,7 @@ func (u *testUmgebung) closeKassensitzung(t *testing.T, ksNr int) {
 // gesetzt).
 func markiereFehlgeschlagen(ctx context.Context, t *testing.T, store Repository, auftragID int, fehler string) {
 	t.Helper()
-	for i := 0; i < MaxSignaturVersuche; i++ {
+	for i := range MaxSignaturVersuche {
 		if err := store.TSESignaturauftragFehlversuch(ctx, auftragID, fehler); err != nil {
 			t.Fatalf("Fehlversuch %d: %v", i, err)
 		}

@@ -101,10 +101,7 @@ func (t *LoginThrottle) Reset(username string) {
 }
 
 func (t *LoginThrottle) backoff(failures int) time.Duration {
-	shift := failures - t.threshold
-	if shift < 0 {
-		shift = 0
-	}
+	shift := max(failures-t.threshold, 0)
 	if shift > 30 { // Schutz vor Überlauf beim Bit-Shift
 		return t.max
 	}

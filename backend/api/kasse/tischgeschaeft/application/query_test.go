@@ -179,7 +179,7 @@ func TestGetMeineTischeState_SkipsUnresolvableFavorit(t *testing.T) {
 	}
 
 	var warnLines []string
-	for _, line := range strings.Split(strings.TrimSpace(logbuf.String()), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(logbuf.String()), "\n") {
 		if strings.Contains(line, `"level":"warn"`) && strings.Contains(line, "Skipped favorit") {
 			warnLines = append(warnLines, line)
 		}

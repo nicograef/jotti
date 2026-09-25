@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -24,11 +25,11 @@ var adminCodePattern = regexp.MustCompile(`code=([0-9]{6})`)
 // Zeilen); ohne Marker oder Code ist found=false.
 func ParseAdminOTP(logs string) (code string, found bool) {
 	lines := strings.Split(logs, "\n")
-	for i := len(lines) - 1; i >= 0; i-- {
-		if !strings.Contains(lines[i], AdminMarkerPrefix) {
+	for _, line := range slices.Backward(lines) {
+		if !strings.Contains(line, AdminMarkerPrefix) {
 			continue
 		}
-		if m := adminCodePattern.FindStringSubmatch(lines[i]); m != nil {
+		if m := adminCodePattern.FindStringSubmatch(line); m != nil {
 			return m[1], true
 		}
 	}

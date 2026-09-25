@@ -32,7 +32,7 @@ func IsNewerVersion(current, latest string) bool {
 	if !okc || !okl {
 		return false
 	}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if l[i] != c[i] {
 			return l[i] > c[i]
 		}

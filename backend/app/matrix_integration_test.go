@@ -202,7 +202,7 @@ func TestLoginRateLimit(t *testing.T) {
 
 	// httptest setzt eine feste RemoteAddr: alle Requests teilen denselben Limiter-Key.
 	var gotTooMany bool
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader("{}"))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()

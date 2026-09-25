@@ -228,10 +228,8 @@ func TestSetPasswordTx_ConcurrentFailuresCountedExactly(t *testing.T) {
 	const attempts = 4
 
 	var wg sync.WaitGroup
-	for i := 0; i < attempts; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range attempts {
+		wg.Go(func() {
 			// Falsches Einmalpasswort: SetPassword erhöht den Zähler und liefert
 			// ErrInvalidPassword. SetPasswordTx persistiert den erhöhten Zähler.
 			err := repo.SetPasswordTx(context.Background(), seeded.Username, func(u *user.User) error {
@@ -240,7 +238,7 @@ func TestSetPasswordTx_ConcurrentFailuresCountedExactly(t *testing.T) {
 			if err != nil && !errors.Is(err, user.ErrInvalidPassword) {
 				t.Errorf("expected ErrInvalidPassword, got %v", err)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 
