@@ -1,8 +1,11 @@
 # Build context for the website image is the repository root (it needs docs/).
-# Send only website/ and docs/, then drop the website build artifacts within.
+# Send only website/ and docs/, then drop the website build artifacts and the
+# docs the Astro build never reads (legal source texts, plans).
 *
 !website
 !docs
 website/node_modules
 website/dist
 website/.astro
+docs/rechtsquellen
+docs/plans
