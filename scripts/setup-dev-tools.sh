@@ -155,12 +155,14 @@ fi
 info "Ensuring shellcheck is available..."
 if ! command -v shellcheck >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
   sudo_cmd=()
-  if [ "$(id -u)" -ne 0 ]; then
+  if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
     sudo_cmd=(sudo)
   fi
   info "Installing shellcheck via apt-get"
-  "${sudo_cmd[@]+"${sudo_cmd[@]}"}" apt-get update -qq
-  "${sudo_cmd[@]+"${sudo_cmd[@]}"}" apt-get install -y -qq shellcheck
+  if ! { "${sudo_cmd[@]+"${sudo_cmd[@]}"}" apt-get update -qq &&
+    "${sudo_cmd[@]+"${sudo_cmd[@]}"}" apt-get install -y -qq shellcheck; }; then
+    warn "apt-get could not install shellcheck."
+  fi
 fi
 ensure_cmd shellcheck "Install shellcheck with your package manager (apt-get install shellcheck, brew install shellcheck)."
 
