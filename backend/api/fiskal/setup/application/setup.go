@@ -294,8 +294,8 @@ func (c Command) saveEinrichtung(ctx context.Context, log *zerolog.Logger, clien
 	return c.fetchTSEStammdaten(ctx, log, client, tssID)
 }
 
-// The DSFinV-K export reads TSE serial, public key and certificate only from tse_stammdaten
-// (docs/compliance.md §6.3), so a failure here fails the setup.
+// The DSFinV-K export fills tse.csv (serial, public key, certificate; docs/compliance.md §6.3) only
+// from tse_stammdaten, so a failure here fails the setup.
 func (c Command) fetchTSEStammdaten(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, tssID string) error {
 	stammdaten, err := client.RetrieveTSSStammdaten(ctx, tssID)
 	if err != nil {

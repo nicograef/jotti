@@ -49,7 +49,7 @@ var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
 })
 
 // StornierungErteiltV1Data is the cash-effective Warenrücknahme of paid positions: negative revenue
-// at the original tax rate plus cash refund, signed as Kassenbeleg-V1 (docs/handbuch.md §3.6).
+// at the original tax rate plus cash refund, signed as Kassenbeleg-V1 (docs/compliance.md §3.3).
 // ZahlungID names the one settling payment; the Kommentar records the reason for the tax audit.
 type StornierungErteiltV1Data struct {
 	StornierungID          string              `json:"stornierungId"`
