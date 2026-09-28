@@ -257,8 +257,8 @@ A test helper renders a page with a real QueryClient from `createQueryClient` an
 
 ### Acceptance criteria
 
-- [ ] `grep -rn "vi.mock('@/\|vi.mock('\./\|vi.mock('\.\./" frontend/src` finds nothing
-- [ ] `make test-frontend` green; the test count does not drop
+- [x] `grep -rn "vi.mock('@/\|vi.mock('\./\|vi.mock('\.\./" frontend/src` finds nothing
+- [x] `make test-frontend` green; the test count does not drop
 
 ## Phase 11: e2e lint and frontend gate order
 
