@@ -618,11 +618,8 @@ func (w *controllerFaehigerWriter) SetReadDeadline(t time.Time) error {
 	return nil
 }
 
-// LoggingMiddleware umschließt die GESAMTE Routenkette (backend/app/app.go).
-// Ihr Wrapper muss die Fähigkeiten des echten ResponseWriters durchreichen,
-// sonst liefert http.ResponseController in jedem Handler dahinter "feature not
-// supported" — die verlängerte Schreibfrist des DSFinV-K-Exports wäre in
-// Produktion wirkungslos und ein grosses Archiv würde mitten im ZIP abreissen.
+// LoggingMiddleware wraps the whole route chain, so its wrapper must pass the real writer's controller features through.
+// Otherwise the extended write deadline of the DSFinV-K export would do nothing and a large archive would break off mid-ZIP.
 func TestMiddlewareKette_ReichtResponseControllerFaehigkeitenDurch(t *testing.T) {
 	frist := time.Now().UTC().Add(5 * time.Minute)
 	var schreibFehler, leseFehler, flushFehler error

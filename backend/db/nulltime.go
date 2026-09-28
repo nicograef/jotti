@@ -8,9 +8,7 @@ import (
 )
 
 // NullTime is a nullable time implementing sql.Scanner and json.Unmarshaler.
-// sql.NullTime implements no json.Unmarshaler, so it cannot scan rows that
-// PostgreSQL's json_agg aggregates into JSON arrays (database NULL as well as
-// JSON "null" or a timestamp string).
+// sql.NullTime lacks json.Unmarshaler, so it cannot scan timestamps PostgreSQL's json_agg nests into JSON arrays.
 type NullTime struct {
 	Time  time.Time
 	Valid bool

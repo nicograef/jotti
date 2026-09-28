@@ -87,10 +87,8 @@ func TestCheckBackendComments_ReportsStemInCommentOnly(t *testing.T) {
 }
 
 func TestCheckBackendComments_ProtectsOnlyDocHeaderName(t *testing.T) {
-	// "Stoerung" opens its own doc comment and must be protected there even when
-	// the file is not one of its own protection sources — the configuration the
-	// gate uses for this package. The same word later in the sentence is ordinary
-	// prose and must still be flagged.
+	// "Stoerung" opening its doc comment stays protected even without the file as protection source, as the gate runs this package.
+	// The same word later in the sentence is prose and must still be flagged.
 	src := "package p\n\n" +
 		"// Stoerung beschreibt eine Stoerung im System.\n" +
 		"type Stoerung struct{}\n"

@@ -1,11 +1,7 @@
 package api
 
-// An exported *Schema variable under backend/domain is the bound of a persisted
-// field: handlers and constructors validate every input against it before the
-// value reaches a table or an event. A field schema without an upper bound lets
-// the Kasse accept a value that no Beleg and no DSFinV-K export can render, or
-// one no column can hold: the TEXT columns carry no length of their own, and an
-// int4 column rejects anything past its range deep inside the driver.
+// An exported *Schema variable under backend/domain bounds a persisted field, and every input is validated against it.
+// Without an upper bound the Kasse accepts values no Beleg, DSFinV-K export, unbounded TEXT column or int4 column can hold.
 
 import (
 	"go/ast"
@@ -32,10 +28,8 @@ const domainSchemaDir = "../domain"
 // largest ID any row can carry.
 const maxInt4 = math.MaxInt32
 
-// lengthCase pins a string schema to its two length bounds: shortest and longest
-// must be accepted, one character beyond either must be rejected. filler has to
-// satisfy the schema's format rule; shortest 0 marks an optional field with no
-// low side to check.
+// lengthCase pins a string schema to its length bounds: shortest and longest pass, one character beyond either fails.
+// filler must satisfy the schema's format rule; shortest 0 marks an optional field with no low side to check.
 type lengthCase struct {
 	schema   string
 	shortest int

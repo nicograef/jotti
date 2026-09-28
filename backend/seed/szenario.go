@@ -144,9 +144,8 @@ type geldtransit struct {
 	Kommentar   string
 }
 
-// kassensturz zählt die Kasse: Die Engine berechnet den Soll-Bestand aus den aufgelaufenen
-// Events, der Ist-Bestand ergibt sich als Soll − DifferenzCents. Bei Differenz ≠ 0 folgt
-// die Differenz-Buchung (Zwei-Event-Muster wie im Produktivbetrieb).
+// kassensturz counts the cash: Ist is the Soll computed from the events minus DifferenzCents.
+// A non-zero difference adds the Differenz-Buchung, the two-event pattern of production.
 type kassensturz struct {
 	User           int
 	DifferenzCents int
@@ -161,19 +160,15 @@ func (direktverkaufStorno) istAktion() {}
 func (geldtransit) istAktion()         {}
 func (kassensturz) istAktion()         {}
 
-// profilPunkt ist eine Stützstelle der Tagesprofil-Kurve: Nach EventAnteil der Events ist
-// ZeitAnteil des Sitzungsfensters vergangen. Damit entstehen Stoßzeiten (viele Events in
-// wenig Zeit). Beide Anteile müssen streng monoton steigen; (0,0) und (1,1) sind implizit.
+// profilPunkt is a day-profile knot: after EventAnteil of the events, ZeitAnteil of the session window has passed, which creates rush hours.
+// Both shares must rise strictly; (0,0) and (1,1) are implicit.
 type profilPunkt struct {
 	EventAnteil float64
 	ZeitAnteil  float64
 }
 
-// tseAusfall ist ein TSE-Ausfallfenster relativ zum Sitzungsstart: Die Signaturaufträge
-// fiskalischer Events in diesem Fenster werden nicht prompt quittiert. In abgeschlossenen
-// Sitzungen signiert der Worker sie nach Fensterende nach, in der offenen Sitzung bleiben
-// sie offen. TSE-weite Fehler zählen nie auf den Auftrag — die Aufträge des Fensters
-// tragen weder Fehlversuche noch Fehlertext.
+// tseAusfall is a TSE outage window relative to session start; its fiscal events are not signed promptly.
+// Closed sessions get them re-signed after the window, the open session leaves them open.
 type tseAusfall struct {
 	NachStart time.Duration
 	Dauer     time.Duration
@@ -604,10 +599,8 @@ func freitagsAktionen() []aktion {
 	return append(tag, kassensturz{User: thomas})
 }
 
-// samstagsAktionen ist der Haupttag (~470 Events): voller Betrieb auf 16 Tischen mit
-// Geburtstagsfeier, Stornierungen durch die Serviceleitung (geldneutrale Korrektur und
-// kassenwirksame Warenrücknahme), Teil-Zahlung, Direktverkaufsstand mit
-// Storno, Geldtransit-Entnahme und Kassensturz mit kleiner Soll/Ist-Differenz.
+// samstagsAktionen is the main day (~470 events) on 16 tables, with both Storno kinds, a partial payment,
+// a direct-sale stand with Storno, a cash withdrawal and a Kassensturz with a small difference.
 func samstagsAktionen() []aktion {
 	stammtisch := runden(1, maria, 18,
 		posten(pos(24, 4)),

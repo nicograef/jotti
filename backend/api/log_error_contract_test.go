@@ -1,9 +1,7 @@
 package api
 
-// An error-level log line inside an error branch is the only record of what went
-// wrong: the client gets a code, the operator gets the log. A chain without
-// .Err(err) drops the cause — the message then names the operation but never the
-// reason, and nilerr cannot see it because the error is still handled.
+// An error-level log line in an error branch is the operator's only record, so it must carry .Err(err).
+// Without it the cause is lost, and nilerr cannot see it because the error is still handled.
 
 import (
 	"go/ast"

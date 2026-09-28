@@ -87,10 +87,8 @@ func doRequest(t *testing.T, handler http.Handler, path, token string) (int, str
 	return w.Code, code
 }
 
-// TestBerechtigungsMatrix prüft jede geschützte Route aus der Areas-Tabelle gegen
-// jede Rolle sowie "kein Token" und "ungültiger Token". Bei erlaubter Rolle wird
-// nur auf kein 401/403 geprüft — der leere Body erzeugt danach oft einen
-// fachlichen Fehler.
+// TestBerechtigungsMatrix checks every protected route of the Areas table against every role, no token and an invalid token.
+// An allowed role is only checked for "not 401/403", since the empty body often causes a domain error afterwards.
 func TestBerechtigungsMatrix(t *testing.T) {
 	handler, tokens, teardown := setupMatrix(t)
 	defer teardown()
@@ -154,11 +152,8 @@ func TestBerechtigungsMatrix_OeffentlicheBereiche(t *testing.T) {
 	}
 }
 
-// Prüft die Deklaration des bedingten Test-Reset-Bereichs (RequiresAuth == false
-// ⇒ keine JWT-Middleware) samt Pfad. Der Endpunkt wird bewusst NICHT aufgerufen:
-// ResetAndSeed würde die von setupMatrix geteilte Datenbank neu seeden und die
-// folgenden Tests stören. Die Env-Registrierung deckt
-// TestSetupRoutes_ResetSeedRouteGuardedByEnv ab.
+// TestBerechtigungsMatrix_TestResetOeffentlich checks the declaration only: calling ResetAndSeed would reseed the database setupMatrix shares.
+// TestSetupRoutes_ResetSeedRouteGuardedByEnv covers the env registration.
 func TestBerechtigungsMatrix_TestResetOeffentlich(t *testing.T) {
 	area := testResetArea(nil)
 

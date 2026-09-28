@@ -10,10 +10,8 @@ import (
 	"github.com/nicograef/jotti/backend/config"
 )
 
-// Area deklariert die Zugriffsregeln eines Routen-Bereichs. SetupRoutes
-// registriert daraus alle Routen; die Berechtigungs-Matrix
-// (matrix_integration_test.go) liest dieselbe Tabelle. Jeder Bereich muss Rollen
-// oder bewusst kein JWT deklarieren — keine Route ohne Rollenentscheidung.
+// Area declares a route area's access rules; SetupRoutes and the permission matrix (matrix_integration_test.go) read the same table.
+// Each area declares roles or deliberately no JWT, so no route lacks a role decision.
 type Area struct {
 	// Prefix ist das URL-Präfix (z. B. "/admin"); beim Mounten per StripPrefix entfernt.
 	Prefix string

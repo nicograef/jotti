@@ -316,10 +316,8 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 	}
 }
 
-// TestResetAndSeed_LeertUndSeedetNeu prüft, dass ResetAndSeed die
-// append-only-geschützten Tabellen leert und den Demo-Zustand neu schreibt —
-// wiederholt und ohne am Kassenjournal-Guard zu scheitern (Grundlage des
-// Test-Reset-Endpoints POST /test/reset-and-seed).
+// TestResetAndSeed_LeertUndSeedetNeu checks that ResetAndSeed repeatedly empties the append-only tables and reseeds
+// without tripping the Kassenjournal guard, as POST /test/reset-and-seed relies on.
 func TestResetAndSeed_LeertUndSeedetNeu(t *testing.T) {
 	db := dbtest.Open()
 	cleanSeedDB(t, db)

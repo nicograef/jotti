@@ -34,10 +34,8 @@ type seedDaten struct {
 	Events          []seedEvent
 }
 
-// tagesSummen sammelt die Beträge eines Betriebstags für den Tagesabschluss.
-// StornierungenCents umfasst beide Storno-Arten (geldneutrale Korrektur und
-// kassenwirksame Warenrücknahme); nur die Warenrücknahme mindert als negativer Umsatz
-// den Tagesumsatz und den Bargeldbestand, daher wird sie zusätzlich getrennt geführt.
+// tagesSummen collects a business day's amounts for the Tagesabschluss.
+// StornierungenCents covers both Storno kinds; only the Warenrücknahme lowers turnover and cash, so it is also kept apart.
 type tagesSummen struct {
 	ZahlungenCents            int
 	DirektverkaufCents        int
@@ -47,19 +45,14 @@ type tagesSummen struct {
 	GeldtransitCents          int
 }
 
-// UmsatzGesamtCents folgt der Reporting-Definition: Zahlungen + Direktverkäufe
-// − Direktverkauf-Stornos − Warenrücknahmen. Die geldneutrale Korrektur fließt
-// nicht ein, die kassenwirksame Warenrücknahme mindert den Umsatz.
+// UmsatzGesamtCents follows the reporting definition; the cash-neutral Korrektur does not count.
+// See docs/handbuch.md §7.2.
 func (s tagesSummen) UmsatzGesamtCents() int {
 	return s.ZahlungenCents + s.DirektverkaufCents - s.DirektverkaufStornosCents - s.WarenruecknahmenCents
 }
 
-// buildSeedDaten übersetzt das Szenario deterministisch in Events und Kassensitzungs-Zeilen.
-// jetzt ist der Bezugszeitpunkt: Jede Sitzung belegt ihr eigenes Zeitfenster davor, die
-// Zeitstempel sind global streng monoton steigend und jedes Subject trägt lückenlose
-// Versionen ab 1. Alle Events entstehen über die Domain-Konstruktoren, sodass dieselben
-// Invarianten wie im Produktivbetrieb gelten; abgeschlossene Sitzungen enden mit einem
-// Tagesabschluss, dessen Summen aus den erzeugten Tages-Events berechnet sind.
+// buildSeedDaten deterministically turns the scenario into events and Kassensitzung rows before jetzt, via the domain constructors.
+// Timestamps rise strictly across all sessions and every subject carries gap-free versions from 1.
 func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 	variantenIdx := variantenIndex(s.Produkte)
 	benutzerIdx := benutzerIndex(s.Benutzer)
@@ -235,11 +228,8 @@ func (b *sitzungsBuilder) kassieren(a kassieren) error {
 	return nil
 }
 
-// stornieren bildet eine „Stornieren"-Aktion wie im Produktivbetrieb ab: das Routing
-// teilt die ausgewählten Positionen nach Bezahlstatus auf — unbezahlte Mengen werden
-// geldneutral korrigiert (bestellung-korrigiert), bezahlte Mengen je begleichender
-// Zahlung als kassenwirksame Warenrücknahme zurückgenommen (stornierung-erteilt). Nur
-// die Warenrücknahme mindert den Bargeldbestand; die Korrektur ist geldneutral.
+// stornieren splits the selected positions by payment status like production: unpaid ones become a Korrektur, paid ones a Warenrücknahme.
+// See docs/handbuch.md §3.7 (Stornierungsinvariante).
 func (b *sitzungsBuilder) stornieren(a stornieren) error {
 	if len(a.Posten) == 0 {
 		return fmt.Errorf("stornieren ohne Posten")
@@ -291,10 +281,8 @@ func (b *sitzungsBuilder) stornieren(a stornieren) error {
 	return nil
 }
 
-// umbuchen erzeugt das verknüpfte, geldneutrale Umbuchungs-Event-Paar (Abgang auf
-// dem Quelltisch, Zugang auf dem Zieltisch) mit den Standard-Kommentaren — wie
-// BestellungUmbuchen im Produktivbetrieb. Eine Umbuchung ist kein Storno und fließt
-// daher nicht in die Storno-Summe ein.
+// umbuchen writes the linked, cash-neutral Umbuchung event pair like BestellungUmbuchen in production.
+// An Umbuchung is no Storno, so it stays out of the Storno total.
 func (b *sitzungsBuilder) umbuchen(a umbuchen) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {

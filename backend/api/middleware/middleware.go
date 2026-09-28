@@ -74,10 +74,8 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// RecoveryMiddleware beendet einen Handler-Panic mit 500 im bestehenden
-// Fehler-Response-Format statt mit einer abgerissenen Verbindung (net/http würde
-// nur schließen). http.ErrAbortHandler wird durchgereicht — das ist net/https
-// idiomatisches Signal, eine Response bewusst abzubrechen.
+// RecoveryMiddleware answers a handler panic with a 500 in the error format instead of the bare connection close of net/http.
+// http.ErrAbortHandler passes through: it is net/http's idiomatic signal to abort a response on purpose.
 func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -162,17 +160,12 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 	}
 }
 
-// clientIP liefert den Limiter-Key. jotti läuft hinter dem eigenen
-// Reverse-Proxy (Caddy), der die echte Client-IP als LETZTEN X-Forwarded-For-
-// Eintrag anhängt; nur dieser ist vertrauenswürdig — ein Client kann eigene
-// Einträge voranstellen und sich so je Request einen frischen Key erzeugen.
-// Ohne Header zählt RemoteAddr.
+// clientIP returns the limiter key: the LAST X-Forwarded-For entry, which the own Caddy proxy appends, else RemoteAddr.
+// Earlier entries are client-controlled and would give each request a fresh key.
 func clientIP(r *http.Request) string {
 	xff := r.Header.Get("X-Forwarded-For")
 	if xff == "" {
-		// RemoteAddr ist "IP:Port": Der ephemere Port wechselt je Verbindung und
-		// gehört NICHT in den Limiter-Key — sonst greift das Limit nie und die Map
-		// wächst unbegrenzt.
+		// Strip the ephemeral port: per connection it would defeat the limit and grow the map without bound.
 		if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 			return host
 		}
@@ -212,11 +205,8 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-// Unwrap gibt den umschlossenen ResponseWriter frei: http.ResponseController
-// sucht genau diese Methode, um an SetWriteDeadline, SetReadDeadline und Flush
-// des echten Writers zu kommen. Ohne Unwrap scheitert hinter dieser Middleware
-// jeder Controller-Aufruf mit "feature not supported" — und LoggingMiddleware
-// umschließt die gesamte Routenkette (backend/app/app.go).
+// Unwrap lets http.ResponseController reach SetWriteDeadline, SetReadDeadline and Flush of the real writer.
+// Without it every controller call behind LoggingMiddleware, which wraps the whole route chain, fails with "feature not supported".
 func (rw *responseWriter) Unwrap() http.ResponseWriter {
 	return rw.ResponseWriter
 }
@@ -225,10 +215,8 @@ type UserGetter interface {
 	GetUser(ctx context.Context, id int) (user.User, error)
 }
 
-// NewJwtMiddleware validates the JWT and checks status and role against a fresh
-// database record: deactivated users lose access immediately, role changes take
-// effect on the next request instead of at token expiry. Authentication failures
-// yield 401, insufficient privileges 403.
+// NewJwtMiddleware validates the JWT and checks status and role against a fresh database record, answering 401 or 403.
+// Deactivation and role changes thus take effect on the next request instead of at token expiry.
 func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter) func(http.Handler) http.HandlerFunc {
 	return func(h http.Handler) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

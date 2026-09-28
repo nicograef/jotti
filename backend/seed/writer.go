@@ -11,32 +11,19 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-// Run spielt das Demo-Szenario „3-Tage-Sommerfest TSV Musterstadt e.V." in die Datenbank ein:
-// Stammdaten mit Favoriten und Druckstations-Konfiguration, drei Kassensitzungen
-// (Freitag/Samstag abgeschlossen, Sonntag offen) und die zugehörigen Events — jedes
-// fiskalische davon mit genau einem Signaturauftrag (quittiert, nachsigniert, offen oder dauerhaft fehlgeschlagen,
-// je nach Ausfallfenster) — plus die Druckauftrags-Historie zu Bestellungen,
-// Direktverkäufen und Kassenbelegen. Alles wird in einer Transaktion geschrieben;
-// anschließend wird die Tisch-Session-Projektion neu aufgebaut. Ein Guard verhindert das
-// Überschreiben einer Datenbank, die bereits Kassenjournal-Events enthält.
+// Run writes the demo scenario "3-Tage-Sommerfest TSV Musterstadt e.V." in one transaction and rebuilds the projection.
+// A guard refuses a database that already holds Kassenjournal events.
 func Run(ctx context.Context, database *sql.DB) error {
 	return seedInTransaction(ctx, database, false)
 }
 
-// ResetAndSeed leert alle Daten-Tabellen und schreibt anschließend den
-// Demo-Zustand neu — beides in einer Transaktion. Anders als Run überspringt es
-// den Kassenjournal-Guard (das Leeren ist gewollt) und ist ausschließlich für
-// den HTTP-Test-Reset-Endpoint (POST /test/reset-and-seed) gedacht, der nur bei
-// JOTTI_ENABLE_TEST_API=1 registriert wird (nur E2E-Umgebung).
+// ResetAndSeed empties all data tables and rewrites the demo state in one transaction, skipping the Kassenjournal guard.
+// It serves only POST /test/reset-and-seed, which exists only with JOTTI_ENABLE_TEST_API=1.
 func ResetAndSeed(ctx context.Context, database *sql.DB) error {
 	return seedInTransaction(ctx, database, true)
 }
 
-// seedInTransaction baut den Demo-Zustand auf und schreibt ihn in einer
-// Transaktion. Bei reset=true werden zuvor (in derselben Transaktion) alle
-// Daten-Tabellen geleert und der Kassenjournal-Guard entfällt; bei reset=false
-// gilt der Guard, der ein Überschreiben bestehender Kassenjournal-Events
-// verhindert. Anschließend werden die Tisch-Session-Projektionen neu aufgebaut.
+// seedInTransaction builds the demo state and writes it; reset=true empties the tables first and drops the guard.
 func seedInTransaction(ctx context.Context, database *sql.DB, reset bool) error {
 	jetzt := time.Now().UTC()
 	s := demoSzenario()
@@ -73,9 +60,7 @@ func seedInTransaction(ctx context.Context, database *sql.DB, reset bool) error 
 func writeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDaten, auftraege []signaturauftragZeile, stoerungen []stoerungZeile, druckauftraege []druckauftragZeile, jetzt time.Time, reset bool) error {
 	q := dbgen.New(database)
 
-	// Guard: niemals eine Datenbank überschreiben, die bereits Kassenjournal-Events enthält.
-	// Die Prüfung läuft ohne Schreibzugriff vor dem Transaktionsbeginn. Beim Test-Reset
-	// entfällt sie, weil das Leeren der Tabellen ausdrücklich gewollt ist.
+	// Guard: never overwrite a database with Kassenjournal events; the check runs read-only before the transaction.
 	if !reset {
 		anzahl, err := q.SeedCountKassenjournal(ctx)
 		if err != nil {
@@ -94,18 +79,9 @@ func writeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDate
 
 	qtx := q.WithTx(tx)
 
-	// Beim Test-Reset in derselben Transaktion zuerst leeren, dann neu schreiben.
 	if reset {
-		// Das Kassenjournal ist per Trigger append-only und lässt sich sonst nicht
-		// leeren (der einzige blockierende User-Trigger auf den geleerten Tabellen
-		// ist kassenjournal_no_truncate; INSERTs ins Kassenjournal sind erlaubt).
-		// SET LOCAL session_replication_role = replica deaktiviert die User-Trigger
-		// nur für DIESE Transaktion (pool-sicher). Direkt nach dem Truncate wird der
-		// Modus wieder auf den Default (origin) gesetzt, damit die nachfolgenden
-		// Seed-Inserts unter regulärer Trigger- und Fremdschlüsselprüfung laufen.
-		// Der Endpoint existiert ohnehin nur bei JOTTI_ENABLE_TEST_API=1 (nur
-		// E2E-Umgebung), nie in Produktion. kassenidentitaet ist von SeedTruncateAll
-		// bewusst ausgenommen (Install-Identität, insert-once) und bleibt unangetastet.
+		// The append-only triggers block the truncate; SET LOCAL disables user triggers for this transaction only.
+		// kassenidentitaet is left out of SeedTruncateAll: the install identity is insert-once.
 		if _, err := tx.ExecContext(ctx, "SET LOCAL session_replication_role = replica"); err != nil {
 			return fmt.Errorf("append-only-schutz für den reset lösen: %w", db.Error(err))
 		}
@@ -115,10 +91,7 @@ func writeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDate
 		if _, err := tx.ExecContext(ctx, "SET LOCAL session_replication_role = DEFAULT"); err != nil {
 			return fmt.Errorf("append-only-schutz nach dem truncate wiederherstellen: %w", db.Error(err))
 		}
-		// Die leere tse_konfiguration-Singleton-Zeile wiederherstellen, die die
-		// Migration beim Erstlauf anlegt und das Truncate mitgelöscht hat. Ohne
-		// sie ist der Ausgangszustand nach einem Reset ein anderer als nach der
-		// Erstmigration, und ein Folge-Reseed liefe nicht mehr deterministisch.
+		// Restore the empty tse_konfiguration singleton the migration creates, so every reset starts from the same state.
 		if err := qtx.SeedInsertLeereTSEKonfiguration(ctx); err != nil {
 			return fmt.Errorf("leere tse-konfiguration wiederherstellen: %w", err)
 		}

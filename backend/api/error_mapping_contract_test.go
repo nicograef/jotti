@@ -1,11 +1,7 @@
 package api
 
-// An exported Err* variable under backend/api is an application sentinel: the
-// application layer returns it, the HTTP layer turns it into a stable error code
-// that frontend/src/lib/errorMessages.ts renders as a German message. A sentinel
-// the HTTP layer never names (nor its alias) falls into MapError's fallback and
-// reaches the client as a bare 500 — the generic server-error text for a failure
-// the backend understood exactly.
+// An exported Err* variable under backend/api is an application sentinel the HTTP layer maps to a stable error code.
+// A sentinel the HTTP layer never names falls into MapError's fallback and reaches the client as a bare 500.
 
 import (
 	"go/ast"

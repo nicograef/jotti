@@ -85,11 +85,8 @@ func WithTx(ctx context.Context, database *sql.DB, fn func(*dbgen.Queries) error
 // keyword/value connection string value.
 var connStringEscaper = strings.NewReplacer(`\`, `\\`, `'`, `\'`)
 
-// ConnString builds the keyword/value connection string (libpq syntax,
-// sslmode=disable) for the pgx driver. An unquoted value ends at whitespace and
-// a backslash escapes the next character, so every value is single-quoted and
-// escaped: a password with spaces, quotes or backslashes reaches the server
-// unchanged.
+// ConnString builds the libpq keyword/value connection string (sslmode=disable) for the pgx driver.
+// Every value is single-quoted and escaped, so a password with spaces, quotes or backslashes reaches the server unchanged.
 func ConnString(host, port, user, password, dbname string) string {
 	quote := func(value string) string {
 		return "'" + connStringEscaper.Replace(value) + "'"
@@ -99,10 +96,8 @@ func ConnString(host, port, user, password, dbname string) string {
 		quote(host), quote(port), quote(user), quote(password), quote(dbname))
 }
 
-// PingWithRetry calls ping until it succeeds or the budget is exhausted
-// (budget/interval attempts, at least one), logging every failed attempt so a
-// delayed database is visible in the boot log. ping and sleep are injected for
-// tests.
+// PingWithRetry calls ping until it succeeds or budget/interval attempts (at least one) are used up.
+// It logs every failed attempt, so a delayed database shows in the boot log.
 func PingWithRetry(ping func() error, budget, interval time.Duration, sleep func(time.Duration)) error {
 	attempts := max(int(budget/interval), 1)
 

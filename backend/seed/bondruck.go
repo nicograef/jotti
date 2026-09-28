@@ -73,14 +73,8 @@ func druckerFensterAus(s szenario, jetzt time.Time) []druckerFenster {
 	return fenster
 }
 
-// buildDruckauftraege baut die Druckauftrags-Historie zum Szenario: Arbeits- und Abholbons
-// entstehen über die produktive Bondruck-Policy aus jeder Bestellung und jedem Direktverkauf,
-// Kassenbelege (inklusive TSE-Abschnitt aus den Signaturspalten des Auftrags) für jede n-te
-// Zahlung über den produktiven ESC/POS-Formatter — nur für Vorgänge mit quittierter
-// Signatur, denn bei ausstehender Signatur entsteht kein Druckauftrag.
-// Der Status ergibt sich aus den Drucker-Ausfallfenstern des Drehbuchs (fehlgeschlagen, der
-// erste Fehlschlag verworfen), dem Relay-Abholfenster vor „jetzt" (offen) und sonst der
-// Gedruckt-Quittung kurz nach der Erstellung.
+// buildDruckauftraege derives the print-job history through the production Bondruck policy and ESC/POS formatter.
+// Only every n-th payment with an acknowledged signature gets a Kassenbeleg, as a pending signature creates no print job.
 func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse.Signatur, jetzt time.Time) ([]druckauftragZeile, error) {
 	stationen := make(map[string]druckstation.Druckstation, len(s.Druckstationen))
 	for _, st := range s.Druckstationen {
@@ -195,13 +189,8 @@ func (b *bondruckBuilder) setStatus(z *druckauftragZeile) {
 	z.GedrucktAm = &gedruckt
 }
 
-// kassenbeleg baut den Kassenbeleg-Druckauftrag zu einer Zahlung oder einem Direktverkauf —
-// wie KassenbelegDrucken im Produktivbetrieb, mit dem TSE-Abschnitt aus den Signaturspalten
-// des Auftrags. Vorgänge ohne quittierte Signatur (offen, fehlgeschlagen, tse_nicht_konfiguriert) liefern
-// keinen Beleg: Der Beleg-Abruf hätte „ausstehend" geantwortet und keinen Druckauftrag
-// angelegt. Der Beleg entsteht kurz nach der Quittierung (bei nachsignierten Vorgängen also
-// erst nach der Störung, auf erneute Anforderung des Gastes). Als Kassen-ID steht die
-// Fake-Seriennummer auf dem Beleg — dieselbe wie in den QR-Code-Daten der Fake-TSE.
+// kassenbeleg builds the Kassenbeleg print job like KassenbelegDrucken in production, shortly after the signature acknowledgement.
+// Without an acknowledged signature it returns false: the receipt request would have answered "ausstehend" without a print job.
 func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, error) {
 	signatur := b.signaturen[evt.ID]
 	if signatur == nil {

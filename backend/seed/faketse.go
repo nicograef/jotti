@@ -13,27 +13,21 @@ import (
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 )
 
-// Feste Fake-TSE-Identität für das Demo-Szenario. Die Werte sind frei erfunden, folgen aber
-// den Formaten einer echten fiskaly Cloud-TSE (Seriennummer = SHA-256-Hex, Schlüssel und
-// Signaturen = Base64).
+// Fixed, invented fake-TSE identity for the demo scenario in the formats of a real fiskaly Cloud-TSE.
+// Serial number is SHA-256 hex; key, certificate and signatures are Base64.
 const (
 	fakeTSESeriennummer     = "9c4f2d8a71e3b65042dca9f01b87e6d355a1c0fb29e84d7613f5a2b8c90e4761"
 	fakeKassenSeriennummer  = "JOTTI-DEMO-KASSE-1"
 	fakeSignaturAlgorithmus = "ecdsa-plain-SHA256"
 	fakeLogTimeFormat       = "unixTime"
 	fakePublicKey           = "BJottiDemoFakeTSEPublicKeySommerfestTSVMusterstadt2026AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-	// fakeZertifikat ist ein frei erfundenes, base64-kodiertes Pseudo-Zertifikat der
-	// Fake-TSE (unter 1000 Zeichen, passt daher in TSE_ZERTIFIKAT_I). Es füllt die
-	// tse.csv-Stammdaten des Demo-Exports, damit die DSFinV-K-Inhaltsprüfung die
-	// TSS-Stammdaten als vollständig sieht (Seriennummer, Algorithmus, Public Key,
-	// Zertifikat).
+	// fakeZertifikat stays under 1000 characters to fit TSE_ZERTIFIKAT_I.
+	// It completes the tse.csv master data so the DSFinV-K content check sees them as complete.
 	fakeZertifikat = "MIIBdummyJottiDemoFakeTSECertificateBase64AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
 )
 
-// fakeTSEStammdaten liefert die TSS-Stammdaten der Fake-TSE für den DSFinV-K-Export
-// (tse.csv). Ohne diese Stammdaten bliebe die Singleton-Zeile tse_stammdaten leer
-// (Migrations-Default), und der exportierte tse.csv-Datensatz hätte leere
-// Pflichtfelder. Der Seeder schreibt sie deshalb wie eine echte TSE-Einrichtung.
+// fakeTSEStammdaten are written like a real TSE setup for tse.csv in the DSFinV-K export.
+// Without them the tse_stammdaten singleton keeps its empty migration default and tse.csv lacks mandatory fields.
 func fakeTSEStammdaten() tse.Stammdaten {
 	return tse.Stammdaten{
 		Seriennummer:        fakeTSESeriennummer,
@@ -44,26 +38,22 @@ func fakeTSEStammdaten() tse.Stammdaten {
 	}
 }
 
-// signierungAbgelehntFehler ist der Fehlertext der dauerhaft gescheiterten Aufträge:
-// Anders als beim vorübergehenden Ausfall (Fenster-Grund) lehnt die TSE diese Transaktionen
-// auch nach der Störung ab — nur solche Aufträge bleiben fehlgeschlagen.
+// signierungAbgelehntFehler is the error of permanently failed jobs: unlike a window outage, the TSE rejects them after it too.
 const signierungAbgelehntFehler = "Cloud-TSE lehnt die Transaktion dauerhaft ab (HTTP 400: ungültige process_data)"
 
 // fehlschlagJederNte steuert die Dramaturgie aufgelöster Ausfallfenster: Jeder 16. Auftrag
 // (ab dem vierten) scheitert dauerhaft und bleibt fehlgeschlagen.
 const fehlschlagJederNte = 16
 
-// nachsignierVerzoegerung ist der Abstand zwischen Fensterende und der ersten erfolgreichen
-// Nachsignierung — zugleich das Ende des geseedeten Störungszeitraums, denn im echten
-// Betrieb schließt die erste erfolgreiche Signatur die Störung.
+// nachsignierVerzoegerung separates the window end from the first successful re-signing.
+// It also ends the seeded Störungszeitraum, since in production the first successful signature closes it.
 const nachsignierVerzoegerung = 5 * time.Second
 
 // stoerungFehlertext ist der Fehlertext der geseedeten tse_fehler-Störungszeiträume.
 const stoerungFehlertext = "Cloud-TSE nicht erreichbar (HTTP 503)"
 
-// ausfallFenster ist ein TSE-Ausfallfenster mit absoluten Zeiten. aufgelöst steuert, ob die
-// Signaturaufträge als vom Worker nachsigniert gelten (abgeschlossene Sitzung) oder offen
-// bleiben (offene Sitzung).
+// ausfallFenster is a TSE outage window with absolute times.
+// aufgeloest marks its jobs as re-signed by the worker (closed session) instead of left open (open session).
 type ausfallFenster struct {
 	von, bis   time.Time
 	aufgeloest bool
@@ -95,11 +85,8 @@ type stoerungZeile struct {
 	Fehlertext string
 }
 
-// stoerungszeitraeumeAus übersetzt die aufgelösten Ausfallfenster in geschlossene
-// tse_fehler-Störungszeiträume — was Worker und Störungsprotokoll im echten Betrieb
-// dokumentiert hätten; so passt die Ausfalldokumentations-Ansicht zur Demo mit ihren
-// nachsignierten Belegen. Das offene Fenster der laufenden Sitzung bleibt außen vor:
-// Es materialisiert nach dem App-Start live über Worker und Watchdog.
+// stoerungszeitraeumeAus turns the resolved outage windows into the closed tse_fehler periods production would have logged.
+// The open window of the running session is left out: worker and watchdog create it live after app start.
 func stoerungszeitraeumeAus(fenster []ausfallFenster) []stoerungZeile {
 	var zeilen []stoerungZeile
 	for _, f := range fenster {
@@ -133,16 +120,8 @@ type signaturauftragZeile struct {
 	Signatur           *tse.Signatur
 }
 
-// buildSignaturauftraege spielt Outbox und Signatur-Worker für das Drehbuch nach: Jedes
-// fiskalische Event (Entscheidung über die produktive fiskalische Projektion) erhält genau
-// eine Auftragszeile mit seiner Event-ID. Im Normalfall gilt der Auftrag als prompt
-// quittiert (logTime-Paar aus dem Event-Zeitstempel, erledigt kurz danach). Events in
-// aufgelösten Ausfallfenstern werden beim ersten fiskalischen Event nach Fensterende
-// nachsigniert — verspätete Signatur ohne Auftrags-Fehlversuche, denn TSE-weite Fehler
-// zählen nie auf den Auftrag; einzelne scheitern in der Aufholphase auftragsspezifisch
-// und dauerhaft. Events im offenen Fenster der laufenden Sitzung bleiben offen.
-// Transaktionsnummern und Signaturzähler sind global streng monoton in
-// Quittier-Reihenfolge.
+// buildSignaturauftraege replays outbox and signature worker: each fiscal event gets exactly one job, normally acknowledged promptly.
+// Resolved outage windows are re-signed after the window end; see docs/handbuch.md §3.13.
 func buildSignaturauftraege(events []seedEvent, fenster []ausfallFenster) ([]signaturauftragZeile, error) {
 	s := &fakeSignierer{fenster: fenster, pending: make([][]offeneNachsignierung, len(fenster))}
 
@@ -218,9 +197,8 @@ type fakeSignierer struct {
 	zeilen []signaturauftragZeile
 }
 
-// signiere vergibt die nächste Transaktionsnummer samt Signaturzähler und baut die Signatur.
-// Jede Transaktion verbraucht zwei Signaturen (Start + Finish) — der Zähler im Beleg ist der
-// der Finish-Signatur, wie bei einer echten TSE.
+// signiere assigns the next transaction number and signature counter and builds the signature.
+// Each transaction consumes two signatures (start and finish); the receipt shows the finish counter, as with a real TSE.
 func (s *fakeSignierer) signiere(processType, processData string, logStart, logEnd time.Time, txID string) tse.Signatur {
 	s.txNummer++
 	s.sigZaehler += 2
@@ -245,9 +223,8 @@ func (s *fakeSignierer) fensterIndex(t time.Time) int {
 	return -1
 }
 
-// vermerkeAusfall registriert den Ausfall eines Events: In aufgelösten Fenstern wandert der
-// Vorgang in die Warteliste der späteren Nachsignierung, in offenen Fenstern bleibt der
-// Auftrag offen und ohne Signatur — so, wie ihn die Outbox beim Einreihen anlegt.
+// vermerkeAusfall queues an event of a resolved window for later re-signing.
+// In an open window the job stays open and unsigned, as the outbox enqueues it.
 func (s *fakeSignierer) vermerkeAusfall(fensterIdx, eventID int, txID string, vorgang kasse.FiskalischerVorgang, zeit time.Time) {
 	if s.fenster[fensterIdx].aufgeloest {
 		s.pending[fensterIdx] = append(s.pending[fensterIdx], offeneNachsignierung{
@@ -286,10 +263,8 @@ func (s *fakeSignierer) nachsigniereAlleFenster() {
 	}
 }
 
-// nachsigniereFenster spielt den Signatur-Worker nach dem Fensterende nach: Die Aufträge
-// werden in Batches im Sekundenabstand quittiert; die verspätete Signatur steht direkt am
-// Auftrag. Fehlversuche tragen die Aufträge nicht — während der Störung bricht der Worker
-// jeden Durchlauf TSE-weit ab, ohne auf die Aufträge zu zählen.
+// nachsigniereFenster replays the worker after the window end, acknowledging jobs in sub-second steps.
+// Jobs carry no failed attempts: during the outage the worker aborts TSE-wide without counting on jobs.
 func (s *fakeSignierer) nachsigniereFenster(fensterIdx int) {
 	f := s.fenster[fensterIdx]
 	for i, p := range s.pending[fensterIdx] {
@@ -317,9 +292,8 @@ func (s *fakeSignierer) nachsigniereFenster(fensterIdx int) {
 	s.pending[fensterIdx] = nil
 }
 
-// dauerhaftGescheitert baut den fehlgeschlagenen Auftrag: Die TSE lehnt die Transaktion
-// in der Aufholphase auftragsspezifisch ab, der Auftrag durchläuft die Sekunden-Kurve
-// (5, 15 s Backoff) und schlägt mit dem dritten Fehlversuch endgültig fehl.
+// dauerhaftGescheitert builds a job the TSE rejects job-specifically during catch-up.
+// It fails for good on the third attempt after 5 s and 15 s backoff.
 func (s *fakeSignierer) dauerhaftGescheitert(p offeneNachsignierung, fensterEnde time.Time) signaturauftragZeile {
 	fehler := signierungAbgelehntFehler
 	return signaturauftragZeile{
@@ -330,9 +304,7 @@ func (s *fakeSignierer) dauerhaftGescheitert(p offeneNachsignierung, fensterEnde
 		Status:        tse.StatusFehlgeschlagen,
 		Versuche:      tse_repo.MaxSignaturVersuche,
 		LetzterFehler: &fehler,
-		// Der letzte Fehlversuch fällt rund 20 s nach das Fensterende (5 + 15 s
-		// Backoff); die Query schreibt dabei den (nie mehr genutzten) nächsten
-		// Versuch weitere 45 s später.
+		// The last attempt lands about 20 s after the window end; the query then sets the unused next attempt 45 s later.
 		NaechsterVersuchAm: fensterEnde.Add(65 * time.Second),
 		ErstelltAm:         p.erstellt,
 	}

@@ -1,7 +1,5 @@
-// Package throttle drosselt fehlgeschlagene Anmeldungen pro Konto im Speicher.
-// Soft-Throttle: kein dauerhaftes Sperren (für ehrenamtliche Helfer im
-// Event-Betrieb ein Footgun), sondern ein automatisch ablaufender, exponentiell
-// wachsender Cooldown.
+// Package throttle throttles failed logins per account in memory with an exponentially growing, self-expiring cooldown.
+// No permanent lockout: for volunteer helpers during an event that would be a footgun.
 package throttle
 
 import (

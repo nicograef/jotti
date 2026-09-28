@@ -1,7 +1,5 @@
-// Package test stellt Testhilfen als HTTP-Endpunkte bereit; die Routen werden
-// ausschließlich in der E2E-Umgebung registriert (JOTTI_ENABLE_TEST_API=1), nie
-// in Produktion. POST /test/reset-and-seed setzt die Datenbank auf den
-// deterministischen Demo-Zustand zurück und liefert die Zugangsdaten.
+// Package test serves test helpers as HTTP endpoints, registered only in the E2E environment (JOTTI_ENABLE_TEST_API=1).
+// POST /test/reset-and-seed resets the database to the deterministic demo state and returns the credentials.
 package test
 
 import (

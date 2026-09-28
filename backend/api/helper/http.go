@@ -11,14 +11,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// errorResponse is the uniform error body of the HTTP API. Code is a stable
-// snake_case code the frontend maps to a German message. Details is structured
-// in exactly two cases: "validation_error" carries zog issues as
-// map[field][]message (see ReadAndValidateBody), "signaturen_ausstehend"
-// (Kassenabschluss-Gate) a structured object with the number of pending
-// signatures (see SendConflictDetails) — the only one the frontend parses.
-// Everywhere else it is at most a short English diagnostic for operators and
-// logs — never localized, never parsed.
+// errorResponse is the uniform error body: Code is a stable snake_case key, Details is structured only for two codes.
+// See docs/handbuch.md §6.2 (Fehlerformat).
 type errorResponse struct {
 	Code    string `json:"code"`
 	Details any    `json:"details,omitempty"`
@@ -113,27 +107,8 @@ func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T,
 	return true
 }
 
-// ExtendWriteDeadline setzt die Schreibfrist der Verbindung auf jetzt + timeout
-// und ersetzt damit für diesen Request die globale Frist des Servers
-// (WriteTimeout: 10s, backend/app/app.go).
-//
-// Die Frist ist eine ABSOLUTE Zeit, keine Stoppuhr für den Schreibvorgang:
-// net/http setzt sie beim Lesen der Request-Header auf jetzt + WriteTimeout, sie
-// läuft also während der gesamten Handler-Laufzeit weiter. Ein Handler, der
-// länger arbeitet als sein timeout, schreibt danach in eine abgelaufene Frist —
-// die Arbeit war erfolgreich, das Ergebnis erreicht den Client nie. Bei der
-// TSE-Einrichtung wären PUK und Admin-PIN damit verloren: Sie werden genau
-// einmal ausgeliefert und nirgends persistiert.
-//
-// Ein langlaufender Handler ruft die Funktion deshalb ZWEIMAL auf: als erste
-// Anweisung, damit auch alles, was vor der langen Arbeit antwortet (ungültiger
-// Body, fachliche Ablehnung), dieses Budget statt der globalen 10 Sekunden
-// bekommt; und unmittelbar vor dem Schreiben der Antwort, damit der
-// Schreibvorgang ein eigenes Budget hat.
-//
-// Lässt sich die Frist nicht setzen (ResponseWriter ohne Unterstützung, z. B.
-// httptest.ResponseRecorder), wird nur gewarnt: Die Verlängerung ist eine
-// Verbesserung, kein Abbruchgrund.
+// ExtendWriteDeadline sets the connection's absolute write deadline to now + timeout, replacing the server's WriteTimeout for this request.
+// A long-running handler calls it first and again right before writing the response; see docs/handbuch.md §6.2.
 func ExtendWriteDeadline(w http.ResponseWriter, r *http.Request, timeout time.Duration) {
 	if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(timeout)); err != nil {
 		zerolog.Ctx(r.Context()).Warn().Err(err).Dur("timeout", timeout).Msg("Failed to extend write deadline; falling back to server default")

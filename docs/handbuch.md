@@ -365,6 +365,8 @@ Das Backend ist in vier Schichten gegliedert: HTTP → Application → Domain �
 
 **Fehlerformat:** `{ "code": "<string>", "details": <optional> }`. `code` ist ein stabiler, maschinenlesbarer Schlüssel (snake_case); `details` ist typlos (`any`) und nur in zwei Fällen strukturiert: bei `validation_error` die zog-Issues als `map[feld][]meldung`, bei `signaturen_ausstehend` ein Objekt mit der Zahl der offenen Signaturen — nur dieses parst das Frontend. Sonst höchstens ein kurzer englischer Diagnosetext für Betrieb und Logs. HTTP-Statuscodes: `400` Client-Fehler, `401` fehlende/ungültige Auth, `403` unzureichende Rechte, `404` nicht gefunden, `409` fachlicher Konflikt (OCC, keine offene Kassensitzung, ausstehende Signaturen), `413` Request-Body zu groß, `429` Rate-Limit, `500` Server-Fehler.
 
+**Lange Handler (Schreibfrist):** Die Schreibfrist des Servers (`WriteTimeout`, 10 s, `backend/app/app.go`) ist ein absoluter Zeitpunkt. Sie beginnt beim Lesen der Request-Header und läuft während des ganzen Handlers. Ein länger arbeitender Handler schreibt in eine abgelaufene Frist; das Ergebnis erreicht den Client nie. Bei der TSE-Einrichtung gingen so PUK und Admin-PIN verloren, denn sie werden genau einmal ausgeliefert und nirgends gespeichert. Ein langlaufender Handler ruft `helper.ExtendWriteDeadline` deshalb zweimal auf: als erste Anweisung und unmittelbar vor dem Schreiben der Antwort. So erhält auch eine frühe Ablehnung dieses Budget, und das Schreiben hat ein eigenes. Lässt sich die Frist nicht setzen (z. B. `httptest.ResponseRecorder`), wird nur gewarnt.
+
 **Bereichsgliederung:**
 
 | Bereich        | Pfad-Präfix         | Auth                                                    |

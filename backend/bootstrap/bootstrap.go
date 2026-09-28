@@ -41,10 +41,8 @@ type Repository interface {
 	UpdateUser(ctx context.Context, u user.User) error
 }
 
-// EnsureInitialAdmin entscheidet aus dem DB-Zustand genau eine Aktion:
-//   - leeres Repo → create: aktiver admin mit frischem 6-Ziffern-OTP, kein Passwort.
-//   - genau ein Benutzer, dieser ist admin ohne Passwort → rotate: neues OTP, Zähler 0.
-//   - jeder andere Zustand → skip: keine Änderung (offenes Service-OTP nie antasten).
+// EnsureInitialAdmin creates an active, password-less admin with a fresh 6-digit OTP in an empty repo, or rotates the OTP of a sole password-less admin.
+// Any other state is skipped, so an open Service-OTP is never touched.
 func EnsureInitialAdmin(ctx context.Context, repo Repository) (Result, error) {
 	count, err := repo.CountUsers(ctx)
 	if err != nil {
