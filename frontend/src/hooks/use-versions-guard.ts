@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { useAnzahlOffeneVorgaenge } from '@/hooks/use-anzahl-offene-vorgaenge'
 import { useVersion } from '@/hooks/use-version'
-import { seiteNeuLaden } from '@/lib/reload'
+import { Seite } from '@/lib/reload'
 import { CLIENT_VERSION, istVersionsabweichung } from '@/lib/version'
 
 /**
@@ -31,12 +31,13 @@ export type VersionsZustand = 'aus' | 'laedt' | 'wartet' | 'gebremst'
  * meldet die neue Version, während der alte Container das alte Bundle
  * ausliefert. Ein Limit je Seitenleben hilft nicht — jeder Reload beginnt eines.
  */
-function bremseAuswerten(): boolean {
+function bremseAuswerten(clientVersion: string): boolean {
   const zielVersion = sessionStorage.getItem(RELOAD_VERMERK_SCHLUESSEL)
-  return zielVersion !== null && zielVersion !== CLIENT_VERSION
+  return zielVersion !== null && zielVersion !== clientVersion
 }
 
 function bestimmeVersionsZustand(
+  clientVersion: string,
   serverVersion: string | undefined,
   gebremst: boolean,
   anzahlOffeneVorgaenge: number,
@@ -44,7 +45,7 @@ function bestimmeVersionsZustand(
   // undefined heißt: keine beantwortete Abfrage. Ein Serverneustart lässt sie
   // scheitern und darf keinen Reload erzwingen, nur ein Versionswechsel.
   if (serverVersion === undefined) return 'aus'
-  if (!istVersionsabweichung(CLIENT_VERSION, serverVersion)) return 'aus'
+  if (!istVersionsabweichung(clientVersion, serverVersion)) return 'aus'
   if (gebremst) return 'gebremst'
   if (anzahlOffeneVorgaenge > 0) return 'wartet'
   return 'laedt'
@@ -56,10 +57,13 @@ function bestimmeVersionsZustand(
  * `wartet`, bis der letzte Vorgang abgeschlossen oder verworfen ist. Ausgelöst
  * wird im Effekt, denn ein Reload ist eine Nebenwirkung.
  */
-export function useVersionsGuard(): VersionsZustand {
+export function useVersionsGuard(
+  // Tests pass a release version; the test build's `dev` silences the comparison.
+  clientVersion: string = CLIENT_VERSION,
+): VersionsZustand {
   const serverVersion = useVersion()
   const anzahlOffeneVorgaenge = useAnzahlOffeneVorgaenge()
-  const [gebremst, setGebremst] = useState(bremseAuswerten)
+  const [gebremst, setGebremst] = useState(() => bremseAuswerten(clientVersion))
   const bereitsGeladen = useRef(false)
 
   // Einigkeit löst den Vermerk ein, gleich welche Version in ihm steht: Nach
@@ -68,7 +72,7 @@ export function useVersionsGuard(): VersionsZustand {
   // für die Lebensdauer des Tabs stehen und entschärfte jede spätere Erkennung.
   const einigMitServer =
     serverVersion !== undefined &&
-    !istVersionsabweichung(CLIENT_VERSION, serverVersion)
+    !istVersionsabweichung(clientVersion, serverVersion)
 
   // Mit dem Vermerk fällt auch das eingefrorene Flag: In der als App
   // installierten jotti bleibt ein Tab wochenlang offen, ein zweites
@@ -78,6 +82,7 @@ export function useVersionsGuard(): VersionsZustand {
   if (gebremst && einigMitServer) setGebremst(false)
 
   const versionsZustand = bestimmeVersionsZustand(
+    clientVersion,
     serverVersion,
     gebremst,
     anzahlOffeneVorgaenge,
@@ -98,7 +103,7 @@ export function useVersionsGuard(): VersionsZustand {
 
     bereitsGeladen.current = true
     sessionStorage.setItem(RELOAD_VERMERK_SCHLUESSEL, serverVersion)
-    seiteNeuLaden()
+    Seite.neuLaden()
   }, [versionsZustand, serverVersion])
 
   return versionsZustand

@@ -1,10 +1,8 @@
 import '@testing-library/jest-dom/vitest'
 
-// jsdom implementiert window.matchMedia nicht; useIsMobile ruft es im Effect
-// auf. Der Hook liest die Breite über window.innerWidth (jsdom: 1024px ≥ lg →
-// Desktop), nicht über `matches`; Tests fürs Handy-Layout mocken useIsMobile
-// auf true. `prefers-reduced-motion` wird bewusst als aktiv gemeldet, damit
-// useCountUp im Test sofort den Endwert liefert statt zu animieren.
+// jsdom lacks window.matchMedia, which useIsMobile subscribes to; the hook reads
+// window.innerWidth instead (set it with setViewportWidth). Reduced motion reports
+// as active, so useCountUp returns its end value at once.
 if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
   window.matchMedia = (query: string): MediaQueryList =>
     ({

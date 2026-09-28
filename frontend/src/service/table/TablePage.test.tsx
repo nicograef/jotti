@@ -13,7 +13,7 @@ import type { Position } from './Bestellung'
 import { TablePage } from './TablePage'
 import type { TischSession } from './Tisch'
 
-// Positions-IDs sind UUIDs; `nr` macht sie im Test unterscheidbar.
+// Position ids are UUIDs; `nr` keeps them apart.
 function position(nr: number): Position {
   return {
     positionId: `00000000-0000-4000-8000-${String(nr).padStart(12, '0')}`,
@@ -63,7 +63,7 @@ vi.mock('sonner', () => ({
 const getTischState = vi.fn<() => TischSession>()
 const getTischHistorie = vi.fn<() => unknown[]>()
 
-// Tischdaten, Historie und Produkte; ohne `produkte` ist das Sortiment leer.
+// Table state, history and products; without `produkte` the range is empty.
 function backend(produkte: Produkt[] = []): FakeBackend {
   return new FakeBackend()
     .respond('service/get-tisch-state', getTischState)
@@ -89,8 +89,8 @@ beforeEach(() => {
   // Handy-Pfad: Kopfbereich und Fehlerzustand sind in beiden Layouts gleich;
   // der Split selbst ist manuelle Abnahme.
   setViewportWidth(375)
-  // Die eigene Servicekraft (für die „Meine Positionen"-Filterung in Zahlung);
-  // Serviceleitung, damit der Storno-/Umbuchen-Pfad der Historie greift.
+  // User 1 owns the positions ("Meine auswählen" in Zahlung); Serviceleitung
+  // unlocks the Storno and Umbuchen paths of the history.
   signIn({ userId: 1, role: 'serviceleitung' })
 })
 

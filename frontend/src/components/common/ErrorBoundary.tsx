@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
-import { seiteNeuLaden } from '@/lib/reload'
+import { Seite } from '@/lib/reload'
 
 interface Props {
   children: ReactNode
@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
               Ein unerwarteter Fehler ist aufgetreten. Bitte lade die Seite neu.
             </p>
             <button
-              onClick={seiteNeuLaden}
+              onClick={Seite.neuLaden}
               className="rounded-md bg-primary px-6 py-2 text-primary-foreground hover:bg-primary/90"
             >
               Neu laden

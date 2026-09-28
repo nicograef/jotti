@@ -1,22 +1,51 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import type { VersionsZustand } from '@/hooks/use-versions-guard'
-import { seiteNeuLaden } from '@/lib/reload'
+import { RELOAD_VERMERK_SCHLUESSEL } from '@/hooks/use-versions-guard'
+import { Seite } from '@/lib/reload'
+import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import { VersionsHinweis } from './VersionsHinweis'
 
-const guardState = vi.hoisted<{ versionsZustand: VersionsZustand }>(() => ({
-  versionsZustand: 'aus',
-}))
+// The client runs as a real release; /health reports `serverVersion`.
+const CLIENT = 'v1.2.3'
+let serverVersion = CLIENT
 
-vi.mock('@/hooks/use-versions-guard', () => ({
-  useVersionsGuard: () => guardState.versionsZustand,
-}))
+// Waits until /health has answered, so the guard has decided on its state.
+async function renderHinweis(
+  umgebung: (hinweis: ReactNode) => ReactNode = (hinweis) => hinweis,
+) {
+  const backend = new FakeBackend().respond('health', () => ({
+    version: serverVersion,
+  }))
+  const { queryClient } = renderWithBackend(
+    <>{umgebung(<VersionsHinweis clientVersion={CLIENT} />)}</>,
+    backend,
+  )
+  await waitFor(() => {
+    expect(backend.bodies('health')).toHaveLength(1)
+    expect(queryClient.isFetching()).toBe(0)
+  })
+}
 
-vi.mock('@/lib/reload', () => ({ seiteNeuLaden: vi.fn() }))
+// A different server release with an open Vorgang holds the reload back.
+function wartet() {
+  serverVersion = 'v1.2.4'
+  VorgangsRegisterSingleton.anmelden()
+}
+
+// A reload that already aimed at the server release brought no new bundle.
+function gebremst() {
+  serverVersion = 'v1.2.4'
+  sessionStorage.setItem(RELOAD_VERMERK_SCHLUESSEL, 'v1.2.4')
+}
+
+let neuLaden: ReturnType<typeof vi.spyOn>
 
 // Vitest verarbeitet kein CSS. Ohne genau diese eine Deklaration — die, die
 // Tailwind für `pointer-events-auto` erzeugt — könnte kein Test sehen, ob der
@@ -26,33 +55,38 @@ tailwindErsatz.textContent = '.pointer-events-auto { pointer-events: auto }'
 document.head.append(tailwindErsatz)
 
 beforeEach(() => {
-  guardState.versionsZustand = 'aus'
-  vi.mocked(seiteNeuLaden).mockClear()
+  serverVersion = CLIENT
+  sessionStorage.clear()
+  VorgangsRegisterSingleton.zuruecksetzen()
+  neuLaden = vi.spyOn(Seite, 'neuLaden').mockImplementation(() => undefined)
 })
 
 afterEach(() => {
   cleanup()
+  vi.restoreAllMocks()
 })
 
 describe('VersionsHinweis', () => {
-  it('bleibt aus, solange der Guard keinen Anlass sieht', () => {
-    render(<VersionsHinweis />)
+  it('bleibt aus, solange der Guard keinen Anlass sieht', async () => {
+    await renderHinweis()
 
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  it('bleibt während des Reloads aus', () => {
-    guardState.versionsZustand = 'laedt'
+  it('bleibt während des Reloads aus', async () => {
+    serverVersion = 'v1.2.4'
 
-    render(<VersionsHinweis />)
+    await renderHinweis()
+
+    expect(neuLaden).toHaveBeenCalledTimes(1)
 
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  it('erklärt beim Warten, was den Reload noch aufhält', () => {
-    guardState.versionsZustand = 'wartet'
+  it('erklärt beim Warten, was den Reload noch aufhält', async () => {
+    wartet()
 
-    render(<VersionsHinweis />)
+    await renderHinweis()
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Der Server läuft mit einer anderen Version als diese Seite. Bitte den laufenden Vorgang abschließen oder verwerfen — danach lädt sich die Seite von selbst neu.',
@@ -62,10 +96,10 @@ describe('VersionsHinweis', () => {
   })
 
   // Gebremst lädt dieser Client nicht mehr von selbst; die Zusage wäre gelogen.
-  it('verspricht gebremst kein automatisches Neuladen mehr', () => {
-    guardState.versionsZustand = 'gebremst'
+  it('verspricht gebremst kein automatisches Neuladen mehr', async () => {
+    gebremst()
 
-    render(<VersionsHinweis />)
+    await renderHinweis()
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Der Server läuft mit einer anderen Version als diese Seite. Das automatische Neuladen hat nicht geklappt — bitte von Hand neu laden.',
@@ -73,28 +107,28 @@ describe('VersionsHinweis', () => {
   })
 
   it('lädt gebremst auf Knopfdruck neu', async () => {
-    guardState.versionsZustand = 'gebremst'
+    gebremst()
 
-    render(<VersionsHinweis />)
+    await renderHinweis()
     await userEvent.click(
       screen.getByRole('button', { name: 'Jetzt neu laden' }),
     )
 
-    expect(seiteNeuLaden).toHaveBeenCalledTimes(1)
+    expect(neuLaden).toHaveBeenCalledTimes(1)
   })
 
   // Wäre der Hinweis ein modaler Dialog, sperrte er genau die Bedienung aus,
   // auf die er wartet.
   it('lässt den laufenden Vorgang weiter bedienen und ist nicht wegklickbar', async () => {
-    guardState.versionsZustand = 'wartet'
+    wartet()
     const kassieren = vi.fn()
 
-    render(
+    await renderHinweis((hinweis) => (
       <div>
-        <VersionsHinweis />
+        {hinweis}
         <button onClick={kassieren}>Kassieren</button>
-      </div>,
-    )
+      </div>
+    ))
 
     await userEvent.keyboard('{Escape}')
     await userEvent.click(screen.getByRole('button', { name: 'Kassieren' }))
@@ -108,22 +142,22 @@ describe('VersionsHinweis', () => {
   // Die Rollen-Abfrage braucht `hidden`, weil Radix denselben Teilbaum
   // zusätzlich `aria-hidden` setzt.
   it('bleibt gebremst auch neben einem offenen Modal bedienbar', async () => {
-    guardState.versionsZustand = 'gebremst'
+    gebremst()
 
-    render(
+    await renderHinweis((hinweis) => (
       <>
-        <VersionsHinweis />
+        {hinweis}
         <Dialog open>
           <DialogContent>
             <DialogTitle>Zählhilfe</DialogTitle>
           </DialogContent>
         </Dialog>
-      </>,
-    )
+      </>
+    ))
     await userEvent.click(
       screen.getByRole('button', { name: 'Jetzt neu laden', hidden: true }),
     )
 
-    expect(seiteNeuLaden).toHaveBeenCalledTimes(1)
+    expect(neuLaden).toHaveBeenCalledTimes(1)
   })
 })

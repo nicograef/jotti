@@ -1,11 +1,9 @@
-import { QueryClientProvider } from '@tanstack/react-query'
-import { renderHook, waitFor } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import { waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { BackendError } from '@/lib/Backend'
-import { createQueryClient } from '@/lib/queryClient'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderHookWithBackend } from '@/test/render'
 
 import { useVersion, VERSIONSABFRAGE_INTERVALL_MS } from './use-version'
 
@@ -13,23 +11,10 @@ vi.mock('sonner', () => ({
   toast: { error: vi.fn() },
 }))
 
-const health = vi.hoisted(() => ({ getVersion: vi.fn() }))
-
-vi.mock('@/lib/HealthBackend', () => ({
-  HealthBackend: class {
-    getVersion = health.getVersion
-  },
-}))
-
 // Der Hook läuft gegen den echten QueryClient der Anwendung — nur so ist
 // belegt, dass sein meta-Flag den globalen Fehler-Toast wirklich unterdrückt.
-function renderUseVersion() {
-  const queryClient = createQueryClient()
-  return renderHook(() => useVersion(), {
-    wrapper: ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    ),
-  })
+function renderUseVersion(backend: FakeBackend) {
+  return renderHookWithBackend(() => useVersion(), backend)
 }
 
 beforeEach(() => {
@@ -44,31 +29,31 @@ afterEach(() => {
 
 describe('useVersion', () => {
   it('fragt die Version alle 30 Sekunden erneut ab', async () => {
-    health.getVersion.mockResolvedValue('v1.2.3')
+    const backend = new FakeBackend().respond('health', { version: 'v1.2.3' })
     vi.useFakeTimers()
 
-    const { result } = renderUseVersion()
+    const { result } = renderUseVersion(backend)
 
     await vi.advanceTimersByTimeAsync(0)
     expect(result.current).toBe('v1.2.3')
-    expect(health.getVersion).toHaveBeenCalledTimes(1)
+    expect(backend.bodies('health')).toHaveLength(1)
 
     await vi.advanceTimersByTimeAsync(VERSIONSABFRAGE_INTERVALL_MS)
-    expect(health.getVersion).toHaveBeenCalledTimes(2)
+    expect(backend.bodies('health')).toHaveLength(2)
 
     await vi.advanceTimersByTimeAsync(VERSIONSABFRAGE_INTERVALL_MS)
-    expect(health.getVersion).toHaveBeenCalledTimes(3)
+    expect(backend.bodies('health')).toHaveLength(3)
   })
 
   // Im Funkloch schlägt die Abfrage dauerhaft fehl; ein Toast alle 30 Sekunden
   // wäre eine Verschlechterung, niemand kann darauf reagieren.
   it('erzeugt bei einem Fehlschlag keinen Fehler-Toast', async () => {
-    health.getVersion.mockRejectedValue(new BackendError(400, 'bad_request'))
+    const backend = new FakeBackend().fail('health')
 
-    const { result } = renderUseVersion()
+    const { result } = renderUseVersion(backend)
 
     await waitFor(() => {
-      expect(health.getVersion).toHaveBeenCalled()
+      expect(backend.bodies('health')).toHaveLength(1)
     })
     await waitFor(() => {
       expect(console.error).toHaveBeenCalled()

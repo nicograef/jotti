@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { useVersionsGuard } from '@/hooks/use-versions-guard'
-import { seiteNeuLaden } from '@/lib/reload'
+import { Seite } from '@/lib/reload'
+import { CLIENT_VERSION } from '@/lib/version'
 
 /**
  * Hinweis zum Versions-Handshake — sichtbar nur, solange ein Vorgang offen ist
@@ -15,8 +16,12 @@ import { seiteNeuLaden } from '@/lib/reload'
  * fixierte Kopfleisten). Der Text nennt keine Richtung — nach einem Rollback
  * meldet der Handshake auch eine ältere Serverversion.
  */
-export function VersionsHinweis() {
-  const versionsZustand = useVersionsGuard()
+export function VersionsHinweis({
+  clientVersion = CLIENT_VERSION,
+}: {
+  clientVersion?: string
+}) {
+  const versionsZustand = useVersionsGuard(clientVersion)
 
   if (versionsZustand === 'aus' || versionsZustand === 'laedt') return null
 
@@ -43,7 +48,7 @@ export function VersionsHinweis() {
             Der Server läuft mit einer anderen Version als diese Seite. Das
             automatische Neuladen hat nicht geklappt — bitte von Hand neu laden.
           </p>
-          <Button variant="secondary" size="sm" onClick={seiteNeuLaden}>
+          <Button variant="secondary" size="sm" onClick={Seite.neuLaden}>
             Jetzt neu laden
           </Button>
         </>

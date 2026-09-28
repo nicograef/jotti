@@ -1,8 +1,9 @@
 /**
- * Eigene Funktion statt `window.location.reload()` am Aufrufort, weil jsdom
- * die Methode nicht ersetzen lässt („Cannot redefine property"). Nur über ein
- * eigenes Modul ist der erzwungene Reload im Test beobachtbar.
+ * An object instead of calling `window.location.reload()` in place: jsdom does
+ * not let tests replace that method, but `vi.spyOn(Seite, 'neuLaden')` works.
  */
-export function seiteNeuLaden(): void {
-  window.location.reload()
+export const Seite = {
+  neuLaden: (): void => {
+    window.location.reload()
+  },
 }
