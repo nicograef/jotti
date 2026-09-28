@@ -185,7 +185,7 @@ prod-restore: ## Datenbank aus Backup wiederherstellen (destruktiv, mit Bestäti
 prod-backup-verify: ## Backup probeweise in Wegwerf-Postgres einspielen (prüft Wiederherstellbarkeit)
 	./scripts/prod-backup-verify.sh
 
-prod-harden: ## Optionale Server-Härtung (ufw-Firewall, fail2ban) — opt-in, idempotent
+prod-harden: ## Optionale Server-Härtung (ufw, fail2ban, unattended-upgrades, SSH nur per Schlüssel) — opt-in, idempotent
 	./scripts/prod-harden.sh
 
 # jotti.rocks Deployment
