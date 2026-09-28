@@ -132,9 +132,9 @@ if ! command -v sqlc >/dev/null 2>&1; then
   fatal "sqlc installation failed. Ensure '$GO_BIN_PATH' is on PATH and rerun."
 fi
 
-# Matches CI's version: .github/workflows/ci.yml (Install golang-migrate
-# steps). The postgres build tag adds the one database driver jotti needs; the
-# file source behind `-path` is always built in.
+# Matches MIGRATE_VERSION in database/migrate/Dockerfile, which CI runs. The
+# postgres build tag adds the one database driver jotti needs; the file source
+# behind `-path` is always built in.
 MIGRATE_VERSION="v4.20.1"
 info "Ensuring golang-migrate ($MIGRATE_VERSION) is available..."
 INSTALLED_MIGRATE="$(installed_mod_version migrate github.com/golang-migrate/migrate/v4)"

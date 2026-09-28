@@ -478,14 +478,14 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Install golang-migrate
-        run: |
-          curl -fsSL "https://github.com/golang-migrate/migrate/releases/download/v4.20.1/migrate.linux-amd64.tar.gz" \
-            | tar -xz -C /usr/local/bin
+      - name: Build the migrate image
+        working-directory: .
+        run: docker build -t jotti-migrate:ci -f database/migrate/Dockerfile database
 
       - name: Run database migrations up
-        working-directory: ./database
-        run: migrate -path ./migrations -database "postgres://admin:admin@localhost:5432/jotti?sslmode=disable" up
+        run: |
+          docker run --rm --network host jotti-migrate:ci \
+            /usr/local/bin/migrate -path /migrations -database "postgres://admin:admin@localhost:5432/jotti?sslmode=disable" up
 
       - name: Run integration tests
         env:
@@ -569,13 +569,13 @@ jobs:
             -e JOTTI_ALLOW_SEED=1 \
             "ghcr.io/nicograef/jotti-backend:${PREVIOUS_VERSION}" seed
 
-      - name: Install golang-migrate
-        run: |
-          curl -fsSL "https://github.com/golang-migrate/migrate/releases/download/v4.20.1/migrate.linux-amd64.tar.gz" \
-            | tar -xz -C /usr/local/bin
+      - name: Build the current migrate image
+        run: docker build -t jotti-migrate:ci -f database/migrate/Dockerfile database
 
       - name: Migrate to the current checkout's schema
-        run: migrate -path database/migrations -database "$DATABASE_URL" up
+        run: |
+          docker run --rm --network host jotti-migrate:ci \
+            /usr/local/bin/migrate -path /migrations -database "$DATABASE_URL" up
 
       - name: Build current backend
         working-directory: ./backend
