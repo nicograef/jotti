@@ -15,10 +15,7 @@ const (
 	regelDateinameFremdformat = "dateiname-fremdformat"
 )
 
-// pruefePaketpflichtdateien: index.xml und die referenzierte GDPdU-DTD sind zwingend.
-//
-// Referenz: DSFinV-K 2.4 Tz. 1 „Erstellung der index.xml“ und die GoBD-Anlage
-// „Ergänzende Informationen zur Datenträgerüberlassung“ (Beschreibungsstandard).
+// pruefePaketpflichtdateien requires index.xml and the GDPdU DTD it references; see docs/compliance.md §6.2.
 func pruefePaketpflichtdateien(dateien map[string][]byte) []Befund {
 	var befunde []Befund
 	if _, ok := dateien[indexDatei]; !ok {
@@ -36,12 +33,8 @@ func pruefePaketpflichtdateien(dateien map[string][]byte) []Befund {
 	return befunde
 }
 
-// pruefeDateinamen: DSFinV-K-CSVs sind englisch, kleingeschrieben und liegen flach im
-// Wurzelverzeichnis; außer index.xml, DTD und *.csv gehört nichts ins Archiv.
-//
-// Referenz: DSFinV-K 2.4 Anhänge A–E, darunter die Dateiübersicht in Anhang E (csv-Dateinamen wie
-// cashpointclosing.csv, transactions.csv …), durchgängig kleingeschrieben und englisch.
-// Die GDPdU-URL-Regel lässt nur relative Namen zu — hier als flache Wurzeldatei geprüft.
+// pruefeDateinamen allows only index.xml, the DTD and lowercase *.csv files, flat in the archive root.
+// See docs/compliance.md §6.2.
 func pruefeDateinamen(dateien map[string][]byte) []Befund {
 	var befunde []Befund
 	for _, name := range sortierteNamen(dateien) {
@@ -55,10 +48,9 @@ func pruefeDateinamen(dateien map[string][]byte) []Befund {
 		}
 		switch {
 		case name == indexDatei, name == dtdDatei:
-			// Pflicht-Beschreibungsdateien: erlaubt.
+			// Mandatory description files.
 		case strings.HasSuffix(name, csvEndung):
-			// Groß-/Kleinschreibung wird bewusst nicht normalisiert: eine
-			// ".CSV"-Datei ist bereits ein Dateinamensverstoß.
+			// Case is deliberately not normalised: a ".CSV" file already violates the naming rule.
 			if !istKleingeschrieben(name) {
 				befunde = append(befunde, Befund{
 					Datei:   name,
@@ -77,8 +69,7 @@ func pruefeDateinamen(dateien map[string][]byte) []Befund {
 	return befunde
 }
 
-// istKleingeschrieben prüft auf ASCII-Großbuchstaben; die amtlichen Dateinamen bestehen
-// nur aus Kleinbuchstaben, Ziffern, Unterstrich und dem Punkt der Endung.
+// istKleingeschrieben checks ASCII only: official names use just lowercase letters, digits, '_' and '.'.
 func istKleingeschrieben(name string) bool {
 	for i := 0; i < len(name); i++ {
 		if name[i] >= 'A' && name[i] <= 'Z' {

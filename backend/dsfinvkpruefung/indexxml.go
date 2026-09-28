@@ -26,7 +26,7 @@ const (
 
 type indexSpalte struct {
 	Name    string
-	Numeric bool // AlphaNumeric vs. Numeric (bestimmt das Dezimalformat der CSV)
+	Numeric bool // Numeric columns must use the decimal comma in the CSV
 }
 
 type indexTabelle struct {
@@ -71,22 +71,16 @@ type xmlColumn struct {
 	Numeric      *struct{} `xml:"Numeric"`
 }
 
-// pruefeIndexXML parst die index.xml und prüft die DTD-Struktur- und DSFinV-K-
-// Formatregeln selbst (kein Fremd-Parser). Rückgabe: die geparsten Tabellen für die
-// CSV-Prüfung plus die Befunde.
-//
-// Referenz: gdpdu-01-09-2004.dtd (im Archiv beiliegend) und DSFinV-K 2.4 Tz. 1
-// „Erstellung der index.xml“.
+// pruefeIndexXML checks index.xml against gdpdu-01-09-2004.dtd and the DSFinV-K 2.4 format rules.
 func pruefeIndexXML(inhalt []byte) ([]indexTabelle, []Befund) {
 	if inhalt == nil {
-		// Fehlende index.xml meldet bereits pruefePaketpflichtdateien.
+		// pruefePaketpflichtdateien reports the missing index.xml.
 		return nil, nil
 	}
 
 	var befunde []Befund
 
-	// Ohne DOCTYPE-Referenz auf die beiliegende DTD ist die Beschreibung nicht an ihre
-	// Grammatik gebunden.
+	// Without a DOCTYPE naming the bundled DTD, the description is not bound to its grammar.
 	if !bytes.Contains(inhalt, []byte(doctypeMarker)) {
 		befunde = append(befunde, Befund{
 			Datei:   indexDatei,
@@ -145,7 +139,7 @@ func pruefeIndexXML(inhalt []byte) ([]indexTabelle, []Befund) {
 func pruefeTabelleDeklaration(t *xmlTable) (indexTabelle, []Befund) {
 	var befunde []Befund
 
-	// DTD: <!ELEMENT Table (URL, Name?, …)> — URL ist zwingend.
+	// DTD: <!ELEMENT Table (URL, Name?, …)>, so URL is mandatory.
 	if t.URL == "" {
 		befunde = append(befunde, Befund{
 			Datei:   indexDatei,
@@ -167,7 +161,7 @@ func pruefeTabelleDeklaration(t *xmlTable) (indexTabelle, []Befund) {
 		tab.rangeFrom = t.Range.From
 	}
 
-	// DTD: <!ELEMENT VariableLength (…, VariableColumn+ …)> — mindestens eine Spalte.
+	// DTD: <!ELEMENT VariableLength (…, VariableColumn+ …)>, so at least one column.
 	if len(t.VariableLength.Columns) == 0 {
 		befunde = append(befunde, Befund{
 			Datei:   indexDatei,
@@ -185,7 +179,7 @@ func pruefeTabelleDeklaration(t *xmlTable) (indexTabelle, []Befund) {
 			continue
 		}
 		// DTD: <!ELEMENT VariableColumn (Name, …, (Numeric | (AlphaNumeric, MaxLength?) | Date) …)>
-		// Genau einer der Datentypen muss angegeben sein.
+		// Exactly one data type is required.
 		if (c.Numeric == nil) == (c.AlphaNumeric == nil) {
 			befunde = append(befunde, Befund{
 				Datei:   indexDatei,
@@ -200,12 +194,8 @@ func pruefeTabelleDeklaration(t *xmlTable) (indexTabelle, []Befund) {
 	return tab, befunde
 }
 
-// pruefeTabelleFormat prüft die DSFinV-K-Formatvorgaben einer Tabellendeklaration.
-//
-// Referenz: DSFinV-K 2.4 Tz. 1 „Erstellung der index.xml“ und die amtliche index.xml
-// (docs/rechtsquellen/…/DSFinV-K-2.4/02_index.xml): DecimalSymbol „,“,
-// DigitGroupingSymbol „.“, ColumnDelimiter „;“, RecordDelimiter CRLF (&#xD;&#xA;),
-// UTF8, TextEncapsulator „"“, Range/From 2 (Kopfzeile in Zeile 1).
+// pruefeTabelleFormat checks a table declaration against the official index.xml
+// (docs/rechtsquellen/technik-spezifikationen/DSFinV-K-2.4/02_index.xml); see docs/compliance.md §6.2.
 func pruefeTabelleFormat(tab indexTabelle) []Befund {
 	var befunde []Befund
 	add := func(regel, meldung string) {

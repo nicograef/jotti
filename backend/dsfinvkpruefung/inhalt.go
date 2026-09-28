@@ -7,9 +7,7 @@ import (
 	"strings"
 )
 
-// Regel-Kennungen der Inhaltsprüfung. Sie ergänzen die Strukturregeln (csv.go,
-// indexxml.go, paket.go) um fachliche Konsistenzregeln, die nicht aus der reinen
-// Dateiform, sondern aus dem Zusammenspiel der DSFinV-K-Tabellen folgen.
+// Content rules follow from how the DSFinV-K tables relate, not from the file form.
 const (
 	regelStornoReferenz      = "storno-referenz"
 	regelStornoBonStorno     = "storno-bon-storno-kennzeichen"
@@ -21,26 +19,19 @@ const (
 	regelAbrechnungskreis    = "abrechnungskreis-fehlt"
 )
 
-// Feste DSFinV-K-Werte, gegen die die Inhaltsregeln prüfen (Anhang B/C/E, Anlage 2).
+// Fixed DSFinV-K values the content rules check against (Anhang B/C/E, Anlage 2).
 const (
-	bonTypBeleg             = "Beleg"          // Anhang B: abgeschlossener Kassenvorgang (Zahlung/Warenrücknahme)
-	bonTypSonstige          = "AVSonstige"     // Anhang B: sonstiger anderer Vorgang (Tagesabschluss)
-	refTypTransaktion       = "Transaktion"    // Anhang E: Referenz innerhalb der DSFinV-K
-	gvTypUmsatz             = "Umsatz"         // Anhang C: realisierter Umsatz (grenzt Storno von Bargeldbewegung ab)
-	bonStornoKein           = "0"              // BON_STORNO: keine Vorgangsaufhebung (jotti-Negativdarstellung)
-	tagesabschlussName      = "Tagesabschluss" // amtlich verpflichtender BON_NAME des AVSonstige-Abschlussbons
-	ustSchluesselRegel      = "1"              // Anlage 2: 19 % Regelsteuersatz
-	ustSchluesselErmaessigt = "2"              // Anlage 2: 7 % ermäßigter Steuersatz
+	bonTypBeleg             = "Beleg"          // Anhang B: completed transaction (payment, return)
+	bonTypSonstige          = "AVSonstige"     // Anhang B: other transaction (Tagesabschluss)
+	refTypTransaktion       = "Transaktion"    // Anhang E: reference within the DSFinV-K
+	gvTypUmsatz             = "Umsatz"         // Anhang C: realised revenue; separates a Storno from a cash movement
+	bonStornoKein           = "0"              // BON_STORNO: no voiding; jotti uses the negative representation
+	tagesabschlussName      = "Tagesabschluss" // jotti's BON_NAME for the AVSonstige closing bon
+	ustSchluesselRegel      = "1"              // Anlage 2: 19 % standard rate
+	ustSchluesselErmaessigt = "2"              // Anlage 2: 7 % reduced rate
 )
 
-// pruefeInhalt wendet die fachlichen Inhaltsregeln auf die bereits geparsten
-// Tabellen an. Es setzt auf denselben index.xml-getriebenen Tabellenschnitt wie
-// die Strukturprüfung: nur deklarierte-und-vorhandene CSVs mit passender Kopfzeile
-// werden inhaltlich betrachtet (die Strukturprüfung hat Format-/Kopfzeilenfehler
-// bereits gemeldet). Ein leeres Ergebnis bedeutet: inhaltlich konsistent.
-//
-// Referenz: DSFinV-K 2.4 (Anhang B Vorgangstypen, Anhang C Geschäftsvorfalltypen,
-// Anhang E Referenzen, Anlage 2 USt-Schlüssel) sowie docs/compliance.md Abschnitt 6.4 (Bediener) und 6.6 (Storno).
+// pruefeInhalt reads only declared, present CSVs with a matching header; the structure checks report the rest.
 func pruefeInhalt(dateien map[string][]byte, tabellen []indexTabelle) []Befund {
 	daten := ladeTabellendaten(dateien, tabellen)
 
@@ -54,19 +45,13 @@ func pruefeInhalt(dateien map[string][]byte, tabellen []indexTabelle) []Befund {
 	return befunde
 }
 
-// tabellendaten ist die zeilenweise, spaltenadressierbare Sicht einer geparsten
-// CSV: die Spaltennamen aus der index.xml auf ihren Index abgebildet und die
-// Datenzeilen (ohne Kopfzeile) als Felder. Fehlt eine Tabelle oder weicht ihre
-// Kopfzeile ab, ist sie hier schlicht nicht enthalten (die Strukturprüfung hat
-// das bereits gemeldet).
+// tabellendaten is a parsed CSV addressed by column name; zeilen excludes the header.
 type tabellendaten struct {
 	spalten map[string]int
 	zeilen  [][]string
 }
 
-// wert liefert den Feldwert einer Datenzeile für den gegebenen Spaltennamen.
-// Existiert die Spalte nicht oder ist der Index außerhalb der Zeile, liefert es
-// den leeren String — die Aufrufer prüfen nur vorhandene Tabellen.
+// wert returns "" for an unknown column or a short row.
 func (t tabellendaten) wert(zeile []string, spalte string) string {
 	idx, ok := t.spalten[spalte]
 	if !ok || idx >= len(zeile) {
@@ -75,10 +60,8 @@ func (t tabellendaten) wert(zeile []string, spalte string) string {
 	return zeile[idx]
 }
 
-// ladeTabellendaten parst alle deklarierten-und-vorhandenen CSVs mit passender
-// Kopfzeile in die zeilenweise Sicht. Der Parser ist derselbe wie in der
-// Strukturprüfung (splitFelder, zerlegeCRLF); Tabellen mit abweichender Kopfzeile
-// bleiben außen vor, weil eine spaltenweise Inhaltsprüfung dort nicht greift.
+// ladeTabellendaten skips tables with a mismatched header and rows with a wrong field count;
+// the structure checks report both.
 func ladeTabellendaten(dateien map[string][]byte, tabellen []indexTabelle) map[string]tabellendaten {
 	out := make(map[string]tabellendaten, len(tabellen))
 	for _, tab := range tabellen {
@@ -103,7 +86,7 @@ func ladeTabellendaten(dateien map[string][]byte, tabellen []indexTabelle) map[s
 		for i := 1; i < len(zeilen); i++ {
 			felder := splitFelder(zeilen[i])
 			if len(felder) != len(erwartet) {
-				continue // Feldanzahl-Fehler meldet bereits die Strukturprüfung.
+				continue
 			}
 			daten.zeilen = append(daten.zeilen, felder)
 		}
@@ -112,24 +95,9 @@ func ladeTabellendaten(dateien map[string][]byte, tabellen []indexTabelle) map[s
 	return out
 }
 
-// pruefeStornoReferenzen prüft die DSFinV-K-konforme Abbildung eines Stornos als
-// eigenen Geschäftsvorfall: Ein geldwirksamer Storno (Warenrücknahme, negativer
-// UMS_BRUTTO auf einem "Beleg"-Bon mit GV_TYP "Umsatz") muss (a) BON_STORNO = "0"
-// führen — jotti nutzt die zulässige Negativdarstellung statt der Vorgangsaufhebung
-// (BON_STORNO = "1") — und (b) in references.csv über REF_TYP "Transaktion" und ein
-// gefülltes REF_BON_ID auf den Ursprungsbeleg verweisen.
-//
-// Nicht-steuerbare Bargeldabflüsse (Geldtransit-Entnahme, Kassenfehlbetrag) sind
-// zwar ebenfalls negative "Beleg"-Bons, aber keine Stornos: sie tragen GV_TYP
-// "Geldtransit"/"DifferenzSollIst" (nicht "Umsatz") und referenzieren zulässig
-// keinen Ursprungsbeleg. Die Regel grenzt darüber ab.
-//
-// Referenz: DSFinV-K 2.4 Feldbeschreibung BON_STORNO (Anhang E, Datei „Bonkopf“,
-// "zweiter Datensatz mit umgekehrtem Vorzeichen"), Tz. 4.2.2/4.2.5 (Warenrücknahme
-// als Negativbeleg), Anhang C GV_TYP „Forderungsaufloesung“ (Auflösung einer
-// Forderung: REF_TYP "Transaktion", REF_Z_NR, REF_Z_KASSE_ID, REF_BON_ID) und
-// docs/compliance.md Abschnitt 6.6
-// (BON_STORNO bleibt in allen Fällen 0, jotti kennt keine Vorgangsaufhebung).
+// pruefeStornoReferenzen requires each Storno (negative "Beleg" bon with GV_TYP "Umsatz") to carry
+// BON_STORNO "0" and a "Transaktion" reference with REF_BON_ID. Negative cash outflows (Geldtransit,
+// DifferenzSollIst) are no Stornos and need no reference; see docs/compliance.md §6.6.
 func pruefeStornoReferenzen(daten map[string]tabellendaten) []Befund {
 	transactions, ok := daten["transactions.csv"]
 	if !ok {
@@ -148,14 +116,10 @@ func pruefeStornoReferenzen(daten map[string]tabellendaten) []Befund {
 			continue
 		}
 		bonID := transactions.wert(zeile, "BON_ID")
-		// Nur Umsatz-Belege sind Stornos; Bargeldabflüsse (Geldtransit,
-		// Kassenfehlbetrag) sind negative Belege ohne Referenzpflicht.
 		if !umsatzBons[bonID] {
 			continue
 		}
 
-		// (a) BON_STORNO muss "0" sein: jotti nutzt die Negativdarstellung, nie die
-		// Vorgangsaufhebung (docs/compliance.md Abschnitt 6.6).
 		if bonStorno := transactions.wert(zeile, "BON_STORNO"); bonStorno != bonStornoKein {
 			befunde = append(befunde, Befund{
 				Datei:   "transactions.csv",
@@ -164,8 +128,6 @@ func pruefeStornoReferenzen(daten map[string]tabellendaten) []Befund {
 			})
 		}
 
-		// (b) Es muss eine references.csv-Zeile mit REF_TYP "Transaktion" und
-		// gefülltem REF_BON_ID auf den Ursprungsbeleg geben.
 		if !hatTransaktionsReferenz(refDaten, referenzen[bonID]) {
 			befunde = append(befunde, Befund{
 				Datei:   "references.csv",
@@ -177,8 +139,7 @@ func pruefeStornoReferenzen(daten map[string]tabellendaten) []Befund {
 	return befunde
 }
 
-// referenzenNachBonID gruppiert die references.csv-Zeilen nach dem referenzierenden
-// BON_ID.
+// referenzenNachBonID groups references.csv rows by the referencing BON_ID.
 func referenzenNachBonID(refs tabellendaten) map[string][][]string {
 	out := map[string][][]string{}
 	for _, zeile := range refs.zeilen {
@@ -188,10 +149,7 @@ func referenzenNachBonID(refs tabellendaten) map[string][][]string {
 	return out
 }
 
-// umsatzBonsAusLines liefert die Menge der BON_IDs, deren Positionen in lines.csv
-// den GV_TYP "Umsatz" tragen — also die umsatzwirksamen Belege (Verkauf, Storno).
-// Bargeldbewegungen (Anfangsbestand, Geldtransit, Kassendifferenz) tragen einen
-// anderen GV_TYP und sind hier nicht enthalten.
+// umsatzBonsAusLines returns the BON_IDs with a GV_TYP "Umsatz" line: sales and Stornos, never cash movements.
 func umsatzBonsAusLines(lines tabellendaten) map[string]bool {
 	out := map[string]bool{}
 	for _, zeile := range lines.zeilen {
@@ -202,8 +160,6 @@ func umsatzBonsAusLines(lines tabellendaten) map[string]bool {
 	return out
 }
 
-// hatTransaktionsReferenz meldet, ob unter den Referenzzeilen eine mit REF_TYP
-// "Transaktion" und nicht-leerem REF_BON_ID ist.
 func hatTransaktionsReferenz(refs tabellendaten, zeilen [][]string) bool {
 	for _, zeile := range zeilen {
 		if refs.wert(zeile, "REF_TYP") == refTypTransaktion && refs.wert(zeile, "REF_BON_ID") != "" {
@@ -213,17 +169,8 @@ func hatTransaktionsReferenz(refs tabellendaten, zeilen [][]string) bool {
 	return false
 }
 
-// pruefeKombiSteueraufteilung stellt sicher, dass ein Bon mit gemischten Steuersätzen
-// (z. B. Essen 7 % + Getränk 19 % in einer Bestellung) tatsächlich getrennte
-// USt-Zeilen je Schlüssel führt — sowohl auf Positionsebene (lines_vat.csv) als
-// auch auf Bonkopfebene (transactions_vat.csv). Konkret: existiert in lines_vat.csv
-// für einen Bon sowohl der Schlüssel 7 % als auch 19 %, muss dieselbe Aufteilung
-// in transactions_vat.csv erscheinen (der Bonkopf darf die Positionsaufteilung nicht
-// zu einer Zeile verschmelzen).
-//
-// Referenz: DSFinV-K 2.4 Tz. 3.1.2.1/3.1.1.1 (Bonkopf_USt/Bonpos_USt: USt-Aufschlüsselung
-// je Schlüssel), Anlage 2 (USt-Schlüssel 1 = 19 %, 2 = 7 %) und docs/steuerrecht.md
-// (Kombi-Splitting Gastronomie).
+// pruefeKombiSteueraufteilung requires a bon with 7 % and 19 % in lines_vat.csv to keep both keys
+// in transactions_vat.csv. See docs/compliance.md §6.7.
 func pruefeKombiSteueraufteilung(daten map[string]tabellendaten) []Befund {
 	linesVat, okL := daten["lines_vat.csv"]
 	if !okL {
@@ -241,7 +188,7 @@ func pruefeKombiSteueraufteilung(daten map[string]tabellendaten) []Befund {
 	for _, bonID := range sortierteSchluessel(linesSchluessel) {
 		sk := linesSchluessel[bonID]
 		if !sk[ustSchluesselErmaessigt] || !sk[ustSchluesselRegel] {
-			continue // kein Kombi-Bon
+			continue // not a Kombi bon
 		}
 		ziel := transSchluessel[bonID]
 		if !ziel[ustSchluesselErmaessigt] || !ziel[ustSchluesselRegel] {
@@ -255,7 +202,6 @@ func pruefeKombiSteueraufteilung(daten map[string]tabellendaten) []Befund {
 	return befunde
 }
 
-// schluesselNachBonID sammelt je BON_ID die vorkommenden UST_SCHLUESSEL-Werte.
 func schluesselNachBonID(daten tabellendaten) map[string]map[string]bool {
 	out := map[string]map[string]bool{}
 	for _, zeile := range daten.zeilen {
@@ -268,15 +214,8 @@ func schluesselNachBonID(daten tabellendaten) map[string]map[string]bool {
 	return out
 }
 
-// pruefeBedienerFelder prüft die Bedienerfelder jedes Bonkopfs: BEDIENER_NAME muss
-// gefüllt sein (der zum Buchungszeitpunkt eingefrorene unternehmensinterne
-// Benutzername) und BEDIENER_ID muss die numerische, stabile Benutzer-ID (user_id)
-// tragen.
-//
-// Referenz: DSFinV-K 2.4 Feldbeschreibung BEDIENER_ID ("unternehmensinterne
-// Kennung") und BEDIENER_NAME ("unternehmensinterner Name der Person, die den
-// Vorgang erfasst"), Anhang E, Datei „Bonkopf“, sowie docs/compliance.md
-// Abschnitt 6.4 (BEDIENER_ID = user_id, BEDIENER_NAME = kassenjournal.user_name).
+// pruefeBedienerFelder requires a non-empty BEDIENER_NAME and a numeric BEDIENER_ID (user_id) on every bon.
+// See docs/compliance.md §6.4.
 func pruefeBedienerFelder(daten map[string]tabellendaten) []Befund {
 	transactions, ok := daten["transactions.csv"]
 	if !ok {
@@ -304,14 +243,8 @@ func pruefeBedienerFelder(daten map[string]tabellendaten) []Befund {
 	return befunde
 }
 
-// pruefeTagesabschlussZeile prüft die Abschluss-Sonderzeile: Ein AVSonstige-Bon
-// (Tagesabschluss) muss einen amtlich verpflichtenden, nicht-leeren BON_NAME
-// tragen; der feste Text "Tagesabschluss" ist jottis Export-Konvention, gegen
-// die hier geprüft wird.
-//
-// Referenz: DSFinV-K 2.4 Tz. 4.1.1/4.1.2 (BON_TYP AVSonstige "zwingend zu erläutern
-// über BON_NAME") und Anhang B ("AVSonstige … Zusätzlich ist zwingend das Feld
-// BON_NAME mit einer individuellen Beschreibung zu füllen").
+// pruefeTagesabschlussZeile: Anhang B requires BON_NAME on an AVSonstige bon; jotti's closing bon uses "Tagesabschluss".
+// See docs/compliance.md §6.3.
 func pruefeTagesabschlussZeile(daten map[string]tabellendaten) []Befund {
 	transactions, ok := daten["transactions.csv"]
 	if !ok {
@@ -334,15 +267,8 @@ func pruefeTagesabschlussZeile(daten map[string]tabellendaten) []Befund {
 	return befunde
 }
 
-// pruefeTSEStammdaten stellt sicher, dass die tse.csv die TSS-Stammdaten
-// vollständig führt: Seriennummer, Signaturalgorithmus, öffentlicher Schlüssel und
-// mindestens der erste Zertifikatsblock müssen gefüllt sein. Ohne diese Angaben ist
-// die Signaturprüfung des Exports nicht möglich.
-//
-// Referenz: DSFinV-K 2.4 Tz. 3.2.7 "Datei: Stamm_TSE" (Felder TSE_SERIAL,
-// TSE_SIG_ALGO, TSE_PUBLIC_KEY, TSE_ZERTIFIKAT_I/_II) — TSE_SERIAL ist dort als
-// Hashwert des im Zertifikat enthaltenen Schlüssels (Octet-String, hex)
-// definiert.
+// pruefeTSEStammdaten requires the tse.csv fields without which the export's signatures cannot be verified.
+// See DSFinV-K 2.4 Tz. 3.2.7 (Stamm_TSE) and docs/compliance.md §6.3.
 func pruefeTSEStammdaten(daten map[string]tabellendaten) []Befund {
 	tse, ok := daten["tse.csv"]
 	if !ok {
@@ -367,14 +293,8 @@ func pruefeTSEStammdaten(daten map[string]tabellendaten) []Befund {
 	return befunde
 }
 
-// pruefeAbrechnungskreise stellt sicher, dass jeder Tischbon seinem Abrechnungskreis
-// zugeordnet ist: In allocation_groups.csv muss zu jeder Zeile ein nicht-leerer
-// ABRECHNUNGSKREIS gehören und deren BON_ID auf einen existierenden Bonkopf zeigen.
-// (Direktverkäufe ohne Tischbezug erscheinen gar nicht in allocation_groups.csv;
-// die Regel prüft nur die vorhandenen Zeilen.)
-//
-// Referenz: DSFinV-K 2.4 Tz. 3.1.2.2 "Datei: Bonkopf_AbrKreis" (der Abrechnungskreis
-// ordnet einen Vorgang einer variablen Einheit — hier dem Tisch — zu; F-06).
+// pruefeAbrechnungskreise requires a non-empty ABRECHNUNGSKREIS and a known Bonkopf per allocation_groups.csv row.
+// Direktverkauf bons have no row; see docs/compliance.md §6.5.
 func pruefeAbrechnungskreise(daten map[string]tabellendaten) []Befund {
 	allocation, ok := daten["allocation_groups.csv"]
 	if !ok {
@@ -407,17 +327,11 @@ func pruefeAbrechnungskreise(daten map[string]tabellendaten) []Befund {
 	return befunde
 }
 
-// --- kleine Feldhelfer ---
-
-// istNegativerBetrag meldet, ob ein DSFinV-K-Betragsfeld (Komma-Dezimal) negativ
-// ist. Ein führendes Minus reicht als Signal; die Strukturprüfung stellt das
-// Zahlenformat sicher.
+// istNegativerBetrag checks only the leading minus; the structure checks own the number format.
 func istNegativerBetrag(feld string) bool {
 	return strings.HasPrefix(strings.TrimSpace(feld), "-")
 }
 
-// istNumerisch meldet, ob das Feld eine nicht-leere Folge von ASCII-Ziffern ist
-// (BEDIENER_ID = user_id).
 func istNumerisch(feld string) bool {
 	if feld == "" {
 		return false
@@ -430,8 +344,7 @@ func istNumerisch(feld string) bool {
 	return true
 }
 
-// sortierteSchluessel liefert die BON_IDs einer Kombi-Map deterministisch sortiert
-// (für stabile Befundreihenfolge).
+// sortierteSchluessel sorts the BON_IDs so findings come in a stable order.
 func sortierteSchluessel(m map[string]map[string]bool) []string {
 	namen := make([]string, 0, len(m))
 	for k := range m {

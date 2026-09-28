@@ -9,11 +9,6 @@ import (
 )
 
 // --- Fixtures ---
-//
-// gutesArchiv baut ein minimales, strukturell konformes DSFinV-K-Archiv: eine
-// index.xml, die zwei Tabellen (eine alphanumerische, eine mit numerischer Spalte)
-// deklariert, die beiden passenden CSV-Dateien und die referenzierte DTD. Die
-// kaputten Fixtures leiten sich durch gezielte Mutation davon ab.
 
 const gutesIndexXML = `<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE DataSet SYSTEM "gdpdu-01-09-2004.dtd">
@@ -59,7 +54,6 @@ type datei struct {
 	inhalt string
 }
 
-// baueZip verpackt eine Liste von Dateien in ein ZIP-Archiv.
 func baueZip(t *testing.T, dateien []datei) []byte {
 	t.Helper()
 	var buf bytes.Buffer
@@ -79,8 +73,8 @@ func baueZip(t *testing.T, dateien []datei) []byte {
 	return buf.Bytes()
 }
 
-// gutesArchiv liefert die Dateiliste eines konformen Archivs. Der Aufrufer kann
-// einzelne Einträge vor dem Verpacken ersetzen, um einen Defekt einzubauen.
+// gutesArchiv is a minimal conforming archive: two tables (one with a numeric column), their CSVs and the DTD.
+// Broken fixtures mutate single entries of it.
 func gutesArchiv() []datei {
 	return []datei{
 		{name: "index.xml", inhalt: gutesIndexXML},
@@ -90,7 +84,6 @@ func gutesArchiv() []datei {
 	}
 }
 
-// ersetze tauscht den Inhalt der Datei mit dem gegebenen Namen aus.
 func ersetze(dateien []datei, name, inhalt string) []datei {
 	out := make([]datei, len(dateien))
 	copy(out, dateien)
@@ -102,7 +95,6 @@ func ersetze(dateien []datei, name, inhalt string) []datei {
 	return out
 }
 
-// entferne löscht die Datei mit dem gegebenen Namen.
 func entferne(dateien []datei, name string) []datei {
 	var out []datei
 	for _, d := range dateien {
@@ -113,7 +105,6 @@ func entferne(dateien []datei, name string) []datei {
 	return out
 }
 
-// hatBefund meldet, ob ein Befund der gegebenen Regel vorliegt.
 func hatBefund(befunde []Befund, regel string) bool {
 	for _, b := range befunde {
 		if b.Regel == regel {
@@ -123,9 +114,7 @@ func hatBefund(befunde []Befund, regel string) bool {
 	return false
 }
 
-// muessePruefen prüft ein Archiv und schlägt fehl, wenn die Prüfung einen echten
-// Fehler zurückgibt (kein Befund, sondern ein unlesbares ZIP). Rückgabe sind die
-// Befunde — so entfällt der verworfene Fehler an jeder Aufrufstelle.
+// muessePruefen fails the test on an unreadable ZIP, so callers get findings only.
 func muessePruefen(t *testing.T, archiv []byte) []Befund {
 	t.Helper()
 	befunde, err := PruefenBytes(archiv)
@@ -144,7 +133,7 @@ func befundText(befunde []Befund) string {
 	return b.String()
 }
 
-// --- Gute Fixture: befundfrei ---
+// --- Good fixture: no findings ---
 
 func TestPruefen_GutesArchivBefundfrei(t *testing.T) {
 	befunde := muessePruefen(t, baueZip(t, gutesArchiv()))
@@ -159,10 +148,10 @@ func TestPruefen_KeinZip(t *testing.T) {
 	}
 }
 
-// --- Kaputte Fixtures: Paket & Dateinamen ---
+// --- Broken fixtures: package and file names ---
 
 func TestPruefen_GrossgeschriebenerDateiname(t *testing.T) {
-	// CSV-Dateinamen müssen kleingeschrieben sein: payment.csv → Payment.csv.
+	// CSV file names must be lowercase: payment.csv becomes Payment.csv.
 	d := entferne(gutesArchiv(), "payment.csv")
 	d = append(d, datei{name: "Payment.csv", inhalt: "ZAHLART_TYP;Z_ZAHLART_BETRAG\r\nBar;12,50\r\n"})
 	befunde := muessePruefen(t, baueZip(t, d))
@@ -201,7 +190,7 @@ func TestPruefen_FehlendeIndexXML(t *testing.T) {
 	}
 }
 
-// --- Kaputte Fixtures: index.xml / DTD-Struktur ---
+// --- Broken fixtures: index.xml and DTD structure ---
 
 func TestPruefen_IndexNichtWohlgeformt(t *testing.T) {
 	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "index.xml", "<DataSet><Version>1.0")))
@@ -238,7 +227,7 @@ func TestPruefen_IndexFehlendeVersion(t *testing.T) {
 }
 
 func TestPruefen_IndexFalschesDezimalsymbol(t *testing.T) {
-	// DecimalSymbol Punkt statt Komma verletzt die DSFinV-K-Formatvorgabe.
+	// A '.' DecimalSymbol violates the DSFinV-K decimal comma.
 	kaputt := strings.Replace(gutesIndexXML, "<DecimalSymbol>,</DecimalSymbol>", "<DecimalSymbol>.</DecimalSymbol>", 1)
 	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "index.xml", kaputt)))
 	if !hatBefund(befunde, regelIndexFormat) {
@@ -264,7 +253,7 @@ func TestPruefen_IndexSpalteOhneDatentyp(t *testing.T) {
 	}
 }
 
-// --- Kaputte Fixtures: index.xml ↔ CSV Abgleich ---
+// --- Broken fixtures: index.xml versus CSV ---
 
 func TestPruefen_DeklarierteDateiFehlt(t *testing.T) {
 	befunde := muessePruefen(t, baueZip(t, entferne(gutesArchiv(), "payment.csv")))
@@ -281,10 +270,10 @@ func TestPruefen_UndeklarierteCSV(t *testing.T) {
 	}
 }
 
-// --- Kaputte Fixtures: CSV-Struktur ---
+// --- Broken fixtures: CSV structure ---
 
 func TestPruefen_CSVFehlendeCRLF(t *testing.T) {
-	// Unix-Zeilenenden statt CRLF.
+	// Unix line endings instead of CRLF.
 	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "cashregister.csv",
 		"Z_KASSE_ID;KASSE_BRAND\nKASSE-1;jotti\n")))
 	if !hatBefund(befunde, regelCsvCRLF) {
@@ -293,7 +282,7 @@ func TestPruefen_CSVFehlendeCRLF(t *testing.T) {
 }
 
 func TestPruefen_CSVFalscheSpaltenreihenfolge(t *testing.T) {
-	// Header mit vertauschten Spalten.
+	// Header with swapped columns.
 	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "cashregister.csv",
 		"KASSE_BRAND;Z_KASSE_ID\r\njotti;KASSE-1\r\n")))
 	if !hatBefund(befunde, regelCsvKopfzeile) {
@@ -318,7 +307,7 @@ func TestPruefen_CSVFalscheFeldanzahl(t *testing.T) {
 }
 
 func TestPruefen_CSVPunktStattKommaImNumerischenFeld(t *testing.T) {
-	// payment.csv hat eine numerische Spalte Z_ZAHLART_BETRAG.
+	// payment.csv declares Z_ZAHLART_BETRAG as numeric.
 	befunde := muessePruefen(t, baueZip(t, ersetze(gutesArchiv(), "payment.csv",
 		"ZAHLART_TYP;Z_ZAHLART_BETRAG\r\nBar;12.50\r\n")))
 	if !hatBefund(befunde, regelCsvDezimal) {
@@ -333,7 +322,7 @@ func TestPruefen_CSVLeer(t *testing.T) {
 	}
 }
 
-// splitFelder muss das Doublequote-Escaping und eingebettete Semikola beachten.
+// splitFelder must honour doubled quotes and quoted semicolons.
 func TestSplitFelder_QuotedSemicolon(t *testing.T) {
 	felder := splitFelder(`A;"B;mit;Semikolon";"C ""quote"""`)
 	erwartet := []string{"A", "B;mit;Semikolon", `C "quote"`}

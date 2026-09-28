@@ -17,13 +17,8 @@ const (
 	crlf                = "\r\n"
 )
 
-// pruefeTabellenGegenIndex gleicht index.xml-Deklaration und vorhandene CSV-Dateien in
-// beide Richtungen ab.
-//
-// Referenz: DSFinV-K 2.4 Tz. 1 „Erstellung der index.xml“ (die index.xml beschreibt den
-// bereitgestellten Datenkranz — eine undeklarierte CSV ist deshalb ein Verstoß) und die
-// GoBD-Anlage „Ergänzende Informationen zur Datenträgerüberlassung“ (Element URL je Table
-// verweist auf eine vorhandene Datei).
+// pruefeTabellenGegenIndex matches index.xml declarations and archive CSVs in both directions.
+// See docs/compliance.md §6.2.
 func pruefeTabellenGegenIndex(dateien map[string][]byte, tabellen []indexTabelle) []Befund {
 	var befunde []Befund
 
@@ -61,12 +56,8 @@ func pruefeTabellenGegenIndex(dateien map[string][]byte, tabellen []indexTabelle
 	return befunde
 }
 
-// pruefeCSV prüft eine CSV gegen ihre index.xml-Deklaration.
-//
-// Referenz: DSFinV-K 2.4 Tz. 1 und die amtliche index.xml (Range/From = 2 ⇒ Header in
-// Zeile 1; ColumnDelimiter „;“; RecordDelimiter CRLF; DecimalSymbol „,“). Die
-// Spaltenreihenfolge folgt exakt der Reihenfolge der <VariableColumn>-Elemente der
-// jeweiligen Table (Anhänge A–E der DSFinV-K 2.4).
+// pruefeCSV checks a CSV against its index.xml declaration: header in line 1, ';', CRLF,
+// decimal comma, columns in <VariableColumn> order. See docs/compliance.md §6.2.
 func pruefeCSV(name string, inhalt []byte, tab indexTabelle) []Befund {
 	var befunde []Befund
 	add := func(regel, meldung string) {
@@ -96,7 +87,7 @@ func pruefeCSV(name string, inhalt []byte, tab indexTabelle) []Befund {
 		add(regelCsvKopfzeile, fmt.Sprintf(
 			"Kopfzeile weicht von der index.xml-Deklaration ab\n  erwartet: %s\n  gefunden: %s",
 			strings.Join(erwartet, ";"), strings.Join(header, ";")))
-		// Ohne passende Kopfzeile sind Spalten-bezogene Datenprüfungen nicht sinnvoll.
+		// Without a matching header, per-column checks are meaningless.
 		return befunde
 	}
 
@@ -135,7 +126,7 @@ func verletztCRLF(text string) bool {
 	return false
 }
 
-// zerlegeCRLF verwirft die leere Schlusszeile nach dem finalen CRLF (jede CSV-Zeile endet auf CRLF).
+// zerlegeCRLF drops the empty tail after the final CRLF, since every CSV line ends in CRLF.
 func zerlegeCRLF(text string) []string {
 	zeilen := strings.Split(text, crlf)
 	if n := len(zeilen); n > 0 && zeilen[n-1] == "" {
@@ -144,8 +135,7 @@ func zerlegeCRLF(text string) []string {
 	return zeilen
 }
 
-// splitFelder zerlegt am Semikolon mit Doublequote-Textbegrenzer: ein Semikolon in
-// Anführungszeichen trennt nicht, "" ist ein literales Anführungszeichen im Feld.
+// splitFelder splits on ';' with '"' as text encapsulator: a quoted ';' does not split, "" is a literal quote.
 func splitFelder(zeile string) []string {
 	var felder []string
 	var b strings.Builder
@@ -171,9 +161,7 @@ func splitFelder(zeile string) []string {
 	return felder
 }
 
-// verletztDezimalKomma: DSFinV-K führt Zahlen mit Komma-Dezimaltrenner und ohne
-// Tausenderpunkt; ein Punkt im numerischen Feld ist daher ein Verstoß. Ein leeres Feld
-// ist zulässig.
+// verletztDezimalKomma: DSFinV-K numbers use a decimal comma and no thousands separator, so any '.' violates.
 func verletztDezimalKomma(feld string) bool {
 	return strings.ContainsRune(feld, '.')
 }

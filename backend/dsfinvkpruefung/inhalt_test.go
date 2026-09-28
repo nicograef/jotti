@@ -5,15 +5,10 @@ import (
 	"testing"
 )
 
-// --- Fixtures für die Inhaltsprüfung ---
-//
-// Anders als die Struktur-Fixture (gutesArchiv, minimal) deklariert dieses Archiv
-// alle Tabellen, die die Inhaltsregeln betrachten: transactions, lines, references,
-// lines_vat, transactions_vat, tse und allocation_groups. Die kaputten Fixtures
-// mutieren gezielt einzelne Felder.
+// --- Content-check fixtures ---
 
-// gutesInhaltIndexXML deklariert die sieben von den Inhaltsregeln geprüften Tabellen
-// mit ihren realen Spalten (Reihenfolge wie im Erzeuger, api/fiskal/dsfinvk).
+// gutesInhaltIndexXML declares the seven tables the content rules read, in the generator's column order
+// (api/fiskal/dsfinvk). Broken fixtures mutate single fields.
 const gutesInhaltIndexXML = `<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE DataSet SYSTEM "gdpdu-01-09-2004.dtd">
 <DataSet>
@@ -135,13 +130,10 @@ const gutesInhaltIndexXML = `<?xml version="1.0" encoding="utf-8"?>
   </Media>
 </DataSet>`
 
-// Kanonische, konsistente CSV-Inhalte: ein Kombi-Verkaufsbon (7 % + 19 %), seine
-// Warenrücknahme (negativer Beleg mit Referenz, BON_STORNO 0) und ein
-// Tagesabschlussbon (AVSonstige).
+// Consistent CSVs: a Kombi sale (7 % + 19 %), its Warenrücknahme (negative Beleg with reference,
+// BON_STORNO 0) and a Tagesabschluss bon (AVSonstige).
 const (
-	// transit-1 ist ein negativer Bargeldabfluss (Geldtransit-Entnahme): negativer
-	// UMS_BRUTTO, aber GV_TYP "Geldtransit" (nicht "Umsatz") und ohne Referenz —
-	// er darf die Storno-Referenzregel nicht auslösen.
+	// transit-1 is a negative Geldtransit outflow without reference; it must not trigger the Storno rule.
 	gutTransactionsCSV = "BON_ID;BON_TYP;BON_NAME;BON_STORNO;BEDIENER_ID;BEDIENER_NAME;UMS_BRUTTO\r\n" +
 		"verkauf-1;Beleg;;0;4;maria;7,50\r\n" +
 		"storno-1;Beleg;;0;3;felix;-3,00\r\n" +
@@ -171,7 +163,6 @@ const (
 		"storno-1;Tisch 1\r\n"
 )
 
-// gutesInhaltArchiv liefert die Dateiliste eines inhaltlich konsistenten Archivs.
 func gutesInhaltArchiv() []datei {
 	return []datei{
 		{name: "index.xml", inhalt: gutesInhaltIndexXML},
@@ -186,7 +177,7 @@ func gutesInhaltArchiv() []datei {
 	}
 }
 
-// --- Gute Fixture: befundfrei ---
+// --- Good fixture: no findings ---
 
 func TestInhalt_GutesArchivBefundfrei(t *testing.T) {
 	befunde, err := PruefenBytes(baueZip(t, gutesInhaltArchiv()))
@@ -198,10 +189,10 @@ func TestInhalt_GutesArchivBefundfrei(t *testing.T) {
 	}
 }
 
-// --- Regel 1: Storno-Referenzen und BON_STORNO ---
+// --- Rule 1: Storno references and BON_STORNO ---
 
 func TestInhalt_StornoOhneReferenz(t *testing.T) {
-	// Die references.csv-Zeile des Stornos fehlt: der Storno hat keine Referenz.
+	// The Storno's references.csv row is missing.
 	d := ersetze(gutesInhaltArchiv(), "references.csv", "BON_ID;POS_ZEILE;REF_TYP;REF_NAME;REF_BON_ID\r\n")
 	befunde, _ := PruefenBytes(baueZip(t, d))
 	if !hatBefund(befunde, regelStornoReferenz) {
@@ -210,7 +201,7 @@ func TestInhalt_StornoOhneReferenz(t *testing.T) {
 }
 
 func TestInhalt_StornoMitLeeremRefBonID(t *testing.T) {
-	// REF_BON_ID leer: die Referenz benennt keinen Ursprungsbeleg.
+	// An empty REF_BON_ID names no original bon.
 	kaputt := "BON_ID;POS_ZEILE;REF_TYP;REF_NAME;REF_BON_ID\r\nstorno-1;;Transaktion;;\r\n"
 	d := ersetze(gutesInhaltArchiv(), "references.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
@@ -220,8 +211,7 @@ func TestInhalt_StornoMitLeeremRefBonID(t *testing.T) {
 }
 
 func TestInhalt_StornoMitBonStornoKennzeichen(t *testing.T) {
-	// BON_STORNO = 1 auf dem Negativbeleg: jotti nutzt die Negativdarstellung,
-	// nie die Vorgangsaufhebung (docs/compliance.md Abschnitt 6.6).
+	// BON_STORNO = 1 on the negative bon: jotti never voids (docs/compliance.md §6.6).
 	kaputt := strings.Replace(gutTransactionsCSV, "storno-1;Beleg;;0;", "storno-1;Beleg;;1;", 1)
 	d := ersetze(gutesInhaltArchiv(), "transactions.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
@@ -231,9 +221,7 @@ func TestInhalt_StornoMitBonStornoKennzeichen(t *testing.T) {
 }
 
 func TestInhalt_BargeldabflussIstKeinStorno(t *testing.T) {
-	// transit-1 ist ein negativer Bargeldabfluss ohne Referenz (GV_TYP Geldtransit):
-	// die gute Fixture ist befundfrei — die Storno-Referenzregel darf ihn nicht als
-	// Storno werten. (Regressionstest zum ausgeschlossenen False Positive.)
+	// Guards against a false positive: transit-1, a negative Geldtransit bon without reference, is no Storno.
 	befunde, _ := PruefenBytes(baueZip(t, gutesInhaltArchiv()))
 	for _, b := range befunde {
 		if b.Regel == regelStornoReferenz {
@@ -242,11 +230,10 @@ func TestInhalt_BargeldabflussIstKeinStorno(t *testing.T) {
 	}
 }
 
-// --- Regel 2: Kombi-Steueraufteilung ---
+// --- Rule 2: Kombi tax split ---
 
 func TestInhalt_KombiOhneBonkopfAufteilung(t *testing.T) {
-	// lines_vat.csv trägt für verkauf-1 beide Sätze, transactions_vat.csv verschmilzt
-	// sie fälschlich zu einer 19-%-Zeile (der 7-%-Anteil fehlt im Bonkopf).
+	// lines_vat.csv splits verkauf-1 into both rates; transactions_vat.csv wrongly merges them into one 19 % row.
 	kaputt := "BON_ID;UST_SCHLUESSEL;BON_BRUTTO\r\n" +
 		"verkauf-1;1;7,50000\r\n" +
 		"storno-1;1;-3,00000\r\n"
@@ -257,7 +244,7 @@ func TestInhalt_KombiOhneBonkopfAufteilung(t *testing.T) {
 	}
 }
 
-// --- Regel 3: Bediener-Felder ---
+// --- Rule 3: Bediener fields ---
 
 func TestInhalt_BedienerNameLeer(t *testing.T) {
 	kaputt := strings.Replace(gutTransactionsCSV, "verkauf-1;Beleg;;0;4;maria;", "verkauf-1;Beleg;;0;4;;", 1)
@@ -269,7 +256,7 @@ func TestInhalt_BedienerNameLeer(t *testing.T) {
 }
 
 func TestInhalt_BedienerIDNichtNumerisch(t *testing.T) {
-	// BEDIENER_ID trägt den Klarnamen statt der user_id.
+	// BEDIENER_ID carries the name instead of the user_id.
 	kaputt := strings.Replace(gutTransactionsCSV, "verkauf-1;Beleg;;0;4;maria;", "verkauf-1;Beleg;;0;maria;maria;", 1)
 	d := ersetze(gutesInhaltArchiv(), "transactions.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
@@ -278,7 +265,7 @@ func TestInhalt_BedienerIDNichtNumerisch(t *testing.T) {
 	}
 }
 
-// --- Regel 4: Tagesabschluss-Zeile ---
+// --- Rule 4: Tagesabschluss bon ---
 
 func TestInhalt_TagesabschlussFalscherBonName(t *testing.T) {
 	kaputt := strings.Replace(gutTransactionsCSV, "abschluss-1;AVSonstige;Tagesabschluss;", "abschluss-1;AVSonstige;Kassenschnitt;", 1)
@@ -289,11 +276,10 @@ func TestInhalt_TagesabschlussFalscherBonName(t *testing.T) {
 	}
 }
 
-// --- Regel 5: TSE-Stammdaten ---
+// --- Rule 5: TSE master data ---
 
 func TestInhalt_TSEStammdatenUnvollstaendig(t *testing.T) {
-	// Public Key und Zertifikat fehlen (der Default-Zustand einer nicht
-	// eingerichteten TSE).
+	// Public key and certificate are missing, the default of an unconfigured TSE.
 	kaputt := "TSE_ID;TSE_SERIAL;TSE_SIG_ALGO;TSE_PUBLIC_KEY;TSE_ZERTIFIKAT_I\r\n" +
 		"1;TSE-SN-1;ecdsa-plain-SHA256;;\r\n"
 	d := ersetze(gutesInhaltArchiv(), "tse.csv", kaputt)
@@ -303,7 +289,7 @@ func TestInhalt_TSEStammdatenUnvollstaendig(t *testing.T) {
 	}
 }
 
-// --- Regel 6: Abrechnungskreis ---
+// --- Rule 6: Abrechnungskreis ---
 
 func TestInhalt_AbrechnungskreisLeer(t *testing.T) {
 	kaputt := "BON_ID;ABRECHNUNGSKREIS\r\nverkauf-1;\r\nstorno-1;Tisch 1\r\n"
@@ -315,7 +301,7 @@ func TestInhalt_AbrechnungskreisLeer(t *testing.T) {
 }
 
 func TestInhalt_AbrechnungskreisOhneBonkopf(t *testing.T) {
-	// Eine Abrechnungskreis-Zeile verweist auf eine BON_ID ohne Bonkopf.
+	// An Abrechnungskreis row points at a BON_ID without Bonkopf.
 	kaputt := "BON_ID;ABRECHNUNGSKREIS\r\nverkauf-1;Tisch 1\r\nunbekannt-9;Tisch 2\r\n"
 	d := ersetze(gutesInhaltArchiv(), "allocation_groups.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))

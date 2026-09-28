@@ -19,8 +19,8 @@ import (
 	"github.com/nicograef/jotti/backend/seed"
 )
 
-// cleanSeedDB leert alle vom Seeder befüllten Tabellen, damit der Seeder-Guard nicht
-// greift. Spiegelt die Reihenfolge des Seeder-Integrationstests (Fremdschlüssel).
+// cleanSeedDB empties every seeded table so the seeder guard does not trip.
+// The order mirrors the seeder integration test (foreign keys).
 func cleanSeedDB(t *testing.T, db *sql.DB) {
 	t.Helper()
 	stmts := []string{
@@ -41,9 +41,7 @@ func cleanSeedDB(t *testing.T, db *sql.DB) {
 		"DELETE FROM tische",
 		"DELETE FROM betreiber",
 		"DELETE FROM users",
-		// tse_konfiguration auf die leere Singleton-Zeile der Migration
-		// normalisieren, damit der Ausgangszustand unabhängig davon ist, ob
-		// zuvor ein Reset (der die Tabelle leert und neu befüllt) lief.
+		// Reset tse_konfiguration to the migration's empty singleton row, whether or not a reset ran before.
 		"INSERT INTO tse_konfiguration (id, api_key, api_secret, tss_id, client_id, updated_at) VALUES (1, '', '', '', '', NOW()) ON CONFLICT (id) DO UPDATE SET api_key = '', api_secret = '', tss_id = '', client_id = ''",
 	}
 	for _, stmt := range stmts {
@@ -53,10 +51,8 @@ func cleanSeedDB(t *testing.T, db *sql.DB) {
 	}
 }
 
-// TestSeedExportBefundfrei verifiziert den vollständigen Weg Seed → echter
-// DSFinV-K-Export (über den Export-Anwendungsdienst) → Struktur-Prüfung: das
-// erzeugte Archiv jeder Seed-Kassensitzung muss strukturell befundfrei sein.
-// Die Fake-TSE des Seeders liefert dabei realistische Signaturdaten.
+// TestSeedExportBefundfrei runs seed, real DSFinV-K export and check: every seeded Kassensitzung's
+// archive must be free of findings. The seeder's fake TSE supplies realistic signature data.
 func TestSeedExportBefundfrei(t *testing.T) {
 	db := dbtest.Open()
 	cleanSeedDB(t, db)
@@ -76,7 +72,7 @@ func TestSeedExportBefundfrei(t *testing.T) {
 		Version:             "integration-test",
 	}
 
-	// Der Seeder legt drei Kassensitzungen an (zwei abgeschlossen, eine offen).
+	// The seeder creates three Kassensitzungen (two closed, one open).
 	for _, znr := range []int{1, 2, 3} {
 		archiv, err := export.Erstellen(ctx, znr)
 		if err != nil {

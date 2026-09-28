@@ -1,12 +1,6 @@
-// Package dsfinvkpruefung prüft ein DSFinV-K-Export-ZIP gegen die Struktur- und
-// Inhaltsregeln der DSFinV-K 2.4 und liefert eine Befundliste.
-//
-// Bewusst unabhängig vom Erzeuger (backend/api/fiskal/dsfinvk) implementiert — eigener
-// CSV- und index.xml-Parser, eigene DTD-Regeln —, damit ein Formatfehler im Erzeuger
-// auch dann auffällt, wenn beide dieselbe Konstante teilten. Keine betragsmäßige
-// Plausibilisierung; die leisten die Golden-File-Tests des Erzeugers.
-//
-// Referenz: DSFinV-K 2.4 (docs/rechtsquellen/technik-spezifikationen/DSFinV-K-2.4).
+// Package dsfinvkpruefung checks a DSFinV-K 2.4 export ZIP against structure and content rules.
+// It parses independently of the generator (api/fiskal/dsfinvk) so a shared mistake still
+// surfaces; see docs/compliance.md §6.1.
 package dsfinvkpruefung
 
 import (
@@ -17,8 +11,7 @@ import (
 	"sort"
 )
 
-// Befund ist ein einzelner Struktur- oder Inhaltsverstoß; Datei ist die betroffene
-// Archivdatei und bleibt leer für paketweite Befunde.
+// Befund is one structure or content violation; Datei stays empty for package-wide findings.
 type Befund struct {
 	Datei   string
 	Regel   string
@@ -32,9 +25,7 @@ func (b Befund) String() string {
 	return fmt.Sprintf("[%s] %s: %s", b.Regel, b.Datei, b.Meldung)
 }
 
-// Pruefen prüft ein DSFinV-K-Export-ZIP (io.ReaderAt plus Größe) gegen die DSFinV-K 2.4.
-// Eine leere Befundliste bedeutet konform; einen Fehler gibt es nur, wenn das ZIP selbst
-// nicht lesbar ist.
+// Pruefen returns no findings for a conforming archive; an error means the ZIP itself is unreadable.
 func Pruefen(r io.ReaderAt, size int64) ([]Befund, error) {
 	zr, err := zip.NewReader(r, size)
 	if err != nil {
@@ -43,7 +34,7 @@ func Pruefen(r io.ReaderAt, size int64) ([]Befund, error) {
 	return pruefeArchiv(zr)
 }
 
-// PruefenBytes prüft ein im Speicher liegendes Archiv (der Export erzeugt []byte).
+// PruefenBytes checks an in-memory archive, the form the export produces.
 func PruefenBytes(archiv []byte) ([]Befund, error) {
 	return Pruefen(bytes.NewReader(archiv), int64(len(archiv)))
 }
@@ -65,8 +56,7 @@ func pruefeArchiv(zr *zip.Reader) ([]Befund, error) {
 	return befunde, nil
 }
 
-// dateiInhalte liest alle regulären Archivdateien in eine Map Name -> Inhalt; ein
-// Lesefehler wird als leerer Inhalt geführt, die nachgelagerten Regeln melden den Mangel.
+// dateiInhalte maps an unreadable file to nil content so the later rules report it.
 func dateiInhalte(zr *zip.Reader) map[string][]byte {
 	out := make(map[string][]byte, len(zr.File))
 	for _, f := range zr.File {
@@ -89,7 +79,7 @@ func dateiInhalte(zr *zip.Reader) map[string][]byte {
 	return out
 }
 
-// sortierteNamen sortiert die Dateinamen deterministisch (stabile Befundlisten).
+// sortierteNamen sorts the file names so findings come in a stable order.
 func sortierteNamen(dateien map[string][]byte) []string {
 	namen := make([]string, 0, len(dateien))
 	for name := range dateien {

@@ -275,9 +275,11 @@ Die Servicekräfte nutzen private Smartphones ohne mobile Bondrucker; die Belega
 
 Bei Kassen-Nachschau oder Betriebsprüfung verlangt die Finanzverwaltung einen genormten Export nach DSFinV-K (aktuell verbindlich: v2.4, Stand Dezember 2023), lesbar durch die Prüfsoftware IDEA. [5] jotti hält den Versionsstring deshalb als eine einzige Konstante (`dsfinvk.Version`) fest, die sich bei einer künftigen DSFinV-K-Version an einer Stelle im Code ändern lässt.
 
+Das Paket `backend/dsfinvkpruefung` prüft jeden Export gegen die Struktur- und Inhaltsregeln der DSFinV-K 2.4. Es parst CSV und `index.xml` unabhängig vom Erzeuger (`api/fiskal/dsfinvk`), damit ein beiderseits geteilter Formatfehler auffällt. Beträge plausibilisiert es nicht; das leisten die Golden-File-Tests des Erzeugers.
+
 ### 6.2 Dateiformat und Grundregeln
 
-- **Gesamtstruktur:** ZIP-Archiv mit CSV-Dateien, einer `index.xml` (Metadaten für das Prüftool) und der zugehörigen `gdpdu-01-09-2004.dtd` (Beschreibungsstandard nach GoBD-Anlage „Ergänzende Informationen zur Datenträgerüberlassung") [20]. Die `index.xml` deklariert die vorhandenen Tabellen samt Spalten, Feldtypen und Trennzeichen; sie ist zwingend, ebenso die DTD.
+- **Gesamtstruktur:** ZIP-Archiv mit CSV-Dateien, einer `index.xml` (Metadaten für das Prüftool) und der zugehörigen `gdpdu-01-09-2004.dtd` (Beschreibungsstandard nach GoBD-Anlage „Ergänzende Informationen zur Datenträgerüberlassung") [20]. Die `index.xml` deklariert die vorhandenen Tabellen samt Spalten, Feldtypen und Trennzeichen; sie ist zwingend, ebenso die DTD. Das ZIP enthält nur `index.xml`, die DTD und CSV-Dateien, alle flach im Wurzelverzeichnis: Die GDPdU-Beschreibung lässt im Element `URL` nur relative Dateinamen zu.
 - **CSV-Regeln:** Header-Zeile zwingend; Semikolon-Trennung; CRLF; Komma als Dezimaltrennzeichen (in der amtlichen `index.xml` als `DecimalSymbol` deklariert), keine Tausendertrennzeichen, mindestens eine Stelle vor dem Komma, keine führenden Nullen; Spaltenreihenfolge exakt nach Spezifikation
 - **Dateinamen:** englisch und kleingeschrieben (`transactions.csv`, `lines.csv`, `cashregister.csv`, `tse.csv`, …), nicht abänderbar. Die deutschen Begriffe der Spezifikation („Bonkopf", „Bonpos") sind logische Bezeichnungen, keine Dateinamen: Wer `Bonkopf.csv` exportiert, erzeugt eine nicht konforme Datei.
 - **Custom-Felder:** Zusätzliche Spalten am Ende erlaubt, müssen in `index.xml` definiert sein
@@ -313,6 +315,8 @@ Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Beze
 | `subitems.csv`          | Bonpos_Zusatzinfo    | Zusatzinformationen je Position (z. B. Pfand). Nur bei vorhandenen Zusatzinfos befüllt, sonst header-only oder weggelassen       |
 | `transactions_tse.csv`  | TSE_Transaktionen    | Kritisch: TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`)                    |
 
+Der Tagesabschluss erscheint in `transactions.csv` als Bon mit `BON_TYP = AVSonstige`. Anhang B verlangt für `AVSonstige` eine Beschreibung in `BON_NAME`; jotti setzt dort `Tagesabschluss`.
+
 #### C. Kassenabschlussmodul (Z-Bon)
 
 | Dateiname (offiziell)   | Logische Bezeichnung | Inhalt                                                         |
@@ -343,6 +347,7 @@ Stornierungen erzeugen immer neue Datensätze (GoBD-Radierverbot), nie Änderung
 - **Bon-Storno (nach Zahlung):** neuer Bon mit negativem Gesamtbetrag, `REF_BON_ID` auf den Original-Zahlungsbeleg, eigene `Kassenbeleg-V1`-Transaktion.
 - **`BON_STORNO`:** bleibt in allen Fällen `0`. jotti nutzt die zulässige Negativ-Darstellung, das Vorzeichen des neuen Bons trägt die Korrektur. `BON_STORNO = 1` kennzeichnet die vollständige Aufhebung eines ganzen Belegs; diesen Vorgang gibt es in jotti nicht.
 - **Direktverkauf:** `direktverkauf-getaetigt:v1` (positiver Geschäftsvorfall) und `direktverkauf-storniert:v1` (negativer Geschäftsvorfall) sind je eigene Belegvorgänge; jedes Event wird 1:1 auf einen Belegvorgang abgebildet, der Storno verweist per `REF_BON_ID` auf den Ursprungsverkauf.
+- **Abgrenzung:** Ein Storno ist ein negativer `Beleg`-Bon mit `GV_TYP = Umsatz` in `lines.csv`. Negative Bargeldabflüsse (`GV_TYP = Geldtransit` oder `DifferenzSollIst`) sind keine Stornos und brauchen keine Referenz.
 
 ### 6.7 Steuersatz-Verwaltung
 
