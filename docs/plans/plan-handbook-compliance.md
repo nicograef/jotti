@@ -151,10 +151,10 @@ Every `uses:` in `.github/workflows/*.yml` points to a full commit SHA with a `#
 
 ### Acceptance criteria
 
-- [ ] `shellcheck scripts/prod-harden.sh` clean
-- [ ] `prod-harden.sh` run in a throwaway Debian/Ubuntu container (or VM) leaves `unattended-upgrades` enabled, `sshd -T | grep -i passwordauthentication` = `no`, `ufw status` shows `LIMIT` for 22
-- [ ] `grep -n 'prod-harden' docs/leitfaden/self-hosting.md` finds the step
-- [ ] `make check-repo` green (links, prose)
+- [x] `shellcheck scripts/prod-harden.sh` clean
+- [x] `prod-harden.sh` run in a throwaway Debian/Ubuntu container (or VM) leaves `unattended-upgrades` enabled, `sshd -T | grep -i passwordauthentication` = `no`, `ufw status` shows `LIMIT` for 22
+- [x] `grep -n 'prod-harden' docs/leitfaden/self-hosting.md` finds the step
+- [x] `make check-repo` green (links, prose)
 
 ## Phase 5: jotti.rocks on Caddy
 
