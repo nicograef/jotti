@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -10,14 +8,13 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/tisch"
-	"github.com/nicograef/jotti/backend/repository/favorit_repo"
-	"github.com/nicograef/jotti/backend/repository/tisch_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
 func newTestCommand(tables []tisch.Tisch) Command {
 	return Command{
-		TischRepo:   tisch_repo.NewMock(tables, nil),
-		FavoritRepo: favorit_repo.NewMock(nil, nil),
+		TischRepo:   repotest.NewTischRepo(tables, nil),
+		FavoritRepo: repotest.NewFavoritRepo(nil, nil),
 	}
 }
 
@@ -43,7 +40,7 @@ func TestTischErstellen(t *testing.T) {
 }
 
 func TestTischErstellen_Error(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{}, db.ErrAlreadyExists)
+	repo := repotest.NewTischRepo([]tisch.Tisch{}, db.ErrAlreadyExists)
 	command := Command{TischRepo: repo}
 
 	_, err := command.TischErstellen(context.Background(), "Tisch 1")
@@ -53,7 +50,7 @@ func TestTischErstellen_Error(t *testing.T) {
 }
 
 func TestTischAktualisieren(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Old Name", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Old Name", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	command := Command{TischRepo: repo}
 
 	err := command.TischAktualisieren(context.Background(), 1, "New Name")
@@ -71,7 +68,7 @@ func TestTischAktualisieren(t *testing.T) {
 }
 
 func TestTischAktualisieren_NotFound(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{}, db.ErrNotFound)
+	repo := repotest.NewTischRepo([]tisch.Tisch{}, db.ErrNotFound)
 	command := Command{TischRepo: repo}
 
 	err := command.TischAktualisieren(context.Background(), 999, "New Name")
@@ -81,7 +78,7 @@ func TestTischAktualisieren_NotFound(t *testing.T) {
 }
 
 func TestTischAktivieren(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.InactiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.InactiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	command := Command{TischRepo: repo}
 
 	err := command.TischAktivieren(context.Background(), 1)
@@ -99,7 +96,7 @@ func TestTischAktivieren(t *testing.T) {
 }
 
 func TestTischAktivieren_NotFound(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{}, db.ErrNotFound)
+	repo := repotest.NewTischRepo([]tisch.Tisch{}, db.ErrNotFound)
 	command := Command{TischRepo: repo}
 
 	err := command.TischAktivieren(context.Background(), 999)
@@ -109,7 +106,7 @@ func TestTischAktivieren_NotFound(t *testing.T) {
 }
 
 func TestTischDeaktivieren(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	command := Command{TischRepo: repo}
 
 	err := command.TischDeaktivieren(context.Background(), 1)
@@ -127,7 +124,7 @@ func TestTischDeaktivieren(t *testing.T) {
 }
 
 func TestTischDeaktivieren_NotFound(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{}, db.ErrNotFound)
+	repo := repotest.NewTischRepo([]tisch.Tisch{}, db.ErrNotFound)
 	command := Command{TischRepo: repo}
 
 	err := command.TischDeaktivieren(context.Background(), 999)
@@ -137,7 +134,7 @@ func TestTischDeaktivieren_NotFound(t *testing.T) {
 }
 
 func TestTischDeaktivieren_SaldoOffen(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	repo.SetOffenerSaldo(1, 9850)
 	command := Command{TischRepo: repo}
 
@@ -156,8 +153,8 @@ func TestTischDeaktivieren_SaldoOffen(t *testing.T) {
 }
 
 func TestTischLoeschen_OhneSaldo(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
-	command := Command{TischRepo: repo, FavoritRepo: favorit_repo.NewMock(nil, nil)}
+	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	command := Command{TischRepo: repo, FavoritRepo: repotest.NewFavoritRepo(nil, nil)}
 
 	err := command.TischLoeschen(context.Background(), 1)
 	if err != nil {
@@ -177,8 +174,8 @@ func TestTischLoeschen_OhneSaldo(t *testing.T) {
 // müssen mit ihm gehen, sonst hängen sie unabwählbar in der Tischübersicht der
 // betroffenen Servicekräfte. Markierungen anderer Tische bleiben unberührt.
 func TestTischLoeschen_EntferntFavoriten(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
-	favoriten := favorit_repo.NewMock(map[int][]int{5: {1, 2}, 6: {1}}, nil)
+	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	favoriten := repotest.NewFavoritRepo(map[int][]int{5: {1, 2}, 6: {1}}, nil)
 	repo.SetFavoritenCleanup(favoriten.RemoveByTisch)
 	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
@@ -205,8 +202,8 @@ func TestTischLoeschen_EntferntFavoriten(t *testing.T) {
 
 // Deaktivieren ist kein Löschen: der Tisch kommt wieder, die Markierung bleibt.
 func TestTischDeaktivieren_BehaeltFavoriten(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
-	favoriten := favorit_repo.NewMock(map[int][]int{5: {1}}, nil)
+	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	favoriten := repotest.NewFavoritRepo(map[int][]int{5: {1}}, nil)
 	repo.SetFavoritenCleanup(favoriten.RemoveByTisch)
 	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
@@ -227,8 +224,8 @@ func TestTischDeaktivieren_BehaeltFavoriten(t *testing.T) {
 // der Cleanup, bleibt der Tisch aktiv. Es entsteht nie ein gelöschter Tisch mit
 // zurückgebliebenen — unsichtbaren und unabwählbaren — Markierungen.
 func TestTischLoeschen_FavoritenCleanupFehlschlag(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
-	favoriten := favorit_repo.NewMock(map[int][]int{5: {1}}, db.ErrDatabase)
+	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	favoriten := repotest.NewFavoritRepo(map[int][]int{5: {1}}, db.ErrDatabase)
 	repo.SetFavoritenCleanup(favoriten.RemoveByTisch)
 	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
@@ -246,9 +243,9 @@ func TestTischLoeschen_FavoritenCleanupFehlschlag(t *testing.T) {
 }
 
 func TestTischLoeschen_SaldoOffen(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	repo.SetOffenerSaldo(1, 9850)
-	favoriten := favorit_repo.NewMock(map[int][]int{5: {1}}, nil)
+	favoriten := repotest.NewFavoritRepo(map[int][]int{5: {1}}, nil)
 	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
 	err := command.TischLoeschen(context.Background(), 1)
@@ -276,7 +273,7 @@ func TestTischLoeschen_SaldoOffen(t *testing.T) {
 // TestTischDeaktivieren_OhneOffeneSitzung bestätigt, dass ohne offene
 // Kassensitzung (leere Saldo-Map) kein Tisch geschützt ist.
 func TestTischDeaktivieren_OhneOffeneSitzung(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
+	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	command := Command{TischRepo: repo}
 
 	err := command.TischDeaktivieren(context.Background(), 1)

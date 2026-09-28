@@ -1,6 +1,4 @@
-//go:build unit
-
-package kassensitzungen_repo
+package repotest
 
 import (
 	"context"
@@ -8,15 +6,15 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
-// NewMock creates a new mock repository with an optional open Kassensitzung and error.
-func NewMock(offeneKS *kasse.Kassensitzung, err error) *MockRepo {
-	return &MockRepo{
+// NewKassensitzungenRepo creates a new mock repository with an optional open Kassensitzung and error.
+func NewKassensitzungenRepo(offeneKS *kasse.Kassensitzung, err error) *KassensitzungenRepo {
+	return &KassensitzungenRepo{
 		offeneKS: offeneKS,
 		err:      err,
 	}
 }
 
-type MockRepo struct {
+type KassensitzungenRepo struct {
 	offeneKS *kasse.Kassensitzung
 	err      error
 
@@ -28,7 +26,7 @@ type MockRepo struct {
 
 // GetAktiveKassensitzung returns the mock Kassensitzung when it is 'offen' or 'wird_abgeschlossen'
 // (both count as active) and nil when it is closed.
-func (m *MockRepo) GetAktiveKassensitzung(_ context.Context) (*kasse.Kassensitzung, error) {
+func (m *KassensitzungenRepo) GetAktiveKassensitzung(_ context.Context) (*kasse.Kassensitzung, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -39,7 +37,7 @@ func (m *MockRepo) GetAktiveKassensitzung(_ context.Context) (*kasse.Kassensitzu
 }
 
 // SetKassensitzungWirdAbgeschlossen records the barrier call and reports one affected row.
-func (m *MockRepo) SetKassensitzungWirdAbgeschlossen(_ context.Context, _ int) (int64, error) {
+func (m *KassensitzungenRepo) SetKassensitzungWirdAbgeschlossen(_ context.Context, _ int) (int64, error) {
 	m.WirdAbgeschlossenCalls++
 	if m.err != nil {
 		return 0, m.err
@@ -48,7 +46,7 @@ func (m *MockRepo) SetKassensitzungWirdAbgeschlossen(_ context.Context, _ int) (
 }
 
 // SetKassensitzungOffen records the reset call and reports one affected row.
-func (m *MockRepo) SetKassensitzungOffen(_ context.Context, _ int) (int64, error) {
+func (m *KassensitzungenRepo) SetKassensitzungOffen(_ context.Context, _ int) (int64, error) {
 	m.OffenCalls++
 	if m.err != nil {
 		return 0, m.err
@@ -56,7 +54,7 @@ func (m *MockRepo) SetKassensitzungOffen(_ context.Context, _ int) (int64, error
 	return 1, nil
 }
 
-func (m *MockRepo) GetOffeneKassensitzungNr(_ context.Context) (int, error) {
+func (m *KassensitzungenRepo) GetOffeneKassensitzungNr(_ context.Context) (int, error) {
 	if m.err != nil {
 		return 0, m.err
 	}
@@ -66,7 +64,7 @@ func (m *MockRepo) GetOffeneKassensitzungNr(_ context.Context) (int, error) {
 	return m.offeneKS.ZNr, nil
 }
 
-func (m *MockRepo) GetAllKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
+func (m *KassensitzungenRepo) GetAllKassensitzungen(_ context.Context) ([]kasse.Kassensitzung, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -77,6 +75,6 @@ func (m *MockRepo) GetAllKassensitzungen(_ context.Context) ([]kasse.Kassensitzu
 }
 
 // SetOffeneKassensitzung sets the open Kassensitzung for the mock.
-func (m *MockRepo) SetOffeneKassensitzung(ks *kasse.Kassensitzung) {
+func (m *KassensitzungenRepo) SetOffeneKassensitzung(ks *kasse.Kassensitzung) {
 	m.offeneKS = ks
 }

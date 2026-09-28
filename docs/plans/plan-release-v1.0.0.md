@@ -178,7 +178,7 @@ Ohne Release-Bezug, optional.
       Bezeichnern und Kommentaren ausschließen — schärfer ginge es nur gegen gerenderte Texte.
 - [ ] `dsfinvkpruefung` prüft Typen und Dezimalformat, nicht `MaxLength`; die Feldlängen sichern
       allein die Mapper-Tests. `MaxLength` ergänzen.
-- [ ] `backend/repository/kassenjournal_repo/mock.go` kann keine Summe der Differenzbuchungen ≠ 0
+- [ ] `backend/repository/repotest/kassenjournal.go` kann keine Summe der Differenzbuchungen ≠ 0
       abbilden; den unterscheidenden Fall deckt nur der Integrationstest. Abbildbar machen.
 - [ ] `tisch_sessions.unbezahlte_positionen` persistiert `[]kasse.Position` (ohne JSON-Tags,
       PascalCase-Schlüssel) als Projektion; außerhalb des Event-Vertragsgates, ein Umbenennen der

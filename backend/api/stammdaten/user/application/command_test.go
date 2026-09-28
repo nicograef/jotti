@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -10,11 +8,11 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/user"
-	"github.com/nicograef/jotti/backend/repository/user_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
 func TestCreateUser(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{}, nil)
+	repo := repotest.NewUserRepo([]user.User{}, nil)
 	userCommand := Command{UserRepo: repo}
 
 	userID, onetimePassword, err := userCommand.CreateUser(context.Background(), "Test User", "testuser", user.ServiceRole)
@@ -31,7 +29,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateUser_Error(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{}, db.ErrDatabase)
+	repo := repotest.NewUserRepo([]user.User{}, db.ErrDatabase)
 	userCommand := Command{UserRepo: repo}
 
 	_, _, err := userCommand.CreateUser(context.Background(), "Test User", "testuser", user.ServiceRole)
@@ -45,7 +43,7 @@ func TestCreateUser_Error(t *testing.T) {
 }
 
 func TestUpdateUser_Success(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{{ID: 1}}, nil)
+	repo := repotest.NewUserRepo([]user.User{{ID: 1}}, nil)
 	userCommand := Command{UserRepo: repo}
 
 	err := userCommand.UpdateUser(context.Background(), 1, "Updated User", "updateduser", user.AdminRole)
@@ -56,7 +54,7 @@ func TestUpdateUser_Success(t *testing.T) {
 }
 
 func TestUpdateUser_Error(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{}, db.ErrDatabase)
+	repo := repotest.NewUserRepo([]user.User{}, db.ErrDatabase)
 	userCommand := Command{UserRepo: repo}
 
 	err := userCommand.UpdateUser(context.Background(), 1, "Updated User", "updateduser", user.AdminRole)

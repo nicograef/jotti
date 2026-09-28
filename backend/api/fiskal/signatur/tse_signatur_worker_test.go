@@ -1,5 +1,3 @@
-//go:build unit
-
 package signatur
 
 import (
@@ -11,6 +9,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/domain/tse/tsetest"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 )
 
@@ -114,7 +113,7 @@ func configuredTSE() tse.Konfiguration {
 	}
 }
 
-func newWorkerClient(fake tse.FakeClient) tseClientFactory {
+func newWorkerClient(fake tsetest.FakeClient) tseClientFactory {
 	return func(_ tse.Credentials) (tseWorkerClient, error) {
 		return fake, nil
 	}
@@ -123,7 +122,7 @@ func newWorkerClient(fake tse.FakeClient) tseClientFactory {
 // zaehlenderClient zählt die fiskaly-Aufrufe — für Tests, die belegen, dass
 // der Durchlauf abbricht bzw. der Störungszustand fiskaly in Ruhe lässt.
 type zaehlenderClient struct {
-	tse.FakeClient
+	tsetest.FakeClient
 	mu    sync.Mutex
 	calls int
 }
@@ -190,7 +189,7 @@ func TestTSESignaturWorker_ProcessOnce_Success(t *testing.T) {
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
-		newTSEClient: newWorkerClient(tse.FakeClient{
+		newTSEClient: newWorkerClient(tsetest.FakeClient{
 			RetrieveErr:   tse.ErrTransactionNichtGefunden,
 			StartResponse: tse.StartResult{TransactionNumber: 41, LogTime: time.Date(2026, 6, 10, 18, 0, 1, 0, time.UTC)},
 			FinishResponse: tse.FinishResult{
@@ -235,7 +234,7 @@ func TestTSESignaturWorker_ProcessOnce_TSEWeiterFehlerBrichtDurchlaufAb(t *testi
 		{ID: 2, TxID: "tx-2", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^5.00"},
 		{ID: 3, TxID: "tx-3", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^6.00"},
 	}}
-	client := &zaehlenderClient{FakeClient: tse.FakeClient{RetrieveErr: errors.New("connection refused")}}
+	client := &zaehlenderClient{FakeClient: tsetest.FakeClient{RetrieveErr: errors.New("connection refused")}}
 	jetzt := time.Date(2026, 6, 10, 18, 0, 0, 0, time.UTC)
 
 	worker := &tseSignaturWorker{
@@ -320,7 +319,7 @@ func TestTSESignaturWorker_ProcessOnce_UnerwarteterZustandIstAuftragsFehler(t *t
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
-		newTSEClient: newWorkerClient(tse.FakeClient{
+		newTSEClient: newWorkerClient(tsetest.FakeClient{
 			RetrieveResponse: tse.RetrieveResult{State: tse.TransactionStateCancelled},
 		}),
 		now: time.Now,
@@ -347,7 +346,7 @@ func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
 		{ID: 20, TxID: "tx-20", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^1.00"},
 		{ID: 21, TxID: "tx-21", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^2.00"},
 	}}
-	client := &zaehlenderClient{FakeClient: tse.FakeClient{RetrieveErr: errors.New("503 service unavailable")}}
+	client := &zaehlenderClient{FakeClient: tsetest.FakeClient{RetrieveErr: errors.New("503 service unavailable")}}
 	jetzt := time.Date(2026, 6, 10, 18, 0, 0, 0, time.UTC)
 
 	worker := &tseSignaturWorker{
@@ -393,7 +392,7 @@ func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
 	// TSE erholt sich: Die Probe gelingt, die volle Aufarbeitung signiert
 	// beide Aufträge, die erste erfolgreiche Signatur schließt den
 	// Störungszeitraum und setzt die Serie zurück.
-	client.FakeClient = tse.FakeClient{
+	client.FakeClient = tsetest.FakeClient{
 		RetrieveErr:    tse.ErrTransactionNichtGefunden,
 		StartResponse:  tse.StartResult{TransactionNumber: 70, LogTime: jetzt},
 		FinishResponse: tse.FinishResult{TransactionNumber: 70, SignatureCounter: 900, SerialNumberTSE: "TSE-SN", Signature: "SIG"},
@@ -450,7 +449,7 @@ func TestTSESignaturWorker_ProcessOnce_DurchlaufDeadlineBrichtAb(t *testing.T) {
 	worker := &tseSignaturWorker{
 		settingsRepo:      &mockTSESettingsReader{conf: configuredTSE()},
 		store:             store,
-		newTSEClient:      newWorkerClient(tse.FakeClient{ArtificialDelay: time.Minute}),
+		newTSEClient:      newWorkerClient(tsetest.FakeClient{ArtificialDelay: time.Minute}),
 		durchlaufDeadline: 30 * time.Millisecond,
 		now:               time.Now,
 	}
@@ -484,7 +483,7 @@ func TestTSESignaturWorker_ProcessOnce_BereitsFinishedWirdQuittiert(t *testing.T
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
-		newTSEClient: newWorkerClient(tse.FakeClient{
+		newTSEClient: newWorkerClient(tsetest.FakeClient{
 			StartErr:  errors.New("409 E_TX_NO_TYPE_DEFINED"),
 			FinishErr: errors.New("409 E_TX_NO_TYPE_DEFINED"),
 			RetrieveResponse: tse.RetrieveResult{
@@ -535,7 +534,7 @@ func TestTSESignaturWorker_ProcessOnce_AktiveTransaktionWirdAbgeschlossen(t *tes
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
-		newTSEClient: newWorkerClient(tse.FakeClient{
+		newTSEClient: newWorkerClient(tsetest.FakeClient{
 			StartErr: errors.New("409 transaction already started"),
 			RetrieveResponse: tse.RetrieveResult{
 				State: tse.TransactionStateActive,
@@ -585,7 +584,7 @@ func TestTSESignaturWorker_ClientWiederverwendung(t *testing.T) {
 		store:        &mockTSESignaturStore{},
 		newTSEClient: func(_ tse.Credentials) (tseWorkerClient, error) {
 			factoryCalls++
-			return tse.FakeClient{}, nil
+			return tsetest.FakeClient{}, nil
 		},
 		now: time.Now,
 	}
@@ -627,7 +626,7 @@ func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationMarkiertEndgueltig(t *te
 			worker := &tseSignaturWorker{
 				settingsRepo: tt.settingsRepo,
 				store:        store,
-				newTSEClient: newWorkerClient(tse.FakeClient{}),
+				newTSEClient: newWorkerClient(tsetest.FakeClient{}),
 				now:          time.Now,
 			}
 
@@ -655,7 +654,7 @@ func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationOhneAuftraegeKeineStoeru
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{err: db.ErrNotFound},
 		store:        store,
-		newTSEClient: newWorkerClient(tse.FakeClient{}),
+		newTSEClient: newWorkerClient(tsetest.FakeClient{}),
 		now:          time.Now,
 	}
 
@@ -677,7 +676,7 @@ func TestTSESignaturWorker_ProcessOnce_NichtLesbareKonfigurationMarkiertNichts(t
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{err: errors.New("connection reset")},
 		store:        store,
-		newTSEClient: newWorkerClient(tse.FakeClient{}),
+		newTSEClient: newWorkerClient(tsetest.FakeClient{}),
 		now:          time.Now,
 	}
 
@@ -704,7 +703,7 @@ func runWorker(t *testing.T, worker *tseSignaturWorker) (context.CancelFunc, <-c
 }
 
 func signierenderFakeClient() tseClientFactory {
-	return newWorkerClient(tse.FakeClient{
+	return newWorkerClient(tsetest.FakeClient{
 		RetrieveErr:    tse.ErrTransactionNichtGefunden,
 		StartResponse:  tse.StartResult{TransactionNumber: 50, LogTime: time.Date(2026, 6, 10, 19, 0, 1, 0, time.UTC)},
 		FinishResponse: tse.FinishResult{TransactionNumber: 50, SignatureCounter: 800, SerialNumberTSE: "TSE-SN", Signature: "SIG"},

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# jotti — every backend/**/*_test.go declares exactly one //go:build tag, "unit"
-# or "integration": an untagged file runs under both builds, a mistagged one
-# silently skips golangci-lint or `make test`.
+# jotti — unit tests carry no build tag; the only allowed constraint in backend/
+# is `//go:build integration` on a *_test.go file. Any other tag (a typo, a
+# leftover `unit`) silently drops the file from `go test ./...` and golangci-lint.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -15,24 +15,28 @@ cd "$PROJECT_ROOT"
 violations=0
 
 # `:(glob)` makes `/**/` mean "zero or more directories"; without it git matches
-# `**` like `*`, which needs one directory and skips a test file in backend/.
+# `**` like `*`, which needs one directory and skips a file in backend/.
 while IFS= read -r file; do
-  count="$(grep -c '^//go:build' "$file" || true)"
-  if [ "$count" -ne 1 ]; then
-    error "$file: expected exactly one //go:build line, found $count"
-    violations=$((violations + 1))
-    continue
-  fi
+  tags="$(grep '^//go:build' "$file" || true)"
+  [ -z "$tags" ] && continue
 
-  tag="$(grep '^//go:build' "$file")"
-  if [ "$tag" != "//go:build unit" ] && [ "$tag" != "//go:build integration" ]; then
-    error "$file: //go:build line must be 'unit' or 'integration', found: $tag"
+  case "$file" in
+    *_test.go) ;;
+    *)
+      error "$file: only test files may carry a //go:build line, found: $tags"
+      violations=$((violations + 1))
+      continue
+      ;;
+  esac
+
+  if [ "$tags" != "//go:build integration" ]; then
+    error "$file: the only allowed //go:build line is 'integration', found: $tags"
     violations=$((violations + 1))
   fi
-done < <(git ls-files ':(glob)backend/**/*_test.go')
+done < <(git ls-files ':(glob)backend/**/*.go')
 
 if [ "$violations" -gt 0 ]; then
-  fatal "$violations backend test file(s) missing a valid //go:build tag."
+  fatal "$violations backend file(s) carry a build tag other than a single //go:build integration."
 fi
 
-info "All backend test files declare exactly one //go:build tag (unit or integration)."
+info "Backend build tags are valid: unit tests untagged, integration tests tagged //go:build integration."

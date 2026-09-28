@@ -1,5 +1,3 @@
-//go:build unit
-
 package produkt
 
 import "testing"

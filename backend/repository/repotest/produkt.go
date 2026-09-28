@@ -1,6 +1,4 @@
-//go:build unit
-
-package produkt_repo
+package repotest
 
 import (
 	"context"
@@ -9,21 +7,21 @@ import (
 	"github.com/nicograef/jotti/backend/domain/produkt"
 )
 
-// NewMock creates a new mock repository with the given produkte and error.
-func NewMock(produkte []produkt.Produkt, err error) *mockRepo {
+// NewProduktRepo creates a new mock repository with the given produkte and error.
+func NewProduktRepo(produkte []produkt.Produkt, err error) *ProduktRepo {
 	produktMap := make(map[int]produkt.Produkt)
 	for i := range produkte {
 		produktMap[produkte[i].ID] = produkte[i]
 	}
 
-	return &mockRepo{
+	return &ProduktRepo{
 		produkte:  produktMap,
 		varianten: make(map[int]produkt.VarianteMitProdukt),
 		err:       err,
 	}
 }
 
-type mockRepo struct {
+type ProduktRepo struct {
 	produkte         map[int]produkt.Produkt
 	varianten        map[int]produkt.VarianteMitProdukt
 	err              error
@@ -32,16 +30,16 @@ type mockRepo struct {
 
 // SetUpdateProduktError makes UpdateProdukt fail with err while the reads keep
 // succeeding — the shape of a UNIQUE violation on the produkt name.
-func (m *mockRepo) SetUpdateProduktError(err error) {
+func (m *ProduktRepo) SetUpdateProduktError(err error) {
 	m.updateProduktErr = err
 }
 
 // AddVariante adds a variante to the mock repository, associated with a produkt.
-func (m *mockRepo) AddVariante(produktID int, v produkt.Variante) {
+func (m *ProduktRepo) AddVariante(produktID int, v produkt.Variante) {
 	m.varianten[v.ID] = produkt.VarianteMitProdukt{Variante: v, ProduktID: produktID}
 }
 
-func (m *mockRepo) GetProdukt(ctx context.Context, id int) (produkt.Produkt, error) {
+func (m *ProduktRepo) GetProdukt(ctx context.Context, id int) (produkt.Produkt, error) {
 	if m.err != nil {
 		return produkt.Produkt{}, m.err
 	}
@@ -52,14 +50,14 @@ func (m *mockRepo) GetProdukt(ctx context.Context, id int) (produkt.Produkt, err
 	return t, nil
 }
 
-func (m *mockRepo) CreateProdukt(ctx context.Context, t produkt.Produkt) (int, error) {
+func (m *ProduktRepo) CreateProdukt(ctx context.Context, t produkt.Produkt) (int, error) {
 	newID := len(m.produkte) + 1
 	t.ID = newID
 	m.produkte[newID] = t
 	return newID, m.err
 }
 
-func (m *mockRepo) UpdateProdukt(ctx context.Context, t produkt.Produkt) error {
+func (m *ProduktRepo) UpdateProdukt(ctx context.Context, t produkt.Produkt) error {
 	if m.updateProduktErr != nil {
 		return m.updateProduktErr
 	}
@@ -70,11 +68,11 @@ func (m *mockRepo) UpdateProdukt(ctx context.Context, t produkt.Produkt) error {
 // VerschiebeProdukt reicht nur den Fehler durch: Die Reihenfolge liegt allein
 // in der Persistenz, das Domain-Modell trägt sie nicht. Den Tausch deckt der
 // Integrationstest des Repositories ab.
-func (m *mockRepo) VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error {
+func (m *ProduktRepo) VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error {
 	return m.err
 }
 
-func (m *mockRepo) GetVariante(ctx context.Context, varianteID int) (produkt.Variante, error) {
+func (m *ProduktRepo) GetVariante(ctx context.Context, varianteID int) (produkt.Variante, error) {
 	if m.err != nil {
 		return produkt.Variante{}, m.err
 	}
@@ -85,25 +83,25 @@ func (m *mockRepo) GetVariante(ctx context.Context, varianteID int) (produkt.Var
 	return vp.Variante, nil
 }
 
-func (m *mockRepo) CreateVariante(ctx context.Context, produktID int, v produkt.Variante) (int, error) {
+func (m *ProduktRepo) CreateVariante(ctx context.Context, produktID int, v produkt.Variante) (int, error) {
 	newID := len(m.varianten) + 1
 	v.ID = newID
 	m.varianten[newID] = produkt.VarianteMitProdukt{Variante: v, ProduktID: produktID}
 	return newID, m.err
 }
 
-func (m *mockRepo) UpdateVariante(ctx context.Context, v produkt.Variante) error {
+func (m *ProduktRepo) UpdateVariante(ctx context.Context, v produkt.Variante) error {
 	if vp, ok := m.varianten[v.ID]; ok {
 		m.varianten[v.ID] = produkt.VarianteMitProdukt{Variante: v, ProduktID: vp.ProduktID}
 	}
 	return m.err
 }
 
-func (m *mockRepo) VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error {
+func (m *ProduktRepo) VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error {
 	return m.err
 }
 
-func (m *mockRepo) DeleteProduktMitVarianten(ctx context.Context, p produkt.Produkt) error {
+func (m *ProduktRepo) DeleteProduktMitVarianten(ctx context.Context, p produkt.Produkt) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -117,7 +115,7 @@ func (m *mockRepo) DeleteProduktMitVarianten(ctx context.Context, p produkt.Prod
 	return nil
 }
 
-func (m *mockRepo) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error) {
+func (m *ProduktRepo) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 	produkte := make([]produkt.Produkt, 0, len(m.produkte))
 	for i := range m.produkte {
 		produkte = append(produkte, m.produkte[i])
@@ -130,7 +128,7 @@ func (m *mockRepo) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error
 // nicht bestellbar und fällt raus. Die zurückgegebenen Varianten sind ebenso
 // gefiltert wie in der Query (WHERE status = 'active' in varianten_json) —
 // nicht-aktive Varianten eines sonst passenden Produkts fehlen.
-func (m *mockRepo) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error) {
+func (m *ProduktRepo) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 	produkte := make([]produkt.Produkt, 0)
 	for i := range m.produkte {
 		p := m.produkte[i]
@@ -157,7 +155,7 @@ func aktiveVarianten(varianten []produkt.Variante) []produkt.Variante {
 	return aktive
 }
 
-func (m *mockRepo) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error) {
+func (m *ProduktRepo) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -170,7 +168,7 @@ func (m *mockRepo) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]pr
 	return result, nil
 }
 
-func (m *mockRepo) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error) {
+func (m *ProduktRepo) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -183,6 +181,6 @@ func (m *mockRepo) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]pro
 	return result, nil
 }
 
-func (m *mockRepo) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
+func (m *ProduktRepo) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
 	return m.err
 }

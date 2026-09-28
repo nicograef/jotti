@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -20,9 +18,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
-	"github.com/nicograef/jotti/backend/repository/produkt_repo"
-	"github.com/nicograef/jotti/backend/repository/tisch_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
 const testKassensitzungNr = 1
@@ -33,15 +29,15 @@ var testOpenKS = &kasse.Kassensitzung{
 }
 
 func newTestCommand(tables []tisch.Tisch) Command {
-	return newTestCommandWithEventMock(tables, kassenjournal_repo.NewMock(nil, nil))
+	return newTestCommandWithEventMock(tables, repotest.NewKassenjournalRepo(nil, nil))
 }
 
-func newTestCommandWithEventMock(tables []tisch.Tisch, eventMock *kassenjournal_repo.MockRepo) Command {
+func newTestCommandWithEventMock(tables []tisch.Tisch, eventMock *repotest.KassenjournalRepo) Command {
 	return Command{
-		TischRepo:           tisch_repo.NewMock(tables, nil),
+		TischRepo:           repotest.NewTischRepo(tables, nil),
 		EventRepo:           eventMock,
-		ProduktRepo:         produkt_repo.NewMock(nil, db.ErrNotFound),
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		ProduktRepo:         repotest.NewProduktRepo(nil, db.ErrNotFound),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{},
 	}
 }
@@ -128,15 +124,15 @@ func (m *umbuchungTischRepoMock) GetAktiveTischeMitFavoriten(_ context.Context, 
 
 func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 	ctx := context.Background()
-	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	// no open KS set
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
 		ProduktRepo:         productMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil), // no open KS
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(nil, nil), // no open KS
 	}
 
 	inputs := []enrichment.PositionInput{
@@ -155,9 +151,9 @@ func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 // kasse_nicht_geoeffnet liefert statt eines 500.
 func TestBestellungAufnehmen_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 	ctx := context.Background()
-	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
-	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, kassenjournal_repo.ErrKassensitzungNichtOffen)
+	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, kassenjournal_repo.ErrKassensitzungNichtOffen)
 	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
 	command.ProduktRepo = productMock
 
@@ -176,7 +172,7 @@ func TestZahlungKassieren_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, kassenjournal_repo.ErrKassensitzungNichtOffen)
+	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, kassenjournal_repo.ErrKassensitzungNichtOffen)
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents: 350,
 		UnbezahltePositionen: []kasse.Position{{
@@ -193,9 +189,9 @@ func TestZahlungKassieren_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 	})
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
@@ -207,7 +203,7 @@ func TestZahlungKassieren_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 
 func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 	ctx := context.Background()
-	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
 	command := newTestCommand([]tisch.Tisch{testActiveTisch})
 	command.ProduktRepo = productMock
@@ -224,10 +220,10 @@ func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 
 func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 	ctx := context.Background()
-	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	stationMock := &mockDruckstationRepo{konfig: map[string]druckstation.Druckstation{
 		"getraenk": {DruckerIP: "192.168.1.50", Bonmodus: "pro_position"},
 	}}
@@ -260,9 +256,9 @@ func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 
 func TestBestellungAufnehmen_Conflict(t *testing.T) {
 	ctx := context.Background()
-	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
-	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, db.ErrAlreadyExists)
+	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, db.ErrAlreadyExists)
 	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
 	command.ProduktRepo = productMock
 
@@ -278,9 +274,9 @@ func TestBestellungAufnehmen_Conflict(t *testing.T) {
 
 func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
 	ctx := context.Background()
-	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
-	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, db.ErrConflict)
+	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, db.ErrConflict)
 	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
 	command.ProduktRepo = productMock
 
@@ -298,7 +294,7 @@ func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
 
 func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {
 	ctx := context.Background()
-	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
 	command := newTestCommand([]tisch.Tisch{testInactiveTisch})
 	command.ProduktRepo = productMock
@@ -323,7 +319,7 @@ func TestBestellungAufnehmen_InactiveVariante(t *testing.T) {
 		PreisCents: 350,
 		Status:     produkt.InactiveStatus,
 	}
-	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, inactiveVariant)
 	command := newTestCommand([]tisch.Tisch{testActiveTisch})
 	command.ProduktRepo = productMock
@@ -356,7 +352,7 @@ func TestZahlungKassieren_NonOrderedPosition(t *testing.T) {
 func TestZahlungKassieren_DoublePayment(t *testing.T) {
 	ctx := context.Background()
 	// After order + payment, unbezahlt is empty
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents:           0,
@@ -364,9 +360,9 @@ func TestZahlungKassieren_DoublePayment(t *testing.T) {
 		GesamtZahlungenCents: 350,
 	})
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	refs := []kasse.PositionRef{
@@ -399,7 +395,7 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 	konkurrierendesEvent.ID = 5
 	konkurrierendesEvent.Version = 2
 
-	eventMock := kassenjournal_repo.NewMock([]event.Event{konkurrierendesEvent}, nil)
+	eventMock := repotest.NewKassenjournalRepo([]event.Event{konkurrierendesEvent}, nil)
 	// Die Projektion ist der Stand VOR dem parallelen Commit: Version 1, Position offen.
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents: 350,
@@ -417,9 +413,9 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 	})
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err = command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
@@ -434,7 +430,7 @@ func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents: 350,
 		UnbezahltePositionen: []kasse.Position{{
@@ -451,9 +447,9 @@ func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
 	})
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
@@ -498,7 +494,7 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		}, 350, "")
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents:           0,
 		UnbezahltePositionen: []kasse.Position{},
@@ -510,9 +506,9 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 	eventMock.AddEvent(paymentEvent)
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	refs := []kasse.PositionRef{{PositionID: posID, Menge: 1}}
@@ -549,7 +545,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		}, 350, "Test")
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents:           0,
 		UnbezahltePositionen: []kasse.Position{},
@@ -561,9 +557,9 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 	eventMock.AddEvent(cancelEvent)
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	refs := []kasse.PositionRef{{PositionID: posID, Menge: 1}}
@@ -577,7 +573,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 	ctx := context.Background()
 	// State has 1 position with Menge 1
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents: 350,
@@ -586,9 +582,9 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 		},
 	})
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	// Try to pay for Menge 2 when only 1 was ordered
@@ -621,12 +617,12 @@ var duplikatRefs = []kasse.PositionRef{
 
 func TestZahlungKassieren_DuplikatPositionRefs(t *testing.T) {
 	ctx := context.Background()
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.SetTischSession(kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID), duplikatTestSession())
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, duplikatRefs, "")
@@ -654,15 +650,15 @@ func TestStornierungErteilen_DuplikatPositionRefs(t *testing.T) {
 	}
 	posID := orderData.Positionen[0].PositionID
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.SetTischSession(subject, duplikatTestSession())
 	orderEvent.Subject = subject
 	eventMock.AddEvent(orderEvent)
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	refs := []kasse.PositionRef{
@@ -681,7 +677,7 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	quellTisch := tisch.Tisch{ID: 1, Name: "Tisch Quelle", Status: tisch.ActiveStatus}
 	zielTisch := tisch.Tisch{ID: 2, Name: "Tisch Ziel", Status: tisch.ActiveStatus}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
 	zielSubject := kasse.TischSessionSubject(testKassensitzungNr, zielTisch.ID)
 	quellPositionID := uuid.New().String()
@@ -702,9 +698,9 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	})
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{quellTisch, zielTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{quellTisch, zielTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "Gast gewechselt")
@@ -799,7 +795,7 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 	quellTisch := tisch.Tisch{ID: 1, Name: "T" + strings.Repeat("ä", 49), Status: tisch.ActiveStatus}
 	zielTisch := tisch.Tisch{ID: 2, Name: strings.Repeat("Ä", 50), Status: tisch.ActiveStatus}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
 	zielSubject := kasse.TischSessionSubject(testKassensitzungNr, zielTisch.ID)
 	quellPositionID := uuid.New().String()
@@ -817,9 +813,9 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 	})
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{quellTisch, zielTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{quellTisch, zielTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
@@ -857,7 +853,7 @@ func TestBestellungUmbuchen_PositionNichtUmbuchbar(t *testing.T) {
 	quellTisch := tisch.Tisch{ID: 1, Name: "Tisch Quelle", Status: tisch.ActiveStatus}
 	zielTisch := tisch.Tisch{ID: 2, Name: "Tisch Ziel", Status: tisch.ActiveStatus}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
 	eventMock.SetTischSession(quellSubject, kasse.TischSession{
 		UnbezahltePositionen: []kasse.Position{{
@@ -872,9 +868,9 @@ func TestBestellungUmbuchen_PositionNichtUmbuchbar(t *testing.T) {
 	})
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{quellTisch, zielTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{quellTisch, zielTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
@@ -896,9 +892,9 @@ func TestBestellungUmbuchen_ZielTischNotActive(t *testing.T) {
 	zielTisch := tisch.Tisch{ID: 2, Name: "Tisch Ziel", Status: tisch.InactiveStatus}
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{quellTisch, zielTisch}, nil),
-		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{quellTisch, zielTisch}, nil),
+		EventRepo:           repotest.NewKassenjournalRepo(nil, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
@@ -915,8 +911,8 @@ func TestBestellungUmbuchen_ZielTischNotFound(t *testing.T) {
 		TischRepo: &umbuchungTischRepoMock{tables: map[int]tisch.Tisch{
 			quellTisch.ID: quellTisch,
 		}},
-		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		EventRepo:           repotest.NewKassenjournalRepo(nil, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, 99, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
@@ -928,9 +924,9 @@ func TestBestellungUmbuchen_ZielTischNotFound(t *testing.T) {
 func TestBestellungUmbuchen_KasseNichtGeoeffnet(t *testing.T) {
 	ctx := context.Background()
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
-		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
+		EventRepo:           repotest.NewKassenjournalRepo(nil, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(nil, nil),
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", 1, 2, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
@@ -944,7 +940,7 @@ func TestBestellungUmbuchen_Conflict(t *testing.T) {
 	quellTisch := tisch.Tisch{ID: 1, Name: "Tisch Quelle", Status: tisch.ActiveStatus}
 	zielTisch := tisch.Tisch{ID: 2, Name: "Tisch Ziel", Status: tisch.ActiveStatus}
 
-	eventMock := kassenjournal_repo.NewMockWithWriteErr(nil, db.ErrAlreadyExists)
+	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, db.ErrAlreadyExists)
 	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
 	quellPositionID := uuid.New().String()
 	eventMock.SetTischSession(quellSubject, kasse.TischSession{
@@ -960,9 +956,9 @@ func TestBestellungUmbuchen_Conflict(t *testing.T) {
 	})
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{quellTisch, zielTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{quellTisch, zielTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
@@ -990,15 +986,15 @@ func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahm
 		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1,
 	}}, 350, "")
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.SetTischSession(subject, kasse.TischSession{})
 	eventMock.AddEvent(orderEvent)
 	eventMock.AddEvent(paymentEvent)
 
 	command := Command{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{testActiveTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err := command.StornierungErteilen(ctx, 2, "Leitung", testActiveTisch.ID, []kasse.PositionRef{{PositionID: posID, Menge: 3}}, "Reklamation")

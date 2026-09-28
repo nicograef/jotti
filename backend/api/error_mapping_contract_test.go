@@ -1,5 +1,3 @@
-//go:build unit
-
 package api
 
 // An exported Err* variable under backend/api is an application sentinel: the

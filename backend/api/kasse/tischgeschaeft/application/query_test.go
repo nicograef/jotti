@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -10,9 +8,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tisch"
-	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
-	"github.com/nicograef/jotti/backend/repository/tisch_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 	"github.com/rs/zerolog"
 )
 
@@ -20,8 +16,8 @@ func TestGetTischState(t *testing.T) {
 	positions := []kasse.Position{
 		{PositionID: "p1", ProduktName: "Cola", VarianteName: "0,5l", EinzelpreisCents: 350, Menge: 2, BestellerUserID: 5, BestellerName: "Anna"},
 	}
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
-	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	sitzungMock := repotest.NewKassensitzungenRepo(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	subject := kasse.TischSessionSubject(1, 1)
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		SaldoCents:           700,
@@ -29,7 +25,7 @@ func TestGetTischState(t *testing.T) {
 		GesamtZahlungenCents: 0,
 	})
 	query := Query{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus}}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus}}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: sitzungMock,
 	}
@@ -66,10 +62,10 @@ func TestGetTischState(t *testing.T) {
 }
 
 func TestGetTischState_NoState(t *testing.T) {
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
-	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	sitzungMock := repotest.NewKassensitzungenRepo(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	query := Query{
-		TischRepo:           tisch_repo.NewMock([]tisch.Tisch{{ID: 999, Name: "Tisch 999", Status: tisch.ActiveStatus}}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{{ID: 999, Name: "Tisch 999", Status: tisch.ActiveStatus}}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: sitzungMock,
 	}
@@ -102,8 +98,8 @@ func TestGetMeineTischeState_BatchInFavoriteOrder(t *testing.T) {
 	positions := []kasse.Position{
 		{PositionID: "p1", ProduktName: "Cola", VarianteName: "0,5l", EinzelpreisCents: 350, Menge: 2, BestellerUserID: 5, BestellerName: "Anna"},
 	}
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
-	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	sitzungMock := repotest.NewKassensitzungenRepo(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	eventMock.SetTischName(7, "Tisch 7")
 	eventMock.SetTischName(3, "Tisch 3")
 	// Nur Tisch 7 hat eine Session; Tisch 3 bleibt session-los.
@@ -113,7 +109,7 @@ func TestGetMeineTischeState_BatchInFavoriteOrder(t *testing.T) {
 	})
 
 	query := Query{
-		TischRepo:           tisch_repo.NewMock(nil, nil),
+		TischRepo:           repotest.NewTischRepo(nil, nil),
 		EventRepo:           eventMock,
 		FavoritRepo:         favoritMock{ids: []int{7, 3}},
 		KassensitzungenRepo: sitzungMock,
@@ -154,14 +150,14 @@ func TestGetMeineTischeState_SkipsUnresolvableFavorit(t *testing.T) {
 	var logbuf bytes.Buffer
 	ctx := zerolog.New(&logbuf).WithContext(context.Background())
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
-	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	sitzungMock := repotest.NewKassensitzungenRepo(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	// Tisch 42 fehlt im Batch (gelöscht); 7 und 3 sind auflösbar.
 	eventMock.SetTischName(7, "Tisch 7")
 	eventMock.SetTischName(3, "Tisch 3")
 
 	query := Query{
-		TischRepo:           tisch_repo.NewMock(nil, nil),
+		TischRepo:           repotest.NewTischRepo(nil, nil),
 		EventRepo:           eventMock,
 		FavoritRepo:         favoritMock{ids: []int{7, 42, 3}},
 		KassensitzungenRepo: sitzungMock,
@@ -194,12 +190,12 @@ func TestGetMeineTischeState_SkipsUnresolvableFavorit(t *testing.T) {
 
 // Sind alle Favoriten verwaist, ist das Ergebnis eine leere Liste — kein Fehler.
 func TestGetMeineTischeState_AllFavoritenUnresolvable(t *testing.T) {
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
-	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	sitzungMock := repotest.NewKassensitzungenRepo(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	// Kein SetTischName -> beide Tische sind dem Batch unbekannt.
 
 	query := Query{
-		TischRepo:           tisch_repo.NewMock(nil, nil),
+		TischRepo:           repotest.NewTischRepo(nil, nil),
 		EventRepo:           eventMock,
 		FavoritRepo:         favoritMock{ids: []int{42, 43}},
 		KassensitzungenRepo: sitzungMock,
@@ -215,10 +211,10 @@ func TestGetMeineTischeState_AllFavoritenUnresolvable(t *testing.T) {
 }
 
 func TestGetTischHistorie_ReturnsEmptyForTischWithNoEvents(t *testing.T) {
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
-	sitzungMock := kassensitzungen_repo.NewMock(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	sitzungMock := repotest.NewKassensitzungenRepo(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
 	query := Query{
-		TischRepo:           tisch_repo.NewMock(nil, nil),
+		TischRepo:           repotest.NewTischRepo(nil, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: sitzungMock,
 	}

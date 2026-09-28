@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -7,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/nicograef/jotti/backend/domain/tisch"
-	"github.com/nicograef/jotti/backend/repository/tisch_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
 func TestGetAllTische(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus}}, nil)
+	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus}}, nil)
 	query := Query{TischRepo: repo}
 
 	tische, err := query.GetAllTische(context.Background())
@@ -34,7 +32,7 @@ func TestGetAllTische(t *testing.T) {
 // die tisch_sessions der offenen Kassensitzung ab: nur der Tisch mit offenem
 // Saldo trägt den Betrag, alle anderen bleiben bei 0.
 func TestGetAllTische_SaldoAusOffenerSitzung(t *testing.T) {
-	repo := tisch_repo.NewMock([]tisch.Tisch{
+	repo := repotest.NewTischRepo([]tisch.Tisch{
 		{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus},
 		{ID: 2, Name: "Tisch 2", Status: tisch.ActiveStatus},
 	}, nil)

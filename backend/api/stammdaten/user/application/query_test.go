@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -9,11 +7,11 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/user"
-	"github.com/nicograef/jotti/backend/repository/user_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
 func TestGetAllUsers_Success(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{{ID: 1, Name: "Test User", Username: "testuser", Role: user.ServiceRole}}, nil)
+	repo := repotest.NewUserRepo([]user.User{{ID: 1, Name: "Test User", Username: "testuser", Role: user.ServiceRole}}, nil)
 
 	users, err := Query{UserRepo: repo}.GetAllUsers(context.Background())
 
@@ -29,7 +27,7 @@ func TestGetAllUsers_Success(t *testing.T) {
 }
 
 func TestGetAllUsers_Error(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{}, db.ErrDatabase)
+	repo := repotest.NewUserRepo([]user.User{}, db.ErrDatabase)
 
 	_, err := Query{UserRepo: repo}.GetAllUsers(context.Background())
 

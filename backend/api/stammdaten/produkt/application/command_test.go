@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -11,7 +9,7 @@ import (
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
-	"github.com/nicograef/jotti/backend/repository/produkt_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
 var testProdukt = produkt.Produkt{
@@ -26,7 +24,7 @@ var testProdukt = produkt.Produkt{
 }
 
 func TestCreateProdukt(t *testing.T) {
-	repo := produkt_repo.NewMock(nil, nil)
+	repo := repotest.NewProduktRepo(nil, nil)
 	cmd := Command{ProduktRepo: repo}
 
 	id, err := cmd.CreateProdukt(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
@@ -39,7 +37,7 @@ func TestCreateProdukt(t *testing.T) {
 }
 
 func TestCreateProdukt_AlreadyExists(t *testing.T) {
-	repo := produkt_repo.NewMock(nil, db.ErrAlreadyExists)
+	repo := repotest.NewProduktRepo(nil, db.ErrAlreadyExists)
 	cmd := Command{ProduktRepo: repo}
 
 	_, err := cmd.CreateProdukt(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
@@ -49,7 +47,7 @@ func TestCreateProdukt_AlreadyExists(t *testing.T) {
 }
 
 func TestUpdateProdukt(t *testing.T) {
-	repo := produkt_repo.NewMock([]produkt.Produkt{testProdukt}, nil)
+	repo := repotest.NewProduktRepo([]produkt.Produkt{testProdukt}, nil)
 	cmd := Command{ProduktRepo: repo}
 
 	err := cmd.UpdateProdukt(context.Background(), 1, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
@@ -67,7 +65,7 @@ func TestUpdateProdukt(t *testing.T) {
 }
 
 func TestUpdateProdukt_NotFound(t *testing.T) {
-	repo := produkt_repo.NewMock(nil, db.ErrNotFound)
+	repo := repotest.NewProduktRepo(nil, db.ErrNotFound)
 	cmd := Command{ProduktRepo: repo}
 
 	err := cmd.UpdateProdukt(context.Background(), 999, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
@@ -77,7 +75,7 @@ func TestUpdateProdukt_NotFound(t *testing.T) {
 }
 
 func TestUpdateProdukt_AlreadyExists(t *testing.T) {
-	repo := produkt_repo.NewMock([]produkt.Produkt{testProdukt}, nil)
+	repo := repotest.NewProduktRepo([]produkt.Produkt{testProdukt}, nil)
 	repo.SetUpdateProduktError(db.ErrAlreadyExists)
 	cmd := Command{ProduktRepo: repo}
 
@@ -88,7 +86,7 @@ func TestUpdateProdukt_AlreadyExists(t *testing.T) {
 }
 
 func TestVerschiebeProdukt_NotFound(t *testing.T) {
-	repo := produkt_repo.NewMock(nil, db.ErrNotFound)
+	repo := repotest.NewProduktRepo(nil, db.ErrNotFound)
 	cmd := Command{ProduktRepo: repo}
 
 	err := cmd.VerschiebeProdukt(context.Background(), 999, produkt.RichtungHoch)
@@ -98,7 +96,7 @@ func TestVerschiebeProdukt_NotFound(t *testing.T) {
 }
 
 func TestVerschiebeVariante_NotFound(t *testing.T) {
-	repo := produkt_repo.NewMock(nil, db.ErrNotFound)
+	repo := repotest.NewProduktRepo(nil, db.ErrNotFound)
 	cmd := Command{ProduktRepo: repo}
 
 	err := cmd.VerschiebeVariante(context.Background(), 999, produkt.RichtungRunter)
@@ -127,7 +125,7 @@ func testVarianteVon(id int) (produkt.Produkt, produkt.Variante) {
 
 func TestDeleteVariante(t *testing.T) {
 	eigenes, variante := testVarianteVon(1)
-	repo := produkt_repo.NewMock([]produkt.Produkt{eigenes}, nil)
+	repo := repotest.NewProduktRepo([]produkt.Produkt{eigenes}, nil)
 	repo.AddVariante(eigenes.ID, variante)
 	cmd := Command{ProduktRepo: repo}
 
@@ -153,7 +151,7 @@ func TestDeleteVariante_FremdeVariante(t *testing.T) {
 	fremdes.Name = "Wasser"
 	fremdes.Varianten = []produkt.Variante{}
 
-	repo := produkt_repo.NewMock([]produkt.Produkt{eigenes, fremdes}, nil)
+	repo := repotest.NewProduktRepo([]produkt.Produkt{eigenes, fremdes}, nil)
 	repo.AddVariante(eigenes.ID, variante)
 	cmd := Command{ProduktRepo: repo}
 
@@ -172,7 +170,7 @@ func TestDeleteVariante_FremdeVariante(t *testing.T) {
 }
 
 func TestDeleteProdukt(t *testing.T) {
-	repo := produkt_repo.NewMock([]produkt.Produkt{testProdukt}, nil)
+	repo := repotest.NewProduktRepo([]produkt.Produkt{testProdukt}, nil)
 	cmd := Command{ProduktRepo: repo}
 
 	err := cmd.DeleteProdukt(context.Background(), 1)

@@ -1,19 +1,19 @@
-//go:build unit
-
-package tse
+package tsetest
 
 import (
 	"context"
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 func TestFakeClient_Success(t *testing.T) {
 	fake := FakeClient{
-		StartResponse:      StartResult{TransactionNumber: 10, SignatureCounter: 12},
-		FinishResponse:     FinishResult{TransactionNumber: 10, SignatureCounter: 13, Signature: "abc"},
-		ConnectionResponse: VerbindungStatus{Umgebung: UmgebungTest, TSSState: "INITIALIZED"},
+		StartResponse:      tse.StartResult{TransactionNumber: 10, SignatureCounter: 12},
+		FinishResponse:     tse.FinishResult{TransactionNumber: 10, SignatureCounter: 13, Signature: "abc"},
+		ConnectionResponse: tse.VerbindungStatus{Umgebung: tse.UmgebungTest, TSSState: "INITIALIZED"},
 	}
 
 	start, err := fake.StartTransaction(context.Background(), "8e9e7b56-31a8-43e3-9b29-d92a2b78b561")
@@ -36,7 +36,7 @@ func TestFakeClient_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no connection error, got %v", err)
 	}
-	if status.Umgebung != UmgebungTest {
+	if status.Umgebung != tse.UmgebungTest {
 		t.Fatalf("expected TEST environment, got %s", status.Umgebung)
 	}
 }

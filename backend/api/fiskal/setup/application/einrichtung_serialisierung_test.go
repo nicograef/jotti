@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -10,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/domain/tse/tsetest"
 )
 
 // blockierenderSetupClient hält einen laufenden Lebenszyklus in ListTSS fest —
@@ -17,7 +16,7 @@ import (
 // sähe und eine zweite, bezahlte TSS anlegte. gestartet meldet, dass der Lauf
 // steht; weiter lässt ihn zu Ende laufen.
 type blockierenderSetupClient struct {
-	*tse.FakeSetupClient
+	*tsetest.FakeSetupClient
 	gestartet chan struct{}
 	weiter    chan struct{}
 }
@@ -57,7 +56,7 @@ func starteBlockierteEinrichtung(t *testing.T) *laufendeEinrichtung {
 	t.Cleanup(func() { einrichtungLaeuft.Store(false) })
 
 	blockiert := &blockierenderSetupClient{
-		FakeSetupClient: &tse.FakeSetupClient{
+		FakeSetupClient: &tsetest.FakeSetupClient{
 			UmgebungResponse:  tse.UmgebungTest,
 			CreateTSSResponse: tse.TSSErstellt{ID: "tss-erste", PUK: "puk-123", State: "CREATED"},
 		},
@@ -102,7 +101,7 @@ func TestEinrichtung_ZweiterAufrufWaehrendLaufendemErstenAbgelehnt(t *testing.T)
 	// jeden Versuch, einen Setup-Client zu bauen — der erste Schritt jeder
 	// fiskaly-Sequenz und damit der schärfste Nachweis.
 	fabrikAufrufe := 0
-	zweiterClient := &tse.FakeSetupClient{
+	zweiterClient := &tsetest.FakeSetupClient{
 		UmgebungResponse:  tse.UmgebungTest,
 		CreateTSSResponse: tse.TSSErstellt{ID: "tss-zweite", PUK: "puk-456", State: "CREATED"},
 	}
@@ -190,12 +189,12 @@ func TestEinrichtung_SchlossIstNachFehlerUndNachErfolgWiederFrei(t *testing.T) {
 
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 
-	gescheitert := &tse.FakeSetupClient{TSSErr: errors.New("fiskaly nicht erreichbar")}
+	gescheitert := &tsetest.FakeSetupClient{TSSErr: errors.New("fiskaly nicht erreichbar")}
 	if _, err := commandMit(repo, gescheitert).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false); !errors.Is(err, ErrTSEVerbindungFehlgeschlagen) {
 		t.Fatalf("expected ErrTSEVerbindungFehlgeschlagen, got %v", err)
 	}
 
-	erfolgreich := &tse.FakeSetupClient{
+	erfolgreich := &tsetest.FakeSetupClient{
 		UmgebungResponse:  tse.UmgebungTest,
 		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk-123", State: "CREATED"},
 	}
@@ -203,7 +202,7 @@ func TestEinrichtung_SchlossIstNachFehlerUndNachErfolgWiederFrei(t *testing.T) {
 		t.Fatalf("expected the setup after a failed run to start, got %v", err)
 	}
 
-	danach := &tse.FakeSetupClient{
+	danach := &tsetest.FakeSetupClient{
 		UmgebungResponse:  tse.UmgebungTest,
 		CreateTSSResponse: tse.TSSErstellt{ID: "tss-danach", PUK: "puk-456", State: "CREATED"},
 	}

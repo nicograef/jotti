@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -17,8 +15,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
-	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
-	"github.com/nicograef/jotti/backend/repository/produkt_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
 const testKassensitzungNr = 1
@@ -105,7 +102,7 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 }
 
 func newProductMock() produktRepo {
-	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
 	return productMock
 }
@@ -114,7 +111,7 @@ func newCommand(eventRepo eventRepo, ks *kasse.Kassensitzung) Command {
 	return Command{
 		EventRepo:           eventRepo,
 		ProduktRepo:         newProductMock(),
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(ks, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(ks, nil),
 	}
 }
 
@@ -122,7 +119,7 @@ func newCommandWithDruckstationen(eventRepo eventRepo, ks *kasse.Kassensitzung, 
 	return Command{
 		EventRepo:           eventRepo,
 		ProduktRepo:         newProductMock(),
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(ks, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(ks, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: stationen},
 	}
 }
@@ -192,13 +189,13 @@ func TestDirektverkaufTaetigen_InactiveVariante(t *testing.T) {
 		PreisCents: 350,
 		Status:     produkt.InactiveStatus,
 	}
-	productMock := produkt_repo.NewMock([]produkt.Produkt{testProduct}, nil)
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, inactiveVariant)
 	spy := &spyEventRepo{}
 	command := Command{
 		EventRepo:           spy,
 		ProduktRepo:         productMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	inputs := []enrichment.PositionInput{
@@ -218,8 +215,8 @@ func TestDirektverkaufTaetigen_ProduktNotFound(t *testing.T) {
 	spy := &spyEventRepo{}
 	command := Command{
 		EventRepo:           spy,
-		ProduktRepo:         produkt_repo.NewMock([]produkt.Produkt{}, nil),
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		ProduktRepo:         repotest.NewProduktRepo([]produkt.Produkt{}, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")

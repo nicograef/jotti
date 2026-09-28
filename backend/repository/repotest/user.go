@@ -1,6 +1,4 @@
-//go:build unit
-
-package user_repo
+package repotest
 
 import (
 	"context"
@@ -9,24 +7,24 @@ import (
 	"github.com/nicograef/jotti/backend/domain/user"
 )
 
-func NewMock(users []user.User, err error) *mockRepo {
+func NewUserRepo(users []user.User, err error) *UserRepo {
 	userMap := make(map[int]user.User)
 	for i := range users {
 		userMap[users[i].ID] = users[i]
 	}
 
-	return &mockRepo{
+	return &UserRepo{
 		user: userMap,
 		err:  err,
 	}
 }
 
-type mockRepo struct {
+type UserRepo struct {
 	user map[int]user.User
 	err  error
 }
 
-func (m mockRepo) GetUser(ctx context.Context, id int) (user.User, error) {
+func (m UserRepo) GetUser(ctx context.Context, id int) (user.User, error) {
 	if m.err != nil {
 		return user.User{}, m.err
 	}
@@ -37,7 +35,7 @@ func (m mockRepo) GetUser(ctx context.Context, id int) (user.User, error) {
 	return t, nil
 }
 
-func (m mockRepo) GetUserByUsername(ctx context.Context, username string) (user.User, error) {
+func (m UserRepo) GetUserByUsername(ctx context.Context, username string) (user.User, error) {
 	if m.err != nil {
 		return user.User{}, m.err
 	}
@@ -49,7 +47,7 @@ func (m mockRepo) GetUserByUsername(ctx context.Context, username string) (user.
 	return user.User{}, db.ErrNotFound
 }
 
-func (m mockRepo) GetAllUsers(ctx context.Context) ([]user.User, error) {
+func (m UserRepo) GetAllUsers(ctx context.Context) ([]user.User, error) {
 	users := []user.User{}
 	for _, u := range m.user { //nolint:gocritic // collecting all values
 		users = append(users, u)
@@ -57,18 +55,18 @@ func (m mockRepo) GetAllUsers(ctx context.Context) ([]user.User, error) {
 	return users, m.err
 }
 
-func (m mockRepo) CountUsers(ctx context.Context) (int, error) {
+func (m UserRepo) CountUsers(ctx context.Context) (int, error) {
 	return len(m.user), m.err
 }
 
-func (m mockRepo) CreateUser(ctx context.Context, t user.User) (int, error) {
+func (m UserRepo) CreateUser(ctx context.Context, t user.User) (int, error) {
 	newID := len(m.user) + 1
 	t.ID = newID
 	m.user[newID] = t
 	return newID, m.err
 }
 
-func (m mockRepo) UpdateUser(ctx context.Context, t user.User) error {
+func (m UserRepo) UpdateUser(ctx context.Context, t user.User) error {
 	m.user[t.ID] = t
 	return m.err
 }
@@ -76,7 +74,7 @@ func (m mockRepo) UpdateUser(ctx context.Context, t user.User) error {
 // SetPasswordTx spiegelt den transaktionalen Repo-Pfad in-memory: Benutzer laden,
 // apply ausführen, Ergebnis persistieren. Der Fachfehler aus apply wird nach der
 // (simulierten) Persistenz zurückgegeben.
-func (m mockRepo) SetPasswordTx(ctx context.Context, username string, apply func(*user.User) error) error {
+func (m UserRepo) SetPasswordTx(ctx context.Context, username string, apply func(*user.User) error) error {
 	if m.err != nil {
 		return m.err
 	}

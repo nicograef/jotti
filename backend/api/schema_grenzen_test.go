@@ -1,5 +1,3 @@
-//go:build unit
-
 package api
 
 // An exported *Schema variable under backend/domain is the bound of a persisted

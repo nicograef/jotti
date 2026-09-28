@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -10,7 +8,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/auth/throttle"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/user"
-	"github.com/nicograef/jotti/backend/repository/user_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
 // testUserHash ist der Argon2id-Hash zu "testpassword"; Testbenutzer mit diesem
@@ -18,7 +16,7 @@ import (
 const testUserHash = "$argon2id$v=19$m=64,t=2,p=4$QzFPUlMxVUd2Wm51a09BNA$WC7jqeO84JjhcPYJKIN6Ep71DLRc0wog7vjIwYq+EEk"
 
 func TestGenerateJWTToken_NotFound(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{}, db.ErrNotFound)
+	repo := repotest.NewUserRepo([]user.User{}, db.ErrNotFound)
 	command := Command{UserRepo: repo, JWTSecret: "test-secret", Throttle: throttle.NewLoginThrottle()}
 
 	_, err := command.GenerateJWTToken(context.Background(), "nonexistent", "password")
@@ -29,7 +27,7 @@ func TestGenerateJWTToken_NotFound(t *testing.T) {
 }
 
 func TestGenerateJWTToken_Success(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{{ID: 1, Username: "testuser", Status: user.ActiveStatus, PasswordHash: testUserHash}}, nil)
+	repo := repotest.NewUserRepo([]user.User{{ID: 1, Username: "testuser", Status: user.ActiveStatus, PasswordHash: testUserHash}}, nil)
 	command := Command{UserRepo: repo, JWTSecret: "test-secret", Throttle: throttle.NewLoginThrottle()}
 
 	token, err := command.GenerateJWTToken(context.Background(), "testuser", "testpassword")
@@ -43,7 +41,7 @@ func TestGenerateJWTToken_Success(t *testing.T) {
 }
 
 func TestGenerateJWTToken_InvalidPassword(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{{ID: 1, Username: "testuser", Status: user.ActiveStatus, PasswordHash: testUserHash}}, nil)
+	repo := repotest.NewUserRepo([]user.User{{ID: 1, Username: "testuser", Status: user.ActiveStatus, PasswordHash: testUserHash}}, nil)
 	command := Command{UserRepo: repo, JWTSecret: "test-secret", Throttle: throttle.NewLoginThrottle()}
 
 	_, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword")
@@ -54,7 +52,7 @@ func TestGenerateJWTToken_InvalidPassword(t *testing.T) {
 }
 
 func TestGenerateJWTToken_HashError(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{{ID: 1, Username: "testuser", Status: user.ActiveStatus, PasswordHash: "invalidhashformat"}}, nil)
+	repo := repotest.NewUserRepo([]user.User{{ID: 1, Username: "testuser", Status: user.ActiveStatus, PasswordHash: "invalidhashformat"}}, nil)
 	command := Command{UserRepo: repo, JWTSecret: "test-secret", Throttle: throttle.NewLoginThrottle()}
 
 	_, err := command.GenerateJWTToken(context.Background(), "testuser", "somepassword")
@@ -65,7 +63,7 @@ func TestGenerateJWTToken_HashError(t *testing.T) {
 }
 
 func TestGenerateJWTToken_UserInactive(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{{ID: 1, Username: "testuser", Status: user.InactiveStatus, PasswordHash: testUserHash}}, nil)
+	repo := repotest.NewUserRepo([]user.User{{ID: 1, Username: "testuser", Status: user.InactiveStatus, PasswordHash: testUserHash}}, nil)
 	command := Command{UserRepo: repo, JWTSecret: "test-secret", Throttle: throttle.NewLoginThrottle()}
 
 	_, err := command.GenerateJWTToken(context.Background(), "testuser", "testpassword")
@@ -76,7 +74,7 @@ func TestGenerateJWTToken_UserInactive(t *testing.T) {
 }
 
 func TestGenerateJWTToken_ThrottledAfterRepeatedFailures(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{{ID: 1, Username: "testuser", Status: user.ActiveStatus, PasswordHash: testUserHash}}, nil)
+	repo := repotest.NewUserRepo([]user.User{{ID: 1, Username: "testuser", Status: user.ActiveStatus, PasswordHash: testUserHash}}, nil)
 	command := Command{UserRepo: repo, JWTSecret: "test-secret", Throttle: throttle.NewLoginThrottle()}
 
 	// Die Standardschwelle ist 5: fünf Fehlversuche liefern noch invalid_password ...
@@ -93,7 +91,7 @@ func TestGenerateJWTToken_ThrottledAfterRepeatedFailures(t *testing.T) {
 }
 
 func TestGenerateJWTToken_SuccessResetsThrottle(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{{ID: 1, Username: "testuser", Status: user.ActiveStatus, PasswordHash: testUserHash}}, nil)
+	repo := repotest.NewUserRepo([]user.User{{ID: 1, Username: "testuser", Status: user.ActiveStatus, PasswordHash: testUserHash}}, nil)
 	command := Command{UserRepo: repo, JWTSecret: "test-secret", Throttle: throttle.NewLoginThrottle()}
 
 	for range 4 {
@@ -114,7 +112,7 @@ func TestGenerateJWTToken_SuccessResetsThrottle(t *testing.T) {
 }
 
 func TestGenerateJWTToken_ThrottleIsPerAccount(t *testing.T) {
-	repo := user_repo.NewMock([]user.User{
+	repo := repotest.NewUserRepo([]user.User{
 		{ID: 1, Username: "opfer", Status: user.ActiveStatus, PasswordHash: testUserHash},
 		{ID: 2, Username: "unbeteiligt", Status: user.ActiveStatus, PasswordHash: testUserHash},
 	}, nil)

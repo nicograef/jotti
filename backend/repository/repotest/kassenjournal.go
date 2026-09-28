@@ -1,6 +1,4 @@
-//go:build unit
-
-package kassenjournal_repo
+package repotest
 
 import (
 	"context"
@@ -13,27 +11,28 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
-func NewMock(events []event.Event, err error) *MockRepo {
+func NewKassenjournalRepo(events []event.Event, err error) *KassenjournalRepo {
 	eventMap := make(map[int]event.Event)
 	for _, e := range events {
 		eventMap[e.ID] = e
 	}
 
-	return &MockRepo{
+	return &KassenjournalRepo{
 		events: eventMap,
 		err:    err,
 	}
 }
 
-func NewMockWithWriteErr(events []event.Event, writeErr error) *MockRepo {
-	m := NewMock(events, nil)
+func NewKassenjournalRepoWithWriteErr(events []event.Event, writeErr error) *KassenjournalRepo {
+	m := NewKassenjournalRepo(events, nil)
 	m.writeErr = writeErr
 	return m
 }
 
-type MockRepo struct {
+type KassenjournalRepo struct {
 	NextZNr                int // z_nr, die EroeffneKassensitzung vergibt (0 → 1)
 	events                 map[int]event.Event
 	err                    error
@@ -47,7 +46,7 @@ type MockRepo struct {
 }
 
 // versionConflict mirrors the UNIQUE(subject, version) constraint of the kassenjournal.
-func (m *MockRepo) versionConflict(e event.Event) bool {
+func (m *KassenjournalRepo) versionConflict(e event.Event) bool {
 	for _, existing := range m.events {
 		if existing.Subject == e.Subject && existing.Version == e.Version {
 			return true
@@ -58,7 +57,7 @@ func (m *MockRepo) versionConflict(e event.Event) bool {
 
 // nextEventID mirrors the DB sequence: max(existing)+1, not len+1 — a mock seeded
 // with non-contiguous IDs would otherwise reuse an id.
-func (m *MockRepo) nextEventID() int {
+func (m *KassenjournalRepo) nextEventID() int {
 	maxID := 0
 	for id := range m.events {
 		if id > maxID {
@@ -68,7 +67,7 @@ func (m *MockRepo) nextEventID() int {
 	return maxID + 1
 }
 
-func (m *MockRepo) EroeffneKassensitzung(ctx context.Context, _ time.Time, _ string, build func(zNr int) (event.Event, error)) (int, error) {
+func (m *KassenjournalRepo) EroeffneKassensitzung(ctx context.Context, _ time.Time, _ string, build func(zNr int) (event.Event, error)) (int, error) {
 	if m.err != nil {
 		return 0, m.err
 	}
@@ -86,7 +85,7 @@ func (m *MockRepo) EroeffneKassensitzung(ctx context.Context, _ time.Time, _ str
 	return zNr, nil
 }
 
-func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamType, _ int) (int, error) {
+func (m *KassenjournalRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamType, _ int) (int, error) {
 	if m.writeErr != nil {
 		return 0, m.writeErr
 	}
@@ -102,7 +101,7 @@ func (m *MockRepo) WriteEvent(_ context.Context, e event.Event, _ kasse.StreamTy
 	return newID, nil
 }
 
-func (m *MockRepo) WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
+func (m *KassenjournalRepo) WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
 	id, err := m.WriteEvent(ctx, e, streamType, kassensitzungNr)
 	if err != nil {
 		return 0, err
@@ -112,7 +111,7 @@ func (m *MockRepo) WriteEventWithDruckauftraege(ctx context.Context, e event.Eve
 	return id, nil
 }
 
-func (m *MockRepo) WriteTischSessionEventsAtomic(_ context.Context, events []event.Event, _ int) error {
+func (m *KassenjournalRepo) WriteTischSessionEventsAtomic(_ context.Context, events []event.Event, _ int) error {
 	if m.writeErr != nil {
 		return m.writeErr
 	}
@@ -132,15 +131,15 @@ func (m *MockRepo) WriteTischSessionEventsAtomic(_ context.Context, events []eve
 	return nil
 }
 
-func (m *MockRepo) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
+func (m *KassenjournalRepo) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
 	return m.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
 }
 
-func (m *MockRepo) CapturedDruckauftraege() []druckauftrag_repo.NeuerDruckauftrag {
+func (m *KassenjournalRepo) CapturedDruckauftraege() []druckauftrag_repo.NeuerDruckauftrag {
 	return m.druckauftraege
 }
 
-func (m *MockRepo) GetMaxVersion(_ context.Context, subject string) (int, error) {
+func (m *KassenjournalRepo) GetMaxVersion(_ context.Context, subject string) (int, error) {
 	if m.err != nil {
 		return 0, m.err
 	}
@@ -153,7 +152,7 @@ func (m *MockRepo) GetMaxVersion(_ context.Context, subject string) (int, error)
 	return maxVersion, nil
 }
 
-func (m *MockRepo) ReadEventsBySubject(_ context.Context, subject string) ([]event.Event, error) {
+func (m *KassenjournalRepo) ReadEventsBySubject(_ context.Context, subject string) ([]event.Event, error) {
 	events := []event.Event{}
 	for _, e := range m.events {
 		if e.Subject == subject {
@@ -166,7 +165,7 @@ func (m *MockRepo) ReadEventsBySubject(_ context.Context, subject string) ([]eve
 	return events, m.err
 }
 
-func (m *MockRepo) ReadTischSession(_ context.Context, subject string) (kasse.TischSession, error) {
+func (m *KassenjournalRepo) ReadTischSession(_ context.Context, subject string) (kasse.TischSession, error) {
 	if m.tischSessionErr != nil {
 		return kasse.TischSession{}, m.tischSessionErr
 	}
@@ -181,7 +180,7 @@ func (m *MockRepo) ReadTischSession(_ context.Context, subject string) (kasse.Ti
 	return kasse.TischSession{}, nil
 }
 
-func (m *MockRepo) SetTischSession(subject string, state kasse.TischSession) {
+func (m *KassenjournalRepo) SetTischSession(subject string, state kasse.TischSession) {
 	if m.tischSessions == nil {
 		m.tischSessions = make(map[string]kasse.TischSession)
 	}
@@ -189,18 +188,18 @@ func (m *MockRepo) SetTischSession(subject string, state kasse.TischSession) {
 }
 
 // A tisch id without a registered name counts as deleted/unknown in ReadFavoritenTischStates.
-func (m *MockRepo) SetTischName(tischID int, name string) {
+func (m *KassenjournalRepo) SetTischName(tischID int, name string) {
 	if m.tischNames == nil {
 		m.tischNames = make(map[int]string)
 	}
 	m.tischNames[tischID] = name
 }
 
-func (m *MockRepo) ReadFavoritenTischStates(_ context.Context, tischIDs []int, kassensitzungNr int) (map[int]TischNameUndSession, error) {
+func (m *KassenjournalRepo) ReadFavoritenTischStates(_ context.Context, tischIDs []int, kassensitzungNr int) (map[int]kassenjournal_repo.TischNameUndSession, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
-	result := make(map[int]TischNameUndSession, len(tischIDs))
+	result := make(map[int]kassenjournal_repo.TischNameUndSession, len(tischIDs))
 	for _, tischID := range tischIDs {
 		name, ok := m.tischNames[tischID]
 		if !ok {
@@ -212,12 +211,12 @@ func (m *MockRepo) ReadFavoritenTischStates(_ context.Context, tischIDs []int, k
 				session = s
 			}
 		}
-		result[tischID] = TischNameUndSession{Name: name, Session: session}
+		result[tischID] = kassenjournal_repo.TischNameUndSession{Name: name, Session: session}
 	}
 	return result, nil
 }
 
-func (m *MockRepo) GetKassenbestand(_ context.Context, _ int) (kasse.Kassenbestand, error) {
+func (m *KassenjournalRepo) GetKassenbestand(_ context.Context, _ int) (kasse.Kassenbestand, error) {
 	if m.err != nil {
 		return kasse.Kassenbestand{}, m.err
 	}
@@ -226,24 +225,24 @@ func (m *MockRepo) GetKassenbestand(_ context.Context, _ int) (kasse.Kassenbesta
 	return kasse.Kassenbestand{SollBestandCents: m.kassenbestand, BareinnahmenCents: m.kassenbestand}, nil
 }
 
-func (m *MockRepo) SetKassenbestand(cents int) {
+func (m *KassenjournalRepo) SetKassenbestand(cents int) {
 	m.kassenbestand = cents
 }
 
-func (m *MockRepo) GetGeldtransitListe(_ context.Context, _ int) ([]kasse.Geldtransit, error) {
+func (m *KassenjournalRepo) GetGeldtransitListe(_ context.Context, _ int) ([]kasse.Geldtransit, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	return nil, nil
 }
 
-func (m *MockRepo) AddEvent(e event.Event) {
+func (m *KassenjournalRepo) AddEvent(e event.Event) {
 	newID := m.nextEventID()
 	e.ID = newID
 	m.events[newID] = e
 }
 
-func (m *MockRepo) GetTischSessionsByKassensitzungNr(_ context.Context, kassensitzungNr int) ([]kasse.TischSession, error) {
+func (m *KassenjournalRepo) GetTischSessionsByKassensitzungNr(_ context.Context, kassensitzungNr int) ([]kasse.TischSession, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -258,11 +257,11 @@ func (m *MockRepo) GetTischSessionsByKassensitzungNr(_ context.Context, kassensi
 
 // SetReadKassensitzungEventsErr triggers a post-barrier failure without affecting other
 // journal operations.
-func (m *MockRepo) SetReadKassensitzungEventsErr(err error) {
+func (m *KassenjournalRepo) SetReadKassensitzungEventsErr(err error) {
 	m.kassensitzungEventsErr = err
 }
 
-func (m *MockRepo) EventExistsByTypeAndVorgangsID(_ context.Context, eventType, vorgangsID, jsonKey string) (bool, error) {
+func (m *KassenjournalRepo) EventExistsByTypeAndVorgangsID(_ context.Context, eventType, vorgangsID, jsonKey string) (bool, error) {
 	if m.err != nil {
 		return false, m.err
 	}
@@ -289,7 +288,7 @@ func (m *MockRepo) EventExistsByTypeAndVorgangsID(_ context.Context, eventType, 
 	return false, nil
 }
 
-func (m *MockRepo) ReadKassensitzungEvents(_ context.Context, kassensitzungNr int) ([]event.Event, error) {
+func (m *KassenjournalRepo) ReadKassensitzungEvents(_ context.Context, kassensitzungNr int) ([]event.Event, error) {
 	if m.kassensitzungEventsErr != nil {
 		return nil, m.kassensitzungEventsErr
 	}

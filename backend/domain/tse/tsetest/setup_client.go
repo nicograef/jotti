@@ -1,8 +1,10 @@
-//go:build unit
+package tsetest
 
-package tse
+import (
+	"context"
 
-import "context"
+	"github.com/nicograef/jotti/backend/domain/tse"
+)
 
 type RegistrierterClient struct {
 	TssID        string
@@ -20,17 +22,17 @@ type ReaktivierterClient struct {
 // FakeSetupClient hat Pointer-Receiver, damit die Aufzeichnungsfelder über den
 // Interface-Wert hinweg sichtbar bleiben.
 type FakeSetupClient struct {
-	UmgebungResponse Umgebung
-	TSSResponse      []TSSInfo
+	UmgebungResponse tse.Umgebung
+	TSSResponse      []tse.TSSInfo
 	TSSErr           error
-	ClientsByTSS     map[string][]ClientInfo
+	ClientsByTSS     map[string][]tse.ClientInfo
 	ClientsErr       error
 
-	CreateTSSResponse   TSSErstellt
+	CreateTSSResponse   tse.TSSErstellt
 	CreateTSSErr        error
 	GetAdminPUKResponse string
 	GetAdminPUKErr      error
-	StammdatenResponse  Stammdaten
+	StammdatenResponse  tse.Stammdaten
 	StammdatenErr       error
 	PersonalisiereErr   error
 	SetAdminPINErr      error
@@ -51,35 +53,35 @@ type FakeSetupClient struct {
 	ReaktivierteClients []ReaktivierterClient
 }
 
-var _ SetupClient = (*FakeSetupClient)(nil)
+var _ tse.SetupClient = (*FakeSetupClient)(nil)
 
-func (f *FakeSetupClient) ListTSS(context.Context) (Umgebung, []TSSInfo, error) {
+func (f *FakeSetupClient) ListTSS(context.Context) (tse.Umgebung, []tse.TSSInfo, error) {
 	if f.TSSErr != nil {
 		return "", nil, f.TSSErr
 	}
 	return f.UmgebungResponse, f.TSSResponse, nil
 }
 
-func (f *FakeSetupClient) ListClients(_ context.Context, tssID string) ([]ClientInfo, error) {
+func (f *FakeSetupClient) ListClients(_ context.Context, tssID string) ([]tse.ClientInfo, error) {
 	if f.ClientsErr != nil {
 		return nil, f.ClientsErr
 	}
 	return f.ClientsByTSS[tssID], nil
 }
 
-func (f *FakeSetupClient) RetrieveTSSStammdaten(_ context.Context, tssID string) (Stammdaten, error) {
+func (f *FakeSetupClient) RetrieveTSSStammdaten(_ context.Context, tssID string) (tse.Stammdaten, error) {
 	f.StammdatenCalls++
 	f.StammdatenTssID = tssID
 	if f.StammdatenErr != nil {
-		return Stammdaten{}, f.StammdatenErr
+		return tse.Stammdaten{}, f.StammdatenErr
 	}
 	return f.StammdatenResponse, nil
 }
 
-func (f *FakeSetupClient) CreateTSS(context.Context) (TSSErstellt, error) {
+func (f *FakeSetupClient) CreateTSS(context.Context) (tse.TSSErstellt, error) {
 	f.CreateTSSCalls++
 	if f.CreateTSSErr != nil {
-		return TSSErstellt{}, f.CreateTSSErr
+		return tse.TSSErstellt{}, f.CreateTSSErr
 	}
 	return f.CreateTSSResponse, nil
 }

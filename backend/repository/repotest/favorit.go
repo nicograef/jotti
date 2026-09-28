@@ -1,30 +1,28 @@
-//go:build unit
-
-package favorit_repo
+package repotest
 
 import (
 	"context"
 	"slices"
 )
 
-// NewMock erzeugt ein In-Memory-Favoriten-Repository für Unit-Tests. favoriten
+// NewFavoritRepo erzeugt ein In-Memory-Favoriten-Repository für Unit-Tests. favoriten
 // bildet Benutzer-ID auf die markierten Tisch-IDs ab; err wird von jeder Methode
 // zurückgegeben, die Zustandsänderung unterbleibt dann.
-func NewMock(favoriten map[int][]int, err error) *mockRepo {
+func NewFavoritRepo(favoriten map[int][]int, err error) *FavoritRepo {
 	kopie := make(map[int][]int, len(favoriten))
 	for userID, tischIDs := range favoriten {
 		kopie[userID] = slices.Clone(tischIDs)
 	}
 
-	return &mockRepo{favoriten: kopie, err: err}
+	return &FavoritRepo{favoriten: kopie, err: err}
 }
 
-type mockRepo struct {
+type FavoritRepo struct {
 	favoriten map[int][]int
 	err       error
 }
 
-func (m *mockRepo) Add(_ context.Context, userID, tischID int) error {
+func (m *FavoritRepo) Add(_ context.Context, userID, tischID int) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -34,7 +32,7 @@ func (m *mockRepo) Add(_ context.Context, userID, tischID int) error {
 	return nil
 }
 
-func (m *mockRepo) Remove(_ context.Context, userID, tischID int) error {
+func (m *FavoritRepo) Remove(_ context.Context, userID, tischID int) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -42,7 +40,7 @@ func (m *mockRepo) Remove(_ context.Context, userID, tischID int) error {
 	return nil
 }
 
-func (m *mockRepo) RemoveByTisch(_ context.Context, tischID int) error {
+func (m *FavoritRepo) RemoveByTisch(_ context.Context, tischID int) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -52,7 +50,7 @@ func (m *mockRepo) RemoveByTisch(_ context.Context, tischID int) error {
 	return nil
 }
 
-func (m *mockRepo) GetByUser(_ context.Context, userID int) ([]int, error) {
+func (m *FavoritRepo) GetByUser(_ context.Context, userID int) ([]int, error) {
 	if m.err != nil {
 		return nil, m.err
 	}

@@ -1,5 +1,3 @@
-//go:build unit
-
 package api
 
 // Event-JSON is decoded through the event contract types only: a decode target

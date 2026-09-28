@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -10,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/domain/tse/tsetest"
 )
 
 type stubTSERepo struct {
@@ -37,7 +36,7 @@ func konfiguriert() tse.Konfiguration {
 
 func testerLiefert(status tse.VerbindungStatus) NewTSEConnectionTester {
 	return func(tse.Credentials) (tse.ConnectionTester, error) {
-		return tse.FakeClient{ConnectionResponse: status}, nil
+		return tsetest.FakeClient{ConnectionResponse: status}, nil
 	}
 }
 
@@ -60,7 +59,7 @@ func TestCheckTSESetup_ErkenntPassendenClient(t *testing.T) {
 		TSERepo: stubTSERepo{
 			identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer},
 		},
-		NewTSESetupClient: setupClientLiefert(&tse.FakeSetupClient{
+		NewTSESetupClient: setupClientLiefert(&tsetest.FakeSetupClient{
 			UmgebungResponse: tse.UmgebungTest,
 			TSSResponse: []tse.TSSInfo{
 				{ID: "tss-1", State: "INITIALIZED"},
@@ -103,7 +102,7 @@ func TestCheckTSESetup_ErkenntPassendenClient(t *testing.T) {
 func TestCheckTSESetup_FalscheZugangsdaten(t *testing.T) {
 	q := Query{
 		TSERepo: stubTSERepo{},
-		NewTSESetupClient: setupClientLiefert(&tse.FakeSetupClient{
+		NewTSESetupClient: setupClientLiefert(&tsetest.FakeSetupClient{
 			TSSErr: tse.ErrSetupAuthFehlgeschlagen,
 		}),
 	}
@@ -119,7 +118,7 @@ func TestCheckTSESetup_FalscheZugangsdaten(t *testing.T) {
 func TestCheckTSESetup_LeeresKonto(t *testing.T) {
 	q := Query{
 		TSERepo: stubTSERepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}},
-		NewTSESetupClient: setupClientLiefert(&tse.FakeSetupClient{
+		NewTSESetupClient: setupClientLiefert(&tsetest.FakeSetupClient{
 			UmgebungResponse: tse.UmgebungLive,
 		}),
 	}
@@ -143,7 +142,7 @@ func TestGetTSEStatus_NutztLeichtenUmgebungsPfad(t *testing.T) {
 	q := Query{
 		TSERepo: stubTSERepo{konfiguration: konfiguriert()},
 		NewTSEConnectionTester: func(tse.Credentials) (tse.ConnectionTester, error) {
-			return tse.FakeClient{
+			return tsetest.FakeClient{
 				UmgebungResponse: tse.UmgebungLive,
 				ConnectionErr:    errors.New("voller Verbindungstest darf hier nicht laufen"),
 			}, nil

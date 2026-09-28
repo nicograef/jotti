@@ -1,5 +1,3 @@
-//go:build unit
-
 package api
 
 // An error-level log line inside an error branch is the only record of what went

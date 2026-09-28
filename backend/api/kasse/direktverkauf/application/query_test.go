@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -8,7 +6,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
 type mockHistorieRepo struct {
@@ -23,7 +21,7 @@ func (m *mockHistorieRepo) ReadDirektverkaufEvents(_ context.Context, _ int) ([]
 func TestGetDirektverkaufHistorie_NoOpenKassensitzung_ReturnsEmpty(t *testing.T) {
 	query := Query{
 		EventRepo:           &mockHistorieRepo{},
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(nil, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(nil, nil),
 	}
 
 	historie, err := query.GetDirektverkaufHistorie(context.Background())
@@ -47,7 +45,7 @@ func TestGetDirektverkaufHistorie_GroupsByVerkaufMostRecentFirst(t *testing.T) {
 
 	query := Query{
 		EventRepo:           &mockHistorieRepo{events: []event.Event{getaetigtA, getaetigtB, stornoB}},
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
 	historie, err := query.GetDirektverkaufHistorie(context.Background())

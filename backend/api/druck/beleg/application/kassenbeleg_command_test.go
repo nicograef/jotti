@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -19,8 +17,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
-	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
 const testKassensitzungNr = 1
@@ -129,7 +126,7 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(zahlungEvent)
 
 	auftragMock := &mockDruckauftragRepo{}
@@ -145,7 +142,7 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		BetreiberRepo:       betreiberMock,
 		DruckauftragRepo:    auftragMock,
@@ -216,7 +213,7 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(zahlungEvent)
 
 	auftragMock := &mockDruckauftragRepo{}
@@ -232,7 +229,7 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		BetreiberRepo:       betreiberMock,
 		DruckauftragRepo:    auftragMock,
@@ -295,7 +292,7 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(zahlungEvent) // Event-ID 1
 
 	// Die Signatur liegt am quittierten Auftrag — die einzige Signaturquelle.
@@ -324,7 +321,7 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		BetreiberRepo:       betreiberMock,
 		DruckauftragRepo:    auftragMock,
@@ -399,7 +396,7 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 
 	ersteBestellung := time.Date(2026, 5, 1, 18, 1, 0, 0, time.UTC)
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(zahlungEvent)
 	eventMock.SetTischSession(subject, kasse.TischSession{
 		Subject:                subject,
@@ -421,7 +418,7 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		BetreiberRepo:       betreiberMock,
 		DruckauftragRepo:    auftragMock,
@@ -472,7 +469,7 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(zahlungEvent) // Event-ID 1
 
 	// Auftrag existiert, aber der Worker hat noch nicht quittiert.
@@ -483,7 +480,7 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 	auftragMock := &mockDruckauftragRepo{}
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		BetreiberRepo:       belegTestBetreiberMock(),
 		DruckauftragRepo:    auftragMock,
@@ -539,7 +536,7 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 
 // belegZahlungFixture liefert einen Event-Mock mit einer kassierten Zahlung
 // (Event-ID 1) und deren zahlungId — Fixture der Signaturstatus-Belegtests.
-func belegZahlungFixture(t *testing.T) (*kassenjournal_repo.MockRepo, string) {
+func belegZahlungFixture(t *testing.T) (*repotest.KassenjournalRepo, string) {
 	t.Helper()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
@@ -564,15 +561,15 @@ func belegZahlungFixture(t *testing.T) (*kassenjournal_repo.MockRepo, string) {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(zahlungEvent) // Event-ID 1
 	return eventMock, eventData.ZahlungID
 }
 
-func belegTestCommand(eventMock *kassenjournal_repo.MockRepo, tseRepo *mockTSEAuftragRepo, auftragMock *mockDruckauftragRepo) Command {
+func belegTestCommand(eventMock *repotest.KassenjournalRepo, tseRepo *mockTSEAuftragRepo, auftragMock *mockDruckauftragRepo) Command {
 	return Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		BetreiberRepo:       belegTestBetreiberMock(),
 		DruckauftragRepo:    auftragMock,
@@ -707,8 +704,8 @@ func TestKassenbelegDrucken_OffenBeiAktiverStoerung_BelegMitAusfallvermerk(t *te
 func TestKassenbelegDrucken_ZahlungNichtGefunden(t *testing.T) {
 	ctx := context.Background()
 	command := Command{
-		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		EventRepo:           repotest.NewKassenjournalRepo(nil, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		BetreiberRepo:       &mockBetreiberRepo{},
 		DruckstationRepo:    &mockDruckstationRepo{},
 		DruckauftragRepo:    &mockDruckauftragRepo{},
@@ -747,12 +744,12 @@ func TestKassenbelegDrucken_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(zahlungEvent)
 
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		BetreiberRepo:       &mockBetreiberRepo{},
 		DruckstationRepo:    &mockDruckstationRepo{},
 		DruckauftragRepo:    &mockDruckauftragRepo{},
@@ -783,7 +780,7 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(verkaufEvent)
 
 	auftragMock := &mockDruckauftragRepo{}
@@ -799,7 +796,7 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		BetreiberRepo:       betreiberMock,
 		DruckauftragRepo:    auftragMock,
@@ -832,8 +829,8 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 func TestKassenbelegDrucken_Direktverkauf_NichtGefunden(t *testing.T) {
 	ctx := context.Background()
 	command := Command{
-		EventRepo:           kassenjournal_repo.NewMock(nil, nil),
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		EventRepo:           repotest.NewKassenjournalRepo(nil, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		BetreiberRepo:       &mockBetreiberRepo{},
 		DruckstationRepo:    &mockDruckstationRepo{},
 		DruckauftragRepo:    &mockDruckauftragRepo{},
@@ -865,12 +862,12 @@ func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t 
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(verkaufEvent)
 
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		BetreiberRepo:       &mockBetreiberRepo{},
 		DruckstationRepo:    &mockDruckstationRepo{},
 		DruckauftragRepo:    &mockDruckauftragRepo{},
@@ -911,7 +908,7 @@ func TestKassenbelegDrucken_Direktverkauf_MitSignaturAmAuftrag(t *testing.T) {
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(verkaufEvent) // Event-ID 1
 
 	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse.SignaturauftragStand{
@@ -929,7 +926,7 @@ func TestKassenbelegDrucken_Direktverkauf_MitSignaturAmAuftrag(t *testing.T) {
 	auftragMock := &mockDruckauftragRepo{}
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		BetreiberRepo:       belegTestBetreiberMock(),
 		DruckauftragRepo:    auftragMock,
@@ -972,7 +969,7 @@ func TestKassenbelegDrucken_Direktverkauf_SignaturAusstehend_KeinDruckauftrag(t 
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(verkaufEvent) // Event-ID 1
 
 	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse.SignaturauftragStand{
@@ -982,7 +979,7 @@ func TestKassenbelegDrucken_Direktverkauf_SignaturAusstehend_KeinDruckauftrag(t 
 	auftragMock := &mockDruckauftragRepo{}
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		BetreiberRepo:       belegTestBetreiberMock(),
 		DruckauftragRepo:    auftragMock,
@@ -1036,7 +1033,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(verkaufEvent) // Event-ID 1
 	eventMock.AddEvent(stornoEvent)  // Event-ID 2
 
@@ -1056,7 +1053,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 	auftragMock := &mockDruckauftragRepo{}
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		BetreiberRepo:       belegTestBetreiberMock(),
 		DruckauftragRepo:    auftragMock,
@@ -1119,7 +1116,7 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(orderEvent)   // ID 1
 	eventMock.AddEvent(paymentEvent) // ID 2
 	eventMock.AddEvent(stornoEvent)  // ID 3
@@ -1140,7 +1137,7 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 	auftragMock := &mockDruckauftragRepo{}
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		BetreiberRepo:       belegTestBetreiberMock(),
 		DruckauftragRepo:    auftragMock,
@@ -1189,12 +1186,12 @@ func TestKassenbelegDrucken_DirektverkaufStorno_NichtGefunden(t *testing.T) {
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	eventMock := kassenjournal_repo.NewMock(nil, nil)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	eventMock.AddEvent(verkaufEvent)
 
 	command := Command{
 		EventRepo:           eventMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		BetreiberRepo:       belegTestBetreiberMock(),
 		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
 		DruckauftragRepo:    &mockDruckauftragRepo{},

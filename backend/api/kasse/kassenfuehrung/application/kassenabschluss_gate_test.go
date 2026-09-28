@@ -1,5 +1,3 @@
-//go:build unit
-
 package application
 
 import (
@@ -10,8 +8,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
-	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
+	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
 // Das Gate urteilt über dieselbe tse.DetermineSignaturstatus-Funktion wie der
@@ -75,9 +72,9 @@ func TestCheckSignaturGate(t *testing.T) {
 // und kein Event geschrieben — das Gate greift vor der Barriere.
 func TestKasseAbschliessen_GateBlocktBeiAusstehend(t *testing.T) {
 	ctx := context.Background()
-	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock := repotest.NewKassenjournalRepo(nil, nil)
 	journalMock.SetKassenbestand(50000)
-	sitzungMock := kassensitzungen_repo.NewMock(testOpenKS, nil)
+	sitzungMock := repotest.NewKassensitzungenRepo(testOpenKS, nil)
 	erstellt := time.Now().Add(-20 * time.Second).UTC()
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
@@ -111,11 +108,11 @@ func TestKasseAbschliessen_GateBlocktBeiAusstehend(t *testing.T) {
 func TestKasseAbschliessen_GateLaesstAusfallResteDurch(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC()
-	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock := repotest.NewKassenjournalRepo(nil, nil)
 	journalMock.SetKassenbestand(50000)
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		TSERepo: tseGateMock{
 			staende: []tse.SignaturauftragStand{
 				{Status: tse.StatusFehlgeschlagen, ErstelltAm: now},
@@ -147,11 +144,11 @@ func TestKasseAbschliessen_GateLaesstAusfallResteDurch(t *testing.T) {
 func TestKasseAbschliessen_GateTagOhneTSE(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC()
-	journalMock := kassenjournal_repo.NewMock(nil, nil)
+	journalMock := repotest.NewKassenjournalRepo(nil, nil)
 	journalMock.SetKassenbestand(50000)
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
-		KassensitzungenRepo: kassensitzungen_repo.NewMock(testOpenKS, nil),
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		TSERepo: tseGateMock{staende: []tse.SignaturauftragStand{
 			{Status: tse.StatusTSENichtKonfiguriert, ErstelltAm: now},
 			{Status: tse.StatusTSENichtKonfiguriert, ErstelltAm: now},
