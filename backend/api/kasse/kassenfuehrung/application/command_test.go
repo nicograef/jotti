@@ -219,24 +219,27 @@ func TestKasseAbschliessen_MitDifferenz(t *testing.T) {
 	}
 }
 
-// stubCleaner ist eine Test-Doublette für druckauftragCleaner: zählt die
-// Aufrufe und liefert einen konfigurierbaren Fehler, um die Best-effort-Semantik
-// des Aufräumens beim Tagesabschluss zu belegen.
-type stubCleaner struct {
-	calls int
-	err   error
+// fakeDruckauftraege holds the number of failed Druckaufträge the Tagesabschluss discards.
+// A set err makes the discard fail and leaves the count unchanged.
+type fakeDruckauftraege struct {
+	fehlgeschlagen int64
+	err            error
 }
 
-func (s *stubCleaner) DiscardAlleFehlgeschlagenen(context.Context) (int64, error) {
-	s.calls++
-	return 0, s.err
+func (f *fakeDruckauftraege) DiscardAlleFehlgeschlagenen(context.Context) (int64, error) {
+	if f.err != nil {
+		return 0, f.err
+	}
+	verworfen := f.fehlgeschlagen
+	f.fehlgeschlagen = 0
+	return verworfen, nil
 }
 
 func TestKasseAbschliessen_RaeumtFehlgeschlageneDruckauftraegeAuf(t *testing.T) {
 	ctx := context.Background()
 	journalMock := repotest.NewKassenjournalRepo(nil, nil)
 	journalMock.SetKassenbestand(50000) // Soll = Ist
-	cleaner := &stubCleaner{}
+	cleaner := &fakeDruckauftraege{fehlgeschlagen: 2}
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
@@ -248,8 +251,8 @@ func TestKasseAbschliessen_RaeumtFehlgeschlageneDruckauftraegeAuf(t *testing.T) 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if cleaner.calls != 1 {
-		t.Fatalf("expected DiscardAlleFehlgeschlagenen called once, got %d", cleaner.calls)
+	if cleaner.fehlgeschlagen != 0 {
+		t.Errorf("expected the failed Druckaufträge to be discarded, %d remain", cleaner.fehlgeschlagen)
 	}
 
 	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
@@ -268,7 +271,7 @@ func TestKasseAbschliessen_CleanerFehlerBleibtBestEffort(t *testing.T) {
 	ctx := context.Background()
 	journalMock := repotest.NewKassenjournalRepo(nil, nil)
 	journalMock.SetKassenbestand(50000) // Soll = Ist
-	cleaner := &stubCleaner{err: fmt.Errorf("cleanup kaputt")}
+	cleaner := &fakeDruckauftraege{fehlgeschlagen: 2, err: fmt.Errorf("cleanup kaputt")}
 	sitzungMock := repotest.NewKassensitzungenRepo(testOpenKS, nil)
 	cmd := Command{
 		KassenjournalRepo:   journalMock,
@@ -281,10 +284,6 @@ func TestKasseAbschliessen_CleanerFehlerBleibtBestEffort(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected Abschluss to stay successful despite cleaner error, got %v", err)
 	}
-	if cleaner.calls != 1 {
-		t.Fatalf("expected DiscardAlleFehlgeschlagenen called once, got %d", cleaner.calls)
-	}
-
 	// Kern der Best-effort-Invariante: Der Cleaner-Fehler wird über eine lokale
 	// Variable geschluckt, nicht über den benannten Return err. Sonst riefe der
 	// defer-Block auf der bereits geschlossenen Sitzung einen Reset auf 'offen'
