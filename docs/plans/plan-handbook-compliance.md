@@ -195,11 +195,11 @@ The new `scripts/rocks-backup.sh <dest>`, run from the laptop, does four things:
 
 ### Acceptance criteria
 
-- [ ] `docker run --rm --entrypoint id <resolver image>` prints a non-zero uid
-- [ ] `docker inspect` of the running proxy shows `CapDrop [ALL]`, `CapAdd [NET_BIND_SERVICE]` and `ReadonlyRootfs true`
-- [ ] the local stack starts from scratch and serves HTTPS on 443; the resolver answers on 53 (`dig @127.0.0.1`)
-- [ ] updating from the previous release keeps the existing certificates (scripted local run)
-- [ ] `docker build` of each context shows no `.env*` or `node_modules` in the context (`--progress=plain` context size before/after)
+- [x] `docker run --rm --entrypoint id <resolver image>` prints a non-zero uid
+- [x] `docker inspect` of the running proxy shows `CapDrop [ALL]`, `CapAdd [NET_BIND_SERVICE]` and `ReadonlyRootfs true`
+- [x] the local stack starts from scratch and serves HTTPS on 443; the resolver answers on 53 (`dig @127.0.0.1`)
+- [x] updating from the previous release keeps the existing certificates (scripted local run)
+- [x] `docker build` of each context shows no `.env*` or `node_modules` in the context (`--progress=plain` context size before/after)
 
 ## Phase 7: Dev interface
 
