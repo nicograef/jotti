@@ -40,7 +40,7 @@ func TestLogErrorCarriesTheError(t *testing.T) {
 	})
 
 	if checked == 0 {
-		t.Fatal("scan found no error-level log chain in any error branch; the walk is broken")
+		t.Error("scan found no error-level log chain in any error branch; the walk is broken")
 	}
 }
 

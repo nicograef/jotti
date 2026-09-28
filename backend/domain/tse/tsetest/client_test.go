@@ -21,7 +21,7 @@ func TestFakeClient_Success(t *testing.T) {
 		t.Fatalf("expected no start error, got %v", err)
 	}
 	if start.TransactionNumber != 10 {
-		t.Fatalf("expected transaction number 10, got %d", start.TransactionNumber)
+		t.Errorf("expected transaction number 10, got %d", start.TransactionNumber)
 	}
 
 	finish, err := fake.FinishTransaction(context.Background(), "8e9e7b56-31a8-43e3-9b29-d92a2b78b561", "Kassenbeleg-V1", "Beleg^0.00")
@@ -29,7 +29,7 @@ func TestFakeClient_Success(t *testing.T) {
 		t.Fatalf("expected no finish error, got %v", err)
 	}
 	if finish.Signature != "abc" {
-		t.Fatalf("expected signature abc, got %q", finish.Signature)
+		t.Errorf("expected signature abc, got %q", finish.Signature)
 	}
 
 	status, err := fake.TestConnection(context.Background())
@@ -37,7 +37,7 @@ func TestFakeClient_Success(t *testing.T) {
 		t.Fatalf("expected no connection error, got %v", err)
 	}
 	if status.Umgebung != tse.UmgebungTest {
-		t.Fatalf("expected TEST environment, got %s", status.Umgebung)
+		t.Errorf("expected TEST environment, got %s", status.Umgebung)
 	}
 }
 
@@ -50,13 +50,13 @@ func TestFakeClient_ConfiguredErrors(t *testing.T) {
 	}
 
 	if _, err := fake.StartTransaction(context.Background(), "8e9e7b56-31a8-43e3-9b29-d92a2b78b561"); !errors.Is(err, expectedErr) {
-		t.Fatalf("expected start error boom, got %v", err)
+		t.Errorf("expected start error boom, got %v", err)
 	}
 	if _, err := fake.FinishTransaction(context.Background(), "8e9e7b56-31a8-43e3-9b29-d92a2b78b561", "Kassenbeleg-V1", ""); !errors.Is(err, expectedErr) {
-		t.Fatalf("expected finish error boom, got %v", err)
+		t.Errorf("expected finish error boom, got %v", err)
 	}
 	if _, err := fake.TestConnection(context.Background()); !errors.Is(err, expectedErr) {
-		t.Fatalf("expected connection error boom, got %v", err)
+		t.Errorf("expected connection error boom, got %v", err)
 	}
 }
 
@@ -68,6 +68,6 @@ func TestFakeClient_Timeout(t *testing.T) {
 
 	_, err := fake.TestConnection(ctx)
 	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("expected context deadline exceeded, got %v", err)
+		t.Errorf("expected context deadline exceeded, got %v", err)
 	}
 }

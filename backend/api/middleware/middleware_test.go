@@ -683,13 +683,13 @@ func TestRecoveryMiddleware_PanicErgibt500UndNaechsterRequestFunktioniert(t *tes
 		t.Fatalf("expected status 500, got %d", rec.Code)
 	}
 	if body := strings.TrimSpace(rec.Body.String()); body != `{"code":"internal_server_error"}` {
-		t.Fatalf("expected error response format, got %q", body)
+		t.Errorf("expected error response format, got %q", body)
 	}
 
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/ok", nil))
 
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected next request to succeed with 200, got %d", rec.Code)
+		t.Errorf("expected next request to succeed with 200, got %d", rec.Code)
 	}
 }

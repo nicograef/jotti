@@ -22,7 +22,7 @@ func TestGenerateJWTToken_NotFound(t *testing.T) {
 	_, err := command.GenerateJWTToken(context.Background(), "nonexistent", "password")
 
 	if !errors.Is(err, ErrUserNotFound) {
-		t.Fatalf("expected user not found error, got %v", err)
+		t.Errorf("expected user not found error, got %v", err)
 	}
 }
 
@@ -36,7 +36,7 @@ func TestGenerateJWTToken_Success(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if token == "" {
-		t.Fatalf("expected a token, got empty string")
+		t.Errorf("expected a token, got empty string")
 	}
 }
 
@@ -47,7 +47,7 @@ func TestGenerateJWTToken_InvalidPassword(t *testing.T) {
 	_, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword")
 
 	if !errors.Is(err, ErrInvalidPassword) {
-		t.Fatalf("expected invalid password error, got %v", err)
+		t.Errorf("expected invalid password error, got %v", err)
 	}
 }
 
@@ -58,7 +58,7 @@ func TestGenerateJWTToken_HashError(t *testing.T) {
 	_, err := command.GenerateJWTToken(context.Background(), "testuser", "somepassword")
 
 	if !errors.Is(err, ErrTokenGeneration) {
-		t.Fatalf("expected token generation error, got %v", err)
+		t.Errorf("expected token generation error, got %v", err)
 	}
 }
 
@@ -69,7 +69,7 @@ func TestGenerateJWTToken_UserInactive(t *testing.T) {
 	_, err := command.GenerateJWTToken(context.Background(), "testuser", "testpassword")
 
 	if !errors.Is(err, ErrNotActive) {
-		t.Fatalf("expected user not active error, got %v", err)
+		t.Errorf("expected user not active error, got %v", err)
 	}
 }
 
@@ -86,7 +86,7 @@ func TestGenerateJWTToken_ThrottledAfterRepeatedFailures(t *testing.T) {
 
 	// ... der nächste Versuch ist gedrosselt (nicht mehr invalid_password).
 	if _, err := command.GenerateJWTToken(context.Background(), "testuser", "wrongpassword"); !errors.Is(err, ErrLoginThrottled) {
-		t.Fatalf("expected ErrLoginThrottled after threshold, got %v", err)
+		t.Errorf("expected ErrLoginThrottled after threshold, got %v", err)
 	}
 }
 
@@ -122,11 +122,11 @@ func TestGenerateJWTToken_ThrottleIsPerAccount(t *testing.T) {
 		_, _ = command.GenerateJWTToken(context.Background(), "opfer", "wrongpassword")
 	}
 	if _, err := command.GenerateJWTToken(context.Background(), "opfer", "wrongpassword"); !errors.Is(err, ErrLoginThrottled) {
-		t.Fatalf("expected 'opfer' to be throttled, got %v", err)
+		t.Errorf("expected 'opfer' to be throttled, got %v", err)
 	}
 
 	// Ein anderes Konto darf nie betroffen sein.
 	if _, err := command.GenerateJWTToken(context.Background(), "unbeteiligt", "testpassword"); err != nil {
-		t.Fatalf("expected 'unbeteiligt' login to succeed, got %v", err)
+		t.Errorf("expected 'unbeteiligt' login to succeed, got %v", err)
 	}
 }

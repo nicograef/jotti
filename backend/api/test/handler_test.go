@@ -30,7 +30,7 @@ func TestResetAndSeedHandler_Erfolg(t *testing.T) {
 	h.ResetAndSeedHandler()(w, req)
 
 	if !fake.called {
-		t.Fatal("ResetAndSeed wurde nicht aufgerufen")
+		t.Error("ResetAndSeed wurde nicht aufgerufen")
 	}
 	if w.Code != http.StatusOK {
 		t.Fatalf("erwartet 200, bekam %d", w.Code)
@@ -42,13 +42,13 @@ func TestResetAndSeedHandler_Erfolg(t *testing.T) {
 	}
 
 	if resp.Service.Username != seed.DemoServiceUsername || resp.Service.Password != seed.DemoPassword {
-		t.Fatalf("unerwartete Service-Zugangsdaten: %+v", resp.Service)
+		t.Errorf("unerwartete Service-Zugangsdaten: %+v", resp.Service)
 	}
 	if resp.Admin.Username != seed.DemoAdminUsername || resp.Admin.Password != seed.DemoPassword {
-		t.Fatalf("unerwartete Admin-Zugangsdaten: %+v", resp.Admin)
+		t.Errorf("unerwartete Admin-Zugangsdaten: %+v", resp.Admin)
 	}
 	if resp.Serviceleitung.Username != seed.DemoServiceleitungUsername {
-		t.Fatalf("unerwartete Serviceleitung-Zugangsdaten: %+v", resp.Serviceleitung)
+		t.Errorf("unerwartete Serviceleitung-Zugangsdaten: %+v", resp.Serviceleitung)
 	}
 }
 
@@ -61,6 +61,6 @@ func TestResetAndSeedHandler_Fehler(t *testing.T) {
 	h.ResetAndSeedHandler()(w, req)
 
 	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("erwartet 500, bekam %d", w.Code)
+		t.Errorf("erwartet 500, bekam %d", w.Code)
 	}
 }

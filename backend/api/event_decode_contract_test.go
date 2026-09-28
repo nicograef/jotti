@@ -54,7 +54,7 @@ func TestDecodeTargetsUseEventDataTypes(t *testing.T) {
 	})
 
 	if decodeTargets == 0 {
-		t.Fatal("scan found no json-tagged struct below backend/api; the walk is broken")
+		t.Error("scan found no json-tagged struct below backend/api; the walk is broken")
 	}
 }
 

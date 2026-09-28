@@ -177,12 +177,10 @@ func TestReadBody_UnknownFields(t *testing.T) {
 type deadlineCapturingWriter struct {
 	*httptest.ResponseRecorder
 	deadline time.Time
-	set      bool
 }
 
 func (w *deadlineCapturingWriter) SetWriteDeadline(t time.Time) error {
 	w.deadline = t
-	w.set = true
 	return nil
 }
 
@@ -193,7 +191,7 @@ func TestExtendWriteDeadline(t *testing.T) {
 	before := time.Now()
 	ExtendWriteDeadline(w, req, 2*time.Minute)
 
-	if !w.set {
+	if w.deadline.IsZero() {
 		t.Fatal("expected SetWriteDeadline to be called")
 	}
 	if w.deadline.Before(before.Add(2 * time.Minute)) {

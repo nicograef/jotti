@@ -19,7 +19,7 @@ func TestLoginThrottle_FreshUserAllowed(t *testing.T) {
 	th, _ := controllable(3, time.Second, time.Minute, time.Hour)
 
 	if !th.Allow("neu") {
-		t.Fatal("ein Konto ohne Fehlversuche muss erlaubt sein")
+		t.Error("ein Konto ohne Fehlversuche muss erlaubt sein")
 	}
 }
 
@@ -34,7 +34,7 @@ func TestLoginThrottle_ThrottlesAfterThreshold(t *testing.T) {
 	}
 
 	if th.Allow("angriff") {
-		t.Fatal("nach Erreichen der Schwelle muss der nächste Versuch gedrosselt sein")
+		t.Error("nach Erreichen der Schwelle muss der nächste Versuch gedrosselt sein")
 	}
 }
 
@@ -51,7 +51,7 @@ func TestLoginThrottle_SuccessResets(t *testing.T) {
 	th.Reset("konto")
 
 	if !th.Allow("konto") {
-		t.Fatal("nach Reset (erfolgreicher Login) muss das Konto wieder erlaubt sein")
+		t.Error("nach Reset (erfolgreicher Login) muss das Konto wieder erlaubt sein")
 	}
 }
 
@@ -68,7 +68,7 @@ func TestLoginThrottle_CooldownExpires(t *testing.T) {
 	*clock = clock.Add(2 * time.Second) // Cooldown (1s) verstrichen
 
 	if !th.Allow("konto") {
-		t.Fatal("nach Ablauf des Cooldowns muss der Versuch wieder erlaubt sein")
+		t.Error("nach Ablauf des Cooldowns muss der Versuch wieder erlaubt sein")
 	}
 }
 
@@ -82,13 +82,13 @@ func TestLoginThrottle_IdleEntryEvicted(t *testing.T) {
 	*clock = clock.Add(2 * time.Hour) // länger untätig als ttl
 
 	if !th.Allow("konto") {
-		t.Fatal("ein lange untätiges Konto muss frisch starten (Eintrag verworfen)")
+		t.Error("ein lange untätiges Konto muss frisch starten (Eintrag verworfen)")
 	}
 	th.mu.Lock()
 	_, exists := th.entries["konto"]
 	th.mu.Unlock()
 	if exists {
-		t.Fatal("der verwaiste Eintrag muss aus der Map entfernt sein")
+		t.Error("der verwaiste Eintrag muss aus der Map entfernt sein")
 	}
 }
 
@@ -117,10 +117,10 @@ func TestLoginThrottle_PerAccount(t *testing.T) {
 	}
 
 	if th.Allow("opfer") {
-		t.Fatal("das gedrosselte Konto sollte blockiert sein")
+		t.Error("das gedrosselte Konto sollte blockiert sein")
 	}
 	if !th.Allow("unbeteiligt") {
-		t.Fatal("ein anderes Konto darf nie von der Drosselung betroffen sein")
+		t.Error("ein anderes Konto darf nie von der Drosselung betroffen sein")
 	}
 }
 
