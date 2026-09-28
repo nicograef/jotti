@@ -1,9 +1,13 @@
 # Marken-Assets
 
-Dieses Verzeichnis hält die Master aller Marken-Assets. `frontend/public/icons/`,
-`website/public/icons/` und `website/src/assets/jotti-symbol.png` sind davon abgeleitete
-Laufzeitkopien: Bei einer Änderung am Logo oder an den Icons werden zuerst die Master hier
-aktualisiert und danach die benötigten Größen in die Kopien übernommen.
+Dieses Verzeichnis hält die Master aller Marken-Assets. Davon abgeleitete Laufzeitkopien:
+
+- `frontend/public/icons/`
+- `website/public/icons/`
+- `website/src/assets/jotti-symbol.png`
+
+Bei einer Änderung am Logo oder an den Icons werden zuerst die Master hier aktualisiert.
+Danach werden die benötigten Größen in die Kopien übernommen.
 
 | Datei                                   | Darstellung                                               | Einsatz                                                                                 |
 | --------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -22,5 +26,7 @@ aktualisiert und danach die benötigten Größen in die Kopien übernommen.
 
 Die Master hier und die Kopien unter `website/` tragen den Spektral-Verlauf, die Kopien in
 `frontend/public/icons/` das grüne `J`. Die Vier-Stellen-Regel für Spektral im App-Frontend
-([D06](../docs/decisions.md)) deckt Wortmarke, Glows, Skeletons und Hairlines ab, nicht die
-Icon-Assets — wer die Master ungeprüft in alle Kopien schiebt, tauscht das App-Favicon aus.
+([D06](../docs/decisions.md)) deckt Wortmarke, Glows, Skeletons und Hairlines ab.
+
+Die Icon-Assets deckt sie nicht ab. Wer die Master ungeprüft in alle Kopien schiebt, tauscht
+das App-Favicon aus.

@@ -8,20 +8,20 @@ Ein kostenloses **Gastronomie-Kassensystem (mPOS)** mit einsehbarem Quellcode (S
 Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer, führen den Kassenbestand und erstellen den Tagesabschluss.
 
 > **Kostenlos. Self-hosted. Auf die KassenSichV ausgelegt.**
-> Keine Hardware-Bindung, keine Softwarekosten, kein Cloud-Abo für jotti selbst; allein die gesetzlich vorgeschriebene Cloud-TSE von fiskaly (und optional ein Server) kostet laufend. jotti bringt die fiskalischen Bausteine mit: TSE-Anbindung, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber.
+> Keine Hardware-Bindung, keine Softwarekosten, kein Cloud-Abo für jotti selbst. Laufend kosten allein die gesetzlich vorgeschriebene Cloud-TSE von fiskaly und optional ein Server. jotti bringt die fiskalischen Bausteine mit: TSE-Anbindung, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber.
 
 ## Was jotti kann
 
-- **Kassenbetrieb:** Bestellungen auf Tische buchen (Produkte, Varianten, Steuersätze, Kommentare), Zahlungen kassieren (Teilzahlungen, Rückgeldberechnung), stornieren (Admin und Serviceleitung, mit Pflichtkommentar), auf einen anderen Tisch umbuchen; Tisch-Übersicht mit offenem Saldo, Positionen und Bestellhistorie; Favoriten-Tische auf dem Dashboard; Direktverkauf ohne Tisch.
+- **Kassenbetrieb:** Bestellungen auf Tische buchen (Produkte, Varianten, Steuersätze, Kommentare). Zahlungen kassieren (Teilzahlungen, Rückgeldberechnung). Stornieren (Admin und Serviceleitung, mit Pflichtkommentar) und auf einen anderen Tisch umbuchen. Tisch-Übersicht mit offenem Saldo, Positionen und Bestellhistorie. Favoriten-Tische auf dem Dashboard, Direktverkauf ohne Tisch.
 - **Küche:** Bestell- und Küchenbons automatisch an zugeordnete Bondrucker, pro Kategorie konfigurierbar.
-- **Kassenführung:** fortlaufend nummerierte Kassensitzungen, Anfangsbestand, Soll-Bestand nach Komponenten, Einlagen und Entnahmen (Geldtransit), Kassensturz mit automatisch gebuchter Differenz, Tagesabschluss (Z-Bon) mit fortlaufender Nummer und Umsatzaggregation.
+- **Kassenführung:** fortlaufend nummerierte Kassensitzungen, Anfangsbestand, Soll-Bestand nach Komponenten, Einlagen und Entnahmen (Geldtransit). Kassensturz mit automatisch gebuchter Differenz. Tagesabschluss (Z-Bon) mit fortlaufender Nummer und Umsatzaggregation.
 - **Abrechnung und Reporting:** Tagesabrechnung nach Steuersatz, Abrechnung je Servicekraft, Produktumsatz-Reporting, DSFinV-K-Export als ZIP-Archiv (v2.4).
 - **Verwaltung und Sicherheit:** Admin-Bereich für Produkte (mit Varianten und Steuersätzen), Tische, Benutzer und Betreiber-Stammdaten; Rollen `admin`, `serviceleitung`, `service`; Onboarding per Einmalpasswort, Argon2id-Hashing, JWT-Auth.
 - **Fiskal:** Event-Sourcing für eine lückenlose, unveränderliche Bestellhistorie; TSE-Signatur jedes Vorgangs; Belegausgabe mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse.
 
 ## Installation für Vereine
 
-Für den Einsatz beim Vereinsfest braucht ihr die Kommandozeile nicht: Ladet das Windows-Release von der [GitHub-Releases-Seite](https://github.com/nicograef/jotti/releases) herunter und startet es per Doppelklick. Die vollständige Anleitung steht im [Leitfaden für Vereine](https://jotti.rocks) und unter [docs/leitfaden/installation.md](docs/leitfaden/installation.md).
+Für den Einsatz beim Vereinsfest braucht ihr die Kommandozeile nicht. Ladet das Windows-Release von der [GitHub-Releases-Seite](https://github.com/nicograef/jotti/releases) herunter und startet es per Doppelklick. Die vollständige Anleitung steht im [Leitfaden für Vereine](https://jotti.rocks) und unter [docs/leitfaden/installation.md](docs/leitfaden/installation.md).
 
 ## Schnellstart (Entwicklung)
 
@@ -33,7 +33,7 @@ make up
 
 ### Print-Relay
 
-Das Print-Relay verbindet den jotti-Server mit den ESC/POS-Bondruckern mit 80 mm Papier, im Netzwerk erreichbar (Ethernet oder WLAN), TCP-Port 9100, feste IP-Adresse empfohlen. Es läuft auf einem Rechner im Drucker-Netzwerk:
+Das Print-Relay verbindet den jotti-Server mit den ESC/POS-Bondruckern (80 mm Papier). Die Drucker sind im Netzwerk erreichbar (Ethernet oder WLAN, TCP-Port 9100, feste IP-Adresse empfohlen). Das Relay läuft auf einem Rechner im Drucker-Netzwerk:
 
 ```bash
 make build-relay
@@ -51,7 +51,7 @@ Bei nicht erreichbarem Drucker:
 
 - Pro Zyklus genau ein kurzer Zustellversuch (TCP-Timeout 2 s); den Fehlversuch meldet das Relay ans Backend.
 - Nach sechs gemeldeten Fehlversuchen markiert das Backend den Auftrag als `fehlgeschlagen` (im Admin unter »Bondrucker« sichtbar, dort erneut einreihbar oder verwerfbar).
-- Noch offene Aufträge liefert das Relay mit steigendem Abstand erneut aus (Backoff 5 s, 15 s, 30 s, 60 s, 180 s).
+- Offene Aufträge stellt das Relay mit steigendem Abstand erneut zu: 5 s, 15 s, 30 s, 60 s, 180 s.
 
 Schnelltest gegen den laufenden Stack:
 
@@ -97,6 +97,6 @@ Was jotti bewusst nicht ist und wofür es nicht taugt: [docs/produktbeschreibung
 
 **Copyright (c) 2025-2026 Nico Gräf. Alle Rechte vorbehalten.**
 
-jotti steht unter einer proprietären Source-Available-Lizenz: Der Quellcode ist öffentlich einsehbar, aber jede Nutzung — Installation, Deployment, Betrieb — setzt eine vorherige Nutzungsvereinbarung in Textform (E-Mail) mit dem Autor voraus, gewerbliche Nutzung eine separate kommerzielle Lizenz (graef.nico@gmail.com).
+jotti steht unter einer proprietären Source-Available-Lizenz. Der Quellcode ist öffentlich einsehbar. Jede Nutzung (Installation, Deployment, Betrieb) setzt eine vorherige Nutzungsvereinbarung in Textform (E-Mail) mit dem Autor voraus. Gewerbliche Nutzung braucht eine separate kommerzielle Lizenz (graef.nico@gmail.com).
 
 Lizenztext: [LICENSE](LICENSE) · Lizenzmodell: [docs/lizenzmodell.md](docs/lizenzmodell.md) · Nutzungsbedingungen & Prozess: [TERMS.md](TERMS.md)

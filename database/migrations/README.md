@@ -9,19 +9,19 @@ Neue Änderungen kommen als `NN_<name>.up.sql`, fortlaufend nummeriert, additiv 
 **Warum kein down:**
 
 - Das Kassenjournal ist fiskalisch append-only (Radierverbot, 10 Jahre Aufbewahrung). Ein `down`, das Spalten oder Tabellen mit Belegdaten droppt, zerstört aufbewahrungspflichtige Daten — auf Produktion ein Footgun.
-- Das echte Rollback ist der Backup-Restore. `make prod-update` zieht vor jeder Migration ein Backup; schlägt die Migration oder der Health-Check fehl, bricht das Skript ab und gibt den Restore-Befehl für dieses Backup aus. `migrate down` wird auf Produktion nie ausgeführt.
+- Das echte Rollback ist der Backup-Restore. `make prod-update` zieht vor jeder Migration ein Backup. Schlägt die Migration oder der Health-Check fehl, bricht das Skript ab. Es gibt dann den Restore-Befehl für dieses Backup aus. `migrate down` wird auf Produktion nie ausgeführt.
 - `down`-Migrationen, die Daten verwandeln, sind ohnehin nicht ehrlich umkehrbar (die verworfenen Daten kommen nicht zurück). Forward-only gibt vor, was zutrifft.
 
 ## Regeln für neue Migrationen
 
 1. Dateiname `NN_<kurzname>.up.sql`, `NN` = nächste freie Nummer nach der höchsten bereits vorhandenen Migration in diesem Verzeichnis.
 2. Additiv und vorwärtskompatibel. Bestehende Migrationen (insb. `01_initial.up.sql`) werden **nicht** editiert.
-3. In eine Transaktion klammern (`BEGIN; … COMMIT;`) — Postgres-DDL ist transaktional, so rollt ein Fehlschlag das **Schema** sauber zurück. Die Klammer schützt aber **nicht** die Versionsbuchführung: golang-migrate (v4.20.1) schreibt `SetVersion(<Zielversion>, dirty=true)` in einer **eigenen**, sofort committeten Transaktion, **bevor** es die Migration ausführt. Scheitert die Migration, steht das Schema also noch auf der Vorversion, `schema_migrations` dagegen committet auf der Zielversion mit `dirty = true`. Jeder weitere `migrate … up` bricht dann sofort mit `ErrDirty` ab („Dirty database version N. Fix and force version.") — und weil der Backend-Container erst nach erfolgreichem `migrate` startet (`depends_on: … service_completed_successfully`), fährt der Stack gar nicht mehr hoch.
+3. In eine Transaktion klammern (`BEGIN; … COMMIT;`) — Postgres-DDL ist transaktional, so rollt ein Fehlschlag das **Schema** sauber zurück. Die Klammer schützt aber **nicht** die Versionsbuchführung. golang-migrate (v4.20.1) schreibt `SetVersion(<Zielversion>, dirty=true)` in einer **eigenen**, sofort committeten Transaktion. Das geschieht, **bevor** es die Migration ausführt. Scheitert die Migration, steht das Schema also noch auf der Vorversion, `schema_migrations` dagegen committet auf der Zielversion mit `dirty = true`. Jeder weitere `migrate … up` bricht dann sofort mit `ErrDirty` ab („Dirty database version N. Fix and force version."). Der Backend-Container startet erst nach erfolgreichem `migrate` (`depends_on: … service_completed_successfully`). Deshalb fährt der Stack gar nicht mehr hoch.
 
    **Wiederanlauf nach einem Fehlschlag:**
 
    - `migrate … force <vorherige Version>` — die Version, auf der das Schema tatsächlich steht, **nicht** die fehlgeschlagene Zielversion. Das löscht das `dirty`-Flag; danach die Migration korrigieren und `up` wiederholen. `force` fasst nur `schema_migrations` an, nie das Schema.
-   - Ist das Schema in einem unklaren Zustand (Migration ohne `BEGIN/COMMIT`, die teilweise durchlief), ist der Rückweg der Backup-Restore statt `force`: beim Betreiber `jotti-restore.cmd` (Doppelklick, spielt das automatische Backup von vor dem Update zurück), im Repo `make prod-restore`.
+   - Ist das Schema in einem unklaren Zustand (Migration ohne `BEGIN/COMMIT`, die teilweise durchlief), ist der Rückweg der Backup-Restore statt `force`. Beim Betreiber ist das `jotti-restore.cmd`: Ein Doppelklick spielt das automatische Backup von vor dem Update zurück. Im Repo ist es `make prod-restore`.
 
 4. Nach jeder Migration muss `make rebuild-projections` fehlerfrei durchlaufen (Projektionen werden aus Events neu gebaut).
 
@@ -30,14 +30,14 @@ Neue Änderungen kommen als `NN_<name>.up.sql`, fortlaufend nummeriert, additiv 
 jotti verwendet für Status- und Kategorie-Spalten TEXT+CHECK statt PostgreSQL-ENUMs. Begründung:
 
 - **ENUMs sind DDL-Objekte.** Eine neue Ausprägung erfordert `ALTER TYPE ... ADD VALUE`, das in PostgreSQL nur außerhalb einer Transaktion oder mit bestimmten Einschränkungen läuft. Damit ist eine rein transaktionale Migration nicht möglich (verstößt gegen Regel 3).
-- **Zwei-Migrations-Muster für ENUM-Erweiterungen** wäre nötig: (1) eine erste Migration fügt den neuen Wert zum Typ hinzu und muss committen, bevor er benutzbar ist, (2) eine zweite transaktionale Migration nutzt ihn. Das erhöht die Migrations-Komplexität und die Fehleranfälligkeit erheblich.
+- **Zwei-Migrations-Muster für ENUM-Erweiterungen** wäre nötig. Eine erste Migration fügt den neuen Wert zum Typ hinzu und muss committen, bevor er benutzbar ist. Eine zweite transaktionale Migration nutzt ihn. Das erhöht die Migrations-Komplexität und die Fehleranfälligkeit erheblich.
 - **TEXT+CHECK ist einfacher erweiterbar:** Neuer Wert = `ALTER TABLE ... DROP CONSTRAINT ..., ADD CONSTRAINT ... CHECK (... IN (..., 'neu'))` — vollständig transaktional in einer Migration.
-- **Ausnahmen** (`UserRole`, `EntityStatus`, `ProduktKategorie`, `Steuersatz`, `DruckstationKategorie`): Diese ENUMs existieren, weil sie bei Schema-Erstellung eingeführt wurden oder weil sqlc für ENUMs typsichere Go-Typen erzeugt (Compile-Zeit-Prüfung statt Laufzeit-String). Neue Status-/Kategorie-Spalten werden als TEXT+CHECK angelegt.
+- **Ausnahmen** (`UserRole`, `EntityStatus`, `ProduktKategorie`, `Steuersatz`, `DruckstationKategorie`): Diese ENUMs stammen aus der Schema-Erstellung, oder sqlc erzeugt für sie typsichere Go-Typen (Compile-Zeit-Prüfung statt Laufzeit-String). Neue Status-/Kategorie-Spalten werden als TEXT+CHECK angelegt.
 
 ## Testen
 
 - **Frischinstallation:** `migrate ... up` auf leerer DB (deckt der Integrationstest `scripts/test-integration.sh` ab).
-- **Upgrade-Pfad:** `up` auf einer mit Vorversions-Daten befüllten DB, danach Boot + `make rebuild-projections`. Das ist der Pfad, der auf echten Instanzen läuft, und der wichtigste Migrations-Test. Automatisiert im CI-Job `upgrade-path` (`.github/workflows/ci.yml`): Migrationen und Seed-Daten werden mit den Release-Images der Vorversion eingespielt, danach laufen Migration, Boot und `rebuild-projections` mit dem aktuellen Checkout.
+- **Upgrade-Pfad:** `up` auf einer mit Vorversions-Daten befüllten DB, danach Boot + `make rebuild-projections`. Das ist der Pfad, der auf echten Instanzen läuft, und der wichtigste Migrations-Test. Automatisiert im CI-Job `upgrade-path` (`.github/workflows/ci.yml`): Migrationen und Seed-Daten kommen mit den Release-Images der Vorversion. Danach laufen Migration, Boot und `rebuild-projections` mit dem aktuellen Checkout.
 
 ## Vorversions-Pinning (CI-Job `upgrade-path`)
 

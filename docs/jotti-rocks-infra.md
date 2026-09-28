@@ -17,15 +17,18 @@ Der resolver beantwortet A-Records und `_acme-challenge`-CNAMEs zustandslos und 
 rechnerisch aus dem angefragten Namen (Mapping Name → IP unveränderlich).
 Anfragen für `auth.jotti.rocks` reicht er Docker-intern an acme-dns weiter.
 
-acme-dns verwaltet die TXT-Records der DNS-01-Challenges. Seine HTTP-API (`/register`,
-`/update`, `/health`) läuft hinter Caddy unter `https://auth.jotti.rocks`; `/register`
-ist dort streng rate-limitiert (1 Anfrage/Minute je IP). Der Zustand (SQLite) liegt im
+acme-dns verwaltet die TXT-Records der DNS-01-Challenges. Der Zustand (SQLite) liegt im
 Volume `acme-dns-data`.
 
+Seine HTTP-API (`/register`, `/update`, `/health`) läuft hinter Caddy unter
+`https://auth.jotti.rocks`. `/register` ist dort streng rate-limitiert (1 Anfrage/Minute je IP).
+
 Reverse-Proxy ist das Caddy-Image aus `reverse-proxy/Dockerfile`, gestartet direkt mit
-der statischen `reverse-proxy/Caddyfile.rocks`. Caddy holt und erneuert die Zertifikate
-aller vier Hosts selbst per HTTP-01; sie liegen im Volume `caddy-data`. `make rocks-up`
-erstellt den Proxy neu und übernimmt so Änderungen am Caddyfile.
+der statischen `reverse-proxy/Caddyfile.rocks`. `make rocks-up` erstellt den Proxy neu und
+übernimmt so Änderungen am Caddyfile.
+
+Caddy holt und erneuert die Zertifikate aller vier Hosts selbst per HTTP-01. Sie liegen im
+Volume `caddy-data`.
 
 ## 2. Voraussetzungen
 
@@ -68,11 +71,15 @@ Frischer VPS: `make rocks-init` baut und startet den Stack, wartet auf die Healt
 und prüft HTTPS. Danach aktualisiert `make rocks-up` den Stack.
 
 Einmaliger Umstieg eines VPS, auf dem noch der nginx/certbot-Stack läuft: Caddy holt seine
-Zertifikate per HTTP-01-Challenge über Port 80. Port 80 darf deshalb nur der Container
-`jotti-reverse-proxy` belegen, den `make rocks-up` durch Caddy ersetzt. Ein anderer
-Prozess auf Port 80 muss vorher weg (`sudo ss -ltnp 'sport = :80'` zeigt ihn).
-`make rocks-up` entfernt den verwaisten Container `jotti-certbot` selbst
-(`--remove-orphans`). Danach die alten Zertifikats-Volumes löschen:
+Zertifikate per HTTP-01-Challenge über Port 80.
+
+- Port 80 darf nur der Container `jotti-reverse-proxy` belegen, den `make rocks-up` durch
+  Caddy ersetzt.
+- Ein anderer Prozess auf Port 80 muss vorher weg (`sudo ss -ltnp 'sport = :80'` zeigt ihn).
+- `make rocks-up` entfernt den verwaisten Container `jotti-certbot` selbst
+  (`--remove-orphans`).
+
+Danach die alten Zertifikats-Volumes löschen:
 
 ```bash
 docker volume rm jotti_letsencrypt jotti_certbot-challenges
@@ -135,14 +142,15 @@ docker run --rm \
 ## 6. Laufender Betrieb
 
 CT-Log-Monitoring (monatlich): <https://crt.sh/?q=%25.lokal.jotti.rocks> aufrufen und das
-Ausstellungsvolumen prüfen. Erwartung: einzelne Wildcard-Zertifikate je Install-ID, in der
-Größenordnung der bekannten Installationen. Auffällige Spitzen (Massen-Registrierungen)
-sind ein Missbrauchssignal.
+Ausstellungsvolumen prüfen.
+
+- Erwartung: einzelne Wildcard-Zertifikate je Install-ID, in der Größenordnung der bekannten
+  Installationen.
+- Auffällige Spitzen (Massen-Registrierungen) sind ein Missbrauchssignal.
 
 Eskalation bei Missbrauch: Registrierung schließen mit `disable_registration = true` in der
-acme-dns-Config (`docker-compose.rocks.yml`), dann `make rocks-up`. Bestehende
-Installationen erneuern weiter (Credentials bleiben gültig), nur neue Registrierungen sind
-blockiert.
+acme-dns-Config (`docker-compose.rocks.yml`), dann `make rocks-up`. Bestehende Installationen
+erneuern weiter (Credentials bleiben gültig), nur neue Registrierungen sind blockiert.
 
 Monitoring: Der Betreiber richtet bei einem Uptime-Dienst (z. B. Better Stack) diese
 Monitore ein:
@@ -153,16 +161,19 @@ Monitore ein:
   erwartet `10.0.0.1`.
 
 AVV (Datenschutz): Für den VPS besteht eine Vereinbarung zur Auftragsverarbeitung nach
-Art. 28 DSGVO mit netcup (abgeschlossen 2026-07-14). Kopien liegen im netcup-CCP
-(Stammdaten → Auftragsverarbeitung) und im privaten Vertragsarchiv. Der Vertragsinhalt
-ist vertraulich (Ziff. 11 der Vereinbarung) und gehört nicht ins Repository.
+Art. 28 DSGVO mit netcup (abgeschlossen 2026-07-14). Der Vertragsinhalt ist vertraulich
+(Ziff. 11 der Vereinbarung) und gehört nicht ins Repository.
+
+Kopien liegen im netcup-CCP (Stammdaten → Auftragsverarbeitung) und im privaten
+Vertragsarchiv.
 
 ## 7. Backup der acme-dns-Datenbank
 
 Das Volume `acme-dns-data` enthält die Zuordnung Account ↔ Subdomain. Geht es verloren,
-werden die Credentials aller bestehenden Installationen ungültig. Ihre
-Zertifikats-Erneuerungen schlagen dann fehl (Abhilfe je Installation: lokalen State
-löschen, neu registrieren, neue Install-ID, neue Adresse).
+werden die Credentials aller bestehenden Installationen ungültig.
+
+Ihre Zertifikats-Erneuerungen schlagen dann fehl. Abhilfe je Installation: lokalen State
+löschen, neu registrieren, neue Install-ID, neue Adresse.
 
 Das Backup läuft manuell vom Laptop aus, zum Beispiel auf eine externe Platte:
 
@@ -172,8 +183,11 @@ make rocks-backup DEST=/media/<platte>/jotti-rocks
 
 Das Skript `scripts/rocks-backup.sh` zieht per SSH ein `sqlite3 .backup` der Datenbank.
 Es prüft die Kopie auf dem VPS mit `PRAGMA integrity_check`. Danach kopiert es die Datei
-als `acme-dns-<Zeitstempel>.db` per rsync ins Zielverzeichnis. Auf dem VPS müssen
-`sqlite3` und `rsync` installiert sein; der SSH-Zugang braucht Leserechte auf das Volume.
+als `acme-dns-<Zeitstempel>.db` per rsync ins Zielverzeichnis.
+
+Auf dem VPS müssen `sqlite3` und `rsync` installiert sein. Der SSH-Zugang braucht
+Leserechte auf das Volume.
+
 Host, SSH-Optionen und Datenbankpfad sind über `ROCKS_SSH_HOST`, `ROCKS_SSH_OPTS` und
 `ROCKS_ACMEDNS_DB` einstellbar (`./scripts/rocks-backup.sh` ohne Argument zeigt sie).
 

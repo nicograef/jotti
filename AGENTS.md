@@ -4,7 +4,7 @@ jotti: a free mobile point-of-sale system (mPOS) for German non-profits (e.V., g
 
 Non-goals: `docs/produktbeschreibung.md` (product scope) and `docs/anforderungen.md` (excluded features, each with its reason).
 
-**Compliance.** jotti is an electronic recording system under § 1 KassenSichV and needs a TSE under § 146a AO. `docs/compliance.md` holds the TSE, DSFinV-K and ELSTER details. The original texts of the statutes and specs (AO, UStG, KassenSichV, GoBD, DSFinV-K, BSI TR-03153, fiskaly API) lie in `docs/rechtsquellen/`; consult them before the web.
+**Compliance.** jotti is an electronic recording system under § 1 KassenSichV and needs a TSE under § 146a AO. `docs/compliance.md` holds the TSE, DSFinV-K and ELSTER details. `docs/rechtsquellen/` holds the original texts of the statutes and specs (AO, UStG, KassenSichV, GoBD, DSFinV-K, BSI TR-03153, fiskaly API). Consult them before the web.
 
 ## Rules
 
@@ -33,13 +33,17 @@ Production instances hold data under a retention duty. Persisted data (the exist
 
 ## Product conservatism
 
-jotti stays minimal for volunteers who operate it under stress. A feature must justify the complexity it puts on the teams and on the codebase; when in doubt, leave it out.
+jotti stays minimal for volunteers who operate it under stress. A feature must justify the complexity it puts on the teams and on the codebase. When in doubt, leave it out.
 
-- Warning signs of feature creep: a status nothing else depends on; recording what paper, a shout or trust already covers; configurability nobody asked for; features built in advance.
+- Warning signs of feature creep:
+  - a status nothing else depends on
+  - recording what paper, a shout or trust already covers
+  - configurability nobody asked for
+  - features built in advance
 - Field feedback beats feature ideas. A feature the field exposes as ballast is a removal candidate. Precedent: D01 in `docs/decisions.md`.
 - What meets a real need (compliance, field feedback, the core workflow) is built completely.
 - `docs/decisions.md` holds one line per binding decision. A line is never rewritten; a superseded line gets "ersetzt durch DNN". This file is the one exception to the current-state rule.
-- A decision line never carries a file path; it names the concept, so a rename or move cannot make it false.
+- A decision line never carries a file path. It names the concept, so a rename or move cannot make it false.
 
 ## Start
 
