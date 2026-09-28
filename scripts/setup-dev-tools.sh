@@ -166,6 +166,21 @@ if ! command -v shellcheck >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1
 fi
 ensure_cmd shellcheck "Install shellcheck with your package manager (apt-get install shellcheck, brew install shellcheck)."
 
+# Matches the "Lint workflows" step of .github/workflows/ci.yml.
+ACTIONLINT_VERSION="v1.7.12"
+info "Ensuring actionlint ($ACTIONLINT_VERSION) is available..."
+INSTALLED_ACTIONLINT="$(installed_mod_version actionlint github.com/rhysd/actionlint)"
+if [ "$INSTALLED_ACTIONLINT" = "$ACTIONLINT_VERSION" ]; then
+  info "actionlint already installed: $INSTALLED_ACTIONLINT"
+else
+  info "Installing actionlint $ACTIONLINT_VERSION into $GO_BIN_PATH (installed: ${INSTALLED_ACTIONLINT:-none})"
+  GOBIN="$GO_BIN_PATH" go install "github.com/rhysd/actionlint/cmd/actionlint@$ACTIONLINT_VERSION"
+fi
+
+if ! command -v actionlint >/dev/null 2>&1; then
+  fatal "actionlint installation failed. Ensure '$GO_BIN_PATH' is on PATH and rerun."
+fi
+
 info "Ensuring pnpm (v11) is available..."
 if command -v pnpm >/dev/null 2>&1; then
   info "pnpm already installed: $(pnpm --version)"
@@ -197,6 +212,7 @@ echo "  golangci-lint:  $(golangci-lint --version | head -n 1)"
 echo "  sqlc:           $(sqlc version)"
 echo "  migrate:        $(installed_mod_version migrate github.com/golang-migrate/migrate/v4)"
 echo "  shellcheck:     $(shellcheck --version | awk '/^version:/ {print $2}')"
+echo "  actionlint:     $(installed_mod_version actionlint github.com/rhysd/actionlint)"
 
 info "All verify-relevant tools are available."
 info "Next step: make verify"

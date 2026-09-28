@@ -12,7 +12,7 @@
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
-       check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend check-e2e-types check-shell check-format check-repo check-integration check check-full verify \
+       check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend check-e2e-types check-shell check-workflows check-format check-repo check-integration check check-full verify \
        website-dev website-build website-test website-check website-screenshots \
        help
 
@@ -249,7 +249,7 @@ clean: ## Dev-Stack stoppen und Volumes entfernen
 # Qualitätsprüfung (CI-nah)
 
 check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
-	@for tool in golangci-lint goimports sqlc shellcheck pnpm; do \
+	@for tool in golangci-lint goimports sqlc shellcheck actionlint pnpm; do \
 		if ! command -v $$tool >/dev/null 2>&1; then \
 			echo "Fehlendes Tool: $$tool"; \
 			echo "Installiere es mit scripts/setup-dev-tools.sh."; \
@@ -300,6 +300,9 @@ check-e2e-types: ## E2E-Suite typprüfen (tsc, ohne Stack)
 check-shell: ## Shell-Skripte mit shellcheck prüfen (wie CI)
 	shellcheck -x scripts/*.sh
 
+check-workflows: ## GitHub-Workflows mit actionlint prüfen (wie CI)
+	actionlint
+
 check-repo: ## Alle scripts/check-*.sh-Gates ausführen, Fehlschläge gesammelt am Ende (Build-Tags, Sprache, Prosa, Verweise, Zeitzonen, Versions-Pins, UI-Labels, Domain-Enums, E2E-Assertions)
 	@failed=""; \
 	for script in scripts/check-*.sh; do \
@@ -314,7 +317,7 @@ check-repo: ## Alle scripts/check-*.sh-Gates ausführen, Fehlschläge gesammelt 
 check-integration: check-tools-integration ## Integrationstests gegen echte Datenbank ausführen
 	./scripts/test-integration.sh
 
-check: check-tools check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend website-check check-e2e-types check-shell check-repo ## Schnelle Komplettprüfung ohne DB-Integration
+check: check-tools check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend website-check check-e2e-types check-shell check-workflows check-repo ## Schnelle Komplettprüfung ohne DB-Integration
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 
@@ -370,8 +373,8 @@ CLASS_developer := init up up-attached down restart logs status \
 	starter-syso release-windows build-frontend build sqlc \
 	local-up local-down local-logs db-shell seed rebuild-projections clean \
 	check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver \
-	check-local-proxy check-format check-frontend check-e2e-types check-shell check-repo check-integration \
-	check check-full verify \
+	check-local-proxy check-format check-frontend check-e2e-types check-shell check-workflows check-repo \
+	check-integration check check-full verify \
 	website-dev website-build website-test website-check website-screenshots help
 CLASS_production := prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore \
 	prod-backup-verify prod-harden \

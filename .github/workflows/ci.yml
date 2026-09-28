@@ -403,8 +403,8 @@ jobs:
       - name: Run shellcheck
         run: shellcheck -x scripts/*.sh
 
-  # Repo-wide gates that belong to no single component: the check-*.sh scripts
-  # and the repo-wide Prettier check. Unconditional: every gate reads the whole
+  # Repo-wide gates that belong to no single component: the check-*.sh scripts,
+  # actionlint and the repo-wide Prettier check. Unconditional: every gate reads the whole
   # tree, so no path filter narrows it correctly.
   repo-checks:
     runs-on: ubuntu-latest
@@ -436,6 +436,11 @@ jobs:
 
       - name: Run repo checks
         run: make check-repo
+
+      - name: Lint workflows
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          make check-workflows
 
       - name: Check formatting
         run: make check-format
