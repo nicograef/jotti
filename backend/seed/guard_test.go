@@ -20,7 +20,7 @@ func TestAllowedByEnv(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			getenv := func(key string) string {
 				if key != AllowSeedEnv {
-					t.Fatalf("unexpected env lookup: %s", key)
+					t.Errorf("unexpected env lookup: %s", key)
 				}
 				return tc.value
 			}

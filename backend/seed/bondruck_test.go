@@ -40,7 +40,7 @@ func TestDemoSzenario_Druckstationen(t *testing.T) {
 	s := demoSzenario()
 
 	if len(s.Druckstationen) != 5 {
-		t.Fatalf("%d Druckstationen, erwartet 5", len(s.Druckstationen))
+		t.Errorf("%d Druckstationen, erwartet 5", len(s.Druckstationen))
 	}
 
 	bonmodi := map[druckstation.Bonmodus]int{}
@@ -264,7 +264,7 @@ func TestKassenbeleg_OhneSignaturKeinDruckauftrag(t *testing.T) {
 
 	b := &bondruckBuilder{signaturen: signaturen}
 	if _, ok, err := b.kassenbeleg(*unsigniert); err != nil {
-		t.Fatalf("kassenbeleg: %v", err)
+		t.Errorf("kassenbeleg: %v", err)
 	} else if ok {
 		t.Error("kassenbeleg lieferte einen Druckauftrag trotz fehlender Signatur")
 	}

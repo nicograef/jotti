@@ -304,7 +304,7 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 
 	// --- Zweiter Lauf: Guard greift, ohne etwas zu schreiben ---
 	if err := Run(ctx, db); err == nil {
-		t.Fatal("zweiter Run sollte am Guard scheitern, lieferte aber keinen Fehler")
+		t.Error("zweiter Run sollte am Guard scheitern, lieferte aber keinen Fehler")
 	}
 
 	var eventCountNachher int

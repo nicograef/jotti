@@ -68,7 +68,7 @@ func TestBuildSeedDaten_VersionenLueckenlosJeSubject(t *testing.T) {
 			gesehen[subj] = map[int]bool{}
 		}
 		if gesehen[subj][ev.event.Version] {
-			t.Fatalf("doppelte Version %d für Subject %s", ev.event.Version, subj)
+			t.Errorf("doppelte Version %d für Subject %s", ev.event.Version, subj)
 		}
 		gesehen[subj][ev.event.Version] = true
 		if ev.event.Version > hoechste[subj] {
