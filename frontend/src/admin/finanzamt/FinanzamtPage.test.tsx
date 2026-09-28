@@ -1,7 +1,11 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { BackendError } from '@/lib/Backend'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import type {
   TSESignaturQueue,
@@ -19,52 +23,6 @@ vi.mock('react-router', () => ({
   NavLink: ({ children, to }: { children?: ReactNode; to: string }) => (
     <a href={to}>{children}</a>
   ),
-}))
-
-const setElsterMeldung = vi.fn(() => Promise.resolve())
-const nimmElsterMeldungZurueck = vi.fn(() => Promise.resolve())
-const saveBetreiber = vi.fn(() => Promise.resolve())
-
-const refetchBetreiber = vi.fn(() => Promise.resolve())
-
-const hookState = vi.hoisted(() => ({
-  betreiber: null as Betreiber | null,
-  betreiberLoading: false,
-  betreiberError: false,
-  kassenidentitaet: null as Kassenidentitaet | null,
-  tseStatus: undefined as TSEStatus | undefined,
-  tseLoading: false,
-  queue: undefined as TSESignaturQueue | undefined,
-  stoerungen: [] as TSEStoerung[],
-}))
-
-vi.mock('./hooks', () => ({
-  useBetreiber: () => ({
-    betreiber: hookState.betreiber,
-    isPending: hookState.betreiberLoading,
-    isError: hookState.betreiberError,
-    error: hookState.betreiberError ? new Error('Netzfehler') : null,
-    refetchBetreiber,
-    saveBetreiber,
-    setElsterMeldung,
-    nimmElsterMeldungZurueck,
-  }),
-  useKassenidentitaet: () => ({
-    kassenidentitaet: hookState.kassenidentitaet,
-    isPending: false,
-    error: null,
-  }),
-}))
-
-vi.mock('../tse/hooks', () => ({
-  RUECKSTAND_WARN_SEKUNDEN: 60,
-  useTSEStatus: () => ({
-    tseStatus: hookState.tseStatus,
-    isPending: hookState.tseLoading,
-    error: null,
-  }),
-  useTSESignaturQueue: () => ({ queue: hookState.queue }),
-  useTSEStoerungen: () => ({ stoerungen: hookState.stoerungen }),
 }))
 
 function makeBetreiber(overrides: Partial<Betreiber> = {}): Betreiber {
@@ -85,6 +43,8 @@ const kassenidentitaet: Kassenidentitaet = {
   angelegtAm: '2026-07-01',
 }
 
+const liveTse: TSEStatus = { umgebung: 'LIVE', istKonfiguriert: true }
+
 function normaleQueue(): TSESignaturQueue {
   return {
     offeneAuftraege: 3,
@@ -96,30 +56,52 @@ function normaleQueue(): TSESignaturQueue {
   }
 }
 
+function backend({
+  betreiber = makeBetreiber(),
+  tseStatus = liveTse,
+  queue = normaleQueue(),
+  stoerungen = [],
+}: {
+  betreiber?: Betreiber
+  tseStatus?: TSEStatus
+  queue?: TSESignaturQueue
+  stoerungen?: TSEStoerung[]
+} = {}): FakeBackend {
+  return new FakeBackend()
+    .respond('admin/get-betreiber', betreiber)
+    .respond('admin/get-kassenidentitaet', kassenidentitaet)
+    .respond('admin/get-tse-status', tseStatus)
+    .respond('admin/get-tse-signatur-queue', queue)
+    .respond('admin/get-tse-stoerungen', { stoerungen })
+}
+
+// While the TSE status loads, the traffic light shows green and the checklist
+// shows the TSE step as open; assertions wait until every query has settled.
+async function renderPage(fake: FakeBackend = backend()) {
+  const { queryClient } = renderWithBackend(<FinanzamtPage />, fake)
+  await waitFor(() => {
+    expect(queryClient.isFetching()).toBe(0)
+  })
+}
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
-  hookState.betreiber = null
-  hookState.betreiberLoading = false
-  hookState.betreiberError = false
-  hookState.kassenidentitaet = null
-  hookState.tseStatus = undefined
-  hookState.tseLoading = false
-  hookState.queue = undefined
-  hookState.stoerungen = []
 })
 
 describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
-  it('zeigt „0 von 3" ohne Vereinsdaten, TSE und Meldung', () => {
-    hookState.betreiber = makeBetreiber({
-      vereinsname: '',
-      strasse: '',
-      plz: '',
-      ort: '',
-    })
-    hookState.tseStatus = { umgebung: '', istKonfiguriert: false }
-    hookState.kassenidentitaet = kassenidentitaet
-    render(<FinanzamtPage />)
+  it('zeigt „0 von 3" ohne Vereinsdaten, TSE und Meldung', async () => {
+    await renderPage(
+      backend({
+        betreiber: makeBetreiber({
+          vereinsname: '',
+          strasse: '',
+          plz: '',
+          ort: '',
+        }),
+        tseStatus: { umgebung: '', istKonfiguriert: false },
+      }),
+    )
 
     expect(
       screen.getByText('Einrichtung — 0 von 3 Schritten erledigt'),
@@ -129,21 +111,25 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     ).toHaveAttribute('href', '/admin/tse-einrichtung')
   })
 
-  it('bietet den Wizard-Link auch bei aktiver TSE an (Wechsel TEST → LIVE)', () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'TEST', istKonfiguriert: true }
-    hookState.kassenidentitaet = kassenidentitaet
-    render(<FinanzamtPage />)
+  it('bietet den Wizard-Link auch bei aktiver TSE an (Wechsel TEST → LIVE)', async () => {
+    await renderPage(
+      backend({ tseStatus: { umgebung: 'TEST', istKonfiguriert: true } }),
+    )
 
+    expect(screen.getByText(/Cloud-TSE verbunden/)).toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: 'TSE einrichten' }),
     ).toHaveAttribute('href', '/admin/tse-einrichtung')
   })
 
   it('zeigt einen Ladefehler statt der leeren Checkliste, wenn die Betreiber-Query fehlschlägt', async () => {
-    hookState.betreiberError = true
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    render(<FinanzamtPage />)
+    const getBetreiber = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new BackendError(400, 'netzfehler')
+      })
+      .mockReturnValue(makeBetreiber())
+    await renderPage(backend().respond('admin/get-betreiber', getBetreiber))
 
     expect(
       screen.getByText('Vereinsdaten konnten nicht geladen werden'),
@@ -155,14 +141,14 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     await userEvent.click(
       screen.getByRole('button', { name: 'Erneut versuchen' }),
     )
-    expect(refetchBetreiber).toHaveBeenCalledOnce()
+    expect(
+      await screen.findByText(/von 3 Schritten erledigt/),
+    ).toBeInTheDocument()
+    expect(getBetreiber).toHaveBeenCalledTimes(2)
   })
 
-  it('zeigt „2 von 3" mit Vereinsdaten und TSE, aber offener Meldung', () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.kassenidentitaet = kassenidentitaet
-    render(<FinanzamtPage />)
+  it('zeigt „2 von 3" mit Vereinsdaten und TSE, aber offener Meldung', async () => {
+    await renderPage()
 
     expect(
       screen.getByText('Einrichtung — 2 von 3 Schritten erledigt'),
@@ -177,11 +163,10 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     ).toBeInTheDocument()
   })
 
-  it('zeigt „3 von 3" und „Gemeldet am {Datum}" nach erfolgter Meldung', () => {
-    hookState.betreiber = makeBetreiber({ elsterGemeldetAm: '2026-07-12' })
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.kassenidentitaet = kassenidentitaet
-    render(<FinanzamtPage />)
+  it('zeigt „3 von 3" und „Gemeldet am {Datum}" nach erfolgter Meldung', async () => {
+    await renderPage(
+      backend({ betreiber: makeBetreiber({ elsterGemeldetAm: '2026-07-12' }) }),
+    )
 
     expect(
       screen.getByText('Einrichtung — 3 von 3 Schritten erledigt'),
@@ -194,62 +179,63 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
   })
 
   it('ruft setElsterMeldung beim Abhaken der Kassenmeldung', async () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.kassenidentitaet = kassenidentitaet
-    render(<FinanzamtPage />)
+    let elsterGemeldetAm: string | null = null
+    const fake = backend()
+      .respond('admin/get-betreiber', () => makeBetreiber({ elsterGemeldetAm }))
+      .respond('admin/elster-meldung-setzen', () => {
+        elsterGemeldetAm = '2026-07-12'
+        return {}
+      })
+    await renderPage(fake)
 
     await userEvent.click(
       screen.getByRole('button', { name: 'Als erledigt markieren' }),
     )
 
-    await waitFor(() => {
-      expect(setElsterMeldung).toHaveBeenCalledOnce()
-    })
+    expect(
+      await screen.findByText('Einrichtung — 3 von 3 Schritten erledigt'),
+    ).toBeInTheDocument()
+    expect(fake.bodies('admin/elster-meldung-setzen')).toHaveLength(1)
   })
 })
 
 describe('FinanzamtPage — Läuft-alles-Ampel', () => {
-  it('zeigt den grünen Normalzustand als Klartext', () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.queue = normaleQueue()
-    render(<FinanzamtPage />)
+  it('zeigt den grünen Normalzustand als Klartext', async () => {
+    await renderPage()
 
     expect(screen.getByText('Ja — TSE signiert normal')).toBeInTheDocument()
   })
 
-  it('zeigt den roten Fehlerzustand bei fehlgeschlagenen Signaturen', () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.queue = { ...normaleQueue(), fehlgeschlageneAuftraege: 2 }
-    render(<FinanzamtPage />)
+  it('zeigt den roten Fehlerzustand bei fehlgeschlagenen Signaturen', async () => {
+    await renderPage(
+      backend({ queue: { ...normaleQueue(), fehlgeschlageneAuftraege: 2 } }),
+    )
 
     expect(screen.getByText('TSE braucht Aufmerksamkeit')).toBeInTheDocument()
   })
 
-  it('zeigt den roten Fehlerzustand bei Rückstand über der 60-s-Schwelle', () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.queue = { ...normaleQueue(), rueckstandSekunden: 90 }
-    render(<FinanzamtPage />)
+  it('zeigt den roten Fehlerzustand bei Rückstand über der 60-s-Schwelle', async () => {
+    await renderPage(
+      backend({ queue: { ...normaleQueue(), rueckstandSekunden: 90 } }),
+    )
 
     expect(screen.getByText('TSE braucht Aufmerksamkeit')).toBeInTheDocument()
   })
 })
 
 describe('FinanzamtPage — Signatur-Warteschlange', () => {
-  it('meldet fehlgeschlagene Signaturen zuerst, auch ohne offene Aufträge', () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.queue = {
-      ...normaleQueue(),
-      offeneAuftraege: 0,
-      rueckstandSekunden: 0,
-      fehlgeschlageneAuftraege: 2,
-      letzterFehler: 'TSE nicht erreichbar',
-    }
-    render(<FinanzamtPage />)
+  it('meldet fehlgeschlagene Signaturen zuerst, auch ohne offene Aufträge', async () => {
+    await renderPage(
+      backend({
+        queue: {
+          ...normaleQueue(),
+          offeneAuftraege: 0,
+          rueckstandSekunden: 0,
+          fehlgeschlageneAuftraege: 2,
+          letzterFehler: 'TSE nicht erreichbar',
+        },
+      }),
+    )
 
     expect(
       screen.getByText(
@@ -258,11 +244,10 @@ describe('FinanzamtPage — Signatur-Warteschlange', () => {
     ).toBeInTheDocument()
   })
 
-  it('beruhigt nicht, wenn neben einem kleinen Rückstand ein Vorgang fehlgeschlagen ist', () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.queue = { ...normaleQueue(), fehlgeschlageneAuftraege: 2 }
-    render(<FinanzamtPage />)
+  it('beruhigt nicht, wenn neben einem kleinen Rückstand ein Vorgang fehlgeschlagen ist', async () => {
+    await renderPage(
+      backend({ queue: { ...normaleQueue(), fehlgeschlageneAuftraege: 2 } }),
+    )
 
     expect(
       screen.getByText(
@@ -274,11 +259,10 @@ describe('FinanzamtPage — Signatur-Warteschlange', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('beruhigt nicht mehr, wenn der Rückstand die Warnschwelle erreicht', () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.queue = { ...normaleQueue(), rueckstandSekunden: 90 }
-    render(<FinanzamtPage />)
+  it('beruhigt nicht mehr, wenn der Rückstand die Warnschwelle erreicht', async () => {
+    await renderPage(
+      backend({ queue: { ...normaleQueue(), rueckstandSekunden: 90 } }),
+    )
 
     expect(screen.getByText(/der Rückstand ist zu groß/)).toBeInTheDocument()
     expect(
@@ -287,14 +271,15 @@ describe('FinanzamtPage — Signatur-Warteschlange', () => {
   })
 
   it('führt Fehler-Zähler und letzten Fehlertext in den Roh-Metriken', async () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.queue = {
-      ...normaleQueue(),
-      fehlgeschlageneAuftraege: 2,
-      letzterFehler: 'TSE nicht erreichbar',
-    }
-    render(<FinanzamtPage />)
+    await renderPage(
+      backend({
+        queue: {
+          ...normaleQueue(),
+          fehlgeschlageneAuftraege: 2,
+          letzterFehler: 'TSE nicht erreichbar',
+        },
+      }),
+    )
 
     await userEvent.click(
       screen.getByRole('button', { name: /Technische Details/ }),
@@ -308,10 +293,7 @@ describe('FinanzamtPage — Signatur-Warteschlange', () => {
 
 describe('FinanzamtPage — Collapsibles', () => {
   it('blendet die Roh-Metriken erst nach Klick auf „Technische Details" ein', async () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.queue = normaleQueue()
-    render(<FinanzamtPage />)
+    await renderPage()
 
     expect(screen.queryByText('Signaturen/Minute')).not.toBeInTheDocument()
 
@@ -323,19 +305,19 @@ describe('FinanzamtPage — Collapsibles', () => {
   })
 
   it('bietet das Störungsprotokoll aufklappbar an, wenn Störungen vorliegen', async () => {
-    hookState.betreiber = makeBetreiber()
-    hookState.tseStatus = { umgebung: 'LIVE', istKonfiguriert: true }
-    hookState.queue = normaleQueue()
-    hookState.stoerungen = [
-      {
-        id: 1,
-        beginn: '2026-07-05T14:00:00Z',
-        ende: '2026-07-05T14:04:00Z',
-        grundArt: 'rueckstand',
-        fehlertext: 'Nachsigniert nach kurzem Rückstand',
-      },
-    ]
-    render(<FinanzamtPage />)
+    await renderPage(
+      backend({
+        stoerungen: [
+          {
+            id: 1,
+            beginn: '2026-07-05T14:00:00Z',
+            ende: '2026-07-05T14:04:00Z',
+            grundArt: 'rueckstand',
+            fehlertext: 'Nachsigniert nach kurzem Rückstand',
+          },
+        ],
+      }),
+    )
 
     expect(screen.getByText(/1 dokumentierte Störung/)).toBeInTheDocument()
     expect(

@@ -1,9 +1,11 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BackendError } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import type {
   TSEEinrichtenErgebnis,
@@ -14,20 +16,6 @@ import { TSEEinrichtungWizard } from './TSEEinrichtungWizard'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
-}))
-
-const { checkTSESetup, richteTSEEin, uebernimmTSE, testTSEVerbindung } =
-  vi.hoisted(() => ({
-    checkTSESetup: vi.fn<() => Promise<TSESetupBefund>>(),
-    richteTSEEin: vi.fn<() => Promise<TSEEinrichtenErgebnis>>(),
-    uebernimmTSE: vi.fn<() => Promise<TSEEinrichtenErgebnis>>(),
-    testTSEVerbindung: vi.fn<() => Promise<TSEVerbindungStatus>>(),
-  }))
-
-vi.mock('./hooks', () => ({
-  checkTSESetup,
-  useTSEEinrichtung: () => ({ richteTSEEin, uebernimmTSE }),
-  useTSEKonfiguration: () => ({ testTSEVerbindung }),
 }))
 
 // UNINITIALIZED: übernehmbar, aber nur mit Admin-PIN bzw. Admin-PUK.
@@ -66,21 +54,40 @@ const neueTseErgebnis: TSEEinrichtenErgebnis = {
   umgebung: 'TEST',
 }
 
+const bestaetigteVerbindung: TSEVerbindungStatus = {
+  umgebung: 'TEST',
+  tssState: 'INITIALIZED',
+  clientState: 'REGISTERED',
+  clientSerialNumber: 'jotti-1',
+  seriennummerKorrekt: true,
+}
+
+// useTSEKonfiguration in the result step queries the stored configuration.
+function backend(befund: TSESetupBefund): FakeBackend {
+  return new FakeBackend()
+    .respond('admin/tse-setup-pruefen', befund)
+    .respond('admin/get-tse-konfiguration', {
+      apiKeyGesetzt: false,
+      apiSecretGesetzt: false,
+      tssId: '',
+      clientId: '',
+      istKonfiguriert: false,
+    })
+}
+
 beforeEach(() => {
   VorgangsRegisterSingleton.zuruecksetzen()
 })
 
 afterEach(() => {
   cleanup()
-  vi.clearAllMocks()
 })
 
 async function bisZumBefund(
   user: ReturnType<typeof userEvent.setup>,
-  befund: TSESetupBefund,
+  fake: FakeBackend,
 ) {
-  checkTSESetup.mockResolvedValue(befund)
-  render(<TSEEinrichtungWizard />)
+  renderWithBackend(<TSEEinrichtungWizard />, fake)
 
   await user.type(screen.getByLabelText('API-Key'), 'key')
   await user.type(screen.getByLabelText('API-Secret'), 'secret')
@@ -92,7 +99,10 @@ async function bisZumBefund(
 describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
   it('meldet getippte Zugangsdaten und gibt sie beim Leeren frei', async () => {
     const user = userEvent.setup()
-    render(<TSEEinrichtungWizard />)
+    renderWithBackend(
+      <TSEEinrichtungWizard />,
+      backend({ umgebung: 'TEST', vorhandeneTss: [] }),
+    )
 
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
 
@@ -110,7 +120,7 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
 
   it('meldet die abgetippte Admin-PIN zusätzlich', async () => {
     const user = userEvent.setup()
-    await bisZumBefund(user, uebernehmbarerBefund)
+    await bisZumBefund(user, backend(uebernehmbarerBefund))
 
     const vorher = VorgangsRegisterSingleton.anzahlOffen()
 
@@ -123,7 +133,7 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
 
   it('meldet den abgetippten Admin-PUK, das bloße Aufklappen nicht', async () => {
     const user = userEvent.setup()
-    await bisZumBefund(user, uebernehmbarerBefund)
+    await bisZumBefund(user, backend(uebernehmbarerBefund))
 
     const vorher = VorgangsRegisterSingleton.anzahlOffen()
 
@@ -138,7 +148,7 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
 
   it('meldet die begonnene LIVE-Tippbestätigung', async () => {
     const user = userEvent.setup()
-    await bisZumBefund(user, { umgebung: 'LIVE', vorhandeneTss: [] })
+    await bisZumBefund(user, backend({ umgebung: 'LIVE', vorhandeneTss: [] }))
 
     const vorher = VorgangsRegisterSingleton.anzahlOffen()
 
@@ -148,15 +158,12 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
 
   it('hält den Ergebnis-Schritt gemeldet, bis er verlassen wird — der Verwahr-Haken gibt nicht frei', async () => {
     const user = userEvent.setup()
-    richteTSEEin.mockResolvedValue(neueTseErgebnis)
-    testTSEVerbindung.mockResolvedValue({
-      umgebung: 'TEST',
-      tssState: 'INITIALIZED',
-      clientState: 'REGISTERED',
-      clientSerialNumber: 'jotti-1',
-      seriennummerKorrekt: true,
-    })
-    await bisZumBefund(user, { umgebung: 'TEST', vorhandeneTss: [] })
+    await bisZumBefund(
+      user,
+      backend({ umgebung: 'TEST', vorhandeneTss: [] })
+        .respond('admin/tse-einrichten', neueTseErgebnis)
+        .respond('admin/test-tse-verbindung', bestaetigteVerbindung),
+    )
 
     const vorZurAnlage = VorgangsRegisterSingleton.anzahlOffen()
 
@@ -183,7 +190,7 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
 describe('TSEEinrichtungWizard — Sperren der Einrichtung', () => {
   it('sperrt die LIVE-Anlage, bis „LIVE" abgetippt ist', async () => {
     const user = userEvent.setup()
-    await bisZumBefund(user, { umgebung: 'LIVE', vorhandeneTss: [] })
+    await bisZumBefund(user, backend({ umgebung: 'LIVE', vorhandeneTss: [] }))
 
     const einrichten = screen.getByRole('button', { name: 'TSE einrichten' })
     expect(einrichten).toBeDisabled()
@@ -199,10 +206,13 @@ describe('TSEEinrichtungWizard — Sperren der Einrichtung', () => {
 
   it('meldet eine abgelehnte Admin-PIN als bleibenden Hinweis', async () => {
     const user = userEvent.setup()
-    uebernimmTSE.mockRejectedValue(
-      new BackendError(409, 'tse_setup_pin_unbekannt'),
+    await bisZumBefund(
+      user,
+      backend(uebernehmbarerBefund).fail(
+        'admin/tse-uebernehmen',
+        new BackendError(409, 'tse_setup_pin_unbekannt'),
+      ),
     )
-    await bisZumBefund(user, uebernehmbarerBefund)
 
     await user.type(screen.getByLabelText('Admin-PIN'), '99999')
     await user.click(screen.getByRole('button', { name: 'TSE übernehmen' }))
@@ -214,7 +224,7 @@ describe('TSEEinrichtungWizard — Sperren der Einrichtung', () => {
 
   it('verlangt für eine einsatzbereite TSE keine Admin-PIN', async () => {
     const user = userEvent.setup()
-    await bisZumBefund(user, einsatzbereiterBefund)
+    await bisZumBefund(user, backend(einsatzbereiterBefund))
 
     expect(screen.queryByLabelText('Admin-PIN')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'TSE übernehmen' })).toBeEnabled()
@@ -222,12 +232,15 @@ describe('TSEEinrichtungWizard — Sperren der Einrichtung', () => {
 
   it('bietet bei ausschließlich deaktivierten TSE die Neuanlage an', async () => {
     const user = userEvent.setup()
-    await bisZumBefund(user, {
-      umgebung: 'TEST',
-      vorhandeneTss: [
-        { id: 'tss-alt', state: 'DISABLED', passenderClient: null },
-      ],
-    })
+    await bisZumBefund(
+      user,
+      backend({
+        umgebung: 'TEST',
+        vorhandeneTss: [
+          { id: 'tss-alt', state: 'DISABLED', passenderClient: null },
+        ],
+      }),
+    )
 
     expect(
       screen.getByRole('button', { name: 'TSE einrichten' }),

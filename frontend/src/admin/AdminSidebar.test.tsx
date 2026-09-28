@@ -1,88 +1,82 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
+import type { TSESignaturQueue } from '@/admin/tse/TSEBackend'
+import { ThemeProvider } from '@/components/theme-provider'
 import { SidebarProvider } from '@/components/ui/sidebar'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import { AdminSidebar } from './AdminSidebar'
 import type { AktiveKassensitzung } from './kasse/KasseBackend'
+import type { FehlgeschlagenerDruckauftrag } from './settings/DruckstationBackend'
 
-const themeState = vi.hoisted<{
-  isDark: boolean
-  setTheme: ReturnType<typeof vi.fn>
-}>(() => ({ isDark: false, setTheme: vi.fn() }))
+// Storage key of the ThemeProvider; a stored theme wins over the system theme.
+const THEME_STORAGE_KEY = 'vite-ui-theme'
 
-vi.mock('@/components/theme-provider', () => ({
-  useTheme: () => ({
-    isDark: themeState.isDark,
-    setTheme: themeState.setTheme,
-  }),
-}))
-
-// jsdom kennt window.matchMedia nicht (von SidebarProvider via useIsMobile benötigt).
-vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: () => false,
-}))
-
-const versionState = vi.hoisted<{ version: string | undefined }>(() => ({
-  version: undefined,
-}))
-
-vi.mock('@/hooks/use-version', () => ({
-  useVersion: () => versionState.version,
-}))
-
-const kasseState = vi.hoisted<{
-  kassensitzung: AktiveKassensitzung | null
-}>(() => ({
-  kassensitzung: null,
-}))
-
-vi.mock('./kasse/hooks', () => ({
-  useAktiveKassensitzung: () => ({ kassensitzung: kasseState.kassensitzung }),
-}))
-
-const druckState = vi.hoisted<{ anzahl: number }>(() => ({ anzahl: 0 }))
-
-vi.mock('@/admin/settings/hooks', () => ({
-  useFehlgeschlageneDruckauftraege: () => ({
-    druckauftraege: Array.from({ length: druckState.anzahl }),
-  }),
-}))
-
-const tseState = vi.hoisted<{
-  istKonfiguriert: boolean
-  rueckstandSekunden: number
-  fehlgeschlageneAuftraege: number
-}>(() => ({
-  istKonfiguriert: true,
-  rueckstandSekunden: 0,
+const ruhigeQueue: TSESignaturQueue = {
+  offeneAuftraege: 0,
   fehlgeschlageneAuftraege: 0,
-}))
+  letzterFehler: '',
+  rueckstandSekunden: 0,
+  signaturenProMinute: 0,
+  signierdauerP95Sekunden: 0,
+}
 
-vi.mock('@/admin/tse/hooks', () => ({
-  RUECKSTAND_WARN_SEKUNDEN: 60,
-  useTSEStatus: () => ({
-    tseStatus: { istKonfiguriert: tseState.istKonfiguriert },
-    isPending: false,
-  }),
-  useTSESignaturQueue: () => ({
-    queue: {
-      rueckstandSekunden: tseState.rueckstandSekunden,
-      fehlgeschlageneAuftraege: tseState.fehlgeschlageneAuftraege,
-    },
-  }),
-}))
+function druckauftrag(id: number): FehlgeschlagenerDruckauftrag {
+  return {
+    id,
+    bonArt: 'arbeitsbon',
+    zielIp: '192.168.1.51',
+    referenz: `bestellung-aufgenommen:${String(id)}`,
+    versuche: 6,
+    letzterFehler: 'drucker nicht erreichbar',
+    erstelltAm: '2026-07-12T14:05:00+02:00',
+  }
+}
 
-function renderSidebar() {
-  render(
+function backend({
+  kassensitzung = null,
+  druckauftraege = [],
+  istKonfiguriert = true,
+  queue = ruhigeQueue,
+}: {
+  kassensitzung?: AktiveKassensitzung | null
+  druckauftraege?: FehlgeschlagenerDruckauftrag[]
+  istKonfiguriert?: boolean
+  queue?: TSESignaturQueue
+} = {}): FakeBackend {
+  return new FakeBackend()
+    .respond('health', { version: 'v1.0.0' })
+    .respond('admin/get-aktive-kassensitzung', kassensitzung)
+    .respond('admin/get-fehlgeschlagene-druckauftraege', { druckauftraege })
+    .respond('admin/get-tse-status', { umgebung: 'LIVE', istKonfiguriert })
+    .respond('admin/get-tse-signatur-queue', queue)
+}
+
+function renderSidebar(fake: FakeBackend) {
+  return renderWithBackend(
     <MemoryRouter>
-      <SidebarProvider>
-        <AdminSidebar />
-      </SidebarProvider>
+      <ThemeProvider>
+        <SidebarProvider>
+          <AdminSidebar />
+        </SidebarProvider>
+      </ThemeProvider>
     </MemoryRouter>,
+    fake,
   )
+}
+
+// Before its queries answer, the sidebar shows the closed-register and
+// no-warning defaults; absence assertions only mean something afterwards.
+async function renderGeladeneSidebar(fake: FakeBackend = backend()) {
+  const result = renderSidebar(fake)
+  await waitFor(() => {
+    expect(result.queryClient.isFetching()).toBe(0)
+  })
+  return result
 }
 
 const aktiveSitzung: AktiveKassensitzung = {
@@ -99,37 +93,30 @@ const erwarteteUhrzeit = new Date(aktiveSitzung.eroeffnetAm).toLocaleTimeString(
   { hour: '2-digit', minute: '2-digit' },
 )
 
-beforeEach(() => {
-  versionState.version = undefined
-  kasseState.kassensitzung = null
-  druckState.anzahl = 0
-  tseState.istKonfiguriert = true
-  tseState.rueckstandSekunden = 0
-  tseState.fehlgeschlageneAuftraege = 0
-  themeState.isDark = false
-  themeState.setTheme = vi.fn()
-})
-
 afterEach(() => {
   cleanup()
+  localStorage.removeItem(THEME_STORAGE_KEY)
+  document.documentElement.classList.remove('light', 'dark')
 })
 
 describe('AdminSidebar', () => {
-  it('zeigt die Version im Footer, sobald sie geladen ist', () => {
-    versionState.version = 'v1.0.0'
-    renderSidebar()
+  it('zeigt die Version im Footer, sobald sie geladen ist', async () => {
+    renderSidebar(backend())
 
-    expect(screen.getByText('jotti v1.0.0')).toBeInTheDocument()
+    expect(await screen.findByText('jotti v1.0.0')).toBeInTheDocument()
   })
 
   it('zeigt keine Versionszeile, solange die Version nicht geladen ist', () => {
-    renderSidebar()
+    // The health request never answers, so the version stays unloaded.
+    renderSidebar(
+      backend().respond('health', () => new Promise(() => undefined)),
+    )
 
     expect(screen.queryByText(/jotti v/)).not.toBeInTheDocument()
   })
 
-  it('gliedert die Navigation nach dem Festablauf', () => {
-    renderSidebar()
+  it('gliedert die Navigation nach dem Festablauf', async () => {
+    await renderGeladeneSidebar()
 
     expect(screen.getByText('Heute')).toBeInTheDocument()
     expect(screen.getByText('Vorbereitung')).toBeInTheDocument()
@@ -137,17 +124,16 @@ describe('AdminSidebar', () => {
     expect(screen.getByText('Service')).toBeInTheDocument()
   })
 
-  it('zeigt bei geschlossener Kasse den neutralen Kassentag-Chip', () => {
-    renderSidebar()
+  it('zeigt bei geschlossener Kasse den neutralen Kassentag-Chip', async () => {
+    await renderGeladeneSidebar()
 
     expect(screen.getByText('Kein Kassentag')).toBeInTheDocument()
     expect(screen.getByText('Kasse geschlossen')).toBeInTheDocument()
     expect(screen.queryByText('Kasse offen')).not.toBeInTheDocument()
   })
 
-  it('zeigt bei offener Kasse Bezeichnung, Status und Eröffnungszeit im Chip', () => {
-    kasseState.kassensitzung = aktiveSitzung
-    renderSidebar()
+  it('zeigt bei offener Kasse Bezeichnung, Status und Eröffnungszeit im Chip', async () => {
+    await renderGeladeneSidebar(backend({ kassensitzung: aktiveSitzung }))
 
     expect(screen.getByText('Sommerfest Tag 2')).toBeInTheDocument()
     expect(
@@ -158,12 +144,12 @@ describe('AdminSidebar', () => {
     ).toBeGreaterThanOrEqual(1)
   })
 
-  it('zeigt im Barrierestatus den unterbrochenen Abschluss statt „Kasse offen"', () => {
-    kasseState.kassensitzung = {
-      ...aktiveSitzung,
-      status: 'wird_abgeschlossen',
-    }
-    renderSidebar()
+  it('zeigt im Barrierestatus den unterbrochenen Abschluss statt „Kasse offen"', async () => {
+    await renderGeladeneSidebar(
+      backend({
+        kassensitzung: { ...aktiveSitzung, status: 'wird_abgeschlossen' },
+      }),
+    )
 
     expect(
       screen.getByText('Abschluss unterbrochen — erneut abschließen'),
@@ -175,44 +161,45 @@ describe('AdminSidebar', () => {
     ).toBe(2)
   })
 
-  it('markiert Bondrucker bei fehlgeschlagenen Druckaufträgen', () => {
-    druckState.anzahl = 2
-    renderSidebar()
+  it('markiert Bondrucker bei fehlgeschlagenen Druckaufträgen', async () => {
+    await renderGeladeneSidebar(
+      backend({ druckauftraege: [druckauftrag(1), druckauftrag(2)] }),
+    )
 
     expect(
       screen.getByRole('img', { name: 'Druckauftrag fehlgeschlagen' }),
     ).toBeInTheDocument()
   })
 
-  it('markiert Finanzamt & TSE bei nicht konfigurierter TSE', () => {
-    tseState.istKonfiguriert = false
-    renderSidebar()
+  it('markiert Finanzamt & TSE bei nicht konfigurierter TSE', async () => {
+    await renderGeladeneSidebar(backend({ istKonfiguriert: false }))
 
     expect(
       screen.getByRole('img', { name: 'TSE benötigt Aufmerksamkeit' }),
     ).toBeInTheDocument()
   })
 
-  it('markiert Finanzamt & TSE bei Signatur-Rückstand über der Schwelle', () => {
-    tseState.rueckstandSekunden = 120
-    renderSidebar()
+  it('markiert Finanzamt & TSE bei Signatur-Rückstand über der Schwelle', async () => {
+    await renderGeladeneSidebar(
+      backend({ queue: { ...ruhigeQueue, rueckstandSekunden: 120 } }),
+    )
 
     expect(
       screen.getByRole('img', { name: 'TSE benötigt Aufmerksamkeit' }),
     ).toBeInTheDocument()
   })
 
-  it('markiert Finanzamt & TSE nicht bei konfigurierter TSE ohne Rückstand', () => {
-    renderSidebar()
+  it('markiert Finanzamt & TSE nicht bei konfigurierter TSE ohne Rückstand', async () => {
+    await renderGeladeneSidebar()
 
     expect(
       screen.queryByRole('img', { name: 'TSE benötigt Aufmerksamkeit' }),
     ).not.toBeInTheDocument()
   })
 
-  it('beschriftet den Theme-Umschalter stabil, unabhängig vom aktiven Design', () => {
-    themeState.isDark = false
-    renderSidebar()
+  it('beschriftet den Theme-Umschalter stabil, unabhängig vom aktiven Design', async () => {
+    await renderGeladeneSidebar()
+    expect(document.documentElement).toHaveClass('light')
     expect(
       screen.getByRole('button', { name: 'Design wechseln' }),
     ).toBeInTheDocument()
@@ -220,8 +207,9 @@ describe('AdminSidebar', () => {
 
     cleanup()
 
-    themeState.isDark = true
-    renderSidebar()
+    localStorage.setItem(THEME_STORAGE_KEY, 'dark')
+    await renderGeladeneSidebar()
+    expect(document.documentElement).toHaveClass('dark')
     expect(
       screen.getByRole('button', { name: 'Design wechseln' }),
     ).toBeInTheDocument()
@@ -230,10 +218,11 @@ describe('AdminSidebar', () => {
 
   it('schaltet auf das Gegenteil des aktuellen Designs', async () => {
     const user = userEvent.setup()
-    themeState.isDark = false
-    renderSidebar()
+    await renderGeladeneSidebar()
+    expect(document.documentElement).toHaveClass('light')
 
     await user.click(screen.getByRole('button', { name: 'Design wechseln' }))
-    expect(themeState.setTheme).toHaveBeenCalledWith('dark')
+    expect(document.documentElement).toHaveClass('dark')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
   })
 })
