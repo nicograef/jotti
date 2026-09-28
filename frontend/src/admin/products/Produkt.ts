@@ -26,7 +26,7 @@ export const Richtung = {
 export type Richtung = (typeof Richtung)[keyof typeof Richtung]
 export const RichtungSchema = z.enum([Richtung.HOCH, Richtung.RUNTER])
 
-// Eingaberegeln gespiegelt an den zog-Grenzen des Backends (Regel 5): das
+// Eingaberegeln gespiegelt an den zog-Grenzen des Backends: das
 // Formular nennt die Grenze, statt einen anonymen validation_error abzuwarten.
 // Produkt- und Variantenname teilen dieselbe Regel wie NameSchema in domain/produkt.
 export const NameEingabeSchema = createNameSchema(100)

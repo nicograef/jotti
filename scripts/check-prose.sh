@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# jotti — AGENTS.md rule 18 ("nur der aktuelle Stand"): prose describes the
+# jotti — the current-state rule: prose describes the
 # current state only. Rejected are words that frame a statement against a former
 # state and session-scoped jargon from a plan or handoff in flight (see PATTERN).
 

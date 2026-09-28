@@ -59,7 +59,7 @@ fi
 # Rule 2: transliterated umlaut words (fuer, ueber, koennen, ...) as whole words
 # on Go comment lines under backend/**. Only *ast.Comment text is scanned, so
 # identifiers such as backend/seed's `auftraege` stay untouched; the generated
-# backend/sqlc/dbgen/** is excluded (AGENTS.md rule 14).
+# backend/sqlc/dbgen/** is excluded (generated code).
 # The files after the "--" are the protected word set: every name the backend
 # declares or writes, which a comment quoting it must spell the same way. dbgen
 # belongs in there (its queries carry the table and column names); the checker's

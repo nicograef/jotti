@@ -6,7 +6,7 @@ Alle Dateien stammen aus offiziellen Quellen (gesetze-im-internet.de des BMJ, Bu
 
 ## Nutzung durch Agenten
 
-Bei fiskal- und steuerrechtlichen Fragen zuerst hier nachsehen, statt im Web zu suchen oder aus dem Gedächtnis zu antworten (AGENTS.md, Regel 13). Den Domänen- und Implementierungsbezug liefern [compliance.md](../compliance.md) und [steuerrecht.md](../steuerrecht.md); dieser Ordner liefert den dahinterstehenden Originaltext.
+Bei fiskal- und steuerrechtlichen Fragen zuerst hier nachsehen, statt im Web zu suchen oder aus dem Gedächtnis zu antworten (AGENTS.md). Den Domänen- und Implementierungsbezug liefern [compliance.md](../compliance.md) und [steuerrecht.md](../steuerrecht.md); dieser Ordner liefert den dahinterstehenden Originaltext.
 
 Lesen:
 

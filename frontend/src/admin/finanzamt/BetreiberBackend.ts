@@ -4,7 +4,7 @@ import type { BackendClient } from '@/lib/Backend'
 import { DateStringSchema } from '@/lib/utils'
 
 // Die Adressfelder erscheinen auf jedem Kassenbeleg (§ 6 KassenSichV). Grenzen
-// und Trim spiegeln das zog-Schema in domain/betreiber (Regel 5): die amtlichen
+// und Trim spiegeln das zog-Schema in domain/betreiber: die amtlichen
 // Maximallängen der DSFinV-K-Stammdaten.
 export const BetreiberEingabeSchema = z.object({
   vereinsname: z

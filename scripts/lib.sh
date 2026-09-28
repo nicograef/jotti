@@ -113,8 +113,6 @@ tracked_text_files() {
     ':(glob,exclude)database/migrations/**' \
     ':(glob,exclude)backend/sqlc/dbgen/**' \
     ':(glob,exclude)AGENTS.md' \
-    ':(glob,exclude).github/copilot-instructions.md' \
-    ':(glob,exclude).github/instructions/**' \
     ':(glob,exclude).claude/**' \
     ':(glob,exclude)**/pnpm-lock.yaml' \
     ':(glob,exclude)**/go.sum'

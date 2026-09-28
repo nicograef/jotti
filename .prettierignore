@@ -9,7 +9,7 @@ package-lock.json
 backend/sqlc/dbgen
 docs/rechtsquellen
 
-# Plan files are transient and hand-edited while a plan runs (AGENTS.md).
+# Plan files are transient and hand-edited while a plan runs.
 docs/plans
 
 # shadcn/ui generated files

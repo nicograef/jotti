@@ -23,15 +23,6 @@
     "github@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true,
-    "handbook@nicograef": true
-  },
-  "extraKnownMarketplaces": {
-    "nicograef": {
-      "source": {
-        "source": "github",
-        "repo": "nicograef/handbook"
-      }
-    }
+    "gopls-lsp@claude-plugins-official": true
   }
 }

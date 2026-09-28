@@ -5,11 +5,11 @@ package api
 // Event-JSON is decoded through the event contract types only: a decode target
 // names kasse.PositionEventData or a payload type such as
 // kasse.BestellungAufgenommenV1Data, never kasse.Position. The domain type carries
-// no json tags (AGENTS.md rule 10) and matches the stored keys only by accident —
+// no json tags (AGENTS.md) and matches the stored keys only by accident —
 // Go's decoder compares field names case-insensitively, so a renamed domain field
 // silently decodes to its zero value and a wrong Arbeitsbon is the first place
-// that shows. The same boundary keeps rule 10: a domain struct is never
-// serialized as an API response either.
+// that shows. The same rule forbids serializing a domain struct as an API
+// response.
 
 import (
 	"go/ast"
