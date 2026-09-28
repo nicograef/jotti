@@ -409,6 +409,9 @@ func TestUebernimmTSE_VorhandenerPassenderClient(t *testing.T) {
 	if len(client.RegistrierteClients) != 0 {
 		t.Errorf("expected no new client registration when a matching client exists, got %+v", client.RegistrierteClients)
 	}
+	if repo.gespeichert == nil {
+		t.Fatal("expected the configuration to be saved")
+	}
 	if ergebnis.ClientID != vorhandenerClient || repo.gespeichert.ClientID != vorhandenerClient {
 		t.Errorf("expected the existing client to be adopted, got result %q saved %q", ergebnis.ClientID, repo.gespeichert.ClientID)
 	}
@@ -476,6 +479,9 @@ func TestUebernimmTSE_DeregistrierterClientReaktiviert(t *testing.T) {
 	}
 	if len(client.ReaktivierteClients) != 1 || client.ReaktivierteClients[0].ClientID != vorhandenerClient {
 		t.Errorf("expected the same client to be reactivated, got %+v", client.ReaktivierteClients)
+	}
+	if repo.gespeichert == nil {
+		t.Fatal("expected the configuration to be saved")
 	}
 	if ergebnis.ClientID != vorhandenerClient || repo.gespeichert.ClientID != vorhandenerClient {
 		t.Errorf("expected the reactivated client to be saved, got result %q saved %+v", ergebnis.ClientID, repo.gespeichert)
