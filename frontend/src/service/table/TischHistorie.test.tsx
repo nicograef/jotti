@@ -1,7 +1,6 @@
 import {
   cleanup,
   fireEvent,
-  render,
   screen,
   waitFor,
   within,
@@ -11,10 +10,14 @@ import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+import { signIn, signOut } from '@/test/auth'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import type { Bestellung } from './Bestellung'
 import type { Stornierung } from './Stornierung'
 import type { Tisch } from './Tisch'
+import { TischBackend } from './TischBackend'
 import { TischHistorie } from './TischHistorie'
 import type { Umbuchung } from './Umbuchung'
 import type { Zahlung } from './Zahlung'
@@ -25,33 +28,22 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }))
 
-vi.mock('@/lib/Auth', () => ({
-  AuthSingleton: { canCancel: true, canRebook: true },
-}))
-
-vi.mock('./hooks', () => ({
-  useAktiveTische: () => ({
-    tische: [
-      { id: 1, name: 'Stammtisch', saldoCents: 0 },
-      { id: 2, name: 'Nebentisch', saldoCents: 0 },
-    ],
-    isPending: false,
-  }),
-}))
-
 beforeEach(() => {
   VorgangsRegisterSingleton.zuruecksetzen()
+  // Serviceleitung may cancel and rebook.
+  signIn({ role: 'serviceleitung' })
 })
 
 afterEach(() => {
   cleanup()
+  signOut()
 })
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 
 function position() {
   return {
-    positionId: '00000000-0000-0000-0000-0000000000a1',
+    positionId: '00000000-0000-4000-8000-0000000000a1',
     varianteId: 1,
     produktName: 'Bratwurst',
     varianteName: 'Normal',
@@ -67,7 +59,7 @@ function position() {
 function bestellung(overrides: Partial<Bestellung> = {}): Bestellung {
   return {
     art: 'bestellung',
-    id: '00000000-0000-0000-0000-000000000001',
+    id: '00000000-0000-4000-8000-000000000001',
     userId: 1,
     userName: 'Tester',
     tischId: 1,
@@ -84,7 +76,7 @@ function bestellung(overrides: Partial<Bestellung> = {}): Bestellung {
 function zahlung(overrides: Partial<Zahlung> = {}): Zahlung {
   return {
     art: 'zahlung',
-    id: '00000000-0000-0000-0000-0000000000f1',
+    id: '00000000-0000-4000-8000-0000000000f1',
     userId: 2,
     userName: 'Bert',
     tischId: 1,
@@ -99,7 +91,7 @@ function zahlung(overrides: Partial<Zahlung> = {}): Zahlung {
 function stornierung(overrides: Partial<Stornierung> = {}): Stornierung {
   return {
     art: 'stornierung',
-    id: '00000000-0000-0000-0000-0000000000c1',
+    id: '00000000-0000-4000-8000-0000000000c1',
     userId: 3,
     userName: 'Clara',
     tischId: 1,
@@ -115,7 +107,7 @@ function stornierung(overrides: Partial<Stornierung> = {}): Stornierung {
 function umbuchung(overrides: Partial<Umbuchung> = {}): Umbuchung {
   return {
     art: 'umbuchung',
-    id: '00000000-0000-0000-0000-0000000000d1',
+    id: '00000000-0000-4000-8000-0000000000d1',
     userId: 4,
     userName: 'Dora',
     tischId: 1,
@@ -132,25 +124,34 @@ function umbuchung(overrides: Partial<Umbuchung> = {}): Umbuchung {
   }
 }
 
+// The rebooking drawer loads its target tables itself.
+function backend(): FakeBackend {
+  return new FakeBackend()
+    .respond('service/get-aktive-tische', {
+      tische: [
+        { id: 1, name: 'Stammtisch', saldoCents: 0 },
+        { id: 2, name: 'Nebentisch', saldoCents: 0 },
+      ],
+    })
+    .respond('serviceleitung/stornierung-erteilen', {})
+    .respond('service/bestellung-umbuchen', {})
+    .respond('service/beleg-drucken', { status: 'eingereiht' })
+}
+
 function renderHistorie(
   historie: HistorieEintrag[],
-  backend: Partial<Parameters<typeof TischHistorie>[0]['backend']> = {},
+  fake: FakeBackend = backend(),
   onErfolg: (nachricht: string) => void = vi.fn(),
 ) {
-  render(
+  renderWithBackend(
     <TischHistorie
       historie={historie}
       historieLoading={false}
       tisch={tisch}
-      backend={{
-        stornierungErteilen: vi.fn().mockResolvedValue(undefined),
-        bestellungUmbuchen: vi.fn().mockResolvedValue(undefined),
-        belegDrucken: vi.fn().mockResolvedValue('eingereiht'),
-        stornobelegDrucken: vi.fn().mockResolvedValue('eingereiht'),
-        ...backend,
-      }}
+      backend={new TischBackend(fake)}
       onErfolg={onErfolg}
     />,
+    fake,
   )
 }
 
@@ -158,11 +159,11 @@ describe('TischHistorie', () => {
   it('beschriftet jede Zeile mit dem Namen der handelnden Servicekraft', () => {
     renderHistorie([
       bestellung({
-        id: '00000000-0000-0000-0000-000000000001',
+        id: '00000000-0000-4000-8000-000000000001',
         userName: 'Anna',
       }),
       zahlung({
-        id: '00000000-0000-0000-0000-0000000000f1',
+        id: '00000000-0000-4000-8000-0000000000f1',
         userName: 'Bert',
       }),
     ])
@@ -189,9 +190,9 @@ describe('TischHistorie', () => {
 
   it('zeigt die Historie flach — alle Einträge ohne „Alle anzeigen"-Schalter', () => {
     renderHistorie([
-      bestellung({ id: '00000000-0000-0000-0000-000000000001' }),
-      bestellung({ id: '00000000-0000-0000-0000-000000000002' }),
-      bestellung({ id: '00000000-0000-0000-0000-000000000003' }),
+      bestellung({ id: '00000000-0000-4000-8000-000000000001' }),
+      bestellung({ id: '00000000-0000-4000-8000-000000000002' }),
+      bestellung({ id: '00000000-0000-4000-8000-000000000003' }),
     ])
 
     expect(screen.getAllByText('Bestellung')).toHaveLength(3)
@@ -203,11 +204,11 @@ describe('TischHistorie', () => {
   it('unterscheidet Warenrücknahme und geldneutrale Korrektur sichtbar', () => {
     renderHistorie([
       stornierung({
-        id: '00000000-0000-0000-0000-0000000000c1',
+        id: '00000000-0000-4000-8000-0000000000c1',
         barRueckgabe: true,
       }),
       stornierung({
-        id: '00000000-0000-0000-0000-0000000000c2',
+        id: '00000000-0000-4000-8000-0000000000c2',
         barRueckgabe: false,
         kommentar: '',
       }),
@@ -220,7 +221,7 @@ describe('TischHistorie', () => {
   it('bietet Stornieren und Umbuchen nur im Detail-Drawer an', () => {
     renderHistorie([
       bestellung({
-        id: '00000000-0000-0000-0000-000000000001',
+        id: '00000000-0000-4000-8000-000000000001',
         stornierbarePositionen: [position()],
         umbuchbarePositionen: [position()],
       }),
@@ -244,7 +245,7 @@ describe('TischHistorie', () => {
   it('titelt den Detail-Drawer menschenlesbar statt mit UUID-Fragment', () => {
     renderHistorie([
       bestellung({
-        id: '00000000-0000-0000-0000-000000000001',
+        id: '00000000-0000-4000-8000-000000000001',
         userName: 'Nico',
       }),
     ])
@@ -258,20 +259,20 @@ describe('TischHistorie', () => {
   })
 
   it('zeigt den Stornobeleg-Button nur bei der Warenrücknahme im Drawer und löst ihn aus', async () => {
-    const stornobelegDrucken = vi.fn().mockResolvedValue('eingereiht')
+    const fake = backend()
     renderHistorie(
       [
         stornierung({
-          id: '00000000-0000-0000-0000-0000000000c1',
+          id: '00000000-0000-4000-8000-0000000000c1',
           barRueckgabe: true,
         }),
         stornierung({
-          id: '00000000-0000-0000-0000-0000000000c2',
+          id: '00000000-0000-4000-8000-0000000000c2',
           barRueckgabe: false,
           kommentar: '',
         }),
       ],
-      { stornobelegDrucken },
+      fake,
     )
 
     expect(
@@ -286,18 +287,18 @@ describe('TischHistorie', () => {
     fireEvent.click(belegButton)
 
     await waitFor(() => {
-      expect(stornobelegDrucken).toHaveBeenCalledWith(
-        1,
-        '00000000-0000-0000-0000-0000000000c1',
-      )
+      expect(fake.bodies('service/beleg-drucken')).toEqual([
+        { tischId: 1, stornierungId: '00000000-0000-4000-8000-0000000000c1' },
+      ])
     })
   })
 
   it('bietet im Detail einer Zahlung den Gäste-Beleg als „Kassenbeleg drucken" an', async () => {
-    const belegDrucken = vi.fn().mockResolvedValue('eingereiht')
-    renderHistorie([zahlung({ id: '00000000-0000-0000-0000-0000000000f1' })], {
-      belegDrucken,
-    })
+    const fake = backend()
+    renderHistorie(
+      [zahlung({ id: '00000000-0000-4000-8000-0000000000f1' })],
+      fake,
+    )
 
     fireEvent.click(screen.getByRole('button', { name: /Zahlung/ }))
 
@@ -308,17 +309,16 @@ describe('TischHistorie', () => {
     fireEvent.click(belegButton)
 
     await waitFor(() => {
-      expect(belegDrucken).toHaveBeenCalledWith(
-        1,
-        '00000000-0000-0000-0000-0000000000f1',
-      )
+      expect(fake.bodies('service/beleg-drucken')).toEqual([
+        { tischId: 1, zahlungId: '00000000-0000-4000-8000-0000000000f1' },
+      ])
     })
   })
 
   it('nutzt bei Umbuchungen den Richtungs-Autotext als Titel — in Zeile und Detail — ohne ihn als Kommentar auszugeben', () => {
     renderHistorie([
       umbuchung({
-        id: '00000000-0000-0000-0000-0000000000d1',
+        id: '00000000-0000-4000-8000-0000000000d1',
         kommentar: 'Umbuchung von Tisch 2',
         gesamtCents: 350,
       }),
@@ -343,7 +343,7 @@ describe('TischHistorie', () => {
   it('zeigt das Benutzerkommentar einer Umbuchung in Anführungszeichen in Unterzeile und Detail — Titel bleibt der Autotext', () => {
     renderHistorie([
       umbuchung({
-        id: '00000000-0000-0000-0000-0000000000d1',
+        id: '00000000-0000-4000-8000-0000000000d1',
         kommentar: 'Umbuchung von Tisch 2',
         benutzerKommentar: 'Gast gewechselt',
       }),
@@ -368,7 +368,7 @@ describe('TischHistorie', () => {
   it('bietet aus einem Umbuchungs-Zugang Stornieren und Umbuchen im Detail an', () => {
     renderHistorie([
       umbuchung({
-        id: '00000000-0000-0000-0000-0000000000d1',
+        id: '00000000-0000-4000-8000-0000000000d1',
         stornierbarePositionen: [position()],
         umbuchbarePositionen: [position()],
       }),
@@ -395,11 +395,11 @@ describe('TischHistorie', () => {
     renderHistorie(
       [
         bestellung({
-          id: '00000000-0000-0000-0000-000000000001',
+          id: '00000000-0000-4000-8000-000000000001',
           stornierbarePositionen: [position()],
         }),
       ],
-      {},
+      backend(),
       onErfolg,
     )
 
@@ -422,16 +422,15 @@ describe('TischHistorie', () => {
 
   it('meldet die Umbuchung mit dem Ziel-Tischnamen über den Pop-Text — ohne Toast', async () => {
     const user = userEvent.setup()
-    const bestellungUmbuchen = vi.fn().mockResolvedValue(undefined)
     const onErfolg = vi.fn()
     renderHistorie(
       [
         bestellung({
-          id: '00000000-0000-0000-0000-000000000001',
+          id: '00000000-0000-4000-8000-000000000001',
           umbuchbarePositionen: [position()],
         }),
       ],
-      { bestellungUmbuchen },
+      backend(),
       onErfolg,
     )
 
@@ -455,7 +454,7 @@ describe('TischHistorie', () => {
   it('rendert eine geldneutrale Korrektur mit leerem Kommentar ohne Fehler', () => {
     renderHistorie([
       stornierung({
-        id: '00000000-0000-0000-0000-0000000000c2',
+        id: '00000000-0000-4000-8000-0000000000c2',
         barRueckgabe: false,
         kommentar: '',
       }),
@@ -474,7 +473,7 @@ describe('TischHistorie im Vorgangs-Register', () => {
   it('meldet das geöffnete Detail als reine Anzeige nicht', () => {
     renderHistorie([
       bestellung({
-        id: '00000000-0000-0000-0000-000000000001',
+        id: '00000000-0000-4000-8000-000000000001',
         stornierbarePositionen: [position()],
         umbuchbarePositionen: [position()],
       }),

@@ -1,32 +1,28 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { BackendError } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import type { Bestellung, Position } from './Bestellung'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 import type { Tisch } from './Tisch'
+import { TischBackend } from './TischBackend'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
-const tischeState = { fehler: false }
-const reloadTische = vi.hoisted(() => vi.fn())
-
-vi.mock('./hooks', () => ({
-  useAktiveTische: () => ({
-    tische: [
-      { id: 1, name: 'Stammtisch', saldoCents: 0 },
-      { id: 2, name: 'Nebentisch', saldoCents: 0 },
-    ],
-    isPending: false,
-    isError: tischeState.fehler,
-    refetch: reloadTische,
-  }),
-}))
+const aktiveTische = {
+  tische: [
+    { id: 1, name: 'Stammtisch', saldoCents: 0 },
+    { id: 2, name: 'Nebentisch', saldoCents: 0 },
+  ],
+}
 
 beforeEach(() => {
   VorgangsRegisterSingleton.zuruecksetzen()
@@ -35,13 +31,23 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
-  tischeState.fehler = false
 })
+
+function backend(): FakeBackend {
+  return new FakeBackend()
+    .respond('service/get-aktive-tische', aktiveTische)
+    .respond('service/bestellung-umbuchen', {})
+}
+
+// The drawer loads its target tables itself; the select only lists them once loaded.
+async function zielTischeGeladen(): Promise<void> {
+  await screen.findByRole('option', { name: 'Nebentisch' })
+}
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 
 const position: Position = {
-  positionId: '00000000-0000-0000-0000-000000000001',
+  positionId: '00000000-0000-4000-8000-000000000001',
   varianteId: 1,
   produktName: 'Bratwurst',
   varianteName: 'Normal',
@@ -55,7 +61,7 @@ const position: Position = {
 
 const quelle: Bestellung = {
   art: 'bestellung',
-  id: '00000000-0000-0000-0000-000000000042',
+  id: '00000000-0000-4000-8000-000000000042',
   userId: 1,
   userName: 'Nico',
   tischId: 1,
@@ -67,24 +73,24 @@ const quelle: Bestellung = {
   umbuchbarePositionen: [position],
 }
 
-function renderDrawer(
-  bestellungUmbuchen = vi.fn().mockResolvedValue(undefined),
-) {
-  render(
+function renderDrawer(fake: FakeBackend = backend()): FakeBackend {
+  renderWithBackend(
     <HistorieUmbuchungDrawer
-      backend={{ bestellungUmbuchen }}
+      backend={new TischBackend(fake)}
       tisch={tisch}
       quelle={quelle}
       onClose={vi.fn()}
       onBestellungUmgebucht={vi.fn()}
     />,
+    fake,
   )
-  return bestellungUmbuchen
+  return fake
 }
 
 describe('HistorieUmbuchungDrawer', () => {
-  it('rendert Positionsliste im DrawerBody; Ziel-Tisch-Auswahl und Buttons im sichtbaren Footer', () => {
+  it('rendert Positionsliste im DrawerBody; Ziel-Tisch-Auswahl und Buttons im sichtbaren Footer', async () => {
     renderDrawer()
+    await zielTischeGeladen()
 
     const dialog = screen.getByRole('dialog')
     const body = dialog.querySelector('[data-slot="drawer-body"]')
@@ -105,7 +111,8 @@ describe('HistorieUmbuchungDrawer', () => {
 
   it('startet mit leerer Auswahl und sperrt, bis Positionen und Ziel-Tisch gewählt sind', async () => {
     const user = userEvent.setup()
-    const bestellungUmbuchen = renderDrawer()
+    const fake = renderDrawer()
+    await zielTischeGeladen()
 
     const button = screen.getByRole('button', { name: 'Umbuchung ausführen' })
 
@@ -122,18 +129,19 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(button).toBeEnabled()
 
     await user.click(button)
-    expect(bestellungUmbuchen).toHaveBeenCalledWith(
+    expect(fake.bodies('service/bestellung-umbuchen')).toEqual([
       expect.objectContaining({
         quellTischId: 1,
         zielTischId: 2,
         positionen: [{ positionId: position.positionId, menge: 2 }],
       }),
-    )
+    ])
   })
 
   it('leert die Auswahl beim zweiten Tap auf „Alle auswählen"', async () => {
     const user = userEvent.setup()
     renderDrawer()
+    await zielTischeGeladen()
 
     const button = screen.getByRole('button', { name: 'Umbuchung ausführen' })
     await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
@@ -147,8 +155,9 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(button).toBeDisabled()
   })
 
-  it('titelt menschenlesbar mit Vorgangstyp und Name statt UUID-Fragment', () => {
+  it('titelt menschenlesbar mit Vorgangstyp und Name statt UUID-Fragment', async () => {
     renderDrawer()
+    await zielTischeGeladen()
 
     const title = screen.getByText(/^Bestellung ·/)
     expect(title).toHaveTextContent('Nico')
@@ -158,6 +167,7 @@ describe('HistorieUmbuchungDrawer', () => {
   it('nennt den Sperrgrund neben der Aktion und gibt frei, sobald er erfüllt ist', async () => {
     const user = userEvent.setup()
     renderDrawer()
+    await zielTischeGeladen()
 
     const button = screen.getByRole('button', { name: 'Umbuchung ausführen' })
 
@@ -178,7 +188,8 @@ describe('HistorieUmbuchungDrawer', () => {
 
   it('reicht ein optionales Kommentar an die Umbuchung durch', async () => {
     const user = userEvent.setup()
-    const bestellungUmbuchen = renderDrawer()
+    const fake = renderDrawer()
+    await zielTischeGeladen()
 
     await user.type(
       screen.getByPlaceholderText('Kommentar (optional)'),
@@ -192,27 +203,30 @@ describe('HistorieUmbuchungDrawer', () => {
       screen.getByRole('button', { name: 'Umbuchung ausführen' }),
     )
 
-    expect(bestellungUmbuchen).toHaveBeenCalledWith(
+    expect(fake.bodies('service/bestellung-umbuchen')).toEqual([
       expect.objectContaining({
         quellTischId: 1,
         zielTischId: 2,
         benutzerKommentar: 'Gast gewechselt',
       }),
-    )
+    ])
   })
 
   it('meldet den Ziel-Tischnamen an den Aufrufer und zeigt keinen Toast', async () => {
     const user = userEvent.setup()
     const onBestellungUmgebucht = vi.fn()
-    render(
+    const fake = backend()
+    renderWithBackend(
       <HistorieUmbuchungDrawer
-        backend={{ bestellungUmbuchen: vi.fn().mockResolvedValue(undefined) }}
+        backend={new TischBackend(fake)}
         tisch={tisch}
         quelle={quelle}
         onClose={vi.fn()}
         onBestellungUmgebucht={onBestellungUmgebucht}
       />,
+      fake,
     )
+    await zielTischeGeladen()
 
     await user.click(
       screen.getByRole('button', { name: /^1 Position auswählen/ }),
@@ -228,23 +242,26 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(toast.success).not.toHaveBeenCalledWith('Bestellung umgebucht.')
   })
 
-  it('beschriftet den Sammel-Button bei mehreren Positionen im Plural', () => {
+  it('beschriftet den Sammel-Button bei mehreren Positionen im Plural', async () => {
     const zweite: Position = {
       ...position,
-      positionId: '00000000-0000-0000-0000-000000000002',
+      positionId: '00000000-0000-4000-8000-000000000002',
       produktName: 'Pommes',
       einzelpreisCents: 250,
       menge: 1,
     }
-    render(
+    const fake = backend()
+    renderWithBackend(
       <HistorieUmbuchungDrawer
-        backend={{ bestellungUmbuchen: vi.fn().mockResolvedValue(undefined) }}
+        backend={new TischBackend(fake)}
         tisch={tisch}
         quelle={{ ...quelle, umbuchbarePositionen: [position, zweite] }}
         onClose={vi.fn()}
         onBestellungUmgebucht={vi.fn()}
       />,
+      fake,
     )
+    await zielTischeGeladen()
 
     expect(
       screen.getByRole('button', { name: /^Alle 2 Positionen auswählen/ }),
@@ -253,25 +270,36 @@ describe('HistorieUmbuchungDrawer', () => {
 })
 
 describe('HistorieUmbuchungDrawer bei Ladefehler der Ziel-Tische', () => {
-  it('zeigt den Hinweis statt einer leeren Auswahl', () => {
-    tischeState.fehler = true
-    renderDrawer()
+  it('zeigt den Hinweis statt einer leeren Auswahl', async () => {
+    renderDrawer(backend().fail('service/get-aktive-tische'))
 
     expect(
-      screen.getByText('Ziel-Tische konnten nicht geladen werden'),
+      await screen.findByText('Ziel-Tische konnten nicht geladen werden'),
     ).toBeInTheDocument()
     // Keine Auswahl, die „kein aktiver Ziel-Tisch verfügbar" behaupten würde.
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   })
 
   it('lädt die Ziel-Tische über „Erneut versuchen" neu', async () => {
-    tischeState.fehler = true
+    const getAktiveTische = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new BackendError(400, 'test_fehler')
+      })
+      .mockReturnValue(aktiveTische)
     const user = userEvent.setup()
-    renderDrawer()
+    renderDrawer(
+      backend().respond('service/get-aktive-tische', getAktiveTische),
+    )
 
-    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Erneut versuchen' }),
+    )
 
-    expect(reloadTische).toHaveBeenCalled()
+    await zielTischeGeladen()
+    expect(
+      screen.queryByText('Ziel-Tische konnten nicht geladen werden'),
+    ).not.toBeInTheDocument()
   })
 })
 
@@ -279,6 +307,7 @@ describe('HistorieUmbuchungDrawer im Vorgangs-Register', () => {
   it('meldet den getippten Kommentar und gibt ihn beim Aushängen frei', async () => {
     const user = userEvent.setup()
     renderDrawer()
+    await zielTischeGeladen()
 
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
 

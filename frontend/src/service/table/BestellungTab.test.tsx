@@ -1,16 +1,18 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useMengen } from '@/hooks/use-mengen'
-import { useIsMobile } from '@/hooks/use-mobile'
 import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+import { FakeBackend } from '@/test/FakeBackend'
+import { setViewportWidth } from '@/test/render'
 
 import { ServiceDock } from '../ServiceDock'
 import { BestellungTab } from './BestellungTab'
 import type { Tisch } from './Tisch'
+import { TischBackend } from './TischBackend'
 
 // Der Bestell-Korb liegt in TablePage; für die isolierten Komponenten-Tests
 // stellt dieser Harness die gehobene Steuerung bereit.
@@ -28,18 +30,44 @@ vi.mock('sonner', () => ({
 // Standardmäßig Handy-Layout (Dock-Aktionsbutton); ein Test unten schaltet auf
 // Desktop, um die Verdrahtung der festen Spalte zu prüfen. Deren
 // container-neutrales Verhalten deckt BestellungAbschluss.test.tsx ab.
-vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: vi.fn(() => true),
-}))
-
 beforeEach(() => {
   VorgangsRegisterSingleton.zuruecksetzen()
+  setViewportWidth(375)
 })
 
 afterEach(() => {
   cleanup()
-  vi.mocked(useIsMobile).mockReturnValue(true)
+  vi.restoreAllMocks()
+  setViewportWidth(1024)
 })
+
+function tischBackend(): TischBackend {
+  return new TischBackend(
+    new FakeBackend().respond('service/bestellung-aufnehmen', {}),
+  )
+}
+
+// The matchMedia polyfill in setup.ts never reports changes; this one collects
+// the listeners so a test can cross the breakpoint.
+function beobachteBreakpoint(): (px: number) => void {
+  const listeners: (() => void)[] = []
+  const matchMedia = window.matchMedia.bind(window)
+  vi.spyOn(window, 'matchMedia').mockImplementation((query) =>
+    Object.assign(matchMedia(query), {
+      addEventListener: (_type: string, listener: () => void) => {
+        listeners.push(listener)
+      },
+    }),
+  )
+  return (px) => {
+    setViewportWidth(px)
+    act(() => {
+      listeners.forEach((listener) => {
+        listener()
+      })
+    })
+  }
+}
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 
@@ -69,9 +97,7 @@ describe('BestellungTab Aktionsleiste', () => {
     render(
       <ServiceDock leiste={null}>
         <BestellungHarness
-          backend={{
-            bestellungAufnehmen: vi.fn().mockResolvedValue(undefined),
-          }}
+          backend={tischBackend()}
           tisch={tisch}
           products={[testProdukt]}
           productsLoading={false}
@@ -94,12 +120,12 @@ describe('BestellungTab Aktionsleiste', () => {
   })
 
   it('rendert ab lg die feste Abschluss-Spalte statt Dock und Drawer', async () => {
-    vi.mocked(useIsMobile).mockReturnValue(false)
+    setViewportWidth(1024)
     const user = userEvent.setup()
     // Kein ServiceDock: die feste Spalte trägt den Aktionsbutton selbst.
     render(
       <BestellungHarness
-        backend={{ bestellungAufnehmen: vi.fn().mockResolvedValue(undefined) }}
+        backend={tischBackend()}
         tisch={tisch}
         products={[testProdukt]}
         productsLoading={false}
@@ -129,12 +155,11 @@ describe('BestellungTab Aktionsleiste', () => {
 describe('BestellungTab im Vorgangs-Register', () => {
   it('meldet den Korb über einen Layout-Wechsel hinweg genau einmal', async () => {
     const user = userEvent.setup()
+    const wechsleBreite = beobachteBreakpoint()
     const renderUi = () => (
       <ServiceDock leiste={null}>
         <BestellungHarness
-          backend={{
-            bestellungAufnehmen: vi.fn().mockResolvedValue(undefined),
-          }}
+          backend={tischBackend()}
           tisch={tisch}
           products={[testProdukt]}
           productsLoading={false}
@@ -149,7 +174,7 @@ describe('BestellungTab im Vorgangs-Register', () => {
     )
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
 
-    vi.mocked(useIsMobile).mockReturnValue(false)
+    wechsleBreite(1024)
     rerender(renderUi())
 
     expect(

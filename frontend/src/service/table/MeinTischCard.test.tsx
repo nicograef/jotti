@@ -1,5 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { signIn, signOut } from '@/test/auth'
 
 import type { Position } from './Bestellung'
 import { MeinTischCard } from './MeinTischCard'
@@ -9,12 +11,13 @@ vi.mock('react-router', () => ({
   useNavigate: () => vi.fn(),
 }))
 
-vi.mock('@/lib/Auth', () => ({
-  AuthSingleton: { userId: 1 },
-}))
+beforeEach(() => {
+  signIn({ userId: 1 })
+})
 
 afterEach(() => {
   cleanup()
+  signOut()
 })
 
 function position(positionId: string, bestellerUserId: number): Position {

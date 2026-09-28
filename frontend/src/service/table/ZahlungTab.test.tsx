@@ -1,14 +1,17 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useMengen } from '@/hooks/use-mengen'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { signIn, signOut } from '@/test/auth'
+import { FakeBackend } from '@/test/FakeBackend'
+import { setViewportWidth } from '@/test/render'
 
 import { ServiceDock } from '../ServiceDock'
 import type { Position } from './Bestellung'
 import type { Tisch } from './Tisch'
+import { TischBackend } from './TischBackend'
 import { ZahlungTab } from './ZahlungTab'
 
 // Die Kassieren-Auswahl liegt in TablePage; dieser Harness stellt die gehobene
@@ -33,23 +36,27 @@ vi.mock('sonner', () => ({
 // Standardmäßig Handy-Layout (Dock-Button, Restbetrag im Dock-Slot); ein Test
 // unten schaltet auf Desktop, um die Verdrahtung der festen Spalte zu prüfen.
 // Deren container-neutrales Verhalten deckt ZahlungAbschluss.test.tsx ab.
-vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: vi.fn(() => true),
-}))
-
-vi.mock('@/lib/Auth', () => ({
-  AuthSingleton: { userId: 1 },
-}))
+beforeEach(() => {
+  setViewportWidth(375)
+  signIn({ userId: 1 })
+})
 
 afterEach(() => {
   cleanup()
-  vi.mocked(useIsMobile).mockReturnValue(true)
+  setViewportWidth(1024)
+  signOut()
 })
+
+function tischBackend(): TischBackend {
+  return new TischBackend(
+    new FakeBackend().respond('service/zahlung-kassieren', {}),
+  )
+}
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 900 }
 
 const position: Position = {
-  positionId: '00000000-0000-0000-0000-000000000001',
+  positionId: '00000000-0000-4000-8000-000000000001',
   varianteId: 1,
   produktName: 'Bratwurst',
   varianteName: 'Normal',
@@ -63,7 +70,7 @@ const position: Position = {
 
 // Position einer anderen Servicekraft (bestellerUserId ≠ 1).
 const fremdePosition: Position = {
-  positionId: '00000000-0000-0000-0000-000000000002',
+  positionId: '00000000-0000-4000-8000-000000000002',
   varianteId: 2,
   produktName: 'Pommes',
   varianteName: 'Normal',
@@ -79,9 +86,7 @@ function renderZahlung(positionen: Position[] = [position]) {
   render(
     <ServiceDock leiste={null}>
       <ZahlungHarness
-        backend={{
-          zahlungKassieren: vi.fn().mockResolvedValue(undefined),
-        }}
+        backend={tischBackend()}
         tisch={tisch}
         positionen={positionen}
         onErfolg={vi.fn()}
@@ -92,12 +97,12 @@ function renderZahlung(positionen: Position[] = [position]) {
 
 describe('ZahlungTab feste Spalte (ab lg)', () => {
   it('rendert die Abschluss-Spalte mit Restbetrag statt Dock und Drawer', async () => {
-    vi.mocked(useIsMobile).mockReturnValue(false)
+    setViewportWidth(1024)
     const user = userEvent.setup()
     // Kein ServiceDock: die feste Spalte trägt Aktionsbutton und Restbetrag.
     render(
       <ZahlungHarness
-        backend={{ zahlungKassieren: vi.fn().mockResolvedValue(undefined) }}
+        backend={tischBackend()}
         tisch={tisch}
         positionen={[position]}
         onErfolg={vi.fn()}
@@ -222,7 +227,7 @@ describe('ZahlungTab Restbetrag', () => {
     // Zweite eigene Position (bestellerUserId 1) → Plural „Meine 2 Positionen".
     const zweite: Position = {
       ...position,
-      positionId: '00000000-0000-0000-0000-000000000003',
+      positionId: '00000000-0000-4000-8000-000000000003',
       produktName: 'Brezel',
       einzelpreisCents: 200,
       menge: 1,
