@@ -18,10 +18,15 @@ error() { printf "${RED}[ERROR]${NC} %s\n" "$1" >&2; }
 fatal() { error "$1"; exit 1; }
 
 # read_env KEY — reads a value from .env without executing the file (passwords
-# may contain shell-special characters).
+# may contain shell-special characters). Trims whitespace including a CRLF's \r,
+# then one pair of surrounding quotes, as a .env edited on Windows may carry both.
 read_env() {
-  local key="$1"
-  { grep -E "^${key}=" .env 2>/dev/null || true; } | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+  local key="$1" value
+  value="$({ grep -E "^${key}=" .env 2>/dev/null || true; } | tail -n1 | cut -d= -f2- | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+  if [[ "$value" =~ ^\"(.*)\"$ || "$value" =~ ^\'(.*)\'$ ]]; then
+    value="${BASH_REMATCH[1]}"
+  fi
+  printf '%s\n' "$value"
 }
 
 # parse_semver "v1.2.3" — echoes "1 2 3"; returns 1 for a non-semver value
