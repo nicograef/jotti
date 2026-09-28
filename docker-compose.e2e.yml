@@ -17,6 +17,8 @@ x-logging: &default-logging
 services:
   postgres:
     image: postgres:17.11
+    shm_size: 128mb
+    stop_grace_period: 1m
     restart: unless-stopped
     logging: *default-logging
     environment:
