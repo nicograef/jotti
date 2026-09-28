@@ -12,9 +12,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// tseSetupWriteTimeout replaces the server's 10 s write deadline so the one-time PUK and admin PIN
-// still reach the client. Derived from the timeout and retry budgets in tse_repo/fiskaly_client.go,
-// not measured.
+// tseSetupWriteTimeout replaces the server's 10 s write deadline and budgets only the response write.
+// The handlers reset it after the lifecycle, so the one-time PUK and admin PIN still reach the client.
 const tseSetupWriteTimeout = 2 * time.Minute
 
 // tseSetupLebenszyklusTimeout only keeps a hung fiskaly connection from holding the detached
