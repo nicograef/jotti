@@ -89,13 +89,13 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 		t.Fatalf("retrieve tss stammdaten failed: %v", err)
 	}
 	if stammdaten.SignaturAlgorithmus == "" || stammdaten.PublicKey == "" || stammdaten.Zertifikat == "" {
-		t.Fatalf("expected non-empty algorithm, public key and certificate, got %+v", stammdaten)
+		t.Errorf("expected non-empty algorithm, public key and certificate, got %+v", stammdaten)
 	}
 	if stammdaten.LogTimeFormat == "" {
-		t.Fatalf("expected a log time format, got %+v", stammdaten)
+		t.Errorf("expected a log time format, got %+v", stammdaten)
 	}
 	if stammdaten.Seriennummer == "" {
-		t.Fatalf("expected the tss serial_number, got %+v", stammdaten)
+		t.Errorf("expected the tss serial_number, got %+v", stammdaten)
 	}
 
 	// Die frisch eingerichtete TSS muss signierfähig sein.
@@ -114,10 +114,10 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 		t.Fatalf("test connection on fresh TSS failed: %v", err)
 	}
 	if status.ClientState != "REGISTERED" {
-		t.Fatalf("expected a REGISTERED client, got %q", status.ClientState)
+		t.Errorf("expected a REGISTERED client, got %q", status.ClientState)
 	}
 	if status.ClientSerialNumber != seriennummer {
-		t.Fatalf("expected client serial %q, got %q", seriennummer, status.ClientSerialNumber)
+		t.Errorf("expected client serial %q, got %q", seriennummer, status.ClientSerialNumber)
 	}
 
 	txID := uuid.NewString()
@@ -129,9 +129,9 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 		t.Fatalf("finish transaction failed: %v", err)
 	}
 	if finish.Signature == "" {
-		t.Fatal("expected a signature from the freshly set up TSS")
+		t.Error("expected a signature from the freshly set up TSS")
 	}
 	if !strings.HasPrefix(finish.QRCodeData, "V0;") {
-		t.Fatalf("expected qr_code_data with prefix V0;, got %q", finish.QRCodeData)
+		t.Errorf("expected qr_code_data with prefix V0;, got %q", finish.QRCodeData)
 	}
 }

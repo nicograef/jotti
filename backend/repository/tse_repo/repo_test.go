@@ -166,7 +166,7 @@ func TestQuittiereTSESignaturauftrag_EinzelUpdateMitStatusGuard(t *testing.T) {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if stand.Status != tse.StatusErledigt {
-		t.Fatalf("Expected status erledigt, got %q", stand.Status)
+		t.Errorf("Expected status erledigt, got %q", stand.Status)
 	}
 	if stand.Signatur == nil || stand.Signatur.TransaktionNummer != 41 || stand.Signatur.Signatur != "SIG-1" {
 		t.Fatalf("Expected quittierte signatur at auftrag, got %+v", stand.Signatur)
@@ -178,19 +178,19 @@ func TestQuittiereTSESignaturauftrag_EinzelUpdateMitStatusGuard(t *testing.T) {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if len(offene) != 0 {
-		t.Fatalf("Expected no due auftraege after quittierung, got %+v", offene)
+		t.Errorf("Expected no due auftraege after quittierung, got %+v", offene)
 	}
 
 	// Zweite Quittierung ist ein No-Op (Signaturspalten genau einmal beschrieben).
 	if err := store.QuittiereTSESignaturauftrag(ctx, auftragID, testSignatur(99)); err != nil {
-		t.Fatalf("Expected no error from repeated quittierung, got %v", err)
+		t.Errorf("Expected no error from repeated quittierung, got %v", err)
 	}
 	stand, err = store.GetSignaturauftragZuEvent(ctx, eventID)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if stand.Signatur.TransaktionNummer != 41 {
-		t.Fatalf("Expected signature to stay at 41, got %d", stand.Signatur.TransaktionNummer)
+		t.Errorf("Expected signature to stay at 41, got %d", stand.Signatur.TransaktionNummer)
 	}
 }
 
@@ -203,7 +203,7 @@ func TestGetSignaturauftragZuEvent_Faelle(t *testing.T) {
 	ctx := context.Background()
 
 	if _, err := store.GetSignaturauftragZuEvent(ctx, 999999); !errors.Is(err, dbpkg.ErrNotFound) {
-		t.Fatalf("Expected db.ErrNotFound for event without auftrag, got %v", err)
+		t.Errorf("Expected db.ErrNotFound for event without auftrag, got %v", err)
 	}
 
 	_, eventID := umgebung.insertAuftrag(t, "tx-offen-stand")
@@ -212,10 +212,10 @@ func TestGetSignaturauftragZuEvent_Faelle(t *testing.T) {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if stand.Status != tse.StatusOffen || stand.Signatur != nil {
-		t.Fatalf("Expected offenen stand ohne signatur, got %+v", stand)
+		t.Errorf("Expected offenen stand ohne signatur, got %+v", stand)
 	}
 	if stand.ErstelltAm.IsZero() {
-		t.Fatal("Expected erstellt_am to be set")
+		t.Error("Expected erstellt_am to be set")
 	}
 }
 
@@ -239,13 +239,13 @@ func TestTSESignaturauftragFehlversuch_BackoffBlockiertNeuereNicht(t *testing.T)
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if len(offene) != 1 || offene[0].ID != neuererID {
-		t.Fatalf("Expected only the newer auftrag to be due, got %+v", offene)
+		t.Errorf("Expected only the newer auftrag to be due, got %+v", offene)
 	}
 
 	// Der fehlschlagende Auftrag hat den Fehlversuch verbucht und bleibt offen.
 	status, versuche, letzterFehler := auftragStatus(t, umgebung.db, fehlschlagendID)
 	if status != "offen" || versuche != 1 || letzterFehler != "fiskaly timeout" {
-		t.Fatalf("Expected recorded fehlversuch, got status=%q versuche=%d fehler=%q", status, versuche, letzterFehler)
+		t.Errorf("Expected recorded fehlversuch, got status=%q versuche=%d fehler=%q", status, versuche, letzterFehler)
 	}
 }
 
@@ -275,13 +275,13 @@ func TestTSESignaturauftragFehlversuch_SekundenKurveEndetVorRueckstandsSchwelle(
 			t.Fatalf("Stand nach Fehlversuch %d lesen: %v", versuch, err)
 		}
 		if ergebnis := tse.DetermineSignaturstatus(stand, nil); ergebnis.Status != tse.SignaturstatusAusstehend {
-			t.Fatalf("Fehlversuch %d: erwartet ausstehend, got %q", versuch, ergebnis.Status)
+			t.Errorf("Fehlversuch %d: erwartet ausstehend, got %q", versuch, ergebnis.Status)
 		}
 
 		backoff := backoffBis(t, umgebung.db, id)
 		erwartet := erwarteteBackoffs[versuch-1]
 		if backoff < erwartet-2*time.Second || backoff > erwartet+2*time.Second {
-			t.Fatalf("Fehlversuch %d: Backoff %v, erwartet ~%v", versuch, backoff, erwartet)
+			t.Errorf("Fehlversuch %d: Backoff %v, erwartet ~%v", versuch, backoff, erwartet)
 		}
 		gesamtBackoff += backoff
 	}
@@ -291,13 +291,13 @@ func TestTSESignaturauftragFehlversuch_SekundenKurveEndetVorRueckstandsSchwelle(
 		t.Fatalf("letzter Fehlversuch: %v", err)
 	}
 	if status, _, _ := auftragStatus(t, umgebung.db, id); status != tse.StatusFehlgeschlagen {
-		t.Fatalf("Expected endgueltig fehlgeschlagenen Auftrag, got %q", status)
+		t.Errorf("Expected endgueltig fehlgeschlagenen Auftrag, got %q", status)
 	}
 
 	// Die gesamte Wartezeit der Kurve bleibt weit unter der
 	// Rückstands-Schwelle — Platz für Tick- und Verarbeitungs-Schlupf.
 	if gesamtBackoff >= tse.RueckstandSchwelle/2 {
-		t.Fatalf("Backoff-Kurve %v zu nah an der Rueckstands-Schwelle %v", gesamtBackoff, tse.RueckstandSchwelle)
+		t.Errorf("Backoff-Kurve %v zu nah an der Rueckstands-Schwelle %v", gesamtBackoff, tse.RueckstandSchwelle)
 	}
 
 	// Fehlgeschlagene Aufträge zählen nicht als Rückstand: Der Watchdog
@@ -307,7 +307,7 @@ func TestTSESignaturauftragFehlversuch_SekundenKurveEndetVorRueckstandsSchwelle(
 		t.Fatalf("Rueckstand messen: %v", err)
 	}
 	if aeltester != nil {
-		t.Fatalf("Expected fehlgeschlagenen Auftrag nicht in der Rueckstands-Messung, got %v", aeltester)
+		t.Errorf("Expected fehlgeschlagenen Auftrag nicht in der Rueckstands-Messung, got %v", aeltester)
 	}
 }
 
@@ -343,15 +343,15 @@ func TestMarkOffeneAlsNichtKonfiguriert_MarkiertNurOffene(t *testing.T) {
 		t.Fatalf("Expected no mark error, got %v", err)
 	}
 	if markiert != 2 {
-		t.Fatalf("Expected 2 marked auftraege (die beiden offenen), got %d", markiert)
+		t.Errorf("Expected 2 marked auftraege (die beiden offenen), got %d", markiert)
 	}
 
 	status := statusMap(t, umgebung.db)
 	if status[offenID] != tse.StatusTSENichtKonfiguriert || status[zweiterID] != tse.StatusTSENichtKonfiguriert {
-		t.Fatalf("Expected offene auftraege marked tse_nicht_konfiguriert, got %+v", status)
+		t.Errorf("Expected offene auftraege marked tse_nicht_konfiguriert, got %+v", status)
 	}
 	if status[erledigtID] != tse.StatusErledigt {
-		t.Fatalf("Expected erledigten auftrag untouched, got %q", status[erledigtID])
+		t.Errorf("Expected erledigten auftrag untouched, got %q", status[erledigtID])
 	}
 
 	// Markierte Aufträge sind nicht mehr fällig.
@@ -360,7 +360,7 @@ func TestMarkOffeneAlsNichtKonfiguriert_MarkiertNurOffene(t *testing.T) {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if len(offene) != 0 {
-		t.Fatalf("Expected no due auftraege after marking, got %+v", offene)
+		t.Errorf("Expected no due auftraege after marking, got %+v", offene)
 	}
 
 	// Eine zweite Markierung ohne offene Aufträge markiert nichts.
@@ -369,7 +369,7 @@ func TestMarkOffeneAlsNichtKonfiguriert_MarkiertNurOffene(t *testing.T) {
 		t.Fatalf("Expected no mark error, got %v", err)
 	}
 	if markiert != 0 {
-		t.Fatalf("Expected 0 marked on second run, got %d", markiert)
+		t.Errorf("Expected 0 marked on second run, got %d", markiert)
 	}
 }
 
@@ -424,7 +424,7 @@ func TestGetTSESignaturQueueZustand(t *testing.T) {
 		t.Fatalf("Expected no queue error, got %v", err)
 	}
 	if leer.OffeneAuftraege != 0 || leer.RueckstandSekunden != 0 || leer.SignaturenProMinute != 0 || leer.SignierdauerP95Sekunden != 0 {
-		t.Fatalf("Expected empty queue zustand, got %+v", leer)
+		t.Errorf("Expected empty queue zustand, got %+v", leer)
 	}
 
 	// Ein offener und ein fehlgeschlagener Auftrag; ein erledigter im Fenster.
@@ -441,16 +441,16 @@ func TestGetTSESignaturQueueZustand(t *testing.T) {
 		t.Fatalf("Expected no queue error, got %v", err)
 	}
 	if zustand.OffeneAuftraege != 1 {
-		t.Fatalf("Expected 1 offenen auftrag, got %d", zustand.OffeneAuftraege)
+		t.Errorf("Expected 1 offenen auftrag, got %d", zustand.OffeneAuftraege)
 	}
 	if zustand.FehlgeschlageneAuftraege != 1 {
-		t.Fatalf("Expected 1 fehlgeschlagenen auftrag, got %d", zustand.FehlgeschlageneAuftraege)
+		t.Errorf("Expected 1 fehlgeschlagenen auftrag, got %d", zustand.FehlgeschlageneAuftraege)
 	}
 	if zustand.LetzterFehler != "fiskaly down" {
-		t.Fatalf("Expected letzter fehler of active session, got %q", zustand.LetzterFehler)
+		t.Errorf("Expected letzter fehler of active session, got %q", zustand.LetzterFehler)
 	}
 	if zustand.SignaturenProMinute <= 0 {
-		t.Fatalf("Expected positive signaturen pro minute, got %v", zustand.SignaturenProMinute)
+		t.Errorf("Expected positive signaturen pro minute, got %v", zustand.SignaturenProMinute)
 	}
 }
 
@@ -473,7 +473,7 @@ func TestGetTSESignaturQueueZustand_FehlgeschlagenSitzungsbezogen(t *testing.T) 
 		t.Fatalf("Expected no queue error, got %v", err)
 	}
 	if zustand.FehlgeschlageneAuftraege != 1 || zustand.LetzterFehler != "fiskaly 503" {
-		t.Fatalf("Expected 1 fehlgeschlagenen auftrag der aktiven Sitzung mit Fehlertext, got %+v", zustand)
+		t.Errorf("Expected 1 fehlgeschlagenen auftrag der aktiven Sitzung mit Fehlertext, got %+v", zustand)
 	}
 
 	// Nach dem Kassenabschluss (Sitzung abgeschlossen) verschwindet die Warnung.
@@ -484,7 +484,7 @@ func TestGetTSESignaturQueueZustand_FehlgeschlagenSitzungsbezogen(t *testing.T) 
 		t.Fatalf("Expected no queue error, got %v", err)
 	}
 	if zustand.FehlgeschlageneAuftraege != 0 || zustand.LetzterFehler != "" {
-		t.Fatalf("Expected no fehlgeschlagen-Warnung ohne aktive Sitzung, got %+v", zustand)
+		t.Errorf("Expected no fehlgeschlagen-Warnung ohne aktive Sitzung, got %+v", zustand)
 	}
 
 	// Eine neue aktive Sitzung mit eigenem Fehler weist nur ihren eigenen Fehler
@@ -498,7 +498,7 @@ func TestGetTSESignaturQueueZustand_FehlgeschlagenSitzungsbezogen(t *testing.T) 
 		t.Fatalf("Expected no queue error, got %v", err)
 	}
 	if zustand.FehlgeschlageneAuftraege != 1 || zustand.LetzterFehler != "fiskaly timeout" {
-		t.Fatalf("Expected only the new session's failure, got %+v", zustand)
+		t.Errorf("Expected only the new session's failure, got %+v", zustand)
 	}
 }
 
@@ -528,10 +528,10 @@ func TestGetAlleTSEStoerungen(t *testing.T) {
 	}
 	// Neueste zuerst: der aktive Rückstands-Zeitraum ohne Ende.
 	if stoerungen[0].GrundArt != tse.StoerungGrundRueckstand || stoerungen[0].Ende != nil {
-		t.Fatalf("Expected active rueckstand first, got %+v", stoerungen[0])
+		t.Errorf("Expected active rueckstand first, got %+v", stoerungen[0])
 	}
 	if stoerungen[1].GrundArt != tse.StoerungGrundTSEFehler || stoerungen[1].Ende == nil {
-		t.Fatalf("Expected closed tse_fehler second, got %+v", stoerungen[1])
+		t.Errorf("Expected closed tse_fehler second, got %+v", stoerungen[1])
 	}
 }
 
@@ -549,7 +549,7 @@ func TestTSEStoerung_OeffnenIdempotentHoechstensEineAktiv(t *testing.T) {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if aktive != nil {
-		t.Fatalf("Expected no active stoerung, got %+v", aktive)
+		t.Errorf("Expected no active stoerung, got %+v", aktive)
 	}
 
 	if err := store.OpenTSEStoerung(ctx, tse.StoerungGrundRueckstand, "Rueckstand ueber der Schwelle"); err != nil {
@@ -558,7 +558,7 @@ func TestTSEStoerung_OeffnenIdempotentHoechstensEineAktiv(t *testing.T) {
 
 	// Erneutes Öffnen (auch anderer Grund-Art) ist ein No-Op.
 	if err := store.OpenTSEStoerung(ctx, tse.StoerungGrundTSEFehler, "HTTP 503"); err != nil {
-		t.Fatalf("Expected no-op oeffnen without error, got %v", err)
+		t.Errorf("Expected no-op oeffnen without error, got %v", err)
 	}
 
 	aktive, err = store.GetAktiveTSEStoerung(ctx)
@@ -569,7 +569,7 @@ func TestTSEStoerung_OeffnenIdempotentHoechstensEineAktiv(t *testing.T) {
 		t.Fatalf("Expected single active rueckstand stoerung, got %+v", aktive)
 	}
 	if aktive.Fehlertext != "Rueckstand ueber der Schwelle" || aktive.Beginn.IsZero() {
-		t.Fatalf("Expected fehlertext and beginn of first oeffnen, got %+v", aktive)
+		t.Errorf("Expected fehlertext and beginn of first oeffnen, got %+v", aktive)
 	}
 
 	var anzahl int
@@ -577,7 +577,7 @@ func TestTSEStoerung_OeffnenIdempotentHoechstensEineAktiv(t *testing.T) {
 		t.Fatalf("count stoerungen: %v", err)
 	}
 	if anzahl != 1 {
-		t.Fatalf("Expected exactly 1 stoerung row, got %d", anzahl)
+		t.Errorf("Expected exactly 1 stoerung row, got %d", anzahl)
 	}
 }
 
@@ -595,14 +595,14 @@ func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
 
 	// Fremde Grund-Art schließt nicht.
 	if err := store.CloseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
-		t.Fatalf("Expected no-op schliessen without error, got %v", err)
+		t.Errorf("Expected no-op schliessen without error, got %v", err)
 	}
 	aktive, err := store.GetAktiveTSEStoerung(ctx)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if aktive == nil {
-		t.Fatal("Expected stoerung to stay active after foreign schliessen")
+		t.Error("Expected stoerung to stay active after foreign schliessen")
 	}
 
 	// Eigene Grund-Art schließt; erneutes Schließen ist ein No-Op.
@@ -610,14 +610,14 @@ func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
 		t.Fatalf("Expected no schliessen error, got %v", err)
 	}
 	if err := store.CloseTSEStoerung(ctx, tse.StoerungGrundRueckstand); err != nil {
-		t.Fatalf("Expected idempotent schliessen without error, got %v", err)
+		t.Errorf("Expected idempotent schliessen without error, got %v", err)
 	}
 	aktive, err = store.GetAktiveTSEStoerung(ctx)
 	if err != nil {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if aktive != nil {
-		t.Fatalf("Expected no active stoerung after schliessen, got %+v", aktive)
+		t.Errorf("Expected no active stoerung after schliessen, got %+v", aktive)
 	}
 
 	// Der geschlossene Zeitraum bleibt erhalten (kein Löschpfad); ein neuer
@@ -630,7 +630,7 @@ func TestTSEStoerung_SchliessenNurEigeneGrundArt(t *testing.T) {
 		t.Fatalf("count stoerungen: %v", err)
 	}
 	if anzahl != 2 {
-		t.Fatalf("Expected 2 stoerung rows (geschlossen + aktiv), got %d", anzahl)
+		t.Errorf("Expected 2 stoerung rows (geschlossen + aktiv), got %d", anzahl)
 	}
 }
 
@@ -647,7 +647,7 @@ func TestGetAeltesterOffenerTSESignaturauftrag(t *testing.T) {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if aeltester != nil {
-		t.Fatalf("Expected nil without open auftraege, got %v", aeltester)
+		t.Errorf("Expected nil without open auftraege, got %v", aeltester)
 	}
 
 	ersterID, _ := umgebung.insertAuftrag(t, "tx-aelter")
@@ -670,6 +670,6 @@ func TestGetAeltesterOffenerTSESignaturauftrag(t *testing.T) {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if juengster == nil || juengster.Before(*aeltester) {
-		t.Fatalf("Expected timestamp of remaining open auftrag, got %v", juengster)
+		t.Errorf("Expected timestamp of remaining open auftrag, got %v", juengster)
 	}
 }

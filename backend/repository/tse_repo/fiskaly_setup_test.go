@@ -76,10 +76,10 @@ func TestFiskalySetupClient_OnlyAuthAndReads(t *testing.T) {
 		t.Fatalf("list tss failed: %v", err)
 	}
 	if env != tse.UmgebungTest {
-		t.Fatalf("expected TEST environment, got %s", env)
+		t.Errorf("expected TEST environment, got %s", env)
 	}
 	if len(tssList) != 2 || tssList[0].ID != "tss-1" || tssList[0].State != "INITIALIZED" || tssList[1].State != "CREATED" {
-		t.Fatalf("unexpected tss list: %+v", tssList)
+		t.Errorf("unexpected tss list: %+v", tssList)
 	}
 
 	clients, err := client.ListClients(context.Background(), "tss-1")
@@ -87,7 +87,7 @@ func TestFiskalySetupClient_OnlyAuthAndReads(t *testing.T) {
 		t.Fatalf("list clients failed: %v", err)
 	}
 	if len(clients) != 1 || clients[0].ID != "client-1" || clients[0].SerialNumber != "kasse-serial-1" || clients[0].State != "REGISTERED" {
-		t.Fatalf("unexpected client list: %+v", clients)
+		t.Errorf("unexpected client list: %+v", clients)
 	}
 
 	puk, err := client.GetAdminPUK(context.Background(), "tss-2")
@@ -95,7 +95,7 @@ func TestFiskalySetupClient_OnlyAuthAndReads(t *testing.T) {
 		t.Fatalf("hole admin puk failed: %v", err)
 	}
 	if puk != "puk-refetch" {
-		t.Fatalf("expected refetched puk, got %q", puk)
+		t.Errorf("expected refetched puk, got %q", puk)
 	}
 
 	mu.Lock()
@@ -104,7 +104,7 @@ func TestFiskalySetupClient_OnlyAuthAndReads(t *testing.T) {
 		isAuth := c.method == http.MethodPost && c.path == "/api/v2/auth"
 		isRead := c.method == http.MethodGet
 		if !isAuth && !isRead {
-			t.Fatalf("setup must only send auth and GET requests, got %s %s", c.method, c.path)
+			t.Errorf("setup must only send auth and GET requests, got %s %s", c.method, c.path)
 		}
 	}
 }
@@ -202,7 +202,7 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 				return
 			}
 		}
-		t.Fatalf("expected a %s request to %s with body %v, none found", method, pathSuffix, wantBody)
+		t.Errorf("expected a %s request to %s with body %v, none found", method, pathSuffix, wantBody)
 	}
 
 	assertCall(http.MethodPut, "/tss/"+erstellt.ID, nil)
@@ -260,13 +260,13 @@ func TestFiskalySetupClient_ReaktiviereClient(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	if method != http.MethodPatch || path != "/api/v2/tss/tss-1/client/client-1" {
-		t.Fatalf("expected PATCH to the client path, got %s %s", method, path)
+		t.Errorf("expected PATCH to the client path, got %s %s", method, path)
 	}
 	if body["state"] != "REGISTERED" {
-		t.Fatalf("expected body state=REGISTERED, got %v", body)
+		t.Errorf("expected body state=REGISTERED, got %v", body)
 	}
 	if !strings.HasPrefix(authHdr, "Bearer ") {
-		t.Fatalf("expected an admin bearer token, got %q", authHdr)
+		t.Errorf("expected an admin bearer token, got %q", authHdr)
 	}
 }
 
@@ -327,14 +327,14 @@ func TestFiskalySetupClient_RetrieveTSSStammdaten(t *testing.T) {
 		UpdatedAt:           stammdaten.UpdatedAt,
 	}
 	if stammdaten != want {
-		t.Fatalf("unexpected stammdaten, got %+v want %+v", stammdaten, want)
+		t.Errorf("unexpected stammdaten, got %+v want %+v", stammdaten, want)
 	}
 
 	mu.Lock()
 	defer mu.Unlock()
 	for _, m := range calls {
 		if m != http.MethodPost && m != http.MethodGet {
-			t.Fatalf("stammdaten read must only send auth and GET requests, got %s", m)
+			t.Errorf("stammdaten read must only send auth and GET requests, got %s", m)
 		}
 	}
 }
@@ -373,7 +373,7 @@ func TestFiskalySetupClient_AuthFailure(t *testing.T) {
 
 	_, _, err = client.ListTSS(context.Background())
 	if !errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
-		t.Fatalf("expected ErrSetupAuthFehlgeschlagen, got %v", err)
+		t.Errorf("expected ErrSetupAuthFehlgeschlagen, got %v", err)
 	}
 }
 
@@ -407,7 +407,7 @@ func TestFiskalySetupClient_AdminPINBlocked(t *testing.T) {
 
 	err = client.AuthentifiziereAdmin(context.Background(), "tss-1", "0000000000")
 	if !errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
-		t.Fatalf("expected ErrSetupAuthFehlgeschlagen for a blocked admin pin, got %v", err)
+		t.Errorf("expected ErrSetupAuthFehlgeschlagen for a blocked admin pin, got %v", err)
 	}
 }
 
@@ -432,7 +432,7 @@ func TestMapSetupError(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := mapSetupError(tc.err)
 			if !errors.Is(got, tc.want) {
-				t.Fatalf("mapSetupError(%v) = %v, want %v", tc.err, got, tc.want)
+				t.Errorf("mapSetupError(%v) = %v, want %v", tc.err, got, tc.want)
 			}
 		})
 	}

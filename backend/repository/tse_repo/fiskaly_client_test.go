@@ -134,10 +134,10 @@ func TestFiskalyClient_StartAndFinishContract(t *testing.T) {
 		t.Fatalf("start transaction failed: %v", err)
 	}
 	if start.TransactionNumber != 42 {
-		t.Fatalf("expected transaction number 42, got %d", start.TransactionNumber)
+		t.Errorf("expected transaction number 42, got %d", start.TransactionNumber)
 	}
 	if start.SignatureCounter != 7 {
-		t.Fatalf("expected start signature counter 7, got %d", start.SignatureCounter)
+		t.Errorf("expected start signature counter 7, got %d", start.SignatureCounter)
 	}
 
 	finish, err := client.FinishTransaction(context.Background(), testTxID, "Kassenbeleg-V1", specProcessData)
@@ -145,21 +145,21 @@ func TestFiskalyClient_StartAndFinishContract(t *testing.T) {
 		t.Fatalf("finish transaction failed: %v", err)
 	}
 	if finish.SignatureCounter != 8 {
-		t.Fatalf("expected finish signature counter 8, got %d", finish.SignatureCounter)
+		t.Errorf("expected finish signature counter 8, got %d", finish.SignatureCounter)
 	}
 	if finish.Signature != "sig-abc" {
-		t.Fatalf("expected signature sig-abc, got %q", finish.Signature)
+		t.Errorf("expected signature sig-abc, got %q", finish.Signature)
 	}
 	if finish.QRCodeData != "V0;..." {
-		t.Fatalf("expected qr_code_data to be mapped")
+		t.Errorf("expected qr_code_data to be mapped")
 	}
 
 	expectedRevisions := []string{"1", "2"}
 	if len(revisions) != len(expectedRevisions) || revisions[0] != "1" || revisions[1] != "2" {
-		t.Fatalf("expected revision sequence %v, got %v", expectedRevisions, revisions)
+		t.Errorf("expected revision sequence %v, got %v", expectedRevisions, revisions)
 	}
 	if atomic.LoadInt32(&authCalls) != 1 {
-		t.Fatalf("expected exactly one auth call, got %d", authCalls)
+		t.Errorf("expected exactly one auth call, got %d", authCalls)
 	}
 }
 
@@ -212,11 +212,11 @@ func TestFiskalyClient_RefreshesTokenOn401(t *testing.T) {
 
 	_, err = client.StartTransaction(context.Background(), testTxID)
 	if err != nil {
-		t.Fatalf("start transaction failed: %v", err)
+		t.Errorf("start transaction failed: %v", err)
 	}
 
 	if atomic.LoadInt32(&authCalls) != 2 {
-		t.Fatalf("expected token refresh after 401, auth calls=%d", authCalls)
+		t.Errorf("expected token refresh after 401, auth calls=%d", authCalls)
 	}
 }
 
@@ -274,10 +274,10 @@ func TestFiskalyClient_RetriesOnRetryableErrors(t *testing.T) {
 
 	_, err = client.StartTransaction(context.Background(), testTxID)
 	if err != nil {
-		t.Fatalf("expected retry to recover, got error: %v", err)
+		t.Errorf("expected retry to recover, got error: %v", err)
 	}
 	if atomic.LoadInt32(&txCalls) != 3 {
-		t.Fatalf("expected 3 transaction calls due to retries, got %d", txCalls)
+		t.Errorf("expected 3 transaction calls due to retries, got %d", txCalls)
 	}
 }
 
@@ -333,19 +333,19 @@ func TestFiskalyClient_RetrieveTransaction(t *testing.T) {
 		t.Fatalf("retrieve transaction failed: %v", err)
 	}
 	if result.State != tse.TransactionStateFinished {
-		t.Fatalf("expected state FINISHED, got %q", result.State)
+		t.Errorf("expected state FINISHED, got %q", result.State)
 	}
 	if result.TransactionNumber != 42 {
-		t.Fatalf("expected transaction number 42, got %d", result.TransactionNumber)
+		t.Errorf("expected transaction number 42, got %d", result.TransactionNumber)
 	}
 	if result.Signature != "sig-abc" || result.SignatureCounter != 8 {
-		t.Fatalf("expected signature sig-abc/8, got %q/%d", result.Signature, result.SignatureCounter)
+		t.Errorf("expected signature sig-abc/8, got %q/%d", result.Signature, result.SignatureCounter)
 	}
 	if result.QRCodeData != "V0;..." {
-		t.Fatalf("expected qr_code_data to be mapped")
+		t.Errorf("expected qr_code_data to be mapped")
 	}
 	if result.LogTimeStart.Unix() != 1700000000 || result.LogTimeEnd.Unix() != 1700000600 {
-		t.Fatalf("expected mapped unix times, got %v / %v", result.LogTimeStart, result.LogTimeEnd)
+		t.Errorf("expected mapped unix times, got %v / %v", result.LogTimeStart, result.LogTimeEnd)
 	}
 }
 
@@ -385,7 +385,7 @@ func TestFiskalyClient_RetrieveTransaction_NotFound(t *testing.T) {
 
 	_, err = client.RetrieveTransaction(context.Background(), testTxID)
 	if !errors.Is(err, tse.ErrTransactionNichtGefunden) {
-		t.Fatalf("expected ErrTransactionNichtGefunden, got %v", err)
+		t.Errorf("expected ErrTransactionNichtGefunden, got %v", err)
 	}
 }
 
@@ -428,11 +428,11 @@ func TestFiskalyClient_RetrieveTransaction_TSSNichtGefundenBleibtFehler(t *testi
 
 	_, err = client.RetrieveTransaction(context.Background(), testTxID)
 	if errors.Is(err, tse.ErrTransactionNichtGefunden) {
-		t.Fatal("expected TSE-weiten Fehler, got ErrTransactionNichtGefunden")
+		t.Error("expected TSE-weiten Fehler, got ErrTransactionNichtGefunden")
 	}
 	var apiErr apiError
 	if !errors.As(err, &apiErr) || apiErr.Code != "E_TSS_NOT_FOUND" {
-		t.Fatalf("expected apiError E_TSS_NOT_FOUND, got %v", err)
+		t.Errorf("expected apiError E_TSS_NOT_FOUND, got %v", err)
 	}
 }
 
@@ -468,12 +468,12 @@ func TestKlassifiziereSignierFehler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			klassifiziert := klassifiziereSignierFehler(tt.err)
 			if got := tse.IstAuftragsFehler(klassifiziert); got != tt.auftragsFehler {
-				t.Fatalf("expected IstAuftragsFehler=%v, got %v", tt.auftragsFehler, got)
+				t.Errorf("expected IstAuftragsFehler=%v, got %v", tt.auftragsFehler, got)
 			}
 			// Der Original-Fehler bleibt per errors.As/Is erreichbar.
 			var apiErr apiError
 			if errors.As(tt.err, &apiErr) && !errors.As(klassifiziert, &apiErr) {
-				t.Fatal("expected wrapped apiError to stay reachable via errors.As")
+				t.Error("expected wrapped apiError to stay reachable via errors.As")
 			}
 		})
 	}
@@ -520,7 +520,7 @@ func TestFiskalyClient_FinishTransaction_AblehnungAlsAuftragsFehler(t *testing.T
 		t.Fatal("expected error from rejected finish")
 	}
 	if !tse.IstAuftragsFehler(err) {
-		t.Fatalf("expected auftragsspezifischen Fehler, got %v", err)
+		t.Errorf("expected auftragsspezifischen Fehler, got %v", err)
 	}
 }
 
@@ -570,16 +570,16 @@ func TestFiskalyClient_TestConnection(t *testing.T) {
 		t.Fatalf("test connection failed: %v", err)
 	}
 	if status.Umgebung != tse.UmgebungLive {
-		t.Fatalf("expected LIVE environment from token claim, got %s", status.Umgebung)
+		t.Errorf("expected LIVE environment from token claim, got %s", status.Umgebung)
 	}
 	if status.TSSState != "INITIALIZED" {
-		t.Fatalf("expected state INITIALIZED, got %s", status.TSSState)
+		t.Errorf("expected state INITIALIZED, got %s", status.TSSState)
 	}
 	if status.ClientState != "REGISTERED" {
-		t.Fatalf("expected client state REGISTERED, got %s", status.ClientState)
+		t.Errorf("expected client state REGISTERED, got %s", status.ClientState)
 	}
 	if status.ClientSerialNumber != "kasse-serial-1" {
-		t.Fatalf("expected client serial kasse-serial-1, got %s", status.ClientSerialNumber)
+		t.Errorf("expected client serial kasse-serial-1, got %s", status.ClientSerialNumber)
 	}
 }
 
@@ -629,6 +629,6 @@ func TestFiskalyClient_TestConnection_DeregisteredClient(t *testing.T) {
 		t.Fatalf("test connection should not fail for a deregistered client: %v", err)
 	}
 	if status.ClientState != "DEREGISTERED" {
-		t.Fatalf("expected client state DEREGISTERED to be reported, got %s", status.ClientState)
+		t.Errorf("expected client state DEREGISTERED to be reported, got %s", status.ClientState)
 	}
 }

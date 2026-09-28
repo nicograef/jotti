@@ -131,14 +131,14 @@ func TestSaveEinrichtung_UebergangSweeptOffeneUndSchliesstStoerung(t *testing.T)
 		t.Fatalf("read konfiguration: %v", err)
 	}
 	if !conf.IstKonfiguriert() || conf.TssID != "tss-neu" {
-		t.Fatalf("expected saved configuration, got %+v", conf)
+		t.Errorf("expected saved configuration, got %+v", conf)
 	}
 
 	if s := umgebung.status(t, ersterID); s != tse.StatusTSENichtKonfiguriert {
-		t.Fatalf("expected first auftrag marked tse_nicht_konfiguriert, got %q", s)
+		t.Errorf("expected first auftrag marked tse_nicht_konfiguriert, got %q", s)
 	}
 	if s := umgebung.status(t, zweiterID); s != tse.StatusTSENichtKonfiguriert {
-		t.Fatalf("expected second auftrag marked tse_nicht_konfiguriert, got %q", s)
+		t.Errorf("expected second auftrag marked tse_nicht_konfiguriert, got %q", s)
 	}
 
 	var offeneStoerungen int
@@ -148,7 +148,7 @@ func TestSaveEinrichtung_UebergangSweeptOffeneUndSchliesstStoerung(t *testing.T)
 		t.Fatalf("count stoerungen: %v", err)
 	}
 	if offeneStoerungen != 0 {
-		t.Fatalf("expected keine_konfiguration stoerung closed, got %d still open", offeneStoerungen)
+		t.Errorf("expected keine_konfiguration stoerung closed, got %d still open", offeneStoerungen)
 	}
 }
 
@@ -173,14 +173,14 @@ func TestSaveEinrichtung_DurchgehendKonfiguriertSweeptNicht(t *testing.T) {
 	}
 
 	if s := umgebung.status(t, offenID); s != tse.StatusOffen {
-		t.Fatalf("expected laufender auftrag to stay offen, got %q", s)
+		t.Errorf("expected laufender auftrag to stay offen, got %q", s)
 	}
 	conf, err := repo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		t.Fatalf("read konfiguration: %v", err)
 	}
 	if conf.TssID != "tss-neu" {
-		t.Fatalf("expected updated configuration, got %+v", conf)
+		t.Errorf("expected updated configuration, got %+v", conf)
 	}
 }
 
@@ -209,7 +209,7 @@ func TestSaveEinrichtung_LeereKonfigurationSweeptNicht(t *testing.T) {
 	}
 
 	if s := umgebung.status(t, offenID); s != tse.StatusOffen {
-		t.Fatalf("expected auftrag to stay offen, got %q", s)
+		t.Errorf("expected auftrag to stay offen, got %q", s)
 	}
 	var offeneStoerungen int
 	if err := umgebung.db.QueryRow(
@@ -218,6 +218,6 @@ func TestSaveEinrichtung_LeereKonfigurationSweeptNicht(t *testing.T) {
 		t.Fatalf("count stoerungen: %v", err)
 	}
 	if offeneStoerungen != 1 {
-		t.Fatalf("expected keine_konfiguration stoerung to stay open, got %d open", offeneStoerungen)
+		t.Errorf("expected keine_konfiguration stoerung to stay open, got %d open", offeneStoerungen)
 	}
 }

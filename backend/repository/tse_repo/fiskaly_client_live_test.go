@@ -54,10 +54,10 @@ func TestFiskalyClient_LiveSigniertTransaktion(t *testing.T) {
 		t.Fatalf("Live-Test nur gegen die TEST-Umgebung erlaubt, Credentials zeigen auf %s", status.Umgebung)
 	}
 	if status.ClientState != "REGISTERED" {
-		t.Fatalf("expected a REGISTERED client for the live TSS, got %q", status.ClientState)
+		t.Errorf("expected a REGISTERED client for the live TSS, got %q", status.ClientState)
 	}
 	if status.ClientSerialNumber == "" {
-		t.Fatal("expected the client serial_number to be reported")
+		t.Error("expected the client serial_number to be reported")
 	}
 
 	txID := uuid.NewString()
@@ -67,7 +67,7 @@ func TestFiskalyClient_LiveSigniertTransaktion(t *testing.T) {
 		t.Fatalf("start transaction failed: %v", err)
 	}
 	if start.TransactionNumber == 0 {
-		t.Fatalf("expected a transaction number, got 0")
+		t.Errorf("expected a transaction number, got 0")
 	}
 
 	finish, err := client.FinishTransaction(ctx, txID, "Kassenbeleg-V1", "Beleg^0.00_2.55_0.00_0.00_0.00^2.55:Bar")
@@ -75,9 +75,9 @@ func TestFiskalyClient_LiveSigniertTransaktion(t *testing.T) {
 		t.Fatalf("finish transaction failed: %v", err)
 	}
 	if finish.Signature == "" {
-		t.Fatalf("expected a signature, got empty string")
+		t.Errorf("expected a signature, got empty string")
 	}
 	if !strings.HasPrefix(finish.QRCodeData, "V0;") {
-		t.Fatalf("expected qr_code_data with prefix V0;, got %q", finish.QRCodeData)
+		t.Errorf("expected qr_code_data with prefix V0;, got %q", finish.QRCodeData)
 	}
 }
