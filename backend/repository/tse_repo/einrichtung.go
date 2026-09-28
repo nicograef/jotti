@@ -30,17 +30,9 @@ func (r Repository) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration,
 	return toTSEKonfiguration(row), nil
 }
 
-// SaveEinrichtung speichert die TSE-Konfiguration (alle Schreibpfade:
-// Einrichtung, Übernahme, Zugangsdaten-Wechsel, Leeren) und führt beim
-// Übergang von nicht konfiguriert zu konfiguriert in derselben Transaktion den
-// Einrichtungs-Sweep aus: alle noch offenen Aufträge aus der
-// konfigurationslosen Zeit werden endgültig als tse_nicht_konfiguriert
-// markiert und der keine_konfiguration-Störungszeitraum wird geschlossen. War
-// die TSE schon vorher konfiguriert (reiner Zugangsdaten-Wechsel), bleibt es
-// beim reinen Speichern — laufende Aufträge werden nie versehentlich als nicht
-// konfiguriert markiert. Auch das Speichern einer unvollständigen
-// Konfiguration (Leeren) sweept nichts: Der Dauerzustand ohne Konfiguration
-// gehört dem Signatur-Worker, der Störungszeitraum bleibt offen.
+// SaveEinrichtung stores the TSE configuration for every write path (setup, takeover, credentials change, clearing).
+// Only the transition from unconfigured to configured also marks the open orders from the unconfigured period
+// tse_nicht_konfiguriert and closes the keine_konfiguration Störungszeitraum, in the same transaction (docs/handbuch.md §3.13).
 func (r Repository) SaveEinrichtung(ctx context.Context, c tse.Konfiguration) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		warKonfiguriert := false
@@ -76,8 +68,7 @@ func upsertTSEKonfigurationParams(c tse.Konfiguration) dbgen.UpsertTSEKonfigurat
 	}
 }
 
-// GetTSEStammdaten liest die fiskalischen TSS-Stammdaten für den
-// DSFinV-K-Export (Singleton). Vor der TSE-Einrichtung sind die Felder leer.
+// GetTSEStammdaten reads the singleton TSS master data for the DSFinV-K export; the fields are empty before TSE setup.
 func (r Repository) GetTSEStammdaten(ctx context.Context) (tse.Stammdaten, error) {
 	row, err := r.q.GetTSEStammdaten(ctx)
 	if err != nil {
@@ -93,8 +84,7 @@ func (r Repository) GetTSEStammdaten(ctx context.Context) (tse.Stammdaten, error
 	}, nil
 }
 
-// UpsertTSEStammdaten speichert die fiskalischen TSS-Stammdaten für den
-// DSFinV-K-Export (Singleton).
+// UpsertTSEStammdaten stores the singleton TSS master data for the DSFinV-K export.
 func (r Repository) UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error {
 	err := r.q.UpsertTSEStammdaten(ctx, dbgen.UpsertTSEStammdatenParams{
 		Seriennummer:        s.Seriennummer,

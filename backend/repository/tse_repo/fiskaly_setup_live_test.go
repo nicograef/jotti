@@ -13,15 +13,9 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// TestFiskalySetup_LiveVollerDurchlauf richtet aus einem fiskaly-TEST-Konto eine
-// vollständige, signierfähige TSS samt Client ein und signiert anschließend eine
-// Transaktion über die frisch angelegte Konfiguration. Der Test läuft nur mit
-// explizitem Opt-in JOTTI_TSE_LIVE=1 und gesetzten FISKALY_TEST_API_KEY/SECRET.
-//
-// ACHTUNG: Jeder Lauf legt im TEST-Konto eine nicht löschbare TSS an; das Konto
-// hat nur fünf aktive TSS. Bewusst sparsam ausführen.
-//
-//	make test-tse-live-setup   # lädt .env.fiskaly-test (Vorlage: .env.fiskaly-test.example)
+// TestFiskalySetup_LiveVollerDurchlauf sets up a signing-ready TSS with client in a fiskaly TEST account and signs one transaction.
+// Each run creates an undeletable TSS and the TEST account allows only five active ones, so run it sparingly.
+// Run: JOTTI_TSE_LIVE=1 with FISKALY_TEST_API_KEY/SECRET via make test-tse-live-setup (loads .env.fiskaly-test).
 func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 	if os.Getenv("JOTTI_TSE_LIVE") != "1" {
 		t.Skip("JOTTI_TSE_LIVE != 1 — Setup-Live-Test übersprungen (Opt-in via make test-tse-live-setup)")
@@ -83,7 +77,7 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 		t.Fatalf("register client failed: %v", err)
 	}
 
-	// Die fiskalischen TSS-Stammdaten für den DSFinV-K-Export müssen lesbar sein.
+	// The TSS master data for the DSFinV-K export must be readable.
 	stammdaten, err := setupClient.RetrieveTSSStammdaten(ctx, erstellt.ID)
 	if err != nil {
 		t.Fatalf("retrieve tss stammdaten failed: %v", err)
@@ -98,7 +92,7 @@ func TestFiskalySetup_LiveVollerDurchlauf(t *testing.T) {
 		t.Errorf("expected the tss serial_number, got %+v", stammdaten)
 	}
 
-	// Die frisch eingerichtete TSS muss signierfähig sein.
+	// The freshly set up TSS must be able to sign.
 	signClient, err := NewFiskalyTSEClient(baseURL, tse.Credentials{
 		ApiKey:    apiKey,
 		ApiSecret: apiSecret,

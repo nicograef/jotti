@@ -14,10 +14,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// TestFiskalySetupClient_OnlyAuthAndReads bildet den Kontrakt des Prüf-Schritts
-// ab: die Setup-Operationen senden ausschließlich die Auth-POST und GET-Requests
-// — niemals schreibende Methoden. Außerdem werden Umgebung, TSS-Zustände und die
-// Client-serial_number korrekt aus den fiskaly-Antworten gelesen.
+// TestFiskalySetupClient_OnlyAuthAndReads pins the check step: only the auth POST and GET requests, never writing methods.
+// It also reads environment, TSS states and the client serial_number from the fiskaly responses.
 func TestFiskalySetupClient_OnlyAuthAndReads(t *testing.T) {
 	type call struct {
 		method string
@@ -109,10 +107,8 @@ func TestFiskalySetupClient_OnlyAuthAndReads(t *testing.T) {
 	}
 }
 
-// TestFiskalySetupClient_Lebenszyklus bildet den Kontrakt der schreibenden
-// Setup-Operationen ab: jede Operation trifft den richtigen fiskaly-Endpunkt mit
-// der richtigen Methode und dem richtigen Body (Zustandsübergänge, PUK/PIN,
-// serial_number). Der Server gibt die TSS-ID und den PUK aus CreateTSS zurück.
+// TestFiskalySetupClient_Lebenszyklus pins the writing setup operations: endpoint, method and body per operation
+// (state transitions, PUK/PIN, serial_number).
 func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 	type call struct {
 		method string
@@ -145,8 +141,7 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 		case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/v2/tss/") && strings.Contains(r.URL.Path, "/client/"):
 			_ = json.NewEncoder(w).Encode(map[string]any{"_id": "client-1", "serial_number": body["serial_number"], "state": "REGISTERED"})
 		case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/api/v2/tss/"):
-			// fiskaly wählt die TSS-ID nicht selbst — der Client erzeugt sie als
-			// UUID und PUTtet sie. Der Server spiegelt sie in _id zurück.
+			// The client generates the TSS ID as UUID and PUTs it; the server echoes it in _id.
 			id := strings.TrimPrefix(r.URL.Path, "/api/v2/tss/")
 			_ = json.NewEncoder(w).Encode(map[string]any{"_id": id, "admin_puk": "puk-xyz", "state": "CREATED"})
 		case r.Method == http.MethodPatch, r.Method == http.MethodPost:
@@ -190,9 +185,8 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 
 	mu.Lock()
 	defer mu.Unlock()
-	// assertCall sucht einen Aufruf, der Methode, Pfad und alle erwarteten
-	// Body-Felder erfüllt. Mehrere PATCH-Aufrufe treffen denselben TSS-Pfad
-	// (UNINITIALIZED, INITIALIZED) — daher muss der Body mitgeprüft werden.
+	// assertCall finds a call matching method, path and all expected body fields.
+	// Several PATCH calls hit the same TSS path (UNINITIALIZED, INITIALIZED), so the body must match too.
 	assertCall := func(method, pathSuffix string, wantBody map[string]any) {
 		for _, c := range calls {
 			if c.method != method || !strings.HasSuffix(c.path, pathSuffix) {
@@ -212,10 +206,8 @@ func TestFiskalySetupClient_Lebenszyklus(t *testing.T) {
 	assertCall(http.MethodPut, "/tss/"+erstellt.ID+"/client/client-uuid", map[string]any{"serial_number": "kasse-serial"})
 }
 
-// TestFiskalySetupClient_ReaktiviereClient bildet den Kontrakt der
-// Client-Reaktivierung ab: ein DEREGISTERED Client wird per PATCH mit
-// state=REGISTERED auf demselben Client-Pfad reaktiviert (kein neuer Client),
-// mit anliegendem Admin-Token (Bearer).
+// TestFiskalySetupClient_ReaktiviereClient pins client reactivation: PATCH state=REGISTERED on the same client path
+// (no new client), with the admin bearer token.
 func TestFiskalySetupClient_ReaktiviereClient(t *testing.T) {
 	var (
 		mu      sync.Mutex
@@ -270,11 +262,8 @@ func TestFiskalySetupClient_ReaktiviereClient(t *testing.T) {
 	}
 }
 
-// TestFiskalySetupClient_RetrieveTSSStammdaten bildet den Kontrakt der
-// Stammdaten-Leseoperation für den DSFinV-K-Export ab: ein GET auf die
-// TSS-Ressource liest serial_number, signature_algorithm, public_key,
-// certificate und signature_timestamp_format (Log-Time-Format) — und sendet
-// ausschließlich Auth- und GET-Requests.
+// TestFiskalySetupClient_RetrieveTSSStammdaten pins the DSFinV-K master data read: a GET on the TSS resource reads serial_number,
+// signature_algorithm, public_key, certificate and signature_timestamp_format, with only auth and GET requests.
 func TestFiskalySetupClient_RetrieveTSSStammdaten(t *testing.T) {
 	var (
 		mu    sync.Mutex
@@ -339,7 +328,7 @@ func TestFiskalySetupClient_RetrieveTSSStammdaten(t *testing.T) {
 	}
 }
 
-// bodyMatches meldet, ob jedes erwartete Feld im tatsächlichen Body steht.
+// bodyMatches reports whether every expected field is in the actual body.
 func bodyMatches(body, want map[string]any) bool {
 	for k, v := range want {
 		if body[k] != v {
@@ -349,9 +338,7 @@ func bodyMatches(body, want map[string]any) bool {
 	return true
 }
 
-// TestFiskalySetupClient_AuthFailure sichert, dass falsche Zugangsdaten als
-// ErrSetupAuthFehlgeschlagen gemeldet werden — die Grundlage für eine
-// verständliche Fehlermeldung im Wizard.
+// TestFiskalySetupClient_AuthFailure guards that wrong credentials yield ErrSetupAuthFehlgeschlagen for a clear wizard message.
 func TestFiskalySetupClient_AuthFailure(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth" {
@@ -377,10 +364,8 @@ func TestFiskalySetupClient_AuthFailure(t *testing.T) {
 	}
 }
 
-// TestFiskalySetupClient_AdminPINBlocked sichert, dass eine nach fünf
-// Fehlversuchen gesperrte Admin-PIN (fiskaly: Status 423, Code E_ADMIN_PIN_BLOCKED)
-// als ErrSetupAuthFehlgeschlagen gemeldet wird. So läuft die Übernahme in die
-// PIN-Sackgasse (mit PUK-Reset als Ausweg) statt in einen technischen Fehler.
+// TestFiskalySetupClient_AdminPINBlocked guards that a PIN blocked after five failures (423 E_ADMIN_PIN_BLOCKED) yields
+// ErrSetupAuthFehlgeschlagen, so the takeover offers the PUK reset instead of a technical error.
 func TestFiskalySetupClient_AdminPINBlocked(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -411,8 +396,7 @@ func TestFiskalySetupClient_AdminPINBlocked(t *testing.T) {
 	}
 }
 
-// TestMapSetupError pinnt die Zuordnung der fiskaly-Fehler: die TSS-Limit-Codes
-// kommen mit Status 403 und dürfen nicht als Auth-Fehler enden.
+// TestMapSetupError pins the fiskaly error mapping: the TSS limit codes arrive with 403 and must not end as auth failures.
 func TestMapSetupError(t *testing.T) {
 	andererFehler := errors.New("boom")
 	cases := []struct {

@@ -19,15 +19,13 @@ import (
 const (
 	testTxID = "8c0f9c4e-3a52-4f5d-9e6b-2d1c7a8b4f01"
 
-	// Beispiel aus DSFinV-K Anhang I / fiskaly-Spec: Klartext und sein Base64.
+	// Example from DSFinV-K Anhang I / fiskaly spec: plain text and its Base64.
 	specProcessData       = "Beleg^0.00_2.55_0.00_0.00_0.00^2.55:Bar"
 	specProcessDataBase64 = "QmVsZWdeMC4wMF8yLjU1XzAuMDBfMC4wMF8wLjAwXjIuNTU6QmFy"
 )
 
-// TestFiskalyClient_StartAndFinishContract bildet den API-Kontrakt der fiskaly
-// SIGN-DE-Spec 2.2.2 ab: Start ohne Schema (DSFinV-K: processType/processData
-// bei Start immer leer), Finish mit Base64-codiertem process_data,
-// UUID-Transaktionspfade und Revisionsfolge 1→2.
+// TestFiskalyClient_StartAndFinishContract pins the fiskaly SIGN DE 2.2.2 contract: start without schema (DSFinV-K Anhang I),
+// finish with Base64 process_data, UUID transaction paths and revisions 1→2.
 func TestFiskalyClient_StartAndFinishContract(t *testing.T) {
 	var authCalls int32
 	var mu sync.Mutex
@@ -281,9 +279,8 @@ func TestFiskalyClient_RetriesOnRetryableErrors(t *testing.T) {
 	}
 }
 
-// TestFiskalyClient_RetrieveTransaction bildet den Kontrakt von "Retrieve a
-// transaction" ab: GET auf den UUID-Transaktionspfad, Antwort enthält state
-// und dieselben Signaturfelder wie ein Finish-Response.
+// TestFiskalyClient_RetrieveTransaction pins "Retrieve a transaction": GET on the UUID transaction path,
+// with state and the finish signature fields in the response.
 func TestFiskalyClient_RetrieveTransaction(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -389,9 +386,7 @@ func TestFiskalyClient_RetrieveTransaction_NotFound(t *testing.T) {
 	}
 }
 
-// Ein 404 mit E_TSS_NOT_FOUND (falsche TSS-ID) ist keine unbekannte
-// Transaktion, sondern ein TSE-weiter Fehler — er darf nicht auf
-// ErrTransactionNichtGefunden gemappt werden.
+// A 404 with E_TSS_NOT_FOUND (wrong TSS ID) is a TSE-wide error, not ErrTransactionNichtGefunden.
 func TestFiskalyClient_RetrieveTransaction_TSSNichtGefundenBleibtFehler(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -436,9 +431,8 @@ func TestFiskalyClient_RetrieveTransaction_TSSNichtGefundenBleibtFehler(t *testi
 	}
 }
 
-// TestKlassifiziereSignierFehler bildet die Fehlertaxonomie ab:
-// auftragsspezifische Ablehnungen (400/409/422) werden als tse.AuftragsFehler
-// gekennzeichnet, TSS-Zustandscodes und alle übrigen Fehler bleiben TSE-weit.
+// TestKlassifiziereSignierFehler pins the error taxonomy: 400/409/422 rejections become tse.AuftragsFehler,
+// TSS state codes and all other errors stay TSE-wide.
 func TestKlassifiziereSignierFehler(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -470,7 +464,7 @@ func TestKlassifiziereSignierFehler(t *testing.T) {
 			if got := tse.IstAuftragsFehler(klassifiziert); got != tt.auftragsFehler {
 				t.Errorf("expected IstAuftragsFehler=%v, got %v", tt.auftragsFehler, got)
 			}
-			// Der Original-Fehler bleibt per errors.As/Is erreichbar.
+			// The original error stays reachable via errors.As/Is.
 			var apiErr apiError
 			if errors.As(tt.err, &apiErr) && !errors.As(klassifiziert, &apiErr) {
 				t.Error("expected wrapped apiError to stay reachable via errors.As")
@@ -479,8 +473,7 @@ func TestKlassifiziereSignierFehler(t *testing.T) {
 	}
 }
 
-// Die Klassifizierung ist in Start/Finish verdrahtet: Eine 400-Ablehnung durch
-// fiskaly kommt als tse.AuftragsFehler beim Aufrufer an.
+// Start and Finish apply the classification: a fiskaly 400 rejection reaches the caller as tse.AuftragsFehler.
 func TestFiskalyClient_FinishTransaction_AblehnungAlsAuftragsFehler(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -524,9 +517,8 @@ func TestFiskalyClient_FinishTransaction_AblehnungAlsAuftragsFehler(t *testing.T
 	}
 }
 
-// TestFiskalyClient_TestConnection bildet den Kontrakt des Verbindungstests ab:
-// neben dem TSS-Zustand wird auch der Client abgefragt, und dessen state sowie
-// serial_number landen aufgeschlüsselt im VerbindungStatus.
+// TestFiskalyClient_TestConnection pins the connection test contract: it also queries the client
+// and reports its state and serial_number in VerbindungStatus.
 func TestFiskalyClient_TestConnection(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -583,9 +575,8 @@ func TestFiskalyClient_TestConnection(t *testing.T) {
 	}
 }
 
-// TestFiskalyClient_TestConnection_DeregisteredClient sichert, dass ein
-// nicht-REGISTERED-Client kein Transportfehler ist, sondern als Befund im
-// VerbindungStatus transportiert wird — die UI meldet ihn dann als Fehler.
+// TestFiskalyClient_TestConnection_DeregisteredClient guards that a non-REGISTERED client is a finding in
+// VerbindungStatus, not a transport error.
 func TestFiskalyClient_TestConnection_DeregisteredClient(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {

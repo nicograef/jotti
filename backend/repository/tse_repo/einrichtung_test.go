@@ -13,9 +13,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// einrichtungsUmgebung hält die Test-DB samt Kassensitzung und Benutzer: Jeder
-// Signaturauftrag referenziert ein Kassenjournal-Event (event_id NOT NULL
-// UNIQUE), daher braucht jeder offene Auftrag ein eigenes Event.
+// einrichtungsUmgebung holds the test DB with Kassensitzung and user; each Signaturauftrag needs its own
+// Kassenjournal event (event_id NOT NULL UNIQUE).
 type einrichtungsUmgebung struct {
 	db      *sql.DB
 	userID  int
@@ -105,10 +104,8 @@ func gueltigeKonfiguration(t *testing.T, tssID string) tse.Konfiguration {
 	return conf
 }
 
-// Der Einrichtungs-Sweep: der Übergang von nicht konfiguriert zu konfiguriert
-// markiert in derselben Transaktion die noch offenen, vor-konfigurationellen
-// Aufträge endgültig als tse_nicht_konfiguriert und schließt den
-// keine_konfiguration-Störungszeitraum.
+// The Einrichtung sweep: the transition from unconfigured to configured marks the open orders from the unconfigured
+// period tse_nicht_konfiguriert and closes the keine_konfiguration Störungszeitraum in the same transaction.
 func TestSaveEinrichtung_UebergangSweeptOffeneUndSchliesstStoerung(t *testing.T) {
 	repo, umgebung, teardown := setupEinrichtung(t)
 	defer teardown(t)
@@ -152,22 +149,19 @@ func TestSaveEinrichtung_UebergangSweeptOffeneUndSchliesstStoerung(t *testing.T)
 	}
 }
 
-// War die TSE schon vorher konfiguriert (durchgehend vorhandene Konfiguration),
-// bleibt es beim reinen Speichern: laufende offene Aufträge werden nie
-// versehentlich als nicht konfiguriert markiert.
+// With a TSE already configured, saving again only stores: running open orders are never marked tse_nicht_konfiguriert.
 func TestSaveEinrichtung_DurchgehendKonfiguriertSweeptNicht(t *testing.T) {
 	repo, umgebung, teardown := setupEinrichtung(t)
 	defer teardown(t)
 	ctx := context.Background()
 
-	// TSE ist bereits konfiguriert.
+	// TSE already configured.
 	if err := repo.SaveEinrichtung(ctx, gueltigeKonfiguration(t, "tss-alt")); err != nil {
 		t.Fatalf("initial konfiguration: %v", err)
 	}
 	offenID := umgebung.insertOffenerAuftrag(t, "tx-laufend")
 
-	// Erneutes Speichern (etwa Übernahme bei bereits konfigurierter TSE) darf
-	// den laufenden Auftrag nicht antasten.
+	// Saving again (e.g. a takeover on a configured TSE) must not touch the running order.
 	if err := repo.SaveEinrichtung(ctx, gueltigeKonfiguration(t, "tss-neu")); err != nil {
 		t.Fatalf("SaveEinrichtung: %v", err)
 	}
@@ -184,10 +178,8 @@ func TestSaveEinrichtung_DurchgehendKonfiguriertSweeptNicht(t *testing.T) {
 	}
 }
 
-// Das Speichern einer leeren Konfiguration (Leeren über den
-// Zugangsdaten-Endpunkt) ist kein Übergang zu konfiguriert: Es sweept nichts
-// und schließt keinen keine_konfiguration-Störungszeitraum — der
-// Dauerzustand ohne Konfiguration gehört dem Signatur-Worker.
+// Saving an empty configuration (clearing via the credentials endpoint) is no transition to configured.
+// It sweeps nothing and leaves the keine_konfiguration Störungszeitraum to the Signatur-Worker.
 func TestSaveEinrichtung_LeereKonfigurationSweeptNicht(t *testing.T) {
 	repo, umgebung, teardown := setupEinrichtung(t)
 	defer teardown(t)

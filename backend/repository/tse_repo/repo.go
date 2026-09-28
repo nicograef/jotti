@@ -12,17 +12,12 @@ import (
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
-// MaxSignaturVersuche ist die Anzahl auftragsspezifischer Fehlversuche, nach
-// der ein Signaturauftrag endgültig fehlgeschlagen ist. Solche Fehler (von
-// fiskaly abgelehnte processData, tse.AuftragsFehler) sind fast immer
-// deterministisch — mit dem Sekunden-Backoff (5, 15, 45 s) endet die Kurve
-// nach unter einer Minute und damit bewusst unter tse.RueckstandSchwelle:
-// Ein Gift-Auftrag schlägt endgültig fehl, bevor der Watchdog ihn als
-// Rückstand dokumentiert. TSE-weite Fehler zählen nie auf den Auftrag,
-// sondern schalten den Signatur-Worker in den Störungszustand.
+// MaxSignaturVersuche is the number of order-specific failures (tse.AuftragsFehler) that make a Signaturauftrag fehlgeschlagen.
+// They are near-deterministic, so the 5 s/15 s backoff ends a poison order before tse.RueckstandSchwelle opens a Rückstand;
+// TSE-wide failures never count here (docs/handbuch.md §3.13).
 const MaxSignaturVersuche = 3
 
-// OffenerSignaturauftrag ist die Worker-Sicht eines fälligen Auftrags.
+// OffenerSignaturauftrag is the worker's view of a due order.
 type OffenerSignaturauftrag struct {
 	ID          int
 	TxID        string
@@ -58,10 +53,8 @@ func (r Repository) GetOffeneTSESignaturauftraege(ctx context.Context, limit int
 	return result, nil
 }
 
-// QuittiereTSESignaturauftrag schreibt die Signatur als einzelnes Update an den
-// Auftrag: Signaturspalten füllen, Status erledigt. Der Status-Guard (offen)
-// macht die Quittierung idempotent — die Signaturspalten werden genau einmal
-// beschrieben.
+// QuittiereTSESignaturauftrag writes the signature onto the order in a single update and sets it erledigt.
+// The status guard (offen) makes it idempotent: the signature columns are written exactly once.
 func (r Repository) QuittiereTSESignaturauftrag(ctx context.Context, auftragID int, signatur tse.Signatur) error {
 	return db.Error(r.q.QuittiereTSESignaturauftrag(ctx, dbgen.QuittiereTSESignaturauftragParams{
 		ID:                auftragID,
@@ -75,11 +68,8 @@ func (r Repository) QuittiereTSESignaturauftrag(ctx context.Context, auftragID i
 	}))
 }
 
-// TSESignaturauftragFehlversuch verbucht einen auftragsspezifischen
-// Fehlversuch: Zähler hoch, Fehlertext speichern, nächster Versuch mit
-// Sekunden-Backoff (5, 15, 45 s). Beim MaxSignaturVersuche-ten Fehlversuch
-// wechselt der Auftrag auf fehlgeschlagen (Backoff-Logik liegt in der
-// SQL-Query).
+// TSESignaturauftragFehlversuch records an order-specific failure and schedules the next attempt with backoff.
+// The MaxSignaturVersuche-th failure makes the order fehlgeschlagen; the backoff logic lives in the SQL query.
 func (r Repository) TSESignaturauftragFehlversuch(ctx context.Context, auftragID int, fehler string) error {
 	return db.Error(r.q.TSESignaturauftragFehlversuch(ctx, dbgen.TSESignaturauftragFehlversuchParams{
 		ID:            auftragID,
@@ -88,11 +78,8 @@ func (r Repository) TSESignaturauftragFehlversuch(ctx context.Context, auftragID
 	}))
 }
 
-// MarkOffeneAlsNichtKonfiguriert markiert alle offenen Aufträge endgültig
-// als tse_nicht_konfiguriert und liefert die Anzahl markierter Aufträge. Ohne
-// vorhandene TSE-Konfiguration gibt es keine Signatur; ein Nachsignieren ist
-// ausgeschlossen (keine Fehlversuche, keine automatische Wiederaufnahme).
-// Bereits endgültig markierte Aufträge bleiben unberührt.
+// MarkOffeneAlsNichtKonfiguriert finally marks all open orders tse_nicht_konfiguriert and returns their count.
+// Without a TSE configuration there is no signature, so neither retries nor later re-signing apply.
 func (r Repository) MarkOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, error) {
 	n, err := r.q.MarkOffeneTSESignaturauftraegeNichtKonfiguriert(ctx)
 	if err != nil {
@@ -101,8 +88,7 @@ func (r Repository) MarkOffeneAlsNichtKonfiguriert(ctx context.Context) (int64, 
 	return n, nil
 }
 
-// GetTSESignaturQueueZustand liefert den on demand berechneten Zustand der
-// Signatur-Queue für das Admin-Monitoring.
+// GetTSESignaturQueueZustand computes the signature queue state for admin monitoring on demand.
 func (r Repository) GetTSESignaturQueueZustand(ctx context.Context) (tse.SignaturQueueZustand, error) {
 	row, err := r.q.GetTSESignaturQueueZustand(ctx)
 	if err != nil {
@@ -118,8 +104,7 @@ func (r Repository) GetTSESignaturQueueZustand(ctx context.Context) (tse.Signatu
 	}, nil
 }
 
-// GetAlleTSEStoerungen liefert das Störungsprotokoll (Ausfalldokumentation):
-// die jüngsten 200 Störungszeiträume, neueste zuerst.
+// GetAlleTSEStoerungen returns the Störungsprotokoll: the latest 200 Störungszeiträume, newest first.
 func (r Repository) GetAlleTSEStoerungen(ctx context.Context) ([]tse.Stoerungszeitraum, error) {
 	rows, err := r.q.GetAlleTSEStoerungen(ctx)
 	if err != nil {
@@ -145,9 +130,8 @@ func (r Repository) GetAlleTSEStoerungen(ctx context.Context) ([]tse.Stoerungsze
 	return result, nil
 }
 
-// GetSignaturauftragZuEvent liefert den Signatur-Stand eines Events für den
-// Beleg-Abruf. db.ErrNotFound heisst: kein Auftrag, das Event ist nicht
-// signaturpflichtig.
+// GetSignaturauftragZuEvent returns an event's signature state for the Beleg.
+// db.ErrNotFound means no order: the event is not signaturpflichtig.
 func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) (tse.SignaturauftragStand, error) {
 	row, err := r.q.GetTSESignaturauftragZuEvent(ctx, eventID)
 	if err != nil {
@@ -172,11 +156,8 @@ func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) 
 	return stand, nil
 }
 
-// GetOffeneSignaturauftragStaendeFuerKassensitzung liefert die Signatur-Stände
-// aller noch nicht erledigten Signaturaufträge der Kassensitzung — die
-// Grundlage des Kassenabschluss-Gates. Erledigte Aufträge bleiben aussen vor
-// (bereits signiert); das Gate ordnet die Stände über DetermineSignaturstatus
-// in ausstehend bzw. Ausfall ein.
+// GetOffeneSignaturauftragStaendeFuerKassensitzung returns the states of the session's orders not yet erledigt for the Kassenabschluss gate.
+// The gate classifies them via DetermineSignaturstatus as ausstehend or Ausfall.
 func (r Repository) GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context.Context, kassensitzungNr int) ([]tse.SignaturauftragStand, error) {
 	rows, err := r.q.GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx, kassensitzungNr)
 	if err != nil {
@@ -190,9 +171,8 @@ func (r Repository) GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx context
 	return result, nil
 }
 
-// GetAeltesterOffenerTSESignaturauftrag liefert den Erstellungszeitpunkt des
-// ältesten offenen Signaturauftrags; nil, wenn kein Auftrag offen ist. Der
-// Rückstands-Watchdog bemisst daran den Signatur-Rückstand.
+// GetAeltesterOffenerTSESignaturauftrag returns the creation time of the oldest open order, or nil if none is open.
+// The Rückstand watchdog measures the backlog from it.
 func (r Repository) GetAeltesterOffenerTSESignaturauftrag(ctx context.Context) (*time.Time, error) {
 	erstelltAm, err := r.q.GetAeltesterOffenerTSESignaturauftrag(ctx)
 	if err != nil {
@@ -204,9 +184,8 @@ func (r Repository) GetAeltesterOffenerTSESignaturauftrag(ctx context.Context) (
 	return &erstelltAm, nil
 }
 
-// OpenTSEStoerung öffnet einen Störungszeitraum im Störungsprotokoll.
-// Idempotent: Solange irgendein Zeitraum aktiv ist, ist das Öffnen ein No-Op
-// (höchstens ein aktiver Zeitraum, DB-seitig per partiellem Unique-Index).
+// OpenTSEStoerung opens a Störungszeitraum; it is a no-op while any Störungszeitraum is active.
+// A partial unique index enforces at most one active Störungszeitraum.
 func (r Repository) OpenTSEStoerung(ctx context.Context, grundArt string, fehlertext string) error {
 	return db.Error(r.q.OpenTSEStoerung(ctx, dbgen.OpenTSEStoerungParams{
 		GrundArt:   grundArt,
@@ -214,15 +193,13 @@ func (r Repository) OpenTSEStoerung(ctx context.Context, grundArt string, fehler
 	}))
 }
 
-// CloseTSEStoerung beendet den aktiven Störungszeitraum der Grund-Art;
-// jeder Schreiber schließt nur Zeiträume seiner Grund-Art. Idempotent: Ohne
-// aktiven Zeitraum der Art ein No-Op.
+// CloseTSEStoerung ends the active Störungszeitraum of grundArt and is a no-op if none is active.
+// Each writer closes only its own Grund-Art.
 func (r Repository) CloseTSEStoerung(ctx context.Context, grundArt string) error {
 	return db.Error(r.q.CloseTSEStoerung(ctx, grundArt))
 }
 
-// GetAktiveTSEStoerung liefert den aktiven Störungszeitraum; nil, wenn keine
-// Störung aktiv ist.
+// GetAktiveTSEStoerung returns the active Störungszeitraum, or nil if none is active.
 func (r Repository) GetAktiveTSEStoerung(ctx context.Context) (*tse.Stoerung, error) {
 	row, err := r.q.GetAktiveTSEStoerung(ctx)
 	if err != nil {

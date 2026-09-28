@@ -106,9 +106,8 @@ type errorResponse struct {
 
 type sleepFn func(ctx context.Context, duration time.Duration) error
 
-// fiskalyClient bündelt die HTTP-Maschinerie, die sich der Signier-Client und
-// der Setup-Client teilen: Basis-URL, API-Key/-Secret-Auth mit Token-Cache und
-// die Retry-Logik. Sie kommt ohne TSS-/Client-ID aus.
+// fiskalyClient holds the HTTP machinery shared by the signing and setup clients: base URL, key/secret auth with token cache, retries.
+// It needs no TSS or client ID.
 type fiskalyClient struct {
 	baseURL    string
 	apiKey     string
@@ -124,7 +123,7 @@ type fiskalyClient struct {
 	expiresAt      time.Time
 }
 
-// FiskalyTSEClient signiert Transaktionen einer konkreten TSS/Client-Kombination.
+// FiskalyTSEClient signs transactions for one TSS/client pair.
 type FiskalyTSEClient struct {
 	*fiskalyClient
 	tssID    string
@@ -173,11 +172,8 @@ func NewFiskalyTSEClient(baseURL string, credentials tse.Credentials, httpClient
 	}, nil
 }
 
-// tssZustandsCodes400 sind die fiskaly-Fehlercodes, die trotz HTTP 400 einen
-// TSS-weiten Zustand melden (TSS nicht initialisiert oder deaktiviert, Client
-// deregistriert oder unbekannt, Limit offener Transaktionen erreicht). Sie
-// betreffen jede Signierung, nicht den einzelnen Auftrag, und bleiben deshalb
-// TSE-weit.
+// tssZustandsCodes400 are fiskaly error codes that report a TSS-wide state despite HTTP 400 (docs/rechtsquellen/fiskaly/fiskaly-SIGN-DE-API-v2-openapi.json).
+// They affect every signing, not a single order, so they stay TSE-wide.
 var tssZustandsCodes400 = map[string]bool{
 	"E_TSS_NOT_INITIALIZED": true,
 	"E_TSS_DISABLED":        true,
@@ -186,11 +182,8 @@ var tssZustandsCodes400 = map[string]bool{
 	"E_TX_LIMIT_REACHED":    true,
 }
 
-// klassifiziereSignierFehler kennzeichnet auftragsspezifische Signierfehler
-// als tse.AuftragsFehler: HTTP 400/409/422 lehnen den konkreten Vorgang ab
-// (processData, Schema, Transaktionszustand) — ausgenommen die dokumentierten
-// TSS-Zustandscodes. Alle übrigen Fehler (Verbindung, 401/403, 404, 423,
-// 429, 5xx) bleiben ungekennzeichnet und gelten dem Worker als TSE-weit.
+// klassifiziereSignierFehler marks HTTP 400/409/422 rejections of the concrete transaction as tse.AuftragsFehler, except tssZustandsCodes400.
+// All other errors (connection, 401/403, 404, 423, 429, 5xx) stay unmarked and count as TSE-wide for the worker.
 func klassifiziereSignierFehler(err error) error {
 	var apiErr apiError
 	if !errors.As(err, &apiErr) {
@@ -209,8 +202,7 @@ func klassifiziereSignierFehler(err error) error {
 	}
 }
 
-// StartTransaction sendet bewusst kein Schema: processType/processData müssen
-// laut DSFinV-K bei StartTransaction immer leer sein (Anhang I).
+// StartTransaction sends no schema: processType and processData must be empty at start (DSFinV-K Anhang I, docs/compliance.md §3.2).
 func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string) (tse.StartResult, error) {
 	txID = strings.TrimSpace(txID)
 	if txID == "" {
@@ -255,8 +247,7 @@ func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, p
 			Schema: rawSchemaEnvelope{
 				Raw: rawSchema{
 					ProcessType: processType,
-					// Die fiskaly-API verlangt process_data als Base64; Aufrufer
-					// liefern Klartext, das Encoding ist allein Sache dieses Clients.
+					// fiskaly expects process_data as Base64; callers pass plain text.
 					ProcessData: base64.StdEncoding.EncodeToString([]byte(processData)),
 				},
 			},
@@ -271,9 +262,7 @@ func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, p
 	return mapFinishResult(resp)
 }
 
-// RetrieveTransaction fragt den aktuellen Stand einer Transaktion ab (letzte
-// Revision). Eine bei fiskaly unbekannte Transaktion wird als
-// tse.ErrTransactionNichtGefunden gemeldet.
+// RetrieveTransaction fetches the latest revision of a transaction; an unknown one yields tse.ErrTransactionNichtGefunden.
 func (c *FiskalyTSEClient) RetrieveTransaction(ctx context.Context, txID string) (tse.RetrieveResult, error) {
 	txID = strings.TrimSpace(txID)
 	if txID == "" {
@@ -291,9 +280,8 @@ func (c *FiskalyTSEClient) RetrieveTransaction(ctx context.Context, txID string)
 		&resp,
 	)
 	if err != nil {
-		// 404 heisst nur bei E_TX_NOT_FOUND "Transaktion existiert (noch) nicht";
-		// E_TSS_NOT_FOUND (falsche TSS-ID) bleibt ein TSE-weiter Fehler. Ein 404
-		// ohne Fehlercode wird defensiv als unbekannte Transaktion gewertet.
+		// Only E_TX_NOT_FOUND means the transaction does not exist (yet); E_TSS_NOT_FOUND (wrong TSS ID) stays TSE-wide.
+		// A 404 without error code counts as an unknown transaction.
 		var apiErr apiError
 		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound && apiErr.Code != "E_TSS_NOT_FOUND" {
 			return tse.RetrieveResult{}, tse.ErrTransactionNichtGefunden
@@ -312,9 +300,8 @@ func (c *FiskalyTSEClient) RetrieveTransaction(ctx context.Context, txID string)
 	}, nil
 }
 
-// Umgebung liefert die Umgebung (TEST/LIVE) allein aus dem Auth-Token
-// (access_token_claims.env). Sie kommt ohne TSS-/Client-Abruf aus und dient der
-// reinen Statusanzeige, wo der volle Verbindungstest unnötig wäre.
+// Umgebung reads the environment (TEST/LIVE) from the auth token alone (access_token_claims.env).
+// It serves the status display, where a full connection test is unnecessary.
 func (c *fiskalyClient) Umgebung(ctx context.Context) (tse.Umgebung, error) {
 	_, env, err := c.getAccessToken(ctx)
 	if err != nil {
@@ -361,10 +348,8 @@ func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungSt
 		env = tse.Umgebung(strings.ToUpper(strings.TrimSpace(tssResp.Env)))
 	}
 
-	// Ein nicht-REGISTERED-Client und ein Seriennummern-Mismatch sind keine
-	// Transportfehler — sie werden als Befund im Status transportiert, damit die
-	// UI das Ergebnis aufgeschlüsselt anzeigen kann. Den Seriennummern-Abgleich
-	// übernimmt die Application-Schicht (sie kennt die Kassen-Seriennummer).
+	// A non-REGISTERED client or a serial number mismatch is a finding in the status, not a transport error, so the UI can itemise it.
+	// The application layer compares serial numbers because it knows the Kassen-Seriennummer.
 	status := tse.VerbindungStatus{
 		Umgebung:           env,
 		TSSState:           strings.TrimSpace(tssResp.State),
@@ -504,8 +489,7 @@ func (c *fiskalyClient) doJSONRequest(
 		if withAuth && resp.StatusCode == http.StatusUnauthorized && !triedTokenRefresh {
 			triedTokenRefresh = true
 			c.invalidateToken()
-			// Der Token-Refresh ist kein Netz-Retry und verbraucht keinen
-			// Versuch — wichtig für Single-Attempt-Clients (maxRetries = 0).
+			// A token refresh is no network retry and uses no attempt, which matters for single-attempt clients (maxRetries = 0).
 			attempt--
 			continue
 		}

@@ -1,13 +1,10 @@
 package tse_repo
 
-// signaturWorkerTrigger ist die In-Process-Benachrichtigung an den
-// Signatur-Worker: Nach jedem Commit mit neuem Signaturauftrag wird er sofort
-// angestossen. Der Kanal ist gepuffert und der Send non-blocking — ein
-// verlorener Trigger ist unkritisch, der Polling-Tick des Workers bleibt
-// Fallback.
+// signaturWorkerTrigger wakes the Signatur-Worker after each commit that adds a Signaturauftrag.
+// Buffered with a non-blocking send: a lost trigger is harmless because the worker's polling tick is the fallback.
 var signaturWorkerTrigger = make(chan struct{}, 1)
 
-// NotifySignaturWorker stößt den Signatur-Worker non-blocking an.
+// NotifySignaturWorker wakes the Signatur-Worker without blocking.
 func NotifySignaturWorker() {
 	select {
 	case signaturWorkerTrigger <- struct{}{}:
@@ -15,7 +12,7 @@ func NotifySignaturWorker() {
 	}
 }
 
-// SignaturWorkerTrigger liefert den Kanal, auf den der Signatur-Worker lauscht.
+// SignaturWorkerTrigger returns the channel the Signatur-Worker listens on.
 func SignaturWorkerTrigger() <-chan struct{} {
 	return signaturWorkerTrigger
 }

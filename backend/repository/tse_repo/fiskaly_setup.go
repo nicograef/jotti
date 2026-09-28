@@ -12,10 +12,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// FiskalyTSESetupClient führt die Operationen der geführten TSE-Einrichtung aus —
-// die lesenden Prüf-Schritte wie die schreibenden Zustandsübergänge. Es teilt sich
-// die HTTP-Maschinerie (Auth, Token-Cache, Retry) mit dem Signier-Client, kommt
-// aber ohne TSS-/Client-ID aus.
+// FiskalyTSESetupClient runs the guided TSE setup operations, both read-only checks and state transitions.
+// It shares the HTTP machinery with the signing client but needs no TSS or client ID.
 type FiskalyTSESetupClient struct {
 	*fiskalyClient
 }
@@ -64,11 +62,8 @@ type createTSSResponse struct {
 type tssDetailResponse struct {
 	AdminPUK string `json:"admin_puk"`
 	State    string `json:"state"`
-	// Fiskalische Stammdaten der TSS-Ressource für den DSFinV-K-Export. fiskaly
-	// nennt das Log-Time-Format signature_timestamp_format und die Seriennummer
-	// serial_number (SHA-256 des Public Key, hex-kodiert). Nicht mit
-	// tss_serial_number verwechseln — so heisst das Feld nur auf
-	// Transaktions-Responses, auf der TSS-Ressource existiert es nicht.
+	// DSFinV-K export master data; on the TSS resource the serial number (SHA-256 of the public key, hex) is serial_number.
+	// tss_serial_number exists only on transaction responses.
 	TSSSerialNumber          string `json:"serial_number"`
 	SignatureAlgorithm       string `json:"signature_algorithm"`
 	PublicKey                string `json:"public_key"`
@@ -97,8 +92,7 @@ type clientStateRequest struct {
 	State string `json:"state"`
 }
 
-// ListTSS listet die TSS des Kontos und liefert die Umgebung (TEST/LIVE) aus der
-// fiskaly-Antwort mit — letztere ist auch bei leerem Konto gesetzt.
+// ListTSS lists the account's TSS and returns the environment (TEST/LIVE), which fiskaly sets even for an empty account.
 func (c *FiskalyTSESetupClient) ListTSS(ctx context.Context) (tse.Umgebung, []tse.TSSInfo, error) {
 	resp := tssListResponse{}
 	if err := c.doJSONRequest(ctx, http.MethodGet, "/api/v2/tss", nil, nil, true, &resp); err != nil {
@@ -139,9 +133,8 @@ func (c *FiskalyTSESetupClient) ListClients(ctx context.Context, tssID string) (
 	return clients, nil
 }
 
-// CreateTSS legt unter einer frisch erzeugten UUID eine neue TSS an. fiskaly
-// liefert in der Antwort den einmaligen Admin-PUK, mit dem später die Admin-PIN
-// gesetzt wird.
+// CreateTSS creates a TSS under a fresh UUID.
+// fiskaly returns the one-time admin PUK needed to set the admin PIN.
 func (c *FiskalyTSESetupClient) CreateTSS(ctx context.Context) (tse.TSSErstellt, error) {
 	tssID := uuid.NewString()
 
@@ -162,8 +155,7 @@ func (c *FiskalyTSESetupClient) CreateTSS(ctx context.Context) (tse.TSSErstellt,
 	}, nil
 }
 
-// GetAdminPUK liest den Admin-PUK einer TSS erneut aus der TSS-Ressource.
-// fiskaly liefert ihn dort nur, solange die TSS im Zustand CREATED ist.
+// GetAdminPUK re-reads the admin PUK, which fiskaly returns only while the TSS is CREATED.
 func (c *FiskalyTSESetupClient) GetAdminPUK(ctx context.Context, tssID string) (string, error) {
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
@@ -177,10 +169,7 @@ func (c *FiskalyTSESetupClient) GetAdminPUK(ctx context.Context, tssID string) (
 	return strings.TrimSpace(resp.AdminPUK), nil
 }
 
-// RetrieveTSSStammdaten liest die fiskalischen Stammdaten der TSS-Ressource
-// (Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format) für den
-// DSFinV-K-Export. Reine Leseoperation auf derselben TSS-Ressource wie
-// GetAdminPUK.
+// RetrieveTSSStammdaten reads the TSS master data (signature algorithm, public key, certificate, log time format) for the DSFinV-K export.
 func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID string) (tse.Stammdaten, error) {
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
@@ -194,13 +183,13 @@ func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID
 	return tse.NewStammdaten(resp.TSSSerialNumber, resp.SignatureAlgorithm, resp.PublicKey, resp.Certificate, resp.SignatureTimestampFormat), nil
 }
 
-// PersonalisiereTSS überführt die TSS von CREATED nach UNINITIALIZED.
+// PersonalisiereTSS moves the TSS from CREATED to UNINITIALIZED.
 func (c *FiskalyTSESetupClient) PersonalisiereTSS(ctx context.Context, tssID string) error {
 	return c.patchTSSState(ctx, tssID, "UNINITIALIZED")
 }
 
-// InitialisiereTSS überführt die TSS nach INITIALIZED und macht sie damit
-// signierbereit. Sie setzt eine vorher erfolgte Admin-Authentifizierung voraus.
+// InitialisiereTSS moves the TSS to INITIALIZED, ready to sign.
+// It requires a prior AuthentifiziereAdmin.
 func (c *FiskalyTSESetupClient) InitialisiereTSS(ctx context.Context, tssID string) error {
 	return c.patchTSSState(ctx, tssID, "INITIALIZED")
 }
@@ -217,10 +206,8 @@ func (c *FiskalyTSESetupClient) patchTSSState(ctx context.Context, tssID, state 
 	return nil
 }
 
-// SetAdminPIN setzt mit dem Admin-PUK die Admin-PIN der TSS. Derselbe Endpunkt
-// (PATCH /tss/{id}/admin) setzt eine verlorene PIN neu bzw. entsperrt eine nach
-// fünf Fehlversuchen gesperrte PIN und funktioniert auch auf einer bereits
-// personalisierten TSS (UNINITIALIZED/INITIALIZED).
+// SetAdminPIN sets the admin PIN using the admin PUK.
+// The same endpoint (PATCH /tss/{id}/admin) resets a lost PIN or unblocks one after five failures, also on a personalised TSS.
 func (c *FiskalyTSESetupClient) SetAdminPIN(ctx context.Context, tssID, puk, pin string) error {
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
@@ -234,9 +221,7 @@ func (c *FiskalyTSESetupClient) SetAdminPIN(ctx context.Context, tssID, puk, pin
 	return nil
 }
 
-// AuthentifiziereAdmin hebt das aktuelle Zugriffstoken für die folgenden
-// Admin-Operationen der TSS (Initialisieren, Client registrieren) auf
-// Admin-Rechte an.
+// AuthentifiziereAdmin elevates the current access token to admin rights for the following TSS admin operations (initialise, register client).
 func (c *FiskalyTSESetupClient) AuthentifiziereAdmin(ctx context.Context, tssID, pin string) error {
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
@@ -249,8 +234,7 @@ func (c *FiskalyTSESetupClient) AuthentifiziereAdmin(ctx context.Context, tssID,
 	return nil
 }
 
-// RegistriereClient registriert einen Client unter clientID mit der übergebenen
-// serial_number (der jotti-Kassen-Seriennummer).
+// RegistriereClient registers a client under clientID with the Kassen-Seriennummer as serial_number.
 func (c *FiskalyTSESetupClient) RegistriereClient(ctx context.Context, tssID, clientID, serialNumber string) error {
 	tssID = strings.TrimSpace(tssID)
 	clientID = strings.TrimSpace(clientID)
@@ -265,9 +249,8 @@ func (c *FiskalyTSESetupClient) RegistriereClient(ctx context.Context, tssID, cl
 	return nil
 }
 
-// ReaktiviereClient reaktiviert einen bereits vorhandenen, aber DEREGISTERED
-// Client per PATCH mit state=REGISTERED. Es wird kein neuer Client angelegt — die
-// serial_number ist je TSS eindeutig.
+// ReaktiviereClient reactivates an existing DEREGISTERED client via PATCH state=REGISTERED.
+// It creates no new client because serial_number is unique per TSS.
 func (c *FiskalyTSESetupClient) ReaktiviereClient(ctx context.Context, tssID, clientID string) error {
 	tssID = strings.TrimSpace(tssID)
 	clientID = strings.TrimSpace(clientID)
@@ -282,17 +265,8 @@ func (c *FiskalyTSESetupClient) ReaktiviereClient(ctx context.Context, tssID, cl
 	return nil
 }
 
-// mapSetupError übersetzt bekannte fiskaly-Fehler in Domain-Sentinels, damit
-// die Application-Schicht verständliche Meldungen erzeugen kann: das Erreichen
-// des TSS-Limits (E_TSS_LIMIT_REACHED, in TEST fünf aktive TSS, und
-// E_TSS_LIMIT_PER_DAY_REACHED) und einen Auth-Fehler (falsche Zugangsdaten oder
-// abgelehnte/gesperrte Admin-PIN). Der Fehlercode wird vor dem HTTP-Status
-// geprüft, weil fiskaly die Limit-Codes mit Status 403 liefert (OpenAPI, PUT
-// /tss/{tss_id}). Eine nach fünf Fehlversuchen gesperrte Admin-PIN
-// (E_ADMIN_PIN_BLOCKED) liefert fiskaly mit Status 423; sie wird ebenfalls als
-// Auth-Fehler gemeldet, damit die Übernahme in die PIN-Sackgasse (mit PUK-Reset
-// als Ausweg) statt in einen technischen Fehler läuft. Alle anderen Fehler
-// bleiben unverändert.
+// mapSetupError maps the TSS limit codes and auth failures to domain sentinels; a blocked admin PIN counts as auth failure so the takeover offers the PUK reset.
+// Codes are checked before the status because fiskaly sends the limit codes with 403 and E_ADMIN_PIN_BLOCKED with 423 (docs/rechtsquellen/fiskaly/fiskaly-SIGN-DE-API-v2-openapi.json).
 func mapSetupError(err error) error {
 	var apiErr apiError
 	if !errors.As(err, &apiErr) {
