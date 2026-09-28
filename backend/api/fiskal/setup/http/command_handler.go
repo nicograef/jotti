@@ -18,9 +18,9 @@ import (
 const tseSetupWriteTimeout = 2 * time.Minute
 
 // tseSetupLebenszyklusTimeout only keeps a hung fiskaly connection from holding the detached
-// lifecycle open; it is no response budget. Worst case is about 7.5 min: up to eleven calls of four
-// 10 s attempts plus backoff each.
-const tseSetupLebenszyklusTimeout = 10 * time.Minute
+// lifecycle open; it is no response budget. It must exceed the worst case of about 10 min: up to eleven
+// calls of four 10 s attempts plus three retry delays of at most 5 s each.
+const tseSetupLebenszyklusTimeout = 15 * time.Minute
 
 // lebenszyklusKontext detaches the lifecycle from client cancellation but keeps the context values;
 // see docs/handbuch.md §3.13. A client abort would otherwise leave a paid, half-built TSS whose

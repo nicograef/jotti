@@ -623,3 +623,17 @@ func TestFiskalyClient_TestConnection_DeregisteredClient(t *testing.T) {
 		t.Errorf("expected client state DEREGISTERED to be reported, got %s", status.ClientState)
 	}
 }
+
+// TestFiskalyClient_RetryDelayCapsRetryAfter keeps a server-sent Retry-After within the setup lifecycle budget.
+func TestFiskalyClient_RetryDelayCapsRetryAfter(t *testing.T) {
+	c := &fiskalyClient{}
+	farFuture := time.Now().Add(time.Hour).UTC().Format(http.TimeFormat)
+	for _, header := range []string{"3600", farFuture} {
+		if got := c.retryDelay(0, header); got > maxRetryDelay {
+			t.Errorf("Retry-After %q: expected at most %s, got %s", header, maxRetryDelay, got)
+		}
+	}
+	if got := c.retryDelay(0, "2"); got != 2*time.Second {
+		t.Errorf("expected a short Retry-After to be honoured, got %s", got)
+	}
+}

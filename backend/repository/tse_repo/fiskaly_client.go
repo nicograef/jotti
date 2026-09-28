@@ -22,6 +22,7 @@ const (
 	defaultHTTPTimeout   = 10 * time.Second
 	defaultRetryAttempts = 3
 	tokenExpiryLeeway    = 30 * time.Second
+	maxRetryDelay        = 5 * time.Second
 )
 
 type apiError struct {
@@ -629,15 +630,11 @@ func isRetryableStatus(statusCode int) bool {
 }
 
 func (c *fiskalyClient) retryDelay(attempt int, retryAfterHeader string) time.Duration {
-	if parsed := parseRetryAfter(retryAfterHeader); parsed > 0 {
-		return parsed
+	delay := parseRetryAfter(retryAfterHeader)
+	if delay <= 0 {
+		delay = 200 * time.Millisecond * time.Duration(1<<attempt)
 	}
-	base := 200 * time.Millisecond
-	delay := base * time.Duration(1<<attempt)
-	if delay > 5*time.Second {
-		return 5 * time.Second
-	}
-	return delay
+	return min(delay, maxRetryDelay)
 }
 
 func parseRetryAfter(value string) time.Duration {
