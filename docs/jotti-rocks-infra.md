@@ -185,11 +185,12 @@ Das Skript `scripts/rocks-backup.sh` zieht per SSH ein `sqlite3 .backup` der Dat
 Es prüft die Kopie auf dem VPS mit `PRAGMA integrity_check`. Danach kopiert es die Datei
 als `acme-dns-<Zeitstempel>.db` per rsync ins Zielverzeichnis.
 
-Auf dem VPS müssen `sqlite3` und `rsync` installiert sein. Der SSH-Zugang braucht
-Leserechte auf das Volume.
+Auf dem VPS muss `rsync` installiert sein. Der SSH-Benutzer braucht die Gruppe `docker`,
+kein Root-Login. Die Datenbank liest ein Wegwerf-Container (`alpine`) über einen
+schreibgeschützten Mount des Volumes.
 
-Host, SSH-Optionen und Datenbankpfad sind über `ROCKS_SSH_HOST`, `ROCKS_SSH_OPTS` und
-`ROCKS_ACMEDNS_DB` einstellbar (`./scripts/rocks-backup.sh` ohne Argument zeigt sie).
+Host, SSH-Optionen und Volume sind über `ROCKS_SSH_HOST`, `ROCKS_SSH_OPTS` und
+`ROCKS_ACMEDNS_VOLUME` einstellbar (`./scripts/rocks-backup.sh` ohne Argument zeigt sie).
 
 Wiederherstellungsprobe nach jedem Backup: die Zahl der Registrierungen in der Kopie muss
 der auf dem VPS entsprechen.
@@ -197,8 +198,8 @@ der auf dem VPS entsprechen.
 ```bash
 sqlite3 /media/<platte>/jotti-rocks/acme-dns-<Zeitstempel>.db \
   "PRAGMA integrity_check; SELECT count(*) FROM records;"
-ssh jotti.rocks sqlite3 /var/lib/docker/volumes/jotti_acme-dns-data/_data/acme-dns.db \
-  "'SELECT count(*) FROM records;'"
+ssh jotti.rocks 'docker run --rm -v jotti_acme-dns-data:/data:ro alpine:3.24 sh -c \
+  "apk add --no-cache -q sqlite && sqlite3 -readonly /data/acme-dns.db \"SELECT count(*) FROM records;\""'
 ```
 
 Wiederherstellung auf dem VPS:

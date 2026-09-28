@@ -4,8 +4,7 @@
 # Usage:
 #   make rocks-backup DEST=<dir>   # or: ./scripts/rocks-backup.sh <dir>; environment in usage()
 #
-# Runs on the laptop; the VPS needs sqlite3 and rsync, and the SSH user needs read
-# access to the Docker volume.
+# Runs on the laptop; the VPS needs rsync, and the SSH user needs the docker group.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,10 +18,9 @@ Usage: ./scripts/rocks-backup.sh <dest>
 Writes <dest>/acme-dns-<timestamp>.db after an integrity check on the VPS.
 
 Environment:
-  ROCKS_SSH_HOST    SSH target (default: jotti.rocks)
-  ROCKS_SSH_OPTS    extra ssh options, e.g. "-p 2222 -i ~/.ssh/other_key"
-  ROCKS_ACMEDNS_DB  database path on the VPS
-                    (default: /var/lib/docker/volumes/jotti_acme-dns-data/_data/acme-dns.db)
+  ROCKS_SSH_HOST        SSH target (default: jotti.rocks)
+  ROCKS_SSH_OPTS        extra ssh options, e.g. "-p 2222 -i ~/.ssh/other_key"
+  ROCKS_ACMEDNS_VOLUME  Docker volume holding the database (default: jotti_acme-dns-data)
 EOF
 }
 
@@ -35,9 +33,14 @@ for tool in ssh rsync; do
 done
 
 HOST="${ROCKS_SSH_HOST:-jotti.rocks}"
-DB="${ROCKS_ACMEDNS_DB:-/var/lib/docker/volumes/jotti_acme-dns-data/_data/acme-dns.db}"
-read -r -a SSH_OPTS <<< "${ROCKS_SSH_OPTS:-}"
+VOLUME="${ROCKS_ACMEDNS_VOLUME:-jotti_acme-dns-data}"
 TARGET="$DEST/acme-dns-$(date +%Y%m%d-%H%M%S).db"
+
+# All calls share one SSH connection: ufw's `limit` on the VPS refuses a 6th new
+# connection within 30 s.
+CONTROL_PATH="$(mktemp -u "${TMPDIR:-/tmp}/rocks-backup-ssh.XXXXXX")"
+read -r -a SSH_OPTS <<< "${ROCKS_SSH_OPTS:-}"
+SSH_OPTS+=(-o ControlMaster=auto -o "ControlPath=$CONTROL_PATH" -o ControlPersist=60)
 
 # ssh joins its arguments into one remote command line, so each is quoted here.
 remote() {
@@ -47,20 +50,31 @@ remote() {
   ssh "${SSH_OPTS[@]}" "$HOST" "$quoted"
 }
 
-info "Checking $DB on $HOST ..."
-remote test -r "$DB" || fatal "Cannot read $DB on $HOST."
+cleanup() {
+  if [[ -n "${REMOTE_TMP:-}" ]]; then
+    remote rm -rf "$REMOTE_TMP" || warn "Could not remove $REMOTE_TMP on $HOST."
+  fi
+  ssh "${SSH_OPTS[@]}" -O exit "$HOST" 2>/dev/null || true
+}
+trap cleanup EXIT
 
-REMOTE_TMP="$(remote mktemp /tmp/acme-dns-backup.XXXXXX)"
-trap 'remote rm -f "$REMOTE_TMP" || warn "Could not remove $REMOTE_TMP on $HOST."' EXIT
+REMOTE_TMP="$(remote mktemp -d /tmp/acme-dns-backup.XXXXXX)"
+# shellcheck disable=SC2016 # expands on the VPS
+REMOTE_UID_GID="$(remote sh -c 'echo "$(id -u):$(id -g)"')"
 
-info "Taking an online backup ..."
-remote sqlite3 "$DB" ".backup '$REMOTE_TMP'"
-
-CHECK="$(remote sqlite3 "$REMOTE_TMP" "PRAGMA integrity_check;")"
+# The database file is root-only, so a root container reads it through a read-only
+# mount and hands the copy to the SSH user.
+info "Taking an online backup of $VOLUME on $HOST ..."
+CHECK="$(remote docker run --rm \
+  -v "$VOLUME:/data:ro" -v "$REMOTE_TMP:/out" \
+  alpine:3.24 sh -c "apk add --no-cache -q sqlite \
+    && sqlite3 -readonly /data/acme-dns.db '.backup /out/acme-dns.db' \
+    && chown $REMOTE_UID_GID /out/acme-dns.db \
+    && sqlite3 /out/acme-dns.db 'PRAGMA integrity_check;'")"
 [[ "$CHECK" == "ok" ]] || fatal "integrity_check failed on the backup: $CHECK"
 info "integrity_check: ok"
 
 info "Copying to $TARGET ..."
-rsync -a -e "ssh ${ROCKS_SSH_OPTS:-}" "$HOST:$REMOTE_TMP" "$TARGET"
+rsync -a -e "ssh ${ROCKS_SSH_OPTS:-} -o ControlPath=$CONTROL_PATH" "$HOST:$REMOTE_TMP/acme-dns.db" "$TARGET"
 
 info "Backup written: $TARGET"
