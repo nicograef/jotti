@@ -356,10 +356,27 @@ website-screenshots: ## App-Screenshots + OG-Bild reproduzierbar neu erzeugen (e
 
 # Hilfe
 
-help: ## Alle verfügbaren Targets anzeigen
-	@echo ""
-	@echo "Verfügbare Make-Targets:"
-	@echo ""
-	@grep -E '^[a-zA-Z0-9_-]+:.*##' $(MAKEFILE_LIST) | \
-		awk -F ':.*## ' '{printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2}'
-	@echo ""
+# Every documented target stands in exactly one CLASS_* list, and `make help` prints the
+# lists as its sections. A target in none prints under UNCLASSIFIED.
+CLASS_developer := init up up-attached down restart logs status \
+	test test-frontend test-integration test-tse-live test-tse-live-setup test-all test-e2e fuzz \
+	lint-backend lint-backend-full lint-frontend lint fmt-backend fmt-frontend fmt-repo fmt \
+	build-backend build-relay build-resolver build-local-proxy build-starter-windows build-relay-windows \
+	starter-syso release-windows build-frontend build sqlc \
+	local-up local-down local-logs db-shell seed rebuild-projections clean \
+	check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver \
+	check-local-proxy check-format check-frontend check-e2e-types check-shell check-repo check-integration \
+	check check-full verify \
+	website-dev website-build website-test website-check website-screenshots help
+CLASS_production := prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore \
+	prod-backup-verify prod-harden \
+	rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed rocks-backup
+
+# Column the help text wraps at.
+HELP_WIDTH ?= 96
+
+help: ## Alle Targets nach Klasse anzeigen (HELP_WIDTH=<n> verschiebt den Umbruch)
+	@grep -hE '^[a-zA-Z0-9_-]+:.*##' $(firstword $(MAKEFILE_LIST)) \
+	  | awk -v width=$(HELP_WIDTH) \
+	        -v developer='$(CLASS_developer)' -v production='$(CLASS_production)' \
+	        -f scripts/make-help.awk
