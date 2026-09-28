@@ -1,0 +1,10 @@
+# ── Secrets: Compose hands them in at run time ──
+.env
+.env.*
+
+# ── Host toolchains and caches ──
+node_modules/
+
+# ── Not built into the image ──
+**/*_test.go
+/reverse-proxy

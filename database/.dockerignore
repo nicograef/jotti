@@ -1,0 +1,6 @@
+# ── Secrets: Compose hands them in at run time ──
+.env
+.env.*
+
+# ── Host toolchains and caches ──
+node_modules/
