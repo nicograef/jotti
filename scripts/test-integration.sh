@@ -35,7 +35,7 @@ docker run -d \
   -e POSTGRES_USER=admin \
   -e POSTGRES_PASSWORD=admin \
   -e POSTGRES_DB=jotti \
-  -p "${TEST_PG_PORT}:5432" \
+  -p "127.0.0.1:${TEST_PG_PORT}:5432" \
   "$PG_IMAGE" >/dev/null
 
 # pg_isready also answers for the image's temporary socket-only init server, and
