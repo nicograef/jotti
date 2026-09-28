@@ -117,7 +117,7 @@ func TestVerschiebeVariante_AmRandWirkungslos(t *testing.T) {
 	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Zweite", 200, produkt.ActiveStatus))
 
 	if err := repo.VerschiebeVariante(ctx, ersteID, true); err != nil {
-		t.Fatalf("erwartet kein Fehler am Listenrand, got %v", err)
+		t.Errorf("erwartet kein Fehler am Listenrand, got %v", err)
 	}
 
 	if got := variantenNamen(t, repo, produktID); !slices.Equal(got, []string{"Erste", "Zweite"}) {
@@ -141,7 +141,7 @@ func TestVerschiebeProdukt_BleibtInSeinerKategorie(t *testing.T) {
 	setzeProduktReihenfolge(t, repo, pommesID, 3)
 
 	if err := repo.VerschiebeProdukt(ctx, bierID, false); err != nil {
-		t.Fatalf("erwartet kein Fehler, got %v", err)
+		t.Errorf("erwartet kein Fehler, got %v", err)
 	}
 
 	erwartet := map[string]int{"Cola": 1, "Bier": 2, "Pommes": 3}

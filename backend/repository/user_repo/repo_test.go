@@ -60,19 +60,19 @@ func TestGetUser(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if retrievedUser.ID != user.ID {
-		t.Fatalf("expected user ID %d, got %d", user.ID, retrievedUser.ID)
+		t.Errorf("expected user ID %d, got %d", user.ID, retrievedUser.ID)
 	}
 	if retrievedUser.Username != user.Username {
-		t.Fatalf("expected username %s, got %s", user.Username, retrievedUser.Username)
+		t.Errorf("expected username %s, got %s", user.Username, retrievedUser.Username)
 	}
 	if retrievedUser.CreatedAt.IsZero() {
-		t.Fatalf("expected non-zero created_at, got %v", retrievedUser.CreatedAt)
+		t.Errorf("expected non-zero created_at, got %v", retrievedUser.CreatedAt)
 	}
 	if retrievedUser.Status != user.Status {
-		t.Fatalf("expected user to be active, got %s", retrievedUser.Status)
+		t.Errorf("expected user to be active, got %s", retrievedUser.Status)
 	}
 	if retrievedUser.Role != user.Role {
-		t.Fatalf("expected user role %s, got %s", user.Role, retrievedUser.Role)
+		t.Errorf("expected user role %s, got %s", user.Role, retrievedUser.Role)
 	}
 }
 
@@ -82,7 +82,7 @@ func TestGetUser_Error(t *testing.T) {
 
 	_, err := repo.GetUser(context.Background(), 100000)
 	if !errors.Is(err, dbpkg.ErrNotFound) {
-		t.Fatalf("expected user not found error, got %v", err)
+		t.Errorf("expected user not found error, got %v", err)
 	}
 }
 
@@ -95,7 +95,7 @@ func TestGetUserByUsername(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if retrievedUser.ID != user.ID {
-		t.Fatalf("expected user ID %d, got %d", user.ID, retrievedUser.ID)
+		t.Errorf("expected user ID %d, got %d", user.ID, retrievedUser.ID)
 	}
 }
 
@@ -106,7 +106,7 @@ func TestGetUserByUsername_Error(t *testing.T) {
 	_, err := repo.GetUserByUsername(context.Background(), "nonexistentuser")
 
 	if !errors.Is(err, dbpkg.ErrNotFound) {
-		t.Fatalf("expected user not found error, got %v", err)
+		t.Errorf("expected user not found error, got %v", err)
 	}
 }
 
@@ -123,7 +123,7 @@ func TestGetAllUsers(t *testing.T) {
 		t.Fatalf("expected 1 users, got %d", len(users))
 	}
 	if users[0].ID != user.ID {
-		t.Fatalf("expected user ID %d, got %d", user.ID, users[0].ID)
+		t.Errorf("expected user ID %d, got %d", user.ID, users[0].ID)
 	}
 }
 
@@ -141,7 +141,7 @@ func TestCreateUserInDB(t *testing.T) {
 		t.Fatalf("Failed to insert user: %v", err)
 	}
 	if userID < 1 {
-		t.Fatalf("expected valid user ID, got %d", userID)
+		t.Errorf("expected valid user ID, got %d", userID)
 	}
 }
 
@@ -163,7 +163,7 @@ func TestUpdateUser(t *testing.T) {
 		t.Fatalf("expected no error retrieving user, got %v", err)
 	}
 	if updatedUser.Name != "Updated Name" || updatedUser.Username != "updatedusername" || updatedUser.Role != user.ServiceRole {
-		t.Fatalf("user not updated correctly: %+v", updatedUser)
+		t.Errorf("user not updated correctly: %+v", updatedUser)
 	}
 }
 
@@ -175,7 +175,7 @@ func TestUpdateUserInDB_Error(t *testing.T) {
 	err := repo.UpdateUser(context.Background(), u)
 
 	if !errors.Is(err, dbpkg.ErrNotFound) {
-		t.Fatalf("expected user not found error, got %v", err)
+		t.Errorf("expected user not found error, got %v", err)
 	}
 }
 
@@ -190,7 +190,7 @@ func TestCreateUser_DuplicateUsernameRejected(t *testing.T) {
 
 	_, err = repo.CreateUser(context.Background(), duplicate)
 	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
-		t.Fatalf("expected ErrAlreadyExists for duplicate username, got %v", err)
+		t.Errorf("expected ErrAlreadyExists for duplicate username, got %v", err)
 	}
 }
 
@@ -210,7 +210,7 @@ func TestCreateUser_UsernameNotRecycledAfterSoftDelete(t *testing.T) {
 
 	_, err = repo.CreateUser(context.Background(), reused)
 	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
-		t.Fatalf("expected ErrAlreadyExists; a soft-deleted user's username must not be recycled, got %v", err)
+		t.Errorf("expected ErrAlreadyExists; a soft-deleted user's username must not be recycled, got %v", err)
 	}
 }
 
@@ -247,7 +247,7 @@ func TestSetPasswordTx_ConcurrentFailuresCountedExactly(t *testing.T) {
 		t.Fatalf("expected no error reloading user, got %v", err)
 	}
 	if after.OnetimePasswordAttempts != attempts {
-		t.Fatalf("expected exactly %d counted failures (no under-count), got %d", attempts, after.OnetimePasswordAttempts)
+		t.Errorf("expected exactly %d counted failures (no under-count), got %d", attempts, after.OnetimePasswordAttempts)
 	}
 }
 
@@ -292,7 +292,7 @@ func TestCountUsers(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if count != 2 {
-		t.Fatalf("expected 2 users including soft-deleted, got %d", count)
+		t.Errorf("expected 2 users including soft-deleted, got %d", count)
 	}
 }
 
@@ -311,6 +311,6 @@ func TestGetAllUsers_ExcludesDeletedUsers(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(users) != 0 {
-		t.Fatalf("expected 0 users (deleted excluded), got %d", len(users))
+		t.Errorf("expected 0 users (deleted excluded), got %d", len(users))
 	}
 }

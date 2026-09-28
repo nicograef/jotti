@@ -87,7 +87,7 @@ func TestGetAllProdukte(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if len(produkte) != 2 {
-		t.Fatalf("Expected 2 produkte, got %d", len(produkte))
+		t.Errorf("Expected 2 produkte, got %d", len(produkte))
 	}
 }
 
@@ -108,7 +108,7 @@ func TestGetAllProdukte_WithVarianten(t *testing.T) {
 		t.Fatalf("Expected 1 produkt, got %d", len(produkte))
 	}
 	if len(produkte[0].Varianten) != 2 {
-		t.Fatalf("Expected 2 varianten, got %d", len(produkte[0].Varianten))
+		t.Errorf("Expected 2 varianten, got %d", len(produkte[0].Varianten))
 	}
 }
 
@@ -137,7 +137,7 @@ func TestGetActiveProdukte(t *testing.T) {
 		t.Fatalf("Expected 1 produkt with active varianten, got %d", len(produkte))
 	}
 	if produkte[0].Name != "Produkt 1" {
-		t.Fatalf("Expected 'Produkt 1', got %s", produkte[0].Name)
+		t.Errorf("Expected 'Produkt 1', got %s", produkte[0].Name)
 	}
 }
 
@@ -155,10 +155,10 @@ func TestGetProdukt(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if p.Name != "Burger" {
-		t.Fatalf("Expected 'Burger', got %s", p.Name)
+		t.Errorf("Expected 'Burger', got %s", p.Name)
 	}
 	if len(p.Varianten) != 2 {
-		t.Fatalf("Expected 2 varianten, got %d", len(p.Varianten))
+		t.Errorf("Expected 2 varianten, got %d", len(p.Varianten))
 	}
 }
 
@@ -170,7 +170,7 @@ func TestGetProdukt_NotFound(t *testing.T) {
 	_, err := repo.GetProdukt(ctx, 999999)
 
 	if !errors.Is(err, dbpkg.ErrNotFound) {
-		t.Fatalf("Expected ErrNotFound, got %v", err)
+		t.Errorf("Expected ErrNotFound, got %v", err)
 	}
 }
 
@@ -184,7 +184,7 @@ func TestCreateProdukt(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if produktID < 1 {
-		t.Fatalf("Expected valid produkt ID, got %d", produktID)
+		t.Errorf("Expected valid produkt ID, got %d", produktID)
 	}
 }
 
@@ -209,10 +209,10 @@ func TestUpdateProdukt(t *testing.T) {
 		t.Fatalf("Expected no error retrieving produkt, got %v", err)
 	}
 	if updated.Name != "Updated Name" {
-		t.Fatalf("Expected produkt name 'Updated Name', got %s", updated.Name)
+		t.Errorf("Expected produkt name 'Updated Name', got %s", updated.Name)
 	}
 	if updated.Kategorie != produkt.GetraenkKategorie {
-		t.Fatalf("Expected produkt category 'getraenk', got %s", updated.Kategorie)
+		t.Errorf("Expected produkt category 'getraenk', got %s", updated.Kategorie)
 	}
 }
 
@@ -224,7 +224,7 @@ func TestUpdateProdukt_NotFound(t *testing.T) {
 	err := repo.UpdateProdukt(ctx, produkt.Produkt{ID: 999999, Name: "Updated Name", Kategorie: produkt.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produkt.ActiveStatus, UpdatedAt: time.Now().UTC()})
 
 	if !errors.Is(err, dbpkg.ErrNotFound) {
-		t.Fatalf("Expected ErrNotFound, got %v", err)
+		t.Errorf("Expected ErrNotFound, got %v", err)
 	}
 }
 
@@ -242,7 +242,7 @@ func TestCreateVariante(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if varianteID < 1 {
-		t.Fatalf("Expected valid variante ID, got %d", varianteID)
+		t.Errorf("Expected valid variante ID, got %d", varianteID)
 	}
 }
 
@@ -259,13 +259,13 @@ func TestGetVariante(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if v.Name != "0.5L" {
-		t.Fatalf("Expected '0.5L', got %s", v.Name)
+		t.Errorf("Expected '0.5L', got %s", v.Name)
 	}
 	if v.PreisCents != 299 {
-		t.Fatalf("Expected price 299, got %d", v.PreisCents)
+		t.Errorf("Expected price 299, got %d", v.PreisCents)
 	}
 	if v.Status != produkt.ActiveStatus {
-		t.Fatalf("Expected status 'active', got %s", v.Status)
+		t.Errorf("Expected status 'active', got %s", v.Status)
 	}
 }
 
@@ -277,7 +277,7 @@ func TestGetVariante_NotFound(t *testing.T) {
 	_, err := repo.GetVariante(ctx, 999999)
 
 	if !errors.Is(err, dbpkg.ErrNotFound) {
-		t.Fatalf("Expected ErrNotFound, got %v", err)
+		t.Errorf("Expected ErrNotFound, got %v", err)
 	}
 }
 
@@ -302,13 +302,13 @@ func TestUpdateVariante(t *testing.T) {
 
 	updated, _ := repo.GetVariante(ctx, varianteID)
 	if updated.Name != "1.0L" {
-		t.Fatalf("Expected '1.0L', got %s", updated.Name)
+		t.Errorf("Expected '1.0L', got %s", updated.Name)
 	}
 	if updated.PreisCents != 499 {
-		t.Fatalf("Expected price 499, got %d", updated.PreisCents)
+		t.Errorf("Expected price 499, got %d", updated.PreisCents)
 	}
 	if updated.Status != produkt.InactiveStatus {
-		t.Fatalf("Expected status 'inactive', got %s", updated.Status)
+		t.Errorf("Expected status 'inactive', got %s", updated.Status)
 	}
 }
 
@@ -320,7 +320,7 @@ func TestUpdateVariante_NotFound(t *testing.T) {
 	err := repo.UpdateVariante(ctx, produkt.Variante{ID: 999999, Name: "Test", PreisCents: 100, Status: produkt.ActiveStatus})
 
 	if !errors.Is(err, dbpkg.ErrNotFound) {
-		t.Fatalf("Expected ErrNotFound, got %v", err)
+		t.Errorf("Expected ErrNotFound, got %v", err)
 	}
 }
 
@@ -344,7 +344,7 @@ func TestDeletedVariantenNotReturned(t *testing.T) {
 		t.Fatalf("Expected 1 variante (deleted should be excluded), got %d", len(p.Varianten))
 	}
 	if p.Varianten[0].Name != "Small" {
-		t.Fatalf("Expected 'Small' variante, got %s", p.Varianten[0].Name)
+		t.Errorf("Expected 'Small' variante, got %s", p.Varianten[0].Name)
 	}
 }
 
@@ -399,7 +399,7 @@ func assertVarianteOrder(t *testing.T, query string, varianten []produkt.Variant
 	}
 	for i, wantID := range wantIDs {
 		if varianten[i].ID != wantID {
-			t.Fatalf("%s: expected variante ID %d at position %d, got %d", query, wantID, i, varianten[i].ID)
+			t.Errorf("%s: expected variante ID %d at position %d, got %d", query, wantID, i, varianten[i].ID)
 		}
 	}
 }

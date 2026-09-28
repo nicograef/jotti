@@ -202,7 +202,7 @@ func TestGetAlleTischeDB(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(tables) != 2 {
-		t.Fatalf("expected exactly 2 tables, got %d", len(tables))
+		t.Errorf("expected exactly 2 tables, got %d", len(tables))
 	}
 }
 
@@ -245,7 +245,7 @@ func TestGetAktiveTischeDB(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(tables) != 1 {
-		t.Fatalf("expected exactly 1 active table, got %d", len(tables))
+		t.Errorf("expected exactly 1 active table, got %d", len(tables))
 	}
 }
 
@@ -260,7 +260,7 @@ func TestCreateTischInDB(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if tableID < 1 {
-		t.Fatalf("expected valid table ID, got %d", tableID)
+		t.Errorf("expected valid table ID, got %d", tableID)
 	}
 }
 
@@ -282,7 +282,7 @@ func TestUpdateTischDB(t *testing.T) {
 		t.Fatalf("expected no error getting table, got %v", err)
 	}
 	if tables[0].Name != "Updated Table Name" {
-		t.Fatalf("expected name 'Updated Table Name', got %s", tables[0].Name)
+		t.Errorf("expected name 'Updated Table Name', got %s", tables[0].Name)
 	}
 }
 
@@ -295,7 +295,7 @@ func TestUpdateTischDB_NotFound(t *testing.T) {
 	err := repo.UpdateTisch(ctx, tisch.Tisch{ID: 999999, Name: "New Name", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 
 	if !errors.Is(err, dbpkg.ErrNotFound) {
-		t.Fatalf("expected table not found error, got %v", err)
+		t.Errorf("expected table not found error, got %v", err)
 	}
 }
 
