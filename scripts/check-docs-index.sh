@@ -4,8 +4,8 @@
 # Usage:
 #   make check-repo   # or: ./scripts/check-docs-index.sh
 #
-# A file docs/NAME.md needs a link "](NAME.md"; a directory docs/DIR/ needs a link
-# into it, "](DIR/".
+# A Markdown file directly in docs/ needs a link to its name, a directory a link
+# into it ("](leitfaden/").
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,9 +18,9 @@ cd "$PROJECT_ROOT"
 INDEX="docs/README.md"
 [[ -f "$INDEX" ]] || fatal "$INDEX is missing."
 
-# One entry per top-level doc: "NAME.md" for a file, "DIR/" for a directory.
+# One entry per top-level doc: the file name, or the directory name plus "/".
 mapfile -t entries < <(
-  git ls-files docs | awk -F/ 'NF == 2 && $2 ~ /\.md$/ { print $2 } NF > 2 { print $2 "/" }' | sort -u
+  git ls-files docs | awk -F/ 'NF == 2 && $2 ~ /[.]md$/ { print $2 } NF > 2 { print $2 "/" }' | sort -u
 )
 
 violations=0
