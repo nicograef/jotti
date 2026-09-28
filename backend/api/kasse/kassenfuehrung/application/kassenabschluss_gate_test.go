@@ -92,6 +92,9 @@ func TestKasseAbschliessen_GateBlocktBeiAusstehend(t *testing.T) {
 		t.Errorf("expected Anzahl 1, got %d", ausstehend.Anzahl)
 	}
 	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungOffen)
+	if len(sitzungMock.Statuswechsel) != 0 {
+		t.Errorf("expected the gate to block before the barrier, got status changes %v", sitzungMock.Statuswechsel)
+	}
 	events, _ := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
 	if len(events) != 0 {
 		t.Errorf("expected no events written when gate blocks, got %d", len(events))

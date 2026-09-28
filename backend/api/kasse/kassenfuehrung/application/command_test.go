@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -224,9 +225,11 @@ func TestKasseAbschliessen_MitDifferenz(t *testing.T) {
 type fakeDruckauftraege struct {
 	fehlgeschlagen int64
 	err            error
+	versuche       int
 }
 
 func (f *fakeDruckauftraege) DiscardAlleFehlgeschlagenen(context.Context) (int64, error) {
+	f.versuche++
 	if f.err != nil {
 		return 0, f.err
 	}
@@ -283,6 +286,9 @@ func TestKasseAbschliessen_CleanerFehlerBleibtBestEffort(t *testing.T) {
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if err != nil {
 		t.Fatalf("expected Abschluss to stay successful despite cleaner error, got %v", err)
+	}
+	if cleaner.versuche != 1 {
+		t.Errorf("expected one discard attempt, got %d", cleaner.versuche)
 	}
 	// The cleaner error must not reach the named return err. The mock status proves the defer reset did not run.
 	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungWirdAbgeschlossen)
@@ -448,6 +454,10 @@ func TestKasseAbschliessen_FehlerSetztStatusZurueck(t *testing.T) {
 		t.Error("expected an error, got nil")
 	}
 	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungOffen)
+	want := []kasse.KassensitzungStatus{kasse.KassensitzungWirdAbgeschlossen, kasse.KassensitzungOffen}
+	if !slices.Equal(sitzungMock.Statuswechsel, want) {
+		t.Errorf("expected barrier set then reset %v, got %v", want, sitzungMock.Statuswechsel)
+	}
 }
 
 // Ein Versionskonflikt bedeutet einen konkurrierenden zweiten Abschluss — die unterlegene

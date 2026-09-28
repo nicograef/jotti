@@ -20,6 +20,9 @@ func NewKassensitzungenRepo(ks *kasse.Kassensitzung, err error) *Kassensitzungen
 type KassensitzungenRepo struct {
 	offeneKS *kasse.Kassensitzung
 	err      error
+
+	// Statuswechsel lists every status a barrier write set, in order.
+	Statuswechsel []kasse.KassensitzungStatus
 }
 
 // GetAktiveKassensitzung returns a copy of the Kassensitzung when it is 'offen' or
@@ -57,6 +60,7 @@ func (m *KassensitzungenRepo) setStatus(zNr int, neu kasse.KassensitzungStatus, 
 		return 0
 	}
 	m.offeneKS.Status = neu
+	m.Statuswechsel = append(m.Statuswechsel, neu)
 	return 1
 }
 
