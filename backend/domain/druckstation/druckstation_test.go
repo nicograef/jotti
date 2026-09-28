@@ -31,7 +31,7 @@ func TestNewDruckstation(t *testing.T) {
 			station, err := NewDruckstation(tc.kategorie, tc.druckerIP, tc.bonmodus)
 			if tc.wantError {
 				if err == nil {
-					t.Fatalf("expected error, got nil")
+					t.Errorf("expected error, got nil")
 				}
 				return
 			}

@@ -193,7 +193,7 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 	}
 
 	if len(aufschluesselung) != len(exportSummen) {
-		t.Fatalf("Reporting hat %d Steuersätze, Export %d: %+v vs %+v", len(aufschluesselung), len(exportSummen), aufschluesselung, exportSummen)
+		t.Errorf("Reporting hat %d Steuersätze, Export %d: %+v vs %+v", len(aufschluesselung), len(exportSummen), aufschluesselung, exportSummen)
 	}
 
 	gesamtBrutto := 0

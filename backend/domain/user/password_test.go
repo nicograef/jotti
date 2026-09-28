@@ -14,7 +14,7 @@ func TestGenerateOnetimePassword(t *testing.T) {
 			t.Fatalf("Expected no error, got %v", err)
 		}
 		if !valid.MatchString(password) {
-			t.Fatalf("Expected exactly 6 digits, got %q", password)
+			t.Errorf("Expected exactly 6 digits, got %q", password)
 		}
 	}
 }

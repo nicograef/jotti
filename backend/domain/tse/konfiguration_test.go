@@ -9,19 +9,19 @@ func TestNewKonfiguration(t *testing.T) {
 	}
 
 	if conf.ApiKey != "api-key" {
-		t.Fatalf("expected trimmed api key, got %q", conf.ApiKey)
+		t.Errorf("expected trimmed api key, got %q", conf.ApiKey)
 	}
 	if conf.ApiSecret != "api-secret" {
-		t.Fatalf("expected trimmed api secret, got %q", conf.ApiSecret)
+		t.Errorf("expected trimmed api secret, got %q", conf.ApiSecret)
 	}
 	if conf.TssID != "tss-1" {
-		t.Fatalf("expected trimmed tss id, got %q", conf.TssID)
+		t.Errorf("expected trimmed tss id, got %q", conf.TssID)
 	}
 	if conf.ClientID != "client-1" {
-		t.Fatalf("expected trimmed client id, got %q", conf.ClientID)
+		t.Errorf("expected trimmed client id, got %q", conf.ClientID)
 	}
 	if conf.UpdatedAt.IsZero() {
-		t.Fatal("expected UpdatedAt to be set")
+		t.Error("expected UpdatedAt to be set")
 	}
 }
 
@@ -52,7 +52,7 @@ func TestKonfigurationIstKonfiguriert(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.conf.IstKonfiguriert()
 			if got != tt.want {
-				t.Fatalf("IstKonfiguriert() = %v, want %v", got, tt.want)
+				t.Errorf("IstKonfiguriert() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -61,6 +61,6 @@ func TestKonfigurationIstKonfiguriert(t *testing.T) {
 func TestNewKonfiguration_PartialValuesRejected(t *testing.T) {
 	_, err := NewKonfiguration("api-key", "", "tss-1", "client-1")
 	if err == nil {
-		t.Fatal("expected error for partial config, got nil")
+		t.Error("expected error for partial config, got nil")
 	}
 }

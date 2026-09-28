@@ -134,21 +134,21 @@ func TestGetReporting_BerechnetUmsatzProSteuersatz(t *testing.T) {
 
 	regel := bySatz[steuer.RegelSteuersatz]
 	if regel.BruttoCents != 1490 || regel.NettoCents != 1252 || regel.SteuerCents != 238 {
-		t.Fatalf("unexpected regel values: %+v", regel)
+		t.Errorf("unexpected regel values: %+v", regel)
 	}
 
 	ermaessigt := bySatz[steuer.ErmaessigtSteuersatz]
 	if ermaessigt.BruttoCents != 807 || ermaessigt.NettoCents != 754 || ermaessigt.SteuerCents != 53 {
-		t.Fatalf("unexpected ermaessigt values: %+v", ermaessigt)
+		t.Errorf("unexpected ermaessigt values: %+v", ermaessigt)
 	}
 
 	befreit := bySatz[steuer.BefreitSteuersatz]
 	if befreit.BruttoCents != 500 || befreit.NettoCents != 500 || befreit.SteuerCents != 0 {
-		t.Fatalf("unexpected befreit values: %+v", befreit)
+		t.Errorf("unexpected befreit values: %+v", befreit)
 	}
 
 	if _, hasKombi := bySatz[steuer.KombiSteuersatz]; hasKombi {
-		t.Fatalf("did not expect kombi row in result: %+v", result.UmsatzProSteuersatz)
+		t.Errorf("did not expect kombi row in result: %+v", result.UmsatzProSteuersatz)
 	}
 }
 
@@ -180,12 +180,12 @@ func TestGetReporting_UmsatzProSteuersatzRechnetJeZeile(t *testing.T) {
 
 	ermaessigt := bySatz[steuer.ErmaessigtSteuersatz]
 	if ermaessigt.BruttoCents != 1408 || ermaessigt.NettoCents != 1316 || ermaessigt.SteuerCents != 92 {
-		t.Fatalf("unexpected ermaessigt values (Zeilenbasis): %+v", ermaessigt)
+		t.Errorf("unexpected ermaessigt values (Zeilenbasis): %+v", ermaessigt)
 	}
 
 	regel := bySatz[steuer.RegelSteuersatz]
 	if regel.BruttoCents != 152 || regel.NettoCents != 128 || regel.SteuerCents != 24 {
-		t.Fatalf("unexpected regel values (Warenrücknahme abgezogen): %+v", regel)
+		t.Errorf("unexpected regel values (Warenrücknahme abgezogen): %+v", regel)
 	}
 }
 
@@ -388,7 +388,7 @@ func TestGruppiereProduktStatistik_GruppiertSortiertUndSummiert(t *testing.T) {
 
 	// Essen zuerst; Pommes (Menge 10) vor Wurst (Menge 8).
 	if produkte[0].Kategorie != "essen" || produkte[0].ProduktName != "Pommes" {
-		t.Fatalf("expected Pommes first in Essen, got %+v", produkte[0])
+		t.Errorf("expected Pommes first in Essen, got %+v", produkte[0])
 	}
 	if produkte[0].AusgegebeneMenge != 10 || produkte[0].UmsatzCents != 2500 {
 		t.Errorf("expected Pommes subtotal menge 10 / umsatz 2500, got %d / %d", produkte[0].AusgegebeneMenge, produkte[0].UmsatzCents)
@@ -423,7 +423,7 @@ func TestGruppiereProduktStatistik_GruppiertSortiertUndSummiert(t *testing.T) {
 func TestGruppiereProduktStatistik_LeereEingabe(t *testing.T) {
 	produkte := gruppiereProduktStatistik(nil)
 	if produkte == nil {
-		t.Fatal("expected non-nil empty slice for empty input")
+		t.Error("expected non-nil empty slice for empty input")
 	}
 	if len(produkte) != 0 {
 		t.Errorf("expected empty result, got %+v", produkte)
@@ -471,7 +471,7 @@ func TestGetLiveReporting_ReichtProduktStatistikDurch(t *testing.T) {
 		t.Fatal("expected non-nil result")
 	}
 	if len(result.ProduktStatistik) != 1 || result.ProduktStatistik[0].ProduktName != "Cola" {
-		t.Fatalf("expected ProduktStatistik with Cola, got %+v", result.ProduktStatistik)
+		t.Errorf("expected ProduktStatistik with Cola, got %+v", result.ProduktStatistik)
 	}
 }
 
@@ -480,7 +480,7 @@ func TestGetReporting_DatabaseError(t *testing.T) {
 
 	_, err := q.GetReporting(context.Background(), testKassensitzungNr)
 	if !errors.Is(err, ErrDatabase) {
-		t.Fatalf("expected ErrDatabase, got %v", err)
+		t.Errorf("expected ErrDatabase, got %v", err)
 	}
 }
 
@@ -513,7 +513,7 @@ func TestGetEigeneUebersicht_DatabaseError(t *testing.T) {
 
 	_, err := q.GetEigeneUebersicht(context.Background(), 7)
 	if !errors.Is(err, ErrDatabase) {
-		t.Fatalf("expected ErrDatabase, got %v", err)
+		t.Errorf("expected ErrDatabase, got %v", err)
 	}
 }
 
@@ -715,7 +715,7 @@ func TestGetLiveReporting_DatabaseError_KassensitzungRepo(t *testing.T) {
 
 	_, err := q.GetLiveReporting(context.Background())
 	if !errors.Is(err, ErrDatabase) {
-		t.Fatalf("expected ErrDatabase, got %v", err)
+		t.Errorf("expected ErrDatabase, got %v", err)
 	}
 }
 
@@ -728,6 +728,6 @@ func TestGetLiveReporting_DatabaseError_ReportingRepo(t *testing.T) {
 
 	_, err := q.GetLiveReporting(context.Background())
 	if !errors.Is(err, ErrDatabase) {
-		t.Fatalf("expected ErrDatabase, got %v", err)
+		t.Errorf("expected ErrDatabase, got %v", err)
 	}
 }

@@ -123,7 +123,7 @@ func TestSetPassword_TrimmtEingabe(t *testing.T) {
 
 	err = u.SetPassword("  "+onetimePassword+" ", "newSecurePass123")
 	if err != nil {
-		t.Fatalf("SetPassword mit getrimmter Eingabe: %v", err)
+		t.Errorf("SetPassword mit getrimmter Eingabe: %v", err)
 	}
 }
 
@@ -153,7 +153,7 @@ func TestSetPassword_SperrtNachFuenfFehlversuchen(t *testing.T) {
 
 	err = u.SetPassword(onetimePassword, "newSecurePass123")
 	if !errors.Is(err, ErrNoPassword) {
-		t.Fatalf("expected ErrNoPassword after lockout, got %v", err)
+		t.Errorf("expected ErrNoPassword after lockout, got %v", err)
 	}
 
 	neues, err := u.ResetPassword()
@@ -164,7 +164,7 @@ func TestSetPassword_SperrtNachFuenfFehlversuchen(t *testing.T) {
 		t.Errorf("expected attempts reset to 0, got %d", u.OnetimePasswordAttempts)
 	}
 	if err := u.SetPassword(neues, "newSecurePass123"); err != nil {
-		t.Fatalf("SetPassword nach Reset: %v", err)
+		t.Errorf("SetPassword nach Reset: %v", err)
 	}
 }
 

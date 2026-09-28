@@ -22,7 +22,7 @@ func TestSteuersatzProzent(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.satz.Prozent(); got != tt.expected {
-				t.Fatalf("Prozent() = %d, expected %d", got, tt.expected)
+				t.Errorf("Prozent() = %d, expected %d", got, tt.expected)
 			}
 		})
 	}
@@ -124,12 +124,12 @@ func TestAufteilen(t *testing.T) {
 			got := Aufteilen(tt.brutto, tt.satz)
 
 			if !reflect.DeepEqual(got, tt.expected) {
-				t.Fatalf("Aufteilen(%d, %s) = %+v, expected %+v", tt.brutto, tt.satz, got, tt.expected)
+				t.Errorf("Aufteilen(%d, %s) = %+v, expected %+v", tt.brutto, tt.satz, got, tt.expected)
 			}
 
 			for _, aufteilung := range got {
 				if aufteilung.Netto+aufteilung.Steuer != aufteilung.Brutto {
-					t.Fatalf("invariant broken for %+v", aufteilung)
+					t.Errorf("invariant broken for %+v", aufteilung)
 				}
 			}
 
@@ -139,7 +139,7 @@ func TestAufteilen(t *testing.T) {
 					sumBrutto += aufteilung.Brutto
 				}
 				if sumBrutto != tt.brutto {
-					t.Fatalf("kombi brutto split mismatch: got %d expected %d", sumBrutto, tt.brutto)
+					t.Errorf("kombi brutto split mismatch: got %d expected %d", sumBrutto, tt.brutto)
 				}
 			}
 		})
@@ -151,7 +151,7 @@ func TestSteuersatzSchema(t *testing.T) {
 	for _, satz := range valid {
 		t.Run("valid_"+string(satz), func(t *testing.T) {
 			if issue := SteuersatzSchema.Validate(&satz); issue != nil {
-				t.Fatalf("expected valid steuersatz %q, got issue %v", satz, issue)
+				t.Errorf("expected valid steuersatz %q, got issue %v", satz, issue)
 			}
 		})
 	}
@@ -165,7 +165,7 @@ func TestSteuersatzSchema(t *testing.T) {
 
 		issueText := fmt.Sprintf("%v", issue)
 		if !strings.Contains(issueText, "Ungültiger Steuersatz") {
-			t.Fatalf("expected german validation message, got %q", issueText)
+			t.Errorf("expected german validation message, got %q", issueText)
 		}
 	})
 }
@@ -230,7 +230,7 @@ func TestSteuermatrix(t *testing.T) {
 			got := Steuermatrix(tt.positionen)
 
 			if !reflect.DeepEqual(got, tt.expected) {
-				t.Fatalf("Steuermatrix() = %+v, expected %+v", got, tt.expected)
+				t.Errorf("Steuermatrix() = %+v, expected %+v", got, tt.expected)
 			}
 
 			inputBrutto := 0
@@ -242,12 +242,12 @@ func TestSteuermatrix(t *testing.T) {
 			for _, zeile := range got {
 				matrixBrutto += zeile.Brutto
 				if zeile.Netto+zeile.Steuer != zeile.Brutto {
-					t.Fatalf("invariant broken for %+v", zeile)
+					t.Errorf("invariant broken for %+v", zeile)
 				}
 			}
 
 			if matrixBrutto != inputBrutto {
-				t.Fatalf("matrix brutto sum mismatch: got %d expected %d", matrixBrutto, inputBrutto)
+				t.Errorf("matrix brutto sum mismatch: got %d expected %d", matrixBrutto, inputBrutto)
 			}
 		})
 	}

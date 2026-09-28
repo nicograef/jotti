@@ -77,7 +77,7 @@ func assertBadRequestCode(t *testing.T, rec *httptest.ResponseRecorder, expected
 	}
 
 	if payload.Code != expectedCode {
-		t.Fatalf("expected code %q, got %q", expectedCode, payload.Code)
+		t.Errorf("expected code %q, got %q", expectedCode, payload.Code)
 	}
 }
 
@@ -178,16 +178,16 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 		t.Fatalf("expected 1 produktStatistik row, got %+v", resp.ProduktStatistik)
 	}
 	if p := resp.ProduktStatistik[0]; p.Kategorie != "essen" || p.ProduktName != "Pommes" || p.AusgegebeneMenge != 4 || p.UmsatzCents != 900 {
-		t.Fatalf("unexpected produktStatistik row: %+v", resp.ProduktStatistik[0])
+		t.Errorf("unexpected produktStatistik row: %+v", resp.ProduktStatistik[0])
 	}
 	if v := resp.ProduktStatistik[0].Varianten; len(v) != 1 || v[0].VarianteID != 10 || v[0].VarianteName != "groß" {
-		t.Fatalf("unexpected produktStatistik varianten: %+v", resp.ProduktStatistik[0].Varianten)
+		t.Errorf("unexpected produktStatistik varianten: %+v", resp.ProduktStatistik[0].Varianten)
 	}
 	if len(resp.Breakdowns.AbrechnungProServicekraft) != 1 {
 		t.Fatalf("expected 1 abrechnungProServicekraft row, got %+v", resp.Breakdowns.AbrechnungProServicekraft)
 	}
 	if sk := resp.Breakdowns.AbrechnungProServicekraft[0]; sk.UserID != 3 || sk.KassiertCents != 5000 || sk.AnzahlZahlungen != 4 || sk.RuecknahmenCents != 800 || sk.AnzahlStornierungen != 2 || sk.AbzugebenCents != 4200 {
-		t.Fatalf("unexpected abrechnungProServicekraft row: %+v", resp.Breakdowns.AbrechnungProServicekraft[0])
+		t.Errorf("unexpected abrechnungProServicekraft row: %+v", resp.Breakdowns.AbrechnungProServicekraft[0])
 	}
 	if resp.Metadaten.EroeffnetAm == nil || !resp.Metadaten.EroeffnetAm.Equal(eroeffnetAm) {
 		t.Errorf("expected eroeffnetAm %v, got %v", eroeffnetAm, resp.Metadaten.EroeffnetAm)
@@ -217,7 +217,7 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 		t.Fatalf("expected 1 umsatzProSteuersatz row, got %d", len(resp.UmsatzProSteuersatz))
 	}
 	if resp.UmsatzProSteuersatz[0].Satz != "regel" || resp.UmsatzProSteuersatz[0].BruttoCents != 1190 {
-		t.Fatalf("unexpected umsatzProSteuersatz row: %+v", resp.UmsatzProSteuersatz[0])
+		t.Errorf("unexpected umsatzProSteuersatz row: %+v", resp.UmsatzProSteuersatz[0])
 	}
 }
 
@@ -231,7 +231,7 @@ func TestGetReportingHandler_QueryError_Returns500(t *testing.T) {
 	handler.GetReportingHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", rec.Code)
+		t.Errorf("expected status 500, got %d", rec.Code)
 	}
 }
 
@@ -267,10 +267,10 @@ func TestGetAbgeschlosseneKassensitzungenHandler_ReturnsItems(t *testing.T) {
 	}
 	item := resp.Kassensitzungen[0]
 	if item.ZNr != 2 || item.Datum != "2026-07-05" || item.UmsatzGesamtCents != 341200 {
-		t.Fatalf("unexpected kassensitzung item: %+v", item)
+		t.Errorf("unexpected kassensitzung item: %+v", item)
 	}
 	if item.AbgeschlossenAm == nil || !item.AbgeschlossenAm.Equal(abgeschlossenAm) {
-		t.Fatalf("expected abgeschlossenAm %v, got %v", abgeschlossenAm, item.AbgeschlossenAm)
+		t.Errorf("expected abgeschlossenAm %v, got %v", abgeschlossenAm, item.AbgeschlossenAm)
 	}
 }
 
@@ -283,7 +283,7 @@ func TestGetAbgeschlosseneKassensitzungenHandler_QueryError_Returns500(t *testin
 	handler.GetAbgeschlosseneKassensitzungenHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", rec.Code)
+		t.Errorf("expected status 500, got %d", rec.Code)
 	}
 }
 
@@ -427,6 +427,6 @@ func TestGetLiveReportingHandler_QueryError_Returns500(t *testing.T) {
 	handler.GetLiveReportingHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("expected status 500, got %d", rec.Code)
+		t.Errorf("expected status 500, got %d", rec.Code)
 	}
 }

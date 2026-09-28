@@ -193,7 +193,7 @@ func TestAbrechnung_StellvertretendeRuecknahmeTrifftDenKassierer(t *testing.T) {
 
 	byUser := abrechnungByUser(data.Breakdowns.AbrechnungProServicekraft)
 	if len(byUser) != 1 {
-		t.Fatalf("expected only anna in the abrechnung, got %+v", data.Breakdowns.AbrechnungProServicekraft)
+		t.Errorf("expected only anna in the abrechnung, got %+v", data.Breakdowns.AbrechnungProServicekraft)
 	}
 	assertAbrechnung(t, byUser["anna"], 2000, 500, 1500, 1)
 }
@@ -216,7 +216,7 @@ func TestAbrechnung_EigeneRuecknahmeErgibtDasselbe(t *testing.T) {
 
 	byUser := abrechnungByUser(data.Breakdowns.AbrechnungProServicekraft)
 	if len(byUser) != 1 {
-		t.Fatalf("expected only anna in the abrechnung, got %+v", data.Breakdowns.AbrechnungProServicekraft)
+		t.Errorf("expected only anna in the abrechnung, got %+v", data.Breakdowns.AbrechnungProServicekraft)
 	}
 	assertAbrechnung(t, byUser["anna"], 2000, 500, 1500, 1)
 }
@@ -300,7 +300,7 @@ func TestAbrechnung_DirektverkaufBleibtAussen(t *testing.T) {
 
 	byUser := abrechnungByUser(data.Breakdowns.AbrechnungProServicekraft)
 	if len(byUser) != 1 {
-		t.Fatalf("expected only anna (Tischservice) in the abrechnung, got %+v", data.Breakdowns.AbrechnungProServicekraft)
+		t.Errorf("expected only anna (Tischservice) in the abrechnung, got %+v", data.Breakdowns.AbrechnungProServicekraft)
 	}
 	assertAbrechnung(t, byUser["anna"], 2000, 0, 2000, 0)
 
