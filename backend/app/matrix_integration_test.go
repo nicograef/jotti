@@ -163,15 +163,15 @@ func TestBerechtigungsMatrix_TestResetOeffentlich(t *testing.T) {
 	area := testResetArea(nil)
 
 	if area.RequiresAuth {
-		t.Fatalf("Test-Reset-Bereich muss ohne JWT laufen (RequiresAuth == false), ist aber true")
+		t.Errorf("Test-Reset-Bereich muss ohne JWT laufen (RequiresAuth == false), ist aber true")
 	}
 
 	_, paths := area.build(testConfig(), api.Deps{})
 	if len(paths) != 1 || paths[0] != "/reset-and-seed" {
-		t.Fatalf("Test-Reset-Bereich muss genau /reset-and-seed exponieren, hat aber %v", paths)
+		t.Errorf("Test-Reset-Bereich muss genau /reset-and-seed exponieren, hat aber %v", paths)
 	}
 	if area.Prefix != "/test" {
-		t.Fatalf("Test-Reset-Bereich muss Präfix /test haben, hat aber %q", area.Prefix)
+		t.Errorf("Test-Reset-Bereich muss Präfix /test haben, hat aber %q", area.Prefix)
 	}
 }
 
@@ -184,12 +184,12 @@ func TestBerechtigungsMatrix_Objektbezug(t *testing.T) {
 
 	code, ec := doRequest(t, handler, "/serviceleitung/stornierung-erteilen", tokens[user.ServiceRole])
 	if code != http.StatusForbidden {
-		t.Fatalf("Service-Rolle auf Serviceleitungs-Storno: Status %d (%s), erwartet 403", code, ec)
+		t.Errorf("Service-Rolle auf Serviceleitungs-Storno: Status %d (%s), erwartet 403", code, ec)
 	}
 
 	code, ec = doRequest(t, handler, "/serviceleitung/stornierung-erteilen", tokens[user.ServiceleitungRole])
 	if code == http.StatusForbidden || code == http.StatusUnauthorized {
-		t.Fatalf("Serviceleitung auf Serviceleitungs-Storno: Status %d (%s), darf nicht 401/403 sein", code, ec)
+		t.Errorf("Serviceleitung auf Serviceleitungs-Storno: Status %d (%s), darf nicht 401/403 sein", code, ec)
 	}
 }
 
@@ -214,6 +214,6 @@ func TestLoginRateLimit(t *testing.T) {
 	}
 
 	if !gotTooMany {
-		t.Fatal("Login-Rate-Limit hat innerhalb von 20 schnellen Requests kein 429 geliefert")
+		t.Error("Login-Rate-Limit hat innerhalb von 20 schnellen Requests kein 429 geliefert")
 	}
 }

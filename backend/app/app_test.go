@@ -62,7 +62,7 @@ func TestSetupRoutes_HealthAllowsGet(t *testing.T) {
 	handler.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK && w.Code != http.StatusServiceUnavailable {
-		t.Fatalf("expected status 200 or 503 for GET /health, got %d", w.Code)
+		t.Errorf("expected status 200 or 503 for GET /health, got %d", w.Code)
 	}
 
 	var body map[string]any
@@ -71,11 +71,11 @@ func TestSetupRoutes_HealthAllowsGet(t *testing.T) {
 	}
 
 	if code, ok := body["code"].(string); ok && code == "method_not_allowed" {
-		t.Fatalf("GET /health must not be blocked by method middleware")
+		t.Errorf("GET /health must not be blocked by method middleware")
 	}
 
 	if v, ok := body["version"].(string); !ok || v != "v9.9.9" {
-		t.Fatalf("expected version %q in /health response, got %v", "v9.9.9", body["version"])
+		t.Errorf("expected version %q in /health response, got %v", "v9.9.9", body["version"])
 	}
 }
 
@@ -96,7 +96,7 @@ func TestSetupRoutes_NonHealthRejectsGet(t *testing.T) {
 	handler.ServeHTTP(w, req)
 
 	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status %d for GET on non-health route, got %d", http.StatusBadRequest, w.Code)
+		t.Errorf("expected status %d for GET on non-health route, got %d", http.StatusBadRequest, w.Code)
 	}
 
 	type errorBody struct {
@@ -109,7 +109,7 @@ func TestSetupRoutes_NonHealthRejectsGet(t *testing.T) {
 	}
 
 	if body.Code != "method_not_allowed" {
-		t.Fatalf("expected code method_not_allowed, got %q", body.Code)
+		t.Errorf("expected code method_not_allowed, got %q", body.Code)
 	}
 }
 
@@ -126,7 +126,7 @@ func TestSetupRoutes_ResetSeedRouteGuardedByEnv(t *testing.T) {
 		handler.ServeHTTP(w, req)
 
 		if w.Code != http.StatusNotFound {
-			t.Fatalf("expected 404 for POST /test/reset-and-seed without JOTTI_ENABLE_TEST_API, got %d", w.Code)
+			t.Errorf("expected 404 for POST /test/reset-and-seed without JOTTI_ENABLE_TEST_API, got %d", w.Code)
 		}
 	})
 
@@ -146,7 +146,7 @@ func TestSetupRoutes_ResetSeedRouteGuardedByEnv(t *testing.T) {
 		handler.ServeHTTP(w, req)
 
 		if w.Code == http.StatusNotFound {
-			t.Fatalf("expected registered route (not 404) with JOTTI_ENABLE_TEST_API=1, got 404")
+			t.Errorf("expected registered route (not 404) with JOTTI_ENABLE_TEST_API=1, got 404")
 		}
 	})
 }

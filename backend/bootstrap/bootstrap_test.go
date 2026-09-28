@@ -90,20 +90,20 @@ func TestEnsureInitialAdmin(t *testing.T) {
 			wantAction: bootstrap.ActionCreate,
 			check: func(t *testing.T, repo *fakeRepo, res bootstrap.Result) {
 				if !sixDigits.MatchString(res.OnetimePassword) {
-					t.Fatalf("expected 6-digit OTP, got %q", res.OnetimePassword)
+					t.Errorf("expected 6-digit OTP, got %q", res.OnetimePassword)
 				}
 				admin := repo.byUsername(t, bootstrap.AdminUsername)
 				if admin.Role != user.AdminRole {
-					t.Fatalf("expected AdminRole, got %q", admin.Role)
+					t.Errorf("expected AdminRole, got %q", admin.Role)
 				}
 				if admin.Status != user.ActiveStatus {
-					t.Fatalf("expected active admin, got %q", admin.Status)
+					t.Errorf("expected active admin, got %q", admin.Status)
 				}
 				if admin.PasswordHash != "" {
-					t.Fatalf("expected empty PasswordHash, got %q", admin.PasswordHash)
+					t.Errorf("expected empty PasswordHash, got %q", admin.PasswordHash)
 				}
 				if admin.OnetimePasswordHash == "" {
-					t.Fatal("expected non-empty OnetimePasswordHash after create")
+					t.Error("expected non-empty OnetimePasswordHash after create")
 				}
 			},
 		},
@@ -115,20 +115,20 @@ func TestEnsureInitialAdmin(t *testing.T) {
 			wantAction: bootstrap.ActionRotate,
 			check: func(t *testing.T, repo *fakeRepo, res bootstrap.Result) {
 				if !sixDigits.MatchString(res.OnetimePassword) {
-					t.Fatalf("expected 6-digit OTP, got %q", res.OnetimePassword)
+					t.Errorf("expected 6-digit OTP, got %q", res.OnetimePassword)
 				}
 				admin := repo.byUsername(t, bootstrap.AdminUsername)
 				if admin.OnetimePasswordHash == "" {
-					t.Fatal("expected fresh non-empty OnetimePasswordHash after rotate")
+					t.Error("expected fresh non-empty OnetimePasswordHash after rotate")
 				}
 				if admin.OnetimePasswordAttempts != 0 {
-					t.Fatalf("expected attempts reset to 0, got %d", admin.OnetimePasswordAttempts)
+					t.Errorf("expected attempts reset to 0, got %d", admin.OnetimePasswordAttempts)
 				}
 				if admin.PasswordHash != "" {
-					t.Fatalf("expected PasswordHash to stay empty, got %q", admin.PasswordHash)
+					t.Errorf("expected PasswordHash to stay empty, got %q", admin.PasswordHash)
 				}
 				if admin.Status != user.ActiveStatus {
-					t.Fatalf("expected status unchanged (active), got %q", admin.Status)
+					t.Errorf("expected status unchanged (active), got %q", admin.Status)
 				}
 			},
 		},
@@ -143,14 +143,14 @@ func TestEnsureInitialAdmin(t *testing.T) {
 			wantAction: bootstrap.ActionRotate,
 			check: func(t *testing.T, repo *fakeRepo, res bootstrap.Result) {
 				if !sixDigits.MatchString(res.OnetimePassword) {
-					t.Fatalf("expected 6-digit OTP, got %q", res.OnetimePassword)
+					t.Errorf("expected 6-digit OTP, got %q", res.OnetimePassword)
 				}
 				admin := repo.byUsername(t, bootstrap.AdminUsername)
 				if admin.OnetimePasswordHash == "" {
-					t.Fatal("expected fresh non-empty OnetimePasswordHash after self-healing rotate")
+					t.Error("expected fresh non-empty OnetimePasswordHash after self-healing rotate")
 				}
 				if admin.OnetimePasswordAttempts != 0 {
-					t.Fatalf("expected attempts 0, got %d", admin.OnetimePasswordAttempts)
+					t.Errorf("expected attempts 0, got %d", admin.OnetimePasswordAttempts)
 				}
 			},
 		},
@@ -165,14 +165,14 @@ func TestEnsureInitialAdmin(t *testing.T) {
 			wantAction: bootstrap.ActionSkip,
 			check: func(t *testing.T, repo *fakeRepo, res bootstrap.Result) {
 				if res.OnetimePassword != "" {
-					t.Fatalf("expected empty OTP on skip, got %q", res.OnetimePassword)
+					t.Errorf("expected empty OTP on skip, got %q", res.OnetimePassword)
 				}
 				admin := repo.byUsername(t, bootstrap.AdminUsername)
 				if admin.PasswordHash != "existing-password-hash" {
-					t.Fatalf("expected PasswordHash unchanged, got %q", admin.PasswordHash)
+					t.Errorf("expected PasswordHash unchanged, got %q", admin.PasswordHash)
 				}
 				if admin.OnetimePasswordHash != "" {
-					t.Fatalf("expected OnetimePasswordHash untouched (empty), got %q", admin.OnetimePasswordHash)
+					t.Errorf("expected OnetimePasswordHash untouched (empty), got %q", admin.OnetimePasswordHash)
 				}
 			},
 		},
@@ -189,11 +189,11 @@ func TestEnsureInitialAdmin(t *testing.T) {
 			wantAction: bootstrap.ActionSkip,
 			check: func(t *testing.T, repo *fakeRepo, res bootstrap.Result) {
 				if res.OnetimePassword != "" {
-					t.Fatalf("expected empty OTP on skip, got %q", res.OnetimePassword)
+					t.Errorf("expected empty OTP on skip, got %q", res.OnetimePassword)
 				}
 				service := repo.byUsername(t, "service1")
 				if service.OnetimePasswordHash == "" {
-					t.Fatal("expected the service user's open OTP hash to stay intact")
+					t.Error("expected the service user's open OTP hash to stay intact")
 				}
 			},
 		},
@@ -219,7 +219,7 @@ func TestEnsureInitialAdmin(t *testing.T) {
 			if tt.wantAction == bootstrap.ActionRotate {
 				admin := repo.byUsername(t, bootstrap.AdminUsername)
 				if admin.OnetimePasswordHash == oldAdminOTPHash {
-					t.Fatal("expected the OTP hash to change on rotate")
+					t.Error("expected the OTP hash to change on rotate")
 				}
 			}
 
@@ -236,10 +236,10 @@ func TestResultLog_MarkerSurvivesConsoleWriter(t *testing.T) {
 
 	out := buf.String()
 	if !strings.Contains(out, "ADMIN-EINMALPASSWORT") {
-		t.Fatalf("expected grep-stable marker prefix in log output, got: %s", out)
+		t.Errorf("expected grep-stable marker prefix in log output, got: %s", out)
 	}
 	if !strings.Contains(out, "123456") {
-		t.Fatalf("expected plaintext OTP in log output, got: %s", out)
+		t.Errorf("expected plaintext OTP in log output, got: %s", out)
 	}
 }
 
@@ -250,6 +250,6 @@ func TestResultLog_SkipWritesNothing(t *testing.T) {
 	bootstrap.Result{Action: bootstrap.ActionSkip}.Log(logger)
 
 	if buf.Len() != 0 {
-		t.Fatalf("expected no log output on skip, got: %s", buf.String())
+		t.Errorf("expected no log output on skip, got: %s", buf.String())
 	}
 }
