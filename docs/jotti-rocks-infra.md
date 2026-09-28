@@ -152,13 +152,12 @@ Eskalation bei Missbrauch: Registrierung schließen mit `disable_registration = 
 acme-dns-Config (`docker-compose.rocks.yml`), dann `make rocks-up`. Bestehende Installationen
 erneuern weiter (Credentials bleiben gültig), nur neue Registrierungen sind blockiert.
 
-Monitoring: Der Betreiber richtet bei einem Uptime-Dienst (z. B. Better Stack) diese
-Monitore ein:
+Monitoring: Better Stack prüft per HTTPS-Monitor `https://jotti.rocks`,
+`https://demo.jotti.rocks` und `https://auth.jotti.rocks/health` (GET; HEAD beantwortet
+acme-dns mit 405). Jeder Monitor alarmiert auch vor dem Ablauf des Zertifikats.
 
-- HTTPS-Monitore auf `https://jotti.rocks`, `https://demo.jotti.rocks` und
-  `https://auth.jotti.rocks/health`, jeweils mit Alarm vor dem Ablauf des Zertifikats.
-- Einen DNS-Monitor auf den resolver: A-Abfrage von `10-0-0-1.test.lokal.jotti.rocks`,
-  erwartet `10.0.0.1`.
+Den resolver überwacht kein externer Dienst, DNS-Monitore sind bei Better Stack
+kostenpflichtig. Ihn prüfen nur sein Docker-Healthcheck und der `dig`-Test aus Abschnitt 5.
 
 AVV (Datenschutz): Für den VPS besteht eine Vereinbarung zur Auftragsverarbeitung nach
 Art. 28 DSGVO mit netcup (abgeschlossen 2026-07-14). Der Vertragsinhalt ist vertraulich
