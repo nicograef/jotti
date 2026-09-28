@@ -243,9 +243,9 @@ Script hygiene across `scripts/`: the handbook header, `[[ ]]`, `${VAR:-default}
 
 ### Acceptance criteria
 
-- [ ] `ls frontend/src/service` shows feature folders and no `components/` type folder
-- [ ] `grep -n "clsx\|tailwind-merge" frontend/package.json frontend/src -r` finds nothing
-- [ ] `make check-frontend` green
+- [x] `ls frontend/src/service` shows feature folders and no `components/` type folder
+- [x] `grep -n "clsx\|tailwind-merge" frontend/package.json frontend/src -r` finds nothing
+- [x] `make check-frontend` green
 
 ## Phase 10: Frontend tests at the API boundary
 
