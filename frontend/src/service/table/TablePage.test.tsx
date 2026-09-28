@@ -1,18 +1,22 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+import { signIn, signOut } from '@/test/auth'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend, setViewportWidth } from '@/test/render'
 
 import type { Position } from './Bestellung'
 import { TablePage } from './TablePage'
 import type { TischSession } from './Tisch'
 
-function position(positionId: string): Position {
+// Positions-IDs sind UUIDs; `nr` macht sie im Test unterscheidbar.
+function position(nr: number): Position {
   return {
-    positionId,
+    positionId: `00000000-0000-4000-8000-${String(nr).padStart(12, '0')}`,
     varianteId: 1,
     produktName: 'Bratwurst',
     varianteName: 'Normal',
@@ -46,11 +50,7 @@ const testProdukt: Produkt = {
 }
 
 // `tischId` bildet den :tischId-Param nach — Tischwechsel ohne Remount.
-const testState = vi.hoisted(() => ({
-  tischId: '1',
-  produkte: [] as Produkt[],
-  produkteError: false,
-}))
+const testState = vi.hoisted(() => ({ tischId: '1' }))
 
 vi.mock('react-router', () => ({
   useParams: () => ({ tischId: testState.tischId }),
@@ -60,46 +60,19 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
-// Handy-Pfad: Kopfbereich und Fehlerzustand sind in beiden Layouts gleich; der
-// Split selbst ist manuelle Abnahme.
-vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: () => true,
-}))
+const getTischState = vi.fn<() => TischSession>()
+const getTischHistorie = vi.fn<() => unknown[]>()
 
-vi.mock('@/lib/Backend', () => ({
-  BackendSingleton: {},
-}))
-
-// Die eigene Servicekraft (für die „Meine Positionen"-Filterung in Zahlung);
-// canCancel/canRebook, damit der Storno-/Umbuchen-Pfad der Historie greift.
-vi.mock('@/lib/Auth', () => ({
-  AuthSingleton: { userId: 1, canCancel: true, canRebook: true },
-}))
-
-vi.mock('../product/hooks', () => ({
-  useAktiveProdukte: () => ({
-    produkte: testState.produkte,
-    isPending: false,
-    isError: testState.produkteError,
-    refetch: vi.fn(),
-  }),
-}))
-
-const { getTischState, getTischHistorie, stornierungErteilen } = vi.hoisted(
-  () => ({
-    getTischState: vi.fn<() => Promise<TischSession>>(),
-    getTischHistorie: vi.fn<() => Promise<unknown[]>>(),
-    stornierungErteilen: vi.fn<() => Promise<void>>(),
-  }),
-)
-
-vi.mock('./TischBackend', () => ({
-  TischBackend: class {
-    getTischState = getTischState
-    getTischHistorie = getTischHistorie
-    stornierungErteilen = stornierungErteilen
-  },
-}))
+// Tischdaten, Historie und Produkte; ohne `produkte` ist das Sortiment leer.
+function backend(produkte: Produkt[] = []): FakeBackend {
+  return new FakeBackend()
+    .respond('service/get-tisch-state', getTischState)
+    .respond('service/get-tisch-historie', () => ({
+      historie: getTischHistorie(),
+    }))
+    .respond('service/get-aktive-produkte', { produkte })
+    .respond('serviceleitung/stornierung-erteilen', {})
+}
 
 // Tischzustand mit offenem Saldo. Der Saldo ist bewusst ungleich 0, damit er
 // sich im DOM eindeutig von den 0,00-€-Summen der Bestell-Leiste unterscheidet.
@@ -113,32 +86,32 @@ const stammtisch: TischSession = {
 
 beforeEach(() => {
   VorgangsRegisterSingleton.zuruecksetzen()
+  // Handy-Pfad: Kopfbereich und Fehlerzustand sind in beiden Layouts gleich;
+  // der Split selbst ist manuelle Abnahme.
+  setViewportWidth(375)
+  // Die eigene Servicekraft (für die „Meine Positionen"-Filterung in Zahlung);
+  // Serviceleitung, damit der Storno-/Umbuchen-Pfad der Historie greift.
+  signIn({ userId: 1, role: 'serviceleitung' })
 })
 
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  signOut()
   testState.tischId = '1'
-  testState.produkte = []
-  testState.produkteError = false
 })
 
-function renderPage() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  })
-  render(
-    <QueryClientProvider client={queryClient}>
-      <TablePage />
-    </QueryClientProvider>,
-  )
+function renderPage(fake: FakeBackend = backend()) {
+  return renderWithBackend(<TablePage />, fake)
 }
 
 describe('TablePage', () => {
   it('zeigt bei Query-Fehler einen Fehlerzustand statt der Leer-Defaults', async () => {
-    getTischState.mockRejectedValue(new Error('Netzabbruch'))
-    getTischHistorie.mockRejectedValue(new Error('Netzabbruch'))
-    renderPage()
+    renderPage(
+      backend()
+        .fail('service/get-tisch-state')
+        .fail('service/get-tisch-historie'),
+    )
 
     expect(
       await screen.findByText('Tischdaten konnten nicht geladen werden'),
@@ -149,10 +122,9 @@ describe('TablePage', () => {
   })
 
   it('zeigt bei Produkt-Fehler den Bestellen-Tab als Fehlerzustand statt leerer Liste', async () => {
-    testState.produkteError = true
-    getTischState.mockResolvedValue(stammtisch)
-    getTischHistorie.mockResolvedValue([])
-    renderPage()
+    getTischState.mockReturnValue(stammtisch)
+    getTischHistorie.mockReturnValue([])
+    renderPage(backend().fail('service/get-aktive-produkte'))
 
     expect(
       await screen.findByText('Produkte konnten nicht geladen werden'),
@@ -163,12 +135,11 @@ describe('TablePage', () => {
   })
 
   it('lädt die Tischdaten über „Erneut versuchen" nach einem Fehler neu', async () => {
-    getTischState
-      .mockRejectedValueOnce(new Error('Netzabbruch'))
-      .mockResolvedValue(stammtisch)
-    getTischHistorie
-      .mockRejectedValueOnce(new Error('Netzabbruch'))
-      .mockResolvedValue([])
+    const abbruch = () => {
+      throw new BackendError(400, 'test_fehler')
+    }
+    getTischState.mockImplementationOnce(abbruch).mockReturnValue(stammtisch)
+    getTischHistorie.mockImplementationOnce(abbruch).mockReturnValue([])
     const user = userEvent.setup()
     renderPage()
 
@@ -183,8 +154,8 @@ describe('TablePage', () => {
   })
 
   it('zeigt ohne Fehler den Tischzustand mit Saldo', async () => {
-    getTischState.mockResolvedValue(stammtisch)
-    getTischHistorie.mockResolvedValue([])
+    getTischState.mockReturnValue(stammtisch)
+    getTischHistorie.mockReturnValue([])
     renderPage()
 
     expect(await screen.findByText('Stammtisch')).toBeInTheDocument()
@@ -192,19 +163,19 @@ describe('TablePage', () => {
   })
 
   it('zeigt "Alles bezahlt" ohne unbezahlte Positionen', async () => {
-    getTischState.mockResolvedValue(stammtisch)
-    getTischHistorie.mockResolvedValue([])
+    getTischState.mockReturnValue(stammtisch)
+    getTischHistorie.mockReturnValue([])
     renderPage()
 
     expect(await screen.findByText('Alles bezahlt')).toBeInTheDocument()
   })
 
   it('zeigt die Anzahl unbezahlter Positionen als Badge', async () => {
-    getTischState.mockResolvedValue({
+    getTischState.mockReturnValue({
       ...stammtisch,
-      unbezahltePositionen: [position('p1'), position('p2')],
+      unbezahltePositionen: [position(1), position(2)],
     })
-    getTischHistorie.mockResolvedValue([])
+    getTischHistorie.mockReturnValue([])
     renderPage()
 
     const badge = await screen.findByText('2 unbezahlt')
@@ -217,11 +188,10 @@ describe('TablePage', () => {
   // Radix hängt inaktive Tab-Inhalte aus; ohne den nach TablePage gehobenen
   // State ginge die Auswahl beim Tab-Wechsel verloren.
   it('behält den Bestell-Korb über einen Tab-Wechsel hinweg', async () => {
-    testState.produkte = [testProdukt]
-    getTischState.mockResolvedValue(stammtisch)
-    getTischHistorie.mockResolvedValue([])
+    getTischState.mockReturnValue(stammtisch)
+    getTischHistorie.mockReturnValue([])
     const user = userEvent.setup()
-    renderPage()
+    renderPage(backend([testProdukt]))
 
     await screen.findByText('Stammtisch')
     await user.click(
@@ -240,11 +210,11 @@ describe('TablePage', () => {
   })
 
   it('behält die Kassieren-Auswahl über einen Tab-Wechsel hinweg', async () => {
-    getTischState.mockResolvedValue({
+    getTischState.mockReturnValue({
       ...stammtisch,
-      unbezahltePositionen: [position('p1')],
+      unbezahltePositionen: [position(1)],
     })
-    getTischHistorie.mockResolvedValue([])
+    getTischHistorie.mockReturnValue([])
     const user = userEvent.setup()
     renderPage()
 
@@ -267,21 +237,21 @@ describe('TablePage', () => {
   // einer ausgewählten Position (Storno-Refetch beim Schließen des Erfolgs-Pops),
   // muss die gehobene Auswahl sinken; eine verschwundene Position fällt heraus.
   it('deckelt die Kassieren-Auswahl, wenn ein Refetch kleinere unbezahlte Mengen liefert', async () => {
-    const posMehr = { ...position('p1'), menge: 2 }
-    const posWeg = position('p2')
+    const posMehr = { ...position(1), menge: 2 }
+    const posWeg = position(2)
     getTischState
-      .mockResolvedValueOnce({
+      .mockReturnValueOnce({
         ...stammtisch,
         unbezahltePositionen: [posMehr, posWeg],
       })
-      .mockResolvedValue({
+      .mockReturnValue({
         ...stammtisch,
         unbezahltePositionen: [{ ...posMehr, menge: 1 }],
       })
-    getTischHistorie.mockResolvedValue([
+    getTischHistorie.mockReturnValue([
       {
         art: 'bestellung',
-        id: '00000000-0000-0000-0000-000000000001',
+        id: '00000000-0000-4000-8000-000000000101',
         userId: 1,
         userName: 'Tester',
         tischId: 1,
@@ -293,7 +263,6 @@ describe('TablePage', () => {
         umbuchbarePositionen: [],
       },
     ])
-    stornierungErteilen.mockResolvedValue(undefined)
     const user = userEvent.setup()
     renderPage()
 
@@ -340,22 +309,10 @@ describe('TablePage', () => {
   })
 
   it('startet die Auswahl bei einem Tischwechsel leer', async () => {
-    testState.produkte = [testProdukt]
-    getTischState.mockResolvedValue(stammtisch)
-    getTischHistorie.mockResolvedValue([])
+    getTischState.mockReturnValue(stammtisch)
+    getTischHistorie.mockReturnValue([])
     const user = userEvent.setup()
-    // Eigener QueryClient, damit Re-Renders die Provider-Instanz teilen; jeder
-    // Aufruf liefert ein frisches Element, sonst überspringt React das
-    // Neurendern (referenzgleiche Props).
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-    const renderUi = () => (
-      <QueryClientProvider client={queryClient}>
-        <TablePage />
-      </QueryClientProvider>
-    )
-    const { rerender } = render(renderUi())
+    const { rerender } = renderPage(backend([testProdukt]))
 
     await screen.findByText('Stammtisch')
     await user.click(
@@ -367,7 +324,7 @@ describe('TablePage', () => {
 
     // Anderer Tisch: nur der :tischId-Param wechselt, TablePage bleibt gemountet.
     testState.tischId = '2'
-    rerender(renderUi())
+    rerender(<TablePage />)
 
     await waitFor(() => {
       expect(
@@ -379,19 +336,10 @@ describe('TablePage', () => {
   // Tischwechsel: TablePage bleibt gemountet und setzt den Korb nur zurück. Ein
   // stehen gebliebener Vorgang blockierte den erzwungenen Reload dauerhaft.
   it('gibt den Bestell-Korb beim Tischwechsel im Vorgangs-Register frei', async () => {
-    testState.produkte = [testProdukt]
-    getTischState.mockResolvedValue(stammtisch)
-    getTischHistorie.mockResolvedValue([])
+    getTischState.mockReturnValue(stammtisch)
+    getTischHistorie.mockReturnValue([])
     const user = userEvent.setup()
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-    const renderUi = () => (
-      <QueryClientProvider client={queryClient}>
-        <TablePage />
-      </QueryClientProvider>
-    )
-    const { rerender, unmount } = render(renderUi())
+    const { rerender, unmount } = renderPage(backend([testProdukt]))
 
     await screen.findByText('Stammtisch')
     await user.click(
@@ -401,7 +349,7 @@ describe('TablePage', () => {
 
     // Anderer Tisch: nur der :tischId-Param wechselt, TablePage bleibt gemountet.
     testState.tischId = '2'
-    rerender(renderUi())
+    rerender(<TablePage />)
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
 
     unmount()
@@ -410,23 +358,22 @@ describe('TablePage', () => {
 
   // Der Refetch des Tisch-States läuft erst beim Schließen des Pops.
   it('zeigt nach der Stornierung den Erfolgs-Pop und lädt erst beim Schließen neu', async () => {
-    getTischState.mockResolvedValue(stammtisch)
-    getTischHistorie.mockResolvedValue([
+    getTischState.mockReturnValue(stammtisch)
+    getTischHistorie.mockReturnValue([
       {
         art: 'bestellung',
-        id: '00000000-0000-0000-0000-000000000001',
+        id: '00000000-0000-4000-8000-000000000101',
         userId: 1,
         userName: 'Tester',
         tischId: 1,
-        positionen: [position('p1')],
+        positionen: [position(1)],
         gesamtPreisCents: 350,
         kommentar: '',
         aufgenommenAm: '2026-06-18T12:00:00Z',
-        stornierbarePositionen: [position('p1')],
+        stornierbarePositionen: [position(1)],
         umbuchbarePositionen: [],
       },
     ])
-    stornierungErteilen.mockResolvedValue(undefined)
     const user = userEvent.setup()
     renderPage()
 
