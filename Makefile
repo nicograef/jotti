@@ -8,7 +8,7 @@
        build-starter-windows build-relay-windows starter-syso release-windows \
        sqlc \
        prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore prod-backup-verify prod-harden \
-       rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed \
+       rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed rocks-backup \
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
@@ -210,6 +210,9 @@ rocks-reset-db: ## jotti.rocks-DB zurücksetzen (Zertifikate bleiben erhalten) �
 
 rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (Zertifikate bleiben erhalten) — nur Demo/Staging
 	./scripts/reset-and-seed.sh rocks --yes
+
+rocks-backup: ## acme-dns-Datenbank vom VPS sichern, vom Laptop aus (DEST=<Verzeichnis>)
+	./scripts/rocks-backup.sh "$(DEST)"
 
 # Lokaler Betrieb (LAN, HTTPS via Caddy)
 

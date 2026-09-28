@@ -142,3 +142,40 @@ Art. 28 DSGVO mit netcup (abgeschlossen 2026-07-14). Kopien liegen im netcup-CCP
 (Stammdaten → Auftragsverarbeitung) und im privaten Vertragsarchiv. Der Vertragsinhalt
 ist vertraulich (Ziff. 11 der Vereinbarung) und gehört nicht ins Repository.
 
+## 7. Backup der acme-dns-Datenbank
+
+Das Volume `acme-dns-data` enthält die Zuordnung Account ↔ Subdomain. Geht es verloren,
+werden die Credentials aller bestehenden Installationen ungültig. Ihre
+Zertifikats-Erneuerungen schlagen dann fehl (Abhilfe je Installation: lokalen State
+löschen, neu registrieren, neue Install-ID, neue Adresse).
+
+Das Backup läuft manuell vom Laptop aus, zum Beispiel auf eine externe Platte:
+
+```bash
+make rocks-backup DEST=/media/<platte>/jotti-rocks
+```
+
+Das Skript `scripts/rocks-backup.sh` zieht per SSH ein `sqlite3 .backup` der Datenbank.
+Es prüft die Kopie auf dem VPS mit `PRAGMA integrity_check`. Danach kopiert es die Datei
+als `acme-dns-<Zeitstempel>.db` per rsync ins Zielverzeichnis. Auf dem VPS müssen
+`sqlite3` und `rsync` installiert sein; der SSH-Zugang braucht Leserechte auf das Volume.
+Host, SSH-Optionen und Datenbankpfad sind über `ROCKS_SSH_HOST`, `ROCKS_SSH_OPTS` und
+`ROCKS_ACMEDNS_DB` einstellbar (`./scripts/rocks-backup.sh` ohne Argument zeigt sie).
+
+Wiederherstellungsprobe nach jedem Backup: die Zahl der Registrierungen in der Kopie muss
+der auf dem VPS entsprechen.
+
+```bash
+sqlite3 /media/<platte>/jotti-rocks/acme-dns-<Zeitstempel>.db \
+  "PRAGMA integrity_check; SELECT count(*) FROM records;"
+ssh jotti.rocks sqlite3 /var/lib/docker/volumes/jotti_acme-dns-data/_data/acme-dns.db \
+  "'SELECT count(*) FROM records;'"
+```
+
+Wiederherstellung auf dem VPS:
+
+```bash
+docker compose -f docker-compose.rocks.yml stop acme-dns
+sudo cp acme-dns-<Zeitstempel>.db /var/lib/docker/volumes/jotti_acme-dns-data/_data/acme-dns.db
+docker compose -f docker-compose.rocks.yml start acme-dns
+```
