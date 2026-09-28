@@ -9,7 +9,8 @@
 # claiming to be the same deployment. Read are `image:` lines in
 # docker-compose*.yml and .github/workflows/*.yml, `FROM` lines in every
 # Dockerfile, literal references to those image names in scripts/*.sh and
-# windows/**/*.go, and the packageManager fields of frontend, website and e2e.
+# windows/**/*.go, and the packageManager and typescript fields of frontend,
+# website and e2e.
 # jotti's own images (ghcr.io/nicograef/jotti-*) are exempt: their tag follows the
 # release on purpose. The tag is compared up to the first "-", so
 # caddy:2.11.4-builder and caddy:2.11.4 are one version; a digest pin counts as
@@ -222,40 +223,49 @@ if [[ "${#allow_names[@]}" -gt 0 ]]; then
   done
 fi
 
-# packageManager: one literal value in all three package.json. A missing file is
-# a rename that must turn the gate red, not silently shrink its scope.
-pm_files=()
-pm_values=()
-for file in "${PACKAGE_JSONS[@]}"; do
-  if [[ ! -f "$file" ]]; then
-    fatal "$file is missing: the packageManager comparison needs all three package.json."
-  fi
-  value="$(awk '
-    match($0, /"packageManager"[[:space:]]*:[[:space:]]*"[^"]*"/) {
-      field = substr($0, RSTART, RLENGTH)
-      sub(/^"packageManager"[[:space:]]*:[[:space:]]*"/, "", field)
-      sub(/"$/, "", field)
-      print field
-      exit
-    }
-  ' "$file")"
-  if [[ -z "$value" ]]; then
-    error "$file: no packageManager field."
-    violations=$((violations + 1))
-    continue
-  fi
-  pm_files+=("$file")
-  pm_values+=("$value")
-done
-
-if [[ "${#pm_values[@]}" -gt 1 ]]; then
-  for i in "${!pm_values[@]}"; do
-    if [[ "${pm_values[$i]}" != "${pm_values[0]}" ]]; then
-      error "${pm_files[$i]}: packageManager is ${pm_values[$i]}, ${pm_files[0]} pins ${pm_values[0]}."
+# compare_package_field requires one literal value for the JSON key $1 in all three
+# package.json. A missing file is a rename that must turn the gate red, not
+# silently shrink its scope.
+compare_package_field() {
+  local key="$1" file value i mismatches
+  local files=() values=()
+  for file in "${PACKAGE_JSONS[@]}"; do
+    if [[ ! -f "$file" ]]; then
+      fatal "$file is missing: the $key comparison needs all three package.json."
+    fi
+    value="$(KEY="$key" awk '
+      match($0, "\"" ENVIRON["KEY"] "\"[[:space:]]*:[[:space:]]*\"[^\"]*\"") {
+        field = substr($0, RSTART, RLENGTH)
+        sub(/^"[^"]*"[[:space:]]*:[[:space:]]*"/, "", field)
+        sub(/"$/, "", field)
+        print field
+        exit
+      }
+    ' "$file")"
+    if [[ -z "$value" ]]; then
+      error "$file: no $key field."
       violations=$((violations + 1))
+      continue
+    fi
+    files+=("$file")
+    values+=("$value")
+  done
+
+  mismatches=0
+  for i in "${!values[@]}"; do
+    if [[ "${values[$i]}" != "${values[0]}" ]]; then
+      error "${files[$i]}: $key is ${values[$i]}, ${files[0]} pins ${values[0]}."
+      mismatches=$((mismatches + 1))
     fi
   done
-fi
+  violations=$((violations + mismatches))
+  if [[ "$mismatches" -eq 0 && "${#values[@]}" -eq "${#PACKAGE_JSONS[@]}" ]]; then
+    info "$key: ${values[0]} in all three package.json."
+  fi
+}
+
+compare_package_field packageManager
+compare_package_field typescript
 
 # Local actions (./path) come from the checked-out commit itself.
 while IFS=$'\t' read -r loc ref; do
@@ -280,4 +290,4 @@ if [[ "$violations" -gt 0 ]]; then
   fatal "$violations version pin violation(s) found."
 fi
 
-info "Every third-party image, action and all three packageManager fields carry one pinned version."
+info "Every third-party image, action and all three packageManager and typescript fields carry one pinned version."
