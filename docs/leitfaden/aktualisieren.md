@@ -3,9 +3,9 @@ title: Aktualisieren (Standardweg)
 description: 'Die jotti-Kasse auf dem Windows-Rechner auf eine neue Version bringen: drei Schritte, das automatische Neuladen der Geräte danach, Rauchtest, automatisches Backup und der Weg zurück.'
 ---
 
-Meldet der Starter beim Hochfahren „Neue Version verfügbar" mit einem
-Download-Link, bringt ihr jotti in drei Schritten auf den neuen Stand. Eure Daten
-bleiben dabei erhalten.
+Manchmal meldet der Starter beim Hochfahren „Neue Version verfügbar" mit einem
+Download-Link. Dann bringt ihr jotti in drei Schritten auf den neuen Stand. Eure
+Daten bleiben dabei erhalten.
 
 > ⚠️ **Zuhause mit Internet aktualisieren, nicht auf dem Fest.** Wie beim
 > Erststart lädt jotti dabei neue Programmteile herunter. Erledigt das Update in
@@ -19,25 +19,27 @@ bleiben dabei erhalten.
 3. **`jotti-start.exe`** im neuen Ordner doppelklicken und die UAC-Abfrage mit
    „Ja" bestätigen.
 
-Den alten Programmordner erst löschen, wenn das nächste Fest gelaufen ist: bis
-dahin liegt darin die `jotti-start.exe` des vorherigen Release — der Rückweg,
-falls das Update Ärger macht (siehe [Der Weg
-zurück](#der-weg-zurück-wenn-das-update-schiefgeht)).
+Den alten Programmordner erst löschen, wenn das nächste Fest gelaufen ist. Bis
+dahin liegt darin die `jotti-start.exe` des vorherigen Release. Sie ist der Rückweg,
+falls das Update Ärger macht (siehe [Der Weg zurück](#der-weg-zurück-wenn-das-update-schiefgeht)).
 
 > ⛔ **Während eines Updates keine TSE-Einrichtung starten.** Die Einrichtung legt
-> bei fiskaly eine TSE an — in LIVE eine kostenpflichtige, in TEST eine kostenlose —
-> und zeigt Admin-PUK und Admin-PIN genau einmal an, am Ende des Ablaufs. Wird
+> bei fiskaly eine TSE an: in LIVE eine kostenpflichtige, in TEST eine kostenlose.
+> Sie zeigt Admin-PUK und Admin-PIN genau einmal an, am Ende des Ablaufs. Wird
 > jotti mittendrin beendet — und genau das tut `jotti-stop.cmd` —, bricht sie ab.
-> Meistens ist das kein Beinbruch: Startet ihr den Assistenten danach erneut,
-> erkennt jotti den tatsächlichen Zustand bei fiskaly und macht dort weiter, wo es
-> aufgehört hat; eine zweite TSE entsteht dabei nicht. Nur ein schmales Zeitfenster
-> ist eine Sackgasse: Bricht die Einrichtung genau zwischen dem Setzen der
-> Admin-PIN und der Anzeige des Ergebnisses ab, fragt die Wiederaufnahme nach einer
-> Admin-PIN, die euch nie angezeigt wurde. Dann hilft in TEST „Stattdessen neue TSE
-> anlegen", in LIVE der fiskaly-Support (siehe
-> [TSE-Sonderfälle](tse-sonderfaelle.md)). Richtet die TSE also vor dem Update ein
-> oder danach, nie währenddessen — und wenn der Assistent gerade läuft, wartet mit
-> dem Update, bis „Verbindung bestätigt" steht.
+>
+> Meistens ist das kein Beinbruch. Startet ihr den Assistenten danach erneut,
+> erkennt jotti den tatsächlichen Zustand bei fiskaly. Dann macht jotti dort
+> weiter, wo es aufgehört hat. Eine zweite TSE entsteht dabei nicht.
+>
+> Nur ein schmales Zeitfenster ist eine Sackgasse: zwischen dem Setzen der
+> Admin-PIN und der Anzeige des Ergebnisses. Bricht die Einrichtung genau dort ab,
+> fragt die Wiederaufnahme nach einer Admin-PIN, die euch nie angezeigt wurde. Dann
+> hilft in TEST „Stattdessen neue TSE anlegen", in LIVE der fiskaly-Support (siehe
+> [TSE-Sonderfälle](tse-sonderfaelle.md)).
+>
+> Richtet die TSE also vor dem Update ein oder danach, nie währenddessen. Läuft
+> der Assistent gerade, wartet mit dem Update, bis „Verbindung bestätigt" steht.
 
 ## Reihenfolge, wenn ihr mitten im Fest aktualisieren müsst
 
@@ -45,7 +47,7 @@ Aktualisiert nach Möglichkeit zuhause (siehe Kasten oben). Muss es doch währen
 des laufenden Betriebs sein, haltet euch an diese Reihenfolge.
 
 1. **Ansagen, bevor ihr etwas anfasst.** „Zwei Minuten Pause, bitte keine neue
-   Bestellung anfangen." Wer gerade tippt, schickt die Bestellung vorher ab; wer
+   Bestellung anfangen." Wer gerade tippt, schickt die Bestellung vorher ab. Wer
    gerade kassiert, macht das fertig.
 2. **Die Kassensitzung bleibt offen.** Für ein Update braucht es keinen
    Tagesabschluss. Die Sitzung liegt in der Datenbank und übersteht das Update
@@ -56,29 +58,33 @@ des laufenden Betriebs sein, haltet euch an diese Reihenfolge.
    Stand wirklich da.
 5. **Kurz warten, dann den [Rauchtest](#rauchtest-fünf-abläufe-vor-dem-weitermachen)
    machen.** Die Bedienoberfläche am Rechner lädt sich von selbst neu, sobald jotti
-   wieder läuft; rechnet mit einer halben Minute (siehe nächster Abschnitt).
+   wieder läuft. Rechnet mit einer halben Minute (siehe nächster Abschnitt).
 6. **Erst danach dem Team Bescheid geben**, dass es weitergeht. Ein Neuladen müsst
    ihr nicht ansagen — die Handys laden sich genauso von selbst neu. Einzige
-   Ausnahme ist das erste Update von einer Version **vor** 0.17.3: Dabei muss jedes
+   Ausnahme ist das erste Update von einer Version **vor** 0.17.3. Dabei muss jedes
    Gerät noch ein letztes Mal von Hand neu geladen werden (siehe Kasten im
    nächsten Abschnitt).
 
 ## Danach: die Geräte laden sich von selbst neu
 
 Handys und Rechner behalten die alte Bedienoberfläche im Speicher, bis die Seite
-einmal neu geladen wird. **jotti erledigt das automatisch.** Jedes
-geöffnete jotti fragt im Hintergrund alle halbe Minute nach, welche Version auf
-dem Rechner läuft — und zusätzlich immer dann, wenn ein weggelegtes Handy wieder
-hervorgeholt wird. Weicht die Version ab, lädt sich die Seite selbst neu: im
-Browser am Handy, am Rechner und ebenso in der als App auf dem Startbildschirm
-installierten jotti. **Ihr müsst das Neuladen also nicht ansagen**, und
-niemand muss eine App wegwischen.
+einmal neu geladen wird. **jotti erledigt das automatisch.**
+
+Jedes geöffnete jotti fragt im Hintergrund alle halbe Minute nach, welche Version
+auf dem Rechner läuft. Zusätzlich fragt es immer dann, wenn ein weggelegtes Handy
+wieder hervorgeholt wird.
+
+Weicht die Version ab, lädt sich die Seite selbst neu. Das gilt im Browser am
+Handy, am Rechner und ebenso in der als App auf dem Startbildschirm installierten
+jotti.
+
+**Ihr müsst das Neuladen also nicht ansagen**, und niemand muss eine App wegwischen.
 
 > ⚠️ **Beim Update von einer Version vor 0.17.3 noch ein letztes Mal von Hand neu
-> laden.** Das automatische Neuladen steckt in der Bedienoberfläche selbst — und
-> eine Bedienoberfläche älter als 0.17.3, die auf den Geräten noch im Speicher
-> liegt, kennt es nicht. Bei diesem Update erneuert sich deshalb kein Gerät von
-> allein, auch nicht der Rechner, an dem ihr gleich den Rauchtest macht. Ladet
+> laden.** Das automatische Neuladen steckt in der Bedienoberfläche selbst. Eine
+> Bedienoberfläche älter als 0.17.3, die auf den Geräten noch im Speicher liegt,
+> kennt es nicht. Bei diesem Update erneuert sich deshalb kein Gerät von allein.
+> Das gilt auch für den Rechner, an dem ihr gleich den Rauchtest macht. Ladet
 > einmal überall von Hand neu:
 >
 > - **Handy im Browser:** die Seite von ganz oben nach unten ziehen.
@@ -90,20 +96,29 @@ niemand muss eine App wegwischen.
 > Jedes Update, das von 0.17.3 oder neuer aus startet, erledigt jotti allein.
 
 **Wer gerade mitten in etwas steckt, verliert nichts.** Solange ein angefangener
-Vorgang offen ist — ein gefüllter Bestellkorb, eine getroffene Auswahl beim
-Kassieren oder Stornieren, ein halb ausgefülltes Formular —, wartet das
-Neuladen. Stattdessen erscheint auf dem Gerät ein farbiges Band mit diesem Text:
+Vorgang offen ist, wartet das Neuladen. Offen ist ein Vorgang bei:
+
+- einem gefüllten Bestellkorb,
+- einer getroffenen Auswahl beim Kassieren oder Stornieren,
+- einem halb ausgefüllten Formular.
+
+Statt neu zu laden, zeigt das Gerät dann ein farbiges Band mit diesem Text:
 
 > Der Server läuft mit einer anderen Version als diese Seite. Bitte den laufenden
 > Vorgang abschließen oder verwerfen — danach lädt sich die Seite von selbst neu.
 
 Mit „Server" ist der Windows-Rechner gemeint, auf dem jotti läuft. Der offene
-Vorgang muss also weg — und zwar wirklich weg: die angefangene Bestellung
-abschicken, das Kassieren zu Ende führen oder die gewählten Mengen mit den
-Minus-Knöpfen wieder auf null stellen. **Beim Bestellen und Kassieren genügt
-„Abbrechen" nicht** — das blendet nur die Eingabe aus, der Korb bleibt gefüllt und
-das Band steht weiter. Bedienen lässt sich in der Zwischenzeit alles wie gewohnt.
-Wegklicken lässt sich das Band nicht — es verschwindet von selbst.
+Vorgang muss also weg, und zwar wirklich weg. Dafür gibt es drei Wege:
+
+- die angefangene Bestellung abschicken,
+- das Kassieren zu Ende führen,
+- die gewählten Mengen mit den Minus-Knöpfen wieder auf null stellen.
+
+**Beim Bestellen und Kassieren genügt „Abbrechen" nicht.** Das blendet nur die
+Eingabe aus; der Korb bleibt gefüllt und das Band steht weiter.
+
+Bedienen lässt sich in der Zwischenzeit alles wie gewohnt. Wegklicken lässt sich
+das Band nicht — es verschwindet von selbst.
 
 **Der Ausnahmefall: „Jetzt neu laden".** Steht auf dem Band stattdessen dieser
 Text, und daneben eine Schaltfläche, ist das automatische Neuladen nicht
@@ -118,13 +133,16 @@ tippt erneut.
 
 ## Das Print-Relay darf weiterlaufen
 
-Das Print-Relay (`jotti-relay.exe`, das Fenster, das die Bons an die Drucker
-schickt) ist in 0.17.1 und allen neueren Versionen funktional dasselbe, ebenso
-die Verständigung zwischen jotti und dem Relay. Läuft bei euch 0.17.1 oder neuer,
-gilt: **Das laufende Relay darf einfach weiterlaufen** — ihr müsst es weder
-beenden noch ersetzen. Im Release-ZIP liegt trotzdem eine `jotti-relay.exe`; sie
-ist funktional identisch mit der laufenden. Ob ihr sie tauscht oder nicht, macht
-keinen Unterschied.
+Das Print-Relay ist das Fenster, das die Bons an die Drucker schickt
+(`jotti-relay.exe`). In 0.17.1 und allen neueren Versionen ist es funktional
+dasselbe, ebenso die Verständigung zwischen jotti und dem Relay.
+
+Läuft bei euch 0.17.1 oder neuer, gilt: **Das laufende Relay darf einfach
+weiterlaufen** — ihr müsst es weder beenden noch ersetzen.
+
+Im Release-ZIP liegt trotzdem eine `jotti-relay.exe`; sie ist funktional
+identisch mit der laufenden. Ob ihr sie tauscht oder nicht, macht keinen
+Unterschied.
 
 > ⚠️ **Beim nächsten Update nicht raten.** Ändert sich das Relay, muss das alte
 > Fenster **erst geschlossen** und dann die neue `jotti-relay.exe` gestartet
@@ -144,8 +162,8 @@ Minuten und deckt alles ab, worauf sich das Fest verlässt:
       oben rechts „Zu Direktverkauf wechseln", siehe
       [Modus wechseln](betriebsarten.md#modus-wechseln))
 - [ ] Im Admin-Bereich **„Übersicht"** öffnen und prüfen, dass die Stornierung
-      dort einer Servicekraft **zugeordnet** ist: Im Block „Team" trägt die
-      Servicekraft, die kassiert hatte, die rote Markierung „1 Storno"; in der
+      dort einer Servicekraft **zugeordnet** ist. Im Block „Team" trägt die
+      Servicekraft, die kassiert hatte, die rote Markierung „1 Storno". In der
       Storno-Zeile darunter steht „Betroffen: " und dahinter ihr Name mit der
       Anzahl. „Details" klappt den einzelnen Eintrag auf.
 
@@ -155,20 +173,23 @@ Fällt einer der fünf Punkte durch, macht **nicht** weiter, sondern schaut in
 ## Warum eure Daten erhalten bleiben
 
 Bestellungen, Benutzer, Produkte, der Installations-Schlüssel und das grüne
-Zertifikat liegen nicht im Programmordner, sondern geschützt außerhalb (in
-Docker-Volumes und unter `C:\ProgramData\jotti`). Egal wohin ihr das neue ZIP
-entpackt: jotti findet die Daten beim Start wieder.
+Zertifikat liegen nicht im Programmordner. Sie liegen geschützt außerhalb (in
+Docker-Volumes und unter `C:\ProgramData\jotti`).
+
+Egal wohin ihr das neue ZIP entpackt: jotti findet die Daten beim Start wieder.
 
 **Automatisches Backup vor dem Update.** Erkennt der Starter eine neue Version,
-sichert er die Datenbank automatisch, bevor er die Aktualisierung ausführt. Diese
-Sicherung landet im geschützten Datenbereich und zusätzlich im Ordner
-`C:\ProgramData\jotti\backups` (die letzten fünf werden vorgehalten). Geht beim
-Update etwas schief, ist dieses Backup euer Rückweg — wie ihr es einspielt, steht
-unter [Der Weg zurück](#der-weg-zurück-wenn-das-update-schiefgeht).
+sichert er die Datenbank automatisch, bevor er die Aktualisierung ausführt.
+
+Diese Sicherung landet im geschützten Datenbereich und zusätzlich im Ordner
+`C:\ProgramData\jotti\backups` (die letzten fünf werden vorgehalten).
+
+Geht beim Update etwas schief, ist dieses Backup euer Rückweg. Wie ihr es
+einspielt, steht unter [Der Weg zurück](#der-weg-zurück-wenn-das-update-schiefgeht).
 
 > 🔁 **Nur vorwärts, kein Downgrade.** Spielt keine ältere Version über eine
 > neuere Datenbank. Updates verändern die Datenbank; eine alte Version kann mit
-> den neuen Daten nicht mehr starten, und der Starter verweigert einen solchen
+> den neuen Daten nicht mehr starten. Der Starter verweigert einen solchen
 > Rückschritt selbst. Nach einer Wiederherstellung gilt das nicht — dann steht
 > die Datenbank selbst wieder auf dem alten Stand (siehe [Der Weg
 > zurück](#der-weg-zurück-wenn-das-update-schiefgeht)).
@@ -195,7 +216,7 @@ Der Rückweg ist das automatische Backup von vor dem Update:
 4. **`jotti-start.exe`** des **vorherigen** Release doppelklicken — aus dem alten
    Programmordner, oder aus dem erneut geladenen ZIP
    (<https://github.com/nicograef/jotti/releases>). Nur der Starter gibt dem
-   Reverse-Proxy die Netzwerk-Adresse des Rechners mit, und zur zurückgespielten
+   Reverse-Proxy die Netzwerk-Adresse des Rechners mit. Zur zurückgespielten
    Datenbank passt die Version von vor dem Update.
 
 > ℹ️ **Verweigert der Starter den Start** („Diese Version … ist aelter als die
@@ -212,9 +233,11 @@ Der Rückweg ist das automatische Backup von vor dem Update:
 ## Wenn nach dem Update niemand mehr hineinkommt
 
 Sehr selten passt nach einem Update das in der Datenbank gespeicherte Passwort
-nicht mehr zum Installations-Schlüssel; jotti startet dann gar nicht mehr; der
+nicht mehr zum Installations-Schlüssel. jotti startet dann gar nicht mehr; der
 Starter bricht mit einer Fehlermeldung ab. Eure Daten sind dabei nicht verloren.
+
 **`jotti-repair.cmd`** doppelklicken gleicht beides datenerhaltend wieder an;
 danach `jotti-start.exe` doppelklicken und einmal neu anmelden. Mehrfaches
-Ausführen schadet nicht. Mehr dazu unter
-[Fehlersuche](fehlersuche.md#nach-einem-update-startet-jotti-nicht-mehr).
+Ausführen schadet nicht.
+
+Mehr dazu unter [Fehlersuche](fehlersuche.md#nach-einem-update-startet-jotti-nicht-mehr).
