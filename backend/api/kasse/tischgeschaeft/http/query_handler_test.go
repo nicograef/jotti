@@ -114,7 +114,7 @@ func TestPositionResponsesIncludeSteuersatz(t *testing.T) {
 			t.Fatal("expected unbezahltePositionen to contain at least one position")
 		}
 		if resp.UnbezahltePositionen[0].Steuersatz == "" {
-			t.Fatal("expected steuersatz in unbezahltePositionen[0] to be present")
+			t.Error("expected steuersatz in unbezahltePositionen[0] to be present")
 		}
 	})
 
@@ -142,7 +142,7 @@ func TestPositionResponsesIncludeSteuersatz(t *testing.T) {
 			t.Fatal("expected historie entry with at least one position")
 		}
 		if resp.Historie[0].Positionen[0].Steuersatz == "" {
-			t.Fatal("expected steuersatz in historie[0].positionen[0] to be present")
+			t.Error("expected steuersatz in historie[0].positionen[0] to be present")
 		}
 	})
 
@@ -166,7 +166,7 @@ func TestPositionResponsesIncludeSteuersatz(t *testing.T) {
 			t.Fatal("expected at least one tisch with unbezahltePositionen")
 		}
 		if resp.Tische[0].UnbezahltePositionen[0].Steuersatz == "" {
-			t.Fatal("expected steuersatz in tische[0].unbezahltePositionen[0] to be present")
+			t.Error("expected steuersatz in tische[0].unbezahltePositionen[0] to be present")
 		}
 	})
 }

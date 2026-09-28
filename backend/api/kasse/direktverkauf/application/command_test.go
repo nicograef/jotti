@@ -133,7 +133,7 @@ func TestDirektverkaufTaetigen_KasseNichtGeoeffnet(t *testing.T) {
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
 	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
-		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
 
@@ -204,10 +204,10 @@ func TestDirektverkaufTaetigen_InactiveVariante(t *testing.T) {
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", inputs, "")
 	if !errors.Is(err, enrichment.ErrVarianteNichtAktiv) {
-		t.Fatalf("expected ErrVarianteNichtAktiv, got %v", err)
+		t.Errorf("expected ErrVarianteNichtAktiv, got %v", err)
 	}
 	if len(spy.written) != 0 {
-		t.Fatalf("expected no event written, got %d", len(spy.written))
+		t.Errorf("expected no event written, got %d", len(spy.written))
 	}
 }
 
@@ -221,10 +221,10 @@ func TestDirektverkaufTaetigen_ProduktNotFound(t *testing.T) {
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
 	if !errors.Is(err, enrichment.ErrProduktNotFound) {
-		t.Fatalf("expected ErrProduktNotFound, got %v", err)
+		t.Errorf("expected ErrProduktNotFound, got %v", err)
 	}
 	if len(spy.written) != 0 {
-		t.Fatalf("expected no event written, got %d", len(spy.written))
+		t.Errorf("expected no event written, got %d", len(spy.written))
 	}
 }
 
@@ -234,7 +234,7 @@ func TestDirektverkaufTaetigen_Conflict(t *testing.T) {
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
 	if !errors.Is(err, ErrConflict) {
-		t.Fatalf("expected ErrConflict, got %v", err)
+		t.Errorf("expected ErrConflict, got %v", err)
 	}
 }
 
@@ -244,7 +244,7 @@ func TestDirektverkaufTaetigen_DeadlockMapsToConflict(t *testing.T) {
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
 	if !errors.Is(err, ErrConflict) {
-		t.Fatalf("expected ErrConflict, got %v", err)
+		t.Errorf("expected ErrConflict, got %v", err)
 	}
 }
 
@@ -339,7 +339,7 @@ func TestDirektverkaufStornieren_KasseNichtGeoeffnet(t *testing.T) {
 
 	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
 	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
-		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
 
@@ -349,10 +349,10 @@ func TestDirektverkaufStornieren_VerkaufNichtGefunden(t *testing.T) {
 
 	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
 	if !errors.Is(err, ErrVerkaufNichtGefunden) {
-		t.Fatalf("expected ErrVerkaufNichtGefunden, got %v", err)
+		t.Errorf("expected ErrVerkaufNichtGefunden, got %v", err)
 	}
 	if len(spy.written) != 0 {
-		t.Fatalf("expected no event written, got %d", len(spy.written))
+		t.Errorf("expected no event written, got %d", len(spy.written))
 	}
 }
 
@@ -363,10 +363,10 @@ func TestDirektverkaufStornieren_UeberVerfuegbareMenge(t *testing.T) {
 
 	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 3}}, "Zu viel")
 	if !errors.Is(err, ErrPositionNichtStornierbar) {
-		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
+		t.Errorf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
 	if len(spy.written) != 0 {
-		t.Fatalf("expected no event written, got %d", len(spy.written))
+		t.Errorf("expected no event written, got %d", len(spy.written))
 	}
 }
 
@@ -384,10 +384,10 @@ func TestDirektverkaufStornieren_DuplikatPositionRefs(t *testing.T) {
 		}
 		err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, refs, "Duplikat")
 		if !errors.Is(err, ErrPositionNichtStornierbar) {
-			t.Fatalf("menge %d: expected ErrPositionNichtStornierbar, got %v", menge, err)
+			t.Errorf("menge %d: expected ErrPositionNichtStornierbar, got %v", menge, err)
 		}
 		if len(spy.written) != 0 {
-			t.Fatalf("menge %d: expected no event written, got %d", menge, len(spy.written))
+			t.Errorf("menge %d: expected no event written, got %d", menge, len(spy.written))
 		}
 	}
 }
@@ -435,6 +435,6 @@ func TestDirektverkaufStornieren_Conflict(t *testing.T) {
 
 	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
 	if !errors.Is(err, ErrConflict) {
-		t.Fatalf("expected ErrConflict, got %v", err)
+		t.Errorf("expected ErrConflict, got %v", err)
 	}
 }

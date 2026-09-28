@@ -141,7 +141,7 @@ func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
 	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
-		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
 
@@ -163,7 +163,7 @@ func TestBestellungAufnehmen_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
 	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
-		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
 
@@ -197,7 +197,7 @@ func TestZahlungKassieren_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
 		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
 	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
-		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
 
@@ -214,7 +214,7 @@ func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "Testkommentar")
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Errorf("expected no error, got %v", err)
 	}
 }
 
@@ -244,13 +244,13 @@ func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 		t.Fatalf("expected 1 enqueued druckauftrag, got %d", len(enqueued))
 	}
 	if enqueued[0].BonArt != "arbeitsbon" {
-		t.Fatalf("expected BonArt arbeitsbon, got %s", enqueued[0].BonArt)
+		t.Errorf("expected BonArt arbeitsbon, got %s", enqueued[0].BonArt)
 	}
 	if enqueued[0].ZielIP != "192.168.1.50" {
-		t.Fatalf("expected ZielIP 192.168.1.50, got %s", enqueued[0].ZielIP)
+		t.Errorf("expected ZielIP 192.168.1.50, got %s", enqueued[0].ZielIP)
 	}
 	if enqueued[0].Payload == "" {
-		t.Fatal("expected non-empty payload")
+		t.Error("expected non-empty payload")
 	}
 }
 
@@ -268,7 +268,7 @@ func TestBestellungAufnehmen_Conflict(t *testing.T) {
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
 	if !errors.Is(err, ErrConflict) {
-		t.Fatalf("expected ErrConflict, got %v", err)
+		t.Errorf("expected ErrConflict, got %v", err)
 	}
 }
 
@@ -286,7 +286,7 @@ func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
 	if !errors.Is(err, ErrConflict) {
-		t.Fatalf("expected ErrConflict, got %v", err)
+		t.Errorf("expected ErrConflict, got %v", err)
 	}
 }
 
@@ -305,7 +305,7 @@ func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInactiveTisch.ID, inputs, "")
 	if !errors.Is(err, ErrTischNotActive) {
-		t.Fatalf("expected ErrTischNotActive, got %v", err)
+		t.Errorf("expected ErrTischNotActive, got %v", err)
 	}
 }
 
@@ -330,7 +330,7 @@ func TestBestellungAufnehmen_InactiveVariante(t *testing.T) {
 
 	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testActiveTisch.ID, inputs, "")
 	if !errors.Is(err, enrichment.ErrVarianteNichtAktiv) {
-		t.Fatalf("expected ErrVarianteNichtAktiv, got %v", err)
+		t.Errorf("expected ErrVarianteNichtAktiv, got %v", err)
 	}
 }
 
@@ -345,7 +345,7 @@ func TestZahlungKassieren_NonOrderedPosition(t *testing.T) {
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "")
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
-		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
+		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
 
@@ -372,7 +372,7 @@ func TestZahlungKassieren_DoublePayment(t *testing.T) {
 	// Try to pay again — should fail
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
-		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
+		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
 
@@ -421,7 +421,7 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 	err = command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
 		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
 	if !errors.Is(err, ErrConflict) {
-		t.Fatalf("expected ErrConflict, got %v", err)
+		t.Errorf("expected ErrConflict, got %v", err)
 	}
 }
 
@@ -466,7 +466,7 @@ func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
 		t.Fatalf("expected exactly one event, got %d", len(events))
 	}
 	if events[0].Version != 4 {
-		t.Fatalf("expected version 4 (LastEventVersion 3 + 1), got %d", events[0].Version)
+		t.Errorf("expected version 4 (LastEventVersion 3 + 1), got %d", events[0].Version)
 	}
 }
 
@@ -515,7 +515,7 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 
 	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "Reklamation")
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Errorf("expected no error, got %v", err)
 	}
 }
 
@@ -566,7 +566,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 
 	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if !errors.Is(err, ErrPositionNichtStornierbar) {
-		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
+		t.Errorf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
 }
 
@@ -594,7 +594,7 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
-		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
+		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
 
@@ -627,7 +627,7 @@ func TestZahlungKassieren_DuplikatPositionRefs(t *testing.T) {
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, duplikatRefs, "")
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
-		t.Fatalf("expected ErrPositionNichtBezahlbar, got %v", err)
+		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
 }
 
@@ -668,7 +668,7 @@ func TestStornierungErteilen_DuplikatPositionRefs(t *testing.T) {
 
 	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "Duplikat")
 	if !errors.Is(err, ErrPositionNichtStornierbar) {
-		t.Fatalf("expected ErrPositionNichtStornierbar, got %v", err)
+		t.Errorf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
 }
 
@@ -716,7 +716,7 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 		t.Fatalf("expected 1 source event, got %d", len(quellEvents))
 	}
 	if quellEvents[0].Type != string(kasse.EventTypeBestellungUmgebuchtV1) {
-		t.Fatalf("expected source event type %s, got %s", kasse.EventTypeBestellungUmgebuchtV1, quellEvents[0].Type)
+		t.Errorf("expected source event type %s, got %s", kasse.EventTypeBestellungUmgebuchtV1, quellEvents[0].Type)
 	}
 
 	zielEvents, err := eventMock.ReadEventsBySubject(ctx, zielSubject)
@@ -727,7 +727,7 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 		t.Fatalf("expected 1 target event, got %d", len(zielEvents))
 	}
 	if zielEvents[0].Type != string(kasse.EventTypeBestellungUmgebuchtV1) {
-		t.Fatalf("expected target event type %s, got %s", kasse.EventTypeBestellungUmgebuchtV1, zielEvents[0].Type)
+		t.Errorf("expected target event type %s, got %s", kasse.EventTypeBestellungUmgebuchtV1, zielEvents[0].Type)
 	}
 
 	var quellData kasse.BestellungUmgebuchtV1Data
@@ -736,25 +736,25 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	}
 
 	if quellData.GesamtCents != 350 {
-		t.Fatalf("expected source amount 350, got %d", quellData.GesamtCents)
+		t.Errorf("expected source amount 350, got %d", quellData.GesamtCents)
 	}
 	if quellData.QuellTischID != quellTisch.ID || quellData.ZielTischID != zielTisch.ID {
-		t.Fatalf("unexpected source tisch refs: quell=%d ziel=%d", quellData.QuellTischID, quellData.ZielTischID)
+		t.Errorf("unexpected source tisch refs: quell=%d ziel=%d", quellData.QuellTischID, quellData.ZielTischID)
 	}
 	if quellData.Kommentar != "Umbuchung auf Tisch Ziel" {
-		t.Fatalf("unexpected source comment: %q", quellData.Kommentar)
+		t.Errorf("unexpected source comment: %q", quellData.Kommentar)
 	}
 	if quellData.BenutzerKommentar != "Gast gewechselt" {
-		t.Fatalf("unexpected source benutzerKommentar: %q", quellData.BenutzerKommentar)
+		t.Errorf("unexpected source benutzerKommentar: %q", quellData.BenutzerKommentar)
 	}
 	if len(quellData.Positionen) != 1 {
 		t.Fatalf("expected 1 source position, got %d", len(quellData.Positionen))
 	}
 	if quellData.Positionen[0].PositionID != quellPositionID {
-		t.Fatalf("expected source position ID %q, got %q", quellPositionID, quellData.Positionen[0].PositionID)
+		t.Errorf("expected source position ID %q, got %q", quellPositionID, quellData.Positionen[0].PositionID)
 	}
 	if quellData.Positionen[0].EinzelpreisCents != 350 {
-		t.Fatalf("expected source einzelpreis 350, got %d", quellData.Positionen[0].EinzelpreisCents)
+		t.Errorf("expected source einzelpreis 350, got %d", quellData.Positionen[0].EinzelpreisCents)
 	}
 
 	var zielData kasse.BestellungUmgebuchtV1Data
@@ -763,26 +763,26 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	}
 
 	if zielData.GesamtCents != 350 {
-		t.Fatalf("expected target amount 350, got %d", zielData.GesamtCents)
+		t.Errorf("expected target amount 350, got %d", zielData.GesamtCents)
 	}
 	// Beide Seiten teilen sich dieselbe UmbuchungID.
 	if zielData.UmbuchungID != quellData.UmbuchungID {
-		t.Fatalf("expected shared UmbuchungID, got quell=%q ziel=%q", quellData.UmbuchungID, zielData.UmbuchungID)
+		t.Errorf("expected shared UmbuchungID, got quell=%q ziel=%q", quellData.UmbuchungID, zielData.UmbuchungID)
 	}
 	if zielData.Kommentar != "Umbuchung von Tisch Quelle" {
-		t.Fatalf("unexpected target comment: %q", zielData.Kommentar)
+		t.Errorf("unexpected target comment: %q", zielData.Kommentar)
 	}
 	if zielData.BenutzerKommentar != "Gast gewechselt" {
-		t.Fatalf("unexpected target benutzerKommentar: %q", zielData.BenutzerKommentar)
+		t.Errorf("unexpected target benutzerKommentar: %q", zielData.BenutzerKommentar)
 	}
 	if len(zielData.Positionen) != 1 {
 		t.Fatalf("expected 1 target position, got %d", len(zielData.Positionen))
 	}
 	if zielData.Positionen[0].PositionID == quellPositionID {
-		t.Fatalf("expected target position ID to be regenerated, but remained %q", zielData.Positionen[0].PositionID)
+		t.Errorf("expected target position ID to be regenerated, but remained %q", zielData.Positionen[0].PositionID)
 	}
 	if zielData.Positionen[0].EinzelpreisCents != 350 {
-		t.Fatalf("expected target einzelpreis 350, got %d", zielData.Positionen[0].EinzelpreisCents)
+		t.Errorf("expected target einzelpreis 350, got %d", zielData.Positionen[0].EinzelpreisCents)
 	}
 }
 
@@ -838,13 +838,13 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 	// 14 Byte Präfix + 43 mal "Ä" (2 Byte) füllen die Grenze genau aus.
 	wantQuell := "Umbuchung auf " + strings.Repeat("Ä", 43)
 	if quellData.Kommentar != wantQuell {
-		t.Fatalf("expected source comment %q, got %q", wantQuell, quellData.Kommentar)
+		t.Errorf("expected source comment %q, got %q", wantQuell, quellData.Kommentar)
 	}
 	// 14 Byte Präfix + "T" + 42 mal "ä" sind 99 Bytes; das 100. Byte gehört zur
 	// nächsten UTF-8-Folge und fällt mit ihr weg.
 	wantZiel := "Umbuchung von T" + strings.Repeat("ä", 42)
 	if zielData.Kommentar != wantZiel {
-		t.Fatalf("expected target comment %q, got %q", wantZiel, zielData.Kommentar)
+		t.Errorf("expected target comment %q, got %q", wantZiel, zielData.Kommentar)
 	}
 }
 
@@ -875,14 +875,14 @@ func TestBestellungUmbuchen_PositionNichtUmbuchbar(t *testing.T) {
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if !errors.Is(err, ErrPositionNichtUmbuchbar) {
-		t.Fatalf("expected ErrPositionNichtUmbuchbar, got %v", err)
+		t.Errorf("expected ErrPositionNichtUmbuchbar, got %v", err)
 	}
 }
 
 func TestBestellungUmbuchen_GleicherTisch(t *testing.T) {
 	err := Command{}.BestellungUmbuchen(context.Background(), 1, "Test User", 3, 3, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if !errors.Is(err, ErrUmbuchungGleicherTisch) {
-		t.Fatalf("expected ErrUmbuchungGleicherTisch, got %v", err)
+		t.Errorf("expected ErrUmbuchungGleicherTisch, got %v", err)
 	}
 }
 
@@ -899,7 +899,7 @@ func TestBestellungUmbuchen_ZielTischNotActive(t *testing.T) {
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if !errors.Is(err, ErrTischNotActive) {
-		t.Fatalf("expected ErrTischNotActive, got %v", err)
+		t.Errorf("expected ErrTischNotActive, got %v", err)
 	}
 }
 
@@ -917,7 +917,7 @@ func TestBestellungUmbuchen_ZielTischNotFound(t *testing.T) {
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, 99, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if !errors.Is(err, ErrTischNotFound) {
-		t.Fatalf("expected ErrTischNotFound, got %v", err)
+		t.Errorf("expected ErrTischNotFound, got %v", err)
 	}
 }
 
@@ -931,7 +931,7 @@ func TestBestellungUmbuchen_KasseNichtGeoeffnet(t *testing.T) {
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", 1, 2, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
-		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
 
@@ -963,7 +963,7 @@ func TestBestellungUmbuchen_Conflict(t *testing.T) {
 
 	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
 	if !errors.Is(err, ErrConflict) {
-		t.Fatalf("expected ErrConflict, got %v", err)
+		t.Errorf("expected ErrConflict, got %v", err)
 	}
 }
 
@@ -1017,9 +1017,9 @@ func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahm
 		}
 	}
 	if korrektur != 1 {
-		t.Fatalf("expected exactly 1 bestellung-korrigiert, got %d", korrektur)
+		t.Errorf("expected exactly 1 bestellung-korrigiert, got %d", korrektur)
 	}
 	if warenruecknahme != 1 {
-		t.Fatalf("expected exactly 1 stornierung-erteilt, got %d", warenruecknahme)
+		t.Errorf("expected exactly 1 stornierung-erteilt, got %d", warenruecknahme)
 	}
 }

@@ -206,7 +206,7 @@ func TestGetMeineTischeState_AllFavoritenUnresolvable(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(views) != 0 {
-		t.Fatalf("expected 0 views, got %d", len(views))
+		t.Errorf("expected 0 views, got %d", len(views))
 	}
 }
 

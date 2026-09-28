@@ -106,7 +106,7 @@ func TestBestellungAufnehmen_DuplikatBestellungId_IdempotenterErfolg(t *testing.
 	}
 
 	if err := cmd.BestellungAufnehmen(ctx, userID, "test", bestellungID, tischID, inputs, ""); err != nil {
-		t.Fatalf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
+		t.Errorf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
 	}
 
 	var eventCount int

@@ -94,7 +94,7 @@ func TestEnrichPositionen_FremdeVarianteWirdAbgelehnt(t *testing.T) {
 	})
 
 	if !errors.Is(err, enrichment.ErrProduktNotFound) {
-		t.Fatalf("expected ErrProduktNotFound for a foreign variant, got %v", err)
+		t.Errorf("expected ErrProduktNotFound for a foreign variant, got %v", err)
 	}
 }
 
