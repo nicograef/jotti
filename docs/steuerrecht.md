@@ -16,7 +16,7 @@ Der ermäßigte Satz gilt für alle Abgaben von Speisen im Rahmen einer Restaura
 - Luxusprodukte (Kaviar, Hummer, Austern) — als reine Lieferung zum Mitnehmen dagegen 19 % (Anlage 2 Nr. 3 und 28)
 - Alle zugehörigen Serviceleistungen (Servieren, Geschirr bereitstellen, Abspülen)
 
-**Geltungsbereich:** Restaurants, Cafés, Imbisse, Foodtrucks, Kantinen, Event-Caterer, Lieferdienste — vor Ort verzehrt wie mitgenommen; nur die Anlage-2-Ausnahmen (Kaviar, Langusten, Hummer, Austern, Schnecken) tragen beim Mitnehmen 19 %.
+**Geltungsbereich:** Restaurants, Cafés, Imbisse, Foodtrucks, Kantinen, Event-Caterer, Lieferdienste — vor Ort verzehrt wie mitgenommen. Nur die Anlage-2-Ausnahmen (Kaviar, Langusten, Hummer, Austern, Schnecken) tragen beim Mitnehmen 19 %.
 
 ### 1.2 Regelsteuersatz (19 %): Getränke
 
@@ -44,7 +44,7 @@ Der Regelsteuersatz gilt für die Abgabe von Getränken, ebenfalls unabhängig v
 
 ## 3. Kombinationsangebote, Menüs und Buffets
 
-Wird ein Pauschalpreis für Speisen und Getränke gemeinsam abgerechnet (Menü, Buffet inkl. Getränke, Spar-Menü mit Softdrink), muss der Gesamtbetrag zwingend in einen Speisen-Anteil (7 %) und einen Getränke-Anteil (19 %) aufgeteilt werden.
+Manche Angebote rechnen Speisen und Getränke zu einem Pauschalpreis ab (Menü, Buffet inkl. Getränke, Spar-Menü mit Softdrink). Dann muss der Gesamtbetrag zwingend in einen Speisen-Anteil (7 %) und einen Getränke-Anteil (19 %) aufgeteilt werden.
 
 ### 3.1 Zulässige Aufteilungsmethoden
 
@@ -74,4 +74,4 @@ Formel: Netto = Brutto / (1 + Satz); USt = Brutto − Netto.
 
 ## 4. Belegausweis und Pflichtangaben
 
-Die Pflichtangaben des Kassenbelegs regelt § 6 Satz 1 KassenSichV; bis 250 € brutto ist der Beleg zugleich Kleinbetragsrechnung (§ 33 UStDV). Rechnet ein Beleg über Leistungen zu verschiedenen Steuersätzen ab, sind die Summen je Steuersatz anzugeben (Abschn. 14.6 Abs. 1 Satz 2 UStAE). jotti weist deshalb pro Position ein Steuerkennzeichen (z. B. `A` für 19 %, `B` für 7 %) und im Belegfuß eine Steuermatrix (Netto, Steuerbetrag und Brutto je Steuersatz) aus, keine unaufgeteilte Gesamtsumme ohne Steueraufschlüsselung. Die vollständigen Belegangaben (inkl. TSE-Pflichtfelder) und die technische Belegstruktur: → [compliance.md §5.2](compliance.md#52-pflichtangaben-auf-dem-beleg).
+Die Pflichtangaben des Kassenbelegs regelt § 6 Satz 1 KassenSichV; bis 250 € brutto ist der Beleg zugleich Kleinbetragsrechnung (§ 33 UStDV). Rechnet ein Beleg über Leistungen zu verschiedenen Steuersätzen ab, sind die Summen je Steuersatz anzugeben (Abschn. 14.6 Abs. 1 Satz 2 UStAE). jotti weist deshalb pro Position ein Steuerkennzeichen aus (z. B. `A` für 19 %, `B` für 7 %). Der Belegfuß trägt eine Steuermatrix: Netto, Steuerbetrag und Brutto je Steuersatz. Eine unaufgeteilte Gesamtsumme ohne Steueraufschlüsselung gibt es nicht. Die vollständigen Belegangaben (inkl. TSE-Pflichtfelder) und die technische Belegstruktur: → [compliance.md §5.2](compliance.md#52-pflichtangaben-auf-dem-beleg).

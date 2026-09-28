@@ -38,15 +38,15 @@ Fachbegriffe der Domäne mit ihrer Entsprechung in Go, TypeScript, JSON, API-Pfa
 
 > **Pfadkonvention:** Dateipfade sind relativ angegeben, `domain/…` und `api/…` liegen unter `backend/`, `src/…` unter `frontend/`, `migrations/…` unter `database/`.
 
-> **Go-Paketnamens-Konvention:** Fachmodule tragen deutsche Namen (`kasse`, `tisch`, `produkt`, `betreiber`, `druckstation`, `steuer`, `tse`). Infrastruktur-Pakete bleiben englisch (`event`, `jwt`, `db`, `config`, `middleware`, `helper`). `user` und `reporting` sind die beiden dokumentierten Ausnahmen: bei `user` ist der Begriff im Deutschen mehrdeutig und das Paket deckt Auth-nahe Infrastruktur ab; `reporting` heißt in `domain/` wie in `api/` durchgängig englisch. Die API-Kontext-Ordner folgen demselben Muster: `kasse`, `fiskal`, `druck`, `stammdaten`, `reporting` (Fach), `auth`, `health`, `helper`, `middleware`, `test` (Infra).
+> **Go-Paketnamens-Konvention:** Fachmodule tragen deutsche Namen (`kasse`, `tisch`, `produkt`, `betreiber`, `druckstation`, `steuer`, `tse`). Infrastruktur-Pakete bleiben englisch (`event`, `jwt`, `db`, `config`, `middleware`, `helper`). `user` und `reporting` sind die beiden dokumentierten Ausnahmen. `user` ist im Deutschen mehrdeutig, und das Paket deckt Auth-nahe Infrastruktur ab. `reporting` heißt in `domain/` wie in `api/` durchgängig englisch. Die API-Kontext-Ordner folgen demselben Muster: `kasse`, `fiskal`, `druck`, `stammdaten`, `reporting` (Fach), `auth`, `health`, `helper`, `middleware`, `test` (Infra).
 
-> **Ausnahme Website:** Ausgenommen von diesen Konventionen ist das Website-Paket (`website/`, `@jotti/website`): es ist eine eigenständige Codebasis ohne Import aus dem Frontend, und seine Bezeichner sind englisch, auch wo sie Domänenbegriffe abbilden (`website/src/lib/live-demo.ts`: `DemoProduct`, `Cart`, `addVariant`). Benutzer-sichtbare Strings der Website sind deutsch wie überall sonst (Regel 3).
+> **Ausnahme Website:** Das Website-Paket (`website/`, `@jotti/website`) ist von diesen Konventionen ausgenommen. Es ist eine eigenständige Codebasis ohne Import aus dem Frontend. Seine Bezeichner sind englisch, auch wo sie Domänenbegriffe abbilden (`website/src/lib/live-demo.ts`: `DemoProduct`, `Cart`, `addVariant`). Benutzer-sichtbare Strings der Website sind deutsch wie überall sonst (Regel 3).
 
 ## Vereinswesen & Steuerliche Sphären
 
 - **Gemeinnützigkeit:** Steuerbegünstigter Status eines Vereins (selbstlose, satzungsgemäße Tätigkeit für die Allgemeinheit).
 - **Ideeller Bereich:** Steuerfreier Kernbereich ohne wirtschaftliche Tätigkeit (Spenden, Mitgliedsbeiträge).
-- **Wirtschaftlicher Geschäftsbetrieb (WGB):** In der Regel steuerpflichtiger Bereich, in dem der Verein wie ein Unternehmen agiert (Getränke- und Essensverkauf auf dem Vereinsfest), jottis primärer Einsatzbereich.
+- **Wirtschaftlicher Geschäftsbetrieb (WGB):** In der Regel steuerpflichtiger Bereich, in dem der Verein wie ein Unternehmen agiert. Beispiel: Getränke- und Essensverkauf auf dem Vereinsfest, jottis primärer Einsatzbereich.
 - **Zweckbetrieb:** Steuerbegünstigter wirtschaftlicher Geschäftsbetrieb, der unmittelbar dem gemeinnützigen Zweck dient.
 - **Vermögensverwaltung:** Steuerfreie, passive Einnahmen aus Vereinsvermögen (Zinsen, Mieten).
 - **Kleinunternehmerregelung (§ 19 UStG):** Befreiung von der Umsatzsteuerpflicht bei geringen Umsätzen, beeinflusst die `Steuersatz`-Konfiguration.
@@ -97,7 +97,7 @@ Nachträgliche Aufhebung bestellter Positionen, nur durch Serviceleitung oder Ad
 - **Warenrücknahme** (kassenwirksam, `barRueckgabe: true`): Rückgabe bereits bezahlter Positionen mit Bar-Rückgabe im selben Beleg. Event `stornierung-erteilt:v1`.
 - **Korrektur** (geldneutral, `barRueckgabe: false`): Stornierung noch unbezahlter Positionen ohne Geld- und Umsatzwirkung. Event `bestellung-korrigiert:v1`.
 
-**Storno-Zuordnung:** Zuordnung eines Stornos im Reporting zu der Servicekraft, deren Vorgang er rückgängig macht — nicht zum **Akteur**, der ihn ausgelöst hat. Auflösung und Rückfall auf den Akteur → [handbuch.md §7.2](handbuch.md#72-admin-ansichten-reporting). Go `StornierungDetail.Akteur`, `StornierungDetail.Betroffene []ServicekraftRef` · JSON/TS `akteur`, `betroffene`.
+**Storno-Zuordnung:** Ein Storno zählt im Reporting für die Servicekraft, deren Vorgang er rückgängig macht. Er zählt nicht für den **Akteur**, der ihn ausgelöst hat. Auflösung und Rückfall auf den Akteur → [handbuch.md §7.2](handbuch.md#72-admin-ansichten-reporting). Go `StornierungDetail.Akteur`, `StornierungDetail.Betroffene []ServicekraftRef` · JSON/TS `akteur`, `betroffene`.
 
 ### Weitere Typen und Felder (Kasse)
 
@@ -143,7 +143,7 @@ Nachträgliche Aufhebung bestellter Positionen, nur durch Serviceleitung oder Ad
 
 ## Reporting (Read Model)
 
-Bis auf `ProduktStatistikZeile` (nur Backend) existiert jeder Typ als Go-Struct (`domain/reporting/`) und als Zod-Schema mit abgeleitetem TS-Typ in `frontend/src/admin/reporting/types.ts`; `Breakdowns` steckt dort als Inline-Objekt ohne eigenen Typnamen. Aggregations- und Zuordnungsregeln → [handbuch.md §7.2](handbuch.md#72-admin-ansichten-reporting).
+Jeder Typ existiert als Go-Struct (`domain/reporting/`) und als Zod-Schema mit abgeleitetem TS-Typ in `frontend/src/admin/reporting/types.ts`. Ausnahme: `ProduktStatistikZeile` gibt es nur im Backend. `Breakdowns` steckt in `types.ts` als Inline-Objekt ohne eigenen Typnamen. Aggregations- und Zuordnungsregeln → [handbuch.md §7.2](handbuch.md#72-admin-ansichten-reporting).
 
 | Begriff                | Bedeutung                                                                                                                                                 |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -196,7 +196,7 @@ Signierpfad, Worker, Störungsprotokoll und Kassenabschluss-Gate im Zusammenhang
 - **Störungsprotokoll:** Aufbewahrungspflichtige Tabelle `tse_stoerungen` der TSE-weiten Signierstörungen; je Störung ein Störungszeitraum, höchstens einer aktiv, kein DELETE.
 - **Störungszeitraum:** Zeitraum im Störungsprotokoll (Beginn, Ende, Fehlertext; Ende NULL solange aktiv). Grund-Arten: `tse_fehler`, `rueckstand`, `keine_konfiguration`.
 - **Rückstands-Ausfall:** Offener Auftrag während eines aktiven `rueckstand`-Störungszeitraums. Schwelle `RueckstandSchwelle`, Watchdog `api/fiskal/signatur/tse_rueckstand_watchdog.go`.
-- **Aufholphase:** Zeitraum, in dem der Worker nach einer behobenen Störung den aufgelaufenen Rückstand abarbeitet; bis der Rückstands-Zeitraum schließt, tragen die dabei erzeugten Belege den Ausfallvermerk.
+- **Aufholphase:** Zeitraum, in dem der Worker nach einer behobenen Störung den aufgelaufenen Rückstand abarbeitet. Bis der Rückstands-Zeitraum schließt, tragen die dabei erzeugten Belege den Ausfallvermerk.
 - **Transaktionsnummer (`TSE_TANR`):** Eindeutige, fortlaufende TSE-Nummer pro Kassiervorgang. Dient der Lückenerkennung.
 - **Signaturzähler (`TSE_TA_SIGZ`):** Stetig ansteigender Zähler pro Signaturvorgang. Pflichtfeld auf dem Kassenbeleg.
 - **Prüfwert / Signatur:** Kryptografischer Signaturwert, der den Vorgang absiegelt und auf dem Kassenbeleg abgedruckt wird.
