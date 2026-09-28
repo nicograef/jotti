@@ -300,8 +300,8 @@ Every code comment longer than two sentences is cut to the invariant or the non-
 
 ### Acceptance criteria
 
-- [ ] a scan for `//` blocks of ≥ 4 lines in `backend/` and `frontend/src/` returns none, excluding generated `sqlc/dbgen/`
-- [ ] `make check` green
+- [x] a scan for `//` blocks of ≥ 4 lines in `backend/` and `frontend/src/` returns none, excluding generated `sqlc/dbgen/`
+- [x] `make check` green
 
 ## Phase 14: Docs to the prose caps
 
