@@ -1,9 +1,18 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, renderHook, waitFor } from '@testing-library/react'
-import type { ReactNode } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, waitFor } from '@testing-library/react'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type MockInstance,
+  vi,
+} from 'vitest'
 
+import type { DownloadResult } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderHookWithBackend } from '@/test/render'
 
 import { useDsfinvkExport } from './hooks'
 
@@ -11,49 +20,39 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
-vi.mock('@/lib/download', () => ({
-  triggerBrowserDownload: vi.fn(),
-}))
-
-const { exportDsfinvk } = vi.hoisted(() => ({
-  exportDsfinvk: vi.fn<() => Promise<{ blob: Blob; filename: string }>>(),
-}))
-
-// hooks.ts baut sein Backend beim Import — der Ersatz muss konstruierbar sein.
-vi.mock('./ReportingBackend', () => ({
-  ReportingBackend: class {
-    exportDsfinvk = exportDsfinvk
-  },
-}))
-
-function Wrapper({ children }: { children: ReactNode }) {
-  const queryClient = new QueryClient({
-    defaultOptions: { mutations: { retry: false } },
-  })
-  return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  )
-}
+let klick: MockInstance<() => void>
 
 beforeEach(() => {
   VorgangsRegisterSingleton.zuruecksetzen()
+  // jsdom implements neither object URLs nor navigation on an anchor click.
+  URL.createObjectURL = vi.fn(() => 'blob:dsfinvk')
+  URL.revokeObjectURL = vi.fn()
+  klick = vi
+    .spyOn(HTMLAnchorElement.prototype, 'click')
+    .mockImplementation(() => undefined)
 })
 
 afterEach(() => {
-  vi.clearAllMocks()
+  vi.restoreAllMocks()
 })
+
+// The fake answers downloads at once; a held promise keeps the export running
+// until the test settles it.
+function haltenderDownload(fake: FakeBackend, archiv: Promise<DownloadResult>) {
+  vi.spyOn(fake, 'download').mockReturnValue(archiv)
+}
 
 describe('useDsfinvkExport im Vorgangs-Register', () => {
   it('meldet den laufenden Export und gibt ihn nach dem Download frei', async () => {
-    let liefern!: (archiv: { blob: Blob; filename: string }) => void
-    exportDsfinvk.mockReturnValue(
+    const fake = new FakeBackend()
+    let liefern!: (archiv: DownloadResult) => void
+    haltenderDownload(
+      fake,
       new Promise((resolve) => {
         liefern = resolve
       }),
     )
-    const { result } = renderHook(() => useDsfinvkExport(), {
-      wrapper: Wrapper,
-    })
+    const { result } = renderHookWithBackend(() => useDsfinvkExport(), fake)
 
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
 
@@ -71,18 +70,20 @@ describe('useDsfinvkExport im Vorgangs-Register', () => {
     await waitFor(() => {
       expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
     })
+    expect(klick).toHaveBeenCalledOnce()
+    expect(klick.mock.contexts[0]).toHaveProperty('download', 'dsfinvk.zip')
   })
 
   it('gibt den Export auch nach einem Fehlschlag frei', async () => {
+    const fake = new FakeBackend()
     let scheitern!: (fehler: Error) => void
-    exportDsfinvk.mockReturnValue(
+    haltenderDownload(
+      fake,
       new Promise((_, reject) => {
         scheitern = reject
       }),
     )
-    const { result } = renderHook(() => useDsfinvkExport(), {
-      wrapper: Wrapper,
-    })
+    const { result } = renderHookWithBackend(() => useDsfinvkExport(), fake)
 
     act(() => {
       result.current.exportieren(1)

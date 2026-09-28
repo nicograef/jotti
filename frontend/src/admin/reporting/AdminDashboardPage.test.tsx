@@ -1,6 +1,11 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import type { QueryClient } from '@tanstack/react-query'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import type { AktiveKassensitzung } from '@/admin/kasse/KasseBackend'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import { AdminDashboardPage } from './AdminDashboardPage'
 import type { LiveReportingData } from './types'
@@ -9,67 +14,6 @@ vi.mock('react-router', () => ({
   NavLink: ({ children, to }: { children?: ReactNode; to: string }) => (
     <a href={to}>{children}</a>
   ),
-}))
-
-const liveState = vi.hoisted(() => ({
-  data: null as LiveReportingData | null,
-}))
-const tseState = vi.hoisted(() => ({
-  istKonfiguriert: true,
-  offeneAuftraege: 3,
-  fehlgeschlageneAuftraege: 0,
-  rueckstandSekunden: 0,
-}))
-const druckState = vi.hoisted(() => ({ anzahl: 0 }))
-const kasseState = vi.hoisted(
-  (): { status: 'offen' | 'wird_abgeschlossen' } => ({ status: 'offen' }),
-)
-
-vi.mock('./hooks', () => ({
-  useLiveReporting: () => ({
-    liveData: liveState.data,
-    isPending: false,
-    dataUpdatedAt: 0,
-    refetch: vi.fn(),
-  }),
-}))
-
-vi.mock('@/admin/kasse/hooks', () => ({
-  useAktiveKassensitzung: () => ({
-    kassensitzung:
-      liveState.data === null
-        ? null
-        : {
-            zNr: 1,
-            eroeffnetAm: '2026-06-18T08:02:00Z',
-            status: kasseState.status,
-          },
-  }),
-  useKassenbestand: () => ({ kassenbestand: { sollBestandCents: 123450 } }),
-}))
-
-vi.mock('@/admin/tse/hooks', () => ({
-  RUECKSTAND_WARN_SEKUNDEN: 60,
-  useTSEStatus: () => ({
-    tseStatus: { istKonfiguriert: tseState.istKonfiguriert },
-    isPending: false,
-  }),
-  useTSESignaturQueue: () => ({
-    queue: {
-      offeneAuftraege: tseState.offeneAuftraege,
-      fehlgeschlageneAuftraege: tseState.fehlgeschlageneAuftraege,
-      rueckstandSekunden: tseState.rueckstandSekunden,
-      letzterFehler: '',
-    },
-  }),
-}))
-
-vi.mock('@/admin/settings/hooks', () => ({
-  useFehlgeschlageneDruckauftraege: () => ({
-    druckauftraege: Array.from({ length: druckState.anzahl }, (_, i) => ({
-      id: i + 1,
-    })),
-  }),
 }))
 
 function makeLiveData(): LiveReportingData {
@@ -95,33 +39,97 @@ function makeLiveData(): LiveReportingData {
   }
 }
 
+function kassensitzung(
+  status: AktiveKassensitzung['status'] = 'offen',
+): AktiveKassensitzung {
+  return {
+    zNr: 1,
+    datum: '2026-06-18',
+    bezeichnung: 'Sommerfest',
+    status,
+    eroeffnetAm: '2026-06-18T08:02:00Z',
+  }
+}
+
+// Healthy defaults: open session, TSE configured with 3 queued jobs, printer idle.
+function backend({
+  liveData = makeLiveData(),
+  sitzung = liveData === null ? null : kassensitzung(),
+  tseKonfiguriert = true,
+  fehlgeschlageneDrucke = 0,
+}: {
+  liveData?: LiveReportingData | null
+  sitzung?: AktiveKassensitzung | null
+  tseKonfiguriert?: boolean
+  fehlgeschlageneDrucke?: number
+} = {}): FakeBackend {
+  return new FakeBackend()
+    .respond('admin/get-live-reporting', liveData)
+    .respond('admin/get-aktive-kassensitzung', sitzung)
+    .respond('admin/get-kassenbestand', {
+      sollBestandCents: 123450,
+      anfangsbestandCents: 0,
+      bareinnahmenCents: 123450,
+      einlagenCents: 0,
+      entnahmenCents: 0,
+    })
+    .respond('admin/get-tse-status', {
+      umgebung: 'TEST',
+      istKonfiguriert: tseKonfiguriert,
+    })
+    .respond('admin/get-tse-signatur-queue', {
+      offeneAuftraege: 3,
+      fehlgeschlageneAuftraege: 0,
+      letzterFehler: '',
+      rueckstandSekunden: 0,
+      signaturenProMinute: 0,
+      signierdauerP95Sekunden: 0,
+    })
+    .respond('admin/get-fehlgeschlagene-druckauftraege', {
+      druckauftraege: Array.from({ length: fehlgeschlageneDrucke }, (_, i) => ({
+        id: i + 1,
+        bonArt: 'arbeitsbon',
+        zielIp: '192.168.1.50',
+        referenz: '',
+        versuche: 3,
+        letzterFehler: 'Papier leer',
+        erstelltAm: '2026-06-18T12:00:00Z',
+      })),
+    })
+}
+
+// Absence checks only hold once every status query has answered.
+async function alleGeladen(queryClient: QueryClient) {
+  await waitFor(() => {
+    expect(queryClient.isFetching()).toBe(0)
+  })
+}
+
 afterEach(() => {
   cleanup()
-  liveState.data = null
-  tseState.istKonfiguriert = true
-  tseState.offeneAuftraege = 3
-  tseState.fehlgeschlageneAuftraege = 0
-  tseState.rueckstandSekunden = 0
-  druckState.anzahl = 0
-  kasseState.status = 'offen'
 })
 
 describe('AdminDashboardPage Status-Zeile', () => {
-  it('zeigt ohne offene Kassensitzung den Leerzustand statt der Status-Zeile', () => {
-    liveState.data = null
-    render(<AdminDashboardPage />)
+  it('zeigt ohne offene Kassensitzung den Leerzustand statt der Status-Zeile', async () => {
+    const { queryClient } = renderWithBackend(
+      <AdminDashboardPage />,
+      backend({ liveData: null }),
+    )
 
-    expect(screen.getByText('Keine Kassensitzung geöffnet')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Keine Kassensitzung geöffnet'),
+    ).toBeInTheDocument()
+    await alleGeladen(queryClient)
     expect(screen.queryByText(/Soll-Bestand/)).not.toBeInTheDocument()
   })
 
-  it('zeigt im Normalzustand Kasse/TSE/Drucker ohne Beheben-Button', () => {
-    liveState.data = makeLiveData()
-    render(<AdminDashboardPage />)
+  it('zeigt im Normalzustand Kasse/TSE/Drucker ohne Beheben-Button', async () => {
+    const { queryClient } = renderWithBackend(<AdminDashboardPage />, backend())
 
     expect(
-      screen.getByText(/seit \d{2}:\d{2} · Soll-Bestand 1234,50 €/),
+      await screen.findByText(/seit \d{2}:\d{2} · Soll-Bestand 1234,50 €/),
     ).toBeInTheDocument()
+    await alleGeladen(queryClient)
     expect(
       screen.getByText('3 Vorgänge in Warteschlange (normal)'),
     ).toBeInTheDocument()
@@ -131,33 +139,43 @@ describe('AdminDashboardPage Status-Zeile', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('zeigt im Barrierestatus die Kassenzelle als unterbrochenen Abschluss mit Beheben-Link', () => {
-    liveState.data = makeLiveData()
-    kasseState.status = 'wird_abgeschlossen'
-    render(<AdminDashboardPage />)
+  it('zeigt im Barrierestatus die Kassenzelle als unterbrochenen Abschluss mit Beheben-Link', async () => {
+    const { queryClient } = renderWithBackend(
+      <AdminDashboardPage />,
+      backend({ sitzung: kassensitzung('wird_abgeschlossen') }),
+    )
 
-    expect(screen.getByText('Abschluss unterbrochen')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Abschluss unterbrochen'),
+    ).toBeInTheDocument()
+    await alleGeladen(queryClient)
     expect(screen.queryByText('Kasse offen')).not.toBeInTheDocument()
     const beheben = screen.getByRole('link', { name: 'Beheben' })
     expect(beheben).toHaveAttribute('href', '/admin/kasse')
   })
 
-  it('zeigt bei nicht konfigurierter TSE die Fehlerzelle mit Beheben-Link zum Finanzamt', () => {
-    liveState.data = makeLiveData()
-    tseState.istKonfiguriert = false
-    render(<AdminDashboardPage />)
+  it('zeigt bei nicht konfigurierter TSE die Fehlerzelle mit Beheben-Link zum Finanzamt', async () => {
+    const { queryClient } = renderWithBackend(
+      <AdminDashboardPage />,
+      backend({ tseKonfiguriert: false }),
+    )
 
-    expect(screen.getByText('TSE benötigt Aufmerksamkeit')).toBeInTheDocument()
+    expect(
+      await screen.findByText('TSE benötigt Aufmerksamkeit'),
+    ).toBeInTheDocument()
+    await alleGeladen(queryClient)
     const beheben = screen.getByRole('link', { name: 'Beheben' })
     expect(beheben).toHaveAttribute('href', '/admin/finanzamt')
   })
 
-  it('zeigt bei fehlgeschlagenen Druckaufträgen die Drucker-Fehlerzelle mit Beheben-Link', () => {
-    liveState.data = makeLiveData()
-    druckState.anzahl = 1
-    render(<AdminDashboardPage />)
+  it('zeigt bei fehlgeschlagenen Druckaufträgen die Drucker-Fehlerzelle mit Beheben-Link', async () => {
+    const { queryClient } = renderWithBackend(
+      <AdminDashboardPage />,
+      backend({ fehlgeschlageneDrucke: 1 }),
+    )
 
-    expect(screen.getByText('1 Bon nicht gedruckt')).toBeInTheDocument()
+    expect(await screen.findByText('1 Bon nicht gedruckt')).toBeInTheDocument()
+    await alleGeladen(queryClient)
     const beheben = screen.getByRole('link', { name: 'Beheben' })
     expect(beheben).toHaveAttribute('href', '/admin/druckstationen')
   })

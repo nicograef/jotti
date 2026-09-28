@@ -1,14 +1,20 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import type { QueryClient } from '@tanstack/react-query'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { LIVE_REPORTING_KEY } from '@/admin/reporting/hooks'
+import type { OffenerTisch } from '@/admin/reporting/types'
+import { TSE_KONFIGURATION_KEY } from '@/admin/tse/hooks'
 import { BackendError } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import { EroeffnenSection } from './EroeffnenSection'
 import { KasseAbschliessenSection } from './KasseAbschliessenSection'
+import type { AktiveKassensitzung } from './KasseBackend'
 import type { GeldtransitBuchung } from './Kassensitzung'
 import { KassensitzungPage } from './KassensitzungPage'
 
@@ -16,122 +22,107 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
 }))
 
-const { kasseAbschliessen, kassensitzungEroeffnen, geldtransitBuchen } =
-  vi.hoisted(() => ({
-    kasseAbschliessen: vi
-      .fn<
-        (cents: number) => Promise<{
-          ausfallResteAnzahl: number
-          ohneKonfigurationAnzahl: number
-        }>
-      >()
-      .mockResolvedValue({ ausfallResteAnzahl: 0, ohneKonfigurationAnzahl: 0 }),
-    kassensitzungEroeffnen: vi
-      .fn<(bezeichnung: string, betragCents: number) => Promise<number>>()
-      .mockResolvedValue(1),
-    geldtransitBuchen: vi
-      .fn<
-        (
-          geldtransitId: string,
-          richtung: string,
-          betragCents: number,
-          kommentar: string,
-        ) => Promise<void>
-      >()
-      .mockResolvedValue(undefined),
-  }))
+const sommerfest: AktiveKassensitzung = {
+  zNr: 12,
+  datum: '2026-07-11',
+  bezeichnung: 'Sommerfest Tag 2',
+  status: 'offen',
+  eroeffnetAm: '2026-07-11T08:02:00Z',
+}
 
-type AktiveKassensitzungMock = {
-  zNr: number
-  datum: string
-  bezeichnung: string
-  status: 'offen' | 'wird_abgeschlossen'
-  eroeffnetAm: string
-} | null
+function liveReporting(offeneTische: OffenerTisch[], offeneSaldiCents: number) {
+  return {
+    kassensitzungNr: 12,
+    bezeichnung: 'Sommerfest Tag 2',
+    datum: '2026-07-11',
+    offeneTische,
+    offeneSaldiCents,
+    summary: {
+      gesamtUmsatzCents: 12345,
+      gesamtBestellungenCents: 12345,
+      gesamtStornierungenCents: 300,
+      geldtransitCents: 5000,
+      anzahlBestellungen: 0,
+      anzahlStornierungen: 0,
+      anzahlDirektverkaeufe: 0,
+      direktverkaufUmsatzCents: 0,
+    },
+    breakdowns: { servicekraefte: [] },
+    stornierungen: [],
+    produktStatistik: [],
+  }
+}
 
-const aktiveKassensitzungState = vi.hoisted(
-  (): { isError: boolean; kassensitzung: AktiveKassensitzungMock } => ({
-    isError: false,
-    kassensitzung: null,
-  }),
-)
-
-const geldtransitListeState = vi.hoisted(() => ({
-  buchungen: [] as GeldtransitBuchung[],
-}))
-
-vi.mock('./hooks', () => ({
-  kasseBackend: {
-    kasseAbschliessen,
-    kassensitzungEroeffnen,
-    geldtransitBuchen,
-  },
-  KASSENBESTAND_KEY: 'kassenbestand',
-  GELDTRANSIT_LISTE_KEY: 'geldtransit-liste',
-  useKassenbestand: () => ({
-    kassenbestand: {
+// Soll-Bestand 340,00 € with breakdown; every booking succeeds.
+function backend({
+  kassensitzung = null,
+  buchungen = [],
+  offeneTische = [],
+  offeneSaldiCents = 0,
+  tseKonfiguriert = false,
+}: {
+  kassensitzung?: AktiveKassensitzung | null
+  buchungen?: GeldtransitBuchung[]
+  offeneTische?: OffenerTisch[]
+  offeneSaldiCents?: number
+  tseKonfiguriert?: boolean
+} = {}): FakeBackend {
+  return new FakeBackend()
+    .respond('admin/get-aktive-kassensitzung', kassensitzung)
+    .respond('admin/get-kassenbestand', {
       sollBestandCents: 34000,
       anfangsbestandCents: 15000,
       bareinnahmenCents: 17000,
       einlagenCents: 3000,
       entnahmenCents: 1000,
-    },
-    dataUpdatedAt: 0,
-  }),
-  useGeldtransitListe: () => ({ buchungen: geldtransitListeState.buchungen }),
-  useAktiveKassensitzung: () => ({
-    kassensitzung: aktiveKassensitzungState.kassensitzung,
-    isPending: false,
-    isError: aktiveKassensitzungState.isError,
-    refetch: () => Promise.resolve(),
-  }),
-}))
-
-interface OffenerTischMock {
-  tischId: number
-  tischName: string
-  saldoCents: number
+    })
+    .respond('admin/get-geldtransit-liste', buchungen)
+    .respond(
+      'admin/get-live-reporting',
+      liveReporting(offeneTische, offeneSaldiCents),
+    )
+    .respond('admin/get-tse-konfiguration', {
+      apiKeyGesetzt: tseKonfiguriert,
+      apiSecretGesetzt: tseKonfiguriert,
+      tssId: '',
+      clientId: '',
+      istKonfiguriert: tseKonfiguriert,
+    })
+    .respond('admin/kassensitzung-eroeffnen', { zNr: 1 })
+    .respond('admin/kasse-abschliessen', {
+      ausfallResteAnzahl: 0,
+      ohneKonfigurationAnzahl: 0,
+    })
+    .respond('admin/geldtransit-buchen', {})
 }
 
-const liveReportingState = vi.hoisted(
-  (): { offeneTische: OffenerTischMock[]; offeneSaldiCents: number } => ({
-    offeneTische: [],
-    offeneSaldiCents: 0,
-  }),
-)
-
-vi.mock('@/admin/reporting/hooks', () => ({
-  useLiveReporting: () => ({
-    liveData: {
-      offeneTische: liveReportingState.offeneTische,
-      offeneSaldiCents: liveReportingState.offeneSaldiCents,
-      summary: {
-        gesamtUmsatzCents: 12345,
-        gesamtStornierungenCents: 300,
-        geldtransitCents: 5000,
-      },
-    },
-    isPending: false,
-  }),
-}))
-
-const tseState = vi.hoisted(() => ({ istKonfiguriert: false }))
-
-vi.mock('@/admin/tse/hooks', () => ({
-  useTSEKonfiguration: () => ({
-    tseKonfiguration: { istKonfiguriert: tseState.istKonfiguriert },
-  }),
-}))
-
-function renderPage() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+// Waits for a query whose data leaves no visible trace in the UI.
+async function geladen(queryClient: QueryClient, key: string) {
+  await waitFor(() => {
+    expect(queryClient.getQueryState([key])?.status).toBe('success')
   })
-  render(
-    <QueryClientProvider client={queryClient}>
-      <KassensitzungPage />
-    </QueryClientProvider>,
+}
+
+function renderPage(fake: FakeBackend = backend()) {
+  return renderWithBackend(<KassensitzungPage />, fake)
+}
+
+async function renderEroeffnen(fake: FakeBackend) {
+  const { queryClient } = renderWithBackend(
+    <EroeffnenSection onSuccess={vi.fn()} />,
+    fake,
   )
+  await geladen(queryClient, TSE_KONFIGURATION_KEY)
+}
+
+// Returns once Soll-Bestand and the open tables have loaded.
+async function renderAbschluss(fake: FakeBackend = backend()) {
+  const { queryClient } = renderWithBackend(
+    <KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />,
+    fake,
+  )
+  await screen.findByText('340,00 €')
+  await geladen(queryClient, LIVE_REPORTING_KEY)
 }
 
 beforeEach(() => {
@@ -141,20 +132,14 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
-  aktiveKassensitzungState.isError = false
-  aktiveKassensitzungState.kassensitzung = null
-  geldtransitListeState.buchungen = []
-  liveReportingState.offeneTische = []
-  liveReportingState.offeneSaldiCents = 0
 })
 
 describe('KassensitzungPage', () => {
-  it('zeigt bei Query-Fehler einen Fehlerzustand statt des Steppers', () => {
-    aktiveKassensitzungState.isError = true
-    renderPage()
+  it('zeigt bei Query-Fehler einen Fehlerzustand statt des Steppers', async () => {
+    renderPage(backend().fail('admin/get-aktive-kassensitzung'))
 
     expect(
-      screen.getByText('Kassendaten konnten nicht geladen werden'),
+      await screen.findByText('Kassendaten konnten nicht geladen werden'),
     ).toBeInTheDocument()
     expect(screen.queryByText('2 · Laufender Betrieb')).not.toBeInTheDocument()
     expect(
@@ -162,12 +147,11 @@ describe('KassensitzungPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('zeigt im Leerzustand Schritt 1 als aktives Eröffnen-Formular, Schritte 2–3 ausgegraut', () => {
-    aktiveKassensitzungState.kassensitzung = null
+  it('zeigt im Leerzustand Schritt 1 als aktives Eröffnen-Formular, Schritte 2–3 ausgegraut', async () => {
     renderPage()
 
     expect(
-      screen.getByRole('button', { name: 'Kassensitzung eröffnen' }),
+      await screen.findByRole('button', { name: 'Kassensitzung eröffnen' }),
     ).toBeInTheDocument()
     expect(screen.getByText('2 · Laufender Betrieb')).toBeInTheDocument()
     expect(
@@ -178,15 +162,8 @@ describe('KassensitzungPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('zeigt bei offener Sitzung den Stepper mit Titel, Soll-Bestand-Aufschlüsselung und Bewegungsliste', () => {
-    aktiveKassensitzungState.kassensitzung = {
-      zNr: 12,
-      datum: '2026-07-11',
-      bezeichnung: 'Sommerfest Tag 2',
-      status: 'offen',
-      eroeffnetAm: '2026-07-11T08:02:00Z',
-    }
-    geldtransitListeState.buchungen = [
+  it('zeigt bei offener Sitzung den Stepper mit Titel, Soll-Bestand-Aufschlüsselung und Bewegungsliste', async () => {
+    const buchungen: GeldtransitBuchung[] = [
       {
         zeitpunkt: '2026-07-11T18:15:00Z',
         richtung: 'entnahme',
@@ -202,18 +179,22 @@ describe('KassensitzungPage', () => {
         gebuchtVon: 'sophie',
       },
     ]
-    renderPage()
+    renderPage(backend({ kassensitzung: sommerfest, buchungen }))
 
     expect(
-      screen.getByText('Kassentag Nr. 12 — Sommerfest Tag 2'),
+      await screen.findByText('Kassentag Nr. 12 — Sommerfest Tag 2'),
     ).toBeInTheDocument()
     // 340,00 € steht in Schritt 2 und in der Live-Rechnung von Schritt 3.
-    expect(screen.getAllByText('340,00 €').length).toBeGreaterThanOrEqual(1)
+    expect(
+      (await screen.findAllByText('340,00 €')).length,
+    ).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Anfangsbestand')).toBeInTheDocument()
     expect(screen.getByText('+ Bareinnahmen')).toBeInTheDocument()
     expect(screen.getByText('+ Einlagen')).toBeInTheDocument()
     expect(screen.getByText('− Entnahmen')).toBeInTheDocument()
-    expect(screen.getByText(/Abschöpfung in den Tresor/)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/Abschöpfung in den Tresor/),
+    ).toBeInTheDocument()
     expect(screen.getByText(/Wechselgeld Nachschub/)).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Geld einlegen' }),
@@ -223,18 +204,15 @@ describe('KassensitzungPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('zeigt im Barrierestatus Schritt 3 mit dem Hinweis auf den unterbrochenen Abschluss', () => {
-    aktiveKassensitzungState.kassensitzung = {
-      zNr: 12,
-      datum: '2026-07-11',
-      bezeichnung: 'Sommerfest Tag 2',
-      status: 'wird_abgeschlossen',
-      eroeffnetAm: '2026-07-11T08:02:00Z',
-    }
-    renderPage()
+  it('zeigt im Barrierestatus Schritt 3 mit dem Hinweis auf den unterbrochenen Abschluss', async () => {
+    renderPage(
+      backend({
+        kassensitzung: { ...sommerfest, status: 'wird_abgeschlossen' },
+      }),
+    )
 
     expect(
-      screen.getByText('Abschluss unterbrochen — erneut abschließen'),
+      await screen.findByText('Abschluss unterbrochen — erneut abschließen'),
     ).toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Kassensitzung eröffnen' }),
@@ -253,17 +231,13 @@ describe('KassensitzungPage', () => {
   })
 
   it('öffnet über „Geld entnehmen" den Dialog mit vorbelegter Richtung und bucht', async () => {
-    aktiveKassensitzungState.kassensitzung = {
-      zNr: 12,
-      datum: '2026-07-11',
-      bezeichnung: 'Sommerfest Tag 2',
-      status: 'offen',
-      eroeffnetAm: '2026-07-11T08:02:00Z',
-    }
+    const fake = backend({ kassensitzung: sommerfest })
     const user = userEvent.setup()
-    renderPage()
+    renderPage(fake)
 
-    await user.click(screen.getByRole('button', { name: 'Geld entnehmen' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Geld entnehmen' }),
+    )
 
     expect(
       screen.getByRole('heading', { name: 'Geld entnehmen' }),
@@ -276,21 +250,24 @@ describe('KassensitzungPage', () => {
     })
     await user.click(dialogButtons[dialogButtons.length - 1])
 
-    expect(geldtransitBuchen).toHaveBeenCalledTimes(1)
-    const [geldtransitId, richtung, betragCents, kommentar] =
-      geldtransitBuchen.mock.calls[0]
-    expect(typeof geldtransitId).toBe('string')
-    expect(richtung).toBe('entnahme')
-    expect(betragCents).toBe(3000)
-    expect(kommentar).toBe('Getränke-Nachkauf')
+    await waitFor(() => {
+      expect(fake.bodies('admin/geldtransit-buchen')).toEqual([
+        {
+          geldtransitId: expect.any(String) as unknown,
+          richtung: 'entnahme',
+          betragCents: 3000,
+          kommentar: 'Getränke-Nachkauf',
+        },
+      ])
+    })
   })
 })
 
 describe('EroeffnenSection', () => {
   it('fragt ohne TSE-Konfiguration nach; Abbrechen eröffnet nicht, Bestätigen eröffnet', async () => {
-    tseState.istKonfiguriert = false
+    const fake = backend({ tseKonfiguriert: false })
     const user = userEvent.setup()
-    render(<EroeffnenSection onSuccess={vi.fn()} />)
+    await renderEroeffnen(fake)
 
     await user.type(screen.getByLabelText('Bezeichnung'), 'Sommerfest Tag 1')
     await user.type(screen.getByLabelText('Anfangsbestand'), '150,00')
@@ -301,22 +278,23 @@ describe('EroeffnenSection', () => {
     expect(screen.getByText('Keine TSE konfiguriert')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Abbrechen' }))
-    expect(kassensitzungEroeffnen).not.toHaveBeenCalled()
+    expect(fake.bodies('admin/kassensitzung-eroeffnen')).toEqual([])
 
     await user.click(
       screen.getByRole('button', { name: 'Kassensitzung eröffnen' }),
     )
     await user.click(screen.getByRole('button', { name: 'Trotzdem eröffnen' }))
-    expect(kassensitzungEroeffnen).toHaveBeenCalledWith(
-      'Sommerfest Tag 1',
-      15000,
-    )
+    await waitFor(() => {
+      expect(fake.bodies('admin/kassensitzung-eroeffnen')).toEqual([
+        { bezeichnung: 'Sommerfest Tag 1', betragCents: 15000 },
+      ])
+    })
   })
 
   it('eröffnet mit konfigurierter TSE direkt ohne Dialog', async () => {
-    tseState.istKonfiguriert = true
+    const fake = backend({ tseKonfiguriert: true })
     const user = userEvent.setup()
-    render(<EroeffnenSection onSuccess={vi.fn()} />)
+    await renderEroeffnen(fake)
 
     await user.type(screen.getByLabelText('Bezeichnung'), 'Sommerfest Tag 1')
     await user.type(screen.getByLabelText('Anfangsbestand'), '150,00')
@@ -325,16 +303,17 @@ describe('EroeffnenSection', () => {
     )
 
     expect(screen.queryByText('Keine TSE konfiguriert')).not.toBeInTheDocument()
-    expect(kassensitzungEroeffnen).toHaveBeenCalledWith(
-      'Sommerfest Tag 1',
-      15000,
-    )
+    await waitFor(() => {
+      expect(fake.bodies('admin/kassensitzung-eroeffnen')).toEqual([
+        { bezeichnung: 'Sommerfest Tag 1', betragCents: 15000 },
+      ])
+    })
   })
 
   it('eröffnet mit 0 € Anfangsbestand (kein Wechselgeld)', async () => {
-    tseState.istKonfiguriert = true
+    const fake = backend({ tseKonfiguriert: true })
     const user = userEvent.setup()
-    render(<EroeffnenSection onSuccess={vi.fn()} />)
+    await renderEroeffnen(fake)
 
     await user.type(screen.getByLabelText('Bezeichnung'), 'Sommerfest')
     await user.type(screen.getByLabelText('Anfangsbestand'), '0,00')
@@ -342,15 +321,19 @@ describe('EroeffnenSection', () => {
       screen.getByRole('button', { name: 'Kassensitzung eröffnen' }),
     )
 
-    expect(kassensitzungEroeffnen).toHaveBeenCalledWith('Sommerfest', 0)
+    await waitFor(() => {
+      expect(fake.bodies('admin/kassensitzung-eroeffnen')).toEqual([
+        { bezeichnung: 'Sommerfest', betragCents: 0 },
+      ])
+    })
   })
 
   it('akzeptiert Standardwert 0 € (leeres Betrag-Feld) ohne Validierungsfehler', async () => {
     // Negativwerte kann EuroInput strukturell nicht erzeugen; deren
     // Schema-Absicherung prüft KasseBackend.test.ts.
-    tseState.istKonfiguriert = true
+    const fake = backend({ tseKonfiguriert: true })
     const user = userEvent.setup()
-    render(<EroeffnenSection onSuccess={vi.fn()} />)
+    await renderEroeffnen(fake)
 
     await user.type(screen.getByLabelText('Bezeichnung'), 'Sommerfest')
     await user.click(
@@ -360,16 +343,20 @@ describe('EroeffnenSection', () => {
     expect(
       screen.queryByText('Betrag muss mindestens 0 Cent sein.'),
     ).not.toBeInTheDocument()
-    expect(kassensitzungEroeffnen).toHaveBeenCalledWith('Sommerfest', 0)
+    await waitFor(() => {
+      expect(fake.bodies('admin/kassensitzung-eroeffnen')).toEqual([
+        { bezeichnung: 'Sommerfest', betragCents: 0 },
+      ])
+    })
   })
 })
 
 describe('KasseAbschliessenSection', () => {
   it('rechnet die Differenz live als Ist − Soll, Fehlbetrag negativ in Rot', async () => {
     const user = userEvent.setup()
-    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+    await renderAbschluss()
 
-    // Soll ist 340,00 € aus dem Kassenbestand-Mock.
+    // Soll 340,00 € comes from the faked Kassenbestand.
     expect(screen.getByText('340,00 €')).toBeInTheDocument()
     expect(screen.getByText('0,00 €')).toBeInTheDocument()
     const leerDifferenz = screen.getByText('-340,00 €')
@@ -383,7 +370,7 @@ describe('KasseAbschliessenSection', () => {
 
   it('färbt einen Überschuss (Ist > Soll) nicht rot', async () => {
     const user = userEvent.setup()
-    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+    await renderAbschluss()
 
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
     const ueberschuss = screen.getByText('+2,50 €')
@@ -391,28 +378,31 @@ describe('KasseAbschliessenSection', () => {
     expect(ueberschuss).not.toHaveClass('text-destructive')
   })
 
-  it('warnt bei offenen Tischen mit Anzahl und Betrag, ohne offene Tische fehlt die Warnung', () => {
-    liveReportingState.offeneTische = [
-      { tischId: 1, tischName: 'Tisch 1', saldoCents: 25000 },
-      { tischId: 2, tischName: 'Tisch 2', saldoCents: 16200 },
-    ]
-    liveReportingState.offeneSaldiCents = 41200
-    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+  it('warnt bei offenen Tischen mit Anzahl und Betrag, ohne offene Tische fehlt die Warnung', async () => {
+    await renderAbschluss(
+      backend({
+        offeneTische: [
+          { tischId: 1, tischName: 'Tisch 1', saldoCents: 25000 },
+          { tischId: 2, tischName: 'Tisch 2', saldoCents: 16200 },
+        ],
+        offeneSaldiCents: 41200,
+      }),
+    )
 
     expect(
       screen.getByText('2 Tische sind noch offen (412,00 €).'),
     ).toBeInTheDocument()
   })
 
-  it('zeigt ohne offene Tische keine Warnung', () => {
-    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+  it('zeigt ohne offene Tische keine Warnung', async () => {
+    await renderAbschluss()
 
     expect(screen.queryByText(/noch offen/)).not.toBeInTheDocument()
   })
 
   it('stellt Soll, Ist und Differenz im Bestätigungsdialog gegenüber', async () => {
     const user = userEvent.setup()
-    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+    await renderAbschluss()
 
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
     await user.click(
@@ -428,8 +418,9 @@ describe('KasseAbschliessenSection', () => {
   })
 
   it('bucht den Abschluss mit dem gezählten Ist-Bestand in Cent', async () => {
+    const fake = backend()
     const user = userEvent.setup()
-    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+    await renderAbschluss(fake)
 
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
     await user.click(
@@ -437,12 +428,16 @@ describe('KasseAbschliessenSection', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
 
-    expect(kasseAbschliessen).toHaveBeenCalledWith(34250)
+    await waitFor(() => {
+      expect(fake.bodies('admin/kasse-abschliessen')).toEqual([
+        { istBestandCents: 34250 },
+      ])
+    })
   })
 
   it('übernimmt die Zählhilfe-Summe in das Ist-Bestand-Feld', async () => {
     const user = userEvent.setup()
-    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+    await renderAbschluss()
 
     await user.click(screen.getByRole('button', { name: /Zählhilfe öffnen/ }))
     // 3×100 € (30000) + 2×20 € (4000) = 34000 → 340,00 €.
@@ -454,12 +449,13 @@ describe('KasseAbschliessenSection', () => {
   })
 
   it('weist Ausfall-Reste in der Erfolgsmeldung aus', async () => {
-    kasseAbschliessen.mockResolvedValueOnce({
-      ausfallResteAnzahl: 2,
-      ohneKonfigurationAnzahl: 1,
-    })
     const user = userEvent.setup()
-    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+    await renderAbschluss(
+      backend().respond('admin/kasse-abschliessen', {
+        ausfallResteAnzahl: 2,
+        ohneKonfigurationAnzahl: 1,
+      }),
+    )
 
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
     await user.click(
@@ -467,22 +463,26 @@ describe('KasseAbschliessenSection', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
 
-    expect(toast.success).toHaveBeenCalledWith(
-      expect.stringContaining('nachsigniert'),
-    )
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringContaining('nachsigniert'),
+      )
+    })
     expect(toast.success).toHaveBeenCalledWith(
       expect.stringContaining('keine TSE konfiguriert'),
     )
   })
 
   it('zeigt bei ausstehenden Signaturen eine Meldung und lässt den Abschluss erneut anfordern', async () => {
-    kasseAbschliessen.mockRejectedValueOnce(
-      new BackendError(409, 'signaturen_ausstehend', {
-        anzahl: 2,
-      }),
-    )
     const user = userEvent.setup()
-    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+    await renderAbschluss(
+      backend().fail(
+        'admin/kasse-abschliessen',
+        new BackendError(409, 'signaturen_ausstehend', {
+          anzahl: 2,
+        }),
+      ),
+    )
 
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
     await user.click(
@@ -490,26 +490,23 @@ describe('KasseAbschliessenSection', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
 
-    expect(toast.warning).toHaveBeenCalledWith(
-      expect.stringContaining('2 Vorgänge sind noch nicht signiert'),
-    )
+    await waitFor(() => {
+      expect(toast.warning).toHaveBeenCalledWith(
+        expect.stringContaining('2 Vorgänge sind noch nicht signiert'),
+      )
+    })
     expect(screen.getByText('Kasse abschließen?')).toBeInTheDocument()
   })
 })
 
 describe('GeldtransitDialog im Vorgangs-Register', () => {
   it('meldet das angefangene Formular und gibt es beim Schließen frei', async () => {
-    aktiveKassensitzungState.kassensitzung = {
-      zNr: 12,
-      datum: '2026-07-11',
-      bezeichnung: 'Sommerfest Tag 2',
-      status: 'offen',
-      eroeffnetAm: '2026-07-11T08:02:00Z',
-    }
     const user = userEvent.setup()
-    renderPage()
+    renderPage(backend({ kassensitzung: sommerfest }))
 
-    await user.click(screen.getByRole('button', { name: 'Geld einlegen' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Geld einlegen' }),
+    )
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
 
     await user.type(screen.getByLabelText('Kommentar'), 'Wechselgeld')
@@ -525,7 +522,7 @@ describe('GeldtransitDialog im Vorgangs-Register', () => {
 describe('KasseAbschliessenSection im Vorgangs-Register', () => {
   it('meldet den eingetippten Ist-Bestand samt offener Rückfrage als einen Vorgang', async () => {
     const user = userEvent.setup()
-    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+    await renderAbschluss()
 
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
 
@@ -543,8 +540,9 @@ describe('KasseAbschliessenSection im Vorgangs-Register', () => {
   })
 
   it('gibt den Vorgang frei, sobald der Abschluss gebucht ist', async () => {
+    const fake = backend()
     const user = userEvent.setup()
-    render(<KasseAbschliessenSection kassensitzungNr={1} onSuccess={vi.fn()} />)
+    await renderAbschluss(fake)
 
     await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
     await user.click(
@@ -552,7 +550,13 @@ describe('KasseAbschliessenSection im Vorgangs-Register', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
 
-    expect(kasseAbschliessen).toHaveBeenCalledWith(34250)
-    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+    await waitFor(() => {
+      expect(fake.bodies('admin/kasse-abschliessen')).toEqual([
+        { istBestandCents: 34250 },
+      ])
+    })
+    await waitFor(() => {
+      expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+    })
   })
 })
