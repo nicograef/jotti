@@ -297,9 +297,9 @@ check-local-proxy: ## Lokales Proxy-Entrypoint-Binary komplett prüfen (Deps, Fo
 check-format: ## Repo-weite Prettier-Formatierung prüfen (ts, tsx, js, mjs, cjs, json, css, md)
 	frontend/node_modules/.bin/prettier --check $(PRETTIER_GLOB)
 
-check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
+check-frontend: ## Frontend komplett prüfen (Format, Typen, Lint, Test, Build)
 	$(MAKE) check-format
-	cd frontend && pnpm lint && pnpm test && pnpm build
+	cd frontend && pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm test && pnpm build
 
 check-e2e: ## E2E-Suite prüfen (tsc + ESLint, ohne Stack)
 	cd e2e && pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint
