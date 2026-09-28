@@ -31,10 +31,8 @@ func (r Repository) GetAlleTische(ctx context.Context) ([]tisch.Tisch, error) {
 	return tische, nil
 }
 
-// GetAlleTischNamen liefert die Namen ALLER Tische als Map tischID → Name,
-// inklusive gelöschter. Für die historische Namensauflösung (DSFinV-K-Export
-// vergangener Kassensitzungen), wo GetAlleTische den gelöschten Tisch verschweigt
-// und der Aufrufer sonst auf die Tisch-ID zurückfallen müsste.
+// GetAlleTischNamen includes deleted Tische: the DSFinV-K export of past Kassensitzungen
+// resolves their names, where GetAlleTische would hide them.
 func (r Repository) GetAlleTischNamen(ctx context.Context) (map[int]string, error) {
 	rows, err := r.q.GetAlleTischNamen(ctx)
 	if err != nil {
@@ -49,9 +47,8 @@ func (r Repository) GetAlleTischNamen(ctx context.Context) (map[int]string, erro
 	return namen, nil
 }
 
-// GetTischSaldiOffeneSitzung liefert je Tisch mit offenem Saldo den Betrag aus
-// der tisch_sessions-Projektion der offenen Kassensitzung (Map tischID →
-// saldoCents). Ohne offene Sitzung ist die Map leer. Reine Journal-Projektion.
+// GetTischSaldiOffeneSitzung maps tischID to saldoCents from the tisch_sessions projection of the
+// offene Kassensitzung; without one the map is empty.
 func (r Repository) GetTischSaldiOffeneSitzung(ctx context.Context) (map[int]int, error) {
 	rows, err := r.q.GetTischSaldiOffeneSitzung(ctx)
 	if err != nil {
@@ -145,14 +142,8 @@ func (r Repository) UpdateTisch(ctx context.Context, t tisch.Tisch) error {
 	return db.ResultError(result)
 }
 
-// DeleteTischMitFavoriten persists the soft-delete of a tisch together with the
-// removal of every service user's favourite marking for it, in a single
-// transaction. The caller passes the tisch with Delete() already applied; this
-// method only writes. Because both writes share one db.WithTx, a mid-operation
-// failure rolls the whole delete back — never a deleted tisch with favourite
-// rows left behind (they would be invisible and unremovable, since a deleted
-// tisch no longer appears in the table picker), and never orphaned removals on
-// a tisch that stayed active.
+// DeleteTischMitFavoriten shares one transaction because Favoriten of a deleted tisch
+// would be invisible and unremovable. The caller applies Delete() first.
 func (r Repository) DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		if err := qtx.RemoveFavoritenByTisch(ctx, t.ID); err != nil {

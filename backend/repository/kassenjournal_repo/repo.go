@@ -161,24 +161,17 @@ func notifySignaturWorker(auftragEingereiht bool) {
 	}
 }
 
-// writeEventInTx writes event, Signaturauftrag and projection into the given
-// transaction and returns the stored event plus whether a Signaturauftrag was
-// enqueued. The caller owns the transaction and triggers the Signatur-Worker after
-// the commit.
+// writeEventInTx reports whether a Signaturauftrag was enqueued.
+// The caller owns the transaction and triggers the Signatur-Worker after the commit.
 func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (event.Event, bool, error) {
-	// Status-Guard mit Zeilensperre: FOR SHARE serialisiert gegen den Statuswechsel auf
-	// 'wird_abgeschlossen', den KasseAbschliessen als erste Handlung committet (UPDATE =
-	// FOR UPDATE): Entweder committet dieser Write vor der Barriere (und wird von der
-	// Saldo-Sperre erfasst), oder er sieht den neuen Status und scheitert. Im Status
-	// 'wird_abgeschlossen' passieren nur die Abschluss-Events; der Tagesabschluss schreibt
-	// in diesem Status und setzt in derselben Transaktion 'abgeschlossen'.
+	// FOR SHARE serialises against the 'wird_abgeschlossen' barrier: a write commits before it or fails.
+	// See docs/handbuch.md §3.7 (Kassensitzung-Invarianten).
 	status, err := qtx.GetKassensitzungStatusForShare(ctx, kassensitzungNr)
 	if err != nil {
 		return event.Event{}, false, db.Error(err)
 	}
 	switch kasse.KassensitzungStatus(status) {
 	case kasse.KassensitzungOffen:
-		// Alle Events erlaubt.
 	case kasse.KassensitzungWirdAbgeschlossen:
 		if !kasse.IsAbschlussEventType(e.Type) {
 			return event.Event{}, false, ErrKassensitzungNichtOffen
@@ -243,10 +236,8 @@ func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e ev
 	return e, signaturpflichtig, nil
 }
 
-// handleKassensitzungEvent updates the kassensitzungen CRUD entity. Only
-// tagesabschluss-erstellt:v1 changes it; the row for kassensitzung-eroeffnet:v1 already
-// exists because kassenjournal has an FK to kassensitzungen and EroeffneKassensitzung
-// inserts it first.
+// handleKassensitzungEvent handles only tagesabschluss-erstellt:v1: EroeffneKassensitzung inserts the row
+// before kassensitzung-eroeffnet:v1 because kassenjournal has an FK to kassensitzungen.
 func (r Repository) handleKassensitzungEvent(ctx context.Context, qtx *dbgen.Queries, e event.Event, kassensitzungNr int) error {
 	switch e.Type {
 	case string(kasse.EventTypeTagesabschlussErstelltV1):
@@ -446,11 +437,8 @@ func toNullTime(t *time.Time) sql.NullTime {
 	return sql.NullTime{Time: t.UTC(), Valid: true}
 }
 
-// eventFromReadRow baut ein Event aus einer Kassenjournal-Zeile.
-// ReadEventsBySubjectRow, ReadDirektverkaufEventsRow und
-// ReadKassensitzungEventsRow sind feldgleich (dieselben sqlc-Query-Spalten),
-// deshalb konvertiert jeder Aufrufer seine Zeile per Typkonvertierung auf
-// ReadEventsBySubjectRow.
+// eventFromReadRow also serves ReadDirektverkaufEventsRow and ReadKassensitzungEventsRow:
+// they share the sqlc columns, so callers convert their row to ReadEventsBySubjectRow.
 func eventFromReadRow(row dbgen.ReadEventsBySubjectRow) event.Event {
 	return event.Event{
 		ID:       row.ID,

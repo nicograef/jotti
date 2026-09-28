@@ -9,12 +9,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
-// GetVariantenByIDs fetches multiple varianten in a single query.
-// Returns a map keyed by variante ID for O(1) lookup during Bestellung enrichment.
-// Each entry carries its produkt_id, so enrichment can verify the Produkt/Variante
-// pairing sent by the client instead of trusting it.
-// Uses ANY($1) with a []int32 parameter; pgx v5 encodes Go slices as PostgreSQL arrays
-// natively, so no dynamic SQL building is required.
+// GetVariantenByIDs returns each entry's produkt_id so enrichment verifies the client's
+// Produkt/Variante pairing instead of trusting it.
 func (r Repository) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error) {
 	if len(ids) == 0 {
 		return make(map[int]produkt.VarianteMitProdukt), nil
@@ -68,11 +64,7 @@ func (r Repository) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]p
 	return result, nil
 }
 
-// GetProdukteByIDs fetches multiple produkte in a single query.
-// Returns a map keyed by produkt ID for O(1) lookup during Bestellung enrichment.
-// Retrieves the fields needed for fat-event enrichment (Name, Kategorie, Steuersatz)
-// plus Status, so the sales path can reject deactivated produkte server-side.
-// Uses ANY($1) with a []int32 parameter; see GetVariantenByIDs for rationale.
+// GetProdukteByIDs includes Status so the sales path rejects deactivated produkte server-side.
 func (r Repository) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error) {
 	if len(ids) == 0 {
 		return make(map[int]produkt.Produkt), nil

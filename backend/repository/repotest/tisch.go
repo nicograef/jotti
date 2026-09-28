@@ -33,10 +33,8 @@ type TischRepo struct {
 	err              error
 }
 
-// SetFavoritenCleanup hinterlegt den Favoriten-Cleanup, den
-// DeleteTischMitFavoriten mit dem Statuswechsel zusammen ausführt. Scheitert er,
-// unterbleibt der Statuswechsel — wie beim Rollback der echten Transaktion.
-// Ohne hinterlegten Cleanup löscht der Mock nur den Tisch.
+// SetFavoritenCleanup sets the cleanup DeleteTischMitFavoriten runs; if it fails, the status change
+// is skipped, mirroring the real transaction's rollback.
 func (m *TischRepo) SetFavoritenCleanup(cleanup func(ctx context.Context, tischID int) error) {
 	m.favoritenCleanup = cleanup
 }

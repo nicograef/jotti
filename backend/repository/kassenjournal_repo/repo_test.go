@@ -273,10 +273,8 @@ func TestWriteEvent_TischSession(t *testing.T) {
 	}
 }
 
-// ReadFavoritenTischStates liefert Name + Session je Favorit in einer Query:
-// byte-identisch zu ReadTischSession für einen Tisch mit Projektion, eine
-// Null-Session für einen Tisch ohne Events und keine Zeile für gelöschte/
-// unbekannte Tische.
+// The session must match ReadTischSession byte for byte; a Tisch without events gets a null session,
+// and deleted or unknown Tische get no row.
 func TestReadFavoritenTischStates(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
@@ -448,10 +446,8 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 	}
 }
 
-// Jeder signaturpflichtige Vorgang erzeugt im selben Commit genau einen offenen
-// Signaturauftrag mit processType-/processData-Snapshot aus der fiskalischen
-// Projektion — auch ohne TSE-Konfiguration (die Test-DB hat keine). Nicht
-// signaturpflichtige Vorgänge erhalten keinen Auftrag.
+// The test DB has no TSE configuration, so this also covers enqueueing without one.
+// See docs/handbuch.md §3.13 (Signaturauftrag).
 func TestWriteEvent_SignaturpflichtigErzeugtOffenenAuftrag(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
@@ -1184,11 +1180,8 @@ func validGeldtransitData(geldtransitID, richtung string, betragCents int, komme
 	}
 }
 
-// Die vier Komponenten des Kassenbestands werden einzeln ausgewertet und müssen
-// zusammen den bestehenden Soll-Bestand ergeben (Invariante vor dem Kassensturz):
-// Anfangsbestand + Bareinnahmen + Einlagen − Entnahmen = Soll-Bestand. Das Journal
-// deckt alle Komponenten ab: Anfangsbestand, Zahlung, Direktverkauf, geldwirksamer
-// Storno (Warenrücknahme), Einlage und Entnahme.
+// Invariant: Anfangsbestand + Bareinnahmen + Einlagen − Entnahmen = Soll-Bestand.
+// The journal covers every component, Warenrücknahme and Direktverkauf included.
 func TestGetKassenbestand_KomponentenErgebenSollBestand(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
@@ -1819,14 +1812,8 @@ func TestWriteEvent_KassensitzungOtherEvent_NoCRUDChange(t *testing.T) {
 	}
 }
 
-// TestMigration03_AusgabeEntfernen belegt die Datenbereinigung der Migration
-// 03_ausgabe_entfernen: Ein Kassenjournal mit einem ausgabe-bestaetigt:v1-Alt-Event
-// verhindert den Projektions-Rebuild (unbekannter Event-Typ → Fehler). Nach dem
-// Löschen der Alt-Events — wie es die Migration innerhalb ihrer Transaktion mit
-// deaktiviertem Delete-Trigger tut — läuft RebuildAllProjections fehlerfrei durch und
-// die Tisch-Zustände (Saldo, unbezahlte Positionen) sind korrekt. Der
-// Append-only-Schutz besteht danach unverändert (siehe
-// docs/decisions.md D01).
+// An ausgabe-bestaetigt:v1 event breaks RebuildAllProjections until migration 03 deletes it under a disabled trigger;
+// the append-only guard must survive that (docs/decisions.md D01).
 func TestMigration03_AusgabeEntfernen(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)

@@ -15,10 +15,8 @@ import (
 // Druckauftrag als fehlgeschlagen markiert und nicht mehr ausgeliefert wird.
 const MaxDruckversuche = 6
 
-// backoffDauer liefert die Wartezeit vor dem nächsten Zustellversuch nach dem
-// versuch-ten Fehlversuch (1-basiert): 5s, 15s, 30s, 60s, 180s. Für 0 oder
-// >= 6 ist die Wartezeit 0 — beim 6. Fehlversuch kippt der Auftrag ohnehin auf
-// fehlgeschlagen und wird nicht mehr ausgeliefert.
+// backoffDauer returns the delay after the given 1-based failed attempt; 0 and >= MaxDruckversuche get none.
+// See docs/handbuch.md §4.5.
 func backoffDauer(versuch int) time.Duration {
 	switch versuch {
 	case 1:
@@ -74,10 +72,8 @@ func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []Neuer
 	})
 }
 
-// InsertDruckauftraege inserts the given print jobs using the provided
-// transaction-bound queries. The caller owns the transaction, which enables a
-// transactional outbox: writing an event and its resulting print jobs atomically
-// (see kassenjournal_repo.WriteEventWithDruckauftraege).
+// InsertDruckauftraege runs in the caller's transaction so an event and its print jobs commit atomically
+// (transactional outbox, see kassenjournal_repo.WriteEventWithDruckauftraege).
 func InsertDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []NeuerDruckauftrag) error {
 	for _, auftrag := range auftraege {
 		err := qtx.InsertDruckauftrag(ctx, dbgen.InsertDruckauftragParams{
@@ -112,11 +108,8 @@ func (r Repository) GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruck
 	return result, nil
 }
 
-// ReportDruckergebnis verarbeitet das Ergebnis eines Relay-Zyklus in einer
-// Transaktion: Erfolge werden quittiert (offen -> gedruckt), Fehlversuche
-// hochgezählt. Beim MaxDruckversuche-ten Fehlversuch wechselt der Auftrag auf
-// fehlgeschlagen und wird nicht mehr ausgeliefert. Das Quittieren bleibt
-// idempotent (Status-Guard 'offen'): eine doppelt gemeldete ID ändert nichts.
+// ReportDruckergebnis acknowledges idempotently: the status guard 'offen' makes a twice-reported ID a no-op.
+// See docs/handbuch.md §4.5.
 func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
 	if len(gedruckteIDs) == 0 && len(fehlversuche) == 0 {
 		return nil

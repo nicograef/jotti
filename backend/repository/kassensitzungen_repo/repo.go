@@ -24,10 +24,8 @@ func (r Repository) GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensi
 	return kassensitzungen, nil
 }
 
-// GetAbgeschlosseneKassensitzungen reads only closed Kassensitzungen (status 'abgeschlossen')
-// for the Kassenberichte page; the transient 'wird_abgeschlossen' status never appears there.
-// Each entry is enriched with the day's total revenue and close timestamp, projected from the
-// tagesabschluss-erstellt:v1 journal event.
+// GetAbgeschlosseneKassensitzungen excludes the transient 'wird_abgeschlossen' status.
+// Revenue and close timestamp come from the tagesabschluss-erstellt:v1 journal event.
 func (r Repository) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]reporting.AbgeschlosseneSitzung, error) {
 	rows, err := r.q.GetAbgeschlosseneKassensitzungen(ctx)
 	if err != nil {
@@ -67,9 +65,8 @@ func (r Repository) GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensi
 	return &ks, nil
 }
 
-// GetAktiveKassensitzung reads the active (not yet closed) Kassensitzung, i.e. one with status
-// 'offen' or 'wird_abgeschlossen'. Returns nil if no such Kassensitzung exists. There is at most
-// one active Kassensitzung (enforced by idx_kassensitzungen_eine_aktiv).
+// GetAktiveKassensitzung returns the Kassensitzung in 'offen' or 'wird_abgeschlossen', or nil.
+// idx_kassensitzungen_eine_aktiv guarantees at most one.
 func (r Repository) GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error) {
 	row, err := r.q.GetAktiveKassensitzung(ctx)
 	if err != nil {
@@ -83,10 +80,8 @@ func (r Repository) GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensi
 	return &ks, nil
 }
 
-// SetKassensitzungWirdAbgeschlossen sets the barrier status: it moves the Kassensitzung from
-// 'offen' (or keeps it at 'wird_abgeschlossen' for a resumed close) to 'wird_abgeschlossen'.
-// The UPDATE waits for in-flight booking transactions holding FOR SHARE. Returns the number of
-// affected rows (0 when the Kassensitzung is already closed).
+// SetKassensitzungWirdAbgeschlossen waits for in-flight bookings holding FOR SHARE and is resumable.
+// It affects 0 rows when the Kassensitzung is already closed (docs/handbuch.md §3.7).
 func (r Repository) SetKassensitzungWirdAbgeschlossen(ctx context.Context, zNr int) (int64, error) {
 	rows, err := r.q.SetKassensitzungWirdAbgeschlossen(ctx, zNr)
 	if err != nil {
@@ -95,8 +90,8 @@ func (r Repository) SetKassensitzungWirdAbgeschlossen(ctx context.Context, zNr i
 	return rows, nil
 }
 
-// SetKassensitzungOffen resets the barrier status back to 'offen' after a failed close (best effort).
-// It only affects a Kassensitzung still in 'wird_abgeschlossen'. Returns the number of affected rows.
+// SetKassensitzungOffen resets the barrier status to 'offen' after a failed close (best effort).
+// It only affects a Kassensitzung still in 'wird_abgeschlossen'.
 func (r Repository) SetKassensitzungOffen(ctx context.Context, zNr int) (int64, error) {
 	rows, err := r.q.SetKassensitzungOffen(ctx, zNr)
 	if err != nil {

@@ -94,18 +94,8 @@ func updateUserParams(u user.User) dbgen.UpdateUserParams {
 	}
 }
 
-// SetPasswordTx lädt den Benutzer mit Zeilensperre (FOR UPDATE), führt apply aus
-// und persistiert das Ergebnis in EINER Transaktion — nach dem Callback-in-TX-
-// Muster von kassenjournal_repo.EroeffneKassensitzung. Damit werden konkurrierende
-// Set-Password-Versuche für denselben Benutzer serialisiert: der zweite Versuch
-// wartet auf der Zeilensperre, bis der erste committet hat, und liest dann den
-// bereits erhöhten Fehlversuchszähler — der Zähler kann nicht unterzählen.
-//
-// apply mutiert den Benutzer (SetPassword zählt den Fehlversuchszähler hoch bzw.
-// setzt das neue Passwort). Der von apply gelieferte Fachfehler (falsches
-// Einmalpasswort, Sperre, ...) wird NICHT als Transaktionsabbruch gewertet: der
-// mutierte Zustand wird trotzdem im selben Commit persistiert und der Fehler
-// danach an den Aufrufer zurückgegeben. Nur echte DB-Fehler brechen ab (Rollback).
+// SetPasswordTx locks the user FOR UPDATE so concurrent attempts cannot undercount failed tries.
+// An apply error still commits the mutated state and is returned afterwards; only DB errors roll back.
 func (r Repository) SetPasswordTx(ctx context.Context, username string, apply func(*user.User) error) error {
 	var applyErr error
 	txErr := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {

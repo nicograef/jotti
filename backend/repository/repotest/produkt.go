@@ -123,11 +123,8 @@ func (m *ProduktRepo) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, er
 	return produkte, m.err
 }
 
-// GetActiveProdukte spiegelt den INNER JOIN der Query GetAktiveProdukte
-// (sqlc/queries/produkte.sql): ein aktives Produkt ohne aktive Variante ist
-// nicht bestellbar und fällt raus. Die zurückgegebenen Varianten sind ebenso
-// gefiltert wie in der Query (WHERE status = 'active' in varianten_json) —
-// nicht-aktive Varianten eines sonst passenden Produkts fehlen.
+// GetActiveProdukte mirrors the query GetAktiveProdukte (sqlc/queries/produkte.sql):
+// a Produkt without an active Variante drops out, and only active Varianten are returned.
 func (m *ProduktRepo) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 	produkte := make([]produkt.Produkt, 0)
 	for i := range m.produkte {

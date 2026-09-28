@@ -36,10 +36,8 @@ type VarianteMitProdukt struct {
 	ProduktID int
 }
 
-// PreisCentsSchema validates a variant's gross price in cents. It is required by
-// definition, so call sites use it directly and must not call .Required() again —
-// zog's .Required() mutates the receiver in place, and re-mutating a shared
-// exported schema is a footgun.
+// PreisCentsSchema is already required; call sites must not call .Required() again,
+// because zog mutates the shared receiver in place.
 var PreisCentsSchema = z.Int().
 	GTE(1, z.Message("Preis muss mindestens 1 Cent betragen")).
 	LTE(99999, z.Message("Preis zu hoch")).

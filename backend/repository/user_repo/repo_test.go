@@ -214,11 +214,7 @@ func TestCreateUser_UsernameNotRecycledAfterSoftDelete(t *testing.T) {
 	}
 }
 
-// Nebenläufige Set-Password-Versuche für denselben Benutzer dürfen den
-// Fehlversuchszähler nicht unterzählen: die Zeilensperre (FOR UPDATE) in
-// SetPasswordTx serialisiert sie, sodass jeder Fehlversuch genau einmal zählt.
-// Ohne die Sperre lesen mehrere Transaktionen denselben Ausgangszähler und
-// überschreiben sich gegenseitig (Lost Update) → der Zähler unterzählt.
+// Without the FOR UPDATE lock in SetPasswordTx, concurrent attempts lose updates and undercount failed tries.
 func TestSetPasswordTx_ConcurrentFailuresCountedExactly(t *testing.T) {
 	seeded, repo, teardown := setup(t)
 	defer teardown(t)

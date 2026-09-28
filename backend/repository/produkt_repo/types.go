@@ -56,10 +56,8 @@ func parseVariantenJSON(data json.RawMessage) ([]produkt.Variante, error) {
 	return result, nil
 }
 
-// produktRowToDomain baut ein Produkt aus einer Produkt-Zeile samt ihrer
-// Varianten-JSON-Spalte. GetProduktRow, GetAlleProdukteRow und
-// GetAktiveProdukteRow sind feldgleich (dieselben sqlc-Query-Spalten), deshalb
-// konvertiert jeder Aufrufer seine Zeile per Typkonvertierung auf GetProduktRow.
+// produktRowToDomain also serves GetAlleProdukteRow and GetAktiveProdukteRow:
+// they share the sqlc columns, so callers convert their row to GetProduktRow.
 func produktRowToDomain(row dbgen.GetProduktRow) (produkt.Produkt, error) {
 	varianten, err := parseVariantenJSON(row.Varianten)
 	if err != nil {

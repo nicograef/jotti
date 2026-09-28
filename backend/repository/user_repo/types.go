@@ -16,10 +16,8 @@ func NewRepository(db *sql.DB) Repository {
 	return Repository{db: db, q: dbgen.New(db)}
 }
 
-// userRowToDomain baut einen Benutzer aus einer Benutzer-Zeile. GetUserRow,
-// GetUserByUsernameRow und GetUserByUsernameForUpdateRow sind feldgleich
-// (dieselben sqlc-Query-Spalten), deshalb konvertiert jeder Aufrufer seine
-// Zeile per Typkonvertierung auf GetUserRow.
+// userRowToDomain also serves GetUserByUsernameRow and GetUserByUsernameForUpdateRow:
+// they share the sqlc columns, so callers convert their row to GetUserRow.
 func userRowToDomain(row dbgen.GetUserRow) user.User {
 	return user.User{
 		ID:                      row.ID,

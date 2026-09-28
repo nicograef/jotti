@@ -87,22 +87,8 @@ func (r Repository) UpdateProdukt(ctx context.Context, p produkt.Produkt) error 
 	return db.ResultError(result)
 }
 
-// VerschiebeProdukt tauscht die Reihenfolge eines Produkts mit der seines
-// unmittelbaren Nachbarn in derselben Kategorie; hoch bedeutet in Richtung
-// Listenanfang. Beide Updates teilen sich eine Transaktion, damit nie nur die
-// Hälfte des Tauschs persistiert wird und die Liste keinen Zwischenzustand
-// zeigt. Steht das Produkt bereits am Rand seiner Kategorie, gibt es keinen
-// Nachbarn und die Methode tut nichts — das Verschieben ist idempotent, nicht
-// fehlerhaft.
-//
-// Getauscht werden Ränge, nicht Werte: In derselben Transaktion bekommt die
-// Kategorie zuerst eine dichte Nummerierung (1..N), danach ist die Reihenfolge
-// des Produkts neu zu lesen. Ohne diesen Schritt schriebe der Tausch zweier
-// Zeilen mit demselben Wert nur denselben Wert zurück und liefe still ins
-// Leere.
-//
-// Nachbar ist immer die direkt angrenzende Zeile, auch wenn sie inaktiv und
-// damit im Service unsichtbar ist: die Admin-Liste zeigt, was passiert.
+// VerschiebeProdukt swaps ranks with the adjacent row, inactive ones included; hoch moves towards the list start.
+// At a category edge it is a no-op; see docs/handbuch.md §4.1.
 func (r Repository) VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		vorher, err := qtx.GetProduktReihenfolge(ctx, produktID)
@@ -257,12 +243,8 @@ func setVarianteReihenfolge(ctx context.Context, qtx *dbgen.Queries, id int, rei
 	return db.ResultError(result)
 }
 
-// DeleteProduktMitVarianten persists the soft-delete of a produkt together with
-// all its varianten in a single transaction. The caller passes the produkt with
-// Delete() already applied to it and each variante; this method only writes the
-// status transitions. Because all writes share one db.WithTx, a mid-operation
-// failure rolls the whole delete back — the produkt and every variante stay in
-// their pre-delete state, never a partial delete.
+// DeleteProduktMitVarianten writes the status transitions of a produkt whose Delete() the caller
+// already applied, together with its varianten, in one transaction.
 func (r Repository) DeleteProduktMitVarianten(ctx context.Context, p produkt.Produkt) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		for i := range p.Varianten {
@@ -297,10 +279,7 @@ func (r Repository) DeleteProduktMitVarianten(ctx context.Context, p produkt.Pro
 	})
 }
 
-// SortiereVariantenAlphabetisch vergibt die Reihenfolge aller Varianten eines
-// Produkts alphabetisch neu. Eine einzelne UPDATE-Anweisung genügt und ist von
-// sich aus atomar, deshalb ohne explizite Transaktion. Ein Produkt ohne
-// Varianten ist kein Fehler, sondern schlicht wirkungslos.
+// SortiereVariantenAlphabetisch needs no explicit transaction: a single UPDATE is atomic.
 func (r Repository) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
 	err := r.q.SortiereVariantenAlphabetisch(ctx, dbgen.SortiereVariantenAlphabetischParams{
 		UpdatedAt: time.Now().UTC(),

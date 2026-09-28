@@ -6,11 +6,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
-// AbrechnungServicekraft ist die Bargeld-Abrechnung des Tischservice für eine
-// Servicekraft: AbzugebenCents = KassiertCents − RuecknahmenCents.
-// AnzahlStornierungen zählt beide Tisch-Storno-Arten (Rücknahmen und
-// geldneutrale Korrekturen). Direktverkäufe bleiben außen vor — der
-// Direktverkauf hat eine eigene Kasse.
+// AbrechnungServicekraft is a Servicekraft's table-service cash settlement: AbzugebenCents = KassiertCents − RuecknahmenCents.
+// See docs/handbuch.md §7.2.
 type AbrechnungServicekraft struct {
 	UserID              int
 	UserName            string // eingefrorener Username
@@ -61,10 +58,8 @@ type StornierungDetail struct {
 	TischName    string
 	// Akteur ist die Servicekraft, die den Storno ausgelöst hat (Event-Umschlag).
 	Akteur ServicekraftRef
-	// Betroffene sind die Servicekräfte, deren Vorgang der Storno rückgängig macht:
-	// Kassierer der zurückgenommenen Zahlung, Verkäufer des stornierten
-	// Direktverkaufs, Besteller der korrigierten Positionen. Nie leer — ohne
-	// auflösbaren Verweis steht hier der Akteur.
+	// Betroffene are the Servicekräfte whose Vorgang the Storno undoes; never empty, falls back to Akteur.
+	// See docs/handbuch.md §7.2.
 	Betroffene  []ServicekraftRef
 	BetragCents int
 	Kommentar   string
@@ -195,10 +190,8 @@ type OffeneArbeitTisch struct {
 	OffenCents int
 }
 
-// EigeneUebersicht sind die KPIs einer Servicekraft auf ihrem Service-Dashboard.
-// Rücknahmen folgen der Storno-Zuordnung: gezählt wird, was von einer Zahlung
-// dieser Servicekraft zurückgenommen wurde, egal wer storniert hat. Geldneutrale
-// Korrekturen bleiben außen vor.
+// EigeneUebersicht counts Rücknahmen by Storno-Zuordnung: those taken back from this Servicekraft's Zahlungen.
+// See docs/handbuch.md §7.1.
 type EigeneUebersicht struct {
 	AnzahlBestellungen int
 	BestellungenCents  int

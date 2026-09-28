@@ -51,10 +51,8 @@ func maxRunes(n int) z.BoolTFunc[*string] {
 	}
 }
 
-// Jedes Feld-Schema trimmt; Min(1) fängt reine Leerzeichen, Required das leere
-// Feld (zog prüft Required vor den Transformationen). Aufrufstellen nutzen die
-// Schemas direkt und rufen `.Required()` nie erneut auf — zog mutiert den
-// Empfänger in place.
+// Min(1) catches whitespace-only input because zog checks Required before Trim.
+// Call sites never call .Required() again: zog mutates the receiver in place.
 var VereinsnameSchema = z.String().Trim().
 	Min(1, z.Message(vereinsnameErforderlich)).
 	TestFunc(maxRunes(MaxLengthVereinsname), z.Message("Vereinsname zu lang")).
@@ -75,19 +73,15 @@ var OrtSchema = z.String().Trim().
 	TestFunc(maxRunes(MaxLengthOrt), z.Message("Ort zu lang")).
 	Required(z.Message(ortErforderlich))
 
-// Steuernummer und USt-IdNr. sind optional: Ein Verein ohne Steuernummer lässt
-// das Feld leer, deshalb tragen die beiden Schemas nur die Obergrenze.
+// Optional: a Verein without Steuernummer leaves the field empty.
 var SteuernummerSchema = z.String().Trim().
 	TestFunc(maxRunes(MaxLengthSteuernummer), z.Message("Steuernummer zu lang"))
 
 var UstIDSchema = z.String().Trim().
 	TestFunc(maxRunes(MaxLengthUstID), z.Message("USt-IdNr. zu lang"))
 
-// betreiberSchema prüft nur, ob die Stammdaten gefüllt sind: es ist das Gate vor
-// dem Eröffnen einer Kassensitzung und läuft über Datenbankwerte. Keine
-// Obergrenzen — die Spalten sind TEXT, ein zu langer Bestandswert sperrte sonst
-// die Kasse. Grenzen gelten auf dem Schreibweg (NewBetreiber), der
-// DSFinV-K-Export kürzt.
+// betreiberSchema gates opening a Kassensitzung on stored values, so it checks presence only.
+// A max length here would lock the Kasse on a long stored value; NewBetreiber enforces it and the DSFinV-K export truncates.
 var betreiberSchema = z.Struct(z.Shape{
 	"Vereinsname":  z.String().Min(1, z.Message(vereinsnameErforderlich)).Required(),
 	"Strasse":      z.String().Min(1, z.Message(strasseErforderlich)).Required(),

@@ -48,10 +48,7 @@ func setup(t *testing.T) (Repository, func(t *testing.T)) {
 	}
 }
 
-// setupFavoritenUser legt eine Servicekraft an, deren Markierungen die
-// Favoriten-Tests setzen können, und gibt ihre ID zurück. Der Benutzername
-// trägt den Testnamen, damit parallele bzw. aufeinanderfolgende Tests nicht am
-// Unique-Index kollidieren; aufgeräumt wird in setup.
+// setupFavoritenUser names the user after the test so tests do not collide on the unique index.
 func setupFavoritenUser(t *testing.T, repo Repository) int {
 	t.Helper()
 
@@ -148,13 +145,8 @@ func TestDeleteTischMitFavoritenDB(t *testing.T) {
 	}
 }
 
-// Statuswechsel und Favoriten-Cleanup teilen sich eine Transaktion. Scheitert
-// der Schreibvorgang auf tische, muss auch das Löschen der Markierungen
-// zurückgerollt werden — sonst verlöre eine Servicekraft ihre Markierungen,
-// obwohl der Tisch weiter existiert. Der Fehlschlag wird hier über den
-// partiellen Unique-Index auf dem Tischnamen erzwungen (idx_tische_name_active),
-// weil das der einzige Weg ist, den zweiten Schreibvorgang scheitern zu lassen,
-// nachdem der erste Zeilen entfernt hat.
+// A failed tische write must roll back the Favoriten removal, or a Servicekraft loses them on a live Tisch.
+// idx_tische_name_active is the only way to fail the second write after the first removed rows.
 func TestDeleteTischMitFavoritenDB_RollbackBeiSchreibfehler(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
@@ -206,10 +198,8 @@ func TestGetAlleTischeDB(t *testing.T) {
 	}
 }
 
-// Regression: Der DSFinV-K-Export benennt Abrechnungskreise vergangener
-// Kassensitzungen. Ein nach dem Tagesabschluss gelöschter Tisch muss dort
-// weiterhin seinen Namen tragen — GetAlleTischNamen darf 'deleted' nicht
-// wegfiltern, sonst fällt der Export auf "Tisch <ID>" zurück.
+// The DSFinV-K export names Abrechnungskreise of past Kassensitzungen; without deleted Tische
+// it falls back to "Tisch <ID>".
 func TestGetAlleTischNamenDB_EnthaeltGeloeschteTische(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
@@ -299,11 +289,8 @@ func TestUpdateTischDB_NotFound(t *testing.T) {
 	}
 }
 
-// setupSaldo prepares an isolated environment for the saldo-projection tests. It
-// clears the journal (and its dependants) so the tisch_sessions projection is
-// built solely from the events written in each test, then returns the tisch_repo
-// under test together with a kassenjournal_repo (used to write real events that
-// drive the projection) and a freshly created user + offene Kassensitzung.
+// setupSaldo clears the journal so the tisch_sessions projection holds only each test's events.
+// It returns a kassenjournal_repo to write those events, a fresh user and an offene Kassensitzung.
 func setupSaldo(t *testing.T) (Repository, kassenjournal_repo.Repository, *sql.DB, int, int, func()) {
 	t.Helper()
 	db := dbtest.Open()

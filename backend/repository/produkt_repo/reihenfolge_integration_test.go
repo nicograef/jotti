@@ -125,11 +125,8 @@ func TestVerschiebeVariante_AmRandWirkungslos(t *testing.T) {
 	}
 }
 
-// Produkte tauschen nur innerhalb ihrer Kategorie: Bier steht am Ende der
-// Getränke und hat einen Nachfolger nur in der Kategorie Essen. Die
-// Nachbarkategorie trägt dazu bewusst einen höheren, eigenen Wert — fällt
-// der Kategoriefilter aus der Nachbarsuche, wandern die Reihenfolge-Werte
-// sichtbar.
+// Bier is last among the Getränke and has a successor only in Essen, whose distinct higher value
+// makes a missing category filter in the neighbour lookup visible.
 func TestVerschiebeProdukt_BleibtInSeinerKategorie(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
@@ -156,12 +153,8 @@ func TestVerschiebeProdukt_BleibtInSeinerKategorie(t *testing.T) {
 	}
 }
 
-// Die alphabetische Sortierung ordnet nach deutschen Regeln: Umlaute und
-// Akzente reihen sich bei ihrem Grundbuchstaben ein, nicht dahinter. Beide
-// Akzentzeichen stehen am Wortanfang, weil nur dort die Collation über die
-// Position entscheidet. Auf einem Cluster mit der Locale "C" ergäbe dieselbe
-// Liste [Banane Zitrone Äpfel Éclair]; die COLLATE-Klausel hält die deutsche
-// Reihenfolge unabhängig von der Cluster-Locale.
+// The accents lead the words because only there the collation decides the position.
+// Under locale "C" this list would sort [Banane Zitrone Äpfel Éclair]; COLLATE keeps the German order.
 func TestSortiereVariantenAlphabetisch_DeutscheCollation(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)

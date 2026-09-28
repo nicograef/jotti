@@ -43,14 +43,8 @@ func favoritenCleanupAusfuehren(t *testing.T, repo Repository) {
 	}
 }
 
-// 06_favoriten_cleanup.up.sql räumt Markierungen ab, deren Tisch gelöscht ist.
-// Der Bestand deckt alle drei Tisch-Status ab: nur die Markierung des gelöschten
-// Tisches darf verschwinden. Ein deaktivierter Tisch behält seine Markierung —
-// er kommt zurück, sobald er wieder aktiv geschaltet wird.
-//
-// Beide Aussagen hängen an demselben Bestand, damit eine invertierte Bedingung
-// (EXISTS statt NOT EXISTS) den Test zwingend bricht: sie beträfe genau die
-// Markierungen, die bleiben müssen.
+// Only the deleted Tisch loses its Favorit; an inactive Tisch keeps it for when it is reactivated.
+// Both assertions share one data set so an inverted EXISTS condition must break the test.
 func TestFavoritenCleanupMigrationDB(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
