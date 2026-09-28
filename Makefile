@@ -190,10 +190,10 @@ prod-harden: ## Optionale Server-Härtung (ufw, fail2ban, unattended-upgrades, S
 
 # jotti.rocks Deployment
 
-rocks-init: ## jotti.rocks Ersteinrichtung (Zertifikate für alle Domains, Stack)
+rocks-init: ## jotti.rocks Ersteinrichtung (Stack bauen und starten, Zertifikate holt Caddy)
 	./scripts/rocks-init.sh
 
-rocks-up: ## jotti.rocks Stack starten/aktualisieren (Landing + Demo App, inkl. nginx-Config)
+rocks-up: ## jotti.rocks Stack starten/aktualisieren (Landing + Demo App, inkl. Caddyfile)
 	docker compose -f docker-compose.rocks.yml up -d --build
 	docker compose -f docker-compose.rocks.yml up -d --no-deps --force-recreate reverse-proxy
 
@@ -208,7 +208,7 @@ rocks-reset-db: ## jotti.rocks-DB zurücksetzen (Zertifikate bleiben erhalten) �
 	docker volume rm jotti_postgres-data
 	docker compose -f docker-compose.rocks.yml up -d --build
 
-rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (SSL bleibt erhalten) — nur Demo/Staging
+rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (Zertifikate bleiben erhalten) — nur Demo/Staging
 	./scripts/reset-and-seed.sh rocks --yes
 
 # Lokaler Betrieb (LAN, HTTPS via Caddy)

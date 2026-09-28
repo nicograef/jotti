@@ -1,6 +1,6 @@
 // Astro-Integration: löst nach dem Build alle ausführbaren Inline-Skripte im
 // gebauten HTML in externe Dateien auf. Die Produktiv-CSP
-// (reverse-proxy/nginx.rocks.conf, jotti.rocks-Block) erlaubt nur
+// (reverse-proxy/Caddyfile.rocks, jotti.rocks-Site) erlaubt nur
 // `script-src 'self'` ohne `'unsafe-inline'`; Starlight liefert für
 // Theme-Picker, Suche und Sidebar-Persistenz `is:inline`-Skripte aus. Die
 // Integration externalisiert sie generisch — Inhalt, Attribute und Reihenfolge

@@ -3,13 +3,13 @@ package main
 import "fmt"
 
 // contentSecurityPolicy gilt für alle Caddy-Sites (über proxySnippet) und wörtlich
-// auch für die demo-Site in nginx.rocks.conf; TestNginxRocksConfCarriesSameCSP hält
+// auch für die demo-Site in Caddyfile.rocks; TestRocksCaddyfileCarriesSameCSP hält
 // beide Kopien zusammen.
 const contentSecurityPolicy = "default-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self' blob:; media-src 'self'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests"
 
 // hstsLAN trägt nur max-age: der Zugriff läuft auch über die rohe LAN-IP
 // (Fallback-Site), für die includeSubDomains/preload nicht zutreffen. hstsPublic ist
-// der stärkere Wert für die öffentliche Domain (Parität zur prod-nginx).
+// der stärkere Wert für die öffentliche Domain (Parität zu Caddyfile.rocks).
 const (
 	hstsLAN    = "max-age=31536000"
 	hstsPublic = "max-age=63072000; includeSubDomains; preload"
@@ -72,10 +72,9 @@ http:// {
 }
 
 // proxySnippet rendert das gemeinsame `(jotti_proxy)`-Snippet, damit Header und CSP
-// über alle Modi identisch bleiben. Das Rate-Limit bildet die prod-nginx-Vorgabe
-// (10r/s, burst 20) ab: caddy-ratelimit nutzt ein gleitendes Fenster ohne separaten
-// Burst-Begriff, daher entspricht der nginx-Spitzenwert (durch `nodelay` sofort
-// bedient) hier `events 30` pro `window 1s`.
+// über alle Modi identisch bleiben. Das Rate-Limit bildet 10 r/s mit Burst 20 ab:
+// caddy-ratelimit nutzt ein gleitendes Fenster ohne separaten Burst-Begriff, daher
+// ist der sofort bediente Spitzenwert hier `events 30` pro `window 1s`.
 func proxySnippet(hsts string, rateLimited bool) string {
 	rateLimit := ""
 	if rateLimited {

@@ -1,0 +1,110 @@
+# Caddyfile for the jotti.rocks project deployment (docker-compose.rocks.yml):
+# landing page, demo app and the acme-dns API. Self-hosters get a Caddyfile
+# rendered by jotti-reverse-proxy (caddyfile.go) instead.
+{
+	admin off
+	email graef.nico@gmail.com
+}
+
+# Access log without request headers; the client IP keeps its first 24 (IPv4)
+# or 32 (IPv6) bits. website/src/pages/datenschutz.astro describes exactly this.
+(access_log) {
+	log {
+		format filter {
+			request>remote_ip ip_mask 24 32
+			request>client_ip ip_mask 24 32
+			request>headers delete
+		}
+	}
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer-when-downgrade"
+		Permissions-Policy "geolocation=(), microphone=()"
+	}
+}
+
+# Port 80 for any host, so requests to unknown hosts or the bare IP (the
+# healthcheck, scanners) are logged through the same filter.
+http:// {
+	import access_log
+	redir https://{host}{uri} 308
+}
+
+www.jotti.rocks {
+	import access_log
+	redir https://jotti.rocks{uri} permanent
+}
+
+jotti.rocks {
+	import access_log
+	import security_headers
+	# 'wasm-unsafe-eval' lets Pagefind (the docs search) run its WebAssembly index.
+	header Content-Security-Policy "default-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests"
+
+	# Former landing-page URLs, now in the docs Leitfaden.
+	redir /leitfaden-fuer-vereine https://jotti.rocks/docs/leitfaden/was-ist-jotti/ permanent
+	redir /leitfaden-fuer-vereine/ https://jotti.rocks/docs/leitfaden/was-ist-jotti/ permanent
+	redir /jotti-selbst-betreiben https://jotti.rocks/docs/leitfaden/was-ist-jotti/ permanent
+	redir /jotti-selbst-betreiben/ https://jotti.rocks/docs/leitfaden/was-ist-jotti/ permanent
+
+	# Renamed or moved docs routes, one line each:
+	# "/docs/leitfaden/alter-name/" "/docs/leitfaden/neuer-name/"
+	map {path} {docs_redirect} {
+		default ""
+	}
+	@docs_moved expression `{docs_redirect} != ""`
+	redir @docs_moved {docs_redirect} permanent
+
+	reverse_proxy website:80
+}
+
+demo.jotti.rocks {
+	import access_log
+	import security_headers
+	# Verbatim copy of contentSecurityPolicy in caddyfile.go, held together by
+	# TestRocksCaddyfileCarriesSameCSP.
+	header Content-Security-Policy "default-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self' blob:; media-src 'self'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests"
+
+	# 30 events per second equals the self-hosted stack's limit (10 r/s, burst 20).
+	handle_path /api/* {
+		rate_limit {
+			zone api {
+				key {remote_host}
+				events 30
+				window 1s
+			}
+		}
+		reverse_proxy backend:3000
+	}
+
+	handle {
+		reverse_proxy frontend:80
+	}
+}
+
+auth.jotti.rocks {
+	import access_log
+	import security_headers
+	header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+
+	# Registration is open, and an installation registers once.
+	handle /register {
+		rate_limit {
+			zone acmedns_register {
+				key {remote_host}
+				events 1
+				window 1m
+			}
+		}
+		reverse_proxy acme-dns:80
+	}
+
+	handle {
+		reverse_proxy acme-dns:80
+	}
+}

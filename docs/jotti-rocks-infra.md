@@ -11,19 +11,21 @@ Zwei Services im rocks-Stack (`docker-compose.rocks.yml`):
 | Service    | Zone                | Erreichbarkeit                                         |
 | ---------- | ------------------- | ------------------------------------------------------ |
 | `resolver` | `lokal.jotti.rocks` | öffentlich, Port 53 UDP+TCP (einziger Prozess auf :53) |
-| `acme-dns` | `auth.jotti.rocks`  | nur Docker-intern (DNS via resolver, API via nginx)    |
+| `acme-dns` | `auth.jotti.rocks`  | nur Docker-intern (DNS via resolver, API via Caddy)    |
 
 Der resolver beantwortet A-Records und `_acme-challenge`-CNAMEs zustandslos und rein
 rechnerisch aus dem angefragten Namen (Mapping Name → IP unveränderlich).
 Anfragen für `auth.jotti.rocks` reicht er Docker-intern an acme-dns weiter.
 
 acme-dns verwaltet die TXT-Records der DNS-01-Challenges. Seine HTTP-API (`/register`,
-`/update`, `/health`) läuft hinter nginx unter `https://auth.jotti.rocks`; `/register`
+`/update`, `/health`) läuft hinter Caddy unter `https://auth.jotti.rocks`; `/register`
 ist dort streng rate-limitiert (1 Anfrage/Minute je IP). Der Zustand (SQLite) liegt im
 Volume `acme-dns-data`.
 
-Der rocks-Stack nutzt nginx als Reverse-Proxy, der Prod-Stack
-(`docker-compose.prod.yml`) dagegen Caddy. Die nginx-Befehle hier gelten nur für rocks.
+Reverse-Proxy ist das Caddy-Image aus `reverse-proxy/Dockerfile`, gestartet direkt mit
+der statischen `reverse-proxy/Caddyfile.rocks`. Caddy holt und erneuert die Zertifikate
+aller vier Hosts selbst per HTTP-01; sie liegen im Volume `caddy-data`. `make rocks-up`
+erstellt den Proxy neu und übernimmt so Änderungen am Caddyfile.
 
 ## 2. Voraussetzungen
 
@@ -62,24 +64,12 @@ NS-A-Record, acme-dns als Zone-Apex-A-Record):
 VPS_PUBLIC_IP=<öffentliche IPv4 des VPS>
 ```
 
-Nach `make rocks-up` laufen resolver und acme-dns. `auth.jotti.rocks` ist aber erst im
-Zertifikat, sobald die DNS-Hoster-Einträge (Abschnitt 3) aktiv sind; dann das Zertifikat
-erweitern und nginx neu laden:
+Frischer VPS: `make rocks-init` baut und startet den Stack, wartet auf die Healthchecks
+und prüft HTTPS. Danach aktualisiert `make rocks-up` den Stack.
 
-```bash
-docker compose -f docker-compose.rocks.yml \
-  run --rm --entrypoint certbot certbot certonly \
-  --webroot -w /var/www/certbot \
-  -d jotti.rocks -d www.jotti.rocks -d demo.jotti.rocks -d auth.jotti.rocks \
-  --email graef.nico@gmail.com --agree-tos --no-eff-email --expand
-
-docker compose -f docker-compose.rocks.yml \
-  exec reverse-proxy nginx -s reload
-```
-
-Frischer VPS: `./scripts/rocks-init.sh` wie gehabt. `auth.jotti.rocks` löst erst auf,
-wenn der Stack läuft und die Delegation gesetzt ist; bei der Ersteinrichtung überspringt
-das Skript die Domain (Warnung) und das Zertifikat wird anschließend wie oben erweitert.
+`auth.jotti.rocks` löst erst auf, wenn der Stack läuft und die Delegation (Abschnitt 3)
+aktiv ist. Bis dahin scheitert Caddys Zertifikatsanfrage für diesen Host; Caddy
+wiederholt sie selbst.
 
 ## 5. End-to-End-Verifikation (nach jedem Infra-Setup)
 
@@ -98,8 +88,8 @@ dig +short CAA jotti.rocks                       # → 0 issue "letsencrypt.org"
 ```
 
 Registrierung (liefert `username`, `password`, `subdomain`, `fulldomain`, für die
-folgenden Schritte aufheben). Ab dem fünften Aufruf in schneller Folge muss HTTP 429
-kommen (Rate 1/min, Burst 3):
+folgenden Schritte aufheben). Ein zweiter Aufruf innerhalb einer Minute muss HTTP 429
+liefern:
 
 ```bash
 curl -s -X POST https://auth.jotti.rocks/register
@@ -143,12 +133,12 @@ acme-dns-Config (`docker-compose.rocks.yml`), dann `make rocks-up`. Bestehende
 Installationen erneuern weiter (Credentials bleiben gültig), nur neue Registrierungen sind
 blockiert.
 
-Backups: Das Volume `acme-dns-data` enthält die Zuordnung Account ↔ Subdomain. Geht es
-verloren, werden die Credentials aller bestehenden Installationen ungültig und ihre
-Zertifikats-Erneuerungen schlagen fehl (Abhilfe je Installation: lokalen State löschen, neu
-registrieren, neue Install-ID, neue Adresse). Deshalb in die VPS-Backup-Routine aufnehmen.
+Monitoring: Better Stack überwacht `https://jotti.rocks`, `https://demo.jotti.rocks`,
+`https://auth.jotti.rocks/health` und den resolver (DNS-Abfrage eines berechneten
+A-Records). Die HTTPS-Monitore alarmieren auch vor dem Ablauf eines Zertifikats.
 
 AVV (Datenschutz): Für den VPS besteht eine Vereinbarung zur Auftragsverarbeitung nach
 Art. 28 DSGVO mit netcup (abgeschlossen 2026-07-14). Kopien liegen im netcup-CCP
 (Stammdaten → Auftragsverarbeitung) und im privaten Vertragsarchiv. Der Vertragsinhalt
 ist vertraulich (Ziff. 11 der Vereinbarung) und gehört nicht ins Repository.
+

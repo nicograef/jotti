@@ -3,7 +3,7 @@ set -euo pipefail
 
 # jotti — first deploy of the self-hosted production stack: validates .env and
 # DNS, then starts the pinned stack. Caddy obtains the Let's Encrypt certificate
-# itself (HTTP-01/TLS-ALPN) — there is no certbot step.
+# itself (HTTP-01/TLS-ALPN).
 
 COMPOSE_PROD="docker-compose.prod.yml"
 

@@ -12,6 +12,10 @@ indent_size = 2
 [*.go]
 indent_style = tab
 
+# Caddyfile – caddy fmt uses tabs
+[Caddyfile*]
+indent_style = tab
+
 # Makefile – tabs required by make
 [Makefile]
 indent_style = tab

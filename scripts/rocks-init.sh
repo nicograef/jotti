@@ -6,15 +6,16 @@ set -euo pipefail
 #   https://jotti.rocks       → static landing page
 #   https://demo.jotti.rocks  → demo app (frontend + backend API)
 #   https://auth.jotti.rocks  → acme-dns API (trusted local TLS)
+# Caddy obtains every certificate itself (HTTP-01) and retries a name until it
+# resolves to this server.
 
 DOMAIN="jotti.rocks"
 DOMAIN_WWW="www.jotti.rocks"
 DOMAIN_DEMO="demo.jotti.rocks"
 DOMAIN_AUTH="auth.jotti.rocks"
-EMAIL="graef.nico@gmail.com"
 
-COMPOSE_CERT="docker-compose.initial-cert.yml"
-COMPOSE_PROD=(-f docker-compose.rocks.yml)
+COMPOSE_FILE="docker-compose.rocks.yml"
+CONTAINERS=(jotti-backend jotti-frontend jotti-website jotti-acme-dns jotti-resolver jotti-reverse-proxy)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -26,27 +27,10 @@ info "Project root: $PROJECT_ROOT"
 
 info "Checking prerequisites..."
 
-if [[ ! -f .env ]]; then
-  fatal ".env file not found. Run 'make init' first."
-fi
+require_docker_stack "$COMPOSE_FILE"
 
 if ! grep -qE '^VPS_PUBLIC_IP=.+' .env; then
   fatal "VPS_PUBLIC_IP missing or empty in .env (public IPv4 of this server, needed by resolver + acme-dns). See docs/jotti-rocks-infra.md."
-fi
-
-if ! command -v docker &>/dev/null; then
-  fatal "docker is not installed or not on PATH."
-fi
-
-if ! docker compose version &>/dev/null; then
-  fatal "docker compose (v2) is not available."
-fi
-
-if [[ ! -f "$COMPOSE_CERT" ]]; then
-  fatal "Missing compose file: $COMPOSE_CERT"
-fi
-if [[ ! -f docker-compose.rocks.yml ]]; then
-  fatal "Missing compose file: docker-compose.rocks.yml"
 fi
 
 # A DNS lookup tool is required for the resolution preflight below; without one,
@@ -57,102 +41,71 @@ fi
 
 info "Prerequisites OK."
 
-info "Checking DNS resolution for $DOMAIN..."
+resolves() {
+  host "$1" &>/dev/null || dig +short "$1" 2>/dev/null | grep -q .
+}
 
-if ! host "$DOMAIN" &>/dev/null && ! dig +short "$DOMAIN" 2>/dev/null | grep -q .; then
+if ! resolves "$DOMAIN"; then
   fatal "DNS resolution failed for $DOMAIN. Ensure the domain points to this server before continuing."
 fi
-
 info "DNS resolution for $DOMAIN: OK"
 
-CERTBOT_DOMAINS="-d $DOMAIN"
+# auth.jotti.rocks resolves via the resolver/acme-dns stack on this server, so
+# on a fresh install it resolves only once the stack is up and the NS
+# delegation is set.
+for name in "$DOMAIN_WWW" "$DOMAIN_DEMO" "$DOMAIN_AUTH"; do
+  if resolves "$name"; then
+    info "DNS resolution for $name: OK"
+  else
+    warn "DNS resolution for $name failed. Caddy retries its certificate until it resolves."
+  fi
+done
 
-if host "$DOMAIN_WWW" &>/dev/null || dig +short "$DOMAIN_WWW" 2>/dev/null | grep -q .; then
-  info "DNS resolution for $DOMAIN_WWW: OK"
-  CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_WWW"
-else
-  warn "DNS resolution for $DOMAIN_WWW failed. www will not be included in the certificate."
-fi
+info "Building and starting the stack..."
+docker compose -f "$COMPOSE_FILE" up -d --build
 
-if host "$DOMAIN_DEMO" &>/dev/null || dig +short "$DOMAIN_DEMO" 2>/dev/null | grep -q .; then
-  info "DNS resolution for $DOMAIN_DEMO: OK"
-  CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_DEMO"
-else
-  warn "DNS resolution for $DOMAIN_DEMO failed. demo will not be included in the certificate."
-fi
-
-# auth.jotti.rocks resolves via the resolver/acme-dns stack on this server —
-# on a fresh install it only works once the stack is up and the NS delegation
-# is set. Expand the certificate later as described in the guide.
-if host "$DOMAIN_AUTH" &>/dev/null || dig +short "$DOMAIN_AUTH" 2>/dev/null | grep -q .; then
-  info "DNS resolution for $DOMAIN_AUTH: OK"
-  CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $DOMAIN_AUTH"
-else
-  warn "DNS resolution for $DOMAIN_AUTH failed. auth will not be included in the certificate."
-  warn "Expand the certificate after the stack is up — see docs/jotti-rocks-infra.md."
-fi
-
-info "Starting nginx for ACME challenge..."
-docker compose -f "$COMPOSE_CERT" up -d reverse-proxy
-
-sleep 3
-
-info "Requesting certificate from Let's Encrypt..."
-
-# CERTBOT_DOMAINS is a list of -d flags and must be word-split.
-# shellcheck disable=SC2086
-if ! docker compose -f "$COMPOSE_CERT" run --rm --entrypoint certbot certbot certonly \
-  --webroot -w /var/www/certbot \
-  $CERTBOT_DOMAINS \
-  --email "$EMAIL" --agree-tos --no-eff-email; then
-  error "Certbot failed. Cleaning up..."
-  docker compose -f "$COMPOSE_CERT" down
-  fatal "Certificate request failed. Check the output above for details."
-fi
-
-info "Certificate issued successfully."
-
-info "Stopping initial certificate stack..."
-docker compose -f "$COMPOSE_CERT" down
-
-info "Building and starting production stack..."
-docker compose "${COMPOSE_PROD[@]}" up -d --build
-
-info "Waiting for services to start..."
-sleep 10
+for container in "${CONTAINERS[@]}"; do
+  if wait_for_healthy "$container"; then
+    info "$container: healthy"
+  else
+    warn "$container is not healthy yet — check 'make rocks-logs'."
+  fi
+done
 
 info "Verifying deployment..."
 
-HTTPS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN" 2>/dev/null || echo "000")
+# Retries cover Caddy still obtaining a certificate right after the start.
+status_of() {
+  curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+    --retry 5 --retry-delay 5 --retry-all-errors "$1" 2>/dev/null || echo "000"
+}
 
-if [[ "$HTTPS_STATUS" == "200" || "$HTTPS_STATUS" == "301" || "$HTTPS_STATUS" == "302" ]]; then
-  info "Landing page HTTPS check: OK (HTTP $HTTPS_STATUS)"
+HTTPS_STATUS="$(status_of "https://$DOMAIN")"
+if [[ "$HTTPS_STATUS" == "200" ]]; then
+  info "Landing page HTTPS check: OK"
 else
-  warn "Landing page HTTPS check returned HTTP $HTTPS_STATUS — may not be fully ready yet."
+  warn "Landing page HTTPS check returned HTTP $HTTPS_STATUS (expected 200)."
 fi
 
-DEMO_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN_DEMO" 2>/dev/null || echo "000")
-
-if [[ "$DEMO_STATUS" == "200" || "$DEMO_STATUS" == "301" || "$DEMO_STATUS" == "302" ]]; then
-  info "Demo app HTTPS check: OK (HTTP $DEMO_STATUS)"
+DEMO_STATUS="$(status_of "https://$DOMAIN_DEMO")"
+if [[ "$DEMO_STATUS" == "200" ]]; then
+  info "Demo app HTTPS check: OK"
 else
-  warn "Demo app HTTPS check returned HTTP $DEMO_STATUS — may not be fully ready yet."
+  warn "Demo app HTTPS check returned HTTP $DEMO_STATUS (expected 200)."
 fi
 
-AUTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$DOMAIN_AUTH/health" 2>/dev/null || echo "000")
-
+AUTH_STATUS="$(status_of "https://$DOMAIN_AUTH/health")"
 if [[ "$AUTH_STATUS" == "200" ]]; then
-  info "acme-dns API HTTPS check: OK (HTTP $AUTH_STATUS)"
+  info "acme-dns API HTTPS check: OK"
 else
-  warn "acme-dns API HTTPS check returned HTTP $AUTH_STATUS — expected if auth.jotti.rocks is not yet in the certificate (see docs/jotti-rocks-infra.md)."
+  warn "acme-dns API HTTPS check returned HTTP $AUTH_STATUS — expected until the delegation for $DOMAIN_AUTH is active (see docs/jotti-rocks-infra.md)."
 fi
 
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "http://$DOMAIN" 2>/dev/null || echo "000")
-
-if [[ "$HTTP_STATUS" == "301" ]]; then
+HTTP_STATUS="$(status_of "http://$DOMAIN")"
+if [[ "$HTTP_STATUS" == "308" ]]; then
   info "HTTP→HTTPS redirect: OK"
 else
-  warn "HTTP→HTTPS redirect returned HTTP $HTTP_STATUS (expected 301)"
+  warn "HTTP→HTTPS redirect returned HTTP $HTTP_STATUS (expected 308)."
 fi
 
 echo ""
@@ -169,5 +122,5 @@ echo "    make rocks-up     — Rebuild & restart"
 echo "    make rocks-down   — Stop all services"
 echo "    make rocks-logs   — Follow logs"
 echo ""
-echo "  Certificates renew automatically every 24h."
+echo "  Caddy renews the certificates automatically."
 echo "=========================================="

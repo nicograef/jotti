@@ -29,7 +29,7 @@ func TestRegisterWithACMEDNS(t *testing.T) {
 
 func TestRegisterWithACMEDNSRejectsErrorStatus(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		// Rate-Limit auf /register (siehe nginx-Konfiguration der rocks-Infra).
+		// Rate-Limit auf /register (siehe Caddyfile.rocks).
 		w.WriteHeader(http.StatusTooManyRequests)
 	}))
 	defer srv.Close()

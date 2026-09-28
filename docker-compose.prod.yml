@@ -3,7 +3,7 @@ name: jotti
 # Self-hosted production stack for a single public domain: pinned GHCR images
 # (nothing is built on the server), TLS terminated by Caddy in public mode —
 # JOTTI_DOMAIN + LETSENCRYPT_EMAIL in .env, certificate obtained and renewed
-# automatically (HTTP-01/TLS-ALPN), no certbot. ${JOTTI_VERSION} is required and
+# automatically (HTTP-01/TLS-ALPN). ${JOTTI_VERSION} is required and
 # has no default. See docs/leitfaden/self-hosting.md; the jotti.rocks demo uses
 # docker-compose.rocks.yml instead.
 

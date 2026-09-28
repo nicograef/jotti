@@ -8,7 +8,7 @@ import { betreiberEmail } from '../lib/links'
 // `starlight-theme`), Sidebar-Zustand der Doku in sessionStorage (Starlight, Key
 // `sl-sidebar-state`); das Anfrage-Formular öffnet nur einen mailto-Entwurf ohne
 // Serverkontakt (src/lib/anfrage-mailto.ts); Server-Logs mit gekürzter IP und
-// größenbegrenzter Rotation (reverse-proxy/nginx.rocks.conf,
+// größenbegrenzter Rotation (reverse-proxy/Caddyfile.rocks,
 // docker-compose.rocks.yml); Hosting auf einem netcup-VPS in Nürnberg.
 
 const title = 'Datenschutzerklärung – jotti'
@@ -61,10 +61,12 @@ const description =
       Verbindungsdaten und protokolliert sie in Server-Logs: IP-Adresse in
       gekürzter Form (das letzte Adress-Segment wird vor dem Schreiben des
       Log-Eintrags entfernt, sodass kein Personenbezug gespeichert wird), Datum
-      und Uhrzeit, aufgerufene Seite, HTTP-Status, übertragene Datenmenge,
-      Referrer und User-Agent. Die vollständige IP-Adresse wird nur flüchtig
-      verarbeitet, um die Seite auszuliefern und Angriffe abzuwehren
-      (Rate-Limiting); in den Zugriffsprotokollen wird sie nicht gespeichert.
+      und Uhrzeit, aufgerufene Seite, HTTP-Status, übertragene Datenmenge sowie
+      technische Verbindungsangaben (Quellport, Protokoll- und
+      Verschlüsselungsversion, Antwortzeit). Die vollständige IP-Adresse wird
+      nur flüchtig verarbeitet, um die Seite auszuliefern und Angriffe
+      abzuwehren (Rate-Limiting); in den Zugriffsprotokollen wird sie nicht
+      gespeichert.
     </p>
     <p class="mt-3 text-[0.9375rem] leading-relaxed">
       Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO — das berechtigte

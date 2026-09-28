@@ -2,7 +2,7 @@
 // die Umgebung wählt: PROXY_HTTP_ONLY (E2E, Klartext-HTTP auf :80) vor JOTTI_DOMAIN
 // (Public, eine Site mit Let's-Encrypt-Zertifikat), sonst LAN-Mode (Install-State,
 // LAN-IP, Wildcard- plus Fallback-Site, Status-Seite).
-// Die jotti.rocks-Demo bleibt auf nginx und nutzt dieses Programm nicht.
+// Der jotti.rocks-Stack startet Caddy direkt mit Caddyfile.rocks, ohne dieses Programm.
 package main
 
 import (

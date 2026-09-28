@@ -3,7 +3,8 @@
 # the acme-dns DNS provider (DNS-01 wildcard certificates) and caddy-ratelimit (the
 # public /api/ rate limit) — plus jotti-reverse-proxy as the entrypoint, which
 # renders the Caddyfile and runs Caddy as a child.
-# The jotti.rocks demo keeps stock nginx and does not use this image.
+# The jotti.rocks stack (docker-compose.rocks.yml) runs the bundled Caddy
+# directly on the static Caddyfile.rocks.
 
 FROM caddy:2.11.4-builder AS caddy-builder
 

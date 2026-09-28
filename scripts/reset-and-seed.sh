@@ -16,7 +16,7 @@ Resets the jotti.rocks demo stack's DB data and reloads seed data without
 touching its TLS/SSL volumes.
 
 Stack:
-  rocks    jotti.rocks demo/staging (docker-compose.rocks.yml); SSL volumes preserved
+  rocks    jotti.rocks demo/staging (docker-compose.rocks.yml); certificate volume preserved
 
 Options:
   --yes    Skip interactive confirmation prompt
@@ -51,7 +51,7 @@ done
 COMPOSE_FILE="docker-compose.rocks.yml"
 DB_VOLUME="jotti_postgres-data"
 STACK_LABEL="jotti.rocks demo"
-TLS_NOTE="SSL certificate volumes (letsencrypt, certbot-challenges) are NOT touched."
+TLS_NOTE="The certificate volume (caddy-data) is NOT touched."
 
 PG_SERVICE="postgres"
 BACKEND_SERVICE="backend"

@@ -80,11 +80,5 @@ fi
 info "Restarting the full stack ..."
 docker compose -f "$COMPOSE_FILE" up -d
 
-# Force-recreate the reverse-proxy so it re-resolves the freshly restarted
-# backend/frontend upstreams. On the rocks stack this clears nginx's cached
-# upstream IPs (the 502-after-restore trap); on Caddy stacks it is a no-op.
-info "Recreating the reverse-proxy ..."
-docker compose -f "$COMPOSE_FILE" up -d --no-deps --force-recreate reverse-proxy
-
 echo ""
 info "Restore complete. jotti is running again."

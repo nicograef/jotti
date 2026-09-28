@@ -1,6 +1,6 @@
 // Dependency-free static file server for `website/dist`. Serves the artefact
-// with the EXACT production Content-Security-Policy of the jotti.rocks block in
-// `reverse-proxy/nginx.rocks.conf`, parsed from that file at runtime so it can
+// with the EXACT production Content-Security-Policy of the jotti.rocks site in
+// `reverse-proxy/Caddyfile.rocks`, parsed from that file at runtime so it can
 // never silently drift from production.
 
 import { createServer } from 'node:http'
@@ -9,7 +9,7 @@ import { extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)))
-const nginxConf = join(repoRoot, 'reverse-proxy', 'nginx.rocks.conf')
+const rocksCaddyfile = join(repoRoot, 'reverse-proxy', 'Caddyfile.rocks')
 
 const CONTENT_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -30,18 +30,18 @@ const CONTENT_TYPES = {
   '.map': 'application/json; charset=utf-8',
 }
 
-// The jotti.rocks block is the only CSP header carrying the Pagefind
+// The jotti.rocks site is the only CSP header carrying the Pagefind
 // `'wasm-unsafe-eval'` exception — that is what identifies it in the file.
 export async function readProductionCsp() {
-  const conf = await readFile(nginxConf, 'utf8')
+  const conf = await readFile(rocksCaddyfile, 'utf8')
   const matches = [
-    ...conf.matchAll(/add_header\s+Content-Security-Policy\s+"([^"]+)"/g),
+    ...conf.matchAll(/header\s+Content-Security-Policy\s+"([^"]+)"/g),
   ]
   const csp = matches
     .map((m) => m[1])
     .find((value) => value.includes("'wasm-unsafe-eval'"))
   if (!csp) {
-    throw new Error(`jotti.rocks CSP not found in ${nginxConf}`)
+    throw new Error(`jotti.rocks CSP not found in ${rocksCaddyfile}`)
   }
   return csp
 }

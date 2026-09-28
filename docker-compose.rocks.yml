@@ -19,6 +19,10 @@ services:
     image: postgres:17.11
     container_name: jotti-postgres
     restart: unless-stopped
+    # Parallel queries need more than Docker's 64 MB /dev/shm; a clean
+    # shutdown checkpoints first, which can outlast Docker's 10 s default.
+    shm_size: 256mb
+    stop_grace_period: 1m
     logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -153,36 +157,35 @@ services:
           memory: 128M
           cpus: "0.5"
 
+  # The self-hosted image's Caddy build, run directly on the static
+  # Caddyfile.rocks; Caddy obtains and renews the certificates (HTTP-01).
   reverse-proxy:
-    image: nginx:1.31-alpine
+    build:
+      context: ./reverse-proxy
+      dockerfile: Dockerfile
     container_name: jotti-reverse-proxy
     restart: unless-stopped
     logging: *default-logging
-    # nginx runs in the foreground as PID 1 and receives stop signals directly;
-    # a background loop reloads every 12 hours so renewed certificates and
-    # re-resolved upstream addresses are picked up without a restart.
-    command:
-      - sh
-      - -c
-      - "while true; do sleep 12h; nginx -s reload; done & exec nginx -g 'daemon off;'"
+    entrypoint: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     volumes:
-      - ./reverse-proxy/nginx.rocks.conf:/etc/nginx/conf.d/jotti.conf:ro
-      - certbot-challenges:/var/www/certbot
-      - letsencrypt:/etc/letsencrypt
+      - ./reverse-proxy/Caddyfile.rocks:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     networks:
       - app-network
     depends_on:
       frontend:
-        condition: service_started
+        condition: service_healthy
       website:
-        condition: service_started
+        condition: service_healthy
       backend:
         condition: service_healthy
       acme-dns:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -198,27 +201,6 @@ services:
         limits:
           memory: 128M
           cpus: "0.5"
-
-  certbot:
-    image: certbot/certbot:v5.8.0
-    container_name: jotti-certbot
-    restart: unless-stopped
-    logging: *default-logging
-    volumes:
-      - certbot-challenges:/var/www/certbot
-      - letsencrypt:/etc/letsencrypt
-    networks:
-      - app-network
-    depends_on:
-      reverse-proxy:
-        condition: service_started
-    entrypoint: /bin/sh
-    command: -c "while true; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 24h; done"
-    deploy:
-      resources:
-        limits:
-          memory: 64M
-          cpus: "0.25"
 
   # Authoritative DNS for lokal.jotti.rocks — computes A records and
   # _acme-challenge CNAMEs from the queried name, forwards auth.jotti.rocks
@@ -240,7 +222,18 @@ services:
       - app-network
     depends_on:
       acme-dns:
-        condition: service_started
+        condition: service_healthy
+    # A computed A record proves the resolver answers.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "nslookup -type=a 10-0-0-1.health.lokal.jotti.rocks 127.0.0.1 | grep -q 10.0.0.1",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     deploy:
       resources:
         limits:
@@ -249,8 +242,8 @@ services:
 
   # acme-dns serves the auth.jotti.rocks zone (DNS-01 challenge TXT records).
   # DNS (:53) and HTTP API (:80) are Docker-internal only: DNS is reached via
-  # the resolver's conditional forwarding, the API via nginx
-  # (https://auth.jotti.rocks).
+  # the resolver's conditional forwarding, the API via the reverse
+  # proxy (https://auth.jotti.rocks).
   acme-dns:
     image: joohoi/acme-dns:v2.0.2
     container_name: jotti-acme-dns
@@ -263,6 +256,16 @@ services:
       - acme-dns-data:/var/lib/acme-dns
     networks:
       - app-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:80/health >/dev/null 2>&1",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     deploy:
       resources:
         limits:
@@ -313,6 +316,7 @@ networks:
 
 volumes:
   postgres-data:
-  certbot-challenges:
-  letsencrypt:
+  # Caddy's data dir holds the Let's Encrypt certificates and ACME account.
+  caddy-data:
+  caddy-config:
   acme-dns-data:

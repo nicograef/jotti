@@ -183,14 +183,14 @@ func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
 	}
 }
 
-// TestNginxRocksConfCarriesSameCSP hält die zwei Kopien der CSP zusammen:
-// contentSecurityPolicy und die demo-Site in nginx.rocks.conf.
-func TestNginxRocksConfCarriesSameCSP(t *testing.T) {
-	conf, err := os.ReadFile("nginx.rocks.conf")
+// TestRocksCaddyfileCarriesSameCSP hält die zwei Kopien der CSP zusammen:
+// contentSecurityPolicy und die demo-Site in Caddyfile.rocks.
+func TestRocksCaddyfileCarriesSameCSP(t *testing.T) {
+	conf, err := os.ReadFile("Caddyfile.rocks")
 	if err != nil {
-		t.Fatalf("nginx.rocks.conf lesen: %v", err)
+		t.Fatalf("Caddyfile.rocks lesen: %v", err)
 	}
 	if !strings.Contains(string(conf), contentSecurityPolicy) {
-		t.Errorf("nginx.rocks.conf trägt die CSP nicht wörtlich; erwartet:\n%s", contentSecurityPolicy)
+		t.Errorf("Caddyfile.rocks trägt die CSP nicht wörtlich; erwartet:\n%s", contentSecurityPolicy)
 	}
 }
