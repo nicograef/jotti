@@ -42,7 +42,7 @@ jotti stays minimal for volunteers who operate it under stress. A feature must j
   - features built in advance
 - Field feedback beats feature ideas. A feature the field exposes as ballast is a removal candidate. Precedent: D01 in `docs/decisions.md`.
 - What meets a real need (compliance, field feedback, the core workflow) is built completely.
-- `docs/decisions.md` holds one line per binding decision. A line is never rewritten; a superseded line gets "ersetzt durch DNN". This file is the one exception to the current-state rule.
+- `docs/decisions.md` holds one line per binding decision. A line may be reworded, but its decision stays the same. A superseded line keeps its place and gets "ersetzt durch DNN". This file is the one exception to the current-state rule.
 - A decision line never carries a file path. It names the concept, so a rename or move cannot make it false.
 
 ## Start
