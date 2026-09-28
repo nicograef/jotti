@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
+# reset-and-seed.sh — resets the jotti.rocks demo database and re-seeds it
+#
+# Usage:
+#   make rocks-reset-and-seed   # or: ./scripts/reset-and-seed.sh rocks [--yes]
+#
+# Deletes the demo stack's database volume, restarts the stack and runs
+# `jotti seed`; the certificate volume stays. NOT for self-hosted production.
 set -euo pipefail
-
-# Resets the jotti.rocks demo stack's DB volume and re-seeds it.
-# NOT for self-hosted production.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -48,13 +52,13 @@ done
 
 [[ -n "$STACK" ]] || { usage; fatal "Missing required stack argument (rocks)"; }
 
-COMPOSE_FILE="docker-compose.rocks.yml"
-DB_VOLUME="jotti_postgres-data"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.rocks.yml}"
+DB_VOLUME="${DB_VOLUME:-jotti_postgres-data}"
 STACK_LABEL="jotti.rocks demo"
 TLS_NOTE="The certificate volume (caddy-data) is NOT touched."
 
-PG_SERVICE="postgres"
-BACKEND_SERVICE="backend"
+PG_SERVICE="${PG_SERVICE:-postgres}"
+BACKEND_SERVICE="${BACKEND_SERVICE:-backend}"
 
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"

@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
+# check-prose.sh — repo gate: prose describes the current state only
+#
+# Usage:
+#   make check-repo   # or: ./scripts/check-prose.sh
+#   Exceptions: scripts/check-prose.allow (one path per line, "# reason").
+#
+# Rejected are words that frame a statement against a former state and
+# session-scoped jargon from a plan or handoff in flight (see PATTERN).
 set -euo pipefail
-
-# jotti — the current-state rule: prose describes the
-# current state only. Rejected are words that frame a statement against a former
-# state and session-scoped jargon from a plan or handoff in flight (see PATTERN).
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -20,19 +24,19 @@ mapfile -t files < <(tracked_text_files)
 
 # Allowlist: one path per line, an optional trailing "# reason".
 mapfile -t allowed < <(
-  [ -f "$ALLOWLIST" ] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST" | awk '{print $1}'
+  [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST" | awk '{print $1}'
 )
 
 violations=0
 for file in "${files[@]}"; do
   skip=0
   for a in "${allowed[@]+"${allowed[@]}"}"; do
-    if [ "$file" = "$a" ]; then
+    if [[ "$file" = "$a" ]]; then
       skip=1
       break
     fi
   done
-  [ "$skip" -eq 1 ] && continue
+  [[ "$skip" -eq 1 ]] && continue
 
   if hits="$(grep -inwE "$PATTERN" "$file" 2>/dev/null)"; then
     while IFS= read -r hit; do
@@ -42,7 +46,7 @@ for file in "${files[@]}"; do
   fi
 done
 
-if [ "$violations" -gt 0 ]; then
+if [[ "$violations" -gt 0 ]]; then
   fatal "$violations line(s) with historical or handoff prose (see $ALLOWLIST to allow a specific file)."
 fi
 

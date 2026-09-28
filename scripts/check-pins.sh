@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-# jotti — one pinned version per third-party image across the stacks: two stacks
-# on different versions of the same image behave differently while claiming to be
-# the same deployment. Read are `image:` lines in docker-compose*.yml and
-# .github/workflows/*.yml, `FROM` lines in every Dockerfile, literal references
-# to one of those image names in scripts/*.sh and windows/**/*.go (the
-# `docker run` calls of the test scripts, the starter's helper image) and the
-# packageManager fields of frontend, website and e2e. jotti's own images (ghcr.io/nicograef/jotti-*) are
-# exempt: their tag is a variable on purpose, so every stack follows the release
-# it was shipped with. Compared per image name is the tag up to the first "-", so
+# check-pins.sh — repo gate: one pinned version per third-party image, SHA-pinned actions
+#
+# Usage:
+#   make check-repo   # or: ./scripts/check-pins.sh
+#   Exceptions: scripts/check-pins.allow (image name, "# reason").
+#
+# Two stacks on different versions of one image behave differently while
+# claiming to be the same deployment. Read are `image:` lines in
+# docker-compose*.yml and .github/workflows/*.yml, `FROM` lines in every
+# Dockerfile, literal references to those image names in scripts/*.sh and
+# windows/**/*.go, and the packageManager fields of frontend, website and e2e.
+# jotti's own images (ghcr.io/nicograef/jotti-*) are exempt: their tag follows the
+# release on purpose. The tag is compared up to the first "-", so
 # caddy:2.11.4-builder and caddy:2.11.4 are one version; a digest pin counts as
-# its own version and collides with a tag pin of the same image.
-# Every `uses:` in .github/workflows/*.yml names a full commit SHA plus a
-# `# vX.Y.Z` comment: a tag can be moved to other code after review.
+# its own version. Every `uses:` in .github/workflows/*.yml names a full commit
+# SHA plus a `# vX.Y.Z` comment: a tag can be moved to other code after review.
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -27,7 +29,7 @@ OWN_IMAGE_PREFIX="ghcr.io/nicograef/jotti-"
 PACKAGE_JSONS=(frontend/package.json website/package.json e2e/package.json)
 
 mapfile -t allow_entries < <(
-  [ -f "$ALLOWLIST" ] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
+  [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
 )
 
 allow_names=()
@@ -37,7 +39,7 @@ for entry in "${allow_entries[@]+"${allow_entries[@]}"}"; do
   reason="$(printf '%s\n' "$entry" | awk '{print $2}')"
   # Without this an image name carrying a space would be cut at that space by
   # the field split and exempt a shorter name than the entry spells out.
-  if [ "${reason:0:1}" != "#" ]; then
+  if [[ "${reason:0:1}" != "#" ]]; then
     fatal "$ALLOWLIST: image name with a space, or reason missing: $entry"
   fi
   allow_names+=("$name")
@@ -103,7 +105,7 @@ image_name() {
 # tag that starts with a digit, optionally after "v".
 collect_literal_pins() {
   local file
-  [ -n "$1" ] || return 0
+  [[ -n "$1" ]] || return 0
   for file in "${literal_files[@]+"${literal_files[@]}"}"; do
     NAMES_RE="$1" awk -v file="$file" '
       match($0, "(^|[^A-Za-z0-9./_@-])(" ENVIRON["NAMES_RE"] "):v?[0-9][A-Za-z0-9._-]*") {
@@ -160,9 +162,9 @@ while IFS=$'\t' read -r ref loc; do
       ;;
   esac
 
-  if [ -n "$digest" ]; then
+  if [[ -n "$digest" ]]; then
     version="$digest"
-  elif [ -z "$tag" ]; then
+  elif [[ -z "$tag" ]]; then
     error "$loc: image without a pinned tag: $ref"
     violations=$((violations + 1))
     continue
@@ -170,13 +172,13 @@ while IFS=$'\t' read -r ref loc; do
     version="${tag%%-*}"
   fi
   key="$name"$'\t'"$version"
-  if [ -z "${version_seen[$key]:-}" ]; then
+  if [[ -z "${version_seen[$key]:-}" ]]; then
     version_seen["$key"]=1
     version_count["$name"]=$(( ${version_count[$name]:-0} + 1 ))
     version_detail["$name"]="${version_detail[$name]:-}"$'\n'"  $version at $loc"
   fi
 done < <(
-  if [ "${#pins[@]}" -gt 0 ]; then
+  if [[ "${#pins[@]}" -gt 0 ]]; then
     printf '%s\n' "${pins[@]}"
   fi
   collect_literal_pins "$names_re"
@@ -185,35 +187,35 @@ done < <(
 # Sorted, so the report is the same on every run. The guard matters: printf
 # without arguments would emit one empty line and turn it into an empty name.
 names=()
-if [ "${#version_count[@]}" -gt 0 ]; then
+if [[ "${#version_count[@]}" -gt 0 ]]; then
   mapfile -t names < <(printf '%s\n' "${!version_count[@]}" | sort)
 fi
 
 for name in "${names[@]+"${names[@]}"}"; do
-  [ "${version_count[$name]}" -le 1 ] && continue
+  [[ "${version_count[$name]}" -le 1 ]] && continue
 
   exempt=0
-  if [ "${#allow_names[@]}" -gt 0 ]; then
+  if [[ "${#allow_names[@]}" -gt 0 ]]; then
     for i in "${!allow_names[@]}"; do
-      if [ "$name" = "${allow_names[$i]}" ]; then
+      if [[ "$name" = "${allow_names[$i]}" ]]; then
         allow_hits[i]=$((allow_hits[i] + 1))
         exempt=1
         break
       fi
     done
   fi
-  [ "$exempt" -eq 1 ] && continue
+  [[ "$exempt" -eq 1 ]] && continue
 
   error "$name is pinned to ${version_count[$name]} versions (allow it in $ALLOWLIST):"
   while IFS= read -r line; do
-    [ -n "$line" ] && error "$line"
+    [[ -n "$line" ]] && error "$line"
   done <<<"${version_detail[$name]}"
   violations=$((violations + 1))
 done
 
-if [ "${#allow_names[@]}" -gt 0 ]; then
+if [[ "${#allow_names[@]}" -gt 0 ]]; then
   for i in "${!allow_names[@]}"; do
-    if [ "${allow_hits[$i]}" -eq 0 ]; then
+    if [[ "${allow_hits[$i]}" -eq 0 ]]; then
       error "$ALLOWLIST: exception matches nothing any more: ${allow_names[$i]}"
       violations=$((violations + 1))
     fi
@@ -225,7 +227,7 @@ fi
 pm_files=()
 pm_values=()
 for file in "${PACKAGE_JSONS[@]}"; do
-  if [ ! -f "$file" ]; then
+  if [[ ! -f "$file" ]]; then
     fatal "$file is missing: the packageManager comparison needs all three package.json."
   fi
   value="$(awk '
@@ -237,7 +239,7 @@ for file in "${PACKAGE_JSONS[@]}"; do
       exit
     }
   ' "$file")"
-  if [ -z "$value" ]; then
+  if [[ -z "$value" ]]; then
     error "$file: no packageManager field."
     violations=$((violations + 1))
     continue
@@ -246,9 +248,9 @@ for file in "${PACKAGE_JSONS[@]}"; do
   pm_values+=("$value")
 done
 
-if [ "${#pm_values[@]}" -gt 1 ]; then
+if [[ "${#pm_values[@]}" -gt 1 ]]; then
   for i in "${!pm_values[@]}"; do
-    if [ "${pm_values[$i]}" != "${pm_values[0]}" ]; then
+    if [[ "${pm_values[$i]}" != "${pm_values[0]}" ]]; then
       error "${pm_files[$i]}: packageManager is ${pm_values[$i]}, ${pm_files[0]} pins ${pm_values[0]}."
       violations=$((violations + 1))
     fi
@@ -274,7 +276,7 @@ done < <(
   done
 )
 
-if [ "$violations" -gt 0 ]; then
+if [[ "$violations" -gt 0 ]]; then
   fatal "$violations version pin violation(s) found."
 fi
 

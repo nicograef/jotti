@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-# jotti — backup verify (self-hosted production).
+# prod-backup-verify.sh — proves a production dump is restorable
 #
-# Proves that a pg_dump from prod-backup.sh is restorable: it replays the dump
-# into a THROWAWAY postgres container (`docker run --rm`, no stack network, no
-# stack volumes) and checks that the restored kassenjournal holds events. The
-# running stack is never touched.
+# Usage:
+#   make prod-backup-verify
+#   ./scripts/prod-backup-verify.sh [DUMP]   # default: the newest dump in BACKUP_DIR
+#
+# What it does:
+#   1. Starts a THROWAWAY Postgres of the stack's version (`docker run --rm`, no
+#      stack network, no stack volumes).
+#   2. Replays the dump in one transaction.
+#   3. Fails unless the restored kassenjournal holds events.
+# The running stack is never touched.
+set -euo pipefail
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 

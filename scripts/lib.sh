@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# jotti — shared shell helpers for scripts/*.sh; source, don't execute.
+# lib.sh — shared shell helpers for scripts/*.sh; source, don't execute.
+#
+# Usage:
+#   . "$SCRIPT_DIR/lib.sh"
+#
 # Every log helper writes to stderr, so a caller's stdout stays free for a
 # machine-readable return value (see ops-smoke.sh's TSV protocol).
 

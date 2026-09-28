@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
+# prod-backup.sh — database backup of the self-hosted production stack
+#
+# Usage:
+#   make prod-backup
+#   BACKUP_DIR=/mnt/usb BACKUP_KEEP=30 ./scripts/prod-backup.sh
+#
+# What it does:
+#   1. Dumps the running Postgres (--clean --if-exists) gzip-compressed to a
+#      .partial file in BACKUP_DIR, mode 600.
+#   2. Checks the archive with gzip -t, then promotes it to jotti-<timestamp>.sql.gz.
+#   3. Keeps the newest BACKUP_KEEP dumps and pings BACKUP_PING_URL when set.
+# Mirrors the Windows pre-update backup (windows/starter/backup.go).
 set -euo pipefail
 
-# jotti — database backup (self-hosted production).
-#
-# Dumps the running production postgres into a timestamped, gzip-compressed file
-# in BACKUP_DIR and rotates to the newest BACKUP_KEEP dumps. Mirrors the Windows
-# pre-update backup (windows/starter/backup.go): same --clean --if-exists dump
-# and same "keep newest N" rotation, so a later restore re-creates the objects
-# cleanly.
-
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
-PG_SERVICE="postgres"
+PG_SERVICE="${PG_SERVICE:-postgres}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh

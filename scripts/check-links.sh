@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
+# check-links.sh — repo gate: every relative *.md path resolves to a tracked file
+#
+# Usage:
+#   make check-repo   # or: ./scripts/check-links.sh
+#
+# A path is checked relative to the mentioning file and to the repo root: docs
+# cross-reference each other by sibling path, ops scripts reference docs/ from
+# the root.
 set -euo pipefail
-
-# jotti — every relative *.md path mentioned anywhere in the tracked tree must
-# resolve to a real tracked file. Checked both relative to the mentioning file
-# and to the repo root: docs cross-reference each other by sibling path, ops
-# scripts reference docs/ from the root.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -23,12 +26,12 @@ mapfile -t files < <(tracked_text_files)
 # Allowlist: one path per line, an optional trailing "# reason"; a listed file is
 # skipped entirely.
 mapfile -t allowed < <(
-  [ -f "$ALLOWLIST" ] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST" | awk '{print $1}'
+  [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST" | awk '{print $1}'
 )
 is_allowed_file() {
   local needle="$1"
   for a in "${allowed[@]+"${allowed[@]}"}"; do
-    [ "$needle" = "$a" ] && return 0
+    [[ "$needle" = "$a" ]] && return 0
   done
   return 1
 }
@@ -41,20 +44,20 @@ for file in "${files[@]}"; do
     # Drop a leading "@" (CLAUDE.md's `@AGENTS.md` import syntax). LINK_RE stops
     # the match at ".md", so nothing trailing needs stripping.
     link="${raw#@}"
-    [ -z "$link" ] && continue
+    [[ -z "$link" ]] && continue
     case "$link" in
     //* | http:* | https:* | \$\{*) continue ;; # a URL or a runtime-built path, not a repo path
     esac
 
-    [ -f "$dir/$link" ] && continue
-    [ -f "$link" ] && continue
+    [[ -f "$dir/$link" ]] && continue
+    [[ -f "$link" ]] && continue
 
     error "$file:$lineno: dead link to '$link'"
     violations=$((violations + 1))
   done < <(grep -aonE "$LINK_RE" "$file" 2>/dev/null || true)
 done
 
-if [ "$violations" -gt 0 ]; then
+if [[ "$violations" -gt 0 ]]; then
   fatal "$violations dead markdown link(s) (see $ALLOWLIST to allow a specific one)."
 fi
 

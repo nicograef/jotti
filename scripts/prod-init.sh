@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
+# prod-init.sh — first deploy of the self-hosted production stack
+#
+# Usage:
+#   make prod-init   # reads JOTTI_DOMAIN, LETSENCRYPT_EMAIL, JOTTI_VERSION from .env
+#
+# What it does:
+#   1. Validates .env: a pinned version and strong, non-placeholder secrets.
+#   2. Checks that the domain resolves to this server.
+#   3. Pulls and starts the pinned stack and waits for backend health and HTTPS;
+#      Caddy obtains the Let's Encrypt certificate itself (HTTP-01/TLS-ALPN).
+#   4. Prints the admin one-time login code from the backend logs.
 set -euo pipefail
 
-# jotti — first deploy of the self-hosted production stack: validates .env and
-# DNS, then starts the pinned stack. Caddy obtains the Let's Encrypt certificate
-# itself (HTTP-01/TLS-ALPN).
-
-COMPOSE_PROD="docker-compose.prod.yml"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+PROD_BACKEND_CONTAINER="${PROD_BACKEND_CONTAINER:-jotti-backend}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -39,7 +47,7 @@ info "Project root: $PROJECT_ROOT"
 
 info "Checking prerequisites..."
 
-require_docker_stack "$COMPOSE_PROD"
+require_docker_stack "$COMPOSE_FILE"
 
 if ! command -v host &>/dev/null && ! command -v dig &>/dev/null; then
   fatal "Neither 'host' nor 'dig' found. Install one (e.g. dnsutils / bind-tools) for the DNS preflight."
@@ -97,15 +105,15 @@ if [[ -n "$SERVER_IP" && "$SERVER_IP" != "$DOMAIN_IP" ]]; then
 fi
 
 info "Pulling pinned images..."
-docker compose -f "$COMPOSE_PROD" pull
+docker compose -f "$COMPOSE_FILE" pull
 
 info "Starting production stack..."
-docker compose -f "$COMPOSE_PROD" up -d
+docker compose -f "$COMPOSE_FILE" up -d
 
 info "Waiting for the backend to become healthy..."
-if ! wait_for_healthy jotti-backend; then
+if ! wait_for_healthy "$PROD_BACKEND_CONTAINER"; then
   error "Backend did not become healthy in time."
-  fatal "Check logs with: docker compose -f $COMPOSE_PROD logs -f"
+  fatal "Check logs with: docker compose -f $COMPOSE_FILE logs -f"
 fi
 info "Backend healthy."
 
@@ -132,7 +140,7 @@ if [[ "$https_ok" == true ]]; then
   info "HTTPS check: OK (/api/health returned 200)"
 else
   warn "HTTPS did not return 200 yet — the certificate may still be issuing."
-  warn "Re-check in a minute, or follow logs: docker compose -f $COMPOSE_PROD logs -f reverse-proxy"
+  warn "Re-check in a minute, or follow logs: docker compose -f $COMPOSE_FILE logs -f reverse-proxy"
 fi
 if [[ "$HTTP_STATUS" == "308" || "$HTTP_STATUS" == "301" || "$HTTP_STATUS" == "302" ]]; then
   info "HTTP→HTTPS redirect: OK (HTTP $HTTP_STATUS)"
@@ -147,7 +155,7 @@ echo "    make prod-logs   — Follow logs"
 echo ""
 # Admin one-time login code from the backend logs (like the Windows starter).
 # ANSI-tolerant: match the marker substring, newest match wins.
-otp_code="$(docker compose -f "$COMPOSE_PROD" logs backend 2>/dev/null \
+otp_code="$(docker compose -f "$COMPOSE_FILE" logs backend 2>/dev/null \
   | grep -a "ADMIN-EINMALPASSWORT" \
   | grep -aoE 'code=[0-9]{6}' \
   | tail -n1 | cut -d= -f2 || true)"
@@ -156,7 +164,7 @@ if [[ -n "$otp_code" ]]; then
   echo "    Log in as 'admin' with this code, then set your own password."
 else
   warn "No admin one-time login code found in the logs yet (setup may be complete, or the backend just started)."
-  echo "    Re-check with: docker compose -f $COMPOSE_PROD logs backend | grep ADMIN-EINMALPASSWORT"
+  echo "    Re-check with: docker compose -f $COMPOSE_FILE logs backend | grep ADMIN-EINMALPASSWORT"
 fi
 echo ""
 echo "  Caddy renews the certificate automatically."

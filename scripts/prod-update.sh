@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
+# prod-update.sh — safe update of the self-hosted production stack
+#
+# Usage:
+#   make prod-update   # updates to JOTTI_VERSION from .env
+#
+# What it does:
+#   1. Refuses a downgrade and any version that is not a pinned vX.Y.Z tag.
+#   2. Takes a backup BEFORE any migration runs.
+#   3. Pulls, applies and waits for a healthy backend; on failure it prints a
+#      copy-pasteable rollback path and exits non-zero.
+#   4. Removes jotti images other than the target and the previous release.
+# Mirrors the Windows starter's update flow (windows/starter/main.go).
 set -euo pipefail
 
-# jotti — safe update of the self-hosted production stack to the JOTTI_VERSION
-# set in .env. Mirrors the Windows starter's update flow
-# (windows/starter/main.go): refuse downgrades, take a backup BEFORE any
-# migration runs, pull, apply, verify health. If the new version does not come up
-# healthy, the operator gets a copy-pasteable rollback path and the script aborts
-# non-zero — no data created before the update is lost.
-
-COMPOSE_PROD="docker-compose.prod.yml"
-BACKEND_CONTAINER="jotti-backend"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+PROD_BACKEND_CONTAINER="${PROD_BACKEND_CONTAINER:-jotti-backend}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
@@ -33,7 +38,7 @@ is_downgrade() {
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-require_docker_stack "$COMPOSE_PROD"
+require_docker_stack "$COMPOSE_FILE"
 
 # Only a pinned release tag (vMAJOR.MINOR.PATCH) is accepted: compose references
 # the tag as a bare ${JOTTI_VERSION} with no default, so "latest" would track a
@@ -46,9 +51,9 @@ if ! parse_semver "$TARGET_VERSION" >/dev/null; then
   fatal "Refusing to update against an unpinned version ('latest' and empty are not allowed)."
 fi
 
-RUNNING_IMAGE="$(docker inspect -f '{{.Config.Image}}' "$BACKEND_CONTAINER" 2>/dev/null || true)"
+RUNNING_IMAGE="$(docker inspect -f '{{.Config.Image}}' "$PROD_BACKEND_CONTAINER" 2>/dev/null || true)"
 if [[ -z "$RUNNING_IMAGE" ]]; then
-  fatal "No running jotti stack found (container '$BACKEND_CONTAINER' is absent). Use 'make prod-init' for the first deploy."
+  fatal "No running jotti stack found (container '$PROD_BACKEND_CONTAINER' is absent). Use 'make prod-init' for the first deploy."
 fi
 RUNNING_VERSION="${RUNNING_IMAGE##*:}"
 
@@ -91,18 +96,18 @@ rollback_guidance() {
 }
 
 info "Pulling pinned images for $TARGET_VERSION..."
-if ! docker compose -f "$COMPOSE_PROD" pull; then
+if ! docker compose -f "$COMPOSE_FILE" pull; then
   fatal "docker compose pull failed. Nothing was changed; the previous version is still running."
 fi
 
 info "Applying the update (this runs database migrations)..."
-if ! docker compose -f "$COMPOSE_PROD" up -d; then
+if ! docker compose -f "$COMPOSE_FILE" up -d; then
   rollback_guidance
   exit 1
 fi
 
 info "Waiting for the backend to become healthy..."
-if ! wait_for_healthy "$BACKEND_CONTAINER"; then
+if ! wait_for_healthy "$PROD_BACKEND_CONTAINER"; then
   rollback_guidance
   exit 1
 fi
@@ -143,7 +148,7 @@ if [[ -n "$DOMAIN" ]]; then
     info "HTTPS check: OK (/api/health returned 200)"
   else
     warn "HTTPS did not return 200 yet — re-check in a minute or follow logs:"
-    warn "  docker compose -f $COMPOSE_PROD logs -f reverse-proxy"
+    warn "  docker compose -f $COMPOSE_FILE logs -f reverse-proxy"
   fi
 fi
 echo ""

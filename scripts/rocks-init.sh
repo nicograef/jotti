@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-# jotti.rocks — first deploy of the project website stack
-# (docker-compose.rocks.yml). Self-hosters use scripts/prod-init.sh instead.
-#   https://jotti.rocks       → static landing page
-#   https://demo.jotti.rocks  → demo app (frontend + backend API)
-#   https://auth.jotti.rocks  → acme-dns API (trusted local TLS)
+# rocks-init.sh — first deploy of the jotti.rocks stack (docker-compose.rocks.yml)
+#
+# Usage:
+#   make rocks-init   # self-hosters use scripts/prod-init.sh instead
+#
+# Serves:
+#   https://jotti.rocks       static landing page
+#   https://demo.jotti.rocks  demo app (frontend + backend API)
+#   https://auth.jotti.rocks  acme-dns API (trusted local TLS)
 # Caddy obtains every certificate itself (HTTP-01) and retries a name until it
 # resolves to this server.
+set -euo pipefail
 
 DOMAIN="jotti.rocks"
 DOMAIN_WWW="www.jotti.rocks"
 DOMAIN_DEMO="demo.jotti.rocks"
 DOMAIN_AUTH="auth.jotti.rocks"
 
-COMPOSE_FILE="docker-compose.rocks.yml"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.rocks.yml}"
 CONTAINERS=(jotti-backend jotti-frontend jotti-website jotti-acme-dns jotti-resolver jotti-reverse-proxy)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

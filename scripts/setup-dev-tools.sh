@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
+# setup-dev-tools.sh — installs the pinned tools behind make check / make verify (idempotent)
+#
+# Usage:
+#   bash scripts/setup-dev-tools.sh
+#
+# What it does:
+#   1. Requires Go and Node.
+#   2. Installs golangci-lint, sqlc, golang-migrate and actionlint at their pins via
+#      `go install`, and shellcheck via apt-get.
+#   3. Installs pnpm at the packageManager pin via npm, then every package's
+#      dependencies.
 set -euo pipefail
-
-# jotti local prerequisite setup for quality gates (make check / make verify)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -63,12 +72,12 @@ if command -v golangci-lint >/dev/null 2>&1; then
   INSTALLED_GOLANGCI_BUILT_WITH="$(golangci_lint_built_with "$(command -v golangci-lint)")"
 fi
 
-if [ "$INSTALLED_GOLANGCI" = "$GOLANGCI_LINT_VERSION" ] && [ "$INSTALLED_GOLANGCI_BUILT_WITH" = "$GO_TOOLCHAIN" ]; then
+if [[ "$INSTALLED_GOLANGCI" = "$GOLANGCI_LINT_VERSION" ]] && [[ "$INSTALLED_GOLANGCI_BUILT_WITH" = "$GO_TOOLCHAIN" ]]; then
   info "golangci-lint already installed: $INSTALLED_GOLANGCI (built with $INSTALLED_GOLANGCI_BUILT_WITH)"
 else
-  if [ -n "$INSTALLED_GOLANGCI" ] && [ "$INSTALLED_GOLANGCI" != "$GOLANGCI_LINT_VERSION" ]; then
+  if [[ -n "$INSTALLED_GOLANGCI" ]] && [[ "$INSTALLED_GOLANGCI" != "$GOLANGCI_LINT_VERSION" ]]; then
     info "Replacing golangci-lint $INSTALLED_GOLANGCI with the pinned $GOLANGCI_LINT_VERSION"
-  elif [ -n "$INSTALLED_GOLANGCI" ]; then
+  elif [[ -n "$INSTALLED_GOLANGCI" ]]; then
     info "Rebuilding golangci-lint $GOLANGCI_LINT_VERSION: built with $INSTALLED_GOLANGCI_BUILT_WITH, module now targets $GO_TOOLCHAIN"
   fi
   info "Building golangci-lint $GOLANGCI_LINT_VERSION with $GO_TOOLCHAIN into $GO_BIN_PATH"
@@ -87,7 +96,7 @@ fi
 SQLC_VERSION="v1.31.1"
 info "Ensuring sqlc ($SQLC_VERSION) is available..."
 INSTALLED_SQLC="$(installed_mod_version sqlc github.com/sqlc-dev/sqlc)"
-if [ "$INSTALLED_SQLC" = "$SQLC_VERSION" ]; then
+if [[ "$INSTALLED_SQLC" = "$SQLC_VERSION" ]]; then
   info "sqlc already installed: $INSTALLED_SQLC"
 else
   info "Installing sqlc $SQLC_VERSION into $GO_BIN_PATH (installed: ${INSTALLED_SQLC:-none})"
@@ -104,7 +113,7 @@ fi
 MIGRATE_VERSION="v4.20.1"
 info "Ensuring golang-migrate ($MIGRATE_VERSION) is available..."
 INSTALLED_MIGRATE="$(installed_mod_version migrate github.com/golang-migrate/migrate/v4)"
-if [ "$INSTALLED_MIGRATE" = "$MIGRATE_VERSION" ]; then
+if [[ "$INSTALLED_MIGRATE" = "$MIGRATE_VERSION" ]]; then
   info "golang-migrate already installed: $INSTALLED_MIGRATE"
 else
   info "Installing golang-migrate $MIGRATE_VERSION into $GO_BIN_PATH (installed: ${INSTALLED_MIGRATE:-none})"
@@ -121,7 +130,7 @@ fi
 info "Ensuring shellcheck is available..."
 if ! command -v shellcheck >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
   sudo_cmd=()
-  if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+  if [[ "$(id -u)" -ne 0 ]] && command -v sudo >/dev/null 2>&1; then
     sudo_cmd=(sudo)
   fi
   info "Installing shellcheck via apt-get"
@@ -136,7 +145,7 @@ ensure_cmd shellcheck "Install shellcheck with your package manager (apt-get ins
 ACTIONLINT_VERSION="v1.7.12"
 info "Ensuring actionlint ($ACTIONLINT_VERSION) is available..."
 INSTALLED_ACTIONLINT="$(installed_mod_version actionlint github.com/rhysd/actionlint)"
-if [ "$INSTALLED_ACTIONLINT" = "$ACTIONLINT_VERSION" ]; then
+if [[ "$INSTALLED_ACTIONLINT" = "$ACTIONLINT_VERSION" ]]; then
   info "actionlint already installed: $INSTALLED_ACTIONLINT"
 else
   info "Installing actionlint $ACTIONLINT_VERSION into $GO_BIN_PATH (installed: ${INSTALLED_ACTIONLINT:-none})"
@@ -150,7 +159,7 @@ fi
 # npm, not Corepack: Node 25+ no longer ships Corepack. The version is the
 # packageManager pin that scripts/check-pins.sh keeps equal across packages.
 PNPM_VERSION="$(sed -n 's/.*"packageManager": *"pnpm@\([^+"]*\).*/\1/p' "$PROJECT_ROOT/frontend/package.json")"
-[ -n "$PNPM_VERSION" ] || fatal "No pnpm packageManager pin in frontend/package.json."
+[[ -n "$PNPM_VERSION" ]] || fatal "No pnpm packageManager pin in frontend/package.json."
 info "Ensuring pnpm ($PNPM_VERSION) is available..."
 if command -v pnpm >/dev/null 2>&1; then
   info "pnpm already installed: $(pnpm --version)"

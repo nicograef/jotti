@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+# check-language.sh — repo gate: ASCII Windows output, real umlauts in backend comments
+#
+# Usage:
+#   make check-repo   # or: ./scripts/check-language.sh
+#
+# What it does:
+#   1. Builds backend/internal/tools/checklanguage into a temp binary.
+#   2. Rejects non-ASCII in windows/**/*.go string literals and packaging/**/*.cmd.
+#   3. Rejects transliterated umlauts (fuer, ueber, ...) in backend Go comments.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -33,7 +42,7 @@ check_rule() {
   else
     status=$?
   fi
-  if [ "$status" -ne 1 ]; then
+  if [[ "$status" -ne 1 ]]; then
     fatal "checklanguage $mode failed (exit $status)"
   fi
   while IFS= read -r hit; do
@@ -45,14 +54,14 @@ check_rule() {
 # Rule 1a: no non-ASCII in Go string literals under windows/**. Comments,
 # *.manifest and *.syso carry German prose and never reach a Windows console.
 mapfile -t windows_go_files < <(git ls-files ':(glob)windows/**/*.go')
-if [ "${#windows_go_files[@]}" -gt 0 ]; then
+if [[ "${#windows_go_files[@]}" -gt 0 ]]; then
   check_rule windows-strings "${windows_go_files[@]}"
 fi
 
 # Rule 1b: non-ASCII bytes anywhere in packaging/**/*.cmd (including REM
 # comments — a Windows batch file has no console-vs-doc split like Go does).
 mapfile -t cmd_files < <(git ls-files ':(glob)packaging/**/*.cmd')
-if [ "${#cmd_files[@]}" -gt 0 ]; then
+if [[ "${#cmd_files[@]}" -gt 0 ]]; then
   check_rule cmd-ascii "${cmd_files[@]}"
 fi
 
@@ -67,11 +76,11 @@ fi
 # hunts.
 mapfile -t backend_go_files < <(git ls-files ':(glob)backend/**/*.go' ':(glob,exclude)backend/sqlc/dbgen/**')
 mapfile -t protection_sources < <(git ls-files ':(glob)backend/**/*.go' ':(glob,exclude)backend/internal/tools/checklanguage/**')
-if [ "${#backend_go_files[@]}" -gt 0 ]; then
+if [[ "${#backend_go_files[@]}" -gt 0 ]]; then
   check_rule backend-comments "${backend_go_files[@]}" -- "${protection_sources[@]}"
 fi
 
-if [ "$violations" -gt 0 ]; then
+if [[ "$violations" -gt 0 ]]; then
   fatal "$violations language rule violation(s) found."
 fi
 

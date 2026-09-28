@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-# jotti — ops smoke test (self-hosted production): drives the production scripts
-# (prod-init.sh, prod-update.sh, prod-backup.sh, prod-backup-verify.sh) end to
-# end and logs every step machine-readably on stdout, and to LOG_FILE when set:
-#   <unix_ts>\t<step>\t<status: ok|fail>\t<duration_seconds>\t<detail>
-# The first failed step aborts the run.
+# ops-smoke.sh — end-to-end smoke test of the self-hosted production scripts
 #
+# Usage:
 #   ./scripts/ops-smoke.sh install          # prod-init, set-password, login
 #   ./scripts/ops-smoke.sh ops              # login, sale, backup, backup-verify, update
 #   ./scripts/ops-smoke.sh release VERSION  # install plus sale, receipt, export
+#   LOG_FILE=smoke.tsv ./scripts/ops-smoke.sh ops
+#
+# Every step logs one line on stdout, and to LOG_FILE when set:
+#   <unix_ts>\t<step>\t<status: ok|fail>\t<duration_seconds>\t<detail>
+# The first failed step aborts the run.
 #
 # install and release need a FRESH host: prod-init only issues a one-time admin
 # password on first bootstrap, so a rerun fails at parse-admin-otp. ops runs on an
 # installed host and logs in with ADMIN_PASSWORD, so run install with it set too;
 # its sale gives prod-backup-verify a non-empty kassenjournal to find. That sale
-# is a real journal entry, so ops and release belong on a test host only. Every mode
-# also checks the reverse proxy's security headers and login rate limit.
-# Host provisioning and the TLS/certificate acceptance stay manual
-# (docs/leitfaden/self-hosting.md).
-# NEVER runs prod-restore.sh, `docker compose down -v`, or deletes a volume —
-# no mode has a destructive step.
+# is a real journal entry, so ops and release belong on a test host only. Every
+# mode also checks the reverse proxy's security headers and login rate limit.
+# Host provisioning and the TLS acceptance stay manual
+# (docs/leitfaden/self-hosting.md). No mode runs prod-restore.sh,
+# `docker compose down -v`, or deletes a volume.
+set -euo pipefail
 
-COMPOSE_PROD="docker-compose.prod.yml"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 
 # Private (0700, mktemp default) scratch dir for step logs, HTTP bodies and
 # the admin JWT — these can contain the admin OTP, password or a valid token,
@@ -118,7 +118,7 @@ esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-require_docker_stack "$COMPOSE_PROD"
+require_docker_stack "$COMPOSE_FILE"
 
 DOMAIN="$(read_env JOTTI_DOMAIN)"
 BASE_URL="${JOTTI_BASE_URL:-https://$DOMAIN}"
@@ -144,7 +144,7 @@ step_install() {
   local start end duration
   start="$(date +%s)"
   local otp
-  otp="$(docker compose -f "$COMPOSE_PROD" logs --since "$since" backend 2>/dev/null \
+  otp="$(docker compose -f "$COMPOSE_FILE" logs --since "$since" backend 2>/dev/null \
     | grep -a "ADMIN-EINMALPASSWORT" \
     | grep -aoE 'code=[0-9]{6}' \
     | tail -n1 | cut -d= -f2 || true)"

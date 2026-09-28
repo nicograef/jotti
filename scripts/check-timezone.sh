@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
+# check-timezone.sh — repo gate: every printed or exported timestamp names its zone
+#
+# Usage:
+#   make check-repo   # or: ./scripts/check-timezone.sh
+#   Exceptions: scripts/check-timezone.allow ("path fragment  # reason").
+#
+# The containers run in UTC: a .Format() that does not pass through .In(zone)
+# shifts receipts, work slips, file names and reports by up to two hours, late in
+# the evening by a day. The check is line-based: a zone on an earlier .Format() of
+# the same line does not shield a later one, but a call chain spanning two lines
+# passes unnoticed. Pure comment lines are skipped.
 set -euo pipefail
-
-# jotti — every printed, exported or served timestamp carries a deliberately
-# chosen zone. The containers run in UTC: a .Format() that does not pass through
-# .In(zone) shifts receipts, work slips, file names and reports by up to two
-# hours — late in the evening by a day. The check is line-based: a zone on an
-# earlier .Format() of the same line does not shield a later one, but a call
-# chain spanning two lines would pass unnoticed. Pure comment lines are skipped.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -18,7 +22,7 @@ cd "$PROJECT_ROOT"
 ALLOWLIST="scripts/check-timezone.allow"
 
 mapfile -t allow_entries < <(
-  [ -f "$ALLOWLIST" ] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
+  [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
 )
 
 allow_paths=()
@@ -28,12 +32,12 @@ for entry in "${allow_entries[@]+"${allow_entries[@]}"}"; do
   path="$(printf '%s\n' "$entry" | awk '{print $1}')"
   needle="$(printf '%s\n' "$entry" | awk '{print $2}')"
   reason="$(printf '%s\n' "$entry" | awk '{print $3}')"
-  if [ -z "$needle" ] || [ "${needle:0:1}" = "#" ]; then
+  if [[ -z "$needle" ]] || [[ "${needle:0:1}" = "#" ]]; then
     fatal "$ALLOWLIST: entry without a code fragment: $entry"
   fi
   # Without this the awk split would silently cut a fragment at its first space
   # and exempt more lines than the entry names.
-  if [ "${reason:0:1}" != "#" ]; then
+  if [[ "${reason:0:1}" != "#" ]]; then
     fatal "$ALLOWLIST: code fragment with a space, or reason missing: $entry"
   fi
   allow_paths+=("$path")
@@ -66,39 +70,39 @@ for file in "${files[@]}"; do
       }
     }
   ' "$file")"
-  [ -z "$hits" ] && continue
+  [[ -z "$hits" ]] && continue
 
   while IFS= read -r hit; do
     lineno="${hit%%:*}"
     code="${hit#*:}"
 
     exempt=0
-    if [ "${#allow_paths[@]}" -gt 0 ]; then
+    if [[ "${#allow_paths[@]}" -gt 0 ]]; then
       for i in "${!allow_paths[@]}"; do
-        if [ "$file" = "${allow_paths[$i]}" ] && [[ "$code" == *"${allow_needles[$i]}"* ]]; then
+        if [[ "$file" = "${allow_paths[$i]}" ]] && [[ "$code" == *"${allow_needles[$i]}"* ]]; then
           allow_hits[i]=$((allow_hits[i] + 1))
           exempt=1
           break
         fi
       done
     fi
-    [ "$exempt" -eq 1 ] && continue
+    [[ "$exempt" -eq 1 ]] && continue
 
     error "$file:$lineno: .Format() without .In(zone):${code}"
     violations=$((violations + 1))
   done <<<"$hits"
 done
 
-if [ "${#allow_paths[@]}" -gt 0 ]; then
+if [[ "${#allow_paths[@]}" -gt 0 ]]; then
   for i in "${!allow_paths[@]}"; do
-    if [ "${allow_hits[$i]}" -eq 0 ]; then
+    if [[ "${allow_hits[$i]}" -eq 0 ]]; then
       error "$ALLOWLIST: exception matches nothing any more: ${allow_paths[$i]} ${allow_needles[$i]}"
       violations=$((violations + 1))
     fi
   done
 fi
 
-if [ "$violations" -gt 0 ]; then
+if [[ "$violations" -gt 0 ]]; then
   fatal "$violations time zone rule violation(s) found (allow one in $ALLOWLIST)."
 fi
 

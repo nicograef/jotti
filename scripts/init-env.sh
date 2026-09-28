@@ -1,33 +1,37 @@
 #!/usr/bin/env bash
+# init-env.sh — create .env from .env.example with fresh random secrets
+#
+# Usage:
+#   make init
+#   ENV_FILE=.env.test ./scripts/init-env.sh
+#
+# What it does:
+#   1. Leaves an existing ENV_FILE untouched (idempotent).
+#   2. Copies ENV_TEMPLATE_FILE and replaces POSTGRES_PASSWORD, JWT_SECRET and
+#      RELAY_AUTH_TOKEN with `openssl rand -hex 32` values.
+#   3. Writes the result with mode 600.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=scripts/lib.sh
+. "$SCRIPT_DIR/lib.sh"
 cd "$PROJECT_ROOT"
 
 ENV_FILE="${ENV_FILE:-.env}"
 ENV_TEMPLATE_FILE="${ENV_TEMPLATE_FILE:-.env.example}"
 
-info() {
-  printf '[INFO] %s\n' "$1"
-}
-
-fatal() {
-  printf '[ERROR] %s\n' "$1" >&2
-  exit 1
-}
-
 if [[ -f "$ENV_FILE" ]]; then
-  info "$ENV_FILE existiert bereits. Keine Aenderung (idempotent)."
+  info "$ENV_FILE already exists; nothing changed."
   exit 0
 fi
 
 if [[ ! -f "$ENV_TEMPLATE_FILE" ]]; then
-  fatal "Vorlage fehlt: $ENV_TEMPLATE_FILE"
+  fatal "Template missing: $ENV_TEMPLATE_FILE"
 fi
 
 if ! command -v openssl >/dev/null 2>&1; then
-  fatal "openssl wurde nicht gefunden. Bitte installieren und erneut ausfuehren."
+  fatal "openssl not found. Install it and rerun."
 fi
 
 generate_secret() {
@@ -77,10 +81,10 @@ if ! awk \
     }
   }
 ' "$ENV_TEMPLATE_FILE" >"$tmp_file"; then
-  fatal "Vorlage ist unvollstaendig. Erwartete Keys: POSTGRES_PASSWORD, JWT_SECRET, RELAY_AUTH_TOKEN"
+  fatal "Template is incomplete. Expected keys: POSTGRES_PASSWORD, JWT_SECRET, RELAY_AUTH_TOKEN"
 fi
 
 mv "$tmp_file" "$ENV_FILE"
 chmod 600 "$ENV_FILE" 2>/dev/null || true
 
-info "$ENV_FILE wurde erzeugt."
+info "$ENV_FILE created."

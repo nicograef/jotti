@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
+# prod-harden.sh — optional, idempotent hardening of a public VPS host
+#
+# Usage:
+#   make prod-harden   # after the stack is up; SKIP_FAIL2BAN=1 skips fail2ban
+#
+# What it does (after the handbook's setup-server.sh):
+#   1. ufw: SSH rate-limited, 80/443 allowed, everything else denied inbound.
+#   2. A fail2ban sshd jail on the systemd journal.
+#   3. unattended-upgrades for daily security updates.
+#   4. An sshd drop-in that allows key logins only and no root login.
+# Not part of prod-init.sh. Postgres is never exposed: docker-compose.prod.yml
+# publishes only 80/443.
 set -euo pipefail
-
-# jotti — optional, idempotent hardening of a public VPS host (self-hosted
-# production), after the handbook's setup-server.sh. It sets up:
-#   - ufw: SSH rate-limited, 80/443 allowed, everything else denied inbound
-#   - a fail2ban sshd jail on the systemd journal (SKIP_FAIL2BAN=1 skips it)
-#   - unattended-upgrades for daily security updates
-#   - an sshd drop-in that allows key logins only and no root login
-# NOT part of prod-init.sh — run it deliberately, after the stack is up.
-# Postgres is never exposed: docker-compose.prod.yml publishes only 80/443.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh

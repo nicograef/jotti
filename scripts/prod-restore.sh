@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
+# prod-restore.sh — restores a production dump (DESTRUCTIVE)
+#
+# Usage:
+#   make prod-restore
+#   ./scripts/prod-restore.sh [DUMP]   # default: the newest dump in BACKUP_DIR
+#
+# What it does:
+#   1. Rejects a corrupt or truncated dump before the stack is touched.
+#   2. Asks for confirmation, stops the application services, and replays the dump
+#      (--clean --if-exists) in one transaction: a failure leaves the database unchanged.
+#   3. Refreshes planner statistics and restarts the full stack.
 set -euo pipefail
 
-# jotti — database restore (self-hosted production).
-#
-# Restores a pg_dump created by prod-backup.sh into the production database.
-# DESTRUCTIVE: the dumps use --clean --if-exists, so objects are dropped and
-# re-created; the application services are stopped during the restore. The
-# restore runs in one transaction, so a failure leaves the database unchanged.
-
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
-PG_SERVICE="postgres"
+PG_SERVICE="${PG_SERVICE:-postgres}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh

@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
+# rocks-backup.sh — copies the jotti.rocks acme-dns SQLite database to the laptop
+#
+# Usage:
+#   make rocks-backup DEST=<dir>   # or: ./scripts/rocks-backup.sh <dir>; environment in usage()
+#
+# Runs on the laptop; the VPS needs sqlite3 and rsync, and the SSH user needs read
+# access to the Docker volume.
 set -euo pipefail
-
-# jotti.rocks — copies the acme-dns SQLite database from the VPS to a local
-# directory. Runs on the laptop; the VPS needs sqlite3 and rsync, and the SSH
-# user needs read access to the Docker volume.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh

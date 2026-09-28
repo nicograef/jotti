@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
+# check-domain-enums.sh — repo gate: Kategorie and Steuersatz literals live in backend/domain only
+#
+# Usage:
+#   make check-repo   # or: ./scripts/check-domain-enums.sh
+#   Exceptions: scripts/check-domain-enums.allow ("path fragment  # reason").
+#
+# Kategorie (backend/domain/druckstation, backend/domain/produkt) and Steuersatz
+# (backend/domain/steuer) are closed value sets owned by the domain constants; a
+# literal copied elsewhere drifts silently the moment a value is renamed or a
+# station added. druckstation's five Kategorie values are a superset of produkt's
+# three, so druckstation.go alone defines the set. A match needs no co-occurring
+# "Kategorie"/"Steuersatz" identifier, so a bare map key is caught like an inline
+# literal.
 set -euo pipefail
-
-# jotti — Kategorie (backend/domain/druckstation, backend/domain/produkt) and
-# Steuersatz (backend/domain/steuer) are closed value sets owned by the domain
-# constants; a literal copied elsewhere drifts silently the moment a value is
-# renamed or a station added. druckstation's five Kategorie values are a superset
-# of produkt's three, so druckstation.go alone defines the set. A match needs no
-# co-occurring "Kategorie"/"Steuersatz" identifier, so a bare map key is caught
-# like an inline literal.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -27,10 +32,10 @@ mapfile -t steuersaetze < <(
   grep -oE '\bSteuersatz\s*=\s*"[a-z]+"' "$STEUERSATZ_SRC" | grep -oE '"[a-z]+"' | tr -d '"'
 )
 
-if [ "${#kategorien[@]}" -eq 0 ]; then
+if [[ "${#kategorien[@]}" -eq 0 ]]; then
   fatal "no Kategorie literals found in $KATEGORIE_SRC — did the const block move?"
 fi
-if [ "${#steuersaetze[@]}" -eq 0 ]; then
+if [[ "${#steuersaetze[@]}" -eq 0 ]]; then
   fatal "no Steuersatz literals found in $STEUERSATZ_SRC — did the const block move?"
 fi
 
@@ -42,7 +47,7 @@ literal_pattern="$(
 )"
 
 mapfile -t allow_entries < <(
-  [ -f "$ALLOWLIST" ] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
+  [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
 )
 
 allow_paths=()
@@ -52,12 +57,12 @@ for entry in "${allow_entries[@]+"${allow_entries[@]}"}"; do
   path="$(printf '%s\n' "$entry" | awk '{print $1}')"
   needle="$(printf '%s\n' "$entry" | awk '{print $2}')"
   reason="$(printf '%s\n' "$entry" | awk '{print $3}')"
-  if [ -z "$needle" ] || [ "${needle:0:1}" = "#" ]; then
+  if [[ -z "$needle" ]] || [[ "${needle:0:1}" = "#" ]]; then
     fatal "$ALLOWLIST: entry without a code fragment: $entry"
   fi
   # Without this the awk split would silently cut a fragment at its first
   # space and exempt more lines than the entry names.
-  if [ "${reason:0:1}" != "#" ]; then
+  if [[ "${reason:0:1}" != "#" ]]; then
     fatal "$ALLOWLIST: code fragment with a space, or reason missing: $entry"
   fi
   allow_paths+=("$path")
@@ -74,38 +79,38 @@ mapfile -t files < <(git ls-files ':(glob)backend/**/*.go' \
 violations=0
 for file in "${files[@]}"; do
   hits="$(grep -nE "\"(${literal_pattern})\"" "$file" || true)"
-  [ -z "$hits" ] && continue
+  [[ -z "$hits" ]] && continue
 
   while IFS= read -r hit; do
     code="${hit#*:}"
 
     exempt=0
-    if [ "${#allow_paths[@]}" -gt 0 ]; then
+    if [[ "${#allow_paths[@]}" -gt 0 ]]; then
       for i in "${!allow_paths[@]}"; do
-        if [ "$file" = "${allow_paths[$i]}" ] && [[ "$code" == *"${allow_needles[$i]}"* ]]; then
+        if [[ "$file" = "${allow_paths[$i]}" ]] && [[ "$code" == *"${allow_needles[$i]}"* ]]; then
           allow_hits[i]=$((allow_hits[i] + 1))
           exempt=1
           break
         fi
       done
     fi
-    [ "$exempt" -eq 1 ] && continue
+    [[ "$exempt" -eq 1 ]] && continue
 
     error "$file: Kategorie/Steuersatz literal outside backend/domain/**: ${hit}"
     violations=$((violations + 1))
   done <<<"$hits"
 done
 
-if [ "${#allow_paths[@]}" -gt 0 ]; then
+if [[ "${#allow_paths[@]}" -gt 0 ]]; then
   for i in "${!allow_paths[@]}"; do
-    if [ "${allow_hits[$i]}" -eq 0 ]; then
+    if [[ "${allow_hits[$i]}" -eq 0 ]]; then
       error "$ALLOWLIST: exception matches nothing any more: ${allow_paths[$i]} ${allow_needles[$i]}"
       violations=$((violations + 1))
     fi
   done
 fi
 
-if [ "$violations" -gt 0 ]; then
+if [[ "$violations" -gt 0 ]]; then
   fatal "$violations domain enum literal(s) found outside backend/domain/** (allow one in $ALLOWLIST)."
 fi
 
