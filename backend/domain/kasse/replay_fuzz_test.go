@@ -89,7 +89,7 @@ func FuzzApplyEvent(f *testing.F) {
 		if eingabePositionenGueltig(evt.Data) {
 			for _, pos := range next.UnbezahltePositionen {
 				if pos.Menge <= 0 {
-					t.Fatalf("unbezahlte Position mit nicht-positiver Menge %d (%s) nach %s", pos.Menge, pos.PositionID, typ)
+					t.Errorf("unbezahlte Position mit nicht-positiver Menge %d (%s) nach %s", pos.Menge, pos.PositionID, typ)
 				}
 			}
 		}
@@ -98,7 +98,7 @@ func FuzzApplyEvent(f *testing.F) {
 		// größer als der Vorzustands-Saldo ist, liegt außerhalb des validierten Korpus (im
 		// Betrieb kann nie mehr kassiert werden als offen ist) und ist ausgenommen.
 		if minderung := saldoMinderung(typ, evt.Data); minderung <= basis.SaldoCents && next.SaldoCents < 0 {
-			t.Fatalf("negativer Saldo %d nach %s (Basis %d, Minderung %d)", next.SaldoCents, typ, basis.SaldoCents, minderung)
+			t.Errorf("negativer Saldo %d nach %s (Basis %d, Minderung %d)", next.SaldoCents, typ, basis.SaldoCents, minderung)
 		}
 
 		// Invariante 3 — SaldoCents ist stets Σ(EinzelpreisCents × Menge) über die
@@ -108,7 +108,7 @@ func FuzzApplyEvent(f *testing.F) {
 			erwarteterSaldo += pos.EinzelpreisCents * pos.Menge
 		}
 		if next.SaldoCents != erwarteterSaldo {
-			t.Fatalf("SaldoCents %d weicht von Σ(EinzelpreisCents × Menge) %d ab nach %s", next.SaldoCents, erwarteterSaldo, typ)
+			t.Errorf("SaldoCents %d weicht von Σ(EinzelpreisCents × Menge) %d ab nach %s", next.SaldoCents, erwarteterSaldo, typ)
 		}
 	})
 }
@@ -190,7 +190,7 @@ func FuzzPositionEventDataRoundtrip(f *testing.F) {
 			t.Fatalf("unmarshal PositionEventData %q: %v", raw, err)
 		}
 		if back != orig {
-			t.Fatalf("Roundtrip-Verlust:\n orig = %+v\n back = %+v\n json = %s", orig, back, raw)
+			t.Errorf("Roundtrip-Verlust:\n orig = %+v\n back = %+v\n json = %s", orig, back, raw)
 		}
 	})
 }

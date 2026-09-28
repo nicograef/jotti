@@ -99,22 +99,22 @@ func TestApplyEvent_BestellungOnEmptyTable(t *testing.T) {
 	}
 
 	if state.SaldoCents != 1000 {
-		t.Fatalf("expected SaldoCents 1000, got %d", state.SaldoCents)
+		t.Errorf("expected SaldoCents 1000, got %d", state.SaldoCents)
 	}
 	if len(state.UnbezahltePositionen) != 1 {
 		t.Fatalf("expected 1 unbezahlte position, got %d", len(state.UnbezahltePositionen))
 	}
 	if state.UnbezahltePositionen[0].Menge != 2 {
-		t.Fatalf("expected Menge 2, got %d", state.UnbezahltePositionen[0].Menge)
+		t.Errorf("expected Menge 2, got %d", state.UnbezahltePositionen[0].Menge)
 	}
 	if state.GesamtZahlungenCents != 0 {
-		t.Fatalf("expected GesamtZahlungenCents 0, got %d", state.GesamtZahlungenCents)
+		t.Errorf("expected GesamtZahlungenCents 0, got %d", state.GesamtZahlungenCents)
 	}
 	if state.LastEventID != 1 {
-		t.Fatalf("expected LastEventID 1, got %d", state.LastEventID)
+		t.Errorf("expected LastEventID 1, got %d", state.LastEventID)
 	}
 	if state.LastEventVersion != 1 {
-		t.Fatalf("expected LastEventVersion 1, got %d", state.LastEventVersion)
+		t.Errorf("expected LastEventVersion 1, got %d", state.LastEventVersion)
 	}
 }
 
@@ -142,19 +142,19 @@ func TestApplyEvent_ZahlungReducesSaldoAndUnbezahlt(t *testing.T) {
 	}
 
 	if state.SaldoCents != 500 {
-		t.Fatalf("expected SaldoCents 500, got %d", state.SaldoCents)
+		t.Errorf("expected SaldoCents 500, got %d", state.SaldoCents)
 	}
 	if state.GesamtZahlungenCents != 500 {
-		t.Fatalf("expected GesamtZahlungenCents 500, got %d", state.GesamtZahlungenCents)
+		t.Errorf("expected GesamtZahlungenCents 500, got %d", state.GesamtZahlungenCents)
 	}
 	if len(state.UnbezahltePositionen) != 1 {
 		t.Fatalf("expected 1 unbezahlte position, got %d", len(state.UnbezahltePositionen))
 	}
 	if state.UnbezahltePositionen[0].Menge != 1 {
-		t.Fatalf("expected Menge 1, got %d", state.UnbezahltePositionen[0].Menge)
+		t.Errorf("expected Menge 1, got %d", state.UnbezahltePositionen[0].Menge)
 	}
 	if state.LastEventID != 2 {
-		t.Fatalf("expected LastEventID 2, got %d", state.LastEventID)
+		t.Errorf("expected LastEventID 2, got %d", state.LastEventID)
 	}
 }
 
@@ -182,13 +182,13 @@ func TestApplyEvent_KorrekturReducesSaldoAndUnbezahlt(t *testing.T) {
 	}
 
 	if state.SaldoCents != 500 {
-		t.Fatalf("expected SaldoCents 500, got %d", state.SaldoCents)
+		t.Errorf("expected SaldoCents 500, got %d", state.SaldoCents)
 	}
 	if len(state.UnbezahltePositionen) != 1 {
 		t.Fatalf("expected 1 unbezahlte position, got %d", len(state.UnbezahltePositionen))
 	}
 	if state.UnbezahltePositionen[0].Menge != 1 {
-		t.Fatalf("expected Menge 1, got %d", state.UnbezahltePositionen[0].Menge)
+		t.Errorf("expected Menge 1, got %d", state.UnbezahltePositionen[0].Menge)
 	}
 }
 
@@ -226,7 +226,7 @@ func TestApplyEvent_UmbuchungMovesPositionsBetweenTische(t *testing.T) {
 		t.Fatalf("expected no error applying abgang, got %v", err)
 	}
 	if quellState.SaldoCents != 500 {
-		t.Fatalf("expected source SaldoCents 500, got %d", quellState.SaldoCents)
+		t.Errorf("expected source SaldoCents 500, got %d", quellState.SaldoCents)
 	}
 	if len(quellState.UnbezahltePositionen) != 1 || quellState.UnbezahltePositionen[0].Menge != 1 {
 		t.Fatalf("expected 1 unbezahlte position with menge 1, got %+v", quellState.UnbezahltePositionen)
@@ -238,16 +238,16 @@ func TestApplyEvent_UmbuchungMovesPositionsBetweenTische(t *testing.T) {
 		t.Fatalf("expected no error applying zugang, got %v", err)
 	}
 	if zielState.SaldoCents != 500 {
-		t.Fatalf("expected target SaldoCents 500, got %d", zielState.SaldoCents)
+		t.Errorf("expected target SaldoCents 500, got %d", zielState.SaldoCents)
 	}
 	if len(zielState.UnbezahltePositionen) != 1 || zielState.UnbezahltePositionen[0].Menge != 1 {
 		t.Fatalf("expected 1 unbezahlte position with menge 1, got %+v", zielState.UnbezahltePositionen)
 	}
 	if zielState.ErsteBestellungLogTime == nil {
-		t.Fatal("expected target ErsteBestellungLogTime to be set by the zugang")
+		t.Error("expected target ErsteBestellungLogTime to be set by the zugang")
 	}
 	if zielState.UnbezahltePositionen[0].PositionID == quellState.UnbezahltePositionen[0].PositionID {
-		t.Fatal("expected target position to carry a fresh PositionID")
+		t.Error("expected target position to carry a fresh PositionID")
 	}
 }
 
@@ -266,7 +266,7 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if state.SaldoCents != 2300 {
-		t.Fatalf("expected SaldoCents 2300, got %d", state.SaldoCents)
+		t.Errorf("expected SaldoCents 2300, got %d", state.SaldoCents)
 	}
 
 	bestellung, err := buildBestellungFromEvent(orderEvent)
@@ -286,10 +286,10 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if state.SaldoCents != 1800 {
-		t.Fatalf("expected SaldoCents 1800, got %d", state.SaldoCents)
+		t.Errorf("expected SaldoCents 1800, got %d", state.SaldoCents)
 	}
 	if state.GesamtZahlungenCents != 500 {
-		t.Fatalf("expected GesamtZahlungenCents 500, got %d", state.GesamtZahlungenCents)
+		t.Errorf("expected GesamtZahlungenCents 500, got %d", state.GesamtZahlungenCents)
 	}
 
 	// Cancel 1 wurst (400) — still unbezahlt, so a geldneutral correction.
@@ -304,13 +304,13 @@ func TestApplyEvent_MultipleEventsSequentially(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if state.SaldoCents != 1400 {
-		t.Fatalf("expected SaldoCents 1400, got %d", state.SaldoCents)
+		t.Errorf("expected SaldoCents 1400, got %d", state.SaldoCents)
 	}
 	if state.LastEventID != 3 {
-		t.Fatalf("expected LastEventID 3, got %d", state.LastEventID)
+		t.Errorf("expected LastEventID 3, got %d", state.LastEventID)
 	}
 	if state.LastEventVersion != 3 {
-		t.Fatalf("expected LastEventVersion 3, got %d", state.LastEventVersion)
+		t.Errorf("expected LastEventVersion 3, got %d", state.LastEventVersion)
 	}
 }
 
@@ -447,7 +447,7 @@ func TestApplyEvent_UnknownEventType_ReturnsError(t *testing.T) {
 
 	_, err := ApplyEvent(TischSession{}, evt)
 	if err == nil {
-		t.Fatal("expected error for unknown event type, got nil")
+		t.Error("expected error for unknown event type, got nil")
 	}
 }
 
@@ -477,7 +477,7 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if state.SaldoCents != 0 {
-		t.Fatalf("expected SaldoCents 0, got %d", state.SaldoCents)
+		t.Errorf("expected SaldoCents 0, got %d", state.SaldoCents)
 	}
 
 	// Warenrücknahme von 1 Bier nach der Zahlung — der offene Betrag bleibt 0.
@@ -491,15 +491,15 @@ func TestApplyEvent_WarenruecknahmeAfterPayment(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if state.SaldoCents != 0 {
-		t.Fatalf("expected SaldoCents 0 (offener Betrag nie negativ), got %d", state.SaldoCents)
+		t.Errorf("expected SaldoCents 0 (offener Betrag nie negativ), got %d", state.SaldoCents)
 	}
 	// Die Bar-Rückgabe mindert die vereinnahmten Zahlungen.
 	if state.GesamtZahlungenCents != 500 {
-		t.Fatalf("expected GesamtZahlungenCents 500, got %d", state.GesamtZahlungenCents)
+		t.Errorf("expected GesamtZahlungenCents 500, got %d", state.GesamtZahlungenCents)
 	}
 	// Unbezahlt was already empty (paid), stays empty
 	if len(state.UnbezahltePositionen) != 0 {
-		t.Fatalf("expected 0 unbezahlte positionen, got %d", len(state.UnbezahltePositionen))
+		t.Errorf("expected 0 unbezahlte positionen, got %d", len(state.UnbezahltePositionen))
 	}
 }
 
@@ -512,7 +512,7 @@ func assertSaldoAbgeleitet(t *testing.T, state TischSession, nachEvent string) {
 		erwartet += pos.EinzelpreisCents * pos.Menge
 	}
 	if state.SaldoCents != erwartet {
-		t.Fatalf("SaldoCents %d weicht von Σ(EinzelpreisCents × Menge) %d ab nach %s", state.SaldoCents, erwartet, nachEvent)
+		t.Errorf("SaldoCents %d weicht von Σ(EinzelpreisCents × Menge) %d ab nach %s", state.SaldoCents, erwartet, nachEvent)
 	}
 }
 
@@ -620,7 +620,7 @@ func TestApplyEvent_SetsErsteBestellungLogTimeOnlyOnce(t *testing.T) {
 
 	wantFirst := firstOrder.Time
 	if !state.ErsteBestellungLogTime.Equal(wantFirst) {
-		t.Fatalf("expected first event time %s, got %s", wantFirst.Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
+		t.Errorf("expected first event time %s, got %s", wantFirst.Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
 	}
 
 	secondOrder, err := NewBestellungAufgenommenEvent(testSubject, 1, "TestUser", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", products, "")
@@ -639,6 +639,6 @@ func TestApplyEvent_SetsErsteBestellungLogTimeOnlyOnce(t *testing.T) {
 		t.Fatal("expected ersteBestellungLogTime to stay set")
 	}
 	if !state.ErsteBestellungLogTime.Equal(wantFirst) {
-		t.Fatalf("expected log time to stay on first order %s, got %s", wantFirst.Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
+		t.Errorf("expected log time to stay on first order %s, got %s", wantFirst.Format(time.RFC3339), state.ErsteBestellungLogTime.Format(time.RFC3339))
 	}
 }

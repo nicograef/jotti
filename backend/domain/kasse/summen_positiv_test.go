@@ -176,7 +176,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 		})
 		t.Run(tc.name+"/erlaubtPositiv", func(t *testing.T) {
 			if err := tc.run(1); err != nil {
-				t.Fatalf("expected positive sum to be valid for %s, got %v", tc.field, err)
+				t.Errorf("expected positive sum to be valid for %s, got %v", tc.field, err)
 			}
 		})
 	}

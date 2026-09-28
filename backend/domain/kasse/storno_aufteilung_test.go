@@ -34,13 +34,13 @@ func TestComputeStornoAufteilung_PureUnpaid(t *testing.T) {
 		t.Fatal("expected ok=true")
 	}
 	if len(aufteilung.Warenruecknahmen) != 0 {
-		t.Fatalf("expected no Warenrücknahmen, got %d", len(aufteilung.Warenruecknahmen))
+		t.Errorf("expected no Warenrücknahmen, got %d", len(aufteilung.Warenruecknahmen))
 	}
 	if len(aufteilung.Korrektur) != 1 || aufteilung.Korrektur[0].Menge != 1 {
-		t.Fatalf("expected korrektur menge 1, got %+v", aufteilung.Korrektur)
+		t.Errorf("expected korrektur menge 1, got %+v", aufteilung.Korrektur)
 	}
 	if aufteilung.KorrekturCents != 500 {
-		t.Fatalf("expected KorrekturCents 500, got %d", aufteilung.KorrekturCents)
+		t.Errorf("expected KorrekturCents 500, got %d", aufteilung.KorrekturCents)
 	}
 }
 
@@ -51,7 +51,7 @@ func TestComputeStornoAufteilung_DuplikatRefs(t *testing.T) {
 	// Duplikate sind per se ungültig, auch wenn 1+1 die stornierbare Menge 3 nicht übersteigt.
 	refs := []PositionRef{{PositionID: posID, Menge: 1}, {PositionID: posID, Menge: 1}}
 	if _, ok := ComputeStornoAufteilung([]e.Event{order}, refs); ok {
-		t.Fatal("expected ok=false for duplicate refs")
+		t.Error("expected ok=false for duplicate refs")
 	}
 }
 
@@ -66,17 +66,17 @@ func TestComputeStornoAufteilung_PurePaidSingleZahlung(t *testing.T) {
 		t.Fatal("expected ok=true")
 	}
 	if len(aufteilung.Korrektur) != 0 {
-		t.Fatalf("expected no Korrektur, got %+v", aufteilung.Korrektur)
+		t.Errorf("expected no Korrektur, got %+v", aufteilung.Korrektur)
 	}
 	if len(aufteilung.Warenruecknahmen) != 1 {
 		t.Fatalf("expected 1 Warenrücknahme, got %d", len(aufteilung.Warenruecknahmen))
 	}
 	wr := aufteilung.Warenruecknahmen[0]
 	if wr.ZahlungID != zahlungID {
-		t.Fatalf("expected ZahlungID %q, got %q", zahlungID, wr.ZahlungID)
+		t.Errorf("expected ZahlungID %q, got %q", zahlungID, wr.ZahlungID)
 	}
 	if wr.GesamtCents != 500 || len(wr.Positionen) != 1 || wr.Positionen[0].Menge != 1 {
-		t.Fatalf("expected 1x500 Warenrücknahme, got %+v", wr)
+		t.Errorf("expected 1x500 Warenrücknahme, got %+v", wr)
 	}
 }
 
@@ -92,17 +92,17 @@ func TestComputeStornoAufteilung_PaidAcrossTwoZahlungenFIFO(t *testing.T) {
 		t.Fatal("expected ok=true")
 	}
 	if len(aufteilung.Korrektur) != 0 {
-		t.Fatalf("expected no Korrektur, got %+v", aufteilung.Korrektur)
+		t.Errorf("expected no Korrektur, got %+v", aufteilung.Korrektur)
 	}
 	if len(aufteilung.Warenruecknahmen) != 2 {
 		t.Fatalf("expected 2 Warenrücknahmen (one per Zahlung), got %d", len(aufteilung.Warenruecknahmen))
 	}
 	// FIFO: die ältere Zahlung (payA, 3 Stück) zuerst.
 	if aufteilung.Warenruecknahmen[0].ZahlungID != zahlungIDFromEvent(t, payA) || aufteilung.Warenruecknahmen[0].GesamtCents != 1500 {
-		t.Fatalf("expected first Warenrücknahme payA/1500, got %+v", aufteilung.Warenruecknahmen[0])
+		t.Errorf("expected first Warenrücknahme payA/1500, got %+v", aufteilung.Warenruecknahmen[0])
 	}
 	if aufteilung.Warenruecknahmen[1].ZahlungID != zahlungIDFromEvent(t, payB) || aufteilung.Warenruecknahmen[1].GesamtCents != 500 {
-		t.Fatalf("expected second Warenrücknahme payB/500, got %+v", aufteilung.Warenruecknahmen[1])
+		t.Errorf("expected second Warenrücknahme payB/500, got %+v", aufteilung.Warenruecknahmen[1])
 	}
 }
 
@@ -118,10 +118,10 @@ func TestComputeStornoAufteilung_MixedPrefersKorrektur(t *testing.T) {
 		t.Fatal("expected ok=true")
 	}
 	if len(aufteilung.Korrektur) != 1 || aufteilung.Korrektur[0].Menge != 2 || aufteilung.KorrekturCents != 1000 {
-		t.Fatalf("expected korrektur 2x500, got %+v (%d cents)", aufteilung.Korrektur, aufteilung.KorrekturCents)
+		t.Errorf("expected korrektur 2x500, got %+v (%d cents)", aufteilung.Korrektur, aufteilung.KorrekturCents)
 	}
 	if len(aufteilung.Warenruecknahmen) != 1 || aufteilung.Warenruecknahmen[0].GesamtCents != 500 {
-		t.Fatalf("expected 1 Warenrücknahme 1x500, got %+v", aufteilung.Warenruecknahmen)
+		t.Errorf("expected 1 Warenrücknahme 1x500, got %+v", aufteilung.Warenruecknahmen)
 	}
 }
 
@@ -130,7 +130,7 @@ func TestComputeStornoAufteilung_ExceedsStornierbar(t *testing.T) {
 	posID := positionIDAusBestellung(t, order)
 
 	if _, ok := ComputeStornoAufteilung([]e.Event{order}, []PositionRef{{PositionID: posID, Menge: 3}}); ok {
-		t.Fatal("expected ok=false for over-request")
+		t.Error("expected ok=false for over-request")
 	}
 }
 
@@ -138,7 +138,7 @@ func TestComputeStornoAufteilung_UnknownPosition(t *testing.T) {
 	order := mustCreateBestellungEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
 
 	if _, ok := ComputeStornoAufteilung([]e.Event{order}, []PositionRef{{PositionID: "00000000-0000-0000-0000-000000000099", Menge: 1}}); ok {
-		t.Fatal("expected ok=false for unknown position")
+		t.Error("expected ok=false for unknown position")
 	}
 }
 
@@ -149,6 +149,6 @@ func TestComputeStornoAufteilung_AlreadyCorrectedNotStornierbar(t *testing.T) {
 	order.ID, korrektur.ID = 1, 2
 
 	if _, ok := ComputeStornoAufteilung([]e.Event{order, korrektur}, []PositionRef{{PositionID: posID, Menge: 1}}); ok {
-		t.Fatal("expected ok=false: position already corrected")
+		t.Error("expected ok=false: position already corrected")
 	}
 }

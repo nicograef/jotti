@@ -208,7 +208,7 @@ func TestFiskalischeProjektion(t *testing.T) {
 func TestFiskalischeProjektion_UnbekannterTypIstFehler(t *testing.T) {
 	evt := e.Event{Type: "unbekannt:v1", Subject: "kassensitzung-1", Version: 1, Data: []byte(`{}`)}
 	if _, _, err := FiskalischeProjektion(evt); err == nil {
-		t.Fatal("erwarteter Fehler fuer unbekannten Event-Typ blieb aus")
+		t.Error("erwarteter Fehler fuer unbekannten Event-Typ blieb aus")
 	}
 }
 
@@ -216,6 +216,6 @@ func TestFiskalischeProjektion_UnbekannterTypIstFehler(t *testing.T) {
 func TestFiskalischeProjektion_KaputteDatenSindFehler(t *testing.T) {
 	evt := e.Event{Type: string(EventTypeZahlungKassiertV1), Subject: "kassensitzung-1/tisch-1", Version: 1, Data: []byte(`{invalid`)}
 	if _, _, err := FiskalischeProjektion(evt); err == nil {
-		t.Fatal("erwarteter Fehler fuer kaputte Event-Daten blieb aus")
+		t.Error("erwarteter Fehler fuer kaputte Event-Daten blieb aus")
 	}
 }

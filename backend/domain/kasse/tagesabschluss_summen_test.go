@@ -302,7 +302,7 @@ func TestComputeAbschlussSummen_UnparsebaresEventGibtFehler(t *testing.T) {
 			}
 			_, err := ComputeAbschlussSummen([]e.Event{evt})
 			if err == nil {
-				t.Fatalf("expected error for unparseable %s event, got nil", typ)
+				t.Errorf("expected error for unparseable %s event, got nil", typ)
 			}
 		})
 	}

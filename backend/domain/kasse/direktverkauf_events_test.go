@@ -42,7 +42,7 @@ func TestNewDirektverkaufGetaetigtEvent_SingleEventWithConsistentSum(t *testing.
 	}
 
 	if len(data.Positionen) != 2 {
-		t.Fatalf("expected 2 positionen, got %d", len(data.Positionen))
+		t.Errorf("expected 2 positionen, got %d", len(data.Positionen))
 	}
 	for _, p := range data.Positionen {
 		if _, err := uuid.Parse(p.PositionID); err != nil {
@@ -57,7 +57,7 @@ func TestNewDirektverkaufGetaetigtEvent_RejectsEmptyPositionen(t *testing.T) {
 
 	_, err := NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "TestUser", []Position{}, "")
 	if err == nil {
-		t.Fatal("expected error for empty positionen, got nil")
+		t.Error("expected error for empty positionen, got nil")
 	}
 }
 
@@ -107,7 +107,7 @@ func TestNewDirektverkaufStorniertEvent_RejectsShortKommentar(t *testing.T) {
 
 	_, err := NewDirektverkaufStorniertEvent(subject, verkaufID, 2, "Leitung", []Position{{PositionID: uuid.New().String(), VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 500, Menge: 1}}, 500, "ab")
 	if err == nil {
-		t.Fatal("expected error for kommentar shorter than 3 characters, got nil")
+		t.Error("expected error for kommentar shorter than 3 characters, got nil")
 	}
 }
 
@@ -117,6 +117,6 @@ func TestNewDirektverkaufStorniertEvent_RejectsEmptyPositionen(t *testing.T) {
 
 	_, err := NewDirektverkaufStorniertEvent(subject, verkaufID, 2, "Leitung", []Position{}, 0, "Rückgabe")
 	if err == nil {
-		t.Fatal("expected error for empty positionen, got nil")
+		t.Error("expected error for empty positionen, got nil")
 	}
 }

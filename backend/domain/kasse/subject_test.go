@@ -41,21 +41,21 @@ func TestParseTischIDFromSubject_Valid(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if id != 42 {
-		t.Fatalf("expected 42, got %d", id)
+		t.Errorf("expected 42, got %d", id)
 	}
 }
 
 func TestParseTischIDFromSubject_InvalidFormat(t *testing.T) {
 	_, err := ParseTischIDFromSubject("invalid-subject")
 	if err == nil {
-		t.Fatal("expected error for invalid format, got nil")
+		t.Error("expected error for invalid format, got nil")
 	}
 }
 
 func TestParseTischIDFromSubject_InvalidID(t *testing.T) {
 	_, err := ParseTischIDFromSubject("kassensitzung-1/tisch-abc")
 	if err == nil {
-		t.Fatal("expected error for invalid ID, got nil")
+		t.Error("expected error for invalid ID, got nil")
 	}
 }
 
@@ -65,7 +65,7 @@ func TestParseZNrFromSubject_KassensitzungSubject(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if nr != 1 {
-		t.Fatalf("expected 1, got %d", nr)
+		t.Errorf("expected 1, got %d", nr)
 	}
 }
 
@@ -75,21 +75,21 @@ func TestParseZNrFromSubject_TischSessionSubject(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if nr != 3 {
-		t.Fatalf("expected 3, got %d", nr)
+		t.Errorf("expected 3, got %d", nr)
 	}
 }
 
 func TestParseZNrFromSubject_InvalidFormat(t *testing.T) {
 	_, err := ParseZNrFromSubject("invalid-format")
 	if err == nil {
-		t.Fatal("expected error for invalid format, got nil")
+		t.Error("expected error for invalid format, got nil")
 	}
 }
 
 func TestParseZNrFromSubject_InvalidNumber(t *testing.T) {
 	_, err := ParseZNrFromSubject("kassensitzung-abc")
 	if err == nil {
-		t.Fatal("expected error for invalid number, got nil")
+		t.Error("expected error for invalid number, got nil")
 	}
 }
 
@@ -107,14 +107,14 @@ func TestParseVerkaufIDFromSubject_Valid(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if id != "abc-123" {
-		t.Fatalf("expected abc-123, got %s", id)
+		t.Errorf("expected abc-123, got %s", id)
 	}
 }
 
 func TestParseVerkaufIDFromSubject_InvalidFormat(t *testing.T) {
 	_, err := ParseVerkaufIDFromSubject("kassensitzung-1/tisch-42")
 	if err == nil {
-		t.Fatal("expected error for invalid format, got nil")
+		t.Error("expected error for invalid format, got nil")
 	}
 }
 
@@ -124,6 +124,6 @@ func TestParseZNrFromSubject_DirektverkaufSubject(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if nr != 3 {
-		t.Fatalf("expected 3, got %d", nr)
+		t.Errorf("expected 3, got %d", nr)
 	}
 }

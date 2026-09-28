@@ -65,7 +65,7 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 			got, err := BuildKassenbelegProcessData(tc.positionen, tc.zahlbetrag, 1)
 			if tc.expectError {
 				if err == nil {
-					t.Fatal("expected error, got nil")
+					t.Error("expected error, got nil")
 				}
 				return
 			}
@@ -73,7 +73,7 @@ func TestBuildKassenbelegProcessData_TableDriven(t *testing.T) {
 				t.Fatalf("expected no error, got %v", err)
 			}
 			if got != tc.expected {
-				t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", tc.expected, got)
+				t.Errorf("unexpected processData\nwant: %q\ngot:  %q", tc.expected, got)
 			}
 		})
 	}
@@ -91,7 +91,7 @@ func TestBuildKassenbelegProcessData_NegativBeiStorno(t *testing.T) {
 
 	want := "Beleg^-7.00_0.00_0.00_0.00_0.00^-7.00:Bar"
 	if got != want {
-		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+		t.Errorf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}
 }
 
@@ -106,7 +106,7 @@ func TestBuildBestellungProcessData_CSVFormat(t *testing.T) {
 
 	want := "4;\"Maß Bier\";9.50\r2;\"Weißwurst normal\";2.50"
 	if got != want {
-		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+		t.Errorf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}
 }
 
@@ -135,7 +135,7 @@ func TestBuildBestellungProcessData_LehntNichtPositiveMengenAb(t *testing.T) {
 		{ProduktName: "Bier", EinzelpreisCents: 450, Menge: 0},
 	}
 	if _, err := BuildBestellungProcessData(positionen, 1); err == nil {
-		t.Fatal("expected error for non-positive quantity")
+		t.Error("expected error for non-positive quantity")
 	}
 }
 
@@ -150,7 +150,7 @@ func TestBuildBestellungProcessData_VerdoppeltAnfuehrungszeichen(t *testing.T) {
 	// Beispiel aus DSFinV-K Anhang I
 	want := `2;"Eisbecher ""Himbeere""";3.99`
 	if got != want {
-		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+		t.Errorf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}
 }
 
@@ -161,7 +161,7 @@ func TestBuildGeldtransitProcessData_Einlage(t *testing.T) {
 	}
 	want := "Beleg^0.00_0.00_0.00_0.00_12.34^12.34:Bar"
 	if got != want {
-		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+		t.Errorf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}
 }
 
@@ -172,13 +172,13 @@ func TestBuildGeldtransitProcessData_Entnahme(t *testing.T) {
 	}
 	want := "Beleg^0.00_0.00_0.00_0.00_-12.34^-12.34:Bar"
 	if got != want {
-		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+		t.Errorf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}
 }
 
 func TestBuildGeldtransitProcessData_UngueltigeRichtung(t *testing.T) {
 	if _, err := BuildGeldtransitProcessData("foo", 1234); err == nil {
-		t.Fatal("expected error for invalid richtung, got nil")
+		t.Error("expected error for invalid richtung, got nil")
 	}
 }
 
@@ -201,7 +201,7 @@ func TestBuildEigenbelegProcessData(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := BuildEigenbelegProcessData(tc.zahlbetragCents)
 			if got != tc.expected {
-				t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", tc.expected, got)
+				t.Errorf("unexpected processData\nwant: %q\ngot:  %q", tc.expected, got)
 			}
 		})
 	}
@@ -213,6 +213,6 @@ func TestBuildTagesabschlussProcessData(t *testing.T) {
 	got := BuildTagesabschlussProcessData(7, von, bis)
 	want := "Tagesabschluss^ZNr:7^Von:2026-06-10T08:00:00Z^Bis:2026-06-10T22:00:00Z"
 	if got != want {
-		t.Fatalf("unexpected processData\nwant: %q\ngot:  %q", want, got)
+		t.Errorf("unexpected processData\nwant: %q\ngot:  %q", want, got)
 	}
 }

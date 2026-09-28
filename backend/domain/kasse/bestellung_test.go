@@ -64,7 +64,7 @@ func TestPersistiertesEventMitMenge1000_BleibtLesbarUndStornierbar(t *testing.T)
 		t.Fatalf("persistiertes Event mit Menge 1000 muss lesbar bleiben, got %v", err)
 	}
 	if bestellung.Positionen[0].Menge != 1000 {
-		t.Fatalf("expected menge 1000, got %d", bestellung.Positionen[0].Menge)
+		t.Errorf("expected menge 1000, got %d", bestellung.Positionen[0].Menge)
 	}
 
 	refs := []PositionRef{{PositionID: positionID, Menge: 1000}}
@@ -74,6 +74,6 @@ func TestPersistiertesEventMitMenge1000_BleibtLesbarUndStornierbar(t *testing.T)
 
 	positionen, gesamtCents := ResolvePositionen(bestellung.Positionen, refs)
 	if _, err := NewStornierungErteiltEvent(testSubject, 2, "Leitung", testZahlungID, positionen, gesamtCents, "Rueckgabe"); err != nil {
-		t.Fatalf("Stornierung einer Position mit Menge 1000 muss gelingen, got %v", err)
+		t.Errorf("Stornierung einer Position mit Menge 1000 muss gelingen, got %v", err)
 	}
 }

@@ -12,7 +12,7 @@ func TestGetHistorieFromEvents_Empty(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(history) != 0 {
-		t.Fatalf("expected empty history, got %d items", len(history))
+		t.Errorf("expected empty history, got %d items", len(history))
 	}
 }
 
@@ -34,7 +34,7 @@ func TestGetHistorieFromEvents_ReturnsAllEventTypes(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(history) != 3 {
-		t.Fatalf("expected 3 history items, got %d", len(history))
+		t.Errorf("expected 3 history items, got %d", len(history))
 	}
 }
 
@@ -85,11 +85,11 @@ func TestGetHistorieFromEvents_EnrichesBestellungMitRestmengen(t *testing.T) {
 
 	// Ordered 3, cancelled 1 => 2 still stornierbar.
 	if len(bestellung.StornierbarePositionen) != 1 || bestellung.StornierbarePositionen[0].Menge != 2 {
-		t.Fatalf("expected stornierbar menge 2, got %+v", bestellung.StornierbarePositionen)
+		t.Errorf("expected stornierbar menge 2, got %+v", bestellung.StornierbarePositionen)
 	}
 	// Ordered 3, cancelled 1, paid 1 => 1 still umbuchbar.
 	if len(bestellung.UmbuchbarePositionen) != 1 || bestellung.UmbuchbarePositionen[0].Menge != 1 {
-		t.Fatalf("expected umbuchbar menge 1, got %+v", bestellung.UmbuchbarePositionen)
+		t.Errorf("expected umbuchbar menge 1, got %+v", bestellung.UmbuchbarePositionen)
 	}
 }
 
@@ -112,10 +112,10 @@ func TestGetHistorieFromEvents_FullyConsumedBestellungHasNoRestmengen(t *testing
 
 	bestellung := history[len(history)-1]
 	if len(bestellung.StornierbarePositionen) != 0 {
-		t.Fatalf("expected no stornierbare positionen, got %+v", bestellung.StornierbarePositionen)
+		t.Errorf("expected no stornierbare positionen, got %+v", bestellung.StornierbarePositionen)
 	}
 	if len(bestellung.UmbuchbarePositionen) != 0 {
-		t.Fatalf("expected no umbuchbare positionen, got %+v", bestellung.UmbuchbarePositionen)
+		t.Errorf("expected no umbuchbare positionen, got %+v", bestellung.UmbuchbarePositionen)
 	}
 }
 
@@ -166,7 +166,7 @@ func TestGetHistorieFromEvents_ReversesOrder(t *testing.T) {
 		t.Fatalf("expected first item to be Zahlung, got kind %q", history[0].Art)
 	}
 	if history[1].Art != HistorieEintragBestellung || history[1].Bestellung == nil {
-		t.Fatalf("expected second item to be Bestellung, got kind %q", history[1].Art)
+		t.Errorf("expected second item to be Bestellung, got kind %q", history[1].Art)
 	}
 }
 
@@ -195,16 +195,16 @@ func TestGetHistorieFromEvents_UmbuchungAbgangReduziertRestmengen(t *testing.T) 
 		t.Fatalf("expected first entry to be Umbuchung, got %q", history[0].Art)
 	}
 	if history[0].Umbuchung.IstZugang() {
-		t.Fatal("expected the source entry to be an Abgang, not a Zugang")
+		t.Error("expected the source entry to be an Abgang, not a Zugang")
 	}
 
 	bestellung := history[len(history)-1]
 	// Ordered 3, moved away 1 => 2 still stornierbar and umbuchbar.
 	if len(bestellung.StornierbarePositionen) != 1 || bestellung.StornierbarePositionen[0].Menge != 2 {
-		t.Fatalf("expected stornierbar menge 2, got %+v", bestellung.StornierbarePositionen)
+		t.Errorf("expected stornierbar menge 2, got %+v", bestellung.StornierbarePositionen)
 	}
 	if len(bestellung.UmbuchbarePositionen) != 1 || bestellung.UmbuchbarePositionen[0].Menge != 2 {
-		t.Fatalf("expected umbuchbar menge 2, got %+v", bestellung.UmbuchbarePositionen)
+		t.Errorf("expected umbuchbar menge 2, got %+v", bestellung.UmbuchbarePositionen)
 	}
 }
 
@@ -221,7 +221,7 @@ func TestGetHistorieFromEvents_UmbuchungZugangIstStornierbar(t *testing.T) {
 		t.Fatalf("failed to create umbuchung events: %v", err)
 	}
 	if zielEvent.Subject != zielSubject {
-		t.Fatalf("expected ziel subject %q, got %q", zielSubject, zielEvent.Subject)
+		t.Errorf("expected ziel subject %q, got %q", zielSubject, zielEvent.Subject)
 	}
 
 	history, err := GetHistorieFromEvents([]e.Event{zielEvent})
@@ -233,13 +233,13 @@ func TestGetHistorieFromEvents_UmbuchungZugangIstStornierbar(t *testing.T) {
 	}
 	zugang := history[0]
 	if !zugang.Umbuchung.IstZugang() {
-		t.Fatal("expected the target entry to be a Zugang")
+		t.Error("expected the target entry to be a Zugang")
 	}
 	// Der Zugang bringt Positionen auf den Tisch: voll stornierbar/umbuchbar.
 	if len(zugang.StornierbarePositionen) != 1 || zugang.StornierbarePositionen[0].Menge != 2 {
-		t.Fatalf("expected stornierbar menge 2, got %+v", zugang.StornierbarePositionen)
+		t.Errorf("expected stornierbar menge 2, got %+v", zugang.StornierbarePositionen)
 	}
 	if len(zugang.UmbuchbarePositionen) != 1 || zugang.UmbuchbarePositionen[0].Menge != 2 {
-		t.Fatalf("expected umbuchbar menge 2, got %+v", zugang.UmbuchbarePositionen)
+		t.Errorf("expected umbuchbar menge 2, got %+v", zugang.UmbuchbarePositionen)
 	}
 }
