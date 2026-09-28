@@ -7,27 +7,36 @@ description: 'Experten-Weg: jotti auf einem eigenen VPS mit Domain und HTTPS bet
 > Grundkenntnisse mit Linux und Kommandozeile voraus. Wer alle Helfer beim Fest vor
 > Ort im selben WLAN hat, bleibt beim [Standardweg](installation.md).
 
-Wer jotti auch außerhalb des lokalen WLANs erreichen will (über das Internet, an
-mehreren Standorten oder ohne einen Rechner vor Ort), betreibt es auf einem eigenen
-kleinen Server, einem VPS. Dann erreichen alle Helfer jotti über eine
-Internet-Adresse (Domain) mit Verschlüsselung (HTTPS).
+Wer jotti auch außerhalb des lokalen WLANs erreichen will, betreibt es auf einem
+eigenen kleinen Server, einem VPS. Das gilt für den Betrieb über das Internet, an
+mehreren Standorten oder ohne einen Rechner vor Ort.
 
-jotti ist genügsam: Schon ein kleiner VPS (2 vCPU, 2 GB RAM, 20 GB SSD, Linux)
-reicht für ein durchschnittliches Vereinsfest. Der Prozessor muss x86-64 sein
-(amd64): Die veröffentlichten Images gibt es nur für diese Architektur, auf
-ARM-Servern (etwa Raspberry Pi oder ARM-VPS) laufen sie nicht. Typisches
-Angebot: netcup VPS 500 G12 oder vergleichbar (ca. 6 €/Monat). Zusätzlich braucht
-ihr eine Domain, die per DNS auf den Server zeigt, sowie ein TLS-Zertifikat.
-Das Zertifikat holt jotti automatisch: Die Produktions-Konfiguration
-(`docker-compose.prod.yml`) bringt einen Caddy-Reverse-Proxy mit, der es beim
-ersten Start selbst bei Let's Encrypt anfordert und danach erneuert.
+Dann erreichen alle Helfer jotti über eine Internet-Adresse (Domain) mit
+Verschlüsselung (HTTPS).
+
+jotti ist genügsam. Schon ein kleiner VPS (2 vCPU, 2 GB RAM, 20 GB SSD, Linux)
+reicht für ein durchschnittliches Vereinsfest.
+
+Der Prozessor muss x86-64 sein (amd64). Die veröffentlichten Images gibt es nur
+für diese Architektur; auf ARM-Servern (etwa Raspberry Pi oder ARM-VPS) laufen sie
+nicht. Typisches Angebot: netcup VPS 500 G12 oder vergleichbar (ca. 6 €/Monat).
+
+Zusätzlich braucht ihr eine Domain, die per DNS auf den Server zeigt, sowie ein
+TLS-Zertifikat. Das Zertifikat holt jotti automatisch.
+
+Die Produktions-Konfiguration (`docker-compose.prod.yml`) bringt dafür einen
+Caddy-Reverse-Proxy mit. Er fordert das Zertifikat beim ersten Start selbst bei
+Let's Encrypt an und erneuert es danach.
 
 Ein gemieteter Server bedeutet auch: Der Hoster verarbeitet personenbezogene Daten
-für euren Verein, denn jotti speichert unter anderem die Namen der Helfer. Schließt
-deshalb mit dem Hoster eine Vereinbarung zur Auftragsverarbeitung ab (AVV,
+für euren Verein. Denn jotti speichert unter anderem die Namen der Helfer.
+
+Schließt deshalb mit dem Hoster eine Vereinbarung zur Auftragsverarbeitung ab (AVV,
 Art. 28 DSGVO). Die üblichen Anbieter stellen dafür kostenlos einen Generator im
-Kundenportal bereit, ausgefüllt ist er in wenigen Minuten. Beim Standardweg im
-lokalen WLAN stellt sich die Frage nicht, dort ist kein Hoster beteiligt.
+Kundenportal bereit, ausgefüllt ist er in wenigen Minuten.
+
+Beim Standardweg im lokalen WLAN stellt sich die Frage nicht, dort ist kein Hoster
+beteiligt.
 
 > ⚠️ **Kein Betrieb ohne HTTPS.** Ohne HTTPS dürft ihr jotti nicht über das offene
 > Internet betreiben: Anmeldedaten und Bestellungen würden sonst unverschlüsselt
@@ -60,8 +69,8 @@ lokalen WLAN stellt sich die Frage nicht, dort ist kein Hoster beteiligt.
    bei IPv6 einen AAAA-Record) auf die öffentliche IP des Servers setzen. Erst wenn
    die Domain auf den Server zeigt, kann Let's Encrypt ein Zertifikat ausstellen.
 6. **Stack starten** mit `make prod-init`. Das Skript prüft Docker und die
-   DNS-Auflösung, zieht die gepinnten Images, startet den Stack und wartet, bis
-   Backend und HTTPS gesund antworten.
+   DNS-Auflösung und zieht die gepinnten Images. Dann startet es den Stack und
+   wartet, bis Backend und HTTPS gesund antworten.
 7. **Eigenen Benutzer mit SSH-Schlüssel anlegen.** Der nächste Schritt sperrt die
    Anmeldung als `root`. Legt deshalb vorher einen Benutzer mit sudo-Rechten an:
 
@@ -88,5 +97,8 @@ auf HTTPS um.
 
 `make prod-init` gibt beim ersten Start einen einmaligen, 6-stelligen
 Anmelde-Code aus. Damit meldet ihr euch an wie unter
-[Installation und Start](installation.md#erster-login) beschrieben: Benutzername
-`admin`, „Neues Passwort festlegen", Code eingeben und ein eigenes Passwort setzen.
+[Installation und Start](installation.md#erster-login) beschrieben:
+
+- Benutzername `admin`
+- „Neues Passwort festlegen"
+- Code eingeben und ein eigenes Passwort setzen
