@@ -270,9 +270,9 @@ A test helper renders a page with a real QueryClient from `createQueryClient` an
 
 ### Acceptance criteria
 
-- [ ] a floating `page.click()` without `await` in an e2e test makes `make lint` fail
-- [ ] `scripts/check-pins.sh` reports one TypeScript line across packages
-- [ ] a type error in `frontend/src` fails `make check-frontend` before any test runs
+- [x] a floating `page.click()` without `await` in an e2e test makes `make lint` fail
+- [x] `scripts/check-pins.sh` reports one TypeScript line across packages
+- [x] a type error in `frontend/src` fails `make check-frontend` before any test runs
 
 ## Phase 12: Go tests without the unit tag
 
