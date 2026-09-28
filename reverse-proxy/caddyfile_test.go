@@ -184,14 +184,14 @@ func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
 	}
 }
 
-// TestRocksCaddyfileCarriesSameCSP hält die zwei Kopien der CSP zusammen:
-// contentSecurityPolicy und die demo-Site in Caddyfile.rocks.
+// TestRocksCaddyfileCarriesSameCSP keeps the two CSP copies equal: contentSecurityPolicy
+// and the demo site in Caddyfile.rocks.
 func TestRocksCaddyfileCarriesSameCSP(t *testing.T) {
 	conf, err := os.ReadFile("Caddyfile.rocks")
 	if err != nil {
-		t.Fatalf("Caddyfile.rocks lesen: %v", err)
+		t.Fatalf("read Caddyfile.rocks: %v", err)
 	}
 	if !strings.Contains(string(conf), contentSecurityPolicy) {
-		t.Errorf("Caddyfile.rocks trägt die CSP nicht wörtlich; erwartet:\n%s", contentSecurityPolicy)
+		t.Errorf("Caddyfile.rocks does not carry the CSP verbatim; want:\n%s", contentSecurityPolicy)
 	}
 }

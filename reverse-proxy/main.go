@@ -1,8 +1,7 @@
-// Command jotti-reverse-proxy ist der Caddy-Container-Entrypoint für drei Modi, die
-// die Umgebung wählt: PROXY_HTTP_ONLY (E2E, Klartext-HTTP auf :80) vor JOTTI_DOMAIN
-// (Public, eine Site mit Let's-Encrypt-Zertifikat), sonst LAN-Mode (Install-State,
-// LAN-IP, Wildcard- plus Fallback-Site, Status-Seite).
-// Der jotti.rocks-Stack startet Caddy direkt mit Caddyfile.rocks, ohne dieses Programm.
+// Command jotti-reverse-proxy is the Caddy container entrypoint for three modes the environment
+// selects: PROXY_HTTP_ONLY (E2E, plain HTTP on :80) before JOTTI_DOMAIN (public, one Let's
+// Encrypt site), otherwise LAN mode (install state, LAN IP, wildcard plus fallback site, status
+// page). The jotti.rocks stack runs Caddy on Caddyfile.rocks directly, without this program.
 package main
 
 import (

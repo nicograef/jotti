@@ -2,14 +2,12 @@ package main
 
 import "fmt"
 
-// contentSecurityPolicy gilt für alle Caddy-Sites (über proxySnippet) und wörtlich
-// auch für die demo-Site in Caddyfile.rocks; TestRocksCaddyfileCarriesSameCSP hält
-// beide Kopien zusammen.
+// contentSecurityPolicy applies to every generated site via proxySnippet and, verbatim,
+// to the demo site in Caddyfile.rocks. TestRocksCaddyfileCarriesSameCSP keeps both copies equal.
 const contentSecurityPolicy = "default-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self' blob:; media-src 'self'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests"
 
-// hstsLAN trägt nur max-age: der Zugriff läuft auch über die rohe LAN-IP
-// (Fallback-Site), für die includeSubDomains/preload nicht zutreffen. hstsPublic ist
-// der stärkere Wert für die öffentliche Domain (Parität zu Caddyfile.rocks).
+// hstsLAN carries max-age only, because clients also reach the fallback site by raw LAN IP.
+// hstsPublic is the stronger value for a public domain, matching Caddyfile.rocks.
 const (
 	hstsLAN    = "max-age=31536000"
 	hstsPublic = "max-age=63072000; includeSubDomains; preload"
@@ -73,10 +71,9 @@ http:// {
 `, proxySnippet(hstsLAN, false), wildcard)
 }
 
-// proxySnippet rendert das gemeinsame `(jotti_proxy)`-Snippet, damit Header und CSP
-// über alle Modi identisch bleiben. Das Rate-Limit bildet 10 r/s mit Burst 20 ab:
-// caddy-ratelimit nutzt ein gleitendes Fenster ohne separaten Burst-Begriff, daher
-// ist der sofort bediente Spitzenwert hier `events 30` pro `window 1s`.
+// proxySnippet renders the shared `(jotti_proxy)` snippet, so headers and CSP match in every mode.
+// The rate limit models 10 r/s with burst 20: caddy-ratelimit has a sliding window without a
+// separate burst, so the peak served at once is `events 30` per `window 1s`.
 func proxySnippet(hsts string, rateLimited bool) string {
 	rateLimit := ""
 	if rateLimited {
