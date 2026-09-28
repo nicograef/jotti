@@ -47,10 +47,8 @@ type Command struct {
 	TSERepo             tseAuftragRepo
 }
 
-// getOffeneKassensitzungOderFehler ist eine eigene Kopie samt
-// kassensitzungenRepo-Interface (wie in kassenfuehrung und direktverkauf) —
-// bewusst kein shared kernel: jeder Bounded Context bekommt sein eigenes
-// minimales Repo-Interface.
+// getOffeneKassensitzungOderFehler is duplicated on purpose, as in kassenfuehrung and direktverkauf:
+// each Bounded Context owns its minimal repo interface instead of a shared kernel.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {

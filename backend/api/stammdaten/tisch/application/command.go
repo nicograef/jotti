@@ -138,10 +138,8 @@ func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo 
 
 	action(&t)
 
-	// Ein gelöschter Tisch verschwindet aus der Tischauswahl; eine zurückbleibende
-	// Markierung hinge unsichtbar und unabwählbar in der Tischübersicht der
-	// betroffenen Servicekraft. Statuswechsel und Cleanup laufen deshalb in einer
-	// Transaktion. Ein deaktivierter Tisch bleibt bewusst markiert; er kommt wieder.
+	// A deleted Tisch leaves the Tischauswahl, so its leftover favourites would be unselectable;
+	// status change and cleanup share one transaction. A deactivated Tisch keeps them: it comes back.
 	persist := c.TischRepo.UpdateTisch
 	if t.Status == tisch.DeletedStatus {
 		persist = c.TischRepo.DeleteTischMitFavoriten

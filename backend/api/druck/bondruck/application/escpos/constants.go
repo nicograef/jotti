@@ -2,11 +2,8 @@ package escpos
 
 const Init = "\x1B\x40"
 
-// Zeichentabelle (ESC t n): Codepage 6 ist am MUNBYN ITPP047P WPC1252
-// (Windows-1252, deutsche Umlaute und Euro-Zeichen); die MUNBYN-Nummerierung
-// folgt NICHT Epson (dort wäre WPC1252 = 16), die Liste steht auf der
-// Selbsttest-Seite des Druckers. ESC @ (Init) setzt die Codepage zurück — daher
-// immer NACH Init senden.
+// Codepage 6 is WPC1252 on the MUNBYN ITPP047P, unlike Epson's 16 (list on the printer's self-test page).
+// ESC @ (Init) resets the codepage, so send this after Init.
 const SetCodepageWPC1252 = "\x1B\x74\x06" // ESC t 6
 
 const AlignLeft = "\x1B\x61\x00"

@@ -169,10 +169,8 @@ func setupTestEnv(t *testing.T) testEnv {
 
 	adminUserID, serviceUserID, produktID, varianteID, tischID := seedTestData(t, db)
 
-	// The throwaway DB uses password "admin", which config.Load now rejects as a
-	// known placeholder. The DB handle is already open (and passed to SetupRoutes),
-	// so override the env with a valid value purely to satisfy config validation,
-	// then restore it so later tests' dbtest.Open still reaches the DB.
+	// config.Load rejects the throwaway DB's password "admin" as a placeholder, so set a valid one
+	// for validation only; restoring it keeps later tests' dbtest.Open working.
 	origPW := os.Getenv("POSTGRES_PASSWORD")
 	if err := os.Setenv("POSTGRES_PASSWORD", testDBPassword); err != nil {
 		t.Fatalf("POSTGRES_PASSWORD setzen: %v", err)

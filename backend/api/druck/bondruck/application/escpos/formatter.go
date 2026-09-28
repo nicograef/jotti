@@ -417,10 +417,8 @@ func steuerKennzeichenAusSatz(satz steuer.Steuersatz) string {
 	}
 }
 
-// steuerMatrixLabel gibt Prozentsatz bzw. Befreiungshinweis gemäß KassenSichV
-// § 6 Satz 1 Nr. 5 aus. steuer.Steuermatrix() teilt jede Kombi-Position bereits
-// in ihre Regel-/Ermaessigt-Anteile auf — eine Zeile mit Satz Kombi erreicht
-// diese Funktion nie.
+// steuerMatrixLabel prints the rate or the exemption notice (§ 6 Satz 1 Nr. 5 KassenSichV).
+// steuer.Steuermatrix() already splits Kombi positions, so no Kombi row reaches it.
 func steuerMatrixLabel(satz steuer.Steuersatz) string {
 	switch satz {
 	case steuer.RegelSteuersatz:
@@ -434,10 +432,9 @@ func steuerMatrixLabel(satz steuer.Steuersatz) string {
 	}
 }
 
-// qrVersionForLengthM returns the smallest QR version (1-40) whose level-M
-// data-codeword count reaches payloadLen. Data codewords from ISO/IEC
-// 18004:2015 Table 7; the byte-mode capacity is 2 bytes (V1-V9) resp. 3 bytes
-// (V10-V40) lower.
+// qrVersionForLengthM returns the smallest QR version (1-40) whose level-M data-codeword
+// count reaches payloadLen. Codewords from ISO/IEC 18004:2015 Table 7; byte-mode capacity
+// is 2 (V1-V9) or 3 (V10-V40) bytes lower.
 func qrVersionForLengthM(payloadLen int) int {
 	capacities := [40]int{
 		16, 28, 44, 64, 86, 108, 124, 154, 182, 216, // V1-V10

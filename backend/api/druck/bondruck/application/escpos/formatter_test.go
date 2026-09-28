@@ -570,10 +570,8 @@ func TestFormatPositionBon_TranscodesUmlautsAndEuroToWPC1252(t *testing.T) {
 	}
 }
 
-// TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis prüft,
-// dass der Beleg für den 0%-Satz den Befreiungshinweis gemäß
-// KassenSichV § 6 Satz 1 Nr. 5 ("Hinweis darauf, dass eine Steuerbefreiung gilt")
-// trägt.
+// A 0 % rate needs the exemption notice of § 6 Satz 1 Nr. 5 KassenSichV
+// ("Hinweis darauf, dass eine Steuerbefreiung gilt").
 func TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis(t *testing.T) {
 	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
 		Vereinsname:        "SV Musterstadt",
@@ -599,11 +597,8 @@ func TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis(t *tes
 	}
 }
 
-// TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots prüft,
-// dass ein 500-Byte-QR-Payload (oberhalb des typischen fiskaly-Bereichs von 350-470 Byte)
-// mit Modulgröße 6 innerhalb der druckbaren 576 Dots bleibt.
-// Rechnung: QR-Version 17 (ECL M: 507 Datencodewörter, Byte-Kapazität 504), Matrix 85 Module + 8 Ruhezone = 93 Module,
-// 93 * 6 = 558 Dots <= 576 Dots.
+// 500 bytes exceed the typical fiskaly payload of 350-470 bytes. Version 17 (level M, 504-byte
+// capacity) is 85 modules + 8 quiet zone = 93 modules, and 93 * 6 = 558 dots <= 576.
 func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *testing.T) {
 	// Realistischer fiskaly-Payload ist ~350-470 Byte; 500 Byte als obere Testgrenze.
 	qrPayload := strings.Repeat("V", 500)
@@ -652,9 +647,8 @@ func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *
 	}
 }
 
-// 2026-07-01T23:30:00Z ist in Europe/Berlin (Sommerzeit, UTC+2) bereits der
-// 02.07.2026, 01:30. Zeitpunkte kommen als UTC herein; gedruckt wird die
-// deutsche Ortszeit, sonst weist der Beleg das falsche Datum aus.
+// Zeitpunkte arrive as UTC but print in German local time, else the Beleg shows the wrong date.
+// 2026-07-01T23:30:00Z is already 02.07.2026, 01:30 in Europe/Berlin (UTC+2).
 func TestFormatKassenbeleg_ZeitpunkteInDeutscherOrtszeit(t *testing.T) {
 	utcNacht := time.Date(2026, 7, 1, 23, 30, 0, 0, time.UTC)
 	ersteBestellung := time.Date(2026, 7, 1, 22, 5, 9, 0, time.UTC)

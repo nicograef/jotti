@@ -25,13 +25,9 @@ type arbeitsbonDaten struct {
 	Kommentar  string
 }
 
-// CreateArbeitsbonAuftraegeFromEvent erzeugt Druckaufträge anhand der
-// konfigurierten Druckstationen: bestellung-aufgenommen geht als Arbeitsbon je
-// Kategorie an die Produktstationen; direktverkauf-getaetigt an die
-// Abholbon-Station, wenn sie konfiguriert ist, sonst an die Produktstationen —
-// ohne konfigurierte Station entsteht kein Auftrag. Bonmodus: pro_position
-// (Standard) ein Bon je Position, pro_bestellung ein Sammelbon, am Abholbon
-// zusätzlich pro_stueck je Einheit.
+// CreateArbeitsbonAuftraegeFromEvent routes the event's positions to the configured
+// Druckstationen per Bonmodus; without a configured station no job is created.
+// Routing rule: docs/handbuch.md §4.5.
 func CreateArbeitsbonAuftraegeFromEvent(
 	evt event.Event,
 	druckstationen map[string]druckstation.Druckstation,

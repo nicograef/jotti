@@ -9,12 +9,9 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
-// FuzzFormatKassenbeleg wirft beliebige Freitexte in den ESC/POS-Encoder, vor
-// allem die TSE-QR-Payload, deren Länge in ein GS ( k Store-Kommando codiert
-// wird. Zu halten: kein Panic bei irgendeinem Eingabe-String, und jedes GS ( k
-// Store-Kommando deklariert in pL/pH exakt die Zahl der nachfolgenden, auch
-// tatsächlich vorhandenen Nutzbytes. Ein längenfehlerhaftes GS ( k brächte den
-// Drucker aus dem Tritt und gäbe den Rest des Belegs als Rohbytes aus.
+// FuzzFormatKassenbeleg asserts no panic on any input and that every GS ( k store command
+// declares in pL/pH exactly the payload bytes that follow. A wrong length makes the printer
+// emit the rest of the Beleg as raw bytes.
 func FuzzFormatKassenbeleg(f *testing.F) {
 	f.Add("Musterverein e.V.", "Cola", "https://finanzamt.example/verify?d=abc", int64(350), false)
 	f.Add("", "", "", int64(0), true)
@@ -106,9 +103,8 @@ func TestAssertQRCommandLengths_PayloadMitPrefix(t *testing.T) {
 	}
 }
 
-// qrAsserter ist die von assertQRCommandLengths genutzte Teilmenge von
-// testing.TB (*testing.T erfüllt sie). Über diese Schnittstelle kann die
-// Gegenprobe Errorf-Aufrufe abfangen, ohne den Test fehlschlagen zu lassen.
+// qrAsserter is the subset of testing.TB that assertQRCommandLengths uses, so the
+// counter-check can record Errorf calls without failing the test.
 type qrAsserter interface {
 	Helper()
 	Errorf(format string, args ...any)
@@ -138,10 +134,8 @@ func verstuemmeleStoreLaenge(out []byte) []byte {
 	return corrupt
 }
 
-// assertQRCommandLengths läuft den ESC/POS-Bytestrom ab und prüft für jedes
-// GS ( k Kommando (GS 28 6B, pL, pH, cn, fn, ...), dass die in pL/pH deklarierte
-// Nutzlast vollständig im Puffer liegt; ein Längenfehler im Store-Kommando
-// (Funktion 0x50, es trägt die QR-Payload) verschöbe alle folgenden Bytes.
+// assertQRCommandLengths checks that each GS ( k command (GS 28 6B, pL, pH, cn, fn, ...)
+// has its declared pL/pH payload fully inside the buffer.
 func assertQRCommandLengths(t qrAsserter, out []byte) {
 	t.Helper()
 	prefix := []byte{0x1D, 0x28, 0x6B} // GS ( k

@@ -440,10 +440,8 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 	}
 }
 
-// Der Beleg-Abruf antwortet sofort mit dem Signaturstatus: Solange der Auftrag
-// nicht quittiert ist, entsteht kein Druckauftrag (ausstehend, die UI fasst
-// nach); nach der Quittierung liefert derselbe Aufruf den Beleg mit dem
-// TSE-Abschnitt aus den Signaturspalten des Auftrags.
+// Before the Signaturauftrag is acknowledged no Druckauftrag is created (ausstehend); afterwards
+// the same call prints the Beleg with the TSE section from the Auftrag's signature columns.
 func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)

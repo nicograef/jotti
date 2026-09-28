@@ -101,10 +101,8 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 	}
 }
 
-// readKassenbelegCommand validiert eine der vier gültigen Body-Formen; welcher
-// Beleg daraus entsteht, entscheidet die Application-Schicht
-// (KassenbelegDrucken). Bei ungültiger Eingabe sendet die Funktion die
-// Client-Fehlerantwort und liefert ok=false.
+// readKassenbelegCommand accepts the four body forms of docs/handbuch.md §4.5.
+// On invalid input it sends the client error response and returns ok=false.
 func readKassenbelegCommand(w http.ResponseWriter, r *http.Request) (application.KassenbelegDruckenCommand, bool) {
 	body := belegDruckenRequest{}
 	if !helper.ReadBody(w, r, &body) {
