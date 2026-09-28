@@ -45,9 +45,10 @@ TSE. Habt ihr beim Üben fünf erreicht, übernehmt eine vorhandene oder wartet 
 automatische Bereinigung ab.
 
 fiskaly löscht stillgelegte oder länger als 14 Tage ungenutzte Test-TSE
-regelmäßig. Liegt die PIN einer vorhandenen Test-TSE nicht mehr vor, gibt es nur
-in TEST einen Ausweg. jotti bietet dort die Sekundäraktion „Stattdessen neue TSE
-anlegen" an.
+regelmäßig.
+
+Liegt die PIN einer vorhandenen Test-TSE nicht mehr vor, gibt es nur in TEST einen
+Ausweg. jotti bietet dort die Sekundäraktion „Stattdessen neue TSE anlegen" an.
 
 In LIVE gibt es diesen Ausweg nicht; dort helfen der PUK-Reset, die verwahrte PIN
 oder der fiskaly-Support.
