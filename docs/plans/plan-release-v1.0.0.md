@@ -71,7 +71,9 @@ Setup-Wizard-Durchlauf oben.
 - [ ] TLS/Let's Encrypt live grün auf dem produktiv genutzten Host (lokale LAN-Infra bereits E2E
       verifiziert, hier nur Regressionscheck gegen den echten Domain-Namen).
       `prod-init`/`prod-update`/`prod-backup`/`prod-backup-verify` inkl. Security-Header und
-      Rate-Limiting deckt `scripts/ops-smoke.sh install|ops` ab.
+      Rate-Limiting deckt `scripts/ops-smoke.sh install|ops` auf einem Testhost ab; beide Läufe
+      mit demselben `ADMIN_PASSWORD`, denn `ops` meldet sich an und bucht vor dem Backup einen
+      Verkauf.
 
 ### Block F: Zwei-Geräte-Test in echt
 

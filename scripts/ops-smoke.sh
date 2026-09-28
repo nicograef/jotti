@@ -8,11 +8,14 @@ set -euo pipefail
 # The first failed step aborts the run.
 #
 #   ./scripts/ops-smoke.sh install          # prod-init, set-password, login
-#   ./scripts/ops-smoke.sh ops              # backup, backup-verify, update
+#   ./scripts/ops-smoke.sh ops              # login, sale, backup, backup-verify, update
 #   ./scripts/ops-smoke.sh release VERSION  # install plus sale, receipt, export
 #
 # install and release need a FRESH host: prod-init only issues a one-time admin
-# password on first bootstrap, so a rerun fails at parse-admin-otp. Every mode
+# password on first bootstrap, so a rerun fails at parse-admin-otp. ops runs on an
+# installed host and logs in with ADMIN_PASSWORD, so run install with it set too;
+# its sale gives prod-backup-verify a non-empty kassenjournal to find. That sale
+# is a real journal entry, so ops and release belong on a test host only. Every mode
 # also checks the reverse proxy's security headers and login rate limit.
 # Host provisioning and the TLS/certificate acceptance stay manual
 # (docs/leitfaden/self-hosting.md).
@@ -98,7 +101,10 @@ redacted_body() {
 
 MODE="${1:-}"
 case "$MODE" in
-  install|ops) ;;
+  install) ;;
+  ops)
+    [[ -n "${ADMIN_PASSWORD:-}" ]] || { error "ops needs ADMIN_PASSWORD: the admin password set by the install run."; exit 1; }
+    ;;
   release)
     RELEASE_VERSION="${2:-}"
     [[ -n "$RELEASE_VERSION" ]] || { error "Usage: $0 release VERSION (e.g. v0.14.0)"; exit 1; }
@@ -158,6 +164,12 @@ step_install() {
   fi
   ok_step "set-password" "$duration"
 
+  step_login
+}
+
+# step_login — logs in as admin and sets ADMIN_TOKEN.
+step_login() {
+  local start end duration status
   start="$(date +%s)"
   status="$(http_post_status "$BASE_URL/api/auth/login" \
     "$(printf '{"username":"admin","password":"%s"}' "$ADMIN_PASSWORD")")"
@@ -178,10 +190,10 @@ step_ops() {
   run_step "prod-update" "$SCRIPT_DIR/prod-update.sh"
 }
 
-# step_sale_receipt_export TOKEN — one Direktverkauf, one Kassenbeleg print,
-# one DSFinV-K export, all via the (POST-only) API. Needs an open
-# Kassensitzung and one active product variant, both created here.
-step_sale_receipt_export() {
+# step_sale TOKEN — one Direktverkauf via the (POST-only) API; sets VERKAUF_ID.
+# Needs an open Kassensitzung and one active product variant, both created here
+# unless a Kassensitzung is already open.
+step_sale() {
   local token="$1"
   local auth_header="Authorization: Bearer $token"
   local start end duration status
@@ -204,14 +216,18 @@ step_sale_receipt_export() {
   status="$(http_post_status "$BASE_URL/api/admin/kassensitzung-eroeffnen" \
     '{"bezeichnung":"ops-smoke","betragCents":0}' "$auth_header")"
   end="$(date +%s)"; duration=$((end - start))
-  if [[ "$status" != "200" ]]; then
+  if [[ "$status" == "400" && "$(json_field code)" == "kasse_bereits_geoeffnet" ]]; then
+    ok_step "kassensitzung-eroeffnen" "$duration" "already open"
+  elif [[ "$status" != "200" ]]; then
     fail_step "kassensitzung-eroeffnen" "expected 200, got $status: $(redacted_body)"
+  else
+    ok_step "kassensitzung-eroeffnen" "$duration"
   fi
-  ok_step "kassensitzung-eroeffnen" "$duration"
 
+  # Active product names are unique, so every ops rerun names its own product.
   start="$(date +%s)"
   status="$(http_post_status "$BASE_URL/api/admin/create-produkt" \
-    '{"name":"Ops-Smoke-Produkt","kategorie":"sonstiges","steuersatz":"regel"}' "$auth_header")"
+    "$(printf '{"name":"Ops-Smoke-Produkt-%s","kategorie":"sonstiges","steuersatz":"regel"}' "$(date +%s)")" "$auth_header")"
   end="$(date +%s)"; duration=$((end - start))
   if [[ "$status" != "200" ]]; then
     fail_step "create-produkt" "expected 200, got $status: $(redacted_body)"
@@ -240,6 +256,24 @@ step_sale_receipt_export() {
   fi
   ok_step "activate-variante" "$duration"
 
+  VERKAUF_ID="$(cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c 'import uuid; print(uuid.uuid4())')"
+  start="$(date +%s)"
+  status="$(http_post_status "$BASE_URL/api/service/direktverkauf-taetigen" \
+    "$(printf '{"verkaufId":"%s","positionen":[{"produktId":%s,"varianteId":%s,"menge":1}],"kommentar":"ops-smoke"}' "$VERKAUF_ID" "$produkt_id" "$variante_id")" "$auth_header")"
+  end="$(date +%s)"; duration=$((end - start))
+  if [[ "$status" != "200" ]]; then
+    fail_step "direktverkauf-taetigen" "expected 200, got $status: $(redacted_body)"
+  fi
+  ok_step "direktverkauf-taetigen" "$duration" "verkaufId=$VERKAUF_ID"
+}
+
+# step_receipt_export TOKEN — one Kassenbeleg print for step_sale's VERKAUF_ID
+# and one DSFinV-K export.
+step_receipt_export() {
+  local token="$1"
+  local auth_header="Authorization: Bearer $token"
+  local start end duration status
+
   # Kassenbeleg-Druckstation anlegen (Voraussetzung für beleg-drucken):
   # 192.0.2.1 ist eine TEST-NET-1-Adresse (RFC 5737), also nie ein echter
   # Drucker — der Handler legt bei nicht-leerer druckerIp trotzdem einen
@@ -253,17 +287,6 @@ step_sale_receipt_export() {
   fi
   ok_step "update-druckstationen" "$duration"
 
-  local verkauf_id
-  verkauf_id="$(cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c 'import uuid; print(uuid.uuid4())')"
-  start="$(date +%s)"
-  status="$(http_post_status "$BASE_URL/api/service/direktverkauf-taetigen" \
-    "$(printf '{"verkaufId":"%s","positionen":[{"produktId":%s,"varianteId":%s,"menge":1}],"kommentar":"ops-smoke"}' "$verkauf_id" "$produkt_id" "$variante_id")" "$auth_header")"
-  end="$(date +%s)"; duration=$((end - start))
-  if [[ "$status" != "200" ]]; then
-    fail_step "direktverkauf-taetigen" "expected 200, got $status: $(redacted_body)"
-  fi
-  ok_step "direktverkauf-taetigen" "$duration" "verkaufId=$verkauf_id"
-
   # beleg-drucken meldet "ausstehend" (200, kein Druckauftrag), solange der
   # asynchrone Signatur-Worker die TSE-Signatur nicht quittiert hat. Nur
   # "eingereiht" beweist einen angelegten Druckauftrag, daher darauf pollen.
@@ -271,7 +294,7 @@ step_sale_receipt_export() {
   start="$(date +%s)"
   for attempt in $(seq 1 20); do
     status="$(http_post_status "$BASE_URL/api/service/beleg-drucken" \
-      "$(printf '{"verkaufId":"%s"}' "$verkauf_id")" "$auth_header")"
+      "$(printf '{"verkaufId":"%s"}' "$VERKAUF_ID")" "$auth_header")"
     if [[ "$status" != "200" ]]; then
       fail_step "beleg-drucken" "expected 200, got $status: $(redacted_body)"
     fi
@@ -342,6 +365,8 @@ case "$MODE" in
     step_login_rate_limit
     ;;
   ops)
+    step_login
+    step_sale "$ADMIN_TOKEN"
     step_ops
     step_security_headers
     step_login_rate_limit
@@ -362,7 +387,8 @@ case "$MODE" in
     info "Pinning JOTTI_VERSION=$RELEASE_VERSION for the release smoke run..."
     sed -i.bak "s/^JOTTI_VERSION=.*/JOTTI_VERSION=$RELEASE_VERSION/" .env && rm -f .env.bak
     step_install
-    step_sale_receipt_export "$ADMIN_TOKEN"
+    step_sale "$ADMIN_TOKEN"
+    step_receipt_export "$ADMIN_TOKEN"
     step_security_headers
     step_login_rate_limit
     ;;
