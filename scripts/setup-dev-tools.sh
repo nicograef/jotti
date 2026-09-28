@@ -27,9 +27,8 @@ ensure_cmd node "Install Node >= 24 (CI uses 24)."
 GO_BIN_PATH="$(go env GOPATH)/bin"
 export PATH="$GO_BIN_PATH:$PATH"
 
-# Prebuilt GitHub release binaries are unreachable through the cloud-session
-# proxy, so every Go tool below is built with `go install` via the
-# (allowlisted) module proxy: the one method that works locally and in cloud.
+# Every Go tool below is built with `go install` via the module proxy: GitHub
+# release downloads are blocked behind some proxies.
 #
 # goimports and golangci-lint are built with the module's own toolchain
 # (backend/go.mod). CI builds goimports with that same Go, and golangci-lint
@@ -97,19 +96,6 @@ else
     go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$GOLANGCI_LINT_VERSION"
 fi
 
-# Cloud sessions ship an older golangci-lint at /usr/local/bin — on the default
-# PATH, ahead of "$GO_BIN_PATH" — that would shadow the pinned build in `make`.
-# The container is ephemeral, so point that copy at the pinned build too,
-# whenever its version or its build toolchain is out of date.
-if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ] && [ -w /usr/local/bin/golangci-lint ]; then
-  SHADOW_GOLANGCI_VERSION="$(/usr/local/bin/golangci-lint version --short 2>/dev/null || echo unknown)"
-  SHADOW_GOLANGCI_BUILT_WITH="$(golangci_lint_built_with /usr/local/bin/golangci-lint)"
-  if [ "$SHADOW_GOLANGCI_VERSION" != "${GOLANGCI_LINT_VERSION#v}" ] || [ "$SHADOW_GOLANGCI_BUILT_WITH" != "$GO_TOOLCHAIN" ]; then
-    info "Cloud session: replacing the base-image golangci-lint at /usr/local/bin with $GOLANGCI_LINT_VERSION"
-    cp "$GO_BIN_PATH/golangci-lint" /usr/local/bin/golangci-lint
-  fi
-fi
-
 if ! command -v golangci-lint >/dev/null 2>&1; then
   fatal "golangci-lint installation failed. Ensure '$GO_BIN_PATH' is on PATH (before any system golangci-lint) and rerun."
 fi
@@ -150,8 +136,8 @@ if ! command -v migrate >/dev/null 2>&1; then
 fi
 
 # CI runs the shellcheck of the GitHub runner image, which is not pinned either,
-# so the distribution package is close enough; apt covers the devcontainer and
-# cloud sessions, other systems get the hint.
+# so the distribution package is close enough; apt covers Debian, Ubuntu and
+# the devcontainer, other systems get the hint.
 info "Ensuring shellcheck is available..."
 if ! command -v shellcheck >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
   sudo_cmd=()
@@ -181,21 +167,21 @@ if ! command -v actionlint >/dev/null 2>&1; then
   fatal "actionlint installation failed. Ensure '$GO_BIN_PATH' is on PATH and rerun."
 fi
 
-info "Ensuring pnpm (v11) is available..."
+# npm, not Corepack: Node 25+ no longer ships Corepack. The version is the
+# packageManager pin that scripts/check-pins.sh keeps equal across packages.
+PNPM_VERSION="$(sed -n 's/.*"packageManager": *"pnpm@\([^+"]*\).*/\1/p' "$PROJECT_ROOT/frontend/package.json")"
+[ -n "$PNPM_VERSION" ] || fatal "No pnpm packageManager pin in frontend/package.json."
+info "Ensuring pnpm ($PNPM_VERSION) is available..."
 if command -v pnpm >/dev/null 2>&1; then
   info "pnpm already installed: $(pnpm --version)"
 else
-  if command -v corepack >/dev/null 2>&1; then
-    info "Activating pnpm@11 via corepack"
-    corepack enable
-    corepack prepare pnpm@11 --activate
-  else
-    fatal "pnpm not found and corepack is unavailable. Install pnpm v11 manually."
-  fi
+  info "Installing pnpm $PNPM_VERSION with npm"
+  npm install -g "pnpm@$PNPM_VERSION"
+  hash -r
 fi
 
 if ! command -v pnpm >/dev/null 2>&1; then
-  fatal "pnpm installation failed. Install pnpm v11 manually and rerun."
+  fatal "pnpm is not on PATH after 'npm install -g'. Add '$(npm prefix -g)/bin' to your PATH and rerun."
 fi
 
 for project in frontend website e2e; do
