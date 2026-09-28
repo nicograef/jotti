@@ -96,6 +96,11 @@ updates:
       e2e-npm:
         patterns:
           - "*"
+    # Same TypeScript line as frontend and website (check-pins.sh); typed ESLint
+    # needs typescript-eslint, which does not support TypeScript 7 yet.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # scripts/check-pins.sh requires one version per image across Dockerfiles and
   # compose files, so both ecosystems share one multi-ecosystem PR. Postgres is
