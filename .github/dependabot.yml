@@ -119,6 +119,10 @@ updates:
     directory: "/"
     multi-ecosystem-group: "docker"
     patterns: ["*"]
+    # Node as above. Postgres majors need a data upgrade path first (D15 in
+    # docs/decisions.md).
     ignore:
       - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "postgres"
         update-types: ["version-update:semver-major"]
