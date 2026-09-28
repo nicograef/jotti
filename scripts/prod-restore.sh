@@ -5,7 +5,8 @@ set -euo pipefail
 #
 # Restores a pg_dump created by prod-backup.sh into the production database.
 # DESTRUCTIVE: the dumps use --clean --if-exists, so objects are dropped and
-# re-created; the application services are stopped during the restore.
+# re-created; the application services are stopped during the restore. The
+# restore runs in one transaction, so a failure leaves the database unchanged.
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 PG_SERVICE="postgres"
@@ -28,14 +29,20 @@ if (( ${#DUMPS_FOUND[@]} > 0 )); then
   done
 fi
 
-# A corrupt or truncated archive only surfaces mid-restore — after --clean has
-# already dropped the objects. Test it while the database is still intact; the
-# same check guards the write side in prod-backup.sh.
+# Reject a corrupt archive before the stack is touched; the same check guards
+# the write side in prod-backup.sh.
 if [[ "$SELECTED" == *.gz ]]; then
   info "Checking the archive (gzip -t) ..."
   if ! gzip -t "$SELECTED"; then
     fatal "Integrity check failed (gzip -t): $SELECTED is corrupt. Nothing was changed."
   fi
+fi
+
+# A dump cut at a statement boundary restores without an SQL error; only
+# pg_dump's closing comment proves the file is complete.
+dump_tail="$(decompress | tail -n 20)"
+if ! grep -qx -- '-- PostgreSQL database dump complete' <<<"$dump_tail"; then
+  fatal "$SELECTED lacks pg_dump's closing line, so it is truncated. Nothing was changed."
 fi
 
 echo ""
@@ -52,15 +59,22 @@ docker compose -f "$COMPOSE_FILE" up -d --wait "$PG_SERVICE"
 info "Stopping application services during the restore ..."
 docker compose -f "$COMPOSE_FILE" stop backend frontend reverse-proxy
 
-# ON_ERROR_STOP aborts on the first SQL error instead of limping on with a
-# half-restored DB; the postgres role comes from the container's own
-# POSTGRES_USER.
+# -1 with ON_ERROR_STOP rolls the whole restore back on the first SQL error;
+# psql ignores -1 without -f, hence `-f -` for stdin. The postgres role comes
+# from the container's own POSTGRES_USER.
 info "Restoring $SELECTED ..."
 if ! decompress | docker compose -f "$COMPOSE_FILE" exec -T "$PG_SERVICE" \
-       sh -c 'psql -U "$POSTGRES_USER" -d jotti -v ON_ERROR_STOP=1'; then
-  error "Restore failed — the database may be in an inconsistent state."
-  error "Application services are stopped. Inspect, fix, then restart: make prod-up"
+       sh -c 'psql -U "$POSTGRES_USER" -d jotti -1 -v ON_ERROR_STOP=1 -f -'; then
+  error "Restore failed and was rolled back; the database is unchanged."
+  error "Application services are stopped. Restart them: make prod-up"
   exit 1
+fi
+
+# A restored database has no planner statistics until autovacuum reaches it.
+info "Updating planner statistics ..."
+if ! docker compose -f "$COMPOSE_FILE" exec -T "$PG_SERVICE" \
+       sh -c 'vacuumdb -U "$POSTGRES_USER" -d jotti --analyze-in-stages'; then
+  warn "vacuumdb failed; the data is restored, autovacuum will analyze it later."
 fi
 
 info "Restarting the full stack ..."
