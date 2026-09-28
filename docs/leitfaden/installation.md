@@ -14,7 +14,7 @@ Windows-Computer im Vereinsheim wird zum Kassenrechner. Die Servicekräfte bedie
 
 ## Start per Doppelklick
 
-Für Windows gibt es einen Doppelklick-Starter, der die `.env` erzeugt, den Stack hochfährt und Docker-Start sowie Firewall-Freigabe selbst erledigt, ganz ohne Kommandozeile.
+Für Windows gibt es einen Doppelklick-Starter, ganz ohne Kommandozeile. Er erzeugt die `.env`, fährt den Stack hoch und erledigt Docker-Start sowie Firewall-Freigabe selbst.
 
 > ⚠️ **Erststart zuhause mit Internet, nicht auf dem Fest.** Beim ersten Start lädt jotti seine Programmteile herunter und holt das grüne Zertifikat — beides braucht Internet. Macht den Erststart (und spätere [Updates](aktualisieren.md)) in Ruhe vorab, nicht erst am Veranstaltungstag.
 
@@ -25,7 +25,7 @@ Für Windows gibt es einen Doppelklick-Starter, der die `.env` erzeugt, den Stac
 
 Den vollständigen Windows-Ablauf (SmartScreen, UAC, Beenden) beschreibt auch die `KURZANLEITUNG.md` im ZIP. Für gedruckte Bons folgt weiter unten der Abschnitt „Bondruck einrichten".
 
-> 🔒 **Grünes Schloss als Normalfall.** Für den lokalen Betrieb holt jotti automatisch ein echtes Zertifikat über die Adresse `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start ausgestellt und selbst erneuert. Blockiert euer Router den Namen (DNS-Rebind-Schutz), tragt ihr dafür einmalig eine Ausnahme am Router ein ([Anleitung je Router](fehlersuche.md#router-hinweise)); bis dahin arbeitet ihr über die Fallback-Adresse ganz normal weiter. Welche Adresse gerade gilt, zeigt samt QR-Code die Status-Seite `http://localhost:8484` am Kassenrechner.
+> 🔒 **Grünes Schloss als Normalfall.** Für den lokalen Betrieb holt jotti automatisch ein echtes Zertifikat über die Adresse `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start ausgestellt und selbst erneuert. Blockiert euer Router den Namen (DNS-Rebind-Schutz), tragt ihr dafür einmalig eine Ausnahme am Router ein ([Anleitung je Router](fehlersuche.md#router-hinweise)). Bis dahin arbeitet ihr über die Fallback-Adresse ganz normal weiter. Welche Adresse gerade gilt, zeigt samt QR-Code die Status-Seite `http://localhost:8484` am Kassenrechner.
 >
 > Greift die grüne Adresse nicht, springt ein Fallback `https://<LAN-IP>` mit selbstsigniertem Zertifikat ein (einmalige Browserwarnung pro Gerät, siehe [Fehlersuche](fehlersuche.md)).
 
@@ -45,20 +45,28 @@ Nach dem Speichern ist das Einmalpasswort ungültig und der Login mit dem neuen 
 
 Das Handy ins Vereins-WLAN bringen. Dann den QR-Code von der Status-Seite scannen oder die grüne Adresse eintippen, dann anmelden.
 
-Für die Theke verbindet ihr statt eines Handys ein Tablet oder einen Laptop und stellt es in den Direktverkauf ([Welcher Modus passt?](betriebsarten.md)).
+Für die Theke verbindet ihr statt eines Handys ein Tablet oder einen Laptop. Das Gerät stellt ihr in den Direktverkauf ([Welcher Modus passt?](betriebsarten.md)).
 
 Geht die grüne Adresse nicht, nennt die Status-Seite die Fallback-Adresse (z. B. `https://192.168.1.50`). Beim ersten Zugriff pro Gerät die einmalige Browserwarnung bestätigen, danach anmelden. Lädt die grüne Adresse auf den Handys gar nicht, blockiert vermutlich der Router (siehe [Fehlersuche](fehlersuche.md)).
 
 ## Bondruck einrichten
 
 Der Kassenbeleg braucht einen Drucker (siehe [Häufige Fragen](haeufige-fragen.md)).
-Für gedruckte Bons braucht ihr einen ESC/POS-Bondrucker mit 80 mm Papier, im Netzwerk erreichbar (Ethernet oder WLAN), TCP-Port 9100, feste IP-Adresse empfohlen. USB-Drucker werden nicht unterstützt — jotti druckt ausschließlich über das Netzwerk.
+Für gedruckte Bons braucht ihr einen ESC/POS-Bondrucker:
+
+- 80 mm Papier
+- im Netzwerk erreichbar (Ethernet oder WLAN), TCP-Port 9100
+- feste IP-Adresse empfohlen
+
+USB-Drucker werden nicht unterstützt — jotti druckt ausschließlich über das Netzwerk.
 
 Im Feld bestätigt sind der **Epson TM-T20IV** per Ethernet und der
-**Sam4s Hcube** per WLAN. Kaufempfehlung: Epson TM-T20IV, Modell C31CL47102
-(Ethernet), Preisklasse ca. 185–225 € brutto; günstigere Alternative ist der
-Sam4s Hcube 102DB (Ethernet, ca. 119 € brutto; Port 9100 vom Hersteller nicht
-dokumentiert, vor dem Kauf prüfen). Stand der Recherche: 07.09.2026.
+**Sam4s Hcube** per WLAN.
+
+Kaufempfehlung (Stand der Recherche: 07.09.2026):
+
+- Epson TM-T20IV, Modell C31CL47102 (Ethernet), Preisklasse ca. 185–225 € brutto
+- günstigere Alternative: Sam4s Hcube 102DB (Ethernet, ca. 119 € brutto; Port 9100 vom Hersteller nicht dokumentiert, vor dem Kauf prüfen)
 
 Die Einrichtung hat zwei Teile:
 
