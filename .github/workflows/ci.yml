@@ -47,14 +47,17 @@ jobs:
               - 'database/**'
             resolver:
               - 'resolver/**'
+              - 'backend/go.mod'
               - 'go.work'
               - 'go.work.sum'
             proxy:
               - 'reverse-proxy/**'
+              - 'backend/go.mod'
               - 'go.work'
               - 'go.work.sum'
             windows:
               - 'windows/**'
+              - 'backend/go.mod'
               - 'go.work'
               - 'go.work.sum'
             website:
@@ -95,10 +98,9 @@ jobs:
 
       - name: Check format
         run: |
-          go install golang.org/x/tools/cmd/goimports@v0.50.0
-          if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
+          if [ -n "$(go tool goimports -l .)" ]; then
             echo "Code is not properly formatted:"
-            goimports -l .
+            go tool goimports -l .
             exit 1
           fi
 
@@ -116,7 +118,7 @@ jobs:
         run: go build -v ./...
 
       - name: Test
-        run: go test -tags=unit -count=1 -v -race -coverprofile=coverage.out ./...
+        run: go test -count=1 -v -race -coverprofile=coverage.out ./...
 
       - name: Report test coverage
         run: |
@@ -142,22 +144,12 @@ jobs:
           cache-dependency-path: backend/go.sum
 
       # Version pinned to the local toolchain (scripts/setup-dev-tools.sh) so a
-      # green CI and a green `make verify` mean the same thing. Two passes:
-      # --build-tags=unit merges with backend/.golangci.yml's default, so the
-      # second pass loads [integration unit]; the integration-only pass stays
-      # because whole-program linters (unused) judge each file set on its own.
-      - name: golangci-lint (integration)
+      # green CI and a green `make verify` mean the same thing.
+      - name: golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.14.0
           working-directory: ./backend
-
-      - name: golangci-lint (unit)
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
-        with:
-          version: v2.14.0
-          working-directory: ./backend
-          args: --build-tags=unit
 
   resolver-ci:
     needs: changes
@@ -187,10 +179,9 @@ jobs:
 
       - name: Check format
         run: |
-          go install golang.org/x/tools/cmd/goimports@v0.50.0
-          if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
+          if [ -n "$(go tool goimports -l .)" ]; then
             echo "Code is not properly formatted:"
-            goimports -l .
+            go tool goimports -l .
             exit 1
           fi
 
@@ -242,10 +233,9 @@ jobs:
 
       - name: Check format
         run: |
-          go install golang.org/x/tools/cmd/goimports@v0.50.0
-          if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
+          if [ -n "$(go tool goimports -l .)" ]; then
             echo "Code is not properly formatted:"
-            goimports -l .
+            go tool goimports -l .
             exit 1
           fi
 
@@ -296,10 +286,9 @@ jobs:
       - name: Check format
         working-directory: ./windows/${{ matrix.module }}
         run: |
-          go install golang.org/x/tools/cmd/goimports@v0.50.0
-          if [ "$(goimports -l . | wc -l)" -gt 0 ]; then
+          if [ -n "$(go tool goimports -l .)" ]; then
             echo "Code is not properly formatted:"
-            goimports -l .
+            go tool goimports -l .
             exit 1
           fi
 

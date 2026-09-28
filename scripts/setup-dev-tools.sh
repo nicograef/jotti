@@ -30,40 +30,20 @@ export PATH="$GO_BIN_PATH:$PATH"
 # Every Go tool below is built with `go install` via the module proxy: GitHub
 # release downloads are blocked behind some proxies.
 #
-# goimports and golangci-lint are built with the module's own toolchain
-# (backend/go.mod). CI builds goimports with that same Go, and golangci-lint
-# refuses to run when the Go it was built with is older than the version the
-# module targets.
+# golangci-lint is built with the module's own toolchain (backend/go.mod): it
+# refuses to run when the Go it was built with is older than the module's.
 GO_TOOLCHAIN="$(cd "$PROJECT_ROOT/backend" && go env GOVERSION)"
 
 # Version of the module an installed Go tool was built from, read from its
-# build info (`go version -m`) rather than a tool flag: goimports has no
-# version flag, and a `go install`ed migrate reports "dev". Prints nothing
-# when the command is missing or was built from another module.
+# build info (`go version -m`) rather than a tool flag: a `go install`ed
+# migrate reports "dev". Prints nothing when the command is missing or was
+# built from another module.
 installed_mod_version() {
   local bin buildinfo
   bin="$(command -v "$1")" || return 0
   buildinfo="$(go version -m "$bin" 2>/dev/null)" || return 0
   awk -v module="$2" '$1 == "mod" && $2 == module {print $3}' <<<"$buildinfo"
 }
-
-# Matches CI: .github/workflows/ci.yml pins goimports to this version in every
-# "Check format" step, so local formatting matches CI. goimports across
-# versions can reformat imports differently, so @latest would drift from CI.
-GOIMPORTS_VERSION="v0.50.0"
-info "Ensuring goimports ($GOIMPORTS_VERSION) is available..."
-INSTALLED_GOIMPORTS="$(installed_mod_version goimports golang.org/x/tools)"
-if [ "$INSTALLED_GOIMPORTS" = "$GOIMPORTS_VERSION" ]; then
-  info "goimports already installed: $INSTALLED_GOIMPORTS"
-else
-  info "Building goimports $GOIMPORTS_VERSION with $GO_TOOLCHAIN into $GO_BIN_PATH (installed: ${INSTALLED_GOIMPORTS:-none})"
-  GOTOOLCHAIN="$GO_TOOLCHAIN" GOBIN="$GO_BIN_PATH" \
-    go install "golang.org/x/tools/cmd/goimports@$GOIMPORTS_VERSION"
-fi
-
-if ! command -v goimports >/dev/null 2>&1; then
-  fatal "goimports is still not on PATH. Add '$GO_BIN_PATH' to your PATH and rerun this script."
-fi
 
 # Matches CI: .github/workflows/ci.yml pins the golangci-lint action to this
 # version so a green CI and a green `make verify` mean the same thing.
@@ -193,7 +173,6 @@ info "Tool summary"
 echo "  go:             $(go version)"
 echo "  node:           $(node --version)"
 echo "  pnpm:           $(pnpm --version)"
-echo "  goimports:      $(installed_mod_version goimports golang.org/x/tools)"
 echo "  golangci-lint:  $(golangci-lint --version | head -n 1)"
 echo "  sqlc:           $(sqlc version)"
 echo "  migrate:        $(installed_mod_version migrate github.com/golang-migrate/migrate/v4)"

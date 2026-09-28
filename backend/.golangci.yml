@@ -1,9 +1,7 @@
 version: "2"
 
-# golangci-lint runs twice (`make check-backend` / `make lint-backend-full`, CI
-# job `backend-golangci`): the CLI's --build-tags merges with this default, so
-# the second pass loads [integration unit]. The integration-only pass stays
-# because whole-program linters (e.g. unused) judge each file set on its own.
+# One pass covers every file: unit tests are untagged, integration tests carry
+# the integration tag.
 run:
   build-tags:
     - integration

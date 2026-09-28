@@ -62,7 +62,7 @@ jobs:
       - name: govulncheck
         working-directory: ./${{ matrix.module }}
         # govulncheck fails only on vulnerabilities reachable from this module's
-        # code; version pinned for reproducibility, like goimports in ci.yml.
+        # code; version pinned for reproducibility.
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
   # windows/relay and windows/starter have zero dependencies (no go.sum), so
@@ -89,7 +89,7 @@ jobs:
       - name: govulncheck
         working-directory: ./${{ matrix.module }}
         # govulncheck fails only on vulnerabilities reachable from this module's
-        # code; version pinned for reproducibility, like goimports in ci.yml.
+        # code; version pinned for reproducibility.
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
 
   vuln-scan-npm:

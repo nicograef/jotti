@@ -41,7 +41,7 @@ status: ## Status aller Dev-Container anzeigen
 # Tests
 
 test: ## Backend Unit-Tests ausführen
-	cd backend && go test -tags=unit -race ./...
+	cd backend && go test -race ./...
 
 test-frontend: ## Frontend Tests ausführen
 	cd frontend && pnpm test
@@ -62,18 +62,22 @@ test-e2e: ## E2E-Tests (Playwright) gegen E2E_BASE_URL (Default Dev-Stack http:/
 	cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install chromium && pnpm test
 
 fuzz: ## Fuzz-Targets länger laufen lassen (je Target 90s; kein CI-Dauerlauf)
-	cd backend && go test -tags=unit -run='^$$' -fuzz='FuzzApplyEvent$$' -fuzztime=90s ./domain/kasse/
-	cd backend && go test -tags=unit -run='^$$' -fuzz='FuzzPositionEventDataRoundtrip$$' -fuzztime=90s ./domain/kasse/
-	cd backend && go test -tags=unit -run='^$$' -fuzz='FuzzSerializeCSV$$' -fuzztime=90s ./api/fiskal/dsfinvk/
-	cd backend && go test -tags=unit -run='^$$' -fuzz='FuzzFormatKassenbeleg$$' -fuzztime=90s ./api/druck/bondruck/application/escpos/
+	cd backend && go test -run='^$$' -fuzz='FuzzApplyEvent$$' -fuzztime=90s ./domain/kasse/
+	cd backend && go test -run='^$$' -fuzz='FuzzPositionEventDataRoundtrip$$' -fuzztime=90s ./domain/kasse/
+	cd backend && go test -run='^$$' -fuzz='FuzzSerializeCSV$$' -fuzztime=90s ./api/fiskal/dsfinvk/
+	cd backend && go test -run='^$$' -fuzz='FuzzFormatKassenbeleg$$' -fuzztime=90s ./api/druck/bondruck/application/escpos/
 
 # Linting
 
-lint-backend: ## Backend Linting (go vet + goimports)
-	cd backend && go vet ./... && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then goimports -l .; exit 1; fi
+# goimports is a tool of backend/go.mod; go.work makes it the one pin for every Go module.
+# $(goimports-check) fails when goimports would rewrite a file below the current directory.
+goimports-check = if [ -n "$$(go tool goimports -l .)" ]; then echo "Go files are not properly formatted:"; go tool goimports -l .; exit 1; fi
 
-lint-backend-full: ## Backend Linting mit golangci-lint (Integration- und Unit-Tag-Dateien)
-	cd backend && golangci-lint run --build-tags=integration && golangci-lint run --build-tags=unit
+lint-backend: ## Backend Linting (go vet + goimports)
+	cd backend && go vet ./... && $(goimports-check)
+
+lint-backend-full: ## Backend Linting mit golangci-lint (inkl. Integrationstest-Dateien)
+	cd backend && golangci-lint run
 
 lint-frontend: ## Frontend Linting (ESLint)
 	cd frontend && pnpm lint
@@ -83,7 +87,7 @@ lint: lint-backend lint-frontend check-shell ## Backend-, Frontend- und Shell-Li
 # Formatierung
 
 fmt-backend: ## Backend Code formatieren (goimports)
-	cd backend && goimports -w .
+	cd backend && go tool goimports -w .
 
 fmt-frontend: ## Frontend Code formatieren (Prettier + ESLint --fix)
 	cd frontend && pnpm format && pnpm lint:fix
@@ -249,7 +253,7 @@ clean: ## Dev-Stack stoppen und Volumes entfernen
 # Qualitätsprüfung (CI-nah)
 
 check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
-	@for tool in golangci-lint goimports sqlc shellcheck actionlint pnpm; do \
+	@for tool in golangci-lint sqlc shellcheck actionlint pnpm; do \
 		if ! command -v $$tool >/dev/null 2>&1; then \
 			echo "Fehlendes Tool: $$tool"; \
 			echo "Installiere es mit scripts/setup-dev-tools.sh."; \
@@ -269,23 +273,23 @@ check-tools-integration: ## Prüfen, ob migrate und Docker für Integrationstest
 		exit 1; \
 	fi
 
-check-backend: ## Backend komplett prüfen (Deps, Format, Lint inkl. Integration- und Unit-Tag, Test, Build)
-	cd backend && go mod tidy -diff && golangci-lint run --build-tags=integration && golangci-lint run --build-tags=unit && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -tags=unit -count=1 -race ./... && go build ./...
+check-backend: ## Backend komplett prüfen (Deps, Lint inkl. Integrationstest-Dateien, Format, Vet, Test, Build)
+	cd backend && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build ./...
 
 check-sqlc: ## Prüfen, ob backend/sqlc/dbgen zu Queries und Migrationen passt (sqlc diff)
 	cd backend && sqlc diff
 
 check-relay: ## Print-Relay komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd windows/relay && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+	cd windows/relay && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
 check-starter: ## Windows-Starter komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd windows/starter && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build ./...
+	cd windows/starter && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build ./...
 
 check-resolver: ## DNS-Resolver komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd resolver && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+	cd resolver && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
 check-local-proxy: ## Lokales Proxy-Entrypoint-Binary komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd reverse-proxy && go mod tidy -diff && golangci-lint run && if [ "$$(goimports -l . | wc -l)" -gt 0 ]; then echo "Go files are not properly formatted:"; goimports -l .; exit 1; fi && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+	cd reverse-proxy && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
 check-format: ## Repo-weite Prettier-Formatierung prüfen (ts, tsx, js, mjs, cjs, json, css, md)
 	frontend/node_modules/.bin/prettier --check $(PRETTIER_GLOB)
