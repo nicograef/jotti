@@ -1,6 +1,5 @@
-// Package application orchestriert den DSFinV-K-Export: es lädt Events und
-// Stammdaten einer Kassensitzung und reicht sie an den reinen dsfinvk-Mapper
-// weiter. Die fiskalische Transformation selbst liegt in backend/api/fiskal/dsfinvk.
+// Package application orchestrates the DSFinV-K export: it loads a Kassensitzung's
+// events and master data and hands them to the pure dsfinvk mapper.
 package application
 
 import (
@@ -26,8 +25,8 @@ var (
 )
 
 type kassenjournalRepo interface {
-	// ReadEventsByKassensitzung liefert die Events samt Signatur-Stand je Event
-	// (LEFT JOIN auf die Signaturaufträge: kein Eintrag = nicht signaturpflichtig).
+	// ReadEventsByKassensitzung returns the events with each one's signature state
+	// (LEFT JOIN on the Signaturaufträge: no entry = no signature required).
 	ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]event.Event, map[int]tse.EventSignatur, error)
 }
 
@@ -46,9 +45,8 @@ type tseRepo interface {
 }
 
 type tischRepo interface {
-	// GetAlleTischNamen muss auch gelöschte Tische liefern: der Export benennt die
-	// Abrechnungskreise vergangener Kassensitzungen, und ein Tisch darf nach dem
-	// Tagesabschluss gelöscht werden.
+	// GetAlleTischNamen must include deleted tables: the export names the
+	// Abrechnungskreise of past sessions, and a table may be deleted after the Tagesabschluss.
 	GetAlleTischNamen(ctx context.Context) (map[int]string, error)
 }
 
@@ -58,9 +56,8 @@ type Export struct {
 	BetreiberRepo       betreiberRepo
 	TSERepo             tseRepo
 	TischRepo           tischRepo
-	// Version ist die Build-Version der jotti-Software, gesetzt per ldflags.
-	// Sie wird als KASSE_SW_VERSION in die cashregister.csv des DSFinV-K-Archivs
-	// geschrieben.
+	// Version is the jotti build version set via ldflags, exported as KASSE_SW_VERSION
+	// in cashregister.csv.
 	Version string
 }
 
@@ -69,8 +66,8 @@ type Archiv struct {
 	Inhalt    []byte
 }
 
-// Erstellen erzeugt das DSFinV-K-Archiv für die gewählte Kassensitzung. nr == 0
-// wählt die Standard-Sitzung: die offene, sonst die jüngste abgeschlossene.
+// Erstellen builds the DSFinV-K archive for the chosen Kassensitzung. nr == 0 selects
+// the default session: the open one, else the latest closed.
 func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -132,8 +129,8 @@ func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassens
 		return kasse.Kassensitzung{}, ErrKassensitzungNichtGefunden
 	}
 
-	// Der Export will genau die offene Sitzung; eine Sitzung im Barrierestatus
-	// erreicht denselben Export über den Zweig der jüngsten Sitzung darunter.
+	// The export wants exactly the open session; a session in barrier status reaches
+	// the same export via the latest-session branch below.
 	offen, err := e.KassensitzungenRepo.GetOffeneKassensitzung(ctx) //nolint:forbidigo
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get offene kassensitzung")
@@ -151,7 +148,7 @@ func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassens
 	if len(alle) == 0 {
 		return kasse.Kassensitzung{}, ErrKassensitzungNichtGefunden
 	}
-	// GetAllKassensitzungen ist nach datum DESC sortiert — alle[0] ist die jüngste.
+	// GetAllKassensitzungen sorts by datum DESC, so alle[0] is the latest.
 	return alle[0], nil
 }
 
@@ -190,9 +187,8 @@ func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung
 	}, nil
 }
 
-// dateiname baut den sprechenden Archivnamen aus Seriennummer, Kassensitzung
-// und Zeitstempel. Der Zeitstempel kommt als UTC aus der Datenbank und steht im
-// Namen als deutsche Ortszeit; abends wäre es sonst der Vortag.
+// dateiname builds the archive name from serial number, session and timestamp. The
+// UTC timestamp appears in German local time; UTC would name the previous day just after midnight.
 func dateiname(seriennummer string, nr int, zeitpunkt time.Time) string {
 	return fmt.Sprintf("dsfinvk_%s_kassensitzung-%d_%s.zip", seriennummer, nr, zeitpunkt.In(zeit.Berlin).Format("20060102-150405"))
 }

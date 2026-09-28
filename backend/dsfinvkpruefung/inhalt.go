@@ -244,7 +244,7 @@ func pruefeBedienerFelder(daten map[string]tabellendaten) []Befund {
 }
 
 // pruefeTagesabschlussZeile: Anhang B requires BON_NAME on an AVSonstige bon; jotti's closing bon uses "Tagesabschluss".
-// See docs/compliance.md §6.3.
+// See docs/compliance.md §6.8.
 func pruefeTagesabschlussZeile(daten map[string]tabellendaten) []Befund {
 	transactions, ok := daten["transactions.csv"]
 	if !ok {

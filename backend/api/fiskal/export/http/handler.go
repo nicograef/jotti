@@ -12,10 +12,9 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// exportWriteTimeout ersetzt für diesen Handler die globale 10-Sekunden-
-// Schreibfrist des Servers (backend/app/app.go): Das DSFinV-K-ZIP kann länger
-// zum Übertragen brauchen als jede andere Antwort und darf dabei nicht
-// stillschweigend abgeschnitten werden (aufbewahrungspflichtige Daten).
+// exportWriteTimeout replaces the server's global 10-second write deadline
+// (backend/app/app.go) here: the DSFinV-K ZIP may take longer to send and must
+// not be cut silently, as it holds records subject to retention.
 const exportWriteTimeout = 5 * time.Minute
 
 type service interface {
@@ -26,20 +25,20 @@ type Handler struct {
 	Service service
 }
 
-// exportRequest wählt die zu exportierende Kassensitzung. 0 (bzw. fehlend) steht
-// für die Standard-Sitzung (offen, sonst jüngste abgeschlossene).
+// exportRequest selects the Kassensitzung; 0 or missing means the default session
+// (the open one, else the latest closed).
 type exportRequest struct {
 	KassensitzungNr int `json:"kassensitzungNr"`
 }
 
-// ExportHandler streamt das DSFinV-K-ZIP der gewählten Kassensitzung. Die
-// Admin-Rolle wird bereits durch den /admin/-Mount erzwungen.
+// ExportHandler streams the chosen Kassensitzung's DSFinV-K ZIP. The /admin/ mount
+// already enforces the admin role.
 func (h *Handler) ExportHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := zerolog.Ctx(r.Context())
 
-		// Erste Setzung am Handler-Eingang: Sie gilt den frühen Fehlerpfaden, die vor
-		// Erstellen() antworten (unlesbarer Body, invalid_kassensitzung).
+		// First deadline at handler entry: it covers the early error paths that answer
+		// before Erstellen() (unreadable body, invalid_kassensitzung).
 		helper.ExtendWriteDeadline(w, r, exportWriteTimeout)
 
 		body := exportRequest{}
@@ -53,10 +52,8 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 
 		archiv, err := h.Service.Erstellen(r.Context(), body.KassensitzungNr)
 
-		// Zweites Setzen der Schreibfrist, jetzt für den Schreibvorgang selbst:
-		// Die Frist oben ist eine absolute Zeit ab Request-Start und nach einem
-		// langen Archivbau abgelaufen. Erst dieser Aufruf gibt der Übertragung
-		// des ZIP ihr eigenes Budget; er deckt zugleich den Fehlerzweig ab.
+		// Second deadline, for the write itself: the one above is absolute from request
+		// start and has expired after a long archive build. It also covers the error branch.
 		helper.ExtendWriteDeadline(w, r, exportWriteTimeout)
 
 		if err != nil {

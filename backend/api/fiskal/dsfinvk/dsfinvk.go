@@ -1,6 +1,5 @@
-// Package dsfinvk transformiert Events und Stammdaten einer Kassensitzung
-// seiteneffektfrei in ein DSFinV-K-Archiv (CSVs, index.xml, DTD). Kein I/O: der
-// Orchestrator lädt die Daten und reicht sie als Snapshot plus Event-Liste herein.
+// Package dsfinvk turns a Kassensitzung's events and master data into a DSFinV-K
+// archive (CSVs, index.xml, DTD) without I/O; the orchestrator loads the data.
 package dsfinvk
 
 import (
@@ -13,29 +12,26 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// Version ist der deklarierte DSFinV-K-Versionsstring, absichtlich an genau
-// einer Stelle gehalten, da die Tabellenstruktur seit v2.0 stabil ist;
-// aktuell verbindlich ist v2.4 (Stand Dezember 2023).
+// Version is the declared DSFinV-K version, kept in one place for a future spec
+// version (docs/compliance.md §6.1).
 const Version = "2.4"
 
-// Snapshot sind die Stammdaten, die der Export neben den Events braucht.
+// Snapshot is the master data the export needs besides the events.
 type Snapshot struct {
-	// KasseSeriennummer speist Z_KASSE_ID und KASSE_SERIENNR (UUID der Kasse).
+	// KasseSeriennummer feeds Z_KASSE_ID and KASSE_SERIENNR (the Kasse UUID).
 	KasseSeriennummer string
-	// Erstellung ist der Zeitpunkt des Kassenabschlusses (Z_ERSTELLUNG). Bei
-	// einer offenen Sitzung der Exportzeitpunkt, bei einer abgeschlossenen der
-	// Zeitpunkt des Tagesabschlusses.
+	// Erstellung is Z_ERSTELLUNG: the Tagesabschluss time of a closed session, the
+	// export time of an open one.
 	Erstellung time.Time
-	// KassensitzungNr ist die Z_NR des Abschlusses.
+	// KassensitzungNr is the closing's Z_NR.
 	KassensitzungNr int
 	Betreiber       betreiber.Betreiber
 	TSEStammdaten   tse.Stammdaten
-	// SoftwareVersion ist die Build-Version der jotti-Software (KASSE_SW_VERSION).
-	// Sie wird per ldflags zur Build-Zeit gesetzt ("dev" im Entwicklungsmodus).
+	// SoftwareVersion is the jotti build version (KASSE_SW_VERSION), set via ldflags
+	// ("dev" in development).
 	SoftwareVersion string
-	// Tischnamen bildet Tisch-IDs auf ihren Namen ab (Quelle des
-	// ABRECHNUNGSKREIS), gelöschte Tische eingeschlossen; fehlt ein Tisch,
-	// synthetisiert der Mapper "Tisch N".
+	// Tischnamen maps table IDs to names (source of ABRECHNUNGSKREIS), deleted tables
+	// included; for a missing table the mapper synthesises "Tisch N".
 	Tischnamen map[int]string
 }
 
@@ -55,16 +51,13 @@ func derefOrEmpty(s *string) string {
 	return *s
 }
 
-// stornoNein ist das DSFinV-K-Storno-Kennzeichen ("0") für BON_STORNO und
-// P_STORNO. jotti setzt es stets auf "0": Teilrücknahmen werden negativ
-// dargestellt (b.sign()), nicht als Vorgangs-Storno.
+// stornoNein is the DSFinV-K flag "0" for BON_STORNO and P_STORNO; jotti always sets
+// it, as partial returns are shown negative (docs/compliance.md §6.6).
 const stornoNein = "0"
 
-// formatAmount stellt einen Cent-Betrag als Dezimalzahl mit KOMMA und zwei
-// Nachkommastellen dar, z. B. 500 -> "5,00", -150 -> "-1,50". Das Komma ist
-// durch die amtliche index.xml vorgegeben (DecimalSymbol ","); zwei Stellen
-// sind der DSFinV-K-Regelfall (technisch bis fünf zulässig). Intern wird
-// durchgehend in Cent gerechnet, erst hier dezimal dargestellt.
+// formatAmount renders cents with a decimal comma and two decimals, e.g. -150 -> "-1,50".
+// The official index.xml sets DecimalSymbol ","; two decimals are the DSFinV-K norm
+// (up to five allowed).
 func formatAmount(cents int) string {
 	sign := ""
 	if cents < 0 {
@@ -74,22 +67,18 @@ func formatAmount(cents int) string {
 	return fmt.Sprintf("%s%d,%02d", sign, cents/100, cents%100)
 }
 
-// formatQuantity stellt eine Stückzahl mit drei Nachkommastellen dar (MENGE).
+// formatQuantity renders a quantity with three decimals (MENGE).
 func formatQuantity(menge int) string {
 	return fmt.Sprintf("%d,000", menge)
 }
 
-// ustNichtSteuerbar ist der DSFinV-K-Umsatzsteuerschlüssel für nicht steuerbare
-// Vorgänge (Anlage 2, ID 5): Bargeldbewegungen ohne USt-Bezug (Anfangsbestand,
-// Geldtransit, Kassendifferenz).
+// ustNichtSteuerbar is DSFinV-K VAT key 5 (Anlage 2) for non-taxable cash movements
+// (Anfangsbestand, Geldtransit, Kassendifferenz).
 const ustNichtSteuerbar = 5
 
-// ustSchluessel bildet einen jotti-Steuersatz auf den DSFinV-K-Umsatzsteuer-
-// schlüssel (Anlage 2) ab: 1 = Regelsteuersatz (19 %), 2 = ermäßigter Satz (7 %),
-// 6 = umsatzsteuerfrei (0 %, z. B. Kleinunternehmer § 19 UStG). ID 7 (Umsatzsteuer
-// nicht ermittelbar) dient nur der Forderungsauflösung und entfällt in jottis
-// Revenue-at-payment-Modell. Die Steueraufteilung entfaltet kombi vorab, daher
-// kommt hier nie KombiSteuersatz an.
+// ustSchluessel maps a jotti rate to its DSFinV-K Anlage 2 key: 1 = 19 %, 2 = 7 %,
+// 6 = exempt (0 %, e.g. § 19 UStG). Key 7 (not determinable) only serves receivables,
+// which revenue-at-payment never has; kombi is split before it arrives here.
 func ustSchluessel(satz steuer.Steuersatz) int {
 	switch satz {
 	case steuer.RegelSteuersatz:

@@ -315,8 +315,6 @@ Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Beze
 | `subitems.csv`          | Bonpos_Zusatzinfo    | Zusatzinformationen je Position (z. B. Pfand). Nur bei vorhandenen Zusatzinfos befüllt, sonst header-only oder weggelassen       |
 | `transactions_tse.csv`  | TSE_Transaktionen    | Kritisch: TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`)                    |
 
-Der Tagesabschluss erscheint in `transactions.csv` als Bon mit `BON_TYP = AVSonstige`. Anhang B verlangt für `AVSonstige` eine Beschreibung in `BON_NAME`; jotti setzt dort `Tagesabschluss`.
-
 #### C. Kassenabschlussmodul (Z-Bon)
 
 | Dateiname (offiziell)   | Logische Bezeichnung | Inhalt                                                         |
@@ -348,10 +346,23 @@ Stornierungen erzeugen immer neue Datensätze (GoBD-Radierverbot), nie Änderung
 - **`BON_STORNO`:** bleibt in allen Fällen `0`. jotti nutzt die zulässige Negativ-Darstellung, das Vorzeichen des neuen Bons trägt die Korrektur. `BON_STORNO = 1` kennzeichnet die vollständige Aufhebung eines ganzen Belegs; diesen Vorgang gibt es in jotti nicht.
 - **Direktverkauf:** `direktverkauf-getaetigt:v1` (positiver Geschäftsvorfall) und `direktverkauf-storniert:v1` (negativer Geschäftsvorfall) sind je eigene Belegvorgänge; jedes Event wird 1:1 auf einen Belegvorgang abgebildet, der Storno verweist per `REF_BON_ID` auf den Ursprungsverkauf.
 - **Abgrenzung:** Ein Storno ist ein negativer `Beleg`-Bon mit `GV_TYP = Umsatz` in `lines.csv`. Negative Bargeldabflüsse (`GV_TYP = Geldtransit` oder `DifferenzSollIst`) sind keine Stornos und brauchen keine Referenz.
+- **Rechtsgrundlage:** Warenrücknahme und Positionskorrektur folgen der Negativ-Darstellung nach DSFinV-K Tz. 4.2.5 und Tz. 4.2.3. Die Korrektur negiert `MENGE`, statt `P_STORNO` zu setzen. Die Referenz auf den Ursprungsbon folgt Tz. 4.2.2.
+- **Umbuchung:** Abgang und Zugang sind je ein geldneutraler `AVBestellung`-Bon. Der Abgang trägt die `umbuchungId` als `BON_ID`, der Zugang verweist per `REF_BON_ID` darauf.
+- **`references.csv`:** `REF_TYP` ist `Transaktion`, `POS_ZEILE` bleibt leer (Verweis aus dem Bonkopf). Ursprung und Verweis liegen in derselben Kassensitzung. Daher tragen `REF_DATUM`, `REF_Z_KASSE_ID` und `REF_Z_NR` die Werte dieses Abschlusses.
 
 ### 6.7 Steuersatz-Verwaltung
 
 USt-Sätze als Stammdaten: 19 % (Regelsteuersatz, z. B. Getränke), 7 % (ermäßigt, z. B. Speisen), 0 % / steuerbefreit (Kleinunternehmer nach § 19 UStG), Kombi 70/30 (Kombinationsangebote nach Abschn. 10.1 Abs. 12 UStAE) [18]. Produkte erhalten einen konfigurierbaren Steuersatz-Schlüssel. Bei `kombi`-Positionen entfaltet der Export den Pauschalpreis in zwei Steueranteile (70 % → 7 %, 30 % → 19 %): zwei VAT-Einträge in `lines_vat.csv`, beide Anteile in `transactions_vat.csv`. Steuerregeln: [steuerrecht.md](steuerrecht.md).
+
+`vat.csv` führt alle USt-Schlüssel 1–7 der DSFinV-K-Anlage 2, nicht nur die verwendeten, weil Prüfsoftware sie erwartet. Die historischen Sätze ab ID 11 entfallen. `UST_SATZ` trägt für 1–4 den bei Erfassung geltenden Satz, für 5–7 fest 0,00.
+
+### 6.8 Bontypen und Geschäftsvorfälle
+
+- **Umsatz bei Zahlung:** Umsatz entsteht erst mit der Zahlung (DSFinV-K Tz. 2.7.2, Durchbedienen mit Bestell-Absicherung).
+- **`BON_TYP` (Anhang B):** Zahlung, Warenrücknahme, Direktverkauf samt Storno und Bargeldbewegungen sind `Beleg`. Bestellung, Korrektur und Umbuchung sind `AVBestellung`. Der Tagesabschluss ist `AVSonstige`.
+- **Geldneutrale Bons:** `AVBestellung` und `AVSonstige` sind TSE-gesichert, tragen aber keinen Umsatz (`UMS_BRUTTO` 0,00). Sie haben weder USt- noch Zahlart- noch Kassenbestandswirkung. Die Positionen einer `AVBestellung` stehen informativ in `lines.csv`, ohne `GV_TYP`. Sonst wiese eine Summe der Bonpos je `GV_TYP` mehr Umsatz aus als der Kassenabschluss.
+- **Bargeldbewegungen (Anhang C):** Anfangsbestand, Geldtransit und `DifferenzSollIst` sind `Beleg` mit genau einer Position. `ARTIKELTEXT` und `GV_TYP` tragen den GV-Typ, `UST_SCHLUESSEL` ist 5 (nicht steuerbar). Sie haben keinen `ABRECHNUNGSKREIS`. Ein Anfangsbestand von 0 erzeugt keinen Bon (Anhang C: Erfassung nicht zwingend).
+- **Tagesabschluss:** Der Tagesabschluss ist ein `AVSonstige`-Bon ohne Positionen mit `BON_NAME` „Tagesabschluss“. Bei `AVSonstige` ist `BON_NAME` Pflicht (Anhang B, Tz. 4.1.2). Er steht im Export, damit seine TSE-Signatur eine Zeile in `transactions_tse.csv` erhält. So geht der Abgleich TSE ↔ Export je Kassensitzung auf.
 
 ## 7. Elektronische Meldepflicht (ELSTER)
 

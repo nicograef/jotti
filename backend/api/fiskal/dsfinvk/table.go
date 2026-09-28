@@ -2,17 +2,16 @@ package dsfinvk
 
 import "strings"
 
-// DSFinV-K-CSV-Formatregeln: Semikolon als Trennzeichen, CRLF als Zeilenende,
-// UTF-8, Doublequote als Text-Begrenzer.
+// DSFinV-K CSV format rules: semicolon separator, CRLF line end, UTF-8, double quote
+// as text delimiter.
 const (
 	csvSeparator        = ";"
 	csvNewline          = "\r\n"
 	csvTextEncapsulator = `"`
 )
 
-// Table ist eine serialisierbare DSFinV-K-CSV-Datei. Feldtyp und
-// Nachkommastellen fehlen bewusst: das Archiv liefert die amtliche index.xml
-// unverändert mit (amtlicheIndexXML) und erzeugt keine eigene Felddeklaration.
+// Table is one DSFinV-K CSV file. It carries no field types or decimals because the
+// archive ships the official index.xml unchanged.
 type Table struct {
 	File        string
 	LogicalName string
@@ -21,8 +20,7 @@ type Table struct {
 	Records     [][]string
 }
 
-// serializeCSV rendert die Tabelle als DSFinV-K-CSV: eine Header-Zeile mit den
-// Spaltennamen, dann je Datensatz eine Zeile.
+// serializeCSV renders the table as DSFinV-K CSV: a header row, then one row per record.
 func serializeCSV(t Table) []byte {
 	var b strings.Builder
 	writeCSVRow(&b, t.Columns)

@@ -69,8 +69,8 @@ func testSnapshot() Snapshot {
 	}
 }
 
-// barverkaufEvent baut die einfachste fiskalische Zahlung: ein Bier (19 %) und
-// eine Brezel (7 %), bar kassiert.
+// barverkaufEvent builds the simplest fiscal payment: one beer (19 %) and one
+// pretzel (7 %), paid in cash.
 func barverkaufEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -161,7 +161,7 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 		}
 	}
 
-	// Bonkopf ist breit; die fiskalisch tragenden Felder gezielt prüfen.
+	// Bonkopf is wide; check the fiscally relevant fields.
 	transactions := tableByFile(t, archive, "transactions.csv")
 	if len(transactions.Records) != 1 {
 		t.Fatalf("transactions: got %d rows, want 1", len(transactions.Records))
@@ -187,10 +187,8 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 	}
 }
 
-// TestMapZertifikatChunking prüft die amtlichen zwei TSE_ZERTIFIKAT-Felder:
-// Ein Zertifikat bis 2.000 Zeichen wird vollständig auf I/II verteilt; ein
-// längeres wird NICHT abgeschnitten, sondern beide Felder bleiben leer (das
-// vollständige Zertifikat liegt in den TSE-Stammdaten und im TSE-Export vor).
+// TestMapZertifikatChunking guards the two official TSE_ZERTIFIKAT fields: up to
+// 2,000 characters fill I/II, a longer certificate leaves both empty instead of truncated.
 func TestMapZertifikatChunking(t *testing.T) {
 	passt := strings.Repeat("A", 1500)
 	snap := testSnapshot()
@@ -211,7 +209,7 @@ func TestMapZertifikatChunking(t *testing.T) {
 
 	zuLang := strings.Repeat("B", 2500)
 	snap.TSEStammdaten.Zertifikat = zuLang
-	// Der Aufrufer (Export) loggt hierauf eine Warnung; die Felder bleiben leer.
+	// The caller (export) logs a warning on this; the fields stay empty.
 	if !ZertifikatZuLang(zuLang) {
 		t.Error("Zertifikat > 2000 Zeichen muss als zu lang gelten (Log-Warnung im Export)")
 	}
@@ -294,11 +292,9 @@ func tischablaufSignaturen(t *testing.T) map[int]tse.EventSignatur {
 	}
 }
 
-// TestMapTischablaufTrennt belegt Revenue-at-payment für den gastronomischen
-// Tisch-Ablauf: die Bestellung ist eine geldneutrale AVBestellung (TSE-gesichert,
-// informative Positionen, aber UMS_BRUTTO=0.00 und kein Beitrag zu USt, Zahlart
-// oder Kassenbestand), die Zahlung der einzige umsatzwirksame Beleg. Beide tragen
-// denselben Abrechnungskreis und je eine eigene TSE-Transaktion.
+// TestMapTischablaufTrennt guards revenue-at-payment for the table flow: the order is
+// a cash-neutral AVBestellung, the payment the only revenue Beleg. Both share the
+// Abrechnungskreis and each has its own TSE transaction.
 func TestMapTischablaufTrennt(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
@@ -311,7 +307,7 @@ func TestMapTischablaufTrennt(t *testing.T) {
 	const erstellung = "2026-06-16T14:30:00Z"
 
 	wantRecords := map[string][][]string{
-		// Beide Vorgänge sind ihrem Tisch zugeordnet und je TSE-gesichert.
+		// Both Vorgänge belong to their table and are each TSE-signed.
 		"allocation_groups.csv": {
 			{testSerial, erstellung, "3", bestellungBonID, "Tisch 42"},
 			{testSerial, erstellung, "3", zahlungBonID, "Tisch 42"},
@@ -320,11 +316,11 @@ func TestMapTischablaufTrennt(t *testing.T) {
 			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00.000Z", "2026-06-16T11:00:01.000Z", "Bestellung-V1", "11", "BESTELLSIG==", "", ""},
 			{testSerial, erstellung, "3", zahlungBonID, "1", "4711", "2026-06-16T12:00:00.000Z", "2026-06-16T12:00:01.000Z", "Kassenbeleg-V1", "12", "ZAHLSIG==", "", ""},
 		},
-		// Nur die Zahlung ist geldwirksam: die AVBestellung trägt keine Zahlart bei.
+		// Only the payment moves cash: the AVBestellung contributes no Zahlart.
 		"datapayment.csv": {
 			{testSerial, erstellung, "3", zahlungBonID, "Bar", "Bar", "EUR", "4,50", "4,50"},
 		},
-		// Umsatz entsteht genau einmal (bei der Zahlung), keine Verdopplung.
+		// Revenue arises exactly once (at payment), no doubling.
 		"businesscases.csv": {
 			{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "4,50", "3,78", "0,72"},
 		},
@@ -340,7 +336,7 @@ func TestMapTischablaufTrennt(t *testing.T) {
 		}
 	}
 
-	// Die geldneutrale AVBestellung trägt nichts zu transactions_vat/lines_vat bei.
+	// The cash-neutral AVBestellung contributes nothing to transactions_vat/lines_vat.
 	for _, file := range []string{"transactions_vat.csv", "lines_vat.csv"} {
 		table := tableByFile(t, archive, file)
 		for _, rec := range table.Records {
@@ -350,8 +346,8 @@ func TestMapTischablaufTrennt(t *testing.T) {
 		}
 	}
 
-	// lines.csv hält die Bestellpositionen informativ (mit Preis); die geldneutrale
-	// AVBestellung trägt keinen GV_TYP — sie ist kein Umsatz-Geschäftsvorfall.
+	// lines.csv holds the order lines informatively (with price); the cash-neutral
+	// AVBestellung has no GV_TYP, as it is no revenue business case.
 	lines := tableByFile(t, archive, "lines.csv")
 	if got := field(t, lines, 0, "GV_TYP"); got != "" {
 		t.Errorf("bestellung GV_TYP = %q, want leer (geldneutrale AVBestellung)", got)
@@ -363,8 +359,8 @@ func TestMapTischablaufTrennt(t *testing.T) {
 		t.Errorf("zahlung GV_TYP = %q, want Umsatz", got)
 	}
 
-	// BON_TYP trennt offene Bestellung und Zahlungsbeleg; die AVBestellung trägt
-	// UMS_BRUTTO=0.00, der Umsatz erscheint erst bei der Zahlung.
+	// BON_TYP separates open order and payment Beleg; the AVBestellung has
+	// UMS_BRUTTO=0.00, revenue appears only at payment.
 	transactions := tableByFile(t, archive, "transactions.csv")
 	if got := field(t, transactions, 0, "BON_TYP"); got != "AVBestellung" {
 		t.Errorf("bestellung BON_TYP = %q, want AVBestellung", got)
@@ -379,16 +375,15 @@ func TestMapTischablaufTrennt(t *testing.T) {
 		t.Errorf("zahlung UMS_BRUTTO = %q, want 4.50", got)
 	}
 
-	// Nur die Barzahlung fließt in den Kassenbestand, nicht die AVBestellung.
+	// Only the cash payment enters the cash balance, not the AVBestellung.
 	closing := tableByFile(t, archive, "cashpointclosing.csv")
 	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "4,50" {
 		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 4.50 (nur Zahlung, nicht AVBestellung)", got)
 	}
 }
 
-// Regression: Weicht der Tisch-Name von der Tisch-ID ab (z. B. Tisch-ID 42 heißt
-// "Stehtisch Bar", weil zwischendurch andere Tische angelegt wurden), muss der
-// Stammdaten-Name im ABRECHNUNGSKREIS stehen — nicht die ID aus dem Subject.
+// Regression: if the table name differs from the table ID (e.g. table 42 is "Stehtisch
+// Bar"), ABRECHNUNGSKREIS must hold the master-data name, not the subject ID.
 func TestAbrechnungskreisNutztTischnamen(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Stehtisch Bar"}
@@ -404,9 +399,8 @@ func TestAbrechnungskreisNutztTischnamen(t *testing.T) {
 	}
 }
 
-// Ein Tischname darf länger sein als das amtliche Feld ABRECHNUNGSKREIS. Der
-// Mapper kürzt ihn auf dessen MaxLength aus der eingebetteten index.xml, ohne
-// einen Umlaut zu zerschneiden.
+// A table name may exceed the official ABRECHNUNGSKREIS field. The mapper truncates
+// it to the index.xml MaxLength without splitting an umlaut.
 func TestAbrechnungskreisKuerztAufAmtlicheMaxLength(t *testing.T) {
 	maxLength := amtlicheMaxLength(t, "allocation_groups.csv", "ABRECHNUNGSKREIS")
 
@@ -415,8 +409,8 @@ func TestAbrechnungskreisKuerztAufAmtlicheMaxLength(t *testing.T) {
 		tischname string
 	}{
 		{"hundert Zeichen", strings.Repeat("A", 100)},
-		// "Tä" wechselt zwischen ein- und zweibytigen Runen: der Schnitt trifft
-		// eine UTF-8-Folge, gleich ob die Feldlänge gerade oder ungerade ist.
+		// "Tä" alternates one- and two-byte runes: the cut hits a UTF-8 sequence whether
+		// the field length is even or odd.
 		{"Umlaute", strings.Repeat("Tä", 33) + "T"},
 	}
 	for _, f := range faelle {
@@ -449,12 +443,11 @@ func TestAbrechnungskreisKuerztAufAmtlicheMaxLength(t *testing.T) {
 	}
 }
 
-// TestAbrechnungskreisFallback synthetisiert "Tisch N" als letzte Rückfallebene,
-// wenn der Tisch überhaupt nicht in den Stammdaten steht. Gelöschte Tische
-// gehören nicht dazu: der Export liefert deren Namen mit (GetAlleTischNamen).
+// TestAbrechnungskreisFallback synthesises "Tisch N" as last resort for a table missing
+// from master data. Deleted tables are no such case: the export loads their names.
 func TestAbrechnungskreisFallback(t *testing.T) {
 	snapshot := testSnapshot()
-	snapshot.Tischnamen = nil // kein Tischname bekannt
+	snapshot.Tischnamen = nil // no table name known
 
 	archive, err := Map(snapshot, []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
 	if err != nil {
@@ -477,9 +470,8 @@ const (
 	nachsigniertOutageBonID  = "88888888-8888-8888-8888-bbbbbbbbbbbb"
 )
 
-// warenruecknahmeEvent nimmt die zuvor bezahlte Bier-Position (zahlungEvent, ZahlungID
-// zahlungBonID) kassenwirksam zurück: negativer Umsatz mit Bar-Rückgabe, am selben
-// Tisch 42.
+// warenruecknahmeEvent returns the paid beer line (zahlungEvent, ZahlungID zahlungBonID)
+// with cash effect: negative revenue with cash refund at table 42.
 func warenruecknahmeEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -510,8 +502,8 @@ func warenruecknahmeEvent(t *testing.T) event.Event {
 	}
 }
 
-// korrekturEvent storniert die noch unbezahlte Bier-Position der bestellungEvent-
-// Bestellung (gleiche PositionID "p1") geldneutral.
+// korrekturEvent cancels the unpaid beer line of the bestellungEvent order (same
+// PositionID "p1") without cash effect.
 func korrekturEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -541,11 +533,9 @@ func korrekturEvent(t *testing.T) event.Event {
 	}
 }
 
-// TestMapKorrekturGeldneutralWithReference belegt das Radierverbot für die
-// geldneutrale Korrektur unbezahlter Positionen: sie ist eine AVBestellung mit
-// negierter MENGE (kein Vorgangs-Storno, BON_STORNO=0) und verweist per REF_BON_ID
-// auf die Ursprungsbestellung. Bestellung und Korrektur sind geldneutral, tragen also
-// nichts zu USt, Zahlart und Kassenbestand bei.
+// TestMapKorrekturGeldneutralWithReference guards the Radierverbot for the cash-neutral
+// Korrektur: an AVBestellung with negated MENGE (BON_STORNO=0) referencing the origin
+// order via REF_BON_ID. Order and Korrektur add nothing to VAT, Zahlart or cash balance.
 func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
@@ -562,11 +552,11 @@ func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 	const erstellung = "2026-06-16T14:30:00Z"
 
 	wantRecords := map[string][][]string{
-		// Verkettung Korrektur → Ursprungsbestellung (gleiche Sitzung: REF_DATUM/REF_Z_NR identisch).
+		// Link Korrektur → origin order (same session: REF_DATUM/REF_Z_NR identical).
 		"references.csv": {
 			{testSerial, erstellung, "3", korrekturBonID, "", "Transaktion", "", erstellung, testSerial, "3", bestellungBonID},
 		},
-		// Eigene TSE-Signatur der Korrektur.
+		// The Korrektur has its own TSE signature.
 		"transactions_tse.csv": {
 			{testSerial, erstellung, "3", bestellungBonID, "1", "4710", "2026-06-16T11:00:00.000Z", "2026-06-16T11:00:01.000Z", "Bestellung-V1", "11", "BESTELLSIG==", "", ""},
 			{testSerial, erstellung, "3", korrekturBonID, "1", "4712", "2026-06-16T13:00:00.000Z", "2026-06-16T13:00:01.000Z", "Bestellung-V1", "13", "KORREKTURSIG==", "", ""},
@@ -580,8 +570,8 @@ func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 		}
 	}
 
-	// Geldneutralität: eine reine Bestell-/Korrektur-Sitzung erzeugt keine
-	// USt-, Zahlart- oder Geschäftsvorfall-Zeilen.
+	// Cash neutrality: an order/Korrektur-only session creates no VAT, Zahlart or
+	// business-case rows.
 	for _, file := range []string{"transactions_vat.csv", "lines_vat.csv", "datapayment.csv", "businesscases.csv", "payment.csv"} {
 		table := tableByFile(t, archive, file)
 		if len(table.Records) != 0 {
@@ -589,7 +579,7 @@ func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 		}
 	}
 
-	// Bonkopf: beide Vorgänge sind geldneutral (UMS_BRUTTO=0.00, BON_STORNO=0).
+	// Bonkopf: both Vorgänge are cash-neutral (UMS_BRUTTO=0.00, BON_STORNO=0).
 	transactions := tableByFile(t, archive, "transactions.csv")
 	if got := field(t, transactions, 0, "BON_STORNO"); got != "0" {
 		t.Errorf("ursprung BON_STORNO = %q, want 0", got)
@@ -604,8 +594,8 @@ func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 		t.Errorf("korrektur UMS_BRUTTO = %q, want 0.00", got)
 	}
 
-	// Positionsebene: negierte MENGE statt P_STORNO-Flag (DSFinV-K Tz. 4.2.3); der
-	// informative Preis bleibt erhalten.
+	// Line level: negated MENGE instead of a P_STORNO flag (DSFinV-K Tz. 4.2.3); the
+	// informative price stays.
 	lines := tableByFile(t, archive, "lines.csv")
 	if got := field(t, lines, 1, "MENGE"); got != "-1,000" {
 		t.Errorf("korrektur MENGE = %q, want -1.000", got)
@@ -615,10 +605,9 @@ func TestMapKorrekturGeldneutralWithReference(t *testing.T) {
 	}
 }
 
-// TestMapWarenruecknahmeNegativeWithZahlungReference belegt die kassenwirksame
-// Warenrücknahme bezahlter Positionen: ein negativer Bar-Beleg (BON_TYP Beleg, GV_TYP
-// Umsatz, Zahlart Bar, BON_STORNO=0) mit REF_BON_ID auf die Zahlung. Der Bargeldbestand
-// gleicht sich gegen die vorausgegangene Zahlung aus (keine Doppelbuchung).
+// TestMapWarenruecknahmeNegativeWithZahlungReference guards the Warenrücknahme of paid
+// lines: a negative Bar Beleg (BON_STORNO=0) with REF_BON_ID to the payment. The cash
+// balance offsets the preceding payment (no double booking).
 func TestMapWarenruecknahmeNegativeWithZahlungReference(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
@@ -633,11 +622,11 @@ func TestMapWarenruecknahmeNegativeWithZahlungReference(t *testing.T) {
 	const erstellung = "2026-06-16T14:30:00Z"
 
 	wantRecords := map[string][][]string{
-		// Verkettung Warenrücknahme → Zahlung (nicht die Bestellung).
+		// Link Warenrücknahme → payment (not the order).
 		"references.csv": {
 			{testSerial, erstellung, "3", stornoBonID, "", "Transaktion", "", erstellung, testSerial, "3", zahlungBonID},
 		},
-		// Negative Bar-Rückgabe, gegenläufig zur Zahlung.
+		// Negative cash refund, opposite to the payment.
 		"datapayment.csv": {
 			{testSerial, erstellung, "3", zahlungBonID, "Bar", "Bar", "EUR", "4,50", "4,50"},
 			{testSerial, erstellung, "3", stornoBonID, "Bar", "Bar", "EUR", "-4,50", "-4,50"},
@@ -651,8 +640,8 @@ func TestMapWarenruecknahmeNegativeWithZahlungReference(t *testing.T) {
 		}
 	}
 
-	// Bonkopf: die Warenrücknahme ist ein Beleg mit negativem Umsatz, ohne
-	// Vorgangs-Storno-Kennzeichen.
+	// Bonkopf: the Warenrücknahme is a Beleg with negative revenue, without Vorgangs-Storno
+	// flag.
 	transactions := tableByFile(t, archive, "transactions.csv")
 	if got := field(t, transactions, 2, "BON_TYP"); got != "Beleg" {
 		t.Errorf("warenruecknahme BON_TYP = %q, want Beleg", got)
@@ -664,13 +653,13 @@ func TestMapWarenruecknahmeNegativeWithZahlungReference(t *testing.T) {
 		t.Errorf("warenruecknahme UMS_BRUTTO = %q, want -4.50", got)
 	}
 
-	// Der Bargeldbestand gleicht sich aus: Zahlung +4.50, Warenrücknahme −4.50.
+	// The cash balance evens out: payment +4.50, Warenrücknahme −4.50.
 	closing := tableByFile(t, archive, "cashpointclosing.csv")
 	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "0,00" {
 		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 0.00 (Zahlung und Rückgabe heben sich auf)", got)
 	}
 
-	// Umsatz je Steuersatz saldiert sich auf 0 (Zahlung +, Warenrücknahme −).
+	// Revenue per VAT rate nets to 0 (payment +, Warenrücknahme −).
 	businesscases := tableByFile(t, archive, "businesscases.csv")
 	if got := field(t, businesscases, 0, "Z_UMS_BRUTTO"); got != "0,00" {
 		t.Errorf("businesscases Z_UMS_BRUTTO = %q, want 0.00", got)
@@ -679,17 +668,15 @@ func TestMapWarenruecknahmeNegativeWithZahlungReference(t *testing.T) {
 
 const umbuchungBonID = "99999999-9999-4999-8999-999999999999"
 
-// umbuchungEventPaar baut das verknüpfte, geldneutrale Umbuchungs-Paar: Abgang auf
-// Tisch 42 (BON_ID = UmbuchungID) und Zugang auf Tisch 7. Beide tragen dieselbe
-// UmbuchungID.
+// umbuchungEventPaar builds the linked, cash-neutral Umbuchung pair: Abgang at table 42
+// (BON_ID = UmbuchungID) and Zugang at table 7, both with the same UmbuchungID.
 func umbuchungEventPaar(t *testing.T) (event.Event, event.Event) {
 	t.Helper()
 	return umbuchungEventPaarMitBenutzerKommentar(t, "")
 }
 
-// umbuchungEventPaarMitBenutzerKommentar baut das Umbuchungs-Paar mit einem
-// optionalen Benutzerkommentar (beide Seiten tragen denselben Text, wie im
-// Produktivbetrieb).
+// umbuchungEventPaarMitBenutzerKommentar builds the Umbuchung pair with an optional user
+// comment (both sides carry the same text, as in production).
 func umbuchungEventPaarMitBenutzerKommentar(t *testing.T, benutzerKommentar string) (event.Event, event.Event) {
 	t.Helper()
 
@@ -726,10 +713,8 @@ func umbuchungEventPaarMitBenutzerKommentar(t *testing.T, benutzerKommentar stri
 	return abgang, zugang
 }
 
-// TestMapUmbuchungGeldneutralMitReferenz belegt: eine Umbuchung erzeugt je Seite eine
-// geldneutrale AVBestellung (kein Umsatz, keine Zahlart, keine Kassenbestandswirkung);
-// der Zugang verweist in references.csv per REF_BON_ID auf den Abgang (gemeinsame
-// UmbuchungID).
+// TestMapUmbuchungGeldneutralMitReferenz guards that an Umbuchung yields one cash-neutral
+// AVBestellung per side and the Zugang references the Abgang via REF_BON_ID.
 func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42", 7: "Tisch 7"}
@@ -748,7 +733,7 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 	const zugangBonID = "umbuchung-3"
 
 	wantRecords := map[string][][]string{
-		// Verkettung Zugang → Abgang (gemeinsame Sitzung).
+		// Link Zugang → Abgang (same session).
 		"references.csv": {
 			{testSerial, erstellung, "3", zugangBonID, "", "Transaktion", "", erstellung, testSerial, "3", umbuchungBonID},
 		},
@@ -760,7 +745,7 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 		}
 	}
 
-	// Geldneutralität: keine USt-, Zahlart- oder Geschäftsvorfall-Zeilen.
+	// Cash neutrality: no VAT, Zahlart or business-case rows.
 	for _, file := range []string{"transactions_vat.csv", "lines_vat.csv", "datapayment.csv", "businesscases.csv", "payment.csv"} {
 		table := tableByFile(t, archive, file)
 		if len(table.Records) != 0 {
@@ -768,7 +753,7 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 		}
 	}
 
-	// Beide Seiten sind AVBestellungen ohne Storno-Kennzeichen und ohne Umsatz.
+	// Both sides are AVBestellungen without Storno flag and without revenue.
 	transactions := tableByFile(t, archive, "transactions.csv")
 	for row := range 2 {
 		if got := field(t, transactions, row, "BON_TYP"); got != "AVBestellung" {
@@ -781,8 +766,7 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 			t.Errorf("umbuchung[%d] UMS_BRUTTO = %q, want 0.00", row, got)
 		}
 	}
-	// Ohne Benutzerkommentar ist BON_NOTIZ allein der unveränderte
-	// Richtungs-Autotext.
+	// Without a user comment BON_NOTIZ is the unchanged direction autotext.
 	if got := field(t, transactions, 0, "BON_NOTIZ"); got != "Umbuchung auf Tisch Tisch 7" {
 		t.Errorf("abgang BON_NOTIZ = %q, want Autotext", got)
 	}
@@ -790,16 +774,15 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 		t.Errorf("zugang BON_NOTIZ = %q, want Autotext", got)
 	}
 
-	// Kein Bargeld bewegt sich durch die Umbuchung.
+	// The Umbuchung moves no cash.
 	closing := tableByFile(t, archive, "cashpointclosing.csv")
 	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "0,00" {
 		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 0.00 (Umbuchung ist geldneutral)", got)
 	}
 }
 
-// TestMapUmbuchungNotizMitBenutzerKommentar belegt: liegt ein Benutzerkommentar vor,
-// verkettet die BON_NOTIZ des Umbuchungs-Bons den Richtungs-Autotext und den
-// Benutzertext mit "; ".
+// TestMapUmbuchungNotizMitBenutzerKommentar guards that BON_NOTIZ joins the direction
+// autotext and the user comment with "; ".
 func TestMapUmbuchungNotizMitBenutzerKommentar(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42", 7: "Tisch 7"}
@@ -823,7 +806,7 @@ func TestMapUmbuchungNotizMitBenutzerKommentar(t *testing.T) {
 	}
 }
 
-// kombiZahlungEvent kassiert ein Kombi-Menü zum Pauschalpreis 5,01 €.
+// kombiZahlungEvent takes payment for a combo menu at the flat price of 5,01 €.
 func kombiZahlungEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -852,9 +835,9 @@ func kombiZahlungEvent(t *testing.T) event.Event {
 	}
 }
 
-// TestMapKombiSteuerSplit belegt die Entfaltung einer kombi-Position in 70 % zu
-// 7 % und 30 % zu 19 %. lines_vat folgt der Aufteilen-Reihenfolge (ermaessigt,
-// regel), transactions_vat der Steuermatrix-Reihenfolge (regel, ermaessigt).
+// TestMapKombiSteuerSplit guards the split of a kombi line into 70 % at 7 % and 30 % at
+// 19 %. lines_vat follows the Aufteilen order (ermaessigt, regel), transactions_vat the
+// Steuermatrix order (regel, ermaessigt).
 func TestMapKombiSteuerSplit(t *testing.T) {
 	signaturen := map[int]tse.EventSignatur{
 		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4800, 20, "2026-06-16T12:30:00Z", "2026-06-16T12:30:01Z", "KOMBISIG==")},
@@ -894,7 +877,7 @@ func TestMapKombiSteuerSplit(t *testing.T) {
 	}
 }
 
-// direktverkaufEvent verkauft ein Bier direkt an der Theke (eigener Stream, kein Tisch).
+// direktverkaufEvent sells a beer directly at the counter (own stream, no table).
 func direktverkaufEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -923,7 +906,7 @@ func direktverkaufEvent(t *testing.T) event.Event {
 	}
 }
 
-// direktverkaufStornoEvent storniert den Direktverkauf, eigener Stream mit Referenz.
+// direktverkaufStornoEvent cancels the Direktverkauf, own stream with reference.
 func direktverkaufStornoEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -954,9 +937,8 @@ func direktverkaufStornoEvent(t *testing.T) event.Event {
 	}
 }
 
-// TestMapDirektverkaufUndStorno belegt: Direktverkauf und sein Storno sind eigene
-// Barbelege ohne Abrechnungskreis; der Storno verweist per REF_BON_ID auf den
-// Ursprungsverkauf und kehrt die Vorzeichen um.
+// TestMapDirektverkaufUndStorno guards that Direktverkauf and its Storno are separate Bar
+// Belege without Abrechnungskreis; the Storno references the sale and flips the signs.
 func TestMapDirektverkaufUndStorno(t *testing.T) {
 	signaturen := map[int]tse.EventSignatur{
 		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 5000, 30, "2026-06-16T14:00:00Z", "2026-06-16T14:00:01Z", "DVSIG==")},
@@ -986,8 +968,8 @@ func TestMapDirektverkaufUndStorno(t *testing.T) {
 		}
 	}
 
-	// Beide Belege tragen BON_TYP "Beleg"; der Storno ist eine negative
-	// Belegdarstellung ohne Vorgangs-Storno-Kennzeichen (BON_STORNO=0).
+	// Both Belege have BON_TYP "Beleg"; the Storno is a negative Beleg without
+	// Vorgangs-Storno flag (BON_STORNO=0).
 	transactions := tableByFile(t, archive, "transactions.csv")
 	if got := field(t, transactions, 0, "BON_TYP"); got != "Beleg" {
 		t.Errorf("direktverkauf BON_TYP = %q, want Beleg", got)
@@ -999,14 +981,14 @@ func TestMapDirektverkaufUndStorno(t *testing.T) {
 		t.Errorf("direktverkauf-storno BON_STORNO = %q, want 0", got)
 	}
 
-	// Direktverkäufe tragen keinen Abrechnungskreis (kein Tischbezug).
+	// Direktverkäufe carry no Abrechnungskreis (no table).
 	groups := tableByFile(t, archive, "allocation_groups.csv")
 	if len(groups.Records) != 0 {
 		t.Errorf("allocation_groups must be empty for Direktverkauf, got %d rows", len(groups.Records))
 	}
 }
 
-// eroeffnetEvent eröffnet die Sitzung mit einem Anfangsbestand von 100,00 €.
+// eroeffnetEvent opens the session with an Anfangsbestand of 100,00 €.
 func eroeffnetEvent(t *testing.T, betragCents int) event.Event {
 	t.Helper()
 
@@ -1029,7 +1011,7 @@ func eroeffnetEvent(t *testing.T, betragCents int) event.Event {
 	}
 }
 
-// geldtransitEvent entnimmt 50,00 € aus der Kasse (z. B. zum Tresor).
+// geldtransitEvent withdraws 50,00 € from the till (e.g. to the safe).
 func geldtransitEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -1053,7 +1035,7 @@ func geldtransitEvent(t *testing.T) event.Event {
 	}
 }
 
-// differenzEvent bucht einen Kassenfehlbetrag von 1,00 € (Soll − Ist = +100).
+// differenzEvent books a cash shortfall of 1,00 € (Soll − Ist = +100).
 func differenzEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -1074,8 +1056,8 @@ func differenzEvent(t *testing.T) event.Event {
 	}
 }
 
-// tagesabschlussEvent schließt die Sitzung ab (Z-Bon). Als letztes Event trägt
-// er die höchste Event-ID und wird damit der letzte Beleg der Sitzung.
+// tagesabschlussEvent closes the session (Z-Bon). As last event it has the highest
+// event ID and so becomes the session's last Beleg.
 func tagesabschlussEvent(t *testing.T) event.Event {
 	t.Helper()
 
@@ -1100,26 +1082,25 @@ func tagesabschlussEvent(t *testing.T) event.Event {
 	}
 }
 
-// Kassenabschlussmodul über eine gemischte Sitzung: Anfangsbestand, geldneutrale
-// Bestellung plus Zahlung, Direktverkauf, Geldtransit und Kassendifferenz. Umsatz
-// entsteht nur bei den Zahlungen (Revenue-at-payment). businesscases.csv und
-// payment.csv lassen sich gegen die Einzelbons abgleichen.
+// Kassenabschlussmodul over a mixed session: Anfangsbestand, cash-neutral order plus
+// payment, Direktverkauf, Geldtransit and cash difference. businesscases.csv and
+// payment.csv must reconcile with the single Bons, revenue arising only at payment.
 func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Tischnamen = map[int]string{42: "Tisch 42"}
 
-	// Der Direktverkauf erhält eine eigene Event-ID (Fixture-Standard kollidiert
-	// mit der Bestellung), damit die Signaturen-Map eindeutig bleibt.
+	// The Direktverkauf gets its own event ID (the fixture default collides with the
+	// order) so the signature map stays unique.
 	direktverkauf := direktverkaufEvent(t)
 	direktverkauf.ID = 4
 
 	events := []event.Event{
 		eroeffnetEvent(t, 10000), // Anfangsbestand 100,00 € (ID 10)
-		bestellungEvent(t),       // AVBestellung 4,50 € (Bier, 19 %, geldneutral, ID 1)
-		zahlungEvent(t),          // Umsatz 4,50 € (Bier, 19 %, ID 2)
-		direktverkauf,            // Umsatz 4,50 € (Bier, 19 %, ID 4)
-		geldtransitEvent(t),      // Entnahme −50,00 € (ID 11)
-		differenzEvent(t),        // Fehlbetrag −1,00 € (ID 13)
+		bestellungEvent(t),       // AVBestellung 4,50 € (beer, 19 %, cash-neutral, ID 1)
+		zahlungEvent(t),          // Umsatz 4,50 € (beer, 19 %, ID 2)
+		direktverkauf,            // Umsatz 4,50 € (beer, 19 %, ID 4)
+		geldtransitEvent(t),      // withdrawal −50,00 € (ID 11)
+		differenzEvent(t),        // shortfall −1,00 € (ID 13)
 	}
 
 	signaturen := tischablaufSignaturen(t)
@@ -1136,16 +1117,15 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 	const erstellung = "2026-06-16T14:30:00Z"
 
 	wantRecords := map[string][][]string{
-		// Je Geschäftsvorfalltyp und Steuersatz: Umsatz (2 × Bier 19 %, nur die
-		// Zahlungen) vor den nicht-steuerbaren Bargeldbewegungen (Schlüssel 5). Die
-		// geldneutrale AVBestellung erzeugt keine eigene Geschäftsvorfall-Zeile.
+		// Per GV type and VAT rate: Umsatz (2 × beer 19 %, payments only) before the
+		// non-taxable cash movements (key 5). The cash-neutral AVBestellung adds no row.
 		"businesscases.csv": {
 			{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "9,00", "7,56", "1,44"},
 			{testSerial, erstellung, "3", "Anfangsbestand", "", "0", "5", "100,00", "100,00", "0,00"},
 			{testSerial, erstellung, "3", "Geldtransit", "", "0", "5", "-50,00", "-50,00", "0,00"},
 			{testSerial, erstellung, "3", "DifferenzSollIst", "", "0", "5", "-1,00", "-1,00", "0,00"},
 		},
-		// Bar = 100 + 4,50 + 4,50 − 50 − 1 = 58,00; die AVBestellung trägt nichts bei.
+		// Bar = 100 + 4,50 + 4,50 − 50 − 1 = 58,00; the AVBestellung adds nothing.
 		"payment.csv": {
 			{testSerial, erstellung, "3", "Bar", "Bar", "58,00"},
 		},
@@ -1161,9 +1141,8 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 		}
 	}
 
-	// Abgleich der Tagessumme gegen die Einzelbons: die Summe der Bonkopf-Brutto
-	// (Einzelaufzeichnung) muss mit den Aggregaten je GV-Typ und je Zahlart
-	// übereinstimmen (DSFinV-K-Konsistenz Bonmodul ↔ Kassenabschlussmodul).
+	// Reconcile the day total with the single Bons: the Bonkopf gross sum must equal the
+	// aggregates per GV type and per Zahlart (Bonmodul ↔ Kassenabschlussmodul).
 	bonkopfSumme := summe(t, archive, "transactions.csv", "UMS_BRUTTO")
 	gvSumme := summe(t, archive, "businesscases.csv", "Z_UMS_BRUTTO")
 	zahlartSumme := summe(t, archive, "payment.csv", "Z_ZAHLART_BETRAG")
@@ -1174,9 +1153,8 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 		t.Errorf("Summe Bonkopf (%d) ≠ Summe payment (%d)", bonkopfSumme, zahlartSumme)
 	}
 
-	// Alle drei signierten Bargeldbewegungen tragen ihre transactions_tse-Zeile —
-	// auch der Anfangsbestand, dessen Eröffnungs-Event im Outbox-Modell
-	// signaturpflichtig ist (Bareinlage).
+	// All three signed cash movements have their transactions_tse row, including the
+	// Anfangsbestand, whose opening event requires a signature (Bareinlage).
 	tse := tableByFile(t, archive, "transactions_tse.csv")
 	for _, sig := range []string{"EROEFFNUNGSIG==", "GTSIG==", "DIFFSIG=="} {
 		if !hatSignatur(tse, sig) {
@@ -1184,9 +1162,8 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 		}
 	}
 
-	// Verprobung ohne Waisen: Jede transactions_tse-Zeile gehört zu einem
-	// Bonkopf, und jeder Bonkopf hat genau eine TSE-Zeile (alle Vorgänge der
-	// Sitzung sind signaturpflichtig).
+	// No orphans: every transactions_tse row belongs to a Bonkopf and every Bonkopf has
+	// exactly one TSE row (all Vorgänge of the session require a signature).
 	transactions := tableByFile(t, archive, "transactions.csv")
 	bonIDs := map[string]bool{}
 	for row := range transactions.Records {
@@ -1202,20 +1179,18 @@ func TestMapKassenabschlussGemischteSitzung(t *testing.T) {
 	}
 }
 
-// Der TSE-signierte Tagesabschluss erscheint als geldneutraler AVSonstige-Bon mit
-// eigener transactions_tse.csv-Zeile. Geldneutral heißt: die Aggregate
-// (businesscases, payment, cash_per_currency) und die Bar-Summen bleiben
-// unverändert; als letzter Vorgang wird er zusätzlich Z_ENDE_ID, ohne die BON_NR
-// der übrigen Belege zu verschieben.
+// The TSE-signed Tagesabschluss appears as a cash-neutral AVSonstige Bon with its own
+// transactions_tse.csv row, leaving aggregates and cash sums unchanged. As last Vorgang
+// it becomes Z_ENDE_ID without shifting the other Belege's BON_NR.
 func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 	const tagesabschlussBonID = "tagesabschluss-20"
 
-	// Dieselbe Sitzung mit und ohne Abschluss: die Aggregate müssen identisch sein.
+	// The same session with and without closing: the aggregates must be identical.
 	ohneAbschluss := []event.Event{
 		eroeffnetEvent(t, 10000), // Anfangsbestand 100,00 € (ID 10)
-		zahlungEvent(t),          // Umsatz 4,50 € (Bier 19 %, ID 2)
-		geldtransitEvent(t),      // Entnahme −50,00 € (ID 11)
-		differenzEvent(t),        // Fehlbetrag −1,00 € (ID 13)
+		zahlungEvent(t),          // Umsatz 4,50 € (beer 19 %, ID 2)
+		geldtransitEvent(t),      // withdrawal −50,00 € (ID 11)
+		differenzEvent(t),        // shortfall −1,00 € (ID 13)
 	}
 	mitAbschluss := append(append([]event.Event{}, ohneAbschluss...), tagesabschlussEvent(t))
 
@@ -1236,7 +1211,7 @@ func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 		t.Fatalf("Map(mit) error = %v", err)
 	}
 
-	// Der 0-Bon lässt die Aggregationsdateien unverändert.
+	// The zero Bon leaves the aggregation files unchanged.
 	for _, file := range []string{"businesscases.csv", "payment.csv", "cash_per_currency.csv"} {
 		ohne := tableByFile(t, archivOhne, file)
 		mit := tableByFile(t, archivMit, file)
@@ -1245,8 +1220,8 @@ func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 		}
 	}
 
-	// cashpointclosing: Bar-Summen und Z_START_ID unverändert, Z_ENDE_ID zeigt auf
-	// den Abschluss-Bon (letzte BON_ID im Abschluss).
+	// cashpointclosing: cash sums and Z_START_ID unchanged, Z_ENDE_ID points to the
+	// closing Bon (last BON_ID of the closing).
 	closingOhne := tableByFile(t, archivOhne, "cashpointclosing.csv")
 	closingMit := tableByFile(t, archivMit, "cashpointclosing.csv")
 	for _, spalte := range []string{"Z_START_ID", "Z_SE_ZAHLUNGEN", "Z_SE_BARZAHLUNGEN"} {
@@ -1258,8 +1233,8 @@ func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 		t.Errorf("Z_ENDE_ID = %q, want %q", got, tagesabschlussBonID)
 	}
 
-	// Genau ein AVSonstige-Bon als letzter Bonkopf, geldneutral (UMS_BRUTTO 0,00);
-	// die übrigen BON_NR bleiben gegenüber der Sitzung ohne Abschluss unverschoben.
+	// Exactly one AVSonstige Bon as last Bonkopf, cash-neutral (UMS_BRUTTO 0,00); the
+	// other BON_NR stay unshifted against the session without closing.
 	transOhne := tableByFile(t, archivOhne, "transactions.csv")
 	transMit := tableByFile(t, archivMit, "transactions.csv")
 	if len(transMit.Records) != len(transOhne.Records)+1 {
@@ -1296,7 +1271,7 @@ func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 		t.Errorf("AVSonstige-Bons = %d, want 1", sonstige)
 	}
 
-	// Der Abschluss-Bon trägt seine eigene TSE-Zeile mit Signatur.
+	// The closing Bon carries its own signed TSE row.
 	tseTab := tableByFile(t, archivMit, "transactions_tse.csv")
 	row := tseRowByBonID(t, tseTab, tagesabschlussBonID)
 	if got := field(t, tseTab, row, "TSE_TA_SIG"); got != "TAGSIG==" {
@@ -1307,20 +1282,19 @@ func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 	}
 }
 
-// Ein signaturpflichtiger, (noch) unsignierter Tagesabschluss fehlt nicht im
-// Export, sondern trägt eine TSE_TA_FEHLER-Zeile — die Invariante „jeder Bonkopf
-// hat genau eine TSE-Zeile“ gilt auch für den AVSonstige-Bon.
+// A signature-required, still unsigned Tagesabschluss gets a TSE_TA_FEHLER row instead
+// of going missing: every Bonkopf has exactly one TSE row, the AVSonstige Bon included.
 func TestMapTagesabschlussAusfallTraegtFehlerzeile(t *testing.T) {
 	const tagesabschlussBonID = "tagesabschluss-20"
 
 	events := []event.Event{
-		zahlungEvent(t),        // signierte Zahlung (ID 2)
-		tagesabschlussEvent(t), // Abschluss ohne Signatur (Auftrag unerledigt, ID 20)
+		zahlungEvent(t),        // signed payment (ID 2)
+		tagesabschlussEvent(t), // closing without signature (Auftrag pending, ID 20)
 	}
 
 	signaturen := map[int]tse.EventSignatur{
 		2:  {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "ZAHLSIG==")},
-		20: {ProcessType: "SonstigerVorgang"}, // signaturpflichtig, aber unsigniert
+		20: {ProcessType: "SonstigerVorgang"}, // signature required but unsigned
 	}
 
 	archive, err := Map(testSnapshot(), events, signaturen)
@@ -1337,7 +1311,7 @@ func TestMapTagesabschlussAusfallTraegtFehlerzeile(t *testing.T) {
 		t.Errorf("Abschluss TSE_TA_SIG = %q, want leer", got)
 	}
 
-	// Invariante: jeder Bonkopf-Vorgang hat genau eine TSE-Zeile.
+	// Invariant: every Bonkopf Vorgang has exactly one TSE row.
 	transactions := tableByFile(t, archive, "transactions.csv")
 	if len(tse.Records) != len(transactions.Records) {
 		t.Errorf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tse.Records), len(transactions.Records))
@@ -1354,8 +1328,8 @@ func summe(t *testing.T, a Archive, file, spalte string) int {
 	return total
 }
 
-// centsAus parst einen DSFinV-K-Dezimalbetrag ("−50,00", Komma laut amtlicher
-// index.xml) zurück nach Cent.
+// centsAus parses a DSFinV-K decimal amount ("−50,00", comma per the official
+// index.xml) back to cents.
 func centsAus(t *testing.T, s string) int {
 	t.Helper()
 	neg := strings.HasPrefix(s, "-")
@@ -1414,17 +1388,16 @@ func zahlungAm(t *testing.T, id int, bonID string, ts time.Time) event.Event {
 	}
 }
 
-// TestMapNachsigniertVorgang belegt den einen Leseweg: Auch ein erst nach einer
-// Störung (verspätet) quittierter Auftrag erscheint vollständig in
-// transactions_tse.csv — die Signaturspalten des Auftrags sind die einzige
-// Quelle, TSE_TA_VORGANGSART kommt aus dem process_type-Snapshot des Auftrags.
+// TestMapNachsigniertVorgang guards the single read path: an Auftrag confirmed late
+// after an outage appears fully in transactions_tse.csv. The Auftrag's signature columns
+// are the only source, TSE_TA_VORGANGSART comes from its process_type snapshot.
 func TestMapNachsigniertVorgang(t *testing.T) {
 	prompt := zahlungAm(t, 1, nachsigniertSignedBonID, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
 	nachsigniert := zahlungAm(t, 2, nachsigniertOutageBonID, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
 
 	signaturen := map[int]tse.EventSignatur{
 		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "EVENTSIG==")},
-		// Verspätete Quittierung: logTime deutlich nach der Event-Zeit.
+		// Late confirmation: logTime well after the event time.
 		2: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 9100, 99, "2026-06-16T13:00:05Z", "2026-06-16T13:00:06Z", "BACKFILLSIG==")},
 	}
 
@@ -1444,16 +1417,15 @@ func TestMapNachsigniertVorgang(t *testing.T) {
 	}
 }
 
-// Ein signaturpflichtiger Vorgang ohne Signatur (offen, fehlgeschlagen oder
-// tse_nicht_konfiguriert) fehlt nicht in transactions_tse.csv, sondern trägt eine
-// Fehlerzeile mit TSE_TA_FEHLER und leerer Signatur.
+// A signature-required Vorgang without signature (open, failed or tse_nicht_konfiguriert)
+// gets a transactions_tse.csv error row with TSE_TA_FEHLER and an empty signature.
 func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
 	signiert := zahlungAm(t, 1, nachsigniertSignedBonID, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
 	unsigniert := zahlungAm(t, 2, nachsigniertOutageBonID, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
 
 	signaturen := map[int]tse.EventSignatur{
 		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "EVENTSIG==")},
-		2: {ProcessType: "Kassenbeleg-V1"}, // Auftrag existiert, Signatur steht aus
+		2: {ProcessType: "Kassenbeleg-V1"}, // Auftrag exists, signature pending
 	}
 
 	archive, err := Map(testSnapshot(), []event.Event{signiert, unsigniert}, signaturen)
@@ -1471,7 +1443,7 @@ func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
 		t.Errorf("transactions_tse.csv records =\n%#v\nwant\n%#v", tse.Records, want)
 	}
 
-	// Die Fehlerzeile trägt den Vermerk, aber keine Signatur.
+	// The error row carries the note but no signature.
 	if got := field(t, tse, 1, "TSE_TA_FEHLER"); got != tseFehlerAusfall {
 		t.Errorf("TSE_TA_FEHLER = %q, want %q", got, tseFehlerAusfall)
 	}
@@ -1479,20 +1451,18 @@ func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
 		t.Errorf("TSE_TA_SIG = %q, want leer", got)
 	}
 
-	// Jeder Bonkopf-Vorgang hat genau eine TSE-Zeile (signiert oder als Ausfall).
+	// Every Bonkopf Vorgang has exactly one TSE row (signed or as outage).
 	transactions := tableByFile(t, archive, "transactions.csv")
 	if len(tse.Records) != len(transactions.Records) {
 		t.Errorf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tse.Records), len(transactions.Records))
 	}
 }
 
-// Unsignierte Vorgänge ALLER Vorgangsarten — nicht nur Zahlung und Direktverkauf —
-// müssen im Export eine TSE_TA_FEHLER-Zeile tragen: Der Ausfall ergibt sich
-// generisch aus einem Signaturauftrag ohne Signatur (Dokumentationspflicht des
-// Ausfalls, AEAO 1.14).
+// Unsigned Vorgänge of ALL kinds, not just payment and Direktverkauf, get a TSE_TA_FEHLER
+// row: an Auftrag without signature is an outage to document (AEAO 1.14).
 func TestUnsignierteVorgaengeAllerArtenTragenAusfallzeile(t *testing.T) {
-	// Die Korrektur erhält eine eigene Event-ID (Fixture-Standard kollidiert mit
-	// der Zahlung), damit die Signaturen-Map eindeutig bleibt.
+	// The Korrektur gets its own event ID (the fixture default collides with the payment)
+	// so the signature map stays unique.
 	korrektur := korrekturEvent(t)
 	korrektur.ID = 4
 
@@ -1506,7 +1476,7 @@ func TestUnsignierteVorgaengeAllerArtenTragenAusfallzeile(t *testing.T) {
 		differenzEvent(t),        // ID 13
 	}
 
-	// Alle Aufträge existieren (signaturpflichtig), keiner ist quittiert.
+	// All Aufträge exist (signature required), none is confirmed.
 	signaturen := map[int]tse.EventSignatur{
 		10: {ProcessType: "Kassenbeleg-V1"},
 		1:  {ProcessType: "Bestellung-V1"},
@@ -1525,7 +1495,7 @@ func TestUnsignierteVorgaengeAllerArtenTragenAusfallzeile(t *testing.T) {
 	transactions := tableByFile(t, archive, "transactions.csv")
 	tse := tableByFile(t, archive, "transactions_tse.csv")
 
-	// Invariante: jeder Bonkopf-Vorgang hat genau eine TSE-Zeile.
+	// Invariant: every Bonkopf Vorgang has exactly one TSE row.
 	if len(tse.Records) != len(transactions.Records) {
 		t.Errorf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tse.Records), len(transactions.Records))
 	}
@@ -1540,7 +1510,7 @@ func TestUnsignierteVorgaengeAllerArtenTragenAusfallzeile(t *testing.T) {
 	}
 }
 
-// Der Anfangsbestand trägt die TSE-Signatur seines Eröffnungs-Events im Export.
+// The Anfangsbestand carries its opening event's TSE signature in the export.
 func TestAnfangsbestandTraegtTSESignatur(t *testing.T) {
 	evt := eroeffnetEvent(t, 10000)
 
@@ -1575,12 +1545,12 @@ func TestErstellungszeitpunkt(t *testing.T) {
 		Data: json.RawMessage(`{}`),
 	}
 
-	// Abgeschlossene Sitzung: Zeit stammt aus dem Tagesabschluss-Event.
+	// Closed session: the time comes from the Tagesabschluss event.
 	if got := Erstellungszeitpunkt([]event.Event{barverkaufEvent(t), abschluss}, fallback); !got.Equal(abschlussZeit) {
 		t.Errorf("Erstellungszeitpunkt = %v, want %v (Tagesabschluss)", got, abschlussZeit)
 	}
 
-	// Offene Sitzung ohne Abschluss: fallback (Exportzeitpunkt).
+	// Open session without closing: fallback (export time).
 	if got := Erstellungszeitpunkt([]event.Event{barverkaufEvent(t)}, fallback); !got.Equal(fallback) {
 		t.Errorf("Erstellungszeitpunkt = %v, want %v (fallback)", got, fallback)
 	}
@@ -1592,8 +1562,8 @@ func TestMapErzeugtAlle20AmtlichenTabellen(t *testing.T) {
 		t.Fatalf("Map() error = %v", err)
 	}
 
-	// Reihenfolge und Umfang der amtlichen index.xml; nicht befüllte Tabellen
-	// (slaves, pa, itemamounts, subitems) sind Header-only enthalten.
+	// Order and scope of the official index.xml; unfilled tables (slaves, pa,
+	// itemamounts, subitems) are included header-only.
 	want := []string{
 		"cashpointclosing.csv", "location.csv", "cashregister.csv", "slaves.csv", "pa.csv",
 		"tse.csv", "vat.csv", "businesscases.csv", "payment.csv", "cash_per_currency.csv",
@@ -1614,7 +1584,7 @@ func TestMapErzeugtAlle20AmtlichenTabellen(t *testing.T) {
 }
 
 func TestMapEmptySessionIsError(t *testing.T) {
-	// Eine Sitzung nur mit Eröffnungs-Event hat keinen Beleg.
+	// A session with only the opening event has no Beleg.
 	eroeffnet := event.Event{
 		ID: 1, UserID: 7, UserName: "anna",
 		Type: string(kasse.EventTypeKassensitzungEroeffnetV1),
@@ -1628,7 +1598,7 @@ func TestMapEmptySessionIsError(t *testing.T) {
 	}
 }
 
-// KASSE_SW_VERSION kommt aus dem Snapshot, nicht aus einer Konstante.
+// KASSE_SW_VERSION comes from the snapshot, not a constant.
 func TestBuildCashregisterVersionAusSnapshot(t *testing.T) {
 	const wantVersion = "1.2.3-test"
 	snap := testSnapshot()
@@ -1677,9 +1647,8 @@ func tseRowByBonID(t *testing.T, table Table, bonID string) int {
 	return -1
 }
 
-// Die Betreiber-Spalten sind TEXT: Ein Bestandswert kann länger sein als die
-// amtliche MaxLength der Stammdatenzeilen. Der Mapper kürzt ihn runensicher, hier
-// geprüft an einem 70-Zeichen-Vereinsnamen aus Umlauten (NAME/LOC_NAME: 60).
+// Betreiber columns are TEXT, so a stored value may exceed the official MaxLength. The
+// mapper truncates rune-safe, checked with a 70-character umlaut name (NAME/LOC_NAME: 60).
 func TestMapKuerztZuLangeBetreiberStammdaten(t *testing.T) {
 	snapshot := testSnapshot()
 	snapshot.Betreiber.Vereinsname = strings.Repeat("ä", 70)

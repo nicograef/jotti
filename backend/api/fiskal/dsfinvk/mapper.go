@@ -14,79 +14,75 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// ErrKeineVorgaenge signalisiert eine Sitzung ohne abrechenbare Belege. Ein
-// Archiv ohne einen einzigen Bon ist fachlich leer; der Aufrufer meldet das
-// verständlich, statt ein defektes Archiv zu liefern.
+// ErrKeineVorgaenge marks a Kassensitzung without a single Bon; the caller
+// reports it instead of shipping an empty archive.
 var ErrKeineVorgaenge = errors.New("kassensitzung enthält keine vorgänge")
 
 const (
-	bonTypBeleg      = "Beleg"        // Anhang B: abgeschlossener Kassenvorgang (Zahlung)
-	bonTypBestellung = "AVBestellung" // Anhang B: Bestellung als anderer Vorgang, geldneutral
-	bonTypSonstige   = "AVSonstige"   // Anhang B: sonstiger anderer Vorgang (Tagesabschluss), geldneutral
-	gvTypUmsatz      = "Umsatz"       // Anhang C: realisierter Umsatz auf Positionsebene
-	// GV-Typen, die ausschließlich den Kassenbestand betreffen (Anhang C). jotti
-	// erfasst sie als BON_TYP "Beleg" mit einer einzigen nicht-steuerbaren Position.
-	gvTypAnfangsbestand   = "Anfangsbestand"   // Bargeldbestand zu Sitzungsbeginn (Eröffnungs-Event)
-	gvTypGeldtransit      = "Geldtransit"      // Bargeld-Ein-/Entnahme (z. B. zur Bank/Tresor)
-	gvTypDifferenzSollIst = "DifferenzSollIst" // gebuchte Kassendifferenz aus dem Kassensturz
-	zahlartBar            = "Bar"              // Anhang D: jotti kassiert ausschließlich bar
-	refTypTransaktion     = "Transaktion"      // Anhang E: REF_TYP für eine Referenz innerhalb der DSFinV-K (Storno → Ursprung)
-	tseReferenzID         = "1"                // eine TSS pro Kasse, im Abschluss als ID 1 referenziert
-	tseFehlerAusfall      = "TSE-Ausfall"      // TSE_TA_FEHLER eines unsignierten Ausfall-Vorgangs (noch nicht nachsigniert)
+	bonTypBeleg      = "Beleg"        // Anhang B: completed Kassenvorgang (payment)
+	bonTypBestellung = "AVBestellung" // Anhang B: order as "anderer Vorgang", cash-neutral
+	bonTypSonstige   = "AVSonstige"   // Anhang B: other "anderer Vorgang" (Tagesabschluss), cash-neutral
+	gvTypUmsatz      = "Umsatz"       // Anhang C: realised revenue at line level
+	// Anhang C GV types that only move the cash balance; jotti records them as
+	// BON_TYP "Beleg" with one non-taxable line (see docs/compliance.md §6.8).
+	gvTypAnfangsbestand   = "Anfangsbestand"   // cash at session start (opening event)
+	gvTypGeldtransit      = "Geldtransit"      // cash deposit or withdrawal (e.g. bank, safe)
+	gvTypDifferenzSollIst = "DifferenzSollIst" // booked cash difference from the Kassensturz
+	zahlartBar            = "Bar"              // Anhang D: jotti takes cash only
+	refTypTransaktion     = "Transaktion"      // Anhang E: REF_TYP for a reference inside the DSFinV-K (Storno → origin)
+	tseReferenzID         = "1"                // one TSS per Kasse, referenced as ID 1 in the closing
+	tseFehlerAusfall      = "TSE-Ausfall"      // TSE_TA_FEHLER of an unsigned outage Vorgang (not yet re-signed)
 	land                  = "DEU"              // ISO 3166 ALPHA-3
 	basiswaehrung         = "EUR"              // ISO 4217
-	tsePDEncoding         = "UTF-8"            // Encoding der ProcessData
-	zertifikatChunk       = 1000               // max. Zeichen je TSE_ZERTIFIKAT-Feld (amtlich: zwei Felder)
-	zertifikatSpalten     = 2                  // TSE_ZERTIFIKAT_I/_II — amtliches Schema der DSFinV-K
-	// maxLengthAbrechnungskreis ist die amtliche Feldlänge von ABRECHNUNGSKREIS
-	// in allocation_groups.csv (index.xml). Sie zählt Zeichen.
+	tsePDEncoding         = "UTF-8"            // encoding of the ProcessData
+	zertifikatChunk       = 1000               // max characters per TSE_ZERTIFIKAT field (the spec has two)
+	zertifikatSpalten     = 2                  // TSE_ZERTIFIKAT_I/_II of the official DSFinV-K schema
+	// maxLengthAbrechnungskreis is the official ABRECHNUNGSKREIS length in
+	// allocation_groups.csv (index.xml), counted in characters.
 	maxLengthAbrechnungskreis = 50
-	defaultTSEZeitformat      = "unixTime" // fiskaly liefert unixTime; Fallback ohne Stammdaten
+	defaultTSEZeitformat      = "unixTime" // fiskaly logs unixTime; fallback without TSE master data
 	kasseBrand                = "jotti"
 	kasseModell               = "jotti mPOS"
 	kasseSoftware             = "jotti"
 )
 
-// Archive hält die typisierten Zeilen-Kollektionen eines DSFinV-K-Exports, eine
-// Table je CSV-Datei in der Reihenfolge der amtlichen index.xml.
+// Archive holds a DSFinV-K export as one Table per CSV file, in the order of
+// the official index.xml.
 type Archive struct {
 	tables []Table
 }
 
 func (a Archive) Tables() []Table { return a.tables }
 
-// beleg ist die belegbezogene Zwischensicht, aus der mehrere Tabellen abgeleitet
-// werden (Bonkopf, dessen USt-/Zahlart-/Positions-Details und die TSE-Zeile).
+// beleg is the per-Bon view that several tables derive from (Bonkopf, its VAT,
+// payment and line details, and the TSE row).
 type beleg struct {
 	bonID            string
 	bonNr            int
-	bonTyp           string   // BON_TYP: "Beleg" (Zahlung) oder "AVBestellung" (offene Bestellung)
-	gvTyp            string   // GV_TYP der Positionen: "Umsatz" oder ein Bargeld-GV-Typ
-	zahlart          string   // ZAHLART_TYP: "Bar"; leer bei der geldneutralen AVBestellung
-	abrechnungskreis string   // ABRECHNUNGSKREIS (Tischname); leer ohne Tischbezug (z. B. Direktverkauf)
-	storno           bool     // negative Belegdarstellung (Warenrücknahme/Korrektur): kehrt das Vorzeichen um; kein Vorgangs-Storno, BON_STORNO bleibt 0
-	barabfluss       bool     // mindert den Kassenbestand (Geldtransit-Entnahme, Kassenfehlbetrag); steuert das Vorzeichen wie storno
-	geldneutral      bool     // AVBestellung (Bestellung/Korrektur/Umbuchung): TSE-gesichert und informativ in lines.csv, aber ohne Umsatz, USt, Zahlart und Kassenbestandswirkung
-	nichtSteuerbar   bool     // Bargeldbewegung ohne USt-Bezug: eine einzige Position mit UST_SCHLUESSEL 5 statt Steueraufteilung
-	artikeltext      string   // ARTIKELTEXT der synthetischen Position (nur nichtSteuerbar); sonst aus den Positionen
-	refBonIDs        []string // REF_BON_ID je referenziertem Ursprungsbon (Warenrücknahme → Zahlung, Korrektur → Bestellung, Umbuchungs-Zugang → Abgang)
+	bonTyp           string   // BON_TYP: "Beleg", "AVBestellung" or "AVSonstige"
+	gvTyp            string   // GV_TYP of the lines: "Umsatz" or a cash GV type
+	zahlart          string   // ZAHLART_TYP: "Bar"; empty for the cash-neutral AVBestellung
+	abrechnungskreis string   // ABRECHNUNGSKREIS (table name); empty without a table (e.g. Direktverkauf)
+	storno           bool     // negative Beleg (Warenrücknahme, Korrektur): flips the sign; BON_STORNO stays 0
+	barabfluss       bool     // reduces the cash balance (Geldtransit withdrawal, shortfall); flips the sign like storno
+	geldneutral      bool     // AVBestellung or AVSonstige: TSE-signed, lines informative only; no revenue, VAT, Zahlart or cash effect
+	nichtSteuerbar   bool     // cash movement without VAT: one line with UST_SCHLUESSEL 5 instead of a tax split
+	artikeltext      string   // ARTIKELTEXT of the synthetic line (nichtSteuerbar only)
+	refBonIDs        []string // REF_BON_ID per origin Bon (Warenrücknahme → Zahlung, Korrektur → Bestellung, Umbuchung Zugang → Abgang)
 	start            string
 	ende             string
 	bedienerID       int
 	bedienerName     string
 	positionen       []kasse.PositionEventData
 	bruttoCents      int
-	tsePflichtig     bool          // signaturpflichtig (es existiert ein Signaturauftrag zum Event)
-	tse              *tse.Signatur // Signatur vom Auftrag; nil solange unsigniert
-	processType      string        // TSE_TA_VORGANGSART, der process_type-Snapshot des Auftrags
+	tsePflichtig     bool          // signature required (a Signaturauftrag exists for the event)
+	tse              *tse.Signatur // signature from the Auftrag; nil while unsigned
+	processType      string        // TSE_TA_VORGANGSART, the Auftrag's process_type snapshot
 	notiz            string
 }
 
-// sign liefert das Vorzeichen der Beträge eines Belegs: -1 für einen
-// Negativ-Beleg (Warenrücknahme bezahlter bzw. Korrektur unbezahlter Positionen,
-// DSFinV-K Tz. 4.2.5, „Vorzeichen umkehren“) und für einen Bar-Abfluss, sonst +1.
-// Im beleg liegen Beträge stets als positive Magnitude; das Vorzeichen setzt erst
-// das Serialisieren der Zeilen (die Steueraufteilung rechnet nicht-negativ).
+// sign is -1 for a negative Beleg (DSFinV-K Tz. 4.2.5) or a cash outflow, else +1;
+// beleg amounts stay positive because the tax split needs non-negative input.
 func (b *beleg) sign() int {
 	if b.storno || b.barabfluss {
 		return -1
@@ -94,8 +90,8 @@ func (b *beleg) sign() int {
 	return 1
 }
 
-// ustBetrag ist die USt-Aufschlüsselung eines Belegs für einen Steuerschlüssel,
-// als positive Magnitude (das Vorzeichen setzt der Aufrufer über beleg.sign()).
+// ustBetrag is a Beleg's VAT split for one VAT key as a positive magnitude; the
+// caller applies beleg.sign().
 type ustBetrag struct {
 	schluessel int
 	brutto     int
@@ -103,11 +99,9 @@ type ustBetrag struct {
 	ust        int
 }
 
-// ustAufteilung liefert die USt-Aufschlüsselung des Belegs je Steuerschlüssel.
-// Steuerbare Belege werden über die Steuermatrix ihrer Positionen aufgeteilt;
-// eine nicht-steuerbare Bargeldbewegung ergibt eine einzige Zeile mit
-// UST_SCHLUESSEL 5 (Netto = Brutto, keine USt). Bonkopf-USt (transactions_vat)
-// und Kassenabschluss (businesscases) leiten sich aus derselben Quelle ab.
+// ustAufteilung splits the Beleg per VAT key; a non-taxable cash movement yields
+// one UST_SCHLUESSEL 5 row with net = gross. transactions_vat.csv and
+// businesscases.csv both derive from it, so their sums agree.
 func (b *beleg) ustAufteilung() []ustBetrag {
 	if b.nichtSteuerbar {
 		return []ustBetrag{{schluessel: ustNichtSteuerbar, brutto: b.bruttoCents, netto: b.bruttoCents, ust: 0}}
@@ -120,11 +114,9 @@ func (b *beleg) ustAufteilung() []ustBetrag {
 	return out
 }
 
-// Map transformiert Snapshot und Events einer Kassensitzung in das typisierte
-// Archiv. Reine Funktion ohne I/O. Der Umsatz entsteht bei der Zahlung
-// (Revenue-at-payment, DSFinV-K Tz. 2.7.2) und wird durch eine Warenrücknahme
-// negativ gemindert. signaturen ist der Signatur-Stand je Event-ID aus der
-// Signaturauftrags-Tabelle; Events ohne Eintrag sind nicht signaturpflichtig.
+// Map turns a Kassensitzung's snapshot and events into the archive; revenue arises
+// at payment (DSFinV-K Tz. 2.7.2, see docs/compliance.md §6.8). signaturen maps
+// event ID to signature state, and an event without entry needs no signature.
 func Map(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSignatur) (Archive, error) {
 	erstellung := snapshot.Erstellung.UTC().Format(time.RFC3339)
 
@@ -136,8 +128,8 @@ func Map(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSi
 		return Archive{}, ErrKeineVorgaenge
 	}
 
-	// Alle 20 amtlich deklarierten Dateien in der Reihenfolge der amtlichen
-	// index.xml — nicht befüllte als Header-only-CSV.
+	// All 20 files the official index.xml declares, in its order; unfilled ones as
+	// header-only CSV.
 	tables := []Table{
 		buildCashpointclosing(snapshot, erstellung, belege),
 		buildLocation(snapshot, erstellung),
@@ -164,16 +156,13 @@ func Map(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSi
 	return Archive{tables: tables}, nil
 }
 
-// belegeFromEvents leitet die Belege aus den nach `id` geordneten Events ab, daher
-// liegt ein Ursprungsbon stets vor seinem Storno. BON_NR wird fortlaufend
-// vergeben, BON_ID ist die jeweilige Vorgangs-ID. Jeder Beleg erhält den
-// TSE-Stand seines Events aus signaturen.
+// belegeFromEvents derives the Belege from events ordered by id, so an origin Bon
+// always precedes its Storno. BON_NR counts up; BON_ID is the Vorgang ID.
 func belegeFromEvents(events []event.Event, tischnamen map[int]string, signaturen map[int]tse.EventSignatur) ([]beleg, error) {
 	var belege []beleg
 	bonNr := 0
-	// herkunft bildet jede PositionID auf die BON_ID ihrer Bestellung ab.
-	// PositionIDs sind je Bestellung eindeutig, daher löst der Tisch-Storno seine
-	// Ursprungsbestellung eindeutig über seine Positionen auf.
+	// herkunft maps each PositionID to its order's BON_ID. PositionIDs are unique per
+	// order, so a Korrektur resolves its origin orders via its positions.
 	herkunft := map[string]string{}
 
 	for _, ev := range events {
@@ -231,10 +220,8 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			if err := json.Unmarshal(ev.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal stornierung-erteilt (event %d): %w", ev.ID, err)
 			}
-			// Kassenwirksame Warenrücknahme bezahlter Positionen: negativer Umsatz am
-			// Ursprungssteuersatz mit Bar-Rückgabe (DSFinV-K Tz. 4.2.5), Referenz auf die
-			// begleichende Zahlung (Tz. 4.2.2). Negative Belegdarstellung, kein
-			// Vorgangs-Storno (BON_STORNO bleibt 0).
+			// Warenrücknahme of paid lines: negative revenue at the original VAT rate with cash
+			// refund (DSFinV-K Tz. 4.2.5), referencing the Zahlung (Tz. 4.2.2, docs/compliance.md §6.6).
 			bonNr++
 			belege = append(belege, beleg{
 				bonID:            data.StornierungID,
@@ -259,8 +246,8 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			if err := json.Unmarshal(ev.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal bestellung-korrigiert (event %d): %w", ev.ID, err)
 			}
-			// Geldneutrale Stornierung unbezahlter Positionen: AVBestellung ohne Umsatz,
-			// Zahlart oder Kassenbestandswirkung; verweist auf die Ursprungsbestellung.
+			// Cash-neutral cancellation of unpaid lines: an AVBestellung without revenue,
+			// Zahlart or cash effect, referencing the origin order.
 			bonNr++
 			belege = append(belege, beleg{
 				bonID:            data.KorrekturID,
@@ -289,11 +276,10 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			if err != nil {
 				return nil, fmt.Errorf("parse tisch from bestellung-umgebucht (event %d): %w", ev.ID, err)
 			}
-			// Eine Umbuchung ist geldneutral (AVBestellung, kein Umsatz/Zahlart/Kassen-
-			// bestand). Quelle und Ziel teilen sich die UmbuchungID: der Abgang trägt sie
-			// als BON_ID, der Zugang referenziert sie — so sind beide Seiten verknüpft.
+			// An Umbuchung is a cash-neutral AVBestellung. Source and target share the
+			// UmbuchungID: the Abgang carries it as BON_ID, the Zugang references it.
 			bon := beleg{
-				bonNr:            0, // unten gesetzt
+				bonNr:            0, // set below
 				bonTyp:           bonTypBestellung,
 				gvTyp:            gvTypUmsatz,
 				geldneutral:      true,
@@ -368,8 +354,8 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			if err := json.Unmarshal(ev.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal kassensitzung-eroeffnet (event %d): %w", ev.ID, err)
 			}
-			// Ohne Bargeld zu Sitzungsbeginn gibt es keinen Anfangsbestand zu
-			// dokumentieren (Anhang C: „Erfassung nicht zwingend erforderlich“).
+			// Without cash at session start there is no Anfangsbestand to record
+			// (Anhang C: recording not mandatory).
 			if data.BetragCents == 0 {
 				continue
 			}
@@ -389,8 +375,8 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			if err := json.Unmarshal(ev.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal differenz-soll-ist-gebucht (event %d): %w", ev.ID, err)
 			}
-			// BetragCents = Soll − Ist: ein positiver Wert ist ein Fehlbetrag
-			// (Bargeld fehlt, Bestand mindern), ein negativer ein Überschuss.
+			// BetragCents = Soll − Ist: positive is a shortfall (cash missing, reduce the
+			// balance), negative a surplus.
 			bonNr++
 			belege = append(belege, geldbewegung(ev, fmt.Sprintf("differenz-soll-ist-%d", ev.ID), bonNr, gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, ""))
 
@@ -399,10 +385,8 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			if err := json.Unmarshal(ev.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal tagesabschluss-erstellt (event %d): %w", ev.ID, err)
 			}
-			// Der Tagesabschluss ist ein TSE-gesicherter „anderer Vorgang“ (AVSonstige):
-			// geldneutral, ohne Positionen und ohne Kassenbestandswirkung. Er erscheint im
-			// Export allein, damit seine TSE-Signatur eine transactions_tse.csv-Zeile erhält
-			// und der Abgleich fiskaly-TSE ↔ Export je Sitzung aufgeht.
+			// The Tagesabschluss is a TSE-signed, cash-neutral AVSonstige without lines. It
+			// exists in the export so its signature gets a transactions_tse.csv row (docs/compliance.md §6.8).
 			bonNr++
 			belege = append(belege, beleg{
 				bonID:        fmt.Sprintf("tagesabschluss-%d", ev.ID),
@@ -415,9 +399,8 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				bedienerName: ev.UserName,
 			})
 		}
-		// Jeder in dieser Iteration erzeugte Beleg trägt den TSE-Stand seines
-		// Events aus der Signaturauftrags-Tabelle: Signaturpflicht, Signatur und
-		// TSE_TA_VORGANGSART (process_type-Snapshot) kommen aus genau einer Quelle.
+		// Each Beleg of this iteration takes its event's TSE state from the Signaturauftrag
+		// table, the single source for signature duty, signature and TSE_TA_VORGANGSART.
 		sig, pflichtig := signaturen[ev.ID]
 		for i := vorher; i < len(belege); i++ {
 			belege[i].tsePflichtig = pflichtig
@@ -429,12 +412,9 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 	return belege, nil
 }
 
-// geldbewegung baut einen Beleg für eine nicht-steuerbare Bargeldbewegung
-// (Anfangsbestand, Geldtransit, Kassendifferenz). Solche Vorgänge sind nach
-// DSFinV-K Anhang C BON_TYP "Beleg" mit einer einzigen Position
-// (ARTIKELTEXT = GV-Typ, UST_SCHLUESSEL 5). betragCents ist die positive
-// Magnitude; das Vorzeichen ergibt sich aus barabfluss. Sie liegen alle auf
-// Kassensitzungsebene (kein Tischbezug), daher bleibt der Abrechnungskreis leer.
+// geldbewegung builds a non-taxable cash movement: BON_TYP "Beleg" with one line
+// (ARTIKELTEXT = GV type, UST_SCHLUESSEL 5; DSFinV-K Anhang C, docs/compliance.md §6.8).
+// betragCents is the positive magnitude; barabfluss sets the sign.
 func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragCents int, barabfluss bool, notiz string) beleg {
 	return beleg{
 		bonID:          bonID,
@@ -454,10 +434,9 @@ func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragC
 	}
 }
 
-// ursprungsbons liefert die BON_IDs der Bestellungen, aus denen die stornierten
-// Positionen stammen — in Reihenfolge des ersten Auftretens und ohne Duplikate.
-// Ein Tisch-Storno betrifft meist genau eine Bestellung; über mehrere Bestell-
-// runden hinweg kann er mehrere referenzieren (eine references-Zeile je Ursprung).
+// ursprungsbons returns the BON_IDs of the orders the cancelled lines came from,
+// deduplicated in order of first appearance. A Korrektur across several order
+// rounds references several, one references.csv row each.
 func ursprungsbons(positionen []kasse.PositionEventData, herkunft map[string]string) []string {
 	var bons []string
 	gesehen := map[string]bool{}
@@ -472,10 +451,8 @@ func ursprungsbons(positionen []kasse.PositionEventData, herkunft map[string]str
 	return bons
 }
 
-// umbuchungNotiz komponiert die BON_NOTIZ eines Umbuchungs-Bons aus dem
-// Richtungs-Autotext und dem optionalen Benutzerkommentar. Ohne Benutzerkommentar
-// ist die Notiz allein der unveränderte Autotext; sonst werden beide mit "; "
-// verkettet (maximal 202 von 255 erlaubten Zeichen, keine Kürzung nötig).
+// umbuchungNotiz builds BON_NOTIZ from the direction autotext and the optional user
+// comment joined by "; " (at most 202 of the 255 allowed characters, so no truncation).
 func umbuchungNotiz(autotext string, benutzerKommentar string) string {
 	if benutzerKommentar == "" {
 		return autotext
@@ -483,17 +460,15 @@ func umbuchungNotiz(autotext string, benutzerKommentar string) string {
 	return autotext + "; " + benutzerKommentar
 }
 
-// zeit formatiert den Event-Zeitstempel als ISO-8601-UTC für BON_START/BON_ENDE.
+// zeit formats the event time as ISO 8601 UTC for BON_START/BON_ENDE.
 func zeit(ev event.Event) string { return ev.Time.UTC().Format(time.RFC3339) }
 
-// isoZeit formatiert eine TSE-logTime für TSE_TA_START/ENDE. Die amtliche
-// Feldbeschreibung verlangt ISO 8601 mit Millisekunden ("YYYY-MM-DDThh:mm:ss.fffZ");
-// fiskaly liefert Sekundenauflösung, die Millisekunden sind daher stets .000.
+// isoZeit formats a TSE logTime for TSE_TA_START/ENDE, which the spec requires as
+// ISO 8601 with milliseconds. fiskaly logs whole seconds, so milliseconds are .000.
 func isoZeit(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z07:00") }
 
-// Erstellungszeitpunkt liefert Z_ERSTELLUNG: bei einer abgeschlossenen Sitzung
-// die Zeit des `tagesabschluss-erstellt`-Events, sonst fallback (der
-// Exportzeitpunkt einer offenen Sitzung).
+// Erstellungszeitpunkt returns Z_ERSTELLUNG: the tagesabschluss-erstellt time of a
+// closed session, else fallback (the export time of an open session).
 func Erstellungszeitpunkt(events []event.Event, fallback time.Time) time.Time {
 	for _, ev := range events {
 		if ev.Type == string(kasse.EventTypeTagesabschlussErstelltV1) {
@@ -503,12 +478,9 @@ func Erstellungszeitpunkt(events []event.Event, fallback time.Time) time.Time {
 	return fallback
 }
 
-// abrechnungskreis leitet den ABRECHNUNGSKREIS aus dem Subject ab: jede
-// Tisch-Session ist ein Abrechnungskreis (F-06). Der Name stammt aus den
-// Tisch-Stammdaten (Snapshot.Tischnamen, gelöschte Tische eingeschlossen) und
-// wird auf die amtliche Feldlänge gekürzt. Fehlt er, ist "Tisch N" ein Notnagel:
-// er stimmt nur, solange Tisch-ID und Tisch-Name zufällig zusammenfallen.
-// Subjects ohne Tischbezug (Direktverkauf) tragen keinen Abrechnungskreis.
+// abrechnungskreis names the subject's Tisch-Session (F-06) from the table master data,
+// truncated to the field length; subjects without a table get none. The fallback
+// "Tisch N" is only right while table ID and name happen to coincide.
 func abrechnungskreis(subject string, tischnamen map[int]string) string {
 	tischID, err := kasse.ParseTischIDFromSubject(subject)
 	if err != nil {
@@ -534,9 +506,8 @@ var cashpointclosingColumns = []string{
 func buildCashpointclosing(s Snapshot, erstellung string, belege []beleg) Table {
 	bar := barbestand(belege)
 
-	// Z_BUCHUNGSTAG bleibt leer: amtlich nur für einen vom Erstellungstag
-	// abweichenden Buchungstag vorgesehen, und jotti bucht am Erstellungstag
-	// (Z_ERSTELLUNG).
+	// Z_BUCHUNGSTAG stays empty: the spec uses it only for a booking day that differs
+	// from Z_ERSTELLUNG, and jotti books on the creation day.
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 		"", Version,
@@ -609,11 +580,9 @@ var vatColumns = []string{
 }
 
 func buildVat(s Snapshot, erstellung string) Table {
-	// Die DSFinV-K-Anlage 2 definiert die USt-Schlüssel 1-8 sowie die
-	// historischen Sätze ab ID 11; die vat.csv führt die Schlüssel 1-7 auf
-	// (nicht nur die in der Sitzung verwendeten), wie es Prüfsoftware erwartet.
-	// UST_SATZ trägt für die IDs 1-4 den zum Erfassungszeitpunkt geltenden Satz,
-	// für 5-7 die amtlich festen 0,00 %.
+	// vat.csv lists DSFinV-K Anlage 2 keys 1-7, not only those used, as audit software
+	// expects (docs/compliance.md §6.7). UST_SATZ is the rate valid at recording for
+	// keys 1-4 and the fixed 0,00 for 5-7.
 	amtlicheSchluessel := [][2]string{
 		{"19,00", "Allgemeiner Steuersatz"},
 		{"7,00", "Ermäßigter Steuersatz"},
@@ -649,9 +618,8 @@ var tseColumns = []string{
 }
 
 func buildTSE(s Snapshot, erstellung string) Table {
-	// TSE_ZEITFORMAT deklariert das Log-Time-Format der TSE selbst (fiskaly:
-	// unixTime) und stammt aus den beim Setup gespeicherten TSE-Stammdaten.
-	// TSE_TA_START/ENDE sind davon unabhängig amtlich als ISO 8601 vorgegeben.
+	// TSE_ZEITFORMAT declares the TSE's own log time format (fiskaly: unixTime) from the
+	// master data stored at setup; TSE_TA_START/ENDE are ISO 8601 regardless.
 	zeitformat := s.TSEStammdaten.LogTimeFormat
 	if zeitformat == "" {
 		zeitformat = defaultTSEZeitformat
@@ -691,16 +659,14 @@ func buildTransactions(s Snapshot, erstellung string, belege []beleg) Table {
 	records := make([][]string, 0, len(belege))
 	for bi := range belege {
 		b := &belege[bi]
-		// Die geldneutrale AVBestellung trägt keinen Umsatz (UMS_BRUTTO = 0.00);
-		// ihr Bruttobetrag erscheint nur informativ auf Positionsebene (lines.csv).
+		// The cash-neutral AVBestellung carries no revenue (UMS_BRUTTO 0,00); its gross
+		// appears only informatively in lines.csv.
 		umsBrutto := b.sign() * b.bruttoCents
 		if b.geldneutral {
 			umsBrutto = 0
 		}
-		// BON_STORNO kennzeichnet die vollständige Aufhebung eines ganzen Belegs. jotti
-		// nimmt nur Teilmengen negativ zurück (Warenrücknahme, DSFinV-K Tz. 4.2.5) bzw.
-		// korrigiert geldneutral; beides ist kein Vorgangs-Storno, daher bleibt
-		// BON_STORNO stets 0 (das negative Vorzeichen trägt b.sign()).
+		// BON_STORNO stays 0: jotti never voids a whole Beleg, the negative sign carries
+		// the correction (docs/compliance.md §6.6).
 		records = append(records, []string{
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 			b.bonID, itoa(b.bonNr), b.bonTyp, bonName(b),
@@ -726,9 +692,8 @@ var allocationGroupsColumns = []string{
 	"BON_ID", "ABRECHNUNGSKREIS",
 }
 
-// buildAllocationGroups ordnet jeden Bon mit Tischbezug seinem ABRECHNUNGSKREIS
-// (Tischname) zu (F-06). Belege ohne Abrechnungskreis (Direktverkauf) bleiben
-// außen vor; jede TSE-Transaktion ist über ihren Bon einem Kreis zugeordnet.
+// buildAllocationGroups assigns each Bon with a table to its ABRECHNUNGSKREIS
+// (F-06); Belege without one (Direktverkauf) are left out.
 func buildAllocationGroups(s Snapshot, erstellung string, belege []beleg) Table {
 	var records [][]string
 	for bi := range belege {
@@ -817,13 +782,9 @@ var referencesColumns = []string{
 	"REF_DATUM", "REF_Z_KASSE_ID", "REF_Z_NR", "REF_BON_ID",
 }
 
-// buildReferences verkettet referenzierende Belege mit ihrem Ursprungsvorgang: den
-// Storno mit dem stornierten Beleg (Radierverbot, DSFinV-K Tz. 4.2.2) und den
-// Umbuchungs-Zugang mit dem zugehörigen Abgang. REF_TYP "Transaktion" verweist
-// innerhalb der DSFinV-K; da Ursprung und referenzierender Beleg in derselben
-// Sitzung liegen, sind REF_DATUM, REF_Z_KASSE_ID und REF_Z_NR die Abschlusswerte
-// dieser Sitzung. POS_ZEILE bleibt leer (Verweis aus dem Bonkopf, nicht aus einer
-// Position).
+// buildReferences links each Storno to its origin (Radierverbot, DSFinV-K Tz. 4.2.2)
+// and each Umbuchung Zugang to its Abgang. Both sides lie in this session, so the
+// REF_ closing fields repeat this session's values (docs/compliance.md §6.6).
 func buildReferences(s Snapshot, erstellung string, belege []beleg) Table {
 	var records [][]string
 	for bi := range belege {
@@ -860,8 +821,8 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 	for bi := range belege {
 		b := &belege[bi]
 		if b.nichtSteuerbar {
-			// Bargeldbewegung: eine synthetische Position (ARTIKELTEXT = GV-Typ),
-			// Menge ±1 trägt das Vorzeichen, der Stückpreis die positive Magnitude.
+			// Cash movement: one synthetic line (ARTIKELTEXT = GV type); MENGE ±1 carries the
+			// sign, the unit price the positive magnitude.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, "1", "", b.artikeltext,
@@ -872,9 +833,8 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 			})
 			continue
 		}
-		// Geldneutrale AVBestellungen tragen keinen Geschäftsvorfall-Typ: Ein
-		// GV_TYP "Umsatz" auf ihren Positionen würde bei einer Aggregation der
-		// Bonpos je GV_TYP mehr Umsatz ausweisen, als der Kassenabschluss kennt.
+		// Cash-neutral AVBestellungen carry no GV_TYP: "Umsatz" on their lines would make
+		// a per-GV_TYP sum of lines exceed the revenue the closing knows.
 		posGvTyp := b.gvTyp
 		if b.geldneutral {
 			posGvTyp = ""
@@ -942,11 +902,8 @@ func buildLinesVat(s Snapshot, erstellung string, belege []beleg) Table {
 	}
 }
 
-// Amtlich deklarierte, in jotti nicht befüllte Tabellen: Sie werden als
-// Header-only-CSV mitgeliefert, weil die amtliche index.xml alle 20 Dateien
-// deklariert und Prüfsoftware deren Existenz erwartet. jotti hat keine
-// Terminal-Kassen (slaves), kein Agenturgeschäft (pa), keine Preisfindung
-// (itemamounts) und keine Positions-Zusatzinfos wie Pfand (subitems).
+// Declared tables jotti never fills ship as header-only CSV, since the official
+// index.xml declares all 20 files and audit software expects them (docs/compliance.md §6.3).
 var slavesColumns = []string{
 	"Z_KASSE_ID", "Z_ERSTELLUNG", "Z_NR",
 	"TERMINAL_ID", "TERMINAL_BRAND", "TERMINAL_MODELL",
@@ -993,9 +950,8 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 		b := &belege[bi]
 		switch {
 		case b.tse != nil:
-			// TSE_VORGANGSDATEN bleibt leer: amtlich optional, und die signierte
-			// processData wird hier nicht rekonstruiert. TSE_TA_START/ENDE sind
-			// amtlich als ISO 8601 vorgegeben.
+			// TSE_VORGANGSDATEN stays empty: optional in the spec, and the signed processData
+			// is not reconstructed here.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, tseReferenzID, itoa(b.tse.TransaktionNummer),
@@ -1004,10 +960,9 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 				"",
 			})
 		case b.tsePflichtig:
-			// Unsignierter, signaturpflichtiger Vorgang (Auftrag offen, fehlgeschlagen
-			// oder tse_nicht_konfiguriert): Statt zu fehlen trägt er eine Fehlerzeile mit
-			// TSE_TA_FEHLER und leeren Transaktionsfeldern, damit jeder Bonkopf eine
-			// TSE-Zeile hat. Nicht signaturpflichtige Vorgänge erhalten keine Zeile.
+			// An unsigned Vorgang that requires a signature (open, failed, tse_nicht_konfiguriert)
+			// gets a TSE_TA_FEHLER row instead of none (docs/compliance.md §3.8). Vorgänge
+			// without signature duty get no row.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, tseReferenzID, "",
@@ -1035,8 +990,8 @@ var businesscasesColumns = []string{
 	"Z_UMS_BRUTTO", "Z_UMS_NETTO", "Z_UST",
 }
 
-// gvTypReihenfolge ordnet die Geschäftsvorfalltypen für eine stabile Ausgabe der
-// businesscases.csv (Umsatz vor den Bargeldbewegungen).
+// gvTypReihenfolge orders GV types for a stable businesscases.csv (Umsatz before
+// the cash movements).
 var gvTypReihenfolge = map[string]int{
 	gvTypUmsatz:           0,
 	gvTypAnfangsbestand:   1,
@@ -1044,17 +999,14 @@ var gvTypReihenfolge = map[string]int{
 	gvTypDifferenzSollIst: 3,
 }
 
-// gvUstSchluessel ist der Aggregationsschlüssel der businesscases.csv: ein
-// Geschäftsvorfalltyp je Umsatzsteuersatz.
+// gvUstSchluessel is the businesscases.csv aggregation key: one GV type per VAT key.
 type gvUstSchluessel struct {
 	gvTyp      string
 	schluessel int
 }
 
-// buildBusinesscases aggregiert die Sitzung je Geschäftsvorfalltyp und
-// Steuersatz (DSFinV-K Anhang C). Die Summen entstehen aus denselben Belegen wie
-// das Einzelaufzeichnungsmodul, daher gleicht sich die Tagessumme gegen die
-// Einzelbons ab.
+// buildBusinesscases sums the session per GV type and VAT key (DSFinV-K Anhang C).
+// It reads the same Belege as the Einzelaufzeichnungsmodul, so the day total reconciles.
 func buildBusinesscases(s Snapshot, erstellung string, belege []beleg) Table {
 	summen := map[gvUstSchluessel]ustBetrag{}
 	for bi := range belege {
@@ -1111,8 +1063,8 @@ var paymentColumns = []string{
 	"ZAHLART_TYP", "ZAHLART_NAME", "Z_ZAHLART_BETRAG",
 }
 
-// buildPayment aggregiert die Beträge je Zahlart (DSFinV-K Anhang D). jotti
-// kennt nur Bar; die geldneutrale AVBestellung trägt keine Zahlart bei.
+// buildPayment sums amounts per Zahlart (DSFinV-K Anhang D); jotti knows only Bar,
+// and the cash-neutral AVBestellung contributes none.
 func buildPayment(s Snapshot, erstellung string, belege []beleg) Table {
 	summen := map[string]int{}
 	for bi := range belege {
@@ -1123,8 +1075,7 @@ func buildPayment(s Snapshot, erstellung string, belege []beleg) Table {
 		summen[b.zahlart] += b.sign() * b.bruttoCents
 	}
 
-	// Stabile Ausgabe für eine reproduzierbare payment.csv; eine Reihenfolge
-	// nach Zahlart-Bedeutung erübrigt sich, da jotti nur Bar kennt.
+	// Sorted for a reproducible payment.csv; with only Bar, no ranking by Zahlart is needed.
 	zahlarten := make([]string, 0, len(summen))
 	for z := range summen {
 		zahlarten = append(zahlarten, z)
@@ -1153,9 +1104,7 @@ var cashPerCurrencyColumns = []string{
 	"ZAHLART_WAEH", "ZAHLART_BETRAG_WAEH",
 }
 
-// buildCashPerCurrency weist den Bargeldbestand zum Abschluss je Währung aus.
-// jotti rechnet ausschließlich in EUR; der Bestand ergibt sich aus allen baren
-// Belegen (Anfangsbestand, Einnahmen, Geldtransit, Kassendifferenz).
+// buildCashPerCurrency reports the closing cash balance per currency; jotti uses EUR only.
 func buildCashPerCurrency(s Snapshot, erstellung string, belege []beleg) Table {
 	record := []string{
 		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
@@ -1171,16 +1120,11 @@ func buildCashPerCurrency(s Snapshot, erstellung string, belege []beleg) Table {
 	}
 }
 
-// --- Hilfsfunktionen ---
+// --- Helpers ---
 
-// truncateRunes schneidet wert auf höchstens maxLength Zeichen. Der Schnitt läuft
-// über []rune, damit ein Umlaut nicht mitten in seiner UTF-8-Folge zerfällt; die
-// amtlichen Feldlängen zählen Zeichen. Zu kürzen gibt es nur an Bestandswerten,
-// die die Schema-Grenze beim Schreiben nie durchlaufen haben — die Spalten selbst
-// sind TEXT.
-//
-// Steuernummer und USt-IdNr. bleiben ungekürzt: Eine abgeschnittene Nummer ist
-// keine kürzere, sondern eine falsche.
+// truncateRunes cuts wert to maxLength runes, as the official field lengths count
+// characters; only stored values that skipped write validation (TEXT columns) exceed
+// them. Steuernummer and USt-IdNr. are never cut: a truncated number is a wrong one.
 func truncateRunes(wert string, maxLength int) string {
 	runen := []rune(wert)
 	if len(runen) <= maxLength {
@@ -1190,11 +1134,9 @@ func truncateRunes(wert string, maxLength int) string {
 	return string(runen[:maxLength])
 }
 
-// barbestand summiert die baren Belege (vorzeichenbehaftet): Bareinnahmen und
-// Anfangsbestand mehren, Geldtransit-Entnahmen und Warenrücknahmen mindern
-// den Bestand. Die geldneutrale AVBestellung trägt keine Zahlart "Bar" und bewegt
-// daher kein Bargeld. Quelle für Z_SE_(BAR)ZAHLUNGEN und den Bargeldbestand der
-// cash_per_currency.csv.
+// barbestand sums the Bar Belege with sign: sales and Anfangsbestand add, withdrawals
+// and Warenrücknahmen subtract, AVBestellungen carry no Bar. It feeds
+// Z_SE_(BAR)ZAHLUNGEN and cash_per_currency.csv.
 func barbestand(belege []beleg) int {
 	bar := 0
 	for bi := range belege {
@@ -1206,8 +1148,8 @@ func barbestand(belege []beleg) int {
 	return bar
 }
 
-// ordnung liefert die Sortierposition eines Schlüssels; unbekannte Werte landen
-// hinter den bekannten und werden untereinander alphabetisch sortiert.
+// ordnung returns a key's sort position; unknown keys sort after the known ones,
+// alphabetically among themselves.
 func ordnung(reihenfolge map[string]int, key string) int {
 	if v, ok := reihenfolge[key]; ok {
 		return v
@@ -1226,20 +1168,16 @@ func steuermatrixPositionen(positionen []kasse.PositionEventData) []steuer.Steue
 	return out
 }
 
-// ZertifikatZuLang meldet, ob das TSE-Zertifikat die zwei amtlichen
-// TSE_ZERTIFIKAT-Felder übersteigt und daher leer exportiert wird (siehe
-// certChunk). Der Aufrufer nutzt das für eine Log-Warnung; das Archiv bleibt
-// gültig, da das vollständige Zertifikat in den TSE-Stammdaten und im
-// Anbieter-Export vorliegt.
+// ZertifikatZuLang reports whether the TSE certificate exceeds the two official
+// TSE_ZERTIFIKAT fields and is exported empty. The caller logs a warning; the archive
+// stays valid, as TSE master data and the vendor export hold the full certificate.
 func ZertifikatZuLang(cert string) bool {
 	return len(cert) > zertifikatSpalten*zertifikatChunk
 }
 
-// certChunk liefert den index-ten 1000-Zeichen-Block des base64-Zertifikats (für
-// TSE_ZERTIFIKAT_I und _II); Base64 ist ASCII, daher ist Byte-Slicing sicher.
-// Passt das Zertifikat nicht in die zwei amtlichen Felder (> 2000 Zeichen, z. B.
-// eine ganze Kette), bleiben beide leer statt ein abgeschnittenes und damit
-// wertloses Zertifikat zu exportieren.
+// certChunk returns the index-th 1000-character block of the base64 certificate (ASCII,
+// so byte slicing is safe). A certificate longer than both fields (e.g. a whole chain)
+// leaves both empty, since a truncated one is worthless.
 func certChunk(cert string, index int) string {
 	if ZertifikatZuLang(cert) {
 		return ""
@@ -1252,9 +1190,8 @@ func certChunk(cert string, index int) string {
 	return cert[start:end]
 }
 
-// bonName liefert den BON_NAME für den Bonkopf. Bei einem Tagesabschluss-Bon
-// (AVSonstige) ist er amtlich verpflichtend und trägt den festen Text
-// "Tagesabschluss". Bei allen anderen Bontypen bleibt das Feld leer.
+// bonName returns BON_NAME: the spec requires it for the AVSonstige Bon, which jotti
+// fills with "Tagesabschluss"; all other Bons leave it empty.
 func bonName(b *beleg) string {
 	if b.bonTyp == bonTypSonstige {
 		return "Tagesabschluss"

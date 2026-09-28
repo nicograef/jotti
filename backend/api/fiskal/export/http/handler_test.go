@@ -16,8 +16,8 @@ import (
 type mockService struct {
 	archiv application.Archiv
 	err    error
-	// beiErstellen läuft, während der Archivbau simuliert wird — der Test
-	// kann damit den Zustand des ResponseWriters zu diesem Zeitpunkt prüfen.
+	// beiErstellen runs while the archive build is simulated, so the test can inspect
+	// the ResponseWriter state at that moment.
 	beiErstellen func()
 }
 
@@ -39,9 +39,9 @@ func performRequest(t *testing.T, handler http.HandlerFunc, w http.ResponseWrite
 	handler(w, req)
 }
 
-// deadlineCapturingWriter implementiert das SetWriteDeadline-Interface, das
-// http.ResponseController sucht. fristBeimSchreiben hält die Frist fest, die
-// beim ersten Schreibvorgang gilt: Nur sie gibt der Antwort ein Budget.
+// deadlineCapturingWriter implements the SetWriteDeadline interface that
+// http.ResponseController looks for. fristBeimSchreiben records the deadline at the
+// first write, the only one that budgets the response.
 type deadlineCapturingWriter struct {
 	*httptest.ResponseRecorder
 	frist              time.Time
@@ -75,8 +75,8 @@ func (w *deadlineCapturingWriter) merkeErstenSchreibvorgang() {
 	}
 }
 
-// langerArchivbau hält die Frist fest, die während des Archivbaus gilt, und
-// lässt Zeit verstreichen, damit eine danach neu gesetzte Frist später liegt.
+// langerArchivbau records the deadline during the archive build and lets time pass,
+// so a deadline set afterwards is later.
 func langerArchivbau(w *deadlineCapturingWriter, fristBeimArchivbau *time.Time) func() {
 	return func() {
 		*fristBeimArchivbau = w.frist
@@ -84,9 +84,8 @@ func langerArchivbau(w *deadlineCapturingWriter, fristBeimArchivbau *time.Time) 
 	}
 }
 
-// Der Export läuft gegen die eigene, verlängerte Schreibfrist statt gegen
-// die globale 10-Sekunden-Frist des Servers: Sonst wird ein länger als zehn
-// Sekunden dauernder Export stillschweigend abgeschnitten.
+// The export runs against its own extended write deadline, not the server's global
+// 10-second one; otherwise an export over ten seconds is cut silently.
 func TestExportHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing.T) {
 	w := newDeadlineCapturingWriter()
 	var fristBeimArchivbau time.Time
@@ -116,12 +115,9 @@ func TestExportHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing
 	}
 }
 
-// In Produktion läuft der Handler nie nackt: LoggingMiddleware umschließt die
-// gesamte Routenkette (backend/app/app.go) und reicht den Handlern ihren
-// eigenen ResponseWriter-Wrapper. Die Frist muss auch durch diesen Wrapper
-// hindurch beim echten ResponseWriter ankommen — sonst bleibt die globale
-// 10-Sekunden-Frist wirksam und ein grosses DSFinV-K-Archiv reisst mitten im
-// ZIP ab. Der Test oben trifft den Handler direkt und würde das übersehen.
+// In production LoggingMiddleware wraps the route chain (backend/app/app.go) in its own
+// ResponseWriter, and the deadline must reach the real writer through it or a large
+// archive breaks off mid-ZIP. The direct-handler test above would miss that.
 func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing.T) {
 	w := newDeadlineCapturingWriter()
 	var fristBeimArchivbau time.Time
@@ -151,9 +147,8 @@ func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing
 	}
 }
 
-// Die erste Setzung sitzt am Handler-Eingang und gilt den frühen Fehlerpfaden
-// (unlesbarer Body, invalid_kassensitzung); die Antwort nach einem langen
-// Archivbau deckt erst die zweite ab, die auch dieser Fehlerzweig durchläuft.
+// The entry deadline covers the early error paths; a response after a long archive
+// build is covered only by the second one, which this error branch also passes.
 func TestExportHandler_VerlaengertSchreibfristVorDemArchivbau(t *testing.T) {
 	w := newDeadlineCapturingWriter()
 	var fristBeimArchivbau time.Time
@@ -168,8 +163,8 @@ func TestExportHandler_VerlaengertSchreibfristVorDemArchivbau(t *testing.T) {
 	if fristBeimArchivbau.IsZero() {
 		t.Error("expected the write deadline to be extended before Erstellen() runs")
 	}
-	// Auch die Fehlerantwort geht durch beide Fristen — die zweite gibt ihr ein
-	// eigenes Budget, nachdem der Archivbau lange gelaufen ist.
+	// The error response also passes both deadlines; the second budgets it after the
+	// long archive build.
 	if !w.fristBeimSchreiben.After(fristBeimArchivbau) {
 		t.Errorf("expected the write deadline to be set twice before the first write, got %v during the archive build and %v at the first write", fristBeimArchivbau, w.fristBeimSchreiben)
 	}
@@ -178,10 +173,9 @@ func TestExportHandler_VerlaengertSchreibfristVorDemArchivbau(t *testing.T) {
 	}
 }
 
-// Die Frist ist eine absolute Zeit ab Request-Start, kein Budget für den
-// Schreibvorgang: Nach fünf Minuten Archivbau wäre die am Handler-Eingang gesetzte
-// Frist abgelaufen, wenn die Übertragung beginnt. Erst das zweite Setzen gibt ihr
-// ein eigenes Budget.
+// The deadline is absolute from request start: after five minutes of archive build
+// the entry deadline has expired when the transfer starts. Only the second setting
+// gives the transfer its own budget.
 func TestExportHandler_SetztSchreibfristVorDemSchreibenErneut(t *testing.T) {
 	w := newDeadlineCapturingWriter()
 	var fristBeimArchivbau time.Time
@@ -196,16 +190,15 @@ func TestExportHandler_SetztSchreibfristVorDemSchreibenErneut(t *testing.T) {
 	if fristBeimArchivbau.IsZero() {
 		t.Error("expected a write deadline before the archive is built")
 	}
-	// Maßgeblich ist die Frist beim ersten Schreibvorgang: Eine Setzung hinter
-	// dem Schreiben käme für diese Antwort zu spät.
+	// What counts is the deadline at the first write; one set after writing comes too
+	// late for this response.
 	if !w.fristBeimSchreiben.After(fristBeimArchivbau) {
 		t.Errorf("expected the write deadline to be set again after the archive is built and before writing, got %v during the archive build and %v at the first write", fristBeimArchivbau, w.fristBeimSchreiben)
 	}
 }
 
-// Unterstützt der ResponseWriter SetWriteDeadline nicht (wie
-// httptest.ResponseRecorder), wird das protokolliert; der Export läuft mit
-// der globalen Frist unverändert weiter und liefert eine korrekte Antwort.
+// If the ResponseWriter lacks SetWriteDeadline (like httptest.ResponseRecorder), this
+// is logged and the export continues with the global deadline and a correct response.
 func TestExportHandler_LaeuftWeiterWennFristNichtSetzbar(t *testing.T) {
 	svc := &mockService{archiv: application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")}}
 	h := &Handler{Service: svc}

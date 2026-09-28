@@ -7,7 +7,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 )
 
-// amtlicheTabelle bildet die Table-Deklaration der amtlichen index.xml ab.
+// amtlicheTabelle mirrors a Table declaration of the official index.xml.
 type amtlicheTabelle struct {
 	URL            string `xml:"URL"`
 	VariableLength struct {
@@ -24,10 +24,8 @@ type amtlicherIndex struct {
 	} `xml:"Media"`
 }
 
-// Die ausgelieferte index.xml ist die amtliche, unveränderte Vorlage der
-// DSFinV-K v2.4. Die erzeugten Tabellen müssen ihr exakt entsprechen: jede
-// deklarierte Datei existiert, in deklarierter Reihenfolge, mit identischen
-// Spaltennamen in identischer Reihenfolge.
+// The generated tables must match the unmodified official v2.4 index.xml exactly:
+// every declared file, in declared order, with identical columns in identical order.
 func TestArchivEntsprichtAmtlicherIndexXML(t *testing.T) {
 	var amtlich amtlicherIndex
 	if err := xml.Unmarshal(amtlicheIndexXML, &amtlich); err != nil {
@@ -65,8 +63,8 @@ func TestArchivEntsprichtAmtlicherIndexXML(t *testing.T) {
 	}
 }
 
-// Die amtliche index.xml deklariert das Komma als Dezimalsymbol — alle
-// Betrags-, Mengen- und Prozentformate müssen dem entsprechen.
+// The official index.xml declares the comma as decimal symbol; all amount, quantity
+// and percent formats must match it.
 func TestZahlenformateNutzenKommaAlsDezimalsymbol(t *testing.T) {
 	if got := formatAmount(-150); got != "-1,50" {
 		t.Errorf("formatAmount(-150) = %q, want -1,50", got)
@@ -76,8 +74,8 @@ func TestZahlenformateNutzenKommaAlsDezimalsymbol(t *testing.T) {
 	}
 }
 
-// amtlicheMaxLength liest die MaxLength einer Spalte aus der eingebetteten
-// amtlichen index.xml. Sie ist die Feldlänge, gegen die der Mapper kürzt.
+// amtlicheMaxLength reads a column's MaxLength from the embedded official index.xml,
+// the length the mapper truncates to.
 func amtlicheMaxLength(t *testing.T, datei string, spalte string) int {
 	t.Helper()
 

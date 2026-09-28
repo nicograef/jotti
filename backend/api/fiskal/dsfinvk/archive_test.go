@@ -40,7 +40,7 @@ func TestBuildArchiveContents(t *testing.T) {
 		t.Errorf("archive files = %v\nwant %v", got, want)
 	}
 
-	// Die index.xml im Archiv ist byte-identisch mit der amtlichen Vorlage.
+	// The archive's index.xml is byte-identical to the official template.
 	for _, f := range reader.File {
 		if f.Name != "index.xml" {
 			continue

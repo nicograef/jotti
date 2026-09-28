@@ -5,18 +5,11 @@ import (
 	"testing"
 )
 
-// FuzzSerializeCSV prüft den CSV-Encoder gegen beliebige Feldinhalte (Semikolon,
-// Anführungszeichen, CR, LF, Unicode, Steuerzeichen). Invarianten: kein Panic;
-// jede Zeile hat exakt so viele Felder wie der Header (kein Feld zerbricht an
-// einem rohen Trennzeichen); jedes Feld übersteht einen Roundtrip durch einen
-// RFC-4180-Parser unverändert. Ein defekter Encoder zerstörte die
-// Spaltenzuordnung einer amtlichen DSFinV-K-Datei und machte den Export bei der
-// Kassennachschau unbrauchbar.
-//
-// Der Roundtrip nutzt einen eigenen Parser statt encoding/csv: Go's csv-Reader
-// normalisiert CR/LF innerhalb von Feldern und verfälschte damit den Vergleich.
+// FuzzSerializeCSV guards that no field content breaks the column layout of an official
+// DSFinV-K file: no panic, header-width rows, lossless round trip. It uses its own parser
+// because encoding/csv normalises CR/LF inside quoted fields.
 func FuzzSerializeCSV(f *testing.F) {
-	// Seeds aus dem echten Testfall in table_test.go plus Sonderzeichen-Kanten.
+	// Seeds: the real case from table_test.go plus special-character edges.
 	f.Add("plain", "5.00", "ok")
 	f.Add("semi;colon", "1.50", `inner"quote`)
 	f.Add("line\nbreak", "0.00", "ende")
@@ -28,8 +21,7 @@ func FuzzSerializeCSV(f *testing.F) {
 		table := Table{Columns: cols, Records: [][]string{{a, b, c}}}
 		out := string(serializeCSV(table))
 
-		// Der Encoder terminiert jede Zeile mit CRLF. Die letzte Zeile endet daher
-		// mit einem abschließenden CRLF, das keine leere Zeile einleitet.
+		// The encoder ends every row with CRLF, so the final CRLF opens no empty row.
 		if !strings.HasSuffix(out, csvNewline) {
 			t.Errorf("Ausgabe endet nicht mit CRLF: %q", out)
 		}
@@ -56,11 +48,8 @@ func FuzzSerializeCSV(f *testing.F) {
 	})
 }
 
-// splitCSVRows teilt einen CSV-Text in Zeilen, wobei CRLF innerhalb gequoteter
-// Felder (Doublequote-Paare) keine Zeilengrenze bildet — genau die Regel, nach
-// der escapeCSVField Felder mit Zeilenumbruch in Doublequotes fasst. Arbeitet
-// byteweise: Semikolon, Doublequote, CR und LF sind ASCII und tauchen nie in
-// einem UTF-8-Folgebyte auf, daher ist das für beliebige Bytes korrekt.
+// splitCSVRows splits at CRLF outside double-quoted fields, mirroring escapeCSVField.
+// Byte-wise is safe: ; " CR LF are ASCII and never occur in a UTF-8 continuation byte.
 func splitCSVRows(s string) []string {
 	var rows []string
 	var cur strings.Builder
@@ -74,7 +63,7 @@ func splitCSVRows(s string) []string {
 		case ch == '\r' && !inQuotes && i+1 < len(s) && s[i+1] == '\n':
 			rows = append(rows, cur.String())
 			cur.Reset()
-			i++ // das folgende \n überspringen
+			i++ // skip the following \n
 		default:
 			cur.WriteByte(ch)
 		}
@@ -83,10 +72,8 @@ func splitCSVRows(s string) []string {
 	return rows
 }
 
-// parseCSVRow zerlegt eine Zeile in Felder nach den Regeln von escapeCSVField:
-// Semikolon trennt, ein gequotetes Feld beginnt/endet mit Doublequote, ein
-// verdoppeltes Doublequote ("") steht für ein wörtliches Anführungszeichen.
-// Byteweise (siehe splitCSVRows).
+// parseCSVRow splits a row by escapeCSVField's rules: ";" separates, quotes wrap a
+// field, "" is a literal quote. Byte-wise, see splitCSVRows.
 func parseCSVRow(line string) []string {
 	var fields []string
 	var cur strings.Builder
@@ -96,7 +83,7 @@ func parseCSVRow(line string) []string {
 		switch {
 		case ch == '"' && inQuotes && i+1 < len(line) && line[i+1] == '"':
 			cur.WriteByte('"')
-			i++ // das zweite Anführungszeichen des Paares überspringen
+			i++ // skip the pair's second quote
 		case ch == '"':
 			inQuotes = !inQuotes
 		case ch == ';' && !inQuotes:
