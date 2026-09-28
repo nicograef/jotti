@@ -47,7 +47,7 @@ func TestGetAlleDruckstationen(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if len(konfigs) != 5 {
-		t.Fatalf("Expected 5 Kategorien, got %d", len(konfigs))
+		t.Errorf("Expected 5 Kategorien, got %d", len(konfigs))
 	}
 }
 
@@ -60,7 +60,7 @@ func TestGetKonfigurierteDruckstationen_Leer(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if len(result) != 0 {
-		t.Fatalf("Expected 0 konfigurierte Drucker, got %d", len(result))
+		t.Errorf("Expected 0 konfigurierte Drucker, got %d", len(result))
 	}
 }
 
@@ -123,7 +123,7 @@ func TestUpsertDruckstation(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if len(result) != 1 {
-		t.Fatalf("Expected 1 konfigurierter Drucker, got %d", len(result))
+		t.Errorf("Expected 1 konfigurierter Drucker, got %d", len(result))
 	}
 	konfig, ok := result["essen"]
 	if !ok {
@@ -195,7 +195,7 @@ func TestUpsertDruckstation_Deaktivieren(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if _, ok := result["getraenk"]; ok {
-		t.Fatal("Expected 'getraenk' to NOT be in konfigurierte result after deactivation")
+		t.Error("Expected 'getraenk' to NOT be in konfigurierte result after deactivation")
 	}
 }
 

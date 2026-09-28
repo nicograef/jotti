@@ -283,7 +283,7 @@ func TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis(t *testing.T) {
 		byVariante[z.VarianteID] = z
 	}
 	if len(zeilen) != 2 {
-		t.Fatalf("expected 2 variant rows, got %d: %+v", len(zeilen), zeilen)
+		t.Errorf("expected 2 variant rows, got %d: %+v", len(zeilen), zeilen)
 	}
 
 	// Pommes: ausgegebene Menge 5 − 1 = 4; Umsatz 1500 bestellt − 300 korrigiert
@@ -438,7 +438,7 @@ func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
 	}
 
 	if len(data.Stornierungen) != 2 {
-		t.Fatalf("expected 2 Stornierungen (Warenrücknahme + Korrektur), got %d", len(data.Stornierungen))
+		t.Errorf("expected 2 Stornierungen (Warenrücknahme + Korrektur), got %d", len(data.Stornierungen))
 	}
 
 	byKommentar := stornierungenByKommentar(data.Stornierungen)
@@ -681,7 +681,7 @@ func TestGetStornierungen_JedeZahlungTrifftIhrenKassierer(t *testing.T) {
 	}
 	byKommentar := stornierungenByKommentar(data.Stornierungen)
 	if len(byKommentar) != 2 {
-		t.Fatalf("expected 2 Stornos, got %d", len(data.Stornierungen))
+		t.Errorf("expected 2 Stornos, got %d", len(data.Stornierungen))
 	}
 
 	assertBetroffene(t, byKommentar["Ruecknahme Anna"], "anna")
