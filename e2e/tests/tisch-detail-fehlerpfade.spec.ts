@@ -35,7 +35,7 @@ test.describe('Tisch-Detail bei Serverfehler und Netzabbruch', () => {
     ).toBeVisible()
     // Kein stiller Leer-Default: der ausgeglichene Saldo darf nicht als
     // scheinbar echtes Ergebnis erscheinen.
-    await expect(page.getByText('0,00 €')).not.toBeVisible()
+    await expect(page.getByText('0,00 €')).toBeHidden()
   })
 
   test('Netzabbruch beim Laden der Tisch-Historie zeigt einen sichtbaren Fehlerhinweis', async ({

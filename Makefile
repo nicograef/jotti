@@ -2,7 +2,7 @@
 
 .PHONY: init up up-attached down restart logs status \
        test test-frontend test-integration test-all test-e2e test-tse-live test-tse-live-setup fuzz \
-       lint-backend lint-backend-full lint-frontend lint \
+       lint-backend lint-backend-full lint-frontend lint-e2e lint \
        fmt-backend fmt-frontend fmt-repo fmt \
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
        build-starter-windows build-relay-windows starter-syso release-windows \
@@ -12,7 +12,7 @@
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
-       check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend check-e2e-types check-shell check-workflows check-format check-repo check-integration check check-full verify \
+       check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend check-e2e check-shell check-workflows check-format check-repo check-integration check check-full verify \
        website-dev website-build website-test website-check website-screenshots \
        help
 
@@ -82,7 +82,10 @@ lint-backend-full: ## Backend Linting mit golangci-lint (inkl. Integrationstest-
 lint-frontend: ## Frontend Linting (ESLint)
 	cd frontend && pnpm lint
 
-lint: lint-backend lint-frontend check-shell ## Backend-, Frontend- und Shell-Linting
+lint-e2e: ## E2E-Suite Linting (ESLint)
+	cd e2e && pnpm lint
+
+lint: lint-backend lint-frontend lint-e2e check-shell ## Backend-, Frontend-, E2E- und Shell-Linting
 
 # Formatierung
 
@@ -298,8 +301,8 @@ check-frontend: ## Frontend komplett prüfen (Format, Lint, Test, Build)
 	$(MAKE) check-format
 	cd frontend && pnpm lint && pnpm test && pnpm build
 
-check-e2e-types: ## E2E-Suite typprüfen (tsc, ohne Stack)
-	cd e2e && pnpm typecheck
+check-e2e: ## E2E-Suite prüfen (tsc + ESLint, ohne Stack)
+	cd e2e && pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint
 
 check-shell: ## Shell-Skripte mit shellcheck prüfen (wie CI)
 	shellcheck -x scripts/*.sh
@@ -321,7 +324,7 @@ check-repo: ## Alle scripts/check-*.sh-Gates ausführen, Fehlschläge gesammelt 
 check-integration: check-tools-integration ## Integrationstests gegen echte Datenbank ausführen
 	./scripts/test-integration.sh
 
-check: check-tools check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend website-check check-e2e-types check-shell check-workflows check-repo ## Schnelle Komplettprüfung ohne DB-Integration
+check: check-tools check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend website-check check-e2e check-shell check-workflows check-repo ## Schnelle Komplettprüfung ohne DB-Integration
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 
@@ -372,12 +375,12 @@ website-screenshots: ## App-Screenshots + OG-Bild reproduzierbar neu erzeugen (e
 # lists as its sections. A target in none prints under UNCLASSIFIED.
 CLASS_developer := init up up-attached down restart logs status \
 	test test-frontend test-integration test-tse-live test-tse-live-setup test-all test-e2e fuzz \
-	lint-backend lint-backend-full lint-frontend lint fmt-backend fmt-frontend fmt-repo fmt \
+	lint-backend lint-backend-full lint-frontend lint-e2e lint fmt-backend fmt-frontend fmt-repo fmt \
 	build-backend build-relay build-resolver build-local-proxy build-starter-windows build-relay-windows \
 	starter-syso release-windows build-frontend build sqlc \
 	local-up local-down local-logs db-shell seed rebuild-projections clean \
 	check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver \
-	check-local-proxy check-format check-frontend check-e2e-types check-shell check-workflows check-repo \
+	check-local-proxy check-format check-frontend check-e2e check-shell check-workflows check-repo \
 	check-integration check check-full verify \
 	website-dev website-build website-test website-check website-screenshots help
 CLASS_production := prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore \

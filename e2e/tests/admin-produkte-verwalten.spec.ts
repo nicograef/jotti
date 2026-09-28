@@ -1,3 +1,4 @@
+import type { Locator, Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
@@ -13,6 +14,31 @@ import { resetAndSeed } from '../support/seed'
 // und stehen in der Reihenfolge im DOM, in der das Backend die Liste liefert.
 function namenAus(labels: string[], muster: RegExp): string[] {
   return labels.map((label) => muster.exec(label)?.[1] ?? label)
+}
+
+// Der Pfeil neben dem Switch muss ein echtes 32-px-Ziel sein und die
+// unsichtbare Trefferfläche des Switch (after:-inset-x-3) darf seine
+// zugewandte Kante nicht verschlucken.
+async function erwarteKlickzielMitFreierKante(
+  page: Page,
+  pfeil: Locator,
+  ariaLabel: string,
+): Promise<void> {
+  const box = await pfeil.boundingBox()
+  expect(box, `${ariaLabel}: keine Bounding-Box`).not.toBeNull()
+  if (box === null) return
+  expect(box.width).toBeGreaterThanOrEqual(32)
+  expect(box.height).toBeGreaterThanOrEqual(32)
+
+  const treffer = await page.evaluate(
+    ({ x, y }) =>
+      document
+        .elementFromPoint(x, y)
+        ?.closest('button')
+        ?.getAttribute('aria-label') ?? '',
+    { x: box.x + 1, y: box.y + box.height / 2 },
+  )
+  expect(treffer).toBe(ariaLabel)
 }
 
 test.describe('Admin verwaltet Produkte und Varianten', () => {
@@ -154,25 +180,10 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
       .poll(async () => (await produktReihenfolge()).slice(0, 3))
       .toEqual(['Pommes', 'Bratwurst', 'Flammkuchen'])
 
-    // Der Pfeil neben dem Switch muss ein echtes 32-px-Ziel sein und die
-    // unsichtbare Trefferfläche des Switch (after:-inset-x-3) darf seine
-    // zugewandte Kante nicht verschlucken.
-    const chevron = bratwurst.getByRole('button', {
-      name: 'Variante „XXL" nach hinten',
-    })
-    const box = await chevron.boundingBox()
-    if (!box) throw new Error('Chevron ohne Bounding-Box')
-    expect(box.width).toBeGreaterThanOrEqual(32)
-    expect(box.height).toBeGreaterThanOrEqual(32)
-
-    const treffer = await page.evaluate(
-      ({ x, y }) =>
-        document
-          .elementFromPoint(x, y)
-          ?.closest('button')
-          ?.getAttribute('aria-label') ?? '',
-      { x: box.x + 1, y: box.y + box.height / 2 },
+    await erwarteKlickzielMitFreierKante(
+      page,
+      bratwurst.getByRole('button', { name: 'Variante „XXL" nach hinten' }),
+      'Variante „XXL" nach hinten',
     )
-    expect(treffer).toBe('Variante „XXL" nach hinten')
   })
 })

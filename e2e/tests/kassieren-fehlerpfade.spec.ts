@@ -41,7 +41,7 @@ test.describe('Kassieren-Drawer bei Serverfehler und Netzabbruch', () => {
     await expect(
       page.getByText(/unerwarteter Serverfehler|Referenz:/i),
     ).toBeVisible()
-    await expect(page.getByText('Zahlung erfolgreich.')).not.toBeVisible()
+    await expect(page.getByText('Zahlung erfolgreich.')).toBeHidden()
   })
 
   test('Netzabbruch beim Kassieren zeigt eine sichtbare Fehlermeldung statt „Zahlung erfolgreich"', async ({
@@ -58,7 +58,7 @@ test.describe('Kassieren-Drawer bei Serverfehler und Netzabbruch', () => {
     await expect(
       page.getByText(/Zahlung kassieren fehlgeschlagen/i),
     ).toBeVisible()
-    await expect(page.getByText('Zahlung erfolgreich.')).not.toBeVisible()
+    await expect(page.getByText('Zahlung erfolgreich.')).toBeHidden()
   })
 })
 

@@ -649,6 +649,10 @@ jobs:
         working-directory: ./e2e
         run: pnpm typecheck
 
+      - name: Lint
+        working-directory: ./e2e
+        run: pnpm lint
+
       - name: Install Playwright Chromium
         working-directory: ./e2e
         run: pnpm exec playwright install --with-deps chromium
