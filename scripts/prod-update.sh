@@ -108,8 +108,13 @@ if ! wait_for_healthy "$BACKEND_CONTAINER"; then
 fi
 info "Backend healthy."
 
-# Only dangling layers go; the previous release's images stay tagged for a rollback.
-info "Removing dangling images ..."
+# The target and the previous release stay: the previous one is the rollback path.
+info "Removing jotti images other than $TARGET_VERSION and $RUNNING_VERSION ..."
+while read -r image; do
+  tag="${image##*:}"
+  [[ "$tag" == "$TARGET_VERSION" || "$tag" == "$RUNNING_VERSION" || "$tag" == "<none>" ]] && continue
+  docker image rm "$image" >/dev/null || warn "Could not remove $image; the update itself succeeded."
+done < <(docker image ls --format '{{.Repository}}:{{.Tag}}' | grep '^ghcr\.io/nicograef/jotti-' || true)
 docker image prune -f >/dev/null || warn "docker image prune failed; the update itself succeeded."
 
 DOMAIN="$(read_env JOTTI_DOMAIN)"

@@ -66,7 +66,9 @@ wegen der gesetzlichen 10-Jahre-Aufbewahrung.
   jotti nicht antwortet. Schaltet dort auch die Warnung vor dem Ablauf des
   Zertifikats ein.
 - **Speicherplatz:** Prüft vor jeder Veranstaltung mit `df -h`, dass die Platte
-  nicht vollläuft. Alte Images räumt `docker image prune -f` weg.
+  nicht vollläuft. Alte jotti-Images räumt `make prod-update` nach jedem
+  erfolgreichen Update selbst weg. Es behält nur die neue und die vorherige
+  Version, die ihr für ein Zurückrollen braucht.
 - **Neustart nach Kernel-Updates:** Die automatischen Updates starten den Server
   nicht neu. Liegt die Datei `/var/run/reboot-required` vor, startet ihn außerhalb
   einer Veranstaltung mit `sudo reboot` neu. jotti läuft danach von selbst wieder an.
