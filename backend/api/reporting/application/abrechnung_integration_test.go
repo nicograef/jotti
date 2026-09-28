@@ -15,10 +15,8 @@ import (
 	"github.com/nicograef/jotti/backend/repository/reporting_repo"
 )
 
-// Integrationstests der Abrechnung pro Servicekraft: echte Events in der DB,
-// echte Storno-Zuordnung aus GetStornierungen, echte Aggregation der
-// Anwendungsschicht. Geprüft wird ausschließlich, welche Beträge und welche
-// Servicekraft in breakdowns.abrechnungProServicekraft landen.
+// Integration tests of the per-staff settlement with real events, storno attribution and aggregation.
+// Rules under test: docs/handbuch.md §7.2.
 
 func cleanAbrechnungDB(t *testing.T, db *sql.DB) {
 	t.Helper()
@@ -37,8 +35,6 @@ func cleanAbrechnungDB(t *testing.T, db *sql.DB) {
 	}
 }
 
-// abrechnungSetup öffnet die Test-DB, räumt sie auf und liefert die Query mit
-// dem echten Reporting-Repository sowie die Nummer einer offenen Kassensitzung.
 func abrechnungSetup(t *testing.T) (*sql.DB, Query, int) {
 	t.Helper()
 	db := dbtest.Open()
@@ -84,8 +80,7 @@ func insertAbrechnungEvent(t *testing.T, db *sql.DB, userID int, userName, event
 	}
 }
 
-// position baut eine Fat-Event-Position mit den Feldern, die Reporting-Queries
-// und Storno-Zuordnung auswerten.
+// position holds only the fat-event fields the report queries and storno attribution read.
 func position(positionID string, einzelpreisCents int) map[string]any {
 	return map[string]any{
 		"positionId":       positionID,
@@ -154,8 +149,7 @@ func direktverkaufStornoEvent(verkaufID string, betragCents int, kommentar strin
 	}
 }
 
-// abrechnungByUser indiziert die Abrechnungszeilen über den eingefrorenen
-// Username; fehlt eine Person, ist sie nicht in der Liste.
+// abrechnungByUser keys the rows by the frozen username.
 func abrechnungByUser(zeilen []reporting.AbrechnungServicekraft) map[string]reporting.AbrechnungServicekraft {
 	out := map[string]reporting.AbrechnungServicekraft{}
 	for _, z := range zeilen {
@@ -172,10 +166,8 @@ func assertAbrechnung(t *testing.T, zeile reporting.AbrechnungServicekraft, kass
 	}
 }
 
-// Nimmt die Serviceleitung stellvertretend eine von der Servicekraft kassierte
-// Zahlung zurück, mindert das die Abrechnung der Servicekraft. Die
-// Serviceleitung bleibt unbelastet — sie hat weder kassiert noch einen eigenen
-// Vorgang rückgängig gemacht und erscheint deshalb gar nicht.
+// A return issued by the Serviceleitung reduces the cashier's settlement.
+// The Serviceleitung neither collected nor had its own transaction reversed, so it gets no row.
 func TestAbrechnung_StellvertretendeRuecknahmeTrifftDenKassierer(t *testing.T) {
 	db, q, zNr := abrechnungSetup(t)
 	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
@@ -198,8 +190,7 @@ func TestAbrechnung_StellvertretendeRuecknahmeTrifftDenKassierer(t *testing.T) {
 	assertAbrechnung(t, byUser["anna"], 2000, 500, 1500, 1)
 }
 
-// Dieselbe Rücknahme, diesmal von der Servicekraft selbst erteilt: Die
-// Zuordnung folgt dem Kassierer und ist keine Sonderregel für Vertretungsfälle.
+// The same return issued by the cashier gives the same result: attribution follows the cashier, not a stand-in rule.
 func TestAbrechnung_EigeneRuecknahmeErgibtDasselbe(t *testing.T) {
 	db, q, zNr := abrechnungSetup(t)
 	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
@@ -221,9 +212,8 @@ func TestAbrechnung_EigeneRuecknahmeErgibtDasselbe(t *testing.T) {
 	assertAbrechnung(t, byUser["anna"], 2000, 500, 1500, 1)
 }
 
-// Bezahlt Servicekraft A, was B bestellt hat, belastet die Rücknahme A: Der
-// Bargeldfluss folgt der Zahlung, nicht der Bestellung. B hat weder kassiert
-// noch einen zugeordneten Storno und erscheint deshalb nicht.
+// If A collects what B ordered, the return hits A: cash follows the payment, not the order.
+// B neither collected nor has an attributed storno, so B gets no row.
 func TestAbrechnung_RuecknahmeTrifftKassiererNichtBesteller(t *testing.T) {
 	db, q, zNr := abrechnungSetup(t)
 	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
@@ -246,9 +236,8 @@ func TestAbrechnung_RuecknahmeTrifftKassiererNichtBesteller(t *testing.T) {
 	}
 }
 
-// Die geldneutrale Korrektur erzeugt nur einen Kontroll-Marker beim Besteller —
-// kein Betrag, kein veränderter Abzugeben-Saldo. Der Besteller erscheint dafür
-// mit eigener Zeile, auch ohne eigenes Kassieren.
+// A cash-neutral correction only counts for the orderer, without an amount or Abzugeben change.
+// The orderer gets a row even without collections.
 func TestAbrechnung_KorrekturZaehltNurAlsMarkerBeimBesteller(t *testing.T) {
 	db, q, zNr := abrechnungSetup(t)
 	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
@@ -278,9 +267,8 @@ func TestAbrechnung_KorrekturZaehltNurAlsMarkerBeimBesteller(t *testing.T) {
 	}
 }
 
-// Direktverkauf und Direktverkauf-Storno laufen über eine eigene Kasse: Sie
-// verändern keine Zeile der Abrechnung pro Servicekraft, obwohl sie in den
-// Gesamtkennzahlen und in der Storno-Detailliste erscheinen.
+// Direct sales and their stornos use their own till: they change no settlement row but appear in the totals
+// and the storno list.
 func TestAbrechnung_DirektverkaufBleibtAussen(t *testing.T) {
 	db, q, zNr := abrechnungSetup(t)
 	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
@@ -304,7 +292,7 @@ func TestAbrechnung_DirektverkaufBleibtAussen(t *testing.T) {
 	}
 	assertAbrechnung(t, byUser["anna"], 2000, 0, 2000, 0)
 
-	// Gegenprobe: Der Direktverkauf-Storno ist trotzdem erfasst.
+	// Cross-check: the direct-sale storno is still listed.
 	if data.Summary.DirektverkaufUmsatzCents != 500 {
 		t.Errorf("expected direktverkauf umsatz 500 (750 − 250), got %d", data.Summary.DirektverkaufUmsatzCents)
 	}
@@ -313,9 +301,8 @@ func TestAbrechnung_DirektverkaufBleibtAussen(t *testing.T) {
 	}
 }
 
-// Wird eine Zahlung vollständig zurückgenommen, ist Abzugeben null — nie
-// negativ. Die Rücknahme kann nur Positionen der referenzierten Zahlung
-// zurücknehmen, und beide Seiten werden demselben Kassierer zugeordnet.
+// A fully returned payment leaves Abzugeben at zero, never negative.
+// See docs/handbuch.md §7.2.
 func TestAbrechnung_VollstaendigeRuecknahmeErgibtNullNichtNegativ(t *testing.T) {
 	db, q, zNr := abrechnungSetup(t)
 	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
@@ -335,8 +322,6 @@ func TestAbrechnung_VollstaendigeRuecknahmeErgibtNullNichtNegativ(t *testing.T) 
 	assertAbrechnung(t, byUser["anna"], 2000, 2000, 0, 1)
 }
 
-// assertEigeneUebersicht prüft die drei Rücknahme-Felder der eigenen Übersicht
-// zusammen mit dem kassierten Betrag, aus dem sie sich ableiten.
 func assertEigeneUebersicht(t *testing.T, u reporting.EigeneUebersicht, kassiert, ruecknahmen, anzahlRuecknahmen, abzugeben int) {
 	t.Helper()
 	if u.ZahlungenCents != kassiert || u.RuecknahmenCents != ruecknahmen ||
@@ -346,10 +331,8 @@ func assertEigeneUebersicht(t *testing.T, u reporting.EigeneUebersicht, kassiert
 	}
 }
 
-// Nimmt jemand anderes eine von dieser Servicekraft kassierte Zahlung zurück,
-// sinkt ihr Abzugeben und die Rücknahme-Anzahl steigt — der kassierte Betrag
-// selbst bleibt unangetastet. Zugleich der Konsistenzbeleg: Die eigene Übersicht
-// nennt exakt denselben Abzugeben-Betrag wie ihre Zeile in der Abrechnung.
+// Someone else's return on this cashier's payment lowers their Abzugeben but not the collected amount.
+// Their own overview must show the same Abzugeben as their settlement row.
 func TestEigeneUebersicht_FremdeRuecknahmeMindertAbzugeben(t *testing.T) {
 	db, q, zNr := abrechnungSetup(t)
 	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
@@ -376,9 +359,7 @@ func TestEigeneUebersicht_FremdeRuecknahmeMindertAbzugeben(t *testing.T) {
 	}
 }
 
-// Nimmt diese Servicekraft eine von jemand anderem kassierte Zahlung zurück,
-// bleibt ihre eigene Übersicht unberührt — belastet wird die Kasse des
-// Kassierers, nicht die des Stornierenden.
+// A return on someone else's payment leaves the issuer's overview unchanged; it hits the cashier's till.
 func TestEigeneUebersicht_EigeneRuecknahmeFremderZahlungZaehltNicht(t *testing.T) {
 	db, q, zNr := abrechnungSetup(t)
 	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
@@ -389,7 +370,7 @@ func TestEigeneUebersicht_EigeneRuecknahmeFremderZahlungZaehltNicht(t *testing.T
 	insertAbrechnungEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", tisch, 2, zahlungEvent("z-anna", "pos-1", 2000), zNr)
 	insertAbrechnungEvent(t, db, bobID, "bob", "bestellung-aufgenommen:v1", tisch, 3, bestellungEvent("pos-2", 1500), zNr)
 	insertAbrechnungEvent(t, db, bobID, "bob", "zahlung-kassiert:v1", tisch, 4, zahlungEvent("z-bob", "pos-2", 1500), zNr)
-	// anna storniert gegen bobs Zahlung.
+	// anna returns against bob's payment.
 	insertAbrechnungEvent(t, db, annaID, "anna", "stornierung-erteilt:v1", tisch, 5, ruecknahmeEvent("z-bob", "pos-2", 400, "Ruecknahme Bob"), zNr)
 
 	ctx := context.Background()
@@ -406,8 +387,7 @@ func TestEigeneUebersicht_EigeneRuecknahmeFremderZahlungZaehltNicht(t *testing.T
 	assertEigeneUebersicht(t, bob, 1500, 400, 1, 1100)
 }
 
-// Eine geldneutrale Korrektur bewegt kein Bargeld und darf die eigene Übersicht
-// deshalb in keinem der drei Rücknahme-Felder verändern.
+// A cash-neutral correction moves no cash, so it changes none of the overview's return fields.
 func TestEigeneUebersicht_KorrekturVeraendertNichts(t *testing.T) {
 	db, q, zNr := abrechnungSetup(t)
 	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
@@ -426,9 +406,8 @@ func TestEigeneUebersicht_KorrekturVeraendertNichts(t *testing.T) {
 	assertEigeneUebersicht(t, uebersicht, 2000, 0, 0, 2000)
 }
 
-// Wird eine Zahlung vollständig zurückgenommen, ist Abzugeben null — nie
-// negativ. Die Invariante trägt, weil je Zahlung höchstens der Zahlbetrag
-// zurückgenommen werden kann und beide Seiten demselben Kassierer zufallen.
+// A fully returned payment leaves the overview's Abzugeben at zero, never negative.
+// See docs/handbuch.md §7.2.
 func TestEigeneUebersicht_VollstaendigeRuecknahmeErgibtNull(t *testing.T) {
 	db, q, zNr := abrechnungSetup(t)
 	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")

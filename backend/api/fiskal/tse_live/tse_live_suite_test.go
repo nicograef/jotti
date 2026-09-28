@@ -1,17 +1,8 @@
 //go:build integration
 
-// Package tse_live ist die TSE-Live-Suite: Sie löst jeden signaturpflichtigen
-// Geschäftsvorfall über die echten Anwendungsdienste aus, lässt ihn vom
-// echten Signatur-Worker gegen die fiskaly-TEST-TSS real signieren und prüft
-// je Vorfall den abgeschlossenen Signaturauftrag, die Signaturdaten im
-// Kassenjournal-Outbox-Eintrag und das processType-Mapping.
-//
-// Live-Guard nach dem Muster von repository/tse_repo/fiskaly_client_live_test.go:
-// Ohne FISKALY_TEST_*-Credentials skippt die Suite; die Verbindung wird zu
-// Beginn gegen tse.UmgebungTest geprüft und bricht bei jeder Nicht-TEST-
-// Umgebung hart ab, damit nie gegen eine LIVE-TSS signiert wird.
-//
-//	make test-tse-live   # Wegwerf-Postgres + Migrationen + .env.fiskaly-test
+// Package tse_live signs every signature-bound business event through the real services and signing worker
+// against the fiskaly TEST TSS; any non-TEST environment aborts the run.
+// Run with `make test-tse-live`.
 package tse_live
 
 import (
@@ -41,13 +32,9 @@ import (
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 )
 
-// signaturWartefrist begrenzt, wie lange auf die Quittierung eines Auftrags
-// durch den Signatur-Worker gewartet wird. Großzügig gewählt: ein realer
-// fiskaly-Roundtrip inkl. möglichem 429-Backoff des Workers dauert Sekunden.
+// signaturWartefrist is generous because a real fiskaly round trip including a 429 backoff takes seconds.
 const signaturWartefrist = 90 * time.Second
 
-// liveTestUmgebung bündelt die reale Umgebung eines Live-Laufs: DB, die
-// verdrahteten Anwendungsdienste und die Stammdaten-IDs.
 type liveTestUmgebung struct {
 	db         *sql.DB
 	tisch      tischgeschaeftApp.Command
@@ -61,10 +48,8 @@ type liveTestUmgebung struct {
 	varianteID int
 }
 
-// credentialsOderSkip verlangt das Opt-in JOTTI_TSE_LIVE=1 und liest dann die
-// fiskaly-TEST-Credentials; fehlt eines von beidem, wird die Suite geskippt. Das
-// Opt-in hält normale Integrationsläufe (scripts/test-integration.sh) hermetisch,
-// auch wenn FISKALY_TEST_*-Variablen in der Shell exportiert sind.
+// credentialsOderSkip skips unless JOTTI_TSE_LIVE=1 and the FISKALY_TEST_* credentials are set.
+// The opt-in keeps regular integration runs hermetic even with FISKALY_TEST_* exported.
 func credentialsOderSkip(t *testing.T) tse.Credentials {
 	t.Helper()
 	if os.Getenv("JOTTI_TSE_LIVE") != "1" {
@@ -90,9 +75,8 @@ func fiskalyBaseURL() string {
 	return baseURL
 }
 
-// pruefeTestUmgebungOderAbbruch stellt sicher, dass die Credentials auf die
-// TEST-Umgebung zeigen. Jeder andere Befund ist ein harter Abbruch: gegen eine
-// LIVE-TSS darf die Suite nie signieren.
+// pruefeTestUmgebungOderAbbruch aborts unless the credentials point at the TEST environment:
+// the suite must never sign against a LIVE TSS.
 func pruefeTestUmgebungOderAbbruch(t *testing.T, credentials tse.Credentials) {
 	t.Helper()
 	client, err := tse_repo.NewFiskalyTSEClient(fiskalyBaseURL(), credentials, nil)
@@ -114,9 +98,7 @@ func pruefeTestUmgebungOderAbbruch(t *testing.T, credentials tse.Credentials) {
 	}
 }
 
-// cleanLiveDB räumt alle im Lauf beschriebenen Tabellen ab. Das Kassenjournal
-// ist append-only (Lösch-Trigger); für den Test-Reset wird der Trigger
-// kurzzeitig ausgesetzt.
+// cleanLiveDB briefly disables the delete trigger that keeps kassenjournal append-only.
 func cleanLiveDB(t *testing.T, db *sql.DB) {
 	t.Helper()
 	stmts := []string{
@@ -142,9 +124,6 @@ func cleanLiveDB(t *testing.T, db *sql.DB) {
 	}
 }
 
-// setupLiveUmgebung fährt die volle reale Umgebung hoch: DB reinigen, die
-// echten TEST-Credentials in tse_konfiguration schreiben (damit der Worker sie
-// liest), Stammdaten anlegen und die Anwendungsdienste verdrahten.
 func setupLiveUmgebung(t *testing.T, credentials tse.Credentials) *liveTestUmgebung {
 	t.Helper()
 
@@ -157,8 +136,7 @@ func setupLiveUmgebung(t *testing.T, credentials tse.Credentials) *liveTestUmgeb
 
 	ctx := context.Background()
 
-	// Echte TEST-Credentials in die Singleton-Konfiguration schreiben: der
-	// Signatur-Worker liest sie von dort und spricht damit die TEST-TSS an.
+	// The signing worker reads its credentials from this singleton configuration.
 	konf, err := tse.NewKonfiguration(credentials.ApiKey, credentials.ApiSecret, credentials.TssID, credentials.ClientID)
 	if err != nil {
 		t.Fatalf("Konfiguration bauen: %v", err)
@@ -230,9 +208,6 @@ func setupLiveUmgebung(t *testing.T, credentials tse.Credentials) *liveTestUmgeb
 	return u
 }
 
-// starteWorker startet den echten Signatur-Worker in einer Goroutine und stoppt
-// ihn über t.Cleanup am Testende. Der Worker liest die TSE-Konfiguration aus der
-// DB, spricht die echte TEST-TSS an und quittiert jede Signatur direkt am Auftrag.
 func starteWorker(t *testing.T, db *sql.DB) {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -248,8 +223,6 @@ func starteWorker(t *testing.T, db *sql.DB) {
 	})
 }
 
-// signaturZeile ist der quittierte Zustand eines Signaturauftrags samt seinem
-// Kassenjournal-Event: alles, was ein Vorfall zur Prüfung braucht.
 type signaturZeile struct {
 	status          string
 	processType     string
@@ -264,9 +237,7 @@ type signaturZeile struct {
 	eventType       string
 }
 
-// warteAufSignatur pollt den Auftrag des Events, bis er 'erledigt' ist, und
-// gibt seine Signaturdaten zurück. Ein fehlgeschlagener Auftrag bricht sofort
-// ab (kein Warten bis zum Timeout).
+// warteAufSignatur polls until the event's job is erledigt; a failed job aborts at once instead of at the timeout.
 func warteAufSignatur(t *testing.T, db *sql.DB, eventID int) signaturZeile {
 	t.Helper()
 	deadline := time.Now().Add(signaturWartefrist)
@@ -301,10 +272,8 @@ func warteAufSignatur(t *testing.T, db *sql.DB, eventID int) signaturZeile {
 	}
 }
 
-// pruefeSignatur prüft die Vollständigkeit der Signaturdaten eines erledigten
-// Auftrags und den erwarteten processType. processType/processData werden von
-// der fiskalischen Projektion (domain/kasse/fiskalische_projektion.go) nach
-// DSFinV-K 2.4 Anhang I gesetzt; die Suite prüft den quittierten Snapshot.
+// pruefeSignatur checks a signed job's data and its processType, which the fiscal projection sets
+// per DSFinV-K 2.4 Anhang I. See docs/compliance.md §3.3.
 func pruefeSignatur(t *testing.T, vorfall string, z signaturZeile, erwarteterProcessType string) {
 	t.Helper()
 	if z.processType != erwarteterProcessType {
@@ -333,9 +302,8 @@ func pruefeSignatur(t *testing.T, vorfall string, z signaturZeile, erwarteterPro
 	}
 }
 
-// eventIDByType liefert die kassenjournal-ID des jüngsten Events eines Typs zum
-// Subject. Mehrere Events desselben Typs auf einem Subject (etwa Teil- und
-// Vollzahlung) sind erlaubt; die Suite liest jeweils direkt nach dem Vorfall.
+// eventIDByType returns the newest event of the type, since one subject may hold several (partial and full payment).
+// The suite therefore reads it right after each business event.
 func eventIDByType(t *testing.T, db *sql.DB, eventType, subject string) int {
 	t.Helper()
 	var id int
@@ -348,8 +316,7 @@ func eventIDByType(t *testing.T, db *sql.DB, eventType, subject string) int {
 	return id
 }
 
-// positionRefsAusSession liest die aktuell unbezahlten Positionen eines Tischs
-// und baut PositionRefs über genau menge Stück der ersten Position.
+// positionRefsAusSession refers to menge units of the table's first unpaid position.
 func positionRefsAusSession(t *testing.T, u *liveTestUmgebung, ksNr, tischID, menge int) []kasse.PositionRef {
 	t.Helper()
 	session, err := kassenjournal_repo.NewRepository(u.db).ReadTischSession(context.Background(), kasse.TischSessionSubject(ksNr, tischID))
@@ -362,9 +329,7 @@ func positionRefsAusSession(t *testing.T, u *liveTestUmgebung, ksNr, tischID, me
 	return []kasse.PositionRef{{PositionID: session.UnbezahltePositionen[0].PositionID, Menge: menge}}
 }
 
-// restBezahlen kassiert alle noch unbezahlten Positionen eines Tischs, damit
-// die Tisch-Session den für den Kassenabschluss nötigen saldo_cents = 0
-// erreicht. No-Op, wenn nichts offen ist.
+// restBezahlen pays every unpaid position so the table reaches saldo_cents = 0, which the cash close requires.
 func restBezahlen(t *testing.T, u *liveTestUmgebung, ksNr, tischID int) {
 	t.Helper()
 	session, err := kassenjournal_repo.NewRepository(u.db).ReadTischSession(context.Background(), kasse.TischSessionSubject(ksNr, tischID))
@@ -383,11 +348,8 @@ func restBezahlen(t *testing.T, u *liveTestUmgebung, ksNr, tischID int) {
 	}
 }
 
-// TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten löst jeden
-// signaturpflichtigen Geschäftsvorfall über die Anwendungsdienste aus, lässt
-// ihn real signieren und prüft Signatur, Kassenjournal-Outbox und
-// processType-Mapping. Am Ende wird die Vollständigkeit der persistierten
-// TSE-Stammdaten explizit assertet.
+// TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten signs each signature-bound business event live and checks
+// its signature data and processType mapping, then the completeness of the persisted TSS master data.
 func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	credentials := credentialsOderSkip(t)
 	pruefeTestUmgebungOderAbbruch(t, credentials)
@@ -398,15 +360,13 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	ctx := context.Background()
 	db := u.db
 
-	// signiereUndPruefe wartet auf die Signatur des letzten Events dieses Typs
-	// und prüft sie gegen den erwarteten processType.
 	signiereUndPruefe := func(vorfall, eventType, subject, erwarteterProcessType string) {
 		id := eventIDByType(t, db, eventType, subject)
 		z := warteAufSignatur(t, db, id)
 		pruefeSignatur(t, vorfall, z, erwarteterProcessType)
 	}
 
-	// (1) Kassensitzung eröffnen mit Anfangsbestand > 0 → Kassenbeleg-V1 (Bareinlage).
+	// (1) Opening a session with a float > 0 → Kassenbeleg-V1 (Bareinlage).
 	ksNr, err := u.kasse.KassensitzungEroeffnen(ctx, u.userID, "test", "Live-Suite", 5000)
 	if err != nil {
 		t.Fatalf("KassensitzungEroeffnen: %v", err)
@@ -414,7 +374,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	ksSubject := kasse.KassensitzungSubject(ksNr)
 	signiereUndPruefe("Kassensitzung-Eröffnung (Bareinlage)", string(kasse.EventTypeKassensitzungEroeffnetV1), ksSubject, tse.ProcessTypeKassenbelegV1)
 
-	// (2) Bestellung → Bestellung-V1. 3 Stück, damit Teil-/Vollzahlung und Storno Mengen haben.
+	// (2) Order → Bestellung-V1; 3 units leave quantities for partial payment, full payment and cancellation.
 	bestellungID := uuid.NewString()
 	inputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 3}}
 	if err := u.tisch.BestellungAufnehmen(ctx, u.userID, "test", bestellungID, u.tischID, inputs, ""); err != nil {
@@ -423,7 +383,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	tischSubject := kasse.TischSessionSubject(ksNr, u.tischID)
 	signiereUndPruefe("Bestellung", string(kasse.EventTypeBestellungAufgenommenV1), tischSubject, tse.ProcessTypeBestellungV1)
 
-	// (3) Teilzahlung: 1 von 3 Stück → Kassenbeleg-V1.
+	// (3) Partial payment of 1 of 3 units → Kassenbeleg-V1.
 	teilRefs := positionRefsAusSession(t, u, ksNr, u.tischID, 1)
 	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", u.tischID, teilRefs, ""); err != nil {
 		t.Fatalf("Teilzahlung: %v", err)
@@ -432,8 +392,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	z := warteAufSignatur(t, db, teilZahlungID)
 	pruefeSignatur(t, "Teilzahlung", z, tse.ProcessTypeKassenbelegV1)
 
-	// (4) Vollzahlung: die restlichen 2 Stück → Kassenbeleg-V1. Ein weiteres
-	// zahlung-kassiert:v1-Event auf demselben Subject (höhere ID).
+	// (4) Full payment of the remaining 2 units → Kassenbeleg-V1, a second zahlung-kassiert:v1 on the same subject.
 	vollRefs := positionRefsAusSession(t, u, ksNr, u.tischID, 2)
 	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", u.tischID, vollRefs, ""); err != nil {
 		t.Fatalf("Vollzahlung: %v", err)
@@ -445,16 +404,14 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	z = warteAufSignatur(t, db, vollZahlungID)
 	pruefeSignatur(t, "Vollzahlung", z, tse.ProcessTypeKassenbelegV1)
 
-	// (5) Warenrücknahme: Storno von 1 bezahlten Stück → kassenwirksame
-	// stornierung-erteilt:v1 (Kassenbeleg-V1, negativ).
+	// (5) Return of 1 paid unit → cash-relevant stornierung-erteilt:v1 (negative Kassenbeleg-V1).
 	stornoRefs := []kasse.PositionRef{{PositionID: teilRefs[0].PositionID, Menge: 1}}
 	if err := u.tisch.StornierungErteilen(ctx, u.userID, "test", u.tischID, stornoRefs, "Rücknahme"); err != nil {
 		t.Fatalf("StornierungErteilen (Warenrücknahme): %v", err)
 	}
 	signiereUndPruefe("Warenrücknahme", string(kasse.EventTypeStornierungErteiltV1), tischSubject, tse.ProcessTypeKassenbelegV1)
 
-	// (6) Geldneutrale Korrektur: Bestellung auf Tisch 2, unbezahlt stornieren →
-	// bestellung-korrigiert:v1 (Bestellung-V1, negative Mengen).
+	// (6) Cancelling an unpaid order on table 2 → cash-neutral bestellung-korrigiert:v1 (Bestellung-V1, negative quantities).
 	bestellung2ID := uuid.NewString()
 	if err := u.tisch.BestellungAufnehmen(ctx, u.userID, "test", bestellung2ID, u.tischID2, inputs, ""); err != nil {
 		t.Fatalf("BestellungAufnehmen Tisch 2: %v", err)
@@ -466,9 +423,8 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	}
 	signiereUndPruefe("Geldneutrale Korrektur", string(kasse.EventTypeBestellungKorrigiertV1), tisch2Subject, tse.ProcessTypeBestellungV1)
 
-	// (7) Umbuchung: verbleibende unbezahlte Positionen von Tisch 2 auf Tisch 1 →
-	// bestellung-umgebucht:v1 auf beiden Seiten (Bestellung-V1). Geprüft: Abgang
-	// vom Quelltisch (negative Mengen) und Zugang auf dem Zieltisch.
+	// (7) Transfer from table 2 to table 1 → bestellung-umgebucht:v1 on both subjects (Bestellung-V1),
+	// negative quantities on the source table.
 	umbuchRefs := positionRefsAusSession(t, u, ksNr, u.tischID2, 1)
 	if err := u.tisch.BestellungUmbuchen(ctx, u.userID, "test", u.tischID2, u.tischID, umbuchRefs, ""); err != nil {
 		t.Fatalf("BestellungUmbuchen: %v", err)
@@ -476,7 +432,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	signiereUndPruefe("Umbuchung Abgang", string(kasse.EventTypeBestellungUmgebuchtV1), tisch2Subject, tse.ProcessTypeBestellungV1)
 	signiereUndPruefe("Umbuchung Zugang", string(kasse.EventTypeBestellungUmgebuchtV1), tischSubject, tse.ProcessTypeBestellungV1)
 
-	// (8) Direktverkauf → Kassenbeleg-V1.
+	// (8) Direct sale → Kassenbeleg-V1.
 	verkaufID := uuid.NewString()
 	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 2}}
 	if err := u.direkt.DirektverkaufTaetigen(ctx, u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
@@ -485,7 +441,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	verkaufSubject := kasse.DirektverkaufSubject(ksNr, verkaufID)
 	signiereUndPruefe("Direktverkauf", string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufSubject, tse.ProcessTypeKassenbelegV1)
 
-	// (9) Direktverkauf-Storno → Kassenbeleg-V1 (negativ).
+	// (9) Direct-sale cancellation → negative Kassenbeleg-V1.
 	dvSession, err := kassenjournal_repo.NewRepository(db).ReadEventsBySubject(ctx, verkaufSubject)
 	if err != nil || len(dvSession) == 0 {
 		t.Fatalf("Direktverkauf-Events lesen: %v", err)
@@ -500,50 +456,37 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	}
 	signiereUndPruefe("Direktverkauf-Storno", string(kasse.EventTypeDirektverkaufStorniertV1), verkaufSubject, tse.ProcessTypeKassenbelegV1)
 
-	// (10) Geldtransit (Einlage) → Kassenbeleg-V1 (Eigenbeleg, 0-%-Feld).
+	// (10) Cash deposit → Kassenbeleg-V1 (Eigenbeleg, 0 % field).
 	geldtransitID := uuid.NewString()
 	if err := u.kasse.GeldtransitBuchen(ctx, u.userID, "test", geldtransitID, "einlage", 1000, "Wechselgeld"); err != nil {
 		t.Fatalf("GeldtransitBuchen: %v", err)
 	}
 	signiereUndPruefe("Geldtransit", string(kasse.EventTypeGeldtransitGebuchtV1), ksSubject, tse.ProcessTypeKassenbelegV1)
 
-	// Tisch-Saldo-Sperre des Kassenabschlusses: alle Tisch-Sessions müssen
-	// saldo_cents = 0 haben. Nach Umbuchung/Korrektur tragen beide Tische noch
-	// unbezahlte Reste — diese abkassieren (weitere Kassenbeleg-V1-Signaturen,
-	// vom Worker mitgesigniert), damit der Abschluss laufen kann.
+	// Transfer and correction leave unpaid rests on both tables, which would block the cash close.
 	restBezahlen(t, u, ksNr, u.tischID)
 	restBezahlen(t, u, ksNr, u.tischID2)
 
-	// Vor dem Kassenabschluss müssen alle Aufträge signiert sein, sonst blockiert
-	// das Signatur-Gate mit *SignaturenAusstehendError.
+	// Unsigned jobs would block the close with *SignaturenAusstehendError.
 	warteBisKeineOffenenAuftraege(t, db)
 
-	// (11) Kassenabschluss in einem Schritt: Kassensturz (nicht signaturpflichtig),
-	// Differenzbuchung (Kassendifferenz, Kassenbeleg-V1) und Tagesabschluss
-	// (SonstigerVorgang, Z-Bon). Ist-Bestand bewusst abweichend, damit eine
-	// Differenz gebucht wird.
+	// (11) The cash close books the Kassensturz (unsigned), the difference (Kassenbeleg-V1) and the Z-Bon
+	// (SonstigerVorgang).
 	sollBestand := aktuellerSollBestand(t, db, ksNr)
-	istBestand := sollBestand - 137 // 1,37 € Fehlbetrag erzwingt eine Differenzbuchung
+	istBestand := sollBestand - 137 // a 1.37 € shortfall forces a difference booking
 	if _, err := u.kasse.KasseAbschliessen(ctx, u.userID, "test", istBestand); err != nil {
 		t.Fatalf("KasseAbschliessen: %v", err)
 	}
 
-	// Kassendifferenz (Differenzbuchung) → Kassenbeleg-V1 (Eigenbeleg).
+	// Cash difference → Kassenbeleg-V1 (Eigenbeleg).
 	signiereUndPruefe("Kassendifferenz", string(kasse.EventTypeDifferenzSollIstGebuchtV1), ksSubject, tse.ProcessTypeKassenbelegV1)
 
 	// Tagesabschluss (Z-Bon) → SonstigerVorgang.
 	signiereUndPruefe("Tagesabschluss", string(kasse.EventTypeTagesabschlussErstelltV1), ksSubject, tse.ProcessTypeSonstigerVorgang)
 
-	// Stammdaten-Vollständigkeit: die fiskalischen TSS-Stammdaten (DSFinV-K
-	// tse.csv) müssen von der TSS-Ressource lesbar sein. serial_number liegt auf
-	// der TSS-Ressource selbst (nicht tss_serial_number). Wir lesen sie über den
-	// Setup-Client und persistieren sie.
 	pruefeStammdatenVollstaendigkeit(t, u, credentials)
 }
 
-// warteBisKeineOffenenAuftraege stellt sicher, dass der Worker die Queue leer
-// gearbeitet hat, bevor der Kassenabschluss läuft (das Signatur-Gate blockiert
-// auf frische offene Aufträge).
 func warteBisKeineOffenenAuftraege(t *testing.T, db *sql.DB) {
 	t.Helper()
 	deadline := time.Now().Add(signaturWartefrist)
@@ -571,10 +514,8 @@ func aktuellerSollBestand(t *testing.T, db *sql.DB, ksNr int) int {
 	return bestand.SollBestandCents
 }
 
-// pruefeStammdatenVollstaendigkeit liest die TSS-Stammdaten real von fiskaly,
-// persistiert sie und prüft explizit, dass alle DSFinV-K-Felder gefüllt sind:
-// Signaturalgorithmus, Public Key, Zertifikat, Log-Time-Format und die
-// Seriennummer (serial_number der TSS-Ressource).
+// pruefeStammdatenVollstaendigkeit asserts that fiskaly delivers every TSS master data field of DSFinV-K tse.csv.
+// The serial number is the TSS resource's serial_number, not tss_serial_number.
 func pruefeStammdatenVollstaendigkeit(t *testing.T, u *liveTestUmgebung, credentials tse.Credentials) {
 	t.Helper()
 	ctx := context.Background()
@@ -607,8 +548,7 @@ func pruefeStammdatenVollstaendigkeit(t *testing.T, u *liveTestUmgebung, credent
 		t.Error("Stammdaten: leere Seriennummer (serial_number der TSS-Ressource)")
 	}
 
-	// Persistieren und aus der DB zurücklesen: der DSFinV-K-Export liest die
-	// Stammdaten aus tse_stammdaten, also muss die Persistenz vollständig sein.
+	// The DSFinV-K export reads tse_stammdaten, so the stored copy must be complete too.
 	stammdaten := tse.NewStammdaten(
 		tssStammdaten.Seriennummer,
 		tssStammdaten.SignaturAlgorithmus,

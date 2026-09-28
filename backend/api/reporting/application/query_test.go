@@ -152,10 +152,8 @@ func TestGetReporting_BerechnetUmsatzProSteuersatz(t *testing.T) {
 	}
 }
 
-// Zeilenbasis statt Aggregatbasis: Zwei Kombi-Zeilen à 10,05 € runden je
-// Zeile (2 × 7,04 € ermäßigt = 14,08 €), nicht auf dem Aggregat (20,10 € →
-// 14,07 €). Warenrücknahmen kommen als negative Zeilen und mindern die
-// Aufschlüsselung, statt bei negativem Aggregat zu verschwinden.
+// Two kombi rows of 10.05 € round per row (2 × 7.04 € reduced = 14.08 €), not on the aggregate (20.10 € → 14.07 €).
+// Returns arrive as negative rows and reduce the breakdown instead of vanishing.
 func TestGetReporting_UmsatzProSteuersatzRechnetJeZeile(t *testing.T) {
 	data := reporting.ReportingData{
 		KassensitzungNr: testKassensitzungNr,
@@ -189,7 +187,6 @@ func TestGetReporting_UmsatzProSteuersatzRechnetJeZeile(t *testing.T) {
 	}
 }
 
-// abrechnungByUserID indiziert die Abrechnungszeilen über die Benutzer-ID.
 func abrechnungByUserID(zeilen []reporting.AbrechnungServicekraft) map[int]reporting.AbrechnungServicekraft {
 	out := map[int]reporting.AbrechnungServicekraft{}
 	for _, z := range zeilen {
@@ -208,15 +205,13 @@ func TestGetReporting_AggregiertAbrechnungProServicekraft(t *testing.T) {
 			},
 		},
 		Stornierungen: []reporting.StornierungDetail{
-			// Rücknahme, stellvertretend von der Serviceleitung erteilt: Betrag und
-			// Zähler landen beim Kassierer felix, nicht bei lena.
+			// A return issued by lena (Serviceleitung) on felix's payment counts for felix.
 			{
 				Quelle: reporting.QuelleTisch, BarRueckgabe: true, BetragCents: 500,
 				Akteur:     reporting.ServicekraftRef{UserID: 9, UserName: "lena", Name: "Lena C."},
 				Betroffene: []reporting.ServicekraftRef{{UserID: 3, UserName: "felix", Name: "Felix W."}},
 			},
-			// Geldneutrale Korrektur über Positionen zweier Besteller: nur Zähler,
-			// bei jedem von beiden.
+			// A cash-neutral correction over two orderers' positions counts for both, without an amount.
 			{
 				Quelle: reporting.QuelleTisch, BarRueckgabe: false, BetragCents: 300,
 				Akteur: reporting.ServicekraftRef{UserID: 9, UserName: "lena", Name: "Lena C."},
@@ -225,7 +220,7 @@ func TestGetReporting_AggregiertAbrechnungProServicekraft(t *testing.T) {
 					{UserID: 7, UserName: "sophie", Name: "Sophie B."},
 				},
 			},
-			// Direktverkauf-Storno: eigene Kasse, verändert keine Abrechnungszeile.
+			// A direct-sale storno has its own till and changes no settlement row.
 			{
 				Quelle: reporting.QuelleDirektverkauf, BarRueckgabe: true, BetragCents: 250,
 				Akteur:     reporting.ServicekraftRef{UserID: 9, UserName: "lena", Name: "Lena C."},
@@ -242,7 +237,7 @@ func TestGetReporting_AggregiertAbrechnungProServicekraft(t *testing.T) {
 	}
 
 	abrechnung := result.Breakdowns.AbrechnungProServicekraft
-	// lena hat weder kassiert noch einen Tisch-Storno zugeordnet bekommen.
+	// lena neither collected nor has a table storno attributed.
 	if len(abrechnung) != 2 {
 		t.Fatalf("expected 2 abrechnung rows (felix, sophie), got %d: %+v", len(abrechnung), abrechnung)
 	}
@@ -257,16 +252,14 @@ func TestGetReporting_AggregiertAbrechnungProServicekraft(t *testing.T) {
 		t.Errorf("unexpected sophie abrechnung (Direktverkauf-Storno darf nicht zählen): %+v", sophie)
 	}
 
-	// Sortierung nach Abzugeben absteigend, nicht nach Kassiert: sophie (48,00 €)
-	// vor felix (50,00 − 5,00 = 45,00 €).
+	// Sorted by Abzugeben, not Kassiert: sophie (48.00 €) before felix (50.00 − 5.00 = 45.00 €).
 	if abrechnung[0].UserID != 7 || abrechnung[1].UserID != 3 {
 		t.Errorf("expected sorting by Abzugeben desc (sophie, felix), got %+v", abrechnung)
 	}
 }
 
-// TestGetReporting_SummeAbzugebenEntsprichtTischservice prüft die Kern-Invariante
-// der Aufschlüsselung: Σ Abzugeben == kassierter Tischservice-Umsatz − Σ
-// Rücknahmen, Direktverkäufe auf beiden Seiten ausgenommen.
+// TestGetReporting_SummeAbzugebenEntsprichtTischservice guards Σ Abzugeben == collected table revenue − Σ returns,
+// direct sales excluded on both sides.
 func TestGetReporting_SummeAbzugebenEntsprichtTischservice(t *testing.T) {
 	kassiert := []reporting.AbrechnungServicekraft{
 		{UserID: 3, UserName: "felix", KassiertCents: 5000, AnzahlZahlungen: 4},
@@ -331,8 +324,7 @@ func TestGetReporting_SummeAbzugebenEntsprichtTischservice(t *testing.T) {
 	}
 }
 
-// Eine Person ohne eigenes Kassieren, der ein Storno zugeordnet ist, erscheint
-// mit eigener Zeile — sonst bliebe ihr Kontroll-Signal unsichtbar.
+// A person with an attributed storno but no collections gets a row, or the control signal would stay hidden.
 func TestGetReporting_ZeigtServicekraftMitNurZugeordnetenStornos(t *testing.T) {
 	data := reporting.ReportingData{
 		KassensitzungNr: testKassensitzungNr,
@@ -367,8 +359,7 @@ func TestGetReporting_ZeigtServicekraftMitNurZugeordnetenStornos(t *testing.T) {
 }
 
 func TestGruppiereProduktStatistik_GruppiertSortiertUndSummiert(t *testing.T) {
-	// Bewusst unsortierte, kategorieübergreifende Eingabe: Sonstiges vor Essen,
-	// Varianten und Produkte in wechselnder Mengen-Reihenfolge.
+	// Deliberately unsorted input across categories: Sonstiges before Essen, mixed quantity order.
 	zeilen := []reporting.ProduktStatistikZeile{
 		{Kategorie: "sonstiges", ProduktName: "Los", VarianteID: 90, VarianteName: "Los", AusgegebeneMenge: 4, UmsatzCents: 400},
 		{Kategorie: "getraenk", ProduktName: "Cola", VarianteID: 20, VarianteName: "0,5 l", AusgegebeneMenge: 3, UmsatzCents: 900},
@@ -380,21 +371,19 @@ func TestGruppiereProduktStatistik_GruppiertSortiertUndSummiert(t *testing.T) {
 
 	produkte := gruppiereProduktStatistik(zeilen)
 
-	// Sechs Varianten-Zeilen fallen zu vier Produkt-Gruppen zusammen
-	// (Pommes und Cola je zweivariantig, Wurst und Los einvariantig).
+	// Six variant rows form four products: Pommes and Cola with two variants, Wurst and Los with one.
 	if len(produkte) != 4 {
 		t.Fatalf("expected 4 produkte, got %d: %+v", len(produkte), produkte)
 	}
 
-	// Essen zuerst; Pommes (Menge 10) vor Wurst (Menge 8).
+	// Essen first; Pommes (10) before Wurst (8).
 	if produkte[0].Kategorie != "essen" || produkte[0].ProduktName != "Pommes" {
 		t.Errorf("expected Pommes first in Essen, got %+v", produkte[0])
 	}
 	if produkte[0].AusgegebeneMenge != 10 || produkte[0].UmsatzCents != 2500 {
 		t.Errorf("expected Pommes subtotal menge 10 / umsatz 2500, got %d / %d", produkte[0].AusgegebeneMenge, produkte[0].UmsatzCents)
 	}
-	// Varianten je Produkt nach Menge absteigend, Name als Tiebreaker bei
-	// Gleichstand (groß vor klein: beide 5).
+	// Variants by quantity descending, name as tiebreaker (groß before klein, both 5).
 	if len(produkte[0].Varianten) != 2 || produkte[0].Varianten[0].VarianteName != "groß" || produkte[0].Varianten[1].VarianteName != "klein" {
 		t.Errorf("expected Pommes-Varianten groß, klein (Name-Tiebreaker), got %+v", produkte[0].Varianten)
 	}
@@ -403,7 +392,7 @@ func TestGruppiereProduktStatistik_GruppiertSortiertUndSummiert(t *testing.T) {
 		t.Errorf("expected Wurst second in Essen, got %+v", produkte[1])
 	}
 
-	// Getränke nach Essen; Cola-Varianten 0,3 l (10) vor 0,5 l (3).
+	// Getränke after Essen; Cola 0,3 l (10) before 0,5 l (3).
 	if produkte[2].Kategorie != "getraenk" || produkte[2].ProduktName != "Cola" {
 		t.Fatalf("expected Cola in Getränke, got %+v", produkte[2])
 	}
@@ -414,7 +403,7 @@ func TestGruppiereProduktStatistik_GruppiertSortiertUndSummiert(t *testing.T) {
 		t.Errorf("expected Cola-Varianten 0,3 l vor 0,5 l (Menge absteigend), got %+v", produkte[2].Varianten)
 	}
 
-	// Sonstiges zuletzt; Ein-Varianten-Produkt behält genau eine Variante.
+	// Sonstiges last; a single-variant product keeps its one variant.
 	if produkte[3].Kategorie != "sonstiges" || produkte[3].ProduktName != "Los" || len(produkte[3].Varianten) != 1 {
 		t.Errorf("expected Los as single-variant Sonstiges product, got %+v", produkte[3])
 	}
@@ -593,14 +582,14 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	}
 	sessions := []kasse.TischSession{
 		{
-			// Anna (7, hat Umsatz) hat hier noch offene Arbeit.
+			// Anna (7) has revenue and open work.
 			TischID: 3,
 			UnbezahltePositionen: []kasse.Position{
 				{PositionID: "p1", Menge: 2, EinzelpreisCents: 375, BestellerUserID: 7, BestellerName: "Anna"},
 			},
 		},
 		{
-			// Bert (8) hat offene Arbeit, aber keinen kassierten Umsatz.
+			// Bert (8) has open work but no collected revenue.
 			TischID: 1,
 			UnbezahltePositionen: []kasse.Position{
 				{PositionID: "p2", Menge: 1, EinzelpreisCents: 300, BestellerUserID: 8, BestellerName: "Bert"},
@@ -625,7 +614,7 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 		t.Fatalf("expected 3 servicekraefte (2 mit Umsatz + Bert ohne), got %d: %+v", len(result.Servicekraefte), result.Servicekraefte)
 	}
 
-	// Umsatz-Servicekräfte zuerst, in Umsatz-Reihenfolge.
+	// Staff with revenue first, in revenue order.
 	anna := result.Servicekraefte[0]
 	if anna.UserID != 7 || anna.KassiertCents != 1500 || anna.AbzugebenCents != 1500 || anna.Erledigt {
 		t.Errorf("expected Anna mit Umsatz und offener Arbeit, got %+v", anna)
@@ -633,11 +622,11 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	if len(anna.OffeneTische) != 1 || anna.OffeneTische[0].TischID != 3 || anna.OffeneTische[0].TischName != "Tisch 3" || anna.OffeneTische[0].AnzahlOffen != 1 {
 		t.Errorf("expected Anna offen an Tisch 3, got %+v", anna.OffeneTische)
 	}
-	// OffenCents wird aus der Domäne durchgereicht: 2 × 375 = 750 Cent.
+	// OffenCents comes from the domain: 2 × 375 = 750 cents.
 	if anna.OffeneTische[0].OffenCents != 750 {
 		t.Errorf("expected Anna OffenCents 750, got %d", anna.OffeneTische[0].OffenCents)
 	}
-	// Der offene Betrag wird auf Servicekraft-Ebene aggregiert (Summe über Tische).
+	// The open amount is summed over the staff member's tables.
 	if anna.OffenCents != 750 {
 		t.Errorf("expected Anna Servicekraft-OffenCents 750, got %d", anna.OffenCents)
 	}
@@ -647,7 +636,7 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 		t.Errorf("expected Cleo mit Umsatz aber fertig, got %+v", cleo)
 	}
 
-	// Person mit offener Arbeit, aber ohne Umsatz, wird angehängt.
+	// A person with open work but no revenue is appended.
 	bert := result.Servicekraefte[2]
 	if bert.UserID != 8 || bert.UserName != "Bert" || bert.Name != "" || bert.KassiertCents != 0 || bert.AbzugebenCents != 0 || bert.Erledigt {
 		t.Errorf("expected Bert ohne Umsatz mit offener Arbeit, got %+v", bert)
@@ -663,9 +652,8 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	}
 }
 
-// Im Live-Dashboard trägt die Team-Liste dieselbe Abrechnung wie der
-// Tagesbericht: Die stellvertretend erteilte Rücknahme mindert das Abzugeben der
-// Servicekraft, die kassiert hat — nicht das der Serviceleitung.
+// The live team list carries the same settlement as the daily report: a return issued by the Serviceleitung
+// reduces the cashier's Abzugeben, not the Serviceleitung's.
 func TestGetLiveReporting_ServicekraefteTragenAbrechnung(t *testing.T) {
 	ks := &kasse.Kassensitzung{ZNr: testKassensitzungNr, Status: kasse.KassensitzungOffen}
 	liveData := reporting.LiveReportingData{

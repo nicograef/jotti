@@ -47,7 +47,7 @@ func konsistenzEvent(t *testing.T, id int, typ kasse.EventType, subject string, 
 	}
 }
 
-// centsAusExportBetrag parst einen DSFinV-K-Betrag ("27,98", "-14,55") in Cents.
+// centsAusExportBetrag parses a DSFinV-K amount ("27,98", "-14,55") into cents.
 func centsAusExportBetrag(t *testing.T, betrag string) int {
 	t.Helper()
 	negativ := strings.HasPrefix(betrag, "-")
@@ -70,12 +70,8 @@ func centsAusExportBetrag(t *testing.T, betrag string) int {
 	return cents
 }
 
-// Gemeinsamer Testfall für die Invariante: Die USt-Aufschlüsselung des
-// Reportings (computeUmsatzProSteuersatz auf den Brutto-Positionszeilen)
-// muss für dieselbe Sitzung exakt die Summen der businesscases.csv des
-// DSFinV-K-Exports ergeben — mit Kombi-Positionen, Warenrücknahme,
-// Teilzahlungen und Direktverkauf inkl. Storno. Die krummen Beträge sind
-// bewusst gewählt, damit Zeilen- und Aggregatbasis unterschiedlich runden.
+// The report's VAT breakdown must equal the businesscases.csv sums of the DSFinV-K export for the same session.
+// The odd amounts make per-row and aggregate rounding differ.
 func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 	subjectTisch := kasse.TischSessionSubject(konsistenzZNr, 42)
 
@@ -132,8 +128,7 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 		konsistenzEvent(t, 5, kasse.EventTypeDirektverkaufStorniertV1, kasse.DirektverkaufSubject(konsistenzZNr, "d1"), direktverkaufStorno),
 	}
 
-	// Reporting-Seite: Brutto-Positionszeilen wie in GetUmsatzPositionszeilen
-	// (eine Zeile je Position, Stornos negativ), dann die Aufschlüsselung.
+	// Report side: one gross row per position as in GetUmsatzPositionszeilen, stornos negative.
 	var zeilen []reporting.UmsatzSteuersatz
 	addZeilen := func(positionen []kasse.PositionEventData, vorzeichen int) {
 		for _, p := range positionen {
@@ -151,7 +146,7 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 
 	aufschluesselung := computeUmsatzProSteuersatz(zeilen)
 
-	// Export-Seite: businesscases.csv derselben Events, summiert je UST_SCHLUESSEL.
+	// Export side: businesscases.csv of the same events, summed per UST_SCHLUESSEL.
 	snapshot := dsfinvk.Snapshot{
 		KasseSeriennummer: "11111111-2222-3333-4444-555555555555",
 		Erstellung:        time.Date(2026, 6, 16, 20, 0, 0, 0, time.UTC),
@@ -185,7 +180,7 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 		exportSummen[schluessel] = summe
 	}
 
-	// UST_SCHLUESSEL laut DSFinV-K Anlage 2: 1 = regel, 2 = ermaessigt, 6 = befreit.
+	// UST_SCHLUESSEL per DSFinV-K Anlage 2: 1 = regel, 2 = ermaessigt, 6 = befreit.
 	schluesselFuerSatz := map[steuer.Steuersatz]string{
 		steuer.RegelSteuersatz:      "1",
 		steuer.ErmaessigtSteuersatz: "2",
@@ -214,8 +209,7 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 		}
 	}
 
-	// Σ(Brutto je Steuersatz) == Gesamtumsatz der Sitzung
-	// (2238 + 1470 - 1455 + 880 - 335).
+	// Σ gross per rate == session revenue (2238 + 1470 - 1455 + 880 - 335).
 	if gesamtBrutto != 2798 {
 		t.Errorf("Σ Brutto je Steuersatz = %d, want 2798", gesamtBrutto)
 	}

@@ -1,15 +1,6 @@
 //go:build integration
 
-// Ausfall-, Nachsignierungs- und Latenzmessung der TSE-Live-Suite; baut auf der
-// Infrastruktur von tse_live_suite_test.go auf (setupLiveUmgebung, starteWorker,
-// warteAufSignatur):
-//
-//   - Ausfall zur Laufzeit: Vorgänge bleiben buchbar, das Störungsprotokoll erfasst
-//     den Zeitraum mit Grund, nach Wiederherstellung läuft die Nachsignierung, und
-//     das Abschluss-Gate verhält sich in beiden Fällen korrekt (409 bei frisch
-//     ausstehenden Signaturen, erlaubt bei dokumentiertem Ausfall).
-//   - Latenzmessung: ein Burst von Signaturaufträgen, Ausgabe von p50/p95 der
-//     realen Ende-zu-Ende-Signierdauer (erstellt_am -> erledigt_am).
+// Outage, re-signing and latency tests of the TSE live suite, on the setup of tse_live_suite_test.go.
 package tse_live
 
 import (
@@ -29,22 +20,12 @@ import (
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 )
 
-// latenzBurstGroesse ist die Zahl der Signaturaufträge der Latenzmessung.
-// Als Konstante gehalten, damit die Messung reproduzierbar ist.
+// latenzBurstGroesse is the job count of each latency scenario, fixed for reproducible measurements.
 const latenzBurstGroesse = 24
 
-// TestTSELiveSuite_AusfallUndNachsignierung schaltet den Signatur-Worker zur
-// Laufzeit auf ungültige Credentials um (401 gegen fiskaly = TSE-weiter Fehler)
-// und prüft den kompletten Ausfallpfad:
-//
-//   - Während des Ausfalls bleiben Vorgänge buchbar (Buchen wartet nie auf die
-//     TSE) und der Signaturauftrag bleibt offen.
-//   - Das Störungsprotokoll (tse_stoerungen) erfasst den Zeitraum mit Grund
-//     tse_fehler.
-//   - Das Abschluss-Gate lässt während des dokumentierten Ausfalls durch und
-//     weist den Ausfall-Rest in der Abschlussmeldung aus.
-//   - Nach Wiederherstellung der Credentials läuft die Nachsignierung
-//     automatisch; die verspätete Signatur trägt das Nachsigniert-Kennzeichen.
+// TestTSELiveSuite_AusfallUndNachsignierung breaks the worker's credentials at runtime (fiskaly 401, a TSE-wide error):
+// booking must not wait, the outage is logged and passes the close gate, and restored credentials re-sign the open job.
+// See docs/compliance.md §3.8.
 func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	credentials := credentialsOderSkip(t)
 	pruefeTestUmgebungOderAbbruch(t, credentials)
@@ -56,8 +37,7 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	db := u.db
 	tseRepo := tse_repo.NewRepository(db)
 
-	// Kassensitzung eröffnen und die dabei entstehende Bareinlage-Signatur
-	// regulär abwarten, damit die Ausgangslage sauber signiert ist.
+	// Await the opening float's signature so the outage starts from a fully signed state.
 	ksNr, err := u.kasse.KassensitzungEroeffnen(ctx, u.userID, "test", "Ausfall-Suite", 5000)
 	if err != nil {
 		t.Fatalf("KassensitzungEroeffnen: %v", err)
@@ -65,9 +45,8 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	ksSubject := kasse.KassensitzungSubject(ksNr)
 	warteAufSignatur(t, db, eventIDByType(t, db, string(kasse.EventTypeKassensitzungEroeffnetV1), ksSubject))
 
-	// Ausfall auslösen: gültige TssID/ClientID behalten, aber ein falsches ApiSecret
-	// schreiben. Der Worker liest die Konfiguration bei jedem Durchlauf neu und
-	// scheitert beim Token-Abruf (HTTP 401) TSE-weit.
+	// Keep TssID/ClientID but corrupt the ApiSecret: the worker rereads the configuration
+	// each pass and fails the token fetch with HTTP 401.
 	schreibeKonfiguration(t, tseRepo, tse.Credentials{
 		ApiKey:    credentials.ApiKey,
 		ApiSecret: credentials.ApiSecret + "-ungueltig",
@@ -75,9 +54,7 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 		ClientID:  credentials.ClientID,
 	})
 
-	// Während des Ausfalls einen signaturpflichtigen Vorgang buchen. Der Aufruf
-	// muss ohne Warten auf die TSE zurückkehren (Buchen ist von der Signierung
-	// entkoppelt) — der Signaturauftrag bleibt offen.
+	// Booking during the outage must return without waiting for the TSE; the job stays open.
 	bestellungID := uuid.NewString()
 	inputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 1}}
 	bucheStart := time.Now()
@@ -90,18 +67,14 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 	tischSubject := kasse.TischSessionSubject(ksNr, u.tischID)
 	ausfallEventID := eventIDByType(t, db, string(kasse.EventTypeBestellungAufgenommenV1), tischSubject)
 
-	// Der Worker muss den TSE-weiten Fehler erkennen und den Störungszeitraum
-	// öffnen. Bis dahin bleibt der Auftrag offen.
+	// The worker must detect the TSE-wide error and open an outage period.
 	warteAufAktiveStoerung(t, db, tse.StoerungGrundTSEFehler)
 	if status := auftragStatus(t, db, ausfallEventID); status != "offen" {
 		t.Fatalf("Signaturauftrag waehrend Ausfall im Status %q, erwartet offen", status)
 	}
 
-	// Abschluss-Gate im dokumentierten Ausfall: Der offene Auftrag fällt bei
-	// aktiver Störung unter Ausfall (nicht ausstehend), der Abschluss ist erlaubt
-	// und weist den Ausfall-Rest aus. Wir prüfen das Gate isoliert über die
-	// Klassifikation, ohne die Sitzung abzuschließen (der Ausfall soll für die
-	// Nachsignierung bestehen bleiben).
+	// During a logged outage the open job counts as Ausfall, not ausstehend, so the close gate passes.
+	// Only the classification is checked, so the session stays open for re-signing.
 	gate := ausfallGateStand(t, u, ksNr)
 	if gate.ausstehend != 0 {
 		t.Errorf("Gate bei dokumentiertem Ausfall: %d ausstehend, erwartet 0 (Ausfall blockiert nicht)", gate.ausstehend)
@@ -110,18 +83,15 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 		t.Errorf("Gate bei dokumentiertem Ausfall: %d Ausfall-Reste, erwartet mindestens 1", gate.ausfallReste)
 	}
 
-	// Wiederherstellung: gültige Credentials zurückschreiben. Der Worker nimmt
-	// nach Ablauf seines Störungs-Backoffs die Aufarbeitung wieder auf, die erste
-	// erfolgreiche Signatur schließt den Störungszeitraum, und der offene
-	// Auftrag wird nachsigniert.
+	// After its outage backoff the worker resumes: the first success closes the outage period
+	// and the open job is re-signed.
 	schreibeKonfiguration(t, tseRepo, credentials)
 
 	z := warteAufSignatur(t, db, ausfallEventID)
 	pruefeSignatur(t, "Nachsignierung nach Ausfall", z, tse.ProcessTypeBestellungV1)
 
-	// Das Nachsigniert-Kennzeichen setzt eine Verspätung über
-	// tse.NachsigniertSchwelle (eine Minute) voraus; dieser Ausfall dauert nur den
-	// Worker-Backoff. Beide Stände belegen die Nachsignierung.
+	// The Nachsigniert flag needs a delay above tse.NachsigniertSchwelle (one minute), longer than
+	// this outage's backoff, so either status proves the re-signing.
 	stand, err := tseRepo.GetSignaturauftragZuEvent(ctx, ausfallEventID)
 	if err != nil {
 		t.Fatalf("GetSignaturauftragZuEvent: %v", err)
@@ -131,36 +101,24 @@ func TestTSELiveSuite_AusfallUndNachsignierung(t *testing.T) {
 		t.Errorf("Signaturstatus nach Nachsignierung: %q, erwartet vorhanden oder nachsigniert", ergebnis.Status)
 	}
 
-	// Das Störungsprotokoll dokumentiert den abgeschlossenen Zeitraum: Grund
-	// tse_fehler, Beginn gesetzt, Ende nach der Wiederherstellung gesetzt.
 	pruefeStoerungsprotokoll(t, db)
 
-	// Nach der Wiederherstellung darf keine Störung mehr aktiv sein.
 	if aktiv, err := tseRepo.GetAktiveTSEStoerung(ctx); err != nil {
 		t.Fatalf("GetAktiveTSEStoerung: %v", err)
 	} else if aktiv != nil {
 		t.Errorf("nach Wiederherstellung noch aktive Stoerung: %+v", aktiv)
 	}
 
-	// Gate ohne Störung: Der frisch signierte Auftrag ist erledigt, ein weiterer
-	// frischer offener Auftrag ohne Störung muss dagegen blockieren (409).
+	// Without an outage a fresh open job must block the close (409).
 	pruefeGateBlockiertOhneStoerung(t, u, ksNr)
 }
 
-// burstDeckelP95 ist die Obergrenze für die p95-Dauer des Bursts — ein
-// Worst-Case-Stresstest, kein Regelbetrieb: latenzBurstGroesse Aufträge liegen
-// gleichzeitig an, und der serielle Worker arbeitet sie nacheinander ab. Gemessen
-// wurden reproduzierbar p50 ~4 s / p95 ~7 s (2026-07-09, fiskaly-TEST-TSS); der
-// Deckel fängt eine Regression der Signierrate ab.
+// burstDeckelP95 caps the burst p95 to catch a signing-rate regression; the serial worker drains the burst one job
+// at a time. Measured values: docs/handbuch.md §3.13.
 const burstDeckelP95 = 12 * time.Second
 
-// TestTSELiveSuite_SignaturLatenz misst die reale Ende-zu-Ende-Signierdauer
-// (erstellt_am -> erledigt_am) in zwei Szenarien und gibt p50/p95 aus:
-//
-//   - Regelbetrieb: Aufträge einzeln nacheinander, jeder vor dem nächsten
-//     abgewartet — Grundlage der Zusage der Verfahrensdokumentation (p95 < 5 s).
-//   - Burst: latenzBurstGroesse gleichzeitig anliegende Aufträge; der Tail-Wert
-//     bildet die Warteschlangen-Tiefe ab (kein Regelbetrieb).
+// TestTSELiveSuite_SignaturLatenz logs p50/p95 of the end-to-end signing time for single jobs and for a burst.
+// Single jobs must hold the p95 < 5 s target of docs/verfahrensdokumentation.md §4.
 func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 	credentials := credentialsOderSkip(t)
 	pruefeTestUmgebungOderAbbruch(t, credentials)
@@ -176,8 +134,7 @@ func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 		t.Fatalf("KassensitzungEroeffnen: %v", err)
 	}
 
-	// Regelbetrieb: je Auftrag buchen, signieren lassen, abwarten — dann der
-	// nächste. Kein Rückstau, die Dauer ist die reine Signier-Round-Trip-Zeit.
+	// Each job is awaited before the next, so no backlog inflates the round trip.
 	regelDauern := make([]time.Duration, 0, latenzBurstGroesse)
 	for range latenzBurstGroesse {
 		id := bucheDirektverkauf(t, u, ksNr)
@@ -189,13 +146,11 @@ func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 	t.Logf("TSE-Signaturlatenz Regelbetrieb (einzeln, n=%d): p50=%dms p95=%dms",
 		len(regelDauern), regelP50.Milliseconds(), regelP95.Milliseconds())
 
-	// Zusage der Verfahrensdokumentation gilt dem Regelbetrieb: p95 < 5 s.
 	if regelP95 > 5*time.Second {
 		t.Errorf("Regelbetrieb-p95 %s verletzt die Zusage < 5 s (Verfahrensdokumentation)", regelP95)
 	}
 
-	// Burst: latenzBurstGroesse Aufträge gleichzeitig einreihen, dann alle
-	// abwarten. Der Tail-Wert misst die Warteschlangen-Tiefe des seriellen Workers.
+	// The burst tail measures the queue depth of the serial worker.
 	burstStart := time.Now()
 	burstIDs := make([]int, 0, latenzBurstGroesse)
 	for range latenzBurstGroesse {
@@ -214,8 +169,6 @@ func TestTSELiveSuite_SignaturLatenz(t *testing.T) {
 		latenzBurstGroesse, burstP50.Milliseconds(), burstP95.Milliseconds(),
 		drainDauer.Milliseconds(), proSignatur.Milliseconds())
 
-	// Der Burst hat keine 5-s-Zusage; der Deckel fängt nur eine echte Regression
-	// der Signierrate ab.
 	if burstP95 > burstDeckelP95 {
 		t.Errorf("Burst-p95 %s ueberschreitet den Deckel %s — Signierrate-Regression?", burstP95, burstDeckelP95)
 	}
@@ -232,9 +185,7 @@ func bucheDirektverkauf(t *testing.T, u *liveTestUmgebung, ksNr int) int {
 	return eventIDByType(t, u.db, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufSubject)
 }
 
-// schreibeKonfiguration überschreibt die TSE-Konfiguration in der DB. Der
-// Signatur-Worker liest sie bei jedem Durchlauf neu; ein Wechsel wirkt damit
-// zur Laufzeit ohne Neustart.
+// schreibeKonfiguration takes effect without a restart because the worker rereads the configuration each pass.
 func schreibeKonfiguration(t *testing.T, repo tse_repo.Repository, creds tse.Credentials) {
 	t.Helper()
 	konf, err := tse.NewKonfiguration(creds.ApiKey, creds.ApiSecret, creds.TssID, creds.ClientID)
@@ -246,8 +197,7 @@ func schreibeKonfiguration(t *testing.T, repo tse_repo.Repository, creds tse.Cre
 	}
 }
 
-// warteAufAktiveStoerung pollt, bis ein aktiver Störungszeitraum der Grund-Art
-// vorliegt (der Worker hat den TSE-weiten Fehler erkannt).
+// warteAufAktiveStoerung polls until an outage period of grundArt is active.
 func warteAufAktiveStoerung(t *testing.T, db *sql.DB, grundArt string) {
 	t.Helper()
 	deadline := time.Now().Add(signaturWartefrist)
@@ -276,14 +226,12 @@ func auftragStatus(t *testing.T, db *sql.DB, eventID int) string {
 	return status
 }
 
-// gateStand bündelt die Kennzahlen des Abschluss-Gates.
 type gateStand struct {
 	ausstehend   int
 	ausfallReste int
 }
 
-// ausfallGateStand klassifiziert die offenen Signaturaufträge mit derselben Logik
-// wie das Abschluss-Gate, ohne den Abschluss auszuführen.
+// ausfallGateStand classifies the open jobs with the close gate's logic without running the close.
 func ausfallGateStand(t *testing.T, u *liveTestUmgebung, ksNr int) gateStand {
 	t.Helper()
 	ctx := context.Background()
@@ -309,16 +257,13 @@ func ausfallGateStand(t *testing.T, u *liveTestUmgebung, ksNr int) gateStand {
 	return stand
 }
 
-// pruefeGateBlockiertOhneStoerung erzwingt einen frisch offenen Auftrag ohne
-// aktive Störung und prüft, dass der reale Kassenabschluss mit
-// *SignaturenAusstehendError (409 mit Anzahl) blockiert. Anschließend
-// wird der Auftrag abgewartet, damit die Sitzung wieder abschließbar wäre.
+// pruefeGateBlockiertOhneStoerung asserts that a fresh open job without an outage blocks the real close
+// with *SignaturenAusstehendError (409).
 func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int) {
 	t.Helper()
 	ctx := context.Background()
 
-	// Frischen Vorgang buchen; ohne aktive Störung ist sein offener Auftrag
-	// ausstehend. Der Abschluss muss sofort folgen, bevor der Worker signiert.
+	// The close must run before the worker signs the fresh job.
 	verkaufID := uuid.NewString()
 	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 1}}
 	if err := u.direkt.DirektverkaufTaetigen(ctx, u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
@@ -330,10 +275,8 @@ func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int
 	_, err := u.kasse.KasseAbschliessen(ctx, u.userID, "test", 5000)
 	var ausstehend *kassenfuehrungApp.SignaturenAusstehendError
 	if !errors.As(err, &ausstehend) {
-		// Der Worker könnte den Auftrag bereits signiert haben (Race). Dann ist
-		// die Blockade nicht mehr beobachtbar; das ist kein Fehlverhalten des
-		// Gates, aber die Blockade-Assertion braucht den offenen Auftrag. Ist der
-		// Auftrag noch offen, ist das Ausbleiben des Fehlers ein echter Bug.
+		// A worker that won the race hides the block without a gate fault.
+		// A missing block while the job is still open is a real bug.
 		if status := auftragStatus(t, u.db, verkaufEventID); status == "offen" {
 			t.Fatalf("Abschluss trotz offenem Auftrag ohne Stoerung nicht blockiert: %v", err)
 		}
@@ -344,13 +287,10 @@ func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int
 		t.Errorf("SignaturenAusstehendError.Anzahl = %d, erwartet mindestens 1", ausstehend.Anzahl)
 	}
 
-	// Auftrag abwarten, damit ein evtl. Zwischenstatus der Sitzung nicht hängt.
+	// Await the job so the session is closable again.
 	warteAufSignatur(t, u.db, verkaufEventID)
 }
 
-// pruefeStoerungsprotokoll prüft, dass das Störungsprotokoll (tse_stoerungen)
-// den Ausfallzeitraum dokumentiert: mindestens ein tse_fehler-Zeitraum mit
-// gesetztem Beginn, gesetztem Ende und nicht-leerem Fehlertext (Grund).
 func pruefeStoerungsprotokoll(t *testing.T, db *sql.DB) {
 	t.Helper()
 	zeitraeume, err := tse_repo.NewRepository(db).GetAlleTSEStoerungen(context.Background())
@@ -375,8 +315,6 @@ func pruefeStoerungsprotokoll(t *testing.T, db *sql.DB) {
 	t.Error("Stoerungsprotokoll enthaelt keinen tse_fehler-Zeitraum")
 }
 
-// signierDauer liest die reale Ende-zu-Ende-Signierdauer (erledigt_am -
-// erstellt_am) eines erledigten Auftrags.
 func signierDauer(t *testing.T, db *sql.DB, eventID int) time.Duration {
 	t.Helper()
 	var sekunden float64
@@ -398,8 +336,7 @@ func signierDauern(t *testing.T, db *sql.DB, eventIDs []int) []time.Duration {
 	return dauern
 }
 
-// perzentil liefert das p-Perzentil (0..1) der Dauern per nächster-Rang-Methode.
-// Reproduzierbar und ohne Interpolation, damit die Ausgabe deterministisch bleibt.
+// perzentil uses the nearest-rank method without interpolation, p in 0..1.
 func perzentil(dauern []time.Duration, p float64) time.Duration {
 	if len(dauern) == 0 {
 		return 0

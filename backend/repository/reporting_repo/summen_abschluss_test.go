@@ -12,13 +12,8 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
-// TestComputeAbschlussSummen_AequivalenzMitSQLReporting ist ein Integrationstest
-// gegen die echte SQL-Schicht (kj_extract_*-Funktionen in reporting.sql).
-// Er seedet eine Kassensitzung mit gemischten geldrelevanten Events, liest die
-// Events via ReadKassensitzungEvents aus der Datenbank, ruft
-// ComputeAbschlussSummen auf und vergleicht die drei Summen Feld für Feld
-// mit dem Ergebnis von GetReportingStats. Damit wird sichergestellt, dass
-// Go-Aggregation und SQL-Aggregation nicht auseinanderlaufen können.
+// TestComputeAbschlussSummen_AequivalenzMitSQLReporting guards that the Go closing sums (ComputeAbschlussSummen)
+// and the SQL aggregation (GetReportingStats via kj_extract_*) never diverge.
 func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -102,26 +97,24 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		"kommentar": "Fehlbuchung",
 	}, ksNr)
 
-	// geldtransit-gebucht einlage: kj_extract_geldtransit_cents → richtung + betragCents
+	// geldtransit-gebucht deposit: kj_extract_geldtransit_cents → richtung + betragCents
 	insertEvent(t, db, userID, "testuser", "geldtransit-gebucht:v1", ksSubject, 1, map[string]any{
 		"betragCents":  500,
 		"richtung":     "einlage",
 		"beschreibung": "Wechselgeld",
 	}, ksNr)
 
-	// geldtransit-gebucht entnahme
+	// geldtransit-gebucht withdrawal
 	insertEvent(t, db, userID, "testuser", "geldtransit-gebucht:v1", ksSubject, 2, map[string]any{
 		"betragCents":  150,
 		"richtung":     "entnahme",
 		"beschreibung": "Restgeld entnommen",
 	}, ksNr)
 
-	// Erwartete Werte (zur Lesekontrolle, nicht für den Go-vs-SQL-Vergleich maßgeblich):
-	// Umsatz:      2238 − 1455 (storno) + 880 (dv) − 335 (dvStorno) = 1328
-	// Storno:      1455 (storno) + 200 (korrektur) + 335 (dvStorno) = 1990
-	// Geldtransit: 500 (einlage) − 150 (entnahme) = 350
+	// For the reader only, the test compares Go with SQL: Umsatz 2238 − 1455 + 880 − 335 = 1328,
+	// Storno 1455 + 200 + 335 = 1990, Geldtransit 500 − 150 = 350.
 
-	// Go-Seite: Events aus der echten DB lesen und aggregieren.
+	// Go side: read the events from the DB and aggregate.
 	kjRepo := kassenjournal_repo.NewRepository(db)
 	events, err := kjRepo.ReadKassensitzungEvents(ctx, ksNr)
 	if err != nil {
@@ -132,7 +125,7 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		t.Fatalf("ComputeAbschlussSummen: %v", err)
 	}
 
-	// SQL-Seite: GetReportingStats via kj_extract_*-Funktionen.
+	// SQL side: GetReportingStats via the kj_extract_* functions.
 	reportingData, err := NewRepository(db).GetReporting(ctx, ksNr)
 	if err != nil {
 		t.Fatalf("GetReporting: %v", err)

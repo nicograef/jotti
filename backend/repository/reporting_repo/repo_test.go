@@ -17,8 +17,7 @@ import (
 
 func cleanDB(t *testing.T, db *sql.DB) {
 	t.Helper()
-	// tisch_sessions referenziert kassenjournal (last_event_id) und muss zuerst weg —
-	// auch Hinterlassenschaften anderer Testpakete auf der geteilten Test-DB.
+	// tisch_sessions references kassenjournal (last_event_id) and goes first, including other packages' leftovers.
 	if _, err := db.Exec("DELETE FROM tisch_sessions"); err != nil {
 		t.Fatalf("Failed to clean tisch_sessions table: %v", err)
 	}
@@ -79,8 +78,7 @@ func insertEvent(t *testing.T, db *sql.DB, userID int, userName, eventType, subj
 	}
 }
 
-// zahlungData baut ein zahlung-kassiert:v1-Event-Data. Die zahlungId ist der
-// Verweis, über den eine spätere Warenrücknahme ihren Kassierer findet.
+// zahlungData: a later return finds its cashier through zahlungId.
 func zahlungData(zahlungID string, gesamtCents int) map[string]any {
 	return map[string]any{
 		"zahlungId": zahlungID,
@@ -97,8 +95,7 @@ func zahlungData(zahlungID string, gesamtCents int) map[string]any {
 	}
 }
 
-// stornierungData baut ein stornierung-erteilt:v1-Event-Data (kassenwirksame
-// Warenrücknahme) mit Verweis auf die zurückgenommene Zahlung.
+// stornierungData builds a cash-relevant return referencing the returned payment.
 func stornierungData(zahlungID string, betragCents int, kommentar string) map[string]any {
 	return map[string]any{
 		"stornierungId":          "s0000000-0000-0000-0000-000000000001",
@@ -115,10 +112,8 @@ func stornierungData(zahlungID string, betragCents int, kommentar string) map[st
 	}
 }
 
-// bestellungData baut ein bestellung-aufgenommen:v1-Event-Data über die
-// angegebenen Positions-IDs (je Position 1 Stück zum Preis einzelpreisCents).
-// Die bestellungId leitet sich aus der ersten Positions-ID ab, damit mehrere
-// Bestellungen einer Sitzung den UNIQUE-Index auf bestellungId nicht verletzen.
+// bestellungData builds one unit per position ID. The bestellungId derives from the first position ID, so several
+// orders per session respect the UNIQUE index on bestellungId.
 func bestellungData(positionIDs []string, einzelpreisCents int) map[string]any {
 	positionen := make([]map[string]any, len(positionIDs))
 	for i, id := range positionIDs {
@@ -139,9 +134,7 @@ func bestellungData(positionIDs []string, einzelpreisCents int) map[string]any {
 	}
 }
 
-// korrekturData baut ein bestellung-korrigiert:v1-Event-Data (geldneutrale
-// Korrektur) über die angegebenen Positions-IDs — der Verweis, über den die
-// Korrektur ihre Besteller findet.
+// korrekturData: the cash-neutral correction finds its orderers through the position IDs.
 func korrekturData(positionIDs []string, betragCents int, kommentar string) map[string]any {
 	data := bestellungData(positionIDs, betragCents/len(positionIDs))
 	return map[string]any{
@@ -152,8 +145,7 @@ func korrekturData(positionIDs []string, betragCents int, kommentar string) map[
 	}
 }
 
-// direktverkaufData baut ein direktverkauf-getaetigt:v1-Event-Data. Die
-// verkaufId ist der Verweis, über den ein späterer Storno seinen Verkäufer findet.
+// direktverkaufData: a later storno finds its seller through verkaufId.
 func direktverkaufData(verkaufID string, gesamtCents int) map[string]any {
 	return map[string]any{
 		"verkaufId":         verkaufID,
@@ -169,8 +161,6 @@ func direktverkaufData(verkaufID string, gesamtCents int) map[string]any {
 	}
 }
 
-// direktverkaufStornoData baut ein direktverkauf-storniert:v1-Event-Data mit
-// Verweis auf den stornierten Verkauf.
 func direktverkaufStornoData(verkaufID string, betragCents int, kommentar string) map[string]any {
 	data := direktverkaufData(verkaufID, betragCents)
 	return map[string]any{
@@ -182,9 +172,7 @@ func direktverkaufStornoData(verkaufID string, betragCents int, kommentar string
 	}
 }
 
-// assertBetroffene prüft die Storno-Zuordnung einer Detailzeile: welche
-// Servicekräfte (eingefrorene Usernames) als betroffen gelistet sind — jede
-// genau einmal, unabhängig von der Reihenfolge.
+// assertBetroffene expects each frozen username exactly once, in any order.
 func assertBetroffene(t *testing.T, storno reporting.StornierungDetail, wantUsernames ...string) {
 	t.Helper()
 	got := make([]string, len(storno.Betroffene))
@@ -199,8 +187,7 @@ func assertBetroffene(t *testing.T, storno reporting.StornierungDetail, wantUser
 	}
 }
 
-// stornierungenByKommentar indiziert die Storno-Detailzeilen über ihren
-// Kommentar — der in den Tests vergebene, eindeutige Name des Vorgangs.
+// stornierungenByKommentar keys the storno rows by comment, which the tests use as a unique name.
 func stornierungenByKommentar(stornierungen []reporting.StornierungDetail) map[string]reporting.StornierungDetail {
 	out := map[string]reporting.StornierungDetail{}
 	for _, s := range stornierungen {
@@ -209,9 +196,6 @@ func stornierungenByKommentar(stornierungen []reporting.StornierungDetail) map[s
 	return out
 }
 
-// produktPosition baut eine Fat-Event-Position mit den für die
-// Produkt-/Varianten-Statistik nötigen eingefrorenen Feldern (varianteId,
-// produktName, varianteName, kategorie, einzelpreisCents, menge).
 func produktPosition(varianteID int, produktName, varianteName, kategorie string, einzelpreisCents, menge int) map[string]any {
 	return map[string]any{
 		"positionId":       "p0000000-0000-0000-0000-000000000001",
@@ -225,13 +209,8 @@ func produktPosition(varianteID int, produktName, varianteName, kategorie string
 	}
 }
 
-// TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis prüft, dass Menge und
-// Umsatz je Variante auf derselben Ereignismenge (Bestellbasis) ruhen:
-// Bestellung (+Menge/+Umsatz), Korrektur (−Menge/−Umsatz), Direktverkauf
-// (+Menge/+Umsatz). Nachträgliche kassenwirksame Vorgänge — Zahlung,
-// Warenrücknahme (stornierung-erteilt) und Direktverkauf-Storno — sind bewusst
-// vorhanden, dürfen den Produkt-Umsatz aber NICHT verändern: er ist der
-// Bestellwert der ausgegebenen Portionen, nicht der kassierte Umsatz.
+// TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis guards that payments, returns and direct-sale stornos leave
+// quantity and revenue untouched: both are order-based. See the GetProduktStatistik query in sqlc/queries/reporting.sql.
 func TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -251,7 +230,7 @@ func TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis(t *testing.T) {
 		return produktPosition(20, "Cola", "0,5 l", "getraenk", 250, menge)
 	}
 
-	// Pommes groß: bestellt 5, korrigiert 1 (geldneutral), kassiert 4, 1 zurückgenommen.
+	// Pommes groß: ordered 5, corrected 1 (cash-neutral), collected 4, 1 returned.
 	insertEvent(t, db, userID, "anna", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 1, map[string]any{
 		"bestellungId": "b1", "gesamtPreisCents": 1500, "positionen": []map[string]any{pommes(5)},
 	}, ksNr)
@@ -265,7 +244,7 @@ func TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis(t *testing.T) {
 		"stornierungId": "s1", "zahlungId": "z1", "gesamtStornierungCents": 300, "kommentar": "Warenrücknahme", "positionen": []map[string]any{pommes(1)},
 	}, ksNr)
 
-	// Cola 0,5 l: Direktverkauf 3, davon 1 storniert (Umsatz-mindernd, menge-neutral).
+	// Cola 0,5 l: direct sale of 3, 1 of them cancelled.
 	insertEvent(t, db, userID, "anna", "direktverkauf-getaetigt:v1", "kassensitzung-1/direktverkauf-d1", 5, map[string]any{
 		"verkaufId": "d1", "gesamtbetragCents": 750, "positionen": []map[string]any{cola(3)},
 	}, ksNr)
@@ -286,9 +265,7 @@ func TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis(t *testing.T) {
 		t.Errorf("expected 2 variant rows, got %d: %+v", len(zeilen), zeilen)
 	}
 
-	// Pommes: ausgegebene Menge 5 − 1 = 4; Umsatz 1500 bestellt − 300 korrigiert
-	// = 1200. Die spätere Warenrücknahme (stornierung-erteilt) mindert den
-	// Produkt-Umsatz bewusst NICHT.
+	// Pommes: quantity 5 − 1 = 4, revenue 1500 − 300 = 1200; the later return does not reduce it.
 	pommesZeile := byVariante[10]
 	if pommesZeile.ProduktName != "Pommes" || pommesZeile.VarianteName != "groß" || pommesZeile.Kategorie != "essen" {
 		t.Errorf("unexpected Pommes identity: %+v", pommesZeile)
@@ -300,8 +277,7 @@ func TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis(t *testing.T) {
 		t.Errorf("expected Pommes umsatz 1200 (1500 bestellt − 300 korrigiert, Warenrücknahme umsatzneutral), got %d", pommesZeile.UmsatzCents)
 	}
 
-	// Cola: Direktverkauf zählt Menge und Umsatz; der Direktverkauf-Storno
-	// mindert weder Menge noch Umsatz (Produkt-Umsatz ist bestellbasiert).
+	// Cola: the direct sale counts, its storno reduces neither quantity nor revenue.
 	colaZeile := byVariante[20]
 	if colaZeile.AusgegebeneMenge != 3 {
 		t.Errorf("expected Cola menge 3 (Direktverkauf, Storno menge-neutral), got %d", colaZeile.AusgegebeneMenge)
@@ -311,9 +287,8 @@ func TestGetProduktStatistik_MengeUndUmsatzAufBestellbasis(t *testing.T) {
 	}
 }
 
-// TestGetProduktStatistik_UmbuchungZaehltNicht stellt sicher, dass
-// bestellung-umgebucht:v1 weder Menge noch Umsatz verändert (die Positionen sind
-// bereits bei der Bestellung erfasst).
+// TestGetProduktStatistik_UmbuchungZaehltNicht: a transfer changes neither quantity nor revenue, since the order
+// already counted the positions.
 func TestGetProduktStatistik_UmbuchungZaehltNicht(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -349,9 +324,8 @@ func TestGetProduktStatistik_UmbuchungZaehltNicht(t *testing.T) {
 	}
 }
 
-// TestGetReporting_ResolvesKlarnameIncludingSoftDeleted verifies that the live LEFT JOIN
-// resolves the current Klarname for both active and soft-deleted users, while the frozen
-// username stays the maßgebliche identity in the event rows.
+// TestGetReporting_ResolvesKlarnameIncludingSoftDeleted: the live LEFT JOIN resolves the current Klarname for active
+// and soft-deleted users, while the frozen username stays the authoritative identity.
 func TestGetReporting_ResolvesKlarnameIncludingSoftDeleted(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -389,8 +363,7 @@ func TestGetReporting_ResolvesKlarnameIncludingSoftDeleted(t *testing.T) {
 		t.Errorf("expected soft-deleted bob Klarname 'Bob Schmidt', got %q", got)
 	}
 
-	// Stornierungen: dieselbe Auflösung inkl. des soft-gelöschten Benutzers —
-	// für den Akteur wie für die betroffene Servicekraft.
+	// Stornierungen resolve the same way, for the actor and the affected staff member.
 	stornoKlarnameByUsername := map[string]string{}
 	betroffeneKlarnameByUsername := map[string]string{}
 	for _, s := range data.Stornierungen {
@@ -413,9 +386,8 @@ func TestGetReporting_ResolvesKlarnameIncludingSoftDeleted(t *testing.T) {
 	}
 }
 
-// TestGetReporting_IncludesBeideStornoArten verifies that the Stornierungsliste and the
-// Stornoquote count both storno kinds: the cash-relevant Warenrücknahme (stornierung-erteilt,
-// marked as Bar-Rückgabe) and the geldneutral Korrektur (bestellung-korrigiert).
+// TestGetReporting_IncludesBeideStornoArten: the storno list and rate count the cash-relevant return
+// (stornierung-erteilt, Bar-Rückgabe) and the cash-neutral correction (bestellung-korrigiert).
 func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -465,7 +437,7 @@ func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
 		t.Errorf("expected Korrektur betrag 300 (aus gesamtCents), got %d", korrektur.BetragCents)
 	}
 
-	// Die Stornoquote/Summe zählt beide Arten (500 + 300) und beide Events.
+	// The storno sum counts both kinds (500 + 300) and both events.
 	if data.Summary.GesamtStornierungenCents != 800 {
 		t.Errorf("expected gesamt stornierungen 800 (beide Arten), got %d", data.Summary.GesamtStornierungenCents)
 	}
@@ -474,11 +446,8 @@ func TestGetReporting_IncludesBeideStornoArten(t *testing.T) {
 	}
 }
 
-// Die Brutto-Positionszeilen müssen kassenwirksame Warenrücknahmen als
-// negative Zeilen einbeziehen: Sonst übersteigt die Summe über alle
-// Steuersätze den Gesamtumsatz und divergiert vom DSFinV-K-Export.
-// Geldneutrale Korrekturen bleiben außen vor (kein Umsatz). Das Repo liefert
-// unaggregierte Zeilen; die Aufschlüsselung rechnet die Anwendungsschicht.
+// Returns must enter the gross rows as negative rows, or the VAT breakdown exceeds revenue and diverges from the
+// DSFinV-K export. Cash-neutral corrections carry no revenue and stay out.
 func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -500,7 +469,7 @@ func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
 		t.Fatalf("GetReporting failed: %v", err)
 	}
 
-	// Zwei Zeilen: die Zahlung positiv, die Warenrücknahme negativ (jeweils regel).
+	// Two regel rows: the payment positive, the return negative.
 	if len(data.UmsatzProSteuersatz) != 2 {
 		t.Fatalf("expected 2 Positionszeilen, got %d: %+v", len(data.UmsatzProSteuersatz), data.UmsatzProSteuersatz)
 	}
@@ -522,10 +491,8 @@ func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
 	}
 }
 
-// TestGetReporting_MetadatenAusJournalEvents verifiziert, dass der Berichtskopf
-// seine Metadaten rein aus den Journal-Events projiziert: Eröffnungs- und
-// Abschlusszeitpunkt, den abschließenden Benutzer (eingefrorener user_name) und
-// die Kassensturz-Differenz aus dem kassensturz-durchgefuehrt:v1-Event.
+// TestGetReporting_MetadatenAusJournalEvents: the report header projects opening and closing time, the closing user
+// (frozen user_name) and the count difference purely from journal events.
 func TestGetReporting_MetadatenAusJournalEvents(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -569,10 +536,8 @@ func TestGetReporting_MetadatenAusJournalEvents(t *testing.T) {
 	}
 }
 
-// TestGetReporting_MetadatenLeerOhneAbschlussEvents stellt sicher, dass die
-// Projektion für eine noch nicht abgeschlossene Sitzung (nur Eröffnung, kein
-// Kassensturz/Tagesabschluss) die optionalen Metadaten sauber leer lässt statt
-// beim NULL-Scan zu scheitern.
+// TestGetReporting_MetadatenLeerOhneAbschlussEvents: an open session leaves the optional metadata empty instead of
+// failing the NULL scan.
 func TestGetReporting_MetadatenLeerOhneAbschlussEvents(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -609,16 +574,11 @@ func TestGetReporting_MetadatenLeerOhneAbschlussEvents(t *testing.T) {
 	}
 }
 
-// --- Storno-Zuordnung: wem ein Storno zugeordnet wird ---
-//
-// Jede Storno-Detailzeile trägt zwei Rollen: den Akteur (wer storniert hat) und
-// die Betroffenen (wessen Vorgang rückgängig gemacht wird). Die Betroffenen
-// werden zur Lesezeit über den Rückverweis des Events aufgelöst — zahlungId,
-// verkaufId bzw. die Positions-IDs — und sind nie leer.
+// Storno attribution: each row names the actor and the never-empty betroffene, resolved at read time from the event's
+// back-reference. See docs/handbuch.md §7.2.
 
-// TestGetStornierungen_RuecknahmeTrifftDenKassierer: Nimmt die Serviceleitung
-// stellvertretend eine von einer Servicekraft kassierte Zahlung zurück, ist die
-// Servicekraft die betroffene Person; die Serviceleitung bleibt der Akteur.
+// TestGetStornierungen_RuecknahmeTrifftDenKassierer: a return issued by the Serviceleitung names the cashier as
+// betroffen; the Serviceleitung stays the actor.
 func TestGetStornierungen_RuecknahmeTrifftDenKassierer(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -653,9 +613,8 @@ func TestGetStornierungen_RuecknahmeTrifftDenKassierer(t *testing.T) {
 	}
 }
 
-// TestGetStornierungen_JedeZahlungTrifftIhrenKassierer: Eine Rücknahme über
-// zwei Zahlungen verschiedener Kassierer erzeugt (FIFO je Zahlung) zwei Events —
-// jedes nennt seinen eigenen Kassierer, nicht beide zusammen.
+// TestGetStornierungen_JedeZahlungTrifftIhrenKassierer: a return over two cashiers' payments yields two events
+// (FIFO per payment), each naming only its own cashier.
 func TestGetStornierungen_JedeZahlungTrifftIhrenKassierer(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -688,9 +647,8 @@ func TestGetStornierungen_JedeZahlungTrifftIhrenKassierer(t *testing.T) {
 	assertBetroffene(t, byKommentar["Ruecknahme Bob"], "bob")
 }
 
-// TestGetStornierungen_KorrekturNenntAlleBesteller: Eine geldneutrale Korrektur
-// über Positionen zweier Besteller listet beide als betroffen — jeden genau
-// einmal, auch wenn mehrere seiner Positionen betroffen sind.
+// TestGetStornierungen_KorrekturNenntAlleBesteller: a correction over two orderers' positions lists each exactly once,
+// even with several positions per orderer.
 func TestGetStornierungen_KorrekturNenntAlleBesteller(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -705,7 +663,7 @@ func TestGetStornierungen_KorrekturNenntAlleBesteller(t *testing.T) {
 	leitungID := createUser(t, db, "Lena Chef", "lena", "active")
 	ksNr := createKassensitzung(t, db)
 
-	// Anna bestellt zwei Positionen, Bob eine — die Korrektur umfasst alle drei.
+	// Anna orders two positions, Bob one; the correction covers all three.
 	insertEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 1, bestellungData([]string{"pos-a1", "pos-a2"}, 300), ksNr)
 	insertEvent(t, db, bobID, "bob", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 2, bestellungData([]string{"pos-b1"}, 300), ksNr)
 	insertEvent(t, db, leitungID, "lena", "bestellung-korrigiert:v1", "kassensitzung-1/tisch-1", 3, korrekturData([]string{"pos-a1", "pos-a2", "pos-b1"}, 900, "Korrektur"), ksNr)
@@ -725,12 +683,8 @@ func TestGetStornierungen_KorrekturNenntAlleBesteller(t *testing.T) {
 	assertBetroffene(t, storno, "anna", "bob")
 }
 
-// TestGetStornierungen_UmbenannteServicekraftErscheintEinmal pinnt die
-// Deduplizierung nach Person: Der Username im Event-Umschlag ist eingefroren, ein
-// Rename während der Kassensitzung hinterlässt für dieselbe user_id also zwei
-// verschiedene user_name-Werte. Eine Korrektur über Positionen aus beiden
-// Bestellungen darf die Person trotzdem nur einmal nennen — sonst zählt der
-// Storno-Marker sie doppelt.
+// TestGetStornierungen_UmbenannteServicekraftErscheintEinmal: a rename mid-session leaves one user_id with two frozen
+// user_name values, and a correction over both orders must still name the person once.
 func TestGetStornierungen_UmbenannteServicekraftErscheintEinmal(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -744,8 +698,7 @@ func TestGetStornierungen_UmbenannteServicekraftErscheintEinmal(t *testing.T) {
 	leitungID := createUser(t, db, "Lena Chef", "lena", "active")
 	ksNr := createKassensitzung(t, db)
 
-	// Dieselbe Servicekraft bestellt zweimal, dazwischen wird sie umbenannt —
-	// der eingefrorene Username unterscheidet sich, die user_id nicht.
+	// The same staff member orders twice and is renamed in between.
 	insertEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 1, bestellungData([]string{"pos-1"}, 300), ksNr)
 	insertEvent(t, db, annaID, "anna_neu", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 2, bestellungData([]string{"pos-2"}, 300), ksNr)
 	insertEvent(t, db, leitungID, "lena", "bestellung-korrigiert:v1", "kassensitzung-1/tisch-1", 3, korrekturData([]string{"pos-1", "pos-2"}, 600, "Korrektur"), ksNr)
@@ -767,12 +720,8 @@ func TestGetStornierungen_UmbenannteServicekraftErscheintEinmal(t *testing.T) {
 	}
 }
 
-// TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck
-// dokumentiert die Grenze der Positions-Auflösung: Eine Umbuchung vergibt auf
-// dem Zieltisch frische Positions-IDs (kasse.NewBestellungUmgebuchtEvents), die
-// in keinem bestellung-aufgenommen:v1-Event vorkommen. Die Korrektur einer
-// solchen Position findet daher keinen Besteller und fällt — wie jeder nicht
-// auflösbare Verweis — auf den Akteur zurück, statt ohne Zuordnung zu bleiben.
+// TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck: a transfer issues fresh position IDs
+// (kasse.NewBestellungUmgebuchtEvents) that no order carries, so their correction falls back to the actor.
 func TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()
@@ -787,8 +736,7 @@ func TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck(t *
 	leitungID := createUser(t, db, "Lena Chef", "lena", "active")
 	ksNr := createKassensitzung(t, db)
 
-	// Anna bestellt an Tisch 1; Bob bucht auf Tisch 2 um (Zieltisch bekommt eine
-	// neue Positions-ID); Lena korrigiert die umgebuchte Position.
+	// Anna orders at table 1, Bob transfers to table 2 (new position ID), Lena corrects the transferred position.
 	insertEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", "kassensitzung-1/tisch-1", 1, bestellungData([]string{"pos-a1"}, 300), ksNr)
 	umbuchung := bestellungData([]string{"pos-a1"}, 300)
 	umbuchung["umbuchungId"] = "u-1"
@@ -819,9 +767,8 @@ func TestGetStornierungen_KorrekturUmgebuchterPositionFaelltAufAkteurZurueck(t *
 	assertBetroffene(t, storno, "lena")
 }
 
-// TestGetStornierungen_DirektverkaufStornoNenntDenVerkaeufer: Ein
-// Direktverkauf-Storno durch einen anderen Benutzer nennt den ursprünglichen
-// Verkäufer als betroffene Person.
+// TestGetStornierungen_DirektverkaufStornoNenntDenVerkaeufer: a direct-sale storno by another user names the seller
+// as betroffen.
 func TestGetStornierungen_DirektverkaufStornoNenntDenVerkaeufer(t *testing.T) {
 	db := dbtest.Open()
 	defer func() { _ = db.Close() }()

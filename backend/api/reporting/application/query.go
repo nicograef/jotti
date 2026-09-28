@@ -68,10 +68,8 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 	return data, nil
 }
 
-// aggregateAbrechnungProServicekraft führt die kassierten Tischzahlungen (nach Akteur) mit den
-// Storno-Detailzeilen (nach Storno-Zuordnung) zusammen: Eine Rücknahme mindert das Abzugeben der
-// Servicekraft, die die Zahlung kassiert hat; eine geldneutrale Korrektur erhöht nur den
-// Storno-Zähler. Direktverkauf-Stornos bleiben außen vor — eigene Kasse, wie in den Kassiert-Zeilen.
+// aggregateAbrechnungProServicekraft merges table payments (by actor) with storno rows (by storno attribution).
+// The rules for returns, corrections and direct sales are in docs/handbuch.md §7.2.
 func aggregateAbrechnungProServicekraft(
 	kassiert []reporting.AbrechnungServicekraft,
 	stornierungen []reporting.StornierungDetail,
@@ -99,8 +97,7 @@ func aggregateAbrechnungProServicekraft(
 				})
 			}
 			out[idx].AnzahlStornierungen++
-			// Nur die kassenwirksame Warenrücknahme trägt einen Betrag; über ihre zahlungId ist sie
-			// genau einer Servicekraft zugeordnet.
+			// Only the cash-relevant return carries an amount; its zahlungId attributes it to one cashier.
 			if s.BarRueckgabe {
 				out[idx].RuecknahmenCents += s.BetragCents
 			}
@@ -118,10 +115,8 @@ func aggregateAbrechnungProServicekraft(
 	return out
 }
 
-// computeUmsatzProSteuersatz teilt je Brutto-Positionszeile per steuer.Aufteilen auf und aggregiert
-// danach je Steuersatz — dieselbe Basis wie Beleg, TSE-processData und DSFinV-K-Export.
-// Warenrücknahmen kommen als negative Zeilen: aufgeteilt wird die positive Magnitude, das Vorzeichen
-// danach angewendet (steuer.Aufteilen ignoriert Negatives).
+// computeUmsatzProSteuersatz splits each gross row with steuer.Aufteilen before aggregating per rate, the same basis as
+// Beleg, TSE processData and DSFinV-K export. steuer.Aufteilen ignores negatives, so returns are split by magnitude.
 func computeUmsatzProSteuersatz(bruttoZeilen []reporting.UmsatzSteuersatz) []reporting.UmsatzSteuersatz {
 	aggregiert := make(map[steuer.Steuersatz]reporting.UmsatzSteuersatz, 3)
 	for _, zeile := range bruttoZeilen {
@@ -174,11 +169,10 @@ func kategorieRang(kategorie string) int {
 	}
 }
 
-// gruppiereProduktStatistik gruppiert die flachen Varianten-Zeilen je Produkt mit Zwischensumme und
-// liefert sie fertig sortiert; das Frontend fasst nur noch Ein-Varianten-Produkte zusammen.
+// gruppiereProduktStatistik returns products with subtotals, fully sorted; the frontend only collapses
+// single-variant products.
 func gruppiereProduktStatistik(zeilen []reporting.ProduktStatistikZeile) []reporting.ProduktStatistik {
-	// Schlüssel (Kategorie, ProduktName): ein Produkt liegt je Sitzung in genau einer Kategorie, der
-	// Produktname ist innerhalb der Sitzung eindeutig.
+	// Within a session a product has exactly one category and a unique name.
 	type produktKey struct {
 		kategorie   string
 		produktName string
@@ -319,9 +313,7 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 	return &data, nil
 }
 
-// mergeServicekraefteLive führt Abrechnung und offene eigene Arbeit per user_id zusammen:
-// Servicekräfte mit Abrechnungszeile zuerst (in deren Reihenfolge), danach Personen mit
-// ausschließlich offener Arbeit (aufsteigend nach UserID).
+// mergeServicekraefteLive keeps the settlement order first, then appends staff with only open work by ascending UserID.
 func mergeServicekraefteLive(
 	abrechnung []reporting.AbrechnungServicekraft,
 	sessions []kasse.TischSession,

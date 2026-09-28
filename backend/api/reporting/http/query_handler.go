@@ -79,8 +79,8 @@ type breakdownsResponse struct {
 	AbrechnungProServicekraft []abrechnungServicekraft `json:"abrechnungProServicekraft"`
 }
 
-// abrechnungServicekraft ist die Bargeld-Abrechnung des Tischservice ohne Direktverkäufe;
-// AnzahlStornierungen zählt beide Tisch-Storno-Arten zusammen.
+// abrechnungServicekraft is the table-service cash settlement without direct sales;
+// AnzahlStornierungen counts both table storno kinds.
 type abrechnungServicekraft struct {
 	UserID              int    `json:"userId"`
 	UserName            string `json:"userName"`
@@ -121,15 +121,15 @@ type stornierungPosition struct {
 	EinzelpreisCents int    `json:"einzelpreisCents"`
 }
 
-// servicekraftRef: userName ist der im Event eingefrorene, name der live aufgelöste Klarname.
+// servicekraftRef: userName is frozen in the event, name is the live-resolved full name.
 type servicekraftRef struct {
 	UserID   int    `json:"userId"`
 	UserName string `json:"userName"`
 	Name     string `json:"name"`
 }
 
-// stornierungDetail trennt zwei Rollen: akteur hat den Storno ausgelöst, betroffene sind die
-// Servicekräfte, deren Vorgang er rückgängig macht (nie leer).
+// stornierungDetail: akteur triggered the storno; betroffene (never empty) are the staff whose transaction
+// it reverses.
 type stornierungDetail struct {
 	Zeitpunkt    time.Time             `json:"zeitpunkt"`
 	Quelle       string                `json:"quelle"`
@@ -369,7 +369,7 @@ type offenerTischResponse struct {
 	SaldoCents int    `json:"saldoCents"`
 }
 
-// offeneArbeitTischLiveResponse trägt keinen Betrag — der wird auf Servicekraft-Ebene (offenCents) aggregiert.
+// offeneArbeitTischLiveResponse carries no amount; it is aggregated per staff member as offenCents.
 type offeneArbeitTischLiveResponse struct {
 	TischID   int    `json:"tischId"`
 	TischName string `json:"tischName"`
@@ -395,7 +395,7 @@ type liveBreakdownsResponse struct {
 type liveReportingResponse struct {
 	KassensitzungNr  int                        `json:"kassensitzungNr"`
 	Bezeichnung      string                     `json:"bezeichnung"`
-	Datum            string                     `json:"datum"` // Kalendertag YYYY-MM-DD
+	Datum            string                     `json:"datum"` // calendar day YYYY-MM-DD
 	OffeneTische     []offenerTischResponse     `json:"offeneTische"`
 	OffeneSaldiCents int                        `json:"offeneSaldiCents"`
 	Summary          summaryResponse            `json:"summary"`

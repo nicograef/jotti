@@ -30,16 +30,14 @@ type stornierungPositionJSON struct {
 	EinzelpreisCents int    `json:"einzelpreisCents"`
 }
 
-// stornierungEventData represents the shared JSONB fields of the storno events.
-// Der Gesamtbetrag wird in der Query normalisiert (gesamtStornierungCents bzw. gesamtCents)
-// und kommt als eigene Spalte; hier nur Kommentar und Positionen.
+// stornierungEventData holds the shared JSONB fields of the storno events. The query normalizes the total
+// (gesamtStornierungCents or gesamtCents) into its own column.
 type stornierungEventData struct {
 	Kommentar  string                    `json:"kommentar"`
 	Positionen []stornierungPositionJSON `json:"positionen"`
 }
 
-// servicekraftRefJSON deserialisiert eine Servicekraft-Referenz aus der
-// betroffene-Spalte der GetStornierungen-Query (jsonb_build_object).
+// servicekraftRefJSON decodes one entry of the betroffene column of GetStornierungen.
 type servicekraftRefJSON struct {
 	UserID   int    `json:"userId"`
 	UserName string `json:"userName"`
@@ -97,8 +95,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		return reporting.ReportingData{}, err
 	}
 
-	// Unaggregierte Brutto-Positionszeilen; die Anwendungsschicht ersetzt sie
-	// durch die aggregierte USt-Aufschlüsselung (steuer.Aufteilen je Zeile).
+	// Raw gross position rows; the application layer replaces them with the aggregated VAT breakdown.
 	umsatzProSteuersatz := make([]reporting.UmsatzSteuersatz, len(zeilenRows))
 	for i, row := range zeilenRows {
 		umsatzProSteuersatz[i] = reporting.UmsatzSteuersatz{
@@ -119,15 +116,11 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	}, nil
 }
 
-// kassensturzDataJSON deserialisiert die für den Berichtskopf benötigte
-// Kassensturz-Differenz aus dem kassensturz-durchgefuehrt:v1-Event.
+// kassensturzDataJSON decodes the count difference of the kassensturz-durchgefuehrt:v1 event.
 type kassensturzDataJSON struct {
 	DifferenzCents int `json:"differenzCents"`
 }
 
-// toMetadaten übersetzt die Sitzungs-Metadaten-Zeile in das Domänenmodell:
-// nullable Zeitpunkte/Benutzer werden zu optionalen Feldern, die
-// Kassensturz-Differenz wird aus dem JSONB-Event geparst (nil ohne Kassensturz).
 func toMetadaten(row dbgen.GetKassensitzungMetadatenRow) (reporting.Metadaten, error) {
 	metadaten := reporting.Metadaten{}
 
@@ -142,8 +135,7 @@ func toMetadaten(row dbgen.GetKassensitzungMetadatenRow) (reporting.Metadaten, e
 	if row.AbgeschlossenVon.Valid {
 		metadaten.AbgeschlossenVon = row.AbgeschlossenVon.String
 	}
-	// Ohne Kassensturz liefert die Query das JSON-Literal 'null'; in ein
-	// Pointer-Ziel deserialisiert das zu nil und lässt das Feld sauber leer.
+	// Without a Kassensturz the query yields the JSON literal 'null', which decodes to a nil pointer.
 	var data *kassensturzDataJSON
 	if err := json.Unmarshal(row.KassensturzData, &data); err != nil {
 		return reporting.Metadaten{}, fmt.Errorf("unmarshal kassensturz data: %w", err)
@@ -253,10 +245,8 @@ func toSummary(stats dbgen.GetReportingStatsRow) reporting.Summary {
 	}
 }
 
-// toAbrechnungServicekraft übersetzt die Kassiert-Zeilen der Query in die
-// Abrechnung pro Servicekraft. Rücknahmen, Storno-Zähler und der
-// Abzugeben-Saldo entstehen erst in der Anwendungsschicht aus den
-// Storno-Detailzeilen (Storno-Zuordnung) und bleiben hier null.
+// toAbrechnungServicekraft leaves returns, storno count and Abzugeben at zero; the application layer derives them
+// from the storno rows.
 func toAbrechnungServicekraft(rows []dbgen.GetKassiertProServicekraftRow) []reporting.AbrechnungServicekraft {
 	abrechnung := make([]reporting.AbrechnungServicekraft, len(rows))
 	for i, row := range rows {
@@ -271,9 +261,7 @@ func toAbrechnungServicekraft(rows []dbgen.GetKassiertProServicekraftRow) []repo
 	return abrechnung
 }
 
-// toBetroffene übersetzt die von der Query aufgelöste Storno-Zuordnung in
-// Domänen-Referenzen. Die Query garantiert eine nicht-leere Liste (Rückfall auf
-// den Akteur), sodass hier keine Ersatzlogik nötig ist.
+// toBetroffene needs no fallback: the query guarantees a non-empty list by falling back to the actor.
 func toBetroffene(raw json.RawMessage) ([]reporting.ServicekraftRef, error) {
 	var refs []servicekraftRefJSON
 	if err := json.Unmarshal(raw, &refs); err != nil {
@@ -322,11 +310,8 @@ func toStornierungen(rows []dbgen.GetStornierungenRow) ([]reporting.StornierungD
 	return stornierungen, nil
 }
 
-// GetProduktStatistik liefert die flachen Verkaufszeilen je Variante einer
-// Kassensitzung (ausgegebene Menge und Umsatz); die Gruppierung/Sortierung zu
-// Kategorie-Abschnitten übernimmt die Anwendungsschicht. Bewusst als eigene
-// Methode statt in der GetReporting-errgroup, damit derselbe Code den
-// Abrechnungs- und den Live-Pfad speist.
+// GetProduktStatistik returns flat per-variant rows for the application layer to group. It stays outside the
+// GetReporting errgroup so the settlement and the live path share it.
 func (r Repository) GetProduktStatistik(ctx context.Context, kassensitzungNr int) ([]reporting.ProduktStatistikZeile, error) {
 	rows, err := r.q.GetProduktStatistik(ctx, kassensitzungNr)
 	if err != nil {
