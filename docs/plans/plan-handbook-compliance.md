@@ -211,11 +211,11 @@ The new `scripts/rocks-backup.sh <dest>`, run from the laptop, does four things:
 
 ### Acceptance criteria
 
-- [ ] `make up` starts the dev stack; `grep -rn 'make dev\b' --exclude-dir=node_modules .` finds nothing
-- [ ] `make help` output groups targets under class headings
-- [ ] a deliberate failure in two gates makes `make check-repo` report both
-- [ ] a workflow syntax error makes `make check` fail via actionlint
-- [ ] `bash scripts/setup-dev-tools.sh` succeeds on this laptop (Node 26, no corepack)
+- [x] `make up` starts the dev stack; `grep -rn 'make dev\b' --exclude-dir=node_modules .` finds nothing
+- [x] `make help` output groups targets under class headings
+- [x] a deliberate failure in two gates makes `make check-repo` report both
+- [x] a workflow syntax error makes `make check` fail via actionlint
+- [x] `bash scripts/setup-dev-tools.sh` succeeds on this laptop (Node 26, no corepack)
 
 ## Phase 8: Scripts and repo gates
 
