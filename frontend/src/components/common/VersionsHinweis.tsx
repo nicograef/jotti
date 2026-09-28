@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { useVersionsGuard } from '@/hooks/use-versions-guard'
 import { Seite } from '@/lib/reload'
-import { CLIENT_VERSION } from '@/lib/version'
 
 /**
  * Hinweis zum Versions-Handshake — sichtbar nur, solange ein Vorgang offen ist
@@ -16,12 +15,8 @@ import { CLIENT_VERSION } from '@/lib/version'
  * fixierte Kopfleisten). Der Text nennt keine Richtung — nach einem Rollback
  * meldet der Handshake auch eine ältere Serverversion.
  */
-export function VersionsHinweis({
-  clientVersion = CLIENT_VERSION,
-}: {
-  clientVersion?: string
-}) {
-  const versionsZustand = useVersionsGuard(clientVersion)
+export function VersionsHinweis() {
+  const versionsZustand = useVersionsGuard()
 
   if (versionsZustand === 'aus' || versionsZustand === 'laedt') return null
 

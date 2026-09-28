@@ -57,13 +57,12 @@ function bestimmeVersionsZustand(
  * `wartet`, bis der letzte Vorgang abgeschlossen oder verworfen ist. Ausgelöst
  * wird im Effekt, denn ein Reload ist eine Nebenwirkung.
  */
-export function useVersionsGuard(
-  // Tests pass a release version; the test build's `dev` silences the comparison.
-  clientVersion: string = CLIENT_VERSION,
-): VersionsZustand {
+export function useVersionsGuard(): VersionsZustand {
   const serverVersion = useVersion()
   const anzahlOffeneVorgaenge = useAnzahlOffeneVorgaenge()
-  const [gebremst, setGebremst] = useState(() => bremseAuswerten(clientVersion))
+  const [gebremst, setGebremst] = useState(() =>
+    bremseAuswerten(CLIENT_VERSION),
+  )
   const bereitsGeladen = useRef(false)
 
   // Einigkeit löst den Vermerk ein, gleich welche Version in ihm steht: Nach
@@ -72,7 +71,7 @@ export function useVersionsGuard(
   // für die Lebensdauer des Tabs stehen und entschärfte jede spätere Erkennung.
   const einigMitServer =
     serverVersion !== undefined &&
-    !istVersionsabweichung(clientVersion, serverVersion)
+    !istVersionsabweichung(CLIENT_VERSION, serverVersion)
 
   // Mit dem Vermerk fällt auch das eingefrorene Flag: In der als App
   // installierten jotti bleibt ein Tab wochenlang offen, ein zweites
@@ -82,7 +81,7 @@ export function useVersionsGuard(
   if (gebremst && einigMitServer) setGebremst(false)
 
   const versionsZustand = bestimmeVersionsZustand(
-    clientVersion,
+    CLIENT_VERSION,
     serverVersion,
     gebremst,
     anzahlOffeneVorgaenge,

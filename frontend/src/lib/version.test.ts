@@ -3,10 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { CLIENT_VERSION, istVersionsabweichung } from './version'
 
 describe('CLIENT_VERSION', () => {
-  // Gepinnt: Der Vergleich schlägt in Dev, E2E und Tests nie an, weil auf
-  // beiden Seiten der `define`-Default `dev` steht.
-  it('ist ohne Build-Arg der Default dev', () => {
-    expect(CLIENT_VERSION).toBe('dev')
+  // The guard tests only prove something while the test build is a real release.
+  it('ist im Test eine echte Release-Version, damit der Vergleich scharf ist', () => {
+    expect(istVersionsabweichung(CLIENT_VERSION, 'v0.0.1')).toBe(true)
   })
 })
 

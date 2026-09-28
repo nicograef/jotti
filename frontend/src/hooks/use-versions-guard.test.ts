@@ -2,6 +2,7 @@ import { act, cleanup, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Seite } from '@/lib/reload'
+import { CLIENT_VERSION } from '@/lib/version'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
 import { renderHookWithBackend } from '@/test/render'
@@ -12,15 +13,14 @@ import {
   useVersionsGuard,
 } from './use-versions-guard'
 
-// The client runs as a real release; /health reports `serverVersion`.
-const CLIENT = 'v1.2.3'
-let serverVersion = CLIENT
+// The test build runs as release v1.2.3 (vitest.config.ts); /health reports `serverVersion`.
+let serverVersion = CLIENT_VERSION
 
 // Waits until the server version has arrived, so every assertion sees the
 // guard's answer to it rather than the state before the first response.
 async function renderGuard() {
   const view = renderHookWithBackend(
-    () => ({ zustand: useVersionsGuard(CLIENT), version: useVersion() }),
+    () => ({ zustand: useVersionsGuard(), version: useVersion() }),
     new FakeBackend().respond('health', () => ({ version: serverVersion })),
   )
   await waitFor(() => {
@@ -44,7 +44,7 @@ async function meldeServerVersion(
 let neuLaden: ReturnType<typeof vi.spyOn>
 
 beforeEach(() => {
-  serverVersion = CLIENT
+  serverVersion = CLIENT_VERSION
   sessionStorage.clear()
   VorgangsRegisterSingleton.zuruecksetzen()
   neuLaden = vi.spyOn(Seite, 'neuLaden').mockImplementation(() => undefined)
@@ -68,7 +68,7 @@ describe('useVersionsGuard', () => {
   })
 
   it('lädt bei gleicher Version nicht neu', async () => {
-    serverVersion = 'v1.2.3'
+    serverVersion = CLIENT_VERSION
 
     const { result } = await renderGuard()
 
@@ -83,7 +83,7 @@ describe('useVersionsGuard', () => {
       .spyOn(console, 'error')
       .mockImplementation(() => undefined)
     const { result } = renderHookWithBackend(
-      () => useVersionsGuard(CLIENT),
+      () => useVersionsGuard(),
       new FakeBackend().fail('health'),
     )
     await waitFor(() => {
@@ -168,7 +168,7 @@ describe('useVersionsGuard', () => {
   // vermerkte Zielversion. Bliebe der Vermerk liegen, bliebe die Bremse gezogen.
   it('löst den Vermerk auch bei anderer Version ein, sobald Client und Server einig sind', async () => {
     sessionStorage.setItem(RELOAD_VERMERK_SCHLUESSEL, 'v1.2.4')
-    serverVersion = 'v1.2.3'
+    serverVersion = CLIENT_VERSION
 
     const view = await renderGuard()
     const { result } = view
@@ -185,8 +185,8 @@ describe('useVersionsGuard', () => {
   })
 
   it('löst einen erreichten Vermerk ein und ist danach wieder scharf', async () => {
-    sessionStorage.setItem(RELOAD_VERMERK_SCHLUESSEL, 'v1.2.3')
-    serverVersion = 'v1.2.3'
+    sessionStorage.setItem(RELOAD_VERMERK_SCHLUESSEL, CLIENT_VERSION)
+    serverVersion = CLIENT_VERSION
 
     const view = await renderGuard()
 

@@ -8,9 +8,9 @@ const RELEASE_MUSTER = /^v[0-9]+\.[0-9]+\.[0-9]+([.+-].*)?$/
 
 /**
  * Abweichung genau dann, wenn beide Seiten echte Release-Versionen sind und
- * sich unterscheiden. Alles andere schaltet den Vergleich still ab: In Dev,
- * E2E und Tests steht auf beiden Seiten der Default `dev` (oder `dev-<sha>`),
- * und ein Client gegen einen ungetaggten Server soll sich nicht als veraltet
+ * sich unterscheiden. Alles andere schaltet den Vergleich still ab: In Dev
+ * und E2E steht auf beiden Seiten der Default `dev` (oder `dev-<sha>`), und
+ * ein Client gegen einen ungetaggten Server soll sich nicht als veraltet
  * melden.
  */
 export function istVersionsabweichung(

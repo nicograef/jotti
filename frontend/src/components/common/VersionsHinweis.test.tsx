@@ -6,15 +6,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { RELOAD_VERMERK_SCHLUESSEL } from '@/hooks/use-versions-guard'
 import { Seite } from '@/lib/reload'
+import { CLIENT_VERSION } from '@/lib/version'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
 import { renderWithBackend } from '@/test/render'
 
 import { VersionsHinweis } from './VersionsHinweis'
 
-// The client runs as a real release; /health reports `serverVersion`.
-const CLIENT = 'v1.2.3'
-let serverVersion = CLIENT
+// The test build runs as release v1.2.3 (vitest.config.ts); /health reports `serverVersion`.
+let serverVersion = CLIENT_VERSION
 
 // Waits until /health has answered, so the guard has decided on its state.
 async function renderHinweis(
@@ -24,7 +24,7 @@ async function renderHinweis(
     version: serverVersion,
   }))
   const { queryClient } = renderWithBackend(
-    <>{umgebung(<VersionsHinweis clientVersion={CLIENT} />)}</>,
+    <>{umgebung(<VersionsHinweis />)}</>,
     backend,
   )
   await waitFor(() => {
@@ -55,7 +55,7 @@ tailwindErsatz.textContent = '.pointer-events-auto { pointer-events: auto }'
 document.head.append(tailwindErsatz)
 
 beforeEach(() => {
-  serverVersion = CLIENT
+  serverVersion = CLIENT_VERSION
   sessionStorage.clear()
   VorgangsRegisterSingleton.zuruecksetzen()
   neuLaden = vi.spyOn(Seite, 'neuLaden').mockImplementation(() => undefined)
