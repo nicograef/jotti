@@ -18,4 +18,5 @@ Danach müsst ihr als Verein drei Dinge selbst erledigen:
 3. Alle Kassendaten 10 Jahre aufbewahren (regelmäßige Backups).
 
 **Was kostet uns das?** jotti selbst ist für euch kostenlos. Laufende Kosten
-entstehen nur für die TSE von fiskaly (den aktuellen Preis bei fiskaly erfragen), und ggf. für einen Server (ca. 6 € pro Monat).
+entstehen nur für die TSE von fiskaly und ggf. für einen Server (ca. 6 € pro Monat).
+Den aktuellen TSE-Preis erfragt ihr bei fiskaly.
