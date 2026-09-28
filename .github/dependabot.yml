@@ -98,7 +98,9 @@ updates:
           - "*"
 
   # scripts/check-pins.sh requires one version per image across Dockerfiles and
-  # compose files, so both ecosystems share one multi-ecosystem PR.
+  # compose files, so both ecosystems share one multi-ecosystem PR. Postgres is
+  # ignored in both: its pins are bumped by hand across every place check-pins.sh
+  # reads (compose files, workflows, scripts, the Windows starter), see D15.
   - package-ecosystem: "docker"
     directories:
       - "/backend"
@@ -114,15 +116,14 @@ updates:
     ignore:
       - dependency-name: "node"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "postgres"
 
   - package-ecosystem: "docker-compose"
     directory: "/"
     multi-ecosystem-group: "docker"
     patterns: ["*"]
-    # Node as above. Postgres majors need a data upgrade path first (D15 in
-    # docs/decisions.md).
+    # Node and Postgres as above.
     ignore:
       - dependency-name: "node"
         update-types: ["version-update:semver-major"]
       - dependency-name: "postgres"
-        update-types: ["version-update:semver-major"]
