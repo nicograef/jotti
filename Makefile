@@ -307,7 +307,7 @@ check-shell: ## Shell-Skripte mit shellcheck prüfen (wie CI)
 check-workflows: ## GitHub-Workflows mit actionlint prüfen (wie CI)
 	actionlint
 
-check-repo: ## Alle scripts/check-*.sh-Gates ausführen, Fehlschläge gesammelt am Ende (Build-Tags, Sprache, Prosa, Verweise, Zeitzonen, Versions-Pins, UI-Labels, Domain-Enums, E2E-Assertions)
+check-repo: ## Alle scripts/check-*.sh-Gates ausführen, Fehlschläge gesammelt am Ende
 	@failed=""; \
 	for script in scripts/check-*.sh; do \
 		echo "→ $$script"; \
