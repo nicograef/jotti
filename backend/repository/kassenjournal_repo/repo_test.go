@@ -269,7 +269,7 @@ func TestWriteEvent_TischSession(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if eventID == 0 {
-		t.Fatalf("Expected valid event ID, got %d", eventID)
+		t.Errorf("Expected valid event ID, got %d", eventID)
 	}
 }
 
@@ -312,7 +312,7 @@ func TestReadFavoritenTischStates(t *testing.T) {
 		t.Fatalf("ReadFavoritenTischStates: %v", err)
 	}
 	if len(states) != 2 {
-		t.Fatalf("expected 2 states (A, B), got %d", len(states))
+		t.Errorf("expected 2 states (A, B), got %d", len(states))
 	}
 
 	// Tisch A: Name + Session byte-identisch zu ReadTischSession.
@@ -380,7 +380,7 @@ func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if eventID == 0 {
-		t.Fatalf("Expected valid event ID, got %d", eventID)
+		t.Errorf("Expected valid event ID, got %d", eventID)
 	}
 
 	events, err := repo.ReadEventsBySubject(context.Background(), subject)
@@ -388,7 +388,7 @@ func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if len(events) != 1 {
-		t.Fatalf("Expected 1 persisted event, got %d", len(events))
+		t.Errorf("Expected 1 persisted event, got %d", len(events))
 	}
 
 	// The druckauftrag references the generated event ID.
@@ -398,7 +398,7 @@ func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
 		t.Fatalf("Expected 1 persisted druckauftrag, got error %v", err)
 	}
 	if want := fmt.Sprintf("bestellung-aufgenommen:%d", eventID); referenz != want {
-		t.Fatalf("Expected referenz %q, got %q", want, referenz)
+		t.Errorf("Expected referenz %q, got %q", want, referenz)
 	}
 }
 
@@ -435,7 +435,7 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if len(events) != 0 {
-		t.Fatalf("Expected event to be rolled back, found %d events", len(events))
+		t.Errorf("Expected event to be rolled back, found %d events", len(events))
 	}
 
 	// The projection must not have been updated either.
@@ -444,7 +444,7 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if session.LastEventID != 0 {
-		t.Fatalf("Expected no tisch session projection, got LastEventID %d", session.LastEventID)
+		t.Errorf("Expected no tisch session projection, got LastEventID %d", session.LastEventID)
 	}
 }
 
@@ -486,16 +486,16 @@ func TestWriteEvent_SignaturpflichtigErzeugtOffenenAuftrag(t *testing.T) {
 			t.Fatalf("Expected auftrag for event %d, got error %v", eventID, err)
 		}
 		if status != "offen" {
-			t.Fatalf("Expected status offen for event %d, got %q", eventID, status)
+			t.Errorf("Expected status offen for event %d, got %q", eventID, status)
 		}
 		if processType != wantProcessType {
-			t.Fatalf("Expected process_type %q for event %d, got %q", wantProcessType, eventID, processType)
+			t.Errorf("Expected process_type %q for event %d, got %q", wantProcessType, eventID, processType)
 		}
 		if processData != wantProcessData {
-			t.Fatalf("Expected process_data %q for event %d, got %q", wantProcessData, eventID, processData)
+			t.Errorf("Expected process_data %q for event %d, got %q", wantProcessData, eventID, processData)
 		}
 		if txID == "" {
-			t.Fatalf("Expected tx_id for event %d", eventID)
+			t.Errorf("Expected tx_id for event %d", eventID)
 		}
 	}
 
@@ -507,7 +507,7 @@ func TestWriteEvent_SignaturpflichtigErzeugtOffenenAuftrag(t *testing.T) {
 		t.Fatalf("Failed to count auftraege: %v", err)
 	}
 	if gesamt != 2 {
-		t.Fatalf("Expected exactly 2 auftraege (bestellung + zahlung), got %d", gesamt)
+		t.Errorf("Expected exactly 2 auftraege (bestellung + zahlung), got %d", gesamt)
 	}
 }
 
@@ -563,7 +563,7 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 		t.Fatalf("Expected 2 source events, got %d", len(quellEvents))
 	}
 	if quellEvents[1].Type != string(kasse.EventTypeBestellungUmgebuchtV1) {
-		t.Fatalf("Expected source event type %q, got %q", kasse.EventTypeBestellungUmgebuchtV1, quellEvents[1].Type)
+		t.Errorf("Expected source event type %q, got %q", kasse.EventTypeBestellungUmgebuchtV1, quellEvents[1].Type)
 	}
 
 	zielEvents, err := repo.ReadEventsBySubject(context.Background(), zielSubject)
@@ -574,7 +574,7 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 		t.Fatalf("Expected 1 target event, got %d", len(zielEvents))
 	}
 	if zielEvents[0].Type != string(kasse.EventTypeBestellungUmgebuchtV1) {
-		t.Fatalf("Expected target event type %q, got %q", kasse.EventTypeBestellungUmgebuchtV1, zielEvents[0].Type)
+		t.Errorf("Expected target event type %q, got %q", kasse.EventTypeBestellungUmgebuchtV1, zielEvents[0].Type)
 	}
 
 	quellState, err := repo.ReadTischSession(context.Background(), quellSubject)
@@ -582,10 +582,10 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 		t.Fatalf("Expected no source state read error, got %v", err)
 	}
 	if quellState.SaldoCents != 0 {
-		t.Fatalf("Expected source saldo 0, got %d", quellState.SaldoCents)
+		t.Errorf("Expected source saldo 0, got %d", quellState.SaldoCents)
 	}
 	if len(quellState.UnbezahltePositionen) != 0 {
-		t.Fatalf("Expected no source unbezahlte positionen, got %d", len(quellState.UnbezahltePositionen))
+		t.Errorf("Expected no source unbezahlte positionen, got %d", len(quellState.UnbezahltePositionen))
 	}
 
 	zielState, err := repo.ReadTischSession(context.Background(), zielSubject)
@@ -593,16 +593,16 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 		t.Fatalf("Expected no target state read error, got %v", err)
 	}
 	if zielState.SaldoCents != 700 {
-		t.Fatalf("Expected target saldo 700, got %d", zielState.SaldoCents)
+		t.Errorf("Expected target saldo 700, got %d", zielState.SaldoCents)
 	}
 	if len(zielState.UnbezahltePositionen) != 1 {
 		t.Fatalf("Expected 1 target unbezahlte position, got %d", len(zielState.UnbezahltePositionen))
 	}
 	if zielState.UnbezahltePositionen[0].EinzelpreisCents != 350 {
-		t.Fatalf("Expected target einzelpreis 350, got %d", zielState.UnbezahltePositionen[0].EinzelpreisCents)
+		t.Errorf("Expected target einzelpreis 350, got %d", zielState.UnbezahltePositionen[0].EinzelpreisCents)
 	}
 	if zielState.UnbezahltePositionen[0].Menge != 2 {
-		t.Fatalf("Expected target menge 2, got %d", zielState.UnbezahltePositionen[0].Menge)
+		t.Errorf("Expected target menge 2, got %d", zielState.UnbezahltePositionen[0].Menge)
 	}
 }
 
@@ -657,7 +657,7 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 		t.Fatalf("Expected no read error for source subject, got %v", err)
 	}
 	if len(quellEvents) != 1 {
-		t.Fatalf("Expected source rollback (1 event), got %d", len(quellEvents))
+		t.Errorf("Expected source rollback (1 event), got %d", len(quellEvents))
 	}
 
 	zielEvents, err := repo.ReadEventsBySubject(context.Background(), zielSubject)
@@ -665,7 +665,7 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 		t.Fatalf("Expected no read error for target subject, got %v", err)
 	}
 	if len(zielEvents) != 0 {
-		t.Fatalf("Expected target rollback (0 events), got %d", len(zielEvents))
+		t.Errorf("Expected target rollback (0 events), got %d", len(zielEvents))
 	}
 
 	quellState, err := repo.ReadTischSession(context.Background(), quellSubject)
@@ -673,10 +673,10 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 		t.Fatalf("Expected no source state read error, got %v", err)
 	}
 	if quellState.SaldoCents != 700 {
-		t.Fatalf("Expected source saldo 700 after rollback, got %d", quellState.SaldoCents)
+		t.Errorf("Expected source saldo 700 after rollback, got %d", quellState.SaldoCents)
 	}
 	if len(quellState.UnbezahltePositionen) != 1 {
-		t.Fatalf("Expected source unbezahlte positionen to remain 1, got %d", len(quellState.UnbezahltePositionen))
+		t.Errorf("Expected source unbezahlte positionen to remain 1, got %d", len(quellState.UnbezahltePositionen))
 	}
 
 	zielState, err := repo.ReadTischSession(context.Background(), zielSubject)
@@ -684,7 +684,7 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 		t.Fatalf("Expected no target state read error, got %v", err)
 	}
 	if zielState.LastEventID != 0 {
-		t.Fatalf("Expected no target projection update, got LastEventID %d", zielState.LastEventID)
+		t.Errorf("Expected no target projection update, got LastEventID %d", zielState.LastEventID)
 	}
 }
 
@@ -747,7 +747,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 
 	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, ksNr)
 	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
-		t.Fatalf("Expected ErrAlreadyExists conflict, got %v", err)
+		t.Errorf("Expected ErrAlreadyExists conflict, got %v", err)
 	}
 
 	quellEvents, err := repo.ReadEventsBySubject(context.Background(), quellSubject)
@@ -755,7 +755,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 		t.Fatalf("Expected no read error for source subject, got %v", err)
 	}
 	if len(quellEvents) != 2 {
-		t.Fatalf("Expected source rollback (2 events: bestellung+zahlung), got %d", len(quellEvents))
+		t.Errorf("Expected source rollback (2 events: bestellung+zahlung), got %d", len(quellEvents))
 	}
 
 	zielEvents, err := repo.ReadEventsBySubject(context.Background(), zielSubject)
@@ -763,7 +763,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 		t.Fatalf("Expected no read error for target subject, got %v", err)
 	}
 	if len(zielEvents) != 1 {
-		t.Fatalf("Expected target unchanged (1 event), got %d", len(zielEvents))
+		t.Errorf("Expected target unchanged (1 event), got %d", len(zielEvents))
 	}
 
 	quellState, err := repo.ReadTischSession(context.Background(), quellSubject)
@@ -771,7 +771,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 		t.Fatalf("Expected no source state read error, got %v", err)
 	}
 	if quellState.SaldoCents != 0 {
-		t.Fatalf("Expected source saldo 0 after zahlung rollback, got %d", quellState.SaldoCents)
+		t.Errorf("Expected source saldo 0 after zahlung rollback, got %d", quellState.SaldoCents)
 	}
 
 	zielState, err := repo.ReadTischSession(context.Background(), zielSubject)
@@ -779,7 +779,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 		t.Fatalf("Expected no target state read error, got %v", err)
 	}
 	if zielState.SaldoCents != 100 {
-		t.Fatalf("Expected target saldo 100 unchanged, got %d", zielState.SaldoCents)
+		t.Errorf("Expected target saldo 100 unchanged, got %d", zielState.SaldoCents)
 	}
 }
 
@@ -803,7 +803,7 @@ func TestReadEventsBySubject(t *testing.T) {
 		t.Fatalf("Expected 1 event, got %d", len(events))
 	}
 	if events[0].Subject != subject2 {
-		t.Fatalf("Expected subject %s, got %s", subject2, events[0].Subject)
+		t.Errorf("Expected subject %s, got %s", subject2, events[0].Subject)
 	}
 }
 
@@ -820,7 +820,7 @@ func TestGetMaxVersion(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if version != 0 {
-		t.Fatalf("Expected version 0 for empty subject, got %d", version)
+		t.Errorf("Expected version 0 for empty subject, got %d", version)
 	}
 
 	// Add events
@@ -838,7 +838,7 @@ func TestGetMaxVersion(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if version != 2 {
-		t.Fatalf("Expected version 2, got %d", version)
+		t.Errorf("Expected version 2, got %d", version)
 	}
 
 	// Should return max version for subject2
@@ -847,7 +847,7 @@ func TestGetMaxVersion(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if version != 1 {
-		t.Fatalf("Expected version 1, got %d", version)
+		t.Errorf("Expected version 1, got %d", version)
 	}
 }
 
@@ -867,7 +867,7 @@ func TestGetKassenbestand_DirektverkaufIncreasesThenStornoDecreases(t *testing.T
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if bestand.SollBestandCents != 1200 {
-		t.Fatalf("Expected kassenbestand 1200 after direktverkauf, got %d", bestand.SollBestandCents)
+		t.Errorf("Expected kassenbestand 1200 after direktverkauf, got %d", bestand.SollBestandCents)
 	}
 
 	storno := newTestEvent(userID, "direktverkauf-storniert:v1", subject, 2, validDirektverkaufStornoData("verkauf-1", 500))
@@ -880,7 +880,7 @@ func TestGetKassenbestand_DirektverkaufIncreasesThenStornoDecreases(t *testing.T
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if bestand.SollBestandCents != 700 {
-		t.Fatalf("Expected kassenbestand 700 after direktverkauf-storno, got %d", bestand.SollBestandCents)
+		t.Errorf("Expected kassenbestand 700 after direktverkauf-storno, got %d", bestand.SollBestandCents)
 	}
 }
 
@@ -900,7 +900,7 @@ func TestGetKassenbestand_WarenruecknahmeDecreasesKorrekturDoesNot(t *testing.T)
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if bestand.SollBestandCents != 1000 {
-		t.Fatalf("Expected kassenbestand 1000 after zahlung, got %d", bestand.SollBestandCents)
+		t.Errorf("Expected kassenbestand 1000 after zahlung, got %d", bestand.SollBestandCents)
 	}
 
 	// Geldneutrale Korrektur verändert den Kassenbestand nicht.
@@ -914,7 +914,7 @@ func TestGetKassenbestand_WarenruecknahmeDecreasesKorrekturDoesNot(t *testing.T)
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if bestand.SollBestandCents != 1000 {
-		t.Fatalf("Expected kassenbestand 1000 after geldneutrale Korrektur, got %d", bestand.SollBestandCents)
+		t.Errorf("Expected kassenbestand 1000 after geldneutrale Korrektur, got %d", bestand.SollBestandCents)
 	}
 
 	// Kassenwirksame Warenrücknahme gibt Bargeld zurück und mindert den Bestand.
@@ -928,7 +928,7 @@ func TestGetKassenbestand_WarenruecknahmeDecreasesKorrekturDoesNot(t *testing.T)
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if bestand.SollBestandCents != 700 {
-		t.Fatalf("Expected kassenbestand 700 after Warenrücknahme, got %d", bestand.SollBestandCents)
+		t.Errorf("Expected kassenbestand 700 after Warenrücknahme, got %d", bestand.SollBestandCents)
 	}
 }
 
@@ -947,7 +947,7 @@ func TestEroeffneKassensitzung_RollbackBeiEventFehler(t *testing.T) {
 		return event.Event{}, errors.New("event bauen fehlgeschlagen")
 	})
 	if err == nil {
-		t.Fatal("expected error from build callback")
+		t.Error("expected error from build callback")
 	}
 
 	var nachher int
@@ -955,7 +955,7 @@ func TestEroeffneKassensitzung_RollbackBeiEventFehler(t *testing.T) {
 		t.Fatalf("count kassensitzungen: %v", err)
 	}
 	if nachher != vorher {
-		t.Fatalf("expected rollback of kassensitzungen row: vorher %d, nachher %d", vorher, nachher)
+		t.Errorf("expected rollback of kassensitzungen row: vorher %d, nachher %d", vorher, nachher)
 	}
 	_ = userID
 }
@@ -983,7 +983,7 @@ func TestEroeffneKassensitzung_SchreibtEntitaetUndEventAtomar(t *testing.T) {
 		t.Fatalf("read kassensitzung: %v", err)
 	}
 	if status != "offen" {
-		t.Fatalf("expected status offen, got %q", status)
+		t.Errorf("expected status offen, got %q", status)
 	}
 
 	events, err := repo.ReadEventsBySubject(context.Background(), kasse.KassensitzungSubject(zNr))
@@ -991,7 +991,7 @@ func TestEroeffneKassensitzung_SchreibtEntitaetUndEventAtomar(t *testing.T) {
 		t.Fatalf("read events: %v", err)
 	}
 	if len(events) != 1 || events[0].Type != "kassensitzung-eroeffnet:v1" {
-		t.Fatalf("expected exactly the eroeffnet event, got %v", events)
+		t.Errorf("expected exactly the eroeffnet event, got %v", events)
 	}
 
 	// Der Signaturauftrag der Eröffnung (Anfangsbestand > 0) entsteht im selben
@@ -1004,7 +1004,7 @@ func TestEroeffneKassensitzung_SchreibtEntitaetUndEventAtomar(t *testing.T) {
 		t.Fatalf("count signaturauftraege: %v", err)
 	}
 	if auftraege != 1 {
-		t.Fatalf("expected 1 signaturauftrag, got %d", auftraege)
+		t.Errorf("expected 1 signaturauftrag, got %d", auftraege)
 	}
 }
 
@@ -1028,7 +1028,7 @@ func TestWriteEvent_InGeschlosseneKassensitzungWirdAbgelehnt(t *testing.T) {
 
 	_, err = repo.WriteEvent(context.Background(), e, kasse.StreamTypeTischSession, ksNr)
 	if !errors.Is(err, ErrKassensitzungNichtOffen) {
-		t.Fatalf("expected ErrKassensitzungNichtOffen, got %v", err)
+		t.Errorf("expected ErrKassensitzungNichtOffen, got %v", err)
 	}
 
 	events, err := repo.ReadEventsBySubject(context.Background(), subject)
@@ -1036,7 +1036,7 @@ func TestWriteEvent_InGeschlosseneKassensitzungWirdAbgelehnt(t *testing.T) {
 		t.Fatalf("read events: %v", err)
 	}
 	if len(events) != 0 {
-		t.Fatalf("expected no persisted events in closed session, got %d", len(events))
+		t.Errorf("expected no persisted events in closed session, got %d", len(events))
 	}
 }
 
@@ -1060,7 +1060,7 @@ func TestWriteEvent_ZwischenstatusWirdAbgeschlossen(t *testing.T) {
 	tischSubject := kasse.TischSessionSubject(ksNr, tischID)
 	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", tischSubject, 1, validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 1))
 	if _, err := repo.WriteEvent(context.Background(), bestellung, kasse.StreamTypeTischSession, ksNr); !errors.Is(err, ErrKassensitzungNichtOffen) {
-		t.Fatalf("expected booking to be rejected in wird_abgeschlossen, got %v", err)
+		t.Errorf("expected booking to be rejected in wird_abgeschlossen, got %v", err)
 	}
 
 	// Abschluss-Event wird zugelassen.
@@ -1072,7 +1072,7 @@ func TestWriteEvent_ZwischenstatusWirdAbgeschlossen(t *testing.T) {
 		"durchgefuehrtVon": userID,
 	})
 	if _, err := repo.WriteEvent(context.Background(), kassensturz, kasse.StreamTypeKassensitzung, ksNr); err != nil {
-		t.Fatalf("expected kassensturz to pass guard in wird_abgeschlossen, got %v", err)
+		t.Errorf("expected kassensturz to pass guard in wird_abgeschlossen, got %v", err)
 	}
 
 	events, err := repo.ReadEventsBySubject(context.Background(), tischSubject)
@@ -1080,7 +1080,7 @@ func TestWriteEvent_ZwischenstatusWirdAbgeschlossen(t *testing.T) {
 		t.Fatalf("read events: %v", err)
 	}
 	if len(events) != 0 {
-		t.Fatalf("expected no persisted booking events, got %d", len(events))
+		t.Errorf("expected no persisted booking events, got %d", len(events))
 	}
 }
 
@@ -1128,7 +1128,7 @@ func TestGetKassenbestand_DifferenzbuchungGleichtSollAnIstAn(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if bestand.SollBestandCents != 15000 {
-		t.Fatalf("Expected kassenbestand 15000 (Soll vor Kassensturz), got %d", bestand.SollBestandCents)
+		t.Errorf("Expected kassenbestand 15000 (Soll vor Kassensturz), got %d", bestand.SollBestandCents)
 	}
 
 	// Kassensturz zählt Ist = 13000 → Differenz = Soll − Ist = +2000 (Fehlbetrag).
@@ -1142,7 +1142,7 @@ func TestGetKassenbestand_DifferenzbuchungGleichtSollAnIstAn(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if bestand.SollBestandCents != 13000 {
-		t.Fatalf("Expected kassenbestand 13000 (= Ist) nach Fehlbetrag-Buchung, got %d", bestand.SollBestandCents)
+		t.Errorf("Expected kassenbestand 13000 (= Ist) nach Fehlbetrag-Buchung, got %d", bestand.SollBestandCents)
 	}
 }
 
@@ -1168,7 +1168,7 @@ func TestGetKassenbestand_UeberschussErhoehtSollAufIst(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if bestand.SollBestandCents != 10500 {
-		t.Fatalf("Expected kassenbestand 10500 (= Ist) nach Überschuss-Buchung, got %d", bestand.SollBestandCents)
+		t.Errorf("Expected kassenbestand 10500 (= Ist) nach Überschuss-Buchung, got %d", bestand.SollBestandCents)
 	}
 }
 
@@ -1250,10 +1250,10 @@ func TestGetKassenbestand_KomponentenErgebenSollBestand(t *testing.T) {
 	// Invariante: Anfangsbestand + Bareinnahmen + Einlagen − Entnahmen = Soll-Bestand.
 	summe := bestand.AnfangsbestandCents + bestand.BareinnahmenCents + bestand.EinlagenCents - bestand.EntnahmenCents
 	if summe != bestand.SollBestandCents {
-		t.Fatalf("Invariante verletzt: Komponenten-Summe %d ≠ Soll-Bestand %d", summe, bestand.SollBestandCents)
+		t.Errorf("Invariante verletzt: Komponenten-Summe %d ≠ Soll-Bestand %d", summe, bestand.SollBestandCents)
 	}
 	if bestand.SollBestandCents != 37400 {
-		t.Fatalf("Soll-Bestand: expected 37400, got %d", bestand.SollBestandCents)
+		t.Errorf("Soll-Bestand: expected 37400, got %d", bestand.SollBestandCents)
 	}
 }
 
@@ -1338,13 +1338,13 @@ func TestGetReportingStats_IncludesDirektverkaufMetrics(t *testing.T) {
 	}
 
 	if stats.GesamtUmsatzCents != 1200 {
-		t.Fatalf("Expected gesamt_umsatz_cents 1200, got %d", stats.GesamtUmsatzCents)
+		t.Errorf("Expected gesamt_umsatz_cents 1200, got %d", stats.GesamtUmsatzCents)
 	}
 	if stats.AnzahlDirektverkaeufe != 1 {
-		t.Fatalf("Expected anzahl_direktverkaeufe 1, got %d", stats.AnzahlDirektverkaeufe)
+		t.Errorf("Expected anzahl_direktverkaeufe 1, got %d", stats.AnzahlDirektverkaeufe)
 	}
 	if stats.DirektverkaufUmsatzCents != 500 {
-		t.Fatalf("Expected direktverkauf_umsatz_cents 500, got %d", stats.DirektverkaufUmsatzCents)
+		t.Errorf("Expected direktverkauf_umsatz_cents 500, got %d", stats.DirektverkaufUmsatzCents)
 	}
 }
 
@@ -1375,28 +1375,28 @@ func TestWriteEvent_WithTischSessionProjection(t *testing.T) {
 	}
 
 	if state.SaldoCents != 700 {
-		t.Fatalf("Expected SaldoCents 700, got %d", state.SaldoCents)
+		t.Errorf("Expected SaldoCents 700, got %d", state.SaldoCents)
 	}
 	if len(state.UnbezahltePositionen) != 1 {
 		t.Fatalf("Expected 1 unbezahlte position, got %d", len(state.UnbezahltePositionen))
 	}
 	if state.UnbezahltePositionen[0].PositionID != posID {
-		t.Fatalf("Expected position ID %s, got %s", posID, state.UnbezahltePositionen[0].PositionID)
+		t.Errorf("Expected position ID %s, got %s", posID, state.UnbezahltePositionen[0].PositionID)
 	}
 	if state.UnbezahltePositionen[0].Menge != 2 {
-		t.Fatalf("Expected Menge 2, got %d", state.UnbezahltePositionen[0].Menge)
+		t.Errorf("Expected Menge 2, got %d", state.UnbezahltePositionen[0].Menge)
 	}
 	if state.TischID != tischID {
-		t.Fatalf("Expected TischID %d, got %d", tischID, state.TischID)
+		t.Errorf("Expected TischID %d, got %d", tischID, state.TischID)
 	}
 	if state.KassensitzungNr != ksNr {
-		t.Fatalf("Expected KassensitzungNr %d, got %d", ksNr, state.KassensitzungNr)
+		t.Errorf("Expected KassensitzungNr %d, got %d", ksNr, state.KassensitzungNr)
 	}
 	if state.LastEventID != eventID {
-		t.Fatalf("Expected LastEventID %d, got %d", eventID, state.LastEventID)
+		t.Errorf("Expected LastEventID %d, got %d", eventID, state.LastEventID)
 	}
 	if state.LastEventVersion != 1 {
-		t.Fatalf("Expected LastEventVersion 1, got %d", state.LastEventVersion)
+		t.Errorf("Expected LastEventVersion 1, got %d", state.LastEventVersion)
 	}
 }
 
@@ -1410,13 +1410,13 @@ func TestReadTischSession_NotFound(t *testing.T) {
 	}
 
 	if state.SaldoCents != 0 {
-		t.Fatalf("Expected SaldoCents 0, got %d", state.SaldoCents)
+		t.Errorf("Expected SaldoCents 0, got %d", state.SaldoCents)
 	}
 	if state.GesamtZahlungenCents != 0 {
-		t.Fatalf("Expected GesamtZahlungenCents 0, got %d", state.GesamtZahlungenCents)
+		t.Errorf("Expected GesamtZahlungenCents 0, got %d", state.GesamtZahlungenCents)
 	}
 	if len(state.UnbezahltePositionen) != 0 {
-		t.Fatalf("Expected empty unbezahlte positionen, got %d", len(state.UnbezahltePositionen))
+		t.Errorf("Expected empty unbezahlte positionen, got %d", len(state.UnbezahltePositionen))
 	}
 }
 
@@ -1455,21 +1455,21 @@ func TestWriteEvent_MultipleEvents_ProjectionCorrect(t *testing.T) {
 
 	// Saldo ist 350 (700 abzüglich 350 gezahlt)
 	if state.SaldoCents != 350 {
-		t.Fatalf("Expected SaldoCents 350, got %d", state.SaldoCents)
+		t.Errorf("Expected SaldoCents 350, got %d", state.SaldoCents)
 	}
 	// GesamtZahlungen: 350
 	if state.GesamtZahlungenCents != 350 {
-		t.Fatalf("Expected GesamtZahlungenCents 350, got %d", state.GesamtZahlungenCents)
+		t.Errorf("Expected GesamtZahlungenCents 350, got %d", state.GesamtZahlungenCents)
 	}
 	// Unbezahlt: 1 position with Menge 1 (original 2, paid 1)
 	if len(state.UnbezahltePositionen) != 1 {
 		t.Fatalf("Expected 1 unbezahlte position, got %d", len(state.UnbezahltePositionen))
 	}
 	if state.UnbezahltePositionen[0].Menge != 1 {
-		t.Fatalf("Expected remaining Menge 1, got %d", state.UnbezahltePositionen[0].Menge)
+		t.Errorf("Expected remaining Menge 1, got %d", state.UnbezahltePositionen[0].Menge)
 	}
 	if state.LastEventVersion != 2 {
-		t.Fatalf("Expected LastEventVersion 2, got %d", state.LastEventVersion)
+		t.Errorf("Expected LastEventVersion 2, got %d", state.LastEventVersion)
 	}
 }
 
@@ -1498,7 +1498,7 @@ func TestWriteEvent_InvalidData_Rollback(t *testing.T) {
 		t.Fatalf("Expected no error reading events, got %v", err)
 	}
 	if len(events) != 0 {
-		t.Fatalf("Expected 0 events after rollback, got %d", len(events))
+		t.Errorf("Expected 0 events after rollback, got %d", len(events))
 	}
 
 	// Verify no tisch_session was written
@@ -1507,7 +1507,7 @@ func TestWriteEvent_InvalidData_Rollback(t *testing.T) {
 		t.Fatalf("Expected no error reading tisch session, got %v", err)
 	}
 	if state.SaldoCents != 0 {
-		t.Fatalf("Expected SaldoCents 0 after rollback, got %d", state.SaldoCents)
+		t.Errorf("Expected SaldoCents 0 after rollback, got %d", state.SaldoCents)
 	}
 }
 
@@ -1535,7 +1535,7 @@ func TestWriteEvent_KassensitzungEroeffnet(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if eventID == 0 {
-		t.Fatalf("Expected valid event ID, got %d", eventID)
+		t.Errorf("Expected valid event ID, got %d", eventID)
 	}
 
 	// Verify the kassensitzung still exists and is offen
@@ -1545,7 +1545,7 @@ func TestWriteEvent_KassensitzungEroeffnet(t *testing.T) {
 		t.Fatalf("Expected no error reading kassensitzung status, got %v", statErr)
 	}
 	if status != string(kasse.KassensitzungOffen) {
-		t.Fatalf("Expected status 'offen', got %s", status)
+		t.Errorf("Expected status 'offen', got %s", status)
 	}
 }
 
@@ -1577,7 +1577,7 @@ func TestWriteEvent_TagesabschlussErstellt(t *testing.T) {
 		t.Fatalf("Expected no error reading kassensitzung status, got %v", statErr)
 	}
 	if status != string(kasse.KassensitzungAbgeschlossen) {
-		t.Fatalf("Expected status 'abgeschlossen', got %s", status)
+		t.Errorf("Expected status 'abgeschlossen', got %s", status)
 	}
 }
 
@@ -1592,7 +1592,7 @@ func TestRebuildAllProjections_EmptyDB(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if count != 0 {
-		t.Fatalf("Expected 0 rebuilt subjects, got %d", count)
+		t.Errorf("Expected 0 rebuilt subjects, got %d", count)
 	}
 }
 
@@ -1641,7 +1641,7 @@ func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if emptyState.SaldoCents != 0 {
-		t.Fatalf("Expected SaldoCents 0 after delete, got %d", emptyState.SaldoCents)
+		t.Errorf("Expected SaldoCents 0 after delete, got %d", emptyState.SaldoCents)
 	}
 
 	// Rebuild
@@ -1650,7 +1650,7 @@ func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if count != 1 {
-		t.Fatalf("Expected 1 rebuilt subject, got %d", count)
+		t.Errorf("Expected 1 rebuilt subject, got %d", count)
 	}
 
 	// Read rebuilt state
@@ -1661,19 +1661,19 @@ func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
 
 	// Verify it matches the expected state
 	if rebuiltState.SaldoCents != expectedState.SaldoCents {
-		t.Fatalf("Expected SaldoCents %d, got %d", expectedState.SaldoCents, rebuiltState.SaldoCents)
+		t.Errorf("Expected SaldoCents %d, got %d", expectedState.SaldoCents, rebuiltState.SaldoCents)
 	}
 	if rebuiltState.GesamtZahlungenCents != expectedState.GesamtZahlungenCents {
-		t.Fatalf("Expected GesamtZahlungenCents %d, got %d", expectedState.GesamtZahlungenCents, rebuiltState.GesamtZahlungenCents)
+		t.Errorf("Expected GesamtZahlungenCents %d, got %d", expectedState.GesamtZahlungenCents, rebuiltState.GesamtZahlungenCents)
 	}
 	if len(rebuiltState.UnbezahltePositionen) != len(expectedState.UnbezahltePositionen) {
-		t.Fatalf("Expected %d unbezahlte positionen, got %d", len(expectedState.UnbezahltePositionen), len(rebuiltState.UnbezahltePositionen))
+		t.Errorf("Expected %d unbezahlte positionen, got %d", len(expectedState.UnbezahltePositionen), len(rebuiltState.UnbezahltePositionen))
 	}
 	if rebuiltState.LastEventID != expectedState.LastEventID {
-		t.Fatalf("Expected LastEventID %d, got %d", expectedState.LastEventID, rebuiltState.LastEventID)
+		t.Errorf("Expected LastEventID %d, got %d", expectedState.LastEventID, rebuiltState.LastEventID)
 	}
 	if rebuiltState.LastEventVersion != expectedState.LastEventVersion {
-		t.Fatalf("Expected LastEventVersion %d, got %d", expectedState.LastEventVersion, rebuiltState.LastEventVersion)
+		t.Errorf("Expected LastEventVersion %d, got %d", expectedState.LastEventVersion, rebuiltState.LastEventVersion)
 	}
 }
 
@@ -1716,7 +1716,7 @@ func TestRebuildAllProjections_MultipleSubjects(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if count != 2 {
-		t.Fatalf("Expected 2 rebuilt subjects, got %d", count)
+		t.Errorf("Expected 2 rebuilt subjects, got %d", count)
 	}
 
 	state1, err := repo.ReadTischSession(context.Background(), subject1)
@@ -1724,7 +1724,7 @@ func TestRebuildAllProjections_MultipleSubjects(t *testing.T) {
 		t.Fatalf("Expected no error reading state1, got %v", err)
 	}
 	if state1.SaldoCents != 400 {
-		t.Fatalf("Expected SaldoCents 400 for tisch1, got %d", state1.SaldoCents)
+		t.Errorf("Expected SaldoCents 400 for tisch1, got %d", state1.SaldoCents)
 	}
 
 	state2, err := repo.ReadTischSession(context.Background(), subject2)
@@ -1732,7 +1732,7 @@ func TestRebuildAllProjections_MultipleSubjects(t *testing.T) {
 		t.Fatalf("Expected no error reading state2, got %v", err)
 	}
 	if state2.SaldoCents != 300 {
-		t.Fatalf("Expected SaldoCents 300 for tisch2, got %d", state2.SaldoCents)
+		t.Errorf("Expected SaldoCents 300 for tisch2, got %d", state2.SaldoCents)
 	}
 }
 
@@ -1772,7 +1772,7 @@ func TestRebuildAllProjections_SkipsKassensitzungSubjects(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if count != 1 {
-		t.Fatalf("Expected 1 rebuilt subject (only tisch-session), got %d", count)
+		t.Errorf("Expected 1 rebuilt subject (only tisch-session), got %d", count)
 	}
 
 	state, err := repo.ReadTischSession(context.Background(), tischSubject)
@@ -1780,7 +1780,7 @@ func TestRebuildAllProjections_SkipsKassensitzungSubjects(t *testing.T) {
 		t.Fatalf("Expected no error reading rebuilt state, got %v", err)
 	}
 	if state.SaldoCents != 200 {
-		t.Fatalf("Expected SaldoCents 200, got %d", state.SaldoCents)
+		t.Errorf("Expected SaldoCents 200, got %d", state.SaldoCents)
 	}
 }
 
@@ -1805,7 +1805,7 @@ func TestWriteEvent_KassensitzungOtherEvent_NoCRUDChange(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if eventID == 0 {
-		t.Fatalf("Expected valid event ID, got %d", eventID)
+		t.Errorf("Expected valid event ID, got %d", eventID)
 	}
 
 	// Verify kassensitzung is still offen
@@ -1815,7 +1815,7 @@ func TestWriteEvent_KassensitzungOtherEvent_NoCRUDChange(t *testing.T) {
 		t.Fatalf("Expected no error reading kassensitzung status, got %v", statErr)
 	}
 	if status != string(kasse.KassensitzungOffen) {
-		t.Fatalf("Expected status 'offen', got %s", status)
+		t.Errorf("Expected status 'offen', got %s", status)
 	}
 }
 
@@ -1865,7 +1865,7 @@ func TestMigration03_AusgabeEntfernen(t *testing.T) {
 	// Solange das Alt-Event im Journal liegt, scheitert der Rebuild — genau der Grund,
 	// warum die Migration die Events löschen muss (exklusive Event-Switches).
 	if _, err := repo.RebuildAllProjections(context.Background()); err == nil {
-		t.Fatal("Expected RebuildAllProjections to fail while ausgabe-bestaetigt:v1 events remain")
+		t.Error("Expected RebuildAllProjections to fail while ausgabe-bestaetigt:v1 events remain")
 	}
 
 	// Datenbereinigung wie in der Migration: Delete-Trigger transaktional deaktivieren,
@@ -1886,7 +1886,7 @@ func TestMigration03_AusgabeEntfernen(t *testing.T) {
 		t.Fatalf("Expected RebuildAllProjections to succeed after cleanup, got %v", err)
 	}
 	if count != 1 {
-		t.Fatalf("Expected 1 rebuilt subject, got %d", count)
+		t.Errorf("Expected 1 rebuilt subject, got %d", count)
 	}
 
 	state, err := repo.ReadTischSession(context.Background(), subject)
@@ -1894,14 +1894,14 @@ func TestMigration03_AusgabeEntfernen(t *testing.T) {
 		t.Fatalf("Expected no error reading state, got %v", err)
 	}
 	if state.SaldoCents != 500 {
-		t.Fatalf("Expected SaldoCents 500, got %d", state.SaldoCents)
+		t.Errorf("Expected SaldoCents 500, got %d", state.SaldoCents)
 	}
 	if len(state.UnbezahltePositionen) != 1 || state.UnbezahltePositionen[0].Menge != 1 {
-		t.Fatalf("Expected 1 unbezahlte position with menge 1, got %+v", state.UnbezahltePositionen)
+		t.Errorf("Expected 1 unbezahlte position with menge 1, got %+v", state.UnbezahltePositionen)
 	}
 
 	// Der Append-only-Schutz besteht nach der Migration unverändert: DELETE schlägt fehl.
 	if _, err := repo.db.Exec("DELETE FROM kassenjournal WHERE subject = $1", subject); err == nil {
-		t.Fatal("Expected DELETE on kassenjournal to be rejected by the append-only trigger")
+		t.Error("Expected DELETE on kassenjournal to be rejected by the append-only trigger")
 	}
 }
