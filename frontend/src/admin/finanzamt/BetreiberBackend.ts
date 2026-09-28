@@ -3,9 +3,8 @@ import { z } from 'zod'
 import type { BackendClient } from '@/lib/Backend'
 import { DateStringSchema } from '@/lib/utils'
 
-// Die Adressfelder erscheinen auf jedem Kassenbeleg (§ 6 KassenSichV). Grenzen
-// und Trim spiegeln das zog-Schema in domain/betreiber: die amtlichen
-// Maximallängen der DSFinV-K-Stammdaten.
+// The address fields appear on every Kassenbeleg (§ 6 KassenSichV). Limits and trim mirror the zog schema
+// in domain/betreiber, which holds the legal maximum lengths of the DSFinV-K master data.
 export const BetreiberEingabeSchema = z.object({
   vereinsname: z
     .string()

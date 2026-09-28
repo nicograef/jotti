@@ -1,4 +1,4 @@
-// Zur Bauzeit eingebrannt per `define` in vite.config.ts (Default `dev`) und
-// vitest.config.ts (feste Release-Version). Ohne diese Deklaration scheitert `tsc -b`; sie liegt unter
-// src/, weil tsconfig.app.json nur "src" inkludiert.
+// Set at build time by `define` in vite.config.ts (default `dev`) and vitest.config.ts (a fixed
+// release version). `tsc -b` fails without this declaration; it lives in src/ because
+// tsconfig.app.json only includes "src".
 declare const __CLIENT_VERSION__: string

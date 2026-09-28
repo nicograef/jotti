@@ -40,7 +40,7 @@ func validProjektionsPositionen() []Position {
 	}}
 }
 
-// validateSchema spiegelt das Fehler-Wrapping der Konstruktoren (validateEventData).
+// validateSchema mirrors the error wrapping of the constructors (validateEventData).
 func validateSchema[T any](schema *z.StructSchema, value *T) error {
 	if errs := schema.Validate(value); errs != nil {
 		return fmt.Errorf("%w: %v", ErrEventDatenUngueltig, z.Issues.FlattenAndCollect(errs))

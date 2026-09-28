@@ -8,7 +8,7 @@ import (
 	z "github.com/Oudwins/zog"
 )
 
-// ErrPreisUngueltig: der Preis einer Variante verletzt PreisCentsSchema.
+// ErrPreisUngueltig means a Variante's price violates PreisCentsSchema.
 var ErrPreisUngueltig = errors.New("invalid price")
 
 type Status string

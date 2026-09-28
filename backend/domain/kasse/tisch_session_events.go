@@ -110,7 +110,7 @@ var bestellungUmgebuchtV1DataSchema = z.Struct(z.Shape{
 	"BenutzerKommentar": z.String().Max(100),
 })
 
-// ErrEventDatenUngueltig: die Daten eines neuen Events verletzen ihr Schema.
+// ErrEventDatenUngueltig means the data of a new event violates its schema.
 var ErrEventDatenUngueltig = errors.New("data validation failed")
 
 // validateEventData verpackt einen Schema-Fehlschlag als Konstruktionsfehler

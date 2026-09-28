@@ -5,9 +5,8 @@ import (
 	"slices"
 )
 
-// NewFavoritRepo erzeugt ein In-Memory-Favoriten-Repository für Unit-Tests. favoriten
-// bildet Benutzer-ID auf die markierten Tisch-IDs ab; err wird von jeder Methode
-// zurückgegeben, die Zustandsänderung unterbleibt dann.
+// NewFavoritRepo creates an in-memory Favoriten repository that maps a user ID to the marked Tisch IDs.
+// A set err is returned by every method, which then changes nothing.
 func NewFavoritRepo(favoriten map[int][]int, err error) *FavoritRepo {
 	kopie := make(map[int][]int, len(favoriten))
 	for userID, tischIDs := range favoriten {
