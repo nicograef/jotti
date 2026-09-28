@@ -33,6 +33,7 @@ func TestRenderCaddyfileWithState(t *testing.T) {
 		"reverse_proxy frontend:80",
 		"https:// {",
 		"on_demand",
+		"skip_install_trust",
 		"redir https://{host}{uri} permanent",
 		`Strict-Transport-Security "` + hstsLAN + `"`,
 		`X-Content-Type-Options "nosniff"`,

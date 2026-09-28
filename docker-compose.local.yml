@@ -130,6 +130,17 @@ services:
     container_name: jotti-reverse-proxy-local
     restart: unless-stopped
     logging: *default-logging
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /config
+      - /etc/caddy
+      - /tmp
     environment:
       # Host LAN IP, detected on the host and passed in by `make local-up`
       # (a bridged container can only see its docker-bridge IP, which phones

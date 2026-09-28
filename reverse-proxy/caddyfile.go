@@ -46,6 +46,8 @@ func renderCaddyfile(in caddyfileInput) string {
 	return fmt.Sprintf(`# Generiert vom jotti-reverse-proxy beim Start — nicht von Hand bearbeiten.
 {
 	admin off
+	# Installing the local root into the container's trust store is pointless and fails on the read-only root filesystem.
+	skip_install_trust
 }
 
 # Gemeinsame Proxy- und Security-Header-Konfiguration für beide Sites.

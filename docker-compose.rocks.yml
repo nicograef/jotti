@@ -166,6 +166,15 @@ services:
     container_name: jotti-reverse-proxy
     restart: unless-stopped
     logging: *default-logging
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     entrypoint: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
     ports:
       - "80:80"
@@ -212,6 +221,12 @@ services:
     container_name: jotti-resolver
     restart: unless-stopped
     logging: *default-logging
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "53:53/udp"
       - "53:53/tcp"

@@ -109,6 +109,18 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     logging: *default-logging
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /data
+      - /config
+      - /etc/caddy
+      - /tmp
     environment:
       # Klartext-HTTP-Mode: eine :80-Site ohne TLS/ACME, gleiches API-Routing
       # und dieselbe CSP wie die anderen Modi (nur fuer die Testumgebung).

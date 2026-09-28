@@ -124,6 +124,17 @@ services:
     container_name: jotti-reverse-proxy
     restart: unless-stopped
     logging: *default-logging
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /config
+      - /etc/caddy
+      - /tmp
     environment:
       # JOTTI_DOMAIN switches the image into public mode: one site for this
       # domain with an automatic Let's Encrypt certificate. Required, with no
