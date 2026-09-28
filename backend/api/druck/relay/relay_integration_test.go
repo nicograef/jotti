@@ -330,13 +330,13 @@ func TestRelayPollErgebnisFlow(t *testing.T) {
 	ids := make([]int, 0, len(result.Auftraege))
 	for _, auftrag := range result.Auftraege {
 		if auftrag.ZielIP != "192.168.1.51" {
-			t.Fatalf("Expected ZielIP 192.168.1.51, got %s", auftrag.ZielIP)
+			t.Errorf("Expected ZielIP 192.168.1.51, got %s", auftrag.ZielIP)
 		}
 		if auftrag.Payload == "" {
-			t.Fatal("Payload should not be empty")
+			t.Error("Payload should not be empty")
 		}
 		if auftrag.ID == 0 {
-			t.Fatal("Auftrag ID should not be 0")
+			t.Error("Auftrag ID should not be 0")
 		}
 		ids = append(ids, auftrag.ID)
 	}
@@ -353,7 +353,7 @@ func TestRelayPollErgebnisFlow(t *testing.T) {
 	}
 	after := decodePollResponse(t, resp)
 	if len(after.Auftraege) != 0 {
-		t.Fatalf("Expected no offene Auftraege after ergebnis, got %d", len(after.Auftraege))
+		t.Errorf("Expected no offene Auftraege after ergebnis, got %d", len(after.Auftraege))
 	}
 }
 
@@ -370,7 +370,7 @@ func TestRelayPollKeinDruckerKonfiguriert(t *testing.T) {
 	result := decodePollResponse(t, resp)
 
 	if len(result.Auftraege) != 0 {
-		t.Fatalf("Expected 0 auftraege when no drucker configured, got %d", len(result.Auftraege))
+		t.Errorf("Expected 0 auftraege when no drucker configured, got %d", len(result.Auftraege))
 	}
 }
 
@@ -389,6 +389,6 @@ func TestRelayPollFalscherToken(t *testing.T) {
 	}
 	_ = json.NewDecoder(resp.Body).Decode(&errResp)
 	if errResp.Code != "unauthorized" {
-		t.Fatalf("Expected error code 'unauthorized', got %q", errResp.Code)
+		t.Errorf("Expected error code 'unauthorized', got %q", errResp.Code)
 	}
 }

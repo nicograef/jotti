@@ -91,7 +91,7 @@ func TestGetFehlgeschlageneDruckauftraegeHandler_Success(t *testing.T) {
 	}
 	a := resp.Druckauftraege[0]
 	if a.ID != 7 || a.BonArt != "arbeitsbon" || a.ZielIP != "192.168.1.51" || a.Versuche != 3 || a.LetzterFehler != "drucker nicht erreichbar" {
-		t.Fatalf("unexpected auftrag DTO: %+v", a)
+		t.Errorf("unexpected auftrag DTO: %+v", a)
 	}
 }
 
@@ -104,7 +104,7 @@ func TestGetFehlgeschlageneDruckauftraegeHandler_EmptyList(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if !strings.Contains(rec.Body.String(), `"druckauftraege":[]`) {
-		t.Fatalf("expected empty array, got %s", rec.Body.String())
+		t.Errorf("expected empty array, got %s", rec.Body.String())
 	}
 }
 
@@ -118,7 +118,7 @@ func TestRetryDruckauftragHandler_Success(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if cmd.erneutID != 42 {
-		t.Fatalf("expected command called with id 42, got %d", cmd.erneutID)
+		t.Errorf("expected command called with id 42, got %d", cmd.erneutID)
 	}
 }
 
@@ -132,7 +132,7 @@ func TestDiscardDruckauftragHandler_Success(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if cmd.verworfen != 42 {
-		t.Fatalf("expected command called with id 42, got %d", cmd.verworfen)
+		t.Errorf("expected command called with id 42, got %d", cmd.verworfen)
 	}
 }
 
@@ -152,7 +152,7 @@ func TestDruckauftragCommandHandlers_RejectInvalidID(t *testing.T) {
 		}
 	}
 	if cmd.erneutID != 0 || cmd.verworfen != 0 {
-		t.Fatalf("expected command not called for invalid IDs, got erneut=%d verworfen=%d", cmd.erneutID, cmd.verworfen)
+		t.Errorf("expected command not called for invalid IDs, got erneut=%d verworfen=%d", cmd.erneutID, cmd.verworfen)
 	}
 }
 
@@ -166,9 +166,9 @@ func TestDiscardAlleFehlgeschlagenenHandler_Success(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if !cmd.alleVerworfen {
-		t.Fatalf("expected command called")
+		t.Errorf("expected command called")
 	}
 	if !strings.Contains(rec.Body.String(), "verworfen") {
-		t.Fatalf("expected body to contain verworfen, got %s", rec.Body.String())
+		t.Errorf("expected body to contain verworfen, got %s", rec.Body.String())
 	}
 }

@@ -199,7 +199,7 @@ func TestFormatKassenbeleg_ContainsPflichtfelder(t *testing.T) {
 
 	for _, check := range checks {
 		if !strings.Contains(got, check) {
-			t.Fatalf("Kassenbeleg enthaelt %q nicht; got:\n%q", check, got)
+			t.Errorf("Kassenbeleg enthaelt %q nicht; got:\n%q", check, got)
 		}
 	}
 }
@@ -234,12 +234,12 @@ func TestFormatKassenbeleg_Stornobeleg_ContainsStornoFelder(t *testing.T) {
 	}
 	for _, check := range checks {
 		if !strings.Contains(got, check) {
-			t.Fatalf("Stornobeleg enthaelt %q nicht; got:\n%q", check, got)
+			t.Errorf("Stornobeleg enthaelt %q nicht; got:\n%q", check, got)
 		}
 	}
 
 	if strings.Contains(got, "KASSENBELEG") {
-		t.Fatalf("Stornobeleg darf nicht als KASSENBELEG betitelt sein; got:\n%q", got)
+		t.Errorf("Stornobeleg darf nicht als KASSENBELEG betitelt sein; got:\n%q", got)
 	}
 }
 
@@ -293,7 +293,7 @@ func TestFormatKassenbeleg_ContainsSteuerkennzeichenProPosition(t *testing.T) {
 
 	for _, check := range checks {
 		if !strings.Contains(got, check) {
-			t.Fatalf("Kassenbeleg enthaelt Steuerkennzeichen %q nicht; got:\n%q", check, got)
+			t.Errorf("Kassenbeleg enthaelt Steuerkennzeichen %q nicht; got:\n%q", check, got)
 		}
 	}
 }
@@ -325,7 +325,7 @@ func TestFormatKassenbeleg_ContainsSteuermatrix(t *testing.T) {
 
 	for _, check := range checks {
 		if !strings.Contains(got, check) {
-			t.Fatalf("Kassenbeleg enthaelt Steuermatrix-Zeile %q nicht; got:\n%q", check, got)
+			t.Errorf("Kassenbeleg enthaelt Steuermatrix-Zeile %q nicht; got:\n%q", check, got)
 		}
 	}
 }
@@ -349,7 +349,7 @@ func TestFormatKassenbeleg_WithoutTSE_DoesNotContainTSEBlock(t *testing.T) {
 	got := string(payload)
 
 	if strings.Contains(got, "TSE-Daten:") {
-		t.Fatalf("Kassenbeleg darf ohne TSE-Daten keinen TSE-Block enthalten; got:\n%q", got)
+		t.Errorf("Kassenbeleg darf ohne TSE-Daten keinen TSE-Block enthalten; got:\n%q", got)
 	}
 }
 
@@ -373,10 +373,10 @@ func TestFormatKassenbeleg_WithTSEAusfallvermerk_ContainsAusfallhinweis(t *testi
 	got := string(payload)
 
 	if !strings.Contains(got, "TSE-Hinweis:") {
-		t.Fatalf("Kassenbeleg mit TSE-Ausfall muss Hinweis enthalten; got:\n%q", got)
+		t.Errorf("Kassenbeleg mit TSE-Ausfall muss Hinweis enthalten; got:\n%q", got)
 	}
 	if !strings.Contains(got, "wird automatisch nachsigniert") {
-		t.Fatalf("Kassenbeleg mit TSE-Ausfall muss Nachsignierhinweis enthalten; got:\n%q", got)
+		t.Errorf("Kassenbeleg mit TSE-Ausfall muss Nachsignierhinweis enthalten; got:\n%q", got)
 	}
 }
 
@@ -400,13 +400,13 @@ func TestFormatKassenbeleg_WithKeineKonfiguration_ContainsHinweis(t *testing.T) 
 	got := string(payload)
 
 	if !strings.Contains(got, "TSE-Hinweis:") {
-		t.Fatalf("Kassenbeleg ohne TSE-Konfiguration muss Hinweis enthalten; got:\n%q", got)
+		t.Errorf("Kassenbeleg ohne TSE-Konfiguration muss Hinweis enthalten; got:\n%q", got)
 	}
 	if !strings.Contains(got, "keine TSE konfiguriert") {
-		t.Fatalf("Kassenbeleg ohne TSE-Konfiguration muss den Konfigurationshinweis enthalten; got:\n%q", got)
+		t.Errorf("Kassenbeleg ohne TSE-Konfiguration muss den Konfigurationshinweis enthalten; got:\n%q", got)
 	}
 	if strings.Contains(got, "nachsigniert") {
-		t.Fatalf("Kassenbeleg ohne TSE-Konfiguration darf keinen Nachsignierhinweis enthalten; got:\n%q", got)
+		t.Errorf("Kassenbeleg ohne TSE-Konfiguration darf keinen Nachsignierhinweis enthalten; got:\n%q", got)
 	}
 }
 
@@ -449,7 +449,7 @@ func TestFormatKassenbeleg_WithTSE_ContainsTSEPflichtfelder(t *testing.T) {
 
 	for _, check := range checks {
 		if !strings.Contains(got, check) {
-			t.Fatalf("Kassenbeleg enthaelt TSE-Pflichtfeld %q nicht; got:\n%q", check, got)
+			t.Errorf("Kassenbeleg enthaelt TSE-Pflichtfeld %q nicht; got:\n%q", check, got)
 		}
 	}
 }
@@ -478,13 +478,13 @@ func TestFormatKassenbeleg_WithTSEQRCode_ContainsNativeESCPosQR(t *testing.T) {
 	})
 
 	if !bytes.Contains(payload, []byte(escpos.QRCodeModel2)) {
-		t.Fatal("Kassenbeleg mit qr_code_data muss QR-Modellbefehl enthalten")
+		t.Error("Kassenbeleg mit qr_code_data muss QR-Modellbefehl enthalten")
 	}
 	if !bytes.Contains(payload, []byte(escpos.QRCodePrint)) {
-		t.Fatal("Kassenbeleg mit qr_code_data muss QR-Printbefehl enthalten")
+		t.Error("Kassenbeleg mit qr_code_data muss QR-Printbefehl enthalten")
 	}
 	if !bytes.Contains(payload, []byte("V0;QR-TSE-TEST")) {
-		t.Fatal("Kassenbeleg mit qr_code_data muss QR-Payload enthalten")
+		t.Error("Kassenbeleg mit qr_code_data muss QR-Payload enthalten")
 	}
 }
 
@@ -511,7 +511,7 @@ func TestFormatKassenbeleg_WithoutTSEQRCode_DoesNotContainNativeESCPosQR(t *test
 	})
 
 	if bytes.Contains(payload, []byte(escpos.QRCodePrint)) {
-		t.Fatal("Kassenbeleg ohne qr_code_data darf keinen nativen QR-Printbefehl enthalten")
+		t.Error("Kassenbeleg ohne qr_code_data darf keinen nativen QR-Printbefehl enthalten")
 	}
 }
 
@@ -533,7 +533,7 @@ func TestFormatKassenbeleg_WithErsteBestellungZeitpunkt_ContainsKlartext(t *test
 
 	got := string(payload)
 	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 20:01:00") {
-		t.Fatalf("Kassenbeleg mit erster Bestellung muss Klarschrift enthalten; got:\n%q", got)
+		t.Errorf("Kassenbeleg mit erster Bestellung muss Klarschrift enthalten; got:\n%q", got)
 	}
 }
 

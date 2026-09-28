@@ -160,10 +160,10 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 	))
 
 	if auftraege[0].Payload != expectedFirst {
-		t.Fatal("first payload is not byte-identical to formatter output")
+		t.Error("first payload is not byte-identical to formatter output")
 	}
 	if auftraege[1].Payload != expectedSecond {
-		t.Fatal("second payload is not byte-identical to formatter output")
+		t.Error("second payload is not byte-identical to formatter output")
 	}
 }
 
@@ -195,7 +195,7 @@ func TestCreateArbeitsbonAuftraege_TischNameStattID(t *testing.T) {
 		true,
 	))
 	if auftraege[0].Payload != expected {
-		t.Fatal("payload must use tischName 'Tisch 15', not tisch ID 18 from subject")
+		t.Error("payload must use tischName 'Tisch 15', not tisch ID 18 from subject")
 	}
 }
 
@@ -256,7 +256,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProBestellung(t *testin
 
 	expected := base64.StdEncoding.EncodeToString(escpos.FormatDirektverkaufAbholbon(positionen, evt.UserName, evt.Time, "ohne Senf"))
 	if auftraege[0].Payload != expected {
-		t.Fatal("abholbon payload is not byte-identical to formatter output")
+		t.Error("abholbon payload is not byte-identical to formatter output")
 	}
 }
 
@@ -336,6 +336,6 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufOhneStationen(t *testing.T) {
 	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]druckstation.Druckstation{}, "")
 
 	if len(auftraege) != 0 {
-		t.Fatalf("expected 0 auftraege without configured stations, got %d", len(auftraege))
+		t.Errorf("expected 0 auftraege without configured stations, got %d", len(auftraege))
 	}
 }

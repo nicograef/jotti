@@ -154,27 +154,27 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if status != BelegStatusEingereiht {
-		t.Fatalf("expected status eingereiht, got %q", status)
+		t.Errorf("expected status eingereiht, got %q", status)
 	}
 	status, err = command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID})
 	if err != nil {
 		t.Fatalf("expected no reprint error, got %v", err)
 	}
 	if status != BelegStatusEingereiht {
-		t.Fatalf("expected reprint status eingereiht, got %q", status)
+		t.Errorf("expected reprint status eingereiht, got %q", status)
 	}
 
 	if len(auftragMock.enqueued) != 2 {
 		t.Fatalf("expected 2 enqueued auftraege, got %d", len(auftragMock.enqueued))
 	}
 	if auftragMock.enqueued[0].BonArt != "kassenbeleg" {
-		t.Fatalf("expected bon_art kassenbeleg, got %s", auftragMock.enqueued[0].BonArt)
+		t.Errorf("expected bon_art kassenbeleg, got %s", auftragMock.enqueued[0].BonArt)
 	}
 	if auftragMock.enqueued[0].ZielIP != "192.168.1.80" {
-		t.Fatalf("expected ziel_ip 192.168.1.80, got %s", auftragMock.enqueued[0].ZielIP)
+		t.Errorf("expected ziel_ip 192.168.1.80, got %s", auftragMock.enqueued[0].ZielIP)
 	}
 	if !strings.HasPrefix(auftragMock.enqueued[0].Referenz, "zahlung-kassiert:") {
-		t.Fatalf("expected zahlung-kassiert referenz, got %s", auftragMock.enqueued[0].Referenz)
+		t.Errorf("expected zahlung-kassiert referenz, got %s", auftragMock.enqueued[0].Referenz)
 	}
 }
 
@@ -261,7 +261,7 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 
 	for _, check := range checks {
 		if !strings.Contains(got, check) {
-			t.Fatalf("kassenbeleg payload enthaelt %q nicht; got:\n%q", check, got)
+			t.Errorf("kassenbeleg payload enthaelt %q nicht; got:\n%q", check, got)
 		}
 	}
 }
@@ -333,7 +333,7 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if status != BelegStatusEingereiht {
-		t.Fatalf("expected status eingereiht, got %q", status)
+		t.Errorf("expected status eingereiht, got %q", status)
 	}
 
 	if len(auftragMock.enqueued) != 1 {
@@ -358,13 +358,13 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 
 	for _, check := range checks {
 		if !strings.Contains(got, check) {
-			t.Fatalf("kassenbeleg payload enthaelt %q nicht; got:\n%q", check, got)
+			t.Errorf("kassenbeleg payload enthaelt %q nicht; got:\n%q", check, got)
 		}
 	}
 
 	// Prompte Signatur: kein Nachsigniert-Vermerk (Kriterium: verspätet).
 	if strings.Contains(got, "Nachsigniert") {
-		t.Fatalf("expected no Nachsigniert-Vermerk on promptly signed beleg, got:\n%q", got)
+		t.Errorf("expected no Nachsigniert-Vermerk on promptly signed beleg, got:\n%q", got)
 	}
 }
 
@@ -436,7 +436,7 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 
 	got := string(payload)
 	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 20:01:00") {
-		t.Fatalf("expected first order klartext in table receipt, got:\n%q", got)
+		t.Errorf("expected first order klartext in table receipt, got:\n%q", got)
 	}
 }
 
@@ -492,10 +492,10 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if status != BelegStatusAusstehend {
-		t.Fatalf("expected status ausstehend, got %q", status)
+		t.Errorf("expected status ausstehend, got %q", status)
 	}
 	if len(auftragMock.enqueued) != 0 {
-		t.Fatalf("expected no druckauftrag while signature is pending, got %d", len(auftragMock.enqueued))
+		t.Errorf("expected no druckauftrag while signature is pending, got %d", len(auftragMock.enqueued))
 	}
 
 	// Der Worker quittiert — der nächste Abruf liefert den Beleg mit Signatur.
@@ -514,7 +514,7 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if status != BelegStatusEingereiht {
-		t.Fatalf("expected status eingereiht, got %q", status)
+		t.Errorf("expected status eingereiht, got %q", status)
 	}
 	if len(auftragMock.enqueued) != 1 {
 		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
@@ -527,10 +527,10 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 
 	got := string(payload)
 	if !strings.Contains(got, "TSE-Daten:") {
-		t.Fatalf("expected TSE block from auftrag signature, got:\n%q", got)
+		t.Errorf("expected TSE block from auftrag signature, got:\n%q", got)
 	}
 	if !strings.Contains(got, "SIG-NACHGEHOLT") {
-		t.Fatalf("expected auftrag signature in payload, got:\n%q", got)
+		t.Errorf("expected auftrag signature in payload, got:\n%q", got)
 	}
 }
 
@@ -605,7 +605,7 @@ func TestKassenbelegDrucken_VerspaeteteSignatur_TraegtNachsigniertVermerk(t *tes
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if status != BelegStatusEingereiht {
-		t.Fatalf("expected status eingereiht, got %q", status)
+		t.Errorf("expected status eingereiht, got %q", status)
 	}
 
 	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
@@ -615,10 +615,10 @@ func TestKassenbelegDrucken_VerspaeteteSignatur_TraegtNachsigniertVermerk(t *tes
 
 	got := string(payload)
 	if !strings.Contains(got, "TSE-Daten:") {
-		t.Fatalf("expected TSE block on nachsignierter beleg, got:\n%q", got)
+		t.Errorf("expected TSE block on nachsignierter beleg, got:\n%q", got)
 	}
 	if !strings.Contains(got, "Nachsigniert am 10.06.2026 20:07:03") {
-		t.Fatalf("expected Nachsigniert-Vermerk, got:\n%q", got)
+		t.Errorf("expected Nachsigniert-Vermerk, got:\n%q", got)
 	}
 }
 
@@ -640,7 +640,7 @@ func TestKassenbelegDrucken_AusfallEndstatus_BelegMitAusfallvermerk(t *testing.T
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if status != BelegStatusEingereiht {
-		t.Fatalf("expected status eingereiht, got %q", status)
+		t.Errorf("expected status eingereiht, got %q", status)
 	}
 	if len(auftragMock.enqueued) != 1 {
 		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
@@ -653,10 +653,10 @@ func TestKassenbelegDrucken_AusfallEndstatus_BelegMitAusfallvermerk(t *testing.T
 
 	got := string(payload)
 	if strings.Contains(got, "TSE-Daten:") {
-		t.Fatalf("expected no TSE block on ausfall beleg, got:\n%q", got)
+		t.Errorf("expected no TSE block on ausfall beleg, got:\n%q", got)
 	}
 	if !strings.Contains(got, "TSE-Hinweis:") {
-		t.Fatalf("expected Ausfallvermerk on beleg, got:\n%q", got)
+		t.Errorf("expected Ausfallvermerk on beleg, got:\n%q", got)
 	}
 }
 
@@ -686,7 +686,7 @@ func TestKassenbelegDrucken_OffenBeiAktiverStoerung_BelegMitAusfallvermerk(t *te
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if status != BelegStatusEingereiht {
-		t.Fatalf("expected status eingereiht, got %q", status)
+		t.Errorf("expected status eingereiht, got %q", status)
 	}
 	if len(auftragMock.enqueued) != 1 {
 		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
@@ -697,7 +697,7 @@ func TestKassenbelegDrucken_OffenBeiAktiverStoerung_BelegMitAusfallvermerk(t *te
 		t.Fatalf("expected base64 payload, got decode error: %v", err)
 	}
 	if !strings.Contains(string(payload), "TSE-Hinweis:") {
-		t.Fatalf("expected Ausfallvermerk on beleg, got:\n%q", string(payload))
+		t.Errorf("expected Ausfallvermerk on beleg, got:\n%q", string(payload))
 	}
 }
 
@@ -714,7 +714,7 @@ func TestKassenbelegDrucken_ZahlungNichtGefunden(t *testing.T) {
 
 	_, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: "11111111-1111-1111-1111-111111111111"})
 	if !errors.Is(err, ErrZahlungNichtGefunden) {
-		t.Fatalf("expected ErrZahlungNichtGefunden, got %v", err)
+		t.Errorf("expected ErrZahlungNichtGefunden, got %v", err)
 	}
 }
 
@@ -757,7 +757,7 @@ func TestKassenbelegDrucken_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
 	}
 
 	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID}); !errors.Is(err, ErrKassenbelegDruckerNichtKonfiguriert) {
-		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
+		t.Errorf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
 	}
 }
 
@@ -811,10 +811,10 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
 	}
 	if auftragMock.enqueued[0].BonArt != "kassenbeleg" {
-		t.Fatalf("expected bon_art kassenbeleg, got %s", auftragMock.enqueued[0].BonArt)
+		t.Errorf("expected bon_art kassenbeleg, got %s", auftragMock.enqueued[0].BonArt)
 	}
 	if !strings.HasPrefix(auftragMock.enqueued[0].Referenz, "direktverkauf-getaetigt:") {
-		t.Fatalf("expected direktverkauf-getaetigt referenz, got %s", auftragMock.enqueued[0].Referenz)
+		t.Errorf("expected direktverkauf-getaetigt referenz, got %s", auftragMock.enqueued[0].Referenz)
 	}
 
 	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
@@ -822,7 +822,7 @@ func TestKassenbelegDrucken_Direktverkauf_ExactlyOneAuftrag(t *testing.T) {
 		t.Fatalf("expected base64 payload, got decode error: %v", err)
 	}
 	if strings.Contains(string(payload), "Erste Bestellung:") {
-		t.Fatalf("Direktverkauf-Beleg darf keinen Durchbedienen-Klarschriftzeitpunkt enthalten, got:\n%q", string(payload))
+		t.Errorf("Direktverkauf-Beleg darf keinen Durchbedienen-Klarschriftzeitpunkt enthalten, got:\n%q", string(payload))
 	}
 }
 
@@ -839,7 +839,7 @@ func TestKassenbelegDrucken_Direktverkauf_NichtGefunden(t *testing.T) {
 
 	_, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: uuid.New().String()})
 	if !errors.Is(err, ErrVerkaufNichtGefunden) {
-		t.Fatalf("expected ErrVerkaufNichtGefunden, got %v", err)
+		t.Errorf("expected ErrVerkaufNichtGefunden, got %v", err)
 	}
 }
 
@@ -875,7 +875,7 @@ func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t 
 	}
 
 	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID}); !errors.Is(err, ErrKassenbelegDruckerNichtKonfiguriert) {
-		t.Fatalf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
+		t.Errorf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
 	}
 }
 
@@ -945,7 +945,7 @@ func TestKassenbelegDrucken_Direktverkauf_MitSignaturAmAuftrag(t *testing.T) {
 	got := string(payload)
 	for _, check := range []string{"TSE-Daten:", "TSE-Transaktion: 4001", "Signaturzaehler: 99", "TSE-Seriennummer: SW-TSE-SN-0044", "SIG-DIREKTVERKAUF", "V0;DIREKTVERKAUF"} {
 		if !strings.Contains(got, check) {
-			t.Fatalf("expected %q in direktverkauf receipt, got:\n%q", check, got)
+			t.Errorf("expected %q in direktverkauf receipt, got:\n%q", check, got)
 		}
 	}
 }
@@ -991,10 +991,10 @@ func TestKassenbelegDrucken_Direktverkauf_SignaturAusstehend_KeinDruckauftrag(t 
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if status != BelegStatusAusstehend {
-		t.Fatalf("expected status ausstehend, got %q", status)
+		t.Errorf("expected status ausstehend, got %q", status)
 	}
 	if len(auftragMock.enqueued) != 0 {
-		t.Fatalf("expected no druckauftrag while signature is pending, got %d", len(auftragMock.enqueued))
+		t.Errorf("expected no druckauftrag while signature is pending, got %d", len(auftragMock.enqueued))
 	}
 }
 
@@ -1068,7 +1068,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
 	}
 	if !strings.HasPrefix(auftragMock.enqueued[0].Referenz, "direktverkauf-storniert:") {
-		t.Fatalf("expected direktverkauf-storniert referenz, got %s", auftragMock.enqueued[0].Referenz)
+		t.Errorf("expected direktverkauf-storniert referenz, got %s", auftragMock.enqueued[0].Referenz)
 	}
 
 	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
@@ -1079,7 +1079,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 	got := string(payload)
 	for _, check := range []string{"STORNOBELEG", "Storno zu Bon-Nr: 1", "GESAMT: -7,00 EUR", "-3,50 x 2 = -7,00 EUR", "SIG-STORNO"} {
 		if !strings.Contains(got, check) {
-			t.Fatalf("expected %q in stornobeleg, got:\n%q", check, got)
+			t.Errorf("expected %q in stornobeleg, got:\n%q", check, got)
 		}
 	}
 }
@@ -1152,7 +1152,7 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
 	}
 	if !strings.HasPrefix(auftragMock.enqueued[0].Referenz, "stornierung-erteilt:") {
-		t.Fatalf("expected stornierung-erteilt referenz, got %s", auftragMock.enqueued[0].Referenz)
+		t.Errorf("expected stornierung-erteilt referenz, got %s", auftragMock.enqueued[0].Referenz)
 	}
 
 	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
@@ -1164,7 +1164,7 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 	// Referenz auf den Ursprungs-Zahlungsbeleg (Event-ID 2) und negativer Betrag.
 	for _, check := range []string{"STORNOBELEG", "Storno zu Bon-Nr: 2", "GESAMT: -7,00 EUR", "SIG-STORNO"} {
 		if !strings.Contains(got, check) {
-			t.Fatalf("expected %q in stornobeleg, got:\n%q", check, got)
+			t.Errorf("expected %q in stornobeleg, got:\n%q", check, got)
 		}
 	}
 }
@@ -1200,6 +1200,6 @@ func TestKassenbelegDrucken_DirektverkaufStorno_NichtGefunden(t *testing.T) {
 
 	_, err = command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID, StornierungID: uuid.New().String()})
 	if !errors.Is(err, ErrStornierungNichtGefunden) {
-		t.Fatalf("expected ErrStornierungNichtGefunden, got %v", err)
+		t.Errorf("expected ErrStornierungNichtGefunden, got %v", err)
 	}
 }

@@ -83,7 +83,7 @@ func TestTestbonDrucken_ReihtAuftragEin(t *testing.T) {
 		t.Fatalf("Failed to read druckauftraege: %v", err)
 	}
 	if count != 1 {
-		t.Fatalf("Expected exactly 1 testbon auftrag, got %d", count)
+		t.Errorf("Expected exactly 1 testbon auftrag, got %d", count)
 	}
 	if bonArt != "testbon" {
 		t.Errorf("Expected bon_art 'testbon', got %q", bonArt)
@@ -107,7 +107,7 @@ func TestTestbonDrucken_OhneIPWirdAbgelehnt(t *testing.T) {
 
 	err := cmd.TestbonDrucken(ctx, "essen")
 	if !errors.Is(err, application.ErrDruckstationNichtKonfiguriert) {
-		t.Fatalf("Expected ErrDruckstationNichtKonfiguriert, got %v", err)
+		t.Errorf("Expected ErrDruckstationNichtKonfiguriert, got %v", err)
 	}
 
 	var count int

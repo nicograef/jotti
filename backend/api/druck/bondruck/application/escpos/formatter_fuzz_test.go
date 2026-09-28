@@ -53,7 +53,7 @@ func FuzzFormatKassenbeleg(f *testing.F) {
 		out := FormatKassenbeleg(data)
 
 		if !bytes.HasPrefix(out, []byte(Init)) {
-			t.Fatalf("Beleg beginnt nicht mit Init: %q", out[:min(len(out), 8)])
+			t.Errorf("Beleg beginnt nicht mit Init: %q", out[:min(len(out), 8)])
 		}
 		assertQRCommandLengths(t, out)
 	})
@@ -99,27 +99,27 @@ func TestAssertQRCommandLengths_PayloadMitPrefix(t *testing.T) {
 	// Gegenprobe: Ein manuell verstümmeltes Store-Kommando (überlange Längenangabe)
 	// muss von assertQRCommandLengths erkannt werden — sonst prüft die Probe nichts.
 	corrupt := verstuemmeleStoreLaenge(out)
-	rec := &fatalRecorder{}
+	rec := &errorRecorder{}
 	assertQRCommandLengths(rec, corrupt)
 	if !rec.failed {
-		t.Fatal("verstümmeltes Store-Kommando wurde nicht erkannt")
+		t.Error("verstümmeltes Store-Kommando wurde nicht erkannt")
 	}
 }
 
 // qrAsserter ist die von assertQRCommandLengths genutzte Teilmenge von
 // testing.TB (*testing.T erfüllt sie). Über diese Schnittstelle kann die
-// Gegenprobe Fatalf-Aufrufe abfangen, ohne den Test zu beenden.
+// Gegenprobe Errorf-Aufrufe abfangen, ohne den Test fehlschlagen zu lassen.
 type qrAsserter interface {
 	Helper()
-	Fatalf(format string, args ...any)
+	Errorf(format string, args ...any)
 }
 
-type fatalRecorder struct {
+type errorRecorder struct {
 	failed bool
 }
 
-func (r *fatalRecorder) Helper()               {}
-func (r *fatalRecorder) Fatalf(string, ...any) { r.failed = true }
+func (r *errorRecorder) Helper()               {}
+func (r *errorRecorder) Errorf(string, ...any) { r.failed = true }
 
 // verstuemmeleStoreLaenge sucht das erste echte GS ( k Store-Kommando (cn=0x31,
 // fn=0x50) und setzt seine deklarierte Länge (pL/pH) auf einen zu großen Wert,
@@ -162,7 +162,7 @@ func assertQRCommandLengths(t qrAsserter, out []byte) {
 		bodyLen := pL + pH*256
 		end := i + 5 + bodyLen
 		if end > len(out) {
-			t.Fatalf("GS ( k bei Offset %d deklariert %d Bytes, aber nur %d verfügbar", i, bodyLen, len(out)-(i+5))
+			t.Errorf("GS ( k bei Offset %d deklariert %d Bytes, aber nur %d verfügbar", i, bodyLen, len(out)-(i+5))
 		}
 		// Über das komplette Kommando (inkl. Store-Nutzlast) springen, damit
 		// Prefix-Bytes innerhalb der QR-Payload nicht als Kommando fehlgelesen werden.

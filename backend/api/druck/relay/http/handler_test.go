@@ -83,7 +83,7 @@ func TestPollHandler_AcceptsMatchingToken(t *testing.T) {
 		t.Fatalf("expected 1 auftrag, got %d", len(resp.Auftraege))
 	}
 	if resp.Auftraege[0].ID != 7 {
-		t.Fatalf("expected auftrag id 7, got %d", resp.Auftraege[0].ID)
+		t.Errorf("expected auftrag id 7, got %d", resp.Auftraege[0].ID)
 	}
 }
 
@@ -101,7 +101,7 @@ func TestPollHandler_RejectsEmptyAndWrongToken(t *testing.T) {
 			t.Fatalf("token %q: failed to decode error response: %v", token, err)
 		}
 		if errResp.Code != "unauthorized" {
-			t.Fatalf("token %q: expected code unauthorized, got %q", token, errResp.Code)
+			t.Errorf("token %q: expected code unauthorized, got %q", token, errResp.Code)
 		}
 	}
 }
@@ -119,7 +119,7 @@ func TestPollHandler_RejectsWhenConfiguredTokenIsEmpty(t *testing.T) {
 		t.Fatalf("failed to decode error response: %v", err)
 	}
 	if errResp.Code != "unauthorized" {
-		t.Fatalf("expected code unauthorized, got %q", errResp.Code)
+		t.Errorf("expected code unauthorized, got %q", errResp.Code)
 	}
 }
 
@@ -136,10 +136,10 @@ func TestErgebnisHandler_AcceptsMatchingToken(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", rr.Code)
 	}
 	if len(repo.gedruckteIDs) != 2 || repo.gedruckteIDs[0] != 4 || repo.gedruckteIDs[1] != 5 {
-		t.Fatalf("expected gedruckte ids [4 5], got %v", repo.gedruckteIDs)
+		t.Errorf("expected gedruckte ids [4 5], got %v", repo.gedruckteIDs)
 	}
 	if len(repo.fehlversuche) != 1 || repo.fehlversuche[0].ID != 9 || repo.fehlversuche[0].Fehler != "drucker nicht erreichbar" {
-		t.Fatalf("expected one fehlversuch for id 9, got %v", repo.fehlversuche)
+		t.Errorf("expected one fehlversuch for id 9, got %v", repo.fehlversuche)
 	}
 }
 
@@ -150,10 +150,10 @@ func TestErgebnisHandler_RejectsEmptyAndWrongToken(t *testing.T) {
 	for _, token := range []string{"", "wrong-token"} {
 		rr := performJSONRequest(t, h.ErgebnisHandler(), map[string]any{"token": token, "gedruckteIds": []int{1}})
 		if rr.Code != http.StatusBadRequest {
-			t.Fatalf("token %q: expected status 400, got %d", token, rr.Code)
+			t.Errorf("token %q: expected status 400, got %d", token, rr.Code)
 		}
 	}
 	if len(repo.gedruckteIDs) != 0 {
-		t.Fatalf("expected repo not called, got gedruckte ids %v", repo.gedruckteIDs)
+		t.Errorf("expected repo not called, got gedruckte ids %v", repo.gedruckteIDs)
 	}
 }
