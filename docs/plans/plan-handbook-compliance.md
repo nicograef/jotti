@@ -313,9 +313,9 @@ Every code comment longer than two sentences is cut to the invariant or the non-
 
 ### Acceptance criteria
 
-- [ ] `make check-repo` green with the caps on
-- [ ] a 25-word sentence added to `README.md` makes `scripts/check-prose.sh` fail
-- [ ] `grep -n '^## [45]\.' docs/plans/plan-release-v1.0.0.md` finds nothing; `docs/backlog.md` holds the open items
+- [x] `make check-repo` green with the caps on
+- [x] a 25-word sentence added to `README.md` makes `scripts/check-prose.sh` fail
+- [x] `grep -n '^## [45]\.' docs/plans/plan-release-v1.0.0.md` finds nothing; `docs/backlog.md` holds the open items
 
 ## Phase 15: Owner steps
 
